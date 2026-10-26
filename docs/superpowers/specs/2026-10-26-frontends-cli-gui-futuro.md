@@ -69,11 +69,12 @@ igual, y es el modelo que mejor encaja con nuestro hilo de lógica único. Miran
   registrarse como Windows Service. Todo lo demás vive en `worldserver.conf`, y cualquier clave se
   puede pisar con una variable de entorno (útil en Docker).
 - **La consola es un hilo que solo lee y encola.** `CommandLine/CliRunnable.cpp` lee con GNU
-  readline (historial y autocompletado con Tab) y un prompt (`TC> `, `AC> `, `mangos>`). Cada
-  línea se envuelve en un `CliCommandHolder` y se manda a `World::QueueCliCommand`. El hilo del
-  mundo, en cada tick, llama a `ProcessCliCommands()` y la ejecuta. **La consola nunca toca el
-  estado del mundo**: es exactamente la regla que necesitamos para no romper los invariantes de la
-  ola 4.
+  readline en Linux (historial y autocompletado con Tab) y con la API de consola en Windows, con
+  un prompt (`TC> `, `AC> `, `mangos>`). Cada línea se envuelve en un `CliCommandHolder` y se
+  manda a `World::QueueCliCommand`. El hilo del mundo, en cada tick, llama a
+  `ProcessCliCommands()` y la ejecuta. **La consola nunca toca el estado del mundo**: es
+  exactamente la regla que necesitamos para no romper los invariantes de la ola 4. El `CliCommandHolder` lleva además dos callbacks (uno para imprimir y otro para avisar
+  que terminó): así la respuesta vuelve a quien la pidió, aunque se ejecute en otro hilo.
 - **Un solo sistema de comandos para todos los canales.** Los comandos de consola son los mismos que
   los de GM dentro del juego; la consola es un "jugador" con nivel de seguridad de consola.
 - **Acceso remoto opcional, apagado por defecto** (`worldserver.conf`):
@@ -135,11 +136,21 @@ una capa más:
     núcleo no sabe quién es.
 - **Hilos:** un front-end **nunca** toca el estado del hilo de lógica directamente. Los comandos que
   cambian algo (`Kick`, `ReloadFilters`) se **encolan** y los ejecuta el hilo de lógica, como el
-  `QueueCliCommand` de TrinityCore, para no romper los invariantes I-1/I-2/I-3 de la ola 4. Lo que solo lee (`Status`, `Metrics`) devuelve
-  una **copia** (snapshot) tomada bajo lock o con atómicos.
+  `QueueCliCommand` de TrinityCore, para no romper los invariantes I-1/I-2/I-3 de la ola 4.
+  Ojo con un detalle que TrinityCore no tiene: allá el hilo del mundo da vueltas con un tick fijo y
+  vacía la cola de comandos en cada vuelta, pero nuestro hilo de lógica (4.2) está **dormido en el
+  `Pop` de la `MessageQueue`**. Si los comandos van en una cola aparte, nadie lo despierta. Hay dos
+  salidas, a decidir en la 9.1: que la `MessageQueue` lleve `std::variant<Frame, AdminCommand>`
+  (con los comandos fuera del tope de back-pressure, para que un `shutdown` nunca se descarte), o
+  una segunda cola que comparta el mismo `condition_variable`. Cada comando lleva su callback de
+  respuesta, como el `CliCommandHolder`.
+- **Lecturas:** lo que solo lee (`Status`, `Metrics`) devuelve una **copia** (snapshot) tomada bajo
+  lock o con atómicos, sin pasar por la cola.
 - **Log:** el logger seguro entre hilos (C-5, ola 2) escribe a archivo siempre, y además a los
   `LogSink` suscritos. Un ring buffer de N líneas para el que se conecta tarde es la versión
-  moderna del de 30 × 0x50 del original.
+  moderna del de 30 × 0x50 del original. Al `LogSink` lo llaman **los hilos del servidor** (los de
+  I/O y el de lógica), así que tiene que ser barato y no bloquear: copia la línea y vuelve. Nunca
+  espera a la UI ni vuelve a loguear adentro (con el lock del logger tomado, eso es un deadlock).
 - **Un ejecutable headless en los dos sistemas.** `DataServer` (el de `main.cpp`) sigue siendo de
   consola en Windows y en Linux. La GUI de Windows es **otro ejecutable** sobre el mismo núcleo, que
   se suma, no un reemplazo.
@@ -181,12 +192,19 @@ DS> shutdown
 
 - **Pocos argumentos, el resto en la config** (como TrinityCore): `--help`, `--version`,
   `--config <archivo>`, `--port` (validado 1–65535, pisa a la config), `--no-console` (no leer
-  stdin). Se mantiene el uso viejo `DataServer 55960` posicional para que los scripts del lab sigan
-  andando. Las claves de la config se pueden pisar con variables de entorno (útil en Docker).
+  stdin). Se mantiene el uso viejo `DataServer 55960 [modo]` posicional para que los scripts del lab
+  sigan andando; el `modo` (la mitad de la pantalla donde iba la ventana) se acepta y se ignora con
+  un aviso en el log. Las claves de la config se pueden pisar con variables de entorno (útil en
+  Docker).
 - **Config** en el archivo que decida la ola 2 (TOML o JSON), con `Console.Enable` y compañía.
-- **Consola = un productor más de la cola**: un hilo lee la línea (con historial; readline en
-  Linux o una alternativa chica como linenoise/replxx para no depender de GPL), la parsea y la
-  **encola** como un `CliCommandHolder`; el hilo de lógica la ejecuta y devuelve el texto.
+- **Consola = un productor más de la cola**: un hilo lee la línea, la parsea y la **encola** con su
+  callback de respuesta; el hilo de lógica la ejecuta y el callback imprime el resultado.
+- **Librería de línea: replxx.** GNU readline es GPL y no anda en la consola de Windows (por eso
+  TrinityCore tiene dos caminos); linenoise es solo POSIX. replxx es BSD, anda en Linux y en
+  Windows, tiene historial y autocompletado, y resuelve el problema clásico de esta consola: el log
+  escribe líneas mientras uno está tipeando. Su `print()` se puede llamar desde otro hilo mientras
+  `input()` espera; replxx encola el texto y lo imprime sin romper la línea que se está editando.
+  El `LogSink` de la consola escribe por ahí.
 - **Señales:** `SIGINT` (Ctrl+C) pide confirmación como OpenMU; `SIGTERM` apaga sin preguntar (es
   lo que manda `systemctl stop` o `docker stop`). Ya está en la sub-ola 8.4.
 - **Como servicio:** una unidad de systemd (`Type=simple`, log a stdout que va a `journalctl`,
@@ -261,8 +279,9 @@ implementación de esa interfaz (en memoria → por el canal), no reescribir la 
 
 | Opción | Qué es | Pros | Contras |
 | --- | --- | --- | --- |
-| **G-1. Qt 6** (Widgets, o QML con el estilo Fluent de Windows 11) | framework completo en C++, multiplataforma | se ve actual y nativo; model/view para la tabla de sesiones y el log; signals/slots seguros entre hilos (justo lo que hace falta entre el núcleo y la UI); también anda en Linux con escritorio | pesado, build largo por vcpkg, MOC; licencia LGPL (linkear dinámico) |
-| **G-2. Dear ImGui** (+ DirectX 11/Win32) | UI "modo inmediato" en C++, muy usada en herramientas de juegos | chica, C++ puro, entra por vcpkg, se aprende rápido; ideal para un prototipo o un panel de debug | look de "herramienta", no de app de Windows; DPI y accesibilidad a mano |
+| **G-1. Qt 6 Widgets** (estilo `windows11`) | framework completo en C++, multiplataforma | desde Qt 6.7, en Windows 11 los Widgets usan por defecto el estilo `windows11` (diseño Fluent, con modo oscuro), sin escribir QML; DPI alto de serie; model/view para la tabla de sesiones y el log; signals/slots entre hilos (justo lo que hace falta entre el núcleo y la UI); también anda en Linux con escritorio | pesado, build largo por vcpkg, MOC; licencia LGPLv3 (linkear dinámico) |
+| **G-1b. Qt 6 Quick/QML** (estilo `FluentWinUI3`) | la misma Qt, pero la UI en QML | el estilo `FluentWinUI3` (Qt 6.8+) imita WinUI 3, con temas claro y oscuro; animaciones y layouts más modernos | hay que aprender QML (y algo de JavaScript) además de C++; el estilo **no es nativo**: se dibuja con imágenes y se ve igual en todos los sistemas |
+| **G-2. Dear ImGui** (+ DirectX 11/Win32) | UI "modo inmediato" en C++, muy usada en herramientas de juegos | chica, C++ puro, entra por vcpkg, se aprende rápido; ideal para un prototipo o un panel de debug | look de "herramienta", no de app de Windows; DPI a mano (avisarle a Windows con `ImGui_ImplWin32_EnableDpiAwareness()` o un manifest, escalar fuentes con `style.FontScaleDpi` y el resto con `style.ScaleAllSizes()`); accesibilidad casi nula |
 | **G-3. WinUI 3** (Windows App SDK, C++/WinRT) | la UI nativa de Windows 11 (Fluent) | el look más "Windows actual" posible | solo Windows; C++/WinRT es difícil; empaquetado MSIX; en C# es más fácil pero es otro lenguaje |
 | **G-4. Panel web** (estilo OpenMU) | HTTP chico en el núcleo y una página que consume JSON | desde cualquier navegador y sistema | HTTP, auth web y front-end aparte; no es "una GUI como la de antes" |
 
@@ -274,9 +293,11 @@ implementación de esa interfaz (en memoria → por el canal), no reescribir la 
 2. **Después L-B** (`muretctl` + canal de control apagado por defecto, como RA). Es el que más
    enseña de sistemas distribuidos.
 3. **Windows: W-1 + G-1**, una ventana como la del original, en el mismo proceso, hecha con
-   **Qt 6**: es C++, se ve actual (Fluent, DPI, tema oscuro) y sus signals/slots resuelven el cruce
-   de hilos núcleo → UI. Si Qt resulta muy pesado, Dear ImGui (G-2) es el plan B, más rápido de
-   arrancar y más feo. Con L-B hecho, la misma ventana puede pasar a W-2.
+   **Qt 6 Widgets**: todo en C++, sin QML; en Windows 11 se ve Fluent con tema oscuro sin hacer
+   nada (estilo `windows11`), y sus signals/slots resuelven el cruce de hilos núcleo → UI. QML
+   (G-1b) queda para cuando se quiera algo más vistoso. Si Qt resulta muy pesado, Dear ImGui
+   (G-2) es el plan B, más rápido de arrancar y más feo. Con L-B hecho, la misma ventana puede
+   pasar a W-2.
 4. WinUI (G-3) y el panel web (G-4) quedan anotados, sin plan.
 
 En todos los casos el núcleo es el mismo y no sabe qué front-end lo está usando.
@@ -290,8 +311,8 @@ escribe Emanuel). Requiere las olas 4 (hilos y cola) y 8.4 (métricas y apagado)
 | --- | --- | --- | --- |
 | 9.1 | `DataServer::Admin`: `IServerControl`, `LogSink`, snapshots; comandos encolados al hilo de lógica (como `QueueCliCommand`) | interfaces, observer, snapshots thread-safe | tests en memoria: un `kick` encolado no rompe I-1/I-2/I-3 (TSan limpio) |
 | 9.2 | consola L-A (historial, `help`, confirmación) + argumentos + unidad de systemd | parseo de comandos, stdin, servicios | `status`, `sessions`, `shutdown` andan; `systemctl stop` apaga limpio |
-| 9.3 | GUI de Windows en Qt 6 en el mismo proceso: log en vivo + panel de estado (solo lectura) | event loop de la UI, cruzar hilos con signals/slots, DPI | la ventana muestra log y métricas mientras 100 clientes de prueba pegan, sin trabarse |
-| 9.4 | GUI con comandos: tabla de GS con `kick`, recargar filtros, apagar con confirmación; bandeja | model/view, comandos asíncronos con respuesta | los comandos de la tabla común andan desde la GUI y desde la consola |
+| 9.3 | GUI de Windows en Qt 6 Widgets en el mismo proceso: log en vivo + panel de estado (solo lectura) | event loop de la UI; cruzar hilos con signals/slots (una señal emitida desde otro hilo llega como *queued connection* y el slot corre en el hilo de la UI; los tipos propios se registran con `qRegisterMetaType`; nunca `BlockingQueuedConnection`, que al apagar se traba); el núcleo no conoce `QObject`: un adaptador de la GUI implementa `LogSink` y emite la señal | la ventana muestra log y métricas mientras 100 clientes de prueba pegan, sin trabarse |
+| 9.4 | GUI con comandos (el callback de respuesta vuelve a la UI con `QMetaObject::invokeMethod` y `Qt::QueuedConnection`): tabla de GS con `kick`, recargar filtros, apagar con confirmación; bandeja | model/view, comandos asíncronos con respuesta | los comandos de la tabla común andan desde la GUI y desde la consola |
 | 9.5 | *opcional:* canal de control L-B + `tools/muretctl` (y la GUI como cliente, W-2) | IPC, protocolo, auth, timeouts | `muretctl status` contra un server en Linux y otro en Windows |
 | 9.6 | *opcional:* Windows Service (`--service install`, como TrinityCore) | SCM, servicio sin consola | el server arranca con Windows y la GUI (W-2) se conecta |
 
@@ -309,15 +330,21 @@ packaging/systemd/                 muret-dataserver.service
 ```
 
 Para que `main.cpp` y la GUI compartan el núcleo, el CMake del DataServer pasa a tener una
-biblioteca (`DataServerCore`) y dos ejecutables encima. Qt entra por vcpkg solo si se pide la GUI
-(una opción de CMake, `MURET_BUILD_GUI`, apagada en Linux por defecto). Si entra otro servidor
-antes, `Admin/` se muda a `Server/Common/`.
+biblioteca (`DataServerCore`) y dos ejecutables encima. Qt entra por vcpkg solo si se pide la GUI:
+una *feature* `gui` en `vcpkg.json` (con `qtbase`), y en el `CMakeLists.txt` raíz una opción
+`MURET_BUILD_GUI` (apagada por defecto) que hace `list(APPEND VCPKG_MANIFEST_FEATURES "gui")`
+**antes** del `project()`, como dice la doc de integración de vcpkg con CMake. Así el CI de Linux no
+compila Qt. `replxx` (también tiene port en vcpkg) lo linkea solo el ejecutable de consola, no
+`DataServerCore`: el núcleo no depende de ningún front-end. Si entra otro servidor antes, `Admin/`
+se muda a `Server/Common/`.
 
 ## Preguntas abiertas (para cuando se arranque)
 
-- Qt Widgets o QML (con el estilo Fluent); se decide con un prototipo chico de cada uno, con ADR.
+- Qt Widgets (recomendado) o QML con `FluentWinUI3`; se decide con un prototipo chico de cada uno,
+  con su ADR (el siguiente libre después de las 0001–0005 de los planes).
 - ¿El log de la GUI lee del `LogSink` en vivo, o del archivo de log? (en vivo, con un ring buffer
   para lo anterior, parece lo natural).
-- Librería de línea para la consola: readline (GPL), linenoise o replxx.
+- Comandos y frames en la misma `MessageQueue` (`std::variant`) o en una cola aparte con el mismo
+  `condition_variable` (ver el principio de arriba).
 - Para L-B: transporte (Unix socket / named pipe o TCP local), protocolo (texto o JSON) y auth.
 - ¿Cerrar la ventana apaga el servidor o lo manda a la bandeja?

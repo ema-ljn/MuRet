@@ -1,0 +1,36 @@
+# MuRet
+
+Servidores de MU Online 1.02 reescritos en C++20 moderno, para Windows y Linux.
+El repo crece de a un componente por vez, cada uno en `Server/<Nombre>/`.
+
+Es también un proyecto de aprendizaje de C++ de sistemas y sistemas distribuidos:
+el trabajo va por olas y sub-olas, y cada sub-ola es un concepto y un PR chico
+(ver [el diseño](docs/superpowers/specs/2026-10-25-dataserver-port-design.md)).
+
+## Componentes
+
+| Componente | Qué hace | Estado |
+| --- | --- | --- |
+| [`Server/DataServer`](Server/DataServer/README.md) | traduce los pedidos de los GameServers a SQL (puerto 55960) | ola 0: andamiaje |
+
+## Compilar
+
+Requisitos: CMake 3.25+, y Ninja + GCC/Clang en Linux o Visual Studio 2022 en Windows.
+
+```bash
+# Linux
+cmake --preset linux-x64-debug
+cmake --build --preset linux-x64-debug
+
+# Windows (PowerShell o "Developer Command Prompt")
+cmake --preset windows-x64
+cmake --build --preset windows-x64-debug
+```
+
+Los binarios quedan en `build/<preset>/`.
+
+## Documentación
+
+- Diseño y contrato del DataServer: [`docs/superpowers/specs/`](docs/superpowers/specs/)
+- Plan de cada ola: [`docs/superpowers/plans/`](docs/superpowers/plans/)
+- Notas de aprendizaje y progreso: [`docs/learning/`](docs/learning/)

@@ -31,6 +31,7 @@ Los binarios quedan en `build/<preset>/`.
 
 ## Documentación
 
-- Diseño y contrato del DataServer: [`docs/superpowers/specs/`](docs/superpowers/specs/)
+- Roadmap del port (objetivo, decisiones, las 9 olas): [`docs/superpowers/specs/2026-10-25-dataserver-port-design.md`](docs/superpowers/specs/2026-10-25-dataserver-port-design.md)
+- Research del original (qué hace, byte a byte): [`Server/DataServer/docs/research/`](Server/DataServer/docs/research/)
 - Plan de cada ola: [`docs/superpowers/plans/`](docs/superpowers/plans/)
 - Notas de aprendizaje y progreso: [`docs/learning/`](docs/learning/)

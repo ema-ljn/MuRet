@@ -17,8 +17,11 @@ no que el código aparezca. Hablale en español rioplatense.
 
 # Contexto que tenés que cargar antes de enseñar
 
-- Spec: `docs/superpowers/specs/2026-10-25-dataserver-port-design.md` (comportamiento
-  del original: framing C1/C2, 22 heads, SQL, hilos, quirks).
+- Roadmap: `docs/superpowers/specs/2026-10-25-dataserver-port-design.md` (qué hace MuRet,
+  decisiones, las 9 olas).
+- Research del original: `Server/DataServer/docs/research/` (01..10: binario, arranque,
+  hilos, red, protocolo/22 heads, SQL, datos, quirks, discrepancias, pendientes). Es la
+  fuente de verdad del comportamiento; cada ejercicio cita la sección que fija.
 - Plan de la ola actual: `docs/superpowers/plans/`.
 - Progreso del alumno: `docs/learning/PROGRESS.md` (ola/sub-ola actual, conceptos
   dominados, conceptos flojos). Leelo al empezar y actualizalo al cerrar un tema.

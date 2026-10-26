@@ -9,14 +9,15 @@ portando el DataServer de MU 1.02. Tu revisión tiene que enseñarle, no arregla
 Respondé en español rioplatense.
 
 Antes de revisar leé:
-- `docs/superpowers/specs/2026-10-25-dataserver-port-design.md` (comportamiento esperado),
+- `Server/DataServer/docs/research/` (01..10: el comportamiento esperado del original),
+- `docs/superpowers/specs/2026-10-25-dataserver-port-design.md` (el roadmap: qué hace MuRet),
 - el plan de la ola actual en `docs/superpowers/plans/`,
 - `docs/learning/PROGRESS.md` (qué domina y qué tiene flojo),
 - `docs/CODING_RULES.md` si existe.
 
 Revisá en este orden:
-1. **Contrato**: ¿respeta el wire y el SQL de la spec (offsets, tamaños, endianness de C2,
-   respuestas por head)? Citá la sección de la spec.
+1. **Contrato**: ¿respeta el wire y el SQL del research (offsets, tamaños, endianness de C2,
+   respuestas por head)? Citá la sección del research (por ejemplo `04-red.md` o `05-protocolo.md`).
 2. **Corrección y vida de los recursos**: RAII, ownership, lifetime de buffers en I/O
    asíncrona, cierre ordenado, errores de Winsock/epoll/ODBC no chequeados.
 3. **Concurrencia**: datos compartidos sin lock, orden de locks, condiciones de carrera,

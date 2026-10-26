@@ -4,9 +4,10 @@ Reimplementación del `Dataserver.exe` de MU Online 1.02: el único proceso que 
 base `MuOnline`. Los GameServers le piden cuentas, personajes, baúl, gremios y seriales
 de items por TCP (puerto 55960, paquetes C1/C2) y él lo traduce a SQL.
 
-El comportamiento a respetar está en el
-[contrato](../../docs/superpowers/specs/2026-10-25-dataserver-port-design.md#parte-2-comportamiento-del-dataserver-contrato),
-reconstruido en [EmaNLJN/mu-server-repack-research-102i](https://github.com/EmaNLJN/mu-server-repack-research-102i).
+Qué hace el original, byte a byte, está en el [research](docs/research/) (un archivo por tema),
+reconstruido desde [EmaNLJN/mu-server-repack-research-102i](https://github.com/EmaNLJN/mu-server-repack-research-102i).
+Qué hace MuRet y en qué orden está en el
+[roadmap](../../docs/superpowers/specs/2026-10-25-dataserver-port-design.md).
 
 ## Estado
 
@@ -39,5 +40,5 @@ Server/DataServer/
     Handlers/     un archivo por dominio      (olas 5 y 7)
     Database/     repositorios Memory y Odbc  (olas 5 y 6)
   tests/          GoogleTest                  (ola 0.2+)
-  docs/protocol/  un .md por dominio de heads
+  docs/research/  qué hace el original, byte a byte (01..10)
 ```

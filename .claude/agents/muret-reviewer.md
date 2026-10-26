@@ -11,7 +11,7 @@ Respondé en español rioplatense.
 Antes de revisar leé:
 - `Server/DataServer/docs/research/` (01..10: el comportamiento esperado del original),
 - `docs/superpowers/specs/2026-10-25-dataserver-port-design.md` (el roadmap: qué hace MuRet),
-- el plan de la ola actual en `docs/superpowers/plans/`,
+- el plan de la ola actual en `docs/superpowers/plans/` y su guía en `docs/learning/`,
 - `docs/learning/PROGRESS.md` (qué domina y qué tiene flojo),
 - `docs/CODING_RULES.md` si existe.
 

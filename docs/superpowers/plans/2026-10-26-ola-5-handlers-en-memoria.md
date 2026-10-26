@@ -16,6 +16,9 @@ al arrancar.
 
 **Stack:** C++20 (interfaces con `virtual` puro, `std::unique_ptr`), GoogleTest (fixtures).
 
+**Guía de estudio:** [`docs/learning/ola-5-handlers.md`](../../learning/ola-5-handlers.md): leé su sección antes de cada
+sub-ola; la sección final la completás al cerrar la ola.
+
 **Research que fija esta ola:** [05-protocolo](../../../Server/DataServer/docs/research/05-protocolo.md)
 (`0x00`, `0x02`, `0x40`, `0x01`, `0x04`, `0x06`),
 [07-datos-auxiliares](../../../Server/DataServer/docs/research/07-datos-auxiliares.md) (stats,
@@ -91,6 +94,6 @@ testea sin red.
 
 ## Al cerrar la ola 5
 
-- [ ] Nota de aprendizaje `docs/learning/ola-5-handlers.md` (interfaces, inyección de dependencias).
+- [ ] Completar la sección de cierre de la [guía de la ola 5](../../learning/ola-5-handlers.md) (interfaces, inyección de dependencias).
 - [ ] Actualizar `docs/learning/PROGRESS.md`.
 - [ ] Revisar el plan de la ola 6.

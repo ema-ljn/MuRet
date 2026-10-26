@@ -17,6 +17,9 @@ sesión tiene una cola de envío propia y un solo envío en vuelo.
 `GetQueuedCompletionStatus`), Linux epoll (`epoll_ctl`, `epoll_wait`, `eventfd`), sockets no
 bloqueantes, AddressSanitizer.
 
+**Guía de estudio:** [`docs/learning/ola-3-io-asincrono.md`](../../learning/ola-3-io-asincrono.md): leé su sección antes de cada
+sub-ola; la sección final la completás al cerrar la ola.
+
 **Research que fija esta ola:** [04-red](../../../Server/DataServer/docs/research/04-red.md)
 (contexto por conexión, recepción, envío) y C-2, C-3, C-4 de
 [03](../../../Server/DataServer/docs/research/03-hilos-y-concurrencia.md#defectos-de-concurrencia).
@@ -89,12 +92,12 @@ cola de envío con buffers propios; envíos parciales; apagado ordenado.
 
 - [ ] **Paso 1 (Emanuel):** un `AsioBackend` que implemente `IoBackend` con `asio::io_context` (vcpkg `asio`, sin Boost).
 - [ ] **Paso 2:** los mismos tests de `IoBackendTests.cpp`.
-- [ ] **Paso 3:** nota en `docs/learning/` comparando líneas de código, bugs que tuviste y rendimiento.
+- [ ] **Paso 3:** agregar a la sección de cierre de la [guía de la ola 3](../../learning/ola-3-io-asincrono.md) la comparación: líneas de código, bugs que tuviste y rendimiento.
 
 ---
 
 ## Al cerrar la ola 3
 
-- [ ] Nota de aprendizaje `docs/learning/ola-3-io-asincrono.md` (proactor vs reactor, vida de los buffers).
+- [ ] Completar la sección de cierre de la [guía de la ola 3](../../learning/ola-3-io-asincrono.md) (proactor vs reactor, vida de los buffers).
 - [ ] Actualizar `docs/learning/PROGRESS.md`.
 - [ ] Revisar el plan de la ola 4.

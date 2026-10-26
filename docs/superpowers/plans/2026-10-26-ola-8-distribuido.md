@@ -15,6 +15,9 @@ para inyectar errores y demoras en los tests.
 
 **Stack:** C++20, VM2003 con GameServer 1.02, Wireshark, `tools/packet-replay`.
 
+**Guía de estudio:** [`docs/learning/ola-8-distribuido.md`](../../learning/ola-8-distribuido.md): leé su sección antes de cada
+sub-ola; la sección final la completás al cerrar la ola.
+
 **Research que fija esta ola:** [02-arranque](../../../Server/DataServer/docs/research/02-arranque.md)
 (apagado), [08-quirks-y-bugs](../../../Server/DataServer/docs/research/08-quirks-y-bugs.md) (Q-09,
 Q-10), [09-discrepancias](../../../Server/DataServer/docs/research/09-discrepancias.md) (el oráculo
@@ -96,6 +99,6 @@ reemplazar el "port check" que filtra sockets (Q-10).
 
 ## Al cerrar la ola 8
 
-- [ ] Nota de aprendizaje `docs/learning/ola-8-distribuido.md`.
+- [ ] Completar la sección de cierre de la [guía de la ola 8](../../learning/ola-8-distribuido.md).
 - [ ] Actualizar `docs/learning/PROGRESS.md`.
 - [ ] Retrospectiva: qué se aprendió en todo el port y qué componente sigue (ConnectServer, JoinServer…).

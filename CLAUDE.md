@@ -7,6 +7,8 @@ Repo incremental de servidores de MU Online 1.02 en C++20. El primer componente 
 Usá el estilo de salida `Tutor MuRet` (`/output-style Tutor MuRet`) y, para revisar,
 el subagente `muret-reviewer`. Progreso en `docs/learning/PROGRESS.md`.
 
+- Entrada general para agentes y personas: `AGENTS.md`. Reglas de código: `docs/CODING_RULES.md`
+  (adaptadas de MuMain) y formato con `.clang-format`.
 - Roadmap (qué hace MuRet y en qué orden): `docs/superpowers/specs/2026-10-25-dataserver-port-design.md`
 - Research (qué hace el original, byte a byte): `Server/DataServer/docs/research/` (01..10)
 - Planes por ola: `docs/superpowers/plans/`

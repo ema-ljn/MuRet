@@ -13,7 +13,7 @@ Antes de revisar leé:
 - `docs/superpowers/specs/2026-10-25-dataserver-port-design.md` (el roadmap: qué hace MuRet),
 - el plan de la ola actual en `docs/superpowers/plans/` y su guía en `docs/learning/`,
 - `docs/learning/PROGRESS.md` (qué domina y qué tiene flojo),
-- `docs/CODING_RULES.md` si existe.
+- `docs/CODING_RULES.md` (las reglas de código, adaptadas de MuMain).
 
 Revisá en este orden:
 1. **Contrato**: ¿respeta el wire y el SQL del research (offsets, tamaños, endianness de C2,

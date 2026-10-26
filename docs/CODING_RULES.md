@@ -1,0 +1,156 @@
+# Reglas de código
+
+Estas reglas valen para todo cambio de código en MuRet, lo escriba una persona o un agente. Leelas
+antes de commitear.
+
+> Adaptadas de [`docs/CODING_RULES.md` de sven-n/MuMain](https://github.com/sven-n/MuMain/blob/main/docs/CODING_RULES.md).
+> Se conservan sus doce reglas, traducidas. Se sacó lo que es propio de un cliente (C#, UI,
+> render) y se agregó lo del DataServer: sus capas, el research como contrato y la regla 13 de
+> tests.
+
+---
+
+## 1. Funciones cortas y enfocadas
+
+- Una función hace **una cosa**. Si para describirla necesitás un "y", partila.
+- Apuntá a funciones que entren en una pantalla (unas 40 líneas). Las que tienen mucha lógica
+  (un parser, un handler con varios pasos), más cortas todavía.
+- Si el pedazo que extraés no pertenece al archivo actual, **movelo a otro archivo** en la carpeta
+  que corresponda.
+
+## 2. Salir temprano
+
+- Los errores y los casos borde se manejan **arriba** de la función.
+- Nada de anidar de más: mejor `if (malo) return …;` que envolver todo el cuerpo en
+  `if (bueno) { … }`.
+- Cada salida temprana tiene una razón clara. Un error no se traga en silencio: se devuelve o se
+  loguea.
+
+## 3. Nada hardcodeado
+
+- Números, cadenas, rutas, tamaños, timeouts: si no se explican solos, **llevan nombre**.
+- Constantes, `enum class` o valores de configuración. Un número mágico enterrado en la lógica es
+  un bug esperando su turno.
+- **Lo que depende del lugar donde corre va en la config**: el puerto, la cadena de conexión, las
+  rutas a los archivos de datos. Ningún secreto va en el código ni en el repo.
+- **Las constantes del wire** (heads, tamaños, offsets) son constantes con nombre en `Protocol/`,
+  con un comentario que cita la sección del research que las fija
+  (por ejemplo `// 05-protocolo § tabla de heads`).
+- `0` y `1` en contextos booleanos o triviales están bien. `0x3BC`, `55960` y `5000` no.
+
+## 4. Código reutilizable
+
+- Antes de escribir lógica nueva, fijate si ya existe algo parecido. No dupliques.
+- Si dos o más lugares necesitan lo mismo, sacalo a una función o un helper.
+- Parámetros generales cuando no cuesta nada, pero sin abstraer para futuros hipotéticos.
+
+## 5. Capas separadas
+
+El DataServer tiene estas capas, cada una con su carpeta en `Server/DataServer/src/` y su
+namespace:
+
+| Capa | Namespace | Hace | No hace |
+| --- | --- | --- | --- |
+| `Core/` | `DataServer::Core` | config, log, tipos de error | nada de red, SQL ni paquetes |
+| `Network/` | `DataServer::Network` | sockets, IOCP/epoll, sesiones, framing | no sabe de SQL ni de qué significa cada head |
+| `Protocol/` | `DataServer::Protocol` | bytes ↔ structs de cada head | no toca sockets ni base: es puro |
+| `Dispatch/` | `DataServer::Dispatch` | cola, hilo de lógica, tabla head → handler | no tiene lógica de juego |
+| `Handlers/` | `DataServer::Handlers` | la lógica de cada head | no toca sockets ni escribe SQL: usa interfaces |
+| `Database/` | `DataServer::Database` | interfaces de repositorio y sus implementaciones (memoria, ODBC) | no conoce paquetes |
+
+- **Solo `main.cpp` conoce a todas** y las conecta.
+- El código que depende del sistema (`#ifdef _WIN32`) vive en un solo lugar de `Network/`; el resto
+  no ve `#ifdef`.
+- Agrupá datos y comportamiento relacionados. No desparrames la misma lógica por archivos que no
+  tienen nada que ver.
+- Nombrá con precisión: si un nombre necesita un comentario para entenderse, elegí otro.
+
+## 6. Una clase por archivo
+
+- Cada clase o struct importante tiene su **propio archivo**, con el nombre de la clase.
+- Header e implementación separados (`.h` / `.cpp`). Structs chicos muy pegados a una sola clase
+  pueden quedarse en el header de esa clase.
+
+## 7. Estilo consistente
+
+- El formato lo decide [`.clang-format`](../.clang-format) (el de MuMain); corré `clang-format`
+  antes de commitear y no lo discutas en la revisión.
+- Seguí el estilo del código que está alrededor. No inventes una convención nueva en un archivo.
+- Includes mínimos: solo lo que el archivo usa.
+
+### Nombres (propuesta inicial; se cambia con un PR)
+
+- Tipos, funciones, métodos y namespaces en `PascalCase`: `FrameParser`, `SessionTable::Allocate`,
+  `DataServer::Network`.
+- Variables, parámetros y miembros en `camelCase`.
+- Constantes y enumeradores en `PascalCase`: `MaxSessions`, `SlotState::GameServer`.
+
+### Namespaces
+
+1. Siempre con el componente adelante, para no chocar cuando entren otros servidores:
+   `DataServer::<Capa>[::<Concepto>]`. La jerarquía va **por dominio**: lo de gremios va en
+   `DataServer::Handlers::Guild`, lo arme quien lo arme.
+2. Los helpers privados de un archivo van en un namespace anónimo.
+3. Nada de `using namespace` en un header.
+
+## 8. Sin fugas ni estado colgado
+
+- Todo recurso tiene un dueño claro y un camino claro de liberación.
+- **RAII siempre**: sockets, handles de ODBC, hilos y memoria se liberan en un destructor.
+  `std::unique_ptr` (o `std::shared_ptr` cuando la propiedad es compartida de verdad) en vez de
+  `new`/`delete` crudos.
+- No dejes recursos abiertos en los caminos de salida temprana.
+- **La vida de un buffer en vuelo:** un buffer o un `OVERLAPPED` entregado al sistema le pertenece
+  hasta la completion; no se libera ni se reusa antes (es C-3 del research).
+- **Estado entre hilos:** cada dato tiene un hilo dueño, o una sincronización explícita y
+  documentada. El estado del servidor lo toca solo el hilo de lógica.
+
+## 9. Legible antes que ingenioso
+
+- Escribí código obvio de leer, aunque la versión "ingeniosa" sea más corta.
+- Las expresiones complejas se parten en variables intermedias con nombre.
+- Si un bloque necesita un comentario para explicar **qué** hace, refactorizalo para que no lo
+  necesite. Los comentarios explican el **porqué**.
+
+## 10. Pensar antes de agregar
+
+- Cada dependencia, abstracción o patrón nuevo tiene un costo de mantenimiento: justificalo. Las
+  dependencias entran por `vcpkg.json` y, si son de peso, con un ADR.
+- **Una sub-ola = un concepto = un PR chico.** Los diffs chicos se revisan mejor.
+- Si dudás de una decisión estructural, preguntá antes de construir encima.
+
+## 11. Documentar el uso, no las tripas
+
+- Lo nuevo o cambiado se documenta al nivel de **uso**: cómo se compila, se corre y se configura
+  (`Server/DataServer/README.md`).
+  - Fuera de alcance: firmas, diagramas de clases, flujo interno. El código es la fuente de verdad
+    de eso.
+- La excepción son **las reglas del protocolo y los cálculos no obvios**: qué responde cada head,
+  escalas de unidades, el cifrado del nombre. El comportamiento del original está en el
+  [research](../Server/DataServer/docs/research/README.md); citá su sección desde el código en vez
+  de copiarla.
+- **Cuando MuRet hace algo distinto del original** (un quirk arreglado, un cambio de wire), se
+  escribe un ADR en `docs/adr/` con el contraste: qué hacía el original, qué hace MuRet y por qué.
+- Si no le sirve a quien opera el servidor o a quien busca una regla del protocolo, no lo escribas.
+
+## 12. Rendimiento: con criterio en los caminos calientes
+
+- No micro-optimices los caminos fríos (arranque, carga de config y de tablas): ahí gana la
+  claridad.
+- **Sí tené cuidado en los caminos calientes.** En un servidor son lo que corre **por cada paquete
+  o por cada mensaje**: el parser, el despacho, el envío, el log.
+- En un camino caliente, evitá:
+  - asignaciones de memoria por paquete cuando hay una alternativa simple (un buffer que se reusa);
+  - I/O dentro del bucle del hilo de lógica que no sea la consulta que el handler necesita (por
+    ejemplo, loguear cada mensaje a disco en nivel `info`);
+  - recorridos O(N²) sobre sesiones cuando hay uno O(N) directo.
+- **Medí antes de optimizar** (las sub-olas 2.3 y 4.3 son justamente eso). "Caliente" se juzga por
+  frecuencia de llamada, no por lo importante que parece el código.
+
+## 13. Cada comportamiento, un test (propia de MuRet)
+
+- Lo que el research fija (un layout, una respuesta, un quirk) tiene un test que lo demuestra.
+- Un quirk que se arregla lleva un test que documenta el comportamiento viejo y el nuevo
+  ([08-quirks-y-bugs](../Server/DataServer/docs/research/08-quirks-y-bugs.md)).
+- Primero el test en rojo, después el código. No se saltea, desactiva ni pone en cuarentena un
+  test para que CI quede verde.

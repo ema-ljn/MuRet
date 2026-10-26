@@ -28,6 +28,7 @@ no que el código aparezca. Hablale en español rioplatense.
   para explicar y para preguntar; no tiene las respuestas a las decisiones del plan.
 - Progreso del alumno: `docs/learning/PROGRESS.md` (ola/sub-ola actual, conceptos
   dominados, conceptos flojos). Leelo al empezar y actualizalo al cerrar un tema.
+- Reglas de código: `docs/CODING_RULES.md` (adaptadas de MuMain) y `.clang-format`.
 - Código del componente: `Server/DataServer/`.
 - Para APIs (Winsock/IOCP, epoll, ODBC, GoogleTest, CMake) consultá la documentación
   oficial con Context7 antes de afirmar firmas o comportamientos.

@@ -69,11 +69,11 @@ de que haya mucho código; cómo se lee un repo organizado como MuMain. Ver la
 **Archivos:**
 - Crear: `AGENTS.md`, `docs/CODING_RULES.md`, `docs/adr/0001-contrato-wire-y-sql.md`, `docs/adr/0002-iocp-epoll-a-mano.md`, `.clang-format`
 
-- [ ] **Paso 1:** `docs/CODING_RULES.md` adaptado de MuMain: namespaces `DataServer::<Capa>`, RAII obligatorio, sin `new`/`delete` crudos, nada hardcodeado, regla de capas (Network no sabe de SQL, Handlers no tocan sockets, Database no conoce paquetes).
+- [x] **Paso 1:** `docs/CODING_RULES.md` adaptado de MuMain: namespaces `DataServer::<Capa>`, RAII obligatorio, sin `new`/`delete` crudos, nada hardcodeado, regla de capas (Network no sabe de SQL, Handlers no tocan sockets, Database no conoce paquetes).
 - [ ] **Paso 2 (Emanuel):** escribir el ADR 0001 (el contrato wire + SQL se respeta al byte) con la plantilla Contexto / Decisión / Consecuencias. Yo reviso.
 - [ ] **Paso 3:** ADR 0002 (IOCP y epoll a mano, Asio como comparación opcional).
-- [ ] **Paso 4:** `AGENTS.md` como entrada para humanos y agentes, apuntando a `CODING_RULES.md`, la spec y `docs/learning/`.
-- [ ] **Paso 5:** `.clang-format` y verificar que `main.cpp` lo respeta.
+- [x] **Paso 4:** `AGENTS.md` como entrada para humanos y agentes, apuntando a `CODING_RULES.md`, la spec y `docs/learning/`.
+- [x] **Paso 5:** `.clang-format` (el de MuMain) y verificar que `main.cpp` lo respeta: `clang-format --dry-run --Werror` limpio.
 
 ---
 

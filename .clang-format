@@ -1,0 +1,17 @@
+# Formato del código C++ de MuRet. Es el .clang-format de sven-n/MuMain sin cambios.
+# Uso: clang-format -i <archivo>; para verificar sin tocar: clang-format --dry-run --Werror <archivo>
+BasedOnStyle: LLVM
+BreakBeforeBraces: Allman
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120
+Standard: c++20
+PointerAlignment: Left
+AccessModifierOffset: -4
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+SortIncludes: Never
+FixNamespaceComments: true
+SpaceAfterCStyleCast: false

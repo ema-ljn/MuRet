@@ -55,12 +55,12 @@ miembros) **nunca llaman a `Connect`**: `OnStart` abre 7 conexiones y ninguna es
 - **Disparador:** un paquete completo que deja 1 o 2 bytes de cola en el buffer.
 - **Efecto:** el parser intenta otra vuelta con esa cola y lee `head`/`size` de bytes que todavía
   no llegaron (del paquete anterior). No hay lectura fuera de rango, pero el servidor puede actuar
-  sobre un `head` inventado ([04](04-red.md#la-máquina-de-estados)).
+  sobre un `head` inventado ([04](04-red.md#máquina-de-estados)).
 - **MuRet:** el parser solo mira bytes efectivamente recibidos. **Se arregla.**
 
 ## Q-05. El error de la query de arranque viaja al GameServer como dato
 
-- **Disparador:** `SELECT ItemCount … GameServerInfo` falla al arrancar o en el login `0x00`.
+- **Disparador:** `SELECT ItemCount … GameServerInfo` falla al arrancar (el login `0x00` devuelve el valor guardado, sin volver a consultar).
 - **Efecto:** el `ItemCount` que se manda al GS es `-103` (exec falló) o `-101` (sin fila), porque
   los códigos de error de `CQuery` se tratan como enteros ([06](06-sql-y-base.md)). El servidor
   **sigue** sirviendo.

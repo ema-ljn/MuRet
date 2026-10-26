@@ -186,6 +186,19 @@ Cada sub-ola es un PR chico. "Terminada cuando" es la condición objetiva de cie
 | 7 | Resto de heads | 7.1 cuenta y personajes · 7.2 baúl y varios · 7.3 gremios (Q-01 arreglado) | blobs, transacciones, atomicidad del serial | 05, 06, 07, 08 |
 | 8 | Distribuido | 8.1 el GS real contra MuRet · 8.2 `packet-replay` y paridad byte a byte · 8.3 timeouts, reconexión, idempotencia · 8.4 apagado limpio, métricas, health checks | sistemas distribuidos, observabilidad | 02, 08, 10 |
 
+**Planes detallados, uno por ola** (pasos con checkbox, archivos, qué escribe Emanuel y qué es
+andamiaje, preguntas a decidir al empezar). Se escribieron por adelantado y cada uno se revisa al
+arrancar su ola:
+[0 Fundaciones](../plans/2026-10-26-ola-0-fundaciones.md) ·
+[1 Protocolo sin red](../plans/2026-10-26-ola-1-protocolo-sin-red.md) ·
+[2 Sockets a mano](../plans/2026-10-26-ola-2-sockets-a-mano.md) ·
+[3 I/O asíncrono](../plans/2026-10-26-ola-3-io-asincrono.md) ·
+[4 Concurrencia](../plans/2026-10-26-ola-4-concurrencia.md) ·
+[5 Handlers en memoria](../plans/2026-10-26-ola-5-handlers-en-memoria.md) ·
+[6 Base real](../plans/2026-10-26-ola-6-base-real.md) ·
+[7 Resto de heads](../plans/2026-10-26-ola-7-resto-de-heads.md) ·
+[8 Distribuido](../plans/2026-10-26-ola-8-distribuido.md).
+
 **"Terminada cuando", por ola:** 0 — `cmake --build` y `ctest` pasan en los dos sistemas. 1 —
 pasan los casos del contrato del parser (partido, varios por recv, header inválido, `size == 0`,
 dominio de tamaño). 2 — un cliente de prueba manda paquetes y el log los muestra; reuso de slot sin

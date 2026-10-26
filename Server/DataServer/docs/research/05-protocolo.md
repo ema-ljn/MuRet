@@ -29,7 +29,7 @@ vez (ver I-3 en [03](03-hilos-y-concurrencia.md)).
 
 | Head | Nombre | Qué hace | Respuesta |
 | --- | --- | --- | --- |
-| `0x00` | login de GameServer | registra el slot como GS (`0x4056b0`): clase@+3, puerto u16@+4, nombre@+6 (0x30), serverId u16@+0x38; ejecuta la query de `ItemCount` de arranque | `C1 08 00`: result@+3, ItemCount@+4; marca `active=2` y `serverId%20` en `+0x50` |
+| `0x00` | login de GameServer | registra el slot como GS (`0x4056b0`): clase@+3, puerto u16@+4, nombre@+6 (0x30), serverId u16@+0x38; **sin SQL**: devuelve el `ItemCount` leído al arrancar (`0x440978`) | `C1 08 00`: result@+3, ItemCount@+4; marca `active=2` y `serverId%20` en `+0x50` |
 | `0x01` | lista de personajes de la cuenta | Id@+3 (10 bytes); `SELECT Id` → si no existe, `INSERT`; luego `SELECT *`; arma la lista con preview de cada personaje | `C2 … 01`: cabecera 0x18 + 0x4E por personaje; **saltea** los previews que fallan |
 | `0x02` | broadcast | reenvía el paquete recibido a todos los slots activos; `len = byte[1]` | ninguna (no es ACK) |
 | `0x04` | crear personaje | Id@+0xE, Name@+0x18, clase@+0x22 (nibble alto); 3 chequeos de nombre sin corto-circuito; `MX_CreateCharacter`; blobs Inventory/MagicList/Quest y `SetGameIdSlot` solo si el SP anduvo | `C1 34 04`: result 1/0/2; clase > 3 → DK, log `error-L3 : Class over value` |
@@ -56,10 +56,12 @@ vez (ver I-3 en [03](03-hilos-y-concurrencia.md)).
 
 ### `0x00` — login del GameServer
 
-Es el primer mensaje que manda un GS al conectarse. Registra el slot (`0x4056b0`), ejecuta
-`SELECT ItemCount, Number from GameServerInfo where Number=0` (la misma que el arranque) y devuelve
-el `ItemCount`. Si la query falla, el `ItemCount` que viaja es `-103` o `-101` (ver
-[06](06-sql-y-base.md)): **el error del arranque se propaga al GS** en vez de impedir el servicio.
+Es el primer mensaje que manda un GS al conectarse. Registra el slot (`0x4056b0`) y responde con
+el `ItemCount` que el servidor leyó **una sola vez al arrancar**
+(`SELECT ItemCount, Number from GameServerInfo where Number=0`, guardado en `0x440978`). El handler
+no ejecuta SQL. Si esa query de arranque falló, el valor guardado es `-103` o `-101` (ver
+[06](06-sql-y-base.md)) y **ese error viaja a cada GS** como si fuera un número (Q-05). Un segundo
+login en el mismo slot falla (`0x4056b0` exige `active == 1`).
 
 ### `0x01` — lista de personajes
 

@@ -70,7 +70,7 @@ citan desde los planes de ola.
 | D-4 | Concurrencia | N workers + cola + 1 consumidor + lock global | N hilos de I/O + cola acotada + 1 hilo de lógica (mismo modelo, sin lock global) | productor/consumidor, `std::mutex`, `condition_variable`, back-pressure |
 | D-5 | Base de datos | ODBC directo (`CQuery`) | interfaces de repositorio con dos implementaciones: en memoria (tests) y ODBC crudo con RAII contra el SQL Server de la VM | inyección de dependencias, testear sin base, prepared statements |
 | D-6 | Protocolo | structs empaquetados leídos con punteros | structs `#pragma pack(1)` + `Read`/`Write` sobre `std::span` con validación de tamaño | endianness, layout, no confiar en el tamaño que manda el cliente |
-| D-7 | UI | ventana MFC con log | consola + log a archivo | separar presentación de lógica |
+| D-7 | UI | ventana MFC con log | consola + log a archivo (a futuro: consola/CLI en Linux y GUI moderna en Windows, ver [front-ends](2026-10-26-frontends-cli-gui-futuro.md)) | separar presentación de lógica |
 | D-8 | Tests | smoke test en host | GoogleTest + CTest desde la ola 0 | TDD, tests de contrato con bytes del original |
 | D-9 | Config | `.ini` + rutas fijas | archivo de config (TOML o JSON) + argumentos validados | nada hardcodeado |
 | D-10 | Quirks | se replican tal cual | se **corrigen**, pero cada uno queda documentado en el research con un test que muestra el comportamiento viejo y el nuevo | ver [08-quirks-y-bugs](../../../Server/DataServer/docs/research/08-quirks-y-bugs.md) |
@@ -235,6 +235,12 @@ Cuando un test de paridad difiere, hay tres respuestas: bug de MuRet, quirk corr
 (tiene que estar en [08](../../../Server/DataServer/docs/research/08-quirks-y-bugs.md)), o un dato
 que el research todavía no tenía (se agrega con su evidencia, ver
 [10](../../../Server/DataServer/docs/research/10-pendientes.md)).
+
+## Trabajo futuro (después de la ola 8)
+
+- **Front-ends:** consola y acceso remoto en Linux (referencia: OpenMU y TrinityCore/AzerothCore/CMaNGOS)
+  y una GUI moderna en Windows como la del original, sobre un núcleo que no sabe de UI. Propuesta y
+  borrador de una ola 9 opcional en [front-ends CLI y GUI](2026-10-26-frontends-cli-gui-futuro.md).
 
 ## Preguntas cerradas (2026-10-26)
 

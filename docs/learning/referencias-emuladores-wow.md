@@ -90,6 +90,44 @@ Leelo **después** de la guía de la ola, no antes: primero intentá resolverlo 
   sin lock). Al principio alcanza con `std::format` de C++20 y una función propia. Si el
   logging crece, spdlog (está en vcpkg) da lo mismo sin escribirlo.
 
+## Bibliotecas opcionales
+
+Ninguna es obligatoria. Cada una entra **después** de haber hecho a mano lo que reemplaza, para
+compararla con tu versión.
+
+### Asio: ¿Boost.Asio o standalone?
+
+- **Asio no viene con C++.** Hubo una propuesta para sumarlo al estándar (el Networking TS, basado
+  en Asio), pero nunca se aprobó: ni C++20 ni C++23 traen red. Lo que existe son dos
+  distribuciones de la misma biblioteca, del mismo autor (Chris Kohlhoff).
+- **Standalone Asio:** solo headers, sin Boost. Namespace `asio::`, paquete `asio` de vcpkg.
+- **Boost.Asio:** el mismo código dentro de Boost. Namespace `boost::asio::`, trae Boost (y en
+  algunas versiones depende de `Boost.System`).
+- **Son prácticamente lo mismo:** la API es idéntica salvo el namespace y algunos detalles de
+  integración con el resto de Boost (por ejemplo `boost::system::error_code` en lugar de
+  `std::error_code`).
+- **Para MuRet:** standalone. Boost.Asio conviene solo si ya usás Boost por otra cosa, que es el
+  caso de TrinityCore (lo usa también para `filesystem` y `program_options`); MuRet no lo usa.
+- **Cuándo:** sub-ola 3.4 opcional, para comparar con tu backend IOCP/epoll.
+- **Corrutinas de C++20:** Asio soporta `co_await` (`asio::awaitable`, `asio::co_spawn`). El
+  mismo server queda escrito como código secuencial en lugar de cadenas de callbacks. Es una buena
+  extensión para el final, una vez que el server con callbacks ya ande: ahí se ve qué ahorra.
+
+### Formato y logging
+
+- **`std::format`** (C++20) para empezar: viene con el compilador.
+- **fmt:** es la biblioteca de la que salió `std::format`. Solo hace falta si querés algo que el
+  estándar todavía no tiene en tu compilador (por ejemplo `fmt::print` antes de `std::print` de
+  C++23).
+- **spdlog:** logger con niveles, archivos rotativos y modo asíncrono, montado sobre fmt. Entra
+  cuando el logger propio (seguro entre hilos, ver C-5) se quede corto.
+
+### Base de datos
+
+- **nanodbc:** un wrapper fino de C++ sobre ODBC (`nanodbc::connection`, `nanodbc::statement`,
+  está en vcpkg). Entra **después** de la ola 6, cuando ya escribiste el RAII sobre ODBC crudo:
+  comparalo con tu versión y decidí si te quedás con la tuya.
+
 ## Qué no copiar
 
 - **Boost entero.** Para el DataServer solo interesaría Asio, y existe standalone (sin Boost).

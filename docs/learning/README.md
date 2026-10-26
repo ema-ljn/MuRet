@@ -18,7 +18,7 @@ código y Claude hace de tutor. Acá queda lo que se estudia, lo que se mide y l
 | [ola-6-odbc.md](ola-6-odbc.md) | guía de la ola 6: ODBC, sentencias preparadas, SQL Server | guía de Claude, cierre tuyo |
 | [ola-7-heads.md](ola-7-heads.md) | guía de la ola 7: el resto de los heads y los gremios | guía de Claude, cierre tuyo |
 | [ola-8-distribuido.md](ola-8-distribuido.md) | guía de la ola 8: laboratorio, golden tests, fallas | guía de Claude, cierre tuyo |
-| [referencias-emuladores-wow.md](referencias-emuladores-wow.md) | qué usan TrinityCore, AzerothCore y CMaNGOS y qué patrones mirar en cada ola | Claude |
+| [referencias-emuladores-wow.md](referencias-emuladores-wow.md) | qué usan TrinityCore, AzerothCore y CMaNGOS, qué patrones mirar en cada ola y bibliotecas opcionales (Asio, spdlog, nanodbc) | Claude |
 
 Las notas de medición que piden los planes (`ola-2.3-medicion.md`, `ola-4.3-throughput.md`,
 `ola-6.3-vm-sqlserver.md`, `ola-8.1-gs-real.md`) todavía no existen: las escribís vos cuando

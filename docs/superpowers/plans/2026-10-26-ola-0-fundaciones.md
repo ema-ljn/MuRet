@@ -75,4 +75,4 @@ de que haya mucho código; cómo se lee un repo organizado como MuMain.
 ## Al cerrar la ola 0
 
 - [ ] Actualizar `docs/learning/PROGRESS.md` (conceptos dominados y flojos).
-- [ ] Escribir el plan de la ola 1 (protocolo sin red) en `docs/superpowers/plans/`.
+- [ ] Revisar el [plan de la ola 1](2026-10-26-ola-1-protocolo-sin-red.md) (protocolo sin red) con lo aprendido.

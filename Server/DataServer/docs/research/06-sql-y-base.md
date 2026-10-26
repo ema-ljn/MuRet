@@ -15,7 +15,7 @@ entra con la cuenta de Windows del proceso.
 
 | Instancia | Dirección | Tablas / SP que toca | Heads |
 | --- | --- | --- | --- |
-| serial | `0x6437de0` | `GameServerInfo`, `WZ_GetItemSerial` | `0x20`, `0x52`, arranque, `0x00` |
+| serial | `0x6437de0` | `GameServerInfo`, `WZ_GetItemSerial` | `0x20`, `0x52`, arranque |
 | cuenta | `0x6430460` | `AccountCharacter` | `0x01`, `0x04`, `0x05`, `0x06` |
 | personaje | `0x6428ae0` | `Character`, `MX_CreateCharacter`, `MX_SelectCharacter`, `SP_CHARACTER_TRANSFER` | `0x04`–`0x07`, `0x11`, `0xCF` |
 | preview | `0x640a4c0` | `vCharacterPreview` | `0x01` |
@@ -62,7 +62,7 @@ UPDATE Character SET Quest=?     where Name='%s'
 ```sql
 SELECT Name, cLevel, Class, CtlCode, DbVersion FROM vCharacterPreview WHERE Name='%s'
 SELECT Inventory FROM vCharacterPreview WHERE Name='%s'
-SELECT ItemCount, Number from GameServerInfo where Number=0   -- arranque y 0x00
+SELECT ItemCount, Number from GameServerInfo where Number=0   -- solo al arrancar; 0x00 devuelve el valor guardado
 UPDATE GameServerInfo SET ItemCount = %d where Number=0       -- 0x20
 ```
 

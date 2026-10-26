@@ -43,8 +43,9 @@ Cada sub-ola sigue este ritmo (lento a propósito):
 3. Emanuel lo escribe y abre un PR.
 4. Claude lo revisa como reviewer: bugs, estilo según `CODING_RULES.md`, con preguntas en vez de
    respuestas.
-5. Cuando está verde y entendido, se cierra con una nota en `docs/learning/` y una entrada en
-   `PROGRESS.md`, y se pasa a la siguiente.
+5. Cuando está verde y entendido, se cierra completando la sección final de la guía de la ola en
+   [`docs/learning/`](../../learning/README.md) y una entrada en `PROGRESS.md`, y se pasa a la
+   siguiente.
 
 Cada ola tiene su plan detallado en [`docs/superpowers/plans/`](../plans/) antes de arrancarla.
 
@@ -123,7 +124,7 @@ MuRet/
   docs/
     CODING_RULES.md          adaptado de MuMain
     adr/                     decisiones globales (0001 contrato, 0002 IOCP/epoll a mano, …)
-    learning/                PROGRESS.md + notas por etapa
+    learning/                PROGRESS.md + una guía de estudio por ola
     superpowers/
       specs/                 este roadmap
       plans/                 un plan por ola

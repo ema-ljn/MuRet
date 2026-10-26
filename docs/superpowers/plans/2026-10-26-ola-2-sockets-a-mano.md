@@ -14,6 +14,9 @@ sesiones con identificador y generación. Nada de lógica de juego todavía: cad
 
 **Stack:** C++20, Winsock 2 / sockets POSIX, `std::thread`, `std::jthread`, GoogleTest.
 
+**Guía de estudio:** [`docs/learning/ola-2-sockets.md`](../../learning/ola-2-sockets.md): leé su sección antes de cada
+sub-ola; la sección final la completás al cerrar la ola.
+
 **Research que fija esta ola:** [02-arranque](../../../Server/DataServer/docs/research/02-arranque.md)
 (línea de comandos, puerto), [04-red](../../../Server/DataServer/docs/research/04-red.md) (tabla de
 conexiones, límites) y C-4/C-5 de
@@ -100,6 +103,6 @@ el original cierra la conexión equivocada (C-4).
 
 ## Al cerrar la ola 2
 
-- [ ] Nota de aprendizaje `docs/learning/ola-2-sockets.md`.
+- [ ] Completar la sección de cierre de la [guía de la ola 2](../../learning/ola-2-sockets.md).
 - [ ] Actualizar `docs/learning/PROGRESS.md`.
 - [ ] Revisar el plan de la ola 3.

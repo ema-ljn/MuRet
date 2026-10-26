@@ -14,6 +14,9 @@ ejecutable `DataServer` y los tests `DataServerTests` linkean contra ella. Esta 
 
 **Stack:** C++20 (`std::byte`, `std::span`, `std::optional`, `enum class`), GoogleTest.
 
+**Guía de estudio:** [`docs/learning/ola-1-protocolo.md`](../../learning/ola-1-protocolo.md): leé su sección antes de cada
+sub-ola; la sección final la completás al cerrar la ola.
+
 **Research que fija esta ola:** [04-red](../../../Server/DataServer/docs/research/04-red.md)
 (framing, parser, dominio de tamaños, P-1…P-5) y
 [05-protocolo](../../../Server/DataServer/docs/research/05-protocolo.md) (layouts de `0x00` y
@@ -106,6 +109,6 @@ que compila, y serializar campo por campo con `ByteReader`/`ByteWriter`.
 
 ## Al cerrar la ola 1
 
-- [ ] Nota de aprendizaje en `docs/learning/ola-1-protocolo.md` (span, endianness, máquinas de estado).
+- [ ] Completar la sección de cierre de la [guía de la ola 1](../../learning/ola-1-protocolo.md) (span, endianness, máquinas de estado).
 - [ ] Actualizar `docs/learning/PROGRESS.md`.
 - [ ] Revisar el plan de la ola 2 con lo aprendido.

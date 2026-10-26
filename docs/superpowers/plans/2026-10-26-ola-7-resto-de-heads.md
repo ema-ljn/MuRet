@@ -13,6 +13,9 @@ con capturas del original donde el research tiene *seam*.
 
 **Stack:** C++20, ODBC (ola 6), transacciones de SQL Server.
 
+**Guía de estudio:** [`docs/learning/ola-7-heads.md`](../../learning/ola-7-heads.md): leé su sección antes de cada
+sub-ola; la sección final la completás al cerrar la ola.
+
 **Research que fija esta ola:** [05-protocolo](../../../Server/DataServer/docs/research/05-protocolo.md)
 (`0x05`, `0x07`, `0x11`, `0xCF`, `0x08`, `0x09`, `0x12`, `0x20`, `0x52`, `0x60`, `0x30`–`0x38`,
 `0x40`), [06-sql-y-base](../../../Server/DataServer/docs/research/06-sql-y-base.md),
@@ -88,6 +91,6 @@ el sync de `0x40` sin locks cruzados (C-1).
 
 ## Al cerrar la ola 7
 
-- [ ] Nota de aprendizaje `docs/learning/ola-7-heads.md`.
+- [ ] Completar la sección de cierre de la [guía de la ola 7](../../learning/ola-7-heads.md).
 - [ ] Actualizar `docs/learning/PROGRESS.md` y el research con lo que aprendiste de las capturas.
 - [ ] Revisar el plan de la ola 8.

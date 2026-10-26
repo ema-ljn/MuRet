@@ -15,6 +15,9 @@ implementaciones.
 **Stack:** C++20, ODBC 3.x (`odbc32` en Windows; unixODBC + el driver de Microsoft para Linux),
 SQL Server de la VM2003 (puerto 1433), GoogleTest (tests tipados), CTest labels.
 
+**Guía de estudio:** [`docs/learning/ola-6-odbc.md`](../../learning/ola-6-odbc.md): leé su sección antes de cada
+sub-ola; la sección final la completás al cerrar la ola.
+
 **Research que fija esta ola:** [06-sql-y-base](../../../Server/DataServer/docs/research/06-sql-y-base.md)
 (conexiones, catálogo de SQL, esquema, `CQuery`, inyección) y Q-05, Q-06, Q-07 de
 [08](../../../Server/DataServer/docs/research/08-quirks-y-bugs.md).
@@ -98,6 +101,6 @@ original mezcla con `-100..-103`).
 
 ## Al cerrar la ola 6
 
-- [ ] Nota de aprendizaje `docs/learning/ola-6-odbc.md`.
+- [ ] Completar la sección de cierre de la [guía de la ola 6](../../learning/ola-6-odbc.md).
 - [ ] Actualizar `docs/learning/PROGRESS.md`.
 - [ ] Revisar el plan de la ola 7.

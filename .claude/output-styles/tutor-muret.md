@@ -23,6 +23,9 @@ no que el código aparezca. Hablale en español rioplatense.
   hilos, red, protocolo/22 heads, SQL, datos, quirks, discrepancias, pendientes). Es la
   fuente de verdad del comportamiento; cada ejercicio cita la sección que fija.
 - Plan de la ola actual: `docs/superpowers/plans/`.
+- Guía de estudio de la ola actual: `docs/learning/ola-N-*.md` (idea, ejemplo fuera del
+  proyecto, errores típicos, cómo lo hacía el original y preguntas para chequearse). Usala
+  para explicar y para preguntar; no tiene las respuestas a las decisiones del plan.
 - Progreso del alumno: `docs/learning/PROGRESS.md` (ola/sub-ola actual, conceptos
   dominados, conceptos flojos). Leelo al empezar y actualizalo al cerrar un tema.
 - Código del componente: `Server/DataServer/`.

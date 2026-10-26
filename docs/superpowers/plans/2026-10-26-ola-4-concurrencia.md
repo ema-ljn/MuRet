@@ -15,6 +15,9 @@ necesitan locks.
 **Stack:** C++20 (`std::mutex`, `std::condition_variable`, `std::jthread`, `std::stop_token`),
 ThreadSanitizer.
 
+**Guía de estudio:** [`docs/learning/ola-4-concurrencia.md`](../../learning/ola-4-concurrencia.md): leé su sección antes de cada
+sub-ola; la sección final la completás al cerrar la ola.
+
 **Research que fija esta ola:** [03-hilos-y-concurrencia](../../../Server/DataServer/docs/research/03-hilos-y-concurrencia.md):
 el recorrido de un mensaje, la cola (tope 5000, descarte silencioso y fuga), throughput y
 latencia, y los invariantes I-1, I-2 e I-3.
@@ -81,6 +84,6 @@ latencia y throughput y compararlos con la cota del original.
 
 ## Al cerrar la ola 4
 
-- [ ] Nota de aprendizaje `docs/learning/ola-4-concurrencia.md`.
+- [ ] Completar la sección de cierre de la [guía de la ola 4](../../learning/ola-4-concurrencia.md).
 - [ ] Actualizar `docs/learning/PROGRESS.md`.
 - [ ] Revisar el plan de la ola 5.

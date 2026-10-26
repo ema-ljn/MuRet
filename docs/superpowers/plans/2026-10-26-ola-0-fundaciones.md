@@ -14,6 +14,9 @@ GoogleTest + CTest; CI en GitHub Actions con Windows y Linux.
 **Stack:** C++20, CMake 3.25+, Ninja (Linux), Visual Studio 2022 (Windows), vcpkg,
 GoogleTest, GitHub Actions.
 
+**Guía de estudio:** [`docs/learning/ola-0-fundaciones.md`](../../learning/ola-0-fundaciones.md): leé su
+sección antes de cada sub-ola; la sección final la completás al cerrar la ola.
+
 **Terminada cuando:** `cmake --build` y `ctest` pasan en los dos sistemas, en CI.
 
 ---
@@ -43,7 +46,8 @@ CMake lo describe con *targets*. Ver [`docs/learning/ola-0.1-cmake.md`](../../le
 ## Sub-ola 0.2: vcpkg, GoogleTest, CTest y CI
 
 **Concepto:** gestión de dependencias (vcpkg en modo manifiesto), tests unitarios y
-qué es un *test runner*; integración continua en dos sistemas.
+qué es un *test runner*; integración continua en dos sistemas. Ver la
+[guía, § 0.2](../../learning/ola-0-fundaciones.md#02-dependencias-tests-y-ci).
 
 **Archivos:**
 - Crear: `vcpkg.json` (dependencia `gtest`), `Server/DataServer/tests/CMakeLists.txt`, `Server/DataServer/tests/SmokeTest.cpp`
@@ -59,7 +63,8 @@ qué es un *test runner*; integración continua en dos sistemas.
 ## Sub-ola 0.3: documentación base
 
 **Concepto:** por qué se documentan las decisiones (ADR) y las reglas de código antes
-de que haya mucho código; cómo se lee un repo organizado como MuMain.
+de que haya mucho código; cómo se lee un repo organizado como MuMain. Ver la
+[guía, § 0.3](../../learning/ola-0-fundaciones.md#03-documentación-base).
 
 **Archivos:**
 - Crear: `AGENTS.md`, `docs/CODING_RULES.md`, `docs/adr/0001-contrato-wire-y-sql.md`, `docs/adr/0002-iocp-epoll-a-mano.md`, `.clang-format`
@@ -74,5 +79,6 @@ de que haya mucho código; cómo se lee un repo organizado como MuMain.
 
 ## Al cerrar la ola 0
 
+- [ ] Completar la sección de cierre de la [guía de la ola 0](../../learning/ola-0-fundaciones.md).
 - [ ] Actualizar `docs/learning/PROGRESS.md` (conceptos dominados y flojos).
 - [ ] Revisar el [plan de la ola 1](2026-10-26-ola-1-protocolo-sin-red.md) (protocolo sin red) con lo aprendido.

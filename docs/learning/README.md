@@ -8,6 +8,7 @@ código y Claude hace de tutor. Acá queda lo que se estudia, lo que se mide y l
 | Archivo | Qué es | Quién lo escribe |
 | --- | --- | --- |
 | [PROGRESS.md](PROGRESS.md) | estado de cada concepto (dominado, flojo, pendiente) | se actualiza al cerrar cada ola |
+| [ola-0-fundaciones.md](ola-0-fundaciones.md) | guía de la ola 0: dependencias, tests, CI, ADR y formato | guía de Claude, cierre tuyo |
 | [ola-0.1-cmake.md](ola-0.1-cmake.md) | nota de la sub-ola 0.1 (CMake, targets) | Claude la armó; las respuestas son tuyas |
 | [ola-1-protocolo.md](ola-1-protocolo.md) | guía de la ola 1: bytes, framing, serialización | guía de Claude, cierre tuyo |
 | [ola-2-sockets.md](ola-2-sockets.md) | guía de la ola 2: sockets, RAII, hilos, sesiones | guía de Claude, cierre tuyo |

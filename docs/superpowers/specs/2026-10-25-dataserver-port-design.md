@@ -2,12 +2,16 @@
 
 > **Documento de trabajo, 2026-10-25 (decisiones cerradas el 2026-10-26).** Es el plan completo
 > para reescribir el DataServer de MU Online 1.02 en MuRet: el objetivo, cómo trabajamos, las
-> decisiones de diseño, la estructura del repo y las 9 olas con sus sub-olas. Queda vivo mientras
-> haya olas abiertas.
+> decisiones de diseño, la estructura del repo y las olas 0 a 8 con sus sub-olas. Queda vivo
+> mientras haya olas abiertas.
 >
 > **Qué hace el original** no está acá: está en el research, un archivo por tema, en
 > [`Server/DataServer/docs/research/`](../../../Server/DataServer/docs/research/). Este roadmap
 > decide qué hace MuRet y en qué orden; el research es la fuente de verdad del comportamiento.
+>
+> **Cómo se aprende** (las sub-olas N.0 de fundamentos, el formato de cada sesión, el tutor, las
+> olas 9 a 14 de sistemas distribuidos y el carril R de ingeniería inversa) está en el
+> [camino de aprendizaje](2026-10-28-camino-de-aprendizaje-design.md).
 >
 > Escrito a partir de [EmaNLJN/mu-server-repack-research-102i](https://github.com/EmaNLJN/mu-server-repack-research-102i)
 > (carpeta `dataserver/`), organizado como [sven-n/MuMain](https://github.com/sven-n/MuMain).
@@ -36,6 +40,10 @@ PR chico que compila, tiene tests de GoogleTest en verde y se puede mostrar. Vam
 a lo escalable: primero bytes, después sockets a mano, después IOCP/epoll como el original, y recién
 al final el sistema distribuido.
 
+Cada ola arranca con su sub-ola **N.0 de fundamentos**: la teoría y el C++ que esa ola necesita,
+construidos en `labs/`. En los servidores nuevos hay además una **N.R** de research del binario. Las
+dos están definidas en el [camino de aprendizaje](2026-10-28-camino-de-aprendizaje-design.md).
+
 Cada sub-ola sigue este ritmo (lento a propósito):
 
 1. Claude explica el concepto nuevo con un ejemplo chico fuera del proyecto.
@@ -53,8 +61,10 @@ Cada ola tiene su plan detallado en [`docs/superpowers/plans/`](../plans/) antes
 
 Dentro: el DataServer completo (red, cola, dispatcher, los 22 heads, SQL, datos auxiliares),
 multiplataforma, con tests. Fuera: el auto-update (`WZ_UM.DLL`), la UI de MFC (se reemplaza por
-consola + log a archivo), y el resto de los servidores de MU (ConnectServer, JoinServer,
-GameServer), que entrarán como componentes aparte más adelante.
+consola + log a archivo), y el resto de los servidores de MU. El JoinServer y el ConnectServer
+entran como componentes aparte en las olas 9 y 10 del
+[camino de aprendizaje](2026-10-28-camino-de-aprendizaje-design.md#olas-nuevas-de-distribuidos); el
+GameServer queda afuera.
 
 ## Decisiones de diseño
 
@@ -177,7 +187,7 @@ Cada sub-ola es un PR chico. "Terminada cuando" es la condición objetiva de cie
 
 | Ola | Tema | Sub-olas (un PR cada una) | Conceptos | Research |
 | --- | --- | --- | --- | --- |
-| 0 | Fundaciones | 0.1 CMake raíz + `Server/DataServer` + presets + este roadmap y el plan de la ola 0 · 0.2 vcpkg + GoogleTest + CTest + CI (Windows y Linux) · 0.3 docs base: `AGENTS.md`, `CODING_RULES.md`, ADR 0001 y 0002 | compilación, linker, targets, vcpkg, CI | 01 |
+| 0 | Fundaciones | 0.0 del código al programa (unidades de traducción, enlace, ODR; nace `labs/`) · 0.1 CMake raíz + `Server/DataServer` + presets + este roadmap y el plan de la ola 0 · 0.2 vcpkg + GoogleTest + CTest + CI (Windows y Linux) · 0.3 docs base: `AGENTS.md`, `CODING_RULES.md`, ADR 0001 y 0002 | compilación, linker, targets, vcpkg, CI | 01 |
 | 1 | Protocolo sin red | 1.1 helpers de bytes (`std::byte`, `std::span`, endianness) · 1.2 `FrameParser` C1/C2 · 1.3 structs de paquetes con `static_assert(sizeof)` y `Read`/`Write` | tipos, RAII, layout, TDD | 04, 05 |
 | 2 | Sockets a mano | 2.1 portabilidad Winsock/BSD · 2.2 servidor TCP bloqueante de un cliente · 2.3 un hilo por conexión y por qué no escala · 2.4 tabla de 100 sesiones (con id + generación) | sockets, TCP como stream, `#ifdef _WIN32`, `std::thread` | 04 |
 | 3 | I/O asíncrono como el original | 3.1 IOCP en Windows · 3.2 epoll en Linux tras `IoBackend` · 3.3 cola de envío por sesión + cierre ordenado (contador de pendientes) · 3.4 *opcional:* el mismo server con Asio | proactor vs reactor, OVERLAPPED, los bugs C-2/C-3/C-4 | 03, 04 |
@@ -186,6 +196,27 @@ Cada sub-ola es un PR chico. "Terminada cuando" es la condición objetiva de cie
 | 6 | Base real | 6.1 ODBC crudo con RAII · 6.2 prepared statements y blobs · 6.3 conexión al SQL Server de la VM · 6.4 repositorios ODBC | handles de C con RAII, errores, inyección | 06 |
 | 7 | Resto de heads | 7.1 cuenta y personajes · 7.2 baúl y varios · 7.3 gremios (Q-01 arreglado) | blobs, transacciones, atomicidad del serial | 05, 06, 07, 08 |
 | 8 | Distribuido | 8.1 el GS real contra MuRet · 8.2 `packet-replay` y paridad byte a byte · 8.3 timeouts, reconexión, idempotencia · 8.4 apagado limpio, métricas, health checks | sistemas distribuidos, observabilidad | 02, 08, 10 |
+
+Las olas 1 a 8 arrancan además con su sub-ola N.0 (1.0, 2.0, …, 8.0). Qué cubre cada una (teoría,
+C++, misión, jefe y carril R) está en el camino de aprendizaje, sección
+[Contenido de las N.0](2026-10-28-camino-de-aprendizaje-design.md#contenido-de-las-n0-olas-0-a-8).
+
+**Olas de distribuidos (después de la 8).** Cada una con su N.0; el detalle está en el
+[camino de aprendizaje](2026-10-28-camino-de-aprendizaje-design.md#olas-nuevas-de-distribuidos).
+El research de los servidores nuevos sale del
+[repo de research](https://github.com/EmaNLJN/mu-server-repack-research-102i).
+
+| Ola | Tema | Sub-olas (un PR cada una) | Conceptos | Research |
+| --- | --- | --- | --- | --- |
+| 9 | JoinServer | 9.0 · 9.R verificar el research y cerrar sus pendientes · nace `Server/Common/` · el JoinServer tal cual | autenticación central, exclusión mutua distribuida, leases, fencing tokens | `joinserver/` |
+| 10 | ConnectServer y UDP | 10.0 · 10.R completar el research (protocolo y UDP) · el ConnectServer tal cual | datagramas, descubrimiento de servicios, heartbeats, detectores de falla | `connectserver/` |
+| 11 | Simulador determinista | 11.0 · GameServer, JoinServer y DataServer simulados en un proceso, con semilla | simulación de eventos discretos, determinismo, relojes de Lamport y vectoriales | — |
+| 12 | Failover y leases | 12.0 · DataServer activo y de respaldo detrás de una sola IP | replicación activo-pasivo, split-brain, fencing, durabilidad | — |
+| 13 | Consenso | 13.0 · Raft desde cero en el simulador · almacenamiento replicado detrás de `Database` | replicación de máquinas de estado, Raft, FLP | — |
+| 14 | Particiones (opcional) | 14.0 · cuentas repartidas entre DataServers · 2PC entre particiones | consistent hashing, 2PC, linealizabilidad vs consistencia eventual | — |
+| F | Front-ends (opcional) | F.1 a F.6 de [front-ends](2026-10-26-frontends-cli-gui-futuro.md) | ver esa spec | 02 |
+
+ExDB queda como ola opcional, sin número, cuando el research confirme su rol.
 
 **Planes detallados, uno por ola** (pasos con checkbox, archivos, qué escribe Emanuel y qué es
 andamiaje, preguntas a decidir al empezar). Se escribieron por adelantado y cada uno se revisa al
@@ -238,9 +269,11 @@ que el research todavía no tenía (se agrega con su evidencia, ver
 
 ## Trabajo futuro (después de la ola 8)
 
+- **Sistemas distribuidos:** las olas 9 a 14 (tabla de arriba), definidas en el
+  [camino de aprendizaje](2026-10-28-camino-de-aprendizaje-design.md#olas-nuevas-de-distribuidos).
 - **Front-ends:** consola y acceso remoto en Linux (referencia: OpenMU y TrinityCore/AzerothCore/CMaNGOS)
-  y una GUI moderna en Windows como la del original, sobre un núcleo que no sabe de UI. Propuesta y
-  borrador de una ola 9 opcional en [front-ends CLI y GUI](2026-10-26-frontends-cli-gui-futuro.md).
+  y una GUI moderna en Windows como la del original, sobre un núcleo que no sabe de UI. Es la ola F,
+  opcional: propuesta y borrador en [front-ends CLI y GUI](2026-10-26-frontends-cli-gui-futuro.md).
 
 ## Preguntas cerradas (2026-10-26)
 

@@ -63,7 +63,7 @@ check_links() { for f in "$@"; do d=$(dirname "$f"); grep -oE '\]\(([^)#]+)' "$f
 - [ ] **Paso 1: renombrar.** "ola 9" → "ola F"; `9.1`…`9.6` → `F.1`…`F.6` (tabla de la sección
   "Cómo encajaría en olas", la línea 143 "a decidir en la 9.1" y el `(9.5)` de la estructura del
   repo). En el bloque inicial, una frase: es la ola F del
-  [camino de aprendizaje](2026-10-28-camino-de-aprendizaje-design.md) (L-12), opcional y sin lugar
+  [camino de aprendizaje](../specs/2026-10-28-camino-de-aprendizaje-design.md) (L-12), opcional y sin lugar
   fijo después de la ola 8. Sin cambios de contenido.
 - [ ] **Paso 2: verificar el archivo.**
   Run: `grep -nE 'ola 9|\b9\.[1-6]\b' docs/superpowers/specs/2026-10-26-frontends-cli-gui-futuro.md`
@@ -87,7 +87,7 @@ check_links() { for f in "$@"; do d=$(dirname "$f"); grep -oE '\]\(([^)#]+)' "$f
 
 - [ ] **Paso 1: bloque inicial.** Sumar una línea: **cómo se aprende** (las N.0, el formato, el
   tutor, las olas 9 a 14 y el carril R) está en el
-  [camino de aprendizaje](2026-10-28-camino-de-aprendizaje-design.md).
+  [camino de aprendizaje](../specs/2026-10-28-camino-de-aprendizaje-design.md).
 - [ ] **Paso 2: "Cómo trabajamos".** Antes del paso 1 del ritmo: cada ola arranca con su sub-ola
   N.0 de fundamentos y, en los servidores nuevos, con su N.R de research.
 - [ ] **Paso 3: "Scope".** El JoinServer y el ConnectServer dejan de estar "fuera": entran en las

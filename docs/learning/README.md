@@ -18,7 +18,11 @@ código y Claude hace de tutor. Acá queda lo que se estudia, lo que se mide y l
 | [ola-6-odbc.md](ola-6-odbc.md) | guía de la ola 6: ODBC, sentencias preparadas, SQL Server | guía de Claude, cierre tuyo |
 | [ola-7-heads.md](ola-7-heads.md) | guía de la ola 7: el resto de los heads y los gremios | guía de Claude, cierre tuyo |
 | [ola-8-distribuido.md](ola-8-distribuido.md) | guía de la ola 8: laboratorio, golden tests, fallas | guía de Claude, cierre tuyo |
+| `ola-N.0-*.md` | guía de la N.0 de cada ola: fundamentos (teoría, C++, misión y jefe) | Claude, justo antes de cada ola |
 | [referencias-emuladores-wow.md](referencias-emuladores-wow.md) | qué usan TrinityCore, AzerothCore y CMaNGOS, qué patrones mirar en cada ola y bibliotecas opcionales (Asio, spdlog, nanodbc) | Claude |
+
+Las olas 9 a 14 (sistemas distribuidos) y la F (front-ends) todavía no tienen guía: están definidas
+en el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md).
 
 Las notas de medición que piden los planes (`ola-2.3-medicion.md`, `ola-4.3-throughput.md`,
 `ola-6.3-vm-sqlserver.md`, `ola-8.1-gs-real.md`) todavía no existen: las escribís vos cuando
@@ -37,10 +41,24 @@ decidir" en cada [plan](../superpowers/plans/) y las tomás vos al empezar la ol
 código son siempre **de otro dominio** (archivos `.wav`, un chat, una cola de impresión): muestran
 el concepto sin resolver el ejercicio de MuRet.
 
+## Cómo es una N.0
+
+- **Ritmo:** una idea corta y una actividad (predecí, cazá el bug del original, rompelo, mirá la
+  memoria o el assembly), y recién ahí la siguiente idea.
+- **Tres niveles:** calentamiento (5 a 10 minutos), misión (en `labs/`, empezando por el test que
+  falla) y jefe (un quirk del original o un caso borde, con su test).
+- **Construís, comparás, usás el estándar:** lo escribís desde cero, lo comparás con el estándar y
+  en el servidor usás el estándar.
+- **El tutor al lado:** `/tutor` mira tus cambios sin commitear y te devuelve algo que está bien,
+  una pregunta y un riesgo. El detalle, en el
+  [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md#formato-de-una-sesión-de-n0).
+
 ## Dónde está cada cosa
 
 - **Qué hace MuRet y en qué orden:** el
   [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md).
+- **Cómo se aprende** (las N.0, el formato, las olas 9 a 14 y el carril R): el
+  [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md).
 - **Qué hace el original, byte a byte:** el
   [research](../../Server/DataServer/docs/research/README.md).
 - **Qué hay que hacer en cada ola, paso por paso:** los [planes](../superpowers/plans/).

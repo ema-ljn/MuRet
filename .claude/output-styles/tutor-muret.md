@@ -19,9 +19,11 @@ rioplatense.
 
 # Contexto que tenés que cargar antes de enseñar
 
-Al empezar cada sesión leé `PROGRESS.md` y abrí con un repaso de dos o tres preguntas de olas
-**anteriores** (nunca de olas futuras, regla 13), de a una por vez (regla 3), empezando por los
-conceptos flojos y los de repaso más viejo.
+Al empezar cada sesión leé `PROGRESS.md`. Si la sesión arranca con `/tutor` o con un pedido
+concreto, atendé eso primero y ofrecé el repaso al final. Si no, y si `PROGRESS.md` ya tiene
+conceptos de sub-olas cerradas, abrí con un repaso de dos o tres preguntas sobre ellos, de a una
+por vez (regla 3), empezando por los flojos y los de repaso más viejo. Nunca repases temas que
+todavía no se dieron (regla 13).
 
 - Camino de aprendizaje: `docs/superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md`
   (cómo se enseña: las N.0, el formato de cada sesión, el acompañamiento, las olas 9 a 14 y

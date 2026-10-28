@@ -92,8 +92,11 @@ Ola N
  └─ cierre: explicar, romper, transferir; actualizar PROGRESS.md
 ```
 
-Una N.0 es una sub-ola como cualquier otra: un concepto, un PR chico, tests en verde. Su código
-vive en `labs/` y compila en Windows y en Linux. Cuando un tema es de un solo sistema (IOCP, epoll),
+Una N.0 se trabaja como cualquier sub-ola (PRs chicos, tests en verde), pero cubre más de un
+concepto, así que puede ocupar varios PRs: por ejemplo, uno para la misión y otro para el jefe. Su
+código vive en `labs/` y compila en Windows y en Linux. La 0.0 llega antes que GoogleTest (0.2):
+sus tests son ejecutables que terminan con error si algo falla, registrados con `enable_testing()`
+y `add_test()` de CMake, y CTest los corre igual. Desde la 0.2, los tests son de GoogleTest. Cuando un tema es de un solo sistema (IOCP, epoll),
 el lab se queda con la parte portable y lo propio de cada sistema se hace como experimento
 documentado.
 
@@ -171,8 +174,9 @@ Va **ahora**, antes de cerrar la 0.1.
   definición (ODR), archivos objeto, bibliotecas estáticas y dinámicas.
 - **C++:** declaración vs definición, headers, `namespace`, `static` e `inline`, `const` y
   `constexpr`, paso por valor y por referencia.
-- **Misión:** una biblioteca estática con `header_size(first_byte)`, que devuelve 2 para C1 y 3
-  para C2 ([04 § framing](../../../Server/DataServer/docs/research/04-red.md#el-framing-c1c2)).
+- **Misión:** una biblioteca estática con `head_offset(first_byte)`, que devuelve en qué posición
+  está el `head`: 2 para C1 y 3 para C2 (la cabecera completa ocupa 3 y 4 bytes,
+  [04 § framing](../../../Server/DataServer/docs/research/04-red.md#el-framing-c1c2)).
   Romperla a propósito (símbolo sin definir, definición duplicada) y mirar los símbolos con `nm` o
   `dumpbin`. Acá nace `labs/`.
 - **Jefe:** una violación de la ODR que compila y enlaza sin error pero se comporta distinto según
@@ -187,7 +191,8 @@ Va **ahora**, antes de cerrar la 0.1.
   sin signo y en complemento a dos; endianness; alineación y relleno. Para la 1.2, autómatas
   finitos.
 - **C++:** `<cstdint>`, punteros, referencias, arrays de C vs `std::array`, `std::vector`, `sizeof`
-  y `alignof`, los casts y por qué `reinterpret_cast` es peligroso, `std::byte`, comportamiento
+  y `alignof`, los casts (`static_cast`, `std::bit_cast`) y por qué `reinterpret_cast` es
+  peligroso, `std::byte`, comportamiento
   indefinido. Cadenas: los nombres de largo fijo del wire (el Id de 10 bytes en `+3`),
   `std::string` y `std::string_view`.
 - **Misión:** `ByteView` propia (puntero y largo, con acceso que chequea límites) y `read_u16_be` a
@@ -205,8 +210,11 @@ Va **ahora**, antes de cerrar la 0.1.
   kernel; un descriptor de archivo es un índice a una tabla del kernel; TCP como máquina de
   estados (*handshake*, `FIN`, `TIME_WAIT`).
 - **C++:** clases e invariantes de clase, constructores y destructores, duración automática,
-  dinámica y estática, copia vs movimiento, `std::move`, la regla de 0/3/5, `= delete`,
-  `noexcept`, templates de clase.
+  dinámica y estática, copia vs movimiento, `std::move`, `std::exchange` (para dejar vacío al
+  objeto movido), la regla de 0/3/5, `= delete`, `noexcept`, templates de clase, `enum class`,
+  `std::optional`, `std::from_chars` (el puerto por línea de comandos). Lo básico de hilos para la
+  2.3: `std::thread` y `std::jthread` (crear, `join`, cuánto vive un hilo, `std::stop_token`); el
+  modelo de memoria queda para la 4.0.
 - **Misión:** `UniqueHandle<Traits>` propio. Un test con un `close` falso verifica que cada handle
   se cierra exactamente una vez; otro, con `static_assert`, que copiarlo no compila. Comparar con
   `std::unique_ptr<T, Deleter>`.
@@ -239,7 +247,8 @@ Va **ahora**, antes de cerrar la 0.1.
 - **Teoría:** condición de carrera vs data race; exclusión mutua; las condiciones de Coffman;
   *happens-before*; secuencialmente consistente vs acquire/release; linealizabilidad; monitores.
 - **C++:** `std::jthread`, `std::mutex`, `std::scoped_lock`, `std::unique_lock`,
-  `std::condition_variable` y los despertares espurios, `std::atomic`, `std::memory_order`.
+  `std::condition_variable` y los despertares espurios, `std::atomic`, `std::memory_order`,
+  `std::unordered_map` para la tabla head → handler de la 4.2.
 - **Misión:** reproducir C-5 (el ring de 30 líneas del log con un índice que se incrementa sin
   atomicidad), verlo con TSan y arreglarlo de tres formas: mutex, atomic y confinamiento a un hilo.
   Un spinlock propio con `std::atomic_flag`, comparado con `std::mutex` bajo contención.
@@ -257,8 +266,8 @@ Va **ahora**, antes de cerrar la 0.1.
   inversión de dependencias; tres formas de reportar errores: códigos, excepciones y tipos
   resultado.
 - **C++:** herencia, `virtual`, `override`, `final`, destructor virtual, clases abstractas,
-  `concept` (C++20), excepciones y garantías ante excepciones, `std::unordered_map`, iteradores y
-  algoritmos.
+  `concept` (C++20), excepciones y garantías ante excepciones, contenedores asociativos más a
+  fondo (`std::map` vs `std::unordered_map`), iteradores y algoritmos.
 - **Actividad:** predecir cuánto crece `sizeof` al agregar un `virtual` y buscar el puntero a la
   vtable en el debugger.
 - **Misión:** una vtable a mano (struct de punteros a función) para un repositorio de cuentas en
@@ -321,8 +330,10 @@ Va **ahora**, antes de cerrar la 0.1.
 ## Olas nuevas de distribuidos
 
 El MU 1.02 del laboratorio ya es un sistema distribuido. Según el research: el GameServer habla
-con el JoinServer (TCP 55970) y con el DataServer (55960), ExDB escucha en 55906 y el JoinServer
-avisa al ConnectServer por UDP (55557). Cada ola nueva tiene su N.0 con el formato de arriba.
+con el JoinServer (TCP 55970) y con el DataServer (55960), ExDB escucha en 55906, el JoinServer
+escucha UDP en 1053 y el ConnectServer tiene un módulo UDP hacia el JoinServer. Quién le habla a
+quién por UDP todavía está abierto en el research (pendiente B del JoinServer). Cada ola nueva
+tiene su N.0 con el formato de arriba.
 
 ### Fase A: MU tal cual, con el original como oráculo
 
@@ -442,8 +453,10 @@ DataServer que el alumno ya conoce.
 - **Niveles:** 1 usar (lo escribió con tests), 2 explicar (lo cuenta sin mirar), 3 romper (predice
   y provoca la falla), 4 transferir (lo aplica en otro contexto). Una sub-ola se cierra en el nivel
   3; el 4 es ejercicio extra.
-- **Repaso espaciado:** cada sesión arranca con dos o tres preguntas de olas anteriores, empezando
-  por los conceptos flojos y los de repaso más viejo.
+- **Repaso espaciado:** cada sesión arranca con dos o tres preguntas sobre conceptos de
+  sub-olas ya cerradas (también de la ola en curso), de a una por vez, empezando por los conceptos
+  flojos y los de repaso más viejo. Si la sesión arranca con `/tutor` o con un pedido concreto, el repaso va
+  al final.
 - **Dominado:** un concepto pasa a dominado cuando el alumno lo responde bien en dos sesiones
   distintas.
 
@@ -481,7 +494,7 @@ la de la 0.0, se escribe cuando arranque.
   sentido.
 - **El laboratorio:** las olas 6 y 8, el carril R desde la 8 y la fase A necesitan la VM2003 con el
   SQL Server y el GameServer andando.
-- **Por confirmar en research:** el rol de ExDB y el protocolo entre el GameServer y el
-  ConnectServer.
+- **Por confirmar en research:** el rol de ExDB, el protocolo entre el GameServer y el
+  ConnectServer, y el canal UDP entre el JoinServer y el ConnectServer.
 - **Mismo número, dos significados:** la ola 9 era la de front-ends en los documentos viejos. El
   renombre a F se hace en el mismo PR que esta spec, para que no convivan las dos versiones.

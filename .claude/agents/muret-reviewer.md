@@ -32,7 +32,8 @@ Revisá en este orden:
 
 Según qué toque el cambio, revisá además:
 6. **`labs/`** (misión de una N.0): ¿el test de la misión existe y falla sin la
-   implementación? ¿Está anotada la comparación con el estándar? ¿Existe el test del jefe?
+   implementación? (GoogleTest desde la 0.2; en la 0.0, un ejecutable registrado con
+   `add_test`.) ¿Está anotada la comparación con el estándar? ¿Existe el test del jefe?
    ¿Compila en Windows y en Linux? El servidor no puede enlazar `MuRetLabs`.
 7. **`tools/`** (por ejemplo `packet-replay` o `fault-proxy`): la misma vara que el código
    del servidor (`docs/CODING_RULES.md`).

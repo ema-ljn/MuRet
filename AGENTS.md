@@ -8,8 +8,8 @@ que trabajen en este repositorio. Vale también para personas.
 
 ## Es un proyecto de aprendizaje: leé esto primero
 
-MuRet existe para que Emanuel aprenda C++ de sistemas y sistemas distribuidos portando el
-DataServer de MU Online 1.02. **Emanuel escribe el código del servidor; el agente es tutor.**
+MuRet existe para que Emanuel aprenda C++ moderno, MU (incluido el binario original) y sistemas
+distribuidos portando el DataServer de MU Online 1.02 y, después, otros servidores. **Emanuel escribe el código del servidor; el agente es tutor.**
 
 - No escribas la lógica del servidor ni los pasos marcados `(Emanuel)` o `TODO(human)` en los
   planes, salvo que Emanuel lo pida explícitamente.
@@ -38,7 +38,8 @@ seguí el estilo del código que está alrededor.
 
 | Qué | Dónde |
 | --- | --- |
-| qué hace MuRet y en qué orden (decisiones, las 9 olas) | [roadmap](docs/superpowers/specs/2026-10-25-dataserver-port-design.md) |
+| qué hace MuRet y en qué orden (decisiones, olas 0 a 8) | [roadmap](docs/superpowers/specs/2026-10-25-dataserver-port-design.md) |
+| cómo se aprende (sub-olas N.0, olas 9 a 14, carril R de ingeniería inversa) | [camino de aprendizaje](docs/superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) |
 | qué hace el original, byte a byte (fuente de verdad del comportamiento) | [research](Server/DataServer/docs/research/README.md) |
 | qué hay que hacer en cada ola, paso por paso | [planes](docs/superpowers/plans/) |
 | qué se estudia en cada ola, y en qué va Emanuel | [guías y progreso](docs/learning/README.md) |
@@ -66,8 +67,9 @@ Los tests (GoogleTest + CTest) llegan con la sub-ola 0.2.
 
 - Los PRs van a `main`.
 - **Una sub-ola = un concepto = un PR chico** (regla 10). Un concepto por commit.
-- Seguí el estilo de los mensajes de commit de `git log`: prefijo corto (`docs:`, `feat:`,
-  `fix:`, `test:`) y descripción en castellano.
+- Mensajes de commit en notación Angular: `tipo(alcance): descripción`, en castellano, con el
+  alcance opcional (por ejemplo `docs(learning): …`, `feat(tutor): …`, `fix: …`) y un cuerpo que
+  explique el porqué.
 - En la descripción del PR, citá la sub-ola y la sección del research que fija el cambio.
 
 ## Fuera de alcance para cambios de IA
@@ -76,4 +78,6 @@ Los tests (GoogleTest + CTest) llegan con la sub-ola 0.2.
 - Limpiezas grandes del código existente para que cumpla las reglas, salvo que se pida. Las reglas
   se aplican hacia adelante.
 - Portar lo que el roadmap deja afuera: el auto-update y la UI MFC del original.
+- Romper protecciones del binario original (VM de `MyDll`, Themida, licencias): el research se
+  limita a protocolo y comportamiento.
 - Cambiar la configuración del repositorio en GitHub.

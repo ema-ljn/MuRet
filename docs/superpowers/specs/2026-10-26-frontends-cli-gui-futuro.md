@@ -11,6 +11,10 @@
 > encima: en Linux, consola y acceso remoto tomando como referencia a OpenMU y a los emuladores de
 > WoW; en Windows, una GUI como la del original pero con estándares actuales (decisión de Emanuel).
 > Todo sin ensuciar el núcleo.
+>
+> Desde el [camino de aprendizaje](2026-10-28-camino-de-aprendizaje-design.md) (L-12) es la
+> **ola F**: opcional y sin lugar fijo después de la ola 8, porque los números del 9 en adelante
+> quedan para sistemas distribuidos.
 > Autor: Emanuel (ema-ljn), con Claude de tutor.
 
 ## Qué hace el original
@@ -140,7 +144,7 @@ una capa más:
   Ojo con un detalle que TrinityCore no tiene: allá el hilo del mundo da vueltas con un tick fijo y
   vacía la cola de comandos en cada vuelta, pero nuestro hilo de lógica (4.2) está **dormido en el
   `Pop` de la `MessageQueue`**. Si los comandos van en una cola aparte, nadie lo despierta. Hay dos
-  salidas, a decidir en la 9.1: que la `MessageQueue` lleve `std::variant<Frame, AdminCommand>`
+  salidas, a decidir en la F.1: que la `MessageQueue` lleve `std::variant<Frame, AdminCommand>`
   (con los comandos fuera del tope de back-pressure, para que un `shutdown` nunca se descarte), o
   una segunda cola que comparta el mismo `condition_variable`. Cada comando lleva su callback de
   respuesta, como el `CliCommandHolder`.
@@ -304,17 +308,17 @@ En todos los casos el núcleo es el mismo y no sabe qué front-end lo está usan
 
 ## Cómo encajaría en olas (borrador)
 
-Una "ola 9" opcional, con el mismo ritmo de siempre (una sub-ola = un concepto = un PR chico que
+Una "ola F" opcional, con el mismo ritmo de siempre (una sub-ola = un concepto = un PR chico que
 escribe Emanuel). Requiere las olas 4 (hilos y cola) y 8.4 (métricas y apagado).
 
 | Sub-ola | Qué | Concepto | Terminada cuando |
 | --- | --- | --- | --- |
-| 9.1 | `DataServer::Admin`: `IServerControl`, `LogSink`, snapshots; comandos encolados al hilo de lógica (como `QueueCliCommand`) | interfaces, observer, snapshots thread-safe | tests en memoria: un `kick` encolado no rompe I-1/I-2/I-3 (TSan limpio) |
-| 9.2 | consola L-A (historial, `help`, confirmación) + argumentos + unidad de systemd | parseo de comandos, stdin, servicios | `status`, `sessions`, `shutdown` andan; `systemctl stop` apaga limpio |
-| 9.3 | GUI de Windows en Qt 6 Widgets en el mismo proceso: log en vivo + panel de estado (solo lectura) | event loop de la UI; cruzar hilos con signals/slots (una señal emitida desde otro hilo llega como *queued connection* y el slot corre en el hilo de la UI; los tipos propios se registran con `qRegisterMetaType`; nunca `BlockingQueuedConnection`, que al apagar se traba); el núcleo no conoce `QObject`: un adaptador de la GUI implementa `LogSink` y emite la señal | la ventana muestra log y métricas mientras 100 clientes de prueba pegan, sin trabarse |
-| 9.4 | GUI con comandos (el callback de respuesta vuelve a la UI con `QMetaObject::invokeMethod` y `Qt::QueuedConnection`): tabla de GS con `kick`, recargar filtros, apagar con confirmación; bandeja | model/view, comandos asíncronos con respuesta | los comandos de la tabla común andan desde la GUI y desde la consola |
-| 9.5 | *opcional:* canal de control L-B + `tools/muretctl` (y la GUI como cliente, W-2) | IPC, protocolo, auth, timeouts | `muretctl status` contra un server en Linux y otro en Windows |
-| 9.6 | *opcional:* Windows Service (`--service install`, como TrinityCore) | SCM, servicio sin consola | el server arranca con Windows y la GUI (W-2) se conecta |
+| F.1 | `DataServer::Admin`: `IServerControl`, `LogSink`, snapshots; comandos encolados al hilo de lógica (como `QueueCliCommand`) | interfaces, observer, snapshots thread-safe | tests en memoria: un `kick` encolado no rompe I-1/I-2/I-3 (TSan limpio) |
+| F.2 | consola L-A (historial, `help`, confirmación) + argumentos + unidad de systemd | parseo de comandos, stdin, servicios | `status`, `sessions`, `shutdown` andan; `systemctl stop` apaga limpio |
+| F.3 | GUI de Windows en Qt 6 Widgets en el mismo proceso: log en vivo + panel de estado (solo lectura) | event loop de la UI; cruzar hilos con signals/slots (una señal emitida desde otro hilo llega como *queued connection* y el slot corre en el hilo de la UI; los tipos propios se registran con `qRegisterMetaType`; nunca `BlockingQueuedConnection`, que al apagar se traba); el núcleo no conoce `QObject`: un adaptador de la GUI implementa `LogSink` y emite la señal | la ventana muestra log y métricas mientras 100 clientes de prueba pegan, sin trabarse |
+| F.4 | GUI con comandos (el callback de respuesta vuelve a la UI con `QMetaObject::invokeMethod` y `Qt::QueuedConnection`): tabla de GS con `kick`, recargar filtros, apagar con confirmación; bandeja | model/view, comandos asíncronos con respuesta | los comandos de la tabla común andan desde la GUI y desde la consola |
+| F.5 | *opcional:* canal de control L-B + `tools/muretctl` (y la GUI como cliente, W-2) | IPC, protocolo, auth, timeouts | `muretctl status` contra un server en Linux y otro en Windows |
+| F.6 | *opcional:* Windows Service (`--service install`, como TrinityCore) | SCM, servicio sin consola | el server arranca con Windows y la GUI (W-2) se conecta |
 
 Antes de arrancarla se escribe su plan en `docs/superpowers/plans/` y su guía en `docs/learning/`,
 como las demás.
@@ -325,7 +329,7 @@ como las demás.
 Server/DataServer/src/Admin/       IServerControl, LogSink, CliCommand        DataServer::Admin
 Server/DataServer/src/main.cpp     headless: arma el núcleo + consola
 Server/DataServer/gui/             DataServerGui.exe (Qt 6): mismo núcleo + ventana
-tools/muretctl/                    (9.5) cliente del canal de control
+tools/muretctl/                    (F.5) cliente del canal de control
 packaging/systemd/                 muret-dataserver.service
 ```
 

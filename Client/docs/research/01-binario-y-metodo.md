@@ -48,7 +48,7 @@ analizados del código propio del cliente):
 | M4 bucle por frame y escenas | 750 KB | 15 % | estático |
 | M5 mundo 3D | 185 KB | 20 % | el renderer de terreno **no está identificado** |
 | M6 UI | 365 KB | 65 % | estático |
-| M7 audio | 13 KB | 8 % | nada |
+| M7 audio | 13 KB | 8 % | en `main.exe`, poco; pero `wzAudio.dll` y sus decodificadores están decompilados enteros (`decompilacion-maxima`, ver [05](05-formatos-de-datos.md)) |
 
 El 30 % analizado es mapa del binario, no código reconstruido. Para MuRet esto marca el orden: lo
 validado se porta primero, con tests; lo estático se porta con tests de contrato y se marca
@@ -61,9 +61,12 @@ pendiente de verificar; lo que falta pide una sub-ola de research (CL*n*.R) ante
 | `mainexe-vmxp-c32bbd5f/decompiled/` | C y assembly de cada función | carril R: leer el original para entender un comportamiento |
 | `analysis/mainexe/` | informes por tema, scripts de referencia en Python, evidencia | la fuente de este research; los scripts generan vectores de prueba |
 | `mu-client/` | reimplementación C99 con tests y fixtures | **oráculo**, no destino: sus vectores pasan a ser tests de MuRet; su código no se copia |
+| `mu-online-reverse-lab`: `analysis/decompilacion-maxima/` | `wzAudio`, `vorbisfile`, `ogg`, `mumsg`, `wz_zp` y `wzCipher` decompiladas con sus ABI (`abi/`); `assets/original-data/` (el `Data\` entero) y `assets/decoded/`; `assets_manifest.csv` con formato, transformación y metadatos de los 5.774 archivos | contrato de las DLLs que el cliente reemplaza (audio sobre todo) y **la carpeta golden**: los tests de datos reales apuntan ahí |
 
-`mu-golden/` (datos reales del cliente) **no se versiona en MuRet**, igual que en el repo de
-research: los tests que lo usan reciben la ruta por una opción de CMake y se saltean si no está.
+Los datos reales del cliente (`mu-golden/` y ahora `assets/original-data/` de
+`mu-online-reverse-lab`) **no se versionan en MuRet**: los tests que los usan reciben la ruta por
+una opción de CMake y se saltean si no está. Con el `Data\` completo disponible, los tests golden
+pueden recorrer **todos** los archivos de un formato, no solo los 15 de `mu-golden`.
 
 ## Qué implica para MuRet
 

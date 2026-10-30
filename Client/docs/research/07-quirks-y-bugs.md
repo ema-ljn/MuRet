@@ -32,6 +32,8 @@ dos clases y la regla cambia según cuál:
 | Q-C11 | drenaje de `FD_WRITE`, `0x4e87b0` | aritmética anómala con varios envíos parciales seguidos | bug | cola de envío con un cursor, probada con parciales `{2, 2, -1}` | CL4 |
 | Q-C12 | cargadores de tablas | si falta un archivo: `MessageBox`, `WM_DESTROY`, y sigue cargando las demás | bug | error explícito, el cliente no arranca sin sus datos | CL1 |
 | Q-C13 | dispatcher | sin FoxAnti nadie llama al dispatcher: el cliente no procesa paquetes | diseño | el dispatcher es del cliente; la ofuscación es una capa aparte | CL2 |
+| Q-C14 | `Data\Object34/35/55` | 7 archivos `.OZJ` contienen un TGA, no un JPEG (`assets_manifest.csv`, "TGA con extension OZJ") | contrato | el cargador de OZJ mira el contenido, no solo la extensión; cómo los trata el original falta leerlo | CL1 |
+| Q-C15 | `mumsg.dll`, `CMsg` | lee cada entrada en un buffer de 256 bytes y escribe el `\0` en `buffer[len]` (`decompilacion-maxima/INDEX.md` §3) | bug | largo validado; el texto no se trunca ni desborda | CL1 |
 
 ## Fuera de alcance
 

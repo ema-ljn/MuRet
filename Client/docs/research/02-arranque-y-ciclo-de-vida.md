@@ -38,11 +38,29 @@ El render loop `0x637700` hace, en orden: cámara, color de cielo por mapa, la e
 según el global `DAT_006d5dc8` (2 login, 4 selección, 5 en el juego; ver
 [06](06-render-escenas-y-ui.md)), objetos, HUD, `SwapBuffers` y música. *Estático.*
 
-El orquestador `0x63945d` (7 KB) **no está decompilado en detalle**: se sabe que llama al render
-loop, no cómo reparte el tiempo entre lógica y dibujo. MuMain (que viene del cliente 5.2) fija la
-lógica a 25 ticks por segundo y documenta por qué la conserva
-([ADR 0001 de MuMain](https://github.com/sven-n/MuMain/blob/main/docs/adr/0001-preserve-25-fps-reference-timing.md));
-que el 1.02 haga lo mismo es *inferido* y queda en [08](08-pendientes.md).
+### El ritmo: 25 por segundo
+
+El render loop tiene su propio reloj (`analysis/mainexe/functions/paso6-ui-map.md` §4):
+
+```text
+0x459b60 / 0x459c00          tiempo (timeGetTime)
+while (DAT_006d5ee4 > 0x27)  bucle de "alcanzar": consume pasos de 40 ms
+   └─ lógica de la escena según DAT_006d5dc8 (y el hash anti-tamper)
+dibujo de la escena → glFlush + SwapBuffers
+espera activa hasta 0x28 ms   → DAT_006d5ee4 += lo transcurrido
+```
+
+- **La lógica avanza en pasos de 40 ms (25 por segundo)** y, si el frame tardó, el `while` corre
+  varios pasos seguidos para alcanzar al reloj.
+- **El dibujo también queda en 25 FPS**: la espera activa no deja empezar el frame siguiente
+  antes de 40 ms. Por eso el cliente "se siente" clavado: no es VSync, es esta espera.
+- Es el mismo valor que conserva MuMain para el cliente 5.2
+  ([ADR 0001 de MuMain](https://github.com/sven-n/MuMain/blob/main/docs/adr/0001-preserve-25-fps-reference-timing.md)).
+
+*Estático*: leído en el render loop; el orquestador `0x63945d` (7 KB) sigue sin decompilar en
+detalle y no hay una medición en la VM. Qué partes de la lógica dependen de ese paso
+(animaciones, movimiento, cooldowns) es lo que falta para desacoplar el dibujo sin cambiar el
+juego ([08](08-pendientes.md), P-C03).
 
 ## El WndProc `0x4af4e0`
 
@@ -77,6 +95,7 @@ otro: el del anticheat, id 1001 (`paso4-killer.md` §1).
 | --- | --- | --- |
 | `WinMain` + `WndProc` + `wgl*` | una capa `Platform` sobre una biblioteca portable de ventana e input (decisión D-C3 del roadmap); `main.cpp` solo arma y arranca | CL3 |
 | Registro de Windows para la config | archivo de config + argumentos (`connect /u<ip> /p<puerto>` se sigue aceptando) | CL3 |
+| Lógica en pasos de 40 ms y dibujo esperando a 40 ms | la lógica sigue en pasos de 40 ms con el mismo bucle de alcanzar; el dibujo deja de esperar e interpola entre pasos (D-C4 del roadmap); un modo fiel restaura la espera | CL3 |
 | Teclado por `GetAsyncKeyState` | estado del teclado consultado por frame, como el original, detrás de `Input` | CL3 |
 | Red por mensajes de ventana | un socket no bloqueante que el bucle consulta en cada frame; mismo modelo de un solo hilo | CL4 |
 | Keepalive por `WM_TIMER` cada 20 s | temporizador del bucle, testeable con un reloj falso | CL4 |
@@ -84,7 +103,7 @@ otro: el del anticheat, id 1001 (`paso4-killer.md` §1).
 
 Tests que fija:
 
-- El bucle principal con un reloj falso: N ticks de lógica por segundo simulado,
-  independientemente de cuántos frames se dibujen (CL3).
+- El bucle principal con un reloj falso: exactamente 25 pasos de lógica por segundo simulado, con
+  1, 25 o 240 frames dibujados, y el alcanzar ante un frame de 130 ms (3 pasos seguidos) (CL3).
 - El keepalive sale cada 20 s de reloj simulado y no antes (CL4).
 - El parser de la línea de comandos acepta `connect /u<ip> /p<puerto>` (CL3).

@@ -5,8 +5,11 @@
 > @ `91359b2c` (carpeta `client-research/`): la decompilación estática completa del build
 > `c32bbd5f…` (`mainexe-vmxp-c32bbd5f/`), el laboratorio histórico (`analysis/mainexe/`), la capa
 > de paquetes de FoxAnti (`analysis/foxanti/`), la reimplementación en C99 con tests
-> (`mu-client/`) y los oráculos de datos reales (`mu-golden/`). Las direcciones son VAs del
-> binario (base `0x400000`).
+> (`mu-client/`) y los oráculos de datos reales (`mu-golden/`). Se completó con
+> [EmaNLJN/mu-online-reverse-lab](https://github.com/EmaNLJN/mu-online-reverse-lab) @ `9f83b4c7`
+> (carpeta `analysis/decompilacion-maxima/`): las DLLs de audio y datos decompiladas, el `Data\`
+> completo del cliente (5.726 archivos originales y 3.997 decodificados) y su manifiesto de
+> formatos. Las direcciones son VAs del binario (base `0x400000`).
 >
 > Este research describe **qué hace el original**, no cómo lo hace MuRet. Las decisiones de MuRet
 > están en el [roadmap del cliente](../../../docs/superpowers/specs/2026-10-30-cliente-design.md).

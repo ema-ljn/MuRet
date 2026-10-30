@@ -13,25 +13,25 @@ El laboratorio midió la distancia a "cliente jugable" en hitos (`mu-client/docs
 | Hito | Qué es | Estado del research | Ola de MuRet |
 | --- | --- | --- | --- |
 | H0 Esqueleto | ventana, contexto GL, bucle, teclado, config | estático, 70 % | CL3 |
-| H1 Formatos | tablas, terreno, OZJ/OZT | verificado byte a byte; **faltan los modelos BMD** | CL1, CL6 |
+| H1 Formatos | tablas, terreno, OZJ/OZT, contenedor BMD | verificado byte a byte; el contenedor BMD recorrido en los 1.962 modelos | CL1, CL6 |
 | H2 Login | CS, lista, GS, C3/C4, FoxAnti | recepción y cifrado verificados; login y keepalive estáticos | CL2, CL4 |
-| H3 Selección | modelos con animación, preview 3D | parseo de modelos N4; **animación sin analizar** | CL6 |
+| H3 Selección | modelos con animación, preview 3D | contenedor BMD recorrido en los 1.962 modelos; **significado de la animación sin leer** | CL6 |
 | H4 Mundo | terreno, objetos, cámara, caminar | **renderer de terreno sin identificar** | CL7 |
 | H5 UI/HUD | texto, HUD, ventanas, chat | arquitectura estática | CL5, CL8 |
 | H6 Gameplay | los 140 handlers y los emisores | tabla anotada, semántica estática o inferida | CL9 |
-| H7 Audio | música y efectos | casi nada (8 %) | CL10 |
+| H7 Audio | música y efectos | `wzAudio` decompilada (CoolPlayer 215, Ogg, MP3); el uso desde `main.exe`, poco | CL10 |
 
 ## Huecos
 
 | # | Hueco | Bloquea | Cómo se cierra |
 | --- | --- | --- | --- |
-| P-C01 | **Modelos `.bmd`: animación y skinning.** Parseo conocido; huesos, keyframes e interpolación sin analizar | CL6 | CL6.R: leer el cargador de modelos y el render de `0x53c6a0`/`0x5f9780` en el decompilado; validar con un volcado de memoria del cliente vivo |
+| P-C01 | **Modelos `.bmd`: significado de la animación y del skinning.** El contenedor está recorrido entero (tamaños verificados); qué son los 24 B por key, la interpolación y cómo se pega cada vértice a su hueso, sin leer | CL6 | CL6.R: leer el cargador de modelos y el render de `0x53c6a0`/`0x5f9780` en el decompilado; validar con un volcado de memoria del cliente vivo |
 | P-C02 | **El renderer del terreno** no está identificado (consumidor del frustum `0x5fbb00`) | CL7 | CL7.R: referencias cruzadas a `DAT_07d2d364/368` y a las capas del `.map` en memoria |
-| P-C03 | **El ritmo del frame** (`0x63945d`, 7 KB, sin decompilar en detalle): ¿lógica fija a 25 ticks como en MuMain, o tope de 30 FPS como recuerda Emanuel? ¿Qué cosas dependen de ese ritmo (animación, movimiento, cooldowns)? Hace falta para subir los FPS sin cambiar la velocidad del juego (D-C4 del roadmap) | CL3 | CL3.R: leer el orquestador y buscar el `Sleep`/`timeGetTime` que limita; medir con un hook de `SwapBuffers` en la VM XP |
+| P-C03 | **El ritmo del frame.** Ya se sabe (estático, [02](02-arranque-y-ciclo-de-vida.md)): pasos de lógica de 40 ms y espera activa hasta 40 ms, 25 FPS (no 30). Falta: medirlo en la VM y saber qué depende del paso (animación, movimiento, cooldowns, cámara) para interpolar sin cambiar el juego (D-C4 del roadmap) | CL3 | CL3.R: leer el orquestador `0x63945d` y los usos de `DAT_006d5ee4`; medir con un hook de `SwapBuffers` en la VM XP |
 | P-C04 | **Layout exacto de los paquetes de la lista de servidores** (`F4 06`, `F4 03`) | CL4 | sacarlos del cable (`muproxy.log`, puerto 44405) y de `0x4c1860` |
 | P-C05 | **Diferencial dinámico del login `F1 01` y del keepalive `0x0E`** con el build `c32bbd5f…` | CL4 | captura en la VM XP con credenciales, tick, serial y `rand` controlados (follow-up F2 de `mu-client/CHECKPOINT.md`) |
 | P-C06 | **Selección de personaje** (`F3 00`/`F3 01`/`F3 03`…): los sub-handlers están anotados, el flujo no está reconstruido | CL6 | CL6.R: emisores y handlers de `0x4e2f93`, validar contra el cable |
-| P-C07 | **Audio**: `wzAudio.dll` (5 exports: `Create/Play/Stop/Option/GetStreamOffsetRange`) y DirectSound | CL10 | CL10.R: formatos de los archivos de música y sonido y quién los dispara |
+| P-C07 | **Audio**: `wzAudio.dll` ya está decompilada (CoolPlayer 215, 17 exports) y los formatos son conocidos (MP3, Ogg, WAV). Falta: quién dispara cada sonido en `main.exe`, volúmenes y el mezclado de DirectSound | CL10 | CL10.R: los llamadores de `0x4acfd0`, `0x41ed10` y la tabla de música por mapa |
 | P-C08 | **Input completo** (mouse sobre UI, atajos, IME) | CL3, CL8 | CL3.R: el resto del WndProc y las llamadas a `GetAsyncKeyState` |
 | P-C09 | **Semántica de cada handler** de juego (combate, items, party, gremio, comercio) | CL9 | una CL9.R por dominio, con el cable como oráculo |
 | P-C10 | **¿Con qué servidor se prueba?** El GS del laboratorio exige la capa FoxAnti; un servidor de MuRet todavía no existe | CL4 | decisión del roadmap: primero el GS del laboratorio (con la capa), después los servidores de MuRet |

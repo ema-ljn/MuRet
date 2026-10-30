@@ -3,7 +3,28 @@
 Fuentes: `mu-client/docs/component-bmd-tables.md`, `component-terrain.md`,
 `component-textures.md`, `component-pipeline.md`, `tier1-*.md`, `coverage-main.md` §0.1 y §5.1,
 y `analysis/mainexe/evidence/s31-assets/` (incluido `byte-a-byte.md` y
-`divergencias-cliente-servidor.md`).
+`divergencias-cliente-servidor.md`). Del repo `mu-online-reverse-lab`:
+`analysis/decompilacion-maxima/INDEX.md`, `assets/assets_manifest.csv`, `assets/assets_summary.json`,
+`scripts/asset_manifest.py` y `abi/`.
+
+## Qué hay en `Data\`
+
+El inventario completo del cliente (`assets_manifest.csv`, 5.774 archivos; 5.701 identificados, 29
+parciales, 44 binarios de soporte, 0 errores de decodificación):
+
+| Formato | Archivos | Transformación |
+| --- | ---: | --- |
+| OZJ (JPEG) | 2.380 | prefijo de 24 bytes; **7 son TGA con extensión OZJ** (Q-C14) |
+| OZT (TGA) | 664 | prefijo de 4 bytes |
+| BMD de modelo | 1.962 | v0A en claro o v0C cifrado con K16; todos recorridos sin bytes sobrantes |
+| BMD de tabla | 7 + 26 estructuras | XOR3 `FC CF AB` |
+| terreno | 23 `EncTerrain` `.map`/`.obj`, 29 `.att`; además 18 `.map`, 20 `.obj` y 24 `.att` que el manifiesto clasifica como `Terrain/*` y no `EncTerrain/*` (cuáles carga el cliente, a confirmar en CL1) | K16 (+ XOR3 en `.att`) |
+| OZB | 19 | BMP con prefijo de 4 bytes |
+| WAV | 484 | efectos de sonido |
+| MP3 | 23 | música por mapa (`Music\Pub.mp3`, `Devias.mp3`, `MuTheme.mp3`…) |
+| Ogg/Vorbis | 3 | por `wzAudio` → `vorbisfile` → `ogg` |
+| `message.wtf` | 1 | XOR `0xCA` |
+| claves C3/C4 | 2 | `Enc1.dat`, `Dec2.dat` |
 
 Es la otra parte bien validada: los cargadores de tablas, terreno y texturas reproducen **byte a
 byte** lo que tiene en memoria el cliente original vivo (`mu-golden/memoria-cliente/`, Lorencia y
@@ -65,11 +86,35 @@ Verificado: `npcipher` con 4 vectores reales en la VM; el resto con vectores est
 (alta): `main.exe` **no** carga estas cinco DLLs en el arranque normal; las usan el launcher y las
 herramientas (`coverage-main.md` §3).
 
-## Lo que falta: los modelos `.bmd`
+## Modelos `.bmd`
 
-Los modelos 3D (personajes, monstruos, objetos) también son `.bmd`. Su **parseo** está analizado
-(N4), pero **la animación está sin analizar** y no hay reconstrucción en `mu-client`
-(`coverage-main.md` §7, hito H3). Es el hueco más grande de este tema; ver [08](08-pendientes.md).
+Los modelos 3D (personajes, monstruos, objetos) también son `.bmd`. El contenedor está recorrido
+en los 1.962 modelos del cliente sin bytes sobrantes (`scripts/asset_manifest.py`, `walk_bmd`):
+
+```text
+"BMD" + versión (1 byte)
+  v0x0C: tamaño (u32) + payload cifrado con K16 (el mismo de EncTerrain)
+  v0x0A: el resto va en claro
+nombre[32]
+n_mallas, n_huesos, n_acciones        (int16 cada uno)
+por malla:   n_vert, n_norm, n_uv, n_tri, textura (int16 x5)
+             vértices 16 B · normales 20 B · UV 8 B · triángulos 64 B · nombre de textura[32]
+por acción:  n_keys (int16), lock_positions (u8), y si lock: 12 B por key
+por hueso:   dummy (u8); si 0: nombre[32] + padre (int16) + 24 B por key de cada acción
+```
+
+Verificado el **tamaño** de cada parte (el recorrido cierra exacto en los 1.962 archivos). El
+**significado** de los campos (qué son los 24 B por key, cómo se interpola, cómo se aplica el
+skinning) está *inferido* de la estructura y sigue sin leerse en el render de `main.exe`
+(`coverage-main.md` §7, hito H3; ver [08](08-pendientes.md)).
+
+## Audio
+
+`wzAudio.dll` está decompilada entera (390 funciones) y es un derivado de **CoolPlayer 215**
+(`decompilacion-maxima/INDEX.md` §3): 17 exports con ABI revisada (`abi/wzAudio_abi.h`), Ogg con
+`vorbisfile.dll` + `ogg.dll` (compatibles con libogg 1.1 y libvorbis 1.0.x) y MP3 propio. La
+música es un MP3 por mapa (`paso6-ui-map.md` §6); los efectos son WAV por DirectSound
+(`0x41ed10` play, `0x41ee00` stop). *Estático.*
 
 ## Cliente contra servidor
 
@@ -85,7 +130,7 @@ por el protocolo (`divergencias-cliente-servidor.md`).
 | Cargadores que escriben en globales del juego | `Data::` funciones puras: bytes → tipos de C++ (`ItemTable`, `TerrainMap`…), sin globales, testeables sin ventana | CL1 |
 | `MessageBox` + `WM_DESTROY` si falta un archivo | error explícito al que llama (`std::expected`), sin UI en la capa de datos | CL1 |
 | libjpeg 6b estática | una biblioteca JPEG del sistema o de vcpkg; los tests golden dicen si alcanza para ser byte a byte (pregunta abierta del roadmap) | CL1 |
-| Rarezas de datos (checksum anulado de `Item.bmd`, alturas desde BMP + 1080, registro 7 de `Text.bmd` sin NUL) | **se reproducen**: son parte de cómo se leen los archivos reales (ver [07](07-quirks-y-bugs.md)) | CL1 |
+| Rarezas de datos (checksum anulado de `Item.bmd`, alturas desde BMP + 1080, registro 7 de `Text.bmd` sin NUL, OZJ que son TGA) | **se reproducen**: son parte de cómo se leen los archivos reales (ver [07](07-quirks-y-bugs.md)) | CL1 |
 | Los assets son del juego | MuRet **no** versiona ningún asset; los tests golden reciben la ruta por `MURET_CLIENT_GOLDEN_DIR` y se saltean si no está | CL1 |
 
 Tests que fija:
@@ -93,4 +138,6 @@ Tests que fija:
 - Por cada formato, un round-trip con datos sintéticos (siempre corre) (CL1).
 - Por cada formato, comparación byte a byte contra `mu-golden` (`cliente-data*`, y la memoria del
   original para lo que tenga volcado), salteada sin la carpeta (CL1).
+- Por cada formato, recorrer **todos** los archivos de `assets/original-data/` y comparar con
+  `assets/decoded/` y con los conteos de `assets_manifest.csv` (CL1; los modelos en CL6).
 - XOR3, K16 y checksum con vectores literales chicos escritos a mano (CL1).

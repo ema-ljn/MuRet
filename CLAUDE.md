@@ -1,7 +1,9 @@
 # MuRet
 
 Repo incremental de servidores de MU Online 1.02 en C++20. El primer componente es
-`Server/DataServer/`, portado desde EmaNLJN/mu-server-repack-research-102i.
+`Server/DataServer/`, portado desde EmaNLJN/mu-server-repack-research-102i. El cliente (`main.exe`)
+se reimplementa en `Client/` (roadmap: `docs/superpowers/specs/2026-10-30-cliente-design.md`,
+research: `Client/docs/research/`).
 
 **Es un proyecto de aprendizaje.** Emanuel escribe el código; Claude es tutor.
 Usá el estilo de salida `Tutor MuRet` (`/output-style Tutor MuRet`) y, para revisar,

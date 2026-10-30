@@ -9,9 +9,10 @@ que trabajen en este repositorio. Vale también para personas.
 ## Es un proyecto de aprendizaje: leé esto primero
 
 MuRet existe para que Emanuel aprenda C++ moderno, MU (incluido el binario original) y sistemas
-distribuidos portando el DataServer de MU Online 1.02 y, después, otros servidores. **Emanuel escribe el código del servidor; el agente es tutor.**
+distribuidos portando el DataServer de MU Online 1.02, después otros servidores, y reimplementando el cliente
+(`Client/`). **Emanuel escribe el código del servidor y del cliente; el agente es tutor.**
 
-- No escribas la lógica del servidor ni los pasos marcados `(Emanuel)` o `TODO(human)` en los
+- No escribas la lógica del servidor o del cliente ni los pasos marcados `(Emanuel)` o `TODO(human)` en los
   planes, salvo que Emanuel lo pida explícitamente.
 - Lo que sí puede hacer un agente: explicar un concepto con un ejemplo **fuera del proyecto**,
   pasar una mini-spec (qué archivos, qué interfaz, qué test tiene que pasar), revisar con
@@ -41,6 +42,8 @@ seguí el estilo del código que está alrededor.
 | qué hace MuRet y en qué orden (decisiones, olas 0 a 8) | [roadmap](docs/superpowers/specs/2026-10-25-dataserver-port-design.md) |
 | cómo se aprende (sub-olas N.0, olas 9 a 14, carril R de ingeniería inversa) | [camino de aprendizaje](docs/superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) |
 | qué hace el original, byte a byte (fuente de verdad del comportamiento) | [research](Server/DataServer/docs/research/README.md) |
+| qué hace el cliente MuRet y en qué orden (decisiones D-C, olas CL0 a CL10) | [roadmap del cliente](docs/superpowers/specs/2026-10-30-cliente-design.md) |
+| qué hace el `main.exe` original (red, formatos, escenas) | [research del cliente](Client/docs/research/README.md) |
 | qué hay que hacer en cada ola, paso por paso | [planes](docs/superpowers/plans/) |
 | qué se estudia en cada ola, y en qué va Emanuel | [guías y progreso](docs/learning/README.md) |
 | decisiones globales | `docs/adr/` |
@@ -74,10 +77,12 @@ Los tests (GoogleTest + CTest) llegan con la sub-ola 0.2.
 
 ## Fuera de alcance para cambios de IA
 
-- Resolver los ejercicios de Emanuel o escribir lógica del servidor sin que lo pida.
+- Resolver los ejercicios de Emanuel o escribir lógica del servidor o del cliente sin que lo pida.
+- Versionar assets del juego (`Data\` del cliente) o volcados de memoria: solo hashes y scripts.
 - Limpiezas grandes del código existente para que cumpla las reglas, salvo que se pida. Las reglas
   se aplican hacia adelante.
 - Portar lo que el roadmap deja afuera: el auto-update y la UI MFC del original.
-- Romper protecciones del binario original (VM de `MyDll`, Themida, licencias): el research se
-  limita a protocolo y comportamiento.
+- Romper protecciones del binario original (VM de `MyDll`, Themida, licencias, FoxAnti): el
+  research se limita a protocolo y comportamiento. Del anticheat del cliente solo se porta la capa
+  de ofuscación de paquetes que el servidor del laboratorio espera.
 - Cambiar la configuración del repositorio en GitHub.

@@ -72,6 +72,9 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
 - **XOR `0xAA` (S->C):** `decode_inbound` lo deshace **salvo** en tres casos: C1 con opcode `00`,
   C1 con opcode `F4` y C2 con opcode `F4`. Son justo los paquetes del CS, por eso el CS parece "sin
   FoxAnti". En el GS todos los segmentos S->C de la sesión real llevan el `0xAA` (398 de 398).
+- **Reescrituras:** FoxAnti cambia dos paquetes S->C antes de que lleguen al dispatcher (la lista
+  `F4 02` → `F4 06` y el `F3 11`, ver abajo) y, C->S, remapea opcodes y el código del `F4 03`
+  ([03](03-red-y-cifrado.md), "La capa de FoxAnti").
 
 - **Opcode `0x00` en el CS** (`0x4e33e4`): con la escena en 2, loguea `"Send Request Server List"`
   y manda `C1 04 F4 02`. Verificado: el cable muestra `C1 04 00 01` y enseguida `C1 04 F4 02`; en 8
@@ -109,6 +112,13 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
 - **Selección de personaje (`F3`)**: `0x4e2f93` es un sub-dispatcher de hasta 0x40 casos. En el
   cable: `F3 00` (pedir lista, sin cuerpo), `F3 03` con el nombre de 10 bytes (elegir), `F3 06`,
   `F3 12`. El layout de la respuesta `F3 00` y del resto falta reconstruirlo (P-C06).
+- **`F3 11`, S->C** (`0x4c5070`): llega dos veces en la sesión (`C1 08 F3 11 FE 04 16 68` y uno
+  de 20 bytes con 5 entradas de 3 bytes). FoxAnti le mete un `00` en `pkt[5]` (`reset_queue`), y
+  así el handler encuentra el slot en `pkt[6]`. El handler guarda en un array de slots y los
+  resuelve contra la tabla de `0x076BD1D8` con paso `0x3C`, que es `Skill.bmd` en memoria
+  ([05](05-formatos-de-datos.md)): *inferido*, **es la lista de skills**, no de items como dice
+  `paso5d`. Con FoxAnti, `pkt[5]` llega siempre en 0, así que la rama `pkt[5] == 2` (borrar
+  todo) no se ve con el GS del laboratorio.
 
 ## Una sesión real de juego (2026-10-30)
 

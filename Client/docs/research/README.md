@@ -97,8 +97,8 @@ actual.
 | opcode | byte de operación del paquete; en C1/C3 está en `pkt[2]`, en C2/C4 en `pkt[3]`. |
 | C1 / C2 | paquetes en claro con tamaño de 1 o 2 bytes (el de 2 bytes en big-endian). |
 | C3 / C4 | paquetes cifrados por bloques con `Enc1.dat` (envío) y `Dec2.dat` (recepción). |
-| XOR32 | la ofuscación de 32 bytes que el cliente aplica a todo C1/C2 que manda. |
-| FoxAnti | `FoxAnti.dll`, el anticheat del repack. Además de sus defensas, mete una capa de ofuscación de paquetes que el GS del laboratorio espera. |
+| XOR32 | la ofuscación de 32 bytes que el motor de envío del cliente aplica a los C1/C2 (a todos en el GS; los `F4` del CS salen en claro). |
+| FoxAnti | `FoxAnti.dll`, el anticheat del repack. Además de sus defensas, mete una capa de paquetes que el GS del laboratorio espera: ofusca (`0xAA`, remapeos) y traduce algunos formatos del laboratorio a los de `main.exe`. |
 | `.bmd` | tablas binarias de datos del cliente (`Item.bmd`, `Skill.bmd`, `Gate.bmd`, `Text.bmd`) y también modelos 3D. |
 | OZJ / OZT | texturas: JPEG o TGA con un prefijo de 24 o 4 bytes. |
 | escena | estado global del cliente: 2 login, 4 selección de personaje, 5 en el juego. |

@@ -58,9 +58,26 @@ espera activa hasta 0x28 ms   → DAT_006d5ee4 += lo transcurrido
   ([ADR 0001 de MuMain](https://github.com/sven-n/MuMain/blob/main/docs/adr/0001-preserve-25-fps-reference-timing.md)).
 
 *Estático*: leído en el render loop; el orquestador `0x63945d` (7 KB) sigue sin decompilar en
-detalle y no hay una medición en la VM. Qué partes de la lógica dependen de ese paso
-(animaciones, movimiento, cooldowns) es lo que falta para desacoplar el dibujo sin cambiar el
-juego ([08](08-pendientes.md), P-C03).
+detalle. Qué partes de la lógica dependen de ese paso (animaciones, movimiento, cooldowns) es lo
+que falta para desacoplar el dibujo sin cambiar el juego ([08](08-pendientes.md), P-C03).
+
+**La primera medición no lo confirma ni lo contradice.** En
+[mu-online-reverse-lab#45](https://github.com/EmaNLJN/mu-online-reverse-lab/pull/45)
+(`graphics-01/FPS-MEASURE-RESULT.json`) GLIntercept contó 2.375 `wglSwapBuffers` en los 113,79 s
+de vida de `main.exe`: **20,87 FPS de promedio**. Por qué no alcanza para decir "25":
+
+- la ventana incluye el arranque, el login y Lorencia, y durante la carga no hay frames: el
+  promedio dentro de una escena es más alto que 20,87;
+- GLIntercept intercepta cada una de las ~285.000 llamadas de GL por frame
+  ([06](06-render-escenas-y-ui.md)) y frena al cliente;
+- es un promedio, no una serie de tiempos por frame, así que no muestra el paso de 40 ms.
+
+Lo que sí dice: el promedio queda por debajo de 25, como se espera de un tope de 25 con el
+cliente frenado, pero eso no descarta otro mecanismo. Falta una serie por frame sin GLIntercept
+(un hook liviano de `SwapBuffers` con `QueryPerformanceCounter`) en una escena quieta.
+
+Cada frame termina con `glFlush` y `wglSwapBuffers` (2.375 de cada uno en la sesión) y empieza con
+`glClear` (2.381). **Verificado** en las estadísticas de GLIntercept.
 
 ## El WndProc `0x4af4e0`
 

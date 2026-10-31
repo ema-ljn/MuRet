@@ -31,7 +31,9 @@ ASPack) están en `FoxAnti.dll`, no en `main.exe` (triage §3).
 3. **Assembly como fuente de verdad** para offsets, tamaños, signo y convención de llamada.
 4. **Validación contra datos reales (N4):** el cable capturado con `muproxy` entre el cliente y el
    servidor del laboratorio (72 conexiones), los `Data\` del cliente copiados de la VM XP y
-   volcados de la memoria del cliente vivo (`mu-golden/memoria-cliente/`).
+   volcados de la memoria del cliente vivo (`mu-golden/memoria-cliente/`). Desde 2026-10-30, una
+   sesión real de juego en el cable y trazas de OpenGL del cliente vivo (GLIntercept, 5 frames de la
+   selección de personaje y 5 de Lorencia) en `mu-online-reverse-lab#45`.
 5. **Reimplementación con tests** en C99 (`mu-client/`): 13/13 tests, también con ASan/UBSan.
    Es la referencia ejecutable de este research, pero no reemplaza al assembly.
 
@@ -42,12 +44,12 @@ analizados del código propio del cliente):
 
 | Subsistema | Tamaño | Analizado | Validado o reconstruido |
 | --- | ---: | ---: | --- |
-| M1 plataforma (ventana, GL, bucle) | 156 KB | 70 % | estático |
+| M1 plataforma (ventana, GL, bucle) | 156 KB | 70 % | estático; las funciones de GL que usa y el FPS promedio, medidos con GLIntercept |
 | M2 formatos de assets | 92 KB | 29 %, más la tanda 3 | tablas, terreno y texturas byte a byte contra la memoria del original |
-| M3 red y protocolo | 293 KB | 72 % | recepción, C3/C4 y corte contra el cable; login y keepalive estáticos |
+| M3 red y protocolo | 293 KB | 72 % | recepción, C3/C4, corte, login y keepalive contra el cable ([04](04-protocolo.md)) |
 | M4 bucle por frame y escenas | 750 KB | 15 % | estático |
-| M5 mundo 3D | 185 KB | 20 % | el renderer de terreno **no está identificado** |
-| M6 UI | 365 KB | 65 % | estático |
+| M5 mundo 3D | 185 KB | 20 % | renderer de terreno identificado y verificado celda por celda contra una traza de GL; cámara y objetos del `.obj` en la misma traza; skinning sin leer ([06](06-render-escenas-y-ui.md)) |
+| M6 UI | 365 KB | 65 % | estático; el quad 2D, los viewports y el camino del texto verificados en las trazas de GL |
 | M7 audio | 13 KB | 8 % | en `main.exe`, poco; pero `wzAudio.dll` y sus decodificadores están decompilados enteros (`decompilacion-maxima`, ver [05](05-formatos-de-datos.md)) |
 
 El 30 % analizado es mapa del binario, no código reconstruido. Para MuRet esto marca el orden: lo

@@ -2,12 +2,18 @@
 
 Fuentes: `analysis/mainexe/functions/paso7-escenas.md`, `paso10-escenas-completo.md`,
 `paso8-texto-y-coordenadas.md`, `paso11-texto-completo.md`, `paso12-hud.md`,
-`paso13-ventanas.md`, `paso14-ventanas-interiores.md`, `paso17-mapeo-vtable-panel.md` y
-`coverage-ui-sistemas.md`.
+`paso13-ventanas.md`, `paso14-ventanas-interiores.md`, `paso17-mapeo-vtable-panel.md`,
+`coverage-ui-sistemas.md` y el decompilado de `mainexe-vmxp-c32bbd5f/`. Además, las trazas de
+OpenGL del original en
+[mu-online-reverse-lab#45](https://github.com/EmaNLJN/mu-online-reverse-lab/pull/45)
+(`reports/gameserver-passive-2026-10-30/graphics-01/`, commit `69be91d2`).
 
-Todo este tema es **estático**: se leyó en el assembly y el pseudocódigo, sin compararlo con
-capturas de pantalla ni con la memoria del cliente (salvo el asignador de slots de textura).
-Describe la arquitectura, no el dibujo exacto de cada píxel.
+La arquitectura (escenas, ventanas, HUD) es **estática**: se leyó en el assembly y el
+pseudocódigo. Lo que el original le pide a OpenGL ya no: GLIntercept 1.34 registró cada llamada
+de GL de 5 frames de la selección de personaje y 5 de Lorencia en la VM XP, con el build
+`c32bbd5f…`, y contó las llamadas de una sesión entera de 113,79 s (2.375 frames). Lo marcado
+**Verificado** en este tema sale de esas trazas, cruzadas con el decompilado y con los datos de
+`Data\World1`. Las trazas no tienen píxeles: dicen qué se dibuja, no cómo queda en pantalla.
 
 ## La máquina de escenas
 
@@ -22,51 +28,173 @@ El global `DAT_006d5dc8` dice en qué escena está el cliente:
 Hay además un estado de escena más fino en `0x7D3A10C` (por ejemplo `0x73` en el juego, `0x8A`
 aviso) que manejan los handlers de red (`paso5-protocolo-handlers.md`).
 
+## Lo que el original le pide a OpenGL
+
+**Verificado** (trazas y estadísticas de la sesión entera):
+
+- **Solo OpenGL 1.1 en modo inmediato.** En 113 s el cliente llamó 43 funciones distintas, 37 de
+  GL 1.1 y 6 de `wgl`: `glBegin`/`glEnd` con `glVertex3fv`, `glTexCoord2f` y `glColor3fv` por
+  vértice, texturas (`glGenTextures`, `glBindTexture`, `glTexImage2D`, `glTexParameteri`,
+  `glTexEnvf`), estado (`glEnable`/`glDisable`, `glBlendFunc`, `glAlphaFunc`, `glDepthFunc`,
+  `glDepthMask`) y matrices (`glRotatef`, `glTranslatef`, `glMultMatrixd`, `glOrtho`, pila). No
+  hay vertex arrays, display lists, `glLight` ni normales, multitextura ni extensiones.
+- **Unas 285.000 llamadas por frame** en promedio, casi todas por vértice: 224,8 millones de
+  `glVertex3fv` en 2.375 frames, unos 95.000 vértices por frame.
+- **Primitivas:** `GL_TRIANGLE_FAN` para cada celda del terreno y cada quad de la UI,
+  `GL_TRIANGLES` para los modelos y `GL_QUADS` para efectos. No hay `GL_TRIANGLE_STRIP` en
+  ninguna de las dos escenas.
+- **Estados:** mezcla normal (`SRC_ALPHA`, `ONE_MINUS_SRC_ALPHA`) y aditiva (`ONE`, `ONE`, con
+  `glDepthMask(false)`), alpha test `GL_GREATER 0.25`, depth `GL_LEQUAL`, culling que se prende y
+  se apaga por malla. La niebla está apagada en las dos escenas.
+
 ## Cada frame de una escena
 
 ```text
 render de la escena
  ├─ cámara       0x635ae0 + 0x44dc60 + 0x620db0 (proyección y modelview)
- ├─ pase 3D      fondo, frustum 0x5fbb00, mundo 0x620480, objetos 0x5fc260 / 0x53c6a0
+ ├─ pase 3D      fondo, frustum 0x5fbb00, terreno 0x5fc260, objetos 0x53c6a0
  │               [selección] preview 3D del personaje 0x5f9780 + luz 0x620980 + nombre 0x4129f0
  ├─ pase 2D      0x6219b0 (ortho) … 0x621a90 (vuelve)
  │    ├─ UI en el juego 0x62db60 (20 KB, 52 llamadas GL)
  │    ├─ texto 0x554180
  │    └─ overlays comunes (chat, avisos)
- └─ SwapBuffers  en el render loop 0x637700
+ └─ glFlush + SwapBuffers  en el render loop 0x637700
 ```
+
+**Verificado** en Lorencia, en el orden en que llegan a GL (ventana de 1024 × 768):
+
+| Pase | Viewport | Proyección | Qué dibuja |
+| --- | --- | --- | --- |
+| 1 | `0,0,1024,768` | perspectiva | nada (una cámara de pantalla completa; *inferido*: la de `0x637700`, que llama `0x620db0(0, 0, 640, 480)`) |
+| 2 | `0,692,1024,76` | perspectiva | nada (la franja de arriba, `0x620db0(0, 0, 640, 48)`) |
+| 3 | `0,77,1024,691` | perspectiva del mundo | terreno, objetos, personajes y efectos: 774 `glBegin`, 43.009 vértices, 63 texturas |
+| 4 | `0,0,1024,768` | ortho de `0x6219b0` | UI y texto |
+| 5 | `0,0,1024,768` | perspectiva de 1° | modelos 3D dentro de la UI (816 vértices, 3 texturas; qué son, sin identificar) |
+| 6 | `0,0,1024,768` | ortho | el resto de la UI |
+
+La selección de personaje es parecida: el mundo va en `0,40,1024,688` (6.543 `glBegin`, 74.553
+vértices), y antes hay una perspectiva de 45° que no dibuja nada y un ortho con 2 quads.
 
 ### Cámara
 
-Seis floats globales: yaw, pitch y roll (`DAT_07d3686c/68/70`) y posición (`DAT_07d36884/88/8c`).
-`0x620db0` arma la perspectiva (FOV, aspect, near y far en `DAT_006d5d48/40/44`), aplica
-`glRotatef` ×3 y `glTranslatef`, habilita textura, depth test y culling, `glAlphaFunc(GL_GREATER,
-0.25)` y niebla lineal si está activa. La cámara la mueve el mouse (botones derecho y medio,
-rueda; ver [02](02-arranque-y-ciclo-de-vida.md)). En el mapa 6 con los nombres "webzen" y
-"webzen2" hay una cámara especial.
+Seis floats globales: los ángulos en X, Y y Z (`DAT_07d36868/6c/70`; en un mundo con Z hacia arriba,
+Z es el yaw y X el pitch) y la posición (`DAT_07d36884/88/8c`).
+`0x620db0(x, y, w, h)` recibe el viewport en coordenadas de 640 × 480, lo escala a la ventana
+(`W·x/640`, `H·y/480`) y lo da vuelta en Y (`0x620d10`: `glViewport(x, H − y − h, w, h)`). Después
+arma la perspectiva con `gluPerspective(FOV, w/h, near, far × 1,4)` (`0x6203c0`; FOV, near y far
+en `DAT_006d5d48/40/44`, el 1,4 en `0x6b8c00`), aplica `glRotatef` ×3 (primero Y, después X si
+`DAT_07d36899` es 0, al final Z) y `glTranslatef(−posición)`, habilita textura, depth test y
+culling, `glAlphaFunc(GL_GREATER, 0.25)` y niebla lineal si está activa. La cámara la mueve el
+mouse (botones derecho y medio, rueda; ver [02](02-arranque-y-ciclo-de-vida.md)). En el mapa 6 con
+los nombres "webzen" y "webzen2" hay una cámara especial.
+
+**Verificado** contra las trazas (el `glMultMatrixd` de la perspectiva y las rotaciones):
+
+| | Lorencia | Selección de personaje |
+| --- | --- | --- |
+| llamada | `0x6371a0`: `0x620db0(0, 0, 640, 432)` | `0x634680`: `0x620db0(0, 25, 640, 430)` |
+| viewport resultante | `0,77,1024,691` | `0,40,1024,688` |
+| FOV vertical, near | 35°, 20 | 35°, 20 |
+| far | 2.800 (2.000 × 1,4) | ≈ 16.130 (≈ 11.521 × 1,4) |
+| rotaciones | Y 0°, X −48,5°, Z −45° | Y 0°, X −84,5°, Z −45° |
+| posición | (15.057,1; 11.342,9; 1.015) | (13.909; 14.482; 543) |
+
+El aspect no es el de la ventana sino el del viewport: 1024/691 = 1,4819 en Lorencia.
 
 ### Primitivas 2D
 
-- `0x6219b0` / `0x621a90`: entrar y salir del modo 2D (`gluOrtho2D`, viewport).
-- `0x621b60(id, x, y, w, h, …, alpha)`: un quad texturizado (`GL_TRIANGLE_STRIP`). Es el átomo de
-  toda la UI.
-- Resolución de referencia 640 × 480 (`0x620db0` se llama con `(0, 0, 640, 480)`).
+- `0x6219b0` / `0x621a90`: entrar y salir del modo 2D. `0x6219b0` pone el viewport entero y
+  `gluOrtho2D(0, W, 0, H)`: **el ortho está en píxeles reales de la ventana** (1024 × 768 en las
+  trazas), no en 640 × 480.
+- `0x621b60(id, x, y, w, h, u, v, du, dv, escalar_tamaño, escalar_posición, alpha)`: un quad
+  texturizado, `glBegin(GL_TRIANGLE_FAN)` (no `TRIANGLE_STRIP`: lo dicen el decompilado,
+  `glBegin(6)`, y las trazas). Da vuelta la Y (`H − y`) y, si los flags lo piden, escala posición
+  y tamaño desde 640 × 480 con `0x620d50` (`x·W/640`) y `0x620d80` (`y·H/480`). Es el átomo de toda
+  la UI. `0x621aa0` es el mismo quad sin textura.
+- Por eso conviven UI escalada desde 640 × 480 y UI en píxeles reales (el texto, por ejemplo).
+
+### Terreno
+
+**Verificado.** El renderer del terreno es esta cadena (antes P-C02):
+
+```text
+0x5fc260  pase de terreno
+ └─ 0x5fc190  bloques de 4 × 4 celdas, desde DAT_07d2d364/368 (los arma el frustum 0x5fbb00);
+              frustum por bloque con 0x5fba90
+     └─ 0x5fc0e0  las 16 celdas del bloque, frustum por celda
+         └─ 0x5fac90  vértices de la celda: x, y × 100; z = altura; atributos (bit 0x08: no dibujar,
+                      bit 0x40: altura fija)
+             └─ 0x5fa830  elige capas por el alfa de las 4 esquinas
+                  ├─ 0x5fa5c0  UV: u = x · 64 / ancho de la textura (agua animada aparte)
+                  ├─ 0x5fa260  pase opaco: glColor3fv(luz) por vértice
+                  ├─ 0x5fa350  pase de alfa: glColor4f(luz, alfa) por vértice
+                  └─ 0x5fa4b0  el agua del mapa 7
+```
+
+Contrastado con la traza de Lorencia y con `EncTerrain1.map`, `TerrainHeight.OZB` y
+`TerrainLight.OZJ`, celda por celda (329 pases opacos y 141 de alfa: 138 con la capa 2 y 3 con el
+slot de Q-C19; sin diferencias en geometría, UV, textura ni alfa):
+
+- Cada celda es un `GL_TRIANGLE_FAN` de 4 vértices, 100 unidades de lado.
+- `z = TerrainHeight[y·256 + x] × 1,5`: el cargador `0x5f9020` multiplica cada byte del BMP (desde
+  el offset 1080) por la constante de `0x6b8b94`, y en el mapa 55 por la de `0x6b86b8`. La traza
+  confirma el 1,5 con un solo valor: la zona dibujada es plana (byte 110 en sus 625 celdas, z = 165
+  en los 1.880 vértices).
+- `u = x_celda · 64 / ancho`, con el ancho de la textura del tile; el tile `i` es el slot
+  `i + 0x23` de la tabla de texturas (textura GL `1351 + i` en esta sesión).
+- Capas del `.map` (cabecera de 2 bytes, capa 1, capa 2, alfa): si las 4 esquinas tienen alfa 255,
+  la celda se dibuja **una sola vez**, opaca, con la capa 2. Si no, se dibuja opaca con la capa 1 y,
+  si alguna esquina tiene alfa > 0, **enseguida** una segunda vez con la capa 2, mezcla normal,
+  sin culling y `alfa = alfa[vy·256 + vx] / 255` por vértice. Una capa 2 de valor 255 no se trata
+  como vacía: se dibuja el slot `0x122`, que no es un tile (Q-C19, 3 celdas de la traza).
+- La luz por vértice es el píxel de `TerrainLight.OZJ` en `(x, 255 − y)`, dividido 255: la imagen
+  está dada vuelta en Y respecto de la grilla. Coincide (±1 %) en 1.746 de los 1.869 vértices que se
+  pueden medir (canal rojo > 8); los otros 123 salen más brillantes, nunca más oscuros (×1,1 a
+  ×3,1): luces dinámicas que se suman a la base (fuego, efectos),
+  *inferido*, sin identificar quién las suma.
+- **El orden importa** para la mezcla y está verificado: bloques de 4 × 4 por (fila de bloque,
+  columna de bloque), dentro del bloque las celdas por (y, x), y el pase de alfa de una celda
+  inmediatamente después de su pase opaco (los 28 bloques y las 141 celdas con alfa de la traza).
+
+### Modelos y objetos
+
+**Verificado en lo que llega a GL**; cómo se calcula (huesos, keys, interpolación) sigue sin leer
+(P-C01):
+
+- **Todo modelo llega en coordenadas de mundo.** Ningún bloque de `GL_TRIANGLES` tiene una matriz
+  propia encima de la cámara (185 de 185 en Lorencia, 285 de 285 en la selección): el cliente
+  transforma cada vértice en la CPU (hueso, rotación, escala y posición) y manda el resultado.
+- **La animación se recalcula en cada frame.** Entre dos frames seguidos de Lorencia se mueven
+  12.099 de los 12.507 vértices del personaje (mediana 0,37 unidades), mientras que 16.749 de los
+  17.151 vértices de los objetos del mapa quedan idénticos.
+- **Los objetos del mapa están donde dice el `.obj`.** 146 de los 185 bloques de Lorencia tienen
+  el centro a menos de 200 unidades (2 celdas) de un registro de `EncTerrain1.obj` (descifrado con
+  K16: 2.870 registros, 109 tipos). Los que no, son sobre todo el personaje y su equipo.
+- **La luz es un color por vértice** (`glColor3fv`), sin normales: en el personaje, un color por
+  malla (por ejemplo `0,75 0,65 0,5`). Aparecen colores mayores que 1 (1,34): el GL de función fija
+  los recorta a 1 antes de rasterizar.
 
 ### Texto
 
 ```text
 0x554180(x, y, texto, ancho, sombra, color)
-  └─ 0x465950 (virtual) → 0x554000
-       ├─ 0x4667a0 colores inline: el byte 0x02 marca un cambio de color y se saca del texto
-       ├─ 0x466000 TextOutA sobre un DIBSection (GDI) → glTexImage2D
-       │    ├─ 0x466560 slot de textura libre (devuelve 10000 + índice)
-       │    └─ caché: árbol rojo-negro por hash del texto
-       └─ 0x621b60 dibuja el quad
+  └─ 0x465950  dispatch virtual (qué método corre, sin leer)
+       ├─ 0x553e50  rasteriza con GDI: TextOutA sobre un DIBSection
+       └─ 0x554000  glBindTexture(slot 0) + glTexImage2D 256 × 32 RGBA, y el quad con 0x621b60
+0x555b00   (lo llama 0x5a9050) hace lo mismo sin dispatch: 0x553e50 y después 0x554000
+0x4667a0   colores inline: el byte 0x02 marca un cambio de color y se saca del texto
+0x466000   otro camino: TextOutA → texturas propias (slots de 0x466560, 10000 + índice), caché en
+           un árbol rojo-negro por hash del texto, textos de más de 256 px en dos texturas
 ```
 
-El texto se rasteriza con GDI y se sube como textura. El input de texto (`0x468320`) incluye el
-IME coreano. Verificado: el asignador `0x466560` (reconstruido en `mu-client` con una sonda en la
-VM).
+**Verificado:** en las dos escenas todo el texto pasa por el slot 0 (textura GL 1): un
+`glTexImage2D` de 256 × 32 por string y por frame (1 por frame en Lorencia, 4 en la selección),
+sin caché del lado de GL, y el quad va en píxeles reales. `0x466000` no corrió en la sesión
+medida: es la única función que llama `glPixelStorei`, y hubo cero en 113 s. `paso11-texto-completo.md`
+lo pone debajo de `0x554000`, pero `0x554000` no lo llama (decompilado) y la traza tampoco lo
+muestra; el rasterizado de `0x553e50` en el camino virtual es *inferido* por `0x555b00`. El input
+de texto (`0x468320`) incluye el IME coreano. Verificado aparte: el asignador `0x466560`
+(reconstruido en `mu-client` con una sonda en la VM).
 
 ### HUD y ventanas
 
@@ -84,11 +212,13 @@ VM).
 
 ## Lo que no se sabe
 
-- **El renderer del terreno no está identificado** (es el consumidor del frustum de `0x5fbb00`).
-- El render de modelos (`0x53c6a0`, tabla de 0xA10 bytes con un `switch` de tipo) está solo en sus
-  dispatchers; skinning y animación, sin analizar.
+- **Skinning y animación** (P-C01): las trazas dan la salida (vértices de mundo por frame), no la
+  entrada (qué acción y qué frame de la animación). El render de modelos (`0x53c6a0`, tabla de
+  0xA10 bytes con un `switch` de tipo) está solo en sus dispatchers.
+- Qué dibuja el pase 3D de 1° dentro de la UI y qué es cada bloque de `GL_QUADS` (efectos).
 - Efectos: solo la estela (`0x52e590`).
-- El dibujo píxel a píxel de cada widget (dentro de `0x62db60`).
+- El dibujo píxel a píxel de cada widget (dentro de `0x62db60`): las trazas no tienen imagen.
+- Para qué usa el juego el caché de `0x466000`, si estas escenas no lo tocan.
 
 Ver [08](08-pendientes.md).
 
@@ -96,17 +226,24 @@ Ver [08](08-pendientes.md).
 
 | Original | MuRet | Ola |
 | --- | --- | --- |
-| OpenGL 1.x de función fija, matrices globales | `Render::` sobre OpenGL 3.3 core con shaders (decisión D-C3); las matrices son valores, no estado global | CL5 |
+| OpenGL 1.1 de función fija, modo inmediato, matrices globales | `Render::` sobre OpenGL 3.3 core con shaders (decisión D-C3); las matrices son valores, no estado global | CL5 |
+| ~95.000 vértices por frame mandados de a uno | los mismos vértices en buffers que se llenan por frame y se dibujan por lotes; **el orden de dibujo se conserva** donde hay mezcla | CL5, CL7 |
+| Colores por vértice recortados a 1 por la función fija | el shader recorta el color a [0, 1] antes de usarlo; sin eso, los colores de 1,34 brillan de más | CL5 |
 | Escenas por un entero global | `Scenes::SceneManager` con una clase por escena (`LoginScene`, `CharacterSelectScene`, `GameScene`) y transiciones explícitas | CL5 |
-| Quad texturizado como átomo de la UI, 640 × 480 de referencia | `Render::SpriteBatch` en coordenadas de 640 × 480 escaladas a la ventana real | CL5 |
-| Texto por GDI → textura, con caché | rasterizado con una biblioteca portable (FreeType o SDL_ttf), misma caché por texto; se conserva el byte `0x02` de color | CL5 |
+| Viewport en coordenadas de 640 × 480, ortho en píxeles reales, quad en `GL_TRIANGLE_FAN` | `Render::SpriteBatch` con las dos coordenadas: lógicas de 640 × 480 escaladas y píxeles reales, con la misma Y dada vuelta | CL5 |
+| Texto por GDI → una textura que se sube por string | rasterizado con una biblioteca portable (FreeType o SDL_ttf), con caché propio (el resultado en pantalla es el mismo); se conserva el byte `0x02` de color | CL5 |
 | Ventanas como clases con vtable de 22 métodos | `UI::Window` con una interfaz chica (dibujar, evento) y una clase por ventana; el administrador ordena por prioridad | CL8 |
-| Cámara con seis globales | `Camera` como valor, testeable: matrices de vista y proyección comparadas con las del original para los mismos ángulos | CL7 |
+| Cámara con seis globales, far × 1,4 en el mundo | `Camera` como valor, testeable: matrices de vista y proyección comparadas con las de las trazas | CL7 |
+| Terreno celda por celda, dos pasadas por celda | una malla por bloque de 4 × 4 con las mismas reglas de capa, alfa y luz, y el mismo orden | CL7 |
+| Modelos transformados en la CPU | skinning en la CPU primero (se compara vértice a vértice con el original); pasarlo a la GPU queda para después, si hace falta | CL6 |
 
 Tests que fija:
 
 - La máquina de escenas: transiciones válidas (login → selección → juego) y que una inválida se
   rechace (CL5).
 - Parseo de colores inline con `0x02` sobre strings literales (CL5).
-- Las matrices de la cámara para ángulos y posición dados, contra el cálculo de `0x620db0` (CL7).
+- Las matrices de la cámara: para los ángulos, la posición y el viewport de las dos tablas de
+  arriba, la proyección y la vista de MuRet contra las de las trazas (CL7).
+- El terreno de Lorencia (golden): para cada celda de la traza, posiciones, UV, color, alfa,
+  textura y orden, con los datos de `Data\World1` (CL7).
 - El asignador de slots: los casos de `test_texture_slots` de `mu-client` (CL5).

@@ -1,7 +1,7 @@
 # 08. Lo que falta saber
 
-El research del cliente tiene mapa de todo, pero detalle validado solo de la red, el cifrado y los
-formatos. Esta lista dice qué falta, qué ola lo necesita y cómo se cierra. Cada hueco se cierra en
+El research del cliente tiene mapa de todo, pero detalle validado solo de la red, el cifrado, los
+formatos y, desde las trazas de OpenGL, el terreno, la cámara y el texto. Esta lista dice qué falta, qué ola lo necesita y cómo se cierra. Cada hueco se cierra en
 una sub-ola **CL*n*.R** (research del binario) antes de la ola que lo usa, como el carril R del
 [camino de aprendizaje](../../../docs/superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md#carril-r-ingeniería-inversa).
 
@@ -15,9 +15,9 @@ El laboratorio midió la distancia a "cliente jugable" en hitos (`mu-client/docs
 | H0 Esqueleto | ventana, contexto GL, bucle, teclado, config | estático, 70 % | CL3 |
 | H1 Formatos | tablas, terreno, OZJ/OZT, contenedor BMD | verificado byte a byte; el contenedor BMD recorrido en los 1.962 modelos | CL1, CL6 |
 | H2 Login | CS, lista, GS, C3/C4, FoxAnti | verificado en el cable: flujo del CS y del GS, login, keepalive, C3/C4 en los dos sentidos y capas de FoxAnti | CL2, CL4 |
-| H3 Selección | modelos con animación, preview 3D | contenedor BMD recorrido en los 1.962 modelos; **significado de la animación sin leer** | CL6 |
-| H4 Mundo | terreno, objetos, cámara, caminar | **renderer de terreno sin identificar** | CL7 |
-| H5 UI/HUD | texto, HUD, ventanas, chat | arquitectura estática | CL5, CL8 |
+| H3 Selección | modelos con animación, preview 3D | contenedor BMD recorrido en los 1.962 modelos; trazas de GL con la salida del skinning (vértices de mundo por frame); **significado de la animación sin leer** | CL6 |
+| H4 Mundo | terreno, objetos, cámara, caminar | renderer de terreno identificado y verificado celda por celda contra una traza de GL; cámara y objetos del `.obj` verificados en la misma traza ([06](06-render-escenas-y-ui.md)) | CL7 |
+| H5 UI/HUD | texto, HUD, ventanas, chat | arquitectura estática; el camino del texto, el quad 2D y los viewports verificados en las trazas de GL | CL5, CL8 |
 | H6 Gameplay | los 140 handlers y los emisores | tabla anotada, semántica estática o inferida | CL9 |
 | H7 Audio | música y efectos | `wzAudio` decompilada (CoolPlayer 215, Ogg, MP3); el uso desde `main.exe`, poco | CL10 |
 
@@ -25,9 +25,9 @@ El laboratorio midió la distancia a "cliente jugable" en hitos (`mu-client/docs
 
 | # | Hueco | Bloquea | Cómo se cierra |
 | --- | --- | --- | --- |
-| P-C01 | **Modelos `.bmd`: significado de la animación y del skinning.** El contenedor está recorrido entero (tamaños verificados); qué son los 24 B por key, la interpolación y cómo se pega cada vértice a su hueso, sin leer | CL6 | CL6.R: leer el cargador de modelos y el render de `0x53c6a0`/`0x5f9780` en el decompilado; validar con un volcado de memoria del cliente vivo |
-| P-C02 | **El renderer del terreno** no está identificado (consumidor del frustum `0x5fbb00`) | CL7 | CL7.R: referencias cruzadas a `DAT_07d2d364/368` y a las capas del `.map` en memoria |
-| P-C03 | **El ritmo del frame.** Ya se sabe (estático, [02](02-arranque-y-ciclo-de-vida.md)): pasos de lógica de 40 ms y espera activa hasta 40 ms, 25 FPS (no 30). Falta: medirlo en la VM y saber qué depende del paso (animación, movimiento, cooldowns, cámara) para interpolar sin cambiar el juego (D-C4 del roadmap) | CL3 | CL3.R: leer el orquestador `0x63945d` y los usos de `DAT_006d5ee4`; medir con un hook de `SwapBuffers` en la VM XP |
+| P-C01 | **Modelos `.bmd`: significado de la animación y del skinning.** El contenedor está recorrido entero (tamaños verificados); qué son los 24 B por key, la interpolación y cómo se pega cada vértice a su hueso, sin leer. Ya se sabe que el cliente transforma todo en la CPU y manda vértices de mundo, recalculados en cada frame ([06](06-render-escenas-y-ui.md)) | CL6 | CL6.R: leer el cargador de modelos y el render de `0x53c6a0`/`0x5f9780` en el decompilado; validar contra los vértices de una traza de GL de la selección de personaje, con la acción y el frame de animación anotados en la captura |
+| ~~P-C02~~ | **Cerrado el 2026-10-31.** El renderer del terreno es `0x5fc260` → `0x5fc190` → `0x5fc0e0` → `0x5fac90` → `0x5fa830`, verificado celda por celda contra la traza de Lorencia ([06](06-render-escenas-y-ui.md)). Quedan dos cosas chicas: qué textura es el slot `0x122` (Q-C19) y quién suma las luces dinámicas al terreno | CL7 | CL7.R pasa a ser una lectura guiada de esa cadena |
+| P-C03 | **El ritmo del frame.** Ya se sabe (estático, [02](02-arranque-y-ciclo-de-vida.md)): pasos de lógica de 40 ms y espera activa hasta 40 ms, 25 FPS (no 30). La primera medición (GLIntercept, 20,87 FPS de promedio en 113 s con arranque y login) no lo confirma ni lo contradice. Falta: una serie de tiempos por frame sin GLIntercept y saber qué depende del paso (animación, movimiento, cooldowns, cámara) para interpolar sin cambiar el juego (D-C4 del roadmap) | CL3 | CL3.R: leer el orquestador `0x63945d` y los usos de `DAT_006d5ee4`; medir con un hook liviano de `SwapBuffers` (`QueryPerformanceCounter` por frame) en una escena quieta de la VM XP |
 | P-C04 | **La lista de servidores, del lado de `main.exe`.** Bytes y capas verificados ([04](04-protocolo.md)): el CS manda `F4 02`, FoxAnti lo traduce a `F4 06` (código + delta) y `0x4c1860` lo procesa agrupando por `código / 20`; el `0xCC` es relleno que FoxAnti descarta. Falta: la tabla de 25 índices de `0x4c1860` (cómo ubica cada grupo en la pantalla) y qué hace con más de un servidor | CL4 | CL4.R: leer `0x4c1860` y su llamador en el decompilado; probar con un CS falso que mande varias entradas |
 | P-C05 | **Diferencial dinámico del login `F1 01` y del keepalive `0x0E`** con el build `c32bbd5f…`. Tamaños, cifrado, checksum y serial ya verificados en la sesión real de [04](04-protocolo.md); falta comparar campo por campo el contenido descifrado | CL4 | un test en CL2 que arme el login con cuenta, tick y serial conocidos y lo compare con el descifrado de esa sesión (con una cuenta de prueba) |
 | P-C06 | **Selección de personaje** (`F3 00`/`F3 01`/`F3 03`…): los sub-handlers están anotados; la sesión real de [04](04-protocolo.md) tiene el pedido, la lista de personajes y la entrada al mundo, falta reconstruir el flujo campo por campo | CL6 | CL6.R: emisores y handlers de `0x4e2f93` contra esa sesión |

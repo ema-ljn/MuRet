@@ -9,7 +9,9 @@
 > [EmaNLJN/mu-online-reverse-lab](https://github.com/EmaNLJN/mu-online-reverse-lab) @ `9f83b4c7`
 > (carpeta `analysis/decompilacion-maxima/`): las DLLs de audio y datos decompiladas, el `Data\`
 > completo del cliente (5.726 archivos originales y 3.997 decodificados) y su manifiesto de
-> formatos. Las direcciones son VAs del binario (base `0x400000`).
+> formatos; y con su PR #45 (`reports/gameserver-passive-2026-10-30/`): una sesión real de juego
+> capturada en el cable y, desde el commit `69be91d2`, trazas de OpenGL (GLIntercept) y una medición
+> de FPS. Las direcciones son VAs del binario (base `0x400000`).
 >
 > Este research describe **qué hace el original**, no cómo lo hace MuRet. Las decisiones de MuRet
 > están en el [roadmap del cliente](../../../docs/superpowers/specs/2026-10-30-cliente-design.md).
@@ -26,7 +28,8 @@ qué hace el original, incluidos sus errores.
 
 A diferencia del DataServer, el cliente es enorme (5.648 funciones internas contra 1.572) y está
 investigado de forma despareja: la red, el cifrado y los formatos de datos están validados contra
-datos reales; el render 3D, la animación de modelos y el audio, casi nada. Este research lo dice
+datos reales; el render tiene trazas de OpenGL del original (terreno, cámara y texto verificados);
+la animación de modelos y el audio, casi nada. Este research lo dice
 explícitamente en cada tema y [08](08-pendientes.md) junta los huecos.
 
 ## Índice

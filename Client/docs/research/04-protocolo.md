@@ -94,9 +94,16 @@ Leído con un script de una página (ordenar los segmentos por secuencia TCP, de
   `D3`/`D7` remapeado por FoxAnti a `A3`/`A4`. Opcodes: `A3` ×59, C3 ×23, `18` ×17, `F3` ×11,
   `A9` ×10, `00` ×5, `A4` ×4.
 
-Esto **verifica en el cable** el corte, la capa `0xAA`, el remapeo de movimiento y los tamaños del
-login y del keepalive del build actual. No verifica sus bytes internos (hace falta descifrar los
-C3 con la clave del servidor) ni qué paquete corresponde a qué acción. Falta también el
+Los **23 C3 del cliente descifran con el `Dec1.dat` del servidor**
+(`mu-server-repack-research-102i/gameserver/evidence/keyfiles/`, con `c3c4_reference.py`):
+checksum bien en los 23 y serial de envío **0, 1, 2… 22 sin cortes**, como dice
+[03](03-red-y-cifrado.md). Opcodes en claro: `F1` (el login), `0E` ×14 (keepalive, cada 20 s),
+`A0`, `03`, `0D`, `26` ×4, `23`, `A6` ×3 (el `0x1E` remapeado por FoxAnti), `22`, `24`.
+
+Esto **verifica en el cable** el corte, la capa `0xAA`, el remapeo de movimiento, el cifrado C3, el
+serial y los tamaños del login y del keepalive del build actual. Falta comparar campo por campo el
+contenido del login (lleva la cuenta y la clave: no se imprime) y saber qué paquete corresponde a
+qué acción. Falta también el
 ConnectServer: esta sesión es solo la conexión al GS.
 
 ## Movimiento y mundo

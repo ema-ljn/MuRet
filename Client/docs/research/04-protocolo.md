@@ -68,6 +68,37 @@ Cliente                         ConnectServer (44405)              GameServer (5
   sub-handlers están anotados, pero **la selección de personaje no está reconstruida ni
   verificada** (ver [08](08-pendientes.md)).
 
+## Una sesión real de juego (2026-10-30)
+
+[EmaNLJN/mu-online-reverse-lab#45](https://github.com/EmaNLJN/mu-online-reverse-lab/pull/45)
+(rama `feature/gameserver-passive-capture-20261030` @ `c399c70e`, sin mergear) trae un PCAP de una
+conexión completa al GS del laboratorio (puerto 55901, 3,5 minutos): login, selección de
+personaje, caminar, cambios de mapa a Noria y Atlans 2, recoger items, atacar monstruos y mover y
+equipar items. Las acciones están anotadas por el usuario, sin la hora exacta de cada una.
+
+Leído con un script de una página (ordenar los segmentos por secuencia TCP, deshacer el XOR
+`0xAA` de FoxAnti en el sentido S->C y cortar con la gramática de [03](03-red-y-cifrado.md)):
+
+| Sentido | Bytes | Paquetes | Corte |
+| --- | ---: | ---: | --- |
+| S->C | 5.571 | 553 | sin sobrantes, con el XOR `0xAA` deshecho |
+| C->S | 1.297 | 129 | sin sobrantes, tal cual (C1 con la ofuscación de FoxAnti, C3 cifrados) |
+
+- **S->C, en orden:** `F1 00` (saludo del GS, `pkt[4] = 01`), `F1 01 01` (login aceptado),
+  `F3 00` (lista de personajes), `0D`, `F3 11`, `26`, `27`, `03`, los primeros C3/C4, `A0`…
+  Opcodes más frecuentes: `D3` ×229, `18` ×46, `D7` ×46, `27` ×40, `26` ×34, `13` (C2) ×31,
+  `2A` ×24, `14` ×23, `F3` ×19, C3 ×16, `0F` ×11, `20` (C2) ×8, `21` (C2) ×6.
+- **C->S, en orden:** un **C3 de 68 bytes** (el login `F1 01`) y un **C3 de 24 bytes** (el
+  keepalive `0x0E`), justo los tamaños que predice el contrato estático; después `C1 04 F3 ..`
+  (pedir la lista de personajes), más C3 y una racha de `C1 .. A3` y `C1 .. A4`: el movimiento
+  `D3`/`D7` remapeado por FoxAnti a `A3`/`A4`. Opcodes: `A3` ×59, C3 ×23, `18` ×17, `F3` ×11,
+  `A9` ×10, `00` ×5, `A4` ×4.
+
+Esto **verifica en el cable** el corte, la capa `0xAA`, el remapeo de movimiento y los tamaños del
+login y del keepalive del build actual. No verifica sus bytes internos (hace falta descifrar los
+C3 con la clave del servidor) ni qué paquete corresponde a qué acción. Falta también el
+ConnectServer: esta sesión es solo la conexión al GS.
+
 ## Movimiento y mundo
 
 | Opcode | Handler | Qué hace |

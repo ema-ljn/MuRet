@@ -76,7 +76,9 @@ e7 6d 3a 89 bc b2 9f 73 23 a8 fe b6 49 5d 39 5d 8a cb 63 8d ea 7d 2b 5f c3 b1 e9
 
 Verificado: los 183 C3 del cliente en el cable descifran con el `Dec1.dat` del servidor y, al
 recifrarlos con `Enc1`, dan los mismos bytes (183/183). Los 25 C3/C4 del servidor descifran con el
-`Dec2.dat` real del cliente (`s31-cifrado/README.md`, `s35-red/README.md`).
+`Dec2.dat` real del cliente (`s31-cifrado/README.md`, `s35-red/README.md`). En la sesión real del
+build actual ([04](04-protocolo.md)), lo mismo: 23 C3 del cliente con serial 0 a 22 y 17 C3/C4
+del servidor con serial 0 a 16, todos con checksum bien.
 
 ## La capa de FoxAnti
 
@@ -86,13 +88,19 @@ mundo) es:
 
 | Pieza | Qué hace |
 | --- | --- |
-| `decode_inbound` | deshace el XOR `0xAA` que el servidor del laboratorio aplica a todo lo que manda |
-| `send_forward` | remapeos de opcode en un camino (`0x10→0x1D`, `0x19→0xA5`, `0x1E→0xA6`) y luego el trampolín de envío |
+| `decode_inbound` | deshace el XOR `0xAA` que el servidor del laboratorio aplica a lo que manda, **salvo** C1 con opcode `00`, C1 con opcode `F4` y C2 con opcode `F4` (los paquetes del CS); además reescribe la lista `C2 F4 02` del laboratorio como el `C2 F4 06` que espera `main.exe` (`parse_f4_02`, ver [04](04-protocolo.md)) |
+| `send_forward` | en el camino hacia el cifrado C3 (`0x685AC0`): remapeos de opcode `0x10→0x1D`, `0x19→0xA5`, `0x1E→0xA6`, y luego el trampolín de envío |
 | `recv_forward` | calcula el opcode según la cabecera y llama al dispatcher |
-| `encode_outbound` | sobre todo C1 saliente: XOR rodante con tabla de 32 bytes y semilla `buf[1]`, normalización de `C1 06 F4 03` y remapeos `D3→A3`, `D7→A4`. C3/C4 pasan sin tocar |
+| `encode_outbound` | sobre todo C1 saliente: deshace el XOR32 del juego, remapea `D3→A3` y `D7→A4` y lo vuelve a aplicar (sin remapeo, el cable queda igual); a `C1 06 F4 03` le traduce el código de servidor con una escalera de 8 rangos. C3/C4 pasan sin tocar |
 
 El GameServer del laboratorio (con `MyDll.dll`) espera esta capa: **un cliente sin ella no habla
 con ese servidor**. Un servidor de MuRet podría no usarla.
+
+Verificado en el cable ([04](04-protocolo.md), "Cómo se verificó"): las excepciones del `0xAA`
+(el CS entero va en claro y en el GS los 398 segmentos S->C lo llevan), los remapeos `A3`/`A4` y
+`A6`, y que fuera de ellos un C1 del cliente se lee deshaciendo solo el XOR32. La traducción de la
+lista y del `F4 03` es *estática*: el cable solo muestra el código 0, y la ida y vuelta de códigos
+desde 21 no cierra (Q-C17).
 
 ## Qué implica para MuRet
 
@@ -113,4 +121,6 @@ Tests que fija:
 - C3/C4: round-trip con claves sintéticas y, si está `mu-golden`, descifrar los C3 reales con la
   clave real y comparar byte a byte (CL2).
 - Seriales: 0 al conectar, +1 por paquete, comportamiento ante desfase (CL2).
-- FoxAnti: los fixtures de `test_net_foxanti` (CL2).
+- FoxAnti: los fixtures de `test_net_foxanti` (CL2), las tres excepciones del `0xAA`, y la lista
+  `C2 00 0A F4 02 01 00 00 00 CC` del cable → `C2 00 0B F4 06 00 01 90 01 00 00`, con
+  `C1 06 F4 03 90 01` → `C1 06 F4 03 00 00` de vuelta (CL2).

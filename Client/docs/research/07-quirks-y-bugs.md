@@ -34,6 +34,8 @@ dos clases y la regla cambia según cuál:
 | Q-C13 | dispatcher | sin FoxAnti nadie llama al dispatcher: el cliente no procesa paquetes | diseño | el dispatcher es del cliente; la ofuscación es una capa aparte | CL2 |
 | Q-C14 | `Data\Object34/35/55` | 7 archivos `.OZJ` contienen un TGA, no un JPEG (`assets_manifest.csv`, "TGA con extension OZJ") | contrato | el cargador de OZJ mira el contenido, no solo la extensión; cómo los trata el original falta leerlo | CL1 |
 | Q-C15 | `mumsg.dll`, `CMsg` | lee cada entrada en un buffer de 256 bytes y escribe el `\0` en `buffer[len]` (`decompilacion-maxima/INDEX.md` §3) | bug | largo validado; el texto no se trunca ni desborda | CL1 |
+| Q-C16 | primer paquete al CS | en las 64 conexiones del `muproxy.log` el cliente manda `A9 00 00 01` (con XOR32) **antes** del saludo del CS; en el GS manda `A9 01 00 08` diez veces. Lo arma `main.exe` (emisores `0x415be0`, `0x422990`, `0x424230`); qué es, sin identificar | a confirmar | se reproduce tal cual hasta saber qué es | CL4 |
+| Q-C17 | capa FoxAnti, códigos de servidor | `parse_f4_02` suma al código un delta por grupos de 11 (`0x190`, `0x172`, `0x154`, …) y `encode_outbound` lo resta con una escalera que **no tiene** el `0x154`: la ida y vuelta cierra para los códigos 0 a 20, desde 21 el `F4 03` sale con otro código (21 → 51) y desde 98 la entrada queda en 0. El laboratorio solo usa el 0. *Análisis* sobre el código portado de la FoxAnti mínima | contrato del laboratorio, a confirmar | `Network::Obfuscation` lo reproduce byte a byte y un test lo deja escrito | CL2 |
 
 ## Fuera de alcance
 

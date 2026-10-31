@@ -213,7 +213,10 @@ de texto (`0x468320`) incluye el IME coreano. Verificado aparte: el asignador `0
 ## Lo que no se sabe
 
 - **Skinning y animación** (P-C01): las trazas dan la salida (vértices de mundo por frame), no la
-  entrada (qué acción y qué frame de la animación). El render de modelos (`0x53c6a0`, tabla de
+  entrada (qué acción y qué frame de la animación). Las 100 capturas de pantalla de la selección
+  (`graphics-01/CHARACTER-ANIMATION-NOTES.md`, VMware MKS, unas 3,7 por segundo, privadas)
+  muestran que cambian la pose y el arma del personaje, el brillo del portal y las partículas, con
+  la UI quieta; no están sincronizadas con la traza, así que no dicen qué frame es cuál. El render de modelos (`0x53c6a0`, tabla de
   0xA10 bytes con un `switch` de tipo) está solo en sus dispatchers.
 - Qué dibuja el pase 3D de 1° dentro de la UI y qué es cada bloque de `GL_QUADS` (efectos).
 - Efectos: solo la estela (`0x52e590`).

@@ -38,43 +38,58 @@ El render loop `0x637700` hace, en orden: cámara, color de cielo por mapa, la e
 según el global `DAT_006d5dc8` (2 login, 4 selección, 5 en el juego; ver
 [06](06-render-escenas-y-ui.md)), objetos, HUD, `SwapBuffers` y música. *Estático.*
 
-### El ritmo: 25 por segundo
+### El ritmo: lógica a 25 por segundo, dibujo a 21,33
 
-El render loop tiene su propio reloj (`analysis/mainexe/functions/paso6-ui-map.md` §4):
+El render loop tiene dos relojes (`analysis/mainexe/functions/paso6-ui-map.md` §4 y el decompilado
+de `0x637700`):
 
 ```text
-0x459b60 / 0x459c00          tiempo (timeGetTime)
+0x459b60 / 0x459c00          delta del frame con QueryPerformanceCounter (timeGetTime si no hay),
+                             con tope; lo recibe un objeto global (0x65ee60 lo devuelve,
+                             0x65fc30 lo actualiza; qué es, sin leer)
 while (DAT_006d5ee4 > 0x27)  bucle de "alcanzar": consume pasos de 40 ms
    └─ lógica de la escena según DAT_006d5dc8 (y el hash anti-tamper)
+inicio = GetTickCount()                                   0x63852b
 dibujo de la escena → glFlush + SwapBuffers
-espera activa hasta 0x28 ms   → DAT_006d5ee4 += lo transcurrido
+while (GetTickCount() − inicio < 0x28) {}                 espera activa, 0x6385fd..0x638624
+DAT_006d5ee4 += GetTickCount() − inicio
 ```
 
 - **La lógica avanza en pasos de 40 ms (25 por segundo)** y, si el frame tardó, el `while` corre
   varios pasos seguidos para alcanzar al reloj.
-- **El dibujo también queda en 25 FPS**: la espera activa no deja empezar el frame siguiente
-  antes de 40 ms. Por eso el cliente "se siente" clavado: no es VSync, es esta espera.
-- Es el mismo valor que conserva MuMain para el cliente 5.2
+- **La espera mide con `GetTickCount`**, que no avanza de a 1 ms sino de a un tick del reloj de
+  Windows: 15,625 ms (64 por segundo) en la VM XP y en un Windows con el tick por defecto. Dos ticks
+  son 31,25 ms (menos de 40) y tres son 46,875 ms, así que **la espera termina en el tercer tick**:
+  el dibujo queda en 46,875 ms por frame, **21,33 FPS** (64 / 3), no en 25.
+- La lógica no se atrasa: el acumulador suma lo que midió `GetTickCount` (46 o 47 ms) y consume 40
+  por paso, así que corre **7 pasos cada 6 frames** (1, 1, 1, 1, 1, 2) y sigue en 25 por segundo.
+  *Inferido* de la aritmética del bucle: la medición ve los frames, no los pasos.
+- Con un tick de 10 ms (otro HAL) la espera terminaría a los 40 ms justos: los 25 FPS son la
+  intención del código, no lo que se ve en una máquina común. *Inferido* para otros equipos.
+- MuMain conserva 25 FPS para el cliente 5.2
   ([ADR 0001 de MuMain](https://github.com/sven-n/MuMain/blob/main/docs/adr/0001-preserve-25-fps-reference-timing.md)).
 
-*Estático*: leído en el render loop; el orquestador `0x63945d` (7 KB) sigue sin decompilar en
-detalle. Qué partes de la lógica dependen de ese paso (animaciones, movimiento, cooldowns) es lo
-que falta para desacoplar el dibujo sin cambiar el juego ([08](08-pendientes.md), P-C03).
-
-**La primera medición no lo confirma ni lo contradice.** En
+**Verificado** en
 [mu-online-reverse-lab#45](https://github.com/EmaNLJN/mu-online-reverse-lab/pull/45)
-(`graphics-01/FPS-MEASURE-RESULT.json`) GLIntercept contó 2.375 `wglSwapBuffers` en los 113,79 s
-de vida de `main.exe`: **20,87 FPS de promedio**. Por qué no alcanza para decir "25":
+(`graphics-01/FPS-SELECTION-VALID-RESULT.json` y `swap-times-valid-final.csv`, commit `16dc0221`):
+un `opengl32.dll` proxy que solo toma `QueryPerformanceCounter` antes y después de cada
+`wglSwapBuffers` (0,14 ms por llamada) registró 3.511 frames en 164,56 s de la selección de
+personaje, sin carteles:
 
-- la ventana incluye el arranque, el login y Lorencia, y durante la carga no hay frames: el
-  promedio dentro de una escena es más alto que 20,87;
-- GLIntercept intercepta cada una de las ~285.000 llamadas de GL por frame
-  ([06](06-render-escenas-y-ui.md)) y frena al cliente;
-- es un promedio, no una serie de tiempos por frame, así que no muestra el paso de 40 ms.
+- **21,33 FPS**: intervalo medio 46,884 ms, mediana 46,912 ms; el 98 % entre 44 y 50 ms.
+- **Los frames están enganchados a una grilla de 15,625 ms**: buscando el período que mejor alinea
+  los 3.511 swaps entre 15,60 y 15,65 ms, gana 15,6250 ms con una concentración de fase de 0,953
+  (1 sería perfecto; 15 ms o 16 ms dan menos de 0,04), y la fase no se corre entre los cuatro
+  cuartos de la serie. Un reloj de QPC no tendría por qué alinear los frames así; uno de ticks de
+  15,625 ms, sí.
+- La medición anterior (20,87 FPS con GLIntercept, `FPS-MEASURE-RESULT.json`) incluye la carga y
+  el frenado de GLIntercept; `FPS-SELECTION-RESULT.json` quedó inválida por un cartel de
+  desconexión.
 
-Lo que sí dice: el promedio queda por debajo de 25, como se espera de un tope de 25 con el
-cliente frenado, pero eso no descarta otro mecanismo. Falta una serie por frame sin GLIntercept
-(un hook liviano de `SwapBuffers` con `QueryPerformanceCounter`) en una escena quieta.
+Lo que falta ([08](08-pendientes.md), P-C03): qué partes de la lógica dependen del paso
+(animaciones, movimiento, cooldowns) para desacoplar el dibujo sin cambiar el juego, y una medición
+igual en Lorencia (la de esta captura se cortó por una desconexión). El orquestador `0x63945d`
+(7 KB) sigue sin decompilar en detalle.
 
 Cada frame termina con `glFlush` y `wglSwapBuffers` (2.375 de cada uno en la sesión) y empieza con
 `glClear` (2.381). **Verificado** en las estadísticas de GLIntercept.
@@ -112,7 +127,7 @@ otro: el del anticheat, id 1001 (`paso4-killer.md` §1).
 | --- | --- | --- |
 | `WinMain` + `WndProc` + `wgl*` | una capa `Platform` sobre una biblioteca portable de ventana e input (decisión D-C3 del roadmap); `main.cpp` solo arma y arranca | CL3 |
 | Registro de Windows para la config | archivo de config + argumentos (`connect /u<ip> /p<puerto>` se sigue aceptando) | CL3 |
-| Lógica en pasos de 40 ms y dibujo esperando a 40 ms | la lógica sigue en pasos de 40 ms con el mismo bucle de alcanzar; el dibujo deja de esperar e interpola entre pasos (D-C4 del roadmap); un modo fiel restaura la espera | CL3 |
+| Lógica en pasos de 40 ms; dibujo esperando 40 ms con `GetTickCount`, que en la práctica da 46,875 ms | la lógica sigue en pasos de 40 ms con el mismo bucle de alcanzar; el dibujo deja de esperar e interpola entre pasos (D-C4 del roadmap); el modo fiel restaura la espera con un reloj de 15,625 ms, para dar los mismos 21,33 FPS | CL3 |
 | Teclado por `GetAsyncKeyState` | estado del teclado consultado por frame, como el original, detrás de `Input` | CL3 |
 | Red por mensajes de ventana | un socket no bloqueante que el bucle consulta en cada frame; mismo modelo de un solo hilo | CL4 |
 | Keepalive por `WM_TIMER` cada 20 s | temporizador del bucle, testeable con un reloj falso | CL4 |
@@ -122,5 +137,7 @@ Tests que fija:
 
 - El bucle principal con un reloj falso: exactamente 25 pasos de lógica por segundo simulado, con
   1, 25 o 240 frames dibujados, y el alcanzar ante un frame de 130 ms (3 pasos seguidos) (CL3).
+- El modo fiel con un reloj falso de 15,625 ms: 64 frames cada 3 segundos y 7 pasos de lógica cada
+  6 frames (CL3).
 - El keepalive sale cada 20 s de reloj simulado y no antes (CL4).
 - El parser de la línea de comandos acepta `connect /u<ip> /p<puerto>` (CL3).

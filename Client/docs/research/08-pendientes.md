@@ -15,7 +15,7 @@ El laboratorio midió la distancia a "cliente jugable" en hitos (`mu-client/docs
 | H0 Esqueleto | ventana, contexto GL, bucle, teclado, config | estático, 70 %; el ritmo del frame medido en la selección y en Lorencia (21,33 FPS, lógica a 25) | CL3 |
 | H1 Formatos | tablas, terreno, OZJ/OZT, contenedor BMD | verificado byte a byte; el contenedor BMD recorrido en los 1.962 modelos | CL1, CL6 |
 | H2 Login | CS, lista, GS, C3/C4, FoxAnti | verificado en el cable: flujo del CS y del GS, login, keepalive, C3/C4 en los dos sentidos y capas de FoxAnti | CL2, CL4 |
-| H3 Selección | modelos con animación, preview 3D | contenedor BMD recorrido en los 1.962 modelos; skinning, pose y frame del personaje reproducidos contra las trazas de GL (acción 3 de `Player.bmd`, error < 0,016); el código del render de modelos, sin leer | CL6 |
+| H3 Selección | modelos con animación, preview 3D | contenedor BMD recorrido en los 1.962 modelos; skinning, pose y frame del personaje reproducidos contra las trazas de GL (acción 3 de `Player.bmd`, error < 0,016) y su avance leído en el binario; el resto del render de modelos, solo en sus dispatchers | CL6 |
 | H4 Mundo | terreno, objetos, cámara, caminar | renderer de terreno identificado y verificado celda por celda contra una traza de GL; cámara y objetos del `.obj` verificados en la misma traza ([06](06-render-escenas-y-ui.md)) | CL7 |
 | H5 UI/HUD | texto, HUD, ventanas, chat | arquitectura estática; el camino del texto, el quad 2D y los viewports verificados en las trazas de GL | CL5, CL8 |
 | H6 Gameplay | los 140 handlers y los emisores | tabla anotada, semántica estática o inferida | CL9 |

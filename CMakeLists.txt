@@ -21,6 +21,10 @@ option(MURET_BUILD_TESTS "Compilar los tests de GoogleTest" ON)
 # el warning C4819, que con /WX corta la compilación.
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 
+# <windows.h> (lo incluye SDL_opengl.h, entre otros) define min y max como macros y rompe
+# std::min y std::max en cualquier archivo que lo vea después.
+add_compile_definitions($<$<PLATFORM_ID:Windows>:NOMINMAX>)
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CompilerWarnings)
 

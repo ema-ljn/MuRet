@@ -12,10 +12,11 @@ on:
 permissions:
   contents: read
 
-# Un push nuevo a la misma rama cancela la corrida vieja.
+# En un PR, un push nuevo cancela la corrida vieja. En main no: cada merge tiene que quedar con
+# su resultado.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -65,6 +66,8 @@ jobs:
           mkdir -p "$temp/vcpkg-cache"
           echo "VCPKG_ROOT=$temp/vcpkg" >> "$GITHUB_ENV"
           echo "VCPKG_DEFAULT_BINARY_CACHE=$temp/vcpkg-cache" >> "$GITHUB_ENV"
+          # La imagen del runner (y con ella el compilador) entra en la clave de la caché.
+          echo "RUNNER_IMAGE=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_ENV"
 
       - name: Bootstrap de vcpkg (Linux)
         if: runner.os == 'Linux'
@@ -75,14 +78,15 @@ jobs:
         shell: pwsh
         run: '& (Join-Path $env:VCPKG_ROOT "bootstrap-vcpkg.bat") -disableMetrics'
 
-      # Los paquetes ya compilados (SDL3, GoogleTest) se guardan entre corridas. La clave cambia
-      # con vcpkg.json; si cambia el compilador del runner, vcpkg recompila solo lo necesario.
+      # Los paquetes ya compilados (SDL3, GoogleTest) se guardan entre corridas. Una clave que ya
+      # existe no se vuelve a guardar, así que lleva la imagen del runner: cuando cambia el
+      # compilador, la primera corrida recompila y guarda una caché nueva.
       - name: Caché de binarios de vcpkg
         uses: actions/cache@v6
         with:
           path: ${{ runner.temp }}/vcpkg-cache
-          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
-          restore-keys: vcpkg-${{ runner.os }}-
+          key: vcpkg-${{ env.RUNNER_IMAGE }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-${{ env.RUNNER_IMAGE }}-
 
       - name: Configurar
         run: cmake --preset ${{ matrix.configure-preset }} -DMURET_WARNINGS_AS_ERRORS=ON

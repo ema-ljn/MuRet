@@ -18,7 +18,7 @@ parciales, 44 binarios de soporte, 0 errores de decodificación):
 | OZT (TGA) | 664 | prefijo de 4 bytes |
 | BMD de modelo | 1.962 | v0A en claro o v0C cifrado con K16; todos recorridos sin bytes sobrantes |
 | BMD de tabla | 7 + 26 estructuras | XOR3 `FC CF AB` |
-| terreno | 23 `EncTerrain` `.map`/`.obj`, 29 `.att`; además 18 `.map`, 20 `.obj` y 24 `.att` que el manifiesto clasifica como `Terrain/*` y no `EncTerrain/*` (cuáles carga el cliente, a confirmar en CL1) | K16 (+ XOR3 en `.att`) |
+| terreno | 23 `EncTerrain` `.map`/`.obj`, 29 `.att`; además 18 `.map`, 20 `.obj` y 24 `.att` que el manifiesto clasifica como `Terrain/*` y no `EncTerrain/*`. El cliente carga solo los `EncTerrain` de `World<N>`, con el N de la carpeta o, en dos `.att`, otro número (confirmado en la CL1.3, ver abajo) | K16 (+ XOR3 en `.att`) |
 | OZB | 19 | BMP con prefijo de 4 bytes |
 | WAV | 484 | efectos de sonido |
 | MP3 | 23 | música por mapa (`Music\Pub.mp3`, `Devias.mp3`, `MuTheme.mp3`…) |
@@ -59,6 +59,25 @@ Grilla de 256 × 256 celdas, `idx = y * 256 + x`.
 
 Verificado contra la memoria del original: `.map`, `.att`, alturas y luz. El `.obj` se cerró en la
 tanda 3 contra las 256 listas de objetos de Lorencia (2.870 nodos).
+
+**Qué archivos se cargan** (CL1.3): el cargador de mundo (`0x61a560`) arma
+`Data\World<N>\EncTerrain<N>.map`, `.att` y `.obj` (las cadenas de `0x6d12e8`, `0x6c7314` y
+`0x6d12b8`) y compara el número de mundo que devuelve cada cargador con N, salvo que devuelva -1.
+N sale del mundo en curso (`0x6c9dd0`) en `0x61a5e4`..`0x61a61d`: es el mundo + 1, pero los mundos
+11 a 17 usan la carpeta 12, del 18 al 23 la 19, y del 24 al 29 y el 36 la 25. Dos `.att` llevan
+otro número en el nombre, según el estado del juego: `World31\EncTerrain312.att` (`0x61a6ea`) y
+`World35\EncTerrain351.att` o `352` (`0x61a710`); su cabecera dice 31 o 35, el N de la carpeta.
+`0x4294c0` y `0x42fe80` los vuelven a cargar durante el juego, sin mirar lo que devuelve el
+cargador. Ningún nombre lleva "test": los `EncTerraintest*` del laboratorio no los pide nadie.
+Los `Terrain.map`, `Terrain.obj` y `Terrain.att` sueltos no los carga nadie: sus nombres solo
+aparecen en el exportador de `0x61ada0` (una herramienta de desarrollo). Los del laboratorio tampoco
+son lo que escribe ese exportador: su `.map` mide `0x30001` bytes, en claro y sin el byte del mundo
+(el exportador `0x5f8960` escribe `0x30002` y los cifra con K16), y su `.att` de World31 en
+adelante mide `0x20003` (el exportador `0x5f8690` escribe `0x10004`). Son otro formato, en claro,
+de origen sin saber. Los `Terrain<N>.att` de 65.539 bytes, con cabecera `00 FF FF`, son el formato
+del servidor. En el `Data\` del laboratorio, los 20 mundos tienen un `.map` de `0x30002`
+bytes y un `.att` de `0x10004` o `0x20004` con su propio número en la cabecera, y los tres `.att`
+con otro nombre son de `0x20004`.
 
 ## Texturas
 

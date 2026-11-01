@@ -15,6 +15,9 @@ add_library(ClientLib STATIC
     src/Data/Tables/SkillTable.cpp
     src/Data/Tables/TableChecksum.cpp
     src/Data/Tables/Xor3.cpp
+    src/Data/Terrain/K16.cpp
+    src/Data/Terrain/TerrainAttributes.cpp
+    src/Data/Terrain/TerrainMapping.cpp
     src/Data/Text/TextTable.cpp
 )
 target_include_directories(ClientLib PUBLIC src)
@@ -49,11 +52,16 @@ if(MURET_BUILD_TESTS)
         tests/data/GoldenItemTableTest.cpp
         tests/data/GoldenSkillTableTest.cpp
         tests/data/GoldenTableChecksumTest.cpp
+        tests/data/GoldenTerrainAttributesTest.cpp
+        tests/data/GoldenTerrainMappingTest.cpp
         tests/data/GoldenTextTableTest.cpp
         tests/data/ItemTableTest.cpp
+        tests/data/K16Test.cpp
         tests/data/RecordTableTest.cpp
         tests/data/SkillTableTest.cpp
         tests/data/TableChecksumTest.cpp
+        tests/data/TerrainAttributesTest.cpp
+        tests/data/TerrainMappingTest.cpp
         tests/data/TextTableTest.cpp
         tests/data/Xor3Test.cpp
     )

@@ -29,7 +29,9 @@ solo lo lee.
   checksum y carga igual (Q-C01), `Skill` lo exige, y un archivo corto es un error (Q-C24). La
   parte de `labs/` de la CL1.0 (la `ByteView`, el jefe Q-C07), las actividades 1 a 6 de la guía y
   el checksum de dos dwords a mano (actividad 12) quedan para después, igual que el test opcional
-  del comportamiento viejo de Q-C24 (paso 7 de la CL1.2). Próxima: la CL1.3 (terreno)
+  del comportamiento viejo de Q-C24 (paso 7 de la CL1.2). La CL1.3 (terreno) va en dos PRs; el
+  primero trae K16, `EncTerrain.map` y `EncTerrain.att`, comparados con la memoria del original. El
+  segundo, `EncTerrain.obj` y las alturas de `TerrainHeight.OZB` (Q-C02)
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 
@@ -54,6 +56,9 @@ sesión, junto con los de repaso más viejo.
 | registros de largo fijo sin `\0`, `std::string_view` y su lifetime (Q-C07) | CL1.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
 | plantillas con un parámetro que no es un tipo (`RecordTable<RecordSize>`) y `std::span` de largo fijo | CL1.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
 | quirk de contrato o bug interno: un checksum que se informa (Q-C01), otro que se exige, y un archivo corto (Q-C24) | CL1.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
+| un cifrado con estado (K16): cada byte depende del cifrado anterior y de su posición en el archivo, y qué hace falta para descifrar un pedazo suelto | CL1.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
+| una grilla 2D guardada fila por fila (`CellIndex`), y un tipo que no deja salirse de ella | CL1.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
+| floats que no son lo que parecen: `b * (1.0f / 255)` no es `b / 255.0f`, y `std::bit_cast` para ver sus bits | CL1.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
 
 ## Preguntas para olas futuras
 

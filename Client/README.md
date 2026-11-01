@@ -53,5 +53,5 @@ Client/
     UI/           widgets, ventanas, HUD                (CL5, CL8)
     Audio/        música y efectos                      (CL10)
   tests/          GoogleTest                            (CL0.2+)
-  docs/research/  qué hace el original, byte a byte (01..08)
+  docs/research/  qué hace el original, byte a byte (01..09)
 ```

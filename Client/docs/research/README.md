@@ -44,6 +44,7 @@ trazas; el audio, casi nada. Este research lo dice explícitamente en cada tema 
 | 06 | [Render, escenas y UI](06-render-escenas-y-ui.md) | la máquina de escenas, cámara, primitivas 2D, texto, HUD y ventanas | CL5, CL7, CL8 |
 | 07 | [Quirks y bugs](07-quirks-y-bugs.md) | catálogo numerado de rarezas del original y qué hace MuRet con cada una | todas |
 | 08 | [Lo que falta saber](08-pendientes.md) | huecos de conocimiento, ruta crítica y cómo cerrarlos | todas |
+| 09 | [Datos disponibles](09-datos-disponibles.md) | si alcanza lo que hay: el `Data\` contra lo que pide `main.exe`, el GameServer reconstruido, las texturas de las trazas | todas |
 
 Orden de lectura sugerido para aprender: 01 → 03 → 04 → 05 → 02 → 06, y el resto como
 referencia.

@@ -145,7 +145,7 @@ recortada a lo que tiene el 1.02 y con los tests al lado, como `Server/DataServe
 Client/
   CMakeLists.txt           target Main (y desde CL0.2, ClientLib + ClientTests)
   README.md                qué es, cómo compilar y correr, estado
-  docs/research/           QUÉ HACE EL ORIGINAL (01..08)
+  docs/research/           QUÉ HACE EL ORIGINAL (01..09)
   src/
     main.cpp               arma las capas y arranca; sin lógica
     App/                   Application, bucle de juego con tick fijo     (CL3)
@@ -213,7 +213,7 @@ efectos.
 
 | Archivo | Cambio |
 | --- | --- |
-| `Client/` | nace: `CMakeLists.txt`, `src/main.cpp`, `README.md`, `docs/research/` 01..08 |
+| `Client/` | nace: `CMakeLists.txt`, `src/main.cpp`, `README.md`, `docs/research/` 01..09 |
 | `CMakeLists.txt` raíz | `add_subdirectory(Client)` |
 | `README.md`, `AGENTS.md`, `CLAUDE.md` | el cliente como componente y dónde está cada cosa |
 | `docs/superpowers/specs/` | este roadmap |

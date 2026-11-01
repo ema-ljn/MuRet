@@ -20,6 +20,7 @@ namespace
 using Client::Data::Tables::ChecksumParity;
 using Client::Data::Tables::ItemChecksumKey;
 using Client::Data::Tables::SkillChecksumKey;
+using Client::Data::Tables::StoredChecksum;
 using Client::Data::Tables::TableChecksum;
 using Client::Tests::BytePattern;
 
@@ -32,6 +33,26 @@ TEST(TableChecksumTest, MatchesTheResearchVectors)
     EXPECT_EQ(TableChecksum(sequence, SkillChecksumKey, ChecksumParity::XorEvenDwords), 0x21ABEBAAu);
     EXPECT_EQ(TableChecksum(pattern, ItemChecksumKey, ChecksumParity::XorOddDwords), 0xE36F5FC9u);
     EXPECT_EQ(TableChecksum(pattern, SkillChecksumKey, ChecksumParity::XorEvenDwords), 0xA9B5ED92u);
+}
+
+// El checksum guardado es el dword que sigue a los registros, en little-endian. Los bytes que
+// vienen después no cuentan.
+TEST(TableChecksumTest, StoredChecksumFollowsTheRecords)
+{
+    std::vector<std::byte> file = BytePattern(8, 1, 0);
+    file.insert(file.end(), {std::byte{0xF1}, std::byte{0xE2}, std::byte{0x00}, std::byte{0x00}, std::byte{0x99}});
+
+    EXPECT_EQ(StoredChecksum(file, 8), 0xE2F1u);
+}
+
+// Sin los 4 bytes enteros después de los registros, o sin los registros, no hay checksum.
+TEST(TableChecksumTest, NoStoredChecksumWithoutItsFourBytes)
+{
+    const std::vector<std::byte> file = BytePattern(11, 1, 0);
+
+    EXPECT_EQ(StoredChecksum(file, 8), std::nullopt);
+    EXPECT_EQ(StoredChecksum(file, 12), std::nullopt);
+    EXPECT_EQ(StoredChecksum({}, 0), std::nullopt);
 }
 
 TEST(TableChecksumTest, EmptyGivesTheSeed)

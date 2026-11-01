@@ -8,7 +8,6 @@
 
 #include "Data/Tables/TableChecksum.h"
 
-#include "Data/ByteReader.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 
@@ -23,10 +22,10 @@
 namespace
 {
 
-using Client::Data::ByteReader;
 using Client::Data::Tables::ChecksumParity;
 using Client::Data::Tables::ItemChecksumKey;
 using Client::Data::Tables::SkillChecksumKey;
+using Client::Data::Tables::StoredChecksum;
 using Client::Data::Tables::TableChecksum;
 using Client::Tests::ReadFileBytes;
 
@@ -48,13 +47,8 @@ struct Checksums
 std::optional<Checksums> ReadChecksums(std::span<const std::byte> file, std::size_t tableSize, std::uint32_t key,
                                        ChecksumParity parity)
 {
-    if (file.size() != tableSize + sizeof(std::uint32_t))
-    {
-        return std::nullopt;
-    }
-    ByteReader trailer(file.subspan(tableSize));
-    const std::optional<std::uint32_t> stored = trailer.ReadU32Le();
-    if (!stored)
+    const std::optional<std::uint32_t> stored = StoredChecksum(file, tableSize);
+    if (!stored || file.size() != tableSize + sizeof(std::uint32_t))
     {
         return std::nullopt;
     }

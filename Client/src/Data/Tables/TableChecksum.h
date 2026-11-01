@@ -13,6 +13,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 
 namespace Client::Data::Tables
@@ -30,5 +31,10 @@ inline constexpr std::uint32_t ItemChecksumKey = 0xE2F1;
 inline constexpr std::uint32_t SkillChecksumKey = 0x5A18;
 
 [[nodiscard]] std::uint32_t TableChecksum(std::span<const std::byte> bytes, std::uint32_t key, ChecksumParity parity);
+
+// El checksum que guarda el archivo: el dword little-endian que sigue a sus `recordsSize` bytes de
+// registros, o std::nullopt si `file` no llega a tenerlo. Lo que venga después no cuenta, como con
+// el fread de 4 bytes del original.
+[[nodiscard]] std::optional<std::uint32_t> StoredChecksum(std::span<const std::byte> file, std::size_t recordsSize);
 
 } // namespace Client::Data::Tables

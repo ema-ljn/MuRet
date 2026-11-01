@@ -3,7 +3,7 @@
 > Plan de ejecución en el formato de superpowers (writing-plans): cada tarea tiene
 > archivos, pasos chicos con checkbox y el comando que verifica el resultado.
 > Roadmap: [`2026-10-30-cliente-design.md`](../specs/2026-10-30-cliente-design.md).
-> Escrito el 2026-11-01. De la CL1.0 a la CL1.2 están detalladas; de la CL1.3 a la CL1.5 hay un
+> Escrito el 2026-11-01. De la CL1.0 a la CL1.3 están detalladas; la CL1.4 y la CL1.5 tienen un
 > esbozo con su contrato, que se detalla al arrancar cada una con lo aprendido en la anterior.
 
 **Objetivo:** leer los archivos de `Data\` igual que el original, en funciones puras que van de
@@ -24,7 +24,7 @@ para la CL1.0. De la CL1.1 en adelante, la sección de cada sub-ola de este plan
 **Research que fija esta ola:**
 - [05-formatos-de-datos](../../../Client/docs/research/05-formatos-de-datos.md): tablas, terreno,
   texturas y `message.wtf`.
-- Los quirks Q-C01, Q-C02, Q-C07, Q-C08, Q-C12, Q-C14, Q-C15, Q-C23 y Q-C24 de
+- Los quirks Q-C01, Q-C02, Q-C07, Q-C08, Q-C12, Q-C14, Q-C15 y de Q-C23 a Q-C27 de
   [07](../../../Client/docs/research/07-quirks-y-bugs.md).
 - La evidencia de cada cargador, con su asm, en
   `client-research/analysis/mainexe/evidence/s31-assets/agentes/` del repo de research (por
@@ -270,15 +270,93 @@ en su PR.
   bytes que se reusa, y un test que muestre los registros alternados con un `Gate.bmd` cortado
   entre registros. Es la misma idea que el jefe Q-C07 de la CL1.0.
 
-## Sub-ola CL1.3: terreno (esbozo)
+## Sub-ola CL1.3: terreno
 
-**Concepto:** un cifrado con estado (K16) y una grilla de 256 × 256 celdas.
+**Concepto:** un cifrado con estado (K16) y una grilla de 256 × 256 celdas guardada fila por fila.
 
-- K16: XOR de 16 bytes con `prev0 = 0x5E` y paso `0x3D`, un solo flujo.
-- `EncTerrain<N>.map` (`0x30002` bytes), `.att` (K16 y XOR3), `.obj` (N × 30 bytes en 256 bloques).
-- `TerrainHeight.OZB`: Q-C02, las alturas se leen desde BMP + 1080.
-- Antes de escribir: cuáles carga el cliente, ¿los `EncTerrain` o los `Terrain/*` sueltos?
-  (05, "a confirmar en CL1").
+**Qué archivos carga el cliente** (la pregunta que el 05 dejaba "a confirmar en CL1"): solo los
+`EncTerrain`. El cargador de mundo (`0x61a560`) arma `Data\World<N>\EncTerrain<N>.map`, `.att` y
+`.obj` (las cadenas de `0x6d12e8`, `0x6c7314` y `0x6d12b8`). N es el mundo + 1, salvo que varios
+mundos comparten carpeta (11 a 17 la 12, 18 a 23 la 19, 24 a 29 y 36 la 25; el detalle en el 05).
+Dos `.att` llevan otro número en el nombre (`EncTerrain312.att` en World31, `351` o `352` en
+World35), pero su cabecera dice el de la carpeta: el `world` de los cargadores es siempre el N de
+`World<N>`. Los `Terrain.map`, `Terrain.obj` y `Terrain.att` sueltos no los carga nadie (solo los
+nombra el exportador de `0x61ada0`, una herramienta de desarrollo, y los del laboratorio son otro
+formato, en claro), y los `Terrain<N>.att` de 65.539 bytes (cabecera `00 FF FF`) son el formato
+del servidor. Los `EncTerraintest*` del laboratorio no los pide nadie.
+
+**Se parte en dos PRs:**
+- **PR A (este):** K16, `EncTerrain.map` y `EncTerrain.att`.
+- **PR B:** `EncTerrain.obj` (cabecera de 4 bytes y N registros de 30: tipo, posición, ángulo y
+  escala) y `TerrainHeight.OZB` (Q-C02: las alturas desde BMP + 1080, por 1,5; por 3 en el mundo
+  `0x37`).
+- `TerrainLight.OZJ` es un JPEG: pasa a la CL1.4, con la biblioteca JPEG.
+
+**Contrato** ([05 § Terreno](../../../Client/docs/research/05-formatos-de-datos.md#terreno-de-un-mundo-dataworldn)
+y, en el repo de research, `005f87b0-encterrain-map.md` y `005f8390-encterrain-att.md`):
+
+| Archivo | Formato | Lo raro | MuRet |
+| --- | --- | --- | --- |
+| K16 | `plano[i] = (K[i % 16] ^ c[i]) - previo`, `previo = c[i] + 0x3D`, `previo0 = 0x5E`, un solo flujo desde el byte 0 | el previo sale del byte **cifrado** | `DecryptK16`, en el lugar |
+| `.map` | `0x30002` bytes, solo K16: versión (no se lee), mundo, capa 1, capa 2, alfa | el original no mira el tamaño: con uno corto lee después del buffer (Q-C24) | `FileTooShort`; los bytes de más se ignoran |
+| | el alfa es el byte por `0x3B808081` (1/255 en float) | no es dividir por 255: con 51 da otro float | se multiplica por la misma constante; 255 da 1.0f justo |
+| | en memoria, la capa 2 va antes que la capa 1 (`0x07AACC8C` y `0x07ABCC8C`) | es fácil invertirlas | el test de memoria compara cada capa con su mitad del volcado |
+| `.att` | `0x10004` (1 byte por celda) o `0x20004` (un WORD, queda el byte de abajo); K16 y después XOR3, cabecera incluida; cabecera `00 N FF FF`; atributos menores que `0x80` | con otro tamaño devuelve -1 sin avisar y el mundo se queda con los atributos del anterior (Q-C25); la celda testigo por mundo (Q-C26) | `UnexpectedSize`; la cabecera o un atributo malo es `InvalidData`; la celda testigo no se porta |
+| los dos | el byte 1 es el número del mundo, y si no es N el que llama muestra "%s file corrupted." | | `WrongWorld` |
+
+Si falta el `.map`, el original carga el mundo con valores por defecto (capa 1 en 0, capa 2 en
+`0xFF`, alfa en 0) sin avisar (Q-C27); la tabla de `rand()` que llena junto con ellos es del
+dibujo. Las dos cosas son de quien abre el archivo, en la CL7: acá los cargadores reciben bytes.
+
+**Los oráculos:**
+- Los 20 mundos del `Data\` del laboratorio cargan su `.map` y su `.att` con su número. El 1 y
+  los del 31 en adelante tienen el `.att` de dos bytes por celda; el 31 y el 56 traen celdas con el
+  byte de arriba distinto de cero. Los tres `.att` con otro número en el nombre cargan con el de
+  su carpeta.
+- `.map` de Lorencia: los conteos que midió el research con su propio descifrado (7.939 celdas de
+  agua, 43.785 sin capa 2, 14.629 con alfa y 73 con alfa sin capa 2).
+- `.map` de Devias contra la memoria del original: `s31_l2l1.bin` (capa 2 y capa 1) y
+  `s31_alpha.bin` (los 65.536 floats), byte a byte.
+- `.att` de Devias contra `s31_att.bin`: iguales salvo las 10 celdas que el juego ya había
+  cambiado (el bit `0x02` de la celda del personaje y dos pasajes con el `0x04` limpiado), que el
+  test lista una por una, como el research (`s31-assets/byte-a-byte.md`).
+- `.att` de Lorencia, el de dos bytes por celda: de las 7.939 celdas de agua del `.map`, 7.818
+  tienen el atributo 4, el contraste del research entre los dos archivos. Los volcados de memoria
+  de Lorencia (`lor_*.bin`, en la carpeta hermana `2026-10-09-lorencia`) no entran todavía:
+  `MURET_CLIENT_MEMORY_DIR` apunta a una sola carpeta.
+
+**Archivos:**
+- Crear: `Client/src/Data/Terrain/K16.h/.cpp`, `TerrainGrid.h` (`CellIndex`, `TerrainLayer<T>`),
+  `TerrainMapping.h/.cpp` y `TerrainAttributes.h/.cpp`.
+- Modificar: `Client/src/Data/DataError.h` (`WrongWorld`, `UnexpectedSize`, `InvalidData`).
+- Crear: `Client/tests/data/K16Test.cpp`, `TerrainMappingTest.cpp`, `TerrainAttributesTest.cpp`,
+  sus `Golden*Test.cpp`, y `Client/tests/support/TerrainFiles.h` (cifra como el exportador del
+  original y arma archivos sintéticos con un patrón que no se repite cada fila).
+- Modificar: `Client/CMakeLists.txt`, 05 y 07.
+
+Los pasos 1 a 4 los hizo Claude como ejemplo trabajado (2026-11-01), a pedido tuyo de seguir con
+el cliente. Quedaron tomadas sin preguntarte, con la regla de 07: el error por otro mundo en el
+cargador y no en el que llama, el `UnexpectedSize` de Q-C25, y los atributos como un WORD por
+celda, como en la memoria del original. Si preferís otra cosa, se cambia en su PR.
+
+- [x] **Paso 1:** `DecryptK16`. Tests: dos bytes a mano (si el previo saliera del byte en claro,
+  el segundo daría otro), la clave que vuelve a empezar en el byte 16 sin la semilla, el vector
+  del research (`8B E5 24 92`), la vuelta con el cifrado del exportador (`0x5f8960`) y una mitad
+  descifrada sola, que sale mal solo en su primer byte.
+- [x] **Paso 2:** `LoadTerrainMapping(file, world)`. Tests: las tres capas en el orden del
+  archivo, la celda (x, y) en `y * 256 + x`, los bits del alfa sacados a mano, la versión que no
+  se lee, otro mundo, archivo corto y bytes de más. El golden carga los 20 mundos y compara Devias
+  con la memoria.
+- [x] **Paso 3:** `LoadTerrainAttributes(file, world)`. Tests: la cabecera cifrada del archivo
+  real, uno y dos bytes por celda (con el byte de arriba en uso), otros tamaños, la cabecera, el
+  atributo `0x80`, otro mundo, que un dato malo gane sobre otro mundo, y la celda testigo que no se
+  mira (Q-C26). El golden carga los 20 mundos y los tres `.att` con otro nombre, y compara Devias
+  con la memoria.
+- [x] **Paso 4:** verificar:
+  ```bash
+  cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "K16|Terrain"
+  ```
+- [ ] **Paso 5 (PR B):** `EncTerrain.obj` y `TerrainHeight.OZB`.
 
 ## Sub-ola CL1.4: texturas OZT y OZJ (esbozo)
 
@@ -287,6 +365,8 @@ en su PR.
 - OZT: 4 bytes + TGA de 32 bpp; lados de hasta 512.
 - OZJ: 24 bytes + JPEG baseline. Q-C14: 7 OZJ son en realidad TGA.
 - La biblioteca JPEG es la pregunta 4 de este plan.
+- `TerrainLight.OZJ`, la luz de base del terreno, viene de la CL1.3: 256 × 256 × 3 floats,
+  decodificados como IJG 6b, invertidos y por 1/255 (ffmpeg da otros bytes).
 - Una textura que falta corta el arranque (Q-C23).
 
 ## Sub-ola CL1.5: `message.wtf` (esbozo)

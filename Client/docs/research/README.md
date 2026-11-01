@@ -29,8 +29,8 @@ qué hace el original, incluidos sus errores.
 A diferencia del DataServer, el cliente es enorme (5.648 funciones internas contra 1.572) y está
 investigado de forma despareja: la red, el cifrado y los formatos de datos están validados contra
 datos reales; el render tiene trazas de OpenGL del original (terreno, cámara, texto y skinning del
-personaje verificados); el código de la animación de modelos y el audio, casi nada. Este research lo dice
-explícitamente en cada tema y [08](08-pendientes.md) junta los huecos.
+personaje verificados), y la animación de modelos quedó leída en el binario y verificada con esas
+trazas; el audio, casi nada. Este research lo dice explícitamente en cada tema y [08](08-pendientes.md) junta los huecos.
 
 ## Índice
 

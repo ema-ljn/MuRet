@@ -34,9 +34,14 @@ entry 0x6a2444 (arranque del CRT)
 
 ## El frame
 
+El orquestador `0x63945d` elige por el global de escena `DAT_006d5dc8`: la 1 va a `0x622e40`, la 3
+a `0x6356f0` y la 2 (login), la 4 (selección) y la 5 (juego) al render loop `0x637700`. Antes deja
+en `DAT_07d36ba8` un valor que late con el reloj (0,6 + 0,15 por el seno o el coseno de
+0,004 · T). Después del frame, la mayor parte de sus 7 KB arma paquetes del grupo `F1` cuando un
+contador (`DAT_05763578`) pasa de 31; sin leer en detalle. *Estático.*
+
 El render loop `0x637700` hace, en orden: cámara, color de cielo por mapa, la escena que toque
-según el global `DAT_006d5dc8` (2 login, 4 selección, 5 en el juego; ver
-[06](06-render-escenas-y-ui.md)), objetos, HUD, `SwapBuffers` y música. *Estático.*
+(ver [06](06-render-escenas-y-ui.md)), objetos, HUD, `SwapBuffers` y música. *Estático.*
 
 ### El ritmo: lógica a 25 por segundo, dibujo a 21,33
 
@@ -122,11 +127,37 @@ registró, con la escena quieta y sin carteles:
 - Lo que el swap no puede probar: que la espera sea la de `0x637700` y los 7 pasos cada 6 frames.
   Eso sigue siendo estático e *inferido* (arriba).
 
-La animación de los modelos avanza por paso, no por frame: en las trazas de GL el frame de la
-animación salta de a 0,263 keys por paso de 40 ms (*inferido* con tres modelos, ver
-[06](06-render-escenas-y-ui.md#cuánto-avanza-la-animación)). Lo que falta
-([08](08-pendientes.md), P-C03): qué más depende del paso (movimiento, cooldowns) para desacoplar
-el dibujo sin cambiar el juego. El orquestador `0x63945d` (7 KB) sigue sin decompilar en detalle.
+### Qué corre en cada paso y qué en cada frame
+
+*Estático*, del decompilado de `0x637700`. **Por paso de 40 ms**, en orden:
+
+```text
+hash anti-tamper del contador de pasos DAT_07d3a0f0   (se rearma con tamaños al azar
+                                                     cuando el contador % 313 == 57; no se porta)
+0x623e70 (40 KB)        solo en la escena 5 y con DAT_05762eb4 == 0; sin leer
+lógica de la escena     2 → 0x634c60, 4 → 0x6342c0, 5 → 0x636290 (ahí avanza el cuerpo de
+                        cada modelo, ver 06)
+0x456b10(0,005) × 5     una lista de objetos con 5 subpasos de 0,005 y un valor al azar
+                        acotado entre −0,2 y 1 (DAT_007245f0; ¿viento?, inferido)
+0x5547e0, 0x5554b0      dos temporizadores de 301 y 151 pasos (12 y 6 s) que llaman a
+                        0x554610 y 0x555190 (mensajes en pantalla, inferido)
+IMPR PANT               alterna el pedido de captura (DAT_07d368a8)
+DAT_05767940, DAT_077f3b74   cuentas regresivas: −1 por paso hasta 0
+DAT_07d2d360            ciclo de 32 pasos: (n + 1) mod 32
+DAT_07d3a0f0 + 1, DAT_07d3a144 + 1, DAT_006d5ee4 − 40
+```
+
+**Por frame:** `0x4eb620` toma `timeGetTime` y lo guarda como `float` en `DAT_05767b88` (el reloj T
+del brillo de los items, [06](06-render-escenas-y-ui.md); también cuenta los FPS), el delta de
+`0x459b60` (tope de 200 ms), el dibujo de la escena (2 → `0x6350b0`, 4 → `0x634680`,
+5 → `0x6371a0`), la animación de mascota y alas dentro de ese dibujo, la captura si se pidió
+(`0x6202e0`) y `SwapBuffers`, solo si el dibujo de la escena devolvió verdadero.
+
+La animación del cuerpo avanza por paso con la velocidad de su acción (0,26 y 0,28 keys en las
+trazas) y la de mascota y alas por frame dibujado: **verificado** en las trazas de GL, ver
+[06](06-render-escenas-y-ui.md#cuánto-avanza-la-animación). Lo que falta
+([08](08-pendientes.md), P-C03): qué hacen `0x623e70` y la lógica de cada escena (movimiento,
+cooldowns, cámara) para desacoplar el dibujo sin cambiar el juego.
 
 Cada frame termina con `glFlush` y `wglSwapBuffers` (2.375 de cada uno en la sesión) y empieza con
 `glClear` (2.381). **Verificado** en las estadísticas de GLIntercept.

@@ -206,7 +206,7 @@ efectos.
 | Login y keepalive ([04](../../../Client/docs/research/04-protocolo.md)) | CL2, CL4 | bytes exactos; integración con CS y GS falsos |
 | Ritmo del frame ([02](../../../Client/docs/research/02-arranque-y-ciclo-de-vida.md)) | CL3 | reloj falso: ticks por segundo fijos a cualquier FPS; en modo fiel, 64 frames cada 3 s y 7 pasos cada 6 frames |
 | Escenas, texto, cámara, terreno ([06](../../../Client/docs/research/06-render-escenas-y-ui.md)) | CL5, CL7 | máquina de escenas, colores `0x02`; matrices de cámara y terreno de Lorencia contra las trazas de GL del original |
-| Modelos y animación ([05](../../../Client/docs/research/05-formatos-de-datos.md), [06](../../../Client/docs/research/06-render-escenas-y-ui.md)) | CL6 | skinning del personaje de la selección contra la traza (golden); avance de la animación por paso con reloj falso |
+| Modelos y animación ([05](../../../Client/docs/research/05-formatos-de-datos.md), [06](../../../Client/docs/research/06-render-escenas-y-ui.md)) | CL6 | skinning del personaje de la selección contra la traza (golden); avance de la animación por paso con la velocidad de cada acción y reloj falso; mascota por tiempo (Q-C20); UV de brillo contra la traza |
 | Quirks ([07](../../../Client/docs/research/07-quirks-y-bugs.md)) | donde toque | test viejo vs nuevo, o reproducción del contrato |
 
 ## Cambios al repo de este PR

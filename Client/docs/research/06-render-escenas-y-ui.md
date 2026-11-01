@@ -199,32 +199,71 @@ la traza:
   personaje y 90° el guardia en Lorencia) y su posición. En Lorencia los dos están a z = 165, la
   altura del terreno en esa zona (byte 110 × 1,5).
 - **La cabeza gira aparte.** En Lorencia el hueso `Bip01 Head` (20) no sigue la animación: queda a
-  0,5 unidades en el personaje y a 4,6 en el guardia, con el resto del cuerpo a menos de 0,06. Es
-  una rotación extra encima de la animación, probablemente hacia donde mira (*inferido*). En la
-  selección la cabeza sigue la animación.
+  0,5 unidades en el personaje y a 4,6 en el guardia, con el resto del cuerpo a menos de 0,06. En
+  la selección la cabeza sigue la animación. *Estático*, en `0x4eb860`: al hueso de la cabeza del
+  modelo (su índice está en `modelo + 0x54`) le resta a los ángulos de Euler x e y un ángulo del
+  objeto (`objeto + 0x28` y `+ 0x2c`, en grados, por π/180) en las dos keys que interpola, antes de
+  pasar a cuaternión (`0x5fcd20`); los demás huesos usan los cuaterniones ya calculados. Quién
+  escribe ese ángulo en los personajes, sin leer (probablemente hacia dónde mira, *inferido*).
 - **Pases extra de brillo.** Las mallas `Male17` y la espada se dibujan tres veces más, con las
   mismas posiciones y UV que no están en el archivo (texturas GL 141, 115 y 120); las del guardia y
-  las pociones, una vez más (la 120). Parece el brillo de los items (tipo cromo o metal),
-  *inferido*: falta leer cómo se calculan esas UV y de qué depende cuántos pases van.
+  las pociones, una vez más (la 120). Las UV salen de la normal de cada vértice en el mundo
+  (`nx`, `ny`, `nz`) según banderas del dibujo, en `0x4ed890`. **Verificado** ajustando las UV de
+  la traza sobre las normales del `.bmd` posado (residuo máximo de 0,016 en las dos escenas):
+
+  | Textura | Bandera | u | v |
+  | --- | --- | --- | --- |
+  | 115 | ninguna | 0,5·nz + 0,2 | 0,5·(ny + 1) |
+  | 120 | `0x4` | 0,5·nz + t | 0,5·ny + 2t |
+  | 141 | `0x1000` | c·nx + (s + 0,5)·ny + nz + 3s | 1 − c·nx − s·ny − 1,5·nz − 3t |
+
+  con t = (T mod 10000) · 0,0001, c = cos(0,001·T) y s = sin(0,002·T), donde T es el reloj del
+  frame en ms (abajo). Hay más modos sin pase en estas trazas (`0x200`, `0x800`, `0x4000`,
+  `0x10000`), *estáticos*. De qué depende cuántos pases lleva cada item (¿el nivel?), sin leer.
 
 #### Cuánto avanza la animación
 
-*Inferido*, con tres modelos que coinciden: **el frame de la animación avanza un tanto fijo por
-paso de lógica de 40 ms (unas 0,263 keys), no por frame dibujado.**
+**Verificado** en el binario y en las trazas: **el cuerpo avanza por paso de lógica de 40 ms, con
+la velocidad de su acción; la mascota y las alas, por frame dibujado.**
 
-- En la selección, entre swaps el frame salta 1,583, 1,577, 1,842 y 1,839 keys: dos valores, no
-  cuatro. Encajan con 0,263 keys por paso y 6, 6, 7 y 7 pasos por frame. En la misma traza, 11 fans
-  de la textura GL 1153 corren su U con el tiempo real (0,0648, 0,0665, 0,0703 y 0,068 por frame:
-  cuatro valores distintos), y las dos cosas cierran juntas: con unos 0,26 U por segundo los
-  frames duran 250, 257, 271 y 262 ms (GLIntercept frena cada frame), y el acumulador de 40 ms de
-  [02](02-arranque-y-ciclo-de-vida.md) da justo 6, 6, 7 y 7 pasos. Con la mitad de avance y el
-  doble de pasos (12, 12, 14, 14) no hay duración que cierre.
-- En Lorencia, el personaje y el guardia saltan lo mismo en cada frame: 5,59 · 5,32 · 5,31 · 5,32
-  keys (módulo 6) el personaje y 5,60 · 5,30 · 5,33 · 5,33 el guardia. La diferencia entre el
-  primer salto y los otros (0,27) es un paso más, y todo encaja con 0,263 por paso y 44, 43, 43 y
-  43 pasos por frame.
-- Lo que no cierra: 43 pasos son 1,7 s por frame, siete veces lo de la selección con la mitad de
-  llamadas de GL. La traza no tiene tiempos (`TimerLog` estaba apagado) para comprobarlo.
+- **La velocidad es de la acción.** Cada acción del modelo tiene 0x10 bytes: `+0` no repite (se
+  queda en la última key), `+4` la velocidad en keys por paso, `+8` la cantidad de keys y `+10`
+  `lock_positions`. El cargador de `Player.bmd` (`0x60dbe0`) las fija a mano: 0,28 de la 1 a la 12,
+  salvo la 3 (0,26), la 4 y la 5 (0,24) y la 7 y la 8 (0,22), y 0,3 en la mayoría de las demás.
+- **El paso la aplica.** Dentro del bucle de pasos de `0x637700` ([02](02-arranque-y-ciclo-de-vida.md)),
+  la lógica de la escena llega por `0x508f00` → `0x508ea0` → `0x4fd5f0` → `0x4fcd00` a `0x4f9580`,
+  que multiplica la velocidad según el tipo y la acción del personaje (×1,5, ×0,5, ×2, ×4 y
+  otros), y a `0x4ec200`, que hace `frame += velocidad`. Al pasar la última key vuelve con módulo
+  (n keys, o n − 1 con `lock_positions`), o se queda en n − 0,01 si la acción no repite. Cambiar de
+  acción (`0x4ea030`) vuelve el frame a 0 solo si la acción es otra.
+- **Las trazas lo confirman con dos velocidades.** En la selección (acción 3, 0,26) el frame salta
+  1,583, 1,577, 1,842 y 1,839 keys entre swaps: 8,58 y 8,84 módulo 7, o sea 33, 33, 34 y 34 pasos.
+  En Lorencia (acción 1, 0,28) el personaje salta 5,59 · 5,32 · 5,31 · 5,32 keys módulo 6 y el
+  guardia 5,60 · 5,30 · 5,33 · 5,33: 20, 19, 19 y 19 pasos los dos.
+- **Y el reloj de la traza cierra.** El pase de brillo 120 corre con T, el `timeGetTime` que
+  `0x4eb620` guarda una vez por frame al empezar `0x637700`. Entre swaps T avanza 1.296, 1.330,
+  1.406 y 1.360 ms en la selección (33 a 34 pasos son 1.320 a 1.360 ms) y 782, 798, 764 y 766 ms en
+  Lorencia (20 y 19 pasos son 800 y 760). Los frames son tan largos porque GLIntercept frena cada
+  llamada de GL: unas 227.000 por frame en la selección y 125.000 en Lorencia, unos 6 µs por
+  llamada en las dos. Con esas duraciones, los 11 fans de la textura GL 1153 de la selección
+  corren su U a 0,05 por segundo.
+- **Corrección.** Antes este documento decía 0,263 keys por paso con 6 o 7 pasos (selección) y 43 o
+  44 (Lorencia): da los mismos saltos módulo las keys, pero la velocidad no está en la tabla y el
+  reloj lo descarta. Era un alias.
+- **La mascota y las alas avanzan por frame dibujado.** El dibujo del personaje
+  (`0x510d00` → `0x50ba30` → `0x509340` → `0x4ec200`) anima sus partes con velocidad fija: la
+  mascota (`personaje + 0x318`, tipo `0x1c13` = `Helper02`) 0,5 keys por frame, y las alas
+  (`+ 0x2f8`) 0,25, o 1,0 en las acciones `0x1e` y `0x1f`. **Verificado:** `Helper02` avanza
+  exactamente 0,5 por frame en las dos trazas, mientras el cuerpo avanza 19 a 34 pasos. Con más FPS
+  la mascota va más rápido (Q-C20 en [07](07-quirks-y-bugs.md)).
+- **Cómo se interpola.** `0x4eb860` hace slerp entre la key entera del frame anterior y la del
+  actual, con la parte fraccionaria del frame: cada vez que `0x4ec200` cruza una key, guarda la
+  vieja como frame anterior. Para el original, entonces, el frame de la tabla de arriba es uno más
+  (módulo n): la tabla da la pose entre ⌊f⌋ y ⌊f⌋ + 1, el original guarda f + 1 y ⌊f⌋ como anterior.
+  Los saltos no cambian.
+- **Fin de acción adelantado en la selección.** En la escena 4, `0x4ec200` le suma 2 al frame solo
+  para decidir si la acción terminó: avisa "terminó" dos keys antes, pero el módulo usa el frame
+  real (Q-C21). *Estático.*
 - En el guardia, el frame f y el 6 − f dan casi el mismo error (sobre sus vértices la acción 1 es
   casi simétrica); en la tabla va la rama que sigue la secuencia. En el personaje no hay duda: en
   cuatro de los cinco frames la otra rama queda a más de 4 unidades (en el quinto, cerca de la key
@@ -268,13 +307,13 @@ de texto (`0x468320`) incluye el IME coreano. Verificado aparte: el asignador `0
 
 ## Lo que no se sabe
 
-- **Modelos, en el binario** (P-C01): el skinning, la pose y el frame de cada modelo ya se
-  reprodujeron contra la traza (arriba), pero el render de modelos (`0x53c6a0`, tabla de 0xA10
-  bytes con un `switch` de tipo) está leído solo en sus dispatchers. Falta encontrar ahí el avance
-  del frame (las 0,263 keys por paso, de dónde salen y si cambian por acción), la rotación extra de
-  la cabeza y cómo se calculan las UV de los pases de brillo. Las 100 capturas de pantalla de la
-  selección (`graphics-01/CHARACTER-ANIMATION-NOTES.md`, VMware MKS, privadas) muestran que la pose
-  y el arma cambian con la UI quieta; no están sincronizadas con la traza.
+- **Modelos, en el binario** (P-C01): el skinning, la pose, el avance del frame, la cabeza y las UV
+  de brillo ya están (arriba). Falta quién escribe el ángulo de la cabeza de los personajes, de
+  qué depende cuántos pases de brillo lleva cada item y el resto del render de modelos
+  (`0x53c6a0`, tabla de 0xA10 bytes con un `switch` de tipo), leído solo en sus dispatchers. Las
+  100 capturas de pantalla de la selección (`graphics-01/CHARACTER-ANIMATION-NOTES.md`, VMware
+  MKS, privadas) muestran que la pose y el arma cambian con la UI quieta; no están sincronizadas
+  con la traza.
 - Qué es cada bloque de `GL_QUADS` (efectos) y el resto de los `GL_TRIANGLES` que no son del
   personaje: la búsqueda por UV se hizo solo contra `player\` e `Item\`.
 - Efectos: solo la estela (`0x52e590`).
@@ -297,7 +336,9 @@ Ver [08](08-pendientes.md).
 | Cámara con seis globales, far × 1,4 en el mundo | `Camera` como valor, testeable: matrices de vista y proyección comparadas con las de las trazas | CL7 |
 | Terreno celda por celda, dos pasadas por celda | una malla por bloque de 4 × 4 con las mismas reglas de capa, alfa y luz, y el mismo orden | CL7 |
 | Modelos transformados en la CPU, un hueso por vértice, pose de `Player.bmd` | skinning en la CPU primero (se compara vértice a vértice con el original); pasarlo a la GPU queda para después, si hace falta | CL6 |
-| La animación avanza por paso de lógica, no por frame | el frame de la animación se avanza en el paso de 40 ms; el dibujo interpola entre el frame del paso anterior y el del actual (D-C4), y el modo fiel dibuja el del paso, sin interpolar | CL6 |
+| El cuerpo avanza por paso de lógica con la velocidad de su acción | `Data::Model` guarda la velocidad de cada acción (la tabla de `0x60dbe0`) y el frame se avanza en el paso de 40 ms; el dibujo interpola entre el frame del paso anterior y el del actual (D-C4), y el modo fiel dibuja el del paso, sin interpolar | CL6 |
+| Mascota y alas avanzan por frame dibujado (0,5 y 0,25 keys) | avanzan por tiempo: 0,5 keys cada 46,875 ms es la velocidad del original a 21,33 FPS, igual a cualquier FPS (Q-C20) | CL6 |
+| Brillo de items con UV de la normal y el reloj del frame | un shader por modo de brillo con las fórmulas de arriba; T es el reloj del frame en ms | CL6 |
 
 Tests que fija:
 
@@ -311,6 +352,12 @@ Tests que fija:
 - El skinning (golden): la acción 3 de `Player.bmd` en el frame 3,3197, con las partes del
   personaje de la selección, la escala 0,9 y el giro de 100°, da los vértices del segundo frame de
   la traza a menos de 0,01 (CL6).
-- El avance de la animación con un reloj falso: 0,263 keys por paso de 40 ms, el mismo con 1, 25 o
-  240 frames dibujados por segundo, y la vuelta a la key 0 después de la última (CL6).
+- El avance de la animación con un reloj falso: la acción 3 a 0,26 y la 1 a 0,28 keys por paso de
+  40 ms, igual con 1, 25 o 240 frames dibujados por segundo; la vuelta con módulo (con y sin
+  `lock_positions`) y el tope en n − 0,01 de una acción que no repite (CL6).
+- Los saltos de la traza como oráculo: 33, 33, 34 y 34 pasos de la acción 3 dan los saltos de la
+  selección, y 20, 19, 19 y 19 de la acción 1 los de Lorencia (CL6).
+- La mascota: 0,5 keys cada 46,875 ms, a 21,33 FPS y a 240 FPS (CL6).
+- Las UV de brillo: para las normales y el T de un frame de la traza, los modos 115, 120 y 141 dan
+  las UV de la traza a menos de 0,02 (CL6).
 - El asignador de slots: los casos de `test_texture_slots` de `mu-client` (CL5).

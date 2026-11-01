@@ -6,11 +6,11 @@ solo lo lee.
 ## Dónde estamos
 
 - Ola: 0 (Fundaciones)
-- Sub-ola: 0.1 hecha (andamiaje CMake + `Server/DataServer/`), falta compilar en Windows y responder [las preguntas](ola-0.1-cmake.md#te-toca)
-- Próxima: la **0.0** (del código al programa: unidades de traducción, enlace, ODR; acá nace
-  `labs/`), antes de cerrar la 0.1; después la 0.2 (vcpkg, GoogleTest, CTest, CI). La guía de la
-  0.0 se escribe al arrancarla; qué cubre está en el
-  [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md#00-del-código-al-programa)
+- Sub-ola: **0.0 en curso** (del código al programa), arrancada el 2026-11-01. Ya están la
+  [guía](ola-0.0-del-codigo-al-programa.md) y `labs/` con el test de la misión, que todavía no
+  compila: te toca la misión (`Labs::HeadOffset`), el jefe y el carril R
+- La 0.1 está hecha (andamiaje CMake + `Server/DataServer/`); falta compilar en Windows y responder [las preguntas](ola-0.1-cmake.md#te-toca), que se cierran junto con la 0.0
+- Próxima: la 0.2 (vcpkg, GoogleTest, CTest, CI), que necesitan también la CL0.2 del cliente
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 

@@ -10,6 +10,7 @@
 
 | Sub-ola | Concepto | Al final tenés que poder explicar |
 | --- | --- | --- |
+| 0.0 | del código al programa: unidades de traducción, símbolos, enlace, ODR | qué hay en un archivo objeto, por qué un símbolo queda sin definir o definido dos veces, y qué cambia entre una biblioteca estática y una dinámica (guía aparte: [ola-0.0-del-codigo-al-programa.md](ola-0.0-del-codigo-al-programa.md)) |
 | 0.1 ✅ | cómo se arma un programa C++ y qué hace CMake | preprocesador → compilador → linker, y qué es un *target* (nota aparte: [ola-0.1-cmake.md](ola-0.1-cmake.md)) |
 | 0.2 | dependencias, tests y CI | qué resuelve vcpkg, qué es un *test runner*, y qué significa que CI esté verde |
 | 0.3 | documentación base | por qué una decisión se escribe antes de que haya mucho código, y para qué sirve un formateador |

@@ -8,6 +8,7 @@ find_package(SDL3 CONFIG REQUIRED)
 
 add_library(ClientLib STATIC
     src/App/CommandLine.cpp
+    src/Data/ByteReader.cpp
     src/Data/DataPath.cpp
 )
 target_include_directories(ClientLib PUBLIC src)
@@ -32,6 +33,7 @@ if(MURET_BUILD_TESTS)
         tests/core/ExpectedTest.cpp
         tests/support/GoldenDir.cpp
         tests/support/GoldenDirTest.cpp
+        tests/data/ByteReaderTest.cpp
         tests/data/DataPathTest.cpp
         tests/data/GoldenDataFilesTest.cpp
     )

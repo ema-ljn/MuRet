@@ -64,7 +64,10 @@ para la CL1.0. De la CL1.1 en adelante, la sección de cada sub-ola de este plan
    porque `gtest_discover_tests` no pasa dos variables en `ENVIRONMENT`. **En la CL1.4** pasó a
    apuntar a `memoria-cliente/`, la carpeta de las tres capturas, para que entren Lorencia y sus
    objetos.
-4. **Biblioteca JPEG (CL1.4).** Es la pregunta 1 del roadmap y se decide al llegar.
+4. **Biblioteca JPEG (CL1.4).** Es la pregunta 1 del roadmap. **Decidido (Emanuel, 2026-11-01):
+   un decodificador propio compatible con la libjpeg 6b**, porque libjpeg-turbo da los mismos bytes
+   en los 2.380 JPEG del laboratorio pero no fuera de ellos. Tiene su plan:
+   [`2026-11-01-cl1.4-decodificador-jpeg.md`](2026-11-01-cl1.4-decodificador-jpeg.md).
 
 ---
 
@@ -403,8 +406,9 @@ los canales, y cuándo una biblioteca hace exactamente lo que hacía el original
   suman los oráculos de Lorencia. Prepara los de las texturas, que están en esa captura
   (`lor2_slot*.bin`).
 - **PR A (este):** OZT, un TGA de 32 bits con 4 bytes delante.
-- **PR B:** OZJ, un JPEG con 24 bytes delante, con libjpeg-turbo, y `TerrainLight.OZJ`, la luz de
-  base del terreno, que viene de la CL1.3.
+- **PR B:** OZJ, un JPEG con 24 bytes delante, y `TerrainLight.OZJ`, la luz de base del terreno,
+  que viene de la CL1.3. Va sobre el decodificador JPEG propio, que se arma antes en siete PRs
+  ([su plan](2026-11-01-cl1.4-decodificador-jpeg.md); el PR B es su sub-ola J8).
 
 **Contrato** ([05 § Texturas](../../../Client/docs/research/05-formatos-de-datos.md#texturas) y, en
 el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
@@ -414,7 +418,7 @@ el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
 | --- | --- | --- | --- |
 | tamaño | la imagen va sin escalar en la esquina de un buffer de lados potencia de 2, desde 1 y con tope en 512 | el resto del buffer queda sin inicializar | `TextureSide`; el resto, en cero (Q-C30) |
 | OZT | 4 bytes que no se leen y un TGA: ancho y alto (int16 con signo) en `0x10` y `0x12`, bits por píxel en `0x14`, píxeles BGRA desde `0x16` | no mira el tipo, el id ni el descriptor: da vuelta siempre las filas; rechaza otros bits por píxel y lados de más de 512 sin avisar, y deja pasar uno de cero o negativo; no mira el tamaño (Q-C24) | `InvalidData` para el rechazo; `FileTooShort`; RGBA con las filas dadas vuelta |
-| OZJ | 24 bytes que no se leen y un JPEG, que decodifica la libjpeg 6b con sus parámetros por defecto | rechaza un lado de más de 512; no da vuelta las filas; 7 OZJ son TGA (Q-C14) y libjpeg los rechaza | libjpeg-turbo (PR B) |
+| OZJ | 24 bytes que no se leen y un JPEG, que decodifica la libjpeg 6b con sus parámetros por defecto | rechaza un lado de más de 512; no da vuelta las filas; 7 OZJ son TGA (Q-C14) y libjpeg los rechaza | `Jpeg::Decode`, el decodificador propio (PR B) |
 | luz | un OZJ de 256 × 256, cada byte por `0x3B808081` (1/255 en float) | la fila 0 es la última del JPEG | PR B |
 
 **Los oráculos:**
@@ -445,9 +449,13 @@ el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
   como lo hace `0x63b870`. La 6b da los mismos bytes que la memoria del original en los 9 tiles de
   Lorencia. libjpeg-turbo 3.2.0, la del baseline de vcpkg, da los mismos bytes que la 6b en los
   2.380, con SIMD y sin SIMD, y con o sin el suavizado de bloques de los progresivos (623 lo son).
-  Entra libjpeg-turbo en el PR B. No hace falta decidir si se acepta una diferencia chica: no la
-  hay en los datos reales. Donde turbo no es 6b (coeficientes fuera de rango, el muestreo 4:4:0,
-  JPEG aritméticos) no aparece en el laboratorio.
+  Pero las reviews del PR B midieron dónde turbo no es la 6b: lee JPEG aritméticos, sin pérdida y
+  de 12 bits, que la 6b rechaza; agranda el 4:4:0 con otro filtro; suaviza con otro método un
+  progresivo al que le faltan scans, y no tiene cómo imitar un muestreo que mezcla un componente al
+  doble de alto con otro al doble de ancho. Nada de eso aparece en el laboratorio, pero el contrato
+  es la 6b, así que **no entra ninguna biblioteca**: Emanuel decidió (2026-11-01) escribir un
+  decodificador compatible con la 6b, con la 6b como especificación y su salida como oráculo
+  ([su plan](2026-11-01-cl1.4-decodificador-jpeg.md)).
 
 - [x] **Paso 0 (PR 0):** los volcados por captura, y Lorencia como oráculo de la CL1.3.
 - [x] **Paso 1 (PR A):** `TextureSide` y `LoadOztTexture(file)`. Tests: filas dadas vuelta y
@@ -456,10 +464,12 @@ el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
   buffer entero), los campos que no se leen, archivo corto (también el que es solo la cabecera),
   los bits por píxel antes que los píxeles que faltan y bytes de más. Golden con los 664 y contra la
   memoria.
-- [ ] **Paso 2 (PR B):** libjpeg-turbo en `vcpkg.json` (y NASM en el CI de Linux, para su SIMD),
-  `LoadOzjTexture(file)` y `LoadTerrainLight(file)`, con vectores chicos que corren en CI: JPEG
-  sintéticos de los tres tipos del laboratorio (baseline 4:4:4, baseline 4:2:0 y progresivo 4:4:4,
-  con intervalos de reinicio), con el resultado que da la 6b.
+- [ ] **Paso 2 (J1 a J7):** el decodificador JPEG, un PR por sub-ola, como dice
+  [su plan](2026-11-01-cl1.4-decodificador-jpeg.md).
+- [ ] **Paso 3 (PR B, la J8 de ese plan):** `LoadOzjTexture(file)` y `LoadTerrainLight(file)` sobre
+  `Jpeg::Decode`, con vectores chicos que corren en CI: JPEG sintéticos de los tres tipos del
+  laboratorio (baseline 4:4:4 con un reinicio por fila de MCU, baseline 4:2:0 y progresivo 4:4:4),
+  con el resultado que da la 6b.
 
 Lo hizo Claude como ejemplo trabajado, por el mismo pedido tuyo de seguir con el cliente. Quedaron
 tomadas sin preguntarte: el rechazo del OZT es `InvalidData` (el original devuelve false sin

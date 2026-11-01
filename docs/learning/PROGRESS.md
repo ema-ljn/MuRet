@@ -33,8 +33,10 @@ solo lo lee.
   primero (#19) trae K16, `EncTerrain.map` y `EncTerrain.att`, comparados con la memoria del
   original. El segundo, `EncTerrain.obj` y las alturas de `TerrainHeight.OZB`, leídas donde las
   lee el original y no donde dice el BMP (Q-C02). La CL1.4 (texturas) va en tres PRs: los
-  volcados de memoria por captura, el OZT, y el OZJ con libjpeg-turbo, que da los mismos bytes que
-  la libjpeg 6b del original en los 2.380 JPEG del laboratorio
+  volcados de memoria por captura y el OZT ya están; el OZJ espera un decodificador JPEG propio
+  compatible con la libjpeg 6b del original, que decidiste el 2026-11-01 porque libjpeg-turbo da
+  sus mismos bytes en los 2.380 JPEG del laboratorio pero no fuera de ellos. Se arma en siete
+  sub-olas ([su plan](../superpowers/plans/2026-11-01-cl1.4-decodificador-jpeg.md)).
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 

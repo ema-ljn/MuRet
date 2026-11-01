@@ -32,11 +32,13 @@ solo lo lee.
   del comportamiento viejo de Q-C24 (paso 7 de la CL1.2). La CL1.3 (terreno) va en dos PRs; el
   primero (#19) trae K16, `EncTerrain.map` y `EncTerrain.att`, comparados con la memoria del
   original. El segundo, `EncTerrain.obj` y las alturas de `TerrainHeight.OZB`, leídas donde las
-  lee el original y no donde dice el BMP (Q-C02). De la CL1.4 (texturas) ya están los
-  volcados de memoria por captura y el OZT; el OZJ espera un decodificador JPEG propio
-  compatible con la libjpeg 6b del original, que decidiste el 2026-11-01 porque libjpeg-turbo da
-  sus mismos bytes en los 2.380 JPEG del laboratorio pero no fuera de ellos. Se arma en siete
-  sub-olas ([su plan](../superpowers/plans/2026-11-01-cl1.4-decodificador-jpeg.md)).
+  lee el original y no donde dice el BMP (Q-C02). La CL1.4 (texturas) va en tres PRs: los
+  volcados de memoria por captura, el OZT, y el OZJ con libjpeg-turbo, que da los mismos bytes que
+  la libjpeg 6b del original en los 2.380 JPEG del laboratorio. Fuera de ellos difiere en casos
+  que quedan escritos (Q-C33), y el plan de un decodificador propio compatible con la 6b queda en
+  pausa por si turbo no alcanza ([su plan](../superpowers/plans/2026-11-01-cl1.4-decodificador-jpeg.md)).
+  Con el OZJ entra también la luz del terreno, `TerrainLight.OZJ`, igual a la que tenía en memoria
+  el original en Lorencia y Devias.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 
@@ -67,6 +69,8 @@ sesión, junto con los de repaso más viejo.
 | un registro con floats: se leen 4 bytes little-endian y `std::bit_cast` los pasa a float sin tocar un bit, también un NaN | CL1.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
 | leer un formato como lo lee el original y no como dice su cabecera (`bfOffBits`, Q-C02), y por qué eso deja afuera a una biblioteca | CL1.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
 | una imagen dentro de una textura de lados potencia de 2, y el orden de las filas (abajo hacia arriba en el TGA) y de los canales (BGRA) | CL1.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
+| una biblioteca de C que avisa sus errores con `setjmp`/`longjmp`, y por qué entre los dos no puede quedar vivo un objeto con destructor (`JpegImage.cpp`) | CL1.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
+| probar que una biblioteca hace lo mismo que la del original: los mismos bytes en los datos reales y en vectores chicos que corren en CI (`CODING_RULES.md` §10) | CL1.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
 
 ## Preguntas para olas futuras
 

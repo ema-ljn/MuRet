@@ -1,0 +1,4 @@
+# Los vectores son bytes: que git no les cambie los fines de línea (core.autocrlf, en Windows) ni
+# los compare como texto. Uno sin bytes en cero, como gray.6b.raw, git lo tomaría por texto.
+*.jpg binary
+*.raw binary

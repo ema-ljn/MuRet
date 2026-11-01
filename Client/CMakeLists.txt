@@ -5,6 +5,9 @@
 # Render, Scenes) van entrando a ClientLib ola por ola.
 
 find_package(SDL3 CONFIG REQUIRED)
+# La libjpeg de libjpeg-turbo, para los OZJ (JpegImage.cpp). Se pide la de libjpeg-turbo y no
+# cualquier libjpeg (find_package(JPEG)): es la que se comparó con la 6b del original.
+find_package(libjpeg-turbo CONFIG REQUIRED)
 
 add_library(ClientLib STATIC
     src/App/CommandLine.cpp
@@ -18,14 +21,26 @@ add_library(ClientLib STATIC
     src/Data/Terrain/K16.cpp
     src/Data/Terrain/TerrainAttributes.cpp
     src/Data/Terrain/TerrainHeights.cpp
+    src/Data/Terrain/TerrainLight.cpp
     src/Data/Terrain/TerrainMapping.cpp
     src/Data/Terrain/TerrainObjects.cpp
     src/Data/Text/TextTable.cpp
+    src/Data/Textures/JpegImage.cpp
+    src/Data/Textures/OzjTexture.cpp
     src/Data/Textures/OztTexture.cpp
 )
 target_include_directories(ClientLib PUBLIC src)
 target_compile_features(ClientLib PUBLIC cxx_std_20)
+# En vcpkg, libjpeg-turbo es estática en Linux y dinámica en Windows: el target cambia de nombre.
+target_link_libraries(ClientLib PRIVATE
+    $<IF:$<TARGET_EXISTS:libjpeg-turbo::jpeg>,libjpeg-turbo::jpeg,libjpeg-turbo::jpeg-static>)
 muret_set_warnings(ClientLib)
+# libjpeg avisa de sus errores con longjmp, y JpegImage.cpp lo recibe con setjmp. MSVC avisa de
+# cualquier setjmp en C++ (C4611: longjmp no corre destructores); el archivo está armado para que
+# no haya ninguno en el medio (Decompress, en JpegImage.cpp).
+if(MSVC)
+    set_source_files_properties(src/Data/Textures/JpegImage.cpp PROPERTIES COMPILE_OPTIONS /wd4611)
+endif()
 
 add_executable(Main
     src/main.cpp
@@ -54,21 +69,26 @@ if(MURET_BUILD_TESTS)
         tests/data/GoldenGateTableTest.cpp
         tests/data/GoldenOztTextureTest.cpp
         tests/data/GoldenItemTableTest.cpp
+        tests/data/GoldenOzjTextureTest.cpp
         tests/data/GoldenSkillTableTest.cpp
         tests/data/GoldenTableChecksumTest.cpp
         tests/data/GoldenTerrainAttributesTest.cpp
         tests/data/GoldenTerrainHeightsTest.cpp
+        tests/data/GoldenTerrainLightTest.cpp
         tests/data/GoldenTerrainMappingTest.cpp
         tests/data/GoldenTerrainObjectsTest.cpp
         tests/data/GoldenTextTableTest.cpp
         tests/data/ItemTableTest.cpp
+        tests/data/JpegImageTest.cpp
         tests/data/K16Test.cpp
+        tests/data/OzjTextureTest.cpp
         tests/data/OztTextureTest.cpp
         tests/data/RecordTableTest.cpp
         tests/data/SkillTableTest.cpp
         tests/data/TableChecksumTest.cpp
         tests/data/TerrainAttributesTest.cpp
         tests/data/TerrainHeightsTest.cpp
+        tests/data/TerrainLightTest.cpp
         tests/data/TerrainMappingTest.cpp
         tests/data/TerrainObjectsTest.cpp
         tests/data/TextTableTest.cpp
@@ -76,6 +96,9 @@ if(MURET_BUILD_TESTS)
         tests/data/Xor3Test.cpp
     )
     target_include_directories(ClientTests PRIVATE tests)
+    # Los vectores JPEG (tests/vectors/jpeg/README.md) están en el repo: los tests los leen de acá.
+    target_compile_definitions(ClientTests PRIVATE
+        MURET_CLIENT_JPEG_VECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/vectors/jpeg")
     target_link_libraries(ClientTests PRIVATE ClientLib GTest::gtest GTest::gtest_main)
     muret_set_warnings(ClientTests)
 

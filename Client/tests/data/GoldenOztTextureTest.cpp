@@ -7,16 +7,14 @@
 #include "Data/Textures/Texture.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
+#include "support/SameBytes.h"
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <array>
 #include <bit>
-#include <cctype>
 #include <cstddef>
 #include <filesystem>
-#include <iterator>
 #include <optional>
 #include <span>
 #include <string>
@@ -29,22 +27,16 @@ namespace
 using Client::Data::DataError;
 using Client::Data::Textures::LoadOztTexture;
 using Client::Data::Textures::Texture;
+using Client::Tests::HasExtension;
 using Client::Tests::LorenciaCapture;
 using Client::Tests::ReadFileBytes;
+using Client::Tests::SameBytes;
 
 using GoldenOztTexture = Client::Tests::GoldenDataTest;
 using MemoryOztTexture = Client::Tests::MemoryDumpTest;
 
 // Los OZT del laboratorio (05-formatos-de-datos.md, la tabla de formatos).
 constexpr std::size_t OztFilesOfTheLab = 664;
-
-bool IsOzt(const std::filesystem::path& path)
-{
-    std::string extension = path.extension().string();
-    std::ranges::transform(extension, extension.begin(),
-                           [](unsigned char letter) { return static_cast<char>(std::tolower(letter)); });
-    return extension == ".ozt";
-}
 
 // La textura de `path`, o el error con que no cargó.
 Client::Core::Expected<Texture, DataError> LoadFile(const std::filesystem::path& path)
@@ -68,7 +60,7 @@ TEST_F(GoldenOztTexture, LoadsEveryOztOfTheLabButTheOneOf24Bits)
     // test falla con su mensaje (el error_code del constructor no cubre los pasos siguientes).
     for (const auto& entry : std::filesystem::recursive_directory_iterator(dataRoot))
     {
-        if (!entry.is_regular_file() || !IsOzt(entry.path()))
+        if (!entry.is_regular_file() || !HasExtension(entry.path(), ".ozt"))
         {
             continue;
         }
@@ -133,12 +125,7 @@ TEST_F(MemoryOztTexture, EqualsTheOriginalsMemory)
         ASSERT_TRUE(loaded.HasValue());
         EXPECT_EQ(loaded.Value().textureWidth, loaded.Value().width);
         EXPECT_EQ(loaded.Value().textureHeight, loaded.Value().height);
-        const auto pixels = std::as_bytes(std::span(loaded.Value().pixels));
-        const auto original = std::as_bytes(std::span(*memory));
-        ASSERT_EQ(pixels.size(), original.size()) << slot.file;
-        const auto differs = std::ranges::mismatch(pixels, original).in1;
-        EXPECT_EQ(differs, pixels.end()) << slot.file << ": el primer byte distinto es el "
-                                         << std::distance(pixels.begin(), differs);
+        EXPECT_TRUE(SameBytes(std::as_bytes(std::span(loaded.Value().pixels)), std::as_bytes(std::span(*memory))));
     }
 }
 

@@ -43,7 +43,9 @@ jobs:
       - uses: actions/checkout@v7
 
       # Lo que el puerto sdl3 de vcpkg pide del sistema para las features x11 y wayland, los
-      # headers de OpenGL/EGL, y Xvfb + Mesa (llvmpipe) para abrir la ventana sin pantalla.
+      # headers de OpenGL/EGL, y Xvfb + Mesa (llvmpipe) para abrir la ventana sin pantalla. NASM lo
+      # pide el puerto libjpeg-turbo para su SIMD: en Linux, vcpkg no lo baja y usa el del sistema
+      # (en Windows sí lo baja).
       - name: Paquetes del sistema (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -52,6 +54,7 @@ jobs:
             libx11-dev libxext-dev \
             libwayland-dev libxkbcommon-dev \
             libgl-dev libegl-dev \
+            nasm \
             xvfb libgl1-mesa-dri
 
       # vcpkg clonado entero (con historia: el versionado lo necesita) y parado en la

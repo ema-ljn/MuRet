@@ -8,7 +8,10 @@ find_package(SDL3 CONFIG REQUIRED)
 
 add_library(ClientLib STATIC
     src/App/CommandLine.cpp
+    src/Data/ByteReader.cpp
     src/Data/DataPath.cpp
+    src/Data/Tables/TableChecksum.cpp
+    src/Data/Tables/Xor3.cpp
 )
 target_include_directories(ClientLib PUBLIC src)
 target_compile_features(ClientLib PUBLIC cxx_std_20)
@@ -30,10 +33,16 @@ if(MURET_BUILD_TESTS)
     add_executable(ClientTests
         tests/app/CommandLineTest.cpp
         tests/core/ExpectedTest.cpp
+        tests/support/FileBytes.cpp
+        tests/support/FileBytesTest.cpp
         tests/support/GoldenDir.cpp
         tests/support/GoldenDirTest.cpp
+        tests/data/ByteReaderTest.cpp
         tests/data/DataPathTest.cpp
         tests/data/GoldenDataFilesTest.cpp
+        tests/data/GoldenTableChecksumTest.cpp
+        tests/data/TableChecksumTest.cpp
+        tests/data/Xor3Test.cpp
     )
     target_include_directories(ClientTests PRIVATE tests)
     target_link_libraries(ClientTests PRIVATE ClientLib GTest::gtest GTest::gtest_main)

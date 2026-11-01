@@ -141,7 +141,23 @@ y `App` conocen a todos. Los namespaces llevan el componente adelante (`Client::
 ## Estructura de `Client/`
 
 La forma copia la de MuMain (`src/source/{App,Core,Data,Network,Render,Scenes,UI,World,GameLogic,Audio}`),
-recortada a lo que tiene el 1.02 y con los tests al lado, como `Server/DataServer/`:
+recortada a lo que tiene el 1.02 y con los tests al lado, como `Server/DataServer/`. Cuatro cosas
+de MuMain no se copian (revisado contra su `src/source/` el 2026-11-01):
+
+- **Leer un archivo no es dibujarlo.** MuMain lee el OZT en `Render/Textures/OztFile`, descifra los
+  modelos en `Render/Models/BmdModulusCipher` y carga el terreno en `Render/Terrain`, junto con
+  OpenGL. En MuRet, `Data/` va de bytes a tipos sin GL (se prueba sin ventana) y `Render/` solo
+  sube a la GPU lo que `Data/` ya leyó.
+- **`Platform/` es una capa, no una carpeta de `Core/`** (MuMain tiene `Core/Platform`). `ClientLib`
+  no enlaza SDL3, así que ni `Data` ni `Core` pueden depender de la ventana.
+- **Sin `Core/Globals` ni `Core/Utilities`** (`_struct.h`, `Singleton`, `_GlobalFunctions`): D-C1.
+- **Sin assets en el repo** (MuMain versiona `src/bin/Data`).
+
+`Data/` se divide por lo que se lee y no por la extensión: en MU, `.bmd` son las tablas
+(`Item`, `Skill`, `Gate`) y también los modelos (`Player.bmd`), que son otro formato. Las tablas
+van en `Data/Tables/` y los modelos, cuando lleguen, en `Data/Models/`. Las subcarpetas por
+dominio de MuMain (`GameLogic/{Combat,Items,Skills}`, `Render/{Terrain,Textures,Text,Models}`)
+sirven de guía cuando lleguen sus olas.
 
 ```text
 Client/
@@ -153,7 +169,7 @@ Client/
     App/                   Application, bucle de juego con tick fijo     (CL3)
     Core/                  Config, Log, Clock                              (CL0+)
     Platform/              ventana, contexto GL, input sobre SDL3          (CL3)
-    Data/                  Bmd/, Terrain/, Textures/, Text/                (CL1)
+    Data/                  Tables/, Text/, Terrain/, Textures/, Models/   (CL1, CL6)
     Network/               Socket, PacketReader/Writer, Crypto/, Obfuscation/ (CL2, CL4)
     Protocol/              opcodes, structs, Dispatcher, handlers por dominio (CL2, CL4, CL9)
     Render/                Renderer, Shader, Texture, SpriteBatch, Text, Terrain, Models (CL5+)

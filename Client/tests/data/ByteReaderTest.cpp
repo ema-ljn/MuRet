@@ -1,0 +1,89 @@
+// Client::Data::ByteReader: enteros little-endian leídos en orden, sin pasarse del final.
+
+#include "Data/ByteReader.h"
+
+#include <gtest/gtest.h>
+
+#include <array>
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
+#include <span>
+#include <vector>
+
+namespace
+{
+
+using Client::Data::ByteReader;
+
+// Se arma sobre bytes que siguen vivos, y no sobre un temporal que es dueño de los suyos.
+static_assert(std::constructible_from<ByteReader, std::span<const std::byte>>);
+static_assert(std::constructible_from<ByteReader, std::vector<std::byte>&>);
+static_assert(std::constructible_from<ByteReader, const std::vector<std::byte>&>);
+static_assert(!std::constructible_from<ByteReader, std::vector<std::byte>>);
+static_assert(!std::constructible_from<ByteReader, std::array<std::byte, 4>>);
+static_assert(std::copy_constructible<ByteReader>);
+
+template <typename... Values> constexpr std::array<std::byte, sizeof...(Values)> Bytes(Values... values)
+{
+    return {static_cast<std::byte>(values)...};
+}
+
+// F1 E2 00 00 es la clave del checksum de Item.bmd, 0xE2F1: el byte menos significativo va primero.
+TEST(ByteReaderTest, ReadsU32LittleEndian)
+{
+    const auto bytes = Bytes(0xF1, 0xE2, 0x00, 0x00);
+    ByteReader reader(bytes);
+
+    EXPECT_EQ(reader.ReadU32Le(), 0xE2F1u);
+    EXPECT_EQ(reader.Remaining(), 0u);
+}
+
+// Cada lectura avanza lo que leyó, ni más ni menos: un u8 con bytes de sobra avanza uno solo.
+TEST(ByteReaderTest, ReadsInOrder)
+{
+    const auto bytes = Bytes(0x07, 0x18, 0x5A, 0x09);
+    ByteReader reader(bytes);
+
+    EXPECT_EQ(reader.ReadU8(), std::uint8_t{0x07});
+    EXPECT_EQ(reader.Remaining(), 3u);
+    EXPECT_EQ(reader.ReadU16Le(), std::uint16_t{0x5A18});
+    EXPECT_EQ(reader.Remaining(), 1u);
+    EXPECT_EQ(reader.ReadU8(), std::uint8_t{0x09});
+    EXPECT_EQ(reader.Remaining(), 0u);
+}
+
+// Con el bit alto prendido no hay signo que se extienda: 0x80 es 128 y no -128, y 0xFF es 255 y
+// no -1. Si se extendiera, los bytes altos se llenarían de unos: 0xFFFFFF80 y 0xFFFF.
+TEST(ByteReaderTest, HighBitStaysUnsigned)
+{
+    const auto bytes = Bytes(0x80, 0x00, 0x00, 0x00, 0xFF, 0x00);
+    ByteReader reader(bytes);
+
+    EXPECT_EQ(reader.ReadU32Le(), 0x80u);
+    EXPECT_EQ(reader.ReadU16Le(), std::uint16_t{0x00FF});
+}
+
+// Una lectura que no entra falla sin leer nada ni avanzar: la que sigue arranca en el mismo lugar.
+TEST(ByteReaderTest, ReadPastTheEndFailsAndKeepsThePosition)
+{
+    const auto bytes = Bytes(0x01, 0x02, 0x03);
+    ByteReader reader(bytes);
+
+    EXPECT_EQ(reader.ReadU32Le(), std::nullopt);
+    EXPECT_EQ(reader.Remaining(), 3u);
+    EXPECT_EQ(reader.ReadU16Le(), std::uint16_t{0x0201});
+    EXPECT_EQ(reader.ReadU16Le(), std::nullopt);
+    EXPECT_EQ(reader.ReadU8(), std::uint8_t{0x03});
+    EXPECT_EQ(reader.ReadU8(), std::nullopt);
+}
+
+TEST(ByteReaderTest, EmptyBufferHasNothingToRead)
+{
+    ByteReader reader(std::span<const std::byte>{});
+
+    EXPECT_EQ(reader.Remaining(), 0u);
+    EXPECT_EQ(reader.ReadU8(), std::nullopt);
+}
+
+} // namespace

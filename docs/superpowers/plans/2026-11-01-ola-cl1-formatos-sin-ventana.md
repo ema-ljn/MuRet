@@ -11,7 +11,7 @@ bytes a tipos de C++, sin ventana y sin globales. Cada formato se prueba con vec
 (siempre corren) y contra la carpeta golden (si está).
 
 **Arquitectura:** todo va en `ClientLib`, en la capa `Client::Data` (`Client/src/Data/`, con
-`Bmd/`, `Terrain/`, `Textures/` y `Text/`, como dice el roadmap). Un cargador recibe un
+`Tables/`, `Text/`, `Terrain/` y `Textures/`, como dice el roadmap). Un cargador recibe un
 `std::span<const std::byte>` y devuelve la tabla o un error. Leer el archivo del disco es tarea
 del que llama, así los tests no tocan el disco salvo los golden. El `Expected` propio va en
 `Client::Core` (`Client/src/Core/`). Como toda N.0, la CL1.0 vive en `labs/`.
@@ -132,25 +132,33 @@ Dos cosas del original que no se copian:
 - Crear: `Client/src/Data/ByteReader.h/.cpp`: la `ByteView` de la CL1.0 llevada a `ClientLib`
   sobre `std::span` (L-3: en el producto se usa el estándar).
 - Crear: `Client/src/Data/DataError.h` (`enum class` con lo que puede fallar en esta sub-ola).
-- Crear: `Client/src/Data/Bmd/Xor3.h/.cpp` y `Client/src/Data/Bmd/TableChecksum.h/.cpp`.
+- Crear: `Client/src/Data/Tables/Xor3.h/.cpp` y `Client/src/Data/Tables/TableChecksum.h/.cpp`.
 - Crear: `Client/src/Data/Text/TextTable.h/.cpp`.
 - Crear: `Client/tests/data/ByteReaderTest.cpp`, `Xor3Test.cpp`, `TableChecksumTest.cpp`,
   `TextTableTest.cpp` y `GoldenTextTableTest.cpp`.
 - Crear: `Client/tests/support/` un helper que lee los bytes de un archivo golden.
 - Modificar: `Client/CMakeLists.txt`.
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** los tests de XOR3, con vectores escritos a mano:
+Los pasos 1 a 4 los hizo Claude como ejemplo trabajado (2026-11-01), después de que pidieras
+seguir con el cliente, y van en un PR con `ByteReader`; `Text.bmd` va en el siguiente. Queda tuyo
+el test del checksum de dos dwords (paso 3b, actividad 12 de la guía). `ByteReader` se escribió
+directo en `ClientLib`; la `ByteView` de `labs/` (CL1.0) queda para comparar las dos.
+
+- [x] **Paso 1:** los tests de XOR3, con vectores escritos a mano:
   - `00 00 00 00` da `FC CF AB FC`;
   - aplicarlo dos veces devuelve el original;
   - aplicado a un registro de 300 bytes, da lo mismo que aplicado al archivo entero, porque
     `300 % 3 == 0`.
-- [ ] **Paso 2 (Emanuel):** `Xor3(std::span<std::byte>)`.
-- [ ] **Paso 3 (Emanuel, `TODO(human)`):** los tests del checksum:
-  - el de dos dwords, calculado a mano (guía, actividad 12);
+- [x] **Paso 2:** `Xor3(std::span<std::byte>)`.
+- [x] **Paso 3:** los tests del checksum, y uno golden por tabla:
   - los de `mu-client/tests/assets/test_bmd_tables.c` (bytes `00..1f`: `0x033426d0` con la
     clave de `Item` y `0x21abebaa` con la de `Skill`);
-  - un buffer vacío da la semilla `key << 9`.
-- [ ] **Paso 4 (Emanuel):** `TableChecksum(bytes, key, paridad)`. La paridad es un `enum class`,
+  - un buffer vacío da la semilla `key << 9`;
+  - el de la `Skill.bmd` y el de la `itemtest.bmd` reales son los que guardan los archivos. La
+    `item.bmd` del laboratorio no pasa el suyo (Q-C01) y queda para la CL1.2.
+- [ ] **Paso 3b (Emanuel, `TODO(human)`):** el test del checksum de dos dwords, calculado a mano
+  (guía, actividad 12).
+- [x] **Paso 4:** `TableChecksum(bytes, key, paridad)`. La paridad es un `enum class`,
   no un `bool`. Se usa recién en la CL1.2, pero va acá porque es parte de cómo se leen las
   tablas.
 - [ ] **Paso 5 (Emanuel, `TODO(human)`):** los tests de `TextTable` con un archivo sintético de
@@ -180,7 +188,7 @@ Dos cosas del original que no se copian:
 | Tabla | Formato | Lo raro |
 | --- | --- | --- |
 | `Gate.bmd` | 256 × 9 bytes, XOR3 por registro | con un archivo corto, el original reusa el buffer del registro anterior (`0054a360-gate-bmd-loader.md` §2): se reproduce o se rechaza, a decidir |
-| `Item.bmd` | 8192 × `0x54` bytes + checksum de 4 bytes, clave `0xE2F1` | Q-C01: el original no valida el checksum (un `EB 66` lo saltea) y el archivo real no pasa el suyo; se calcula, se informa y se carga igual |
+| `Item.bmd` | 8192 × `0x54` bytes + checksum de 4 bytes, clave `0xE2F1` | Q-C01: el original no valida el checksum (un `EB 66` lo saltea) y el archivo real no pasa el suyo; se calcula, se informa y se carga igual. Además, la `item.bmd` del laboratorio mide `0x54` bytes de más (688.212); la `itemtest.bmd`, con el tamaño justo, sí pasa su checksum |
 | `Skill.bmd` | 256 × `0x3C` bytes + checksum, clave `0x5A18` | si el checksum no coincide, el original no carga ("File corrupted."); Q-C08: el contenedor guardia con `rand()` no se porta |
 
 Las tablas se cargan desde `Data\Local\`. El `Data\` del laboratorio tiene además `Item\item.bmd` y

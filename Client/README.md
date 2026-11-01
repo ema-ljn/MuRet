@@ -18,20 +18,43 @@ MuRet **no incluye assets del juego**: el cliente lee los `Data\` de una instala
 
 ## Estado
 
-Ola CL0.1: el ejecutable compila y corre, pero todavía no abre una ventana ni se conecta.
+Ola CL0.3: `Main` abre una ventana SDL3 de 640×480 con OpenGL 3.3 core, la limpia de un color e
+imprime `GL_VERSION` y `GL_RENDERER`. Todavía no lee `Data\` ni se conecta. `ClientLib` ya resuelve
+rutas de `Data\` como Windows (sin distinguir mayúsculas), con sus tests.
 
 ## Compilar y correr
 
+Hace falta vcpkg (las dependencias, SDL3 y GoogleTest, están en `vcpkg.json` y se bajan solas al
+configurar) y la variable `VCPKG_ROOT` apuntando a su clon; ver el [README raíz](../README.md#compilar).
 Desde la raíz del repo:
 
 ```bash
 cmake --preset linux-x64-debug
 cmake --build --preset linux-x64-debug
-./build/linux-x64-debug/Client/Main
+./build/linux-x64-debug/Client/Main              # corre hasta que se cierre la ventana
+./build/linux-x64-debug/Client/Main --frames 60  # dibuja 60 frames y sale
 ```
 
 En Windows: `cmake --preset windows-x64`, `cmake --build --preset windows-x64-debug` y
 `build\windows-x64\Client\Debug\Main.exe`.
+
+## Tests
+
+```bash
+ctest --preset linux-x64-debug     # en Windows: ctest --preset windows-x64-debug
+```
+
+Los tests golden leen archivos reales del cliente original, que MuRet no versiona. Se les pasa una
+carpeta con el contenido de `Data\` (`Enc1.dat`, `Player\`, `World1\`…) en
+`MURET_CLIENT_GOLDEN_DIR`, al correr o al configurar:
+
+```bash
+MURET_CLIENT_GOLDEN_DIR=/ruta/a/Data ctest --preset linux-x64-debug
+cmake --preset linux-x64-debug -DMURET_CLIENT_GOLDEN_DIR=/ruta/a/Data   # queda en la caché
+```
+
+Sin la variable, se saltean (`Skipped`). Si apunta a una carpeta que no existe, o le falta el
+archivo que el test pide, fallan.
 
 ## Estructura (a medida que avanzan las olas)
 

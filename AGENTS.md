@@ -19,7 +19,8 @@ distribuidos portando el DataServer de MU Online 1.02, después otros servidores
   preguntas en vez de respuestas, y el andamiaje que los planes marcan como `(Claude)` (CMake, CI,
   herramientas de prueba).
 - En Claude Code: estilo de salida `Tutor MuRet` y, para revisar, el subagente `muret-reviewer`
-  (ver [`CLAUDE.md`](CLAUDE.md)).
+  (ver [`CLAUDE.md`](CLAUDE.md)). Para C++ está la skill
+  [`cpp-pro`](.claude/skills/cpp-pro/SKILL.md), que dice dónde MuRet se aparta de su fuente.
 
 ## Reglas de código: leelas primero
 
@@ -54,17 +55,20 @@ test.
 
 ## Compilar y testear
 
-El proyecto usa CMake con presets. Requisitos y comandos en el [`README.md`](README.md):
+El proyecto usa CMake con presets y vcpkg en modo manifiesto (`VCPKG_ROOT` tiene que apuntar a un
+clon de vcpkg). Requisitos y comandos en el [`README.md`](README.md):
 
 ```bash
 # Linux
-cmake --preset linux-x64-debug && cmake --build --preset linux-x64-debug
+cmake --preset linux-x64-debug && cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug
 
 # Windows
-cmake --preset windows-x64 && cmake --build --preset windows-x64-debug
+cmake --preset windows-x64 && cmake --build --preset windows-x64-debug && ctest --preset windows-x64-debug
 ```
 
-Los tests (GoogleTest + CTest) llegan con la sub-ola 0.2.
+Los tests son de GoogleTest y los corre CTest. Los golden del cliente leen `MURET_CLIENT_GOLDEN_DIR`
+y se saltean sin ella ([`Client/README.md`](Client/README.md#tests)). El CI
+(`.github/workflows/ci.yml`) compila con warnings como errores y corre los tests en Linux y Windows.
 
 ## Ramas y PRs
 

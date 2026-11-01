@@ -44,7 +44,7 @@ analizados del código propio del cliente):
 
 | Subsistema | Tamaño | Analizado | Validado o reconstruido |
 | --- | ---: | ---: | --- |
-| M1 plataforma (ventana, GL, bucle) | 156 KB | 70 % | estático; las funciones de GL que usa (GLIntercept) y el ritmo del frame (proxy de `SwapBuffers`), medidos |
+| M1 plataforma (ventana, GL, bucle) | 156 KB | 70 % | estático; las funciones de GL que usa (GLIntercept) y el ritmo del frame (proxy de `SwapBuffers`, en la selección y en Lorencia), medidos |
 | M2 formatos de assets | 92 KB | 29 %, más la tanda 3 | tablas, terreno y texturas byte a byte contra la memoria del original |
 | M3 red y protocolo | 293 KB | 72 % | recepción, C3/C4, corte, login y keepalive contra el cable ([04](04-protocolo.md)) |
 | M4 bucle por frame y escenas | 750 KB | 15 % | estático |

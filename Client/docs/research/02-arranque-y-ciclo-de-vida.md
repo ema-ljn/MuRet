@@ -69,34 +69,52 @@ DAT_006d5ee4 += GetTickCount() − inicio
 - MuMain conserva 25 FPS para el cliente 5.2
   ([ADR 0001 de MuMain](https://github.com/sven-n/MuMain/blob/main/docs/adr/0001-preserve-25-fps-reference-timing.md)).
 
-**Verificado** en
+**Verificado** en las dos escenas, en
 [mu-online-reverse-lab#45](https://github.com/EmaNLJN/mu-online-reverse-lab/pull/45)
-(`graphics-01/FPS-SELECTION-VALID-RESULT.json` y `swap-times-valid-final.csv`, commit `16dc0221`):
-un `opengl32.dll` proxy que solo toma `QueryPerformanceCounter` antes y después de cada
-`wglSwapBuffers` (0,14 ms por llamada) registró 3.511 frames en 164,56 s de la selección de
-personaje, sin carteles:
+(`graphics-01/`, commits `16dc0221`, `ddcdd64` y `61012a80`). Un `opengl32.dll` proxy que solo toma
+`QueryPerformanceCounter` antes y después de cada `wglSwapBuffers` (0,12 a 0,14 ms por llamada)
+registró, con la escena quieta y sin carteles:
 
-- **21,33 FPS**: intervalo medio 46,884 ms, mediana 46,912 ms; el 98 % entre 44 y 50 ms.
-- **Los frames están enganchados a una grilla de 15,625 ms**: buscando el período que mejor alinea
-  los 3.511 swaps entre 15,60 y 15,65 ms, gana 15,6250 ms con una concentración de fase de 0,953
-  (1 sería perfecto; 15 ms o 16 ms dan menos de 0,04), y la fase no se corre entre los cuatro
-  cuartos de la serie. Un reloj de QPC no tendría por qué alinear los frames así; uno de ticks de
-  15,625 ms, sí.
-- **Contado intervalo por intervalo** (`FPS-GRID-ANALYSIS.json`, commit `ddcdd64`): el 99,57 % de
-  los intervalos cae en el tercer tick de 15,625 ms, el 79,23 % queda a ±1 ms de 46,875 ms y el
-  95,87 % a ±2 ms, con una mediana del residuo de 0,507 ms. Reproducido aparte desde el mismo CSV:
-  3.495 de 3.510 en el tercer tick, 2.781 a ±1 ms y 3.364 a ±2 ms (uno menos que el informe).
+| | Selección | Lorencia |
+| --- | --- | --- |
+| Archivo | `swap-times-valid-final.csv` | `swap-times-lorencia-valid-final.csv` |
+| Intervalos | 3.510 en 164,56 s | 3.596 en 168,58 s |
+| FPS | **21,33** | **21,33** |
+| Intervalo medio / mediana | 46,884 / 46,912 ms | 46,879 / 46,898 ms |
+| En el tercer tick de 15,625 ms | 99,57 % | 99,89 % |
+| A ±1 ms / ±2 ms de 46,875 ms | 79,23 % / 95,84 % | 86,60 % / 97,72 % |
+| Mediana del residuo a la grilla | 0,507 ms | 0,379 ms |
+| Concentración de fase con 15,6250 ms | 0,953 | 0,963 |
+
+- **Los frames están enganchados a una grilla de 15,625 ms.** Buscando el período que mejor alinea
+  los swaps entre 15,60 y 15,65 ms gana 15,6250 en las dos escenas (15 ms o 16 ms dan menos de
+  0,06), y la fase no se corre entre los cuatro cuartos de cada serie. Asignando cada swap a su
+  tick, todos caen sobre una sola grilla de 15,62500 ms, con una desviación de 0,7 a 0,8 ms. Un
+  reloj de QPC no tendría por qué alinear los frames así; uno de ticks de 15,625 ms, sí.
+- **Un swap tarde no arrastra al siguiente.** La mayoría de los intervalos fuera de los 3 ticks
+  vienen de a pares: uno largo (54 a 61 ms) y enseguida uno corto (34 a 39 ms), que suman entre 91
+  y 96 ms, dos frames de 46,875 (7 pares en la selección, 2 en Lorencia). El frame que viene
+  después vuelve a la grilla: el plazo lo pone el reloj, no el swap anterior, como en la espera
+  con `GetTickCount`.
+- **El ritmo no cambia con la escena ni con el tiempo.** El CSV de Lorencia tiene la sesión
+  entera, 31.331 swaps en 24,5 minutos: cada minuto da 21,2 a 21,3 FPS (el primero 20,8, por el
+  arranque), con solo 6 frames de más de 200 ms (cuatro al arrancar y dos en el medio).
+- Las cifras de los JSON del laboratorio se reprodujeron todas desde los CSV, con dos matices. Los
+  JSON dan 21,34 FPS porque dividen las filas por la duración; con los intervalos son 21,33, lo
+  mismo que da su intervalo medio. Y el 95,87 % a ±2 ms de la selección (3.365) cuenta la distancia
+  a cualquier múltiplo de la grilla: suma un intervalo de 61,27 ms, a 1,23 ms de los 4 ticks. A
+  ±2 ms de 46,875 son 3.364 (95,84 %). En Lorencia las dos cuentas dan 3.514.
 - La medición anterior (20,87 FPS con GLIntercept, `FPS-MEASURE-RESULT.json`) incluye la carga y
   el frenado de GLIntercept; `FPS-SELECTION-RESULT.json` quedó inválida por un cartel de
   desconexión.
+- Lo que el swap no puede probar: que la espera sea la de `0x637700` y los 7 pasos cada 6 frames.
+  Eso sigue siendo estático e *inferido* (arriba).
 
 La animación de los modelos avanza por paso, no por frame: en las trazas de GL el frame de la
 animación salta de a 0,263 keys por paso de 40 ms (*inferido* con tres modelos, ver
 [06](06-render-escenas-y-ui.md#cuánto-avanza-la-animación)). Lo que falta
 ([08](08-pendientes.md), P-C03): qué más depende del paso (movimiento, cooldowns) para desacoplar
-el dibujo sin cambiar el juego, y una medición igual en Lorencia (la de esta captura se cortó por
-una desconexión). El orquestador `0x63945d`
-(7 KB) sigue sin decompilar en detalle.
+el dibujo sin cambiar el juego. El orquestador `0x63945d` (7 KB) sigue sin decompilar en detalle.
 
 Cada frame termina con `glFlush` y `wglSwapBuffers` (2.375 de cada uno en la sesión) y empieza con
 `glClear` (2.381). **Verificado** en las estadísticas de GLIntercept.

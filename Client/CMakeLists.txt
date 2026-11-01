@@ -10,6 +10,7 @@ add_library(ClientLib STATIC
     src/App/CommandLine.cpp
     src/Data/ByteReader.cpp
     src/Data/DataPath.cpp
+    src/Data/Tables/GateTable.cpp
     src/Data/Tables/TableChecksum.cpp
     src/Data/Tables/Xor3.cpp
     src/Data/Text/TextTable.cpp
@@ -40,7 +41,9 @@ if(MURET_BUILD_TESTS)
         tests/support/GoldenDirTest.cpp
         tests/data/ByteReaderTest.cpp
         tests/data/DataPathTest.cpp
+        tests/data/GateTableTest.cpp
         tests/data/GoldenDataFilesTest.cpp
+        tests/data/GoldenGateTableTest.cpp
         tests/data/GoldenTableChecksumTest.cpp
         tests/data/GoldenTextTableTest.cpp
         tests/data/RecordTableTest.cpp

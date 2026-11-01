@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <span>
 #include <vector>
@@ -26,6 +27,18 @@ inline std::vector<std::byte> EncryptRecords(std::vector<std::byte> records, std
         Data::Tables::Xor3(all.subspan(offset, recordSize));
     }
     return records;
+}
+
+// `encrypted` con un checksum detrás, en 4 bytes little-endian, como lo guarda el escritor del
+// original después de los registros.
+inline std::vector<std::byte> WithStoredChecksum(std::vector<std::byte> encrypted, std::uint32_t checksum)
+{
+    constexpr unsigned BitsPerByte = 8;
+    for (unsigned byte = 0; byte < sizeof(checksum); ++byte)
+    {
+        encrypted.push_back(static_cast<std::byte>(checksum >> (BitsPerByte * byte)));
+    }
+    return encrypted;
 }
 
 // El primer registro en que `table` y `memory` no coinciden, o std::nullopt si tienen los mismos

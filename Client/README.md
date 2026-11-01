@@ -22,7 +22,8 @@ Ola CL1.3: `Main` abre una ventana SDL3 de 640×480 con OpenGL 3.3 core, la limp
 imprime `GL_VERSION` y `GL_RENDERER`; todavía no se conecta. `ClientLib` resuelve rutas de `Data\`
 como Windows (sin distinguir mayúsculas) y lee desde sus bytes `Text.bmd`, `Gate.bmd`, `Item.bmd`
 y `Skill.bmd`, con el XOR3 y el checksum de las tablas `.bmd`, y el terreno de un mundo:
-`EncTerrain<N>.map` (las capas de tiles) y `EncTerrain<N>.att` (los atributos), con su cifrado K16.
+`EncTerrain<N>.map` (las capas de tiles), `EncTerrain<N>.att` (los atributos) y `EncTerrain<N>.obj`
+(los objetos), con su cifrado K16, y `TerrainHeight.OZB` (las alturas).
 
 ## Compilar y correr
 

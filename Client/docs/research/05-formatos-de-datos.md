@@ -79,6 +79,23 @@ del servidor. En el `Data\` del laboratorio, los 20 mundos tienen un `.map` de `
 bytes y un `.att` de `0x10004` o `0x20004` con su propio número en la cabecera, y los tres `.att`
 con otro nombre son de `0x20004`.
 
+**El `.obj`** (CL1.3): K16 de punta a punta, sin XOR3. Cabecera de 4 bytes (uno que no se lee, el
+mundo y la cantidad de objetos, un int16 con signo) y un objeto cada 30 bytes: tipo (int16),
+posición, ángulo y escala (7 floats). Si la cantidad es cero o negativa no hay objetos, y no se mira
+contra el tamaño del archivo. En el laboratorio, cada `EncTerrain<N>.obj` mide justo 4 + 30 ×
+cantidad; el de World6 no trae ninguno. Los floats llegan con sus bits aunque no sean un número
+(Q-C28). En la memoria del original, cada objeto de Lorencia guarda el tipo en +2, la escala en +12,
+la posición en +16 y el ángulo en +28: los 2.870 son los del archivo, con los mismos bits (medido
+para la CL1.3 sobre `obj_nodes.bin`, sin mirar en qué bloque quedó cada uno; ahí cada nodo lleva
+antes 8 bytes, la lista y la dirección, y los campos quedan en +10, +20, +24 y +36).
+
+**Las alturas** (CL1.3): `TerrainHeight.OZB` mide 66.620 bytes en los 19 mundos del laboratorio
+que lo traen (World6 no tiene). Se lee un byte por celda desde el byte `0x43C` del archivo, por
+1,5 (por 3 en el mundo `0x37`, World56), sin dar vuelta las filas y sin mirar la cabecera del BMP
+(Q-C02). Contra la memoria de Devias, desde `0x43C` dan las 65.536 alturas de `s31_height.bin`;
+desde donde dice `bfOffBits` (el byte `0x43A` del archivo, en los 17 de 8 bits), 52.139 de ellas
+salen distintas.
+
 ## Texturas
 
 | Formato | Original | Qué es |

@@ -8,6 +8,7 @@ el decompilado dice qué archivo usa cada cosa, y las trazas y la memoria dicen 
 | Fuente | Qué tiene | Dónde |
 | --- | --- | --- |
 | `Data\` del cliente | 5.726 archivos: 1.962 modelos, 3.044 texturas, 484 WAV, 26 temas de música, el terreno de 20 mundos | `mu-online-reverse-lab`, `analysis/decompilacion-maxima/assets/original-data/` (copia exacta por SHA-256 de la fuente) |
+| Segunda copia del `Data\` | 48 carpetas: las mismas sin `sound\` ni `Music\`. Comparada por nombre y tamaño en `Monster`, `Item`, `Skill`, `World6` y la raíz: no tiene ninguno de los 100 faltantes; `Wing02.bmd` y `Wing03.bmd` son más grandes (de 2009 y 2018), `Macro.txt` cambia y suma 5 texturas de 2009 y 2018 que la del laboratorio no tiene. Es una variante modificada de la misma base | `cliente-lab/Data` en la máquina de Emanuel (no se copió nada) |
 | Decompilado de `main.exe` | qué archivo carga cada función y en qué slot o índice | `client-research/mainexe-vmxp-c32bbd5f/decompiled/` |
 | GameServer reconstruido | el código fuente del servidor original, en C++ de VC6 | `gameserver/src/reconstructed/win32-vc6/` del repo de research |
 | Datos del servidor en uso | 10 archivos de su `data`: `MonsterSetBase.txt`, `gate.txt`, `item` y `skill`, `commonserver.cfg` | `client-research/mu-golden/servidor-en-uso-vm2003/` |
@@ -139,7 +140,8 @@ y los drops, que sirven para los servidores de MuRet, no para el cliente.
 ## Qué pedir en la próxima captura
 
 1. `dir Data\Sound` y `dir Data\Monster` en la VM, para saber si los 91 sonidos y `Monster50`
-   faltan en el cliente o solo en la copia.
+   faltan en el cliente o solo en la copia. La segunda copia del `Data\` no sirve para esto: no
+   trae sonidos.
 2. GLIntercept con `ImageLog` y `TimerLog` prendidos: las texturas de cada mapa por contenido y la
    hora de cada frame.
 3. Una sesión con combate, skills, items y ventanas abiertas, con la hora de cada acción, para

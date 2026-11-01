@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -45,10 +46,38 @@ protected:
     std::filesystem::path dataRoot;
 };
 
-// Los volcados de la memoria del main.exe original, con las tablas ya cargadas.
-// MURET_CLIENT_MEMORY_DIR apunta a la carpeta de los s31_*.bin: en el repo de research,
-// client-research/mu-golden/memoria-cliente/2026-10-09-devias, fuera de Git. Valen para la copia
-// de Data\ del laboratorio, que tiene las mismas tablas (mismo SHA-256) que mu-golden.
+// Una captura de la memoria del main.exe original: su carpeta dentro de memoria-cliente/ (el
+// README de mu-golden dice qué tiene cada una) y el mundo que estaba cargado, como el N de la
+// carpeta World<N> que reciben los cargadores. Valen para la copia de Data\ del laboratorio, que
+// tiene los mismos archivos (mismo SHA-256) que los que estaban cargados.
+struct MemoryCapture
+{
+    std::string_view folder;
+    std::uint8_t world = 0;
+};
+
+// Con el personaje en Devias (World3, g_world = 2): las tablas, el terreno y la luz (s31_*.bin).
+inline constexpr MemoryCapture DeviasCapture{"2026-10-09-devias", 3};
+// En Lorencia (World1, g_world = 0), en la celda (136, 130): el terreno, la luz y las texturas
+// (lor_*.bin y lor2_*.bin).
+inline constexpr MemoryCapture LorenciaCapture{"2026-10-09-lorencia", 1};
+// En Lorencia, en otra lectura y en la escena 5: los 2.870 objetos del mapa en sus 256 listas
+// (obj_*.bin).
+inline constexpr MemoryCapture LorenciaObjectsCapture{"2026-10-09-lorencia-obj", 1};
+
+// Si el volcado `name` de la captura `folder` está en la carpeta de volcados `root`.
+enum class DumpState
+{
+    Found,
+    Missing,
+    // Falta, pero está en `root` mismo: la variable apunta a una captura y no a la carpeta que las
+    // contiene. Hasta la CL1.4 apuntaba a la de Devias.
+    RootIsACapture,
+};
+DumpState CheckDump(const std::filesystem::path& root, std::string_view folder, std::string_view name);
+
+// Los volcados de memoria. MURET_CLIENT_MEMORY_DIR apunta a la carpeta de las capturas: en el
+// repo de research, client-research/mu-golden/memoria-cliente, fuera de Git.
 //
 // La regla es la de la carpeta golden. Un test de memoria necesita las dos: compara lo que MuRet
 // carga de un archivo con lo que el original cargó del mismo archivo.
@@ -57,8 +86,9 @@ class MemoryDumpTest : public GoldenDataTest
 protected:
     void SetUp() override;
 
-    // La ruta del volcado `name`. Si no está, marca el test como fallado y devuelve std::nullopt.
-    std::optional<std::filesystem::path> DumpFile(std::string_view name) const;
+    // La ruta del volcado `name` de `capture`. Si no está, marca el test como fallado y devuelve
+    // std::nullopt.
+    std::optional<std::filesystem::path> DumpFile(const MemoryCapture& capture, std::string_view name) const;
 
     std::filesystem::path dumpRoot;
 };

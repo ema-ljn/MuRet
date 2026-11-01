@@ -3,6 +3,7 @@
 
 #include "Data/Terrain/TerrainAttributes.h"
 
+#include "Data/ByteReader.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "support/FileBytes.h"
@@ -18,11 +19,13 @@
 #include <ostream>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace
 {
 
+using Client::Data::ByteReader;
 using Client::Data::Terrain::LoadTerrainAttributes;
 using Client::Data::Terrain::LoadTerrainMapping;
 using Client::Data::Terrain::TerrainAttributes;
@@ -30,11 +33,13 @@ using Client::Data::Terrain::TerrainAttributesSizeWithByteCells;
 using Client::Data::Terrain::TerrainAttributesSizeWithWordCells;
 using Client::Data::Terrain::TerrainCellCount;
 using Client::Data::Terrain::TerrainSide;
+using Client::Tests::DeviasCapture;
 using Client::Tests::LabWorlds;
+using Client::Tests::LorenciaCapture;
+using Client::Tests::MemoryCapture;
 using Client::Tests::ReadFileBytes;
 
 using GoldenTerrainAttributes = Client::Tests::GoldenDataTest;
-using MemoryTerrainAttributes = Client::Tests::MemoryDumpTest;
 
 // La ruta que arma el original: "Data\\%s\\EncTerrain%d.att" con "World%d" (0x6c7314, en 0x61a560).
 std::string AttributesFile(std::uint8_t world)
@@ -146,34 +151,16 @@ void PrintTo(const ChangedCell& cell, std::ostream* out)
     *out << "(" << int{cell.x} << ", " << int{cell.y} << "): " << cell.file << " -> " << cell.memory;
 }
 
-// Los atributos son los que tenía en memoria el main.exe original después de cargar el mismo
-// archivo, en Devias (World3; s31_att.bin, los WORD de 0x07D0D348), salvo 10 celdas que el juego
-// ya había cambiado cuando se leyó la memoria. Son las que lista el research
-// (s31-assets/byte-a-byte.md): el bit 0x02 de la celda del personaje, puesto en (199, 19) y
-// limpiado en (9, 79), y el 0x04 limpiado en dos pasajes de 4 celdas.
-TEST_F(MemoryTerrainAttributes, EqualsTheOriginalsMemoryButForTheGameState)
+// Las celdas en las que los atributos que carga MuRet no son los del volcado `memory`, los WORD de
+// 0x07D0D348, en el orden de las celdas, fila por fila. Una celda que falta en el volcado cuenta
+// como distinta, con 0 en memoria.
+std::vector<ChangedCell> CompareWithMemory(const TerrainAttributes& attributes, std::span<const std::byte> memory)
 {
-    const auto path = DataFile(AttributesFile(3));
-    const auto dump = DumpFile("s31_att.bin");
-    ASSERT_TRUE(path.has_value());
-    ASSERT_TRUE(dump.has_value());
-    const std::optional<std::vector<char>> file = ReadFileBytes(*path);
-    const std::optional<std::vector<char>> memory = ReadFileBytes(*dump);
-    ASSERT_TRUE(file.has_value());
-    ASSERT_TRUE(memory.has_value());
-    ASSERT_EQ(memory->size(), TerrainCellCount * sizeof(std::uint16_t));
-
-    const auto loaded = LoadTerrainAttributes(std::as_bytes(std::span(*file)), 3);
-
-    ASSERT_TRUE(loaded.HasValue());
-    const TerrainAttributes& attributes = *loaded.Value();
+    ByteReader reader(memory);
     std::vector<ChangedCell> changed;
     for (std::size_t cell = 0; cell < TerrainCellCount; ++cell)
     {
-        // Los WORD del volcado, little-endian como en x86.
-        const auto low = static_cast<std::uint8_t>((*memory)[2 * cell]);
-        const auto high = static_cast<std::uint8_t>((*memory)[2 * cell + 1]);
-        const auto inMemory = static_cast<std::uint16_t>(low | high << 8);
+        const std::uint16_t inMemory = reader.ReadU16Le().value_or(0);
         if (attributes.cells[cell] != inMemory)
         {
             const auto x = static_cast<std::uint8_t>(cell % TerrainSide);
@@ -181,12 +168,75 @@ TEST_F(MemoryTerrainAttributes, EqualsTheOriginalsMemoryButForTheGameState)
             changed.push_back({x, y, attributes.cells[cell], inMemory});
         }
     }
-    // En el orden de las celdas, fila por fila.
+    return changed;
+}
+
+class MemoryTerrainAttributes : public Client::Tests::MemoryDumpTest
+{
+protected:
+    // Las celdas que difieren entre el .att de la captura y su volcado `name`. Marca el test como
+    // fallado si falta algo.
+    std::optional<std::vector<ChangedCell>> CellsThatDiffer(const MemoryCapture& capture, std::string_view name) const
+    {
+        const auto path = DataFile(AttributesFile(capture.world));
+        const auto dump = DumpFile(capture, name);
+        if (!path || !dump)
+        {
+            return std::nullopt;
+        }
+        const std::optional<std::vector<char>> file = ReadFileBytes(*path);
+        const std::optional<std::vector<char>> memory = ReadFileBytes(*dump);
+        if (!file || !memory)
+        {
+            ADD_FAILURE() << "no se pudo leer " << (file ? *dump : *path);
+            return std::nullopt;
+        }
+        if (memory->size() != TerrainCellCount * sizeof(std::uint16_t))
+        {
+            ADD_FAILURE() << name << " mide " << memory->size() << " bytes, no "
+                          << TerrainCellCount * sizeof(std::uint16_t);
+            return std::nullopt;
+        }
+        const auto loaded = LoadTerrainAttributes(std::as_bytes(std::span(*file)), capture.world);
+        if (!loaded.HasValue())
+        {
+            ADD_FAILURE() << AttributesFile(capture.world) << " no cargó";
+            return std::nullopt;
+        }
+        return CompareWithMemory(*loaded.Value(), std::as_bytes(std::span(*memory)));
+    }
+};
+
+// Los atributos son los que tenía en memoria el main.exe original después de cargar el mismo
+// archivo, en Devias (World3; s31_att.bin), salvo 10 celdas que el juego ya había cambiado cuando
+// se leyó la memoria. Son las que lista el research (s31-assets/byte-a-byte.md): el bit 0x02 de la
+// celda del personaje, puesto en (199, 19) y limpiado en (9, 79), y el 0x04 limpiado en dos
+// pasajes de 4 celdas.
+TEST_F(MemoryTerrainAttributes, EqualsTheOriginalsMemoryInDeviasButForTheGameState)
+{
+    const auto changed = CellsThatDiffer(DeviasCapture, "s31_att.bin");
+
+    ASSERT_TRUE(changed.has_value());
     const std::vector<ChangedCell> gameState = {
         {199, 19, 1, 3},  {9, 79, 3, 1},   {118, 115, 4, 0}, {119, 115, 4, 0}, {120, 115, 4, 0},
         {121, 115, 4, 0}, {92, 205, 4, 0}, {93, 205, 4, 0},  {94, 205, 4, 0},  {95, 205, 4, 0},
     };
-    EXPECT_EQ(changed, gameState);
+    EXPECT_EQ(*changed, gameState);
+}
+
+// Lo mismo en Lorencia (World1; lor_att.bin), salvo 7 celdas (byte-a-byte.md, el segundo mapa): el
+// bit 0x02 puesto en (141, 117) y (130, 121) y limpiado en (221, 11), y el 0x04 limpiado en las
+// mismas 4 celdas de (118..121, 115) que en Devias, aunque es otro mapa.
+TEST_F(MemoryTerrainAttributes, EqualsTheOriginalsMemoryInLorenciaButForTheGameState)
+{
+    const auto changed = CellsThatDiffer(LorenciaCapture, "lor_att.bin");
+
+    ASSERT_TRUE(changed.has_value());
+    const std::vector<ChangedCell> gameState = {
+        {221, 11, 2, 0},  {118, 115, 5, 1}, {119, 115, 5, 1}, {120, 115, 5, 1},
+        {121, 115, 5, 1}, {141, 117, 1, 3}, {130, 121, 1, 3},
+    };
+    EXPECT_EQ(*changed, gameState);
 }
 
 } // namespace

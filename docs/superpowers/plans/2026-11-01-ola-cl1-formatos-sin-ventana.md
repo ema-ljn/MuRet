@@ -61,7 +61,9 @@ para la CL1.0. De la CL1.1 en adelante, la sección de cada sub-ola de este plan
    `mu-golden`, así que los volcados valen para ellas. *Recomendación:* una variable `MURET_CLIENT_MEMORY_DIR` con la misma
    regla que la golden (sin variable se saltea, incompleta falla). **Se tomó la recomendación en
    la CL1.1**: `MemoryDumpTest` en `Client/tests/support/GoldenDir.h`. Va solo en el entorno,
-   porque `gtest_discover_tests` no pasa dos variables en `ENVIRONMENT`.
+   porque `gtest_discover_tests` no pasa dos variables en `ENVIRONMENT`. **En la CL1.4** pasó a
+   apuntar a `memoria-cliente/`, la carpeta de las tres capturas, para que entren Lorencia y sus
+   objetos.
 4. **Biblioteca JPEG (CL1.4).** Es la pregunta 1 del roadmap y se decide al llegar.
 
 ---
@@ -318,25 +320,26 @@ dibujo. Las dos cosas son de quien abre el archivo, en la CL7: acá los cargador
 - `.map` de Lorencia: los conteos que midió el research con su propio descifrado (7.939 celdas de
   agua, 43.785 sin capa 2, 14.629 con alfa y 73 con alfa sin capa 2).
 - `.map` de Devias contra la memoria del original: `s31_l2l1.bin` (capa 2 y capa 1) y
-  `s31_alpha.bin` (los 65.536 floats), byte a byte.
+  `s31_alpha.bin` (los 65.536 floats), byte a byte. Desde la CL1.4, también el de Lorencia
+  (`lor_l2l1.bin` y `lor_alpha.bin`).
 - `.att` de Devias contra `s31_att.bin`: iguales salvo las 10 celdas que el juego ya había
   cambiado (el bit `0x02` de la celda del personaje y dos pasajes con el `0x04` limpiado), que el
   test lista una por una, como el research (`s31-assets/byte-a-byte.md`).
 - `.att` de Lorencia, el de dos bytes por celda: de las 7.939 celdas de agua del `.map`, 7.818
-  tienen el atributo 4, el contraste del research entre los dos archivos. Los volcados de memoria
-  de Lorencia (`lor_*.bin`, en la carpeta hermana `2026-10-09-lorencia`) no entran todavía:
-  `MURET_CLIENT_MEMORY_DIR` apunta a una sola carpeta.
+  tienen el atributo 4, el contraste del research entre los dos archivos. Desde la CL1.4 también
+  contra la memoria de Lorencia (`lor_att.bin`), salvo 7 celdas de estado de juego.
 - `.obj`: los 20 mundos cargan, cada uno con justo los objetos que caben en su tamaño. Lorencia
   tiene lo que midió el research (2.870 objetos de 109 tipos, de 0 a 153, escalas de 0,30 a 3,28,
   y los bits que da descifrados de los dos primeros). El golden lista los objetos raros de todo el
   laboratorio (Q-C28): los dos NaN de Devias, el tipo -515 de World7 y los dos en cero que lo
-  siguen, y las cuatro escalas negativas. Los objetos de Lorencia en memoria
-  (`obj_nodes.bin`, en la carpeta hermana `2026-10-09-lorencia-obj`) no entran, por la misma razón
-  que los `lor_*.bin`; a mano dieron los 2.870 del archivo, con los mismos bits.
+  siguen, y las cuatro escalas negativas. Desde la CL1.4, los objetos de Lorencia son los 2.870
+  de la memoria del original (`obj_nodes.bin`, en la escena 5), con los mismos bits y en el mismo
+  orden.
 - Alturas: los 19 mundos que las traen cargan. Lorencia tiene las del research (máximo 382,5 y las
   dos últimas celdas en 0), World56 llega a 765 (255 por 3) y World19 es plano. Devias, contra
   `s31_height.bin` (las alturas) y `s31_bmphdr.bin` (los `0x438` bytes de cabecera que copió el
-  original); leer desde `bfOffBits` da 52.139 alturas distintas.
+  original); leer desde `bfOffBits` da 52.139 alturas distintas. Desde la CL1.4, también Lorencia
+  (`lor_height.bin` y `lor_bmphdr.bin`).
 
 **Archivos:**
 - Crear: `Client/src/Data/Terrain/K16.h/.cpp`, `TerrainGrid.h` (`CellIndex`, `TerrainLayer<T>`),
@@ -392,6 +395,11 @@ celda, como en la memoria del original. Si preferís otra cosa, se cambia en su 
 ## Sub-ola CL1.4: texturas OZT y OZJ (esbozo)
 
 **Concepto:** formatos con prefijo, TGA y JPEG, y lados en potencia de 2.
+
+- **PR 0 (este):** `MURET_CLIENT_MEMORY_DIR` apunta a `memoria-cliente/`, la carpeta de las tres
+  capturas (`MemoryCapture` en `GoldenDir.h`: la carpeta y el mundo), y los cargadores de la CL1.3
+  suman los oráculos de Lorencia. Prepara los de las texturas, que están en esa captura
+  (`lor2_slot*.bin`).
 
 - OZT: 4 bytes + TGA de 32 bpp; lados de hasta 512.
 - OZJ: 24 bytes + JPEG baseline. Q-C14: 7 OZJ son en realidad TGA.

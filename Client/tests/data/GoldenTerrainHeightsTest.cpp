@@ -18,6 +18,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace
@@ -32,13 +33,15 @@ using Client::Data::Terrain::TerrainHeightsScale;
 using Client::Data::Terrain::TerrainHeightsSize;
 using Client::Data::Terrain::TerrainLayer;
 using Client::Tests::BitmapOffBitsOffset;
+using Client::Tests::DeviasCapture;
 using Client::Tests::FirstCellThatDiffers;
 using Client::Tests::LabWorldsWithHeights;
+using Client::Tests::LorenciaCapture;
+using Client::Tests::MemoryCapture;
 using Client::Tests::ReadFileBytes;
 using Client::Tests::StandardBitmapHeaderSize;
 
 using GoldenTerrainHeights = Client::Tests::GoldenDataTest;
-using MemoryTerrainHeights = Client::Tests::MemoryDumpTest;
 
 // La ruta que pide el original: "%s\\TerrainHeight.bmp" con "World%d" (0x6d12a0, en 0x61a560), y
 // el cargador cambia la extensión por "OZB".
@@ -110,32 +113,46 @@ TEST_F(GoldenTerrainHeights, World19IsFlat)
     EXPECT_TRUE(std::ranges::all_of(loaded.Value()->cells, [](float height) { return height == 0.0f; }));
 }
 
-// Las alturas de Devias (World3) son las que tenía en memoria el main.exe original, en 0x07ACCCA4:
-// s31_height.bin. s31_bmphdr.bin es la cabecera que copió a 0x07D0CED8: los 0x438 bytes que
-// siguen al prefijo de 4.
-TEST_F(MemoryTerrainHeights, EqualsTheOriginalsMemory)
+class MemoryTerrainHeights : public Client::Tests::MemoryDumpTest
 {
-    const auto path = DataFile(HeightFile(3));
-    const auto heightDump = DumpFile("s31_height.bin");
-    const auto headerDump = DumpFile("s31_bmphdr.bin");
-    ASSERT_TRUE(path.has_value());
-    ASSERT_TRUE(heightDump.has_value());
-    ASSERT_TRUE(headerDump.has_value());
-    const std::optional<std::vector<char>> file = ReadFileBytes(*path);
-    const std::optional<std::vector<char>> heightMemory = ReadFileBytes(*heightDump);
-    const std::optional<std::vector<char>> headerMemory = ReadFileBytes(*headerDump);
-    ASSERT_TRUE(file.has_value());
-    ASSERT_TRUE(heightMemory.has_value());
-    ASSERT_TRUE(headerMemory.has_value());
-    ASSERT_EQ(heightMemory->size(), TerrainCellCount * sizeof(float));
-    ASSERT_GE(file->size(), TerrainHeightsSize);
+protected:
+    // Las alturas del TerrainHeight.OZB de la captura son las que tenía en memoria el main.exe
+    // original, en 0x07ACCCA4 (`heights`), y `header` es la cabecera que copió a 0x07D0CED8: los
+    // 0x438 bytes que siguen al prefijo de 4.
+    void ExpectTheOriginalsMemory(const MemoryCapture& capture, std::string_view heights, std::string_view header)
+    {
+        const auto path = DataFile(HeightFile(capture.world));
+        const auto heightDump = DumpFile(capture, heights);
+        const auto headerDump = DumpFile(capture, header);
+        ASSERT_TRUE(path.has_value());
+        ASSERT_TRUE(heightDump.has_value());
+        ASSERT_TRUE(headerDump.has_value());
+        const std::optional<std::vector<char>> file = ReadFileBytes(*path);
+        const std::optional<std::vector<char>> heightMemory = ReadFileBytes(*heightDump);
+        const std::optional<std::vector<char>> headerMemory = ReadFileBytes(*headerDump);
+        ASSERT_TRUE(file.has_value());
+        ASSERT_TRUE(heightMemory.has_value());
+        ASSERT_TRUE(headerMemory.has_value());
+        ASSERT_EQ(heightMemory->size(), TerrainCellCount * sizeof(float));
+        ASSERT_GE(file->size(), TerrainHeightsSize);
 
-    const auto loaded = LoadTerrainHeights(std::as_bytes(std::span(*file)), 3);
+        const auto loaded = LoadTerrainHeights(std::as_bytes(std::span(*file)), capture.world);
 
-    ASSERT_TRUE(loaded.HasValue());
-    EXPECT_EQ(FirstCellThatDiffers(loaded.Value()->cells, std::as_bytes(std::span(*heightMemory))), std::nullopt);
-    const auto header = std::span(*file).subspan(TerrainHeightsPrefixSize, TerrainHeightsBitmapHeaderSize);
-    EXPECT_TRUE(std::ranges::equal(header, *headerMemory));
+        ASSERT_TRUE(loaded.HasValue());
+        EXPECT_EQ(FirstCellThatDiffers(loaded.Value()->cells, std::as_bytes(std::span(*heightMemory))), std::nullopt);
+        const auto bitmapHeader = std::span(*file).subspan(TerrainHeightsPrefixSize, TerrainHeightsBitmapHeaderSize);
+        EXPECT_TRUE(std::ranges::equal(bitmapHeader, *headerMemory));
+    }
+};
+
+TEST_F(MemoryTerrainHeights, EqualsTheOriginalsMemoryInDevias)
+{
+    ExpectTheOriginalsMemory(DeviasCapture, "s31_height.bin", "s31_bmphdr.bin");
+}
+
+TEST_F(MemoryTerrainHeights, EqualsTheOriginalsMemoryInLorencia)
+{
+    ExpectTheOriginalsMemory(LorenciaCapture, "lor_height.bin", "lor_bmphdr.bin");
 }
 
 // Q-C02, con la memoria: leer las alturas desde donde dice bfOffBits da 52.139 de las 65.536
@@ -144,7 +161,7 @@ TEST_F(MemoryTerrainHeights, EqualsTheOriginalsMemory)
 TEST_F(MemoryTerrainHeights, ReadingFromBfOffBitsWouldNotMatch)
 {
     const auto path = DataFile(HeightFile(3));
-    const auto heightDump = DumpFile("s31_height.bin");
+    const auto heightDump = DumpFile(DeviasCapture, "s31_height.bin");
     ASSERT_TRUE(path.has_value());
     ASSERT_TRUE(heightDump.has_value());
     const std::optional<std::vector<char>> file = ReadFileBytes(*path);

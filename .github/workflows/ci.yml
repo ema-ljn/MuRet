@@ -1,0 +1,100 @@
+# CI de MuRet: configura, compila y corre los tests en Linux y en Windows con los mismos presets
+# que se usan a mano (CMakePresets.json) y las dependencias de vcpkg.json (modo manifiesto).
+# Warnings como errores, como pide docs/CODING_RULES.md.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Un push nuevo a la misma rama cancela la corrida vieja.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux (GCC, Debug)
+            os: ubuntu-24.04
+            configure-preset: linux-x64-debug
+            build-preset: linux-x64-debug
+            test-preset: linux-x64-debug
+          - name: Windows (MSVC, Debug)
+            os: windows-2022
+            configure-preset: windows-x64
+            build-preset: windows-x64-debug
+            test-preset: windows-x64-debug
+    env:
+      VCPKG_DISABLE_METRICS: 1
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Lo que el puerto sdl3 de vcpkg pide del sistema para las features x11 y wayland, los
+      # headers de OpenGL/EGL, y Xvfb + Mesa (llvmpipe) para abrir la ventana sin pantalla.
+      - name: Paquetes del sistema (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build pkg-config \
+            libx11-dev libxext-dev \
+            libwayland-dev libxkbcommon-dev \
+            libgl-dev libegl-dev \
+            xvfb libgl1-mesa-dri
+
+      # vcpkg clonado entero (con historia: el versionado lo necesita) y parado en la
+      # builtin-baseline de vcpkg.json, para que CI use las mismas versiones que todos.
+      - name: vcpkg en la baseline de vcpkg.json
+        shell: bash
+        run: |
+          temp="$(cygpath -m "$RUNNER_TEMP" 2>/dev/null || echo "$RUNNER_TEMP")"
+          baseline="$(sed -n 's/.*"builtin-baseline": *"\([0-9a-f]*\)".*/\1/p' vcpkg.json)"
+          git clone https://github.com/microsoft/vcpkg "$temp/vcpkg"
+          git -C "$temp/vcpkg" checkout --quiet "$baseline"
+          mkdir -p "$temp/vcpkg-cache"
+          echo "VCPKG_ROOT=$temp/vcpkg" >> "$GITHUB_ENV"
+          echo "VCPKG_DEFAULT_BINARY_CACHE=$temp/vcpkg-cache" >> "$GITHUB_ENV"
+
+      - name: Bootstrap de vcpkg (Linux)
+        if: runner.os == 'Linux'
+        run: '"$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics'
+
+      - name: Bootstrap de vcpkg (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '& (Join-Path $env:VCPKG_ROOT "bootstrap-vcpkg.bat") -disableMetrics'
+
+      # Los paquetes ya compilados (SDL3, GoogleTest) se guardan entre corridas. La clave cambia
+      # con vcpkg.json; si cambia el compilador del runner, vcpkg recompila solo lo necesario.
+      - name: Caché de binarios de vcpkg
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/vcpkg-cache
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-${{ runner.os }}-
+
+      - name: Configurar
+        run: cmake --preset ${{ matrix.configure-preset }} -DMURET_WARNINGS_AS_ERRORS=ON
+
+      - name: Compilar
+        run: cmake --build --preset ${{ matrix.build-preset }}
+
+      - name: Tests
+        run: ctest --preset ${{ matrix.test-preset }}
+
+      # El hola mundo de la CL0.3: abre la ventana con OpenGL 3.3 core, dibuja 60 frames y sale.
+      # En Windows no hay driver de OpenGL 3.3 en el runner (solo el 1.1 de GDI), así que va solo acá.
+      - name: Ventana de la CL0.3 en Xvfb (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/Client/Main --frames 60

@@ -10,8 +10,8 @@
 | `SizeOfImage` | ~101 MB (`.rsrc` en VA `0x6454000`); las tablas estáticas grandes viven en `0x063xxxxx`–`0x0644xxxx` | inspección PE |
 | Compilador | Visual C++ 6, MFC 4.2 **enlazada estáticamente** (RTTI `.?AVCObject@@`, `.?AVCUserException@@`; sin `MFC42.DLL`) | strings + imports |
 | Fecha | título de ventana `Ver : 4.4 Oct 21 2003`; recurso de versión 0.4.2.0 Webzen | `.rdata`, recurso |
-| Fuentes originales | `F:\Backup\MuProject_20031004\DataServer\giocp.cpp` (red) y `...\protocol.cpp` (handlers), según los `__FILE__` de los logs | `.rdata` `0x43a3b4`, log de `0x40ba58` |
-| Imports | `ODBC32`, `WS2_32`, `COMCTL32`, `comdlg32`, `GDI32`, `SHELL32`, `ADVAPI32`, `KERNEL32`, `USER32`, `WZ_UM.DLL` | tabla de imports |
+| Fuentes originales | `F:\Backup\MuProject_20031004\DataServer\giocp.cpp` (red) y `...\protocol.cpp` (handlers), según los `__FILE__` de los logs | `.data` `0x43a3b4` (offset `0x3a3b4` del archivo), log de `0x40ba58` |
+| Imports | `ODBC32`, `WS2_32`, `COMCTL32`, `GDI32`, `WINSPOOL.DRV`, `SHELL32`, `ADVAPI32`, `KERNEL32`, `USER32`. `WZ_UM.DLL` y `comdlg32.dll` no están en la tabla, solo como strings: se cargan en ejecución. `WZ_UM.DLL` la carga el auto-update `0x40d900` ([02](02-arranque.md)); `comdlg32.dll`, *inferido* (`KERNEL32` trae `LoadLibraryA` y `GetProcAddress`) | tabla de imports (`objdump -p`), `strings -a` |
 | Funciones | 1572, todas en `.text` `0x401000`–`0x430EF0`; la mayoría es MFC y CRT | Ghidra headless |
 
 **No está empacado ni virtualizado.** El `.text` del proceso vivo (pid 624 en la VM) es idéntico al

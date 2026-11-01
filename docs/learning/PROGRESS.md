@@ -6,9 +6,11 @@ solo lo lee.
 ## Dónde estamos
 
 - Ola: 0 (Fundaciones)
-- Sub-ola: **0.0 en curso** (del código al programa), arrancada el 2026-11-01. Ya están la
-  [guía](ola-0.0-del-codigo-al-programa.md) y `labs/` con el test de la misión, que todavía no
-  compila: te toca la misión (`Labs::HeadOffset`), el jefe y el carril R
+- Sub-ola: **0.0 resuelta como ejemplo trabajado** (del código al programa), el 2026-11-01. A
+  pedido tuyo la resolvió Claude: la misión (`Labs::HeadOffset` en `MuRetLabs`), el jefe (la ODR) y
+  el carril R, con las salidas y las respuestas en [`labs/0.0-enlace/README.md`](../../labs/0.0-enlace/README.md).
+  Para cerrarla falta lo tuyo: contar con tus palabras las preguntas de la
+  [guía](ola-0.0-del-codigo-al-programa.md#preguntas-para-chequearte) y completar su sección final
 - La 0.1 está hecha (andamiaje CMake + `Server/DataServer/`); falta compilar en Windows y responder [las preguntas](ola-0.1-cmake.md#te-toca), que se cierran junto con la 0.0
 - Próxima: la 0.2 (vcpkg, GoogleTest, CTest, CI), que necesitan también la CL0.2 del cliente
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
@@ -26,8 +28,9 @@ sesión, junto con los de repaso más viejo.
 
 | Concepto | Ola | Nivel | Estado | Último repaso |
 | --- | --- | --- | --- | --- |
-
-(vacío)
+| unidad de traducción, archivo objeto y símbolos (`nm`) | 0.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
+| enlace externo e interno, `inline` y la ODR | 0.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
+| bibliotecas estáticas y dinámicas, imports del PE | 0.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
 
 ## Preguntas para olas futuras
 

@@ -26,7 +26,8 @@ enum class ChecksumParity
     XorEvenDwords, // Skill.bmd
 };
 
-// 05 § Tablas .bmd.
+// La clave del checksum de cada tabla (05 § Tablas .bmd): da la semilla, `key << 9`, y se vuelve
+// a sumar en cada mezcla. Con otra clave sale otro checksum, aunque los bytes sean los mismos.
 inline constexpr std::uint32_t ItemChecksumKey = 0xE2F1;
 inline constexpr std::uint32_t SkillChecksumKey = 0x5A18;
 

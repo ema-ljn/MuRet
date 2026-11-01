@@ -25,9 +25,14 @@
 namespace Client::Data::Text
 {
 
+// Cuántos textos trae la tabla, uno por registro: el texto i es el que el original busca con el
+// índice i.
 inline constexpr std::size_t TextCount = 2048;
+// Lo que ocupa cada texto, con su '\0' si lo tiene (el 7 no lo tiene, Q-C07).
 inline constexpr std::size_t TextRecordSize = 300;
-inline constexpr std::size_t TextTableSize = TextCount * TextRecordSize; // 0x96000
+// La tabla entera, que es el archivo entero: no hay cabecera, contador ni checksum.
+inline constexpr std::size_t TextTableSize = TextCount * TextRecordSize;
+static_assert(TextTableSize == 0x96000, "el tamaño que mide el research (05, Tablas .bmd)");
 
 class TextTable
 {

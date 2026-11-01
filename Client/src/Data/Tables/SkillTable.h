@@ -20,9 +20,14 @@
 namespace Client::Data::Tables
 {
 
+// Cuántos skills trae la tabla, uno por registro. El original lee siempre 256.
 inline constexpr std::size_t SkillCount = 256;
+// Lo que ocupa cada skill, en el archivo y en la memoria del original. Qué hay en cada offset se
+// lee en la CL9.
 inline constexpr std::size_t SkillRecordSize = 0x3C;
-inline constexpr std::size_t SkillTableSize = SkillCount * SkillRecordSize; // 0x3C00
+// Los registros juntos. En el archivo, después vienen los 4 bytes del checksum.
+inline constexpr std::size_t SkillTableSize = SkillCount * SkillRecordSize;
+static_assert(SkillTableSize == 0x3C00, "el tamaño que mide el research (05, Tablas .bmd)");
 
 using SkillTable = RecordTable<SkillRecordSize>;
 

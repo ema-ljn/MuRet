@@ -20,9 +20,15 @@
 namespace Client::Data::Tables
 {
 
+// Cuántos items trae la tabla, uno por registro: 16 secciones de 512. El registro de un item es
+// el `sección * 512 + índice` (0054b9e0-item-bmd-loader.md §9).
 inline constexpr std::size_t ItemCount = 8192;
+// Lo que ocupa cada item, en el archivo y en la memoria del original: su nombre, daño,
+// durabilidad, requisitos y demás. Qué hay en cada offset se lee en la CL9.
 inline constexpr std::size_t ItemRecordSize = 0x54;
-inline constexpr std::size_t ItemTableSize = ItemCount * ItemRecordSize; // 0xA8000
+// Los registros juntos. En el archivo, después vienen los 4 bytes del checksum.
+inline constexpr std::size_t ItemTableSize = ItemCount * ItemRecordSize;
+static_assert(ItemTableSize == 0xA8000, "el tamaño que mide el research (05, Tablas .bmd)");
 
 using ItemTable = RecordTable<ItemRecordSize>;
 

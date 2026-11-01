@@ -14,11 +14,18 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(MURET_WARNINGS_AS_ERRORS "Tratar los warnings como errores" OFF)
+option(MURET_BUILD_TESTS "Compilar los tests de GoogleTest" ON)
+
+# Los fuentes están en UTF-8 (comentarios y mensajes en castellano). Sin /utf-8, MSVC los lee con
+# la página de códigos de Windows: los acentos de los mensajes salen rotos y algunos bytes dan
+# el warning C4819, que con /WX corta la compilación.
+add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CompilerWarnings)
 
-# Los tests se registran con add_test() y los corre CTest (ctest --test-dir build/<preset>).
+# Los tests se registran con add_test() o gtest_discover_tests() y los corre CTest
+# (ctest --preset <preset>).
 enable_testing()
 
 # Un subdirectorio por componente. Los próximos servidores se suman acá.

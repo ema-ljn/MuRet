@@ -18,6 +18,12 @@ option(MURET_WARNINGS_AS_ERRORS "Tratar los warnings como errores" OFF)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CompilerWarnings)
 
+# Los tests se registran con add_test() y los corre CTest (ctest --test-dir build/<preset>).
+enable_testing()
+
 # Un subdirectorio por componente. Los próximos servidores se suman acá.
 add_subdirectory(Server/DataServer)
 add_subdirectory(Client)
+
+# labs/: el código de las N.0 del camino de aprendizaje (docs/learning/).
+add_subdirectory(labs)

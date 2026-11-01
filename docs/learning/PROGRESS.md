@@ -31,4 +31,4 @@ sesión, junto con los de repaso más viejo.
 
 ## Preguntas para olas futuras
 
-(vacío)
+- Cliente (2026-10-30): nació `Client/` con su [research](../../Client/docs/research/README.md) y su [roadmap](../superpowers/specs/2026-10-30-cliente-design.md) (olas CL0 a CL10, SDL3 + OpenGL 3.3, tick fijo y FPS desacoplados sin perder fidelidad). ¿Cuándo arranca la CL1 respecto de la ola 1 del servidor? (pregunta 3 del roadmap del cliente)

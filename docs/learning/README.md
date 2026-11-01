@@ -21,6 +21,11 @@ código y Claude hace de tutor. Acá queda lo que se estudia, lo que se mide y l
 | `ola-N.0-*.md` | guía de la N.0 de cada ola: fundamentos (teoría, C++, misión y jefe) | Claude, justo antes de cada ola |
 | [referencias-emuladores-wow.md](referencias-emuladores-wow.md) | qué usan TrinityCore, AzerothCore y CMaNGOS, qué patrones mirar en cada ola y bibliotecas opcionales (Asio, spdlog, nanodbc) | Claude |
 
+El **cliente** (`Client/`, olas CL0 a CL10) sigue el mismo formato: sus guías se escriben al
+arrancar cada ola, a partir del [roadmap del cliente](../superpowers/specs/2026-10-30-cliente-design.md)
+y de este `PROGRESS.md`. Las N.0 que ya se vieron en el servidor (bytes, sockets) se repasan, no se
+repiten.
+
 Las olas 9 a 14 (sistemas distribuidos) y la F (front-ends) todavía no tienen guía: están definidas
 en el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md).
 

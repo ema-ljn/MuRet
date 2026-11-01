@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 project(MuRet
     VERSION 0.1.0
-    DESCRIPTION "Servidores de MU Online 1.02 reescritos en C++20"
+    DESCRIPTION "Servidores y cliente de MU Online 1.02 reescritos en C++20"
     LANGUAGES CXX)
 
 # C++20 estándar para todo el repo, sin extensiones del compilador (gnu++20).
@@ -20,3 +20,4 @@ include(CompilerWarnings)
 
 # Un subdirectorio por componente. Los próximos servidores se suman acá.
 add_subdirectory(Server/DataServer)
+add_subdirectory(Client)

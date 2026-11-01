@@ -12,6 +12,7 @@ add_library(ClientLib STATIC
     src/Data/DataPath.cpp
     src/Data/Tables/GateTable.cpp
     src/Data/Tables/ItemTable.cpp
+    src/Data/Tables/SkillTable.cpp
     src/Data/Tables/TableChecksum.cpp
     src/Data/Tables/Xor3.cpp
     src/Data/Text/TextTable.cpp
@@ -46,10 +47,12 @@ if(MURET_BUILD_TESTS)
         tests/data/GoldenDataFilesTest.cpp
         tests/data/GoldenGateTableTest.cpp
         tests/data/GoldenItemTableTest.cpp
+        tests/data/GoldenSkillTableTest.cpp
         tests/data/GoldenTableChecksumTest.cpp
         tests/data/GoldenTextTableTest.cpp
         tests/data/ItemTableTest.cpp
         tests/data/RecordTableTest.cpp
+        tests/data/SkillTableTest.cpp
         tests/data/TableChecksumTest.cpp
         tests/data/TextTableTest.cpp
         tests/data/Xor3Test.cpp

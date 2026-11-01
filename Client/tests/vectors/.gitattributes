@@ -4,3 +4,6 @@
 *.raw binary
 # lab-6b.txt es texto, pero GoldenJpegImageTest.cpp lo lee con fines de línea de Linux.
 *.txt text eol=lf
+# Las herramientas de jpeg/tools corren en Linux: con CRLF, sh y python no las leen bien.
+*.sh text eol=lf
+*.py text eol=lf

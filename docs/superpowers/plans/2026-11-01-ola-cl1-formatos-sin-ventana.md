@@ -452,7 +452,7 @@ el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
   scripts que arman todo) y un `.gitattributes` que deja los vectores como bytes.
 - Modificar: `vcpkg.json`, el CI (NASM), `Client/CMakeLists.txt`, `GoldenDir.h/.cpp`
   (`HasExtension`, sin distinguir mayúsculas), `GoldenOztTextureTest.cpp`, los README, 05, 07
-  (Q-C14, Q-C30, Q-C31 y Q-C32), el roadmap (pregunta 1), PROGRESS y este plan.
+  (Q-C14, Q-C30, Q-C31, Q-C32 y Q-C33), el roadmap (pregunta 1), PROGRESS y este plan.
 
 **Bibliotecas (`CODING_RULES.md` §10):**
 - **TGA:** se miró stb_image. No entra porque lo que se lee del TGA son unas pocas líneas: el buffer
@@ -470,10 +470,12 @@ el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
   versión. El port de vcpkg depende también de libspng y zlib, que se compilan con él aunque el
   cliente no los use: más tiempo en el primer build de CI, después queda en la caché.
   Las reviews del PR B midieron dónde turbo no es la 6b, siempre fuera del laboratorio. Lo que se
-  puede llevar a la 6b se lleva: rechaza lo que la 6b no lee (JPEG aritméticos, sin pérdida y de 12
-  bits) y agranda el 4:4:0 sin el filtro, como ella. Lo que no, queda escrito en Q-C33: un
-  progresivo al que le faltan scans, un muestreo que mezcla un componente al doble de alto con otro
-  al doble de ancho, y cómo completa los datos corruptos. **Entra libjpeg-turbo** (Emanuel,
+  puede llevar a la 6b se lleva: rechaza lo que la 6b no lee (JPEG aritméticos, sin pérdida, de 12
+  bits o sin las tablas de Huffman de su primer scan) y agranda el 4:4:0 sin el filtro, como ella.
+  Lo que no, queda escrito en Q-C33: un progresivo al que le faltan scans, un muestreo que mezcla un
+  componente al doble de alto con otro al doble de ancho, una tabla de Huffman que falta en un scan
+  que no es el primero, los ids de componente repetidos o de más de 4 componentes, y cómo completa
+  los datos corruptos. **Entra libjpeg-turbo** (Emanuel,
   2026-11-01). Se miraron también `ijg-libjpeg` (la versión actual de la IJG, que lee los
   aritméticos) y stb_image (su propio decodificador, que no promete los bytes de la 6b). Un
   decodificador propio compatible con la 6b quedó planeado y en pausa

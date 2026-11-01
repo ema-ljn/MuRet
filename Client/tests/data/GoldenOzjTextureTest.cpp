@@ -7,6 +7,7 @@
 #include "Data/Textures/Texture.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
+#include "support/JpegVectors.h"
 #include "support/SameBytes.h"
 
 #include <gtest/gtest.h>
@@ -31,14 +32,12 @@ using Client::Data::Textures::PixelFormat;
 using Client::Data::Textures::Texture;
 using Client::Tests::HasExtension;
 using Client::Tests::LorenciaCapture;
+using Client::Tests::OzjFilesOfTheLab;
 using Client::Tests::ReadFileBytes;
 using Client::Tests::SameBytes;
 
 using GoldenOzjTexture = Client::Tests::GoldenDataTest;
 using MemoryOzjTexture = Client::Tests::MemoryDumpTest;
-
-// Los OZJ del laboratorio (05-formatos-de-datos.md, la tabla de formatos), contando los 7 TGA.
-constexpr std::size_t OzjFilesOfTheLab = 2387;
 
 // La textura de `path`, o el error con que no cargó.
 Client::Core::Expected<Texture, DataError> LoadFile(const std::filesystem::path& path)

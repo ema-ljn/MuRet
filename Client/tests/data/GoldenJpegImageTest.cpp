@@ -37,13 +37,11 @@ using Client::Data::Textures::DecodeJpeg;
 using Client::Tests::Fnv1a64;
 using Client::Tests::HasExtension;
 using Client::Tests::JpegVectorsDir;
+using Client::Tests::OzjFilesOfTheLab;
 using Client::Tests::OzjRepeatedBytes;
 using Client::Tests::ReadFileBytes;
 
 using GoldenJpegImage = Client::Tests::GoldenDataTest;
-
-// Los OZJ del laboratorio (05-formatos-de-datos.md, la tabla de formatos), contando los 7 TGA.
-constexpr std::size_t OzjFilesOfTheLab = 2387;
 
 // Sin tope de tamaño: se compara también skill/null.OZJ, de 800 × 600, que la 6b decodifica y que
 // después el cargador de texturas rechaza por pasar de 512.

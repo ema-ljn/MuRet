@@ -1,15 +1,16 @@
 # Arma los vectores JPEG de CI (el README.md de los vectores): imágenes sintéticas, codificadas con
 # el cjpeg de libjpeg-turbo 3.2.0, salvo las CMYK, que escribe cmyk6b, y decodificadas con hash6b,
-# que decodifica con la 6b como el original. hash6b y cmyk6b salen de build6b.sh.
+# que decodifica con la 6b como el original. hash6b y cmyk6b salen de build6b.sh; hashturbo es
+# hash6b compilado contra libjpeg-turbo, para el único vector que trae lo que da turbo.
 #
-# Uso: python3 make_vectors.py <cjpeg de turbo> <hash6b> <cmyk6b> <carpeta de salida>
+# Uso: python3 make_vectors.py <cjpeg de turbo> <hash6b> <cmyk6b> <hashturbo> <carpeta de salida>
 import os
 import struct
 import subprocess
 import sys
 import tempfile
 
-CJPEG, HASH6B, CMYK6B, OUT = sys.argv[1:5]
+CJPEG, HASH6B, CMYK6B, HASHTURBO, OUT = sys.argv[1:6]
 
 
 def detailed(x, y):
@@ -42,10 +43,21 @@ def cjpeg(name, source, *options):
     return path
 
 
-def hash6b(path, raw=None):
+def hash6b(path, raw=None, tool=HASH6B):
     # La línea de hash6b: "archivo ancho alto componentes fnv" o "archivo ERR código".
-    command = [HASH6B] + (['-raw', raw] if raw else []) + [path]
+    command = [tool] + (['-raw', raw] if raw else []) + [path]
     return subprocess.run(command, check=True, capture_output=True, text=True).stdout.split()[1:]
+
+
+def without_dht(jpeg):
+    # `jpeg` sin sus segmentos DHT (FF C4), los que definen las tablas de Huffman, hasta el SOS.
+    out, i = bytearray(jpeg[:2]), 2
+    while jpeg[i + 1] != 0xDA:
+        length = struct.unpack('>H', jpeg[i + 2:i + 4])[0]
+        if jpeg[i + 1] != 0xC4:
+            out += jpeg[i:i + 2 + length]
+        i += 2 + length
+    return bytes(out + jpeg[i:])
 
 
 def data_middle(jpeg):
@@ -76,6 +88,7 @@ with tempfile.TemporaryDirectory() as images:
     whole = open(os.path.join(OUT, 'baseline-444-dri.jpg'), 'rb').read()
     open(os.path.join(OUT, 'truncated.jpg'), 'wb').write(whole[:data_middle(whole)])
     subprocess.run([CMYK6B, '3', '2', os.path.join(OUT, 'cmyk-3x2.jpg')], check=True)
+    cjpeg('mixed-sampling', image('detailed-16x16', 16, 16, detailed), '-sample', '2x2,2x1,1x1')
 
     # Los que la 6b no lee.
     cjpeg('arithmetic', image('detailed-16x8', 16, 8, detailed),
@@ -83,6 +96,7 @@ with tempfile.TemporaryDirectory() as images:
     cjpeg('lossless', image('detailed-16x8', 16, 8, detailed), '-lossless', '1')
     cjpeg('precision-12', image('detailed-16x8', 16, 8, detailed),
           '-sample', '1x1', '-precision', '12')
+    open(os.path.join(OUT, 'no-huffman-tables.jpg'), 'wb').write(without_dht(whole))
 
     # Los que se usan por su tamaño.
     for name, width, height in [('flat-512x8', 512, 8), ('flat-513x8', 513, 8),
@@ -90,12 +104,16 @@ with tempfile.TemporaryDirectory() as images:
         cjpeg(name, image(name, width, height, flat), '-sample', '1x1')
     cjpeg('light-256', image('blocks-256x256', 256, 256, blocks), '-sample', '1x1')
     cjpeg('light-256x255', image('blocks-256x255', 256, 255, blocks), '-sample', '1x1')
+    cjpeg('light-255x256', image('blocks-255x256', 255, 256, blocks), '-sample', '1x1')
     cjpeg('light-gray-256', image('blocks-256x256', 256, 256, blocks, gray=True))
     subprocess.run([CMYK6B, '4', '2', os.path.join(OUT, 'cmyk-4x2.jpg')], check=True)
 
 # Los .6b.raw, y la línea de hash6b de cada uno; de los que no tienen, la línea sola.
 for name in ['baseline-444-dri', 'baseline-420', 'baseline-440', 'progressive-444', 'gray',
-             'truncated', 'cmyk-3x2']:
+             'truncated', 'cmyk-3x2', 'mixed-sampling']:
     print(name, *hash6b(os.path.join(OUT, name + '.jpg'), os.path.join(OUT, name + '.6b.raw')))
-for name in ['arithmetic', 'lossless', 'precision-12', 'cmyk-4x2']:
+for name in ['arithmetic', 'lossless', 'precision-12', 'no-huffman-tables', 'cmyk-4x2']:
     print(name, *hash6b(os.path.join(OUT, name + '.jpg')))
+# Lo que da turbo, en el vector en que no es la 6b (Q-C33).
+path = os.path.join(OUT, 'mixed-sampling.jpg')
+print('mixed-sampling turbo', *hash6b(path, os.path.join(OUT, 'mixed-sampling.turbo.raw'), HASHTURBO))

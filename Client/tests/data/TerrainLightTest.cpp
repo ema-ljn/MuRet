@@ -74,11 +74,12 @@ TEST(TerrainLightTest, EachCellIsAPixelOfTheFlippedImageTimesTheScale)
     }
 }
 
-// Q-C31: solo entra una luz de 256 × 256 en color, la que llena la tabla del original. Una más
-// chica, una más grande o una en grises son InvalidData.
+// Q-C31: solo entra una luz de 256 × 256 en color, la que llena la tabla del original. Una de un
+// lado más chico (el alto o el ancho), una más grande o una en grises son InvalidData.
 TEST(TerrainLightTest, OnlyTakesALightOf256By256InColor)
 {
     EXPECT_EQ(LoadError(OzjOf(ReadJpegVector("light-256x255.jpg"))), DataError::InvalidData);
+    EXPECT_EQ(LoadError(OzjOf(ReadJpegVector("light-255x256.jpg"))), DataError::InvalidData);
     EXPECT_EQ(LoadError(OzjOf(ReadJpegVector("flat-512x8.jpg"))), DataError::InvalidData);
     EXPECT_EQ(LoadError(OzjOf(ReadJpegVector("light-gray-256.jpg"))), DataError::InvalidData);
 }

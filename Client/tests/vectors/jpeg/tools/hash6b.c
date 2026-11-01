@@ -21,14 +21,15 @@
 #define FNV_OFFSET_BASIS 0xcbf29ce484222325ULL
 #define FNV_PRIME 0x100000001b3ULL
 
-struct errors {
+struct errors
+{
     struct jpeg_error_mgr manager;
     jmp_buf jump;
 };
 
 static void jump_on_error(j_common_ptr info)
 {
-    longjmp(((struct errors *)info->err)->jump, 1);
+    longjmp(((struct errors*)info->err)->jump, 1);
 }
 
 static void discard_message(j_common_ptr info)
@@ -36,20 +37,22 @@ static void discard_message(j_common_ptr info)
     (void)info;
 }
 
-static int decode(const char *path, long skip, const char *raw)
+static int decode(const char* path, long skip, const char* raw)
 {
     struct jpeg_decompress_struct info;
     struct errors errors;
-    unsigned char *volatile pixels = NULL;
-    FILE *file = fopen(path, "rb");
-    if (file == NULL || fseek(file, skip, SEEK_SET) != 0) {
+    unsigned char* volatile pixels = NULL;
+    FILE* file = fopen(path, "rb");
+    if (file == NULL || fseek(file, skip, SEEK_SET) != 0)
+    {
         fprintf(stderr, "no se pudo abrir %s\n", path);
         return 1;
     }
     info.err = jpeg_std_error(&errors.manager);
     errors.manager.error_exit = jump_on_error;
     errors.manager.output_message = discard_message;
-    if (setjmp(errors.jump)) {
+    if (setjmp(errors.jump))
+    {
         printf("%s ERR %d\n", path, errors.manager.msg_code);
         jpeg_destroy_decompress(&info);
         fclose(file);
@@ -66,18 +69,21 @@ static int decode(const char *path, long skip, const char *raw)
         unsigned long long hash = FNV_OFFSET_BASIS;
         size_t i;
         pixels = malloc(size);
-        while (info.output_scanline < info.output_height) {
+        while (info.output_scanline < info.output_height)
+        {
             JSAMPROW row = pixels + row_size * info.output_scanline;
             jpeg_read_scanlines(&info, &row, 1);
         }
-        for (i = 0; i < size; ++i) {
+        for (i = 0; i < size; ++i)
+        {
             hash = (hash ^ pixels[i]) * FNV_PRIME;
         }
-        printf("%s %u %u %d %016llx\n", path, info.output_width, info.output_height,
-               info.output_components, hash);
-        if (raw != NULL) {
-            FILE *out = fopen(raw, "wb");
-            if (out == NULL || fwrite(pixels, 1, size, out) != size || fclose(out) != 0) {
+        printf("%s %u %u %d %016llx\n", path, info.output_width, info.output_height, info.output_components, hash);
+        if (raw != NULL)
+        {
+            FILE* out = fopen(raw, "wb");
+            if (out == NULL || fwrite(pixels, 1, size, out) != size || fclose(out) != 0)
+            {
                 fprintf(stderr, "no se pudo escribir %s\n", raw);
                 return 1;
             }
@@ -89,27 +95,35 @@ static int decode(const char *path, long skip, const char *raw)
     return 0;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     long skip = 0;
-    const char *raw = NULL;
+    const char* raw = NULL;
     int first = 1;
     int failed = 0;
-    while (first + 1 < argc && argv[first][0] == '-') {
-        if (strcmp(argv[first], "-skip") == 0) {
+    while (first + 1 < argc && argv[first][0] == '-')
+    {
+        if (strcmp(argv[first], "-skip") == 0)
+        {
             skip = strtol(argv[first + 1], NULL, 10);
-        } else if (strcmp(argv[first], "-raw") == 0) {
+        }
+        else if (strcmp(argv[first], "-raw") == 0)
+        {
             raw = argv[first + 1];
-        } else {
+        }
+        else
+        {
             break;
         }
         first += 2;
     }
-    if (first >= argc || (raw != NULL && argc - first != 1)) {
+    if (first >= argc || (raw != NULL && argc - first != 1))
+    {
         fprintf(stderr, "uso: hash6b [-skip N] [-raw salida] archivo...\n");
         return 2;
     }
-    for (; first < argc; ++first) {
+    for (; first < argc; ++first)
+    {
         failed |= decode(argv[first], skip, raw);
     }
     return failed;

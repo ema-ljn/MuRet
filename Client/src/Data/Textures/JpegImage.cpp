@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdio> // jpeglib.h usa FILE y no incluye su header
 #include <limits>
+#include <span>
 
 #include <jpeglib.h>
 
@@ -72,18 +73,48 @@ struct Decompressor
     Decompressor& operator=(const Decompressor&) = delete;
 };
 
-// Si la 6b del original puede leer `info`, con la cabecera ya leída. libjpeg-turbo lee tres cosas
+// Si está la tabla de Huffman `number` de `tables` (las de DC o las de AC de libjpeg). Un SOS puede
+// pedir de la 0 a la 15, y libjpeg tiene NUM_HUFF_TBLS: con una de más, la 6b y turbo cortan igual
+// (JERR_NO_HUFF_TABLE, en jpeg_make_d_derived_tbl).
+bool HasHuffmanTable(std::span<JHUFF_TBL* const, NUM_HUFF_TBLS> tables, int number)
+{
+    return number >= 0 && number < NUM_HUFF_TBLS && tables[static_cast<std::size_t>(number)] != nullptr;
+}
+
+// Si están las tablas de Huffman, de DC y de AC, que pide cada componente del primer scan.
+bool HasTheHuffmanTablesOfTheFirstScan(const jpeg_decompress_struct& info)
+{
+    for (int index = 0; index < info.comps_in_scan; ++index)
+    {
+        const jpeg_component_info& component = *info.cur_comp_info[index];
+        if (!HasHuffmanTable(info.dc_huff_tbl_ptrs, component.dc_tbl_no) ||
+            !HasHuffmanTable(info.ac_huff_tbl_ptrs, component.ac_tbl_no))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Si la 6b del original puede leer `info`, con la cabecera ya leída. libjpeg-turbo lee cuatro cosas
 // más, y la 6b las rechaza (Q-C33):
-//   - muestras de otra precisión que 8 bits;
+//   - muestras de otra precisión que 8 bits. turbo 3.2 también corta, con JERR_BAD_PRECISION, pero
+//     recién en jpeg_read_scanlines (su jdapistd.c), y no ahora;
 //   - la codificación aritmética: la 6b no trae ese decodificador y jinit_master_decompress corta
 //     con JERR_ARITH_NOTIMPL;
 //   - el JPEG sin pérdida (SOF3): la 6b corta al leer la cabecera con JERR_SOF_UNSUPPORTED. turbo
 //     no lo dice en un campo público, pero en ese modo cada unidad de datos es una muestra y no un
 //     bloque de 8 × 8: deja min_DCT_scaled_size en 1, y en un JPEG con DCT, en DCTSIZE (su
-//     jdinput.c).
+//     jdinput.c);
+//   - un JPEG secuencial sin las tablas de Huffman que pide: la 6b corta con JERR_NO_HUFF_TABLE en
+//     jpeg_start_decompress, y turbo pone las estándar en las tablas 0 y 1 que faltan, como para
+//     Motion JPEG (std_huff_tables, en jinit_huff_decoder de su jdhuff.c). Acá se miran las del
+//     primer scan, las únicas que se conocen antes de jpeg_start_decompress. En un progresivo, turbo
+//     no las pone y corta como la 6b.
 bool SixBCanRead(const jpeg_decompress_struct& info)
 {
-    return info.data_precision == SixBSampleBits && !info.arith_code && info.min_DCT_scaled_size == DCTSIZE;
+    return info.data_precision == SixBSampleBits && !info.arith_code && info.min_DCT_scaled_size == DCTSIZE &&
+           (info.progressive_mode || HasTheHuffmanTablesOfTheFirstScan(info));
 }
 
 // Elige cómo agrandar los componentes submuestreados como la 6b (Q-C33). La 6b usa el filtro
@@ -118,7 +149,8 @@ void UpsampleLikeThe6b(jpeg_decompress_struct& info)
 // longjmp vuelve al setjmp sin correr destructores, y si entre los dos quedara vivo un objeto que
 // lo tiene, sería comportamiento indefinido (cppreference, std::longjmp). Por eso acá no vive
 // ninguno: el descompresor, su jmp_buf y la imagen son de quien llama, y entre el setjmp y libjpeg
-// solo hay referencias y números, que no cambian después del setjmp.
+// solo hay referencias y números. Los que cambian después del setjmp, como `row`, quedan
+// indeterminados después del salto (cppreference, std::longjmp), pero nadie los lee.
 bool Decompress(Decompressor& decompressor, std::span<const std::byte> jpeg, int maxSide, JpegImage& image)
 {
     jpeg_decompress_struct& info = decompressor.info;

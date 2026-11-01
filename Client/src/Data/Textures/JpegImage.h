@@ -11,8 +11,9 @@
 // uno de los 2.380.
 //
 // Fuera del laboratorio, turbo hace algunas cosas distinto que la 6b (Q-C33). Las que se pueden
-// llevar a lo de la 6b se llevan: lo que la 6b no lee se rechaza, y el 4:4:0 se agranda como en
-// ella. Las otras quedan escritas en Q-C33, como la de un progresivo al que le faltan scans.
+// llevar a lo de la 6b se llevan: lo que la 6b no lee se rechaza (lo que se sabe antes de
+// decodificar), y el 4:4:0 se agranda como en ella. Las otras quedan escritas en Q-C33, como la de
+// un progresivo al que le faltan scans.
 //
 // La otra diferencia es de dónde lee: el original, del archivo con jpeg_stdio_src; acá, de los
 // bytes con jpeg_mem_src, que se comporta igual cuando se acaban los datos.
@@ -44,10 +45,12 @@ struct JpegImage
 };
 
 // Decodifica `jpeg` con los parámetros por defecto de libjpeg, como el original.
-//   - Si libjpeg corta con un error antes de la última fila (no es un JPEG, le faltan tablas, un
-//     marcador que no sabe leer), devuelve DataError::InvalidData. El original devuelve false.
+//   - Si libjpeg corta con un error antes de la última fila (no es un JPEG, le falta una tabla de
+//     cuantización, un marcador que no sabe leer), devuelve DataError::InvalidData. El original
+//     devuelve false.
 //   - Si es un JPEG que la 6b no lee y turbo sí, devuelve DataError::InvalidData, como el
-//     original: muestras de más de 8 bits, codificación aritmética o sin pérdida (Q-C33).
+//     original: muestras de otra precisión que 8 bits, codificación aritmética, sin pérdida, o
+//     secuencial sin las tablas de Huffman de su primer scan (Q-C33).
 //   - Si el ancho o el alto pasan de `maxSide`, devuelve DataError::InvalidData sin decodificarla.
 //     Con un `maxSide` de 0 o menos, ninguna imagen entra.
 //   - Lo que viene después de la última fila no se lee: el original ya usó la imagen cuando lo lee,

@@ -4,6 +4,7 @@
 #include "Data/Textures/JpegImage.h"
 
 #include "Data/DataError.h"
+#include "Data/Textures/Texture.h"
 #include "support/JpegVectors.h"
 #include "support/SameBytes.h"
 
@@ -26,8 +27,8 @@ using Client::Data::Textures::DecodeJpeg;
 using Client::Tests::ReadJpegVector;
 using Client::Tests::SameBytes;
 
-// El lado más grande que se pide en estos tests: el de una textura (TextureMaxSide).
-constexpr int AnySide = 512;
+// El lado más grande que se pide en estos tests: el de una textura.
+constexpr int AnySide = Client::Data::Textures::TextureMaxSide;
 
 // Un vector y lo que tiene que dar: su tamaño, sus bytes por píxel y, en <nombre>.6b.raw, los
 // píxeles que da la 6b.
@@ -113,12 +114,27 @@ TEST(JpegImageTest, WhatLibjpegCannotReadIsInvalidData)
 }
 
 // Lo que la 6b no lee y turbo sí es InvalidData, como en el original (Q-C33): la 6b corta con
-// JERR_ARITH_NOTIMPL, JERR_SOF_UNSUPPORTED y JERR_BAD_PRECISION.
+// JERR_ARITH_NOTIMPL, JERR_SOF_UNSUPPORTED, JERR_BAD_PRECISION y JERR_NO_HUFF_TABLE.
 TEST(JpegImageTest, WhatThe6bCannotReadIsInvalidData)
 {
     EXPECT_EQ(DecodeError(ReadJpegVector("arithmetic.jpg"), AnySide), DataError::InvalidData);
     EXPECT_EQ(DecodeError(ReadJpegVector("lossless.jpg"), AnySide), DataError::InvalidData);
     EXPECT_EQ(DecodeError(ReadJpegVector("precision-12.jpg"), AnySide), DataError::InvalidData);
+    EXPECT_EQ(DecodeError(ReadJpegVector("no-huffman-tables.jpg"), AnySide), DataError::InvalidData);
+}
+
+// Q-C33: con componentes al doble de alto y otros al doble de ancho no hay cómo dar lo de la 6b, y
+// queda lo de turbo, con el filtro prendido para todos. Si este test falla porque turbo da otra
+// cosa, cambió cómo agranda: hay que volver a mirar UpsampleLikeThe6b.
+TEST(JpegImageTest, ASamplingThatMixesDoubleHeightAndDoubleWidthDecodesLikeTurbo)
+{
+    const std::vector<std::byte> turbo = ReadJpegVector("mixed-sampling.turbo.raw");
+    ASSERT_FALSE(SameBytes(turbo, ReadJpegVector("mixed-sampling.6b.raw")));
+
+    const auto decoded = DecodeJpeg(ReadJpegVector("mixed-sampling.jpg"), AnySide);
+
+    ASSERT_TRUE(decoded.HasValue());
+    EXPECT_TRUE(SameBytes(std::as_bytes(std::span(decoded.Value().pixels)), turbo));
 }
 
 // Lo que viene después de la última fila no se lee (Q-C32): con un segundo SOI en vez del EOI, que

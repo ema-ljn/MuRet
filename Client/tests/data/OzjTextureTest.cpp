@@ -34,8 +34,8 @@ using Client::Tests::SameBytes;
 
 static_assert(OzjRepeatedBytes == OzjPrefixSize);
 
-// Los bytes RGB de una textura, de a filas.
-constexpr std::size_t RgbSize = 3;
+// Los bytes por píxel de una textura RGB.
+constexpr std::size_t RgbSize = Client::Data::Textures::BytesPerPixel(PixelFormat::Rgb);
 
 // El error de cargar `file`, o std::nullopt si cargó.
 std::optional<DataError> LoadError(std::span<const std::byte> file)

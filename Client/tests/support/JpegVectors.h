@@ -37,6 +37,10 @@ inline std::vector<std::byte> ReadJpegVector(std::string_view name)
     return {bytes.begin(), bytes.end()};
 }
 
+// Los OZJ de la carpeta golden del laboratorio, contando los 7 TGA (05-formatos-de-datos.md, la
+// tabla de formatos): las líneas de lab-6b.txt.
+inline constexpr std::size_t OzjFilesOfTheLab = 2387;
+
 // Los bytes que tiene un OZJ antes del JPEG: los 24 primeros del mismo JPEG, que repite el
 // exportador del original (0x63b280).
 inline constexpr std::size_t OzjRepeatedBytes = 24;

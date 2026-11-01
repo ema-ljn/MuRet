@@ -96,8 +96,8 @@ La regla guía es la del servidor: el **contrato** (wire + archivos de datos) se
    se escribe el decodificador (como hizo `mu-client`)?~~ **Decidido por Emanuel el 2026-11-01:
    libjpeg-turbo**, con la API de la 6b y sus parámetros por defecto. Da los mismos bytes que la 6b
    en los 2.380 JPEG del laboratorio y en los tiles de `mu-golden`. Fuera de ellos difiere: lo que
-   se puede llevar a la 6b se lleva (rechaza los JPEG aritméticos, sin pérdida y de 12 bits, y
-   agranda el 4:4:0 como ella) y lo demás queda escrito en Q-C33 del
+   se puede llevar a la 6b se lleva (rechaza los JPEG aritméticos, sin pérdida, de 12 bits o sin
+   tablas de Huffman, y agranda el 4:4:0 como ella) y lo demás queda escrito en Q-C33 del
    [07](../../../Client/docs/research/07-quirks-y-bugs.md). Antes había elegido un decodificador
    propio compatible con la 6b: su plan queda en pausa, por si turbo no alcanza
    ([`2026-11-01-cl1.4-decodificador-jpeg.md`](../plans/2026-11-01-cl1.4-decodificador-jpeg.md)).

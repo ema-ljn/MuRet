@@ -16,6 +16,11 @@
 // Los nombres siguen la regla 7 (HasValue, Value, Error), no los de std::expected (has_value,
 // value, error). El día que el repo pase a C++23, cambiar uno por el otro es mecánico.
 //
+// E va como un enum class (DataError, por ejemplo). Con un E numérico, un error se puede volver
+// valor sin que nadie lo note: en un Expected<long, int>, `return error;` con un int convierte a
+// long y da un valor. Y no hay conversiones de más: en un Expected<std::string, E>, `return "x";`
+// no compila (serían dos conversiones), y Unexpected("x") es un Unexpected<const char*>.
+//
 // Pedir Value() de uno que tiene un error, o Error() de uno que tiene un valor, es un bug de quien
 // llama: el programa se corta ahí con un mensaje, también en Release. std::expected tira una
 // excepción, y MuRet no usa excepciones para los errores.
@@ -86,18 +91,22 @@ public:
         return std::get<ValueIndex>(storage);
     }
 
-    // Para sacar el valor sin copiarlo: std::move(loaded).Value().
-    [[nodiscard]] T&& Value() &&
+    // Para sacar el valor sin copiarlo: std::move(loaded).Value(). std::expected devuelve acá una
+    // referencia (T&&); este devuelve el valor movido, así `const T& t = Load().Value();` no queda
+    // colgando cuando el Expected temporal muere al final de la línea.
+    [[nodiscard]] T Value() &&
     {
         RequireValue();
         return std::move(std::get<ValueIndex>(storage));
     }
 
+    // Mira que haya un error, no que falte el valor: si el move de un T tiró una excepción en una
+    // asignación, el std::variant queda sin ninguno de los dos (valueless_by_exception).
     [[nodiscard]] const E& Error() const&
     {
-        if (HasValue())
+        if (storage.index() != ErrorIndex)
         {
-            Detail::StopOnBadAccess("Error() de un Expected que tiene un valor");
+            Detail::StopOnBadAccess("Error() de un Expected que no tiene error");
         }
         return std::get<ErrorIndex>(storage);
     }
@@ -111,7 +120,7 @@ private:
     {
         if (!HasValue())
         {
-            Detail::StopOnBadAccess("Value() de un Expected que tiene un error");
+            Detail::StopOnBadAccess("Value() de un Expected que no tiene valor");
         }
     }
 

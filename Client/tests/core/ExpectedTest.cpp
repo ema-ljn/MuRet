@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -54,6 +55,21 @@ TEST(ExpectedTest, MovesTheValueOut)
     EXPECT_EQ(*value, 5);
 }
 
+Expected<std::string, int> LoadName()
+{
+    return std::string("Lorencia");
+}
+
+// Value() de un temporal devuelve el valor y no una referencia adentro del temporal, que muere al
+// terminar la línea. Con una referencia (como std::expected), `name` quedaría colgando, y GCC lo
+// marca con -Wdangling-reference.
+TEST(ExpectedTest, ValueOfATemporaryCanBeKept)
+{
+    const std::string& name = LoadName().Value();
+
+    EXPECT_EQ(name, "Lorencia");
+}
+
 TEST(ExpectedTest, ValueCanBeChangedInPlace)
 {
     Expected<std::string, int> result = std::string("Lorencia");
@@ -69,14 +85,47 @@ TEST(ExpectedDeathTest, ValueOfAnErrorStopsTheProgram)
 {
     const Expected<int, std::string> result = Unexpected(std::string("archivo corto"));
 
-    EXPECT_DEATH(static_cast<void>(result.Value()), "de un Expected que tiene un error");
+    EXPECT_DEATH(static_cast<void>(result.Value()), "de un Expected que no tiene valor");
 }
 
 TEST(ExpectedDeathTest, ErrorOfAValueStopsTheProgram)
 {
     const Expected<int, std::string> result = 42;
 
-    EXPECT_DEATH(static_cast<void>(result.Error()), "de un Expected que tiene un valor");
+    EXPECT_DEATH(static_cast<void>(result.Error()), "de un Expected que no tiene error");
+}
+
+// Un valor cuyo move tira una excepción, solo cuando se le pide.
+struct MoveThrows
+{
+    bool armed = false;
+
+    MoveThrows() = default;
+    MoveThrows(const MoveThrows&) = default;
+    MoveThrows& operator=(const MoveThrows&) = default;
+    MoveThrows& operator=(MoveThrows&&) = default;
+    MoveThrows(MoveThrows&& other) : armed(other.armed)
+    {
+        if (armed)
+        {
+            throw std::runtime_error("move");
+        }
+    }
+};
+
+// Si el move del valor tira mientras un Expected pasa de error a valor, el std::variant de adentro
+// queda sin ninguno de los dos (valueless_by_exception). Pedirle el error también es un bug de
+// quien llama, y corta con el mismo mensaje.
+TEST(ExpectedDeathTest, ErrorOfOneWithNeitherStopsTheProgram)
+{
+    Expected<MoveThrows, int> result = Unexpected(1);
+    Expected<MoveThrows, int> source = MoveThrows{};
+    source.Value().armed = true;
+
+    EXPECT_THROW(result = std::move(source), std::runtime_error);
+
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_DEATH(static_cast<void>(result.Error()), "de un Expected que no tiene error");
 }
 
 } // namespace

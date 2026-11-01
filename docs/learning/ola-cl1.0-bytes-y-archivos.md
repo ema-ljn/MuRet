@@ -203,7 +203,13 @@ pide L-3: `Client::Core::Expected<T, E>` en `Client/src/Core/Expected.h`. Es una
 clase**: `T` y `E` son tipos que elige el que la usa (`Expected<TextTable, DataError>`). Adentro
 alcanza con un `std::variant<T, E>`, que guarda exactamente uno de los dos.
 
-**Te toca**, tests primero (`Client/tests/core/ExpectedTest.cpp`):
+> **Ya está escrito** (2026-11-01, a pedido tuyo, como ejemplo trabajado):
+> [`Client/src/Core/Expected.h`](../../Client/src/Core/Expected.h) y sus tests en
+> [`Client/tests/core/ExpectedTest.cpp`](../../Client/tests/core/ExpectedTest.cpp). Leelos y
+> respondé las dos decisiones de abajo con tus palabras: el comentario del header dice qué se
+> eligió, no por qué te convence o no.
+
+**Te tocaba**, tests primero (`Client/tests/core/ExpectedTest.cpp`):
 - uno con valor y uno con error, y qué devuelve cada consulta;
 - qué pasa si pedís el valor de uno que tiene un error.
 

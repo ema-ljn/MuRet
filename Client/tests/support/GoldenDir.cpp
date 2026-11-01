@@ -4,6 +4,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <system_error>
 
 namespace
 {
@@ -38,9 +39,8 @@ std::optional<std::string> ReadEnvironment(const char* name)
 namespace Client::Tests
 {
 
-std::optional<std::filesystem::path> GoldenDir()
+std::optional<std::filesystem::path> GoldenDirFromValue(const std::optional<std::string>& value)
 {
-    const std::optional<std::string> value = ReadEnvironment(GoldenDirVariable);
     if (!value || value->empty())
     {
         return std::nullopt;
@@ -48,22 +48,46 @@ std::optional<std::filesystem::path> GoldenDir()
     return std::filesystem::path(*value);
 }
 
+GoldenDirState CheckGoldenDir(const std::optional<std::filesystem::path>& dir)
+{
+    if (!dir)
+    {
+        return GoldenDirState::NotSet;
+    }
+    std::error_code error;
+    return std::filesystem::is_directory(*dir, error) ? GoldenDirState::Ready : GoldenDirState::Missing;
+}
+
+std::optional<std::filesystem::path> GoldenDir()
+{
+    return GoldenDirFromValue(ReadEnvironment(GoldenDirVariable));
+}
+
 void GoldenDataTest::SetUp()
 {
     const std::optional<std::filesystem::path> dir = GoldenDir();
-    if (!dir)
+    const GoldenDirState state = CheckGoldenDir(dir);
+    if (state == GoldenDirState::NotSet)
     {
         GTEST_SKIP() << GoldenDirVariable << " no está definida: test salteado";
     }
-    ASSERT_TRUE(std::filesystem::is_directory(*dir))
-        << GoldenDirVariable << " apunta a " << *dir << ", que no es una carpeta";
+    if (state == GoldenDirState::Missing)
+    {
+        FAIL() << GoldenDirVariable << " apunta a " << *dir << ", que no es una carpeta";
+    }
     dataRoot = *dir;
 }
 
 std::optional<std::filesystem::path> GoldenDataTest::DataFile(std::string_view originalPath) const
 {
-    std::optional<std::filesystem::path> path = Data::ResolveDataPath(dataRoot, originalPath);
-    if (!path)
+    std::error_code error;
+    std::optional<std::filesystem::path> path = Data::ResolveDataPath(dataRoot, originalPath, error);
+    if (error)
+    {
+        ADD_FAILURE() << "no se pudo buscar " << originalPath << " en la carpeta golden " << dataRoot << ": "
+                      << error.message();
+    }
+    else if (!path)
     {
         ADD_FAILURE() << "falta " << originalPath << " en la carpeta golden " << dataRoot;
     }

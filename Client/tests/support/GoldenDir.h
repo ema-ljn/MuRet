@@ -12,6 +12,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <string>
 #include <string_view>
 
 namespace Client::Tests
@@ -19,6 +20,16 @@ namespace Client::Tests
 
 // El valor de MURET_CLIENT_GOLDEN_DIR, o std::nullopt si no está o está vacía.
 std::optional<std::filesystem::path> GoldenDir();
+
+// La regla, separada de la lectura del entorno para poder testearla (GoldenDirTest.cpp).
+enum class GoldenDirState
+{
+    NotSet,  // sin variable, o vacía: el test se saltea
+    Missing, // la variable apunta a algo que no es una carpeta: el test falla
+    Ready,
+};
+std::optional<std::filesystem::path> GoldenDirFromValue(const std::optional<std::string>& value);
+GoldenDirState CheckGoldenDir(const std::optional<std::filesystem::path>& dir);
 
 // Base para los tests que leen archivos reales. SetUp() saltea el test sin carpeta golden y lo
 // hace fallar si la carpeta no existe.

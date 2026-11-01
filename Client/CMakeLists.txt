@@ -25,6 +25,7 @@ if(MURET_BUILD_TESTS)
 
     add_executable(ClientTests
         tests/support/GoldenDir.cpp
+        tests/support/GoldenDirTest.cpp
         tests/data/DataPathTest.cpp
         tests/data/GoldenDataFilesTest.cpp
     )

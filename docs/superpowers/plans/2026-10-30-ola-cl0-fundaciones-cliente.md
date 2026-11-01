@@ -12,7 +12,7 @@ su roadmap, antes de escribir una línea del cliente.
 Desde la CL0.2, una biblioteca `ClientLib` con todo el código, el ejecutable `Main` y los tests
 `ClientTests` linkeando contra ella.
 
-**Stack:** C++20, CMake 3.25+, vcpkg (SDL3, loader de GL), GoogleTest.
+**Stack:** C++20, CMake 3.25+, vcpkg (SDL3, GoogleTest), un loader de GL propio.
 
 **Research que fija esta ola:** [01-binario-y-metodo](../../../Client/docs/research/01-binario-y-metodo.md)
 (qué se reimplementa y con qué evidencia).
@@ -25,9 +25,15 @@ cierra.
 
 1. **¿Cuándo arranca el cliente respecto del servidor?** La CL0.2 necesita GoogleTest (sub-ola 0.2
    del servidor). Recomendación del roadmap: CL1 después de la ola 1 del servidor.
+   **Decidido (Emanuel, 2026-11-01): el cliente va directo.** La CL0.2 trae ella misma vcpkg,
+   GoogleTest y los test presets, y la CL0.3 el CI; la 0.2 del servidor los reusa.
 2. **¿Cómo se saltea un test golden?** GoogleTest tiene `GTEST_SKIP()`. ¿El test se saltea en
    silencio si falta la carpeta, o falla si la carpeta está pero le falta un archivo? (El repo de
    research hace lo segundo: "si no está, se saltea; si está incompleto, falla".)
+   **Decidido (2026-11-01): la regla del repo de research.** Sin `MURET_CLIENT_GOLDEN_DIR` (o
+   vacía), el test se saltea y CTest lo muestra como `Skipped`, no como pasado. Si la variable
+   apunta a una carpeta que no existe, o a una a la que le falta el archivo que el test pide, el
+   test falla: una carpeta golden incompleta es un error, no un motivo para saltear.
 
 ---
 
@@ -53,33 +59,48 @@ repaso: ¿qué cambia en el CMake raíz cuando hay dos `add_subdirectory`?
   ```
 - [ ] **Paso 6 (Emanuel):** compilar y correr en Windows (`build\windows-x64\Client\Debug\Main.exe`) y leer el research en el orden del README.
 
-## Sub-ola CL0.2: `ClientLib`, `ClientTests` y la carpeta golden
+## Sub-ola CL0.2: `ClientLib`, `ClientTests` y la carpeta golden ✅ (Claude, ejemplo trabajado)
 
 **Concepto:** biblioteca + ejecutable + tests como tres targets; tests que dependen de datos
 externos y cómo se saltean sin mentir.
 
 **Archivos:**
+- Crear: `vcpkg.json` (`gtest`, con la `builtin-baseline` fija), `Client/src/Data/DataPath.h/.cpp`
+- Crear: `Client/tests/support/GoldenDir.h/.cpp`, `Client/tests/data/DataPathTest.cpp`, `Client/tests/data/GoldenDataFilesTest.cpp`
 - Modificar: `Client/CMakeLists.txt` (targets `ClientLib`, `ClientTests`; opción `MURET_CLIENT_GOLDEN_DIR`)
-- Crear: `Client/tests/` con un test trivial y un test golden de ejemplo que se saltea
+- Modificar: `CMakePresets.json` (toolchain de vcpkg y test presets), `CMakeLists.txt` (opción `MURET_BUILD_TESTS`)
 
-- [ ] **Paso 1 (Claude, andamiaje):** `ClientLib` estática, `Main` y `ClientTests` linkeando contra ella; registrar en CTest.
-- [ ] **Paso 2 (Claude, andamiaje):** la opción `MURET_CLIENT_GOLDEN_DIR` llega a los tests como definición de compilación o variable de entorno.
-- [ ] **Paso 3 (Emanuel, `TODO(human)`):** el helper que da la ruta golden o saltea el test, con la regla que decidiste en la pregunta 2, y su propio test.
-- [ ] **Paso 4:** verificar:
+- [x] **Paso 1 (Claude, andamiaje):** `ClientLib` estática, `Main` y `ClientTests` linkeando contra ella; registrar en CTest con `gtest_discover_tests`. Lo primero de `ClientLib` es `Client::Data::ResolveDataPath`: el original pide rutas como `Data\Player\Player.bmd` y Windows no distingue mayúsculas, pero el `Data\` del laboratorio tiene `player\`; en Linux hay que buscar sin distinguirlas.
+- [x] **Paso 2 (Claude, andamiaje):** `MURET_CLIENT_GOLDEN_DIR` llega a los tests como variable de entorno al correr `ctest`, o como variable de caché de CMake que se la pasa a CTest.
+- [x] **Paso 3 (Claude, a pedido de Emanuel):** `Client::Tests::GoldenDataTest`, la base de los tests golden con la regla de la pregunta 2, y dos tests de ejemplo (las claves `Enc1.dat`/`Dec2.dat` de 54 bytes y `Player\Player.bmd`).
+- [x] **Paso 4:** verificar:
   ```bash
-  cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R Client
+  cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug
   ```
+  Sin la variable: 7 tests, 5 pasan y los 2 golden salen `Skipped`. Con
+  `MURET_CLIENT_GOLDEN_DIR=<clon de mu-online-reverse-lab>/analysis/decompilacion-maxima/assets/original-data`
+  pasan los 7; con una carpeta vacía, los golden fallan con "falta … en la carpeta golden".
 
-## Sub-ola CL0.3: SDL3, loader de GL y CI
+## Sub-ola CL0.3: SDL3, loader de GL y CI ✅ (Claude, ejemplo trabajado)
 
 **Concepto:** dependencias de terceros con vcpkg en modo manifiesto; qué es un loader de OpenGL y
 por qué hace falta (las funciones de GL 3.3 no se enlazan, se piden en runtime).
 
 **Archivos:**
-- Modificar: `vcpkg.json` (sdl3 y el loader de GL elegido), `Client/CMakeLists.txt`
-- Modificar: el workflow de CI de la 0.2 para compilar también `Client/`
+- Modificar: `vcpkg.json` (`sdl3`), `Client/CMakeLists.txt`, `Client/src/main.cpp`
+- Crear: `.github/workflows/ci.yml` (no existía: la 0.2 del servidor todavía no se había hecho)
 
-- [ ] **Paso 1 (Claude, andamiaje):** `sdl3` y el loader en `vcpkg.json`; `find_package` y link en `ClientLib`.
-- [ ] **Paso 2 (Emanuel):** en `main.cpp`, abrir una ventana SDL3 con contexto OpenGL 3.3 core, limpiar la pantalla de un color y cerrar con la X. Sin capas todavía: es el "hola mundo" que la CL3 va a ordenar.
-- [ ] **Paso 3 (Emanuel):** imprimir `GL_VERSION` y `GL_RENDERER` al arrancar y anotar qué dio en cada sistema.
-- [ ] **Paso 4:** el CI compila `Main` en Windows y Linux (la ventana no se abre en CI).
+- [x] **Paso 1 (Claude, andamiaje):** `sdl3` en `vcpkg.json`, sin sus features por defecto (en Linux, `x11` y `wayland`; afuera `ibus`, que arrastra D-Bus). `find_package(SDL3)` y link en `Main`, **no** en `ClientLib`: la biblioteca queda sin ventana, así sus tests corren en cualquier máquina. El loader es propio (D-C2): una tabla de punteros con el tipo de cada función (`decltype(&::glClear)`) que se llena con `SDL_GL_GetProcAddress`. El puerto `glad` de vcpkg trae el perfil de compatibilidad y necesita Python para compilar.
+- [x] **Paso 2 (Claude, a pedido de Emanuel):** en `main.cpp`, una ventana SDL3 de 640×480 con contexto OpenGL 3.3 core que se limpia de un azul oscuro y cierra con la X; `--frames N` dibuja N frames y sale, para probarla sin nadie que la cierre.
+- [x] **Paso 3:** `GL_VERSION` y `GL_RENDERER` al arrancar. Linux con Xvfb y Mesa: `4.5 (Core Profile) Mesa 25.2.8` y `llvmpipe (LLVM 20.1.2, 256 bits)` (Mesa da un contexto core más nuevo que el pedido, y está bien). Sin VSync en Xvfb: avisa y sigue. **Falta Windows** (paso 5).
+- [x] **Paso 4:** el CI (`.github/workflows/ci.yml`) compila y corre los tests en Windows (MSVC) y Linux (GCC) con warnings como errores. En Linux además abre la ventana en Xvfb y dibuja 60 frames; en Windows no, porque el runner no tiene un driver de OpenGL 3.3.
+- [ ] **Paso 5 (Emanuel):** en tu máquina, con `VCPKG_ROOT` apuntando a un clon de vcpkg, compilar con `windows-x64`, correr `Main.exe` y anotar acá qué `GL_VERSION` y `GL_RENDERER` dio.
+
+## Para cerrar la CL0 (Emanuel)
+
+Lo resolvió Claude como ejemplo; para que quede tuyo, contestá con tus palabras:
+
+1. ¿Por qué `SDL3::SDL3` se linkea a `Main` y no a `ClientLib`? ¿Qué pasaría con `ClientTests` en el CI si fuera al revés?
+2. `glClear` está declarada en `SDL_opengl.h`, pero `main.cpp` nunca la llama por su nombre. ¿Por qué no alcanza con linkear `opengl32.lib` o `libGL.so` para las funciones de la 3.3?
+3. ¿Qué fija la `builtin-baseline` de `vcpkg.json`, y qué pasaría en el CI si no estuviera?
+4. Un test golden salteado y uno pasado, ¿en qué se diferencian en la salida de `ctest`? ¿Por qué la regla hace fallar (y no saltear) una carpeta golden incompleta?

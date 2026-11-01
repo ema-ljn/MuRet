@@ -12,23 +12,43 @@ el trabajo va por olas y sub-olas, y cada sub-ola es un concepto y un PR chico
 | Componente | Qué hace | Estado |
 | --- | --- | --- |
 | [`Server/DataServer`](Server/DataServer/README.md) | traduce los pedidos de los GameServers a SQL (puerto 55960) | ola 0: andamiaje |
-| [`Client`](Client/README.md) | el cliente del jugador (`main.exe`), con SDL3 y OpenGL 3.3 | ola CL0: andamiaje |
+| [`Client`](Client/README.md) | el cliente del jugador (`main.exe`), con SDL3 y OpenGL 3.3 | ola CL0: ventana SDL3 + GL 3.3 y tests |
 
 ## Compilar
 
-Requisitos: CMake 3.25+, y Ninja + GCC/Clang en Linux o Visual Studio 2022 en Windows.
+Requisitos: CMake 3.25+, Ninja + GCC/Clang en Linux o Visual Studio 2022 en Windows, y
+[vcpkg](https://github.com/microsoft/vcpkg) con la variable `VCPKG_ROOT` apuntando a su clon. Las
+dependencias (SDL3, GoogleTest) están en [`vcpkg.json`](vcpkg.json) y vcpkg las baja y compila al
+configurar, en las versiones de su `builtin-baseline`.
+
+```bash
+git clone https://github.com/microsoft/vcpkg ~/vcpkg && ~/vcpkg/bootstrap-vcpkg.sh
+export VCPKG_ROOT=~/vcpkg          # Windows: bootstrap-vcpkg.bat y $env:VCPKG_ROOT = "C:\vcpkg"
+```
+
+Si al configurar vcpkg dice que no encuentra la baseline, el clon es más viejo que `vcpkg.json`:
+actualizalo con `git -C "$VCPKG_ROOT" pull`.
+
+En Linux, SDL3 necesita además los headers de X11, Wayland y OpenGL:
+
+```bash
+sudo apt install ninja-build pkg-config libx11-dev libxext-dev libwayland-dev libxkbcommon-dev libgl-dev libegl-dev
+```
 
 ```bash
 # Linux
 cmake --preset linux-x64-debug
 cmake --build --preset linux-x64-debug
+ctest --preset linux-x64-debug
 
 # Windows (PowerShell o "Developer Command Prompt")
 cmake --preset windows-x64
 cmake --build --preset windows-x64-debug
+ctest --preset windows-x64-debug
 ```
 
-Los binarios quedan en `build/<preset>/`.
+Los binarios quedan en `build/<preset>/`. El CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml))
+hace lo mismo en Linux y Windows, con warnings como errores, en cada PR.
 
 ## Documentación
 

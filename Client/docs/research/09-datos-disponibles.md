@@ -5,6 +5,12 @@ cliente completo, o falta algún dato?** Alcanza, salvo 91 sonidos y 4 modelos d
 están en el `Data\` del laboratorio. El resto de lo que falta es lectura del binario, no datos:
 el decompilado dice qué archivo usa cada cosa, y las trazas y la memoria dicen cómo se ve.
 
+Los que faltan **se dan por faltantes** (decisión de Emanuel, 2026-11-01): ninguna de las dos
+copias del `Data\` los trae, y no impiden un cliente funcional. El original saltea sin avisar los
+modelos y sonidos que no encuentra (*estático*, Q-C23) y MuRet hace lo mismo, con un aviso en el
+log: esos sonidos no suenan, el monstruo de tipo 58 no se dibuja y el mapa 5 queda sin objetos.
+Los tests golden no los piden.
+
 | Fuente | Qué tiene | Dónde |
 | --- | --- | --- |
 | `Data\` del cliente | 5.726 archivos: 1.962 modelos, 3.044 texturas, 484 WAV, 26 temas de música, el terreno de 20 mundos | `mu-online-reverse-lab`, `analysis/decompilacion-maxima/assets/original-data/` (copia exacta por SHA-256 de la fuente) |
@@ -30,7 +36,7 @@ con `.jpg` → `.OZJ`, `.tga` → `.OZT`, `.bmp` → `.OZB` como hace el cliente
 | Modelos con ruta fija (`0x60da30`) | 281 | 275 | `giftbox_bp`, `_br` y `_bb` de `Item\`, `Skill\ManyFlag`, `Object6\BossHead` y `Princess` |
 | Modelos numerados (84 familias: `Monster`, `HelmMale`, `Sword`, `Tree`…) | 84 | 83 | `Object6\Meteo`; además `Monster50`, `76`, `81` y `89` entre el 1 y el 106 |
 | Texturas con ruta fija (`0x63b870` OZJ, `0x63bd00` OZT) | 363 | 363 | ninguna |
-| Texturas de las mallas de los `.bmd` | 3.421 | 3.420 | `waterring.JPG` de `Item\waterring.bmd` (69 de las que están, en otra carpeta) |
+| Texturas de las mallas de los `.bmd` | 3.421 | 3.420 | `waterring.JPG` de `Item\waterring.bmd`, un modelo que ningún cargador pide: no hace falta (69 de las que están, en otra carpeta) |
 | Terreno (`EncTerrain`, `TerrainHeight`, `TerrainLight`, tiles) | 20 mundos | 19 | `World6` solo trae `.att`, `.map` y `.obj`, y no hay `Object6` |
 | Música | 22 | 22 | ninguna |
 | Sonidos (`0x41eac0`) | 532 | 441 | 91 (abajo) |
@@ -43,9 +49,7 @@ con `.jpg` → `.OZJ`, `.tga` → `.OZT`, `.bmp` → `.OZB` como hace el cliente
   pociones, levantar y tirar items), 17 de las skills (`s*`), 3 de NPCs, 27 de los monstruos del
   mundo 31 (`w31\`), 8 del castillo (`BattleCastle\`) y 1 de `w34\`. Los piden sobre todo
   `0x61b350` (53) y `0x616ec0` (33). En el `Data\` del laboratorio no hay ningún `.wav` que empiece
-  con `p` ni con `s`. O el cliente
-  "Mu Baires 3" de la VM no los trae, o la copia es parcial: se ve en la VM con
-  `dir Data\Sound\p*.wav`.
+  con `p` ni con `s`, y la segunda copia no trae sonidos: se dan por faltantes.
 - **`Monster50` sí hace falta.** El tipo de monstruo 58 (`0x3a`, caso de `0x5141e0`) pide
   `0x612d90(0x31)`, o sea `Monster50.bmd`, y el `MonsterSetBase.txt` del servidor en uso pone 63
   en el mapa 8. En el original no se dibujaría (*inferido*; la sesión del cable no pasó por ahí).
@@ -139,12 +143,11 @@ y los drops, que sirven para los servidores de MuRet, no para el cliente.
 
 ## Qué pedir en la próxima captura
 
-1. `dir Data\Sound` y `dir Data\Monster` en la VM, para saber si los 91 sonidos y `Monster50`
-   faltan en el cliente o solo en la copia. La segunda copia del `Data\` no sirve para esto: no
-   trae sonidos.
-2. GLIntercept con `ImageLog` y `TimerLog` prendidos: las texturas de cada mapa por contenido y la
+Los archivos que faltan ya no se piden (se dan por faltantes, arriba).
+
+1. GLIntercept con `ImageLog` y `TimerLog` prendidos: las texturas de cada mapa por contenido y la
    hora de cada frame.
-3. Una sesión con combate, skills, items y ventanas abiertas, con la hora de cada acción, para
+2. Una sesión con combate, skills, items y ventanas abiertas, con la hora de cada acción, para
    verificar los handlers de CL9 contra el código del servidor.
 
 ## Cómo se verificó

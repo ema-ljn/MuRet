@@ -57,6 +57,15 @@ cmake --preset linux-x64-debug -DMURET_CLIENT_GOLDEN_DIR=/ruta/a/Data   # queda 
 Sin la variable, se saltean (`Skipped`). Si apunta a una carpeta que no existe, o le falta el
 archivo que el test pide, fallan.
 
+Algunos además comparan con la memoria del `main.exe` original, con las tablas ya cargadas: los
+volcados `s31_*.bin` de `client-research/mu-golden/memoria-cliente/2026-10-09-devias`, en el repo
+de research (fuera de Git). Necesitan las dos carpetas, con la misma regla, y la de los volcados va
+solo en el entorno:
+
+```bash
+MURET_CLIENT_GOLDEN_DIR=/ruta/a/Data MURET_CLIENT_MEMORY_DIR=/ruta/a/2026-10-09-devias ctest --preset linux-x64-debug
+```
+
 ## Estructura (a medida que avanzan las olas)
 
 ```

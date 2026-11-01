@@ -49,7 +49,9 @@ if(MURET_BUILD_TESTS)
     muret_set_warnings(ClientTests)
 
     # La carpeta golden llega a los tests como variable de entorno. Se puede fijar acá, al
-    # configurar (-DMURET_CLIENT_GOLDEN_DIR=...), o en el entorno al correr ctest.
+    # configurar (-DMURET_CLIENT_GOLDEN_DIR=...), o en el entorno al correr ctest. La de los
+    # volcados de memoria (MURET_CLIENT_MEMORY_DIR) va solo en el entorno: gtest_discover_tests
+    # parte en dos una lista de variables en ENVIRONMENT, y la segunda se pierde.
     set(MURET_CLIENT_GOLDEN_DIR "" CACHE PATH "Copia del Data\\ del cliente original para los tests golden (vacío: se saltean)")
     if(MURET_CLIENT_GOLDEN_DIR)
         gtest_discover_tests(ClientTests PROPERTIES ENVIRONMENT "MURET_CLIENT_GOLDEN_DIR=${MURET_CLIENT_GOLDEN_DIR}")

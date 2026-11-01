@@ -45,4 +45,22 @@ protected:
     std::filesystem::path dataRoot;
 };
 
+// Los volcados de la memoria del main.exe original, con las tablas ya cargadas.
+// MURET_CLIENT_MEMORY_DIR apunta a la carpeta de los s31_*.bin: en el repo de research,
+// client-research/mu-golden/memoria-cliente/2026-10-09-devias, fuera de Git. Valen para la copia
+// de Data\ del laboratorio, que tiene las mismas tablas (mismo SHA-256) que mu-golden.
+//
+// La regla es la de la carpeta golden. Un test de memoria necesita las dos: compara lo que MuRet
+// carga de un archivo con lo que el original cargó del mismo archivo.
+class MemoryDumpTest : public GoldenDataTest
+{
+protected:
+    void SetUp() override;
+
+    // La ruta del volcado `name`. Si no está, marca el test como fallado y devuelve std::nullopt.
+    std::optional<std::filesystem::path> DumpFile(std::string_view name) const;
+
+    std::filesystem::path dumpRoot;
+};
+
 } // namespace Client::Tests

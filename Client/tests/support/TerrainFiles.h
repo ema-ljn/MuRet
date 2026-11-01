@@ -1,12 +1,18 @@
-// Ayudas para los tests del terreno: cifrar un archivo sintético como lo hace el exportador del
-// original, para que los cargadores lo descifren.
+// Ayudas para los tests del terreno: armar un archivo sintético y cifrarlo como lo hace el
+// exportador del original, para que los cargadores lo descifren, y comparar una capa con un
+// volcado de memoria.
 
 #pragma once
 
 #include "Data/Terrain/K16.h"
+#include "Data/Terrain/TerrainGrid.h"
+#include "Data/Terrain/TerrainMapping.h"
 
+#include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <span>
 #include <vector>
 
 namespace Client::Tests
@@ -27,6 +33,79 @@ inline std::vector<std::byte> EncryptK16(std::vector<std::byte> bytes)
         previous = static_cast<std::uint8_t>(encrypted + Data::Terrain::K16Step);
     }
     return bytes;
+}
+
+// Un valor por celda que se repite cada `period` celdas. Con un primo como 251, 241 o 239 no se
+// repite cada fila (256) ni cada capa (0x10000): una capa leída corrida o en el lugar de otra da
+// otros valores, y el test lo nota.
+inline std::uint8_t CellPattern(std::size_t cell, std::size_t period, std::uint8_t offset)
+{
+    return static_cast<std::uint8_t>(cell % period + offset);
+}
+
+inline std::uint8_t Layer1Pattern(std::size_t cell)
+{
+    return CellPattern(cell, 251, 0);
+}
+
+inline std::uint8_t Layer2Pattern(std::size_t cell)
+{
+    return CellPattern(cell, 241, 7);
+}
+
+inline std::uint8_t AlphaPattern(std::size_t cell)
+{
+    return CellPattern(cell, 239, 3);
+}
+
+// Un EncTerrain.map en claro: versión 0, el mundo `world` y cada capa con su patrón.
+inline std::vector<std::byte> PlainTerrainMapping(std::uint8_t world)
+{
+    using Data::Terrain::TerrainCellCount;
+    using Data::Terrain::TerrainMappingAlphaOffset;
+    using Data::Terrain::TerrainMappingLayer1Offset;
+    using Data::Terrain::TerrainMappingLayer2Offset;
+    std::vector<std::byte> plain(Data::Terrain::TerrainMappingSize);
+    plain[Data::Terrain::TerrainMappingWorldOffset] = std::byte{world};
+    for (std::size_t cell = 0; cell < TerrainCellCount; ++cell)
+    {
+        plain[TerrainMappingLayer1Offset + cell] = std::byte{Layer1Pattern(cell)};
+        plain[TerrainMappingLayer2Offset + cell] = std::byte{Layer2Pattern(cell)};
+        plain[TerrainMappingAlphaOffset + cell] = std::byte{AlphaPattern(cell)};
+    }
+    return plain;
+}
+
+// La primera celda en la que `layer` no es `expected`, o std::nullopt si son iguales. Compara
+// los bytes de cada valor: para el alfa, los cuatro de cada float, en el orden de la memoria del
+// original (little-endian, como x86). Si a `expected` le faltan bytes, la respuesta es la primera
+// celda incompleta; si le sobran, TerrainCellCount, la celda que vendría después de la última.
+template <typename T>
+std::optional<std::size_t> FirstCellThatDiffers(const Data::Terrain::TerrainLayer<T>& layer,
+                                                std::span<const std::byte> expected)
+{
+    static_assert(std::endian::native == std::endian::little, "los volcados son de un x86");
+    const std::span<const std::byte> mine = std::as_bytes(std::span(layer));
+    for (std::size_t cell = 0; cell < layer.size(); ++cell)
+    {
+        const std::size_t begin = cell * sizeof(T);
+        if (expected.size() < begin + sizeof(T))
+        {
+            return cell;
+        }
+        for (std::size_t i = begin; i < begin + sizeof(T); ++i)
+        {
+            if (mine[i] != expected[i])
+            {
+                return cell;
+            }
+        }
+    }
+    if (expected.size() != mine.size())
+    {
+        return layer.size();
+    }
+    return std::nullopt;
 }
 
 } // namespace Client::Tests

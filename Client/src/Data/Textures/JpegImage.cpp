@@ -22,24 +22,17 @@ namespace
 constexpr int SixBSampleBits = 8;
 static_assert(SixBSampleBits == BITS_IN_JSAMPLE, "jpeg_read_scanlines da muestras de 8 bits");
 
-// El manejador de errores de libjpeg y adónde volver cuando corta, como los arma el original: un
-// struct de error de 0x84 bytes y un jmp_buf (0x63b850, 0063b490-terrainlight-ozj-loader.md §3).
-struct JpegErrors
-{
-    jpeg_error_mgr manager{};
-    std::jmp_buf jump{};
-};
-
 } // namespace
 
 // libjpeg llama a estas dos como funciones de C, así que lo son: una función de C y una de C++ son
 // de tipos distintos ([dcl.link]). static: no salen de este archivo.
 extern "C"
 {
-    // error_exit: libjpeg lo llama ante un error y no puede volver. Salta al setjmp de Decompress.
+    // error_exit: libjpeg lo llama ante un error y no puede volver. Salta al setjmp de Decompress,
+    // con el jmp_buf que dejó el Decompressor en client_data.
     [[noreturn]] static void JumpOnError(j_common_ptr info)
     {
-        std::longjmp(static_cast<JpegErrors*>(info->client_data)->jump, 1);
+        std::longjmp(*static_cast<std::jmp_buf*>(info->client_data), 1);
     }
 
     // output_message: los mensajes no se muestran (JpegImage.h).
@@ -52,17 +45,24 @@ namespace
 // El descompresor de libjpeg, que se libera al salir por cualquier camino (regla 8). Liberar uno
 // que no llegó a crearse, o uno que no terminó, no hace nada de más: libjpeg mira si tiene memoria
 // pedida y la suelta.
+//
+// El original arma el manejador de errores de libjpeg y adónde volver cuando corta como un struct:
+// los 0x84 bytes de jpeg_error_mgr y el jmp_buf después (0x63b850 salta a err + 0x84,
+// 0063b490-terrainlight-ozj-loader.md §3). Acá el jmp_buf es de quien crea el Decompressor: en
+// MSVC de 64 bits va alineado a 16, así que un struct con jpeg_error_mgr y el jmp_buf queda con
+// relleno, y MSVC lo avisa (C4324, que con los warnings como errores corta el build).
 struct Decompressor
 {
     jpeg_decompress_struct info{};
-    JpegErrors errors{};
+    jpeg_error_mgr errors{};
+    std::jmp_buf& jump;
 
-    Decompressor()
+    explicit Decompressor(std::jmp_buf& target) : jump(target)
     {
-        info.err = jpeg_std_error(&errors.manager);
-        errors.manager.error_exit = JumpOnError;
-        errors.manager.output_message = DiscardMessage;
-        info.client_data = &errors;
+        info.err = jpeg_std_error(&errors);
+        errors.error_exit = JumpOnError;
+        errors.output_message = DiscardMessage;
+        info.client_data = &jump;
     }
     ~Decompressor()
     {
@@ -117,12 +117,12 @@ void UpsampleLikeThe6b(jpeg_decompress_struct& info)
 //
 // longjmp vuelve al setjmp sin correr destructores, y si entre los dos quedara vivo un objeto que
 // lo tiene, sería comportamiento indefinido (cppreference, std::longjmp). Por eso acá no vive
-// ninguno: el descompresor y la imagen son de quien llama, y entre el setjmp y libjpeg solo hay
-// referencias y números, que no cambian después del setjmp.
+// ninguno: el descompresor, su jmp_buf y la imagen son de quien llama, y entre el setjmp y libjpeg
+// solo hay referencias y números, que no cambian después del setjmp.
 bool Decompress(Decompressor& decompressor, std::span<const std::byte> jpeg, int maxSide, JpegImage& image)
 {
     jpeg_decompress_struct& info = decompressor.info;
-    if (setjmp(decompressor.errors.jump) != 0)
+    if (setjmp(decompressor.jump) != 0)
     {
         return false;
     }
@@ -179,7 +179,8 @@ Core::Expected<JpegImage, DataError> DecodeJpeg(std::span<const std::byte> jpeg,
         }
     }
 
-    Decompressor decompressor;
+    std::jmp_buf jump{};
+    Decompressor decompressor(jump);
     JpegImage image;
     if (!Decompress(decompressor, jpeg, maxSide, image))
     {

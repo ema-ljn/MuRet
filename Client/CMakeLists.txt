@@ -21,6 +21,7 @@ add_library(ClientLib STATIC
     src/Data/Terrain/TerrainMapping.cpp
     src/Data/Terrain/TerrainObjects.cpp
     src/Data/Text/TextTable.cpp
+    src/Data/Textures/OztTexture.cpp
 )
 target_include_directories(ClientLib PUBLIC src)
 target_compile_features(ClientLib PUBLIC cxx_std_20)
@@ -51,6 +52,7 @@ if(MURET_BUILD_TESTS)
         tests/data/GateTableTest.cpp
         tests/data/GoldenDataFilesTest.cpp
         tests/data/GoldenGateTableTest.cpp
+        tests/data/GoldenOztTextureTest.cpp
         tests/data/GoldenItemTableTest.cpp
         tests/data/GoldenSkillTableTest.cpp
         tests/data/GoldenTableChecksumTest.cpp
@@ -61,6 +63,7 @@ if(MURET_BUILD_TESTS)
         tests/data/GoldenTextTableTest.cpp
         tests/data/ItemTableTest.cpp
         tests/data/K16Test.cpp
+        tests/data/OztTextureTest.cpp
         tests/data/RecordTableTest.cpp
         tests/data/SkillTableTest.cpp
         tests/data/TableChecksumTest.cpp
@@ -69,6 +72,7 @@ if(MURET_BUILD_TESTS)
         tests/data/TerrainMappingTest.cpp
         tests/data/TerrainObjectsTest.cpp
         tests/data/TextTableTest.cpp
+        tests/data/TextureTest.cpp
         tests/data/Xor3Test.cpp
     )
     target_include_directories(ClientTests PRIVATE tests)

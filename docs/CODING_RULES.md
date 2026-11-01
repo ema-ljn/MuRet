@@ -116,13 +116,24 @@ namespace:
 
 - Cada dependencia, abstracción o patrón nuevo tiene un costo de mantenimiento: justificalo. Las
   dependencias entran por `vcpkg.json` y, si son de peso, con un ADR.
-- **No reconstruir la rueda.** Antes de escribir algo que no sea propio del MU (sus formatos, sus
-  cifrados, sus checksums), buscá una biblioteca en vcpkg y leé su documentación (Context7). Entra
-  solo si resuelve **ese** problema y lo hace como se espera: si hay fidelidad en juego, con la
-  misma salida que el original, y eso lo prueban los tests golden. Una que hace algo parecido no
-  alcanza: entonces se escribe. También se escribe si el camino de aprendizaje lo pone como
-  ejercicio (L-3, como el `Expected`) o si son pocas líneas y la dependencia cuesta más que ellas.
-  Cada PR dice qué bibliotecas se miraron y por qué entraron o no.
+- **No reconstruir la rueda.** Antes de escribir algo que no sea propio del MU, buscá una biblioteca
+  en vcpkg y leé su documentación (Context7). Lo propio del MU son sus formatos, sus checksums y sus
+  cifrados; si uno de ellos combina primitivas estándar (SHA-1, AES), lo propio es la combinación y
+  las primitivas se buscan.
+  - La biblioteca entra solo si resuelve **ese** problema y lo hace como se espera. Una que hace
+    algo parecido no alcanza (con el código propio es al revés: regla 4).
+  - Lo que se espera lo fija el research: la salida del original, salvo lo que MuRet corrige a
+    propósito y deja escrito. Lo prueban los tests golden, corridos con la carpeta de datos porque
+    CI no la tiene, y vectores chicos que sí corren en CI. Si una diferencia chica se acepta, lo
+    decide el roadmap (para JPEG, su pregunta 1).
+  - Se escribe a mano igual si el roadmap o el camino ya lo decidieron (D-3, D-5, D-C2; el
+    `Expected` es la excepción de L-3 porque C++20 no lo trae), o si son pocas líneas y la
+    dependencia cuesta más que ellas. Reabrir una de esas decisiones es un PR a esa decisión. Un
+    ejercicio del camino va en `labs/` y no alcanza para mantener una copia casera.
+  - Si la salida depende de la versión de la biblioteca, subirla es un PR propio que corre los
+    golden.
+  - El PR que suma una dependencia, o que escribe a mano algo que no es del MU, dice qué
+    bibliotecas se miraron y por qué entraron o no.
 - **Una sub-ola = un concepto = un PR chico.** Los diffs chicos se revisan mejor.
 - Si dudás de una decisión estructural, preguntá antes de construir encima.
 

@@ -18,9 +18,10 @@ MuRet **no incluye assets del juego**: el cliente lee los `Data\` de una instala
 
 ## Estado
 
-Ola CL0.3: `Main` abre una ventana SDL3 de 640×480 con OpenGL 3.3 core, la limpia de un color e
-imprime `GL_VERSION` y `GL_RENDERER`. Todavía no lee `Data\` ni se conecta. `ClientLib` ya resuelve
-rutas de `Data\` como Windows (sin distinguir mayúsculas), con sus tests.
+Ola CL1.1, en curso: `Main` abre una ventana SDL3 de 640×480 con OpenGL 3.3 core, la limpia de un color e
+imprime `GL_VERSION` y `GL_RENDERER`; todavía no se conecta. `ClientLib` resuelve rutas de `Data\`
+como Windows (sin distinguir mayúsculas) y tiene el XOR3 y el checksum de las tablas `.bmd`, con
+sus tests.
 
 ## Compilar y correr
 

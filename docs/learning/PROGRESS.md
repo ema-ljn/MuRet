@@ -22,9 +22,11 @@ solo lo lee.
   vcpkg en modo manifiesto y su baseline, loader de GL, tests salteables. Próxima: la CL1
   (formatos sin ventana), con su [plan](../superpowers/plans/2026-11-01-ola-cl1-formatos-sin-ventana.md)
   y la [guía de la CL1.0](ola-cl1.0-bytes-y-archivos.md). El 2026-11-01 pediste seguir con el
-  cliente: Claude escribe la CL1 como ejemplo trabajado, empezando por el `Expected` propio
-  (`Client/src/Core/Expected.h`). La parte de `labs/` de la CL1.0 (la `ByteView`, el jefe Q-C07) y
-  las actividades 1 a 6 de la guía quedan para después
+  cliente: Claude escribe la CL1 como ejemplo trabajado. Ya están el `Expected` propio
+  (`Client/src/Core/Expected.h`) y, de la CL1.1, `ByteReader`, XOR3 y el checksum de las tablas;
+  falta `Text.bmd`. La parte de `labs/` de la CL1.0 (la `ByteView`, el jefe Q-C07), las
+  actividades 1 a 6 de la guía y el checksum de dos dwords a mano (actividad 12) quedan para
+  después
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 
@@ -44,6 +46,8 @@ sesión, junto con los de repaso más viejo.
 | enlace externo e interno, `inline` y la ODR | 0.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
 | bibliotecas estáticas y dinámicas, imports del PE | 0.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
 | errores como valor: `Expected`, `std::variant` y `[[nodiscard]]` | CL1.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
+| little-endian y enteros armados con desplazamientos (`ByteReader`) | CL1.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
+| XOR que se deshace solo y aritmética de 32 bits que da la vuelta (XOR3, checksum) | CL1.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
 
 ## Preguntas para olas futuras
 

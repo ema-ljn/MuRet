@@ -10,6 +10,7 @@ namespace
 {
 
 constexpr const char* GoldenDirVariable = "MURET_CLIENT_GOLDEN_DIR";
+constexpr const char* MemoryDirVariable = "MURET_CLIENT_MEMORY_DIR";
 
 std::optional<std::string> ReadEnvironment(const char* name)
 {
@@ -63,19 +64,31 @@ std::optional<std::filesystem::path> GoldenDir()
     return GoldenDirFromValue(ReadEnvironment(GoldenDirVariable));
 }
 
-void GoldenDataTest::SetUp()
+namespace
 {
-    const std::optional<std::filesystem::path> dir = GoldenDir();
-    const GoldenDirState state = CheckGoldenDir(dir);
+
+// La regla, para cualquiera de las dos variables. GTEST_SKIP() y FAIL() salen de esta función, y
+// GoogleTest no corre el cuerpo de un test que quedó salteado o fallado en su SetUp().
+void RequireDirectory(const char* variable, std::filesystem::path& dir)
+{
+    const std::optional<std::filesystem::path> value = GoldenDirFromValue(ReadEnvironment(variable));
+    const GoldenDirState state = CheckGoldenDir(value);
     if (state == GoldenDirState::NotSet)
     {
-        GTEST_SKIP() << GoldenDirVariable << " no está definida: test salteado";
+        GTEST_SKIP() << variable << " no está definida o está vacía: test salteado";
     }
     if (state == GoldenDirState::Missing)
     {
-        FAIL() << GoldenDirVariable << " apunta a " << *dir << ", que no es una carpeta";
+        FAIL() << variable << " apunta a " << *value << ", que no es una carpeta";
     }
-    dataRoot = *dir;
+    dir = *value;
+}
+
+} // namespace
+
+void GoldenDataTest::SetUp()
+{
+    RequireDirectory(GoldenDirVariable, dataRoot);
 }
 
 std::optional<std::filesystem::path> GoldenDataTest::DataFile(std::string_view originalPath) const
@@ -90,6 +103,28 @@ std::optional<std::filesystem::path> GoldenDataTest::DataFile(std::string_view o
     else if (!path)
     {
         ADD_FAILURE() << "falta " << originalPath << " en la carpeta golden " << dataRoot;
+    }
+    return path;
+}
+
+void MemoryDumpTest::SetUp()
+{
+    GoldenDataTest::SetUp();
+    if (IsSkipped() || HasFatalFailure())
+    {
+        return;
+    }
+    RequireDirectory(MemoryDirVariable, dumpRoot);
+}
+
+std::optional<std::filesystem::path> MemoryDumpTest::DumpFile(std::string_view name) const
+{
+    std::filesystem::path path = dumpRoot / name;
+    std::error_code error;
+    if (!std::filesystem::is_regular_file(path, error))
+    {
+        ADD_FAILURE() << "falta " << name << " en la carpeta de volcados " << dumpRoot;
+        return std::nullopt;
     }
     return path;
 }

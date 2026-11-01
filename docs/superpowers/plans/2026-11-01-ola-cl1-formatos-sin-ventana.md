@@ -50,14 +50,17 @@ para la CL1.0. De la CL1.1 en adelante, la sección de cada sub-ola de este plan
 2. **Qué hace un cargador con un archivo corto.** El original hace un `fread` de tamaño fijo y no
    mira el retorno: un `Text.bmd` corto deja en la tabla lo que había en el heap.
    *Recomendación:* error de tamaño sin tocar nada, como hace `mu-client`, y los bytes que sobran
-   se ignoran, como en el original. Se decide en la CL1.1.
+   se ignoran, como en el original. **Se tomó la recomendación en la CL1.1** (ejemplo trabajado,
+   2026-11-01): `DataError::FileTooShort`. Si preferís otra cosa, se cambia en su PR.
 3. **¿Los volcados de memoria del original son una segunda carpeta golden?** `mu-golden` (en el
    repo de research, fuera de Git) tiene las tablas tal como quedaron en la memoria del `main.exe`
    original (`memoria-cliente/2026-10-09-devias/s31_text.bin` y siguientes). Son el oráculo más
    fuerte: comparar contra el archivo solo prueba que el XOR es involutivo. Las tablas del
    laboratorio (`Gate.bmd` y las de `Data\Local\`) tienen el mismo SHA-256 que las de
    `mu-golden`, así que los volcados valen para ellas. *Recomendación:* una variable `MURET_CLIENT_MEMORY_DIR` con la misma
-   regla que la golden (sin variable se saltea, incompleta falla). Se decide en la CL1.1.
+   regla que la golden (sin variable se saltea, incompleta falla). **Se tomó la recomendación en
+   la CL1.1**: `MemoryDumpTest` en `Client/tests/support/GoldenDir.h`. Va solo en el entorno,
+   porque `gtest_discover_tests` no pasa dos variables en `ENVIRONMENT`.
 4. **Biblioteca JPEG (CL1.4).** Es la pregunta 1 del roadmap y se decide al llegar.
 
 ---
@@ -122,11 +125,15 @@ checksum con aritmética de 32 bits que da la vuelta, y una tabla de registros d
 | checksum | dentro de los cargadores de `Item` y `Skill` | `acc = key << 9`; por cada dword *i* (little-endian): XOR o suma según su paridad; si `i % 4 == 0`, `acc ^= (acc + key) >> ((i & 7) + 1)`. En `Item` (`key = 0xE2F1`) van con XOR los dwords impares; en `Skill` (`0x5A18`), los pares |
 | `Text.bmd` | `0x5495e0` / `0x549700` | `0x96000` bytes = 2048 registros de 300, sin cabecera, contador ni checksum, con XOR3 de punta a punta. El texto `i` está en `300 * i`; el registro 7 no tiene `\0` (Q-C07) |
 
-Dos cosas del original que no se copian:
+Tres cosas del original que no se copian:
 - Usa el texto como formato de `sprintf` (`FUN_00633300`). MuRet nunca pasa un texto de datos
   como formato.
+- Lee el texto 7 como cadena de C: como su registro no tiene `\0`, sigue en el registro 8 (519
+  bytes con el archivo real). MuRet corta en los 300 bytes del registro (Q-C07).
 - Si falta el archivo, muestra un `MessageBox` y sigue con la tabla en cero (Q-C12). En MuRet
-  vuelve un error.
+  vuelve un error. Los cargadores de la CL1 reciben bytes y no abren archivos, así que Q-C12 lo
+  cumple, con su test, el arranque que lee las tablas del disco: si falta una, el cliente no
+  arranca. Llega a más tardar con la primera escena (CL5.4).
 
 **Archivos:**
 - Crear: `Client/src/Data/ByteReader.h/.cpp`: la `ByteView` de la CL1.0 llevada a `ClientLib`
@@ -139,10 +146,11 @@ Dos cosas del original que no se copian:
 - Crear: `Client/tests/support/` un helper que lee los bytes de un archivo golden.
 - Modificar: `Client/CMakeLists.txt`.
 
-Los pasos 1 a 4 los hizo Claude como ejemplo trabajado (2026-11-01), después de que pidieras
-seguir con el cliente, y van en un PR con `ByteReader`; `Text.bmd` va en el siguiente. Queda tuyo
-el test del checksum de dos dwords (paso 3b, actividad 12 de la guía). `ByteReader` se escribió
-directo en `ClientLib`; la `ByteView` de `labs/` (CL1.0) queda para comparar las dos.
+Los pasos 1 a 8, menos el 3b, los hizo Claude como ejemplo trabajado (2026-11-01), después de que
+pidieras seguir con el cliente: los 1 a 4 fueron en un PR con `ByteReader` (#16), y `Text.bmd` en
+el siguiente. Queda tuyo el test del checksum de dos dwords (paso 3b, actividad 12 de la guía).
+`ByteReader` se escribió directo en `ClientLib`; la `ByteView` de `labs/` (CL1.0) queda para
+comparar las dos.
 
 - [x] **Paso 1:** los tests de XOR3, con vectores escritos a mano:
   - `00 00 00 00` da `FC CF AB FC`;
@@ -161,21 +169,23 @@ directo en `ClientLib`; la `ByteView` de `labs/` (CL1.0) queda para comparar las
 - [x] **Paso 4:** `TableChecksum(bytes, key, paridad)`. La paridad es un `enum class`,
   no un `bool`. Se usa recién en la CL1.2, pero va acá porque es parte de cómo se leen las
   tablas.
-- [ ] **Paso 5 (Emanuel, `TODO(human)`):** los tests de `TextTable` con un archivo sintético de
-  `0x96000` bytes:
+- [x] **Paso 5:** los tests de `TextTable` con un archivo sintético de `0x96000` bytes:
   - el texto 0 y el 2047;
   - un registro de 300 bytes sin `\0` (Q-C07);
   - un archivo corto (pregunta 2);
   - un índice fuera de rango: ¿qué devuelve `Text(2048)`? En el original, un índice que
     depende del servidor puede pasarse de 2047 (`FUN_004da070`, caso 7).
-- [ ] **Paso 6 (Emanuel):** `LoadTextTable(std::span<const std::byte>)` devuelve un
+- [x] **Paso 6:** `LoadTextTable(std::span<const std::byte>)` devuelve un
   `Expected<TextTable, DataError>`, y `TextTable::Text(index)` devuelve un `std::string_view` de
-  hasta 300 bytes, cortado en el primer `\0` si lo hay. Los textos quedan como bytes: pasarlos a
-  UTF-8 para dibujarlos es de la CL5.3.
-- [ ] **Paso 7 (Claude, andamiaje si lo pedís):** el test golden. `Data\Local\Text.bmd` mide
-  614.400 bytes, carga, y su registro 7 ocupa 300 bytes sin `\0`. Si la pregunta 3 sale que sí,
-  además la tabla es igual byte a byte a `s31_text.bin`.
-- [ ] **Paso 8:** verificar:
+  hasta 300 bytes, cortado en el primer `\0` si lo hay. Con un índice de 2048 o más devuelve
+  `std::nullopt`: el texto va en un `std::optional`. Sobre una tabla temporal no compila, porque el
+  texto colgaría de ella. Los textos quedan como bytes: pasarlos a UTF-8 para dibujarlos es de la
+  CL5.3.
+- [x] **Paso 7:** el test golden. `Data\Local\Text.bmd` mide 614.400 bytes, carga, y su registro 7
+  ocupa 300 bytes sin `\0`. La pregunta 3 salió que sí: además, cada texto (hasta su `\0`, que es
+  lo que muestra `Text()`) es igual al que tenía en memoria el original en `s31_text.bin`.
+  Comparado aparte, byte a byte, el `Text.bmd` descifrado es igual al volcado entero.
+- [x] **Paso 8:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "ByteReader|Xor3|TableChecksum|TextTable"
   ```

@@ -18,10 +18,10 @@ MuRet **no incluye assets del juego**: el cliente lee los `Data\` de una instala
 
 ## Estado
 
-Ola CL1.1, en curso: `Main` abre una ventana SDL3 de 640×480 con OpenGL 3.3 core, la limpia de un color e
+Ola CL1.1: `Main` abre una ventana SDL3 de 640×480 con OpenGL 3.3 core, la limpia de un color e
 imprime `GL_VERSION` y `GL_RENDERER`; todavía no se conecta. `ClientLib` resuelve rutas de `Data\`
-como Windows (sin distinguir mayúsculas) y tiene el XOR3 y el checksum de las tablas `.bmd`, con
-sus tests.
+como Windows (sin distinguir mayúsculas) y lee `Text.bmd` desde sus bytes, con el XOR3 y el
+checksum de las tablas `.bmd`.
 
 ## Compilar y correr
 
@@ -56,6 +56,15 @@ cmake --preset linux-x64-debug -DMURET_CLIENT_GOLDEN_DIR=/ruta/a/Data   # queda 
 
 Sin la variable, se saltean (`Skipped`). Si apunta a una carpeta que no existe, o le falta el
 archivo que el test pide, fallan.
+
+Algunos además comparan con la memoria del `main.exe` original, con las tablas ya cargadas: los
+volcados `s31_*.bin` de `client-research/mu-golden/memoria-cliente/2026-10-09-devias`, en el repo
+de research (fuera de Git). Necesitan las dos carpetas, con la misma regla, y la de los volcados va
+solo en el entorno:
+
+```bash
+MURET_CLIENT_GOLDEN_DIR=/ruta/a/Data MURET_CLIENT_MEMORY_DIR=/ruta/a/2026-10-09-devias ctest --preset linux-x64-debug
+```
 
 ## Estructura (a medida que avanzan las olas)
 

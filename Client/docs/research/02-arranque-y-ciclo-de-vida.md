@@ -71,7 +71,7 @@ DAT_006d5ee4 += GetTickCount() − inicio
 
 **Verificado** en las dos escenas, en
 [mu-online-reverse-lab#45](https://github.com/EmaNLJN/mu-online-reverse-lab/pull/45)
-(`graphics-01/`, commits `16dc0221`, `ddcdd64` y `61012a80`). Un `opengl32.dll` proxy que solo toma
+(`graphics-01/`, commits `16dc0221`, `ddcdd64`, `61012a80` y `cb575444`). Un `opengl32.dll` proxy que solo toma
 `QueryPerformanceCounter` antes y después de cada `wglSwapBuffers` (0,12 a 0,14 ms por llamada)
 registró, con la escena quieta y sin carteles:
 
@@ -91,20 +91,32 @@ registró, con la escena quieta y sin carteles:
   0,06), y la fase no se corre entre los cuatro cuartos de cada serie. Asignando cada swap a su
   tick, todos caen sobre una sola grilla de 15,62500 ms, con una desviación de 0,7 a 0,8 ms. Un
   reloj de QPC no tendría por qué alinear los frames así; uno de ticks de 15,625 ms, sí.
+- **La grilla es la del tick, no un período de 46,875 ms.** Con 46,875 ms la concentración baja a
+  0,75 en la selección y a 0,89 en Lorencia: los pocos frames de 2, 4 o 5 ticks corren la fase de
+  46,875 (la selección gana 2 ticks en total y Lorencia 1), pero no la de 15,625. Después de cada
+  uno, la serie sigue enganchada al tick.
 - **Un swap tarde no arrastra al siguiente.** La mayoría de los intervalos fuera de los 3 ticks
   vienen de a pares: uno largo (54 a 61 ms) y enseguida uno corto (34 a 39 ms), que suman entre 91
   y 96 ms, dos frames de 46,875 (7 pares en la selección, 2 en Lorencia). El frame que viene
   después vuelve a la grilla: el plazo lo pone el reloj, no el swap anterior, como en la espera
-  con `GetTickCount`.
+  con `GetTickCount`. El único frame de 5 ticks (83,5 ms, en la selección) viene de un
+  `wglSwapBuffers` que tardó 74 ms en volver: un corte de la VM o del driver, no del juego.
 - **El ritmo no cambia con la escena ni con el tiempo.** El CSV de Lorencia tiene la sesión
   entera, 31.331 swaps en 24,5 minutos: cada minuto da 21,2 a 21,3 FPS (el primero 20,8, por el
   arranque), con solo 6 frames de más de 200 ms (cuatro al arrancar y dos en el medio).
-- Las cifras de los JSON del laboratorio se reprodujeron todas desde los CSV, con dos matices. Los
-  JSON dan 21,34 FPS porque dividen las filas por la duración; con los intervalos son 21,33, lo
-  mismo que da su intervalo medio. Y el 95,87 % a ±2 ms de la selección (3.365) cuenta la distancia
-  a cualquier múltiplo de la grilla: suma un intervalo de 61,27 ms, a 1,23 ms de los 4 ticks. A
-  ±2 ms de 46,875 son 3.364 (95,84 %). En Lorencia las dos cuentas dan 3.514.
-- La medición anterior (20,87 FPS con GLIntercept, `FPS-MEASURE-RESULT.json`) incluye la carga y
+- **VSync no interviene en esta VM.** Los swaps no se alinean con ninguna frecuencia de pantalla
+  común: la concentración de fase da 0,03 o menos con 60, 59,94, 70, 75, 85, 100 y 120 Hz (contra
+  0,95 con 15,625 ms), y `wglSwapBuffers` vuelve en 0,10 a 0,11 ms de mediana (p99 0,3 a 0,4 ms), sin esperar
+  ningún retrazo vertical. En el binario `c32bbd5f…`, `wglSwapIntervalEXT` y
+  `wglGetSwapIntervalEXT` solo aparecen en dos stubs de carga perezosa (`0x69e830` y `0x69e860`:
+  piden la función a `wglGetProcAddress` y la guardan en `0x6dbb84` y `0x6dbb88`), y nada en el
+  código llama esos punteros. Coincide con `VSYNC-NOTES.md` del laboratorio. Que un driver fuerce
+  VSync desde afuera es otra historia, sin medir.
+- Las cifras de los JSON del laboratorio se reprodujeron todas desde los CSV. Desde `cb575444` dan
+  21,33 FPS (intervalos sobre duración) y separan los dos conteos a ±2 ms de la selección: 3.364 a
+  46,875 ms y 3.365 al tick más cercano, porque un intervalo de 61,27 ms es de 4 ticks. En Lorencia
+  las dos cuentas dan 3.514.
+- La medición anterior (unos 20,9 FPS con GLIntercept, `FPS-MEASURE-RESULT.json`) incluye la carga y
   el frenado de GLIntercept; `FPS-SELECTION-RESULT.json` quedó inválida por un cartel de
   desconexión.
 - Lo que el swap no puede probar: que la espera sea la de `0x637700` y los 7 pasos cada 6 frames.

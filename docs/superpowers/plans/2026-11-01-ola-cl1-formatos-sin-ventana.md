@@ -43,7 +43,8 @@ para la CL1.0. De la CL1.1 en adelante, la sección de cada sub-ola de este plan
 1. **Cómo se devuelve un error.** El roadmap decía `std::expected`, que es de C++23, y MuRet
    compila en C++20. **Decidido (Emanuel, 2026-11-01): un `Expected<T, E>` propio**, como pide L-3
    del [camino](../specs/2026-10-28-camino-de-aprendizaje-design.md): se construye lo que el
-   estándar todavía no trae. Lo escribís vos en la CL1.0 y lo usan todos los cargadores. Cuando el
+   estándar todavía no trae. Lo usan todos los cargadores. Iba a ser tuyo en la CL1.0, pero el
+   2026-11-01 pediste seguir con el cliente y lo escribió Claude como ejemplo trabajado. Cuando el
    servidor lo necesite (ola 5), se decide si pasa a un `Common/` compartido (pregunta 2 del
    roadmap del cliente).
 2. **Qué hace un cargador con un archivo corto.** El original hace un `fread` de tamaño fijo y no
@@ -90,11 +91,15 @@ entera, y suma lo que necesita la CL1: el `Expected`.
 - [ ] **Paso 3 (Emanuel):** `ByteView` (puntero y largo, con acceso que chequea los límites) y las
   lecturas con desplazamientos de bits, sin `reinterpret_cast`. Después, la misma lectura con
   `std::span`, `std::bit_cast` y `std::endian`, y comparar (guía, actividad 8).
-- [ ] **Paso 4 (Emanuel, `TODO(human)`):** `Client::Core::Expected<T, E>`, primero sus tests:
+- [x] **Paso 4 (Claude, ejemplo trabajado):** `Client::Core::Expected<T, E>`, primero sus tests:
   - guarda un valor o un error, nunca los dos;
   - pedir el valor de uno con error es un error de quien llama, y el test lo deja escrito.
 
-  La interfaz la decidís vos (guía, actividad 10).
+  Las decisiones de la actividad 10 de la guía (los nombres, T y E del mismo tipo) están
+  explicadas en el comentario de `Expected.h`. Te queda contarlas con tus palabras.
+
+Los pasos 1 a 3 y 5 (la `ByteView` y el jefe en `labs/`) y las actividades 1 a 6 de la guía
+quedan para después: el 2026-11-01 elegiste seguir con el cliente.
 - [ ] **Paso 5 (Emanuel, jefe):** Q-C07. El registro 7 de `Text.bmd` ocupa sus 300 bytes sin un
   `\0`. Escribí el test que muestra que leerlo como una cadena de C sigue en el registro 8, y que
   con un largo fijo no pasa. Con un buffer que termina justo ahí, ASan lo marca.

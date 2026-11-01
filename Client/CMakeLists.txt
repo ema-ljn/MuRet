@@ -29,6 +29,7 @@ if(MURET_BUILD_TESTS)
 
     add_executable(ClientTests
         tests/app/CommandLineTest.cpp
+        tests/core/ExpectedTest.cpp
         tests/support/GoldenDir.cpp
         tests/support/GoldenDirTest.cpp
         tests/data/DataPathTest.cpp

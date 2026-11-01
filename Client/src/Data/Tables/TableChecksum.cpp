@@ -42,4 +42,14 @@ std::uint32_t TableChecksum(std::span<const std::byte> bytes, std::uint32_t key,
     return accumulator;
 }
 
+std::optional<std::uint32_t> StoredChecksum(std::span<const std::byte> file, std::size_t recordsSize)
+{
+    if (file.size() < recordsSize)
+    {
+        return std::nullopt;
+    }
+    ByteReader trailer(file.subspan(recordsSize));
+    return trailer.ReadU32Le();
+}
+
 } // namespace Client::Data::Tables

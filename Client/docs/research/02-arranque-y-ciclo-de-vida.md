@@ -82,13 +82,20 @@ personaje, sin carteles:
   (1 sería perfecto; 15 ms o 16 ms dan menos de 0,04), y la fase no se corre entre los cuatro
   cuartos de la serie. Un reloj de QPC no tendría por qué alinear los frames así; uno de ticks de
   15,625 ms, sí.
+- **Contado intervalo por intervalo** (`FPS-GRID-ANALYSIS.json`, commit `ddcdd64`): el 99,57 % de
+  los intervalos cae en el tercer tick de 15,625 ms, el 79,23 % queda a ±1 ms de 46,875 ms y el
+  95,87 % a ±2 ms, con una mediana del residuo de 0,507 ms. Reproducido aparte desde el mismo CSV:
+  3.495 de 3.510 en el tercer tick, 2.781 a ±1 ms y 3.364 a ±2 ms (uno menos que el informe).
 - La medición anterior (20,87 FPS con GLIntercept, `FPS-MEASURE-RESULT.json`) incluye la carga y
   el frenado de GLIntercept; `FPS-SELECTION-RESULT.json` quedó inválida por un cartel de
   desconexión.
 
-Lo que falta ([08](08-pendientes.md), P-C03): qué partes de la lógica dependen del paso
-(animaciones, movimiento, cooldowns) para desacoplar el dibujo sin cambiar el juego, y una medición
-igual en Lorencia (la de esta captura se cortó por una desconexión). El orquestador `0x63945d`
+La animación de los modelos avanza por paso, no por frame: en las trazas de GL el frame de la
+animación salta de a 0,263 keys por paso de 40 ms (*inferido* con tres modelos, ver
+[06](06-render-escenas-y-ui.md#cuánto-avanza-la-animación)). Lo que falta
+([08](08-pendientes.md), P-C03): qué más depende del paso (movimiento, cooldowns) para desacoplar
+el dibujo sin cambiar el juego, y una medición igual en Lorencia (la de esta captura se cortó por
+una desconexión). El orquestador `0x63945d`
 (7 KB) sigue sin decompilar en detalle.
 
 Cada frame termina con `glFlush` y `wglSwapBuffers` (2.375 de cada uno en la sesión) y empieza con

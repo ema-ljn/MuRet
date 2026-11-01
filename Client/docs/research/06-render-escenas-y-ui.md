@@ -158,8 +158,8 @@ slot de Q-C19; sin diferencias en geometría, UV, textura ni alfa):
 
 ### Modelos y objetos
 
-**Verificado en lo que llega a GL**; cómo se calcula (huesos, keys, interpolación) sigue sin leer
-(P-C01):
+**Verificado** contra las trazas, incluido el skinning del personaje; lo que no dicen las trazas es
+en qué funciones del binario se hace (P-C01):
 
 - **Todo modelo llega en coordenadas de mundo.** Ningún bloque de `GL_TRIANGLES` tiene una matriz
   propia encima de la cámara (185 de 185 en Lorencia, 285 de 285 en la selección): el cliente
@@ -173,6 +173,62 @@ slot de Q-C19; sin diferencias en geometría, UV, textura ni alfa):
 - **La luz es un color por vértice** (`glColor3fv`), sin normales: en el personaje, un color por
   malla (por ejemplo `0,75 0,65 0,5`). Aparecen colores mayores que 1 (1,34): el GL de función fija
   los recorta a 1 antes de rasterizar.
+
+#### El personaje, vértice a vértice
+
+El formato y la matemática del skinning están en [05](05-formatos-de-datos.md#modelos-bmd). Contra
+la traza:
+
+- **Qué malla es cada bloque.** Cada triángulo de una malla manda sus tres UV en orden, así que la
+  secuencia de UV de un bloque identifica la malla del `.bmd`. En las dos escenas el personaje
+  lleva `HelmMale17`, `ArmorMale17`, `PantMale02`, `GloveMale17` y `BootMale17`, con `Sword17` y
+  `Helper02` como objetos aparte. En Lorencia hay además un guardia armado con partes de jugador
+  (`HelmMale10`, `MaskHelmMale10`, `ArmorMale10`, `PantMale10`, `GloveMale10`, `BootMale10` y la
+  lanza `Spear08`), y el pase 3D de 1° de la UI dibuja `Potion04` y `Potion07`.
+- **Skinning rígido.** Ajustando cada hueso por separado, los vértices del `.bmd` caen sobre los de
+  la traza a menos de 0,001 unidades con escala 0,9: un hueso por vértice, sin pesos.
+- **La pose sale de las acciones de `Player.bmd`**, con el frame fraccionario:
+
+  | Escena | Modelo | Acción (keys) | Frame en los 5 swaps | Error máximo |
+  | --- | --- | --- | --- | --- |
+  | Selección | personaje | 3 (7) | 1,737 · 3,320 · 4,896 · 6,739 · 1,578 | 0,015 |
+  | Lorencia | personaje | 1 (6) | 1,820 · 1,411 · 0,731 · 0,042 · 5,358 | 0,058 sin la cabeza |
+  | Lorencia | guardia | 1 (6) | 0,675 · 0,279 · 5,583 · 4,908 · 4,238 | 0,047 sin la cabeza |
+
+  El objeto solo agrega la escala 0,9, un giro alrededor de Z (100° en la selección; 116° el
+  personaje y 90° el guardia en Lorencia) y su posición. En Lorencia los dos están a z = 165, la
+  altura del terreno en esa zona (byte 110 × 1,5).
+- **La cabeza gira aparte.** En Lorencia el hueso `Bip01 Head` (20) no sigue la animación: queda a
+  0,5 unidades en el personaje y a 4,6 en el guardia, con el resto del cuerpo a menos de 0,06. Es
+  una rotación extra encima de la animación, probablemente hacia donde mira (*inferido*). En la
+  selección la cabeza sigue la animación.
+- **Pases extra de brillo.** Las mallas `Male17` y la espada se dibujan tres veces más, con las
+  mismas posiciones y UV que no están en el archivo (texturas GL 141, 115 y 120); las del guardia y
+  las pociones, una vez más (la 120). Parece el brillo de los items (tipo cromo o metal),
+  *inferido*: falta leer cómo se calculan esas UV y de qué depende cuántos pases van.
+
+#### Cuánto avanza la animación
+
+*Inferido*, con tres modelos que coinciden: **el frame de la animación avanza un tanto fijo por
+paso de lógica de 40 ms (unas 0,263 keys), no por frame dibujado.**
+
+- En la selección, entre swaps el frame salta 1,583, 1,577, 1,842 y 1,839 keys: dos valores, no
+  cuatro. Encajan con 0,263 keys por paso y 6, 6, 7 y 7 pasos por frame. En la misma traza, 11 fans
+  de la textura GL 1153 corren su U con el tiempo real (0,0648, 0,0665, 0,0703 y 0,068 por frame:
+  cuatro valores distintos), y las dos cosas cierran juntas: con unos 0,26 U por segundo los
+  frames duran 250, 257, 271 y 262 ms (GLIntercept frena cada frame), y el acumulador de 40 ms de
+  [02](02-arranque-y-ciclo-de-vida.md) da justo 6, 6, 7 y 7 pasos. Con la mitad de avance y el
+  doble de pasos (12, 12, 14, 14) no hay duración que cierre.
+- En Lorencia, el personaje y el guardia saltan lo mismo en cada frame: 5,59 · 5,32 · 5,31 · 5,32
+  keys (módulo 6) el personaje y 5,60 · 5,30 · 5,33 · 5,33 el guardia. La diferencia entre el
+  primer salto y los otros (0,27) es un paso más, y todo encaja con 0,263 por paso y 44, 43, 43 y
+  43 pasos por frame.
+- Lo que no cierra: 43 pasos son 1,7 s por frame, siete veces lo de la selección con la mitad de
+  llamadas de GL. La traza no tiene tiempos (`TimerLog` estaba apagado) para comprobarlo.
+- En el guardia, el frame f y el 6 − f dan casi el mismo error (sobre sus vértices la acción 1 es
+  casi simétrica); en la tabla va la rama que sigue la secuencia. En el personaje no hay duda: en
+  cuatro de los cinco frames la otra rama queda a más de 4 unidades (en el quinto, cerca de la key
+  0, a 0,16).
 
 ### Texto
 
@@ -212,13 +268,15 @@ de texto (`0x468320`) incluye el IME coreano. Verificado aparte: el asignador `0
 
 ## Lo que no se sabe
 
-- **Skinning y animación** (P-C01): las trazas dan la salida (vértices de mundo por frame), no la
-  entrada (qué acción y qué frame de la animación). Las 100 capturas de pantalla de la selección
-  (`graphics-01/CHARACTER-ANIMATION-NOTES.md`, VMware MKS, unas 3,7 por segundo, privadas)
-  muestran que cambian la pose y el arma del personaje, el brillo del portal y las partículas, con
-  la UI quieta; no están sincronizadas con la traza, así que no dicen qué frame es cuál. El render de modelos (`0x53c6a0`, tabla de
-  0xA10 bytes con un `switch` de tipo) está solo en sus dispatchers.
-- Qué dibuja el pase 3D de 1° dentro de la UI y qué es cada bloque de `GL_QUADS` (efectos).
+- **Modelos, en el binario** (P-C01): el skinning, la pose y el frame de cada modelo ya se
+  reprodujeron contra la traza (arriba), pero el render de modelos (`0x53c6a0`, tabla de 0xA10
+  bytes con un `switch` de tipo) está leído solo en sus dispatchers. Falta encontrar ahí el avance
+  del frame (las 0,263 keys por paso, de dónde salen y si cambian por acción), la rotación extra de
+  la cabeza y cómo se calculan las UV de los pases de brillo. Las 100 capturas de pantalla de la
+  selección (`graphics-01/CHARACTER-ANIMATION-NOTES.md`, VMware MKS, privadas) muestran que la pose
+  y el arma cambian con la UI quieta; no están sincronizadas con la traza.
+- Qué es cada bloque de `GL_QUADS` (efectos) y el resto de los `GL_TRIANGLES` que no son del
+  personaje: la búsqueda por UV se hizo solo contra `player\` e `Item\`.
 - Efectos: solo la estela (`0x52e590`).
 - El dibujo píxel a píxel de cada widget (dentro de `0x62db60`): las trazas no tienen imagen.
 - Para qué usa el juego el caché de `0x466000`, si estas escenas no lo tocan.
@@ -238,7 +296,8 @@ Ver [08](08-pendientes.md).
 | Ventanas como clases con vtable de 22 métodos | `UI::Window` con una interfaz chica (dibujar, evento) y una clase por ventana; el administrador ordena por prioridad | CL8 |
 | Cámara con seis globales, far × 1,4 en el mundo | `Camera` como valor, testeable: matrices de vista y proyección comparadas con las de las trazas | CL7 |
 | Terreno celda por celda, dos pasadas por celda | una malla por bloque de 4 × 4 con las mismas reglas de capa, alfa y luz, y el mismo orden | CL7 |
-| Modelos transformados en la CPU | skinning en la CPU primero (se compara vértice a vértice con el original); pasarlo a la GPU queda para después, si hace falta | CL6 |
+| Modelos transformados en la CPU, un hueso por vértice, pose de `Player.bmd` | skinning en la CPU primero (se compara vértice a vértice con el original); pasarlo a la GPU queda para después, si hace falta | CL6 |
+| La animación avanza por paso de lógica, no por frame | el frame de la animación se avanza en el paso de 40 ms; el dibujo interpola entre el frame del paso anterior y el del actual (D-C4), y el modo fiel dibuja el del paso, sin interpolar | CL6 |
 
 Tests que fija:
 
@@ -249,4 +308,9 @@ Tests que fija:
   arriba, la proyección y la vista de MuRet contra las de las trazas (CL7).
 - El terreno de Lorencia (golden): para cada celda de la traza, posiciones, UV, color, alfa,
   textura y orden, con los datos de `Data\World1` (CL7).
+- El skinning (golden): la acción 3 de `Player.bmd` en el frame 3,3197, con las partes del
+  personaje de la selección, la escala 0,9 y el giro de 100°, da los vértices del segundo frame de
+  la traza a menos de 0,01 (CL6).
+- El avance de la animación con un reloj falso: 0,263 keys por paso de 40 ms, el mismo con 1, 25 o
+  240 frames dibujados por segundo, y la vuelta a la key 0 después de la última (CL6).
 - El asignador de slots: los casos de `test_texture_slots` de `mu-client` (CL5).

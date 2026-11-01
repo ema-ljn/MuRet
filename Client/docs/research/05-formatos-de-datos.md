@@ -103,10 +103,39 @@ por acción:  n_keys (int16), lock_positions (u8), y si lock: 12 B por key
 por hueso:   dummy (u8); si 0: nombre[32] + padre (int16) + 24 B por key de cada acción
 ```
 
-Verificado el **tamaño** de cada parte (el recorrido cierra exacto en los 1.962 archivos). El
-**significado** de los campos (qué son los 24 B por key, cómo se interpola, cómo se aplica el
-skinning) está *inferido* de la estructura y sigue sin leerse en el render de `main.exe`
-(`coverage-main.md` §7, hito H3; ver [08](08-pendientes.md)).
+Verificado el **tamaño** de cada parte (el recorrido cierra exacto en los 1.962 archivos) y,
+contra las trazas de OpenGL del original ([06](06-render-escenas-y-ui.md)), el **significado** de
+lo que hace falta para dibujar un personaje animado:
+
+```text
+vértice    hueso (int16) + relleno (int16) + posición float[3] en el espacio de ese hueso
+UV         u, v (float)
+triángulo  tipo (u8; 3 en todas las mallas del personaje) + relleno; índices int16 de 4 vértices
+           en +2, de 4 normales en +10 y de 4 UV en +18; el resto de los 64 B, sin leer
+hueso      por cada acción: n_keys posiciones float[3] y después n_keys rotaciones float[3]
+           (ángulos de Euler en radianes); los dos, relativos al padre; padre −1 en la raíz
+```
+
+- **Cada vértice cuelga de un solo hueso**, rígido: no hay pesos.
+- La pose de un hueso es su rotación (los tres ángulos pasados a cuaternión como hace
+  `AngleQuaternion` de Quake/Half-Life: Rz · Ry · Rx) y su posición, compuestas con las del padre.
+- **Entre una key y la siguiente se interpola** con el frame fraccionario: la posición lineal y la
+  rotación por cuaternión (slerp y nlerp no se distinguen en la traza; interpolar los ángulos da
+  peor). Después de la última key se vuelve a la primera.
+- **El esqueleto y las mallas van en archivos distintos.** `Player.bmd` es el esqueleto con las
+  animaciones: 60 huesos (10 dummy), 205 acciones y ninguna malla. Las partes (`HelmMale17.bmd`,
+  `ArmorMale17.bmd`, `PantMale02.bmd`…) traen las mallas, y el hueso de cada vértice es un índice
+  en los huesos de `Player.bmd`: la pose sale de las acciones del esqueleto. Para qué traen las
+  partes su propia copia de 56 huesos con una acción, sin saber.
+- Sin contrastar todavía: las normales (la luz llega a GL como un color por vértice), el resto de
+  los 64 B del triángulo, `lock_positions` con sus 12 B por key, y los huesos dummy.
+
+Cómo se verificó: cada bloque de `GL_TRIANGLES` de las trazas se emparejó con la malla que manda la
+misma secuencia de UV (cada triángulo, sus tres UV en orden); con esa malla se probaron las 205
+acciones de `Player.bmd` cada 0,25 frame, se afinó la mejor y solo se ajustaron la escala, una
+rotación y una posición del objeto. El personaje de la selección queda a menos de 0,016 unidades
+de la traza en los 5 frames (una celda del mapa mide 100). El detalle está en
+[06](06-render-escenas-y-ui.md) y lo que falta en [08](08-pendientes.md) (P-C01).
 
 ## Audio
 
@@ -131,6 +160,7 @@ por el protocolo (`divergencias-cliente-servidor.md`).
 | `MessageBox` + `WM_DESTROY` si falta un archivo | error explícito al que llama (`std::expected`), sin UI en la capa de datos | CL1 |
 | libjpeg 6b estática | una biblioteca JPEG del sistema o de vcpkg; los tests golden dicen si alcanza para ser byte a byte (pregunta abierta del roadmap) | CL1 |
 | Rarezas de datos (checksum anulado de `Item.bmd`, alturas desde BMP + 1080, registro 7 de `Text.bmd` sin NUL, OZJ que son TGA) | **se reproducen**: son parte de cómo se leen los archivos reales (ver [07](07-quirks-y-bugs.md)) | CL1 |
+| Esqueleto (`Player.bmd`) y partes del equipo en archivos separados | `Data::Model` lee los dos con el mismo parser; la pose se calcula con el esqueleto y cada parte se dibuja con esa pose | CL6 |
 | Los assets son del juego | MuRet **no** versiona ningún asset; los tests golden reciben la ruta por `MURET_CLIENT_GOLDEN_DIR` y se saltean si no está | CL1 |
 
 Tests que fija:

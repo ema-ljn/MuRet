@@ -48,7 +48,7 @@ analizados del código propio del cliente):
 | M2 formatos de assets | 92 KB | 29 %, más la tanda 3 | tablas, terreno y texturas byte a byte contra la memoria del original |
 | M3 red y protocolo | 293 KB | 72 % | recepción, C3/C4, corte, login y keepalive contra el cable ([04](04-protocolo.md)) |
 | M4 bucle por frame y escenas | 750 KB | 15 % | estático |
-| M5 mundo 3D | 185 KB | 20 % | renderer de terreno identificado y verificado celda por celda contra una traza de GL; cámara y objetos del `.obj` en la misma traza; skinning sin leer ([06](06-render-escenas-y-ui.md)) |
+| M5 mundo 3D | 185 KB | 20 % | renderer de terreno identificado y verificado celda por celda contra una traza de GL; cámara y objetos del `.obj` en la misma traza; skinning y pose del personaje reproducidos contra las trazas, su código sin leer ([06](06-render-escenas-y-ui.md)) |
 | M6 UI | 365 KB | 65 % | estático; el quad 2D, los viewports y el camino del texto verificados en las trazas de GL |
 | M7 audio | 13 KB | 8 % | en `main.exe`, poco; pero `wzAudio.dll` y sus decodificadores están decompilados enteros (`decompilacion-maxima`, ver [05](05-formatos-de-datos.md)) |
 

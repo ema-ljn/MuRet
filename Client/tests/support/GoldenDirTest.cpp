@@ -10,12 +10,15 @@
 #include <optional>
 #include <random>
 #include <string>
+#include <system_error>
 
 namespace
 {
 
 namespace fs = std::filesystem;
+using Client::Tests::CheckDump;
 using Client::Tests::CheckGoldenDir;
+using Client::Tests::DumpState;
 using Client::Tests::GoldenDirFromValue;
 using Client::Tests::GoldenDirState;
 
@@ -44,6 +47,24 @@ TEST(GoldenDirTest, AFolderThatIsNotThereFailsTheTest)
 
     std::error_code error;
     fs::remove(file, error);
+}
+
+// Un volcado se busca en la carpeta de su captura. Si está en la carpeta de volcados misma, la
+// variable apunta a una captura (como antes de la CL1.4) y el test lo dice.
+TEST(GoldenDirTest, ADumpIsInTheFolderOfItsCapture)
+{
+    const fs::path root = fs::temp_directory_path() / ("muret-volcados-" + std::to_string(std::random_device{}()));
+    fs::create_directories(root / "captura");
+    std::ofstream(root / "captura" / "a.bin") << "x";
+    std::ofstream(root / "b.bin") << "x";
+
+    EXPECT_EQ(CheckDump(root, "captura", "a.bin"), DumpState::Found);
+    EXPECT_EQ(CheckDump(root, "captura", "b.bin"), DumpState::RootIsACapture);
+    EXPECT_EQ(CheckDump(root, "captura", "c.bin"), DumpState::Missing);
+    EXPECT_EQ(CheckDump(root, "otra", "a.bin"), DumpState::Missing);
+
+    std::error_code error;
+    fs::remove_all(root, error);
 }
 
 } // namespace

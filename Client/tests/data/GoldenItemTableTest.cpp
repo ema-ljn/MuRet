@@ -22,6 +22,7 @@ namespace
 using Client::Data::Tables::ItemCount;
 using Client::Data::Tables::ItemTableSize;
 using Client::Data::Tables::LoadItemTable;
+using Client::Tests::DeviasCapture;
 using Client::Tests::FirstRecordThatDiffers;
 using Client::Tests::ReadFileBytes;
 
@@ -67,7 +68,7 @@ TEST_F(GoldenItemTable, ItemTestBmdPassesItsChecksum)
 TEST_F(MemoryItemTable, EqualsTheOriginalsMemory)
 {
     const auto path = DataFile(ItemFile);
-    const auto dump = DumpFile("s31_item.bin");
+    const auto dump = DumpFile(DeviasCapture, "s31_item.bin");
     ASSERT_TRUE(path.has_value());
     ASSERT_TRUE(dump.has_value());
     const std::optional<std::vector<char>> file = ReadFileBytes(*path);

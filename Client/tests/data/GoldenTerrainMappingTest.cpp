@@ -16,6 +16,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace
@@ -25,12 +26,14 @@ using Client::Data::Terrain::LoadTerrainMapping;
 using Client::Data::Terrain::TerrainCellCount;
 using Client::Data::Terrain::TerrainMapping;
 using Client::Data::Terrain::TerrainMappingSize;
+using Client::Tests::DeviasCapture;
 using Client::Tests::FirstCellThatDiffers;
 using Client::Tests::LabWorlds;
+using Client::Tests::LorenciaCapture;
+using Client::Tests::MemoryCapture;
 using Client::Tests::ReadFileBytes;
 
 using GoldenTerrainMapping = Client::Tests::GoldenDataTest;
-using MemoryTerrainMapping = Client::Tests::MemoryDumpTest;
 
 // La ruta que arma el original: "Data\\%s\\EncTerrain%d.map" con "World%d" (0x6d12e8, en 0x61a560).
 std::string MappingFile(std::uint8_t world)
@@ -83,34 +86,49 @@ TEST_F(GoldenTerrainMapping, LorenciaHasTheCountsOfTheResearch)
     EXPECT_EQ(alphaWithoutLayer2, 73u);
 }
 
-// Las capas son las que tenía en memoria el main.exe original después de cargar el mismo archivo,
-// en Devias (World3). El original guarda la capa 2 en 0x07AACC8C y la capa 1 justo después, en
-// 0x07ABCC8C: s31_l2l1.bin es las dos en ese orden. s31_alpha.bin son los floats de 0x07CCCCC4.
-TEST_F(MemoryTerrainMapping, EqualsTheOriginalsMemory)
+class MemoryTerrainMapping : public Client::Tests::MemoryDumpTest
 {
-    const auto path = DataFile(MappingFile(3));
-    const auto layers = DumpFile("s31_l2l1.bin");
-    const auto alpha = DumpFile("s31_alpha.bin");
-    ASSERT_TRUE(path.has_value());
-    ASSERT_TRUE(layers.has_value());
-    ASSERT_TRUE(alpha.has_value());
-    const std::optional<std::vector<char>> file = ReadFileBytes(*path);
-    const std::optional<std::vector<char>> layersMemory = ReadFileBytes(*layers);
-    const std::optional<std::vector<char>> alphaMemory = ReadFileBytes(*alpha);
-    ASSERT_TRUE(file.has_value());
-    ASSERT_TRUE(layersMemory.has_value());
-    ASSERT_TRUE(alphaMemory.has_value());
-    ASSERT_EQ(layersMemory->size(), 2 * TerrainCellCount);
-    ASSERT_EQ(alphaMemory->size(), TerrainCellCount * sizeof(float));
+protected:
+    // Las capas del .map de la captura son las que tenía en memoria el main.exe original después
+    // de cargar el mismo archivo. El original guarda la capa 2 en 0x07AACC8C y la capa 1 justo
+    // después, en 0x07ABCC8C: `layers` es las dos en ese orden. `alpha` son los floats de
+    // 0x07CCCCC4.
+    void ExpectTheOriginalsMemory(const MemoryCapture& capture, std::string_view layers, std::string_view alpha)
+    {
+        const auto path = DataFile(MappingFile(capture.world));
+        const auto layersDump = DumpFile(capture, layers);
+        const auto alphaDump = DumpFile(capture, alpha);
+        ASSERT_TRUE(path.has_value());
+        ASSERT_TRUE(layersDump.has_value());
+        ASSERT_TRUE(alphaDump.has_value());
+        const std::optional<std::vector<char>> file = ReadFileBytes(*path);
+        const std::optional<std::vector<char>> layersMemory = ReadFileBytes(*layersDump);
+        const std::optional<std::vector<char>> alphaMemory = ReadFileBytes(*alphaDump);
+        ASSERT_TRUE(file.has_value());
+        ASSERT_TRUE(layersMemory.has_value());
+        ASSERT_TRUE(alphaMemory.has_value());
+        ASSERT_EQ(layersMemory->size(), 2 * TerrainCellCount);
+        ASSERT_EQ(alphaMemory->size(), TerrainCellCount * sizeof(float));
 
-    const auto loaded = LoadTerrainMapping(std::as_bytes(std::span(*file)), 3);
+        const auto loaded = LoadTerrainMapping(std::as_bytes(std::span(*file)), capture.world);
 
-    ASSERT_TRUE(loaded.HasValue());
-    const TerrainMapping& mapping = *loaded.Value();
-    const std::span<const std::byte> both = std::as_bytes(std::span(*layersMemory));
-    EXPECT_EQ(FirstCellThatDiffers(mapping.layer2, both.first(TerrainCellCount)), std::nullopt);
-    EXPECT_EQ(FirstCellThatDiffers(mapping.layer1, both.subspan(TerrainCellCount)), std::nullopt);
-    EXPECT_EQ(FirstCellThatDiffers(mapping.alpha, std::as_bytes(std::span(*alphaMemory))), std::nullopt);
+        ASSERT_TRUE(loaded.HasValue());
+        const TerrainMapping& mapping = *loaded.Value();
+        const std::span<const std::byte> both = std::as_bytes(std::span(*layersMemory));
+        EXPECT_EQ(FirstCellThatDiffers(mapping.layer2, both.first(TerrainCellCount)), std::nullopt);
+        EXPECT_EQ(FirstCellThatDiffers(mapping.layer1, both.subspan(TerrainCellCount)), std::nullopt);
+        EXPECT_EQ(FirstCellThatDiffers(mapping.alpha, std::as_bytes(std::span(*alphaMemory))), std::nullopt);
+    }
+};
+
+TEST_F(MemoryTerrainMapping, EqualsTheOriginalsMemoryInDevias)
+{
+    ExpectTheOriginalsMemory(DeviasCapture, "s31_l2l1.bin", "s31_alpha.bin");
+}
+
+TEST_F(MemoryTerrainMapping, EqualsTheOriginalsMemoryInLorencia)
+{
+    ExpectTheOriginalsMemory(LorenciaCapture, "lor_l2l1.bin", "lor_alpha.bin");
 }
 
 } // namespace

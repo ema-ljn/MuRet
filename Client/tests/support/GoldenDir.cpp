@@ -107,6 +107,20 @@ std::optional<std::filesystem::path> GoldenDataTest::DataFile(std::string_view o
     return path;
 }
 
+DumpState CheckDump(const std::filesystem::path& root, std::string_view folder, std::string_view name)
+{
+    std::error_code error;
+    if (std::filesystem::is_regular_file(root / folder / name, error))
+    {
+        return DumpState::Found;
+    }
+    if (std::filesystem::is_regular_file(root / name, error))
+    {
+        return DumpState::RootIsACapture;
+    }
+    return DumpState::Missing;
+}
+
 void MemoryDumpTest::SetUp()
 {
     GoldenDataTest::SetUp();
@@ -117,16 +131,21 @@ void MemoryDumpTest::SetUp()
     RequireDirectory(MemoryDirVariable, dumpRoot);
 }
 
-std::optional<std::filesystem::path> MemoryDumpTest::DumpFile(std::string_view name) const
+std::optional<std::filesystem::path> MemoryDumpTest::DumpFile(const MemoryCapture& capture, std::string_view name) const
 {
-    std::filesystem::path path = dumpRoot / name;
-    std::error_code error;
-    if (!std::filesystem::is_regular_file(path, error))
+    switch (CheckDump(dumpRoot, capture.folder, name))
     {
-        ADD_FAILURE() << "falta " << name << " en la carpeta de volcados " << dumpRoot;
+    case DumpState::Found:
+        return dumpRoot / capture.folder / name;
+    case DumpState::RootIsACapture:
+        ADD_FAILURE() << MemoryDirVariable << " apunta a " << dumpRoot << ", que es una captura: tiene que apuntar "
+                      << "a la carpeta que las contiene, memoria-cliente";
         return std::nullopt;
+    case DumpState::Missing:
+        break;
     }
-    return path;
+    ADD_FAILURE() << "falta " << name << " en la captura " << capture.folder << " de " << dumpRoot;
+    return std::nullopt;
 }
 
 } // namespace Client::Tests

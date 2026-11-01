@@ -21,6 +21,7 @@ using Client::Data::Text::LoadTextTable;
 using Client::Data::Text::TextCount;
 using Client::Data::Text::TextRecordSize;
 using Client::Data::Text::TextTableSize;
+using Client::Tests::DeviasCapture;
 using Client::Tests::ReadFileBytes;
 
 using GoldenTextTable = Client::Tests::GoldenDataTest;
@@ -64,7 +65,7 @@ TEST_F(GoldenTextTable, LoadsTheRealFile)
 TEST_F(MemoryTextTable, EqualsTheOriginalsMemory)
 {
     const auto path = DataFile(TextFile);
-    const auto dump = DumpFile("s31_text.bin");
+    const auto dump = DumpFile(DeviasCapture, "s31_text.bin");
     ASSERT_TRUE(path.has_value());
     ASSERT_TRUE(dump.has_value());
     const std::optional<std::vector<char>> file = ReadFileBytes(*path);

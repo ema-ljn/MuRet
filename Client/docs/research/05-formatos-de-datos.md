@@ -85,9 +85,13 @@ posición, ángulo y escala (7 floats). Si la cantidad es cero o negativa no hay
 contra el tamaño del archivo. En el laboratorio, cada `EncTerrain<N>.obj` mide justo 4 + 30 ×
 cantidad; el de World6 no trae ninguno. Los floats llegan con sus bits aunque no sean un número
 (Q-C28). En la memoria del original, cada objeto de Lorencia guarda el tipo en +2, la escala en +12,
-la posición en +16 y el ángulo en +28: los 2.870 son los del archivo, con los mismos bits (medido
-para la CL1.3 sobre `obj_nodes.bin`, sin mirar en qué bloque quedó cada uno; ahí cada nodo lleva
-antes 8 bytes, la lista y la dirección, y los campos quedan en +10, +20, +24 y +36).
+la posición en +16 y el ángulo en +28: los 2.870 son los del archivo, con los mismos bits, en la
+escena 5 (medido sobre `obj_nodes.bin`; ahí cada nodo lleva antes 8 bytes, la lista y la
+dirección, y los campos quedan en +10, +20, +24 y +36). Están en el orden del archivo: cada lista
+guarda los suyos en ese orden, y el archivo ya viene ordenado por bloque, así que las listas de la
+0 a la 255 dan el orden del archivo. Los offsets salen de los volcados, no del asm de `0x606660`,
+que cambia la escala de algunos objetos en las escenas 2 y 4. Lo prueba un test de memoria desde
+la CL1.4.
 
 **Las alturas** (CL1.3): `TerrainHeight.OZB` mide 66.620 bytes en los 19 mundos del laboratorio
 que lo traen (World6 no tiene). Se lee un byte por celda desde el byte `0x43C` del archivo, por

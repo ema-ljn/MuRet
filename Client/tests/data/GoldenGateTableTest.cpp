@@ -21,6 +21,7 @@ namespace
 using Client::Data::Tables::GateCount;
 using Client::Data::Tables::GateTableSize;
 using Client::Data::Tables::LoadGateTable;
+using Client::Tests::DeviasCapture;
 using Client::Tests::FirstRecordThatDiffers;
 using Client::Tests::ReadFileBytes;
 
@@ -49,7 +50,7 @@ TEST_F(GoldenGateTable, LoadsTheRealFile)
 TEST_F(MemoryGateTable, EqualsTheOriginalsMemory)
 {
     const auto path = DataFile(GateFile);
-    const auto dump = DumpFile("s31_gate.bin");
+    const auto dump = DumpFile(DeviasCapture, "s31_gate.bin");
     ASSERT_TRUE(path.has_value());
     ASSERT_TRUE(dump.has_value());
     const std::optional<std::vector<char>> file = ReadFileBytes(*path);

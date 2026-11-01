@@ -11,7 +11,7 @@ bytes a tipos de C++, sin ventana y sin globales. Cada formato se prueba con vec
 (siempre corren) y contra la carpeta golden (si está).
 
 **Arquitectura:** todo va en `ClientLib`, en la capa `Client::Data` (`Client/src/Data/`, con
-`Bmd/`, `Terrain/`, `Textures/` y `Text/`, como dice el roadmap). Un cargador recibe un
+`Tables/`, `Text/`, `Terrain/` y `Textures/`, como dice el roadmap). Un cargador recibe un
 `std::span<const std::byte>` y devuelve la tabla o un error. Leer el archivo del disco es tarea
 del que llama, así los tests no tocan el disco salvo los golden. El `Expected` propio va en
 `Client::Core` (`Client/src/Core/`). Como toda N.0, la CL1.0 vive en `labs/`.
@@ -132,7 +132,7 @@ Dos cosas del original que no se copian:
 - Crear: `Client/src/Data/ByteReader.h/.cpp`: la `ByteView` de la CL1.0 llevada a `ClientLib`
   sobre `std::span` (L-3: en el producto se usa el estándar).
 - Crear: `Client/src/Data/DataError.h` (`enum class` con lo que puede fallar en esta sub-ola).
-- Crear: `Client/src/Data/Bmd/Xor3.h/.cpp` y `Client/src/Data/Bmd/TableChecksum.h/.cpp`.
+- Crear: `Client/src/Data/Tables/Xor3.h/.cpp` y `Client/src/Data/Tables/TableChecksum.h/.cpp`.
 - Crear: `Client/src/Data/Text/TextTable.h/.cpp`.
 - Crear: `Client/tests/data/ByteReaderTest.cpp`, `Xor3Test.cpp`, `TableChecksumTest.cpp`,
   `TextTableTest.cpp` y `GoldenTextTableTest.cpp`.

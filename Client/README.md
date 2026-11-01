@@ -66,7 +66,7 @@ Client/
     App/          bucle de juego con tick fijo          (CL3)
     Core/         config, log, reloj                    (CL0+)
     Platform/     ventana, contexto GL, input (SDL3)    (CL3)
-    Data/         .bmd, terreno, OZJ/OZT, Text.bmd      (CL1)
+    Data/         tablas .bmd, Text.bmd, terreno, OZJ/OZT, modelos: bytes a tipos, sin GL (CL1, CL6)
     Network/      socket, paquetes, C3/C4, FoxAnti      (CL2, CL4)
     Protocol/     opcodes, structs, dispatcher          (CL2, CL4, CL9)
     Render/       OpenGL 3.3: texturas, sprites, texto  (CL5+)

@@ -35,7 +35,8 @@
 - **Distinguir "no existe", "falló" y "el valor".** Es el problema de fondo de esta ola. Un `int`
   que a veces es un dato y a veces un código de error (`-101`) es una trampa. Opciones: un tipo
   resultado (`std::expected` es C++23; en C++20 hay `tl::expected` o uno propio), o
-  `std::optional` más un error aparte. Lo decidís vos.
+  `std::optional` más un error aparte. Lo decidís vos. El cliente ya tiene uno propio desde la
+  CL1.0 (`Client/src/Core/Expected.h`): ¿lo reusás o lo movés a un `Common/`?
 
 ### Ejemplo mínimo (fuera del proyecto)
 

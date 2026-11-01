@@ -18,7 +18,9 @@ solo lo lee.
   Linux. Para cerrarla: las [preguntas de la CL0](../superpowers/plans/2026-10-30-ola-cl0-fundaciones-cliente.md#para-cerrar-la-cl0-emanuel)
   y correr `Main.exe` en tu Windows. Conceptos para explicar: targets y qué se linkea a quién,
   vcpkg en modo manifiesto y su baseline, loader de GL, tests salteables. Próxima: la CL1
-  (formatos sin ventana)
+  (formatos sin ventana), con su [plan](../superpowers/plans/2026-11-01-ola-cl1-formatos-sin-ventana.md)
+  y la [guía de la CL1.0](ola-cl1.0-bytes-y-archivos.md). Los errores van con un `Expected` propio
+  que escribís vos (decidido el 2026-11-01)
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 

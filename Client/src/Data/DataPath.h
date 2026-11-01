@@ -18,6 +18,9 @@ namespace Client::Data
 // distinguir mayúsculas ASCII, como en Windows: si hay una coincidencia exacta gana esa, y si no,
 // la primera en orden de bytes. Devuelve std::nullopt si no existe, si la ruta está vacía, si es
 // absoluta o si sube con "..".
+//
+// La ruta devuelta abre el archivo, pero su grafía depende del sistema: en Linux lleva los nombres
+// del disco; en Windows, que no distingue mayúsculas, puede quedar como se pidió.
 std::optional<std::filesystem::path> ResolveDataPath(const std::filesystem::path& dataRoot,
                                                      std::string_view originalPath);
 

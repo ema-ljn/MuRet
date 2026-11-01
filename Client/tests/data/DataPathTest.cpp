@@ -58,8 +58,10 @@ TEST_F(DataPathTest, AcceptsBackslashesAndIgnoresCaseLikeWindows)
     const auto path = Client::Data::ResolveDataPath(root, "Player\\player.bmd");
 
     ASSERT_TRUE(path.has_value());
-    EXPECT_TRUE(fs::is_regular_file(*path));
-    EXPECT_EQ(path->filename(), fs::path("Player.BMD"));
+    ASSERT_TRUE(fs::is_regular_file(*path));
+    // Es el mismo archivo. El nombre devuelto no se compara: en Linux es el del disco
+    // ("Player.BMD"), pero en Windows el primer intento ya lo encuentra con la grafía pedida.
+    EXPECT_TRUE(fs::equivalent(*path, root / "player" / "Player.BMD"));
 }
 
 TEST_F(DataPathTest, ReturnsNulloptWhenTheFileIsMissing)

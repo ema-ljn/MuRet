@@ -43,6 +43,7 @@ if(MURET_BUILD_TESTS)
         tests/data/GoldenDataFilesTest.cpp
         tests/data/GoldenTableChecksumTest.cpp
         tests/data/GoldenTextTableTest.cpp
+        tests/data/RecordTableTest.cpp
         tests/data/TableChecksumTest.cpp
         tests/data/TextTableTest.cpp
         tests/data/Xor3Test.cpp

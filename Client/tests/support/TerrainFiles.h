@@ -9,7 +9,9 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainMapping.h"
+#include "Data/Terrain/TerrainObjects.h"
 
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -20,6 +22,11 @@
 
 namespace Client::Tests
 {
+
+// Los mundos que trae el Data\ del laboratorio, por el N de su carpeta World<N>
+// (Client/docs/research/09-datos-disponibles.md). Todos tienen su .map, su .att y su .obj.
+inline constexpr std::array<std::uint8_t, 20> LabWorlds = {1,  2,  3,  4,  5,  6,  7,  8,  9,  10,
+                                                           11, 12, 19, 25, 31, 32, 34, 35, 55, 56};
 
 // La inversa de DecryptK16, como la que usa el exportador del original (0x5f8960):
 // cifrado[i] = (plano[i] + previo) ^ K16Key[i % 16], con el mismo `previo` que el descifrado.
@@ -133,6 +140,72 @@ inline std::vector<std::byte> EncryptTerrainAttributes(std::vector<std::byte> pl
 {
     Data::Tables::Xor3(plain);
     return EncryptK16(std::move(plain));
+}
+
+// Agrega los `size` bytes de abajo de `value` a `bytes`, el menos significativo primero, como los
+// escribe el x86 del original.
+inline void AppendLittleEndian(std::vector<std::byte>& bytes, std::uint32_t value, std::size_t size)
+{
+    constexpr unsigned BitsPerByte = 8;
+    for (std::size_t byte = 0; byte < size; ++byte)
+    {
+        bytes.push_back(static_cast<std::byte>(value >> (BitsPerByte * byte)));
+    }
+}
+
+// Cuántos valores tiene un objeto: el tipo y los siete floats.
+inline constexpr std::size_t ObjectValueCount = 8;
+
+// Los valores de un objeto como los bits que guarda el archivo. Dos objetos son el mismo si tienen
+// los mismos bits, también con un NaN, que no es igual a sí mismo.
+inline std::array<std::uint32_t, ObjectValueCount> ObjectBits(const Data::Terrain::TerrainObject& object)
+{
+    const auto bits = [](float value) { return std::bit_cast<std::uint32_t>(value); };
+    return {std::bit_cast<std::uint16_t>(object.type),
+            bits(object.position[0]),
+            bits(object.position[1]),
+            bits(object.position[2]),
+            bits(object.angle[0]),
+            bits(object.angle[1]),
+            bits(object.angle[2]),
+            bits(object.scale)};
+}
+
+// `count` objetos con todos sus valores distintos entre sí y de un objeto al otro: si el
+// cargador lee un campo en el lugar de otro, o se corre de objeto, el test lo nota. Son floats
+// justos (múltiplos de 1/8), para que el test pueda escribirlos como números.
+inline std::vector<Data::Terrain::TerrainObject> SampleTerrainObjects(std::size_t count)
+{
+    std::vector<Data::Terrain::TerrainObject> objects;
+    for (std::size_t k = 0; k < count; ++k)
+    {
+        const auto base = static_cast<float>(k) * 100.0f;
+        objects.push_back({.type = static_cast<std::int16_t>(k + 1),
+                           .position = {base + 1.5f, base + 2.25f, base + 3.125f},
+                           .angle = {base + 4.5f, base + 5.25f, -(base + 6.125f)},
+                           .scale = base + 0.875f});
+    }
+    return objects;
+}
+
+// Un EncTerrain.obj en claro: versión 0, el mundo `world`, la cantidad `count` y `objects`. La
+// cantidad va aparte para poder escribir una que no es la de verdad: negativa, o más de los que
+// hay.
+inline std::vector<std::byte> PlainTerrainObjects(std::uint8_t world, std::int16_t count,
+                                                  std::span<const Data::Terrain::TerrainObject> objects)
+{
+    std::vector<std::byte> plain{std::byte{0x00}, std::byte{world}};
+    AppendLittleEndian(plain, std::bit_cast<std::uint16_t>(count), sizeof(count));
+    for (const Data::Terrain::TerrainObject& object : objects)
+    {
+        const std::array<std::uint32_t, ObjectValueCount> bits = ObjectBits(object);
+        AppendLittleEndian(plain, bits[0], sizeof(object.type));
+        for (std::size_t value = 1; value < bits.size(); ++value)
+        {
+            AppendLittleEndian(plain, bits[value], sizeof(float));
+        }
+    }
+    return plain;
 }
 
 // La primera celda en la que `layer` no es `expected`, o std::nullopt si son iguales. Compara

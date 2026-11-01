@@ -1,8 +1,7 @@
 // Test de la misión de la 0.0 (docs/learning/ola-0.0-del-codigo-al-programa.md, actividad 5).
 //
-// Todavía no compila, a propósito: falta registrarlo en labs/CMakeLists.txt, falta el header y
-// falta la definición. Cada paso que des lo hace fallar en una etapa distinta; antes de compilar,
-// predecí cuál.
+// Antes de tener el header, la definición y los targets, fallaba en una etapa distinta en cada
+// paso: el preprocesador, el linker y el test en rojo (ver labs/0.0-enlace/README.md).
 //
 // No usa GoogleTest (llega en la 0.2): sale con 0 si todo pasa y con 1 si algo falla, y CTest lo
 // lee así.
@@ -34,9 +33,12 @@ int main()
     Check(Labs::HeadOffset(0xC1) == 2, "C1: el head va en la posicion 2");
     Check(Labs::HeadOffset(0xC2) == 3, "C2: el head va en la posicion 3");
 
-    // TODO(human): un primer byte que no es C1 ni C2 (por ejemplo 0xC3 o 0x00). Mirá qué hace el
-    // parser del original con ese byte (04-red.md, "Máquina de estados"), decidí qué devuelve
-    // HeadOffset y escribí el caso acá.
+    // Un primer byte que no es C1 ni C2 no abre ningún paquete: el parser del original descarta
+    // todo lo acumulado (04-red.md, "Máquina de estados"). HeadOffset no puede cortar nada, así
+    // que devuelve std::nullopt. C3 y C4 son los paquetes cifrados del cliente; entre el
+    // GameServer y el DataServer no existen.
+    Check(!Labs::HeadOffset(0xC3).has_value(), "C3: no es un paquete del DataServer");
+    Check(!Labs::HeadOffset(0x00).has_value(), "00: no es un paquete");
 
     if (failures == 0)
     {

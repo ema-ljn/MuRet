@@ -6,9 +6,11 @@ solo lo lee.
 ## Dónde estamos
 
 - Ola: 0 (Fundaciones)
-- Sub-ola: **0.0 en curso** (del código al programa), arrancada el 2026-11-01. Ya están la
-  [guía](ola-0.0-del-codigo-al-programa.md) y `labs/` con el test de la misión, que todavía no
-  compila: te toca la misión (`Labs::HeadOffset`), el jefe y el carril R
+- Sub-ola: **0.0 resuelta como ejemplo trabajado** (del código al programa), el 2026-11-01. A
+  pedido tuyo la resolvió Claude: la misión (`Labs::HeadOffset` en `MuRetLabs`), el jefe (la ODR) y
+  el carril R, con las salidas y las respuestas en [`labs/0.0-enlace/README.md`](../../labs/0.0-enlace/README.md).
+  Para cerrarla falta lo tuyo: contar con tus palabras las preguntas de la
+  [guía](ola-0.0-del-codigo-al-programa.md#preguntas-para-chequearte) y completar su sección final
 - La 0.1 está hecha (andamiaje CMake + `Server/DataServer/`); falta compilar en Windows y responder [las preguntas](ola-0.1-cmake.md#te-toca), que se cierran junto con la 0.0
 - Próxima del servidor: la 0.2, ahora más chica: vcpkg, GoogleTest, los test presets y el CI ya
   llegaron con la CL0.2 y la CL0.3 del cliente; le quedan los tests del DataServer
@@ -36,8 +38,9 @@ sesión, junto con los de repaso más viejo.
 
 | Concepto | Ola | Nivel | Estado | Último repaso |
 | --- | --- | --- | --- | --- |
-
-(vacío)
+| unidad de traducción, archivo objeto y símbolos (`nm`) | 0.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
+| enlace externo e interno, `inline` y la ODR | 0.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
+| bibliotecas estáticas y dinámicas, imports del PE | 0.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
 
 ## Preguntas para olas futuras
 

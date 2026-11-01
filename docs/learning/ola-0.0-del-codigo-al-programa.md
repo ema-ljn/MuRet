@@ -5,6 +5,10 @@ mitades de MuRet: la 0.2 le suma un target de tests al DataServer, y la CL0.2 de
 `Client/` en `ClientLib`, `Main` y `ClientTests`. En los dos casos son unidades de traducción,
 bibliotecas y enlace, que es lo que se ve acá. Acá también nace `labs/`.
 
+**Resuelta como ejemplo trabajado** (a pedido de Emanuel, 2026-11-01): el código está en `labs/` y
+las salidas y respuestas de cada actividad en [`labs/0.0-enlace/README.md`](../../labs/0.0-enlace/README.md).
+Leé primero la actividad acá, predecí, y recién después mirá la respuesta.
+
 Qué cubre (del [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md#00-del-código-al-programa)):
 
 - **Teoría:** unidades de traducción, símbolos, enlace interno y externo, la regla de una

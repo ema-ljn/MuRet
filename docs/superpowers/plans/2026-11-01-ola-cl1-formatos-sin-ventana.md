@@ -392,21 +392,82 @@ celda, como en la memoria del original. Si preferís otra cosa, se cambia en su 
   otros, y de la cabecera del BMP no se guarda nada (en el original solo la lee el guardador de
   `0x5f92b0`).
 
-## Sub-ola CL1.4: texturas OZT y OZJ (esbozo)
+## Sub-ola CL1.4: texturas OZT y OZJ
 
-**Concepto:** formatos con prefijo, TGA y JPEG, y lados en potencia de 2.
+**Concepto:** una imagen dentro de una textura de lados potencia de 2, el orden de las filas y de
+los canales, y cuándo una biblioteca hace exactamente lo que hacía el original.
 
-- **PR 0 (este):** `MURET_CLIENT_MEMORY_DIR` apunta a `memoria-cliente/`, la carpeta de las tres
+**Se parte en tres PRs:**
+- **PR 0:** `MURET_CLIENT_MEMORY_DIR` apunta a `memoria-cliente/`, la carpeta de las tres
   capturas (`MemoryCapture` en `GoldenDir.h`: la carpeta y el mundo), y los cargadores de la CL1.3
   suman los oráculos de Lorencia. Prepara los de las texturas, que están en esa captura
   (`lor2_slot*.bin`).
+- **PR A (este):** OZT, un TGA de 32 bits con 4 bytes delante.
+- **PR B:** OZJ, un JPEG con 24 bytes delante, con libjpeg-turbo, y `TerrainLight.OZJ`, la luz de
+  base del terreno, que viene de la CL1.3.
 
-- OZT: 4 bytes + TGA de 32 bpp; lados de hasta 512.
-- OZJ: 24 bytes + JPEG baseline. Q-C14: 7 OZJ son en realidad TGA.
-- La biblioteca JPEG es la pregunta 4 de este plan.
-- `TerrainLight.OZJ`, la luz de base del terreno, viene de la CL1.3: 256 × 256 × 3 floats,
-  decodificados como IJG 6b, invertidos y por 1/255 (ffmpeg da otros bytes).
-- Una textura que falta corta el arranque (Q-C23).
+**Contrato** ([05 § Texturas](../../../Client/docs/research/05-formatos-de-datos.md#texturas) y, en
+el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
+`0063b490-terrainlight-ozj-loader.md`):
+
+| Archivo | Formato | Lo raro | MuRet |
+| --- | --- | --- | --- |
+| tamaño | la imagen va sin escalar en la esquina de un buffer de lados potencia de 2, desde 1 y con tope en 512 | el resto del buffer queda sin inicializar | `TextureSide`; el resto, en cero (Q-C30) |
+| OZT | 4 bytes que no se leen y un TGA: ancho y alto (int16 con signo) en `0x10` y `0x12`, bits por píxel en `0x14`, píxeles BGRA desde `0x16` | no mira el tipo, el id ni el descriptor: da vuelta siempre las filas; rechaza otros bits por píxel y lados de más de 512 sin avisar, y deja pasar uno de cero o negativo; no mira el tamaño (Q-C24) | `InvalidData` para el rechazo; `FileTooShort`; RGBA con las filas dadas vuelta |
+| OZJ | 24 bytes que no se leen y un JPEG, que decodifica la libjpeg 6b con sus parámetros por defecto | rechaza un lado de más de 512; no da vuelta las filas; 7 OZJ son TGA (Q-C14) y libjpeg los rechaza | libjpeg-turbo (PR B) |
+| luz | un OZJ de 256 × 256, cada byte por `0x3B808081` (1/255 en float) | la fila 0 es la última del JPEG | PR B |
+
+**Los oráculos:**
+- Los 664 OZT del laboratorio cargan, salvo `Monster\wolfa02.OZT`, el único de 24 bits, que el
+  original rechaza (Q-C29). 133 no son de lados potencia de 2.
+- Los 9 cursores de `Interface` y `TileGrass01.OZT` de World1 son los buffers que tenía en memoria
+  el original (`lor2_slot002..00a.bin` y `lor2_slot032.bin`), byte a byte.
+- PR B: los 9 tiles OZJ de World1 (`lor2_slot023..02b.bin`) y la luz de Devias y de Lorencia
+  (`s31_light.bin`, `lor_light.bin`) contra la memoria del original.
+
+**Archivos (PR A):**
+- Crear: `Client/src/Data/Textures/Texture.h` (`Texture`, `PixelFormat`, `TextureSide`) y
+  `OztTexture.h/.cpp`.
+- Crear: `Client/tests/data/TextureTest.cpp`, `OztTextureTest.cpp`, `GoldenOztTextureTest.cpp`,
+  `Client/tests/support/TextureFiles.h` (arma un OZT como el exportador) y `LittleEndian.h` (sale
+  de `TerrainFiles.h`, que ahora la comparte).
+- Modificar: `Client/CMakeLists.txt`, `Client/README.md`, 05, 07 (Q-C24, Q-C29 y Q-C30), PROGRESS y
+  este plan.
+
+**Bibliotecas (`CODING_RULES.md` §10):**
+- **TGA:** se miró stb_image. No entra porque lo que se lee del TGA son unas pocas líneas: el buffer
+  de potencias de 2 y el rechazo habría que escribirlos igual, y la dependencia cuesta más. Además
+  lee el descriptor y el largo del id, que el original no mira, y carga `Monster\wolfa02.OZT`, de
+  24 bits, que el original rechaza. En los 663 de 32 bits del laboratorio daría las mismas filas.
+- **JPEG (pregunta 4 de este plan y 1 del roadmap):** se compiló la IJG libjpeg 6b original (el
+  `libjpeg6b_6b1.orig.tar.gz` del archivo de Ubuntu, idéntico a la 6b salvo el build) con `INT32`
+  de 32 bits, como el `main.exe`, y se decodificaron los 2.380 OZJ que son JPEG en el laboratorio,
+  como lo hace `0x63b870`. La 6b da los mismos bytes que la memoria del original en los 9 tiles de
+  Lorencia. libjpeg-turbo 3.2.0, la del baseline de vcpkg, da los mismos bytes que la 6b en los
+  2.380, con SIMD y sin SIMD, y con o sin el suavizado de bloques de los progresivos (623 lo son).
+  Entra libjpeg-turbo en el PR B. No hace falta decidir si se acepta una diferencia chica: no la
+  hay en los datos reales. Donde turbo no es 6b (coeficientes fuera de rango, el muestreo 4:4:0,
+  JPEG aritméticos) no aparece en el laboratorio.
+
+- [x] **Paso 0 (PR 0):** los volcados por captura, y Lorencia como oráculo de la CL1.3.
+- [x] **Paso 1 (PR A):** `TextureSide` y `LoadOztTexture(file)`. Tests: filas dadas vuelta y
+  BGRA a RGBA, una imagen de 3 × 5 en una textura de 4 × 8 con el resto en cero, cada píxel de una
+  de 512 × 512 y de una de 5 × 300, solo 32 bits por píxel, lados hasta 512, cero y negativo (con el
+  buffer entero), los campos que no se leen, archivo corto (también el que es solo la cabecera),
+  los bits por píxel antes que los píxeles que faltan y bytes de más. Golden con los 664 y contra la
+  memoria.
+- [ ] **Paso 2 (PR B):** libjpeg-turbo en `vcpkg.json` (y NASM en el CI de Linux, para su SIMD),
+  `LoadOzjTexture(file)` y `LoadTerrainLight(file)`, con vectores chicos que corren en CI: JPEG
+  sintéticos de los tres tipos del laboratorio (baseline 4:4:4, baseline 4:2:0 y progresivo 4:4:4,
+  con intervalos de reinicio), con el resultado que da la 6b.
+
+Lo hizo Claude como ejemplo trabajado, por el mismo pedido tuyo de seguir con el cliente. Quedaron
+tomadas sin preguntarte: el rechazo del OZT es `InvalidData` (el original devuelve false sin
+avisar), un lado de cero o negativo carga sin píxeles como en el original, y el resto del buffer
+queda en cero (Q-C30).
+
+Una textura que falta corta el arranque (Q-C23), pero eso es de quien abre el archivo: los
+cargadores reciben los bytes. Entra con el código que abre los archivos de las texturas.
 
 ## Sub-ola CL1.5: `message.wtf` (esbozo)
 

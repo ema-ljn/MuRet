@@ -112,6 +112,15 @@ salen distintas.
 Verificado: 9 tiles OZJ de Lorencia y 10 OZT, byte a byte contra los buffers de textura del cliente
 vivo. `mu-client` escribió un decodificador JPEG propio compatible con libjpeg 6b para lograrlo.
 
+**El OZT** (CL1.4): en el laboratorio son 664, todos TGA de color sin comprimir y sin id, con el
+origen abajo; 649 con el descriptor `0x08` y 15 con `0x00`. El original no mira ninguno de esos
+campos, así que no importa. En 17 los 4 bytes del principio no son los 4 primeros del TGA, y
+tampoco importa, porque no se leen. Uno, `Monster\wolfa02.OZT`, es de 24 bits, y el original lo
+rechaza (Q-C29). Ninguno pasa de 512 de lado, y 133 no son de lados potencia de 2. Después de los
+píxeles, 663 traen el pie de 26 bytes de un TGA 2.0 y uno nada. Los 9 cursores de `Interface` y
+`TileGrass01.OZT` de World1 dan, con las filas dadas vuelta y en RGBA, los buffers de la memoria
+del original (`lor2_slot002..00a.bin` y `lor2_slot032.bin`).
+
 ## El pipeline de las DLLs
 
 | DLL | Qué hace | Algoritmo |

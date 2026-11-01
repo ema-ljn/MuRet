@@ -4,7 +4,9 @@
 
 #pragma once
 
+#include "Data/Tables/Xor3.h"
 #include "Data/Terrain/K16.h"
+#include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainMapping.h"
 
@@ -13,6 +15,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <utility>
 #include <vector>
 
 namespace Client::Tests
@@ -74,6 +77,62 @@ inline std::vector<std::byte> PlainTerrainMapping(std::uint8_t world)
         plain[TerrainMappingAlphaOffset + cell] = std::byte{AlphaPattern(cell)};
     }
     return plain;
+}
+
+// Un atributo por celda, siempre debajo de TerrainAttributeLimit: 127 valores que no se repiten
+// cada fila. Para el byte de arriba de un WORD, otro patrón que nunca es cero, para ver que se
+// descarta.
+inline std::uint8_t AttributePattern(std::size_t cell)
+{
+    return CellPattern(cell, 127, 0);
+}
+
+inline std::uint8_t AttributeHighBytePattern(std::size_t cell)
+{
+    return CellPattern(cell, 13, 1);
+}
+
+// Un EncTerrain.att en claro: la cabecera 00 `world` FF FF y cada celda con AttributePattern, en un
+// byte o en un WORD con AttributeHighBytePattern arriba.
+enum class AttributeCells
+{
+    Bytes,
+    Words,
+};
+
+inline std::vector<std::byte> PlainTerrainAttributes(std::uint8_t world, AttributeCells cells)
+{
+    using Data::Terrain::TerrainAttributesHeaderSize;
+    using Data::Terrain::TerrainAttributesSizeWithByteCells;
+    using Data::Terrain::TerrainAttributesSizeWithWordCells;
+    using Data::Terrain::TerrainAttributesWorldOffset;
+    using Data::Terrain::TerrainCellCount;
+    const bool words = cells == AttributeCells::Words;
+    std::vector<std::byte> plain(words ? TerrainAttributesSizeWithWordCells : TerrainAttributesSizeWithByteCells);
+    plain[0] = std::byte{0x00};
+    plain[TerrainAttributesWorldOffset] = std::byte{world};
+    plain[2] = std::byte{0xFF};
+    plain[3] = std::byte{0xFF};
+    for (std::size_t cell = 0; cell < TerrainCellCount; ++cell)
+    {
+        if (words)
+        {
+            plain[TerrainAttributesHeaderSize + 2 * cell] = std::byte{AttributePattern(cell)};
+            plain[TerrainAttributesHeaderSize + 2 * cell + 1] = std::byte{AttributeHighBytePattern(cell)};
+        }
+        else
+        {
+            plain[TerrainAttributesHeaderSize + cell] = std::byte{AttributePattern(cell)};
+        }
+    }
+    return plain;
+}
+
+// El cifrado del .att, al revés que el descifrado: primero XOR3 y después K16.
+inline std::vector<std::byte> EncryptTerrainAttributes(std::vector<std::byte> plain)
+{
+    Data::Tables::Xor3(plain);
+    return EncryptK16(std::move(plain));
 }
 
 // La primera celda en la que `layer` no es `expected`, o std::nullopt si son iguales. Compara

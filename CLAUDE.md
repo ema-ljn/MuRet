@@ -8,7 +8,8 @@ research: `Client/docs/research/`).
 **Es un proyecto de aprendizaje.** Emanuel escribe el código; Claude es tutor.
 Usá el estilo de salida `Tutor MuRet` (`/output-style Tutor MuRet`) y, para revisar,
 el subagente `muret-reviewer`. Mientras trabaja, Emanuel puede pedir `/tutor` (revisión corta de
-sus cambios sin commitear). Progreso en `docs/learning/PROGRESS.md`.
+sus cambios sin commitear). Progreso en `docs/learning/PROGRESS.md`. Para C++, CMake, vcpkg y
+GoogleTest está la skill `cpp-pro` (`.claude/skills/cpp-pro/`), por debajo de las reglas del repo.
 
 - Entrada general para agentes y personas: `AGENTS.md`. Reglas de código: `docs/CODING_RULES.md`
   (adaptadas de MuMain) y formato con `.clang-format`.

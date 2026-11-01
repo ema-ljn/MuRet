@@ -19,7 +19,8 @@ distribuidos portando el DataServer de MU Online 1.02, después otros servidores
   preguntas en vez de respuestas, y el andamiaje que los planes marcan como `(Claude)` (CMake, CI,
   herramientas de prueba).
 - En Claude Code: estilo de salida `Tutor MuRet` y, para revisar, el subagente `muret-reviewer`
-  (ver [`CLAUDE.md`](CLAUDE.md)).
+  (ver [`CLAUDE.md`](CLAUDE.md)). Para C++ está la skill
+  [`cpp-pro`](.claude/skills/cpp-pro/SKILL.md), que dice dónde MuRet se aparta de su fuente.
 
 ## Reglas de código: leelas primero
 

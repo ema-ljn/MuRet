@@ -39,14 +39,17 @@ struct Vector
     int components;
 };
 
-// Los tres tipos de JPEG del laboratorio (baseline 4:4:4 con intervalos de reinicio, baseline
-// 4:2:0 de lados que no son múltiplo del bloque, y progresivo 4:4:4), uno en grises y uno cortado.
-constexpr std::array<Vector, 5> DecodedBy6b{{
-    {"baseline-444-dri", 16, 8, 3},
+// Los tres tipos de JPEG del laboratorio (baseline 4:4:4 con un reinicio por fila de MCU, baseline
+// 4:2:0 de lados que no son múltiplo del bloque, y progresivo 4:4:4); un 4:4:0, que turbo agranda
+// distinto que la 6b si no se le apaga el filtro (Q-C33); uno en grises, uno CMYK y uno cortado.
+constexpr std::array<Vector, 7> DecodedBy6b{{
+    {"baseline-444-dri", 16, 24, 3},
     {"baseline-420", 13, 11, 3},
+    {"baseline-440", 16, 16, 3},
     {"progressive-444", 16, 16, 3},
     {"gray", 8, 8, 1},
-    {"truncated", 16, 8, 3},
+    {"cmyk-3x2", 3, 2, 4},
+    {"truncated", 16, 24, 3},
 }};
 
 // El error de decodificar `jpeg`, o std::nullopt si decodificó.
@@ -60,8 +63,8 @@ std::optional<DataError> DecodeError(std::span<const std::byte> jpeg, int maxSid
     return decoded.Error();
 }
 
-// Cada vector da los mismos píxeles que la 6b, en RGB o en grises, con las filas de arriba hacia
-// abajo.
+// Cada vector da los mismos píxeles que la 6b, con las filas de arriba hacia abajo: en RGB, en
+// grises o en CMYK, que libjpeg no pasa a RGB, y el original tampoco.
 TEST(JpegImageTest, DecodesLikeTheLibjpeg6b)
 {
     for (const Vector& vector : DecodedBy6b)
@@ -81,7 +84,8 @@ TEST(JpegImageTest, DecodesLikeTheLibjpeg6b)
 }
 
 // Un JPEG cortado en el medio de los datos no es un error: libjpeg avisa, completa la imagen como
-// la 6b (el vector "truncated" de arriba) y sigue, como en el original.
+// la 6b (el vector "truncated" de arriba) y sigue, como en el original. Es un baseline: un
+// progresivo cortado, turbo lo completa distinto (Q-C33).
 TEST(JpegImageTest, AJpegCutInTheMiddleOfItsDataStillDecodes)
 {
     const std::vector<std::byte> whole = ReadJpegVector("baseline-444-dri.jpg");
@@ -108,25 +112,43 @@ TEST(JpegImageTest, WhatLibjpegCannotReadIsInvalidData)
     EXPECT_EQ(DecodeError(withoutData, AnySide), DataError::InvalidData);
 }
 
-// El ancho y el alto se miran contra maxSide, cada uno por su lado.
+// Lo que la 6b no lee y turbo sí es InvalidData, como en el original (Q-C33): la 6b corta con
+// JERR_ARITH_NOTIMPL, JERR_SOF_UNSUPPORTED y JERR_BAD_PRECISION.
+TEST(JpegImageTest, WhatThe6bCannotReadIsInvalidData)
+{
+    EXPECT_EQ(DecodeError(ReadJpegVector("arithmetic.jpg"), AnySide), DataError::InvalidData);
+    EXPECT_EQ(DecodeError(ReadJpegVector("lossless.jpg"), AnySide), DataError::InvalidData);
+    EXPECT_EQ(DecodeError(ReadJpegVector("precision-12.jpg"), AnySide), DataError::InvalidData);
+}
+
+// Lo que viene después de la última fila no se lee (Q-C32): con un segundo SOI en vez del EOI, que
+// jpeg_finish_decompress rechaza, la imagen es la misma. El original ya la usó cuando lo rechaza.
+TEST(JpegImageTest, WhatComesAfterTheLastRowIsNotRead)
+{
+    std::vector<std::byte> jpeg = ReadJpegVector("baseline-444-dri.jpg");
+    const std::vector<std::byte> expected = ReadJpegVector("baseline-444-dri.6b.raw");
+    ASSERT_GT(jpeg.size(), 2u);
+    ASSERT_EQ(jpeg.back(), std::byte{0xD9});
+    jpeg.back() = std::byte{0xD8};
+    jpeg.insert(jpeg.end(), {std::byte{0xFF}, std::byte{0xD9}});
+
+    const auto decoded = DecodeJpeg(jpeg, AnySide);
+
+    ASSERT_TRUE(decoded.HasValue());
+    EXPECT_TRUE(SameBytes(std::as_bytes(std::span(decoded.Value().pixels)), expected));
+}
+
+// El ancho y el alto se miran contra maxSide, cada uno por su lado. Con 0 o menos, nada entra.
 TEST(JpegImageTest, ASideOverTheLimitIsInvalidData)
 {
     const std::vector<std::byte> wide = ReadJpegVector("flat-512x8.jpg");
 
     EXPECT_EQ(DecodeError(wide, 512), std::nullopt);
     EXPECT_EQ(DecodeError(wide, 511), DataError::InvalidData);
+    EXPECT_EQ(DecodeError(wide, 0), DataError::InvalidData);
+    EXPECT_EQ(DecodeError(wide, -1), DataError::InvalidData);
     EXPECT_EQ(DecodeError(ReadJpegVector("flat-513x8.jpg"), 512), DataError::InvalidData);
     EXPECT_EQ(DecodeError(ReadJpegVector("flat-8x513.jpg"), 512), DataError::InvalidData);
-}
-
-// Un JPEG CMYK sale con 4 bytes por píxel: libjpeg no lo pasa a RGB, y el original tampoco.
-TEST(JpegImageTest, ACmykJpegHasFourComponents)
-{
-    const auto decoded = DecodeJpeg(ReadJpegVector("cmyk-4x2.jpg"), AnySide);
-
-    ASSERT_TRUE(decoded.HasValue());
-    EXPECT_EQ(decoded.Value().components, 4);
-    EXPECT_EQ(decoded.Value().pixels.size(), std::size_t{4 * 2 * 4});
 }
 
 } // namespace

@@ -2,3 +2,5 @@
 # los compare como texto. Uno sin bytes en cero, como gray.6b.raw, git lo tomaría por texto.
 *.jpg binary
 *.raw binary
+# lab-6b.txt es texto, pero GoldenJpegImageTest.cpp lo lee con fines de línea de Linux.
+*.txt text eol=lf

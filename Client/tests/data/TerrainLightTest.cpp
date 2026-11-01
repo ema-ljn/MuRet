@@ -9,6 +9,7 @@
 #include "Data/Textures/JpegImage.h"
 #include "Data/Textures/OzjTexture.h"
 #include "support/JpegVectors.h"
+#include "support/SameBytes.h"
 
 #include <gtest/gtest.h>
 
@@ -32,6 +33,7 @@ using Client::Data::Textures::DecodeJpeg;
 using Client::Data::Textures::OzjPrefixSize;
 using Client::Tests::OzjOf;
 using Client::Tests::ReadJpegVector;
+using Client::Tests::SameBytes;
 
 // El error de cargar `file`, o std::nullopt si cargó.
 std::optional<DataError> LoadError(std::span<const std::byte> file)
@@ -79,6 +81,25 @@ TEST(TerrainLightTest, OnlyTakesALightOf256By256InColor)
     EXPECT_EQ(LoadError(OzjOf(ReadJpegVector("light-256x255.jpg"))), DataError::InvalidData);
     EXPECT_EQ(LoadError(OzjOf(ReadJpegVector("flat-512x8.jpg"))), DataError::InvalidData);
     EXPECT_EQ(LoadError(OzjOf(ReadJpegVector("light-gray-256.jpg"))), DataError::InvalidData);
+}
+
+// Q-C32: lo que viene después de la última fila no se lee. Con un segundo SOI en vez del EOI, que
+// jpeg_finish_decompress rechaza, la luz es la misma: el original ya la escribió en la tabla cuando
+// lo rechaza.
+TEST(TerrainLightTest, WhatComesAfterTheLastRowIsNotRead)
+{
+    std::vector<std::byte> jpeg = ReadJpegVector("light-256.jpg");
+    const auto expected = LoadTerrainLight(OzjOf(jpeg));
+    ASSERT_TRUE(expected.HasValue());
+    ASSERT_EQ(jpeg.back(), std::byte{0xD9});
+    jpeg.back() = std::byte{0xD8};
+    jpeg.insert(jpeg.end(), {std::byte{0xFF}, std::byte{0xD9}});
+
+    const auto light = LoadTerrainLight(OzjOf(jpeg));
+
+    ASSERT_TRUE(light.HasValue());
+    EXPECT_TRUE(
+        SameBytes(std::as_bytes(std::span(light.Value()->cells)), std::as_bytes(std::span(expected.Value()->cells))));
 }
 
 // Sin bytes después de los 24 no hay JPEG: FileTooShort. Lo que no es un JPEG es InvalidData.

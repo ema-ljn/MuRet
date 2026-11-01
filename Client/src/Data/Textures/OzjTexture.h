@@ -32,12 +32,15 @@ static_assert(OzjPrefixSize == 0x18, "el fseek que mide el research (0063b870-oz
 
 // Lee la textura de `file`, un OZJ. Los píxeles quedan en RGB, con las filas en el orden del JPEG.
 //   - Si `file` no pasa de OzjPrefixSize, no hay JPEG: devuelve DataError::FileTooShort.
-//   - Si libjpeg no lo puede decodificar, o el ancho o el alto pasan de TextureMaxSide, devuelve
-//     DataError::InvalidData. El original devuelve false y no sube la textura. Pasa con los 7 TGA
-//     de Q-C14 y con el único OZJ del laboratorio de más de 512, Skill\null.OZJ (800 × 600).
+//   - Si libjpeg corta antes de la última fila, o el ancho o el alto pasan de TextureMaxSide,
+//     devuelve DataError::InvalidData. El original devuelve false y no sube la textura. Pasa con
+//     los 7 TGA de Q-C14 y con el único OZJ del laboratorio de más de 512, Skill\null.OZJ
+//     (800 × 600). Lo que viene después de la última fila no se lee: cuando el original lo lee, ya
+//     subió la textura (Q-C32).
 //   - Cada fila del JPEG se copia entera al principio de su fila de la textura, como en el
-//     original: un JPEG en grises, de un byte por píxel, llena un tercio de cada fila (Q-C31). Si
-//     una fila no entra en la de la textura (un JPEG CMYK, de 4), devuelve DataError::InvalidData.
+//     original: un JPEG en grises, de un byte por píxel, llena un tercio de cada fila, y uno CMYK,
+//     de 4, entra si su ancho no pasa de 3/4 del de la textura (Q-C31). Si una fila no entra en la
+//     de la textura, devuelve DataError::InvalidData.
 Core::Expected<Texture, DataError> LoadOzjTexture(std::span<const std::byte> file);
 
 } // namespace Client::Data::Textures

@@ -62,6 +62,10 @@ cmake --preset linux-x64-debug -DMURET_CLIENT_GOLDEN_DIR=/ruta/a/Data   # queda 
 Sin la variable, se saltean (`Skipped`). Si apunta a una carpeta que no existe, o le falta el
 archivo que el test pide, fallan.
 
+Los OZJ, además, se comparan con lo que da la IJG libjpeg 6b del original, que no está en CI: el
+tamaño y un hash de cada uno están en `tests/vectors/jpeg/lab-6b.txt`, y cómo se sacan, en el
+README de esa carpeta. Es lo que hay que correr al cambiar de versión de libjpeg-turbo.
+
 Algunos además comparan con la memoria del `main.exe` original, con los archivos ya cargados: los
 volcados de `client-research/mu-golden/memoria-cliente`, en el repo de research (fuera de Git).
 La variable apunta a esa carpeta, la que tiene una carpeta por captura (`2026-10-09-devias`,

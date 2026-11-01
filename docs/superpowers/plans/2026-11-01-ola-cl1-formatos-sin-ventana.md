@@ -297,7 +297,7 @@ del servidor. Los `EncTerraintest*` del laboratorio no los pide nadie.
 - **PR B (este):** `EncTerrain.obj` (cabecera de 4 bytes y N registros de 30: tipo, posición,
   ángulo y escala) y `TerrainHeight.OZB` (Q-C02: las alturas desde BMP + 1080, por 1,5; por 3 en
   el mundo `0x37`).
-- `TerrainLight.OZJ` es un JPEG: pasa a la CL1.4, con el decodificador JPEG.
+- `TerrainLight.OZJ` es un JPEG: pasa a la CL1.4, con la biblioteca JPEG.
 
 **Contrato** ([05 § Terreno](../../../Client/docs/research/05-formatos-de-datos.md#terreno-de-un-mundo-dataworldn)
 y, en el repo de research, `005f87b0-encterrain-map.md` y `005f8390-encterrain-att.md`):
@@ -445,9 +445,11 @@ el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
 - Crear: `Client/src/Data/Textures/JpegImage.h/.cpp` (`DecodeJpeg`, lo único que ve libjpeg),
   `OzjTexture.h/.cpp` y `Client/src/Data/Terrain/TerrainLight.h/.cpp`.
 - Crear: `Client/tests/data/JpegImageTest.cpp`, `OzjTextureTest.cpp`, `TerrainLightTest.cpp`,
-  `GoldenOzjTextureTest.cpp`, `GoldenTerrainLightTest.cpp`, `Client/tests/support/SameBytes.h`
-  (dice el primer byte distinto), `JpegVectors.h` y los vectores de `Client/tests/vectors/jpeg/`,
-  con su README (cómo se armaron) y un `.gitattributes` que los deja como bytes.
+  `GoldenJpegImageTest.cpp`, `GoldenOzjTextureTest.cpp`, `GoldenTerrainLightTest.cpp`,
+  `Client/tests/support/SameBytes.h` (dice el primer byte distinto), `Fnv1a.h` y su test,
+  `JpegVectors.h` y los vectores de `Client/tests/vectors/jpeg/`, con su README (cómo se armaron),
+  `lab-6b.txt` (el hash de la 6b de cada OZJ del laboratorio), `tools/` (la 6b fuera de CI y los
+  scripts que arman todo) y un `.gitattributes` que deja los vectores como bytes.
 - Modificar: `vcpkg.json`, el CI (NASM), `Client/CMakeLists.txt`, `GoldenDir.h/.cpp`
   (`HasExtension`, sin distinguir mayúsculas), `GoldenOztTextureTest.cpp`, los README, 05, 07
   (Q-C14, Q-C30, Q-C31 y Q-C32), el roadmap (pregunta 1), PROGRESS y este plan.
@@ -463,6 +465,10 @@ el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
   como lo hace `0x63b870`. La 6b da los mismos bytes que la memoria del original en los 9 tiles de
   Lorencia. libjpeg-turbo 3.2.0, la del baseline de vcpkg, da los mismos bytes que la 6b en los
   2.380, con SIMD y sin SIMD, y con o sin el suavizado de bloques de los progresivos (623 lo son).
+  Queda en el repo como prueba: `lab-6b.txt` guarda el tamaño y el hash de lo que da la 6b de cada
+  uno, y `GoldenJpegImageTest` lo compara con turbo. Es el test que hay que correr al cambiar de
+  versión. El port de vcpkg depende también de libspng y zlib, que se compilan con él aunque el
+  cliente no los use: más tiempo en el primer build de CI, después queda en la caché.
   Las reviews del PR B midieron dónde turbo no es la 6b, siempre fuera del laboratorio. Lo que se
   puede llevar a la 6b se lleva: rechaza lo que la 6b no lee (JPEG aritméticos, sin pérdida y de 12
   bits) y agranda el 4:4:0 sin el filtro, como ella. Lo que no, queda escrito en Q-C33: un
@@ -482,20 +488,26 @@ el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
   memoria.
 - [x] **Paso 2 (PR B):** libjpeg-turbo en `vcpkg.json` (y NASM en el CI de Linux, para su SIMD),
   `LoadOzjTexture(file)` y `LoadTerrainLight(file)`, con vectores chicos que corren en CI: JPEG
-  sintéticos de los tres tipos del laboratorio (baseline 4:4:4 con reinicios, baseline 4:2:0 y
-  progresivo 4:4:4), uno en grises y uno cortado, con el resultado que da la 6b. Tests: los
-  bytes de la 6b, un JPEG cortado que libjpeg completa, lo que libjpeg no lee, el tope de 512, las
-  filas sin dar vuelta, una imagen de 13 × 11 en una textura de 16 × 16, los 24 bytes que no se
-  leen, grises y CMYK (Q-C31), la luz con sus filas dadas vuelta y por 1/255, y solo de 256 × 256
-  en color. Golden con los 2.387 OZJ y las 24 luces, y contra la memoria.
+  sintéticos de los tres tipos del laboratorio (baseline 4:4:4 con un reinicio por fila de MCU,
+  baseline 4:2:0 y progresivo 4:4:4), un 4:4:0, uno en grises, uno CMYK y uno cortado, con el
+  resultado que da la 6b, y tres que la 6b no lee (aritmético, sin pérdida y de 12 bits). Tests:
+  los bytes de la 6b, un JPEG cortado que libjpeg completa, lo que libjpeg no lee, lo que la 6b no
+  lee, lo que viene después de la última fila (Q-C32), el tope de 512, las filas sin dar vuelta,
+  una imagen de 13 × 11 en una textura de 16 × 16, los 24 bytes que no se leen, grises y CMYK, que
+  entra o no según el ancho (Q-C31), la luz con sus filas dadas vuelta y por 1/255, y solo de
+  256 × 256 en color. Golden: los 2.380 JPEG contra el hash de la 6b, los 2.387 OZJ y las 24 luces,
+  y contra la memoria.
 
 Lo hizo Claude como ejemplo trabajado, por el mismo pedido tuyo de seguir con el cliente. Quedaron
 tomadas sin preguntarte: el rechazo del OZT es `InvalidData` (el original devuelve false sin
 avisar), un lado de cero o negativo carga sin píxeles como en el original, y el resto del buffer
-queda en cero (Q-C30). En el PR B: lo que libjpeg no puede leer es `InvalidData`; un JPEG
-cortado carga, porque libjpeg avisa y completa la imagen, como en el original; sus mensajes no se
-muestran (el original no abre un `MessageBox`; los manda, probablemente, a stderr); una fila que no entra en la textura es `InvalidData`,
-y la luz solo acepta 256 × 256 en color (Q-C31).
+queda en cero (Q-C30). En el PR B: lo que libjpeg no puede leer es `InvalidData`, y lo que la 6b
+no lee también, aunque turbo sí (Q-C33); un JPEG baseline cortado carga, porque libjpeg avisa y
+completa la imagen, como en el original (un progresivo cortado, turbo lo completa distinto:
+Q-C33); lo que viene después de la última fila no se lee, porque el original ya usó la imagen
+cuando lo lee (Q-C32); sus mensajes no se muestran (el original no abre un `MessageBox`; los
+manda, probablemente, a stderr); una fila que no entra en la textura es `InvalidData`, y la luz
+solo acepta 256 × 256 en color (Q-C31).
 
 **libjpeg avisa sus errores con `longjmp`**, como en el original (`0x63b850`): vuelve al `setjmp`
 sin correr destructores, y si entre los dos quedara vivo un objeto con destructor, sería

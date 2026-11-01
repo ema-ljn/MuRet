@@ -122,17 +122,19 @@ píxeles, 663 traen el pie de 26 bytes de un TGA 2.0 y uno nada. Los 9 cursores 
 del original (`lor2_slot002..00a.bin` y `lor2_slot032.bin`).
 
 **El OZJ** (CL1.4): en el laboratorio son 2.387, y 2.380 son JPEG: 1.641 baseline 4:4:4 con un
-reinicio en cada MCU, 623 progresivos 4:4:4 y 116 baseline 4:2:0 (25 con reinicios). Todos son de
-3 componentes, y con ninguno libjpeg avisa. Los otros 7 son TGA, y libjpeg los rechaza porque no
+reinicio por fila de MCU, 623 progresivos 4:4:4 y 116 baseline 4:2:0 (25 con reinicios). Todos son
+de 3 componentes, y con ninguno libjpeg avisa. Los otros 7 son TGA, y libjpeg los rechaza porque no
 empiezan con `FF D8` (Q-C14). Uno, `skill\null.OZJ`, es de 800 × 600, y el original no lo carga
 porque pasa de 512. De los 2.379 que cargan, 179 no son de lados potencia de 2. El cargador no mira
 cuántos componentes trae el JPEG (Q-C31), pero en el laboratorio son siempre 3.
 
 MuRet decodifica con libjpeg-turbo 3.2.0, con la API de la 6b (`JPEG_LIB_VERSION` 62) y sus
 parámetros por defecto, como el original. Da los mismos bytes que la IJG libjpeg 6b en los 2.380
-JPEG del laboratorio, comparados con el `djpeg` de la 6b, y en los vectores de
-`Client/tests/vectors/jpeg/`, que corren en CI. Los 9 tiles OZJ de World1 dan los buffers de la
-memoria del original (`lor2_slot023..02b.bin`).
+JPEG del laboratorio: `Client/tests/vectors/jpeg/lab-6b.txt` guarda el tamaño y un hash de lo que
+da la 6b de cada uno, decodificado como lo hace el original, y `GoldenJpegImageTest` lo compara con
+lo que da turbo. Los vectores de la misma carpeta, que corren en CI, traen los píxeles de la 6b. Los
+9 tiles OZJ de World1 dan los buffers de la memoria del original (`lor2_slot023..02b.bin`). Fuera
+del laboratorio, turbo hace algunas cosas distinto que la 6b, y quedan en Q-C33.
 
 **La luz** (CL1.4): `TerrainLight.OZJ` es un OZJ con los mismos 24 bytes delante y el mismo
 libjpeg, pero su cargador (`0x63b490`) no arma una textura. Da vuelta las filas, así que la fila 0

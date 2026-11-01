@@ -76,9 +76,9 @@ TEST(OzjTextureTest, KeepsTheRowsOfTheJpeg)
     ASSERT_TRUE(loaded.HasValue());
     EXPECT_EQ(loaded.Value().format, PixelFormat::Rgb);
     EXPECT_EQ(loaded.Value().width, 16);
-    EXPECT_EQ(loaded.Value().height, 8);
+    EXPECT_EQ(loaded.Value().height, 24);
     EXPECT_EQ(loaded.Value().textureWidth, 16);
-    EXPECT_EQ(loaded.Value().textureHeight, 8);
+    EXPECT_EQ(loaded.Value().textureHeight, 32);
     ASSERT_NO_FATAL_FAILURE(ExpectTheRows(loaded.Value(), ReadJpegVector("baseline-444-dri.6b.raw"), 16 * RgbSize));
 }
 
@@ -122,14 +122,30 @@ TEST(OzjTextureTest, AGrayJpegFillsAThirdOfEachRow)
     ASSERT_NO_FATAL_FAILURE(ExpectTheRows(loaded.Value(), ReadJpegVector("gray.6b.raw"), 8));
 }
 
-// Q-C31: un JPEG CMYK da 4 bytes por píxel, y su fila no entra en la de la textura: el original
-// escribe en la fila siguiente y, en la última, fuera del buffer. MuRet no lo carga.
+// Q-C31: un JPEG CMYK da 4 bytes por píxel, y el original copia la fila tal cual. Si el ancho no
+// pasa de 3/4 del de la textura, entra: los 3 píxeles de cmyk-3x2 son 12 bytes, lo que ocupan 4 de
+// la textura. OpenGL los lee como RGB.
+TEST(OzjTextureTest, ACmykRowThatFitsIsCopiedAsIs)
+{
+    const auto loaded = LoadOzjTexture(OzjOf(ReadJpegVector("cmyk-3x2.jpg")));
+
+    ASSERT_TRUE(loaded.HasValue());
+    EXPECT_EQ(loaded.Value().format, PixelFormat::Rgb);
+    EXPECT_EQ(loaded.Value().textureWidth, 4);
+    EXPECT_EQ(loaded.Value().textureHeight, 2);
+    ASSERT_NO_FATAL_FAILURE(ExpectTheRows(loaded.Value(), ReadJpegVector("cmyk-3x2.6b.raw"), 3 * 4));
+}
+
+// Q-C31: si la fila no entra, como los 4 píxeles CMYK de cmyk-4x2 (16 bytes) en una textura de 4 de
+// ancho (12), el original escribe en la fila siguiente y, en la última, fuera del buffer. MuRet no
+// lo carga.
 TEST(OzjTextureTest, ARowThatDoesNotFitIsInvalidData)
 {
     EXPECT_EQ(LoadError(OzjOf(ReadJpegVector("cmyk-4x2.jpg"))), DataError::InvalidData);
 }
 
-// Un lado de 512 entra; uno de 513, no, como en el original (0x63b870 compara con 0x201).
+// Un lado de 512 entra; uno de 513, no, como en el original: 0x63b870 compara cada lado con 0x200
+// sin signo (CMP EAX,0x200 y JA, en 0x63bb17 y 0x63bb28).
 TEST(OzjTextureTest, AcceptsSidesUpTo512)
 {
     const auto wide = LoadOzjTexture(OzjOf(ReadJpegVector("flat-512x8.jpg")));

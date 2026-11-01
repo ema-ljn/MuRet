@@ -60,6 +60,7 @@ if(MURET_BUILD_TESTS)
         tests/core/ExpectedTest.cpp
         tests/support/FileBytes.cpp
         tests/support/FileBytesTest.cpp
+        tests/support/Fnv1aTest.cpp
         tests/support/GoldenDir.cpp
         tests/support/GoldenDirTest.cpp
         tests/data/ByteReaderTest.cpp
@@ -69,6 +70,7 @@ if(MURET_BUILD_TESTS)
         tests/data/GoldenGateTableTest.cpp
         tests/data/GoldenOztTextureTest.cpp
         tests/data/GoldenItemTableTest.cpp
+        tests/data/GoldenJpegImageTest.cpp
         tests/data/GoldenOzjTextureTest.cpp
         tests/data/GoldenSkillTableTest.cpp
         tests/data/GoldenTableChecksumTest.cpp

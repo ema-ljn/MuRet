@@ -116,6 +116,13 @@ namespace:
 
 - Cada dependencia, abstracción o patrón nuevo tiene un costo de mantenimiento: justificalo. Las
   dependencias entran por `vcpkg.json` y, si son de peso, con un ADR.
+- **No reconstruir la rueda.** Antes de escribir algo que no sea propio del MU (sus formatos, sus
+  cifrados, sus checksums), buscá una biblioteca en vcpkg y leé su documentación (Context7). Entra
+  solo si resuelve **ese** problema y lo hace como se espera: si hay fidelidad en juego, con la
+  misma salida que el original, y eso lo prueban los tests golden. Una que hace algo parecido no
+  alcanza: entonces se escribe. También se escribe si el camino de aprendizaje lo pone como
+  ejercicio (L-3, como el `Expected`) o si son pocas líneas y la dependencia cuesta más que ellas.
+  Cada PR dice qué bibliotecas se miraron y por qué entraron o no.
 - **Una sub-ola = un concepto = un PR chico.** Los diffs chicos se revisan mejor.
 - Si dudás de una decisión estructural, preguntá antes de construir encima.
 

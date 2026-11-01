@@ -12,7 +12,7 @@ el trabajo va por olas y sub-olas, y cada sub-ola es un concepto y un PR chico
 | Componente | Qué hace | Estado |
 | --- | --- | --- |
 | [`Server/DataServer`](Server/DataServer/README.md) | traduce los pedidos de los GameServers a SQL (puerto 55960) | ola 0: andamiaje |
-| [`Client`](Client/README.md) | el cliente del jugador (`main.exe`), con SDL3 y OpenGL 3.3 | ola CL0: ventana SDL3 + GL 3.3 y tests |
+| [`Client`](Client/README.md) | el cliente del jugador (`main.exe`), con SDL3 y OpenGL 3.3 | ola CL1: lee las tablas `.bmd` sin ventana (`Text`, `Gate`, `Item`, `Skill`) |
 
 ## Compilar
 

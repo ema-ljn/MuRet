@@ -7,6 +7,7 @@
 find_package(SDL3 CONFIG REQUIRED)
 
 add_library(ClientLib STATIC
+    src/App/CommandLine.cpp
     src/Data/DataPath.cpp
 )
 target_include_directories(ClientLib PUBLIC src)
@@ -17,6 +18,9 @@ add_executable(Main
     src/main.cpp
 )
 target_link_libraries(Main PRIVATE ClientLib SDL3::SDL3)
+# Los typedef PFNGL…PROC de las funciones de GL 1.x (glClear, glViewport); los de la 3.3 vienen
+# siempre. Con ellos se tipan los punteros que da SDL_GL_GetProcAddress (main.cpp).
+target_compile_definitions(Main PRIVATE SDL_OPENGL_1_FUNCTION_TYPEDEFS)
 muret_set_warnings(Main)
 
 if(MURET_BUILD_TESTS)
@@ -24,6 +28,7 @@ if(MURET_BUILD_TESTS)
     include(GoogleTest)
 
     add_executable(ClientTests
+        tests/app/CommandLineTest.cpp
         tests/support/GoldenDir.cpp
         tests/support/GoldenDirTest.cpp
         tests/data/DataPathTest.cpp
@@ -41,4 +46,10 @@ if(MURET_BUILD_TESTS)
     else()
         gtest_discover_tests(ClientTests)
     endif()
+
+    # Main arranca (encuentra SDL3, en Windows la DLL) y rechaza un argumento malo antes de abrir
+    # la ventana, así que corre sin pantalla. Si faltara la DLL, no imprimiría nada y fallaría.
+    add_test(NAME Client.Main.RejectsBadArguments COMMAND Main --frames 0)
+    set_tests_properties(Client.Main.RejectsBadArguments PROPERTIES
+        PASS_REGULAR_EXPRESSION "--frames necesita un número mayor que 0")
 endif()

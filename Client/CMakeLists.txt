@@ -4,6 +4,8 @@
 # tests, y los dos últimos enlazan contra ClientLib. Las capas (Platform, Data, Network, Protocol,
 # Render, Scenes) van entrando a ClientLib ola por ola.
 
+find_package(SDL3 CONFIG REQUIRED)
+
 add_library(ClientLib STATIC
     src/Data/DataPath.cpp
 )
@@ -14,7 +16,7 @@ muret_set_warnings(ClientLib)
 add_executable(Main
     src/main.cpp
 )
-target_link_libraries(Main PRIVATE ClientLib)
+target_link_libraries(Main PRIVATE ClientLib SDL3::SDL3)
 muret_set_warnings(Main)
 
 if(MURET_BUILD_TESTS)

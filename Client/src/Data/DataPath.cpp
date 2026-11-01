@@ -1,6 +1,7 @@
 #include "Data/DataPath.h"
 
 #include <algorithm>
+#include <functional>
 #include <string>
 #include <system_error>
 #include <vector>
@@ -8,15 +9,19 @@
 namespace
 {
 
+// Solo A-Z. std::tolower depende del locale de C y es comportamiento indefinido con un char
+// negativo (cualquier byte >= 0x80 de un nombre en UTF-8).
 char ToLowerAscii(char c)
 {
     return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
 }
 
+// operator== de string_view compara bytes exactos, y la biblioteca estándar no trae una
+// comparación sin mayúsculas. ranges::equal sí deja proyectar: pasa cada char de los dos lados
+// por ToLowerAscii antes del ==, y si los tamaños difieren devuelve false sin comparar nada.
 bool EqualsIgnoringAsciiCase(std::string_view a, std::string_view b)
 {
-    return a.size() == b.size() &&
-           std::equal(a.begin(), a.end(), b.begin(), [](char x, char y) { return ToLowerAscii(x) == ToLowerAscii(y); });
+    return std::ranges::equal(a, b, std::ranges::equal_to{}, ToLowerAscii, ToLowerAscii);
 }
 
 bool IsSeparator(char c)

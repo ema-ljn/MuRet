@@ -15,6 +15,7 @@ add_library(ClientLib STATIC
     src/Data/Tables/SkillTable.cpp
     src/Data/Tables/TableChecksum.cpp
     src/Data/Tables/Xor3.cpp
+    src/Data/Terrain/K16.cpp
     src/Data/Text/TextTable.cpp
 )
 target_include_directories(ClientLib PUBLIC src)
@@ -51,6 +52,7 @@ if(MURET_BUILD_TESTS)
         tests/data/GoldenTableChecksumTest.cpp
         tests/data/GoldenTextTableTest.cpp
         tests/data/ItemTableTest.cpp
+        tests/data/K16Test.cpp
         tests/data/RecordTableTest.cpp
         tests/data/SkillTableTest.cpp
         tests/data/TableChecksumTest.cpp

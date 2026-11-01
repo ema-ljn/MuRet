@@ -10,6 +10,7 @@ add_library(ClientLib STATIC
     src/App/CommandLine.cpp
     src/Data/ByteReader.cpp
     src/Data/DataPath.cpp
+    src/Data/Tables/TableChecksum.cpp
     src/Data/Tables/Xor3.cpp
 )
 target_include_directories(ClientLib PUBLIC src)
@@ -39,6 +40,8 @@ if(MURET_BUILD_TESTS)
         tests/data/ByteReaderTest.cpp
         tests/data/DataPathTest.cpp
         tests/data/GoldenDataFilesTest.cpp
+        tests/data/GoldenTableChecksumTest.cpp
+        tests/data/TableChecksumTest.cpp
         tests/data/Xor3Test.cpp
     )
     target_include_directories(ClientTests PRIVATE tests)

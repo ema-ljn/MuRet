@@ -72,14 +72,15 @@ externos y cómo se saltean sin mentir.
 
 - [x] **Paso 1 (Claude, andamiaje):** `ClientLib` estática, `Main` y `ClientTests` linkeando contra ella; registrar en CTest con `gtest_discover_tests`. Lo primero de `ClientLib` es `Client::Data::ResolveDataPath`: el original pide rutas como `Data\Player\Player.bmd` y Windows no distingue mayúsculas, pero el `Data\` del laboratorio tiene `player\`; en Linux hay que buscar sin distinguirlas.
 - [x] **Paso 2 (Claude, andamiaje):** `MURET_CLIENT_GOLDEN_DIR` llega a los tests como variable de entorno al correr `ctest`, o como variable de caché de CMake que se la pasa a CTest.
-- [x] **Paso 3 (Claude, a pedido de Emanuel):** `Client::Tests::GoldenDataTest`, la base de los tests golden con la regla de la pregunta 2, y dos tests de ejemplo (las claves `Enc1.dat`/`Dec2.dat` de 54 bytes y `Player\Player.bmd`).
+- [x] **Paso 3 (Claude, a pedido de Emanuel):** `Client::Tests::GoldenDataTest`, la base de los tests golden con la regla de la pregunta 2, y dos tests de ejemplo (las claves `Enc1.dat`/`Dec2.dat` de 54 bytes y `Player\Player.bmd`). La regla misma tiene tests (`GoldenDirTest`), separada de la lectura del entorno.
 - [x] **Paso 4:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug
   ```
-  Sin la variable: 7 tests, 5 pasan y los 2 golden salen `Skipped`. Con
+  Sin la variable, los 2 golden salen `Skipped` y el resto pasa (en Windows también se saltean
+  los que necesitan un sistema de archivos que distinga mayúsculas). Con
   `MURET_CLIENT_GOLDEN_DIR=<clon de mu-online-reverse-lab>/analysis/decompilacion-maxima/assets/original-data`
-  pasan los 7; con una carpeta vacía, los golden fallan con "falta … en la carpeta golden".
+  pasan también los golden; con una carpeta vacía, fallan con "falta … en la carpeta golden".
 
 ## Sub-ola CL0.3: SDL3, loader de GL y CI ✅ (Claude, ejemplo trabajado)
 
@@ -90,8 +91,8 @@ por qué hace falta (las funciones de GL 3.3 no se enlazan, se piden en runtime)
 - Modificar: `vcpkg.json` (`sdl3`), `Client/CMakeLists.txt`, `Client/src/main.cpp`
 - Crear: `.github/workflows/ci.yml` (no existía: la 0.2 del servidor todavía no se había hecho)
 
-- [x] **Paso 1 (Claude, andamiaje):** `sdl3` en `vcpkg.json`, sin sus features por defecto (en Linux, `x11` y `wayland`; afuera `ibus`, que arrastra D-Bus). `find_package(SDL3)` y link en `Main`, **no** en `ClientLib`: la biblioteca queda sin ventana, así sus tests corren en cualquier máquina. El loader es propio (D-C2): una tabla de punteros con el tipo de cada función (`decltype(&::glClear)`) que se llena con `SDL_GL_GetProcAddress`. El puerto `glad` de vcpkg trae el perfil de compatibilidad y necesita Python para compilar.
-- [x] **Paso 2 (Claude, a pedido de Emanuel):** en `main.cpp`, una ventana SDL3 de 640×480 con contexto OpenGL 3.3 core que se limpia de un azul oscuro y cierra con la X; `--frames N` dibuja N frames y sale, para probarla sin nadie que la cierre.
+- [x] **Paso 1 (Claude, andamiaje):** `sdl3` en `vcpkg.json`, sin sus features por defecto (en Linux, `x11` y `wayland`; afuera `ibus`, que arrastra D-Bus). `find_package(SDL3)` y link en `Main`, **no** en `ClientLib`: la biblioteca queda sin ventana, así sus tests corren en cualquier máquina. El loader es propio (D-C2): una tabla de punteros tipados con los `typedef` `PFNGL…PROC` (`PFNGLCLEARPROC`, `PFNGLCREATESHADERPROC`), que se llena con `SDL_GL_GetProcAddress`. Los de GL 1.x los declara `SDL_opengl.h` si se define `SDL_OPENGL_1_FUNCTION_TYPEDEFS`; los de la 3.3 vienen siempre en `SDL_opengl_glext.h`. (`decltype(&::glClear)` no sirve: las funciones de la 3.3 no tienen prototipo.) Después de cargarla, `main` comprueba con `glGetIntegerv(GL_MAJOR_VERSION)` que el contexto sea 3.3 o más, porque en GLX `SDL_GL_GetProcAddress` devuelve un puntero hasta para una función que no existe. El puerto `glad` de vcpkg trae el perfil de compatibilidad y necesita Python para compilar.
+- [x] **Paso 2 (Claude, a pedido de Emanuel):** en `main.cpp`, una ventana SDL3 de 640×480 con contexto OpenGL 3.3 core que se limpia de un azul oscuro y cierra con la X; `--frames N` dibuja N frames y sale, para probarla sin nadie que la cierre. Los argumentos se leen en `ClientLib` (`App/CommandLine`), con sus tests, y CTest corre `Main --frames 0` para comprobar que arranca (en Windows, que encuentra `SDL3.dll`) sin abrir la ventana.
 - [x] **Paso 3:** `GL_VERSION` y `GL_RENDERER` al arrancar. Linux con Xvfb y Mesa: `4.5 (Core Profile) Mesa 25.2.8` y `llvmpipe (LLVM 20.1.2, 256 bits)` (Mesa da un contexto core más nuevo que el pedido, y está bien). Sin VSync en Xvfb: avisa y sigue. **Falta Windows** (paso 5).
 - [x] **Paso 4:** el CI (`.github/workflows/ci.yml`) compila y corre los tests en Windows (MSVC) y Linux (GCC) con warnings como errores. En Linux además abre la ventana en Xvfb y dibuja 60 frames; en Windows no, porque el runner no tiene un driver de OpenGL 3.3.
 - [ ] **Paso 5 (Emanuel):** en tu máquina, con `VCPKG_ROOT` apuntando a un clon de vcpkg, compilar con `windows-x64`, correr `Main.exe` y anotar acá qué `GL_VERSION` y `GL_RENDERER` dio.

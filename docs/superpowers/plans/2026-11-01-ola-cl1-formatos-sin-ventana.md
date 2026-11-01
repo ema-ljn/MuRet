@@ -295,7 +295,7 @@ del servidor. Los `EncTerraintest*` del laboratorio no los pide nadie.
 - **PR B (este):** `EncTerrain.obj` (cabecera de 4 bytes y N registros de 30: tipo, posición,
   ángulo y escala) y `TerrainHeight.OZB` (Q-C02: las alturas desde BMP + 1080, por 1,5; por 3 en
   el mundo `0x37`).
-- `TerrainLight.OZJ` es un JPEG: pasa a la CL1.4, con la biblioteca JPEG.
+- `TerrainLight.OZJ` es un JPEG: pasa a la CL1.4, con el decodificador JPEG.
 
 **Contrato** ([05 § Terreno](../../../Client/docs/research/05-formatos-de-datos.md#terreno-de-un-mundo-dataworldn)
 y, en el repo de research, `005f87b0-encterrain-map.md` y `005f8390-encterrain-att.md`):

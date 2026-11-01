@@ -14,7 +14,7 @@ parciales, 44 binarios de soporte, 0 errores de decodificación):
 
 | Formato | Archivos | Transformación |
 | --- | ---: | --- |
-| OZJ (JPEG) | 2.380 | prefijo de 24 bytes; **7 son TGA con extensión OZJ** (Q-C14) |
+| OZJ (JPEG) | 2.387 | prefijo de 24 bytes; 2.380 son JPEG y **7, TGA con extensión OZJ** (Q-C14) |
 | OZT (TGA) | 664 | prefijo de 4 bytes |
 | BMD de modelo | 1.962 | v0A en claro o v0C cifrado con K16; todos recorridos sin bytes sobrantes |
 | BMD de tabla | 7 + 26 estructuras | XOR3 `FC CF AB` |
@@ -106,7 +106,7 @@ salen distintas.
 | --- | --- | --- |
 | tamaño | bucles `0x63bf81` / `0x63bb34` | potencia de 2 desde 1 hasta cubrir ancho y alto, tope 512 |
 | OZT | `0x63bd00` | 4 bytes de prefijo + TGA de 32 bpp; lee ancho, alto y bpp, ignora tipo y descriptor; rechaza bpp ≠ 32 y lados > 512 |
-| OZJ | `0x63b870` | 24 bytes de prefijo + JPEG baseline |
+| OZJ | `0x63b870` | 24 bytes de prefijo + JPEG, baseline o progresivo, que decodifica la libjpeg 6b con sus parámetros por defecto |
 | JPEG | `0x66b8f0`..`0x67f0c0` | IJG libjpeg 6b enlazada estática |
 
 Verificado: 9 tiles OZJ de Lorencia y 10 OZT, byte a byte contra los buffers de textura del cliente

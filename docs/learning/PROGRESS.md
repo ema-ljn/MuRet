@@ -32,8 +32,8 @@ solo lo lee.
   del comportamiento viejo de Q-C24 (paso 7 de la CL1.2). La CL1.3 (terreno) va en dos PRs; el
   primero (#19) trae K16, `EncTerrain.map` y `EncTerrain.att`, comparados con la memoria del
   original. El segundo, `EncTerrain.obj` y las alturas de `TerrainHeight.OZB`, leídas donde las
-  lee el original y no donde dice el BMP (Q-C02). La CL1.4 (texturas) va en tres PRs: los
-  volcados de memoria por captura y el OZT ya están; el OZJ espera un decodificador JPEG propio
+  lee el original y no donde dice el BMP (Q-C02). De la CL1.4 (texturas) ya están los
+  volcados de memoria por captura y el OZT; el OZJ espera un decodificador JPEG propio
   compatible con la libjpeg 6b del original, que decidiste el 2026-11-01 porque libjpeg-turbo da
   sus mismos bytes en los 2.380 JPEG del laboratorio pero no fuera de ellos. Se arma en siete
   sub-olas ([su plan](../superpowers/plans/2026-11-01-cl1.4-decodificador-jpeg.md)).

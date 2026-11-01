@@ -54,11 +54,17 @@ qué es un *test runner*; integración continua en dos sistemas. Ver la
 - Crear: `.github/workflows/ci.yml`
 - Modificar: `CMakePresets.json` (toolchain de vcpkg en el preset base), `CMakeLists.txt` (`enable_testing()`, opción `MURET_BUILD_TESTS`), `Server/DataServer/CMakeLists.txt` (`add_subdirectory(tests)`)
 
-- [ ] **Paso 1:** `vcpkg.json` con `gtest`; preset base con `"toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"`. Verificar: `cmake --preset linux-x64-debug` descarga y compila gtest.
+> **Nota (2026-11-01):** los pasos 1, 4 y 5 llegaron antes, con la CL0.2 y la CL0.3 del cliente
+> ([plan CL0](2026-10-30-ola-cl0-fundaciones-cliente.md)): `vcpkg.json` (con `gtest` y `sdl3`), el
+> toolchain en el preset base, `MURET_BUILD_TESTS`, los test presets y `.github/workflows/ci.yml`.
+> A la 0.2 del servidor le quedan los pasos 2 y 3, los tests del DataServer, y entender lo que ya
+> está (la [guía](../../learning/ola-0-fundaciones.md#02-dependencias-tests-y-ci) sigue valiendo).
+
+- [x] **Paso 1:** `vcpkg.json` con `gtest`; preset base con `"toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"`. Verificar: `cmake --preset linux-x64-debug` descarga y compila gtest.
 - [ ] **Paso 2:** `find_package(GTest CONFIG REQUIRED)`, target `DataServerTests` linkeado a `GTest::gtest_main`, `gtest_discover_tests(DataServerTests)`.
 - [ ] **Paso 3 (Emanuel, `TODO(human)`):** escribir el primer test en `SmokeTest.cpp`. Primero uno que **falle** a propósito, verlo rojo con `ctest --preset …`, después hacerlo pasar. Objetivo: entender el ciclo rojo → verde y leer la salida de GoogleTest.
-- [ ] **Paso 4:** test presets en `CMakePresets.json` (`ctest --preset linux-x64-debug`).
-- [ ] **Paso 5:** `.github/workflows/ci.yml` con matriz `ubuntu-latest` + `windows-latest`: checkout, vcpkg (cache), configure, build, test. Verificar: CI verde en el PR.
+- [x] **Paso 4:** test presets en `CMakePresets.json` (`ctest --preset linux-x64-debug`).
+- [x] **Paso 5:** `.github/workflows/ci.yml` con matriz `ubuntu-24.04` + `windows-2022`: checkout, vcpkg (cache), configure, build, test. Verificar: CI verde en el PR.
 
 ## Sub-ola 0.3: documentación base
 

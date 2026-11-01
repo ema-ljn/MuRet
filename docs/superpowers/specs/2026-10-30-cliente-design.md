@@ -75,14 +75,14 @@ La regla guía es la del servidor: el **contrato** (wire + archivos de datos) se
 | # | Tema | Original (MSVC 6) | MuRet | Por qué / qué se aprende |
 | --- | --- | --- | --- | --- |
 | D-C1 | Lenguaje | C++98 sin STL visible, globales | C++20 como el resto de MuRet, sin globales del juego | RAII, valores en vez de estado global, `std::span`, `std::expected` |
-| D-C2 | Build | proyecto de VC6 | el mismo CMake con presets del repo; dependencias por vcpkg (SDL3, un loader de GL, una biblioteca JPEG, FreeType o SDL3_ttf, GoogleTest) | un solo build para los dos sistemas |
+| D-C2 | Build | proyecto de VC6 | el mismo CMake con presets del repo; dependencias por vcpkg (SDL3, una biblioteca JPEG, FreeType o SDL3_ttf, GoogleTest). El loader de GL es propio: una tabla de punteros pedidos a `SDL_GL_GetProcAddress` (CL0.3; el puerto `glad` de vcpkg trae el perfil de compatibilidad y pide Python). Si en la CL3 la tabla crece demasiado, se revisa | un solo build para los dos sistemas |
 | D-C3 | Ventana, input y gráficos | Win32 + `wgl` + OpenGL 1.x de función fija | **SDL3** para ventana, input y audio, y **OpenGL 3.3 core** con shaders propios detrás de `Render::` (decidido por Emanuel el 2026-10-30) | el pipeline gráfico moderno (buffers, shaders, matrices) sin la complejidad de Vulkan; mismo stack de ventana que MuMain |
 | D-C4 | Ritmo del frame | pasos de lógica de 40 ms (25 por segundo) y una espera activa de 40 ms medida con `GetTickCount`, que con ticks de 15,625 ms termina a los 46,875 ms: **21,33 FPS**, medido en la selección y en Lorencia, y 7 pasos de lógica cada 6 frames, *inferido* de la aritmética del bucle ([02](../../../Client/docs/research/02-arranque-y-ciclo-de-vida.md)) | **tick de lógica de 40 ms** con el mismo bucle de alcanzar que el original + **render desacoplado** con interpolación, VSync por defecto, sin tope opcional; como el [ADR 0001 de MuMain](https://github.com/sven-n/MuMain/blob/main/docs/adr/0001-preserve-25-fps-reference-timing.md). Un **modo fiel** en la config reproduce la espera del original con un reloj de 15,625 ms (46,875 ms por frame), para comparar lado a lado | el bucle de juego con paso fijo; más FPS sin que el juego vaya más rápido ni cambie lo que se manda al servidor |
 | D-C5 | Red | `WSAAsyncSelect` en el hilo de la ventana | un socket TCP no bloqueante que el bucle consulta en cada frame; un solo hilo | E/S no bloqueante; por qué un cliente no necesita IOCP |
 | D-C6 | FoxAnti | DLL que parchea el binario | `Network::Obfuscation` opcional, con una implementación identidad y una FoxAnti (solo la capa de paquetes), elegida por config según el servidor | separar el contrato de un servidor concreto del cliente |
 | D-C7 | Datos | cargadores que escriben globales; `MessageBox` si falta algo | funciones puras bytes → tipos, errores con `std::expected`; los assets no se versionan | testear sin ventana; datos de prueba sin violar derechos |
 | D-C8 | Quirks | se replican tal cual | contrato de datos se reproduce; bugs internos se corrigen con test viejo/nuevo (regla de [07](../../../Client/docs/research/07-quirks-y-bugs.md)) | distinguir contrato de accidente |
-| D-C9 | Tests | — | GoogleTest; los de datos reales leen `MURET_CLIENT_GOLDEN_DIR` (por ejemplo un clon de `mu-online-reverse-lab`, que trae el `Data\` entero y su versión decodificada) y se saltean si no está | oráculos sin meter assets al repo |
+| D-C9 | Tests | — | GoogleTest; los de datos reales leen `MURET_CLIENT_GOLDEN_DIR`, una carpeta con el contenido de `Data\` (por ejemplo `analysis/decompilacion-maxima/assets/original-data` de `mu-online-reverse-lab`). Sin la variable, se saltean; si apunta a una carpeta que no existe o le falta el archivo pedido, fallan (CL0.2) | oráculos sin meter assets al repo |
 | D-C10 | Config | registro de Windows + `connect /u<ip> /p<puerto>` | archivo de config + argumentos; se sigue aceptando `connect /u /p` | nada hardcodeado |
 | D-C11 | Resolución | 640 × 480 de referencia | la UI se diseña en 640 × 480 y se escala a la ventana real; resoluciones y pantallas anchas modernas | separar coordenadas lógicas de físicas |
 | D-C12 | Texto | GDI → textura, caché por texto, IME coreano | FreeType o SDL3_ttf → textura, la misma caché; se conserva el byte `0x02` de color | rasterizado de fuentes, UTF-8 |
@@ -97,9 +97,11 @@ La regla guía es la del servidor: el **contrato** (wire + archivos de datos) se
 2. **Código compartido con los servidores (CL2).** El corte C1/C2/C3/C4 y el cifrado C3/C4 los
    necesitan el cliente y el GameServer (y el ConnectServer de la ola 10). ¿Nace un `Common/` en
    la raíz cuando lo usen dos, como dice el roadmap del servidor para `Server/Common/`?
-3. **Orden entre servidor y cliente.** Recomendación: intercalar, CL1 después de la ola 1 del
-   servidor (reusa su 1.0 de bytes) y CL4 después de la ola 2 (reusa sockets). Sin fecha, es
-   cuestión de foco: lo decide Emanuel al cerrar cada ola.
+3. **Orden entre servidor y cliente.** ~~Recomendación: intercalar, CL1 después de la ola 1 del
+   servidor (reusa su 1.0 de bytes) y CL4 después de la ola 2 (reusa sockets).~~ **Decidido por
+   Emanuel el 2026-11-01: el cliente va directo**, sin esperar al servidor. La CL0.2 trae ella
+   misma vcpkg y GoogleTest; lo que el servidor iba a enseñar antes (bytes, sockets) se aprende
+   en la ola del cliente que lo necesita.
 4. **Contra qué servidor se prueba (CL4).** Primero el GS del laboratorio (con la capa FoxAnti);
    cuando existan, los servidores de MuRet.
 
@@ -172,7 +174,7 @@ Cada sub-ola es un PR chico. "Terminada cuando" es la condición objetiva de cie
 
 | Ola | Tema | Sub-olas (un PR cada una) | Conceptos | Research |
 | --- | --- | --- | --- | --- |
-| CL0 | Fundaciones del cliente | CL0.1 esqueleto `Client/` + este roadmap + el research (este PR) · CL0.2 `ClientLib` + `ClientTests` y la opción `MURET_CLIENT_GOLDEN_DIR` (necesita la 0.2 del servidor) · CL0.3 vcpkg con SDL3 y el loader de GL, CI que compila el cliente en Windows y Linux | targets, dependencias, tests salteables | 01 |
+| CL0 | Fundaciones del cliente | CL0.1 esqueleto `Client/` + este roadmap + el research (este PR) · CL0.2 `ClientLib` + `ClientTests` y la opción `MURET_CLIENT_GOLDEN_DIR` (trae ella misma vcpkg y GoogleTest, sin esperar la 0.2 del servidor) · CL0.3 SDL3 con OpenGL 3.3 core y su loader, CI que compila y testea en Windows y Linux | targets, dependencias, tests salteables | 01 |
 | CL1 | Formatos sin ventana | CL1.0 repaso de la 1.0 (bytes, endianness) + archivos binarios · CL1.1 XOR3, checksum y `Text.bmd` · CL1.2 `Item`, `Skill` y `Gate.bmd` · CL1.3 terreno: K16, `.map`, `.att`, `.obj`, alturas · CL1.4 texturas OZT y OZJ · CL1.5 `message.wtf` | lectura de formatos, `std::expected`, tests golden | 05, 07 |
 | CL2 | Protocolo sin red | CL2.1 `PacketReader` C1/C2/C3/C4 · CL2.2 `PacketWriter` + XOR32 · CL2.3 `SimpleModulus` y `Enc1`/`Dec2.dat`, seriales · CL2.4 `Obfuscation` (identidad y FoxAnti) · CL2.5 structs del login: `F4 02`, `F1 01`, `0x0E` | máquinas de estado, cifrado por bloques, bits MSB primero | 03, 04, 07 |
 | CL3 | Plataforma y bucle de juego | CL3.0 el bucle de juego (paso fijo, interpolación, VSync) · CL3.R qué depende del paso de 40 ms (P-C03) · CL3.1 ventana y contexto GL con SDL3 · CL3.2 bucle con tick fijo y render desacoplado, con reloj falso en los tests · CL3.3 input (teclado por frame, mouse) · CL3.4 config + línea de comandos + log | game loop, tiempo, eventos del SO | 02, 08 |

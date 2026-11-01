@@ -286,10 +286,10 @@ formato, en claro), y los `Terrain<N>.att` de 65.539 bytes (cabecera `00 FF FF`)
 del servidor. Los `EncTerraintest*` del laboratorio no los pide nadie.
 
 **Se parte en dos PRs:**
-- **PR A (este):** K16, `EncTerrain.map` y `EncTerrain.att`.
-- **PR B:** `EncTerrain.obj` (cabecera de 4 bytes y N registros de 30: tipo, posición, ángulo y
-  escala) y `TerrainHeight.OZB` (Q-C02: las alturas desde BMP + 1080, por 1,5; por 3 en el mundo
-  `0x37`).
+- **PR A (#19):** K16, `EncTerrain.map` y `EncTerrain.att`.
+- **PR B (este):** `EncTerrain.obj` (cabecera de 4 bytes y N registros de 30: tipo, posición,
+  ángulo y escala) y `TerrainHeight.OZB` (Q-C02: las alturas desde BMP + 1080, por 1,5; por 3 en
+  el mundo `0x37`).
 - `TerrainLight.OZJ` es un JPEG: pasa a la CL1.4, con la biblioteca JPEG.
 
 **Contrato** ([05 § Terreno](../../../Client/docs/research/05-formatos-de-datos.md#terreno-de-un-mundo-dataworldn)
@@ -302,7 +302,9 @@ y, en el repo de research, `005f87b0-encterrain-map.md` y `005f8390-encterrain-a
 | | el alfa es el byte por `0x3B808081` (1/255 en float) | no es dividir por 255: con 51 da otro float | se multiplica por la misma constante; 255 da 1.0f justo |
 | | en memoria, la capa 2 va antes que la capa 1 (`0x07AACC8C` y `0x07ABCC8C`) | es fácil invertirlas | el test de memoria compara cada capa con su mitad del volcado |
 | `.att` | `0x10004` (1 byte por celda) o `0x20004` (un WORD, queda el byte de abajo); K16 y después XOR3, cabecera incluida; cabecera `00 N FF FF`; atributos menores que `0x80` | con otro tamaño devuelve -1 sin avisar y el mundo se queda con los atributos del anterior (Q-C25); la celda testigo por mundo (Q-C26) | `UnexpectedSize`; la cabecera o un atributo malo es `InvalidData`; la celda testigo no se porta |
-| los dos | el byte 1 es el número del mundo, y si no es N el que llama muestra "%s file corrupted." | | `WrongWorld` |
+| `.obj` | K16, sin XOR3; cabecera: un byte que no se lee, el mundo y la cantidad (int16 con signo); un objeto cada 30 bytes: tipo (int16), posición, ángulo y escala (7 floats) | la cantidad no se compara con el tamaño (Q-C24); con cero o negativa no hay objetos; Devias trae dos NaN y World7 un tipo -515 (Q-C28) | `FileTooShort`; los floats con sus bits, con `std::bit_cast`; los bytes de más se ignoran |
+| alturas | sin cifrar: 4 bytes, una cabecera de BMP que el original toma como de `0x438` y un byte por celda, por 1,5 (por 3 en World56) | no mira `bfOffBits` (`0x436` en los de 8 bits del laboratorio): lee dos bytes más adelante (Q-C02); no mira la cabecera, y World11 (24 bits) y World19 (todo ceros) cargan | se reproduce: desde el byte `0x43C`; `FileTooShort` por debajo de 66.620 bytes |
+| `.map`, `.att` y `.obj` | el byte 1 es el número del mundo, y si no es N el que llama muestra "%s file corrupted." | | `WrongWorld` |
 
 Si falta el `.map`, el original carga el mundo con valores por defecto (capa 1 en 0, capa 2 en
 `0xFF`, alfa en 0) sin avisar (Q-C27); la tabla de `rand()` que llena junto con ellos es del
@@ -324,15 +326,33 @@ dibujo. Las dos cosas son de quien abre el archivo, en la CL7: acá los cargador
   tienen el atributo 4, el contraste del research entre los dos archivos. Los volcados de memoria
   de Lorencia (`lor_*.bin`, en la carpeta hermana `2026-10-09-lorencia`) no entran todavía:
   `MURET_CLIENT_MEMORY_DIR` apunta a una sola carpeta.
+- `.obj`: los 20 mundos cargan, cada uno con justo los objetos que caben en su tamaño. Lorencia
+  tiene lo que midió el research (2.870 objetos de 109 tipos, de 0 a 153, escalas de 0,30 a 3,28,
+  y los bits que da descifrados de los dos primeros). El golden lista los objetos raros de todo el
+  laboratorio (Q-C28): los dos NaN de Devias, el tipo -515 de World7 y los dos en cero que lo
+  siguen, y las cuatro escalas negativas. Los objetos de Lorencia en memoria
+  (`obj_nodes.bin`, en la carpeta hermana `2026-10-09-lorencia-obj`) no entran, por la misma razón
+  que los `lor_*.bin`; a mano dieron los 2.870 del archivo, con los mismos bits.
+- Alturas: los 19 mundos que las traen cargan. Lorencia tiene las del research (máximo 382,5 y las
+  dos últimas celdas en 0), World56 llega a 765 (255 por 3) y World19 es plano. Devias, contra
+  `s31_height.bin` (las alturas) y `s31_bmphdr.bin` (los `0x438` bytes de cabecera que copió el
+  original); leer desde `bfOffBits` da 52.139 alturas distintas.
 
 **Archivos:**
 - Crear: `Client/src/Data/Terrain/K16.h/.cpp`, `TerrainGrid.h` (`CellIndex`, `TerrainLayer<T>`),
-  `TerrainMapping.h/.cpp` y `TerrainAttributes.h/.cpp`.
+  `TerrainMapping.h/.cpp` y `TerrainAttributes.h/.cpp`; en el PR B, `TerrainObjects.h/.cpp` y
+  `TerrainHeights.h/.cpp`.
 - Modificar: `Client/src/Data/DataError.h` (`WrongWorld`, `UnexpectedSize`, `InvalidData`).
 - Crear: `Client/tests/data/K16Test.cpp`, `TerrainMappingTest.cpp`, `TerrainAttributesTest.cpp`,
   sus `Golden*Test.cpp`, y `Client/tests/support/TerrainFiles.h` (cifra como el exportador del
   original y arma archivos sintéticos con un patrón que no se repite cada fila).
 - Modificar: `Client/CMakeLists.txt`, 05 y 07.
+- No entra ninguna biblioteca: estos formatos son del MU (`CODING_RULES.md` §10). Para las alturas
+  se miró la de BMP que ya está en el proyecto, `SDL_LoadBMP_IO` de SDL3, en su código y
+  corriéndola sobre los archivos del laboratorio: salta a `bfOffBits` y da vuelta las filas, y con
+  el de Devias da 64.500 alturas distintas de las de la memoria (solo con el salto serían 52.139).
+  Tampoco carga el de World11 (un BMP cortado) ni el de World19 (no empieza con "BM"). Además son
+  unas pocas líneas.
 
 Los pasos 1 a 4 los hizo Claude como ejemplo trabajado (2026-11-01), a pedido tuyo de seguir con
 el cliente. Quedaron tomadas sin preguntarte, con la regla de 07: el error por otro mundo en el
@@ -356,7 +376,18 @@ celda, como en la memoria del original. Si preferís otra cosa, se cambia en su 
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "K16|Terrain"
   ```
-- [ ] **Paso 5 (PR B):** `EncTerrain.obj` y `TerrainHeight.OZB`.
+- [x] **Paso 5 (PR B):** `LoadTerrainObjects(file, world)` y `LoadTerrainHeights(file, world)`.
+  Tests del `.obj`: los bytes descifrados del research, cada campo en su lugar, el tipo con
+  signo, los bits de cualquier float (NaN, NaN de señal, -0, subnormal, infinito), un archivo que
+  es solo la cabecera, cantidad cero o negativa, archivo corto, bytes de más, el byte que no se
+  lee y otro mundo. Tests de las alturas: por 1,5 en todos los mundos y por 3 solo en World56, los
+  256 valores justos, la celda (x, y) sin dar vuelta las filas, `bfOffBits` que no se mira
+  (Q-C02), una cabecera en cero, archivo corto y bytes de más. Lo hizo Claude como ejemplo
+  trabajado, igual que los pasos 1 a 4 y por el mismo pedido tuyo de seguir con el cliente. Quedaron
+  tomadas sin preguntarte: un `.obj` corto es `FileTooShort` antes que `WrongWorld`, como el
+  `.map`; una cantidad negativa da la lista vacía; las alturas reciben el N de la carpeta, como los
+  otros, y de la cabecera del BMP no se guarda nada (en el original solo la lee el guardador de
+  `0x5f92b0`).
 
 ## Sub-ola CL1.4: texturas OZT y OZJ (esbozo)
 

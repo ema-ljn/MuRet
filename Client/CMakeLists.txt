@@ -17,7 +17,9 @@ add_library(ClientLib STATIC
     src/Data/Tables/Xor3.cpp
     src/Data/Terrain/K16.cpp
     src/Data/Terrain/TerrainAttributes.cpp
+    src/Data/Terrain/TerrainHeights.cpp
     src/Data/Terrain/TerrainMapping.cpp
+    src/Data/Terrain/TerrainObjects.cpp
     src/Data/Text/TextTable.cpp
 )
 target_include_directories(ClientLib PUBLIC src)
@@ -53,7 +55,9 @@ if(MURET_BUILD_TESTS)
         tests/data/GoldenSkillTableTest.cpp
         tests/data/GoldenTableChecksumTest.cpp
         tests/data/GoldenTerrainAttributesTest.cpp
+        tests/data/GoldenTerrainHeightsTest.cpp
         tests/data/GoldenTerrainMappingTest.cpp
+        tests/data/GoldenTerrainObjectsTest.cpp
         tests/data/GoldenTextTableTest.cpp
         tests/data/ItemTableTest.cpp
         tests/data/K16Test.cpp
@@ -61,7 +65,9 @@ if(MURET_BUILD_TESTS)
         tests/data/SkillTableTest.cpp
         tests/data/TableChecksumTest.cpp
         tests/data/TerrainAttributesTest.cpp
+        tests/data/TerrainHeightsTest.cpp
         tests/data/TerrainMappingTest.cpp
+        tests/data/TerrainObjectsTest.cpp
         tests/data/TextTableTest.cpp
         tests/data/Xor3Test.cpp
     )

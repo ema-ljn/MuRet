@@ -26,6 +26,7 @@ using Client::Data::Terrain::TerrainCellCount;
 using Client::Data::Terrain::TerrainMapping;
 using Client::Data::Terrain::TerrainMappingSize;
 using Client::Tests::FirstCellThatDiffers;
+using Client::Tests::LabWorlds;
 using Client::Tests::ReadFileBytes;
 
 using GoldenTerrainMapping = Client::Tests::GoldenDataTest;
@@ -37,9 +38,6 @@ std::string MappingFile(std::uint8_t world)
     const std::string number = std::to_string(world);
     return "World" + number + "\\EncTerrain" + number + ".map";
 }
-
-// Los mundos que trae el Data\ del laboratorio (Client/docs/research/09-datos-disponibles.md).
-constexpr std::uint8_t LabWorlds[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 19, 25, 31, 32, 34, 35, 55, 56};
 
 TEST_F(GoldenTerrainMapping, LoadsEveryWorldOfTheLab)
 {

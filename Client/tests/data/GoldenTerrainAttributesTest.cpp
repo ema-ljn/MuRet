@@ -7,6 +7,7 @@
 #include "Data/Terrain/TerrainMapping.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
+#include "support/TerrainFiles.h"
 
 #include <gtest/gtest.h>
 
@@ -29,6 +30,7 @@ using Client::Data::Terrain::TerrainAttributesSizeWithByteCells;
 using Client::Data::Terrain::TerrainAttributesSizeWithWordCells;
 using Client::Data::Terrain::TerrainCellCount;
 using Client::Data::Terrain::TerrainSide;
+using Client::Tests::LabWorlds;
 using Client::Tests::ReadFileBytes;
 
 using GoldenTerrainAttributes = Client::Tests::GoldenDataTest;
@@ -41,10 +43,8 @@ std::string AttributesFile(std::uint8_t world)
     return "World" + number + "\\EncTerrain" + number + ".att";
 }
 
-// Los mundos que trae el Data\ del laboratorio (Client/docs/research/09-datos-disponibles.md). El
-// 1 y los del 31 en adelante tienen dos bytes por celda; el resto, uno. El 31 y el 56 tienen celdas con
-// el byte de arriba distinto de cero, que se descarta.
-constexpr std::uint8_t LabWorlds[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 19, 25, 31, 32, 34, 35, 55, 56};
+// En LabWorlds, el 1 y los del 31 en adelante tienen dos bytes por celda; el resto, uno. El 31 y el
+// 56 tienen celdas con el byte de arriba distinto de cero, que se descarta.
 
 TEST_F(GoldenTerrainAttributes, LoadsEveryWorldOfTheLab)
 {

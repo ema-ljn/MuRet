@@ -1,6 +1,6 @@
 #include "Data/Textures/OztTexture.h"
 
-#include "Data/ByteReader.h"
+#include "Core/ByteReader.h"
 
 #include <bit>
 #include <cstdint>
@@ -11,6 +11,8 @@ namespace Client::Data::Textures
 
 namespace
 {
+
+using Core::ByteReader;
 
 // El orden de los bytes de un píxel en el archivo: azul, verde, rojo y alfa, como los guarda un
 // TGA de 32 bits.

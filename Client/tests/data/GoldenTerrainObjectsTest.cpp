@@ -2,7 +2,7 @@
 
 #include "Data/Terrain/TerrainObjects.h"
 
-#include "Data/ByteReader.h"
+#include "Core/ByteReader.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 #include "support/TerrainFiles.h"
@@ -28,7 +28,7 @@
 namespace
 {
 
-using Client::Data::ByteReader;
+using Client::Core::ByteReader;
 using Client::Data::Terrain::LoadTerrainObjects;
 using Client::Data::Terrain::TerrainObject;
 using Client::Data::Terrain::TerrainObjectsHeaderSize;

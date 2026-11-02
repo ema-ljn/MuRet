@@ -3,7 +3,7 @@
 
 #include "Data/Terrain/TerrainAttributes.h"
 
-#include "Data/ByteReader.h"
+#include "Core/ByteReader.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "support/FileBytes.h"
@@ -25,7 +25,7 @@
 namespace
 {
 
-using Client::Data::ByteReader;
+using Client::Core::ByteReader;
 using Client::Data::Terrain::LoadTerrainAttributes;
 using Client::Data::Terrain::LoadTerrainMapping;
 using Client::Data::Terrain::TerrainAttributes;

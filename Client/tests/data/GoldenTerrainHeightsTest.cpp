@@ -3,7 +3,7 @@
 
 #include "Data/Terrain/TerrainHeights.h"
 
-#include "Data/ByteReader.h"
+#include "Core/ByteReader.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
@@ -24,7 +24,7 @@
 namespace
 {
 
-using Client::Data::ByteReader;
+using Client::Core::ByteReader;
 using Client::Data::Terrain::LoadTerrainHeights;
 using Client::Data::Terrain::TerrainCellCount;
 using Client::Data::Terrain::TerrainHeightsBitmapHeaderSize;

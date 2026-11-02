@@ -223,8 +223,9 @@ efectos.
 
 **Planes detallados:** se escriben al arrancar cada ola, como pide el camino de aprendizaje
 (L-10). Ya están los de la [CL0](../plans/2026-10-30-ola-cl0-fundaciones-cliente.md), la
-[CL1](../plans/2026-11-01-ola-cl1-formatos-sin-ventana.md) y la
-[CL2](../plans/2026-11-02-ola-cl2-protocolo-sin-red.md).
+[CL1](../plans/2026-11-01-ola-cl1-formatos-sin-ventana.md), la
+[CL2](../plans/2026-11-02-ola-cl2-protocolo-sin-red.md) y la
+[CL3](../plans/2026-11-02-ola-cl3-plataforma-y-bucle.md).
 
 ## Cómo el research se vuelve test
 

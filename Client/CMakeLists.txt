@@ -30,6 +30,8 @@ add_library(ClientLib STATIC
     src/Data/Textures/OztTexture.cpp
     src/Network/Packet.cpp
     src/Network/PacketReader.cpp
+    src/Network/PacketWriter.cpp
+    src/Network/Crypto/Xor32.cpp
 )
 target_include_directories(ClientLib PUBLIC src)
 target_compile_features(ClientLib PUBLIC cxx_std_20)
@@ -104,11 +106,15 @@ if(MURET_BUILD_TESTS)
         tests/network/GoldenPacketReaderTest.cpp
         tests/network/PacketReaderTest.cpp
         tests/network/PacketTest.cpp
+        tests/network/PacketWriterTest.cpp
+        tests/network/Xor32Test.cpp
     )
     target_include_directories(ClientTests PRIVATE tests)
-    # Los vectores JPEG (tests/vectors/jpeg/README.md) están en el repo: los tests los leen de acá.
+    # Los vectores JPEG y los de red (el README.md de tests/vectors/jpeg y de tests/vectors/net)
+    # están en el repo: los tests los leen de acá.
     target_compile_definitions(ClientTests PRIVATE
-        MURET_CLIENT_JPEG_VECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/vectors/jpeg")
+        MURET_CLIENT_JPEG_VECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/vectors/jpeg"
+        MURET_CLIENT_NET_VECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/vectors/net")
     target_link_libraries(ClientTests PRIVATE ClientLib GTest::gtest GTest::gtest_main)
     muret_set_warnings(ClientTests)
 

@@ -2,8 +2,9 @@
 # los compare como texto. Uno sin bytes en cero, como gray.6b.raw, git lo tomaría por texto.
 *.jpg binary
 *.raw binary
+*.bin binary
 # lab-6b.txt es texto, pero GoldenJpegImageTest.cpp lo lee con fines de línea de Linux.
 *.txt text eol=lf
-# Las herramientas de jpeg/tools corren en Linux: con CRLF, sh y python no las leen bien.
+# Las herramientas de jpeg/tools y net/tools corren en Linux: con CRLF, sh y python no las leen bien.
 *.sh text eol=lf
 *.py text eol=lf

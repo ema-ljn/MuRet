@@ -4,13 +4,12 @@
 
 #pragma once
 
-#include "support/FileBytes.h"
+#include "support/VectorFiles.h"
 
 #include <gtest/gtest.h>
 
 #include <cstddef>
 #include <filesystem>
-#include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -27,14 +26,7 @@ inline std::filesystem::path JpegVectorsDir()
 // Los bytes del vector `name` (por ejemplo "gray.jpg"). Si no está, el test falla y devuelve nada.
 inline std::vector<std::byte> ReadJpegVector(std::string_view name)
 {
-    const std::optional<std::vector<char>> file = ReadFileBytes(JpegVectorsDir() / name);
-    if (!file.has_value())
-    {
-        ADD_FAILURE() << "falta el vector " << name << " en " << JpegVectorsDir();
-        return {};
-    }
-    const std::span<const std::byte> bytes = std::as_bytes(std::span(*file));
-    return {bytes.begin(), bytes.end()};
+    return ReadVectorFile(JpegVectorsDir(), name);
 }
 
 // Los OZJ de la carpeta golden del laboratorio, contando los 7 TGA (05-formatos-de-datos.md, la

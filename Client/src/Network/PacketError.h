@@ -15,7 +15,7 @@ enum class PacketError : std::uint8_t
     InvalidType,  // el primer byte no es C1, C2, C3 ni C4
     SizeTooSmall, // menos que la cabecera y el opcode: 3 bytes en C1 y C3, 4 en C2 y C4
     SizeMismatch, // el tamaño que declara la cabecera no es el que mide el paquete
-    TooLarge,     // más de MaxPacketSize (Q-C40)
+    TooLarge,     // más de MaxPacketSize (Q-C40); al escribir, más de lo que entra en el tipo (Q-C06)
 };
 
 } // namespace Client::Network

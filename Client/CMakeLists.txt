@@ -29,6 +29,8 @@ add_library(ClientLib STATIC
     src/Data/Textures/OzjTexture.cpp
     src/Data/Textures/OztTexture.cpp
     src/Network/EncryptedPacket.cpp
+    src/Network/FoxAntiObfuscation.cpp
+    src/Network/IdentityObfuscation.cpp
     src/Network/Packet.cpp
     src/Network/PacketReader.cpp
     src/Network/PacketSerials.cpp
@@ -108,9 +110,12 @@ if(MURET_BUILD_TESTS)
         tests/data/TextureTest.cpp
         tests/data/Xor3Test.cpp
         tests/network/EncryptedPacketTest.cpp
+        tests/network/FoxAntiObfuscationTest.cpp
         tests/network/GoldenEncryptedPacketTest.cpp
+        tests/network/GoldenFoxAntiObfuscationTest.cpp
         tests/network/GoldenPacketReaderTest.cpp
         tests/network/GoldenSimpleModulusKeyFileTest.cpp
+        tests/network/IdentityObfuscationTest.cpp
         tests/network/PacketReaderTest.cpp
         tests/network/PacketSerialsTest.cpp
         tests/network/PacketTest.cpp

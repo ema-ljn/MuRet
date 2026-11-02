@@ -16,6 +16,7 @@
 #include "Core/Expected.h"
 #include "Network/Crypto/CryptoError.h"
 #include "Network/Crypto/SimpleModulus.h"
+#include "Network/Obfuscation.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
 
@@ -28,6 +29,13 @@ namespace Client::Network
 // `padding` es el byte que va detrás de lo útil: el original pone uno de rand(), y los tests lo
 // fijan. WrongPacketType con un C3/C4 o con un Packet al que ya se le sacaron los bytes
 // (TakeBytes), y TooLarge si el C4 pasaría de MaxPacketSize (un C2 de más de 5.954 bytes).
+//
+// Con `obfuscation`, lo que se va a cifrar (el serial, lo útil y el relleno) pasa antes por su
+// BeforeEncrypt, como en el original pasa por FoxAnti antes de 0x685ac0. Sin ella, por
+// IdentityObfuscation::Shared(), que no lo toca.
+[[nodiscard]] Core::Expected<Packet, Crypto::CryptoError>
+EncryptPacket(const Packet& plain, const Crypto::EncryptionKey& key, PacketSerials& serials,
+              const Obfuscation& obfuscation, std::byte padding = {});
 [[nodiscard]] Core::Expected<Packet, Crypto::CryptoError>
 EncryptPacket(const Packet& plain, const Crypto::EncryptionKey& key, PacketSerials& serials, std::byte padding = {});
 

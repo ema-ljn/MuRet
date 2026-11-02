@@ -1,20 +1,31 @@
 #include "Network/PacketReader.h"
 
+#include "Network/IdentityObfuscation.h"
+
+#include <algorithm>
 #include <utility>
 
 namespace Client::Network
 {
 
+PacketReader::PacketReader() : PacketReader(IdentityObfuscation::Shared()) {}
+
+PacketReader::PacketReader(const Obfuscation& connectionObfuscation) : obfuscation(&connectionObfuscation) {}
+
 PacketReader::PacketReader(PacketReader&& other) noexcept
-    : buffer(std::exchange(other.buffer, {})), consumed(std::exchange(other.consumed, 0)),
-      error(std::exchange(other.error, std::nullopt))
+    : obfuscation(other.obfuscation), buffer(std::exchange(other.buffer, {})),
+      consumed(std::exchange(other.consumed, 0)), unmasked(std::exchange(other.unmasked, 0)),
+      mask(std::exchange(other.mask, std::byte{0})), error(std::exchange(other.error, std::nullopt))
 {
 }
 
 PacketReader& PacketReader::operator=(PacketReader&& other) noexcept
 {
+    obfuscation = other.obfuscation;
     buffer = std::exchange(other.buffer, {});
     consumed = std::exchange(other.consumed, 0);
+    unmasked = std::exchange(other.unmasked, 0);
+    mask = std::exchange(other.mask, std::byte{0});
     error = std::exchange(other.error, std::nullopt);
     return *this;
 }
@@ -31,13 +42,15 @@ void PacketReader::Feed(std::span<const std::byte> bytes)
     if (consumed >= Pending())
     {
         buffer.erase(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(consumed));
+        unmasked -= consumed;
         consumed = 0;
     }
     buffer.insert(buffer.end(), bytes.begin(), bytes.end());
 }
 
 // Mira solo bytes que llegaron: el tipo con el primero, el tamaño con la cabecera entera, y el
-// paquete cuando están todos sus bytes. Los errores de tamaño salen apenas llega la cabecera.
+// paquete cuando están todos sus bytes. Los errores de tamaño salen apenas llega la cabecera. Antes
+// de mirar un byte lo desenmascara, y nunca uno del paquete siguiente, que puede llevar otro XOR.
 Core::Expected<std::optional<Packet>, PacketError> PacketReader::Next()
 {
     if (error)
@@ -49,11 +62,12 @@ Core::Expected<std::optional<Packet>, PacketError> PacketReader::Next()
     {
         return std::optional<Packet>{};
     }
-    const std::optional<PacketType> type = PacketTypeFromByte(pending.front());
+    const std::optional<PacketType> type = PacketTypeFromByte(UnmaskFirstByte());
     if (!type)
     {
         return Fail(PacketError::InvalidType);
     }
+    UnmaskUpTo(consumed + HeaderSize(*type));
     const std::optional<std::size_t> size = DeclaredSize(*type, pending);
     if (!size)
     {
@@ -63,6 +77,7 @@ Core::Expected<std::optional<Packet>, PacketError> PacketReader::Next()
     {
         return Fail(*problem);
     }
+    UnmaskUpTo(consumed + *size);
     if (pending.size() < *size)
     {
         return std::optional<Packet>{};
@@ -80,12 +95,33 @@ std::size_t PacketReader::Pending() const
     return buffer.size() - consumed;
 }
 
+// Si el paquete es nuevo, su máscara sale del primer byte tal como llegó del cable.
+std::byte PacketReader::UnmaskFirstByte()
+{
+    if (unmasked == consumed)
+    {
+        mask = obfuscation->InboundMask(buffer[consumed]);
+    }
+    UnmaskUpTo(consumed + 1);
+    return buffer[consumed];
+}
+
+void PacketReader::UnmaskUpTo(std::size_t end)
+{
+    const std::size_t stop = std::min(end, buffer.size());
+    for (; unmasked < stop; ++unmasked)
+    {
+        buffer[unmasked] ^= mask;
+    }
+}
+
 // El error queda, y lo que había se descarta: no se va a cortar nunca.
 Core::Expected<std::optional<Packet>, PacketError> PacketReader::Fail(PacketError reason)
 {
     error = reason;
     buffer.clear();
     consumed = 0;
+    unmasked = 0;
     return Core::Unexpected(reason);
 }
 

@@ -5,7 +5,8 @@
 // El cable lleva el login del jugador: estos tests cuentan paquetes por tipo y comparan con
 // SameBytesWithoutValues. Ningún mensaje imprime un byte del cable.
 //
-// El S->C del GameServer no está: cada byte lleva el XOR 0xAA de FoxAnti, y se corta en la CL2.4.
+// El S->C del GameServer no está: cada byte lleva el XOR 0xAA de FoxAnti, y se corta con
+// FoxAntiObfuscation en GoldenFoxAntiObfuscationTest.
 
 #include "Network/Packet.h"
 #include "Network/PacketError.h"

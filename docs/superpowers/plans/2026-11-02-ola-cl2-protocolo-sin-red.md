@@ -669,6 +669,34 @@ la capa, `Obfuscation.h`, `ObfuscationError.h`, `IdentityObfuscation.h/.cpp` y
 `EncryptPacket` (las sobrecargas de abajo), `Client/CMakeLists.txt`, 07 (Q-C09, Q-C17 y Q-C18 con
 sus tests, y en Q-C18 el resto que se enmascara de nuevo), PROGRESS y este plan.
 
+Hecho así: el `PacketReader` desenmascara cada byte recién cuando lo mira en `Next`, no en `Feed`,
+porque hasta leer el tamaño de un paquete no sabe dónde empieza el siguiente, que puede llevar
+otra máscara; recuerda hasta dónde desenmascaró y con qué, y nunca toca un byte del paquete que
+sigue. Un C3 o un C4 que llega en claro (`C3`, `C4`) se lee en claro: el original lo enmascararía
+y lo perdería, y el laboratorio no los manda así. En `EncryptPacket`, lo que se cifra lleva
+siempre el byte de relleno detrás, aunque el último bloque quede lleno y el relleno no se cifre,
+porque `BeforeEncrypt` lo transforma como el original, que lo escribe igual detrás del paquete; lo
+que recibe lo fija `EncryptedPacketTest` con una ofuscación que lo anota.
+`BeforeEncrypt` y `BeforeSend` deshacen el XOR32, remapean y lo vuelven a aplicar siempre, como el
+original, sin atajo cuando no hay remapeo: que entonces no cambie nada lo prueban los tests. La
+lista pide sus entradas enteras (una a la que le falta el cuarto byte, que el original no lee,
+también es `InvalidPacket`), lo que sigue a las entradas sale en 0 como el `calloc` del original,
+y la traducida tiene que entrar en `MaxPacketSize`. El `F3 11` se mira solo en un C1: en MuRet un
+C3 descifrado ya es un C1, y un `C1 03 F3`, sin subcódigo, pasa igual. `Obfuscation` se copia y se
+mueve solo desde una clase hija, para que no se asigne a través de la base, y
+`IdentityObfuscation::Shared()` es una `static` local, que no depende del orden en que arrancan
+los archivos. Un `PacketReader` no acepta una ofuscación temporal (su constructor con
+`const Obfuscation&&` está borrado), porque guarda un puntero a ella. Con `InvalidPacket`, la
+conexión de la CL4 descarta el paquete y sigue leyendo: el corte no se perdió. Lo que se espera de
+cada traducción sale de la FoxAnti mínima compilada en el host con
+`Client/tests/vectors/net/tools/foxanti_cases.c` (su README dice cómo), y los tests usan los
+nombres de sus casos. El golden cuenta 3.033 paquetes S->C (144 del ConnectServer en claro y 2.889
+del GameServer con el `0xAA`), traduce las 72 listas al código 400, lleva todo lo del GameServer
+hasta el dispatcher con 7 `F3 11` de 8 bytes, y compara los 8 `F4 03` del cliente con lo que da
+`BeforeSend` con el 400; de a un byte da lo mismo. Ninguno de los 2.396 segmentos S->C del cable
+termina a mitad de un paquete, así que el resto que el original enmascara de nuevo (Q-C18) no se
+ve ahí.
+
 **Interfaces:**
 
 ```cpp
@@ -710,9 +738,10 @@ Core::Expected<Packet, Crypto::CryptoError> EncryptPacket(const Packet& plain,
 
 `ObfuscationError` tiene `InvalidPacket` (un largo o una cantidad que no entra).
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de leer los tests del paso 2, la ida y vuelta
-  del código 21, a mano con las dos tablas.
-- [ ] **Paso 2:** los tests:
+- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de leer los tests del paso 2,
+  la ida y vuelta del código 21, a mano con las dos tablas. La respuesta está en el comentario de
+  `FoxAntiObfuscationTest.ServerCodesComeBackTheSameOnlyFrom0To20`.
+- [x] **Paso 2:** los tests:
   - `IdentityObfuscation` deja todo igual;
   - los del cable del 03: la lista `C2 00 0A F4 02 01 00 00 00 CC` pasa a
     `C2 00 0B F4 06 00 01 90 01 00 00`, el `C1 06 F4 03 90 01` sale como `C1 06 F4 03 00 00`, y
@@ -733,13 +762,13 @@ Core::Expected<Packet, Crypto::CryptoError> EncryptPacket(const Packet& plain,
     `test_packet.c` de `mu-client`: `test_decode_inbound`, `test_reset_queue`, `test_recv_forward`,
     `test_send_forward`, `test_send_chain_remap` y `test_encode_outbound_ladder`, y los de
     `test_net_foxanti.c`).
-- [ ] **Paso 3:** `IdentityObfuscation`, `FoxAntiObfuscation`, y las sobrecargas de
+- [x] **Paso 3:** `IdentityObfuscation`, `FoxAntiObfuscation`, y las sobrecargas de
   `PacketReader` y `EncryptPacket`.
-- [ ] **Paso 4:** el golden con el cable: con `FoxAntiObfuscation`, el S->C de las 72 conexiones se
+- [x] **Paso 4:** el golden con el cable: con `FoxAntiObfuscation`, el S->C de las 72 conexiones se
   corta en 3.033 paquetes sin bytes de más (144 del ConnectServer en claro; 2.889 del GameServer,
   todos con el `0xAA`), y las 72 listas `F4 02` pasan a `F4 06` con el código 400. El golden de la
   CL2.3 deja de deshacer el `0xAA` a mano.
-- [ ] **Paso 5:** verificar:
+- [x] **Paso 5:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "Obfuscation|Packet"
   ```

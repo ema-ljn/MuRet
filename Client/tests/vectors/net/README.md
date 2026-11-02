@@ -32,3 +32,22 @@ suyos (`FIX_C3_SERIAL0`, `FIX_C3_RANDA5`, `FIX_C3_SERIALFF` y `FIX_C4_SERIAL2`),
 `encrypt_block` da lo mismo que el de `c3c4_reference.py`. Un C2 lo arma siempre como C4, como la
 ventana de cartas del original; `mu-client` decide por el largo cifrado también en un C2, y en el
 de 300 bytes da lo mismo, porque lo cifrado pasa de `0x100`.
+
+## Los casos de FoxAnti
+
+Los resultados esperados de `FoxAntiObfuscationTest` (CL2.4) no son archivos: son cortos, y van
+escritos en el test. Salen de la FoxAnti mínima (`analysis/foxanti/minimal/src/packet.c` en el
+repo de research), que porta cada función de la capa de paquetes de `FoxAnti.dll` con su
+dirección, compilada en el host con `tools/foxanti_cases.c`. El programa arma cada entrada, la
+pasa por la función del original y escribe una línea `nombre: entrada -> salida (largo)`; el test
+usa los mismos nombres (`A4.D3.L8`, `B.1E.iv`, ...).
+
+```bash
+MIN=<research>/client-research/analysis/foxanti/minimal
+gcc -std=c11 -O0 -Wall -Wextra -I"$MIN/src" tools/foxanti_cases.c "$MIN/src/packet.c" \
+    -o foxanti_cases
+./foxanti_cases
+```
+
+Ningún caso es un paquete del cable salvo los ejemplos del 03 y del 04 (la lista del laboratorio,
+el `F4 03` y los dos `F3 11`), y ninguno lleva un login.

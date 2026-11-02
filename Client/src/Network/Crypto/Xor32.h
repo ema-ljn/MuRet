@@ -32,7 +32,10 @@ inline constexpr std::array<std::uint8_t, 32> Xor32Key{
 // cambia, así que un `first` de 0 empieza en 1.
 //
 // Un C1 o un C2 entero es (pkt, HeaderSize + 1, 0). FoxAnti (CL2.4) lo usa sobre lo que va a
-// cifrarse en un C3/C4, el serial y el C1 desde su opcode, con (sealed, 2, 1).
+// cifrarse en un C3/C4, el serial y el C1 desde su opcode, con (sealed, 2, 1) como el original.
+// Ahí deshace y rehace con la misma clave, así que el corrimiento se cancela: con cualquier otro
+// el resultado es el mismo, aunque lo de en medio no sea el C1 en claro (en un C2 que sale como C4
+// el corrimiento natural sería 2).
 void Xor32EncodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t keyShift);
 void Xor32DecodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t keyShift);
 

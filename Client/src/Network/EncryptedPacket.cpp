@@ -1,5 +1,7 @@
 #include "Network/EncryptedPacket.h"
 
+#include "Network/IdentityObfuscation.h"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -118,6 +120,13 @@ Packet Rebuilt(PacketType encryptedType, std::span<const std::byte> decrypted)
 Core::Expected<Packet, CryptoError> EncryptPacket(const Packet& plain, const Crypto::EncryptionKey& key,
                                                   PacketSerials& serials, std::byte padding)
 {
+    return EncryptPacket(plain, key, serials, IdentityObfuscation::Shared(), padding);
+}
+
+Core::Expected<Packet, CryptoError> EncryptPacket(const Packet& plain, const Crypto::EncryptionKey& key,
+                                                  PacketSerials& serials, const Obfuscation& obfuscation,
+                                                  std::byte padding)
+{
     const PacketType type = plain.Type();
     if ((type != PacketType::C1 && type != PacketType::C2) || IsEmptied(plain))
     {
@@ -138,21 +147,21 @@ Core::Expected<Packet, CryptoError> EncryptPacket(const Packet& plain, const Cry
         return Core::Unexpected(CryptoError::TooLarge);
     }
 
-    // Lo que se cifra: lo útil, el relleno detrás y ceros hasta llenar el último bloque. Un bloque
-    // lleno no deja lugar para el relleno.
-    std::vector<std::byte> sealed(blocks * PlainBlockSize);
+    // Lo que se cifra: lo útil, el relleno detrás y ceros hasta llenar el último bloque. Con el
+    // último bloque lleno, el relleno queda afuera de lo cifrado, en un byte de más, porque
+    // BeforeEncrypt lo recibe siempre: el original lo escribe igual, detrás del paquete.
+    const std::size_t sealedSize = blocks * PlainBlockSize;
+    std::vector<std::byte> sealed(std::max(sealedSize, useful + 1));
     std::ranges::copy(fromSize, sealed.begin());
-    if (useful < sealed.size())
-    {
-        sealed[useful] = padding;
-    }
+    sealed[useful] = padding;
     sealed[0] = std::byte{serials.TakeSend()};
+    obfuscation.BeforeEncrypt(std::span<std::byte>(sealed).first(useful + 1));
 
     std::vector<std::byte> bytes;
     bytes.reserve(size);
     AppendHeader(bytes, encryptedType, size);
-    const std::span<const std::byte> sealedView(sealed);
-    for (std::size_t offset = 0; offset < sealed.size(); offset += PlainBlockSize)
+    const std::span<const std::byte> sealedView = std::span<const std::byte>(sealed).first(sealedSize);
+    for (std::size_t offset = 0; offset < sealedSize; offset += PlainBlockSize)
     {
         const auto usefulInBlock = static_cast<std::uint8_t>(std::min(useful - offset, PlainBlockSize));
         const auto cipher =

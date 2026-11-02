@@ -813,9 +813,10 @@ dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
   `AClockThatGoesBackKeepsWaiting` (la comparación con signo del JGE de 0x638616) y
   `TheAccumulatorWrapsLikeTheAdd` (el ADD de 0x638632 da la vuelta como en x86: se suma en
   `uint32_t`, sin el UB de desbordar un `int32`), y un `static_assert(FaithfulWaitMs == 40)`.
-  `TickCountMs` redondea hacia abajo también con un `now` negativo, que solo da el `FakeClock`:
-  primero el tick y después los ms, con `std::chrono::floor` y no `duration_cast`, que trunca
-  hacia 0 y dejaba la grilla espejada debajo de 0 (el tick -1 leía -15). Lo fija
+  `TickCountMs` redondea hacia abajo también con un `now` negativo, que ningún `IClock` da (el
+  `FakeClock` no baja de 0) y solo llega llamándola directo: primero el tick y después los ms, los
+  dos con `std::chrono::floor` (el tick es una `duration` de 1/64 s) y no `duration_cast`, que
+  trunca hacia 0 y dejaba la grilla espejada debajo de 0 (el tick -1 leía -15). Lo fija
   `TickCountMsFollowsTheGridBelowZero`, del cierre de las notas de la CL3.
 - [x] **Paso 6 (PR B):** `TickCountMs`, `FaithfulPacer` y el modo `Faithful` de `GameLoop`; en 07,
   `FaithfulPacerTest.HasNoCap` al lado del test del PR A.

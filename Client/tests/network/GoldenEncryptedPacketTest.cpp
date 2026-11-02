@@ -1,9 +1,10 @@
 // DecryptPacket y EncryptPacket contra el cable del laboratorio (support/WireCapture.h,
 // MURET_CLIENT_WIRE_DIR) y las claves reales: los C3 que mandó el cliente original se descifran con
 // Dec1.dat, la del servidor, y los C3/C4 que le contestó el GameServer, con Dec2.dat, la del
-// cliente. Cada paquete se corta con el PacketReader: el --golden de c3c4_reference.py mira solo el
-// primero de cada segmento. Lo que da DecryptPacket se compara con los bloques descifrados uno por
-// uno con DecryptBlock, y lo del cliente se cifra de nuevo con EncryptPacket.
+// cliente. Cada paquete se corta con el PacketReader, y lo del GameServer, con el 0xAA de FoxAnti:
+// el --golden de c3c4_reference.py mira solo el primero de cada segmento. Lo que da DecryptPacket se
+// compara con los bloques descifrados uno por uno con DecryptBlock, y lo del cliente se cifra de
+// nuevo con EncryptPacket.
 //
 // El cable lleva el login del jugador: estos tests cuentan paquetes y comparan con
 // SameBytesWithoutValues. Ningún mensaje imprime un byte del cable ni de lo descifrado.
@@ -11,6 +12,9 @@
 #include "Network/Crypto/SimpleModulus.h"
 #include "Network/Crypto/SimpleModulusKeyFile.h"
 #include "Network/EncryptedPacket.h"
+#include "Network/FoxAntiObfuscation.h"
+#include "Network/IdentityObfuscation.h"
+#include "Network/Obfuscation.h"
 #include "Network/Packet.h"
 #include "Network/PacketReader.h"
 #include "Network/PacketSerials.h"
@@ -39,7 +43,10 @@ namespace
 
 using Client::Network::DecryptPacket;
 using Client::Network::EncryptPacket;
+using Client::Network::FoxAntiObfuscation;
 using Client::Network::HeaderSize;
+using Client::Network::IdentityObfuscation;
+using Client::Network::Obfuscation;
 using Client::Network::Packet;
 using Client::Network::PacketReader;
 using Client::Network::PacketSerials;
@@ -69,18 +76,15 @@ constexpr std::string_view CaptureFile = "muproxy.log";
 // El puerto del proxy delante del GameServer del laboratorio: los C3/C4 van y vienen por ahí.
 constexpr std::uint16_t GameServerPort = 55901;
 
-// La máscara de FoxAnti en todo lo que manda el GameServer del laboratorio: cada byte con XOR 0xAA.
-// La deshace este test, a mano, hasta que la aplique el lector en la CL2.4.
-constexpr std::byte FoxAntiMask{0xAA};
-
 // El serial: el primer byte de lo útil, que el paquete rearmado no lleva.
 constexpr std::size_t SerialSize = 1;
 
-// Los paquetes de `reads`, cortados con el PacketReader. Si el corte falla o sobran bytes, el test
-// falla, y vuelve lo que haya salido.
-std::vector<Packet> CutPackets(const std::vector<std::span<const std::byte>>& reads, std::size_t index)
+// Los paquetes de `reads`, cortados con un PacketReader con `obfuscation`. Si el corte falla o
+// sobran bytes, el test falla, y vuelve lo que haya salido.
+std::vector<Packet> CutPackets(const std::vector<std::span<const std::byte>>& reads, const Obfuscation& obfuscation,
+                               std::size_t index)
 {
-    PacketReader reader;
+    PacketReader reader(obfuscation);
     std::vector<Packet> packets;
     for (const std::span<const std::byte> read : reads)
     {
@@ -321,10 +325,11 @@ protected:
         ASSERT_TRUE(enc1 && dec1 && enc2 && dec2);
     }
 
-    // Los C3/C4 de cada conexión al GameServer, en el sentido `direction` y con la máscara `mask`
-    // deshecha, descifrados con DecryptPacket y unos seriales por conexión que arrancan en 0: cada
-    // uno tiene que descifrar con su serial en orden.
-    std::vector<WirePacket> DecryptAll(WireDirection direction, std::byte mask, const DecryptionKey& decryption) const
+    // Los C3/C4 de cada conexión al GameServer, en el sentido `direction` y cortados con
+    // `obfuscation`, descifrados con DecryptPacket y unos seriales por conexión que arrancan en 0:
+    // cada uno tiene que descifrar con su serial en orden.
+    std::vector<WirePacket> DecryptAll(WireDirection direction, const Obfuscation& obfuscation,
+                                       const DecryptionKey& decryption) const
     {
         std::vector<WirePacket> packets;
         for (std::size_t connection = 0; connection < connections.size(); ++connection)
@@ -333,11 +338,9 @@ protected:
             {
                 continue;
             }
-            const std::vector<ByteVector> unmasked = Unmasked(connections[connection].Reads(direction), mask);
-            const std::vector<std::span<const std::byte>> reads(unmasked.begin(), unmasked.end());
             PacketSerials serials;
             std::size_t index = 0;
-            for (Packet& packet : CutPackets(reads, connection))
+            for (Packet& packet : CutPackets(connections[connection].Reads(direction), obfuscation, connection))
             {
                 if (packet.Type() != PacketType::C3 && packet.Type() != PacketType::C4)
                 {
@@ -356,24 +359,6 @@ protected:
     std::optional<DecryptionKey> dec1;
     std::optional<EncryptionKey> enc2;
     std::optional<DecryptionKey> dec2;
-
-private:
-    // Una copia de cada lectura con cada byte con XOR `mask`.
-    static std::vector<ByteVector> Unmasked(const std::vector<std::span<const std::byte>>& reads, std::byte mask)
-    {
-        std::vector<ByteVector> unmasked;
-        unmasked.reserve(reads.size());
-        for (const std::span<const std::byte> read : reads)
-        {
-            ByteVector copy(read.begin(), read.end());
-            for (std::byte& value : copy)
-            {
-                value ^= mask;
-            }
-            unmasked.push_back(std::move(copy));
-        }
-        return unmasked;
-    }
 };
 
 // Los 183 C3 que mandó el cliente original al GameServer, en sus 8 conexiones: el checksum bien, el
@@ -381,7 +366,8 @@ private:
 // bloques, cifrados de nuevo con Enc1.dat del cliente, los mismos bytes.
 TEST_F(GoldenEncryptedPacket, DecryptsWhatTheClientSent)
 {
-    const std::vector<WirePacket> sent = DecryptAll(WireDirection::ClientToServer, std::byte{0}, *dec1);
+    const std::vector<WirePacket> sent =
+        DecryptAll(WireDirection::ClientToServer, IdentityObfuscation::Shared(), *dec1);
 
     ExpectSameAsItsBlocks(sent, *dec1, *enc1);
     const DecryptedCounts counts = CountOf(sent);
@@ -391,12 +377,13 @@ TEST_F(GoldenEncryptedPacket, DecryptsWhatTheClientSent)
 }
 
 // Los 25 C3/C4 que contestó el GameServer (18 C3 y 7 C4, de 36, 69 y 80 bytes), en 7 conexiones,
-// con el 0xAA deshecho: el checksum bien y el serial desde 0, sin un Resynced, el C1/C2 rearmado
+// cortados con el 0xAA de FoxAntiObfuscation: el checksum bien y el serial desde 0, sin un Resynced, el C1/C2 rearmado
 // igual a lo útil de los bloques, y los bloques, cifrados de nuevo con Enc2.dat del servidor, los
 // mismos bytes.
 TEST_F(GoldenEncryptedPacket, DecryptsWhatTheGameServerAnswered)
 {
-    const std::vector<WirePacket> answered = DecryptAll(WireDirection::ServerToClient, FoxAntiMask, *dec2);
+    const FoxAntiObfuscation foxAnti;
+    const std::vector<WirePacket> answered = DecryptAll(WireDirection::ServerToClient, foxAnti, *dec2);
 
     ExpectSameAsItsBlocks(answered, *dec2, *enc2);
     const DecryptedCounts counts = CountOf(answered);
@@ -412,7 +399,8 @@ TEST_F(GoldenEncryptedPacket, DecryptsWhatTheGameServerAnswered)
 // justo cuando la pila tenía ceros, y el paquete entero, en 110 de los 183.
 TEST_F(GoldenEncryptedPacket, EncryptPacketGivesWhatTheClientSent)
 {
-    const std::vector<WirePacket> sent = DecryptAll(WireDirection::ClientToServer, std::byte{0}, *dec1);
+    const std::vector<WirePacket> sent =
+        DecryptAll(WireDirection::ClientToServer, IdentityObfuscation::Shared(), *dec1);
     PacketSerials serials;
     std::size_t whole = 0;
 

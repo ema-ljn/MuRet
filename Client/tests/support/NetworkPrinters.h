@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Network/Crypto/CryptoError.h"
+#include "Network/ObfuscationError.h"
 #include "Network/PacketError.h"
 #include "Network/PacketSerials.h"
 
@@ -31,6 +32,17 @@ inline void PrintTo(PacketError error, std::ostream* out)
         return;
     }
     *out << "PacketError fuera del enum";
+}
+
+inline void PrintTo(ObfuscationError error, std::ostream* out)
+{
+    switch (error)
+    {
+    case ObfuscationError::InvalidPacket:
+        *out << "InvalidPacket";
+        return;
+    }
+    *out << "ObfuscationError fuera del enum";
 }
 
 inline void PrintTo(SerialCheck check, std::ostream* out)

@@ -1,11 +1,14 @@
 // Client::Network::EncryptPacket y DecryptPacket: un C1/C2 como C3/C4 y de vuelta, con los
-// seriales, Q-C05 y Q-C10. Los bloques solos son SimpleModulusTest, y los seriales solos,
-// PacketSerialsTest.
+// seriales, Q-C05 y Q-C10, y lo que EncryptPacket le da a la ofuscación (CL2.4). Los bloques solos
+// son SimpleModulusTest, y los seriales solos, PacketSerialsTest.
 
 #include "Network/EncryptedPacket.h"
 
+#include "Core/Expected.h"
 #include "Network/Crypto/CryptoError.h"
 #include "Network/Crypto/SimpleModulus.h"
+#include "Network/Obfuscation.h"
+#include "Network/ObfuscationError.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
 
@@ -34,11 +37,14 @@
 namespace
 {
 
+using Client::Core::Expected;
 using Client::Network::DecryptPacket;
 using Client::Network::EncryptPacket;
 using Client::Network::HeaderSize;
 using Client::Network::MaxPacketSize;
 using Client::Network::MinPacketSize;
+using Client::Network::Obfuscation;
+using Client::Network::ObfuscationError;
 using Client::Network::Packet;
 using Client::Network::PacketSerials;
 using Client::Network::PacketType;
@@ -710,6 +716,99 @@ TEST(EncryptedPacketTest, DecryptUndoesEncryptWithSyntheticKeys)
             EXPECT_EQ(decrypted.Value().serial, SerialCheck::InOrder) << "vuelta " << round;
             EXPECT_TRUE(SameBytes(decrypted.Value().packet.Bytes(), plain)) << "vuelta " << round;
         }
+    }
+}
+
+// --- Lo que EncryptPacket le da a la ofuscación (CL2.4) ---
+
+// Una ofuscación que guarda lo que EncryptPacket le da para cifrar y le cambia el opcode: así se ve
+// qué recibe BeforeEncrypt y que se cifra lo que deja. Lo demás pasa como vino.
+class RecordingObfuscation final : public Obfuscation
+{
+public:
+    // El opcode que deja en lo que se va a cifrar.
+    static constexpr std::byte WrittenOpcode{0x5A};
+
+    explicit RecordingObfuscation(ByteVector& seenBytes) : seen(&seenBytes) {}
+
+    [[nodiscard]] std::byte InboundMask(std::byte /*firstWireByte*/) const override
+    {
+        return std::byte{0};
+    }
+
+    [[nodiscard]] Expected<Packet, ObfuscationError> AfterCut(Packet packet) const override
+    {
+        return packet;
+    }
+
+    [[nodiscard]] Expected<Packet, ObfuscationError> BeforeDispatch(Packet packet) const override
+    {
+        return packet;
+    }
+
+    void BeforeEncrypt(std::span<std::byte> sealed) const override
+    {
+        seen->assign(sealed.begin(), sealed.end());
+        if (sealed.size() > 1)
+        {
+            sealed[1] = WrittenOpcode;
+        }
+    }
+
+    [[nodiscard]] Packet BeforeSend(Packet packet) const override
+    {
+        return packet;
+    }
+
+private:
+    ByteVector* seen; // dónde guarda lo que recibió BeforeEncrypt la última vez
+};
+
+// BeforeEncrypt recibe [serial][lo útil desde el opcode][relleno]: el aviso, con el serial 4 y el
+// relleno A5, son los 5 útiles y el relleno. Y lo que deja es lo que se cifra.
+TEST(EncryptedPacketTest, BeforeEncryptGetsTheSerialTheUsefulBytesAndThePadding)
+{
+    const KeyPair identity = IdentityPair();
+    PacketSerials serials = HavingSent(4);
+    ByteVector seen;
+    const RecordingObfuscation recording(seen);
+
+    const auto encrypted =
+        EncryptPacket(PacketOf(NoticeBytes()), identity.encryption, serials, recording, std::byte{0xA5});
+
+    EXPECT_TRUE(SameBytes(seen, Bytes({0x04, 0xF1, 0x7B, 0xC1, 0x73, 0xA5})));
+    ASSERT_TRUE(encrypted.HasValue());
+    const std::span<const std::byte> cipher = AfterHeader(encrypted.Value());
+    ASSERT_EQ(cipher.size(), Client::Network::Crypto::CipherBlockSize);
+    const std::optional<DecryptedBlock> block =
+        DecryptBlock(identity.decryption, cipher.first<Client::Network::Crypto::CipherBlockSize>());
+    ASSERT_TRUE(block.has_value());
+    EXPECT_TRUE(SameBytes(block->bytes, Bytes({0x04, 0x5A, 0x7B, 0xC1, 0x73, 0xA5, 0x00, 0x00})));
+    EXPECT_EQ(block->usefulSize, 5);
+}
+
+// Con el bloque lleno, el relleno igual llega al final de lo que recibe BeforeEncrypt, aunque no se
+// cifre: un C1 de 9 bytes y un C2 de 10 son 8 útiles, y BeforeEncrypt recibe 9. En el C2, el serial
+// pisa el byte bajo del tamaño.
+TEST(EncryptedPacketTest, BeforeEncryptGetsThePaddingAlsoWhenTheBlockIsFull)
+{
+    const KeyPair identity = IdentityPair();
+    for (const auto& [type, size] :
+         {std::pair{PacketType::C1, std::size_t{9}}, std::pair{PacketType::C2, std::size_t{10}}})
+    {
+        PacketSerials serials = HavingSent(7);
+        ByteVector seen;
+        const RecordingObfuscation recording(seen);
+        const ByteVector plain = PlainOfSize(type, size);
+
+        const auto encrypted = EncryptPacket(PacketOf(plain), identity.encryption, serials, recording, std::byte{0xA5});
+
+        ASSERT_TRUE(encrypted.HasValue()) << "un C" << (type == PacketType::C1 ? 1 : 2);
+        ByteVector expected(plain.begin() + static_cast<std::ptrdiff_t>(HeaderSize(type) - 1), plain.end());
+        expected[0] = std::byte{0x07};
+        expected.push_back(std::byte{0xA5});
+        EXPECT_TRUE(SameBytes(seen, expected)) << "un C" << (type == PacketType::C1 ? 1 : 2);
+        EXPECT_EQ(AfterHeader(encrypted.Value()).size(), Client::Network::Crypto::CipherBlockSize);
     }
 }
 

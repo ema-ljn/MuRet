@@ -157,6 +157,12 @@ solo lo lee.
   del original, con un cursor, así un envío partido en `{2, 2, -1}` no repite ni pierde bytes
   (Q-C11) y lo nuevo espera detrás de lo pendiente; lo que no entra es `Full`, y la conexión va a
   cerrar como el original.
+  El tercero trae el `Poll` del bucle: `ILoopClient` suma `Poll()`, que `GameLoop::RunFrame` llama
+  una vez por frame, antes de los pasos y también minimizada. En el modo fiel va antes de
+  `BeginFrame`, fuera de la medición, como el bucle de mensajes del original: con polls de 20 ms el
+  juego se frena a 48 frames y 56 pasos en 3 s (`GameLoopTest.FaithfulDoesNotMeasureThePoll`). La
+  escena de prueba tiene un `Poll()` vacío. Al arrastrar la ventana en Windows, el original sigue
+  con el keepalive y MuRet no consulta la red hasta soltarla (Q-C49).
 - **CL4.0 (sockets no bloqueantes), resuelta por Claude** el 2026-11-02, como la CL3.0: el
   `LabSocket` con RAII y todos los `#ifdef _WIN32` en un archivo, el `LoopbackPair` que conecta en
   `127.0.0.1` sin bloquear y en un solo hilo, y la `DrainQueue`, la cola con cursor. El puerto
@@ -250,6 +256,7 @@ sesión, junto con los de repaso más viejo.
 | un socket consultado una vez por frame contra un hilo por conexión o IOCP y epoll, y `select` contra `poll` y `WSAPoll` para saber si un `connect` terminó (la comparación de `labs/README.md`) | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | E/S no bloqueante detrás de una interfaz chica (`ISocket`, con `SystemSocket` y `FakeSocket`): el connect como máquina de estados que guarda su resultado porque `SO_ERROR` se borra al leerlo, "probá más tarde" contra un cierre (`recv` en 0, `ECONNRESET`), `SIGPIPE` y `MSG_NOSIGNAL`, y un `#ifdef _WIN32` en un solo archivo (`SocketApi`) | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | una cola de envío con cursor sobre un buffer fijo (`SendQueue`): por qué restar lo que salió dos veces repite el principio y pierde el final (Q-C11), compactar solo cuando lo nuevo no entra, y un tope que cierra en vez de crecer | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| la red consultada una vez por frame en el mismo hilo que la lógica (`ILoopClient::Poll`), y dónde va en el modo fiel: fuera de la medición, donde lo que tarda se pierde de a ticks enteros, como los pasos (`FaithfulDoesNotMeasureThePoll`) | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

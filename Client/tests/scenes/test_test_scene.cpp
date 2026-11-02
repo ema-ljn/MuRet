@@ -103,4 +103,17 @@ TEST(TestSceneTest, RenderPresentsTheBackground)
     ASSERT_EQ(presented.size(), 1u);
     ExpectColor(presented[0], scene.Background(0.25f));
 }
+// La escena de prueba no tiene red: Poll no avanza el ciclo ni presenta.
+TEST(TestSceneTest, PollDoesNothing)
+{
+    std::vector<Color> presented;
+    TestScene scene{[&presented](const Color& color) { presented.push_back(color); }};
+    Steps(scene, 5);
+    const Color before = scene.Background(0.0f);
+
+    scene.Poll();
+
+    ExpectColor(scene.Background(0.0f), before);
+    EXPECT_TRUE(presented.empty());
+}
 } // namespace

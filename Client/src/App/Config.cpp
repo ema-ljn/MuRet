@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <format>
 #include <fstream>
-#include <iterator>
+#include <ios>
 #include <optional>
 #include <string>
 #include <system_error>
@@ -268,12 +268,8 @@ std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view
     }
     case Key::ServerHost:
     {
-        const std::string_view text = WithoutQuotes(value);
-        if (!IsUtf8(text))
-        {
-            return std::string("no es UTF-8");
-        }
-        const auto host = ParseHost(text);
+        // ParseHost acepta solo ASCII, así que acá no hace falta mirar el UTF-8.
+        const auto host = ParseHost(WithoutQuotes(value));
         if (!host.HasValue())
         {
             return host.Error();
@@ -351,11 +347,14 @@ std::filesystem::path FromFolder(const std::filesystem::path& folder, const std:
     return path.is_relative() ? folder / path : path;
 }
 
-// El texto del archivo, o vacío si no está; con `required`, que no esté es un error.
+// El texto del archivo, o vacío si no está; con `required`, que no esté es un error. Solo "no
+// está" (not_found) da los valores por defecto: un error del sistema (un permiso) se dice. Se lee
+// sin excepciones: con istreambuf_iterator, una carpeta abierta en Linux tira ios_base::failure.
 Core::Expected<std::optional<std::string>, std::string> ReadConfigFile(const std::filesystem::path& path, bool required)
 {
     std::error_code error;
-    if (!std::filesystem::exists(path, error))
+    const std::filesystem::file_status status = std::filesystem::status(path, error);
+    if (status.type() == std::filesystem::file_type::not_found)
     {
         if (required)
         {
@@ -363,12 +362,32 @@ Core::Expected<std::optional<std::string>, std::string> ReadConfigFile(const std
         }
         return std::optional<std::string>();
     }
-    std::ifstream file(path, std::ios::binary);
-    if (!file)
+    if (error)
     {
-        return Unexpected(std::format("no se pudo abrir la config {}", PathText(path)));
+        return Unexpected(std::format("no se pudo leer la config {}: {}", PathText(path), error.message()));
     }
-    return std::optional<std::string>(std::string(std::istreambuf_iterator<char>(file), {}));
+    if (!std::filesystem::is_regular_file(status))
+    {
+        return Unexpected(std::format("la config {} no es un archivo", PathText(path)));
+    }
+    const std::uintmax_t size = std::filesystem::file_size(path, error);
+    if (error)
+    {
+        return Unexpected(std::format("no se pudo leer la config {}: {}", PathText(path), error.message()));
+    }
+    if (size > MaxConfigBytes)
+    {
+        return Unexpected(std::format("la config {} pasa de {} bytes", PathText(path), MaxConfigBytes));
+    }
+    std::ifstream file(path, std::ios::binary);
+    std::string text(static_cast<std::size_t>(size), '\0');
+    file.read(text.data(), static_cast<std::streamsize>(text.size()));
+    if (!file.is_open() || file.bad())
+    {
+        return Unexpected(std::format("no se pudo leer la config {}", PathText(path)));
+    }
+    text.resize(static_cast<std::size_t>(file.gcount()));
+    return std::optional<std::string>(std::move(text));
 }
 } // namespace
 
@@ -525,10 +544,20 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
     // 5. La carpeta de datos, solo si se dio (Q-C35: el original salía sin avisar).
     if (config.dataPath)
     {
+        const std::string folder = PathText(*config.dataPath);
         std::error_code error;
-        if (!std::filesystem::is_directory(*config.dataPath, error))
+        const std::filesystem::file_status status = std::filesystem::status(*config.dataPath, error);
+        if (status.type() == std::filesystem::file_type::not_found)
         {
-            return Unexpected(std::format("no existe la carpeta de datos {}", PathText(*config.dataPath)));
+            return Unexpected(std::format("no existe la carpeta de datos {}", folder));
+        }
+        if (error)
+        {
+            return Unexpected(std::format("no se pudo leer la carpeta de datos {}: {}", folder, error.message()));
+        }
+        if (!std::filesystem::is_directory(status))
+        {
+            return Unexpected(std::format("la carpeta de datos {} no es una carpeta", folder));
         }
     }
     return config;

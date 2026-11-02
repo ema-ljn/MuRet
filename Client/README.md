@@ -77,11 +77,14 @@ config, `Main` corre con los valores por defecto, como en CI.
 
 | Opción | Qué hace |
 | --- | --- |
-| `connect /u<host> /p<puerto>` | el servidor, como lo pasa el launcher. `connect` es opcional, las letras van en mayúscula o minúscula y en cualquier orden. El puerto va de 1 a 65535, y el host, de 1 a 255 bytes, sin espacios ni caracteres de control (Q-C37). Uno sin el otro, o uno repetido, es un error (Q-C36), y `/y` y `/z`, también |
+| `connect /u<host> /p<puerto>` | el servidor, como lo pasa el launcher. `connect` es opcional, las letras van en mayúscula o minúscula y en cualquier orden. El valor va pegado a la letra. El puerto va de 1 a 65535, y el host, de 1 a 255 bytes de ASCII visible: una IP o un nombre, que con acentos va en punycode (Q-C37). Uno sin el otro, o uno repetido, es un error (Q-C36), y `/y` y `/z`, también |
 | `--config <ruta>` | lee esa config en vez de `muret-client.ini`; si no existe, es un error que la nombra |
-| `--data <ruta>` | la carpeta de datos del cliente original, en vez de `[Data] Path`; si no existe, es un error que la nombra (Q-C35) |
+| `--data <ruta>` | la carpeta de datos del cliente original, en vez de `[Data] Path`; si no existe o no es una carpeta, es un error que la nombra (Q-C35) |
 
-Las rutas de `--config` y `--data` se toman desde la carpeta actual, como cualquier argumento.
+Las rutas de `--config` y `--data` se toman desde la carpeta actual, como cualquier argumento. Cada
+opción va una vez: una repetida es un error. En Windows, `argv` llega en la página ANSI: una ruta
+con letras que no entran en ella, o que termina en `\"`, no llega bien (límite conocido, paso 4 de
+la CL3.4 en el plan).
 Por ejemplo:
 
 ```bash
@@ -94,7 +97,8 @@ Hasta la CL4, el servidor solo se valida: todavía no se conecta, y sin host no 
 ### `muret-client.ini`
 
 `Main` lo busca junto al ejecutable (la carpeta que da `SDL_GetBasePath`), no en la carpeta
-actual. Si no está, usa los valores por defecto; con `--config`, el archivo tiene que existir.
+actual. Si no está, usa los valores por defecto; con `--config`, el archivo tiene que existir. Una
+carpeta en su lugar, un archivo de más de 64 KiB o uno que no se puede leer son errores.
 Todas las claves son opcionales:
 
 ```ini
@@ -138,7 +142,8 @@ mensaje dice el archivo y la línea (`muret-client.ini, línea 3: ...`):
 - una sección o una clave que no existen, una clave antes de la primera sección, repetida o sin
   valor;
 - un valor que no se puede leer (un puerto de 0, un `VSync = sometimes`, un `Width = 480px`);
-- una ruta o un host que no son UTF-8 o que tienen caracteres de control, y un `\r` sin `\n`.
+- una ruta que no es UTF-8 o que tiene caracteres de control, un host que no es ASCII visible, y
+  un `\r` sin `\n`.
 
 ## Tests
 

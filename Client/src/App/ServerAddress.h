@@ -8,7 +8,9 @@
 #include <string_view>
 
 // La dirección del ConnectServer, de la config ([Server] Host y Port) o de la línea de comandos
-// (/u<ip> /p<puerto>). Las dos la validan con las mismas funciones, así dicen lo mismo.
+// (/u<ip> /p<puerto>). Las dos la validan con las mismas funciones, así aceptan lo mismo y lo
+// dicen igual: el host es ASCII visible, que no depende de la codificación (UTF-8 en la config, la
+// página ANSI en el argv de Windows), y el tope de Q-C37 cuenta los mismos bytes en las dos.
 namespace Client::App
 {
 // El puerto compilado del ConnectServer, 0x6d5dc4 (02 § Del launcher al juego).
@@ -27,7 +29,7 @@ struct ServerAddress
 // 65535" o "el puerto tiene que ser un número".
 Core::Expected<std::uint16_t, std::string> ParsePort(std::string_view text);
 
-// Un host de 1 a MaxHostBytes bytes, sin espacios ni caracteres de control. No resuelve nombres
-// ni mira si es una IP.
+// Un host de 1 a MaxHostBytes bytes de ASCII visible (0x21 a 0x7E): una IP o un nombre, que con
+// acentos va en punycode. No resuelve nombres ni mira si es una IP.
 Core::Expected<std::string, std::string> ParseHost(std::string_view text);
 } // namespace Client::App

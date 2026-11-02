@@ -7,6 +7,7 @@
 #include "App/VSyncMode.h"
 #include "Core/Expected.h"
 
+#include <cstdint>
 #include <filesystem>
 #include <optional>
 #include <string_view>
@@ -33,8 +34,8 @@
 // Un par de comillas dobles alrededor de una ruta o del host se saca (lo que da "Copiar como
 // ruta" del Explorador); una comilla sola queda como parte del valor. Es error, y dice su línea:
 // una línea que no es `[Sección]` ni `Clave = valor`, una sección o una clave que no existen, una
-// clave repetida o sin valor, un valor que no se puede leer, un \r sin \n, y una ruta o un host
-// con caracteres de control o que no son UTF-8.
+// clave repetida o sin valor, un valor que no se puede leer, un \r sin \n, una ruta con caracteres
+// de control o que no es UTF-8, y un host que no es ASCII visible (ParseHost).
 //
 // El parser es propio y no inih (CODING_RULES §10; paso 1 de la CL3.4 en el plan de la CL3). El
 // puerto de vcpkg (inih 62) compila con las opciones por defecto de su meson. Lo que lo descarta:
@@ -49,6 +50,9 @@ namespace Client::App
 // El lado más grande de la ventana que acepta [Video]. No sale del original: con 16384, Width *
 // Height entra en un int (2^28), y sobra para un monitor de hoy (el 8K es 7680 × 4320).
 inline constexpr int MaxWindowSize = 16384;
+// El tamaño más grande de config que lee Resolve. No sale del original: una config entera tiene
+// menos de 1 KiB, y con el tope un archivo enorme o un dispositivo (/dev/zero) no se lee entero.
+inline constexpr std::uintmax_t MaxConfigBytes = 64 * 1024;
 // El archivo que Resolve busca junto al ejecutable si no hay --config (tabla de la CL3.4).
 inline constexpr std::string_view DefaultConfigFileName = "muret-client.ini";
 

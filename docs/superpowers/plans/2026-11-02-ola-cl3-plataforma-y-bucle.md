@@ -1051,9 +1051,8 @@ El host vacío no es error acá: lo pide la CL4 al conectarse.
 **Archivos:**
 - **PR A:** crear `Client/src/App/Config.h/.cpp`, `ConfigError.h` y `ServerAddress.h/.cpp` (la
   dirección del servidor, con `ParsePort` y `ParseHost`, que usan la config y la línea de
-  comandos);
-  `Client/tests/app/test_config.cpp`. Modificar `vcpkg.json` (`inih` con la feature `cpp`, si el
-  paso 1 lo confirma), `Client/src/App/CommandLine.h/.cpp` y su test (pasa a `Core::Expected` con un
+  comandos); `Client/tests/app/test_config.cpp` y `test_server_address.cpp`. Modificar
+  `vcpkg.json` (`inih` con la feature `cpp`, si el paso 1 lo confirma), `Client/src/App/CommandLine.h/.cpp` y su test (pasa a `Core::Expected` con un
   error que se imprime, y suma `connect`, `/u`, `/p`, `--config` y `--data`), `main.cpp`,
   `Client/CMakeLists.txt` (los tests de `Main` sin ventana), `Client/README.md` (cómo se configura),
   07 (Q-C35 a Q-C37 con sus tests), PROGRESS y este plan.
@@ -1074,7 +1073,8 @@ inline constexpr std::size_t MaxHostBytes = 255;
 struct ServerAddress { std::string host; std::uint16_t port = DefaultConnectPort; };
 // En App/ServerAddress.h. Los mensajes son los mismos en la config y en la línea de comandos:
 // "el puerto tiene que ser un número", "el puerto va de 1 a 65535", "el host va de 1 a 255 bytes",
-// "el host no puede tener espacios" y "el host no puede tener caracteres de control".
+// "el host no puede tener espacios", "el host no puede tener caracteres de control" y "el host
+// tiene que ser ASCII (un nombre con acentos va en punycode)": solo de 0x21 a 0x7E.
 Core::Expected<std::uint16_t, std::string> ParsePort(std::string_view text);
 Core::Expected<std::string, std::string> ParseHost(std::string_view text);
 // El lado más grande de la ventana en [Video] (App/Config.h).
@@ -1196,11 +1196,13 @@ se declara después del `Log` en `main`, así se destruye antes.
   | `/u10.0.0.1 /p0` | error: "el puerto va de 1 a 65535" | 0 no es un puerto (`ParsePort`, `App/ServerAddress.h`) |
   | `/u10.0.0.1 /p65536` | error: "el puerto va de 1 a 65535" | no entra en 16 bits |
   | `/u10.0.0.1 /p12a` | error: "el puerto tiene que ser un número" | solo dígitos, nada atrás |
-  | `/u /p44405` | error: "el host va de 1 a 255 bytes" | `/u` vacío no es un host (`ParseHost`) |
+  | `/u /p44405` o `/u 10.0.0.1 /p44405` | error: "/u necesita el host pegado (/u10.0.0.1)" | el launcher lo pega a la letra (lo mismo con `/p`) |
   | `/u` + 255 bytes + ` /p44405` | `connect` con ese host | el largo máximo del host (Q-C37) |
   | `/u` + 256 bytes + ` /p44405` | error: "el host va de 1 a 255 bytes" | el original lo copiaba sin mirar el largo (Q-C37) |
   | `/y...` o `/z...` | error: "no conozco el argumento ..." | son opciones del launcher, y MuRet no las lee |
   | `/u10.0.0.1 /U10.0.0.2 /p1` | error: "/U está repetido" | no se elige uno en silencio (lo mismo con `/p`) |
+  | `--frames 5 --frames 7` | error: "--frames está repetido" | lo mismo con `--config`, `--data`, `--pacing`, `--vsync` y `--stats` |
+  | `/umú.org /p44405` | error: "el host tiene que ser ASCII (...)" | el host es ASCII visible, en la línea de comandos y en la config (`ParseHost`) |
 
   Los mensajes de puerto y host son los de `ParsePort` y `ParseHost`, los mismos que da
   `[Server]` en la config, para que las dos digan lo mismo.
@@ -1222,7 +1224,13 @@ se declara después del `Log` en `main`, así se destruye antes.
     `ReadsTheLastLineWithoutANewline`, `TabsAreBlankAndSpacesInsideTheBracketsAreTrimmed`,
     `RemovesTheQuotesAroundAPathOrTheHost`, `ReadsAPathWithSpaces`,
     `RejectsAPathOrHostThatIsNotUtf8`, `RejectsControlCharacters`,
-    `RejectsACarriageReturnWithoutANewline` y `SaysWhatIsWrongWithALine`;
+    `RejectsACarriageReturnWithoutANewline`, `SaysWhatIsWrongWithALine`, y los de `Resolve`
+    `ResolveChoosesTheVSyncByThePacing`, `ReadsTheConfigPath`, `AParseErrorNamesTheFileAndTheLine`,
+    `ARelativePathIsFromTheExeFolder`, `ACommandLinePathIsFromTheCurrentFolder`,
+    `AConfigPathThatIsAFolderIsAnError`, `AConfigLongerThanTheCapIsAnError` y
+    `ResolveStopsAtTheFirstErrorInOrder`. En `CommandLineTest`, `RejectsARepeatedHostOrPort`,
+    `RejectsARepeatedOption` y `RejectsAHostThatIsNotAscii`. Y una suite propia de `ParsePort` y
+    `ParseHost`, `ServerAddressTest` (`Client/tests/app/test_server_address.cpp`);
   - `ConfigTest.AMissingDefaultFileMeansDefaults`, `AMissingConfigPathIsAnError` (nombra la ruta),
     `TheCommandLineWins` (`/u... /p...` pisa `[Server]`, `--pacing faithful` pisa `Pacing`),
     `FaithfulWithVSyncOnIsAnError` (nombra `Pacing` y `VSync`), `AMissingDataFolderNamesIt` (el
@@ -1233,7 +1241,14 @@ se declara después del `Log` en `main`, así se destruye antes.
   Hecho (fase 2a): `ParseCommandLine` devuelve `Core::Expected<CommandLine, std::string>`, y
   `ParseConfig` y `Resolve` están. Las rutas de `--config` y `--data` son de la carpeta actual y
   se leen en la codificación del sistema (la de `argv`); las de la config, en UTF-8 y desde la
-  carpeta del ejecutable. `ParseCommandLine` sigue rechazando `--pacing faithful --vsync on`
+  carpeta del ejecutable. **Límite conocido en Windows:** `main.cpp` no usa `SDL_main.h`, así que
+  `argv` llega en la página ANSI: lo que no entra en ella ya llega cambiado por `?`
+  (`C:\Users\Łukasz` en la 1252), y el CRT lee `"C:\MU\Data\"` como `C:\MU\Data"`, porque la `\`
+  antes de la comilla la escapa. No se arregla en la CL3.4; el arreglo es leer la línea con
+  `GetCommandLineW` y `CommandLineToArgvW`, pasarla a UTF-8 y armar el `path` desde `u8string`.
+  `Resolve` lee la config sin excepciones, con un tope de `MaxConfigBytes` (64 KiB), y solo un
+  archivo que no está da los valores por defecto: una carpeta, un permiso o un archivo de más
+  son errores que lo dicen. `ParseCommandLine` sigue rechazando `--pacing faithful --vsync on`
   (CL3.2), y `Resolve` mira la misma regla con la config. Falta `main.cpp`: llama a
   `ParseCommandLine`, pero `Resolve` (con `SDL_GetBasePath`) entra en la fase 2b, sobre la CL3.1.
 - [ ] **Paso 5 (PR A):** CTest de `Main` sin ventana (fallan antes de `SDL_Init`):

@@ -61,6 +61,10 @@ Core::Expected<std::string, std::string> ParseHost(std::string_view text)
     {
         return Unexpected(std::string("el host no puede tener caracteres de control"));
     }
+    if (std::ranges::any_of(text, [](char c) { return static_cast<unsigned char>(c) >= 0x80; }))
+    {
+        return Unexpected(std::string("el host tiene que ser ASCII (un nombre con acentos va en punycode)"));
+    }
     return std::string(text);
 }
 } // namespace Client::App

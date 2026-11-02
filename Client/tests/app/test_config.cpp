@@ -180,6 +180,7 @@ TEST(ConfigTest, RejectsAPortOutOfRange)
 {
     EXPECT_EQ(ErrorOf("[Server]\nPort = 0\n").message, "[Server] Port: el puerto va de 1 a 65535");
     EXPECT_EQ(ErrorOf("[Server]\nPort = 65536\n").message, "[Server] Port: el puerto va de 1 a 65535");
+    EXPECT_EQ(ParseConfig("[Server]\nPort = 65535\n").Value().server->port, 65535);
     EXPECT_EQ(ErrorOf("[Server]\nPort = 12a\n").message, "[Server] Port: el puerto tiene que ser un número");
     EXPECT_EQ(ErrorOf("[Server]\nPort = -1\n").message, "[Server] Port: el puerto tiene que ser un número");
 }
@@ -274,7 +275,9 @@ TEST(ConfigTest, RejectsAPathOrHostThatIsNotUtf8)
     EXPECT_EQ(path.line, 2u);
     EXPECT_EQ(path.message, "[Data] Path: no es UTF-8");
 
-    EXPECT_EQ(ErrorOf("[Server]\nHost = \xDA\n").message, "[Server] Host: no es UTF-8");
+    // El host no se mira como UTF-8: tiene que ser ASCII (ParseHost, test_server_address.cpp).
+    EXPECT_EQ(ErrorOf("[Server]\nHost = \xDA\n").message,
+              "[Server] Host: el host tiene que ser ASCII (un nombre con acentos va en punycode)");
     // Una forma larga de más ("/" en dos bytes) y una mitad de UTF-16 (U+D800).
     EXPECT_EQ(ErrorOf("[Log]\nPath = \xC0\xAF\n").message, "[Log] Path: no es UTF-8");
     EXPECT_EQ(ErrorOf("[Log]\nPath = \xED\xA0\x80\n").message, "[Log] Path: no es UTF-8");
@@ -312,6 +315,7 @@ TEST(ConfigTest, SaysWhatIsWrongWithALine)
     EXPECT_EQ(hash.line, 1u);
     EXPECT_EQ(hash.message, "se esperaba [Sección] o Clave = valor");
 }
+
 // Una carpeta nueva en el temporal, que se borra al final. El nombre lleva un número al azar: los
 // tests corren en paralelo, y otras compilaciones pueden correr los mismos.
 class TempFolder
@@ -425,6 +429,79 @@ TEST(ConfigTest, TheCommandLineWins)
     EXPECT_EQ(config.Value().server->port, 55901);
     EXPECT_EQ(config.Value().pacing, PacingMode::Faithful);
     EXPECT_EQ(config.Value().vsync, VSyncMode::Off);
+
+    // --vsync off pisa un VSync = on que el modo fiel no deja.
+    exeFolder.Write("[Video]\nPacing = faithful\nVSync = on\n");
+    CommandLine vsyncOff;
+    vsyncOff.vsync = VSyncMode::Off;
+    const auto fixed = Resolve(exeFolder.Path(), vsyncOff);
+    ASSERT_TRUE(fixed.HasValue()) << fixed.Error();
+    EXPECT_EQ(fixed.Value().vsync, VSyncMode::Off);
+}
+
+// --config y --data se toman desde la carpeta actual, como cualquier argumento.
+TEST(ConfigTest, ACommandLinePathIsFromTheCurrentFolder)
+{
+    const TempFolder exeFolder;
+    const TempFolder other;
+    std::filesystem::create_directories(other.Path() / "Data");
+    const std::filesystem::path config = other.Write("[Video]\nWidth = 800\n", "otra.ini");
+    CommandLine commandLine;
+    commandLine.configPath = std::filesystem::relative(config, std::filesystem::current_path());
+    commandLine.dataPath = std::filesystem::relative(other.Path() / "Data", std::filesystem::current_path());
+    ASSERT_TRUE(commandLine.configPath->is_relative());
+
+    const auto resolved = Resolve(exeFolder.Path(), commandLine);
+
+    ASSERT_TRUE(resolved.HasValue()) << resolved.Error();
+    EXPECT_EQ(resolved.Value().width, 800);
+    EXPECT_EQ(resolved.Value().dataPath, commandLine.dataPath);
+}
+
+TEST(ConfigTest, AConfigPathThatIsAFolderIsAnError)
+{
+    const TempFolder exeFolder;
+    CommandLine commandLine;
+    commandLine.configPath = exeFolder.Path();
+    const auto folder = Resolve(exeFolder.Path(), commandLine);
+    ASSERT_FALSE(folder.HasValue());
+    EXPECT_NE(folder.Error().find("no es un archivo"), std::string::npos) << folder.Error();
+
+    // Una carpeta muret-client.ini junto al ejecutable, también.
+    std::filesystem::create_directories(exeFolder.Path() / "muret-client.ini");
+    const auto byDefault = Resolve(exeFolder.Path(), CommandLine{});
+    ASSERT_FALSE(byDefault.HasValue());
+    EXPECT_NE(byDefault.Error().find("no es un archivo"), std::string::npos) << byDefault.Error();
+}
+
+TEST(ConfigTest, AConfigLongerThanTheCapIsAnError)
+{
+    const TempFolder exeFolder;
+    exeFolder.Write(std::string(Client::App::MaxConfigBytes, ';'));
+    ASSERT_TRUE(Resolve(exeFolder.Path(), CommandLine{}).HasValue());
+
+    exeFolder.Write(std::string(Client::App::MaxConfigBytes + 1, ';'));
+    const auto config = Resolve(exeFolder.Path(), CommandLine{});
+    ASSERT_FALSE(config.HasValue());
+    EXPECT_NE(config.Error().find("pasa de 65536 bytes"), std::string::npos) << config.Error();
+}
+
+// El orden de Resolve: el archivo, ParseConfig, la regla del modo fiel y recién la carpeta.
+TEST(ConfigTest, ResolveStopsAtTheFirstErrorInOrder)
+{
+    const TempFolder exeFolder;
+    CommandLine commandLine;
+    commandLine.dataPath = exeFolder.Path() / "Data-que-no-esta";
+
+    exeFolder.Write("[Video]\nWidth 800\n");
+    const auto parse = Resolve(exeFolder.Path(), commandLine);
+    ASSERT_FALSE(parse.HasValue());
+    EXPECT_NE(parse.Error().find("línea 2"), std::string::npos) << parse.Error();
+
+    exeFolder.Write("[Video]\nPacing = faithful\nVSync = on\n");
+    const auto faithful = Resolve(exeFolder.Path(), commandLine);
+    ASSERT_FALSE(faithful.HasValue());
+    EXPECT_NE(faithful.Error().find("Pacing"), std::string::npos) << faithful.Error();
 }
 
 TEST(ConfigTest, FaithfulWithVSyncOnIsAnError)
@@ -457,6 +534,12 @@ TEST(ConfigTest, AMissingDataFolderNamesIt)
     ASSERT_FALSE(config.HasValue());
     EXPECT_NE(config.Error().find("no existe la carpeta de datos"), std::string::npos) << config.Error();
     EXPECT_NE(config.Error().find("Data-que-no-esta"), std::string::npos) << config.Error();
+
+    // Un archivo no es una carpeta, y lo dice.
+    commandLine.dataPath = exeFolder.Write("[Video]\n");
+    const auto file = Resolve(exeFolder.Path(), commandLine);
+    ASSERT_FALSE(file.HasValue());
+    EXPECT_NE(file.Error().find("no es una carpeta"), std::string::npos) << file.Error();
 }
 
 TEST(ConfigTest, ARelativePathIsFromTheExeFolder)

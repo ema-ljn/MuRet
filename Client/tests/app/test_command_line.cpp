@@ -148,6 +148,7 @@ TEST(CommandLineTest, FaithfulWithVSyncOnIsAnError)
     EXPECT_TRUE(Parse({"--pacing", "faithful"}, error).has_value()) << error;
     EXPECT_TRUE(Parse({"--pacing", "decoupled", "--vsync", "on"}, error).has_value()) << error;
 }
+
 TEST(CommandLineTest, AcceptsConnectWithHostAndPort)
 {
     const ServerAddress address = ConnectOf({"connect", "/u10.0.0.1", "/p44405"});
@@ -193,12 +194,14 @@ TEST(CommandLineTest, RejectsAPortOutOfRange)
 {
     EXPECT_EQ(ErrorOf({"connect", "/u10.0.0.1", "/p0"}), "el puerto va de 1 a 65535");
     EXPECT_EQ(ErrorOf({"connect", "/u10.0.0.1", "/p65536"}), "el puerto va de 1 a 65535");
+    EXPECT_EQ(ConnectOf({"/u10.0.0.1", "/p65535"}).port, 65535);
+    EXPECT_EQ(ConnectOf({"/u10.0.0.1", "/p1"}).port, 1);
 }
 
 TEST(CommandLineTest, RejectsAPortWithLetters)
 {
     EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/p12a"}), "el puerto tiene que ser un número");
-    EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/p"}), "el puerto tiene que ser un número");
+    EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/p"}), "/p necesita el puerto pegado (/p44405)");
 }
 
 TEST(CommandLineTest, RejectsHostWithoutPort)
@@ -213,13 +216,31 @@ TEST(CommandLineTest, RejectsPortWithoutHost)
 
 TEST(CommandLineTest, RejectsAnEmptyHost)
 {
-    EXPECT_EQ(ErrorOf({"/u", "/p44405"}), "el host va de 1 a 255 bytes");
+    EXPECT_EQ(ErrorOf({"/u", "/p44405"}), "/u necesita el host pegado (/u10.0.0.1)");
+    EXPECT_EQ(ErrorOf({"/u", "10.0.0.1", "/p44405"}), "/u necesita el host pegado (/u10.0.0.1)");
 }
 
 TEST(CommandLineTest, RejectsARepeatedHostOrPort)
 {
     EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/U10.0.0.2", "/p1"}), "/U está repetido");
     EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/p1", "/p2"}), "/p está repetido");
+}
+
+TEST(CommandLineTest, RejectsARepeatedOption)
+{
+    EXPECT_EQ(ErrorOf({"--frames", "5", "--frames", "7"}), "--frames está repetido");
+    EXPECT_EQ(ErrorOf({"--config", "a.ini", "--config", "b.ini"}), "--config está repetido");
+    EXPECT_EQ(ErrorOf({"--data", "a", "--data", "b"}), "--data está repetido");
+    EXPECT_EQ(ErrorOf({"--pacing", "faithful", "--pacing", "decoupled"}), "--pacing está repetido");
+    EXPECT_EQ(ErrorOf({"--vsync", "off", "--vsync", "on"}), "--vsync está repetido");
+    EXPECT_EQ(ErrorOf({"--stats", "--stats"}), "--stats está repetido");
+}
+
+// Q-C37, en la línea de comandos: el mismo ParseHost que la config.
+TEST(CommandLineTest, RejectsAHostThatIsNotAscii)
+{
+    EXPECT_EQ(ErrorOf({"/um\xFA.org", "/p44405"}),
+              "el host tiene que ser ASCII (un nombre con acentos va en punycode)");
 }
 
 TEST(CommandLineTest, RejectsTheLauncherOptions)

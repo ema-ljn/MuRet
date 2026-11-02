@@ -37,6 +37,14 @@ char LauncherLetter(std::string_view argument)
     return argument.size() >= 2 && argument.front() == '/' ? ToLowerAscii(argument[1]) : '\0';
 }
 
+// Las opciones que llevan un valor atrás, o --stats: cada una va una vez.
+bool AlreadyGiven(const Client::App::CommandLine& commandLine, std::string_view option)
+{
+    return (option == StatsOption && commandLine.stats) || (option == FramesOption && commandLine.maxFrames) ||
+           (option == PacingOption && commandLine.pacing) || (option == VSyncOption && commandLine.vsync) ||
+           (option == ConfigOption && commandLine.configPath) || (option == DataOption && commandLine.dataPath);
+}
+
 std::string Unknown(std::string_view argument)
 {
     return "no conozco el argumento \"" + std::string(argument) + "\" (" + std::string(Usage) + ")";
@@ -101,6 +109,10 @@ Core::Expected<CommandLine, std::string> ParseCommandLine(std::span<const std::s
     for (std::size_t i = 0; i < arguments.size(); ++i)
     {
         const std::string_view argument = arguments[i];
+        if (AlreadyGiven(commandLine, argument))
+        {
+            return Unexpected(std::string(argument) + " está repetido");
+        }
         if (argument == StatsOption)
         {
             commandLine.stats = true;
@@ -118,6 +130,12 @@ Core::Expected<CommandLine, std::string> ParseCommandLine(std::span<const std::s
             if ((letter == 'u' && host) || (letter == 'p' && port))
             {
                 return Unexpected(std::string(argument.substr(0, 2)) + " está repetido");
+            }
+            if (argument.size() == 2)
+            {
+                // "/u 10.0.0.1": el launcher lo pega a la letra.
+                return Unexpected(letter == 'u' ? std::string("/u necesita el host pegado (/u10.0.0.1)")
+                                                : std::string("/p necesita el puerto pegado (/p44405)"));
             }
             if (letter == 'u')
             {
@@ -156,8 +174,11 @@ Core::Expected<CommandLine, std::string> ParseCommandLine(std::span<const std::s
         const std::string_view value = arguments[++i];
         if (argument == ConfigOption || argument == DataOption)
         {
-            // argv viene en la codificación del sistema (la página ANSI en Windows), que es la que
-            // lee path(std::string): acá no va el UTF-8 de la config.
+            // argv viene en la codificación del sistema (la página ANSI en Windows, porque main.cpp
+            // no usa SDL_main.h), que es la que lee path(std::string): acá no va el UTF-8 de la
+            // config. Límite conocido en Windows: lo que no entra en la página ya llega cambiado
+            // por "?" (C:\Users\Łukasz en la 1252), y el CRT lee `"C:\MU\Data\"` como C:\MU\Data"
+            // (la \ antes de la comilla la escapa). El arreglo es CommandLineToArgvW (plan, CL3.4).
             (argument == ConfigOption ? commandLine.configPath : commandLine.dataPath) =
                 std::filesystem::path(std::string(value));
         }

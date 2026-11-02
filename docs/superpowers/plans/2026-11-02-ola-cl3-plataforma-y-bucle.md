@@ -297,14 +297,16 @@ frame" de "Cómo el research se vuelve test") y este plan.
 - [x] **Paso 5 (P-C08):** las llamadas a `GetAsyncKeyState`: si se leen en el frame o en el paso,
   si alguna usa el bit bajo ("se apretó desde la última llamada") o solo el alto ("está abajo"),
   y qué teclas lee cada escena. El resto del WndProc (`0x4af4e0`): qué hace con el mouse.
-- [x] **Paso 6 (el foco):** en el bucle de `WinMain`, `0x4be019`..`0x4be04a` lee
+- [ ] **Paso 6 (el foco), en parte:** en el bucle de `WinMain`, `0x4be019`..`0x4be04a` lee
   `DAT_05763580` (el foco, de `WM_ACTIVATE`) y llama al frame (`0x63945d`) solo si no es cero; si
   es cero salta a `0x4be057`: `SetForegroundWindow` y `SetFocus` y, en una rama con los contadores
   del hash, `SetTimer(0x3e9, 1000)` y `PostMessageA(..., 0x10, ...)`, un `WM_CLOSE`
   (`0x4be1f2`..`0x4be217`). También consulta `IsIconic`. *Estático*, visto para este plan: el
   original sin foco probablemente no corre ningún frame, ni pasos ni dibujo. Leer las dos ramas,
   pasarlo al 02 con sus direcciones, y anotar en 07 la diferencia: MuRet sigue con sus pasos sin
-  foco o minimizado (el keepalive de la CL4 no puede parar).
+  foco o minimizado (el keepalive de la CL4 no puede parar). **En parte:** las dos ramas están en
+  el 02 como flujo, con los dos `ShowWindow` y el `WM_CLOSE`; qué ve el jugador sin foco (una
+  pausa, el foco que vuelve o el cierre) queda para una prueba dinámica, con alt-tab en la VM.
 - [x] **Paso 7:** cerrar P-C03 en el 08 (o dejar escrito qué queda para la CL6 y la CL7, que
   dibujan lo que se mueve), y actualizar este plan con lo que cambie.
 
@@ -334,21 +336,30 @@ que van por vtable, *análisis*). Lo que se encontró:
 - **Hay lógica que avanza por reloj aunque corra en el paso**: las demoras de las habilidades
   (`0x552f10`, con el delta de `timeGetTime` de cada frame) y un freno de 300 ms entre acciones con
   `GetTickCount` (`_DAT_0576791c`). Eso cambia la CL3.2 en una fila: la lógica tiene que poder leer
-  el mismo `Clock` que el bucle, y en el modo fiel ese reloj es la grilla. En la CL3 no lo usa
-  nada; la interfaz de `LoopClient` no cambia.
+  el mismo `IClock` que el bucle. En la CL3 no lo usa nada; la interfaz de `ILoopClient` no cambia.
+  El original usa tres relojes: `GetTickCount` para la espera y el freno de 300 ms, `timeGetTime`
+  para el reloj T y el delta de las demoras, y QPC para el delta de la UI (`0x459b60`) y el doble
+  clic (`0x459bc0`); `timeBeginPeriod` solo se llama en `0x459a70`, cuando no hay QPC. En el modo
+  fiel, `GetTickCount` va sobre la grilla de 15,625 ms; la resolución de `timeGetTime` y de QPC en
+  el original no está fijada (un candidato a subirla, sin verificar en este repo, es un
+  `timeSetEvent(20, 10, ...)` de `wzAudio.dll`) y se puede medir después.
 - **Las cuentas regresivas** son el freno de los mensajes (`DAT_05767940`, 70 pasos; ningún dibujo
   lo lee) y el de las macros (`DAT_077f3b74`, 100 pasos; el HUD dibuja su barra). El ciclo de 32
   pasos elige una textura animada que lee el dibujo: por paso y sin interpolar.
 - **El teclado** se lee casi todo en el paso, y "se apretó" de dos formas (bit bajo, o el flanco de
-  `0x553520`) que pierden un apretón corto y se lo dan al primer lector (Q-C45). El diseño de la
-  CL3.3 (eventos, un flanco que ve un solo paso) ya cubre las dos cosas; se corrigió su contrato.
+  `0x553520`) que pierden un apretón corto (Q-C45). Enter y Esc de seis ventanas de la UI se leen
+  por frame, por vtable, antes de los pasos; quién ve el apretón depende del orden y de la forma
+  (la regla, en Q-C45). El diseño de la CL3.3 (eventos, un flanco que ve un solo paso) ya cubre
+  las dos cosas; se corrigió su contrato.
 - **El foco**: con foco, `0x4be04a` llama al frame; sin foco, `0x4be057` llama `SetForegroundWindow`
-  y `SetFocus` y no corre nada, ni la espera (Q-C46). De la rama del `WM_CLOSE` se escribió solo el
-  flujo; el contador del hash no se leyó.
+  y `SetFocus` y no corre nada, ni la espera (Q-C46): lo que va por paso queda en pausa y lo que va
+  por reloj no. De las dos ramas (el `WM_CLOSE`, y los dos `ShowWindow`) se escribió solo el
+  flujo; el contador del hash no se leyó, y qué ve el jugador queda para una prueba dinámica.
 - **Lo que queda** está en P-C03 del 08, cada cosa con su ola: el cuerpo de `0x623e70`
-  (`0x623f78`..`0x62dac2`), las 58 funciones que leen el reloj T desde el paso o el dibujo y las 25
-  que llaman directo a `timeGetTime` o `GetTickCount`, los métodos de las ventanas de la UI, y
-  `0x4e1d50` y `0x49e510`. P-C08 queda abierto para la CL8 (IME, texto, las teclas de las ventanas
+  (`0x623f78`..`0x62dac2`), las 71 funciones que leen el reloj T desde el paso o el dibujo
+  (contadas en el desensamblado: el decompilado esconde 16) y las 25 que llaman directo a
+  `timeGetTime` o `GetTickCount`, los métodos de las ventanas de la UI, y `0x4e1d50` y
+  `0x49e510`. P-C08 queda abierto para la CL8 (IME, texto, las teclas de las ventanas
   por vtable).
 
 ## Sub-ola CL3.1: ventana y contexto GL con SDL3
@@ -498,13 +509,13 @@ reloj falso, `SdlClock`); **PR B**, el modo fiel.
 | Qué | Original | MuRet, modo normal (`Decoupled`) | MuRet, modo fiel (`Faithful`) |
 | --- | --- | --- | --- |
 | paso | 40 ms (`0x28`, `0x637791` y `0x638167`) | 40 ms | 40 ms |
-| qué se acumula | `GetTickCount` del dibujo, el swap y la espera (`0x63852b`..`0x638632`) | el frame entero, de un `Now()` al siguiente | lo mismo que el original, con un reloj de 64 ticks por segundo |
+| qué se acumula | `GetTickCount` del dibujo, el swap y la espera (`0x63852b`..`0x638632`); quedan fuera el principio del frame (`0x459b60`, `0x4eb620`, `0x640940`, `0x65fc30`), los pasos y el `glClear` de `0x6384f5`..`0x638516` | el frame entero, de un `Now()` al siguiente | lo mismo que el original, con un reloj de 64 ticks por segundo |
 | espera | activa hasta 40 ms de `GetTickCount` (`0x6385fd`..`0x638624`) | ninguna: VSync o sin tope | duerme hasta el tick en que se cumplen los 40 ms |
 | tope | ninguno | `MaxFrameTime` (pregunta 2); un frame negativo cuenta 0 | ninguno, como el original; las reglas de `FixedStep` no se aplican |
 | dibujo | el estado después de los pasos | interpolado con `alfa = acumulador / paso`, menor que 1 | `alfa = 0`, el estado después de los pasos |
 | valor inicial | 40, en la `.data` (`0x6d5ee4`); nada lo reinicia por su dirección al cambiar de escena | 0, como cualquier `FixedStep`: sus tests cuentan los pasos exactos por segundo simulado | 40, como el original (CL3.R): el primer frame corre 1 paso |
-| minimizado | sin foco no corre el frame: ni pasos, ni dibujo, ni la espera (Q-C46) | pasos sí, dibujo no; duerme hasta el próximo paso | pasos sí, dibujo no, y la espera de `GetTickCount` sigue |
-| lo que avanza por reloj | las demoras de las habilidades, un freno de 300 ms y el delta de la UI leen el reloj desde la lógica o por frame (CL3.R, 02) | la lógica lee el mismo `Clock` que el bucle, que le pasa `Main`; en la CL3 no lo usa nada | lo mismo, sobre la grilla de 15,625 ms |
+| minimizado | sin foco no corre el frame: ni pasos, ni dibujo, ni la espera (Q-C46); lo que va por reloj sigue la hora real | pasos sí, dibujo no; duerme hasta el próximo paso | pasos sí, dibujo no, y la espera de `GetTickCount` sigue |
+| lo que avanza por reloj | las demoras de las habilidades, un freno de 300 ms y el delta de la UI leen el reloj desde la lógica o por frame (CL3.R, 02) | la lógica lee el mismo `IClock` que el bucle, que le pasa `Main`; en la CL3 no lo usa nada | lo mismo; `GetTickCount` va sobre la grilla de 15,625 ms, y `timeGetTime` y QPC son otras entradas, de resolución sin fijar en el original (CL3.R) |
 
 **Archivos:**
 - **PR A:** crear `Client/src/Core/IClock.h` (la interfaz), `Client/src/App/GameLoop.h/.cpp`,
@@ -549,6 +560,8 @@ inline constexpr Core::Duration FaithfulTick = std::chrono::microseconds{15'625}
 // La espera de 0x6385fd..0x638624 (CMP ...,0x28 en 0x63860f + JGE en 0x638616), en ms de
 // GetTickCount.
 inline constexpr std::int32_t FaithfulWaitMs = 40;
+// El valor inicial del acumulador del original: la .data de 0x6d5ee4 vale 0x28 (CL3.R).
+inline constexpr std::int32_t FaithfulInitialAccumulatorMs = 40;
 
 // Lo que el bucle llama: la lógica, un paso por vez, y el dibujo. En la CL3.3, Step recibe el
 // InputState (ver ahí).
@@ -576,7 +589,8 @@ public:
 // Los ms que leería GetTickCount en `now`, de a FaithfulTick: DWORD, como el original.
 std::uint32_t TickCountMs(Core::Duration now);
 
-// El ritmo del original, sin las reglas de FixedStep: sin tope y en ms enteros.
+// El ritmo del original, sin las reglas de FixedStep: sin tope y en ms enteros. El acumulador
+// arranca en FaithfulInitialAccumulatorMs, como el original.
 class FaithfulPacer
 {
 public:
@@ -732,11 +746,11 @@ flanco que se lee por frame tiene que llegar a exactamente un paso de la lógica
 
 | Qué | Original | MuRet |
 | --- | --- | --- |
-| teclado | `GetAsyncKeyState`, no `WM_KEYDOWN`, y casi todo en el paso (la lógica de la escena y `0x623e70`); por frame, solo Shift, Alt en el dibujo y los botones del mouse (CL3.R) | estado por frame armado con `SDL_EVENT_KEY_DOWN`/`_UP` por scancode; el auto-repeat (`event.key.repeat`) no es un apretón |
+| teclado | `GetAsyncKeyState`, no `WM_KEYDOWN`, y casi todo en el paso (la lógica de la escena y `0x623e70`); por frame, Shift, Alt en el dibujo, los botones del mouse y Enter y Esc en seis ventanas de la UI nueva, antes de los pasos (`0x63778c` → `0x65fc30` → `0x669f40` → el método `+0x30` de su vtable) (CL3.R) | estado por frame armado con `SDL_EVENT_KEY_DOWN`/`_UP` por scancode; el auto-repeat (`event.key.repeat`) no es un apretón |
 | apretar y soltar en un frame | se pierde: "se apretó" es `== 0x8001` (el bit bajo con el alto) o el flanco propio de `0x553520`, y los dos lo pierden (Q-C45) | se ve: `WasPressed` y no `IsDown` |
 | un frame con 2 pasos | el segundo paso no lo ve: la primera lectura borra el bit bajo o deja el flanco en 1 (CL3.R) | el apretón lo ve solo el primer paso |
 | un frame con 0 pasos | no pasa: cada frame mide 40 ms o más | el apretón espera al próximo paso |
-| foco perdido | `WM_ACTIVATE`; sin foco no corre el frame (Q-C46) y el mouse va a `DefWindowProcA` | se sueltan todas las teclas y botones |
+| foco perdido | `WM_ACTIVATE`; sin foco no corre el frame (Q-C46), y el mouse, `WM_CHAR` y el IME van a `DefWindowProcA` | se sueltan todas las teclas y botones |
 | mouse | dos sistemas: los globales del WndProc (la posición en 640 × 480, el botón izquierdo y la rueda en muescas) y `0x640940` en cada frame (`GetCursorPos`, los botones con `0x8001` y el doble clic con `GetDoubleClickTime`) (CL3.R) | botones izquierdo, medio y derecho como las teclas; la rueda se suma hasta el paso; la posición en coordenadas de la ventana, que son píxeles mientras la ventana no pida `SDL_WINDOW_HIGH_PIXEL_DENSITY` (la de 640 × 480 es de la CL5, D-C11) |
 
 **Archivos:** crear `Client/src/Input/Key.h` (los scancodes que usa el cliente, con nombre, sin

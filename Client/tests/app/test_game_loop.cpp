@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -39,6 +40,9 @@ class GameLoopTest : public ::testing::TestWithParam<int>
 };
 
 // En 4 s simulados, 100 pasos con cualquier tasa de frames. El primer frame solo fija el inicio.
+// Además, el frame que más pasos corre: 1 con 25 FPS o más, 25 con 1 FPS (como largestStep en
+// test_reference_frame_steps.cpp de MuMain). Sin eso, un bucle que corriera 2 pasos cada dos
+// frames daría el mismo total.
 TEST_P(GameLoopTest, TwentyFiveStepsPerSecondAtAnyFrameRate)
 {
     const std::int64_t framesPerSecond = GetParam();
@@ -48,10 +52,11 @@ TEST_P(GameLoopTest, TwentyFiveStepsPerSecondAtAnyFrameRate)
     ASSERT_EQ(loop.RunFrame(WindowState{}), 0);
 
     const std::int64_t frames = 4 * framesPerSecond;
+    int largestStep = 0;
     for (std::int64_t frame = 0; frame < frames; ++frame)
     {
         clock.Advance(FrameTime(frame, framesPerSecond));
-        loop.RunFrame(WindowState{});
+        largestStep = std::max(largestStep, loop.RunFrame(WindowState{}));
     }
 
     EXPECT_EQ(clock.Now(), 4s);
@@ -59,6 +64,7 @@ TEST_P(GameLoopTest, TwentyFiveStepsPerSecondAtAnyFrameRate)
     EXPECT_EQ(loop.Stats().steps, 100u);
     EXPECT_EQ(loop.Stats().frames, static_cast<std::uint64_t>(frames + 1));
     EXPECT_EQ(loop.Stats().clampedFrames, 0u);
+    EXPECT_EQ(largestStep, framesPerSecond >= 25 ? 1 : 25 / framesPerSecond);
 }
 
 INSTANTIATE_TEST_SUITE_P(FrameRates, GameLoopTest, ::testing::Values(1, 25, 60, 144, 240));

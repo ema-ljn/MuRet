@@ -12,6 +12,7 @@ namespace
 using namespace std::chrono_literals;
 using Client::App::FixedStep;
 
+// La tolerancia de los alfas que fija el plan (1e-6).
 constexpr double AlphaTolerance = 1e-6;
 
 TEST(FixedStepTest, FortyIsOneStep)

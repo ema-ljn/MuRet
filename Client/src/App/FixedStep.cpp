@@ -23,7 +23,7 @@ int FixedStep::Advance(Core::Duration frameTime)
 
 float FixedStep::Alpha() const
 {
-    // El cociente en double es exacto para los nanosegundos de un paso; el float que sale puede
+    // Para los nanosegundos de un paso, en double alcanza la precisión; el float que sale puede
     // redondear a 1, y el recorte lo deja debajo.
     const double fraction = static_cast<double>(m_accumulated.count()) / static_cast<double>(LogicStep.count());
     return std::min(static_cast<float>(fraction), std::nextafter(1.0f, 0.0f));

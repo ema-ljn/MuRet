@@ -14,7 +14,8 @@ class FakeClock final : public Core::IClock
 public:
     // El tiempo actual, sin moverlo.
     Core::Duration Now() override;
-    // Lo mueve `duration` y lo anota.
+    // Lo mueve `duration` y lo anota. Un sueño de 0 o negativo es un error del bucle (el real
+    // dormiría 0): el test falla.
     void SleepFor(Core::Duration duration) override;
     // Lo mueve sin anotarlo; `duration` puede ser negativo.
     void Advance(Core::Duration duration);

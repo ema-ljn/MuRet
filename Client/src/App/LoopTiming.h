@@ -12,7 +12,8 @@ namespace Client::App
 {
 // 02 § El ritmo: CMP [0x6d5ee4],0x28 en 0x637791, SUB EAX,0x28 en 0x638167.
 inline constexpr Core::Duration LogicStep = std::chrono::milliseconds{40};
-// Pregunta 2: un frame más largo cuenta como este; el resto se pierde con un aviso.
+// Pregunta 2: un frame más largo cuenta como este y el resto se pierde. El aviso llega con el Log
+// de la CL3.4; hasta entonces cuenta en FrameStats::clampedFrames.
 inline constexpr Core::Duration MaxFrameTime = std::chrono::seconds{1};
 // El tick de GetTickCount en la VM XP: 15,625 ms, 64 por segundo (02 § El ritmo).
 inline constexpr Core::Duration FaithfulTick = std::chrono::microseconds{15'625};

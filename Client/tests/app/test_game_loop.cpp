@@ -24,6 +24,7 @@ using Client::Core::Duration;
 using Client::Tests::FakeClock;
 using Client::Tests::RecordingClient;
 
+// La tolerancia de los alfas que fija el plan (1e-6).
 constexpr double AlphaTolerance = 1e-6;
 
 // Lo que avanza el frame `frame` para que `framesPerSecond` frames sumen 1 s exacto.
@@ -102,6 +103,8 @@ TEST(GameLoopTest, AClockThatGoesBackRunsNoSteps)
     FakeClock clock;
     RecordingClient client{clock};
     GameLoop loop{clock, client, PacingMode::Decoupled};
+    // Lejos de 0: Now() no baja de 0 (IClock).
+    clock.Advance(100ms);
     ASSERT_EQ(loop.RunFrame(WindowState{}), 0);
 
     clock.Advance(-5ms);
@@ -152,6 +155,39 @@ TEST(GameLoopTest, AMinimizedWindowStepsWithoutDrawing)
     EXPECT_TRUE(client.alphas.empty());
     const auto sleeps = clock.Sleeps();
     EXPECT_EQ(std::accumulate(sleeps.begin(), sleeps.end(), Duration::zero()), 1040ms);
+}
+
+// Minimizada, duerme lo que falta del paso: 10 ms acumulados son 30 ms de sueño, no 40.
+TEST(GameLoopTest, AMinimizedWindowSleepsWhatIsLeftOfTheStep)
+{
+    FakeClock clock;
+    RecordingClient client{clock};
+    GameLoop loop{clock, client, PacingMode::Decoupled};
+    client.renderCost = 10ms;
+    ASSERT_EQ(loop.RunFrame(WindowState{}), 0);
+    WindowState minimized;
+    minimized.minimized = true;
+
+    EXPECT_EQ(loop.RunFrame(minimized), 0);
+    ASSERT_EQ(clock.Sleeps().size(), 1u);
+    EXPECT_EQ(clock.Sleeps()[0], 30ms);
+    EXPECT_EQ(loop.RunFrame(minimized), 1);
+}
+
+// El primer frame solo fija el inicio: con SdlClock, el primer Now() llega después de crear la
+// ventana, y lo que tardó eso no son pasos.
+TEST(GameLoopTest, TheFirstFrameOnlySetsTheStart)
+{
+    FakeClock clock;
+    RecordingClient client{clock};
+    GameLoop loop{clock, client, PacingMode::Decoupled};
+    clock.Advance(5s);
+
+    EXPECT_EQ(loop.RunFrame(WindowState{}), 0);
+    EXPECT_EQ(loop.Stats().clampedFrames, 0u);
+    EXPECT_EQ(client.steps, 0u);
+    clock.Advance(40ms);
+    EXPECT_EQ(loop.RunFrame(WindowState{}), 1);
 }
 
 TEST(GameLoopTest, AlphaGrowsBetweenSteps)

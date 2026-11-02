@@ -1,5 +1,7 @@
 #include "support/FakeClock.h"
 
+#include <gtest/gtest.h>
+
 namespace Client::Tests
 {
 Core::Duration FakeClock::Now()
@@ -9,6 +11,10 @@ Core::Duration FakeClock::Now()
 
 void FakeClock::SleepFor(Core::Duration duration)
 {
+    if (duration <= Core::Duration::zero())
+    {
+        ADD_FAILURE() << "SleepFor con " << duration.count() << " ns: el bucle no duerme 0 ni para atrás";
+    }
     m_now += duration;
     m_sleeps.push_back(duration);
 }

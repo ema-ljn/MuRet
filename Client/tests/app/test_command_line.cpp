@@ -65,6 +65,7 @@ TEST(CommandLineTest, UnknownArgumentsAreAnError)
     EXPECT_FALSE(Parse({"--fullscreen"}, error).has_value());
     EXPECT_NE(error.find("\"--fullscreen\""), std::string::npos) << error;
 }
+
 TEST(CommandLineTest, ParsesPacing)
 {
     std::string error;

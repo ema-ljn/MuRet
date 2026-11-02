@@ -10,7 +10,8 @@ namespace Client::Core
 // La unidad de tiempo del bucle: nanosegundos enteros, sin redondeos de float.
 using Duration = std::chrono::nanoseconds;
 
-// Now() es monótono en el real; el falso puede ir para atrás a propósito.
+// Now() no es negativo, y es monótono en el real; el falso puede ir para atrás a propósito, sin
+// bajar de 0 (la resta de dos Now() no desborda).
 class IClock
 {
 public:

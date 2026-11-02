@@ -6,6 +6,7 @@
 #include "App/PacingMode.h"
 #include "App/WindowState.h"
 #include "Core/IClock.h"
+#include "Input/InputState.h"
 
 #include <cstdint>
 #include <optional>
@@ -37,15 +38,17 @@ public:
     GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode);
     // Un frame: los pasos que tocan y el dibujo si `state.minimized` es falso. Minimizada, en
     // Decoupled duerme hasta el próximo paso en vez de girar; en Faithful, la espera corre siempre.
-    // Devuelve cuántos pasos corrió.
-    int RunFrame(const WindowState& state);
+    // Cada paso recibe `input`, y después del primero GameLoop le llama a ConsumeEdges: un
+    // apretón lo ve un solo paso, y en un frame sin pasos `input` no se toca y el apretón espera
+    // al próximo (CL3.3, Q-C45). Devuelve cuántos pasos corrió.
+    int RunFrame(const WindowState& state, Input::InputState& input);
     [[nodiscard]] const FrameStats& Stats() const;
     [[nodiscard]] float LastAlpha() const;
 
 private:
-    int RunDecoupled(const WindowState& state);
-    int RunFaithful(const WindowState& state);
-    void RunSteps(int steps);
+    int RunDecoupled(const WindowState& state, Input::InputState& input);
+    int RunFaithful(const WindowState& state, Input::InputState& input);
+    void RunSteps(int steps, Input::InputState& input);
 
     Core::IClock& m_clock;
     ILoopClient& m_client;

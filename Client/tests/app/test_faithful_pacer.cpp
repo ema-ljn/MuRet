@@ -4,6 +4,7 @@
 #include "App/LoopTiming.h"
 #include "App/PacingMode.h"
 #include "App/WindowState.h"
+#include "Input/InputState.h"
 #include "support/FakeClock.h"
 #include "support/RecordingClient.h"
 
@@ -41,13 +42,15 @@ struct FaithfulLoop
     FakeClock clock;
     RecordingClient client{clock};
     GameLoop loop{clock, client, PacingMode::Faithful};
+    // Vacío: estos tests no miran el input.
+    Client::Input::InputState input;
 
     std::vector<int> StepsPerFrame(int frames, const WindowState& state = WindowState{})
     {
         std::vector<int> steps;
         for (int frame = 0; frame < frames; ++frame)
         {
-            steps.push_back(loop.RunFrame(state));
+            steps.push_back(loop.RunFrame(state, input));
         }
         return steps;
     }
@@ -85,7 +88,7 @@ TEST(FaithfulPacerTest, SixtyFourFramesEveryThreeSeconds)
     // Los 75 pasos de 3 s a 25 por segundo, más el del valor inicial: 74 corridos y 80 ms.
     EXPECT_EQ(faithful.loop.Stats().steps, 74u);
     EXPECT_EQ(faithful.loop.Stats().accumulated, 80ms);
-    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}), 2);
+    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}, faithful.input), 2);
 }
 
 TEST(FaithfulPacerTest, SeventyFiveStepsEverySixtyFourFrames)
@@ -118,7 +121,7 @@ TEST(FaithfulPacerTest, EachFrameMeasuresThreeTicks)
     FaithfulLoop faithful;
     for (int frame = 0; frame < 300; ++frame)
     {
-        faithful.loop.RunFrame(WindowState{});
+        faithful.loop.RunFrame(WindowState{}, faithful.input);
         const std::int32_t measured = faithful.loop.Stats().lastMeasuredMs;
         EXPECT_TRUE(measured == 46 || measured == 47) << measured << " en el frame " << frame + 1;
     }
@@ -130,12 +133,12 @@ TEST(FaithfulPacerTest, ADrawLongerThanTheWaitAddsItWhole)
     FaithfulLoop faithful;
     faithful.client.renderCost = 130ms;
 
-    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}), 1);
+    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}, faithful.input), 1);
     EXPECT_EQ(faithful.loop.Stats().lastMeasuredMs, 125); // 8 ticks
     EXPECT_TRUE(faithful.clock.Sleeps().empty());
 
     faithful.client.renderCost = 0ms;
-    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}), 3);
+    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}, faithful.input), 3);
 }
 
 // La medición empieza después de los pasos (0x63852b): lo que tardan se pierde. Midiendo desde
@@ -148,7 +151,7 @@ TEST(FaithfulPacerTest, TimeSpentInStepsIsNotAccumulated)
     std::uint64_t frames = 0;
     while (faithful.clock.Now() < 3s)
     {
-        faithful.loop.RunFrame(WindowState{});
+        faithful.loop.RunFrame(WindowState{}, faithful.input);
         ++frames;
     }
 
@@ -163,11 +166,11 @@ TEST(FaithfulPacerTest, HasNoCap)
     FaithfulLoop faithful;
     faithful.client.renderCost = 10s;
 
-    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}), 1);
+    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}, faithful.input), 1);
     EXPECT_EQ(faithful.loop.Stats().lastMeasuredMs, 10'000);
 
     faithful.client.renderCost = 0ms;
-    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}), 250);
+    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}, faithful.input), 250);
 }
 
 // Minimizada, la espera de GetTickCount sigue: sin ella el acumulador no suma.
@@ -180,7 +183,7 @@ TEST(FaithfulPacerTest, MinimizedKeepsTheWait)
 
     EXPECT_EQ(faithful.clock.Now(), 3s);
     EXPECT_EQ(faithful.loop.Stats().steps, 74u);
-    EXPECT_EQ(faithful.loop.RunFrame(minimized), 2);
+    EXPECT_EQ(faithful.loop.RunFrame(minimized, faithful.input), 2);
     EXPECT_TRUE(faithful.client.alphas.empty());
 }
 
@@ -222,7 +225,7 @@ TEST(FaithfulPacerTest, AClockThatGoesBackKeepsWaiting)
     faithful.clock.Advance(10 * FaithfulTick); // el inicio lee 156
     faithful.client.renderCost = -20ms;        // termina en el tick 8, que lee 125
 
-    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}), 1);
+    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}, faithful.input), 1);
     EXPECT_EQ(faithful.loop.Stats().lastMeasuredMs, 47); // el tick 13 lee 203
     EXPECT_EQ(faithful.clock.Now(), 13 * FaithfulTick);
 }
@@ -236,12 +239,12 @@ TEST(FaithfulPacerTest, TheAccumulatorWrapsLikeTheAdd)
     faithful.client.renderCost = std::chrono::milliseconds{std::numeric_limits<std::int32_t>::max()};
 
     // El frame 3 corre su paso y deja 13; el dibujo va del tick 6 (93 ms) a 2.147.483.734 ms.
-    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}), 1);
+    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}, faithful.input), 1);
     EXPECT_EQ(faithful.loop.Stats().lastMeasuredMs, 2'147'483'641);
     // 13 + 2.147.483.641 = 2.147.483.654, que en int32 es 2.147.483.654 - 2^32.
     EXPECT_EQ(faithful.loop.Stats().accumulated, std::chrono::milliseconds{-2'147'483'642});
 
     faithful.client.renderCost = 0ms;
-    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}), 0);
+    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}, faithful.input), 0);
 }
 } // namespace

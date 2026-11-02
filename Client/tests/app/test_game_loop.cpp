@@ -3,6 +3,9 @@
 #include "App/LoopTiming.h"
 #include "App/PacingMode.h"
 #include "App/WindowState.h"
+#include "Input/InputEvent.h"
+#include "Input/InputState.h"
+#include "Input/Key.h"
 #include "support/FakeClock.h"
 #include "support/RecordingClient.h"
 
@@ -13,6 +16,7 @@
 #include <cmath>
 #include <cstdint>
 #include <numeric>
+#include <vector>
 
 // Client::App::GameLoop en el modo normal (Decoupled): el paso fijo con el reloj falso.
 namespace
@@ -22,6 +26,9 @@ using Client::App::GameLoop;
 using Client::App::PacingMode;
 using Client::App::WindowState;
 using Client::Core::Duration;
+using Client::Input::InputEvent;
+using Client::Input::InputState;
+using Client::Input::Key;
 using Client::Tests::FakeClock;
 using Client::Tests::RecordingClient;
 
@@ -49,14 +56,15 @@ TEST_P(GameLoopTest, TwentyFiveStepsPerSecondAtAnyFrameRate)
     FakeClock clock;
     RecordingClient client{clock};
     GameLoop loop{clock, client, PacingMode::Decoupled};
-    ASSERT_EQ(loop.RunFrame(WindowState{}), 0);
+    InputState input;
+    ASSERT_EQ(loop.RunFrame(WindowState{}, input), 0);
 
     const std::int64_t frames = 4 * framesPerSecond;
     int largestStep = 0;
     for (std::int64_t frame = 0; frame < frames; ++frame)
     {
         clock.Advance(FrameTime(frame, framesPerSecond));
-        largestStep = std::max(largestStep, loop.RunFrame(WindowState{}));
+        largestStep = std::max(largestStep, loop.RunFrame(WindowState{}, input));
     }
 
     EXPECT_EQ(clock.Now(), 4s);
@@ -74,11 +82,12 @@ TEST(GameLoopTest, ASlowFrameCatchesUpWithThreeSteps)
     FakeClock clock;
     RecordingClient client{clock};
     GameLoop loop{clock, client, PacingMode::Decoupled};
+    InputState input;
     client.renderCost = 130ms;
-    ASSERT_EQ(loop.RunFrame(WindowState{}), 0);
+    ASSERT_EQ(loop.RunFrame(WindowState{}, input), 0);
     client.renderCost = 0ms;
 
-    EXPECT_EQ(loop.RunFrame(WindowState{}), 3);
+    EXPECT_EQ(loop.RunFrame(WindowState{}, input), 3);
     EXPECT_NEAR(loop.LastAlpha(), 0.25, AlphaTolerance);
     ASSERT_EQ(client.alphas.size(), 2u);
     EXPECT_NEAR(client.alphas.back(), 0.25, AlphaTolerance);
@@ -90,16 +99,17 @@ TEST(GameLoopTest, AFrameLongerThanTheCapRunsOnlyTheCap)
     FakeClock clock;
     RecordingClient client{clock};
     GameLoop loop{clock, client, PacingMode::Decoupled};
+    InputState input;
     client.renderCost = 10s;
-    ASSERT_EQ(loop.RunFrame(WindowState{}), 0);
+    ASSERT_EQ(loop.RunFrame(WindowState{}, input), 0);
     client.renderCost = 0ms;
 
-    EXPECT_EQ(loop.RunFrame(WindowState{}), 25);
+    EXPECT_EQ(loop.RunFrame(WindowState{}, input), 25);
     EXPECT_EQ(loop.Stats().clampedFrames, 1u);
     for (int frame = 0; frame < 5; ++frame)
     {
         clock.Advance(40ms);
-        EXPECT_EQ(loop.RunFrame(WindowState{}), 1) << "frame " << frame;
+        EXPECT_EQ(loop.RunFrame(WindowState{}, input), 1) << "frame " << frame;
     }
     EXPECT_EQ(loop.Stats().clampedFrames, 1u);
 }
@@ -109,18 +119,19 @@ TEST(GameLoopTest, AClockThatGoesBackRunsNoSteps)
     FakeClock clock;
     RecordingClient client{clock};
     GameLoop loop{clock, client, PacingMode::Decoupled};
+    InputState input;
     // Lejos de 0: Now() no baja de 0 (IClock).
     clock.Advance(100ms);
-    ASSERT_EQ(loop.RunFrame(WindowState{}), 0);
+    ASSERT_EQ(loop.RunFrame(WindowState{}, input), 0);
 
     clock.Advance(-5ms);
-    EXPECT_EQ(loop.RunFrame(WindowState{}), 0);
+    EXPECT_EQ(loop.RunFrame(WindowState{}, input), 0);
     EXPECT_EQ(loop.Stats().accumulated, 0ns);
     EXPECT_NEAR(loop.LastAlpha(), 0.0, AlphaTolerance);
 
     // El siguiente se mide desde el valor nuevo.
     clock.Advance(40ms);
-    EXPECT_EQ(loop.RunFrame(WindowState{}), 1);
+    EXPECT_EQ(loop.RunFrame(WindowState{}, input), 1);
 }
 
 // Con VSync apagado, dos frames pueden leer el mismo instante.
@@ -129,12 +140,13 @@ TEST(GameLoopTest, AClockThatDoesNotMoveRunsNoSteps)
     FakeClock clock;
     RecordingClient client{clock};
     GameLoop loop{clock, client, PacingMode::Decoupled};
-    ASSERT_EQ(loop.RunFrame(WindowState{}), 0);
+    InputState input;
+    ASSERT_EQ(loop.RunFrame(WindowState{}, input), 0);
     clock.Advance(10ms);
 
-    EXPECT_EQ(loop.RunFrame(WindowState{}), 0);
+    EXPECT_EQ(loop.RunFrame(WindowState{}, input), 0);
     const float alpha = loop.LastAlpha();
-    EXPECT_EQ(loop.RunFrame(WindowState{}), 0);
+    EXPECT_EQ(loop.RunFrame(WindowState{}, input), 0);
 
     EXPECT_FALSE(std::isnan(loop.LastAlpha()));
     EXPECT_EQ(loop.LastAlpha(), alpha);
@@ -149,12 +161,13 @@ TEST(GameLoopTest, AMinimizedWindowStepsWithoutDrawing)
     FakeClock clock;
     RecordingClient client{clock};
     GameLoop loop{clock, client, PacingMode::Decoupled};
+    InputState input;
     WindowState minimized;
     minimized.minimized = true;
 
     for (int frame = 0; frame < 26; ++frame)
     {
-        loop.RunFrame(minimized);
+        loop.RunFrame(minimized, input);
     }
 
     EXPECT_EQ(client.steps, 25u);
@@ -169,15 +182,16 @@ TEST(GameLoopTest, AMinimizedWindowSleepsWhatIsLeftOfTheStep)
     FakeClock clock;
     RecordingClient client{clock};
     GameLoop loop{clock, client, PacingMode::Decoupled};
+    InputState input;
     client.renderCost = 10ms;
-    ASSERT_EQ(loop.RunFrame(WindowState{}), 0);
+    ASSERT_EQ(loop.RunFrame(WindowState{}, input), 0);
     WindowState minimized;
     minimized.minimized = true;
 
-    EXPECT_EQ(loop.RunFrame(minimized), 0);
+    EXPECT_EQ(loop.RunFrame(minimized, input), 0);
     ASSERT_EQ(clock.Sleeps().size(), 1u);
     EXPECT_EQ(clock.Sleeps()[0], 30ms);
-    EXPECT_EQ(loop.RunFrame(minimized), 1);
+    EXPECT_EQ(loop.RunFrame(minimized, input), 1);
 }
 
 // El primer frame solo fija el inicio: con SdlClock, el primer Now() llega después de crear la
@@ -187,13 +201,14 @@ TEST(GameLoopTest, TheFirstFrameOnlySetsTheStart)
     FakeClock clock;
     RecordingClient client{clock};
     GameLoop loop{clock, client, PacingMode::Decoupled};
+    InputState input;
     clock.Advance(5s);
 
-    EXPECT_EQ(loop.RunFrame(WindowState{}), 0);
+    EXPECT_EQ(loop.RunFrame(WindowState{}, input), 0);
     EXPECT_EQ(loop.Stats().clampedFrames, 0u);
     EXPECT_EQ(client.steps, 0u);
     clock.Advance(40ms);
-    EXPECT_EQ(loop.RunFrame(WindowState{}), 1);
+    EXPECT_EQ(loop.RunFrame(WindowState{}, input), 1);
 }
 
 TEST(GameLoopTest, AlphaGrowsBetweenSteps)
@@ -202,14 +217,15 @@ TEST(GameLoopTest, AlphaGrowsBetweenSteps)
     FakeClock clock;
     RecordingClient client{clock};
     GameLoop loop{clock, client, PacingMode::Decoupled};
-    ASSERT_EQ(loop.RunFrame(WindowState{}), 0);
+    InputState input;
+    ASSERT_EQ(loop.RunFrame(WindowState{}, input), 0);
 
     float previous = loop.LastAlpha();
     int drops = 0;
     for (std::int64_t frame = 0; frame < FramesPerSecond; ++frame)
     {
         clock.Advance(FrameTime(frame, FramesPerSecond));
-        const int steps = loop.RunFrame(WindowState{});
+        const int steps = loop.RunFrame(WindowState{}, input);
         const float alpha = loop.LastAlpha();
         EXPECT_GE(alpha, 0.0f) << "frame " << frame;
         EXPECT_LT(alpha, 1.0f) << "frame " << frame;
@@ -226,5 +242,55 @@ TEST(GameLoopTest, AlphaGrowsBetweenSteps)
     }
     EXPECT_EQ(drops, 25);
     EXPECT_EQ(client.alphas.size(), static_cast<std::size_t>(FramesPerSecond + 1));
+}
+
+// Un frame de 80 ms corre 2 pasos con un apretón: lo ve el primero, y el segundo no (Q-C45). La
+// tecla sigue abajo: ConsumeEdges borra los flancos y no el estado.
+TEST(GameLoopTest, APressIsSeenByExactlyOneStep)
+{
+    FakeClock clock;
+    RecordingClient client{clock};
+    client.watchedKey = Key::A;
+    GameLoop loop{clock, client, PacingMode::Decoupled};
+    InputState input;
+    ASSERT_EQ(loop.RunFrame(WindowState{}, input), 0);
+
+    input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::A});
+    clock.Advance(80ms);
+
+    EXPECT_EQ(loop.RunFrame(WindowState{}, input), 2);
+    EXPECT_EQ(client.sawPress, (std::vector<bool>{true, false}));
+    EXPECT_TRUE(input.IsDown(Key::A));
+    EXPECT_FALSE(input.WasPressed(Key::A));
+}
+
+// A 240 FPS, un apretón y su soltada en un frame sin pasos: el frame no toca el input, y el
+// apretón lo ve el primer paso que venga, aunque la tecla ya esté arriba. El paso siguiente, no.
+TEST(GameLoopTest, APressInAFrameWithoutStepsWaitsForTheNextStep)
+{
+    constexpr std::int64_t FramesPerSecond = 240;
+    FakeClock clock;
+    RecordingClient client{clock};
+    client.watchedKey = Key::Space;
+    GameLoop loop{clock, client, PacingMode::Decoupled};
+    InputState input;
+    ASSERT_EQ(loop.RunFrame(WindowState{}, input), 0);
+
+    input.Apply(InputEvent{.kind = InputEvent::Kind::KeyDown, .key = Key::Space});
+    input.Apply(InputEvent{.kind = InputEvent::Kind::KeyUp, .key = Key::Space});
+    clock.Advance(FrameTime(0, FramesPerSecond));
+    ASSERT_EQ(loop.RunFrame(WindowState{}, input), 0);
+    EXPECT_TRUE(input.WasPressed(Key::Space));
+
+    std::int64_t frame = 1;
+    while (client.steps < 2 && frame < FramesPerSecond)
+    {
+        clock.Advance(FrameTime(frame, FramesPerSecond));
+        loop.RunFrame(WindowState{}, input);
+        ++frame;
+    }
+
+    EXPECT_EQ(client.sawPress, (std::vector<bool>{true, false}));
+    EXPECT_FALSE(input.IsDown(Key::Space));
 }
 } // namespace

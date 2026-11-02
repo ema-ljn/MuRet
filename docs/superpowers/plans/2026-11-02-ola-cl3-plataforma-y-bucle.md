@@ -841,7 +841,7 @@ flanco que se lee por frame tiene que llegar a exactamente un paso de la lógica
 
 | Qué | Original | MuRet |
 | --- | --- | --- |
-| teclado | `GetAsyncKeyState`, no `WM_KEYDOWN`, y casi todo en el paso (la lógica de la escena y `0x623e70`); por frame, Shift, Alt en el dibujo, los botones del mouse y Enter y Esc en seis ventanas de la UI nueva, antes de los pasos (`0x63778c` → `0x65fc30` → `0x669f40` → el método `+0x30` de su vtable) (CL3.R) | estado por frame armado con `SDL_EVENT_KEY_DOWN`/`_UP` por scancode; el auto-repeat (`event.key.repeat`) no es un apretón |
+| teclado | `GetAsyncKeyState`, no `WM_KEYDOWN`, y casi todo en el paso (la lógica de la escena y `0x623e70`); por frame, Shift, Alt en el dibujo, los botones del mouse, y Esc en seis ventanas de la UI nueva y Enter en tres de ellas, antes de los pasos (`0x63778c` → `0x65fc30` → `0x669f40` → el método `+0x30` de su vtable) (CL3.R) | estado por frame armado con `SDL_EVENT_KEY_DOWN`/`_UP` por scancode; el auto-repeat (`event.key.repeat`) no es un apretón |
 | apretar y soltar en un frame | se pierde: "se apretó" es `== 0x8001` (el bit bajo con el alto) o el flanco propio de `0x553520`, y los dos lo pierden (Q-C45) | se ve: `WasPressed` y no `IsDown` |
 | un frame con 2 pasos | el segundo paso no lo ve: la primera lectura borra el bit bajo o deja el flanco en 1 (CL3.R) | el apretón lo ve solo el primer paso |
 | un frame con 0 pasos | no pasa: cada frame mide 40 ms o más | el apretón espera al próximo paso |
@@ -922,11 +922,39 @@ void PumpEvents(App::WindowState& state, Input::InputState& input);
 `RecordingClient` pasa a `Step(const Input::InputState&)` y guarda, por paso, si vio el apretón
 que el test le pregunta (`std::vector<bool> sawPress` y la tecla en `watchedKey`).
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, la tabla de flancos: para cada
-  secuencia (abajo; abajo y arriba; abajo, arriba y abajo; abajo con auto-repeat; foco perdido con
-  una tecla abajo), qué dan `IsDown`, `WasPressed` y `WasReleased` antes y después de
-  `ConsumeEdges`.
-- [ ] **Paso 2:** los tests:
+- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de los tests, la tabla de
+  flancos: para cada secuencia (abajo; abajo y arriba; abajo, arriba y abajo; abajo con
+  auto-repeat; foco perdido con una tecla abajo), qué dan `IsDown`, `WasPressed` y `WasReleased`
+  antes y después de `ConsumeEdges`. Los eventos de cada fila llegan en el mismo frame, sin
+  `ConsumeEdges` en el medio, salvo el foco perdido, con la tecla apretada en un frame anterior:
+
+  | Secuencia | Antes: `IsDown` / `WasPressed` / `WasReleased` | Después |
+  | --- | --- | --- |
+  | abajo | sí / sí / no | sí / no / no |
+  | abajo y arriba | no / sí / sí | no / no / no |
+  | abajo, arriba y abajo | sí / sí / sí | sí / no / no |
+  | abajo con auto-repeat | sí / sí / no | sí / no / no |
+  | foco perdido con la tecla abajo | no / no / sí | no / no / no |
+  | arriba, sin haberla apretado | no / no / no | no / no / no |
+  | `Shift`: el izquierdo abajo de antes, el derecho abajo y el izquierdo arriba | sí / no / no | sí / no / no |
+  | `Shift`: los dos abajo de antes, y los dos arriba | no / no / sí | no / no / no |
+
+  La regla: `IsDown` es lo último que llegó; `WasPressed` es si hubo un abajo desde arriba, y
+  `WasReleased` si hubo un arriba desde abajo, desde el último `ConsumeEdges`, que borra los dos y
+  deja `IsDown`. El auto-repeat no llega a `InputState` (lo descarta `InputEventFor`), y si llegara
+  sería un `KeyDown` con la tecla abajo, que no es flanco: la fila es la misma que "abajo". Un
+  `KeyUp` con la tecla arriba (una tecla apretada antes de tener el foco) tampoco es flanco. El
+  foco perdido suelta como si llegara cada `KeyUp`, y además borra los `WasPressed` y la rueda
+  (como MuMain, `Winmain.cpp`): si la tecla se apretó en el mismo frame, da no / no / sí, y el
+  paso siguiente no ve un clic de antes del alt-tab (`FocusLostClearsTheWheelAndThePresses`).
+  Los botones del mouse siguen la misma tabla. `Shift`, `Ctrl` y `Alt` son lógicas: `IsDown` es el OR de sus dos lados físicos (`ShiftLeft` y
+  `ShiftRight`, ...), como `VK_SHIFT`, y sus flancos son los del OR; un `KeyDown` o `KeyUp` de la
+  tecla lógica se ignora (las filas de `Shift` de arriba).
+- [x] **Paso 2:** los tests (los `InputStateTest`, hechos en la fase 1: los seis de abajo y trece
+  que pidieron las revisiones para matar los mutantes, entre ellos los de las teclas lógicas; los
+  `InputEventsTest`, en la fase 2a, con los dos de abajo y ocho más: cada tecla física sale de un
+  solo scancode, los botones, la rueda y el foco perdido; los dos `GameLoopTest`, en la fase
+  2b; y `InputStateTest.MotionIsNotClamped`, que fija Q-C47, el mouse sin acotar):
   - `InputStateTest.AHeldKeyIsPressedOnce`: abajo en el frame 1, sigue abajo en el 2 y el 3:
     `IsDown` en los tres, `WasPressed` solo antes del primer `ConsumeEdges`;
   - `InputStateTest.APressAndReleaseInOneFrameIsSeen`: abajo y arriba sin `ConsumeEdges` en el
@@ -945,9 +973,40 @@ que el test le pregunta (`std::vector<bool> sawPress` y la tecla en `watchedKey`
     `Key::Enter`, uno sin usar da `std::nullopt`; `InputEventsTest.AutoRepeatIsNotAnEvent`: un
     `SDL_EVENT_KEY_DOWN` con `repeat` da `std::nullopt` (el `SDL_Event` se arma a mano, sin
     ventana).
-- [ ] **Paso 3:** `InputState`, la traducción en `Platform`, y las firmas nuevas de `GameLoop` e
-  `ILoopClient`.
-- [ ] **Paso 4:** verificar:
+- [x] **Paso 3:** `InputState`, la traducción en `Platform`, y las firmas nuevas de `GameLoop` e
+  `ILoopClient`. `InputState` está (fase 1), la traducción, `KeyFor` e `InputEventFor` (fase
+  2a), y las firmas de `GameLoop`, `ILoopClient` y `RecordingClient` (fase 2b, con los tests
+  de GameLoop y de FaithfulPacer pasados a la firma nueva con un `InputState` vacío), y
+  `PumpEvents(state, input)` en `WindowEvents.h`, con `main.cpp` (fase 2b): el foco perdido va
+  a los dos. La escena de prueba de `main.cpp` no lee el input todavía. Lo que se sumó a la
+  interfaz de arriba:
+  - `MouseButton` vive en `Key.h`, con `Key`, y los dos tienen su cuenta como constante
+    (`KeyCount`, `MouseButtonCount`) para el tamaño de los `std::bitset`.
+  - `Key` trae las teclas que nombra el 02 (Esc, Enter, F5, F6, RePág, AvPág, Espacio, las
+    flechas arriba y abajo, Impr Pant, Shift, Ctrl, Alt, los dígitos, Q y S), las que el binario
+    lee y el 02 no nombra (F1 a F4 en `0x5ac8d0`, las flechas de los costados, Tab, y A, B, C, D,
+    E, F, G, I, M, P, R, T, V y W; las direcciones, en `Key.h`, van a P-C08), y las que el
+    original no lee (F7 a F12, y H, J, K, L, N, O, U, X, Y y Z).
+  - El original pasa solo `VK_SHIFT`, `VK_CONTROL` y `VK_MENU`, abajo mientras cualquiera de los
+    dos lados lo esté. `Key` guarda los lados físicos (`ShiftLeft`, `ShiftRight`, `CtrlLeft`,
+    `CtrlRight`, `AltLeft`, `AltRight`), que son los que manda `KeyFor`, y `Shift`, `Ctrl` y `Alt`
+    son lógicas, armadas por `InputState` con el OR (tabla del paso 1).
+  - `InputEvent` sin llenar no hace nada (`kind = KeyDown`, `key = Key::Count`), y la rueda
+    descarta lo que no pasa `std::isfinite`.
+  - La rueda sale de `integer_y`, en muescas enteras, y no de `y`, que es fraccionaria en un
+    touchpad; con `SDL_MOUSEWHEEL_FLIPPED` se le cambia el signo, y un evento sin muesca entera,
+    o con `INT32_MIN`, da `std::nullopt`. Es una diferencia elegida: el original hace
+    `(short)HIWORD(wParam) / 0x78` en cada mensaje y asigna el resultado (`0x4af4e0`), así que un
+    delta menor que 120 no mueve nada y con dos mensajes en un frame gana el último; MuRet guarda
+    el resto (el `residual_scroll_y` de SDL) y suma. La rueda horizontal se descarta. El Enter del teclado numérico no se traduce
+    todavía: con una sola `Key::Enter`, soltar uno con el otro abajo la soltaría (CL8, con su
+    lado, como Shift).
+  - La posición no se acota (Q-C47). El original tiene dos: la de la UI nueva (`0x640940`) la
+    acota al tamaño de la ventana, en píxeles y sin escalar (`+0x28` y `+0x2c`, que `0x4ba84a` le
+    pasa de `[0x6d5d60]` y `[0x6d5d64]`), y la del WndProc la escala a 640 × 480 sin acotar
+    (`0x4b358f`..`0x4b35c8`). Cuál de las dos sigue MuRet se decide en la CL5 (D-C11).
+- [x] **Paso 4:** verificar (con GCC: 58 tests de `InputState`, `InputEvents`, `GameLoop` y
+  `FaithfulPacer`, y `Main --frames 60` en Xvfb, en los dos modos):
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "InputState|InputEvents|GameLoop"
   ```

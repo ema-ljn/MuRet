@@ -102,21 +102,23 @@ TEST(InputStateTest, FocusLostReleasesEverything)
     EXPECT_TRUE(input.WasReleased(MouseButton::Left));
 }
 
-TEST(InputStateTest, FocusLostKeepsAPressFromTheSameFrame)
+TEST(InputStateTest, FocusLostClearsTheWheelAndThePresses)
 {
     InputState input;
     input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::A));
     input.Apply(ButtonEvent(InputEvent::Kind::ButtonDown, MouseButton::Left));
+    input.Apply(WheelEvent(2.0f));
 
     input.Apply(InputEvent{.kind = InputEvent::Kind::FocusLost});
 
-    // Como "abajo y arriba": no / sí / sí.
+    // Apretadas en el mismo frame: no / no / sí. El paso siguiente no ve el clic ni la rueda.
     EXPECT_FALSE(input.IsDown(Key::A));
-    EXPECT_TRUE(input.WasPressed(Key::A));
+    EXPECT_FALSE(input.WasPressed(Key::A));
     EXPECT_TRUE(input.WasReleased(Key::A));
     EXPECT_FALSE(input.IsDown(MouseButton::Left));
-    EXPECT_TRUE(input.WasPressed(MouseButton::Left));
+    EXPECT_FALSE(input.WasPressed(MouseButton::Left));
     EXPECT_TRUE(input.WasReleased(MouseButton::Left));
+    EXPECT_FLOAT_EQ(input.Wheel(), 0.0f);
 }
 
 TEST(InputStateTest, FocusLostDoesNotReleaseWhatWasUp)
@@ -206,8 +208,8 @@ TEST(InputStateTest, MouseButtonsAreEdgesToo)
     EXPECT_FALSE(input.WasReleased(MouseButton::Right));
 }
 
-// Q-C47: el original acota la posición al área (0x640940); acá queda la del evento, también fuera
-// de la ventana (con el mouse capturado), hasta que la CL5 defina el área de 640 x 480.
+// Q-C47: el original acota la posición de la UI nueva al tamaño de la ventana (0x640940); acá
+// queda la del evento, también fuera de la ventana (con el mouse capturado), hasta la CL5.
 TEST(InputStateTest, MotionIsNotClamped)
 {
     InputState input;

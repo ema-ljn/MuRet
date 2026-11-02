@@ -10,6 +10,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <vector>
 
 // Client::Platform::KeyFor e InputEventFor: de SDL a Input, con el SDL_Event armado a mano, sin
@@ -147,6 +148,23 @@ TEST(InputEventsTest, TheWheelIsInWholeNotches)
 
     // Un touchpad que todavía no juntó una muesca entera.
     EXPECT_EQ(InputEventFor(WheelEvent(0.4f, 0, SDL_MOUSEWHEEL_NORMAL)), std::nullopt);
+
+    // Y el que la completa con lo que le sobró del evento anterior: truncar `y` daría 0, y
+    // redondear 0,3 también.
+    for (const float y : {0.6f, 0.3f})
+    {
+        const auto completed = InputEventFor(WheelEvent(y, 1, SDL_MOUSEWHEEL_NORMAL));
+        ASSERT_TRUE(completed.has_value()) << "y " << y;
+        EXPECT_FLOAT_EQ(completed->wheel, 1.0f) << "y " << y;
+    }
+}
+
+TEST(InputEventsTest, TheLowestWheelIsNotAnEvent)
+{
+    // Negarlo sería UB con FLIPPED; no es un giro real.
+    const std::int32_t lowest = std::numeric_limits<std::int32_t>::min();
+    EXPECT_EQ(InputEventFor(WheelEvent(0.0f, lowest, SDL_MOUSEWHEEL_FLIPPED)), std::nullopt);
+    EXPECT_EQ(InputEventFor(WheelEvent(0.0f, lowest, SDL_MOUSEWHEEL_NORMAL)), std::nullopt);
 }
 
 TEST(InputEventsTest, AFlippedWheelIsTurnedBack)
@@ -155,6 +173,14 @@ TEST(InputEventsTest, AFlippedWheelIsTurnedBack)
     const auto forward = InputEventFor(WheelEvent(-1.0f, -1, SDL_MOUSEWHEEL_FLIPPED));
     ASSERT_TRUE(forward.has_value());
     EXPECT_FLOAT_EQ(forward->wheel, 1.0f);
+
+    // Con el resto del evento anterior, también al revés.
+    for (const float y : {-0.6f, -0.3f})
+    {
+        const auto completed = InputEventFor(WheelEvent(y, -1, SDL_MOUSEWHEEL_FLIPPED));
+        ASSERT_TRUE(completed.has_value()) << "y " << y;
+        EXPECT_FLOAT_EQ(completed->wheel, 1.0f) << "y " << y;
+    }
 }
 
 TEST(InputEventsTest, MotionCarriesThePosition)

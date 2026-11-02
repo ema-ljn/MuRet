@@ -218,11 +218,15 @@ void InputState::Release(MouseButton button)
 void InputState::ReleaseEverything()
 {
     // Lo que estaba abajo se suelta con su flanco, como si hubiera llegado cada KeyUp; las teclas
-    // lógicas también, porque están en las mismas tablas.
+    // lógicas también, porque están en las mismas tablas. Los apretones y la rueda de antes se
+    // borran: el paso siguiente no ve un clic de antes del alt-tab (como MuMain, Winmain.cpp).
     m_keysReleased |= m_keysDown;
     m_keysDown.reset();
+    m_keysPressed.reset();
     m_buttonsReleased |= m_buttonsDown;
     m_buttonsDown.reset();
+    m_buttonsPressed.reset();
+    m_wheel = 0.0f;
 }
 
 void InputState::UpdateLogical(Key side)

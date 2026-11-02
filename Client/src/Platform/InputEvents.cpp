@@ -3,6 +3,7 @@
 #include <SDL3/SDL_mouse.h>
 
 #include <cstdint>
+#include <limits>
 
 namespace Client::Platform
 {
@@ -18,6 +19,11 @@ Key KeyAfter(Key first, int offset)
 {
     return static_cast<Key>(static_cast<int>(first) + offset);
 }
+
+// Lo que KeyAfter supone: cada grupo, en Key.h, tiene el largo y el orden de SDL_scancode.h.
+static_assert(static_cast<int>(Key::Z) - static_cast<int>(Key::A) == SDL_SCANCODE_Z - SDL_SCANCODE_A);
+static_assert(static_cast<int>(Key::Digit9) - static_cast<int>(Key::Digit1) == SDL_SCANCODE_9 - SDL_SCANCODE_1);
+static_assert(static_cast<int>(Key::F12) - static_cast<int>(Key::F1) == SDL_SCANCODE_F12 - SDL_SCANCODE_F1);
 
 std::optional<MouseButton> ButtonFor(std::uint8_t button)
 {
@@ -60,6 +66,11 @@ std::optional<InputEvent> ButtonEventFor(const SDL_MouseButtonEvent& button, Inp
 
 std::optional<InputEvent> WheelEventFor(const SDL_MouseWheelEvent& wheel)
 {
+    // Negar el mínimo de un int32 es UB; nadie gira tanto en un evento.
+    if (wheel.integer_y == std::numeric_limits<std::int32_t>::min())
+    {
+        return std::nullopt;
+    }
     const std::int32_t notches = wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -wheel.integer_y : wheel.integer_y;
     if (notches == 0)
     {

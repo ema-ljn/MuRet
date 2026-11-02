@@ -28,8 +28,10 @@ class InputState
 {
 public:
     // Suma un evento. Un KeyDown con la tecla ya abajo no es un flanco, y un KeyUp con la tecla
-    // arriba tampoco (lo mismo con los botones). FocusLost suelta todo lo que está abajo. Una rueda
-    // que no es finita (NaN, infinito) se descarta: envenenaría la suma hasta ConsumeEdges.
+    // arriba tampoco (lo mismo con los botones). FocusLost suelta todo lo que está abajo, con su
+    // WasReleased, y borra los WasPressed y la rueda: el paso siguiente no ve un clic de antes del
+    // alt-tab (como MuMain, Winmain.cpp). Una rueda que no es finita (NaN, infinito) se descarta:
+    // envenenaría la suma hasta ConsumeEdges.
     void Apply(const InputEvent& event);
 
     [[nodiscard]] bool IsDown(Key key) const;

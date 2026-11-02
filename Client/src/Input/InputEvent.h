@@ -28,13 +28,15 @@ struct InputEvent
     // Una tecla física: Platform no manda Shift, Ctrl ni Alt, sino sus lados (Key.h).
     Key key = Key::Count;
     MouseButton button{};
-    // Las muescas de la rueda, positivas hacia adelante. Cómo salen de SDL (`y` con su
-    // `direction`, o `integer_y`) lo elige Platform.
+    // Las muescas de la rueda, positivas hacia adelante. Salen de `integer_y`, con el signo de
+    // `direction` (InputEvents.h).
     float wheel = 0.0f;
     // La posición, en coordenadas de la ventana: píxeles mientras la ventana no pida
-    // SDL_WINDOW_HIGH_PIXEL_DENSITY (la de 640 x 480 es de la CL5, D-C11). Sin acotar: el
-    // original la acota al área (0x640940, +0x28 y +0x2c), y con el mouse capturado SDL puede
-    // dar negativos o más allá del borde. Se acota cuando la CL5 defina el área de 640 x 480.
+    // SDL_WINDOW_HIGH_PIXEL_DENSITY (la de 640 x 480 es de la CL5, D-C11). Sin acotar (Q-C47):
+    // el original tiene dos posiciones. La de la UI nueva (0x640940) la acota al tamaño de la
+    // ventana, en píxeles, sin escalar (+0x28 y +0x2c, que 0x4ba84a le pasa de [0x6d5d60] y
+    // [0x6d5d64]); la del WndProc la escala a 640 x 480 sin acotar (0x4b358f..0x4b35c8). Con el
+    // mouse capturado SDL puede dar negativos o más allá del borde. Se decide en la CL5.
     float x = 0.0f;
     float y = 0.0f;
 };

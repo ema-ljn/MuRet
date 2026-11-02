@@ -101,9 +101,12 @@ La regla guía es la del servidor: el **contrato** (wire + archivos de datos) se
    [07](../../../Client/docs/research/07-quirks-y-bugs.md). Antes había elegido un decodificador
    propio compatible con la 6b: su plan queda en pausa, por si turbo no alcanza
    ([`2026-11-01-cl1.4-decodificador-jpeg.md`](../plans/2026-11-01-cl1.4-decodificador-jpeg.md)).
-2. **Código compartido con los servidores (CL2).** El corte C1/C2/C3/C4 y el cifrado C3/C4 los
-   necesitan el cliente y el GameServer (y el ConnectServer de la ola 10). ¿Nace un `Common/` en
-   la raíz cuando lo usen dos, como dice el roadmap del servidor para `Server/Common/`?
+2. **Código compartido con los servidores (CL2).** El corte C1/C2 lo necesitan el cliente, el
+   DataServer (el `FrameParser` de su ola 1) y el ConnectServer (ola 10); C3/C4, el XOR32 y
+   FoxAnti, solo el cliente, porque el GameServer queda fuera del roadmap del servidor. ¿Nace un
+   `Common/` en la raíz cuando lo usen dos, como dice el roadmap del servidor para
+   `Server/Common/`? El [plan de la CL2](../plans/2026-11-02-ola-cl2-protocolo-sin-red.md)
+   recomienda decidirlo en la 1.2 del servidor.
 3. **Orden entre servidor y cliente.** ~~Recomendación: intercalar, CL1 después de la ola 1 del
    servidor (reusa su 1.0 de bytes) y CL4 después de la ola 2 (reusa sockets).~~ **Decidido por
    Emanuel el 2026-11-01: el cliente va directo**, sin esperar al servidor. La CL0.2 trae ella
@@ -174,10 +177,10 @@ Client/
   src/
     main.cpp               arma las capas y arranca; sin lógica
     App/                   Application, bucle de juego con tick fijo     (CL3)
-    Core/                  Config, Log, Clock                              (CL0+)
+    Core/                  Expected, ByteReader, Xor3, Config, Log, Clock  (CL0+)
     Platform/              ventana, contexto GL, input sobre SDL3          (CL3)
     Data/                  Tables/, Text/, Terrain/, Textures/, Models/   (CL1, CL6)
-    Network/               Socket, PacketReader/Writer, Crypto/, Obfuscation/ (CL2, CL4)
+    Network/               Socket, Packet, PacketReader/Writer, Crypto/, Obfuscation (CL2, CL4)
     Protocol/              opcodes, structs, Dispatcher, handlers por dominio (CL2, CL4, CL9)
     Render/                Renderer, Shader, Texture, SpriteBatch, Text, Terrain, Models (CL5+)
     Scenes/                Login, CharacterSelect, Game                    (CL5, CL6)
@@ -229,7 +232,7 @@ efectos.
 | --- | --- | --- |
 | Tablas `.bmd`, terreno, texturas ([05](../../../Client/docs/research/05-formatos-de-datos.md)) | CL1 | round-trip sintético + byte a byte contra `mu-golden` |
 | Corte y rearmado ([03](../../../Client/docs/research/03-red-y-cifrado.md)) | CL2 | vectores de `red_reference.py --selftest` |
-| XOR32, C3/C4, FoxAnti ([03](../../../Client/docs/research/03-red-y-cifrado.md)) | CL2 | fixtures de `mu-client`; C3 reales del cable con `mu-golden` |
+| XOR32, C3/C4, FoxAnti ([03](../../../Client/docs/research/03-red-y-cifrado.md)) | CL2 | fixtures de `mu-client` (los del C2, armados de nuevo); C3/C4 reales del cable con `MURET_CLIENT_WIRE_DIR` |
 | Login y keepalive ([04](../../../Client/docs/research/04-protocolo.md)) | CL2, CL4 | bytes exactos; integración con CS y GS falsos |
 | Ritmo del frame ([02](../../../Client/docs/research/02-arranque-y-ciclo-de-vida.md)) | CL3 | reloj falso: ticks por segundo fijos a cualquier FPS; en modo fiel, 64 frames cada 3 s y 7 pasos cada 6 frames |
 | Escenas, texto, cámara, terreno ([06](../../../Client/docs/research/06-render-escenas-y-ui.md)) | CL5, CL7 | máquina de escenas, colores `0x02`; matrices de cámara y terreno de Lorencia contra las trazas de GL del original |

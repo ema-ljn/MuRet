@@ -35,7 +35,9 @@ mundo fijo en el código), y la CL7 lo llena con el mismo código que carga cual
   por la tabla de funciones de GL. Pregunta 4.
 - `Client::Scenes` suma el `SceneManager`, la `LoadingScene` y la `LoginScene`, que reemplazan a
   la `TestScene` cuando hay carpeta de datos. Una escena no ve GL: llena un `SpriteBatch` y pide
-  textos, y `main.cpp` lo pasa al renderer.
+  textos en el lienzo que le da un `IFrameTarget` (en `main.cpp`, el de GL, que dibuja y presenta),
+  y sube y suelta sus texturas por un `Render::ITextureStore` (la `TextureTable` de GL). El
+  `SceneManager` es el `ILoopClient` del bucle, con el `Poll` de la red (CL4.1).
 - `Client::UI` (`Client/src/UI/`) nace con lo mínimo para el login: botón, campo de texto, la
   ventana de la lista de servidores, la de la cuenta y el aviso. En `ClientLib`, sin GL ni SDL.
 - `Client::Data` suma `WorldFolder` (de un número de mapa a su carpeta, como `0x61a560`) y los
@@ -74,7 +76,8 @@ la CL5.0 (L-10). De la CL5.1 en adelante, la sección de cada sub-ola de este pl
   Q-C47 (las dos posiciones del mouse), y el keepalive que sale antes del login, que la CL4.R
   pasa a 07 como quirk nuevo.
 - [08](../../../Client/docs/research/08-pendientes.md): P-C04 (la lista de servidores del lado de
-  `main.exe`, que la CL4.R pasó a esta ola) y P-C12 (los mapas: la carpeta de cada uno).
+  `main.exe`, que la CL4.R pasó a esta ola: la CL5.R, paso 6) y P-C12 (los mapas: la carpeta de cada
+  uno).
 - En `client-research/` del repo de research, el decompilado de `mainexe-vmxp-c32bbd5f`:
   `00622e40` (la escena de carga), `0065eeb0` (su UI), `00634c60` (la lógica del login),
   `006349a0` (su preparación), `0061c7c0` (sus texturas), `006350b0` (su dibujo), `0065f300` (las
@@ -94,10 +97,10 @@ research, *estático* es lo leído en el binario; *verificado*, lo que mostraron
 | --- | --- | --- |
 | las escenas | `DAT_006d5dc8`, `0x63945d` | 1 la carga inicial (`0x622e40`), 2 el login, 3 la carga del mundo (`0x6356f0`, los fondos `Interface\LSBg01` a `LSBg04`), 4 la selección, 5 el juego. Pasan 1 → 2 (`0x622e40`), 2 → 4 (`0x634c60`), 4 → 3 (`0x6342c0`), 3 → 5 (`0x6356f0`), y `0x4c2710` pone 4 o 2 (desde dónde, sin leer). *Estático* |
 | la carga | `0x622e40` | sube `Interface\lo_back_01.jpg`, `lo_back_02.jpg`, `lo_mu_logo.tga`, `lo_121518.tga`, `lo_webzen_logo.tga` y `lo_lo.jpg` a los slots `0x71e` a `0x723`, arma su UI (`0x65eeb0`: cinco imágenes y una barra con el `0x723`), carga los datos del juego (`0x61ccb0`), libera los seis slots (`0x63c150`), loguea `> Loading ok.` y pasa a la 2. *Estático* |
-| entrar al login | `0x634c60`, la primera vez (`DAT_07d3a13d`), llama a `0x6349a0` | el mapa pasa a `0x37`, el 55 (`DAT_006c9dd0`), y `0x61a560` carga ese mundo; sube las texturas de la escena (`0x61c7c0`); arma las ventanas de la UI (`0x65f300`); conecta al CS (`0x4c1340`); pone el objeto `0xa2` en una posición fija y arma el personaje de la escena con el cuervo (`0x517270`, el `A9` de la CL4.R); suena `data\music\main_theme.mp3` (`0x4acfd0`) y loguea `> Login Scene init success.` *Estático* |
-| la carpeta del mundo | `0x61a560` | `World%d` con el mapa + 1, salvo del 11 al 17 → `World12`, del 18 al 23 → `World19`, del 24 al 29 y el 36 → `World25`; el mismo número va en `EncTerrain%d`. El 55 da `World56`, que está en el `Data\` del laboratorio con `Object56`, y es el único mundo que multiplica las alturas por 3 (`GoldenTerrainHeights.World56ReachesThreeTimes255`, CL1). *Estático*; las alturas, *verificado* en la CL1 |
+| entrar al login | `0x634c60` llama a `0x6349a0` cada vez que se entra a la escena: la bandera `DAT_07d3a13d` la vuelve a 0 `0x4c2f24`, al pasar a la 2 (`0x4c2f1a`), así que al volver al login carga otra vez el mundo y reconecta al CS | el mapa pasa a `0x37`, el 55 (`DAT_006c9dd0`), y `0x61a560` carga ese mundo; sube las texturas de la escena (`0x61c7c0`); arma las ventanas de la UI (`0x65f300`); conecta al CS (`0x4c1340`); pone el objeto `0xa2` en una posición fija y arma el personaje de la escena con el cuervo (`0x517270`, el `A9` de la CL4.R); suena `data\music\main_theme.mp3` (`0x4acfd0`) y loguea `> Login Scene init success.` *Estático* |
+| la carpeta del mundo | `0x61a560`, con `0x616ec0` | `World%d` con el mapa + 1, salvo del 11 al 17 → `World12`, del 18 al 23 → `World19`, del 24 al 29 y el 36 → `World25`; el mismo número va en `EncTerrain%d`. Dos casos más: con el argumento y `DAT_006c9dd0` en 32, el mapa pasa a 9 (`0x61a56c`..`0x61a57d`) y la carpeta es `World10` (los cinco llamadores pasan los dos iguales), y antes de la carpeta `0x616ec0` fuerza el mapa 7 si `DAT_07d366bc` está prendido (`0x616ee1`; en el binario nadie lo escribe). Los mapas que llegan: los de los tres handlers de `0x4c41c9`, `0x4c4e9d` y `0x4c780c` (un byte del paquete), el 54 de `0x633f20` (desde `0x6342c0`, `0x633f44`: `World55`) y el 55 del login. El 55 da `World56`, que está en el `Data\` del laboratorio con `Object56`, y es el único mundo que multiplica las alturas por 3 (`GoldenTerrainHeights.World56ReachesThreeTimes255`, CL1). *Estático*; las alturas, *verificado* en la CL1 |
 | las texturas del login | `0x61c7c0` | `Logo\Login_Back01.jpg` y `Login_Back02.jpg` (slots `0x15` y `0x16`), `Object9\sand01.jpg` y `sand02.jpg` (`0x5c2` y `0x5c3`), `Effect\FireSnuff.jpg` (`0x635`), el modelo `0xa2` (`0x60da30` con `Data\Logo\`: `Logo03.bmd`, *inferido* por cómo arma los nombres) y 13 de `Interface\` en `0xc` a `0x1a` (sin `0x15` y `0x16`): `cha_bt`, `server_b2_all`, `server_b2_loding`, `server_deco_all`, `server_menu_b_all`, `server_credit_b_all`, `deco`, `login_back`, `login_me`, `server_ex03`, `server_ex01`, `server_ex02` y `cr_mu_lo`. El tercer argumento vale `0x2600` o `0x2601` y el cuarto `0x2900` o `0x2901`: `GL_NEAREST` o `GL_LINEAR`, y `GL_CLAMP` o `GL_REPEAT` (*inferido* por los valores) |
-| el dibujo | `0x6350b0`, en este orden | (1) la cámara (`0x635ae0`) y la mezcla normal (`0x620a00(1)`); (2) 2D (`0x6219b0`) y los dos fondos, `0x621b60(0x15, 0, 25, 320, 320, 0, 0, 1, 1, 1, 1, 0)` y el `0x16` en x = 320, escalados desde 640 × 480; (3) el pase 3D en `0x620db0(0, 25, 640, 430)`: si la ventana de `+0x4584` de la UI no está abierta, el terreno (`0x5fc260`), los personajes (`0x510d00`), los objetos (`0x53c6a0`) y los efectos; (4) 2D otra vez, mezcla aditiva (`0x620a90`), el color (0,25; 0,1; 0,1) y las dos arenas (`0x622000(0x5c2, 0, 25, 640, 430, …)` y el `0x5c3`), corridas por el reloj; (5) tres textos con la fuente `DAT_05763554` y el color (0,8; 0,7; 0,6), apoyados en y = 479: el 454 de `Text.bmd` termina en x = 335, el 455 empieza ahí y el 456, con la versión (`DAT_057630ac`), va en x = 0; (6) un fundido de 16 cuentas (`DAT_07d3a0cc`, `DAT_006d5e30`, de a 1/16); (7) lo común a las escenas (`0x5f7bc0`, `0x554810`, `0x5554e0`, `0x5b0550`, `0x40eca0`, `0x65fe00` la UI nueva, `0x5ac2d0`, `0x633110`). *Estático*. La selección (`0x634680`) tiene la misma forma, y en su traza está: una perspectiva que no dibuja y un ortho con 2 quads antes del mundo (*verificado*, 06) |
+| el dibujo | `0x6350b0`, en este orden | (1) la cámara (`0x635ae0`) y la mezcla normal (`0x620a00(1)`); (2) 2D (`0x6219b0`) y los dos fondos, `0x621b60(0x15, 0, 25, 320, 320, 0, 0, 1, 1, 1, 1, 0)` y el `0x16` en x = 320, escalados desde 640 × 480; (2b) un pase entre los dos: `0x621a90` cierra el 2D, `0x620db0(0, 0, w, 0x30)` con el ancho de `0x5bb8d0`, `0x5fbb00(w · k, …)` (con una tangente: el frustum, *inferido*) y `0x620fc0` (dos llamadas a una importación de GL, con `0x1701` y `0x1700`, las constantes de `GL_PROJECTION` y `GL_MODELVIEW`): qué arman y si dibujan, sin leer (CL5.R, paso 4); (3) el pase 3D en `0x620db0(0, 25, 640, 430)`: si la ventana de `+0x4584` de la UI no está abierta, el terreno (`0x5fc260`), los personajes (`0x510d00`), los objetos (`0x53c6a0`) y los efectos; (4) 2D otra vez, mezcla aditiva (`0x620a90`), el color (0,25; 0,1; 0,1) y las dos arenas (`0x622000(0x5c2, 0, 25, 640, 430, …)` y el `0x5c3`), corridas por el reloj; (5) tres textos con la fuente `DAT_05763554` y el color (0,8; 0,7; 0,6), apoyados en y = 479: el 454 de `Text.bmd` termina en x = 335, el 455 empieza ahí y el 456, con la versión (`DAT_057630ac`), va en x = 0; (6) un fundido de 16 cuentas (`DAT_07d3a0cc`, `DAT_006d5e30`, de a 1/16); (7) lo común a las escenas (`0x5f7bc0`, `0x554810`, `0x5554e0`, `0x5b0550`, `0x40eca0`, `0x65fe00` la UI nueva, `0x5ac2d0`, `0x633110`). *Estático*. La selección (`0x634680`) tiene la misma forma, y en su traza está: una perspectiva que no dibuja y un ortho con 2 quads antes del mundo (*verificado*, 06) |
 | el quad | `0x621b60(slot, x, y, w, h, u, v, du, dv, escalar tamaño, escalar posición, alfa)` | (06, *verificado* en las trazas) `GL_TRIANGLE_FAN` con (x, H − y), (x, H − y − h), (x + w, H − y − h) y (x + w, H − y), y las UV (u, v), (u, v + dv), (u + du, v + dv), (u + du, v). Con el alfa en más de 0 (`DAT_006b86a0`), cada vértice va con (1, 1, 1, alfa) y después vuelve a (1, 1, 1, 1): **el color que había antes se pierde**, y el quad siguiente sin alfa sale blanco. Con alfa 0, usa el color que haya. *Estático* |
 | la arena | `0x622000` | el mismo quad, siempre escalado, con la v corrida 0,25 · dv de un lado: la textura se inclina. Ghidra muestra seis de sus nueve argumentos en `0x6350b0`; los otros (la u que corre con el reloj, por 0,0001 y por 0,0005) los ordena la CL5.R. *Estático* |
 | la mezcla | `0x620a00`, `0x620a90`, `0x620780` | el modo va en `DAT_07d366dc`: el 2, `GL_BLEND` con (`SRC_ALPHA`, `ONE_MINUS_SRC_ALPHA`) y el alpha test prendido; el 3, (`ONE`, `ONE`) y el alpha test apagado. Los dos prenden la textura. La textura atada se recuerda en `DAT_006d5d68` (un slot negativo es un nombre de GL directo). El alpha test es el `GL_GREATER 0,25` que dejó la cámara (06). *Estático*; los estados, *verificado* en las trazas |
@@ -133,8 +136,9 @@ sigue libre, con lo que no cierre):
 - los quads del original salen al vértice en 640 × 480 y en 1024 × 768 (`SpriteBatchTest`), el
   texto se ubica con la fórmula de `0x6350b0`, los colores `0x02` se separan como en `0x4667a0`, y
   la máquina de escenas rechaza una transición que el original no tiene;
-- `WorldFolder` da la carpeta de cada mapa, y los 20 mundos del laboratorio son la carpeta de
-  algún mapa (`GoldenWorldFolder.EveryLabWorldIsTheFolderOfAMap`); la escena de login pide su
+- `WorldFolder` da la carpeta de cada mapa que llega a `0x61a560` (del 0 al 36, el 54 y el 55), y
+  los 20 mundos del laboratorio son la carpeta de alguno
+  (`GoldenWorldFolder.EveryLabWorldIsTheFolderOfAMap`); la escena de login pide su
   mundo por número, y el pase 3D lo recibe como dato;
 - en Linux con Xvfb (CI), los tests de GL leen los píxeles de un framebuffer y dan lo que dice el
   `SpriteBatch`; sin `--data`, `Main --frames 60` sigue con la `TestScene` como en CI;
@@ -158,7 +162,8 @@ sigue libre, con lo que no cierre):
    carpeta por `WorldFolder`; en la CL5 no dibuja nada y el fondo queda negro debajo de la arena.
    La CL7 lo llena con el terreno y los objetos de cualquier `World<N>` (CL7.1, CL7.2 y CL7.5), y
    la CL6 suma el logo y el personaje con el cuervo. Nada en la CL5 supone un mundo: `WorldFolder`
-   se prueba con todos los mapas que da el original y con los 20 mundos del laboratorio. La razón
+   se prueba con todos los mapas que da el original (del 0 al 36, el 54 de la selección y el 55)
+   y con los 20 mundos del laboratorio. La razón
    de no esperar a la CL7 para la UI: el login se usa (la CL4 necesita la cuenta) y lo 2D no
    depende del mundo. Lorencia sigue siendo la evidencia de las trazas (es lo que se capturó), no
    un límite.
@@ -177,7 +182,8 @@ sigue libre, con lo que no cierre):
    (`MURET_GL_FUNCTION(PFNGLGENTEXTURESPROC, genTextures, "glGenTextures")`) en
    `Platform/GlFunctionList.h`, que arma el struct y el lazo de `LoadGlFunctions`; los chequeos de
    `IsValidProcAddress` y el reintento en `opengl32.dll` no cambian. Son pocas líneas y la razón va
-   en el header, como pide §10; D-C2 se corrige en el roadmap en la CL5.1.
+   en el header, como pide §10. D-C2 se corrige en el roadmap: el loader con la X-macro y glm en la
+   lista de dependencias en la CL5.1, y FreeType sin SDL3_ttf en la CL5.3 (preguntas 6 y 7).
 6. **La matemática (§10).** Para el 2D alcanza una matriz de `gluOrtho2D`; la CL6 y la CL7 piden
    perspectiva, rotaciones y cuaterniones para comparar con las trazas. Se miró con Context7
    (`/g-truc/glm`): **glm** 1.0.3 (puerto `glm` de vcpkg, solo headers, MIT) trae `mat4` en
@@ -189,11 +195,12 @@ sigue libre, con lo que no cierre):
    `gluOrtho2D`; la CL6 mira si `glm::slerp` da lo mismo que `0x5fcd20` antes de usarlo.
 7. **El rasterizado del texto (§10, D-C12).** El original usa GDI sin suavizado: glifos de un bit
    con el hinting de TrueType de Windows. Se miraron con Context7:
-   - **FreeType** 2.14.3 (`/freetype/freetype`, puerto `freetype` de vcpkg, licencia FTL o GPL):
-     `FT_Set_Pixel_Sizes`, `FT_LOAD_TARGET_MONO` y `FT_RENDER_MODE_MONO` dan glifos de un bit
-     (`FT_PIXEL_MODE_MONO`, filas con su `pitch`) con el intérprete de TrueType: es lo más cerca
+   - **FreeType** 2.14.3 (`/freetype/freetype`, puerto `freetype` de vcpkg, licencia FTL o
+     GPL-2.0+): `FT_Set_Pixel_Sizes`, `FT_LOAD_TARGET_MONO` y `FT_RENDER_MODE_MONO` dan glifos de un
+     bit (`FT_PIXEL_MODE_MONO`, filas con su `pitch`) con el intérprete de TrueType: es lo más cerca
      de `NONANTIALIASED_QUALITY` que hay fuera de Windows. Sin las features por defecto (`brotli`,
-     `bzip2`, `png`, `zlib`), que son para WOFF2 y fuentes de color.
+     `bzip2`, `png`, `zlib`): `zlib` y `bzip2` son para fuentes comprimidas (`zlib` también para
+     WOFF), `brotli` para WOFF2 y `png` para glifos de color; una TTF del sistema no las usa.
    - **stb_truetype** (puerto `stb`): un header, pero sin hinting; a 11 a 14 píxeles y en un bit
      queda más lejos de GDI.
    - **SDL3_ttf** 3.2.2 (`/libsdl-org/sdl_ttf`): es FreeType por debajo, y `TTF_RenderText_Solid`
@@ -213,8 +220,9 @@ sigue libre, con lo que no cierre):
    texto 0 en la lista de fuentes del sistema (`HKLM\SOFTWARE\Microsoft\Windows
    NT\CurrentVersion\Fonts`, en `Platform`); en Linux, sin la clave, es un error que la nombra. Los
    tests de FreeType leen `MURET_CLIENT_FONT_FILE` (en CI, una fuente del runner: DejaVu en Ubuntu,
-   una de `C:\Windows\Fonts` en Windows) y se saltean sin ella; el nombre de la cara no va a ningún
-   log de test ni doc.
+   una de `C:\Windows\Fonts` en Windows), como D-C9: sin la variable se saltean, y si apunta a un
+   archivo que no existe o que FreeType no abre, fallan. El nombre de la cara no va a ningún log
+   de test ni doc.
 9. **Los tests de GL.** El runner de Linux tiene Xvfb con Mesa (el paso de `Main --frames 60`), y
    el de Windows no tiene OpenGL 3.3. *Recomendación:* los tests de `render_gl/` abren una ventana
    escondida con un contexto 3.3 core, dibujan en un framebuffer de 64 × 64 y leen los píxeles con
@@ -231,7 +239,11 @@ sigue libre, con lo que no cierre):
     debajo (menos de 800, 12; menos de 1024, 13; menos de 1280, 14; si no, 15), que es una
     diferencia con el original (que deja el valor de antes) y va a 07. Con la ventana
     redimensionada, las fuentes y la caché se rehacen. Un modo que mantenga el 4:3 de lo escalado
-    cambia lo que se ve: va detrás de una opción, con un ADR, cuando haga falta.
+    cambia lo que se ve: va detrás de una opción, con un ADR, cuando haga falta. **Esto se aparta
+    de D-C11**, que pide toda la UI en 640 × 480 escalada: las ventanas de la UI nueva del original
+    (`0x65f300`) van en píxeles, y MuRet las sigue, por fidelidad. Si se acepta, la CL5.5 corrige
+    D-C11 en el roadmap (lo escalado en 640 × 480, la UI nueva en píxeles, centrada como el
+    original); si no, las ventanas se escalan y la diferencia con el original va a 07.
 11. **La tabla de texturas.** El original nombra cada textura por un slot fijo de su tabla de 1.845
     (`0x15` es `Login_Back01`), y la CL5.R y la CL7 comparan con trazas que nombran slots
     (09). *Recomendación:* `TextureTable` indexada por `TextureSlot`, el número del original, con
@@ -241,11 +253,11 @@ sigue libre, con lo que no cierre):
     no corre, y la caché de MuRet (CL5.3) es otra; la línea del 06 que pide los casos de
     `test_texture_slots` se corrige en la CL5.3 con esta razón.
 12. **El mouse de la UI y la sesión de la CL4.** La CL3.3 dejó para la CL5 qué posición del mouse
-    usa la UI (Q-C47). *Recomendación:* la UI del login es la nueva: píxeles del framebuffer,
-    acotados a `[0, W − 1] × [0, H − 1]`, como `0x640940`; la de 640 × 480 sin acotar del WndProc
-    queda para la CL8, que la necesita. Y la `ServerSession` deja de elegir sola: espera en
-    `ChoosingServer` y en `WaitingCredentials` (CL5.5; preguntas 7 y 9 de la CL4). Lo que la CL4
-    hacía sin UI (el primero de la lista y las variables `MURET_CLIENT_ACCOUNT` y
+    usa la UI (Q-C47). *Recomendación:* la UI del login es la nueva: píxeles del framebuffer (fuera
+    de D-C11, pregunta 10), acotados a `[0, W − 1] × [0, H − 1]`, como `0x640940`; la de 640 × 480
+    sin acotar del WndProc queda para la CL8, que la necesita. Y la `ServerSession` deja de elegir
+    sola: espera en `ChoosingServer` y en `WaitingCredentials` (CL5.5; preguntas 7 y 9 de la CL4).
+    Lo que la CL4 hacía sin UI (el primero de la lista y las variables `MURET_CLIENT_ACCOUNT` y
     `MURET_CLIENT_PASSWORD`) pasa a un `AutoLogin` de `App` que solo arma `main.cpp` con
     `--auto-login`, para la prueba a mano y para depurar la red sin la UI.
 
@@ -393,15 +405,21 @@ mapa, y P-C13 con la traza), PROGRESS y este plan.
 - [ ] **Paso 3 (el login, al entrar):** `0x6349a0` en orden; el mundo 55 por `0x61a560` (la
   carpeta de cada mapa, del `cmp` del desensamblado, a 05 y a P-C12); `0x61c7c0` con el tercer y
   cuarto argumento leídos en `0x63b870` y `0x63bd00` (el filtro y el wrap); el objeto `0xa2` y el
-  nombre de su modelo (`0x60da30`, `DAT_006d2758`).
-- [ ] **Paso 4 (el login, el dibujo):** `0x6350b0` con sus llamadas en orden, los argumentos de
+  nombre de su modelo (`0x60da30`, `DAT_006d2758`). Lo que queda abierto de la carpeta: quién
+  escribe `DAT_07d366bc`, la bandera con que `0x616ec0` fuerza el mapa 7 (si nadie, es código
+  muerto y `WorldFolder` no la lleva; si alguien, un caso más de `WorldFolderTest`); qué mapas
+  mandan los tres handlers que llaman a `0x61a560` (`0x4c41c9`, `0x4c4e9d`, `0x4c780c`) y si
+  alguno pasa de 36; y si `0x633f20` es la entrada a la selección con el 54 (*inferido* por la
+  forma, igual a la de `0x6349a0`). El 35 da `World36`, que no está en el laboratorio: a P-C12.
+- [ ] **Paso 4 (el login, el dibujo):** `0x6350b0` con sus llamadas en orden (también el pase (2b)
+  de la tabla: `0x621a90`, `0x620db0(0, 0, w, 0x30)`, `0x5fbb00` y `0x620fc0`), los argumentos de
   `0x622000` que Ghidra no muestra (cómo corre la arena con el reloj, y qué reloj: el T de
   `0x4eb620` u otro), qué apagan o prenden `0x6208f0`, `0x620890` y `0x6208b0` (la textura y el
-  depth), el fundido (`DAT_07d3a0cc`, `DAT_006d5e30`: quién cuenta y cada cuánto), qué es la
-  ventana de `+0x4584` que apaga el mundo, y qué dibuja cada una de las ocho llamadas comunes del
-  final (el cursor, el chat, los avisos). El quad del texto: con qué banderas llama `0x554000` a
-  `0x621b60` (la posición escalada y el tamaño en píxeles, *inferido* por el 06) y qué hacen el
-  color, el fondo y el ancho de `DAT_006c8e5c`, `64` y `70`.
+  depth), el fundido (`DAT_07d3a0cc`, `DAT_006d5e30`: quién cuenta y cada cuánto), qué es la ventana
+  de `+0x4584` que apaga el mundo, y qué dibuja cada una de las ocho llamadas comunes del final (el
+  cursor, el chat, los avisos). El quad del texto: con qué banderas llama `0x554000` a `0x621b60`
+  (la posición escalada y el tamaño en píxeles, *inferido* por el 06) y qué hacen el color, el fondo
+  y el ancho de `DAT_006c8e5c`, `64` y `70`.
 - [ ] **Paso 5 (el texto):** las cuatro `CreateFontA` en el desensamblado (los 14 argumentos), el
   valor de `DAT_07758568` para un ancho que no está en la tabla, quién más escribe `0x6c76a0` (el
   charset), y quién llama a `0x466000` (`0x465eb0`): dónde se usan los colores `0x02`, con la
@@ -423,7 +441,8 @@ mapa, y P-C13 con la traza), PROGRESS y este plan.
 - [ ] **Paso 8:** pasar todo al research con *estático* o *inferido* en cada cosa, abrir P-C13 en
   08 con la traza y las capturas de la lista de arriba ("Lo que falta"), y corregir la tabla de
   este plan con lo que haya cambiado. Los quirks nuevos a 07: el color que pierde `0x621b60` y lo
-  que salga de los pasos 4 a 6.
+  que salga de los pasos 4 a 6, y el 32, que deja el mapa del juego en 9 al cargar `World10`
+  (`0x61a57d`; la CL7 lo reproduce o lo anota).
 
 ## Sub-ola CL5.1: `Renderer` y texturas desde OZT/OZJ
 
@@ -442,7 +461,7 @@ y `TextureTable`.
 | el slot | una tabla global de 1.845 slots (`0x7d3a198`, `0x38` bytes, el nombre de GL en `+0x2c`) | `TextureTable`, indexada por `TextureSlot` (el número del original), de la escena (pregunta 11) |
 | liberar | `0x63c150(slot)` | `TextureTable::Release(slot)` y el destructor |
 | una que falta | "File not exist", `MessageBox` y `WM_DESTROY` (Q-C23) | `LoadTextureSet` devuelve `TextureSetError::Missing` con la ruta; quien carga la escena falla |
-| una que no se lee | el OZJ que es TGA (Q-C14), el OZT de 24 bits (Q-C29): no se sube y no avisa | `TextureSetError::Unreadable` con la ruta y el `DataError`: la escena falla (para el login, ninguna de las 20 lo es: lo prueba el golden) |
+| una que no se lee | el OZJ que es TGA (Q-C14), el OZT de 24 bits (Q-C29): no se sube y no avisa | `TextureSetError::Unreadable` con la ruta y el `DataError`: la escena falla (para el login, ninguna de las 18 de `0x61c7c0` lo es: 5 OZJ y 13 de `Interface\`, porque el `0xa2` es un modelo; lo prueba el golden) |
 
 **Archivos:**
 - **PR A:** crear `Client/src/Platform/GlFunctionList.h` (la X-macro),
@@ -454,9 +473,10 @@ y `TextureTable`.
   pregunta 9). Modificar `Client/src/Platform/GlLoader.h/.cpp`, `Client/CMakeLists.txt`
   (`ClientRender`, el filtro de `ClientLib`, `glm`), `vcpkg.json`, `Client/tests/CMakeLists.txt`
   (`add_subdirectory(render_gl)`), el CI (el paso de Xvfb con `ctest -L gl` y
-  `MURET_CLIENT_REQUIRE_GL=1`), el roadmap (D-C2) y este plan.
+  `MURET_CLIENT_REQUIRE_GL=1`), el roadmap (D-C2: el loader y glm) y este plan.
 - **PR B:** crear `Client/src/Data/Textures/Sampling.h`, `TextureSet.h/.cpp` (la entrada, el error y
-  `LoadTextureSet`), `Client/src/Render/TextureSlot.h`, `Client/src/Render/Gl/TextureTable.h/.cpp`,
+  `LoadTextureSet`), `Client/src/Render/TextureSlot.h`, `Client/src/Render/ITextureStore.h` (lo que
+  ve la escena), `Client/src/Render/Gl/TextureTable.h/.cpp`,
   `Client/tests/data/test_texture_set.cpp`, `test_golden_texture_set.cpp` y
   `Client/tests/render_gl/test_texture_table.cpp`. Modificar PROGRESS y este plan.
 
@@ -517,6 +537,17 @@ struct TextureSlot
     friend bool operator==(TextureSlot, TextureSlot) = default;
 };
 inline constexpr std::size_t OriginalTextureSlotCount = 1845; // 0x64e6 dwords en 0x622e40
+
+// Dónde sube y suelta sus texturas una escena (ClientLib), sin ver GL: lo implementa
+// Gl::TextureTable y, en los tests de las escenas (CL5.4), el FakeTextureStore de support/.
+class ITextureStore
+{
+public:
+    virtual ~ITextureStore() = default;
+    virtual Core::Expected<void, std::string> Load(
+        std::span<const Data::Textures::LoadedTexture> textures) = 0;
+    virtual void Release(TextureSlot slot) = 0;
+};
 } // namespace Client::Render
 
 namespace Client::Render::Gl
@@ -532,20 +563,24 @@ public:
     [[nodiscard]] int Height() const;
 };
 
-class TextureTable
+class TextureTable final : public Render::ITextureStore
 {
 public:
     explicit TextureTable(const Platform::GlFunctions& gl);
-    Core::Expected<void, std::string> Load(std::span<const Data::Textures::LoadedTexture> textures);
+    Core::Expected<void, std::string> Load(
+        std::span<const Data::Textures::LoadedTexture> textures) override;
     [[nodiscard]] const GlTexture* Find(TextureSlot slot) const; // nullptr si no está
-    void Release(TextureSlot slot);
+    void Release(TextureSlot slot) override;
 };
 } // namespace Client::Render::Gl
 ```
 
-- [ ] **Paso 1 (PR A):** confirmar con Context7 los puertos `glm` y `freetype` de vcpkg en el
-  baseline del repo (glm 1.0.3; freetype 2.14.3 se suma en la CL5.3) y las funciones de GL 3.3
-  core que se piden. La lista de la X-macro, con el uso de cada una.
+- [ ] **Paso 1 (PR A):** los puertos de vcpkg en el baseline del repo (`builtin-baseline` `9a5dfef5`
+  de `vcpkg.json`), que Context7 no ve: se miran en el registro de vcpkg en ese commit. La revisión
+  del plan ya los miró: `glm` 1.0.3, `freetype` 2.14.3 (features por defecto `brotli`, `bzip2`,
+  `png` y `zlib`; FTL o GPL-2.0+; se suma en la CL5.3) y `sdl3-ttf` 3.2.2#1 (descartado). Con
+  Context7, las funciones de GL 3.3 core que se piden. La lista de la X-macro, con el uso de cada
+  una.
 - [ ] **Paso 2 (PR A):** los tests sin ventana: `GlLoaderTest.EveryFunctionHasItsName` (la lista
   no repite nombres, y cada uno empieza con `gl`); con ventana (`render_gl/`, pregunta 9):
   `GlShaderTest.CompilesTheSpriteShader`, `GlShaderTest.ABadShaderSaysItsLog` (el log de
@@ -720,7 +755,8 @@ PRs: **PR A**, lo que no ve GL (los colores `0x02`, el diseño, el rasterizador 
   `Client/tests/support/FakeGlyphRasterizer.h`. Modificar `Client/CMakeLists.txt` (FreeType en
   `ClientLib`), `vcpkg.json` (`freetype` sin features por defecto), `App/Config.h/.cpp` y su test
   (`[Video] FontFile`, `BoldFontFile`), el CI (`MURET_CLIENT_FONT_FILE`), `Client/README.md`
-  (la config y el crédito de FreeType), PROGRESS y este plan.
+  (la config y el crédito de FreeType), el roadmap (D-C2: FreeType, sin SDL3_ttf), PROGRESS y este
+  plan.
 - **PR B:** crear `Client/src/Render/Text/TextCache.h/.cpp`,
   `Client/src/Render/Gl/GlTextTexture.h/.cpp`, `Client/src/Platform/SystemFonts.h/.cpp` (la búsqueda
   de Windows de la pregunta 8; en Linux da `std::nullopt`),
@@ -752,7 +788,9 @@ struct InlineText
 InlineText ParseInlineColors(std::string_view text, std::uint32_t sceneText,
                              std::uint32_t sceneBackground);
 
-enum class FontKind : std::uint8_t { Normal, Bold, BigBold, Fixed12 }; // las cuatro de WinMain
+// Las cuatro de WinMain: la normal, la negrita, la negrita grande, y una normal de 12 con la otra
+// cara (el texto 18 de Text.bmd).
+enum class FontKind : std::uint8_t { Normal, Bold, BigBold, OtherFace12 };
 // n de WinMain: 12, 13, 14 y 15; otro ancho, el escalón de la pregunta 10.
 int FontStepFor(int screenWidth);
 int FontHeightFor(FontKind kind, int screenWidth); // n − 1, n − 1, 2 (n − 1), 12
@@ -844,28 +882,38 @@ da su carpeta para cualquier mapa.
 | las escenas | `DAT_006d5dc8`: 1, 2, 3, 4, 5 | `SceneId` con esos números (para el log y las trazas) y una clase por escena |
 | las transiciones | 1 → 2, 2 → 4, 4 → 3, 3 → 5, y las de `0x4c2710` (CL5.R) | `SceneManager::Request(SceneId)`: una que no está en la tabla es un error en el log y no cambia nada |
 | la carga | `0x622e40`: sus seis texturas, su UI, los datos, y a la 2 | `LoadingScene`: su juego de texturas (la tabla de `0x622e40`), lo que carga MuRet (`Text.bmd`, el juego del login) con la barra, y a `Login` |
-| entrar al login | `0x6349a0`: mapa 55, texturas, ventanas, CS, objeto, personaje, música | `LoginScene::Enter`: su mundo de la tabla de escenas (`SceneWorld{55}`), su juego de texturas, sus ventanas (CL5.5) y `ServerSession::Start` (CL4); el logo y el personaje, CL6; la música, CL10 |
-| la carpeta del mundo | `0x61a560`: `World` + mapa + 1, con los tres rangos de evento | `Data::WorldFolderNumber(map)` y `WorldFolder(map)`, para cualquier mapa |
+| entrar al login | `0x6349a0`, cada vez que se entra: mapa 55, texturas, ventanas, CS, objeto, personaje, música | `LoginScene::Enter`, también cada vez: su mundo de la tabla de escenas (`SceneWorld{55}`), su juego de texturas en el `ITextureStore`, sus ventanas (CL5.5) y `ServerSession::Start` (CL4); el logo y el personaje, CL6; la música, CL10 |
+| las texturas de la escena | `0x61c7c0` sube las 18 del login; la carga suelta las suyas con `0x63c150` | `Render::ITextureStore` (CL5.1): la escena sube su juego en `Enter` y lo suelta en `Leave`; lo implementa `Gl::TextureTable` |
+| la red por frame | `0x4e1d50` en cada vuelta del bucle (CL4.1) | `SceneManager::Poll`, que corre `pollNetwork` (la `ServerSession` de `main.cpp`) también minimizada |
+| la carpeta del mundo | `0x61a560`: `World` + mapa + 1, con los tres rangos de evento y el 32 que usa la del 9 | `Data::WorldFolderNumber(map)` y `WorldFolder(map)`, para los mapas de `OriginalMaps` (del 0 al 36, el 54 y el 55) |
 | el dibujo | `0x6350b0`, en el orden de la tabla | `LoginScene::Render`: los fondos, el pase 3D (`IWorldView`, vacío hasta la CL7), la arena, los textos, el fundido y la UI, en ese orden |
 | la versión | el texto 456 con la versión del archivo o de `config.ini` (02) | el texto 456 con la versión de MuRet (`MURET_VERSION` del CMake) |
 | a la selección | el login aceptado (`0x14`): escena 4 y el `F3 00` | `SessionState::LoggedIn`: `Request(CharacterSelect)`; la `CharacterSelectScene` de la CL5 no dibuja nada y no manda el `F3 00` (CL6.3, P-C06) |
 
 **Archivos:** crear `Client/src/Data/WorldFolder.h/.cpp`, `Client/src/Scenes/SceneId.h`, `IScene.h`,
-`SceneManager.h/.cpp`, `SceneWorlds.h` (la tabla escena → mapa), `TextureSets.h/.cpp` (los juegos de
-la carga y del login, como datos), `IWorldView.h`, `LoadingScene.h/.cpp`, `LoginScene.h/.cpp`,
-`CharacterSelectScene.h/.cpp` (vacía), `Client/tests/data/test_world_folder.cpp`,
-`test_golden_world_folder.cpp`, `Client/tests/scenes/test_scene_manager.cpp`,
-`test_loading_scene.cpp`, `test_login_scene.cpp`, `test_golden_login_scene.cpp` y
-`Client/tests/support/RecordingTextDrawer.h`. Modificar `Client/src/main.cpp` (con `--data`, el
-`SceneManager` en vez de la `TestScene`), `Client/CMakeLists.txt` (`MURET_VERSION`),
-`Client/README.md`, PROGRESS y este plan.
+`IFrameTarget.h`, `SceneContext.h` (con `GameData`), `SceneManager.h/.cpp`, `SceneWorlds.h` (la
+tabla escena → mapa), `TextureSets.h/.cpp` (los juegos de la carga y del login, como datos),
+`IWorldView.h`, `LoadingScene.h/.cpp`, `LoginScene.h/.cpp`, `CharacterSelectScene.h/.cpp` (vacía),
+`Client/tests/data/test_world_folder.cpp`, `test_golden_world_folder.cpp`,
+`Client/tests/scenes/test_scene_manager.cpp`, `test_loading_scene.cpp`, `test_login_scene.cpp`,
+`test_golden_login_scene.cpp` y `Client/tests/support/RecordingTextDrawer.h`,
+`RecordingFrameTarget.h` y `FakeTextureStore.h`, y `Client/src/Render/Gl/GlFrameTarget.h/.cpp` (el
+`IFrameTarget` de `main.cpp`). Modificar `Client/src/main.cpp` (con `--data`, el `SceneManager` en
+vez de la `TestScene`), `Client/CMakeLists.txt` (`MURET_VERSION`), `Client/README.md`, PROGRESS y
+este plan.
 
 **Interfaces:**
 
 ```cpp
 namespace Client::Data
 {
-// 0x61a560: el número de la carpeta World<N> y de EncTerrain<N> para el mapa `map`.
+// Los mapas que llegan a 0x61a560: del 0 al 36 (los de los handlers del juego, CL5.R paso 3), el
+// 54 de la selección (0x633f20) y el 55 del login (0x6349a0). Los tests de todos los mapas van
+// por esta lista.
+inline constexpr std::array<std::uint8_t, 39> OriginalMaps = {0,  1,  2, /* … */ 35, 36, 54, 55};
+// 0x61a560: el número de la carpeta World<N> y de EncTerrain<N> para el mapa `map`, con los tres
+// rangos de evento y el 32, que usa la carpeta del 9 (World10, 0x61a56c..0x61a57d). La bandera
+// con que 0x616ec0 fuerza el 7 no va mientras la CL5.R no encuentre quién la escribe.
 std::uint8_t WorldFolderNumber(std::uint8_t map);
 std::string WorldFolder(std::uint8_t map); // "World56" para el 55
 } // namespace Client::Data
@@ -919,6 +967,33 @@ struct SceneCanvas
     Core::Duration frameClock;   // el reloj del frame, para la arena
 };
 
+// El frame del lado de GL: main.cpp con el Gl::GlFrameTarget (el GlSpriteRenderer, el TextCache
+// y el swap de la ventana); los tests, el RecordingFrameTarget de support/, que anota.
+class IFrameTarget
+{
+public:
+    virtual ~IFrameTarget() = default;
+    // Limpia y da el lienzo del frame, con el SpriteBatch vacío; vale hasta Present.
+    virtual SceneCanvas& BeginFrame(Core::Duration frameClock) = 0;
+    // Manda lo que juntó el SpriteBatch y presenta: el swap va adentro de Render (ILoopClient.h).
+    virtual void Present() = 0;
+};
+
+// Lo que comparten las escenas: de dónde leen, adónde suben sus texturas (Render::ITextureStore,
+// CL5.1) y el log. Lo arma main.cpp; los tests, con un FakeTextureStore.
+struct SceneContext
+{
+    std::filesystem::path dataRoot;
+    Render::ITextureStore& textures;
+    Core::Log& log;
+};
+
+// Lo que deja la carga para las escenas que siguen; vive en main.cpp, como el SceneManager.
+struct GameData
+{
+    std::optional<Data::Text::TextTable> text; // Text.bmd (CL1)
+};
+
 class IScene
 {
 public:
@@ -931,45 +1006,80 @@ public:
     [[nodiscard]] virtual std::optional<SceneId> Next() const = 0;
 };
 
+class LoadingScene final : public IScene
+{
+public:
+    // Enter sube LoadingTextureSet (TextureSets.h) con context.textures; Step lee Text.bmd a
+    // `data` y pide Login; Leave suelta los seis slots, como 0x63c150.
+    LoadingScene(SceneContext context, GameData& data);
+};
+
+class LoginScene final : public IScene
+{
+public:
+    // `session` es nullptr sin host (Main sin connect): la escena dibuja y no conecta. `version`
+    // es MURET_VERSION. Enter: LoadTextureSet con LoginTextureSet, textures.Load (la primera que
+    // falta corta con su ruta) y ServerSession::Start. Leave: textures.Release de cada slot del
+    // juego. Next: CharacterSelect con la sesión en LoggedIn.
+    LoginScene(SceneContext context, const GameData& data, App::ServerSession* session,
+               std::string_view version);
+};
+
 // Arma la escena de un SceneId: main.cpp con las de verdad, los tests con dobles.
 using SceneFactory = std::function<std::unique_ptr<IScene>(SceneId)>;
 
 class SceneManager final : public App::ILoopClient
 {
 public:
-    SceneManager(SceneFactory factory, Core::Log& log);
+    // `pollNetwork` corre en cada Poll: main.cpp pasa ServerSession::Poll (y, con --auto-login,
+    // AutoLogin::Poll, CL5.5); sin host, nada. La sesión es de main.cpp y no de una escena, porque
+    // sigue viva del login a la selección; la LoginScene la recibe por su constructor.
+    SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClock& clock,
+                 std::function<void()> pollNetwork, Core::Log& log);
     Core::Expected<void, std::string> Start(SceneId first); // Loading
+    void Poll() override;                                  // la red, también minimizada
     void Step(const Input::InputState& input) override;    // y, si la escena pide otra, cambia
-    void Render(float alpha) override;
+    void Render(float alpha) override; // BeginFrame con el reloj, la escena y Present
     [[nodiscard]] SceneId Current() const;
 };
 } // namespace Client::Scenes
 ```
 
 - [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, la tabla de transiciones con lo que
-  dé el paso 1 de la CL5.R, y la de `WorldFolderNumber` para los mapas 0 a 36 y el 55.
+  dé el paso 1 de la CL5.R, y la de `WorldFolderNumber` para los mapas 0 a 36, el 54 y el 55.
 - [ ] **Paso 2:** los tests:
   - `WorldFolderTest.MapsEachMapToItsFolder` (0 → 1, 10 → 11, 11 a 17 → 12, 18 a 23 → 19, 24 a 29
-    y 36 → 25, 30 → 31, 35 → 36, 55 → 56) y `WorldFolderTest.NamesTheFolder` (`"World56"`);
+    y 36 → 25, 30 → 31, 35 → 36, 55 → 56), `WorldFolderTest.TheMapThirtyTwoUsesTheFolderOfNine`
+    (32 → 10, como el 9: `0x61a56c`..`0x61a57d`), `WorldFolderTest.TheSelectionMapIsWorld55`
+    (54 → 55, `0x633f44`) y `WorldFolderTest.NamesTheFolder` (`"World56"`);
   - `GoldenWorldFolder.EveryLabWorldIsTheFolderOfAMap` (para cada uno de los 20 mundos del
-    laboratorio, `LabWorlds` de `TerrainFiles.h`, hay un mapa que da esa carpeta) y
-    `GoldenWorldFolder.EveryMapFindsItsTerrain` (para cada mapa de 0 a 36 y el 55 cuya carpeta
-    está en el laboratorio, `ResolveDataPath` encuentra `EncTerrain<N>.map`), el patrón de los
-    `LoadsEveryWorldOfTheLab` de la CL1;
+    laboratorio, `LabWorlds` de `TerrainFiles.h`, hay un mapa de `OriginalMaps` que da esa
+    carpeta: `World10` por el 9 y el 32, `World55` por el 54) y
+    `GoldenWorldFolder.EveryMapFindsItsTerrain` (para cada mapa de `OriginalMaps`,
+    `ResolveDataPath` encuentra `EncTerrain<N>.map`; el único que el laboratorio no trae, el 35 →
+    `World36`, va en el test como faltante conocido, y el test falla si aparece o si falta otro),
+    el patrón de los `LoadsEveryWorldOfTheLab` de la CL1;
   - `SceneManagerTest.StartsInLoading`, `LoadingGoesToLogin`,
     `LoginGoesToCharacterSelectWhenLoggedIn`, `AnInvalidTransitionIsRejected` (de `Loading` a
     `Game`: aviso y sigue en `Loading`), `AFailedEnterStopsWithItsError`,
-    `LeavingReleasesTheTextures`;
+    `LeavingReleasesTheTextures` (con el `FakeTextureStore`: de `Loading` a `Login`, los seis slots
+    de la carga se sueltan antes de que suban los 18 del login), `PollsTheNetworkOncePerFrame`
+    (`Poll` corre `pollNetwork` una vez, también minimizada y antes de `Start`) y
+    `RendersBetweenBeginAndPresent` (con el `RecordingFrameTarget`: `BeginFrame` con el reloj, el
+    `Render` de la escena y `Present`, una vez por frame);
   - `LoginSceneTest.DrawsInTheOrderOfTheOriginal` (con un `IWorldView` y un `ITextDrawer` que
-    graban: el `0x15`, el `0x16`, el mundo, la arena `0x5c2` y `0x5c3` aditivas, los tres textos y
+    graban: el `0x15`, el `0x16`, el fin del 2D (un `Flush` del `SpriteBatch`, donde el original
+    hace el pase (2b) de la tabla), el mundo, la arena `0x5c2` y `0x5c3` aditivas, los tres textos y
     la UI, en ese orden), `LoginSceneTest.TheWorldIsTheOneOfItsTable` (el pase 3D recibe el mapa 55,
     y `WorldFolder` da `World56`), `LoginSceneTest.TheSandRunsWithTheFrameClock` (dos frames con el
     reloj corrido dan otra u, y el mismo reloj, la misma), `LoginSceneTest.StartsTheSessionOnEnter`,
+    `LoginSceneTest.WithoutASessionItDrawsAndDoesNotConnect`,
     `LoginSceneTest.AMissingTextureFailsWithItsName`, `LoginSceneTest.ShowsTheVersionOfMuRet`;
   - golden: `GoldenLoginScene.EntersWithTheLabData` (con el `Data\` del laboratorio, `Enter` sube
-    las 20 texturas y lee `Text.bmd`; ningún texto va a la salida del test).
-- [ ] **Paso 3:** `WorldFolder`, las escenas, el `SceneManager` y `main.cpp`. La `TestScene` queda
-  para `Main` sin `--data` (CI).
+    las 18 texturas a sus slots en un `FakeTextureStore` y lee `Text.bmd`; ningún texto va a la
+    salida del test).
+- [ ] **Paso 3:** `WorldFolder`, las escenas, el `SceneManager`, el `GlFrameTarget` y `main.cpp`. La
+  `TestScene` queda para `Main` sin `--data` (CI).
 - [ ] **Paso 4:** a mano, en Linux con el `Data\` del laboratorio, `Main --data <Data>`: la carga,
       el login con sus fondos, la arena y los textos (la UI llega en la CL5.5). Una captura, fuera
       de Git.
@@ -1009,7 +1119,8 @@ al jugador. Va en dos PRs: **PR A**, el texto tecleado, los widgets y la lista (
   `Client/src/Input/InputEvent.h`, `InputState.h/.cpp` (el texto tecleado),
   `Client/src/Platform/InputEvents.cpp` (`SDL_EVENT_TEXT_INPUT` y el mouse en píxeles del
   framebuffer), `Platform/Window.h/.cpp` (`StartTextInput`, `StopTextInput`), sus tests,
-  `Client/tests/CMakeLists.txt` (`add_subdirectory(ui)`), PROGRESS y este plan.
+  `Client/tests/CMakeLists.txt` (`add_subdirectory(ui)`), el roadmap (D-C11, con la pregunta 10),
+  PROGRESS y este plan.
 - **PR B:** crear `Client/src/App/AutoLogin.h/.cpp`, `Client/tests/app/test_auto_login.cpp`,
   `Client/tests/scenes/test_login_scene_session.cpp`. Modificar
   `Client/src/App/ServerSession.h/.cpp` y su test, `App/CommandLine.h/.cpp` y su test
@@ -1096,7 +1207,8 @@ public:
 };
 
 // Lo que la CL4 hacía sin UI: con --auto-login, el primero de la lista y las variables de la
-// pregunta 7 de la CL4. Lo llama main.cpp por frame; la LoginScene no lo conoce.
+// pregunta 7 de la CL4. Su Poll va en el pollNetwork del SceneManager, después del de la sesión
+// (CL5.4); la LoginScene no lo conoce.
 class AutoLogin
 {
 public:
@@ -1160,7 +1272,7 @@ public:
 | --- | --- |
 | el `SpriteBatch`, el diseño del texto, los colores, las escenas, la UI y la sesión | los tests de `render/`, `scenes/`, `ui/`, `app/`, `data/` y `support/`, sin GL: corren en los dos sistemas |
 | lo que hace GL con eso (texturas, mezcla, alpha test, orden) | los de `render_gl/`, con Xvfb y Mesa en Linux (`ctest -L gl` con `MURET_CLIENT_REQUIRE_GL=1`); en Windows, a mano |
-| FreeType con una fuente de verdad | con `MURET_CLIENT_FONT_FILE`, la fuente del runner; sin ella se saltean |
+| FreeType con una fuente de verdad | con `MURET_CLIENT_FONT_FILE`, la fuente del runner (CI la pone); sin la variable se saltean, y con una ruta que no existe fallan, como D-C9 |
 | las texturas, `Text.bmd` y los mundos del laboratorio | los golden, con `MURET_CLIENT_GOLDEN_DIR` (CI no tiene la carpeta) |
 | que el login se vea como el del original | a mano, con capturas fuera de Git; con la traza de P-C13, los quads pasan a compararse contra ella |
 | el texto de GDI contra el de FreeType | a ojo, con las capturas: no hay test que los compare (07) |

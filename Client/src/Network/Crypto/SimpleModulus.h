@@ -6,7 +6,8 @@
 // Los 8 bytes son cuatro carriles de 16 bits, little-endian. Cifrar un carril es
 // `((xor ^ w ^ anterior) * clave) % módulo`, con el anterior ya cifrado. Una segunda pasada, del
 // carril 2 al 0, combina cada uno con su XOR y con el que lo sigue, y cada carril se escribe en 18
-// bits, MSB primero. Detrás van 2 bytes: el largo útil y un checksum de los 8 bytes en claro.
+// bits: sus dos bytes de abajo, el menos significativo primero y cada uno MSB primero, y después el
+// bit 17 y el 16. Detrás van 2 bytes: el largo útil y un checksum de los 8 bytes en claro.
 //
 // No protege nada: las claves están en los archivos del cliente y del servidor (la guía de la
 // CL2.0, actividad 5).
@@ -16,7 +17,6 @@
 #include "Core/Expected.h"
 #include "Network/Crypto/CryptoError.h"
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -32,8 +32,12 @@ inline constexpr std::size_t LaneCount = 4;
 inline constexpr std::size_t PlainBlockSize = 8;
 // Los bytes cifrados de un bloque: 4 carriles de 18 bits y 2 bytes de cola.
 inline constexpr std::size_t CipherBlockSize = 11;
-// El módulo más grande con el que un carril cifrado entra en sus 18 bits.
-inline constexpr std::uint32_t MaxModulus = 0x40000;
+// Los bits de un carril cifrado.
+inline constexpr unsigned CipherLaneBits = 18;
+// El módulo más grande con el que un carril cifrado entra en sus 18 bits: 0x40000, 2^18.
+inline constexpr std::uint32_t MaxModulus = std::uint32_t{1} << CipherLaneBits;
+// El valor más grande de un carril en claro, que tiene 16 bits.
+inline constexpr std::uint32_t MaxPlainLane = 0xFFFF;
 
 // Un valor por carril: los módulos, las claves o los XOR de una clave.
 using Lanes = std::array<std::uint32_t, LaneCount>;
@@ -41,7 +45,8 @@ using Lanes = std::array<std::uint32_t, LaneCount>;
 // Para qué sirve la clave de cada carril. Los dos archivos de un par (Enc1.dat del cliente y
 // Dec1.dat del servidor, Enc2.dat del servidor y Dec2.dat del cliente) tienen el mismo módulo y el
 // mismo XOR, y la clave de uno es la inversa de la del otro módulo m. Son dos tipos para que una
-// clave de descifrar no pueda cifrar.
+// clave cargada para descifrar no pueda cifrar. Los archivos de los dos tienen el mismo formato, así
+// que el tipo lo decide el cargador que se usa: LoadEncryptionKey de un Dec2.dat carga.
 enum class KeyRole : std::uint8_t
 {
     Encrypt,
@@ -51,17 +56,21 @@ enum class KeyRole : std::uint8_t
 template <KeyRole Role> class SimpleModulusKey
 {
 public:
-    // InvalidKey si un módulo es 0, porque el `%` dividiría por cero, o si pasa de MaxModulus,
-    // porque el carril cifrado perdería sus bits de arriba (Q-C41). Las claves y los XOR pueden
-    // ser cualquier valor: el original los usa como vienen.
+    // InvalidKey si en un carril el módulo no sirve (Q-C41). Con uno mayor que MaxModulus, el
+    // carril cifrado no entra en sus 18 bits. Y `xor | MaxPlainLane` tiene que ser menor que el
+    // módulo: si no, `xor ^ w ^ anterior` puede llegar al módulo y el `%` pierde el carril (con un
+    // XOR de 16 bits, cualquier módulo de 17 bits o más sirve). Un módulo en 0 tampoco lo cumple, y
+    // el `%` dividiría por cero. Las claves pueden ser cualquier valor, como en el original: que el
+    // producto entre en 32 bits depende del par, y si no entra da la vuelta como el IMUL.
     [[nodiscard]] static Core::Expected<SimpleModulusKey, CryptoError> FromLanes(const Lanes& modulus, const Lanes& key,
                                                                                  const Lanes& xorKey)
     {
-        const bool fits =
-            std::ranges::all_of(modulus, [](std::uint32_t lane) { return lane != 0 && lane <= MaxModulus; });
-        if (!fits)
+        for (std::size_t lane = 0; lane < LaneCount; ++lane)
         {
-            return Core::Unexpected(CryptoError::InvalidKey);
+            if (modulus[lane] > MaxModulus || (xorKey[lane] | MaxPlainLane) >= modulus[lane])
+            {
+                return Core::Unexpected(CryptoError::InvalidKey);
+            }
         }
         return SimpleModulusKey(modulus, key, xorKey);
     }

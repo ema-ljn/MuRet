@@ -5,8 +5,9 @@
 #include "Network/Crypto/SimpleModulus.h"
 #include "Network/Crypto/SimpleModulusKeyFile.h"
 
-#include "support/FileBytes.h"
+#include "support/FixedRandom.h"
 #include "support/GoldenDir.h"
+#include "support/KeyFiles.h"
 #include "support/SameBytes.h"
 
 #include <gtest/gtest.h>
@@ -14,18 +15,14 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <filesystem>
 #include <limits>
 #include <optional>
 #include <random>
-#include <span>
-#include <utility>
 #include <vector>
 
 namespace
 {
 
-using Client::Network::Crypto::CryptoError;
 using Client::Network::Crypto::DecryptBlock;
 using Client::Network::Crypto::DecryptedBlock;
 using Client::Network::Crypto::DecryptionKey;
@@ -34,7 +31,9 @@ using Client::Network::Crypto::EncryptionKey;
 using Client::Network::Crypto::LoadDecryptionKey;
 using Client::Network::Crypto::LoadEncryptionKey;
 using Client::Network::Crypto::PlainBlockSize;
-using Client::Tests::ReadFileBytes;
+using Client::Tests::Below;
+using Client::Tests::FixedSeed;
+using Client::Tests::LoadKeyFile;
 using Client::Tests::SameBytesWithoutValues;
 
 // El valor más grande de un carril en claro, y el de un producto antes de dar la vuelta.
@@ -61,40 +60,15 @@ protected:
         }
         // Lo que manda el cliente: lo cifra con Enc1.dat y el servidor lo descifra con Dec1.dat.
         // Lo que contesta el servidor: lo cifra con Enc2.dat y el cliente lo descifra con Dec2.dat.
-        const std::optional<EncryptionKey> enc1 = Load(DataFile("Enc1.dat"), LoadEncryptionKey);
-        const std::optional<DecryptionKey> dec1 = Load(WireFile("Dec1.dat"), LoadDecryptionKey);
-        const std::optional<EncryptionKey> enc2 = Load(WireFile("Enc2.dat"), LoadEncryptionKey);
-        const std::optional<DecryptionKey> dec2 = Load(DataFile("Dec2.dat"), LoadDecryptionKey);
+        const std::optional<EncryptionKey> enc1 = LoadKeyFile(DataFile("Enc1.dat"), LoadEncryptionKey);
+        const std::optional<DecryptionKey> dec1 = LoadKeyFile(WireFile("Dec1.dat"), LoadDecryptionKey);
+        const std::optional<EncryptionKey> enc2 = LoadKeyFile(WireFile("Enc2.dat"), LoadEncryptionKey);
+        const std::optional<DecryptionKey> dec2 = LoadKeyFile(DataFile("Dec2.dat"), LoadDecryptionKey);
         ASSERT_TRUE(enc1 && dec1 && enc2 && dec2);
         pairs = {{"Enc1.dat y Dec1.dat", *enc1, *dec1}, {"Enc2.dat y Dec2.dat", *enc2, *dec2}};
     }
 
     std::vector<KeyPair> pairs;
-
-private:
-    // La clave de `path`, cargada con `load`. Si no está, no se lee o no carga, el test falla.
-    template <typename Key>
-    static std::optional<Key> Load(const std::optional<std::filesystem::path>& path,
-                                   Client::Core::Expected<Key, CryptoError> (*load)(std::span<const std::byte>))
-    {
-        if (!path)
-        {
-            return std::nullopt;
-        }
-        const std::optional<std::vector<char>> file = ReadFileBytes(*path);
-        if (!file)
-        {
-            ADD_FAILURE() << "no se pudo leer " << *path;
-            return std::nullopt;
-        }
-        auto loaded = load(std::as_bytes(std::span(*file)));
-        if (!loaded.HasValue())
-        {
-            ADD_FAILURE() << "no carga " << path->filename();
-            return std::nullopt;
-        }
-        return std::move(loaded).Value();
-    }
 };
 
 // En cada par, el mismo módulo y el mismo XOR, y en cada carril la clave de descifrar es la
@@ -140,10 +114,9 @@ TEST_F(GoldenSimpleModulusKeyFile, TheRealKeysFitTheLaneArithmetic)
 // Lo que cifra un lado lo descifra el otro: bloques al azar, con todos los largos útiles.
 TEST_F(GoldenSimpleModulusKeyFile, WhatOneSideEncryptsTheOtherDecrypts)
 {
-    constexpr std::mt19937::result_type Seed = 20261102;
-    constexpr std::uint32_t BlocksPerPair = 2000;
-    constexpr std::uint32_t ByteValues = 256;
-    std::mt19937 engine(Seed);
+    constexpr std::uint32_t BlocksPerPair = 2000; // 250 por cada largo útil, de 1 a 8
+    constexpr std::uint32_t ByteValues = 256;     // los valores de un byte
+    std::mt19937 engine(FixedSeed);
 
     for (const KeyPair& pair : pairs)
     {
@@ -152,7 +125,7 @@ TEST_F(GoldenSimpleModulusKeyFile, WhatOneSideEncryptsTheOtherDecrypts)
             std::array<std::byte, PlainBlockSize> plain{};
             for (std::byte& value : plain)
             {
-                value = static_cast<std::byte>(engine() % ByteValues);
+                value = static_cast<std::byte>(Below(engine, ByteValues));
             }
             const auto useful = static_cast<std::uint8_t>(1 + round % PlainBlockSize);
 

@@ -4,8 +4,10 @@
 
 #include "Network/Crypto/SimpleModulus.h"
 
+#include "support/FixedRandom.h"
 #include "support/NetworkPrinters.h"
 #include "support/SameBytes.h"
+#include "support/SimpleModulusKeys.h"
 
 #include <gtest/gtest.h>
 
@@ -33,6 +35,14 @@ using Client::Network::Crypto::EncryptionKey;
 using Client::Network::Crypto::Lanes;
 using Client::Network::Crypto::MaxModulus;
 using Client::Network::Crypto::PlainBlockSize;
+using Client::Tests::Below;
+using Client::Tests::Encryption;
+using Client::Tests::FixedSeed;
+using Client::Tests::IdentityPair;
+using Client::Tests::KeyPair;
+using Client::Tests::Pair17;
+using Client::Tests::Pair18;
+using Client::Tests::PairOf;
 using Client::Tests::SameBytes;
 
 using PlainBlock = std::array<std::byte, PlainBlockSize>;
@@ -42,61 +52,16 @@ using CipherBlock = std::array<std::byte, CipherBlockSize>;
 static_assert(!std::is_convertible_v<DecryptionKey, EncryptionKey>);
 static_assert(!std::is_convertible_v<EncryptionKey, DecryptionKey>);
 
-template <std::size_t N> std::array<std::byte, N> BytesOf(const std::array<int, N>& values)
+// El límite de Q-C41, escrito como número: 2^18.
+static_assert(MaxModulus == 0x40000);
+
+// Bytes escritos como en Bytes(), en un std::array de tantos como se escriben: con uno de menos, el
+// bloque no es un PlainBlock ni un CipherBlock y no compila.
+template <std::size_t N> std::array<std::byte, N> BytesOf(const int (&values)[N])
 {
     std::array<std::byte, N> bytes{};
     std::ranges::transform(values, bytes.begin(), [](int value) { return static_cast<std::byte>(value); });
     return bytes;
-}
-
-EncryptionKey Encryption(const Lanes& modulus, const Lanes& key, const Lanes& xorKey)
-{
-    auto built = EncryptionKey::FromLanes(modulus, key, xorKey);
-    EXPECT_TRUE(built.HasValue());
-    return std::move(built).Value();
-}
-
-DecryptionKey Decryption(const Lanes& modulus, const Lanes& key, const Lanes& xorKey)
-{
-    auto built = DecryptionKey::FromLanes(modulus, key, xorKey);
-    EXPECT_TRUE(built.HasValue());
-    return std::move(built).Value();
-}
-
-// Un par de claves: las dos con el mismo módulo y el mismo XOR, y en cada carril la de descifrar
-// es la inversa de la de cifrar módulo m (`pow(clave, -1, m)` de Python).
-struct KeyPair
-{
-    EncryptionKey encryption;
-    DecryptionKey decryption;
-};
-
-KeyPair PairOf(const Lanes& modulus, const Lanes& encryptionKey, const Lanes& decryptionKey, const Lanes& xorKey)
-{
-    return {Encryption(modulus, encryptionKey, xorKey), Decryption(modulus, decryptionKey, xorKey)};
-}
-
-// La clave identidad de mu-client (identity_key, en tests/net/test_net_send.c): módulo 65537,
-// clave 1 y XOR 0 en los cuatro carriles. Cifrar un carril no lo cambia, pero la segunda pasada y
-// los 18 bits sí.
-KeyPair IdentityPair()
-{
-    return PairOf({65537, 65537, 65537, 65537}, {1, 1, 1, 1}, {1, 1, 1, 1}, {0, 0, 0, 0});
-}
-
-// Dos pares sintéticos, uno con módulos de 17 bits y otro de 18. En los dos, clave de cifrar por
-// 0xFFFF y clave de descifrar por (m - 1) entran en 32 bits, como en las claves reales: así ningún
-// producto da la vuelta con un bloque bien cifrado, y descifrar deshace cifrar.
-KeyPair Pair17()
-{
-    return PairOf({0x1A47D, 0x13273, 0x1CEDF, 0x1E0FF}, {0xE5E9, 0x4BB8, 0x4EC1, 0x8DD9},
-                  {0x4568, 0x7EEF, 0x5E39, 0x50F2}, {0xA5A5, 0x5A5A, 0x0F0F, 0xF0F0});
-}
-
-KeyPair Pair18()
-{
-    return PairOf({0x24063, 0x3EC45, 0x2E467, 0x3AE38}, {0x6AE1, 0xBDB9, 0xE98F, 0xF5E3},
-                  {0x27BB, 0x24B9, 0x1819, 0x235B}, {0x1357, 0x2468, 0x9BDF, 0xACE0});
 }
 
 // Que `cipher` descifre en `plain` con `usefulSize` útiles.
@@ -120,12 +85,12 @@ TEST(SimpleModulusTest, EncryptsTheBlocksOfTheMuClientFixturesWithTheIdentityKey
         PlainBlock plain;
         CipherBlock cipher;
     } cases[] = {
-        {"FIX_C3_SERIAL0", BytesOf<8>({0x00, 0xF1, 0x7B, 0xC1, 0x73, 0x00, 0x00, 0x00}),
-         BytesOf<11>({0x7B, 0xC1, 0x1C, 0xC0, 0x00, 0x00, 0x00, 0x20, 0xC0, 0xF8, 0xC0})},
-        {"FIX_C3_RANDA5", BytesOf<8>({0x00, 0xF1, 0x7B, 0xC1, 0x73, 0xA5, 0x00, 0x00}),
-         BytesOf<11>({0x7B, 0xC1, 0x1C, 0xE9, 0x40, 0x00, 0x00, 0x22, 0x54, 0x5D, 0x65})},
-        {"FIX_C3_SERIALFF", BytesOf<8>({0xFF, 0xF1, 0x7B, 0xC1, 0x73, 0x00, 0x00, 0x00}),
-         BytesOf<11>({0x7B, 0xC1, 0x1C, 0xC0, 0x00, 0x00, 0x03, 0xDC, 0xC0, 0x07, 0x3F})},
+        {"FIX_C3_SERIAL0", BytesOf({0x00, 0xF1, 0x7B, 0xC1, 0x73, 0x00, 0x00, 0x00}),
+         BytesOf({0x7B, 0xC1, 0x1C, 0xC0, 0x00, 0x00, 0x00, 0x20, 0xC0, 0xF8, 0xC0})},
+        {"FIX_C3_RANDA5", BytesOf({0x00, 0xF1, 0x7B, 0xC1, 0x73, 0xA5, 0x00, 0x00}),
+         BytesOf({0x7B, 0xC1, 0x1C, 0xE9, 0x40, 0x00, 0x00, 0x22, 0x54, 0x5D, 0x65})},
+        {"FIX_C3_SERIALFF", BytesOf({0xFF, 0xF1, 0x7B, 0xC1, 0x73, 0x00, 0x00, 0x00}),
+         BytesOf({0x7B, 0xC1, 0x1C, 0xC0, 0x00, 0x00, 0x03, 0xDC, 0xC0, 0x07, 0x3F})},
     };
     const KeyPair identity = IdentityPair();
     constexpr std::uint8_t UsefulSize = 5;
@@ -145,8 +110,8 @@ TEST(SimpleModulusTest, EncryptsTheBlocksOfTheMuClientFixturesWithTheIdentityKey
 // La cola: el checksum es 0xF8 ^ 0x01 = 0xF9, y el largo, 8 ^ 0x3D ^ 0xF9 = 0xCC.
 TEST(SimpleModulusTest, EncryptsASingleBitLikeTheReference)
 {
-    const PlainBlock plain = BytesOf<8>({0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
-    const CipherBlock expected = BytesOf<11>({0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0xCC, 0xF9});
+    const PlainBlock plain = BytesOf({0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
+    const CipherBlock expected = BytesOf({0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0xCC, 0xF9});
     const KeyPair identity = IdentityPair();
 
     EXPECT_TRUE(SameBytes(EncryptBlock(identity.encryption, plain, 8), expected));
@@ -161,8 +126,8 @@ TEST(SimpleModulusTest, WritesBit17BeforeBit16)
 {
     const KeyPair pair = PairOf({0x3FFFB, 0x3FFFB, 0x3FFFB, 0x3FFFB}, {0x6666, 0x5555, 0x4444, 0x3C3C},
                                 {10, 12, 15, 17}, {0x1234, 0x5678, 0x9ABC, 0xDEF0});
-    const PlainBlock plain = BytesOf<8>({0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
-    const CipherBlock expected = BytesOf<11>({0xE2, 0x32, 0x50, 0x6E, 0xA6, 0x98, 0x95, 0x49, 0x10, 0xDD, 0xE8});
+    const PlainBlock plain = BytesOf({0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
+    const CipherBlock expected = BytesOf({0xE2, 0x32, 0x50, 0x6E, 0xA6, 0x98, 0x95, 0x49, 0x10, 0xDD, 0xE8});
 
     EXPECT_TRUE(SameBytes(EncryptBlock(pair.encryption, plain, 8), expected));
     ExpectDecryptsTo(pair.decryption, expected, plain, 8);
@@ -171,8 +136,8 @@ TEST(SimpleModulusTest, WritesBit17BeforeBit16)
 // Los dos pares sintéticos, con un bloque lleno y uno con 4 útiles y el relleno en 0.
 TEST(SimpleModulusTest, EncryptsLikeTheReferenceWithBothSyntheticPairs)
 {
-    const PlainBlock full = BytesOf<8>({0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF});
-    const PlainBlock half = BytesOf<8>({0xFE, 0xDC, 0xBA, 0x98, 0x00, 0x00, 0x00, 0x00});
+    const PlainBlock full = BytesOf({0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF});
+    const PlainBlock half = BytesOf({0xFE, 0xDC, 0xBA, 0x98, 0x00, 0x00, 0x00, 0x00});
     const struct
     {
         const char* name;
@@ -180,10 +145,10 @@ TEST(SimpleModulusTest, EncryptsLikeTheReferenceWithBothSyntheticPairs)
         CipherBlock full;
         CipherBlock half;
     } cases[] = {
-        {"17 bits", Pair17(), BytesOf<11>({0x89, 0xC7, 0x0C, 0x48, 0x42, 0xDB, 0x11, 0xEE, 0xC9, 0xCD, 0xF8}),
-         BytesOf<11>({0x6D, 0x9D, 0x2C, 0xA5, 0x85, 0xC3, 0x72, 0x48, 0x01, 0xC1, 0xF8})},
-        {"18 bits", Pair18(), BytesOf<11>({0x5E, 0xF2, 0x5D, 0x6D, 0xE2, 0x0C, 0x86, 0x7C, 0x07, 0xCD, 0xF8}),
-         BytesOf<11>({0xED, 0xEC, 0x41, 0x06, 0xB0, 0x70, 0xA6, 0xA0, 0x26, 0xC1, 0xF8})},
+        {"17 bits", Pair17(), BytesOf({0x89, 0xC7, 0x0C, 0x48, 0x42, 0xDB, 0x11, 0xEE, 0xC9, 0xCD, 0xF8}),
+         BytesOf({0x6D, 0x9D, 0x2C, 0xA5, 0x85, 0xC3, 0x72, 0x48, 0x01, 0xC1, 0xF8})},
+        {"18 bits", Pair18(), BytesOf({0x5E, 0xF2, 0x5D, 0x6D, 0xE2, 0x0C, 0x86, 0x7C, 0x07, 0xCD, 0xF8}),
+         BytesOf({0xED, 0xEC, 0x41, 0x06, 0xB0, 0x70, 0xA6, 0xA0, 0x26, 0xC1, 0xF8})},
     };
 
     for (const auto& expected : cases)
@@ -195,22 +160,14 @@ TEST(SimpleModulusTest, EncryptsLikeTheReferenceWithBothSyntheticPairs)
     }
 }
 
-// La salida directa de std::mt19937 es la misma en todas las bibliotecas; la de
-// std::uniform_int_distribution, no.
-std::uint32_t Below(std::mt19937& engine, std::uint32_t n)
-{
-    return static_cast<std::uint32_t>(engine() % n);
-}
-
 // De 1 a 64 bytes al azar, partidos en bloques de 8 con el último completado con ceros, como
 // encrypt de c3c4_reference.py: cifrar y descifrar los devuelve, con el largo útil de cada bloque.
 TEST(SimpleModulusTest, DecryptUndoesEncryptFrom1To64Bytes)
 {
-    constexpr std::mt19937::result_type Seed = 20261102;
-    constexpr std::uint32_t Rounds = 500;
-    constexpr std::uint32_t MaxBytes = 64;
-    constexpr std::uint32_t ByteValues = 256;
-    std::mt19937 engine(Seed);
+    constexpr std::uint32_t Rounds = 500;     // vueltas por par
+    constexpr std::uint32_t MaxBytes = 64;    // ocho bloques
+    constexpr std::uint32_t ByteValues = 256; // los valores de un byte
+    std::mt19937 engine(FixedSeed);
 
     for (const KeyPair& pair : {Pair17(), Pair18()})
     {
@@ -239,15 +196,36 @@ TEST(SimpleModulusTest, DecryptUndoesEncryptFrom1To64Bytes)
     }
 }
 
-// Un bit cambiado en un carril o en el checksum hace fallar el checksum.
-TEST(SimpleModulusTest, AChangedByteFailsTheChecksum)
+// El checksum es un byte: 0xF8 con XOR de los 8 bytes en claro. Un cambio en el byte 10, el del
+// checksum, siempre se ve, porque el claro no cambia y el byte sí.
+TEST(SimpleModulusTest, AChangedChecksumByteAlwaysFails)
 {
     const KeyPair pair = Pair17();
-    const PlainBlock plain = BytesOf<8>({0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF});
+    const PlainBlock plain = BytesOf({0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF});
     const CipherBlock cipher = EncryptBlock(pair.encryption, plain, 8);
     ASSERT_TRUE(DecryptBlock(pair.decryption, cipher).has_value());
+    constexpr std::size_t ChecksumByte = CipherBlockSize - 1; // el último del bloque
+    constexpr unsigned BitsPerByte = 8;                       // se cambia cada uno, de a uno
 
-    for (const std::size_t index : {std::size_t{0}, std::size_t{4}, std::size_t{10}})
+    for (unsigned bit = 0; bit < BitsPerByte; ++bit)
+    {
+        CipherBlock changed = cipher;
+        changed[ChecksumByte] ^= std::byte{0x01} << bit;
+
+        EXPECT_FALSE(DecryptBlock(pair.decryption, changed).has_value()) << "bit " << bit;
+    }
+}
+
+// Un cambio en los bytes de los carriles da otro claro, y su XOR casi siempre es otro: con este
+// bloque, los bytes 0 y 4 cambiados fallan. En general pasa uno de cada 256, más o menos (el
+// siguiente test).
+TEST(SimpleModulusTest, AChangedLaneByteFailsTheChecksumWithThisBlock)
+{
+    const KeyPair pair = Pair17();
+    const PlainBlock plain = BytesOf({0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF});
+    const CipherBlock cipher = EncryptBlock(pair.encryption, plain, 8);
+
+    for (const std::size_t index : {std::size_t{0}, std::size_t{4}})
     {
         CipherBlock changed = cipher;
         changed[index] ^= std::byte{0x01};
@@ -256,16 +234,43 @@ TEST(SimpleModulusTest, AChangedByteFailsTheChecksum)
     }
 }
 
+// Uno que pasa: el bloque 08 00 00 00 00 00 00 00 con Pair17, y el bit 4 del byte 3 cambiado. Se
+// descifra en otro claro con el mismo XOR, y el checksum no lo ve. El original tampoco.
+TEST(SimpleModulusTest, SomeChangedLaneBytesPassTheChecksum)
+{
+    const KeyPair pair = Pair17();
+    const PlainBlock plain = BytesOf({0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
+    const CipherBlock cipher = BytesOf({0x67, 0x73, 0x20, 0xF9, 0x0C, 0xF1, 0xA7, 0xB1, 0x14, 0xC5, 0xF0});
+    ASSERT_TRUE(SameBytes(EncryptBlock(pair.encryption, plain, 8), cipher));
+    CipherBlock changed = cipher;
+    changed[3] ^= std::byte{0x10};
+
+    ExpectDecryptsTo(pair.decryption, changed, BytesOf({0xF8, 0x98, 0x2B, 0x03, 0x00, 0x40, 0x00, 0x00}), 8);
+}
+
 // El checksum es de los 8 bytes en claro: un cambio en el byte 9, el del largo útil, descifra igual
 // y da otro largo. Que no pase de 8 lo mira el paquete.
 TEST(SimpleModulusTest, TheChecksumDoesNotCoverTheUsefulSize)
 {
     const KeyPair pair = Pair17();
-    const PlainBlock plain = BytesOf<8>({0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF});
+    const PlainBlock plain = BytesOf({0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF});
     CipherBlock cipher = EncryptBlock(pair.encryption, plain, 8);
     cipher[9] ^= std::byte{0x01};
 
     ExpectDecryptsTo(pair.decryption, cipher, plain, 9);
+}
+
+// El largo útil se escribe y se lee entero, también uno que un paquete no usa: 0, 9, 0x18 (que con
+// 4 bits sería 8) y 0xFF. Que esté entre 1 y 8 lo mira el paquete (CL2.3, PR B).
+TEST(SimpleModulusTest, KeepsAnyUsefulSize)
+{
+    const KeyPair pair = Pair17();
+    const PlainBlock plain = BytesOf({0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF});
+
+    for (const std::uint8_t useful : {std::uint8_t{0}, std::uint8_t{9}, std::uint8_t{0x18}, std::uint8_t{0xFF}})
+    {
+        ExpectDecryptsTo(pair.decryption, EncryptBlock(pair.encryption, plain, useful), plain, useful);
+    }
 }
 
 // Un carril cifrado con sus 18 bits en 1, 0x3FFFF, más grande que su módulo: un servidor bueno no lo
@@ -275,8 +280,8 @@ TEST(SimpleModulusTest, TheChecksumDoesNotCoverTheUsefulSize)
 // los bytes 6 y 7 darían otra cosa y el checksum fallaría.
 TEST(SimpleModulusTest, DecryptWrapsTheProductLikeTheImul)
 {
-    const CipherBlock cipher = BytesOf<11>({0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xFF, 0xFF, 0x52, 0x67});
-    const PlainBlock expected = BytesOf<8>({0x29, 0x27, 0xF3, 0x8A, 0x7E, 0x97, 0x21, 0x20});
+    const CipherBlock cipher = BytesOf({0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xFF, 0xFF, 0x52, 0x67});
+    const PlainBlock expected = BytesOf({0x29, 0x27, 0xF3, 0x8A, 0x7E, 0x97, 0x21, 0x20});
 
     ExpectDecryptsTo(Pair17().decryption, cipher, expected, 8);
 }
@@ -286,14 +291,15 @@ TEST(SimpleModulusTest, DecryptWrapsTheProductLikeTheImul)
 TEST(SimpleModulusTest, EncryptWrapsTheProductLikeTheImul)
 {
     const EncryptionKey key = Encryption({0x3FFFB, 0x3FFFB, 0x3FFFB, 0x3FFFB}, {0x3FFF0, 1, 1, 1}, {0, 0, 0, 0});
-    const PlainBlock plain = BytesOf<8>({0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
-    const CipherBlock expected = BytesOf<11>({0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x03, 0xDC, 0xFC, 0xCD, 0xF8});
+    const PlainBlock plain = BytesOf({0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
+    const CipherBlock expected = BytesOf({0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x03, 0xDC, 0xFC, 0xCD, 0xF8});
 
     EXPECT_TRUE(SameBytes(EncryptBlock(key, plain, 8), expected));
 }
 
-// Q-C41: un módulo en 0 haría dividir por cero, y uno de más de 18 bits perdería los bits de arriba
-// del carril cifrado. En cualquier carril, y en las dos clases de clave.
+// Q-C41: un módulo en 0 haría dividir por cero; uno de 16 bits, como 0xFFFF, no alcanza para un
+// carril en claro, que llega a 0xFFFF; y uno mayor que 0x40000 no entra en los 18 bits del carril
+// cifrado. En cualquier carril, y en las dos clases de clave.
 TEST(SimpleModulusTest, FromLanesRejectsAModulusThatDoesNotFit)
 {
     const Lanes key{1, 1, 1, 1};
@@ -301,7 +307,7 @@ TEST(SimpleModulusTest, FromLanesRejectsAModulusThatDoesNotFit)
 
     for (std::size_t lane = 0; lane < key.size(); ++lane)
     {
-        for (const std::uint32_t modulus : {std::uint32_t{0}, MaxModulus + 1})
+        for (const std::uint32_t modulus : {std::uint32_t{0}, std::uint32_t{0xFFFF}, std::uint32_t{0x40001}})
         {
             Lanes moduli{65537, 65537, 65537, 65537};
             moduli[lane] = modulus;
@@ -315,7 +321,51 @@ TEST(SimpleModulusTest, FromLanesRejectsAModulusThatDoesNotFit)
             EXPECT_EQ(decryption.Error(), CryptoError::InvalidKey);
         }
     }
-    EXPECT_TRUE(EncryptionKey::FromLanes({1, MaxModulus, 1, MaxModulus}, key, xorKey).HasValue());
+}
+
+// Q-C41 también con el XOR: `xor ^ w ^ anterior` llega a `xor | 0xFFFF`, y si eso no es menor que
+// el módulo, el `%` pierde el carril. Con los módulos de 17 bits de Pair17, cualquier XOR con el
+// bit 16 prendido; con el de 18 bits del carril 0 de Pair18, 0x24063, 0x20000.
+TEST(SimpleModulusTest, FromLanesRejectsAXorThatCanReachTheModulus)
+{
+    const Lanes pair17Moduli{0x1A47D, 0x13273, 0x1CEDF, 0x1E0FF};
+    const Lanes key{1, 1, 1, 1};
+
+    for (std::size_t lane = 0; lane < key.size(); ++lane)
+    {
+        Lanes xorKey{0, 0, 0, 0};
+        xorKey[lane] = 0x10000;
+
+        EXPECT_FALSE(EncryptionKey::FromLanes(pair17Moduli, key, xorKey).HasValue()) << "carril " << lane;
+        EXPECT_FALSE(DecryptionKey::FromLanes(pair17Moduli, key, xorKey).HasValue()) << "carril " << lane;
+    }
+    EXPECT_FALSE(EncryptionKey::FromLanes({0x24063, 65537, 65537, 65537}, key, {0x20000, 0, 0, 0}).HasValue());
+}
+
+// Los bordes que sirven: el módulo más chico para un XOR de 16 bits, 0x10000; el más grande,
+// 0x40000, con el XOR más grande que le entra, 0x3FFFF; y un XOR de 17 bits con un módulo de 18.
+TEST(SimpleModulusTest, FromLanesAcceptsTheEdges)
+{
+    const Lanes moduli{0x10000, 0x40000, 0x24063, 0x1A47D};
+    const Lanes key{1, 1, 1, 1};
+    const Lanes xorKey{0xFFFF, 0x3FFFF, 0x1FFFF, 0xFFFF};
+
+    EXPECT_TRUE(EncryptionKey::FromLanes(moduli, key, xorKey).HasValue());
+    EXPECT_TRUE(DecryptionKey::FromLanes(moduli, key, xorKey).HasValue());
+}
+
+// Un XOR de más de 16 bits que pasa FromLanes se usa entero, como en el original: Pair18 con el XOR
+// del carril 0 en 0x11357, contra encrypt_block. Con el XOR cortado a 16 bits saldría otra cosa.
+// Los productos entran en 32 bits: 0x6AE1 * 0x1FFFF y 0x27BB * 0x24062.
+TEST(SimpleModulusTest, UsesAWideXorWhole)
+{
+    const KeyPair pair = PairOf({0x24063, 0x3EC45, 0x2E467, 0x3AE38}, {0x6AE1, 0xBDB9, 0xE98F, 0xF5E3},
+                                {0x27BB, 0x24B9, 0x1819, 0x235B}, {0x11357, 0x2468, 0x9BDF, 0xACE0});
+    const PlainBlock plain = BytesOf({0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF});
+    const CipherBlock expected = BytesOf({0xF0, 0xF8, 0x1A, 0x91, 0xF6, 0x21, 0x74, 0x53, 0x06, 0xCD, 0xF8});
+
+    EXPECT_TRUE(SameBytes(EncryptBlock(pair.encryption, plain, 8), expected));
+    ExpectDecryptsTo(pair.decryption, expected, plain, 8);
 }
 
 } // namespace

@@ -12,7 +12,7 @@ namespace Client::Network::Crypto
 enum class CryptoError : std::uint8_t
 {
     InvalidKeyFile, // otro magic, otro tamaño declarado, o menos bytes que los que declara
-    InvalidKey,     // un módulo en 0 o mayor que MaxModulus (Q-C41)
+    InvalidKey,     // un módulo en 0 o mayor que MaxModulus, o un XOR que llega al módulo (Q-C41)
 };
 
 } // namespace Client::Network::Crypto

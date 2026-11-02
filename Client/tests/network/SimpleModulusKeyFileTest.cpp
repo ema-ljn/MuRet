@@ -4,6 +4,7 @@
 
 #include "Network/Crypto/SimpleModulusKeyFile.h"
 
+#include "support/LittleEndian.h"
 #include "support/NetworkPrinters.h"
 
 #include <gtest/gtest.h>
@@ -24,34 +25,25 @@ using Client::Network::Crypto::KeyFileXor;
 using Client::Network::Crypto::Lanes;
 using Client::Network::Crypto::LoadDecryptionKey;
 using Client::Network::Crypto::LoadEncryptionKey;
-
-constexpr unsigned BitsPerByte = 8;
+using Client::Tests::AppendLittleEndian;
 
 // Los tres bloques de un archivo, ya sin el XOR de la tabla.
 const Lanes Modulus{0x1A47D, 0x13273, 0x1CEDF, 0x1E0FF};
 const Lanes Key{0xE5E9, 0x4BB8, 0x4EC1, 0x8DD9};
 const Lanes XorKey{0xA5A5, 0x5A5A, 0x0F0F, 0xF0F0};
 
-void PutLittleEndian(std::vector<std::byte>& file, std::uint32_t value, std::size_t size)
-{
-    for (std::size_t k = 0; k < size; ++k)
-    {
-        file.push_back(static_cast<std::byte>(value >> (BitsPerByte * k)));
-    }
-}
-
 // Un archivo de clave con `magic`, el tamaño `declared` y los tres bloques, cada u32 con el XOR de
 // la tabla de su carril.
 std::vector<std::byte> KeyFile(std::uint16_t magic, std::uint32_t declared, const Lanes& modulus = Modulus)
 {
     std::vector<std::byte> file;
-    PutLittleEndian(file, magic, sizeof(magic));
-    PutLittleEndian(file, declared, sizeof(declared));
+    AppendLittleEndian(file, magic, sizeof(magic));
+    AppendLittleEndian(file, declared, sizeof(declared));
     for (const Lanes& block : {modulus, Key, XorKey})
     {
         for (std::size_t lane = 0; lane < block.size(); ++lane)
         {
-            PutLittleEndian(file, block[lane] ^ KeyFileXor[lane], sizeof(block[lane]));
+            AppendLittleEndian(file, block[lane] ^ KeyFileXor[lane], sizeof(block[lane]));
         }
     }
     return file;
@@ -81,12 +73,14 @@ TEST(SimpleModulusKeyFileTest, LoadsTheThreeBlocksWithoutTheTable)
 }
 
 // La tabla como la lista 00686240-carga-clave.md, byte por byte: un bloque con sus bytes se lee como
-// cuatro ceros, y con el bit de abajo de cada carril cambiado, como cuatro unos.
+// cuatro ceros, y con el bit 16 de cada carril cambiado, como cuatro 0x10000, el módulo más chico
+// que sirve (Q-C41).
 TEST(SimpleModulusKeyFileTest, TheTableIsTheOneAt0x6d84fc)
 {
     // El magic 0x1112 y el tamaño 54 (0x36), little-endian.
     const std::vector<std::byte> header{std::byte{0x12}, std::byte{0x11}, std::byte{0x36},
                                         std::byte{0x00}, std::byte{0x00}, std::byte{0x00}};
+    // La tabla de 0x6d84fc: los 4 bytes de cada carril de KeyFileXor, el de abajo primero.
     constexpr std::array<int, 16> Table{0x9B, 0xA7, 0x08, 0x3F, 0x87, 0xC2, 0x5C, 0xE2,
                                         0xB9, 0x7A, 0xD2, 0x93, 0xBF, 0xA7, 0xDE, 0x20};
     // Los módulos, las claves y los XOR; y los 4 bytes de cada carril, el de abajo primero.
@@ -97,8 +91,9 @@ TEST(SimpleModulusKeyFileTest, TheTableIsTheOneAt0x6d84fc)
     {
         for (std::size_t k = 0; k < Table.size(); ++k)
         {
-            // El primer bloque, el de los módulos, con el bit 0 de cada carril cambiado.
-            const int flip = (block == 0 && k % BytesPerLane == 0) ? 0x01 : 0x00;
+            // El primer bloque, el de los módulos, con el bit 0 del tercer byte de cada carril cambiado.
+            constexpr std::size_t ThirdByte = 2;
+            const int flip = (block == 0 && k % BytesPerLane == ThirdByte) ? 0x01 : 0x00;
             file.push_back(static_cast<std::byte>(Table[k] ^ flip));
         }
     }
@@ -106,14 +101,15 @@ TEST(SimpleModulusKeyFileTest, TheTableIsTheOneAt0x6d84fc)
     const auto key = LoadEncryptionKey(file);
 
     ASSERT_TRUE(key.HasValue());
-    EXPECT_EQ(key.Value().Modulus(), (Lanes{1, 1, 1, 1}));
+    EXPECT_EQ(key.Value().Modulus(), (Lanes{0x10000, 0x10000, 0x10000, 0x10000}));
     EXPECT_EQ(key.Value().Key(), (Lanes{0, 0, 0, 0}));
     EXPECT_EQ(key.Value().XorKey(), (Lanes{0, 0, 0, 0}));
 }
 
-// Otro magic (también el mismo con los bytes al revés), otro tamaño declarado, un archivo corto y
-// uno vacío. El original tampoco carga los dos primeros; uno corto lo carga con lo que había en la
-// pila (Q-C41).
+// Otro magic (también el mismo con los bytes al revés), otro tamaño declarado (también uno que da
+// 54 en sus dos bytes de abajo: el tamaño es un u32), un archivo corto y uno vacío. El original
+// tampoco carga los dos primeros; uno corto lo carga con lo que quedó en el buffer de la pila, que
+// es el mismo para los tres bloques (Q-C41).
 TEST(SimpleModulusKeyFileTest, RejectsAnotherMagicAnotherSizeOrAShortFile)
 {
     std::vector<std::byte> shortFile = GoodKeyFile();
@@ -128,6 +124,7 @@ TEST(SimpleModulusKeyFileTest, RejectsAnotherMagicAnotherSizeOrAShortFile)
         {"tamaño 70, el de cuatro bloques", KeyFile(KeyFileMagic, 70)},
         {"tamaño 53", KeyFile(KeyFileMagic, 53)},
         {"tamaño 0", KeyFile(KeyFileMagic, 0)},
+        {"tamaño 54 + 0x10000", KeyFile(KeyFileMagic, KeyFileSize + 0x10000)},
         {"53 bytes", shortFile},
         {"vacío", {}},
     };
@@ -175,6 +172,18 @@ TEST(SimpleModulusKeyFileTest, AModulusThatDoesNotFitIsInvalidKey)
         EXPECT_EQ(encryption.Error(), CryptoError::InvalidKey) << modulus;
         EXPECT_EQ(decryption.Error(), CryptoError::InvalidKey) << modulus;
     }
+}
+
+// El módulo más grande que sirve, 0x40000, carga.
+TEST(SimpleModulusKeyFileTest, TheLargestModulusLoads)
+{
+    Lanes moduli = Modulus;
+    moduli[1] = 0x40000;
+
+    const auto key = LoadEncryptionKey(KeyFile(KeyFileMagic, KeyFileSize, moduli));
+
+    ASSERT_TRUE(key.HasValue());
+    EXPECT_EQ(key.Value().Modulus(), moduli);
 }
 
 } // namespace

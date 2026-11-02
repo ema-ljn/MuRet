@@ -86,7 +86,9 @@ modelo: no sirven de oráculo para el C2.
   C3/C4 enviado. Va como primer byte del texto en claro.
 - **Serial de recepción:** `0x05767914`. Si no coincide, el cliente loguea, **no** incrementa y
   despacha igual (ver Q-C04 en [07](07-quirks-y-bugs.md)).
-- Checksum por bloque con las constantes `0xF8` / `0x3D`; un byte alterado lo hace fallar.
+- Checksum por bloque con las constantes `0xF8` / `0x3D`: es un byte, así que un cambio en un carril
+  falla casi siempre (pasa uno de cada 256, más o menos), uno en el checksum siempre, y uno en el
+  byte del largo útil nunca.
 
 Verificado: los 183 C3 del cliente en el cable descifran con el `Dec1.dat` del servidor y, al
 recifrarlos con `Enc1`, dan los mismos bytes (183/183). Los 25 C3/C4 del servidor descifran con el
@@ -136,7 +138,7 @@ mínima los reproduce a propósito, MuRet no.
 | --- | --- | --- |
 | Corte de paquetes con bugs de cabecera incompleta (Q-C03) | `PacketReader` puro (bytes → paquetes), sin red, con los vectores del cable como tests; los bugs se arreglan y se documentan | CL2 |
 | Motor XOR32 inlineado en cada emisor | un `PacketWriter` C1/C2 con el XOR32 como etapa separada y testeable | CL2 |
-| C3/C4 con dos seriales globales | `SimpleModulus` (nombre de la comunidad) + `CryptoKey` cargada de `Enc1.dat`/`Dec2.dat`; seriales por conexión, no globales | CL2 |
+| C3/C4 con dos seriales globales | `SimpleModulus` (nombre de la comunidad) + `EncryptionKey` y `DecryptionKey`, cargadas de `Enc1.dat`/`Dec2.dat`; seriales por conexión, no globales | CL2 |
 | FoxAnti como DLL que parchea el binario | `Network::Obfuscation` opcional (interfaz con dos implementaciones: identidad y FoxAnti), elegida por config según el servidor | CL2, CL4 |
 | FoxAnti traduce el formato del laboratorio al de `main.exe` | la traducción vive solo en `Network::Obfuscation`; `Protocol` lee siempre el formato de `main.exe` (`F4 06`, `F3 11` con su byte de más), venga del servidor que venga | CL2, CL4 |
 | El `0xAA` se decide por lectura de `recv` | se decide por paquete, mirando el primer byte en el cable (`6B`, `68`, `69`, `6E` llevan `0xAA`; `C1`, `C2` exentos) (Q-C18) | CL2 |

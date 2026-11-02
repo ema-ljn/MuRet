@@ -30,13 +30,11 @@ std::optional<Lanes> ReadBlock(Core::ByteReader& reader)
 // Los dos formatos son el mismo: cambia para qué sirve el segundo bloque.
 template <KeyRole Role> Core::Expected<SimpleModulusKey<Role>, CryptoError> LoadKey(std::span<const std::byte> file)
 {
-    // 0x686240 no mira cuánto mide el archivo: lee la cabecera y los bloques, y un archivo corto deja
-    // lo que había en la pila (Q-C41). Acá un archivo corto no carga.
-    if (file.size() < KeyFileSize)
-    {
-        return Core::Unexpected(CryptoError::InvalidKeyFile);
-    }
-    Core::ByteReader reader(file.first(KeyFileSize));
+    // 0x686240 no mira cuánto mide el archivo: lee la cabecera y los bloques en el mismo buffer de
+    // la pila, y un archivo corto deja lo que quedó del bloque anterior (Q-C41). Acá un archivo
+    // corto no carga: el lector no tiene los bytes y ReadBlock da std::nullopt. Lo que sigue a los
+    // 54 bytes no se lee.
+    Core::ByteReader reader(file);
     const std::optional<std::uint16_t> magic = reader.ReadU16Le();
     const std::optional<std::uint32_t> declared = reader.ReadU32Le();
     if (magic != KeyFileMagic || declared != KeyFileSize)

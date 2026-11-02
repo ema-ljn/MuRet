@@ -4,6 +4,7 @@
 #include "Network/PacketReader.h"
 
 #include "support/Bytes.h"
+#include "support/FixedRandom.h"
 #include "support/NetworkPrinters.h"
 #include "support/SameBytes.h"
 
@@ -29,7 +30,9 @@ using Client::Network::Packet;
 using Client::Network::PacketError;
 using Client::Network::PacketReader;
 using Client::Network::PacketType;
+using Client::Tests::Below;
 using Client::Tests::Bytes;
+using Client::Tests::FixedSeed;
 using Client::Tests::SameBytes;
 
 using ByteVector = std::vector<std::byte>;
@@ -466,14 +469,6 @@ TEST(PacketReaderTest, NothingFedGivesNothing)
     EXPECT_FALSE(drained.error.has_value());
 }
 
-// Un número de 0 a n - 1 tomado de la salida del motor (engine() % n): el estándar fija los números
-// de std::mt19937, pero no los de std::uniform_int_distribution, que cambian entre bibliotecas. La
-// salida de std::mt19937 tiene 32 bits, así que entra en un std::uint32_t.
-std::uint32_t Below(std::mt19937& engine, std::uint32_t n)
-{
-    return static_cast<std::uint32_t>(engine() % n);
-}
-
 // Un paquete bien formado al azar: tipo C1 a C4 y tamaño desde el mínimo. Los C2/C4 llegan a 600
 // para que el byte alto del tamaño no sea siempre 0.
 ByteVector RandomPacket(std::mt19937& engine)
@@ -500,12 +495,11 @@ ByteVector RandomPacket(std::mt19937& engine)
 // cada Feed trae una lectura entera, y un corte puede caer en cualquier byte de una cabecera.
 TEST(PacketReaderTest, RandomSplitsGiveTheSamePackets)
 {
-    // Semilla fija, cuántos paquetes lleva el flujo, y la lectura más larga en que se parte.
-    constexpr std::mt19937::result_type Seed = 20261102;
+    // Cuántos paquetes lleva el flujo, y la lectura más larga en que se parte.
     constexpr std::uint32_t PacketCount = 300;
     constexpr std::uint32_t MaxReadSize = 64;
 
-    std::mt19937 engine(Seed);
+    std::mt19937 engine(FixedSeed);
     std::vector<ByteVector> expected;
     ByteVector stream;
     for (std::uint32_t k = 0; k < PacketCount; ++k)

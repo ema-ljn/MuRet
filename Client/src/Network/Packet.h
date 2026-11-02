@@ -5,8 +5,9 @@
 // del paquete entero, la cabecera incluida. C3 y C4 son los cifrados (CL2.3): a este nivel son
 // bytes como cualquiera, y su opcode viaja adentro del cifrado.
 //
-// Un Packet siempre es válido: solo se arma con FromBytes, que mira el tipo, el tamaño mínimo y el
-// máximo, y que el tamaño que declara sea el que mide.
+// Un Packet solo se arma con FromBytes, que mira el tipo, el tamaño mínimo y el máximo, y que el
+// tamaño que declara sea el que mide. Es un paquete válido hasta que se le sacan los bytes
+// (TakeBytes) o se mueve, y desde ahí no se usa más.
 
 #pragma once
 
@@ -32,8 +33,8 @@ enum class PacketType : std::uint8_t
 };
 
 // El paquete más grande que se lee o se escribe: el buffer de recepción del original mide 0x2000
-// (0x4e88af, cmp eax,0x2000), así que uno más grande nunca le entraba (Q-C05, y el plan de la
-// CL2, pregunta 3).
+// (0x4e88af, cmp eax,0x2000), así que uno más grande nunca le entraba y el original dejaba de leer
+// (Q-C40, y el plan de la CL2, pregunta 3).
 inline constexpr std::size_t MaxPacketSize = 0x2000;
 
 // El tipo de un primer byte, o std::nullopt si no es C1 a C4.
@@ -48,6 +49,10 @@ inline constexpr std::size_t MaxPacketSize = 0x2000;
 // El tamaño que declara la cabecera, leído de sus primeros HeaderSize(type) bytes. std::nullopt
 // si todavía no llegaron todos.
 [[nodiscard]] std::optional<std::size_t> DeclaredSize(PacketType type, std::span<const std::byte> header);
+
+// Si un tamaño declarado no sirve: SizeTooSmall si no llega a MinPacketSize(type), TooLarge si pasa
+// de MaxPacketSize, y std::nullopt si sirve. Es la regla que usan FromBytes y el PacketReader.
+[[nodiscard]] std::optional<PacketError> CheckDeclaredSize(PacketType type, std::size_t declared);
 
 class Packet
 {
@@ -66,7 +71,7 @@ public:
     [[nodiscard]] std::span<std::byte> MutableBody();
 
     // Para lo que cambia el tamaño (FoxAnti): saca los bytes, que vuelven con FromBytes. El Packet
-    // queda vacío y no se usa más.
+    // queda vacío: Bytes() y MutableBody() vacíos, y Opcode() en std::nullopt.
     [[nodiscard]] std::vector<std::byte> TakeBytes() &&;
 
     // pkt[2] en un C1 y pkt[3] en un C2; std::nullopt en C3 y C4, que lo llevan cifrado.

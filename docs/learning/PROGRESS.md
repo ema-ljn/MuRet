@@ -55,9 +55,9 @@ solo lo lee.
   también la escribió Claude**: el `ByteReader` pasó a `Core`, con `ReadU16Be`, y llegó el corte
   de `Network`. `Packet` valida el tipo y el tamaño al armarse, y `PacketReader` espera los bytes
   que faltan donde el original lee bytes viejos (Q-C03), y se para con un error ante un tipo
-  inválido o un tamaño que no llega al opcode (Q-C38 y Q-C39). Se prueba contra el cable del
-  laboratorio: los 689 paquetes que mandó el cliente y los 144 que contestó el ConnectServer salen
-  enteros y sin bytes de más.
+  inválido, un tamaño que no llega al opcode o uno de más de `0x2000` (Q-C38, Q-C39 y Q-C40). Se
+  prueba contra el cable del laboratorio: los 689 paquetes que mandó el cliente y los 144 que
+  contestó el ConnectServer salen enteros y sin bytes de más.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 

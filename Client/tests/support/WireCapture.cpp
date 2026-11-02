@@ -165,7 +165,14 @@ Core::Expected<std::vector<WireConnection>, WireCaptureError> ParseWireCapture(s
     while (!text.empty())
     {
         ++lineNumber;
-        const std::vector<std::string_view> fields = SplitFields(TakeLine(text));
+        const std::string_view line = TakeLine(text);
+        // Un \r que no es el del final: un log con fines de línea de Mac viejo, que leído así
+        // sería una sola línea larga.
+        if (line.find('\r') != std::string_view::npos)
+        {
+            return Core::Unexpected(WireCaptureError{lineNumber, WireCaptureProblem::MalformedLine});
+        }
+        const std::vector<std::string_view> fields = SplitFields(line);
         if (fields.empty())
         {
             continue;

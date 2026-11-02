@@ -25,8 +25,19 @@ namespace Client::Network
 class PacketReader
 {
 public:
+    PacketReader() = default;
+
+    // Uno movido queda como nuevo: sin bytes y sin error. El movimiento que escribe el compilador
+    // vaciaría el buffer y copiaría `consumed`, y Pending() daría un número enorme.
+    PacketReader(PacketReader&& other) noexcept;
+    PacketReader& operator=(PacketReader&& other) noexcept;
+    PacketReader(const PacketReader&) = default;
+    PacketReader& operator=(const PacketReader&) = default;
+    ~PacketReader() = default;
+
     // Agrega una lectura. Copia los bytes: `bytes` puede morir después. Con un error, no guarda
-    // nada.
+    // nada. Cuesta, en promedio, lo que trae, aunque no se saquen los paquetes después de cada
+    // Feed.
     void Feed(std::span<const std::byte> bytes);
 
     // El paquete que sigue, std::nullopt si falta que llegue, o el error.
@@ -36,7 +47,8 @@ public:
     // buffer y sigue adivinando, Q-C38). Quien lo usa cierra la conexión (CL4).
     [[nodiscard]] Core::Expected<std::optional<Packet>, PacketError> Next();
 
-    // Cuántos bytes llegaron y todavía no salieron en un paquete.
+    // Cuántos bytes llegaron y todavía no salieron en un paquete. Después de un error, 0: lo que
+    // había se descartó.
     [[nodiscard]] std::size_t Pending() const;
 
 private:

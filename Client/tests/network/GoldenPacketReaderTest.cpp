@@ -5,8 +5,7 @@
 // El cable lleva el login del jugador: estos tests cuentan paquetes por tipo y comparan con
 // SameBytesWithoutValues. Ningún mensaje imprime un byte del cable.
 //
-// El S->C del GameServer no está: lleva el 0xAA de FoxAnti delante de cada paquete, y se corta en
-// la CL2.4.
+// El S->C del GameServer no está: cada byte lleva el XOR 0xAA de FoxAnti, y se corta en la CL2.4.
 
 #include "Network/Packet.h"
 #include "Network/PacketError.h"
@@ -14,14 +13,17 @@
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
+#include "support/NetworkPrinters.h"
 #include "support/SameBytes.h"
 #include "support/WireCapture.h"
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <optional>
 #include <ostream>
 #include <span>
@@ -79,6 +81,7 @@ struct Cut
     std::optional<PacketError> error; // el primero, si hubo
     std::vector<std::byte> stream;    // todo lo que entró, en orden
     std::vector<std::byte> rejoined;  // los paquetes que salieron, uno detrás del otro
+    std::vector<std::size_t> sizes;   // lo que midió cada paquete, en orden
 };
 
 // Corta `reads` con un PacketReader: un Feed por lectura, y todos los paquetes que haya después de
@@ -105,6 +108,7 @@ Cut CutReads(const std::vector<std::span<const std::byte>>& reads)
             }
             const auto bytes = next.Value()->Bytes();
             cut.rejoined.insert(cut.rejoined.end(), bytes.begin(), bytes.end());
+            cut.sizes.push_back(bytes.size());
             ++cut.counts[next.Value()->Type()];
         }
     }
@@ -112,7 +116,7 @@ Cut CutReads(const std::vector<std::span<const std::byte>>& reads)
     return cut;
 }
 
-// El mismo flujo de a un byte: la cabecera llega partida en cada paquete (Q-C03).
+// El mismo flujo de a un byte: cada cabecera llega en varios Feed.
 std::vector<std::span<const std::byte>> OneByteReads(std::span<const std::byte> stream)
 {
     std::vector<std::span<const std::byte>> reads;
@@ -120,6 +124,25 @@ std::vector<std::span<const std::byte>> OneByteReads(std::span<const std::byte> 
     {
         reads.push_back(stream.subspan(i, 1));
     }
+    return reads;
+}
+
+// El mismo flujo en lecturas que terminan `into` bytes adentro del paquete siguiente: cada una trae
+// el resto de un paquete y el principio del otro. `sizes` son los paquetes del flujo, en orden.
+std::vector<std::span<const std::byte>>
+ReadsEndingInsideTheNext(std::span<const std::byte> stream, const std::vector<std::size_t>& sizes, std::size_t into)
+{
+    std::vector<std::span<const std::byte>> reads;
+    std::size_t start = 0;
+    std::size_t boundary = 0;
+    for (std::size_t k = 0; k + 1 < sizes.size(); ++k)
+    {
+        boundary += sizes[k];
+        const std::size_t end = boundary + std::min(into, sizes[k + 1]);
+        reads.push_back(stream.subspan(start, end - start));
+        start = end;
+    }
+    reads.push_back(stream.subspan(start));
     return reads;
 }
 
@@ -173,8 +196,37 @@ protected:
         return total;
     }
 
+    // Los sentidos que van en claro: lo que mandó el cliente, a los dos servidores, y lo que
+    // contestó el ConnectServer, que tiene los C2.
+    template <typename Check> void ForEachClearDirection(Check check) const
+    {
+        for (std::size_t index = 0; index < connections.size(); ++index)
+        {
+            const WireConnection& connection = connections[index];
+            {
+                SCOPED_TRACE("C->S");
+                check(index, connection, WireDirection::ClientToServer);
+            }
+            if (connection.port == ConnectServerPort)
+            {
+                SCOPED_TRACE("S->C");
+                check(index, connection, WireDirection::ServerToClient);
+            }
+        }
+    }
+
     std::vector<WireConnection> connections;
 };
+
+// Que `resplit` dé los mismos paquetes que `asRead`, el flujo tal como llegó. Sin imprimir bytes.
+void ExpectTheSamePackets(const Cut& resplit, const Cut& asRead, std::size_t index)
+{
+    EXPECT_EQ(resplit.error, std::nullopt) << "conexión " << index;
+    EXPECT_EQ(resplit.leftover, 0u) << "conexión " << index;
+    EXPECT_EQ(resplit.counts, asRead.counts) << "conexión " << index;
+    EXPECT_TRUE(resplit.sizes == asRead.sizes) << "conexión " << index << ": otros cortes";
+    EXPECT_TRUE(SameBytesWithoutValues(resplit.rejoined, asRead.stream)) << "conexión " << index;
+}
 
 TEST_F(GoldenPacketReaderCapture, HasTheLabConnections)
 {
@@ -191,8 +243,8 @@ TEST_F(GoldenPacketReaderCapture, HasTheLabConnections)
     EXPECT_EQ(gameServer, 8u);
 }
 
-// Todo lo que mandó el cliente original: al ConnectServer, los F4 en claro; al GameServer, el login
-// y lo demás, con los C3 sin descifrar.
+// Todo lo que mandó el cliente original: al ConnectServer, 80 F4 en claro (72 F4 02 y 8 F4 03) y
+// 64 A9 con el XOR32; al GameServer, el login y lo demás, con los C3 sin descifrar.
 TEST_F(GoldenPacketReaderCapture, CutsWhatTheClientSent)
 {
     std::size_t cutConnections = 0;
@@ -213,20 +265,34 @@ TEST_F(GoldenPacketReaderCapture, CutsWhatTheConnectServerAnswered)
     EXPECT_EQ(cutConnections, 64u);
 }
 
-// De a un byte salen los mismos paquetes: cada cabecera llega partida, que es Q-C03 en el
-// original.
+// De a un byte salen los mismos paquetes: el lector espera cada cabecera partida. El original acá
+// no falla, porque con menos de 3 bytes no corta (0x4e8927) y nunca le quedan dos paquetes en una
+// pasada.
 TEST_F(GoldenPacketReaderCapture, OneByteAtATimeGivesTheSamePackets)
 {
-    for (std::size_t index = 0; index < connections.size(); ++index)
-    {
-        const WireConnection& connection = connections[index];
-        const Cut asRead = CutReads(connection.Reads(WireDirection::ClientToServer));
-        const Cut byByte = CutReads(OneByteReads(asRead.stream));
+    ForEachClearDirection(
+        [](std::size_t index, const WireConnection& connection, WireDirection direction)
+        {
+            const Cut asRead = CutReads(connection.Reads(direction));
+            ExpectTheSamePackets(CutReads(OneByteReads(asRead.stream)), asRead, index);
+        });
+}
 
-        EXPECT_EQ(byByte.error, std::nullopt) << "conexión " << index;
-        EXPECT_EQ(byByte.leftover, 0u) << "conexión " << index;
-        EXPECT_EQ(byByte.counts, asRead.counts) << "conexión " << index;
-        EXPECT_TRUE(SameBytesWithoutValues(byByte.rejoined, asRead.rejoined)) << "conexión " << index;
+// Lecturas que terminan 1 y 2 bytes adentro del paquete siguiente: es lo que en el original dispara
+// Q-C03, una cabecera incompleta detrás de un paquete entero de la misma lectura. Con 2, a los C2
+// del ConnectServer les falta el tercer byte de la cabecera.
+TEST_F(GoldenPacketReaderCapture, ReadsEndingInsideTheNextHeaderGiveTheSamePackets)
+{
+    for (const std::size_t into : {std::size_t{1}, std::size_t{2}})
+    {
+        ForEachClearDirection(
+            [into](std::size_t index, const WireConnection& connection, WireDirection direction)
+            {
+                const Cut asRead = CutReads(connection.Reads(direction));
+                const Cut resplit = CutReads(ReadsEndingInsideTheNext(asRead.stream, asRead.sizes, into));
+                SCOPED_TRACE(into == 1 ? "1 byte adentro" : "2 bytes adentro");
+                ExpectTheSamePackets(resplit, asRead, index);
+            });
     }
 }
 

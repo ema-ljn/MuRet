@@ -38,8 +38,8 @@ en 3.033 paquetes sin bytes sobrantes, incluidas 337 lecturas con 2 a 7 paquetes
 
 - **Corte:** igual que el DataServer: C1/C3 tienen el tamaño en `pkt[1]`, C2/C4 en `pkt[1..2]`
   big-endian. El tamaño es el del paquete completo. Con una cabecera incompleta, un tipo que no
-  es `C1` a `C4` o un tamaño que no llega al opcode, el original se equivoca: Q-C03, Q-C38 y
-  Q-C39 en [07](07-quirks-y-bugs.md).
+  es `C1` a `C4`, un tamaño que no llega al opcode o uno de más de `0x2000`, el original se
+  equivoca: Q-C03, Q-C38, Q-C39 y Q-C40 en [07](07-quirks-y-bugs.md).
 - **Rearmado:** un C3 descifrado se reescribe como C1 (y un C4 como C2) con tamaño = longitud
   descifrada. Como esa longitud incluye el byte del serial, el paquete rearmado declara `n` pero
   ocupa `n + 1` (C4: `n + 2`). Verificado con `F1 02`.
@@ -141,7 +141,7 @@ mínima los reproduce a propósito, MuRet no.
 | FoxAnti traduce el formato del laboratorio al de `main.exe` | la traducción vive solo en `Network::Obfuscation`; `Protocol` lee siempre el formato de `main.exe` (`F4 06`, `F3 11` con su byte de más), venga del servidor que venga | CL2, CL4 |
 | El `0xAA` se decide por lectura de `recv` | se decide por paquete, mirando el primer byte en el cable (`6B`, `68`, `69`, `6E` llevan `0xAA`; `C1`, `C2` exentos) (Q-C18) | CL2 |
 | `WSAAsyncSelect` en el hilo de la ventana | socket no bloqueante consultado por el bucle (un hilo); el envío que no entra se encola como en `FD_WRITE` | CL4 |
-| Pila de ~2 KB en `0x4e1d50` que un C4 grande desborda (Q-C05) | buffers con tamaño máximo explícito; un paquete más grande se rechaza | CL2 |
+| Pila de ~2 KB en `0x4e1d50` que un C4 grande desborda (Q-C05), y un paquete de más de `0x2000` que deja de leer la conexión (Q-C40) | el corte rechaza lo que pasa de `MaxPacketSize` (`0x2000`), y el descifrado escribe en un buffer del tamaño de lo que entra | CL2 |
 
 Tests que fija:
 

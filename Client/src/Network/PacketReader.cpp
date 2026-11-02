@@ -1,10 +1,23 @@
 #include "Network/PacketReader.h"
 
-#include <iterator>
 #include <utility>
 
 namespace Client::Network
 {
+
+PacketReader::PacketReader(PacketReader&& other) noexcept
+    : buffer(std::exchange(other.buffer, {})), consumed(std::exchange(other.consumed, 0)),
+      error(std::exchange(other.error, std::nullopt))
+{
+}
+
+PacketReader& PacketReader::operator=(PacketReader&& other) noexcept
+{
+    buffer = std::exchange(other.buffer, {});
+    consumed = std::exchange(other.consumed, 0);
+    error = std::exchange(other.error, std::nullopt);
+    return *this;
+}
 
 void PacketReader::Feed(std::span<const std::byte> bytes)
 {
@@ -12,10 +25,14 @@ void PacketReader::Feed(std::span<const std::byte> bytes)
     {
         return;
     }
-    // Lo que ya salió se borra antes de agregar. Si quien lo usa saca todos los paquetes después de
-    // cada Feed, queda a lo sumo un paquete a medio llegar, y correrlo cuesta poco.
-    buffer.erase(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(consumed));
-    consumed = 0;
+    // Lo que ya salió se borra cuando es al menos tanto como lo que queda: correr lo que queda
+    // cuesta a lo sumo lo que se borra, y cada byte se borra una sola vez. Borrarlo en cada Feed
+    // correría todo lo pendiente cada vez, y sin sacar paquetes eso crece con cada lectura.
+    if (consumed >= Pending())
+    {
+        buffer.erase(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(consumed));
+        consumed = 0;
+    }
     buffer.insert(buffer.end(), bytes.begin(), bytes.end());
 }
 
@@ -42,26 +59,20 @@ Core::Expected<std::optional<Packet>, PacketError> PacketReader::Next()
     {
         return std::optional<Packet>{};
     }
-    if (*size < MinPacketSize(*type))
+    if (const std::optional<PacketError> problem = CheckDeclaredSize(*type, *size))
     {
-        return Fail(PacketError::SizeTooSmall);
-    }
-    if (*size > MaxPacketSize)
-    {
-        return Fail(PacketError::TooLarge);
+        return Fail(*problem);
     }
     if (pending.size() < *size)
     {
         return std::optional<Packet>{};
     }
+    // Con el tipo y el tamaño ya mirados, FromBytes no puede fallar: si fallara, Value() aborta,
+    // porque sería un bug de este lector.
     const std::span<const std::byte> bytes = pending.first(*size);
-    Core::Expected<Packet, PacketError> packet = Packet::FromBytes({bytes.begin(), bytes.end()});
-    if (!packet.HasValue())
-    {
-        return Fail(packet.Error());
-    }
+    Packet packet = Packet::FromBytes({bytes.begin(), bytes.end()}).Value();
     consumed += *size;
-    return std::optional<Packet>{std::move(packet).Value()};
+    return std::optional<Packet>{std::move(packet)};
 }
 
 std::size_t PacketReader::Pending() const

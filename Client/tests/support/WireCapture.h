@@ -41,13 +41,14 @@ struct WireConnection
     std::uint16_t port = 0;
     std::vector<WireSegment> segments;
 
-    // Los segmentos de un sentido, en orden: lo que devolvió cada recv del otro lado.
+    // Los segmentos de un sentido, en orden: lo que devolvió cada recv del proxy, del lado que
+    // recibe.
     [[nodiscard]] std::vector<std::span<const std::byte>> Reads(WireDirection direction) const;
 };
 
 enum class WireCaptureProblem : std::uint8_t
 {
-    MalformedLine,  // faltan campos, o el sentido o el puerto no se entienden
+    MalformedLine,  // faltan campos, el sentido o el puerto no se entienden, o un \r en el medio
     BadHex,         // los bytes no son hex de a dos dígitos
     LengthMismatch, // len=N no es lo que miden los bytes
     NoConnection,   // un segmento de un puerto sin ACC antes

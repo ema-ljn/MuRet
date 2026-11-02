@@ -96,6 +96,19 @@ TEST(WireCaptureTest, SaysWhichLineIsWrong)
     ExpectProblem("12:00:00 44405 ACC\n", 1, WireCaptureProblem::MalformedLine);
 }
 
+// Las líneas vacías también cuentan para el número de la que está mal.
+TEST(WireCaptureTest, CountsTheEmptyLines)
+{
+    ExpectProblem("12:00:00 44405 ACC len=0\n\n\n12:00:00 44405 C->S len=2 c1\n", 4,
+                  WireCaptureProblem::LengthMismatch);
+}
+
+// Con fines de línea \r solos, el log sería una línea larga que se lee como un ACC sin segmentos.
+TEST(WireCaptureTest, RejectsLinesEndingInALoneCarriageReturn)
+{
+    ExpectProblem("12:00:00 44405 ACC len=0\r12:00:00 44405 C->S len=1 c1\r", 1, WireCaptureProblem::MalformedLine);
+}
+
 TEST(WireCaptureTest, AnEmptyLogHasNoConnections)
 {
     const auto parsed = ParseWireCapture("");

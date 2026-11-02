@@ -83,8 +83,9 @@ std::optional<std::filesystem::path> GoldenDir()
 namespace
 {
 
-// La regla, para cualquiera de las dos variables. GTEST_SKIP() y FAIL() salen de esta función, y
-// GoogleTest no corre el cuerpo de un test que quedó salteado o fallado en su SetUp().
+// La regla, para cualquiera de las tres variables (la de los datos, la de los volcados de memoria y
+// la del cable). GTEST_SKIP() y FAIL() salen de esta función, y GoogleTest no corre el cuerpo de un
+// test que quedó salteado o fallado en su SetUp().
 void RequireDirectory(const char* variable, std::filesystem::path& dir)
 {
     const std::optional<std::filesystem::path> value = GoldenDirFromValue(ReadEnvironment(variable));

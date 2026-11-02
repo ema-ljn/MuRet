@@ -65,6 +65,19 @@ std::optional<std::size_t> DeclaredSize(PacketType type, std::span<const std::by
     return reader.ReadU16Be();
 }
 
+std::optional<PacketError> CheckDeclaredSize(PacketType type, std::size_t declared)
+{
+    if (declared < MinPacketSize(type))
+    {
+        return PacketError::SizeTooSmall;
+    }
+    if (declared > MaxPacketSize)
+    {
+        return PacketError::TooLarge;
+    }
+    return std::nullopt;
+}
+
 Core::Expected<Packet, PacketError> Packet::FromBytes(std::vector<std::byte> bytes)
 {
     if (bytes.empty())
@@ -77,13 +90,13 @@ Core::Expected<Packet, PacketError> Packet::FromBytes(std::vector<std::byte> byt
         return Core::Unexpected(PacketError::InvalidType);
     }
     const std::optional<std::size_t> declared = DeclaredSize(*type, bytes);
-    if (!declared || *declared < MinPacketSize(*type))
+    if (!declared)
     {
         return Core::Unexpected(PacketError::SizeTooSmall);
     }
-    if (*declared > MaxPacketSize)
+    if (const std::optional<PacketError> problem = CheckDeclaredSize(*type, *declared))
     {
-        return Core::Unexpected(PacketError::TooLarge);
+        return Core::Unexpected(*problem);
     }
     if (*declared != bytes.size())
     {

@@ -28,6 +28,9 @@ public:
     // MuMain (Render/RmlUi), porque la escena pide una sola cosa.
     explicit TestScene(std::function<void(const Color&)> present);
 
+    // Vacío: la escena de prueba no tiene red. La ServerSession llega al Poll del cliente del
+    // bucle de Main en la CL4.5.
+    void Poll() override;
     // La escena de prueba no lee el input.
     void Step(const Input::InputState& input) override;
     void Render(float alpha) override;

@@ -1,0 +1,960 @@
+# Plan de la ola CL4: Red del cliente
+
+> Plan de ejecución en el formato de superpowers (writing-plans): cada tarea tiene
+> archivos, pasos chicos con checkbox y el comando que verifica el resultado.
+> Roadmap: [`2026-10-30-cliente-design.md`](../specs/2026-10-30-cliente-design.md).
+> Escrito el 2026-11-02, con lo aprendido en la CL2 y la CL3. Cada sub-ola trae su contrato, sus
+> nombres y sus tests; lo que se aprenda en una se escribe acá antes de arrancar la siguiente.
+>
+> **Quién escribe los pasos `TODO(human)`:** por pedido de Emanuel (2026-11-02, pregunta 1 de la
+> CL2), Claude los resuelve también, hasta que él diga que participa. En
+> [PROGRESS](../../learning/PROGRESS.md) quedan como resueltos por Claude.
+
+**Objetivo:** que el cliente haga lo que hace el `main.exe` desde que abre la conexión hasta que
+el GameServer acepta el login, y lo sostenga con el keepalive: conectarse al ConnectServer, pedir
+la lista, elegir el servidor, leer la IP del GameServer, conectarse a él, leer el saludo, mandar el
+login cifrado y verlo aceptado, y desde ahí mandar el keepalive cada 20 s. Todo con un socket TCP
+no bloqueante que el bucle de la CL3 consulta una vez por frame, en un solo hilo (D-C5), y con las
+piezas de la CL2 (`PacketReader`, `PacketWriter`, `EncryptPacket`, `IObfuscation`, los paquetes
+del login) puestas en el orden del original. Se prueba con un ConnectServer y un GameServer
+falsos que responden con los bytes del cable, sin red y con sockets reales en `127.0.0.1`, y a mano
+contra el GS del laboratorio con la capa FoxAnti.
+
+**Arquitectura:** tres piezas nuevas, una por capa, como dice el roadmap.
+- `Client::Network` suma el socket: `ISocket` (la interfaz), `SystemSocket` (Winsock o BSD, con
+  el único `#ifdef _WIN32` en `SocketApi.h`), la `SendQueue` (el envío que no entró, como el
+  buffer de `FD_WRITE`) y la `Connection`, el camino de un paquete por una conexión: el socket, el
+  `PacketReader` con su ofuscación, el descifrado y los seriales, y al mandar el cifrado, el
+  `BeforeSend` y la cola. Network no ve a Protocol: lo que no se pudo descifrar sale como un
+  evento, y el aviso `F1 03` lo manda quien la usa.
+- `Client::Protocol` suma el `Dispatcher`: una tabla opcode → handler, con subcódigos, y el
+  opcode desconocido al log una vez.
+- `Client::App` suma la `ServerSession`, la máquina de estados de la entrada: ConnectServer,
+  GameServer, login y keepalive. Tiene una `Connection`, dos `Dispatcher` (uno por servidor: el
+  opcode `00` es el saludo en el CS y el chat en el GS) y el reloj del bucle. `main.cpp` la arma y
+  la consulta desde el `ILoopClient`, que suma un `Poll()` por frame.
+
+Todo va en `ClientLib` y se prueba sin SDL3: los sockets del sistema no son de la ventana
+(pregunta 4). La CL4.0, como toda N.0, vive en `labs/`.
+
+**Stack:** C++20 (`std::span`, `std::variant`, `std::function`, `std::chrono`), sockets del
+sistema (Winsock 2 en Windows, BSD en Linux: `socket`, `connect`, `getaddrinfo`, `select` o
+`poll`, `recv`, `send`, `fcntl` o `ioctlsocket`), GoogleTest. Ninguna biblioteca nueva: la
+pregunta 3 compara asio, SDL3_net y los sockets del sistema (`CODING_RULES.md` §10).
+
+**Guía de estudio:** `docs/learning/ola-cl4.0-sockets-no-bloqueantes.md`, que se escribe al
+arrancar la CL4.0 (L-10). De la CL4.1 en adelante, la sección de cada sub-ola de este plan.
+
+**Research que fija esta ola:**
+- [03-red-y-cifrado](../../../Client/docs/research/03-red-y-cifrado.md): los sockets, la cadena de
+  recepción, el envío, C3/C4 y los seriales, y la capa de FoxAnti en su orden.
+- [04-protocolo](../../../Client/docs/research/04-protocolo.md): el dispatcher `0x4e2b10` y sus
+  tres niveles, el flujo de conexión del CS y del GS con los bytes del cable, el keepalive y "Cómo
+  se verificó".
+- [02-arranque-y-ciclo-de-vida](../../../Client/docs/research/02-arranque-y-ciclo-de-vida.md): el
+  WndProc (`WM_USER` 0x400 y `WM_TIMER` 0x113), el keepalive "por reloj", la conexión "por frame",
+  y que sin foco la red y el keepalive siguen.
+- [07](../../../Client/docs/research/07-quirks-y-bugs.md): Q-C11 (el drenaje de `FD_WRITE`),
+  Q-C16 (el `A9`), Q-C17 y Q-C18 (FoxAnti), Q-C04 y Q-C10 (los seriales y el rearmado, ya
+  corregidos en la CL2), Q-C42 (los handlers de la conexión, ya corregidos en la CL2.5).
+- [08](../../../Client/docs/research/08-pendientes.md): P-C04 (la lista, del lado de `main.exe`),
+  P-C05 (el diferencial del login y del keepalive), P-C10 (contra qué servidor) y P-C11 (el `A9`).
+- En `client-research/` del repo de research, el decompilado de `mainexe-vmxp-c32bbd5f`:
+  `004e82e0`, `004e8570`, `004c1340`, `004e88a0`, `004e87b0`, `004e8380`, `004e8270`, `004e81b0`,
+  `004e1d50`, `004ad100`, `004bee60`, la rama `0x400` y la `0x113` de `004af4e0` (el WndProc) y
+  el `SetTimer` de `004b9b80`. Como referencia de estructura, `Core/Platform/NonBlockingSocket.h`
+  y `LocalSocket.h` de MuMain: un socket no bloqueante que el bucle consulta por frame, con el
+  "probá más tarde" igual en Windows y en POSIX.
+
+**Lo que dice el binario de la red** (*estático*, leído en el decompilado para este plan; la
+CL4.R lo confirma en el desensamblado y lo pasa al research):
+
+| Qué | Dónde | Qué hace |
+| --- | --- | --- |
+| iniciar | `0x4e81b0`, desde `0x4c1340` la primera vez (`DAT_057636bc`) | `WSAStartup`, con los errores en coreano (03) |
+| crear | `0x4e82e0` | `socket(2, 1, 0)`: IPv4 y TCP. Con el segundo argumento distinto de 0, pone `DAT_05767918` en 0 |
+| conectar | `0x4e8570` | `inet_addr` y, si no es una IP, `gethostbyname`; si el nombre no resuelve **devuelve 2**, y `0x4c1340` solo mira el 0, así que sigue como si hubiera conectado. **Rechaza `127.0.0.1`** (los cuatro bytes `7F 00 00 01`: devuelve 0). Llama a `connect` y después a `WSAAsyncSelect(sock, ventana, 0x400, 0x23)`: `FD_READ`, `FD_WRITE` y `FD_CLOSE` como el mensaje `0x400`. Como el socket es bloqueante hasta `WSAAsyncSelect`, el `connect` espera (*inferido*) |
+| el que conecta | `0x4c1340` | loguea `Connect to Server`, crea el socket, conecta; si falla, loguea `Failed to connect` y va al objeto `0x70` (`0x65ee60`, `0x65fe50`); pone el serial de envío en 0 (03) |
+| los eventos | `0x4af4e0`, mensaje `0x400` | `lParam` 1 (`FD_READ`) → `0x4e88a0`; 2 (`FD_WRITE`) → `0x4e87b0`; `0x20` (`FD_CLOSE`) → un mensaje en pantalla (`0x555190`), el log, `0x4e8380` y el objeto de `0x65ee60` |
+| leer | `0x4e88a0` | un `recv` al buffer de `0x2000` (`+0x2014`, lo que hay en `+0x4014`); con 0 o -1 vuelve sin cerrar (lo cierra `FD_CLOSE`); con menos de 3 bytes espera; si no, `FoxAnti.decode_inbound` y el corte |
+| despachar | `0x4e1d50`, en cada vuelta del bucle de `WinMain`, con foco o sin él (02) | saca de la cola **todos** los paquetes (`do { pop } while`), descifra los C3/C4 y llama al dispatcher |
+| mandar | en cada emisor (por ejemplo, el keepalive de la rama `0x113` de `0x4af4e0`) | `send` en un lazo; con `WSAEWOULDBLOCK` (`0x2733`) copia lo que falta al buffer de envío (`+0x10`, el largo en `+0x2010`) si entra en `0x2000` bytes, y si no entra o con otro error, cierra (`0x4e8380`) |
+| drenar | `0x4e87b0`, con `FD_WRITE` | manda desde `buf + enviado` el largo `pendiente - enviado` con `pendiente` ya descontado: resta dos veces lo que salió, y con `WSAEWOULDBLOCK` vuelve sin correr lo que quedó al principio (Q-C11). Con otro error loguea `FD_WRITE Send Error` y cierra |
+| cerrar | `0x4e8380` | `setsockopt(SOL_SOCKET, SO_LINGER, {1, 0})`, que hace que `closesocket` corte con un RST; vacía la cola de paquetes, loguea `Socket Closed, Clear PacketQueue` y `closesocket`. Es el que corre al pasar del CS al GS (`0x4e32f2`, sub 3) |
+| cerrar, la otra | `0x4e8270` | `shutdown(sock, 1)`, `recv` hasta 0 y `closesocket`: el cierre ordenado que dice el 03; quién lo llama, sin leer |
+| el keepalive | `SetTimer(ventana, 1000, 20000)` en `0x4b9b80`; la rama `0x113` con el id 1000 (`0x3E8`) | cada 20 s, si `DAT_05767918` no es 0. Lo pone en 1 la conexión al GS que salió bien (`0x4c1b40` y el sub 3 de `F4` en `0x4e2b10`), y en 0 la creación del socket y el cierre: el timer **no mira el login** |
+| el primero | el sub 1 de `F1` con resultado 1 (`0x4e2b10`) | `DAT_05767928 = 2` y `0x4ad100`, que llama a `0x4bee60` (el keepalive) si `DAT_05763570` es 0; lo que sigue en `0x4ad100` (los `FindWindowA` de programas de trampas) es del anticheat, fuera de alcance |
+| por frame | `0x638640`, en la escena 5 | si `0x4e8560` (el socket) da -1, avisa que se cerró (02) |
+
+**Terminada cuando** (roadmap: el cliente pasa el login contra el GS del laboratorio). En concreto:
+- con un CS y un GS falsos, primero sobre un `FakeSocket` y después con sockets reales en
+  `127.0.0.1`, el cliente intercambia los bytes del cable del 04 (el `A9`, el saludo, la lista,
+  la elección, la dirección, el saludo del GS, el login, el resultado) y llega a `LoggedIn`;
+- tras el saludo `C1 04 00 01` del CS sale `C1 04 F4 02` exacto, y con FoxAnti la lista del cable
+  llega al dispatcher como `F4 06` con el código 400 y la elección sale como `C1 06 F4 03 00 00`;
+- el primer keepalive sale con el login aceptado, y después uno cada 20 s de reloj falso y no
+  antes, también minimizada; un frame de 60 s manda uno solo;
+- un envío partido en `{2, 2, -1}` no repite ni pierde bytes, y un cierre del otro lado es una
+  desconexión con su motivo en el log;
+- a mano, `Main connect /u<ip del CS> /p44405 --data <Data>` con la cuenta en las variables de la
+  pregunta 7: el log dice que el login fue aceptado y muestra un keepalive cada 20 s durante dos
+  minutos, sin que el GS corte; sin host, `Main --frames 60` sigue andando como en CI.
+
+## Preguntas para decidir al empezar
+
+1. **Quién escribe la CL4.** *Decidido (Emanuel, 2026-11-02, en la CL2): Claude escribe todo*, la
+   CL4.0 en `labs/` y los pasos `TODO(human)` incluidos, hasta que digas que participás. Las
+   preguntas 2 a 9 siguen con su recomendación mientras no digas otra cosa.
+2. **El orden de las sub-olas.** El roadmap dice CL4.1 socket, CL4.2 CS, CL4.3 GS, CL4.4
+   keepalive, desconexión y cola de envío, CL4.5 `Dispatcher`. Dos cosas no cierran: un socket no
+   bloqueante no puede mandar sin la cola (un `send` puede tomar menos de lo pedido), y el CS ya
+   despacha tres opcodes. *Recomendación:* CL4.1 socket **y cola de envío** (lo dice el 03: "el
+   envío que no entra se encola como en `FD_WRITE`"), CL4.2 `Dispatcher` (puro, sin red), CL4.3 CS,
+   CL4.4 GS y login, CL4.5 keepalive y desconexión. Cada una sigue siendo un concepto, y la fila de
+   la CL4 del roadmap se corrige con este plan.
+3. **La biblioteca de sockets (§10).** Se miraron con Context7 (2026-11-02):
+   - **asio standalone** (`/chriskohlhoff/asio`, puerto `asio` de vcpkg): solo headers sin Boost
+     (`ASIO_STANDALONE`), y `io_context::poll()` corre los handlers listos sin esperar, así que
+     entra en un frame. Pero el modelo es otro: operaciones asíncronas con handlers, buffers que
+     tienen que vivir hasta el handler, y el roadmap del servidor la deja como comparación
+     opcional (D-3, sub-ola 3.4).
+   - **SDL3_net** (`/libsdl-org/sdlwiki`, `SDL3_net/`): todo no bloqueante, `NET_CreateClient`
+     conecta en el fondo, la resolución de nombres va en hilos propios (es lo único que los
+     sockets a mano no dan), y `NET_ReadFromStreamSocket` da 0 sin datos. Pero
+     `NET_WriteToStreamSocket` **encola adentro** lo que no sale: la cola de envío, que es el
+     concepto de la CL4.1 y el arreglo de Q-C11, queda escondida. Trae SDL3 a `Network` (hoy
+     solo `ClientPlatform` lo ve), y si su versión 3 está estable y en vcpkg se confirma en el
+     paso 1 de la CL4.1.
+   - **los sockets del sistema**: seis llamadas detrás de un `SocketApi` de pocas líneas, como el
+     `NonBlockingSocket.h` de MuMain; `UniqueSocket` es justo la excepción que nombra L-3 (lo que
+     el estándar no trae y se construye), y D-3 los pide a mano en el servidor.
+
+   *Recomendación:* **los sockets del sistema**. Resuelven este problema (un socket TCP de
+   cliente que se consulta por frame) sin esconder lo que la ola enseña, y sin sumar
+   dependencias. Lo único que se pierde es la resolución en otro hilo (pregunta 5). La razón
+   queda en el header de `SocketApi.h`, como pide §10.
+4. **Dónde vive el socket.** *Recomendación:* en `ClientLib`, en `Client/src/Network/`: no es de
+   la ventana, y así `Connection` y `ServerSession` se prueban sin SDL3. En Windows `ClientLib`
+   enlaza `ws2_32`. Los tests con sockets reales usan `127.0.0.1` y un puerto que elige el sistema
+   (`bind` al 0): corren en CI en los dos sistemas, sin red de afuera.
+5. **La resolución de nombres y el `connect`.** El original resuelve con `gethostbyname`, que
+   espera, y conecta con el socket todavía bloqueante (*inferido*): el juego se congela mientras
+   tanto. *Recomendación:* `getaddrinfo` con `AF_INET`, sincrónico como el original (el
+   laboratorio usa IPs, que resuelven al instante), con lo que tardó en el log si pasa de 100 ms;
+   el `connect` sí, no bloqueante, con un `ConnectTimeout` de 10 s medido con el `IClock` del
+   bucle. MuRet no rechaza `127.0.0.1` (los tests lo usan) y un nombre que no resuelve es un error,
+   no un "conectado" (los dos van a 07 como quirks nuevos en la CL4.R).
+6. **Desde cuándo cuenta el keepalive.** El original tiene un timer de 20 s desde el arranque,
+   que manda si hay conexión al GS aunque no haya login, y además uno al aceptar el login: en el
+   cable, el segundo llegó a los 7,5 s del primero. *Recomendación:* el primero con el login
+   aceptado, como el original, y después cada 20 s **contados desde ese**, solo con el login
+   aceptado; si un frame tarda más (un breakpoint de 60 s), sale uno solo y el siguiente a los
+   20 s. Es lo que pide el test del 02 ("cada 20 s de reloj simulado y no antes"), y la diferencia
+   con el timer del original va a 07 (CL4.5).
+7. **De dónde salen la cuenta y la clave antes de la CL5.** La escena de login llega en la CL5.5.
+   *Recomendación:* dos variables de entorno, `MURET_CLIENT_ACCOUNT` y `MURET_CLIENT_PASSWORD`,
+   solo para la prueba a mano: ni en la config (un archivo con una clave) ni en la línea de
+   comandos (el
+   historial y `ps`). Sin ellas y con host, `Main` termina con un error que nombra las dos. La
+   cuenta y la clave no van al log ni tienen `operator<<` (como `LoginRequest` de la CL2.5).
+8. **Qué ofuscación por defecto.** D-C6 la elige por config según el servidor, y el único
+   servidor contra el que se prueba es el del laboratorio (pregunta 4 del roadmap).
+   *Recomendación:* `[Server] Obfuscation` con `foxanti` (por defecto) o `none`; otro valor es
+   un error que dice la línea, como el resto de la config de la CL3.4. Cuando exista un servidor
+   de MuRet, se revisa.
+9. **Qué servidor elige sin la UI.** *Recomendación:* el primero de la lista, en el orden en que
+   llega; una lista vacía es un error que lo dice. La CL5.5 lo cambia por la elección del jugador;
+   cómo agrupa y ubica `main.exe` cada servidor (P-C04) queda para esa sub-ola.
+
+## Lo que más puede morder
+
+Cada uno tiene su test en la sub-ola que lo dice. En la review se miran primero:
+
+- **`SIGPIPE` en Linux.** Un `send` a un socket que el otro lado cerró manda la señal y, por
+  defecto, mata el proceso. En Linux se manda con `MSG_NOSIGNAL`; en Windows no hay señal (CL4.1,
+  `SystemSocketTest.SendingAfterThePeerClosedDoesNotKillTheProcess`).
+- **El `connect` no bloqueante.** Vuelve con `EINPROGRESS` en Linux y con `WSAEWOULDBLOCK` en
+  Windows, y termina cuando el socket queda escribible: el resultado está en `SO_ERROR`. En
+  Windows un `connect` que falla no se ve como escribible sino en el conjunto de excepciones de
+  `select` (por eso `select` con los dos conjuntos; `WSAPoll` no lo avisaba en versiones viejas de
+  Windows), y uno rechazado en `127.0.0.1` puede tardar unos 2 s por los reintentos. El paso 2 de
+  la CL4.1 lo confirma (`AClosedPortIsRefused`, con un tope de 5 s reales).
+- **`recv` que da 0, que da -1 o que no tiene nada.** 0 es que el otro lado cerró; -1 con
+  `EWOULDBLOCK`, `EAGAIN` o `WSAEWOULDBLOCK` es "nada por ahora", y con otro error, una falla. El
+  original ignora el 0 y espera el `FD_CLOSE` (CL4.1).
+- **Un envío partido.** `send` puede tomar 2 bytes de 10; el original, con Q-C11, repite lo que ya
+  salió y pierde la cola. La `SendQueue` lleva un cursor y lo prueba con `{2, 2, -1}` (CL4.1). Una
+  cola que pasa de `0x2000` bytes cierra la conexión, como el original (`SendQueueFull`).
+- **Pasar del CS al GS.** El socket se cierra antes de abrir el otro, los seriales vuelven a 0
+  (`0x4c1340`) y lo que quedó a medio cortar del CS no se mezcla con el GS: el `PacketReader`
+  vuelve a empezar (CL4.3, `ReopeningStartsClean`).
+- **Un frame largo.** Un breakpoint de 60 s no manda tres keepalives seguidos (CL4.5), y un
+  `connect` que tarda no congela el frame más que la resolución del nombre (pregunta 5).
+- **La red en el modo fiel.** El `Poll()` va antes de `BeginFrame`, fuera de la medición, como el
+  bucle de mensajes del original: con polls de 20 ms el juego se frena (48 frames y 56 pasos en 3 s,
+  no 64 y 74). Si quedara adentro, el modo fiel mediría de más (CL4.1,
+  `FaithfulDoesNotMeasureThePoll`).
+- **La cuenta y la clave.** Nunca al log ni a la salida de un test que falla: los tests comparan
+  los bytes descifrados con `SameBytes`, que no imprime el contenido, y el log dice "login mandado"
+  sin la cuenta (CL4.4).
+- **Un paquete malo no siempre corta.** Un error del corte (`PacketReader`) cierra la conexión,
+  porque se perdió dónde empieza el siguiente; un `InvalidPacket` de FoxAnti o un C3 que no
+  descifra se descartan y la conexión sigue (CL4.3 y CL4.4).
+
+---
+
+## Sub-ola CL4.0: sockets no bloqueantes (N.0, en `labs/`)
+
+**Concepto:**
+- un socket TCP de cliente: `socket`, `connect`, `send`, `recv`, `close`; qué hace cada uno cuando
+  es bloqueante y cuando no, y por qué un cliente con una sola conexión no necesita hilos ni IOCP
+  (D-C5): le alcanza con preguntar una vez por frame;
+- el `connect` no bloqueante como una máquina de estados: en curso, conectado o rechazado, y
+  `SO_ERROR` para saber cuál;
+- "probá más tarde" (`EWOULDBLOCK`, `EAGAIN`, `WSAEWOULDBLOCK`) contra un error de verdad, y
+  `recv` que da 0 (el otro lado mandó su FIN);
+- un `send` que toma menos de lo pedido, y la cola con cursor que manda el resto después;
+- los estados de una conexión: cerrada, conectando, abierta, y los motivos para volver a cerrada.
+
+Del C++: RAII sobre un descriptor del sistema (el destructor cierra, se mueve y no se copia), un
+`#ifdef _WIN32` en un solo archivo, `std::span` sobre el buffer de `send` y `recv`.
+
+**Archivos:**
+- Crear: `docs/learning/ola-cl4.0-sockets-no-bloqueantes.md` (la guía; Claude)
+- Crear: `labs/cl4.0-sockets/LabSocket.h/.cpp` (el socket con RAII y el `#ifdef`),
+  `LoopbackPair.h/.cpp` (un listener y un cliente en `127.0.0.1`, los dos no bloqueantes),
+  `DrainQueue.h/.cpp`, sus tests (`test_loopback_pair.cpp`, `test_drain_queue.cpp`), `README.md`
+  y `jefe/test_original_drain.cpp` (Emanuel)
+- Modificar: `labs/CMakeLists.txt` (la biblioteca `MuRetLabsCl40`, que en Windows enlaza `ws2_32`,
+  y el ejecutable `LabCl40Tests` con `gtest_discover_tests(... TEST_PREFIX "LabCl40.")`, como
+  `LabCl30Tests`), `labs/README.md`
+
+- [ ] **Paso 1 (Claude):** la guía, justo antes de empezar.
+- [ ] **Paso 2 (Emanuel, `TODO(human)`):** `Labs::LabSocket`, RAII: uno movido queda vacío, el
+  destructor cierra, y `SetNonBlocking`. Primero los tests: un socket movido no cierra el
+  descriptor que se llevó el otro; `bind` a `127.0.0.1:0` y `getsockname` dan un puerto distinto
+  de 0.
+- [ ] **Paso 3 (Emanuel):** `Labs::LoopbackPair`: un listener en `127.0.0.1:0` y un cliente que
+  conecta sin bloquear. Tests: el `connect` vuelve enseguida (en curso o ya conectado); después del
+  `accept` el cliente queda escribible y `SO_ERROR` da 0; un `recv` sin nada da "probá más tarde";
+  5 bytes mandados de un lado llegan los 5 del otro; cerrar un lado hace que el otro lea 0.
+- [ ] **Paso 4 (Emanuel):** un puerto cerrado (un listener que se abre, se mira su puerto y se
+  cierra): el `connect` termina con `ECONNREFUSED` o `WSAECONNREFUSED` en `SO_ERROR`. En Windows
+  puede tardar unos 2 s: el test espera hasta 5 s reales.
+- [ ] **Paso 5 (Emanuel, jefe, Q-C11):** el drenaje de `0x4e87b0` como está en el decompilado,
+  contra una cola con cursor, los dos sobre un `send` falso que acepta lo que dice un guion. Con un
+  buffer `00 01 02 … 09` y el guion `{2, 2, -1}` (el -1 es `WSAEWOULDBLOCK`) y después "todo", el
+  original manda `00 01 02 03` en la primera vuelta y `00 01 02 03 04 05` en la segunda: al cable
+  van `00 01 02 03 00 01 02 03 04 05`, con `00..03` repetidos y `06..09` perdidos (*análisis* del
+  decompilado: la segunda llamada pide `8 - 2 = 6` en vez de 8, y la tercera vuelve sin correr el
+  buffer). La cola con cursor manda `00..09` una vez. El test dice los dos.
+- [ ] **Paso 6 (Emanuel; lo anota en `labs/README.md`):** comparar un socket por frame con un hilo
+  por conexión y con IOCP o epoll (qué gana cada uno y con cuántas conexiones), y `select` contra
+  `poll` y `WSAPoll` para saber si un `connect` terminó.
+- [ ] **Paso 7:** verificar:
+  ```bash
+  cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "LabCl40"
+  ```
+
+## Sub-ola CL4.R: la conexión del original, en el binario (P-C11, Q-C11)
+
+**Concepto:** carril R antes de copiar el comportamiento. La tabla "Lo que dice el binario de la
+red" salió del decompilado; esta sub-ola la confirma en el desensamblado, cierra lo que la CL4
+necesita y lo pasa al research. Lo que no hace falta para el login (P-C04) queda para la CL5.5.
+
+**Archivos:** modificar `Client/docs/research/03-red-y-cifrado.md` (los sockets: el `connect`,
+los eventos, el envío y los dos cierres), `04-protocolo.md` (el `A9` y el keepalive),
+`02-arranque-y-ciclo-de-vida.md` (el timer de 20 s), `07-quirks-y-bugs.md` (Q-C11 con los bytes,
+Q-C16 y los quirks nuevos), `08-pendientes.md` (P-C11 y P-C05), PROGRESS y este plan.
+
+- [ ] **Paso 1 (P-C11, Q-C16):** el `A9`. Leer `0x415be0`, `0x422990` y `0x424230` y sus
+  llamadores: cuál corre al conectar al CS (el `A9 00 00 01` que sale antes del saludo en las 64
+  conexiones del `muproxy.log`) y cuál en el GS (`A9 01 00 08`, diez veces en la sesión real), y
+  qué son sus tres bytes. Si no se sabe qué son, se reproducen tal cual (07): el del CS en la
+  CL4.3, y el del GS en la CL4.4 si sale antes del login aceptado; si sale después, en su ola.
+- [ ] **Paso 2 (el `connect`):** en `0x4e8570`, el orden de `connect` y `WSAAsyncSelect` (si el
+  `connect` espera), el rechazo de `7F 00 00 01` y el 2 de un nombre que no resuelve, que
+  `0x4c1340` no trata como error. Dos quirks nuevos en 07, con lo que hace MuRet (pregunta 5).
+- [ ] **Paso 3 (los cierres):** `0x4e8380` con `SO_LINGER {1, 0}` (corta con un RST) y `0x4e8270`
+  con `shutdown` y el drenaje: quién llama a cada uno. Corregir el 03, que los da a los dos como
+  "cierre ordenado".
+- [ ] **Paso 4 (Q-C11):** en el desensamblado de `0x4e87b0`, la resta doble y la vuelta con
+  `WSAEWOULDBLOCK` sin correr el buffer: pasar a 07 los bytes del paso 5 de la CL4.0 en vez de
+  "aritmética anómala". En el envío en línea del keepalive (`0x4af4e0`, alrededor de
+  `0x4b1664`), confirmar qué copia al buffer de envío con `WSAEWOULDBLOCK` después de un envío
+  parcial: el decompilado muestra el principio del paquete con el largo de lo que falta, y si es
+  así, es el mismo defecto.
+- [ ] **Paso 5 (la lectura y el cierre del otro lado):** en `0x4e88a0`, que un `recv` de 0 o de -1
+  vuelve sin cerrar, y la rama `FD_CLOSE` del mensaje `0x400`: qué muestra (`0x555190`, el objeto
+  de `0x65ee60`).
+- [ ] **Paso 6 (el keepalive):** el `SetTimer(ventana, 1000, 20000)` de `0x4b9b80` (si es
+  `WinMain` y cuándo corre), que la rama `0x113` solo mira `DAT_05767918` (puesto en 1 al conectar
+  al GS) y no el login, qué es `DAT_05763570` en `0x4ad100`, y qué velocidades manda `0x4bee60`
+  antes de que haya un personaje. Pasarlo al 04 y al 02, y el quirk de la pregunta 6 a 07.
+- [ ] **Paso 7:** el research queda con *estático* o *inferido* en cada cosa, y la tabla de este
+  plan se corrige con lo que haya cambiado.
+
+## Sub-ola CL4.1: socket no bloqueante portable consultado por el bucle
+
+**Concepto:** E/S no bloqueante detrás de una interfaz chica, con una implementación del sistema y
+una falsa para los tests; la cola de lo que no salió; y la consulta por frame en el `GameLoop`. Va
+en dos PRs: **PR A**, el socket (`ISocket`, `SystemSocket`, `FakeSocket`, `LoopbackServer`);
+**PR B**, la `SendQueue` y el `Poll()` del bucle.
+
+**Contrato** (03 § Sockets, la tabla de arriba y Q-C11):
+
+| Qué | Original | MuRet |
+| --- | --- | --- |
+| iniciar | `WSAStartup` la primera vez que conecta (`0x4e81b0`) | `SocketApi::NetworkInit` con RAII (`WSAStartup(MAKEWORD(2, 2))` y `WSACleanup` en Windows, nada en Linux); lo crea `main.cpp`, y cada test con sockets el suyo (`WSAStartup` cuenta las llamadas) |
+| crear | `socket(2, 1, 0)` (`0x4e82e0`) | lo mismo, IPv4 y TCP, y no bloqueante desde el principio |
+| resolver | `inet_addr`, o `gethostbyname` que espera (`0x4e8570`) | `getaddrinfo` con `AF_INET`, que espera (pregunta 5); `ResolveFailed` si no da nada |
+| conectar | bloqueante (*inferido*), después `WSAAsyncSelect(…, 0x400, 0x23)` | `StartConnect` vuelve enseguida y `PollConnect` dice si terminó, una vez por frame |
+| `127.0.0.1` | se rechaza (`0x4e8570`) | se acepta |
+| leer | un `recv` de hasta `0x2000` por `FD_READ` (`0x4e88a0`) | `Receive` da lo que haya, 0 si no hay nada; `Closed` si el otro lado cerró |
+| mandar | `send` en línea; lo que no sale va al buffer de `0x2000` o cierra | `Send` da cuánto tomó, 0 si no tomó nada; lo que falta va a la `SendQueue` (PR B) |
+| drenar | `FD_WRITE` con Q-C11 | `SendQueue::Flush` con un cursor, en cada `Poll` |
+| tope de la cola | `0x2000` bytes (`< 0x2001`); si no entra, cierra | `MaxPendingSend = 0x2000`; si no entra, `SendQueueError::Full`, y la `Connection` cierra con `SendQueueFull` (CL4.3) |
+| `SIGPIPE` | no aplica (Windows) | `MSG_NOSIGNAL` en Linux |
+| cerrar | `SO_LINGER {1, 0}` y `closesocket` (`0x4e8380`) | `close` o `closesocket` normal, sin el RST (CL4.R, paso 3) |
+| por frame | la cola se despacha en cada vuelta del bucle de `WinMain`, con foco o sin él (`0x4e1d50`) | `ILoopClient::Poll()` una vez por `RunFrame`, antes de los pasos, también minimizada; en el modo fiel, antes de `BeginFrame` y fuera de la medición |
+
+**Archivos:**
+- **PR A:** crear `Client/src/Network/SocketApi.h/.cpp` (el único `#ifdef _WIN32`, y la razón de
+  §10 en el header), `Endpoint.h`, `SocketError.h`, `ISocket.h`, `SystemSocket.h/.cpp`;
+  `Client/tests/support/FakeSocket.h/.cpp` y `LoopbackServer.h/.cpp`, con
+  `Client/tests/support/test_fake_socket.cpp`, y `Client/tests/network/test_system_socket.cpp`.
+  Modificar `Client/CMakeLists.txt` (`ws2_32` en Windows), PROGRESS y este plan.
+- **PR B:** crear `Client/src/Network/SendQueue.h/.cpp` y
+  `Client/tests/network/test_send_queue.cpp`. Modificar `Client/src/App/GameLoop.h/.cpp`
+  (`ILoopClient::Poll()`), `Client/tests/support/RecordingClient.h/.cpp` (anota el orden de las
+  llamadas y puede hacer tardar al poll), `Client/tests/app/test_game_loop.cpp`, `main.cpp` (un
+  `Poll()` vacío), 07 (Q-C11 con su test), PROGRESS y este plan.
+
+**Interfaces:**
+
+```cpp
+namespace Client::Network
+{
+// Adónde conectarse: un nombre o una IPv4 en texto, y el puerto.
+struct Endpoint
+{
+    std::string host;
+    std::uint16_t port = 0;
+};
+
+enum class SocketError : std::uint8_t
+{
+    ResolveFailed, // getaddrinfo no dio ninguna IPv4
+    Refused,       // el otro lado rechazó la conexión
+    Closed,        // el otro lado cerró: recv dio 0
+    Failed,        // otro error del sistema: LastSystemError() lo dice, para el log
+};
+
+enum class ConnectProgress : std::uint8_t
+{
+    InProgress,
+    Connected,
+};
+
+// Un socket TCP de cliente que nunca espera, salvo al resolver el nombre (pregunta 5). Se puede
+// volver a conectar después de Close().
+class ISocket
+{
+public:
+    virtual ~ISocket() = default;
+    // Crea el socket, lo pone no bloqueante y empieza a conectar. std::nullopt si arrancó.
+    [[nodiscard]] virtual std::optional<SocketError> StartConnect(const Endpoint& endpoint) = 0;
+    // Si el connect terminó: select con tiempo 0, y SO_ERROR para el resultado.
+    [[nodiscard]] virtual Core::Expected<ConnectProgress, SocketError> PollConnect() = 0;
+    // Lo que haya, hasta buffer.size(); 0 si no llegó nada.
+    [[nodiscard]] virtual Core::Expected<std::size_t, SocketError> Receive(std::span<std::byte> buffer) = 0;
+    // Cuánto tomó el sistema, de 0 a bytes.size().
+    [[nodiscard]] virtual Core::Expected<std::size_t, SocketError> Send(std::span<const std::byte> bytes) = 0;
+    virtual void Close() = 0;
+    [[nodiscard]] virtual bool IsOpen() const = 0;
+    // El errno o el WSAGetLastError del último Failed, para el log.
+    [[nodiscard]] virtual int LastSystemError() const = 0;
+};
+
+class SystemSocket final : public ISocket { /* SocketApi::Handle m_handle; int m_lastError; */ };
+
+// El envío que no entró en el socket, con un cursor: lo que salió no se vuelve a mandar (Q-C11).
+// El buffer de envío del original mide 0x2000 (+0x10, el largo en +0x2010, en 0x4e87b0).
+inline constexpr std::size_t MaxPendingSend = 0x2000;
+
+enum class SendQueueError : std::uint8_t
+{
+    Full,   // lo pendiente más lo nuevo pasa de MaxPendingSend: el original cierra
+    Socket, // el socket falló: SocketError en LastSocketError()
+};
+
+class SendQueue
+{
+public:
+    // Agrega `bytes` detrás de lo pendiente, o Full sin agregar nada.
+    [[nodiscard]] std::optional<SendQueueError> Push(std::span<const std::byte> bytes);
+    // Manda lo que el socket tome, desde el cursor, hasta que no tome más.
+    [[nodiscard]] std::optional<SendQueueError> Flush(ISocket& socket);
+    [[nodiscard]] std::size_t Pending() const;
+    void Clear();
+};
+} // namespace Client::Network
+
+namespace Client::App
+{
+// La CL3.2 con un llamado más: Poll, una vez por frame, antes de los pasos.
+class ILoopClient
+{
+public:
+    virtual ~ILoopClient() = default;
+    virtual void Poll() = 0;   // la red: corre también minimizada
+    virtual void Step() = 0;
+    virtual void Render(float alpha) = 0;
+};
+} // namespace Client::App
+```
+
+El falso y el servidor de prueba (`Client/tests/support/`):
+
+```cpp
+namespace Client::Tests
+{
+// Un ISocket que sigue un guion: cuántos PollConnect quedan en curso y cómo terminan, qué trae
+// cada Receive (una lectura por entrada, como llegan del cable) y cuánto toma cada Send.
+class FakeSocket final : public Network::ISocket
+{
+public:
+    int pollsUntilConnected = 0;
+    std::optional<Network::SocketError> connectResult; // vacío: Connected
+    std::deque<std::vector<std::byte>> reads;           // vacío: Receive da 0
+    std::deque<std::optional<std::size_t>> sendLimits;  // vacío: toma todo; nullopt: toma 0
+    bool peerClosed = false;                            // Receive da Closed cuando no hay más reads
+    std::vector<std::byte> sent;                        // todo lo que tomó Send, en orden
+    std::vector<Network::Endpoint> connects;            // cada StartConnect
+    int closes = 0;
+    // … los override
+};
+
+// Un listener de verdad en 127.0.0.1, puerto elegido por el sistema, no bloqueante, que el test
+// consulta en el mismo hilo que el cliente: sin hilos y sin esperas.
+class LoopbackServer
+{
+public:
+    LoopbackServer();
+    [[nodiscard]] std::uint16_t Port() const;
+    [[nodiscard]] bool Accept();                // true si hay un cliente nuevo
+    [[nodiscard]] std::vector<std::byte> Read(); // lo que haya del cliente
+    void Write(std::span<const std::byte> bytes);
+    void CloseClient();
+};
+} // namespace Client::Tests
+```
+
+- [ ] **Paso 1 (PR A, §10):** con Context7, confirmar la pregunta 3: `SDL3_net` (si su versión 3
+  está estable y en vcpkg, y que `NET_WriteToStreamSocket` encola adentro) y asio standalone (el
+  puerto `asio` y `io_context::poll`). Si la recomendación sigue, la razón va al header de
+  `SocketApi.h`; si no, se vuelve a la pregunta antes de escribir.
+- [ ] **Paso 2 (Emanuel, `TODO(human)`):** antes de los tests, la tabla de lo que da cada llamada
+  del sistema en Linux y en Windows: `connect` no bloqueante (`EINPROGRESS` y `WSAEWOULDBLOCK`),
+  "probá más tarde" en `recv` y `send` (`EWOULDBLOCK`, `EAGAIN`, `WSAEWOULDBLOCK`), un rechazo
+  (`ECONNREFUSED`, `WSAECONNREFUSED`), el otro lado que cerró (`recv` 0, y `send` con `EPIPE` o
+  `WSAECONNRESET`), y cómo se ve un `connect` que falló en `select` (escribible en Linux, en las
+  excepciones en Windows).
+- [ ] **Paso 3 (PR A):** los tests:
+  - `SystemSocketTest.ConnectsToALoopbackListener`: `StartConnect` a `127.0.0.1` y el puerto del
+    `LoopbackServer`; consultando `PollConnect` y `Accept` en el mismo lazo, `Connected` antes de
+    100 vueltas;
+  - `SystemSocketTest.ReceiveWithNothingIsZero` (0 bytes, sin error),
+    `SendsAndReceivesBytes` (`C1 04 F4 02` del cliente llega igual al servidor, y `C1 04 00 01`
+    del servidor llega igual al cliente), `APeerThatClosesIsClosed` (`CloseClient`: `Receive` da
+    `Closed`), `AClosedPortIsRefused` (`Refused`, con un tope de 5 s reales),
+    `AnUnknownHostFailsToResolve` (`nombre.invalid`, que no resuelve nunca: `ResolveFailed`),
+    `SendingAfterThePeerClosedDoesNotKillTheProcess` (después de `CloseClient`, diez `Send` de
+    1.024 bytes: alguno da `Failed` o `Closed`, y el test sigue vivo), `AMovedSocketIsClosed` y
+    `CanConnectAgainAfterClose`;
+  - `FakeSocketTest.FollowsTheScript`: dos `PollConnect` en curso y después conectado; dos
+    `reads` salen en dos `Receive`; un límite de 2 toma 2.
+- [ ] **Paso 4 (PR A):** `SocketApi`, `SystemSocket`, `FakeSocket` y `LoopbackServer`.
+- [ ] **Paso 5 (PR B):** los tests:
+  - `SendQueueTest.SendsEverythingWhenTheSocketTakesIt` (10 bytes, un `Flush`, 0 pendientes);
+  - `SendQueueTest.PartialSendsKeepTheOrder` (Q-C11): `00..09` con `{2, 2, nullopt}`: el primer
+    `Flush` deja 6 pendientes y `sent` es `00 01 02 03`; el segundo, sin límites, deja 0 y `sent`
+    es `00..09` (el original daría `00 01 02 03 00 01 02 03 04 05`, CL4.0);
+  - `SendQueueTest.FillsUpToTheOriginalBuffer`: `0x2000` bytes entran; uno más da `Full` y no se
+    agrega;
+  - `SendQueueTest.ASocketErrorIsReported` (`Socket`, y lo pendiente queda);
+  - `GameLoopTest.PollsOncePerFrameBeforeTheSteps`: el segundo frame, 80 ms después del primero
+    (que solo fija el inicio), anota `Poll`, `Step`, `Step`, `Render`;
+  - `GameLoopTest.PollsWhileMinimized`: minimizada, 26 `RunFrame` dan 26 `Poll`, 25 pasos y 0
+    dibujos;
+  - `GameLoopTest.FaithfulDoesNotMeasureThePoll`: en el modo fiel, con polls de 20 ms y llamando a
+    `RunFrame` mientras `Now()` sea menor que 3 s, 48 frames y 56 pasos (midiendo el poll serían
+    64 y 74, como sin poll); con polls de 10 ms, que no cruzan un tick, 64 y 74.
+- [ ] **Paso 6 (PR B):** `SendQueue` y el `Poll()` en `GameLoop` y en `RecordingClient`; 07, Q-C11
+  con `SendQueueTest.PartialSendsKeepTheOrder` y el jefe de la CL4.0.
+- [ ] **Paso 7:** verificar:
+  ```bash
+  cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "Socket|SendQueue|GameLoop"
+  ```
+
+## Sub-ola CL4.2: `Dispatcher` y el opcode desconocido
+
+**Concepto:** una tabla de despacho en vez de un `switch` de 10 KB: opcode → handler, con un
+segundo nivel por subcódigo, y lo que no tiene handler al log una vez. Puro, sin red: se prueba con
+paquetes armados en el test.
+
+**Contrato** (04 § El dispatcher `0x4e2b10`):
+
+| Qué | Original | MuRet |
+| --- | --- | --- |
+| forma | un `switch` de tres niveles en una función: el opcode (`0x4E5D90[245]` → `0x4E5B58`), `pkt[3]` para `0xF1` y `pkt[4]` debajo | `Protocol::Dispatcher`: un handler por opcode, o por opcode y subcódigo; el tercer nivel lo lee el handler (como el resultado del login, `ReadLoginResult`) |
+| el opcode | `pkt[2]` en un C1, `pkt[3]` en un C2 | `Packet::Opcode()` (CL2.1) |
+| el subcódigo | `F3` y `F4` lo toman de `pkt[3]` en un C1 y de `pkt[4]` en un C2 | el byte que sigue al opcode, en cualquier opcode registrado con subcódigos |
+| sin handler | 104 opcodes caen al default `0x4E5B4A` sin avisar | `Unknown`, y una línea de aviso la primera vez de cada opcode (o de cada opcode y subcódigo), sin los bytes |
+| sin subcódigo | lee `pkt[3]` o `pkt[4]` haya llegado o no (Q-C42) | `Malformed` si el paquete termina en el opcode |
+| el cuarto argumento | lo pasa FoxAnti; algunos handlers solo responden si vale 0 (*inferido*) | no está: Protocol no sabe de la ofuscación. Si un handler de la CL9 lo necesita, se mira ahí |
+| un solo dispatcher | el opcode `00` es el saludo con la escena en 2 y el chat en el juego (`0x4e33e4`) | un `Dispatcher` por servidor (CL4.3): el del CS y el del GS registran cada uno lo suyo |
+
+**Archivos:** crear `Client/src/Protocol/Dispatcher.h/.cpp` y
+`Client/tests/protocol/test_dispatcher.cpp`. Modificar PROGRESS y este plan.
+
+**Interfaces:**
+
+```cpp
+namespace Client::Protocol
+{
+// Lo que recibe un handler: el C1/C2 entero, con su cabecera, ya descifrado y traducido.
+using Handler = std::function<void(const Network::Packet& packet)>;
+
+enum class DispatchResult : std::uint8_t
+{
+    Handled,
+    Unknown,   // sin handler: el aviso va al log la primera vez
+    Malformed, // un C3/C4, o un opcode con subcódigos en un paquete que termina en el opcode
+};
+
+class Dispatcher
+{
+public:
+    explicit Dispatcher(Core::Log& log);
+    // Un handler para todo el opcode. false si ya había uno (para el opcode o sus subcódigos): no
+    // se pisa, porque registrar dos veces es un error de quien arma la tabla.
+    [[nodiscard]] bool On(std::uint8_t opcode, Handler handler);
+    // Un handler para el opcode y el byte que lo sigue.
+    [[nodiscard]] bool On(std::uint8_t opcode, std::uint8_t subcode, Handler handler);
+    DispatchResult Dispatch(const Network::Packet& packet);
+};
+} // namespace Client::Protocol
+```
+
+- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, la tabla: para `C1 04 F4 02`,
+  `C2 00 0B F4 06 00 01 90 01 00 00`, `C1 05 F1 01 01`, `C1 0C F1 00 …`, `C1 04 0E 00`,
+  `C1 03 F1` y un C3, qué opcode y qué subcódigo lee el original y qué lee el `Dispatcher`.
+- [ ] **Paso 2:** los tests:
+  - `DispatcherTest.CallsTheHandlerOfTheOpcode` (`C1 04 0E 00` con un handler para `0E`: lo
+    llama una vez con el paquete entero);
+  - `DispatcherTest.RoutesBySubcode` (`C1 05 F1 01 01` va al de `F1 01` y no al de `F1 00`);
+  - `DispatcherTest.TheSubcodeOfAC2IsAfterItsOpcode` (`C2 00 0B F4 06 …` va al de `F4 06`);
+  - `DispatcherTest.AnUnknownOpcodeIsLoggedOnce` (dos `C1 04 99 00`: los dos `Unknown` y una sola
+    línea de aviso, que nombra el `99` y no trae los bytes);
+  - `DispatcherTest.AnUnknownSubcodeIsLoggedOnce` (`C1 05 F1 7F 00` dos veces: una línea);
+  - `DispatcherTest.AnOpcodeWithoutItsSubcodeIsMalformed` (`C1 03 F1`, con `F1` registrado con
+    subcódigos);
+  - `DispatcherTest.AnEncryptedPacketIsMalformed` (un C3);
+  - `DispatcherTest.RegisteringTwiceKeepsTheFirst` (el segundo `On` da `false` y despacha el
+    primero; también un `On(F1)` después de un `On(F1, 01)`).
+- [ ] **Paso 3:** `Dispatcher`.
+- [ ] **Paso 4:** verificar:
+  ```bash
+  cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "Dispatcher"
+  ```
+
+## Sub-ola CL4.3: ConnectServer: saludo, lista e IP del GS
+
+**Concepto:** los estados de una conexión y de un protocolo con turnos: conectar, mandar, esperar
+la respuesta que corresponde, y pasar a otro servidor. Va en dos PRs: **PR A**, la `Connection`
+(el camino de un paquete en claro: el socket, el corte, `AfterCut`, `BeforeDispatch`,
+`BeforeSend` y la cola); **PR B**, la `ServerSession` hasta la dirección del GS, y la config.
+
+**Contrato** (04 § El flujo de conexión, los bytes del cable; 03 § La capa de FoxAnti):
+
+| Paso | Original | MuRet |
+| --- | --- | --- |
+| conectar | `0x4c1340` con el host y el puerto del CS (el compilado, el del launcher o el de FoxAnti) | `Connection::Open` con `[Server] Host` y `Port`, o `/u /p` (CL3.4); el `ConnectTimeout` de la pregunta 5 |
+| el `A9` | `C1 06 A9 00 00 01` con XOR32 antes del saludo (`C1 06 A9 20 9C 2F` en el cable); qué es, sin saber (Q-C16) | igual, al quedar abierta la conexión, con lo que diga la CL4.R |
+| el saludo | `C1 04 00 01`; con la escena en 2, loguea `Send Request Server List` (`0x4e33e4`) | el handler del `00` en el dispatcher del CS |
+| pedir la lista | `C1 04 F4 02` en claro (`0x4c6070`); en 8 de 64 conexiones sale dos veces | `WriteServerListRequest()` (CL2.5), una vez por saludo |
+| la lista | `C2 00 0A F4 02 01 00 00 00 CC` en el cable; FoxAnti la pasa a `C2 00 0B F4 06 00 01 90 01 00 00` | `AfterCut` de la `Connection`, y `ReadServerList` da `{400, carga 0}` |
+| elegir | `C1 06 F4 03 90 01`; FoxAnti resta 400 y sale `C1 06 F4 03 00 00` | el primero de la lista (pregunta 9): `WriteServerSelect(400)` y `BeforeSend` |
+| la dirección | `C1 16 F4 03 <IP:16> <puerto:2>`: `"172.16.198.1"` y `0xDA5D` = 55901; loguea, cierra el CS (`0x4e8380`) y conecta al GS (`0x4c1340`) | `ReadServerAddress`; `Close`, y la sesión pasa a `ConnectingGameServer` (CL4.4) |
+| un paquete que no se traduce | FoxAnti no valida los largos (Q-C09) | `InvalidPacket`: se descarta con un aviso y se sigue leyendo |
+| el corte | Q-C03, Q-C38 a Q-C40 | un error del `PacketReader` cierra con `BadStream` |
+
+**Archivos:**
+- **PR A:** crear `Client/src/Network/Connection.h/.cpp`, `CloseReason.h` y `Delivery.h` (el
+  `Delivery` de `Protocol/Outgoing.h` baja a Network, porque la `Connection` lo necesita y Network
+  no ve a Protocol; `Outgoing` lo usa desde ahí); `Client/tests/network/test_connection.cpp`.
+  Modificar `Client/src/Protocol/Outgoing.h/.cpp` y quien use `Protocol::Delivery`, PROGRESS y
+  este plan.
+- **PR B:** crear `Client/src/App/ServerSession.h/.cpp`, `Client/src/Protocol/Connection/A9.h/.cpp`
+  (`WriteA9`: el nombre es el del opcode hasta que la CL4.R diga qué es),
+  `Client/tests/app/test_server_session.cpp` y `Client/tests/protocol/test_a9.cpp`. Modificar
+  `Protocol/Connection/Opcodes.h` (el `00` del saludo del CS y el `A9`), `App/Config.h/.cpp` y su
+  test (`[Server] Obfuscation`, pregunta 8), `Client/README.md`, PROGRESS y este plan.
+
+**Interfaces:**
+
+```cpp
+namespace Client::Network
+{
+// Cómo sale un paquete: venía en Protocol/Outgoing.h (CL2.5).
+enum class Delivery : std::uint8_t { Clear, Encrypted };
+
+// Por qué se cerró una conexión, para el log y para la sesión.
+enum class CloseReason : std::uint8_t
+{
+    ByClient,        // Close()
+    ResolveFailed,
+    Refused,
+    ConnectTimedOut, // ConnectTimeout sin terminar de conectar
+    PeerClosed,      // el otro lado cerró
+    SocketFailed,    // otro error del socket
+    BadStream,       // el PacketReader perdió el corte
+    SendQueueFull,   // lo pendiente pasó de MaxPendingSend
+};
+
+// Pregunta 5: lo que se espera a que termine un connect. El original no tiene uno propio.
+inline constexpr Core::Duration ConnectTimeout = std::chrono::seconds{10};
+// Lo que se lee por vuelta de Poll: lecturas de 0x2000 (el buffer de recv del original, 0x4e88af)
+// hasta que no haya más o hasta 8, para acotar el trabajo de un frame. Decisión de MuRet.
+inline constexpr std::size_t ReceiveChunkSize = 0x2000;
+inline constexpr int MaxReadsPerPoll = 8;
+
+enum class LinkState : std::uint8_t { Closed, Connecting, Open };
+
+// Las claves de los C3/C4 con el GameServer: Enc1.dat para lo que sale, Dec2.dat para lo que llega.
+struct ConnectionKeys
+{
+    Crypto::EncryptionKey encryption;
+    Crypto::DecryptionKey decryption;
+};
+
+// Un C3/C4 que llegó y no se despacha (CL4.4): quien usa la conexión decide si manda el F1 03.
+struct Undecryptable
+{
+    Crypto::CryptoError error;
+};
+using Incoming = std::variant<Packet, Undecryptable>;
+
+// El camino de un paquete por una conexión, en el orden del original (03, "Cadena de recepción" e
+// IObfuscation.h). El socket, la ofuscación, el reloj y el log son de quien la arma y viven más.
+class Connection
+{
+public:
+    Connection(ISocket& socket, const IObfuscation& obfuscation, Core::IClock& clock, Core::Log& log);
+    // Cierra lo que haya, vacía el corte, la cola y los seriales, y empieza a conectar. Con claves,
+    // descifra los C3/C4 y cifra lo que va Encrypted (CL4.4); sin ellas, un C3/C4 es Undecryptable.
+    void Open(const Endpoint& endpoint, std::optional<ConnectionKeys> keys);
+    // Una vez por frame: termina de conectar o vence el ConnectTimeout, manda lo encolado, lee,
+    // corta, traduce y descifra. Lo que llegó, en orden.
+    [[nodiscard]] std::vector<Incoming> Poll();
+    // XOR32 ya aplicado si lo lleva (Protocol). Cifra si es Encrypted, pasa por BeforeSend, encola y
+    // trata de mandar enseguida, como el original. Antes de Open, o cerrada, se descarta con un aviso.
+    void Send(Packet packet, Delivery delivery);
+    void Close();
+    [[nodiscard]] LinkState State() const;
+    [[nodiscard]] std::optional<CloseReason> LastCloseReason() const;
+};
+} // namespace Client::Network
+
+namespace Client::App
+{
+// Sin operator<<: no se imprimen nunca (pregunta 7).
+struct Credentials
+{
+    std::string account;
+    std::string password;
+};
+
+enum class SessionState : std::uint8_t
+{
+    Idle,
+    ConnectingConnectServer,
+    WaitingConnectHello,  // el A9 salió; se espera C1 04 00 01
+    WaitingServerList,    // F4 02 salió
+    WaitingServerAddress, // F4 03 salió
+    ConnectingGameServer, // CL4.4
+    WaitingGameHello,     // CL4.4
+    WaitingLoginResult,   // CL4.4
+    LoggedIn,             // CL4.5: el keepalive corre
+    Failed,
+};
+
+enum class SessionFailure : std::uint8_t
+{
+    ConnectServerLost,  // con el CloseReason de la conexión
+    EmptyServerList,
+    GameServerLost,     // CL4.4
+    HelloRejected,      // CL4.4
+    VersionMismatch,    // CL4.4
+    LoginRejected,      // CL4.4, con el resultado
+};
+
+struct SessionSettings
+{
+    Network::Endpoint connectServer;
+    Credentials credentials;
+};
+
+class ServerSession
+{
+public:
+    ServerSession(Network::Connection& connection, Core::IClock& clock, Core::Log& log,
+                  Network::ConnectionKeys keys, SessionSettings settings);
+    void Start(); // conecta al CS
+    void Poll();  // una vez por frame, desde ILoopClient::Poll
+    [[nodiscard]] SessionState State() const;
+    [[nodiscard]] std::optional<SessionFailure> Failure() const;
+    [[nodiscard]] std::optional<Network::Endpoint> GameServer() const; // la dirección del F4 03
+};
+} // namespace Client::App
+```
+
+- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, el diagrama de estados de la
+  `ServerSession` del CS: qué paquete espera cada estado, qué manda al recibirlo, a qué estado
+  pasa, y qué hace con un paquete que no espera (se ignora con un aviso) y con un cierre
+  (`Failed`).
+- [ ] **Paso 2 (PR A):** los tests de `Connection`, con `FakeSocket`, `FakeClock` y un `LogSink`
+  de prueba:
+  - `ConnectionTest.OpensWhenTheSocketConnects` (`pollsUntilConnected = 2`: `Connecting`,
+    `Connecting`, `Open`);
+  - `ConnectionTest.AConnectThatTakesTooLongTimesOut` (en curso para siempre: a los 9,999 s sigue
+    `Connecting`, a los 10 s `Closed` con `ConnectTimedOut`);
+  - `ConnectionTest.WhatIsSentWhileConnectingLeavesWhenItOpens`;
+  - `ConnectionTest.CutsWhatArrivesInPieces` (`C1 04` en una lectura y `00 01` en la siguiente:
+    un solo `C1 04 00 01`);
+  - `ConnectionTest.WithFoxAntiTheListArrivesAsF406` (el cable `C2 00 0A F4 02 01 00 00 00 CC` da
+    `C2 00 0B F4 06 00 01 90 01 00 00`);
+  - `ConnectionTest.WithFoxAntiTheChoiceLeavesAsF40300` (`WriteServerSelect(400)` sale como
+    `C1 06 F4 03 00 00`);
+  - `ConnectionTest.AListThatDoesNotTranslateIsDropped` (una lista con más entradas de las que
+    trae, seguida de `C1 04 00 01`: sale solo el saludo, con un aviso, y sigue `Open`);
+  - `ConnectionTest.ABadHeaderCloses` (`FF 00`: `Closed` con `BadStream`);
+  - `ConnectionTest.APeerThatClosesCloses` (`PeerClosed`);
+  - `ConnectionTest.ReopeningStartsClean` (medio paquete del CS, `Open` a otro endpoint: lo que
+    llega después se corta desde cero, y `FakeSocket::closes` es 1);
+  - `ConnectionTest.AFullSendQueueCloses` (el socket no toma nada y se mandan paquetes que suman
+    `0x2001` bytes: `Closed` con `SendQueueFull`).
+- [ ] **Paso 3 (PR A):** `Connection` (sin el cifrado, que llega en la CL4.4) y `Delivery` en
+  Network.
+- [ ] **Paso 4 (PR B):** los tests de la sesión, con `FakeSocket` haciendo de CS:
+  - `A9Test.WritesTheBytesOfTheWire` (`C1 06 A9 00 00 01` con XOR32 es `C1 06 A9 20 9C 2F`,
+    en claro);
+  - `ServerSessionTest.SendsTheA9WhenTheConnectServerOpens` (lo primero que sale es
+    `C1 06 A9 20 9C 2F`);
+  - `ServerSessionTest.AsksForTheListAfterTheHello` (después de `C1 04 00 01` sale `C1 04 F4 02`
+    exacto: el test del 04);
+  - `ServerSessionTest.ChoosesTheFirstServer` (la lista del cable, con FoxAnti: sale
+    `C1 06 F4 03 00 00`);
+  - `ServerSessionTest.ReadsTheGameServerAddress` (`C1 16 F4 03`, `"172.16.198.1"` en 16 bytes y
+    `5D DA`: `GameServer()` es `{172.16.198.1, 55901}`, el CS se cerró y el estado es
+    `ConnectingGameServer`);
+  - `ServerSessionTest.AnEmptyListFails` (sin ofuscación, `C2 00 07 F4 06 00 00`:
+    `EmptyServerList`);
+  - `ServerSessionTest.AnUnexpectedPacketIsIgnored` (un `F4 03` antes de la lista: aviso y sigue
+    en `WaitingServerList`);
+  - `ServerSessionTest.LosingTheConnectServerFails` (`PeerClosed` en `WaitingServerList`:
+    `ConnectServerLost`);
+  - `ConfigTest.ReadsTheObfuscation` (`foxanti`, `none`, por defecto `foxanti`; `xor` es un error
+    con su línea).
+- [ ] **Paso 5 (PR B):** `ServerSession` hasta `ConnectingGameServer`, el `A9` y la config.
+- [ ] **Paso 6:** verificar:
+  ```bash
+  cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "Connection|A9|ServerSession|Config"
+  ```
+
+## Sub-ola CL4.4: GameServer: saludo, versión y login
+
+**Concepto:** el paso a una conexión cifrada: claves por conexión, seriales que vuelven a 0, y el
+primer paquete que solo se puede comparar descifrándolo. Va en dos PRs: **PR A**, el cifrado en la
+`Connection`; **PR B**, la sesión hasta `LoggedIn`, las claves en `main.cpp` y la integración con
+sockets reales.
+
+**Contrato** (04 § El flujo de conexión; 03 § C3/C4):
+
+| Paso | Original | MuRet |
+| --- | --- | --- |
+| conectar | `0x4c1340` con la dirección del `F4 03`; los seriales a 0 | `Connection::Open(gs, keys)`: `PacketSerials::Reset` |
+| las claves | `Enc1.dat` y `Dec2.dat`, cargadas en `WinMain` (`0x4ba094`, `0x4ba0a3`; Q-C41) | `LoadEncryptionKey` y `LoadDecryptionKey` (CL2.3) desde la carpeta de datos, en `main.cpp`, antes de abrir la ventana; con host y sin carpeta, un error que nombra los dos archivos |
+| el saludo | `C1 0C F1 00 01 <idx:2> "10209"` (`0x4c1e20`): con otro resultado, "Connectting error"; con otra versión, "Version dismatch" (`0x65fe50(0x6f)`), aunque el resultado no sea 1 | `ReadServerHello`: `HelloRejected` si el resultado no es 1, y si no, `VersionMismatch` con las dos versiones en el log |
+| el login | `C1 31 F1 01` con XOR32, como C3 de 68 bytes, serial 0 (`0x641bf0`) | `WriteLoginRequest` con las credenciales y el tick del reloj (ms en 32 bits, como `GetTickCount`), `Delivery::Encrypted` |
+| el relleno | un byte de `rand()` detrás de lo útil | un `std::mt19937` de la `Connection` con la semilla que le da `main.cpp` (`std::random_device`); los tests descifran lo que salió en vez de comparar el cifrado |
+| el resultado | `C1 05 F1 01 01`: `DAT_05767928 = 2` y el primer keepalive (CL4.5) | `ReadLoginResult`: 1 es `LoggedIn`; otro, `LoginRejected` con el resultado (qué dice cada uno es de la CL5.5) |
+| un C3/C4 que no descifra | no despacha, suma 1 al serial y manda `C1 06 F1 03 06 00` con XOR32 como C3 (`C1 06 F1 7B C1 73`) | `Undecryptable` con `ChecksumMismatch` o `NotWholeBlocks`: la sesión manda `WriteDecryptErrorReport()`; con los otros, solo el aviso |
+| el serial desfasado | se queda desfasado (Q-C04) | `SerialCheck::Resynced`, un aviso en el log (CL2.3) |
+| FoxAnti | `BeforeEncrypt` remapea `0x10`, `0x19` y `0x1E`; el `0xAA` en todo lo que manda el GS | lo mismo, por la `IObfuscation` de la conexión |
+
+**Archivos:**
+- **PR A:** modificar `Client/src/Network/Connection.h/.cpp` (las claves, `EncryptPacket` y
+  `DecryptPacket`, los seriales) y `Client/tests/network/test_connection.cpp`; PROGRESS y este
+  plan.
+- **PR B:** modificar `Client/src/App/ServerSession.h/.cpp` y su test, `main.cpp` (las claves y las
+  variables de la pregunta 7), `Client/CMakeLists.txt` (el CTest de `Main` sin claves); crear
+  `Client/tests/support/FakeServers.h/.cpp` (el CS y el GS falsos: los bytes del cable sobre un
+  `LoopbackServer`, con las claves sintéticas de `SimpleModulusKeys.h` del lado del servidor) y
+  `Client/tests/app/test_server_session_loopback.cpp`. Modificar `Client/README.md`, PROGRESS y
+  este plan.
+
+- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, a mano: el serial de cada C3 que
+  manda el cliente desde que abre el GS hasta el tercer keepalive (el login, el primer keepalive y
+  dos más), y qué pasa con el serial de recepción si llega un C3 con el checksum malo y después
+  uno bueno.
+- [ ] **Paso 2 (PR A):** los tests, con claves sintéticas:
+  - `ConnectionTest.EncryptsWhatGoesEncrypted` (un C1 `Encrypted` sale como C3 y, descifrado con
+    la clave del servidor, es el mismo C1 con serial 0; el siguiente, serial 1);
+  - `ConnectionTest.DecryptsWhatArrivesEncrypted` (un C3 del servidor sale como el C1 rearmado);
+  - `ConnectionTest.OpeningAgainResetsTheSerials` (dos C3, `Open` otra vez, el siguiente sale con
+    serial 0);
+  - `ConnectionTest.ABadChecksumIsUndecryptable` (`Undecryptable{ChecksumMismatch}`, y el C3
+    bueno que sigue se despacha);
+  - `ConnectionTest.AnEncryptedPacketWithoutKeysIsUndecryptable` (un C3 en la conexión del CS);
+  - `ConnectionTest.WithFoxAntiWhatArrivesFromTheGameServerIsUnmasked` (un C1 con el `0xAA`).
+- [ ] **Paso 3 (PR A):** el cifrado en `Connection`.
+- [ ] **Paso 4 (PR B):** los tests de la sesión:
+  - `ServerSessionTest.ConnectsToTheGameServerItWasGiven` (después del `F4 03`, `connects` tiene el
+    endpoint del GS);
+  - `ServerSessionTest.SendsTheLoginAfterTheHello` (con `C1 0C F1 00 01 00 05 "10209"`, el C3 que
+    sale descifra a los 49 bytes de `WriteLoginRequest` con la cuenta, la clave y el tick del
+    `FakeClock`, comparados con `SameBytes`);
+  - `ServerSessionTest.ARejectedHelloFails` (resultado 0: `HelloRejected`, sin login);
+  - `ServerSessionTest.AnotherVersionFails` (`"09908"`: `VersionMismatch`, sin login);
+  - `ServerSessionTest.AnAcceptedLoginIsLoggedIn` (`C1 05 F1 01 01`: `LoggedIn`);
+  - `ServerSessionTest.ARejectedLoginFails` (`C1 05 F1 01 00`: `LoginRejected` con 0);
+  - `ServerSessionTest.ABadChecksumSendsTheReport` (el C3 que sale descifra a `C1 06 F1 7B C1 73`);
+  - `ServerSessionTest.TheLogDoesNotHaveTheCredentials` (ninguna línea del log tiene la cuenta ni
+    la clave);
+  - `ServerSessionLoopbackTest.LogsInAgainstFakeServers`: con `SystemSocket` y los `FakeServers`
+    en `127.0.0.1`, el CS manda los bytes del cable del 04 (con FoxAnti), el GS el saludo y el
+    resultado cifrados con la clave sintética del servidor, y la sesión llega a `LoggedIn` antes
+    de 200 vueltas del lazo (la integración que pide el 04);
+  - `Client.Main.ConnectWithoutKeysNamesThem` (`Main connect /u127.0.0.1 /p44405` sin `--data`:
+    la salida nombra `Enc1.dat` y `Dec2.dat`, sin abrir la ventana);
+  - `Client.Main.ConnectWithoutCredentialsNamesThem` (con `--data` pero sin las variables: la
+    salida nombra `MURET_CLIENT_ACCOUNT` y `MURET_CLIENT_PASSWORD`).
+- [ ] **Paso 5 (PR B):** la sesión del GS hasta `LoggedIn`, las claves y las variables en
+  `main.cpp`, y los `FakeServers`.
+- [ ] **Paso 6:** verificar:
+  ```bash
+  cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "Connection|ServerSession|Client.Main"
+  ```
+
+## Sub-ola CL4.5: keepalive y desconexión
+
+**Concepto:** un temporizador del bucle, por reloj y no por pasos, probado con el `FakeClock`; y
+qué hace el cliente cuando la conexión se corta. Va en un PR.
+
+**Contrato** (04 § El flujo de conexión, el keepalive; 02 § El WndProc y "Qué avanza por paso,
+por frame y por reloj"):
+
+| Qué | Original | MuRet |
+| --- | --- | --- |
+| el paquete | `C1 0C 0E 00 <tick:4> <ataque:2> <magia:2>` con XOR32, como C3 de 24 bytes (`0x4bee60`) | `WriteKeepalive` (CL2.5), `Delivery::Encrypted` |
+| el primero | con el login aceptado (`0x4ad100`), 48 ms después en el cable | en el mismo `Poll` que lee el `F1 01` aceptado |
+| los siguientes | `WM_TIMER` 1000 cada 20 s, un timer desde el arranque que manda si hay conexión al GS, sin mirar el login ni el foco | cada 20 s desde el primero, con un `IntervalTimer` sobre el `IClock` del bucle, solo en `LoggedIn` (pregunta 6); minimizada también |
+| un frame largo | un `WM_TIMER` pendiente (*inferido*) | uno solo, y el siguiente a los 20 s del que salió |
+| las velocidades | los WORD de `personaje+0x4C` y `+0x58` con su ajuste (CL2.5) | `SetKeepaliveSpeeds(attack, magic, flags)`; hasta que haya personaje (CL6), lo que diga la CL4.R, paso 6 |
+| el tick | `GetTickCount` | los ms del reloj del bucle en 32 bits, que dan la vuelta como un `DWORD` |
+| el cierre del otro lado | `FD_CLOSE`: un mensaje, el log, `0x4e8380` y el objeto de `0x65ee60`; en la escena 5, el socket en -1 cada frame | `Failed` con `GameServerLost` y el `CloseReason` en el log; el keepalive se detiene; no se reconecta solo (la CL5.4 muestra el aviso) |
+
+**Archivos:** crear `Client/src/Core/IntervalTimer.h/.cpp` y
+`Client/tests/core/test_interval_timer.cpp`. Modificar `Client/src/App/ServerSession.h/.cpp` y
+sus tests, `main.cpp` (la sesión en el `Poll()` del cliente del bucle, solo con host; cada cambio
+de estado al log), 07 (el keepalive de la pregunta 6, Q-C nuevo), `Client/README.md` (la prueba
+contra el laboratorio), PROGRESS y este plan.
+
+**Interfaces:**
+
+```cpp
+namespace Client::Core
+{
+// Algo que pasa cada `period` de reloj, no de pasos. Si se atrasa más de un periodo, cuenta una
+// vez y sigue a un periodo del instante en que se miró.
+class IntervalTimer
+{
+public:
+    explicit IntervalTimer(Duration period);
+    void Start(Duration now);  // el primero vence en now + period
+    void Stop();
+    // true si venció; desde ahí vence a un periodo de `now`. Un reloj que va para atrás no vence.
+    [[nodiscard]] bool Due(Duration now);
+    [[nodiscard]] bool Running() const;
+};
+} // namespace Client::Core
+
+namespace Client::App
+{
+// 04 § El flujo de conexión: el timer 0x3E8 de 20.000 ms (SetTimer en 0x4b9b80), y 156
+// keepalives, uno cada 20 s, en el cable (02 § Una discrepancia entre documentos).
+inline constexpr Core::Duration KeepalivePeriod = std::chrono::seconds{20};
+
+// En ServerSession: las velocidades del personaje antes de su ajuste, y los bits de
+// personaje+0x3C (KeepaliveSpeed, CL2.5). Hasta que se llame, las de la CL4.R, paso 6.
+void SetKeepaliveSpeeds(std::uint16_t attackSpeed, std::uint16_t magicSpeed, std::uint8_t characterFlags);
+} // namespace Client::App
+```
+
+- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, a mano: con el login aceptado en
+  t = 3 s, en qué instantes salen keepalives hasta t = 100 s, y qué cambia si entre t = 30 s y
+  t = 90 s no corre ningún frame.
+- [ ] **Paso 2:** los tests:
+  - `IntervalTimerTest.FiresEveryPeriod` (empezado en 0 con 20 s: a los 19,999 s no, a los 20 s
+    sí, a los 20 s otra vez no, a los 40 s sí);
+  - `IntervalTimerTest.ALongPauseFiresOnce` (a los 65 s vence una vez, y la siguiente a los 85 s);
+  - `IntervalTimerTest.AClockThatGoesBackDoesNotFire`;
+  - `ServerSessionTest.SendsTheFirstKeepaliveWithTheLogin` (después de `C1 05 F1 01 01` sale un C3
+    que descifra a `C1 0C 0E 00`, el tick, `00 00 00 00`, con serial 1);
+  - `ServerSessionTest.KeepaliveEveryTwentySecondsAndNotBefore` (el test del 02: con el login en
+    t = 3 s, ninguno nuevo a los 22,999 s; a los 23 s, uno; hasta t = 103 s, 6 en total, con
+    seriales 1 a 6);
+  - `ServerSessionTest.NoKeepaliveBeforeTheLogin` (abierto el GS y sin resultado del login, 60 s:
+    ninguno; el original mandaría hasta tres);
+  - `ServerSessionTest.ASixtySecondFrameSendsOneKeepalive`;
+  - `ServerSessionTest.KeepsTheKeepaliveWhileMinimized` (con el `GameLoop` y la ventana minimizada
+    100 s: 1 + 5 keepalives);
+  - `ServerSessionTest.UsesTheSpeedsItWasGiven` (`SetKeepaliveSpeeds(0x0328 + 20, 0x0268 + 20,
+    KeepaliveAdjust20)` da `28 03 68 02` en el paquete);
+  - `ServerSessionTest.LosingTheGameServerStopsTheKeepalive` (`PeerClosed` en `LoggedIn`:
+    `GameServerLost` con `PeerClosed` en el log, y en los 40 s siguientes no sale nada).
+- [ ] **Paso 3:** `IntervalTimer`, el keepalive y la desconexión en la sesión, y `main.cpp`; 07.
+- [ ] **Paso 4 (Emanuel, a mano, contra el laboratorio):** con la VM del laboratorio levantada,
+  `Main connect /u<ip del CS> /p44405 --data <Data del laboratorio>` y las variables de la
+  pregunta 7: el log dice cada estado hasta el login aceptado y un keepalive cada 20 s durante dos
+  minutos, y el GS no corta. Si se puede capturar el cable, el login y el keepalive descifrados se
+  comparan con los de la sesión real del 04 (P-C05), sin imprimir la cuenta. Anotarlo en el README.
+- [ ] **Paso 5:** verificar:
+  ```bash
+  cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "IntervalTimer|ServerSession|Client.Main"
+  xvfb-run -a -s '-screen 0 800x600x24' build/linux-x64-debug/Client/Main --frames 60
+  ```
+
+---
+
+## Qué no se prueba en CI, y cómo se cubre
+
+| Qué | Cómo |
+| --- | --- |
+| el socket, la cola, el bucle con la red, el dispatcher, la conexión y la sesión | los tests de `network/`, `protocol/`, `app/`, `core/` y `support/`, con `FakeSocket` y `FakeClock`: corren en los dos sistemas |
+| sockets de verdad | `SystemSocketTest` y `ServerSessionLoopbackTest` en `127.0.0.1`, en los dos sistemas (CI no tiene red de afuera, y no le hace falta) |
+| la resolución de un nombre real | a mano; en CI solo `nombre.invalid`, que no resuelve nunca |
+| el login contra el GS del laboratorio, con FoxAnti | a mano (CL4.5, paso 4): CI no tiene la VM. Es el "terminada cuando" del roadmap |
+| el diferencial campo por campo del login y del keepalive (P-C05) | con una captura nueva del cable, si se hace en el paso 4 de la CL4.5; si no, sigue en 08 |
+| qué pasa con el GS si el cliente se congela más de lo que él espera | sin probar: el timeout del GS no está en el research del cliente |
+
+## Al cerrar la CL4
+
+- [ ] Completar el cierre de la guía de la CL4.0.
+- [ ] Actualizar `docs/learning/PROGRESS.md`.
+- [ ] Escribir el plan de la CL5 (render 2D y la escena de login) en su propio PR, con lo
+  aprendido: la `ServerSession` es lo que la `LoginScene` de la CL5.4 y la UI de la CL5.5 manejan
+  (la lista con P-C04, la cuenta y la clave del campo de texto en vez de las variables de la
+  pregunta 7, y el aviso de una desconexión).

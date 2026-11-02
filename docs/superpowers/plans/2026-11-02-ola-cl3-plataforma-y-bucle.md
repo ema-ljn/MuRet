@@ -1030,7 +1030,7 @@ de video), validado antes de abrir nada, y un log que se puede leer en un test. 
 | su archivo | se abre a sí mismo desde la carpeta actual y sale sin avisar si no está (Q-C35) | no se abre a sí mismo; `[Data] Path` (o `--data <ruta>`): si se da y no existe, un error que la nombra (`Data::DataPath`, CL0.2) |
 | config | registro `HKCU\SOFTWARE\Webzen\Mu\Config` y `config.ini` | `muret-client.ini` junto al ejecutable (la carpeta la da `SDL_GetBasePath` en `main.cpp`), o `--config <ruta>` (pregunta 5) |
 | video | `Resolution` y `ColorDepth` del registro | `[Video] Width`, `Height` (640 × 480 por defecto), `VSync` (`on`, `adaptive`, `off`) y `Pacing` (`decoupled`, `faithful`) |
-| log | archivo de texto con líneas como `Mu online %s (%s) executed.` | `Core::Log` con niveles, a `stderr` y a `muret-client.log` junto al ejecutable (o `[Log] Path`); si el archivo no abre, solo `stderr` y un aviso. Los mensajes de SDL entran por `SDL_SetLogOutputFunction` |
+| log | archivo de texto con líneas como `Mu online %s (%s) executed.`; `0x41f7a0` abre `MuError.log` con `OPEN_ALWAYS`, compartido solo para leer, y `FILE_END` (agrega); antes, `0x41f830` corta el principio: con `0x7fff` bytes leídos o más se queda con lo que sigue al byte `0x7fff`, y si no, con las cuatro últimas sesiones (Q-C48) | `Core::Log` con niveles, a `stderr` y a `muret-client.log` junto al ejecutable (o `[Log] Path`); si el archivo no abre, solo `stderr` y un aviso. Agrega como el original (`std::ios::app`: el log de una caída queda, y dos clientes escriben los dos sin pisarse), y al abrir lo vacía entero si pasa de `MaxLogFileBytes` (1 MiB), en vez de cortar el principio (Q-C48). Los mensajes de SDL entran por `SDL_SetLogOutputFunction` |
 
 **`Resolve`, en este orden** (el primer error corta):
 1. El archivo: con `--config <ruta>`, si no existe es error y lo nombra; sin `--config`, si
@@ -1056,7 +1056,9 @@ El host vacío no es error acá: lo pide la CL4 al conectarse.
   error que se imprime, y suma `connect`, `/u`, `/p`, `--config` y `--data`), `main.cpp`,
   `Client/CMakeLists.txt` (los tests de `Main` sin ventana), `Client/README.md` (cómo se configura),
   07 (Q-C35 a Q-C37 con sus tests), PROGRESS y este plan.
-- **PR B:** crear `Client/src/Core/Log.h/.cpp` y `Client/src/Platform/SdlLog.h/.cpp`;
+- **PR B:** crear `Client/src/Core/Log.h/.cpp`, `ILogSink.h`, `TeeSink.h/.cpp`,
+  `StderrSink.h/.cpp`, `FileSink.h/.cpp` y `PathText.h/.cpp` (una clase por archivo, regla 6), y
+  `Client/src/Platform/SdlLog.h/.cpp`;
   `Client/tests/core/test_log.cpp`. Modificar `main.cpp` (el aviso de `MaxFrameTime` y los errores
   del arranque van al log), PROGRESS y este plan; los fuentes y el test entran por los globs.
 
@@ -1259,10 +1261,64 @@ se declara después del `Log` en `main`, así se destruye antes.
   salida trae la ruta). El paso de Xvfb del CI sigue sin config ni datos.
 
   Hechos: `Client.Main.RejectsBadPort` (fase 2a) y `NamesTheMissingDataFolder` (fase 2b).
-- [ ] **Paso 6 (PR B):** los tests: `LogTest.WritesTheLevelAndTheMessage` (con un `LogSink` de
+- [x] **Paso 6 (PR B):** los tests: `LogTest.WritesTheLevelAndTheMessage` (con un `LogSink` de
   prueba que guarda las líneas: `Info("hola {}", 1)` da `[info] hola 1`),
-  `BelowTheMinimumIsNotWritten`, `EachLevelHasItsPrefix`, `TeeSinkWritesBoth`.
-- [ ] **Paso 7 (PR B):** `Log`, `TeeSink`, la salida a archivo y a `stderr`, y `SdlLog`.
+  `BelowTheMinimumIsNotWritten`, `EachLevelHasItsPrefix`, y `TeeSinkTest.WritesBoth` (una suite
+  por clase, regla 7: `test_log.cpp`, `test_tee_sink.cpp`, `test_stderr_sink.cpp` y
+  `test_file_sink.cpp`; `RecordingSink` y `TemporaryFolder` en `tests/support/`). Se sumaron
+  `FileSinkTest.WritesOneLinePerMessage` (en una carpeta temporal: dos líneas, ya en el disco con
+  el `FileSink` abierto) y `FileSinkTest.NamesAPathThatDoesNotOpen` (una carpeta que no existe: el
+  error trae la ruta).
+- [x] **Paso 7 (PR B):** `Log`, `TeeSink`, la salida a archivo y a `stderr`, y `SdlLog`.
+  - [x] `Core::Log`, `TeeSink`, `StderrSink` y `FileSink` (`Client/src/Core/Log.h/.cpp`), con
+    `std::format_string` en las cuatro funciones y `std::vformat` en el `.cpp` (verificados con
+    Context7: `basic_format_string::get` y el nombre son de C++20 por P2508R1, y
+    `make_format_args` toma lvalues por P2905R2). Lo que cambió contra la interfaz de arriba:
+    - La interfaz se llama `ILogSink` y no `LogSink`: tiene solo funciones virtuales puras, y la
+      regla 7 (`CODING_RULES.md`) le pone la `I`, como a `IClock`.
+    - El mutex no va solo en el `TeeSink`. Con el archivo que no abrió, `main` escribe directo a
+      `stderr` sin un Tee, y dos hilos (el de SDL y el principal) mezclarían sus líneas. Va en cada
+      salida que escribe en algo compartido (`StderrSink`, `FileSink`, como los sinks `_mt` de
+      spdlog), y el Tee guarda el suyo para que las dos salidas reciban las líneas en el mismo
+      orden. El `Log` no tiene: no guarda nada que cambie. Está escrito en el header.
+    - `FileSink::Open` devuelve `Core::Expected<std::unique_ptr<FileSink>, std::string>`: el
+      `Expected` mueve su valor y el mutex no se mueve. El constructor es privado. Agrega al final
+      y vacía al abrir un archivo de más de `MaxLogFileBytes` (fila "log" del contrato).
+    - `Log::Write(LogLevel, std::string_view)` escribe con un nivel que llega mientras corre (la
+      prioridad de un mensaje de SDL), sin un switch sobre los cuatro templates; el texto no se
+      formatea.
+  - [x] Lo de las dos revisiones de la fase 1: una clase por archivo (`ILogSink.h`, `TeeSink`,
+    `StderrSink`, `FileSink`, y `PathText` aparte porque `main` la necesita); un solo `fwrite` o
+    `write` por línea, con el fin de línea; `StderrSink` recibe un `std::FILE*` (por defecto
+    `stderr`); un `std::format_error` que solo aparece al formatear no sale del `Log`, que escribe
+    `[error] formato de log inválido: ` y el formato; en `ILogSink`, que un `Write` no puede
+    loguear ni llamar a SDL (el mutex no es recursivo); y que un `\n` en un mensaje da dos líneas.
+    Tests nuevos: `WriteKeepsTheBraces`, `WriteBelowTheMinimumIsNotWritten`,
+    `ABadFormatIsLoggedAsAnError`, `BelowTheMinimumIsNotFormatted`,
+    `StderrSinkTest.WritesOneLinePerMessage` (con `std::tmpfile()`, `tmpfile_s` en MSVC),
+    `FileSinkTest.AppendsToThePreviousRun`, `EmptiesAFileOverTheCap` y
+    `KeepsLinesWholeFromTwoThreads` (2 hilos por 1000 líneas); las rutas de los tests del archivo
+    llevan una "ñ" (`PathText`).
+  - [x] `Platform::SdlLog` (`Client/src/Platform/SdlLog.h/.cpp`), con `LevelOf(SDL_LogPriority)`
+    pública para probar el mapeo (`INVALID` y `COUNT` van a Error) y el callback `noexcept` con un
+    `try/catch` adentro. Test sin ventana, `Client/tests/platform/test_sdl_log.cpp`:
+    `SdlLogTest.MapsEachPriority`, `SdlMessagesReachTheLog` (con `SDL_SetLogPriorities(TRACE)`,
+    porque SDL filtra antes de llamar a la salida, y un mensaje con llaves) y
+    `TheDestructorRestoresTheDefaultOutput`. `SDL_Log` anda sin `SDL_Init`. Después de las
+    revisiones: cada línea va con "SDL: " y el mensaje se parte en líneas sin `\r` ni vacías
+    (`SplitsTheLinesOfAMessage`, con el formato de `SDL_assert`); una excepción de una salida no
+    cruza SDL (`AnExceptionInTheSinkDoesNotCrossSdl`); un mensaje que una salida hace loguear en el
+    mismo hilo va a stderr, porque el mutex de SDL es recursivo (`thread_local`,
+    `AReentrantMessageGoesToStderr`); el constructor inicializa el log de SDL para que su mutex
+    exista; uno solo a la vez (`std::atomic<bool>` y un assert). No encadena a la salida anterior
+    como MuMain: restaura la de por defecto y filtra una sola vez, en el `Core::Log`. Se registra
+    en `tests/platform/CMakeLists.txt` con `LINK_LIBS ClientPlatform` (la rama va apilada sobre la
+    CL3.2 PR B, que trae la CL3.1).
+  - [x] El armado en `main.cpp` (fase 2b): el `Log` va primero, con un `TeeSink` a `stderr` y a
+    `muret-client.log` en la carpeta de `SDL_GetBasePath` (si no abre, solo `stderr` y un aviso),
+    y una línea `[info] MuRet Client arranca` por corrida; los errores del arranque van al log. El
+    `SdlLog` se declara después del `Log` y del `SdlContext`, así muere antes que los dos. Cuando
+    `FrameStats::clampedFrames` sube, un `[warning]` dice que el frame pasó de `MaxFrameTime`.
 - [ ] **Paso 8:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "CommandLine|Config|Log|Client.Main"
@@ -1282,8 +1338,9 @@ se declara después del `Log` en `main`, así se destruye antes.
 
 ## Al cerrar la CL3
 
-- [ ] Completar el cierre de la guía de la CL3.0.
-- [ ] Actualizar `docs/learning/PROGRESS.md`.
+- [x] Completar el cierre de la guía de la CL3.0 (la sección "Del lab al cliente"; los campos de
+  Emanuel siguen vacíos).
+- [x] Actualizar `docs/learning/PROGRESS.md`.
 - [ ] Escribir el plan de la CL4 (red del cliente) en su propio PR, con lo aprendido: el socket no
   bloqueante entra en el `GameLoop` como una consulta por frame, y el keepalive de 20 s como un
   temporizador del bucle, probado con el `FakeClock`.

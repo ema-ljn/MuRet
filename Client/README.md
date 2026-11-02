@@ -72,7 +72,7 @@ En Windows: `cmake --preset windows-x64`, `cmake --build --preset windows-x64-de
 Lo que depende del lugar (el servidor, la carpeta de datos, el video) sale de la línea de comandos
 o de `muret-client.ini`: la línea de comandos pisa la config, y la config, los valores por
 defecto. Todo se valida antes de abrir la ventana: un error termina `Main` con un mensaje que
-empieza con `MuRet:` y nombra la opción, la clave o la ruta, sin abrir nada. Sin argumentos ni
+empieza con `[error]` y nombra la opción, la clave o la ruta, sin abrir nada. Sin argumentos ni
 config, `Main` corre con los valores por defecto, como en CI.
 
 | Opción | Qué hace |
@@ -144,6 +144,23 @@ mensaje dice el archivo y la línea (`muret-client.ini, línea 3: ...`):
 - un valor que no se puede leer (un puerto de 0, un `VSync = sometimes`, un `Width = 480px`);
 - una ruta que no es UTF-8 o que tiene caracteres de control, un host que no es ASCII visible, y
   un `\r` sin `\n`.
+
+### El log
+
+`Main` escribe el log en `stderr` y en el archivo de `[Log] Path`, por defecto `muret-client.log`
+junto al ejecutable (la carpeta de `SDL_GetBasePath`). Los errores de la línea de comandos y de la
+config, que llegan antes de saber qué archivo es, van solo a `stderr`. Cada línea empieza con su
+nivel: `[debug]`, `[info]`, `[warning]` o `[error]`; el mínimo es uno solo, `info`, para las dos
+salidas. Los mensajes de SDL entran al mismo log, con `SDL: ` adelante y su prioridad pasada a uno
+de esos cuatro. Si el archivo no se puede abrir, el log va solo a `stderr`, con un aviso que nombra
+la ruta. El archivo no se empieza de nuevo: cada corrida agrega al final, desde una línea `[info]
+MuRet Client arranca`, como el `MuError.log` del original, así el log de una caída sigue ahí al
+volver a abrir, y dos clientes abiertos a la vez escriben los dos sin pisarse. Para que no crezca
+sin fin, al abrir se vacía si ya pasa de 1 MiB (el original corta el principio, Q-C48).
+
+Lo que conviene buscar ahí: el aviso de un frame de más de 1 s, que cuenta 1 s (un breakpoint, o
+una ventana arrastrada en Windows, Q-C44), y que empieza con `[warning] un frame pasó de 1000 ms`;
+y los errores del arranque.
 
 ## Tests
 

@@ -1,8 +1,11 @@
 #include "App/CommandLine.h"
 
+#include "Core/PathText.h"
+
 #include <algorithm>
 #include <charconv>
 #include <system_error>
+#include <utility>
 
 namespace
 {
@@ -174,13 +177,18 @@ Core::Expected<CommandLine, std::string> ParseCommandLine(std::span<const std::s
         const std::string_view value = arguments[++i];
         if (argument == ConfigOption || argument == DataOption)
         {
-            // argv viene en la codificación del sistema (la página ANSI en Windows, porque main.cpp
-            // no usa SDL_main.h), que es la que lee path(std::string): acá no va el UTF-8 de la
-            // config. Límite conocido en Windows: lo que no entra en la página ya llega cambiado
-            // por "?" (C:\Users\Łukasz en la 1252), y el CRT lee `"C:\MU\Data\"` como C:\MU\Data"
-            // (la \ antes de la comilla la escapa). El arreglo es CommandLineToArgvW (plan, CL3.4).
-            (argument == ConfigOption ? commandLine.configPath : commandLine.dataPath) =
-                std::filesystem::path(std::string(value));
+            // Los argumentos vienen en UTF-8 también en Windows: main.cpp usa SDL_main.h, y SDL
+            // los arma con GetCommandLineW y CommandLineToArgvW. Por eso la ruta se lee como UTF-8,
+            // igual que en la config, y no con path(std::string), que en Windows lee la página
+            // ANSI. Un texto que no es UTF-8 (en Linux, un nombre guardado en Latin-1) es error.
+            // Límite que queda: CommandLineToArgvW, como el CRT, lee `"C:\MU\Data\"` como
+            // C:\MU\Data" (la \ antes de la comilla la escapa).
+            auto path = Core::PathFromUtf8(value);
+            if (!path)
+            {
+                return Unexpected(std::string(argument) + " necesita una ruta en UTF-8");
+            }
+            (argument == ConfigOption ? commandLine.configPath : commandLine.dataPath) = std::move(*path);
         }
         else if (argument == FramesOption)
         {

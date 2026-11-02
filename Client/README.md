@@ -81,10 +81,12 @@ config, `Main` corre con los valores por defecto, como en CI.
 | `--config <ruta>` | lee esa config en vez de `muret-client.ini`; si no existe, es un error que la nombra |
 | `--data <ruta>` | la carpeta de datos del cliente original, en vez de `[Data] Path`; si no existe o no es una carpeta, es un error que la nombra (Q-C35) |
 
-Las rutas de `--config` y `--data` se toman desde la carpeta actual, como cualquier argumento. Cada
-opción va una vez: una repetida es un error. En Windows, `argv` llega en la página ANSI: una ruta
-con letras que no entran en ella, o que termina en `\"`, no llega bien (límite conocido, paso 4 de
-la CL3.4 en el plan).
+Las rutas de `--config` y `--data` se toman desde la carpeta actual, como cualquier argumento, y
+se leen en UTF-8, como las de la config: en Windows llegan bien aunque tengan letras que no están
+en la página ANSI, y en Linux una ruta que no es UTF-8 es un error. Cada opción va una vez: una
+repetida es un error. En Windows, una ruta entre comillas que termina en `\` (`"C:\MU\Data\"`)
+llega con una comilla al final, porque la `\` antes de la comilla la escapa: va sin la última
+`\`.
 Por ejemplo:
 
 ```bash

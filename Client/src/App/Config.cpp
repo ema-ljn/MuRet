@@ -1,5 +1,7 @@
 #include "App/Config.h"
 
+#include "Core/PathText.h"
+
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -64,59 +66,6 @@ bool IsControl(char c)
 {
     const auto byte = static_cast<unsigned char>(c);
     return byte < 0x20 || byte == 0x7F;
-}
-
-// UTF-8 bien formado: sin bytes sueltos, sin formas más largas de lo necesario, sin las mitades de
-// UTF-16 (U+D800 a U+DFFF) y sin pasar de U+10FFFF. Es lo que rechaza MultiByteToWideChar con
-// MB_ERR_INVALID_CHARS, que usa path en Windows: con un byte malo tiraría una excepción.
-bool IsUtf8(std::string_view text)
-{
-    std::size_t i = 0;
-    while (i < text.size())
-    {
-        const auto first = static_cast<unsigned char>(text[i]);
-        std::size_t length = 1;
-        std::uint32_t codePoint = first;
-        if (first >= 0xC2 && first <= 0xDF)
-        {
-            length = 2;
-            codePoint = first & 0x1Fu;
-        }
-        else if (first >= 0xE0 && first <= 0xEF)
-        {
-            length = 3;
-            codePoint = first & 0x0Fu;
-        }
-        else if (first >= 0xF0 && first <= 0xF4)
-        {
-            length = 4;
-            codePoint = first & 0x07u;
-        }
-        else if (first >= 0x80)
-        {
-            return false;
-        }
-        if (text.size() - i < length)
-        {
-            return false;
-        }
-        for (std::size_t k = 1; k < length; ++k)
-        {
-            const auto next = static_cast<unsigned char>(text[i + k]);
-            if ((next & 0xC0u) != 0x80u)
-            {
-                return false;
-            }
-            codePoint = (codePoint << 6) | (next & 0x3Fu);
-        }
-        if ((length == 3 && codePoint < 0x800) || (length == 4 && codePoint < 0x10000) ||
-            (codePoint >= 0xD800 && codePoint <= 0xDFFF) || codePoint > 0x10FFFF)
-        {
-            return false;
-        }
-        i += length;
-    }
-    return true;
 }
 
 // Saca un par de comillas dobles de alrededor, las que pone "Copiar como ruta" del Explorador.
@@ -228,8 +177,8 @@ Core::Expected<PacingMode, std::string> ParsePacing(std::string_view value)
 }
 
 // El archivo es UTF-8, y path(std::string) en Windows lee la página de códigos ANSI: una carpeta
-// con una letra que no sea ASCII quedaría mal. Como char8_t, path lo lee como UTF-8; por eso el
-// texto se valida antes.
+// con una letra que no sea ASCII quedaría mal. Core::PathFromUtf8 la lee como UTF-8 y rechaza el
+// texto que no lo es.
 Core::Expected<std::filesystem::path, std::string> ParsePath(std::string_view value)
 {
     const std::string_view text = WithoutQuotes(value);
@@ -241,13 +190,12 @@ Core::Expected<std::filesystem::path, std::string> ParsePath(std::string_view va
     {
         return Unexpected(std::string("la ruta no puede tener caracteres de control"));
     }
-    if (!IsUtf8(text))
+    auto path = Core::PathFromUtf8(text);
+    if (!path)
     {
         return Unexpected(std::string("no es UTF-8"));
     }
-    std::u8string utf8(text.size(), u8'\0');
-    std::ranges::transform(text, utf8.begin(), [](char c) { return static_cast<char8_t>(c); });
-    return std::filesystem::path(utf8);
+    return std::move(*path);
 }
 
 // Guarda el valor en su campo; si no se puede leer, devuelve por qué.

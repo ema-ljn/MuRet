@@ -772,10 +772,10 @@ dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
   bucle con la escena de prueba e imprime `frames` y `pasos` al salir; con `--stats`, los FPS y
   los pasos por segundo cada 5 s.
 
-  Hecho así: la escena (`TestScene` en `main.cpp`) sube y baja el azul del fondo en cada ciclo de
-  32 pasos, interpolado con el alfa, y presenta adentro de `Render`. `--vsync` va a
-  `WindowOptions` (sin `--vsync`, On). En el PR A, `--pacing faithful` termina con un error que
-  dice que el modo llega en el PR B.
+  Hecho así: la escena (`TestScene`, en `main.cpp` y después del cierre en `Scenes/`) sube y baja
+  el azul del fondo en cada ciclo de 32 pasos, interpolado con el alfa, y presenta adentro de
+  `Render`. `--vsync` va a `WindowOptions` (sin `--vsync`, On). En el PR A, `--pacing faithful`
+  termina con un error que dice que el modo llega en el PR B.
 - [x] **Paso 4 (PR A):** 07: el acumulador sin tope del original contra `MaxFrameTime`, con su
   test (`GameLoopTest.AFrameLongerThanTheCapRunsOnlyTheCap`; el del original llega en el PR B).
 
@@ -1377,3 +1377,20 @@ se declara después del `Log` en `main`, así se destruye antes.
 - [ ] Escribir el plan de la CL4 (red del cliente) en su propio PR, con lo aprendido: el socket no
   bloqueante entra en el `GameLoop` como una consulta por frame, y el keepalive de 20 s como un
   temporizador del bucle, probado con el `FakeClock`.
+- [x] Ordenar `main.cpp` (pedido de Emanuel después del cierre). Va por fases, una función cada
+  una, como los pasos de `WinMain` en MuMain (`InitializeWorkingDirectoryAndLog`, `MainLoop` y
+  `ShutdownRuntime`, en `App/Platform/Windows/Winmain.cpp`):
+  1. `ReadStartup`, sin SDL;
+  2. el log;
+  3. `OpenWindow`;
+  4. `RunLoop`.
+
+  El orden del cierre está escrito en un solo lugar, en el comentario del archivo. Las dos clases
+  que tenía se fueron a su archivo (CODING_RULES §6), con tests (§13):
+  - `Scenes::TestScene` no ve GL: recibe cómo presentar el fondo (`TestSceneTest`).
+  - `App::FrameRateMeter` mide `--stats` y no imprime (`FrameRateMeterTest`).
+
+  De MuMain no se tomaron dos cosas. La primera, el `main.cpp` por sistema
+  (`App/Platform/Linux/main.cpp`, `macOS/main.mm`): `SDL_main.h` ya hace esa costura. La segunda,
+  el puente del log de SDL antes de `SDL_Init`: el error de `SDL_Init` vuelve en
+  `SdlContext::Create` y se loguea igual.

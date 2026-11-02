@@ -1,10 +1,9 @@
 #include "App/CommandLine.h"
 #include "App/Config.h"
+#include "App/FrameRateMeter.h"
 #include "App/GameLoop.h"
-#include "App/ILoopClient.h"
-#include "App/PacingMode.h"
-#include "App/VSyncMode.h"
 #include "App/LoopTiming.h"
+#include "App/VSyncMode.h"
 #include "App/WindowState.h"
 #include "Core/FileSink.h"
 #include "Core/IClock.h"
@@ -19,8 +18,7 @@
 #include "Platform/SdlLog.h"
 #include "Platform/Window.h"
 #include "Platform/WindowEvents.h"
-
-#include <SDL3/SDL_filesystem.h>
+#include "Scenes/TestScene.h"
 
 #include <chrono>
 #include <cstdint>
@@ -37,67 +35,65 @@
 // Al final: en Windows define main como SDL_main, y así no alcanza a ningún otro header.
 #include <SDL3/SDL_main.h>
 
-// Punto de entrada del cliente: arma las capas y arranca, sin lógica.
-//
-// Ola CL3.2: la ventana y el contexto GL están en Platform/ (SdlContext, Window, PumpEvents), el
-// reloj es el de SDL (SdlClock) y el bucle es App::GameLoop, con la lógica a 40 ms por paso y el
-// dibujo interpolado, o con --pacing faithful, al ritmo del original (FaithfulPacer, VSync
-// apagado). La escena es de prueba: el fondo cambia de color con un ciclo de 32 pasos. Desde la
-// CL3.3, PumpEvents arma el Input::InputState del frame y el bucle se lo pasa a cada paso.
-// Los argumentos están en App/CommandLine.h.
-//
-// Ola CL3.4 PR B: el log (Core::Log) va a stderr y a muret-client.log junto al ejecutable; si el
-// archivo no abre, solo a stderr, con un aviso. Los mensajes de SDL entran por Platform::SdlLog.
+// El punto de entrada del cliente: arma las capas y arranca, sin lógica propia. main va por fases,
+// cada una en su función, como los pasos de WinMain en MuMain (InitializeWorkingDirectoryAndLog,
+// MainLoop, ShutdownRuntime en App/Platform/Windows/Winmain.cpp):
+//   1. ReadStartup, sin SDL: la carpeta del ejecutable, los argumentos y la config. Un error corta
+//      acá, sin abrir la ventana, y va solo a stderr, porque el archivo del log lo dice la config.
+//   2. El log entero: stderr y el archivo.
+//   3. SDL (SdlContext) y OpenWindow: la ventana y el contexto GL.
+//   4. RunLoop: el bucle hasta que se cierre la ventana o se llegue a --frames.
+// El cierre es el orden de las declaraciones de main al revés: el bucle y la escena, la ventana, el
+// SdlLog, SDL_Quit (SdlContext) y al final el log, para que lo que se cierra antes pueda escribir.
 namespace
 {
 namespace App = Client::App;
 namespace Core = Client::Core;
 namespace Platform = Client::Platform;
+namespace Scenes = Client::Scenes;
 
-// El ciclo de 32 pasos de DAT_07d2d360, (n + 1) mod 32 en cada paso (02, "Qué corre por paso").
-constexpr std::uint32_t CycleSteps = 32;
-// El fondo va de un azul oscuro a uno claro y vuelve en cada ciclo, 1,28 s.
-constexpr GLfloat DarkRed = 0.08f;
-constexpr GLfloat DarkGreen = 0.10f;
-constexpr GLfloat DarkBlue = 0.18f;
-constexpr GLfloat LightRed = 0.20f;
-constexpr GLfloat LightGreen = 0.35f;
-constexpr GLfloat LightBlue = 0.60f;
-// El log, junto al ejecutable (contrato de la CL3.4, fila "log"; `[Log] Path` llega con la config).
+// El log, junto al ejecutable, si [Log] Path no dice otra cosa (CL3.4, fila "log" del contrato).
 constexpr std::string_view LogFileName = "muret-client.log";
-// Cada cuánto imprime --stats los FPS y los pasos por segundo (paso 3 de la CL3.2).
-constexpr Core::Duration StatsInterval = std::chrono::seconds{5};
 
-// La escena de prueba de la CL3.2: Step avanza el ciclo y Render pinta el fondo entre el paso
-// actual y el próximo, con el alfa, y presenta (el swap va adentro de Render, ILoopClient).
-class TestScene final : public App::ILoopClient
+// Lo que sale de la fase 1.
+struct Startup
 {
-public:
-    explicit TestScene(Platform::Window& window) : m_window(window) {}
-
-    // La escena de prueba no lee el input todavía.
-    void Step(const Client::Input::InputState& /*input*/) override
-    {
-        m_cycle = (m_cycle + 1) % CycleSteps;
-    }
-
-    void Render(float alpha) override
-    {
-        // La posición en el ciclo, en [0, 1), y una rampa que sube y baja: en 32 vuelve a 0 sin
-        // salto, así que la interpolación es continua también ahí.
-        const float position = (static_cast<float>(m_cycle) + alpha) / static_cast<float>(CycleSteps);
-        const float ramp = position < 0.5f ? 2.0f * position : 2.0f - 2.0f * position;
-        const Platform::GlFunctions& gl = m_window.Gl();
-        gl.clearColor(DarkRed + ramp * (LightRed - DarkRed), DarkGreen + ramp * (LightGreen - DarkGreen),
-                      DarkBlue + ramp * (LightBlue - DarkBlue), 1.0f);
-        gl.clear(GL_COLOR_BUFFER_BIT);
-        m_window.Swap();
-    }
-
-private:
-    Platform::Window& m_window;
-    std::uint32_t m_cycle = 0;
+    // La carpeta del ejecutable, o vacía (la actual) si SDL no la da.
+    std::filesystem::path folder;
+    App::CommandLine commandLine;
+    App::ClientConfig config;
 };
+
+// Fase 1. SDL_GetBasePath anda antes de SDL_Init: en la carpeta del ejecutable están la config y,
+// si no dice otra cosa, el log.
+std::optional<Startup> ReadStartup(int argc, char* argv[], Core::Log& log)
+{
+    const auto exeFolder = Platform::ExecutableFolder();
+    if (!exeFolder.HasValue())
+    {
+        log.Warning("{}; busco la config y el log en la carpeta actual", exeFolder.Error());
+    }
+    const std::filesystem::path folder = exeFolder.HasValue() ? exeFolder.Value() : std::filesystem::path();
+
+    std::vector<std::string_view> arguments;
+    for (int i = 1; i < argc; ++i)
+    {
+        arguments.emplace_back(argv[i]);
+    }
+    auto commandLine = App::ParseCommandLine(arguments);
+    if (!commandLine.HasValue())
+    {
+        log.Error("{}", commandLine.Error());
+        return std::nullopt;
+    }
+    auto config = App::Resolve(folder, commandLine.Value());
+    if (!config.HasValue())
+    {
+        log.Error("{}", config.Error());
+        return std::nullopt;
+    }
+    return Startup{folder, std::move(commandLine).Value(), std::move(config).Value()};
+}
 
 void PrintGlInfo(const Platform::GlFunctions& gl)
 {
@@ -107,83 +103,115 @@ void PrintGlInfo(const Platform::GlFunctions& gl)
     std::fflush(stdout);
 }
 
+// Fase 3: la ventana con el tamaño y el VSync de la config. Si el driver no deja el VSync pedido,
+// lo avisa y sigue: la lógica va igual a 25 pasos por segundo y el dibujo, más rápido.
+std::optional<Platform::Window> OpenWindow(Platform::SdlContext& sdl, const App::ClientConfig& config, Core::Log& log)
+{
+    Platform::WindowOptions options;
+    options.width = config.width;
+    options.height = config.height;
+    // Resolve siempre lo deja puesto: On en el modo normal y Off en el fiel, si no se dio.
+    options.vsync = config.vsync.value_or(App::VSyncMode::On);
+    auto created = Platform::Window::Create(sdl, options);
+    if (!created.HasValue())
+    {
+        log.Error("{}", created.Error());
+        return std::nullopt;
+    }
+    Platform::Window window = std::move(created).Value();
+    PrintGlInfo(window.Gl());
+    if (window.VSync() != options.vsync)
+    {
+        log.Warning("VSync: se pidió {} y quedó {}: {}", Platform::VSyncModeName(options.vsync),
+                    Platform::VSyncModeName(window.VSync()), window.VSyncError());
+    }
+    return window;
+}
+
+// El tope de FPS va solo con el VSync que quedó apagado, como en MuMain (App::EffectiveMaxFps).
+int LoopMaxFps(const App::ClientConfig& config, const Platform::Window& window, Core::Log& log)
+{
+    const int maxFps = App::EffectiveMaxFps(config.maxFps, window.VSync());
+    if (config.maxFps != maxFps)
+    {
+        log.Info("el tope de FPS no se usa con VSync {}: el swap ya frena al refresco",
+                 Platform::VSyncModeName(window.VSync()));
+    }
+    return maxFps;
+}
+
+// Lo que la escena de prueba le pide a la ventana: el fondo de un color, y el swap.
+void Present(Platform::Window& window, const Scenes::Color& color)
+{
+    const Platform::GlFunctions& gl = window.Gl();
+    gl.clearColor(color.red, color.green, color.blue, 1.0f);
+    gl.clear(GL_COLOR_BUFFER_BIT);
+    window.Swap();
+}
+
 void SetViewport(const Platform::GlFunctions& gl, App::PixelSize size)
 {
     gl.viewport(0, 0, size.width, size.height);
 }
 
-// Lo que imprime --stats: los frames y los pasos desde el último aviso, por segundo.
-class StatsPrinter
+// El viewport sigue al área de dibujo, que cambia con PixelSizeChanged.
+void FollowPixelSize(const Platform::GlFunctions& gl, App::PixelSize size, App::PixelSize& viewport)
 {
-public:
-    explicit StatsPrinter(Core::Duration start) : m_last(start) {}
-
-    void Update(Core::Duration now, const App::FrameStats& stats)
+    if (size.width != viewport.width || size.height != viewport.height)
     {
-        const Core::Duration elapsed = now - m_last;
-        if (elapsed < StatsInterval)
-        {
-            return;
-        }
-        const double seconds = std::chrono::duration<double>(elapsed).count();
-        std::printf("FPS: %.2f, pasos por segundo: %.2f\n", static_cast<double>(stats.frames - m_frames) / seconds,
-                    static_cast<double>(stats.steps - m_steps) / seconds);
-        std::fflush(stdout);
-        m_last = now;
-        m_frames = stats.frames;
-        m_steps = stats.steps;
+        viewport = size;
+        SetViewport(gl, viewport);
     }
+}
 
-private:
-    Core::Duration m_last;
-    std::uint64_t m_frames = 0;
-    std::uint64_t m_steps = 0;
-};
+// Un frame de GameLoop, con el aviso de la CL3.4 si se recortó (pasó de MaxFrameTime).
+void RunFrame(App::GameLoop& loop, const App::WindowState& state, Client::Input::InputState& input, Core::Log& log)
+{
+    const std::uint64_t clampedBefore = loop.Stats().clampedFrames;
+    loop.RunFrame(state, input);
+    if (loop.Stats().clampedFrames != clampedBefore)
+    {
+        log.Warning("un frame pasó de {} ms: se corrieron solo los pasos del tope, y el resto se perdió",
+                    std::chrono::duration_cast<std::chrono::milliseconds>(App::MaxFrameTime).count());
+    }
+}
 
-// Corre el bucle hasta que se cierre la ventana o se llegue a `maxFrames`.
+// --stats: los FPS y los pasos por segundo, cada StatsInterval.
+void PrintStats(App::FrameRateMeter& meter, Core::Duration now, const App::FrameStats& stats)
+{
+    if (const auto rates = meter.Update(now, stats))
+    {
+        std::printf("FPS: %.2f, pasos por segundo: %.2f\n", rates->framesPerSecond, rates->stepsPerSecond);
+        std::fflush(stdout);
+    }
+}
+
+// Fase 4: hasta que se cierre la ventana o se llegue a --frames.
 App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::GameLoop& loop,
                         const App::CommandLine& commandLine, Core::Log& log)
 {
-    const Platform::GlFunctions& gl = window.Gl();
     App::WindowState state;
-    Client::Input::InputState input;
     state.pixelSize = window.PixelSize();
-    App::PixelSize viewportSize = state.pixelSize;
-    SetViewport(gl, viewportSize);
-    std::optional<StatsPrinter> stats;
+    Client::Input::InputState input;
+    App::PixelSize viewport = state.pixelSize;
+    SetViewport(window.Gl(), viewport);
+    std::optional<App::FrameRateMeter> meter;
     if (commandLine.stats)
     {
-        stats.emplace(clock.Now());
+        meter.emplace(clock.Now());
     }
-
-    while (true)
+    while (!commandLine.maxFrames || loop.Stats().frames < *commandLine.maxFrames)
     {
         Platform::PumpEvents(state, input, window.Id());
         if (!state.running)
         {
             break;
         }
-        // El viewport sigue a la ventana.
-        if (state.pixelSize.width != viewportSize.width || state.pixelSize.height != viewportSize.height)
+        FollowPixelSize(window.Gl(), state.pixelSize, viewport);
+        RunFrame(loop, state, input, log);
+        if (meter)
         {
-            viewportSize = state.pixelSize;
-            SetViewport(gl, viewportSize);
-        }
-
-        const std::uint64_t clampedBefore = loop.Stats().clampedFrames;
-        loop.RunFrame(state, input);
-        if (loop.Stats().clampedFrames != clampedBefore)
-        {
-            log.Warning("un frame pasó de {} ms: se corrieron solo los pasos del tope, y el resto se perdió",
-                        std::chrono::duration_cast<std::chrono::milliseconds>(App::MaxFrameTime).count());
-        }
-        if (stats)
-        {
-            stats->Update(clock.Now(), loop.Stats());
-        }
-        if (commandLine.maxFrames && loop.Stats().frames >= *commandLine.maxFrames)
-        {
-            break;
+            PrintStats(*meter, clock.Now(), loop.Stats());
         }
     }
     return loop.Stats();
@@ -196,102 +224,48 @@ App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::Game
 // cambia nada.
 int main(int argc, char* argv[])
 {
-    // La carpeta del ejecutable (SDL_GetBasePath, anda antes de SDL_Init): ahí están la config y,
-    // si no dice otra cosa, el log. Sin ella, la carpeta actual.
-    const auto exeFolder = Platform::ExecutableFolder();
-    const std::filesystem::path folder = exeFolder.HasValue() ? exeFolder.Value() : std::filesystem::path();
-    // Hasta resolver la config, los errores van solo a stderr: el archivo del log lo dice la config.
     Core::StderrSink errorOutput;
     Core::Log startupLog(errorOutput, Core::LogLevel::Info);
-    if (!exeFolder.HasValue())
+    const std::optional<Startup> startup = ReadStartup(argc, argv, startupLog);
+    if (!startup)
     {
-        startupLog.Warning("{}; busco la config y el log en la carpeta actual", exeFolder.Error());
-    }
-
-    std::vector<std::string_view> arguments;
-    for (int i = 1; i < argc; ++i)
-    {
-        arguments.emplace_back(argv[i]);
-    }
-    const auto commandLine = App::ParseCommandLine(arguments);
-    if (!commandLine.HasValue())
-    {
-        startupLog.Error("{}", commandLine.Error());
         return EXIT_FAILURE;
     }
-    // La config se resuelve antes de SDL_Init: un puerto malo o una carpeta de datos que no
-    // existe terminan acá, sin abrir la ventana.
-    const auto resolved = App::Resolve(folder, commandLine.Value());
-    if (!resolved.HasValue())
-    {
-        startupLog.Error("{}", resolved.Error());
-        return EXIT_FAILURE;
-    }
-    const App::ClientConfig& config = resolved.Value();
 
-    // El log entero: stderr y el archivo de [Log] Path (Resolve ya lo tomó desde la carpeta del
-    // ejecutable), o muret-client.log junto al ejecutable. Las salidas viven más que el Log, y el
-    // Log más que el SdlLog (declarado más abajo, se destruye antes).
-    const std::filesystem::path logPath = config.logPath.value_or(folder / LogFileName);
-    Core::Expected<std::unique_ptr<Core::FileSink>, std::string> logFile = Core::FileSink::Open(logPath);
+    // Fase 2: stderr y el archivo de [Log] Path (Resolve ya lo tomó desde la carpeta del
+    // ejecutable), o muret-client.log junto al ejecutable. Si no abre, solo stderr.
+    const auto logFile = Core::FileSink::Open(startup->config.logPath.value_or(startup->folder / LogFileName));
     std::optional<Core::TeeSink> tee;
     if (logFile.HasValue())
     {
         tee.emplace(errorOutput, *logFile.Value());
     }
-    Core::ILogSink& logOutput = tee ? static_cast<Core::ILogSink&>(*tee) : errorOutput;
-    Core::Log log(logOutput, Core::LogLevel::Info);
+    Core::Log log(tee ? static_cast<Core::ILogSink&>(*tee) : errorOutput, Core::LogLevel::Info);
     if (!logFile.HasValue())
     {
         log.Warning("{}: el log sigue solo en stderr", logFile.Error());
     }
     log.Info("MuRet Client arranca");
-    const App::PacingMode pacing = config.pacing;
 
-    const Client::Core::Expected<std::unique_ptr<Platform::SdlContext>, std::string> sdl =
-        Platform::SdlContext::Create();
+    const auto sdl = Platform::SdlContext::Create();
     if (!sdl.HasValue())
     {
         log.Error("{}", sdl.Error());
         return EXIT_FAILURE;
     }
-    // Después del Log y del SdlContext: se destruye antes que los dos. SDL_Quit no devuelve la
-    // salida por defecto de SDL, así que el SdlLog tiene que morir antes (Platform/SdlLog.h).
+    // Después del SdlContext, así muere antes: SDL_Quit no devuelve la salida por defecto de SDL
+    // (Platform/SdlLog.h).
     const Platform::SdlLog sdlLog(log);
-    Platform::WindowOptions options;
-    options.width = config.width;
-    options.height = config.height;
-    // Resolve siempre lo deja puesto: On en el modo normal y Off en el fiel, si no se dio.
-    options.vsync = config.vsync.value_or(App::VSyncMode::On);
-    Client::Core::Expected<Platform::Window, std::string> created = Platform::Window::Create(*sdl.Value(), options);
-    if (!created.HasValue())
+    std::optional<Platform::Window> window = OpenWindow(*sdl.Value(), startup->config, log);
+    if (!window)
     {
-        log.Error("{}", created.Error());
         return EXIT_FAILURE;
-    }
-    // Se destruye antes que `sdl`, que se declaró antes: la ventana muere antes del SDL_Quit.
-    Platform::Window window = std::move(created).Value();
-    PrintGlInfo(window.Gl());
-
-    // Si el driver no deja el VSync pedido, el bucle igual anda: la lógica sigue a 25 pasos por
-    // segundo y el dibujo va más rápido.
-    if (window.VSync() != options.vsync)
-    {
-        log.Warning("VSync: se pidió {} y quedó {}: {}", Platform::VSyncModeName(options.vsync),
-                    Platform::VSyncModeName(window.VSync()), window.VSyncError());
     }
 
     Platform::SdlClock clock;
-    TestScene scene{window};
-    // El tope de FPS va solo con el VSync que quedó apagado, como en MuMain (EffectiveMaxFps).
-    const int maxFps = App::EffectiveMaxFps(config.maxFps, window.VSync());
-    if (config.maxFps != maxFps)
-    {
-        log.Info("el tope de FPS no se usa con VSync {}: el swap ya frena al refresco",
-                 Platform::VSyncModeName(window.VSync()));
-    }
-    App::GameLoop loop{clock, scene, pacing, maxFps};
-    const App::FrameStats stats = RunLoop(window, clock, loop, commandLine.Value(), log);
+    Scenes::TestScene scene{[&window](const Scenes::Color& color) { Present(*window, color); }};
+    App::GameLoop loop{clock, scene, startup->config.pacing, LoopMaxFps(startup->config, *window, log)};
+    const App::FrameStats stats = RunLoop(*window, clock, loop, startup->commandLine, log);
     std::printf("frames: %llu, pasos: %llu\n", static_cast<unsigned long long>(stats.frames),
                 static_cast<unsigned long long>(stats.steps));
     return EXIT_SUCCESS;

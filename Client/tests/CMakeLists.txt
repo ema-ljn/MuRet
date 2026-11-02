@@ -77,6 +77,7 @@ add_subdirectory(input)
 add_subdirectory(network)
 add_subdirectory(platform)
 add_subdirectory(protocol)
+add_subdirectory(scenes)
 add_subdirectory(support)
 
 # Un test_*.cpp que no quedó en ningún ejecutable (en una subcarpeta, o en una carpeta sin su

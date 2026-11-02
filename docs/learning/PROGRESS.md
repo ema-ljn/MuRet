@@ -219,6 +219,7 @@ sesión, junto con los de repaso más viejo.
 | estado contra eventos: "está abajo" se consulta y "se apretó" es un flanco (`InputState`), un flanco leído por frame que llega a exactamente un paso (`ConsumeEdges` después del primer paso), y una tecla lógica que es el OR de sus dos lados (`Shift`, como `VK_SHIFT`) | CL3.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | de dónde sale lo que depende del lugar (la carpeta de datos, el servidor, el video), validado antes de abrir nada (`Resolve`), y un log que se lee en un test (`ILogSink`) | CL3.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un log sin globales, con la salida inyectada (`ILogSink`), un `std::mutex` en cada salida porque SDL loguea desde sus hilos y otro en el `TeeSink` para el orden, un archivo que agrega con un tope de 1 MiB al abrir (`FileSink`), y un RAII que devuelve la salida de SDL antes de que muera el `Log` (`SdlLog`) | CL3.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un limitador de frames con meta absoluta contra un sueño relativo: la deriva de lo que corre entre frames, qué valor toma la meta cuando un frame se pasa (donde terminó, para no ponerse al día ni volver a sumar el hueco), y por qué con VSync no se usa (`SleepRestOfFrame`, el `FpsCap` de MuMain) | CL3.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

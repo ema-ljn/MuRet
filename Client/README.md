@@ -27,7 +27,7 @@ y `Skill.bmd`, con el XOR3 y el checksum de las tablas `.bmd`, y el terreno de u
 De las texturas, el OZT (un TGA de 32 bits, en RGBA) y el OZJ (un JPEG, en RGB, con libjpeg-turbo),
 en un buffer de lados potencia de 2 como el del original. Con eso termina el código de la CL1:
 `message.wtf` no entra, porque es del launcher y `main.exe` no lo lee. La próxima es la CL2, el
-protocolo sin red.
+protocolo sin red, con su [plan](../docs/superpowers/plans/2026-11-02-ola-cl2-protocolo-sin-red.md).
 
 ## Compilar y correr
 

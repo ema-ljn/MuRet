@@ -53,13 +53,20 @@ con esta tabla de 32 bytes:
 e7 6d 3a 89 bc b2 9f 73 23 a8 fe b6 49 5d 39 5d 8a cb 63 8d ea 7d 2b 5f c3 b1 e9 83 29 51 e8 56
 ```
 
-- **begin:** C1 → `buf[0]=C1`, `buf[2]=op`, tamaño 3 (el opcode en claro). C2 → `buf[0]=C2`,
-  `buf[3]=op ^ key[3]`, tamaño 4.
-- **put:** para cada byte nuevo en el índice `i`: si `i >= 3`, `valor ^= key[i & 31] ^ buf[i-1]`.
-  Tope `0x800` bytes; lo que sobra se ignora en silencio.
+- **begin:** C1 → `buf[0]=C1`, `buf[2]=op`, tamaño 3. C2 → `buf[0]=C2`, `buf[1..2]=01 00`
+  (provisorio), `buf[3]=op`, tamaño 4. En los dos el opcode va en claro.
+- **put:** cada byte que se agrega después del opcode (desde el índice 3 en un C1, desde el 4 en
+  un C2) hace `valor ^= key[i & 31] ^ buf[i-1]`, con `buf[i-1]` ya cifrado: el primero se
+  encadena con el opcode. Tope `0x800` bytes; lo que sobra se ignora en silencio.
 - **finish:** escribe el tamaño (C2 en big-endian).
 
-*Estático*, con fixtures de `mu-client` (`test_net_send`).
+*Estático*. El C1, con los fixtures de `mu-client` (`test_net_send`) y verificado en el cable
+(`C1 04 F3 00` sale como `C1 04 F3 7A`). El C2, en su único emisor del build, la ventana de cartas
+(`0x498820`): `0x498b2c..0x498b89` escribe `C2`, `01 00` y el opcode `C5` sin XOR, y el XOR32 de
+lo que sigue (`0x498c54..0x498c83`) empieza en el índice 4 encadenado con el `C5`. En el cable
+del laboratorio el cliente no manda ningún C2. `mu-client` cifra el opcode del C2 con `key[3]`
+(`src/net/send.c`), sin evidencia, y sus fixtures `FIX_C2_PLAIN` y `FIX_C4_SERIAL2` salen de ese
+modelo: no sirven de oráculo para el C2.
 
 ## C3/C4: cifrado por bloques con `Enc1.dat` y `Dec2.dat`
 
@@ -137,7 +144,8 @@ Tests que fija:
 
 - Vectores del corte: los casos de `red_reference.py --selftest` (corte, resto parcial, cabecera
   incompleta, cabecera inválida, tamaño 0, serial, checksum malo) (CL2).
-- XOR32: los fixtures de `test_net_send` de `mu-client` (CL2).
+- XOR32: los fixtures de `test_net_send` de `mu-client`, salvo los del C2, que se arman de nuevo
+  con el opcode en claro (CL2).
 - C3/C4: round-trip con claves sintéticas y, si está `mu-golden`, descifrar los C3 reales con la
   clave real y comparar byte a byte (CL2).
 - Seriales: 0 al conectar, +1 por paquete, comportamiento ante desfase (CL2).

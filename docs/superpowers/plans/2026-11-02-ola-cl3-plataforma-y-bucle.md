@@ -811,12 +811,21 @@ dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
   `TheAccumulatorWrapsLikeTheAdd` (el ADD de 0x638632 da la vuelta como en x86: se suma en
   `uint32_t`, sin el UB de desbordar un `int32`), y un `static_assert(FaithfulWaitMs == 40)`.
   `TickCountMs` redondea hacia abajo también con un `now` negativo, que solo da el `FakeClock`.
-- [ ] **Paso 6 (PR B):** `TickCountMs`, `FaithfulPacer` y el modo `Faithful` de `GameLoop`; en 07,
+- [x] **Paso 6 (PR B):** `TickCountMs`, `FaithfulPacer` y el modo `Faithful` de `GameLoop`; en 07,
   `FaithfulPacerTest.HasNoCap` al lado del test del PR A.
+
+  Hecho así: en Q-C44, con `TimeSpentInStepsIsNotAccumulated` también. `main.cpp` corre el modo
+  fiel con `--pacing faithful`, y sin `--vsync` le pone VSync Off.
 - [ ] **Paso 7:** a mano, en Windows y en Linux: `Main --pacing faithful --stats` da 21,33 FPS y 25
   pasos por segundo, y `Main --vsync off --stats` corre a cientos de FPS con 25 pasos por segundo.
   Anotarlo en el README.
-- [ ] **Paso 8:** verificar:
+
+  En Linux, con Xvfb y llvmpipe (2026-11-02, lo corrió Claude): `--pacing faithful --stats` dio
+  21,38 y 21,33 FPS con 24,98 y 24,92 pasos por segundo, y `--frames 60 --pacing faithful`, 70
+  pasos en 3 s. `--vsync off --stats` dio 2.148 y 2.629 FPS con 24,80 y 25,00 pasos por segundo (el
+  primer aviso incluye el arranque). Xvfb no deja VSync On (no tiene retrazo). Windows queda para
+  Emanuel, y está anotado en el README.
+- [x] **Paso 8:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "FakeClock|FixedStep|GameLoop|FaithfulPacer|CommandLine"
   xvfb-run -a -s '-screen 0 800x600x24' build/linux-x64-debug/Client/Main --frames 60 --vsync off

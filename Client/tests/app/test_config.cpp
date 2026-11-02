@@ -94,6 +94,16 @@ TEST(ConfigTest, RejectsAnUnknownVSyncValue)
     EXPECT_EQ(error.message, "[Video] VSync: tiene que ser on, adaptive u off");
 }
 
+// La config es UTF-8: en Windows, una ruta leída como ANSI quedaría mal.
+TEST(ConfigTest, ReadsAPathThatIsNotAscii)
+{
+    const auto config = ParseConfig("[Data]\nPath = C:\\Juegos\\M\xC3\x9A\n[Log]\nPath = registro-\xC3\xB1.log\n");
+
+    ASSERT_TRUE(config.HasValue());
+    EXPECT_EQ(config.Value().dataPath, std::filesystem::path(u8"C:\\Juegos\\M\u00DA"));
+    EXPECT_EQ(config.Value().logPath, std::filesystem::path(u8"registro-\u00F1.log"));
+}
+
 TEST(ConfigTest, RejectsAnUnknownPacingValue)
 {
     const ConfigError error = ErrorOf("[Video]\nPacing = fast\n");

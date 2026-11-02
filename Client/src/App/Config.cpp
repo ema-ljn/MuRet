@@ -144,13 +144,22 @@ Core::Expected<PacingMode, std::string> ParsePacing(std::string_view value)
     return Unexpected(std::string("tiene que ser decoupled o faithful"));
 }
 
+// El archivo es UTF-8, y path(std::string) en Windows lee la página de códigos ANSI: una carpeta
+// con una letra que no sea ASCII quedaría mal. Como char8_t, path lo lee como UTF-8.
+std::filesystem::path PathFromUtf8(std::string_view text)
+{
+    std::u8string utf8(text.size(), u8'\0');
+    std::ranges::transform(text, utf8.begin(), [](char c) { return static_cast<char8_t>(c); });
+    return std::filesystem::path(utf8);
+}
+
 // Guarda el valor en su campo; si no se puede leer, devuelve por qué.
 std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view value)
 {
     switch (key)
     {
     case Key::DataPath:
-        config.dataPath = std::filesystem::path(value);
+        config.dataPath = PathFromUtf8(value);
         return std::nullopt;
     case Key::ServerHost:
     {
@@ -212,7 +221,7 @@ std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view
         return std::nullopt;
     }
     case Key::LogPath:
-        config.logPath = std::filesystem::path(value);
+        config.logPath = PathFromUtf8(value);
         return std::nullopt;
     }
     return std::nullopt;

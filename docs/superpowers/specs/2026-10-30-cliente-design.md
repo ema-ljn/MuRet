@@ -210,19 +210,19 @@ Cada sub-ola es un PR chico. "Terminada cuando" es la condición objetiva de cie
 | CL4 | Red del cliente | CL4.0 sockets no bloqueantes · CL4.R la conexión del original (P-C11, Q-C11) · CL4.1 socket no bloqueante portable consultado por el bucle, con la cola de envío · CL4.2 `Dispatcher` y el opcode desconocido · CL4.3 ConnectServer: saludo, lista, IP del GS · CL4.4 GameServer: saludo, versión y login · CL4.5 keepalive y desconexión | E/S no bloqueante, estados de una conexión | 03, 04 |
 | CL5 | Render 2D y la escena de login | CL5.0 el pipeline gráfico (buffers, shaders, matrices, texturas) · CL5.1 `Renderer` y texturas desde OZT/OZJ · CL5.2 `SpriteBatch` en 640 × 480 escalado · CL5.3 texto con caché y colores `0x02` · CL5.4 `SceneManager` y `LoginScene` · CL5.5 UI de login conectada a CL4: lista de servidores, cuenta y clave | GPU, shaders, coordenadas lógicas | 06 |
 | CL6 | Modelos y selección de personaje | CL6.R lectura guiada del render de modelos (P-C01, ya reproducido contra las trazas) y flujo `F3` (P-C06) · CL6.1 parseo de modelos · CL6.2 skinning y animación · CL6.3 `CharacterSelectScene` con preview 3D y los paquetes de selección | jerarquías de huesos, interpolación, cuaterniones | 05, 06, 08 |
-| CL7 | Mundo | CL7.R lectura guiada del renderer de terreno (P-C02, ya identificado y verificado) · CL7.1 terreno con capas, alfa y luz · CL7.2 objetos del `.obj` · CL7.3 cámara · CL7.4 picking y movimiento (`0xD3`/`0xD7`): caminar en Lorencia | mallas, frustum culling, rayos | 05, 06 |
+| CL7 | Mundo | CL7.R lectura guiada del renderer de terreno (P-C02, ya identificado y verificado), y qué mapas conoce el original y cómo pasa de uno a otro (P-C12) · CL7.1 terreno con capas, alfa y luz · CL7.2 objetos del `.obj` · CL7.3 cámara · CL7.4 picking y movimiento (`0xD3`/`0xD7`): caminar en Lorencia · CL7.5 los otros mapas: cargar cualquier mundo del `Data\`, cambiar de mapa (gates y warps) y lo propio de cada uno | mallas, frustum culling, rayos | 05, 06 |
 | CL8 | HUD y ventanas | CL8.1 barras y minimapa · CL8.2 chat · CL8.3 `UI::Window` y el administrador · CL8.4 inventario | UI retenida vs inmediata, eventos | 06 |
-| CL9 | Gameplay | CL9.R por dominio (P-C09) · CL9.1 otros jugadores y monstruos (viewport) · CL9.2 combate y skills · CL9.3 items · CL9.4 party, gremio y comercio | modelado de dominio, consistencia con el servidor | 04 |
+| CL9 | Gameplay | CL9.R por dominio (P-C09), y los mapas de evento (P-C12) · CL9.1 otros jugadores y monstruos (viewport) · CL9.2 combate y skills · CL9.3 items · CL9.4 party, gremio y comercio · CL9.5 los mapas de evento que conozca el original: entrada, reglas, paquetes y UI | modelado de dominio, consistencia con el servidor | 04 |
 | CL10 | Audio | CL10.R formatos y disparadores (P-C07) · CL10.1 música · CL10.2 efectos | audio digital, mezcla, streaming | 08 |
 
-**"Terminada cuando", por ola:** CL0 — `Main` compila y corre en los dos sistemas, en CI. CL1 —
-cada formato pasa su round-trip y, con `mu-golden`, su comparación byte a byte. CL2 — pasan los
-vectores del cable y los fixtures de `mu-client` para corte, XOR32, C3/C4, FoxAnti, login y
-keepalive. CL3 — una ventana a la tasa del monitor con la lógica a tick fijo, verificado con un
-reloj falso. CL4 — el cliente pasa el login contra el GS del laboratorio. CL5 — la pantalla de
-login se ve y se usa. CL6 — el personaje aparece animado en la selección. CL7 — se camina por
-Lorencia. CL8 — chat e inventario usables. CL9 — una sesión de juego estable. CL10 — música y
-efectos.
+**"Terminada cuando", por ola:** CL0 — `Main` compila y corre en los dos sistemas, en CI. CL1 — cada
+formato pasa su round-trip y, con `mu-golden`, su comparación byte a byte. CL2 — pasan los vectores
+del cable y los fixtures de `mu-client` para corte, XOR32, C3/C4, FoxAnti, login y keepalive. CL3 —
+una ventana a la tasa del monitor con la lógica a tick fijo, verificado con un reloj falso. CL4 — el
+cliente pasa el login contra el GS del laboratorio. CL5 — la pantalla de login se ve y se usa. CL6 —
+el personaje aparece animado en la selección. CL7 — se camina por Lorencia y, por un gate, por los
+otros mapas que trae el `Data\`. CL8 — chat e inventario usables. CL9 — una sesión de juego estable,
+también en los mapas de evento. CL10 — música y efectos.
 
 **Planes detallados:** se escriben al arrancar cada ola, como pide el camino de aprendizaje
 (L-10). Ya están los de la [CL0](../plans/2026-10-30-ola-cl0-fundaciones-cliente.md), la

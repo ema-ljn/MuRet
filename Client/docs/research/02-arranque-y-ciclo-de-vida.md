@@ -244,7 +244,7 @@ lógica de la escena     2 → 0x634c60, 4 → 0x6342c0, 5 → 0x636290 (ahí av
                         acotado entre −0,2 y 1 (DAT_007245f0; ¿viento?, inferido)
 0x5547e0, 0x5554b0      dos temporizadores de 301 y 151 pasos (12 y 6 s) que llaman a
                         0x554610 y 0x555190 (mensajes en pantalla, inferido)
-IMPR PANT               alterna el pedido de captura (DAT_07d368a8)
+IMPR PANT               en todas las escenas: alterna el pedido de captura (DAT_07d368a8)
 DAT_05767940, DAT_077f3b74   cuentas regresivas: −1 por paso hasta 0
 DAT_07d2d360            ciclo de 32 pasos: (n + 1) mod 32
 DAT_07d3a0f0 + 1, DAT_07d3a144 + 1, DAT_006d5ee4 − 40
@@ -278,7 +278,7 @@ frames:
 | `DAT_077f3b74` | lo ponen en 100 (4 s) dos escrituras en línea de `0x59ff10` al mandar una macro (`0x5a1ea1`, `0x5a2b3d`); `0x59fea0` hace lo mismo (`0x59ff01`), pero no lo llama nadie (arriba). Mientras no sea 0 (`TEST` y `JNE` en `0x5a116f`), `0x59ff10` no lee las teclas de los dígitos que eligen la macro (`0x5a11a4`; la tabla de macros, de 256 bytes cada una, en `0x77f1db0`) | por paso; lo lee el HUD (`0x5a7320`, `0x5ab6d0`), que dibuja una barra de ancho `n · 50 / 100` | por paso; la barra muestra el último paso, sin interpolar (CL8) |
 | `DAT_07d2d360`, el ciclo de 32 pasos | elige una de 32 texturas animadas: en el terreno del mundo 7 el slot `0x1e + n` (`0x5fa830`), y en los modelos con la textura `0x41`, el `0x41 + n` (`0x4ecc30`, `0x4ef340`, `0x42e3d0`, `0x438fe0`) | por paso; lo lee el dibujo | por paso y sin interpolar: una textura no se interpola (CL6, CL7) |
 | la interfaz del juego | `0x623e70`, solo en la escena 5: lee Esc (`0x553520(0x1b)`, `0x623eb5`) y el mouse de los globales del WndProc, abre y cierra ventanas (`DAT_07d3a10c`), hace sonar (`0x41ed10`, 27 llamadas) y arma paquetes (68 referencias al motor `0x6b85f4` en el desensamblado; el decompilado muestra 69) | por paso | por paso (CL8, CL9) |
-| la captura de pantalla | el pedido, por paso (`0x553520(0x2c)`, `0x637cff`); Shift (`0x638305`) y la captura (`0x6202e0`), por frame | paso y frame | CL8 |
+| la captura de pantalla | el pedido, por paso y en todas las escenas (`0x553520(0x2c)`, `0x637cff`, después del `switch` de la lógica, `0x637cab`..`0x637cb9`); Shift (`0x638305`) y la captura (`0x6202e0`), por frame | paso y frame | CL8 |
 | el reloj T del frame | `0x4eb620` guarda `timeGetTime` en `DAT_05767b88` (Q-C22), una vez por frame y antes de los pasos (`0x63776c`): los dos pasos de un frame ven el mismo T | por frame; lo leen 79 funciones: 22 desde el paso y 51 desde el dibujo (*análisis*, abajo) | cada una en su ola (CL6 a CL9) |
 | la UI nueva: foco, arrastre y el delta | `0x65fc30`, con el delta de `0x459b60` (tope de 200 ms) y el mouse de `0x640940`: busca la ventana bajo el cursor, la arrastra (`0x669f40`) y le pasa el delta a cada ventana (métodos `+0x28` y `+0x30` de su vtable) | por frame, con el delta real | por frame y por tiempo real (CL8); qué hace cada ventana con el delta, sin leer |
 | las demoras de las habilidades | una tabla de `int` en `[0x7681eb0] + 0x76c`, una por casilla de habilidad del personaje; `0x552c50` y `0x552990` cargan la de una casilla con el campo `+0x28` del registro de `Skill.bmd` de su habilidad (`0x3c` bytes por registro, desde `[0x76bd1d8]`) y no dejan usarla mientras sea mayor que 0 | **por reloj**: en la escena 5, `0x4eb620` le pasa a `0x552f10` (`0x4eb758`) los ms de `timeGetTime` desde el frame anterior, sin tope, que los resta de cada una sin bajar de 0 (alrededor, el hash del bloque, que no se porta) | por reloj real, no por pasos (CL9) |
@@ -356,20 +356,78 @@ aparece en el archivo). Leen la tecla de tres formas:
   `0x644730` y `0x647d40`), y así lee `0x640940` los botones del mouse.
 - **"Se apretó", con un flanco propio:** `0x553520(vk)` mira el bit alto y lo compara con lo que vio
   la vez anterior, en una tabla de un `int` por tecla (`0x77f36d4`), una sola para todos los que la
-  llaman. La usan `0x623e70` (Esc), `0x490490` (Esc, F5, F6), `0x64d090` y `0x650350` (RePág,
-  AvPág), `0x5e4ce0` (S) y `0x637700` (Impr Pant, `0x637cff`), entre otras.
+  llaman. Tiene 21 llamadas, todas con la tecla fija: Esc, Tab, Enter, Alt, RePág, AvPág, Impr
+  Pant, E, F, Q, S, W, F5 y F6 (quién, en la tabla de abajo).
 
 Las teclas de cada escena, desde su lógica por paso: la 2 (login, `0x634c60`) lee Esc; la 4
 (selección, `0x6342c0`), Enter y Esc; la 5 (juego, `0x636290` y `0x623e70`), Esc, F5 y F6
 (`0x490490`), Shift (`0x59adf0`, `0x652330`, y con los dígitos en `0x420e30`), Ctrl (`0x5588d0`,
-`0x558eb0`, `0x5c4110`), Espacio (`0x5ac8d0`), RePág y AvPág (`0x64d090`), y en `0x59ff10` RePág,
-AvPág, las flechas arriba y abajo, Ctrl, Q, Alt (`0x5a1127`, `0x5a118f`) y los dígitos, que con
-Alt eligen una macro y sin Alt llaman a `0x59f810` (sin leer). **Por frame** se leen Shift en
-`0x637700` (`0x638305`, para el nombre de la captura), Alt en el dibujo (`0x59ec80`, `0x5bbbc0`;
-Alt se lee también en el paso, en `0x59ff10`), los botones del mouse, y Enter y Esc en las seis
-ventanas de arriba: antes de los pasos, `0x63778c` llama a `0x65fc30`, que llama a `0x669f40` por
-cada ventana (`0x65fd6a`), y esta a su método `+0x30` (`0x66a044`), que en las seis es la que lee
-la tecla (la vtable `0x6ba900`, por ejemplo, tiene `0x6418b0` en `+0x30`).
+`0x558eb0`, `0x5c4110`), Q, W y E con el flanco (`0x5c4110`), S (`0x5e4ce0`), Espacio y F1 a F4
+(`0x5ac8d0`: `0x5ac8ea` y `0x5ac9d0`..`0x5acad2`), RePág y AvPág (`0x64d090`), y en `0x59ff10`
+RePág, AvPág, las flechas arriba y abajo, Ctrl, Alt (`0x5a1129`, `0x5a1191`), los dígitos, que
+con Alt eligen una macro y sin Alt llaman a `0x59f810` (sin leer), y catorce letras: B, C, D, E,
+F, G, I, M, P, Q, R, T, V y W (`0x5a35a8`..`0x5a4f36`). Impr Pant no es de una escena: `0x637700`
+la lee en cada paso después del `switch` de la lógica (`0x637cab`..`0x637cb9`), en todas
+(`0x637cff`). **Por frame** se leen Shift en `0x637700` (`0x638305`, para el nombre de la
+captura), Alt en el dibujo (`0x59ec80`, `0x5bbbc0`; Alt se lee también en el paso, en
+`0x59ff10`), los botones del mouse, y en las seis ventanas de arriba Esc, y Enter solo en tres
+(`0x63d880`, `0x642e30` y `0x6418b0`): antes de los pasos, `0x63778c` llama a `0x65fc30`, que
+llama a `0x669f40` por cada ventana (`0x65fd6a`), y esta a su método `+0x30` (`0x66a044`), que en
+las seis es la que lee la tecla (la vtable `0x6ba900`, por ejemplo, tiene `0x6418b0` en `+0x30`).
+
+**Qué tecla lee quién.** *Estático*, del desensamblado: cada llamada a `GetAsyncKeyState` (123,
+por la IAT `0x6b84fc` o por un registro cargado de ahí) y a `0x553520` (21), con la tecla que le
+pasa. Todas la pasan fija, salvo cuatro lazos sobre los dígitos (`0x420e5e`, `0x5a113d`,
+`0x5a11a8` y `0x59fe60`) y la de adentro de `0x553520`, que pasa la suya. Cada lector va con su
+función y, entre paréntesis, la dirección de la llamada. De dónde se alcanza cada función sale de
+las llamadas directas (*análisis*): **P** desde el paso, **D** desde el dibujo, **F** por frame
+(`0x637700` y `0x640940`, y las ventanas que llama `0x65fc30` por vtable), **V** sin llamadas
+directas desde el paso ni desde el dibujo (van por vtable) y **N** no la llama nadie (`0x59fe10`).
+Las **P** se alcanzan desde la lógica de la escena 5 (`0x636290`, `0x623e70`), salvo `0x634c60`
+(la 2), `0x6342c0` (la 4) y la de Impr Pant (todas); `0x5588d0` y `0x558eb0`, también desde la 2
+y la 4.
+
+| Tecla | VK | Bit alto | `== 0x8001` | `0x553520` |
+|---|---|---|---|---|
+| botones del mouse | `0x01`, `0x02`, `0x04` | | `0x640940` (`0x6409df`, `0x640aa2`, `0x640b65`) F | |
+| Tab | `0x09` | | | `0x40f6d0` (`0x40f6ea`) V |
+| Enter | `0x0D` | | `0x6342c0` (`0x634343`) P; `0x63d880` (`0x63d91a`), `0x642e30` (`0x642e4b`), `0x6418b0` (`0x64192d`) F | `0x4a43c0` (`0x4a43ed`), `0x4a4e20` (`0x4a4e34`) V |
+| Shift | `0x10` | `0x420e30` (`0x420e4d`), `0x59adf0` (`0x59ddf1`), `0x652330` (`0x6525f9`) P; `0x637700` (`0x638305`) F | | |
+| Ctrl | `0x11` | `0x5588d0` (`0x558b86`), `0x558eb0` (`0x558fd6`), `0x59ff10` (`0x5a0905`), `0x5c4110` (`0x5c4ac1`) P; `0x558bb0` (`0x558e7f`) P y D; `0x632dd0` (`0x632dd5`) V | | |
+| Alt | `0x12` | `0x59ff10` (`0x5a1129`, `0x5a1191`) P; `0x59ec80` (`0x59ef37`), `0x5bbbc0` (`0x5bbd91`) D; `0x59fe10` (`0x59fe4b`) N | | `0x5bbbc0` (`0x5bbd6c`) D |
+| Esc | `0x1B` | | `0x634c60` (`0x634d3a`), `0x6342c0` (`0x634485`) P; `0x63d880` (`0x63d956`), `0x642e30` (`0x642e8d`), `0x6418b0` (`0x641962`), `0x63f630` (`0x63f650`), `0x644730` (`0x644822`), `0x647d40` (`0x647e98`) F | `0x623e70` (`0x623eb5`), `0x490490` (`0x4904bc`) P |
+| Espacio | `0x20` | `0x5ac8d0` (`0x5ac8ea`) P | | |
+| RePág | `0x21` | `0x59ff10` (`0x5a00a3`) P | | `0x64d090` (`0x64d0d6`, `0x64d127`) P; `0x650350` (`0x650387`) V |
+| AvPág | `0x22` | `0x59ff10` (`0x5a00db`) P | | `0x64d090` (`0x64d0f3`, `0x64d144`) P; `0x650350` (`0x6503a4`) V |
+| izquierda, derecha | `0x25`, `0x27` | `0x467b10` (`0x467b51`, `0x467b5e`) V; `0x479960` y sus nueve vecinas, que descartan el valor (`0x479999`, `0x47999d`) V | | |
+| arriba | `0x26` | `0x59ff10` (`0x5a0126`) P; `0x467b10` (`0x467b37`), `0x479960` y sus nueve vecinas (`0x4799a1`) V | | |
+| abajo | `0x28` | `0x59ff10` (`0x5a027a`) P; `0x467b10` (`0x467b44`), `0x479960` y sus nueve vecinas (`0x4799eb`) V | | |
+| Impr Pant | `0x2C` | | | `0x637700` (`0x637cff`), en el paso de todas las escenas |
+| 0 | `0x30` | `0x59ff10` (`0x5a0fba`, `0x5a115b`, `0x5a1eba`) P; `0x59fe10` (`0x59fe7e`) N | | |
+| 1 a 9 | `0x31`..`0x39` | `0x59ff10`, una por una (`0x5a0915`..`0x5a0f05`) y en dos lazos (`0x5a113d`, `0x5a11a8`), y `0x420e30`, del 1 al 4 en un lazo (`0x420e5e`) P; `0x59fe10`, en un lazo (`0x59fe60`) N | | |
+| A | `0x41` | `0x5acbe0` (`0x5acf63`) V | | |
+| B, C, G, I, M, P, T, V | `0x42`, `0x43`, `0x47`, `0x49`, `0x4D`, `0x50`, `0x54`, `0x56` | `0x59ff10` (`0x5a4ec4`, `0x5a4d54`, `0x5a4ca0`, `0x5a4d96`, `0x5a4e38`, `0x5a4cdc`, `0x5a4d18`, `0x5a4dd8`) P | | |
+| D | `0x44` | `0x59ff10` (`0x5a4e71`) P; `0x5acbe0` (`0x5acf81`) V | | |
+| E | `0x45` | `0x59ff10` (`0x5a44b3`) P; `0x5acbe0` (`0x5acf45`) V | | `0x5c4110` (`0x5c4af8`) P |
+| F | `0x46` | `0x59ff10` (`0x5a4dff`) P; `0x5acbe0` (`0x5acffb`) V | | `0x4a2f70` (`0x4a2feb`) V |
+| Q | `0x51` | `0x59ff10` (`0x5a35a8`) P; `0x5acbe0` (`0x5acf27`) V | | `0x5c4110` (`0x5c4ad1`) P |
+| R | `0x52` | `0x59ff10` (`0x5a4f36`) P; `0x5acbe0` (`0x5acfdd`) V | | |
+| S | `0x53` | `0x5acbe0` (`0x5acfbe`) V | | `0x5e4ce0` (`0x5e5678`) P |
+| W | `0x57` | `0x59ff10` (`0x5a3d2c`) P; `0x5acbe0` (`0x5acf9f`) V | | `0x5c4110` (`0x5c4ae3`) P |
+| F1 a F4 | `0x70`..`0x73` | `0x5ac8d0` (`0x5ac9d0`, `0x5aca44`, `0x5aca88`, `0x5acad2`) P | | |
+| F5 | `0x74` | | | `0x490490` (`0x490548`) P; `0x467b10` (`0x467d3b`) V |
+| F6 | `0x75` | | | `0x490490` (`0x490563`) P |
+
+Las nueve vecinas de `0x479960` son `0x47b0f0`, `0x47c870`, `0x47e010`, `0x47f7b0`, `0x480e00`,
+`0x4824d0`, `0x483bc0`, `0x4852b0` y `0x486910`. Las diez leen las flechas en el mismo orden y
+tiran el valor de la izquierda y la derecha (el decompilado muestra `GetAsyncKeyState(0x25);` y
+`GetAsyncKeyState(0x27);` sueltos), así que esas dos lecturas solo borran el bit bajo (Q-C45).
+Ninguna otra tecla pasa por `GetAsyncKeyState` ni por `0x553520`: nadie lee F7 a F12
+(`0x76`..`0x7B`), las letras H, J, K, L, N, O, U, X, Y y Z, Retroceso, Inicio, Fin, Insert, Supr
+ni el teclado numérico (el texto del chat llega por `WM_CHAR`, arriba). De Shift, Ctrl y Alt el
+original pasa solo los códigos genéricos (`VK_SHIFT`, `VK_CONTROL` y `VK_MENU`: `0x10`, `0x11` y
+`0x12`), nunca los de un lado (`0xA0`..`0xA5`); con los genéricos, según la documentación de
+`GetAsyncKeyState`, no se distingue la izquierda de la derecha.
 
 Lo que implica (*análisis*):
 
@@ -382,7 +440,8 @@ Lo que implica (*análisis*):
   lo ve. `0x553520` mira solo el bit alto y su tabla, así que a un lector de `0x553520` solo se lo
   esconde otro de `0x553520`. Y los lectores por frame corren antes que los del paso: si una de las
   ventanas lee Esc, la lógica de las escenas 2 y 4, con `0x8001`, ya no lo ve, y `0x553520(0x1b)`
-  en el paso (`0x623e70`, `0x490490`) sí.
+  en el paso (`0x623e70`, `0x490490`) sí. Con Enter pasa lo mismo entre las tres ventanas que lo
+  leen y la escena 4.
 - La tabla de `0x553520` vuelve a 0 solo cuando alguien llama a `0x553520` con la tecla arriba: si
   ningún lector corre mientras la tecla está suelta, el apretón siguiente se pierde.
 

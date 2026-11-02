@@ -347,10 +347,10 @@ que van por vtable, *análisis*). Lo que se encontró:
   lo lee) y el de las macros (`DAT_077f3b74`, 100 pasos; el HUD dibuja su barra). El ciclo de 32
   pasos elige una textura animada que lee el dibujo: por paso y sin interpolar.
 - **El teclado** se lee casi todo en el paso, y "se apretó" de dos formas (bit bajo, o el flanco de
-  `0x553520`) que pierden un apretón corto (Q-C45). Enter y Esc de seis ventanas de la UI se leen
-  por frame, por vtable, antes de los pasos; quién ve el apretón depende del orden y de la forma
-  (la regla, en Q-C45). El diseño de la CL3.3 (eventos, un flanco que ve un solo paso) ya cubre
-  las dos cosas; se corrigió su contrato.
+  `0x553520`) que pierden un apretón corto (Q-C45). Esc de seis ventanas de la UI, y Enter de tres
+  de ellas, se leen por frame, por vtable, antes de los pasos; quién ve el apretón depende del orden
+  y de la forma (la regla, en Q-C45; qué tecla lee quién, en el 02). El diseño de la CL3.3 (eventos,
+  un flanco que ve un solo paso) ya cubre las dos cosas; se corrigió su contrato.
 - **El foco**: con foco, `0x4be04a` llama al frame; sin foco, `0x4be057` llama `SetForegroundWindow`
   y `SetFocus` y no corre nada, ni la espera (Q-C46): lo que va por paso queda en pausa y lo que va
   por reloj no. De las dos ramas (el `WM_CLOSE`, y los dos `ShowWindow`) se escribió solo el

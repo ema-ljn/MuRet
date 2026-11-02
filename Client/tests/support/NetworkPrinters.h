@@ -1,9 +1,13 @@
 #pragma once
 
 #include "Network/Crypto/CryptoError.h"
+#include "Network/ISocket.h"
 #include "Network/ObfuscationError.h"
 #include "Network/PacketError.h"
 #include "Network/PacketSerials.h"
+#include "Network/SendQueue.h"
+#include "Network/SocketApi.h"
+#include "Network/SocketError.h"
 
 #include <ostream>
 
@@ -56,7 +60,84 @@ inline void PrintTo(SerialCheck check, std::ostream* out)
     }
     *out << "SerialCheck fuera del enum";
 }
+
+inline void PrintTo(SocketError error, std::ostream* out)
+{
+    switch (error)
+    {
+    case SocketError::ResolveFailed:
+        *out << "ResolveFailed";
+        return;
+    case SocketError::Refused:
+        *out << "Refused";
+        return;
+    case SocketError::Closed:
+        *out << "Closed";
+        return;
+    case SocketError::Failed:
+        *out << "Failed";
+        return;
+    }
+    *out << "SocketError fuera del enum";
+}
+
+inline void PrintTo(ConnectProgress progress, std::ostream* out)
+{
+    switch (progress)
+    {
+    case ConnectProgress::InProgress:
+        *out << "InProgress";
+        return;
+    case ConnectProgress::Connected:
+        *out << "Connected";
+        return;
+    }
+    *out << "ConnectProgress fuera del enum";
+}
+
+inline void PrintTo(SendQueueError error, std::ostream* out)
+{
+    switch (error)
+    {
+    case SendQueueError::Full:
+        *out << "Full";
+        return;
+    case SendQueueError::Socket:
+        *out << "Socket";
+        return;
+    }
+    *out << "SendQueueError fuera del enum";
+}
 } // namespace Client::Network
+
+namespace Client::Network::SocketApi
+{
+inline void PrintTo(Status status, std::ostream* out)
+{
+    switch (status)
+    {
+    case Status::Done:
+        *out << "Done";
+        return;
+    case Status::TryLater:
+        *out << "TryLater";
+        return;
+    case Status::InProgress:
+        *out << "InProgress";
+        return;
+    case Status::Refused:
+        *out << "Refused";
+        return;
+    case Status::PeerClosed:
+        *out << "PeerClosed";
+        return;
+    case Status::Failed:
+        *out << "Failed";
+        return;
+    }
+    *out << "Status fuera del enum";
+}
+} // namespace Client::Network::SocketApi
 
 namespace Client::Network::Crypto
 {

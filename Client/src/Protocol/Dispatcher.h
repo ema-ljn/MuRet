@@ -18,7 +18,11 @@
 // cualquier tipo, y el tercer nivel lo lee el handler (como el resultado del login,
 // ReadLoginResult). Lo que no tiene handler da Unknown, y la primera vez de cada opcode, o de cada
 // opcode y subcódigo, una línea de aviso al log, sin los bytes del paquete; el original lo tira al
-// default 0x4E5B4A sin avisar.
+// default 0x4E5B4A sin avisar. Malformed no va al log: lo anota quien llama (la ServerSession de
+// la CL4.3).
+//
+// Un F1 que llegara como C2 (hoy no pasa): el original lee el subcódigo en pkt[3], que en un C2 es
+// el mismo opcode, y acá sale de pkt[4].
 //
 // Un Dispatcher por servidor (CL4.3): el opcode 00 es el saludo en el ConnectServer y el chat en
 // el GameServer, y cada uno registra lo suyo. Protocol no sabe de la ofuscación, así que el cuarto
@@ -32,7 +36,8 @@ enum class DispatchResult : std::uint8_t
 {
     Handled,
     Unknown,   // sin handler: el aviso va al log la primera vez
-    Malformed, // un C3/C4, o un opcode con subcódigos en un paquete que termina en el opcode
+    Malformed, // un C3/C4, o un opcode con subcódigos en un paquete que termina en el opcode; sin
+               // aviso al log, lo anota quien llama
 };
 
 class Dispatcher

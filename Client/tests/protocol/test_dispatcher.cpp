@@ -164,6 +164,18 @@ TEST(DispatcherTest, AnOpcodeWithoutItsSubcodeIsMalformed)
     EXPECT_TRUE(hello.packets.empty());
 }
 
+// En un C2 el subcódigo es pkt[4]: C2 00 04 F4 termina en el opcode, igual que el C1 de arriba.
+TEST(DispatcherTest, AC2WithoutItsSubcodeIsMalformed)
+{
+    DispatcherWithLog tested;
+    Calls list;
+    ASSERT_TRUE(tested.dispatcher.On(ServerList, 0x06, list.Record()));
+
+    EXPECT_EQ(tested.dispatcher.Dispatch(PacketOf(Bytes({0xC2, 0x00, 0x04, 0xF4}))), DispatchResult::Malformed);
+
+    EXPECT_TRUE(list.packets.empty());
+}
+
 // Sin subcódigos, un paquete que termina en el opcode es un paquete entero: lo que sigue lo lee el
 // handler, si lo necesita.
 TEST(DispatcherTest, AnOpcodeWithoutSubcodesNeedsNoMoreBytes)

@@ -680,7 +680,9 @@ public:
   `Handled`: solo un opcode con subcódigos necesita el byte que sigue) y
   `AnEmptyHandlerIsNotRegistered` (`On` con un `Handler` vacío da `false` y no deja nada a medias;
   si no, `Dispatch` lo llamaría y `std::function` tiraría `bad_function_call`). Los de los avisos
-  también miran que un opcode, o un opcode y subcódigo, distinto tenga su propia línea.
+  también miran que un opcode, o un opcode y subcódigo, distinto tenga su propia línea. Después,
+  por la revisión del PR, `AC2WithoutItsSubcodeIsMalformed` (`C2 00 04 F4`, con `F4` registrado
+  con subcódigos: en un C2 el subcódigo es `pkt[4]`, que no llegó).
 - [x] **Paso 3:** `Dispatcher`.
 
   Hecho así: un `std::map` de opcode a lo registrado (un handler para todo el opcode, o un

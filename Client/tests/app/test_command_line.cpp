@@ -1,11 +1,14 @@
 #include "App/CommandLine.h"
 
+#include "Core/PathText.h"
+
 #include <gtest/gtest.h>
 
 #include <filesystem>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -279,5 +282,40 @@ TEST(CommandLineTest, ParsesDataPath)
     EXPECT_FALSE(commandLine->configPath.has_value());
     EXPECT_FALSE(Parse({"--data"}, error).has_value());
     EXPECT_NE(error.find("--data necesita una ruta"), std::string::npos) << error;
+}
+
+// Los argumentos llegan en UTF-8 (main.cpp usa SDL_main.h, que en Windows los arma con
+// GetCommandLineW): la ruta se lee como UTF-8 y no en la página ANSI. "Ł" (U+0141) no está en la
+// 1252, y con path(std::string) en Windows llegaría como "?".
+TEST(CommandLineTest, ReadsAPathAsUtf8)
+{
+    std::string error;
+    const auto commandLine = Parse({"--data", "C:/Juegos/\xC5\x81ukasz/Data", "--config", "Espa\xC3\xB1ol.ini"}, error);
+
+    ASSERT_TRUE(commandLine.has_value()) << error;
+    EXPECT_EQ(Client::Core::PathText(*commandLine->dataPath), "C:/Juegos/\xC5\x81ukasz/Data");
+    EXPECT_EQ(Client::Core::PathText(*commandLine->configPath), "Espa\xC3\xB1ol.ini");
+}
+
+// Un texto que no es UTF-8: en POSIX son los bytes del sistema de archivos (un nombre guardado
+// en Latin-1) y pasan tal cual; en Windows, donde SDL ya los dio en UTF-8, es un error, y el
+// mensaje no repite los bytes. Cada CI corre su rama: Linux la primera, Windows la segunda.
+TEST(CommandLineTest, APathThatIsNotUtf8IsBytesOnPosixAndAnErrorOnWindows)
+{
+    if constexpr (std::is_same_v<std::filesystem::path::value_type, char>)
+    {
+        std::string error;
+        const auto commandLine = Parse({"--data", "/mu/\xDA", "--config", "\xC0\xAF.ini"}, error);
+        ASSERT_TRUE(commandLine.has_value()) << error;
+        // Las dos ramas compilan en las dos plataformas (fuera de un template, if constexpr no
+        // es un #if): por eso path y no native(), que en Windows es wstring.
+        EXPECT_EQ(commandLine->dataPath, std::filesystem::path("/mu/\xDA"));
+        EXPECT_EQ(commandLine->configPath, std::filesystem::path("\xC0\xAF.ini"));
+    }
+    else
+    {
+        EXPECT_EQ(ErrorOf({"--data", "C:/MU/\xDA"}), "--data necesita una ruta en UTF-8");
+        EXPECT_EQ(ErrorOf({"--config", "\xC0\xAF.ini"}), "--config necesita una ruta en UTF-8");
+    }
 }
 } // namespace

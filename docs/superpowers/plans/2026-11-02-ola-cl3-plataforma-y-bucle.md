@@ -1245,16 +1245,26 @@ se declara después del `Log` en `main`, así se destruye antes.
   config, y recién después SDL y la ventana.
 
   Hecho (fase 2a): `ParseCommandLine` devuelve `Core::Expected<CommandLine, std::string>`, y
-  `ParseConfig` y `Resolve` están. Las rutas de `--config` y `--data` son de la carpeta actual y
-  se leen en la codificación del sistema (la de `argv`); las de la config, en UTF-8 y desde la
-  carpeta del ejecutable. Fase 2b: `main.cpp` llama a `Resolve` antes de `SDL_Init`, con la
-  carpeta de `Platform::ExecutableFolder` (`SDL_GetBasePath`, `Platform/BasePath.h`; sin ella, la
-  actual), y la config da el tamaño, el VSync y el pacing. La regla del modo fiel quedó solo en
-  `Resolve` (`ConfigTest.FaithfulWithVSyncOnIsAnError`). **Límite conocido en Windows:** `main.cpp` no usa `SDL_main.h`, así que
-  `argv` llega en la página ANSI: lo que no entra en ella ya llega cambiado por `?`
-  (`C:\Users\Łukasz` en la 1252), y el CRT lee `"C:\MU\Data\"` como `C:\MU\Data"`, porque la `\`
-  antes de la comilla la escapa. No se arregla en la CL3.4; el arreglo es leer la línea con
-  `GetCommandLineW` y `CommandLineToArgvW`, pasarla a UTF-8 y armar el `path` desde `u8string`.
+  `ParseConfig` y `Resolve` están. Las rutas de `--config` y `--data` son de la carpeta actual;
+  las de la config, desde la carpeta del ejecutable. En Windows, las dos se leen en UTF-8
+  (después del cierre de las notas de la CL3, ver abajo). Fase 2b: `main.cpp` llama a `Resolve`
+  antes de `SDL_Init`, con la carpeta de `Platform::ExecutableFolder` (`SDL_GetBasePath`,
+  `Platform/BasePath.h`; sin ella, la actual), y la config da el tamaño, el VSync y el pacing. La
+  regla del modo fiel quedó solo en `Resolve` (`ConfigTest.FaithfulWithVSyncOnIsAnError`).
+  **Límite que tenía en Windows, cerrado con las notas de la CL3:** sin `SDL_main.h`, `argv`
+  llegaba en la página ANSI y lo que no entra en ella llegaba cambiado por `?` (`C:\Users\Łukasz`
+  en la 1252). Ahora `main.cpp` incluye `SDL_main.h`: en Windows, SDL pone el `main` de verdad y
+  `SDL_RunApp` arma los argumentos con `GetCommandLineW` y `CommandLineToArgvW`, en UTF-8 (es lo
+  que pedía el arreglo, y ya lo hace SDL: CODING_RULES §10). En Windows, `ParseCommandLine` lee
+  `--config` y `--data` con `Core::PathFromUtf8`, como la config; en POSIX el argumento ya son
+  los bytes del sistema de archivos y van tal cual, también si no son UTF-8
+  (`CommandLineTest.ReadsAPathAsUtf8` y `APathThatIsNotUtf8IsBytesOnPosixAndAnErrorOnWindows`,
+  `PathTextTest`). El CTest `Client.Main.ReadsTheDataPathInUtf8` prueba el `SDL_main.h` de
+  verdad: `--data` nombra un archivo con `Ł` y `データ`, y solo si llega en UTF-8 `Resolve` lo
+  encuentra y dice que no es una carpeta (en Linux pasa igual sin él). Lo que queda:
+  `CommandLineToArgvW`, como el CRT, lee una `\` antes de una comilla como una comilla de verdad
+  y deja abierta la parte entre comillas (`--data "C:\MU\Data\" --frames 60` es un solo
+  argumento), y una mitad de UTF-16 suelta en un nombre llega como U+FFFD (README).
   `Resolve` lee la config sin excepciones, con un tope de `MaxConfigBytes` (64 KiB), y solo un
   archivo que no está da los valores por defecto: una carpeta, un permiso o un archivo de más
   son errores que lo dicen. `ParseCommandLine` sigue rechazando `--pacing faithful --vsync on`

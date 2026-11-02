@@ -1,8 +1,12 @@
 #include "App/CommandLine.h"
 
+#include "Core/PathText.h"
+
 #include <algorithm>
 #include <charconv>
 #include <system_error>
+#include <type_traits>
+#include <utility>
 
 namespace
 {
@@ -97,6 +101,23 @@ std::string BadValue(std::string_view option, std::string_view expected, std::st
 {
     return std::string(option) + " necesita " + std::string(expected) + ", no \"" + std::string(value) + "\"";
 }
+
+// La ruta de --config o --data, o vacío si no es UTF-8 donde tiene que serlo. En Windows los
+// argumentos llegan en UTF-8 (main.cpp usa SDL_main.h, y SDL los arma con GetCommandLineW y
+// CommandLineToArgvW): se leen con Core::PathFromUtf8, como la config, porque path(std::string)
+// leería la página ANSI. En POSIX el argumento ya son los bytes del sistema de archivos y path
+// los guarda tal cual, así que también sirve un nombre que no es UTF-8 (uno guardado en Latin-1).
+std::optional<std::filesystem::path> PathFromArgument(std::string_view value)
+{
+    if constexpr (std::is_same_v<std::filesystem::path::value_type, char>)
+    {
+        return std::filesystem::path(value);
+    }
+    else
+    {
+        return Client::Core::PathFromUtf8(value);
+    }
+}
 } // namespace
 
 namespace Client::App
@@ -174,13 +195,16 @@ Core::Expected<CommandLine, std::string> ParseCommandLine(std::span<const std::s
         const std::string_view value = arguments[++i];
         if (argument == ConfigOption || argument == DataOption)
         {
-            // argv viene en la codificación del sistema (la página ANSI en Windows, porque main.cpp
-            // no usa SDL_main.h), que es la que lee path(std::string): acá no va el UTF-8 de la
-            // config. Límite conocido en Windows: lo que no entra en la página ya llega cambiado
-            // por "?" (C:\Users\Łukasz en la 1252), y el CRT lee `"C:\MU\Data\"` como C:\MU\Data"
-            // (la \ antes de la comilla la escapa). El arreglo es CommandLineToArgvW (plan, CL3.4).
-            (argument == ConfigOption ? commandLine.configPath : commandLine.dataPath) =
-                std::filesystem::path(std::string(value));
+            // Límite que queda: CommandLineToArgvW, como el CRT, lee una \ antes de una comilla
+            // como una comilla de verdad y la parte entre comillas sigue abierta, así que
+            // `--data "C:\MU\Data\" --frames 60` llega como un solo argumento,
+            // `C:\MU\Data" --frames 60`. Va `"C:\MU\Data\\"` o sin la última \ (README).
+            auto path = PathFromArgument(value);
+            if (!path)
+            {
+                return Unexpected(std::string(argument) + " necesita una ruta en UTF-8");
+            }
+            (argument == ConfigOption ? commandLine.configPath : commandLine.dataPath) = std::move(*path);
         }
         else if (argument == FramesOption)
         {

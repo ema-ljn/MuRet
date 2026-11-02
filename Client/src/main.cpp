@@ -34,6 +34,9 @@
 #include <utility>
 #include <vector>
 
+// Al final: en Windows define main como SDL_main, y así no alcanza a ningún otro header.
+#include <SDL3/SDL_main.h>
+
 // Punto de entrada del cliente: arma las capas y arranca, sin lógica.
 //
 // Ola CL3.2: la ventana y el contexto GL están en Platform/ (SdlContext, Window, PumpEvents), el
@@ -187,7 +190,11 @@ App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::Game
 }
 } // namespace
 
-int main(int argc, char** argv)
+// Con SDL_main.h, en Windows SDL pone el main de verdad y llama a este (que pasa a ser SDL_main)
+// con los argumentos en UTF-8: SDL_RunApp los arma con GetCommandLineW y CommandLineToArgvW. Sin
+// él, argv llega en la página ANSI y lo que no entra en ella llega cambiado por "?". En Linux no
+// cambia nada.
+int main(int argc, char* argv[])
 {
     // La carpeta del ejecutable (SDL_GetBasePath, anda antes de SDL_Init): ahí están la config y,
     // si no dice otra cosa, el log. Sin ella, la carpeta actual.

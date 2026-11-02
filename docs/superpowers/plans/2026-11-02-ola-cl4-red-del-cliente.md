@@ -298,14 +298,16 @@ un `recv` con buffer vacío da 0 si hay datos esperando, que se leería como un 
 - **basta un parcial**: con `{2, WSAEWOULDBLOCK}` y después todo, al cable van
   `00 01 00 01 02 03 04 05 06 07`, con `00 01` repetidos y `08 09` perdidos
   (`OnePartialSendIsEnough`); el 07 dice "varios envíos parciales seguidos";
-- **después de un parcial, el drenaje no termina bien nunca**: lo pendiente llega a 0 solo si el
-  último `send` toma más de lo que pidió. Termina con `WSAEWOULDBLOCK` (y el `FD_WRITE` siguiente
+- **después de un parcial, ese `FD_WRITE` no llega a 0 pendiente**: lo pendiente llega a 0 solo si
+  el último `send` toma más de lo que pidió. Termina con `WSAEWOULDBLOCK` (y el `FD_WRITE` siguiente
   repite y pierde) o pidiendo un largo de 0 o negativo: con `{2, 6}`, la tercera llamada pide -6
-  (`TwoPartialSendsInARowAskForANegativeLength`), y con cualquier error que no sea
-  `WSAEWOULDBLOCK`, o con 0, `0x4e87b0` cierra.
+  (`TwoPartialSendsInARowAskForANegativeLength`), y con cualquier error que no sea `WSAEWOULDBLOCK`,
+  o con 0, `0x4e87b0` cierra.
 
 Las salidas, las decisiones y las respuestas de las 12 actividades están en el README del lab, y
-la comparación del paso 6, en `labs/README.md`.
+la comparación del paso 6, en `labs/README.md`. Por la revisión del PR se sumó un test, 29 en
+total: `AMoveConstructedSocketTakesTheDescriptor`, porque el que había movía con la asignación y
+ninguno probaba el constructor de movimiento solo.
 
 ## Sub-ola CL4.R: la conexión del original, en el binario (P-C11, Q-C11)
 

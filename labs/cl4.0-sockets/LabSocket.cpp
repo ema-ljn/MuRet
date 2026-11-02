@@ -58,10 +58,11 @@ bool IsTryLater(int error)
     return error == WSAEWOULDBLOCK || error == WSAEINTR;
 }
 
-// Un connect no bloqueante de Winsock vuelve con WSAEWOULDBLOCK, no con WSAEINPROGRESS.
+// Un connect no bloqueante de Winsock vuelve con WSAEWOULDBLOCK, no con WSAEINPROGRESS: en Winsock
+// ese quiere decir que hay una llamada bloqueante de Winsock 1.1 en curso, y es un error.
 bool IsConnectInProgress(int error)
 {
-    return error == WSAEWOULDBLOCK || error == WSAEINPROGRESS || error == WSAEINTR;
+    return error == WSAEWOULDBLOCK || error == WSAEINTR;
 }
 
 bool IsRefused(int error)

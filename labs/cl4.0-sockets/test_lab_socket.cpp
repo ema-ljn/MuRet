@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <optional>
 #include <utility>
 
 // Labs::LabSocket, la actividad 3 de la guía: RAII sobre el descriptor, que se mueve y no se
@@ -69,6 +70,25 @@ TEST_F(LabSocketTest, AMovedSocketLeavesTheDescriptorToTheOther)
 
     EXPECT_TRUE(other.IsOpen());
     EXPECT_EQ(other.LocalPort(), port);
+}
+
+// Lo mismo con el constructor de movimiento: el nuevo se queda con el descriptor, y el movido,
+// vacío, no lo cierra al morir.
+TEST_F(LabSocketTest, AMoveConstructedSocketTakesTheDescriptor)
+{
+    std::optional<LabSocket> other;
+    std::uint16_t port = 0;
+    {
+        LabSocket moved = LabSocket::OpenTcp();
+        ASSERT_TRUE(moved.BindLoopback(0));
+        port = moved.LocalPort();
+        other.emplace(std::move(moved));
+        EXPECT_FALSE(moved.IsOpen()); // NOLINT(bugprone-use-after-move): es lo que se prueba
+    }
+
+    ASSERT_TRUE(other.has_value());
+    EXPECT_TRUE(other->IsOpen());
+    EXPECT_EQ(other->LocalPort(), port);
 }
 
 // El destructor cierra: el puerto queda libre, y otro socket lo puede tomar. Un listener que no

@@ -94,7 +94,7 @@ las 200 veces: el sistema termina el handshake y deja la conexión en la cola de
 
 - **Esperar al sistema con un tope.** `WaitUntil` pregunta de a 1 ms hasta que la condición dé
   `true` o pasen 5 s de reloj real. En Linux el `accept` y el rechazo llegan en microsegundos, así
-  que los 28 tests tardan 0,2 s; el tope es para un CI lento y para el rechazo de Windows.
+  que los 29 tests tardan 0,2 s; el tope es para un CI lento y para el rechazo de Windows.
 - **Leer hasta tener 5.** TCP no garantiza que 5 bytes lleguen en una lectura: `ReadExactly` junta
   hasta tener los que espera (`FiveBytesArriveAsFive`).
 - **El aceptado, no bloqueante a mano.** En Linux, `accept` no hereda `O_NONBLOCK` del listener, y
@@ -163,16 +163,17 @@ siguiente arranca con lo mandado en 0 y manda los 6 pendientes desde el principi
 - **Basta un parcial.** Con `{2, WSAEWOULDBLOCK}`, al cable van `00 01 00 01 02 03 04 05 06 07`:
   `00 01` repetidos y `08 09` perdidos. El 07 dice "varios envíos parciales seguidos"; alcanza con
   uno.
-- **Después de un parcial, el drenaje no termina bien nunca.** Lo pendiente llega a 0 solo si el
-  último `send` toma `L - S` (lo que falta del largo `L` con `S` mandado antes), y esa llamada
+- **Después de un parcial, ese `FD_WRITE` no llega a 0 pendiente.** Lo pendiente llega a 0 solo si
+  el último `send` toma `L - S` (lo que falta del largo `L` con `S` mandado antes), y esa llamada
   pidió `L - 2S`: con `S > 0`, tendría que tomar más de lo que pidió. Así que, si el primer `send`
-  de un `FD_WRITE` no toma todo, el drenaje termina de una de dos formas: con `WSAEWOULDBLOCK`, y
-  el `FD_WRITE` siguiente repite y pierde, o pidiendo un largo de 0 o negativo. Con `{2, 6}`, la
+  de un `FD_WRITE` no toma todo, el drenaje termina de una de dos formas: con `WSAEWOULDBLOCK`, y el
+  `FD_WRITE` siguiente repite y pierde, o pidiendo un largo de 0 o negativo. Con `{2, 6}`, la
   tercera pide -6. Qué hace Winsock con eso no se probó: con cualquier error que no sea
-  `WSAEWOULDBLOCK`, o con 0, `0x4e87b0` cierra la conexión. El modelo cierra (`false`), y hasta
-  ahí salieron `00..07` sin repetir nada.
+  `WSAEWOULDBLOCK`, o con 0, `0x4e87b0` cierra la conexión. El modelo cierra (`false`), y hasta ahí
+  salieron `00..07` sin repetir nada.
 
-**Respuesta.** `0x4e87b0` corre solo después de que un `send` dio `WSAEWOULDBLOCK`, o sea con el
+**Respuesta.** `0x4e87b0` solo tiene algo que mandar después de que un `send` dio
+`WSAEWOULDBLOCK` (Windows también avisa `FD_WRITE` al conectar, con nada pendiente), o sea con el
 buffer del sistema lleno, y en loopback eso pasa con unos 3,7 MiB adentro (actividad 7), no con
 paquetes de decenas de bytes y un servidor que lee. Y cuando corre, `FD_WRITE` avisa que hay lugar,
 y lo pendiente es de `0x2000` bytes como mucho: el primer `send` casi siempre toma todo, y el bug
@@ -187,7 +188,7 @@ Está en [`labs/README.md`](../README.md#cl40-un-socket-por-frame-hilos-o-iocp-s
 | Cambio | Qué falla | Cómo |
 | --- | --- | --- |
 | en Linux, `send` sin `MSG_NOSIGNAL` | `SendingToAClosedPeerDoesNotKillTheProcess` | el proceso muere: CTest lo marca `(SIGPIPE)` y el test no llega a ningún `EXPECT` |
-| el constructor de movimiento copia el handle | 11 de 28: `AMovedSocketLeavesTheDescriptorToTheOther` y los 10 de `LoopbackPairTest` | el movido sigue abierto, y el otro da el puerto 0 en vez del suyo: el destructor del movido cerró el descriptor |
+| el constructor de movimiento copia el handle | 9 de 29: `AMoveConstructedSocketTakesTheDescriptor` y 8 de los 10 de `LoopbackPairTest` | el movido sigue abierto, y el nuevo da el puerto 0 en vez del suyo: el destructor del movido cerró el descriptor. `TheConnectReturnsAtOnce` y `AClosedPortIsRefused` no usan el par, y `AMovedSocketLeavesTheDescriptorToTheOther` prueba la asignación |
 | `Receive` llama a `recv` con un buffer vacío | `AnEmptyReceiveIsNotAClose` | da `PeerClosed` en vez de `Done`, con 4 bytes esperando |
 | `CheckConnect` da `Done` sin leer `SO_ERROR` | `AClosedPortIsRefused` | da `Done` en vez de `Refused`: en Linux, el rechazado también queda escribible |
 
@@ -198,7 +199,9 @@ Está en [`labs/README.md`](../README.md#cl40-un-socket-por-frame-hilos-o-iocp-s
   `MSG_NOSIGNAL` le pide a `send` que no la mande y que dé `EPIPE`. Winsock no tiene señales.
 - `LoopbackPair::Open` devuelve un `std::optional<LoopbackPair>`, y meter el par en el
   `std::optional` mueve sus sockets. El par de adentro se queda con los números, y el de afuera,
-  al destruirse, los cierra: los 10 tests del par fallan en el `SetUp` o en el primer uso.
+  al destruirse, los cierra: los 8 tests que usan el par fallan en el primer uso. Los otros dos
+  del par arman sus sockets sin `Open`, y el de la asignación (`operator=`) no pasa por el
+  constructor: para verlo hace falta romper los dos.
 
 ## 12. Carril R
 

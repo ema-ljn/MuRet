@@ -148,14 +148,13 @@ solo lo lee.
 - **CL4.0 (sockets no bloqueantes), resuelta por Claude** el 2026-11-02, como la CL3.0: el
   `LabSocket` con RAII y todos los `#ifdef _WIN32` en un archivo, el `LoopbackPair` que conecta en
   `127.0.0.1` sin bloquear y en un solo hilo, y la `DrainQueue`, la cola con cursor. El puerto
-  cerrado mostró que `SO_ERROR` se borra al leerlo: un segundo `CheckConnect` después del rechazo
-  da conectado. El jefe es el drenaje de `FD_WRITE` de `0x4e87b0` (Q-C11): con
-  `{2, 2, WSAEWOULDBLOCK}` repite `00..03` y pierde `06..09`, como dice el plan, y además basta un
-  parcial, y después de uno el drenaje no termina bien nunca. Las respuestas de las 12 actividades
-  están en [`labs/cl4.0-sockets/README.md`](../../labs/cl4.0-sockets/README.md), y la comparación
-  con hilos, IOCP, `select` y `poll`, en [`labs/README.md`](../../labs/README.md). Para cerrarla
-  falta lo tuyo: las preguntas y la sección final de la
-  [guía de la CL4.0](ola-cl4.0-sockets-no-bloqueantes.md).
+  cerrado mostró que `SO_ERROR` se borra al leerlo: un segundo `CheckConnect` después del rechazo da
+  conectado. El jefe es el drenaje de `FD_WRITE` de `0x4e87b0` (Q-C11): con `{2, 2, WSAEWOULDBLOCK}`
+  repite `00..03` y pierde `06..09`, como dice el plan, y además basta un parcial, y después de uno
+  ese `FD_WRITE` ya no llega a 0 pendiente. Las respuestas de las 12 actividades están en
+  [`labs/cl4.0-sockets/README.md`](../../labs/cl4.0-sockets/README.md), y la comparación con hilos,
+  IOCP, `select` y `poll`, en [`labs/README.md`](../../labs/README.md). Para cerrarla falta lo tuyo:
+  las preguntas y la sección final de la [guía de la CL4.0](ola-cl4.0-sockets-no-bloqueantes.md).
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 

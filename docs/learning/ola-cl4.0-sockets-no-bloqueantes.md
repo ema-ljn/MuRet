@@ -304,7 +304,7 @@ son los sockets del sistema (la pregunta 3 del plan). **Te toca:** anotarlo en `
 
 ## 11. Rompelo
 
-Cuatro cambios de una línea, uno por vez, con los 28 tests del lab:
+Cuatro cambios de una línea, uno por vez, con los 29 tests del lab:
 
 1. en Linux, sacá `MSG_NOSIGNAL` de los flags del `send`;
 2. en el constructor de movimiento, copiá el handle en vez de usar `std::exchange`;

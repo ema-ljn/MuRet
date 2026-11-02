@@ -88,6 +88,13 @@ misma regla, solo en el entorno, y no necesita las otras dos:
 MURET_CLIENT_WIRE_DIR=/ruta/a/evidence ctest --preset linux-x64-debug
 ```
 
+Desde la CL2.3, la carpeta del cable también tiene las claves del servidor con el que se capturó,
+`Dec1.dat` y `Enc2.dat`, de `gameserver/evidence/keyfiles/` en `mu-server-repack-research-102i`:
+con ellas el servidor descifra lo que manda el cliente y cifra lo que le contesta. Como `evidence/`
+no las tiene, la carpeta se arma aparte, con enlaces a los tres archivos. Los tests que comparan
+estas claves con las del cliente, `Enc1.dat` y `Dec2.dat`, necesitan también la carpeta golden, y
+no muestran un valor de una clave, ni al fallar.
+
 ## Estructura (a medida que avanzan las olas)
 
 ```

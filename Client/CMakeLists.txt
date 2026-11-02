@@ -31,6 +31,8 @@ add_library(ClientLib STATIC
     src/Network/Packet.cpp
     src/Network/PacketReader.cpp
     src/Network/PacketWriter.cpp
+    src/Network/Crypto/SimpleModulus.cpp
+    src/Network/Crypto/SimpleModulusKeyFile.cpp
     src/Network/Crypto/Xor32.cpp
 )
 target_include_directories(ClientLib PUBLIC src)
@@ -104,9 +106,12 @@ if(MURET_BUILD_TESTS)
         tests/data/TextureTest.cpp
         tests/data/Xor3Test.cpp
         tests/network/GoldenPacketReaderTest.cpp
+        tests/network/GoldenSimpleModulusKeyFileTest.cpp
         tests/network/PacketReaderTest.cpp
         tests/network/PacketTest.cpp
         tests/network/PacketWriterTest.cpp
+        tests/network/SimpleModulusKeyFileTest.cpp
+        tests/network/SimpleModulusTest.cpp
         tests/network/Xor32Test.cpp
     )
     target_include_directories(ClientTests PRIVATE tests)

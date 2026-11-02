@@ -100,10 +100,13 @@ protected:
     std::filesystem::path dumpRoot;
 };
 
-// El cable del laboratorio. MURET_CLIENT_WIRE_DIR apunta a una carpeta con el muproxy.log que el
-// proxy del laboratorio escribió entre el cliente original y los servidores (en
-// EmaNLJN/mu-online-reverse-lab, analysis/mainexe/evidence/), fuera de Git: lleva el login del
-// jugador.
+// El cable del laboratorio. MURET_CLIENT_WIRE_DIR apunta a una carpeta, fuera de Git, con:
+//   - el muproxy.log que el proxy del laboratorio escribió entre el cliente original y los
+//     servidores (en EmaNLJN/mu-online-reverse-lab, analysis/mainexe/evidence/): lleva el login del
+//     jugador;
+//   - los archivos de clave del servidor con el que se capturó, Dec1.dat y Enc2.dat (en
+//     EmaNLJN/mu-server-repack-research-102i, gameserver/evidence/keyfiles/): con ellos el servidor
+//     descifra lo que manda el cliente y cifra lo que le contesta (CL2.3).
 //
 // La regla es la de la carpeta golden, y la variable va solo en el entorno, como la de los
 // volcados. No necesita Data\: el cable se compara consigo mismo.
@@ -114,6 +117,19 @@ protected:
 
     // La ruta de `name` en la carpeta del cable. Si no está, marca el test como fallado y devuelve
     // std::nullopt.
+    std::optional<std::filesystem::path> WireFile(std::string_view name) const;
+
+    std::filesystem::path wireRoot;
+};
+
+// Los dos: la carpeta golden y la del cable. Un test que compara las claves del cliente, Enc1.dat y
+// Dec2.dat, con las del servidor necesita las dos, y se saltea si falta cualquiera de las variables.
+class GoldenAndWireDataTest : public GoldenDataTest
+{
+protected:
+    void SetUp() override;
+
+    // Como WireDataTest::WireFile.
     std::optional<std::filesystem::path> WireFile(std::string_view name) const;
 
     std::filesystem::path wireRoot;

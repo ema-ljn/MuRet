@@ -949,10 +949,11 @@ que el test le pregunta (`std::vector<bool> sawPress` y la tecla en `watchedKey`
   `Ctrl` y `Alt` son lógicas: `IsDown` es el OR de sus dos lados físicos (`ShiftLeft` y
   `ShiftRight`, ...), como `VK_SHIFT`, y sus flancos son los del OR; un `KeyDown` o `KeyUp` de la
   tecla lógica se ignora (las filas de `Shift` de arriba).
-- [ ] **Paso 2:** los tests (los `InputStateTest`, hechos en la fase 1: los seis de abajo y trece
+- [x] **Paso 2:** los tests (los `InputStateTest`, hechos en la fase 1: los seis de abajo y trece
   que pidieron las revisiones para matar los mutantes, entre ellos los de las teclas lógicas; los
   `InputEventsTest`, en la fase 2a, con los dos de abajo y ocho más: cada tecla física sale de un
-  solo scancode, los botones, la rueda y el foco perdido; faltan los de `GameLoopTest`):
+  solo scancode, los botones, la rueda y el foco perdido; los dos `GameLoopTest`, en la fase
+  2b; y `InputStateTest.MotionIsNotClamped`, que fija Q-C47, el mouse sin acotar):
   - `InputStateTest.AHeldKeyIsPressedOnce`: abajo en el frame 1, sigue abajo en el 2 y el 3:
     `IsDown` en los tres, `WasPressed` solo antes del primer `ConsumeEdges`;
   - `InputStateTest.APressAndReleaseInOneFrameIsSeen`: abajo y arriba sin `ConsumeEdges` en el
@@ -972,8 +973,10 @@ que el test le pregunta (`std::vector<bool> sawPress` y la tecla en `watchedKey`
     `SDL_EVENT_KEY_DOWN` con `repeat` da `std::nullopt` (el `SDL_Event` se arma a mano, sin
     ventana).
 - [ ] **Paso 3:** `InputState`, la traducción en `Platform`, y las firmas nuevas de `GameLoop` e
-  `ILoopClient`. `InputState` está (fase 1), y la traducción, `KeyFor` e `InputEventFor` (fase
-  2a); faltan `PumpEvents` y las firmas. Lo que se sumó a la interfaz de arriba:
+  `ILoopClient`. `InputState` está (fase 1), la traducción, `KeyFor` e `InputEventFor` (fase
+  2a), y las firmas de `GameLoop`, `ILoopClient` y `RecordingClient` (fase 2b, con los tests
+  de GameLoop y de FaithfulPacer pasados a la firma nueva con un `InputState` vacío); falta
+  `PumpEvents` con el `InputState` y `main.cpp`. Lo que se sumó a la interfaz de arriba:
   - `MouseButton` vive en `Key.h`, con `Key`, y los dos tienen su cuenta como constante
     (`KeyCount`, `MouseButtonCount`) para el tamaño de los `std::bitset`.
   - `Key` trae las teclas que nombra el 02 (Esc, Enter, F5, F6, RePág, AvPág, Espacio, las

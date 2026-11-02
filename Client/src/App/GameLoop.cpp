@@ -11,9 +11,9 @@ GameLoop::GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode)
 {
 }
 
-int GameLoop::RunFrame(const WindowState& state)
+int GameLoop::RunFrame(const WindowState& state, Input::InputState& input)
 {
-    const int steps = m_mode == PacingMode::Faithful ? RunFaithful(state) : RunDecoupled(state);
+    const int steps = m_mode == PacingMode::Faithful ? RunFaithful(state, input) : RunDecoupled(state, input);
     ++m_stats.frames;
     m_stats.steps += static_cast<std::uint64_t>(steps);
     return steps;
@@ -29,7 +29,7 @@ float GameLoop::LastAlpha() const
     return m_lastAlpha;
 }
 
-int GameLoop::RunDecoupled(const WindowState& state)
+int GameLoop::RunDecoupled(const WindowState& state, Input::InputState& input)
 {
     const Core::Duration now = m_clock.Now();
     // El frame se mide desde el Now() anterior, también si el reloj volvió para atrás: ese frame
@@ -42,7 +42,7 @@ int GameLoop::RunDecoupled(const WindowState& state)
     {
         ++m_stats.clampedFrames;
     }
-    RunSteps(steps);
+    RunSteps(steps, input);
     m_stats.accumulated = m_fixedStep.Accumulated();
     m_lastAlpha = m_fixedStep.Alpha();
 
@@ -59,10 +59,10 @@ int GameLoop::RunDecoupled(const WindowState& state)
     return steps;
 }
 
-int GameLoop::RunFaithful(const WindowState& state)
+int GameLoop::RunFaithful(const WindowState& state, Input::InputState& input)
 {
     const int steps = m_pacer.BeginFrame();
-    RunSteps(steps);
+    RunSteps(steps, input);
     // Después de los pasos (0x63852b): lo que tardan no se acumula.
     m_pacer.StartMeasure(m_clock);
     // El original dibuja el estado después de los pasos, sin interpolar. Render también presenta
@@ -79,11 +79,17 @@ int GameLoop::RunFaithful(const WindowState& state)
     return steps;
 }
 
-void GameLoop::RunSteps(int steps)
+void GameLoop::RunSteps(int steps, Input::InputState& input)
 {
     for (int step = 0; step < steps; ++step)
     {
-        m_client.Step();
+        m_client.Step(input);
+        if (step == 0)
+        {
+            // Como el primer lector del original, que borra el bit bajo: el segundo paso del
+            // frame ya no ve el apretón, y lo que está abajo sigue abajo.
+            input.ConsumeEdges();
+        }
     }
 }
 } // namespace Client::App

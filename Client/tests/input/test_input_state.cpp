@@ -206,6 +206,17 @@ TEST(InputStateTest, MouseButtonsAreEdgesToo)
     EXPECT_FALSE(input.WasReleased(MouseButton::Right));
 }
 
+// Q-C47: el original acota la posición al área (0x640940); acá queda la del evento, también fuera
+// de la ventana (con el mouse capturado), hasta que la CL5 defina el área de 640 x 480.
+TEST(InputStateTest, MotionIsNotClamped)
+{
+    InputState input;
+    input.Apply(InputEvent{.kind = InputEvent::Kind::Motion, .x = -5.0f, .y = 700.0f});
+
+    EXPECT_FLOAT_EQ(input.MouseX(), -5.0f);
+    EXPECT_FLOAT_EQ(input.MouseY(), 700.0f);
+}
+
 TEST(InputStateTest, APressReleaseAndPressInOneFrameKeepsBothEdges)
 {
     InputState input;

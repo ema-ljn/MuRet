@@ -4,9 +4,10 @@ namespace Client::Tests
 {
 RecordingClient::RecordingClient(FakeClock& clock) : m_clock(clock) {}
 
-void RecordingClient::Step()
+void RecordingClient::Step(const Input::InputState& input)
 {
     ++steps;
+    sawPress.push_back(input.WasPressed(watchedKey));
     m_clock.Advance(stepCost);
 }
 

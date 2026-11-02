@@ -17,7 +17,7 @@ final.
 | `jefe/test_original_loop.cpp` | el jefe: un modelo del bucle de `0x637700`, su ritmo y la espiral que no tiene |
 
 Las dos misiones van en la biblioteca `MuRetLabsCl30`, y los tests en `LabCl30Tests`, con el
-prefijo `LabCl30.` en CTest. Son 21:
+prefijo `LabCl30.` en CTest. Son 30:
 
 ```bash
 cmake --preset linux-x64-debug && cmake --build --preset linux-x64-debug
@@ -67,13 +67,20 @@ Antes de las implementaciones, con los dos `.cpp` vacíos, compilan los tests y 
   solo con `frameMs` mayor que `INT_MAX - 39`. Con `std::int64_t{restMs} + frameMs` no se pasa, y
   la cantidad de pasos, que es esa suma dividida por 40, vuelve a entrar en un `int`
   (`TheLargestFrameDoesNotOverflow`: 39 y después `INT_MAX` dan 53.687.092 pasos y resto 6).
+  `-1` y `0` desde el resto en 0 no corren nada y lo dejan en 0 (`MinusOneAndZeroFromRestZero`).
+- **El mismo cuidado en `ChronoFixedStep`.** `nanoseconds` llega a unos 292 años, pero
+  `rest + frame` se pasa con `nanoseconds::max()` y 1 ns de resto (UBSan lo marca en `<chrono>`),
+  y la cantidad de pasos no entra en un `int` pasados los `INT_MAX` pasos, unos 994 días. El frame
+  se recorta a `INT_MAX` pasos antes de sumar: una hora son 90.000 pasos
+  (`OneHourIsNinetyThousandSteps`), y `nanoseconds::max()` cuenta `INT_MAX` y deja el resto como
+  estaba (`TheLargestFrameCountsIntMaxSteps`).
 
 ## 5. Qué mide un reloj
 
-**Respuesta.** No: los nanosegundos son la resolución, no la precisión. Se averigua leyendo el
-reloj en un bucle y mirando la diferencia más chica entre dos lecturas distintas. En este entorno,
-con `steady_clock` y sin sanitizers, 43 ns: el costo de leerlo. `GetTickCount`, en cambio, da 0
-hasta que pasa un tick entero.
+**Respuesta.** No: los nanosegundos son la unidad, no la resolución. La resolución se averigua
+leyendo el reloj en un bucle y mirando la diferencia más chica entre dos lecturas distintas. En este
+entorno, con `steady_clock` y sin sanitizers, 43 ns: el costo de leerlo. `GetTickCount`, en cambio,
+da 0 hasta que pasa un tick entero.
 
 ## 6. La misión: `TickGrid`
 
@@ -85,7 +92,9 @@ hasta que pasa un tick entero.
 - **`Ms` devuelve `std::uint32_t`, el `DWORD`:** da la vuelta a los 2³² ms (49,7 días), y el cast
   está definido, módulo 2³². La resta de dos lecturas, también en `std::uint32_t`, sigue dando la
   diferencia correcta después de la vuelta; por eso el jefe resta en `DWORD` y recién después
-  compara con signo, como el original.
+  compara con signo, como el original. El tick 274.877.906 lee 4.294.967.281, el siguiente lee 0,
+  y del primero al tercero después la resta da 47 (`TheReadingWrapsAroundLikeADword`); 64 frames
+  que cruzan la vuelta siguen tardando 3 s (`TheGetTickCountWrapChangesNothing`).
 
 **Respuesta.** Cada lectura se calcula desde el tiempo total (`(t / tick) * tick / 1000`), no
 sumando 15 por tick: el error de truncar es siempre menor que 1 ms y no crece. El tick 64 lee
@@ -96,8 +105,9 @@ sumando 15 por tick: el error de truncar es siempre menor que 1 ms y no crece. E
 Desde el tick 0, que lee 0: el tick 2 lee 31 (no llega) y el 3 lee 46, así que la espera termina
 en el tick 3 y mide 46. El frame siguiente empieza en 46: el tick 5 lee 78 (32) y el 6, 93 (47).
 Termina en el tick 6 y mide 47. **Respuesta.** Tres ticks por frame: 46,875 ms, 64 / 3 = 21,33
-FPS, y la medición alterna 46 y 47. Con un tick de 10 ms, la espera termina en el cuarto tick, a
-los 40 ms justos: 25 FPS.
+FPS, y la medición da 46 una vez y 47 siete veces cada 8 frames (8 frames son 375 ms, 46,875 de
+media; `EachFrameWaitsThreeTicksAndMeasures46Or47`). Con un tick de 10 ms, la espera termina en el
+cuarto tick, a los 40 ms justos: 25 FPS.
 
 ## 8. Interpolar, y VSync
 
@@ -146,27 +156,37 @@ avisa (la pregunta 2 del plan).
 ## 12. El jefe
 
 El modelo (`OriginalLoop`) es el bucle de `0x637700` sobre una `TickGrid`, con el tiempo en µs y la
-espera activa de a 1 µs. Los pasos tardan lo que diga el test y el dibujo no tarda nada.
+espera activa de a 1 µs. El acumulador arranca en 40, como en el `.data` del binario (actividad
+13); los pasos y el dibujo tardan lo que diga el test, y el reloj puede empezar en cualquier hora.
+Deja afuera la salida de `0x6381aa`, que vuelve antes de medir cuando `WM_DESTROY` ya marcó el
+cierre.
 
 | Test | Qué da |
 | --- | --- |
-| `SixtyFourFramesTakeThreeSeconds` | con 15.625 µs, 64 frames terminan en 3.000.000 µs (21,33 FPS), con 73 pasos corridos y 80 ms en el acumulador: los 75 de 3 s |
-| `TheFirstThirteenFrames` | 0, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2 |
+| `SixtyFourFramesTakeThreeSeconds` | con 15.625 µs, 64 frames terminan en 3.000.000 µs (21,33 FPS), con 74 pasos corridos y 80 ms en el acumulador: los 75 de 3 s más el del valor inicial |
+| `TheFirstThirteenFrames` | 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2 |
+| `EachFrameWaitsThreeTicksAndMeasures46Or47` | cada frame termina en su tercer tick y mide 46 una vez y 47 siete veces cada 8 |
 | `SeventyFiveStepsEverySixtyFourFrames` | en 300 frames, desde el frame 2, cada 64 seguidos suman 75, con 11 de 2 pasos; cada 6 suman 7 u 8; los frames 31 a 36 dan 2, 1, 1, 1, 1, 2 |
-| `WithTenMsTicksTwentyFiveFramesPerSecond` | con 10.000 µs, 25 frames en 1 s y 1 paso por frame desde el segundo |
-| `SlowStepsSlowTheGameDownInsteadOfSpiralling` | pasos de 50 ms, frames mientras el reloj no llegue a 10 s: 100 frames y 116 pasos (el reloj termina en 10,125 s) |
+| `WithTenMsTicksTwentyFiveFramesPerSecond` | con 10.000 µs, 25 frames en 1 s y 1 paso por frame desde el primero |
+| `WithOneMsTicksEachFrameMeasuresFortyExactly` | con un reloj de 1 ms, cada frame mide 40 exactos: los dos relojes de arriba no distinguen una espera de 40 de una de 33 |
+| `ATenSecondDrawRunsTwoHundredFiftyStepsNextFrame` | un dibujo de 10 s suma 10.000 ms y el frame siguiente corre 250 pasos: no hay tope |
+| `TimeSpentInStepsIsNotAccumulated` | pasos de 10 ms, frames mientras el reloj no llegue a 3 s: 61 frames y 71 pasos, y el reloj en 3,015625 s (midiendo desde antes de los pasos serían 64 y 74) |
+| `SlowStepsSlowTheGameDownInsteadOfSpiralling` | pasos de 50 ms, frames mientras el reloj no llegue a 10 s: 99 frames y 115 pasos, con el reloj en 10,03125 s; arrancando en 0, 100 y 116, con el reloj en 10,125 s |
 | `AFixedStepThatMeasuresTheStepsSpirals` | un `FixedStep` que mide el frame entero, sin tope: 1, 1, 1, 1, 2, 2, 3, 3, 4, 5, 6, 8, 10, 12, 15 |
-| `TheBinaryStartsTheAccumulatorAtForty` | arrancando en 40, como el `.data` del binario (actividad 13): 1, 1, 1, 1, 1, 1, 2, ... y 74 pasos en 64 frames, que siguen tardando 3 s |
+| `StartingAtZeroOnlyChangesTheFirstFrame` | arrancando en 0, como el modelo del plan al principio: el primer frame corre 0 pasos y 64 frames, 73; después del primero los dos modelos quedan igual |
+| `TheGetTickCountWrapChangesNothing` | empezando 67 ticks antes de la vuelta del `DWORD`, 64 frames tardan 3 s y corren los mismos pasos que desde 0 |
 
-Todos los números del plan salieron como estaban escritos; antes de los tests, un modelo en
-Python del mismo bucle dio lo mismo.
+Con el acumulador en 0, todos los números del plan salieron como estaban escritos; antes de los
+tests, un modelo en Python del mismo bucle dio lo mismo. Con el modelo en 40, cada número lo
+rehicieron los dos simuladores de las revisiones, escritos aparte.
 
 **Respuesta.** El original no espirala porque no mide los pasos: la medición empieza en `0x63852b`,
 después de ellos. Con pasos lentos, cada frame sigue sumando 46 o 47 ms, corre 1 o 2 pasos y tarda
-más: en 10 s corren 116 pasos y no 250, el juego va al 46 % de su velocidad. Lo que paga es eso:
+más: en 10 s corren 115 pasos y no 250, el juego va al 46 % de su velocidad. Lo que paga es eso:
 la lógica se atrasa respecto del reloj, y con ella todo lo que va por paso (la red de la CL4, los
 tiempos de las animaciones). Un breakpoint de 10 s **en el dibujo**, en cambio, sí se mide (está
-entre `0x63852b` y `0x638632`), y como no hay tope, el frame siguiente corre 250 pasos seguidos.
+entre `0x63852b` y `0x638632`), y como no hay tope, el frame siguiente corre 250 pasos seguidos
+(`ATenSecondDrawRunsTwoHundredFiftyStepsNextFrame`).
 
 ## 13. Carril R
 
@@ -205,7 +225,17 @@ En `00637700_FUN_00637700.asm` (build `c32bbd5f`) y en `main.exe` con `objdump -
   puntero no se descarta así.
 - **Lo nuevo: arranca en 40.** En el `.data` del archivo (desplazamiento `0x2d5ee4`),
   `0x6d5ee4` vale `0x28`. El primer frame de `0x637700` corre 1 paso y no 0, y como el acumulador
-  es global y nadie lo pone en 0, sigue de una escena a la otra. El modelo del plan arranca en 0;
-  el test `TheBinaryStartsTheAccumulatorAtForty` muestra que solo cambia el primer frame. Para la
-  CL3.R: pasarlo al 02, y decidir si `FaithfulPacer` arranca en 40 (los 73 pasos de
-  `SixtyFourFramesEveryThreeSeconds` serían 74).
+  es global y nadie lo pone en 0 por su dirección, sigue de una escena a la otra. El jefe arranca
+  en 40, como el original; `StartingAtZeroOnlyChangesTheFirstFrame` muestra que arrancando en 0
+  solo cambia el primer frame. Lo que cambia en 40, para la CL3.R y el `FaithfulPacer` de la CL3.2:
+  - el primer frame corre 1 paso: los primeros 13 empiezan en 1, en el plan y en sus tests;
+  - 64 frames corren 74 pasos y no 73, con los mismos 80 ms en el acumulador
+    (`SixtyFourFramesEveryThreeSeconds` y los "73 corridos" de `MinimizedKeepsTheWait`);
+  - con pasos de 10 ms, 61 frames y 71 pasos, no 70, y midiendo desde antes de los pasos, 64 y 74,
+    no 73 (`TimeSpentInStepsIsNotAccumulated`);
+  - la espiral, 99 frames y 115 pasos, no 100 y 116;
+  - con el tick de 10 ms, 1 paso por frame desde el primero y no desde el segundo;
+  - en `ADrawLongerThanTheWaitAddsItWhole` y `HasNoCap`, el primer frame corre 1 paso antes de
+    dibujar; los 3 y los 250 del frame siguiente no cambian.
+
+  No cambian los 3 s de 64 frames, las ventanas desde el frame 2 ni lo que mide cada frame.

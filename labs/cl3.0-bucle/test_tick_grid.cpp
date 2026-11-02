@@ -37,8 +37,8 @@ TEST(TickGridTest, TheTenMsTickReads0_10_20_30_40)
     EXPECT_EQ(FirstFiveTicks(grid), (std::vector<std::uint32_t>{0, 10, 20, 30, 40}));
 }
 
-// Resolución contra precisión: el reloj cuenta en ms, pero entre dos ticks no se mueve. Un µs
-// antes del tick 1 todavía lee 0, y un µs antes del 2 todavía lee 15.
+// Unidad contra resolución: el reloj cuenta en ms (su unidad), pero cambia de a un tick (su
+// resolución, 15,625 ms). Un µs antes del tick 1 todavía lee 0, y un µs antes del 2 todavía lee 15.
 TEST(TickGridTest, BetweenTwoTicksTheReadingDoesNotMove)
 {
     const TickGrid grid{XpTickUs};
@@ -55,5 +55,19 @@ TEST(TickGridTest, SixtyFourXpTicksAreOneSecond)
     const TickGrid grid{XpTickUs};
     EXPECT_EQ(grid.Ms(64 * XpTickUs), 1'000u);
     EXPECT_EQ(grid.Ms(192 * XpTickUs), 3'000u);
+}
+
+// La vuelta del DWORD, a los 2^32 ms (49,7 días): el tick 274.877.906 lee 4.294.967.281 y el
+// siguiente, que pasaría de 2^32 - 1, lee 0. La resta de dos lecturas en uint32_t sigue dando lo
+// que pasó: del tick 274.877.906 al 274.877.909 son 3 ticks y 47 ms, como en cualquier otro lado.
+TEST(TickGridTest, TheReadingWrapsAroundLikeADword)
+{
+    constexpr std::int64_t LastTickBeforeTheWrap = 274'877'906;
+    const TickGrid grid{XpTickUs};
+    const std::uint32_t before = grid.Ms(LastTickBeforeTheWrap * XpTickUs);
+    EXPECT_EQ(before, 4'294'967'281u);
+    EXPECT_EQ(grid.Ms((LastTickBeforeTheWrap + 1) * XpTickUs), 0u);
+    const std::uint32_t after = grid.Ms((LastTickBeforeTheWrap + 3) * XpTickUs);
+    EXPECT_EQ(static_cast<std::int32_t>(after - before), 47);
 }
 } // namespace

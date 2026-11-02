@@ -34,8 +34,9 @@ La actividad 9 de la [guía](../docs/learning/ola-cl3.0-el-bucle-de-juego.md#9-c
   `GetTickCount`, que ya son ms enteros. Una resta de enteros es exacta, y las lecturas se
   calculan desde el tiempo total, así que la truncación de cada tick no se acumula: medidas una
   detrás de la otra, las diferencias suman la última lectura menos la primera, y 64 frames de 3
-  ticks suman 3.000 ms justos (46 y 47 alternados). Lo que el original pierde es otra cosa: lo que
-  pasa fuera de la medición (los pasos, la red, el bucle de mensajes).
+  ticks suman 3.000 ms justos (46 una vez y 47 siete veces cada 8 frames, 46,875 de media). Lo que
+  el original pierde es otra cosa: lo que pasa fuera de la medición (los pasos, la red, el bucle de
+  mensajes).
 - **`steady_clock` contra `system_clock`.** `system_clock` es la hora de pared: va para atrás
   cuando alguien cambia la hora a mano o cuando NTP la corrige de golpe, y un frame medido con él
   puede dar negativo o de horas. `steady_clock` no vuelve nunca: el estándar lo garantiza con

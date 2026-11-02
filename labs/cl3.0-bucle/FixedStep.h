@@ -1,7 +1,6 @@
 #pragma once
 
 #include <chrono>
-#include <cstdint>
 
 // Misión de la CL3.0 (docs/learning/ola-cl3.0-el-bucle-de-juego.md, actividad 4): el paso fijo con
 // acumulador, en milisegundos enteros como el original, y uno con std::chrono para comparar
@@ -38,7 +37,9 @@ private:
 class ChronoFixedStep
 {
 public:
-    // Como FixedStep::Advance: un frame negativo cuenta 0.
+    // Como FixedStep::Advance: un frame negativo cuenta 0. Un frame de más de INT_MAX pasos (unos
+    // 994 días) cuenta INT_MAX pasos, así que la cantidad entra en un int y la suma con el resto no
+    // se pasa de los 64 bits, ni con nanoseconds::max().
     [[nodiscard]] int Advance(std::chrono::nanoseconds frame);
 
     // Siempre en [0, Step).

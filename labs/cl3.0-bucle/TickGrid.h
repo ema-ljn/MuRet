@@ -12,7 +12,7 @@ namespace Labs
 // El tick por defecto de Windows, el de la VM XP: 15,625 ms, 64 por segundo (02, "El ritmo").
 inline constexpr std::int64_t XpTickUs = 15'625;
 
-// El tick de otro HAL, 10 ms: con él la espera de 40 ms termina justo a los 40 (02).
+// Un tick de 10 ms, como modelo: con él la espera de 40 ms termina justo a los 40 (02).
 inline constexpr std::int64_t TenMsTickUs = 10'000;
 
 class TickGrid

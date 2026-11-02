@@ -18,7 +18,7 @@ Qué cubre:
   - el bucle de juego (leer la entrada, avanzar la lógica, dibujar), el paso variable y el paso
     fijo con acumulador ("Fix your timestep");
   - la interpolación con `alfa = acumulador / paso`, y por qué no cambia nada de la lógica;
-  - relojes: de pared contra monótono, resolución contra precisión, y el tick de 15,625 ms de
+  - relojes: de pared contra monótono, unidad contra resolución, y el tick de 15,625 ms de
     `GetTickCount`;
   - VSync, y por qué ata los FPS al monitor;
   - la espiral de la muerte, y el tope que la corta.
@@ -39,7 +39,7 @@ Qué cubre:
 | 2 | idea | el bucle de juego, el paso variable y el paso fijo con acumulador |
 | 3 | predecí | los pasos de un frame de 130 ms, y de 25 frames de 40 |
 | 4 | misión | `Labs::FixedStep`, en milisegundos enteros |
-| 5 | idea | relojes: de pared y monótono, resolución y precisión |
+| 5 | idea | relojes: de pared y monótono, unidad y resolución |
 | 6 | misión | `Labs::TickGrid`, el reloj de `GetTickCount` |
 | 7 | detective de números | por qué una espera de 40 ms dura 46,875 |
 | 8 | idea | la interpolación y VSync |
@@ -95,8 +95,9 @@ Render()
 ```
 
 Lo que no llega a un paso queda para el frame siguiente: a 144 FPS, la mayoría de los frames corren
-0 pasos y uno de cada tres o cuatro corre 1; a 1 FPS, cada frame corre 25. En un segundo, siempre
-25. Es el "Fix your timestep" de Fiedler, y el original lo hace (02, "El ritmo").
+0 pasos y uno de cada cinco o seis corre 1; a 1 FPS, cada frame corre 25. En un segundo, siempre
+25. Es el "Fix your timestep" de Fiedler. El original también corre pasos fijos con un acumulador
+(02, "El ritmo"), pero mide otra cosa, no tiene tope y no interpola (actividad 12).
 
 **Pregunta:** a 60 FPS, ¿cuántos frames seguidos pueden correr 0 pasos? ¿Y cuántos pasos puede
 correr un frame como mucho?
@@ -142,15 +143,19 @@ Hay dos clases de relojes:
 
 Y dos números que se confunden:
 
-- la **resolución** es la unidad en que el reloj da su valor: `GetTickCount` da milisegundos, y
-  `std::chrono::nanoseconds`, nanosegundos;
-- la **precisión** (la granularidad, en rigor) es cada cuánto cambia ese valor de verdad.
-  `GetTickCount` da ms, pero se actualiza con el tick del reloj del sistema: 15,625 ms (64 por
-  segundo) en la VM XP y en un Windows con el tick por defecto. Entre dos ticks lee siempre lo
-  mismo.
+- la **unidad** (el período de la representación) es en qué cuenta el reloj su valor:
+  `GetTickCount` da milisegundos, y `steady_clock` en libstdc++, nanosegundos. En `<chrono>` es el
+  `period` del reloj;
+- la **resolución** (la granularidad) es cada cuánto cambia ese valor de verdad. `GetTickCount` da
+  ms, pero se actualiza con el tick del reloj del sistema: 15,625 ms (64 por segundo) en la VM XP y
+  en un Windows con el tick por defecto. Entre dos ticks lee siempre lo mismo. Así la usan
+  Microsoft, que dice que la resolución de `GetTickCount` es la del reloj del sistema, y POSIX, con
+  `clock_getres`.
 
-**Pregunta:** un reloj que da nanosegundos, ¿mide con precisión de nanosegundos? ¿Cómo lo
-averiguarías?
+La **precisión** es otra cosa: cuánto se parecen dos medidas de lo mismo. Acá no hace falta.
+
+**Pregunta:** un reloj que da nanosegundos, ¿cambia de a un nanosegundo? ¿Cómo averiguarías su
+resolución?
 
 ## 6. Misión: `Labs::TickGrid`
 
@@ -243,9 +248,10 @@ actividad 4, cambiá la suma a `int` y llamá `Advance(39)` y `Advance(INT_MAX)`
 ## 11. Idea: la espiral de la muerte
 
 Un paso fijo tiene una trampa. Si un paso tarda en correr **más que el paso que simula** (40 ms de
-lógica que tardan 50 ms de CPU), el frame que corre 2 pasos tarda 100 ms, y el siguiente debe 2,5
-pasos; ese tarda 150, y el siguiente debe más. Cada frame debe más que el anterior: la **espiral
-de la muerte**. El juego se congela corriendo pasos atrasados.
+lógica que tardan 50 ms de CPU), el frame que corre 2 pasos tarda 100 ms, así que el siguiente
+debe 2,5 pasos: corre 2 y guarda 20 ms. El de después debe 3 y tarda 150, y el siguiente debe más.
+Cada frame debe más que el anterior: la **espiral de la muerte**. El juego se congela corriendo
+pasos atrasados.
 
 Lo mismo pasa una vez sola después de un breakpoint de 10 s: el frame siguiente debe 250 pasos.
 Por eso los bucles modernos ponen un **tope** al frame (la pregunta 2 del plan: `MaxFrameTime =
@@ -257,15 +263,18 @@ espiralar.
 ## 12. Jefe: el bucle de `0x637700`, y la espiral que no tiene
 
 El original tiene el acumulador sin tope (la tabla "Lo que dice el binario del bucle" del plan),
-pero mide distinto: empieza a medir **después** de los pasos, justo antes de dibujar
-(`0x63852b`), así que el acumulador suma solo el dibujo, el swap y la espera.
+pero mide distinto: empieza a medir **después** de los pasos y del `glClear` y el viewport
+(`0x638516` y `0x63851c`), justo antes de la escena (`0x63852b`), así que el acumulador suma solo
+el dibujo, el swap y la espera. Y no arranca en 0: en el `.data` del binario vale 40 (lo vas a
+leer en la actividad 13).
 
 **Te toca** (`labs/cl3.0-bucle/jefe/test_original_loop.cpp`):
 
-1. Un modelo del bucle sobre tu `TickGrid`: pasos mientras el acumulador valga 40 o más (cada uno
-   resta 40), `inicio = Ms(ahora)`, la espera activa de 40 ms avanzando el tiempo de a 1 µs, y el
-   acumulador suma `Ms(ahora) - inicio`. La resta es de `DWORD`, como en el original, y la
-   comparación con signo.
+1. Un modelo del bucle sobre tu `TickGrid`: el acumulador en 40 al empezar, pasos mientras valga
+   40 o más (cada uno resta 40), `inicio = Ms(ahora)`, el dibujo (que tarda lo que diga el test),
+   la espera activa de 40 ms avanzando el tiempo de a 1 µs, y el acumulador suma
+   `Ms(ahora) - inicio`. La resta es de `DWORD`, como en el original, y la comparación con signo.
+   Que el reloj pueda empezar cerca de los 2³² ms, para probar la vuelta.
 2. Con 15.625 µs: **predecí** cuánto tardan 64 frames y los pasos de los primeros 13, y escribilo
    como test. Con 10.000 µs, los FPS y los pasos por frame.
 3. "7 pasos cada 6 frames", dice el 02. Comprobalo en los primeros 300 frames: ¿cuánto suman 64
@@ -283,7 +292,7 @@ hace con un breakpoint de 10 s en el dibujo?
 El bucle está en el repo de research,
 `client-research/mainexe-vmxp-c32bbd5f/decompiled/functions/00637700_FUN_00637700.asm`, y en
 Ghidra, abriendo `mainexe-vmxp-c32bbd5f/original/main.exe` (o con `objdump -d -M intel
---start-address=...`). Las tres instrucciones que tocan el acumulador:
+--start-address=...`). Los tres lugares que tocan el acumulador:
 
 ```text
 637791 cmp dword ptr [0x6d5ee4],0x28
@@ -364,7 +373,7 @@ sin esperar 130 ms de verdad? ¿Y uno de un reloj que vuelve 5 ms para atrás?
 - Mover la lógica con `Update(dt)` y creer que da lo mismo a cualquier FPS (actividad 1).
 - Tirar el resto del acumulador al final de cada frame (actividad 3).
 - Medir un frame con `system_clock`.
-- Confundir la resolución de un reloj con su precisión (actividad 5).
+- Confundir la unidad de un reloj con su resolución (actividad 5).
 - Truncar cada frame a ms antes de sumarlo (actividad 9).
 - Esperar que `duration_cast` redondee (actividad 10).
 - Medir los pasos con el frame y no ponerle un tope (actividad 11).
@@ -374,7 +383,7 @@ sin esperar 130 ms de verdad? ¿Y uno de un reloj que vuelve 5 ms para atrás?
 ## Cómo lo hacía el original
 
 - Corría la lógica en pasos fijos de 40 ms con un acumulador `int` de ms, sin tope
-  (`0x637791`..`0x638167`).
+  (`0x637791`..`0x638167`), que arrancaba en 40 (`.data`): el primer frame ya corría un paso.
 - Medía con `GetTickCount` desde después de los pasos (`0x63852b`): los pasos no se acumulan, así
   que unos pasos lentos frenan el juego en vez de espiralar.
 - Esperaba activamente hasta que `GetTickCount` avanzara 40, y con el tick de 15,625 ms eso era el
@@ -386,7 +395,7 @@ sin esperar 130 ms de verdad? ¿Y uno de un reloj que vuelve 5 ms para atrás?
 - Glenn Fiedler, "Fix Your Timestep!" (gafferongames.com): el acumulador, el alfa y la espiral.
 - Robert Nystrom, *Game Programming Patterns*, "Game Loop" (gameprogrammingpatterns.com).
 - La documentación de `GetTickCount` (Microsoft Learn): su resolución es la del reloj del sistema,
-  de 10 a 16 ms.
+  de 10 a 16 ms (la resolución de la actividad 5).
 - cppreference: `std::chrono::duration`, `duration_cast`, `floor`/`ceil`/`round`, `steady_clock`,
   `system_clock` e `is_steady`.
 - El [ADR 0001 de MuMain](https://github.com/sven-n/MuMain/blob/main/docs/adr/0001-preserve-25-fps-reference-timing.md):
@@ -396,7 +405,7 @@ sin esperar 130 ms de verdad? ¿Y uno de un reloj que vuelve 5 ms para atrás?
 
 1. ¿Por qué un paso variable hace que el juego dependa de los FPS, y qué arregla el acumulador?
 2. ¿Qué es el alfa de la interpolación, y por qué no cambia nada de la lógica?
-3. ¿Qué diferencia hay entre un reloj de pared y uno monótono? ¿Y entre resolución y precisión?
+3. ¿Qué diferencia hay entre un reloj de pared y uno monótono? ¿Y entre su unidad y su resolución?
 4. ¿Por qué la espera de 40 ms del original dura 46,875 ms, y cuántos pasos corren cada 64 frames?
 5. ¿Qué es la espiral de la muerte? ¿Por qué el original no la tiene, y por qué MuRet sí la tendría
    sin tope?

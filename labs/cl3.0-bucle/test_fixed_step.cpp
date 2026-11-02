@@ -3,7 +3,6 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
-#include <cstdint>
 #include <limits>
 
 // Labs::FixedStep y Labs::ChronoFixedStep: los casos del plan (CL3.0, paso 2), el resto que pasa al
@@ -93,6 +92,18 @@ TEST(FixedStepTest, ANegativeFrameCountsZero)
     EXPECT_EQ(step.Advance(10), 1);
 }
 
+// Los bordes del recorte, con el resto en 0: -1 no deja el resto en -1, y 0 no corre nada.
+TEST(FixedStepTest, MinusOneAndZeroFromRestZero)
+{
+    FixedStep step;
+    EXPECT_EQ(step.Advance(-1), 0);
+    EXPECT_EQ(step.RestMs(), 0);
+    EXPECT_EQ(step.Advance(0), 0);
+    EXPECT_EQ(step.RestMs(), 0);
+    EXPECT_EQ(step.Advance(40), 1);
+    EXPECT_EQ(step.RestMs(), 0);
+}
+
 // 39 + INT_MAX no entra en un int: con la suma en 64 bits da 53.687.092 pasos y resto 6.
 TEST(FixedStepTest, TheLargestFrameDoesNotOverflow)
 {
@@ -112,6 +123,27 @@ TEST(ChronoFixedStepTest, KeepsTheNanoseconds)
     EXPECT_EQ(step.Rest(), milliseconds{10});
     EXPECT_EQ(step.Advance(nanoseconds{-5}), 0);
     EXPECT_EQ(step.Rest(), milliseconds{10});
+}
+
+// Una hora son 90.000 pasos, y en nanosegundos no sobra nada.
+TEST(ChronoFixedStepTest, OneHourIsNinetyThousandSteps)
+{
+    ChronoFixedStep step;
+    EXPECT_EQ(step.Advance(std::chrono::hours{1}), 90'000);
+    EXPECT_EQ(step.Rest(), nanoseconds{0});
+}
+
+// El frame más largo que entra en un nanoseconds, con 1 ns de resto: sin el recorte, la suma se
+// pasa de los 64 bits (UBSan lo marca) y los pasos, de un int. Recortado, cuenta INT_MAX pasos y
+// el resto sigue en 1 ns. El más negativo cuenta 0.
+TEST(ChronoFixedStepTest, TheLargestFrameCountsIntMaxSteps)
+{
+    ChronoFixedStep step;
+    EXPECT_EQ(step.Advance(nanoseconds{1}), 0);
+    EXPECT_EQ(step.Advance(nanoseconds::max()), std::numeric_limits<int>::max());
+    EXPECT_EQ(step.Rest(), nanoseconds{1});
+    EXPECT_EQ(step.Advance(nanoseconds::min()), 0);
+    EXPECT_EQ(step.Rest(), nanoseconds{1});
 }
 
 // El paso 6: 60 frames que suman 1 s. Truncado a ms, cada uno cuenta 16 y el segundo cuenta 960 ms:

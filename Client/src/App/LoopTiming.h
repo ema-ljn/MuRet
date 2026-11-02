@@ -26,11 +26,18 @@ inline constexpr std::int32_t FaithfulWaitMs = 40;
 inline constexpr std::int32_t FaithfulInitialAccumulatorMs = 40;
 // Los topes de FPS que aceptan [Video] MaxFps y --max-fps, además del 0 (sin tope). No salen del
 // original, que no tiene tope porque espera siempre 46,875 ms. El más bajo es un frame por paso de
-// la lógica (LogicStep), 25 por segundo: con menos, cada frame correría varios pasos de golpe, y
-// con 1 duraría MaxFrameTime y se recortaría siempre (el menú de MuMain arranca en 24,
-// OptionWindow.cpp). El más alto es 1000: con más, un frame duraría menos de 1 ms y el tope ya no
-// frenaría nada que se note.
+// la lógica (LogicStep), 25 por segundo: con menos, algunos frames correrían dos pasos (a 24, uno
+// de cada 24), y con 1 cada frame duraría MaxFrameTime justo, que se recorta con cualquier atraso
+// del sueño (el menú de MuMain arranca en 24, OptionWindow.cpp). El más alto es 1000: con más, un
+// frame duraría menos de 1 ms y el tope ya no frenaría nada que se note.
 inline constexpr int MinFpsLimit = static_cast<int>(std::chrono::seconds{1} / LogicStep);
 static_assert(MinFpsLimit == 25);
 inline constexpr int MaxFpsLimit = 1000;
+
+// La regla de [Video] MaxFps y de --max-fps, en un solo lugar: 0 (sin tope), o de MinFpsLimit a
+// MaxFpsLimit.
+[[nodiscard]] constexpr bool IsValidMaxFps(int maxFps)
+{
+    return maxFps == 0 || (maxFps >= MinFpsLimit && maxFps <= MaxFpsLimit);
+}
 } // namespace Client::App

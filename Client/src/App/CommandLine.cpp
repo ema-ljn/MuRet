@@ -70,16 +70,16 @@ std::optional<std::uint64_t> ParsePositive(std::string_view text)
     return value;
 }
 
-// Un tope de FPS: 0, o de MinFpsLimit a MaxFpsLimit, sin signo ni nada atrás (from_chars sin
-// signo ya rechaza "-1" y "+5").
+// Un tope de FPS: 0, o de MinFpsLimit a MaxFpsLimit (IsValidMaxFps), sin signo ni nada atrás
+// (from_chars sin signo ya rechaza "-1" y "+5").
 std::optional<int> ParseMaxFps(std::string_view text)
 {
     unsigned value = 0;
     const char* const last = text.data() + text.size();
     const auto [end, error] = std::from_chars(text.data(), last, value);
-    const bool inRange = value == 0 || (value >= static_cast<unsigned>(Client::App::MinFpsLimit) &&
-                                        value <= static_cast<unsigned>(Client::App::MaxFpsLimit));
-    if (error != std::errc() || end != last || !inRange)
+    // Más que MaxFpsLimit se corta antes del cast: no tiene por qué entrar en un int.
+    if (error != std::errc() || end != last || value > static_cast<unsigned>(Client::App::MaxFpsLimit) ||
+        !Client::App::IsValidMaxFps(static_cast<int>(value)))
     {
         return std::nullopt;
     }

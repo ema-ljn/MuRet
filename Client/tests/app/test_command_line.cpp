@@ -337,8 +337,8 @@ TEST(CommandLineTest, ParsesMaxFps)
 
 TEST(CommandLineTest, RejectsABadMaxFps)
 {
-    // 1 duraría MaxFrameTime y se recortaría siempre: el más bajo es MinFpsLimit.
-    for (const std::string_view text : {"1001", "1", "24", "-1", "+5", "60fps", ""})
+    // Debajo de MinFpsLimit algunos frames correrían dos pasos; 4294967296 no entra en un unsigned.
+    for (const std::string_view text : {"1001", "1", "24", "-1", "-0", "+5", "60fps", "", "4294967296", "99999999999"})
     {
         EXPECT_EQ(ErrorOf({"--max-fps", text}),
                   "--max-fps necesita 0 o un número de 25 a 1000, no \"" + std::string(text) + "\"")

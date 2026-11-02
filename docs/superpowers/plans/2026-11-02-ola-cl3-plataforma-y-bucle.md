@@ -78,13 +78,16 @@ pierde un tick. La CL3.R lo pasa al 02 y la CL3.2 lo prueba en el modo fiel.
 del frame") no es exacto: cada frame suma 46,875 ms de media, así que 64 frames suman 3.000 ms y
 **75 pasos cada 64 frames**, con 11 frames de 2 pasos. 6 frames seguidos suman 7 u 8 (los frames
 31 a 36 dan 2, 1, 1, 1, 1, 2). Los tests fijan esos números, y la CL3.R corrige los tres lugares.
+Como el acumulador del original arranca en 40 (`.data`, CL3.R), el modo fiel también: su primer
+frame corre 1 paso, y las cuentas "cada 64" y "cada 6" valen desde el segundo.
 
 **Terminada cuando** (roadmap): una ventana a la tasa del monitor con la lógica a tick fijo,
 verificado con un reloj falso. En concreto:
 - con el reloj falso, 25 pasos por segundo simulado con 1, 25, 60, 144 y 240 frames por segundo, y
   3 pasos seguidos ante un frame de 130 ms;
 - en el modo fiel, con un reloj de 64 ticks por segundo, 64 frames cada 3 s y 75 pasos cada 64
-  frames, 11 de ellos con 2 pasos (0, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2 en los primeros 13);
+  frames, 11 de ellos con 2 pasos (1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2 en los primeros 13, con
+  el acumulador en 40 al empezar, como el original);
 - `Main` abre la ventana en Linux (Xvfb, en CI) y en Windows (a mano), corre el bucle y sale con
   `--frames N` imprimiendo frames y pasos;
 - `Main connect /u<ip> /p<puerto>` y la config eligen el servidor, y un puerto malo o una carpeta
@@ -158,15 +161,15 @@ Cada uno tiene su test en la sub-ola que lo dice. En la review se miran primero:
   `AMinimizedWindowStepsWithoutDrawing`). En el modo fiel la espera de `GetTickCount` sigue aunque
   no se dibuje: sin ella el acumulador no suma y no corre nunca más un paso
   (`FaithfulPacerTest.MinimizedKeepsTheWait`). El original sin foco no corre el frame (CL3.R,
-  paso 5): MuRet sigue con sus pasos, y la diferencia queda escrita.
+  Q-C46): MuRet sigue con sus pasos, y la diferencia queda escrita.
 - **Una tecla mantenida entre frames, o apretada y soltada en el mismo frame.** Mantenida, está
   abajo en todos los frames pero "se apretó" una sola vez. Apretada y soltada entre dos lecturas,
   `SDL_GetKeyboardState` no la ve nunca (lo dice su documentación): por eso el estado se arma con
   los eventos. Y un frame con 2 pasos no ve el mismo apretón dos veces, ni uno con 0 pasos lo
   pierde (CL3.3).
 - **El modo fiel que mide de más.** Si la medición empieza antes de los pasos y no en `0x63852b`,
-  un paso lento frena el juego menos que en el original: con pasos de 10 ms, 73 pasos en 3 s en
-  vez de 70 (CL3.2, `TimeSpentInStepsIsNotAccumulated`).
+  un paso lento frena el juego menos que en el original: con pasos de 10 ms, 74 pasos en 3 s en
+  vez de 71 (CL3.2, `TimeSpentInStepsIsNotAccumulated`).
 
 ---
 
@@ -278,32 +281,86 @@ de la tabla de arriba, y la tabla de lo que corre por paso con lo que se lea), `
 sin tope, si la CL3.2 lo cambia, y lo que aparezca), el roadmap (la fila D-C4 y la fila "Ritmo del
 frame" de "Cómo el research se vuelve test") y este plan.
 
-- [ ] **Paso 1:** pasar al 02 lo que dice la tabla "Lo que dice el binario del bucle": acumulador
+- [x] **Paso 1:** pasar al 02 lo que dice la tabla "Lo que dice el binario del bucle": acumulador
   con signo y sin tope, la medición desde `0x63852b` (los pasos no se miden, y lo de fuera se
   pierde de a ticks enteros), y el delta de `0x459b60` con tope de 200 ms que va a
   `0x65ee60`/`0x65fc30` y no al acumulador. Corregir "7 pasos cada 6 frames" en el 02, en la fila
   D-C4 del roadmap y en su fila "Ritmo del frame": 75 pasos cada 64 frames, con 11 de 2 pasos, y
   7 u 8 cada 6.
-- [ ] **Paso 2:** leer `0x636290` (la lógica de la escena 5) y `0x623e70` (40 KB, solo en el
+- [x] **Paso 2:** leer `0x636290` (la lógica de la escena 5) y `0x623e70` (40 KB, solo en el
   juego): para cada cosa que avanza, si avanza por paso, por frame o por reloj (`timeGetTime`,
   `GetTickCount`). Una tabla en el 02: qué, dónde, por paso o por frame, y qué hace MuRet.
-- [ ] **Paso 3:** quién usa `0x65ee60` y `0x65fc30` (el objeto del delta con tope): si algo de la
+- [x] **Paso 3:** quién usa `0x65ee60` y `0x65fc30` (el objeto del delta con tope): si algo de la
   lógica avanza por tiempo real y no por paso, el modo normal lo tiene que medir igual.
-- [ ] **Paso 4:** los usos de `DAT_05767940` y `DAT_077f3b74` (las cuentas regresivas) y de
+- [x] **Paso 4:** los usos de `DAT_05767940` y `DAT_077f3b74` (las cuentas regresivas) y de
   `DAT_07d2d360` (el ciclo de 32 pasos): qué los lee, y si el que los lee dibuja.
-- [ ] **Paso 5 (P-C08):** las llamadas a `GetAsyncKeyState`: si se leen en el frame o en el paso,
+- [x] **Paso 5 (P-C08):** las llamadas a `GetAsyncKeyState`: si se leen en el frame o en el paso,
   si alguna usa el bit bajo ("se apretó desde la última llamada") o solo el alto ("está abajo"),
   y qué teclas lee cada escena. El resto del WndProc (`0x4af4e0`): qué hace con el mouse.
-- [ ] **Paso 6 (el foco):** en el bucle de `WinMain`, `0x4be019`..`0x4be04a` lee
+- [ ] **Paso 6 (el foco), en parte:** en el bucle de `WinMain`, `0x4be019`..`0x4be04a` lee
   `DAT_05763580` (el foco, de `WM_ACTIVATE`) y llama al frame (`0x63945d`) solo si no es cero; si
   es cero salta a `0x4be057`: `SetForegroundWindow` y `SetFocus` y, en una rama con los contadores
   del hash, `SetTimer(0x3e9, 1000)` y `PostMessageA(..., 0x10, ...)`, un `WM_CLOSE`
   (`0x4be1f2`..`0x4be217`). También consulta `IsIconic`. *Estático*, visto para este plan: el
   original sin foco probablemente no corre ningún frame, ni pasos ni dibujo. Leer las dos ramas,
   pasarlo al 02 con sus direcciones, y anotar en 07 la diferencia: MuRet sigue con sus pasos sin
-  foco o minimizado (el keepalive de la CL4 no puede parar).
-- [ ] **Paso 7:** cerrar P-C03 en el 08 (o dejar escrito qué queda para la CL6 y la CL7, que
+  foco o minimizado (el keepalive de la CL4 no puede parar). **En parte:** las dos ramas están en
+  el 02 como flujo, con los dos `ShowWindow` y el `WM_CLOSE`; qué ve el jugador sin foco (una
+  pausa, el foco que vuelve o el cierre) queda para una prueba dinámica, con alt-tab en la VM.
+- [x] **Paso 7:** cerrar P-C03 en el 08 (o dejar escrito qué queda para la CL6 y la CL7, que
   dibujan lo que se mueve), y actualizar este plan con lo que cambie.
+
+Hecho así: todo *estático* sobre el decompilado de `c32bbd5f` y el desensamblado de `WinMain`,
+con un grafo de las llamadas directas para saber qué corre en el paso y qué en el frame (sin las
+que van por vtable, *análisis*). Lo que se encontró:
+
+- **El bucle** pasó al 02 como estaba en la tabla de arriba: con signo, sin tope (Q-C44), medido
+  desde `0x63852b`. El `JGE` de la espera está en `0x638616` (`0x63860f` es el `CMP`), y se
+  corrigió en la tabla y en el bloque de `LoopTiming.h`. "7 pasos cada 6" se corrigió en el 02, en
+  la fila D-C4 del roadmap y en su fila "Ritmo del frame".
+- **El acumulador arranca en 40** (la `.data` de `0x6d5ee4` vale `0x28`, leído con `objdump`), y
+  los bytes de su dirección están solo en los 5 operandos de `0x637700`: nada lo reinicia por su
+  dirección al cambiar de escena (un puntero no se descarta). **Se decide:** el modo fiel
+  (`FaithfulPacer`, CL3.2 PR B) arranca en 40, primero la fidelidad. Una simulación del bucle
+  sobre la grilla de 15,625 ms, empezando en 40, rehízo cada número del plan: los 13 primeros
+  frames dan 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2, y desde el segundo, 75 cada 64 con 11 de 2 y
+  7 u 8 cada 6; 64 frames corren 74 pasos y dejan 80 ms; con pasos de 10 ms, 61 frames y 71 pasos
+  (74 midiendo desde antes de los pasos); la espiral del lab, 99 frames y 115 pasos. El modo normal
+  (`Decoupled`) sigue en 0: es el `FixedStep` de "Fix your timestep", sus tests cuentan pasos
+  exactos por segundo simulado (100 en 4 s a 240 FPS, `AClockThatGoesBackRunsNoSteps` con el
+  acumulador en 0), y nada en el plan necesita el paso del arranque, que cae en la primera escena
+  que usa `0x637700`, la 2 (*inferido*).
+- **El delta de `0x459b60`** es del administrador de ventanas de la UI nueva (`0x7d53728`): con el
+  mouse de `0x640940` busca la ventana bajo el cursor, la arrastra y le pasa el delta a cada
+  ventana. Qué hace cada una con él queda para la CL8.R.
+- **Hay lógica que avanza por reloj aunque corra en el paso**: las demoras de las habilidades
+  (`0x552f10`, con el delta de `timeGetTime` de cada frame) y un freno de 300 ms entre acciones con
+  `GetTickCount` (`_DAT_0576791c`). Eso cambia la CL3.2 en una fila: la lógica tiene que poder leer
+  el mismo `IClock` que el bucle. En la CL3 no lo usa nada; la interfaz de `ILoopClient` no cambia.
+  El original usa tres relojes: `GetTickCount` para la espera y el freno de 300 ms, `timeGetTime`
+  para el reloj T y el delta de las demoras, y QPC para el delta de la UI (`0x459b60`) y el doble
+  clic (`0x459bc0`); `timeBeginPeriod` solo se llama en `0x459a70`, cuando no hay QPC. En el modo
+  fiel, `GetTickCount` va sobre la grilla de 15,625 ms; la resolución de `timeGetTime` y de QPC en
+  el original no está fijada (un candidato a subirla, sin verificar en este repo, es un
+  `timeSetEvent(20, 10, ...)` de `wzAudio.dll`) y se puede medir después.
+- **Las cuentas regresivas** son el freno de los mensajes (`DAT_05767940`, 70 pasos; ningún dibujo
+  lo lee) y el de las macros (`DAT_077f3b74`, 100 pasos; el HUD dibuja su barra). El ciclo de 32
+  pasos elige una textura animada que lee el dibujo: por paso y sin interpolar.
+- **El teclado** se lee casi todo en el paso, y "se apretó" de dos formas (bit bajo, o el flanco de
+  `0x553520`) que pierden un apretón corto (Q-C45). Enter y Esc de seis ventanas de la UI se leen
+  por frame, por vtable, antes de los pasos; quién ve el apretón depende del orden y de la forma
+  (la regla, en Q-C45). El diseño de la CL3.3 (eventos, un flanco que ve un solo paso) ya cubre
+  las dos cosas; se corrigió su contrato.
+- **El foco**: con foco, `0x4be04a` llama al frame; sin foco, `0x4be057` llama `SetForegroundWindow`
+  y `SetFocus` y no corre nada, ni la espera (Q-C46): lo que va por paso queda en pausa y lo que va
+  por reloj no. De las dos ramas (el `WM_CLOSE`, y los dos `ShowWindow`) se escribió solo el
+  flujo; el contador del hash no se leyó, y qué ve el jugador queda para una prueba dinámica.
+- **Lo que queda** está en P-C03 del 08, cada cosa con su ola: el cuerpo de `0x623e70`
+  (`0x623f78`..`0x62dac2`), las 71 funciones que leen el reloj T desde el paso o el dibujo
+  (contadas en el desensamblado: el decompilado esconde 16) y las 25 que llaman directo a
+  `timeGetTime` o `GetTickCount`, los métodos de las ventanas de la UI, y `0x4e1d50` y
+  `0x49e510`. P-C08 queda abierto para la CL8 (IME, texto, las teclas de las ventanas
+  por vtable).
 
 ## Sub-ola CL3.1: ventana y contexto GL con SDL3
 
@@ -452,11 +509,13 @@ reloj falso, `SdlClock`); **PR B**, el modo fiel.
 | Qué | Original | MuRet, modo normal (`Decoupled`) | MuRet, modo fiel (`Faithful`) |
 | --- | --- | --- | --- |
 | paso | 40 ms (`0x28`, `0x637791` y `0x638167`) | 40 ms | 40 ms |
-| qué se acumula | `GetTickCount` del dibujo, el swap y la espera (`0x63852b`..`0x638632`) | el frame entero, de un `Now()` al siguiente | lo mismo que el original, con un reloj de 64 ticks por segundo |
+| qué se acumula | `GetTickCount` del dibujo, el swap y la espera (`0x63852b`..`0x638632`); quedan fuera el principio del frame (`0x459b60`, `0x4eb620`, `0x640940`, `0x65fc30`), los pasos y el `glClear` de `0x6384f5`..`0x638516` | el frame entero, de un `Now()` al siguiente | lo mismo que el original, con un reloj de 64 ticks por segundo |
 | espera | activa hasta 40 ms de `GetTickCount` (`0x6385fd`..`0x638624`) | ninguna: VSync o sin tope | duerme hasta el tick en que se cumplen los 40 ms |
 | tope | ninguno | `MaxFrameTime` (pregunta 2); un frame negativo cuenta 0 | ninguno, como el original; las reglas de `FixedStep` no se aplican |
 | dibujo | el estado después de los pasos | interpolado con `alfa = acumulador / paso`, menor que 1 | `alfa = 0`, el estado después de los pasos |
-| minimizado | sin foco no corre el frame (CL3.R, paso 6) | pasos sí, dibujo no; duerme hasta el próximo paso | pasos sí, dibujo no, y la espera de `GetTickCount` sigue |
+| valor inicial | 40, en la `.data` (`0x6d5ee4`); nada lo reinicia por su dirección al cambiar de escena | 0, como cualquier `FixedStep`: sus tests cuentan los pasos exactos por segundo simulado | 40, como el original (CL3.R): el primer frame corre 1 paso |
+| minimizado | sin foco no corre el frame: ni pasos, ni dibujo, ni la espera (Q-C46); lo que va por reloj sigue la hora real | pasos sí, dibujo no; duerme hasta el próximo paso | pasos sí, dibujo no, y la espera de `GetTickCount` sigue |
+| lo que avanza por reloj | las demoras de las habilidades, un freno de 300 ms y el delta de la UI leen el reloj desde la lógica o por frame (CL3.R, 02) | la lógica lee el mismo `IClock` que el bucle, que le pasa `Main`; en la CL3 no lo usa nada | lo mismo; `GetTickCount` va sobre la grilla de 15,625 ms, y `timeGetTime` y QPC son otras entradas, de resolución sin fijar en el original (CL3.R) |
 
 **Archivos:**
 - **PR A:** crear `Client/src/Core/IClock.h` (la interfaz), `Client/src/App/GameLoop.h/.cpp`,
@@ -498,8 +557,11 @@ inline constexpr Core::Duration LogicStep = std::chrono::milliseconds{40};
 inline constexpr Core::Duration MaxFrameTime = std::chrono::seconds{1};
 // El tick de GetTickCount en la VM XP: 15,625 ms, 64 por segundo (02 § El ritmo).
 inline constexpr Core::Duration FaithfulTick = std::chrono::microseconds{15'625};
-// La espera de 0x6385fd..0x638624 (CMP ...,0x28 + JGE en 0x63860f), en los ms de GetTickCount.
+// La espera de 0x6385fd..0x638624 (CMP ...,0x28 en 0x63860f + JGE en 0x638616), en ms de
+// GetTickCount.
 inline constexpr std::int32_t FaithfulWaitMs = 40;
+// El valor inicial del acumulador del original: la .data de 0x6d5ee4 vale 0x28 (CL3.R).
+inline constexpr std::int32_t FaithfulInitialAccumulatorMs = 40;
 
 // Lo que el bucle llama: la lógica, un paso por vez, y el dibujo. En la CL3.3, Step recibe el
 // InputState (ver ahí).
@@ -527,7 +589,8 @@ public:
 // Los ms que leería GetTickCount en `now`, de a FaithfulTick: DWORD, como el original.
 std::uint32_t TickCountMs(Core::Duration now);
 
-// El ritmo del original, sin las reglas de FixedStep: sin tope y en ms enteros.
+// El ritmo del original, sin las reglas de FixedStep: sin tope y en ms enteros. El acumulador
+// arranca en FaithfulInitialAccumulatorMs, como el original.
 class FaithfulPacer
 {
 public:
@@ -643,24 +706,25 @@ dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
   de 0 ms salvo que diga otra cosa:
   - `FaithfulPacerTest.TickCountMsFollowsTheGrid`: 0, 15, 31, 46 y 62 en los ticks 0 a 4;
   - `FaithfulPacerTest.SixtyFourFramesEveryThreeSeconds`: 64 frames terminan con el reloj en 3 s
-    exactos (192 ticks), y el frame 65 empieza con 2 pasos: 73 corridos y 80 ms en el acumulador,
-    los 75 de 3 s a 25 por segundo;
+    exactos (192 ticks), y el frame 65 empieza con 2 pasos: 74 corridos y 80 ms en el acumulador,
+    los 75 de 3 s a 25 por segundo más el del valor inicial;
   - `FaithfulPacerTest.SeventyFiveStepsEverySixtyFourFrames`: los pasos de los primeros 13 frames
-    son 0, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2; desde el frame 2, cada 64 frames seguidos suman 75,
+    son 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2; desde el frame 2, cada 64 frames seguidos suman 75,
     con 11 de 2 pasos, y cada 6 seguidos suman 7 u 8 (los frames 31 a 36 dan 2, 1, 1, 1, 1, 2);
     mirado en los primeros 300 frames;
   - `FaithfulPacerTest.EachFrameMeasuresThreeTicks`: cada frame suma 46 o 47 ms
     (`LastMeasuredMs`);
-  - `FaithfulPacerTest.ADrawLongerThanTheWaitAddsItWhole`: con el reloj en el tick 0, un dibujo de
-    130 ms suma 125 ms (8 ticks) sin esperar, y el frame siguiente corre 3 pasos;
+  - `FaithfulPacerTest.ADrawLongerThanTheWaitAddsItWhole`: con el reloj en el tick 0, el primer
+    frame corre 1 paso (el valor inicial), su dibujo de 130 ms suma 125 ms (8 ticks) sin esperar, y
+    el frame siguiente corre 3 pasos;
   - `FaithfulPacerTest.TimeSpentInStepsIsNotAccumulated`: con pasos de 10 ms, llamando a
-    `RunFrame` mientras `Now()` sea menor que 3 s, corren 61 frames y 70 pasos, y el reloj termina
-    en 3,015625 s. Midiendo desde antes de los pasos serían 64 frames y 73: el test dice "70 y no
-    73";
-  - `FaithfulPacerTest.HasNoCap`: un dibujo de 10 s suma 10.000 ms y el frame siguiente corre 250
-    pasos;
+    `RunFrame` mientras `Now()` sea menor que 3 s, corren 61 frames y 71 pasos, y el reloj termina
+    en 3,015625 s. Midiendo desde antes de los pasos serían 64 frames y 74: el test dice "71 y no
+    74";
+  - `FaithfulPacerTest.HasNoCap`: el primer frame corre 1 paso, su dibujo de 10 s suma 10.000 ms
+    y el frame siguiente corre 250 pasos;
   - `FaithfulPacerTest.MinimizedKeepsTheWait`: minimizada, 64 frames siguen tardando 3 s y el
-    frame 65 empieza con 2 pasos (73 corridos), sin dibujos.
+    frame 65 empieza con 2 pasos (74 corridos), sin dibujos.
 - [ ] **Paso 6 (PR B):** `TickCountMs`, `FaithfulPacer` y el modo `Faithful` de `GameLoop`; en 07,
   `FaithfulPacerTest.HasNoCap` al lado del test del PR A.
 - [ ] **Paso 7:** a mano, en Windows y en Linux: `Main --pacing faithful --stats` da 21,33 FPS y 25
@@ -682,12 +746,12 @@ flanco que se lee por frame tiene que llegar a exactamente un paso de la lógica
 
 | Qué | Original | MuRet |
 | --- | --- | --- |
-| teclado | `GetAsyncKeyState` en cada frame, no `WM_KEYDOWN` | estado por frame armado con `SDL_EVENT_KEY_DOWN`/`_UP` por scancode; el auto-repeat (`event.key.repeat`) no es un apretón |
-| apretar y soltar en un frame | se pierde, salvo que se use el bit bajo de `GetAsyncKeyState` (CL3.R) | se ve: `WasPressed` y no `IsDown` |
-| un frame con 2 pasos | sin leer (CL3.R, paso 5) | el apretón lo ve solo el primer paso |
+| teclado | `GetAsyncKeyState`, no `WM_KEYDOWN`, y casi todo en el paso (la lógica de la escena y `0x623e70`); por frame, Shift, Alt en el dibujo, los botones del mouse y Enter y Esc en seis ventanas de la UI nueva, antes de los pasos (`0x63778c` → `0x65fc30` → `0x669f40` → el método `+0x30` de su vtable) (CL3.R) | estado por frame armado con `SDL_EVENT_KEY_DOWN`/`_UP` por scancode; el auto-repeat (`event.key.repeat`) no es un apretón |
+| apretar y soltar en un frame | se pierde: "se apretó" es `== 0x8001` (el bit bajo con el alto) o el flanco propio de `0x553520`, y los dos lo pierden (Q-C45) | se ve: `WasPressed` y no `IsDown` |
+| un frame con 2 pasos | el segundo paso no lo ve: la primera lectura borra el bit bajo o deja el flanco en 1 (CL3.R) | el apretón lo ve solo el primer paso |
 | un frame con 0 pasos | no pasa: cada frame mide 40 ms o más | el apretón espera al próximo paso |
-| foco perdido | `WM_ACTIVATE`, y sin foco no corre el frame (CL3.R, paso 6) | se sueltan todas las teclas y botones |
-| mouse | `WM_RBUTTON*`, `WM_MBUTTON*`, `WM_MOUSEWHEEL`: cámara y zoom | botones izquierdo, medio y derecho como las teclas; la rueda se suma hasta el paso; la posición en coordenadas de la ventana, que son píxeles mientras la ventana no pida `SDL_WINDOW_HIGH_PIXEL_DENSITY` (la de 640 × 480 es de la CL5, D-C11) |
+| foco perdido | `WM_ACTIVATE`; sin foco no corre el frame (Q-C46), y el mouse, `WM_CHAR` y el IME van a `DefWindowProcA` | se sueltan todas las teclas y botones |
+| mouse | dos sistemas: los globales del WndProc (la posición en 640 × 480, el botón izquierdo y la rueda en muescas) y `0x640940` en cada frame (`GetCursorPos`, los botones con `0x8001` y el doble clic con `GetDoubleClickTime`) (CL3.R) | botones izquierdo, medio y derecho como las teclas; la rueda se suma hasta el paso; la posición en coordenadas de la ventana, que son píxeles mientras la ventana no pida `SDL_WINDOW_HIGH_PIXEL_DENSITY` (la de 640 × 480 es de la CL5, D-C11) |
 
 **Archivos:** crear `Client/src/Input/Key.h` (los scancodes que usa el cliente, con nombre, sin
 SDL), `InputState.h/.cpp` y `InputEvent.h`; `Client/src/Platform/InputEvents.h/.cpp` (de `SDL_Event`

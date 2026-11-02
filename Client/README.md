@@ -36,6 +36,13 @@ checksum malo (`F1 03`) y el keepalive (`0E`). Lo que sale es un `Outgoing`: el 
 XOR32 si lo lleva, y si va en claro o como C3. La versión y el serial del build están en
 `Protocol/BuildConstants.h`, y el XOR3 pasó a `Core`, porque lo usan las tablas y el login.
 
+Desde la CL3.1, la ventana y el contexto GL salieron de `main.cpp` a `Platform/`: `SdlContext`
+(el `SDL_Init` y el `SDL_Quit`), `Window` (la ventana con su contexto 3.3 core, la tabla de GL de
+`GlLoader` y el VSync de `SwapInterval`) y `PumpEvents`, que pasa los eventos de SDL a
+`App::WindowState`. `Platform/` es el target `ClientPlatform`, el único que enlaza SDL3: `ClientLib`
+no la ve, y sus tests corren sin ventana. `main.cpp` queda en el armado, con el bucle del hola
+mundo de la CL0.3 hasta la CL3.2.
+
 ## Compilar y correr
 
 Hace falta vcpkg (las dependencias, SDL3, libjpeg-turbo y GoogleTest, están en `vcpkg.json` y se
@@ -122,9 +129,9 @@ Client/
   CMakeLists.txt
   src/
     main.cpp      arma las capas y arranca; sin lógica
-    App/          bucle de juego con tick fijo          (CL3)
+    App/          línea de comandos, estado de la ventana, bucle con tick fijo (CL3)
     Core/         Expected, ByteReader, Xor3; config, log, reloj (CL1+)
-    Platform/     ventana, contexto GL, input (SDL3)    (CL3)
+    Platform/     ventana, contexto GL, input: lo único que ve SDL3 (ClientPlatform, CL3)
     Data/         tablas .bmd, Text.bmd, terreno, OZJ/OZT, modelos: bytes a tipos, sin GL (CL1, CL6)
     Network/      socket, paquetes, C3/C4, FoxAnti      (CL2, CL4)
     Protocol/     opcodes, structs (el login, en Connection/), dispatcher (CL2, CL4, CL9)

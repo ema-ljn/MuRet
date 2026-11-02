@@ -1,8 +1,9 @@
 # Client: la reimplementación del main.exe de MU Online 1.02.
 #
-# ClientLib tiene todo el código y Main es el ejecutable (CL0.2). Los tests van en tests/, un
-# ejecutable por archivo como en sven-n/MuMain (tests/CMakeLists.txt). Las capas (Core, Platform,
-# Data, Network, Protocol, Render, Scenes) van entrando a ClientLib ola por ola.
+# ClientLib tiene todo el código que no ve SDL3, ClientPlatform lo que sí (src/Platform/, CL3.1) y
+# Main es el ejecutable (CL0.2). Los tests van en tests/, un ejecutable por archivo como en
+# sven-n/MuMain (tests/CMakeLists.txt). Las capas (Core, Data, Network, Protocol, Render, Scenes)
+# van entrando a ClientLib ola por ola.
 
 find_package(SDL3 CONFIG REQUIRED)
 # La libjpeg de libjpeg-turbo, para los OZJ (JpegImage.cpp). Se pide la de libjpeg-turbo y no
@@ -10,9 +11,12 @@ find_package(SDL3 CONFIG REQUIRED)
 find_package(libjpeg-turbo CONFIG REQUIRED)
 
 # Los fuentes de src/ se juntan solos, como en MuMain: un .cpp nuevo entra al reconfigurar
-# (CONFIGURE_DEPENDS lo mira en cada build). main.cpp es de Main, no de la biblioteca.
+# (CONFIGURE_DEPENDS lo mira en cada build). main.cpp es de Main, no de la biblioteca, y
+# src/Platform/ es de ClientPlatform: ClientLib no enlaza SDL3 (como los list(FILTER
+# MU_CLIENT_SOURCES EXCLUDE REGEX ...) de src/CMakeLists.txt en MuMain).
 file(GLOB_RECURSE client_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(FILTER client_sources EXCLUDE REGEX "/src/main\\.cpp$")
+list(FILTER client_sources EXCLUDE REGEX "/src/Platform/")
 add_library(ClientLib STATIC ${client_sources})
 target_include_directories(ClientLib PUBLIC src)
 target_compile_features(ClientLib PUBLIC cxx_std_20)
@@ -27,13 +31,21 @@ if(MSVC)
     set_source_files_properties(src/Data/Textures/JpegImage.cpp PROPERTIES COMPILE_OPTIONS /wd4611)
 endif()
 
+# Platform (CL3.1): lo único que ve SDL3. La ventana, el contexto GL, el loader, el intervalo de
+# swap y la traducción de eventos. Sus tests (tests/platform/) lo enlazan aparte.
+file(GLOB platform_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/*.cpp")
+add_library(ClientPlatform STATIC ${platform_sources})
+target_link_libraries(ClientPlatform PUBLIC ClientLib SDL3::SDL3)
+# Los typedef PFNGL…PROC de las funciones de GL 1.x (glClear, glViewport); los de la 3.3 vienen
+# siempre. Con ellos se tipan los punteros que da SDL_GL_GetProcAddress, y GlLoader.h los expone:
+# por eso es PUBLIC (Main y los tests de platform/ los ven).
+target_compile_definitions(ClientPlatform PUBLIC SDL_OPENGL_1_FUNCTION_TYPEDEFS)
+muret_set_warnings(ClientPlatform)
+
 add_executable(Main
     src/main.cpp
 )
-target_link_libraries(Main PRIVATE ClientLib SDL3::SDL3)
-# Los typedef PFNGL…PROC de las funciones de GL 1.x (glClear, glViewport); los de la 3.3 vienen
-# siempre. Con ellos se tipan los punteros que da SDL_GL_GetProcAddress (main.cpp).
-target_compile_definitions(Main PRIVATE SDL_OPENGL_1_FUNCTION_TYPEDEFS)
+target_link_libraries(Main PRIVATE ClientPlatform ClientLib)
 muret_set_warnings(Main)
 
 if(MURET_BUILD_TESTS)

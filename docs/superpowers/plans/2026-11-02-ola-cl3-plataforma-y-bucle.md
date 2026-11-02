@@ -467,19 +467,39 @@ void PumpEvents(App::WindowState& state);
 `Window` guarda la ventana y el contexto con `std::unique_ptr` y sus deleters, en ese orden (el
 contexto se destruye primero), como la CL0.3.
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, la tabla de `Apply`: para cada
-  evento, qué campo cambia, y qué pasa con un `Restored` sin `Minimized` antes (nada: queda
-  igual) y con un `PixelSizeChanged` de 0 × 0 (en Windows llega al minimizar: no se toca el
-  tamaño).
-- [ ] **Paso 2:** los tests: `WindowStateTest.CloseRequestedStopsRunning`,
+- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de los tests, la tabla de
+  `Apply`: para cada evento, qué campo cambia, y qué pasa con un `Restored` sin `Minimized` antes
+  (nada: queda igual) y con un `PixelSizeChanged` de 0 × 0 (en Windows llega al minimizar: no se
+  toca el tamaño).
+
+  | Evento | Campo | Queda |
+  | --- | --- | --- |
+  | `CloseRequested` | `running` | `false` |
+  | `Minimized`, `Occluded` | `minimized` | `true` |
+  | `Restored`, `Exposed` | `minimized` | `false` (sin un `Minimized` antes ya era `false`: no cambia nada) |
+  | `FocusLost` | `focused` | `false` (`running` sigue en `true`: sin foco, el bucle sigue) |
+  | `FocusGained` | `focused` | `true` |
+  | `PixelSizeChanged` | `pixelSize` | `size`, si su ancho y su alto son mayores que 0; uno de 0 × 0 (o con un lado en 0) no lo toca |
+
+  Cada evento toca un solo campo, y los demás quedan como estaban. Minimizada y tapada comparten
+  `minimized`: un `Exposed` después de un `Minimized` la da por visible (el contrato no las
+  distingue, y la CL3.2 solo mira si se dibuja).
+- [x] **Paso 2:** los tests: `WindowStateTest.CloseRequestedStopsRunning`,
   `MinimizedAndRestored`, `OccludedIsLikeMinimized`, `FocusLostKeepsRunning` (solo cambia
   `focused`), `PixelSizeChangedUpdatesTheSize`, `AZeroPixelSizeIsIgnored`;
   `GlLoaderTest.RejectsTheInvalidAddresses` (0, 1, 2, 3 y `UINTPTR_MAX` no; 4 sí),
   `GlLoaderTest.RequiresThreeThree` (3.3, 3.4, 4.5 sí; 3.2 y 2.1 no);
   `SwapIntervalTest.MapsEachMode` (`On` 1, `Adaptive` -1, `Off` 0).
-- [ ] **Paso 3:** `WindowState`, y `Platform` con lo que ya hace `main.cpp`. `main.cpp` queda en el
+- [x] **Paso 3:** `WindowState`, y `Platform` con lo que ya hace `main.cpp`. `main.cpp` queda en el
   armado: `SdlContext`, `Window` y el bucle de la CL0.3, que la CL3.2 reemplaza.
-- [ ] **Paso 4:** CMake. El `file(GLOB_RECURSE client_sources ... "src/*.cpp")` de `ClientLib`
+  *Hecho, con tres agregados a las interfaces:* `Window::Gl()` devuelve la tabla `GlFunctions`
+  (el bucle de la CL0.3 limpia y pone el viewport con ella); `GlLoader.h` suma `LoadGlFunctions()`,
+  que devuelve un `Core::Expected` con la primera función que falta, y `GlString`; y los
+  deleters de `Window` (`WindowDeleter`, `GlContextDeleter`) están en `Window.h`, con el cuerpo en
+  el `.cpp`. Los errores dicen lo mismo que en la CL0.3, ahora como valor. Si `ApplySwapInterval`
+  no puede cambiar el intervalo, devuelve el que el contexto ya tenía (`SDL_GL_GetSwapInterval`), y
+  `Main` avisa por `stderr` si no es el pedido (en Xvfb pasa: el intervalo 1 no entra).
+- [x] **Paso 4:** CMake. El `file(GLOB_RECURSE client_sources ... "src/*.cpp")` de `ClientLib`
   juntaría también `src/Platform/*.cpp`, y `ClientLib` no puede enlazar SDL3: después del filtro
   de `main.cpp` va `list(FILTER client_sources EXCLUDE REGEX "/src/Platform/")`, como los
   `list(FILTER MU_CLIENT_SOURCES EXCLUDE REGEX ...)` de `src/CMakeLists.txt` en MuMain.
@@ -491,7 +511,7 @@ contexto se destruye primero), como la CL0.3.
   lo mismo con `test_swap_interval` (y con `test_input_events` en la CL3.3). Corren sin ventana:
   `muret_add_test` registra cada `TEST` con `gtest_discover_tests`. El paso de Xvfb del CI no
   cambia en esta sub-ola; la CL3.2 le suma los modos.
-- [ ] **Paso 5:** verificar:
+- [x] **Paso 5:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "WindowState|GlLoader|SwapInterval|Client.Main"
   xvfb-run -a -s '-screen 0 800x600x24' build/linux-x64-debug/Client/Main --frames 60

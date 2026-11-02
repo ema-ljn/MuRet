@@ -221,6 +221,11 @@ sub-ola.
   `Client/README.md`, 07 (Q-C03 también con el primer byte de un C1/C3, y el tipo inválido y el
   tamaño chico, nuevos, con sus tests), PROGRESS y este plan.
 
+Hecho así: la carpeta del cable la pide un fixture, `WireDataTest` en `support/GoldenDir.h`, que
+salta el test sin `MURET_CLIENT_WIRE_DIR` y falla si la carpeta no tiene el archivo. El tipo
+inválido y el tamaño chico son Q-C38 y Q-C39 en 07, y el 03 los nombra en el corte. El golden
+también corta el sentido C->S de a un byte, y da lo mismo.
+
 **Interfaces:**
 
 ```cpp
@@ -271,13 +276,14 @@ C++ permite una sola. Se escribe `return std::optional<Packet>{};` y
 `return std::optional<Packet>{std::move(packet)};`.
 
 - [x] **Paso 1 (PR A):** mover `ByteReader` y sumar `ReadU16Be`. Test: `01 2C` da `0x012C`.
-- [ ] **Paso 2:** los tests de `Packet`: `FromBytes` acepta `C1 04 20 AA` y `C2 00 05 52 AA`;
+- [x] **Paso 2:** los tests de `Packet`: `FromBytes` acepta `C1 04 20 AA` y `C2 00 05 52 AA`;
   rechaza `C1 05 20 AA` (`SizeMismatch`), un tipo `C5` (`InvalidType`), nada y `C1 02`
   (`SizeTooSmall`, sin leer un opcode que no está) y un C2 de `0x2001` (`TooLarge`); `Opcode()`
   en C1 y C2, y `std::nullopt` en C3 y C4; `MutableBody()` de un C1 empieza en el opcode y el de
   un C2 también; `TakeBytes()` devuelve los mismos bytes.
-- [ ] **Paso 3:** `Packet`.
-- [ ] **Paso 4 (Emanuel, `TODO(human)`):** la tabla de vectores del lector, antes del código:
+- [x] **Paso 3:** `Packet`.
+- [x] **Paso 4 (Emanuel, `TODO(human)`; lo resolvió Claude):** la tabla de vectores del
+  lector, antes del código:
   - `C1 04 20 AA` da un paquete, y `C2 01 2C` con 297 bytes más, uno de 300;
   - un C3 y un C4 se cortan como un C1 y un C2, sin descifrarlos;
   - el caso 1 de `red_reference.py`: `C1 05 10 01 02` y los 3 primeros bytes de
@@ -293,12 +299,12 @@ C++ permite una sola. Se escribe `return std::optional<Packet>{};` y
   - después de un error, `Next()` lo repite aunque llegue más;
   - el mismo flujo partido al azar (con semilla fija y la salida directa del motor) da los mismos
     paquetes.
-- [ ] **Paso 5:** `PacketReader`.
-- [ ] **Paso 6:** el golden con el cable: el sentido C->S de las 72 conexiones se corta en 689
+- [x] **Paso 5:** `PacketReader`.
+- [x] **Paso 6:** el golden con el cable: el sentido C->S de las 72 conexiones se corta en 689
   paquetes sin bytes de más (al ConnectServer, 144 C1; al GameServer, 362 C1 y 183 C3), y el S->C
   de las 64 conexiones al ConnectServer, que va en claro, en 144 (72 C1 y 72 C2). El S->C del
   GameServer lleva el `0xAA`: va en la CL2.4.
-- [ ] **Paso 7:** verificar:
+- [x] **Paso 7:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "ByteReader|Packet"
   ```

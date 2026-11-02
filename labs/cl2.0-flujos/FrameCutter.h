@@ -1,0 +1,67 @@
+// Misión de la CL2.0 (docs/learning/ola-cl2.0-flujos-y-bloques.md, actividad 4): cortar un flujo TCP
+// en paquetes C1/C2/C3/C4, alimentado de a un byte.
+// Contrato: Client/docs/research/03-red-y-cifrado.md, "Cadena de recepción" (el corte).
+//
+// TCP entrega bytes, no mensajes: una lectura puede traer medio paquete o tres. El corte es una
+// máquina de estados que solo mira un byte por vez, así que nunca lee uno que no llegó (el
+// original sí, Q-C03 en 07-quirks-y-bugs.md: ver jefe/OldCutTest.cpp).
+
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <vector>
+
+namespace Labs
+{
+
+// Un paquete entero, con su cabecera, tal como vino en el flujo.
+using Frame = std::vector<std::byte>;
+
+// Lo que frena el corte. Las dos son de la cabecera: el cuerpo no se mira.
+enum class CutError : std::uint8_t
+{
+    InvalidType,  // el primer byte no es C1, C2, C3 ni C4
+    SizeTooSmall, // el tamaño no llega a la cabecera más el opcode (incluye el 0)
+};
+
+class FrameCutter
+{
+public:
+    // Agrega un byte. Devuelve el paquete cuando ese byte lo completa; si no, std::nullopt.
+    //
+    // Un error deja el corte parado: TCP no tiene separadores, así que después de una cabecera
+    // mala no hay forma de saber dónde empieza el próximo paquete. Desde ahí Feed no hace nada y
+    // Error() dice qué pasó; quien lo usa cierra la conexión.
+    [[nodiscard]] std::optional<Frame> Feed(std::byte value);
+
+    // El error que paró el corte, o std::nullopt si sigue andando.
+    [[nodiscard]] std::optional<CutError> Error() const;
+
+    // Cuántos bytes del paquete en curso ya llegaron (0 entre paquetes).
+    [[nodiscard]] std::size_t Pending() const;
+
+private:
+    // Esperando el tipo, el tamaño (uno o dos bytes) o el resto del cuerpo; o parado por un error.
+    enum class State : std::uint8_t
+    {
+        Type,
+        Size,
+        Body,
+        Failed,
+    };
+
+    void OnType(std::byte value);
+    void OnSize();
+    std::optional<Frame> OnBody();
+    void Fail(CutError reason);
+
+    State state = State::Type;
+    std::size_t headerSize = 0;   // 2 en un C1/C3, 3 en un C2/C4
+    std::size_t declaredSize = 0; // el tamaño que dice la cabecera, ella incluida
+    Frame frame;                  // los bytes del paquete en curso; salen por movimiento
+    std::optional<CutError> error;
+};
+
+} // namespace Labs

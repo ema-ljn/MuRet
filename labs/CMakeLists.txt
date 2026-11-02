@@ -2,8 +2,9 @@
 # (docs/superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md). Compila en Windows y en
 # Linux como el resto del repo, pero no es parte de ningún servidor ni del cliente.
 #
-# Hasta la 0.2 no hay GoogleTest: un test es un ejecutable que sale con 0 si pasa y con otro valor
-# si falla, registrado con add_test(). CTest lo corre igual:
+# Los tests de la 0.0 son ejecutables que salen con 0 si pasan y con otro valor si fallan,
+# registrados con add_test(). Desde la CL2.0 hay GoogleTest, el mismo del cliente (vcpkg.json).
+# CTest corre los dos igual:
 #   ctest --test-dir build/linux-x64-debug --output-on-failure
 
 # Misión de la 0.0 (docs/learning/ola-0.0-del-codigo-al-programa.md, actividad 5): la biblioteca
@@ -38,3 +39,31 @@ add_test(NAME Lab00.OdrBoss.AB COMMAND Lab00OdrAB)
 set_tests_properties(Lab00.OdrBoss.AB PROPERTIES PASS_REGULAR_EXPRESSION "FromA=2 FromB=2")
 add_test(NAME Lab00.OdrBoss.BA COMMAND Lab00OdrBA)
 set_tests_properties(Lab00.OdrBoss.BA PROPERTIES PASS_REGULAR_EXPRESSION "FromA=3 FromB=3")
+
+# La CL2.0 (docs/learning/ola-cl2.0-flujos-y-bloques.md): el corte de un flujo, los bits MSB primero
+# y el inverso modular, en su propia biblioteca.
+add_library(MuRetLabsCl20 STATIC
+    cl2.0-flujos/BitStream.cpp
+    cl2.0-flujos/FrameCutter.cpp
+    cl2.0-flujos/ModularInverse.cpp
+)
+target_include_directories(MuRetLabsCl20 PUBLIC cl2.0-flujos)
+target_compile_features(MuRetLabsCl20 PUBLIC cxx_std_20)
+muret_set_warnings(MuRetLabsCl20)
+
+if(MURET_BUILD_TESTS)
+    find_package(GTest CONFIG REQUIRED)
+    include(GoogleTest)
+
+    # Los tests de las misiones y el jefe (Q-C03). Cada test de GoogleTest es un test de CTest,
+    # con el prefijo LabCl20. para no mezclarse con los del cliente.
+    add_executable(LabCl20Tests
+        cl2.0-flujos/BitStreamTest.cpp
+        cl2.0-flujos/FrameCutterTest.cpp
+        cl2.0-flujos/ModularInverseTest.cpp
+        cl2.0-flujos/jefe/OldCutTest.cpp
+    )
+    target_link_libraries(LabCl20Tests PRIVATE MuRetLabsCl20 GTest::gtest GTest::gtest_main)
+    muret_set_warnings(LabCl20Tests)
+    gtest_discover_tests(LabCl20Tests TEST_PREFIX "LabCl20.")
+endif()

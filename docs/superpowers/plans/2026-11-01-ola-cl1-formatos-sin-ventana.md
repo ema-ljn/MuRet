@@ -546,6 +546,7 @@ cargadores reciben los bytes. Entra con el código que abre los archivos de las 
 
 - [ ] Completar el cierre de la [guía de la CL1.0](../../learning/ola-cl1.0-bytes-y-archivos.md).
 - [ ] Actualizar `docs/learning/PROGRESS.md`.
-- [ ] Revisar el plan de la CL2 (protocolo sin red) con lo aprendido: el `ByteReader` y el
-  `Expected` de esta ola son la base del `PacketReader`. Todavía no hay plan de la CL2: se
-  escribe con eso en su propio PR.
+- [x] Revisar el plan de la CL2 (protocolo sin red) con lo aprendido: el `ByteReader` y el
+  `Expected` de esta ola son la base del `PacketReader`. El
+  [plan de la CL2](2026-11-02-ola-cl2-protocolo-sin-red.md) se escribió con eso el 2026-11-02, en
+  su propio PR: el `ByteReader` pasa a `Client::Core`, y el `Expected` lleva todos sus errores.

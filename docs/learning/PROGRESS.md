@@ -163,7 +163,7 @@ solo lo lee.
   nombre que no resuelve (Q-C51); cada cierre corta con un RST (Q-C54); el envío en línea se
   adelanta a lo encolado (Q-C52) y Q-C11 tiene sus bytes (basta un parcial, como halló el jefe de la
   CL4.0); el timer de 20 s manda sin mirar el login (Q-C53, visto en el cable), y sin personaje las
-  velocidades salen en 0. P-C11 quedó cerrado, y P-C04 pasa a la CL5.5.
+  velocidades salen en 0. P-C11 quedó cerrado, y P-C04 pasa a la CL5.R.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 

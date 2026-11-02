@@ -79,14 +79,15 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
 - **`A9`, C->S: pedir la información de una mascota** (Q-C16, CL4.R). `C1 06 A9 <tipo>
   <lugar> <casilla>`, con XOR32. Lo arman tres emisores en línea:
   - `0x415be0` manda `A9 00 00 01` siempre (`0x416040`..`0x416300`), al armar el objeto del cuervo
-    oscuro de un personaje (`0x4167b0`, desde `0x420cf0` y `0x420d60`, que miran si en `+0x2d8` está
-    el modelo `0x1c17`, el ítem `0x1a05` más `0x212`, *inferido*). La preparación de la escena de
-    login (`0x6349a0`) conecta al ConnectServer (`0x6349eb`), le pone al personaje de la escena un
-    equipo fijo con el cuervo (`0x517270`, desde `0x634a43`; `0x51734b` escribe el `0x1c17`) y llama
-    a `0x420d60` (`0x634a9d`): como el `connect` es bloqueante, el `A9` sale por el socket del CS,
-    recién abierto, antes de que se despache el saludo. *Estático* el camino; *verificado* que sale
-    primero en las 64 conexiones al CS del `muproxy.log`, siempre `00 00 01` sin el XOR32, y seguido
-    del saludo y del `F4 02`.
+    oscuro de un personaje (`0x4167b0`, desde `0x420cf0` y `0x420d60`). Solo `0x420d60` mira si en
+    `+0x2d8` está el modelo `0x1c17` (`0x420d7c`; el ítem `0x1a05` más `0x212`, *inferido*);
+    `0x420cf0` lo arma salvo en los mapas 18 a 23 (`DAT_006c9dd0`, `0x420d1a`..`0x420d22`). La
+    preparación de la escena de login (`0x6349a0`) conecta al ConnectServer (`0x6349eb`), le pone al
+    personaje de la escena un equipo fijo con el cuervo (`0x517270`, desde `0x634a43`; `0x51734b`
+    escribe el `0x1c17`) y llama a `0x420d60` (`0x634a9d`): como el `connect` es bloqueante, el `A9`
+    sale por el socket del CS, recién abierto, antes de que se despache el saludo. *Estático* el
+    camino; *verificado* que sale primero en las 64 conexiones al CS del `muproxy.log`, siempre
+    `00 00 01` sin el XOR32, y seguido del saludo y del `F4 02`.
   - `0x424230` manda `A9 01 00 08` desde la lógica de la UI del juego (`0x5ee140`, que corre desde
     la escena 5, `0x636ee1`), una vez mientras la bandera de panel `0x2000000` esté prendida: la
     pide con `0x659290(0x2000000)`, la consulta del estado de los paneles de la UI (364 llamadas,
@@ -223,9 +224,9 @@ acciones las anotó el usuario, sin la hora exacta de cada una.
   `21` (C2) ×6.
 - **C->S en C1** (sacando solo el XOR32): `A3` ×59 y `A4` ×4 (el `D3`/`D7` de movimiento que
   FoxAnti remapea), `18` ×17 (acción o dirección), `F3` ×11, `A9` ×10 (`A9 01 00 08` las diez
-  veces: la info del caballo oscuro, Q-C16), `00` ×5. **El `00` del cliente es el chat:**
-  `C1 .. 00 <nombre:10> <texto>`, con los comandos del servidor (`/move Lorencia`, `/addstr 10`)
-  como texto.
+  veces: la info del caballo oscuro, *inferido* alto, Q-C16), `00` ×5. **El `00` del cliente es
+  el chat:** `C1 .. 00 <nombre:10> <texto>`, con los comandos del servidor (`/move Lorencia`,
+  `/addstr 10`) como texto.
 - **C->S en C3:** los 23 descifran con el `Dec1.dat` del servidor
   (`mu-server-repack-research-102i/gameserver/evidence/keyfiles/`) con checksum bien y serial
   **0, 1, 2… 22 sin cortes**. Opcodes: `F1` (login), `0E` ×11 (keepalive), `26` ×3, `A6` ×3, `A0`,
@@ -302,5 +303,6 @@ Tests que fija:
 - El login `F1 01` byte a byte contra los fixtures de `mu-client` (CL2) y, cuando exista, contra
   una captura del mismo build (CL4).
 - El keepalive con los cinco fixtures de `mu-client` (CL2).
-- Sin personaje, el keepalive manda las dos velocidades en 0 y el byte 3 en 0 (CL4).
+- Sin personaje, el keepalive manda las dos velocidades en 0 y el byte 3 en 0 (CL4.5,
+  `ServerSessionTest.WithoutACharacterTheSpeedsAreZero`).
 - Integración: un CS y un GS falsos en el test, el cliente llega a "login aceptado" (CL4).

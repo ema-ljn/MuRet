@@ -21,21 +21,23 @@ lo que dice *verificado* se vio en el cable (`muproxy.log`, 64 conexiones al CS 
   `+0x2010`; el de recepción en `+0x2014` (`0x2000`) con lo que hay en `+0x4014`; la cola de
   paquetes en `+0x4020`. Con `+0x4018` distinto de 0 avisa lo que mandó a `0x4e8880`, que en este
   build es un `ret`.
-- **Iniciar:** `0x4e81b0`, `WSAStartup(0x202)`, con mensajes de error en el log y en un
-  `MessageBoxA` ("Winsock DLL Initialize error.", "Winsock version low."). `0x4c1340` la llama la
-  primera vez que conecta (`DAT_057636bc`).
+- **Iniciar:** `0x4e81b0`, `WSAStartup(0x202)`. Si falla, loguea "Winsock DLL Initialize error."
+  (`0x6c8718`) y muestra un `MessageBoxA` con otra cadena (`0x6c8700`); si la versión no alcanza,
+  loguea "Winsock version low." (`0x6c86e8`), y el `MessageBoxA` muestra la de `0x6c86cc`.
+  `0x4c1340` la llama la primera vez que conecta (`DAT_057636bc`).
 - **Crear:** `0x4e82e0`, `socket(2, 1, 0)`: IPv4 y TCP, todavía bloqueante. Guarda su segundo
   argumento en `+0x4`, y con uno distinto de 0 pone `DAT_05767918` en 0 (`0x4e8305`). Si falla,
   loguea "소켓 생성 에러 %d" con `WSAGetLastError`.
 - **Conectar:** `0x4e8570(host, puerto, mensaje)`. Sin ventana en `+0x0`, un `MessageBoxA` y 0.
   `inet_addr` y, si no es una IP, `gethostbyname`; si el nombre no resuelve **devuelve 2**
-  (`0x4e85cf`). Después rechaza `7F 00 00 01` (`0x4e85f7`..`0x4e8611`: devuelve 0), también si
-  llegó por un nombre (`localhost`), y solo esa dirección. Ni con el 2 ni con el rechazo cierra el
-  socket que creó `0x4e82e0`. Recién entonces `connect` (`0x4e8625`), con el socket todavía
-  bloqueante: espera a que termine. Si da -1 con otro error que `WSAEWOULDBLOCK` (`0x2733`, que un
-  socket bloqueante no da), `closesocket` y 0. Por último `WSAAsyncSelect(socket, ventana,
-  mensaje, 0x23)` (`0x4e865e`): `FD_READ`, `FD_WRITE` y `FD_CLOSE`, sin `FD_CONNECT`; desde ahí el
-  socket es no bloqueante (Q-C50, Q-C51).
+  (`0x4e85cf`). Después rechaza `7F 00 00 01` (`0x4e85f7`..`0x4e8611`: devuelve 0), también si llegó
+  por un nombre (`localhost`), y solo esa dirección. Ni con el 2 ni con el rechazo cierra el socket
+  que creó `0x4e82e0`: lo cierra el primer envío que falla (en la escena de login, el `A9`), o
+  nadie, y el `0x4e82e0` siguiente lo pierde (Q-C50, Q-C51). Recién entonces `connect` (`0x4e8625`),
+  con el socket todavía bloqueante: espera a que termine. Si da -1 con otro error que
+  `WSAEWOULDBLOCK` (`0x2733`, que un socket bloqueante no da), `closesocket` y 0. Por último
+  `WSAAsyncSelect(socket, ventana, mensaje, 0x23)` (`0x4e865e`): `FD_READ`, `FD_WRITE` y `FD_CLOSE`,
+  sin `FD_CONNECT`; desde ahí el socket es no bloqueante (Q-C50, Q-C51).
 - **El que conecta:** `0x4c1340(host, puerto)` loguea `[Connect to Server] ip address = %s, port
   = %d`, crea el socket con 1 y conecta con el mensaje `0x400`. Solo un 0 es error: loguea "Failed
   to connect." y abre el aviso `0x70` de la UI (`0x65fe50`, el texto 402 de `Text.bmd`), y
@@ -63,15 +65,16 @@ lo que dice *verificado* se vio en el cable (`muproxy.log`, 64 conexiones al CS 
   (`0x4be5ca`).
 - **Mandar:** cada emisor manda en línea: un lazo de `send` desde lo ya enviado, sin mirar lo que
   quedó pendiente en `+0x2010` (Q-C52). Con `WSAEWOULDBLOCK`, si `pendiente + total` entra en
-  `0x2000`, copia al buffer de envío lo que falta, pero **desde el principio del paquete**
-  (`lea esi,[ebp-X]`): el mismo defecto que Q-C11. Si no entra, loguea `[Send Packet Error]
-  SendBuffer Overflow` y cierra; con otro error, `[Send Packet Error] WSAGetLastError() !=
-  WSAEWOULDBLOCK` y cierra. Un `send` que da 0 corta el lazo como si hubiera salido todo. Leído en
-  el keepalive del timer (`0x4b162a`..`0x4b17b7`) y en el aviso `F1 03` (`0x4e22f1`..`0x4e23c7`);
-  las 485 copias a `+0x10 + [+0x2010]` del binario toman el principio de un buffer de la pila
-  (*estático*, contadas en el desensamblado), y `0x4e8690`, la versión que no está en línea y no
-  tiene llamadores, hace lo mismo. Por esos lazos, con el error y el desborde, `0x4e8380` tiene
-  1.264 `call`.
+  `0x2000`, copia al buffer de envío lo que falta, pero **desde el principio del paquete** (`lea
+  esi,[ebp-X]`): el mismo defecto que Q-C11. Si no entra, loguea `[Send Packet Error] SendBuffer
+  Overflow` y cierra; con otro error, `[Send Packet Error] WSAGetLastError() != WSAEWOULDBLOCK` y
+  cierra. Un `send` que da 0 corta el lazo como si hubiera salido todo. Leído en el keepalive del
+  timer (`0x4b162a`..`0x4b17b7`) y en el aviso `F1 03` (`0x4e22f1`..`0x4e23c7`); las 492 copias en
+  línea a `+0x10 + [+0x2010]` del binario toman el principio de un buffer de la pila (*estático*,
+  contadas en el desensamblado: 485 con `lea esi,[ebp-X]` y 7 con un puntero guardado, `mov
+  esi,[ebp-X]`, como `0x4ae48e`), y `0x4e8690`, la versión que no está en línea y no tiene
+  llamadores, hace lo mismo. Por esos lazos, con el error y el desborde, `0x4e8380` tiene 1.264
+  `call`.
 - **Drenar:** `0x4e87b0`, con `FD_WRITE`. `enviado` vuelve a 0 en cada `FD_WRITE` (`0x4e87b4`).
   Manda desde `buf + enviado` el largo `pendiente - enviado`, con `pendiente` ya descontado: resta
   dos veces lo que salió. Con `WSAEWOULDBLOCK` vuelve sin correr lo que quedó al principio del

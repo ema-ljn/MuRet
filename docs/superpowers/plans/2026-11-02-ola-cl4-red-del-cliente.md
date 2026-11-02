@@ -77,7 +77,7 @@ en el binario, ya confirmado con `objdump`; *verificado*, lo que mostró el cabl
 | --- | --- | --- |
 | iniciar | `0x4e81b0`, desde `0x4c1340` la primera vez (`DAT_057636bc`) | `WSAStartup(0x202)`, con los errores en el log y en un `MessageBoxA` (03). *Estático* |
 | crear | `0x4e82e0` | `socket(2, 1, 0)`: IPv4 y TCP, bloqueante. Guarda el segundo argumento en `+0x4` (1, la conexión principal; 0, las del chat) y, si no es 0, pone `DAT_05767918` en 0 (`0x4e8305`). *Estático* |
-| conectar | `0x4e8570` | `inet_addr` y, si no es una IP, `gethostbyname`; si el nombre no resuelve **devuelve 2** (`0x4e85cf`), y `0x4c1340` solo mira el 0, así que sigue como si hubiera conectado (Q-C51). **Rechaza `127.0.0.1`** (`7F 00 00 01`, también por un nombre: devuelve 0, Q-C50). En los dos casos el socket queda sin cerrar. Llama a `connect` (`0x4e8625`) con el socket bloqueante, así que espera, y después a `WSAAsyncSelect(sock, ventana, 0x400, 0x23)` (`0x4e865e`): `FD_READ`, `FD_WRITE` y `FD_CLOSE`, sin `FD_CONNECT`. *Estático* |
+| conectar | `0x4e8570` | `inet_addr` y, si no es una IP, `gethostbyname`; si el nombre no resuelve **devuelve 2** (`0x4e85cf`), y `0x4c1340` solo mira el 0, así que sigue como si hubiera conectado (Q-C51). **Rechaza `127.0.0.1`** (`7F 00 00 01`, también por un nombre: devuelve 0, Q-C50). `0x4e8570` no cierra el socket en ninguno de los dos casos: en la escena de login, que no mira lo que devuelve `0x4c1340` (`0x6349eb`), lo cierra el `A9` en línea de `0x420d60` (`0x634a9d`), cuyo `send` falla en un socket sin conectar y llama a `0x4e8380` (`0x4163eb`); desde el `F4 03`, con el 0 nada manda y el `0x4e82e0` siguiente pisa `+0xc` (`0x4e82f8`): el handle se pierde. Llama a `connect` (`0x4e8625`) con el socket bloqueante, así que espera, y después a `WSAAsyncSelect(sock, ventana, 0x400, 0x23)` (`0x4e865e`): `FD_READ`, `FD_WRITE` y `FD_CLOSE`, sin `FD_CONNECT`. *Estático* |
 | el que conecta | `0x4c1340` | loguea `[Connect to Server]`, crea el socket con 1, conecta; con 0 loguea `Failed to connect.` y abre el aviso `0x70` de la UI (`0x65fe50`, el texto 402 de `Text.bmd`); pone los dos seriales en 0 (`0x4c14ac`, `0x4c162c`). Cinco llamadores: la escena de login (`0x6349eb`), la vuelta al CS (`0x642837`), el `F4 03` (`0x4e3396`), el sub 0 de `B1` (`0x412b86`, otro GS) y una copia del `F4 03` sin llamadores (`0x4c1b9f`). El `0x49df01` del 55980 es otro llamador de `0x4e8570`, no de `0x4c1340`: `0x49de50` abre una conexión por sala al chat de amigos, con la IP del `CA` (*inferido*), fuera del login. *Estático* |
 | los eventos | `0x4af4e0`, mensaje `0x400` (`0x4b31b5`) | por `lParam & 0xFFFF`, sin mirar el error: 1 (`FD_READ`) → `0x4e88a0`; 2 (`FD_WRITE`) → `0x4e87b0`; `0x20` (`FD_CLOSE`) → el texto 3 de `Text.bmd` en pantalla (`0x555190`), el log (`서버와의 접속종료.`), `0x4e8380` y el aviso `0x70`. *Estático* |
 | leer | `0x4e88a0` | un `recv` al buffer de `0x2000` (`+0x2014`, lo que hay en `+0x4014`); con 0 o -1, por cualquier error, vuelve sin cerrar (lo cierra `FD_CLOSE`); con menos de 3 bytes espera; si no, `FoxAnti.decode_inbound` y el corte. *Estático* |
@@ -87,7 +87,7 @@ en el binario, ya confirmado con `objdump`; *verificado*, lo que mostró el cabl
 | cerrar | `0x4e8380` | con `+0x4` en 1, `DAT_05767918` en 0; `setsockopt(SOL_SOCKET, SO_LINGER, {1, 0})`, que hace que `closesocket` corte con un RST (Q-C54); vacía los dos buffers y la cola de paquetes, loguea `[Socket Closed][Clear PacketQueue]` y `closesocket`. Es el de todos los cierres, también al pasar del CS al GS (`0x4e3388`, sub 3): lo que quedaba del CS en la cola se tira. *Estático* |
 | cerrar, la otra | `0x4e8270` | `shutdown(sock, 1)`, `recv` hasta 0 y `closesocket`: no tiene llamadores, ni un `call` ni un puntero en el archivo; `0x4e8520` (`closesocket` y `DAT_05767918` en 0), tampoco. *Estático* |
 | el keepalive | `SetTimer(ventana, 1000, 20000)` en `0x4bad89` (`WinMain`, antes del bucle; no hay `KillTimer`); la rama `0x113` con el id 1000 (`0x4af945`) | cada 20 s, si `DAT_05767918` no es 0 (solo mira eso). Ese global es "hay conexión al GS": lo ponen en 1 el `F4 03` (`0x4e33a2`) y el `B1` (`0x412b92`) cuando `0x4c1340` no dio 0, y en 0 cada socket nuevo (`0x4e8305`) y cada cierre (`0x4e8395`). El timer **no mira el login**: *verificado*, en 2 de las 8 conexiones al GS el primer C3 es un keepalive con serial 0, antes del login, y en una sin login salen 34 (Q-C53). `thunk_FUN_00450376` no hace nada: es un `jmp` a su `ret`, y lo que saltea es del anticheat |
-| el primero | el sub 1 de `F1` con resultado 1 (`0x4e2bb3`) | `DAT_05767928 = 2` y `0x4ad100`, que llama a `0x4bee60` (el keepalive, que también mira `DAT_05767918`) si `DAT_05763570` es 0; ese byte solo lo pone en 1 el camino con que el anticheat cierra el cliente (`0x4ad070`), así que con el cliente andando sale siempre. Lo que sigue en `0x4ad100` (los `FindWindowA`) es del anticheat, fuera de alcance. Sin personaje, las velocidades salen en 0 y sin ajuste: `WinMain` llena de ceros el personaje (`0x4bafbc`), y el primer keepalive de las 8 conexiones las trae en 0 (*verificado*) |
+| el primero | el sub 1 de `F1` con resultado 1 (el caso empieza en `0x4e2ba9`) | `DAT_05767928 = 2` (`0x4e2bb3`) y `0x4ad100`, que llama a `0x4bee60` (el keepalive, que también mira `DAT_05767918`) si `DAT_05763570` es 0; ese byte solo lo pone en 1 el camino con que el anticheat cierra el cliente (`0x4ad070`), así que con el cliente andando sale siempre. Lo que sigue en `0x4ad100` (los `FindWindowA`) es del anticheat, fuera de alcance. Sin personaje, las velocidades salen en 0 y sin ajuste: `WinMain` llena de ceros el personaje (`0x4bafbc`), y el primer keepalive de las 8 conexiones las trae en 0 (*verificado*) |
 | por frame | `0x638640`, en la escena 5 | si `0x4e8560` (el socket) da -1, avisa que se cerró (02). *Estático* |
 | el `A9` | `0x415be0`, `0x424230`, `0x422990` | el pedido de la información de una mascota (*inferido* alto, Q-C16). Al CS sale `A9 00 00 01` porque la escena de login conecta (`0x6349eb`) y enseguida arma un personaje con el cuervo oscuro (`0x634a43`, `0x634a9d`): *verificado*, primero en las 64 conexiones. `A9 01 00 08` lo pide la UI del juego con `0x659290(0x2000000)`, una bandera de panel que no es del anticheat, y sale ya en el mundo (*verificado*) |
 
@@ -285,12 +285,12 @@ Del C++: RAII sobre un descriptor del sistema (el destructor cierra, se mueve y 
 
 **Concepto:** carril R antes de copiar el comportamiento. La tabla "Lo que dice el binario de la
 red" salió del decompilado; esta sub-ola la confirma en el desensamblado, cierra lo que la CL4
-necesita y lo pasa al research. Lo que no hace falta para el login (P-C04) queda para la CL5.5.
+necesita y lo pasa al research. Lo que no hace falta para el login (P-C04) queda para la CL5.R.
 
 **Archivos:** modificar `Client/docs/research/03-red-y-cifrado.md` (los sockets: el `connect`,
 los eventos, el envío y los dos cierres), `04-protocolo.md` (el `A9` y el keepalive),
 `02-arranque-y-ciclo-de-vida.md` (el timer de 20 s), `07-quirks-y-bugs.md` (Q-C11 con los bytes,
-Q-C16 y los quirks nuevos), `08-pendientes.md` (P-C11 y P-C05, y P-C04 pasa a la CL5.5), PROGRESS
+Q-C16 y los quirks nuevos), `08-pendientes.md` (P-C11 y P-C05, y P-C04 pasa a la CL5.R), PROGRESS
 y este plan.
 
 - [x] **Paso 1 (P-C11, Q-C16):** el `A9`. Leer `0x415be0`, `0x422990` y `0x424230` y sus
@@ -345,11 +345,14 @@ y la tabla de arriba usan el vocabulario de siempre. Lo que se encontró:
   del login y va con la UI de las mascotas (CL8). Qué panel es la bandera `0x2000000` queda para
   la CL8.R.
 - **El `connect` (paso 2)** va antes del `WSAAsyncSelect` y con el socket bloqueante, así que
-  espera; el aviso `0x23` no pide `FD_CONNECT`. Dos quirks nuevos: Q-C50, el rechazo de
-  `127.0.0.1` (solo esa dirección, también por un nombre; MuRet no lo copia porque sus tests usan
-  esa dirección), y Q-C51, el 2 de un nombre que no resuelve, que `0x4c1340` toma como conectado
-  (un bug; en MuRet es un error). `0x4c1340` tiene cinco llamadores, no dos: `0x49df01` llama a
-  `0x4e8570`, no a `0x4c1340`, y es la conexión al chat de amigos (55980), fuera del login.
+  espera; el aviso `0x23` no pide `FD_CONNECT`. Dos quirks nuevos: Q-C50, el rechazo de `127.0.0.1`
+  (solo esa dirección, también por un nombre; MuRet no lo copia porque sus tests usan esa
+  dirección), y Q-C51, el 2 de un nombre que no resuelve, que `0x4c1340` toma como conectado (un
+  bug; en MuRet es un error). En los dos, el socket lo cierra el primer envío que falla: en la
+  escena de login, que no mira lo que devuelve `0x4c1340`, el `A9` (`0x4163eb`); desde el `F4 03`
+  con el rechazo no manda nadie, y el `0x4e82e0` siguiente pierde el handle. `0x4c1340` tiene cinco
+  llamadores, no dos: `0x49df01` llama a `0x4e8570`, no a `0x4c1340`, y es la conexión al chat de
+  amigos (55980), fuera del login.
 - **Los cierres (paso 3).** `0x4e8380` corta con un RST (`SO_LINGER {1, 0}`, Q-C54) en todos los
   cierres, también al pasar del CS al GS. El cierre ordenado (`0x4e8270`) y `0x4e8520` no tienen
   ni un `call` ni un puntero en el archivo. El 03 ya no los da como "cierre ordenado".
@@ -362,9 +365,10 @@ y la tabla de arriba usan el vocabulario de siempre. Lo que se encontró:
   largo 0 o con uno negativo (`{2, 6}` pide -6). El envío en línea (`0x4b162a`..`0x4b17b7` en el
   keepalive del timer, y el mismo patrón en el `F1 03`) copia al buffer de envío, con
   `WSAEWOULDBLOCK`, el largo de lo que falta **desde el principio del paquete** (`0x4b16fc`): el
-  mismo defecto, en las 485 copias al buffer de envío que tiene el binario, porque los emisores no
-  pasan por una función común (`0x4e8690`, la que lo haría, no tiene llamadores). Y llama a `send`
-  sin mirar `+0x2010`: un paquete nuevo se adelanta a lo encolado (Q-C52).
+  mismo defecto, en las 492 copias en línea al buffer de envío que tiene el binario (485 con `lea
+  esi,[ebp-X]` y 7 con `mov esi,[ebp-X]`), porque los emisores no pasan por una función común
+  (`0x4e8690`, la que lo haría, no tiene llamadores). Y llama a `send` sin mirar `+0x2010`: un
+  paquete nuevo se adelanta a lo encolado (Q-C52).
 - **La lectura (paso 5).** Un `recv` de 0 o de -1 vuelve sin cerrar, por cualquier error; lo cierra
   el `FD_CLOSE`, que muestra el texto 3 de `Text.bmd` (`0x555190`), loguea, cierra y abre el aviso
   `0x70`. Está en el 03.
@@ -375,13 +379,13 @@ y la tabla de arriba usan el vocabulario de siempre. Lo que se encontró:
   saltea es del anticheat: no se leyó más. `DAT_05763570` solo lo escribe el camino con que el
   anticheat cierra el cliente, así que el primer keepalive sale siempre. Sin personaje, las dos
   velocidades salen en 0 y sin ajuste (*verificado* en las 8 conexiones). **Se decide:** el
-  keepalive de MuRet manda 0 y 0 hasta la CL6, que trae el personaje; los tests de la CL4.5 lo
-  dicen.
+  keepalive de MuRet manda 0 y 0 hasta la CL6, que trae el personaje; lo fija
+  `ServerSessionTest.WithoutACharacterTheSpeedsAreZero`, en la CL4.5.
 - **La tabla de arriba** se corrigió: los cinco llamadores, `0x49df01`, la copia desde el principio
   del paquete, el RST, el timer en `WinMain`, `DAT_05763570` y una fila nueva para el `A9`.
 
 Queda: qué panel es la bandera `0x2000000` (CL8.R) y el diferencial dinámico del login y del
-keepalive (P-C05), para el paso 4 de la CL4.5. P-C04 pasa a la CL5.5.
+keepalive (P-C05), para el paso 4 de la CL4.5. P-C04 pasa a la CL5.R, paso 6.
 
 ## Sub-ola CL4.1: socket no bloqueante portable consultado por el bucle
 
@@ -1201,7 +1205,7 @@ por frame y por reloj"):
 | el primero | con el login aceptado (`0x4ad100`), 48 ms después en el cable | en el mismo `Poll` que lee el `F1 01` aceptado |
 | los siguientes | `WM_TIMER` 1000 cada 20 s, un timer desde el arranque que manda si hay conexión al GS, sin mirar el login ni el foco | cada 20 s desde el primero, con un `IntervalTimer` sobre el `IClock` del bucle, solo en `LoggedIn` (pregunta 6); minimizada también |
 | un frame largo | un `WM_TIMER` pendiente (*inferido*) | uno solo, y el siguiente a los 20 s del que salió |
-| las velocidades | los WORD de `personaje+0x4C` y `+0x58` con su ajuste (CL2.5) | `SetKeepaliveSpeeds(attack, magic, flags)`; hasta que haya personaje (CL6), lo que diga la CL4.R, paso 6 |
+| las velocidades | los WORD de `personaje+0x4C` y `+0x58` con su ajuste (CL2.5) | `SetKeepaliveSpeeds(attack, magic, flags)`; hasta que haya personaje (CL6), 0 y 0, sin ajuste (CL4.R, paso 6) |
 | el tick | `GetTickCount` | `App::TickCountMs(now)` (CL3.2), que da la vuelta como un `DWORD` |
 | el cierre del otro lado | `FD_CLOSE`: un mensaje, el log, `0x4e8380` y el objeto de `0x65ee60`; en la escena 5, el socket en -1 cada frame | `Failed` con `GameServerLost` y el `CloseReason` en el log; el keepalive se detiene; no se reconecta solo (la CL5.4 muestra el aviso) |
 
@@ -1238,7 +1242,7 @@ namespace Client::App
 inline constexpr Core::Duration KeepalivePeriod = std::chrono::seconds{20};
 
 // En ServerSession: las velocidades del personaje antes de su ajuste, y los bits de
-// personaje+0x3C (KeepaliveSpeed, CL2.5). Hasta que se llame, las de la CL4.R, paso 6.
+// personaje+0x3C (KeepaliveSpeed, CL2.5). Hasta que se llame, 0 y 0, sin ajuste (CL4.R, paso 6).
 void SetKeepaliveSpeeds(std::uint16_t attackSpeed, std::uint16_t magicSpeed, std::uint8_t characterFlags);
 } // namespace Client::App
 ```
@@ -1254,7 +1258,11 @@ void SetKeepaliveSpeeds(std::uint16_t attackSpeed, std::uint16_t magicSpeed, std
     después a los 30 s sí);
   - `ServerSessionTest.SendsTheFirstKeepaliveWithTheLogin` (después de `C1 05 F1 01 01` sale un C3
     con serial 1 que descifra a lo mismo que `WriteKeepalive` con el `TickCountMs` del
-    `FakeClock` y las velocidades de la CL4.R, paso 6);
+    `FakeClock` y las velocidades en 0 y 0, sin ajuste);
+  - `ServerSessionTest.WithoutACharacterTheSpeedsAreZero` (sin `SetKeepaliveSpeeds`, el C3
+    descifrado y pasado por `Xor32Decode` tiene 0 y 0 en las dos velocidades y el byte 3 en 0,
+    como el primer keepalive de las 8 conexiones al GS: 04 § Las velocidades antes de que haya
+    personaje);
   - `ServerSessionTest.KeepaliveEveryTwentySecondsAndNotBefore` (el test del 02: con el login en
     t = 3 s, ninguno nuevo a los 22,999 s; a los 23 s, uno; hasta t = 103 s, 6 en total, con
     seriales 1 a 6);

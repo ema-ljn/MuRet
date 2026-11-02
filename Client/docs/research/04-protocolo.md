@@ -41,7 +41,7 @@ Los bytes son los del cable, con el XOR32 y el XOR `0xAA` ya deshechos donde los
 ```text
 Cliente                              ConnectServer (44405)
   │ connect ─────────────────────────►│
-  │ C1 06 A9 00 00 01 ───────────────►│  sin identificar (Q-C16); en el cable, 20 9C 2F
+  │ C1 06 A9 00 00 01 ───────────────►│  la info de la mascota (Q-C16); en el cable, 20 9C 2F
   │◄──────────────────── C1 04 00 01 │  saludo
   │ C1 04 F4 02 ─────────────────────►│  pedir la lista de servidores           (0x4c6070)
   │◄──── C2 00 0A F4 02 01 00 00 00 CC │  lista del laboratorio: FoxAnti la pasa a F4 06
@@ -76,6 +76,36 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   `F4 02` → `F4 06` y el `F3 11`, ver abajo) y, C->S, remapea opcodes y el código del `F4 03`
   ([03](03-red-y-cifrado.md), "La capa de FoxAnti").
 
+- **`A9`, C->S: pedir la información de una mascota** (Q-C16, CL4.R). `C1 06 A9 <tipo>
+  <lugar> <casilla>`, con XOR32. Lo arman tres emisores en línea:
+  - `0x415be0` manda `A9 00 00 01` siempre (`0x416040`..`0x416300`), al armar el objeto del cuervo
+    oscuro de un personaje (`0x4167b0`, desde `0x420cf0` y `0x420d60`, que miran si en `+0x2d8` está
+    el modelo `0x1c17`, el ítem `0x1a05` más `0x212`, *inferido*). La preparación de la escena de
+    login (`0x6349a0`) conecta al ConnectServer (`0x6349eb`), le pone al personaje de la escena un
+    equipo fijo con el cuervo (`0x517270`, desde `0x634a43`; `0x51734b` escribe el `0x1c17`) y llama
+    a `0x420d60` (`0x634a9d`): como el `connect` es bloqueante, el `A9` sale por el socket del CS,
+    recién abierto, antes de que se despache el saludo. *Estático* el camino; *verificado* que sale
+    primero en las 64 conexiones al CS del `muproxy.log`, siempre `00 00 01` sin el XOR32, y seguido
+    del saludo y del `F4 02`.
+  - `0x424230` manda `A9 01 00 08` desde la lógica de la UI del juego (`0x5ee140`, que corre desde
+    la escena 5, `0x636ee1`), una vez mientras la bandera de panel `0x2000000` esté prendida: la
+    pide con `0x659290(0x2000000)`, la consulta del estado de los paneles de la UI (364 llamadas,
+    un bit por panel), que lee `DAT_07d53709`; la escriben solo el sistema de paneles (`0x6599a0`
+    la pone en 1 en `0x65c95f` y `0x657ab0` en 0 en `0x657af9`). `DAT_00723911` recuerda que ya se
+    pidió (`0x4246dd`) y vuelve a 0 cuando el panel se cierra. No es del anticheat. Qué panel es,
+    sin identificar. *Verificado* en el cable: 9 en el `muproxy.log` y 10 en la sesión real, todos
+    `01 00 08` y todos después de entrar al mundo.
+  - `0x422990` manda el de un ítem `0x1a04` o `0x1a05` cuando cambia el que se mira (lo llama la UI,
+    `0x5b2b0d`), con el lugar y la casilla que recibe.
+
+  La respuesta S->C es el handler `A9` (`0x4e4ca1` → `0x421db0`): guarda por `pkt[3]` (el tipo) el
+  nivel de `pkt[6]` y un DWORD de `pkt[8]` en la tabla de `0x723960`, y recalcula los atributos
+  (`0x550d10`). Por todo eso es *inferido* (alto) que el `A9` pide la información de la mascota,
+  como la llama OpenMU: el tipo 0 es el cuervo oscuro (`0x1a05`, el ítem 13, 5) y el 1 el caballo
+  oscuro (`0x1a04`, el 13, 4); el lugar 0 es el inventario, y las casillas 1 y 8 son la mano
+  izquierda, donde va el cuervo, y la de la mascota, donde va el caballo. En el cable, después
+  del `A9` el CS manda solo el saludo; que el saludo no sea su respuesta, porque el CS lo manda
+  al aceptar, es *inferido*.
 - **Opcode `0x00` en el CS** (`0x4e33e4`): con la escena en 2, loguea `"Send Request Server List"`
   y manda `C1 04 F4 02`. Verificado: el cable muestra `C1 04 00 01` y enseguida `C1 04 F4 02`; en 8
   de las 64 conexiones del `muproxy.log` el pedido sale dos veces. En el GS el mismo opcode `00` es
@@ -128,6 +158,41 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   es un `JMP` (era un `JE`), así que siempre va al else y no mira las velocidades. La
   reconstrucción del GS lo llama `PMSG_CLIENTTIME { Time; AttackSpeed; MagicSpeed; }`. El byte 3
   es el relleno que deja el alineado del struct, y el cliente lo manda en 0.
+- **Quién manda el keepalive y cuándo** (CL4.R, *estático* en el desensamblado salvo lo que dice
+  *verificado*). Hay dos emisores, y los dos miran solo `DAT_05767918`:
+  - **El timer.** `WinMain` llama `SetTimer(ventana, 1000, 20000, NULL)` en `0x4bad89`, después de
+    poner la primera escena (`0x632d80`) y antes del bucle de mensajes, y el binario no importa
+    `KillTimer`: corre desde el arranque hasta que se cierra. La rama `WM_TIMER` del WndProc resta
+    `0x3e8` al id y salta por la tabla de `0x4b8c5f`; el 1000 va a `0x4af945`, que llama a
+    `thunk_FUN_00450376` (`0x450350`, que no hace nada: abajo) y, si `DAT_05767918` no es 0
+    (`0x4af94a`), arma y manda el keepalive en línea (`0x4af958`..`0x4b1a3e`). No mira el login,
+    ni el foco, ni la escena.
+  - **El primero.** El sub 1 de `F1` con resultado 1 pone `DAT_057678c0 = 0x14` y `DAT_05767928 =
+    2` y llama a `0x4ad100` (`0x4e2bbd`), que llama a `0x4bee60` si `DAT_05763570` es 0. Ese byte
+    solo lo escribe `0x4ad070` (`0x4ad085`), el camino con que el anticheat muestra un error y
+    cierra el cliente, así que con el cliente andando siempre es 0. Lo que sigue en `0x4ad100`, los
+    `FindWindowA` con `DAT_05767928` en 2 o más, es del anticheat: fuera de alcance.
+  - **`DAT_05767918` es "hay conexión al GameServer".** Lo pone en 0 cada socket nuevo de la
+    conexión principal (`0x4e82e0` con 1, `0x4e8305`) y cada cierre de ella (`0x4e8380`,
+    `0x4e8395`), y en 1 un `0x4c1340` que no dio 0 desde el `F4 03` (`0x4e33a2`) o desde el sub 0
+    de `B1` (`0x412b92`, la otra dirección de GameServer). También lo pone en 1 la copia del
+    handler sin llamadores (`0x4c1bab`) y en 0 `0x4e8520`, que tampoco tiene. Con el 2 de un nombre
+    que no resuelve queda en 1 sin conexión (Q-C51).
+  - **`thunk_FUN_00450376`** es `mov eax,[0x5763540]`, `test eax,eax` y un `jmp` (`EB 1D`, en
+    `0x450357`) a su propio `ret`: no hace nada. El código que saltea compara lo que da `0x6866c0`
+    con `0x6bd888` y, si no coincide, llama a `0x4ad070`: es del anticheat, no se leyó más. Que el
+    `jmp` es un parche, como el de Q-C34, es *inferido*.
+  - **Verificado en el cable**, con los C3 del `muproxy.log` descifrados y mirando solo el opcode,
+    el serial y las velocidades: en 2 de las 8 conexiones al GS el primer C3 es un keepalive con
+    serial 0, mandado 2 y 4 s antes que el login (que sale con serial 1); y en una conexión sin
+    login hay 34 keepalives, 32 de sus 33 intervalos de 20 s (el log tiene la hora al segundo). El
+    timer manda con el GS conectado, haya login o no, y al CS nunca: desde el CS, `0x4c1340` no lo
+    pone en 1 (Q-C53).
+  - **Las velocidades antes de que haya personaje.** `WinMain` llena de ceros el personaje propio
+    (`0x4bafbc`..`0x4bafc2`, `0xF08` bytes en `[0x7681eb4]`) y deja `[0x7681eb0]` apuntando a él
+    (`0x4bafc9`), y `0x4bee60` lee de ahí `+0x3c` (los bits del ajuste), `+0x4c` y `+0x58`. Hasta
+    que llega el personaje, las dos velocidades salen en 0, sin ajuste. *Verificado*: el primer
+    keepalive de las 8 conexiones al GS lleva 0 y 0, y el byte 3 en 0.
 - **Selección de personaje (`F3`)**: `0x4e2f93` es un sub-dispatcher de hasta 0x40 casos. En el
   cable: `F3 00` (pedir lista, sin cuerpo), `F3 03` con el nombre de 10 bytes (elegir), `F3 06`,
   `F3 12`. El layout de la respuesta `F3 00` y del resto falta reconstruirlo (P-C06).
@@ -158,7 +223,7 @@ acciones las anotó el usuario, sin la hora exacta de cada una.
   `21` (C2) ×6.
 - **C->S en C1** (sacando solo el XOR32): `A3` ×59 y `A4` ×4 (el `D3`/`D7` de movimiento que
   FoxAnti remapea), `18` ×17 (acción o dirección), `F3` ×11, `A9` ×10 (`A9 01 00 08` las diez
-  veces, sin identificar, Q-C16), `00` ×5. **El `00` del cliente es el chat:**
+  veces: la info del caballo oscuro, Q-C16), `00` ×5. **El `00` del cliente es el chat:**
   `C1 .. 00 <nombre:10> <texto>`, con los comandos del servidor (`/move Lorencia`, `/addstr 10`)
   como texto.
 - **C->S en C3:** los 23 descifran con el `Dec1.dat` del servidor
@@ -224,6 +289,8 @@ de 0x100 bytes, el historial de chat y la máquina de acciones diferidas.
 | Constantes del build esparcidas | versión `10209`, serial `MULORDSVERSAO102` y XOR `FC CF AB` en un solo archivo de constantes del protocolo | CL2 |
 | El dispatcher solo se alcanza por FoxAnti | el dispatcher es parte del cliente; la ofuscación es una capa aparte | CL2 |
 | 104 opcodes al default | el default loguea el opcode desconocido una vez (sirve para descubrir lo que falta) | CL4 |
+| El `A9 00 00 01` al CS sale porque la escena de login arma un personaje con el cuervo (Q-C16) | se manda igual al abrir el CS, como pedido de la información de la mascota; el `A9 01 00 08` del juego va con la UI de las mascotas | CL4, CL8 |
+| El keepalive: un timer desde el arranque que manda con el GS conectado, sin mirar el login (Q-C53), y el primero con el login aceptado; las velocidades en 0 hasta que hay personaje | el primero con el login aceptado y después cada 20 s desde ese, solo en `LoggedIn`; 0 y 0, sin ajuste, hasta que la CL6 dé las del personaje | CL4 |
 
 Tests que fija:
 
@@ -235,4 +302,5 @@ Tests que fija:
 - El login `F1 01` byte a byte contra los fixtures de `mu-client` (CL2) y, cuando exista, contra
   una captura del mismo build (CL4).
 - El keepalive con los cinco fixtures de `mu-client` (CL2).
+- Sin personaje, el keepalive manda las dos velocidades en 0 y el byte 3 en 0 (CL4).
 - Integración: un CS y un GS falsos en el test, el cliente llega a "login aceptado" (CL4).

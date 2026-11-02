@@ -157,6 +157,13 @@ solo lo lee.
   del original, con un cursor, así un envío partido en `{2, 2, -1}` no repite ni pierde bytes
   (Q-C11) y lo nuevo espera detrás de lo pendiente; lo que no entra es `Full`, y la conexión va a
   cerrar como el original.
+  **La CL4.R** la escribió Claude, en el binario: la conexión del original pasó al research (03, 04,
+  02). El `A9` es el pedido de la información de una mascota, no del anticheat, y el del CS se
+  reproduce en la CL4.3; el `connect` espera, rechaza `127.0.0.1` (Q-C50) y toma como conectado un
+  nombre que no resuelve (Q-C51); cada cierre corta con un RST (Q-C54); el envío en línea se
+  adelanta a lo encolado (Q-C52) y Q-C11 tiene sus bytes (basta un parcial, como halló el jefe de la
+  CL4.0); el timer de 20 s manda sin mirar el login (Q-C53, visto en el cable), y sin personaje las
+  velocidades salen en 0. P-C11 quedó cerrado, y P-C04 pasa a la CL5.5.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 

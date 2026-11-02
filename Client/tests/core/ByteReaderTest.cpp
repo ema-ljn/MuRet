@@ -1,4 +1,5 @@
-// Client::Core::ByteReader: enteros little-endian y big-endian leídos en orden, sin pasarse del final.
+// Client::Core::ByteReader: enteros little-endian y big-endian leídos en orden, sin pasarse del
+// final.
 
 #include "Core/ByteReader.h"
 
@@ -89,14 +90,27 @@ TEST(ByteReaderTest, ReadsU16BigEndian)
     EXPECT_EQ(reader.Remaining(), 0u);
 }
 
-// Big-endian y little-endian leen los mismos bytes al revés, y siguen en orden en el mismo buffer.
+// Big-endian y little-endian se mezclan en el mismo buffer, y cada lectura sigue donde terminó la
+// anterior.
 TEST(ByteReaderTest, MixesBigAndLittleEndian)
 {
-    const auto bytes = Bytes(0x12, 0x34, 0x12, 0x34);
+    const auto bytes = Bytes(0x12, 0x34, 0x56, 0x78);
     ByteReader reader(bytes);
 
     EXPECT_EQ(reader.ReadU16Be(), std::uint16_t{0x1234});
-    EXPECT_EQ(reader.ReadU16Le(), std::uint16_t{0x3412});
+    EXPECT_EQ(reader.ReadU16Le(), std::uint16_t{0x7856});
+    EXPECT_EQ(reader.Remaining(), 0u);
+}
+
+// En big-endian el bit alto tampoco extiende el signo: 00 FE es el C2 más largo del cable del
+// laboratorio, 254 bytes, y FF 80 es 0xFF80, no un negativo.
+TEST(ByteReaderTest, HighBitStaysUnsignedInBigEndian)
+{
+    const auto bytes = Bytes(0x00, 0xFE, 0xFF, 0x80);
+    ByteReader reader(bytes);
+
+    EXPECT_EQ(reader.ReadU16Be(), std::uint16_t{0x00FE});
+    EXPECT_EQ(reader.ReadU16Be(), std::uint16_t{0xFF80});
 }
 
 // Con un solo byte, un u16 big-endian falla sin avanzar, como los little-endian.
@@ -115,6 +129,7 @@ TEST(ByteReaderTest, EmptyBufferHasNothingToRead)
 
     EXPECT_EQ(reader.Remaining(), 0u);
     EXPECT_EQ(reader.ReadU8(), std::nullopt);
+    EXPECT_EQ(reader.Remaining(), 0u);
 }
 
 } // namespace

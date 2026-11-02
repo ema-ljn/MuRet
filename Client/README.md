@@ -86,7 +86,7 @@ Client/
   src/
     main.cpp      arma las capas y arranca; sin lógica
     App/          bucle de juego con tick fijo          (CL3)
-    Core/         config, log, reloj                    (CL0+)
+    Core/         Expected, ByteReader; config, log, reloj (CL1+)
     Platform/     ventana, contexto GL, input (SDL3)    (CL3)
     Data/         tablas .bmd, Text.bmd, terreno, OZJ/OZT, modelos: bytes a tipos, sin GL (CL1, CL6)
     Network/      socket, paquetes, C3/C4, FoxAnti      (CL2, CL4)

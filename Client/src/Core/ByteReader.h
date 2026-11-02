@@ -5,7 +5,8 @@
 // (Client/docs/research/03-red-y-cifrado.md, "Cadena de recepción"). Acá se arman byte por byte con
 // desplazamientos, y no casteando el buffer a std::uint32_t*: un cast no respeta la alineación ni
 // las reglas de alias, y su resultado dependería del orden de bytes de la máquina (guía de la
-// CL1.0, actividades 4 y 9). Lo usan Data y Network.
+// CL1.0, actividades 4 y 9). Lo usa Data, y desde la CL2 lo van a usar también Network y
+// Protocol.
 
 #pragma once
 

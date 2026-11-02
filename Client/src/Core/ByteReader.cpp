@@ -3,6 +3,7 @@
 namespace
 {
 
+// Cuánto se corre cada byte del campo para llegar a su lugar en el resultado.
 constexpr std::size_t BitsPerByte = 8;
 
 } // namespace

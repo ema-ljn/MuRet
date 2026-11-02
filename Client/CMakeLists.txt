@@ -1,8 +1,8 @@
 # Client: la reimplementación del main.exe de MU Online 1.02.
 #
 # Tres targets (CL0.2): ClientLib tiene todo el código, Main es el ejecutable y ClientTests los
-# tests, y los dos últimos enlazan contra ClientLib. Las capas (Platform, Data, Network, Protocol,
-# Render, Scenes) van entrando a ClientLib ola por ola.
+# tests, y los dos últimos enlazan contra ClientLib. Las capas (Core, Platform, Data, Network,
+# Protocol, Render, Scenes) van entrando a ClientLib ola por ola.
 
 find_package(SDL3 CONFIG REQUIRED)
 # La libjpeg de libjpeg-turbo, para los OZJ (JpegImage.cpp). Se pide la de libjpeg-turbo y no

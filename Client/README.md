@@ -29,6 +29,13 @@ en un buffer de lados potencia de 2 como el del original. Con eso termina el có
 `message.wtf` no entra, porque es del launcher y `main.exe` no lo lee. La próxima es la CL2, el
 protocolo sin red, con su [plan](../docs/superpowers/plans/2026-11-02-ola-cl2-protocolo-sin-red.md).
 
+Desde la CL2.5, `Protocol/Connection` lee y escribe los paquetes del login, campo por campo y sin
+red: pedir la lista de servidores (`F4 02`), leerla (`F4 06`), elegir uno (`F4 03`) y leer su
+dirección, el saludo del GameServer (`F1 00`), el login (`F1 01`) y su respuesta, el aviso del
+checksum malo (`F1 03`) y el keepalive (`0E`). Lo que sale es un `Outgoing`: el paquete, con el
+XOR32 si lo lleva, y si va en claro o como C3. La versión y el serial del build están en
+`Protocol/BuildConstants.h`, y el XOR3 pasó a `Core`, porque lo usan las tablas y el login.
+
 ## Compilar y correr
 
 Hace falta vcpkg (las dependencias, SDL3, libjpeg-turbo y GoogleTest, están en `vcpkg.json` y se
@@ -82,7 +89,7 @@ Los de la red leen el cable del laboratorio: el `muproxy.log` que su proxy escri
 cliente original y los servidores, en `analysis/mainexe/evidence/` de `mu-online-reverse-lab`.
 Lleva el login del jugador, así que queda fuera de Git, y los tests cuentan paquetes y no imprimen
 un byte del cable, ni al fallar. `MURET_CLIENT_WIRE_DIR` apunta a la carpeta que lo tiene, con la
-misma regla, solo en el entorno, y no necesita las otras dos:
+misma regla, solo en el entorno, y no necesita las otras dos.
 
 Desde la CL2.3, la carpeta del cable también tiene las claves del servidor con el que se capturó,
 `Dec1.dat` y `Enc2.dat`, de `gameserver/evidence/keyfiles/` en `mu-server-repack-research-102i`:
@@ -100,6 +107,10 @@ MURET_CLIENT_WIRE_DIR=/ruta/a/cable ctest --preset linux-x64-debug
 Los tests que comparan estas claves con las del cliente, `Enc1.dat` y `Dec2.dat`, necesitan
 también la carpeta golden, y no muestran un valor de una clave, ni al fallar.
 
+Los del login (`GoldenLogin`, desde la CL2.5) usan solo la carpeta del cable, con `Dec1.dat`:
+eligen del cable los login, los keepalive, los saludos y las respuestas, y miran cabeceras,
+tamaños, opcodes y la versión. De la cuenta, la clave y el serial no miran nada.
+
 ## Estructura (a medida que avanzan las olas)
 
 ```
@@ -108,11 +119,11 @@ Client/
   src/
     main.cpp      arma las capas y arranca; sin lógica
     App/          bucle de juego con tick fijo          (CL3)
-    Core/         Expected, ByteReader; config, log, reloj (CL1+)
+    Core/         Expected, ByteReader, Xor3; config, log, reloj (CL1+)
     Platform/     ventana, contexto GL, input (SDL3)    (CL3)
     Data/         tablas .bmd, Text.bmd, terreno, OZJ/OZT, modelos: bytes a tipos, sin GL (CL1, CL6)
     Network/      socket, paquetes, C3/C4, FoxAnti      (CL2, CL4)
-    Protocol/     opcodes, structs, dispatcher          (CL2, CL4, CL9)
+    Protocol/     opcodes, structs (el login, en Connection/), dispatcher (CL2, CL4, CL9)
     Render/       OpenGL 3.3: texturas, sprites, texto  (CL5+)
     Scenes/       login, selección, juego               (CL5, CL6)
     World/        mapa, cámara, objetos                 (CL7)

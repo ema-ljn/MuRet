@@ -5,8 +5,7 @@
 // (Client/docs/research/03-red-y-cifrado.md, "Cadena de recepción"). Acá se arman byte por byte con
 // desplazamientos, y no casteando el buffer a std::uint32_t*: un cast no respeta la alineación ni
 // las reglas de alias, y su resultado dependería del orden de bytes de la máquina (guía de la
-// CL1.0, actividades 4 y 9). Lo usa Data, y desde la CL2 lo van a usar también Network y
-// Protocol.
+// CL1.0, actividades 4 y 9). Lo usan Data, Network y Protocol.
 
 #pragma once
 
@@ -40,6 +39,10 @@ public:
     [[nodiscard]] std::optional<std::uint16_t> ReadU16Le();
     [[nodiscard]] std::optional<std::uint32_t> ReadU32Le();
     [[nodiscard]] std::optional<std::uint16_t> ReadU16Be();
+
+    // Los `count` bytes que siguen, sin copiarlos: miran el mismo buffer. Es para los campos de largo
+    // fijo, como un texto de 16 bytes del protocolo.
+    [[nodiscard]] std::optional<std::span<const std::byte>> ReadBytes(std::size_t count);
 
     [[nodiscard]] std::size_t Remaining() const;
 

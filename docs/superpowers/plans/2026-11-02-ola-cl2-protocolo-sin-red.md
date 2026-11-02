@@ -791,7 +791,7 @@ constantes del build.
 | `F1 01`, login | C->S | `C1 31 F1 01 <cuenta:10> <clave:10> <tick:4 LE> <versión:5> <serial:16>`, con XOR32, como C3 de 68 bytes | `0x641bf0`; la cuenta y la clave con XOR `FC CF AB` desde el principio de cada campo (`0x4c1690`) |
 | `F1 01`, respuesta | S->C | `C1 05 F1 01 <resultado>`: 1 es aceptado | |
 | `F1 03`, aviso | C->S | `C1 06 F1 03 06 00`, con XOR32, como C3 | el checksum malo de la CL2.3 |
-| `0E`, keepalive | C->S | `C1 0C 0E 00 <tick:4 LE> <x:2 LE> <y:2 LE>`, con XOR32, como C3 de 24 bytes | `0x4bee60` y el `WM_TIMER` de `0x4af4e0`; a x e y les resta 20 si el personaje tiene el bit `0x01`, si no 25 con el `0x08`, y dan la vuelta en 16 bits |
+| `0E`, keepalive | C->S | `C1 0C 0E 00 <tick:4 LE> <velocidad de ataque:2 LE> <velocidad de magia:2 LE>`, con XOR32, como C3 de 24 bytes | `0x4bee60` y el `WM_TIMER` de `0x4af4e0`; a las dos les resta 20 si el personaje tiene el bit `0x01`, si no 25 con el `0x08`, y dan la vuelta en 16 bits. El plan las llamaba `x` e `y`: qué son lo dice el GS (`0x415140`), ver el Hecho así |
 
 Las constantes del build van en `Protocol/BuildConstants.h`: la versión `10209` (en `0x6c8284`
 está guardada con cada byte más su índice más 1, `32 32 35 34 3E`) y el serial
@@ -807,18 +807,66 @@ en `Client/tests/protocol/` y `GoldenLoginTest.cpp`. Mover `Xor3` a `Client/src/
 `Client/CMakeLists.txt`, `Client/README.md`, 04 (la cantidad de `F4 06` y el índice de `F1 00`),
 PROGRESS y este plan.
 
+Hecho así: los paquetes van en `Client::Protocol::Connection`, porque viven en
+`Protocol/Connection/` y la carpeta es el namespace; `Delivery`, `Outgoing` y `ProtocolError`
+quedan en `Client::Protocol`, porque los va a usar todo el protocolo. Se sumaron dos archivos:
+`Protocol/Connection/Opcodes.h`, con los opcodes y subcódigos de la conexión, y
+`Protocol/PacketFields.h/.cpp`, con `FieldsAfterSubcode`, que mira el tipo, el opcode y el
+subcódigo y devuelve el lector parado en el primer campo (así los cuatro lectores no repiten esa
+parte), y `TextField`, el texto de largo fijo hasta el primer `\0`, o entero si no tiene (Q-C07).
+Para los campos de largo fijo, `ByteReader` suma `ReadBytes`, que devuelve una vista sin copiar.
+El resultado bueno del saludo y del login tiene nombre, `HelloAccepted` y `LoginAccepted`; los
+lectores devuelven el resultado tal cual y lo decide el que llama (la CL4), igual que comparar la
+versión del saludo con `ClientVersion`.
+
+Sobre el contrato: la lista se acepta solo como C2, que es lo que deja FoxAnti; un C1 `F4 06` es
+`WrongPacket`. Una cantidad que no entra en el paquete es `TooShort`: `0x4c1860` no la compara con
+el tamaño y lee después del final (ahora en 04). En los cuatro lectores, los bytes que sobran
+detrás de lo que se lee no se miran, como en los handlers del original, que leen offsets fijos.
+La cuenta y la clave de 10 bytes exactos entran sin `\0`, como las lee el GS (`char Id[10]` en
+`PMSG_IDPASS`), y de 11 son `FieldTooLong`. Una cuenta vacía se arma igual (el test del paso 2 la
+deja), pero el original no la manda: `0x641bf0` mide la cuenta y la clave antes de armar el
+paquete y, si alguna está vacía, vuelve sin mandar nada. No mandarla es de la escena del login
+(CL5). Los dos bytes del aviso `F1 03`, `06 00`, son los que lee `CGClientHackLogRecv`
+(`0x4172e0`) en el GS.
+
+El keepalive tenía mal los nombres: sus dos WORD no son una posición. El GS (`CGLiveClient`,
+`0x415140`) compara el de `+8` y el de `+0xa` con dos campos del objeto del jugador
+(`0x415291` a `0x4152b0`), y si no coinciden, el log de `0x41532b` dice que detectó una
+herramienta de hack que edita la velocidad de ataque, con los cuatro valores. La reconstrucción
+del GS lo llama `PMSG_CLIENTTIME { Time; AttackSpeed; MagicSpeed; }`. Por eso el struct trae
+`attackSpeed` y `magicSpeed`, y la función del ajuste es `KeepaliveSpeed` y no
+`KeepaliveCoordinate`. El byte 3, el relleno que deja el alineado del struct, sale en 0, con
+nombre (`KeepalivePadding`).
+
+Los tests: los fixtures de `mu-client` que usan el login, el keepalive y el aviso están en
+`support/MuClientNetFixtures.h`, y `EncryptedPacketTest` toma de ahí los cuatro del aviso, que antes
+tenía adentro. El login y el keepalive tienen además un test que fija el offset de cada campo, no
+solo los bytes de un fixture. El golden pide la carpeta del cable con `Dec1.dat` y corta con
+`support/WirePackets.h` (`GoldenEncryptedPacketTest` se queda con su copia para no chocar con la
+CL2.4). Además de lo que pide el paso 4, vuelve a escribir cada keepalive con `WriteKeepalive` desde
+lo que leyó y da los mismos bytes que el descifrado; del GameServer, con el `0xAA` deshecho, lee 8
+conexiones que empiezan con un saludo, los 8 con el resultado 1 y la versión `09908`, y 7 login
+aceptados; y del ConnectServer, los 72 pedidos de la lista, iguales a `WriteServerListRequest`, y
+las 8 direcciones, `172.16.198.1:55901`. No imprime más que cantidades, tamaños y el puerto.
+
 **Interfaces:**
 
 ```cpp
 namespace Client::Protocol
 {
-enum class Delivery { Clear, Encrypted }; // C1/C2 al cable, o C3/C4 con EncryptPacket
+enum class ProtocolError : std::uint8_t { WrongPacket, TooShort, FieldTooLong };
+// C1/C2 al cable, o C3/C4 con EncryptPacket
+enum class Delivery : std::uint8_t { Clear, Encrypted };
 struct Outgoing
 {
     Network::Packet packet; // con el XOR32 ya aplicado si lo lleva
     Delivery delivery;
 };
+} // namespace Client::Protocol
 
+namespace Client::Protocol::Connection
+{
 Outgoing WriteServerListRequest();
 struct ServerEntry { std::uint16_t code; std::uint8_t load; };
 // F4 06
@@ -827,31 +875,39 @@ Outgoing WriteServerSelect(std::uint16_t code);
 struct ServerAddress { std::string host; std::uint16_t port; };
 Core::Expected<ServerAddress, ProtocolError> ReadServerAddress(const Network::Packet& packet);
 
-struct ServerHello { std::uint8_t result; std::uint16_t playerIndex; std::array<char, 5> version; };
+inline constexpr std::uint8_t HelloAccepted = 1;
+struct ServerHello
+{
+    std::uint8_t result;
+    std::uint16_t playerIndex;
+    std::array<char, VersionSize> version;
+};
 Core::Expected<ServerHello, ProtocolError> ReadServerHello(const Network::Packet& packet);
 
 // No tiene operator<<: la cuenta y la clave no se imprimen nunca.
 struct LoginRequest { std::string_view account; std::string_view password; std::uint32_t tick; };
 // FieldTooLong con una cuenta o una clave de más de 10 bytes.
 Core::Expected<Outgoing, ProtocolError> WriteLoginRequest(const LoginRequest& request);
+inline constexpr std::uint8_t LoginAccepted = 1;
 Core::Expected<std::uint8_t, ProtocolError> ReadLoginResult(const Network::Packet& packet);
 Outgoing WriteDecryptErrorReport();
 
 // Los bits del personaje que el research no nombró todavía.
 inline constexpr std::uint8_t KeepaliveAdjust20 = 0x01;
 inline constexpr std::uint8_t KeepaliveAdjust25 = 0x08;
-std::uint16_t KeepaliveCoordinate(std::uint16_t value, std::uint8_t characterFlags);
-struct Keepalive { std::uint32_t tick; std::uint16_t x; std::uint16_t y; };
+std::uint16_t KeepaliveSpeed(std::uint16_t speed, std::uint8_t characterFlags);
+struct Keepalive { std::uint32_t tick; std::uint16_t attackSpeed; std::uint16_t magicSpeed; };
 Outgoing WriteKeepalive(const Keepalive& keepalive);
-} // namespace Client::Protocol
+} // namespace Client::Protocol::Connection
 ```
 
 `ProtocolError` tiene `WrongPacket` (otro tipo u otro opcode), `TooShort` y `FieldTooLong`.
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de leer los tests del paso 2, decodificar a mano
-  `C1 0C F1 00 01 00 05 31 30 32 30 39` (detective de bytes): qué es cada campo y en qué orden van
-  los bytes del índice.
-- [ ] **Paso 2:** los tests, uno por paquete, con los bytes del 04 y los fixtures de `mu-client`:
+- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de leer los tests del paso 2,
+  decodificar a mano `C1 0C F1 00 01 00 05 31 30 32 30 39` (detective de bytes): qué es cada campo
+  y en qué orden van los bytes del índice. La respuesta está en el comentario de
+  `HelloTest.ReadsTheHelloDecodedByHand`.
+- [x] **Paso 2:** los tests, uno por paquete, con los bytes del 04 y los fixtures de `mu-client`:
   - `FIX_LOGIN_PLAIN` (cuenta y clave de 8 bytes, completadas con dos `\0`) y
     `FIX_LOGIN_FULL_PLAIN` (de 10, sin `\0`), y sus C3 con la clave identidad; una cuenta de 11
     bytes es `FieldTooLong`, y una vacía deja en el campo, antes del XOR32, los 10 bytes de la
@@ -868,16 +924,18 @@ Outgoing WriteKeepalive(const Keepalive& keepalive);
     versión `10209`;
   - un paquete de otro opcode es `WrongPacket`, y uno corto, `TooShort`.
   Los tests usan solo las credenciales sintéticas de `mu-client`.
-- [ ] **Paso 3:** mover `Xor3` y escribir los paquetes.
-- [ ] **Paso 4:** el golden con el cable. De los 9 C3 del cliente que descifrados llevan el opcode
+- [x] **Paso 3:** mover `Xor3` y escribir los paquetes.
+- [x] **Paso 4:** el golden con el cable. De los 9 C3 del cliente que descifrados llevan el opcode
   `F1`, el test elige los que, sin el XOR32, tienen el subcódigo `01` (el subcódigo viaja con XOR32,
   así que hay que deshacerlo para elegir): son 7, los login, de 49 bytes, que empiezan con
   `C1 31 F1 01` y traen la versión `09908` en `+28` (el `muproxy.log` es del build histórico; el
   actual manda `10209`). Los otros 2 son `F1 02` de 5 bytes. De la cuenta, la clave y el serial no
   se mira nada. Los 156 keepalive descifran a 12 bytes que empiezan con `C1 0C 0E 00`.
-- [ ] **Paso 5:** verificar:
+- [x] **Paso 5:** verificar (el filtro suma `BuildConstants`, `PacketFields` y `ByteReader`, que
+  el de antes dejaba afuera):
   ```bash
-  cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "Protocol|Login|Keepalive|ServerList|Hello|Xor3"
+  cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug \
+    -R "BuildConstants|PacketFields|ByteReader|Login|Keepalive|ServerList|Hello|Xor3"
   ```
 
 ---

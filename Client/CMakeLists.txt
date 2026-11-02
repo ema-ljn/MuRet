@@ -38,6 +38,11 @@ add_library(ClientLib STATIC
     src/Network/Crypto/SimpleModulus.cpp
     src/Network/Crypto/SimpleModulusKeyFile.cpp
     src/Network/Crypto/Xor32.cpp
+    src/Protocol/PacketFields.cpp
+    src/Protocol/Connection/Hello.cpp
+    src/Protocol/Connection/Keepalive.cpp
+    src/Protocol/Connection/Login.cpp
+    src/Protocol/Connection/ServerList.cpp
 )
 target_include_directories(ClientLib PUBLIC src)
 target_compile_features(ClientLib PUBLIC cxx_std_20)
@@ -123,6 +128,13 @@ if(MURET_BUILD_TESTS)
         tests/network/SimpleModulusKeyFileTest.cpp
         tests/network/SimpleModulusTest.cpp
         tests/network/Xor32Test.cpp
+        tests/protocol/BuildConstantsTest.cpp
+        tests/protocol/GoldenLoginTest.cpp
+        tests/protocol/HelloTest.cpp
+        tests/protocol/KeepaliveTest.cpp
+        tests/protocol/LoginTest.cpp
+        tests/protocol/PacketFieldsTest.cpp
+        tests/protocol/ServerListTest.cpp
     )
     target_include_directories(ClientTests PRIVATE tests)
     # Los vectores JPEG y los de red (el README.md de tests/vectors/jpeg y de tests/vectors/net)

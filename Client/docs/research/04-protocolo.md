@@ -86,6 +86,10 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   `C2 00 0B F4 06 00 01 | 90 01 00 00`: cantidad en 2 bytes, el código sumado a un delta según
   `(código + 1) / 11` (para 0 a 9 el delta es `0x190`, así que 0 pasa a 400), la carga copiada y el
   relleno en 0. La procesa el sub 6 de `0x4e32f2` (`0x4c1860`), que agrupa por `código / 20`.
+  La cantidad va en **big-endian**: `0x4c1860` la arma como `pkt[5] * 0x100 + pkt[6]`; de cada
+  entrada lee el código como u16 little-endian y la carga del byte que sigue, y el cuarto no lo
+  lee (*estático*). No compara la cantidad con el tamaño del paquete: con una que no entra, lee
+  después del final. MuRet devuelve `TooShort` (CL2.5).
   *Verificado* el cable; la traducción es *estática* (código portado y probado de la FoxAnti
   mínima). El tercer byte cambia entre listas (`00` en 71, `02` en una): es la carga. El `0xCC` es
   siempre igual y FoxAnti lo descarta (*inferido*: memoria sin inicializar del CS).
@@ -96,19 +100,28 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   conecta al GS (`0x4c1340`). *Verificado* el cable; la ida y vuelta de códigos desde 21 no cierra
   (Q-C17).
 - **`F1 00`** (`0x4c1e20`): `C1 0C F1 00 01 <idx:2> <versión:5>`. Con `pkt[4] == 1` guarda el
-  índice del jugador (`pkt[5..6]`) y valida los 5 bytes de versión de `pkt+7` contra `0x6c8284`.
+  índice del jugador y valida los 5 bytes de versión de `pkt+7` contra `0x6c8284`. El índice va en
+  **big-endian**: lo arma como `pkt[5] * 0x100 + pkt[6]` (*estático*), igual que el `NumberH` y el
+  `NumberL` de los paquetes del GS. Así, `00 05` es el jugador 5, y no el 1280.
   Verificado: el GS manda `"10209"` al build actual (y `"09908"` al histórico).
 - **`F1 01`, login** (emisor `0x641bf0`): 49 bytes lógicos, `C1 31 F1 01`, cuenta de 10 bytes y
   clave de 10 bytes con XOR `FC CF AB` (se reinicia en cada campo), `tick_count` de 4 bytes
   little-endian, versión `10209` y serial `MULORDSVERSAO102`, todo con XOR32, como C3 de 68
   bytes. **Verificado** en la sesión real: descifrado y sin XOR32 da 49 bytes con `10209` en
-  `+28` y `MULORDSVERSAO102` en `+33`. La cuenta y la clave no se imprimieron.
+  `+28` y `MULORDSVERSAO102` en `+33`. La cuenta y la clave no se imprimieron. En el
+  `muproxy.log`, del build histórico, los 7 login traen `09908` en el mismo lugar (CL2.5).
 - **`0x0E`, keepalive** (`0x4bee60` y la rama `WM_TIMER` de `0x4af4e0`): `C1 0C 0E 00 <tick:4>
-  <x:2> <y:2>`, como C3 de 24 bytes. **Verificado** el layout y el ritmo: el primero sale 48 ms
-  después del login aceptado y los siguientes cada 20,0 s (±0,1) con un timer que ya venía
-  corriendo, porque el segundo llega a los 7,5 s del primero. Ojo: en el
-  juego `x` e `y` valen por ejemplo `0x0328` y `0x0268`: **no son celdas** del mapa (0 a 255),
-  son los WORD de `personaje+0x4C/+0x58` con su ajuste de -20 o -25 (la unidad está sin leer).
+  <velocidad de ataque:2> <velocidad de magia:2>`, como C3 de 24 bytes. **Verificado** el layout y
+  el ritmo: el primero sale 48 ms después del login aceptado y los siguientes cada 20,0 s (±0,1)
+  con un timer que ya venía corriendo, porque el segundo llega a los 7,5 s del primero. Los dos
+  WORD valen en el juego, por ejemplo, `0x0328` y `0x0268`: **no son celdas** del mapa (0 a 255),
+  sino los WORD de `personaje+0x4C/+0x58` con su ajuste de -20 o -25. Del lado del GS son **la
+  velocidad de ataque y la de magia**: `CGLiveClient` (`0x415140`) compara el de `+8` y el de
+  `+0xa` con dos campos del objeto del jugador (`0x415291` a `0x4152b0`), y si no coinciden, el log
+  de `0x41532b` dice "探测到客户端有黑客工具 : 编辑攻击速度" (detectó una herramienta de hack:
+  velocidad de ataque editada), con los cuatro valores (*estático*). La reconstrucción del GS lo
+  llama `PMSG_CLIENTTIME { Time; AttackSpeed; MagicSpeed; }`. El byte 3 es el relleno que deja el
+  alineado del struct, y el cliente lo manda en 0.
 - **Selección de personaje (`F3`)**: `0x4e2f93` es un sub-dispatcher de hasta 0x40 casos. En el
   cable: `F3 00` (pedir lista, sin cuerpo), `F3 03` con el nombre de 10 bytes (elegir), `F3 06`,
   `F3 12`. El layout de la respuesta `F3 00` y del resto falta reconstruirlo (P-C06).

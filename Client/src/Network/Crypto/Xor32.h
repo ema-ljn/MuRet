@@ -1,3 +1,12 @@
+#pragma once
+
+#include "Network/Packet.h"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <span>
+
 // XOR32, el cifrado encadenado del motor de envío: cada byte se combina con un byte de una clave de
 // 32 y con el byte anterior ya cifrado.
 // Contrato: Client/docs/research/03-red-y-cifrado.md, "Envío: el motor C1/C2 y el XOR32", y el
@@ -8,19 +17,8 @@
 // Para descifrar se recorre al revés, del último al primero, mientras el anterior sigue cifrado.
 //
 // No protege nada: la clave está en el binario. Es ofuscación (la guía de la CL2.0, actividad 5).
-
-#pragma once
-
-#include "Network/Packet.h"
-
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <span>
-
 namespace Client::Network::Crypto
 {
-
 // La tabla de 32 bytes del motor (03 § Envío; XOR32_KEY en red_reference.py).
 inline constexpr std::array<std::uint8_t, 32> Xor32Key{
     0xE7, 0x6D, 0x3A, 0x89, 0xBC, 0xB2, 0x9F, 0x73, 0x23, 0xA8, 0xFE, 0xB6, 0x49, 0x5D, 0x39, 0x5D,
@@ -43,5 +41,4 @@ void Xor32DecodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t
 // lleva adentro se cifra antes de envolverlo (CL2.3).
 [[nodiscard]] Packet Xor32Encode(Packet packet);
 [[nodiscard]] Packet Xor32Decode(Packet packet);
-
 } // namespace Client::Network::Crypto

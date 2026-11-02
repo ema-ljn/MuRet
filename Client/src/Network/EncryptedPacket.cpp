@@ -11,10 +11,8 @@
 
 namespace Client::Network
 {
-
 namespace
 {
-
 using Crypto::CipherBlockSize;
 using Crypto::CryptoError;
 using Crypto::PlainBlockSize;
@@ -114,7 +112,6 @@ Packet Rebuilt(PacketType encryptedType, std::span<const std::byte> decrypted)
     bytes.insert(bytes.end(), afterSerial.begin(), afterSerial.end());
     return KnownGood(std::move(bytes));
 }
-
 } // namespace
 
 Core::Expected<Packet, CryptoError> EncryptPacket(const Packet& plain, const Crypto::EncryptionKey& key,
@@ -124,7 +121,7 @@ Core::Expected<Packet, CryptoError> EncryptPacket(const Packet& plain, const Cry
 }
 
 Core::Expected<Packet, CryptoError> EncryptPacket(const Packet& plain, const Crypto::EncryptionKey& key,
-                                                  PacketSerials& serials, const Obfuscation& obfuscation,
+                                                  PacketSerials& serials, const IObfuscation& obfuscation,
                                                   std::byte padding)
 {
     const PacketType type = plain.Type();
@@ -191,5 +188,4 @@ Core::Expected<DecryptedPacket, CryptoError> DecryptPacket(const Packet& encrypt
     const SerialCheck serial = serials.Receive(std::to_integer<std::uint8_t>(plain.front()));
     return DecryptedPacket{Rebuilt(type, plain), serial};
 }
-
 } // namespace Client::Network

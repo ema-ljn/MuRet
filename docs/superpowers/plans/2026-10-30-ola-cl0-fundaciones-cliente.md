@@ -10,14 +10,14 @@ su roadmap, antes de escribir una línea del cliente.
 
 **Arquitectura:** `Client/` es un componente más del CMake raíz, al lado de `Server/DataServer`.
 Desde la CL0.2, una biblioteca `ClientLib` con todo el código, el ejecutable `Main` y los tests
-`ClientTests` linkeando contra ella.
+linkeando contra ella (hoy, un ejecutable `test_*` por archivo: regla 7).
 
 **Stack:** C++20, CMake 3.25+, vcpkg (SDL3, GoogleTest), un loader de GL propio.
 
 **Research que fija esta ola:** [01-binario-y-metodo](../../../Client/docs/research/01-binario-y-metodo.md)
 (qué se reimplementa y con qué evidencia).
 
-**Terminada cuando:** `Main` compila y corre en Windows y Linux en CI, `ClientTests` corre (con
+**Terminada cuando:** `Main` compila y corre en Windows y Linux en CI, los tests corren (con
 los tests golden salteados si no hay `MURET_CLIENT_GOLDEN_DIR`) y una ventana SDL3 vacía abre y
 cierra.
 
@@ -59,18 +59,18 @@ repaso: ¿qué cambia en el CMake raíz cuando hay dos `add_subdirectory`?
   ```
 - [ ] **Paso 6 (Emanuel):** compilar y correr en Windows (`build\windows-x64\Client\Debug\Main.exe`) y leer el research en el orden del README.
 
-## Sub-ola CL0.2: `ClientLib`, `ClientTests` y la carpeta golden ✅ (Claude, ejemplo trabajado)
+## Sub-ola CL0.2: `ClientLib`, los tests y la carpeta golden ✅ (Claude, ejemplo trabajado)
 
 **Concepto:** biblioteca + ejecutable + tests como tres targets; tests que dependen de datos
 externos y cómo se saltean sin mentir.
 
 **Archivos:**
 - Crear: `vcpkg.json` (`gtest`, con la `builtin-baseline` fija), `Client/src/Data/DataPath.h/.cpp`
-- Crear: `Client/tests/support/GoldenDir.h/.cpp`, `Client/tests/data/DataPathTest.cpp`, `Client/tests/data/GoldenDataFilesTest.cpp`
-- Modificar: `Client/CMakeLists.txt` (targets `ClientLib`, `ClientTests`; opción `MURET_CLIENT_GOLDEN_DIR`)
+- Crear: `Client/tests/support/GoldenDir.h/.cpp`, `Client/tests/data/test_data_path.cpp`, `Client/tests/data/test_golden_data_files.cpp`
+- Modificar: `Client/CMakeLists.txt` (targets `ClientLib` y los de test; opción `MURET_CLIENT_GOLDEN_DIR`)
 - Modificar: `CMakePresets.json` (toolchain de vcpkg y test presets), `CMakeLists.txt` (opción `MURET_BUILD_TESTS`)
 
-- [x] **Paso 1 (Claude, andamiaje):** `ClientLib` estática, `Main` y `ClientTests` linkeando contra ella; registrar en CTest con `gtest_discover_tests`. Lo primero de `ClientLib` es `Client::Data::ResolveDataPath`: el original pide rutas como `Data\Player\Player.bmd` y Windows no distingue mayúsculas, pero el `Data\` del laboratorio tiene `player\`; en Linux hay que buscar sin distinguirlas.
+- [x] **Paso 1 (Claude, andamiaje):** `ClientLib` estática, `Main` y los tests linkeando contra ella; registrar en CTest con `gtest_discover_tests`. Lo primero de `ClientLib` es `Client::Data::ResolveDataPath`: el original pide rutas como `Data\Player\Player.bmd` y Windows no distingue mayúsculas, pero el `Data\` del laboratorio tiene `player\`; en Linux hay que buscar sin distinguirlas.
 - [x] **Paso 2 (Claude, andamiaje):** `MURET_CLIENT_GOLDEN_DIR` llega a los tests como variable de entorno al correr `ctest`, o como variable de caché de CMake que se la pasa a CTest.
 - [x] **Paso 3 (Claude, a pedido de Emanuel):** `Client::Tests::GoldenDataTest`, la base de los tests golden con la regla de la pregunta 2, y dos tests de ejemplo (las claves `Enc1.dat`/`Dec2.dat` de 54 bytes y `Player\Player.bmd`). La regla misma tiene tests (`GoldenDirTest`), separada de la lectura del entorno.
 - [x] **Paso 4:** verificar:
@@ -101,7 +101,7 @@ por qué hace falta (las funciones de GL 3.3 no se enlazan, se piden en runtime)
 
 Lo resolvió Claude como ejemplo; para que quede tuyo, contestá con tus palabras:
 
-1. ¿Por qué `SDL3::SDL3` se linkea a `Main` y no a `ClientLib`? ¿Qué pasaría con `ClientTests` en el CI si fuera al revés?
+1. ¿Por qué `SDL3::SDL3` se linkea a `Main` y no a `ClientLib`? ¿Qué pasaría con los tests en el CI si fuera al revés?
 2. `glClear` está declarada en `SDL_opengl.h`, pero `main.cpp` nunca la llama por su nombre. ¿Por qué no alcanza con linkear `opengl32.lib` o `libGL.so` para las funciones de la 3.3?
 3. ¿Qué fija la `builtin-baseline` de `vcpkg.json`, y qué pasaría en el CI si no estuviera?
 4. Un test golden salteado y uno pasado, ¿en qué se diferencian en la salida de `ctest`? ¿Por qué la regla hace fallar (y no saltear) una carpeta golden incompleta?

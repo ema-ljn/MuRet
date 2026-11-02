@@ -144,7 +144,7 @@ GoogleTest.
 
 **Te toca**, en este orden:
 
-1. Los tests primero (`ByteViewTest.cpp`), con los bytes de la tabla y una lectura que se pasa
+1. Los tests primero (`test_byte_view.cpp`), con los bytes de la tabla y una lectura que se pasa
    del final. Antes de compilar, decí qué etapa va a fallar.
 2. `ByteView.h` y `ByteView.cpp`, con desplazamientos de bits y sin `reinterpret_cast`. Primero
    en rojo, después en verde.
@@ -205,11 +205,11 @@ alcanza con un `std::variant<T, E>`, que guarda exactamente uno de los dos.
 
 > **Ya está escrito** (2026-11-01, a pedido tuyo, como ejemplo trabajado):
 > [`Client/src/Core/Expected.h`](../../Client/src/Core/Expected.h) y sus tests en
-> [`Client/tests/core/ExpectedTest.cpp`](../../Client/tests/core/ExpectedTest.cpp). Leelos y
+> [`Client/tests/core/test_expected.cpp`](../../Client/tests/core/test_expected.cpp). Leelos y
 > respondé las dos decisiones de abajo con tus palabras: el comentario del header dice qué se
 > eligió, no por qué te convence o no.
 
-**Te tocaba**, tests primero (`Client/tests/core/ExpectedTest.cpp`):
+**Te tocaba**, tests primero (`Client/tests/core/test_expected.cpp`):
 - uno con valor y uno con error, y qué devuelve cada consulta;
 - qué pasa si pedís el valor de uno que tiene un error.
 
@@ -224,7 +224,7 @@ En el `Text.bmd` real, el registro 7 ocupa sus 300 bytes sin ningún `\0`
 ([07](../../Client/docs/research/07-quirks-y-bugs.md), Q-C07). Es el único de los 2048. El
 original lo copia a `char g_GlobalText[2048][300]` y después lo usa como una cadena de C.
 
-**Te toca** (`labs/cl1.0-bytes/FixedTextTest.cpp`):
+**Te toca** (`labs/cl1.0-bytes/test_fixed_text.cpp`):
 
 1. Armá un buffer sintético de 8 registros de 300 bytes, con el 7 lleno y sin `\0`.
 2. Predecí qué devuelve `std::strlen` sobre el registro 7, y corrélo con ASan. Con el buffer

@@ -1,3 +1,13 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Data/DataError.h"
+#include "Data/Textures/Texture.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <span>
+
 // OZT, una textura TGA de 32 bits (Client/docs/research/05-formatos-de-datos.md, "Texturas"; en el
 // original, el cargador de 0x63bd00). El original pide "<nombre>.tga" y abre Data\<nombre>.OZT.
 //
@@ -21,20 +31,8 @@
 // dependencia cuesta más que ellas (CODING_RULES §10). Además, stb_image sí mira el descriptor y
 // el id, y carga el único OZT de 24 bits del laboratorio, Monster\wolfa02.OZT, que el original
 // rechaza. En los 663 de 32 bits daría las mismas filas.
-
-#pragma once
-
-#include "Core/Expected.h"
-#include "Data/DataError.h"
-#include "Data/Textures/Texture.h"
-
-#include <cstddef>
-#include <cstdint>
-#include <span>
-
 namespace Client::Data::Textures
 {
-
 // Los bytes del principio que no se leen: los 4 que agrega el exportador (0x63b280).
 inline constexpr std::size_t OztPrefixSize = 4;
 // Dónde está cada campo que lee el original en una cabecera de TGA (el ancho en el byte 12, el alto
@@ -64,5 +62,4 @@ inline constexpr std::uint8_t OztBitsPerPixel = 32;
 //   - Si faltan píxeles, devuelve DataError::FileTooShort. El original lee de más (Q-C24).
 //   - Lo que sigue a los píxeles se ignora: en el laboratorio, el pie de 26 bytes de un TGA 2.0.
 Core::Expected<Texture, DataError> LoadOztTexture(std::span<const std::byte> file);
-
 } // namespace Client::Data::Textures

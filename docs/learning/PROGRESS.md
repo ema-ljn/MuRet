@@ -16,7 +16,7 @@ solo lo lee.
   llegaron con la CL0.2 y la CL0.3 del cliente; le quedan los tests del DataServer
 - **Cliente (tu foco): CL0.2 y CL0.3 resueltas como ejemplo trabajado** el 2026-11-01, después de
   que eligieras ir directo al cliente: `ClientLib` con la resolución de rutas de `Data\`,
-  `ClientTests` con la carpeta golden, la ventana SDL3 con OpenGL 3.3 core y el CI en Windows y
+  los tests con la carpeta golden, la ventana SDL3 con OpenGL 3.3 core y el CI en Windows y
   Linux. Para cerrarla: las [preguntas de la CL0](../superpowers/plans/2026-10-30-ola-cl0-fundaciones-cliente.md#para-cerrar-la-cl0-emanuel)
   y correr `Main.exe` en tu Windows. Conceptos para explicar: targets y qué se linkea a quién,
   vcpkg en modo manifiesto y su baseline, loader de GL, tests salteables. Próxima: la CL1
@@ -70,7 +70,7 @@ solo lo lee.
   los 25 C3/C4 que contestó el GameServer, con el serial en orden en cada conexión, y
   `EncryptPacket` vuelve a cifrar los 183 como el original salvo el último bloque, donde el
   original deja bytes de su pila.
-  **La CL2.4, también**: la capa de paquetes de FoxAnti como una interfaz, `Obfuscation`, con dos
+  **La CL2.4, también**: la capa de paquetes de FoxAnti como una interfaz, `IObfuscation`, con dos
   implementaciones: la que no toca nada y la del servidor del laboratorio. El `PacketReader`
   desenmascara el `0xAA` por paquete (Q-C18), la lista y el `F3 11` del laboratorio pasan a la
   forma de `main.exe`, y los remapeos y la escalera del código de servidor dan byte por byte lo
@@ -135,7 +135,7 @@ sesión, junto con los de repaso más viejo.
 | vectores que fijan lo que un ida y vuelta no ve: el orden de los bits 16 y 17 de un carril, y el producto de 32 bits que da la vuelta | CL2.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un contador por conexión que detecta un paquete perdido o repetido, y resincronizar en vez de arrastrar el desfase (`PacketSerials`, Q-C04) | CL2.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | varios errores en un paquete: cuál gana y por qué (el checksum malo sobre el largo útil imposible, porque es el que lleva el aviso) | CL2.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
-| una interfaz con dos implementaciones elegidas por configuración (`Obfuscation`), y por qué una clase base polimórfica no se copia en público (el slicing) | CL2.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| una interfaz con dos implementaciones elegidas por configuración (`IObfuscation`), y por qué una clase base polimórfica no se copia en público (el slicing) | CL2.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un estado que sigue entre dos lecturas: la máscara que eligió el primer byte de un paquete partido, y no desenmascarar nunca un byte del paquete siguiente | CL2.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un XOR encadenado que se deshace, se cambia un byte y se rehace: por qué cambian también los que siguen (los remapeos de FoxAnti) | CL2.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | una ida y vuelta que no cierra entre dos tablas (Q-C17), y fijarla con la tabla entera de la referencia en vez de arreglarla | CL2.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
@@ -145,6 +145,7 @@ sesión, junto con los de repaso más viejo.
 | una resta que da la vuelta en 16 bits a propósito, y dónde va el `static_cast` para que el compilador no la marque (`KeepaliveSpeed`) | CL2.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | el paquete y cómo sale al cable en un solo valor (`Outgoing` y `Delivery`), para que el que manda no tenga que acordarse de cifrar el login | CL2.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un golden que elige paquetes del cable sin mirar sus datos: deshacer el XOR32 para leer el subcódigo, y comparar solo lo fijo con `SameBytesWithoutValues` | CL2.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| las convenciones del código nuevo de MuMain: `m_` para el estado del objeto y el nombre natural para el parámetro, `I` para una interfaz, y un ejecutable por archivo de test juntado con un glob | estilo | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

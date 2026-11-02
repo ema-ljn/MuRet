@@ -11,10 +11,8 @@
 
 namespace Client::Protocol::Connection
 {
-
 namespace
 {
-
 // La lista que deja FoxAnti es un C2; la respuesta con la dirección, un C1.
 constexpr PacketKind ListKind{Network::PacketType::C2, ServerListOpcode, ServerListSubcode};
 constexpr PacketKind AddressKind{Network::PacketType::C1, ServerListOpcode, ServerSelectSubcode};
@@ -37,7 +35,6 @@ ServerEntry ReadEntry(std::span<const std::byte, ServerEntrySize> entry)
     const std::optional<std::uint8_t> load = fields.ReadU8();
     return {*code, *load};
 }
-
 } // namespace
 
 Outgoing WriteServerListRequest()
@@ -90,5 +87,4 @@ Core::Expected<ServerAddress, ProtocolError> ReadServerAddress(const Network::Pa
     }
     return ServerAddress{TextField(host->first(HostReadSize)), *port};
 }
-
 } // namespace Client::Protocol::Connection

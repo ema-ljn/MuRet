@@ -1,0 +1,38 @@
+# Fines de línea: git detecta qué es texto y lo guarda con LF, como en sven-n/MuMain. Importa
+# porque CI compila también en Windows (core.autocrlf). Los vectores de bytes de los tests tienen
+# su propio .gitattributes en Client/tests/vectors/.
+* text=auto
+
+*.cpp text
+*.h text
+*.c text
+*.cmake text
+CMakeLists.txt text
+CMakePresets.json text
+*.json text
+*.md text
+*.yml text
+.clang-format text
+.clang-tidy text
+.editorconfig text
+.gitattributes text
+
+# Los archivos del juego, si alguno entra como vector de un test: binarios siempre. Algunos .bmd y
+# .oz* cifrados no tienen un byte 0, `text=auto` los toma por texto y un clone de Windows les
+# cambia un LF por CRLF (sven-n/MuMain, issue #516). Las clases cubren mayúsculas y minúsculas.
+*.[Bb][Mm][Dd]  binary
+*.[Oo][Zz][Bb]  binary
+*.[Oo][Zz][Jj]  binary
+*.[Oo][Zz][Tt]  binary
+*.[Oo][Zz][Gg]  binary
+*.[Oo][Zz][Dd]  binary
+*.[Aa][Tt][Tt]  binary
+*.[Mm][Aa][Pp]  binary
+*.[Bb][Mm][Pp]  binary
+*.[Jj][Pp][Gg]  binary
+*.[Ww][Aa][Vv]  binary
+*.[Dd][Aa][Tt]  binary
+
+# Lo que corre en Linux (sh, python) va siempre con LF.
+*.sh text eol=lf
+*.py text eol=lf

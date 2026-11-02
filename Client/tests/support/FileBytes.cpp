@@ -7,7 +7,6 @@
 
 namespace Client::Tests
 {
-
 // Con el tamaño de antemano y un solo read(): leer con istreambuf_iterator no marca el stream si
 // falla, y libstdc++ tira una excepción en vez de devolver nada.
 std::optional<std::vector<char>> ReadFileBytes(const std::filesystem::path& path)
@@ -38,5 +37,4 @@ std::optional<std::vector<char>> ReadFileBytes(const std::filesystem::path& path
     }
     return bytes;
 }
-
 } // namespace Client::Tests

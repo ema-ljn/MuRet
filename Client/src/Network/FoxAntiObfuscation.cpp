@@ -13,10 +13,8 @@
 
 namespace Client::Network
 {
-
 namespace
 {
-
 // El XOR que el servidor del laboratorio le aplica a cada byte de lo que manda (fox_xor_aa, en
 // 0x341140 de FoxAnti.dll).
 constexpr std::byte InboundXor{0xAA};
@@ -221,7 +219,6 @@ Core::Expected<Packet, ObfuscationError> InsertSkillListByte(Packet packet)
     bytes[1] = static_cast<std::byte>(bytes.size());
     return Packet::FromBytes(std::move(bytes)).Value();
 }
-
 } // namespace
 
 std::byte FoxAntiObfuscation::InboundMask(std::byte firstWireByte) const
@@ -280,5 +277,4 @@ Packet FoxAntiObfuscation::BeforeSend(Packet packet) const
     body[0] = static_cast<std::byte>(Remap(ClearRemaps, std::to_integer<std::uint8_t>(body[0])));
     return Crypto::Xor32Encode(std::move(packet));
 }
-
 } // namespace Client::Network

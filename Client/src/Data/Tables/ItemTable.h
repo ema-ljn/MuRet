@@ -1,13 +1,3 @@
-// Item.bmd, la tabla de items (Client/docs/research/05-formatos-de-datos.md, "Tablas .bmd"; en el
-// original, el cargador de 0x54b9e0). Se lee de Data\Local\Item.bmd.
-//
-// 8192 registros de 0x54 bytes, cada uno cifrado con XOR3, y después el checksum de los registros
-// cifrados (TableChecksum.h, clave 0xE2F1).
-//
-// Q-C01: el original calcula el checksum pero no lo mira (un parche EB 66 saltea la comparación),
-// y la item.bmd del laboratorio no pasa el suyo. MuRet lo calcula, lo informa y carga la tabla
-// igual.
-
 #pragma once
 
 #include "Core/Expected.h"
@@ -17,9 +7,17 @@
 #include <cstddef>
 #include <span>
 
+// Item.bmd, la tabla de items (Client/docs/research/05-formatos-de-datos.md, "Tablas .bmd"; en el
+// original, el cargador de 0x54b9e0). Se lee de Data\Local\Item.bmd.
+//
+// 8192 registros de 0x54 bytes, cada uno cifrado con XOR3, y después el checksum de los registros
+// cifrados (TableChecksum.h, clave 0xE2F1).
+//
+// Q-C01: el original calcula el checksum pero no lo mira (un parche EB 66 saltea la comparación),
+// y la item.bmd del laboratorio no pasa el suyo. MuRet lo calcula, lo informa y carga la tabla
+// igual.
 namespace Client::Data::Tables
 {
-
 // Cuántos items trae la tabla, uno por registro: 16 secciones de 512. El registro de un item es
 // el `sección * 512 + índice` (0054b9e0-item-bmd-loader.md §9).
 inline constexpr std::size_t ItemCount = 8192;
@@ -48,5 +46,4 @@ struct LoadedItemTable
 //     en false: el original tampoco mira el checksum.
 //   - Si es más largo, el resto se ignora, como con los fread de tamaño fijo del original.
 Core::Expected<LoadedItemTable, DataError> LoadItemTable(std::span<const std::byte> file);
-
 } // namespace Client::Data::Tables

@@ -1,3 +1,14 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Network/Crypto/CryptoError.h"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <span>
+
 // SimpleModulus, el cifrado por bloques de los C3/C4: 8 bytes en claro dan 11 cifrados.
 // Contrato: Client/docs/research/03-red-y-cifrado.md, "C3/C4", el plan de la CL2 (CL2.3), y
 // encrypt_block y decrypt_block de c3c4_reference.py, en el repo de research, que modelan
@@ -11,21 +22,8 @@
 //
 // No protege nada: las claves están en los archivos del cliente y del servidor (la guía de la
 // CL2.0, actividad 5).
-
-#pragma once
-
-#include "Core/Expected.h"
-#include "Network/Crypto/CryptoError.h"
-
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <optional>
-#include <span>
-
 namespace Client::Network::Crypto
 {
-
 // Los carriles de 16 bits de un bloque.
 inline constexpr std::size_t LaneCount = 4;
 // Los bytes en claro de un bloque: el último de un paquete se completa con relleno.
@@ -77,27 +75,27 @@ public:
 
     [[nodiscard]] const Lanes& Modulus() const
     {
-        return modulus;
+        return m_modulus;
     }
     // La de cifrar en una EncryptionKey y la de descifrar en una DecryptionKey.
     [[nodiscard]] const Lanes& Key() const
     {
-        return key;
+        return m_key;
     }
     [[nodiscard]] const Lanes& XorKey() const
     {
-        return xorKey;
+        return m_xorKey;
     }
 
 private:
-    SimpleModulusKey(const Lanes& modulusLanes, const Lanes& keyLanes, const Lanes& xorLanes)
-        : modulus(modulusLanes), key(keyLanes), xorKey(xorLanes)
+    SimpleModulusKey(const Lanes& modulus, const Lanes& key, const Lanes& xorKey)
+        : m_modulus(modulus), m_key(key), m_xorKey(xorKey)
     {
     }
 
-    Lanes modulus;
-    Lanes key;
-    Lanes xorKey;
+    Lanes m_modulus;
+    Lanes m_key;
+    Lanes m_xorKey;
 };
 
 // Enc1.dat del cliente y Enc2.dat del servidor.
@@ -122,5 +120,4 @@ struct DecryptedBlock
 // cambio en el byte del largo útil no lo ve.
 [[nodiscard]] std::optional<DecryptedBlock> DecryptBlock(const DecryptionKey& key,
                                                          std::span<const std::byte, CipherBlockSize> cipher);
-
 } // namespace Client::Network::Crypto

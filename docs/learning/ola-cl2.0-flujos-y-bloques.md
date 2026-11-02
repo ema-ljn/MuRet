@@ -102,7 +102,7 @@ error. Va en `labs/cl2.0-flujos/`.
 
 1. GoogleTest en `labs/`: es andamiaje, como el paso 1 de la CL1.0, y lo agrega Claude si
    todavía no está.
-2. Los tests primero (`FrameCutterTest.cpp`), con los casos de `red_reference.py --selftest`
+2. Los tests primero (`test_frame_cutter.cpp`), con los casos de `red_reference.py --selftest`
    que no son del cifrado: corte, resto parcial, cabecera incompleta, cabecera inválida y tamaño
    0. Antes de compilar, decí qué etapa va a fallar.
 3. Uno de propiedad: paquetes válidos al azar (tipo, tamaño y cuerpo), uno detrás del otro,
@@ -259,7 +259,7 @@ mueve lo que sobra al principio del buffer, pero lee la cabecera sin mirar cuán
 si solo llegaron los dos primeros bytes de un C2, el tercero es lo que había en el buffer de
 antes.
 
-**Te toca** (`labs/cl2.0-flujos/jefe/OldCutTest.cpp`):
+**Te toca** (`labs/cl2.0-flujos/jefe/test_old_cut.cpp`):
 
 1. Un modelo chico del corte del original, con el buffer que se reusa, que lea `buf[off + 1]` y
    `buf[off + 2]` sin mirar el largo (como `_split` de `red_reference.py`). Que sea un arreglo

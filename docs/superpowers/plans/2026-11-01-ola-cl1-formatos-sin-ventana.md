@@ -89,7 +89,7 @@ entera, y suma lo que necesita la CL1: el `Expected`.
 **Archivos:**
 - Crear: `docs/learning/ola-cl1.0-bytes-y-archivos.md` (la guía; Claude)
 - Crear: `labs/cl1.0-bytes/ByteView.h`, `ByteView.cpp`, `ByteViewTest.cpp` y `FixedTextTest.cpp` (el jefe)
-- Crear: `Client/src/Core/Expected.h`, `Client/tests/core/ExpectedTest.cpp`
+- Crear: `Client/src/Core/Expected.h`, `Client/tests/core/test_expected.cpp`
 - Modificar: `labs/CMakeLists.txt`, `labs/README.md`, `Client/CMakeLists.txt`
 
 - [ ] **Paso 1 (Claude, andamiaje):** GoogleTest en `labs/` (desde la CL0.2 está en `vcpkg.json`) y
@@ -153,8 +153,8 @@ Tres cosas del original que no se copian:
 - Crear: `Client/src/Data/DataError.h` (`enum class` con lo que puede fallar en esta sub-ola).
 - Crear: `Client/src/Data/Tables/Xor3.h/.cpp` y `Client/src/Data/Tables/TableChecksum.h/.cpp`.
 - Crear: `Client/src/Data/Text/TextTable.h/.cpp`.
-- Crear: `Client/tests/data/ByteReaderTest.cpp`, `Xor3Test.cpp`, `TableChecksumTest.cpp`,
-  `TextTableTest.cpp` y `GoldenTextTableTest.cpp`.
+- Crear: `Client/tests/core/test_byte_reader.cpp` y `test_xor3.cpp`; `Client/tests/data/`
+  `test_table_checksum.cpp`, `test_text_table.cpp` y `test_golden_text_table.cpp`.
 - Crear: `Client/tests/support/` un helper que lee los bytes de un archivo golden.
 - Modificar: `Client/CMakeLists.txt`.
 
@@ -246,10 +246,10 @@ crudos, con el layout de la memoria del cliente.
 - Crear: `Client/src/Data/Tables/GateTable.h/.cpp`, `ItemTable.h/.cpp` y `SkillTable.h/.cpp`.
 - Modificar: `Client/src/Data/Tables/TableChecksum.h/.cpp` (`StoredChecksum`) y
   `Client/src/Data/DataError.h` (`ChecksumMismatch`).
-- Crear: `Client/tests/data/RecordTableTest.cpp`, `GateTableTest.cpp`, `ItemTableTest.cpp`,
-  `SkillTableTest.cpp` y sus `Golden*TableTest.cpp`, y `Client/tests/support/TableFiles.h`
+- Crear: `Client/tests/data/test_record_table.cpp`, `test_gate_table.cpp`, `test_item_table.cpp`,
+  `test_skill_table.cpp` y sus `test_golden_*_table.cpp`, y `Client/tests/support/TableFiles.h`
   (arma archivos sintéticos: cifra por registro y agrega el checksum).
-- Modificar: `Client/CMakeLists.txt` y `Client/tests/data/GoldenTableChecksumTest.cpp`.
+- Modificar: `Client/CMakeLists.txt` y `Client/tests/data/test_golden_table_checksum.cpp`.
 
 Los pasos 1 a 6 los hizo Claude como ejemplo trabajado (2026-11-01), a pedido tuyo de seguir con
 el cliente; el 7 queda tuyo. Una decisión quedó tomada sin preguntarte, con la regla de 07: el `Gate.bmd` corto es
@@ -355,7 +355,8 @@ dibujo. Las dos cosas son de quien abre el archivo, en la CL7: acá los cargador
   `TerrainMapping.h/.cpp` y `TerrainAttributes.h/.cpp`; en el PR B, `TerrainObjects.h/.cpp` y
   `TerrainHeights.h/.cpp`.
 - Modificar: `Client/src/Data/DataError.h` (`WrongWorld`, `UnexpectedSize`, `InvalidData`).
-- Crear: `Client/tests/data/K16Test.cpp`, `TerrainMappingTest.cpp`, `TerrainAttributesTest.cpp`,
+- Crear: `Client/tests/data/test_k16.cpp`, `test_terrain_mapping.cpp`,
+  `test_terrain_attributes.cpp`,
   sus `Golden*Test.cpp`, y `Client/tests/support/TerrainFiles.h` (cifra como el exportador del
   original y arma archivos sintéticos con un patrón que no se repite cada fila).
 - Modificar: `Client/CMakeLists.txt`, 05 y 07.
@@ -439,7 +440,8 @@ el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
 **Archivos (PR A):**
 - Crear: `Client/src/Data/Textures/Texture.h` (`Texture`, `PixelFormat`, `TextureSide`) y
   `OztTexture.h/.cpp`.
-- Crear: `Client/tests/data/TextureTest.cpp`, `OztTextureTest.cpp`, `GoldenOztTextureTest.cpp`,
+- Crear: `Client/tests/data/test_texture.cpp`, `test_ozt_texture.cpp`,
+  `test_golden_ozt_texture.cpp`,
   `Client/tests/support/TextureFiles.h` (arma un OZT como el exportador) y `LittleEndian.h` (sale
   de `TerrainFiles.h`, que ahora la comparte).
 - Modificar: `Client/CMakeLists.txt`, `Client/README.md`, 05, 07 (Q-C24, Q-C29 y Q-C30), PROGRESS y
@@ -448,14 +450,14 @@ el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
 **Archivos (PR B):**
 - Crear: `Client/src/Data/Textures/JpegImage.h/.cpp` (`DecodeJpeg`, lo único que ve libjpeg),
   `OzjTexture.h/.cpp` y `Client/src/Data/Terrain/TerrainLight.h/.cpp`.
-- Crear: `Client/tests/data/JpegImageTest.cpp`, `OzjTextureTest.cpp`, `TerrainLightTest.cpp`,
-  `GoldenJpegImageTest.cpp`, `GoldenOzjTextureTest.cpp`, `GoldenTerrainLightTest.cpp`,
+- Crear: `Client/tests/data/test_jpeg_image.cpp`, `test_ozj_texture.cpp`, `test_terrain_light.cpp`,
+  `test_golden_jpeg_image.cpp`, `test_golden_ozj_texture.cpp`, `test_golden_terrain_light.cpp`,
   `Client/tests/support/SameBytes.h` (dice el primer byte distinto), `Fnv1a.h` y su test,
   `JpegVectors.h` y los vectores de `Client/tests/vectors/jpeg/`, con su README (cómo se armaron),
   `lab-6b.txt` (el hash de la 6b de cada OZJ del laboratorio), `tools/` (la 6b fuera de CI y los
   scripts que arman todo) y un `.gitattributes` que deja los vectores como bytes.
 - Modificar: `vcpkg.json`, el CI (NASM), `Client/CMakeLists.txt`, `GoldenDir.h/.cpp`
-  (`HasExtension`, sin distinguir mayúsculas), `GoldenOztTextureTest.cpp`, los README, 05, 07
+  (`HasExtension`, sin distinguir mayúsculas), `test_golden_ozt_texture.cpp`, los README, 05, 07
   (Q-C14, Q-C30, Q-C31, Q-C32 y Q-C33), el roadmap (pregunta 1), PROGRESS y este plan.
 
 **Bibliotecas (`CODING_RULES.md` §10):**
@@ -470,21 +472,21 @@ el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
   Lorencia. libjpeg-turbo 3.2.0, la del baseline de vcpkg, da los mismos bytes que la 6b en los
   2.380, con SIMD y sin SIMD, y con o sin el suavizado de bloques de los progresivos (623 lo son).
   Queda en el repo como prueba: `lab-6b.txt` guarda el tamaño y el hash de lo que da la 6b de cada
-  uno, y `GoldenJpegImageTest` lo compara con turbo. Es el test que hay que correr al cambiar de
-  versión, que por eso va fija en `vcpkg.json` (`overrides`) y en un `static_assert`. El port de vcpkg depende también de libspng y zlib, que se compilan con él aunque el
-  cliente no los use: más tiempo en el primer build de CI, después queda en la caché.
-  Las reviews del PR B midieron dónde turbo no es la 6b, siempre fuera del laboratorio. Lo que se
-  puede llevar a la 6b se lleva: rechaza lo que la 6b no lee (JPEG aritméticos, sin pérdida, de 12
-  bits o con un scan que pide una tabla de Huffman que no está) y agranda el 4:4:0 sin el filtro,
-  como ella. Lo que no, queda escrito en Q-C33: un progresivo al que le faltan scans, un muestreo
-  que mezcla un componente al doble de alto con otro al doble de ancho (salvo en una imagen de
-  hasta 4 píxeles de ancho), los ids de componente repetidos o de más de 4 componentes, un DAC en
-  un JPEG de Huffman, su IDCT con SIMD, que lleva a 0 o a 255 lo que la 6b da vuelta, y cómo
-  completa los datos corruptos. **Entra libjpeg-turbo** (Emanuel,
-  2026-11-01). Se miraron también `ijg-libjpeg` (la versión actual de la IJG, que lee los
-  aritméticos) y stb_image (su propio decodificador, que no promete los bytes de la 6b). Un
-  decodificador propio compatible con la 6b quedó planeado y en pausa
-  ([su plan](2026-11-01-cl1.4-decodificador-jpeg.md)): se retoma si turbo no alcanza.
+  uno, y `test_golden_jpeg_image.cpp` lo compara con turbo. Es el test que hay que correr al cambiar
+  de versión, que por eso va fija en `vcpkg.json` (`overrides`) y en un `static_assert`. El port de
+  vcpkg depende también de libspng y zlib, que se compilan con él aunque el cliente no los use: más
+  tiempo en el primer build de CI, después queda en la caché. Las reviews del PR B midieron dónde
+  turbo no es la 6b, siempre fuera del laboratorio. Lo que se puede llevar a la 6b se lleva: rechaza
+  lo que la 6b no lee (JPEG aritméticos, sin pérdida, de 12 bits o con un scan que pide una tabla de
+  Huffman que no está) y agranda el 4:4:0 sin el filtro, como ella. Lo que no, queda escrito en
+  Q-C33: un progresivo al que le faltan scans, un muestreo que mezcla un componente al doble de alto
+  con otro al doble de ancho (salvo en una imagen de hasta 4 píxeles de ancho), los ids de
+  componente repetidos o de más de 4 componentes, un DAC en un JPEG de Huffman, su IDCT con SIMD,
+  que lleva a 0 o a 255 lo que la 6b da vuelta, y cómo completa los datos corruptos. **Entra
+  libjpeg-turbo** (Emanuel, 2026-11-01). Se miraron también `ijg-libjpeg` (la versión actual de la
+  IJG, que lee los aritméticos) y stb_image (su propio decodificador, que no promete los bytes de la
+  6b). Un decodificador propio compatible con la 6b quedó planeado y en pausa ([su
+  plan](2026-11-01-cl1.4-decodificador-jpeg.md)): se retoma si turbo no alcanza.
 
 - [x] **Paso 0 (PR 0):** los volcados por captura, y Lorencia como oráculo de la CL1.3.
 - [x] **Paso 1 (PR A):** `TextureSide` y `LoadOztTexture(file)`. Tests: filas dadas vuelta y

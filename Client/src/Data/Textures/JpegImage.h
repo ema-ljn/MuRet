@@ -1,3 +1,13 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Data/DataError.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <span>
+#include <vector>
+
 // Decodificar un JPEG como lo hace el original, que enlaza estática la IJG libjpeg 6b
 // (Client/docs/research/05-formatos-de-datos.md, "Texturas"). Lo usan los dos cargadores de OZJ:
 // el de las texturas (0x63b870, OzjTexture.h) y el de la luz del terreno (0x63b490,
@@ -16,20 +26,8 @@
 //
 // La otra diferencia es de dónde lee: el original, del archivo con jpeg_stdio_src; acá, de los
 // bytes con jpeg_mem_src, que se comporta igual cuando se acaban los datos.
-
-#pragma once
-
-#include "Core/Expected.h"
-#include "Data/DataError.h"
-
-#include <cstddef>
-#include <cstdint>
-#include <span>
-#include <vector>
-
 namespace Client::Data::Textures
 {
-
 struct JpegImage
 {
     // El tamaño de la imagen y los bytes por píxel, como los da libjpeg (output_width,
@@ -61,5 +59,4 @@ struct JpegImage
 //     progresivo, y algunos baseline, dan otros bytes (Q-C33). Los mensajes no se muestran: en el
 //     original van al stderr de un programa de Windows, que no se ve.
 Core::Expected<JpegImage, DataError> DecodeJpeg(std::span<const std::byte> jpeg, int maxSide);
-
 } // namespace Client::Data::Textures

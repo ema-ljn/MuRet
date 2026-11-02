@@ -1,3 +1,14 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Data/DataError.h"
+
+#include <cstddef>
+#include <optional>
+#include <span>
+#include <string_view>
+#include <vector>
+
 // Text.bmd, los textos de la interfaz (Client/docs/research/05-formatos-de-datos.md, "Tablas
 // .bmd"; en el original, el cargador de 0x5495e0).
 //
@@ -10,21 +21,8 @@
 // Los textos quedan como bytes, en la codificación del archivo; pasarlos a UTF-8 para dibujarlos
 // es de la CL5.3. El original usa algunos como formato de sprintf (FUN_00633300). MuRet nunca
 // pasa un texto de datos como formato.
-
-#pragma once
-
-#include "Core/Expected.h"
-#include "Data/DataError.h"
-
-#include <cstddef>
-#include <optional>
-#include <span>
-#include <string_view>
-#include <vector>
-
 namespace Client::Data::Text
 {
-
 // Cuántos textos trae la tabla, uno por registro: el texto i es el que el original busca con el
 // índice i.
 inline constexpr std::size_t TextCount = 2048;
@@ -56,7 +54,7 @@ private:
     // que le quedó.
     friend Core::Expected<TextTable, DataError> LoadTextTable(std::span<const std::byte> file);
 
-    std::vector<char> records;
+    std::vector<char> m_records;
 };
 
 // Descifra los primeros TextTableSize bytes de `file`.
@@ -64,5 +62,4 @@ private:
 //     dejaría en la tabla lo que hubiera en la memoria.
 //   - Si es más largo, el resto se ignora, como con el fread de tamaño fijo del original.
 Core::Expected<TextTable, DataError> LoadTextTable(std::span<const std::byte> file);
-
 } // namespace Client::Data::Text

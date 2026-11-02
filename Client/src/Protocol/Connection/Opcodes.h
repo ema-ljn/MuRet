@@ -1,14 +1,12 @@
-// Los opcodes y subcódigos de la conexión, del ConnectServer al login en el GameServer.
-// Contrato: Client/docs/research/04-protocolo.md, "El flujo de conexión". El subcódigo va justo
-// después del opcode: pkt[3] en un C1 y pkt[4] en un C2.
-
 #pragma once
 
 #include <cstdint>
 
+// Los opcodes y subcódigos de la conexión, del ConnectServer al login en el GameServer.
+// Contrato: Client/docs/research/04-protocolo.md, "El flujo de conexión". El subcódigo va justo
+// después del opcode: pkt[3] en un C1 y pkt[4] en un C2.
 namespace Client::Protocol::Connection
 {
-
 // F4: la lista de servidores, con el ConnectServer.
 inline constexpr std::uint8_t ServerListOpcode = 0xF4;
 inline constexpr std::uint8_t ServerListRequestSubcode = 0x02; // pedir la lista
@@ -23,5 +21,4 @@ inline constexpr std::uint8_t DecryptErrorSubcode = 0x03; // el aviso de un C3/C
 
 // 0E: el keepalive, sin subcódigo.
 inline constexpr std::uint8_t KeepaliveOpcode = 0x0E;
-
 } // namespace Client::Protocol::Connection

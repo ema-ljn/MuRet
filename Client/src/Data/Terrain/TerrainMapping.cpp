@@ -6,7 +6,6 @@
 
 namespace Client::Data::Terrain
 {
-
 Core::Expected<std::unique_ptr<TerrainMapping>, DataError> LoadTerrainMapping(std::span<const std::byte> file,
                                                                               std::uint8_t world)
 {
@@ -36,5 +35,4 @@ Core::Expected<std::unique_ptr<TerrainMapping>, DataError> LoadTerrainMapping(st
     }
     return mapping;
 }
-
 } // namespace Client::Data::Terrain

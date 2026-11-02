@@ -1,19 +1,17 @@
-// Una textura como la sube el original a OpenGL, desde un OZT o un OZJ (Client/docs/research/
-// 05-formatos-de-datos.md, "Texturas").
-//
-// El original copia la imagen a un buffer cuyos lados son potencias de 2, sin escalarla: la imagen
-// queda en la esquina de la fila 0 y la columna 0, y el resto del buffer no se toca. Ese buffer es
-// el que sube con glTexImage2D y el que guarda en su tabla de texturas (0x07D3A198, +0x34).
-
 #pragma once
 
 #include <cstddef>
 #include <cstdint>
 #include <vector>
 
+// Una textura como la sube el original a OpenGL, desde un OZT o un OZJ (Client/docs/research/
+// 05-formatos-de-datos.md, "Texturas").
+//
+// El original copia la imagen a un buffer cuyos lados son potencias de 2, sin escalarla: la imagen
+// queda en la esquina de la fila 0 y la columna 0, y el resto del buffer no se toca. Ese buffer es
+// el que sube con glTexImage2D y el que guarda en su tabla de texturas (0x07D3A198, +0x34).
 namespace Client::Data::Textures
 {
-
 // El lado más grande de una textura: los dos cargadores rechazan una imagen más grande, y el lado
 // de la textura no pasa de acá (0x63bd00 y 0x63b870).
 inline constexpr int TextureMaxSide = 512;
@@ -59,5 +57,4 @@ struct Texture
     // (Q-C30).
     std::vector<std::uint8_t> pixels;
 };
-
 } // namespace Client::Data::Textures

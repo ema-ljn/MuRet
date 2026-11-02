@@ -1,14 +1,3 @@
-// El cable del laboratorio: lee el muproxy.log, que el proxy del laboratorio escribió entre el
-// cliente original y los servidores.
-//
-// Una línea por segmento TCP: hora, puerto, sentido (C->S o S->C), len=N y los N bytes en hex. Una
-// línea ACC abre una conexión en ese puerto, y las siguientes de ese puerto son de ella hasta el
-// próximo ACC; sus bytes son un texto del proxy, no del cable, y no se leen. Lo que viene después
-// de los bytes se ignora: el log del laboratorio tiene una marca del proxy en una línea.
-//
-// El cable lleva el login del jugador: quien use esto no imprime un payload, ni al fallar
-// (SameBytesWithoutValues, en SameBytes.h).
-
 #pragma once
 
 #include "Core/Expected.h"
@@ -19,9 +8,18 @@
 #include <string_view>
 #include <vector>
 
+// El cable del laboratorio: lee el muproxy.log, que el proxy del laboratorio escribió entre el
+// cliente original y los servidores.
+//
+// Una línea por segmento TCP: hora, puerto, sentido (C->S o S->C), len=N y los N bytes en hex. Una
+// línea ACC abre una conexión en ese puerto, y las siguientes de ese puerto son de ella hasta el
+// próximo ACC; sus bytes son un texto del proxy, no del cable, y no se leen. Lo que viene después
+// de los bytes se ignora: el log del laboratorio tiene una marca del proxy en una línea.
+//
+// El cable lleva el login del jugador: quien use esto no imprime un payload, ni al fallar
+// (SameBytesWithoutValues, en SameBytes.h).
 namespace Client::Tests
 {
-
 enum class WireDirection : std::uint8_t
 {
     ClientToServer, // C->S
@@ -63,5 +61,4 @@ struct WireCaptureError
 
 // Las conexiones del log, en el orden de sus ACC.
 [[nodiscard]] Core::Expected<std::vector<WireConnection>, WireCaptureError> ParseWireCapture(std::string_view text);
-
 } // namespace Client::Tests

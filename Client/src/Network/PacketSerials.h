@@ -1,3 +1,7 @@
+#pragma once
+
+#include <cstdint>
+
 // Los dos seriales de los C3/C4 de una conexión: el de envío y el de recepción.
 // Contrato: Client/docs/research/03-red-y-cifrado.md, "C3/C4", y el plan de la CL2 (CL2.3).
 //
@@ -5,14 +9,8 @@
 // desde 0, y del otro lado se compara con el que se espera: un paquete perdido o repetido no
 // coincide. En el original son dos bytes globales (0x05767913 y 0x05767914), y 0x4c1340 los vuelve
 // a 0 al conectar al GameServer; acá son de cada conexión.
-
-#pragma once
-
-#include <cstdint>
-
 namespace Client::Network
 {
-
 // Qué pasó con el serial de un paquete que llegó.
 enum class SerialCheck : std::uint8_t
 {
@@ -42,8 +40,7 @@ public:
     void Reset();
 
 private:
-    std::uint8_t send = 0;    // el del próximo paquete que sale
-    std::uint8_t receive = 0; // el que se espera en el próximo que llega
+    std::uint8_t m_send = 0;    // el del próximo paquete que sale
+    std::uint8_t m_receive = 0; // el que se espera en el próximo que llega
 };
-
 } // namespace Client::Network

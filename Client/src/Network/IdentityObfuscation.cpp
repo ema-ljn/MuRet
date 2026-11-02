@@ -2,7 +2,6 @@
 
 namespace Client::Network
 {
-
 // Una static local se construye la primera vez que se pide, aunque la pida otro objeto static: no
 // depende del orden en que arrancan los archivos.
 const IdentityObfuscation& IdentityObfuscation::Shared()
@@ -32,5 +31,4 @@ Packet IdentityObfuscation::BeforeSend(Packet packet) const
 {
     return packet;
 }
-
 } // namespace Client::Network

@@ -1,16 +1,3 @@
-// Arma un paquete C1 o C2 campo por campo, como el motor de envío del original.
-// Contrato: Client/docs/research/03-red-y-cifrado.md, "Envío: el motor C1/C2 y el XOR32", y el
-// plan de la CL2 (CL2.2).
-//
-// El motor del original empieza con el tipo y el opcode, agrega cada campo y al terminar escribe
-// el tamaño (en un C2, big-endian). Además cifra con XOR32 cada byte que agrega: acá el XOR32 es
-// una etapa aparte (Network/Crypto/Xor32.h), porque no todo lo que sale lo lleva (los F4 al
-// ConnectServer salen en claro).
-//
-// Los enteros de los campos van little-endian, como los escribe el cliente en x86. PutU16Be es para
-// los campos que el protocolo lleva al revés, como el id de un jugador en lo que manda el servidor
-// (04-protocolo.md); cada paquete de la CL2.5 dice cuáles.
-
 #pragma once
 
 #include "Core/Expected.h"
@@ -24,9 +11,20 @@
 #include <span>
 #include <vector>
 
+// Arma un paquete C1 o C2 campo por campo, como el motor de envío del original.
+// Contrato: Client/docs/research/03-red-y-cifrado.md, "Envío: el motor C1/C2 y el XOR32", y el
+// plan de la CL2 (CL2.2).
+//
+// El motor del original empieza con el tipo y el opcode, agrega cada campo y al terminar escribe
+// el tamaño (en un C2, big-endian). Además cifra con XOR32 cada byte que agrega: acá el XOR32 es
+// una etapa aparte (Network/Crypto/Xor32.h), porque no todo lo que sale lo lleva (los F4 al
+// ConnectServer salen en claro).
+//
+// Los enteros de los campos van little-endian, como los escribe el cliente en x86. PutU16Be es para
+// los campos que el protocolo lleva al revés, como el id de un jugador en lo que manda el servidor
+// (04-protocolo.md); cada paquete de la CL2.5 dice cuáles.
 namespace Client::Network
 {
-
 // El paquete más grande que arma el motor del original. Antes de cada campo mira si entra en
 // 0x800 bytes, y si no, lo saltea entero y sigue con el próximo (Q-C06). Es también el tope de un
 // C2 que arma MuRet.
@@ -67,15 +65,14 @@ public:
     [[nodiscard]] Core::Expected<Packet, PacketError> Finish() const;
 
 private:
-    PacketWriter(PacketType packetType, std::uint8_t packetOpcode);
+    PacketWriter(PacketType type, std::uint8_t opcode);
 
     template <std::unsigned_integral T> void PutUnsigned(T value, std::endian order);
 
     // El tipo y el opcode van aparte de los campos: un escritor del que se movieron los bytes
     // sigue armando un C1 o un C2 con su opcode, sin campos.
-    PacketType type;
-    std::uint8_t opcode;
-    std::vector<std::byte> fields;
+    PacketType m_type;
+    std::uint8_t m_opcode;
+    std::vector<std::byte> m_fields;
 };
-
 } // namespace Client::Network

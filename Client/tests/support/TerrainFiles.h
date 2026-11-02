@@ -1,7 +1,3 @@
-// Ayudas para los tests del terreno: armar un archivo sintético y cifrarlo como lo hace el
-// exportador del original, para que los cargadores lo descifren, y comparar una capa con un
-// volcado de memoria.
-
 #pragma once
 
 #include "Core/Xor3.h"
@@ -22,9 +18,11 @@
 #include <utility>
 #include <vector>
 
+// Ayudas para los tests del terreno: armar un archivo sintético y cifrarlo como lo hace el
+// exportador del original, para que los cargadores lo descifren, y comparar una capa con un
+// volcado de memoria.
 namespace Client::Tests
 {
-
 // Los mundos que trae el Data\ del laboratorio, por el N de su carpeta World<N>
 // (Client/docs/research/09-datos-disponibles.md). Todos tienen su .map, su .att y su .obj.
 inline constexpr std::array<std::uint8_t, 20> LabWorlds = {1,  2,  3,  4,  5,  6,  7,  8,  9,  10,
@@ -265,5 +263,4 @@ std::optional<std::size_t> FirstCellThatDiffers(const Data::Terrain::TerrainLaye
     }
     return std::nullopt;
 }
-
 } // namespace Client::Tests

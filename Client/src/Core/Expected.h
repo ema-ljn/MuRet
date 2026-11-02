@@ -1,3 +1,12 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdio>
+#include <cstdlib>
+#include <type_traits>
+#include <utility>
+#include <variant>
+
 // Un resultado que tiene adentro un valor o un error, nunca los dos.
 //
 // Es la idea de std::expected, que llega con C++23; MuRet compila en C++20, y L-3 del camino de
@@ -24,44 +33,31 @@
 // Pedir Value() de uno que tiene un error, o Error() de uno que tiene un valor, es un bug de quien
 // llama: el programa se corta ahí con un mensaje, también en Release. std::expected tira una
 // excepción, y MuRet no usa excepciones para los errores.
-
-#pragma once
-
-#include <cstddef>
-#include <cstdio>
-#include <cstdlib>
-#include <type_traits>
-#include <utility>
-#include <variant>
-
 namespace Client::Core
 {
-
 // El error, envuelto: así se distingue de un valor aunque T y E sean del mismo tipo.
 template <typename E> class Unexpected
 {
 public:
-    explicit Unexpected(E error) : wrapped(std::move(error)) {}
+    explicit Unexpected(E error) : m_wrapped(std::move(error)) {}
 
     E&& Error() &&
     {
-        return std::move(wrapped);
+        return std::move(m_wrapped);
     }
 
 private:
-    E wrapped;
+    E m_wrapped;
 };
 
 namespace Detail
 {
-
 [[noreturn]] inline void StopOnBadAccess(const char* message)
 {
     std::fputs(message, stderr);
     std::fputc('\n', stderr);
     std::abort();
 }
-
 } // namespace Detail
 
 template <typename T, typename E> class [[nodiscard]] Expected
@@ -70,25 +66,25 @@ template <typename T, typename E> class [[nodiscard]] Expected
 
 public:
     // Sin explicit, a propósito: un cargador hace `return table;` o `return Unexpected(error);`.
-    Expected(T value) : storage(std::in_place_index<ValueIndex>, std::move(value)) {}
+    Expected(T value) : m_storage(std::in_place_index<ValueIndex>, std::move(value)) {}
 
-    Expected(Unexpected<E> error) : storage(std::in_place_index<ErrorIndex>, std::move(error).Error()) {}
+    Expected(Unexpected<E> error) : m_storage(std::in_place_index<ErrorIndex>, std::move(error).Error()) {}
 
     [[nodiscard]] bool HasValue() const
     {
-        return storage.index() == ValueIndex;
+        return m_storage.index() == ValueIndex;
     }
 
     [[nodiscard]] T& Value() &
     {
         RequireValue();
-        return std::get<ValueIndex>(storage);
+        return std::get<ValueIndex>(m_storage);
     }
 
     [[nodiscard]] const T& Value() const&
     {
         RequireValue();
-        return std::get<ValueIndex>(storage);
+        return std::get<ValueIndex>(m_storage);
     }
 
     // Para sacar el valor sin copiarlo: std::move(loaded).Value(). std::expected devuelve acá una
@@ -97,18 +93,18 @@ public:
     [[nodiscard]] T Value() &&
     {
         RequireValue();
-        return std::move(std::get<ValueIndex>(storage));
+        return std::move(std::get<ValueIndex>(m_storage));
     }
 
     // Mira que haya un error, no que falte el valor: si el move de un T tiró una excepción en una
     // asignación, el std::variant queda sin ninguno de los dos (valueless_by_exception).
     [[nodiscard]] const E& Error() const&
     {
-        if (storage.index() != ErrorIndex)
+        if (m_storage.index() != ErrorIndex)
         {
             Detail::StopOnBadAccess("Error() de un Expected que no tiene error");
         }
-        return std::get<ErrorIndex>(storage);
+        return std::get<ErrorIndex>(m_storage);
     }
 
 private:
@@ -124,7 +120,6 @@ private:
         }
     }
 
-    std::variant<T, E> storage;
+    std::variant<T, E> m_storage;
 };
-
 } // namespace Client::Core

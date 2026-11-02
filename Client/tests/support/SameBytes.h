@@ -1,6 +1,3 @@
-// Comparar dos buffers byte a byte en un test, y decir dónde difieren: con miles de bytes, "no son
-// iguales" no ayuda a encontrar el bug.
-
 #pragma once
 
 #include <gtest/gtest.h>
@@ -10,9 +7,10 @@
 #include <iterator>
 #include <span>
 
+// Comparar dos buffers byte a byte en un test, y decir dónde difieren: con miles de bytes, "no son
+// iguales" no ayuda a encontrar el bug.
 namespace Client::Tests
 {
-
 // Si `actual` tiene los mismos bytes que `expected`. Si no, el mensaje dice los dos tamaños o el
 // primer byte distinto, con su valor en cada uno.
 inline ::testing::AssertionResult SameBytes(std::span<const std::byte> actual, std::span<const std::byte> expected)
@@ -50,5 +48,4 @@ inline ::testing::AssertionResult SameBytesWithoutValues(std::span<const std::by
     }
     return ::testing::AssertionFailure() << "difiere desde el byte " << std::distance(actual.begin(), differs);
 }
-
 } // namespace Client::Tests

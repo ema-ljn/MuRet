@@ -143,7 +143,7 @@ semilla fija para un test de propiedad.
 **Archivos:**
 - Crear: `docs/learning/ola-cl2.0-flujos-y-bloques.md` (la guía; Claude)
 - Crear: `labs/cl2.0-flujos/FrameCutter.h/.cpp`, `BitStream.h/.cpp` y `ModularInverse.h/.cpp`,
-  sus tests y `jefe/OldCutTest.cpp` (Emanuel)
+  sus tests y `jefe/test_old_cut.cpp` (Emanuel)
 - Modificar: `labs/CMakeLists.txt`, `labs/README.md`
 
 - [x] **Paso 1 (Claude):** la guía, justo antes de empezar
@@ -211,14 +211,16 @@ esta sub-ola (Q-C38, Q-C39 y Q-C40).
   tamaño de un C2, el primer entero big-endian del cliente. Lo van a usar `Data`, `Network` y
   `Protocol`; en `Data` cambia el include.
 - **PR B:** crear `Client/src/Network/Packet.h/.cpp`, `PacketError.h` y `PacketReader.h/.cpp`;
-  `Client/tests/network/PacketTest.cpp`, `PacketReaderTest.cpp` y `GoldenPacketReaderTest.cpp`;
+  `Client/tests/network/test_packet.cpp`, `test_packet_reader.cpp` y
+  `test_golden_packet_reader.cpp`;
   `Client/tests/support/WireCapture.h/.cpp`, que lee el `muproxy.log` (una línea por segmento TCP:
   hora, puerto, sentido, `len=` y los bytes en hex; `ACC` abre una conexión), con su
-  `WireCaptureTest.cpp` sobre un log sintético de pocas líneas. Modificar
+  `test_wire_capture.cpp` sobre un log sintético de pocas líneas. Modificar
   `Client/tests/support/GoldenDir.h/.cpp` (`MURET_CLIENT_WIRE_DIR`, solo por el entorno, como
   `MURET_CLIENT_MEMORY_DIR`: `gtest_discover_tests` pierde la segunda variable de `ENVIRONMENT`),
   `SameBytes.h` (`SameBytesWithoutValues`, que dice dónde difieren y no qué valen, con su
-  `SameBytesTest.cpp`: el mensaje de una diferencia no trae ningún valor), `Client/CMakeLists.txt`,
+  `test_same_bytes.cpp`: el mensaje de una diferencia no trae ningún valor),
+  `Client/CMakeLists.txt`,
   `Client/README.md`, 07 (Q-C03 también con el primer byte de un C1/C3, y el tipo inválido, el
   tamaño chico y el de más, nuevos, con sus tests), PROGRESS y este plan.
 
@@ -357,8 +359,8 @@ válido (`0x4e21b6..0x4e229f`). Ningún emisor arma uno (*análisis*), y `Finish
 igual: si apareciera, se escribe como C2.
 
 **Archivos:** crear `Client/src/Network/PacketWriter.h/.cpp` y
-`Client/src/Network/Crypto/Xor32.h/.cpp`; `Client/tests/network/PacketWriterTest.cpp` y
-`Xor32Test.cpp`, y los fixtures largos de `mu-client` en `Client/tests/vectors/net/` como binarios,
+`Client/src/Network/Crypto/Xor32.h/.cpp`; `Client/tests/network/test_packet_writer.cpp` y
+`test_xor32.cpp`, y los fixtures largos de `mu-client` en `Client/tests/vectors/net/` como binarios,
 con un README que dice de dónde sale cada uno (`tests/net/fixtures/gen_net_send_fixtures.py` del
 research) y su línea en `.gitattributes`. Los dos del C2 los arma un script chico en
 `Client/tools/net/`, con el contenido del generador del research y el opcode en claro, y el README
@@ -463,11 +465,11 @@ hasta 16 bits (el carril 2 de `Dec1.dat` y el de `Enc2.dat`; las del cliente lle
 
 **Archivos:**
 - **PR A:** crear `Client/src/Network/Crypto/CryptoError.h`, `SimpleModulus.h/.cpp` (la clave y
-  los bloques) y `SimpleModulusKeyFile.h/.cpp`; `Client/tests/network/SimpleModulusTest.cpp`,
-  `SimpleModulusKeyFileTest.cpp` y `GoldenSimpleModulusKeyFileTest.cpp`.
+  los bloques) y `SimpleModulusKeyFile.h/.cpp`; `Client/tests/network/test_simple_modulus.cpp`,
+  `test_simple_modulus_key_file.cpp` y `test_golden_simple_modulus_key_file.cpp`.
 - **PR B:** crear `Client/src/Network/PacketSerials.h/.cpp` y `EncryptedPacket.h/.cpp`;
-  `Client/tests/network/PacketSerialsTest.cpp`, `EncryptedPacketTest.cpp` y
-  `GoldenEncryptedPacketTest.cpp`; el C4 armado de nuevo en `Client/tests/vectors/net/`, con su
+  `Client/tests/network/test_packet_serials.cpp`, `test_encrypted_packet.cpp` y
+  `test_golden_encrypted_packet.cpp`; el C4 armado de nuevo en `Client/tests/vectors/net/`, con su
   línea en `tools/make_vectors.py` y en el README. Modificar 03 (el aviso `F1 03`, la regla de C3
   o C4 por el largo cifrado y el relleno) y 07 (Q-C04, Q-C05 y Q-C10 con sus tests).
 - En los dos: `Client/CMakeLists.txt`, PROGRESS y este plan.
@@ -638,7 +640,7 @@ en `0x800`).
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "SimpleModulus|PacketSerials|EncryptedPacket"
   ```
 
-## Sub-ola CL2.4: `Obfuscation` (identidad y FoxAnti)
+## Sub-ola CL2.4: `IObfuscation` (identidad y FoxAnti)
 
 **Concepto:** una interfaz con dos implementaciones, elegida por configuración, y una capa que
 traduce entre dos formatos sin que el resto se entere.
@@ -663,9 +665,9 @@ cifrado, `EncryptPacket` llama a `BeforeEncrypt` antes de cifrar; y todo lo que 
 la CL4. En esta ola los llaman los tests y el golden, en ese orden.
 
 **Archivos:** crear, en `Client/src/Network/` y en el namespace `Client::Network`, como el resto de
-la capa, `Obfuscation.h`, `ObfuscationError.h`, `IdentityObfuscation.h/.cpp` y
-`FoxAntiObfuscation.h/.cpp`; `Client/tests/network/IdentityObfuscationTest.cpp`,
-`FoxAntiObfuscationTest.cpp` y `GoldenFoxAntiObfuscationTest.cpp`. Modificar `PacketReader` y
+la capa, `IObfuscation.h`, `ObfuscationError.h`, `IdentityObfuscation.h/.cpp` y
+`FoxAntiObfuscation.h/.cpp`; `Client/tests/network/test_identity_obfuscation.cpp`,
+`test_fox_anti_obfuscation.cpp` y `test_golden_fox_anti_obfuscation.cpp`. Modificar `PacketReader` y
 `EncryptPacket` (las sobrecargas de abajo), `Client/CMakeLists.txt`, 07 (Q-C09, Q-C17 y Q-C18 con
 sus tests, y en Q-C18 el resto que se enmascara de nuevo), PROGRESS y este plan.
 
@@ -682,11 +684,11 @@ original, sin atajo cuando no hay remapeo: que entonces no cambie nada lo prueba
 lista pide sus entradas enteras (una a la que le falta el cuarto byte, que el original no lee,
 también es `InvalidPacket`), lo que sigue a las entradas sale en 0 como el `calloc` del original,
 y la traducida tiene que entrar en `MaxPacketSize`. El `F3 11` se mira solo en un C1: en MuRet un
-C3 descifrado ya es un C1, y un `C1 03 F3`, sin subcódigo, pasa igual. `Obfuscation` se copia y se
+C3 descifrado ya es un C1, y un `C1 03 F3`, sin subcódigo, pasa igual. `IObfuscation` se copia y se
 mueve solo desde una clase hija, para que no se asigne a través de la base, y
 `IdentityObfuscation::Shared()` es una `static` local, que no depende del orden en que arrancan
 los archivos. Un `PacketReader` no acepta una ofuscación temporal (su constructor con
-`const Obfuscation&&` está borrado), porque guarda un puntero a ella. Con `InvalidPacket`, la
+`const IObfuscation&&` está borrado), porque guarda un puntero a ella. Con `InvalidPacket`, la
 conexión de la CL4 descarta el paquete y sigue leyendo: el corte no se perdió. Lo que se espera de
 cada traducción sale de la FoxAnti mínima compilada en el host con
 `Client/tests/vectors/net/tools/foxanti_cases.c` (su README dice cómo), y los tests usan los
@@ -702,10 +704,10 @@ ve ahí.
 ```cpp
 namespace Client::Network
 {
-class Obfuscation
+class IObfuscation
 {
 public:
-    virtual ~Obfuscation() = default;
+    virtual ~IObfuscation() = default;
     // S->C: el XOR del paquete que empieza con este byte del cable; 0 si no lleva.
     [[nodiscard]] virtual std::byte InboundMask(std::byte firstWireByte) const = 0;
     // S->C, recién cortado y desenmascarado.
@@ -719,19 +721,19 @@ public:
 };
 
 // Lo que cambia en PacketReader y EncryptPacket. Lo de la CL2.1 y la CL2.3 queda igual y usa una
-// IdentityObfuscation estática, así que sus tests no cambian. La Obfuscation vive más que el
+// IdentityObfuscation estática, así que sus tests no cambian. La IObfuscation vive más que el
 // lector: las dos son de la conexión (CL4).
 class PacketReader
 {
 public:
     PacketReader();
-    explicit PacketReader(const Obfuscation& obfuscation);
+    explicit PacketReader(const IObfuscation& obfuscation);
     // Feed y Next, como en la CL2.1.
 };
 Core::Expected<Packet, Crypto::CryptoError> EncryptPacket(const Packet& plain,
                                                           const Crypto::EncryptionKey& key,
                                                           PacketSerials& serials,
-                                                          const Obfuscation& obfuscation,
+                                                          const IObfuscation& obfuscation,
                                                           std::byte padding = {});
 } // namespace Client::Network
 ```
@@ -803,7 +805,7 @@ son de la CL4.
 **Archivos:** crear `Client/src/Protocol/BuildConstants.h`, `ProtocolError.h`, `Outgoing.h` y, en
 `Client/src/Protocol/Connection/`, `ServerList.h/.cpp` (`F4 02`, `F4 06` y `F4 03`), `Hello.h/.cpp`
 (`F1 00`), `Login.h/.cpp` (`F1 01`, su respuesta y `F1 03`) y `Keepalive.h/.cpp` (`0E`); sus tests
-en `Client/tests/protocol/` y `GoldenLoginTest.cpp`. Mover `Xor3` a `Client/src/Core/`. Modificar
+en `Client/tests/protocol/` y `test_golden_login.cpp`. Mover `Xor3` a `Client/src/Core/`. Modificar
 `Client/CMakeLists.txt`, `Client/README.md`, 04 (la cantidad de `F4 06` y el índice de `F1 00`),
 PROGRESS y este plan.
 

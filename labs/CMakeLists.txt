@@ -56,12 +56,14 @@ if(MURET_BUILD_TESTS)
     include(GoogleTest)
 
     # Los tests de las misiones y el jefe (Q-C03). Cada test de GoogleTest es un test de CTest,
-    # con el prefijo LabCl20. para no mezclarse con los del cliente.
+    # con el prefijo LabCl20. para no mezclarse con los del cliente. Los archivos se llaman
+    # test_<algo>.cpp como en el cliente, pero van en un solo ejecutable: el lab es la unidad que se
+    # aprende (docs/CODING_RULES.md, regla 7).
     add_executable(LabCl20Tests
-        cl2.0-flujos/BitStreamTest.cpp
-        cl2.0-flujos/FrameCutterTest.cpp
-        cl2.0-flujos/ModularInverseTest.cpp
-        cl2.0-flujos/jefe/OldCutTest.cpp
+        cl2.0-flujos/test_bit_stream.cpp
+        cl2.0-flujos/test_frame_cutter.cpp
+        cl2.0-flujos/test_modular_inverse.cpp
+        cl2.0-flujos/jefe/test_old_cut.cpp
     )
     target_link_libraries(LabCl20Tests PRIVATE MuRetLabsCl20 GTest::gtest GTest::gtest_main)
     muret_set_warnings(LabCl20Tests)

@@ -8,7 +8,6 @@
 
 namespace
 {
-
 // Solo A-Z. std::tolower depende del locale de C y es comportamiento indefinido con un char
 // negativo (cualquier byte >= 0x80 de un nombre en UTF-8).
 char ToLowerAscii(char c)
@@ -125,12 +124,10 @@ std::optional<std::filesystem::path> FindEntry(const std::filesystem::path& dire
     }
     return FindIgnoringCase(directory, name, error);
 }
-
 } // namespace
 
 namespace Client::Data
 {
-
 std::optional<std::filesystem::path> ResolveDataPath(const std::filesystem::path& dataRoot,
                                                      std::string_view originalPath, std::error_code& error)
 {
@@ -173,5 +170,4 @@ std::optional<std::filesystem::path> ResolveDataPath(const std::filesystem::path
     }
     return current;
 }
-
 } // namespace Client::Data

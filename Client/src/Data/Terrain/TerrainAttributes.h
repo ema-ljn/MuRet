@@ -1,3 +1,14 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Data/DataError.h"
+#include "Data/Terrain/TerrainGrid.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <span>
+
 // EncTerrain<N>.att, los atributos de cada celda de un mundo (zona segura, no caminable…;
 // Client/docs/research/05-formatos-de-datos.md, "Terreno de un mundo"; en el original, el cargador
 // de 0x5f8390). Se lee de Data\World<N>\EncTerrain<N>.att. En dos mundos, según el estado del
@@ -20,21 +31,8 @@
 // El original también compara una celda fija por mundo, en los cinco primeros (World1 a World5),
 // contra un valor esperado. Es una defensa contra archivos modificados y MuRet no la porta (Q-C26 en
 // Client/docs/research/07-quirks-y-bugs.md).
-
-#pragma once
-
-#include "Core/Expected.h"
-#include "Data/DataError.h"
-#include "Data/Terrain/TerrainGrid.h"
-
-#include <cstddef>
-#include <cstdint>
-#include <memory>
-#include <span>
-
 namespace Client::Data::Terrain
 {
-
 // La cabecera: 00, el número del mundo, FF, FF.
 inline constexpr std::size_t TerrainAttributesHeaderSize = 4;
 // El byte de la cabecera con el número del mundo, el que devuelve el cargador del original.
@@ -65,5 +63,4 @@ struct TerrainAttributes
 //     llama el que muestra "%s file corrupted." y cierra el juego.
 Core::Expected<std::unique_ptr<TerrainAttributes>, DataError> LoadTerrainAttributes(std::span<const std::byte> file,
                                                                                     std::uint8_t world);
-
 } // namespace Client::Data::Terrain

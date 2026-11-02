@@ -1,0 +1,27 @@
+# Lo básico para cualquier editor, como el .editorconfig de sven-n/MuMain. El formato del C++ lo
+# decide .clang-format; esto solo fija espacios, fines de línea y codificación.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C++, como la sección de MuMain.
+[*.{cpp,h,hpp,inl,c}]
+indent_style = space
+indent_size = 4
+
+[{CMakeLists.txt,*.cmake}]
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# En Markdown, dos espacios al final de una línea son un salto: no se borran.
+[*.md]
+indent_style = space
+trim_trailing_whitespace = false

@@ -103,8 +103,8 @@ lo que hace falta para armarla y volver a sacar todo.
   con `-skip 24` (el `fseek` de `0x18`), ordenadas por ruta.
 
 De los archivos del juego, `lab-6b.txt` solo tiene la ruta, el tamaño, los componentes y un hash
-(`AGENTS.md`). `GoldenJpegImageTest.cpp` lo compara con lo que da `DecodeJpeg` de cada OZJ, y es lo
-que hay que correr al cambiar de versión de libjpeg-turbo. La versión está fija en `vcpkg.json`
+(`AGENTS.md`). `test_golden_jpeg_image.cpp` lo compara con lo que da `DecodeJpeg` de cada OZJ, y es
+lo que hay que correr al cambiar de versión de libjpeg-turbo. La versión está fija en `vcpkg.json`
 (`overrides`) y en un `static_assert` de `JpegImage.cpp`, así que cambiarla es un PR propio
 (`CODING_RULES.md` §10). En el laboratorio, turbo da lo de la 6b con su SIMD y sin él
 (`JSIMD_FORCENONE=1`).

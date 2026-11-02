@@ -4,13 +4,10 @@
 
 namespace Labs
 {
-
 namespace
 {
-
 // El módulo más chico con aritmética que tenga sentido: módulo 1 todo es 0.
 constexpr std::uint32_t MinModulus = 2;
-
 } // namespace
 
 // Euclides extendido. Lleva dos restos (r) y, para cada uno, el coeficiente de a (t) con
@@ -53,5 +50,4 @@ std::optional<std::uint32_t> ModularInverse(std::uint32_t a, std::uint32_t m)
     }
     return static_cast<std::uint32_t>(previousCoefficient);
 }
-
 } // namespace Labs

@@ -131,10 +131,11 @@ cuántos componentes trae el JPEG (Q-C31), pero en el laboratorio son siempre 3.
 MuRet decodifica con libjpeg-turbo 3.2.0 (fija en `vcpkg.json`), con la API de la 6b
 (`JPEG_LIB_VERSION` 62) y sus parámetros por defecto, como el original. Da los mismos bytes que la IJG libjpeg 6b en los 2.380
 JPEG del laboratorio: `Client/tests/vectors/jpeg/lab-6b.txt` guarda el tamaño y un hash de lo que
-da la 6b de cada uno, decodificado como lo hace el original, y `GoldenJpegImageTest` lo compara con
-lo que da turbo. Los vectores de la misma carpeta, que corren en CI, traen los píxeles de la 6b. Los
-9 tiles OZJ de World1 dan los buffers de la memoria del original (`lor2_slot023..02b.bin`). Fuera
-del laboratorio, turbo hace algunas cosas distinto que la 6b, y quedan en Q-C33.
+da la 6b de cada uno, decodificado como lo hace el original, y `test_golden_jpeg_image.cpp` lo
+compara con lo que da turbo. Los vectores de la misma carpeta, que corren en CI, traen los píxeles
+de la 6b. Los 9 tiles OZJ de World1 dan los buffers de la memoria del original
+(`lor2_slot023..02b.bin`). Fuera del laboratorio, turbo hace algunas cosas distinto que la 6b, y
+quedan en Q-C33.
 
 **La luz** (CL1.4): `TerrainLight.OZJ` es un OZJ con los mismos 24 bytes delante y el mismo
 libjpeg, pero su cargador (`0x63b490`) no arma una textura. Da vuelta las filas, así que la fila 0

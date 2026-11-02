@@ -2,7 +2,6 @@
 
 namespace Client::Data::Tables
 {
-
 Core::Expected<GateTable, DataError> LoadGateTable(std::span<const std::byte> file)
 {
     if (file.size() < GateTableSize)
@@ -11,5 +10,4 @@ Core::Expected<GateTable, DataError> LoadGateTable(std::span<const std::byte> fi
     }
     return GateTable(file.first(GateTableSize));
 }
-
 } // namespace Client::Data::Tables

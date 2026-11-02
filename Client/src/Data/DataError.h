@@ -1,10 +1,8 @@
-// Lo que puede fallar al leer un archivo de Data\. Cada sub-ola de la CL1 suma lo suyo.
-
 #pragma once
 
+// Lo que puede fallar al leer un archivo de Data\. Cada sub-ola de la CL1 suma lo suyo.
 namespace Client::Data
 {
-
 enum class DataError
 {
     FileTooShort,     // el archivo tiene menos bytes de los que pide su formato
@@ -13,5 +11,4 @@ enum class DataError
     UnexpectedSize,   // el archivo no tiene ninguno de los tamaños que acepta su formato
     InvalidData,      // un valor del archivo no es uno de los que acepta su formato
 };
-
 } // namespace Client::Data

@@ -7,7 +7,6 @@
 
 namespace Client::Data::Tables
 {
-
 Core::Expected<LoadedItemTable, DataError> LoadItemTable(std::span<const std::byte> file)
 {
     if (file.size() < ItemTableSize)
@@ -20,5 +19,4 @@ Core::Expected<LoadedItemTable, DataError> LoadItemTable(std::span<const std::by
         stored.has_value() && TableChecksum(records, ItemChecksumKey, ChecksumParity::XorOddDwords) == *stored;
     return LoadedItemTable{ItemTable(records), matches};
 }
-
 } // namespace Client::Data::Tables

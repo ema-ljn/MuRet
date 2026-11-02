@@ -7,7 +7,6 @@
 
 namespace Client::Data::Tables
 {
-
 Core::Expected<SkillTable, DataError> LoadSkillTable(std::span<const std::byte> file)
 {
     const std::optional<std::uint32_t> stored = StoredChecksum(file, SkillTableSize);
@@ -22,5 +21,4 @@ Core::Expected<SkillTable, DataError> LoadSkillTable(std::span<const std::byte> 
     }
     return SkillTable(records);
 }
-
 } // namespace Client::Data::Tables

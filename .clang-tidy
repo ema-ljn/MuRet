@@ -1,0 +1,19 @@
+# Análisis estático, adaptado del .clang-tidy de sven-n/MuMain: las mismas familias de checks y
+# solo cambia HeaderFilterRegex, para las carpetas de MuRet. CI todavía no lo corre; a mano, con el
+# compile_commands.json que exporta el CMake raíz:
+#   run-clang-tidy -p build/linux-x64-debug -quiet 'Client/(src|tests)/'
+Checks: >
+  -*,
+  bugprone-*,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-using,
+  modernize-make-unique,
+  performance-*,
+  readability-redundant-smartptr-get,
+  readability-container-size-empty,
+  misc-unused-using-decls
+
+HeaderFilterRegex: '(Client|Server|labs)/.*'
+WarningsAsErrors: '*'
+FormatStyle: file

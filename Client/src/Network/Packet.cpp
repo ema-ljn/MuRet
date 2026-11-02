@@ -6,10 +6,8 @@
 
 namespace Client::Network
 {
-
 namespace
 {
-
 // Cabecera de cada clase de tipo: el byte del tipo y el tamaño, en uno o en dos bytes.
 constexpr std::size_t OneByteSizeHeader = 2;
 constexpr std::size_t TwoByteSizeHeader = 3;
@@ -27,7 +25,6 @@ bool HasOneByteSize(PacketType type)
 {
     return type == PacketType::C1 || type == PacketType::C3;
 }
-
 } // namespace
 
 std::optional<PacketType> PacketTypeFromByte(std::byte first)
@@ -119,42 +116,38 @@ Core::Expected<Packet, PacketError> Packet::FromBytes(std::vector<std::byte> byt
     return Packet(*type, std::move(bytes));
 }
 
-Packet::Packet(PacketType packetType, std::vector<std::byte> packetBytes)
-    : type(packetType), bytes(std::move(packetBytes))
-{
-}
+Packet::Packet(PacketType type, std::vector<std::byte> bytes) : m_type(type), m_bytes(std::move(bytes)) {}
 
 PacketType Packet::Type() const
 {
-    return type;
+    return m_type;
 }
 
 std::span<const std::byte> Packet::Bytes() const
 {
-    return bytes;
+    return m_bytes;
 }
 
 std::span<std::byte> Packet::MutableBody()
 {
-    if (bytes.size() < HeaderSize(type))
+    if (m_bytes.size() < HeaderSize(m_type))
     {
         return {};
     }
-    return std::span<std::byte>(bytes).subspan(HeaderSize(type));
+    return std::span<std::byte>(m_bytes).subspan(HeaderSize(m_type));
 }
 
 std::vector<std::byte> Packet::TakeBytes() &&
 {
-    return std::exchange(bytes, {});
+    return std::exchange(m_bytes, {});
 }
 
 std::optional<std::uint8_t> Packet::Opcode() const
 {
-    if (type == PacketType::C3 || type == PacketType::C4 || bytes.size() < MinPacketSize(type))
+    if (m_type == PacketType::C3 || m_type == PacketType::C4 || m_bytes.size() < MinPacketSize(m_type))
     {
         return std::nullopt;
     }
-    return std::to_integer<std::uint8_t>(bytes[HeaderSize(type)]);
+    return std::to_integer<std::uint8_t>(m_bytes[HeaderSize(m_type)]);
 }
-
 } // namespace Client::Network

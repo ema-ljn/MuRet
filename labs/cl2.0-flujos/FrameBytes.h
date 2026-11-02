@@ -1,6 +1,3 @@
-// Ayudas de los tests de la CL2.0 (FrameCutterTest.cpp y jefe/OldCutTest.cpp): armar paquetes
-// con bytes literales y pasarle un flujo al corte de a un byte.
-
 #pragma once
 
 #include "FrameCutter.h"
@@ -11,9 +8,10 @@
 #include <utility>
 #include <vector>
 
+// Ayudas de los tests de la CL2.0 (test_frame_cutter.cpp y jefe/test_old_cut.cpp): armar paquetes
+// con bytes literales y pasarle un flujo al corte de a un byte.
 namespace Labs::Tests
 {
-
 inline Frame Bytes(std::initializer_list<int> values)
 {
     Frame bytes;
@@ -48,5 +46,4 @@ inline std::vector<Frame> FeedAll(FrameCutter& cutter, std::span<const std::byte
 // Los dos paquetes del caso 1 de red_reference.py, que también usa el 1b.
 inline const Frame FirstC1 = Bytes({0xC1, 0x05, 0x10, 0x01, 0x02});
 inline const Frame SecondC2 = Bytes({0xC2, 0x00, 0x06, 0x20, 0x03, 0x04});
-
 } // namespace Labs::Tests

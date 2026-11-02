@@ -1,3 +1,8 @@
+#pragma once
+
+#include <cstddef>
+#include <span>
+
 // XOR3: cada byte i se combina con XOR con FC, CF o AB según i % 3. Aplicarlo dos veces devuelve
 // los bytes de antes, así que la misma función cifra y descifra.
 //
@@ -9,15 +14,7 @@
 // i se cuenta desde el principio de `bytes`. Aplicarlo por partes da lo mismo que de una vez solo
 // si cada parte arranca en un múltiplo de 3, como los registros de 300 bytes de Text.bmd. El login
 // lo aplica a la cuenta y a la clave por separado, así que en cada campo vuelve a empezar en FC.
-
-#pragma once
-
-#include <cstddef>
-#include <span>
-
 namespace Client::Core
 {
-
 void Xor3(std::span<std::byte> bytes);
-
 } // namespace Client::Core

@@ -1,3 +1,12 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Data/DataError.h"
+#include "Data/Textures/Texture.h"
+
+#include <cstddef>
+#include <span>
+
 // OZJ, una textura JPEG (Client/docs/research/05-formatos-de-datos.md, "Texturas"; en el
 // original, el cargador de 0x63b870). El original pide "<nombre>.jpg" y abre Data\<nombre>.OZJ.
 //
@@ -12,19 +21,8 @@
 // La imagen va en la esquina de una textura de lados potencia de 2, como la del OZT, pero sin dar
 // vuelta las filas: la fila 0 de la textura es la primera del JPEG. Siete OZJ del laboratorio son
 // en realidad TGA (Q-C14), y libjpeg los rechaza: "Not a JPEG file".
-
-#pragma once
-
-#include "Core/Expected.h"
-#include "Data/DataError.h"
-#include "Data/Textures/Texture.h"
-
-#include <cstddef>
-#include <span>
-
 namespace Client::Data::Textures
 {
-
 // Los bytes del principio que el original saltea con fseek(0x18) antes de pasarle el archivo a
 // libjpeg: los 24 que agrega el exportador (0x63b280).
 inline constexpr std::size_t OzjPrefixSize = 24;
@@ -42,5 +40,4 @@ static_assert(OzjPrefixSize == 0x18, "el fseek que mide el research (0063b870-oz
 //     en cada fila, y uno CMYK, de 4, entra si su ancho no pasa de 3/4 del de la textura (Q-C31).
 //     Si una fila no entra en la de la textura, devuelve DataError::InvalidData.
 Core::Expected<Texture, DataError> LoadOzjTexture(std::span<const std::byte> file);
-
 } // namespace Client::Data::Textures

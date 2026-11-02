@@ -1,12 +1,3 @@
-// Misión de la CL2.0 (docs/learning/ola-cl2.0-flujos-y-bloques.md, actividad 10): un flujo de bits
-// MSB primero, como el que arma el bloque C3/C4.
-// Contrato: Client/docs/research/03-red-y-cifrado.md, "C3/C4: cifrado por bloques con Enc1.dat y
-// Dec2.dat".
-//
-// MSB primero: el primer bit del flujo es el 0x80 del byte 0, el segundo el 0x40, y un campo puede
-// empezar en la mitad de un byte y terminar en el siguiente. Los dos tipos van en un mismo archivo
-// porque uno es el espejo del otro y se prueban juntos.
-
 #pragma once
 
 #include <cstddef>
@@ -15,9 +6,16 @@
 #include <span>
 #include <vector>
 
+// Misión de la CL2.0 (docs/learning/ola-cl2.0-flujos-y-bloques.md, actividad 10): un flujo de bits
+// MSB primero, como el que arma el bloque C3/C4.
+// Contrato: Client/docs/research/03-red-y-cifrado.md, "C3/C4: cifrado por bloques con Enc1.dat y
+// Dec2.dat".
+//
+// MSB primero: el primer bit del flujo es el 0x80 del byte 0, el segundo el 0x40, y un campo puede
+// empezar en la mitad de un byte y terminar en el siguiente. Los dos tipos van en un mismo archivo
+// porque uno es el espejo del otro y se prueban juntos.
 namespace Labs
 {
-
 class BitWriter
 {
 public:
@@ -35,8 +33,8 @@ public:
 private:
     void WriteBit(bool bit);
 
-    std::vector<std::byte> bytes;
-    std::size_t writtenBits = 0;
+    std::vector<std::byte> m_bytes;
+    std::size_t m_writtenBits = 0;
 };
 
 class BitReader
@@ -56,8 +54,7 @@ public:
 private:
     [[nodiscard]] bool BitAt(std::size_t index) const;
 
-    std::span<const std::byte> buffer;
-    std::size_t position = 0; // en bits, desde el 0x80 del byte 0
+    std::span<const std::byte> m_buffer;
+    std::size_t m_position = 0; // en bits, desde el 0x80 del byte 0
 };
-
 } // namespace Labs

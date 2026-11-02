@@ -1,11 +1,3 @@
-// Misión de la CL2.0 (docs/learning/ola-cl2.0-flujos-y-bloques.md, actividad 4): cortar un flujo TCP
-// en paquetes C1/C2/C3/C4, alimentado de a un byte.
-// Contrato: Client/docs/research/03-red-y-cifrado.md, "Cadena de recepción" (el corte).
-//
-// TCP entrega bytes, no mensajes: una lectura puede traer medio paquete o tres. El corte es una
-// máquina de estados que solo mira un byte por vez, así que nunca lee uno que no llegó (el
-// original sí, Q-C03 en 07-quirks-y-bugs.md: ver jefe/OldCutTest.cpp).
-
 #pragma once
 
 #include <cstddef>
@@ -13,9 +5,15 @@
 #include <optional>
 #include <vector>
 
+// Misión de la CL2.0 (docs/learning/ola-cl2.0-flujos-y-bloques.md, actividad 4): cortar un flujo TCP
+// en paquetes C1/C2/C3/C4, alimentado de a un byte.
+// Contrato: Client/docs/research/03-red-y-cifrado.md, "Cadena de recepción" (el corte).
+//
+// TCP entrega bytes, no mensajes: una lectura puede traer medio paquete o tres. El corte es una
+// máquina de estados que solo mira un byte por vez, así que nunca lee uno que no llegó (el
+// original sí, Q-C03 en 07-quirks-y-bugs.md: ver jefe/test_old_cut.cpp).
 namespace Labs
 {
-
 // Un paquete entero, con su cabecera, tal como vino en el flujo.
 using Frame = std::vector<std::byte>;
 
@@ -72,11 +70,10 @@ private:
     std::optional<Frame> OnBody();
     void Fail(CutError reason);
 
-    State state = State::Type;
-    std::size_t headerSize = 0;   // 2 en un C1/C3, 3 en un C2/C4
-    std::size_t declaredSize = 0; // el tamaño que dice la cabecera, ella incluida
-    Frame frame;                  // los bytes del paquete en curso; salen por movimiento
-    std::optional<CutError> error;
+    State m_state = State::Type;
+    std::size_t m_headerSize = 0;   // 2 en un C1/C3, 3 en un C2/C4
+    std::size_t m_declaredSize = 0; // el tamaño que dice la cabecera, ella incluida
+    Frame m_frame;                  // los bytes del paquete en curso; salen por movimiento
+    std::optional<CutError> m_error;
 };
-
 } // namespace Labs

@@ -6,7 +6,6 @@
 
 namespace
 {
-
 using Client::Core::ByteReader;
 using Client::Data::Tables::ChecksumParity;
 
@@ -19,12 +18,10 @@ bool UsesXor(std::size_t index, ChecksumParity parity)
     const bool odd = index % 2 == 1;
     return parity == ChecksumParity::XorOddDwords ? odd : !odd;
 }
-
 } // namespace
 
 namespace Client::Data::Tables
 {
-
 std::uint32_t TableChecksum(std::span<const std::byte> bytes, std::uint32_t key, ChecksumParity parity)
 {
     std::uint32_t accumulator = key << SeedShift;
@@ -52,5 +49,4 @@ std::optional<std::uint32_t> StoredChecksum(std::span<const std::byte> file, std
     ByteReader trailer(file.subspan(recordsSize));
     return trailer.ReadU32Le();
 }
-
 } // namespace Client::Data::Tables

@@ -1,10 +1,3 @@
-// Los registros de una tabla .bmd de largo fijo: Gate, Item y Skill
-// (Client/docs/research/05-formatos-de-datos.md, "Tablas .bmd").
-//
-// Guarda los registros descifrados, como bytes y con el layout que tienen en la memoria del
-// original. Leer sus campos (nombres, niveles, requisitos) es de la CL9. Las tres tablas son la
-// misma clase con otro largo de registro: RecordTable<9>, RecordTable<0x54> y RecordTable<0x3C>.
-
 #pragma once
 
 #include "Core/Xor3.h"
@@ -14,9 +7,14 @@
 #include <span>
 #include <vector>
 
+// Los registros de una tabla .bmd de largo fijo: Gate, Item y Skill
+// (Client/docs/research/05-formatos-de-datos.md, "Tablas .bmd").
+//
+// Guarda los registros descifrados, como bytes y con el layout que tienen en la memoria del
+// original. Leer sus campos (nombres, niveles, requisitos) es de la CL9. Las tres tablas son la
+// misma clase con otro largo de registro: RecordTable<9>, RecordTable<0x54> y RecordTable<0x3C>.
 namespace Client::Data::Tables
 {
-
 template <std::size_t RecordSize> class RecordTable
 {
 public:
@@ -25,9 +23,9 @@ public:
     // Copia los registros enteros de `encrypted` y descifra cada uno con XOR3, como el original: la
     // clave vuelve a empezar en cada registro. Los bytes que sobran sin llegar a un registro no se
     // copian. Cuántos registros pide el formato lo decide el cargador de cada tabla.
-    explicit RecordTable(std::span<const std::byte> encrypted) : records(CopyWholeRecords(encrypted))
+    explicit RecordTable(std::span<const std::byte> encrypted) : m_records(CopyWholeRecords(encrypted))
     {
-        const std::span<std::byte> all(records);
+        const std::span<std::byte> all(m_records);
         for (std::size_t index = 0; index < Count(); ++index)
         {
             Core::Xor3(all.subspan(index * RecordSize, RecordSize));
@@ -36,7 +34,7 @@ public:
 
     [[nodiscard]] std::size_t Count() const
     {
-        return records.size() / RecordSize;
+        return m_records.size() / RecordSize;
     }
 
     // El registro `index`, o std::nullopt si index >= Count(). Apunta adentro de la tabla: vale
@@ -47,7 +45,7 @@ public:
         {
             return std::nullopt;
         }
-        const std::span<const std::byte> all(records);
+        const std::span<const std::byte> all(m_records);
         return all.subspan(index * RecordSize).first<RecordSize>();
     }
 
@@ -64,7 +62,6 @@ private:
         return std::vector<std::byte>(whole.begin(), whole.end());
     }
 
-    std::vector<std::byte> records;
+    std::vector<std::byte> m_records;
 };
-
 } // namespace Client::Data::Tables

@@ -1,10 +1,3 @@
-// El login con el GameServer: el pedido (F1 01), su respuesta y el aviso de un C3/C4 que no se pudo
-// descifrar (F1 03).
-// Contrato: Client/docs/research/04-protocolo.md, "El flujo de conexión", 03-red-y-cifrado.md,
-// "C3/C4", y el plan de la CL2 (CL2.5).
-//
-// Los dos que manda el cliente llevan el XOR32 y salen cifrados como C3.
-
 #pragma once
 
 #include "Core/Expected.h"
@@ -16,9 +9,14 @@
 #include <cstdint>
 #include <string_view>
 
+// El login con el GameServer: el pedido (F1 01), su respuesta y el aviso de un C3/C4 que no se pudo
+// descifrar (F1 03).
+// Contrato: Client/docs/research/04-protocolo.md, "El flujo de conexión", 03-red-y-cifrado.md,
+// "C3/C4", y el plan de la CL2 (CL2.5).
+//
+// Los dos que manda el cliente llevan el XOR32 y salen cifrados como C3.
 namespace Client::Protocol::Connection
 {
-
 // Lo que mide la cuenta y la clave en el login: 10 bytes cada una, completadas con \0.
 inline constexpr std::size_t CredentialSize = 10;
 
@@ -51,5 +49,4 @@ inline constexpr std::uint8_t LoginAccepted = 1;
 // F1 03: C1 06 F1 03 06 00, con el XOR32 y para cifrar. Lo manda el original cuando un C3/C4 que
 // llega tiene el checksum malo (03, "C3/C4"; DecryptPacket con ChecksumMismatch o NotWholeBlocks).
 [[nodiscard]] Outgoing WriteDecryptErrorReport();
-
 } // namespace Client::Protocol::Connection

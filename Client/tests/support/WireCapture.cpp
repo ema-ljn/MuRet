@@ -9,10 +9,8 @@
 
 namespace Client::Tests
 {
-
 namespace
 {
-
 // Los campos de una línea: hora, puerto, sentido o ACC, len=N y los bytes.
 constexpr std::size_t PortField = 1;
 constexpr std::size_t KindField = 2;
@@ -141,7 +139,6 @@ std::string_view TakeLine(std::string_view& text)
     }
     return line;
 }
-
 } // namespace
 
 std::vector<std::span<const std::byte>> WireConnection::Reads(WireDirection direction) const
@@ -204,5 +201,4 @@ Core::Expected<std::vector<WireConnection>, WireCaptureError> ParseWireCapture(s
     }
     return connections;
 }
-
 } // namespace Client::Tests

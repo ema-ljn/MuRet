@@ -1,7 +1,3 @@
-// Los vectores JPEG de CI (Client/tests/vectors/jpeg/README.md): JPEG sintéticos chicos y lo que
-// da decodificarlos con la IJG libjpeg 6b, la del original. Están en el repo, así que corren sin
-// la carpeta golden.
-
 #pragma once
 
 #include "support/VectorFiles.h"
@@ -14,9 +10,11 @@
 #include <string_view>
 #include <vector>
 
+// Los vectores JPEG de CI (Client/tests/vectors/jpeg/README.md): JPEG sintéticos chicos y lo que
+// da decodificarlos con la IJG libjpeg 6b, la del original. Están en el repo, así que corren sin
+// la carpeta golden.
 namespace Client::Tests
 {
-
 // La carpeta de los vectores. CMake la pasa en MURET_CLIENT_JPEG_VECTORS_DIR.
 inline std::filesystem::path JpegVectorsDir()
 {
@@ -50,5 +48,4 @@ inline std::vector<std::byte> OzjOf(std::span<const std::byte> jpeg)
     ozj.insert(ozj.end(), jpeg.begin(), jpeg.end());
     return ozj;
 }
-
 } // namespace Client::Tests

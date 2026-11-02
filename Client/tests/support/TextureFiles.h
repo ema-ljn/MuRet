@@ -1,6 +1,3 @@
-// Ayudas para los tests de las texturas: armar un OZT sintético como lo deja el exportador del
-// original, y los píxeles que se esperan de él.
-
 #pragma once
 
 #include "Data/Textures/OztTexture.h"
@@ -11,9 +8,10 @@
 #include <cstdint>
 #include <vector>
 
+// Ayudas para los tests de las texturas: armar un OZT sintético como lo deja el exportador del
+// original, y los píxeles que se esperan de él.
 namespace Client::Tests
 {
-
 // La cabecera de un TGA sin comprimir, sin id y sin paleta: 18 bytes.
 inline constexpr std::size_t TgaHeaderSize = 18;
 // El tipo de imagen de un TGA de color sin comprimir.
@@ -62,5 +60,4 @@ inline std::vector<std::byte> PlainOzt(std::int16_t width, std::int16_t height, 
     ozt.insert(ozt.end(), tga.begin(), tga.end());
     return ozt;
 }
-
 } // namespace Client::Tests

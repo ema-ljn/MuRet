@@ -1,10 +1,3 @@
-// Rutas de Data\ como las escribe el original, resueltas en cualquier sistema.
-//
-// main.exe pide sus archivos con rutas de Windows ("Data\\Player\\Player.bmd"), y Windows no
-// distingue mayúsculas. Linux sí, y la copia del Data\ del laboratorio tiene carpetas en minúscula
-// (player\, skill\, sound\): sin esto, en Linux la mitad de los archivos "no estaría"
-// (Client/docs/research/09-datos-disponibles.md, "Cómo se verificó").
-
 #pragma once
 
 #include <filesystem>
@@ -12,9 +5,14 @@
 #include <string_view>
 #include <system_error>
 
+// Rutas de Data\ como las escribe el original, resueltas en cualquier sistema.
+//
+// main.exe pide sus archivos con rutas de Windows ("Data\\Player\\Player.bmd"), y Windows no
+// distingue mayúsculas. Linux sí, y la copia del Data\ del laboratorio tiene carpetas en minúscula
+// (player\, skill\, sound\): sin esto, en Linux la mitad de los archivos "no estaría"
+// (Client/docs/research/09-datos-disponibles.md, "Cómo se verificó").
 namespace Client::Data
 {
-
 // Busca `originalPath` (un archivo o una carpeta), separado por '\\' o '/', adentro de `dataRoot`.
 // Cada parte se compara sin distinguir mayúsculas ASCII, como en Windows: si hay una coincidencia
 // exacta gana esa, y si no, la primera en orden de bytes, sin volver atrás si la siguiente parte
@@ -34,5 +32,4 @@ namespace Client::Data
 //     falla de E/S) o si `dataRoot` está vacío (std::errc::invalid_argument).
 std::optional<std::filesystem::path> ResolveDataPath(const std::filesystem::path& dataRoot,
                                                      std::string_view originalPath, std::error_code& error);
-
 } // namespace Client::Data

@@ -1,14 +1,3 @@
-// Un paquete C1/C2/C3/C4 entero, con su cabecera, dueño de sus bytes.
-// Contrato: Client/docs/research/03-red-y-cifrado.md, "Cadena de recepción" (el corte).
-//
-// C1 y C3 llevan el tamaño en el byte 1, y C2 y C4 en los bytes 1 y 2, big-endian. El tamaño es el
-// del paquete entero, la cabecera incluida. C3 y C4 son los cifrados (CL2.3): a este nivel son
-// bytes como cualquiera, y su opcode viaja adentro del cifrado.
-//
-// Un Packet solo se arma con FromBytes, que mira el tipo, el tamaño mínimo y el máximo, y que el
-// tamaño que declara sea el que mide. Es un paquete válido hasta que se le sacan los bytes
-// (TakeBytes) o se mueve, y desde ahí no se usa más.
-
 #pragma once
 
 #include "Core/Expected.h"
@@ -20,9 +9,18 @@
 #include <span>
 #include <vector>
 
+// Un paquete C1/C2/C3/C4 entero, con su cabecera, dueño de sus bytes.
+// Contrato: Client/docs/research/03-red-y-cifrado.md, "Cadena de recepción" (el corte).
+//
+// C1 y C3 llevan el tamaño en el byte 1, y C2 y C4 en los bytes 1 y 2, big-endian. El tamaño es el
+// del paquete entero, la cabecera incluida. C3 y C4 son los cifrados (CL2.3): a este nivel son
+// bytes como cualquiera, y su opcode viaja adentro del cifrado.
+//
+// Un Packet solo se arma con FromBytes, que mira el tipo, el tamaño mínimo y el máximo, y que el
+// tamaño que declara sea el que mide. Es un paquete válido hasta que se le sacan los bytes
+// (TakeBytes) o se mueve, y desde ahí no se usa más.
 namespace Client::Network
 {
-
 // El primer byte del paquete.
 enum class PacketType : std::uint8_t
 {
@@ -83,10 +81,9 @@ public:
     [[nodiscard]] std::optional<std::uint8_t> Opcode() const;
 
 private:
-    Packet(PacketType packetType, std::vector<std::byte> packetBytes);
+    Packet(PacketType type, std::vector<std::byte> bytes);
 
-    PacketType type;
-    std::vector<std::byte> bytes;
+    PacketType m_type;
+    std::vector<std::byte> m_bytes;
 };
-
 } // namespace Client::Network

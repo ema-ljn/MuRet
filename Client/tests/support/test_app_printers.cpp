@@ -1,15 +1,19 @@
 #include "support/AppPrinters.h"
 
 #include "App/Credentials.h"
+#include "App/SessionState.h"
 
 #include <gtest/gtest.h>
 
 #include <string>
 
-// support/AppPrinters.h: lo que imprime GoogleTest de unas Credentials, que no puede ser la clave.
+// support/AppPrinters.h: lo que imprime GoogleTest de unas Credentials, que no puede ser la clave,
+// y de los estados y las fallas de la sesión.
 namespace
 {
 using Client::App::Credentials;
+using Client::App::SessionFailure;
+using Client::App::SessionState;
 
 // La cuenta y la clave sintéticas de los fixtures de mu-client (MuClientNetFixtures.h). Sin la
 // clave, los largos difieren: cada campo dice el suyo.
@@ -22,5 +26,17 @@ TEST(AppPrintersTest, CredentialsShowTheLengthsAndNotTheText)
     EXPECT_EQ(printed.find("pass0002"), std::string::npos);
     EXPECT_EQ(::testing::PrintToString(Credentials{"user0001", ""}),
               "Credentials{cuenta de 8 bytes, clave de 0 bytes}");
+}
+
+// Los estados y las fallas del GameServer (CL4.4) salen con su nombre, como los de antes.
+TEST(AppPrintersTest, TheGameServerStatesAndFailuresShowTheirNames)
+{
+    EXPECT_EQ(::testing::PrintToString(SessionState::WaitingGameHello), "WaitingGameHello");
+    EXPECT_EQ(::testing::PrintToString(SessionState::WaitingLoginResult), "WaitingLoginResult");
+    EXPECT_EQ(::testing::PrintToString(SessionState::LoggedIn), "LoggedIn");
+    EXPECT_EQ(::testing::PrintToString(SessionFailure::HelloRejected), "HelloRejected");
+    EXPECT_EQ(::testing::PrintToString(SessionFailure::VersionMismatch), "VersionMismatch");
+    EXPECT_EQ(::testing::PrintToString(SessionFailure::LoginRejected), "LoginRejected");
+    EXPECT_EQ(::testing::PrintToString(SessionFailure::CredentialsTooLong), "CredentialsTooLong");
 }
 } // namespace

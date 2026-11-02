@@ -107,7 +107,38 @@ Por ejemplo:
 ./build/linux-x64-debug/Client/Main --config ~/mu/otra.ini
 ```
 
-Hasta la CL4, el servidor solo se valida: todavía no se conecta, y sin host no es un error.
+Sin host no es un error: `Main` no mira el entorno ni las claves, y corre sin un servidor, como en
+CI.
+
+### Con un servidor: la cuenta y las claves
+
+Con un host, de `/u` o de `[Server] Host`, `Main` necesita dos cosas más antes de abrir la ventana,
+en este orden:
+
+1. La cuenta y la clave del login, en `MURET_CLIENT_ACCOUNT` y `MURET_CLIENT_PASSWORD`, hasta que
+   la escena de login las pida (CL5.5). No van en la config, que es un archivo, ni en la línea de
+   comandos, que queda en el historial y en `ps`. Cada una va de 1 a 10 bytes, el campo del
+   login: si falta, está vacía o pasa de 10, el error nombra la variable y nunca trae su valor.
+   Se cargan sin que se vean en la pantalla:
+
+   ```bash
+   read -rs -p "cuenta: " MURET_CLIENT_ACCOUNT; echo
+   read -rs -p "clave: " MURET_CLIENT_PASSWORD; echo
+   export MURET_CLIENT_ACCOUNT MURET_CLIENT_PASSWORD
+   ```
+
+   ```powershell
+   # -MaskInput es de PowerShell 7.1 o más nuevo.
+   $env:MURET_CLIENT_ACCOUNT = Read-Host "cuenta" -MaskInput
+   $env:MURET_CLIENT_PASSWORD = Read-Host "clave" -MaskInput
+   ```
+
+2. Las claves de la conexión con el GameServer, `Enc1.dat` y `Dec2.dat`, de la carpeta de datos
+   (`--data` o `[Data] Path`), sin mirar mayúsculas. Sin carpeta, o si alguna no está o no carga,
+   el error nombra las dos y dice qué pasó con cada una. No se versionan (D-C7).
+
+Con las dos, `Main` arranca la red del sistema y sigue como sin host: la sesión que conecta y
+entra al GameServer va en el bucle desde la CL4.5.
 
 ### `muret-client.ini`
 

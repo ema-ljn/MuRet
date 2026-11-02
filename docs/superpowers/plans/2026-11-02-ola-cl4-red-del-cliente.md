@@ -1416,8 +1416,55 @@ public:
     `FakeServers` en `127.0.0.1`, el CS manda los bytes del cable del 04 (con FoxAnti), el GS el
     saludo y el resultado cifrados con la clave sintética del servidor, y la sesión llega a
     `LoggedIn` antes de 200 vueltas del lazo (la integración que pide el 04).
+
+  Hechos en el PR B todos menos el del PR C, con lo que cambió al escribirlos:
+  - `ConnectsToTheGameServerItWasGiven` mira también que al abrir el GS no sale nada y la sesión
+    pasa a `WaitingGameHello`; `ARejectedHelloFails` prueba también resultado 0 con `"09908"`,
+    que es `HelloRejected` (el resultado se mira primero); `ABadChecksumSendsTheReport` mira que
+    el `F1 03` sale con el serial 1 y que el resultado que llega después se lee.
+  - Se sumaron, en `ServerSessionTest`: `AHelloThatArrivesEncryptedAlsoSendsTheLogin` (el GS del
+    laboratorio lo manda como C3), `AVersionThatDoesNotPrintIsLoggedWithQuestionMarks`,
+    `APacketThatIsNotWholeBlocksSendsTheReport`, `AnotherUndecryptablePacketSendsNoReport` (un
+    `TooShort`), `AGameHelloOutOfTurnIsIgnored`, `ALoginResultOutOfTurnIsIgnored`,
+    `WhatDoesNotReadFromTheGameServerIsIgnored`, `CredentialsThatDoNotFitFail`,
+    `LosingTheGameServerAfterTheLoginFails` y `StartingAgainForgetsTheLogin`. En
+    `CredentialsTest`: `ReadsBoth`, `MissingOneNamesOnlyIt`, `TenBytesFit` y
+    `SystemEnvironmentReadsTheProcess`. Y `ConnectionKeyFilesTest`, con los errores sobre una
+    carpeta temporal y, con la carpeta golden, las claves que cargan y que se encuentran sin mirar
+    mayúsculas.
+  - Lo que hace el GS de los tests (cifrar lo que contesta, descifrar lo que recibe) pasó de
+    `test_connection.cpp` a `tests/support/TestGameServer.h`, para la sesión también.
+  - Treinta y cinco mutantes a mano: veintiocho de `ServerSession.cpp` (el GS sin claves o el CS
+    con ellas, sin mirar el resultado o la versión, el login en claro o con el tick en 0, cada
+    transición que falta, el `F1 03` que no sale, sale en claro, sale solo con el checksum o con
+    cualquier error, la versión sin limpiar, cada chequeo de turno), y siete de `Credentials.cpp`
+    y otros siete de `ConnectionKeyFiles.cpp`: los mata algún test.
 - [ ] **Paso 5 (PR B y PR C):** la sesión del GS hasta `LoggedIn`, `ReadCredentials`, y las
   variables y las claves en `main.cpp` (PR B); los `FakeServers` y el test en loopback (PR C).
+
+  Lo que se decidió en el PR B, y lo que cambió respecto de la interfaz:
+  - El constructor es el de la interfaz, con el `IClock` y las `ConnectionKeys`: el GS abre con
+    ellas y el CS sin claves. `SessionFailure` no lleva datos, así que el resultado del login
+    queda en `LoginResult()`, aceptado o no, hasta el próximo `Start`.
+  - Una falla que no estaba: `CredentialsTooLong`, si `WriteLoginRequest` da `FieldTooLong`.
+    `ReadCredentials` ya no deja pasar más de 10 bytes, pero la sesión no depende de quién la
+    armó; el error no trae la cuenta.
+  - El resultado del saludo se mira antes que la versión. El original muestra "Version dismatch"
+    aunque el resultado no sea 1, pero un GS que rechaza no tiene por qué mandar su versión. La
+    versión va al log con `?` en cada byte que no se ve, porque viene del servidor.
+  - El `F1 03` sale con `ChecksumMismatch` y `NotWholeBlocks`, con una línea de info; con los
+    otros errores, y sin claves, solo queda el aviso de la conexión.
+  - `EnvironmentLookup` recibe un `std::string_view` y no un `const char*`: el mapa de los tests
+    busca con `std::less<>`, y `SystemEnvironment` copia el nombre para ponerle el `\0`.
+    `MaxCredentialBytes` es `CredentialSize` de `Protocol/Connection/Login.h`.
+  - Las claves las lee `App/ConnectionKeyFiles.h` (`LoadConnectionKeys`), y no Data, porque los
+    cargadores reciben bytes: busca con `ResolveDataPath`, lee 4096 bytes como mucho, y el error
+    nombra los dos archivos y qué pasó con cada uno.
+  - `main.cpp` lee las variables y después las claves en la fase 1, solo con un host que no está
+    vacío (un `[Server]` con solo el puerto no conecta), y el error va a stderr como los de la
+    config. El `NetworkInit` va después del log y antes de SDL. La sesión en el bucle es de la
+    CL4.5, igual que la semilla de `std::random_device`: con un host, `Main` lo dice en el log y
+    sigue como sin host, y sin host no cambia nada, así `Main --frames 60` corre sin un servidor.
 - [ ] **Paso 6:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug &&

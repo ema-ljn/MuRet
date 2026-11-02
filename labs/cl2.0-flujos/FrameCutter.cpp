@@ -8,19 +8,10 @@ namespace Labs
 namespace
 {
 
-// Los cuatro tipos (03, "Cadena de recepción"): C1/C3 llevan el tamaño en un byte, pkt[1]; C2/C4 en
-// dos, pkt[1..2], big-endian. C3/C4 son los cifrados, pero el corte no los distingue.
-constexpr std::byte TypeC1{0xC1};
-constexpr std::byte TypeC2{0xC2};
-constexpr std::byte TypeC3{0xC3};
-constexpr std::byte TypeC4{0xC4};
-
-// Cabecera de cada tipo: el byte del tipo y el tamaño.
-constexpr std::size_t OneByteSizeHeader = 2;
-constexpr std::size_t TwoByteSizeHeader = 3;
-
-// Después de la cabecera viene el opcode: es lo mínimo que lleva un paquete.
-constexpr std::size_t OpcodeSize = 1;
+// Dónde empieza el tamaño, después del byte del tipo, y cuánto se corre el byte alto del de un
+// C2/C4, que es big-endian.
+constexpr std::size_t SizeOffset = 1;
+constexpr unsigned BitsPerByte = 8;
 
 } // namespace
 
@@ -31,17 +22,21 @@ std::optional<Frame> FrameCutter::Feed(std::byte value)
         return std::nullopt;
     }
     frame.push_back(value);
-    if (state == State::Type)
+    // Sin default: si se agrega un estado y no se lo atiende acá, -Wswitch avisa.
+    switch (state)
     {
+    case State::Type:
         OnType(value);
         return std::nullopt;
-    }
-    if (state == State::Size)
-    {
+    case State::Size:
         OnSize();
         return std::nullopt;
+    case State::Body:
+        return OnBody();
+    case State::Failed:
+        break;
     }
-    return OnBody();
+    return std::nullopt;
 }
 
 std::optional<CutError> FrameCutter::Error() const
@@ -80,10 +75,10 @@ void FrameCutter::OnSize()
     {
         return;
     }
-    declaredSize = std::to_integer<std::size_t>(frame[1]);
+    declaredSize = std::to_integer<std::size_t>(frame[SizeOffset]);
     if (headerSize == TwoByteSizeHeader)
     {
-        declaredSize = (declaredSize << 8) | std::to_integer<std::size_t>(frame[2]);
+        declaredSize = (declaredSize << BitsPerByte) | std::to_integer<std::size_t>(frame[SizeOffset + 1]);
     }
     if (declaredSize < headerSize + OpcodeSize)
     {

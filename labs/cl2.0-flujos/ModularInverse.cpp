@@ -19,8 +19,9 @@ constexpr std::uint32_t MinModulus = 2;
 // inverso.
 //
 // Los t van alternando de signo y en valor absoluto no pasan de m, así que entran en un
-// std::int64_t con m de hasta 32 bits. Los restos no son negativos y no pasan de m: entran en un
-// std::uint32_t, pero se llevan en std::int64_t para no mezclar signos en q × r.
+// std::int64_t con m de hasta 32 bits (el que se devuelve no pasa de m/2; el que llega a m es el
+// último, que se descarta). Los restos no son negativos y no pasan de m: entran en un
+// std::uint32_t, pero se llevan en std::int64_t para no mezclar signos en q × r ni en q × t.
 std::optional<std::uint32_t> ModularInverse(std::uint32_t a, std::uint32_t m)
 {
     if (m < MinModulus)

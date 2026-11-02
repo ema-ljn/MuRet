@@ -19,6 +19,21 @@ namespace Labs
 // Un paquete entero, con su cabecera, tal como vino en el flujo.
 using Frame = std::vector<std::byte>;
 
+// Los cuatro tipos (03, "Cadena de recepción"): C1/C3 llevan el tamaño en un byte, pkt[1]; C2/C4
+// en dos, pkt[1..2], big-endian. C3/C4 son los cifrados, pero el corte no los distingue.
+inline constexpr std::byte TypeC1{0xC1};
+inline constexpr std::byte TypeC2{0xC2};
+inline constexpr std::byte TypeC3{0xC3};
+inline constexpr std::byte TypeC4{0xC4};
+
+// La cabecera de cada tipo, del mismo 03: el byte del tipo y el tamaño, en uno o en dos bytes.
+inline constexpr std::size_t OneByteSizeHeader = 2;
+inline constexpr std::size_t TwoByteSizeHeader = 3;
+
+// Después de la cabecera viene el opcode (03, "Cadena de recepción"): es lo mínimo que lleva un
+// paquete, así que un C1 mide al menos 3 bytes y un C2, 4.
+inline constexpr std::size_t OpcodeSize = 1;
+
 // Lo que frena el corte. Las dos son de la cabecera: el cuerpo no se mira.
 enum class CutError : std::uint8_t
 {

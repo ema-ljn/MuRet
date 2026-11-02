@@ -5,8 +5,14 @@
 // partir de RecvBuffer en red_reference.py (repo de research,
 // client-research/analysis/mainexe/scripts/). No es código para el cliente: muestra el bug, y los
 // tests dicen qué hace el FrameCutter con el mismo flujo.
+//
+// El modelo deja afuera el hook de FoxAnti: en el original, 0x4e8938 salta a 0x6b7cb0, que llama a
+// [0x6b7d00] y pisa +0x4014 con lo que devuelve, antes del corte. Es lo que hace selftest de
+// red_reference.py con hook=None, y lo de FoxAnti va en la CL2.4.
 
 #include "FrameCutter.h"
+
+#include "FrameBytes.h"
 
 #include <gtest/gtest.h>
 
@@ -25,11 +31,18 @@ namespace
 
 using Labs::Frame;
 using Labs::FrameCutter;
+using Labs::Tests::Bytes;
+using Labs::Tests::FeedAll;
+using Labs::Tests::FirstC1;
+using Labs::Tests::Join;
+using Labs::Tests::SecondC2;
 
 // Lo que mide el buffer de recepción del original: 0x4e88af, cmp eax,0x2000.
 constexpr std::size_t ReceiveCapacity = 0x2000;
 // Con menos bytes que estos, 0x4e88a0 vuelve sin cortar (0x4e8927, cmp eax,0x3).
 constexpr std::size_t MinBytesToCut = 3;
+// Cuánto se corre el byte alto del tamaño de un C2/C4, que es big-endian (0x4e8967, shl esi,0x8).
+constexpr unsigned BitsPerByte = 8;
 
 class OldCut
 {
@@ -39,18 +52,19 @@ public:
     // nadie cierra nada: el WndProc ignora lo que devuelve (0x4af4e0, en 0x4b3207).
     enum class ReadResult : std::uint8_t
     {
-        Cut,
-        NotRead,
-        NeedMore,
+        Cut = 0,
+        NotRead = 1,
+        NeedMore = 3,
     };
 
     // Una lectura de recv. Como en el original, recv nunca trae más que el lugar libre.
     ReadResult OnRead(std::span<const std::byte> chunk)
     {
-        // 0x4e88af: con el buffer lleno loguea "Receive Packet Buffer Overflow" y vuelve sin
-        // llamar a recv.
+        // 0x4e88af: con el buffer lleno lo anota en MuError.log (0x41fa40) y vuelve sin llamar a
+        // recv. El modelo cuenta esas anotaciones para que un test vea que pasó por acá.
         if (count >= ReceiveCapacity)
         {
+            ++overflowLogs;
             return ReadResult::NotRead;
         }
         // recv devuelve 0 cuando el otro lado cerró. Más que el lugar libre no pasa en el
@@ -81,6 +95,12 @@ public:
         return count;
     }
 
+    // Cuántas veces vio el buffer lleno y lo anotó en el log.
+    [[nodiscard]] std::size_t OverflowLogs() const
+    {
+        return overflowLogs;
+    }
+
     // Los primeros n bytes del buffer, para ver qué se corrió al principio y qué no.
     [[nodiscard]] Frame Prefix(std::size_t n) const
     {
@@ -94,15 +114,15 @@ private:
         std::size_t offset = 0;
         while (true)
         {
-            const std::uint8_t type = std::to_integer<std::uint8_t>(buffer[offset]);
+            const std::byte type = buffer[offset];
             std::size_t size = 0;
-            if (type == 0xC1 || type == 0xC3)
+            if (type == Labs::TypeC1 || type == Labs::TypeC3)
             {
                 size = ByteAt(offset + 1); // 0x4e8970
             }
-            else if (type == 0xC2 || type == 0xC4)
+            else if (type == Labs::TypeC2 || type == Labs::TypeC4)
             {
-                size = (ByteAt(offset + 1) << 8) | ByteAt(offset + 2); // 0x4e895f y 0x4e8962
+                size = (ByteAt(offset + 1) << BitsPerByte) | ByteAt(offset + 2); // 0x4e895f y 0x4e8962
             }
             else
             {
@@ -144,42 +164,11 @@ private:
     // después del buffer; acá quedan en 0.
     std::array<std::byte, ReceiveCapacity + 2> buffer{};
     std::size_t count = 0;
+    std::size_t overflowLogs = 0;
     std::vector<Frame> queue;
 };
 
-Frame Bytes(std::initializer_list<int> values)
-{
-    Frame bytes;
-    for (const int value : values)
-    {
-        bytes.push_back(static_cast<std::byte>(value));
-    }
-    return bytes;
-}
-
-Frame Join(const Frame& first, const Frame& second)
-{
-    Frame joined = first;
-    joined.insert(joined.end(), second.begin(), second.end());
-    return joined;
-}
-
-std::vector<Frame> FeedAll(FrameCutter& cutter, std::span<const std::byte> chunk)
-{
-    std::vector<Frame> frames;
-    for (const std::byte value : chunk)
-    {
-        if (auto frame = cutter.Feed(value))
-        {
-            frames.push_back(std::move(*frame));
-        }
-    }
-    return frames;
-}
-
-// El caso 1b de red_reference.py: dos paquetes, partidos después de C2 00.
-const Frame FirstC1 = Bytes({0xC1, 0x05, 0x10, 0x01, 0x02});
-const Frame SecondC2 = Bytes({0xC2, 0x00, 0x06, 0x20, 0x03, 0x04});
+// El caso 1b de red_reference.py: los dos paquetes del caso 1, partidos después de C2 00.
 constexpr std::size_t SplitAfter = 2; // los dos primeros bytes del C2 llegan con el C1
 
 // La primera lectura trae el C1 y C2 00. El tamaño del C2 se arma con el 00 y con el byte que
@@ -266,8 +255,48 @@ TEST(OldCutTest, SizeZeroFillsTheBufferUntilNothingMoreIsRead)
     EXPECT_EQ(cut.Count(), ReceiveCapacity);
     EXPECT_TRUE(cut.Queue().empty());
 
+    EXPECT_EQ(cut.OverflowLogs(), 0u);
     EXPECT_EQ(cut.OnRead(Bytes({0xC1})), OldCut::ReadResult::NotRead);
+    EXPECT_EQ(cut.OverflowLogs(), 1u);
     EXPECT_EQ(cut.Count(), ReceiveCapacity);
+}
+
+// Si el byte viejo da 3 o más, el tamaño no entra en los 2 bytes que quedan: el original los corre
+// al principio (0x4e89dd) y la lectura siguiente los completa bien. Una lectura anterior deja un 03
+// en la posición 7.
+TEST(OldCutTest, AnOldByteOfThreeOrMoreWaitsAndCutsRight)
+{
+    OldCut cut;
+    const Frame earlier = Bytes({0xC1, 0x08, 0x10, 0x00, 0x00, 0x00, 0x00, 0x03});
+    const Frame firstRead = Join(FirstC1, Frame(SecondC2.begin(), SecondC2.begin() + SplitAfter));
+    const Frame secondRead(SecondC2.begin() + SplitAfter, SecondC2.end());
+
+    ASSERT_EQ(cut.OnRead(earlier), OldCut::ReadResult::Cut);
+    ASSERT_EQ(cut.OnRead(firstRead), OldCut::ReadResult::Cut);
+    ASSERT_EQ(cut.Queue().size(), 2u);
+    EXPECT_EQ(cut.Count(), SplitAfter);
+    EXPECT_EQ(cut.Prefix(SplitAfter), Bytes({0xC2, 0x00})); // se corrieron al principio
+
+    ASSERT_EQ(cut.OnRead(secondRead), OldCut::ReadResult::Cut);
+    ASSERT_EQ(cut.Queue().size(), 3u);
+    EXPECT_EQ(cut.Queue()[2], SecondC2);
+    EXPECT_EQ(cut.Count(), 0u);
+}
+
+// El caso 2 de red_reference.py: con menos de 3 bytes en el buffer, 0x4e88a0 ni corta (0x4e8927) y
+// devuelve 3; con el que falta, corta. Una lectura vacía (recv da 0: el otro lado cerró) no lee.
+TEST(OldCutTest, WaitsWithLessThanThreeBytesAndDoesNotReadAnEmptyRead)
+{
+    OldCut cut;
+
+    EXPECT_EQ(cut.OnRead(Bytes({0xC1, 0x03})), OldCut::ReadResult::NeedMore);
+    EXPECT_TRUE(cut.Queue().empty());
+    EXPECT_EQ(cut.OnRead(Bytes({0x00})), OldCut::ReadResult::Cut);
+    ASSERT_EQ(cut.Queue().size(), 1u);
+    EXPECT_EQ(cut.Queue()[0], Bytes({0xC1, 0x03, 0x00}));
+
+    EXPECT_EQ(cut.OnRead(Frame{}), OldCut::ReadResult::NotRead);
+    EXPECT_EQ(cut.OverflowLogs(), 0u);
 }
 
 } // namespace

@@ -4,6 +4,8 @@
 
 #include "FrameCutter.h"
 
+#include "FrameBytes.h"
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -22,41 +24,14 @@ namespace
 using Labs::CutError;
 using Labs::Frame;
 using Labs::FrameCutter;
-
-Frame Bytes(std::initializer_list<int> values)
-{
-    Frame bytes;
-    for (const int value : values)
-    {
-        bytes.push_back(static_cast<std::byte>(value));
-    }
-    return bytes;
-}
-
-// Pasa una lectura entera al corte, de a un byte, y junta los paquetes que salen.
-std::vector<Frame> FeedAll(FrameCutter& cutter, std::span<const std::byte> chunk)
-{
-    std::vector<Frame> frames;
-    for (const std::byte value : chunk)
-    {
-        if (auto frame = cutter.Feed(value))
-        {
-            frames.push_back(std::move(*frame));
-        }
-    }
-    return frames;
-}
-
-// Los dos paquetes del caso 1 de red_reference.py.
-const Frame FirstC1 = Bytes({0xC1, 0x05, 0x10, 0x01, 0x02});
-const Frame SecondC2 = Bytes({0xC2, 0x00, 0x06, 0x20, 0x03, 0x04});
-
-Frame Join(const Frame& first, const Frame& second)
-{
-    Frame joined = first;
-    joined.insert(joined.end(), second.begin(), second.end());
-    return joined;
-}
+using Labs::OneByteSizeHeader;
+using Labs::OpcodeSize;
+using Labs::TwoByteSizeHeader;
+using Labs::Tests::Bytes;
+using Labs::Tests::FeedAll;
+using Labs::Tests::FirstC1;
+using Labs::Tests::Join;
+using Labs::Tests::SecondC2;
 
 // Caso 1: dos paquetes seguidos en una lectura salen los dos, enteros y en orden.
 TEST(FrameCutterTest, CutsTwoPacketsInOneRead)
@@ -92,8 +67,10 @@ TEST(FrameCutterTest, KeepsThePartialRestForTheNextRead)
     EXPECT_EQ(cutter.Pending(), 0u);
 }
 
-// Caso 2: con menos bytes que la cabecera no sale nada, y tampoco es un error: espera.
-TEST(FrameCutterTest, WaitsOnAnIncompleteHeader)
+// Caso 2: con la cabecera entera y sin el opcode no sale nada, y tampoco es un error: espera. (En
+// el original el caso 2 es otro umbral: con menos de 3 bytes en el buffer, 0x4e88a0 ni corta, en
+// 0x4e8927.)
+TEST(FrameCutterTest, WaitsForTheOpcode)
 {
     FrameCutter cutter;
 
@@ -104,6 +81,21 @@ TEST(FrameCutterTest, WaitsOnAnIncompleteHeader)
     const std::vector<Frame> frames = FeedAll(cutter, Bytes({0x00}));
     ASSERT_EQ(frames.size(), 1u);
     EXPECT_EQ(frames[0], Bytes({0xC1, 0x03, 0x00}));
+}
+
+// Q-C03 con un C1: con solo el byte del tipo, el original arma el tamaño con un byte viejo. El
+// corte espera el tamaño, y no lo inventa.
+TEST(FrameCutterTest, WaitsForTheSizeOfAC1)
+{
+    FrameCutter cutter;
+
+    EXPECT_TRUE(FeedAll(cutter, Bytes({0xC1})).empty());
+    EXPECT_FALSE(cutter.Error().has_value());
+    EXPECT_EQ(cutter.Pending(), 1u);
+
+    const std::vector<Frame> frames = FeedAll(cutter, Bytes({0x03, 0xF4}));
+    ASSERT_EQ(frames.size(), 1u);
+    EXPECT_EQ(frames[0], Bytes({0xC1, 0x03, 0xF4}));
 }
 
 // La cabecera de un C2 son tres bytes: con los dos primeros espera el tercero, y no lo inventa.
@@ -208,19 +200,19 @@ Frame RandomPacket(std::mt19937& engine)
 {
     // Tipos posibles, y el tamaño más grande: 255 para C1/C3 (un byte), y para C2/C4 uno que pasa
     // de 255 para que el byte alto del tamaño no sea siempre 0.
-    constexpr std::uint8_t Types[] = {0xC1, 0xC2, 0xC3, 0xC4};
+    constexpr std::byte Types[] = {Labs::TypeC1, Labs::TypeC2, Labs::TypeC3, Labs::TypeC4};
     constexpr std::uint32_t MaxOneByteSize = 0xFF;
     constexpr std::uint32_t MaxTwoByteSize = 600;
 
-    const std::uint8_t type = Types[Below(engine, static_cast<std::uint32_t>(std::size(Types)))];
-    const bool oneByteSize = type == 0xC1 || type == 0xC3;
-    const std::uint32_t headerSize = oneByteSize ? 2 : 3;
+    const std::byte type = Types[Below(engine, static_cast<std::uint32_t>(std::size(Types)))];
+    const bool oneByteSize = type == Labs::TypeC1 || type == Labs::TypeC3;
+    const std::size_t headerSize = oneByteSize ? OneByteSizeHeader : TwoByteSizeHeader;
     const std::uint32_t maxSize = oneByteSize ? MaxOneByteSize : MaxTwoByteSize;
-    const std::uint32_t minSize = headerSize + 1;
+    const auto minSize = static_cast<std::uint32_t>(headerSize + OpcodeSize);
     const std::uint32_t size = minSize + Below(engine, maxSize - minSize + 1);
 
     Frame packet(size);
-    packet[0] = std::byte{type};
+    packet[0] = type;
     if (oneByteSize)
     {
         packet[1] = static_cast<std::byte>(size);
@@ -237,17 +229,16 @@ Frame RandomPacket(std::mt19937& engine)
     return packet;
 }
 
-// Propiedad: un flujo de paquetes al azar, partido en lecturas al azar, da los mismos paquetes y
-// en el mismo orden. Como el corte recibe de a un byte, lo que se prueba es sobre todo la
-// variedad de tipos y tamaños; con el PacketReader de la CL2.1, que recibe lecturas enteras, el
-// mismo test prueba además los bordes de cada lectura.
-TEST(FrameCutterTest, RandomSplitsGiveTheSamePackets)
+// Propiedad: un flujo de paquetes al azar, de los cuatro tipos y de tamaños de todo el rango, sale
+// en los mismos paquetes y en el mismo orden. No se parte en lecturas: el corte recibe de a un byte,
+// así que partirlo no cambia nada. Esa propiedad es la del PacketReader de la CL2.1, que recibe
+// lecturas enteras (PacketReaderTest.RandomSplitsGiveTheSamePackets).
+TEST(FrameCutterTest, RandomPacketsComeOutInOrder)
 {
     // Semilla fija: si el test falla, falla igual en todas las máquinas.
     constexpr std::mt19937::result_type Seed = 20261102;
-    // Cuántos paquetes lleva el flujo, y la lectura más larga en que se parte.
+    // Cuántos paquetes lleva el flujo.
     constexpr std::uint32_t PacketCount = 200;
-    constexpr std::uint32_t MaxReadSize = 64;
 
     std::mt19937 engine(Seed);
     std::vector<Frame> expected;
@@ -259,18 +250,7 @@ TEST(FrameCutterTest, RandomSplitsGiveTheSamePackets)
     }
 
     FrameCutter cutter;
-    std::vector<Frame> got;
-    const std::span<const std::byte> bytes(stream);
-    std::size_t offset = 0;
-    while (offset < bytes.size())
-    {
-        const std::size_t read = std::min<std::size_t>(1 + Below(engine, MaxReadSize), bytes.size() - offset);
-        for (Frame& frame : FeedAll(cutter, bytes.subspan(offset, read)))
-        {
-            got.push_back(std::move(frame));
-        }
-        offset += read;
-    }
+    const std::vector<Frame> got = FeedAll(cutter, stream);
 
     EXPECT_EQ(got, expected);
     EXPECT_EQ(cutter.Pending(), 0u);

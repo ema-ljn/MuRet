@@ -191,6 +191,28 @@ TEST(BitReaderTest, RejectsMoreThan32Bits)
     EXPECT_EQ(reader.Read(32), 0x01020304u);
 }
 
+// El bit 31, el más alto que entra: se escribe y se lee como cualquier otro.
+TEST(BitReaderTest, WritesAndReadsBit31)
+{
+    BitWriter writer;
+    writer.Write(0x80000001, 32);
+
+    const std::vector<std::byte> bytes = Written(writer);
+    EXPECT_EQ(bytes, Bytes({0x80, 0x00, 0x00, 0x01}));
+    BitReader reader(bytes);
+    EXPECT_EQ(reader.Read(32), 0x80000001u);
+}
+
+// Escribir 0 bits no escribe nada.
+TEST(BitWriterTest, WritingZeroBitsWritesNothing)
+{
+    BitWriter writer;
+    writer.Write(5, 0);
+
+    EXPECT_TRUE(writer.Bytes().empty());
+    EXPECT_EQ(writer.BitCount(), 0u);
+}
+
 // Leer 0 bits no mueve nada y da 0.
 TEST(BitReaderTest, ReadingZeroBitsGivesZero)
 {

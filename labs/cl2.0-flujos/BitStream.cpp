@@ -10,8 +10,9 @@ namespace
 constexpr std::size_t ByteBits = 8;
 constexpr unsigned HighBit = 0x80;
 
-// Lo más que entra en el resultado de BitReader::Read.
-constexpr std::size_t MaxReadBits = 32;
+// Los bits de un std::uint32_t: lo que trae el valor de BitWriter::Write y lo más que entra en el
+// resultado de BitReader::Read.
+constexpr std::size_t ValueBits = 32;
 
 } // namespace
 
@@ -21,7 +22,7 @@ void BitWriter::Write(std::uint32_t value, std::size_t bitCount)
     for (std::size_t i = bitCount; i > 0; --i)
     {
         const std::size_t bit = i - 1;
-        WriteBit(bit < MaxReadBits && ((value >> bit) & 1u) != 0);
+        WriteBit(bit < ValueBits && ((value >> bit) & 1u) != 0);
     }
 }
 
@@ -54,7 +55,7 @@ BitReader::BitReader(std::span<const std::byte> bytes) : buffer(bytes) {}
 
 std::optional<std::uint32_t> BitReader::Read(std::size_t bitCount)
 {
-    if (bitCount > MaxReadBits || bitCount > RemainingBits())
+    if (bitCount > ValueBits || bitCount > RemainingBits())
     {
         return std::nullopt;
     }

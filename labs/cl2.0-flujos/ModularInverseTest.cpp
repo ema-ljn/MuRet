@@ -42,8 +42,8 @@ TEST(ModularInverseTest, NoInverseModuloZeroOrOne)
     EXPECT_EQ(ModularInverse(1, 1), std::nullopt);
 }
 
-// El módulo más grande que entra: 2 × 2^31 = 2^32, que es 1 módulo 2^32 - 1. Los coeficientes de
-// Euclides llegan cerca de m, así que este caso prueba que el tipo donde se guardan alcanza.
+// El módulo más grande que entra: 2 × 2^31 = 2^32, que es 1 módulo 2^32 - 1. El primer resto es
+// m, que no entra en un std::int32_t: este caso prueba que las cuentas no se pasan con él.
 TEST(ModularInverseTest, WorksWithTheLargestModulus)
 {
     // El uint32 más grande, y la mitad de 2^32.

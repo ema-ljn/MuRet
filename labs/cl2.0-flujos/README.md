@@ -69,12 +69,12 @@ Antes de las implementaciones, con los tres `.cpp` vacíos, compilan los tests y
   uno vacío: el dueño pasa a ser quien lo recibe, sin copiar.
 - **Mínimos:** la cabecera más el opcode, 3 en C1/C3 y 4 en C2/C4. El 0 entra ahí.
 
-**El de propiedad.** 200 paquetes válidos al azar (tipo, tamaño y cuerpo), uno detrás del otro, y
-partidos en lecturas al azar, salen iguales y en orden. **Respuesta a "Pensá".** Con un corte que
-recibe de a un byte, partir el flujo no cambia nada: las llamadas a `Feed` son las mismas. Lo
-que prueba es la variedad de tipos y tamaños (con C2/C4 de más de 255, para que el byte alto del
-tamaño no sea siempre 0). Partir sí importa en el `PacketReader` de la CL2.1, que recibe lecturas
-enteras.
+**El de propiedad** (`RandomPacketsComeOutInOrder`). 200 paquetes válidos al azar (tipo, tamaño y
+cuerpo), uno detrás del otro, salen iguales y en orden. **Respuesta a "Pensá".** Con un corte que
+recibe de a un byte, partir el flujo no cambia nada: las llamadas a `Feed` son las mismas, así que
+el test no lo parte. Lo que prueba es la variedad de tipos y tamaños (con C2/C4 de más de 255,
+para que el byte alto del tamaño no sea siempre 0). Partir sí importa en el `PacketReader` de la
+CL2.1, que recibe lecturas enteras.
 
 ## 5 y 6. El XOR32
 
@@ -99,10 +99,12 @@ y vuelve igual.
 
 **Las decisiones:**
 
-- **Los coeficientes en `std::int64_t`.** Euclides extendido los deja negativos en la mitad de
-  los pasos, así que un tipo sin signo no sirve. En valor absoluto no pasan de m, que tiene hasta
-  32 bits: entran en 64 con signo. Al final, uno negativo se lleva a `0..m-1` sumándole m.
-  `WorksWithTheLargestModulus` usa m = `0xFFFFFFFF`, donde un `int32_t` ya no alcanza.
+- **Las cuentas en `std::int64_t`.** Euclides extendido deja los coeficientes negativos en la
+  mitad de los pasos, así que un tipo sin signo no sirve. El que se devuelve no pasa de m/2 en
+  valor absoluto, y cabría en un `int32_t`; lo que no cabe es el resto, que empieza en m (hasta
+  32 bits), ni el último coeficiente, que llega a m y se descarta, ni los productos `q × t`. Con
+  todo en 64 con signo no hay que pensar cuál entra. Al final, uno negativo se lleva a `0..m-1`
+  sumándole m. `WorksWithTheLargestModulus` usa m = `0xFFFFFFFF`, el resto más grande que hay.
 - **El producto del test en `std::uint64_t`:** dos números de 18 bits dan hasta 36.
 
 ## 9 y 10. El bloque y los bits
@@ -140,10 +142,15 @@ mul.cpp:8:33: runtime error: signed integer overflow: 65535 * 65535 cannot be re
 - Con `std::uint32_t{lane} * key`, `key` se promueve a `int` y la conversión usual lo lleva a
   `unsigned int`: la cuenta es sin signo, y da `0xFFFE0001`.
 - Se pasa cuando el producto supera `2^31 - 1`. Con `lane = 0xFFFF`, desde `key = 0x8001`
-  (`0xFFFF * 0x8000` todavía entra). Que una clave tenga 16 bits no alcanza: tiene que pasar de
-  `0x8000`, y el carril estar cerca de `0xFFFF`. Las del servidor llegan a 16 bits, así que
-  puede pasar, y en el descifrado más todavía, porque el carril cifrado tiene hasta 18 bits: los
-  productos van en `std::uint32_t`.
+  (`0xFFFF * 0x8000` todavía entra). Que una clave tenga 16 bits no alcanza: el producto tiene
+  que pasar de `INT_MAX`, y para eso los dos factores tienen que pasar de `0x8000` (con la clave
+  en `0xFFFF`, cualquier carril desde `0x8001`). Las del servidor llegan a 16 bits, así que
+  puede pasar, y en el descifrado más todavía, porque el carril cifrado tiene hasta 18 bits. Por
+  eso los productos van en `std::uint32_t`: no porque entren (18 por 16 bits pueden ser 34), sino
+  porque dan la vuelta en 32 bits igual que el `IMUL` del original. Las claves reales cumplen
+  `clave de descifrado × (módulo - 1) < 2^32` (`synthetic_key` de `red_reference.py`), así que
+  con ellas y un bloque bien cifrado no da la vuelta; con uno roto, cuyo carril pasa del módulo,
+  sí. Las dos cosas las prueba la CL2.3.
 
 Con `const` y valores literales, el compilador hace la cuenta al compilar: avisa con `-Woverflow`
 y UBSan no ve nada, porque no queda una multiplicación que vigilar.
@@ -172,7 +179,9 @@ en `0x1FFF`, y el corte lee hasta `offset + 2`. En el original esos dos bytes so
 | --- | --- |
 | `Case1bShiftsTheStreamWhenTheOldByteIsZero` | sale `C1 05 10 01 02` y después `C1 05 06 20 03`, que nadie mandó; el `04` que sobra descarta el buffer. El C2 no sale nunca |
 | `AnOldByteOfTwoCutsAPacketShorterThanItsHeader` | con un `02` viejo en la posición 7, sale un "C2 00" de 2 bytes, y lo que sigue se descarta |
-| `SizeZeroFillsTheBufferUntilNothingMoreIsRead` | un `C1 00 00` al principio no avanza: el buffer llega a `0x2000` y ahí deja de leer |
+| `SizeZeroFillsTheBufferUntilNothingMoreIsRead` | un `C1 00 00` al principio no avanza: el buffer llega a `0x2000`, y ahí lo anota en el log y deja de leer |
+| `AnOldByteOfThreeOrMoreWaitsAndCutsRight` | con un `03` viejo, el tamaño no entra: corre `C2 00` al principio y la lectura siguiente saca el C2 bien |
+| `WaitsWithLessThanThreeBytesAndDoesNotReadAnEmptyRead` | el caso 2: con menos de 3 bytes no corta; una lectura vacía no lee |
 
 `FrameCutterWaitsForTheMissingBytes` muestra que el `FrameCutter` espera el tercer byte de la
 cabecera y saca el C2 entero.

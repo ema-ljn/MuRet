@@ -1030,7 +1030,7 @@ de video), validado antes de abrir nada, y un log que se puede leer en un test. 
 | su archivo | se abre a sí mismo desde la carpeta actual y sale sin avisar si no está (Q-C35) | no se abre a sí mismo; `[Data] Path` (o `--data <ruta>`): si se da y no existe, un error que la nombra (`Data::DataPath`, CL0.2) |
 | config | registro `HKCU\SOFTWARE\Webzen\Mu\Config` y `config.ini` | `muret-client.ini` junto al ejecutable (la carpeta la da `SDL_GetBasePath` en `main.cpp`), o `--config <ruta>` (pregunta 5) |
 | video | `Resolution` y `ColorDepth` del registro | `[Video] Width`, `Height` (640 × 480 por defecto), `VSync` (`on`, `adaptive`, `off`) y `Pacing` (`decoupled`, `faithful`) |
-| log | archivo de texto con líneas como `Mu online %s (%s) executed.` | `Core::Log` con niveles, a `stderr` y a `muret-client.log` junto al ejecutable (o `[Log] Path`); si el archivo no abre, solo `stderr` y un aviso. Los mensajes de SDL entran por `SDL_SetLogOutputFunction` |
+| log | archivo de texto con líneas como `Mu online %s (%s) executed.`; `0x41f7a0` abre `MuError.log` con `OPEN_ALWAYS` y `FILE_END` (agrega), y `0x41f830` lo vacía al pasar de unos `0x7ffe` bytes | `Core::Log` con niveles, a `stderr` y a `muret-client.log` junto al ejecutable (o `[Log] Path`); si el archivo no abre, solo `stderr` y un aviso. Agrega como el original (`std::ios::app`: dos clientes no se pisan y el log de una caída queda), y al abrir lo vacía si pasa de `MaxLogFileBytes` (1 MiB). Los mensajes de SDL entran por `SDL_SetLogOutputFunction` |
 
 **`Resolve`, en este orden** (el primer error corta):
 1. El archivo: con `--config <ruta>`, si no existe es error y lo nombra; sin `--config`, si
@@ -1056,7 +1056,9 @@ El host vacío no es error acá: lo pide la CL4 al conectarse.
   error que se imprime, y suma `connect`, `/u`, `/p`, `--config` y `--data`), `main.cpp`,
   `Client/CMakeLists.txt` (los tests de `Main` sin ventana), `Client/README.md` (cómo se configura),
   07 (Q-C35 a Q-C37 con sus tests), PROGRESS y este plan.
-- **PR B:** crear `Client/src/Core/Log.h/.cpp` y `Client/src/Platform/SdlLog.h/.cpp`;
+- **PR B:** crear `Client/src/Core/Log.h/.cpp`, `ILogSink.h`, `TeeSink.h/.cpp`,
+  `StderrSink.h/.cpp`, `FileSink.h/.cpp` y `PathText.h/.cpp` (una clase por archivo, regla 6), y
+  `Client/src/Platform/SdlLog.h/.cpp`;
   `Client/tests/core/test_log.cpp`. Modificar `main.cpp` (el aviso de `MaxFrameTime` y los errores
   del arranque van al log), PROGRESS y este plan; los fuentes y el test entran por los globs.
 
@@ -1278,9 +1280,22 @@ se declara después del `Log` en `main`, así se destruye antes.
       spdlog), y el Tee guarda el suyo para que las dos salidas reciban las líneas en el mismo
       orden. El `Log` no tiene: no guarda nada que cambie. Está escrito en el header.
     - `FileSink::Open` devuelve `Core::Expected<std::unique_ptr<FileSink>, std::string>`: el
-      `Expected` mueve su valor y el mutex no se mueve. Abrir vacía el archivo (la última corrida).
-    - `Log::Write(LogLevel, std::string_view)` escribe un texto ya armado sin formatearlo, para los
-      mensajes de SDL (sus llaves no son un formato).
+      `Expected` mueve su valor y el mutex no se mueve. El constructor es privado. Agrega al final
+      y vacía al abrir un archivo de más de `MaxLogFileBytes` (fila "log" del contrato).
+    - `Log::Write(LogLevel, std::string_view)` escribe con un nivel que llega mientras corre (la
+      prioridad de un mensaje de SDL), sin un switch sobre los cuatro templates; el texto no se
+      formatea.
+  - [x] Lo de las dos revisiones de la fase 1: una clase por archivo (`ILogSink.h`, `TeeSink`,
+    `StderrSink`, `FileSink`, y `PathText` aparte porque `main` la necesita); un solo `fwrite` o
+    `write` por línea, con el fin de línea; `StderrSink` recibe un `std::FILE*` (por defecto
+    `stderr`); un `std::format_error` que solo aparece al formatear no sale del `Log`, que escribe
+    `[error] formato de log inválido: ` y el formato; en `ILogSink`, que un `Write` no puede
+    loguear ni llamar a SDL (el mutex no es recursivo); y que un `\n` en un mensaje da dos líneas.
+    Tests nuevos: `WriteKeepsTheBraces`, `WriteBelowTheMinimumIsNotWritten`,
+    `ABadFormatIsLoggedAsAnError`, `BelowTheMinimumIsNotFormatted`,
+    `StderrSinkWritesOneLinePerMessage` (con `std::tmpfile()`), `FileSinkAppendsToThePreviousRun`,
+    `FileSinkEmptiesAFileOverTheCap` y `FileSinkKeepsLinesWholeFromTwoThreads` (2 hilos por 1000
+    líneas); las rutas de los tests del archivo llevan una "ñ" (`PathText`).
   - [ ] `SdlLog` en `Platform` y el armado en `main.cpp` (fase 2).
 - [ ] **Paso 8:** verificar:
   ```bash

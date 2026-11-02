@@ -207,7 +207,7 @@ Cada sub-ola es un PR chico. "Terminada cuando" es la condición objetiva de cie
 | CL1 | Formatos sin ventana | CL1.0 la 1.0 con material del cliente (bytes, endianness, archivos binarios) y el `Expected` propio · CL1.1 XOR3, checksum y `Text.bmd` · CL1.2 `Item`, `Skill` y `Gate.bmd` · CL1.3 terreno: K16, `.map`, `.att`, `.obj`, alturas · CL1.4 texturas OZT y OZJ · ~~CL1.5 `message.wtf`~~ (salió: es del launcher, y `main.exe` no lo lee) | lectura de formatos, errores como valor, tests golden | 05, 07 |
 | CL2 | Protocolo sin red | CL2.0 flujos y bloques (la N.0: el corte como máquina de estados, aritmética modular, bits MSB primero) · CL2.1 `PacketReader` C1/C2/C3/C4 · CL2.2 `PacketWriter` + XOR32 · CL2.3 `SimpleModulus` y `Enc1`/`Dec2.dat`, seriales · CL2.4 `IObfuscation` (identidad y FoxAnti) · CL2.5 structs del login: `F4` (lista y elección), `F1` (saludo, login y aviso) y `0x0E` | máquinas de estado, cifrado por bloques, bits MSB primero | 03, 04, 07 |
 | CL3 | Plataforma y bucle de juego | CL3.0 el bucle de juego (paso fijo, interpolación, VSync) · CL3.R qué depende del paso de 40 ms (P-C03) · CL3.1 ventana y contexto GL con SDL3 · CL3.2 bucle con tick fijo y render desacoplado, con reloj falso en los tests · CL3.3 input (teclado por frame, mouse) · CL3.4 config + línea de comandos + log | game loop, tiempo, eventos del SO | 02, 08 |
-| CL4 | Red del cliente | CL4.1 socket no bloqueante portable consultado por el bucle · CL4.2 ConnectServer: saludo, lista, IP del GS · CL4.3 GameServer: saludo, versión y login · CL4.4 keepalive, desconexión y cola de envío · CL4.5 `Dispatcher` y el opcode desconocido | E/S no bloqueante, estados de una conexión | 03, 04 |
+| CL4 | Red del cliente | CL4.0 sockets no bloqueantes · CL4.R la conexión del original (P-C11, Q-C11) · CL4.1 socket no bloqueante portable consultado por el bucle, con la cola de envío · CL4.2 `Dispatcher` y el opcode desconocido · CL4.3 ConnectServer: saludo, lista, IP del GS · CL4.4 GameServer: saludo, versión y login · CL4.5 keepalive y desconexión | E/S no bloqueante, estados de una conexión | 03, 04 |
 | CL5 | Render 2D y la escena de login | CL5.0 el pipeline gráfico (buffers, shaders, matrices, texturas) · CL5.1 `Renderer` y texturas desde OZT/OZJ · CL5.2 `SpriteBatch` en 640 × 480 escalado · CL5.3 texto con caché y colores `0x02` · CL5.4 `SceneManager` y `LoginScene` · CL5.5 UI de login conectada a CL4: lista de servidores, cuenta y clave | GPU, shaders, coordenadas lógicas | 06 |
 | CL6 | Modelos y selección de personaje | CL6.R lectura guiada del render de modelos (P-C01, ya reproducido contra las trazas) y flujo `F3` (P-C06) · CL6.1 parseo de modelos · CL6.2 skinning y animación · CL6.3 `CharacterSelectScene` con preview 3D y los paquetes de selección | jerarquías de huesos, interpolación, cuaterniones | 05, 06, 08 |
 | CL7 | Mundo | CL7.R lectura guiada del renderer de terreno (P-C02, ya identificado y verificado) · CL7.1 terreno con capas, alfa y luz · CL7.2 objetos del `.obj` · CL7.3 cámara · CL7.4 picking y movimiento (`0xD3`/`0xD7`): caminar en Lorencia | mallas, frustum culling, rayos | 05, 06 |
@@ -227,8 +227,9 @@ efectos.
 **Planes detallados:** se escriben al arrancar cada ola, como pide el camino de aprendizaje
 (L-10). Ya están los de la [CL0](../plans/2026-10-30-ola-cl0-fundaciones-cliente.md), la
 [CL1](../plans/2026-11-01-ola-cl1-formatos-sin-ventana.md), la
-[CL2](../plans/2026-11-02-ola-cl2-protocolo-sin-red.md) y la
-[CL3](../plans/2026-11-02-ola-cl3-plataforma-y-bucle.md).
+[CL2](../plans/2026-11-02-ola-cl2-protocolo-sin-red.md), la
+[CL3](../plans/2026-11-02-ola-cl3-plataforma-y-bucle.md) y la
+[CL4](../plans/2026-11-02-ola-cl4-red-del-cliente.md).
 
 ## Cómo el research se vuelve test
 

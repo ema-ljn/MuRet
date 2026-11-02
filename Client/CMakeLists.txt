@@ -11,7 +11,7 @@ find_package(libjpeg-turbo CONFIG REQUIRED)
 
 add_library(ClientLib STATIC
     src/App/CommandLine.cpp
-    src/Data/ByteReader.cpp
+    src/Core/ByteReader.cpp
     src/Data/DataPath.cpp
     src/Data/Tables/GateTable.cpp
     src/Data/Tables/ItemTable.cpp
@@ -57,13 +57,13 @@ if(MURET_BUILD_TESTS)
 
     add_executable(ClientTests
         tests/app/CommandLineTest.cpp
+        tests/core/ByteReaderTest.cpp
         tests/core/ExpectedTest.cpp
         tests/support/FileBytes.cpp
         tests/support/FileBytesTest.cpp
         tests/support/Fnv1aTest.cpp
         tests/support/GoldenDir.cpp
         tests/support/GoldenDirTest.cpp
-        tests/data/ByteReaderTest.cpp
         tests/data/DataPathTest.cpp
         tests/data/GateTableTest.cpp
         tests/data/GoldenDataFilesTest.cpp

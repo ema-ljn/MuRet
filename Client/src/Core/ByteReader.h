@@ -1,19 +1,22 @@
 // Lee enteros de un buffer de bytes, en orden, sin pasarse del final.
 //
 // Los archivos de Data\ guardan los enteros en little-endian: el byte menos significativo primero,
-// como los dejaba el x86 del original. Acá se arman byte por byte con desplazamientos, y no
-// casteando el buffer a std::uint32_t*: un cast no respeta la alineación ni las reglas de alias, y
-// su resultado dependería del orden de bytes de la máquina (guía de la CL1.0, actividades 4 y 9).
+// como los dejaba el x86 del original. El tamaño de un C2/C4 va al revés, en big-endian
+// (Client/docs/research/03-red-y-cifrado.md, "Cadena de recepción"). Acá se arman byte por byte con
+// desplazamientos, y no casteando el buffer a std::uint32_t*: un cast no respeta la alineación ni
+// las reglas de alias, y su resultado dependería del orden de bytes de la máquina (guía de la
+// CL1.0, actividades 4 y 9). Lo usan Data y Network.
 
 #pragma once
 
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <ranges>
 #include <span>
 
-namespace Client::Data
+namespace Client::Core
 {
 
 class ByteReader
@@ -35,14 +38,15 @@ public:
     [[nodiscard]] std::optional<std::uint8_t> ReadU8();
     [[nodiscard]] std::optional<std::uint16_t> ReadU16Le();
     [[nodiscard]] std::optional<std::uint32_t> ReadU32Le();
+    [[nodiscard]] std::optional<std::uint16_t> ReadU16Be();
 
     [[nodiscard]] std::size_t Remaining() const;
 
 private:
-    std::optional<std::uint32_t> ReadLittleEndian(std::size_t size);
+    std::optional<std::uint32_t> ReadUnsigned(std::size_t size, std::endian order);
 
     std::span<const std::byte> buffer;
     std::size_t position = 0;
 };
 
-} // namespace Client::Data
+} // namespace Client::Core

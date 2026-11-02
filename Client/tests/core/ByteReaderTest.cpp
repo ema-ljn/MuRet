@@ -1,6 +1,6 @@
-// Client::Data::ByteReader: enteros little-endian leídos en orden, sin pasarse del final.
+// Client::Core::ByteReader: enteros little-endian y big-endian leídos en orden, sin pasarse del final.
 
-#include "Data/ByteReader.h"
+#include "Core/ByteReader.h"
 
 #include <gtest/gtest.h>
 
@@ -14,7 +14,7 @@
 namespace
 {
 
-using Client::Data::ByteReader;
+using Client::Core::ByteReader;
 
 // Se arma sobre bytes que siguen vivos, y no sobre un temporal que es dueño de los suyos.
 static_assert(std::constructible_from<ByteReader, std::span<const std::byte>>);
@@ -76,6 +76,37 @@ TEST(ByteReaderTest, ReadPastTheEndFailsAndKeepsThePosition)
     EXPECT_EQ(reader.ReadU16Le(), std::nullopt);
     EXPECT_EQ(reader.ReadU8(), std::uint8_t{0x03});
     EXPECT_EQ(reader.ReadU8(), std::nullopt);
+}
+
+// El tamaño de un C2/C4 va en big-endian, el byte más significativo primero (03, "Cadena de
+// recepción"): 01 2C son 300, no 0x2C01.
+TEST(ByteReaderTest, ReadsU16BigEndian)
+{
+    const auto bytes = Bytes(0x01, 0x2C);
+    ByteReader reader(bytes);
+
+    EXPECT_EQ(reader.ReadU16Be(), std::uint16_t{0x012C});
+    EXPECT_EQ(reader.Remaining(), 0u);
+}
+
+// Big-endian y little-endian leen los mismos bytes al revés, y siguen en orden en el mismo buffer.
+TEST(ByteReaderTest, MixesBigAndLittleEndian)
+{
+    const auto bytes = Bytes(0x12, 0x34, 0x12, 0x34);
+    ByteReader reader(bytes);
+
+    EXPECT_EQ(reader.ReadU16Be(), std::uint16_t{0x1234});
+    EXPECT_EQ(reader.ReadU16Le(), std::uint16_t{0x3412});
+}
+
+// Con un solo byte, un u16 big-endian falla sin avanzar, como los little-endian.
+TEST(ByteReaderTest, ReadU16BigEndianPastTheEndFails)
+{
+    const auto bytes = Bytes(0xC2);
+    ByteReader reader(bytes);
+
+    EXPECT_EQ(reader.ReadU16Be(), std::nullopt);
+    EXPECT_EQ(reader.Remaining(), 1u);
 }
 
 TEST(ByteReaderTest, EmptyBufferHasNothingToRead)

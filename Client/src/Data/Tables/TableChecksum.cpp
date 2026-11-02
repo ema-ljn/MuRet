@@ -1,12 +1,13 @@
 #include "Data/Tables/TableChecksum.h"
 
-#include "Data/ByteReader.h"
+#include "Core/ByteReader.h"
 
 #include <optional>
 
 namespace
 {
 
+using Client::Core::ByteReader;
 using Client::Data::Tables::ChecksumParity;
 
 constexpr unsigned SeedShift = 9;

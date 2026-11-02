@@ -1,6 +1,6 @@
 #include "Data/Terrain/TerrainObjects.h"
 
-#include "Data/ByteReader.h"
+#include "Core/ByteReader.h"
 #include "Data/Terrain/K16.h"
 
 #include <bit>
@@ -11,6 +11,8 @@ namespace Client::Data::Terrain
 
 namespace
 {
+
+using Core::ByteReader;
 
 // Un float: 4 bytes little-endian que std::bit_cast pasa a float sin tocar un bit, también si son
 // un NaN. std::nullopt si se acabó el archivo.

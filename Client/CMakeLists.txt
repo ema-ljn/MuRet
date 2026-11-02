@@ -23,6 +23,11 @@ target_compile_features(ClientLib PUBLIC cxx_std_20)
 # En vcpkg, libjpeg-turbo es estática en Linux y dinámica en Windows: el target cambia de nombre.
 target_link_libraries(ClientLib PRIVATE
     $<IF:$<TARGET_EXISTS:libjpeg-turbo::jpeg>,libjpeg-turbo::jpeg,libjpeg-turbo::jpeg-static>)
+# Los sockets de Network/SocketApi.cpp (CL4.1): en Windows son de Winsock 2, ws2_32. En Linux están
+# en la libc.
+if(WIN32)
+    target_link_libraries(ClientLib PRIVATE ws2_32)
+endif()
 muret_set_warnings(ClientLib)
 # libjpeg avisa de sus errores con longjmp, y JpegImage.cpp lo recibe con setjmp. MSVC avisa de
 # cualquier setjmp en C++ (C4611: longjmp no corre destructores); el archivo está armado para que

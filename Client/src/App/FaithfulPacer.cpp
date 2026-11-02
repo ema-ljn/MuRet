@@ -1,22 +1,22 @@
 #include "App/FaithfulPacer.h"
 
 #include <chrono>
+#include <ratio>
 
 namespace Client::App
 {
 namespace
 {
-// El tick en el que cae `now`: la división tira lo que pasó desde el último, como GetTickCount,
-// que solo cambia de tick en tick. Redondea hacia abajo también con `now` negativo (solo pasa con
-// el FakeClock), donde la división entera redondearía hacia 0.
+// Un tick de GetTickCount como unidad de chrono: 1/64 s, los 15,625 ms de FaithfulTick.
+using Tick = std::chrono::duration<std::int64_t, std::ratio<1, 64>>;
+static_assert(Tick{1} == FaithfulTick);
+
+// El tick en el que cae `now`: tira lo que pasó desde el último, como GetTickCount, que solo
+// cambia de tick en tick. floor redondea hacia abajo también con `now` negativo, que ningún IClock
+// da (ni el FakeClock baja de 0) y solo llega llamando a TickCountMs directo, como su test.
 Core::Duration TickStart(Core::Duration now)
 {
-    auto ticks = now / FaithfulTick;
-    if (now % FaithfulTick < Core::Duration::zero())
-    {
-        --ticks;
-    }
-    return ticks * FaithfulTick;
+    return std::chrono::floor<Tick>(now);
 }
 
 // LogicStep en los ms enteros del original: el SUB EAX,0x28 de 0x638167.
@@ -26,8 +26,10 @@ constexpr std::int32_t FaithfulStepMs =
 
 std::uint32_t TickCountMs(Core::Duration now)
 {
-    // El cast a 32 bits sin signo es la vuelta del DWORD: está definido, módulo 2^32.
-    const auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(TickStart(now));
+    // floor y no duration_cast, que trunca hacia 0: con `now` negativo (TickStart dice cuándo) el
+    // tick -1 lee -16 y no -15, y la grilla sigue la misma cuenta, floor(tick × 15,625), a los dos
+    // lados del 0. El cast a 32 bits sin signo es la vuelta del DWORD: está definido, módulo 2^32.
+    const auto milliseconds = std::chrono::floor<std::chrono::milliseconds>(TickStart(now));
     return static_cast<std::uint32_t>(milliseconds.count());
 }
 

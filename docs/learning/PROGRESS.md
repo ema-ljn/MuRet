@@ -145,6 +145,14 @@ solo lo lee.
   preguntas y la sección final de la [guía de la CL3.0](ola-cl3.0-el-bucle-de-juego.md), y
   explicar los conceptos de abajo. Próxima: la CL4 (red del cliente), con su
   [plan](../superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md).
+  **La CL4.1 la escribió Claude**, en tres PRs. El primero trae el socket: `ISocket`, con
+  `SystemSocket` sobre `SocketApi`, que tiene el único `#ifdef _WIN32` de `ClientLib` (en el
+  `.cpp`) y en su header la razón de §10 (SDL3_net traería SDL3 a `ClientLib`, y asio cambia el
+  modelo a handlers), y un `FakeSocket` que sigue un guion. El connect no espera y guarda su
+  resultado, porque `SO_ERROR` se borra al leerlo; un `recv` en 0 y un RST son un cierre del otro
+  lado, y en Linux un `send` a una conexión cerrada no mata el proceso (`MSG_NOSIGNAL`). Se prueba
+  con sockets de verdad en `127.0.0.1` contra un `LoopbackServer`, en un solo hilo. Tu paso 2, la
+  tabla de lo que da cada llamada en Linux y en Windows, lo resolvió Claude: está en el plan.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 
@@ -220,6 +228,7 @@ sesión, junto con los de repaso más viejo.
 | de dónde sale lo que depende del lugar (la carpeta de datos, el servidor, el video), validado antes de abrir nada (`Resolve`), y un log que se lee en un test (`ILogSink`) | CL3.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un log sin globales, con la salida inyectada (`ILogSink`), un `std::mutex` en cada salida porque SDL loguea desde sus hilos y otro en el `TeeSink` para el orden, un archivo que agrega con un tope de 1 MiB al abrir (`FileSink`), y un RAII que devuelve la salida de SDL antes de que muera el `Log` (`SdlLog`) | CL3.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un limitador de frames con meta absoluta contra un sueño relativo: la deriva de lo que corre entre frames, qué valor toma la meta cuando un frame se pasa (donde terminó, para no ponerse al día ni volver a sumar el hueco), y por qué con VSync no se usa (`SleepRestOfFrame`, el `FpsCap` de MuMain) | CL3.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| E/S no bloqueante detrás de una interfaz chica (`ISocket`, con `SystemSocket` y `FakeSocket`): el connect como máquina de estados que guarda su resultado porque `SO_ERROR` se borra al leerlo, "probá más tarde" contra un cierre (`recv` en 0, `ECONNRESET`), `SIGPIPE` y `MSG_NOSIGNAL`, y un `#ifdef _WIN32` en un solo archivo (`SocketApi`) | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

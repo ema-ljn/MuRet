@@ -19,8 +19,10 @@ namespace fs = std::filesystem;
 using Client::Tests::CheckDump;
 using Client::Tests::CheckGoldenDir;
 using Client::Tests::DumpState;
+using Client::Tests::EqualsIgnoringAsciiCase;
 using Client::Tests::GoldenDirFromValue;
 using Client::Tests::GoldenDirState;
+using Client::Tests::HasExtension;
 
 TEST(GoldenDirTest, UnsetOrEmptyVariableMeansNoGoldenDir)
 {
@@ -65,6 +67,24 @@ TEST(GoldenDirTest, ADumpIsInTheFolderOfItsCapture)
 
     std::error_code error;
     fs::remove_all(root, error);
+}
+
+// Solo A-Z cambian de mayúscula a minúscula; el resto se compara tal cual.
+TEST(GoldenDirTest, NamesAreComparedIgnoringAsciiCase)
+{
+    EXPECT_TRUE(EqualsIgnoringAsciiCase("TerrainLight", "terrainlight"));
+    EXPECT_FALSE(EqualsIgnoringAsciiCase("TerrainLight", "TerrainLigh"));
+    EXPECT_FALSE(EqualsIgnoringAsciiCase("\xC1", "\xE1"));
+}
+
+// La extensión se compara sin mayúsculas, entera y con su punto.
+TEST(GoldenDirTest, TheExtensionIgnoresTheCase)
+{
+    EXPECT_TRUE(HasExtension("Skill/null.OZJ", ".ozj"));
+    EXPECT_TRUE(HasExtension("world1/TileGrass01.Ozj", ".ozj"));
+    EXPECT_FALSE(HasExtension("Interface/Cursor.OZT", ".ozj"));
+    EXPECT_FALSE(HasExtension("Data/ozj", ".ozj"));
+    EXPECT_FALSE(HasExtension("a.ozjx", ".ozj"));
 }
 
 } // namespace

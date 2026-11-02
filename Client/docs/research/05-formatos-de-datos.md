@@ -14,7 +14,7 @@ parciales, 44 binarios de soporte, 0 errores de decodificación):
 
 | Formato | Archivos | Transformación |
 | --- | ---: | --- |
-| OZJ (JPEG) | 2.380 | prefijo de 24 bytes; **7 son TGA con extensión OZJ** (Q-C14) |
+| OZJ (JPEG) | 2.387 | prefijo de 24 bytes; 2.380 son JPEG y **7, TGA con extensión OZJ** (Q-C14) |
 | OZT (TGA) | 664 | prefijo de 4 bytes |
 | BMD de modelo | 1.962 | v0A en claro o v0C cifrado con K16; todos recorridos sin bytes sobrantes |
 | BMD de tabla | 7 + 26 estructuras | XOR3 `FC CF AB` |
@@ -106,7 +106,7 @@ salen distintas.
 | --- | --- | --- |
 | tamaño | bucles `0x63bf81` / `0x63bb34` | potencia de 2 desde 1 hasta cubrir ancho y alto, tope 512 |
 | OZT | `0x63bd00` | 4 bytes de prefijo + TGA de 32 bpp; lee ancho, alto y bpp, ignora tipo y descriptor; rechaza bpp ≠ 32 y lados > 512 |
-| OZJ | `0x63b870` | 24 bytes de prefijo + JPEG baseline |
+| OZJ | `0x63b870` | 24 bytes de prefijo + JPEG, baseline o progresivo; lo decodifica libjpeg con sus parámetros por defecto, sin dar vuelta las filas; rechaza lados > 512 y lo que libjpeg no puede leer |
 | JPEG | `0x66b8f0`..`0x67f0c0` | IJG libjpeg 6b enlazada estática |
 
 Verificado: 9 tiles OZJ de Lorencia y 10 OZT, byte a byte contra los buffers de textura del cliente
@@ -120,6 +120,34 @@ rechaza (Q-C29). Ninguno pasa de 512 de lado, y 133 no son de lados potencia de 
 píxeles, 663 traen el pie de 26 bytes de un TGA 2.0 y uno nada. Los 9 cursores de `Interface` y
 `TileGrass01.OZT` de World1 dan, con las filas dadas vuelta y en RGBA, los buffers de la memoria
 del original (`lor2_slot002..00a.bin` y `lor2_slot032.bin`).
+
+**El OZJ** (CL1.4): en el laboratorio son 2.387, y 2.380 son JPEG: 1.641 baseline 4:4:4 con un
+reinicio por fila de MCU, 623 progresivos 4:4:4 y 116 baseline 4:2:0 (25 con reinicios). Todos son
+de 3 componentes, y con ninguno libjpeg avisa. Los otros 7 son TGA, y libjpeg los rechaza porque no
+empiezan con `FF D8` (Q-C14). Uno, `skill\null.OZJ`, es de 800 × 600, y el original no lo carga
+porque pasa de 512. De los 2.379 que cargan, 179 no son de lados potencia de 2. El cargador no mira
+cuántos componentes trae el JPEG (Q-C31), pero en el laboratorio son siempre 3.
+
+MuRet decodifica con libjpeg-turbo 3.2.0 (fija en `vcpkg.json`), con la API de la 6b
+(`JPEG_LIB_VERSION` 62) y sus parámetros por defecto, como el original. Da los mismos bytes que la IJG libjpeg 6b en los 2.380
+JPEG del laboratorio: `Client/tests/vectors/jpeg/lab-6b.txt` guarda el tamaño y un hash de lo que
+da la 6b de cada uno, decodificado como lo hace el original, y `GoldenJpegImageTest` lo compara con
+lo que da turbo. Los vectores de la misma carpeta, que corren en CI, traen los píxeles de la 6b. Los
+9 tiles OZJ de World1 dan los buffers de la memoria del original (`lor2_slot023..02b.bin`). Fuera
+del laboratorio, turbo hace algunas cosas distinto que la 6b, y quedan en Q-C33.
+
+**La luz** (CL1.4): `TerrainLight.OZJ` es un OZJ con los mismos 24 bytes delante y el mismo
+libjpeg, pero su cargador (`0x63b490`) no arma una textura. Da vuelta las filas, así que la fila 0
+de la tabla es la última del JPEG, y pasa cada byte a float multiplicándolo por la constante de
+`0x6b88f8`, 1/255 en float (`0x3B808081`). La tabla es la de `0x078ecc10`: 256 × 256 colores RGB,
+`0xC0000` bytes. No mira el tamaño ni los componentes del JPEG (Q-C31), y si libjpeg corta, quien
+lo llama (`0x5f8f40`) no se entera (Q-C32). En el laboratorio hay 24 luces, todas de 256 × 256 en
+color: un `TerrainLight.OZJ` en los 19 mundos que la traen (World6 no tiene), `TerrainLight2`,
+`TerrainLightTest` y `TerrainLightTest2` en World31, y `TerrainLight1` y `TerrainLight2` en World35.
+Como con los `.att`, el cargador de mundo (`0x61a560`) y `0x4294c0` y `0x42fe80` piden
+`TerrainLight2` en World31 y `TerrainLight1` o `TerrainLight2` en World35 según el estado del
+juego. Los `TerrainLightTest` no los pide nadie. Las de Lorencia y Devias dan, con los mismos bits,
+la luz que tenía en memoria el original (`lor_light.bin` y `s31_light.bin`).
 
 ## El pipeline de las DLLs
 
@@ -207,7 +235,7 @@ por el protocolo (`divergencias-cliente-servidor.md`).
 | --- | --- | --- |
 | Cargadores que escriben en globales del juego | `Data::` funciones puras: bytes → tipos de C++ (`ItemTable`, `TerrainMap`…), sin globales, testeables sin ventana | CL1 |
 | `MessageBox` + `WM_DESTROY` si falta un archivo | error explícito al que llama (un `Expected` propio, porque `std::expected` es de C++23), sin UI en la capa de datos | CL1 |
-| libjpeg 6b estática | una biblioteca JPEG del sistema o de vcpkg; los tests golden dicen si alcanza para ser byte a byte (pregunta abierta del roadmap) | CL1 |
+| libjpeg 6b estática | libjpeg-turbo de vcpkg, con la API de la 6b y sus parámetros por defecto: da los mismos bytes que la 6b en los 2.380 JPEG del laboratorio, y lo que difiere fuera de ellos queda en Q-C33 (pregunta 1 del roadmap, decidida el 2026-11-01) | CL1 |
 | Rarezas de datos (checksum anulado de `Item.bmd`, alturas desde BMP + 1080, registro 7 de `Text.bmd` sin NUL, OZJ que son TGA) | **se reproducen**: son parte de cómo se leen los archivos reales (ver [07](07-quirks-y-bugs.md)) | CL1 |
 | Esqueleto (`Player.bmd`) y partes del equipo en archivos separados | `Data::Model` lee los dos con el mismo parser; la pose se calcula con el esqueleto y cada parte se dibuja con esa pose | CL6 |
 | Los assets son del juego | MuRet **no** versiona ningún asset; los tests golden reciben la ruta por `MURET_CLIENT_GOLDEN_DIR` y se saltean si no está | CL1 |

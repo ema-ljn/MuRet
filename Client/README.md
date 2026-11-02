@@ -23,13 +23,15 @@ imprime `GL_VERSION` y `GL_RENDERER`; todavía no se conecta. `ClientLib` resuel
 como Windows (sin distinguir mayúsculas) y lee desde sus bytes `Text.bmd`, `Gate.bmd`, `Item.bmd`
 y `Skill.bmd`, con el XOR3 y el checksum de las tablas `.bmd`, y el terreno de un mundo:
 `EncTerrain<N>.map` (las capas de tiles), `EncTerrain<N>.att` (los atributos) y `EncTerrain<N>.obj`
-(los objetos), con su cifrado K16, y `TerrainHeight.OZB` (las alturas). De las texturas, por ahora
-el OZT (un TGA de 32 bits), en RGBA y en un buffer de lados potencia de 2 como el del original.
+(los objetos), con su cifrado K16, `TerrainHeight.OZB` (las alturas) y `TerrainLight.OZJ` (la luz).
+De las texturas, el OZT (un TGA de 32 bits, en RGBA) y el OZJ (un JPEG, en RGB, con libjpeg-turbo),
+en un buffer de lados potencia de 2 como el del original.
 
 ## Compilar y correr
 
-Hace falta vcpkg (las dependencias, SDL3 y GoogleTest, están en `vcpkg.json` y se bajan solas al
-configurar) y la variable `VCPKG_ROOT` apuntando a su clon; ver el [README raíz](../README.md#compilar).
+Hace falta vcpkg (las dependencias, SDL3, libjpeg-turbo y GoogleTest, están en `vcpkg.json` y se
+bajan solas al configurar) y la variable `VCPKG_ROOT` apuntando a su clon; ver el
+[README raíz](../README.md#compilar).
 Desde la raíz del repo:
 
 ```bash
@@ -59,6 +61,10 @@ cmake --preset linux-x64-debug -DMURET_CLIENT_GOLDEN_DIR=/ruta/a/Data   # queda 
 
 Sin la variable, se saltean (`Skipped`). Si apunta a una carpeta que no existe, o le falta el
 archivo que el test pide, fallan.
+
+Los OZJ, además, se comparan con lo que da la IJG libjpeg 6b del original, que no está en CI: el
+tamaño y un hash de cada uno están en `tests/vectors/jpeg/lab-6b.txt`, y cómo se sacan, en el
+README de esa carpeta. Es lo que hay que correr al cambiar de versión de libjpeg-turbo.
 
 Algunos además comparan con la memoria del `main.exe` original, con los archivos ya cargados: los
 volcados de `client-research/mu-golden/memoria-cliente`, en el repo de research (fuera de Git).

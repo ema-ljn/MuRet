@@ -75,7 +75,7 @@ La regla guía es la del servidor: el **contrato** (wire + archivos de datos) se
 | # | Tema | Original (MSVC 6) | MuRet | Por qué / qué se aprende |
 | --- | --- | --- | --- | --- |
 | D-C1 | Lenguaje | C++98 sin STL visible, globales | C++20 como el resto de MuRet, sin globales del juego | RAII, valores en vez de estado global, `std::span`, un `Expected` propio (`std::expected` es de C++23) |
-| D-C2 | Build | proyecto de VC6 | el mismo CMake con presets del repo; dependencias por vcpkg (SDL3, una biblioteca JPEG, FreeType o SDL3_ttf, GoogleTest). El loader de GL es propio: una tabla de punteros pedidos a `SDL_GL_GetProcAddress` (CL0.3; el puerto `glad` de vcpkg trae el perfil de compatibilidad y pide Python). Si en la CL3 la tabla crece demasiado, se revisa | un solo build para los dos sistemas |
+| D-C2 | Build | proyecto de VC6 | el mismo CMake con presets del repo; dependencias por vcpkg (SDL3, libjpeg-turbo, FreeType o SDL3_ttf, GoogleTest). El loader de GL es propio: una tabla de punteros pedidos a `SDL_GL_GetProcAddress` (CL0.3; el puerto `glad` de vcpkg trae el perfil de compatibilidad y pide Python). Si en la CL3 la tabla crece demasiado, se revisa | un solo build para los dos sistemas |
 | D-C3 | Ventana, input y gráficos | Win32 + `wgl` + OpenGL 1.x de función fija | **SDL3** para ventana, input y audio, y **OpenGL 3.3 core** con shaders propios detrás de `Render::` (decidido por Emanuel el 2026-10-30) | el pipeline gráfico moderno (buffers, shaders, matrices) sin la complejidad de Vulkan; mismo stack de ventana que MuMain |
 | D-C4 | Ritmo del frame | pasos de lógica de 40 ms (25 por segundo) y una espera activa de 40 ms medida con `GetTickCount`, que con ticks de 15,625 ms termina a los 46,875 ms: **21,33 FPS**, medido en la selección y en Lorencia, y 7 pasos de lógica cada 6 frames, *inferido* de la aritmética del bucle ([02](../../../Client/docs/research/02-arranque-y-ciclo-de-vida.md)) | **tick de lógica de 40 ms** con el mismo bucle de alcanzar que el original + **render desacoplado** con interpolación, VSync por defecto, sin tope opcional; como el [ADR 0001 de MuMain](https://github.com/sven-n/MuMain/blob/main/docs/adr/0001-preserve-25-fps-reference-timing.md). Un **modo fiel** en la config reproduce la espera del original con un reloj de 15,625 ms (46,875 ms por frame), para comparar lado a lado | el bucle de juego con paso fijo; más FPS sin que el juego vaya más rápido ni cambie lo que se manda al servidor |
 | D-C5 | Red | `WSAAsyncSelect` en el hilo de la ventana | un socket TCP no bloqueante que el bucle consulta en cada frame; un solo hilo | E/S no bloqueante; por qué un cliente no necesita IOCP |
@@ -91,9 +91,16 @@ La regla guía es la del servidor: el **contrato** (wire + archivos de datos) se
 
 ### Preguntas abiertas (se deciden al arrancar la ola que las necesita)
 
-1. **Biblioteca JPEG (CL1).** ¿libjpeg-turbo de vcpkg alcanza para ser byte a byte con la libjpeg
-   6b del original en los tiles de `mu-golden`? Si no, ¿se acepta una diferencia mínima o se
-   escribe el decodificador (como hizo `mu-client`)?
+1. **Biblioteca JPEG (CL1).** ~~¿libjpeg-turbo de vcpkg alcanza para ser byte a byte con la
+   libjpeg 6b del original en los tiles de `mu-golden`? Si no, ¿se acepta una diferencia mínima o
+   se escribe el decodificador (como hizo `mu-client`)?~~ **Decidido por Emanuel el 2026-11-01:
+   libjpeg-turbo**, con la API de la 6b y sus parámetros por defecto. Da los mismos bytes que la 6b
+   en los 2.380 JPEG del laboratorio y en los tiles de `mu-golden`. Fuera de ellos difiere: lo que
+   se puede llevar a la 6b se lleva (rechaza los JPEG aritméticos, sin pérdida, de 12 bits o sin
+   las tablas de Huffman que pide un scan, y agranda el 4:4:0 como ella) y lo demás queda escrito en Q-C33 del
+   [07](../../../Client/docs/research/07-quirks-y-bugs.md). Antes había elegido un decodificador
+   propio compatible con la 6b: su plan queda en pausa, por si turbo no alcanza
+   ([`2026-11-01-cl1.4-decodificador-jpeg.md`](../plans/2026-11-01-cl1.4-decodificador-jpeg.md)).
 2. **Código compartido con los servidores (CL2).** El corte C1/C2/C3/C4 y el cifrado C3/C4 los
    necesitan el cliente y el GameServer (y el ConnectServer de la ola 10). ¿Nace un `Common/` en
    la raíz cuando lo usen dos, como dice el roadmap del servidor para `Server/Common/`?

@@ -1,0 +1,9 @@
+# Los vectores son bytes: que git no les cambie los fines de línea (core.autocrlf, en Windows) ni
+# los compare como texto. Uno sin bytes en cero, como gray.6b.raw, git lo tomaría por texto.
+*.jpg binary
+*.raw binary
+# lab-6b.txt es texto, pero GoldenJpegImageTest.cpp lo lee con fines de línea de Linux.
+*.txt text eol=lf
+# Las herramientas de jpeg/tools corren en Linux: con CRLF, sh y python no las leen bien.
+*.sh text eol=lf
+*.py text eol=lf

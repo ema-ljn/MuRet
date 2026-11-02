@@ -4,14 +4,10 @@
 
 #pragma once
 
-#include "support/FileBytes.h"
-
-#include <gtest/gtest.h>
+#include "support/VectorFiles.h"
 
 #include <cstddef>
 #include <filesystem>
-#include <optional>
-#include <span>
 #include <string_view>
 #include <vector>
 
@@ -28,14 +24,7 @@ inline std::filesystem::path NetVectorsDir()
 // nada.
 inline std::vector<std::byte> ReadNetVector(std::string_view name)
 {
-    const std::optional<std::vector<char>> file = ReadFileBytes(NetVectorsDir() / name);
-    if (!file.has_value())
-    {
-        ADD_FAILURE() << "falta el vector " << name << " en " << NetVectorsDir();
-        return {};
-    }
-    const std::span<const std::byte> bytes = std::as_bytes(std::span(*file));
-    return {bytes.begin(), bytes.end()};
+    return ReadVectorFile(NetVectorsDir(), name);
 }
 
 } // namespace Client::Tests

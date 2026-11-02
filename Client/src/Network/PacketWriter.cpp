@@ -8,8 +8,6 @@ namespace Client::Network
 namespace
 {
 
-// Dónde va el tamaño, después del byte del tipo, y los bits de un byte para partir el de un C2.
-constexpr std::size_t SizeOffset = 1;
 constexpr unsigned BitsPerByte = 8;
 
 // Lo que mide el tipo de cada uno.
@@ -30,69 +28,99 @@ PacketWriter PacketWriter::C2(std::uint8_t opcode)
     return PacketWriter(PacketType::C2, opcode);
 }
 
-PacketWriter::PacketWriter(PacketType packetType, std::uint8_t opcode)
-    : type(packetType), bytes(HeaderSize(packetType), std::byte{0})
-{
-    bytes.front() = static_cast<std::byte>(packetType);
-    bytes.push_back(static_cast<std::byte>(opcode));
-}
+PacketWriter::PacketWriter(PacketType packetType, std::uint8_t packetOpcode) : type(packetType), opcode(packetOpcode) {}
 
-PacketWriter& PacketWriter::PutU8(std::uint8_t value)
+PacketWriter& PacketWriter::PutU8(std::uint8_t value) &
 {
-    bytes.push_back(static_cast<std::byte>(value));
+    PutUnsigned(value, std::endian::little);
     return *this;
 }
 
-PacketWriter& PacketWriter::PutU16Le(std::uint16_t value)
+PacketWriter& PacketWriter::PutU16Le(std::uint16_t value) &
 {
-    PutLittleEndian(value, sizeof(value));
+    PutUnsigned(value, std::endian::little);
     return *this;
 }
 
-PacketWriter& PacketWriter::PutU16Be(std::uint16_t value)
+PacketWriter& PacketWriter::PutU16Be(std::uint16_t value) &
 {
-    bytes.push_back(static_cast<std::byte>(value >> BitsPerByte));
-    bytes.push_back(static_cast<std::byte>(value));
+    PutUnsigned(value, std::endian::big);
     return *this;
 }
 
-PacketWriter& PacketWriter::PutU32Le(std::uint32_t value)
+PacketWriter& PacketWriter::PutU32Le(std::uint32_t value) &
 {
-    PutLittleEndian(value, sizeof(value));
+    PutUnsigned(value, std::endian::little);
     return *this;
 }
 
-PacketWriter& PacketWriter::PutBytes(std::span<const std::byte> more)
+PacketWriter& PacketWriter::PutBytes(std::span<const std::byte> more) &
 {
-    bytes.insert(bytes.end(), more.begin(), more.end());
+    fields.insert(fields.end(), more.begin(), more.end());
     return *this;
 }
 
-void PacketWriter::PutLittleEndian(std::uint32_t value, std::size_t size)
+// Adentro de cada uno, *this es un lvalue: la llamada va a la versión de arriba.
+PacketWriter PacketWriter::PutU8(std::uint8_t value) &&
 {
-    for (std::size_t k = 0; k < size; ++k)
+    PutU8(value);
+    return std::move(*this);
+}
+
+PacketWriter PacketWriter::PutU16Le(std::uint16_t value) &&
+{
+    PutU16Le(value);
+    return std::move(*this);
+}
+
+PacketWriter PacketWriter::PutU16Be(std::uint16_t value) &&
+{
+    PutU16Be(value);
+    return std::move(*this);
+}
+
+PacketWriter PacketWriter::PutU32Le(std::uint32_t value) &&
+{
+    PutU32Le(value);
+    return std::move(*this);
+}
+
+PacketWriter PacketWriter::PutBytes(std::span<const std::byte> more) &&
+{
+    PutBytes(more);
+    return std::move(*this);
+}
+
+template <std::unsigned_integral T> void PacketWriter::PutUnsigned(T value, std::endian order)
+{
+    for (std::size_t k = 0; k < sizeof(T); ++k)
     {
-        bytes.push_back(static_cast<std::byte>(value >> (BitsPerByte * k)));
+        const std::size_t shift = order == std::endian::little ? k : sizeof(T) - 1 - k;
+        fields.push_back(static_cast<std::byte>(value >> (BitsPerByte * shift)));
     }
 }
 
 Core::Expected<Packet, PacketError> PacketWriter::Finish() const
 {
-    if (bytes.size() > MaxSize(type))
+    const std::size_t size = MinPacketSize(type) + fields.size();
+    if (size > MaxSize(type))
     {
         return Core::Unexpected(PacketError::TooLarge);
     }
-    std::vector<std::byte> packet = bytes;
-    const std::size_t size = packet.size();
+    std::vector<std::byte> packet;
+    packet.reserve(size);
+    packet.push_back(static_cast<std::byte>(type));
     if (type == PacketType::C1)
     {
-        packet[SizeOffset] = static_cast<std::byte>(size);
+        packet.push_back(static_cast<std::byte>(size));
     }
     else
     {
-        packet[SizeOffset] = static_cast<std::byte>(size >> BitsPerByte);
-        packet[SizeOffset + 1] = static_cast<std::byte>(size);
+        packet.push_back(static_cast<std::byte>(size >> BitsPerByte));
+        packet.push_back(static_cast<std::byte>(size));
     }
+    packet.push_back(static_cast<std::byte>(opcode));
+    packet.insert(packet.end(), fields.begin(), fields.end());
     return Packet::FromBytes(std::move(packet));
 }
 

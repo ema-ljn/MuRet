@@ -73,8 +73,9 @@ TEST(Xor32Test, EncodesTheDecryptErrorReport)
         SameBytes(Encoded(Bytes({0xC1, 0x06, 0xF1, 0x03, 0x06, 0x00})), Bytes({0xC1, 0x06, 0xF1, 0x7B, 0xC1, 0x73})));
 }
 
-// El C2 de la ventana de cartas: el opcode va en claro, y el primer byte cifrado, el 4, se encadena
-// con él (03 § Envío).
+// Un C2 con el modelo de la ventana de cartas (`0x498b2c..0x498b89`, el único emisor de un C2): el
+// opcode va en claro, y el primer byte cifrado, el 4, se encadena con él (03 § Envío). Los bytes
+// son los del ejemplo de la guía de la CL2.0; la ventana manda otro opcode, `C5`.
 TEST(Xor32Test, EncodesAC2WithTheOpcodeInClear)
 {
     EXPECT_TRUE(
@@ -93,19 +94,20 @@ TEST(Xor32Test, EncodesTheLongC2OfTheVectors)
     EXPECT_TRUE(SameBytes(encoded.Bytes(), expected));
 }
 
-// Cada byte cifrado es el claro con la clave de su índice y el cifrado anterior: el 35 usa key[3],
-// como el 3.
+// Cada byte cifrado es el claro con la clave de su índice y el cifrado anterior, y la clave vuelve a
+// empezar cada 32: el 35 usa key[3], como el 3, y el 19 usa key[19].
 TEST(Xor32Test, TheKeyStartsOverAtByte32)
 {
-    std::vector<std::byte> plain = BytePattern(40, 37, 11);
+    constexpr std::size_t Size = 70;
+    std::vector<std::byte> plain = BytePattern(Size, 37, 11);
     plain[0] = std::byte{0xC1};
-    plain[1] = std::byte{40};
+    plain[1] = std::byte{Size};
 
     const std::vector<std::byte> encoded = Encoded(plain);
 
-    for (const std::size_t i : {std::size_t{3}, std::size_t{35}})
+    for (std::size_t i = 3; i < Size; ++i)
     {
-        EXPECT_EQ(encoded[i] ^ plain[i] ^ encoded[i - 1], std::byte{Xor32Key[3]}) << i;
+        EXPECT_EQ(encoded[i] ^ plain[i] ^ encoded[i - 1], std::byte{Xor32Key[i % Xor32Key.size()]}) << i;
     }
 }
 
@@ -137,6 +139,7 @@ TEST(Xor32Test, LeavesC3AndC4AsTheyAre)
     EXPECT_TRUE(SameBytes(Encoded(c3), c3));
     EXPECT_TRUE(SameBytes(Encoded(c4), c4));
     EXPECT_TRUE(SameBytes(Xor32Decode(PacketOf(c3)).Bytes(), c3));
+    EXPECT_TRUE(SameBytes(Xor32Decode(PacketOf(c4)).Bytes(), c4));
 }
 
 // Lo que FoxAnti cifra en un C3 (CL2.4): el serial y el C1 desde su opcode. Con (sealed, 2, 1) da lo

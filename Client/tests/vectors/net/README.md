@@ -6,7 +6,7 @@ paquetes del cable: salen de una fórmula, y ninguno lleva un login.
 
 | Vector | Tamaño | Qué es | Para qué |
 | --- | --- | --- | --- |
-| `c2-long.bin` | 300 | un C2 con el opcode `0x42` y 296 bytes, el i-ésimo `i * 37 + 11`, cifrado con el XOR32 del motor | un C2 de tamaño con el byte alto distinto de 0 (`C2 01 2C`), y la clave que da la vuelta |
+| `c2-long.bin` | 300 | un C2 con el opcode `0x42` y 296 bytes, el i-ésimo `(i * 37 + 11) mod 256`, cifrado con el XOR32 del motor | un C2 de tamaño con el byte alto distinto de 0 (`C2 01 2C`), y la clave que da la vuelta |
 
 ## De dónde salen
 

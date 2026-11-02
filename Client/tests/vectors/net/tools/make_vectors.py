@@ -2,8 +2,10 @@
 # el XOR32, escrito de nuevo desde 03-red-y-cifrado.md, "Envío", y no desde el código de MuRet.
 #
 # Es el engine() de gen_net_send_fixtures.py, en mu-client/tests/net/fixtures del repo de research,
-# con una diferencia: ahí el opcode de un C2 se cifra con key[3], sin evidencia, y en el binario va
-# en claro (0x498b2c..0x498b89, la ventana de cartas, el único emisor de un C2).
+# con dos diferencias. Ahí el opcode de un C2 se cifra con key[3], sin evidencia, y en el binario
+# va en claro (0x498b2c..0x498b89, la ventana de cartas, el único emisor de un C2). Y ahí el tamaño
+# provisorio de un C2 es 00 00, y acá 01 00, como en el binario: finish() lo pisa, así que no
+# cambia la salida.
 #
 # Uso: python3 make_vectors.py <carpeta de salida>
 import os
@@ -14,7 +16,8 @@ OUT = sys.argv[1]
 # La tabla del motor (03, "Envío"; XOR32_KEY en red_reference.py).
 XOR32_KEY = bytes.fromhex('e76d3a89bcb29f7323a8feb6495d395d8acb638dea7d2b5fc3b1e9832951e856')
 
-# Con 0x800 bytes el motor deja de agregar (Q-C06).
+# El tope del motor (Q-C06). El original lo mira antes de cada campo y saltea el que no entra; acá
+# cada byte es un campo, y ningún vector llega al tope.
 ENGINE_CAP = 0x800
 
 

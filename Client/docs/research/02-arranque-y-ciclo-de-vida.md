@@ -16,8 +16,11 @@ Fuentes: `analysis/mainexe/functions/paso9-ciclo-vida.md`, `paso7-escenas.md`,
 ```text
 entry 0x6a2444 (arranque del CRT)
   └─ WinMain 0x4b9b80 (RET 0x10: stdcall de cuatro argumentos)
-       ├─ actualización   cierra "MU Auto Update" y 0x4b96b0 termina la del launcher; si llegó
-       │                  un mu.exe nuevo, lo abre y sale (05, el pipeline de las DLLs)
+       ├─ errores         0x67f4f0(0x4b9a70): el manejador que escribe MuError.dmp
+       ├─ textos          0x61ee30: Data\Local\Text.bmd (0x5495e0) y Data\Macro.txt
+       ├─ actualización   cierra "MU Auto Update" y 0x4b96b0 termina la del launcher; sale si
+       │                  llegó un mu.exe nuevo (lo abre), si la ventana no se cierra en 6 s o si
+       │                  falla una copia (05, el pipeline de las DLLs)
        ├─ modo de video   EnumDisplaySettingsA x2 + ChangeDisplaySettingsA
        ├─ fuentes         CreateFontA x4 (HUD y texto)
        ├─ config          registro SOFTWARE\Webzen\Mu\Config
@@ -201,6 +204,7 @@ otro: el del anticheat, id 1001 (`paso4-killer.md` §1).
 | Teclado por `GetAsyncKeyState` | estado del teclado consultado por frame, como el original, detrás de `Input` | CL3 |
 | Red por mensajes de ventana | un socket no bloqueante que el bucle consulta en cada frame; mismo modelo de un solo hilo | CL4 |
 | Keepalive por `WM_TIMER` cada 20 s | temporizador del bucle, testeable con un reloj falso | CL4 |
+| Fin del auto-update del launcher (`0x4b96b0`: copia `mu._xe`, `mumsg._ll`, `wz_zp._ll` y `message._tf` sobre sus nombres) | no se porta: es del launcher ([05](05-formatos-de-datos.md#el-pipeline-de-las-dlls)) | — |
 | Anticheat (hash, timer 1001, `0x2B11`) | **fuera de alcance** | — |
 
 Tests que fija:

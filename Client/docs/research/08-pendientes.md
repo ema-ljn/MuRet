@@ -42,3 +42,7 @@ El laboratorio midió la distancia a "cliente jugable" en hitos (`mu-client/docs
 - Las protecciones de FoxAnti (VMProtect, ASPack, scans, watchdog): fuera de alcance.
 - La estructura interna del código original: MuRet copia el comportamiento observable, no las
   clases.
+- Si `main.exe` abre `message.wtf` o carga `mumsg.dll` por un nombre cifrado, por un momento: el
+  [05](05-formatos-de-datos.md#el-pipeline-de-las-dlls) lo descarta como *inferido* (alta). Lo
+  cerraría una traza de Procmon en la VM filtrada por `mumsg` y `message.wtf`, y solo cambia algo
+  si aparece: ahí vuelve la CL1.5 (`message.wtf`).

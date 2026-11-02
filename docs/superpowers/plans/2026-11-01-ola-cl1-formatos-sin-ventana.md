@@ -529,20 +529,23 @@ cargadores reciben los bytes. Entra con el código que abre los archivos de las 
 - **Antes de escribirla:** [05](../../../Client/docs/research/05-formatos-de-datos.md#el-pipeline-de-las-dlls)
   infiere que `main.exe` no carga `mumsg.dll` en el arranque normal, que la usa el launcher.
   Si se confirma, la CL1.5 sale de la ola.
-- **Se confirmó (2026-11-02), y salió.** En el `main.exe` `c32bbd5f`, `mumsg.dll` no está en los
-  imports, ninguno de sus exports aparece en el binario, y su nombre y el de `message.wtf` solo
-  están en `0x4b96b0`, que al arrancar termina una actualización del launcher copiando
-  `mumsg._ll` sobre `mumsg.dll` y `message._tf` sobre `message.wtf`, sin abrirlos. La evidencia
-  completa está en el 05; Q-C15 pasa a "fuera del cliente". Lo único sin confirmar son cuatro
-  `LoadLibrary` con el nombre cifrado, de lo que parece la protección (fuera de alcance): para
-  cerrarlo del todo, la lista de módulos con el cliente corriendo en la VM.
+- **Se revisó (2026-11-02), y salió.** `mumsg.dll` no está en ninguna de las 92 listas de módulos
+  del `main.exe` corriendo que guarda el research. En el `main.exe` `c32bbd5f` no está en los
+  imports, ninguno de sus exports aparece, no hay un `xor` con `0xCA`, y su nombre y el de
+  `message.wtf` solo están en `0x4b96b0`, que al principio de `WinMain` termina una actualización
+  del launcher copiando `mumsg._ll` sobre `mumsg.dll` y `message._tf` sobre `message.wtf`, sin
+  interpretarlos ni cargarlos. Que no lee `message.wtf` queda *inferido* (alta): un bloque de lo
+  que parece la protección (fuera de alcance) carga DLLs y abre archivos con nombres cifrados. Si
+  una traza de Procmon en la VM lo muestra, vuelve. La evidencia está en el 05 y lo pendiente en
+  el 08. Q-C15 deja de ser del cliente y vuelve con el JoinServer (ola 9), que lee
+  `message_tai.wtf` con el mismo formato.
 
 ---
 
 ## Al cerrar la CL1
 
 - [ ] Completar el cierre de la [guía de la CL1.0](../../learning/ola-cl1.0-bytes-y-archivos.md).
-- [x] Actualizar `docs/learning/PROGRESS.md`.
+- [ ] Actualizar `docs/learning/PROGRESS.md`.
 - [ ] Revisar el plan de la CL2 (protocolo sin red) con lo aprendido: el `ByteReader` y el
   `Expected` de esta ola son la base del `PacketReader`. Todavía no hay plan de la CL2: se
   escribe con eso en su propio PR.

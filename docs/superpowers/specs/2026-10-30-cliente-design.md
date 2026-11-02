@@ -198,7 +198,7 @@ Cada sub-ola es un PR chico. "Terminada cuando" es la condición objetiva de cie
 | Ola | Tema | Sub-olas (un PR cada una) | Conceptos | Research |
 | --- | --- | --- | --- | --- |
 | CL0 | Fundaciones del cliente | CL0.1 esqueleto `Client/` + este roadmap + el research (este PR) · CL0.2 `ClientLib` + `ClientTests` y la opción `MURET_CLIENT_GOLDEN_DIR` (trae ella misma vcpkg y GoogleTest, sin esperar la 0.2 del servidor) · CL0.3 SDL3 con OpenGL 3.3 core y su loader, CI que compila y testea en Windows y Linux | targets, dependencias, tests salteables | 01 |
-| CL1 | Formatos sin ventana | CL1.0 la 1.0 con material del cliente (bytes, endianness, archivos binarios) y el `Expected` propio · CL1.1 XOR3, checksum y `Text.bmd` · CL1.2 `Item`, `Skill` y `Gate.bmd` · CL1.3 terreno: K16, `.map`, `.att`, `.obj`, alturas · CL1.4 texturas OZT y OZJ · ~~CL1.5 `message.wtf`~~ (salió: es del launcher, `main.exe` no lo lee) | lectura de formatos, errores como valor, tests golden | 05, 07 |
+| CL1 | Formatos sin ventana | CL1.0 la 1.0 con material del cliente (bytes, endianness, archivos binarios) y el `Expected` propio · CL1.1 XOR3, checksum y `Text.bmd` · CL1.2 `Item`, `Skill` y `Gate.bmd` · CL1.3 terreno: K16, `.map`, `.att`, `.obj`, alturas · CL1.4 texturas OZT y OZJ · ~~CL1.5 `message.wtf`~~ (salió: es del launcher, y `main.exe` no lo lee) | lectura de formatos, errores como valor, tests golden | 05, 07 |
 | CL2 | Protocolo sin red | CL2.1 `PacketReader` C1/C2/C3/C4 · CL2.2 `PacketWriter` + XOR32 · CL2.3 `SimpleModulus` y `Enc1`/`Dec2.dat`, seriales · CL2.4 `Obfuscation` (identidad y FoxAnti) · CL2.5 structs del login: `F4 02`, `F1 01`, `0x0E` | máquinas de estado, cifrado por bloques, bits MSB primero | 03, 04, 07 |
 | CL3 | Plataforma y bucle de juego | CL3.0 el bucle de juego (paso fijo, interpolación, VSync) · CL3.R qué depende del paso de 40 ms (P-C03) · CL3.1 ventana y contexto GL con SDL3 · CL3.2 bucle con tick fijo y render desacoplado, con reloj falso en los tests · CL3.3 input (teclado por frame, mouse) · CL3.4 config + línea de comandos + log | game loop, tiempo, eventos del SO | 02, 08 |
 | CL4 | Red del cliente | CL4.1 socket no bloqueante portable consultado por el bucle · CL4.2 ConnectServer: saludo, lista, IP del GS · CL4.3 GameServer: saludo, versión y login · CL4.4 keepalive, desconexión y cola de envío · CL4.5 `Dispatcher` y el opcode desconocido | E/S no bloqueante, estados de una conexión | 03, 04 |
@@ -248,6 +248,9 @@ efectos.
 ## Fuera de alcance
 
 - El anticheat de FoxAnti y del propio `main.exe`.
+- El launcher (`mu.exe`) y lo suyo: el auto-update, `mumsg.dll` y `message.wtf`, y el paso de
+  `WinMain` que termina la actualización (`0x4b96b0`,
+  [05](../../../Client/docs/research/05-formatos-de-datos.md#el-pipeline-de-las-dlls)).
 - Versionar assets del juego o distribuir un cliente jugable con datos.
 - Funciones de clientes posteriores al 1.02 (Season 6, MU Helper, tienda).
 - Cambiar quién escribe la lógica del cliente: sigue siendo Emanuel.

@@ -23,7 +23,7 @@ parciales, 44 binarios de soporte, 0 errores de decodificación):
 | WAV | 484 | efectos de sonido |
 | MP3 | 23 | música por mapa (`Music\Pub.mp3`, `Devias.mp3`, `MuTheme.mp3`…) |
 | Ogg/Vorbis | 3 | por `wzAudio` → `vorbisfile` → `ogg` |
-| `message.wtf` | 1 | XOR `0xCA`; es del launcher, `main.exe` no lo lee (ver el pipeline de las DLLs) |
+| `message.wtf` | 1 | XOR `0xCA`; es del launcher: `main.exe` no lo lee (ver el pipeline de las DLLs) |
 | claves C3/C4 | 2 | `Enc1.dat`, `Dec2.dat` |
 
 Es la otra parte bien validada: los cargadores de tablas, terreno y texturas reproducen **byte a
@@ -161,33 +161,53 @@ la luz que tenía en memoria el original (`lor_light.bin` y `s31_light.bin`).
 
 Verificado: `npcipher` con 4 vectores reales en la VM; el resto con vectores estándar.
 
-`main.exe` **no** usa estas cinco DLLs: las usan el launcher (`mu.exe`) y las herramientas
-(`coverage-main.md` §3). Revisado en el `main.exe` `c32bbd5f` al arrancar la CL1.5 (2026-11-02):
+`main.exe` **no** carga estas cinco DLLs ni lee `message.wtf`: son del launcher (`Mu.exe`, que no
+está en el laboratorio y que importa `mumsg.dll` y `wz_zp.dll` directamente, según
+`decompilacion-maxima/metadata/relaciones_componentes.csv`) y de las herramientas. Revisado al
+arrancar la CL1.5 (2026-11-02), en el `main.exe` `c32bbd5f`:
 
-- No están en su tabla de imports, que trae 15 DLLs: `IMM32`, `DSOUND`, `OPENGL32`, `GLU32`,
-  `WINMM`, `KERNEL32`, `USER32`, `GDI32`, `ADVAPI32`, `SHELL32`, `ole32`, `WS2_32`, `VERSION`,
-  `wzAudio` y `FoxAnti`.
-- `npcipher`, `npchk`, `wzCipher`, `GetCRC32` y `CheckCRC` no aparecen en el binario, ni las
-  tablas de bzip2 (`coverage-main.md` §3).
-- `mumsg.dll`, `wz_zp.dll` y `message.wtf` aparecen en un solo lugar, `0x4b96b0`, el primer paso
-  de `WinMain` ([02](02-arranque-y-ciclo-de-vida.md)): termina una actualización del launcher, que
-  no puede pisarse a sí mismo mientras corre. Si encuentra `mu._xe`, `mumsg._ll`, `wz_zp._ll` o
-  `message._tf`, espera hasta 6 s a que se cierre la ventana "MU Auto Update", copia cada uno sobre
-  su nombre de verdad (`0x4b9550`: `CopyFileA`, que reintenta hasta 5 s, y después `DeleteFileA`)
-  y, si llegó un `mu.exe` nuevo, avisa con un `MessageBox` "Update", lo abre con `WinExec` y no
-  arranca el juego. Los archivos no los abre.
-- De `mumsg.dll` no nombra ninguno de sus 14 exports (`CMsg::LoadWTF`, `CMsg::Get`…), ni la
-  cabecera `"WTF File"` que lee `CMsg`. El `message.wtf` del laboratorio trae 57 mensajes del
-  launcher (`tier1-mumsg.md`); los textos del juego salen de `Text.bmd`.
-- Las llamadas a `LoadLibraryA` con el nombre a la vista cargan `D3D8.DLL`, `D3D9.DLL`,
-  `DDRAW.DLL`, `DINPUT.DLL` y `user32.dll`. Otras cuatro, todas en el mismo bloque de código
-  (`0x688c81`, `0x68a797` y `0x68ae6c`, y `0x68bb63` con `LoadLibraryExA`, entre `0x688b60` y
-  `0x68bbb0`), arman el nombre al correr con cadenas que se descifran ahí (`0x68de80`). No se
-  descifraron: son cadenas escondidas a propósito, probablemente de la protección, que está fuera
-  de alcance.
+- Mientras corre, no están cargadas: ninguna de las 92 listas de módulos del `main.exe` corriendo
+  que guarda el research (`client-research/analysis/foxanti/evidence/`, por ejemplo
+  `live-state.txt`) tiene `mumsg.dll` ni `wz_zp.dll`. Todas son de un `main.exe` de
+  `SizeOfImage` `0x07963000`, el de las dos builds del laboratorio.
+- *Estático*: no están en su tabla de imports, que trae 15 DLLs: `IMM32`, `DSOUND`, `OPENGL32`,
+  `GLU32`, `WINMM`, `KERNEL32`, `USER32`, `GDI32`, `ADVAPI32`, `SHELL32`, `ole32`, `WS2_32`,
+  `VERSION`, `wzAudio` y `FoxAnti`. La tabla está en la sección `.Silvana` (RVA `0x796201b`),
+  donde va también el import de FoxAnti, que se inyectó; `objdump -p` muestra solo el primer
+  descriptor, así que la lista sale de recorrer los descriptores hasta el que está en cero. No
+  hay imports diferidos ni enlazados, ni callbacks de TLS.
+- *Estático*: `npcipher`, `npchk`, `wzCipher`, `GetCRC32` y `CheckCRC` no aparecen en el binario,
+  ni las tablas de bzip2 (`coverage-main.md` §3), ni pedazos de esos nombres armados en la pila
+  (`"mums"`, `"wz_z"`, `"npci"`, `"wzCi"`).
+- *Estático*: `mumsg.dll`, `wz_zp.dll` y `message.wtf` aparecen en un solo lugar, `0x4b96b0`, que
+  corre en cada arranque, al principio de `WinMain` y después de cargar `Text.bmd`
+  ([02](02-arranque-y-ciclo-de-vida.md#de-entry-al-bucle-de-mensajes)). Termina una actualización
+  que dejó el launcher: si encuentra `mu._xe`, `mumsg._ll`, `wz_zp._ll` o `message._tf`, espera
+  hasta 6 s a que se cierre la ventana "MU Auto Update" y copia cada uno sobre su nombre de verdad
+  (`0x4b9550`: `CopyFileA`, que reintenta hasta 5 s, y después borra el temporal con
+  `DeleteFileA`). Si llegó un `mu.exe` nuevo, avisa con un `MessageBox` "Update", lo abre con
+  `WinExec` y no arranca el juego; tampoco arranca si la ventana no se cierra a tiempo o si falla
+  una copia. Los archivos solo los copia: no los interpreta ni los carga. Hasta los textos de esos
+  avisos salen de `Text.bmd` (los registros 13 y 14 de `g_GlobalText`).
+- *Estático*: no nombra ninguno de los 14 exports de `mumsg.dll` (`CMsg::LoadWTF`, `CMsg::Get`…),
+  y en todo su `.text` no hay un `xor` con `0xCA`, la clave de `message.wtf` (desensamblado
+  lineal; el mismo método la encuentra en el lector del JoinServer, Q-C15). El `message.wtf` del
+  laboratorio trae 57 mensajes del launcher (`tier1-mumsg.md`); los textos del juego salen de
+  `Text.bmd` y de las demás tablas que carga.
+- Las llamadas a `LoadLibraryA` con el nombre a la vista cargan `DDRAW.DLL`, `DINPUT.DLL`,
+  `D3D8.DLL`, `D3D9.DLL` y `user32.dll`. Las demás están en un mismo bloque de código, de
+  `0x688b60` a `0x68bbb0`: cinco llamadas en cuatro funciones (`LoadLibraryA` en `0x688c81`,
+  `0x68a797` y `0x68ae6c`, y `LoadLibraryExA` en `0x68bb6e` y `0x68bb97`), que arman el nombre al
+  correr con cadenas que se descifran en ese bloque (`0x68de80`). En el mismo bloque hay también
+  `CreateFileA` y `FindFirstFileA` con nombres armados al correr. No se descifraron: son cadenas
+  escondidas a propósito, probablemente de la protección, que está fuera de alcance.
 
-*Estático*. Para pasarlo a confirmado falta la lista de módulos con el cliente corriendo
-(`tasklist /m` en la VM). Con esto, MuRet no lee `message.wtf`: la CL1.5 salió de la ola.
+Lo que queda abierto es ese bloque: carga y libera las DLLs en la misma función, así que una lista
+de módulos tomada en un momento no las ve, y podría abrir un archivo por su nombre cifrado. Sin
+un `xor` con `0xCA` en el binario, eso sería, a lo sumo, mirar que el archivo esté, no leer sus
+mensajes. *Inferido* (alta) que no lee `message.wtf`; lo cerraría una traza de Procmon en la VM
+filtrada por `mumsg` y `message.wtf` ([08](08-pendientes.md)). Alcanza para que MuRet no lo lea:
+la CL1.5 salió de la ola, y vuelve si esa traza lo muestra.
 
 ## Modelos `.bmd`
 

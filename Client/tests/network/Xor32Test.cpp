@@ -7,6 +7,7 @@
 #include "Network/PacketWriter.h"
 
 #include "support/BytePattern.h"
+#include "support/Bytes.h"
 #include "support/NetVectors.h"
 #include "support/SameBytes.h"
 
@@ -30,18 +31,9 @@ using Client::Network::Crypto::Xor32Encode;
 using Client::Network::Crypto::Xor32EncodeBytes;
 using Client::Network::Crypto::Xor32Key;
 using Client::Tests::BytePattern;
+using Client::Tests::Bytes;
 using Client::Tests::ReadNetVector;
 using Client::Tests::SameBytes;
-
-std::vector<std::byte> Bytes(std::initializer_list<int> values)
-{
-    std::vector<std::byte> bytes;
-    for (const int value : values)
-    {
-        bytes.push_back(static_cast<std::byte>(value));
-    }
-    return bytes;
-}
 
 Packet PacketOf(std::vector<std::byte> bytes)
 {

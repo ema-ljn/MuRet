@@ -2,13 +2,14 @@
 
 #include "Network/PacketWriter.h"
 
+#include "support/Bytes.h"
+#include "support/NetworkPrinters.h"
 #include "support/SameBytes.h"
 
 #include <gtest/gtest.h>
 
 #include <cstddef>
 #include <cstdint>
-#include <initializer_list>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -22,17 +23,8 @@ using Client::Network::MinPacketSize;
 using Client::Network::PacketError;
 using Client::Network::PacketType;
 using Client::Network::PacketWriter;
+using Client::Tests::Bytes;
 using Client::Tests::SameBytes;
-
-std::vector<std::byte> Bytes(std::initializer_list<int> values)
-{
-    std::vector<std::byte> bytes;
-    for (const int value : values)
-    {
-        bytes.push_back(static_cast<std::byte>(value));
-    }
-    return bytes;
-}
 
 // Un escritor del tipo `type` que al terminar mide `size` bytes: la cabecera, el opcode 0x42 y el
 // resto en 0x11.

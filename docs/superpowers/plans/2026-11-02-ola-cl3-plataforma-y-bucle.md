@@ -828,17 +828,22 @@ dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
   Anotarlo en el README.
 
   Del cierre de las notas de la CL3: sin VSync y sin tope, el modo normal no dormía y usaba un
-  núcleo entero. Ahora hay un tope opcional, `[Video] MaxFps` y `--max-fps N` (de 0, sin tope y
-  por defecto, a `MaxFpsLimit`, 1000), como el `FpsCap` de MuMain (`GameConfig.h`, -1 y sin tope
-  por defecto, y solo con VSync apagado; el de MuRet vale también con VSync, donde solo frena si es
-  más bajo que el refresco):
-  después de dibujar, `GameLoop` duerme lo que le falta al frame para durar 1 s / N desde su
-  `Now()`. Minimizada sigue durmiendo hasta el próximo paso, y en el modo fiel un tope es error
-  en `Resolve`, como el VSync. Tests: `GameLoopTest.AnFpsCapSleepsWhatIsLeftOfTheFrame`,
-  `TheFpsCapCountsTheStepsToo`, `AFrameLongerThanTheFpsCapDoesNotSleep`,
-  `AMinimizedWindowIgnoresTheFpsCap` y `AClockThatGoesBackDuringTheFrameDoesNotSleep`;
-  `ConfigTest.ReadsMaxFps`, `RejectsAMaxFpsOutOfRange`, `TheCommandLineMaxFpsWins` y
-  `FaithfulWithAnFpsCapIsAnError`; `CommandLineTest.ParsesMaxFps` y `RejectsABadMaxFps`. En Xvfb,
+  núcleo entero. Ahora hay un tope opcional, `[Video] MaxFps` y `--max-fps N` (0, sin tope y por
+  defecto, o de `MinFpsLimit`, 25, un frame por paso de la lógica, a `MaxFpsLimit`, 1000; con 1
+  el frame duraría `MaxFrameTime` y se recortaría siempre), como el `FpsCap` de MuMain
+  (`GameConfig.h`, -1 y sin tope por defecto). Como en MuMain (`ApplyVSyncPreferenceNow` en
+  `Winmain.cpp`), va solo con el VSync que quedó apagado: `App::EffectiveMaxFps` da 0 con VSync,
+  y `main.cpp` lo dice en el log. Después de dibujar, `GameLoop::SleepRestOfFrame` duerme hasta la
+  meta del frame, la del anterior más 1 s / N: lo que corre entre dos `RunFrame` no se suma (sin
+  meta, con un tope de 1000 y 0,1 ms afuera, el ritmo bajaba a 909). Si el frame se pasa de la
+  meta, la siguiente cuenta desde el frame que sigue, sin ponerse al día. Minimizada sigue
+  durmiendo hasta el próximo paso, y en el modo fiel un tope es error en `Resolve`, como el VSync.
+  Tests: `GameLoopTest.AnFpsCapSleepsWhatIsLeftOfTheFrame`, `TheFpsCapCountsTheStepsToo`,
+  `AFrameLongerThanTheFpsCapDoesNotSleep`, `AMinimizedWindowIgnoresTheFpsCap`,
+  `AClockThatGoesBackDuringTheFrameDoesNotSleep`, `TheFpsCapDoesNotAddTheTimeBetweenFrames`,
+  `AfterALongFrameTheFpsCapStartsOver` y `AFaithfulLoopIgnoresTheFpsCap`; `ConfigTest.ReadsMaxFps`,
+  `RejectsAMaxFpsOutOfRange`, `TheCommandLineMaxFpsWins`, `FaithfulWithAnFpsCapIsAnError` y
+  `TheFpsCapIsOnlyForVSyncOff`; `CommandLineTest.ParsesMaxFps` y `RejectsABadMaxFps`. En Xvfb,
   `Main --frames 100 --vsync off --max-fps 50` corre 49 pasos: 2 s.
 
   En Linux, con Xvfb y llvmpipe (2026-11-02, lo corrió Claude): `--pacing faithful --stats` dio

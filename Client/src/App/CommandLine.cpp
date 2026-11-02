@@ -70,14 +70,16 @@ std::optional<std::uint64_t> ParsePositive(std::string_view text)
     return value;
 }
 
-// Un tope de FPS: de 0 a MaxFpsLimit, sin signo ni nada atrás (from_chars sin signo ya rechaza
-// "-1" y "+5").
+// Un tope de FPS: 0, o de MinFpsLimit a MaxFpsLimit, sin signo ni nada atrás (from_chars sin
+// signo ya rechaza "-1" y "+5").
 std::optional<int> ParseMaxFps(std::string_view text)
 {
     unsigned value = 0;
     const char* const last = text.data() + text.size();
     const auto [end, error] = std::from_chars(text.data(), last, value);
-    if (error != std::errc() || end != last || value > static_cast<unsigned>(Client::App::MaxFpsLimit))
+    const bool inRange = value == 0 || (value >= static_cast<unsigned>(Client::App::MinFpsLimit) &&
+                                        value <= static_cast<unsigned>(Client::App::MaxFpsLimit));
+    if (error != std::errc() || end != last || !inRange)
     {
         return std::nullopt;
     }
@@ -236,8 +238,9 @@ Core::Expected<CommandLine, std::string> ParseCommandLine(std::span<const std::s
             commandLine.maxFps = ParseMaxFps(value);
             if (!commandLine.maxFps)
             {
-                return Unexpected(
-                    BadValue(argument, "un número de 0 a " + std::to_string(Client::App::MaxFpsLimit), value));
+                const std::string expected =
+                    "0 o un número de " + std::to_string(MinFpsLimit) + " a " + std::to_string(MaxFpsLimit);
+                return Unexpected(BadValue(argument, expected, value));
             }
         }
         else if (argument == PacingOption)

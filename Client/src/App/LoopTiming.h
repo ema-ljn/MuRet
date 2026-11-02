@@ -24,8 +24,13 @@ inline constexpr Core::Duration FaithfulTick = std::chrono::microseconds{15'625}
 inline constexpr std::int32_t FaithfulWaitMs = 40;
 // El valor inicial del acumulador del original: la .data de 0x6d5ee4 vale 0x28 (CL3.R).
 inline constexpr std::int32_t FaithfulInitialAccumulatorMs = 40;
-// El tope de FPS más alto que aceptan [Video] MaxFps y --max-fps (0 es sin tope). No sale del
-// original, que no tiene tope porque espera siempre 46,875 ms: con más de 1000, un frame duraría
-// menos de 1 ms y el tope ya no frenaría nada que se note.
+// Los topes de FPS que aceptan [Video] MaxFps y --max-fps, además del 0 (sin tope). No salen del
+// original, que no tiene tope porque espera siempre 46,875 ms. El más bajo es un frame por paso de
+// la lógica (LogicStep), 25 por segundo: con menos, cada frame correría varios pasos de golpe, y
+// con 1 duraría MaxFrameTime y se recortaría siempre (el menú de MuMain arranca en 24,
+// OptionWindow.cpp). El más alto es 1000: con más, un frame duraría menos de 1 ms y el tope ya no
+// frenaría nada que se note.
+inline constexpr int MinFpsLimit = static_cast<int>(std::chrono::seconds{1} / LogicStep);
+static_assert(MinFpsLimit == 25);
 inline constexpr int MaxFpsLimit = 1000;
 } // namespace Client::App

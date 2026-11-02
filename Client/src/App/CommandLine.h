@@ -18,7 +18,8 @@
 //   Main --frames N       dibuja N frames y sale (para probarlo sin nadie que cierre la ventana)
 //   Main --pacing MODO    decoupled (el de MuRet) o faithful (el ritmo del original), CL3.2
 //   Main --vsync MODO     on, adaptive u off; en el modo fiel solo off, como el original
-//   Main --max-fps N      el tope de FPS del modo normal, de 0 (sin tope) a MaxFpsLimit
+//   Main --max-fps N      el tope de FPS del modo normal con VSync off: 0 (sin tope), o de
+//                         MinFpsLimit a MaxFpsLimit
 //   Main --stats          imprime los FPS y los pasos por segundo cada 5 s
 //   Main --config RUTA    lee esa config en vez de muret-client.ini junto al ejecutable (CL3.4)
 //   Main --data RUTA      la carpeta de datos, en vez de [Data] Path

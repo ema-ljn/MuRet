@@ -50,26 +50,45 @@ int GameLoop::RunDecoupled(const WindowState& state, Input::InputState& input)
     if (state.minimized)
     {
         // Sin dibujo, el swap no frena el bucle: duerme lo que falta para el próximo paso, que
-        // es más que 0 porque el acumulador quedó debajo de LogicStep.
+        // es más que 0 porque el acumulador quedó debajo de LogicStep. El tope no se usa, y al
+        // volver arranca de nuevo.
         m_clock.SleepFor(LogicStep - m_fixedStep.Accumulated());
+        m_frameDeadline.reset();
     }
     else
     {
         m_client.Render(m_lastAlpha);
-        // El tope de FPS: duerme lo que le falta al frame para durar m_minFrameTime desde `now`,
-        // así el próximo RunFrame mide eso. Con VSync, el swap de Render ya esperó el retrazo, y
-        // el tope solo frena si es más bajo que el refresco. Si el reloj volvió (solo el
-        // FakeClock), no duerme.
         if (m_minFrameTime > Core::Duration::zero())
         {
-            const Core::Duration elapsed = m_clock.Now() - now;
-            if (elapsed >= Core::Duration::zero() && elapsed < m_minFrameTime)
-            {
-                m_clock.SleepFor(m_minFrameTime - elapsed);
-            }
+            SleepRestOfFrame(now);
         }
     }
     return steps;
+}
+
+void GameLoop::SleepRestOfFrame(Core::Duration frameStart)
+{
+    // La meta es la del frame anterior más m_minFrameTime, y no frameStart + m_minFrameTime: así
+    // lo que corre entre dos RunFrame (los eventos, --stats) cae adentro del frame y no se suma, y
+    // el ritmo queda en maxFps. Si no hay meta, o el frame no empezó en el frame que le sigue (el
+    // anterior se pasó, la ventana estuvo minimizada, el reloj volvió), cuenta desde frameStart:
+    // después de un frame largo no se pone al día con frames más cortos.
+    Core::Duration deadline = frameStart + m_minFrameTime;
+    if (m_frameDeadline && frameStart >= *m_frameDeadline && frameStart - *m_frameDeadline < m_minFrameTime)
+    {
+        deadline = *m_frameDeadline + m_minFrameTime;
+    }
+    // Si el frame ya pasó la meta, o el reloj volvió durante el frame, no duerme.
+    const Core::Duration now = m_clock.Now();
+    if (now >= frameStart && now < deadline)
+    {
+        m_clock.SleepFor(deadline - now);
+        m_frameDeadline = deadline;
+    }
+    else
+    {
+        m_frameDeadline.reset();
+    }
 }
 
 int GameLoop::RunFaithful(const WindowState& state, Input::InputState& input)

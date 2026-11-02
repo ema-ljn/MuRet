@@ -149,8 +149,8 @@ Core::Expected<int, std::string> ParseSize(std::string_view value)
     return size;
 }
 
-// [Video] MaxFps: de 0 (sin tope) a MaxFpsLimit. Como en ParseSize, los dígitos se miran antes
-// por el mensaje.
+// [Video] MaxFps: 0 (sin tope), o de MinFpsLimit a MaxFpsLimit. Como en ParseSize, los dígitos
+// se miran antes por el mensaje.
 Core::Expected<int, std::string> ParseMaxFps(std::string_view value)
 {
     if (!std::ranges::all_of(value, IsDigit))
@@ -159,9 +159,9 @@ Core::Expected<int, std::string> ParseMaxFps(std::string_view value)
     }
     int maxFps = 0;
     const auto result = std::from_chars(value.data(), value.data() + value.size(), maxFps);
-    if (result.ec != std::errc{} || maxFps > MaxFpsLimit)
+    if (result.ec != std::errc{} || (maxFps != 0 && (maxFps < MinFpsLimit || maxFps > MaxFpsLimit)))
     {
-        return Unexpected(std::format("va de 0 a {}", MaxFpsLimit));
+        return Unexpected(std::format("va de {} a {}, o 0 (sin tope)", MinFpsLimit, MaxFpsLimit));
     }
     return maxFps;
 }
@@ -542,5 +542,10 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
         }
     }
     return config;
+}
+
+int EffectiveMaxFps(int maxFps, VSyncMode vsync)
+{
+    return vsync == VSyncMode::Off ? maxFps : 0;
 }
 } // namespace Client::App

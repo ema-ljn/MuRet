@@ -319,11 +319,12 @@ TEST(CommandLineTest, APathThatIsNotUtf8IsBytesOnPosixAndAnErrorOnWindows)
     }
 }
 
-// --max-fps N, de 0 (sin tope, pisa la config) a 1000.
+// --max-fps N: 0 (sin tope, pisa la config), o de 25 a 1000.
 TEST(CommandLineTest, ParsesMaxFps)
 {
     std::string error;
-    for (const auto& [text, maxFps] : {std::pair{"144", 144}, std::pair{"0", 0}, std::pair{"1000", 1000}})
+    for (const auto& [text, maxFps] :
+         {std::pair{"144", 144}, std::pair{"0", 0}, std::pair{"25", 25}, std::pair{"1000", 1000}})
     {
         const auto commandLine = Parse({"--max-fps", text}, error);
         ASSERT_TRUE(commandLine.has_value()) << error;
@@ -336,10 +337,11 @@ TEST(CommandLineTest, ParsesMaxFps)
 
 TEST(CommandLineTest, RejectsABadMaxFps)
 {
-    for (const std::string_view text : {"1001", "-1", "+5", "60fps", ""})
+    // 1 duraría MaxFrameTime y se recortaría siempre: el más bajo es MinFpsLimit.
+    for (const std::string_view text : {"1001", "1", "24", "-1", "+5", "60fps", ""})
     {
         EXPECT_EQ(ErrorOf({"--max-fps", text}),
-                  "--max-fps necesita un número de 0 a 1000, no \"" + std::string(text) + "\"")
+                  "--max-fps necesita 0 o un número de 25 a 1000, no \"" + std::string(text) + "\"")
             << text;
     }
     EXPECT_NE(ErrorOf({"--max-fps"}).find("--max-fps necesita un número"), std::string::npos);

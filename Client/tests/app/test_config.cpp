@@ -20,9 +20,11 @@ namespace
 using Client::App::CommandLine;
 using Client::App::ConfigError;
 using Client::App::DefaultConnectPort;
+using Client::App::EffectiveMaxFps;
 using Client::App::MaxFpsLimit;
 using Client::App::MaxHostBytes;
 using Client::App::MaxWindowSize;
+using Client::App::MinFpsLimit;
 using Client::App::PacingMode;
 using Client::App::ParseConfig;
 using Client::App::Resolve;
@@ -628,13 +630,14 @@ TEST(ConfigTest, NoHostIsNotAnError)
     EXPECT_TRUE(config.Value().server->host.empty());
 }
 
-// [Video] MaxFps, el tope de FPS del modo normal: de 0 (sin tope, el valor por defecto) a 1000.
+// [Video] MaxFps, el tope de FPS del modo normal: 0 (sin tope, el valor por defecto), o de 25 a
+// 1000.
 TEST(ConfigTest, ReadsMaxFps)
 {
     const auto defaults = ParseConfig("");
     ASSERT_TRUE(defaults.HasValue());
     EXPECT_EQ(defaults.Value().maxFps, 0);
-    for (const int maxFps : {0, 1, 144, MaxFpsLimit})
+    for (const int maxFps : {0, MinFpsLimit, 144, MaxFpsLimit})
     {
         const auto config = ParseConfig("[Video]\nMaxFps = " + std::to_string(maxFps) + "\n");
         ASSERT_TRUE(config.HasValue()) << maxFps;
@@ -642,10 +645,15 @@ TEST(ConfigTest, ReadsMaxFps)
     }
 }
 
+// 1 duraría MaxFrameTime y se recortaría siempre: el más bajo es MinFpsLimit.
 TEST(ConfigTest, RejectsAMaxFpsOutOfRange)
 {
-    EXPECT_EQ(ErrorOf("[Video]\nMaxFps = 1001\n").message, "[Video] MaxFps: va de 0 a 1000");
-    EXPECT_EQ(ErrorOf("[Video]\nMaxFps = 99999999999\n").message, "[Video] MaxFps: va de 0 a 1000");
+    for (const std::string_view maxFps : {"1001", "99999999999", "1", "24"})
+    {
+        EXPECT_EQ(ErrorOf("[Video]\nMaxFps = " + std::string(maxFps) + "\n").message,
+                  "[Video] MaxFps: va de 25 a 1000, o 0 (sin tope)")
+            << maxFps;
+    }
     EXPECT_EQ(ErrorOf("[Video]\nMaxFps = -1\n").message, "[Video] MaxFps: tiene que ser un número");
     EXPECT_EQ(ErrorOf("[Video]\nMaxFps = 60fps\n").message, "[Video] MaxFps: tiene que ser un número");
 }
@@ -692,5 +700,27 @@ TEST(ConfigTest, FaithfulWithAnFpsCapIsAnError)
     const auto withoutCap = Resolve(empty.Path(), both);
     ASSERT_TRUE(withoutCap.HasValue()) << withoutCap.Error();
     EXPECT_EQ(withoutCap.Value().maxFps, 0);
+
+    // Mezclados: el modo de la config y el tope de la línea de comandos, y al revés.
+    const TempFolder faithfulConfig;
+    faithfulConfig.Write("[Video]\nPacing = faithful\n");
+    CommandLine capOnly;
+    capOnly.maxFps = 60;
+    EXPECT_FALSE(Resolve(faithfulConfig.Path(), capOnly).HasValue());
+    const TempFolder capConfig;
+    capConfig.Write("[Video]\nMaxFps = 60\n");
+    CommandLine faithfulOnly;
+    faithfulOnly.pacing = PacingMode::Faithful;
+    EXPECT_FALSE(Resolve(capConfig.Path(), faithfulOnly).HasValue());
+}
+
+// El tope va solo con el VSync que quedó apagado, como el FpsCap de MuMain: con VSync el swap ya
+// frena al refresco.
+TEST(ConfigTest, TheFpsCapIsOnlyForVSyncOff)
+{
+    EXPECT_EQ(EffectiveMaxFps(60, VSyncMode::Off), 60);
+    EXPECT_EQ(EffectiveMaxFps(60, VSyncMode::On), 0);
+    EXPECT_EQ(EffectiveMaxFps(60, VSyncMode::Adaptive), 0);
+    EXPECT_EQ(EffectiveMaxFps(0, VSyncMode::Off), 0);
 }
 } // namespace

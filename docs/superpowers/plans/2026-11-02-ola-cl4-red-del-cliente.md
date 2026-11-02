@@ -1043,6 +1043,13 @@ public:
     que cierra o que descarta sin aviso, los niveles del log de cierre, un aviso con el tamaño del
     paquete, la lectura sin el `std::min`): los mata algún test. Unos `static_assert` fijan que una
     ofuscación temporal no compila y que la `Connection` no se copia ni se mueve.
+  - De la segunda vuelta de la revisión: los niveles del log de cierre estaban fijados solo en
+    parte (pasar `ConnectTimedOut`, `BadStream`, `SendQueueFull`, `Refused` o `ResolveFailed` a
+    `info` sobrevivía). `EveryCloseIsLoggedWithItsLevel` es una tabla con una fila por motivo de
+    `CloseReason`, cada una con su conexión, que mira la línea entera y su nivel: esos cinco
+    mutantes y el de `PeerClosed` mueren. El `ClaimsMoreSocket`, que estaba copiado en los tests de
+    la `Connection` y de la `SendQueue`, pasó a `tests/support/ClaimsMoreSocket.h`, con las dos
+    mentiras: la de `Receive` y la de `Send`.
   - `ServerSessionTest.WhatFollowsTheAddressIsDropped` es del PR B: la `Connection` vacía el corte
     en `Open` (`ReopeningStartsClean`), pero lo que ya salió en el lote lo tiene que dejar de
     recorrer la sesión.

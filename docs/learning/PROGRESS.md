@@ -38,7 +38,10 @@ solo lo lee.
   que quedan escritos (Q-C33), y el plan de un decodificador propio compatible con la 6b queda en
   pausa por si turbo no alcanza ([su plan](../superpowers/plans/2026-11-01-cl1.4-decodificador-jpeg.md)).
   Con el OZJ entra también la luz del terreno, `TerrainLight.OZJ`, igual a la que tenía en memoria
-  el original en Lorencia y Devias.
+  el original en Lorencia y Devias. La CL1.5 (`message.wtf`) salió de la ola: es del launcher, y
+  `main.exe` no lo lee (05, el pipeline de las DLLs). Con eso el código de la CL1 está entero;
+  para cerrarla falta lo tuyo (la parte de `labs/`, las actividades de la guía y explicar los
+  conceptos de abajo). Próxima: la CL2 (protocolo sin red), empezando por su plan.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 

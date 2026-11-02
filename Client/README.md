@@ -18,14 +18,16 @@ MuRet **no incluye assets del juego**: el cliente lee los `Data\` de una instala
 
 ## Estado
 
-Ola CL1.4: `Main` abre una ventana SDL3 de 640×480 con OpenGL 3.3 core, la limpia de un color e
+Ola CL1: `Main` abre una ventana SDL3 de 640×480 con OpenGL 3.3 core, la limpia de un color e
 imprime `GL_VERSION` y `GL_RENDERER`; todavía no se conecta. `ClientLib` resuelve rutas de `Data\`
 como Windows (sin distinguir mayúsculas) y lee desde sus bytes `Text.bmd`, `Gate.bmd`, `Item.bmd`
 y `Skill.bmd`, con el XOR3 y el checksum de las tablas `.bmd`, y el terreno de un mundo:
 `EncTerrain<N>.map` (las capas de tiles), `EncTerrain<N>.att` (los atributos) y `EncTerrain<N>.obj`
 (los objetos), con su cifrado K16, `TerrainHeight.OZB` (las alturas) y `TerrainLight.OZJ` (la luz).
 De las texturas, el OZT (un TGA de 32 bits, en RGBA) y el OZJ (un JPEG, en RGB, con libjpeg-turbo),
-en un buffer de lados potencia de 2 como el del original.
+en un buffer de lados potencia de 2 como el del original. Con eso termina el código de la CL1:
+`message.wtf` no entra, porque es del launcher y `main.exe` no lo lee. La próxima es la CL2, el
+protocolo sin red.
 
 ## Compilar y correr
 

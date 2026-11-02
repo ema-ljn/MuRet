@@ -3,8 +3,9 @@
 > Plan de ejecución en el formato de superpowers (writing-plans): cada tarea tiene
 > archivos, pasos chicos con checkbox y el comando que verifica el resultado.
 > Roadmap: [`2026-10-30-cliente-design.md`](../specs/2026-10-30-cliente-design.md).
-> Escrito el 2026-11-01. De la CL1.0 a la CL1.3 están detalladas; la CL1.4 y la CL1.5 tienen un
-> esbozo con su contrato, que se detalla al arrancar cada una con lo aprendido en la anterior.
+> Escrito el 2026-11-01. De la CL1.0 a la CL1.3 están detalladas; la CL1.4 y la CL1.5 tenían un
+> esbozo con su contrato, que se detalla al arrancar cada una con lo aprendido en la anterior. La
+> CL1.4 se detalló; la CL1.5 salió de la ola el 2026-11-02: `message.wtf` es del launcher.
 
 **Objetivo:** leer los archivos de `Data\` igual que el original, en funciones puras que van de
 bytes a tipos de C++, sin ventana y sin globales. Cada formato se prueba con vectores literales
@@ -22,9 +23,9 @@ del que llama, así los tests no tocan el disco salvo los golden. El `Expected` 
 para la CL1.0. De la CL1.1 en adelante, la sección de cada sub-ola de este plan.
 
 **Research que fija esta ola:**
-- [05-formatos-de-datos](../../../Client/docs/research/05-formatos-de-datos.md): tablas, terreno,
-  texturas y `message.wtf`.
-- Los quirks Q-C01, Q-C02, Q-C07, Q-C08, Q-C12, Q-C14, Q-C15 y de Q-C23 a Q-C27 de
+- [05-formatos-de-datos](../../../Client/docs/research/05-formatos-de-datos.md): tablas, terreno
+  y texturas.
+- Los quirks Q-C01, Q-C02, Q-C07, Q-C08, Q-C12, Q-C14 y de Q-C23 a Q-C27 de
   [07](../../../Client/docs/research/07-quirks-y-bugs.md).
 - La evidencia de cada cargador, con su asm, en
   `client-research/analysis/mainexe/evidence/s31-assets/agentes/` del repo de research (por
@@ -33,8 +34,8 @@ para la CL1.0. De la CL1.1 en adelante, la sección de cada sub-ola de este plan
   sirve de oráculo para comparar, no se copia.
 
 **Terminada cuando:**
-- las cuatro tablas, el terreno de un mundo, las texturas OZT y OZJ y `message.wtf` (si
-  `main.exe` lo lee, ver la CL1.5) se leen desde bytes, con su round-trip sintético en CI;
+- las cuatro tablas, el terreno de un mundo y las texturas OZT y OZJ se leen desde bytes, con su
+  round-trip sintético en CI (`message.wtf` no: `main.exe` no lo lee, ver la CL1.5);
 - con `MURET_CLIENT_GOLDEN_DIR`, cada formato se lee entero desde los archivos reales, y lo que el
   research midió (tamaños, checksums, quirks) da igual.
 
@@ -521,19 +522,27 @@ dos solo referencias y números, y el descompresor se libera en el destructor de
 Una textura que falta corta el arranque (Q-C23), pero eso es de quien abre el archivo: los
 cargadores reciben los bytes. Entra con el código que abre los archivos de las texturas.
 
-## Sub-ola CL1.5: `message.wtf` (esbozo)
+## Sub-ola CL1.5: `message.wtf` (salió de la ola)
 
 - Formato: cabecera `CC 01 "WTF File"`, entradas `id:2 len:2 texto` con XOR `0xCA`. Q-C15: largo
   validado.
 - **Antes de escribirla:** [05](../../../Client/docs/research/05-formatos-de-datos.md#el-pipeline-de-las-dlls)
   infiere que `main.exe` no carga `mumsg.dll` en el arranque normal, que la usa el launcher.
   Si se confirma, la CL1.5 sale de la ola.
+- **Se confirmó (2026-11-02), y salió.** En el `main.exe` `c32bbd5f`, `mumsg.dll` no está en los
+  imports, ninguno de sus exports aparece en el binario, y su nombre y el de `message.wtf` solo
+  están en `0x4b96b0`, que al arrancar termina una actualización del launcher copiando
+  `mumsg._ll` sobre `mumsg.dll` y `message._tf` sobre `message.wtf`, sin abrirlos. La evidencia
+  completa está en el 05; Q-C15 pasa a "fuera del cliente". Lo único sin confirmar son cuatro
+  `LoadLibrary` con el nombre cifrado, de lo que parece la protección (fuera de alcance): para
+  cerrarlo del todo, la lista de módulos con el cliente corriendo en la VM.
 
 ---
 
 ## Al cerrar la CL1
 
 - [ ] Completar el cierre de la [guía de la CL1.0](../../learning/ola-cl1.0-bytes-y-archivos.md).
-- [ ] Actualizar `docs/learning/PROGRESS.md`.
+- [x] Actualizar `docs/learning/PROGRESS.md`.
 - [ ] Revisar el plan de la CL2 (protocolo sin red) con lo aprendido: el `ByteReader` y el
-  `Expected` de esta ola son la base del `PacketReader`.
+  `Expected` de esta ola son la base del `PacketReader`. Todavía no hay plan de la CL2: se
+  escribe con eso en su propio PR.

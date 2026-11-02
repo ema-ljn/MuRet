@@ -16,6 +16,8 @@ Fuentes: `analysis/mainexe/functions/paso9-ciclo-vida.md`, `paso7-escenas.md`,
 ```text
 entry 0x6a2444 (arranque del CRT)
   └─ WinMain 0x4b9b80 (RET 0x10: stdcall de cuatro argumentos)
+       ├─ actualización   cierra "MU Auto Update" y 0x4b96b0 termina la del launcher; si llegó
+       │                  un mu.exe nuevo, lo abre y sale (05, el pipeline de las DLLs)
        ├─ modo de video   EnumDisplaySettingsA x2 + ChangeDisplaySettingsA
        ├─ fuentes         CreateFontA x4 (HUD y texto)
        ├─ config          registro SOFTWARE\Webzen\Mu\Config

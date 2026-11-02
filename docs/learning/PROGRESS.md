@@ -145,6 +145,18 @@ solo lo lee.
   preguntas y la sección final de la [guía de la CL3.0](ola-cl3.0-el-bucle-de-juego.md), y
   explicar los conceptos de abajo. Próxima: la CL4 (red del cliente), con su
   [plan](../superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md).
+  **La CL4.1 la escribió Claude**, en tres PRs. El primero trae el socket: `ISocket`, con
+  `SystemSocket` sobre `SocketApi`, que tiene el único `#ifdef _WIN32` de `ClientLib` (en el
+  `.cpp`) y en su header la razón de §10 (SDL3_net traería SDL3 a `ClientLib`, y asio cambia el
+  modelo a handlers), y un `FakeSocket` que sigue un guion. El connect no espera y guarda su
+  resultado, porque `SO_ERROR` se borra al leerlo; un `recv` en 0 y un RST son un cierre del otro
+  lado, y en Linux un `send` a una conexión cerrada no mata el proceso (`MSG_NOSIGNAL`). Se prueba
+  con sockets de verdad en `127.0.0.1` contra un `LoopbackServer`, en un solo hilo. Tu paso 2, la
+  tabla de lo que da cada llamada en Linux y en Windows, lo resolvió Claude: está en el plan.
+  El segundo trae la `SendQueue`: lo que el socket no tomó, en un buffer fijo de `0x2000` como el
+  del original, con un cursor, así un envío partido en `{2, 2, -1}` no repite ni pierde bytes
+  (Q-C11) y lo nuevo espera detrás de lo pendiente; lo que no entra es `Full`, y la conexión va a
+  cerrar como el original.
 - **CL4.0 (sockets no bloqueantes), resuelta por Claude** el 2026-11-02, como la CL3.0: el
   `LabSocket` con RAII y todos los `#ifdef _WIN32` en un archivo, el `LoopbackPair` que conecta en
   `127.0.0.1` sin bloquear y en un solo hilo, y la `DrainQueue`, la cola con cursor. El puerto
@@ -236,6 +248,8 @@ sesión, junto con los de repaso más viejo.
 | el `send` que toma menos de lo pedido, y la cola con cursor, de tamaño fijo, que manda el resto sin repetir ni perder (`DrainQueue`) | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | el drenaje de `FD_WRITE` de `0x4e87b0`, que resta dos veces lo mandado y no corre el buffer: con un parcial repite los primeros bytes y pierde los últimos (el jefe, Q-C11), leído en el desensamblado (carril R) | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un socket consultado una vez por frame contra un hilo por conexión o IOCP y epoll, y `select` contra `poll` y `WSAPoll` para saber si un `connect` terminó (la comparación de `labs/README.md`) | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| E/S no bloqueante detrás de una interfaz chica (`ISocket`, con `SystemSocket` y `FakeSocket`): el connect como máquina de estados que guarda su resultado porque `SO_ERROR` se borra al leerlo, "probá más tarde" contra un cierre (`recv` en 0, `ECONNRESET`), `SIGPIPE` y `MSG_NOSIGNAL`, y un `#ifdef _WIN32` en un solo archivo (`SocketApi`) | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| una cola de envío con cursor sobre un buffer fijo (`SendQueue`): por qué restar lo que salió dos veces repite el principio y pierde el final (Q-C11), compactar solo cuando lo nuevo no entra, y un tope que cierra en vez de crecer | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

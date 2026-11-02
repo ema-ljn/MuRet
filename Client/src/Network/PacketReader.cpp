@@ -62,12 +62,7 @@ Core::Expected<std::optional<Packet>, PacketError> PacketReader::Next()
     {
         return std::optional<Packet>{};
     }
-    if (unmasked == consumed)
-    {
-        mask = obfuscation->InboundMask(pending.front());
-    }
-    UnmaskUpTo(consumed + 1);
-    const std::optional<PacketType> type = PacketTypeFromByte(pending.front());
+    const std::optional<PacketType> type = PacketTypeFromByte(UnmaskFirstByte());
     if (!type)
     {
         return Fail(PacketError::InvalidType);
@@ -98,6 +93,17 @@ Core::Expected<std::optional<Packet>, PacketError> PacketReader::Next()
 std::size_t PacketReader::Pending() const
 {
     return buffer.size() - consumed;
+}
+
+// Si el paquete es nuevo, su máscara sale del primer byte tal como llegó del cable.
+std::byte PacketReader::UnmaskFirstByte()
+{
+    if (unmasked == consumed)
+    {
+        mask = obfuscation->InboundMask(buffer[consumed]);
+    }
+    UnmaskUpTo(consumed + 1);
+    return buffer[consumed];
 }
 
 void PacketReader::UnmaskUpTo(std::size_t end)

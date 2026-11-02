@@ -12,7 +12,10 @@ namespace Client::Network
 
 enum class ObfuscationError : std::uint8_t
 {
-    InvalidPacket, // un largo o una cantidad que no entra en el paquete, o lo traducido no entraría
+    // Un largo o una cantidad que no entra en el paquete, o lo traducido no entraría. La conexión
+    // (CL4) descarta ese paquete y sigue leyendo: el corte no se perdió, porque el largo lo dio la
+    // cabecera.
+    InvalidPacket,
 };
 
 } // namespace Client::Network

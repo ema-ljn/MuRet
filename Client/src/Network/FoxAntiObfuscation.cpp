@@ -36,7 +36,9 @@ constexpr std::array<OpcodeRemap, 2> ClearRemaps{{{0xD3, 0xA3}, {0xD7, 0xA4}}};
 
 // En lo que se cifra, el serial va en el byte 0 y el opcode en el 1. Los campos llevan el XOR32
 // del C1 corrido un byte, porque falta el byte del tipo: el primero se encadena con el opcode y
-// usa la clave del byte 3 del C1 (Xor32.h, "FoxAnti").
+// usa la clave del byte 3 del C1 (Xor32.h, "FoxAnti"). Al deshacerlo, cambiar el opcode y
+// rehacerlo, la clave se cancela: cada byte desde el 2 queda con XOR (viejo ^ nuevo). Por eso
+// ningún test puede fijar el corrimiento de la clave; se escribe como el original.
 constexpr std::size_t SealedOpcodeIndex = 1;
 constexpr std::size_t SealedFirstChained = 2;
 constexpr std::size_t SealedKeyShift = 1;
@@ -120,8 +122,9 @@ void WriteU16Le(std::span<std::byte> out, std::uint16_t value)
     out[1] = static_cast<std::byte>(value >> 8);
 }
 
-// El código de una entrada en la lista de main.exe, o std::nullopt si parse_f4_02 no lo escribe.
-// La suma da la vuelta en 16 bits, como en el original.
+// El código de una entrada en la lista de main.exe, o std::nullopt si parse_f4_02 no lo escribe
+// (desde el grupo 9). Hasta el grupo 8 el código es a lo sumo 97 y el delta, 400: la suma no pasa
+// de 497, y entra en 16 bits.
 std::optional<std::uint16_t> ListCode(std::uint16_t labCode)
 {
     const std::uint32_t group = (std::uint32_t{labCode} + 1) / CodeGroupSize;
@@ -167,7 +170,9 @@ bool IsServerSelect(const Packet& packet)
 
 // parse_f4_02: la lista entera de nuevo, un byte más larga. Lo que venga después de las entradas
 // queda en 0, como el calloc del original. Una cantidad que no entra en el paquete, o una lista
-// que traducida pasaría de MaxPacketSize, es InvalidPacket: el original lee y escribe de más.
+// que traducida pasaría de MaxPacketSize, es InvalidPacket: el original lee y escribe de más. A
+// una lista cuya última entrada no trae el cuarto byte el original la acepta, porque ese byte no
+// lo lee; MuRet la rechaza igual, porque está mal armada (Q-C09).
 Core::Expected<Packet, ObfuscationError> TranslateServerList(const Packet& packet)
 {
     const std::span<const std::byte> lab = packet.Bytes();
@@ -189,7 +194,7 @@ Core::Expected<Packet, ObfuscationError> TranslateServerList(const Packet& packe
     list[3] = static_cast<std::byte>(ServerOpcode);
     list[ListSubIndex] = static_cast<std::byte>(ServerListSub);
     list[ListCountIndex] = static_cast<std::byte>(count);
-    for (std::size_t entry = 0; entry < count; ++entry)
+    for (std::size_t entry = 0; entry < std::size_t{count}; ++entry)
     {
         const std::span<const std::byte> in = lab.subspan(LabEntriesOffset + entry * ListEntrySize, ListEntrySize);
         const std::span<std::byte> out =

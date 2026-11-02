@@ -24,10 +24,8 @@
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <initializer_list>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -239,6 +237,8 @@ TEST_F(GoldenFoxAntiObfuscation, TheLabServerListsBecomeTheOnesMainExeReads)
     const FoxAntiObfuscation foxAnti;
     const ByteVector expectedStart = Bytes({0xC2, 0x00, 0x0B, 0xF4, 0x06, 0x00, 0x01, 0x90, 0x01});
     constexpr std::size_t ListSize = 11;      // la de main.exe, con su única entrada
+    constexpr std::size_t LabLoadByte = 8;    // la carga en la lista del laboratorio
+    constexpr std::size_t ListLoadByte = 9;   // y en la de main.exe, un byte más adelante
     constexpr std::size_t LastEntryByte = 10; // el cuarto byte de la entrada, que sale en 0
     std::size_t lists = 0;
     for (std::size_t index = 0; index < connections.size(); ++index)
@@ -255,12 +255,15 @@ TEST_F(GoldenFoxAntiObfuscation, TheLabServerListsBecomeTheOnesMainExeReads)
                 continue;
             }
             ++lists;
+            ASSERT_GT(packet.Bytes().size(), LabLoadByte) << "conexión " << index;
+            const std::byte labLoad = packet.Bytes()[LabLoadByte];
             const auto list = foxAnti.AfterCut(std::move(packet));
             ASSERT_TRUE(list.HasValue()) << "conexión " << index;
             const std::span<const std::byte> bytes = list.Value().Bytes();
             ASSERT_EQ(bytes.size(), ListSize) << "conexión " << index;
             EXPECT_TRUE(SameBytesWithoutValues(bytes.first(expectedStart.size()), expectedStart))
                 << "conexión " << index;
+            EXPECT_TRUE(bytes[ListLoadByte] == labLoad) << "conexión " << index;
             EXPECT_TRUE(bytes[LastEntryByte] == std::byte{0}) << "conexión " << index;
         }
     }

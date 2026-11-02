@@ -33,6 +33,7 @@
 #include <optional>
 #include <span>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -360,6 +361,99 @@ TEST(FoxAntiObfuscationTest, AMovedReaderKeepsItsObfuscation)
     EXPECT_TRUE(SameBytes(drained.packets[0], chat));
 }
 
+// Q-C03 y Q-C18: una lectura que termina en los primeros bytes de un paquete enmascarado que va
+// detrás de uno entero. El Feed siguiente compacta el buffer con ese paquete desenmascarado a
+// medias, y no tiene que desenmascarar de nuevo lo que ya desenmascaró.
+TEST(FoxAntiObfuscationTest, AMaskedPacketSplitBehindAWholeOneGivesTheSame)
+{
+    const ByteVector exempt = Bytes({0xC1, 0x04, 0xF4, 0x05});
+    const ByteVector c2 = Bytes({0xC2, 0x00, 0x06, 0x20, 0x03, 0x04});
+    const ByteVector wire = Join({exempt, Masked(c2), Masked(c2)});
+    const FoxAntiObfuscation foxAnti;
+    for (const std::size_t inFirstRead : {std::size_t{1}, std::size_t{2}, std::size_t{4}})
+    {
+        SCOPED_TRACE(inFirstRead);
+        PacketReader reader(foxAnti);
+        const std::size_t cut = exempt.size() + inFirstRead;
+
+        reader.Feed(std::span<const std::byte>(wire).first(cut));
+        const Drained first = Drain(reader);
+        reader.Feed(std::span<const std::byte>(wire).subspan(cut));
+        const Drained second = Drain(reader);
+
+        ASSERT_EQ(first.packets.size(), 1u);
+        EXPECT_TRUE(SameBytes(first.packets[0], exempt));
+        EXPECT_EQ(second.error, std::nullopt);
+        ASSERT_EQ(second.packets.size(), 2u);
+        EXPECT_TRUE(SameBytes(second.packets[0], c2));
+        EXPECT_TRUE(SameBytes(second.packets[1], c2));
+    }
+}
+
+// Un lector movido a mitad de un paquete enmascarado, construido y asignado, sigue con lo que ya
+// desenmascaró, con la máscara de ese paquete y con la ofuscación para el que viene detrás.
+TEST(FoxAntiObfuscationTest, AReaderMovedInTheMiddleOfAMaskedPacketGoesOn)
+{
+    const ByteVector c2 = Bytes({0xC2, 0x00, 0x06, 0x20, 0x03, 0x04});
+    const ByteVector wire = Join({Masked(c2), Masked(c2)});
+    const std::span<const std::byte> view(wire);
+    const FoxAntiObfuscation foxAnti;
+
+    PacketReader original(foxAnti);
+    original.Feed(view.first(2));
+    ASSERT_TRUE(Drain(original).packets.empty());
+    PacketReader constructed(std::move(original));
+    constructed.Feed(view.subspan(2, 2));
+    ASSERT_TRUE(Drain(constructed).packets.empty());
+    PacketReader assigned;
+    assigned = std::move(constructed);
+    assigned.Feed(view.subspan(4));
+    const Drained drained = Drain(assigned);
+
+    EXPECT_EQ(drained.error, std::nullopt);
+    ASSERT_EQ(drained.packets.size(), 2u);
+    EXPECT_TRUE(SameBytes(drained.packets[0], c2));
+    EXPECT_TRUE(SameBytes(drained.packets[1], c2));
+}
+
+// Uno del que se movió, construyendo o asignando, queda como nuevo y con su ofuscación: un paquete
+// enmascarado entero sale bien, sin lo que había desenmascarado antes.
+TEST(FoxAntiObfuscationTest, AReaderMovedFromInTheMiddleOfAMaskedPacketStartsOver)
+{
+    const ByteVector c2 = Bytes({0xC2, 0x00, 0x06, 0x20, 0x03, 0x04});
+    const ByteVector masked = Masked(c2);
+    const std::span<const std::byte> view(masked);
+    const FoxAntiObfuscation foxAnti;
+
+    PacketReader movedByConstruction(foxAnti);
+    movedByConstruction.Feed(view.first(4));
+    ASSERT_TRUE(Drain(movedByConstruction).packets.empty());
+    const PacketReader constructed(std::move(movedByConstruction));
+    PacketReader movedByAssignment(foxAnti);
+    movedByAssignment.Feed(view.first(4));
+    ASSERT_TRUE(Drain(movedByAssignment).packets.empty());
+    PacketReader assigned;
+    assigned = std::move(movedByAssignment);
+
+    for (PacketReader* reader : {&movedByConstruction, &movedByAssignment})
+    {
+        reader->Feed(masked);
+        const Drained drained = Drain(*reader);
+        EXPECT_EQ(drained.error, std::nullopt);
+        ASSERT_EQ(drained.packets.size(), 1u);
+        EXPECT_TRUE(SameBytes(drained.packets[0], c2));
+    }
+    EXPECT_EQ(constructed.Pending(), 4u);
+    EXPECT_EQ(assigned.Pending(), 4u);
+}
+
+// Un lector guarda un puntero a su ofuscación, así que no acepta una temporal, que moriría antes
+// que él. Una Obfuscation tampoco se asigna a través de la base; una hija sí se copia.
+static_assert(!std::is_constructible_v<PacketReader, FoxAntiObfuscation>);
+static_assert(std::is_constructible_v<PacketReader, const FoxAntiObfuscation&>);
+static_assert(!std::is_copy_assignable_v<Client::Network::Obfuscation>);
+static_assert(std::is_copy_constructible_v<FoxAntiObfuscation>);
+
 // --- Los remapeos, contra la FoxAnti mínima ---
 
 // send_forward: lo que se cifra, [serial][opcode][campos con XOR32][relleno]. Con 0x10, 0x19 y
@@ -523,7 +617,8 @@ TEST(FoxAntiObfuscationTest, AnEncryptedPacketOnlyChangesTheOpcodeOf10And19And1E
 // encode_outbound solo mira los C1: un C3 (FIX_C3_SERIAL0) y un C4 (c4-serial2.bin) salen igual. El
 // pedido de la lista sale en claro y sin remapeo, igual; y un C1 con XOR32 sin remapeo, el aviso,
 // también. La escalera es solo del C1 F4 03 de 6 bytes: uno de 8, o uno de 6 con otro subcódigo,
-// sale como vino aunque traiga un código de 400.
+// sale como vino aunque traiga un código de 400. Y un C3 o un C4 cuyo primer byte cifrado se lee
+// como D3 o D7 tampoco cambia.
 TEST(FoxAntiObfuscationTest, WhatIsNotRemappedGoesOutUntouched)
 {
     const std::vector<ByteVector> untouched{
@@ -534,6 +629,9 @@ TEST(FoxAntiObfuscationTest, WhatIsNotRemappedGoesOutUntouched)
         Bytes({0xC2, 0x00, 0x05, 0xD3, 0x01}),
         Bytes({0xC1, 0x08, 0xF4, 0x03, 0x90, 0x01, 0x00, 0x00}),
         Bytes({0xC1, 0x06, 0xF4, 0x02, 0x90, 0x01}),
+        Bytes({0xC3, 0x05, 0xD3, 0x01, 0x02}),
+        Bytes({0xC3, 0x05, 0xD7, 0x01, 0x02}),
+        Bytes({0xC4, 0x00, 0x06, 0xD3, 0x01, 0x02}),
     };
     const FoxAntiObfuscation foxAnti;
     for (std::size_t k = 0; k < untouched.size(); ++k)
@@ -626,9 +724,11 @@ TEST(FoxAntiObfuscationTest, TheServerCodeLadderIsTheOriginalOne)
 // - encode_outbound: 361 cae en el rango que empieza en 0x168 (360 a 379), que resta 0x136 (310):
 //   al cable sale 361 - 310 = 51.
 //
-// Vuelve 51, no 21: la escalera no tiene el 0x154, así que cada grupo desde el 2 cae en el rango
-// del grupo siguiente, que resta 30 menos. Los códigos 0 a 20 (grupos 0 y 1) sí vuelven: 0 a 9
-// suman y restan 400, y 10 a 20 suman 370 y caen en el rango de 380 a 399, que resta 370.
+// Vuelve 51, no 21: la escalera no tiene el 0x154, así que cada grupo del 2 al 7 cae en el rango
+// del grupo siguiente, que resta 30 menos. El grupo 8 (87 a 97) llega como 247 a 257, debajo del
+// rango más bajo (0x104, 260), y sale sin restar: el código más 160. Los códigos 0 a 20 (grupos 0
+// y 1) sí vuelven: 0 a 9 suman y restan 400, y 10 a 20 suman 370 y caen en el rango de 380 a 399,
+// que resta 370.
 //
 // Contra la FoxAnti mínima (A3): cada código de 0 a 110 como única entrada de la lista, lo que
 // queda en la lista de main.exe, y lo que sale al cable cuando main.exe lo elige. En cada rango los
@@ -831,6 +931,16 @@ TEST(FoxAntiObfuscationTest, BeforeEncryptWithoutAnOpcodeDoesNothing)
     FoxAntiObfuscation{}.BeforeEncrypt(std::span<std::byte>{});
 
     EXPECT_TRUE(SameBytes(onlySerial, Bytes({0x10})));
+}
+
+// Con el serial y el opcode solos, el opcode se remapea igual, como en send_forward.
+TEST(FoxAntiObfuscationTest, BeforeEncryptRemapsAnOpcodeWithNothingAfterIt)
+{
+    ByteVector serialAndOpcode = Bytes({0x10, 0x10});
+
+    FoxAntiObfuscation{}.BeforeEncrypt(serialAndOpcode);
+
+    EXPECT_TRUE(SameBytes(serialAndOpcode, Bytes({0x10, 0x1D})));
 }
 
 } // namespace

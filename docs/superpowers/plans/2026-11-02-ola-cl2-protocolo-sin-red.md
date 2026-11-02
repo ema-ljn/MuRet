@@ -683,8 +683,11 @@ lista pide sus entradas enteras (una a la que le falta el cuarto byte, que el or
 también es `InvalidPacket`), lo que sigue a las entradas sale en 0 como el `calloc` del original,
 y la traducida tiene que entrar en `MaxPacketSize`. El `F3 11` se mira solo en un C1: en MuRet un
 C3 descifrado ya es un C1, y un `C1 03 F3`, sin subcódigo, pasa igual. `Obfuscation` se copia y se
-mueve solo desde una clase hija, para no quedarse con la base, y `IdentityObfuscation::Shared()`
-es una `static` local, que no depende del orden en que arrancan los archivos. Lo que se espera de
+mueve solo desde una clase hija, para que no se asigne a través de la base, y
+`IdentityObfuscation::Shared()` es una `static` local, que no depende del orden en que arrancan
+los archivos. Un `PacketReader` no acepta una ofuscación temporal (su constructor con
+`const Obfuscation&&` está borrado), porque guarda un puntero a ella. Con `InvalidPacket`, la
+conexión de la CL4 descarta el paquete y sigue leyendo: el corte no se perdió. Lo que se espera de
 cada traducción sale de la FoxAnti mínima compilada en el host con
 `Client/tests/vectors/net/tools/foxanti_cases.c` (su README dice cómo), y los tests usan los
 nombres de sus casos. El golden cuenta 3.033 paquetes S->C (144 del ConnectServer en claro y 2.889

@@ -48,8 +48,10 @@ public:
     [[nodiscard]] virtual Packet BeforeSend(Packet packet) const = 0;
 
 protected:
-    // Se copia y se mueve solo desde una clase hija: copiar un Obfuscation& se quedaría con la base
-    // y perdería lo que hace la hija.
+    // Se copia y se mueve solo desde una clase hija. Copiar un Obfuscation entero ya no se puede,
+    // porque es abstracta; lo que esto evita es asignar a través de dos Obfuscation&, que copiaría
+    // solo la parte de la base y dejaría el resto de cada hija como estaba (slicing). Y si un día
+    // la base tiene implementaciones por defecto, copiarla tampoco va a compilar.
     Obfuscation() = default;
     Obfuscation(const Obfuscation&) = default;
     Obfuscation& operator=(const Obfuscation&) = default;

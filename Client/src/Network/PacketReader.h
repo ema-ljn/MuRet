@@ -36,8 +36,9 @@ public:
     PacketReader();
 
     // Con la ofuscación de la conexión, que tiene que vivir más que el lector: las dos son de la
-    // conexión (CL4).
+    // conexión (CL4). Una temporal no compila, porque moriría antes que el lector.
     explicit PacketReader(const Obfuscation& connectionObfuscation);
+    PacketReader(const Obfuscation&&) = delete;
 
     // Uno movido queda como nuevo: sin bytes y sin error, con la misma ofuscación. El movimiento
     // que escribe el compilador vaciaría el buffer y copiaría `consumed`, y Pending() daría un
@@ -66,6 +67,10 @@ public:
 
 private:
     Core::Expected<std::optional<Packet>, PacketError> Fail(PacketError reason);
+
+    // El primer byte del paquete que empieza en `consumed`, desenmascarado. Hace falta que haya
+    // llegado.
+    std::byte UnmaskFirstByte();
 
     // Desenmascara lo que llegó del paquete que empieza en `consumed`, hasta `end` o hasta donde
     // llegó.

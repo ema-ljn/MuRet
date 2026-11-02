@@ -14,15 +14,22 @@
 //
 // "Está abajo" (IsDown) es estado: vale mientras no llegue la soltada. "Se apretó" y "se soltó"
 // (WasPressed, WasReleased) son flancos: valen desde el último ConsumeEdges, que GameLoop llama
-// después del primer paso del frame. Así un apretón lo ve un solo paso, y en un frame sin pasos
-// espera al próximo, como en el original, donde el primer lector borra el bit bajo.
+// después del primer paso del frame. Así un apretón lo ve un solo paso, como en el original, donde
+// el primer lector borra el bit bajo; y en un frame sin pasos (el original no los tiene) espera al
+// próximo.
+//
+// Shift, Ctrl y Alt son lógicas (Key.h): IsDown es el OR de sus dos lados, como VK_SHIFT, y sus
+// flancos son los del OR: se apretó cuando el primer lado bajó y se soltó cuando subió el último.
+// Un KeyDown o KeyUp de una tecla lógica se ignora: las manda Platform por lado, y un evento
+// lógico suelto no diría qué lado sigue abajo.
 namespace Client::Input
 {
 class InputState
 {
 public:
     // Suma un evento. Un KeyDown con la tecla ya abajo no es un flanco, y un KeyUp con la tecla
-    // arriba tampoco (lo mismo con los botones). FocusLost suelta todo lo que está abajo.
+    // arriba tampoco (lo mismo con los botones). FocusLost suelta todo lo que está abajo. Una rueda
+    // que no es finita (NaN, infinito) se descarta: envenenaría la suma hasta ConsumeEdges.
     void Apply(const InputEvent& event);
 
     [[nodiscard]] bool IsDown(Key key) const;
@@ -47,6 +54,9 @@ private:
     void Press(MouseButton button);
     void Release(MouseButton button);
     void ReleaseEverything();
+    // Pone la tecla lógica de un lado (Shift de ShiftLeft) en el OR de sus dos lados, con su flanco
+    // si cambió. Con una tecla que no es un lado, no hace nada.
+    void UpdateLogical(Key side);
 
     std::bitset<KeyCount> m_keysDown;
     std::bitset<KeyCount> m_keysPressed;

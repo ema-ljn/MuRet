@@ -1,5 +1,6 @@
 #include "Input/InputState.h"
 
+#include <cmath>
 #include <cstddef>
 #include <optional>
 
@@ -7,6 +8,13 @@ namespace Client::Input
 {
 namespace
 {
+// Los dos lados de una tecla lógica.
+struct Sides
+{
+    Key left;
+    Key right;
+};
+
 // El índice de la tecla en las tablas, o std::nullopt si no es una tecla (Key::Count, o un valor
 // fuera del enum): esa no se guarda y nunca está abajo.
 std::optional<std::size_t> IndexOf(Key key)
@@ -29,6 +37,44 @@ std::optional<std::size_t> IndexOf(MouseButton button)
     }
     return index;
 }
+
+bool IsLogical(Key key)
+{
+    return key == Key::Shift || key == Key::Ctrl || key == Key::Alt;
+}
+
+// La tecla lógica de un lado, o std::nullopt si la tecla no es un lado.
+std::optional<Key> LogicalOf(Key side)
+{
+    switch (side)
+    {
+    case Key::ShiftLeft:
+    case Key::ShiftRight:
+        return Key::Shift;
+    case Key::CtrlLeft:
+    case Key::CtrlRight:
+        return Key::Ctrl;
+    case Key::AltLeft:
+    case Key::AltRight:
+        return Key::Alt;
+    default:
+        return std::nullopt;
+    }
+}
+
+// Los lados de una tecla lógica (Shift, Ctrl o Alt).
+Sides SidesOf(Key logical)
+{
+    switch (logical)
+    {
+    case Key::Shift:
+        return {Key::ShiftLeft, Key::ShiftRight};
+    case Key::Ctrl:
+        return {Key::CtrlLeft, Key::CtrlRight};
+    default:
+        return {Key::AltLeft, Key::AltRight};
+    }
+}
 } // namespace
 
 void InputState::Apply(const InputEvent& event)
@@ -48,7 +94,10 @@ void InputState::Apply(const InputEvent& event)
         Release(event.button);
         return;
     case InputEvent::Kind::Wheel:
-        m_wheel += event.wheel;
+        if (std::isfinite(event.wheel))
+        {
+            m_wheel += event.wheel;
+        }
         return;
     case InputEvent::Kind::Motion:
         m_mouseX = event.x;
@@ -123,23 +172,25 @@ void InputState::ConsumeEdges()
 void InputState::Press(Key key)
 {
     const auto index = IndexOf(key);
-    if (!index || m_keysDown[*index])
+    if (!index || IsLogical(key) || m_keysDown[*index])
     {
         return;
     }
     m_keysDown.set(*index);
     m_keysPressed.set(*index);
+    UpdateLogical(key);
 }
 
 void InputState::Release(Key key)
 {
     const auto index = IndexOf(key);
-    if (!index || !m_keysDown[*index])
+    if (!index || IsLogical(key) || !m_keysDown[*index])
     {
         return;
     }
     m_keysDown.reset(*index);
     m_keysReleased.set(*index);
+    UpdateLogical(key);
 }
 
 void InputState::Press(MouseButton button)
@@ -166,10 +217,36 @@ void InputState::Release(MouseButton button)
 
 void InputState::ReleaseEverything()
 {
-    // Lo que estaba abajo se suelta con su flanco, como si hubiera llegado cada KeyUp.
+    // Lo que estaba abajo se suelta con su flanco, como si hubiera llegado cada KeyUp; las teclas
+    // lógicas también, porque están en las mismas tablas.
     m_keysReleased |= m_keysDown;
     m_keysDown.reset();
     m_buttonsReleased |= m_buttonsDown;
     m_buttonsDown.reset();
+}
+
+void InputState::UpdateLogical(Key side)
+{
+    const auto logical = LogicalOf(side);
+    if (!logical)
+    {
+        return;
+    }
+    const auto [left, right] = SidesOf(*logical);
+    const bool down = IsDown(left) || IsDown(right);
+    const auto index = static_cast<std::size_t>(*logical);
+    if (down == m_keysDown[index])
+    {
+        return;
+    }
+    m_keysDown[index] = down;
+    if (down)
+    {
+        m_keysPressed.set(index);
+    }
+    else
+    {
+        m_keysReleased.set(index);
+    }
 }
 } // namespace Client::Input

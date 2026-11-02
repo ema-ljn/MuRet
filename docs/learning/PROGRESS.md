@@ -145,6 +145,18 @@ solo lo lee.
   preguntas y la sección final de la [guía de la CL3.0](ola-cl3.0-el-bucle-de-juego.md), y
   explicar los conceptos de abajo. Próxima: la CL4 (red del cliente), con su
   [plan](../superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md).
+  **La CL4.1 la escribió Claude**, en tres PRs. El primero trae el socket: `ISocket`, con
+  `SystemSocket` sobre `SocketApi`, que tiene el único `#ifdef _WIN32` de `ClientLib` (en el
+  `.cpp`) y en su header la razón de §10 (SDL3_net traería SDL3 a `ClientLib`, y asio cambia el
+  modelo a handlers), y un `FakeSocket` que sigue un guion. El connect no espera y guarda su
+  resultado, porque `SO_ERROR` se borra al leerlo; un `recv` en 0 y un RST son un cierre del otro
+  lado, y en Linux un `send` a una conexión cerrada no mata el proceso (`MSG_NOSIGNAL`). Se prueba
+  con sockets de verdad en `127.0.0.1` contra un `LoopbackServer`, en un solo hilo. Tu paso 2, la
+  tabla de lo que da cada llamada en Linux y en Windows, lo resolvió Claude: está en el plan.
+  El segundo trae la `SendQueue`: lo que el socket no tomó, en un buffer fijo de `0x2000` como el
+  del original, con un cursor, así un envío partido en `{2, 2, -1}` no repite ni pierde bytes
+  (Q-C11) y lo nuevo espera detrás de lo pendiente; lo que no entra es `Full`, y la conexión va a
+  cerrar como el original.
 - **CL4.2 (el `Dispatcher`), resuelta por Claude** el 2026-11-02: una tabla opcode → handler, con
   un segundo nivel por subcódigo (el byte que sigue al opcode, `pkt[3]` en un C1 y `pkt[4]` en un
   C2), en vez del `switch` de 10,5 KB de `0x4e2b10`. Lo que no tiene handler da `Unknown` y una
@@ -227,6 +239,8 @@ sesión, junto con los de repaso más viejo.
 | de dónde sale lo que depende del lugar (la carpeta de datos, el servidor, el video), validado antes de abrir nada (`Resolve`), y un log que se lee en un test (`ILogSink`) | CL3.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un log sin globales, con la salida inyectada (`ILogSink`), un `std::mutex` en cada salida porque SDL loguea desde sus hilos y otro en el `TeeSink` para el orden, un archivo que agrega con un tope de 1 MiB al abrir (`FileSink`), y un RAII que devuelve la salida de SDL antes de que muera el `Log` (`SdlLog`) | CL3.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un limitador de frames con meta absoluta contra un sueño relativo: la deriva de lo que corre entre frames, qué valor toma la meta cuando un frame se pasa (donde terminó, para no ponerse al día ni volver a sumar el hueco), y por qué con VSync no se usa (`SleepRestOfFrame`, el `FpsCap` de MuMain) | CL3.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| E/S no bloqueante detrás de una interfaz chica (`ISocket`, con `SystemSocket` y `FakeSocket`): el connect como máquina de estados que guarda su resultado porque `SO_ERROR` se borra al leerlo, "probá más tarde" contra un cierre (`recv` en 0, `ECONNRESET`), `SIGPIPE` y `MSG_NOSIGNAL`, y un `#ifdef _WIN32` en un solo archivo (`SocketApi`) | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| una cola de envío con cursor sobre un buffer fijo (`SendQueue`): por qué restar lo que salió dos veces repite el principio y pierde el final (Q-C11), compactar solo cuando lo nuevo no entra, y un tope que cierra en vez de crecer | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | una tabla de despacho en vez de un `switch`: opcode → handler con un segundo nivel por subcódigo, `std::function` como handler, registrar dos veces como un error que se devuelve, y un aviso que sale una sola vez por opcode (`Dispatcher`, `std::bitset`) | CL4.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras

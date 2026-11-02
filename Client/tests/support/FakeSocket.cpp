@@ -1,0 +1,128 @@
+#include "support/FakeSocket.h"
+
+#include <algorithm>
+#include <iterator>
+#include <string>
+
+namespace Client::Tests
+{
+using Network::ConnectProgress;
+using Network::SocketError;
+
+Core::Expected<ConnectProgress, SocketError> FakeSocket::StartConnect(std::string_view host, std::uint16_t port)
+{
+    if (m_state != State::Idle)
+    {
+        Close();
+    }
+    connects.push_back(App::ServerAddress{.host = std::string(host), .port = port});
+    m_state = State::Connecting;
+    m_pollsLeft = pollsUntilConnected;
+    if (m_pollsLeft > 0)
+    {
+        return ConnectProgress::InProgress;
+    }
+    return Finish();
+}
+
+Core::Expected<ConnectProgress, SocketError> FakeSocket::PollConnect()
+{
+    switch (m_state)
+    {
+    case State::Idle:
+        return Core::Unexpected(SocketError::Closed);
+    case State::Connecting:
+        if (m_pollsLeft > 0)
+        {
+            --m_pollsLeft;
+            return ConnectProgress::InProgress;
+        }
+        return Finish();
+    case State::Connected:
+        return ConnectProgress::Connected;
+    case State::Failed:
+        break;
+    }
+    return Core::Unexpected(connectResult.value_or(SocketError::Failed));
+}
+
+Core::Expected<std::size_t, SocketError> FakeSocket::Receive(std::span<std::byte> buffer)
+{
+    if (m_state != State::Connected)
+    {
+        return Core::Unexpected(SocketError::Closed);
+    }
+    if (buffer.empty())
+    {
+        return std::size_t{0};
+    }
+    if (reads.empty())
+    {
+        if (peerClosed)
+        {
+            return Core::Unexpected(SocketError::Closed);
+        }
+        return std::size_t{0};
+    }
+    std::vector<std::byte>& next = reads.front();
+    const std::size_t count = std::min(buffer.size(), next.size());
+    const auto end = next.begin() + static_cast<std::ptrdiff_t>(count);
+    std::copy(next.begin(), end, buffer.begin());
+    next.erase(next.begin(), end);
+    if (next.empty())
+    {
+        reads.pop_front();
+    }
+    return count;
+}
+
+Core::Expected<std::size_t, SocketError> FakeSocket::Send(std::span<const std::byte> bytes)
+{
+    if (m_state != State::Connected)
+    {
+        return Core::Unexpected(SocketError::Closed);
+    }
+    if (sendError)
+    {
+        const SocketError error = *sendError;
+        sendError.reset();
+        return Core::Unexpected(error);
+    }
+    std::size_t taken = bytes.size();
+    if (!sendLimits.empty())
+    {
+        taken = std::min(taken, sendLimits.front().value_or(0));
+        sendLimits.pop_front();
+    }
+    sent.insert(sent.end(), bytes.begin(), bytes.begin() + static_cast<std::ptrdiff_t>(taken));
+    return taken;
+}
+
+void FakeSocket::Close()
+{
+    ++closes;
+    m_state = State::Idle;
+}
+
+bool FakeSocket::IsOpen() const
+{
+    return m_state != State::Idle;
+}
+
+int FakeSocket::LastSystemError() const
+{
+    return systemError;
+}
+
+// El connect termina como dice el guion.
+Core::Expected<ConnectProgress, SocketError> FakeSocket::Finish()
+{
+    if (connectResult)
+    {
+        m_state = State::Failed;
+        return Core::Unexpected(*connectResult);
+    }
+    m_state = State::Connected;
+    return ConnectProgress::Connected;
+}
+} // namespace Client::Tests

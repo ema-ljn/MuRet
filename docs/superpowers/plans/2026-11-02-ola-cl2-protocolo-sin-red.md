@@ -364,6 +364,11 @@ research) y su línea en `.gitattributes`. Los dos del C2 los arma un script chi
 `Client/tools/net/`, con el contenido del generador del research y el opcode en claro, y el README
 lo dice. Modificar `Client/CMakeLists.txt`, 07 (Q-C06 con su test), PROGRESS y este plan.
 
+Hecho así: el script quedó en `Client/tests/vectors/net/tools/make_vectors.py`, junto a sus
+vectores, como el de los JPEG en `tests/vectors/jpeg/tools/`, y lee los vectores
+`support/NetVectors.h`, con `MURET_CLIENT_NET_VECTORS_DIR`. En esta sub-ola arma solo
+`c2-long.bin`; el C4 (`FIX_C4_SERIAL2`) lo suma la CL2.3, que es la que lo usa.
+
 **Interfaces:**
 
 ```cpp
@@ -398,10 +403,10 @@ void Xor32DecodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t
 } // namespace Client::Network::Crypto
 ```
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de leer los vectores del paso 2, cifrar a mano
+- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de leer los vectores del paso 2, cifrar a mano
   con la tabla los bytes 3 y 4 de `C1 06 A9 00 00 01`, y los bytes 4 y 5 de `C2 00 06 42 0B 30`.
   El paso 2 trae los resultados para corregirlos.
-- [ ] **Paso 2:** los tests:
+- [x] **Paso 2:** los tests:
   - los dos del cable del 04: `C1 04 F3 00` sale como `C1 04 F3 7A`, y `C1 06 A9 00 00 01`, como
     `C1 06 A9 20 9C 2F`;
   - el C2 del binario: `C2 00 06 42 0B 30` sale como `C2 00 06 42 F5 77`, con el opcode en claro;
@@ -411,12 +416,12 @@ void Xor32DecodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t
   - la clave vuelve a empezar en el byte 32: el 35 usa `key[3]`;
   - `Xor32Decode(Xor32Encode(p))` es `p` en C1 y en C2, y el opcode no cambia en ninguno de los
     dos;
-  - `Xor32EncodeBytes` con `(sealed, 2, 1)` sobre `[serial]` y un C1 sin su primer byte da lo
-    mismo que `Xor32Encode` del C1;
+  - `Xor32EncodeBytes` con `(sealed, 2, 1)` sobre `[serial]` y el C1 desde su opcode da lo mismo
+    que `Xor32Encode` del C1;
   - Q-C06: un C1 de 255 bytes entra y uno de 256 no; un C2 de `0x800` entra y uno de `0x801` no.
-- [ ] **Paso 3:** `PacketWriter`, `Xor32EncodeBytes`, `Xor32DecodeBytes`, `Xor32Encode` y
+- [x] **Paso 3:** `PacketWriter`, `Xor32EncodeBytes`, `Xor32DecodeBytes`, `Xor32Encode` y
   `Xor32Decode`.
-- [ ] **Paso 4:** verificar:
+- [x] **Paso 4:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "PacketWriter|Xor32"
   ```

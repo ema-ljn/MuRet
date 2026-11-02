@@ -10,7 +10,8 @@ de verdad un reloj, y por qué el `main.exe` dibuja a 21,33 FPS con una espera d
 **Resuelta por Claude** el 2026-11-02, a tu pedido: el código está en
 [`labs/cl3.0-bucle/`](../../labs/cl3.0-bucle/), y las respuestas de las 13 actividades, con las
 salidas reales, en su [README](../../labs/cl3.0-bucle/README.md). Si la hacés vos, abrilo después
-de cada actividad, no antes. La sección final de esta guía sigue siendo tuya.
+de cada actividad, no antes. Lo que pasó del lab al cliente, en la CL3.2 y la CL3.3, está en
+[Del lab al cliente](#del-lab-al-cliente). La sección final de esta guía sigue siendo tuya.
 
 Qué cubre:
 
@@ -413,6 +414,82 @@ sin esperar 130 ms de verdad? ¿Y uno de un reloj que vuelve 5 ms para atrás?
    `nanoseconds` enteros y no en `double`?
 7. ¿Cómo se prueba un bucle con tiempo sin esperar el tiempo?
 
+## Del lab al cliente
+
+El lab modela el bucle en `labs/`, con ms enteros y un reloj de a microsegundos. La CL3.2 lo
+llevó a `Client/src/App/` en dos piezas que conviven: `FixedStep` y `GameLoop` en el modo normal
+(`PacingMode::Decoupled`), que es el "Fix your timestep" de la actividad 2 con un tope, y
+`FaithfulPacer`, que es tu jefe de la actividad 12 sobre el reloj del cliente
+(`PacingMode::Faithful`, `--pacing faithful`). Las constantes de los dos están en
+`App/LoopTiming.h`: `LogicStep` (40 ms), `MaxFrameTime` (1 s), `FaithfulTick` (15.625 µs),
+`FaithfulWaitMs` y `FaithfulInitialAccumulatorMs` (40 y 40). Las dos corren con el mismo
+`Core::IClock`: el de SDL en `Main` (`Platform::SdlClock`) y el `FakeClock` de
+`Client/tests/support/` en los tests, el del ejemplo mínimo con una cosa más, que anota cada
+`SleepFor` (`Sleeps()`) y hace fallar el test si el bucle pide dormir 0 o menos.
+
+| En el lab | En el cliente | Qué cambió |
+| --- | --- | --- |
+| `Labs::FixedStep`, `int` de ms (actividad 4) | `App::FixedStep`, `Core::Duration` (nanosegundos) | el frame no se trunca a ms: es el `ChronoFixedStep` de la actividad 9, que daba 25 pasos donde el de ms daba 24. Un frame negativo sigue contando 0, y uno de más de `MaxFrameTime` (1 s) cuenta 1 s (`LastFrameWasClamped`); uno de 1 s justo no se recorta |
+| el alfa de la actividad 8 | `FixedStep::Alpha()` | `Accumulated() / LogicStep` en `double`, pasado a `float` y recortado a `std::nextafter(1.0f, 0.0f)`: con 39.999.999 ns el `float` redondearía a 1 (el último error típico de esta guía) |
+| el pseudocódigo de la actividad 2 | `GameLoop::RunFrame` en `Decoupled` | mide de un `Now()` al siguiente (el primer frame solo fija el inicio), corre los pasos que tocan, y dibuja con el alfa si la ventana no está minimizada; minimizada, duerme lo que falta para el próximo paso en vez de girar |
+| `Labs::TickGrid`, `Ms(t)` en µs (actividad 6) | `App::TickCountMs(now)` | el mismo `(t / tick) * tick` truncado a ms, sobre `Core::Duration` y de a `FaithfulTick`, en un `std::uint32_t` que da la vuelta como el `DWORD`. Con un `now` negativo (solo el `FakeClock`) redondea hacia abajo |
+| el jefe, `jefe/test_original_loop.cpp` (actividad 12) | `App::FaithfulPacer`, y `GameLoop` en `Faithful` | el mismo bucle partido en tres: `BeginFrame` (los pasos, mientras el acumulador valga 40 o más), `StartMeasure` (el `inicio` de `0x63852b`) y `EndFrame` (la espera y la suma de `0x638632`). El orden lo pone `GameLoop::RunFaithful`: los pasos, `StartMeasure`, el dibujo y `EndFrame`. Arranca en 40, como el `.data` (actividad 13), no tiene tope y no interpola: el alfa es 0. El acumulador es un `std::int32_t` que da la vuelta como el `ADD` |
+| la espera activa, de a 1 µs | `EndFrame` con `IClock::SleepFor` | duerme de tick en tick (hasta el comienzo del próximo) mientras la resta, con signo como el `JGE`, dé menos de 40: en vez de girar, se despierta cuando `GetTickCount` cambiaría. `SdlClock` duerme con `SDL_DelayPrecise`, que espera activamente el último tramo: un despertar tarde con `sleep_for` podría caer en el tick siguiente |
+| la actividad 8, VSync | `Platform::ApplySwapInterval` y `--vsync` | `on` por defecto en el modo normal (si `adaptive` falla, prueba con `on`); en el fiel, solo `off`, como el original: con VSync, la espera de 46,875 ms se engancharía a la grilla del monitor |
+
+Los números que sacaste en el lab son los tests del cliente:
+
+| Actividad | Test del cliente |
+| --- | --- |
+| 3: 40, 39 y 130 ms | `FixedStepTest.FortyIsOneStep`, `ThirtyNineIsNone` y `OneHundredThirtyIsThree` |
+| 2: el paso fijo, a cualquier FPS | `GameLoopTest.TwentyFiveStepsPerSecondAtAnyFrameRate`, a 1, 25, 60, 144 y 240 FPS |
+| 6: la grilla de `GetTickCount` | `FaithfulPacerTest.TickCountMsFollowsTheGrid` |
+| 8: el alfa | `FixedStepTest.AlphaIsTheFractionLeft`, `AlphaStaysBelowOne` y `GameLoopTest.AlphaGrowsBetweenSteps` |
+| 10: un frame negativo | `FixedStepTest.ANegativeFrameCountsZero` y `GameLoopTest.AClockThatGoesBackRunsNoSteps` |
+| 11: el tope | `FixedStepTest.TheCapIsOneSecond` y `GameLoopTest.AFrameLongerThanTheCapRunsOnlyTheCap`: 10 s de breakpoint dan 25 pasos, no 250 (Q-C44) |
+| 12: 64 frames en 3 s | `FaithfulPacerTest.SixtyFourFramesEveryThreeSeconds`: 74 pasos corridos, los 75 de 3 s más el del valor inicial, menos los 80 ms que quedan en el acumulador |
+| 12: los primeros 13 frames, y 75 cada 64 | `FaithfulPacerTest.SeventyFiveStepsEverySixtyFourFrames`: `1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2` |
+| 12: la espiral que no tiene | `FaithfulPacerTest.TimeSpentInStepsIsNotAccumulated`: con pasos de 10 ms, 61 frames y 71 pasos en 3 s, y no 64 y 74 |
+| 12: un dibujo de 10 s | `FaithfulPacerTest.HasNoCap`: 250 pasos en el frame siguiente |
+| el ejemplo mínimo: 130 ms sin esperar | `GameLoopTest.ASlowFrameCatchesUpWithThreeSteps`, con el alfa en 0,25 |
+
+Lo que el lab no tenía, y llegó con el cliente:
+
+- **La ventana minimizada.** El original sin foco no corre el frame (Q-C46). MuRet sigue con sus
+  pasos, porque el keepalive de la CL4 no puede parar, y deja de dibujar. En el modo normal
+  duerme lo que falta para el próximo paso (`GameLoopTest.AMinimizedWindowStepsWithoutDrawing` y
+  `AMinimizedWindowSleepsWhatIsLeftOfTheStep`); en el fiel, la espera sigue, porque sin ella el
+  acumulador no suma y no corre nunca más un paso (`FaithfulPacerTest.MinimizedKeepsTheWait`).
+- **Los relojes raros.** La resta de la espera es con signo, como el `JGE`: con un reloj que
+  vuelve para atrás da negativa y la espera sigue hasta 40 ms después del inicio, en vez de salir
+  enseguida (`FaithfulPacerTest.AClockThatGoesBackKeepsWaiting`). Por ese signo, un dibujo de más
+  de 24,8 días cuelga el original, y a MuRet también (el comentario de `EndFrame`). La vuelta de
+  `GetTickCount` a los 49,7 días no cambia nada (`TheGetTickCountWrapChangesNothing`), y el
+  acumulador da la vuelta como el `ADD` (`TheAccumulatorWrapsLikeTheAdd`).
+- **La entrada, en un frame con 0 o 2 pasos** (CL3.3). La actividad 2 lee la entrada una vez
+  por frame, pero los pasos son 0, 1 o más. `InputState` separa "está abajo" (`IsDown`) de los
+  flancos (`WasPressed`, `WasReleased`), que valen hasta el próximo `ConsumeEdges`, y `GameLoop`
+  lo va a llamar después del primer paso del frame: con 2 pasos, el apretón lo ve uno solo; con
+  0, espera al próximo paso, aunque la tecla ya esté arriba.
+  Así quedó: `RunFrame(state, input)` le pasa `const Input::InputState&` a cada `Step` y llama a
+  `ConsumeEdges` después del primero (`GameLoopTest.APressIsSeenByExactlyOneStep` y
+  `APressInAFrameWithoutStepsWaitsForTheNextStep`).
+- **La lógica que lee la hora.** La CL3.R encontró que las demoras de las habilidades y un freno
+  de 300 ms avanzan por reloj aunque corran en el paso. Por eso el `IClock` del bucle es el mismo
+  que le llega a la lógica desde `Main`: en la CL3 no lo usa nada, pero la CL7 lo va a necesitar,
+  y en el modo fiel tendrá que leerlo sobre la misma grilla.
+
+**Para comprobarlo:**
+
+1. Corré los dos juntos y compará los nombres de la tabla de arriba con lo que ves:
+   `ctest --preset linux-x64-debug -R "LabCl30|FixedStep|GameLoop|FaithfulPacer"`.
+2. Con `Main --pacing faithful --stats` y `Main --vsync off --stats` (el README del cliente dice
+   cómo). **Predecí** antes los FPS y los pasos por segundo de cada uno. ¿Cuál de los dos números
+   depende de tu monitor, y cuál de tu máquina?
+3. En `GameLoop::RunFaithful` (`Client/src/App/GameLoop.cpp`), mové `m_pacer.StartMeasure` antes
+   de `m_pacer.BeginFrame()` y corré `FaithfulPacerTest.TimeSpentInStepsIsNotAccumulated`. ¿Qué
+   número da, y qué actividad del lab lo predecía?
+
 ## Al cerrar la CL3.0 (lo completás vos)
 
 - **Qué aprendí:**
@@ -420,4 +497,6 @@ sin esperar 130 ms de verdad? ¿Y uno de un reloj que vuelve 5 ms para atrás?
 - **Qué hace mi `FixedStep` con un frame negativo y con uno enorme, y por qué:**
 - **Qué vi en el jefe: el ritmo del original, y la espiral que no tiene:**
 - **Lo que anoté al comparar los ms enteros con `std::chrono`:**
+- **Qué cambió del `FixedStep` del lab al de `App` (el tope, el alfa y los ns), y por qué:**
+- **Qué vi con `Main --pacing faithful --stats` y `--vsync off --stats` en mi máquina:**
 - **Preguntas que me quedaron para más adelante:**

@@ -1269,7 +1269,7 @@ se declara después del `Log` en `main`, así se destruye antes.
   `FileSinkTest.WritesOneLinePerMessage` (en una carpeta temporal: dos líneas, ya en el disco con
   el `FileSink` abierto) y `FileSinkTest.NamesAPathThatDoesNotOpen` (una carpeta que no existe: el
   error trae la ruta).
-- [ ] **Paso 7 (PR B):** `Log`, `TeeSink`, la salida a archivo y a `stderr`, y `SdlLog`.
+- [x] **Paso 7 (PR B):** `Log`, `TeeSink`, la salida a archivo y a `stderr`, y `SdlLog`.
   - [x] `Core::Log`, `TeeSink`, `StderrSink` y `FileSink` (`Client/src/Core/Log.h/.cpp`), con
     `std::format_string` en las cuatro funciones y `std::vformat` en el `.cpp` (verificados con
     Context7: `basic_format_string::get` y el nombre son de C++20 por P2508R1, y
@@ -1311,10 +1311,14 @@ se declara después del `Log` en `main`, así se destruye antes.
     mismo hilo va a stderr, porque el mutex de SDL es recursivo (`thread_local`,
     `AReentrantMessageGoesToStderr`); el constructor inicializa el log de SDL para que su mutex
     exista; uno solo a la vez (`std::atomic<bool>` y un assert). No encadena a la salida anterior
-    como MuMain: restaura la de por defecto y filtra una sola vez, en el `Core::Log`. Se registra con el
-    `tests/platform/CMakeLists.txt` y el `ClientPlatform` de la CL3.1: hasta que esa rama entre,
-    esta no configura sola.
-  - [ ] El armado en `main.cpp` (fase 2b).
+    como MuMain: restaura la de por defecto y filtra una sola vez, en el `Core::Log`. Se registra
+    en `tests/platform/CMakeLists.txt` con `LINK_LIBS ClientPlatform` (la rama va apilada sobre la
+    CL3.2 PR B, que trae la CL3.1).
+  - [x] El armado en `main.cpp` (fase 2b): el `Log` va primero, con un `TeeSink` a `stderr` y a
+    `muret-client.log` en la carpeta de `SDL_GetBasePath` (si no abre, solo `stderr` y un aviso),
+    y una línea `[info] MuRet Client arranca` por corrida; los errores del arranque van al log. El
+    `SdlLog` se declara después del `Log` y del `SdlContext`, así muere antes que los dos. Cuando
+    `FrameStats::clampedFrames` sube, un `[warning]` dice que el frame pasó de `MaxFrameTime`.
 - [ ] **Paso 8:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "CommandLine|Config|Log|Client.Main"
@@ -1334,8 +1338,9 @@ se declara después del `Log` en `main`, así se destruye antes.
 
 ## Al cerrar la CL3
 
-- [ ] Completar el cierre de la guía de la CL3.0.
-- [ ] Actualizar `docs/learning/PROGRESS.md`.
+- [x] Completar el cierre de la guía de la CL3.0 (la sección "Del lab al cliente"; los campos de
+  Emanuel siguen vacíos).
+- [x] Actualizar `docs/learning/PROGRESS.md`.
 - [ ] Escribir el plan de la CL4 (red del cliente) en su propio PR, con lo aprendido: el socket no
   bloqueante entra en el `GameLoop` como una consulta por frame, y el keepalive de 20 s como un
   temporizador del bucle, probado con el `FakeClock`.

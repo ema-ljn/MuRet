@@ -95,6 +95,56 @@ solo lo lee.
   respuestas de las 13 actividades están en
   [`labs/cl3.0-bucle/README.md`](../../labs/cl3.0-bucle/README.md). Para cerrarla falta lo tuyo: las
   preguntas y la sección final de la guía.
+  **La CL3.R**, el carril R antes de desacoplar, la escribió Claude: el bucle de `0x637700` pasó
+  al 02 (con signo, sin tope, medido desde `0x63852b`, y en 40 al arrancar), y una tabla dice qué
+  corre por paso, qué por frame y qué por reloj. El teclado se lee casi todo en el paso y pierde
+  un apretón corto (Q-C45), y sin foco el original no corre el frame (Q-C46); "7 pasos cada 6
+  frames" pasó a 75 cada 64, con 11 de 2. **La CL3.1 también la escribió Claude**: `Platform`,
+  en su propio target (`ClientPlatform`), es lo único que ve SDL3. `SdlContext` y `Window` son
+  RAII sobre la API de C, con el contexto OpenGL 3.3 core que muere antes que la ventana; el
+  loader de GL y el intervalo de swap salieron de `main.cpp` y se prueban sin ventana, en los dos
+  sistemas. `App::WindowState` lleva cerrar, minimizar o tapar, el foco y el tamaño, con un
+  `Apply` puro que ignora el 0 × 0 que manda Windows al minimizar. Tu paso 1, la tabla de
+  `Apply`, lo resolvió Claude: está en el plan.
+  **La CL3.2, también**, en dos PRs. El primero trae el bucle de MuRet: `GameLoop` con el reloj
+  inyectado (`Core::IClock`), el de SDL (`SdlClock`) en `Main` y un `FakeClock` en los tests,
+  donde un frame tarda lo que dice el test. La lógica corre a 25 pasos por segundo a 1, 25, 60,
+  144 y 240 FPS, un frame de 130 ms se pone al día con 3 pasos, y el dibujo se interpola con un
+  alfa que nunca llega a 1. Un frame de más de 1 s (un breakpoint) cuenta 1 s, con un aviso en
+  el log (Q-C44); un reloj que vuelve no corre pasos, y minimizada la lógica sigue y el bucle
+  duerme hasta el próximo paso. El segundo trae el modo fiel, `FaithfulPacer`: el bucle del jefe
+  de la CL3.0 sobre el reloj del cliente, con el acumulador en 40, sin tope y midiendo desde
+  después de los pasos. Da 64 frames cada 3 s y 75 pasos cada 64 frames, y con pasos de 10 ms, 71
+  pasos y no 74. `Main` elige con
+  `--pacing`, `--vsync` y `--stats`. Tu paso 1, los 7 frames del modo fiel a mano, lo resolvió
+  Claude; la prueba a mano en Windows (paso 7) queda para vos.
+  **La CL3.3, también**: `Input`, sin SDL, arma el teclado y el mouse con los eventos. "Está
+  abajo" (`IsDown`) se consulta y "se apretó" (`WasPressed`) es un flanco, que vale hasta el
+  próximo `ConsumeEdges`: `GameLoop` lo llama después del primer paso del frame, así un apretón
+  lo ve un solo paso, también uno apretado y soltado en el mismo frame (el que el original pierde,
+  Q-C45), y en un frame sin pasos espera al siguiente. Shift, Ctrl y Alt son lógicas, como el
+  `VK_SHIFT` del original: están abajo si lo está cualquiera de sus dos lados. Perder el foco
+  suelta todo, y `Platform` traduce los scancodes y descarta el auto-repeat. Tu paso 1, la tabla
+  de flancos, lo resolvió Claude: está en el plan.
+  **La CL3.4, también**, en dos PRs. El primero: `muret-client.ini` (o `--config`) y la línea de
+  comandos, `connect /u<ip> /p<puerto>` (Q-C36 y Q-C37) y `--data`, se juntan en `Resolve` y se
+  validan antes de abrir nada: un puerto malo o una carpeta de datos que no existe terminan con
+  un error que los nombra, sin ventana (Q-C35), y sin config ni argumentos `Main --frames 60`
+  sigue andando. El parser del INI es propio y no `inih`, con la razón en el header: el puerto de
+  vcpkg fija el largo de la línea en 200 al compilar, y un `Host` de 255 bytes no entra.
+  Tu paso 2, la tabla de la línea de comandos, lo resolvió Claude. El segundo: `Core::Log`,
+  propio y no spdlog, sin globales, con cuatro niveles y `std::format`, escribe con un `TeeSink` a
+  `stderr` y a `muret-client.log`. El mutex va en cada salida y no en el `Log`, porque SDL loguea
+  desde sus hilos, y el `TeeSink` tiene el suyo para que las dos reciban las líneas en el mismo
+  orden. El archivo agrega al final, como el `MuError.log` del original, y al abrir se vacía si
+  pasa de 1 MiB (el original corta el principio, Q-C48). `SdlLog` le pasa los mensajes de SDL,
+  con un RAII que devuelve la salida de SDL antes de que muera el `Log`, y `Main` arma todo y
+  avisa cuando un frame pasa de 1 s.
+  Con eso el código de la CL3 está entero; para cerrarla falta lo tuyo: correr `Main` en tu
+  Windows ([README del cliente](../../Client/README.md#la-prueba-a-mano-en-windows)), las
+  preguntas y la sección final de la [guía de la CL3.0](ola-cl3.0-el-bucle-de-juego.md), y
+  explicar los conceptos de abajo. Próxima: la CL4 (red del cliente), con su
+  [plan](../superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md).
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 
@@ -162,6 +212,13 @@ sesión, junto con los de repaso más viejo.
 | la interpolación con `alfa = acumulador / paso`, que no cambia la lógica, y VSync, que ata los FPS al monitor | CL3.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | la espiral de la muerte y el tope, y por qué el original no espirala: mide desde después de los pasos (el jefe, `OriginalLoop`) | CL3.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un acumulador con signo y sin tope leído en el binario (`JL`, `SUB`, `ADD`), y su valor inicial en `.data`, 40 (carril R) | CL3.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| qué corre por paso, por frame o por reloj en el original (P-C03), leído antes de desacoplar: interpolar solo es fiel si lo que va por paso sigue por paso | CL3.R | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| RAII sobre una API de C (`SdlContext`, y `Window` con sus `std::unique_ptr` y deleters), una capa que encierra SDL3 (`ClientPlatform`), y el contexto GL como un recurso que vive dentro de la ventana | CL3.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| el paso fijo con acumulador e interpolación con el reloj inyectado (`IClock`): el mismo `GameLoop` con el reloj de SDL en `Main` y con `FakeClock` en los tests, donde un frame tarda lo que el test dice | CL3.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| el ritmo del original sin las reglas del paso fijo: ms enteros sin tope, medir desde después de los pasos y dormir de tick en tick sobre la grilla de 15,625 ms (`FaithfulPacer`, `TickCountMs`) | CL3.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| estado contra eventos: "está abajo" se consulta y "se apretó" es un flanco (`InputState`), un flanco leído por frame que llega a exactamente un paso (`ConsumeEdges` después del primer paso), y una tecla lógica que es el OR de sus dos lados (`Shift`, como `VK_SHIFT`) | CL3.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| de dónde sale lo que depende del lugar (la carpeta de datos, el servidor, el video), validado antes de abrir nada (`Resolve`), y un log que se lee en un test (`ILogSink`) | CL3.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un log sin globales, con la salida inyectada (`ILogSink`), un `std::mutex` en cada salida porque SDL loguea desde sus hilos y otro en el `TeeSink` para el orden, un archivo que agrega con un tope de 1 MiB al abrir (`FileSink`), y un RAII que devuelve la salida de SDL antes de que muera el `Log` (`SdlLog`) | CL3.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

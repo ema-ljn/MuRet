@@ -7,6 +7,7 @@
 #include <random>
 #include <string>
 #include <string_view>
+#include <system_error>
 
 using namespace std::string_view_literals;
 
@@ -351,6 +352,27 @@ private:
     std::filesystem::path m_path;
 };
 
+// Cambia la carpeta actual mientras vive y deja la de antes al morir. Va después de la TempFolder
+// a la que entra, así sale antes de que se borre (en Windows no se borra la carpeta actual).
+class CurrentFolder
+{
+public:
+    explicit CurrentFolder(const std::filesystem::path& folder) : m_previous(std::filesystem::current_path())
+    {
+        std::filesystem::current_path(folder);
+    }
+    ~CurrentFolder()
+    {
+        std::error_code error;
+        std::filesystem::current_path(m_previous, error);
+    }
+    CurrentFolder(const CurrentFolder&) = delete;
+    CurrentFolder& operator=(const CurrentFolder&) = delete;
+
+private:
+    std::filesystem::path m_previous;
+};
+
 TEST(ConfigTest, AMissingDefaultFileMeansDefaults)
 {
     const TempFolder exeFolder;
@@ -445,11 +467,14 @@ TEST(ConfigTest, ACommandLinePathIsFromTheCurrentFolder)
     const TempFolder exeFolder;
     const TempFolder other;
     std::filesystem::create_directories(other.Path() / "Data");
-    const std::filesystem::path config = other.Write("[Video]\nWidth = 800\n", "otra.ini");
+    other.Write("[Video]\nWidth = 800\n", "otra.ini");
+    // Las rutas relativas salen de la carpeta actual y no de la del ejecutable. Se entra a la
+    // temporal en vez de calcular la ruta con relative(): en Windows la temporal puede estar en
+    // otra unidad que la carpeta actual, y ahí relative() da una ruta vacía.
+    const CurrentFolder current(other.Path());
     CommandLine commandLine;
-    commandLine.configPath = std::filesystem::relative(config, std::filesystem::current_path());
-    commandLine.dataPath = std::filesystem::relative(other.Path() / "Data", std::filesystem::current_path());
-    ASSERT_TRUE(commandLine.configPath->is_relative());
+    commandLine.configPath = std::filesystem::path("otra.ini");
+    commandLine.dataPath = std::filesystem::path("Data");
 
     const auto resolved = Resolve(exeFolder.Path(), commandLine);
 

@@ -12,19 +12,20 @@
 // cómo pintar el fondo y presentar (main, con el GL de la ventana), y los tests, un registro.
 namespace Client::Scenes
 {
-// Un color, de 0 a 1 por canal.
-struct Color
-{
-    float red = 0.0f;
-    float green = 0.0f;
-    float blue = 0.0f;
-};
-
 class TestScene final : public App::ILoopClient
 {
 public:
+    // El color del fondo, de 0 a 1 por canal.
+    struct Color
+    {
+        float red = 0.0f;
+        float green = 0.0f;
+        float blue = 0.0f;
+    };
+
     // `present` pinta todo el fondo de ese color y presenta (el swap va adentro de Render,
-    // ILoopClient).
+    // ILoopClient); no puede venir vacía. Es una función y no una interfaz, como los callbacks de
+    // MuMain (Render/RmlUi), porque la escena pide una sola cosa.
     explicit TestScene(std::function<void(const Color&)> present);
 
     // La escena de prueba no lee el input.

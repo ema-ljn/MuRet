@@ -1,5 +1,6 @@
 #include "Scenes/TestScene.h"
 
+#include <cmath>
 #include <utility>
 
 namespace Client::Scenes
@@ -10,13 +11,8 @@ namespace
 constexpr std::uint32_t CycleSteps = 32;
 // Los dos extremos del fondo: un azul oscuro al empezar el ciclo y uno claro a la mitad. Son de
 // MuRet, elegidos para que el ciclo se vea.
-constexpr Color Dark{0.08f, 0.10f, 0.18f};
-constexpr Color Light{0.20f, 0.35f, 0.60f};
-
-float Mix(float from, float to, float amount)
-{
-    return from + amount * (to - from);
-}
+constexpr TestScene::Color Dark{0.08f, 0.10f, 0.18f};
+constexpr TestScene::Color Light{0.20f, 0.35f, 0.60f};
 } // namespace
 
 TestScene::TestScene(std::function<void(const Color&)> present) : m_present(std::move(present)) {}
@@ -31,12 +27,13 @@ void TestScene::Render(float alpha)
     m_present(Background(alpha));
 }
 
-Color TestScene::Background(float alpha) const
+TestScene::Color TestScene::Background(float alpha) const
 {
     // La posición en el ciclo, en [0, 1), y una rampa que sube y baja: en 32 vuelve a 0 sin salto,
-    // así que la interpolación es continua también ahí.
+    // así que la interpolación es continua también ahí. std::lerp da justo los extremos con 0 y 1.
     const float position = (static_cast<float>(m_cycle) + alpha) / static_cast<float>(CycleSteps);
     const float ramp = position < 0.5f ? 2.0f * position : 2.0f - 2.0f * position;
-    return {Mix(Dark.red, Light.red, ramp), Mix(Dark.green, Light.green, ramp), Mix(Dark.blue, Light.blue, ramp)};
+    return {std::lerp(Dark.red, Light.red, ramp), std::lerp(Dark.green, Light.green, ramp),
+            std::lerp(Dark.blue, Light.blue, ramp)};
 }
 } // namespace Client::Scenes

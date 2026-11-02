@@ -36,15 +36,18 @@
 #include <SDL3/SDL_main.h>
 
 // El punto de entrada del cliente: arma las capas y arranca, sin lógica propia. main va por fases,
-// cada una en su función, como los pasos de WinMain en MuMain (InitializeWorkingDirectoryAndLog,
-// MainLoop, ShutdownRuntime en App/Platform/Windows/Winmain.cpp):
-//   1. ReadStartup, sin SDL: la carpeta del ejecutable, los argumentos y la config. Un error corta
-//      acá, sin abrir la ventana, y va solo a stderr, porque el archivo del log lo dice la config.
-//   2. El log entero: stderr y el archivo.
+// como los pasos de WinMain en MuMain (InitializeWorkingDirectoryAndLog, MainLoop, ShutdownRuntime
+// en App/Platform/Windows/Winmain.cpp), y las de más de un paso tienen su función:
+//   1. ReadStartup, antes de SDL_Init: la carpeta del ejecutable, los argumentos y la config. Un
+//      error corta acá, sin abrir la ventana, y va solo a stderr: el archivo del log lo dice la
+//      config.
+//   2. El log entero, stderr y el archivo. Queda en main porque el TeeSink y el Log guardan
+//      referencias a sus salidas, que tienen que vivir más que ellos.
 //   3. SDL (SdlContext) y OpenWindow: la ventana y el contexto GL.
 //   4. RunLoop: el bucle hasta que se cierre la ventana o se llegue a --frames.
 // El cierre es el orden de las declaraciones de main al revés: el bucle y la escena, la ventana, el
-// SdlLog, SDL_Quit (SdlContext) y al final el log, para que lo que se cierra antes pueda escribir.
+// SdlLog, SDL_Quit (SdlContext), el Log y al final sus salidas, para que lo que se cierra antes
+// pueda escribir.
 namespace
 {
 namespace App = Client::App;
@@ -92,7 +95,8 @@ std::optional<Startup> ReadStartup(int argc, char* argv[], Core::Log& log)
         log.Error("{}", config.Error());
         return std::nullopt;
     }
-    return Startup{folder, std::move(commandLine).Value(), std::move(config).Value()};
+    return Startup{
+        .folder = folder, .commandLine = std::move(commandLine).Value(), .config = std::move(config).Value()};
 }
 
 void PrintGlInfo(const Platform::GlFunctions& gl)
@@ -105,13 +109,12 @@ void PrintGlInfo(const Platform::GlFunctions& gl)
 
 // Fase 3: la ventana con el tamaño y el VSync de la config. Si el driver no deja el VSync pedido,
 // lo avisa y sigue: la lógica va igual a 25 pasos por segundo y el dibujo, más rápido.
-std::optional<Platform::Window> OpenWindow(Platform::SdlContext& sdl, const App::ClientConfig& config, Core::Log& log)
+std::optional<Platform::Window> OpenWindow(const Platform::SdlContext& sdl, const App::ClientConfig& config,
+                                           Core::Log& log)
 {
-    Platform::WindowOptions options;
-    options.width = config.width;
-    options.height = config.height;
-    // Resolve siempre lo deja puesto: On en el modo normal y Off en el fiel, si no se dio.
-    options.vsync = config.vsync.value_or(App::VSyncMode::On);
+    // Resolve siempre deja puesto el VSync: On en el modo normal y Off en el fiel, si no se dio.
+    const Platform::WindowOptions options{
+        .width = config.width, .height = config.height, .vsync = config.vsync.value_or(App::VSyncMode::On)};
     auto created = Platform::Window::Create(sdl, options);
     if (!created.HasValue())
     {
@@ -141,7 +144,7 @@ int LoopMaxFps(const App::ClientConfig& config, const Platform::Window& window, 
 }
 
 // Lo que la escena de prueba le pide a la ventana: el fondo de un color, y el swap.
-void Present(Platform::Window& window, const Scenes::Color& color)
+void Present(Platform::Window& window, const Scenes::TestScene::Color& color)
 {
     const Platform::GlFunctions& gl = window.Gl();
     gl.clearColor(color.red, color.green, color.blue, 1.0f);
@@ -263,7 +266,7 @@ int main(int argc, char* argv[])
     }
 
     Platform::SdlClock clock;
-    Scenes::TestScene scene{[&window](const Scenes::Color& color) { Present(*window, color); }};
+    Scenes::TestScene scene{[&window](const Scenes::TestScene::Color& color) { Present(*window, color); }};
     App::GameLoop loop{clock, scene, startup->config.pacing, LoopMaxFps(startup->config, *window, log)};
     const App::FrameStats stats = RunLoop(*window, clock, loop, startup->commandLine, log);
     std::printf("frames: %llu, pasos: %llu\n", static_cast<unsigned long long>(stats.frames),

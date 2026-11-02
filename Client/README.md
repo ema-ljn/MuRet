@@ -41,9 +41,9 @@ Desde la CL3.1, la ventana y el contexto GL salieron de `main.cpp` a `Platform/`
 `GlLoader` y el VSync de `SwapInterval`) y `PumpEvents`, que pasa los eventos de SDL a
 `App::WindowState`. `Platform/` es el target `ClientPlatform`, el único que enlaza SDL3: `ClientLib`
 no la ve, y sus tests corren sin ventana. `main.cpp` queda en el armado, por fases, como los
-pasos de `WinMain` en MuMain: la config sin SDL, el log, la ventana y el bucle. La escena de
-prueba (`Scenes/TestScene`) y el medidor de `--stats` (`App/FrameRateMeter`) tienen su archivo y
-sus tests.
+pasos de `WinMain` en MuMain: la config antes de `SDL_Init`, el log, la ventana y el bucle. La
+escena de prueba (`Scenes/TestScene`) y el medidor de `--stats` (`App/FrameRateMeter`) tienen su
+archivo y sus tests.
 
 ## Compilar y correr
 

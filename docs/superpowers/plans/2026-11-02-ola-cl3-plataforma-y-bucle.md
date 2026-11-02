@@ -1377,11 +1377,11 @@ se declara después del `Log` en `main`, así se destruye antes.
 - [ ] Escribir el plan de la CL4 (red del cliente) en su propio PR, con lo aprendido: el socket no
   bloqueante entra en el `GameLoop` como una consulta por frame, y el keepalive de 20 s como un
   temporizador del bucle, probado con el `FakeClock`.
-- [x] Ordenar `main.cpp` (pedido de Emanuel después del cierre). Va por fases, una función cada
-  una, como los pasos de `WinMain` en MuMain (`InitializeWorkingDirectoryAndLog`, `MainLoop` y
-  `ShutdownRuntime`, en `App/Platform/Windows/Winmain.cpp`):
-  1. `ReadStartup`, sin SDL;
-  2. el log;
+- [x] Ordenar `main.cpp` (pedido de Emanuel después del cierre). Va por fases, como los pasos de
+  `WinMain` en MuMain (`InitializeWorkingDirectoryAndLog`, `MainLoop` y `ShutdownRuntime`, en
+  `App/Platform/Windows/Winmain.cpp`), y las de más de un paso tienen su función:
+  1. `ReadStartup`, antes de `SDL_Init`;
+  2. el log, en `main`, porque el `TeeSink` y el `Log` guardan referencias a sus salidas;
   3. `OpenWindow`;
   4. `RunLoop`.
 

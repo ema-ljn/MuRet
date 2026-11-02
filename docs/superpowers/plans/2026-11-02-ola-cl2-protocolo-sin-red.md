@@ -61,9 +61,12 @@ del cliente. De la CL2.1 en adelante, la sección de cada sub-ola de este plan.
 1. **Quién escribe la CL2.** ~~En la CL1 pediste seguir con el cliente y Claude la escribió como
    ejemplo trabajado. *Recomendación:* igual, con la CL2.0 en `labs/` para vos y un paso
    `TODO(human)` chico por sub-ola (marcados abajo).~~ **Decidido por Emanuel el 2026-11-02:
-   Claude, como en la CL1.** Escribe de la CL2.1 a la CL2.5 como ejemplo trabajado; la CL2.0 en
-   `labs/` y los pasos `TODO(human)` de cada sub-ola quedan para vos. Las preguntas 2 a 5 siguen
-   con su recomendación mientras no digas otra cosa: todas se pueden cambiar después.
+   Claude escribe todo.** Primero elegiste "Claude, como en la CL1", y el mismo día pediste que
+   Claude escriba también la CL2.0 en `labs/` y los pasos `TODO(human)`, hasta que digas que
+   participás. Los pasos marcados "(Emanuel)" los hace Claude por ahora, y en
+   [PROGRESS](../../learning/PROGRESS.md) quedan como resueltos por Claude; cuando entres, los
+   que sigan abiertos vuelven a ser tuyos. Las preguntas 2 a 5 siguen con su recomendación
+   mientras no digas otra cosa: todas se pueden cambiar después.
 2. **Código compartido con los servidores** (pregunta 2 del roadmap). El corte C1/C2 lo van a
    necesitar el DataServer (el `FrameParser` de su ola 1) y el ConnectServer (ola 10). C3/C4, el
    XOR32 y FoxAnti, solo el cliente: el GameServer queda fuera del roadmap del servidor.

@@ -38,6 +38,7 @@ add_library(ClientLib STATIC
     src/Network/Crypto/SimpleModulus.cpp
     src/Network/Crypto/SimpleModulusKeyFile.cpp
     src/Network/Crypto/Xor32.cpp
+    src/Protocol/Outgoing.cpp
     src/Protocol/PacketFields.cpp
     src/Protocol/Connection/Hello.cpp
     src/Protocol/Connection/Keepalive.cpp

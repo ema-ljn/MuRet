@@ -89,7 +89,7 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   La cantidad va en **big-endian**: `0x4c1860` la arma como `pkt[5] * 0x100 + pkt[6]`; de cada
   entrada lee el código como u16 little-endian y la carga del byte que sigue, y el cuarto no lo
   lee (*estático*). No compara la cantidad con el tamaño del paquete: con una que no entra, lee
-  después del final. MuRet devuelve `TooShort` (CL2.5).
+  después del final. MuRet devuelve `TooShort` (Q-C42, CL2.5).
   *Verificado* el cable; la traducción es *estática* (código portado y probado de la FoxAnti
   mínima). El tercer byte cambia entre listas (`00` en 71, `02` en una): es la carga. El `0xCC` es
   siempre igual y FoxAnti lo descarta (*inferido*: memoria sin inicializar del CS).
@@ -98,7 +98,10 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   menos 400), así que al cable sale `00 00`. El CS responde con la IP en 16 bytes con `\0` y el
   puerto en little-endian. El sub 3 de `0x4e32f2` loguea, cierra el socket del CS (`0x4e8380`) y
   conecta al GS (`0x4c1340`). *Verificado* el cable; la ida y vuelta de códigos desde 21 no cierra
-  (Q-C17).
+  (Q-C17). De la IP se leen 15 bytes: el dispatcher (`0x4e3341..0x4e3378`) copia `pkt[4..18]` a
+  un buffer de 16 bytes en 0 y le pasa eso y el puerto (`pkt[20..21]`) a `0x4c1340`, así que el
+  byte 16, `pkt[19]`, no se lee nunca, y una IP de 16 caracteres sin `\0` queda en 15. En el cable
+  del laboratorio, las 8 respuestas traen `pkt[19]` en 0. MuRet lee lo mismo (CL2.5).
 - **`F1 00`** (`0x4c1e20`): `C1 0C F1 00 01 <idx:2> <versión:5>`. Con `pkt[4] == 1` guarda el
   índice del jugador y valida los 5 bytes de versión de `pkt+7` contra `0x6c8284`. El índice va en
   **big-endian**: lo arma como `pkt[5] * 0x100 + pkt[6]` (*estático*), igual que el `NumberH` y el
@@ -116,12 +119,15 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   con un timer que ya venía corriendo, porque el segundo llega a los 7,5 s del primero. Los dos
   WORD valen en el juego, por ejemplo, `0x0328` y `0x0268`: **no son celdas** del mapa (0 a 255),
   sino los WORD de `personaje+0x4C/+0x58` con su ajuste de -20 o -25. Del lado del GS son **la
-  velocidad de ataque y la de magia**: `CGLiveClient` (`0x415140`) compara el de `+8` y el de
-  `+0xa` con dos campos del objeto del jugador (`0x415291` a `0x4152b0`), y si no coinciden, el log
-  de `0x41532b` dice "探测到客户端有黑客工具 : 编辑攻击速度" (detectó una herramienta de hack:
-  velocidad de ataque editada), con los cuatro valores (*estático*). La reconstrucción del GS lo
-  llama `PMSG_CLIENTTIME { Time; AttackSpeed; MagicSpeed; }`. El byte 3 es el relleno que deja el
-  alineado del struct, y el cliente lo manda en 0.
+  velocidad de ataque y la de magia**: en el GS original, `CGLiveClient` (`0x415140`) compara el
+  de `+8` y el de `+0xa` con dos campos del objeto del jugador (`0x415291` y `0x4152ac`) y, si no
+  pasan, el log de `0x41532b` dice "探测到客户端有黑客工具 : 编辑攻击速度" (detectó una
+  herramienta de hack: velocidad de ataque editada), con los cuatro valores (*estático*). Qué
+  compara no está decidido: `!=`, o un `<` con o sin signo (`repack_patches.tsv`, "predicado no
+  decidido"). El GS del repack la tiene anulada: `0x41529b` es `EB 19` (era `75 1F`) y `0x4152b6`
+  es un `JMP` (era un `JE`), así que siempre va al else y no mira las velocidades. La
+  reconstrucción del GS lo llama `PMSG_CLIENTTIME { Time; AttackSpeed; MagicSpeed; }`. El byte 3
+  es el relleno que deja el alineado del struct, y el cliente lo manda en 0.
 - **Selección de personaje (`F3`)**: `0x4e2f93` es un sub-dispatcher de hasta 0x40 casos. En el
   cable: `F3 00` (pedir lista, sin cuerpo), `F3 03` con el nombre de 10 bytes (elegir), `F3 06`,
   `F3 12`. El layout de la respuesta `F3 00` y del resto falta reconstruirlo (P-C06).

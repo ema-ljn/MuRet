@@ -33,14 +33,19 @@ struct LoginRequest
 // F1 01: C1 31 F1 01, la cuenta y la clave en 10 bytes cada una (completadas con \0 y con el XOR3
 // en los 10 bytes del campo, como 0x4c1690), el tick (u32 little-endian), ClientVersion y
 // ClientSerial; con el XOR32 y para cifrar. FieldTooLong con una cuenta o una clave de más de
-// CredentialSize bytes. Una vacía se escribe igual: el original no la manda (0x641bf0 mira el largo
-// de las dos antes de armar el paquete), y eso lo decide la escena de login.
+// CredentialSize bytes. El original no la rechaza: 0x641bf0 copia la cuenta con strcpy a un buffer
+// de 10 bytes en 0 que tiene 2 de sobra antes del de la clave, y una de 11 o 12 sale cortada en 10;
+// lo único que la limita es el campo de texto de la escena de login (CL5; Q-C43). Una vacía se
+// escribe igual: el original no la manda (0x641bf0 mira el largo de las dos antes de armar el
+// paquete), y eso lo decide la escena de login. Un \0 en el medio se copia como un byte más, y el
+// strcpy del original cortaría ahí: desde un campo de texto no se puede escribir.
 [[nodiscard]] Core::Expected<Outgoing, ProtocolError> WriteLoginRequest(const LoginRequest& request);
 
 // El resultado del login que lo acepta.
 inline constexpr std::uint8_t LoginAccepted = 1;
 
-// La respuesta F1 01: C1 05 F1 01 y el resultado.
+// La respuesta F1 01: C1 05 F1 01 y el resultado. El login que arma el cliente, sin el XOR32, tiene
+// la misma forma (C1 F1 01 y algo detrás) y también se lee: la CL4 los separa por el sentido.
 [[nodiscard]] Core::Expected<std::uint8_t, ProtocolError> ReadLoginResult(const Network::Packet& packet);
 
 // F1 03: C1 06 F1 03 06 00, con el XOR32 y para cifrar. Lo manda el original cuando un C3/C4 que

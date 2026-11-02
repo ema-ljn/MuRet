@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "Network/IdentityObfuscation.h"
+#include "Network/Obfuscation.h"
 #include "Network/Packet.h"
 #include "Network/PacketReader.h"
 
@@ -18,12 +20,13 @@
 namespace Client::Tests
 {
 
-// Los paquetes de `reads`, en orden, cortados con un PacketReader: un Feed por lectura. Si el corte
-// falla o sobran bytes, el test falla con el número de la conexión, y vuelve lo que haya salido.
+// Los paquetes de `reads`, en orden, cortados con un PacketReader con `obfuscation`: un Feed por
+// lectura. Si el corte falla o sobran bytes, el test falla con el número de la conexión, y vuelve
+// lo que haya salido.
 inline std::vector<Network::Packet> CutPackets(const std::vector<std::span<const std::byte>>& reads,
-                                               std::size_t connection)
+                                               const Network::Obfuscation& obfuscation, std::size_t connection)
 {
-    Network::PacketReader reader;
+    Network::PacketReader reader(obfuscation);
     std::vector<Network::Packet> packets;
     for (const std::span<const std::byte> read : reads)
     {
@@ -46,6 +49,13 @@ inline std::vector<Network::Packet> CutPackets(const std::vector<std::span<const
     }
     EXPECT_EQ(reader.Pending(), 0u) << "conexión " << connection;
     return packets;
+}
+
+// Lo mismo, sin ofuscación.
+inline std::vector<Network::Packet> CutPackets(const std::vector<std::span<const std::byte>>& reads,
+                                               std::size_t connection)
+{
+    return CutPackets(reads, Network::IdentityObfuscation::Shared(), connection);
 }
 
 // Una copia de cada lectura con cada byte con XOR `mask`: el 0xAA de FoxAnti en todo lo que manda

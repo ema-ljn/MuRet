@@ -1,8 +1,9 @@
 // DecryptPacket y EncryptPacket contra el cable del laboratorio (support/WireCapture.h,
-// MURET_CLIENT_WIRE_DIR) y las claves reales: los C3 que mandó el cliente original se descifran con
-// Dec1.dat, la del servidor, y los C3/C4 que le contestó el GameServer, con Dec2.dat, la del
-// cliente. Cada paquete se corta con el PacketReader, y lo del GameServer, con el 0xAA de FoxAnti:
-// el --golden de c3c4_reference.py mira solo el primero de cada segmento. Lo que da DecryptPacket se
+// MURET_CLIENT_WIRE_DIR) y las claves reales: los C3 que mandó el cliente original se descifran
+// con Dec1.dat, la del servidor, y los C3/C4 que le contestó el GameServer, con Dec2.dat, la del
+// cliente. Cada paquete se corta con el PacketReader (CutPackets de support/WirePackets.h), y lo
+// del GameServer, con el 0xAA de FoxAnti: el --golden de c3c4_reference.py mira solo el primero de
+// cada segmento. Lo que da DecryptPacket se
 // compara con los bloques descifrados uno por uno con DecryptBlock, y lo del cliente se cifra de
 // nuevo con EncryptPacket.
 //
@@ -16,7 +17,6 @@
 #include "Network/IdentityObfuscation.h"
 #include "Network/Obfuscation.h"
 #include "Network/Packet.h"
-#include "Network/PacketReader.h"
 #include "Network/PacketSerials.h"
 
 #include "support/FileBytes.h"
@@ -25,6 +25,7 @@
 #include "support/NetworkPrinters.h"
 #include "support/SameBytes.h"
 #include "support/WireCapture.h"
+#include "support/WirePackets.h"
 
 #include <gtest/gtest.h>
 
@@ -48,7 +49,6 @@ using Client::Network::HeaderSize;
 using Client::Network::IdentityObfuscation;
 using Client::Network::Obfuscation;
 using Client::Network::Packet;
-using Client::Network::PacketReader;
 using Client::Network::PacketSerials;
 using Client::Network::PacketType;
 using Client::Network::SerialCheck;
@@ -61,6 +61,7 @@ using Client::Network::Crypto::EncryptionKey;
 using Client::Network::Crypto::LoadDecryptionKey;
 using Client::Network::Crypto::LoadEncryptionKey;
 using Client::Network::Crypto::PlainBlockSize;
+using Client::Tests::CutPackets;
 using Client::Tests::LoadKeyFile;
 using Client::Tests::ParseWireCapture;
 using Client::Tests::ReadFileBytes;
@@ -78,36 +79,6 @@ constexpr std::uint16_t GameServerPort = 55901;
 
 // El serial: el primer byte de lo útil, que el paquete rearmado no lleva.
 constexpr std::size_t SerialSize = 1;
-
-// Los paquetes de `reads`, cortados con un PacketReader con `obfuscation`. Si el corte falla o
-// sobran bytes, el test falla, y vuelve lo que haya salido.
-std::vector<Packet> CutPackets(const std::vector<std::span<const std::byte>>& reads, const Obfuscation& obfuscation,
-                               std::size_t index)
-{
-    PacketReader reader(obfuscation);
-    std::vector<Packet> packets;
-    for (const std::span<const std::byte> read : reads)
-    {
-        reader.Feed(read);
-        while (true)
-        {
-            auto next = reader.Next();
-            if (!next.HasValue())
-            {
-                ADD_FAILURE() << "conexión " << index << ": el corte falla con "
-                              << testing::PrintToString(next.Error());
-                return packets;
-            }
-            if (!next.Value())
-            {
-                break;
-            }
-            packets.push_back(std::move(*std::move(next).Value()));
-        }
-    }
-    EXPECT_EQ(reader.Pending(), 0u) << "conexión " << index;
-    return packets;
-}
 
 // Dónde está un C3/C4, para los mensajes: su conexión en el log y su orden entre los de ella.
 std::string Where(std::size_t connection, std::size_t index)
@@ -377,9 +348,9 @@ TEST_F(GoldenEncryptedPacket, DecryptsWhatTheClientSent)
 }
 
 // Los 25 C3/C4 que contestó el GameServer (18 C3 y 7 C4, de 36, 69 y 80 bytes), en 7 conexiones,
-// cortados con el 0xAA de FoxAntiObfuscation: el checksum bien y el serial desde 0, sin un Resynced, el C1/C2 rearmado
-// igual a lo útil de los bloques, y los bloques, cifrados de nuevo con Enc2.dat del servidor, los
-// mismos bytes.
+// cortados con el 0xAA de FoxAntiObfuscation: el checksum bien y el serial desde 0, sin un
+// Resynced, el C1/C2 rearmado igual a lo útil de los bloques, y los bloques, cifrados de nuevo con
+// Enc2.dat del servidor, los mismos bytes.
 TEST_F(GoldenEncryptedPacket, DecryptsWhatTheGameServerAnswered)
 {
     const FoxAntiObfuscation foxAnti;

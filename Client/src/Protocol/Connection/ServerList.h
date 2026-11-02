@@ -49,8 +49,9 @@ struct ServerAddress
     std::uint16_t port;
 };
 
-// La respuesta F4 03: C1 16 F4 03, el host en 16 bytes y el puerto, u16 little-endian. El host
-// llega hasta el primer \0, o son los 16 bytes si no hay ninguno (Q-C07).
+// La respuesta F4 03: C1 16 F4 03, el host en 16 bytes y el puerto, u16 little-endian. Del host se
+// leen los primeros 15 bytes, como el original (0x4e3341), hasta el primer \0, o los 15 si no hay
+// ninguno: el byte 16 no se lee nunca.
 [[nodiscard]] Core::Expected<ServerAddress, ProtocolError> ReadServerAddress(const Network::Packet& packet);
 
 } // namespace Client::Protocol::Connection

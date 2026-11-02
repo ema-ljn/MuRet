@@ -3,8 +3,9 @@
 // de la CL2 (CL2.5).
 //
 // En el original están guardadas cada una por su lado: la versión en 0x6c8284, ofuscada, y el
-// serial como texto, en el emisor del login (0x641bf0). El cliente del muproxy.log del
-// laboratorio es de otro build: manda otra versión, 09908, en el mismo lugar del login.
+// serial como texto en 0x6c828c, de donde lo copia el emisor del login (0x641bf0). El cliente del
+// muproxy.log del laboratorio es de otro build: manda otra versión, 09908, en el mismo lugar del
+// login.
 
 #pragma once
 
@@ -26,8 +27,8 @@ static_assert(ClientVersion.size() == VersionSize);
 // Lo que mide el serial en el login, sin \0: va en +33, al final.
 inline constexpr std::size_t SerialSize = 16;
 
-// El serial del cliente, que el GameServer compara con el suyo (en el research del servidor,
-// PMSG_IDPASS de gameserver/src/reconstructed/).
+// El serial del cliente, en 0x6c828c con su \0, que el GameServer compara con el suyo (en el
+// research del servidor, PMSG_IDPASS de gameserver/src/reconstructed/).
 inline constexpr std::string_view ClientSerial = "MULORDSVERSAO102";
 static_assert(ClientSerial.size() == SerialSize);
 

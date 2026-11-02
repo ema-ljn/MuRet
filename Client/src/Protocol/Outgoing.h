@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Network/Packet.h"
+#include "Network/PacketWriter.h"
 
 #include <cstdint>
 
@@ -26,5 +27,15 @@ struct Outgoing
     Network::Packet packet; // con el XOR32 ya aplicado si lo lleva
     Delivery delivery;
 };
+
+// Terminar un C1 que arma un emisor del protocolo y envolverlo en un Outgoing. Son para los
+// paquetes de largo fijo, que siempre entran en un C1 (Network::MaxC1Size): Finish no falla, y si
+// fallara sería un bug del emisor, y Value() corta el programa.
+
+// En claro, sin el XOR32, como los F4 que van al ConnectServer.
+[[nodiscard]] Outgoing ClearC1(const Network::PacketWriter& writer);
+
+// Con el XOR32 y para cifrar como C3, como el login y el keepalive.
+[[nodiscard]] Outgoing EncryptedC1(const Network::PacketWriter& writer);
 
 } // namespace Client::Protocol

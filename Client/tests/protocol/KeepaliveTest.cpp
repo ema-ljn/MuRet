@@ -20,7 +20,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <span>
 #include <string_view>
 #include <vector>
 
@@ -53,6 +52,15 @@ constexpr std::uint8_t NoAdjust = 0x00;
 // Los dos bits: gana KeepaliveAdjust20.
 constexpr std::uint8_t BothAdjusts = KeepaliveAdjust20 | KeepaliveAdjust25;
 
+// Los bits como los escribe el generador de los fixtures de mu-client (gen_net_send_fixtures.py), y
+// no con las constantes: si KeepaliveAdjust20 o KeepaliveAdjust25 cambiaran de bit, fallan.
+constexpr std::uint8_t MuClientAdjust20 = 0x01;
+constexpr std::uint8_t MuClientAdjust25 = 0x08;
+constexpr std::uint8_t MuClientBothAdjusts = 0x09;
+
+// Los otros seis bits, sin el 0x01 ni el 0x08, también como número.
+constexpr std::uint8_t NeitherAdjust = 0xF6;
+
 // Unos seriales que ya mandaron `sent` paquetes: el próximo sale con ese serial.
 PacketSerials HavingSent(int sent)
 {
@@ -64,19 +72,21 @@ PacketSerials HavingSent(int sent)
     return serials;
 }
 
-// Con KeepaliveAdjust20 resta 20, con KeepaliveAdjust25 resta 25, y con los dos gana el de 20.
+// Con el bit 0x01 resta 20, con el 0x08 resta 25, y con los dos gana el de 20 (0x4bee60 mira
+// primero el 0x01).
 TEST(KeepaliveTest, AdjustsTheSpeedWithTheBitsOfTheCharacter)
 {
     EXPECT_EQ(KeepaliveSpeed(40, NoAdjust), 40);
-    EXPECT_EQ(KeepaliveSpeed(40, KeepaliveAdjust20), 20);
-    EXPECT_EQ(KeepaliveSpeed(40, KeepaliveAdjust25), 15);
-    EXPECT_EQ(KeepaliveSpeed(40, BothAdjusts), 20);
+    EXPECT_EQ(KeepaliveSpeed(40, MuClientAdjust20), 20);
+    EXPECT_EQ(KeepaliveSpeed(40, MuClientAdjust25), 15);
+    EXPECT_EQ(KeepaliveSpeed(40, MuClientBothAdjusts), 20);
+    EXPECT_EQ(KeepaliveSpeed(40, NeitherAdjust), 40);
 }
 
 // Los otros seis bits no cambian nada, ni solos ni con uno de los dos.
 TEST(KeepaliveTest, TheOtherBitsDoNotAdjust)
 {
-    constexpr std::uint8_t Others = static_cast<std::uint8_t>(~BothAdjusts);
+    constexpr std::uint8_t Others = static_cast<std::uint8_t>(0xFF ^ BothAdjusts);
 
     EXPECT_EQ(KeepaliveSpeed(0x0328, Others), 0x0328);
     EXPECT_EQ(KeepaliveSpeed(0x0328, static_cast<std::uint8_t>(Others | KeepaliveAdjust25)), 0x0328 - 25);
@@ -106,17 +116,18 @@ struct KeepaliveFixture
     ByteVector encrypted;
 };
 
-// Los cinco, con el ajuste aplicado por KeepaliveSpeed y cifrados con la clave identidad.
+// Los cinco, con los bits del generador y el ajuste de KeepaliveSpeed, cifrados con la clave
+// identidad.
 TEST(KeepaliveTest, WritesTheFiveKeepalivesOfMuClient)
 {
     const std::vector<KeepaliveFixture> fixtures{
         {"RAW", FixtureTick, 0x0017, 0x0016, NoAdjust, 0, std::byte{0}, Client::Tests::KeepaliveRawPlain(),
          Client::Tests::KeepaliveRawC3Serial0()},
-        {"ADJUST20", FixtureTick, 40, 50, KeepaliveAdjust20, 0, std::byte{0}, Client::Tests::KeepaliveAdjust20Plain(),
+        {"ADJUST20", FixtureTick, 40, 50, MuClientAdjust20, 0, std::byte{0}, Client::Tests::KeepaliveAdjust20Plain(),
          Client::Tests::KeepaliveAdjust20C3Serial0()},
-        {"ADJUST25_WRAP", Adjust25WrapTick, 3, 2, KeepaliveAdjust25, 0, std::byte{0},
+        {"ADJUST25_WRAP", Adjust25WrapTick, 3, 2, MuClientAdjust25, 0, std::byte{0},
          Client::Tests::KeepaliveAdjust25WrapPlain(), Client::Tests::KeepaliveAdjust25WrapC3Serial0()},
-        {"ADJUST20_PRIORITY", FixtureTick, 40, 50, BothAdjusts, 0, std::byte{0},
+        {"ADJUST20_PRIORITY", FixtureTick, 40, 50, MuClientBothAdjusts, 0, std::byte{0},
          Client::Tests::KeepaliveAdjust20Plain(), Client::Tests::KeepaliveAdjust20C3Serial0()},
         {"HIGH_Y", FixtureTick, 0x0017, 0x1234, NoAdjust, 255, std::byte{0xA5}, Client::Tests::KeepaliveHighYPlain(),
          Client::Tests::KeepaliveHighYC3SerialFFRandA5()},

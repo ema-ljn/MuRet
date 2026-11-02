@@ -33,6 +33,11 @@ struct PacketKind
 [[nodiscard]] Core::Expected<Core::ByteReader, ProtocolError> FieldsAfterSubcode(const Network::Packet& packet,
                                                                                  const PacketKind& kind);
 
+// Con un Packet temporal, el lector miraría los bytes de un paquete que muere al terminar la línea,
+// como con el constructor que Core::ByteReader rechaza: así no compila.
+Core::Expected<Core::ByteReader, ProtocolError> FieldsAfterSubcode(const Network::Packet&& packet,
+                                                                   const PacketKind& kind) = delete;
+
 // Un texto de largo fijo, hasta el primer \0, o el campo entero si no tiene ninguno: un campo lleno
 // no lleva terminador (Q-C07).
 [[nodiscard]] std::string TextField(std::span<const std::byte> field);

@@ -1,6 +1,5 @@
 #include "Protocol/Connection/Keepalive.h"
 
-#include "Network/Crypto/Xor32.h"
 #include "Network/PacketWriter.h"
 #include "Protocol/Connection/Opcodes.h"
 
@@ -46,8 +45,7 @@ Outgoing WriteKeepalive(const Keepalive& keepalive)
         .PutU32Le(keepalive.tick)
         .PutU16Le(keepalive.attackSpeed)
         .PutU16Le(keepalive.magicSpeed);
-    // 12 bytes siempre entran en un C1: Finish no falla.
-    return {Network::Crypto::Xor32Encode(writer.Finish().Value()), Delivery::Encrypted};
+    return EncryptedC1(writer);
 }
 
 } // namespace Client::Protocol::Connection

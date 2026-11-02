@@ -18,6 +18,7 @@
 #include "support/MuClientNetFixtures.h"
 #include "support/NetVectors.h"
 #include "support/NetworkPrinters.h"
+#include "support/Packets.h"
 #include "support/SameBytes.h"
 #include "support/SimpleModulusKeys.h"
 
@@ -66,6 +67,7 @@ using Client::Tests::NoticeBytes;
 using Client::Tests::NoticeRandA5;
 using Client::Tests::NoticeSerial0;
 using Client::Tests::NoticeSerialFF;
+using Client::Tests::PacketOf;
 using Client::Tests::Pair17;
 using Client::Tests::Pair18;
 using Client::Tests::ReadNetVector;
@@ -80,14 +82,6 @@ constexpr std::byte TestOpcode{0x42};
 // error resincronizara con el serial que trajo en vez de gastar el que se esperaba, el siguiente
 // sería el 0x38 y no el 1.
 constexpr int OtherSerial = 0x37;
-
-// Un Packet con estos bytes. Si no lo forman, el test falla (y Value() corta el programa).
-Packet PacketOf(ByteVector bytes)
-{
-    auto built = Packet::FromBytes(std::move(bytes));
-    EXPECT_TRUE(built.HasValue());
-    return std::move(built).Value();
-}
 
 // Escribe en la cabecera de `bytes` el tipo y el tamaño que mide: el byte 1 en un C1/C3, y los
 // bytes 1 y 2, big-endian, en un C2/C4.

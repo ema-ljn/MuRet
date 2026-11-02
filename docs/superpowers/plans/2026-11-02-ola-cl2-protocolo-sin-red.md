@@ -822,7 +822,8 @@ versión del saludo con `ClientVersion`.
 Sobre el contrato: la lista se acepta solo como C2, que es lo que deja FoxAnti; un C1 `F4 06` es
 `WrongPacket`. Una cantidad que no entra en el paquete es `TooShort`: `0x4c1860` no la compara con
 el tamaño y lee después del final (ahora en 04). En los cuatro lectores, los bytes que sobran
-detrás de lo que se lee no se miran, como en los handlers del original, que leen offsets fijos.
+detrás de lo que se lee no se miran, como en los handlers del original, que leen offsets fijos
+(Q-C42).
 La cuenta y la clave de 10 bytes exactos entran sin `\0`, como las lee el GS (`char Id[10]` en
 `PMSG_IDPASS`), y de 11 son `FieldTooLong`. Una cuenta vacía se arma igual (el test del paso 2 la
 deja), pero el original no la manda: `0x641bf0` mide la cuenta y la clave antes de armar el
@@ -830,12 +831,25 @@ paquete y, si alguna está vacía, vuelve sin mandar nada. No mandarla es de la 
 (CL5). Los dos bytes del aviso `F1 03`, `06 00`, son los que lee `CGClientHackLogRecv`
 (`0x4172e0`) en el GS.
 
-El keepalive tenía mal los nombres: sus dos WORD no son una posición. El GS (`CGLiveClient`,
-`0x415140`) compara el de `+8` y el de `+0xa` con dos campos del objeto del jugador
-(`0x415291` a `0x4152b0`), y si no coinciden, el log de `0x41532b` dice que detectó una
-herramienta de hack que edita la velocidad de ataque, con los cuatro valores. La reconstrucción
-del GS lo llama `PMSG_CLIENTTIME { Time; AttackSpeed; MagicSpeed; }`. Por eso el struct trae
-`attackSpeed` y `magicSpeed`, y la función del ajuste es `KeepaliveSpeed` y no
+Lo que cambió con la revisión: del host de la respuesta `F4 03` se leen 15 bytes, como el
+original, porque el dispatcher (`0x4e3341`) copia `pkt[4..18]` a un buffer de 16 bytes en 0 y
+`pkt[19]` no se lee nunca: un host de 16 caracteres sin `\0` queda en 15 (ahora en 04).
+`FieldsAfterSubcode` tiene borrada la sobrecarga con un `const Network::Packet&&`, porque con un
+temporal el lector quedaría mirando bytes muertos, como con el constructor que `ByteReader`
+rechaza, y `PacketFieldsTest` lo fija con `static_assert`. Terminar un C1 y envolverlo en un
+`Outgoing` lo hacen `ClearC1` y `EncryptedC1`, en `Protocol/Outgoing.h/.cpp`, para los tres
+emisores. Una cuenta de 11 o 12 caracteres sigue siendo `FieldTooLong`, aunque el original la manda
+cortada en 10: `0x641bf0` la copia con `strcpy` a un buffer de 10 bytes en 0 que tiene 2 de sobra
+antes del de la clave, y solo el campo de texto de la escena de login (CL5) la limita (en
+`Login.h`).
+
+El keepalive tenía mal los nombres: sus dos WORD no son una posición. El GS original
+(`CGLiveClient`, `0x415140`) compara el de `+8` y el de `+0xa` con dos campos del objeto del
+jugador (`0x415291` y `0x4152ac`), y si no pasan, el log de `0x41532b` dice que detectó una
+herramienta de hack que edita la velocidad de ataque, con los cuatro valores; si compara con `!=`
+o con un `<` no está decidido, y el GS del repack tiene la comparación anulada (ahora en 04). La
+reconstrucción del GS lo llama `PMSG_CLIENTTIME { Time; AttackSpeed; MagicSpeed; }`. Por eso el
+struct trae `attackSpeed` y `magicSpeed`, y la función del ajuste es `KeepaliveSpeed` y no
 `KeepaliveCoordinate`. El byte 3, el relleno que deja el alineado del struct, sale en 0, con
 nombre (`KeepalivePadding`).
 
@@ -843,12 +857,15 @@ Los tests: los fixtures de `mu-client` que usan el login, el keepalive y el avis
 `support/MuClientNetFixtures.h`, y `EncryptedPacketTest` toma de ahí los cuatro del aviso, que antes
 tenía adentro. El login y el keepalive tienen además un test que fija el offset de cada campo, no
 solo los bytes de un fixture. El golden pide la carpeta del cable con `Dec1.dat` y corta con
-`support/WirePackets.h` (`GoldenEncryptedPacketTest` se queda con su copia para no chocar con la
-CL2.4). Además de lo que pide el paso 4, vuelve a escribir cada keepalive con `WriteKeepalive` desde
+`support/WirePackets.h`, que con la revisión también usa `GoldenEncryptedPacketTest`. Además de lo
+que pide el paso 4, vuelve a escribir cada keepalive con `WriteKeepalive` desde
 lo que leyó y da los mismos bytes que el descifrado; del GameServer, con el `0xAA` deshecho, lee 8
 conexiones que empiezan con un saludo, los 8 con el resultado 1 y la versión `09908`, y 7 login
 aceptados; y del ConnectServer, los 72 pedidos de la lista, iguales a `WriteServerListRequest`, y
 las 8 direcciones, `172.16.198.1:55901`. No imprime más que cantidades, tamaños y el puerto.
+Con la revisión suma las 8 elecciones `F4 03` del cliente, iguales a `WriteServerSelect(0)`, y
+las 72 listas del ConnectServer, que como llegan son `WrongPacket` y con el `AfterCut` de FoxAnti
+se leen con las entradas que dice su cantidad.
 
 **Interfaces:**
 

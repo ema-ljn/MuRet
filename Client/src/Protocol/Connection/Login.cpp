@@ -2,7 +2,6 @@
 
 #include "Core/ByteReader.h"
 #include "Core/Xor3.h"
-#include "Network/Crypto/Xor32.h"
 #include "Network/PacketWriter.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Connection/Opcodes.h"
@@ -46,13 +45,6 @@ std::span<const std::byte> BytesOf(std::string_view text)
     return std::as_bytes(std::span(text));
 }
 
-// Un C1 que va cifrado: con el XOR32 y para EncryptPacket. Lo que arman estos emisores entra en un
-// C1, así que Finish no falla.
-Outgoing Encrypted(const Network::PacketWriter& writer)
-{
-    return {Network::Crypto::Xor32Encode(writer.Finish().Value()), Delivery::Encrypted};
-}
-
 } // namespace
 
 Core::Expected<Outgoing, ProtocolError> WriteLoginRequest(const LoginRequest& request)
@@ -70,7 +62,7 @@ Core::Expected<Outgoing, ProtocolError> WriteLoginRequest(const LoginRequest& re
         .PutU32Le(request.tick)
         .PutBytes(BytesOf(ClientVersion))
         .PutBytes(BytesOf(ClientSerial));
-    return Encrypted(writer);
+    return EncryptedC1(writer);
 }
 
 Core::Expected<std::uint8_t, ProtocolError> ReadLoginResult(const Network::Packet& packet)
@@ -90,10 +82,10 @@ Core::Expected<std::uint8_t, ProtocolError> ReadLoginResult(const Network::Packe
 
 Outgoing WriteDecryptErrorReport()
 {
-    return Encrypted(Network::PacketWriter::C1(JoinOpcode)
-                         .PutU8(DecryptErrorSubcode)
-                         .PutU8(DecryptErrorFirst)
-                         .PutU8(DecryptErrorSecond));
+    return EncryptedC1(Network::PacketWriter::C1(JoinOpcode)
+                           .PutU8(DecryptErrorSubcode)
+                           .PutU8(DecryptErrorFirst)
+                           .PutU8(DecryptErrorSecond));
 }
 
 } // namespace Client::Protocol::Connection

@@ -14,7 +14,6 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
-#include <cstdint>
 #include <string_view>
 #include <vector>
 
@@ -69,14 +68,19 @@ TEST(HelloTest, ThePlayerIndexIsBigEndian)
     EXPECT_EQ(VersionOf(hello.Value()), "09908");
 }
 
-// Un resultado que no acepta se lee igual: qué hacer con él es de quien lo usa (CL4).
+// Un resultado que no acepta se lee igual, tal cual, sin pasarlo a 0: qué hacer con él es de quien
+// lo usa (CL4).
 TEST(HelloTest, ReadsAResultThatIsNotAccepted)
 {
     const auto hello =
         ReadServerHello(PacketOf(Bytes({0xC1, 0x0C, 0xF1, 0x00, 0x00, 0x00, 0x00, 0x31, 0x30, 0x32, 0x30, 0x39})));
+    const auto two =
+        ReadServerHello(PacketOf(Bytes({0xC1, 0x0C, 0xF1, 0x00, 0x02, 0x00, 0x00, 0x31, 0x30, 0x32, 0x30, 0x39})));
 
     ASSERT_TRUE(hello.HasValue());
     EXPECT_EQ(hello.Value().result, 0);
+    ASSERT_TRUE(two.HasValue());
+    EXPECT_EQ(two.Value().result, 2);
 }
 
 // Sin la versión entera es TooShort; con un byte de más se lee igual, y lo que sobra no se lee.

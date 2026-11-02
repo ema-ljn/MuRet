@@ -23,7 +23,6 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
-#include <cstdint>
 #include <span>
 #include <string_view>
 #include <utility>
@@ -48,6 +47,7 @@ using Client::Protocol::Connection::ReadLoginResult;
 using Client::Protocol::Connection::WriteDecryptErrorReport;
 using Client::Protocol::Connection::WriteLoginRequest;
 using Client::Tests::Bytes;
+using Client::Tests::BytesOf;
 using Client::Tests::ErrorOf;
 using Client::Tests::FixtureTick;
 using Client::Tests::IdentityPair;
@@ -90,12 +90,6 @@ ByteVector EncryptedWithIdentity(const Packet& packet)
     }
     const auto bytes = encrypted.Value().Bytes();
     return {bytes.begin(), bytes.end()};
-}
-
-// Los bytes de un texto, para compararlos con un campo.
-std::span<const std::byte> BytesOf(std::string_view text)
-{
-    return std::as_bytes(std::span(text));
 }
 
 // FIX_LOGIN_PLAIN y su C3: una cuenta y una clave de 8 bytes, completadas con dos \0, que con el
@@ -156,16 +150,40 @@ TEST(LoginTest, AnEmptyAccountLeavesTheXor3KeyInTheField)
                           Bytes({0xFC, 0xCF, 0xAB, 0xFC, 0xCF, 0xAB, 0xFC, 0xCF, 0xAB, 0xFC})));
 }
 
-// La respuesta: C1 05 F1 01 y el resultado; 1 es aceptado.
+// Con la clave vacía pasa lo mismo, en su campo: el XOR3 vuelve a empezar ahí. El original tampoco
+// la manda.
+TEST(LoginTest, AnEmptyPasswordLeavesTheXor3KeyInTheField)
+{
+    const Packet plain = Xor32Decode(Written({"user0001", "", FixtureTick}).packet);
+
+    EXPECT_TRUE(SameBytes(plain.Bytes().subspan(PasswordOffset, CredentialSize),
+                          Bytes({0xFC, 0xCF, 0xAB, 0xFC, 0xCF, 0xAB, 0xFC, 0xCF, 0xAB, 0xFC})));
+}
+
+// La respuesta: C1 05 F1 01 y el resultado; 1 es aceptado. Los otros pasan tal cual, sin
+// juntarlos en "no aceptado": 0x4e2b10 tiene una rama para cada uno de 0 a 5, y qué hacer con
+// ellos es de la CL4.
 TEST(LoginTest, ReadsTheLoginResult)
 {
     const auto accepted = ReadLoginResult(PacketOf(Bytes({0xC1, 0x05, 0xF1, 0x01, 0x01})));
     const auto other = ReadLoginResult(PacketOf(Bytes({0xC1, 0x05, 0xF1, 0x01, 0x00})));
+    const auto three = ReadLoginResult(PacketOf(Bytes({0xC1, 0x05, 0xF1, 0x01, 0x03})));
 
     ASSERT_TRUE(accepted.HasValue());
     EXPECT_EQ(accepted.Value(), LoginAccepted);
     ASSERT_TRUE(other.HasValue());
     EXPECT_EQ(other.Value(), 0);
+    ASSERT_TRUE(three.HasValue());
+    EXPECT_EQ(three.Value(), 3);
+}
+
+// Con un byte de más detrás del resultado se lee igual: lo que sobra no se mira (Q-C42).
+TEST(LoginTest, ALoginResultWithTrailingBytesIsReadTheSame)
+{
+    const auto result = ReadLoginResult(PacketOf(Bytes({0xC1, 0x06, 0xF1, 0x01, 0x01, 0x00})));
+
+    ASSERT_TRUE(result.HasValue());
+    EXPECT_EQ(result.Value(), LoginAccepted);
 }
 
 // Sin el resultado es TooShort, y otro F1 u otro opcode, WrongPacket.

@@ -3,9 +3,11 @@
 // (CL2.5).
 //
 // Lleva el tick del cliente y los WORD de personaje+0x4C y +0x58, que son la velocidad de ataque y
-// la de magia: el GameServer lee los de +8 y +10 del paquete y los compara con las suyas, y si no
-// coinciden anota "velocidad de ataque editada" (0x415291..0x4152b0 y el log de 0x41532b, en
-// CGLiveClient del research del servidor). Antes de mandarlas, el original les resta 20 o 25 según
+// la de magia: el GameServer original lee los de +8 y +10 del paquete y los compara con las suyas
+// (0x415291 y 0x4152ac, en CGLiveClient del research del servidor) y, si no pasan, anota
+// "velocidad de ataque editada" (el log de 0x41532b); si compara con != o con un < con o sin signo
+// no está decidido. El GS del repack tiene esa comparación anulada: 0x41529b y 0x4152b6 saltan
+// siempre al else (repack_patches.tsv). Antes de mandarlas, el original les resta 20 o 25 según
 // dos bits del personaje (0x4bee60 y el WM_TIMER de 0x4af4e0).
 
 #pragma once

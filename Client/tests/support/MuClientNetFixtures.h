@@ -1,7 +1,8 @@
-// Los fixtures del envío de mu-client (tests/net/net_send_fixtures.h, en client-research/ del repo
-// de research, generados por tests/net/fixtures/gen_net_send_fixtures.py): el aviso F1 03, el login
-// F1 01 y el keepalive 0E, en claro con su XOR32 y cifrados como C3 con la clave identidad
-// (support/SimpleModulusKeys.h). Están armados con credenciales y datos sintéticos, no con el cable.
+// Los fixtures del envío de mu-client (tests/net/net_send_fixtures.h, en client-research/ del
+// repo de research, generados por tests/net/fixtures/gen_net_send_fixtures.py): el aviso F1 03, el
+// login F1 01 y el keepalive 0E, en claro con su XOR32 y cifrados como C3 con la clave identidad
+// (support/SimpleModulusKeys.h). Están armados con credenciales y datos sintéticos, no con el
+// cable.
 //
 // Los dos que cifran un C2 (FIX_C2_PLAIN y FIX_C4_SERIAL2) no están: mu-client cifra el opcode de
 // un C2 y el binario no, así que se armaron de nuevo (tests/vectors/net/).

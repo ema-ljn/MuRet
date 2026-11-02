@@ -8,7 +8,6 @@
 #include <cstddef>
 #include <optional>
 #include <span>
-#include <utility>
 
 namespace Client::Protocol::Connection
 {
@@ -23,14 +22,12 @@ constexpr PacketKind AddressKind{Network::PacketType::C1, ServerListOpcode, Serv
 // Lo que mide una entrada de la lista: el código, la carga y un byte que 0x4c1860 no lee.
 constexpr std::size_t ServerEntrySize = 4;
 
-// Lo que mide el host en la respuesta, con su \0 si entra.
+// Lo que mide el host en la respuesta: el puerto va en pkt[20].
 constexpr std::size_t HostFieldSize = 16;
 
-// Lo que siempre entra en un C1: armarlo no falla.
-Network::Packet Built(const Network::PacketWriter& writer)
-{
-    return writer.Finish().Value();
-}
+// Lo que se lee del host: los primeros 15 bytes. El dispatcher (0x4e3341) copia pkt[4..18] a un
+// buffer de 16 bytes en 0, y el último queda como \0: pkt[19] no se lee nunca.
+constexpr std::size_t HostReadSize = HostFieldSize - 1;
 
 // Una entrada: el código y la carga, de los 4 bytes que mide. Con 4 bytes, las dos lecturas entran.
 ServerEntry ReadEntry(std::span<const std::byte, ServerEntrySize> entry)
@@ -45,7 +42,7 @@ ServerEntry ReadEntry(std::span<const std::byte, ServerEntrySize> entry)
 
 Outgoing WriteServerListRequest()
 {
-    return {Built(Network::PacketWriter::C1(ServerListOpcode).PutU8(ServerListRequestSubcode)), Delivery::Clear};
+    return ClearC1(Network::PacketWriter::C1(ServerListOpcode).PutU8(ServerListRequestSubcode));
 }
 
 Core::Expected<std::vector<ServerEntry>, ProtocolError> ReadServerList(const Network::Packet& packet)
@@ -74,8 +71,7 @@ Core::Expected<std::vector<ServerEntry>, ProtocolError> ReadServerList(const Net
 
 Outgoing WriteServerSelect(std::uint16_t code)
 {
-    return {Built(Network::PacketWriter::C1(ServerListOpcode).PutU8(ServerSelectSubcode).PutU16Le(code)),
-            Delivery::Clear};
+    return ClearC1(Network::PacketWriter::C1(ServerListOpcode).PutU8(ServerSelectSubcode).PutU16Le(code));
 }
 
 Core::Expected<ServerAddress, ProtocolError> ReadServerAddress(const Network::Packet& packet)
@@ -92,7 +88,7 @@ Core::Expected<ServerAddress, ProtocolError> ReadServerAddress(const Network::Pa
     {
         return Core::Unexpected(ProtocolError::TooShort);
     }
-    return ServerAddress{TextField(*host), *port};
+    return ServerAddress{TextField(host->first(HostReadSize)), *port};
 }
 
 } // namespace Client::Protocol::Connection

@@ -176,9 +176,10 @@ TEST(ServerListTest, ReadsTheAddressOfTheWire)
     EXPECT_EQ(address.Value().port, 55901);
 }
 
-// Q-C07: un host de 16 bytes no tiene \0, y son los 16, sin seguir en el puerto. Con uno en el
-// medio, llega hasta ahí.
-TEST(ServerListTest, TheHostIsTheFieldUpToItsFirstNul)
+// Del host se leen los primeros 15 bytes, hasta el primer \0: uno de 16 sin \0 queda en 15, porque
+// el original (0x4e3341) copia pkt[4..18] a un buffer de 16 bytes en 0 y pkt[19] no lo lee; no se
+// sigue en el puerto (Q-C07). Con un \0 en el medio, llega hasta ahí.
+TEST(ServerListTest, TheHostIsItsFirst15BytesUpToTheFirstNul)
 {
     const auto full =
         ReadServerAddress(PacketOf(Bytes({0xC1, 0x16, 0xF4, 0x03, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67,
@@ -188,7 +189,7 @@ TEST(ServerListTest, TheHostIsTheFieldUpToItsFirstNul)
                                           0x31, 0x00, 0x7A, 0x7A, 0x7A, 0x7A, 0x7A, 0x7A, 0x7A, 0x01, 0x00})));
 
     ASSERT_TRUE(full.HasValue());
-    EXPECT_EQ(full.Value().host, "abcdefghijklmnop");
+    EXPECT_EQ(full.Value().host, "abcdefghijklmno");
     EXPECT_EQ(full.Value().port, 1);
     ASSERT_TRUE(cut.HasValue());
     EXPECT_EQ(cut.Value().host, "10.0.0.1");
@@ -207,6 +208,15 @@ TEST(ServerListTest, AnAddressWithoutItsPortIsTooShort)
 
     EXPECT_EQ(ErrorOf(ReadServerAddress(PacketOf(address))), ProtocolError::TooShort);
     EXPECT_TRUE(ReadServerAddress(PacketOf(longer)).HasValue());
+}
+
+// Un host cortado antes de sus 16 bytes es TooShort, aunque detrás queden dos bytes que podrían ser
+// un puerto; sin host, también.
+TEST(ServerListTest, AnAddressWithAShortHostIsTooShort)
+{
+    EXPECT_EQ(ErrorOf(ReadServerAddress(PacketOf(Bytes({0xC1, 0x08, 0xF4, 0x03, 0x31, 0x2E, 0x5D, 0xDA})))),
+              ProtocolError::TooShort);
+    EXPECT_EQ(ErrorOf(ReadServerAddress(PacketOf(Bytes({0xC1, 0x04, 0xF4, 0x03})))), ProtocolError::TooShort);
 }
 
 // La respuesta es un C1 F4 03: un C1 F4 02 o un F1 03 no lo son.

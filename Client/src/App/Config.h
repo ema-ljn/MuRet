@@ -25,6 +25,7 @@
 //   Height = 480
 //   VSync = on                 ; on, adaptive u off
 //   Pacing = decoupled         ; decoupled o faithful
+//   MaxFps = 0                 ; tope de FPS del modo normal, de 0 (sin tope) a MaxFpsLimit
 //   [Log]
 //   Path = muret-client.log
 //
@@ -71,6 +72,9 @@ struct ClientConfig
     std::optional<VSyncMode> vsync;
     // [Video] Pacing.
     PacingMode pacing = PacingMode::Decoupled;
+    // [Video] MaxFps, de 0 a MaxFpsLimit: el tope de FPS del modo normal (el FpsCap de MuMain).
+    // 0, el valor por defecto, es sin tope, como MuMain: con VSync, el retrazo ya lo pone.
+    int maxFps = 0;
     // [Log] Path. Vacío: muret-client.log junto al ejecutable.
     std::optional<std::filesystem::path> logPath;
 };
@@ -84,9 +88,10 @@ Core::Expected<ClientConfig, ConfigError> ParseConfig(std::string_view text);
 //      si ese no está, los valores por defecto (así Main --frames 60 anda sin nada);
 //   2. ParseConfig: un error nombra el archivo y la línea. Una ruta relativa de la config se
 //      toma desde exeFolder, no desde la carpeta actual;
-//   3. la línea de comandos pisa la config (/u /p, --data, --pacing, --vsync);
+//   3. la línea de comandos pisa la config (/u /p, --data, --pacing, --vsync, --max-fps);
 //   4. en el modo fiel, un VSync que no es off es error (nombra Pacing y VSync), y sin VSync
-//      queda en off; en el normal, sin VSync queda en on;
+//      queda en off; un MaxFps que no es 0, también (nombra Pacing y MaxFps): el modo fiel
+//      espera como el original. En el normal, sin VSync queda en on;
 //   5. la carpeta de datos, solo si se dio, tiene que existir.
 // El host vacío no es error acá: lo pide la CL4 al conectarse.
 Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& exeFolder,

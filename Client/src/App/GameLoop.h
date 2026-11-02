@@ -15,8 +15,10 @@
 // inyectado, así que el mismo bucle corre con el de SDL en Main y con uno falso en los tests.
 //
 // En Decoupled, el frame se mide de un Now() al siguiente, al empezar RunFrame, y va a un
-// FixedStep: el dibujo se interpola con su alfa. El primer frame solo fija el inicio. En Faithful,
-// va a un FaithfulPacer: BeginFrame, esos pasos, StartMeasure, el dibujo con alfa 0 y EndFrame.
+// FixedStep: el dibujo se interpola con su alfa. El primer frame solo fija el inicio. Con un tope
+// de FPS (maxFps, el FpsCap de MuMain), después de dibujar duerme lo que le falta al frame para
+// durar 1 s / maxFps desde su Now(). En Faithful, va a un FaithfulPacer: BeginFrame, esos pasos,
+// StartMeasure, el dibujo con alfa 0 y EndFrame; el tope no se usa (Resolve no lo deja).
 namespace Client::App
 {
 // Lo que llevó el bucle hasta ahora, para --stats y para los tests.
@@ -35,7 +37,8 @@ struct FrameStats
 class GameLoop
 {
 public:
-    GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode);
+    // maxFps: el tope de FPS del modo normal, de 1 a MaxFpsLimit, o 0 (sin tope).
+    GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode, int maxFps = 0);
     // Un frame: los pasos que tocan y el dibujo si `state.minimized` es falso. Minimizada, en
     // Decoupled duerme hasta el próximo paso en vez de girar; en Faithful, la espera corre siempre.
     // Cada paso recibe `input`, y después del primero GameLoop le llama a ConsumeEdges: un
@@ -53,6 +56,8 @@ private:
     Core::IClock& m_clock;
     ILoopClient& m_client;
     PacingMode m_mode;
+    // 1 s / maxFps, o 0 sin tope.
+    Core::Duration m_minFrameTime{};
     FixedStep m_fixedStep;
     FaithfulPacer m_pacer;
     // El Now() del frame anterior; vacío antes del primero.

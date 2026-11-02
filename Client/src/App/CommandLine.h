@@ -18,6 +18,7 @@
 //   Main --frames N       dibuja N frames y sale (para probarlo sin nadie que cierre la ventana)
 //   Main --pacing MODO    decoupled (el de MuRet) o faithful (el ritmo del original), CL3.2
 //   Main --vsync MODO     on, adaptive u off; en el modo fiel solo off, como el original
+//   Main --max-fps N      el tope de FPS del modo normal, de 0 (sin tope) a MaxFpsLimit
 //   Main --stats          imprime los FPS y los pasos por segundo cada 5 s
 //   Main --config RUTA    lee esa config en vez de muret-client.ini junto al ejecutable (CL3.4)
 //   Main --data RUTA      la carpeta de datos, en vez de [Data] Path
@@ -35,6 +36,9 @@ struct CommandLine
     std::optional<PacingMode> pacing;
     // Sin --vsync, vacío: lo decide el modo (CL3.4), On en Decoupled y Off en Faithful.
     std::optional<VSyncMode> vsync;
+    // Sin --max-fps, vacío: lo decide la config, y si no, 0 (sin tope). --max-fps 0 pisa un MaxFps
+    // de la config.
+    std::optional<int> maxFps;
     bool stats = false;
     // /u<host> /p<puerto>, con o sin connect adelante. Vacío si no se dio ninguno.
     std::optional<ServerAddress> connect;

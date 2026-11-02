@@ -24,4 +24,8 @@ inline constexpr Core::Duration FaithfulTick = std::chrono::microseconds{15'625}
 inline constexpr std::int32_t FaithfulWaitMs = 40;
 // El valor inicial del acumulador del original: la .data de 0x6d5ee4 vale 0x28 (CL3.R).
 inline constexpr std::int32_t FaithfulInitialAccumulatorMs = 40;
+// El tope de FPS más alto que aceptan [Video] MaxFps y --max-fps (0 es sin tope). No sale del
+// original, que no tiene tope porque espera siempre 46,875 ms: con más de 1000, un frame duraría
+// menos de 1 ms y el tope ya no frenaría nada que se note.
+inline constexpr int MaxFpsLimit = 1000;
 } // namespace Client::App

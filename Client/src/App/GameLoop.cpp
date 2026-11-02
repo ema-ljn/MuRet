@@ -6,8 +6,9 @@
 
 namespace Client::App
 {
-GameLoop::GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode)
-    : m_clock(clock), m_client(client), m_mode(mode)
+GameLoop::GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode, int maxFps)
+    : m_clock(clock), m_client(client), m_mode(mode),
+      m_minFrameTime(maxFps > 0 ? Core::Duration{std::chrono::seconds{1}} / maxFps : Core::Duration::zero())
 {
 }
 
@@ -55,6 +56,18 @@ int GameLoop::RunDecoupled(const WindowState& state, Input::InputState& input)
     else
     {
         m_client.Render(m_lastAlpha);
+        // El tope de FPS: duerme lo que le falta al frame para durar m_minFrameTime desde `now`,
+        // así el próximo RunFrame mide eso. Con VSync, el swap de Render ya esperó el retrazo, y
+        // el tope solo frena si es más bajo que el refresco. Si el reloj volvió (solo el
+        // FakeClock), no duerme.
+        if (m_minFrameTime > Core::Duration::zero())
+        {
+            const Core::Duration elapsed = m_clock.Now() - now;
+            if (elapsed >= Core::Duration::zero() && elapsed < m_minFrameTime)
+            {
+                m_clock.SleepFor(m_minFrameTime - elapsed);
+            }
+        }
     }
     return steps;
 }

@@ -1,5 +1,7 @@
 #include "App/Config.h"
 
+#include "App/LoopTiming.h"
+
 #include <gtest/gtest.h>
 
 #include <filesystem>
@@ -18,6 +20,7 @@ namespace
 using Client::App::CommandLine;
 using Client::App::ConfigError;
 using Client::App::DefaultConnectPort;
+using Client::App::MaxFpsLimit;
 using Client::App::MaxHostBytes;
 using Client::App::MaxWindowSize;
 using Client::App::PacingMode;
@@ -623,5 +626,71 @@ TEST(ConfigTest, NoHostIsNotAnError)
     ASSERT_TRUE(config.HasValue()) << config.Error();
     ASSERT_TRUE(config.Value().server.has_value());
     EXPECT_TRUE(config.Value().server->host.empty());
+}
+
+// [Video] MaxFps, el tope de FPS del modo normal: de 0 (sin tope, el valor por defecto) a 1000.
+TEST(ConfigTest, ReadsMaxFps)
+{
+    const auto defaults = ParseConfig("");
+    ASSERT_TRUE(defaults.HasValue());
+    EXPECT_EQ(defaults.Value().maxFps, 0);
+    for (const int maxFps : {0, 1, 144, MaxFpsLimit})
+    {
+        const auto config = ParseConfig("[Video]\nMaxFps = " + std::to_string(maxFps) + "\n");
+        ASSERT_TRUE(config.HasValue()) << maxFps;
+        EXPECT_EQ(config.Value().maxFps, maxFps);
+    }
+}
+
+TEST(ConfigTest, RejectsAMaxFpsOutOfRange)
+{
+    EXPECT_EQ(ErrorOf("[Video]\nMaxFps = 1001\n").message, "[Video] MaxFps: va de 0 a 1000");
+    EXPECT_EQ(ErrorOf("[Video]\nMaxFps = 99999999999\n").message, "[Video] MaxFps: va de 0 a 1000");
+    EXPECT_EQ(ErrorOf("[Video]\nMaxFps = -1\n").message, "[Video] MaxFps: tiene que ser un número");
+    EXPECT_EQ(ErrorOf("[Video]\nMaxFps = 60fps\n").message, "[Video] MaxFps: tiene que ser un número");
+}
+
+// --max-fps pisa la config, también con 0 (sin tope).
+TEST(ConfigTest, TheCommandLineMaxFpsWins)
+{
+    const TempFolder exeFolder;
+    exeFolder.Write("[Video]\nMaxFps = 144\n");
+    const auto fromConfig = Resolve(exeFolder.Path(), CommandLine{});
+    ASSERT_TRUE(fromConfig.HasValue()) << fromConfig.Error();
+    EXPECT_EQ(fromConfig.Value().maxFps, 144);
+
+    for (const int maxFps : {60, 0})
+    {
+        CommandLine commandLine;
+        commandLine.maxFps = maxFps;
+        const auto resolved = Resolve(exeFolder.Path(), commandLine);
+        ASSERT_TRUE(resolved.HasValue()) << resolved.Error();
+        EXPECT_EQ(resolved.Value().maxFps, maxFps);
+    }
+}
+
+// El modo fiel espera como el original (46,875 ms por frame): un tope de FPS es error y nombra
+// las dos opciones. MaxFps = 0 sí va.
+TEST(ConfigTest, FaithfulWithAnFpsCapIsAnError)
+{
+    const TempFolder exeFolder;
+    exeFolder.Write("[Video]\nPacing = faithful\nMaxFps = 30\n");
+    const auto fromConfig = Resolve(exeFolder.Path(), CommandLine{});
+    ASSERT_FALSE(fromConfig.HasValue());
+    EXPECT_NE(fromConfig.Error().find("Pacing"), std::string::npos) << fromConfig.Error();
+    EXPECT_NE(fromConfig.Error().find("MaxFps"), std::string::npos) << fromConfig.Error();
+
+    const TempFolder empty;
+    CommandLine both;
+    both.pacing = PacingMode::Faithful;
+    both.maxFps = 144;
+    const auto fromCommandLine = Resolve(empty.Path(), both);
+    ASSERT_FALSE(fromCommandLine.HasValue());
+    EXPECT_NE(fromCommandLine.Error().find("--max-fps"), std::string::npos) << fromCommandLine.Error();
+
+    both.maxFps = 0;
+    const auto withoutCap = Resolve(empty.Path(), both);
+    ASSERT_TRUE(withoutCap.HasValue()) << withoutCap.Error();
+    EXPECT_EQ(withoutCap.Value().maxFps, 0);
 }
 } // namespace

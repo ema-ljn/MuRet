@@ -827,6 +827,20 @@ dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
   pasos por segundo, y `Main --vsync off --stats` corre a cientos de FPS con 25 pasos por segundo.
   Anotarlo en el README.
 
+  Del cierre de las notas de la CL3: sin VSync y sin tope, el modo normal no dormía y usaba un
+  núcleo entero. Ahora hay un tope opcional, `[Video] MaxFps` y `--max-fps N` (de 0, sin tope y
+  por defecto, a `MaxFpsLimit`, 1000), como el `FpsCap` de MuMain (`GameConfig.h`, -1 y sin tope
+  por defecto, y solo con VSync apagado; el de MuRet vale también con VSync, donde solo frena si es
+  más bajo que el refresco):
+  después de dibujar, `GameLoop` duerme lo que le falta al frame para durar 1 s / N desde su
+  `Now()`. Minimizada sigue durmiendo hasta el próximo paso, y en el modo fiel un tope es error
+  en `Resolve`, como el VSync. Tests: `GameLoopTest.AnFpsCapSleepsWhatIsLeftOfTheFrame`,
+  `TheFpsCapCountsTheStepsToo`, `AFrameLongerThanTheFpsCapDoesNotSleep`,
+  `AMinimizedWindowIgnoresTheFpsCap` y `AClockThatGoesBackDuringTheFrameDoesNotSleep`;
+  `ConfigTest.ReadsMaxFps`, `RejectsAMaxFpsOutOfRange`, `TheCommandLineMaxFpsWins` y
+  `FaithfulWithAnFpsCapIsAnError`; `CommandLineTest.ParsesMaxFps` y `RejectsABadMaxFps`. En Xvfb,
+  `Main --frames 100 --vsync off --max-fps 50` corre 49 pasos: 2 s.
+
   En Linux, con Xvfb y llvmpipe (2026-11-02, lo corrió Claude): `--pacing faithful --stats` dio
   21,38 y 21,33 FPS con 24,98 y 24,92 pasos por segundo, y `--frames 60 --pacing faithful`, 70
   pasos en 3 s. `--vsync off --stats` dio 2.148 y 2.629 FPS con 24,80 y 25,00 pasos por segundo (el

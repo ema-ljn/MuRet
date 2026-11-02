@@ -293,4 +293,106 @@ TEST(GameLoopTest, APressInAFrameWithoutStepsWaitsForTheNextStep)
     EXPECT_EQ(client.sawPress, (std::vector<bool>{true, false}));
     EXPECT_FALSE(input.IsDown(Key::Space));
 }
+
+// El tope de FPS (MaxFps, el FpsCap de MuMain): con 100, un frame que dibuja en 3 ms duerme los
+// 7 que le faltan para durar 10 ms desde su Now(). En 1 s simulado corren 100 frames y la lógica
+// sigue a 25 pasos.
+TEST(GameLoopTest, AnFpsCapSleepsWhatIsLeftOfTheFrame)
+{
+    FakeClock clock;
+    RecordingClient client{clock};
+    GameLoop loop{clock, client, PacingMode::Decoupled, 100};
+    InputState input;
+    client.renderCost = 3ms;
+
+    // El primer frame fija el inicio; los 100 siguientes miden 10 ms cada uno.
+    for (int frame = 0; frame <= 100; ++frame)
+    {
+        loop.RunFrame(WindowState{}, input);
+    }
+
+    EXPECT_EQ(client.steps, 25u);
+    EXPECT_EQ(client.alphas.size(), 101u);
+    const auto sleeps = clock.Sleeps();
+    ASSERT_EQ(sleeps.size(), 101u);
+    EXPECT_TRUE(std::ranges::all_of(sleeps, [](Duration sleep) { return sleep == 7ms; }));
+    EXPECT_EQ(clock.Now(), 1010ms);
+}
+
+// Lo que tardan los pasos también es parte del frame: con 50 (20 ms) y pasos de 5 ms, el frame
+// que corre un paso duerme 15 ms.
+TEST(GameLoopTest, TheFpsCapCountsTheStepsToo)
+{
+    FakeClock clock;
+    RecordingClient client{clock};
+    GameLoop loop{clock, client, PacingMode::Decoupled, 50};
+    InputState input;
+    client.stepCost = 5ms;
+
+    EXPECT_EQ(loop.RunFrame(WindowState{}, input), 0);
+    EXPECT_EQ(loop.RunFrame(WindowState{}, input), 0);
+    EXPECT_EQ(loop.RunFrame(WindowState{}, input), 1);
+
+    const auto sleeps = clock.Sleeps();
+    ASSERT_EQ(sleeps.size(), 3u);
+    EXPECT_EQ(sleeps[0], 20ms);
+    EXPECT_EQ(sleeps[1], 20ms);
+    EXPECT_EQ(sleeps[2], 15ms);
+}
+
+// Un frame que ya tardó más que el tope no duerme, y sin tope (0, el valor por defecto) tampoco.
+TEST(GameLoopTest, AFrameLongerThanTheFpsCapDoesNotSleep)
+{
+    for (const int maxFps : {100, 0})
+    {
+        FakeClock clock;
+        RecordingClient client{clock};
+        GameLoop loop{clock, client, PacingMode::Decoupled, maxFps};
+        InputState input;
+        client.renderCost = maxFps == 0 ? 3ms : 15ms;
+
+        for (int frame = 0; frame < 10; ++frame)
+        {
+            loop.RunFrame(WindowState{}, input);
+        }
+
+        EXPECT_TRUE(clock.Sleeps().empty()) << "maxFps " << maxFps;
+    }
+}
+
+// Minimizada, el tope no se usa: duerme lo que falta para el próximo paso, como sin tope.
+TEST(GameLoopTest, AMinimizedWindowIgnoresTheFpsCap)
+{
+    FakeClock clock;
+    RecordingClient client{clock};
+    GameLoop loop{clock, client, PacingMode::Decoupled, 100};
+    InputState input;
+    WindowState minimized;
+    minimized.minimized = true;
+
+    for (int frame = 0; frame < 26; ++frame)
+    {
+        loop.RunFrame(minimized, input);
+    }
+
+    EXPECT_EQ(client.steps, 25u);
+    const auto sleeps = clock.Sleeps();
+    ASSERT_EQ(sleeps.size(), 26u);
+    EXPECT_TRUE(std::ranges::all_of(sleeps, [](Duration sleep) { return sleep == 40ms; }));
+}
+
+// Si el reloj vuelve durante el frame (solo el FakeClock), el tope no duerme: la resta daría más
+// que un frame entero.
+TEST(GameLoopTest, AClockThatGoesBackDuringTheFrameDoesNotSleep)
+{
+    FakeClock clock;
+    RecordingClient client{clock};
+    GameLoop loop{clock, client, PacingMode::Decoupled, 100};
+    InputState input;
+    client.renderCost = -5ms;
+
+    loop.RunFrame(WindowState{}, input);
+
+    EXPECT_TRUE(clock.Sleeps().empty());
+}
 } // namespace

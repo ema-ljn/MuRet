@@ -283,7 +283,7 @@ int main(int argc, char* argv[])
 
     Platform::SdlClock clock;
     TestScene scene{window};
-    App::GameLoop loop{clock, scene, pacing};
+    App::GameLoop loop{clock, scene, pacing, config.maxFps};
     const App::FrameStats stats = RunLoop(window, clock, loop, commandLine.Value(), log);
     std::printf("frames: %llu, pasos: %llu\n", static_cast<unsigned long long>(stats.frames),
                 static_cast<unsigned long long>(stats.steps));

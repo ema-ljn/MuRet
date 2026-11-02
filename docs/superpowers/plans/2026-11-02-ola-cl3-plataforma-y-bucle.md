@@ -469,8 +469,8 @@ contexto se destruye primero), como la CL0.3.
 
 - [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de los tests, la tabla de
   `Apply`: para cada evento, qué campo cambia, y qué pasa con un `Restored` sin `Minimized` antes
-  (nada: queda igual) y con un `PixelSizeChanged` de 0 × 0 (en Windows llega al minimizar: no se
-  toca el tamaño).
+  (nada: queda igual) y con un `PixelSizeChanged` de 0 × 0 (no se toca el tamaño; SDL 3.4 no lo
+  manda al minimizar en Windows, `SDL_windowsevents.c`, pero el chequeo no depende de eso).
 
   | Evento | Campo | Queda |
   | --- | --- | --- |

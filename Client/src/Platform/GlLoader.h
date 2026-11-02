@@ -2,7 +2,18 @@
 
 #include "Core/Expected.h"
 
+// SDL_opengl.h incluye <windows.h> (y sus macros near, far, ERROR) solo si APIENTRY no está
+// definido. Se define con el valor de windows.h y se saca después: GL lo usa solo al declarar.
+#if defined(_WIN32) && !defined(APIENTRY)
+#define APIENTRY __stdcall
+#define MURET_GL_LOADER_DEFINED_APIENTRY
+#endif
 #include <SDL3/SDL_opengl.h>
+#ifdef MURET_GL_LOADER_DEFINED_APIENTRY
+#undef APIENTRY
+#undef APIENTRYP
+#undef MURET_GL_LOADER_DEFINED_APIENTRY
+#endif
 
 #include <cstdint>
 #include <string>
@@ -30,8 +41,10 @@ struct GlFunctions
 };
 
 // En Windows, algunos drivers devuelven 1, 2, 3 o -1 en vez de nulo para una función que no
-// tienen, y SDL no los filtra. En GLX pasa lo contrario: cualquier nombre da un puntero no nulo,
-// así que este chequeo no garantiza nada ahí; lo que garantiza es la versión del contexto.
+// tienen (o para una de la 1.1, que wglGetProcAddress no da), y SDL no los filtra: busca en
+// opengl32.dll solo cuando wglGetProcAddress da nulo (SDL_windowsopengl.c, WIN_GL_GetProcAddress).
+// Por eso LoadGlFunctions reintenta ahí. En GLX pasa lo contrario: cualquier nombre da un puntero
+// no nulo, así que este chequeo no garantiza nada ahí; lo que garantiza es la versión del contexto.
 [[nodiscard]] bool IsValidProcAddress(std::uintptr_t address);
 
 // El driver puede dar un contexto más nuevo que el pedido (Mesa da 4.5 core), nunca más viejo:

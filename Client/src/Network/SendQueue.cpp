@@ -52,7 +52,7 @@ std::size_t SendQueue::Pending() const
     return m_end - m_sent;
 }
 
-SocketError SendQueue::LastSocketError() const
+std::optional<SocketError> SendQueue::LastSocketError() const
 {
     return m_lastSocketError;
 }

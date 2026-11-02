@@ -1,7 +1,6 @@
 #include "support/FakeSocket.h"
 
 #include <algorithm>
-#include <iterator>
 #include <string>
 
 namespace Client::Tests
@@ -11,11 +10,17 @@ using Network::SocketError;
 
 Core::Expected<ConnectProgress, SocketError> FakeSocket::StartConnect(std::string_view host, std::uint16_t port)
 {
-    if (m_state != State::Idle)
+    if (m_open)
     {
         Close();
     }
     connects.push_back(App::ServerAddress{.host = std::string(host), .port = port});
+    // Como en SystemSocket, un nombre que no resuelve no llega a crear el socket.
+    if (connectResult == SocketError::ResolveFailed)
+    {
+        return Finish();
+    }
+    m_open = true;
     m_state = State::Connecting;
     m_pollsLeft = pollsUntilConnected;
     if (m_pollsLeft > 0)
@@ -43,7 +48,7 @@ Core::Expected<ConnectProgress, SocketError> FakeSocket::PollConnect()
     case State::Failed:
         break;
     }
-    return Core::Unexpected(connectResult.value_or(SocketError::Failed));
+    return Core::Unexpected(m_failure.value_or(SocketError::Failed));
 }
 
 Core::Expected<std::size_t, SocketError> FakeSocket::Receive(std::span<std::byte> buffer)
@@ -91,8 +96,13 @@ Core::Expected<std::size_t, SocketError> FakeSocket::Send(std::span<const std::b
     std::size_t taken = bytes.size();
     if (!sendLimits.empty())
     {
-        taken = std::min(taken, sendLimits.front().value_or(0));
+        const SendStep step = sendLimits.front();
         sendLimits.pop_front();
+        if (step.error)
+        {
+            return Core::Unexpected(*step.error);
+        }
+        taken = std::min(taken, step.taken);
     }
     sent.insert(sent.end(), bytes.begin(), bytes.begin() + static_cast<std::ptrdiff_t>(taken));
     return taken;
@@ -101,12 +111,14 @@ Core::Expected<std::size_t, SocketError> FakeSocket::Send(std::span<const std::b
 void FakeSocket::Close()
 {
     ++closes;
+    m_open = false;
     m_state = State::Idle;
+    m_failure.reset();
 }
 
 bool FakeSocket::IsOpen() const
 {
-    return m_state != State::Idle;
+    return m_open;
 }
 
 int FakeSocket::LastSystemError() const
@@ -114,12 +126,13 @@ int FakeSocket::LastSystemError() const
     return systemError;
 }
 
-// El connect termina como dice el guion.
+// El connect termina como dice el guion, y el resultado queda guardado.
 Core::Expected<ConnectProgress, SocketError> FakeSocket::Finish()
 {
     if (connectResult)
     {
         m_state = State::Failed;
+        m_failure = *connectResult;
         return Core::Unexpected(*connectResult);
     }
     m_state = State::Connected;

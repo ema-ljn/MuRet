@@ -250,32 +250,62 @@ Del C++: RAII sobre un descriptor del sistema (el destructor cierra, se mueve y 
   y el ejecutable `LabCl40Tests` con `gtest_discover_tests(... TEST_PREFIX "LabCl40.")`, como
   `LabCl30Tests`), `labs/README.md`
 
-- [ ] **Paso 1 (Claude):** la guía, justo antes de empezar.
-- [ ] **Paso 2 (Emanuel, `TODO(human)`):** `Labs::LabSocket`, RAII: uno movido queda vacío, el
-  destructor cierra, y `SetNonBlocking`. Primero los tests: un socket movido no cierra el
-  descriptor que se llevó el otro; `bind` a `127.0.0.1:0` y `getsockname` dan un puerto distinto
-  de 0.
-- [ ] **Paso 3 (Emanuel):** `Labs::LoopbackPair`: un listener en `127.0.0.1:0` y un cliente que
-  conecta sin bloquear. Tests: el `connect` vuelve enseguida (en curso o ya conectado); después del
-  `accept` el cliente queda escribible y `SO_ERROR` da 0; un `recv` sin nada da "probá más tarde";
-  5 bytes mandados de un lado llegan los 5 del otro; cerrar un lado hace que el otro lea 0.
-- [ ] **Paso 4 (Emanuel):** un puerto cerrado (un listener que se abre, se mira su puerto y se
-  cierra): el `connect` termina con `ECONNREFUSED` o `WSAECONNREFUSED` en `SO_ERROR`. En Windows
-  puede tardar unos 2 s: el test espera hasta 5 s reales.
-- [ ] **Paso 5 (Emanuel, jefe, Q-C11):** el drenaje de `0x4e87b0` como está en el decompilado,
-  contra una cola con cursor, los dos sobre un `send` falso que acepta lo que dice un guion. Con un
-  buffer `00 01 02 … 09` y el guion `{2, 2, -1}` (el -1 es `WSAEWOULDBLOCK`) y después "todo", el
-  original manda `00 01 02 03` en la primera vuelta y `00 01 02 03 04 05` en la segunda: al cable
-  van `00 01 02 03 00 01 02 03 04 05`, con `00..03` repetidos y `06..09` perdidos (*análisis* del
-  decompilado: la segunda llamada pide `8 - 2 = 6` en vez de 8, y la tercera vuelve sin correr el
-  buffer). La cola con cursor manda `00..09` una vez. El test dice los dos.
-- [ ] **Paso 6 (Emanuel; lo anota en `labs/README.md`):** comparar un socket por frame con un hilo
-  por conexión y con IOCP o epoll (qué gana cada uno y con cuántas conexiones), y `select` contra
-  `poll` y `WSAPoll` para saber si un `connect` terminó.
-- [ ] **Paso 7:** verificar:
+- [x] **Paso 1 (Claude):** la guía, justo antes de empezar.
+- [x] **Paso 2 (Emanuel, `TODO(human)`; lo resolvió Claude):** `Labs::LabSocket`, RAII: uno movido
+  queda vacío, el destructor cierra, y `SetNonBlocking`. Primero los tests: un socket movido no
+  cierra el descriptor que se llevó el otro; `bind` a `127.0.0.1:0` y `getsockname` dan un puerto
+  distinto de 0.
+- [x] **Paso 3 (Emanuel; lo resolvió Claude):** `Labs::LoopbackPair`: un listener en `127.0.0.1:0` y
+  un cliente que conecta sin bloquear. Tests: el `connect` vuelve enseguida (en curso o ya
+  conectado); después del `accept` el cliente queda escribible y `SO_ERROR` da 0; un `recv` sin nada
+  da "probá más tarde"; 5 bytes mandados de un lado llegan los 5 del otro; cerrar un lado hace que
+  el otro lea 0.
+- [x] **Paso 4 (Emanuel; lo resolvió Claude):** un puerto cerrado (un listener que se abre, se mira
+  su puerto y se cierra): el `connect` termina con `ECONNREFUSED` o `WSAECONNREFUSED` en `SO_ERROR`.
+  En Windows puede tardar unos 2 s: el test espera hasta 5 s reales.
+- [x] **Paso 5 (Emanuel, jefe, Q-C11; lo resolvió Claude):** el drenaje de `0x4e87b0` como está en
+  el decompilado, contra una cola con cursor, los dos sobre un `send` falso que acepta lo que dice
+  un guion. Con un buffer `00 01 02 … 09` y el guion `{2, 2, -1}` (el -1 es `WSAEWOULDBLOCK`) y
+  después "todo", el original manda `00 01 02 03` en la primera vuelta y `00 01 02 03 04 05` en la
+  segunda: al cable van `00 01 02 03 00 01 02 03 04 05`, con `00..03` repetidos y `06..09` perdidos
+  (*análisis* del decompilado: la segunda llamada pide `8 - 2 = 6` en vez de 8, y la tercera vuelve
+  sin correr el buffer). La cola con cursor manda `00..09` una vez. El test dice los dos.
+- [x] **Paso 6 (Emanuel; lo anota en `labs/README.md`; lo resolvió Claude):** comparar un socket por
+  frame con un hilo por conexión y con IOCP o epoll (qué gana cada uno y con cuántas conexiones), y
+  `select` contra `poll` y `WSAPoll` para saber si un `connect` terminó.
+- [x] **Paso 7:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "LabCl40"
   ```
+
+Hecho así: 28 tests, con los nombres de los pasos 2 a 5 y algunos más, en rojo contra el linker
+antes de las implementaciones. El lab suma dos archivos a la lista: `test_lab_socket.cpp`, los
+tests del paso 2 aparte de los del par, y `TestSupport.h`, con el `PrintTo` de `IoStatus`, la
+espera con tope de 5 s reales y el `send` que sigue un guion. Todos los `#ifdef _WIN32` están en
+`LabSocket.cpp`: `poll` con `POLLOUT` en Linux y `select` con escritura y excepciones en Windows,
+como dice "Lo que más puede morder", y `MSG_NOSIGNAL` en cada `send` de Linux. Lo que salió en
+Linux (GCC 13.3), con un programa aparte que usa la biblioteca del lab: el `connect` a `127.0.0.1`
+dio `EINPROGRESS` en 200 de 200, y antes del `accept` el cliente ya estaba conectado; el puerto
+cerrado dio `ECONNREFUSED` en el primer `CheckConnect`, a los pocos µs, y **el segundo dio
+conectado**, porque leer `SO_ERROR` lo borra (el riesgo que el plan ya anotaba, ahora medido); y
+un `recv` con buffer vacío da 0 si hay datos esperando, que se leería como un cierre, así que
+`Receive` no lo llama (`AnEmptyReceiveIsNotAClose`). Los tests que suma el lab:
+`SendingToAClosedPeerDoesNotKillTheProcess` (sin `MSG_NOSIGNAL`, CTest lo marca `SIGPIPE`),
+`ASendThatDoesNotFitTakesLessThanAsked` (en loopback entran unos 3,7 MiB antes del parcial) y
+`ADrainQueueFlushesIntoTheClient`. El jefe confirmó el paso 5 byte por byte y trajo dos cosas más
+(*análisis* del modelo, sin probar contra Winsock), para la CL4.R y el Q-C11 del 07:
+
+- **basta un parcial**: con `{2, WSAEWOULDBLOCK}` y después todo, al cable van
+  `00 01 00 01 02 03 04 05 06 07`, con `00 01` repetidos y `08 09` perdidos
+  (`OnePartialSendIsEnough`); el 07 dice "varios envíos parciales seguidos";
+- **después de un parcial, el drenaje no termina bien nunca**: lo pendiente llega a 0 solo si el
+  último `send` toma más de lo que pidió. Termina con `WSAEWOULDBLOCK` (y el `FD_WRITE` siguiente
+  repite y pierde) o pidiendo un largo de 0 o negativo: con `{2, 6}`, la tercera llamada pide -6
+  (`TwoPartialSendsInARowAskForANegativeLength`), y con cualquier error que no sea
+  `WSAEWOULDBLOCK`, o con 0, `0x4e87b0` cierra.
+
+Las salidas, las decisiones y las respuestas de las 12 actividades están en el README del lab, y
+la comparación del paso 6, en `labs/README.md`.
 
 ## Sub-ola CL4.R: la conexión del original, en el binario (P-C11, Q-C11)
 

@@ -145,6 +145,17 @@ solo lo lee.
   preguntas y la sección final de la [guía de la CL3.0](ola-cl3.0-el-bucle-de-juego.md), y
   explicar los conceptos de abajo. Próxima: la CL4 (red del cliente), con su
   [plan](../superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md).
+- **CL4.0 (sockets no bloqueantes), resuelta por Claude** el 2026-11-02, como la CL3.0: el
+  `LabSocket` con RAII y todos los `#ifdef _WIN32` en un archivo, el `LoopbackPair` que conecta en
+  `127.0.0.1` sin bloquear y en un solo hilo, y la `DrainQueue`, la cola con cursor. El puerto
+  cerrado mostró que `SO_ERROR` se borra al leerlo: un segundo `CheckConnect` después del rechazo
+  da conectado. El jefe es el drenaje de `FD_WRITE` de `0x4e87b0` (Q-C11): con
+  `{2, 2, WSAEWOULDBLOCK}` repite `00..03` y pierde `06..09`, como dice el plan, y además basta un
+  parcial, y después de uno el drenaje no termina bien nunca. Las respuestas de las 12 actividades
+  están en [`labs/cl4.0-sockets/README.md`](../../labs/cl4.0-sockets/README.md), y la comparación
+  con hilos, IOCP, `select` y `poll`, en [`labs/README.md`](../../labs/README.md). Para cerrarla
+  falta lo tuyo: las preguntas y la sección final de la
+  [guía de la CL4.0](ola-cl4.0-sockets-no-bloqueantes.md).
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 
@@ -220,6 +231,12 @@ sesión, junto con los de repaso más viejo.
 | de dónde sale lo que depende del lugar (la carpeta de datos, el servidor, el video), validado antes de abrir nada (`Resolve`), y un log que se lee en un test (`ILogSink`) | CL3.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un log sin globales, con la salida inyectada (`ILogSink`), un `std::mutex` en cada salida porque SDL loguea desde sus hilos y otro en el `TeeSink` para el orden, un archivo que agrega con un tope de 1 MiB al abrir (`FileSink`), y un RAII que devuelve la salida de SDL antes de que muera el `Log` (`SdlLog`) | CL3.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un limitador de frames con meta absoluta contra un sueño relativo: la deriva de lo que corre entre frames, qué valor toma la meta cuando un frame se pasa (donde terminó, para no ponerse al día ni volver a sumar el hueco), y por qué con VSync no se usa (`SleepRestOfFrame`, el `FpsCap` de MuMain) | CL3.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un socket con RAII sobre el descriptor del sistema: el destructor cierra, se mueve con `std::exchange` y no se copia, con un handle que entra en Windows y en POSIX y el `#ifdef _WIN32` en un solo archivo (`LabSocket`) | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| el `connect` no bloqueante como una máquina de estados (en curso, conectado, rechazado): escribible no quiere decir conectado, y `SO_ERROR`, que dice cómo terminó, se borra al leerlo (`CheckConnect`) | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| "probá más tarde" (`EWOULDBLOCK`, `EAGAIN`, `WSAEWOULDBLOCK`, `EINTR`) contra un error y contra el `recv` en 0, que es el FIN del otro lado; `SIGPIPE` y `MSG_NOSIGNAL`, y un `recv` con buffer vacío que no se llama | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| el `send` que toma menos de lo pedido, y la cola con cursor, de tamaño fijo, que manda el resto sin repetir ni perder (`DrainQueue`) | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| el drenaje de `FD_WRITE` de `0x4e87b0`, que resta dos veces lo mandado y no corre el buffer: con un parcial repite los primeros bytes y pierde los últimos (el jefe, Q-C11), leído en el desensamblado (carril R) | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un socket consultado una vez por frame contra un hilo por conexión o IOCP y epoll, y `select` contra `poll` y `WSAPoll` para saber si un `connect` terminó (la comparación de `labs/README.md`) | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

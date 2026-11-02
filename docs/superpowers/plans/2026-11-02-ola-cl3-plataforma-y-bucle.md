@@ -1296,7 +1296,15 @@ se declara después del `Log` en `main`, así se destruye antes.
     `StderrSinkWritesOneLinePerMessage` (con `std::tmpfile()`), `FileSinkAppendsToThePreviousRun`,
     `FileSinkEmptiesAFileOverTheCap` y `FileSinkKeepsLinesWholeFromTwoThreads` (2 hilos por 1000
     líneas); las rutas de los tests del archivo llevan una "ñ" (`PathText`).
-  - [ ] `SdlLog` en `Platform` y el armado en `main.cpp` (fase 2).
+  - [x] `Platform::SdlLog` (`Client/src/Platform/SdlLog.h/.cpp`), con `LevelOf(SDL_LogPriority)`
+    pública para probar el mapeo (`INVALID` y `COUNT` van a Error) y el callback `noexcept` con un
+    `try/catch` adentro. Test sin ventana, `Client/tests/platform/test_sdl_log.cpp`:
+    `SdlLogTest.MapsEachPriority`, `SdlMessagesReachTheLog` (con `SDL_SetLogPriorities(TRACE)`,
+    porque SDL filtra antes de llamar a la salida, y un mensaje con llaves) y
+    `TheDestructorRestoresTheDefaultOutput`. `SDL_Log` anda sin `SDL_Init`. Se registra con el
+    `tests/platform/CMakeLists.txt` y el `ClientPlatform` de la CL3.1: hasta que esa rama entre,
+    esta no configura sola.
+  - [ ] El armado en `main.cpp` (fase 2b).
 - [ ] **Paso 8:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "CommandLine|Config|Log|Client.Main"

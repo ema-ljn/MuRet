@@ -105,6 +105,22 @@ struct FileCloser
     }
 };
 
+// Un archivo temporal que se borra al cerrarlo. En MSVC, std::tmpfile da el aviso C4996 (que es un
+// error con /WX) y pide tmpfile_s.
+std::unique_ptr<std::FILE, FileCloser> OpenTemporaryFile()
+{
+#ifdef _MSC_VER
+    std::FILE* file = nullptr;
+    if (tmpfile_s(&file) != 0)
+    {
+        return nullptr;
+    }
+    return std::unique_ptr<std::FILE, FileCloser>(file);
+#else
+    return std::unique_ptr<std::FILE, FileCloser>(std::tmpfile());
+#endif
+}
+
 TEST(LogTest, WritesTheLevelAndTheMessage)
 {
     RecordingSink sink;
@@ -202,7 +218,7 @@ TEST(LogTest, BelowTheMinimumIsNotFormatted)
 
 TEST(LogTest, StderrSinkWritesOneLinePerMessage)
 {
-    const std::unique_ptr<std::FILE, FileCloser> output(std::tmpfile());
+    const auto output = OpenTemporaryFile();
     ASSERT_NE(output, nullptr);
     StderrSink sink(output.get());
     Log log(sink, LogLevel::Info);

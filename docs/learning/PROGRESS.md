@@ -223,7 +223,7 @@ solo lo lee.
   bucle la consulta antes que la escena (`SessionClient`); el log dice cada estado y cada
   keepalive. Sin host no cambia nada. Tu paso 1, los instantes de los keepalives con y sin
   frames, lo resolvió Claude: está en el plan. El paso 4, el login contra el laboratorio, está
-  escrito en el README y falta correrlo. Trae mergeada la CL4.1 PR C (el `Poll` del bucle).
+  escrito en el README y falta correrlo.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 

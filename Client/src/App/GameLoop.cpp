@@ -2,6 +2,8 @@
 
 #include "App/LoopTiming.h"
 
+#include <chrono>
+
 namespace Client::App
 {
 GameLoop::GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode)
@@ -11,9 +13,7 @@ GameLoop::GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode)
 
 int GameLoop::RunFrame(const WindowState& state)
 {
-    // El modo fiel llega en el PR B de la CL3.2; hasta entonces los dos corren el normal.
-    static_cast<void>(m_mode);
-    const int steps = RunDecoupled(state);
+    const int steps = m_mode == PacingMode::Faithful ? RunFaithful(state) : RunDecoupled(state);
     ++m_stats.frames;
     m_stats.steps += static_cast<std::uint64_t>(steps);
     return steps;
@@ -56,6 +56,25 @@ int GameLoop::RunDecoupled(const WindowState& state)
     {
         m_client.Render(m_lastAlpha);
     }
+    return steps;
+}
+
+int GameLoop::RunFaithful(const WindowState& state)
+{
+    const int steps = m_pacer.BeginFrame();
+    RunSteps(steps);
+    // Después de los pasos (0x63852b): lo que tardan no se acumula.
+    m_pacer.StartMeasure(m_clock);
+    // El original dibuja el estado después de los pasos, sin interpolar.
+    m_lastAlpha = 0.0f;
+    if (!state.minimized)
+    {
+        m_client.Render(m_lastAlpha);
+    }
+    // Minimizada también: sin la espera el acumulador no suma y no corre nunca más un paso.
+    m_pacer.EndFrame(m_clock);
+    m_stats.accumulated = std::chrono::milliseconds{m_pacer.AccumulatedMs()};
+    m_stats.lastMeasuredMs = m_pacer.LastMeasuredMs();
     return steps;
 }
 

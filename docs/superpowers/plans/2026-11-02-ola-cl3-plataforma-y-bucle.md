@@ -778,7 +778,7 @@ dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
 
   Hecho así: el quirk ya estaba, Q-C44, desde la CL3.R. No se abrió uno nuevo: Q-C44 suma los
   tests y dice que el aviso en el log espera al `Log` de la CL3.4.
-- [ ] **Paso 5 (PR B):** los tests del modo fiel, cada uno con el `FakeClock` en t = 0 y dibujos
+- [x] **Paso 5 (PR B):** los tests del modo fiel, cada uno con el `FakeClock` en t = 0 y dibujos
   de 0 ms salvo que diga otra cosa:
   - `FaithfulPacerTest.TickCountMsFollowsTheGrid`: 0, 15, 31, 46 y 62 en los ticks 0 a 4;
   - `FaithfulPacerTest.SixtyFourFramesEveryThreeSeconds`: 64 frames terminan con el reloj en 3 s
@@ -801,6 +801,11 @@ dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
     y el frame siguiente corre 250 pasos;
   - `FaithfulPacerTest.MinimizedKeepsTheWait`: minimizada, 64 frames siguen tardando 3 s y el
     frame 65 empieza con 2 pasos (74 corridos), sin dibujos.
+
+  Hecho así, con un test más, `FaithfulPacerTest.DrawsWithAlphaZero` (la fila "dibujo" del
+  contrato). Los tests van por `GameLoop` en `Faithful`, así que prueban el pacer y el orden de
+  `RunFrame` juntos. `EndFrame` duerme hasta el borde del tick siguiente, que es cuando
+  `GetTickCount` cambia, y vuelve a mirar: con el `FakeClock`, 3 sueños por frame.
 - [ ] **Paso 6 (PR B):** `TickCountMs`, `FaithfulPacer` y el modo `Faithful` de `GameLoop`; en 07,
   `FaithfulPacerTest.HasNoCap` al lado del test del PR A.
 - [ ] **Paso 7:** a mano, en Windows y en Linux: `Main --pacing faithful --stats` da 21,33 FPS y 25

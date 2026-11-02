@@ -1382,6 +1382,14 @@ public:
     de antes. La `ServerSession` abre las dos conexiones con `std::nullopt` hasta que la PR B
     cargue las del GS, y no hace nada con un `Undecryptable`: su `std::visit` (de la revisión de
     la CL4.3, PR B) no compilaba sin ese caso.
+  - De la revisión: `WhatArrivesIsDecryptedBetweenAfterCutAndBeforeDispatch` y
+    `WhatIsEncryptedIsEncryptedBeforeBeforeSend`, con una ofuscación espía que anota cada etapa y
+    el tipo del paquete que ve (`AfterCut` ve el C3 y `BeforeDispatch` el C1; `BeforeSend` ve el
+    C3), y `WithFoxAntiAnEncryptedD3IsNotRemapped` (un D3 que va cifrado llega como D3, porque el
+    `BeforeSend` de FoxAnti solo toca los C1 en claro). Los matan los mutantes que descifran antes
+    del `AfterCut` y que llaman a `BeforeSend` antes de cifrar. Los dos tests golden pasaron a
+    usar `ExpectDecryptedLikeDecryptPacket`, `ResendEncrypted` y `ExpectLikeTheWire`. El 03 suma
+    la fila de las claves por conexión: un C3/C4 en el CS no manda el `F1 03`.
 - [ ] **Paso 4 (PR B y PR C):** los tests de la sesión:
   - `ServerSessionTest.ConnectsToTheGameServerItWasGiven` (después del `F4 03`, `connects` tiene el
     endpoint del GS);

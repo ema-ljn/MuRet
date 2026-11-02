@@ -112,6 +112,79 @@ struct Keys
     DecryptionKey server;  // Dec1.dat
 };
 
+// Cuántos C3/C4 llegaron del GameServer, y en cuántas conexiones.
+struct EncryptedCount
+{
+    std::size_t c3 = 0;
+    std::size_t c4 = 0;
+    std::size_t connections = 0;
+};
+
+// Cada C3/C4 de lo que cortó el test (`cut`), descifrado con `decryption` y pasado por el
+// BeforeDispatch de `foxAnti`, contra lo que dio la Connection en su lugar (`delivered`), con los
+// seriales en orden desde 0. Los suma a `count`.
+void ExpectDecryptedLikeDecryptPacket(const std::vector<Packet>& cut, const std::vector<Packet>& delivered,
+                                      const DecryptionKey& decryption, const FoxAntiObfuscation& foxAnti,
+                                      std::size_t index, EncryptedCount& count)
+{
+    ASSERT_EQ(delivered.size(), cut.size()) << "conexión " << index;
+    PacketSerials serials;
+    bool anyEncrypted = false;
+    for (std::size_t packet = 0; packet < cut.size(); ++packet)
+    {
+        if (!IsEncrypted(cut[packet]))
+        {
+            continue;
+        }
+        anyEncrypted = true;
+        if (cut[packet].Type() == PacketType::C3)
+        {
+            ++count.c3;
+        }
+        else
+        {
+            ++count.c4;
+        }
+        auto decrypted = DecryptPacket(cut[packet], decryption, serials);
+        ASSERT_TRUE(decrypted.HasValue()) << Where(index, packet);
+        EXPECT_EQ(decrypted.Value().serial, SerialCheck::InOrder) << Where(index, packet);
+        auto expected = foxAnti.BeforeDispatch(std::move(decrypted).Value().packet);
+        ASSERT_TRUE(expected.HasValue()) << Where(index, packet);
+        EXPECT_TRUE(SameBytesWithoutValues(delivered[packet].Bytes(), expected.Value().Bytes()))
+            << Where(index, packet);
+    }
+    count.connections += anyEncrypted ? 1 : 0;
+}
+
+// Lo que mandó el cliente original en una conexión y lo que mandó la Connection con eso.
+struct Resent
+{
+    std::vector<Packet> wire;  // los C3/C4 del cable
+    std::vector<Packet> plain; // los mismos, descifrados con Dec1.dat
+    std::vector<Packet> mine;  // lo que mandó la Connection, cortado
+};
+
+// Cada `mine` contra su `wire`: los mismos bytes salvo el último bloque, el del relleno, y,
+// descifrado con `server`, el mismo `plain`, con los seriales en orden desde 0.
+void ExpectLikeTheWire(const Resent& resent, const DecryptionKey& server, std::size_t index)
+{
+    ASSERT_EQ(resent.mine.size(), resent.wire.size()) << "conexión " << index;
+    PacketSerials serverSerials;
+    for (std::size_t packet = 0; packet < resent.wire.size(); ++packet)
+    {
+        const std::span<const std::byte> mine = resent.mine[packet].Bytes();
+        const std::span<const std::byte> wire = resent.wire[packet].Bytes();
+        ASSERT_EQ(mine.size(), wire.size()) << Where(index, packet);
+        const std::size_t beforeLast = wire.size() - CipherBlockSize;
+        EXPECT_TRUE(SameBytesWithoutValues(mine.first(beforeLast), wire.first(beforeLast))) << Where(index, packet);
+        const auto again = DecryptPacket(resent.mine[packet], server, serverSerials);
+        ASSERT_TRUE(again.HasValue()) << Where(index, packet);
+        EXPECT_EQ(again.Value().serial, SerialCheck::InOrder) << Where(index, packet);
+        EXPECT_TRUE(SameBytesWithoutValues(again.Value().packet.Bytes(), resent.plain[packet].Bytes()))
+            << Where(index, packet);
+    }
+}
+
 class GoldenConnection : public Client::Tests::GoldenAndWireDataTest
 {
 protected:
@@ -189,6 +262,30 @@ protected:
         return packets;
     }
 
+    // Descifra con `server` cada C3/C4 que mandó el original en la conexión `index` (`sent`) y lo
+    // manda otra vez por `connection`, Encrypted: deja en `resent` lo del cable y lo que salió.
+    void ResendEncrypted(Connection& connection, const std::vector<Packet>& sent, const DecryptionKey& server,
+                         std::size_t index, Resent& resent)
+    {
+        const std::size_t sentBefore = m_socket.sent.size();
+        PacketSerials wireSerials;
+        for (const Packet& packet : sent)
+        {
+            if (!IsEncrypted(packet))
+            {
+                continue;
+            }
+            auto decrypted = DecryptPacket(packet, server, wireSerials);
+            ASSERT_TRUE(decrypted.HasValue()) << Where(index, resent.wire.size());
+            connection.Send(decrypted.Value().packet, Delivery::Encrypted);
+            resent.wire.push_back(packet);
+            resent.plain.push_back(std::move(decrypted).Value().packet);
+        }
+        const std::vector<std::byte> mine(m_socket.sent.begin() + static_cast<std::ptrdiff_t>(sentBefore),
+                                          m_socket.sent.end());
+        resent.mine = CutPackets({std::span<const std::byte>(mine)}, index);
+    }
+
     // Cuántas líneas de aviso dejó la conexión: se cuentan y no se imprimen.
     [[nodiscard]] std::size_t WarningCount() const
     {
@@ -216,9 +313,7 @@ TEST_F(GoldenConnection, DeliversWhatTheGameServerAnswered)
     const Keys& keys = *m_keys;
     const FoxAntiObfuscation foxAnti;
     Connection connection(m_socket, foxAnti, m_clock, m_log, PaddingSeed);
-    std::size_t c3 = 0;
-    std::size_t c4 = 0;
-    std::size_t withEncrypted = 0;
+    EncryptedCount count;
 
     for (std::size_t index = 0; index < m_connections.size(); ++index)
     {
@@ -234,31 +329,12 @@ TEST_F(GoldenConnection, DeliversWhatTheGameServerAnswered)
             m_socket.reads.emplace_back(read.begin(), read.end());
         }
         const std::vector<Packet> delivered = PollEverything(connection, index);
-        ASSERT_EQ(delivered.size(), cut.size()) << "conexión " << index;
-
-        PacketSerials serials;
-        bool anyEncrypted = false;
-        for (std::size_t packet = 0; packet < cut.size(); ++packet)
-        {
-            if (!IsEncrypted(cut[packet]))
-            {
-                continue;
-            }
-            anyEncrypted = true;
-            ++(cut[packet].Type() == PacketType::C3 ? c3 : c4);
-            auto decrypted = DecryptPacket(cut[packet], keys.client.decryption, serials);
-            ASSERT_TRUE(decrypted.HasValue()) << Where(index, packet);
-            EXPECT_EQ(decrypted.Value().serial, SerialCheck::InOrder) << Where(index, packet);
-            auto expected = foxAnti.BeforeDispatch(std::move(decrypted).Value().packet);
-            ASSERT_TRUE(expected.HasValue()) << Where(index, packet);
-            EXPECT_TRUE(SameBytesWithoutValues(delivered[packet].Bytes(), expected.Value().Bytes()))
-                << Where(index, packet);
-        }
-        withEncrypted += anyEncrypted ? 1 : 0;
+        ASSERT_NO_FATAL_FAILURE(
+            ExpectDecryptedLikeDecryptPacket(cut, delivered, keys.client.decryption, foxAnti, index, count));
     }
-    EXPECT_EQ(c3, 18u);
-    EXPECT_EQ(c4, 7u);
-    EXPECT_EQ(withEncrypted, 7u);
+    EXPECT_EQ(count.c3, 18u);
+    EXPECT_EQ(count.c4, 7u);
+    EXPECT_EQ(count.connections, 7u);
     EXPECT_EQ(WarningCount(), 0u);
 }
 
@@ -286,44 +362,10 @@ TEST_F(GoldenConnection, EncryptsLikeTheClient)
         }
         const std::vector<Packet> sent = CutPackets(m_connections[index].Reads(WireDirection::ClientToServer), index);
         ASSERT_NO_FATAL_FAILURE(OpenTheGameServer(connection, keys.client, index));
-        const std::size_t sentBefore = m_socket.sent.size();
-
-        PacketSerials wireSerials;
-        std::vector<Packet> wire;
-        std::vector<Packet> plain;
-        for (const Packet& packet : sent)
-        {
-            if (!IsEncrypted(packet))
-            {
-                continue;
-            }
-            auto decrypted = DecryptPacket(packet, keys.server, wireSerials);
-            ASSERT_TRUE(decrypted.HasValue()) << Where(index, wire.size());
-            connection.Send(decrypted.Value().packet, Delivery::Encrypted);
-            wire.push_back(packet);
-            plain.push_back(std::move(decrypted).Value().packet);
-        }
-        const std::vector<std::byte> mineBytes(m_socket.sent.begin() + static_cast<std::ptrdiff_t>(sentBefore),
-                                               m_socket.sent.end());
-        const std::vector<Packet> mine = CutPackets({std::span<const std::byte>(mineBytes)}, index);
-        ASSERT_EQ(mine.size(), wire.size()) << "conexión " << index;
-
-        PacketSerials serverSerials;
-        for (std::size_t packet = 0; packet < wire.size(); ++packet)
-        {
-            const std::span<const std::byte> mineSpan = mine[packet].Bytes();
-            const std::span<const std::byte> wireSpan = wire[packet].Bytes();
-            ASSERT_EQ(mineSpan.size(), wireSpan.size()) << Where(index, packet);
-            const std::size_t beforeLast = wireSpan.size() - CipherBlockSize;
-            EXPECT_TRUE(SameBytesWithoutValues(mineSpan.first(beforeLast), wireSpan.first(beforeLast)))
-                << Where(index, packet);
-            const auto again = DecryptPacket(mine[packet], keys.server, serverSerials);
-            ASSERT_TRUE(again.HasValue()) << Where(index, packet);
-            EXPECT_EQ(again.Value().serial, SerialCheck::InOrder) << Where(index, packet);
-            EXPECT_TRUE(SameBytesWithoutValues(again.Value().packet.Bytes(), plain[packet].Bytes()))
-                << Where(index, packet);
-        }
-        total += wire.size();
+        Resent resent;
+        ASSERT_NO_FATAL_FAILURE(ResendEncrypted(connection, sent, keys.server, index, resent));
+        ASSERT_NO_FATAL_FAILURE(ExpectLikeTheWire(resent, keys.server, index));
+        total += resent.wire.size();
     }
     EXPECT_EQ(total, 183u);
     EXPECT_EQ(WarningCount(), 0u);

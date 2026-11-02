@@ -88,8 +88,9 @@ class Connection
 public:
     // El socket, la ofuscación, el reloj y el log son de quien la arma y tienen que vivir más que
     // ella. Una ofuscación temporal no compila, porque moriría antes. `paddingSeed` siembra el
-    // std::mt19937 del byte de relleno de lo que se cifra, que en el original sale de rand():
-    // main.cpp le da uno de std::random_device, y los tests uno fijo.
+    // std::mt19937 del byte de relleno de lo que se cifra, que en el original sale de rand(): los
+    // tests le dan uno fijo, y main.cpp le va a dar uno de std::random_device cuando arme la
+    // conexión (la CL4.5 pone la sesión en el bucle).
     Connection(ISocket& socket, const IObfuscation& obfuscation, Core::IClock& clock, Core::Log& log,
                std::uint32_t paddingSeed);
     Connection(ISocket& socket, const IObfuscation&& obfuscation, Core::IClock& clock, Core::Log& log,

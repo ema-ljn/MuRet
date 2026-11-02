@@ -1,5 +1,6 @@
 #include "Network/Connection.h"
 
+#include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Network/CloseReason.h"
@@ -9,6 +10,8 @@
 #include "Network/EncryptedPacket.h"
 #include "Network/FoxAntiObfuscation.h"
 #include "Network/IdentityObfuscation.h"
+#include "Network/IObfuscation.h"
+#include "Network/ObfuscationError.h"
 #include "Network/Packet.h"
 #include "Network/PacketReader.h"
 #include "Network/PacketSerials.h"
@@ -51,6 +54,7 @@
 namespace
 {
 using namespace std::chrono_literals;
+using Client::Core::Expected;
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Network::Closed;
@@ -64,15 +68,19 @@ using Client::Network::Delivery;
 using Client::Network::EncryptPacket;
 using Client::Network::Event;
 using Client::Network::FoxAntiObfuscation;
+using Client::Network::HeaderSize;
 using Client::Network::IdentityObfuscation;
+using Client::Network::IObfuscation;
 using Client::Network::LinkState;
 using Client::Network::MaxPacketSize;
 using Client::Network::MaxPendingSend;
 using Client::Network::MaxReadsPerPoll;
+using Client::Network::ObfuscationError;
 using Client::Network::Opened;
 using Client::Network::Packet;
 using Client::Network::PacketReader;
 using Client::Network::PacketSerials;
+using Client::Network::PacketType;
 using Client::Network::ReceiveChunkSize;
 using Client::Network::SerialCheck;
 using Client::Network::SlowConnectStart;
@@ -241,7 +249,7 @@ ServerSide AsTheServerReceives(std::span<const std::byte> sent, PacketSerials& s
             break;
         }
         Packet packet = std::move(*cut);
-        if (packet.Type() == Client::Network::PacketType::C1 || packet.Type() == Client::Network::PacketType::C2)
+        if (packet.Type() == PacketType::C1 || packet.Type() == PacketType::C2)
         {
             received.packets.push_back(std::move(packet));
             continue;
@@ -263,11 +271,12 @@ ServerSide AsTheServerReceives(std::span<const std::byte> sent, PacketSerials& s
 // descifrar el bloque. std::nullopt si no descifra o si lo útil llena el bloque.
 std::optional<std::byte> PaddingOf(std::span<const std::byte> c3)
 {
-    if (c3.size() != 2 + CipherBlockSize)
+    const std::size_t header = HeaderSize(PacketType::C3);
+    if (c3.size() != header + CipherBlockSize)
     {
         return std::nullopt;
     }
-    const auto block = DecryptBlock(ClientToServer().decryption, c3.subspan<2, CipherBlockSize>());
+    const auto block = DecryptBlock(ClientToServer().decryption, c3.subspan(header).first<CipherBlockSize>());
     if (!block || block->usefulSize >= PlainBlockSize)
     {
         return std::nullopt;
@@ -281,6 +290,46 @@ std::size_t CountPackets(const std::vector<Event>& events)
     return static_cast<std::size_t>(
         std::ranges::count_if(events, [](const Event& event) { return std::holds_alternative<Packet>(event); }));
 }
+
+// Una ofuscación que no toca nada y anota en `seen` cada etapa que la conexión le pide, con el tipo
+// del paquete que ve ("AfterCut C3"): así un test mira en qué etapa un paquete va cifrado.
+class SpyObfuscation final : public IObfuscation
+{
+public:
+    explicit SpyObfuscation(Lines& seen) : m_seen(seen) {}
+
+    [[nodiscard]] std::byte InboundMask(std::byte) const override
+    {
+        return std::byte{0};
+    }
+    [[nodiscard]] Expected<Packet, ObfuscationError> AfterCut(Packet packet) const override
+    {
+        Note("AfterCut", packet);
+        return packet;
+    }
+    [[nodiscard]] Expected<Packet, ObfuscationError> BeforeDispatch(Packet packet) const override
+    {
+        Note("BeforeDispatch", packet);
+        return packet;
+    }
+    void BeforeEncrypt(std::span<std::byte>) const override
+    {
+        m_seen.emplace_back("BeforeEncrypt");
+    }
+    [[nodiscard]] Packet BeforeSend(Packet packet) const override
+    {
+        Note("BeforeSend", packet);
+        return packet;
+    }
+
+private:
+    void Note(std::string_view stage, const Packet& packet) const
+    {
+        m_seen.push_back(std::format("{} {:02X}", stage, static_cast<int>(packet.Type())));
+    }
+
+    Lines& m_seen;
+};
 
 // La conexión guarda referencias: una ofuscación temporal no compila, porque moriría antes, y no se
 // copia ni se mueve.
@@ -832,8 +881,9 @@ TEST_F(ConnectionTest, ABadChecksumIsUndecryptable)
     OpenTheGameServer();
     PacketSerials server;
     ByteVector bad = FromTheServer(Hello(), server);
-    ASSERT_GT(bad.size(), 2 + CipherBlockSize - 1);
-    bad[2 + CipherBlockSize - 1] ^= std::byte{0xFF};
+    const std::size_t firstChecksum = HeaderSize(PacketType::C3) + CipherBlockSize - 1;
+    ASSERT_GT(bad.size(), firstChecksum);
+    bad[firstChecksum] ^= std::byte{0xFF};
     m_socket.reads = {Join({bad, FromTheServer(Bytes({0xC1, 0x05, 0xF1, 0x01, 0x01}), server)})};
 
     EXPECT_EQ(Describe(m_connection.Poll()), (Lines{"Undecryptable(ChecksumMismatch)", "C1 05 F1 01 01"}));
@@ -904,6 +954,51 @@ TEST_F(ConnectionTest, WithFoxAntiWhatIsEncryptedIsRemapped)
     const ServerSide received = AsTheServerReceives(m_socket.sent, server);
     ASSERT_EQ(received.packets.size(), 1u);
     EXPECT_EQ(received.packets[0].Opcode(), std::optional<std::uint8_t>{std::uint8_t{0x1D}});
+}
+
+// En el orden del original (03, "Cadena de recepción"): AfterCut ve el C3 todavía cifrado, y
+// BeforeDispatch, el C1 ya descifrado. Con FoxAnti no se ve, porque su AfterCut solo toca la lista
+// del ConnectServer.
+TEST_F(ConnectionTest, WhatArrivesIsDecryptedBetweenAfterCutAndBeforeDispatch)
+{
+    Lines seen;
+    const SpyObfuscation spy(seen);
+    Connection connection(m_socket, spy, m_clock, m_log, PaddingSeed);
+    OpenTheGameServer(connection);
+    PacketSerials server;
+    m_socket.reads = {FromTheServer(Hello(), server)};
+
+    EXPECT_EQ(Describe(connection.Poll()), Lines{"C1 04 00 01"});
+    EXPECT_EQ(seen, (Lines{"AfterCut C3", "BeforeDispatch C1"}));
+}
+
+// Al mandar, BeforeEncrypt va adentro del cifrado y BeforeSend después: ve el C3.
+TEST_F(ConnectionTest, WhatIsEncryptedIsEncryptedBeforeBeforeSend)
+{
+    Lines seen;
+    const SpyObfuscation spy(seen);
+    Connection connection(m_socket, spy, m_clock, m_log, PaddingSeed);
+    OpenTheGameServer(connection);
+
+    connection.Send(PacketOf(Bytes({0xC1, 0x04, 0x0E, 0x00})), Delivery::Encrypted);
+
+    EXPECT_EQ(seen, (Lines{"BeforeEncrypt", "BeforeSend C3"}));
+}
+
+// El BeforeSend de FoxAnti pasa un C1 en claro con D3 a A3 (03 § La capa de FoxAnti), pero deja
+// los C3/C4 como están (encode_outbound): un D3 que va cifrado le llega al GameServer como D3.
+TEST_F(ConnectionTest, WithFoxAntiAnEncryptedD3IsNotRemapped)
+{
+    const FoxAntiObfuscation foxAnti;
+    Connection connection(m_socket, foxAnti, m_clock, m_log, PaddingSeed);
+    OpenTheGameServer(connection);
+
+    connection.Send(PacketOf(Bytes({0xC1, 0x05, 0xD3, 0x11, 0x22})), Delivery::Encrypted);
+
+    PacketSerials server;
+    const ServerSide received = AsTheServerReceives(m_socket.sent, server);
+    ASSERT_EQ(received.packets.size(), 1u);
+    EXPECT_EQ(received.packets[0].Opcode(), std::optional<std::uint8_t>{std::uint8_t{0xD3}});
 }
 
 // El relleno de cada paquete cifrado es el byte de abajo de lo que da un std::mt19937 con la

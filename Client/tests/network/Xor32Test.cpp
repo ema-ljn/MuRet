@@ -9,6 +9,7 @@
 #include "support/BytePattern.h"
 #include "support/Bytes.h"
 #include "support/NetVectors.h"
+#include "support/Packets.h"
 #include "support/SameBytes.h"
 
 #include <gtest/gtest.h>
@@ -32,15 +33,9 @@ using Client::Network::Crypto::Xor32EncodeBytes;
 using Client::Network::Crypto::Xor32Key;
 using Client::Tests::BytePattern;
 using Client::Tests::Bytes;
+using Client::Tests::PacketOf;
 using Client::Tests::ReadNetVector;
 using Client::Tests::SameBytes;
-
-Packet PacketOf(std::vector<std::byte> bytes)
-{
-    auto packet = Packet::FromBytes(std::move(bytes));
-    EXPECT_TRUE(packet.HasValue());
-    return std::move(packet).Value();
-}
 
 // Los bytes de `packet` después del XOR32.
 std::vector<std::byte> Encoded(std::vector<std::byte> bytes)

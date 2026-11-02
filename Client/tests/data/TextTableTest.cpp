@@ -2,7 +2,7 @@
 
 #include "Data/Text/TextTable.h"
 
-#include "Data/Tables/Xor3.h"
+#include "Core/Xor3.h"
 #include "Data/DataError.h"
 
 #include <gtest/gtest.h>
@@ -50,7 +50,7 @@ void PutText(std::vector<std::byte>& table, std::size_t index, std::string_view 
 // Lo que habría en el archivo: la tabla cifrada con XOR3.
 std::vector<std::byte> Encrypt(std::vector<std::byte> table)
 {
-    Client::Data::Tables::Xor3(table);
+    Client::Core::Xor3(table);
     return table;
 }
 

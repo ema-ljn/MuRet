@@ -12,12 +12,12 @@ find_package(libjpeg-turbo CONFIG REQUIRED)
 add_library(ClientLib STATIC
     src/App/CommandLine.cpp
     src/Core/ByteReader.cpp
+    src/Core/Xor3.cpp
     src/Data/DataPath.cpp
     src/Data/Tables/GateTable.cpp
     src/Data/Tables/ItemTable.cpp
     src/Data/Tables/SkillTable.cpp
     src/Data/Tables/TableChecksum.cpp
-    src/Data/Tables/Xor3.cpp
     src/Data/Terrain/K16.cpp
     src/Data/Terrain/TerrainAttributes.cpp
     src/Data/Terrain/TerrainHeights.cpp
@@ -38,6 +38,12 @@ add_library(ClientLib STATIC
     src/Network/Crypto/SimpleModulus.cpp
     src/Network/Crypto/SimpleModulusKeyFile.cpp
     src/Network/Crypto/Xor32.cpp
+    src/Protocol/Outgoing.cpp
+    src/Protocol/PacketFields.cpp
+    src/Protocol/Connection/Hello.cpp
+    src/Protocol/Connection/Keepalive.cpp
+    src/Protocol/Connection/Login.cpp
+    src/Protocol/Connection/ServerList.cpp
 )
 target_include_directories(ClientLib PUBLIC src)
 target_compile_features(ClientLib PUBLIC cxx_std_20)
@@ -69,6 +75,7 @@ if(MURET_BUILD_TESTS)
         tests/app/CommandLineTest.cpp
         tests/core/ByteReaderTest.cpp
         tests/core/ExpectedTest.cpp
+        tests/core/Xor3Test.cpp
         tests/support/FileBytes.cpp
         tests/support/FileBytesTest.cpp
         tests/support/Fnv1aTest.cpp
@@ -108,7 +115,6 @@ if(MURET_BUILD_TESTS)
         tests/data/TerrainObjectsTest.cpp
         tests/data/TextTableTest.cpp
         tests/data/TextureTest.cpp
-        tests/data/Xor3Test.cpp
         tests/network/EncryptedPacketTest.cpp
         tests/network/FoxAntiObfuscationTest.cpp
         tests/network/GoldenEncryptedPacketTest.cpp
@@ -123,6 +129,13 @@ if(MURET_BUILD_TESTS)
         tests/network/SimpleModulusKeyFileTest.cpp
         tests/network/SimpleModulusTest.cpp
         tests/network/Xor32Test.cpp
+        tests/protocol/BuildConstantsTest.cpp
+        tests/protocol/GoldenLoginTest.cpp
+        tests/protocol/HelloTest.cpp
+        tests/protocol/KeepaliveTest.cpp
+        tests/protocol/LoginTest.cpp
+        tests/protocol/PacketFieldsTest.cpp
+        tests/protocol/ServerListTest.cpp
     )
     target_include_directories(ClientTests PRIVATE tests)
     # Los vectores JPEG y los de red (el README.md de tests/vectors/jpeg y de tests/vectors/net)

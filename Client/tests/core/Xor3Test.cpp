@@ -1,6 +1,6 @@
-// Client::Data::Tables::Xor3: el cifrado de las tablas .bmd.
+// Client::Core::Xor3: el cifrado de las tablas .bmd y de la cuenta y la clave del login.
 
-#include "Data/Tables/Xor3.h"
+#include "Core/Xor3.h"
 
 #include "support/BytePattern.h"
 
@@ -13,7 +13,7 @@
 namespace
 {
 
-using Client::Data::Tables::Xor3;
+using Client::Core::Xor3;
 using Client::Tests::BytePattern;
 
 // Cualquier contenido sirve; este es el "patrón" de mu-client.

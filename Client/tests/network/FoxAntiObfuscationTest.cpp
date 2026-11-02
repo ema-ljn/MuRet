@@ -19,6 +19,7 @@
 
 #include "support/BytePattern.h"
 #include "support/Bytes.h"
+#include "support/MuClientNetFixtures.h"
 #include "support/NetVectors.h"
 #include "support/NetworkPrinters.h"
 #include "support/SameBytes.h"
@@ -57,6 +58,8 @@ using Client::Network::Crypto::Xor32Encode;
 using Client::Tests::BytePattern;
 using Client::Tests::Bytes;
 using Client::Tests::IdentityPair;
+using Client::Tests::NoticeBytes;
+using Client::Tests::NoticeSerial0;
 using Client::Tests::ReadNetVector;
 using Client::Tests::SameBytes;
 
@@ -131,18 +134,6 @@ struct ReferenceCase
     ByteVector in;
     ByteVector out;
 };
-
-// El aviso de un checksum malo, `C1 06 F1 03 06 00`, con su XOR32 (FIX_F1_PLAIN de mu-client), y
-// como C3 con la clave identidad y el serial 0 (FIX_C3_SERIAL0).
-ByteVector NoticeBytes()
-{
-    return Bytes({0xC1, 0x06, 0xF1, 0x7B, 0xC1, 0x73});
-}
-
-ByteVector NoticeSerial0()
-{
-    return Bytes({0xC3, 0x0D, 0x7B, 0xC1, 0x1C, 0xC0, 0x00, 0x00, 0x00, 0x20, 0xC0, 0xF8, 0xC0});
-}
 
 // La lista que manda el ConnectServer del laboratorio (04, "La lista de servidores"): un servidor,
 // código 0, carga 0 y el 0xCC que FoxAnti descarta. Y cómo la lee main.exe.

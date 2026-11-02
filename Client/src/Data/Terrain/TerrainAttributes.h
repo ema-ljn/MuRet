@@ -10,7 +10,7 @@
 // incluida, va cifrado con XOR3 y, encima, con K16: para descifrarlo, primero se saca K16 y
 // después XOR3.
 //
-// El XOR3 es el de las tablas .bmd (Data/Tables/Xor3.h): el original tiene otra copia de la misma
+// El XOR3 es el de las tablas .bmd (Core/Xor3.h): el original tiene otra copia de la misma
 // función para el .att (0x5f8650), con la misma clave.
 //
 // Ningún atributo llega a 0x80: el original lo comprueba y, si no, muestra "Data error" y cierra el

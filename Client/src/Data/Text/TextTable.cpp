@@ -1,6 +1,6 @@
 #include "Data/Text/TextTable.h"
 
-#include "Data/Tables/Xor3.h"
+#include "Core/Xor3.h"
 
 #include <algorithm>
 #include <utility>
@@ -32,7 +32,7 @@ Core::Expected<TextTable, DataError> LoadTextTable(std::span<const std::byte> fi
     std::vector<char> records(TextTableSize);
     const std::span<std::byte> decoded = std::as_writable_bytes(std::span(records));
     std::ranges::copy(file.first(TextTableSize), decoded.begin());
-    Tables::Xor3(decoded);
+    Core::Xor3(decoded);
     return TextTable(std::move(records));
 }
 

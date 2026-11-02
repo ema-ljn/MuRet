@@ -77,6 +77,14 @@ solo lo lee.
   mismo que la FoxAnti mínima, también donde el original pierde los códigos desde 21 (Q-C17). Lo
   que el original no mide es `InvalidPacket` (Q-C09). Todo lo que contestaron los dos servidores en
   el cable se corta entero, 3.033 paquetes, y lo del GameServer llega hasta el dispatcher.
+  **La CL2.5, también**: los paquetes del login, leídos y escritos campo por campo con
+  `ByteReader` y `PacketWriter`, sin `reinterpret_cast` ni `#pragma pack`. Tu paso 1, decodificar
+  a mano el saludo `F1 00`, lo resolvió Claude: la respuesta está en el comentario de
+  `HelloTest.ReadsTheHelloDecodedByHand`. La versión y el serial del build están en un solo lugar,
+  `Protocol/BuildConstants.h`, y el XOR3 pasó de `Data::Tables` a `Core`, porque lo usa también la
+  cuenta del login. Contra el cable salen los 7 login y los 156 keepalive que mandó el cliente, y
+  los 8 saludos y los 7 login aceptados del GameServer. Los dos WORD del keepalive, que el plan
+  llamaba `x` e `y`, son la velocidad de ataque y la de magia: así los compara el GS.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 
@@ -131,6 +139,12 @@ sesión, junto con los de repaso más viejo.
 | un estado que sigue entre dos lecturas: la máscara que eligió el primer byte de un paquete partido, y no desenmascarar nunca un byte del paquete siguiente | CL2.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un XOR encadenado que se deshace, se cambia un byte y se rehace: por qué cambian también los que siguen (los remapeos de FoxAnti) | CL2.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | una ida y vuelta que no cierra entre dos tablas (Q-C17), y fijarla con la tabla entera de la referencia en vez de arreglarla | CL2.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un struct del protocolo leído y escrito campo por campo, con el offset de cada campo fijado en un test, en vez de `reinterpret_cast` o `#pragma pack` (`LoginTest.PutsEachFieldAtItsOffset`) | CL2.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un número en big-endian dentro de un protocolo little-endian: cómo se ve en el binario (`pkt[5] * 0x100 + pkt[6]`) y cómo se prueba (`00 05` es 5 y no 1280) | CL2.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un texto de largo fijo que puede no tener `\0` (Q-C07), leído como una vista sin copiar (`ByteReader::ReadBytes`) y cortado en el primer `\0` (`TextField`) | CL2.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| una resta que da la vuelta en 16 bits a propósito, y dónde va el `static_cast` para que el compilador no la marque (`KeepaliveSpeed`) | CL2.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| el paquete y cómo sale al cable en un solo valor (`Outgoing` y `Delivery`), para que el que manda no tenga que acordarse de cifrar el login | CL2.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un golden que elige paquetes del cable sin mirar sus datos: deshacer el XOR32 para leer el subcódigo, y comparar solo lo fijo con `SameBytesWithoutValues` | CL2.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

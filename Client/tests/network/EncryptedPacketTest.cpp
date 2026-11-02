@@ -15,8 +15,10 @@
 #include "support/BytePattern.h"
 #include "support/Bytes.h"
 #include "support/FixedRandom.h"
+#include "support/MuClientNetFixtures.h"
 #include "support/NetVectors.h"
 #include "support/NetworkPrinters.h"
+#include "support/Packets.h"
 #include "support/SameBytes.h"
 #include "support/SimpleModulusKeys.h"
 
@@ -61,6 +63,11 @@ using Client::Tests::Bytes;
 using Client::Tests::FixedSeed;
 using Client::Tests::IdentityPair;
 using Client::Tests::KeyPair;
+using Client::Tests::NoticeBytes;
+using Client::Tests::NoticeRandA5;
+using Client::Tests::NoticeSerial0;
+using Client::Tests::NoticeSerialFF;
+using Client::Tests::PacketOf;
 using Client::Tests::Pair17;
 using Client::Tests::Pair18;
 using Client::Tests::ReadNetVector;
@@ -75,40 +82,6 @@ constexpr std::byte TestOpcode{0x42};
 // error resincronizara con el serial que trajo en vez de gastar el que se esperaba, el siguiente
 // sería el 0x38 y no el 1.
 constexpr int OtherSerial = 0x37;
-
-// El aviso de un checksum malo, `C1 06 F1 03 06 00`, con su XOR32: FIX_F1_PLAIN de test_net_send.c
-// (mu-client), de donde salen los tres C3 de abajo.
-ByteVector NoticeBytes()
-{
-    return Bytes({0xC1, 0x06, 0xF1, 0x7B, 0xC1, 0x73});
-}
-
-// FIX_C3_SERIAL0: el aviso con la clave identidad, el serial 0 y el relleno en 0. Los 5 útiles
-// (serial, F1 y los tres campos) entran en un bloque de 11, así que sale como C3 de 13.
-ByteVector NoticeSerial0()
-{
-    return Bytes({0xC3, 0x0D, 0x7B, 0xC1, 0x1C, 0xC0, 0x00, 0x00, 0x00, 0x20, 0xC0, 0xF8, 0xC0});
-}
-
-// FIX_C3_RANDA5: lo mismo con el relleno en 0xA5, el que da el rand() de prueba de mu-client.
-ByteVector NoticeRandA5()
-{
-    return Bytes({0xC3, 0x0D, 0x7B, 0xC1, 0x1C, 0xE9, 0x40, 0x00, 0x00, 0x22, 0x54, 0x5D, 0x65});
-}
-
-// FIX_C3_SERIALFF: con el serial 255.
-ByteVector NoticeSerialFF()
-{
-    return Bytes({0xC3, 0x0D, 0x7B, 0xC1, 0x1C, 0xC0, 0x00, 0x00, 0x03, 0xDC, 0xC0, 0x07, 0x3F});
-}
-
-// Un Packet con estos bytes. Si no lo forman, el test falla (y Value() corta el programa).
-Packet PacketOf(ByteVector bytes)
-{
-    auto built = Packet::FromBytes(std::move(bytes));
-    EXPECT_TRUE(built.HasValue());
-    return std::move(built).Value();
-}
 
 // Escribe en la cabecera de `bytes` el tipo y el tamaño que mide: el byte 1 en un C1/C3, y los
 // bytes 1 y 2, big-endian, en un C2/C4.

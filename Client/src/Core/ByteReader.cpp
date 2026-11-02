@@ -48,6 +48,17 @@ std::optional<std::uint16_t> ByteReader::ReadU16Be()
     return static_cast<std::uint16_t>(*value);
 }
 
+std::optional<std::span<const std::byte>> ByteReader::ReadBytes(std::size_t count)
+{
+    if (Remaining() < count)
+    {
+        return std::nullopt;
+    }
+    const std::span<const std::byte> field = buffer.subspan(position, count);
+    position += count;
+    return field;
+}
+
 std::size_t ByteReader::Remaining() const
 {
     return buffer.size() - position;

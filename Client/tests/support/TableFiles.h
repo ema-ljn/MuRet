@@ -5,7 +5,7 @@
 #pragma once
 
 #include "Data/Tables/RecordTable.h"
-#include "Data/Tables/Xor3.h"
+#include "Core/Xor3.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -24,7 +24,7 @@ inline std::vector<std::byte> EncryptRecords(std::vector<std::byte> records, std
     const std::span<std::byte> all(records);
     for (std::size_t offset = 0; recordSize <= all.size() - offset; offset += recordSize)
     {
-        Data::Tables::Xor3(all.subspan(offset, recordSize));
+        Core::Xor3(all.subspan(offset, recordSize));
     }
     return records;
 }

@@ -1,6 +1,6 @@
 #include "Data/Terrain/TerrainAttributes.h"
 
-#include "Data/Tables/Xor3.h"
+#include "Core/Xor3.h"
 #include "Data/Terrain/K16.h"
 
 #include <vector>
@@ -33,7 +33,7 @@ Core::Expected<std::unique_ptr<TerrainAttributes>, DataError> LoadTerrainAttribu
 
     std::vector<std::byte> plain(file.begin(), file.end());
     DecryptK16(plain);
-    Tables::Xor3(plain);
+    Core::Xor3(plain);
     if (!IsTheHeader(plain))
     {
         return Core::Unexpected(DataError::InvalidData);

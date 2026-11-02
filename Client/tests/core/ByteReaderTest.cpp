@@ -1,5 +1,5 @@
-// Client::Core::ByteReader: enteros little-endian y big-endian leídos en orden, sin pasarse del
-// final.
+// Client::Core::ByteReader: enteros little-endian y big-endian, y campos de bytes, leídos en orden,
+// sin pasarse del final.
 
 #include "Core/ByteReader.h"
 
@@ -9,6 +9,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -121,6 +122,39 @@ TEST(ByteReaderTest, ReadU16BigEndianPastTheEndFails)
 
     EXPECT_EQ(reader.ReadU16Be(), std::nullopt);
     EXPECT_EQ(reader.Remaining(), 1u);
+}
+
+// Un campo de largo fijo, como el host de 16 bytes de un F4 03 (04, "El flujo de conexión"): sale
+// sin copiarse, mirando el mismo buffer, y la lectura que sigue arranca después.
+TEST(ByteReaderTest, ReadsBytesInOrderWithoutCopying)
+{
+    const auto bytes = Bytes(0x31, 0x37, 0x32, 0x00, 0x5D, 0xDA);
+    ByteReader reader(bytes);
+
+    const std::optional<std::span<const std::byte>> field = reader.ReadBytes(4);
+
+    ASSERT_TRUE(field.has_value());
+    EXPECT_EQ(field->data(), bytes.data());
+    EXPECT_EQ(field->size(), 4u);
+    EXPECT_EQ(reader.ReadU16Le(), std::uint16_t{0xDA5D});
+    EXPECT_EQ(reader.Remaining(), 0u);
+}
+
+// Un campo que no entra falla sin avanzar, como un entero; uno de 0 bytes entra siempre, vacío.
+TEST(ByteReaderTest, ReadBytesPastTheEndFailsAndKeepsThePosition)
+{
+    const auto bytes = Bytes(0x01, 0x02, 0x03);
+    ByteReader reader(bytes);
+
+    EXPECT_EQ(reader.ReadBytes(4), std::nullopt);
+    EXPECT_EQ(reader.Remaining(), 3u);
+    const std::optional<std::span<const std::byte>> all = reader.ReadBytes(3);
+    ASSERT_TRUE(all.has_value());
+    EXPECT_EQ(all->size(), 3u);
+    const std::optional<std::span<const std::byte>> empty = reader.ReadBytes(0);
+    ASSERT_TRUE(empty.has_value());
+    EXPECT_TRUE(empty->empty());
+    EXPECT_EQ(reader.ReadBytes(1), std::nullopt);
 }
 
 TEST(ByteReaderTest, EmptyBufferHasNothingToRead)

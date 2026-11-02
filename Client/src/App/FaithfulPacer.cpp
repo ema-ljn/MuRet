@@ -26,8 +26,10 @@ constexpr std::int32_t FaithfulStepMs =
 
 std::uint32_t TickCountMs(Core::Duration now)
 {
-    // El cast a 32 bits sin signo es la vuelta del DWORD: está definido, módulo 2^32.
-    const auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(TickStart(now));
+    // floor y no duration_cast, que trunca hacia 0: con `now` negativo (solo el FakeClock) el tick
+    // -1 lee -16 y no -15, y la grilla sigue la misma cuenta, floor(tick × 15,625), a los dos
+    // lados del 0. El cast a 32 bits sin signo es la vuelta del DWORD: está definido, módulo 2^32.
+    const auto milliseconds = std::chrono::floor<std::chrono::milliseconds>(TickStart(now));
     return static_cast<std::uint32_t>(milliseconds.count());
 }
 

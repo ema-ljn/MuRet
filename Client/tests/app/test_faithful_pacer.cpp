@@ -73,6 +73,22 @@ TEST(FaithfulPacerTest, TickCountMsFollowsTheGrid)
     EXPECT_EQ(TickCountMs(FaithfulTick - 1ns), 0u);
 }
 
+// Debajo de 0, que solo da el FakeClock, la grilla sigue la misma cuenta, floor(tick × 15,625):
+// el tick -1 lee -16 y no -15 (duration_cast truncaría hacia 0 y la espejaría), y de un tick al
+// siguiente siempre hay 15 o 16 ms, también cruzando el 0.
+TEST(FaithfulPacerTest, TickCountMsFollowsTheGridBelowZero)
+{
+    const std::vector<std::int32_t> expected{-63, -47, -32, -16, 0, 15, 31, 46, 62};
+    for (std::size_t i = 0; i < expected.size(); ++i)
+    {
+        const std::int64_t tick = static_cast<std::int64_t>(i) - 4;
+        EXPECT_EQ(TickCountMs(tick * FaithfulTick), static_cast<std::uint32_t>(expected[i])) << "tick " << tick;
+    }
+    // Entre dos ticks lee el anterior, también debajo de 0.
+    EXPECT_EQ(TickCountMs(-1ns), static_cast<std::uint32_t>(-16));
+    EXPECT_EQ(TickCountMs(-FaithfulTick - 1ns), static_cast<std::uint32_t>(-32));
+}
+
 // Cada frame espera 3 ticks: 64 frames son 192 ticks, 3 s justos (21,33 FPS).
 TEST(FaithfulPacerTest, SixtyFourFramesEveryThreeSeconds)
 {

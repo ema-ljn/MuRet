@@ -1302,11 +1302,25 @@ public:
 } // namespace Client::Tests
 ```
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, a mano: el serial de cada C3 que
+- [x] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, a mano: el serial de cada C3 que
   manda el cliente desde que abre el GS hasta el tercer keepalive (el login, el primer keepalive y
   dos más), y qué pasa con el serial de recepción si llega un C3 con el checksum malo y después
-  uno bueno.
-- [ ] **Paso 2 (PR A):** los tests, con claves sintéticas:
+  uno bueno. Lo resolvió Claude:
+
+  | Qué | El serial de envío | El de recepción |
+  | --- | --- | --- |
+  | `Open` al GS | 0 (`PacketSerials::Reset`) | espera el 0 |
+  | el login, el primer C3 | 0 | |
+  | el primer keepalive | 1 | |
+  | el segundo y el tercero | 2 y 3 | |
+  | un C3 del GS con el checksum malo (el GS le puso el 0) | | no se despacha: `SkipReceive`, espera el 1 sin mirar el que trajo |
+  | el C3 bueno que sigue (con el 1) | | `InOrder`; espera el 2 |
+
+  Lo que sale en claro no gasta serial. El `F1 03` que manda la sesión con un checksum malo es un
+  C3 y toma el siguiente: si llega entre el login y el primer keepalive, el keepalive sale con el
+  2. Si el GS no hubiera gastado el 0 en el malo y mandara el bueno con el 0, ese sería
+  `Resynced`, con un aviso, y desde ahí se esperaría el 1.
+- [x] **Paso 2 (PR A):** los tests, con claves sintéticas:
   - `ConnectionTest.EncryptsWhatGoesEncrypted` (un C1 `Encrypted` sale como C3 y, descifrado con
     la clave del servidor, es el mismo C1 con serial 0; el siguiente, serial 1);
   - `ConnectionTest.DecryptsWhatArrivesEncrypted` (un C3 del servidor sale como el C1 rearmado);
@@ -1317,7 +1331,57 @@ public:
   - `ConnectionTest.AnEncryptedPacketWithoutKeysIsUndecryptable` (un C3 en la conexión del CS: un
     `Undecryptable`, y la conexión sigue `Open`);
   - `ConnectionTest.WithFoxAntiWhatArrivesFromTheGameServerIsUnmasked` (un C1 con el `0xAA`).
-- [ ] **Paso 3 (PR A):** el cifrado en `Connection`.
+
+  Hechos en el PR A, con lo que cambió al escribirlos:
+  - `WithFoxAntiWhatArrivesFromTheGameServerIsUnmasked` ya estaba, de la CL4.3: la máscara es del
+    corte. Lo de los C3 es `WithFoxAntiWhatArrivesEncryptedIsUnmaskedDecryptedAndTranslated`: el
+    `0xAA` se saca en el corte, después se descifra, y lo descifrado pasa por `BeforeDispatch` (un
+    `F3 11` recibe su byte).
+  - `AnEncryptedPacketIsNotDelivered` y `AnEncryptedSendDoesNotLeave`, de la CL4.3, son
+    `AnEncryptedPacketWithoutKeysIsUndecryptable` y `AnEncryptedSendWithoutKeysDoesNotLeave`.
+  - Los tests no comparan lo cifrado: lo que salió se corta y se descifra con la clave sintética
+    del servidor (`SimpleModulusKeys.h`), y se compara con `SameBytesWithoutValues`; lo que llega
+    lo cifra el test con la otra.
+  - Se sumaron, en `ConnectionTest`: `WhatIsEncryptedWhileConnectingLeavesWhenItOpens`,
+    `OpeningWithoutKeysForgetsTheOldOnes`, `AnEncryptedPacketThatIsNotWholeBlocksIsUndecryptable`,
+    `ASerialOutOfOrderIsResyncedOnce` (un aviso, una vez), `WithFoxAntiWhatIsEncryptedIsRemapped`
+    (el `BeforeEncrypt`: el `0x10` llega al GS como `0x1D`), `ThePaddingComesFromTheSeededGenerator`
+    y `APacketThatDoesNotEncryptDoesNotLeave` (un C2 que como C4 pasaría de `MaxPacketSize`: no
+    sale y no gasta serial); `CryptoErrorTest.EveryErrorHasItsOwnText`;
+    `ServerSessionTest.AnUndecryptablePacketIsIgnored`; y, contra el cable del laboratorio con las
+    claves reales, `GoldenConnection.DeliversWhatTheGameServerAnswered` (los 25 C3/C4 del GS, en 7
+    conexiones, salen como los dan `DecryptPacket` y el `BeforeDispatch` de FoxAnti) y
+    `GoldenConnection.EncryptsLikeTheClient` (los 183 C3 del cliente, descifrados y mandados otra
+    vez, salen con la cabecera y los bloques del cable menos el último, que lleva el relleno). Los
+    dos usan una sola `Connection` y la abren de nuevo en cada conexión del log, y cuentan sin
+    imprimir bytes.
+  - Diecisiete mutantes a mano de `Connection.cpp` (`Open` sin guardar las claves, o guardándolas
+    solo si hay, o sin volver los seriales a 0; un cifrado que falla y sale igual; cifrar sin la
+    ofuscación; el relleno en 0 o con el byte de arriba; lo descifrado sin `BeforeDispatch`; el
+    `Undecryptable` que no sale o sin su error; el `Resynced` sin aviso o el aviso también en
+    orden; sin claves, sin aviso al recibir o el `Encrypted` que sale en claro; un C3 que pasa sin
+    descifrar; lo `Clear` cifrado también): los mata algún test.
+- [x] **Paso 3 (PR A):** el cifrado en `Connection`. Lo que se decidió al escribirlo, y lo que
+  cambió respecto de la interfaz de la CL4.3:
+  - `Undecryptable` lleva un `std::optional<Crypto::CryptoError>`, y no un `CryptoError` a secas:
+    `std::nullopt` es un C3/C4 en una conexión sin claves (la del CS). Ningún `CryptoError` dice
+    eso, y sumarle uno al enum del cifrado lo mezclaría con los de la clave. La PR B manda el
+    `F1 03` solo con `ChecksumMismatch` o `NotWholeBlocks`, como dice el contrato.
+  - El aviso de un `Undecryptable` lo deja la conexión, uno por paquete, y la sesión no lo repite.
+    Dice el tipo del cable (de un C3/C4, nunca el opcode, que va cifrado) y el error en palabras:
+    `Crypto::CryptoErrorText`, en un `CryptoError.cpp` nuevo. Un `Resynced` deja un aviso cada vez
+    que pasa: como `PacketSerials` se resincroniza, un desfase da uno solo.
+  - El relleno es el byte de abajo de cada número del `std::mt19937`: el motor lo fija el
+    estándar, así la serie es la misma con cualquier biblioteca (`std::uniform_int_distribution`
+    no). Se saca uno por paquete que se intenta cifrar.
+  - Lo que va `Encrypted` se cifra en `Send`, con el serial de ese momento, y espera cifrado en la
+    cola si la conexión todavía conecta. Si `EncryptPacket` falla, no sale, con un aviso que dice
+    el tipo, el opcode y el error, y la conexión sigue. Sin claves, el aviso de la CL4.3 dice
+    "esta conexión no tiene claves".
+  - `Open` toma las claves por valor y se las queda, y volver a abrir sin claves se olvida de las
+    de antes. La `ServerSession` abre las dos conexiones con `std::nullopt` hasta que la PR B
+    cargue las del GS, y no hace nada con un `Undecryptable`: su `std::visit` (de la revisión de
+    la CL4.3, PR B) no compilaba sin ese caso.
 - [ ] **Paso 4 (PR B y PR C):** los tests de la sesión:
   - `ServerSessionTest.ConnectsToTheGameServerItWasGiven` (después del `F4 03`, `connects` tiene el
     endpoint del GS);

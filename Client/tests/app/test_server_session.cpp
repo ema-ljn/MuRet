@@ -72,6 +72,9 @@ constexpr std::uint16_t GamePort = 55901;
 // Lo que mide el host en la respuesta F4 03 (04 § El flujo de conexión).
 constexpr std::size_t AddressHostSize = 16;
 
+// La semilla del relleno de lo que cifra la conexión: fija.
+constexpr std::uint32_t PaddingSeed = 1;
+
 // El código de servidor del 0 del laboratorio, como lo deja FoxAnti (el 0 más su delta, 400).
 constexpr std::uint16_t LabServerCode = 400;
 
@@ -143,7 +146,7 @@ SessionSettings Settings()
 // Una sesión con su conexión y lo que la rodea. La ofuscación es de quien la arma y vive más.
 struct Harness
 {
-    explicit Harness(const IObfuscation& obfuscation) : connection(socket, obfuscation, clock, log) {}
+    explicit Harness(const IObfuscation& obfuscation) : connection(socket, obfuscation, clock, log, PaddingSeed) {}
 
     // Las líneas de aviso, enteras.
     [[nodiscard]] Lines Warnings() const
@@ -466,6 +469,23 @@ TEST(ServerSessionTest, AListOutOfTurnIsIgnored)
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
     EXPECT_TRUE(SameBytes(tested.socket.sent, sent));
     EXPECT_EQ(tested.Warnings(), Lines{"[warning] se ignora la lista de servidores (F4 06): llegó fuera de turno"});
+}
+
+// La conexión con el ConnectServer no tiene claves: un C3 que llega es Undecryptable. La sesión no
+// hace nada con él (el aviso es el de la conexión, uno solo) y lo que sigue en el lote se despacha.
+TEST(ServerSessionTest, AnUndecryptablePacketIsIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
+
+    tested.socket.reads = {Join({Bytes({0xC3, 0x05, 0x11, 0x22, 0x33}), ServerList({LabServerCode})})};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
+    EXPECT_EQ(tested.session.Failure(), std::nullopt);
+    EXPECT_TRUE(SameBytes(tested.socket.sent,
+                          Join({PetInfoRequest(), ListRequest(), Bytes({0xC1, 0x06, 0xF4, 0x03, 0x90, 0x01})})));
+    EXPECT_EQ(tested.Warnings(), Lines{"[warning] se descarta un C3 que llegó: esta conexión no tiene claves"});
 }
 
 // Una lista que dice dos servidores y trae uno no se lee: se ignora con un aviso, y la sesión

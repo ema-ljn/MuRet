@@ -74,6 +74,9 @@ void ServerSession::Poll()
             Overloaded{
                 [this](const Network::Opened&) { OnOpened(); },
                 [this](const Network::Packet& packet) { OnPacket(packet); },
+                // Ya tiene su aviso, de la conexión. El F1 03 que el original manda con un checksum
+                // malo es de la sesión con el GameServer (CL4.4, PR B).
+                [](const Network::Undecryptable&) {},
                 [this](const Network::Closed& closed) { OnClosed(closed.reason); },
             },
             event);
@@ -197,9 +200,10 @@ void ServerSession::OnServerAddress(const Network::Packet& packet)
     m_state = SessionState::ConnectingGameServer;
 }
 
+// Sin claves todavía: las del GameServer las suma la CL4.4, PR B, con el login.
 void ServerSession::Connect(const ServerAddress& address)
 {
-    m_connection.Open(address.host, address.port);
+    m_connection.Open(address.host, address.port, std::nullopt);
     ++m_generation;
 }
 

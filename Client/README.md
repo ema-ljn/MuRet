@@ -67,6 +67,79 @@ original, VSync apagado), da 21,33 FPS y 25 pasos por segundo. En Windows queda 
 En Windows: `cmake --preset windows-x64`, `cmake --build --preset windows-x64-debug` y
 `build\windows-x64\Client\Debug\Main.exe`.
 
+## Correr y configurar `Main`
+
+Lo que depende del lugar (el servidor, la carpeta de datos, el video) sale de la línea de comandos
+o de `muret-client.ini`: la línea de comandos pisa la config, y la config, los valores por
+defecto. Todo se valida antes de abrir la ventana: un error termina `Main` con un mensaje que
+empieza con `MuRet:` y nombra la opción, la clave o la ruta, sin abrir nada. Sin argumentos ni
+config, `Main` corre con los valores por defecto, como en CI.
+
+| Opción | Qué hace |
+| --- | --- |
+| `connect /u<host> /p<puerto>` | el servidor, como lo pasa el launcher. `connect` es opcional, las letras van en mayúscula o minúscula y en cualquier orden. El puerto va de 1 a 65535, y el host, de 1 a 255 bytes, sin espacios ni caracteres de control (Q-C37). Uno sin el otro, o uno repetido, es un error (Q-C36), y `/y` y `/z`, también |
+| `--config <ruta>` | lee esa config en vez de `muret-client.ini`; si no existe, es un error que la nombra |
+| `--data <ruta>` | la carpeta de datos del cliente original, en vez de `[Data] Path`; si no existe, es un error que la nombra (Q-C35) |
+
+Las rutas de `--config` y `--data` se toman desde la carpeta actual, como cualquier argumento.
+Por ejemplo:
+
+```bash
+./build/linux-x64-debug/Client/Main connect /u127.0.0.1 /p44405 --data /ruta/a/Data
+./build/linux-x64-debug/Client/Main --config ~/mu/otra.ini
+```
+
+Hasta la CL4, el servidor solo se valida: todavía no se conecta, y sin host no es un error.
+
+### `muret-client.ini`
+
+`Main` lo busca junto al ejecutable (la carpeta que da `SDL_GetBasePath`), no en la carpeta
+actual. Si no está, usa los valores por defecto; con `--config`, el archivo tiene que existir.
+Todas las claves son opcionales:
+
+```ini
+[Server]
+Host = 127.0.0.1         ; de 1 a 255 bytes, sin espacios
+Port = 44405             ; de 1 a 65535
+
+[Data]
+Path = C:\MU\Data        ; la carpeta de datos del cliente original
+
+[Video]
+Width = 640
+Height = 480
+VSync = on               ; on, adaptive u off
+Pacing = decoupled       ; decoupled o faithful
+
+[Log]
+Path = muret-client.log
+```
+
+| Clave | Por defecto | Qué es |
+| --- | --- | --- |
+| `[Server] Host` | ninguno | el host del ConnectServer; lo pide la red (CL4) |
+| `[Server] Port` | 44405 | el puerto del ConnectServer, el compilado en el original (`0x6d5dc4`) |
+| `[Data] Path` | ninguna | la carpeta `Data\` de una instalación del cliente original |
+| `[Video] Width`, `Height` | 640, 480 | el tamaño de la ventana al abrir, de 1 a 16384 |
+| `[Video] VSync` | `on`, y `off` en el modo fiel | como `--vsync`. Con `Pacing = faithful` (o `--pacing faithful`), `on` o `adaptive` es un error que nombra `Pacing` y `VSync` |
+| `[Video] Pacing` | `decoupled` | como `--pacing` |
+| `[Log] Path` | `muret-client.log` junto al ejecutable | el archivo del log |
+
+Una ruta relativa de la config (`[Data] Path`, `[Log] Path`) se toma desde la carpeta del
+ejecutable, no desde la actual. Un par de comillas dobles alrededor de una ruta o del host se saca
+(lo que da "Copiar como ruta" del Explorador). El archivo es UTF-8, con o sin BOM, y con fin de
+línea `\n` o `\r\n`.
+
+Las secciones, las claves y los valores de `VSync` y `Pacing` no distinguen mayúsculas. Un `;` al
+principio de la línea, o después de un espacio, empieza un comentario; `#` no. Son errores, y el
+mensaje dice el archivo y la línea (`muret-client.ini, línea 3: ...`):
+
+- una línea que no es `[Sección]` ni `Clave = valor`, o con texto después del `]`;
+- una sección o una clave que no existen, una clave antes de la primera sección, repetida o sin
+  valor;
+- un valor que no se puede leer (un puerto de 0, un `VSync = sometimes`, un `Width = 480px`);
+- una ruta o un host que no son UTF-8 o que tienen caracteres de control, y un `\r` sin `\n`.
+
 ## Tests
 
 ```bash

@@ -61,4 +61,9 @@ if(MURET_BUILD_TESTS)
     add_test(NAME Client.Main.RejectsBadPort COMMAND Main connect /u127.0.0.1 /p0)
     set_tests_properties(Client.Main.RejectsBadPort PROPERTIES
         PASS_REGULAR_EXPRESSION "el puerto va de 1 a 65535")
+    # Q-C35: una carpeta de datos que no existe se nombra, antes de SDL_Init (Resolve).
+    add_test(NAME Client.Main.NamesTheMissingDataFolder
+        COMMAND Main --data ${CMAKE_CURRENT_BINARY_DIR}/no-existe-esta-carpeta-de-datos)
+    set_tests_properties(Client.Main.NamesTheMissingDataFolder PROPERTIES
+        PASS_REGULAR_EXPRESSION "no existe la carpeta de datos .*no-existe-esta-carpeta-de-datos")
 endif()

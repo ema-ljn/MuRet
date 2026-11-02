@@ -220,12 +220,7 @@ Core::Expected<CommandLine, std::string> ParseCommandLine(std::span<const std::s
     {
         commandLine.connect = ServerAddress{std::move(*host), *port};
     }
-    // En el modo fiel VSync va apagado, como el original: con VSync a 60 Hz, la espera de 46,875 ms
-    // se engancharía a la grilla de 16,67 ms. Con la config, lo mira también Resolve.
-    if (commandLine.pacing == PacingMode::Faithful && commandLine.vsync && *commandLine.vsync != VSyncMode::Off)
-    {
-        return Unexpected(std::string("--pacing faithful necesita --vsync off: el original no pide VSync"));
-    }
+    // Que el modo fiel vaya sin VSync lo mira Resolve, con la config y la línea de comandos juntas.
     return commandLine;
 }
 } // namespace Client::App

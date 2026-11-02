@@ -43,7 +43,7 @@ struct CommandLine
     std::optional<std::filesystem::path> dataPath;
 };
 
-// Lee los argumentos, sin el nombre del programa (argv[1..]). Si alguno está mal, o si piden el
-// modo fiel con un VSync que no es off, devuelve el mensaje para el usuario.
+// Lee los argumentos, sin el nombre del programa (argv[1..]). Si alguno está mal, devuelve el
+// mensaje para el usuario. Las combinaciones (el modo fiel sin VSync) las mira Resolve (Config.h).
 Core::Expected<CommandLine, std::string> ParseCommandLine(std::span<const std::string_view> arguments);
 } // namespace Client::App

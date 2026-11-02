@@ -133,20 +133,11 @@ TEST(CommandLineTest, ParsesStats)
 }
 
 // En el modo fiel VSync va apagado, como el original: el mensaje nombra las dos opciones.
-TEST(CommandLineTest, FaithfulWithVSyncOnIsAnError)
+// La regla del modo fiel sin VSync la mira Resolve (ConfigTest.FaithfulWithVSyncOnIsAnError).
+TEST(CommandLineTest, LeavesTheFaithfulRuleToResolve)
 {
-    for (const std::string_view vsync : {"on", "adaptive"})
-    {
-        std::string error;
-        EXPECT_FALSE(Parse({"--pacing", "faithful", "--vsync", vsync}, error).has_value()) << vsync;
-        EXPECT_NE(error.find("--pacing faithful"), std::string::npos) << error;
-        EXPECT_NE(error.find("--vsync"), std::string::npos) << error;
-    }
-
     std::string error;
-    EXPECT_TRUE(Parse({"--vsync", "off", "--pacing", "faithful"}, error).has_value()) << error;
-    EXPECT_TRUE(Parse({"--pacing", "faithful"}, error).has_value()) << error;
-    EXPECT_TRUE(Parse({"--pacing", "decoupled", "--vsync", "on"}, error).has_value()) << error;
+    EXPECT_TRUE(Parse({"--pacing", "faithful", "--vsync", "on"}, error).has_value()) << error;
 }
 
 TEST(CommandLineTest, AcceptsConnectWithHostAndPort)

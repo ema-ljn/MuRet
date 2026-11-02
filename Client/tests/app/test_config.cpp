@@ -520,6 +520,27 @@ TEST(ConfigTest, FaithfulWithVSyncOnIsAnError)
     const auto mixed = Resolve(exeFolder.Path(), commandLine);
     ASSERT_FALSE(mixed.HasValue());
     EXPECT_EQ(mixed.Error(), fromConfig.Error());
+
+    // Solo con la línea de comandos (la regla de la CL3.2): el mensaje nombra las dos opciones.
+    const TempFolder empty;
+    for (const VSyncMode vsync : {VSyncMode::On, VSyncMode::Adaptive})
+    {
+        CommandLine both;
+        both.pacing = PacingMode::Faithful;
+        both.vsync = vsync;
+        const auto config = Resolve(empty.Path(), both);
+        ASSERT_FALSE(config.HasValue());
+        EXPECT_NE(config.Error().find("--pacing faithful"), std::string::npos) << config.Error();
+        EXPECT_NE(config.Error().find("--vsync"), std::string::npos) << config.Error();
+    }
+    CommandLine off;
+    off.pacing = PacingMode::Faithful;
+    off.vsync = VSyncMode::Off;
+    EXPECT_TRUE(Resolve(empty.Path(), off).HasValue());
+    CommandLine decoupled;
+    decoupled.pacing = PacingMode::Decoupled;
+    decoupled.vsync = VSyncMode::On;
+    EXPECT_TRUE(Resolve(empty.Path(), decoupled).HasValue());
 }
 
 // El test del 02 y Q-C35: el original salía sin avisar si no encontraba lo suyo.

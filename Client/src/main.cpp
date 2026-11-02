@@ -1,4 +1,5 @@
 #include "App/CommandLine.h"
+#include "App/Config.h"
 #include "App/GameLoop.h"
 #include "App/ILoopClient.h"
 #include "App/PacingMode.h"
@@ -6,6 +7,7 @@
 #include "App/WindowState.h"
 #include "Core/IClock.h"
 #include "Input/InputState.h"
+#include "Platform/BasePath.h"
 #include "Platform/GlLoader.h"
 #include "Platform/SdlClock.h"
 #include "Platform/SdlContext.h"
@@ -16,6 +18,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <string>
@@ -178,7 +181,22 @@ int main(int argc, char** argv)
         std::fprintf(stderr, "MuRet: %s\n", commandLine.Error().c_str());
         return EXIT_FAILURE;
     }
-    const App::PacingMode pacing = commandLine.Value().pacing.value_or(App::PacingMode::Decoupled);
+    // La config se resuelve antes de SDL_Init: un puerto malo o una carpeta de datos que no
+    // existe terminan acá, sin abrir la ventana. Sin la carpeta del ejecutable, la actual.
+    const auto exeFolder = Platform::ExecutableFolder();
+    if (!exeFolder.HasValue())
+    {
+        std::fprintf(stderr, "MuRet: %s; busco la config en la carpeta actual\n", exeFolder.Error().c_str());
+    }
+    const auto resolved =
+        App::Resolve(exeFolder.HasValue() ? exeFolder.Value() : std::filesystem::path(), commandLine.Value());
+    if (!resolved.HasValue())
+    {
+        std::fprintf(stderr, "MuRet: %s\n", resolved.Error().c_str());
+        return EXIT_FAILURE;
+    }
+    const App::ClientConfig& config = resolved.Value();
+    const App::PacingMode pacing = config.pacing;
 
     const Client::Core::Expected<std::unique_ptr<Platform::SdlContext>, std::string> sdl =
         Platform::SdlContext::Create();
@@ -188,9 +206,10 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
     Platform::WindowOptions options;
-    // Sin --vsync, On; en el modo fiel, Off como el original (ParseCommandLine ya rechazó otro).
-    const App::VSyncMode defaultVSync = pacing == App::PacingMode::Faithful ? App::VSyncMode::Off : App::VSyncMode::On;
-    options.vsync = commandLine.Value().vsync.value_or(defaultVSync);
+    options.width = config.width;
+    options.height = config.height;
+    // Resolve siempre lo deja puesto: On en el modo normal y Off en el fiel, si no se dio.
+    options.vsync = config.vsync.value_or(App::VSyncMode::On);
     Client::Core::Expected<Platform::Window, std::string> created = Platform::Window::Create(*sdl.Value(), options);
     if (!created.HasValue())
     {

@@ -1235,13 +1235,16 @@ se declara después del `Log` en `main`, así se destruye antes.
     `TheCommandLineWins` (`/u... /p...` pisa `[Server]`, `--pacing faithful` pisa `Pacing`),
     `FaithfulWithVSyncOnIsAnError` (nombra `Pacing` y `VSync`), `AMissingDataFolderNamesIt` (el
     test del 02 y Q-C35), `NoDataFolderIsNotAnError` y `NoHostIsNotAnError` (lo pide la CL4).
-- [ ] **Paso 4 (PR A):** `ParseCommandLine`, `ParseConfig` y `Resolve`. `main.cpp`: argumentos y
+- [x] **Paso 4 (PR A):** `ParseCommandLine`, `ParseConfig` y `Resolve`. `main.cpp`: argumentos y
   config, y recién después SDL y la ventana.
 
   Hecho (fase 2a): `ParseCommandLine` devuelve `Core::Expected<CommandLine, std::string>`, y
   `ParseConfig` y `Resolve` están. Las rutas de `--config` y `--data` son de la carpeta actual y
   se leen en la codificación del sistema (la de `argv`); las de la config, en UTF-8 y desde la
-  carpeta del ejecutable. **Límite conocido en Windows:** `main.cpp` no usa `SDL_main.h`, así que
+  carpeta del ejecutable. Fase 2b: `main.cpp` llama a `Resolve` antes de `SDL_Init`, con la
+  carpeta de `Platform::ExecutableFolder` (`SDL_GetBasePath`, `Platform/BasePath.h`; sin ella, la
+  actual), y la config da el tamaño, el VSync y el pacing. La regla del modo fiel quedó solo en
+  `Resolve` (`ConfigTest.FaithfulWithVSyncOnIsAnError`). **Límite conocido en Windows:** `main.cpp` no usa `SDL_main.h`, así que
   `argv` llega en la página ANSI: lo que no entra en ella ya llega cambiado por `?`
   (`C:\Users\Łukasz` en la 1252), y el CRT lee `"C:\MU\Data\"` como `C:\MU\Data"`, porque la `\`
   antes de la comilla la escapa. No se arregla en la CL3.4; el arreglo es leer la línea con
@@ -1249,15 +1252,13 @@ se declara después del `Log` en `main`, así se destruye antes.
   `Resolve` lee la config sin excepciones, con un tope de `MaxConfigBytes` (64 KiB), y solo un
   archivo que no está da los valores por defecto: una carpeta, un permiso o un archivo de más
   son errores que lo dicen. `ParseCommandLine` sigue rechazando `--pacing faithful --vsync on`
-  (CL3.2), y `Resolve` mira la misma regla con la config. Falta `main.cpp`: llama a
-  `ParseCommandLine`, pero `Resolve` (con `SDL_GetBasePath`) entra en la fase 2b, sobre la CL3.1.
-- [ ] **Paso 5 (PR A):** CTest de `Main` sin ventana (fallan antes de `SDL_Init`):
+  (CL3.2) en la fase 2a; en la 2b esa regla pasó a `Resolve`.
+- [x] **Paso 5 (PR A):** CTest de `Main` sin ventana (fallan antes de `SDL_Init`):
   `Client.Main.RejectsBadPort` (`Main connect /u127.0.0.1 /p0`, la salida dice "el puerto va de 1 a
   65535") y `Client.Main.NamesTheMissingDataFolder` (`Main --data <carpeta que no existe>`, la
   salida trae la ruta). El paso de Xvfb del CI sigue sin config ni datos.
 
-  `Client.Main.RejectsBadPort` está (fase 2a); `NamesTheMissingDataFolder` necesita `Resolve` en
-  `main.cpp` (fase 2b).
+  Hechos: `Client.Main.RejectsBadPort` (fase 2a) y `NamesTheMissingDataFolder` (fase 2b).
 - [ ] **Paso 6 (PR B):** los tests: `LogTest.WritesTheLevelAndTheMessage` (con un `LogSink` de
   prueba que guarda las líneas: `Info("hola {}", 1)` da `[info] hola 1`),
   `BelowTheMinimumIsNotWritten`, `EachLevelHasItsPrefix`, `TeeSinkWritesBoth`.

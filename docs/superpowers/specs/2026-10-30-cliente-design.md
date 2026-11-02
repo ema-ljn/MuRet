@@ -83,7 +83,7 @@ La regla guía es la del servidor: el **contrato** (wire + archivos de datos) se
 | D-C7 | Datos | cargadores que escriben globales; `MessageBox` si falta algo | funciones puras bytes → tipos, errores como valor con un `Expected` propio (decidido por Emanuel el 2026-11-01, L-3 del camino); los assets no se versionan | testear sin ventana; datos de prueba sin violar derechos |
 | D-C8 | Quirks | se replican tal cual | contrato de datos se reproduce; bugs internos se corrigen con test viejo/nuevo (regla de [07](../../../Client/docs/research/07-quirks-y-bugs.md)) | distinguir contrato de accidente |
 | D-C9 | Tests | — | GoogleTest; los de datos reales leen `MURET_CLIENT_GOLDEN_DIR`, una carpeta con el contenido de `Data\` (por ejemplo `analysis/decompilacion-maxima/assets/original-data` de `mu-online-reverse-lab`). Sin la variable, se saltean; si apunta a una carpeta que no existe o le falta el archivo pedido, fallan (CL0.2) | oráculos sin meter assets al repo |
-| D-C10 | Config | registro de Windows + `connect /u<ip> /p<puerto>` | archivo de config + argumentos; se sigue aceptando `connect /u /p` | nada hardcodeado |
+| D-C10 | Config | registro de Windows; el ConnectServer viene compilado y el launcher lo puede cambiar por el registro; los argumentos no se leen, y el parser de `/u /p` está sin usar ([02](../../../Client/docs/research/02-arranque-y-ciclo-de-vida.md#del-launcher-al-juego)) | archivo de config + argumentos; se acepta `connect /u<ip> /p<puerto>`, como se lo lanza en el laboratorio | nada hardcodeado |
 | D-C11 | Resolución | 640 × 480 de referencia | la UI se diseña en 640 × 480 y se escala a la ventana real; resoluciones y pantallas anchas modernas | separar coordenadas lógicas de físicas |
 | D-C12 | Texto | GDI → textura, caché por texto, IME coreano | FreeType o SDL3_ttf → textura, la misma caché; se conserva el byte `0x02` de color | rasterizado de fuentes, UTF-8 |
 | D-C13 | Audio | `wzAudio.dll` (derivado de CoolPlayer 215: MP3 y Ogg) + DirectSound (WAV) | audio de SDL3 detrás de `Audio::`, con decodificadores de MP3, Ogg y WAV de terceros; la ABI de `wzAudio` es el contrato de comportamiento (volumen, posición, ecualizador) | mezcla de audio, streaming |
@@ -198,7 +198,7 @@ Cada sub-ola es un PR chico. "Terminada cuando" es la condición objetiva de cie
 | Ola | Tema | Sub-olas (un PR cada una) | Conceptos | Research |
 | --- | --- | --- | --- | --- |
 | CL0 | Fundaciones del cliente | CL0.1 esqueleto `Client/` + este roadmap + el research (este PR) · CL0.2 `ClientLib` + `ClientTests` y la opción `MURET_CLIENT_GOLDEN_DIR` (trae ella misma vcpkg y GoogleTest, sin esperar la 0.2 del servidor) · CL0.3 SDL3 con OpenGL 3.3 core y su loader, CI que compila y testea en Windows y Linux | targets, dependencias, tests salteables | 01 |
-| CL1 | Formatos sin ventana | CL1.0 la 1.0 con material del cliente (bytes, endianness, archivos binarios) y el `Expected` propio · CL1.1 XOR3, checksum y `Text.bmd` · CL1.2 `Item`, `Skill` y `Gate.bmd` · CL1.3 terreno: K16, `.map`, `.att`, `.obj`, alturas · CL1.4 texturas OZT y OZJ · CL1.5 `message.wtf` | lectura de formatos, errores como valor, tests golden | 05, 07 |
+| CL1 | Formatos sin ventana | CL1.0 la 1.0 con material del cliente (bytes, endianness, archivos binarios) y el `Expected` propio · CL1.1 XOR3, checksum y `Text.bmd` · CL1.2 `Item`, `Skill` y `Gate.bmd` · CL1.3 terreno: K16, `.map`, `.att`, `.obj`, alturas · CL1.4 texturas OZT y OZJ · ~~CL1.5 `message.wtf`~~ (salió: es del launcher, y `main.exe` no lo lee) | lectura de formatos, errores como valor, tests golden | 05, 07 |
 | CL2 | Protocolo sin red | CL2.1 `PacketReader` C1/C2/C3/C4 · CL2.2 `PacketWriter` + XOR32 · CL2.3 `SimpleModulus` y `Enc1`/`Dec2.dat`, seriales · CL2.4 `Obfuscation` (identidad y FoxAnti) · CL2.5 structs del login: `F4 02`, `F1 01`, `0x0E` | máquinas de estado, cifrado por bloques, bits MSB primero | 03, 04, 07 |
 | CL3 | Plataforma y bucle de juego | CL3.0 el bucle de juego (paso fijo, interpolación, VSync) · CL3.R qué depende del paso de 40 ms (P-C03) · CL3.1 ventana y contexto GL con SDL3 · CL3.2 bucle con tick fijo y render desacoplado, con reloj falso en los tests · CL3.3 input (teclado por frame, mouse) · CL3.4 config + línea de comandos + log | game loop, tiempo, eventos del SO | 02, 08 |
 | CL4 | Red del cliente | CL4.1 socket no bloqueante portable consultado por el bucle · CL4.2 ConnectServer: saludo, lista, IP del GS · CL4.3 GameServer: saludo, versión y login · CL4.4 keepalive, desconexión y cola de envío · CL4.5 `Dispatcher` y el opcode desconocido | E/S no bloqueante, estados de una conexión | 03, 04 |
@@ -248,6 +248,11 @@ efectos.
 ## Fuera de alcance
 
 - El anticheat de FoxAnti y del propio `main.exe`.
+- El launcher (`mu.exe`) y lo suyo: el auto-update, `mumsg.dll` y `message.wtf`, el paso de
+  `WinMain` que termina la actualización (`0x4b96b0`,
+  [05](../../../Client/docs/research/05-formatos-de-datos.md#el-pipeline-de-las-dlls)) y el
+  servidor que deja en el registro para el juego (`wzPopLaunchInfo`,
+  [02](../../../Client/docs/research/02-arranque-y-ciclo-de-vida.md#del-launcher-al-juego)).
 - Versionar assets del juego o distribuir un cliente jugable con datos.
 - Funciones de clientes posteriores al 1.02 (Season 6, MU Helper, tienda).
 - Cambiar quién escribe la lógica del cliente: sigue siendo Emanuel.

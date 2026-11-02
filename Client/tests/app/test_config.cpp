@@ -6,6 +6,8 @@
 #include <string>
 #include <string_view>
 
+using namespace std::string_view_literals;
+
 // Client::App::ParseConfig: el texto de muret-client.ini (CL3.4). Resolve, que abre el archivo y
 // junta la config con la línea de comandos, tiene sus tests más abajo cuando entre.
 namespace
@@ -13,6 +15,7 @@ namespace
 using Client::App::ConfigError;
 using Client::App::DefaultConnectPort;
 using Client::App::MaxHostBytes;
+using Client::App::MaxWindowSize;
 using Client::App::PacingMode;
 using Client::App::ParseConfig;
 using Client::App::VSyncMode;
@@ -94,7 +97,8 @@ TEST(ConfigTest, RejectsAnUnknownVSyncValue)
     EXPECT_EQ(error.message, "[Video] VSync: tiene que ser on, adaptive u off");
 }
 
-// La config es UTF-8: en Windows, una ruta leída como ANSI quedaría mal.
+// La config es UTF-8: en Windows, una ruta leída como ANSI quedaría mal. Solo distingue en
+// Windows: en Linux, path(std::string) y path(std::u8string) dan lo mismo.
 TEST(ConfigTest, ReadsAPathThatIsNotAscii)
 {
     const auto config = ParseConfig("[Data]\nPath = C:\\Juegos\\M\xC3\x9A\n[Log]\nPath = registro-\xC3\xB1.log\n");
@@ -157,7 +161,6 @@ TEST(ConfigTest, RejectsAnUnknownSectionOrKey)
     EXPECT_EQ(ErrorOf("[Server]\nHots = 10.0.0.1\n").line, 2u);
     // Una clave antes de la primera sección no es de ninguna.
     EXPECT_EQ(ErrorOf("Host = 10.0.0.1\n").message, "Host está antes de la primera sección");
-    EXPECT_EQ(ErrorOf("[Server\n").line, 1u);
 }
 
 TEST(ConfigTest, RejectsAKeyWithoutAValue)
@@ -191,11 +194,117 @@ TEST(ConfigTest, AcceptsAHostOf255BytesAndRejects256)
 TEST(ConfigTest, RejectsAHostWithSpaces)
 {
     EXPECT_EQ(ErrorOf("[Server]\nHost = 10.0.0.1 x\n").message, "[Server] Host: el host no puede tener espacios");
+    EXPECT_EQ(ErrorOf("[Server]\nHost = a\tb\n").message, "[Server] Host: el host no puede tener espacios");
 }
 
-TEST(ConfigTest, RejectsASizeThatIsNotPositive)
+TEST(ConfigTest, RejectsASizeOutOfRange)
 {
-    EXPECT_EQ(ErrorOf("[Video]\nWidth = 0\n").message, "[Video] Width: tiene que ser un número mayor que 0");
-    EXPECT_EQ(ErrorOf("[Video]\nHeight = 480px\n").message, "[Video] Height: tiene que ser un número mayor que 0");
+    const auto largest = ParseConfig("[Video]\nWidth = 16384\nHeight = 1\n");
+    ASSERT_TRUE(largest.HasValue());
+    EXPECT_EQ(largest.Value().width, MaxWindowSize);
+    EXPECT_EQ(largest.Value().height, 1);
+
+    EXPECT_EQ(ErrorOf("[Video]\nWidth = 0\n").message, "[Video] Width: va de 1 a 16384");
+    EXPECT_EQ(ErrorOf("[Video]\nWidth = 16385\n").message, "[Video] Width: va de 1 a 16384");
+    EXPECT_EQ(ErrorOf("[Video]\nHeight = 2147483648\n").message, "[Video] Height: va de 1 a 16384");
+    EXPECT_EQ(ErrorOf("[Video]\nHeight = 480px\n").message, "[Video] Height: tiene que ser un número");
+    EXPECT_EQ(ErrorOf("[Video]\nHeight = -5\n").message, "[Video] Height: tiene que ser un número");
+}
+
+TEST(ConfigTest, ReadsEachVSyncAndPacingValue)
+{
+    EXPECT_EQ(ParseConfig("[Video]\nVSync = on\n").Value().vsync, VSyncMode::On);
+    EXPECT_EQ(ParseConfig("[Video]\nVSync = adaptive\n").Value().vsync, VSyncMode::Adaptive);
+    EXPECT_EQ(ParseConfig("[Video]\nVSync = off\n").Value().vsync, VSyncMode::Off);
+    EXPECT_EQ(ParseConfig("[Video]\nPacing = faithful\n").Value().pacing, PacingMode::Faithful);
+    // Decoupled es también el valor por defecto: se mira que no sea error.
+    const auto decoupled = ParseConfig("[Video]\nPacing = decoupled\n");
+    ASSERT_TRUE(decoupled.HasValue());
+    EXPECT_EQ(decoupled.Value().pacing, PacingMode::Decoupled);
+}
+
+TEST(ConfigTest, ReadsTheLastLineWithoutANewline)
+{
+    const auto config = ParseConfig("[Video]\nWidth = 800");
+
+    ASSERT_TRUE(config.HasValue());
+    EXPECT_EQ(config.Value().width, 800);
+}
+
+TEST(ConfigTest, TabsAreBlankAndSpacesInsideTheBracketsAreTrimmed)
+{
+    const auto config = ParseConfig("[ Server ]\n\tPort\t=\t1\t;\tc\n");
+
+    ASSERT_TRUE(config.HasValue());
+    ASSERT_TRUE(config.Value().server.has_value());
+    EXPECT_EQ(config.Value().server->port, 1);
+}
+
+TEST(ConfigTest, RemovesTheQuotesAroundAPathOrTheHost)
+{
+    const auto config = ParseConfig("[Data]\nPath = \"C:\\Program Files\\MU\"\n[Server]\nHost = \"10.0.0.1\"\n");
+
+    ASSERT_TRUE(config.HasValue());
+    EXPECT_EQ(config.Value().dataPath, std::filesystem::path("C:\\Program Files\\MU"));
+    EXPECT_EQ(config.Value().server->host, "10.0.0.1");
+
+    // Una comilla sola es parte del valor.
+    const auto single = ParseConfig("[Log]\nPath = \"muret.log\n");
+    ASSERT_TRUE(single.HasValue());
+    EXPECT_EQ(single.Value().logPath, std::filesystem::path("\"muret.log"));
+}
+
+TEST(ConfigTest, ReadsAPathWithSpaces)
+{
+    const auto config = ParseConfig("[Data]\nPath = C:\\Program Files\\MU\n");
+
+    ASSERT_TRUE(config.HasValue());
+    EXPECT_EQ(config.Value().dataPath, std::filesystem::path("C:\\Program Files\\MU"));
+}
+
+// Un ini guardado como ANSI: 0xDA es la Ú de Windows-1252, y sola no es UTF-8.
+TEST(ConfigTest, RejectsAPathOrHostThatIsNotUtf8)
+{
+    const ConfigError path = ErrorOf("[Data]\nPath = C:\\M\xDA\n");
+    EXPECT_EQ(path.line, 2u);
+    EXPECT_EQ(path.message, "[Data] Path: no es UTF-8");
+
+    EXPECT_EQ(ErrorOf("[Server]\nHost = \xDA\n").message, "[Server] Host: no es UTF-8");
+    // Una forma larga de más ("/" en dos bytes) y una mitad de UTF-16 (U+D800).
+    EXPECT_EQ(ErrorOf("[Log]\nPath = \xC0\xAF\n").message, "[Log] Path: no es UTF-8");
+    EXPECT_EQ(ErrorOf("[Log]\nPath = \xED\xA0\x80\n").message, "[Log] Path: no es UTF-8");
+}
+
+TEST(ConfigTest, RejectsControlCharacters)
+{
+    const ConfigError host = ErrorOf("[Server]\nHost = 10.0.0.1\0evil.com\n"sv);
+    EXPECT_EQ(host.line, 2u);
+    EXPECT_EQ(host.message, "[Server] Host: el host no puede tener caracteres de control");
+    EXPECT_EQ(ErrorOf("[Server]\nHost = a\x7F\n").message,
+              "[Server] Host: el host no puede tener caracteres de control");
+    EXPECT_EQ(ErrorOf("[Log]\nPath = a\x7F\n").message, "[Log] Path: la ruta no puede tener caracteres de control");
+
+    const ConfigError path = ErrorOf("[Data]\nPath = C:\\MU\0X\n"sv);
+    EXPECT_EQ(path.line, 2u);
+    EXPECT_EQ(path.message, "[Data] Path: la ruta no puede tener caracteres de control");
+}
+
+TEST(ConfigTest, RejectsACarriageReturnWithoutANewline)
+{
+    const ConfigError error = ErrorOf("[Server]\nPort = 1\n; x\r[Video]\rWidth = 0\r\n");
+
+    EXPECT_EQ(error.line, 3u);
+    EXPECT_EQ(error.message, "hay un \\r sin \\n: el fin de línea es \\n o \\r\\n");
+}
+
+TEST(ConfigTest, SaysWhatIsWrongWithALine)
+{
+    EXPECT_EQ(ErrorOf("[Server]\n= 5\n").message, "falta el nombre de la clave");
+    EXPECT_EQ(ErrorOf("[Server\n").message, "a la sección le falta el ]");
+    EXPECT_EQ(ErrorOf("[Server] x\n").message, "hay texto después del ] de la sección");
+    // `#` no es comentario (inih lo acepta; Config.h).
+    const ConfigError hash = ErrorOf("# comentario\n");
+    EXPECT_EQ(hash.line, 1u);
+    EXPECT_EQ(hash.message, "se esperaba [Sección] o Clave = valor");
 }
 } // namespace

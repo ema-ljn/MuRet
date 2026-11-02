@@ -27,21 +27,28 @@
 //   Path = muret-client.log
 //
 // Las secciones, las claves y los valores de VSync y Pacing no distinguen mayúsculas. Un `;` al
-// principio de la línea, o después de un espacio, empieza un comentario. Se acepta el BOM de UTF-8
-// y el fin de línea de Windows. Es error, y dice su línea: una línea que no es `[Sección]` ni
-// `Clave = valor`, una sección o una clave que no existen, una clave repetida o sin valor, y un
-// valor que no se puede leer.
+// principio de la línea, o después de un espacio, empieza un comentario; `#` no es comentario, y
+// una línea que empieza con `#` es error. Se acepta el BOM de UTF-8 y el fin de línea de Windows.
+// Un par de comillas dobles alrededor de una ruta o del host se saca (lo que da "Copiar como
+// ruta" del Explorador); una comilla sola queda como parte del valor. Es error, y dice su línea:
+// una línea que no es `[Sección]` ni `Clave = valor`, una sección o una clave que no existen, una
+// clave repetida o sin valor, un valor que no se puede leer, un \r sin \n, y una ruta o un host
+// con caracteres de control o que no son UTF-8.
 //
 // El parser es propio y no inih (CODING_RULES §10; paso 1 de la CL3.4 en el plan de la CL3). El
-// puerto de vcpkg (inih 62) compila con las opciones por defecto de su meson, y tres no sirven:
-// una línea de más de 199 bytes es error (max_line_length = 200, y el host llega a 255 bytes), una
-// línea con sangría sigue el valor de la clave anterior (multi-line_entries), y el INIReader de la
-// feature `cpp` junta las claves repetidas con "\n" y no da la línea de un valor malo. Con la API
-// de C se puede rechazar todo eso desde el handler, pero ini_parse da una sola línea para el
-// primer error de sintaxis y el primero del handler; separarlos lleva dos pasadas, más código que
-// este parser.
+// puerto de vcpkg (inih 62) compila con las opciones por defecto de su meson. Lo que lo descarta:
+// el largo de la línea se fija al compilar (max_line_length = 200) y el portfile no deja
+// cambiarlo, así que una línea de más de 198 bytes sin contar el fin de línea es error, y un
+// `Host = ` con 255 bytes (Q-C37) no entra por ninguna de sus dos API. Además, una línea con
+// sangría sigue el valor de la clave anterior (multi-line_entries), y el INIReader de la feature
+// `cpp` junta las claves repetidas con "\n" y no da la línea de un valor malo; esas dos se
+// podrían rechazar desde el handler de la API de C, pero no la primera.
 namespace Client::App
 {
+// El lado más grande de la ventana que acepta [Video]. No sale del original: con 16384, Width *
+// Height entra en un int (2^28), y sobra para un monitor de hoy (el 8K es 7680 × 4320).
+inline constexpr int MaxWindowSize = 16384;
+
 struct ClientConfig
 {
     // [Data] Path. Vacío: no se dio, y vale la carpeta por defecto.
@@ -49,7 +56,8 @@ struct ClientConfig
     // [Server] Host y Port. Vacío si no está ninguno de los dos; con uno solo, el otro queda en su
     // valor por defecto (host vacío, puerto DefaultConnectPort).
     std::optional<ServerAddress> server;
-    // [Video] Width y Height, 640 × 480 por defecto (la tabla de la CL3.4 en el plan de la CL3).
+    // [Video] Width y Height, de 1 a MaxWindowSize; 640 × 480 por defecto (la tabla de la CL3.4 en
+    // el plan de la CL3).
     int width = 640;
     int height = 480;
     // [Video] VSync. Vacío: lo decide Resolve (paso 4), según el Pacing.

@@ -49,7 +49,83 @@ constexpr std::array KnownKeys = {
 
 bool IsBlank(char c)
 {
-    return c == ' ' || c == '\t' || c == '\r';
+    return c == ' ' || c == '\t';
+}
+
+bool IsDigit(char c)
+{
+    return c >= '0' && c <= '9';
+}
+
+// Los de ASCII: del 0x00 al 0x1F y el 0x7F.
+bool IsControl(char c)
+{
+    const auto byte = static_cast<unsigned char>(c);
+    return byte < 0x20 || byte == 0x7F;
+}
+
+// UTF-8 bien formado: sin bytes sueltos, sin formas más largas de lo necesario, sin las mitades de
+// UTF-16 (U+D800 a U+DFFF) y sin pasar de U+10FFFF. Es lo que rechaza MultiByteToWideChar con
+// MB_ERR_INVALID_CHARS, que usa path en Windows: con un byte malo tiraría una excepción.
+bool IsUtf8(std::string_view text)
+{
+    std::size_t i = 0;
+    while (i < text.size())
+    {
+        const auto first = static_cast<unsigned char>(text[i]);
+        std::size_t length = 1;
+        std::uint32_t codePoint = first;
+        if (first >= 0xC2 && first <= 0xDF)
+        {
+            length = 2;
+            codePoint = first & 0x1Fu;
+        }
+        else if (first >= 0xE0 && first <= 0xEF)
+        {
+            length = 3;
+            codePoint = first & 0x0Fu;
+        }
+        else if (first >= 0xF0 && first <= 0xF4)
+        {
+            length = 4;
+            codePoint = first & 0x07u;
+        }
+        else if (first >= 0x80)
+        {
+            return false;
+        }
+        if (text.size() - i < length)
+        {
+            return false;
+        }
+        for (std::size_t k = 1; k < length; ++k)
+        {
+            const auto next = static_cast<unsigned char>(text[i + k]);
+            if ((next & 0xC0u) != 0x80u)
+            {
+                return false;
+            }
+            codePoint = (codePoint << 6) | (next & 0x3Fu);
+        }
+        if ((length == 3 && codePoint < 0x800) || (length == 4 && codePoint < 0x10000) ||
+            (codePoint >= 0xD800 && codePoint <= 0xDFFF) || codePoint > 0x10FFFF)
+        {
+            return false;
+        }
+        i += length;
+    }
+    return true;
+}
+
+// Saca un par de comillas dobles de alrededor, las que pone "Copiar como ruta" del Explorador.
+// Una comilla sola queda como parte del valor.
+std::string_view WithoutQuotes(std::string_view value)
+{
+    if (value.size() >= 2 && value.front() == '"' && value.back() == '"')
+    {
+        return value.substr(1, value.size() - 2);
+    }
+    return value;
 }
 
 char ToLowerAscii(char c)
@@ -105,11 +181,16 @@ std::size_t FindKey(std::string_view section, std::string_view name)
 
 Core::Expected<int, std::string> ParseSize(std::string_view value)
 {
-    int size = 0;
-    const auto [end, error] = std::from_chars(value.data(), value.data() + value.size(), size);
-    if (error != std::errc{} || end != value.data() + value.size() || size <= 0)
+    // Como en ParsePort: los dígitos se miran antes por el mensaje.
+    if (!std::ranges::all_of(value, IsDigit))
     {
-        return Unexpected(std::string("tiene que ser un número mayor que 0"));
+        return Unexpected(std::string("tiene que ser un número"));
+    }
+    int size = 0;
+    const auto result = std::from_chars(value.data(), value.data() + value.size(), size);
+    if (result.ec != std::errc{} || size == 0 || size > MaxWindowSize)
+    {
+        return Unexpected(std::format("va de 1 a {}", MaxWindowSize));
     }
     return size;
 }
@@ -145,9 +226,23 @@ Core::Expected<PacingMode, std::string> ParsePacing(std::string_view value)
 }
 
 // El archivo es UTF-8, y path(std::string) en Windows lee la página de códigos ANSI: una carpeta
-// con una letra que no sea ASCII quedaría mal. Como char8_t, path lo lee como UTF-8.
-std::filesystem::path PathFromUtf8(std::string_view text)
+// con una letra que no sea ASCII quedaría mal. Como char8_t, path lo lee como UTF-8; por eso el
+// texto se valida antes.
+Core::Expected<std::filesystem::path, std::string> ParsePath(std::string_view value)
 {
+    const std::string_view text = WithoutQuotes(value);
+    if (text.empty())
+    {
+        return Unexpected(std::string("la ruta está vacía"));
+    }
+    if (std::ranges::any_of(text, IsControl))
+    {
+        return Unexpected(std::string("la ruta no puede tener caracteres de control"));
+    }
+    if (!IsUtf8(text))
+    {
+        return Unexpected(std::string("no es UTF-8"));
+    }
     std::u8string utf8(text.size(), u8'\0');
     std::ranges::transform(text, utf8.begin(), [](char c) { return static_cast<char8_t>(c); });
     return std::filesystem::path(utf8);
@@ -159,11 +254,24 @@ std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view
     switch (key)
     {
     case Key::DataPath:
-        config.dataPath = PathFromUtf8(value);
+    case Key::LogPath:
+    {
+        const auto path = ParsePath(value);
+        if (!path.HasValue())
+        {
+            return path.Error();
+        }
+        (key == Key::DataPath ? config.dataPath : config.logPath) = path.Value();
         return std::nullopt;
+    }
     case Key::ServerHost:
     {
-        const auto host = ParseHost(value);
+        const std::string_view text = WithoutQuotes(value);
+        if (!IsUtf8(text))
+        {
+            return std::string("no es UTF-8");
+        }
+        const auto host = ParseHost(text);
         if (!host.HasValue())
         {
             return host.Error();
@@ -220,9 +328,6 @@ std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view
         config.pacing = pacing.Value();
         return std::nullopt;
     }
-    case Key::LogPath:
-        config.logPath = PathFromUtf8(value);
-        return std::nullopt;
     }
     return std::nullopt;
 }
@@ -246,10 +351,20 @@ Core::Expected<ClientConfig, ConfigError> ParseConfig(std::string_view text)
     while (!text.empty())
     {
         const std::size_t newline = text.find('\n');
-        const std::string_view rawLine = text.substr(0, newline);
+        std::string_view rawLine = text.substr(0, newline);
         text.remove_prefix(newline == std::string_view::npos ? text.size() : newline + 1);
         ++lineNumber;
 
+        // El fin de línea es \n o \r\n. Un \r solo (el de los Mac viejos) no corta la línea, y
+        // sin este error todo lo que sigue a un comentario quedaría adentro de él.
+        if (rawLine.ends_with('\r'))
+        {
+            rawLine.remove_suffix(1);
+        }
+        if (rawLine.find('\r') != std::string_view::npos)
+        {
+            return Unexpected(ErrorAt(lineNumber, "hay un \\r sin \\n: el fin de línea es \\n o \\r\\n"));
+        }
         const std::string_view line = Trim(WithoutComment(rawLine));
         if (line.empty())
         {
@@ -257,9 +372,14 @@ Core::Expected<ClientConfig, ConfigError> ParseConfig(std::string_view text)
         }
         if (line.front() == '[')
         {
-            if (line.back() != ']')
+            const std::size_t close = line.find(']');
+            if (close == std::string_view::npos)
             {
                 return Unexpected(ErrorAt(lineNumber, "a la sección le falta el ]"));
+            }
+            if (close != line.size() - 1)
+            {
+                return Unexpected(ErrorAt(lineNumber, "hay texto después del ] de la sección"));
             }
             section = Trim(line.substr(1, line.size() - 2));
             if (!IsKnownSection(section))
@@ -275,6 +395,10 @@ Core::Expected<ClientConfig, ConfigError> ParseConfig(std::string_view text)
         }
         const std::string_view name = Trim(line.substr(0, equals));
         const std::string_view value = Trim(line.substr(equals + 1));
+        if (name.empty())
+        {
+            return Unexpected(ErrorAt(lineNumber, "falta el nombre de la clave"));
+        }
         if (section.empty())
         {
             return Unexpected(ErrorAt(lineNumber, std::format("{} está antes de la primera sección", name)));

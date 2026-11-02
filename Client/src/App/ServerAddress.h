@@ -27,6 +27,7 @@ struct ServerAddress
 // 65535" o "el puerto tiene que ser un número".
 Core::Expected<std::uint16_t, std::string> ParsePort(std::string_view text);
 
-// Un host de 1 a MaxHostBytes bytes y sin espacios. No resuelve nombres ni mira si es una IP.
+// Un host de 1 a MaxHostBytes bytes, sin espacios ni caracteres de control. No resuelve nombres
+// ni mira si es una IP.
 Core::Expected<std::string, std::string> ParseHost(std::string_view text);
 } // namespace Client::App

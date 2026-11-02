@@ -127,6 +127,9 @@ verificado con un reloj falso. En concreto:
    problema. El primer paso de la CL3.4 confirma el puerto y su comportamiento (comentarios al
    final de la línea, claves repetidas, una línea sin `=`) antes de escribir nada; si algo no
    coincide, queda el parser propio, con la razón escrita.
+   *Resultado (paso 1 de la CL3.4, 2026-11-02): parser propio.* El puerto fija al compilar el
+   largo de la línea, y un `Host` de 255 bytes no entra; el detalle está en ese paso y en
+   `App/Config.h`.
 6. **La línea de comandos** (Q-C36, el 02 deja `/u` sin `/p` para la CL3). El parser sin usar del
    original busca `/u` y `/p` en cualquier lugar, sin mayúsculas, y no necesita el `connect`; con
    `/u` y sin `/p` devuelve 0 con el host ya copiado. *Recomendación:* `connect` es opcional y se
@@ -1039,10 +1042,16 @@ de video), validado antes de abrir nada, y un log que se puede leer en un test. 
    CL3.2); si no se dio, queda en `off`. En el modo normal, sin dar, queda en `on`.
 5. La carpeta de datos, solo si se dio: tiene que existir.
 
+Una ruta relativa de la config (`[Data] Path`, `[Log] Path`) se toma desde la carpeta del
+ejecutable (`exeFolder`), no desde la carpeta actual: la del acceso directo puede ser cualquiera.
+`ParseConfig` la deja como está y la junta `Resolve` (anotado en la fase 1 de la CL3.4).
+
 El host vacío no es error acá: lo pide la CL4 al conectarse.
 
 **Archivos:**
-- **PR A:** crear `Client/src/App/Config.h/.cpp` y `ConfigError.h`;
+- **PR A:** crear `Client/src/App/Config.h/.cpp`, `ConfigError.h` y `ServerAddress.h/.cpp` (la
+  dirección del servidor, con `ParsePort` y `ParseHost`, que usan la config y la línea de
+  comandos);
   `Client/tests/app/test_config.cpp`. Modificar `vcpkg.json` (`inih` con la feature `cpp`, si el
   paso 1 lo confirma), `Client/src/App/CommandLine.h/.cpp` y su test (pasa a `Core::Expected` con un
   error que se imprime, y suma `connect`, `/u`, `/p`, `--config` y `--data`), `main.cpp`,
@@ -1063,6 +1072,13 @@ inline constexpr std::uint16_t DefaultConnectPort = 44405;
 inline constexpr std::size_t MaxHostBytes = 255;
 
 struct ServerAddress { std::string host; std::uint16_t port = DefaultConnectPort; };
+// En App/ServerAddress.h. Los mensajes son los mismos en la config y en la línea de comandos:
+// "el puerto tiene que ser un número", "el puerto va de 1 a 65535", "el host va de 1 a 255 bytes",
+// "el host no puede tener espacios" y "el host no puede tener caracteres de control".
+Core::Expected<std::uint16_t, std::string> ParsePort(std::string_view text);
+Core::Expected<std::string, std::string> ParseHost(std::string_view text);
+// El lado más grande de la ventana en [Video] (App/Config.h).
+inline constexpr int MaxWindowSize = 16384;
 
 struct CommandLine
 {
@@ -1149,14 +1165,15 @@ se declara después del `Log` en `main`, así se destruye antes.
   - **Lo que hace con esas opciones:** secciones y `clave = valor` sí, y también `clave: valor`;
     `;` y `#` al principio de la línea; `;` al final solo después de un espacio (`55901;` es el
     valor); el BOM al principio se salta; con una línea sin `=`, `ini_parse` sigue y devuelve la
-    línea del primer error. Tres cosas no coinciden: una línea de más de 199 bytes es error
-    (`max_line_length = 200`, y el host llega a 255 bytes, Q-C37); una línea con sangría sigue el
-    valor de la clave anterior (`multi-line_entries`), así que `  Port = 1` debajo de `Host = a`
-    da el host `"a\nPort = 1"`; y el `INIReader` junta las claves repetidas con `"\n"` y no sabe
-    en qué línea estaba un valor, así que no puede decir la línea de un `VSync = sometimes`. Con
-    la API de C, el handler puede rechazar las tres (si devuelve 0, `ini_parse` da esa línea),
-    pero la misma línea sale del primer error de sintaxis y del primero del handler, y separarlos
-    lleva dos pasadas: más código que un parser de lo que la config necesita.
+    línea del primer error. Lo que lo descarta: el largo de la línea se fija al compilar
+    (`max_line_length = 200`, `INI_MAX_LINE`) y el portfile no deja cambiarlo, así que una línea
+    de más de 198 bytes sin contar el fin de línea es error, y un `Host = ` con 255 bytes (Q-C37)
+    no entra por ninguna de las dos API: el handler recibe la línea ya cortada. Además, una línea
+    con sangría sigue el valor de la clave anterior (`multi-line_entries`), así que `  Port = 1`
+    debajo de `Host = a` da el host `"a\nPort = 1"`; y el `INIReader` junta las claves repetidas
+    con `"\n"` y no sabe en qué línea estaba un valor, así que no puede decir la línea de un
+    `VSync = sometimes`. Esas dos se podrían rechazar desde el handler de la API de C (si devuelve
+    0, `ini_parse` da esa línea), pero no la primera.
   - **CLI11 y cxxopts:** CLI11, con `allow_windows_style_options()`, lee `/u valor` y `/u:valor`,
     y su documentación dice que con `/` no se puede pegar el valor a la opción corta. cxxopts solo
     reconoce opciones que empiezan con `-` o `--` (`cxxopts.hpp`): `/u10.0.0.1` sería un
@@ -1196,7 +1213,15 @@ se declara después del `Log` en `main`, así se destruye antes.
   - `ConfigTest.ReadsTheSections`, `DefaultsWhenAKeyIsMissing` (puerto 44405, 640 × 480,
     decoupled, y después de `Resolve` VSync on; con `Pacing = faithful` y sin `VSync`, off),
     `ReportsTheLineOfAnError` (una línea sin `=` en la 3 da `line == 3`),
-    `RejectsAnUnknownVSyncValue`;
+    `RejectsAnUnknownVSyncValue`. Sumados en el PR A: `ReadsAPathThatIsNotAscii`,
+    `RejectsAnUnknownPacingValue`, `SkipsCommentsBlankLinesAndTheBom`,
+    `IgnoresTheCaseOfSectionsKeysAndModes`, `RejectsARepeatedKey`, `RejectsAnUnknownSectionOrKey`,
+    `RejectsAKeyWithoutAValue`, `RejectsAPortOutOfRange`, `AcceptsAHostOf255BytesAndRejects256`,
+    `RejectsAHostWithSpaces`, `RejectsASizeOutOfRange`, `ReadsEachVSyncAndPacingValue`,
+    `ReadsTheLastLineWithoutANewline`, `TabsAreBlankAndSpacesInsideTheBracketsAreTrimmed`,
+    `RemovesTheQuotesAroundAPathOrTheHost`, `ReadsAPathWithSpaces`,
+    `RejectsAPathOrHostThatIsNotUtf8`, `RejectsControlCharacters`,
+    `RejectsACarriageReturnWithoutANewline` y `SaysWhatIsWrongWithALine`;
   - `ConfigTest.AMissingDefaultFileMeansDefaults`, `AMissingConfigPathIsAnError` (nombra la ruta),
     `TheCommandLineWins` (`/u... /p...` pisa `[Server]`, `--pacing faithful` pisa `Pacing`),
     `FaithfulWithVSyncOnIsAnError` (nombra `Pacing` y `VSync`), `AMissingDataFolderNamesIt` (el

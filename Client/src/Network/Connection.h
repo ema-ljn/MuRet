@@ -6,6 +6,7 @@
 #include "Network/Delivery.h"
 #include "Network/IObfuscation.h"
 #include "Network/ISocket.h"
+#include "Network/LinkState.h"
 #include "Network/Packet.h"
 #include "Network/PacketReader.h"
 #include "Network/SendQueue.h"
@@ -50,13 +51,6 @@ inline constexpr int MaxReadsPerPoll = 8;
 // del sistema espera a getaddrinfo, y mientras tanto el juego no dibuja.
 inline constexpr Core::Duration SlowConnectStart = std::chrono::milliseconds{100};
 
-enum class LinkState : std::uint8_t
-{
-    Closed,
-    Connecting, // desde Open hasta el Poll que da el Opened
-    Open,
-};
-
 // Lo que pasa en un Poll.
 struct Opened // el connect terminó: va antes de lo que llegó en el mismo Poll
 {
@@ -89,8 +83,9 @@ public:
 
     // Una vez por frame: primero PollConnect y después el ConnectTimeout (un frame largo no corta
     // un connect que ya terminó), manda lo encolado, lee, corta y traduce. Lo que pasó, en orden.
-    // Quien recorre el lote y llama a Open o Close a mitad tira lo que queda: es de la conexión de
-    // antes. Solo con el socket conectado lee o manda: un Closed ahí es el otro lado que cerró.
+    // Quien recorre el lote tira lo que queda si a mitad llamó a Open o a Close, o si State() pasó
+    // a Closed (un Send desde un handler la puede cerrar): es de una conexión que ya no está. Solo
+    // con el socket conectado lee o manda: un Closed ahí es el otro lado que cerró.
     [[nodiscard]] std::vector<Event> Poll();
 
     // El XOR32 ya viene aplicado si lo lleva (Protocol). Pasa por BeforeSend, se encola y, con la

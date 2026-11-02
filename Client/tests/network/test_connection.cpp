@@ -1,10 +1,12 @@
 #include "Network/Connection.h"
 
+#include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Network/CloseReason.h"
 #include "Network/Delivery.h"
 #include "Network/FoxAntiObfuscation.h"
+#include "Network/ISocket.h"
 #include "Network/IdentityObfuscation.h"
 #include "Network/Packet.h"
 #include "Network/SendQueue.h"
@@ -26,12 +28,14 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <format>
 #include <limits>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -41,11 +45,14 @@
 namespace
 {
 using namespace std::chrono_literals;
+using Client::Core::Expected;
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Network::Closed;
 using Client::Network::CloseReason;
+using Client::Network::CloseReasonText;
 using Client::Network::Connection;
+using Client::Network::ConnectProgress;
 using Client::Network::ConnectTimeout;
 using Client::Network::Delivery;
 using Client::Network::Event;
@@ -56,6 +63,7 @@ using Client::Network::MaxPacketSize;
 using Client::Network::MaxReadsPerPoll;
 using Client::Network::Opened;
 using Client::Network::Packet;
+using Client::Network::ReceiveChunkSize;
 using Client::Network::SlowConnectStart;
 using Client::Network::SocketError;
 using Client::Protocol::Connection::WriteServerSelect;
@@ -150,6 +158,67 @@ std::size_t CountPackets(const std::vector<Event>& events)
         std::ranges::count_if(events, [](const Event& event) { return std::holds_alternative<Packet>(event); }));
 }
 
+// La conexión guarda referencias: una ofuscación temporal no compila, porque moriría antes, y no se
+// copia ni se mueve.
+static_assert(!std::is_constructible_v<Connection, FakeSocket&, FoxAntiObfuscation, FakeClock&, Log&>);
+static_assert(std::is_constructible_v<Connection, FakeSocket&, const FoxAntiObfuscation&, FakeClock&, Log&>);
+static_assert(!std::is_copy_constructible_v<Connection>);
+static_assert(!std::is_move_constructible_v<Connection>);
+
+// Un socket roto que en la primera lectura llena el buffer con `first` y dice que leyó Extra bytes
+// más, como el ClaimsMoreSocket de test_send_queue.cpp. Después da `reads`, una entrada por
+// Receive, y 0 cuando no quedan.
+class ClaimsMoreSocket final : public Client::Network::ISocket
+{
+public:
+    static constexpr std::size_t Extra = 5;
+
+    ByteVector first;
+    std::deque<ByteVector> reads;
+
+    Expected<ConnectProgress, SocketError> StartConnect(std::string_view, std::uint16_t) override
+    {
+        return ConnectProgress::Connected;
+    }
+    Expected<ConnectProgress, SocketError> PollConnect() override
+    {
+        return ConnectProgress::Connected;
+    }
+    Expected<std::size_t, SocketError> Receive(std::span<std::byte> buffer) override
+    {
+        if (!m_claimed)
+        {
+            m_claimed = true;
+            std::ranges::copy(first, buffer.begin());
+            return buffer.size() + Extra;
+        }
+        if (reads.empty())
+        {
+            return std::size_t{0};
+        }
+        const ByteVector next = reads.front();
+        reads.pop_front();
+        std::ranges::copy(next, buffer.begin());
+        return next.size();
+    }
+    Expected<std::size_t, SocketError> Send(std::span<const std::byte> bytes) override
+    {
+        return bytes.size();
+    }
+    void Close() override {}
+    [[nodiscard]] bool IsOpen() const override
+    {
+        return true;
+    }
+    [[nodiscard]] int LastSystemError() const override
+    {
+        return 0;
+    }
+
+private:
+    bool m_claimed = false;
+};
+
 class ConnectionTest : public ::testing::Test
 {
 protected:
@@ -176,6 +245,21 @@ protected:
             }
         }
         return false;
+    }
+
+    // Las líneas de aviso, enteras: un test que las compara así ve también que no traen los bytes
+    // del paquete, que en el login llevan la cuenta y la clave.
+    [[nodiscard]] Lines Warnings() const
+    {
+        Lines warnings;
+        for (std::size_t index = 0; index < m_sink.lines.size(); ++index)
+        {
+            if (m_sink.levels[index] == LogLevel::Warning)
+            {
+                warnings.push_back(m_sink.lines[index]);
+            }
+        }
+        return warnings;
     }
 
     FakeSocket m_socket;
@@ -434,6 +518,27 @@ TEST_F(ConnectionTest, ReadsInChunksOfTheOriginalBuffer)
     EXPECT_EQ(CountPackets(m_connection.Poll()), 1u);
 }
 
+// Un socket que dice que leyó más de lo que entra en el buffer no hace leer afuera: se corta lo que
+// hay en el buffer. Termina con medio C1 de 7 bytes, que la lectura siguiente completa; si se
+// leyeran los 5 de más, el C1 se completaría con lo que haya detrás del buffer.
+TEST_F(ConnectionTest, ASocketThatClaimsMoreThanTheBufferDoesNotReadPastIt)
+{
+    ClaimsMoreSocket socket;
+    socket.first = Join({C2Of(ReceiveChunkSize - 2), Bytes({0xC1, 0x07})});
+    socket.reads = {Bytes({0x99, 0x00, 0x00, 0x00, 0x00})};
+    Connection connection(socket, IdentityObfuscation::Shared(), m_clock, m_log);
+    connection.Open(ConnectHost, ConnectPort);
+
+    const std::vector<Event> events = connection.Poll();
+
+    ASSERT_EQ(events.size(), 3u);
+    EXPECT_TRUE(std::holds_alternative<Opened>(events[0]));
+    ASSERT_TRUE(std::holds_alternative<Packet>(events[1]));
+    EXPECT_TRUE(SameBytes(std::get<Packet>(events[1]).Bytes(), C2Of(ReceiveChunkSize - 2)));
+    EXPECT_EQ(Describe({events[2]}), Lines{"C1 07 99 00 00 00 00"});
+    EXPECT_EQ(connection.State(), LinkState::Open);
+}
+
 // 04 § El flujo de conexión: la lista del laboratorio llega al cable como F4 02, y FoxAnti la pasa
 // a la F4 06 que lee main.exe, con el código 400.
 TEST_F(ConnectionTest, WithFoxAntiTheListArrivesAsF406)
@@ -471,6 +576,20 @@ TEST_F(ConnectionTest, WithFoxAntiTheSkillListGetsItsByteBeforeTheDispatch)
     EXPECT_EQ(Describe(connection.Poll()), Lines{"C1 06 F3 11 07 00"});
 }
 
+// Un F3 11 que termina antes de pkt[4] no se traduce en BeforeDispatch (FoxAnti no valida los
+// largos, Q-C09): se descarta con un aviso que dice el tipo y el opcode, y la conexión sigue.
+TEST_F(ConnectionTest, WithFoxAntiASkillListThatDoesNotTranslateIsDropped)
+{
+    const FoxAntiObfuscation foxAnti;
+    Connection connection(m_socket, foxAnti, m_clock, m_log);
+    OpenAndConnect(connection);
+    m_socket.reads = {Join({Bytes({0xC1, 0x04, 0xF3, 0x11}), Hello()})};
+
+    EXPECT_EQ(Describe(connection.Poll()), Lines{"C1 04 00 01"});
+    EXPECT_EQ(connection.State(), LinkState::Open);
+    EXPECT_EQ(Warnings(), Lines{"[warning] se descarta un C1 F3 que llegó: la ofuscación no lo traduce"});
+}
+
 // El GameServer del laboratorio manda cada byte con el 0xAA (03 § La capa de FoxAnti): el corte lo
 // saca con la máscara de la ofuscación de la conexión, también después de volver a abrir.
 TEST_F(ConnectionTest, WithFoxAntiWhatArrivesFromTheGameServerIsUnmasked)
@@ -498,7 +617,7 @@ TEST_F(ConnectionTest, AListThatDoesNotTranslateIsDropped)
 
     EXPECT_EQ(Describe(connection.Poll()), Lines{"C1 04 00 01"});
     EXPECT_EQ(connection.State(), LinkState::Open);
-    EXPECT_TRUE(HasWarning("C2 F4"));
+    EXPECT_EQ(Warnings(), Lines{"[warning] se descarta un C2 F4 que llegó: la ofuscación no lo traduce"});
 }
 
 // Un error del corte sí: después de una cabecera mala no se sabe dónde empieza el próximo paquete
@@ -523,7 +642,7 @@ TEST_F(ConnectionTest, AnEncryptedPacketIsNotDelivered)
 
     EXPECT_EQ(Describe(m_connection.Poll()), Lines{"C1 04 00 01"});
     EXPECT_EQ(m_connection.State(), LinkState::Open);
-    EXPECT_TRUE(HasWarning("C3"));
+    EXPECT_EQ(Warnings(), Lines{"[warning] se descarta un C3 que llegó: esta conexión no descifra"});
 }
 
 // Lo que llegó antes del FIN sale, y después el cierre.
@@ -537,6 +656,8 @@ TEST_F(ConnectionTest, APeerThatClosesCloses)
     EXPECT_EQ(m_connection.State(), LinkState::Closed);
     EXPECT_EQ(m_connection.LastCloseReason(), CloseReason::PeerClosed);
     EXPECT_FALSE(m_socket.IsOpen());
+    EXPECT_EQ(Warnings(),
+              Lines{std::format("[warning] la conexión se cerró: {}", CloseReasonText(CloseReason::PeerClosed))});
 }
 
 // Un Send no devuelve eventos: el cierre queda en el estado y sale en el próximo Poll.
@@ -634,7 +755,7 @@ TEST_F(ConnectionTest, ReopeningForgetsACloseThatWasNotReported)
     EXPECT_EQ(Describe(m_connection.Poll()), Lines{"Opened"});
 }
 
-// Close lo pide quien la usa, así que no vuelve como evento.
+// Close lo pide quien la usa, así que no vuelve como evento, y va al log como info, no como aviso.
 TEST_F(ConnectionTest, CloseIsNotAnEvent)
 {
     OpenAndConnect();
@@ -647,6 +768,8 @@ TEST_F(ConnectionTest, CloseIsNotAnEvent)
 
     m_connection.Close();
     EXPECT_EQ(m_socket.closes, 1);
+    EXPECT_EQ(m_sink.lines,
+              Lines{std::format("[info] la conexión se cerró: {}", CloseReasonText(CloseReason::ByClient))});
 }
 
 // Cerrada, la conexión no toca el socket: con un Receive daría Closed, y con un Send, el error del
@@ -661,11 +784,12 @@ TEST_F(ConnectionTest, AClosedConnectionDoesNotUseTheSocket)
 
     EXPECT_EQ(m_socket.sendError, SocketError::Failed);
     EXPECT_EQ(m_socket.reads.size(), 1u);
-    EXPECT_TRUE(HasWarning("C1 F4"));
+    EXPECT_EQ(Warnings(), Lines{"[warning] se descarta un C1 F4 que iba a salir: la conexión está cerrada"});
 }
 
-// Hasta la CL4.4 la conexión no cifra: lo que va Encrypted no sale, con un aviso que dice el
-// opcode.
+// Hasta la CL4.4 la conexión no cifra: lo que va Encrypted no sale, con un aviso que dice el tipo y
+// el opcode y nada más. Es el que va a salir con el login (C1 F1 01), que lleva la cuenta y la
+// clave con el XOR32: la línea se compara entera.
 TEST_F(ConnectionTest, AnEncryptedSendDoesNotLeave)
 {
     OpenAndConnect();
@@ -674,6 +798,6 @@ TEST_F(ConnectionTest, AnEncryptedSendDoesNotLeave)
 
     EXPECT_TRUE(m_socket.sent.empty());
     EXPECT_EQ(m_connection.State(), LinkState::Open);
-    EXPECT_TRUE(HasWarning("C1 F1"));
+    EXPECT_EQ(Warnings(), Lines{"[warning] se descarta un C1 F1 que va cifrado: esta conexión no cifra"});
 }
 } // namespace

@@ -176,20 +176,14 @@ void Connection::PollConnect(std::vector<Event>& events)
     }
 }
 
-// Flush no da Full (eso es de Push), y con Socket el error ya quedó en LastSocketError(). Si no
+// Flush solo falla con Socket (Full es de Push), y el error ya quedó en LastSocketError(). Si no
 // estuviera, sería un bug de la cola: se toma como una falla del socket, sin decir que cerró el
 // otro lado.
 bool Connection::FlushQueue()
 {
-    const std::optional<SendQueueError> error = m_queue.Flush(m_socket);
-    if (!error)
+    if (!m_queue.Flush(m_socket).has_value())
     {
         return true;
-    }
-    if (*error == SendQueueError::Full)
-    {
-        CloseWith(CloseReason::SendQueueFull);
-        return false;
     }
     CloseWith(ReasonFor(m_queue.LastSocketError().value_or(SocketError::Failed)));
     return false;

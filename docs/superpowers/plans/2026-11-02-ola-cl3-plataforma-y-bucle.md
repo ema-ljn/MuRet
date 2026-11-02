@@ -1263,10 +1263,12 @@ se declara después del `Log` en `main`, así se destruye antes.
   Hechos: `Client.Main.RejectsBadPort` (fase 2a) y `NamesTheMissingDataFolder` (fase 2b).
 - [x] **Paso 6 (PR B):** los tests: `LogTest.WritesTheLevelAndTheMessage` (con un `LogSink` de
   prueba que guarda las líneas: `Info("hola {}", 1)` da `[info] hola 1`),
-  `BelowTheMinimumIsNotWritten`, `EachLevelHasItsPrefix`, `TeeSinkWritesBoth`. Se sumaron
-  `FileSinkWritesOneLinePerMessage` (en una carpeta temporal: dos líneas, ya en el disco con el
-  `FileSink` abierto, y lo de una corrida anterior borrado) y `FileSinkNamesAPathThatDoesNotOpen`
-  (una carpeta que no existe: el error trae la ruta).
+  `BelowTheMinimumIsNotWritten`, `EachLevelHasItsPrefix`, y `TeeSinkTest.WritesBoth` (una suite
+  por clase, regla 7: `test_log.cpp`, `test_tee_sink.cpp`, `test_stderr_sink.cpp` y
+  `test_file_sink.cpp`; `RecordingSink` y `TemporaryFolder` en `tests/support/`). Se sumaron
+  `FileSinkTest.WritesOneLinePerMessage` (en una carpeta temporal: dos líneas, ya en el disco con
+  el `FileSink` abierto) y `FileSinkTest.NamesAPathThatDoesNotOpen` (una carpeta que no existe: el
+  error trae la ruta).
 - [ ] **Paso 7 (PR B):** `Log`, `TeeSink`, la salida a archivo y a `stderr`, y `SdlLog`.
   - [x] `Core::Log`, `TeeSink`, `StderrSink` y `FileSink` (`Client/src/Core/Log.h/.cpp`), con
     `std::format_string` en las cuatro funciones y `std::vformat` en el `.cpp` (verificados con
@@ -1293,15 +1295,23 @@ se declara después del `Log` en `main`, así se destruye antes.
     loguear ni llamar a SDL (el mutex no es recursivo); y que un `\n` en un mensaje da dos líneas.
     Tests nuevos: `WriteKeepsTheBraces`, `WriteBelowTheMinimumIsNotWritten`,
     `ABadFormatIsLoggedAsAnError`, `BelowTheMinimumIsNotFormatted`,
-    `StderrSinkWritesOneLinePerMessage` (con `std::tmpfile()`), `FileSinkAppendsToThePreviousRun`,
-    `FileSinkEmptiesAFileOverTheCap` y `FileSinkKeepsLinesWholeFromTwoThreads` (2 hilos por 1000
-    líneas); las rutas de los tests del archivo llevan una "ñ" (`PathText`).
+    `StderrSinkTest.WritesOneLinePerMessage` (con `std::tmpfile()`, `tmpfile_s` en MSVC),
+    `FileSinkTest.AppendsToThePreviousRun`, `EmptiesAFileOverTheCap` y
+    `KeepsLinesWholeFromTwoThreads` (2 hilos por 1000 líneas); las rutas de los tests del archivo
+    llevan una "ñ" (`PathText`).
   - [x] `Platform::SdlLog` (`Client/src/Platform/SdlLog.h/.cpp`), con `LevelOf(SDL_LogPriority)`
     pública para probar el mapeo (`INVALID` y `COUNT` van a Error) y el callback `noexcept` con un
     `try/catch` adentro. Test sin ventana, `Client/tests/platform/test_sdl_log.cpp`:
     `SdlLogTest.MapsEachPriority`, `SdlMessagesReachTheLog` (con `SDL_SetLogPriorities(TRACE)`,
     porque SDL filtra antes de llamar a la salida, y un mensaje con llaves) y
-    `TheDestructorRestoresTheDefaultOutput`. `SDL_Log` anda sin `SDL_Init`. Se registra con el
+    `TheDestructorRestoresTheDefaultOutput`. `SDL_Log` anda sin `SDL_Init`. Después de las
+    revisiones: cada línea va con "SDL: " y el mensaje se parte en líneas sin `\r` ni vacías
+    (`SplitsTheLinesOfAMessage`, con el formato de `SDL_assert`); una excepción de una salida no
+    cruza SDL (`AnExceptionInTheSinkDoesNotCrossSdl`); un mensaje que una salida hace loguear en el
+    mismo hilo va a stderr, porque el mutex de SDL es recursivo (`thread_local`,
+    `AReentrantMessageGoesToStderr`); el constructor inicializa el log de SDL para que su mutex
+    exista; uno solo a la vez (`std::atomic<bool>` y un assert). No encadena a la salida anterior
+    como MuMain: restaura la de por defecto y filtra una sola vez, en el `Core::Log`. Se registra con el
     `tests/platform/CMakeLists.txt` y el `ClientPlatform` de la CL3.1: hasta que esa rama entre,
     esta no configura sola.
   - [ ] El armado en `main.cpp` (fase 2b).

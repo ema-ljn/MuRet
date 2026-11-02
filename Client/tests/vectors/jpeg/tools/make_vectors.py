@@ -49,15 +49,28 @@ def hash6b(path, raw=None, tool=HASH6B):
     return subprocess.run(command, check=True, capture_output=True, text=True).stdout.split()[1:]
 
 
-def without_dht(jpeg):
-    # `jpeg` sin sus segmentos DHT (FF C4), los que definen las tablas de Huffman, hasta el SOS.
-    out, i = bytearray(jpeg[:2]), 2
-    while jpeg[i + 1] != 0xDA:
+def without_dht(jpeg, first_scan=1):
+    # `jpeg` sin los segmentos DHT (FF C4), los que definen las tablas de Huffman, que van antes
+    # del scan `first_scan` (desde 1) o de uno que le sigue. Recorre los segmentos uno por uno; en
+    # los datos de un scan, un FF seguido de 00 (el FF de los datos), de otro FF (relleno) o de
+    # D0 a D7 (un reinicio) no es un segmento.
+    out, i, scans = bytearray(jpeg[:2]), 2, 0
+    while i < len(jpeg):
+        following = jpeg[i + 1] if i + 1 < len(jpeg) else 0
+        if jpeg[i] != 0xFF or following in (0x00, 0xFF) or 0xD0 <= following <= 0xD7:
+            out.append(jpeg[i])
+            i += 1
+            continue
+        if following == 0xD9:
+            out += jpeg[i:]
+            break
         length = struct.unpack('>H', jpeg[i + 2:i + 4])[0]
-        if jpeg[i + 1] != 0xC4:
+        if following != 0xC4 or scans + 1 < first_scan:
             out += jpeg[i:i + 2 + length]
+        if following == 0xDA:
+            scans += 1
         i += 2 + length
-    return bytes(out + jpeg[i:])
+    return bytes(out)
 
 
 def data_middle(jpeg):
@@ -89,6 +102,8 @@ with tempfile.TemporaryDirectory() as images:
     open(os.path.join(OUT, 'truncated.jpg'), 'wb').write(whole[:data_middle(whole)])
     subprocess.run([CMYK6B, '3', '2', os.path.join(OUT, 'cmyk-3x2.jpg')], check=True)
     cjpeg('mixed-sampling', image('detailed-16x16', 16, 16, detailed), '-sample', '2x2,2x1,1x1')
+    cjpeg('mixed-sampling-narrow', image('detailed-4x16', 4, 16, detailed),
+          '-sample', '2x2,2x1,1x1')
 
     # Los que la 6b no lee.
     cjpeg('arithmetic', image('detailed-16x8', 16, 8, detailed),
@@ -97,6 +112,14 @@ with tempfile.TemporaryDirectory() as images:
     cjpeg('precision-12', image('detailed-16x8', 16, 8, detailed),
           '-sample', '1x1', '-precision', '12')
     open(os.path.join(OUT, 'no-huffman-tables.jpg'), 'wb').write(without_dht(whole))
+    # Dos scans: el Y, con las tablas 0, y el Cb con el Cr, con las 1, que van antes del segundo.
+    scans = os.path.join(images, 'two-scans.txt')
+    open(scans, 'w').write('0: 0-63, 0, 0;\n1 2: 0-63, 0, 0;\n')
+    two = cjpeg('two-scans', image('detailed-16x16', 16, 16, detailed),
+                '-sample', '1x1', '-scans', scans)
+    open(os.path.join(OUT, 'no-huffman-tables-scan-2.jpg'), 'wb').write(
+        without_dht(open(two, 'rb').read(), first_scan=2))
+    os.remove(two)
 
     # Los que se usan por su tamaño.
     for name, width, height in [('flat-512x8', 512, 8), ('flat-513x8', 513, 8),
@@ -110,10 +133,11 @@ with tempfile.TemporaryDirectory() as images:
 
 # Los .6b.raw, y la línea de hash6b de cada uno; de los que no tienen, la línea sola.
 for name in ['baseline-444-dri', 'baseline-420', 'baseline-440', 'progressive-444', 'gray',
-             'truncated', 'cmyk-3x2', 'mixed-sampling']:
+             'truncated', 'cmyk-3x2', 'mixed-sampling', 'mixed-sampling-narrow']:
     print(name, *hash6b(os.path.join(OUT, name + '.jpg'), os.path.join(OUT, name + '.6b.raw')))
-for name in ['arithmetic', 'lossless', 'precision-12', 'no-huffman-tables', 'cmyk-4x2']:
+for name in ['arithmetic', 'lossless', 'precision-12', 'no-huffman-tables',
+             'no-huffman-tables-scan-2', 'cmyk-4x2']:
     print(name, *hash6b(os.path.join(OUT, name + '.jpg')))
 # Lo que da turbo, en el vector en que no es la 6b (Q-C33).
-path = os.path.join(OUT, 'mixed-sampling.jpg')
-print('mixed-sampling turbo', *hash6b(path, os.path.join(OUT, 'mixed-sampling.turbo.raw'), HASHTURBO))
+path, raw = (os.path.join(OUT, 'mixed-sampling' + end) for end in ('.jpg', '.turbo.raw'))
+print('mixed-sampling turbo', *hash6b(path, raw, HASHTURBO))

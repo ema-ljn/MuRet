@@ -84,9 +84,9 @@ TEST(TerrainLightTest, OnlyTakesALightOf256By256InColor)
     EXPECT_EQ(LoadError(OzjOf(ReadJpegVector("light-gray-256.jpg"))), DataError::InvalidData);
 }
 
-// Q-C32: lo que viene después de la última fila no se lee. Con un segundo SOI en vez del EOI, que
-// jpeg_finish_decompress rechaza, la luz es la misma: el original ya la escribió en la tabla cuando
-// lo rechaza.
+// Q-C32: en un JPEG de un solo scan, como light-256, lo que viene después de la última fila no se
+// lee. Con un segundo SOI antes del EOI, que jpeg_finish_decompress rechaza, la luz es la misma: el
+// original ya la escribió en la tabla cuando lo rechaza.
 TEST(TerrainLightTest, WhatComesAfterTheLastRowIsNotRead)
 {
     std::vector<std::byte> jpeg = ReadJpegVector("light-256.jpg");

@@ -19,7 +19,8 @@ el trabajo va por olas y sub-olas, y cada sub-ola es un concepto y un PR chico
 Requisitos: CMake 3.25+, Ninja + GCC/Clang en Linux o Visual Studio 2022 en Windows, y
 [vcpkg](https://github.com/microsoft/vcpkg) con la variable `VCPKG_ROOT` apuntando a su clon. Las
 dependencias (SDL3, libjpeg-turbo, GoogleTest) están en [`vcpkg.json`](vcpkg.json) y vcpkg las baja y compila al
-configurar, en las versiones de su `builtin-baseline`.
+configurar, en las versiones de su `builtin-baseline`. libjpeg-turbo además va fija en `overrides`,
+porque otra versión puede decodificar distinto (`Client/tests/vectors/jpeg/README.md`).
 
 ```bash
 git clone https://github.com/microsoft/vcpkg ~/vcpkg && ~/vcpkg/bootstrap-vcpkg.sh

@@ -467,15 +467,16 @@ el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
   2.380, con SIMD y sin SIMD, y con o sin el suavizado de bloques de los progresivos (623 lo son).
   Queda en el repo como prueba: `lab-6b.txt` guarda el tamaño y el hash de lo que da la 6b de cada
   uno, y `GoldenJpegImageTest` lo compara con turbo. Es el test que hay que correr al cambiar de
-  versión. El port de vcpkg depende también de libspng y zlib, que se compilan con él aunque el
+  versión, que por eso va fija en `vcpkg.json` (`overrides`) y en un `static_assert`. El port de vcpkg depende también de libspng y zlib, que se compilan con él aunque el
   cliente no los use: más tiempo en el primer build de CI, después queda en la caché.
   Las reviews del PR B midieron dónde turbo no es la 6b, siempre fuera del laboratorio. Lo que se
   puede llevar a la 6b se lleva: rechaza lo que la 6b no lee (JPEG aritméticos, sin pérdida, de 12
-  bits o sin las tablas de Huffman de su primer scan) y agranda el 4:4:0 sin el filtro, como ella.
-  Lo que no, queda escrito en Q-C33: un progresivo al que le faltan scans, un muestreo que mezcla un
-  componente al doble de alto con otro al doble de ancho, una tabla de Huffman que falta en un scan
-  que no es el primero, los ids de componente repetidos o de más de 4 componentes, y cómo completa
-  los datos corruptos. **Entra libjpeg-turbo** (Emanuel,
+  bits o con un scan que pide una tabla de Huffman que no está) y agranda el 4:4:0 sin el filtro,
+  como ella. Lo que no, queda escrito en Q-C33: un progresivo al que le faltan scans, un muestreo
+  que mezcla un componente al doble de alto con otro al doble de ancho (salvo en una imagen de
+  hasta 4 píxeles de ancho), los ids de componente repetidos o de más de 4 componentes, un DAC en
+  un JPEG de Huffman, su IDCT con SIMD, que lleva a 0 o a 255 lo que la 6b da vuelta, y cómo
+  completa los datos corruptos. **Entra libjpeg-turbo** (Emanuel,
   2026-11-01). Se miraron también `ijg-libjpeg` (la versión actual de la IJG, que lee los
   aritméticos) y stb_image (su propio decodificador, que no promete los bytes de la 6b). Un
   decodificador propio compatible con la 6b quedó planeado y en pausa
@@ -491,10 +492,11 @@ el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
 - [x] **Paso 2 (PR B):** libjpeg-turbo en `vcpkg.json` (y NASM en el CI de Linux, para su SIMD),
   `LoadOzjTexture(file)` y `LoadTerrainLight(file)`, con vectores chicos que corren en CI: JPEG
   sintéticos de los tres tipos del laboratorio (baseline 4:4:4 con un reinicio por fila de MCU,
-  baseline 4:2:0 y progresivo 4:4:4), un 4:4:0, uno en grises, uno CMYK y uno cortado, con el
-  resultado que da la 6b, y tres que la 6b no lee (aritmético, sin pérdida y de 12 bits). Tests:
-  los bytes de la 6b, un JPEG cortado que libjpeg completa, lo que libjpeg no lee, lo que la 6b no
-  lee, lo que viene después de la última fila (Q-C32), el tope de 512, las filas sin dar vuelta,
+  baseline 4:2:0 y progresivo 4:4:4), un 4:4:0, uno en grises, uno CMYK, uno cortado y dos de
+  muestreo mezclado, con el resultado que da la 6b (y en uno, el de turbo), y cinco que la 6b no
+  lee (aritmético, sin pérdida, de 12 bits y dos sin tablas de Huffman). Tests: los bytes de la 6b,
+  un JPEG cortado que libjpeg completa, lo que libjpeg no lee, lo que la 6b no lee, lo que viene
+  después de la última fila en uno de un solo scan y en un progresivo (Q-C32), el tope de 512, las filas sin dar vuelta,
   una imagen de 13 × 11 en una textura de 16 × 16, los 24 bytes que no se leen, grises y CMYK, que
   entra o no según el ancho (Q-C31), la luz con sus filas dadas vuelta y por 1/255, y solo de
   256 × 256 en color. Golden: los 2.380 JPEG contra el hash de la 6b, los 2.387 OZJ y las 24 luces,
@@ -504,10 +506,10 @@ Lo hizo Claude como ejemplo trabajado, por el mismo pedido tuyo de seguir con el
 tomadas sin preguntarte: el rechazo del OZT es `InvalidData` (el original devuelve false sin
 avisar), un lado de cero o negativo carga sin píxeles como en el original, y el resto del buffer
 queda en cero (Q-C30). En el PR B: lo que libjpeg no puede leer es `InvalidData`, y lo que la 6b
-no lee también, aunque turbo sí (Q-C33); un JPEG baseline cortado carga, porque libjpeg avisa y
-completa la imagen, como en el original (un progresivo cortado, turbo lo completa distinto:
-Q-C33); lo que viene después de la última fila no se lee, porque el original ya usó la imagen
-cuando lo lee (Q-C32); sus mensajes no se muestran (el original no abre un `MessageBox`; los
+no lee también, aunque turbo sí (Q-C33); un JPEG cortado carga, porque libjpeg avisa y completa
+la imagen, como en el original (un progresivo cortado, y algunos baseline, turbo los completa
+distinto: Q-C33); en uno de un solo scan, lo que viene después de la última fila no se lee, porque
+el original ya usó la imagen cuando lo lee (Q-C32); sus mensajes no se muestran (el original no abre un `MessageBox`; los
 manda, probablemente, a stderr); una fila que no entra en la textura es `InvalidData`, y la luz
 solo acepta 256 × 256 en color (Q-C31).
 

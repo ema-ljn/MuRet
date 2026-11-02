@@ -128,8 +128,8 @@ empiezan con `FF D8` (Q-C14). Uno, `skill\null.OZJ`, es de 800 × 600, y el orig
 porque pasa de 512. De los 2.379 que cargan, 179 no son de lados potencia de 2. El cargador no mira
 cuántos componentes trae el JPEG (Q-C31), pero en el laboratorio son siempre 3.
 
-MuRet decodifica con libjpeg-turbo 3.2.0, con la API de la 6b (`JPEG_LIB_VERSION` 62) y sus
-parámetros por defecto, como el original. Da los mismos bytes que la IJG libjpeg 6b en los 2.380
+MuRet decodifica con libjpeg-turbo 3.2.0 (fija en `vcpkg.json`), con la API de la 6b
+(`JPEG_LIB_VERSION` 62) y sus parámetros por defecto, como el original. Da los mismos bytes que la IJG libjpeg 6b en los 2.380
 JPEG del laboratorio: `Client/tests/vectors/jpeg/lab-6b.txt` guarda el tamaño y un hash de lo que
 da la 6b de cada uno, decodificado como lo hace el original, y `GoldenJpegImageTest` lo compara con
 lo que da turbo. Los vectores de la misma carpeta, que corren en CI, traen los píxeles de la 6b. Los

@@ -25,26 +25,28 @@ el tamaño y un hash de lo que da la 6b (más abajo).
 | `cmyk-3x2` | 3 × 2 | baseline CMYK, 4 componentes | una fila CMYK que entra en la textura (Q-C31) |
 | `truncated` | 16 × 24 | `baseline-444-dri` cortado en la mitad de sus datos | libjpeg avisa y completa la imagen |
 | `mixed-sampling` | 16 × 16 | baseline con el Y en 2 × 2, el Cb en 2 × 1 y el Cr en 1 × 1 | un componente al doble de alto y otro al doble de ancho (Q-C33) |
+| `mixed-sampling-narrow` | 4 × 16 | el mismo muestreo, con el Cr de 2 muestras de ancho | tan angosto que la 6b no interpola el Cr: hay cómo dar sus bytes (Q-C33) |
 | `arithmetic` | 16 × 8 | baseline 4:4:4 con codificación aritmética | la 6b no lo lee (Q-C33) |
 | `lossless` | 16 × 8 | sin pérdida (SOF3) | la 6b no lo lee (Q-C33) |
 | `precision-12` | 16 × 8 | DCT de 12 bits (SOF1) | la 6b no lo lee (Q-C33) |
 | `no-huffman-tables` | 16 × 24 | `baseline-444-dri` sin sus DHT | la 6b no lo lee; turbo pone las tablas estándar (Q-C33) |
+| `no-huffman-tables-scan-2` | 16 × 16 | baseline 4:4:4 en dos scans, sin los DHT del segundo | lo mismo, en un scan que no es el primero (Q-C33) |
 | `flat-512x8`, `flat-513x8`, `flat-8x513` | | baseline 4:4:4 de un solo color | el tope de 512 |
 | `light-256` | 256 × 256 | baseline 4:4:4 en bloques de 8 × 8 | una luz del terreno |
 | `light-256x255`, `light-255x256`, `light-gray-256` | | la misma, de una fila o una columna menos, o en grises | las luces que no se aceptan |
 | `cmyk-4x2` | 4 × 2 | baseline CMYK, 4 componentes | una fila que no entra en la textura (Q-C31) |
 
-Los ocho primeros tienen su `.6b.raw`. Los cuatro que siguen, la 6b los rechaza: hash6b da `ERR 1`
-(`JERR_ARITH_NOTIMPL`), `ERR 60` (`JERR_SOF_UNSUPPORTED`), `ERR 15` (`JERR_BAD_PRECISION`) y
-`ERR 50` (`JERR_NO_HUFF_TABLE`). Los demás no lo necesitan: se usan por su tamaño, o se comparan
-con lo que da `DecodeJpeg`, que ya está probado con los otros.
+Los nueve primeros tienen su `.6b.raw`. Los cinco que siguen, la 6b los rechaza: hash6b da `ERR 1`
+(`JERR_ARITH_NOTIMPL`), `ERR 60` (`JERR_SOF_UNSUPPORTED`), `ERR 15` (`JERR_BAD_PRECISION`) y, los
+dos sin tablas, `ERR 50` (`JERR_NO_HUFF_TABLE`). Los demás no lo necesitan: se usan por su tamaño,
+o se comparan con lo que da `DecodeJpeg`, que ya está probado con los otros.
 
 ## Cómo se armaron
 
 Las imágenes salen de estas fórmulas, con `x` e `y` desde 0 y `&` el y de bits:
 
-- `detailed` (`baseline-444-dri`, `baseline-420`, `progressive-444`, `baseline-440`, `gray`,
-  `mixed-sampling` y los que la 6b no lee): rojo `(47x + 13y) & 255`, verde `(x² + 3y²) & 255`,
+- `detailed` (`baseline-444-dri`, `baseline-420`, `progressive-444`, `baseline-440`, `gray`, los
+  dos `mixed-sampling` y los que la 6b no lee): rojo `(47x + 13y) & 255`, verde `(x² + 3y²) & 255`,
   azul `(7xy + 91) & 255`. En `gray` va solo el rojo.
 - `flat`: rojo 128, verde 64 y azul 192 en todos los píxeles.
 - `blocks` (las luces): rojo `8 ⌊x/8⌋ & 255`, verde `8 ⌊y/8⌋ & 255`, azul
@@ -59,7 +61,9 @@ con `-quality 75` y además:
   laboratorio);
 - `baseline-420`: `-sample 2x2`;
 - `baseline-440`: `-sample 1x2`;
-- `mixed-sampling`: `-sample 2x2,2x1,1x1`;
+- `mixed-sampling` y `mixed-sampling-narrow`: `-sample 2x2,2x1,1x1`;
+- `no-huffman-tables-scan-2`: `-sample 1x1 -scans`, con un archivo que dice `0: 0-63, 0, 0;` (el Y)
+  y `1 2: 0-63, 0, 0;` (el Cb y el Cr), dos scans secuenciales;
 - `progressive-444`: `-sample 1x1 -progressive`;
 - `arithmetic`: `-sample 1x1 -arithmetic`;
 - `lossless`: `-lossless 1`;
@@ -69,9 +73,10 @@ con `-quality 75` y además:
 
 `truncated` son los primeros bytes de `baseline-444-dri.jpg`, hasta la mitad de sus datos: el
 final de la cabecera del scan más la mitad de lo que queda sin contar el `FF D9`.
-`no-huffman-tables` es `baseline-444-dri.jpg` sin sus segmentos DHT (`FF C4`). Los CMYK no salen
-de `cjpeg`, que no escribe CMYK: los escribe `cmyk6b`, con el compresor de la 6b,
-`in_color_space = JCS_CMYK`, `jpeg_set_defaults` y calidad 75.
+`no-huffman-tables` es `baseline-444-dri.jpg` sin sus segmentos DHT (`FF C4`), y
+`no-huffman-tables-scan-2`, el de dos scans sin los DHT que van antes del segundo, los de las
+tablas 1 que usan el Cb y el Cr. Los CMYK no salen de `cjpeg`, que no escribe CMYK: los escribe
+`cmyk6b`, con el compresor de la 6b, `in_color_space = JCS_CMYK`, `jpeg_set_defaults` y calidad 75.
 
 ## La 6b
 
@@ -99,4 +104,7 @@ lo que hace falta para armarla y volver a sacar todo.
 
 De los archivos del juego, `lab-6b.txt` solo tiene la ruta, el tamaño, los componentes y un hash
 (`AGENTS.md`). `GoldenJpegImageTest.cpp` lo compara con lo que da `DecodeJpeg` de cada OZJ, y es lo
-que hay que correr al cambiar de versión de libjpeg-turbo.
+que hay que correr al cambiar de versión de libjpeg-turbo. La versión está fija en `vcpkg.json`
+(`overrides`) y en un `static_assert` de `JpegImage.cpp`, así que cambiarla es un PR propio
+(`CODING_RULES.md` §10). En el laboratorio, turbo da lo de la 6b con su SIMD y sin él
+(`JSIMD_FORCENONE=1`).

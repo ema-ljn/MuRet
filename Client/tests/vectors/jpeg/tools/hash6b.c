@@ -69,6 +69,13 @@ static int decode(const char* path, long skip, const char* raw)
         unsigned long long hash = FNV_OFFSET_BASIS;
         size_t i;
         pixels = malloc(size);
+        if (pixels == NULL)
+        {
+            fprintf(stderr, "no hay memoria para %s\n", path);
+            jpeg_destroy_decompress(&info);
+            fclose(file);
+            return 1;
+        }
         while (info.output_scanline < info.output_height)
         {
             JSAMPROW row = pixels + row_size * info.output_scanline;

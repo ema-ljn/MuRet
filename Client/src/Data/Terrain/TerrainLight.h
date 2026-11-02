@@ -52,8 +52,8 @@ static_assert(sizeof(TerrainLight) == 0xC0000, "el tamaño de la tabla del origi
 //   - Si `file` no pasa de los 24 bytes que no se leen, devuelve DataError::FileTooShort.
 //   - Si libjpeg corta antes de la última fila, devuelve DataError::InvalidData. El original
 //     devuelve false sin tocar la tabla, y quien lo llama (0x5f8f40) no lo mira: queda la luz que
-//     había (Q-C32). Lo que viene después de la última fila no se lee: cuando el original lo lee,
-//     ya escribió la tabla.
+//     había (Q-C32). En un JPEG de un solo scan, lo que viene después de la última fila no se lee:
+//     cuando el original lo lee, ya escribió la tabla.
 //   - Si el JPEG no es de 256 × 256 en color, devuelve DataError::InvalidData. El original no lo
 //     mira, y escribe fuera de la tabla o lee fuera de la imagen (Q-C31).
 Core::Expected<std::unique_ptr<TerrainLight>, DataError> LoadTerrainLight(std::span<const std::byte> file);

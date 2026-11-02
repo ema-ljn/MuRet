@@ -41,6 +41,11 @@ int main(int argc, char** argv)
     jpeg_set_quality(&info, 75, TRUE);
     jpeg_start_compress(&info, TRUE);
     row = malloc((size_t)width * 4);
+    if (row == NULL)
+    {
+        fprintf(stderr, "no hay memoria para %s\n", argv[3]);
+        return 1;
+    }
     for (y = 0; y < height; ++y)
     {
         for (x = 0; x < width * 4; ++x)

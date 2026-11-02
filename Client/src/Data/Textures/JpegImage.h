@@ -11,9 +11,8 @@
 // uno de los 2.380.
 //
 // Fuera del laboratorio, turbo hace algunas cosas distinto que la 6b (Q-C33). Las que se pueden
-// llevar a lo de la 6b se llevan: lo que la 6b no lee se rechaza (lo que se sabe antes de
-// decodificar), y el 4:4:0 se agranda como en ella. Las otras quedan escritas en Q-C33, como la de
-// un progresivo al que le faltan scans.
+// llevar a lo de la 6b se llevan: lo que la 6b no lee se rechaza, y el 4:4:0 se agranda como en
+// ella. Las otras quedan escritas en Q-C33, como la de un progresivo al que le faltan scans.
 //
 // La otra diferencia es de dónde lee: el original, del archivo con jpeg_stdio_src; acá, de los
 // bytes con jpeg_mem_src, que se comporta igual cuando se acaban los datos.
@@ -49,16 +48,18 @@ struct JpegImage
 //     cuantización, un marcador que no sabe leer), devuelve DataError::InvalidData. El original
 //     devuelve false.
 //   - Si es un JPEG que la 6b no lee y turbo sí, devuelve DataError::InvalidData, como el
-//     original: muestras de otra precisión que 8 bits, codificación aritmética, sin pérdida, o
-//     secuencial sin las tablas de Huffman de su primer scan (Q-C33).
+//     original: codificación aritmética, sin pérdida, o secuencial con un scan que pide una tabla
+//     de Huffman que no está (Q-C33). Uno de otra precisión que 8 bits, también.
 //   - Si el ancho o el alto pasan de `maxSide`, devuelve DataError::InvalidData sin decodificarla.
 //     Con un `maxSide` de 0 o menos, ninguna imagen entra.
-//   - Lo que viene después de la última fila no se lee: el original ya usó la imagen cuando lo lee,
-//     así que un error ahí no cambia nada (Q-C32).
+//   - En un JPEG de un solo scan, lo que viene después de la última fila no se lee: el original ya
+//     usó la imagen cuando lo lee, así que un error ahí no cambia nada (Q-C32). En uno de varios,
+//     como un progresivo, las dos libjpeg leen todo antes de la primera fila, y un error ahí es
+//     DataError::InvalidData, como en el original.
 //   - Un aviso de libjpeg no corta: si los datos se acaban antes de tiempo, libjpeg completa la
-//     imagen y avisa, y el original la usa igual (en un progresivo, la completa distinto que la 6b:
-//     Q-C33). Los mensajes no se muestran: en el original van al stderr de un programa de
-//     Windows, que no se ve.
+//     imagen y avisa, y el original la usa igual. turbo no siempre la completa como la 6b: un
+//     progresivo, y algunos baseline, dan otros bytes (Q-C33). Los mensajes no se muestran: en el
+//     original van al stderr de un programa de Windows, que no se ve.
 Core::Expected<JpegImage, DataError> DecodeJpeg(std::span<const std::byte> jpeg, int maxSide);
 
 } // namespace Client::Data::Textures

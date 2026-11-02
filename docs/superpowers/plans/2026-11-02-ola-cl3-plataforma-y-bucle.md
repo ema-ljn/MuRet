@@ -20,7 +20,7 @@ un modo fiel reproduce el ritmo del original: 21,33 frames por segundo y 75 paso
 **Arquitectura:** dos capas nuevas, como dice el roadmap. `Client::Platform`
 (`Client/src/Platform/`) es lo único que ve SDL3: ventana, contexto GL, el loader, el reloj real,
 la traducción de eventos y el log de SDL. Va en un target propio, `ClientPlatform`, porque
-`ClientLib` no enlaza SDL3 (roadmap, "Estructura de `Client/`"). `Client::Core` suma el `Clock`
+`ClientLib` no enlaza SDL3 (roadmap, "Estructura de `Client/`"). `Client::Core` suma el `IClock`
 (la interfaz) y el `Log`, como dice el roadmap; `Client::App` (`Client/src/App/`) tiene el bucle,
 el estado de la ventana, la config y la línea de comandos. La config va en `App` y no en `Core`,
 como decía el árbol del roadmap: lleva tipos del cliente (el modo del bucle, VSync, el servidor), y
@@ -106,10 +106,11 @@ verificado con un reloj falso. En concreto:
    más largo cuenta 1 s, y el resto se pierde con un aviso en el log. Es un cambio contra el
    original solo después de un corte de más de 1 s, y entra en 07 como quirk nuevo (CL3.2).
 3. **Dónde vive `Platform`.** *Recomendación:* un target `ClientPlatform` (estático) que enlaza
-   `ClientLib` y `SDL3::SDL3`; `Main` enlaza los dos. `ClientTests` no enlaza SDL3, y lo poco de
-   `Platform` que se prueba sin ventana (el chequeo de los punteros de GL, la versión, el
-   intervalo de swap) va a un `ClientPlatformTests` aparte, que corre en los dos sistemas porque
-   no abre ventana.
+   `ClientLib` y `SDL3::SDL3`; `Main` enlaza los dos. Los tests de `ClientLib` no enlazan SDL3, y
+   lo poco de `Platform` que se prueba sin ventana (el chequeo de los punteros de GL, la versión,
+   el intervalo de swap) va a su módulo, `Client/tests/platform/`: un ejecutable por archivo de
+   test, como los demás (`muret_add_test`), que enlaza también `ClientPlatform` y corre en los dos
+   sistemas porque no abre ventana.
 4. **El log: propio o `spdlog`.** `spdlog` está en vcpkg y resuelve el problema (niveles, salidas,
    archivo, y loggers `_st` para un solo hilo), pero trae `fmt`. Lo que se necesita son cuatro
    niveles, una salida a `stderr` y otra a un archivo, una de prueba, y un `mutex`, porque SDL
@@ -134,9 +135,9 @@ verificado con un reloj falso. En concreto:
    paso 1 de la CL3.4.
 7. **La ventana en CI de Windows.** El runner de Windows no tiene OpenGL 3.3 (solo el 1.1 de GDI),
    y por eso la ventana de la CL0.3 corre solo en Linux con Xvfb. *Recomendación:* igual: en
-   Windows, CI compila todo y corre `ClientTests` y `ClientPlatformTests`; la ventana se prueba a
-   mano y queda escrito en el README. Mesa para Windows (`opengl32.dll` de llvmpipe) se puede
-   sumar después si un bug de Windows se escapa.
+   Windows, CI compila todo y corre todos los tests, los de `platform/` incluidos; la ventana se
+   prueba a mano y queda escrito en el README. Mesa para Windows (`opengl32.dll` de llvmpipe) se
+   puede sumar después si un bug de Windows se escapa.
 
 ## Lo que más puede morder
 
@@ -190,11 +191,12 @@ inyectar el reloj (el reloj falso de los tests).
 
 **Archivos:**
 - Crear: `docs/learning/ola-cl3.0-el-bucle-de-juego.md` (la guía; Claude)
-- Crear: `labs/cl3.0-bucle/FixedStep.h/.cpp`, `TickGrid.h/.cpp`, sus tests, `README.md` y
-  `jefe/OriginalLoopTest.cpp` (Emanuel)
+- Crear: `labs/cl3.0-bucle/FixedStep.h/.cpp`, `TickGrid.h/.cpp`, sus tests (`test_fixed_step.cpp`
+  y `test_tick_grid.cpp`), `README.md` y `jefe/test_original_loop.cpp` (Emanuel)
 - Modificar: `labs/CMakeLists.txt` (la biblioteca `MuRetLabsCl30` y el ejecutable `LabCl30Tests`
   con `gtest_discover_tests(... TEST_PREFIX "LabCl30.")`, como `MuRetLabsCl20` y `LabCl20Tests`
-  de la CL2.0: GoogleTest ya está en `labs/` desde #28), `labs/README.md`
+  de la CL2.0: GoogleTest ya está en `labs/` desde #28, y el lab es un solo ejecutable con su lista
+  a mano, regla 7), `labs/README.md`
 
 - [ ] **Paso 1 (Claude):** la guía, justo antes de empezar.
 - [ ] **Paso 2 (Emanuel, `TODO(human)`):** `Labs::FixedStep` con milisegundos enteros:
@@ -288,11 +290,13 @@ de OpenGL como un recurso que vive dentro de la ventana.
 que hoy es `SdlVideo`), `Window.h/.cpp` (ventana y contexto, hoy `CreateGlWindow`),
 `GlLoader.h/.cpp` (la tabla de punteros de la CL0.3, sin cambiar su forma, D-C2),
 `SwapInterval.h/.cpp` y `WindowEvents.h/.cpp` (de `SDL_Event` a `App::WindowEvent`); crear
-`Client/src/App/WindowState.h/.cpp` y `VSyncMode.h`; `Client/tests/app/WindowStateTest.cpp` y
-`Client/tests/platform/GlLoaderTest.cpp` y `SwapIntervalTest.cpp`. Modificar
-`Client/CMakeLists.txt` (`ClientPlatform`, `ClientPlatformTests`), `Client/src/main.cpp` (queda
-el armado), `Client/README.md` y este plan. El árbol del roadmap ya tiene `Input/`,
-`ClientPlatform` y la config en `App/` (se corrigió con este plan).
+`Client/src/App/WindowState.h/.cpp` y `VSyncMode.h`; `Client/tests/app/test_window_state.cpp`, y
+`Client/tests/platform/test_gl_loader.cpp` y `test_swap_interval.cpp` con su `CMakeLists.txt` (el
+módulo nuevo, ver el paso 4). Modificar `Client/CMakeLists.txt` (`ClientPlatform`, y sacar
+`src/Platform/` del glob de `ClientLib`), `Client/tests/CMakeLists.txt` (el
+`add_subdirectory(platform)`), `Client/src/main.cpp` (queda el armado), `Client/README.md` y este
+plan. El árbol del roadmap ya
+tiene `Input/`, `ClientPlatform` y la config en `App/` (se corrigió con este plan).
 
 **Interfaces:**
 
@@ -381,10 +385,18 @@ contexto se destruye primero), como la CL0.3.
   `SwapIntervalTest.MapsEachMode` (`On` 1, `Adaptive` -1, `Off` 0).
 - [ ] **Paso 3:** `WindowState`, y `Platform` con lo que ya hace `main.cpp`. `main.cpp` queda en el
   armado: `SdlContext`, `Window` y el bucle de la CL0.3, que la CL3.2 reemplaza.
-- [ ] **Paso 4:** CMake: `ClientPlatform` enlaza `ClientLib` y `SDL3::SDL3` y lleva
-  `SDL_OPENGL_1_FUNCTION_TYPEDEFS` como `PUBLIC` (sale de `Main`; `GlLoader.h` expone los tipos
-  `PFNGL…PROC`); `ClientPlatformTests` corre con `gtest_discover_tests` y sin ventana. El paso de
-  Xvfb del CI no cambia en esta sub-ola; la CL3.2 le suma los modos.
+- [ ] **Paso 4:** CMake. El `file(GLOB_RECURSE client_sources ... "src/*.cpp")` de `ClientLib`
+  juntaría también `src/Platform/*.cpp`, y `ClientLib` no puede enlazar SDL3: después del filtro
+  de `main.cpp` va `list(FILTER client_sources EXCLUDE REGEX "/src/Platform/")`, como los
+  `list(FILTER MU_CLIENT_SOURCES EXCLUDE REGEX ...)` de `src/CMakeLists.txt` en MuMain.
+  `ClientPlatform` junta `src/Platform/*.cpp` con su propio `file(GLOB ... CONFIGURE_DEPENDS)`,
+  enlaza `ClientLib` y `SDL3::SDL3` y lleva `SDL_OPENGL_1_FUNCTION_TYPEDEFS` como `PUBLIC` (sale
+  de `Main`; `GlLoader.h` expone los tipos `PFNGL…PROC`). `muret_add_module_tests()` no pasa
+  `LINK_LIBS`, así que `Client/tests/platform/CMakeLists.txt` llama a mano, uno por archivo,
+  `muret_add_test(NAME test_gl_loader SOURCES test_gl_loader.cpp LINK_LIBS ClientPlatform)`, y
+  lo mismo con `test_swap_interval` (y con `test_input_events` en la CL3.3). Corren sin ventana:
+  `muret_add_test` registra cada `TEST` con `gtest_discover_tests`. El paso de Xvfb del CI no
+  cambia en esta sub-ola; la CL3.2 le suma los modos.
 - [ ] **Paso 5:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "WindowState|GlLoader|SwapInterval|Client.Main"
@@ -410,16 +422,19 @@ reloj falso, `SdlClock`); **PR B**, el modo fiel.
 | minimizado | sin foco no corre el frame (CL3.R, paso 6) | pasos sí, dibujo no; duerme hasta el próximo paso | pasos sí, dibujo no, y la espera de `GetTickCount` sigue |
 
 **Archivos:**
-- **PR A:** crear `Client/src/Core/Clock.h` (la interfaz), `Client/src/App/GameLoop.h/.cpp`,
+- **PR A:** crear `Client/src/Core/IClock.h` (la interfaz), `Client/src/App/GameLoop.h/.cpp`,
   `FixedStep.h/.cpp` y `LoopTiming.h` (las constantes); `Client/src/Platform/SdlClock.h/.cpp`;
-  `Client/tests/support/FakeClock.h/.cpp` y `RecordingClient.h/.cpp`, con su `FakeClockTest.cpp`,
-  y `Client/tests/app/FixedStepTest.cpp` y `GameLoopTest.cpp`. Modificar `Client/CMakeLists.txt`,
-  `main.cpp` (una escena de prueba: el fondo cambia de color con el ciclo de 32 pasos, como
-  `DAT_07d2d360`, interpolado), `App/CommandLine.h/.cpp` y su test (`--pacing`, `--vsync` y
-  `--stats`; la CL3.4 los suma a la config), `.github/workflows/ci.yml` (el paso de Xvfb corre
-  también `--vsync off`), 07 (el quirk nuevo de la pregunta 2), PROGRESS y este plan.
-- **PR B:** crear `Client/src/App/FaithfulPacer.h/.cpp` y `Client/tests/app/FaithfulPacerTest.cpp`;
-  modificar `GameLoop`, `ci.yml` (`--pacing faithful` en Xvfb), PROGRESS y este plan.
+  `Client/tests/support/FakeClock.h/.cpp` y `RecordingClient.h/.cpp`, con su
+  `Client/tests/support/test_fake_clock.cpp`, y `Client/tests/app/test_fixed_step.cpp` y
+  `test_game_loop.cpp`. Los tests entran solos: cada módulo junta sus `test_*.cpp`, y los `.cpp` de
+  `support/` que no son tests van a `ClientTestSupport`. Modificar `main.cpp` (una escena de prueba:
+  el fondo cambia de color con el ciclo de 32 pasos, como `DAT_07d2d360`, interpolado),
+  `App/CommandLine.h/.cpp` y su test (`--pacing`, `--vsync` y `--stats`; la CL3.4 los suma a la
+  config), `.github/workflows/ci.yml` (el paso de Xvfb corre también `--vsync off`), 07 (el quirk
+  nuevo de la pregunta 2), PROGRESS y este plan.
+- **PR B:** crear `Client/src/App/FaithfulPacer.h/.cpp` y
+  `Client/tests/app/test_faithful_pacer.cpp`; modificar `GameLoop`, `ci.yml` (`--pacing faithful` en
+  Xvfb), PROGRESS y este plan.
 
 **Interfaces:**
 
@@ -429,10 +444,10 @@ namespace Client::Core
 using Duration = std::chrono::nanoseconds;
 
 // El reloj del bucle. Now() es monótono en el real; el falso puede ir para atrás a propósito.
-class Clock
+class IClock
 {
 public:
-    virtual ~Clock() = default;
+    virtual ~IClock() = default;
     virtual Duration Now() = 0;
     virtual void SleepFor(Duration duration) = 0;
 };
@@ -451,10 +466,10 @@ inline constexpr std::int32_t FaithfulWaitMs = 40;
 
 // Lo que el bucle llama: la lógica, un paso por vez, y el dibujo. En la CL3.3, Step recibe el
 // InputState (ver ahí).
-class LoopClient
+class ILoopClient
 {
 public:
-    virtual ~LoopClient() = default;
+    virtual ~ILoopClient() = default;
     virtual void Step() = 0;
     virtual void Render(float alpha) = 0; // alpha en [0, 1)
 };
@@ -482,10 +497,10 @@ public:
     // Los pasos que tocan (mientras el acumulador valga 40 o más), como 0x637791.
     int BeginFrame();
     // Toma el inicio (0x63852b). Se llama después de los pasos y antes de dibujar.
-    void StartMeasure(Core::Clock& clock);
+    void StartMeasure(Core::IClock& clock);
     // Duerme de tick en tick mientras static_cast<std::int32_t>(TickCountMs(now) - inicio) sea
     // menor que 40, y suma esa diferencia al acumulador (0x638632).
-    void EndFrame(Core::Clock& clock);
+    void EndFrame(Core::IClock& clock);
     std::int32_t AccumulatedMs() const;
     std::int32_t LastMeasuredMs() const;
 };
@@ -504,7 +519,7 @@ struct FrameStats
 class GameLoop
 {
 public:
-    GameLoop(Core::Clock& clock, LoopClient& client, PacingMode mode);
+    GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode);
     // Un frame: los pasos que tocan y el dibujo si `state.minimized` es falso. En Faithful, la
     // espera corre siempre, también minimizada. Devuelve cuántos pasos corrió.
     int RunFrame(const WindowState& state);
@@ -519,7 +534,7 @@ El reloj falso y el cliente de prueba (`Client/tests/support/`):
 ```cpp
 namespace Client::Tests
 {
-class FakeClock final : public Core::Clock
+class FakeClock final : public Core::IClock
 {
 public:
     Core::Duration Now() override;            // el tiempo actual, sin moverlo
@@ -530,7 +545,7 @@ public:
 
 // Cuenta pasos y dibujos, guarda cada alfa, y hace "tardar" a cada paso y a cada dibujo lo que
 // se le diga moviendo el FakeClock: así un test arma un frame de 130 ms o un breakpoint de 10 s.
-class RecordingClient final : public App::LoopClient
+class RecordingClient final : public App::ILoopClient
 {
 public:
     explicit RecordingClient(FakeClock& clock);
@@ -638,11 +653,12 @@ flanco que se lee por frame tiene que llegar a exactamente un paso de la lógica
 | mouse | `WM_RBUTTON*`, `WM_MBUTTON*`, `WM_MOUSEWHEEL`: cámara y zoom | botones izquierdo, medio y derecho como las teclas; la rueda se suma hasta el paso; la posición en coordenadas de la ventana, que son píxeles mientras la ventana no pida `SDL_WINDOW_HIGH_PIXEL_DENSITY` (la de 640 × 480 es de la CL5, D-C11) |
 
 **Archivos:** crear `Client/src/Input/Key.h` (los scancodes que usa el cliente, con nombre, sin
-SDL), `InputState.h/.cpp` y `InputEvent.h`; `Client/src/Platform/InputEvents.h/.cpp` (de
-`SDL_Event` a `Input::InputEvent`); `Client/tests/input/InputStateTest.cpp` y
-`Client/tests/platform/InputEventsTest.cpp` (la tabla de scancodes, sin ventana). Modificar
-`Client/CMakeLists.txt`, `GameLoop` y `LoopClient` (las firmas de abajo), `Platform::PumpEvents`,
-`RecordingClient`, `main.cpp`, PROGRESS y este plan.
+SDL), `InputState.h/.cpp` y `InputEvent.h`; `Client/src/Platform/InputEvents.h/.cpp` (de `SDL_Event`
+a `Input::InputEvent`); `Client/tests/input/test_input_state.cpp`, con el `CMakeLists.txt` del
+módulo nuevo (`muret_add_module_tests()`), y `Client/tests/platform/test_input_events.cpp` (la tabla
+de scancodes, sin ventana, con su `muret_add_test` en `platform/CMakeLists.txt`). Modificar
+`Client/tests/CMakeLists.txt` (el `add_subdirectory(input)`), `GameLoop` e `ILoopClient` (las firmas
+de abajo), `Platform::PumpEvents`, `RecordingClient`, `main.cpp`, PROGRESS y este plan.
 
 **Interfaces:**
 
@@ -684,10 +700,10 @@ public:
 namespace Client::App
 {
 // Cambian las firmas de la CL3.2.
-class LoopClient
+class ILoopClient
 {
 public:
-    virtual ~LoopClient() = default;
+    virtual ~ILoopClient() = default;
     virtual void Step(const Input::InputState& input) = 0;
     virtual void Render(float alpha) = 0;
 };
@@ -733,8 +749,8 @@ que el test le pregunta (`std::vector<bool> sawPress` y la tecla en `watchedKey`
     `Key::Enter`, uno sin usar da `std::nullopt`; `InputEventsTest.AutoRepeatIsNotAnEvent`: un
     `SDL_EVENT_KEY_DOWN` con `repeat` da `std::nullopt` (el `SDL_Event` se arma a mano, sin
     ventana).
-- [ ] **Paso 3:** `InputState`, la traducción en `Platform`, y las firmas nuevas de `GameLoop` y
-  `LoopClient`.
+- [ ] **Paso 3:** `InputState`, la traducción en `Platform`, y las firmas nuevas de `GameLoop` e
+  `ILoopClient`.
 - [ ] **Paso 4:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "InputState|InputEvents|GameLoop"
@@ -772,14 +788,14 @@ El host vacío no es error acá: lo pide la CL4 al conectarse.
 
 **Archivos:**
 - **PR A:** crear `Client/src/App/Config.h/.cpp` y `ConfigError.h`;
-  `Client/tests/app/ConfigTest.cpp`. Modificar `vcpkg.json` (`inih` con la feature `cpp`, si el paso
-  1 lo confirma), `Client/src/App/CommandLine.h/.cpp` y su test (pasa a `Core::Expected` con un
+  `Client/tests/app/test_config.cpp`. Modificar `vcpkg.json` (`inih` con la feature `cpp`, si el
+  paso 1 lo confirma), `Client/src/App/CommandLine.h/.cpp` y su test (pasa a `Core::Expected` con un
   error que se imprime, y suma `connect`, `/u`, `/p`, `--config` y `--data`), `main.cpp`,
   `Client/CMakeLists.txt` (los tests de `Main` sin ventana), `Client/README.md` (cómo se configura),
   07 (Q-C35 a Q-C37 con sus tests), PROGRESS y este plan.
 - **PR B:** crear `Client/src/Core/Log.h/.cpp` y `Client/src/Platform/SdlLog.h/.cpp`;
-  `Client/tests/core/LogTest.cpp`. Modificar `main.cpp` (el aviso de `MaxFrameTime` y los errores
-  del arranque van al log), `Client/CMakeLists.txt`, PROGRESS y este plan.
+  `Client/tests/core/test_log.cpp`. Modificar `main.cpp` (el aviso de `MaxFrameTime` y los errores
+  del arranque van al log), PROGRESS y este plan; los fuentes y el test entran por los globs.
 
 **Interfaces:**
 
@@ -905,8 +921,8 @@ se declara después del `Log` en `main`, así se destruye antes.
 
 | Qué | Cómo |
 | --- | --- |
-| el bucle, los dos modos, el input, la config, el log | `ClientTests` con el reloj falso: corren en los dos sistemas |
-| el loader, la versión y el intervalo de swap como datos | `ClientPlatformTests`, sin ventana: los dos sistemas |
+| el bucle, los dos modos, el input, la config, el log | los tests de `app/`, `input/`, `core/` y `support/`, con el reloj falso: corren en los dos sistemas |
+| el loader, la versión y el intervalo de swap como datos | los de `platform/`, sin ventana: los dos sistemas |
 | abrir la ventana, el contexto 3.3, el swap | el paso de Xvfb con Mesa (llvmpipe) del CI, solo en Linux: `Main --frames 60`, y desde la CL3.2 también con `--vsync off` y con `--pacing faithful`. En Windows, a mano (pregunta 7) |
 | que VSync ata los FPS al monitor y que el modo fiel da 21,33 FPS reales | a mano con `--stats` (CL3.2, paso 5): Xvfb no tiene retrazo, y el tiempo real en CI no es estable |
 | minimizar, el foco, el teclado de verdad | a mano; la lógica de cada evento ya la prueban `WindowStateTest` e `InputStateTest` |

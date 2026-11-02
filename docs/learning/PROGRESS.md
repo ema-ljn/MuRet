@@ -61,9 +61,13 @@ solo lo lee.
   `PacketWriter` arma un C1 o un C2 campo por campo y rechaza lo que no entra en vez de truncarlo
   (Q-C06), y el XOR32 del motor de envío va aparte, con el opcode en claro también en un C2, como
   en el binario y no como en `mu-client`.
-  De la CL2.3 está el PR A: los bloques del SimpleModulus y los archivos de clave, con una clave de
+  **La CL2.3, también**: los bloques del SimpleModulus y los archivos de clave, con una clave de
   cifrar y una de descifrar que son tipos distintos, y un módulo que no sirve rechazado al cargar
-  (Q-C41). Contra las claves reales, cada par del cliente y del servidor es inverso.
+  (Q-C41). Contra las claves reales, cada par del cliente y del servidor es inverso. Encima,
+  `EncryptPacket` y `DecryptPacket` arman y rearman los C3/C4 con sus seriales: el serial que no
+  coincide se resincroniza (Q-C04), el C4 más grande se descifra entero (Q-C05), y el paquete
+  rearmado declara lo que mide (Q-C10). Se descifran los 183 C3 que mandó el cliente original y
+  los 25 C3/C4 que contestó el GameServer, con el serial en orden en cada conexión.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 
@@ -112,6 +116,8 @@ sesión, junto con los de repaso más viejo.
 | una plantilla con un parámetro `enum` para que dos claves del mismo formato sean tipos distintos (`SimpleModulusKey<KeyRole>`), y una fábrica que valida antes de construir (`FromLanes`) | CL2.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un checksum que cubre el claro y no el largo útil: qué cambios detecta y cuáles no (`SimpleModulusTest.TheChecksumDoesNotCoverTheUsefulSize`) | CL2.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | vectores que fijan lo que un ida y vuelta no ve: el orden de los bits 16 y 17 de un carril, y el producto de 32 bits que da la vuelta | CL2.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un contador por conexión que detecta un paquete perdido o repetido, y resincronizar en vez de arrastrar el desfase (`PacketSerials`, Q-C04) | CL2.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| varios errores en un paquete: cuál gana y por qué (el checksum malo sobre el largo útil imposible, porque es el que lleva el aviso) | CL2.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

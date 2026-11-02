@@ -28,8 +28,10 @@ add_library(ClientLib STATIC
     src/Data/Textures/JpegImage.cpp
     src/Data/Textures/OzjTexture.cpp
     src/Data/Textures/OztTexture.cpp
+    src/Network/EncryptedPacket.cpp
     src/Network/Packet.cpp
     src/Network/PacketReader.cpp
+    src/Network/PacketSerials.cpp
     src/Network/PacketWriter.cpp
     src/Network/Crypto/SimpleModulus.cpp
     src/Network/Crypto/SimpleModulusKeyFile.cpp
@@ -105,9 +107,12 @@ if(MURET_BUILD_TESTS)
         tests/data/TextTableTest.cpp
         tests/data/TextureTest.cpp
         tests/data/Xor3Test.cpp
+        tests/network/EncryptedPacketTest.cpp
+        tests/network/GoldenEncryptedPacketTest.cpp
         tests/network/GoldenPacketReaderTest.cpp
         tests/network/GoldenSimpleModulusKeyFileTest.cpp
         tests/network/PacketReaderTest.cpp
+        tests/network/PacketSerialsTest.cpp
         tests/network/PacketTest.cpp
         tests/network/PacketWriterTest.cpp
         tests/network/SimpleModulusKeyFileTest.cpp

@@ -86,6 +86,23 @@ modelo: no sirven de oráculo para el C2.
   C3/C4 enviado. Va como primer byte del texto en claro.
 - **Serial de recepción:** `0x05767914`. Si no coincide, el cliente loguea, **no** incrementa y
   despacha igual (ver Q-C04 en [07](07-quirks-y-bugs.md)).
+- **El envoltorio**, inlineado en cada emisor (por ejemplo `0x4e2198..0x4e2500`, el del aviso
+  `F1 03`): copia el C1/C2 ya con XOR32, pone un byte de `rand()` detrás (`buf[len]`), pisa el
+  tamaño con el serial (`[1]` en un C1, `[2]` en un C2) y cifra desde ahí: `size - 1` bytes útiles
+  en un C1 y `size - 2` en un C2. El resto del último bloque es lo que haya en la pila. Si lo
+  cifrado mide menos de `0x100` bytes sale como C3, `[C3][largo + 2]`, y si no, como C4,
+  `[C4][hi][lo]` con el largo + 3 (`cmp eax,0x100`, en `0x4e22a8`): un C1 de 186 bytes o más sale
+  como C4. La ventana de cartas (`0x498820`), el único emisor de un C2, arma siempre un C4: pone el
+  `0xC4` sin el `cmp` (`0x499414..0x49945d`, el `mov` en `0x49941e`).
+- **El rearmado** (`0x4e1d50`): un C3 vuelve como `[C1][n]` y un C4 como `[C2][n >> 8][n & 0xFF]`,
+  seguidos de lo descifrado sin el serial. `n` cuenta el serial, que no se copia, así que el paquete
+  declara uno menos de lo que ocupa en un C1 y dos menos en un C2 (Q-C10). Un C1 que salió como C4
+  vuelve como C2.
+- **Checksum malo:** no despacha, suma 1 al serial de recepción y manda el aviso
+  `C1 06 F1 03 06 00` (con XOR32, `C1 06 F1 7B C1 73`) como C3 (`0x4e1e35..0x4e22d4`,
+  `004e1d50-protocol-compiler.md`); qué hace el servidor con él no se sabe. Es lo único que no
+  despacha: con un bloque que dice más de 8 útiles, o uno del medio con menos, suma lo que dicen,
+  despacha y compara el serial como siempre.
 - Checksum por bloque con las constantes `0xF8` / `0x3D`: es un byte, así que un cambio en un carril
   falla casi siempre (pasa uno de cada 256, más o menos), uno en el checksum siempre, y uno en el
   byte del largo útil nunca.
@@ -143,6 +160,7 @@ mínima los reproduce a propósito, MuRet no.
 | FoxAnti traduce el formato del laboratorio al de `main.exe` | la traducción vive solo en `Network::Obfuscation`; `Protocol` lee siempre el formato de `main.exe` (`F4 06`, `F3 11` con su byte de más), venga del servidor que venga | CL2, CL4 |
 | El `0xAA` se decide por lectura de `recv` | se decide por paquete, mirando el primer byte en el cable (`6B`, `68`, `69`, `6E` llevan `0xAA`; `C1`, `C2` exentos) (Q-C18) | CL2 |
 | `WSAAsyncSelect` en el hilo de la ventana | socket no bloqueante consultado por el bucle (un hilo); el envío que no entra se encola como en `FD_WRITE` | CL4 |
+| El rearmado declara menos de lo que ocupa (Q-C10), el serial de recepción no se resincroniza (Q-C04) y el descifrado suma los largos útiles sin mirarlos | `DecryptPacket` rearma con el tamaño que ocupa, resincroniza el serial y lo informa (`SerialCheck::Resynced`), y rechaza un largo útil imposible (`InvalidBlock`) y lo que no son bloques enteros (`NotWholeBlocks`); `EncryptPacket` sigue la regla de C3 o C4 del envoltorio, con el relleno como parámetro y el resto en 0 | CL2 |
 | Pila de ~2 KB en `0x4e1d50` que un C4 grande desborda (Q-C05), y un paquete de más de `0x2000` que deja de leer la conexión (Q-C40) | el corte rechaza lo que pasa de `MaxPacketSize` (`0x2000`), y el descifrado escribe en un buffer del tamaño de lo que entra | CL2 |
 
 Tests que fija:

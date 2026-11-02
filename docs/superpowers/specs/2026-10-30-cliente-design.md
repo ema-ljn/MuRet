@@ -159,7 +159,9 @@ de MuMain no se copian (revisado contra su `src/source/` el 2026-11-01):
   OpenGL. En MuRet, `Data/` va de bytes a tipos sin GL (se prueba sin ventana) y `Render/` solo
   sube a la GPU lo que `Data/` ya leyó.
 - **`Platform/` es una capa, no una carpeta de `Core/`** (MuMain tiene `Core/Platform`). `ClientLib`
-  no enlaza SDL3, así que ni `Data` ni `Core` pueden depender de la ventana.
+  no enlaza SDL3, así que ni `Data` ni `Core` pueden depender de la ventana. `Platform` va en su
+  propio target, `ClientPlatform`, y es lo único que ve SDL3: `Input` no conoce SDL, y `Platform`
+  le pasa los eventos ya traducidos ([plan de la CL3](../plans/2026-11-02-ola-cl3-plataforma-y-bucle.md)).
 - **Sin `Core/Globals` ni `Core/Utilities`** (`_struct.h`, `Singleton`, `_GlobalFunctions`): D-C1.
 - **Sin assets en el repo** (MuMain versiona `src/bin/Data`).
 
@@ -176,9 +178,10 @@ Client/
   docs/research/           QUÉ HACE EL ORIGINAL (01..09)
   src/
     main.cpp               arma las capas y arranca; sin lógica
-    App/                   Application, bucle de juego con tick fijo     (CL3)
-    Core/                  Expected, ByteReader, Xor3, Config, Log, Clock  (CL0+)
-    Platform/              ventana, contexto GL, input sobre SDL3          (CL3)
+    App/                   bucle con tick fijo, config, línea de comandos (CL3)
+    Core/                  Expected, ByteReader, Xor3, Log, Clock          (CL0+)
+    Platform/              ventana, contexto GL, reloj y eventos sobre SDL3; target ClientPlatform (CL3)
+    Input/                 teclado y mouse por frame, sin SDL              (CL3)
     Data/                  Tables/, Text/, Terrain/, Textures/, Models/   (CL1, CL6)
     Network/               Socket, Packet, PacketReader/Writer, Crypto/, Obfuscation (CL2, CL4)
     Protocol/              opcodes, structs, Dispatcher, handlers por dominio (CL2, CL4, CL9)
@@ -223,8 +226,9 @@ efectos.
 
 **Planes detallados:** se escriben al arrancar cada ola, como pide el camino de aprendizaje
 (L-10). Ya están los de la [CL0](../plans/2026-10-30-ola-cl0-fundaciones-cliente.md), la
-[CL1](../plans/2026-11-01-ola-cl1-formatos-sin-ventana.md) y la
-[CL2](../plans/2026-11-02-ola-cl2-protocolo-sin-red.md).
+[CL1](../plans/2026-11-01-ola-cl1-formatos-sin-ventana.md), la
+[CL2](../plans/2026-11-02-ola-cl2-protocolo-sin-red.md) y la
+[CL3](../plans/2026-11-02-ola-cl3-plataforma-y-bucle.md).
 
 ## Cómo el research se vuelve test
 

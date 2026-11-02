@@ -451,7 +451,7 @@ conexión que detecta paquetes perdidos o repetidos.
 | largo útil | suma el de cada bloque sin mirarlo | un bloque que dice 0 o más de 8, o uno que no es el último con menos de 8, es `CryptoError::InvalidBlock` |
 | bloques enteros | lee de a 11 sin mirar si alcanzan; el checksum casi seguro falla (*análisis*) | `CryptoError::NotWholeBlocks` |
 | serial de recepción (Q-C04) | `0x05767914`: si no coincide, guarda el recibido sin sumar 1, loguea y despacha igual; el desfase queda para siempre | se resincroniza con el recibido + 1, despacha igual y lo informa (`SerialCheck::Resynced`) para que la CL4 lo loguee una vez |
-| checksum malo | no despacha, suma 1 al serial de recepción y manda `C1 06 F1 03 06 00` (con XOR32: `C1 06 F1 7B C1 73`) como C3 (`004e1d50-protocol-compiler.md`, confirmado en el asm, `0x4e1e35..0x4e22d4`; qué hace el servidor con él no se sabe). Es lo único que no despacha: con un bloque que dice más de 8 o uno del medio con menos, suma igual, despacha, compara el serial como siempre y no avisa | igual con `ChecksumMismatch` y `NotWholeBlocks` (que en el original casi siempre termina en un checksum malo). Con los otros errores del descifrado, decisión de MuRet: no despacha, el serial avanza igual y no hay aviso. El aviso lo arma la CL2.5 y lo manda la CL4. Es nuevo para el 03: entra con esta sub-ola |
+| checksum malo | no despacha, suma 1 al serial de recepción y manda `C1 06 F1 03 06 00` (con XOR32: `C1 06 F1 7B C1 73`) como C3 (`004e1d50-protocol-compiler.md`, confirmado en el asm, `0x4e1e35..0x4e22d4`; qué hace el servidor con él no se sabe). Es lo único que no despacha: con un bloque que dice más de 8, uno del medio con menos o el último con 0, suma igual, despacha, compara el serial como siempre y no avisa; con un solo bloque que trae solo el serial, también, y el opcode es el byte de relleno | igual con `ChecksumMismatch` y `NotWholeBlocks` (que en el original casi siempre termina en un checksum malo). Con los otros errores del descifrado, decisión de MuRet: no despacha, el serial avanza igual y no hay aviso. El aviso lo arma la CL2.5 y lo manda la CL4. Es nuevo para el 03: entra con esta sub-ola |
 | rearmado (Q-C10) | `[C1][n]` y lo descifrado sin el serial: declara n y ocupa n + 1 (C4: n + 2) | declara lo que ocupa; menos de 2 bytes descifrados (serial y opcode) es `CryptoError::TooShort` |
 
 Las claves reales cumplen lo que supone `c3c4_reference.py`: módulos de 17 y 18 bits, claves de
@@ -499,7 +499,16 @@ malo, porque el original corta en el primero sin mirar los largos y es el error 
 aviso. El vector del C4 lo arma `wrap` de `make_vectors.py`, que da los cuatro fixtures cifrados de
 `mu-client` y, con `Pair17` y tres bloques, lo mismo que `encrypt_block` de `c3c4_reference.py`. El
 golden deshace el `0xAA` en cada byte de lo que manda el GameServer: en el laboratorio lo llevan
-todos sus paquetes, y el corte da 18 C3 y 7 C4.
+todos sus paquetes, y el corte da 18 C3 y 7 C4. Las dos revisiones sumaron: un `Packet` al que ya
+se le sacaron los bytes es `WrongPacketType` y no toca los seriales; `InvalidBlock` y `TooShort`
+gastan el serial que se esperaba aunque el primer bloque pase su checksum y traiga otro, y un
+bloque que dice 255, el último o uno del medio, no se copia (con ASan, copiarlo falla); los
+paquetes más chicos, un C1 de 3 bytes y un C2 de 4, van y vuelven. La cabecera la escribe
+`AppendHeader`, en `Packet.h`, para `PacketWriter` y para cifrar y rearmar. El golden mira además
+el paquete rearmado contra los bloques descifrados uno por uno, y cifra de nuevo con
+`EncryptPacket` los 183 C3 del cliente, con el relleno que puso el original: la cabecera y todos
+los bloques menos el último dan lo mismo, y el último también cuando el original dejó ceros detrás
+del relleno, en 110 de los 183.
 
 **Interfaces:**
 

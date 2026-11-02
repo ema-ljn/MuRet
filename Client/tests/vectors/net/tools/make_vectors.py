@@ -94,7 +94,7 @@ def wrap(key, packet, serial, padding):
     # El envoltorio de cada emisor (0x4e2198..0x4e2500): el serial pisa el tamaño (pkt[1] en un C1,
     # pkt[2] en un C2) y se cifra desde ahí; detrás de lo útil va el byte de relleno, y el resto del
     # último bloque en 0. Un C1 sale como C3 si lo cifrado mide menos de 0x100 bytes, y si no, como
-    # C4. Un C2 sale siempre como C4, como en la ventana de cartas (0x498820), el único emisor de C2.
+    # C4. Un C2 sale siempre como C4, como en la ventana de cartas (0x498820), su único emisor.
     start = 1 if packet[0] == 0xC1 else 2
     useful = bytearray(packet[start:])
     useful[0] = serial

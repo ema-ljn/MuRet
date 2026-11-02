@@ -2,6 +2,8 @@
 
 #include "Network/PacketSerials.h"
 
+#include "support/NetworkPrinters.h"
+
 #include <gtest/gtest.h>
 
 #include <cstdint>
@@ -49,6 +51,16 @@ TEST(PacketSerialsTest, ResyncsWithTheOneThatCame)
     EXPECT_EQ(serials.Receive(9), SerialCheck::Resynced);
     EXPECT_EQ(serials.Receive(10), SerialCheck::InOrder);
     EXPECT_EQ(serials.Receive(11), SerialCheck::InOrder);
+}
+
+// Un solo paquete perdido ya no coincide: esperando el 5 llega el 6, que resincroniza, y el 7 ya
+// está en orden.
+TEST(PacketSerialsTest, OneLostPacketResyncs)
+{
+    PacketSerials serials = ExpectingReceive(5);
+
+    EXPECT_EQ(serials.Receive(6), SerialCheck::Resynced);
+    EXPECT_EQ(serials.Receive(7), SerialCheck::InOrder);
 }
 
 // Un paquete repetido también resincroniza: después del 3 se espera el 4, no el 7.

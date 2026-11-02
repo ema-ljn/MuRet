@@ -32,8 +32,10 @@ public:
     // a quien lo usa que lo anote una vez.
     [[nodiscard]] SerialCheck Receive(std::uint8_t received);
 
-    // Un paquete que llegó y no se pudo descifrar: no se sabe su serial, y se espera el siguiente,
-    // como hace el original con un checksum malo.
+    // Un paquete que llegó y no se despacha: se espera el siguiente del que se esperaba, sin mirar
+    // el serial que trajo. Con un checksum malo es lo que hace el original. Con InvalidBlock o
+    // TooShort, si el primer bloque pasó su checksum el serial se sabe, y no resincronizar con él
+    // es decisión de MuRet: todo paquete que no se despacha cuenta como uno con el checksum malo.
     void SkipReceive();
 
     // Los dos a 0, como 0x4c1340 al conectar al GameServer.

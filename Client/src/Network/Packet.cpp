@@ -20,6 +20,9 @@ constexpr std::size_t OpcodeSize = 1;
 // Dónde empieza el tamaño: después del byte del tipo.
 constexpr std::size_t SizeOffset = 1;
 
+// Los bits de un byte: un tamaño de dos bytes se escribe el de arriba primero.
+constexpr unsigned BitsPerByte = 8;
+
 bool HasOneByteSize(PacketType type)
 {
     return type == PacketType::C1 || type == PacketType::C3;
@@ -63,6 +66,17 @@ std::optional<std::size_t> DeclaredSize(PacketType type, std::span<const std::by
         return reader.ReadU8();
     }
     return reader.ReadU16Be();
+}
+
+// La conversión a std::byte se queda con el byte de abajo: es módulo 256.
+void AppendHeader(std::vector<std::byte>& out, PacketType type, std::size_t size)
+{
+    out.push_back(static_cast<std::byte>(type));
+    if (!HasOneByteSize(type))
+    {
+        out.push_back(static_cast<std::byte>(size >> BitsPerByte));
+    }
+    out.push_back(static_cast<std::byte>(size));
 }
 
 std::optional<PacketError> CheckDeclaredSize(PacketType type, std::size_t declared)

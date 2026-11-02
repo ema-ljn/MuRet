@@ -67,7 +67,9 @@ solo lo lee.
   `EncryptPacket` y `DecryptPacket` arman y rearman los C3/C4 con sus seriales: el serial que no
   coincide se resincroniza (Q-C04), el C4 más grande se descifra entero (Q-C05), y el paquete
   rearmado declara lo que mide (Q-C10). Se descifran los 183 C3 que mandó el cliente original y
-  los 25 C3/C4 que contestó el GameServer, con el serial en orden en cada conexión.
+  los 25 C3/C4 que contestó el GameServer, con el serial en orden en cada conexión, y
+  `EncryptPacket` vuelve a cifrar los 183 como el original salvo el último bloque, donde el
+  original deja bytes de su pila.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 

@@ -26,8 +26,8 @@ namespace Client::Network
 
 // Cifra un C1/C2 (con el XOR32, si lo lleva) como C3/C4, y gasta un serial de envío solo si sale.
 // `padding` es el byte que va detrás de lo útil: el original pone uno de rand(), y los tests lo
-// fijan. WrongPacketType con un C3/C4, y TooLarge si el C4 pasaría de MaxPacketSize (un C2 de más
-// de 5.954 bytes).
+// fijan. WrongPacketType con un C3/C4 o con un Packet al que ya se le sacaron los bytes
+// (TakeBytes), y TooLarge si el C4 pasaría de MaxPacketSize (un C2 de más de 5.954 bytes).
 [[nodiscard]] Core::Expected<Packet, Crypto::CryptoError>
 EncryptPacket(const Packet& plain, const Crypto::EncryptionKey& key, PacketSerials& serials, std::byte padding = {});
 
@@ -38,12 +38,12 @@ struct DecryptedPacket
     SerialCheck serial; // cómo vino su serial
 };
 
-// Descifra un C3/C4 y lo rearma como C1/C2. WrongPacketType con un C1/C2, sin tocar los seriales.
-// Con NotWholeBlocks, ChecksumMismatch, InvalidBlock o TooShort, el paquete no se despacha y se
-// espera el serial siguiente (PacketSerials::SkipReceive). Si hay más de un problema gana el
-// primero de esa lista: un checksum malo en cualquier bloque gana sobre un largo útil imposible,
-// porque el original corta en el primer checksum malo sin mirar los largos, y es el error que
-// lleva el aviso F1 03.
+// Descifra un C3/C4 y lo rearma como C1/C2. WrongPacketType con un C1/C2 o con un Packet al que ya
+// se le sacaron los bytes, sin tocar los seriales. Con NotWholeBlocks, ChecksumMismatch,
+// InvalidBlock o TooShort, el paquete no se despacha y se espera el serial siguiente
+// (PacketSerials::SkipReceive). Si hay más de un problema gana el primero de esa lista: un checksum
+// malo en cualquier bloque gana sobre un largo útil imposible, porque el original corta en el
+// primer checksum malo sin mirar los largos, y es el error que lleva el aviso F1 03.
 [[nodiscard]] Core::Expected<DecryptedPacket, Crypto::CryptoError>
 DecryptPacket(const Packet& encrypted, const Crypto::DecryptionKey& key, PacketSerials& serials);
 

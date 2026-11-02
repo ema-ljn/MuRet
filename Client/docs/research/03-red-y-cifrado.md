@@ -101,8 +101,10 @@ modelo: no sirven de oráculo para el C2.
 - **Checksum malo:** no despacha, suma 1 al serial de recepción y manda el aviso
   `C1 06 F1 03 06 00` (con XOR32, `C1 06 F1 7B C1 73`) como C3 (`0x4e1e35..0x4e22d4`,
   `004e1d50-protocol-compiler.md`); qué hace el servidor con él no se sabe. Es lo único que no
-  despacha: con un bloque que dice más de 8 útiles, o uno del medio con menos, suma lo que dicen,
-  despacha y compara el serial como siempre.
+  despacha: con un bloque que dice más de 8 útiles, uno del medio con menos o el último con 0,
+  suma lo que dicen, despacha y compara el serial como siempre (`0x685cc0` no acota el largo útil
+  y `0x685b30` lo suma). Despacha también un solo bloque que trae solo el serial: el opcode que lee,
+  `dec[1]`, es el byte que le sigue, el de relleno.
 - Checksum por bloque con las constantes `0xF8` / `0x3D`: es un byte, así que un cambio en un carril
   falla casi siempre (pasa uno de cada 256, más o menos), uno en el checksum siempre, y uno en el
   byte del largo útil nunca.

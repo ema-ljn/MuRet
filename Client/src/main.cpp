@@ -118,7 +118,8 @@ int main(int argc, char** argv)
     // VSync. Si el driver no lo deja, el hola mundo igual anda, solo que más rápido.
     if (window.VSync() != options.vsync)
     {
-        std::fprintf(stderr, "MuRet: sin VSync: el driver no dejó el intervalo pedido\n");
+        std::fprintf(stderr, "MuRet: VSync: se pidió %s y quedó %s: %s\n", Platform::VSyncModeName(options.vsync),
+                     Platform::VSyncModeName(window.VSync()), window.VSyncError().c_str());
     }
 
     const std::uint64_t frames = RunFrames(window, commandLine->maxFrames);

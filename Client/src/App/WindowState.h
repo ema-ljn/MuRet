@@ -38,7 +38,7 @@ struct WindowState
     PixelSize pixelSize;
 };
 
-// Lo que cambia `event` en `state`. `size` solo cuenta con PixelSizeChanged, y uno de 0 × 0 (en
-// Windows llega al minimizar) no toca el tamaño.
+// Lo que cambia `event` en `state`. `size` solo cuenta con PixelSizeChanged, y uno con un lado en 0
+// (en Windows llega un 0 × 0 al minimizar) no toca el tamaño.
 [[nodiscard]] WindowState Apply(WindowState state, WindowEvent event, PixelSize size = {});
 } // namespace Client::App

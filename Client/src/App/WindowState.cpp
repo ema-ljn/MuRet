@@ -25,7 +25,8 @@ WindowState Apply(WindowState state, WindowEvent event, PixelSize size)
         state.focused = true;
         break;
     case WindowEvent::PixelSizeChanged:
-        // En Windows llega uno de 0 × 0 al minimizar: el viewport se queda con el último tamaño.
+        // Con un lado en 0 no se toca (en Windows llega un 0 × 0 al minimizar): el viewport se
+        // queda con el último tamaño.
         if (size.width > 0 && size.height > 0)
         {
             state.pixelSize = size;

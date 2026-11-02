@@ -1,7 +1,5 @@
 #include "Platform/Window.h"
 
-#include "Platform/SwapInterval.h"
-
 #include <SDL3/SDL_error.h>
 
 #include <string>
@@ -20,8 +18,8 @@ void GlContextDeleter::operator()(SDL_GLContextState* context) const
     SDL_GL_DestroyContext(context);
 }
 
-Window::Window(WindowPtr window, GlContextPtr context, const GlFunctions& gl, App::VSyncMode vsync)
-    : m_window(std::move(window)), m_context(std::move(context)), m_gl(gl), m_vsync(vsync)
+Window::Window(WindowPtr window, GlContextPtr context, const GlFunctions& gl, SwapIntervalResult vsync)
+    : m_window(std::move(window)), m_context(std::move(context)), m_gl(gl), m_vsync(std::move(vsync))
 {
 }
 
@@ -67,8 +65,8 @@ Core::Expected<Window, std::string> Window::Create(const SdlContext& /*sdl*/, co
                                 std::to_string(minor));
     }
 
-    const App::VSyncMode vsync = ApplySwapInterval(options.vsync);
-    return Window(std::move(window), std::move(context), gl.Value(), vsync);
+    SwapIntervalResult vsync = ApplySwapInterval(options.vsync);
+    return Window(std::move(window), std::move(context), gl.Value(), std::move(vsync));
 }
 
 void Window::Swap()
@@ -85,7 +83,12 @@ App::PixelSize Window::PixelSize() const
 
 App::VSyncMode Window::VSync() const
 {
-    return m_vsync;
+    return m_vsync.mode;
+}
+
+const std::string& Window::VSyncError() const
+{
+    return m_vsync.error;
 }
 
 const GlFunctions& Window::Gl() const

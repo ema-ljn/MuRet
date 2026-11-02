@@ -7,12 +7,9 @@
 // PumpEvents: la tabla del contrato de la CL3.1, de los SDL_EVENT_* a los WindowEvent.
 namespace Client::Platform
 {
-namespace
+std::optional<App::WindowEvent> WindowEventFor(const SDL_Event& event)
 {
-std::optional<App::WindowEvent> TranslateWindowEvent(const SDL_Event& event)
-{
-    // type es un Uint32 (SDL_events.h): el cast deja el switch sobre el enum, sin conversiones.
-    switch (static_cast<SDL_EventType>(event.type))
+    switch (event.type)
     {
     case SDL_EVENT_QUIT:
     case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
@@ -35,14 +32,13 @@ std::optional<App::WindowEvent> TranslateWindowEvent(const SDL_Event& event)
         return std::nullopt;
     }
 }
-} // namespace
 
 void PumpEvents(App::WindowState& state)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-        const std::optional<App::WindowEvent> windowEvent = TranslateWindowEvent(event);
+        const std::optional<App::WindowEvent> windowEvent = WindowEventFor(event);
         if (!windowEvent)
         {
             continue;

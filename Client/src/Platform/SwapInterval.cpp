@@ -1,6 +1,9 @@
 #include "Platform/SwapInterval.h"
 
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_video.h>
+
+#include <string>
 
 // SwapIntervalFor y ApplySwapInterval.
 namespace Client::Platform
@@ -21,7 +24,28 @@ App::VSyncMode ModeFor(int interval)
     }
     return interval == IntervalOff ? App::VSyncMode::Off : App::VSyncMode::On;
 }
+
+// Lo que quedó, sin pedir nada: el intervalo según `get`, u Off si no lo sabe.
+App::VSyncMode CurrentMode(GetSwapIntervalFunction get)
+{
+    int interval = IntervalOff;
+    if (!get(&interval))
+    {
+        return App::VSyncMode::Off;
+    }
+    return ModeFor(interval);
+}
 } // namespace
+
+bool SdlSetSwapInterval(int interval)
+{
+    return SDL_GL_SetSwapInterval(interval);
+}
+
+bool SdlGetSwapInterval(int* interval)
+{
+    return SDL_GL_GetSwapInterval(interval);
+}
 
 int SwapIntervalFor(App::VSyncMode vsync)
 {
@@ -34,25 +58,44 @@ int SwapIntervalFor(App::VSyncMode vsync)
     case App::VSyncMode::Off:
         return IntervalOff;
     }
+    // Inalcanzable con los tres modos; GCC lo pide igual (-Wreturn-type), porque un enum class
+    // puede tener otro valor con un cast.
     return IntervalOn;
 }
 
-App::VSyncMode ApplySwapInterval(App::VSyncMode wanted)
+const char* VSyncModeName(App::VSyncMode vsync)
 {
-    if (SDL_GL_SetSwapInterval(SwapIntervalFor(wanted)))
+    switch (vsync)
     {
-        return wanted;
+    case App::VSyncMode::On:
+        return "On";
+    case App::VSyncMode::Adaptive:
+        return "Adaptive";
+    case App::VSyncMode::Off:
+        return "Off";
     }
-    if (wanted == App::VSyncMode::Adaptive && SDL_GL_SetSwapInterval(IntervalOn))
+    // Inalcanzable, como en SwapIntervalFor.
+    return "?";
+}
+
+SwapIntervalResult ApplySwapInterval(App::VSyncMode wanted, SetSwapIntervalFunction set, GetSwapIntervalFunction get)
+{
+    if (set(SwapIntervalFor(wanted)))
     {
-        return App::VSyncMode::On;
+        return SwapIntervalResult{wanted, {}};
     }
-    // No se pudo cambiar: queda el que el contexto ya tenía, si SDL lo sabe.
-    int interval = IntervalOff;
-    if (!SDL_GL_GetSwapInterval(&interval))
+    // El error del pedido, antes de que otra llamada lo pise.
+    SwapIntervalResult result{App::VSyncMode::Off, SDL_GetError()};
+    if (wanted == App::VSyncMode::Adaptive && set(IntervalOn))
     {
-        return App::VSyncMode::Off;
+        result.mode = App::VSyncMode::On;
+        return result;
     }
-    return ModeFor(interval);
+    result.mode = CurrentMode(get);
+    if (result.mode == wanted)
+    {
+        result.error.clear();
+    }
+    return result;
 }
 } // namespace Client::Platform

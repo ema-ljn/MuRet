@@ -1,5 +1,6 @@
 #include "Platform/SdlContext.h"
 
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_init.h>
 
 #include <string>

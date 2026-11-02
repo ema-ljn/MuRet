@@ -71,4 +71,16 @@ TEST(WindowStateTest, AZeroPixelSizeIsIgnored)
     EXPECT_EQ(state.pixelSize.width, 640);
     EXPECT_EQ(state.pixelSize.height, 480);
 }
+
+TEST(WindowStateTest, APixelSizeWithOneZeroSideIsIgnored)
+{
+    const WindowState sized = Apply(WindowState{}, WindowEvent::PixelSizeChanged, PixelSize{640, 480});
+    const WindowState noHeight = Apply(sized, WindowEvent::PixelSizeChanged, PixelSize{640, 0});
+    const WindowState noWidth = Apply(sized, WindowEvent::PixelSizeChanged, PixelSize{0, 480});
+
+    EXPECT_EQ(noHeight.pixelSize.width, 640);
+    EXPECT_EQ(noHeight.pixelSize.height, 480);
+    EXPECT_EQ(noWidth.pixelSize.width, 640);
+    EXPECT_EQ(noWidth.pixelSize.height, 480);
+}
 } // namespace

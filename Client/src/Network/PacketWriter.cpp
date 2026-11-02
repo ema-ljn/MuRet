@@ -8,6 +8,7 @@ namespace Client::Network
 namespace
 {
 
+// Los bits de un byte: un entero de un campo se escribe de a un byte.
 constexpr unsigned BitsPerByte = 8;
 
 // Lo que mide el tipo de cada uno.
@@ -109,16 +110,7 @@ Core::Expected<Packet, PacketError> PacketWriter::Finish() const
     }
     std::vector<std::byte> packet;
     packet.reserve(size);
-    packet.push_back(static_cast<std::byte>(type));
-    if (type == PacketType::C1)
-    {
-        packet.push_back(static_cast<std::byte>(size));
-    }
-    else
-    {
-        packet.push_back(static_cast<std::byte>(size >> BitsPerByte));
-        packet.push_back(static_cast<std::byte>(size));
-    }
+    AppendHeader(packet, type, size);
     packet.push_back(static_cast<std::byte>(opcode));
     packet.insert(packet.end(), fields.begin(), fields.end());
     return Packet::FromBytes(std::move(packet));

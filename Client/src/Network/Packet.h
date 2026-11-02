@@ -50,6 +50,11 @@ inline constexpr std::size_t MaxPacketSize = 0x2000;
 // si todavía no llegaron todos.
 [[nodiscard]] std::optional<std::size_t> DeclaredSize(PacketType type, std::span<const std::byte> header);
 
+// Agrega a `out` la cabecera que lee DeclaredSize: el tipo y `size`, en el byte 1 en un C1/C3, y en
+// los bytes 1 y 2, big-endian, en un C2/C4. Quien llama sabe que `size` entra: en un C1/C3 se
+// escribe solo su byte de abajo.
+void AppendHeader(std::vector<std::byte>& out, PacketType type, std::size_t size);
+
 // Si un tamaño declarado no sirve: SizeTooSmall si no llega a MinPacketSize(type), TooLarge si pasa
 // de MaxPacketSize, y std::nullopt si sirve. Es la regla que usan FromBytes y el PacketReader.
 [[nodiscard]] std::optional<PacketError> CheckDeclaredSize(PacketType type, std::size_t declared);

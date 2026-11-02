@@ -18,6 +18,7 @@
 namespace
 {
 
+using Client::Network::AppendHeader;
 using Client::Network::CheckDeclaredSize;
 using Client::Network::DeclaredSize;
 using Client::Network::HeaderSize;
@@ -69,6 +70,20 @@ TEST(PacketTest, ReadsTheDeclaredSize)
     EXPECT_EQ(DeclaredSize(PacketType::C2, Bytes({0xC2, 0x01, 0x2C})), 300u);
     EXPECT_EQ(DeclaredSize(PacketType::C2, Bytes({0xC2, 0x01})), std::nullopt);
     EXPECT_EQ(DeclaredSize(PacketType::C3, Bytes({0xC3})), std::nullopt);
+}
+
+// AppendHeader escribe la cabecera que lee DeclaredSize, detrás de lo que ya había: el tamaño en un
+// byte en C1 y C3, y en dos, big-endian, en C2 y C4.
+TEST(PacketTest, AppendsTheHeaderAfterWhatWasThere)
+{
+    std::vector<std::byte> out = Bytes({0x99});
+
+    AppendHeader(out, PacketType::C1, 4);
+    AppendHeader(out, PacketType::C2, 300);
+    AppendHeader(out, PacketType::C3, 0xFF);
+    AppendHeader(out, PacketType::C4, MaxPacketSize);
+
+    EXPECT_TRUE(SameBytes(out, Bytes({0x99, 0xC1, 0x04, 0xC2, 0x01, 0x2C, 0xC3, 0xFF, 0xC4, 0x20, 0x00})));
 }
 
 TEST(PacketTest, AcceptsAC1AndAC2)

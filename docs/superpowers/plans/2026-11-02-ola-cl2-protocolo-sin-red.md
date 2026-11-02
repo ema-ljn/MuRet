@@ -444,14 +444,14 @@ conexión que detecta paquetes perdidos o repetidos.
 | archivo de clave | `0x686240`: magic `0x1112` (u16), tamaño total (u32) y bloques de 4 dwords, todo little-endian; cada dword con XOR de la tabla de `0x6d84fc` (`0x3F08A79B 0xE25CC287 0x93D27AB9 0x20DEA7BF`, la misma en los dos builds del laboratorio). `Enc1.dat` trae módulo, clave de cifrado y XOR; `Dec2.dat`, módulo, clave de descifrado y XOR: 54 bytes | `LoadEncryptionKey` y `LoadDecryptionKey`; otro magic u otro tamaño es `CryptoError::InvalidKeyFile` |
 | bloque | 8 bytes en claro dan 11: cuatro carriles de 16 bits, cada uno `((xor ^ w ^ previo) * clave) mod módulo`; una segunda pasada con XOR; 18 bits por carril, MSB primero; y 2 bytes de cola con el largo útil y un checksum (`0xF8` XOR los 8 bytes; `0x3D` en la cola) | `EncryptBlock` y `DecryptBlock`, con los productos en `std::uint32_t`, que dan la vuelta como el `IMUL` |
 | bits de un carril | de los 16 de abajo van sus dos bytes en orden little-endian, cada uno con su bit más alto primero; después el bit 17 y el 16, en ese orden (`0x685bb0` llama a `AddBits` con 2 bits desde la posición 22 del dword, contando MSB primero): `0x20000` da `00 00 80` | igual: el algoritmo exacto es `encrypt_block` y `decrypt_block` de `c3c4_reference.py` |
-| paquete | el envoltorio, inlineado en cada emisor (por ejemplo `0x4e2198..0x4e2500`, el del aviso `F1 03`): copia el C1/C2 ya con XOR32, pone el byte de relleno, pisa el tamaño con el serial (`[1]` en un C1, `[2]` en un C2) y cifra desde ahí con `0x685ac0`: `size - 1` bytes útiles en un C1, `size - 2` en un C2. Si lo cifrado mide menos de `0x100` sale como C3; si no, como C4 (`cmp eax,0x100`). *Estático* | `EncryptPacket`; la regla de C3 o C4 es solo del envío: el servidor del laboratorio manda C4 de 36, 69 y 80 bytes, y `DecryptPacket` los acepta |
+| paquete | el envoltorio, inlineado en cada emisor (por ejemplo `0x4e2198..0x4e2500`, el del aviso `F1 03`): copia el C1/C2 ya con XOR32, pone el byte de relleno, pisa el tamaño con el serial (`[1]` en un C1, `[2]` en un C2) y cifra desde ahí con `0x685ac0`: `size - 1` bytes útiles en un C1, `size - 2` en un C2. Si lo cifrado mide menos de `0x100` sale como C3; si no, como C4 (`cmp eax,0x100`). La ventana de cartas (`0x498820`), el único emisor de un C2, arma siempre un C4, sin el `cmp`. *Estático* | `EncryptPacket`: un C1 por el largo cifrado y un C2 siempre como C4. La regla es solo del envío: el servidor del laboratorio manda C4 de 36, 69 y 80 bytes, y `DecryptPacket` los acepta |
 | relleno | un byte de `rand()` y la pila (pregunta 5) | un parámetro y ceros |
 | serial de envío | un byte global (`0x05767913`): 0 al conectar al GameServer (`0x4c1340`), +1 por C3/C4, de 255 vuelve a 0 | `PacketSerials`, uno por conexión |
 | descifrado | `0x685b30`: de a 11 bytes; con un checksum malo, -1 | `DecryptPacket`; `CryptoError::ChecksumMismatch` |
-| largo útil | suma el de cada bloque sin mirarlo | un bloque que dice más de 8, o uno que no es el último con menos de 8, es `CryptoError::InvalidBlock` |
+| largo útil | suma el de cada bloque sin mirarlo | un bloque que dice 0 o más de 8, o uno que no es el último con menos de 8, es `CryptoError::InvalidBlock` |
 | bloques enteros | lee de a 11 sin mirar si alcanzan; el checksum casi seguro falla (*análisis*) | `CryptoError::NotWholeBlocks` |
 | serial de recepción (Q-C04) | `0x05767914`: si no coincide, guarda el recibido sin sumar 1, loguea y despacha igual; el desfase queda para siempre | se resincroniza con el recibido + 1, despacha igual y lo informa (`SerialCheck::Resynced`) para que la CL4 lo loguee una vez |
-| checksum malo | no despacha, suma 1 al serial de recepción y manda `C1 06 F1 03 06 00` (con XOR32: `C1 06 F1 7B C1 73`) como C3 (`004e1d50-protocol-compiler.md`, confirmado en el asm, `0x4e1e35..0x4e22d4`; qué hace el servidor con él no se sabe). Es lo único que no despacha: con un bloque que dice más de 8 o uno del medio con menos, suma igual, despacha, compara el serial como siempre y no avisa | igual con `ChecksumMismatch` y `NotWholeBlocks` (que en el original casi siempre termina en un checksum malo). Con los otros errores del descifrado, decisión de MuRet: no despacha, el serial avanza igual y no hay aviso. El aviso lo arma la CL2.5 y lo manda la CL4. Es nuevo para el 03: entra con esta sub-ola |
+| checksum malo | no despacha, suma 1 al serial de recepción y manda `C1 06 F1 03 06 00` (con XOR32: `C1 06 F1 7B C1 73`) como C3 (`004e1d50-protocol-compiler.md`, confirmado en el asm, `0x4e1e35..0x4e22d4`; qué hace el servidor con él no se sabe). Es lo único que no despacha: con un bloque que dice más de 8, uno del medio con menos o el último con 0, suma igual, despacha, compara el serial como siempre y no avisa; con un solo bloque que trae solo el serial, también, y el opcode es el byte de relleno | igual con `ChecksumMismatch` y `NotWholeBlocks` (que en el original casi siempre termina en un checksum malo). Con los otros errores del descifrado, decisión de MuRet: no despacha, el serial avanza igual y no hay aviso. El aviso lo arma la CL2.5 y lo manda la CL4. Es nuevo para el 03: entra con esta sub-ola |
 | rearmado (Q-C10) | `[C1][n]` y lo descifrado sin el serial: declara n y ocupa n + 1 (C4: n + 2) | declara lo que ocupa; menos de 2 bytes descifrados (serial y opcode) es `CryptoError::TooShort` |
 
 Las claves reales cumplen lo que supone `c3c4_reference.py`: módulos de 17 y 18 bits, claves de
@@ -490,6 +490,25 @@ revisiones sumaron: que el checksum, de un byte, no ve uno de cada 256 cambios e
 menos (`SomeChangedLaneBytesPassTheChecksum`); los bordes de `FromLanes`; un XOR de 17 bits que se
 usa entero; y el largo útil entero, también 0 y `0xFF`. Los tests comparten `support/FixedRandom.h`,
 `support/SimpleModulusKeys.h` y `support/KeyFiles.h`, que usa también el PR B.
+
+Hecho así (PR B): un C2 sale siempre como C4, como en la ventana de cartas (`0x498820`), que pone
+el `0xC4` sin el `cmp`; la regla del largo cifrado queda para los C1, y uno de 186 bytes o más
+vuelve como C2, como en el original. Un bloque que dice 0 útiles también es `InvalidBlock`, y
+`TooShort` queda para un solo bloque con el serial. Si hay más de un problema gana el checksum
+malo, porque el original corta en el primero sin mirar los largos y es el error que lleva el
+aviso. El vector del C4 lo arma `wrap` de `make_vectors.py`, que da los cuatro fixtures cifrados de
+`mu-client` y, con `Pair17` y tres bloques, lo mismo que `encrypt_block` de `c3c4_reference.py`. El
+golden deshace el `0xAA` en cada byte de lo que manda el GameServer: en el laboratorio lo llevan
+todos sus paquetes, y el corte da 18 C3 y 7 C4. Las dos revisiones sumaron: un `Packet` al que ya
+se le sacaron los bytes es `WrongPacketType` y no toca los seriales; `InvalidBlock` y `TooShort`
+gastan el serial que se esperaba aunque el primer bloque pase su checksum y traiga otro, y un
+bloque que dice 255, el último o uno del medio, no se copia (con ASan, copiarlo falla); los
+paquetes más chicos, un C1 de 3 bytes y un C2 de 4, van y vuelven. La cabecera la escribe
+`AppendHeader`, en `Packet.h`, para `PacketWriter` y para cifrar y rearmar. El golden mira además
+el paquete rearmado contra los bloques descifrados uno por uno, y cifra de nuevo con
+`EncryptPacket` los 183 C3 del cliente, con el relleno que puso el original: la cabecera y todos
+los bloques menos el último dan lo mismo, y el último también cuando el original dejó ceros detrás
+del relleno, en 110 de los 183.
 
 **Interfaces:**
 
@@ -586,7 +605,7 @@ en `0x800`).
   corto son `InvalidKeyFile`. El golden carga `Enc1.dat` y `Dec2.dat` de la carpeta golden, y con
   el cable, `Dec1.dat` y `Enc2.dat`, y mide que cada par es inverso. Después `LoadEncryptionKey` y
   `LoadDecryptionKey`.
-- [ ] **Paso 5 (PR B):** los tests de los paquetes y los seriales:
+- [x] **Paso 5 (PR B):** los tests de los paquetes y los seriales:
   - con la clave identidad, `FIX_C3_SERIAL0`, `FIX_C3_RANDA5` (relleno `0xA5`) y
     `FIX_C3_SERIALFF` (el serial 255, que vuelve a 0), y el C2 de 300 bytes de la CL2.2 como C4 de
     421 con el serial 2 (el `FIX_C4_SERIAL2` armado de nuevo);
@@ -604,8 +623,8 @@ en `0x800`).
     `NotWholeBlocks`, `InvalidBlock` y `TooShort`, y los cuatro avanzan el serial;
   - un C3 o un C4 que se pasa a `EncryptPacket` es `WrongPacketType` y no gasta serial, y un C1
     que se pasa a `DecryptPacket` tampoco.
-- [ ] **Paso 6 (PR B):** `PacketSerials`, `EncryptPacket` y `DecryptPacket`.
-- [ ] **Paso 7 (PR B):** el golden con el cable: los 183 C3 del cliente se descifran con
+- [x] **Paso 6 (PR B):** `PacketSerials`, `EncryptPacket` y `DecryptPacket`.
+- [x] **Paso 7 (PR B):** el golden con el cable: los 183 C3 del cliente se descifran con
   `Dec1.dat` (checksum bien, serial desde 0 y +1 en cada conexión) y, bloque por bloque con
   `EncryptBlock` y los 8 bytes descifrados de cada uno (relleno incluido), se vuelven a cifrar con
   `Enc1.dat` del cliente en los mismos bytes: `EncryptPacket` no sirve acá, porque el relleno del
@@ -614,7 +633,7 @@ en `0x800`).
   `Resynced`, en las 7 conexiones que los traen. El test corta el cable con el `PacketReader`: el
   `--golden` de `c3c4_reference.py` mira solo el primer paquete de cada segmento y ve 10 de los
   25. Sin imprimir un payload.
-- [ ] **Paso 8:** verificar:
+- [x] **Paso 8:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "SimpleModulus|PacketSerials|EncryptedPacket"
   ```

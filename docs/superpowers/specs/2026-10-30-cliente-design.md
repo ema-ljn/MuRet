@@ -83,7 +83,7 @@ La regla guía es la del servidor: el **contrato** (wire + archivos de datos) se
 | D-C7 | Datos | cargadores que escriben globales; `MessageBox` si falta algo | funciones puras bytes → tipos, errores como valor con un `Expected` propio (decidido por Emanuel el 2026-11-01, L-3 del camino); los assets no se versionan | testear sin ventana; datos de prueba sin violar derechos |
 | D-C8 | Quirks | se replican tal cual | contrato de datos se reproduce; bugs internos se corrigen con test viejo/nuevo (regla de [07](../../../Client/docs/research/07-quirks-y-bugs.md)) | distinguir contrato de accidente |
 | D-C9 | Tests | — | GoogleTest; los de datos reales leen `MURET_CLIENT_GOLDEN_DIR`, una carpeta con el contenido de `Data\` (por ejemplo `analysis/decompilacion-maxima/assets/original-data` de `mu-online-reverse-lab`). Sin la variable, se saltean; si apunta a una carpeta que no existe o le falta el archivo pedido, fallan (CL0.2) | oráculos sin meter assets al repo |
-| D-C10 | Config | registro de Windows + `connect /u<ip> /p<puerto>` | archivo de config + argumentos; se sigue aceptando `connect /u /p` | nada hardcodeado |
+| D-C10 | Config | registro de Windows; el ConnectServer viene compilado y el launcher lo puede cambiar por el registro; los argumentos no se leen, y el parser de `/u /p` está sin usar ([02](../../../Client/docs/research/02-arranque-y-ciclo-de-vida.md#del-launcher-al-juego)) | archivo de config + argumentos; se acepta `connect /u<ip> /p<puerto>`, como se lo lanza en el laboratorio | nada hardcodeado |
 | D-C11 | Resolución | 640 × 480 de referencia | la UI se diseña en 640 × 480 y se escala a la ventana real; resoluciones y pantallas anchas modernas | separar coordenadas lógicas de físicas |
 | D-C12 | Texto | GDI → textura, caché por texto, IME coreano | FreeType o SDL3_ttf → textura, la misma caché; se conserva el byte `0x02` de color | rasterizado de fuentes, UTF-8 |
 | D-C13 | Audio | `wzAudio.dll` (derivado de CoolPlayer 215: MP3 y Ogg) + DirectSound (WAV) | audio de SDL3 detrás de `Audio::`, con decodificadores de MP3, Ogg y WAV de terceros; la ABI de `wzAudio` es el contrato de comportamiento (volumen, posición, ecualizador) | mezcla de audio, streaming |
@@ -248,9 +248,11 @@ efectos.
 ## Fuera de alcance
 
 - El anticheat de FoxAnti y del propio `main.exe`.
-- El launcher (`mu.exe`) y lo suyo: el auto-update, `mumsg.dll` y `message.wtf`, y el paso de
+- El launcher (`mu.exe`) y lo suyo: el auto-update, `mumsg.dll` y `message.wtf`, el paso de
   `WinMain` que termina la actualización (`0x4b96b0`,
-  [05](../../../Client/docs/research/05-formatos-de-datos.md#el-pipeline-de-las-dlls)).
+  [05](../../../Client/docs/research/05-formatos-de-datos.md#el-pipeline-de-las-dlls)) y el
+  servidor que deja en el registro para el juego (`wzPopLaunchInfo`,
+  [02](../../../Client/docs/research/02-arranque-y-ciclo-de-vida.md#del-launcher-al-juego)).
 - Versionar assets del juego o distribuir un cliente jugable con datos.
 - Funciones de clientes posteriores al 1.02 (Season 6, MU Helper, tienda).
 - Cambiar quién escribe la lógica del cliente: sigue siendo Emanuel.

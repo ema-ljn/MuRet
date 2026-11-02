@@ -161,10 +161,13 @@ la luz que tenía en memoria el original (`lor_light.bin` y `s31_light.bin`).
 
 Verificado: `npcipher` con 4 vectores reales en la VM; el resto con vectores estándar.
 
-`main.exe` **no** carga estas cinco DLLs ni lee `message.wtf`: son del launcher (`Mu.exe`, que no
-está en el laboratorio y que importa `mumsg.dll` y `wz_zp.dll` directamente, según
-`decompilacion-maxima/metadata/relaciones_componentes.csv`) y de las herramientas. Revisado al
-arrancar la CL1.5 (2026-11-02), en el `main.exe` `c32bbd5f`:
+`main.exe` **no** carga estas cinco DLLs ni lee `message.wtf`: son del launcher y de las
+herramientas. El launcher, `Mu.exe`, está decompilado en `decompilacion-maxima/Mu-unpacked.exe/`,
+y sus imports, sacados de la memoria porque ASPack borra los del archivo
+(`Mu-unpacked.exe/imports_candidates.csv`), traen `mumsg.dll` y `wz_zp.dll`; también lo dice
+`decompilacion-maxima/metadata/relaciones_componentes.csv`. Cómo abre el juego está en
+[02](02-arranque-y-ciclo-de-vida.md#del-launcher-al-juego). Revisado al arrancar la CL1.5
+(2026-11-02), en el `main.exe` `c32bbd5f`:
 
 - Mientras corre, no están cargadas: ninguna de las 92 listas de módulos del `main.exe` corriendo
   que guarda el research (`client-research/analysis/foxanti/evidence/`, por ejemplo

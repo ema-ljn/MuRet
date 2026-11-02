@@ -1,15 +1,54 @@
 # 02. Arranque y ciclo de vida
 
 Fuentes: `analysis/mainexe/functions/paso9-ciclo-vida.md`, `paso7-escenas.md`,
-`mainexe-vmxp-c32bbd5f/reports/entry-006a2444.md` y `winmain-004b9b80.md`.
+`mainexe-vmxp-c32bbd5f/reports/entry-006a2444.md` y `winmain-004b9b80.md`; para el launcher, su
+decompilado en `mu-online-reverse-lab`, `analysis/decompilacion-maxima/Mu-unpacked.exe/`.
 
-## Línea de comandos y configuración
+## Del launcher al juego
 
-- El laboratorio lanza el cliente como `main.exe connect /u172.16.198.1 /p44405`: IP y puerto del
-  ConnectServer (`mu-client/CHECKPOINT.md`, sección VMXP).
-- La configuración vive en el registro, en `SOFTWARE\Webzen\Mu\Config` (por ejemplo
-  `VolumeLevel`). `FoxAnti.Init` lee además `ConnectIp` de **HKCU** y pisa la IP del juego en
-  `0x6C76E0` (`mu-client/docs/component-packet.md`). *Estático.*
+El launcher (`Mu.exe`) abre el juego y le pasa el servidor por el registro, no por la línea de
+comandos. El `main.exe` del laboratorio, además, arranca solo. *Estático*, salvo donde se dice otra
+cosa:
+
+1. **El launcher.** Después del update, `0x406ae0` escribe en
+   `HKLM\SOFTWARE\Webzen\Mu\Connection` un `Key` con la hora (`timeGetTime`, en `0x412210`) y, con
+   `0x4127c0`, `ParameterA` y `ParameterB`: el host y el puerto, codificados. Después abre el juego
+   con `ShellExecuteA(NULL, "open", "main.exe", "connect", NULL, SW_SHOW)` y se cierra. En un modo
+   (el flag `0x44d05c`) los argumentos son `connect /y<host> /z<puerto>`, también codificados; en el
+   normal, el host va vacío. Otro camino, `0x40aa60`, abre el juego igual, sin escribir la clave.
+   El nombre `main.exe` está armado con un XOR en el código (con un flag de servidor de prueba,
+   `maintest.exe`), y si `ShellExecuteA` falla, el launcher muestra uno de los textos 0x83, 0x84 o
+   0x85 de su `message.wtf`.
+2. **La actualización.** `WinMain` cierra la ventana "MU Auto Update" si sigue abierta, y
+   `0x4b96b0` termina el update ([05](05-formatos-de-datos.md#el-pipeline-de-las-dlls)).
+3. **El servidor.** `0x6922c0`, que el log del original llama `wzPopLaunchInfo`, lee `Key`; si
+   pasaron 26 s o menos (`timeGetTime() - Key <= 26000`), lee y decodifica `ParameterA` y
+   `ParameterB`. Borra la clave en los dos casos (`0x691bf0`). Si el host no está vacío, `WinMain`
+   lo copia a `0x5763304` y pisa el ConnectServer que trae compilado: el puntero `0x6d5dc0`, que
+   apunta a un buffer de 16 bytes en `0x6c76e0` con un host, y el puerto de `0x6d5dc4`, 44405. Con
+   esos dos se conecta (`0x4c1340`, que llaman `0x6349a0` y `0x642810`). Sin launcher, o con el
+   host vacío, queda el compilado.
+4. **Sin launcher.** Si `wzPopLaunchInfo` no encuentra la clave, o es vieja, el código que sigue
+   (`0x4b9c17`) escribe en el log que falló y que vuelve a abrir el launcher, hace
+   `WinExec("mu.exe")` y sale. En el laboratorio no corre: el salto está anulado con un parche
+   (Q-C34), y el juego arranca solo. Así se lo usa en la VM, sin el launcher, y se conecta
+   (`mu-client/CHECKPOINT.md`, sección VMXP, y `mu-client/docs/component-packet.md`): eso está
+   verificado.
+5. **La línea de comandos no se lee.** `GetCommandLineA` se llama en `WinMain` (`0x4b9e24`),
+   `0x4ad360`, `0x4b90a0` y `0x4ad4a0`, y las cuatro le pasan lo que devuelve a `0x4ad270`, que se
+   queda con el nombre del archivo del juego: lo que hay después de la última `\`, hasta el primer
+   espacio, comilla, `/` o `\`. Con ese nombre, `0x4ad360` abre su propio archivo y, si no lo
+   encuentra, el juego sale (Q-C35), y `0x4aece0` lee su versión, la que escribe el log
+   (`Mu online %s (%s) executed.`) y la que se dibuja en pantalla (`0x6350b0`); si no puede,
+   `0x4b90a0` usa la de `config.ini` (`[LOGIN] Version`). Hay un parser de opciones, `0x4b9890`,
+   que entiende `/y<host> /z<puerto>` codificados, como los arma el launcher, o `/u<ip> /p<puerto>`,
+   pero nadie lo llama (Q-C36). El laboratorio lanza el juego como
+   `main.exe connect /u172.16.198.1 /p44405` (`mu-client/CHECKPOINT.md`), y eso no cambia nada: la
+   IP la pone la FoxAnti, y 44405 ya es el puerto compilado.
+6. **La configuración** vive en el registro, en `HKCU\SOFTWARE\Webzen\Mu\Config` (`0x4b90a0`:
+   `ID`, `SoundOnOff`, `MusicOnOff`, `Resolution`, `ColorDepth` y `TextOut`; más adelante,
+   `VolumeLevel`). `FoxAnti.Init` lee además `ConnectIp` de **HKCU** y pisa los 16 bytes del host
+   compilado, en `0x6c76e0` (`mu-client/docs/component-packet.md`).
 
 ## De `entry` al bucle de mensajes
 
@@ -21,6 +60,10 @@ entry 0x6a2444 (arranque del CRT)
        ├─ actualización   cierra "MU Auto Update" y 0x4b96b0 termina la del launcher; sale si
        │                  llegó un mu.exe nuevo (lo abre), si la ventana no se cierra en 6 s o si
        │                  falla una copia (05, el pipeline de las DLLs)
+       ├─ servidor        0x6922c0 (wzPopLaunchInfo): el que dejó el launcher en el registro; si
+       │                  no hay, sigue con el compilado (Q-C34)
+       ├─ su archivo      0x4ad360: se abre a sí mismo; sale si no está en la carpeta actual (Q-C35)
+       ├─ opciones        0x4b90a0: config.ini y el registro SOFTWARE\Webzen\Mu\Config
        ├─ modo de video   EnumDisplaySettingsA x2 + ChangeDisplaySettingsA
        ├─ fuentes         CreateFontA x4 (HUD y texto)
        ├─ config          registro SOFTWARE\Webzen\Mu\Config
@@ -199,7 +242,9 @@ otro: el del anticheat, id 1001 (`paso4-killer.md` §1).
 | Original | MuRet | Ola |
 | --- | --- | --- |
 | `WinMain` + `WndProc` + `wgl*` | una capa `Platform` sobre una biblioteca portable de ventana e input (decisión D-C3 del roadmap); `main.cpp` solo arma y arranca | CL3 |
-| Registro de Windows para la config | archivo de config + argumentos (`connect /u<ip> /p<puerto>` se sigue aceptando) | CL3 |
+| El servidor: el compilado, o el que deja el launcher en el registro (`wzPopLaunchInfo`); la config en el registro; los argumentos no se leen | archivo de config + argumentos; se acepta `connect /u<ip> /p<puerto>`, lo que entiende el parser sin usar del original (Q-C36) y como ya se lo lanza en el laboratorio | CL3 |
+| Sin el servidor del launcher, el original vuelve a abrir `Mu.exe` y sale; en el laboratorio, ese salto está anulado (Q-C34) | arranca solo, como el del laboratorio: no hay launcher | — |
+| Se abre a sí mismo por el nombre de la línea de comandos, en la carpeta actual, y si no está, sale sin avisar (Q-C35) | no se abre a sí mismo; la carpeta de datos sale de la config | CL3 |
 | Lógica en pasos de 40 ms; dibujo esperando 40 ms con `GetTickCount`, que en la práctica da 46,875 ms | la lógica sigue en pasos de 40 ms con el mismo bucle de alcanzar; el dibujo deja de esperar e interpola entre pasos (D-C4 del roadmap); el modo fiel restaura la espera con un reloj de 15,625 ms, para dar los mismos 21,33 FPS | CL3 |
 | Teclado por `GetAsyncKeyState` | estado del teclado consultado por frame, como el original, detrás de `Input` | CL3 |
 | Red por mensajes de ventana | un socket no bloqueante que el bucle consulta en cada frame; mismo modelo de un solo hilo | CL4 |
@@ -214,4 +259,5 @@ Tests que fija:
 - El modo fiel con un reloj falso de 15,625 ms: 64 frames cada 3 segundos y 7 pasos de lógica cada
   6 frames (CL3).
 - El keepalive sale cada 20 s de reloj simulado y no antes (CL4).
-- El parser de la línea de comandos acepta `connect /u<ip> /p<puerto>` (CL3).
+- El parser de la línea de comandos acepta `connect /u<ip> /p<puerto>`, y rechaza un puerto que no
+  sea un número de 1 a 65535 (CL3).

@@ -78,6 +78,16 @@ y la de los volcados va solo en el entorno:
 MURET_CLIENT_GOLDEN_DIR=/ruta/a/Data MURET_CLIENT_MEMORY_DIR=/ruta/a/memoria-cliente ctest --preset linux-x64-debug
 ```
 
+Los de la red leen el cable del laboratorio: el `muproxy.log` que su proxy escribió entre el
+cliente original y los servidores, en `analysis/mainexe/evidence/` de `mu-online-reverse-lab`.
+Lleva el login del jugador, así que queda fuera de Git, y los tests cuentan paquetes y no imprimen
+un byte del cable, ni al fallar. `MURET_CLIENT_WIRE_DIR` apunta a la carpeta que lo tiene, con la
+misma regla, solo en el entorno, y no necesita las otras dos:
+
+```bash
+MURET_CLIENT_WIRE_DIR=/ruta/a/evidence ctest --preset linux-x64-debug
+```
+
 ## Estructura (a medida que avanzan las olas)
 
 ```

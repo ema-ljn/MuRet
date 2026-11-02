@@ -100,4 +100,23 @@ protected:
     std::filesystem::path dumpRoot;
 };
 
+// El cable del laboratorio. MURET_CLIENT_WIRE_DIR apunta a una carpeta con el muproxy.log que el
+// proxy del laboratorio escribió entre el cliente original y los servidores (en
+// EmaNLJN/mu-online-reverse-lab, analysis/mainexe/evidence/), fuera de Git: lleva el login del
+// jugador.
+//
+// La regla es la de la carpeta golden, y la variable va solo en el entorno, como la de los
+// volcados. No necesita Data\: el cable se compara consigo mismo.
+class WireDataTest : public ::testing::Test
+{
+protected:
+    void SetUp() override;
+
+    // La ruta de `name` en la carpeta del cable. Si no está, marca el test como fallado y devuelve
+    // std::nullopt.
+    std::optional<std::filesystem::path> WireFile(std::string_view name) const;
+
+    std::filesystem::path wireRoot;
+};
+
 } // namespace Client::Tests

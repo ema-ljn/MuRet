@@ -74,12 +74,12 @@ del cliente. De la CL2.1 en adelante, la sección de cada sub-ola de este plan.
    `Client::Core` (`Expected`, `ByteReader`), así que pasar el corte a un `Common/` en la raíz es
    mover archivos. Se decide en la 1.2 del servidor, el segundo que lo usa: reusarlo, o escribir
    el `FrameParser` como el ejercicio que es en su plan.
-3. **Hasta qué tamaño se lee un paquete** (Q-C05). El original recibe en un buffer de `0x2000`
-   bytes: un paquete más grande nunca entra entero y el buffer se llena. Desde ahí cada lectura
-   loguea "Receive Packet Buffer Overflow" y vuelve con 1 sin llamar a `recv` (`0x4e88a0`); el
-   WndProc ignora ese 1 (`0x4b3207`), así que la conexión no se cierra, pero no se lee más.
-   Además descifra en ~2.046 bytes de la pila, y un
-   C4 de más de ~2,8 KB la desborda (*estático*, sin probar). *Recomendación:*
+3. **Hasta qué tamaño se lee un paquete** (Q-C40 y Q-C05). El original recibe en un buffer de
+   `0x2000` bytes: un paquete más grande nunca entra entero y el buffer se llena. Desde ahí cada
+   lectura loguea "Receive Packet Buffer Overflow" y vuelve con 1 sin llamar a `recv`
+   (`0x4e88a0`); el WndProc ignora ese 1 (`0x4b3207`), así que la conexión no se cierra, pero no
+   se lee más. Además descifra en ~2.046 bytes de la pila, y un C4 de más de ~2,8 KB la desborda
+   (*estático*, sin probar). *Recomendación:*
    `MaxPacketSize = 0x2000` para los cuatro tipos, como error apenas llega la cabecera, y el
    descifrado escribe en un buffer del tamaño de lo que entra. En el cable del laboratorio el más
    grande mide 254 bytes, un C2 del GameServer.
@@ -104,7 +104,8 @@ del cliente. De la CL2.1 en adelante, la sección de cada sub-ola de este plan.
 Cada uno tiene su test en la sub-ola que lo dice, salvo el último, que es una regla de los tests
 con el cable. En la review se miran primero:
 
-- Un paquete cortado después de su primer byte, o un C2/C4 después del segundo (Q-C03, CL2.1).
+- Una lectura que termina en el primer byte de un paquete, o en los dos primeros de un C2/C4,
+  detrás de un paquete entero (Q-C03, CL2.1).
 - En una misma lectura, un paquete exento del `0xAA` al lado de uno enmascarado, y uno enmascarado
   partido entre dos lecturas (Q-C18, CL2.4).
 - Un largo o una cantidad que no entra en el paquete: la lista `F4 02` con su cantidad de más, un
@@ -193,16 +194,16 @@ y `004e893d-corte-paquetes.md`):
 | Qué | Original | MuRet |
 | --- | --- | --- |
 | tamaño | `C1` y `C3` lo llevan en `pkt[1]`; `C2` y `C4`, en `pkt[1..2]` big-endian. Es el del paquete entero | igual |
-| cabecera incompleta (Q-C03) | con el primer byte de un paquete al final de la lectura, o los dos primeros de un C2/C4, arma el tamaño con bytes viejos (lee `buf[off + 1]` y `buf[off + 2]` sin mirar cuántos quedan); si da 0, el flujo queda corrido | espera los bytes que faltan |
+| cabecera incompleta (Q-C03) | detrás de un paquete entero de la misma lectura, con el tipo solo de un C1/C3 o uno o dos bytes de un C2/C4, arma el tamaño con bytes viejos (lee `buf[off + 1]` y `buf[off + 2]` sin mirar cuántos quedan); si da 0, el flujo queda corrido. Al principio de una lectura espera bien: con menos de 3 bytes no corta | espera los bytes que faltan |
 | tipo inválido | descarta todo lo acumulado, también los paquetes buenos que vengan detrás, y sigue | `PacketError::InvalidType`, y el error queda: la CL4 cierra la conexión |
-| tamaño menor que la cabecera y el opcode | con 0 al principio de la lectura no avanza nunca, y el buffer se llena hasta que no se lee más (pregunta 3); con 1 o 2, saca un paquete sin opcode | `PacketError::SizeTooSmall` (C1 y C3 miden al menos 3; C2 y C4, 4) |
-| tamaño de más (Q-C05) | un paquete de más de `0x2000` bytes no entra en el buffer, que se llena hasta que no se lee más | `PacketError::TooLarge` apenas llega la cabecera (pregunta 3) |
+| tamaño menor que la cabecera y el opcode | con 0 al principio de la lectura no avanza nunca, y el buffer se llena hasta que no se lee más (pregunta 3); con 1 o 2 en un C1/C3, o de 1 a 3 en un C2/C4, saca un paquete sin opcode | `PacketError::SizeTooSmall` (C1 y C3 miden al menos 3; C2 y C4, 4) |
+| tamaño de más (Q-C40) | un paquete de más de `0x2000` bytes no entra en el buffer, que se llena hasta que no se lee más | `PacketError::TooLarge` apenas llega la cabecera (pregunta 3) |
 | copia | cada paquete va a la cola en un buffer de `0x2004` bytes con un `0xFD` detrás | cada `Packet` es dueño de sus bytes, sin centinela |
 
-Lo que hace MuRet en las filas de Q-C03, del tipo inválido, del tamaño chico y de Q-C05 corrige
+Lo que hace MuRet en las filas de Q-C03, del tipo inválido, del tamaño chico y del de más corrige
 bugs del original: ningún servidor bueno manda esos paquetes, y lo que hace el original con ellos
-no es contrato. Q-C03 y Q-C05 ya están en 07; el tipo inválido y el tamaño chico entran con esta
-sub-ola.
+no es contrato. Q-C03 ya estaba en 07; el tipo inválido, el tamaño chico y el de más entran con
+esta sub-ola (Q-C38, Q-C39 y Q-C40).
 
 **Archivos:**
 - **PR A:** `ByteReader` pasa de `Client::Data` a `Client::Core`
@@ -218,8 +219,19 @@ sub-ola.
   `MURET_CLIENT_MEMORY_DIR`: `gtest_discover_tests` pierde la segunda variable de `ENVIRONMENT`),
   `SameBytes.h` (`SameBytesWithoutValues`, que dice dónde difieren y no qué valen, con su
   `SameBytesTest.cpp`: el mensaje de una diferencia no trae ningún valor), `Client/CMakeLists.txt`,
-  `Client/README.md`, 07 (Q-C03 también con el primer byte de un C1/C3, y el tipo inválido y el
-  tamaño chico, nuevos, con sus tests), PROGRESS y este plan.
+  `Client/README.md`, 07 (Q-C03 también con el primer byte de un C1/C3, y el tipo inválido, el
+  tamaño chico y el de más, nuevos, con sus tests), PROGRESS y este plan.
+
+Hecho así: la carpeta del cable la pide un fixture, `WireDataTest` en `support/GoldenDir.h`, que
+salta el test sin `MURET_CLIENT_WIRE_DIR` y falla si la carpeta no tiene el archivo. El tipo
+inválido, el tamaño chico y el de más son Q-C38, Q-C39 y Q-C40 en 07, y el 03 los nombra en el
+corte. El golden también corta de a un byte, y en lecturas que terminan 1 y 2 bytes adentro del
+paquete siguiente (lo que en el original dispara Q-C03), lo que mandó el cliente y lo que contestó
+el ConnectServer, que trae los C2: da lo mismo. Con las revisiones: la regla del tamaño quedó en
+`CheckDeclaredSize`, que usan `FromBytes` y el lector; un lector movido queda como nuevo; `Feed`
+borra lo que ya salió solo cuando es al menos tanto como lo pendiente, así no corre todo en cada
+lectura si no se sacan los paquetes; y `support/Bytes.h` y `support/NetworkPrinters.h` (que
+imprime un `PacketError` por su nombre) quedan para los tests de `Network`.
 
 **Interfaces:**
 
@@ -233,6 +245,9 @@ std::size_t HeaderSize(PacketType type);
 
 // El paquete más grande que se lee o se escribe (pregunta 3).
 inline constexpr std::size_t MaxPacketSize = 0x2000;
+
+// SizeTooSmall, TooLarge o std::nullopt: la regla del tamaño de FromBytes y del lector.
+std::optional<PacketError> CheckDeclaredSize(PacketType type, std::size_t declared);
 
 class Packet
 {
@@ -271,34 +286,44 @@ C++ permite una sola. Se escribe `return std::optional<Packet>{};` y
 `return std::optional<Packet>{std::move(packet)};`.
 
 - [x] **Paso 1 (PR A):** mover `ByteReader` y sumar `ReadU16Be`. Test: `01 2C` da `0x012C`.
-- [ ] **Paso 2:** los tests de `Packet`: `FromBytes` acepta `C1 04 20 AA` y `C2 00 05 52 AA`;
+- [x] **Paso 2:** los tests de `Packet`: `FromBytes` acepta `C1 04 20 AA` y `C2 00 05 52 AA`;
   rechaza `C1 05 20 AA` (`SizeMismatch`), un tipo `C5` (`InvalidType`), nada y `C1 02`
-  (`SizeTooSmall`, sin leer un opcode que no está) y un C2 de `0x2001` (`TooLarge`); `Opcode()`
+  (`SizeTooSmall`, sin leer un opcode que no está) y un C2 de `0x2001` (`TooLarge`), en ese
+  orden (`C2 20 01` es `TooLarge` y `C1 02 20 AA`, `SizeTooSmall`); `Opcode()`
   en C1 y C2, y `std::nullopt` en C3 y C4; `MutableBody()` de un C1 empieza en el opcode y el de
-  un C2 también; `TakeBytes()` devuelve los mismos bytes.
-- [ ] **Paso 3:** `Packet`.
-- [ ] **Paso 4 (Emanuel, `TODO(human)`):** la tabla de vectores del lector, antes del código:
+  un C2 también; `TakeBytes()` devuelve los mismos bytes y deja el `Packet` vacío.
+- [x] **Paso 3:** `Packet`.
+- [x] **Paso 4 (Emanuel, `TODO(human)`; lo resolvió Claude):** la tabla de vectores del
+  lector, antes del código:
   - `C1 04 20 AA` da un paquete, y `C2 01 2C` con 297 bytes más, uno de 300;
   - un C3 y un C4 se cortan como un C1 y un C2, sin descifrarlos;
   - el caso 1 de `red_reference.py`: `C1 05 10 01 02` y los 3 primeros bytes de
     `C2 00 06 20 03 04` en un `Feed`, y el resto en otro, dan los dos paquetes;
   - Q-C03: el mismo par partido después de `C2` y después de `C2 00` da los mismos dos paquetes
-    (el original, en el segundo caso, da `C1 05 06 20 03`, el jefe de la CL2.0), y también
-    `C1 04 20 AA` partido después de `C1`;
+    (el original, en el segundo caso y con un 0 viejo, da `C1 05 06 20 03`, el jefe de la CL2.0);
+    y `C1 05 10 01 02` seguido de un `C1` o un `C3`, con `04 20 AA` en el `Feed` siguiente, da los
+    dos paquetes. Un `C1` solo al principio espera, como en el original, que no corta con menos de
+    3 bytes;
   - `C1 03` y después `00` dan un paquete;
   - varios paquetes en un `Feed` (en el cable hubo 337 lecturas con 2 a 7);
   - `00 05 01 02 03` seguido de un paquete bueno es `InvalidType`, y el bueno no sale;
-  - `C1 00`, `C1 01`, `C1 02`, `C2 00 00` y `C2 00 03` son `SizeTooSmall`;
+  - `C1 00`, `C1 01`, `C1 02`, `C3 02`, `C2 00 00`, `C2 00 01`, `C2 00 03` y `C4 00 03` son
+    `SizeTooSmall`;
   - `C2 20 00` espera sus `0x2000` bytes, y `C2 20 01` es `TooLarge` con solo la cabecera;
-  - después de un error, `Next()` lo repite aunque llegue más;
+  - después de cada uno de los tres errores, `Next()` lo repite cada vez que se pide, aunque
+    llegue un paquete bueno, y `Pending()` queda en 0;
+  - un lector movido, con el constructor o con la asignación, queda sin bytes y sin error, y el
+    que lo recibe sigue con su paquete a medio llegar o con su error;
+  - sin sacar todos los paquetes después de cada `Feed`, salen igual y en orden;
   - el mismo flujo partido al azar (con semilla fija y la salida directa del motor) da los mismos
     paquetes.
-- [ ] **Paso 5:** `PacketReader`.
-- [ ] **Paso 6:** el golden con el cable: el sentido C->S de las 72 conexiones se corta en 689
+- [x] **Paso 5:** `PacketReader`.
+- [x] **Paso 6:** el golden con el cable: el sentido C->S de las 72 conexiones se corta en 689
   paquetes sin bytes de más (al ConnectServer, 144 C1; al GameServer, 362 C1 y 183 C3), y el S->C
-  de las 64 conexiones al ConnectServer, que va en claro, en 144 (72 C1 y 72 C2). El S->C del
-  GameServer lleva el `0xAA`: va en la CL2.4.
-- [ ] **Paso 7:** verificar:
+  de las 64 conexiones al ConnectServer, que va en claro, en 144 (72 C1 y 72 C2). Esos dos
+  sentidos, de a un byte y en lecturas que terminan 1 y 2 bytes adentro del paquete siguiente, dan
+  los mismos paquetes. El S->C del GameServer lleva el XOR `0xAA` en cada byte: va en la CL2.4.
+- [x] **Paso 7:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "ByteReader|Packet"
   ```

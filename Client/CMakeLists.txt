@@ -28,6 +28,8 @@ add_library(ClientLib STATIC
     src/Data/Textures/JpegImage.cpp
     src/Data/Textures/OzjTexture.cpp
     src/Data/Textures/OztTexture.cpp
+    src/Network/Packet.cpp
+    src/Network/PacketReader.cpp
 )
 target_include_directories(ClientLib PUBLIC src)
 target_compile_features(ClientLib PUBLIC cxx_std_20)
@@ -64,6 +66,9 @@ if(MURET_BUILD_TESTS)
         tests/support/Fnv1aTest.cpp
         tests/support/GoldenDir.cpp
         tests/support/GoldenDirTest.cpp
+        tests/support/SameBytesTest.cpp
+        tests/support/WireCapture.cpp
+        tests/support/WireCaptureTest.cpp
         tests/data/DataPathTest.cpp
         tests/data/GateTableTest.cpp
         tests/data/GoldenDataFilesTest.cpp
@@ -96,6 +101,9 @@ if(MURET_BUILD_TESTS)
         tests/data/TextTableTest.cpp
         tests/data/TextureTest.cpp
         tests/data/Xor3Test.cpp
+        tests/network/GoldenPacketReaderTest.cpp
+        tests/network/PacketReaderTest.cpp
+        tests/network/PacketTest.cpp
     )
     target_include_directories(ClientTests PRIVATE tests)
     # Los vectores JPEG (tests/vectors/jpeg/README.md) están en el repo: los tests los leen de acá.
@@ -106,8 +114,9 @@ if(MURET_BUILD_TESTS)
 
     # La carpeta golden llega a los tests como variable de entorno. Se puede fijar acá, al
     # configurar (-DMURET_CLIENT_GOLDEN_DIR=...), o en el entorno al correr ctest. La de los
-    # volcados de memoria (MURET_CLIENT_MEMORY_DIR) va solo en el entorno: gtest_discover_tests
-    # parte en dos una lista de variables en ENVIRONMENT, y la segunda se pierde.
+    # volcados de memoria (MURET_CLIENT_MEMORY_DIR) y la del cable (MURET_CLIENT_WIRE_DIR) van
+    # solo en el entorno: gtest_discover_tests parte en dos una lista de variables en ENVIRONMENT,
+    # y la segunda se pierde.
     set(MURET_CLIENT_GOLDEN_DIR "" CACHE PATH "Copia del Data\\ del cliente original para los tests golden (vacío: se saltean)")
     if(MURET_CLIENT_GOLDEN_DIR)
         gtest_discover_tests(ClientTests PROPERTIES ENVIRONMENT "MURET_CLIENT_GOLDEN_DIR=${MURET_CLIENT_GOLDEN_DIR}")

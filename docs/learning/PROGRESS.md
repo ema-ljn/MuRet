@@ -51,7 +51,13 @@ solo lo lee.
   primero, el inverso modular con Euclides extendido y el jefe, un modelo del corte del original
   que lee bytes viejos (Q-C03), con las respuestas de las 14 actividades en
   [`labs/cl2.0-flujos/README.md`](../../labs/cl2.0-flujos/README.md). Con ella llegó GoogleTest a
-  `labs/`. Para cerrarla falta lo tuyo: las preguntas y la sección final de la guía.
+  `labs/`. Para cerrarla falta lo tuyo: las preguntas y la sección final de la guía. **La CL2.1
+  también la escribió Claude**: el `ByteReader` pasó a `Core`, con `ReadU16Be`, y llegó el corte
+  de `Network`. `Packet` valida el tipo y el tamaño al armarse, y `PacketReader` espera los bytes
+  que faltan donde el original lee bytes viejos (Q-C03), y se para con un error ante un tipo
+  inválido, un tamaño que no llega al opcode o uno de más de `0x2000` (Q-C38, Q-C39 y Q-C40). Se
+  prueba contra el cable del laboratorio: los 689 paquetes que mandó el cliente y los 144 que
+  contestó el ConnectServer salen enteros y sin bytes de más.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 
@@ -91,6 +97,9 @@ sesión, junto con los de repaso más viejo.
 | la aritmética sin signo que da la vuelta, el desborde con signo que es comportamiento indefinido, y `std::uint16_t * std::uint16_t`, que se multiplica como `int` | CL2.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un test de propiedad con `std::mt19937` y semilla fija, tomando la salida del motor y no una distribución | CL2.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un bug que lee bytes viejos de un buffer que se reusa (Q-C03), modelado para verlo fallar | CL2.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un lector que recibe lecturas enteras y saca paquetes enteros, sin leer un byte que no llegó (`PacketReader`), y un error que queda hasta que se cierra la conexión | CL2.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un tipo que se valida al armarse (`Packet::FromBytes`) y deja cambiar el cuerpo pero no la cabecera (`MutableBody`) | CL2.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| probar contra una captura del cable sin mostrar lo que lleva: contar paquetes y decir dónde difieren, nunca qué valen (`SameBytesWithoutValues`) | CL2.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

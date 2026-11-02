@@ -903,7 +903,7 @@ TEST_F(ConnectionTest, WithFoxAntiWhatIsEncryptedIsRemapped)
     PacketSerials server;
     const ServerSide received = AsTheServerReceives(m_socket.sent, server);
     ASSERT_EQ(received.packets.size(), 1u);
-    EXPECT_EQ(received.packets[0].Opcode(), std::optional<std::uint8_t>{0x1D});
+    EXPECT_EQ(received.packets[0].Opcode(), std::optional<std::uint8_t>{std::uint8_t{0x1D}});
 }
 
 // El relleno de cada paquete cifrado es el byte de abajo de lo que da un std::mt19937 con la

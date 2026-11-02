@@ -23,7 +23,10 @@ public:
     // Toma el inicio (0x63852b). Se llama después de los pasos y antes de dibujar.
     void StartMeasure(Core::IClock& clock);
     // Duerme de tick en tick mientras static_cast<std::int32_t>(TickCountMs(now) - inicio) sea
-    // menor que 40, y suma esa diferencia al acumulador (0x638632).
+    // menor que 40, y suma esa diferencia al acumulador (0x638632). La comparación es con signo,
+    // como el JGE de 0x638616: un dibujo de más de 24,8 días da una resta negativa y la espera
+    // sigue hasta que la resta da la vuelta, unos 19,7 días más con uno de 30. Así cuelga el
+    // original, y así MuRet.
     void EndFrame(Core::IClock& clock);
     [[nodiscard]] std::int32_t AccumulatedMs() const;
     [[nodiscard]] std::int32_t LastMeasuredMs() const;

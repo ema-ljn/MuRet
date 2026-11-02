@@ -65,7 +65,8 @@ int GameLoop::RunFaithful(const WindowState& state)
     RunSteps(steps);
     // Después de los pasos (0x63852b): lo que tardan no se acumula.
     m_pacer.StartMeasure(m_clock);
-    // El original dibuja el estado después de los pasos, sin interpolar.
+    // El original dibuja el estado después de los pasos, sin interpolar. Render también presenta
+    // (ILoopClient), así que el swap queda adentro de la medición, como en 0x63852b..0x638632.
     m_lastAlpha = 0.0f;
     if (!state.minimized)
     {

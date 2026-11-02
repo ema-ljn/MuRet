@@ -6,11 +6,17 @@ namespace Client::App
 {
 namespace
 {
-// El tick en el que cae `now`: la división entera tira lo que pasó desde el último, como
-// GetTickCount, que solo cambia de tick en tick.
+// El tick en el que cae `now`: la división tira lo que pasó desde el último, como GetTickCount,
+// que solo cambia de tick en tick. Redondea hacia abajo también con `now` negativo (solo pasa con
+// el FakeClock), donde la división entera redondearía hacia 0.
 Core::Duration TickStart(Core::Duration now)
 {
-    return (now / FaithfulTick) * FaithfulTick;
+    auto ticks = now / FaithfulTick;
+    if (now % FaithfulTick < Core::Duration::zero())
+    {
+        --ticks;
+    }
+    return ticks * FaithfulTick;
 }
 
 // LogicStep en los ms enteros del original: el SUB EAX,0x28 de 0x638167.
@@ -53,7 +59,10 @@ void FaithfulPacer::EndFrame(Core::IClock& clock)
         now = clock.Now();
     }
     m_lastMeasuredMs = static_cast<std::int32_t>(TickCountMs(now) - m_startMs);
-    m_accumulatedMs += m_lastMeasuredMs; // el ADD de 0x638632, sin recortar
+    // El ADD de 0x638632, sin recortar: en x86 da la vuelta, así que se suma en 32 bits sin signo
+    // (definido, módulo 2^32) y vuelve a int32 con signo, sin el UB de desbordar un int.
+    m_accumulatedMs = static_cast<std::int32_t>(static_cast<std::uint32_t>(m_accumulatedMs) +
+                                                static_cast<std::uint32_t>(m_lastMeasuredMs));
 }
 
 std::int32_t FaithfulPacer::AccumulatedMs() const

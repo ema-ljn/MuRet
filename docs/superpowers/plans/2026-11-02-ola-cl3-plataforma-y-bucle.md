@@ -805,7 +805,12 @@ dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
   Hecho así, con un test más, `FaithfulPacerTest.DrawsWithAlphaZero` (la fila "dibujo" del
   contrato). Los tests van por `GameLoop` en `Faithful`, así que prueban el pacer y el orden de
   `RunFrame` juntos. `EndFrame` duerme hasta el borde del tick siguiente, que es cuando
-  `GetTickCount` cambia, y vuelve a mirar: con el `FakeClock`, 3 sueños por frame.
+  `GetTickCount` cambia, y vuelve a mirar: con el `FakeClock`, 3 sueños por frame. Después de
+  las revisiones suman `TheGetTickCountWrapChangesNothing` (portado del lab),
+  `AClockThatGoesBackKeepsWaiting` (la comparación con signo del JGE de 0x638616) y
+  `TheAccumulatorWrapsLikeTheAdd` (el ADD de 0x638632 da la vuelta como en x86: se suma en
+  `uint32_t`, sin el UB de desbordar un `int32`), y un `static_assert(FaithfulWaitMs == 40)`.
+  `TickCountMs` redondea hacia abajo también con un `now` negativo, que solo da el `FakeClock`.
 - [ ] **Paso 6 (PR B):** `TickCountMs`, `FaithfulPacer` y el modo `Faithful` de `GameLoop`; en 07,
   `FaithfulPacerTest.HasNoCap` al lado del test del PR A.
 - [ ] **Paso 7:** a mano, en Windows y en Linux: `Main --pacing faithful --stats` da 21,33 FPS y 25

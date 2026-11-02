@@ -16,10 +16,11 @@
 //
 // En Decoupled, el frame se mide de un Now() al siguiente, al empezar RunFrame, y va a un
 // FixedStep: el dibujo se interpola con su alfa. El primer frame solo fija el inicio. Con un tope
-// de FPS (maxFps, el FpsCap de MuMain), después de dibujar duerme hasta la meta del frame, la del
-// anterior más 1 s / maxFps (SleepRestOfFrame). En Faithful, va a un FaithfulPacer: BeginFrame,
-// esos pasos, StartMeasure, el dibujo con alfa 0 y EndFrame; el tope no se usa (Resolve no lo
-// deja).
+// de FPS (maxFps, el FpsCap de MuMain), después de dibujar duerme hasta la meta del frame: 1 s /
+// maxFps después de la del anterior, o de donde terminó el anterior si se pasó (SleepRestOfFrame).
+// Así lo que corre entre dos RunFrame no se suma, y el tope nunca da menos FPS que no tenerlo. En
+// Faithful, va a un FaithfulPacer: BeginFrame, esos pasos, StartMeasure, el dibujo con alfa 0 y
+// EndFrame; el tope no se usa (Resolve no lo deja).
 namespace Client::App
 {
 // Lo que llevó el bucle hasta ahora, para --stats y para los tests.
@@ -62,7 +63,8 @@ private:
     PacingMode m_mode;
     // 1 s / maxFps, o 0 sin tope.
     Core::Duration m_minFrameTime{};
-    // La meta del último frame que durmió por el tope; vacía si no durmió.
+    // Desde dónde cuenta la meta del próximo frame: hasta dónde durmió el último, o dónde terminó si
+    // se pasó. Vacía antes del primero, al minimizar y si el reloj volvió durante el frame.
     std::optional<Core::Duration> m_frameDeadline;
     FixedStep m_fixedStep;
     FaithfulPacer m_pacer;

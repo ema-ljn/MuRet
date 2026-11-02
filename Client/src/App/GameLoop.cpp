@@ -68,26 +68,30 @@ int GameLoop::RunDecoupled(const WindowState& state, Input::InputState& input)
 
 void GameLoop::SleepRestOfFrame(Core::Duration frameStart)
 {
-    // La meta es la del frame anterior más m_minFrameTime, y no frameStart + m_minFrameTime: así
-    // lo que corre entre dos RunFrame (los eventos, --stats) cae adentro del frame y no se suma, y
-    // el ritmo queda en maxFps. Si no hay meta, o el frame no empezó en el frame que le sigue (el
-    // anterior se pasó, la ventana estuvo minimizada, el reloj volvió), cuenta desde frameStart:
-    // después de un frame largo no se pone al día con frames más cortos.
-    Core::Duration deadline = frameStart + m_minFrameTime;
-    if (m_frameDeadline && frameStart >= *m_frameDeadline && frameStart - *m_frameDeadline < m_minFrameTime)
+    // La meta es m_frameDeadline (hasta dónde durmió el frame anterior, o dónde terminó si se pasó)
+    // más m_minFrameTime, y no frameStart + m_minFrameTime: así lo que corre entre dos RunFrame (los
+    // eventos, --stats) cae adentro del frame y no se suma, y el ritmo queda en maxFps, o en lo que
+    // dé la máquina si es menos. Sin meta anterior (el primer frame, al volver de minimizada) o con
+    // una que quedó adelante (el reloj volvió entre frames), cuenta desde frameStart.
+    const bool followsLastDeadline = m_frameDeadline && frameStart >= *m_frameDeadline;
+    const Core::Duration deadline = (followsLastDeadline ? *m_frameDeadline : frameStart) + m_minFrameTime;
+    const Core::Duration afterRender = m_clock.Now();
+    if (afterRender < frameStart)
     {
-        deadline = *m_frameDeadline + m_minFrameTime;
+        // El reloj volvió durante el frame: la resta daría más que un frame entero.
+        m_frameDeadline.reset();
     }
-    // Si el frame ya pasó la meta, o el reloj volvió durante el frame, no duerme.
-    const Core::Duration now = m_clock.Now();
-    if (now >= frameStart && now < deadline)
+    else if (afterRender < deadline)
     {
-        m_clock.SleepFor(deadline - now);
+        m_clock.SleepFor(deadline - afterRender);
         m_frameDeadline = deadline;
     }
     else
     {
-        m_frameDeadline.reset();
+        // Se pasó de la meta (un frame largo, o un hueco largo antes de empezar): no duerme, y la
+        // próxima cuenta desde acá. Así no se pone al día con frames más cortos, y lo que corra
+        // hasta el próximo RunFrame tampoco se suma.
+        m_frameDeadline = afterRender;
     }
 }
 

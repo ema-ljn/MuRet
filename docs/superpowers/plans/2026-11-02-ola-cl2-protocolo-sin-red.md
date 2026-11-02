@@ -403,9 +403,9 @@ void Xor32DecodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t
 } // namespace Client::Network::Crypto
 ```
 
-- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de leer los vectores del paso 2, cifrar a mano
-  con la tabla los bytes 3 y 4 de `C1 06 A9 00 00 01`, y los bytes 4 y 5 de `C2 00 06 42 0B 30`.
-  El paso 2 trae los resultados para corregirlos.
+- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de leer los vectores del
+  paso 2, cifrar a mano con la tabla los bytes 3 y 4 de `C1 06 A9 00 00 01`, y los bytes 4 y 5 de
+  `C2 00 06 42 0B 30`. El paso 2 trae los resultados para corregirlos.
 - [x] **Paso 2:** los tests:
   - los dos del cable del 04: `C1 04 F3 00` sale como `C1 04 F3 7A`, y `C1 06 A9 00 00 01`, como
     `C1 06 A9 20 9C 2F`;

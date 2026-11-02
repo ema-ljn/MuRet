@@ -950,8 +950,9 @@ que el test le pregunta (`std::vector<bool> sawPress` y la tecla en `watchedKey`
   `ShiftRight`, ...), como `VK_SHIFT`, y sus flancos son los del OR; un `KeyDown` o `KeyUp` de la
   tecla lógica se ignora (las filas de `Shift` de arriba).
 - [ ] **Paso 2:** los tests (los `InputStateTest`, hechos en la fase 1: los seis de abajo y trece
-  que pidieron las revisiones para matar los mutantes, entre ellos los de las teclas lógicas;
-  faltan los de `GameLoopTest` y de `InputEventsTest`):
+  que pidieron las revisiones para matar los mutantes, entre ellos los de las teclas lógicas; los
+  `InputEventsTest`, en la fase 2a, con los dos de abajo y ocho más: cada tecla física sale de un
+  solo scancode, los botones, la rueda y el foco perdido; faltan los de `GameLoopTest`):
   - `InputStateTest.AHeldKeyIsPressedOnce`: abajo en el frame 1, sigue abajo en el 2 y el 3:
     `IsDown` en los tres, `WasPressed` solo antes del primer `ConsumeEdges`;
   - `InputStateTest.APressAndReleaseInOneFrameIsSeen`: abajo y arriba sin `ConsumeEdges` en el
@@ -971,8 +972,8 @@ que el test le pregunta (`std::vector<bool> sawPress` y la tecla en `watchedKey`
     `SDL_EVENT_KEY_DOWN` con `repeat` da `std::nullopt` (el `SDL_Event` se arma a mano, sin
     ventana).
 - [ ] **Paso 3:** `InputState`, la traducción en `Platform`, y las firmas nuevas de `GameLoop` e
-  `ILoopClient`. `InputState` está (fase 1); faltan la traducción y las firmas. Lo que se sumó a
-  la interfaz de arriba:
+  `ILoopClient`. `InputState` está (fase 1), y la traducción, `KeyFor` e `InputEventFor` (fase
+  2a); faltan `PumpEvents` y las firmas. Lo que se sumó a la interfaz de arriba:
   - `MouseButton` vive en `Key.h`, con `Key`, y los dos tienen su cuenta como constante
     (`KeyCount`, `MouseButtonCount`) para el tamaño de los `std::bitset`.
   - `Key` trae las teclas que nombra el 02 (Esc, Enter, F5, F6, RePág, AvPág, Espacio, las
@@ -986,6 +987,11 @@ que el test le pregunta (`std::vector<bool> sawPress` y la tecla en `watchedKey`
     son lógicas, armadas por `InputState` con el OR (tabla del paso 1).
   - `InputEvent` sin llenar no hace nada (`kind = KeyDown`, `key = Key::Count`), y la rueda
     descarta lo que no pasa `std::isfinite`.
+  - La rueda sale de `integer_y` (muescas enteras, como el `delta / 120` del original) y no de
+    `y`, que es fraccionaria en un touchpad; con `SDL_MOUSEWHEEL_FLIPPED` se le cambia el signo, y
+    un evento sin muesca entera da `std::nullopt`. El Enter del teclado numérico no se traduce
+    todavía: con una sola `Key::Enter`, soltar uno con el otro abajo la soltaría (CL8, con su
+    lado, como Shift).
   - La posición no se acota: el original la acota al área (`0x640940`, `+0x28` y `+0x2c`), y eso
     espera a que la CL5 defina el área de 640 × 480.
 - [ ] **Paso 4:** verificar:

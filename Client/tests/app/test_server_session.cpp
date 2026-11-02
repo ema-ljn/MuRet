@@ -2,11 +2,18 @@
 
 #include "App/Credentials.h"
 #include "App/FaithfulPacer.h"
+#include "App/GameLoop.h"
+#include "App/PacingMode.h"
 #include "App/ServerAddress.h"
+#include "App/SessionClient.h"
+#include "App/WindowState.h"
+#include "Core/IClock.h"
 #include "Core/Log.h"
+#include "Input/InputState.h"
 #include "Network/CloseReason.h"
 #include "Network/Connection.h"
 #include "Network/Crypto/SimpleModulus.h"
+#include "Network/Crypto/Xor32.h"
 #include "Network/FoxAntiObfuscation.h"
 #include "Network/IObfuscation.h"
 #include "Network/IdentityObfuscation.h"
@@ -15,7 +22,9 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
+#include "Protocol/Connection/Opcodes.h"
 
 #include "support/AppPrinters.h"
 #include "support/Bytes.h"
@@ -23,6 +32,7 @@
 #include "support/FakeSocket.h"
 #include "support/MuClientNetFixtures.h"
 #include "support/NetworkPrinters.h"
+#include "support/RecordingClient.h"
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
 #include "support/TestGameServer.h"
@@ -49,17 +59,27 @@
 // (El flujo de conexión), escritos a mano; las direcciones, unas cualquiera, porque el FakeSocket
 // no conecta. Lo cifrado lo descifra el GameServer de support/TestGameServer.h, con las claves
 // sintéticas, y el login se compara con SameBytesWithoutValues: ningún mensaje trae sus bytes.
+// El keepalive y los topes de tiempo (CL4.5, paso 2) corren con el FakeClock: un "frame" es un
+// Advance y un Poll.
 namespace
 {
 using Client::App::Credentials;
+using Client::App::GameLoop;
+using Client::App::KeepaliveSpeeds;
+using Client::App::PacingMode;
+using Client::App::ReplyTimeout;
 using Client::App::ServerAddress;
 using Client::App::ServerSession;
+using Client::App::SessionClient;
 using Client::App::SessionFailure;
 using Client::App::SessionSettings;
 using Client::App::SessionState;
 using Client::App::TickCountMs;
+using Client::App::WindowState;
+using Client::Core::Duration;
 using Client::Core::Log;
 using Client::Core::LogLevel;
+using Client::Input::InputState;
 using Client::Network::CloseReason;
 using Client::Network::CloseReasonText;
 using Client::Network::Connection;
@@ -68,6 +88,7 @@ using Client::Network::HeaderSize;
 using Client::Network::IdentityObfuscation;
 using Client::Network::IObfuscation;
 using Client::Network::LinkState;
+using Client::Network::Packet;
 using Client::Network::PacketSerials;
 using Client::Network::PacketType;
 using Client::Network::SerialCheck;
@@ -75,8 +96,13 @@ using Client::Network::SocketError;
 using Client::Network::Crypto::CipherBlockSize;
 using Client::Network::Crypto::EncryptBlock;
 using Client::Network::Crypto::PlainBlockSize;
+using Client::Network::Crypto::Xor32Decode;
 using Client::Protocol::ClientVersion;
+using Client::Protocol::Connection::Keepalive;
+using Client::Protocol::Connection::KeepaliveAdjust20;
+using Client::Protocol::Connection::KeepaliveOpcode;
 using Client::Protocol::Connection::LoginRequest;
+using Client::Protocol::Connection::WriteKeepalive;
 using Client::Protocol::Connection::WriteLoginRequest;
 using Client::Tests::Bytes;
 using Client::Tests::BytesOf;
@@ -87,9 +113,13 @@ using Client::Tests::GameClientKeys;
 using Client::Tests::GameServerEncryption;
 using Client::Tests::GameServerReceived;
 using Client::Tests::NoticeBytes;
+using Client::Tests::RecordingClient;
 using Client::Tests::RecordingSink;
 using Client::Tests::SameBytes;
 using Client::Tests::SameBytesWithoutValues;
+
+using std::chrono::milliseconds;
+using std::chrono::seconds;
 
 using ByteVector = std::vector<std::byte>;
 using Lines = std::vector<std::string>;
@@ -104,6 +134,18 @@ constexpr std::size_t AddressHostSize = 16;
 
 // La semilla del relleno de lo que cifra la conexión: fija.
 constexpr std::uint32_t PaddingSeed = 1;
+
+// Lo que dura un frame de los tests del keepalive: un paso de la lógica, como un bucle a 25 Hz.
+constexpr Duration Frame = milliseconds{40};
+
+// Lo que dice el log de cada keepalive que sale.
+constexpr std::string_view KeepaliveSent = "se mandó el keepalive";
+
+// Dónde están las velocidades en el keepalive sin el XOR32: después de la cabecera, el opcode, el
+// 00 y el tick (04 § El flujo de conexión).
+constexpr std::size_t KeepalivePaddingIndex = 3;
+constexpr std::size_t KeepaliveSpeedsIndex = 8;
+constexpr std::size_t KeepaliveSpeedsSize = 4;
 
 // El código de servidor del 0 del laboratorio, como lo deja FoxAnti (el 0 más su delta, 400).
 constexpr std::uint16_t LabServerCode = 400;
@@ -314,6 +356,65 @@ struct Harness
         socket.reads = {FromTheGameServer(LoginResult(1), gameServerSends)};
         session.Poll();
         ASSERT_EQ(session.State(), SessionState::LoggedIn);
+    }
+
+    // El login aceptado en el instante `time` del reloj, que empieza en 0.
+    void LogInAt(Duration time)
+    {
+        ASSERT_NO_FATAL_FAILURE(ReachLoginResult());
+        AdvanceTo(time);
+        socket.reads = {FromTheGameServer(LoginResult(1), gameServerSends)};
+        session.Poll();
+        ASSERT_EQ(session.State(), SessionState::LoggedIn);
+    }
+
+    void AdvanceTo(Duration time)
+    {
+        clock.Advance(time - clock.Now());
+    }
+
+    // Un Poll en cada Frame desde ahora hasta `time`, el de `time` incluido.
+    void PollEachFrameUntil(Duration time)
+    {
+        while (clock.Now() + Frame <= time)
+        {
+            clock.Advance(Frame);
+            session.Poll();
+        }
+    }
+
+    // Los keepalives que le llegaron al GS, descifrados y sin el XOR32, en orden. Todo lo que le
+    // llegó tiene que estar en orden: con el login en el serial 0, el keepalive n tiene el
+    // serial n.
+    [[nodiscard]] std::vector<Packet> Keepalives() const
+    {
+        const GameServerReceived received = GameServerReads();
+        EXPECT_TRUE(
+            std::ranges::all_of(received.serials, [](SerialCheck serial) { return serial == SerialCheck::InOrder; }));
+        std::vector<Packet> keepalives;
+        for (const Packet& packet : received.packets)
+        {
+            Packet clear = Xor32Decode(packet);
+            if (clear.Opcode() == KeepaliveOpcode)
+            {
+                keepalives.push_back(std::move(clear));
+            }
+        }
+        return keepalives;
+    }
+
+    // Cuántas líneas de `level` tienen `part`.
+    [[nodiscard]] std::size_t CountLogged(LogLevel level, std::string_view part) const
+    {
+        std::size_t count = 0;
+        for (std::size_t index = 0; index < sink.lines.size(); ++index)
+        {
+            if (sink.levels[index] == level && sink.lines[index].find(part) != std::string::npos)
+            {
+                ++count;
+            }
+        }
+        return count;
     }
 
     // Lo que le llegó al GS desde que se abrió, como lo lee él: cada C3 descifrado, con sus
@@ -1069,4 +1170,271 @@ TEST(ServerSessionTest, StartingAgainForgetsTheLogin)
     tested.session.Poll();
     EXPECT_EQ(tested.socket.sent.size(), sentBefore);
 }
+// El primero sale en el mismo Poll que lee el login aceptado, como el de 0x4ad100: un C3 con el
+// serial 1 (el login gastó el 0) que el GS descifra a lo mismo que WriteKeepalive con el tick del
+// reloj en ese momento y las velocidades en 0 y 0, sin ajuste.
+TEST(ServerSessionTest, SendsTheFirstKeepaliveWithTheLogin)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(milliseconds{123456}));
+
+    const GameServerReceived received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), 2u);
+    EXPECT_EQ(received.serials, (std::vector<SerialCheck>{SerialCheck::InOrder, SerialCheck::InOrder}));
+    const auto expected = WriteKeepalive(Keepalive{TickCountMs(tested.clock.Now()), 0, 0});
+    EXPECT_TRUE(SameBytes(received.packets[1].Bytes(), expected.packet.Bytes()));
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 1u);
+}
+
+// Sin SetKeepaliveSpeeds, el keepalive sin el XOR32 trae 0 y 0 en las dos velocidades y el 00
+// después del opcode, como el primero de las 8 conexiones al GS (CL4.R, paso 6).
+TEST(ServerSessionTest, WithoutACharacterTheSpeedsAreZero)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{3}));
+
+    const std::vector<Packet> keepalives = tested.Keepalives();
+    ASSERT_EQ(keepalives.size(), 1u);
+    const std::span<const std::byte> bytes = keepalives[0].Bytes();
+    ASSERT_EQ(bytes.size(), KeepaliveSpeedsIndex + KeepaliveSpeedsSize);
+    EXPECT_EQ(bytes[KeepalivePaddingIndex], std::byte{0});
+    EXPECT_TRUE(SameBytes(bytes.subspan(KeepaliveSpeedsIndex), Bytes({0x00, 0x00, 0x00, 0x00})));
+}
+
+// El test del 02: con el login en t = 3 s, ninguno nuevo a los 22,999 s; a los 23 s, uno; y hasta
+// t = 103 s, 6 en total (3, 23, 43, 63, 83 y 103), con los seriales 1 a 6. LoggedIn no tiene tope:
+// sin nada del GS en 100 s, la sesión sigue.
+TEST(ServerSessionTest, KeepaliveEveryTwentySecondsAndNotBefore)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{3}));
+
+    tested.AdvanceTo(milliseconds{22999});
+    tested.session.Poll();
+    EXPECT_EQ(tested.Keepalives().size(), 1u);
+    tested.AdvanceTo(seconds{23});
+    tested.session.Poll();
+    EXPECT_EQ(tested.Keepalives().size(), 2u);
+    tested.PollEachFrameUntil(seconds{103});
+
+    EXPECT_EQ(tested.Keepalives().size(), 6u);
+    EXPECT_EQ(tested.GameServerReads().serials.size(), 7u);
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+// Pregunta 6 del plan: antes del login aceptado no sale ninguno, aunque el GS esté abierto. Acá, 58
+// s con el GS abierto y sin resultado: 29 esperando el saludo y 29 el resultado, cada espera debajo
+// de ReplyTimeout. El original mandaría dos o tres, con su timer desde el arranque (Q-C53).
+TEST(ServerSessionTest, NoKeepaliveBeforeTheLogin)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
+    tested.PollEachFrameUntil(seconds{29});
+    tested.socket.reads = {GameHello(1, ClientVersion)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
+
+    tested.PollEachFrameUntil(seconds{58});
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
+    EXPECT_EQ(tested.GameServerReads().packets.size(), 1u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 0u);
+}
+
+// Un frame de 60 s (un breakpoint) con el login en t = 3 s: en t = 63 s sale uno solo, con el
+// serial 2, y el siguiente a los 83 s, no en los 43 y 63 que tocaban.
+TEST(ServerSessionTest, ASixtySecondFrameSendsOneKeepalive)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{3}));
+
+    tested.AdvanceTo(seconds{63});
+    tested.session.Poll();
+    tested.session.Poll();
+    EXPECT_EQ(tested.Keepalives().size(), 2u);
+    tested.PollEachFrameUntil(milliseconds{82960});
+    EXPECT_EQ(tested.Keepalives().size(), 2u);
+    tested.PollEachFrameUntil(seconds{83});
+    EXPECT_EQ(tested.Keepalives().size(), 3u);
+}
+
+// Con el GameLoop y la ventana minimizada, el Poll sigue (CL4.1) y con él el keepalive: 100 s
+// después del login, el del login y cinco más. Main pone la sesión en el bucle con SessionClient,
+// como acá; la escena no dibuja.
+TEST(ServerSessionTest, KeepsTheKeepaliveWhileMinimized)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    RecordingClient scene{tested.clock};
+    SessionClient client(tested.session, scene);
+    GameLoop loop{tested.clock, client, PacingMode::Decoupled};
+    WindowState minimized;
+    minimized.minimized = true;
+    InputState input;
+    const Duration end = tested.clock.Now() + seconds{100};
+
+    while (tested.clock.Now() <= end)
+    {
+        loop.RunFrame(minimized, input);
+    }
+
+    EXPECT_EQ(tested.Keepalives().size(), 6u);
+    EXPECT_EQ(scene.polls, loop.Stats().frames);
+    EXPECT_TRUE(scene.alphas.empty());
+}
+
+// Las velocidades que dio SetKeepaliveSpeeds, con el ajuste de KeepaliveSpeed: 0x0328 + 20 y
+// 0x0268 + 20 con KeepaliveAdjust20 salen como 28 03 68 02. El XOR32 sigue puesto después de
+// descifrar: se mira sin él.
+TEST(ServerSessionTest, UsesTheSpeedsItWasGiven)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    tested.session.SetKeepaliveSpeeds(KeepaliveSpeeds{.attackSpeed = std::uint16_t{0x0328 + 20},
+                                                      .magicSpeed = std::uint16_t{0x0268 + 20},
+                                                      .characterFlags = KeepaliveAdjust20});
+    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{3}));
+
+    const std::vector<Packet> keepalives = tested.Keepalives();
+    ASSERT_EQ(keepalives.size(), 1u);
+    const std::span<const std::byte> bytes = keepalives[0].Bytes();
+    ASSERT_EQ(bytes.size(), KeepaliveSpeedsIndex + KeepaliveSpeedsSize);
+    EXPECT_TRUE(SameBytes(bytes.subspan(KeepaliveSpeedsIndex), Bytes({0x28, 0x03, 0x68, 0x02})));
+}
+
+// El GS que corta con el login aceptado: GameServerLost con PeerClosed en el log, el keepalive se
+// detiene y la sesión no se reconecta sola. En los 40 s siguientes no sale nada.
+TEST(ServerSessionTest, LosingTheGameServerStopsTheKeepalive)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{3}));
+    tested.socket.peerClosed = true;
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
+    EXPECT_TRUE(tested.Logged(LogLevel::Error, std::format("se perdió la conexión con el GameServer: {}",
+                                                           CloseReasonText(CloseReason::PeerClosed))));
+    const std::size_t sentBefore = tested.socket.sent.size();
+    const std::size_t connectsBefore = tested.socket.connects.size();
+
+    tested.PollEachFrameUntil(seconds{43});
+
+    EXPECT_EQ(tested.socket.sent.size(), sentBefore);
+    EXPECT_EQ(tested.socket.connects.size(), connectsBefore);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 1u);
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+}
+
+// Start desde LoggedIn vuelve al CS: el keepalive se detiene, y en 40 s al CS solo le llega el A9.
+TEST(ServerSessionTest, StartingAgainStopsTheKeepalive)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{3}));
+    tested.session.Start();
+    const std::size_t sentBefore = tested.socket.sent.size();
+
+    tested.PollEachFrameUntil(seconds{25});
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
+    EXPECT_TRUE(SameBytes(std::span(tested.socket.sent).subspan(sentBefore), PetInfoRequest()));
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 1u);
+}
+
+// Un CS que acepta y no saluda: a los ReplyTimeout del A9 la sesión cierra y falla con NoReply, y
+// el log dice qué servidor y qué se esperaba. Un ms antes, sigue esperando.
+TEST(ServerSessionTest, AConnectServerThatDoesNotGreetFails)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    tested.session.Start();
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
+
+    tested.AdvanceTo(ReplyTimeout - milliseconds{1});
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
+    tested.AdvanceTo(ReplyTimeout);
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
+    EXPECT_EQ(tested.connection.State(), LinkState::Closed);
+    EXPECT_TRUE(tested.Logged(LogLevel::Error, "el ConnectServer no contestó en 30 s: se esperaba su saludo"));
+}
+
+// Cada espera cuenta desde que empezó: con el saludo a los 20 s, la lista se espera hasta los 50 s.
+TEST(ServerSessionTest, EachWaitCountsFromItsStart)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    tested.session.Start();
+    tested.session.Poll();
+    tested.AdvanceTo(seconds{20});
+    tested.socket.reads = {Hello()};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingServerList);
+
+    tested.AdvanceTo(milliseconds{49999});
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
+    tested.AdvanceTo(seconds{50});
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
+    EXPECT_TRUE(
+        tested.Logged(LogLevel::Error, "el ConnectServer no contestó en 30 s: se esperaba la lista de servidores"));
+}
+
+// El GS que no contesta el login también es NoReply, con el GS en el log.
+TEST(ServerSessionTest, AGameServerThatDoesNotAnswerTheLoginFails)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
+
+    tested.AdvanceTo(ReplyTimeout);
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
+    EXPECT_EQ(tested.connection.State(), LinkState::Closed);
+    EXPECT_TRUE(
+        tested.Logged(LogLevel::Error, "el GameServer no contestó en 30 s: se esperaba el resultado del login"));
+}
+
+// Lo que llegó durante un frame largo se lee antes de mirar el tope: un resultado que estaba en el
+// socket después de 60 s sin frames entra, y la sesión no falla.
+TEST(ServerSessionTest, AReplyThatArrivedDuringALongFrameIsRead)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
+
+    tested.AdvanceTo(seconds{60});
+    tested.socket.reads = {FromTheGameServer(LoginResult(1), tested.gameServerSends)};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+    EXPECT_EQ(tested.session.Failure(), std::nullopt);
+}
+
+// Main loguea cada cambio de estado (el plan de la CL4, CL4.5): de Start a LoggedIn, una línea de
+// info por estado, en orden, y después la del primer keepalive. La del cierre del CS es de la
+// Connection.
+TEST(ServerSessionTest, EachStateChangeIsLogged)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+
+    Lines infos;
+    for (std::size_t index = 0; index < tested.sink.lines.size(); ++index)
+    {
+        if (tested.sink.levels[index] == LogLevel::Info)
+        {
+            infos.push_back(tested.sink.lines[index]);
+        }
+    }
+    EXPECT_EQ(infos, (Lines{"[info] se conecta al ConnectServer", "[info] conectó con el ConnectServer",
+                            "[info] el ConnectServer saludó: se pide la lista de servidores",
+                            "[info] la lista trae 1 servidores: se elige el primero",
+                            "[info] el ConnectServer dio la dirección del GameServer: se cierra y se conecta a ese",
+                            "[info] la conexión se cerró: la cerró el cliente",
+                            "[info] conectó con el GameServer: se espera su saludo",
+                            "[info] el GameServer saludó: se manda el login", "[info] el GameServer aceptó el login",
+                            "[info] se mandó el keepalive al GameServer"}));
+}
+
 } // namespace

@@ -18,7 +18,7 @@ enum class SessionState : std::uint8_t
     ConnectingGameServer,    // el CS se cerró y se abrió el GS
     WaitingGameHello,        // el GS abrió; se espera su saludo, F1 00
     WaitingLoginResult,      // el login, F1 01, salió cifrado
-    LoggedIn,                // el GS aceptó el login; el keepalive es de la CL4.5
+    LoggedIn,                // el GS aceptó el login: sale el keepalive (CL4.5)
     Failed,
 };
 
@@ -31,5 +31,6 @@ enum class SessionFailure : std::uint8_t
     VersionMismatch,    // el saludo aceptado trae otra versión que ClientVersion
     LoginRejected,      // el resultado del login no es LoginAccepted: queda en LoginResult()
     CredentialsTooLong, // la cuenta o la clave no entran en el login (WriteLoginRequest)
+    NoReply,            // un estado Waiting* pasó ReplyTimeout sin su respuesta (CL4.5)
 };
 } // namespace Client::App

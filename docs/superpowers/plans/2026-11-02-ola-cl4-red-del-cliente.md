@@ -1543,7 +1543,7 @@ por frame y por reloj"):
 | el primero | con el login aceptado (`0x4ad100`), 48 ms después en el cable | en el mismo `Poll` que lee el `F1 01` aceptado |
 | los siguientes | `WM_TIMER` 1000 cada 20 s, un timer desde el arranque que manda si hay conexión al GS, sin mirar el login ni el foco | cada 20 s desde el primero, con un `IntervalTimer` sobre el `IClock` del bucle, solo en `LoggedIn` (pregunta 6); minimizada también |
 | un frame largo | un `WM_TIMER` pendiente (*inferido*) | uno solo, y el siguiente a los 20 s del que salió |
-| las velocidades | los WORD de `personaje+0x4C` y `+0x58` con su ajuste (CL2.5) | `SetKeepaliveSpeeds(attack, magic, flags)`; hasta que haya personaje (CL6), lo que diga la CL4.R, paso 6 |
+| las velocidades | los WORD de `personaje+0x4C` y `+0x58` con su ajuste (CL2.5) | `SetKeepaliveSpeeds(attack, magic, flags)`; hasta que haya personaje (CL6), 0 y 0, sin ajuste (CL4.R, paso 6) |
 | el tick | `GetTickCount` | `App::TickCountMs(now)` (CL3.2), que da la vuelta como un `DWORD` |
 | el cierre del otro lado | `FD_CLOSE`: un mensaje, el log, `0x4e8380` y el objeto de `0x65ee60`; en la escena 5, el socket en -1 cada frame | `Failed` con `GameServerLost` y el `CloseReason` en el log; el keepalive se detiene; no se reconecta solo (la CL5.4 muestra el aviso) |
 
@@ -1552,11 +1552,25 @@ B): un CS que acepta y nunca saluda deja la sesión en `WaitingConnectHello` par
 `Failed`, porque el `ConnectTimeout` es solo del connect. Esta sub-ola decide si la sesión suma un
 tope por reloj, con el `IClock` que ya trae para el keepalive.
 
+*Decidido (CL4.5, lo resolvió Claude):* sí. Cada `Waiting*` espera su respuesta `ReplyTimeout`,
+30 s desde que empezó esa espera, y después la sesión cierra y queda en `Failed` con `NoReply`, una
+falla nueva; el log dice qué servidor y qué se esperaba. Con la sesión en el bucle de `Main`, un
+servidor que acepta y no contesta (un puerto equivocado, un CS colgado) dejaba la ventana abierta
+y el log callado para siempre, y la prueba del paso 4 no tendría cómo fallar. El tope se mira
+después de leer los eventos, así lo que llegó durante un frame largo cuenta. Los `Connecting*`
+siguen con el `ConnectTimeout`, y `LoggedIn` no tiene tope. El original no tiene uno que el
+research haya visto, así que esto es de MuRet, como el `ConnectTimeout` (pregunta 5).
+
 **Archivos:** crear `Client/src/Core/IntervalTimer.h/.cpp` y
 `Client/tests/core/test_interval_timer.cpp`. Modificar `Client/src/App/ServerSession.h/.cpp` y
 sus tests, `main.cpp` (la sesión en el `Poll()` del cliente del bucle, solo con host; cada cambio
 de estado al log), 07 (el keepalive de la pregunta 6, Q-C nuevo), `Client/README.md` (la prueba
 contra el laboratorio), PROGRESS y este plan.
+
+*Hecho así:* además, `Client/src/App/SessionClient.h/.cpp` y `tests/app/test_session_client.cpp`
+(el cliente del bucle de `Main` con un servidor), y `tests/support/FakeServers.h/.cpp`, cuyo GS
+ahora acepta y cuenta los keepalives. El Q-C del keepalive es el Q-C53, que escribió la CL4.R (en
+su PR, todavía sin mergear) con los nombres de los tests de esta sub-ola: acá no se suma otro.
 
 **Interfaces:**
 
@@ -1585,15 +1599,23 @@ namespace Client::App
 inline constexpr Core::Duration KeepalivePeriod = std::chrono::seconds{20};
 
 // En ServerSession: las velocidades del personaje antes de su ajuste, y los bits de
-// personaje+0x3C (KeepaliveSpeed, CL2.5). Hasta que se llame, las de la CL4.R, paso 6.
+// personaje+0x3C (KeepaliveSpeed, CL2.5). Hasta que se llame, 0 y 0, sin ajuste (CL4.R, paso 6).
 void SetKeepaliveSpeeds(std::uint16_t attackSpeed, std::uint16_t magicSpeed, std::uint8_t characterFlags);
 } // namespace Client::App
 ```
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, a mano: con el login aceptado en
+- [x] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, a mano: con el login aceptado en
   t = 3 s, en qué instantes salen keepalives hasta t = 100 s, y qué cambia si entre t = 30 s y
   t = 90 s no corre ningún frame.
-- [ ] **Paso 2:** los tests:
+
+  *Lo resolvió Claude:* con frames seguidos, en t = 3 (con el login), 23, 43, 63 y 83 s: cinco
+  hasta t = 100 s, y el sexto en t = 103 s. Sin frames entre t = 30 y t = 90 s, salen el de 3 y el
+  de 23; el de 43 vence sin que nadie mire, y en el primer frame de t = 90 s sale uno solo (no los
+  de 43, 63 y 83 juntos), con el siguiente en t = 110 s: tres hasta t = 100 s. Entre 23 y 90 s el GS
+  no recibe nada durante 67 s; qué hace con eso no está en el research (la última fila de "Qué no
+  se prueba en CI"). El original, con el `WM_TIMER` pendiente, también manda uno solo al volver
+  (*inferido*), pero su grilla sigue la del arranque y no la del último que salió.
+- [x] **Paso 2:** los tests:
   - `IntervalTimerTest.FiresEveryPeriod` (empezado en 0 con 20 s: a los 19,999 s no, a los
     20,016 s sí, otra vez no, a los 39,999 s no y a los 40 s sí: sin deriva);
   - `IntervalTimerTest.ALongPauseFiresOnce` (a los 65 s vence una vez, y la siguiente a los 85 s);
@@ -1601,7 +1623,11 @@ void SetKeepaliveSpeeds(std::uint16_t attackSpeed, std::uint16_t magicSpeed, std
     después a los 30 s sí);
   - `ServerSessionTest.SendsTheFirstKeepaliveWithTheLogin` (después de `C1 05 F1 01 01` sale un C3
     con serial 1 que descifra a lo mismo que `WriteKeepalive` con el `TickCountMs` del
-    `FakeClock` y las velocidades de la CL4.R, paso 6);
+    `FakeClock` y las velocidades en 0 y 0, sin ajuste);
+  - `ServerSessionTest.WithoutACharacterTheSpeedsAreZero` (sin `SetKeepaliveSpeeds`, el C3
+    descifrado y pasado por `Xor32Decode` tiene 0 y 0 en las dos velocidades y el byte 3 en 0,
+    como el primer keepalive de las 8 conexiones al GS: 04 § Las velocidades antes de que haya
+    personaje);
   - `ServerSessionTest.KeepaliveEveryTwentySecondsAndNotBefore` (el test del 02: con el login en
     t = 3 s, ninguno nuevo a los 22,999 s; a los 23 s, uno; hasta t = 103 s, 6 en total, con
     seriales 1 a 6);
@@ -1616,7 +1642,55 @@ void SetKeepaliveSpeeds(std::uint16_t attackSpeed, std::uint16_t magicSpeed, std
     velocidades; el `Xor32Decode` hace falta porque el XOR32 sigue puesto después de descifrar);
   - `ServerSessionTest.LosingTheGameServerStopsTheKeepalive` (`PeerClosed` en `LoggedIn`:
     `GameServerLost` con `PeerClosed` en el log, y en los 40 s siguientes no sale nada).
-- [ ] **Paso 3:** `IntervalTimer`, el keepalive y la desconexión en la sesión, y `main.cpp`; 07.
+
+  *Hecho así:* todos en rojo antes de la sesión (con `SetKeepaliveSpeeds` vacío y `Due` en
+  `false`), salvo `NoKeepaliveBeforeTheLogin`, que ya pasaba y queda para que no vuelva. Cambios:
+  - `NoKeepaliveBeforeTheLogin` mira 58 s y no 60: 29 esperando el saludo y 29 el resultado, cada
+    uno debajo de `ReplyTimeout`, así el test mira el keepalive y no el tope.
+  - `KeepsTheKeepaliveWhileMinimized` corre el `GameLoop` con un `SessionClient` y un
+    `RecordingClient` de escena, hasta 100 s después del login, el de los 100 s incluido.
+  - Los que se sumaron: en `IntervalTimerTest`, `ExactlyAPeriodLateFiresOnce` (mirado justo un
+    periodo tarde, uno solo: con `<=` en vez de `<` vencía dos veces),
+    `LessThanAPeriodLateKeepsTheGrid` y `StoppedItDoesNotFire`; en `ServerSessionTest`,
+    `StartingAgainStopsTheKeepalive`, `EachStateChangeIsLogged` (lo que pide `main.cpp`: una línea
+    de info por estado, de `Start` a `LoggedIn`) y los cuatro de `ReplyTimeout`:
+    `AConnectServerThatDoesNotGreetFails`, `EachWaitCountsFromItsStart`,
+    `AGameServerThatDoesNotAnswerTheLoginFails` y `AReplyThatArrivedDuringALongFrameIsRead`; y
+    `SessionClientTest.PollsTheSessionAndThenTheScene` y `TheStepsAndTheDrawingAreTheScenes`, y
+    `AppPrintersTest.NoReplyShowsItsName`.
+  - `ServerSessionLoopbackTest.LogsInAgainstFakeServers` espera además que el GS falso reciba el
+    primer keepalive, cifrado y con el serial 1.
+- [x] **Paso 3:** `IntervalTimer`, el keepalive y la desconexión en la sesión, y `main.cpp`; 07.
+
+  *Hecho así:*
+  - `IntervalTimer` guarda el próximo vencimiento: `Due` mira `now >= vencimiento`, y el siguiente
+    es `vencimiento + periodo`, o `now + periodo` si ya se pasó también ese. Un reloj que va para
+    atrás no mueve el vencimiento.
+  - En la sesión, el timer arranca en el mismo `Poll` que lee el login aceptado, con el primer
+    keepalive, y corre solo en `LoggedIn`: cada cambio de estado pasa por `SetState`, que lo
+    detiene fuera de ahí (un cierre, un `Start`, una falla). `Poll` lee los eventos, después mira
+    el tope del estado y al final el keepalive. Cada keepalive deja una línea de info, para la
+    prueba del paso 4.
+  - `SetKeepaliveSpeeds` recibe un `KeepaliveSpeeds` (las dos velocidades y los bits) y no tres
+    argumentos: clang-tidy avisa que dos velocidades juntas y del mismo tipo se cambian de lugar
+    sin que se note (`bugprone-easily-swappable-parameters`), y con los nombres de los campos en
+    la llamada no pasa. La sesión lo guarda y `KeepaliveSpeed` aplica el ajuste al mandar. Sigue
+    después de un `Start`: es de quien tenga el personaje (CL6).
+  - `main.cpp`: con un host, `LoopClient` arma `Online` (el `SystemResolver`, el `SystemSocket`, la
+    ofuscación de la config, la `Connection` con la semilla de `std::random_device`, la sesión y el
+    `SessionClient`), empieza la sesión y le da el `SessionClient` al bucle; sin host, la escena
+    sola, como antes. `Start` suma la línea "se conecta al ConnectServer", sin la dirección.
+  - Probado a mano en Linux, con la cuenta sintética y las claves de la carpeta golden: contra un
+    puerto cerrado, "se perdió la conexión con el ConnectServer" y `Main` termina en 0 con
+    `--frames`; contra un servidor que acepta y no contesta, a los 30 s "el ConnectServer no
+    contestó en 30 s: se esperaba su saludo", y el servidor ve el A9 y el cierre.
+  - Mutantes a mano: veinte de `ServerSession.cpp` (sin el primer keepalive, sin arrancar el
+    timer o arrancado antes, sin `Due`, en claro, el tick en 0, las velocidades cambiadas, la de
+    ataque o la de magia sin ajuste, sin guardarlas, sin el `Stop`, el estado sin su instante, el
+    tope con `>`, antes de los eventos, sin tope, con tope en `LoggedIn`, la espera mal nombrada,
+    otra falla, sin la línea de `Start`, y el `return` después del tope), ocho de
+    `IntervalTimer.cpp` y seis de `SessionClient.cpp`: los mata algún test, salvo el `return`, que
+    es equivalente (el `Fail` ya detuvo el timer).
 - [ ] **Paso 4 (Emanuel, a mano, contra el laboratorio):** con la VM del laboratorio levantada,
   `Main connect /u<ip del CS> /p44405 --data <Data del laboratorio>` y las variables de la
   pregunta 7: el log dice cada estado hasta el login aceptado y un keepalive cada 20 s durante dos
@@ -1624,7 +1698,11 @@ void SetKeepaliveSpeeds(std::uint16_t attackSpeed, std::uint16_t magicSpeed, std
   puede capturar el cable, el login y el keepalive descifrados se comparan con los de la sesión
   real del 04 (P-C05), sin imprimir la cuenta. La captura queda fuera de Git (se descifra con las
   claves reales), y el README anota solo el resultado.
-- [ ] **Paso 5:** verificar:
+
+  *Hecho así:* CI no tiene la VM, así que el paso queda escrito en `Client/README.md` ("Contra el
+  servidor del laboratorio"), con lo que tiene que decir el log y qué significa cada falla. Falta
+  correrlo; el resultado va al README.
+- [x] **Paso 5:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "IntervalTimer|ServerSession|Client.Main"
   xvfb-run -a -s '-screen 0 800x600x24' build/linux-x64-debug/Client/Main --frames 60
@@ -1643,6 +1721,7 @@ void SetKeepaliveSpeeds(std::uint16_t attackSpeed, std::uint16_t magicSpeed, std
 | el diferencial campo por campo del login y del keepalive (P-C05) | con una captura nueva del cable, si se hace en el paso 4 de la CL4.5, fuera de Git; si no, sigue en 08 |
 | arrastrar la ventana en Windows | sin probar: el original sigue con `WM_TIMER` y MuRet no consulta la red mientras tanto (07, Q-C49) |
 | qué pasa con el GS si el cliente se congela más de lo que él espera | sin probar: el timeout del GS no está en el research del cliente |
+| `Main` con un host: lo que arma `main.cpp` (`Online`) | cada pieza tiene sus tests y `ServerSessionLoopbackTest` las junta; `main.cpp` se probó a mano contra un puerto cerrado y un servidor que no contesta (CL4.5), y el paso 4 contra el laboratorio |
 
 ## Al cerrar la CL4
 

@@ -27,6 +27,8 @@ constexpr int PlayerIndex = 5;
 constexpr std::byte FoxAntiXor{0xAA};
 // El largo del login, sin cifrar (04: "login (49 B lógicos)").
 constexpr std::size_t LoginSize = 0x31;
+// El del keepalive: C1 0C 0E 00, el tick y las dos velocidades (04).
+constexpr std::size_t KeepaliveSize = 0x0C;
 // Dónde está el subcódigo de un C1: después del tipo, el largo y el opcode.
 constexpr std::size_t SubcodeIndex = 3;
 
@@ -98,6 +100,13 @@ bool IsLoginRequest(const Network::Packet& plain)
            clear.Opcode() == Protocol::Connection::JoinOpcode &&
            std::to_integer<std::uint8_t>(bytes[SubcodeIndex]) == Protocol::Connection::LoginSubcode;
 }
+// Si `plain`, sin su XOR32, es un keepalive (0E) de su largo.
+bool IsKeepalive(const Network::Packet& plain)
+{
+    const Network::Packet clear = Network::Crypto::Xor32Decode(plain);
+    return clear.Type() == Network::PacketType::C1 && clear.Bytes().size() == KeepaliveSize &&
+           clear.Opcode() == Protocol::Connection::KeepaliveOpcode;
+}
 } // namespace
 
 FakeServers::FakeServers(Network::ConnectionKeys serverKeys) : m_keys(serverKeys) {}
@@ -126,6 +135,11 @@ bool FakeServers::SawLogin() const
 const std::optional<Network::Packet>& FakeServers::Login() const
 {
     return m_login;
+}
+
+std::size_t FakeServers::Keepalives() const
+{
+    return m_keepalives;
 }
 
 bool FakeServers::ClientLeftTheConnectServer() const
@@ -238,12 +252,13 @@ void FakeServers::OnConnectServerPacket(const Network::Packet& packet)
     }
 }
 
-// El login llega como C3 y se descifra con la clave del servidor, con el serial 0.
+// El login llega como C3 y se descifra con la clave del servidor, con el serial 0. Lo que sigue
+// son keepalives.
 void FakeServers::OnGameServerPacket(const Network::Packet& packet)
 {
-    if (m_gameStep != GameStep::WaitingLogin)
+    if (m_gameStep == GameStep::LoggedIn)
     {
-        StopGameServer("el GameServer recibió un paquete después del login");
+        OnKeepalive(packet);
         return;
     }
     if (!IsEncrypted(packet))
@@ -270,6 +285,29 @@ void FakeServers::OnGameServerPacket(const Network::Packet& packet)
     m_login = std::move(decrypted).Value().packet;
     m_gameStep = GameStep::LoggedIn;
     SendFromTheGameServer(LoginAccepted());
+}
+
+// Después del login, lo único que manda el cliente es el keepalive, cifrado y con el serial que
+// sigue: el primero, el 1.
+void FakeServers::OnKeepalive(const Network::Packet& packet)
+{
+    if (!IsEncrypted(packet))
+    {
+        StopGameServer("el GameServer esperaba un keepalive cifrado y llegó un paquete en claro");
+        return;
+    }
+    const auto decrypted = Network::DecryptPacket(packet, m_keys.decryption, m_gameSerials);
+    if (!decrypted.HasValue() || decrypted.Value().serial != Network::SerialCheck::InOrder)
+    {
+        StopGameServer("el GameServer no descifra en orden lo que llegó después del login");
+        return;
+    }
+    if (!IsKeepalive(decrypted.Value().packet))
+    {
+        StopGameServer("el GameServer recibió después del login algo que no es un keepalive");
+        return;
+    }
+    ++m_keepalives;
 }
 
 std::optional<Network::Packet> FakeServers::NextPacket(Network::PacketReader& reader, bool& failed)

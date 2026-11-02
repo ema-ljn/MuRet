@@ -21,6 +21,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <format>
@@ -171,6 +172,24 @@ struct Harness
         return false;
     }
 
+    // Las líneas del log que dicen el host o el puerto de uno de los dos servidores: la dirección
+    // es del servidor, y el log no la dice (ServerSession.cpp, OnServerAddress).
+    [[nodiscard]] Lines LinesWithAnAddress() const
+    {
+        const std::string parts[] = {std::string(ConnectHost), std::string(GameHost), std::to_string(ConnectPort),
+                                     std::to_string(GamePort)};
+        Lines found;
+        for (const std::string& line : sink.lines)
+        {
+            const auto says = [&line](const std::string& part) { return line.find(part) != std::string::npos; };
+            if (std::ranges::any_of(parts, says))
+            {
+                found.push_back(line);
+            }
+        }
+        return found;
+    }
+
     // Start y el Poll del saludo, que llega con el connect: espera la lista.
     void ReachServerList()
     {
@@ -183,7 +202,7 @@ struct Harness
     // Y la lista, de un servidor: espera la dirección.
     void ReachServerAddress()
     {
-        ReachServerList();
+        ASSERT_NO_FATAL_FAILURE(ReachServerList());
         socket.reads = {ServerList({LabServerCode})};
         session.Poll();
         ASSERT_EQ(session.State(), SessionState::WaitingServerAddress);
@@ -192,7 +211,7 @@ struct Harness
     // Y la dirección: conecta al GameServer.
     void ReachGameServer()
     {
-        ReachServerAddress();
+        ASSERT_NO_FATAL_FAILURE(ReachServerAddress());
         socket.reads = {AddressReply(GameHost, GamePort)};
         session.Poll();
         ASSERT_EQ(session.State(), SessionState::ConnectingGameServer);
@@ -289,7 +308,7 @@ TEST(ServerSessionTest, ChoosesTheFirstServer)
 TEST(ServerSessionTest, ChoosesTheFirstOfSeveral)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachServerList();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {ServerList({401, 400, 402})};
     tested.session.Poll();
@@ -303,7 +322,7 @@ TEST(ServerSessionTest, ChoosesTheFirstOfSeveral)
 TEST(ServerSessionTest, ReadsTheGameServerAddress)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachServerAddress();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerAddress());
 
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
     tested.session.Poll();
@@ -321,13 +340,24 @@ TEST(ServerSessionTest, ReadsTheGameServerAddress)
     EXPECT_EQ(tested.Warnings(), Lines{});
 }
 
+// Del ConnectServer al GameServer, el log no dice ningún host ni ningún puerto: ni el del CS, que
+// es de la config, ni el del GS, que llegó del cable.
+TEST(ServerSessionTest, TheLogDoesNotSayTheAddresses)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachGameServer());
+
+    EXPECT_FALSE(tested.sink.lines.empty());
+    EXPECT_EQ(tested.LinesWithAnAddress(), Lines{});
+}
+
 // El F4 03 y un saludo en la misma lectura: el saludo es del CS y la sesión deja de recorrer el
 // lote. Si lo despachara, iría al dispatcher del GS, donde el 00 es el chat y no tiene handler, y
 // habría un aviso. Cuando el GS abre, no sale nada: el saludo lo manda él (CL4.4).
 TEST(ServerSessionTest, WhatFollowsTheAddressIsDropped)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachServerAddress();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerAddress());
     const ByteVector sentToTheConnectServer = tested.socket.sent;
 
     tested.socket.reads = {Join({AddressReply(GameHost, GamePort), Hello()})};
@@ -346,7 +376,7 @@ TEST(ServerSessionTest, WhatFollowsTheAddressIsDropped)
 TEST(ServerSessionTest, WithTheGameServerThe00IsNotTheConnectHello)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachGameServer();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachGameServer());
     const ByteVector sentToTheConnectServer = tested.socket.sent;
 
     tested.socket.reads = {Hello()};
@@ -362,7 +392,7 @@ TEST(ServerSessionTest, WithTheGameServerThe00IsNotTheConnectHello)
 TEST(ServerSessionTest, AnEmptyListFails)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachServerList();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {Bytes({0xC2, 0x00, 0x07, 0xF4, 0x06, 0x00, 0x00})};
     tested.session.Poll();
@@ -383,7 +413,7 @@ TEST(ServerSessionTest, AnEmptyListFails)
 TEST(ServerSessionTest, AnEmptyListBeforeTheCloseKeepsItsFailure)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachServerList();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {ServerList({})};
     tested.socket.peerClosed = true;
@@ -396,7 +426,7 @@ TEST(ServerSessionTest, AnEmptyListBeforeTheCloseKeepsItsFailure)
 TEST(ServerSessionTest, AnUnexpectedPacketIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachServerList();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
     tested.session.Poll();
@@ -413,7 +443,7 @@ TEST(ServerSessionTest, AnUnexpectedPacketIsIgnored)
 TEST(ServerSessionTest, ASecondHelloIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachServerList();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {Hello()};
     tested.session.Poll();
@@ -427,7 +457,7 @@ TEST(ServerSessionTest, ASecondHelloIsIgnored)
 TEST(ServerSessionTest, AListOutOfTurnIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachServerAddress();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerAddress());
     const ByteVector sent = tested.socket.sent;
 
     tested.socket.reads = {ServerList({401})};
@@ -443,7 +473,7 @@ TEST(ServerSessionTest, AListOutOfTurnIsIgnored)
 TEST(ServerSessionTest, AListThatDoesNotReadIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachServerList();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {Bytes({0xC2, 0x00, 0x0B, 0xF4, 0x06, 0x00, 0x02, 0x90, 0x01, 0x00, 0x00})};
     tested.session.Poll();
@@ -457,7 +487,7 @@ TEST(ServerSessionTest, AListThatDoesNotReadIsIgnored)
 TEST(ServerSessionTest, AnAddressThatDoesNotReadIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachServerAddress();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerAddress());
 
     tested.socket.reads = {Bytes({0xC1, 0x06, 0xF4, 0x03, 0x31, 0x00})};
     tested.session.Poll();
@@ -473,7 +503,7 @@ TEST(ServerSessionTest, AnAddressThatDoesNotReadIsIgnored)
 TEST(ServerSessionTest, AMalformedPacketIsLogged)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachServerList();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {Bytes({0xC1, 0x03, 0xF4})};
     tested.session.Poll();
@@ -485,7 +515,7 @@ TEST(ServerSessionTest, AMalformedPacketIsLogged)
 TEST(ServerSessionTest, LosingTheConnectServerFails)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachServerList();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.peerClosed = true;
     tested.session.Poll();
@@ -513,7 +543,7 @@ TEST(ServerSessionTest, AConnectServerThatRefusesFails)
 TEST(ServerSessionTest, LosingTheGameServerFails)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachServerAddress();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerAddress());
     tested.socket.connectResult = SocketError::Refused;
 
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
@@ -567,7 +597,7 @@ TEST(ServerSessionTest, WhatArrivesBeforeTheServerClosesIsHandled)
 TEST(ServerSessionTest, StartingAgainStartsClean)
 {
     Harness tested(IdentityObfuscation::Shared());
-    tested.ReachServerList();
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
     tested.socket.reads = {ServerList({})};
     tested.session.Poll();
     ASSERT_EQ(tested.session.Failure(), SessionFailure::EmptyServerList);
@@ -591,5 +621,6 @@ TEST(ServerSessionTest, StartingAgainStartsClean)
     tested.session.Poll();
     EXPECT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
     EXPECT_TRUE(SameBytes(std::span(tested.socket.sent).subspan(before.size()), PetInfoRequest()));
+    EXPECT_EQ(tested.LinesWithAnAddress(), Lines{});
 }
 } // namespace

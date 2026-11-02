@@ -2,7 +2,7 @@
 
 #include "App/Credentials.h"
 #include "App/ObfuscationMode.h"
-#include "App/ServerSession.h"
+#include "App/SessionState.h"
 
 #include <ostream>
 

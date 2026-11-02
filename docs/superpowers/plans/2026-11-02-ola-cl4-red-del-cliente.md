@@ -1195,6 +1195,14 @@ public:
     turno o sin aviso si no se leen, la dirección sin guardar o con otro puerto, `Fail` sin cerrar,
     un cierre del GS como del CS, los avisos en otro nivel, siempre el dispatcher del CS, `Start`
     sin olvidar la falla o el GS, entre otros): los mata algún test.
+  - De la revisión del PR: `Poll` recorre el lote con un `std::visit` que tiene un caso por tipo de
+    `Network::Event`, así el `Undecryptable` de la CL4.4 no compila hasta que la sesión diga qué
+    hace con él (con el `std::get` de antes, compilaba y tiraba `bad_variant_access`).
+    `TheLogDoesNotSayTheAddresses`, y una línea más en `StartingAgainStartsClean`, miran que
+    ninguna línea del log diga el host ni el puerto del CS o del GS: tres mutantes más (la
+    dirección del GS en el aviso del `F4 03`, el host o el puerto del CS en `Start`) mueren.
+    `SessionState` y `SessionFailure` pasaron a `App/SessionState.h`, así `AppPrinters.h` no trae
+    la `Connection`. Los `Reach*` de los tests van dentro de `ASSERT_NO_FATAL_FAILURE`.
 - [x] **Paso 5 (PR B):** `ServerSession` hasta `ConnectingGameServer`, el `A9` y la config. Lo que
   se decidió al escribirla, y lo que cambió respecto de la interfaz de arriba:
   - El constructor es `ServerSession(Connection&, Log&, SessionSettings)`: sin el `IClock` ni las
@@ -1361,6 +1369,11 @@ por frame y por reloj"):
 | las velocidades | los WORD de `personaje+0x4C` y `+0x58` con su ajuste (CL2.5) | `SetKeepaliveSpeeds(attack, magic, flags)`; hasta que haya personaje (CL6), lo que diga la CL4.R, paso 6 |
 | el tick | `GetTickCount` | `App::TickCountMs(now)` (CL3.2), que da la vuelta como un `DWORD` |
 | el cierre del otro lado | `FD_CLOSE`: un mensaje, el log, `0x4e8380` y el objeto de `0x65ee60`; en la escena 5, el socket en -1 cada frame | `Failed` con `GameServerLost` y el `CloseReason` en el log; el keepalive se detiene; no se reconecta solo (la CL5.4 muestra el aviso) |
+
+Nada le pone tope todavía a los estados `Waiting*` de la sesión (de la revisión de la CL4.3, PR
+B): un CS que acepta y nunca saluda deja la sesión en `WaitingConnectHello` para siempre, sin
+`Failed`, porque el `ConnectTimeout` es solo del connect. Esta sub-ola decide si la sesión suma un
+tope por reloj, con el `IClock` que ya trae para el keepalive.
 
 **Archivos:** crear `Client/src/Core/IntervalTimer.h/.cpp` y
 `Client/tests/core/test_interval_timer.cpp`. Modificar `Client/src/App/ServerSession.h/.cpp` y

@@ -19,6 +19,14 @@ namespace
 // Lo que dice el aviso de un paquete que el estado no espera, o que no se puede leer.
 constexpr std::string_view OutOfTurn = "llegó fuera de turno";
 constexpr std::string_view Unreadable = "no se puede leer";
+
+// Un visitor de std::visit con un operator() por tipo: si Network::Event suma un tipo, Poll no
+// compila hasta que la sesión diga qué hace con él.
+template <typename... Handlers> struct Overloaded : Handlers...
+{
+    using Handlers::operator()...;
+};
+template <typename... Handlers> Overloaded(Handlers...) -> Overloaded<Handlers...>;
 } // namespace
 
 ServerSession::ServerSession(Network::Connection& connection, Core::Log& log, SessionSettings settings)
@@ -62,18 +70,13 @@ void ServerSession::Poll()
     const bool closedByThePoll = m_connection.State() == Network::LinkState::Closed;
     for (const Network::Event& event : events)
     {
-        if (std::holds_alternative<Network::Opened>(event))
-        {
-            OnOpened();
-        }
-        else if (const auto* packet = std::get_if<Network::Packet>(&event))
-        {
-            OnPacket(*packet);
-        }
-        else
-        {
-            OnClosed(std::get<Network::Closed>(event).reason);
-        }
+        std::visit(
+            Overloaded{
+                [this](const Network::Opened&) { OnOpened(); },
+                [this](const Network::Packet& packet) { OnPacket(packet); },
+                [this](const Network::Closed& closed) { OnClosed(closed.reason); },
+            },
+            event);
         const bool closedByAHandler = !closedByThePoll && m_connection.State() == Network::LinkState::Closed;
         if (m_generation != generation || closedByAHandler)
         {

@@ -2,6 +2,7 @@
 
 #include "App/Credentials.h"
 #include "App/ServerAddress.h"
+#include "App/SessionState.h"
 #include "Core/Log.h"
 #include "Network/CloseReason.h"
 #include "Network/Connection.h"
@@ -36,24 +37,6 @@
 // cierre se despacha, y después el Closed.
 namespace Client::App
 {
-enum class SessionState : std::uint8_t
-{
-    Idle,                    // sin Start
-    ConnectingConnectServer, // Start abrió el CS
-    WaitingConnectHello,     // el A9 salió; se espera C1 04 00 01
-    WaitingServerList,       // F4 02 salió
-    WaitingServerAddress,    // F4 03 salió
-    ConnectingGameServer,    // el CS se cerró y se abrió el GS; lo que sigue es de la CL4.4
-    Failed,
-};
-
-enum class SessionFailure : std::uint8_t
-{
-    ConnectServerLost, // la conexión con el CS se cerró: el motivo va al log y queda en la conexión
-    EmptyServerList,   // el CS no tiene ningún servidor
-    GameServerLost,    // la conexión con el GS se cerró
-};
-
 struct SessionSettings
 {
     ServerAddress connectServer; // de la config o de /u /p (CL3.4)

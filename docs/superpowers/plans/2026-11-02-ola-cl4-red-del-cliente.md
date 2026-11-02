@@ -1260,7 +1260,7 @@ la `Connection`; **PR B**, la sesión hasta `LoggedIn`, y las variables y las cl
 | Paso | Original | MuRet |
 | --- | --- | --- |
 | conectar | `0x4c1340` con la dirección del `F4 03`; los seriales a 0 | `Connection::Open(gs.host, gs.port, keys)`: `PacketSerials::Reset` |
-| las claves | `Enc1.dat` y `Dec2.dat`, cargadas en `WinMain` (`0x4ba094`, `0x4ba0a3`; Q-C41) | `LoadEncryptionKey` y `LoadDecryptionKey` (CL2.3) desde la carpeta de datos, en `main.cpp`, antes de abrir la ventana. Con host, primero las variables de la pregunta 7 y después las claves: sin carpeta o sin archivos, un error que nombra los dos. Los reales no se versionan (D-C7) y no hay `.dat` sintéticos: los tests arman las `ConnectionKeys` en memoria con `SimpleModulusKeys.h` |
+| las claves | `Enc1.dat` y `Dec2.dat`, cargadas en `WinMain` (`0x4ba094`, `0x4ba0a3`; Q-C41) | `LoadEncryptionKey` y `LoadDecryptionKey` (CL2.3) desde la carpeta de datos, en `main.cpp`, antes de abrir la ventana. Con host, primero las variables de la pregunta 7 y después las claves: sin carpeta o sin archivos, un error que nombra los dos. Los reales no se versionan (D-C7), y tampoco hay `.dat` sintéticos en Git: los tests arman las `ConnectionKeys` en memoria con `SimpleModulusKeys.h`, y el de `LoadConnectionKeys` escribe los dos archivos al correr, en una carpeta temporal |
 | el saludo | `C1 0C F1 00 01 <idx:2> "10209"` (`0x4c1e20`): con otro resultado, "Connectting error"; con otra versión, "Version dismatch" (`0x65fe50(0x6f)`), aunque el resultado no sea 1 | `ReadServerHello`: `HelloRejected` si el resultado no es 1, y si no, `VersionMismatch` con las dos versiones en el log |
 | el login | `C1 31 F1 01` con XOR32, como C3 de 68 bytes, serial 0 (`0x641bf0`) | `WriteLoginRequest` con las credenciales y `App::TickCountMs(now)` (CL3.2, un `DWORD` como `GetTickCount`), `Delivery::Encrypted` |
 | el relleno | un byte de `rand()` detrás de lo útil | un `std::mt19937` de la `Connection` con la semilla que le da `main.cpp` (`std::random_device`); los tests descifran lo que salió en vez de comparar el cifrado |
@@ -1448,11 +1448,12 @@ public:
     mayúsculas.
   - Lo que hace el GS de los tests (cifrar lo que contesta, descifrar lo que recibe) pasó de
     `test_connection.cpp` a `tests/support/TestGameServer.h`, para la sesión también.
-  - Treinta y cinco mutantes a mano: veintiocho de `ServerSession.cpp` (el GS sin claves o el CS
+  - Cuarenta y dos mutantes a mano: veintiocho de `ServerSession.cpp` (el GS sin claves o el CS
     con ellas, sin mirar el resultado o la versión, el login en claro o con el tick en 0, cada
     transición que falta, el `F1 03` que no sale, sale en claro, sale solo con el checksum o con
     cualquier error, la versión sin limpiar, cada chequeo de turno), y siete de `Credentials.cpp`
-    y otros siete de `ConnectionKeyFiles.cpp`: los mata algún test.
+    y otros siete de `ConnectionKeyFiles.cpp`: los mata algún test, aunque a dos de los de
+    `ConnectionKeyFiles.cpp`, hasta la revisión, solo con la carpeta golden.
 - [x] **Paso 5 (PR B y PR C):** la sesión del GS hasta `LoggedIn`, `ReadCredentials`, y las
   variables y las claves en `main.cpp` (PR B); los `FakeServers` y el test en loopback (PR C).
 
@@ -1479,6 +1480,25 @@ public:
     config. El `NetworkInit` va después del log y antes de SDL. La sesión en el bucle es de la
     CL4.5, igual que la semilla de `std::random_device`: con un host, `Main` lo dice en el log y
     sigue como sin host, y sin host no cambia nada, así `Main --frames 60` corre sin un servidor.
+
+  De la revisión del PR B:
+  - CI no corría el camino que carga de `LoadConnectionKeys`: los dos tests que cargan claves son
+    golden, y sin la carpeta sobrevivían `Enc1.dat` y `Dec2.dat` cambiados de lugar y un tope de
+    lectura de 20 bytes. `ConnectionKeyFilesTest.LoadsEachKeyFromItsFile` escribe al correr, en
+    una carpeta temporal, un archivo de 54 bytes con la de cifrar de `Pair17` y otro con la de
+    descifrar de `Pair18`, y mira los bloques de cada una: los dos mueren.
+  - `HasHost` de `main.cpp` pasó a `App::HasServerHost` (`Config.h`), con tres tests: solo el
+    puerto, un host vacío y un host. `return config.server.has_value();` ya no sobrevive.
+  - `SystemEnvironment` y los tests golden leen el entorno con `Core::ReadEnvironmentVariable`
+    (`Core/Environment.h`), el único `#ifdef _MSC_VER` de `ClientLib` fuera de los sockets. La
+    copia de `_dupenv_s` la libera un `std::unique_ptr` con un deleter propio y no con
+    `&std::free`, porque la dirección de una función de la biblioteca estándar no está
+    garantizada.
+  - El `F1 03` con `NotWholeBlocks` es *probable* en el original, no verificado (03, "C3/C4"), y
+    `main()` saca el `NetworkInit` a `StartNetwork`. El README carga con `IFS= read -rs` y dice
+    cómo borrar la clave del entorno al terminar.
+  - 07: Q-C41 dice lo que hace `Main` sin clave, y Q-C55, que MuRet cierra el GS con un saludo o
+    un login rechazados y mira el resultado antes que la versión.
 
   Lo que se decidió en el PR C, y lo que cambió respecto de la interfaz:
   - `FakeServers` sigue el guion del 04 de a un paquete: cada servidor contesta solo lo que toca

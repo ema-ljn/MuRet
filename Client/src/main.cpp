@@ -90,12 +90,6 @@ struct Startup
     std::optional<ServerStartup> server;
 };
 
-// Si la config o /u /p dan a qué conectarse: un [Server] con solo el puerto no alcanza.
-bool HasHost(const App::ClientConfig& config)
-{
-    return config.server && !config.server->host.empty();
-}
-
 // Fase 1, con un host: primero la cuenta y la clave del entorno y después las claves de la carpeta
 // de datos (el plan de la CL4, CL4.4). Cada error dice qué falta y cómo darlo, sin un valor.
 std::optional<ServerStartup> ReadServerStartup(const App::ClientConfig& config, Core::Log& log)
@@ -146,7 +140,7 @@ std::optional<Startup> ReadStartup(int argc, char* argv[], Core::Log& log)
         return std::nullopt;
     }
     std::optional<ServerStartup> server;
-    if (HasHost(config.Value()))
+    if (App::HasServerHost(config.Value()))
     {
         server = ReadServerStartup(config.Value(), log);
         if (!server)
@@ -166,6 +160,21 @@ void PrintGlInfo(const Platform::GlFunctions& gl)
     std::printf("GL_VERSION:  %s\n", Platform::GlString(gl, GL_VERSION));
     std::printf("GL_RENDERER: %s\n", Platform::GlString(gl, GL_RENDERER));
     std::fflush(stdout);
+}
+
+// Fase 2, con un servidor: la red del sistema, WSAStartup en Windows (Network/SocketApi.h). false
+// si no arranca, con el error en el log.
+bool StartNetwork(std::optional<Network::SocketApi::NetworkInit>& network, Core::Log& log)
+{
+    network.emplace();
+    if (!network->IsReady())
+    {
+        log.Error("no arranca la red del sistema (WSAStartup dio {})", network->SystemError());
+        return false;
+    }
+    log.Info("hay un servidor (la config o /u /p) y están la cuenta y las claves, pero este cliente todavía no "
+             "conecta: la sesión llega con la CL4.5");
+    return true;
 }
 
 // Fase 3: la ventana con el tamaño y el VSync de la config. Si el driver no deja el VSync pedido,
@@ -311,19 +320,11 @@ int main(int argc, char* argv[])
     }
     log.Info("MuRet Client arranca");
 
-    // WSAStartup en Windows, antes de SDL así cierra después: todo socket tiene que morir antes que
-    // el NetworkInit (Network/SocketApi.h).
+    // Antes de SDL, así cierra después: todo socket tiene que morir antes que el NetworkInit.
     std::optional<Network::SocketApi::NetworkInit> network;
-    if (startup->server)
+    if (startup->server && !StartNetwork(network, log))
     {
-        network.emplace();
-        if (!network->IsReady())
-        {
-            log.Error("no arranca la red del sistema (WSAStartup dio {})", network->SystemError());
-            return EXIT_FAILURE;
-        }
-        log.Info("hay un servidor (la config o /u /p) y están la cuenta y las claves, pero este cliente todavía no "
-                 "conecta: la sesión llega con la CL4.5");
+        return EXIT_FAILURE;
     }
 
     const auto sdl = Platform::SdlContext::Create();

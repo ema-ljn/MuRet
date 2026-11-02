@@ -39,9 +39,10 @@
 //   con el CS --Closed--> Failed (ConnectServerLost)
 //   con el GS --Closed--> Failed (GameServerLost)
 //
-// Un C3/C4 del GS con el checksum malo, o que no mide bloques enteros, se contesta con el F1 03, en
-// cualquier estado, como el original; los otros que no se descifran solo dejan el aviso de la
-// conexión.
+// Un C3/C4 del GS con el checksum malo se contesta con el F1 03, en cualquier estado, como el
+// original. Uno que no mide bloques enteros, también: el original lee de más para el último
+// bloque, y ese checksum casi siempre falla, así que es probable que conteste igual (03, "C3/C4").
+// Los otros que no se descifran solo dejan el aviso de la conexión.
 //
 // Un handler que cambia de conexión (el F4 03) o que la cierra (una lista vacía, un Send que
 // falla) deja el resto del lote sin recorrer: es de una conexión que ya no está, y lo que quedaba

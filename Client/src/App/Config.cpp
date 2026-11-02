@@ -569,6 +569,11 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
     return config;
 }
 
+bool HasServerHost(const ClientConfig& config)
+{
+    return config.server && !config.server->host.empty();
+}
+
 int EffectiveMaxFps(int maxFps, VSyncMode vsync)
 {
     return vsync == VSyncMode::Off ? maxFps : 0;

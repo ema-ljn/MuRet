@@ -104,6 +104,10 @@ Core::Expected<ClientConfig, ConfigError> ParseConfig(std::string_view text);
 Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& exeFolder,
                                                   const CommandLine& commandLine);
 
+// Si la config da a qué conectarse: un host que no está vacío. Un [Server] con solo el puerto no
+// alcanza, y Main sigue sin red (el plan de la CL4, CL4.4).
+[[nodiscard]] bool HasServerHost(const ClientConfig& config);
+
 // El tope de FPS que usa el bucle: `maxFps` solo con el VSync que quedó en la ventana apagado, y
 // si no, 0 (sin tope), como el FpsCap de MuMain (ApplyVSyncPreferenceNow en Winmain.cpp). Con
 // VSync el swap ya frena al refresco, y un tope que no lo divide (50 en 60 Hz) dibujaría a saltos.

@@ -1,9 +1,9 @@
 #include "support/GoldenDir.h"
 
+#include "Core/Environment.h"
 #include "Data/DataPath.h"
 
 #include <algorithm>
-#include <cstdlib>
 #include <functional>
 #include <string>
 #include <system_error>
@@ -13,29 +13,6 @@ namespace
 constexpr const char* GoldenDirVariable = "MURET_CLIENT_GOLDEN_DIR";
 constexpr const char* MemoryDirVariable = "MURET_CLIENT_MEMORY_DIR";
 constexpr const char* WireDirVariable = "MURET_CLIENT_WIRE_DIR";
-
-std::optional<std::string> ReadEnvironment(const char* name)
-{
-#ifdef _MSC_VER
-    // getenv es "inseguro" para MSVC (C4996); _dupenv_s devuelve una copia que hay que liberar.
-    char* value = nullptr;
-    std::size_t size = 0;
-    if (_dupenv_s(&value, &size, name) != 0 || value == nullptr)
-    {
-        return std::nullopt;
-    }
-    std::string result(value);
-    std::free(value);
-    return result;
-#else
-    const char* value = std::getenv(name);
-    if (value == nullptr)
-    {
-        return std::nullopt;
-    }
-    return std::string(value);
-#endif
-}
 } // namespace
 
 namespace Client::Tests
@@ -74,7 +51,7 @@ GoldenDirState CheckGoldenDir(const std::optional<std::filesystem::path>& dir)
 
 std::optional<std::filesystem::path> GoldenDir()
 {
-    return GoldenDirFromValue(ReadEnvironment(GoldenDirVariable));
+    return GoldenDirFromValue(Core::ReadEnvironmentVariable(GoldenDirVariable));
 }
 
 namespace
@@ -84,7 +61,7 @@ namespace
 // test que quedó salteado o fallado en su SetUp().
 void RequireDirectory(const char* variable, std::filesystem::path& dir)
 {
-    const std::optional<std::filesystem::path> value = GoldenDirFromValue(ReadEnvironment(variable));
+    const std::optional<std::filesystem::path> value = GoldenDirFromValue(Core::ReadEnvironmentVariable(variable));
     const GoldenDirState state = CheckGoldenDir(value);
     if (state == GoldenDirState::NotSet)
     {

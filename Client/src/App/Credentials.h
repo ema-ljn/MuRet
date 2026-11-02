@@ -38,8 +38,8 @@ inline constexpr std::size_t MaxCredentialBytes = Protocol::Connection::Credenti
 // un mapa.
 using EnvironmentLookup = std::function<std::optional<std::string>(std::string_view name)>;
 
-// La variable de entorno `name` del proceso, o std::nullopt si no está. En MSVC con _dupenv_s, como
-// tests/support/GoldenDir.cpp: std::getenv da C4996, que con /WX no compila.
+// La variable de entorno `name` del proceso, o std::nullopt si no está
+// (Core::ReadEnvironmentVariable).
 [[nodiscard]] std::optional<std::string> SystemEnvironment(std::string_view name);
 
 // La cuenta y la clave de AccountVariable y PasswordVariable. El error nombra cada variable que

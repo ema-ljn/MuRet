@@ -658,6 +658,14 @@ class FakeResolver final : public Network::IResolver { /* std::optional<std::arr
     `Flush` sin límites: `sent` termina en `06 07 08 09 0A 0B`;
   - `SendQueueTest.ASocketErrorIsReported` (`sendError = Closed`: `Socket`, `LastSocketError()`
     da `Closed`, y lo pendiente queda);
+
+    Los de `SendQueue`, hechos en el PR B, con tres más: `MoreThanTheBufferInOnePushIsFull`
+    (`0x2001` bytes de una vez, con la cola vacía), `FlushingNothingDoesNotCallTheSocket` y
+    `ClearDropsThePending`. Los bytes de los de `0x2000` no se repiten cada 256, así un byte
+    corrido o repetido se ve. Ocho mutantes a mano (el cursor que corre de más, el tope medido
+    desde el final y no desde lo pendiente, el tope con `>=`, un error que tira lo pendiente o que
+    pierde su `SocketError`, un `Flush` sin nada que llama al socket, y la compactación sin
+    descontar el cursor o sin hacerse): los mata algún test.
   - `GameLoopTest.PollsOncePerFrameBeforeTheSteps`, en `Decoupled` y en `Faithful`: el segundo
     frame, 80 ms después del primero (que solo fija el inicio), anota `Poll`, `Step`, `Step`,
     `Render`;
@@ -669,6 +677,19 @@ class FakeResolver final : public Network::IResolver { /* std::optional<std::arr
 - [ ] **Paso 6 (PR B y PR C):** `SendQueue`, y 07, Q-C11 con
   `SendQueueTest.PartialSendsKeepTheOrder` y el jefe de la CL4.0 (PR B); el `Poll()` en
   `ILoopClient`, `GameLoop` y `RecordingClient`, y 07 con lo de arrastrar la ventana (PR C).
+
+  El PR B está: `SendQueue` como la interfaz de arriba, y en 07 la columna "MuRet" de Q-C11, con
+  los bytes de los dos drenajes y sus tests (lo que hace el original, en "Qué pasa", lo pasa al 07
+  la CL4.R, paso 4). Lo que se decidió al escribirla:
+  - `Push` compacta solo cuando lo nuevo no entra detrás de lo que hay, y un `Flush` que deja la
+    cola vacía vuelve el cursor a 0: en el caso de siempre (todo sale en el mismo `Flush`) no se
+    corre nada.
+  - `Push` no manda: quien la usa hace `Push` y `Flush`, así lo nuevo nunca se adelanta a lo
+    pendiente (`NewBytesWaitBehindThePending`). Lo arma la `Connection` (CL4.3).
+  - Un socket que dice haber tomado más de lo que se le dio no corre el cursor afuera del buffer:
+    se toma como que tomó todo.
+  - `LastSocketError()` da `Closed` antes del primer error, y `SendQueueError` tiene su `PrintTo`
+    en `support/NetworkPrinters.h`.
 - [ ] **Paso 7:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "Socket|SendQueue|GameLoop"

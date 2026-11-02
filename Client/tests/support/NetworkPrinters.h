@@ -5,6 +5,7 @@
 #include "Network/ObfuscationError.h"
 #include "Network/PacketError.h"
 #include "Network/PacketSerials.h"
+#include "Network/SendQueue.h"
 #include "Network/SocketApi.h"
 #include "Network/SocketError.h"
 
@@ -92,6 +93,20 @@ inline void PrintTo(ConnectProgress progress, std::ostream* out)
         return;
     }
     *out << "ConnectProgress fuera del enum";
+}
+
+inline void PrintTo(SendQueueError error, std::ostream* out)
+{
+    switch (error)
+    {
+    case SendQueueError::Full:
+        *out << "Full";
+        return;
+    case SendQueueError::Socket:
+        *out << "Socket";
+        return;
+    }
+    *out << "SendQueueError fuera del enum";
 }
 } // namespace Client::Network
 

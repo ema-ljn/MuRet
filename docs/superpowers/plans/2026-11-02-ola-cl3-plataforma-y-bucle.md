@@ -922,11 +922,29 @@ void PumpEvents(App::WindowState& state, Input::InputState& input);
 `RecordingClient` pasa a `Step(const Input::InputState&)` y guarda, por paso, si vio el apretón
 que el test le pregunta (`std::vector<bool> sawPress` y la tecla en `watchedKey`).
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, la tabla de flancos: para cada
-  secuencia (abajo; abajo y arriba; abajo, arriba y abajo; abajo con auto-repeat; foco perdido con
-  una tecla abajo), qué dan `IsDown`, `WasPressed` y `WasReleased` antes y después de
-  `ConsumeEdges`.
-- [ ] **Paso 2:** los tests:
+- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de los tests, la tabla de
+  flancos: para cada secuencia (abajo; abajo y arriba; abajo, arriba y abajo; abajo con
+  auto-repeat; foco perdido con una tecla abajo), qué dan `IsDown`, `WasPressed` y `WasReleased`
+  antes y después de `ConsumeEdges`. Los eventos de cada fila llegan en el mismo frame, sin
+  `ConsumeEdges` en el medio, salvo el foco perdido, con la tecla apretada en un frame anterior:
+
+  | Secuencia | Antes: `IsDown` / `WasPressed` / `WasReleased` | Después |
+  | --- | --- | --- |
+  | abajo | sí / sí / no | sí / no / no |
+  | abajo y arriba | no / sí / sí | no / no / no |
+  | abajo, arriba y abajo | sí / sí / sí | sí / no / no |
+  | abajo con auto-repeat | sí / sí / no | sí / no / no |
+  | foco perdido con la tecla abajo | no / no / sí | no / no / no |
+
+  La regla: `IsDown` es lo último que llegó; `WasPressed` es si hubo un abajo desde arriba, y
+  `WasReleased` si hubo un arriba desde abajo, desde el último `ConsumeEdges`, que borra los dos y
+  deja `IsDown`. El auto-repeat no llega a `InputState` (lo descarta `InputEventFor`), y si llegara
+  sería un `KeyDown` con la tecla abajo, que no es flanco: la fila es la misma que "abajo". Un
+  `KeyUp` con la tecla arriba (una tecla apretada antes de tener el foco) tampoco es flanco. El
+  foco perdido suelta como si llegara cada `KeyUp`; si la tecla se apretó en el mismo frame, da
+  no / sí / sí, como "abajo y arriba". Los botones del mouse siguen la misma tabla.
+- [ ] **Paso 2:** los tests (los seis `InputStateTest`, hechos en la fase 1; faltan los de
+  `GameLoopTest` y de `InputEventsTest`):
   - `InputStateTest.AHeldKeyIsPressedOnce`: abajo en el frame 1, sigue abajo en el 2 y el 3:
     `IsDown` en los tres, `WasPressed` solo antes del primer `ConsumeEdges`;
   - `InputStateTest.APressAndReleaseInOneFrameIsSeen`: abajo y arriba sin `ConsumeEdges` en el
@@ -946,7 +964,14 @@ que el test le pregunta (`std::vector<bool> sawPress` y la tecla en `watchedKey`
     `SDL_EVENT_KEY_DOWN` con `repeat` da `std::nullopt` (el `SDL_Event` se arma a mano, sin
     ventana).
 - [ ] **Paso 3:** `InputState`, la traducción en `Platform`, y las firmas nuevas de `GameLoop` e
-  `ILoopClient`.
+  `ILoopClient`. `InputState` está (fase 1); faltan la traducción y las firmas. Lo que se sumó a
+  la interfaz de arriba: `MouseButton` vive en `Key.h`, con `Key`, y los dos tienen su cuenta como
+  constante (`KeyCount`, `MouseButtonCount`) para el tamaño de los `std::bitset`. `Key` trae las
+  teclas que nombra el 02 (Esc, Enter, F5, F6, RePág, AvPág, Espacio, las flechas arriba y abajo,
+  Impr Pant, Shift, Ctrl, Alt, los dígitos, Q y S) y, aunque el research no las nombre, las otras
+  letras, F1 a F12, las flechas de los costados y Tab. Shift, Ctrl y Alt no tienen lado, como
+  `VK_SHIFT`, `VK_CONTROL` y `VK_MENU`: `KeyFor` les manda los dos, y con los dos abajo, soltar
+  uno la suelta.
 - [ ] **Paso 4:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "InputState|InputEvents|GameLoop"

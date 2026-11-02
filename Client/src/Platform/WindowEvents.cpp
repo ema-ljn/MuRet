@@ -1,5 +1,7 @@
 #include "Platform/WindowEvents.h"
 
+#include "Platform/InputEvents.h"
+
 #include <SDL3/SDL_events.h>
 
 #include <optional>
@@ -48,11 +50,15 @@ std::optional<App::WindowEvent> WindowEventFor(const SDL_Event& event, SDL_Windo
     }
 }
 
-void PumpEvents(App::WindowState& state, SDL_WindowID windowId)
+void PumpEvents(App::WindowState& state, Input::InputState& input, SDL_WindowID windowId)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
+        if (const std::optional<Input::InputEvent> inputEvent = InputEventFor(event))
+        {
+            input.Apply(*inputEvent);
+        }
         const std::optional<App::WindowEvent> windowEvent = WindowEventFor(event, windowId);
         if (!windowEvent)
         {

@@ -5,6 +5,7 @@
 #include "App/VSyncMode.h"
 #include "App/WindowState.h"
 #include "Core/IClock.h"
+#include "Input/InputState.h"
 #include "Platform/GlLoader.h"
 #include "Platform/SdlClock.h"
 #include "Platform/SdlContext.h"
@@ -27,7 +28,8 @@
 // Ola CL3.2: la ventana y el contexto GL están en Platform/ (SdlContext, Window, PumpEvents), el
 // reloj es el de SDL (SdlClock) y el bucle es App::GameLoop, con la lógica a 40 ms por paso y el
 // dibujo interpolado, o con --pacing faithful, al ritmo del original (FaithfulPacer, VSync
-// apagado). La escena es de prueba: el fondo cambia de color con un ciclo de 32 pasos.
+// apagado). La escena es de prueba: el fondo cambia de color con un ciclo de 32 pasos. Desde la
+// CL3.3, PumpEvents arma el Input::InputState del frame y el bucle se lo pasa a cada paso.
 // Los argumentos están en App/CommandLine.h.
 namespace
 {
@@ -54,7 +56,8 @@ class TestScene final : public App::ILoopClient
 public:
     explicit TestScene(Platform::Window& window) : m_window(window) {}
 
-    void Step() override
+    // La escena de prueba no lee el input todavía.
+    void Step(const Client::Input::InputState& /*input*/) override
     {
         m_cycle = (m_cycle + 1) % CycleSteps;
     }
@@ -124,6 +127,7 @@ App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::Game
 {
     const Platform::GlFunctions& gl = window.Gl();
     App::WindowState state;
+    Client::Input::InputState input;
     state.pixelSize = window.PixelSize();
     App::PixelSize viewportSize = state.pixelSize;
     SetViewport(gl, viewportSize);
@@ -135,7 +139,7 @@ App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::Game
 
     while (true)
     {
-        Platform::PumpEvents(state);
+        Platform::PumpEvents(state, input, window.Id());
         if (!state.running)
         {
             break;
@@ -147,7 +151,7 @@ App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::Game
             SetViewport(gl, viewportSize);
         }
 
-        loop.RunFrame(state);
+        loop.RunFrame(state, input);
         if (stats)
         {
             stats->Update(clock.Now(), loop.Stats());

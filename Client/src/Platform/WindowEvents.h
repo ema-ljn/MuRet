@@ -1,12 +1,14 @@
 #pragma once
 
 #include "App/WindowState.h"
+#include "Input/InputState.h"
 
 #include <SDL3/SDL_events.h>
 
 #include <optional>
 
-// De SDL_Event a App::WindowEvent (CL3.1): lo único que ve SDL del estado de la ventana.
+// De SDL_Event a App::WindowEvent (CL3.1) y a Input::InputEvent (CL3.3, InputEvents.h): lo único
+// que ve SDL del estado de la ventana y del input.
 namespace Client::Platform
 {
 // Cualquier ventana: los SDL_WindowID válidos no son 0 (SDL_video.h).
@@ -17,7 +19,8 @@ inline constexpr SDL_WindowID AnyWindow = 0;
 // SDL_Event armado a mano.
 [[nodiscard]] std::optional<App::WindowEvent> WindowEventFor(const SDL_Event& event, SDL_WindowID windowId = AnyWindow);
 
-// Vacía la cola de SDL: cada evento de ventana va a `state` con App::Apply, y los demás se
-// descartan (desde la CL3.3 también recibe el InputState).
-void PumpEvents(App::WindowState& state, SDL_WindowID windowId = AnyWindow);
+// Vacía la cola de SDL: cada evento de ventana de `windowId` va a `state` con App::Apply, cada
+// evento de input a `input` con InputState::Apply, y los demás se descartan. El foco perdido va a
+// los dos: la ventana lo anota y el input suelta todo.
+void PumpEvents(App::WindowState& state, Input::InputState& input, SDL_WindowID windowId = AnyWindow);
 } // namespace Client::Platform

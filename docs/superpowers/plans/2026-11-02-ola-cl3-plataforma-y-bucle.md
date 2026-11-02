@@ -973,11 +973,13 @@ que el test le pregunta (`std::vector<bool> sawPress` y la tecla en `watchedKey`
     `Key::Enter`, uno sin usar da `std::nullopt`; `InputEventsTest.AutoRepeatIsNotAnEvent`: un
     `SDL_EVENT_KEY_DOWN` con `repeat` da `std::nullopt` (el `SDL_Event` se arma a mano, sin
     ventana).
-- [ ] **Paso 3:** `InputState`, la traducción en `Platform`, y las firmas nuevas de `GameLoop` e
+- [x] **Paso 3:** `InputState`, la traducción en `Platform`, y las firmas nuevas de `GameLoop` e
   `ILoopClient`. `InputState` está (fase 1), la traducción, `KeyFor` e `InputEventFor` (fase
   2a), y las firmas de `GameLoop`, `ILoopClient` y `RecordingClient` (fase 2b, con los tests
-  de GameLoop y de FaithfulPacer pasados a la firma nueva con un `InputState` vacío); falta
-  `PumpEvents` con el `InputState` y `main.cpp`. Lo que se sumó a la interfaz de arriba:
+  de GameLoop y de FaithfulPacer pasados a la firma nueva con un `InputState` vacío), y
+  `PumpEvents(state, input)` en `WindowEvents.h`, con `main.cpp` (fase 2b): el foco perdido va
+  a los dos. La escena de prueba de `main.cpp` no lee el input todavía. Lo que se sumó a la
+  interfaz de arriba:
   - `MouseButton` vive en `Key.h`, con `Key`, y los dos tienen su cuenta como constante
     (`KeyCount`, `MouseButtonCount`) para el tamaño de los `std::bitset`.
   - `Key` trae las teclas que nombra el 02 (Esc, Enter, F5, F6, RePág, AvPág, Espacio, las
@@ -1003,7 +1005,8 @@ que el test le pregunta (`std::vector<bool> sawPress` y la tecla en `watchedKey`
     acota al tamaño de la ventana, en píxeles y sin escalar (`+0x28` y `+0x2c`, que `0x4ba84a` le
     pasa de `[0x6d5d60]` y `[0x6d5d64]`), y la del WndProc la escala a 640 × 480 sin acotar
     (`0x4b358f`..`0x4b35c8`). Cuál de las dos sigue MuRet se decide en la CL5 (D-C11).
-- [ ] **Paso 4:** verificar:
+- [x] **Paso 4:** verificar (con GCC: 58 tests de `InputState`, `InputEvents`, `GameLoop` y
+  `FaithfulPacer`, y `Main --frames 60` en Xvfb, en los dos modos):
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "InputState|InputEvents|GameLoop"
   ```

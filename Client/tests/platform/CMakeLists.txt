@@ -4,3 +4,4 @@
 muret_add_test(NAME test_gl_loader SOURCES test_gl_loader.cpp LINK_LIBS ClientPlatform)
 muret_add_test(NAME test_swap_interval SOURCES test_swap_interval.cpp LINK_LIBS ClientPlatform)
 muret_add_test(NAME test_window_events SOURCES test_window_events.cpp LINK_LIBS ClientPlatform)
+muret_add_test(NAME test_input_events SOURCES test_input_events.cpp LINK_LIBS ClientPlatform)

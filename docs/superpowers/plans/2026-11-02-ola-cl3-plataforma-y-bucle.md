@@ -1259,10 +1259,29 @@ se declara después del `Log` en `main`, así se destruye antes.
   salida trae la ruta). El paso de Xvfb del CI sigue sin config ni datos.
 
   Hechos: `Client.Main.RejectsBadPort` (fase 2a) y `NamesTheMissingDataFolder` (fase 2b).
-- [ ] **Paso 6 (PR B):** los tests: `LogTest.WritesTheLevelAndTheMessage` (con un `LogSink` de
+- [x] **Paso 6 (PR B):** los tests: `LogTest.WritesTheLevelAndTheMessage` (con un `LogSink` de
   prueba que guarda las líneas: `Info("hola {}", 1)` da `[info] hola 1`),
-  `BelowTheMinimumIsNotWritten`, `EachLevelHasItsPrefix`, `TeeSinkWritesBoth`.
+  `BelowTheMinimumIsNotWritten`, `EachLevelHasItsPrefix`, `TeeSinkWritesBoth`. Se sumaron
+  `FileSinkWritesOneLinePerMessage` (en una carpeta temporal: dos líneas, ya en el disco con el
+  `FileSink` abierto, y lo de una corrida anterior borrado) y `FileSinkNamesAPathThatDoesNotOpen`
+  (una carpeta que no existe: el error trae la ruta).
 - [ ] **Paso 7 (PR B):** `Log`, `TeeSink`, la salida a archivo y a `stderr`, y `SdlLog`.
+  - [x] `Core::Log`, `TeeSink`, `StderrSink` y `FileSink` (`Client/src/Core/Log.h/.cpp`), con
+    `std::format_string` en las cuatro funciones y `std::vformat` en el `.cpp` (verificados con
+    Context7: `basic_format_string::get` y el nombre son de C++20 por P2508R1, y
+    `make_format_args` toma lvalues por P2905R2). Lo que cambió contra la interfaz de arriba:
+    - La interfaz se llama `ILogSink` y no `LogSink`: tiene solo funciones virtuales puras, y la
+      regla 7 (`CODING_RULES.md`) le pone la `I`, como a `IClock`.
+    - El mutex no va solo en el `TeeSink`. Con el archivo que no abrió, `main` escribe directo a
+      `stderr` sin un Tee, y dos hilos (el de SDL y el principal) mezclarían sus líneas. Va en cada
+      salida que escribe en algo compartido (`StderrSink`, `FileSink`, como los sinks `_mt` de
+      spdlog), y el Tee guarda el suyo para que las dos salidas reciban las líneas en el mismo
+      orden. El `Log` no tiene: no guarda nada que cambie. Está escrito en el header.
+    - `FileSink::Open` devuelve `Core::Expected<std::unique_ptr<FileSink>, std::string>`: el
+      `Expected` mueve su valor y el mutex no se mueve. Abrir vacía el archivo (la última corrida).
+    - `Log::Write(LogLevel, std::string_view)` escribe un texto ya armado sin formatearlo, para los
+      mensajes de SDL (sus llaves no son un formato).
+  - [ ] `SdlLog` en `Platform` y el armado en `main.cpp` (fase 2).
 - [ ] **Paso 8:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "CommandLine|Config|Log|Client.Main"

@@ -117,29 +117,56 @@ El render loop `0x637700` hace, en orden: cámara, color de cielo por mapa, la e
 ### El ritmo: lógica a 25 por segundo, dibujo a 21,33
 
 El render loop tiene dos relojes (`analysis/mainexe/functions/paso6-ui-map.md` §4 y el decompilado
-de `0x637700`):
+de `0x637700`, releído en la CL3.R):
 
 ```text
 0x459b60 / 0x459c00          delta del frame con QueryPerformanceCounter (timeGetTime si no hay),
-                             con tope; lo recibe un objeto global (0x65ee60 lo devuelve,
-                             0x65fc30 lo actualiza; qué es, sin leer)
-while (DAT_006d5ee4 > 0x27)  bucle de "alcanzar": consume pasos de 40 ms
-   └─ lógica de la escena según DAT_006d5dc8 (y el hash anti-tamper)
-inicio = GetTickCount()                                   0x63852b
+                             con tope de 200 ms; lo recibe la UI (0x65fc30), no el acumulador
+while (DAT_006d5ee4 >= 0x28) bucle de "alcanzar" (CMP + JL, 0x637791..0x637798), sin tope
+   ├─ lógica de la escena según DAT_006d5dc8 (y el hash anti-tamper)
+   └─ DAT_006d5ee4 −= 0x28                                0x638167
+inicio = GetTickCount()                                   0x63852b, después de los pasos
 dibujo de la escena → glFlush + SwapBuffers
 while (GetTickCount() − inicio < 0x28) {}                 espera activa, 0x6385fd..0x638624
-DAT_006d5ee4 += GetTickCount() − inicio
+DAT_006d5ee4 += GetTickCount() − inicio                   0x638632
 ```
+
+La espera compara con signo: `CMP ...,0x28` en `0x63860f` y `JGE` en `0x638616`. *Estático*.
 
 - **La lógica avanza en pasos de 40 ms (25 por segundo)** y, si el frame tardó, el `while` corre
   varios pasos seguidos para alcanzar al reloj.
+- **El acumulador es un `int` con signo y no tiene tope.** *Estático*: `CMP [0x6d5ee4],0x28` en
+  `0x637791` y `JL` en `0x637798`, `SUB EAX,0x28` en `0x638167` y `ADD` en `0x638632`. Un frame de
+  10 s corre 250 pasos seguidos (Q-C44).
+- **El acumulador arranca en 40 y no se reinicia.** *Estático*: en la `.data` de `c32bbd5f`,
+  `0x6d5ee4` vale `0x28` (40), así que el primer frame del juego ya corre 1 paso. Los bytes de la
+  dirección aparecen 5 veces en el archivo, y las 5 son operandos de `0x637700`: el `CMP` de
+  `0x637791`, los dos `MOV` de `0x638162` y `0x63816a`, alrededor del `SUB`, y los dos de
+  `0x63862c` y `0x638638`, alrededor del `ADD`. Nada lo pone en cero por su dirección al cambiar
+  de escena, así que el resto pasa de una escena a la otra; una escritura por un puntero no se
+  puede descartar sin ejecutarlo.
+- **La medición empieza después de los pasos** (`0x63852b`): suma el dibujo, el swap y la espera,
+  y **el tiempo de los pasos no se acumula**. Lo que pasa fuera de la medición (los pasos, el bucle
+  de mensajes de `WinMain`, la red, una ventana arrastrada) se pierde, y de a ticks enteros: solo
+  cuenta si cruza el borde de un tick de `GetTickCount`. *Análisis*: con pasos de 10 ms, un frame
+  de 1 paso no pierde nada y uno de 2 pasos pierde un tick. Por eso un paso lento frena el juego en
+  vez de espiralar.
+- **El otro delta**, `0x459b60` sobre el temporizador de `[0x5763564]`, es el tiempo desde el
+  frame anterior (`0x459c00` lo rearma en cada frame), con QPC o `timeGetTime`, y con tope de
+  200 ms (`0x6ba668` vale 200,0). Lo recibe el administrador de ventanas de la UI (`0x65ee60`
+  devuelve el objeto, `0x7d53728`, y `0x65fc30` lo actualiza), no el acumulador. *Estático*.
 - **La espera mide con `GetTickCount`**, que no avanza de a 1 ms sino de a un tick del reloj de
   Windows: 15,625 ms (64 por segundo) en la VM XP y en un Windows con el tick por defecto. Dos ticks
   son 31,25 ms (menos de 40) y tres son 46,875 ms, así que **la espera termina en el tercer tick**:
   el dibujo queda en 46,875 ms por frame, **21,33 FPS** (64 / 3), no en 25.
-- La lógica no se atrasa: el acumulador suma lo que midió `GetTickCount` (46 o 47 ms) y consume 40
-  por paso, así que corre **7 pasos cada 6 frames** (1, 1, 1, 1, 1, 2) y sigue en 25 por segundo.
-  *Inferido* de la aritmética del bucle: la medición ve los frames, no los pasos.
+- La lógica no se atrasa: el acumulador suma lo que midió `GetTickCount` (46 o 47 ms, 46,875 de
+  media) y consume 40 por paso. 64 frames suman 3.000 ms, así que corre **75 pasos cada 64
+  frames**, con 11 frames de 2 pasos, y sigue en 25 por segundo; 6 frames seguidos dan 7 u 8 (los
+  frames 31 a 36 dan 2, 1, 1, 1, 1, 2). *Análisis*: la aritmética del bucle y una simulación del
+  de `0x637700` sobre una grilla de 15,625 ms, con el acumulador en 40 al empezar: los 13 primeros
+  frames dan 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2, y desde el segundo cada 64 frames seguidos
+  suman 75 y cada 6, 7 u 8 (los 6 primeros suman 6). Antes este documento decía "7 pasos cada 6
+  frames", que no es exacto.
 - Con un tick de 10 ms (otro HAL) la espera terminaría a los 40 ms justos: los 25 FPS son la
   intención del código, no lo que se ve en una máquina común. *Inferido* para otros equipos.
 - MuMain conserva 25 FPS para el cliente 5.2
@@ -195,8 +222,8 @@ registró, con la escena quieta y sin carteles:
 - La medición anterior (unos 20,9 FPS con GLIntercept, `FPS-MEASURE-RESULT.json`) incluye la carga y
   el frenado de GLIntercept; `FPS-SELECTION-RESULT.json` quedó inválida por un cartel de
   desconexión.
-- Lo que el swap no puede probar: que la espera sea la de `0x637700` y los 7 pasos cada 6 frames.
-  Eso sigue siendo estático e *inferido* (arriba).
+- Lo que el swap no puede probar: que la espera sea la de `0x637700` y los 75 pasos cada 64
+  frames. Eso sigue siendo *estático* y *análisis* (arriba).
 
 ### Qué corre en cada paso y qué en cada frame
 
@@ -205,7 +232,8 @@ registró, con la escena quieta y sin carteles:
 ```text
 hash anti-tamper del contador de pasos DAT_07d3a0f0   (se rearma con tamaños al azar
                                                      cuando el contador % 313 == 57; no se porta)
-0x623e70 (40 KB)        solo en la escena 5 y con DAT_05762eb4 == 0; sin leer
+0x623e70 (40 KB)        solo en la escena 5 y con DAT_05762eb4 == 0: la interfaz del juego
+                        (teclado, mouse, ventanas, paquetes; ver la tabla de abajo)
 lógica de la escena     2 → 0x634c60, 4 → 0x6342c0, 5 → 0x636290 (ahí avanza el cuerpo de
                         cada modelo, ver 06)
 0x456b10(0,005) × 5     una lista de objetos con 5 subpasos de 0,005 y un valor al azar
@@ -226,9 +254,42 @@ del brillo de los items, [06](06-render-escenas-y-ui.md); también cuenta los FP
 
 La animación del cuerpo avanza por paso con la velocidad de su acción (0,26 y 0,28 keys en las
 trazas) y la de mascota y alas por frame dibujado: **verificado** en las trazas de GL, ver
-[06](06-render-escenas-y-ui.md#cuánto-avanza-la-animación). Lo que falta
-([08](08-pendientes.md), P-C03): qué hacen `0x623e70` y la lógica de cada escena (movimiento,
-cooldowns, cámara) para desacoplar el dibujo sin cambiar el juego.
+[06](06-render-escenas-y-ui.md#cuánto-avanza-la-animación).
+
+### Qué avanza por paso, por frame y por reloj (P-C03)
+
+La CL3.R leyó cada cosa que avanza en `0x637700`, la lógica de la escena 5 (`0x636290`), el
+principio de `0x623e70` y los usos de los contadores. *Estático*, salvo donde se dice otra cosa.
+"Por reloj" quiere decir que avanza con `timeGetTime` o `GetTickCount`, sin contar pasos ni
+frames:
+
+| Qué | Dónde | Avanza | MuRet |
+| --- | --- | --- | --- |
+| el acumulador y el contador de pasos | `0x637791`..`0x638638`; `DAT_07d3a144` + 1 por paso | por paso; la medición, por frame desde `0x63852b` | igual (CL3.2), Q-C44 |
+| el cuerpo de cada modelo | `0x636290` y la tabla de velocidades de `0x60dbe0` ([06](06-render-escenas-y-ui.md)) | por paso, **verificado** | por paso; el dibujo interpola (CL6) |
+| mascota y alas | `0x509340` | por frame dibujado, **verificado** (Q-C20) | por tiempo (CL6) |
+| la lista de 5 subpasos de 0,005 | `0x456b10`, 5 veces por paso | por paso | por paso |
+| dos temporizadores de 301 y 151 pasos | `0x5547e0`, `0x5554b0` | por paso | por paso |
+| `DAT_05767940` | lo pone en 70 (2,8 s) `0x5ae370` al mandar un mensaje, y también `0x448580`, `0x59ff10` y el WndProc; con más de 50, `0x5ae370` no manda otro, y con más de 0 no manda el mismo texto que el último (`0x57676e4`) | por paso; lo leen la lógica y el WndProc, ningún dibujo | por paso (CL8). Que sea el freno del chat, *inferido* |
+| `DAT_077f3b74` | lo pone en 100 (4 s) `0x59fea0`, que manda una macro por `0x5ae370`; mientras sea mayor que 0, `0x59ff10` no lee las teclas de los dígitos que eligen la macro (`0x5a11a4`; la tabla de macros, de 256 bytes cada una, en `0x77f1db0`) | por paso; lo lee el HUD (`0x5a7320`, `0x5ab6d0`), que dibuja una barra de ancho `n · 50 / 100` | por paso; la barra muestra el último paso, sin interpolar (CL8) |
+| `DAT_07d2d360`, el ciclo de 32 pasos | elige una de 32 texturas animadas: en el terreno del mundo 7 el slot `0x1e + n` (`0x5fa830`), y en los modelos con la textura `0x41`, el `0x41 + n` (`0x4ecc30`, `0x4ef340`, `0x42e3d0`, `0x438fe0`) | por paso; lo lee el dibujo | por paso y sin interpolar: una textura no se interpola (CL6, CL7) |
+| la interfaz del juego | `0x623e70`, solo en la escena 5: lee Esc (`0x553520(0x1b)`, `0x623eb5`) y el mouse de los globales del WndProc, abre y cierra ventanas (`DAT_07d3a10c`), hace sonar (`0x41ed10`, 27 llamadas) y arma paquetes (69 usos del motor `0x6b85f4`) | por paso | por paso (CL8, CL9) |
+| la captura de pantalla | el pedido, por paso (`0x553520(0x2c)`, `0x637cff`); Shift (`0x638305`) y la captura (`0x6202e0`), por frame | paso y frame | CL8 |
+| el reloj T del frame | `0x4eb620` guarda `timeGetTime` en `DAT_05767b88` (Q-C22) | por frame; lo leen 64 funciones: 17 desde el paso y 41 desde el dibujo (*análisis*, abajo) | cada una en su ola (CL6 a CL9) |
+| la UI nueva: foco, arrastre y el delta | `0x65fc30`, con el delta de `0x459b60` (tope de 200 ms) y el mouse de `0x640940`: busca la ventana bajo el cursor, la arrastra (`0x669f40`) y le pasa el delta a cada ventana (métodos `+0x28` y `+0x30` de su vtable) | por frame, con el delta real | por frame y por tiempo real (CL8); qué hace cada ventana con el delta, sin leer |
+| las demoras de las habilidades | una tabla de `int` en `[0x7681eb0] + 0x76c`, una por casilla de habilidad del personaje; `0x552c50` y `0x552990` cargan la de una casilla con el campo `+0x28` del registro de `Skill.bmd` de su habilidad (`0x3c` bytes por registro, desde `[0x76bd1d8]`) y no dejan usarla mientras sea mayor que 0 | **por reloj**: en la escena 5, `0x4eb620` le pasa a `0x552f10` (`0x4eb758`) los ms de `timeGetTime` desde el frame anterior, que los resta de cada una sin bajar de 0 (alrededor, el hash del bloque, que no se porta) | por reloj real, no por pasos (CL9) |
+| un freno de 300 ms entre acciones | `_DAT_0576791c`, con `GetTickCount`, en `0x57cfc0`, `0x559890`, `0x55b6f0` y `0x55faa0`, todas desde el paso: si pasaron menos de 301 ms desde el último no manda, y si no, anota la hora y arma un C1 | **por reloj** | por reloj real (CL9). *Análisis*: en el modo fiel, con ticks de 15,625 ms, se abre a los 312 o 313 ms |
+| el keepalive | `WM_TIMER` `0x3E8`, cada 20 s | **por reloj** (un mensaje) | temporizador del bucle (CL4) |
+| la conexión | `0x4e8560`, después de la espera, en la escena 5: con -1 avisa que se cerró y llama `0x6236f0(0x70)` | por frame | por frame (CL4) |
+
+El censo del reloj es *análisis*, sobre el grafo de las llamadas directas del decompilado (sin las
+que van por vtable): de las 64 funciones que leen `DAT_05767b88`, 17 se alcanzan desde el paso
+(`0x623e70`, la lógica de las escenas, `0x456b10`, `0x5547e0`, `0x5554b0`), 41 desde el dibujo
+(`0x6350b0`, `0x634680`, `0x6371a0` y lo que sigue en `0x637700`; una, `0x53fe70`, desde los dos)
+y 7 desde ninguno de los dos. Además, 25 funciones de esos árboles llaman directo a `timeGetTime`
+o `GetTickCount`: 17 desde el paso y 9 desde el dibujo. Lo que una lógica por paso lee del reloj
+avanza por reloj aunque corra en el paso: con el dibujo desacoplado, MuRet tiene que darle un
+reloj, no solo pasos. Lo que falta leer de cada una queda en [08](08-pendientes.md), P-C03.
 
 Cada frame termina con `glFlush` y `wglSwapBuffers` (2.375 de cada uno en la sesión) y empieza con
 `glClear` (2.381). **Verificado** en las estadísticas de GLIntercept.
@@ -238,19 +299,93 @@ Cada frame termina con `glFlush` y `wglSwapBuffers` (2.375 de cada uno en la ses
 | Mensaje | Qué hace |
 | --- | --- |
 | `WM_DESTROY` (0x2) | apagado: bandera `DAT_05763568 = 1`, cierra el socket (`0x4e8380`), libera, `wzAudioDestroy`, cierra GL (`0x4ad180`), cierra el handle de su propio archivo (`0x4ad3c0`, Q-C35), `PostQuitMessage(0)` |
-| `WM_ACTIVATE` (0x6) | `DAT_05763580` = foco ganado o perdido |
+| `WM_ACTIVATE` (0x6) | `DAT_05763580` = 0 con `WA_INACTIVE` (`0x4af6e5`) y 1 con cualquier otro (`0x4af86c`): el foco, que decide si corre el frame (abajo) |
 | `WM_PAINT` (0xF) | `BeginPaint`/`EndPaint` vacío: el dibujo no va por `WM_PAINT` |
 | `WM_ERASEBKGND` (0x14) | devuelve 1, no borra |
 | `WM_SETCURSOR` (0x20) | `ShowCursor(0)`: el cursor lo dibuja el juego |
-| `WM_RBUTTON*`, `WM_MBUTTON*`, `WM_MOUSEWHEEL` | cámara y zoom |
+| `WM_MOUSEMOVE` (0x200) | la posición en 640 × 480: `x · 640 / ancho` en `DAT_07d3682c` y `y · 480 / alto` en `DAT_07d36828` (el tamaño, en `0x6d5d60` y `0x6d5d64`) |
+| `WM_LBUTTONDOWN`, `WM_LBUTTONUP` (0x201, 0x202) | `DAT_07d366d4` en 1 al apretar, si no estaba ya abajo (`DAT_07d36874`), y en 0 al soltar, que además guarda dónde (`0x576358c`, `0x5763590`); la lógica lo pone en 0 cuando lo usa (`0x623e70`) |
+| `WM_RBUTTON*`, `WM_MBUTTON*` (0x204 a 0x208) | banderas propias (`DAT_07d3685c`, `DAT_07d36864`), con contadores del hash alrededor; según `paso9-ciclo-vida.md`, cámara y zoom. Qué hace cada bandera, sin leer |
+| `WM_MOUSEWHEEL` (0x20A) | `DAT_07d366d8` = delta / 120, en muescas; lo consume quien lo lee (las listas, `0x479960` y sus vecinas, lo ponen en 0) |
+| el mouse sin foco | los mensajes del mouse van a `DefWindowProcA` sin tocar nada (`0x4b33fe`..`0x4b3425`) |
 | `WM_SYSCOMMAND` (0x112) | bloquea `SC_KEYMENU` y `SC_MONITORPOWER` |
 | `WM_TIMER` (0x113) | timer `0x3E8`: keepalive `0x0E` (ver [03](03-red-y-cifrado.md)) y tick |
 | `WM_USER` (0x400) | mensajes propios 1, 2 y 0x20 |
 | `0x2B11` | señal del anticheat: cierra el cliente (`paso4-killer.md`) |
 
-**El teclado no usa `WM_KEYDOWN`**: se lee con `GetAsyncKeyState` en cada frame. Los eventos de
-red llegan como mensajes de ventana (`WSAAsyncSelect`, `FD_READ`/`FD_WRITE`, ver
-[03](03-red-y-cifrado.md)). *Estático.*
+**El teclado no usa `WM_KEYDOWN`**: se lee con `GetAsyncKeyState`, casi siempre en el paso
+(abajo). Los eventos de red llegan como mensajes de ventana (`WSAAsyncSelect`,
+`FD_READ`/`FD_WRITE`, ver [03](03-red-y-cifrado.md)). *Estático.*
+
+### El teclado y el mouse: en el paso y en el frame (P-C08)
+
+*Estático*, del decompilado; qué función corre en el paso o en el frame sale del grafo de las
+llamadas directas, sin las que van por vtable (*análisis*). De las 34 funciones que llaman a
+`GetAsyncKeyState`, 11 se alcanzan desde el paso y 3 desde el dibujo (una, `0x558bb0`, desde los
+dos), dos corren en el frame (`0x637700` y `0x640940`, la del mouse) y una es `0x553520`, el
+flanco de abajo; las otras 18 no se alcanzan por llamadas directas (entre ellas, las ventanas y
+listas de la UI, que van por vtable). Leen la tecla de tres formas:
+
+- **"Está abajo":** `(valor >> 8) == 0x80` o `!= 0`, el bit alto. Es la mayoría.
+- **"Se apretó", con el bit bajo:** `valor == 0x8001` (`-0x7fff`): abajo ahora y apretada desde la
+  última llamada. Así leen Esc y Enter la lógica de las escenas 2 y 4 (`0x634c60`, `0x6342c0`) y
+  las ventanas de la UI (`0x63d880`, `0x642e30`, `0x63f630`, `0x644730`, `0x647d40`), y así lee
+  `0x640940` los botones del mouse.
+- **"Se apretó", con un flanco propio:** `0x553520(vk)` mira el bit alto y lo compara con lo que vio
+  la vez anterior, en una tabla de un `int` por tecla (`0x77f36d4`), una sola para todos los que la
+  llaman. La usan `0x623e70` (Esc), `0x490490` (Esc, F5, F6), `0x64d090` y `0x650350` (RePág,
+  AvPág), `0x5e4ce0` (S) y `0x637700` (Impr Pant, `0x637cff`), entre otras.
+
+Las teclas de cada escena, desde su lógica por paso: la 2 (login, `0x634c60`) lee Esc; la 4
+(selección, `0x6342c0`), Enter y Esc; la 5 (juego, `0x636290` y `0x623e70`), Esc, F5 y F6
+(`0x490490`), Shift (`0x59adf0`, `0x652330`, y con los dígitos en `0x420e30`), Ctrl (`0x5588d0`,
+`0x558eb0`, `0x5c4110`), Espacio (`0x5ac8d0`), RePág y AvPág (`0x64d090`), y en `0x59ff10` RePág,
+AvPág, la flecha arriba, Ctrl, Q y los dígitos de las macros. **Por frame** se leen Shift en
+`0x637700` (`0x638305`, para el nombre de la captura), Alt en el dibujo (`0x59ec80`, `0x5bbbc0`) y
+los botones del mouse.
+
+Lo que implica (*análisis*):
+
+- Un frame con 2 pasos no ve dos veces el mismo apretón: el primer paso borra el bit bajo, o deja
+  la tabla de `0x553520` en 1.
+- Una tecla apretada y soltada entre dos lecturas se pierde: `GetAsyncKeyState` da `0x0001`, que no
+  es `0x8001` ni tiene el bit alto. Entre dos pasos de frames seguidos pasan 46 o 47 ms.
+- Si dos funciones leen la misma tecla en el mismo paso, el apretón lo ve solo la primera, por
+  cualquiera de las dos formas (Q-C45).
+
+**El mouse son dos sistemas.** El WndProc deja la posición en 640 × 480 y el botón izquierdo en
+globales (la tabla de arriba), que leen la lógica y la UI vieja: `DAT_07d366d4` aparece en unas
+100 funciones. Y en cada frame, antes de los pasos, `0x640940` actualiza el objeto `0x7d53540`
+(que devuelve `0x640850`) para la UI nueva (`0x65fc30`, `0x63c490`): `GetCursorPos` y
+`ScreenToClient`, acotada al tamaño del área (`+0x28`, `+0x2c`), y el movimiento desde el frame
+anterior; los botones izquierdo, derecho y del medio con `GetAsyncKeyState(1)`, `(2)` y `(4)`,
+donde `0x8001` es apretar, `0` es soltar si estaba abajo y `0x8000` (sigue abajo) no cambia nada;
+y el doble clic, si el apretón llega antes de `GetDoubleClickTime()` (leído en `0x6408a0`) desde el
+anterior, medido con el temporizador de `0x459bc0`. Una bandera (`+0x30`) cambia el izquierdo por
+el derecho.
+
+### Sin foco no corre el frame
+
+*Estático*, del desensamblado de `WinMain`. El bucle de mensajes llama a `PeekMessageA`
+(`0x4bbc0e`); con un mensaje lo saca con `GetMessageA` y lo despacha, y sin mensajes hace el
+mantenimiento del hash (no se porta), consulta `IsIconic` (`0x4bdaef`), que solo elige una rama del
+hash, y en `0x4be019` lee el foco, `DAT_05763580`:
+
+- **Con foco** (`JE` en `0x4be041`, no tomado), llama al frame: `0x63945d` en `0x4be04a`, y con él a
+  los pasos y el dibujo.
+- **Sin foco** salta a `0x4be057`: `SetForegroundWindow` y `SetFocus` sobre la ventana, en cada
+  vuelta sin mensajes, y **no llama al frame**: no corren los pasos, ni el dibujo, ni la espera que
+  suma al acumulador. En `0x4be14c` una rama que depende de un contador envuelto en el hash
+  (`DAT_0576357c`) llama `SetTimer(ventana, 0x3e9, 1000)` y `PostMessageA(ventana, WM_CLOSE)`
+  (`0x4be1f2`..`0x4be217`); la otra sigue en `0x4be222`. Qué cuenta ese contador es del anticheat,
+  fuera de alcance.
+- Las dos ramas terminan en `0x4be5b3` con `0x4e1d50` y `0x49e510`, que corren en cada vuelta;
+  qué hacen, sin leer.
+
+*Análisis*: sin foco el juego se congela, y como el acumulador no suma nada, al volver no alcanza:
+el tiempo del juego queda en pausa. Los mensajes se siguen despachando, y con ellos la red; el
+keepalive de `WM_TIMER` también, *inferido* (no se leyó si ese timer mira el foco). MuRet no lo
+copia (Q-C46).
 
 ### Una discrepancia entre documentos
 
@@ -269,7 +404,9 @@ otro: el del anticheat, id 1001 (`paso4-killer.md` §1).
 | Sin el servidor del launcher, el original vuelve a abrir `Mu.exe` y sale; en el laboratorio, ese salto está anulado (Q-C34) | arranca solo, como el del laboratorio: no hay launcher | — |
 | Se abre a sí mismo por el nombre de la línea de comandos, en la carpeta actual, y si no está, sale sin avisar (Q-C35); copia ese nombre y el host del launcher sin mirar el largo (Q-C37) | no se abre a sí mismo; la carpeta de datos sale de la config, y el host y el puerto se validan | CL3 |
 | Lógica en pasos de 40 ms; dibujo esperando 40 ms con `GetTickCount`, que en la práctica da 46,875 ms | la lógica sigue en pasos de 40 ms con el mismo bucle de alcanzar; el dibujo deja de esperar e interpola entre pasos (D-C4 del roadmap); el modo fiel restaura la espera con un reloj de 15,625 ms, para dar los mismos 21,33 FPS | CL3 |
-| Teclado por `GetAsyncKeyState` | estado del teclado consultado por frame, como el original, detrás de `Input` | CL3 |
+| Teclado por `GetAsyncKeyState`, casi todo leído en el paso; "se apretó" por el bit bajo o por un flanco propio, que pierden un apretón corto (Q-C45); el mouse por mensajes y, para la UI nueva, consultado en cada frame | estado del teclado y del mouse armado con eventos, detrás de `Input`; un apretón lo ve un solo paso | CL3 |
+| Sin foco no corre el frame: ni pasos, ni dibujo, ni la espera (Q-C46) | los pasos siguen sin foco y minimizada; minimizada no se dibuja | CL3 |
+| Lo que avanza por reloj: las demoras de las habilidades, el freno de 300 ms, el delta de la UI, el reloj T | por el reloj del cliente, no por pasos, aunque la lógica corra en el paso | CL6 a CL9 |
 | Red por mensajes de ventana | un socket no bloqueante que el bucle consulta en cada frame; mismo modelo de un solo hilo | CL4 |
 | Keepalive por `WM_TIMER` cada 20 s | temporizador del bucle, testeable con un reloj falso | CL4 |
 | Fin del auto-update del launcher (`0x4b96b0`: copia `mu._xe`, `mumsg._ll`, `wz_zp._ll` y `message._tf` sobre sus nombres) | no se porta: es del launcher ([05](05-formatos-de-datos.md#el-pipeline-de-las-dlls)) | — |
@@ -279,8 +416,8 @@ Tests que fija:
 
 - El bucle principal con un reloj falso: exactamente 25 pasos de lógica por segundo simulado, con
   1, 25 o 240 frames dibujados, y el alcanzar ante un frame de 130 ms (3 pasos seguidos) (CL3).
-- El modo fiel con un reloj falso de 15,625 ms: 64 frames cada 3 segundos y 7 pasos de lógica cada
-  6 frames (CL3).
+- El modo fiel con un reloj falso de 15,625 ms: 64 frames cada 3 segundos y 75 pasos de lógica
+  cada 64 frames, 11 de ellos con 2 (7 u 8 cada 6) (CL3).
 - El keepalive sale cada 20 s de reloj simulado y no antes (CL4).
 - El parser de la línea de comandos acepta `connect /u<ip> /p<puerto>` como el original, con las
   letras en mayúscula o minúscula, y rechaza un puerto que no sea un número de 1 a 65535; qué hace

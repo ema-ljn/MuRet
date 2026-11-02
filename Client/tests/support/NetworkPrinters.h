@@ -1,6 +1,9 @@
 #pragma once
 
+#include "Network/CloseReason.h"
+#include "Network/Connection.h"
 #include "Network/Crypto/CryptoError.h"
+#include "Network/Delivery.h"
 #include "Network/ISocket.h"
 #include "Network/ObfuscationError.h"
 #include "Network/PacketError.h"
@@ -107,6 +110,69 @@ inline void PrintTo(SendQueueError error, std::ostream* out)
         return;
     }
     *out << "SendQueueError fuera del enum";
+}
+
+inline void PrintTo(Delivery delivery, std::ostream* out)
+{
+    switch (delivery)
+    {
+    case Delivery::Clear:
+        *out << "Clear";
+        return;
+    case Delivery::Encrypted:
+        *out << "Encrypted";
+        return;
+    }
+    *out << "Delivery fuera del enum";
+}
+
+inline void PrintTo(CloseReason reason, std::ostream* out)
+{
+    switch (reason)
+    {
+    case CloseReason::ByClient:
+        *out << "ByClient";
+        return;
+    case CloseReason::ResolveFailed:
+        *out << "ResolveFailed";
+        return;
+    case CloseReason::Refused:
+        *out << "Refused";
+        return;
+    case CloseReason::ConnectTimedOut:
+        *out << "ConnectTimedOut";
+        return;
+    case CloseReason::PeerClosed:
+        *out << "PeerClosed";
+        return;
+    case CloseReason::SocketFailed:
+        *out << "SocketFailed";
+        return;
+    case CloseReason::BadStream:
+        *out << "BadStream";
+        return;
+    case CloseReason::SendQueueFull:
+        *out << "SendQueueFull";
+        return;
+    }
+    *out << "CloseReason fuera del enum";
+}
+
+inline void PrintTo(LinkState state, std::ostream* out)
+{
+    switch (state)
+    {
+    case LinkState::Closed:
+        *out << "Closed";
+        return;
+    case LinkState::Connecting:
+        *out << "Connecting";
+        return;
+    case LinkState::Open:
+        *out << "Open";
+        return;
+    }
+    *out << "LinkState fuera del enum";
 }
 } // namespace Client::Network
 

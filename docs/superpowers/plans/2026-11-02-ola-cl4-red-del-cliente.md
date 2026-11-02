@@ -974,7 +974,7 @@ public:
   `ServerSession` del CS: qué paquete espera cada estado, qué manda al recibirlo, a qué estado
   pasa, y qué hace con un paquete que no espera (se ignora con un aviso) y con un cierre
   (`Failed`).
-- [ ] **Paso 2 (PR A):** los tests de `Connection`, con `FakeSocket`, `FakeClock` y el
+- [x] **Paso 2 (PR A):** los tests de `Connection`, con `FakeSocket`, `FakeClock` y el
   `RecordingSink` de `Client/tests/support/` (la CL3.4 lo deja ahí), detrás de un `ILogSink`:
   - `ConnectionTest.OpensWhenTheSocketConnects` (`pollsUntilConnected = 2`: `Connecting`,
     `Connecting`, `Open`, y el tercer `Poll` da `Opened`);
@@ -986,8 +986,8 @@ public:
     `Poll` de los 60 s: `Opened`, no `ConnectTimedOut`);
   - `ConnectionTest.WhatIsSentWhileConnectingLeavesWhenItOpens` (`C1 04 F4 02` mandado en
     `Connecting`: `sent` vacío hasta el `Opened`, y `C1 04 F4 02` en ese `Poll`);
-  - `ConnectionTest.ASendWaitsBehindThePending` (el socket toma 2 bytes de un `C1 04 F4 02` y
-    después todo; un `C1 04 00 01` mandado en el medio sale detrás: `sent` es
+  - `ConnectionTest.NewPacketsWaitBehindThePending` (el socket toma 2 bytes de un `C1 04 F4 02`
+    y después todo; un `C1 04 00 01` mandado en el medio sale detrás: `sent` es
     `C1 04 F4 02 C1 04 00 01`; el original, en `0x4b1664`, lo adelantaría);
   - `ConnectionTest.CutsWhatArrivesInPieces` (`C1 04` en una lectura y `00 01` en la siguiente:
     un solo `Packet`, `C1 04 00 01`);
@@ -1005,11 +1005,74 @@ public:
     que llega después se corta desde cero, y `FakeSocket::closes` es 1);
   - `ConnectionTest.AFullSendQueueCloses` (el socket no toma nada y se mandan paquetes que suman
     `0x2001` bytes: `Closed` con `SendQueueFull`).
-- [ ] **Paso 3 (PR A):** `Connection` (sin el cifrado, que llega en la CL4.4) y `Delivery` en
-  Network.
-  - `SocketError::Closed` es también "no conectado" (`ISocket.h`): la `Connection` llama a
-    `Receive`, `Send` y `SendQueue::Flush` solo con `Connected`, así un `Closed` ahí es siempre
-    que el otro lado cerró. Lo prueba `ConnectionTest.APeerThatClosesCloses`.
+
+  Hechos en el PR A, con lo que cambió al escribirlos:
+  - `NewPacketsWaitBehindThePending` (el plan lo llamaba `ASendWaitsBehindThePending`) es más
+    fuerte: con el socket tomando de a 2, lo que sale después de mandar un paquete nuevo es el
+    resto del pendiente, no el principio del nuevo. La parte de `APeerThatClosesCloses` con
+    `sendError` es `ASendToAPeerThatClosedCloses`, y la de `peerClosed` trae un saludo antes del
+    FIN: sale el saludo y después el `Closed`.
+  - Se sumaron, en `ConnectionTest`: `AConnectThatFinishesAtOnceOpensInTheFirstPoll`,
+    `AConnectThatFailsCloses` (`ResolveFailed`, `Refused` y `Failed`, en el `StartConnect` o en
+    un `PollConnect`), `TheConnectTimeoutStartsAfterTheResolve`, `ASlowResolveIsLogged`,
+    `NothingIsReadOrSentBeforeTheConnect` (mientras conecta, la conexión no llama a `Receive`,
+    `Send` ni `Flush`: un `Closed` ahí es siempre el otro lado),
+    `WhatDidNotLeaveLeavesInTheNextPoll`, `ReadsAtMostEightTimesPerPoll`,
+    `ReadsInChunksOfTheOriginalBuffer` (nueve paquetes de `0x2000` en una entrada del guion: ocho
+    en un `Poll`), `WithFoxAntiTheSkillListGetsItsByteBeforeTheDispatch` (el `BeforeDispatch`),
+    `WithFoxAntiWhatArrivesFromTheGameServerIsUnmasked` (el de la lista de la CL4.4: la máscara es
+    del corte, que ya está acá; también después de volver a abrir),
+    `AnEncryptedPacketIsNotDelivered`, `AFlushThatFailsInThePollClosesWithoutReading` (con el
+    error del guion a mitad del `Flush`), `ASocketFailureLogsTheSystemError`,
+    `ReopeningForgetsACloseThatWasNotReported`, `CloseIsNotAnEvent`,
+    `AClosedConnectionDoesNotUseTheSocket` y `AnEncryptedSendDoesNotLeave`; además
+    `CloseReasonTest.EveryReasonHasItsOwnText` y `FakeSocketTest.RunsItsHookInsideStartConnect`.
+  - Treinta y dos mutantes a mano de `Connection.cpp` (el tope antes del `PollConnect`, el tope
+    con `>`, el tope contado desde antes del resolver, el aviso lento con `>=`, una lectura de más
+    o una sola, el `Flush` mientras conecta o sin `Flush` en el `Poll`, un cierre que no sale como
+    evento o un `Close` que sí, el corte o la cola sin vaciar, el corte sin la ofuscación, sin
+    `AfterCut`, `BeforeDispatch` o `BeforeSend`, un `BadStream` que no cierra o un `InvalidPacket`
+    que sí, un C3 que pasa, un `Encrypted` que sale, leer después de un `Flush` que falló, entre
+    otros): los mata algún test.
+  - `ServerSessionTest.WhatFollowsTheAddressIsDropped` es del PR B: la `Connection` vacía el corte
+    en `Open` (`ReopeningStartsClean`), pero lo que ya salió en el lote lo tiene que dejar de
+    recorrer la sesión.
+- [x] **Paso 3 (PR A):** `Connection` (sin el cifrado, que llega en la CL4.4) y `Delivery` en
+  Network. Lo que se decidió al escribirla, y lo que cambió respecto de la interfaz de arriba:
+  - Sin el cifrado no están todavía `paddingSeed` en el constructor, `keys` en `Open`,
+    `ConnectionKeys`, el evento `Undecryptable` ni los seriales: los suma la CL4.4, PR A. Hasta
+    entonces un C3/C4 que llega se descarta con un aviso (la CL4.4 lo descifra o lo da como
+    `Undecryptable`), y lo que va `Encrypted` no sale, con un aviso que dice el opcode, que es lo
+    que va a seguir pasando en una conexión sin claves.
+  - El `Opened` sale siempre en un `Poll`, aunque el socket haya conectado en el `StartConnect`
+    (en loopback pasa): `PollConnect` repite el resultado (`ISocket.h`). Hasta ese `Poll` el
+    estado es `Connecting`, y `Send` solo encola. `SocketError::Closed` es también "no conectado"
+    (`ISocket.h`): la `Connection` llama a `Receive`, `Send` y `SendQueue::Flush` solo en `Open`,
+    así un `Closed` ahí es siempre `PeerClosed`. Lo prueban `APeerThatClosesCloses`,
+    `ASendToAPeerThatClosedCloses` y `NothingIsReadOrSentBeforeTheConnect`.
+  - Un cierre que pasa fuera de un `Poll` (en `Open`, si el socket ya sabe que no se puede; en
+    `Send`, con la cola llena o un error del socket) cierra ahí, `State` y `LastCloseReason` ya lo
+    dicen, y el `Closed` sale al final del `Poll` siguiente. `Close` y el cierre que hace `Open`
+    sobre una conexión abierta no son eventos, porque los pidió quien la usa. `Open` olvida el
+    `Closed` que nadie vio y el `LastCloseReason`.
+  - Cada cierre va al log con `CloseReasonText`: en `info` el de `ByClient`, en `warning` el
+    resto, y el de `SocketFailed` con el error del sistema, que solo la conexión ve. Por eso
+    `CloseReason.h` tiene un `CloseReason.cpp`, que el plan no tenía; la sesión del PR B lo puede
+    usar para su propio log. Los avisos de un paquete descartado dicen el tipo y el opcode
+    (`C2 F4`, `C3`), nunca sus bytes.
+  - En `Poll` va primero el `Flush` y después la lectura, como dice la interfaz; si el `Flush`
+    falla, ese `Poll` no lee: el socket ya dio el cierre. Con un error de `Flush`,
+    `SendQueue::LastSocketError()` siempre lo tiene; si viniera vacío, sería un bug de la cola, y
+    la conexión lo toma como `SocketFailed`, sin decir que cerró el otro lado.
+  - De lo que la CL4.1 dejó para esta sub-ola: el log de lo que tardó la resolución está acá.
+    `Open` mide el `StartConnect` con el `IClock` y lo anota si pasa de `SlowConnectStart`
+    (100 ms); el `ConnectTimeout` cuenta desde que vuelve. Para probarlo, el `FakeSocket` suma
+    `onStartConnect`, que corre al principio de cada `StartConnect` y mueve el `FakeClock`. Que
+    `main.cpp` cree el `NetworkInit`, no: en este PR `Main` no abre ninguna conexión, y va con
+    quien arme la red en `main.cpp`.
+  - `Delivery` bajó a `Network/Delivery.h`; `Outgoing` lo usa desde ahí, y su `PrintTo` pasó de
+    `support/ProtocolPrinters.h` a `support/NetworkPrinters.h`, con los de `CloseReason` y
+    `LinkState`.
 - [ ] **Paso 4 (PR B):** los tests de la sesión, con `FakeSocket` haciendo de CS:
   - `A9Test.WritesTheBytesOfTheWire` (`C1 06 A9 00 00 01` con XOR32 es `C1 06 A9 20 9C 2F`,
     en claro);

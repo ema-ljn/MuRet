@@ -1,6 +1,7 @@
 #include "Protocol/Connection/Keepalive.h"
 
 #include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
@@ -9,7 +10,6 @@
 #include "support/Bytes.h"
 #include "support/MuClientNetFixtures.h"
 #include "support/NetworkPrinters.h"
-#include "support/ProtocolPrinters.h"
 #include "support/SameBytes.h"
 #include "support/SimpleModulusKeys.h"
 
@@ -24,11 +24,11 @@
 // de mu-client.
 namespace
 {
+using Client::Network::Delivery;
 using Client::Network::EncryptPacket;
 using Client::Network::Packet;
 using Client::Network::PacketSerials;
 using Client::Network::Crypto::Xor32Decode;
-using Client::Protocol::Delivery;
 using Client::Protocol::Outgoing;
 using Client::Protocol::Connection::Keepalive;
 using Client::Protocol::Connection::KeepaliveAdjust20;

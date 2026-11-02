@@ -10,6 +10,10 @@ using Network::SocketError;
 
 Core::Expected<ConnectProgress, SocketError> FakeSocket::StartConnect(std::string_view host, std::uint16_t port)
 {
+    if (onStartConnect)
+    {
+        onStartConnect();
+    }
     if (m_open)
     {
         Close();

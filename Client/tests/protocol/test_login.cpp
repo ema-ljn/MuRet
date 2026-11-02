@@ -1,6 +1,7 @@
 #include "Protocol/Connection/Login.h"
 
 #include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
@@ -29,13 +30,13 @@
 // respuesta y el aviso F1 03. Solo con las credenciales sintéticas de mu-client.
 namespace
 {
+using Client::Network::Delivery;
 using Client::Network::EncryptPacket;
 using Client::Network::Packet;
 using Client::Network::PacketSerials;
 using Client::Network::Crypto::Xor32Decode;
 using Client::Protocol::ClientSerial;
 using Client::Protocol::ClientVersion;
-using Client::Protocol::Delivery;
 using Client::Protocol::Outgoing;
 using Client::Protocol::ProtocolError;
 using Client::Protocol::Connection::CredentialSize;

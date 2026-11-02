@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -44,6 +45,9 @@ public:
     std::optional<Network::SocketError> sendError;     // el próximo Send falla con esto
     bool peerClosed = false;                           // Receive da Closed cuando no hay más reads
     int systemError = 0;                               // lo que da LastSystemError
+    // Corre al principio de cada StartConnect, como el resolver, que va antes que todo: un test
+    // mueve ahí el FakeClock para que el resolver "tarde".
+    std::function<void()> onStartConnect;
 
     // Lo que pasó.
     std::vector<std::byte> sent;              // todo lo que tomó Send, en orden

@@ -127,6 +127,9 @@ verificado con un reloj falso. En concreto:
    problema. El primer paso de la CL3.4 confirma el puerto y su comportamiento (comentarios al
    final de la línea, claves repetidas, una línea sin `=`) antes de escribir nada; si algo no
    coincide, queda el parser propio, con la razón escrita.
+   *Resultado (paso 1 de la CL3.4, 2026-11-02): parser propio.* El puerto fija al compilar el
+   largo de la línea, y un `Host` de 255 bytes no entra; el detalle está en ese paso y en
+   `App/Config.h`.
 6. **La línea de comandos** (Q-C36, el 02 deja `/u` sin `/p` para la CL3). El parser sin usar del
    original busca `/u` y `/p` en cualquier lugar, sin mayúsculas, y no necesita el `connect`; con
    `/u` y sin `/p` devuelve 0 con el host ya copiado. *Recomendación:* `connect` es opcional y se
@@ -1039,12 +1042,17 @@ de video), validado antes de abrir nada, y un log que se puede leer en un test. 
    CL3.2); si no se dio, queda en `off`. En el modo normal, sin dar, queda en `on`.
 5. La carpeta de datos, solo si se dio: tiene que existir.
 
+Una ruta relativa de la config (`[Data] Path`, `[Log] Path`) se toma desde la carpeta del
+ejecutable (`exeFolder`), no desde la carpeta actual: la del acceso directo puede ser cualquiera.
+`ParseConfig` la deja como está y la junta `Resolve` (anotado en la fase 1 de la CL3.4).
+
 El host vacío no es error acá: lo pide la CL4 al conectarse.
 
 **Archivos:**
-- **PR A:** crear `Client/src/App/Config.h/.cpp` y `ConfigError.h`;
-  `Client/tests/app/test_config.cpp`. Modificar `vcpkg.json` (`inih` con la feature `cpp`, si el
-  paso 1 lo confirma), `Client/src/App/CommandLine.h/.cpp` y su test (pasa a `Core::Expected` con un
+- **PR A:** crear `Client/src/App/Config.h/.cpp`, `ConfigError.h` y `ServerAddress.h/.cpp` (la
+  dirección del servidor, con `ParsePort` y `ParseHost`, que usan la config y la línea de
+  comandos); `Client/tests/app/test_config.cpp` y `test_server_address.cpp`. Modificar
+  `vcpkg.json` (`inih` con la feature `cpp`, si el paso 1 lo confirma), `Client/src/App/CommandLine.h/.cpp` y su test (pasa a `Core::Expected` con un
   error que se imprime, y suma `connect`, `/u`, `/p`, `--config` y `--data`), `main.cpp`,
   `Client/CMakeLists.txt` (los tests de `Main` sin ventana), `Client/README.md` (cómo se configura),
   07 (Q-C35 a Q-C37 con sus tests), PROGRESS y este plan.
@@ -1063,6 +1071,14 @@ inline constexpr std::uint16_t DefaultConnectPort = 44405;
 inline constexpr std::size_t MaxHostBytes = 255;
 
 struct ServerAddress { std::string host; std::uint16_t port = DefaultConnectPort; };
+// En App/ServerAddress.h. Los mensajes son los mismos en la config y en la línea de comandos:
+// "el puerto tiene que ser un número", "el puerto va de 1 a 65535", "el host va de 1 a 255 bytes",
+// "el host no puede tener espacios", "el host no puede tener caracteres de control" y "el host
+// tiene que ser ASCII (un nombre con acentos va en punycode)": solo de 0x21 a 0x7E.
+Core::Expected<std::uint16_t, std::string> ParsePort(std::string_view text);
+Core::Expected<std::string, std::string> ParseHost(std::string_view text);
+// El lado más grande de la ventana en [Video] (App/Config.h).
+inline constexpr int MaxWindowSize = 16384;
 
 struct CommandLine
 {
@@ -1130,17 +1146,67 @@ public:
 Sin globales (D-C1): el `Log` lo crea `main.cpp` y se pasa por referencia a quien lo use. `SdlLog`
 se declara después del `Log` en `main`, así se destruye antes.
 
-- [ ] **Paso 1 (PR A, §10):** con Context7, confirmar el puerto `inih` de vcpkg y su
+- [x] **Paso 1 (PR A, §10):** con Context7, confirmar el puerto `inih` de vcpkg y su
   comportamiento: secciones, `clave = valor`, `;` al principio y al final de la línea, una clave
   repetida, una línea sin `=` (la línea del primer error), y el BOM. Si coincide con la tabla del
   paso 3, entra; si no, el parser propio, con la razón en el header. Confirmar también que CLI11 y
   cxxopts no leen `/u10.0.0.1` pegado (pregunta 6).
-- [ ] **Paso 2 (Emanuel, `TODO(human)`):** antes de los tests, la tabla de la línea de comandos:
-  qué dan `connect /u10.0.0.1 /p44405`, `CONNECT /U10.0.0.1 /P44405`, `/p44405 /u10.0.0.1` (el
-  original busca en cualquier orden), `/u10.0.0.1 /p44405` sin `connect`, `connect` solo,
-  `connect /u10.0.0.1`, `/p44405` solo, `/p0`, `/p65536`, `/p12a`, `/u` vacío, un host de 255
-  bytes y uno de 256, y `/y...`.
-- [ ] **Paso 3 (PR A):** los tests:
+
+  **Lo que se encontró (2026-11-02): queda el parser propio**, con la razón en `App/Config.h`.
+  Context7 no tiene inih; se leyeron el puerto en la baseline de `vcpkg.json` (`9a5dfef`,
+  `ports/inih/`) y la fuente de la versión que baja (tag `r62`: `ini.c`, `ini.h`,
+  `cpp/INIReader.*`, `meson_options.txt`).
+  - **El puerto:** `inih` versión 62 (port-version 1), solo estático, compilado con meson. La
+    feature `cpp` (que es la de por defecto) prende `with_INIReader`. No trae un config de CMake
+    del proyecto: arma uno propio, `unofficial-inih`, que se pide con
+    `find_package(unofficial-inih CONFIG REQUIRED)` y da `unofficial::inih::libinih` (la API de C)
+    y `unofficial::inih::inireader` (la de C++, con la feature `cpp`; enlaza la de C). Las demás
+    opciones de meson quedan en su valor por defecto, y el puerto no deja cambiarlas.
+  - **Lo que hace con esas opciones:** secciones y `clave = valor` sí, y también `clave: valor`;
+    `;` y `#` al principio de la línea; `;` al final solo después de un espacio (`55901;` es el
+    valor); el BOM al principio se salta; con una línea sin `=`, `ini_parse` sigue y devuelve la
+    línea del primer error. Lo que lo descarta: el largo de la línea se fija al compilar
+    (`max_line_length = 200`, `INI_MAX_LINE`) y el portfile no deja cambiarlo, así que una línea
+    de más de 198 bytes sin contar el fin de línea es error, y un `Host = ` con 255 bytes (Q-C37)
+    no entra por ninguna de las dos API: el handler recibe la línea ya cortada. Además, una línea
+    con sangría sigue el valor de la clave anterior (`multi-line_entries`), así que `  Port = 1`
+    debajo de `Host = a` da el host `"a\nPort = 1"`; y el `INIReader` junta las claves repetidas
+    con `"\n"` y no sabe en qué línea estaba un valor, así que no puede decir la línea de un
+    `VSync = sometimes`. Esas dos se podrían rechazar desde el handler de la API de C (si devuelve
+    0, `ini_parse` da esa línea), pero no la primera.
+  - **CLI11 y cxxopts:** CLI11, con `allow_windows_style_options()`, lee `/u valor` y `/u:valor`,
+    y su documentación dice que con `/` no se puede pegar el valor a la opción corta. cxxopts solo
+    reconoce opciones que empiezan con `-` o `--` (`cxxopts.hpp`): `/u10.0.0.1` sería un
+    argumento posicional. Sigue el parser a mano de la CL0.3.
+- [x] **Paso 2 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de los tests, la tabla de la
+  línea de comandos: qué dan `connect /u10.0.0.1 /p44405`, `CONNECT /U10.0.0.1 /P44405`,
+  `/p44405 /u10.0.0.1` (el original busca en cualquier orden), `/u10.0.0.1 /p44405` sin
+  `connect`, `connect` solo, `connect /u10.0.0.1`, `/p44405` solo, `/p0`, `/p65536`, `/p12a`, `/u`
+  vacío, un host de 255 bytes y uno de 256, y `/y...`.
+
+  | Argumentos | `ParseCommandLine` da | Por qué |
+  | --- | --- | --- |
+  | `connect /u10.0.0.1 /p44405` | `connect` = 10.0.0.1, 44405 | lo que pasa el launcher |
+  | `CONNECT /U10.0.0.1 /P44405` | lo mismo | como `0x4b9890`, que acepta las letras en mayúscula o minúscula; `connect` tampoco las distingue |
+  | `/p44405 /u10.0.0.1` | lo mismo | el original busca `/u` y `/p` en cualquier lugar |
+  | `/u10.0.0.1 /p44405` | lo mismo | `connect` es opcional (pregunta 6) |
+  | `connect` | sin `connect`, y sin error | se ignora: vale el `[Server]` de la config |
+  | `connect /u10.0.0.1` | error: "/u necesita /p con el puerto" | un `connect` a medias es un error de quien lanza el cliente; no se completa con la config (pregunta 6) |
+  | `/p44405` | error: "/p necesita /u con el host" | lo mismo, del otro lado |
+  | `/u10.0.0.1 /p0` | error: "el puerto va de 1 a 65535" | 0 no es un puerto (`ParsePort`, `App/ServerAddress.h`) |
+  | `/u10.0.0.1 /p65536` | error: "el puerto va de 1 a 65535" | no entra en 16 bits |
+  | `/u10.0.0.1 /p12a` | error: "el puerto tiene que ser un número" | solo dígitos, nada atrás |
+  | `/u /p44405` o `/u 10.0.0.1 /p44405` | error: "/u necesita el host pegado (/u10.0.0.1)" | el launcher lo pega a la letra (lo mismo con `/p`) |
+  | `/u` + 255 bytes + ` /p44405` | `connect` con ese host | el largo máximo del host (Q-C37) |
+  | `/u` + 256 bytes + ` /p44405` | error: "el host va de 1 a 255 bytes" | el original lo copiaba sin mirar el largo (Q-C37) |
+  | `/y...` o `/z...` | error: "no conozco el argumento ..." | son opciones del launcher, y MuRet no las lee |
+  | `/u10.0.0.1 /U10.0.0.2 /p1` | error: "/U está repetido" | no se elige uno en silencio (lo mismo con `/p`) |
+  | `--frames 5 --frames 7` | error: "--frames está repetido" | lo mismo con `--config`, `--data`, `--pacing`, `--vsync` y `--stats` |
+  | `/umú.org /p44405` | error: "el host tiene que ser ASCII (...)" | el host es ASCII visible, en la línea de comandos y en la config (`ParseHost`) |
+
+  Los mensajes de puerto y host son los de `ParsePort` y `ParseHost`, los mismos que da
+  `[Server]` en la config, para que las dos digan lo mismo.
+- [x] **Paso 3 (PR A):** los tests:
   - `CommandLineTest.AcceptsConnectWithHostAndPort`, `IgnoresTheCase`, `AcceptsAnyOrder`,
     `ConnectIsOptional`, `ConnectAloneIsIgnored`; `RejectsAPortOutOfRange` (0 y 65536: "el puerto
     va de 1 a 65535"), `RejectsAPortWithLetters`, `RejectsHostWithoutPort` y
@@ -1150,17 +1216,49 @@ se declara después del `Log` en `main`, así se destruye antes.
   - `ConfigTest.ReadsTheSections`, `DefaultsWhenAKeyIsMissing` (puerto 44405, 640 × 480,
     decoupled, y después de `Resolve` VSync on; con `Pacing = faithful` y sin `VSync`, off),
     `ReportsTheLineOfAnError` (una línea sin `=` en la 3 da `line == 3`),
-    `RejectsAnUnknownVSyncValue`;
+    `RejectsAnUnknownVSyncValue`. Sumados en el PR A: `ReadsAPathThatIsNotAscii`,
+    `RejectsAnUnknownPacingValue`, `SkipsCommentsBlankLinesAndTheBom`,
+    `IgnoresTheCaseOfSectionsKeysAndModes`, `RejectsARepeatedKey`, `RejectsAnUnknownSectionOrKey`,
+    `RejectsAKeyWithoutAValue`, `RejectsAPortOutOfRange`, `AcceptsAHostOf255BytesAndRejects256`,
+    `RejectsAHostWithSpaces`, `RejectsASizeOutOfRange`, `ReadsEachVSyncAndPacingValue`,
+    `ReadsTheLastLineWithoutANewline`, `TabsAreBlankAndSpacesInsideTheBracketsAreTrimmed`,
+    `RemovesTheQuotesAroundAPathOrTheHost`, `ReadsAPathWithSpaces`,
+    `RejectsAPathOrHostThatIsNotUtf8`, `RejectsControlCharacters`,
+    `RejectsACarriageReturnWithoutANewline`, `SaysWhatIsWrongWithALine`, y los de `Resolve`
+    `ResolveChoosesTheVSyncByThePacing`, `ReadsTheConfigPath`, `AParseErrorNamesTheFileAndTheLine`,
+    `ARelativePathIsFromTheExeFolder`, `ACommandLinePathIsFromTheCurrentFolder`,
+    `AConfigPathThatIsAFolderIsAnError`, `AConfigLongerThanTheCapIsAnError` y
+    `ResolveStopsAtTheFirstErrorInOrder`. En `CommandLineTest`, `RejectsARepeatedHostOrPort`,
+    `RejectsARepeatedOption` y `RejectsAHostThatIsNotAscii`. Y una suite propia de `ParsePort` y
+    `ParseHost`, `ServerAddressTest` (`Client/tests/app/test_server_address.cpp`);
   - `ConfigTest.AMissingDefaultFileMeansDefaults`, `AMissingConfigPathIsAnError` (nombra la ruta),
     `TheCommandLineWins` (`/u... /p...` pisa `[Server]`, `--pacing faithful` pisa `Pacing`),
     `FaithfulWithVSyncOnIsAnError` (nombra `Pacing` y `VSync`), `AMissingDataFolderNamesIt` (el
     test del 02 y Q-C35), `NoDataFolderIsNotAnError` y `NoHostIsNotAnError` (lo pide la CL4).
-- [ ] **Paso 4 (PR A):** `ParseCommandLine`, `ParseConfig` y `Resolve`. `main.cpp`: argumentos y
+- [x] **Paso 4 (PR A):** `ParseCommandLine`, `ParseConfig` y `Resolve`. `main.cpp`: argumentos y
   config, y recién después SDL y la ventana.
-- [ ] **Paso 5 (PR A):** CTest de `Main` sin ventana (fallan antes de `SDL_Init`):
+
+  Hecho (fase 2a): `ParseCommandLine` devuelve `Core::Expected<CommandLine, std::string>`, y
+  `ParseConfig` y `Resolve` están. Las rutas de `--config` y `--data` son de la carpeta actual y
+  se leen en la codificación del sistema (la de `argv`); las de la config, en UTF-8 y desde la
+  carpeta del ejecutable. Fase 2b: `main.cpp` llama a `Resolve` antes de `SDL_Init`, con la
+  carpeta de `Platform::ExecutableFolder` (`SDL_GetBasePath`, `Platform/BasePath.h`; sin ella, la
+  actual), y la config da el tamaño, el VSync y el pacing. La regla del modo fiel quedó solo en
+  `Resolve` (`ConfigTest.FaithfulWithVSyncOnIsAnError`). **Límite conocido en Windows:** `main.cpp` no usa `SDL_main.h`, así que
+  `argv` llega en la página ANSI: lo que no entra en ella ya llega cambiado por `?`
+  (`C:\Users\Łukasz` en la 1252), y el CRT lee `"C:\MU\Data\"` como `C:\MU\Data"`, porque la `\`
+  antes de la comilla la escapa. No se arregla en la CL3.4; el arreglo es leer la línea con
+  `GetCommandLineW` y `CommandLineToArgvW`, pasarla a UTF-8 y armar el `path` desde `u8string`.
+  `Resolve` lee la config sin excepciones, con un tope de `MaxConfigBytes` (64 KiB), y solo un
+  archivo que no está da los valores por defecto: una carpeta, un permiso o un archivo de más
+  son errores que lo dicen. `ParseCommandLine` sigue rechazando `--pacing faithful --vsync on`
+  (CL3.2) en la fase 2a; en la 2b esa regla pasó a `Resolve`.
+- [x] **Paso 5 (PR A):** CTest de `Main` sin ventana (fallan antes de `SDL_Init`):
   `Client.Main.RejectsBadPort` (`Main connect /u127.0.0.1 /p0`, la salida dice "el puerto va de 1 a
   65535") y `Client.Main.NamesTheMissingDataFolder` (`Main --data <carpeta que no existe>`, la
   salida trae la ruta). El paso de Xvfb del CI sigue sin config ni datos.
+
+  Hechos: `Client.Main.RejectsBadPort` (fase 2a) y `NamesTheMissingDataFolder` (fase 2b).
 - [ ] **Paso 6 (PR B):** los tests: `LogTest.WritesTheLevelAndTheMessage` (con un `LogSink` de
   prueba que guarda las líneas: `Info("hola {}", 1)` da `[info] hola 1`),
   `BelowTheMinimumIsNotWritten`, `EachLevelHasItsPrefix`, `TeeSinkWritesBoth`.

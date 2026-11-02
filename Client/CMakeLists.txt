@@ -56,4 +56,14 @@ if(MURET_BUILD_TESTS)
     add_test(NAME Client.Main.RejectsBadArguments COMMAND Main --frames 0)
     set_tests_properties(Client.Main.RejectsBadArguments PROPERTIES
         PASS_REGULAR_EXPRESSION "--frames necesita un número mayor que 0")
+    # Un puerto malo del launcher corta antes de SDL_Init, con el mensaje de ParsePort (CL3.4). Con
+    # PASS_REGULAR_EXPRESSION, CTest mira solo la salida y no el código de salida (EXIT_FAILURE).
+    add_test(NAME Client.Main.RejectsBadPort COMMAND Main connect /u127.0.0.1 /p0)
+    set_tests_properties(Client.Main.RejectsBadPort PROPERTIES
+        PASS_REGULAR_EXPRESSION "el puerto va de 1 a 65535")
+    # Q-C35: una carpeta de datos que no existe se nombra, antes de SDL_Init (Resolve).
+    add_test(NAME Client.Main.NamesTheMissingDataFolder
+        COMMAND Main --data ${CMAKE_CURRENT_BINARY_DIR}/no-existe-esta-carpeta-de-datos)
+    set_tests_properties(Client.Main.NamesTheMissingDataFolder PROPERTIES
+        PASS_REGULAR_EXPRESSION "no existe la carpeta de datos .*no-existe-esta-carpeta-de-datos")
 endif()

@@ -144,7 +144,7 @@ GoogleTest.
 
 **Te toca**, en este orden:
 
-1. Los tests primero (`ByteViewTest.cpp`), con los bytes de la tabla y una lectura que se pasa
+1. Los tests primero (`test_byte_view.cpp`), con los bytes de la tabla y una lectura que se pasa
    del final. Antes de compilar, decí qué etapa va a fallar.
 2. `ByteView.h` y `ByteView.cpp`, con desplazamientos de bits y sin `reinterpret_cast`. Primero
    en rojo, después en verde.
@@ -224,7 +224,7 @@ En el `Text.bmd` real, el registro 7 ocupa sus 300 bytes sin ningún `\0`
 ([07](../../Client/docs/research/07-quirks-y-bugs.md), Q-C07). Es el único de los 2048. El
 original lo copia a `char g_GlobalText[2048][300]` y después lo usa como una cadena de C.
 
-**Te toca** (`labs/cl1.0-bytes/FixedTextTest.cpp`):
+**Te toca** (`labs/cl1.0-bytes/test_fixed_text.cpp`):
 
 1. Armá un buffer sintético de 8 registros de 300 bytes, con el 7 lleno y sin `\0`.
 2. Predecí qué devuelve `std::strlen` sobre el registro 7, y corrélo con ASan. Con el buffer

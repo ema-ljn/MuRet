@@ -179,7 +179,7 @@ Client/
   src/
     main.cpp               arma las capas y arranca; sin lógica
     App/                   bucle con tick fijo, config, línea de comandos (CL3)
-    Core/                  Expected, ByteReader, Xor3, Log, Clock          (CL0+)
+    Core/                  Expected, ByteReader, Xor3, Log, IClock         (CL0+)
     Platform/              ventana, contexto GL, reloj y eventos sobre SDL3; target ClientPlatform (CL3)
     Input/                 teclado y mouse por frame, sin SDL              (CL3)
     Data/                  Tables/, Text/, Terrain/, Textures/, Models/   (CL1, CL6)

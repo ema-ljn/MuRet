@@ -147,34 +147,36 @@ semilla fija para un test de propiedad.
 
 - [x] **Paso 1 (Claude):** la guía, justo antes de empezar
   ([ola-cl2.0-flujos-y-bloques.md](../../learning/ola-cl2.0-flujos-y-bloques.md), 2026-11-02).
-- [ ] **Paso 2 (Claude, andamiaje):** GoogleTest en `labs/`, el paso 1 de la CL1.0, si todavía no
-  se hizo.
-- [ ] **Paso 3 (Emanuel, `TODO(human)`):** `Labs::FrameCutter`, alimentado de a un byte, con los
+- [x] **Paso 2 (Claude, andamiaje):** GoogleTest en `labs/`, el paso 1 de la CL1.0, si todavía no
+  se hizo. Llegó con esta sub-ola, en `MuRetLabsCl20` y `LabCl20Tests`.
+- [x] **Paso 3 (Emanuel, `TODO(human)`; lo resolvió Claude):** `Labs::FrameCutter`, alimentado de a un byte, con los
   estados explícitos en un `enum class` (tipo, tamaño, cuerpo). Primero los tests: los casos de
   `red_reference.py --selftest` que no son del cifrado (corte, resto parcial, cabecera incompleta,
   cabecera inválida y tamaño 0), y uno de propiedad: paquetes válidos al azar, uno detrás del
   otro, salen iguales y en orden. Como el corte recibe de a un byte, partir el flujo no cambia
   nada; esa propiedad es del `PacketReader` de la CL2.1, que recibe lecturas enteras.
-- [ ] **Paso 4 (Emanuel):** `Labs::BitWriter` y `Labs::BitReader`, MSB primero:
+- [x] **Paso 4 (Emanuel; lo resolvió Claude):** `Labs::BitWriter` y `Labs::BitReader`, MSB primero:
   `Write(value, bits)` y `Read(bits)`. Tests: el primer bit escrito es el `0x80` del byte 0;
   cuatro campos de 18 bits más uno de 16 ocupan justo 11 bytes y se leen iguales; y un carril
   como lo escribe el original (sus dos bytes de abajo, de a 8 bits, y después el bit 17 y el 16):
   `0x10000` da `00 00 40` y `0x20000`, `00 00 80`.
-- [ ] **Paso 5 (Emanuel):** `Labs::ModularInverse(a, m)`, con Euclides extendido, que devuelve
+- [x] **Paso 5 (Emanuel; lo resolvió Claude):** `Labs::ModularInverse(a, m)`, con Euclides extendido, que devuelve
   `std::nullopt` si no hay inversa. Tests: uno a mano (3 módulo 7 es 5), uno sin inversa, y que
   para un módulo de 18 bits el producto de los dos módulo m da 1.
-- [ ] **Paso 6 (Emanuel, jefe):** Q-C03. El corte del original sobre un buffer que se reusa: con
+- [x] **Paso 6 (Emanuel, jefe; lo resolvió Claude):** Q-C03. El corte del original sobre un buffer que se reusa: con
   los dos primeros bytes de un C2 al final de una lectura, el tamaño se arma con un byte viejo; si
   da 0, lo que queda no se corre al principio y la lectura siguiente se pega detrás de bytes ya
   usados. El test reproduce el caso 1b de `red_reference.py`: `C1 05 10 01 02` y
   `C2 00 06 20 03 04`, partidos después de `C2 00`, dan en el original un segundo paquete
   `C1 05 06 20 03`. Después, que el `FrameCutter` espera los bytes que faltan.
-- [ ] **Paso 7 (Emanuel):** comparar, y anotarlo en `labs/README.md`: el `FrameCutter` con el
-  `PacketReader` de la CL2.1 (cuál es más fácil de probar y por qué), y el `BitWriter` con
-  `std::bitset` y `<bit>` (`std::bit_width`, `std::rotl`): qué resuelven y qué no.
-- [ ] **Paso 8 (carril R):** en Ghidra, el corte de `0x4e893d`: las lecturas de `buf[off + 1]` y
+- [x] **Paso 7 (Emanuel; lo resolvió Claude):** comparar, y anotarlo en `labs/README.md`: el
+  `FrameCutter` con el `PacketReader` de la CL2.1 (cuál es más fácil de probar y por qué), y el
+  `BitWriter` con `std::bitset` y `<bit>` (`std::bit_width`, `std::rotl`): qué resuelven y qué no.
+  Quedó en el README de la carpeta, [`labs/cl2.0-flujos/README.md`](../../../labs/cl2.0-flujos/README.md),
+  con las respuestas de las otras actividades; `labs/README.md` lo enlaza.
+- [x] **Paso 8 (carril R; lo resolvió Claude):** en Ghidra, el corte de `0x4e893d`: las lecturas de `buf[off + 1]` y
   `buf[off + 2]` sin mirar cuántos bytes quedan, y el `cmp eax,0x2000` de `0x4e88a0`.
-- [ ] **Paso 9:** verificar:
+- [x] **Paso 9:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "FrameCutter|BitWriter|BitReader|ModularInverse|OldCut"
   ```

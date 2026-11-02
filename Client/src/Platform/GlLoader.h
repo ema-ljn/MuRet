@@ -38,6 +38,11 @@ struct GlFunctions
 // 3.3 o más.
 [[nodiscard]] bool HasRequiredGlVersion(int major, int minor);
 
+// Si el GL_CONTEXT_PROFILE_MASK del contexto trae GL_CONTEXT_CORE_PROFILE_BIT. Un 3.3
+// "Compatibility Profile" no alcanza (D-C3), y en Windows, sin wglCreateContextAttribsARB, SDL da
+// un contexto legado y solo deja el error (SDL_windowsopengl.c).
+[[nodiscard]] bool IsCoreProfile(int profileMask);
+
 // Pide cada función de la tabla al contexto actual. El error nombra la primera que falta.
 [[nodiscard]] Core::Expected<GlFunctions, std::string> LoadGlFunctions();
 

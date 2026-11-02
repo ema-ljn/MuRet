@@ -46,7 +46,7 @@ public:
 
     // Se mueve (Expected lo devuelve por valor) pero no se asigna: la asignación de miembros
     // destruiría la ventana vieja antes que su contexto.
-    Window(Window&&) = default;
+    Window(Window&&) noexcept = default;
     Window& operator=(Window&&) = delete;
     Window(const Window&) = delete;
     Window& operator=(const Window&) = delete;
@@ -54,6 +54,8 @@ public:
 
     void Swap();
     [[nodiscard]] App::PixelSize PixelSize() const;
+    // El SDL_WindowID, para que PumpEvents descarte los eventos de otras ventanas.
+    [[nodiscard]] SDL_WindowID Id() const;
     // El que quedó después de ApplySwapInterval.
     [[nodiscard]] App::VSyncMode VSync() const;
     // Por qué no quedó el pedido (el SDL_GetError()); vacío si quedó.

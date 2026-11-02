@@ -59,10 +59,19 @@ Core::Expected<Window, std::string> Window::Create(const SdlContext& /*sdl*/, co
     GLint minor = 0;
     gl.Value().getIntegerv(GL_MAJOR_VERSION, &major);
     gl.Value().getIntegerv(GL_MINOR_VERSION, &minor);
+    // GL_VERSION también en el mensaje: antes de la 3.0, GL_MAJOR_VERSION no existe y da 0.0.
+    const std::string driverVersion = GlString(gl.Value(), GL_VERSION);
     if (!HasRequiredGlVersion(major, minor))
     {
         return Core::Unexpected("se pidió OpenGL " + glVersion + " y el driver dio " + std::to_string(major) + "." +
-                                std::to_string(minor));
+                                std::to_string(minor) + " (" + driverVersion + ")");
+    }
+    GLint profileMask = 0;
+    gl.Value().getIntegerv(GL_CONTEXT_PROFILE_MASK, &profileMask);
+    if (!IsCoreProfile(profileMask))
+    {
+        return Core::Unexpected("se pidió OpenGL " + glVersion +
+                                " core y el driver dio un contexto sin el perfil core (" + driverVersion + ")");
     }
 
     SwapIntervalResult vsync = ApplySwapInterval(options.vsync);
@@ -79,6 +88,11 @@ App::PixelSize Window::PixelSize() const
     App::PixelSize size;
     SDL_GetWindowSizeInPixels(m_window.get(), &size.width, &size.height);
     return size;
+}
+
+SDL_WindowID Window::Id() const
+{
+    return SDL_GetWindowID(m_window.get());
 }
 
 App::VSyncMode Window::VSync() const

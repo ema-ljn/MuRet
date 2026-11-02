@@ -1,5 +1,6 @@
 #include "Platform/GlLoader.h"
 
+#include <SDL3/SDL_loadso.h>
 #include <SDL3/SDL_video.h>
 
 #include <cstdint>
@@ -11,9 +12,33 @@ namespace Client::Platform
 {
 namespace
 {
+#ifdef _WIN32
+// SDL busca en opengl32.dll solo cuando wglGetProcAddress da nulo (WIN_GL_GetProcAddress, en
+// SDL_windowsopengl.c). Con los drivers que dan 1, 2, 3 o -1, las funciones de la 1.1
+// (glGetString, glClear) quedarían afuera aunque opengl32.dll las exporta: se piden ahí.
+SDL_FunctionPointer LoadFromOpenGl32(const char* name)
+{
+    SDL_SharedObject* opengl32 = SDL_LoadObject("opengl32.dll");
+    if (opengl32 == nullptr)
+    {
+        return nullptr;
+    }
+    const SDL_FunctionPointer address = SDL_LoadFunction(opengl32, name);
+    // La DLL sigue cargada: SDL tiene su propia referencia mientras viva la ventana GL.
+    SDL_UnloadObject(opengl32);
+    return address;
+}
+#endif
+
 template <typename Function> bool LoadGlFunction(Function& function, const char* name, std::string& error)
 {
-    const SDL_FunctionPointer address = SDL_GL_GetProcAddress(name);
+    SDL_FunctionPointer address = SDL_GL_GetProcAddress(name);
+#ifdef _WIN32
+    if (!IsValidProcAddress(reinterpret_cast<std::uintptr_t>(address)))
+    {
+        address = LoadFromOpenGl32(name);
+    }
+#endif
     if (!IsValidProcAddress(reinterpret_cast<std::uintptr_t>(address)))
     {
         error = std::string("el driver no tiene ") + name;
@@ -34,6 +59,11 @@ bool IsValidProcAddress(std::uintptr_t address)
 bool HasRequiredGlVersion(int major, int minor)
 {
     return major > GlMajorVersion || (major == GlMajorVersion && minor >= GlMinorVersion);
+}
+
+bool IsCoreProfile(int profileMask)
+{
+    return (profileMask & GL_CONTEXT_CORE_PROFILE_BIT) != 0;
 }
 
 Core::Expected<GlFunctions, std::string> LoadGlFunctions()

@@ -33,7 +33,7 @@ endif()
 
 # Platform (CL3.1): lo único que ve SDL3. La ventana, el contexto GL, el loader, el intervalo de
 # swap y la traducción de eventos. Sus tests (tests/platform/) lo enlazan aparte.
-file(GLOB platform_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/*.cpp")
+file(GLOB_RECURSE platform_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/*.cpp")
 add_library(ClientPlatform STATIC ${platform_sources})
 target_link_libraries(ClientPlatform PUBLIC ClientLib SDL3::SDL3)
 # Los typedef PFNGL…PROC de las funciones de GL 1.x (glClear, glViewport); los de la 3.3 vienen

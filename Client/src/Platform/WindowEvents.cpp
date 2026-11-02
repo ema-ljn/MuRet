@@ -7,8 +7,23 @@
 // PumpEvents: la tabla del contrato de la CL3.1, de los SDL_EVENT_* a los WindowEvent.
 namespace Client::Platform
 {
-std::optional<App::WindowEvent> WindowEventFor(const SDL_Event& event)
+namespace
 {
+bool IsWindowEvent(const SDL_Event& event)
+{
+    // type es un Uint32: los dos extremos del enum, del mismo tipo (MSVC avisa con o sin signo).
+    return event.type >= static_cast<Uint32>(SDL_EVENT_WINDOW_FIRST) &&
+           event.type <= static_cast<Uint32>(SDL_EVENT_WINDOW_LAST);
+}
+} // namespace
+
+std::optional<App::WindowEvent> WindowEventFor(const SDL_Event& event, SDL_WindowID windowId)
+{
+    // event.window es el miembro activo solo en los eventos de ventana.
+    if (windowId != AnyWindow && IsWindowEvent(event) && event.window.windowID != windowId)
+    {
+        return std::nullopt;
+    }
     switch (event.type)
     {
     case SDL_EVENT_QUIT:
@@ -33,12 +48,12 @@ std::optional<App::WindowEvent> WindowEventFor(const SDL_Event& event)
     }
 }
 
-void PumpEvents(App::WindowState& state)
+void PumpEvents(App::WindowState& state, SDL_WindowID windowId)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-        const std::optional<App::WindowEvent> windowEvent = WindowEventFor(event);
+        const std::optional<App::WindowEvent> windowEvent = WindowEventFor(event, windowId);
         if (!windowEvent)
         {
             continue;

@@ -9,6 +9,7 @@
 namespace
 {
 using Client::Platform::HasRequiredGlVersion;
+using Client::Platform::IsCoreProfile;
 using Client::Platform::IsValidProcAddress;
 
 TEST(GlLoaderTest, RejectsTheInvalidAddresses)
@@ -29,5 +30,13 @@ TEST(GlLoaderTest, RequiresThreeThree)
     EXPECT_TRUE(HasRequiredGlVersion(4, 5));
     EXPECT_FALSE(HasRequiredGlVersion(3, 2));
     EXPECT_FALSE(HasRequiredGlVersion(2, 1));
+}
+
+TEST(GlLoaderTest, RequiresTheCoreProfile)
+{
+    EXPECT_TRUE(IsCoreProfile(GL_CONTEXT_CORE_PROFILE_BIT));
+    EXPECT_FALSE(IsCoreProfile(GL_CONTEXT_COMPATIBILITY_PROFILE_BIT));
+    // Antes de la 3.2 la consulta no existe y el entero queda en 0.
+    EXPECT_FALSE(IsCoreProfile(0));
 }
 } // namespace

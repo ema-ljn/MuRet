@@ -489,16 +489,38 @@ contexto se destruye primero), como la CL0.3.
   `focused`), `PixelSizeChangedUpdatesTheSize`, `AZeroPixelSizeIsIgnored`;
   `GlLoaderTest.RejectsTheInvalidAddresses` (0, 1, 2, 3 y `UINTPTR_MAX` no; 4 sí),
   `GlLoaderTest.RequiresThreeThree` (3.3, 3.4, 4.5 sí; 3.2 y 2.1 no);
-  `SwapIntervalTest.MapsEachMode` (`On` 1, `Adaptive` -1, `Off` 0).
+  `SwapIntervalTest.MapsEachMode` (`On` 1, `Adaptive` -1, `Off` 0). Después de las revisiones se
+  sumaron `WindowStateTest.APixelSizeWithOneZeroSideIsIgnored` y `ANegativePixelSizeIsIgnored`,
+  `GlLoaderTest.RequiresTheCoreProfile`, cinco de `SwapIntervalTest` con dobles (el modo pedido
+  queda, `Adaptive` cae a `On`, `On` cae a lo que tiene el contexto, un `get` que falla da `Off`,
+  y `Off` que queda `Off` no tiene error) y `WindowEventsTest` (la tabla, los demás eventos y los
+  de otra ventana).
 - [x] **Paso 3:** `WindowState`, y `Platform` con lo que ya hace `main.cpp`. `main.cpp` queda en el
   armado: `SdlContext`, `Window` y el bucle de la CL0.3, que la CL3.2 reemplaza.
   *Hecho, con tres agregados a las interfaces:* `Window::Gl()` devuelve la tabla `GlFunctions`
   (el bucle de la CL0.3 limpia y pone el viewport con ella); `GlLoader.h` suma `LoadGlFunctions()`,
   que devuelve un `Core::Expected` con la primera función que falta, y `GlString`; y los
   deleters de `Window` (`WindowDeleter`, `GlContextDeleter`) están en `Window.h`, con el cuerpo en
-  el `.cpp`. Los errores dicen lo mismo que en la CL0.3, ahora como valor. Si `ApplySwapInterval`
-  no puede cambiar el intervalo, devuelve el que el contexto ya tenía (`SDL_GL_GetSwapInterval`), y
-  `Main` avisa por `stderr` si no es el pedido (en Xvfb pasa: el intervalo 1 no entra).
+  el `.cpp`. Los errores dicen lo mismo que en la CL0.3, ahora como valor, menos el de VSync.
+  *Después de las dos revisiones:* `Window` se mueve (`noexcept`) pero no se asigna, porque la
+  asignación de miembros destruiría la ventana vieja antes que su contexto. `ApplySwapInterval`
+  recibe `set` y `get` (los de SDL por defecto, para probarla con dobles) y devuelve un
+  `SwapIntervalResult`: el modo que quedó (si nada entra, el de `SDL_GL_GetSwapInterval`, u `Off`)
+  y el `SDL_GetError()`; `Main` avisa "VSync: se pidió X y quedó Y: <error>" (en Xvfb: On y Off,
+  "That operation is not supported"). Se exige el perfil core (`IsCoreProfile`, sobre
+  `GL_CONTEXT_PROFILE_MASK`): un 3.3 compatibility falla con un error que lo dice, y los de versión
+  traen el `GL_VERSION`. En Windows, si `SDL_GL_GetProcAddress` da una dirección inválida, se
+  reintenta en `opengl32.dll` (SDL solo lo hace cuando da nulo). `WindowEventFor(event, windowId)`
+  está expuesta y probada, y descarta los eventos de otra ventana; `PumpEvents` toma el
+  `windowId` con `AnyWindow` por defecto: el bucle de la CL3.2 tiene que pasarle `window.Id()`
+  (el de la CL0.3 no lo pasa, para no tocar `main.cpp` mientras se apila la CL3.2). Un
+  segundo `SdlContext` vivo es un error (un `s_alive` en `SdlContext.cpp`). `ClientPlatform` junta
+  sus fuentes con `GLOB_RECURSE`.
+  *Notas sin resolver:* `GlLoader.h` incluye `SDL_opengl.h`, que en Windows trae `<windows.h>` a
+  `main.cpp` y a los tests de `platform/` (con las macros `near`, `far`, `ERROR`, `DELETE`); hoy
+  no choca con nada. Y nada impide que un archivo de `App/` incluya `<SDL3/...>`: en vcpkg, el
+  include de libjpeg-turbo es la misma carpeta que tiene `SDL3/`, así que compilaría aunque
+  `ClientLib` no enlace SDL3; se puede chequear con un `file(STRINGS ... REGEX)` si hace falta.
 - [x] **Paso 4:** CMake. El `file(GLOB_RECURSE client_sources ... "src/*.cpp")` de `ClientLib`
   juntaría también `src/Platform/*.cpp`, y `ClientLib` no puede enlazar SDL3: después del filtro
   de `main.cpp` va `list(FILTER client_sources EXCLUDE REGEX "/src/Platform/")`, como los

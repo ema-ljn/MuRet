@@ -9,8 +9,19 @@
 // SdlContext: el SDL_Init y el SDL_Quit del cliente.
 namespace Client::Platform
 {
+namespace
+{
+// Si hay un SdlContext vivo. SDL_Quit cierra SDL para todos (SDL_init.h): con dos, el primero que
+// muere dejaría al otro sin SDL.
+bool s_alive = false;
+} // namespace
+
 Core::Expected<std::unique_ptr<SdlContext>, std::string> SdlContext::Create()
 {
+    if (s_alive)
+    {
+        return Core::Unexpected(std::string("ya hay un SdlContext vivo: el SDL_Quit de uno cerraría el otro"));
+    }
     if (!SDL_Init(SDL_INIT_VIDEO))
     {
         std::string error = std::string("SDL_Init falló: ") + SDL_GetError();
@@ -19,6 +30,7 @@ Core::Expected<std::unique_ptr<SdlContext>, std::string> SdlContext::Create()
         SDL_Quit();
         return Core::Unexpected(std::move(error));
     }
+    s_alive = true;
     // El constructor es privado: make_unique no lo ve.
     return std::unique_ptr<SdlContext>(new SdlContext());
 }
@@ -26,5 +38,6 @@ Core::Expected<std::unique_ptr<SdlContext>, std::string> SdlContext::Create()
 SdlContext::~SdlContext()
 {
     SDL_Quit();
+    s_alive = false;
 }
 } // namespace Client::Platform

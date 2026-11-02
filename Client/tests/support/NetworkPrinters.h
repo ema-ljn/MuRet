@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Network/CloseReason.h"
-#include "Network/Connection.h"
 #include "Network/Crypto/CryptoError.h"
 #include "Network/Delivery.h"
 #include "Network/ISocket.h"
+#include "Network/LinkState.h"
 #include "Network/ObfuscationError.h"
 #include "Network/PacketError.h"
 #include "Network/PacketSerials.h"

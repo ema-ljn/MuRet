@@ -30,7 +30,6 @@ using Client::Network::Packet;
 using Client::Network::PacketSerials;
 using Client::Network::Crypto::Xor32Decode;
 using Client::Protocol::Outgoing;
-using Client::Protocol::Connection::Keepalive;
 using Client::Protocol::Connection::KeepaliveAdjust20;
 using Client::Protocol::Connection::KeepaliveAdjust25;
 using Client::Protocol::Connection::KeepaliveSpeed;

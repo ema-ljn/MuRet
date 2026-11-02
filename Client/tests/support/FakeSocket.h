@@ -42,7 +42,7 @@ public:
     std::optional<Network::SocketError> connectResult; // vacío: Connected; ResolveFailed, enseguida
     std::deque<std::vector<std::byte>> reads;          // vacío: Receive da 0
     std::deque<SendStep> sendLimits;                   // un Send por entrada; vacío: toma todo
-    std::optional<Network::SocketError> sendError;     // el próximo Send falla con esto
+    std::optional<Network::SocketError> sendError;     // el próximo Send falla con esto, antes que sendLimits
     bool peerClosed = false;                           // Receive da Closed cuando no hay más reads
     int systemError = 0;                               // lo que da LastSystemError
     // Corre al principio de cada StartConnect, como el resolver, que va antes que todo: un test

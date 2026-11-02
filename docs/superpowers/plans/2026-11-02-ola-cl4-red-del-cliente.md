@@ -1066,6 +1066,15 @@ public:
     `AfterCut`, `BeforeDispatch` o `BeforeSend`, un `BadStream` que no cierra o un `InvalidPacket`
     que sí, un C3 que pasa, un `Encrypted` que sale, leer después de un `Flush` que falló, entre
     otros): los mata algún test.
+  - De la revisión del PR: `WithFoxAntiASkillListThatDoesNotTranslateIsDropped` (un `C1 04 F3 11`
+    sin `pkt[4]`, Q-C09: `BeforeDispatch` no lo traduce, se descarta con un aviso y la conexión
+    sigue) y `ASocketThatClaimsMoreThanTheBufferDoesNotReadPastIt` (el `std::min` de la lectura);
+    los avisos de descarte y de cierre se comparan enteros, con su nivel, así un aviso que sumara
+    los bytes del paquete (el login va a pasar por el de `Encrypted` hasta la CL4.4) falla, y
+    `CloseIsNotAnEvent` mira que el `ByClient` va en `info`. Ocho mutantes más (`BeforeDispatch`
+    que cierra o que descarta sin aviso, los niveles del log de cierre, un aviso con el tamaño del
+    paquete, la lectura sin el `std::min`): los mata algún test. Unos `static_assert` fijan que una
+    ofuscación temporal no compila y que la `Connection` no se copia ni se mueve.
   - `ServerSessionTest.WhatFollowsTheAddressIsDropped` es del PR B: la `Connection` vacía el corte
     en `Open` (`ReopeningStartsClean`), pero lo que ya salió en el lote lo tiene que dejar de
     recorrer la sesión.
@@ -1104,7 +1113,8 @@ public:
     quien arme la red en `main.cpp`.
   - `Delivery` bajó a `Network/Delivery.h`; `Outgoing` lo usa desde ahí, y su `PrintTo` pasó de
     `support/ProtocolPrinters.h` a `support/NetworkPrinters.h`, con los de `CloseReason` y
-    `LinkState`.
+    `LinkState`. `LinkState` va en su `Network/LinkState.h`, como `CloseReason.h`, para que los
+    printers no incluyan la `Connection` entera.
 - [ ] **Paso 4 (PR B):** los tests de la sesión, con `FakeSocket` haciendo de CS:
   - `A9Test.WritesTheBytesOfTheWire` (`C1 06 A9 00 00 01` con XOR32 es `C1 06 A9 20 9C 2F`,
     en claro);

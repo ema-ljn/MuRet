@@ -12,8 +12,10 @@ class ILoopClient
 public:
     virtual ~ILoopClient() = default;
     // La red: una vez por frame, antes de los pasos, también minimizada, como la cola de paquetes
-    // que el original despacha en cada vuelta del bucle de WinMain (0x4e1d50). En el modo fiel va
-    // antes de BeginFrame, fuera de la medición, como el bucle de mensajes (GameLoop.h).
+    // que el original despacha en cada vuelta del bucle de WinMain (0x4e1d50). El original la
+    // despacha después del frame (0x4be5b3), que en régimen es lo mismo: entre un frame y el
+    // siguiente. En el modo fiel va antes de BeginFrame, fuera de la medición, como el bucle de
+    // mensajes (GameLoop.h).
     virtual void Poll() = 0;
     // Un paso. Los flancos de `input` (WasPressed, WasReleased, Wheel) los ve solo el primer paso
     // del frame: GameLoop llama a ConsumeEdges después (InputState.h).

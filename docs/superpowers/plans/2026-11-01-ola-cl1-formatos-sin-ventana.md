@@ -94,7 +94,8 @@ entera, y suma lo que necesita la CL1: el `Expected`.
 
 - [ ] **Paso 1 (Claude, andamiaje):** GoogleTest en `labs/` (desde la CL0.2 está en `vcpkg.json`) y
   el target de la carpeta nueva. Va después del merge del PR #11, que toca el mismo
-  `labs/CMakeLists.txt`.
+  `labs/CMakeLists.txt`. GoogleTest llegó a `labs/` con la CL2.0, el 2026-11-02: falta solo el
+  target de `cl1.0-bytes/`.
 - [ ] **Paso 2 (Emanuel, `TODO(human)`):** los tests de `Labs::ByteView` primero, con bytes
   literales:
   - `ReadU8`, `ReadU16Le`, `ReadU32Le` y `ReadU16Be`. Por ejemplo, `F1 E2 00 00` como `u32le` es

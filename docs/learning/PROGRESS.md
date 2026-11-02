@@ -46,7 +46,12 @@ solo lo lee.
   [plan](../superpowers/plans/2026-11-02-ola-cl2-protocolo-sin-red.md) y la
   [guía de la CL2.0](ola-cl2.0-flujos-y-bloques.md). El 2026-11-02 pediste que Claude la escriba
   entera, también la CL2.0 en `labs/` y los pasos `TODO(human)`, hasta que digas que participás:
-  lo que resuelva Claude queda marcado acá como resuelto por Claude.
+  lo que resuelva Claude queda marcado acá como resuelto por Claude. **La CL2.0 la resolvió
+  Claude** el 2026-11-02: el `FrameCutter` de a un byte, el `BitWriter` y el `BitReader` MSB
+  primero, el inverso modular con Euclides extendido y el jefe, un modelo del corte del original
+  que lee bytes viejos (Q-C03), con las respuestas de las 14 actividades en
+  [`labs/cl2.0-flujos/README.md`](../../labs/cl2.0-flujos/README.md). Con ella llegó GoogleTest a
+  `labs/`. Para cerrarla falta lo tuyo: las preguntas y la sección final de la guía.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 
@@ -79,6 +84,13 @@ sesión, junto con los de repaso más viejo.
 | una imagen dentro de una textura de lados potencia de 2, y el orden de las filas (abajo hacia arriba en el TGA) y de los canales (BGRA) | CL1.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
 | una biblioteca de C que avisa sus errores con `setjmp`/`longjmp`, y por qué entre los dos no puede quedar vivo un objeto con destructor (`JpegImage.cpp`) | CL1.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
 | probar que una biblioteca hace lo mismo que la del original: los mismos bytes en los datos reales y en vectores chicos que corren en CI (`CODING_RULES.md` §10) | CL1.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-01 |
+| TCP entrega un flujo y no mensajes: el corte como máquina de estados que recibe de a un byte (`FrameCutter`), y sus invariantes | CL2.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un cifrado encadenado (XOR32) y uno por bloques (`SimpleModulus`), y por qué con la clave en el binario los dos son ofuscación | CL2.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| aritmética modular y el inverso con Euclides extendido (`ModularInverse`), y por qué la clave de cifrado del cliente es la inversa de la de descifrado del servidor | CL2.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| campos de bits MSB primero (`BitWriter`, `BitReader`), y por qué un carril del `SimpleModulus` no es un campo de 18 bits | CL2.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| la aritmética sin signo que da la vuelta, el desborde con signo que es comportamiento indefinido, y `std::uint16_t * std::uint16_t`, que se multiplica como `int` | CL2.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un test de propiedad con `std::mt19937` y semilla fija, tomando la salida del motor y no una distribución | CL2.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un bug que lee bytes viejos de un buffer que se reusa (Q-C03), modelado para verlo fallar | CL2.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

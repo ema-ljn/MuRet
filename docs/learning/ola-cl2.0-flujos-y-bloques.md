@@ -7,6 +7,11 @@ llegaron, y la matemática y los bits del cifrado C3/C4. La parte del flujo TCP 
 con material del cliente. Plan (tiene las respuestas: abrilo después):
 [CL2](../superpowers/plans/2026-11-02-ola-cl2-protocolo-sin-red.md#sub-ola-cl20-flujos-y-bloques-n0-en-labs).
 
+**Resuelta por Claude** el 2026-11-02, a tu pedido: el código está en
+[`labs/cl2.0-flujos/`](../../labs/cl2.0-flujos/), y las respuestas de las 14 actividades, con las
+salidas reales, en su [README](../../labs/cl2.0-flujos/README.md). Si la hacés vos, abrilo
+después de cada actividad, no antes. La sección final de esta guía sigue siendo tuya.
+
 Qué cubre:
 
 - **Teoría:**

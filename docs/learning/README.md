@@ -10,6 +10,7 @@ código y Claude hace de tutor. Acá queda lo que se estudia, lo que se mide y l
 | [PROGRESS.md](PROGRESS.md) | estado de cada concepto (dominado, flojo, pendiente) | se actualiza al cerrar cada ola |
 | [ola-0.0-del-codigo-al-programa.md](ola-0.0-del-codigo-al-programa.md) | guía de la 0.0: unidades de traducción, símbolos, enlace, ODR; la misión de `labs/` | guía de Claude, cierre tuyo |
 | [ola-cl1.0-bytes-y-archivos.md](ola-cl1.0-bytes-y-archivos.md) | guía de la CL1.0 del cliente: bytes, endianness, cadenas de largo fijo y el `Expected` propio; la misión en `labs/` | guía de Claude, cierre tuyo |
+| [ola-cl2.0-flujos-y-bloques.md](ola-cl2.0-flujos-y-bloques.md) | guía de la CL2.0 del cliente: el corte de un flujo TCP, el XOR32, aritmética modular y bits MSB primero; la misión y el jefe Q-C03 en `labs/` | guía de Claude, cierre tuyo |
 | [ola-0-fundaciones.md](ola-0-fundaciones.md) | guía de la ola 0: dependencias, tests, CI, ADR y formato | guía de Claude, cierre tuyo |
 | [ola-0.1-cmake.md](ola-0.1-cmake.md) | nota de la sub-ola 0.1 (CMake, targets) | Claude la armó; las respuestas son tuyas |
 | [ola-1-protocolo.md](ola-1-protocolo.md) | guía de la ola 1: bytes, framing, serialización | guía de Claude, cierre tuyo |

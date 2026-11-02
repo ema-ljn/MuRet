@@ -43,8 +43,10 @@ solo lo lee.
   ([05](../../Client/docs/research/05-formatos-de-datos.md#el-pipeline-de-las-dlls)). Con eso el
   código de la CL1 está entero; para cerrarla falta lo tuyo (la parte de `labs/`, las actividades
   de la guía y explicar los conceptos de abajo). Próxima: la CL2 (protocolo sin red), con su
-  [plan](../superpowers/plans/2026-11-02-ola-cl2-protocolo-sin-red.md): tiene cinco preguntas
-  para decidir al empezar, y la primera es quién la escribe.
+  [plan](../superpowers/plans/2026-11-02-ola-cl2-protocolo-sin-red.md) y la
+  [guía de la CL2.0](ola-cl2.0-flujos-y-bloques.md). El 2026-11-02 pediste que Claude la escriba
+  entera, también la CL2.0 en `labs/` y los pasos `TODO(human)`, hasta que digas que participás:
+  lo que resuelva Claude queda marcado acá como resuelto por Claude.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 

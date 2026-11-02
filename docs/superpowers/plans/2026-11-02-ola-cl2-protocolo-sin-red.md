@@ -59,9 +59,14 @@ del cliente. De la CL2.1 en adelante, la sección de cada sub-ola de este plan.
 ## Preguntas para decidir al empezar
 
 1. **Quién escribe la CL2.** En la CL1 pediste seguir con el cliente y Claude la escribió como
-   ejemplo trabajado. *Recomendación:* igual, con la CL2.0 en `labs/` para vos y un paso
-   `TODO(human)` chico por sub-ola (marcados abajo). Si la querés escribir vos, los pasos ya están
-   en el orden en que se hace: primero el test.
+   ejemplo trabajado. La recomendación era igual, con la CL2.0 en `labs/` para vos y un paso
+   `TODO(human)` chico por sub-ola (marcados abajo). **Decidido (Emanuel, 2026-11-02): Claude
+   escribe todo.** Primero elegiste "Claude, como en la CL1", y el mismo día pediste que Claude
+   escriba también la CL2.0 en `labs/` y los pasos `TODO(human)`, hasta que digas que
+   participás. Los pasos marcados "(Emanuel)" los hace Claude por ahora, y en
+   [PROGRESS](../../learning/PROGRESS.md) quedan como resueltos por Claude; cuando entres, los
+   que sigan abiertos vuelven a ser tuyos. Las preguntas 2 a 5 siguen con su recomendación
+   mientras no digas otra cosa: todas se pueden cambiar después.
 2. **Código compartido con los servidores** (pregunta 2 del roadmap). El corte C1/C2 lo van a
    necesitar el DataServer (el `FrameParser` de su ola 1) y el ConnectServer (ola 10). C3/C4, el
    XOR32 y FoxAnti, solo el cliente: el GameServer queda fuera del roadmap del servidor.
@@ -70,8 +75,10 @@ del cliente. De la CL2.1 en adelante, la sección de cada sub-ola de este plan.
    mover archivos. Se decide en la 1.2 del servidor, el segundo que lo usa: reusarlo, o escribir
    el `FrameParser` como el ejercicio que es en su plan.
 3. **Hasta qué tamaño se lee un paquete** (Q-C05). El original recibe en un buffer de `0x2000`
-   bytes: un paquete más grande nunca entra entero, el buffer se llena y la conexión se cierra
-   ("Receive Packet Buffer Overflow", `0x4e88a0`). Además descifra en ~2.046 bytes de la pila, y un
+   bytes: un paquete más grande nunca entra entero y el buffer se llena. Desde ahí cada lectura
+   loguea "Receive Packet Buffer Overflow" y vuelve con 1 sin llamar a `recv` (`0x4e88a0`); el
+   WndProc ignora ese 1 (`0x4b3207`), así que la conexión no se cierra, pero no se lee más.
+   Además descifra en ~2.046 bytes de la pila, y un
    C4 de más de ~2,8 KB la desborda (*estático*, sin probar). *Recomendación:*
    `MaxPacketSize = 0x2000` para los cuatro tipos, como error apenas llega la cabecera, y el
    descifrado escribe en un buffer del tamaño de lo que entra. En el cable del laboratorio el más
@@ -138,13 +145,16 @@ semilla fija para un test de propiedad.
   sus tests y `jefe/OldCutTest.cpp` (Emanuel)
 - Modificar: `labs/CMakeLists.txt`, `labs/README.md`
 
-- [ ] **Paso 1 (Claude):** la guía, justo antes de empezar.
-- [ ] **Paso 2 (Emanuel):** GoogleTest en `labs/`, el paso 1 de la CL1.0, si todavía no se hizo.
+- [x] **Paso 1 (Claude):** la guía, justo antes de empezar
+  ([ola-cl2.0-flujos-y-bloques.md](../../learning/ola-cl2.0-flujos-y-bloques.md), 2026-11-02).
+- [ ] **Paso 2 (Claude, andamiaje):** GoogleTest en `labs/`, el paso 1 de la CL1.0, si todavía no
+  se hizo.
 - [ ] **Paso 3 (Emanuel, `TODO(human)`):** `Labs::FrameCutter`, alimentado de a un byte, con los
   estados explícitos en un `enum class` (tipo, tamaño, cuerpo). Primero los tests: los casos de
   `red_reference.py --selftest` que no son del cifrado (corte, resto parcial, cabecera incompleta,
-  cabecera inválida y tamaño 0), y uno de propiedad: el mismo flujo partido al azar da los mismos
-  paquetes.
+  cabecera inválida y tamaño 0), y uno de propiedad: paquetes válidos al azar, uno detrás del
+  otro, salen iguales y en orden. Como el corte recibe de a un byte, partir el flujo no cambia
+  nada; esa propiedad es del `PacketReader` de la CL2.1, que recibe lecturas enteras.
 - [ ] **Paso 4 (Emanuel):** `Labs::BitWriter` y `Labs::BitReader`, MSB primero:
   `Write(value, bits)` y `Read(bits)`. Tests: el primer bit escrito es el `0x80` del byte 0;
   cuatro campos de 18 bits más uno de 16 ocupan justo 11 bytes y se leen iguales; y un carril
@@ -182,8 +192,8 @@ y `004e893d-corte-paquetes.md`):
 | tamaño | `C1` y `C3` lo llevan en `pkt[1]`; `C2` y `C4`, en `pkt[1..2]` big-endian. Es el del paquete entero | igual |
 | cabecera incompleta (Q-C03) | con el primer byte de un paquete al final de la lectura, o los dos primeros de un C2/C4, arma el tamaño con bytes viejos (lee `buf[off + 1]` y `buf[off + 2]` sin mirar cuántos quedan); si da 0, el flujo queda corrido | espera los bytes que faltan |
 | tipo inválido | descarta todo lo acumulado, también los paquetes buenos que vengan detrás, y sigue | `PacketError::InvalidType`, y el error queda: la CL4 cierra la conexión |
-| tamaño menor que la cabecera y el opcode | con 0 no avanza nunca, y el buffer se llena hasta cerrar; con 1 o 2, saca un paquete sin opcode | `PacketError::SizeTooSmall` (C1 y C3 miden al menos 3; C2 y C4, 4) |
-| tamaño de más (Q-C05) | un paquete de más de `0x2000` bytes no entra en el buffer, que se llena y cierra | `PacketError::TooLarge` apenas llega la cabecera (pregunta 3) |
+| tamaño menor que la cabecera y el opcode | con 0 al principio de la lectura no avanza nunca, y el buffer se llena hasta que no se lee más (pregunta 3); con 1 o 2, saca un paquete sin opcode | `PacketError::SizeTooSmall` (C1 y C3 miden al menos 3; C2 y C4, 4) |
+| tamaño de más (Q-C05) | un paquete de más de `0x2000` bytes no entra en el buffer, que se llena hasta que no se lee más | `PacketError::TooLarge` apenas llega la cabecera (pregunta 3) |
 | copia | cada paquete va a la cola en un buffer de `0x2004` bytes con un `0xFD` detrás | cada `Packet` es dueño de sus bytes, sin centinela |
 
 Lo que hace MuRet en las filas de Q-C03, del tipo inválido, del tamaño chico y de Q-C05 corrige

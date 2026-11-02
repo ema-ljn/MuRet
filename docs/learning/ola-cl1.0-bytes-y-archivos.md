@@ -205,11 +205,11 @@ alcanza con un `std::variant<T, E>`, que guarda exactamente uno de los dos.
 
 > **Ya está escrito** (2026-11-01, a pedido tuyo, como ejemplo trabajado):
 > [`Client/src/Core/Expected.h`](../../Client/src/Core/Expected.h) y sus tests en
-> [`Client/tests/core/ExpectedTest.cpp`](../../Client/tests/core/ExpectedTest.cpp). Leelos y
+> [`Client/tests/core/test_expected.cpp`](../../Client/tests/core/test_expected.cpp). Leelos y
 > respondé las dos decisiones de abajo con tus palabras: el comentario del header dice qué se
 > eligió, no por qué te convence o no.
 
-**Te tocaba**, tests primero (`Client/tests/core/ExpectedTest.cpp`):
+**Te tocaba**, tests primero (`Client/tests/core/test_expected.cpp`):
 - uno con valor y uno con error, y qué devuelve cada consulta;
 - qué pasa si pedís el valor de uno que tiene un error.
 

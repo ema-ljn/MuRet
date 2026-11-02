@@ -18,7 +18,7 @@
 
 // LoadTerrainLight con OZJ armados desde los vectores de CI. Lo que se prueba es lo de la luz:
 // cada byte por 1/255 y las filas dadas vuelta, contra lo que da DecodeJpeg (sus tests están en
-// JpegImageTest.cpp), y el tamaño que se acepta.
+// test_jpeg_image.cpp), y el tamaño que se acepta.
 namespace
 {
 using Client::Data::DataError;

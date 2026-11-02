@@ -18,8 +18,8 @@
 //
 // La Item.bmd del laboratorio no sirve de oráculo: trae 0x50 bytes después de los registros y su
 // checksum, y no pasa el suyo, porque el cliente parcheado no lo mira (Q-C01; eso lo prueba su
-// cargador, en GoldenItemTableTest.cpp). La itemtest.bmd de la misma carpeta tiene el tamaño justo
-// y sí pasa: es la que prueba la clave y la paridad de Item.
+// cargador, en test_golden_item_table.cpp). La itemtest.bmd de la misma carpeta tiene el tamaño
+// justo y sí pasa: es la que prueba la clave y la paridad de Item.
 namespace
 {
 using Client::Data::Tables::ChecksumParity;

@@ -51,7 +51,7 @@ Client::Core::Expected<Texture, DataError> LoadFile(const std::filesystem::path&
 
 // Los 2.387 OZJ del laboratorio cargan salvo ocho, que el original tampoco carga: los 7 TGA de
 // Q-C14, que libjpeg rechaza, y skill\null.OZJ, de 800 × 600, más grande que 512. Que todos son en
-// color lo mira GoldenJpegImageTest.cpp.
+// color lo mira test_golden_jpeg_image.cpp.
 TEST_F(GoldenOzjTexture, LoadsEveryOzjOfTheLabButTheTgaAndTheOneOver512)
 {
     std::size_t files = 0;

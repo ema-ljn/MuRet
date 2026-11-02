@@ -54,7 +54,7 @@ TEST(ModularInverseTest, WorksWithTheLargestModulus)
 
 // Propiedad, para un módulo de 18 bits: cada a al azar tiene inverso y (a × inverso) mod m da 1, o
 // no tiene y su mcd con m no es 1. El producto va en std::uint64_t: dos números de 18 bits dan
-// hasta 36. Se toma la salida del motor directamente (ver FrameCutterTest.cpp).
+// hasta 36. Se toma la salida del motor directamente (ver test_frame_cutter.cpp).
 void CheckRandomInverses(std::uint32_t modulus, int& withInverse, int& withoutInverse)
 {
     // Semilla fija y cuántos a se prueban.

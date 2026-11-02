@@ -16,7 +16,7 @@ solo lo lee.
   llegaron con la CL0.2 y la CL0.3 del cliente; le quedan los tests del DataServer
 - **Cliente (tu foco): CL0.2 y CL0.3 resueltas como ejemplo trabajado** el 2026-11-01, después de
   que eligieras ir directo al cliente: `ClientLib` con la resolución de rutas de `Data\`,
-  `ClientTests` con la carpeta golden, la ventana SDL3 con OpenGL 3.3 core y el CI en Windows y
+  los tests con la carpeta golden, la ventana SDL3 con OpenGL 3.3 core y el CI en Windows y
   Linux. Para cerrarla: las [preguntas de la CL0](../superpowers/plans/2026-10-30-ola-cl0-fundaciones-cliente.md#para-cerrar-la-cl0-emanuel)
   y correr `Main.exe` en tu Windows. Conceptos para explicar: targets y qué se linkea a quién,
   vcpkg en modo manifiesto y su baseline, loader de GL, tests salteables. Próxima: la CL1

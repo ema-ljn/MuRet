@@ -20,7 +20,7 @@ namespace Client::Tests
 // El valor de MURET_CLIENT_GOLDEN_DIR, o std::nullopt si no está o está vacía.
 std::optional<std::filesystem::path> GoldenDir();
 
-// La regla, separada de la lectura del entorno para poder testearla (GoldenDirTest.cpp).
+// La regla, separada de la lectura del entorno para poder testearla (test_golden_dir.cpp).
 enum class GoldenDirState
 {
     NotSet,  // sin variable, o vacía: el test se saltea

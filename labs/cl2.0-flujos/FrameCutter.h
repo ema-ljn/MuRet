@@ -11,7 +11,7 @@
 //
 // TCP entrega bytes, no mensajes: una lectura puede traer medio paquete o tres. El corte es una
 // máquina de estados que solo mira un byte por vez, así que nunca lee uno que no llegó (el
-// original sí, Q-C03 en 07-quirks-y-bugs.md: ver jefe/OldCutTest.cpp).
+// original sí, Q-C03 en 07-quirks-y-bugs.md: ver jefe/test_old_cut.cpp).
 namespace Labs
 {
 // Un paquete entero, con su cabecera, tal como vino en el flujo.

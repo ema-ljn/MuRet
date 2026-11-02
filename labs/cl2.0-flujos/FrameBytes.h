@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-// Ayudas de los tests de la CL2.0 (FrameCutterTest.cpp y jefe/OldCutTest.cpp): armar paquetes
+// Ayudas de los tests de la CL2.0 (test_frame_cutter.cpp y jefe/test_old_cut.cpp): armar paquetes
 // con bytes literales y pasarle un flujo al corte de a un byte.
 namespace Labs::Tests
 {

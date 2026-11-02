@@ -130,6 +130,23 @@ archivo, como MuMain, que las aplica "only to new files" y no hace limpiezas gra
   describe, después de los includes.
 - Sin línea en blanco después de la llave de `namespace X {` ni antes de `} // namespace X`.
 
+### Tests y CMake (como MuMain)
+
+- Un archivo de test se llama `test_<snake_case>.cpp`, por lo que prueba, y va en la carpeta de su
+  módulo: `Client/tests/network/test_packet_reader.cpp`, `test_golden_item_table.cpp`. Seguimos con
+  GoogleTest (D-C9), y la suite lleva el nombre de la clase: `TEST(PacketReaderTest, CutsAC1)`.
+  Así `ctest -R PacketReader` sigue filtrando como antes.
+- Un ejecutable por archivo de test, como `mu_add_test` en MuMain: `muret_add_test` en
+  `Client/tests/CMakeLists.txt` lo arma, lo enlaza con `ClientLib`, `ClientTestSupport` (los `.cpp`
+  de `tests/support/` que no son tests) y GoogleTest, le pone los warnings y registra cada `TEST` en
+  CTest. Cada módulo de `tests/` tiene su `CMakeLists.txt`, que junta sus `test_*.cpp`.
+- Los fuentes se juntan con `file(GLOB_RECURSE ... CONFIGURE_DEPENDS)`: `ClientLib` toma todo
+  `src/` menos `main.cpp`, y cada módulo de tests sus `test_*.cpp`. Un archivo nuevo entra al
+  reconfigurar, sin tocar el CMake.
+- Excepción, los labs (`labs/<ola>/`): sus archivos también se llaman `test_<snake_case>.cpp`,
+  pero cada lab es **un** ejecutable (`LabCl20Tests`) con su lista a mano, porque el lab es la
+  unidad que se aprende y se corre entera.
+
 ### Namespaces
 
 1. Siempre con el componente adelante, para no chocar cuando entren otros servidores:

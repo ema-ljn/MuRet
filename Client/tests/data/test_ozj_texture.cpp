@@ -16,7 +16,7 @@
 #include <vector>
 
 // LoadOzjTexture con OZJ armados desde los vectores de CI: el JPEG lo decodifica DecodeJpeg (sus
-// tests están en JpegImageTest.cpp), y acá se prueba lo del OZJ: los 24 bytes que no se leen, la
+// tests están en test_jpeg_image.cpp), y acá se prueba lo del OZJ: los 24 bytes que no se leen, la
 // textura de potencias de 2, las filas sin dar vuelta y los rechazos.
 namespace
 {

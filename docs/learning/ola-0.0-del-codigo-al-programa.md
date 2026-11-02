@@ -2,7 +2,7 @@
 
 La primera N.0. Va antes de cerrar la 0.1 y antes de la 0.2 (GoogleTest), y es la base de las dos
 mitades de MuRet: la 0.2 le suma un target de tests al DataServer, y la CL0.2 del cliente parte
-`Client/` en `ClientLib`, `Main` y `ClientTests`. En los dos casos son unidades de traducción,
+`Client/` en `ClientLib`, `Main` y los tests. En los dos casos son unidades de traducción,
 bibliotecas y enlace, que es lo que se ve acá. Acá también nace `labs/`.
 
 **Resuelta como ejemplo trabajado** (a pedido de Emanuel, 2026-11-01): el código está en `labs/` y

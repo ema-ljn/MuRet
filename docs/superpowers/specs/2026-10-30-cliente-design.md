@@ -173,7 +173,7 @@ sirven de guía cuando lleguen sus olas.
 
 ```text
 Client/
-  CMakeLists.txt           target Main (y desde CL0.2, ClientLib + ClientTests)
+  CMakeLists.txt           target Main (y desde CL0.2, ClientLib y tests/)
   README.md                qué es, cómo compilar y correr, estado
   docs/research/           QUÉ HACE EL ORIGINAL (01..09)
   src/
@@ -203,7 +203,7 @@ Cada sub-ola es un PR chico. "Terminada cuando" es la condición objetiva de cie
 
 | Ola | Tema | Sub-olas (un PR cada una) | Conceptos | Research |
 | --- | --- | --- | --- | --- |
-| CL0 | Fundaciones del cliente | CL0.1 esqueleto `Client/` + este roadmap + el research (este PR) · CL0.2 `ClientLib` + `ClientTests` y la opción `MURET_CLIENT_GOLDEN_DIR` (trae ella misma vcpkg y GoogleTest, sin esperar la 0.2 del servidor) · CL0.3 SDL3 con OpenGL 3.3 core y su loader, CI que compila y testea en Windows y Linux | targets, dependencias, tests salteables | 01 |
+| CL0 | Fundaciones del cliente | CL0.1 esqueleto `Client/` + este roadmap + el research (este PR) · CL0.2 `ClientLib` + los tests y la opción `MURET_CLIENT_GOLDEN_DIR` (trae ella misma vcpkg y GoogleTest, sin esperar la 0.2 del servidor) · CL0.3 SDL3 con OpenGL 3.3 core y su loader, CI que compila y testea en Windows y Linux | targets, dependencias, tests salteables | 01 |
 | CL1 | Formatos sin ventana | CL1.0 la 1.0 con material del cliente (bytes, endianness, archivos binarios) y el `Expected` propio · CL1.1 XOR3, checksum y `Text.bmd` · CL1.2 `Item`, `Skill` y `Gate.bmd` · CL1.3 terreno: K16, `.map`, `.att`, `.obj`, alturas · CL1.4 texturas OZT y OZJ · ~~CL1.5 `message.wtf`~~ (salió: es del launcher, y `main.exe` no lo lee) | lectura de formatos, errores como valor, tests golden | 05, 07 |
 | CL2 | Protocolo sin red | CL2.0 flujos y bloques (la N.0: el corte como máquina de estados, aritmética modular, bits MSB primero) · CL2.1 `PacketReader` C1/C2/C3/C4 · CL2.2 `PacketWriter` + XOR32 · CL2.3 `SimpleModulus` y `Enc1`/`Dec2.dat`, seriales · CL2.4 `IObfuscation` (identidad y FoxAnti) · CL2.5 structs del login: `F4` (lista y elección), `F1` (saludo, login y aviso) y `0x0E` | máquinas de estado, cifrado por bloques, bits MSB primero | 03, 04, 07 |
 | CL3 | Plataforma y bucle de juego | CL3.0 el bucle de juego (paso fijo, interpolación, VSync) · CL3.R qué depende del paso de 40 ms (P-C03) · CL3.1 ventana y contexto GL con SDL3 · CL3.2 bucle con tick fijo y render desacoplado, con reloj falso en los tests · CL3.3 input (teclado por frame, mouse) · CL3.4 config + línea de comandos + log | game loop, tiempo, eventos del SO | 02, 08 |

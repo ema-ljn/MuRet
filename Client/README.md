@@ -59,6 +59,10 @@ En Windows: `cmake --preset windows-x64`, `cmake --build --preset windows-x64-de
 ctest --preset linux-x64-debug     # en Windows: ctest --preset windows-x64-debug
 ```
 
+Cada `tests/<módulo>/test_<algo>.cpp` es su propio ejecutable (`test_packet_reader`), como en
+MuMain, y cada `TEST` es un test de CTest con el nombre de su suite: `ctest -R PacketReader` corre
+los del lector. Lo que comparten está en `tests/support/` (la biblioteca `ClientTestSupport`).
+
 Los tests golden leen archivos reales del cliente original, que MuRet no versiona. Se les pasa una
 carpeta con el contenido de `Data\` (`Enc1.dat`, `Player\`, `World1\`…) en
 `MURET_CLIENT_GOLDEN_DIR`, al correr o al configurar:

@@ -16,7 +16,7 @@ final.
 | `BitStream.h` / `.cpp` | la misión de la actividad 10: `BitWriter` y `BitReader`, MSB primero |
 | `ModularInverse.h` / `.cpp` | la misión de la actividad 8: Euclides extendido |
 | `*Test.cpp` | sus tests, de GoogleTest |
-| `jefe/OldCutTest.cpp` | el jefe: un modelo del corte del original (Q-C03) y los tres casos que lo rompen |
+| `jefe/test_old_cut.cpp` | el jefe: un modelo del corte del original (Q-C03) y los tres casos que lo rompen |
 
 Las tres misiones van en la biblioteca `MuRetLabsCl20`, y los tests en `LabCl20Tests`, con el
 prefijo `LabCl20.` en CTest. Son 33:

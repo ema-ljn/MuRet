@@ -157,6 +157,12 @@ solo lo lee.
   del original, con un cursor, así un envío partido en `{2, 2, -1}` no repite ni pierde bytes
   (Q-C11) y lo nuevo espera detrás de lo pendiente; lo que no entra es `Full`, y la conexión va a
   cerrar como el original.
+  El tercero trae el `Poll` del bucle: `ILoopClient` suma `Poll()`, que `GameLoop::RunFrame` llama
+  una vez por frame, antes de los pasos y también minimizada. En el modo fiel va antes de
+  `BeginFrame`, fuera de la medición, como el bucle de mensajes del original: con polls de 20 ms el
+  juego se frena a 48 frames y 56 pasos en 3 s (`GameLoopTest.FaithfulDoesNotMeasureThePoll`). La
+  escena de prueba tiene un `Poll()` vacío. Al arrastrar la ventana en Windows, el original sigue
+  con el keepalive y MuRet no consulta la red hasta soltarla (Q-C49).
   **La CL4.3 la escribe Claude**, en dos PRs. El primero trae la `Connection`: el camino de un
   paquete en claro por una conexión, en el orden del original. Al recibir, el socket, el corte con
   la máscara de la ofuscación, `AfterCut` y `BeforeDispatch`; al mandar, `BeforeSend` y la
@@ -243,6 +249,7 @@ sesión, junto con los de repaso más viejo.
 | un limitador de frames con meta absoluta contra un sueño relativo: la deriva de lo que corre entre frames, qué valor toma la meta cuando un frame se pasa (donde terminó, para no ponerse al día ni volver a sumar el hueco), y por qué con VSync no se usa (`SleepRestOfFrame`, el `FpsCap` de MuMain) | CL3.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | E/S no bloqueante detrás de una interfaz chica (`ISocket`, con `SystemSocket` y `FakeSocket`): el connect como máquina de estados que guarda su resultado porque `SO_ERROR` se borra al leerlo, "probá más tarde" contra un cierre (`recv` en 0, `ECONNRESET`), `SIGPIPE` y `MSG_NOSIGNAL`, y un `#ifdef _WIN32` en un solo archivo (`SocketApi`) | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | una cola de envío con cursor sobre un buffer fijo (`SendQueue`): por qué restar lo que salió dos veces repite el principio y pierde el final (Q-C11), compactar solo cuando lo nuevo no entra, y un tope que cierra en vez de crecer | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| la red consultada una vez por frame en el mismo hilo que la lógica (`ILoopClient::Poll`), y dónde va en el modo fiel: fuera de la medición, donde lo que tarda se pierde de a ticks enteros, como los pasos (`FaithfulDoesNotMeasureThePoll`) | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | una conexión consultada por frame que devuelve eventos en orden (`Connection`): el `Opened` antes de lo que llegó con él, un cierre que pasa en un `Send` y sale en el próximo `Poll`, el tope del connect mirado después del `PollConnect`, y qué error corta (el del corte) y cuál se descarta (el de la ofuscación) | CL4.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras

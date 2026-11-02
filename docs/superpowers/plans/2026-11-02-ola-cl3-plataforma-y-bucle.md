@@ -765,11 +765,19 @@ dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
   lo cuenta en `FrameStats::clampedFrames`. `TwentyFiveStepsPerSecondAtAnyFrameRate` es un
   `TEST_P` con el fixture `GameLoopTest`, así que en ctest se llama
   `FrameRates/GameLoopTest.TwentyFiveStepsPerSecondAtAnyFrameRate/0` a `/4`.
-- [ ] **Paso 3 (PR A):** `FixedStep`, `GameLoop` en `Decoupled` y `SdlClock`. `main.cpp` arma el
+- [x] **Paso 3 (PR A):** `FixedStep`, `GameLoop` en `Decoupled` y `SdlClock`. `main.cpp` arma el
   bucle con la escena de prueba e imprime `frames` y `pasos` al salir; con `--stats`, los FPS y
   los pasos por segundo cada 5 s.
-- [ ] **Paso 4 (PR A):** 07: el acumulador sin tope del original contra `MaxFrameTime`, con su
+
+  Hecho así: la escena (`TestScene` en `main.cpp`) sube y baja el azul del fondo en cada ciclo de
+  32 pasos, interpolado con el alfa, y presenta adentro de `Render`. `--vsync` va a
+  `WindowOptions` (sin `--vsync`, On). En el PR A, `--pacing faithful` termina con un error que
+  dice que el modo llega en el PR B.
+- [x] **Paso 4 (PR A):** 07: el acumulador sin tope del original contra `MaxFrameTime`, con su
   test (`GameLoopTest.AFrameLongerThanTheCapRunsOnlyTheCap`; el del original llega en el PR B).
+
+  Hecho así: el quirk ya estaba, Q-C44, desde la CL3.R. No se abrió uno nuevo: Q-C44 suma los
+  tests y dice que el aviso en el log espera al `Log` de la CL3.4.
 - [ ] **Paso 5 (PR B):** los tests del modo fiel, cada uno con el `FakeClock` en t = 0 y dibujos
   de 0 ms salvo que diga otra cosa:
   - `FaithfulPacerTest.TickCountMsFollowsTheGrid`: 0, 15, 31, 46 y 62 en los ticks 0 a 4;

@@ -55,7 +55,12 @@ cmake --preset linux-x64-debug
 cmake --build --preset linux-x64-debug
 ./build/linux-x64-debug/Client/Main              # corre hasta que se cierre la ventana
 ./build/linux-x64-debug/Client/Main --frames 60  # dibuja 60 frames y sale
+./build/linux-x64-debug/Client/Main --vsync off --stats  # sin VSync: FPS y pasos por segundo cada 5 s
 ```
+
+Al salir, `Main` imprime los frames y los pasos que corrió. La lógica va a 25 pasos por segundo
+con cualquier tasa de frames (CL3.2). En Linux con Xvfb (sin retrazo, así que VSync no frena),
+`--stats` da cientos de FPS y 25 pasos por segundo. En Windows queda por probar a mano (Emanuel).
 
 En Windows: `cmake --preset windows-x64`, `cmake --build --preset windows-x64-debug` y
 `build\windows-x64\Client\Debug\Main.exe`.

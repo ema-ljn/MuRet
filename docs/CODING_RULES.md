@@ -74,8 +74,8 @@ namespace:
 ## 7. Estilo consistente
 
 - El formato lo decide [`.clang-format`](../.clang-format) (el de MuMain); corré `clang-format`
-  antes de commitear y no lo discutas en la revisión. CI lo verifica en `Client/` y `labs/`
-  (`clang-format --dry-run --Werror`, versión 18).
+  antes de commitear y no lo discutas en la revisión. CI lo verifica en `Client/`, `labs/` y
+  `Server/` (`clang-format --dry-run --Werror`, versión 18).
 - Seguí el estilo del código que está alrededor. No inventes una convención nueva en un archivo.
 - Includes mínimos: solo lo que el archivo usa.
 - Comentarios, mensajes y docs en castellano; identificadores y nombres de tests en inglés
@@ -86,9 +86,12 @@ namespace:
 ### Nombres (decidido el 2026-11-02, alineado con el código nuevo de MuMain)
 
 Son las costumbres del código nuevo de MuMain (el de los namespaces `<Capa>::<Concepto>`, no el
-heredado con `C*`, notación húngara y `g_`). Valen para todo el código nuevo y para `Client/` y
-`labs/cl2.0-flujos/` enteros. `Server/` y `labs/0.0-enlace/` se alinean cuando se toca cada
-archivo, como MuMain, que las aplica "only to new files" y no hace limpiezas grandes hacia atrás.
+heredado con `C*`, notación húngara y `g_`). Sus reglas escritas no las nombran: salen de ese
+código (`m_socket` en `Network/Reconnect/ReachabilityProbe.h`, `ICamera`, `s_installed`). Valen
+para todo el código nuevo y para `Client/` y `labs/cl2.0-flujos/` enteros. `Server/` y
+`labs/0.0-enlace/` se alinean cuando se toca cada archivo. Eso es de MuRet, no de MuMain: allá el
+código viejo sigue con las costumbres de su módulo hasta una modernización aparte, "not
+piecemeal", porque es mucho; acá son dos archivos, y alinearlos al tocarlos no mezcla estilos.
 
 - Tipos, funciones, métodos y namespaces en `PascalCase`: `PacketReader`, `PacketReader::Feed`,
   `Client::Network`.
@@ -102,8 +105,9 @@ archivo, como MuMain, que las aplica "only to new files" y no hace limpiezas gra
   `LoadedItemTable::table`, como `Rgb::red` en MuMain.
 - Las interfaces (clases con solo funciones virtuales puras) llevan `I` adelante: `IObfuscation`,
   en `IObfuscation.h`. Sus implementaciones no: `IdentityObfuscation`, `FoxAntiObfuscation`.
-- Las variables estáticas de un archivo (en un namespace anónimo, no `const`) llevan `s_`:
-  `s_initialized`. Hoy no hay ninguna.
+- Las variables estáticas que no son `const`, de un archivo (en un namespace anónimo) o de una
+  función (`static bool s_initialized` adentro de una función, como en MuMain), llevan `s_`. Hoy no
+  hay ninguna.
 - Constantes y enumeradores en `PascalCase`, con `constexpr` y no `#define`: `MaxPacketSize`,
   `PacketType::C3`.
 
@@ -139,10 +143,15 @@ archivo, como MuMain, que las aplica "only to new files" y no hace limpiezas gra
 - Un ejecutable por archivo de test, como `mu_add_test` en MuMain: `muret_add_test` en
   `Client/tests/CMakeLists.txt` lo arma, lo enlaza con `ClientLib`, `ClientTestSupport` (los `.cpp`
   de `tests/support/` que no son tests) y GoogleTest, le pone los warnings y registra cada `TEST` en
-  CTest. Cada módulo de `tests/` tiene su `CMakeLists.txt`, que junta sus `test_*.cpp`.
-- Los fuentes se juntan con `file(GLOB_RECURSE ... CONFIGURE_DEPENDS)`: `ClientLib` toma todo
-  `src/` menos `main.cpp`, y cada módulo de tests sus `test_*.cpp`. Un archivo nuevo entra al
-  reconfigurar, sin tocar el CMake.
+  CTest. Cada `TEST` tiene un tope de tiempo (`MURET_TEST_CASE_TIMEOUT`), como el `TIMEOUT` de
+  `mu_add_test`. Cada módulo de `tests/` tiene su `CMakeLists.txt`.
+- Los fuentes se juntan con un glob y `CONFIGURE_DEPENDS`: `ClientLib` toma todo `src/` con
+  `file(GLOB_RECURSE)`, menos `main.cpp` (y, desde la CL3.1, `src/Platform/`, que es de
+  `ClientPlatform`, sacado con `list(FILTER ... EXCLUDE REGEX)` como hace MuMain), y cada módulo de
+  tests sus `test_*.cpp` con `file(GLOB)`. Un archivo nuevo entra al reconfigurar, sin tocar el
+  CMake. Es una diferencia elegida: MuMain lista cada `mu_add_test` a mano. El glob de un módulo
+  no entra en subcarpetas, y una carpeta de tests nueva necesita su `CMakeLists.txt` y su
+  `add_subdirectory`; si un `test_*.cpp` queda sin ejecutable, el configure se corta y lo nombra.
 - Excepción, los labs (`labs/<ola>/`): sus archivos también se llaman `test_<snake_case>.cpp`,
   pero cada lab es **un** ejecutable (`LabCl20Tests`) con su lista a mano, porque el lab es la
   unidad que se aprende y se corre entera.

@@ -41,7 +41,7 @@ class BitReader
 {
 public:
     // Lee de bytes, que tienen que seguir vivos mientras se lee.
-    explicit BitReader(std::span<const std::byte> m_bytes);
+    explicit BitReader(std::span<const std::byte> bytes);
 
     // Lee bitCount bits en el mismo orden en que los escribe BitWriter, el primero como el más alto
     // del resultado. Si no quedan tantos, o si bitCount pasa de 32 (no entran en el resultado),

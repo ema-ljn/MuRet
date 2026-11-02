@@ -285,7 +285,7 @@ TEST(SimpleModulusTest, DecryptWrapsTheProductLikeTheImul)
 }
 
 // Al cifrar pasa lo mismo con una clave de más de 16 bits: 0xFFFF * 0x3FFF0 pasa de 32 bits. Las
-// claves reales no llegan (GoldenSimpleModulusKeyFileTest), pero el original no lo mira.
+// claves reales no llegan (test_golden_simple_modulus_key_file.cpp), pero el original no lo mira.
 TEST(SimpleModulusTest, EncryptWrapsTheProductLikeTheImul)
 {
     const EncryptionKey key = Encryption({0x3FFFB, 0x3FFFB, 0x3FFFB, 0x3FFFB}, {0x3FFF0, 1, 1, 1}, {0, 0, 0, 0});

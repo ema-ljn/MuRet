@@ -21,44 +21,44 @@ constexpr std::size_t SizeOffset = 1;
 // Los bits de un byte: un tamaño de dos bytes se escribe el de arriba primero.
 constexpr unsigned BitsPerByte = 8;
 
-bool HasOneByteSize(PacketType m_type)
+bool HasOneByteSize(PacketType type)
 {
-    return m_type == PacketType::C1 || m_type == PacketType::C3;
+    return type == PacketType::C1 || type == PacketType::C3;
 }
 } // namespace
 
 std::optional<PacketType> PacketTypeFromByte(std::byte first)
 {
-    const auto m_type = static_cast<PacketType>(std::to_integer<std::uint8_t>(first));
-    switch (m_type)
+    const auto type = static_cast<PacketType>(std::to_integer<std::uint8_t>(first));
+    switch (type)
     {
     case PacketType::C1:
     case PacketType::C2:
     case PacketType::C3:
     case PacketType::C4:
-        return m_type;
+        return type;
     }
     return std::nullopt;
 }
 
-std::size_t HeaderSize(PacketType m_type)
+std::size_t HeaderSize(PacketType type)
 {
-    return HasOneByteSize(m_type) ? OneByteSizeHeader : TwoByteSizeHeader;
+    return HasOneByteSize(type) ? OneByteSizeHeader : TwoByteSizeHeader;
 }
 
-std::size_t MinPacketSize(PacketType m_type)
+std::size_t MinPacketSize(PacketType type)
 {
-    return HeaderSize(m_type) + OpcodeSize;
+    return HeaderSize(type) + OpcodeSize;
 }
 
-std::optional<std::size_t> DeclaredSize(PacketType m_type, std::span<const std::byte> header)
+std::optional<std::size_t> DeclaredSize(PacketType type, std::span<const std::byte> header)
 {
-    if (header.size() < HeaderSize(m_type))
+    if (header.size() < HeaderSize(type))
     {
         return std::nullopt;
     }
     Core::ByteReader reader(header.subspan(SizeOffset));
-    if (HasOneByteSize(m_type))
+    if (HasOneByteSize(type))
     {
         return reader.ReadU8();
     }
@@ -66,19 +66,19 @@ std::optional<std::size_t> DeclaredSize(PacketType m_type, std::span<const std::
 }
 
 // La conversión a std::byte se queda con el byte de abajo: es módulo 256.
-void AppendHeader(std::vector<std::byte>& out, PacketType m_type, std::size_t size)
+void AppendHeader(std::vector<std::byte>& out, PacketType type, std::size_t size)
 {
-    out.push_back(static_cast<std::byte>(m_type));
-    if (!HasOneByteSize(m_type))
+    out.push_back(static_cast<std::byte>(type));
+    if (!HasOneByteSize(type))
     {
         out.push_back(static_cast<std::byte>(size >> BitsPerByte));
     }
     out.push_back(static_cast<std::byte>(size));
 }
 
-std::optional<PacketError> CheckDeclaredSize(PacketType m_type, std::size_t declared)
+std::optional<PacketError> CheckDeclaredSize(PacketType type, std::size_t declared)
 {
-    if (declared < MinPacketSize(m_type))
+    if (declared < MinPacketSize(type))
     {
         return PacketError::SizeTooSmall;
     }
@@ -89,31 +89,31 @@ std::optional<PacketError> CheckDeclaredSize(PacketType m_type, std::size_t decl
     return std::nullopt;
 }
 
-Core::Expected<Packet, PacketError> Packet::FromBytes(std::vector<std::byte> m_bytes)
+Core::Expected<Packet, PacketError> Packet::FromBytes(std::vector<std::byte> bytes)
 {
-    if (m_bytes.empty())
+    if (bytes.empty())
     {
         return Core::Unexpected(PacketError::SizeTooSmall);
     }
-    const std::optional<PacketType> m_type = PacketTypeFromByte(m_bytes.front());
-    if (!m_type)
+    const std::optional<PacketType> type = PacketTypeFromByte(bytes.front());
+    if (!type)
     {
         return Core::Unexpected(PacketError::InvalidType);
     }
-    const std::optional<std::size_t> declared = DeclaredSize(*m_type, m_bytes);
+    const std::optional<std::size_t> declared = DeclaredSize(*type, bytes);
     if (!declared)
     {
         return Core::Unexpected(PacketError::SizeTooSmall);
     }
-    if (const std::optional<PacketError> problem = CheckDeclaredSize(*m_type, *declared))
+    if (const std::optional<PacketError> problem = CheckDeclaredSize(*type, *declared))
     {
         return Core::Unexpected(*problem);
     }
-    if (*declared != m_bytes.size())
+    if (*declared != bytes.size())
     {
         return Core::Unexpected(PacketError::SizeMismatch);
     }
-    return Packet(*m_type, std::move(m_bytes));
+    return Packet(*type, std::move(bytes));
 }
 
 Packet::Packet(PacketType type, std::vector<std::byte> bytes) : m_type(type), m_bytes(std::move(bytes)) {}

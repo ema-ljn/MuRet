@@ -29,7 +29,7 @@
 // SameBytesWithoutValues. Ningún mensaje imprime un byte del cable.
 //
 // El S->C del GameServer no está: cada byte lleva el XOR 0xAA de FoxAnti, y se corta con
-// FoxAntiObfuscation en GoldenFoxAntiObfuscationTest.
+// FoxAntiObfuscation en test_golden_fox_anti_obfuscation.cpp.
 namespace
 {
 using Client::Network::PacketError;

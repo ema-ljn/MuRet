@@ -153,8 +153,8 @@ Tres cosas del original que no se copian:
 - Crear: `Client/src/Data/DataError.h` (`enum class` con lo que puede fallar en esta sub-ola).
 - Crear: `Client/src/Data/Tables/Xor3.h/.cpp` y `Client/src/Data/Tables/TableChecksum.h/.cpp`.
 - Crear: `Client/src/Data/Text/TextTable.h/.cpp`.
-- Crear: `Client/tests/data/test_byte_reader.cpp`, `test_xor3.cpp`, `test_table_checksum.cpp`,
-  `test_text_table.cpp` y `test_golden_text_table.cpp`.
+- Crear: `Client/tests/core/test_byte_reader.cpp` y `test_xor3.cpp`; `Client/tests/data/`
+  `test_table_checksum.cpp`, `test_text_table.cpp` y `test_golden_text_table.cpp`.
 - Crear: `Client/tests/support/` un helper que lee los bytes de un archivo golden.
 - Modificar: `Client/CMakeLists.txt`.
 
@@ -472,21 +472,21 @@ el repo de research, `0063bd00-ozt-loader.md`, `0063b870-ozj-loader.md` y
   Lorencia. libjpeg-turbo 3.2.0, la del baseline de vcpkg, da los mismos bytes que la 6b en los
   2.380, con SIMD y sin SIMD, y con o sin el suavizado de bloques de los progresivos (623 lo son).
   Queda en el repo como prueba: `lab-6b.txt` guarda el tamaño y el hash de lo que da la 6b de cada
-  uno, y `GoldenJpegImageTest` lo compara con turbo. Es el test que hay que correr al cambiar de
-  versión, que por eso va fija en `vcpkg.json` (`overrides`) y en un `static_assert`. El port de vcpkg depende también de libspng y zlib, que se compilan con él aunque el
-  cliente no los use: más tiempo en el primer build de CI, después queda en la caché.
-  Las reviews del PR B midieron dónde turbo no es la 6b, siempre fuera del laboratorio. Lo que se
-  puede llevar a la 6b se lleva: rechaza lo que la 6b no lee (JPEG aritméticos, sin pérdida, de 12
-  bits o con un scan que pide una tabla de Huffman que no está) y agranda el 4:4:0 sin el filtro,
-  como ella. Lo que no, queda escrito en Q-C33: un progresivo al que le faltan scans, un muestreo
-  que mezcla un componente al doble de alto con otro al doble de ancho (salvo en una imagen de
-  hasta 4 píxeles de ancho), los ids de componente repetidos o de más de 4 componentes, un DAC en
-  un JPEG de Huffman, su IDCT con SIMD, que lleva a 0 o a 255 lo que la 6b da vuelta, y cómo
-  completa los datos corruptos. **Entra libjpeg-turbo** (Emanuel,
-  2026-11-01). Se miraron también `ijg-libjpeg` (la versión actual de la IJG, que lee los
-  aritméticos) y stb_image (su propio decodificador, que no promete los bytes de la 6b). Un
-  decodificador propio compatible con la 6b quedó planeado y en pausa
-  ([su plan](2026-11-01-cl1.4-decodificador-jpeg.md)): se retoma si turbo no alcanza.
+  uno, y `test_golden_jpeg_image.cpp` lo compara con turbo. Es el test que hay que correr al cambiar
+  de versión, que por eso va fija en `vcpkg.json` (`overrides`) y en un `static_assert`. El port de
+  vcpkg depende también de libspng y zlib, que se compilan con él aunque el cliente no los use: más
+  tiempo en el primer build de CI, después queda en la caché. Las reviews del PR B midieron dónde
+  turbo no es la 6b, siempre fuera del laboratorio. Lo que se puede llevar a la 6b se lleva: rechaza
+  lo que la 6b no lee (JPEG aritméticos, sin pérdida, de 12 bits o con un scan que pide una tabla de
+  Huffman que no está) y agranda el 4:4:0 sin el filtro, como ella. Lo que no, queda escrito en
+  Q-C33: un progresivo al que le faltan scans, un muestreo que mezcla un componente al doble de alto
+  con otro al doble de ancho (salvo en una imagen de hasta 4 píxeles de ancho), los ids de
+  componente repetidos o de más de 4 componentes, un DAC en un JPEG de Huffman, su IDCT con SIMD,
+  que lleva a 0 o a 255 lo que la 6b da vuelta, y cómo completa los datos corruptos. **Entra
+  libjpeg-turbo** (Emanuel, 2026-11-01). Se miraron también `ijg-libjpeg` (la versión actual de la
+  IJG, que lee los aritméticos) y stb_image (su propio decodificador, que no promete los bytes de la
+  6b). Un decodificador propio compatible con la 6b quedó planeado y en pausa ([su
+  plan](2026-11-01-cl1.4-decodificador-jpeg.md)): se retoma si turbo no alcanza.
 
 - [x] **Paso 0 (PR 0):** los volcados por captura, y Lorencia como oráculo de la CL1.3.
 - [x] **Paso 1 (PR A):** `TextureSide` y `LoadOztTexture(file)`. Tests: filas dadas vuelta y

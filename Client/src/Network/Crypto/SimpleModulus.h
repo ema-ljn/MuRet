@@ -60,17 +60,17 @@ public:
     // XOR de 16 bits, cualquier módulo de 17 bits o más sirve). Un módulo en 0 tampoco lo cumple, y
     // el `%` dividiría por cero. Las claves pueden ser cualquier valor, como en el original: que el
     // producto entre en 32 bits depende del par, y si no entra da la vuelta como el IMUL.
-    [[nodiscard]] static Core::Expected<SimpleModulusKey, CryptoError>
-    FromLanes(const Lanes& m_modulus, const Lanes& m_key, const Lanes& m_xorKey)
+    [[nodiscard]] static Core::Expected<SimpleModulusKey, CryptoError> FromLanes(const Lanes& modulus, const Lanes& key,
+                                                                                 const Lanes& xorKey)
     {
         for (std::size_t lane = 0; lane < LaneCount; ++lane)
         {
-            if (m_modulus[lane] > MaxModulus || (m_xorKey[lane] | MaxPlainLane) >= m_modulus[lane])
+            if (modulus[lane] > MaxModulus || (xorKey[lane] | MaxPlainLane) >= modulus[lane])
             {
                 return Core::Unexpected(CryptoError::InvalidKey);
             }
         }
-        return SimpleModulusKey(m_modulus, m_key, m_xorKey);
+        return SimpleModulusKey(modulus, key, xorKey);
     }
 
     [[nodiscard]] const Lanes& Modulus() const
@@ -107,7 +107,7 @@ using DecryptionKey = SimpleModulusKey<KeyRole::Decrypt>;
 // `usefulSize` dice cuántos valen: de 1 a 8 en un paquete, pero se escribe el que llegue. Los
 // productos van en std::uint32_t y dan la vuelta, como el IMUL del original.
 [[nodiscard]] std::array<std::byte, CipherBlockSize>
-EncryptBlock(const EncryptionKey& m_key, std::span<const std::byte, PlainBlockSize> plain, std::uint8_t usefulSize);
+EncryptBlock(const EncryptionKey& key, std::span<const std::byte, PlainBlockSize> plain, std::uint8_t usefulSize);
 
 struct DecryptedBlock
 {
@@ -118,6 +118,6 @@ struct DecryptedBlock
 
 // std::nullopt si el checksum no coincide. El checksum es de los 8 bytes en claro, así que un
 // cambio en el byte del largo útil no lo ve.
-[[nodiscard]] std::optional<DecryptedBlock> DecryptBlock(const DecryptionKey& m_key,
+[[nodiscard]] std::optional<DecryptedBlock> DecryptBlock(const DecryptionKey& key,
                                                          std::span<const std::byte, CipherBlockSize> cipher);
 } // namespace Client::Network::Crypto

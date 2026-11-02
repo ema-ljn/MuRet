@@ -38,8 +38,8 @@ class PacketWriter
 public:
     // Empieza un C1 (C1, el tamaño, el opcode) o un C2 (C2, el tamaño en dos bytes, el opcode). El
     // tamaño se escribe en Finish().
-    [[nodiscard]] static PacketWriter C1(std::uint8_t m_opcode);
-    [[nodiscard]] static PacketWriter C2(std::uint8_t m_opcode);
+    [[nodiscard]] static PacketWriter C1(std::uint8_t opcode);
+    [[nodiscard]] static PacketWriter C2(std::uint8_t opcode);
 
     // En un escritor con nombre, cada Put agrega su campo y devuelve el mismo escritor, para
     // encadenar el siguiente.

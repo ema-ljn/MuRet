@@ -145,6 +145,7 @@ sesión, junto con los de repaso más viejo.
 | una resta que da la vuelta en 16 bits a propósito, y dónde va el `static_cast` para que el compilador no la marque (`KeepaliveSpeed`) | CL2.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | el paquete y cómo sale al cable en un solo valor (`Outgoing` y `Delivery`), para que el que manda no tenga que acordarse de cifrar el login | CL2.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un golden que elige paquetes del cable sin mirar sus datos: deshacer el XOR32 para leer el subcódigo, y comparar solo lo fijo con `SameBytesWithoutValues` | CL2.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| las convenciones del código nuevo de MuMain: `m_` para el estado del objeto y el nombre natural para el parámetro, `I` para una interfaz, y un ejecutable por archivo de test juntado con un glob | estilo | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

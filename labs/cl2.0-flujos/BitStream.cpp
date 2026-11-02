@@ -48,7 +48,7 @@ void BitWriter::WriteBit(bool bit)
     ++m_writtenBits;
 }
 
-BitReader::BitReader(std::span<const std::byte> m_bytes) : m_buffer(m_bytes) {}
+BitReader::BitReader(std::span<const std::byte> bytes) : m_buffer(bytes) {}
 
 std::optional<std::uint32_t> BitReader::Read(std::size_t bitCount)
 {

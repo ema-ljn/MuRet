@@ -39,30 +39,30 @@ inline constexpr std::size_t MaxPacketSize = 0x2000;
 [[nodiscard]] std::optional<PacketType> PacketTypeFromByte(std::byte first);
 
 // El tipo y el tamaño: 2 bytes en C1 y C3, 3 en C2 y C4.
-[[nodiscard]] std::size_t HeaderSize(PacketType m_type);
+[[nodiscard]] std::size_t HeaderSize(PacketType type);
 
 // Lo mínimo que mide un paquete: la cabecera y el opcode.
-[[nodiscard]] std::size_t MinPacketSize(PacketType m_type);
+[[nodiscard]] std::size_t MinPacketSize(PacketType type);
 
 // El tamaño que declara la cabecera, leído de sus primeros HeaderSize(type) bytes. std::nullopt
 // si todavía no llegaron todos.
-[[nodiscard]] std::optional<std::size_t> DeclaredSize(PacketType m_type, std::span<const std::byte> header);
+[[nodiscard]] std::optional<std::size_t> DeclaredSize(PacketType type, std::span<const std::byte> header);
 
 // Agrega a `out` la cabecera que lee DeclaredSize: el tipo y `size`, en el byte 1 en un C1/C3, y en
 // los bytes 1 y 2, big-endian, en un C2/C4. Quien llama sabe que `size` entra: en un C1/C3 se
 // escribe solo su byte de abajo.
-void AppendHeader(std::vector<std::byte>& out, PacketType m_type, std::size_t size);
+void AppendHeader(std::vector<std::byte>& out, PacketType type, std::size_t size);
 
 // Si un tamaño declarado no sirve: SizeTooSmall si no llega a MinPacketSize(type), TooLarge si pasa
 // de MaxPacketSize, y std::nullopt si sirve. Es la regla que usan FromBytes y el PacketReader.
-[[nodiscard]] std::optional<PacketError> CheckDeclaredSize(PacketType m_type, std::size_t declared);
+[[nodiscard]] std::optional<PacketError> CheckDeclaredSize(PacketType type, std::size_t declared);
 
 class Packet
 {
 public:
     // Valida el tipo, el tamaño mínimo y el máximo, y que el tamaño que declara sea el que mide.
     // Los errores, en ese orden: un vector vacío o con menos bytes que la cabecera es SizeTooSmall.
-    [[nodiscard]] static Core::Expected<Packet, PacketError> FromBytes(std::vector<std::byte> m_bytes);
+    [[nodiscard]] static Core::Expected<Packet, PacketError> FromBytes(std::vector<std::byte> bytes);
 
     [[nodiscard]] PacketType Type() const;
 

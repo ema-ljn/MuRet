@@ -17,8 +17,8 @@ namespace Client::Data::Textures
 static_assert(JPEG_LIB_VERSION == 62, "la API de la libjpeg 6b, la del original (0063b870-ozj-loader.md)");
 
 // La versión de libjpeg-turbo que se comparó con la 6b en los 2.380 JPEG del laboratorio
-// (GoldenJpegImageTest y lab-6b.txt), fijada en vcpkg.json. Otra puede dar otros bytes: subirla es
-// un PR propio que corre los golden (CODING_RULES.md §10), y cambia este número.
+// (test_golden_jpeg_image.cpp y lab-6b.txt), fijada en vcpkg.json. Otra puede dar otros bytes:
+// subirla es un PR propio que corre los golden (CODING_RULES.md §10), y cambia este número.
 static_assert(LIBJPEG_TURBO_VERSION_NUMBER == 3002000, "libjpeg-turbo 3.2.0, la comparada con la 6b");
 
 namespace

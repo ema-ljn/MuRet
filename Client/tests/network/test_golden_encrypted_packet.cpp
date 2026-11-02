@@ -112,7 +112,7 @@ struct DecryptedCounts
 {
     std::size_t c3 = 0;
     std::size_t c4 = 0;
-    std::size_t m_connections = 0;
+    std::size_t connections = 0;
 };
 
 DecryptedCounts CountOf(const std::vector<WirePacket>& packets)
@@ -121,7 +121,7 @@ DecryptedCounts CountOf(const std::vector<WirePacket>& packets)
     for (const WirePacket& packet : packets)
     {
         ++(packet.encrypted.Type() == PacketType::C3 ? counts.c3 : counts.c4);
-        counts.m_connections += packet.index == 0 ? 1 : 0;
+        counts.connections += packet.index == 0 ? 1 : 0;
     }
     return counts;
 }
@@ -342,7 +342,7 @@ TEST_F(GoldenEncryptedPacket, DecryptsWhatTheClientSent)
     const DecryptedCounts counts = CountOf(sent);
     EXPECT_EQ(counts.c3, 183u);
     EXPECT_EQ(counts.c4, 0u);
-    EXPECT_EQ(counts.m_connections, 8u);
+    EXPECT_EQ(counts.connections, 8u);
 }
 
 // Los 25 C3/C4 que contestó el GameServer (18 C3 y 7 C4, de 36, 69 y 80 bytes), en 7 conexiones,
@@ -358,7 +358,7 @@ TEST_F(GoldenEncryptedPacket, DecryptsWhatTheGameServerAnswered)
     const DecryptedCounts counts = CountOf(answered);
     EXPECT_EQ(counts.c3, 18u);
     EXPECT_EQ(counts.c4, 7u);
-    EXPECT_EQ(counts.m_connections, 7u);
+    EXPECT_EQ(counts.connections, 7u);
 }
 
 // Los 183 C3 del cliente, descifrados con DecryptPacket y cifrados de nuevo con EncryptPacket, con

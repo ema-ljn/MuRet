@@ -10,20 +10,20 @@ namespace
 constexpr unsigned BitsPerByte = 8;
 
 // Lo que mide el tipo de cada uno.
-std::size_t MaxSize(PacketType m_type)
+std::size_t MaxSize(PacketType type)
 {
-    return m_type == PacketType::C1 ? MaxC1Size : MaxWrittenPacketSize;
+    return type == PacketType::C1 ? MaxC1Size : MaxWrittenPacketSize;
 }
 } // namespace
 
-PacketWriter PacketWriter::C1(std::uint8_t m_opcode)
+PacketWriter PacketWriter::C1(std::uint8_t opcode)
 {
-    return PacketWriter(PacketType::C1, m_opcode);
+    return PacketWriter(PacketType::C1, opcode);
 }
 
-PacketWriter PacketWriter::C2(std::uint8_t m_opcode)
+PacketWriter PacketWriter::C2(std::uint8_t opcode)
 {
-    return PacketWriter(PacketType::C2, m_opcode);
+    return PacketWriter(PacketType::C2, opcode);
 }
 
 PacketWriter::PacketWriter(PacketType type, std::uint8_t opcode) : m_type(type), m_opcode(opcode) {}

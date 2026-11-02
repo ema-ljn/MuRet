@@ -1,12 +1,10 @@
 #include "Network/Connection.h"
 
-#include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Network/CloseReason.h"
 #include "Network/Delivery.h"
 #include "Network/FoxAntiObfuscation.h"
-#include "Network/ISocket.h"
 #include "Network/IdentityObfuscation.h"
 #include "Network/Packet.h"
 #include "Network/SendQueue.h"
@@ -15,6 +13,7 @@
 #include "Protocol/Outgoing.h"
 
 #include "support/Bytes.h"
+#include "support/ClaimsMoreSocket.h"
 #include "support/FakeClock.h"
 #include "support/FakeSocket.h"
 #include "support/NetworkPrinters.h"
@@ -28,8 +27,8 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
-#include <deque>
 #include <format>
+#include <functional>
 #include <limits>
 #include <optional>
 #include <span>
@@ -45,14 +44,12 @@
 namespace
 {
 using namespace std::chrono_literals;
-using Client::Core::Expected;
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Network::Closed;
 using Client::Network::CloseReason;
 using Client::Network::CloseReasonText;
 using Client::Network::Connection;
-using Client::Network::ConnectProgress;
 using Client::Network::ConnectTimeout;
 using Client::Network::Delivery;
 using Client::Network::Event;
@@ -60,6 +57,7 @@ using Client::Network::FoxAntiObfuscation;
 using Client::Network::IdentityObfuscation;
 using Client::Network::LinkState;
 using Client::Network::MaxPacketSize;
+using Client::Network::MaxPendingSend;
 using Client::Network::MaxReadsPerPoll;
 using Client::Network::Opened;
 using Client::Network::Packet;
@@ -68,6 +66,7 @@ using Client::Network::SlowConnectStart;
 using Client::Network::SocketError;
 using Client::Protocol::Connection::WriteServerSelect;
 using Client::Tests::Bytes;
+using Client::Tests::ClaimsMoreSocket;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeSocket;
 using Client::Tests::PacketOf;
@@ -164,60 +163,6 @@ static_assert(!std::is_constructible_v<Connection, FakeSocket&, FoxAntiObfuscati
 static_assert(std::is_constructible_v<Connection, FakeSocket&, const FoxAntiObfuscation&, FakeClock&, Log&>);
 static_assert(!std::is_copy_constructible_v<Connection>);
 static_assert(!std::is_move_constructible_v<Connection>);
-
-// Un socket roto que en la primera lectura llena el buffer con `first` y dice que leyó Extra bytes
-// más, como el ClaimsMoreSocket de test_send_queue.cpp. Después da `reads`, una entrada por
-// Receive, y 0 cuando no quedan.
-class ClaimsMoreSocket final : public Client::Network::ISocket
-{
-public:
-    static constexpr std::size_t Extra = 5;
-
-    ByteVector first;
-    std::deque<ByteVector> reads;
-
-    Expected<ConnectProgress, SocketError> StartConnect(std::string_view, std::uint16_t) override
-    {
-        return ConnectProgress::Connected;
-    }
-    Expected<ConnectProgress, SocketError> PollConnect() override
-    {
-        return ConnectProgress::Connected;
-    }
-    Expected<std::size_t, SocketError> Receive(std::span<std::byte> buffer) override
-    {
-        if (!m_claimed)
-        {
-            m_claimed = true;
-            std::ranges::copy(first, buffer.begin());
-            return buffer.size() + Extra;
-        }
-        if (reads.empty())
-        {
-            return std::size_t{0};
-        }
-        const ByteVector next = reads.front();
-        reads.pop_front();
-        std::ranges::copy(next, buffer.begin());
-        return next.size();
-    }
-    Expected<std::size_t, SocketError> Send(std::span<const std::byte> bytes) override
-    {
-        return bytes.size();
-    }
-    void Close() override {}
-    [[nodiscard]] bool IsOpen() const override
-    {
-        return true;
-    }
-    [[nodiscard]] int LastSystemError() const override
-    {
-        return 0;
-    }
-
-private:
-    bool m_claimed = false;
-};
 
 class ConnectionTest : public ::testing::Test
 {
@@ -701,6 +646,107 @@ TEST_F(ConnectionTest, ASocketFailureLogsTheSystemError)
 
     EXPECT_EQ(Describe(m_connection.Poll()), Lines{"Closed(SocketFailed)"});
     EXPECT_TRUE(HasWarning(std::to_string(SomeSystemError)));
+}
+
+// Cada motivo de cierre deja una sola línea en el log, entera y con su nivel: ByClient en info,
+// porque lo pidió quien usa la conexión, y el resto en warning; SocketFailed, con el error del
+// sistema. Una fila por motivo de CloseReason, como en CloseReasonTest.EveryReasonHasItsOwnText,
+// cada una con su conexión.
+TEST_F(ConnectionTest, EveryCloseIsLoggedWithItsLevel)
+{
+    struct Rig
+    {
+        FakeSocket socket;
+        FakeClock clock;
+        RecordingSink sink;
+        Log log{sink, LogLevel::Debug};
+        Connection connection{socket, IdentityObfuscation::Shared(), clock, log};
+
+        void OpenAndConnect()
+        {
+            connection.Open(ConnectHost, ConnectPort);
+            ASSERT_EQ(Describe(connection.Poll()), Lines{"Opened"});
+        }
+    };
+    struct Case
+    {
+        CloseReason reason;
+        std::string line;
+        LogLevel level;
+        std::function<void(Rig&)> close;
+    };
+    const auto closed = [](CloseReason reason)
+    { return std::format("la conexión se cerró: {}", CloseReasonText(reason)); };
+    const Case cases[] = {
+        {CloseReason::ByClient, "[info] " + closed(CloseReason::ByClient), LogLevel::Info,
+         [](Rig& rig)
+         {
+             rig.connection.Open(ConnectHost, ConnectPort);
+             rig.connection.Close();
+         }},
+        {CloseReason::ResolveFailed, "[warning] " + closed(CloseReason::ResolveFailed), LogLevel::Warning,
+         [](Rig& rig)
+         {
+             rig.socket.connectResult = SocketError::ResolveFailed;
+             rig.connection.Open(ConnectHost, ConnectPort);
+         }},
+        {CloseReason::Refused, "[warning] " + closed(CloseReason::Refused), LogLevel::Warning,
+         [](Rig& rig)
+         {
+             rig.socket.connectResult = SocketError::Refused;
+             rig.connection.Open(ConnectHost, ConnectPort);
+         }},
+        {CloseReason::ConnectTimedOut, "[warning] " + closed(CloseReason::ConnectTimedOut), LogLevel::Warning,
+         [](Rig& rig)
+         {
+             rig.socket.pollsUntilConnected = std::numeric_limits<int>::max();
+             rig.connection.Open(ConnectHost, ConnectPort);
+             rig.clock.Advance(ConnectTimeout);
+             [[maybe_unused]] const std::vector<Event> events = rig.connection.Poll();
+         }},
+        {CloseReason::PeerClosed, "[warning] " + closed(CloseReason::PeerClosed), LogLevel::Warning,
+         [](Rig& rig)
+         {
+             ASSERT_NO_FATAL_FAILURE(rig.OpenAndConnect());
+             rig.socket.peerClosed = true;
+             [[maybe_unused]] const std::vector<Event> events = rig.connection.Poll();
+         }},
+        {CloseReason::SocketFailed,
+         std::format("[warning] {} (error {} del sistema)", closed(CloseReason::SocketFailed), SomeSystemError),
+         LogLevel::Warning,
+         [](Rig& rig)
+         {
+             ASSERT_NO_FATAL_FAILURE(rig.OpenAndConnect());
+             rig.socket.sendError = SocketError::Failed;
+             rig.socket.systemError = SomeSystemError;
+             rig.connection.Send(PacketOf(ListRequest()), Delivery::Clear);
+         }},
+        {CloseReason::BadStream, "[warning] " + closed(CloseReason::BadStream), LogLevel::Warning,
+         [](Rig& rig)
+         {
+             ASSERT_NO_FATAL_FAILURE(rig.OpenAndConnect());
+             rig.socket.reads = {Bytes({0xFF, 0x00})};
+             [[maybe_unused]] const std::vector<Event> events = rig.connection.Poll();
+         }},
+        {CloseReason::SendQueueFull, "[warning] " + closed(CloseReason::SendQueueFull), LogLevel::Warning,
+         [](Rig& rig)
+         {
+             ASSERT_NO_FATAL_FAILURE(rig.OpenAndConnect());
+             rig.socket.sendLimits = {std::nullopt};
+             rig.connection.Send(PacketOf(C2Of(MaxPendingSend - 2)), Delivery::Clear);
+             rig.connection.Send(PacketOf(Bytes({0xC1, 0x03, 0x99})), Delivery::Clear);
+         }},
+    };
+    for (const Case& row : cases)
+    {
+        SCOPED_TRACE(::testing::PrintToString(row.reason));
+        Rig rig;
+        row.close(rig);
+
+        EXPECT_EQ(rig.connection.LastCloseReason(), row.reason);
+        EXPECT_EQ(rig.sink.lines, Lines{row.line});
+        EXPECT_EQ(rig.sink.levels, std::vector<LogLevel>{row.level});
+    }
 }
 
 // Como el original, que cierra si lo pendiente más lo nuevo no entra en 0x2000 bytes.

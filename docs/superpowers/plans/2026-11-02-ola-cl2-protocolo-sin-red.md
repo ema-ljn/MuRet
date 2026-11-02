@@ -472,23 +472,51 @@ hasta 16 bits (el carril 2 de `Dec1.dat` y el de `Enc2.dat`; las del cliente lle
   o C4 por el largo cifrado y el relleno) y 07 (Q-C04, Q-C05 y Q-C10 con sus tests).
 - En los dos: `Client/CMakeLists.txt`, PROGRESS y este plan.
 
+Hecho así (PR A): la clave son dos tipos, `EncryptionKey` y `DecryptionKey`, para que una clave
+cargada para descifrar no pueda cifrar (los dos archivos tienen el mismo formato, así que el tipo
+lo decide el cargador que se usa). Cada uno se arma con `FromLanes`, que rechaza en un carril un
+módulo mayor que `0x40000` (2^18) o un XOR con `xor | 0xFFFF` que no es menor que el módulo, lo que
+también deja afuera un módulo en 0: el original no lo mira, y dividiría por cero o perdería el
+carril (Q-C41, nuevo en 07, con `InvalidKey`). Que el producto entre en 32 bits depende del par, y
+no se mira.
+`CryptoError` trae en el PR A solo `InvalidKeyFile` e `InvalidKey`; el resto llega con el PR B. Un
+archivo de clave de más de 54 bytes carga, y lo que sigue no se lee, como en el original. Los dos
+pares sintéticos del paso 2 cumplen las cotas de las claves reales (clave de cifrar por `0xFFFF` y
+de descifrar por `m - 1` en 32 bits), así que el producto que da la vuelta se prueba aparte: al
+descifrar, con un carril 3 de 18 bits en 1 y la clave de 17 bits; al cifrar, con una clave de 18.
+El golden pide las dos carpetas con un fixture nuevo, `GoldenAndWireDataTest`, y la del cable suma
+`Dec1.dat` y `Enc2.dat` (el README dice de dónde salen y cómo se arma la carpeta). Las dos
+revisiones sumaron: que el checksum, de un byte, no ve uno de cada 256 cambios en un carril más o
+menos (`SomeChangedLaneBytesPassTheChecksum`); los bordes de `FromLanes`; un XOR de 17 bits que se
+usa entero; y el largo útil entero, también 0 y `0xFF`. Los tests comparten `support/FixedRandom.h`,
+`support/SimpleModulusKeys.h` y `support/KeyFiles.h`, que usa también el PR B.
+
 **Interfaces:**
 
 ```cpp
 namespace Client::Network::Crypto
 {
-struct SimpleModulusKey
+using Lanes = std::array<std::uint32_t, 4>;
+enum class KeyRole : std::uint8_t { Encrypt, Decrypt };
+
+template <KeyRole Role> class SimpleModulusKey
 {
-    std::array<std::uint32_t, 4> modulus;
-    std::array<std::uint32_t, 4> key; // de cifrado o de descifrado, según el archivo
-    std::array<std::uint32_t, 4> xorKey;
+public:
+    // InvalidKey si un módulo pasa de MaxModulus (0x40000) o `xor | 0xFFFF` no es menor: Q-C41.
+    static Core::Expected<SimpleModulusKey, CryptoError> FromLanes(const Lanes& modulus, const Lanes& key,
+                                                                   const Lanes& xorKey);
+    const Lanes& Modulus() const;
+    const Lanes& Key() const; // de cifrado o de descifrado, según Role
+    const Lanes& XorKey() const;
 };
 // Enc1.dat del cliente y Enc2.dat del servidor.
-Core::Expected<SimpleModulusKey, CryptoError> LoadEncryptionKey(std::span<const std::byte> file);
+using EncryptionKey = SimpleModulusKey<KeyRole::Encrypt>;
 // Dec2.dat del cliente y Dec1.dat del servidor.
-Core::Expected<SimpleModulusKey, CryptoError> LoadDecryptionKey(std::span<const std::byte> file);
+using DecryptionKey = SimpleModulusKey<KeyRole::Decrypt>;
+Core::Expected<EncryptionKey, CryptoError> LoadEncryptionKey(std::span<const std::byte> file);
+Core::Expected<DecryptionKey, CryptoError> LoadDecryptionKey(std::span<const std::byte> file);
 
-std::array<std::byte, 11> EncryptBlock(const SimpleModulusKey& key, std::span<const std::byte, 8> plain,
+std::array<std::byte, 11> EncryptBlock(const EncryptionKey& key, std::span<const std::byte, 8> plain,
                                        std::uint8_t usefulSize);
 struct DecryptedBlock
 {
@@ -496,7 +524,7 @@ struct DecryptedBlock
     std::uint8_t usefulSize;
 };
 // std::nullopt si el checksum no coincide.
-std::optional<DecryptedBlock> DecryptBlock(const SimpleModulusKey& key, std::span<const std::byte, 11> cipher);
+std::optional<DecryptedBlock> DecryptBlock(const DecryptionKey& key, std::span<const std::byte, 11> cipher);
 } // namespace Client::Network::Crypto
 
 namespace Client::Network
@@ -513,8 +541,7 @@ public:
 };
 
 // Un C1/C2 (con XOR32 si lo lleva) como C3/C4. El serial se usa solo si sale.
-Core::Expected<Packet, Crypto::CryptoError> EncryptPacket(const Packet& plain,
-                                                          const Crypto::SimpleModulusKey& key,
+Core::Expected<Packet, Crypto::CryptoError> EncryptPacket(const Packet& plain, const Crypto::EncryptionKey& key,
                                                           PacketSerials& serials, std::byte padding = {});
 struct DecryptedPacket
 {
@@ -522,20 +549,22 @@ struct DecryptedPacket
     SerialCheck serial;
 };
 Core::Expected<DecryptedPacket, Crypto::CryptoError> DecryptPacket(const Packet& encrypted,
-                                                                   const Crypto::SimpleModulusKey& key,
+                                                                   const Crypto::DecryptionKey& key,
                                                                    PacketSerials& serials);
 } // namespace Client::Network
 ```
 
-`CryptoError` tiene `InvalidKeyFile`, `WrongPacketType` (un C3/C4 a `EncryptPacket`, o un C1/C2 a
-`DecryptPacket`: no toca los seriales), `ChecksumMismatch`, `InvalidBlock`, `NotWholeBlocks`,
-`TooShort` y `TooLarge` (lo cifrado pasaría de `MaxPacketSize`: con un C2 de más de 5.954 bytes,
-que solo puede venir de `FromBytes`, porque `PacketWriter` corta en `0x800`).
+`CryptoError` tiene `InvalidKeyFile`, `InvalidKey` (Q-C41), `WrongPacketType` (un C3/C4 a
+`EncryptPacket`, o un C1/C2 a `DecryptPacket`: no toca los seriales), `ChecksumMismatch`,
+`InvalidBlock`, `NotWholeBlocks`, `TooShort` y `TooLarge` (lo cifrado pasaría de `MaxPacketSize`:
+con un C2 de más de 5.954 bytes, que solo puede venir de `FromBytes`, porque `PacketWriter` corta
+en `0x800`).
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de leer los tests del paso 2, el bloque
-  `01 00 00 00 00 00 00 00` con la clave identidad, a mano: los cuatro carriles antes y después
-  de la segunda pasada, y dónde caen sus bits en los 11 bytes.
-- [ ] **Paso 2 (PR A):** los tests de los bloques:
+- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de leer los tests del
+  paso 2, el bloque `01 00 00 00 00 00 00 00` con la clave identidad, a mano: los cuatro carriles
+  antes y después de la segunda pasada, y dónde caen sus bits en los 11 bytes. La respuesta está
+  en el comentario de `SimpleModulusTest.EncryptsASingleBitLikeTheReference`.
+- [x] **Paso 2 (PR A):** los tests de los bloques:
   - con dos pares de claves sintéticas escritos como literales en el test (calculados con
     `pow(d, -1, m)` de Python, un módulo de 17 bits y uno de 18), cifrar y descifrar de 1 a 64
     bytes al azar (semilla fija) devuelve lo mismo;
@@ -547,11 +576,12 @@ que solo puede venir de `FromBytes`, porque `PacketWriter` corta en `0x800`).
     las de descifrado `10 12 15 17` y el XOR `0x1234 0x5678 0x9ABC 0xDEF0`, el bloque
     `10 00 00 00 00 00 00 00` con 8 útiles da `E2 32 50 6E A6 98 95 49 10 DD E8`, con el carril 0
     con solo el bit 16 y el 1 con solo el 17 (de `encrypt_block`), y descifra de vuelta;
-  - un byte cambiado hace fallar el checksum;
+  - un byte cambiado en el checksum siempre lo hace fallar, y uno en un carril, casi siempre: con
+    este checksum de un byte, más o menos uno de cada 256 pasa;
   - un carril cifrado de 18 bits en 1, mayor que su módulo, descifra como `decrypt_block`, con el
     producto que da la vuelta.
-- [ ] **Paso 3 (PR A):** `EncryptBlock` y `DecryptBlock`.
-- [ ] **Paso 4 (PR A):** los archivos de clave. Tests con uno sintético de 54 bytes armado en el
+- [x] **Paso 3 (PR A):** `EncryptBlock` y `DecryptBlock`.
+- [x] **Paso 4 (PR A):** los archivos de clave. Tests con uno sintético de 54 bytes armado en el
   test (magic, tamaño y tres bloques con el XOR de la tabla): carga; otro magic, otro tamaño y uno
   corto son `InvalidKeyFile`. El golden carga `Enc1.dat` y `Dec2.dat` de la carpeta golden, y con
   el cable, `Dec1.dat` y `Enc2.dat`, y mide que cada par es inverso. Después `LoadEncryptionKey` y
@@ -652,7 +682,7 @@ public:
     // Feed y Next, como en la CL2.1.
 };
 Core::Expected<Packet, Crypto::CryptoError> EncryptPacket(const Packet& plain,
-                                                          const Crypto::SimpleModulusKey& key,
+                                                          const Crypto::EncryptionKey& key,
                                                           PacketSerials& serials,
                                                           const Obfuscation& obfuscation,
                                                           std::byte padding = {});

@@ -101,6 +101,19 @@ void RequireDirectory(const char* variable, std::filesystem::path& dir)
     dir = *value;
 }
 
+// El archivo `name` de la carpeta del cable `root`. Si no está, marca el test como fallado.
+std::optional<std::filesystem::path> FindWireFile(const std::filesystem::path& root, std::string_view name)
+{
+    std::error_code error;
+    const std::filesystem::path path = root / name;
+    if (!std::filesystem::is_regular_file(path, error))
+    {
+        ADD_FAILURE() << "falta " << name << " en la carpeta del cable " << root;
+        return std::nullopt;
+    }
+    return path;
+}
+
 } // namespace
 
 void GoldenDataTest::SetUp()
@@ -172,14 +185,22 @@ void WireDataTest::SetUp()
 
 std::optional<std::filesystem::path> WireDataTest::WireFile(std::string_view name) const
 {
-    std::error_code error;
-    const std::filesystem::path path = wireRoot / name;
-    if (!std::filesystem::is_regular_file(path, error))
+    return FindWireFile(wireRoot, name);
+}
+
+void GoldenAndWireDataTest::SetUp()
+{
+    GoldenDataTest::SetUp();
+    if (IsSkipped() || HasFatalFailure())
     {
-        ADD_FAILURE() << "falta " << name << " en la carpeta del cable " << wireRoot;
-        return std::nullopt;
+        return;
     }
-    return path;
+    RequireDirectory(WireDirVariable, wireRoot);
+}
+
+std::optional<std::filesystem::path> GoldenAndWireDataTest::WireFile(std::string_view name) const
+{
+    return FindWireFile(wireRoot, name);
 }
 
 } // namespace Client::Tests

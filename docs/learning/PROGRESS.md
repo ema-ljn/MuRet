@@ -61,6 +61,9 @@ solo lo lee.
   `PacketWriter` arma un C1 o un C2 campo por campo y rechaza lo que no entra en vez de truncarlo
   (Q-C06), y el XOR32 del motor de envío va aparte, con el opcode en claro también en un C2, como
   en el binario y no como en `mu-client`.
+  De la CL2.3 está el PR A: los bloques del SimpleModulus y los archivos de clave, con una clave de
+  cifrar y una de descifrar que son tipos distintos, y un módulo que no sirve rechazado al cargar
+  (Q-C41). Contra las claves reales, cada par del cliente y del servidor es inverso.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 
@@ -106,6 +109,9 @@ sesión, junto con los de repaso más viejo.
 | constructores con nombre (`PacketWriter::C1`, `C2`) y métodos que devuelven `*this` para encadenarse, con un `Finish()` `const` que no cambia el escritor | CL2.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un cifrado encadenado que se deshace en el lugar yendo de atrás para adelante (`Xor32DecodeBytes`), y separarlo del armado para probar cada etapa sola | CL2.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | vectores de test armados por un modelo escrito de nuevo desde el research, y no por el código que prueban (`make_vectors.py`) | CL2.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| una plantilla con un parámetro `enum` para que dos claves del mismo formato sean tipos distintos (`SimpleModulusKey<KeyRole>`), y una fábrica que valida antes de construir (`FromLanes`) | CL2.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un checksum que cubre el claro y no el largo útil: qué cambios detecta y cuáles no (`SimpleModulusTest.TheChecksumDoesNotCoverTheUsefulSize`) | CL2.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| vectores que fijan lo que un ida y vuelta no ve: el orden de los bits 16 y 17 de un carril, y el producto de 32 bits que da la vuelta | CL2.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

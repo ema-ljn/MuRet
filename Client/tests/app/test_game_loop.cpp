@@ -18,7 +18,8 @@
 #include <numeric>
 #include <vector>
 
-// Client::App::GameLoop en el modo normal (Decoupled): el paso fijo con el reloj falso.
+// Client::App::GameLoop en el modo normal (Decoupled): el paso fijo con el reloj falso. Y el Poll
+// de la red en los dos modos (CL4.1).
 namespace
 {
 using namespace std::chrono_literals;
@@ -30,6 +31,7 @@ using Client::Input::InputEvent;
 using Client::Input::InputState;
 using Client::Input::Key;
 using Client::Tests::FakeClock;
+using Client::Tests::LoopCall;
 using Client::Tests::RecordingClient;
 
 // La tolerancia de los alfas que fija el plan (1e-6).
@@ -540,5 +542,115 @@ TEST(GameLoopTest, AFaithfulLoopIgnoresTheFpsCap)
 
     EXPECT_FALSE(sleeps[0].empty());
     EXPECT_EQ(sleeps[0], sleeps[1]);
+}
+// El orden de un frame (CL4.1): la red una vez, antes de los pasos, y el dibujo al final. El
+// segundo frame corre dos pasos: en Decoupled, 80 ms después del primero, que solo fija el inicio;
+// en Faithful, con un primer dibujo de 100 ms, que mide 6 ticks (93 ms) y deja el acumulador en 93
+// después del paso del valor inicial. Un Poll después de los pasos o uno por paso darían otro
+// orden; en el modo fiel, FaithfulDoesNotMeasureThePoll no los distingue, y este sí.
+TEST(GameLoopTest, PollsOncePerFrameBeforeTheSteps)
+{
+    struct Case
+    {
+        PacingMode mode;
+        const char* name;
+        Duration firstRender;
+        Duration betweenFrames;
+    };
+    for (const Case& mode :
+         {Case{PacingMode::Decoupled, "Decoupled", 0ms, 80ms}, Case{PacingMode::Faithful, "Faithful", 100ms, 0ms}})
+    {
+        FakeClock clock;
+        RecordingClient client{clock};
+        GameLoop loop{clock, client, mode.mode};
+        InputState input;
+        client.renderCost = mode.firstRender;
+        loop.RunFrame(WindowState{}, input);
+        EXPECT_EQ(client.polls, 1u) << mode.name;
+        ASSERT_FALSE(client.calls.empty()) << mode.name;
+        EXPECT_EQ(client.calls.front(), LoopCall::Poll) << mode.name;
+
+        client.renderCost = 0ms;
+        client.calls.clear();
+        clock.Advance(mode.betweenFrames);
+
+        EXPECT_EQ(loop.RunFrame(WindowState{}, input), 2) << mode.name;
+        EXPECT_EQ(client.calls,
+                  (std::vector<LoopCall>{LoopCall::Poll, LoopCall::Step, LoopCall::Step, LoopCall::Render}))
+            << mode.name;
+    }
+}
+
+// Minimizada no se dibuja, pero la red sigue, como en el original (0x4e1d50 corre en cada vuelta
+// del bucle de WinMain): 26 frames son 26 polls, con los 25 pasos de
+// AMinimizedWindowStepsWithoutDrawing. En el modo fiel, también uno por frame.
+TEST(GameLoopTest, PollsWhileMinimized)
+{
+    WindowState minimized;
+    minimized.minimized = true;
+    {
+        FakeClock clock;
+        RecordingClient client{clock};
+        GameLoop loop{clock, client, PacingMode::Decoupled};
+        InputState input;
+        for (int frame = 0; frame < 26; ++frame)
+        {
+            loop.RunFrame(minimized, input);
+        }
+
+        EXPECT_EQ(client.polls, 26u);
+        EXPECT_EQ(client.steps, 25u);
+        EXPECT_TRUE(client.alphas.empty());
+    }
+    {
+        FakeClock clock;
+        RecordingClient client{clock};
+        GameLoop loop{clock, client, PacingMode::Faithful};
+        InputState input;
+        for (int frame = 0; frame < 26; ++frame)
+        {
+            loop.RunFrame(minimized, input);
+        }
+
+        EXPECT_EQ(client.polls, 26u);
+        EXPECT_TRUE(client.alphas.empty());
+    }
+}
+
+// En el modo fiel el Poll va antes de BeginFrame, fuera de la medición, como el bucle de mensajes
+// del original: lo que tarda se pierde de a ticks enteros, como el tiempo de los pasos (Q-C44).
+// Con polls de 20 ms, que siempre cruzan el borde de un tick, cada frame dura 4 ticks y no 3: en
+// 3 s, 48 frames y 56 pasos. Si el poll quedara adentro de la medición, la espera de 40 ms lo
+// taparía y serían 64 y 74, como sin poll. Con polls de 10 ms, que no cruzan ninguno, no se pierde
+// nada: 64 y 74.
+TEST(GameLoopTest, FaithfulDoesNotMeasureThePoll)
+{
+    struct Case
+    {
+        Duration pollCost;
+        std::uint64_t frames;
+        std::uint64_t steps;
+    };
+    for (const Case& expected : {Case{20ms, 48, 56}, Case{10ms, 64, 74}})
+    {
+        FakeClock clock;
+        RecordingClient client{clock};
+        GameLoop loop{clock, client, PacingMode::Faithful};
+        InputState input;
+        client.pollCost = expected.pollCost;
+
+        std::uint64_t frames = 0;
+        while (clock.Now() < 3s)
+        {
+            loop.RunFrame(WindowState{}, input);
+            ++frames;
+        }
+
+        const auto pollMs = std::chrono::duration_cast<std::chrono::milliseconds>(expected.pollCost).count();
+        EXPECT_EQ(frames, expected.frames) << "polls de " << pollMs << " ms";
+        EXPECT_EQ(client.steps, expected.steps) << "polls de " << pollMs << " ms";
+        EXPECT_EQ(client.polls, frames) << "polls de " << pollMs << " ms";
+        EXPECT_EQ(clock.Now(), 3s) << "polls de " << pollMs << " ms";
+    }
 }
 } // namespace

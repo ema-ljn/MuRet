@@ -17,6 +17,8 @@ constexpr TestScene::Color Light{0.20f, 0.35f, 0.60f};
 
 TestScene::TestScene(std::function<void(const Color&)> present) : m_present(std::move(present)) {}
 
+void TestScene::Poll() {}
+
 void TestScene::Step(const Input::InputState& /*input*/)
 {
     m_cycle = (m_cycle + 1) % CycleSteps;

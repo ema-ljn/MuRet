@@ -58,10 +58,12 @@ del cliente. De la CL2.1 en adelante, la sección de cada sub-ola de este plan.
 
 ## Preguntas para decidir al empezar
 
-1. **Quién escribe la CL2.** En la CL1 pediste seguir con el cliente y Claude la escribió como
+1. **Quién escribe la CL2.** ~~En la CL1 pediste seguir con el cliente y Claude la escribió como
    ejemplo trabajado. *Recomendación:* igual, con la CL2.0 en `labs/` para vos y un paso
-   `TODO(human)` chico por sub-ola (marcados abajo). Si la querés escribir vos, los pasos ya están
-   en el orden en que se hace: primero el test.
+   `TODO(human)` chico por sub-ola (marcados abajo).~~ **Decidido por Emanuel el 2026-11-02:
+   Claude, como en la CL1.** Escribe de la CL2.1 a la CL2.5 como ejemplo trabajado; la CL2.0 en
+   `labs/` y los pasos `TODO(human)` de cada sub-ola quedan para vos. Las preguntas 2 a 5 siguen
+   con su recomendación mientras no digas otra cosa: todas se pueden cambiar después.
 2. **Código compartido con los servidores** (pregunta 2 del roadmap). El corte C1/C2 lo van a
    necesitar el DataServer (el `FrameParser` de su ola 1) y el ConnectServer (ola 10). C3/C4, el
    XOR32 y FoxAnti, solo el cliente: el GameServer queda fuera del roadmap del servidor.
@@ -138,7 +140,8 @@ semilla fija para un test de propiedad.
   sus tests y `jefe/OldCutTest.cpp` (Emanuel)
 - Modificar: `labs/CMakeLists.txt`, `labs/README.md`
 
-- [ ] **Paso 1 (Claude):** la guía, justo antes de empezar.
+- [x] **Paso 1 (Claude):** la guía, justo antes de empezar
+  ([ola-cl2.0-flujos-y-bloques.md](../../learning/ola-cl2.0-flujos-y-bloques.md), 2026-11-02).
 - [ ] **Paso 2 (Emanuel):** GoogleTest en `labs/`, el paso 1 de la CL1.0, si todavía no se hizo.
 - [ ] **Paso 3 (Emanuel, `TODO(human)`):** `Labs::FrameCutter`, alimentado de a un byte, con los
   estados explícitos en un `enum class` (tipo, tamaño, cuerpo). Primero los tests: los casos de

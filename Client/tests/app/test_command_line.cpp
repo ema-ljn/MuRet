@@ -2,8 +2,11 @@
 
 #include <gtest/gtest.h>
 
+#include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // Client::App::ParseCommandLine: los argumentos de Main.
@@ -12,11 +15,38 @@ namespace
 using Client::App::CommandLine;
 using Client::App::PacingMode;
 using Client::App::ParseCommandLine;
+using Client::App::ServerAddress;
 using Client::App::VSyncMode;
 
+// Los tests de antes de la CL3.4 miran un optional y el mensaje aparte.
 std::optional<CommandLine> Parse(std::vector<std::string_view> arguments, std::string& error)
 {
-    return ParseCommandLine(arguments, error);
+    auto parsed = ParseCommandLine(arguments);
+    if (!parsed.HasValue())
+    {
+        error = parsed.Error();
+        return std::nullopt;
+    }
+    return std::move(parsed).Value();
+}
+
+// El mensaje de error, o "" si no hubo.
+std::string ErrorOf(std::vector<std::string_view> arguments)
+{
+    const auto parsed = ParseCommandLine(arguments);
+    return parsed.HasValue() ? std::string() : parsed.Error();
+}
+
+ServerAddress ConnectOf(std::vector<std::string_view> arguments)
+{
+    const auto parsed = ParseCommandLine(arguments);
+    EXPECT_TRUE(parsed.HasValue()) << (parsed.HasValue() ? "" : parsed.Error());
+    if (!parsed.HasValue() || !parsed.Value().connect)
+    {
+        ADD_FAILURE() << "sin connect";
+        return {};
+    }
+    return *parsed.Value().connect;
 }
 
 TEST(CommandLineTest, NoArgumentsMeansNoFrameLimit)
@@ -117,5 +147,125 @@ TEST(CommandLineTest, FaithfulWithVSyncOnIsAnError)
     EXPECT_TRUE(Parse({"--vsync", "off", "--pacing", "faithful"}, error).has_value()) << error;
     EXPECT_TRUE(Parse({"--pacing", "faithful"}, error).has_value()) << error;
     EXPECT_TRUE(Parse({"--pacing", "decoupled", "--vsync", "on"}, error).has_value()) << error;
+}
+TEST(CommandLineTest, AcceptsConnectWithHostAndPort)
+{
+    const ServerAddress address = ConnectOf({"connect", "/u10.0.0.1", "/p44405"});
+
+    EXPECT_EQ(address.host, "10.0.0.1");
+    EXPECT_EQ(address.port, 44405);
+}
+
+TEST(CommandLineTest, IgnoresTheCase)
+{
+    const ServerAddress address = ConnectOf({"CONNECT", "/U10.0.0.1", "/P44405"});
+
+    EXPECT_EQ(address.host, "10.0.0.1");
+    EXPECT_EQ(address.port, 44405);
+}
+
+TEST(CommandLineTest, AcceptsAnyOrder)
+{
+    const ServerAddress address = ConnectOf({"/p55901", "--frames", "60", "/u10.0.0.1"});
+
+    EXPECT_EQ(address.host, "10.0.0.1");
+    EXPECT_EQ(address.port, 55901);
+}
+
+TEST(CommandLineTest, ConnectIsOptional)
+{
+    const ServerAddress address = ConnectOf({"/u10.0.0.1", "/p44405"});
+
+    EXPECT_EQ(address.host, "10.0.0.1");
+    EXPECT_EQ(address.port, 44405);
+}
+
+TEST(CommandLineTest, ConnectAloneIsIgnored)
+{
+    std::string error;
+    const auto commandLine = Parse({"connect"}, error);
+
+    ASSERT_TRUE(commandLine.has_value()) << error;
+    EXPECT_FALSE(commandLine->connect.has_value());
+}
+
+TEST(CommandLineTest, RejectsAPortOutOfRange)
+{
+    EXPECT_EQ(ErrorOf({"connect", "/u10.0.0.1", "/p0"}), "el puerto va de 1 a 65535");
+    EXPECT_EQ(ErrorOf({"connect", "/u10.0.0.1", "/p65536"}), "el puerto va de 1 a 65535");
+}
+
+TEST(CommandLineTest, RejectsAPortWithLetters)
+{
+    EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/p12a"}), "el puerto tiene que ser un número");
+    EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/p"}), "el puerto tiene que ser un número");
+}
+
+TEST(CommandLineTest, RejectsHostWithoutPort)
+{
+    EXPECT_EQ(ErrorOf({"connect", "/u10.0.0.1"}), "/u necesita /p con el puerto");
+}
+
+TEST(CommandLineTest, RejectsPortWithoutHost)
+{
+    EXPECT_EQ(ErrorOf({"/p44405"}), "/p necesita /u con el host");
+}
+
+TEST(CommandLineTest, RejectsAnEmptyHost)
+{
+    EXPECT_EQ(ErrorOf({"/u", "/p44405"}), "el host va de 1 a 255 bytes");
+}
+
+TEST(CommandLineTest, RejectsARepeatedHostOrPort)
+{
+    EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/U10.0.0.2", "/p1"}), "/U está repetido");
+    EXPECT_EQ(ErrorOf({"/u10.0.0.1", "/p1", "/p2"}), "/p está repetido");
+}
+
+TEST(CommandLineTest, RejectsTheLauncherOptions)
+{
+    for (const std::string_view option : {"/y1", "/z1", "/Y"})
+    {
+        const std::string error = ErrorOf({"/u10.0.0.1", "/p44405", option});
+        EXPECT_NE(error.find("no conozco el argumento \"" + std::string(option) + "\""), std::string::npos) << error;
+    }
+}
+
+// Q-C37: el original copiaba el host sin mirar el largo.
+TEST(CommandLineTest, AcceptsAHostOf255Bytes)
+{
+    const std::string option = "/u" + std::string(255, 'a');
+
+    EXPECT_EQ(ConnectOf({option, "/p44405"}).host.size(), 255u);
+}
+
+TEST(CommandLineTest, RejectsAHostOf256Bytes)
+{
+    const std::string option = "/u" + std::string(256, 'a');
+
+    EXPECT_EQ(ErrorOf({option, "/p44405"}), "el host va de 1 a 255 bytes");
+}
+
+TEST(CommandLineTest, ParsesConfigPath)
+{
+    std::string error;
+    const auto commandLine = Parse({"--config", "otra.ini"}, error);
+
+    ASSERT_TRUE(commandLine.has_value()) << error;
+    EXPECT_EQ(commandLine->configPath, std::filesystem::path("otra.ini"));
+    EXPECT_FALSE(Parse({"--config"}, error).has_value());
+    EXPECT_NE(error.find("--config necesita una ruta"), std::string::npos) << error;
+}
+
+TEST(CommandLineTest, ParsesDataPath)
+{
+    std::string error;
+    const auto commandLine = Parse({"--data", "C:/MU/Data"}, error);
+
+    ASSERT_TRUE(commandLine.has_value()) << error;
+    EXPECT_EQ(commandLine->dataPath, std::filesystem::path("C:/MU/Data"));
+    EXPECT_FALSE(commandLine->configPath.has_value());
+    EXPECT_FALSE(Parse({"--data"}, error).has_value());
+    EXPECT_NE(error.find("--data necesita una ruta"), std::string::npos) << error;
 }
 } // namespace

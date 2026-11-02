@@ -3,21 +3,26 @@
 #include <gtest/gtest.h>
 
 #include <filesystem>
+#include <fstream>
+#include <random>
 #include <string>
 #include <string_view>
 
 using namespace std::string_view_literals;
 
-// Client::App::ParseConfig: el texto de muret-client.ini (CL3.4). Resolve, que abre el archivo y
-// junta la config con la línea de comandos, tiene sus tests más abajo cuando entre.
+// Client::App::ParseConfig: el texto de muret-client.ini (CL3.4). Y Resolve, que abre el archivo y
+// junta la config con la línea de comandos (al final).
 namespace
 {
+using Client::App::CommandLine;
 using Client::App::ConfigError;
 using Client::App::DefaultConnectPort;
 using Client::App::MaxHostBytes;
 using Client::App::MaxWindowSize;
 using Client::App::PacingMode;
 using Client::App::ParseConfig;
+using Client::App::Resolve;
+using Client::App::ServerAddress;
 using Client::App::VSyncMode;
 
 ConfigError ErrorOf(std::string_view text)
@@ -306,5 +311,188 @@ TEST(ConfigTest, SaysWhatIsWrongWithALine)
     const ConfigError hash = ErrorOf("# comentario\n");
     EXPECT_EQ(hash.line, 1u);
     EXPECT_EQ(hash.message, "se esperaba [Sección] o Clave = valor");
+}
+// Una carpeta nueva en el temporal, que se borra al final. El nombre lleva un número al azar: los
+// tests corren en paralelo, y otras compilaciones pueden correr los mismos.
+class TempFolder
+{
+public:
+    TempFolder()
+        : m_path(std::filesystem::temp_directory_path() / ("muret-config-" + std::to_string(std::random_device{}())))
+    {
+        std::filesystem::create_directories(m_path);
+    }
+    ~TempFolder()
+    {
+        std::error_code error;
+        std::filesystem::remove_all(m_path, error);
+    }
+    TempFolder(const TempFolder&) = delete;
+    TempFolder& operator=(const TempFolder&) = delete;
+
+    [[nodiscard]] const std::filesystem::path& Path() const
+    {
+        return m_path;
+    }
+
+    // Escribe muret-client.ini (u otro nombre) con ese texto y devuelve su ruta.
+    std::filesystem::path Write(std::string_view text, std::string_view name = "muret-client.ini") const
+    {
+        const std::filesystem::path file = m_path / name;
+        std::ofstream(file, std::ios::binary) << text;
+        return file;
+    }
+
+private:
+    std::filesystem::path m_path;
+};
+
+TEST(ConfigTest, AMissingDefaultFileMeansDefaults)
+{
+    const TempFolder exeFolder;
+    const auto config = Resolve(exeFolder.Path(), CommandLine{});
+
+    ASSERT_TRUE(config.HasValue()) << config.Error();
+    EXPECT_FALSE(config.Value().server.has_value());
+    EXPECT_FALSE(config.Value().dataPath.has_value());
+    EXPECT_EQ(config.Value().pacing, PacingMode::Decoupled);
+    EXPECT_EQ(config.Value().vsync, VSyncMode::On);
+}
+
+TEST(ConfigTest, ResolveChoosesTheVSyncByThePacing)
+{
+    const TempFolder exeFolder;
+    exeFolder.Write("[Video]\nPacing = faithful\n");
+    const auto faithful = Resolve(exeFolder.Path(), CommandLine{});
+    ASSERT_TRUE(faithful.HasValue()) << faithful.Error();
+    EXPECT_EQ(faithful.Value().vsync, VSyncMode::Off);
+
+    exeFolder.Write("[Video]\nVSync = adaptive\n");
+    const auto given = Resolve(exeFolder.Path(), CommandLine{});
+    ASSERT_TRUE(given.HasValue()) << given.Error();
+    EXPECT_EQ(given.Value().vsync, VSyncMode::Adaptive);
+}
+
+TEST(ConfigTest, AMissingConfigPathIsAnError)
+{
+    const TempFolder exeFolder;
+    CommandLine commandLine;
+    commandLine.configPath = exeFolder.Path() / "no-esta.ini";
+
+    const auto config = Resolve(exeFolder.Path(), commandLine);
+
+    ASSERT_FALSE(config.HasValue());
+    EXPECT_NE(config.Error().find("no existe la config"), std::string::npos) << config.Error();
+    EXPECT_NE(config.Error().find("no-esta.ini"), std::string::npos) << config.Error();
+}
+
+TEST(ConfigTest, ReadsTheConfigPath)
+{
+    const TempFolder exeFolder;
+    CommandLine commandLine;
+    commandLine.configPath = exeFolder.Write("[Video]\nWidth = 800\n", "otra.ini");
+
+    const auto config = Resolve(exeFolder.Path(), commandLine);
+
+    ASSERT_TRUE(config.HasValue()) << config.Error();
+    EXPECT_EQ(config.Value().width, 800);
+}
+
+TEST(ConfigTest, AParseErrorNamesTheFileAndTheLine)
+{
+    const TempFolder exeFolder;
+    exeFolder.Write("[Video]\nWidth 800\n");
+
+    const auto config = Resolve(exeFolder.Path(), CommandLine{});
+
+    ASSERT_FALSE(config.HasValue());
+    EXPECT_NE(config.Error().find("muret-client.ini, línea 2: "), std::string::npos) << config.Error();
+}
+
+TEST(ConfigTest, TheCommandLineWins)
+{
+    const TempFolder exeFolder;
+    exeFolder.Write("[Server]\nHost = 10.0.0.1\nPort = 44405\n[Video]\nPacing = decoupled\n");
+    CommandLine commandLine;
+    commandLine.connect = ServerAddress{"192.168.0.2", 55901};
+    commandLine.pacing = PacingMode::Faithful;
+
+    const auto config = Resolve(exeFolder.Path(), commandLine);
+
+    ASSERT_TRUE(config.HasValue()) << config.Error();
+    ASSERT_TRUE(config.Value().server.has_value());
+    EXPECT_EQ(config.Value().server->host, "192.168.0.2");
+    EXPECT_EQ(config.Value().server->port, 55901);
+    EXPECT_EQ(config.Value().pacing, PacingMode::Faithful);
+    EXPECT_EQ(config.Value().vsync, VSyncMode::Off);
+}
+
+TEST(ConfigTest, FaithfulWithVSyncOnIsAnError)
+{
+    const TempFolder exeFolder;
+    exeFolder.Write("[Video]\nPacing = faithful\nVSync = on\n");
+    const auto fromConfig = Resolve(exeFolder.Path(), CommandLine{});
+    ASSERT_FALSE(fromConfig.HasValue());
+    EXPECT_NE(fromConfig.Error().find("Pacing"), std::string::npos) << fromConfig.Error();
+    EXPECT_NE(fromConfig.Error().find("VSync"), std::string::npos) << fromConfig.Error();
+
+    // La config pide VSync y la línea de comandos el modo fiel: es el mismo error.
+    exeFolder.Write("[Video]\nVSync = adaptive\n");
+    CommandLine commandLine;
+    commandLine.pacing = PacingMode::Faithful;
+    const auto mixed = Resolve(exeFolder.Path(), commandLine);
+    ASSERT_FALSE(mixed.HasValue());
+    EXPECT_EQ(mixed.Error(), fromConfig.Error());
+}
+
+// El test del 02 y Q-C35: el original salía sin avisar si no encontraba lo suyo.
+TEST(ConfigTest, AMissingDataFolderNamesIt)
+{
+    const TempFolder exeFolder;
+    CommandLine commandLine;
+    commandLine.dataPath = exeFolder.Path() / "Data-que-no-esta";
+
+    const auto config = Resolve(exeFolder.Path(), commandLine);
+
+    ASSERT_FALSE(config.HasValue());
+    EXPECT_NE(config.Error().find("no existe la carpeta de datos"), std::string::npos) << config.Error();
+    EXPECT_NE(config.Error().find("Data-que-no-esta"), std::string::npos) << config.Error();
+}
+
+TEST(ConfigTest, ARelativePathIsFromTheExeFolder)
+{
+    const TempFolder exeFolder;
+    std::filesystem::create_directories(exeFolder.Path() / "Data");
+    exeFolder.Write("[Data]\nPath = Data\n[Log]\nPath = muret.log\n");
+
+    const auto config = Resolve(exeFolder.Path(), CommandLine{});
+
+    ASSERT_TRUE(config.HasValue()) << config.Error();
+    EXPECT_EQ(config.Value().dataPath, exeFolder.Path() / "Data");
+    EXPECT_EQ(config.Value().logPath, exeFolder.Path() / "muret.log");
+}
+
+TEST(ConfigTest, NoDataFolderIsNotAnError)
+{
+    const TempFolder exeFolder;
+    exeFolder.Write("[Video]\nWidth = 800\n");
+
+    const auto config = Resolve(exeFolder.Path(), CommandLine{});
+
+    ASSERT_TRUE(config.HasValue()) << config.Error();
+    EXPECT_FALSE(config.Value().dataPath.has_value());
+}
+
+// Lo pide la CL4, al conectarse.
+TEST(ConfigTest, NoHostIsNotAnError)
+{
+    const TempFolder exeFolder;
+    exeFolder.Write("[Server]\nPort = 55901\n");
+
+    const auto config = Resolve(exeFolder.Path(), CommandLine{});
+
+    ASSERT_TRUE(config.HasValue()) << config.Error();
+    ASSERT_TRUE(config.Value().server.has_value());
+    EXPECT_TRUE(config.Value().server->host.empty());
 }
 } // namespace

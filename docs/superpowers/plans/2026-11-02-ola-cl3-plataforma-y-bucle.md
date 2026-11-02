@@ -1200,10 +1200,11 @@ se declara después del `Log` en `main`, así se destruye antes.
   | `/u` + 255 bytes + ` /p44405` | `connect` con ese host | el largo máximo del host (Q-C37) |
   | `/u` + 256 bytes + ` /p44405` | error: "el host va de 1 a 255 bytes" | el original lo copiaba sin mirar el largo (Q-C37) |
   | `/y...` o `/z...` | error: "no conozco el argumento ..." | son opciones del launcher, y MuRet no las lee |
+  | `/u10.0.0.1 /U10.0.0.2 /p1` | error: "/U está repetido" | no se elige uno en silencio (lo mismo con `/p`) |
 
   Los mensajes de puerto y host son los de `ParsePort` y `ParseHost`, los mismos que da
   `[Server]` en la config, para que las dos digan lo mismo.
-- [ ] **Paso 3 (PR A):** los tests:
+- [x] **Paso 3 (PR A):** los tests:
   - `CommandLineTest.AcceptsConnectWithHostAndPort`, `IgnoresTheCase`, `AcceptsAnyOrder`,
     `ConnectIsOptional`, `ConnectAloneIsIgnored`; `RejectsAPortOutOfRange` (0 y 65536: "el puerto
     va de 1 a 65535"), `RejectsAPortWithLetters`, `RejectsHostWithoutPort` y
@@ -1228,10 +1229,20 @@ se declara después del `Log` en `main`, así se destruye antes.
     test del 02 y Q-C35), `NoDataFolderIsNotAnError` y `NoHostIsNotAnError` (lo pide la CL4).
 - [ ] **Paso 4 (PR A):** `ParseCommandLine`, `ParseConfig` y `Resolve`. `main.cpp`: argumentos y
   config, y recién después SDL y la ventana.
+
+  Hecho (fase 2a): `ParseCommandLine` devuelve `Core::Expected<CommandLine, std::string>`, y
+  `ParseConfig` y `Resolve` están. Las rutas de `--config` y `--data` son de la carpeta actual y
+  se leen en la codificación del sistema (la de `argv`); las de la config, en UTF-8 y desde la
+  carpeta del ejecutable. `ParseCommandLine` sigue rechazando `--pacing faithful --vsync on`
+  (CL3.2), y `Resolve` mira la misma regla con la config. Falta `main.cpp`: llama a
+  `ParseCommandLine`, pero `Resolve` (con `SDL_GetBasePath`) entra en la fase 2b, sobre la CL3.1.
 - [ ] **Paso 5 (PR A):** CTest de `Main` sin ventana (fallan antes de `SDL_Init`):
   `Client.Main.RejectsBadPort` (`Main connect /u127.0.0.1 /p0`, la salida dice "el puerto va de 1 a
   65535") y `Client.Main.NamesTheMissingDataFolder` (`Main --data <carpeta que no existe>`, la
   salida trae la ruta). El paso de Xvfb del CI sigue sin config ni datos.
+
+  `Client.Main.RejectsBadPort` está (fase 2a); `NamesTheMissingDataFolder` necesita `Resolve` en
+  `main.cpp` (fase 2b).
 - [ ] **Paso 6 (PR B):** los tests: `LogTest.WritesTheLevelAndTheMessage` (con un `LogSink` de
   prueba que guarda las líneas: `Info("hola {}", 1)` da `[info] hola 1`),
   `BelowTheMinimumIsNotWritten`, `EachLevelHasItsPrefix`, `TeeSinkWritesBoth`.

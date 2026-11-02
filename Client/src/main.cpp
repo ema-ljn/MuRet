@@ -172,14 +172,13 @@ int main(int argc, char** argv)
     {
         arguments.emplace_back(argv[i]);
     }
-    std::string error;
-    const std::optional<App::CommandLine> commandLine = App::ParseCommandLine(arguments, error);
-    if (!commandLine)
+    const auto commandLine = App::ParseCommandLine(arguments);
+    if (!commandLine.HasValue())
     {
-        std::fprintf(stderr, "MuRet: %s\n", error.c_str());
+        std::fprintf(stderr, "MuRet: %s\n", commandLine.Error().c_str());
         return EXIT_FAILURE;
     }
-    const App::PacingMode pacing = commandLine->pacing.value_or(App::PacingMode::Decoupled);
+    const App::PacingMode pacing = commandLine.Value().pacing.value_or(App::PacingMode::Decoupled);
 
     const Client::Core::Expected<std::unique_ptr<Platform::SdlContext>, std::string> sdl =
         Platform::SdlContext::Create();
@@ -191,7 +190,7 @@ int main(int argc, char** argv)
     Platform::WindowOptions options;
     // Sin --vsync, On; en el modo fiel, Off como el original (ParseCommandLine ya rechazó otro).
     const App::VSyncMode defaultVSync = pacing == App::PacingMode::Faithful ? App::VSyncMode::Off : App::VSyncMode::On;
-    options.vsync = commandLine->vsync.value_or(defaultVSync);
+    options.vsync = commandLine.Value().vsync.value_or(defaultVSync);
     Client::Core::Expected<Platform::Window, std::string> created = Platform::Window::Create(*sdl.Value(), options);
     if (!created.HasValue())
     {
@@ -213,7 +212,7 @@ int main(int argc, char** argv)
     Platform::SdlClock clock;
     TestScene scene{window};
     App::GameLoop loop{clock, scene, pacing};
-    const App::FrameStats stats = RunLoop(window, clock, loop, *commandLine);
+    const App::FrameStats stats = RunLoop(window, clock, loop, commandLine.Value());
     std::printf("frames: %llu, pasos: %llu\n", static_cast<unsigned long long>(stats.frames),
                 static_cast<unsigned long long>(stats.steps));
     return EXIT_SUCCESS;

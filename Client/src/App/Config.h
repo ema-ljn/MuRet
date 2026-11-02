@@ -1,5 +1,6 @@
 #pragma once
 
+#include "App/CommandLine.h"
 #include "App/ConfigError.h"
 #include "App/PacingMode.h"
 #include "App/ServerAddress.h"
@@ -48,6 +49,8 @@ namespace Client::App
 // El lado más grande de la ventana que acepta [Video]. No sale del original: con 16384, Width *
 // Height entra en un int (2^28), y sobra para un monitor de hoy (el 8K es 7680 × 4320).
 inline constexpr int MaxWindowSize = 16384;
+// El archivo que Resolve busca junto al ejecutable si no hay --config (tabla de la CL3.4).
+inline constexpr std::string_view DefaultConfigFileName = "muret-client.ini";
 
 struct ClientConfig
 {
@@ -71,4 +74,17 @@ struct ClientConfig
 // Lee el texto de muret-client.ini. No abre el archivo ni mira si las rutas existen: eso lo hace
 // Resolve. El primer error corta.
 Core::Expected<ClientConfig, ConfigError> ParseConfig(std::string_view text);
+
+// La config que usa Main, en este orden (el primer error corta):
+//   1. el archivo: el de --config, que tiene que existir, o DefaultConfigFileName en exeFolder, y
+//      si ese no está, los valores por defecto (así Main --frames 60 anda sin nada);
+//   2. ParseConfig: un error nombra el archivo y la línea. Una ruta relativa de la config se
+//      toma desde exeFolder, no desde la carpeta actual;
+//   3. la línea de comandos pisa la config (/u /p, --data, --pacing, --vsync);
+//   4. en el modo fiel, un VSync que no es off es error (nombra Pacing y VSync), y sin VSync
+//      queda en off; en el normal, sin VSync queda en on;
+//   5. la carpeta de datos, solo si se dio, tiene que existir.
+// El host vacío no es error acá: lo pide la CL4 al conectarse.
+Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& exeFolder,
+                                                  const CommandLine& commandLine);
 } // namespace Client::App

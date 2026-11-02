@@ -6,6 +6,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <fstream>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <system_error>
@@ -336,6 +338,38 @@ ConfigError ErrorAt(std::size_t line, std::string message)
 {
     return ConfigError{line, std::move(message)};
 }
+
+// Para un mensaje: std::format no toma un path en C++20, y path::string() puede tirar en Windows.
+std::string PathText(const std::filesystem::path& path)
+{
+    const std::u8string utf8 = path.u8string();
+    return std::string(utf8.begin(), utf8.end());
+}
+
+std::filesystem::path FromFolder(const std::filesystem::path& folder, const std::filesystem::path& path)
+{
+    return path.is_relative() ? folder / path : path;
+}
+
+// El texto del archivo, o vacío si no está; con `required`, que no esté es un error.
+Core::Expected<std::optional<std::string>, std::string> ReadConfigFile(const std::filesystem::path& path, bool required)
+{
+    std::error_code error;
+    if (!std::filesystem::exists(path, error))
+    {
+        if (required)
+        {
+            return Unexpected(std::format("no existe la config {}", PathText(path)));
+        }
+        return std::optional<std::string>();
+    }
+    std::ifstream file(path, std::ios::binary);
+    if (!file)
+    {
+        return Unexpected(std::format("no se pudo abrir la config {}", PathText(path)));
+    }
+    return std::optional<std::string>(std::string(std::istreambuf_iterator<char>(file), {}));
+}
 } // namespace
 
 Core::Expected<ClientConfig, ConfigError> ParseConfig(std::string_view text)
@@ -421,6 +455,80 @@ Core::Expected<ClientConfig, ConfigError> ParseConfig(std::string_view text)
         if (const auto error = Store(config, known.key, value))
         {
             return Unexpected(ErrorAt(lineNumber, std::format("[{}] {}: {}", known.section, known.name, *error)));
+        }
+    }
+    return config;
+}
+
+Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& exeFolder,
+                                                  const CommandLine& commandLine)
+{
+    // 1. El archivo.
+    const std::filesystem::path configPath = commandLine.configPath.value_or(exeFolder / DefaultConfigFileName);
+    const auto text = ReadConfigFile(configPath, commandLine.configPath.has_value());
+    if (!text.HasValue())
+    {
+        return Unexpected(text.Error());
+    }
+    // 2. ParseConfig, con las rutas relativas desde la carpeta del ejecutable.
+    ClientConfig config;
+    if (text.Value())
+    {
+        auto parsed = ParseConfig(*text.Value());
+        if (!parsed.HasValue())
+        {
+            return Unexpected(
+                std::format("{}, línea {}: {}", PathText(configPath), parsed.Error().line, parsed.Error().message));
+        }
+        config = std::move(parsed).Value();
+        if (config.dataPath)
+        {
+            config.dataPath = FromFolder(exeFolder, *config.dataPath);
+        }
+        if (config.logPath)
+        {
+            config.logPath = FromFolder(exeFolder, *config.logPath);
+        }
+    }
+    // 3. La línea de comandos pisa.
+    if (commandLine.connect)
+    {
+        config.server = commandLine.connect;
+    }
+    if (commandLine.dataPath)
+    {
+        config.dataPath = commandLine.dataPath;
+    }
+    if (commandLine.pacing)
+    {
+        config.pacing = *commandLine.pacing;
+    }
+    if (commandLine.vsync)
+    {
+        config.vsync = commandLine.vsync;
+    }
+    // 4. Las combinaciones: en el modo fiel VSync va apagado, como el original (CL3.2).
+    if (config.pacing == PacingMode::Faithful)
+    {
+        if (config.vsync && *config.vsync != VSyncMode::Off)
+        {
+            return Unexpected(
+                std::string("el modo fiel (Pacing o --pacing faithful) necesita VSync off (VSync o --vsync): "
+                            "el original no pide VSync"));
+        }
+        config.vsync = VSyncMode::Off;
+    }
+    else if (!config.vsync)
+    {
+        config.vsync = VSyncMode::On;
+    }
+    // 5. La carpeta de datos, solo si se dio (Q-C35: el original salía sin avisar).
+    if (config.dataPath)
+    {
+        std::error_code error;
+        if (!std::filesystem::is_directory(*config.dataPath, error))
+        {
+            return Unexpected(std::format("no existe la carpeta de datos {}", PathText(*config.dataPath)));
         }
     }
     return config;

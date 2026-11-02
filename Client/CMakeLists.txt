@@ -56,4 +56,8 @@ if(MURET_BUILD_TESTS)
     add_test(NAME Client.Main.RejectsBadArguments COMMAND Main --frames 0)
     set_tests_properties(Client.Main.RejectsBadArguments PROPERTIES
         PASS_REGULAR_EXPRESSION "--frames necesita un número mayor que 0")
+    # Un puerto malo del launcher corta antes de SDL_Init, con el mensaje de ParsePort (CL3.4).
+    add_test(NAME Client.Main.RejectsBadPort COMMAND Main connect /u127.0.0.1 /p0)
+    set_tests_properties(Client.Main.RejectsBadPort PROPERTIES
+        PASS_REGULAR_EXPRESSION "el puerto va de 1 a 65535")
 endif()

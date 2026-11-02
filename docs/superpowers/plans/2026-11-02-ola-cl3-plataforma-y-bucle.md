@@ -1130,16 +1130,62 @@ public:
 Sin globales (D-C1): el `Log` lo crea `main.cpp` y se pasa por referencia a quien lo use. `SdlLog`
 se declara después del `Log` en `main`, así se destruye antes.
 
-- [ ] **Paso 1 (PR A, §10):** con Context7, confirmar el puerto `inih` de vcpkg y su
+- [x] **Paso 1 (PR A, §10):** con Context7, confirmar el puerto `inih` de vcpkg y su
   comportamiento: secciones, `clave = valor`, `;` al principio y al final de la línea, una clave
   repetida, una línea sin `=` (la línea del primer error), y el BOM. Si coincide con la tabla del
   paso 3, entra; si no, el parser propio, con la razón en el header. Confirmar también que CLI11 y
   cxxopts no leen `/u10.0.0.1` pegado (pregunta 6).
-- [ ] **Paso 2 (Emanuel, `TODO(human)`):** antes de los tests, la tabla de la línea de comandos:
-  qué dan `connect /u10.0.0.1 /p44405`, `CONNECT /U10.0.0.1 /P44405`, `/p44405 /u10.0.0.1` (el
-  original busca en cualquier orden), `/u10.0.0.1 /p44405` sin `connect`, `connect` solo,
-  `connect /u10.0.0.1`, `/p44405` solo, `/p0`, `/p65536`, `/p12a`, `/u` vacío, un host de 255
-  bytes y uno de 256, y `/y...`.
+
+  **Lo que se encontró (2026-11-02): queda el parser propio**, con la razón en `App/Config.h`.
+  Context7 no tiene inih; se leyeron el puerto en la baseline de `vcpkg.json` (`9a5dfef`,
+  `ports/inih/`) y la fuente de la versión que baja (tag `r62`: `ini.c`, `ini.h`,
+  `cpp/INIReader.*`, `meson_options.txt`).
+  - **El puerto:** `inih` versión 62 (port-version 1), solo estático, compilado con meson. La
+    feature `cpp` (que es la de por defecto) prende `with_INIReader`. No trae un config de CMake
+    del proyecto: arma uno propio, `unofficial-inih`, que se pide con
+    `find_package(unofficial-inih CONFIG REQUIRED)` y da `unofficial::inih::libinih` (la API de C)
+    y `unofficial::inih::inireader` (la de C++, con la feature `cpp`; enlaza la de C). Las demás
+    opciones de meson quedan en su valor por defecto, y el puerto no deja cambiarlas.
+  - **Lo que hace con esas opciones:** secciones y `clave = valor` sí, y también `clave: valor`;
+    `;` y `#` al principio de la línea; `;` al final solo después de un espacio (`55901;` es el
+    valor); el BOM al principio se salta; con una línea sin `=`, `ini_parse` sigue y devuelve la
+    línea del primer error. Tres cosas no coinciden: una línea de más de 199 bytes es error
+    (`max_line_length = 200`, y el host llega a 255 bytes, Q-C37); una línea con sangría sigue el
+    valor de la clave anterior (`multi-line_entries`), así que `  Port = 1` debajo de `Host = a`
+    da el host `"a\nPort = 1"`; y el `INIReader` junta las claves repetidas con `"\n"` y no sabe
+    en qué línea estaba un valor, así que no puede decir la línea de un `VSync = sometimes`. Con
+    la API de C, el handler puede rechazar las tres (si devuelve 0, `ini_parse` da esa línea),
+    pero la misma línea sale del primer error de sintaxis y del primero del handler, y separarlos
+    lleva dos pasadas: más código que un parser de lo que la config necesita.
+  - **CLI11 y cxxopts:** CLI11, con `allow_windows_style_options()`, lee `/u valor` y `/u:valor`,
+    y su documentación dice que con `/` no se puede pegar el valor a la opción corta. cxxopts solo
+    reconoce opciones que empiezan con `-` o `--` (`cxxopts.hpp`): `/u10.0.0.1` sería un
+    argumento posicional. Sigue el parser a mano de la CL0.3.
+- [x] **Paso 2 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de los tests, la tabla de la
+  línea de comandos: qué dan `connect /u10.0.0.1 /p44405`, `CONNECT /U10.0.0.1 /P44405`,
+  `/p44405 /u10.0.0.1` (el original busca en cualquier orden), `/u10.0.0.1 /p44405` sin
+  `connect`, `connect` solo, `connect /u10.0.0.1`, `/p44405` solo, `/p0`, `/p65536`, `/p12a`, `/u`
+  vacío, un host de 255 bytes y uno de 256, y `/y...`.
+
+  | Argumentos | `ParseCommandLine` da | Por qué |
+  | --- | --- | --- |
+  | `connect /u10.0.0.1 /p44405` | `connect` = 10.0.0.1, 44405 | lo que pasa el launcher |
+  | `CONNECT /U10.0.0.1 /P44405` | lo mismo | como `0x4b9890`, que acepta las letras en mayúscula o minúscula; `connect` tampoco las distingue |
+  | `/p44405 /u10.0.0.1` | lo mismo | el original busca `/u` y `/p` en cualquier lugar |
+  | `/u10.0.0.1 /p44405` | lo mismo | `connect` es opcional (pregunta 6) |
+  | `connect` | sin `connect`, y sin error | se ignora: vale el `[Server]` de la config |
+  | `connect /u10.0.0.1` | error: "/u necesita /p con el puerto" | un `connect` a medias es un error de quien lanza el cliente; no se completa con la config (pregunta 6) |
+  | `/p44405` | error: "/p necesita /u con el host" | lo mismo, del otro lado |
+  | `/u10.0.0.1 /p0` | error: "el puerto va de 1 a 65535" | 0 no es un puerto (`ParsePort`, `App/ServerAddress.h`) |
+  | `/u10.0.0.1 /p65536` | error: "el puerto va de 1 a 65535" | no entra en 16 bits |
+  | `/u10.0.0.1 /p12a` | error: "el puerto tiene que ser un número" | solo dígitos, nada atrás |
+  | `/u /p44405` | error: "el host va de 1 a 255 bytes" | `/u` vacío no es un host (`ParseHost`) |
+  | `/u` + 255 bytes + ` /p44405` | `connect` con ese host | el largo máximo del host (Q-C37) |
+  | `/u` + 256 bytes + ` /p44405` | error: "el host va de 1 a 255 bytes" | el original lo copiaba sin mirar el largo (Q-C37) |
+  | `/y...` o `/z...` | error: "no conozco el argumento ..." | son opciones del launcher, y MuRet no las lee |
+
+  Los mensajes de puerto y host son los de `ParsePort` y `ParseHost`, los mismos que da
+  `[Server]` en la config, para que las dos digan lo mismo.
 - [ ] **Paso 3 (PR A):** los tests:
   - `CommandLineTest.AcceptsConnectWithHostAndPort`, `IgnoresTheCase`, `AcceptsAnyOrder`,
     `ConnectIsOptional`, `ConnectAloneIsIgnored`; `RejectsAPortOutOfRange` (0 y 65536: "el puerto

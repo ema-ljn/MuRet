@@ -56,13 +56,17 @@ cmake --build --preset linux-x64-debug
 ./build/linux-x64-debug/Client/Main              # corre hasta que se cierre la ventana
 ./build/linux-x64-debug/Client/Main --frames 60  # dibuja 60 frames y sale
 ./build/linux-x64-debug/Client/Main --vsync off --stats  # sin VSync: FPS y pasos por segundo cada 5 s
+./build/linux-x64-debug/Client/Main --vsync off --max-fps 144 --stats  # sin VSync, hasta 144 FPS
 ```
 
-Al salir, `Main` imprime los frames y los pasos que corrió. La lógica va a 25 pasos por segundo
-con cualquier tasa de frames (CL3.2). En Linux con Xvfb (sin retrazo, así que VSync no frena),
-`--stats` da cientos de FPS y 25 pasos por segundo. Con `--pacing faithful` (el ritmo del
-original, VSync apagado), da 21,33 FPS y 25 pasos por segundo. En Windows queda por probar a mano
-(Emanuel).
+Al salir, `Main` imprime los frames y los pasos que corrió. La lógica va a 25 pasos por segundo con
+cualquier tasa de frames (CL3.2). En Linux con Xvfb (sin retrazo, así que VSync no frena), `--stats`
+da cientos de FPS y 25 pasos por segundo; con `--max-fps N`, hasta N FPS. Sin VSync y sin tope, el
+bucle no duerme y usa un núcleo entero: `--max-fps` (o `[Video] MaxFps`) le pone un tope, como el
+`FpsCap` de MuMain, que tampoco topea por defecto y también va solo con VSync apagado. Con VSync
+el tope no se usa (el log lo dice): el swap ya frena al refresco, y un tope que no lo divide
+dibujaría a saltos. Con `--pacing faithful` (el ritmo del original, VSync apagado), da 21,33 FPS y
+25 pasos por segundo, y no lleva tope. En Windows queda por probar a mano (Emanuel).
 
 En Windows: `cmake --preset windows-x64`, `cmake --build --preset windows-x64-debug` y
 `build\windows-x64\Client\Debug\Main.exe`.
@@ -80,6 +84,7 @@ config, `Main` corre con los valores por defecto, como en CI.
 | `connect /u<host> /p<puerto>` | el servidor, como lo pasa el launcher. `connect` es opcional, las letras van en mayúscula o minúscula y en cualquier orden. El valor va pegado a la letra. El puerto va de 1 a 65535, y el host, de 1 a 255 bytes de ASCII visible: una IP o un nombre, que con acentos va en punycode (Q-C37). Uno sin el otro, o uno repetido, es un error (Q-C36), y `/y` y `/z`, también |
 | `--config <ruta>` | lee esa config en vez de `muret-client.ini`; si no existe, es un error que la nombra |
 | `--data <ruta>` | la carpeta de datos del cliente original, en vez de `[Data] Path`; si no existe o no es una carpeta, es un error que la nombra (Q-C35) |
+| `--max-fps <N>` | el tope de FPS del modo normal con VSync apagado, en vez de `[Video] MaxFps`: 0 (sin tope), o de 25 (un frame por paso de la lógica) a 1000. Después de dibujar, `Main` duerme hasta la meta del frame: 1 s / N después de la del anterior, o de donde terminó el anterior si se pasó. Así lo que corre entre frames no se suma, y el tope nunca da menos FPS que no tenerlo. Con VSync no se usa. Con `--pacing faithful`, un tope que no es 0 es un error que nombra `--pacing faithful` y `--max-fps`; `--max-fps 0` vale, y saca un `MaxFps` de la config |
 
 Las rutas de `--config` y `--data` se toman desde la carpeta actual, como cualquier argumento.
 En Windows llegan en UTF-8, como las de la config, así que andan aunque tengan letras que no están
@@ -122,6 +127,7 @@ Width = 640
 Height = 480
 VSync = on               ; on, adaptive u off
 Pacing = decoupled       ; decoupled o faithful
+MaxFps = 0               ; tope de FPS con VSync off: 0 (sin tope), o de 25 a 1000
 
 [Log]
 Path = muret-client.log
@@ -135,6 +141,7 @@ Path = muret-client.log
 | `[Video] Width`, `Height` | 640, 480 | el tamaño de la ventana al abrir, de 1 a 16384 |
 | `[Video] VSync` | `on`, y `off` en el modo fiel | como `--vsync`. Con `Pacing = faithful` (o `--pacing faithful`), `on` o `adaptive` es un error que nombra `Pacing` y `VSync` |
 | `[Video] Pacing` | `decoupled` | como `--pacing` |
+| `[Video] MaxFps` | 0 (sin tope) | como `--max-fps`. Con `Pacing = faithful`, un tope que no es 0 es un error que nombra `Pacing` y `MaxFps` |
 | `[Log] Path` | `muret-client.log` junto al ejecutable | el archivo del log |
 
 Una ruta relativa de la config (`[Data] Path`, `[Log] Path`) se toma desde la carpeta del

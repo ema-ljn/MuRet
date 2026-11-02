@@ -1,5 +1,7 @@
 #include "App/Config.h"
 
+#include "App/LoopTiming.h"
+
 #include <gtest/gtest.h>
 
 #include <filesystem>
@@ -18,8 +20,11 @@ namespace
 using Client::App::CommandLine;
 using Client::App::ConfigError;
 using Client::App::DefaultConnectPort;
+using Client::App::EffectiveMaxFps;
+using Client::App::MaxFpsLimit;
 using Client::App::MaxHostBytes;
 using Client::App::MaxWindowSize;
+using Client::App::MinFpsLimit;
 using Client::App::PacingMode;
 using Client::App::ParseConfig;
 using Client::App::Resolve;
@@ -623,5 +628,99 @@ TEST(ConfigTest, NoHostIsNotAnError)
     ASSERT_TRUE(config.HasValue()) << config.Error();
     ASSERT_TRUE(config.Value().server.has_value());
     EXPECT_TRUE(config.Value().server->host.empty());
+}
+
+// [Video] MaxFps, el tope de FPS del modo normal: 0 (sin tope, el valor por defecto), o de 25 a
+// 1000.
+TEST(ConfigTest, ReadsMaxFps)
+{
+    const auto defaults = ParseConfig("");
+    ASSERT_TRUE(defaults.HasValue());
+    EXPECT_EQ(defaults.Value().maxFps, 0);
+    for (const int maxFps : {0, MinFpsLimit, 144, MaxFpsLimit})
+    {
+        const auto config = ParseConfig("[Video]\nMaxFps = " + std::to_string(maxFps) + "\n");
+        ASSERT_TRUE(config.HasValue()) << maxFps;
+        EXPECT_EQ(config.Value().maxFps, maxFps);
+    }
+}
+
+// 1 duraría MaxFrameTime y se recortaría siempre: el más bajo es MinFpsLimit.
+TEST(ConfigTest, RejectsAMaxFpsOutOfRange)
+{
+    for (const std::string_view maxFps : {"1001", "99999999999", "1", "24"})
+    {
+        EXPECT_EQ(ErrorOf("[Video]\nMaxFps = " + std::string(maxFps) + "\n").message,
+                  "[Video] MaxFps: va de 25 a 1000, o 0 (sin tope)")
+            << maxFps;
+    }
+    EXPECT_EQ(ErrorOf("[Video]\nMaxFps = -1\n").message, "[Video] MaxFps: tiene que ser un número");
+    EXPECT_EQ(ErrorOf("[Video]\nMaxFps = 60fps\n").message, "[Video] MaxFps: tiene que ser un número");
+}
+
+// --max-fps pisa la config, también con 0 (sin tope).
+TEST(ConfigTest, TheCommandLineMaxFpsWins)
+{
+    const TempFolder exeFolder;
+    exeFolder.Write("[Video]\nMaxFps = 144\n");
+    const auto fromConfig = Resolve(exeFolder.Path(), CommandLine{});
+    ASSERT_TRUE(fromConfig.HasValue()) << fromConfig.Error();
+    EXPECT_EQ(fromConfig.Value().maxFps, 144);
+
+    for (const int maxFps : {60, 0})
+    {
+        CommandLine commandLine;
+        commandLine.maxFps = maxFps;
+        const auto resolved = Resolve(exeFolder.Path(), commandLine);
+        ASSERT_TRUE(resolved.HasValue()) << resolved.Error();
+        EXPECT_EQ(resolved.Value().maxFps, maxFps);
+    }
+}
+
+// El modo fiel espera como el original (46,875 ms por frame): un tope de FPS es error y nombra
+// las dos opciones. MaxFps = 0 sí va.
+TEST(ConfigTest, FaithfulWithAnFpsCapIsAnError)
+{
+    const TempFolder exeFolder;
+    exeFolder.Write("[Video]\nPacing = faithful\nMaxFps = 30\n");
+    const auto fromConfig = Resolve(exeFolder.Path(), CommandLine{});
+    ASSERT_FALSE(fromConfig.HasValue());
+    EXPECT_NE(fromConfig.Error().find("Pacing"), std::string::npos) << fromConfig.Error();
+    EXPECT_NE(fromConfig.Error().find("MaxFps"), std::string::npos) << fromConfig.Error();
+
+    const TempFolder empty;
+    CommandLine both;
+    both.pacing = PacingMode::Faithful;
+    both.maxFps = 144;
+    const auto fromCommandLine = Resolve(empty.Path(), both);
+    ASSERT_FALSE(fromCommandLine.HasValue());
+    EXPECT_NE(fromCommandLine.Error().find("--max-fps"), std::string::npos) << fromCommandLine.Error();
+
+    both.maxFps = 0;
+    const auto withoutCap = Resolve(empty.Path(), both);
+    ASSERT_TRUE(withoutCap.HasValue()) << withoutCap.Error();
+    EXPECT_EQ(withoutCap.Value().maxFps, 0);
+
+    // Mezclados: el modo de la config y el tope de la línea de comandos, y al revés.
+    const TempFolder faithfulConfig;
+    faithfulConfig.Write("[Video]\nPacing = faithful\n");
+    CommandLine capOnly;
+    capOnly.maxFps = 60;
+    EXPECT_FALSE(Resolve(faithfulConfig.Path(), capOnly).HasValue());
+    const TempFolder capConfig;
+    capConfig.Write("[Video]\nMaxFps = 60\n");
+    CommandLine faithfulOnly;
+    faithfulOnly.pacing = PacingMode::Faithful;
+    EXPECT_FALSE(Resolve(capConfig.Path(), faithfulOnly).HasValue());
+}
+
+// El tope va solo con el VSync que quedó apagado, como el FpsCap de MuMain: con VSync el swap ya
+// frena al refresco.
+TEST(ConfigTest, TheFpsCapIsOnlyForVSyncOff)
+{
+    EXPECT_EQ(EffectiveMaxFps(60, VSyncMode::Off), 60);
+    EXPECT_EQ(EffectiveMaxFps(60, VSyncMode::On), 0);
+    EXPECT_EQ(EffectiveMaxFps(60, VSyncMode::Adaptive), 0);
+    EXPECT_EQ(EffectiveMaxFps(0, VSyncMode::Off), 0);
 }
 } // namespace

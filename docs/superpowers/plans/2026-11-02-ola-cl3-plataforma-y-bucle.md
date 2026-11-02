@@ -827,6 +827,38 @@ dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
   pasos por segundo, y `Main --vsync off --stats` corre a cientos de FPS con 25 pasos por segundo.
   Anotarlo en el README.
 
+  Del cierre de las notas de la CL3: sin VSync y sin tope, el modo normal no dormía y usaba un
+  núcleo entero. Ahora hay un tope opcional, `[Video] MaxFps` y `--max-fps N` (0, sin tope y por
+  defecto, o de `MinFpsLimit`, 25, un frame por paso de la lógica, a `MaxFpsLimit`, 1000; con menos,
+  algunos frames correrían dos pasos, y con 1 cada frame duraría `MaxFrameTime` justo, que se
+  recorta con cualquier atraso del sueño), como el `FpsCap` de MuMain (`GameConfig.h`, -1 y sin tope
+  por defecto). Como en MuMain (`ApplyVSyncPreferenceNow` en `Winmain.cpp`), va solo con el VSync
+  que quedó apagado: `App::EffectiveMaxFps` da 0 con VSync, y `main.cpp` lo dice en el log. Después
+  de dibujar, `GameLoop::SleepRestOfFrame` duerme hasta la meta del frame, la del anterior más
+  1 s / N: lo que corre entre dos `RunFrame` no se suma (sin meta, con un tope de 1000 y 0,1 ms afuera, el
+  ritmo bajaba a 909). Si el frame se pasa de la meta, la siguiente cuenta desde donde terminó, sin
+  ponerse al día y sin volver a sumar lo que corre hasta el próximo frame. Minimizada sigue
+  durmiendo hasta el próximo paso, al volver la meta arranca de nuevo, y en el modo fiel un tope es
+  error en `Resolve`, como el VSync. La regla del rango está una sola vez, en `App::IsValidMaxFps`
+  (`LoopTiming.h`). Tests: `GameLoopTest.AnFpsCapSleepsWhatIsLeftOfTheFrame`,
+  `TheFpsCapCountsTheStepsToo`, `AFrameLongerThanTheFpsCapDoesNotSleep`,
+  `AMinimizedWindowIgnoresTheFpsCap`, `AClockThatGoesBackDuringTheFrameDoesNotSleep`,
+  `TheFpsCapDoesNotAddTheTimeBetweenFrames`, `AfterAMissedDeadlineTheTimeBetweenFramesStillCounts`,
+  `ATimeBetweenFramesLongerThanTheFpsCapCountsToo`,
+  `AClockThatGoesBackBetweenFramesStartsTheFpsCapOver`, `AfterALongFrameTheFpsCapStartsOver` y
+  `AFaithfulLoopIgnoresTheFpsCap`; `ConfigTest.ReadsMaxFps`, `RejectsAMaxFpsOutOfRange`,
+  `TheCommandLineMaxFpsWins`, `FaithfulWithAnFpsCapIsAnError` y `TheFpsCapIsOnlyForVSyncOff`;
+  `CommandLineTest.ParsesMaxFps` y `RejectsABadMaxFps`. En Xvfb,
+  `Main --frames 100 --vsync off --max-fps 50` corre 49 pasos: 2 s.
+
+  La revisión del PR #50 (Claude, `muret-reviewer`, Codex y un cruce entre los dos) encontró que,
+  cuando un frame se pasaba, la meta se borraba y el siguiente contaba desde su propio `Now()`: lo
+  de entre frames volvía a sumarse, y con la tasa natural apenas debajo del tope el tope daba menos
+  FPS que no tenerlo (con 100, 6 ms de dibujo y 5 afuera, 6 frames eran 78 ms contra 66 sin tope).
+  Ahora la meta sigue desde donde terminó el frame que se pasó (70 ms: los 66 más los 4 que duerme
+  el primero). Los tests nuevos también atrapan los mutantes que antes sobrevivían: el tope
+  minimizada, la meta que no arranca de nuevo al volver y la meta vieja que quedó adelante.
+
   En Linux, con Xvfb y llvmpipe (2026-11-02, lo corrió Claude): `--pacing faithful --stats` dio
   21,38 y 21,33 FPS con 24,98 y 24,92 pasos por segundo, y `--frames 60 --pacing faithful`, 70
   pasos en 3 s. `--vsync off --stats` dio 2.148 y 2.629 FPS con 24,80 y 25,00 pasos por segundo (el
@@ -1033,17 +1065,19 @@ de video), validado antes de abrir nada, y un log que se puede leer en un test. 
 | largos | copia la línea de comandos y el host sin mirar el largo (Q-C37) | el host va de 1 a 255 bytes y sin espacios, validado antes de guardarlo |
 | su archivo | se abre a sí mismo desde la carpeta actual y sale sin avisar si no está (Q-C35) | no se abre a sí mismo; `[Data] Path` (o `--data <ruta>`): si se da y no existe, un error que la nombra (`Data::DataPath`, CL0.2) |
 | config | registro `HKCU\SOFTWARE\Webzen\Mu\Config` y `config.ini` | `muret-client.ini` junto al ejecutable (la carpeta la da `SDL_GetBasePath` en `main.cpp`), o `--config <ruta>` (pregunta 5) |
-| video | `Resolution` y `ColorDepth` del registro | `[Video] Width`, `Height` (640 × 480 por defecto), `VSync` (`on`, `adaptive`, `off`) y `Pacing` (`decoupled`, `faithful`) |
+| video | `Resolution` y `ColorDepth` del registro | `[Video] Width`, `Height` (640 × 480 por defecto), `VSync` (`on`, `adaptive`, `off`), `Pacing` (`decoupled`, `faithful`) y `MaxFps` (0, o de 25 a 1000; del cierre de las notas) |
 | log | archivo de texto con líneas como `Mu online %s (%s) executed.`; `0x41f7a0` abre `MuError.log` con `OPEN_ALWAYS`, compartido solo para leer, y `FILE_END` (agrega); antes, `0x41f830` corta el principio: con `0x7fff` bytes leídos o más se queda con lo que sigue al byte `0x7fff`, y si no, con las cuatro últimas sesiones (Q-C48) | `Core::Log` con niveles, a `stderr` y a `muret-client.log` junto al ejecutable (o `[Log] Path`); si el archivo no abre, solo `stderr` y un aviso. Agrega como el original (`std::ios::app`: el log de una caída queda, y dos clientes escriben los dos sin pisarse), y al abrir lo vacía entero si pasa de `MaxLogFileBytes` (1 MiB), en vez de cortar el principio (Q-C48). Los mensajes de SDL entran por `SDL_SetLogOutputFunction` |
 
 **`Resolve`, en este orden** (el primer error corta):
 1. El archivo: con `--config <ruta>`, si no existe es error y lo nombra; sin `--config`, si
    `muret-client.ini` no está, se usan los valores por defecto (así `Main --frames 60` anda en CI).
 2. Si el archivo está, `ParseConfig`: un error dice su línea.
-3. La línea de comandos pisa la config (`/u /p`, `--data`, `--pacing`, `--vsync`).
+3. La línea de comandos pisa la config (`/u /p`, `--data`, `--pacing`, `--vsync` y, desde el cierre
+   de las notas, `--max-fps`).
 4. Las combinaciones: en el modo fiel, un `VSync` dado en `on` o `adaptive` (en la config o con
    `--vsync`) es error y nombra las dos claves (la regla de `--pacing faithful --vsync on` de la
-   CL3.2); si no se dio, queda en `off`. En el modo normal, sin dar, queda en `on`.
+   CL3.2); si no se dio, queda en `off`. Un `MaxFps` que no es 0, también es error en el modo fiel
+   (del cierre de las notas). En el modo normal, sin dar, queda en `on`.
 5. La carpeta de datos, solo si se dio: tiene que existir.
 
 Una ruta relativa de la config (`[Data] Path`, `[Log] Path`) se toma desde la carpeta del

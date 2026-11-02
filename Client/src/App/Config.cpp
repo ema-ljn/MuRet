@@ -1,5 +1,6 @@
 #include "App/Config.h"
 
+#include "App/LoopTiming.h"
 #include "Core/PathText.h"
 
 #include <algorithm>
@@ -33,6 +34,7 @@ enum class Key : std::uint8_t
     VideoHeight,
     VideoVSync,
     VideoPacing,
+    VideoMaxFps,
     LogPath,
 };
 
@@ -48,7 +50,8 @@ constexpr std::array KnownKeys = {
     KnownKey{"Data", "Path", Key::DataPath},       KnownKey{"Server", "Host", Key::ServerHost},
     KnownKey{"Server", "Port", Key::ServerPort},   KnownKey{"Video", "Width", Key::VideoWidth},
     KnownKey{"Video", "Height", Key::VideoHeight}, KnownKey{"Video", "VSync", Key::VideoVSync},
-    KnownKey{"Video", "Pacing", Key::VideoPacing}, KnownKey{"Log", "Path", Key::LogPath},
+    KnownKey{"Video", "Pacing", Key::VideoPacing}, KnownKey{"Video", "MaxFps", Key::VideoMaxFps},
+    KnownKey{"Log", "Path", Key::LogPath},
 };
 
 bool IsBlank(char c)
@@ -144,6 +147,23 @@ Core::Expected<int, std::string> ParseSize(std::string_view value)
         return Unexpected(std::format("va de 1 a {}", MaxWindowSize));
     }
     return size;
+}
+
+// [Video] MaxFps: 0 (sin tope), o de MinFpsLimit a MaxFpsLimit (IsValidMaxFps). Como en ParseSize,
+// los dígitos se miran antes por el mensaje.
+Core::Expected<int, std::string> ParseMaxFps(std::string_view value)
+{
+    if (!std::ranges::all_of(value, IsDigit))
+    {
+        return Unexpected(std::string("tiene que ser un número"));
+    }
+    int maxFps = 0;
+    const auto result = std::from_chars(value.data(), value.data() + value.size(), maxFps);
+    if (result.ec != std::errc{} || !IsValidMaxFps(maxFps))
+    {
+        return Unexpected(std::format("va de {} a {}, o 0 (sin tope)", MinFpsLimit, MaxFpsLimit));
+    }
+    return maxFps;
 }
 
 Core::Expected<VSyncMode, std::string> ParseVSync(std::string_view value)
@@ -252,6 +272,16 @@ std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view
             return size.Error();
         }
         (key == Key::VideoWidth ? config.width : config.height) = size.Value();
+        return std::nullopt;
+    }
+    case Key::VideoMaxFps:
+    {
+        const auto maxFps = ParseMaxFps(value);
+        if (!maxFps.HasValue())
+        {
+            return maxFps.Error();
+        }
+        config.maxFps = maxFps.Value();
         return std::nullopt;
     }
     case Key::VideoVSync:
@@ -467,6 +497,10 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
     {
         config.vsync = commandLine.vsync;
     }
+    if (commandLine.maxFps)
+    {
+        config.maxFps = *commandLine.maxFps;
+    }
     // 4. Las combinaciones: en el modo fiel VSync va apagado, como el original (CL3.2).
     if (config.pacing == PacingMode::Faithful)
     {
@@ -477,6 +511,12 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
                             "el original no pide VSync"));
         }
         config.vsync = VSyncMode::Off;
+        if (config.maxFps != 0)
+        {
+            return Unexpected(
+                std::string("el modo fiel (Pacing o --pacing faithful) no lleva tope de FPS (MaxFps o --max-fps): "
+                            "espera como el original"));
+        }
     }
     else if (!config.vsync)
     {
@@ -502,5 +542,10 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
         }
     }
     return config;
+}
+
+int EffectiveMaxFps(int maxFps, VSyncMode vsync)
+{
+    return vsync == VSyncMode::Off ? maxFps : 0;
 }
 } // namespace Client::App

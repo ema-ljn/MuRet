@@ -318,4 +318,33 @@ TEST(CommandLineTest, APathThatIsNotUtf8IsBytesOnPosixAndAnErrorOnWindows)
         EXPECT_EQ(ErrorOf({"--config", "\xC0\xAF.ini"}), "--config necesita una ruta en UTF-8");
     }
 }
+
+// --max-fps N: 0 (sin tope, pisa la config), o de 25 a 1000.
+TEST(CommandLineTest, ParsesMaxFps)
+{
+    std::string error;
+    for (const auto& [text, maxFps] :
+         {std::pair{"144", 144}, std::pair{"0", 0}, std::pair{"25", 25}, std::pair{"1000", 1000}})
+    {
+        const auto commandLine = Parse({"--max-fps", text}, error);
+        ASSERT_TRUE(commandLine.has_value()) << error;
+        EXPECT_EQ(commandLine->maxFps, maxFps);
+    }
+    const auto without = Parse({}, error);
+    ASSERT_TRUE(without.has_value()) << error;
+    EXPECT_FALSE(without->maxFps.has_value());
+}
+
+TEST(CommandLineTest, RejectsABadMaxFps)
+{
+    // Debajo de MinFpsLimit algunos frames correrían dos pasos; 4294967296 no entra en un unsigned.
+    for (const std::string_view text : {"1001", "1", "24", "-1", "-0", "+5", "60fps", "", "4294967296", "99999999999"})
+    {
+        EXPECT_EQ(ErrorOf({"--max-fps", text}),
+                  "--max-fps necesita 0 o un número de 25 a 1000, no \"" + std::string(text) + "\"")
+            << text;
+    }
+    EXPECT_NE(ErrorOf({"--max-fps"}).find("--max-fps necesita un número"), std::string::npos);
+    EXPECT_EQ(ErrorOf({"--max-fps", "60", "--max-fps", "30"}), "--max-fps está repetido");
+}
 } // namespace

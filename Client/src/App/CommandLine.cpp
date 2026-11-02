@@ -1,5 +1,6 @@
 #include "App/CommandLine.h"
 
+#include "App/LoopTiming.h"
 #include "Core/PathText.h"
 
 #include <algorithm>
@@ -17,13 +18,14 @@ using Client::Core::Unexpected;
 constexpr std::string_view FramesOption = "--frames";
 constexpr std::string_view PacingOption = "--pacing";
 constexpr std::string_view VSyncOption = "--vsync";
+constexpr std::string_view MaxFpsOption = "--max-fps";
 constexpr std::string_view StatsOption = "--stats";
 constexpr std::string_view ConfigOption = "--config";
 constexpr std::string_view DataOption = "--data";
 // Lo que pasa el launcher adelante de /u y /p (02 § Del launcher al juego).
 constexpr std::string_view ConnectWord = "connect";
 constexpr std::string_view Usage = "uso: Main [connect /u<host> /p<puerto>] [--config RUTA] [--data RUTA] [--frames N] "
-                                   "[--pacing decoupled|faithful] [--vsync on|adaptive|off] [--stats]";
+                                   "[--pacing decoupled|faithful] [--vsync on|adaptive|off] [--max-fps N] [--stats]";
 
 char ToLowerAscii(char c)
 {
@@ -46,7 +48,8 @@ bool AlreadyGiven(const Client::App::CommandLine& commandLine, std::string_view 
 {
     return (option == StatsOption && commandLine.stats) || (option == FramesOption && commandLine.maxFrames) ||
            (option == PacingOption && commandLine.pacing) || (option == VSyncOption && commandLine.vsync) ||
-           (option == ConfigOption && commandLine.configPath) || (option == DataOption && commandLine.dataPath);
+           (option == MaxFpsOption && commandLine.maxFps) || (option == ConfigOption && commandLine.configPath) ||
+           (option == DataOption && commandLine.dataPath);
 }
 
 std::string Unknown(std::string_view argument)
@@ -65,6 +68,22 @@ std::optional<std::uint64_t> ParsePositive(std::string_view text)
         return std::nullopt;
     }
     return value;
+}
+
+// Un tope de FPS: 0, o de MinFpsLimit a MaxFpsLimit (IsValidMaxFps), sin signo ni nada atrás
+// (from_chars sin signo ya rechaza "-1" y "+5").
+std::optional<int> ParseMaxFps(std::string_view text)
+{
+    unsigned value = 0;
+    const char* const last = text.data() + text.size();
+    const auto [end, error] = std::from_chars(text.data(), last, value);
+    // Más que MaxFpsLimit se corta antes del cast: no tiene por qué entrar en un int.
+    if (error != std::errc() || end != last || value > static_cast<unsigned>(Client::App::MaxFpsLimit) ||
+        !Client::App::IsValidMaxFps(static_cast<int>(value)))
+    {
+        return std::nullopt;
+    }
+    return static_cast<int>(value);
 }
 
 std::optional<PacingMode> ParsePacing(std::string_view text)
@@ -179,14 +198,14 @@ Core::Expected<CommandLine, std::string> ParseCommandLine(std::span<const std::s
             continue;
         }
         if (argument != FramesOption && argument != PacingOption && argument != VSyncOption &&
-            argument != ConfigOption && argument != DataOption)
+            argument != MaxFpsOption && argument != ConfigOption && argument != DataOption)
         {
             // /y y /z, entre otras, son opciones del launcher que MuRet no lee.
             return Unexpected(Unknown(argument));
         }
         if (i + 1 == arguments.size())
         {
-            const std::string_view expected = argument == FramesOption                             ? "un número"
+            const std::string_view expected = argument == FramesOption || argument == MaxFpsOption ? "un número"
                                               : argument == ConfigOption || argument == DataOption ? "una ruta"
                                                                                                    : "un valor";
             return Unexpected(std::string(argument) + " necesita " + std::string(expected) + " (" + std::string(Usage) +
@@ -212,6 +231,16 @@ Core::Expected<CommandLine, std::string> ParseCommandLine(std::span<const std::s
             if (!commandLine.maxFrames)
             {
                 return Unexpected(BadValue(argument, "un número mayor que 0", value));
+            }
+        }
+        else if (argument == MaxFpsOption)
+        {
+            commandLine.maxFps = ParseMaxFps(value);
+            if (!commandLine.maxFps)
+            {
+                const std::string expected =
+                    "0 o un número de " + std::to_string(MinFpsLimit) + " a " + std::to_string(MaxFpsLimit);
+                return Unexpected(BadValue(argument, expected, value));
             }
         }
         else if (argument == PacingOption)

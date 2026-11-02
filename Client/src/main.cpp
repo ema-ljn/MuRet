@@ -283,7 +283,14 @@ int main(int argc, char* argv[])
 
     Platform::SdlClock clock;
     TestScene scene{window};
-    App::GameLoop loop{clock, scene, pacing};
+    // El tope de FPS va solo con el VSync que quedó apagado, como en MuMain (EffectiveMaxFps).
+    const int maxFps = App::EffectiveMaxFps(config.maxFps, window.VSync());
+    if (config.maxFps != maxFps)
+    {
+        log.Info("el tope de FPS no se usa con VSync {}: el swap ya frena al refresco",
+                 Platform::VSyncModeName(window.VSync()));
+    }
+    App::GameLoop loop{clock, scene, pacing, maxFps};
     const App::FrameStats stats = RunLoop(window, clock, loop, commandLine.Value(), log);
     std::printf("frames: %llu, pasos: %llu\n", static_cast<unsigned long long>(stats.frames),
                 static_cast<unsigned long long>(stats.steps));

@@ -123,9 +123,11 @@ jobs:
 
       # El hola mundo de la CL0.3: abre la ventana con OpenGL 3.3 core, dibuja 60 frames y sale.
       # En Windows no hay driver de OpenGL 3.3 en el runner (solo el 1.1 de GDI), así que va solo acá.
-      # Con --vsync off, el bucle de la CL3.2 corre sin esperar el retrazo.
+      # Con --vsync off, el bucle de la CL3.2 corre sin esperar el retrazo; con --pacing faithful,
+      # al ritmo del original (VSync apagado, como pide ese modo).
       - name: Ventana de la CL0.3 en Xvfb (Linux)
         if: runner.os == 'Linux'
         run: |
           xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/Client/Main --frames 60
           xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/Client/Main --frames 60 --vsync off
+          xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/Client/Main --frames 60 --pacing faithful

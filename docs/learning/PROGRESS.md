@@ -157,7 +157,14 @@ solo lo lee.
   del original, con un cursor, así un envío partido en `{2, 2, -1}` no repite ni pierde bytes
   (Q-C11) y lo nuevo espera detrás de lo pendiente; lo que no entra es `Full`, y la conexión va a
   cerrar como el original.
-  **La CL4.3 la escribe Claude**, en dos PRs. El primero trae la `Connection`: el camino de un
+- **CL4.2 (el `Dispatcher`), resuelta por Claude** el 2026-11-02: una tabla opcode → handler, con
+  un segundo nivel por subcódigo (el byte que sigue al opcode, `pkt[3]` en un C1 y `pkt[4]` en un
+  C2), en vez del `switch` de 10,5 KB de `0x4e2b10`. Lo que no tiene handler da `Unknown` y una
+  línea de aviso la primera vez de cada opcode, o de cada opcode y subcódigo, sin los bytes; un
+  C3 o un opcode con subcódigos que termina en el opcode dan `Malformed` (el original lee el byte
+  que no llegó, Q-C42). Registrar dos veces da `false` y no pisa. Tu paso 1, la tabla de qué lee
+  cada uno, lo resolvió Claude: está en el plan.
+- **La CL4.3 la escribe Claude**, en dos PRs. El primero trae la `Connection`: el camino de un
   paquete en claro por una conexión, en el orden del original. Al recibir, el socket, el corte con
   la máscara de la ofuscación, `AfterCut` y `BeforeDispatch`; al mandar, `BeforeSend` y la
   `SendQueue`, sin adelantarse nunca a lo pendiente. Lo que pasa en un frame sale como eventos, en
@@ -243,6 +250,7 @@ sesión, junto con los de repaso más viejo.
 | un limitador de frames con meta absoluta contra un sueño relativo: la deriva de lo que corre entre frames, qué valor toma la meta cuando un frame se pasa (donde terminó, para no ponerse al día ni volver a sumar el hueco), y por qué con VSync no se usa (`SleepRestOfFrame`, el `FpsCap` de MuMain) | CL3.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | E/S no bloqueante detrás de una interfaz chica (`ISocket`, con `SystemSocket` y `FakeSocket`): el connect como máquina de estados que guarda su resultado porque `SO_ERROR` se borra al leerlo, "probá más tarde" contra un cierre (`recv` en 0, `ECONNRESET`), `SIGPIPE` y `MSG_NOSIGNAL`, y un `#ifdef _WIN32` en un solo archivo (`SocketApi`) | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | una cola de envío con cursor sobre un buffer fijo (`SendQueue`): por qué restar lo que salió dos veces repite el principio y pierde el final (Q-C11), compactar solo cuando lo nuevo no entra, y un tope que cierra en vez de crecer | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| una tabla de despacho en vez de un `switch`: opcode → handler con un segundo nivel por subcódigo, `std::function` como handler, registrar dos veces como un error que se devuelve, y un aviso que sale una sola vez por opcode (`Dispatcher`, `std::bitset`) | CL4.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | una conexión consultada por frame que devuelve eventos en orden (`Connection`): el `Opened` antes de lo que llegó con él, un cierre que pasa en un `Send` y sale en el próximo `Poll`, el tope del connect mirado después del `PollConnect`, y qué error corta (el del corte) y cuál se descarta (el de la ofuscación) | CL4.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras

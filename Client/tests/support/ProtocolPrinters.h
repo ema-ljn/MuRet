@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Protocol/Dispatcher.h"
 #include "Protocol/ProtocolError.h"
 
 #include <ostream>
@@ -23,5 +24,22 @@ inline void PrintTo(ProtocolError error, std::ostream* out)
         return;
     }
     *out << "ProtocolError fuera del enum";
+}
+
+inline void PrintTo(DispatchResult result, std::ostream* out)
+{
+    switch (result)
+    {
+    case DispatchResult::Handled:
+        *out << "Handled";
+        return;
+    case DispatchResult::Unknown:
+        *out << "Unknown";
+        return;
+    case DispatchResult::Malformed:
+        *out << "Malformed";
+        return;
+    }
+    *out << "DispatchResult fuera del enum";
 }
 } // namespace Client::Protocol

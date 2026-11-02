@@ -13,6 +13,7 @@ namespace
 
 constexpr const char* GoldenDirVariable = "MURET_CLIENT_GOLDEN_DIR";
 constexpr const char* MemoryDirVariable = "MURET_CLIENT_MEMORY_DIR";
+constexpr const char* WireDirVariable = "MURET_CLIENT_WIRE_DIR";
 
 std::optional<std::string> ReadEnvironment(const char* name)
 {
@@ -161,6 +162,23 @@ std::optional<std::filesystem::path> MemoryDumpTest::DumpFile(const MemoryCaptur
     }
     ADD_FAILURE() << "falta " << name << " en la captura " << capture.folder << " de " << dumpRoot;
     return std::nullopt;
+}
+
+void WireDataTest::SetUp()
+{
+    RequireDirectory(WireDirVariable, wireRoot);
+}
+
+std::optional<std::filesystem::path> WireDataTest::WireFile(std::string_view name) const
+{
+    std::error_code error;
+    const std::filesystem::path path = wireRoot / name;
+    if (!std::filesystem::is_regular_file(path, error))
+    {
+        ADD_FAILURE() << "falta " << name << " en la carpeta del cable " << wireRoot;
+        return std::nullopt;
+    }
+    return path;
 }
 
 } // namespace Client::Tests

@@ -32,4 +32,23 @@ inline ::testing::AssertionResult SameBytes(std::span<const std::byte> actual, s
                                          << std::to_integer<int>(*expectedByte);
 }
 
+// Como SameBytes, pero el mensaje dice dónde difieren y no qué valen: los tamaños, o la posición del
+// primer byte distinto. Es para los bytes del cable, que llevan el login del jugador
+// (MURET_CLIENT_WIRE_DIR): un test que falla no imprime un payload.
+inline ::testing::AssertionResult SameBytesWithoutValues(std::span<const std::byte> actual,
+                                                         std::span<const std::byte> expected)
+{
+    if (actual.size() != expected.size())
+    {
+        return ::testing::AssertionFailure()
+               << "tiene " << actual.size() << " bytes y se esperaban " << expected.size();
+    }
+    const auto differs = std::ranges::mismatch(actual, expected).in1;
+    if (differs == actual.end())
+    {
+        return ::testing::AssertionSuccess();
+    }
+    return ::testing::AssertionFailure() << "difiere desde el byte " << std::distance(actual.begin(), differs);
+}
+
 } // namespace Client::Tests

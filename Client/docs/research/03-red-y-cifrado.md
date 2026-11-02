@@ -37,7 +37,9 @@ Verificado contra el cable (`red_reference.py --golden`): el flujo S->C de 72 co
 en 3.033 paquetes sin bytes sobrantes, incluidas 337 lecturas con 2 a 7 paquetes juntos.
 
 - **Corte:** igual que el DataServer: C1/C3 tienen el tamaño en `pkt[1]`, C2/C4 en `pkt[1..2]`
-  big-endian. El tamaño es el del paquete completo.
+  big-endian. El tamaño es el del paquete completo. Con una cabecera incompleta, un tipo que no
+  es `C1` a `C4` o un tamaño que no llega al opcode, el original se equivoca: Q-C03, Q-C38 y
+  Q-C39 en [07](07-quirks-y-bugs.md).
 - **Rearmado:** un C3 descifrado se reescribe como C1 (y un C4 como C2) con tamaño = longitud
   descifrada. Como esa longitud incluye el byte del serial, el paquete rearmado declara `n` pero
   ocupa `n + 1` (C4: `n + 2`). Verificado con `F1 02`.

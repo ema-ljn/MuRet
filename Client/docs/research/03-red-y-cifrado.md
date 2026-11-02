@@ -105,6 +105,10 @@ modelo: no sirven de oráculo para el C2.
   suma lo que dicen, despacha y compara el serial como siempre (`0x685cc0` no acota el largo útil
   y `0x685b30` lo suma). Despacha también un solo bloque que trae solo el serial: el opcode que lee,
   `dec[1]`, es el byte que le sigue, el de relleno.
+- **Lo que no mide bloques enteros:** `0x685b30` lee `11 * ceil(largo / 11)` bytes, así que con
+  el último bloque partido lee hasta 10 bytes después del paquete, y el checksum de ese bloque casi
+  siempre falla: lo más probable es que mande el mismo aviso (*probable*, sin probar;
+  `00685b30-decrypt-buffer.md`).
 - Checksum por bloque con las constantes `0xF8` / `0x3D`: es un byte, así que un cambio en un carril
   falla casi siempre (pasa uno de cada 256, más o menos), uno en el checksum siempre, y uno en el
   byte del largo útil nunca.

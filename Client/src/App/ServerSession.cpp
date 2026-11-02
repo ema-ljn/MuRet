@@ -45,7 +45,8 @@ std::string VersionText(const std::array<char, Protocol::VersionSize>& version)
     return text;
 }
 
-// Los errores con los que el original contesta el F1 03 (03, "C3/C4").
+// Los errores que se contestan con el F1 03: el checksum malo, como el original, y lo que no mide
+// bloques enteros, como contesta probablemente el original (03, "C3/C4").
 bool DeservesTheReport(const Network::Undecryptable& undecryptable)
 {
     return undecryptable.error == Network::Crypto::CryptoError::ChecksumMismatch ||

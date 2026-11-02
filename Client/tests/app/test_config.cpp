@@ -20,10 +20,12 @@ using namespace std::string_view_literals;
 // junta la config con la línea de comandos (al final).
 namespace
 {
+using Client::App::ClientConfig;
 using Client::App::CommandLine;
 using Client::App::ConfigError;
 using Client::App::DefaultConnectPort;
 using Client::App::EffectiveMaxFps;
+using Client::App::HasServerHost;
 using Client::App::MaxFpsLimit;
 using Client::App::MaxHostBytes;
 using Client::App::MaxWindowSize;
@@ -656,6 +658,35 @@ TEST(ConfigTest, NoHostIsNotAnError)
     ASSERT_TRUE(config.HasValue()) << config.Error();
     ASSERT_TRUE(config.Value().server.has_value());
     EXPECT_TRUE(config.Value().server->host.empty());
+}
+
+// Main se conecta solo con un host (el plan de la CL4, CL4.4): un [Server] con solo el puerto no
+// alcanza.
+TEST(ConfigTest, OnlyThePortIsNotAServerHost)
+{
+    const auto config = ParseConfig("[Server]\nPort = 55901\n");
+
+    ASSERT_TRUE(config.HasValue());
+    ASSERT_TRUE(config.Value().server.has_value());
+    EXPECT_FALSE(HasServerHost(config.Value()));
+}
+
+// Sin [Server], o con un host vacío, tampoco.
+TEST(ConfigTest, AnEmptyHostIsNotAServerHost)
+{
+    ClientConfig config;
+    EXPECT_FALSE(HasServerHost(config));
+
+    config.server = ServerAddress{"", DefaultConnectPort};
+    EXPECT_FALSE(HasServerHost(config));
+}
+
+TEST(ConfigTest, AHostIsAServerHost)
+{
+    const auto config = ParseConfig("[Server]\nHost = 10.0.0.1\n");
+
+    ASSERT_TRUE(config.HasValue());
+    EXPECT_TRUE(HasServerHost(config.Value()));
 }
 
 // La ofuscación pasa por Resolve como está: un /u /p cambia la dirección y no la ofuscación.

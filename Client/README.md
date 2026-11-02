@@ -122,8 +122,8 @@ en este orden:
    Se cargan sin que se vean en la pantalla:
 
    ```bash
-   read -rs -p "cuenta: " MURET_CLIENT_ACCOUNT; echo
-   read -rs -p "clave: " MURET_CLIENT_PASSWORD; echo
+   IFS= read -rs -p "cuenta: " MURET_CLIENT_ACCOUNT; echo
+   IFS= read -rs -p "clave: " MURET_CLIENT_PASSWORD; echo
    export MURET_CLIENT_ACCOUNT MURET_CLIENT_PASSWORD
    ```
 
@@ -132,6 +132,10 @@ en este orden:
    $env:MURET_CLIENT_ACCOUNT = Read-Host "cuenta" -MaskInput
    $env:MURET_CLIENT_PASSWORD = Read-Host "clave" -MaskInput
    ```
+
+   Con `IFS=`, `read` no les saca los espacios del principio ni del final. Al terminar, la clave
+   se borra del entorno de la consola: `unset MURET_CLIENT_PASSWORD` en bash, o
+   `Remove-Item Env:MURET_CLIENT_PASSWORD` en PowerShell.
 
 2. Las claves de la conexión con el GameServer, `Enc1.dat` y `Dec2.dat`, de la carpeta de datos
    (`--data` o `[Data] Path`), sin mirar mayúsculas. Sin carpeta, o si alguna no está o no carga,

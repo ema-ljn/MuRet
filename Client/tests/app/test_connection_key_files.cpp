@@ -6,10 +6,13 @@
 
 #include "support/GoldenDir.h"
 #include "support/KeyFiles.h"
+#include "support/SimpleModulusKeys.h"
 #include "support/TemporaryFolder.h"
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <optional>
@@ -18,8 +21,9 @@
 #include <system_error>
 
 // Client::App::LoadConnectionKeys: Enc1.dat y Dec2.dat de la carpeta de datos (el plan de la CL4,
-// CL4.4, PR B). Sin archivos de clave sintéticos (D-C7): los casos que fallan usan una carpeta
-// temporal vacía o con un archivo que no es una clave, y los que cargan, la carpeta golden. Los
+// CL4.4, PR B). Ningún archivo de clave va a Git (D-C7): los casos que fallan usan una carpeta
+// temporal vacía o con un archivo que no es una clave; los que cargan, dos archivos que el test
+// escribe al correr con las claves sintéticas de SimpleModulusKeys.h, y la carpeta golden. Los
 // errores se imprimen enteros porque nunca traen un byte de la clave; las claves se comparan con
 // EXPECT_TRUE, que no imprime sus valores.
 namespace
@@ -29,9 +33,15 @@ using Client::App::EncryptionKeyFileName;
 using Client::App::LoadConnectionKeys;
 using Client::Network::Crypto::CryptoError;
 using Client::Network::Crypto::CryptoErrorText;
+using Client::Network::Crypto::KeyFileMagic;
+using Client::Network::Crypto::KeyFileSize;
+using Client::Network::Crypto::KeyFileXor;
+using Client::Network::Crypto::Lanes;
 using Client::Network::Crypto::LoadDecryptionKey;
 using Client::Network::Crypto::LoadEncryptionKey;
 using Client::Tests::LoadKeyFile;
+using Client::Tests::Pair17;
+using Client::Tests::Pair18;
 using Client::Tests::TemporaryFolder;
 
 bool Says(const std::string& text, std::string_view part)
@@ -44,6 +54,35 @@ void WriteFile(const std::filesystem::path& path, std::string_view text)
 {
     std::ofstream file(path, std::ios::binary);
     file << text;
+}
+
+// `count` bytes de `value`, en little-endian.
+void AppendLe(std::string& bytes, std::uint32_t value, int count)
+{
+    for (int index = 0; index < count; ++index)
+    {
+        bytes.push_back(static_cast<char>((value >> (8 * index)) & 0xFF));
+    }
+}
+
+// `key` como la guarda un archivo de clave (SimpleModulusKeyFile.h): el magic, el tamaño y los tres
+// bloques, cada u32 con el XOR de su carril. Lo borra la carpeta temporal.
+template <typename Key> void WriteKeyFile(const std::filesystem::path& path, const Key& key)
+{
+    std::string bytes;
+    AppendLe(bytes, KeyFileMagic, 2);
+    AppendLe(bytes, static_cast<std::uint32_t>(KeyFileSize), 4);
+    for (const Lanes* block : {&key.Modulus(), &key.Key(), &key.XorKey()})
+    {
+        for (std::size_t lane = 0; lane < block->size(); ++lane)
+        {
+            AppendLe(bytes, (*block)[lane] ^ KeyFileXor[lane], 4);
+        }
+    }
+    ASSERT_EQ(bytes.size(), KeyFileSize);
+    std::ofstream file(path, std::ios::binary);
+    file << bytes;
+    ASSERT_TRUE(file.good());
 }
 
 // Si dos claves tienen los mismos tres bloques.
@@ -99,6 +138,24 @@ TEST(ConnectionKeyFilesTest, AFolderInsteadOfAFileIsNamed)
 
     ASSERT_FALSE(loaded.HasValue());
     EXPECT_TRUE(Says(loaded.Error(), std::string(DecryptionKeyFileName) + " no es un archivo")) << loaded.Error();
+}
+
+// Con dos claves de pares distintos, escritas al correr el test: Enc1.dat da la de cifrar y
+// Dec2.dat la de descifrar, cada una con los bloques de su archivo. Es el camino que carga, en CI
+// también, donde la carpeta golden no está.
+TEST(ConnectionKeyFilesTest, LoadsEachKeyFromItsFile)
+{
+    const TemporaryFolder folder("claves-sinteticas");
+    const auto encryption = Pair17().encryption;
+    const auto decryption = Pair18().decryption;
+    ASSERT_NO_FATAL_FAILURE(WriteKeyFile(folder.Path() / EncryptionKeyFileName, encryption));
+    ASSERT_NO_FATAL_FAILURE(WriteKeyFile(folder.Path() / DecryptionKeyFileName, decryption));
+
+    const auto loaded = LoadConnectionKeys(folder.Path());
+
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    EXPECT_TRUE(SameLanes(loaded.Value().encryption, encryption));
+    EXPECT_TRUE(SameLanes(loaded.Value().decryption, decryption));
 }
 
 class GoldenConnectionKeyFiles : public Client::Tests::GoldenDataTest

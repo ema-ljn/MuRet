@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "Data/Tables/Xor3.h"
+#include "Core/Xor3.h"
 #include "Data/Terrain/K16.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
@@ -143,7 +143,7 @@ inline std::vector<std::byte> PlainTerrainAttributes(std::uint8_t world, Attribu
 // El cifrado del .att, al revés que el descifrado: primero XOR3 y después K16.
 inline std::vector<std::byte> EncryptTerrainAttributes(std::vector<std::byte> plain)
 {
-    Data::Tables::Xor3(plain);
+    Core::Xor3(plain);
     return EncryptK16(std::move(plain));
 }
 

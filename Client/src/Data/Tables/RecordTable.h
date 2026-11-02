@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Data/Tables/Xor3.h"
+#include "Core/Xor3.h"
 
 #include <cstddef>
 #include <optional>
@@ -30,7 +30,7 @@ public:
         const std::span<std::byte> all(records);
         for (std::size_t index = 0; index < Count(); ++index)
         {
-            Xor3(all.subspan(index * RecordSize, RecordSize));
+            Core::Xor3(all.subspan(index * RecordSize, RecordSize));
         }
     }
 

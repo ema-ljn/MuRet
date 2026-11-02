@@ -12,12 +12,12 @@ find_package(libjpeg-turbo CONFIG REQUIRED)
 add_library(ClientLib STATIC
     src/App/CommandLine.cpp
     src/Core/ByteReader.cpp
+    src/Core/Xor3.cpp
     src/Data/DataPath.cpp
     src/Data/Tables/GateTable.cpp
     src/Data/Tables/ItemTable.cpp
     src/Data/Tables/SkillTable.cpp
     src/Data/Tables/TableChecksum.cpp
-    src/Data/Tables/Xor3.cpp
     src/Data/Terrain/K16.cpp
     src/Data/Terrain/TerrainAttributes.cpp
     src/Data/Terrain/TerrainHeights.cpp
@@ -69,6 +69,7 @@ if(MURET_BUILD_TESTS)
         tests/app/CommandLineTest.cpp
         tests/core/ByteReaderTest.cpp
         tests/core/ExpectedTest.cpp
+        tests/core/Xor3Test.cpp
         tests/support/FileBytes.cpp
         tests/support/FileBytesTest.cpp
         tests/support/Fnv1aTest.cpp
@@ -108,7 +109,6 @@ if(MURET_BUILD_TESTS)
         tests/data/TerrainObjectsTest.cpp
         tests/data/TextTableTest.cpp
         tests/data/TextureTest.cpp
-        tests/data/Xor3Test.cpp
         tests/network/EncryptedPacketTest.cpp
         tests/network/FoxAntiObfuscationTest.cpp
         tests/network/GoldenEncryptedPacketTest.cpp

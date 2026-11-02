@@ -2,7 +2,7 @@
 
 #include "Data/Tables/RecordTable.h"
 
-#include "Data/Tables/Xor3.h"
+#include "Core/Xor3.h"
 #include "support/BytePattern.h"
 
 #include <gtest/gtest.h>
@@ -20,8 +20,8 @@
 namespace
 {
 
+using Client::Core::Xor3;
 using Client::Data::Tables::RecordTable;
-using Client::Data::Tables::Xor3;
 using Client::Tests::BytePattern;
 
 // Un largo que no es múltiplo de 3, para que se note que la clave vuelve a empezar en cada registro.

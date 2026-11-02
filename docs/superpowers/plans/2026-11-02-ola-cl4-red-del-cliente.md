@@ -738,6 +738,14 @@ class FakeResolver final : public Network::IResolver { /* std::optional<std::arr
   - `GameLoopTest.FaithfulDoesNotMeasureThePoll`: en el modo fiel, con polls de 20 ms y llamando a
     `RunFrame` mientras `Now()` sea menor que 3 s, 48 frames y 56 pasos (midiendo el poll serían
     64 y 74, como sin poll); con polls de 10 ms, que no cruzan un tick, 64 y 74.
+
+  *PR C, hecho así:* los tres de `GameLoopTest`, en rojo antes de llamar a `Poll` desde `RunFrame`.
+  En el modo fiel el primer frame no solo fija el inicio (corre el paso del valor inicial), así que
+  en `PollsOncePerFrameBeforeTheSteps` el primer dibujo tarda 100 ms: mide 6 ticks (93 ms) y el
+  segundo frame corre dos pasos, como el de Decoupled 80 ms después. `PollsWhileMinimized` mira
+  también el modo fiel (26 polls y ningún dibujo). Con el `Poll` dentro de la medición falla
+  `FaithfulDoesNotMeasureThePoll`, y con el `Poll` después de los pasos, solo el del orden: los dos
+  se probaron así, cambiando `GameLoop.cpp` a mano. Uno más, `TestSceneTest.PollDoesNothing`.
 - [ ] **Paso 6 (PR B y PR C):** `SendQueue`, y 07, Q-C11 con
   `SendQueueTest.PartialSendsKeepTheOrder` y el jefe de la CL4.0 (PR B); el `Poll()` en
   `ILoopClient`, `GameLoop` y `RecordingClient`, y 07 con lo de arrastrar la ventana (PR C).
@@ -754,6 +762,12 @@ class FakeResolver final : public Network::IResolver { /* std::optional<std::arr
     se toma como que tomó todo.
   - `LastSocketError()` da `Closed` antes del primer error, y `SendQueueError` tiene su `PrintTo`
     en `support/NetworkPrinters.h`.
+
+  *PR C, hecho así:* `RunFrame` llama a `Poll` lo primero, en los dos modos: en Decoupled, antes
+  del `Now()` del frame, así lo que tarda entra en el frame que lo pagó; en Faithful, antes de
+  `BeginFrame`. El cliente de `Main` es la `TestScene`, así que el `Poll()` vacío va ahí y
+  `main.cpp` no cambia. `RecordingClient` anota cada llamada en `calls` (un `LoopCall`, con su
+  `PrintTo`) y hace tardar al poll con `pollCost`. Lo de arrastrar la ventana es Q-C49.
 - [ ] **Paso 7:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "Socket|SendQueue|GameLoop"
@@ -1302,7 +1316,7 @@ void SetKeepaliveSpeeds(std::uint16_t attackSpeed, std::uint16_t magicSpeed, std
 | la resolución de un nombre real | a mano, `nombre.invalid` incluido; en CI, un `FakeResolver`, porque el DNS puede tardar o reescribir un NXDOMAIN |
 | el login contra el GS del laboratorio, con FoxAnti | a mano (CL4.5, paso 4): CI no tiene la VM. Es el "terminada cuando" del roadmap |
 | el diferencial campo por campo del login y del keepalive (P-C05) | con una captura nueva del cable, si se hace en el paso 4 de la CL4.5, fuera de Git; si no, sigue en 08 |
-| arrastrar la ventana en Windows | sin probar: el original sigue con `WM_TIMER` y MuRet no consulta la red mientras tanto (07, CL4.1) |
+| arrastrar la ventana en Windows | sin probar: el original sigue con `WM_TIMER` y MuRet no consulta la red mientras tanto (07, Q-C49) |
 | qué pasa con el GS si el cliente se congela más de lo que él espera | sin probar: el timeout del GS no está en el research del cliente |
 
 ## Al cerrar la CL4

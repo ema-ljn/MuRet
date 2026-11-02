@@ -136,7 +136,7 @@ Core::Expected<ConnectProgress, SocketError> FakeSocket::Finish()
     if (connectResult)
     {
         m_state = State::Failed;
-        m_failure = *connectResult;
+        m_failure = connectResult;
         return Core::Unexpected(*connectResult);
     }
     m_state = State::Connected;

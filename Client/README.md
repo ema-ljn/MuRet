@@ -40,8 +40,10 @@ Desde la CL3.1, la ventana y el contexto GL salieron de `main.cpp` a `Platform/`
 (el `SDL_Init` y el `SDL_Quit`), `Window` (la ventana con su contexto 3.3 core, la tabla de GL de
 `GlLoader` y el VSync de `SwapInterval`) y `PumpEvents`, que pasa los eventos de SDL a
 `App::WindowState`. `Platform/` es el target `ClientPlatform`, el único que enlaza SDL3: `ClientLib`
-no la ve, y sus tests corren sin ventana. `main.cpp` queda en el armado, con el bucle del hola
-mundo de la CL0.3 hasta la CL3.2.
+no la ve, y sus tests corren sin ventana. `main.cpp` queda en el armado, por fases, como los
+pasos de `WinMain` en MuMain: la config antes de `SDL_Init`, el log, la ventana y el bucle. La
+escena de prueba (`Scenes/TestScene`) y el medidor de `--stats` (`App/FrameRateMeter`) tienen su
+archivo y sus tests.
 
 ## Compilar y correr
 
@@ -253,7 +255,7 @@ Client/
     Network/      socket, paquetes, C3/C4, FoxAnti      (CL2, CL4)
     Protocol/     opcodes, structs (el login, en Connection/), dispatcher (CL2, CL4, CL9)
     Render/       OpenGL 3.3: texturas, sprites, texto  (CL5+)
-    Scenes/       login, selección, juego               (CL5, CL6)
+    Scenes/       la escena de prueba (CL3); login, selección, juego (CL5, CL6)
     World/        mapa, cámara, objetos                 (CL7)
     GameLogic/    personaje, entidades, items, chat     (CL7+)
     UI/           widgets, ventanas, HUD                (CL5, CL8)

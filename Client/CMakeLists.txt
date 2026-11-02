@@ -66,4 +66,14 @@ if(MURET_BUILD_TESTS)
         COMMAND Main --data ${CMAKE_CURRENT_BINARY_DIR}/no-existe-esta-carpeta-de-datos)
     set_tests_properties(Client.Main.NamesTheMissingDataFolder PROPERTIES
         PASS_REGULAR_EXPRESSION "no existe la carpeta de datos .*no-existe-esta-carpeta-de-datos")
+    # Los argumentos llegan en UTF-8 (main.cpp incluye SDL_main.h): --data nombra un archivo con
+    # "Ł" y "データ", que no están en la página ANSI. Si llegan bien, Resolve lo encuentra y dice
+    # que no es una carpeta; sin SDL_main.h, en Windows llegarían cambiados por "?" y diría que no
+    # existe. Mira el sistema de archivos y no la salida, que CTest puede leer en otra página. En
+    # Linux pasa también sin SDL_main.h: los bytes van tal cual.
+    set(utf8_data_file "${CMAKE_CURRENT_BINARY_DIR}/datos-Łukasz-データ")
+    file(WRITE "${utf8_data_file}" "")
+    add_test(NAME Client.Main.ReadsTheDataPathInUtf8 COMMAND Main --data "${utf8_data_file}")
+    set_tests_properties(Client.Main.ReadsTheDataPathInUtf8 PROPERTIES
+        PASS_REGULAR_EXPRESSION "la carpeta de datos .* no es una carpeta")
 endif()

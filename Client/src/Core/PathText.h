@@ -17,6 +17,8 @@ namespace Client::Core
 // La ruta que dice un texto UTF-8 (la config, la línea de comandos), o vacío si el texto no es
 // UTF-8 bien formado: sin bytes sueltos, sin formas más largas de lo necesario, sin las mitades
 // de UTF-16 (U+D800 a U+DFFF) y sin pasar de U+10FFFF. Es lo que rechaza MultiByteToWideChar con
-// MB_ERR_INVALID_CHARS, que usa path en Windows: con un byte malo tiraría una excepción.
+// MB_ERR_INVALID_CHARS, que usa path en Windows: con un byte malo tiraría una excepción. Un NUL
+// en el medio es UTF-8 y pasa: si importa, lo rechaza el que llama (argv no trae NUL, y la config
+// rechaza los caracteres de control antes).
 [[nodiscard]] std::optional<std::filesystem::path> PathFromUtf8(std::string_view text);
 } // namespace Client::Core

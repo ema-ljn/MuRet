@@ -21,7 +21,6 @@
 #include "Platform/WindowEvents.h"
 
 #include <SDL3/SDL_filesystem.h>
-#include <SDL3/SDL_main.h>
 
 #include <chrono>
 #include <cstdint>
@@ -34,6 +33,9 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+
+// Al final: en Windows define main como SDL_main, y así no alcanza a ningún otro header.
+#include <SDL3/SDL_main.h>
 
 // Punto de entrada del cliente: arma las capas y arranca, sin lógica.
 //

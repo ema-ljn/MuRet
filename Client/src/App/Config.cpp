@@ -283,13 +283,6 @@ ConfigError ErrorAt(std::size_t line, std::string message)
     return ConfigError{line, std::move(message)};
 }
 
-// Para un mensaje: std::format no toma un path en C++20, y path::string() puede tirar en Windows.
-std::string PathText(const std::filesystem::path& path)
-{
-    const std::u8string utf8 = path.u8string();
-    return std::string(utf8.begin(), utf8.end());
-}
-
 std::filesystem::path FromFolder(const std::filesystem::path& folder, const std::filesystem::path& path)
 {
     return path.is_relative() ? folder / path : path;
@@ -306,33 +299,33 @@ Core::Expected<std::optional<std::string>, std::string> ReadConfigFile(const std
     {
         if (required)
         {
-            return Unexpected(std::format("no existe la config {}", PathText(path)));
+            return Unexpected(std::format("no existe la config {}", Core::PathText(path)));
         }
         return std::optional<std::string>();
     }
     if (error)
     {
-        return Unexpected(std::format("no se pudo leer la config {}: {}", PathText(path), error.message()));
+        return Unexpected(std::format("no se pudo leer la config {}: {}", Core::PathText(path), error.message()));
     }
     if (!std::filesystem::is_regular_file(status))
     {
-        return Unexpected(std::format("la config {} no es un archivo", PathText(path)));
+        return Unexpected(std::format("la config {} no es un archivo", Core::PathText(path)));
     }
     const std::uintmax_t size = std::filesystem::file_size(path, error);
     if (error)
     {
-        return Unexpected(std::format("no se pudo leer la config {}: {}", PathText(path), error.message()));
+        return Unexpected(std::format("no se pudo leer la config {}: {}", Core::PathText(path), error.message()));
     }
     if (size > MaxConfigBytes)
     {
-        return Unexpected(std::format("la config {} pasa de {} bytes", PathText(path), MaxConfigBytes));
+        return Unexpected(std::format("la config {} pasa de {} bytes", Core::PathText(path), MaxConfigBytes));
     }
     std::ifstream file(path, std::ios::binary);
     std::string text(static_cast<std::size_t>(size), '\0');
     file.read(text.data(), static_cast<std::streamsize>(text.size()));
     if (!file.is_open() || file.bad())
     {
-        return Unexpected(std::format("no se pudo leer la config {}", PathText(path)));
+        return Unexpected(std::format("no se pudo leer la config {}", Core::PathText(path)));
     }
     text.resize(static_cast<std::size_t>(file.gcount()));
     return std::optional<std::string>(std::move(text));
@@ -444,8 +437,8 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
         auto parsed = ParseConfig(*text.Value());
         if (!parsed.HasValue())
         {
-            return Unexpected(
-                std::format("{}, línea {}: {}", PathText(configPath), parsed.Error().line, parsed.Error().message));
+            return Unexpected(std::format("{}, línea {}: {}", Core::PathText(configPath), parsed.Error().line,
+                                          parsed.Error().message));
         }
         config = std::move(parsed).Value();
         if (config.dataPath)
@@ -492,7 +485,7 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
     // 5. La carpeta de datos, solo si se dio (Q-C35: el original salía sin avisar).
     if (config.dataPath)
     {
-        const std::string folder = PathText(*config.dataPath);
+        const std::string folder = Core::PathText(*config.dataPath);
         std::error_code error;
         const std::filesystem::file_status status = std::filesystem::status(*config.dataPath, error);
         if (status.type() == std::filesystem::file_type::not_found)

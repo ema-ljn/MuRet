@@ -4,7 +4,7 @@ La N.0 de la CL2 del cliente. Antes de cortar, cifrar y descifrar los paquetes d
 falta saber por qué TCP no entrega mensajes, cómo se escribe un corte que no lee bytes que no
 llegaron, y la matemática y los bits del cifrado C3/C4. La parte del flujo TCP es la 1.2 de la
 [guía de la ola 1 del servidor](ola-1-protocolo.md#12-el-flujo-tcp-y-la-máquina-de-estados), acá
-con material del cliente. Plan:
+con material del cliente. Plan (tiene las respuestas: abrilo después):
 [CL2](../superpowers/plans/2026-11-02-ola-cl2-protocolo-sin-red.md#sub-ola-cl20-flujos-y-bloques-n0-en-labs).
 
 Qué cubre:
@@ -17,8 +17,8 @@ Qué cubre:
   - campos de bits empaquetados MSB primero.
 - **C++:**
   - operadores de bits sobre `std::byte` y `std::to_integer`;
-  - la aritmética sin signo que da la vuelta, la con signo que es comportamiento indefinido, y
-    la promoción de `std::uint16_t` a `int`;
+  - la aritmética sin signo que da la vuelta, el desborde con signo que es comportamiento
+    indefinido, y la promoción de `std::uint16_t` a `int`;
   - `enum class` para los estados y `std::optional` para "no hay resultado";
   - `std::span` de largo fijo;
   - `std::mt19937` con semilla fija para un test de propiedad.
@@ -48,8 +48,8 @@ Cada actividad termina en una pregunta. Las respuestas no están acá: salen de 
 
 ## 1. Calentamiento: dos lecturas
 
-El servidor manda dos paquetes, `C1 04 F3 00` y `C2 00 06 42 0B 30`. Del lado del cliente, el
-primer `recv` devuelve `C1 04 F3`, el segundo `00 C2 00` y el tercero `06 42 0B 30`.
+Por una conexión llegan dos paquetes, `C1 04 F3 00` y `C2 00 06 42 0B 30`. Del lado del que
+recibe, el primer `recv` devuelve `C1 04 F3`, el segundo `00 C2 00` y el tercero `06 42 0B 30`.
 
 **Predecí, antes de seguir:**
 - ¿cuántos paquetes enteros hay después de cada lectura?
@@ -70,6 +70,9 @@ tiene un paquete para entregar. Sus invariantes son los de la 1.2 del servidor: 
 que llegaron, siempre avanza o se detiene, y el mismo flujo partido de cualquier forma da los
 mismos paquetes.
 
+**Pregunta:** en la actividad 1, ¿en qué estado queda el corte después de cada `recv`, y qué bytes
+tiene guardados?
+
 ## 3. Predecí: el caso 1 de `red_reference.py`
 
 `client-research/analysis/mainexe/scripts/red_reference.py` es un modelo en Python de cómo
@@ -77,7 +80,8 @@ recibe el original. Su caso 1 manda `C1 05 10 01 02` y los tres primeros bytes d
 `C2 00 06 20 03 04` en una lectura, y los otros tres en la siguiente.
 
 **Predecí:** ¿qué paquetes salen después de la primera lectura, y cuáles después de la segunda?
-Después corré `python3 red_reference.py --selftest` y mirá el caso.
+Después corré `python3 red_reference.py --selftest` y leé el caso 1 en `selftest()`. Solo el 1:
+el 1b, que está abajo, es el jefe (actividad 13), y conviene predecirlo antes de abrirlo.
 
 **Pregunta:** ¿qué bytes guarda el corte entre una lectura y la otra, y dónde los pone?
 
@@ -90,7 +94,8 @@ error. Va en `labs/cl2.0-flujos/`.
 
 **Te toca**, en este orden:
 
-1. GoogleTest en `labs/`, si todavía no lo agregaste en la CL1.0 (su paso 1).
+1. GoogleTest en `labs/`: es andamiaje, como el paso 1 de la CL1.0, y lo agrega Claude si
+   todavía no está.
 2. Los tests primero (`FrameCutterTest.cpp`), con los casos de `red_reference.py --selftest`
    que no son del cifrado: corte, resto parcial, cabecera incompleta, cabecera inválida y tamaño
    0. Antes de compilar, decí qué etapa va a fallar.
@@ -107,7 +112,7 @@ error. Va en `labs/cl2.0-flujos/`.
 
 ## 5. Idea: el XOR32, un cifrado encadenado
 
-Todo C1/C2 que manda el cliente pasa por el XOR32
+Casi todo C1/C2 que manda el cliente (los `F4` al ConnectServer no) pasa por el XOR32
 ([03](../../Client/docs/research/03-red-y-cifrado.md#envío-el-motor-c1c2-y-el-xor32)): cada byte
 que va después del opcode se cifra con `valor ^= key[i & 31] ^ buf[i - 1]`, con una tabla de 32
 bytes y el byte anterior **ya cifrado**. Es un cifrado de flujo **encadenado**: cada byte depende
@@ -174,15 +179,12 @@ toma 8 bytes en claro y da 11 cifrados:
 
 - los 8 bytes son cuatro **carriles** de 16 bits little-endian;
 - cada carril pasa por un XOR (con su clave XOR y el carril anterior ya cifrado), se multiplica
-  por su clave módulo su módulo y queda con hasta 18 bits; una segunda pasada le aplica otro
-  XOR;
+  por su clave módulo su módulo y queda con hasta 18 bits; una segunda pasada, del carril 2 al 0,
+  le aplica a cada uno otro XOR (su clave XOR y el carril siguiente), y el 3 queda igual;
 - los cuatro carriles ocupan 4 × 18 = 72 bits, y dos bytes de cola (el largo útil y un
   checksum) suman 16: 88 bits, que son 11 bytes;
 - si el último bloque no tiene 8 bytes, se completa con relleno, y la cola dice cuántos eran
   útiles.
-
-Los bits se escriben **MSB primero**: el primer bit del flujo es el `0x80` del byte 0, el segundo
-el `0x40`, y un campo puede empezar en la mitad de un byte y terminar en el siguiente.
 
 **Pregunta:** un C1 de 20 bytes se cifra desde su byte 1 (el serial en lugar del tamaño), así que
 lleva 19 bytes útiles. ¿Cuántos bloques son, y cuánto mide el C3 que sale?
@@ -191,7 +193,9 @@ lleva 19 bytes útiles. ¿Cuántos bloques son, y cuánto mide el C3 que sale?
 
 **El contrato:** `Write(value, bits)` agrega los `bits` de abajo de `value` al flujo, el más
 alto primero; `Read(bits)` los lee en el mismo orden. Van en `labs/cl2.0-flujos/BitStream.h` y
-`BitStream.cpp`.
+`BitStream.cpp`. Los bits se escriben **MSB primero**: el primer bit del flujo es el `0x80` del
+byte 0, el segundo el `0x40`, y un campo puede empezar en la mitad de un byte y terminar en el
+siguiente.
 
 **Te toca**, tests primero:
 
@@ -208,8 +212,8 @@ no, ¿qué test de round-trip no se daría cuenta de que los dos bits de arriba 
 ## 11. Rompelo: `std::uint16_t * std::uint16_t`
 
 ```cpp
-const std::uint16_t lane = 0xFFFF;
-const std::uint16_t key = 0xFFFF;
+std::uint16_t lane = 0xFFFF;
+std::uint16_t key = 0xFFFF;
 const auto product = lane * key;
 std::printf("%u\n", static_cast<unsigned>(product));
 ```
@@ -228,8 +232,8 @@ Parece una multiplicación sin signo. Compilalo en un directorio de build aparte
 
 L-3 del camino: se construye desde cero, se compara y en el producto se usa el estándar. Para el
 corte, el estándar no trae nada: la comparación es con el `PacketReader` de la CL2.1, que es el
-que va a `ClientLib`. Para los bits, `<bit>` trae `std::bit_width`, `std::rotl` y `std::popcount`,
-y `std::bitset` guarda bits de largo fijo.
+que va a `ClientLib` (cuando esté la CL2.1). Para los bits, `<bit>` trae `std::bit_width`,
+`std::rotl` y `std::popcount`, y `std::bitset` guarda bits de largo fijo.
 
 **Te toca:** anotarlo en `labs/README.md`.
 
@@ -255,20 +259,22 @@ antes.
 3. El mismo flujo en tu `FrameCutter`, y el test que muestra que espera los bytes que faltan.
 
 **Pregunta:** ¿qué tiene que pasar con el byte viejo para que el tamaño dé 0, y qué hace el
-original después de un tamaño 0?
+original después de un tamaño 0 que no está al principio de la lectura?
 
 ## 14. Detective (carril R): la cabecera en `0x4e893d`
 
 El corte del `main.exe` (`c32bbd5f`) está en el repo de research,
-`client-research/mainexe-vmxp-c32bbd5f/decompiled/functions/004e893d_FUN_004e893d.asm`, con su
-análisis en `analysis/mainexe/evidence/s35-red/agentes/004e893d-corte-paquetes.md`. El tamaño de
-un C2/C4 y el de un C1/C3:
+`client-research/mainexe-vmxp-c32bbd5f/decompiled/functions/004e893d_FUN_004e893d.asm`, y en
+Ghidra, abriendo `mainexe-vmxp-c32bbd5f/original/main.exe`. Su análisis, en
+`analysis/mainexe/evidence/s35-red/agentes/004e893d-corte-paquetes.md`, es del build histórico
+`2f16a9c6`, con las mismas direcciones que este listado. El tamaño de un C2/C4 y el de un C1/C3:
 
 ```text
 4e895f mov cl,[edi+0x1]
 4e8962 mov al,[edi+0x2]
 4e8965 mov esi,ecx / shl esi,0x8 / add esi,eax
 4e8970 mov cl,[edx+ebx+0x2015]
+4e8977 mov esi,ecx
 4e8979 test esi,esi
 4e897b jle 0x4e8a69
 4e8981 cmp esi,[ebx+0x4014]
@@ -285,7 +291,8 @@ Y al principio de la lectura, en `004e88a0_FUN_004e88a0.asm`:
 **Preguntas:**
 - `edi` apunta al paquete. ¿Qué mira el código antes de leer `[edi+0x1]` y `[edi+0x2]`?
 - ¿Qué es `[ebx+0x4014]`, y qué pasa con un tamaño que no es mayor que 0?
-- ¿Qué pasa cuando `[ebx+0x4014]` llega a `0x2000`? ¿Por qué un tamaño 0 lleva hasta ahí?
+- ¿Qué pasa cuando `[ebx+0x4014]` llega a `0x2000`? ¿Por qué un `C1 00` al principio de una
+  lectura lleva hasta ahí, y el tamaño 0 del jefe no?
 
 ## El C++ que entra
 
@@ -294,13 +301,14 @@ Y al principio de la lectura, en `004e88a0_FUN_004e88a0.asm`:
   (actividad 6 de la CL1.0): para armar un número, primero `std::to_integer`.
 - **Sin signo y con signo:** un `std::uint32_t` da la vuelta módulo 2³², y eso está definido; un
   `int` que se pasa de rango es comportamiento indefinido.
-- **Promociones:** un `std::uint8_t` o un `std::uint16_t` que entra en una cuenta se convierte a
-  `int` antes (actividad 11). Para multiplicar carriles, `std::uint32_t` de entrada.
+- **Promociones:** un entero más chico que `int` que entra en una cuenta no se queda con su
+  tipo (actividad 11, y la CL1.0).
 - **`enum class`:** los estados del corte, sin conversión implícita a entero. Con un `switch` sin
-  `default`, el compilador avisa si falta un estado (`-Wswitch`).
+  `default`, GCC y Clang avisan si falta un estado (`-Wswitch`); MSVC con `/W4`, no.
 - **`std::optional<T>`:** un valor o nada, para "no hay inverso" o "todavía no hay paquete".
 - **`std::span<const std::byte, 8>`:** una vista de largo fijo; desde un `std::span` dinámico se
-  pasa con `first<8>()`.
+  pasa con `first<8>()`. Si el dinámico tiene menos de 8, es comportamiento indefinido: es la
+  trampa del último bloque, que puede venir incompleto.
 - **`std::mt19937` con semilla fija:** la misma secuencia en todos los compiladores; las
   distribuciones, no (actividad 4).
 
@@ -322,10 +330,10 @@ que salen son los de `PackRgb565` en big-endian o en little-endian?
 ## Errores típicos
 
 - Suponer que un `recv` es un paquete (actividad 1).
-- Leer el tamaño de un C2 con un solo byte de cabecera (el jefe).
-- Descifrar el XOR32 encadenando con el byte ya descifrado en vez del cifrado.
+- Leer el tamaño de un C2 antes de que lleguen sus tres bytes de cabecera (el jefe).
+- Descifrar el XOR32 encadenando con el byte equivocado.
 - Multiplicar dos `std::uint16_t` y creer que la cuenta es sin signo (actividad 11).
-- Guardar los coeficientes de Euclides extendido en un tipo sin signo.
+- Elegir el tipo de los coeficientes de Euclides extendido sin mirar qué valores toman.
 - Probar los bits solo con round-trips: un error que es el mismo al escribir y al leer no se ve
   (actividad 10).
 - Un test al azar con `std::uniform_int_distribution`, que da otros números en otro compilador.
@@ -335,8 +343,8 @@ que salen son los de `PackRgb565` en big-endian o en little-endian?
 - Recibía en un buffer de `0x2000` bytes por conexión y cortaba sin mirar cuántos bytes
   quedaban para la cabecera (Q-C03). Con un tipo inválido, descartaba todo lo acumulado, también
   los paquetes buenos que venían detrás.
-- Con un tamaño 0 no avanzaba nunca: las lecturas se juntaban hasta llenar el buffer y cerrar la
-  conexión ("Receive Packet Buffer Overflow").
+- Con un tamaño 0 no avanzaba ni descartaba, y no corría al principio lo que sobraba: según
+  dónde estuviera ese tamaño en el buffer, el flujo se trababa o se corría (actividades 13 y 14).
 - Tenía el XOR32 copiado en cada función que arma un paquete, no en un solo lugar.
 - Guardaba las claves de `SimpleModulus` en archivos, con un XOR de una tabla que está en el
   binario, y descifraba en un buffer de la pila más chico que el C4 más grande que acepta
@@ -358,7 +366,8 @@ que salen son los de `PackRgb565` en big-endian o en little-endian?
 3. ¿Por qué el XOR32 y `SimpleModulus` no protegen el login de nadie que tenga el binario?
 4. ¿Cuándo tiene inverso un número módulo m, y cómo lo encuentra Euclides extendido?
 5. ¿Por qué la clave de cifrado del cliente es la inversa de la de descifrado del servidor?
-6. ¿Qué es escribir bits MSB primero, y por qué un carril del original no es un campo de 18 bits?
+6. ¿Qué es escribir bits MSB primero? ¿Un carril del original es un campo de 18 bits MSB primero,
+   y qué vector lo prueba?
 7. ¿Qué pasa con `std::uint16_t * std::uint16_t` cuando los dos valen `0xFFFF`?
 
 ## Al cerrar la CL2.0 (lo completás vos)

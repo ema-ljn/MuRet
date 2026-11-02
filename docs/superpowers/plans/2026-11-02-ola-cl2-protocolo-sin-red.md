@@ -58,11 +58,11 @@ del cliente. De la CL2.1 en adelante, la sección de cada sub-ola de este plan.
 
 ## Preguntas para decidir al empezar
 
-1. **Quién escribe la CL2.** ~~En la CL1 pediste seguir con el cliente y Claude la escribió como
-   ejemplo trabajado. *Recomendación:* igual, con la CL2.0 en `labs/` para vos y un paso
-   `TODO(human)` chico por sub-ola (marcados abajo).~~ **Decidido por Emanuel el 2026-11-02:
-   Claude escribe todo.** Primero elegiste "Claude, como en la CL1", y el mismo día pediste que
-   Claude escriba también la CL2.0 en `labs/` y los pasos `TODO(human)`, hasta que digas que
+1. **Quién escribe la CL2.** En la CL1 pediste seguir con el cliente y Claude la escribió como
+   ejemplo trabajado. La recomendación era igual, con la CL2.0 en `labs/` para vos y un paso
+   `TODO(human)` chico por sub-ola (marcados abajo). **Decidido (Emanuel, 2026-11-02): Claude
+   escribe todo.** Primero elegiste "Claude, como en la CL1", y el mismo día pediste que Claude
+   escriba también la CL2.0 en `labs/` y los pasos `TODO(human)`, hasta que digas que
    participás. Los pasos marcados "(Emanuel)" los hace Claude por ahora, y en
    [PROGRESS](../../learning/PROGRESS.md) quedan como resueltos por Claude; cuando entres, los
    que sigan abiertos vuelven a ser tuyos. Las preguntas 2 a 5 siguen con su recomendación
@@ -145,7 +145,8 @@ semilla fija para un test de propiedad.
 
 - [x] **Paso 1 (Claude):** la guía, justo antes de empezar
   ([ola-cl2.0-flujos-y-bloques.md](../../learning/ola-cl2.0-flujos-y-bloques.md), 2026-11-02).
-- [ ] **Paso 2 (Emanuel):** GoogleTest en `labs/`, el paso 1 de la CL1.0, si todavía no se hizo.
+- [ ] **Paso 2 (Claude, andamiaje):** GoogleTest en `labs/`, el paso 1 de la CL1.0, si todavía no
+  se hizo.
 - [ ] **Paso 3 (Emanuel, `TODO(human)`):** `Labs::FrameCutter`, alimentado de a un byte, con los
   estados explícitos en un `enum class` (tipo, tamaño, cuerpo). Primero los tests: los casos de
   `red_reference.py --selftest` que no son del cifrado (corte, resto parcial, cabecera incompleta,

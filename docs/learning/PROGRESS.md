@@ -212,7 +212,8 @@ solo lo lee.
   de 5 s reales. Lo que no está en el guion, el servidor falso lo dice en palabras y corta.
 - **CL4.5 (keepalive y desconexión), resuelta por Claude** el 2026-11-02, en un PR. Un
   `IntervalTimer` en `Core`, por reloj y no por pasos: el siguiente vence a un periodo del
-  anterior, sin deriva, y con un frame largo vence una vez y sigue desde ahí, sin ráfaga. La
+  anterior, sin deriva, y con un frame largo vence una sola vez, sin ráfaga (mirado un periodo
+  tarde o más, el siguiente cuenta desde ahí; mirado menos tarde, sigue en su grilla). La
   sesión manda el primer keepalive en el mismo `Poll` que lee el login aceptado y después cada
   20 s, solo en `LoggedIn` y también minimizada; sin personaje, las velocidades van en 0 y 0, sin
   ajuste. Un cierre, una falla o un `Start` lo detienen, y la sesión no se reconecta sola. Cada

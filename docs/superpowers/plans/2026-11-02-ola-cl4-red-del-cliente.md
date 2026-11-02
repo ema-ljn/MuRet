@@ -83,7 +83,7 @@ en el desensamblado con objdump en la revisión del plan:
 | drenar | `0x4e87b0`, con `FD_WRITE` | manda desde `buf + enviado` el largo `pendiente - enviado` con `pendiente` ya descontado: resta dos veces lo que salió, y con `WSAEWOULDBLOCK` vuelve sin correr lo que quedó al principio (Q-C11). Con otro error loguea `FD_WRITE Send Error` y cierra |
 | cerrar | `0x4e8380` | `setsockopt(SOL_SOCKET, SO_LINGER, {1, 0})`, que hace que `closesocket` corte con un RST; vacía la cola de paquetes, loguea `Socket Closed, Clear PacketQueue` y `closesocket`. Es el que corre al pasar del CS al GS (`0x4e32f2`, sub 3) |
 | cerrar, la otra | `0x4e8270` | `shutdown(sock, 1)`, `recv` hasta 0 y `closesocket`: el cierre ordenado que dice el 03; no tiene llamadores (*verificado*) |
-| el keepalive | `SetTimer(ventana, 1000, 20000)` en `0x4b9b80`; la rama `0x113` con el id 1000 (`0x3E8`) | cada 20 s, si `DAT_05767918` no es 0 (solo mira eso, *verificado*). Lo pone en 1 `0x412b30` y en 0 `0x4e8520` (*verificado*; quién las llama al conectar al GS y al cerrar, CL4.R): el timer **no mira el login**. La rama también llama a `thunk_FUN_00450376` |
+| el keepalive | `SetTimer(ventana, 1000, 20000)` en `WinMain` (`0x4b9b80`, la llamada en `0x4bad89`); la rama `0x113` con el id 1000 (`0x3E8`) | cada 20 s, si `DAT_05767918` no es 0 (solo mira eso, *verificado*). Lo pone en 1 `0x412b30` y en 0 `0x4e8520` (*verificado*; quién las llama al conectar al GS y al cerrar, CL4.R): el timer **no mira el login**. La rama también llama a `thunk_FUN_00450376` |
 | el primero | el sub 1 de `F1` con resultado 1 (`0x4e2b10`) | `DAT_05767928 = 2` y `0x4ad100`, que llama a `0x4bee60` (el keepalive) si `DAT_05763570` es 0; lo que sigue en `0x4ad100` (los `FindWindowA` de programas de trampas) es del anticheat, fuera de alcance |
 | por frame | `0x638640`, en la escena 5 | si `0x4e8560` (el socket) da -1, avisa que se cerró (02) |
 
@@ -1542,7 +1542,7 @@ por frame y por reloj"):
 | el paquete | `C1 0C 0E 00 <tick:4> <ataque:2> <magia:2>` con XOR32, como C3 de 24 bytes (`0x4bee60`) | `WriteKeepalive` (CL2.5), `Delivery::Encrypted` |
 | el primero | con el login aceptado (`0x4ad100`), 48 ms después en el cable | en el mismo `Poll` que lee el `F1 01` aceptado |
 | los siguientes | `WM_TIMER` 1000 cada 20 s, un timer desde el arranque que manda si hay conexión al GS, sin mirar el login ni el foco | cada 20 s desde el primero, con un `IntervalTimer` sobre el `IClock` del bucle, solo en `LoggedIn` (pregunta 6); minimizada también |
-| un frame largo | un `WM_TIMER` pendiente (*inferido*) | uno solo, y el siguiente a los 20 s del que salió |
+| un frame largo | un `WM_TIMER` pendiente (*inferido*) | uno solo; mirado un periodo tarde o más, el siguiente a los 20 s del que salió, y mirado menos tarde, el siguiente sigue en su grilla (`IntervalTimerTest.LessThanAPeriodLateKeepsTheGrid`) |
 | las velocidades | los WORD de `personaje+0x4C` y `+0x58` con su ajuste (CL2.5) | `SetKeepaliveSpeeds(attack, magic, flags)`; hasta que haya personaje (CL6), 0 y 0, sin ajuste (CL4.R, paso 6) |
 | el tick | `GetTickCount` | `App::TickCountMs(now)` (CL3.2), que da la vuelta como un `DWORD` |
 | el cierre del otro lado | `FD_CLOSE`: un mensaje, el log, `0x4e8380` y el objeto de `0x65ee60`; en la escena 5, el socket en -1 cada frame | `Failed` con `GameServerLost` y el `CloseReason` en el log; el keepalive se detiene; no se reconecta solo (la CL5.4 muestra el aviso) |
@@ -1559,7 +1559,7 @@ servidor que acepta y no contesta (un puerto equivocado, un CS colgado) dejaba l
 y el log callado para siempre, y la prueba del paso 4 no tendría cómo fallar. El tope se mira
 después de leer los eventos, así lo que llegó durante un frame largo cuenta. Los `Connecting*`
 siguen con el `ConnectTimeout`, y `LoggedIn` no tiene tope. El original no tiene uno que el
-research haya visto, así que esto es de MuRet, como el `ConnectTimeout` (pregunta 5).
+research haya visto, así que esto es de MuRet, como el `ConnectTimeout` (pregunta 5): Q-C56.
 
 **Archivos:** crear `Client/src/Core/IntervalTimer.h/.cpp` y
 `Client/tests/core/test_interval_timer.cpp`. Modificar `Client/src/App/ServerSession.h/.cpp` y
@@ -1594,7 +1594,7 @@ public:
 
 namespace Client::App
 {
-// 04 § El flujo de conexión: el timer 0x3E8 de 20.000 ms (SetTimer en 0x4b9b80), y 156
+// 04 § El flujo de conexión: el timer 0x3E8 de 20.000 ms (SetTimer en 0x4bad89), y 156
 // keepalives, uno cada 20 s, en el cable (02 § Una discrepancia entre documentos).
 inline constexpr Core::Duration KeepalivePeriod = std::chrono::seconds{20};
 
@@ -1653,8 +1653,10 @@ void SetKeepaliveSpeeds(std::uint16_t attackSpeed, std::uint16_t magicSpeed, std
     periodo tarde, uno solo: con `<=` en vez de `<` vencía dos veces),
     `LessThanAPeriodLateKeepsTheGrid` y `StoppedItDoesNotFire`; en `ServerSessionTest`,
     `StartingAgainStopsTheKeepalive`, `EachStateChangeIsLogged` (lo que pide `main.cpp`: una línea
-    de info por estado, de `Start` a `LoggedIn`) y los cuatro de `ReplyTimeout`:
-    `AConnectServerThatDoesNotGreetFails`, `EachWaitCountsFromItsStart`,
+    de info por estado, de `Start` a `LoggedIn`), `SpeedsGivenAfterTheLoginGoInTheNextKeepalive`
+    (el caso de la CL6: las velocidades llegan con el login ya aceptado) y los seis de
+    `ReplyTimeout`: `AConnectServerThatDoesNotGreetFails`, `EachWaitCountsFromItsStart`,
+    `AConnectServerThatDoesNotGiveTheAddressFails`, `AGameServerThatDoesNotGreetFails`,
     `AGameServerThatDoesNotAnswerTheLoginFails` y `AReplyThatArrivedDuringALongFrameIsRead`; y
     `SessionClientTest.PollsTheSessionAndThenTheScene` y `TheStepsAndTheDrawingAreTheScenes`, y
     `AppPrintersTest.NoReplyShowsItsName`.

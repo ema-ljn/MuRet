@@ -1301,6 +1301,27 @@ TEST(ServerSessionTest, UsesTheSpeedsItWasGiven)
     EXPECT_TRUE(SameBytes(bytes.subspan(KeepaliveSpeedsIndex), Bytes({0x28, 0x03, 0x68, 0x02})));
 }
 
+// Las velocidades que llegan con el login ya aceptado (la CL6 las da al elegir el personaje) van en
+// el keepalive siguiente: el del login sale con 0 y 0, y el de los 23 s con las nuevas.
+TEST(ServerSessionTest, SpeedsGivenAfterTheLoginGoInTheNextKeepalive)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{3}));
+    tested.session.SetKeepaliveSpeeds(KeepaliveSpeeds{.attackSpeed = std::uint16_t{0x0328 + 20},
+                                                      .magicSpeed = std::uint16_t{0x0268 + 20},
+                                                      .characterFlags = KeepaliveAdjust20});
+
+    tested.AdvanceTo(seconds{23});
+    tested.session.Poll();
+
+    const std::vector<Packet> keepalives = tested.Keepalives();
+    ASSERT_EQ(keepalives.size(), 2u);
+    ASSERT_EQ(keepalives[0].Bytes().size(), KeepaliveSpeedsIndex + KeepaliveSpeedsSize);
+    ASSERT_EQ(keepalives[1].Bytes().size(), KeepaliveSpeedsIndex + KeepaliveSpeedsSize);
+    EXPECT_TRUE(SameBytes(keepalives[0].Bytes().subspan(KeepaliveSpeedsIndex), Bytes({0x00, 0x00, 0x00, 0x00})));
+    EXPECT_TRUE(SameBytes(keepalives[1].Bytes().subspan(KeepaliveSpeedsIndex), Bytes({0x28, 0x03, 0x68, 0x02})));
+}
+
 // El GS que corta con el login aceptado: GameServerLost con PeerClosed en el log, el keepalive se
 // detiene y la sesión no se reconecta sola. En los 40 s siguientes no sale nada.
 TEST(ServerSessionTest, LosingTheGameServerStopsTheKeepalive)
@@ -1394,6 +1415,50 @@ TEST(ServerSessionTest, AGameServerThatDoesNotAnswerTheLoginFails)
     EXPECT_EQ(tested.connection.State(), LinkState::Closed);
     EXPECT_TRUE(
         tested.Logged(LogLevel::Error, "el GameServer no contestó en 30 s: se esperaba el resultado del login"));
+}
+
+// Un CS que da la lista y no la dirección: la espera de la dirección cuenta desde que llegó la
+// lista (a los 10 s), así que falla a los 40 s y no a los 30.
+TEST(ServerSessionTest, AConnectServerThatDoesNotGiveTheAddressFails)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
+    tested.AdvanceTo(seconds{10});
+    tested.socket.reads = {ServerList({LabServerCode})};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
+
+    tested.AdvanceTo(seconds{40} - milliseconds{1});
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
+    tested.AdvanceTo(seconds{40});
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
+    EXPECT_EQ(tested.connection.State(), LinkState::Closed);
+    EXPECT_TRUE(tested.Logged(LogLevel::Error,
+                              "el ConnectServer no contestó en 30 s: se esperaba la dirección del GameServer"));
+}
+
+// Un GS que acepta y no saluda: la espera cuenta desde que se abrió (a los 5 s) y falla a los 35 s,
+// con el GS en el log.
+TEST(ServerSessionTest, AGameServerThatDoesNotGreetFails)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachGameServer());
+    tested.AdvanceTo(seconds{5});
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingGameHello);
+
+    tested.AdvanceTo(seconds{35} - milliseconds{1});
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
+    tested.AdvanceTo(seconds{35});
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
+    EXPECT_EQ(tested.connection.State(), LinkState::Closed);
+    EXPECT_TRUE(tested.Logged(LogLevel::Error, "el GameServer no contestó en 30 s: se esperaba su saludo"));
 }
 
 // Lo que llegó durante un frame largo se lee antes de mirar el tope: un resultado que estaba en el

@@ -561,7 +561,8 @@ reloj falso, `SdlClock`); **PR B**, el modo fiel.
 
 **Archivos:**
 - **PR A:** crear `Client/src/Core/IClock.h` (la interfaz), `Client/src/App/GameLoop.h/.cpp`,
-  `FixedStep.h/.cpp` y `LoopTiming.h` (las constantes); `Client/src/Platform/SdlClock.h/.cpp`;
+  `FixedStep.h/.cpp`, `LoopTiming.h` (las constantes), `ILoopClient.h` (la interfaz, en su propio
+  header) y `PacingMode.h` (compartido con la CL3.4); `Client/src/Platform/SdlClock.h/.cpp`;
   `Client/tests/support/FakeClock.h/.cpp` y `RecordingClient.h/.cpp`, con su
   `Client/tests/support/test_fake_clock.cpp`, y `Client/tests/app/test_fixed_step.cpp` y
   `test_game_loop.cpp`. Los tests entran solos: cada módulo junta sus `test_*.cpp`, y los `.cpp` de
@@ -709,10 +710,27 @@ en el frame `i`, así que n frames suman 1 s exacto. En `Faithful`, `RunFrame` l
 `SDL_DelayNS` o `std::this_thread::sleep_for`, un despertar tarde puede caer en el cuarto tick y
 dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests del paso 2, a mano: los pasos por
-  frame del modo fiel en los primeros 7 frames, con el reloj de 64 ticks y los ms que mide cada
-  uno (`TickCountMs` en los ticks 0, 3, 6 y 9 da 0, 46, 93 y 140). El paso 2 trae el resultado.
-- [ ] **Paso 2 (PR A):** los tests:
+- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de los tests del paso 2, a
+  mano: los pasos por frame del modo fiel en los primeros 7 frames, con el reloj de 64 ticks y los
+  ms que mide cada uno (`TickCountMs` en los ticks 0, 3, 6 y 9 da 0, 46, 93 y 140). El paso 2 trae
+  el resultado.
+
+  Cada frame espera 3 ticks (46,875 ms), porque 2 ticks dan 31 ms, menos que 40. El acumulador
+  arranca en 40:
+
+  | Frame | Acumulador al empezar | Pasos | Queda | Ticks medidos | `TickCountMs` | Suma |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | 1 | 40 | 1 | 0 | 0 a 3 | 0 a 46 | 46 |
+  | 2 | 46 | 1 | 6 | 3 a 6 | 46 a 93 | 47 |
+  | 3 | 53 | 1 | 13 | 6 a 9 | 93 a 140 | 47 |
+  | 4 | 60 | 1 | 20 | 9 a 12 | 140 a 187 | 47 |
+  | 5 | 67 | 1 | 27 | 12 a 15 | 187 a 234 | 47 |
+  | 6 | 74 | 1 | 34 | 15 a 18 | 234 a 281 | 47 |
+  | 7 | 81 | 2 | 1 | 18 a 21 | 281 a 328 | 47 |
+
+  Los pasos son 1, 1, 1, 1, 1, 1, 2, el principio de la lista del paso 5, y cada frame mide 46 o
+  47 ms (`EachFrameMeasuresThreeTicks`). El frame 8 empieza con 48 y vuelve a 1 paso.
+- [x] **Paso 2 (PR A):** los tests:
   - `FakeClockTest`: `Now()` no se mueve solo; `SleepFor(5 ms)` lo mueve 5 ms y lo anota;
     `Advance(-3 ms)` lo lleva para atrás;
   - `FixedStepTest.FortyIsOneStep` (40 ms: 1 paso, alfa 0), `ThirtyNineIsNone` (0 pasos, alfa
@@ -739,6 +757,14 @@ dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
     `ParsesVSync` (`on`, `adaptive`, `off`), `ParsesStats`, y
     `FaithfulWithVSyncOnIsAnError` (`--pacing faithful --vsync on`: el mensaje nombra las dos
     opciones; en el modo fiel VSync va apagado: con `--vsync off` o sin `--vsync` se acepta).
+
+  Hecho así: en `CommandLine`, `pacing` y `vsync` ya son `std::optional`, como en la interfaz de
+  la CL3.4 (vacío: lo decide la config o el modo), así que la CL3.4 no cambia los tipos;
+  `--vsync adaptive` con `--pacing faithful` también es error, porque también espera el retrazo.
+  El aviso en el log del frame recortado espera al `Log` de la CL3.4: hasta entonces `GameLoop`
+  lo cuenta en `FrameStats::clampedFrames`. `TwentyFiveStepsPerSecondAtAnyFrameRate` es un
+  `TEST_P` con el fixture `GameLoopTest`, así que en ctest se llama
+  `FrameRates/GameLoopTest.TwentyFiveStepsPerSecondAtAnyFrameRate/0` a `/4`.
 - [ ] **Paso 3 (PR A):** `FixedStep`, `GameLoop` en `Decoupled` y `SdlClock`. `main.cpp` arma el
   bucle con la escena de prueba e imprime `frames` y `pasos` al salir; con `--stats`, los FPS y
   los pasos por segundo cada 5 s.

@@ -44,7 +44,8 @@ Qué cubre:
 | 13 | jefe | Q-C03: el corte del original sobre un buffer que se reusa |
 | 14 | detective (carril R) | las lecturas de la cabecera en `0x4e893d` |
 
-Cada actividad termina en una pregunta. Las respuestas no están acá: salen de lo que corrés.
+Cada actividad termina en una pregunta. Las respuestas no están en la guía: salen de lo que
+corrés. El plan, 03 y 04 tienen algunas, así que abrilos después de predecir.
 
 ## 1. Calentamiento: dos lecturas
 
@@ -67,8 +68,8 @@ En MU el corte se lee de la cabecera: `C1` y `C3` llevan el tamaño en el byte 1
 los bytes 1 y 2, big-endian. El tamaño es el del paquete entero. Un **corte** es una máquina de
 estados (un autómata finito): según lo que ya juntó, le falta el tipo, el tamaño o el cuerpo, o
 tiene un paquete para entregar. Sus invariantes son los de la 1.2 del servidor: solo mira bytes
-que llegaron, siempre avanza o se detiene, y el mismo flujo partido de cualquier forma da los
-mismos paquetes.
+que llegaron, nunca escribe fuera de su buffer, siempre avanza o se detiene, y el mismo flujo
+partido de cualquier forma da los mismos paquetes.
 
 **Pregunta:** en la actividad 1, ¿en qué estado queda el corte después de cada `recv`, y qué bytes
 tiene guardados?
@@ -99,10 +100,11 @@ error. Va en `labs/cl2.0-flujos/`.
 2. Los tests primero (`FrameCutterTest.cpp`), con los casos de `red_reference.py --selftest`
    que no son del cifrado: corte, resto parcial, cabecera incompleta, cabecera inválida y tamaño
    0. Antes de compilar, decí qué etapa va a fallar.
-3. Uno de propiedad: el mismo flujo partido al azar da los mismos paquetes. Usá `std::mt19937`
-   con una semilla fija y tomá su salida directamente (`engine() % n`): el estándar fija los
-   números del motor, pero no los de `std::uniform_int_distribution`, que cambian entre MSVC y
-   libstdc++.
+3. Uno de propiedad: paquetes válidos al azar (tipo, tamaño y cuerpo), uno detrás del otro,
+   salen iguales y en orden. Usá `std::mt19937` con una semilla fija y tomá su salida
+   directamente (`engine() % n`): el estándar fija los números del motor, pero no los de
+   `std::uniform_int_distribution`, que cambian entre MSVC y libstdc++. **Pensá:** ¿sirve partir
+   el flujo al azar en lecturas, si el corte recibe de a un byte?
 4. `FrameCutter.h` y `FrameCutter.cpp`, primero en rojo y después en verde.
 
 **Decisiones que pesás vos:**
@@ -113,7 +115,8 @@ error. Va en `labs/cl2.0-flujos/`.
 ## 5. Idea: el XOR32, un cifrado encadenado
 
 Casi todo C1/C2 que manda el cliente (los `F4` al ConnectServer no) pasa por el XOR32
-([03](../../Client/docs/research/03-red-y-cifrado.md#envío-el-motor-c1c2-y-el-xor32)): cada byte
+([03](../../Client/docs/research/03-red-y-cifrado.md#envío-el-motor-c1c2-y-el-xor32), después
+de la actividad 6: su ejemplo es la respuesta): cada byte
 que va después del opcode se cifra con `valor ^= key[i & 31] ^ buf[i - 1]`, con una tabla de 32
 bytes y el byte anterior **ya cifrado**. Es un cifrado de flujo **encadenado**: cada byte depende
 de todos los anteriores.
@@ -140,7 +143,7 @@ en el mismo índice?
 
 `a mod m` es el resto de dividir `a` por `m`, y en aritmética módulo m todo da la vuelta en m:
 con m = 11, `2 * 6 = 12`, y `12 mod 11 = 1`. Cuando `(k * d) mod m = 1`, `d` es el **inverso** de
-`k` módulo m: multiplicar por `k` y después por `d` devuelve el número, si era menor que m.
+`k` módulo m: multiplicar por `k` y después por `d` devuelve el número, con una condición.
 
 No todo número tiene inverso: `k` lo tiene si y solo si `k` y `m` no tienen otro divisor en común
 que el 1 (su máximo común divisor es 1). **Euclides extendido** calcula ese divisor y, de paso, dos
@@ -151,8 +154,8 @@ En `SimpleModulus`, cada carril se cifra multiplicando por una clave módulo m, 
 multiplicando por su inversa. Por eso la clave de cifrado del cliente (`Enc1.dat`) es la inversa
 de la de descifrado del servidor (`Dec1.dat`), con el mismo módulo.
 
-**Pregunta:** un carril en claro tiene 16 bits y los módulos tienen 17 o 18. ¿Por qué hace falta
-que el carril sea menor que el módulo para que vuelva igual?
+**Pregunta:** ¿qué número no vuelve igual después de multiplicar por `k` y por `d` módulo m? Un
+carril en claro tiene 16 bits y los módulos tienen 17 o 18: ¿le puede pasar a un carril?
 
 ## 8. Misión: `Labs::ModularInverse`
 
@@ -203,7 +206,8 @@ siguiente.
 2. Cuatro campos de 18 bits y uno de 16 ocupan justo 11 bytes y se leen iguales.
 3. Un carril como lo escribe el original: sus dos bytes de abajo, de a 8 bits empezando por el
    de abajo, y después los 2 bits que quedan arriba, como un campo de 2 bits. **Predecí** qué 3
-   bytes dan `0x10000` y `0x20000` antes de correrlo.
+   bytes dan `0x10000` y `0x20000` antes de correrlo. Después compará tu predicción con
+   `encrypt_block` de `c3c4_reference.py` (al lado de `red_reference.py`), que es el oráculo.
 4. La implementación.
 
 **Pregunta:** en el punto 3, ¿un carril queda escrito como un campo de 18 bits MSB primero? Si
@@ -226,7 +230,7 @@ Parece una multiplicación sin signo. Compilalo en un directorio de build aparte
 - ¿de qué tipo es `product`? (Buscá "integral promotion" en cppreference.)
 - ¿qué cambia con `std::uint32_t{lane} * key`?
 - ¿con qué valores de `lane` y `key` la cuenta se pasa de un `int`? Las claves del servidor
-  llegan a 16 bits: ¿puede pasar con ellas?
+  llegan a 16 bits: ¿alcanza con eso, o depende de cuánto vale la clave?
 
 ## 12. Comparar: lo que ya trae el estándar, y lo que va al producto
 
@@ -253,7 +257,9 @@ antes.
 **Te toca** (`labs/cl2.0-flujos/jefe/OldCutTest.cpp`):
 
 1. Un modelo chico del corte del original, con el buffer que se reusa, que lea `buf[off + 1]` y
-   `buf[off + 2]` sin mirar el largo (como `_split` de `red_reference.py`).
+   `buf[off + 2]` sin mirar el largo (como `_split` de `red_reference.py`). Que sea un arreglo
+   fijo con un par de bytes de más al final: leer fuera de un `std::vector` del largo justo es
+   comportamiento indefinido, y el modelo lo haría.
 2. El caso 1b de `red_reference.py`: `C1 05 10 01 02` y `C2 00 06 20 03 04`, partidos después de
    `C2 00`. **Predecí** qué paquetes saca el original, y escribilo como test.
 3. El mismo flujo en tu `FrameCutter`, y el test que muestra que espera los bytes que faltan.
@@ -309,7 +315,7 @@ Y al principio de la lectura, en `004e88a0_FUN_004e88a0.asm`:
 - **`std::span<const std::byte, 8>`:** una vista de largo fijo; desde un `std::span` dinámico se
   pasa con `first<8>()`. Si el dinámico tiene menos de 8, es comportamiento indefinido: es la
   trampa del último bloque, que puede venir incompleto.
-- **`std::mt19937` con semilla fija:** la misma secuencia en todos los compiladores; las
+- **`std::mt19937` con semilla fija:** la misma secuencia con cualquier biblioteca estándar; las
   distribuciones, no (actividad 4).
 
 ## Ejemplo mínimo (fuera del proyecto)
@@ -334,9 +340,9 @@ que salen son los de `PackRgb565` en big-endian o en little-endian?
 - Descifrar el XOR32 encadenando con el byte equivocado.
 - Multiplicar dos `std::uint16_t` y creer que la cuenta es sin signo (actividad 11).
 - Elegir el tipo de los coeficientes de Euclides extendido sin mirar qué valores toman.
-- Probar los bits solo con round-trips: un error que es el mismo al escribir y al leer no se ve
-  (actividad 10).
-- Un test al azar con `std::uniform_int_distribution`, que da otros números en otro compilador.
+- Probar los bits solo con round-trips (actividad 10).
+- Un test al azar con `std::uniform_int_distribution`, que da otros números con otra biblioteca
+  estándar.
 
 ## Cómo lo hacía el original
 

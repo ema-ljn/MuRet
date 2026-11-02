@@ -46,8 +46,9 @@ en 3.033 paquetes sin bytes sobrantes, incluidas 337 lecturas con 2 a 7 paquetes
 
 ## Envío: el motor C1/C2 y el XOR32
 
-Todo C1/C2 que manda el cliente pasa por un motor inlineado en cada emisor (vtable `0x6b85f4`),
-con esta tabla de 32 bytes:
+Casi todo C1/C2 que manda el cliente pasa por un motor inlineado en cada emisor (vtable
+`0x6b85f4`), con esta tabla de 32 bytes; los `F4` al ConnectServer salen en claro
+([04](04-protocolo.md)):
 
 ```text
 e7 6d 3a 89 bc b2 9f 73 23 a8 fe b6 49 5d 39 5d 8a cb 63 8d ea 7d 2b 5f c3 b1 e9 83 29 51 e8 56

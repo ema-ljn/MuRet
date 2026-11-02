@@ -85,6 +85,15 @@ solo lo lee.
   cuenta del login. Contra el cable salen los 7 login y los 156 keepalive que mandó el cliente, y
   los 8 saludos y los 7 login aceptados del GameServer. Los dos WORD del keepalive, que el plan
   llamaba `x` e `y`, son la velocidad de ataque y la de magia: así los compara el GS.
+  Próxima: la CL3 (plataforma y bucle), con su
+  [plan](../superpowers/plans/2026-11-02-ola-cl3-plataforma-y-bucle.md) y la [guía de la
+  CL3.0](ola-cl3.0-el-bucle-de-juego.md). **La CL3.0 la resolvió Claude** el 2026-11-02, como la
+  CL2.0: el `FixedStep` en ms enteros (y uno con `std::chrono::nanoseconds` para comparar), la
+  `TickGrid` que lee como `GetTickCount` y el jefe, un modelo del bucle de `0x637700` que da 64
+  frames cada 3 s y 75 pasos cada 64 frames, y que con pasos lentos se frena en vez de espiralar. El
+  carril R encontró que el acumulador del binario arranca en 40. Las respuestas de las 13
+  actividades están en [`labs/cl3.0-bucle/README.md`](../../labs/cl3.0-bucle/README.md). Para
+  cerrarla falta lo tuyo: las preguntas y la sección final de la guía.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 
@@ -146,6 +155,12 @@ sesión, junto con los de repaso más viejo.
 | el paquete y cómo sale al cable en un solo valor (`Outgoing` y `Delivery`), para que el que manda no tenga que acordarse de cifrar el login | CL2.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un golden que elige paquetes del cable sin mirar sus datos: deshacer el XOR32 para leer el subcódigo, y comparar solo lo fijo con `SameBytesWithoutValues` | CL2.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | las convenciones del código nuevo de MuMain: `m_` para el estado del objeto y el nombre natural para el parámetro, `I` para una interfaz, y un ejecutable por archivo de test juntado con un glob | estilo | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| el bucle de juego con paso fijo y acumulador (`FixedStep`): por qué un paso variable depende de los FPS, y el resto que pasa al frame siguiente | CL3.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| relojes de pared y monótonos, resolución contra precisión, y el tick de 15,625 ms que hace durar 46,875 ms una espera de 40 con `GetTickCount` (`TickGrid`) | CL3.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| `std::chrono`: duraciones enteras y de punto flotante, `duration_cast` que trunca hacia cero, y lo que se pierde truncando cada frame a ms (`ChronoFixedStep`) | CL3.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| la interpolación con `alfa = acumulador / paso`, que no cambia la lógica, y VSync, que ata los FPS al monitor | CL3.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| la espiral de la muerte y el tope, y por qué el original no espirala: mide desde después de los pasos (el jefe, `OriginalLoop`) | CL3.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un acumulador con signo y sin tope leído en el binario (`JL`, `SUB`, `ADD`), y su valor inicial en `.data`, 40 (carril R) | CL3.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

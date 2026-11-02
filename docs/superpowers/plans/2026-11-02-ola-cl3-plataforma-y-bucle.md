@@ -60,6 +60,7 @@ CL3.0 (L-10). De la CL3.1 en adelante, la sección de cada sub-ola de este plan.
 | Qué | Dónde | Qué hace |
 | --- | --- | --- |
 | el acumulador | `DAT_006d5ee4`, un `int` con signo | `CMP [0x6d5ee4],0x28` + `JL` en `0x637791`: corre pasos mientras valga 40 o más |
+| el valor inicial | `.data`, `0x6d5ee4` = `0x28` | el acumulador arranca en 40: el primer frame corre 1 paso (CL3.0, carril R) |
 | un paso | `0x638167` | `SUB EAX,0x28`: cada paso resta 40 ms; no hay tope de pasos por frame |
 | el inicio de la medición | `0x63852b`, `GetTickCount()` | se toma **después** de los pasos, justo antes de dibujar |
 | la espera | `0x6385fd`..`0x638624` | `while (GetTickCount() - inicio < 0x28)`: activa, sin dormir. La resta es de `DWORD` y la comparación con signo (`CMP ...,0x28` + `JGE` en `0x63860f`) |
@@ -198,36 +199,53 @@ inyectar el reloj (el reloj falso de los tests).
   de la CL2.0: GoogleTest ya está en `labs/` desde #28, y el lab es un solo ejecutable con su lista
   a mano, regla 7), `labs/README.md`
 
-- [ ] **Paso 1 (Claude):** la guía, justo antes de empezar.
-- [ ] **Paso 2 (Emanuel, `TODO(human)`):** `Labs::FixedStep` con milisegundos enteros:
-  `int Advance(int frameMs)` devuelve cuántos pasos de 40 ms corren y deja el resto. Primero los
-  tests: un frame de 40 da 1 paso y resto 0; uno de 39, 0 pasos y resto 39; uno de 130, 3 pasos y
-  resto 10; 25 frames de 40 dan 25 pasos, y 1 de 1.000, también 25.
-- [ ] **Paso 3 (Emanuel):** `Labs::TickGrid`, el reloj de `GetTickCount`: con `tick` en
-  microsegundos (15.625 o 10.000), `Ms(t)` es el valor que leería `GetTickCount` en el
-  microsegundo `t` (`(t / tick) * tick / 1000`, entero). Tests: con 15.625, `Ms` en los ticks 0 a
-  4 da 0, 15, 31, 46 y 62; con 10.000, 0, 10, 20, 30 y 40.
-- [ ] **Paso 4 (Emanuel, jefe):** el bucle de `0x637700` sobre una `TickGrid`: pasos mientras el
-  acumulador valga 40 o más, `inicio = Ms(ahora)`, la espera activa de 40 ms avanzando el tiempo
-  de a 1 µs, y el acumulador suma `Ms(ahora) - inicio`. Tests: con 15.625 µs, 64 frames ocupan
-  3.000.000 µs (21,33 FPS) y los pasos de los primeros 13 frames son 0, 1, 1, 1, 1, 1, 2, 1, 1, 1,
-  1, 1, 2; con 10.000 µs, 25 frames por segundo y 1 paso por frame desde el segundo.
-- [ ] **Paso 5 (Emanuel, jefe, la espiral):** el mismo bucle con pasos que tardan 50 ms, corriendo
-  frames mientras el reloj no llegue a 10 s. Como el original no mide los pasos, el juego se
-  frena en vez de espiralar: exactamente 100 frames y 116 pasos, no 250. Al lado, `FixedStep`
-  midiendo el frame entero y sin tope: el primer frame mide 40 ms y cada uno de los siguientes,
-  lo que tardaron los pasos del anterior; los pasos por frame son 1, 1, 1, 1, 2, 2, 3, 3, 4, 5, 6,
-  8, 10, 12, 15, la espiral.
-- [ ] **Paso 6 (Emanuel):** comparar, y anotarlo en `labs/README.md`: el `FixedStep` con
-  milisegundos enteros contra uno con `std::chrono::nanoseconds` (qué se pierde al truncar, y por
-  qué el original no pierde nada con `int`), y `steady_clock` contra `system_clock` (cuál puede
-  ir para atrás y cuándo).
-- [ ] **Paso 7 (carril R):** en Ghidra, el `JL` de `0x637798`, el `SUB EAX,0x28` de `0x638167` y
-  el `ADD` de `0x638632`: confirmar que el acumulador es con signo y que nada lo acota.
-- [ ] **Paso 8:** verificar:
+- [x] **Paso 1 (Claude):** la guía, justo antes de empezar.
+- [x] **Paso 2 (Emanuel, `TODO(human)`; lo resolvió Claude):** `Labs::FixedStep` con milisegundos
+  enteros: `int Advance(int frameMs)` devuelve cuántos pasos de 40 ms corren y deja el resto.
+  Primero los tests: un frame de 40 da 1 paso y resto 0; uno de 39, 0 pasos y resto 39; uno de 130,
+  3 pasos y resto 10; 25 frames de 40 dan 25 pasos, y 1 de 1.000, también 25.
+- [x] **Paso 3 (Emanuel; lo resolvió Claude):** `Labs::TickGrid`, el reloj de `GetTickCount`: con
+  `tick` en microsegundos (15.625 o 10.000), `Ms(t)` es el valor que leería `GetTickCount` en el
+  microsegundo `t` (`(t / tick) * tick / 1000`, entero). Tests: con 15.625, `Ms` en los ticks 0 a 4
+  da 0, 15, 31, 46 y 62; con 10.000, 0, 10, 20, 30 y 40.
+- [x] **Paso 4 (Emanuel, jefe; lo resolvió Claude):** el bucle de `0x637700` sobre una `TickGrid`:
+  pasos mientras el acumulador valga 40 o más, `inicio = Ms(ahora)`, la espera activa de 40 ms
+  avanzando el tiempo de a 1 µs, y el acumulador suma `Ms(ahora) - inicio`. Tests: con 15.625 µs, 64
+  frames ocupan 3.000.000 µs (21,33 FPS) y los pasos de los primeros 13 frames son 0, 1, 1, 1, 1, 1,
+  2, 1, 1, 1, 1, 1, 2; con 10.000 µs, 25 frames por segundo y 1 paso por frame desde el segundo.
+- [x] **Paso 5 (Emanuel, jefe, la espiral; lo resolvió Claude):** el mismo bucle con pasos que
+  tardan 50 ms, corriendo frames mientras el reloj no llegue a 10 s. Como el original no mide los
+  pasos, el juego se frena en vez de espiralar: exactamente 100 frames y 116 pasos, no 250. Al lado,
+  `FixedStep` midiendo el frame entero y sin tope: el primer frame mide 40 ms y cada uno de los
+  siguientes, lo que tardaron los pasos del anterior; los pasos por frame son 1, 1, 1, 1, 2, 2, 3,
+  3, 4, 5, 6, 8, 10, 12, 15, la espiral.
+- [x] **Paso 6 (Emanuel; lo resolvió Claude):** comparar, y anotarlo en `labs/README.md`: el
+  `FixedStep` con milisegundos enteros contra uno con `std::chrono::nanoseconds` (qué se pierde al
+  truncar, y por qué el original no pierde nada con `int`), y `steady_clock` contra `system_clock`
+  (cuál puede ir para atrás y cuándo).
+- [x] **Paso 7 (carril R; lo resolvió Claude):** en Ghidra, el `JL` de `0x637798`, el `SUB EAX,0x28`
+  de `0x638167` y el `ADD` de `0x638632`: confirmar que el acumulador es con signo y que nada lo
+  acota.
+- [x] **Paso 8:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "LabCl30"
   ```
+
+Hecho así: todos los números de los pasos 2 a 5 salieron como estaban escritos, y antes de los
+tests los dio también un modelo en Python del mismo bucle; el jefe suma el invariante corregido
+(desde el frame 2, 75 pasos y 11 frames de 2 cada 64, y 7 u 8 cada 6, en 300 frames). Un frame
+negativo cuenta 0 en el `FixedStep` del lab, y la suma va en 64 bits para que un frame de
+`INT_MAX` no se pase de rango. Para el paso 6, el lab trae un `ChronoFixedStep` con
+`std::chrono::nanoseconds` al lado del de ms: 60 frames que suman 1 s dan 25 pasos con él y 24
+truncando cada frame a ms. El carril R confirmó la tabla de arriba (el `JL` de `0x637798`, ningún
+tope entre el `SUB` y el `JMP 0x637791` de `0x6381a5`, y ninguna otra instrucción de `.text` que
+nombre `0x6d5ee4`) y trajo algo nuevo: en el `.data` del archivo, `0x6d5ee4` vale `0x28`, así que
+**el acumulador arranca en 40** y el primer frame de `0x637700` corre 1 paso, no 0. Los tests del
+plan arrancan en 0, como estaban; `TheBinaryStartsTheAccumulatorAtForty` muestra que solo cambia
+el primer frame (64 frames, 74 pasos y 3 s). Queda para la CL3.R pasarlo al 02, y para el PR B de
+la CL3.2 decidir si `FaithfulPacer` arranca en 40, lo que cambia los 73 pasos de
+`SixtyFourFramesEveryThreeSeconds` a 74 y el primer 0 de `SeventyFiveStepsEverySixtyFourFrames`
+a 1. Lo que se vio está en el README del lab, actividad 13.
 
 ## Sub-ola CL3.R: qué depende del paso de 40 ms (P-C03)
 

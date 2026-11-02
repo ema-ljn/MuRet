@@ -51,6 +51,16 @@ target_include_directories(MuRetLabsCl20 PUBLIC cl2.0-flujos)
 target_compile_features(MuRetLabsCl20 PUBLIC cxx_std_20)
 muret_set_warnings(MuRetLabsCl20)
 
+# La CL3.0 (docs/learning/ola-cl3.0-el-bucle-de-juego.md): el paso fijo con acumulador y el reloj de
+# GetTickCount; el bucle del original va en el jefe, dentro de su test.
+add_library(MuRetLabsCl30 STATIC
+    cl3.0-bucle/FixedStep.cpp
+    cl3.0-bucle/TickGrid.cpp
+)
+target_include_directories(MuRetLabsCl30 PUBLIC cl3.0-bucle)
+target_compile_features(MuRetLabsCl30 PUBLIC cxx_std_20)
+muret_set_warnings(MuRetLabsCl30)
+
 if(MURET_BUILD_TESTS)
     find_package(GTest CONFIG REQUIRED)
     include(GoogleTest)
@@ -68,4 +78,14 @@ if(MURET_BUILD_TESTS)
     target_link_libraries(LabCl20Tests PRIVATE MuRetLabsCl20 GTest::gtest GTest::gtest_main)
     muret_set_warnings(LabCl20Tests)
     gtest_discover_tests(LabCl20Tests TEST_PREFIX "LabCl20.")
+
+    # Los de la CL3.0, con el prefijo LabCl30. y en un solo ejecutable, como los de la CL2.0.
+    add_executable(LabCl30Tests
+        cl3.0-bucle/test_fixed_step.cpp
+        cl3.0-bucle/test_tick_grid.cpp
+        cl3.0-bucle/jefe/test_original_loop.cpp
+    )
+    target_link_libraries(LabCl30Tests PRIVATE MuRetLabsCl30 GTest::gtest GTest::gtest_main)
+    muret_set_warnings(LabCl30Tests)
+    gtest_discover_tests(LabCl30Tests TEST_PREFIX "LabCl30.")
 endif()

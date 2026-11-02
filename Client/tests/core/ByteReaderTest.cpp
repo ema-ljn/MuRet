@@ -1,6 +1,3 @@
-// Client::Core::ByteReader: enteros little-endian y big-endian, y campos de bytes, leídos en orden,
-// sin pasarse del final.
-
 #include "Core/ByteReader.h"
 
 #include <gtest/gtest.h>
@@ -13,9 +10,10 @@
 #include <span>
 #include <vector>
 
+// Client::Core::ByteReader: enteros little-endian y big-endian, y campos de bytes, leídos en orden,
+// sin pasarse del final.
 namespace
 {
-
 using Client::Core::ByteReader;
 
 // Se arma sobre bytes que siguen vivos, y no sobre un temporal que es dueño de los suyos.
@@ -165,5 +163,4 @@ TEST(ByteReaderTest, EmptyBufferHasNothingToRead)
     EXPECT_EQ(reader.ReadU8(), std::nullopt);
     EXPECT_EQ(reader.Remaining(), 0u);
 }
-
 } // namespace

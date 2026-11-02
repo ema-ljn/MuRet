@@ -1,6 +1,3 @@
-// TerrainLight.OZJ reales: los de la carpeta golden y, si está, la luz que tenía en memoria el
-// original (Client/tests/support/GoldenDir.h).
-
 #include "Data/Terrain/TerrainLight.h"
 
 #include "Data/DataError.h"
@@ -19,9 +16,10 @@
 #include <string_view>
 #include <vector>
 
+// TerrainLight.OZJ reales: los de la carpeta golden y, si está, la luz que tenía en memoria el
+// original (Client/tests/support/GoldenDir.h).
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Terrain::LoadTerrainLight;
 using Client::Data::Terrain::TerrainLight;
@@ -65,7 +63,7 @@ Client::Core::Expected<std::unique_ptr<TerrainLight>, DataError> LoadFile(const 
 TEST_F(GoldenTerrainLight, LoadsEveryLightOfTheLab)
 {
     std::size_t files = 0;
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(dataRoot))
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(m_dataRoot))
     {
         if (!entry.is_regular_file() || !IsTerrainLight(entry.path()))
         {
@@ -73,7 +71,7 @@ TEST_F(GoldenTerrainLight, LoadsEveryLightOfTheLab)
         }
         ++files;
         const auto loaded = LoadFile(entry.path());
-        EXPECT_TRUE(loaded.HasValue()) << entry.path().lexically_relative(dataRoot).generic_string();
+        EXPECT_TRUE(loaded.HasValue()) << entry.path().lexically_relative(m_dataRoot).generic_string();
     }
 
     EXPECT_EQ(files, TerrainLightFilesOfTheLab);
@@ -109,5 +107,4 @@ TEST_F(MemoryTerrainLight, EqualsTheOriginalsMemoryInLorencia)
 {
     ExpectTheOriginalsMemory(LorenciaCapture, "lor_light.bin");
 }
-
 } // namespace

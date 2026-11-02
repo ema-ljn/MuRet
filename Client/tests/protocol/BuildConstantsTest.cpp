@@ -1,5 +1,3 @@
-// Client::Protocol::BuildConstants: la versión y el serial del build c32bbd5f.
-
 #include "Protocol/BuildConstants.h"
 
 #include <gtest/gtest.h>
@@ -8,9 +6,9 @@
 #include <cstddef>
 #include <cstdint>
 
+// Client::Protocol::BuildConstants: la versión y el serial del build c32bbd5f.
 namespace
 {
-
 using Client::Protocol::ClientVersion;
 using Client::Protocol::VersionSize;
 
@@ -25,5 +23,4 @@ TEST(BuildConstantsTest, TheVersionIsTheOneStoredAt0x6c8284)
         EXPECT_EQ(static_cast<std::size_t>(ClientVersion[i]), stored[i] - i - 1) << "byte " << i;
     }
 }
-
 } // namespace

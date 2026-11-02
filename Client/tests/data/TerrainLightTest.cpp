@@ -1,7 +1,3 @@
-// LoadTerrainLight con OZJ armados desde los vectores de CI. Lo que se prueba es lo de la luz:
-// cada byte por 1/255 y las filas dadas vuelta, contra lo que da DecodeJpeg (sus tests están en
-// JpegImageTest.cpp), y el tamaño que se acepta.
-
 #include "Data/Terrain/TerrainLight.h"
 
 #include "Data/DataError.h"
@@ -20,9 +16,11 @@
 #include <span>
 #include <vector>
 
+// LoadTerrainLight con OZJ armados desde los vectores de CI. Lo que se prueba es lo de la luz:
+// cada byte por 1/255 y las filas dadas vuelta, contra lo que da DecodeJpeg (sus tests están en
+// JpegImageTest.cpp), y el tamaño que se acepta.
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Terrain::CellIndex;
 using Client::Data::Terrain::LoadTerrainLight;
@@ -113,5 +111,4 @@ TEST(TerrainLightTest, AFileWithoutJpegIsTooShort)
     EXPECT_EQ(LoadError(std::span(file).first(OzjPrefixSize)), DataError::FileTooShort);
     EXPECT_EQ(LoadError(std::span(file).first(OzjPrefixSize + 1)), DataError::InvalidData);
 }
-
 } // namespace

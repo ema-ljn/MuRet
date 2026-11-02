@@ -1,5 +1,3 @@
-// Client::Data::Tables::RecordTable: los registros de largo fijo de las tablas .bmd.
-
 #include "Data/Tables/RecordTable.h"
 
 #include "Core/Xor3.h"
@@ -17,9 +15,9 @@
 #include <utility>
 #include <vector>
 
+// Client::Data::Tables::RecordTable: los registros de largo fijo de las tablas .bmd.
 namespace
 {
-
 using Client::Core::Xor3;
 using Client::Data::Tables::RecordTable;
 using Client::Tests::BytePattern;
@@ -110,5 +108,4 @@ TEST(RecordTableTest, AnEmptyFileGivesAnEmptyTable)
     EXPECT_EQ(table.Count(), 0u);
     EXPECT_FALSE(table.Record(0).has_value());
 }
-
 } // namespace

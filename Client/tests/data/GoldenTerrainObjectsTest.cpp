@@ -1,5 +1,3 @@
-// EncTerrain.obj reales, los de la carpeta golden (Client/tests/support/GoldenDir.h).
-
 #include "Data/Terrain/TerrainObjects.h"
 
 #include "Core/ByteReader.h"
@@ -25,9 +23,9 @@
 #include <utility>
 #include <vector>
 
+// EncTerrain.obj reales, los de la carpeta golden (Client/tests/support/GoldenDir.h).
 namespace
 {
-
 using Client::Core::ByteReader;
 using Client::Data::Terrain::LoadTerrainObjects;
 using Client::Data::Terrain::TerrainObject;
@@ -303,5 +301,4 @@ TEST_F(MemoryTerrainObjects, LorenciaEqualsTheOriginalsMemory)
                                       << " de los ordenados es distinto: " << ::testing::PrintToString(*mine)
                                       << " en MuRet y " << ::testing::PrintToString(*theirs) << " en memoria";
 }
-
 } // namespace

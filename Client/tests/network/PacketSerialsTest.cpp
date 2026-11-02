@@ -1,5 +1,3 @@
-// Client::Network::PacketSerials: los seriales de envío y de recepción de los C3/C4, con Q-C04.
-
 #include "Network/PacketSerials.h"
 
 #include "support/NetworkPrinters.h"
@@ -8,9 +6,9 @@
 
 #include <cstdint>
 
+// Client::Network::PacketSerials: los seriales de envío y de recepción de los C3/C4, con Q-C04.
 namespace
 {
-
 using Client::Network::PacketSerials;
 using Client::Network::SerialCheck;
 
@@ -122,5 +120,4 @@ TEST(PacketSerialsTest, ResetStartsBothOver)
     EXPECT_EQ(serials.TakeSend(), 0);
     EXPECT_EQ(serials.Receive(0), SerialCheck::InOrder);
 }
-
 } // namespace

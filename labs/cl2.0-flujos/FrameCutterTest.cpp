@@ -1,7 +1,3 @@
-// Labs::FrameCutter: los casos de red_reference.py --selftest que no son del cifrado (el corte, el
-// resto parcial, la cabecera incompleta, la cabecera inválida y el tamaño 0), y uno de propiedad.
-// El script está en el repo de research: client-research/analysis/mainexe/scripts/.
-
 #include "FrameCutter.h"
 
 #include "FrameBytes.h"
@@ -18,9 +14,11 @@
 #include <utility>
 #include <vector>
 
+// Labs::FrameCutter: los casos de red_reference.py --selftest que no son del cifrado (el corte, el
+// resto parcial, la cabecera incompleta, la cabecera inválida y el tamaño 0), y uno de propiedad.
+// El script está en el repo de research: client-research/analysis/mainexe/scripts/.
 namespace
 {
-
 using Labs::CutError;
 using Labs::Frame;
 using Labs::FrameCutter;
@@ -256,5 +254,4 @@ TEST(FrameCutterTest, RandomPacketsComeOutInOrder)
     EXPECT_EQ(cutter.Pending(), 0u);
     EXPECT_FALSE(cutter.Error().has_value());
 }
-
 } // namespace

@@ -1,6 +1,3 @@
-// Labs::BitWriter y Labs::BitReader: bits MSB primero, el bloque de 11 bytes de SimpleModulus, y el
-// orden en que el original escribe un carril de 18 bits.
-
 #include "BitStream.h"
 
 #include <gtest/gtest.h>
@@ -12,9 +9,10 @@
 #include <span>
 #include <vector>
 
+// Labs::BitWriter y Labs::BitReader: bits MSB primero, el bloque de 11 bytes de SimpleModulus, y el
+// orden en que el original escribe un carril de 18 bits.
 namespace
 {
-
 using Labs::BitReader;
 using Labs::BitWriter;
 
@@ -222,5 +220,4 @@ TEST(BitReaderTest, ReadingZeroBitsGivesZero)
     EXPECT_EQ(reader.Read(0), 0u);
     EXPECT_EQ(reader.RemainingBits(), 8u);
 }
-
 } // namespace

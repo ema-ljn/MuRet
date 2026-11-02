@@ -74,21 +74,67 @@ namespace:
 ## 7. Estilo consistente
 
 - El formato lo decide [`.clang-format`](../.clang-format) (el de MuMain); corré `clang-format`
-  antes de commitear y no lo discutas en la revisión.
+  antes de commitear y no lo discutas en la revisión. CI lo verifica en `Client/` y `labs/`
+  (`clang-format --dry-run --Werror`, versión 18).
 - Seguí el estilo del código que está alrededor. No inventes una convención nueva en un archivo.
 - Includes mínimos: solo lo que el archivo usa.
+- Comentarios, mensajes y docs en castellano; identificadores y nombres de tests en inglés
+  (`Feed`, `TEST(PacketReaderTest, CutsAC1)`).
+- `.editorconfig` fija espacios, LF y UTF-8; `.clang-tidy` (el de MuMain, con las carpetas de
+  MuRet) se corre a mano: `run-clang-tidy -p build/linux-x64-debug -quiet 'Client/(src|tests)/'`.
 
-### Nombres (propuesta inicial; se cambia con un PR)
+### Nombres (decidido el 2026-11-02, alineado con el código nuevo de MuMain)
 
-- Tipos, funciones, métodos y namespaces en `PascalCase`: `FrameParser`, `SessionTable::Allocate`,
-  `DataServer::Network`.
-- Variables, parámetros y miembros en `camelCase`.
-- Constantes y enumeradores en `PascalCase`: `MaxSessions`, `SlotState::GameServer`.
+Son las costumbres del código nuevo de MuMain (el de los namespaces `<Capa>::<Concepto>`, no el
+heredado con `C*`, notación húngara y `g_`). Valen para todo el código nuevo y para `Client/` y
+`labs/cl2.0-flujos/` enteros. `Server/` y `labs/0.0-enlace/` se alinean cuando se toca cada
+archivo, como MuMain, que las aplica "only to new files" y no hace limpiezas grandes hacia atrás.
+
+- Tipos, funciones, métodos y namespaces en `PascalCase`: `PacketReader`, `PacketReader::Feed`,
+  `Client::Network`.
+- Variables, parámetros y locales en `camelCase`: `firstWireByte`, `declaredSize`.
+- Miembros de datos privados y protegidos con `m_` y `camelCase`: `m_buffer`, `m_consumed`. Así se
+  distingue el estado del objeto de un local al leer un método, y el parámetro de un constructor
+  puede tener el nombre natural sin chocar con `-Wshadow` (`cmake/CompilerWarnings.cmake`):
+  `ByteReader(std::span<const std::byte> buffer) : m_buffer(buffer)`. Vale también para los
+  fixtures de GoogleTest (`m_connections`).
+- Los campos públicos de un `struct` sin invariantes van en `camelCase`, sin prefijo:
+  `LoadedItemTable::table`, como `Rgb::red` en MuMain.
+- Las interfaces (clases con solo funciones virtuales puras) llevan `I` adelante: `IObfuscation`,
+  en `IObfuscation.h`. Sus implementaciones no: `IdentityObfuscation`, `FoxAntiObfuscation`.
+- Las variables estáticas de un archivo (en un namespace anónimo, no `const`) llevan `s_`:
+  `s_initialized`. Hoy no hay ninguna.
+- Constantes y enumeradores en `PascalCase`, con `constexpr` y no `#define`: `MaxPacketSize`,
+  `PacketType::C3`.
+
+### Cómo se arma un archivo
+
+- Un header empieza con `#pragma once`, después van los includes y recién después el comentario
+  del archivo, pegado a lo primero que declara (el namespace o la clase), como
+  `Network/Reconnect/ReachabilityProbe.h` en MuMain:
+
+  ```cpp
+  #pragma once
+
+  #include "Network/Packet.h"
+
+  #include <cstddef>
+
+  // Corta un flujo TCP en paquetes C1/C2/C3/C4...
+  namespace Client::Network
+  {
+  class PacketReader
+  ```
+
+- Un `.cpp` empieza con su propio header; si tiene un comentario de archivo, va arriba de lo que
+  describe, después de los includes.
+- Sin línea en blanco después de la llave de `namespace X {` ni antes de `} // namespace X`.
 
 ### Namespaces
 
 1. Siempre con el componente adelante, para no chocar cuando entren otros servidores:
-   `DataServer::<Capa>[::<Concepto>]`. La jerarquía va **por dominio**: lo de gremios va en
+   `Client::<Capa>[::<Concepto>]`, `DataServer::<Capa>[::<Concepto>]`. MuMain no lo usa porque
+   tiene un solo componente. La jerarquía va **por dominio**: lo de gremios va en
    `DataServer::Handlers::Guild`, lo arme quien lo arme.
 2. Los helpers privados de un archivo van en un namespace anónimo.
 3. Nada de `using namespace` en un header.

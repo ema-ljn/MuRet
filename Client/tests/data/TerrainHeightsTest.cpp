@@ -1,5 +1,3 @@
-// Client::Data::Terrain::LoadTerrainHeights: TerrainHeight.OZB, con archivos sintéticos.
-
 #include "Data/Terrain/TerrainHeights.h"
 
 #include "Data/DataError.h"
@@ -12,9 +10,9 @@
 #include <cstdint>
 #include <vector>
 
+// Client::Data::Terrain::LoadTerrainHeights: TerrainHeight.OZB, con archivos sintéticos.
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Terrain::CellIndex;
 using Client::Data::Terrain::LoadTerrainHeights;
@@ -166,5 +164,4 @@ TEST(TerrainHeightsTest, IgnoresTheBytesAfterTheLastCell)
     ASSERT_TRUE(loaded.HasValue());
     ExpectThePattern(*loaded.Value(), 1.5f);
 }
-
 } // namespace

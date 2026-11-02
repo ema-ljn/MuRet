@@ -1,9 +1,3 @@
-// Skill.bmd real, el de la carpeta golden (Client/tests/support/GoldenDir.h).
-//
-// No hay test contra la memoria del original: en reposo, el contenedor guardia deja bytes de
-// rand() donde estaban los registros (Q-C08), y el volcado s31_skill_live3.bin no es la tabla en
-// claro.
-
 #include "Data/Tables/SkillTable.h"
 
 #include "support/FileBytes.h"
@@ -17,9 +11,13 @@
 #include <span>
 #include <vector>
 
+// Skill.bmd real, el de la carpeta golden (Client/tests/support/GoldenDir.h).
+//
+// No hay test contra la memoria del original: en reposo, el contenedor guardia deja bytes de
+// rand() donde estaban los registros (Q-C08), y el volcado s31_skill_live3.bin no es la tabla en
+// claro.
 namespace
 {
-
 using Client::Data::Tables::LoadSkillTable;
 using Client::Data::Tables::SkillCount;
 using Client::Data::Tables::SkillTableSize;
@@ -40,5 +38,4 @@ TEST_F(GoldenSkillTable, LoadsTheRealFile)
     ASSERT_TRUE(loaded.HasValue());
     EXPECT_EQ(loaded.Value().Count(), SkillCount);
 }
-
 } // namespace

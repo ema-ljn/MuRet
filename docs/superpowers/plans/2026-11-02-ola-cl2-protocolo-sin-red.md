@@ -638,7 +638,7 @@ en `0x800`).
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "SimpleModulus|PacketSerials|EncryptedPacket"
   ```
 
-## Sub-ola CL2.4: `Obfuscation` (identidad y FoxAnti)
+## Sub-ola CL2.4: `IObfuscation` (identidad y FoxAnti)
 
 **Concepto:** una interfaz con dos implementaciones, elegida por configuración, y una capa que
 traduce entre dos formatos sin que el resto se entere.
@@ -663,7 +663,7 @@ cifrado, `EncryptPacket` llama a `BeforeEncrypt` antes de cifrar; y todo lo que 
 la CL4. En esta ola los llaman los tests y el golden, en ese orden.
 
 **Archivos:** crear, en `Client/src/Network/` y en el namespace `Client::Network`, como el resto de
-la capa, `Obfuscation.h`, `ObfuscationError.h`, `IdentityObfuscation.h/.cpp` y
+la capa, `IObfuscation.h`, `ObfuscationError.h`, `IdentityObfuscation.h/.cpp` y
 `FoxAntiObfuscation.h/.cpp`; `Client/tests/network/IdentityObfuscationTest.cpp`,
 `FoxAntiObfuscationTest.cpp` y `GoldenFoxAntiObfuscationTest.cpp`. Modificar `PacketReader` y
 `EncryptPacket` (las sobrecargas de abajo), `Client/CMakeLists.txt`, 07 (Q-C09, Q-C17 y Q-C18 con
@@ -682,11 +682,11 @@ original, sin atajo cuando no hay remapeo: que entonces no cambie nada lo prueba
 lista pide sus entradas enteras (una a la que le falta el cuarto byte, que el original no lee,
 también es `InvalidPacket`), lo que sigue a las entradas sale en 0 como el `calloc` del original,
 y la traducida tiene que entrar en `MaxPacketSize`. El `F3 11` se mira solo en un C1: en MuRet un
-C3 descifrado ya es un C1, y un `C1 03 F3`, sin subcódigo, pasa igual. `Obfuscation` se copia y se
+C3 descifrado ya es un C1, y un `C1 03 F3`, sin subcódigo, pasa igual. `IObfuscation` se copia y se
 mueve solo desde una clase hija, para que no se asigne a través de la base, y
 `IdentityObfuscation::Shared()` es una `static` local, que no depende del orden en que arrancan
 los archivos. Un `PacketReader` no acepta una ofuscación temporal (su constructor con
-`const Obfuscation&&` está borrado), porque guarda un puntero a ella. Con `InvalidPacket`, la
+`const IObfuscation&&` está borrado), porque guarda un puntero a ella. Con `InvalidPacket`, la
 conexión de la CL4 descarta el paquete y sigue leyendo: el corte no se perdió. Lo que se espera de
 cada traducción sale de la FoxAnti mínima compilada en el host con
 `Client/tests/vectors/net/tools/foxanti_cases.c` (su README dice cómo), y los tests usan los
@@ -702,10 +702,10 @@ ve ahí.
 ```cpp
 namespace Client::Network
 {
-class Obfuscation
+class IObfuscation
 {
 public:
-    virtual ~Obfuscation() = default;
+    virtual ~IObfuscation() = default;
     // S->C: el XOR del paquete que empieza con este byte del cable; 0 si no lleva.
     [[nodiscard]] virtual std::byte InboundMask(std::byte firstWireByte) const = 0;
     // S->C, recién cortado y desenmascarado.
@@ -719,19 +719,19 @@ public:
 };
 
 // Lo que cambia en PacketReader y EncryptPacket. Lo de la CL2.1 y la CL2.3 queda igual y usa una
-// IdentityObfuscation estática, así que sus tests no cambian. La Obfuscation vive más que el
+// IdentityObfuscation estática, así que sus tests no cambian. La IObfuscation vive más que el
 // lector: las dos son de la conexión (CL4).
 class PacketReader
 {
 public:
     PacketReader();
-    explicit PacketReader(const Obfuscation& obfuscation);
+    explicit PacketReader(const IObfuscation& obfuscation);
     // Feed y Next, como en la CL2.1.
 };
 Core::Expected<Packet, Crypto::CryptoError> EncryptPacket(const Packet& plain,
                                                           const Crypto::EncryptionKey& key,
                                                           PacketSerials& serials,
-                                                          const Obfuscation& obfuscation,
+                                                          const IObfuscation& obfuscation,
                                                           std::byte padding = {});
 } // namespace Client::Network
 ```

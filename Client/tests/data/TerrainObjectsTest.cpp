@@ -1,5 +1,3 @@
-// Client::Data::Terrain::LoadTerrainObjects: EncTerrain.obj, con archivos sintéticos.
-
 #include "Data/Terrain/TerrainObjects.h"
 
 #include "Data/DataError.h"
@@ -14,9 +12,9 @@
 #include <optional>
 #include <vector>
 
+// Client::Data::Terrain::LoadTerrainObjects: EncTerrain.obj, con archivos sintéticos.
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Terrain::LoadTerrainObjects;
 using Client::Data::Terrain::TerrainObject;
@@ -199,5 +197,4 @@ TEST(TerrainObjectsTest, AShortFileComesBeforeAnotherWorld)
 
     EXPECT_EQ(LoadError(plain), DataError::FileTooShort);
 }
-
 } // namespace

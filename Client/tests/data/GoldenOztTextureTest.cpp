@@ -1,6 +1,3 @@
-// OZT reales: los de la carpeta golden y, si está, los buffers de textura de la memoria del original
-// (Client/tests/support/GoldenDir.h).
-
 #include "Data/Textures/OztTexture.h"
 
 #include "Data/DataError.h"
@@ -21,9 +18,10 @@
 #include <string_view>
 #include <vector>
 
+// OZT reales: los de la carpeta golden y, si está, los buffers de textura de la memoria del original
+// (Client/tests/support/GoldenDir.h).
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Textures::LoadOztTexture;
 using Client::Data::Textures::Texture;
@@ -58,14 +56,14 @@ TEST_F(GoldenOztTexture, LoadsEveryOztOfTheLabButTheOneOf24Bits)
     std::vector<std::string> rejected;
     // Sin error_code: si no se puede recorrer la carpeta, el iterador tira filesystem_error y el
     // test falla con su mensaje (el error_code del constructor no cubre los pasos siguientes).
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(dataRoot))
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(m_dataRoot))
     {
         if (!entry.is_regular_file() || !HasExtension(entry.path(), ".ozt"))
         {
             continue;
         }
         ++files;
-        const std::string name = entry.path().lexically_relative(dataRoot).generic_string();
+        const std::string name = entry.path().lexically_relative(m_dataRoot).generic_string();
         const auto loaded = LoadFile(entry.path());
         if (!loaded.HasValue())
         {
@@ -128,5 +126,4 @@ TEST_F(MemoryOztTexture, EqualsTheOriginalsMemory)
         EXPECT_TRUE(SameBytes(std::as_bytes(std::span(loaded.Value().pixels)), std::as_bytes(std::span(*memory))));
     }
 }
-
 } // namespace

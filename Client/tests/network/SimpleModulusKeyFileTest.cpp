@@ -1,7 +1,3 @@
-// Client::Network::Crypto::LoadEncryptionKey y LoadDecryptionKey, con archivos de clave armados
-// acá: el magic, el tamaño y los tres bloques con el XOR de la tabla. Los reales, en
-// GoldenSimpleModulusKeyFileTest.
-
 #include "Network/Crypto/SimpleModulusKeyFile.h"
 
 #include "support/LittleEndian.h"
@@ -15,9 +11,11 @@
 #include <initializer_list>
 #include <vector>
 
+// Client::Network::Crypto::LoadEncryptionKey y LoadDecryptionKey, con archivos de clave armados
+// acá: el magic, el tamaño y los tres bloques con el XOR de la tabla. Los reales, en
+// GoldenSimpleModulusKeyFileTest.
 namespace
 {
-
 using Client::Network::Crypto::CryptoError;
 using Client::Network::Crypto::KeyFileMagic;
 using Client::Network::Crypto::KeyFileSize;
@@ -185,5 +183,4 @@ TEST(SimpleModulusKeyFileTest, TheLargestModulusLoads)
     ASSERT_TRUE(key.HasValue());
     EXPECT_EQ(key.Value().Modulus(), moduli);
 }
-
 } // namespace

@@ -1,6 +1,3 @@
-// TerrainHeight.OZB reales: los de la carpeta golden y, si está, el volcado de la memoria del
-// original (Client/tests/support/GoldenDir.h).
-
 #include "Data/Terrain/TerrainHeights.h"
 
 #include "Core/ByteReader.h"
@@ -21,9 +18,10 @@
 #include <string_view>
 #include <vector>
 
+// TerrainHeight.OZB reales: los de la carpeta golden y, si está, el volcado de la memoria del
+// original (Client/tests/support/GoldenDir.h).
 namespace
 {
-
 using Client::Core::ByteReader;
 using Client::Data::Terrain::LoadTerrainHeights;
 using Client::Data::Terrain::TerrainCellCount;
@@ -189,5 +187,4 @@ TEST_F(MemoryTerrainHeights, ReadingFromBfOffBitsWouldNotMatch)
 
     EXPECT_EQ(differing, 52139u);
 }
-
 } // namespace

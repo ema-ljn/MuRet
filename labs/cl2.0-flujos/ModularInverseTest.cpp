@@ -1,6 +1,3 @@
-// Labs::ModularInverse: uno a mano, los que no tienen inverso, y una propiedad con módulos de 18
-// bits como los de SimpleModulus.
-
 #include "ModularInverse.h"
 
 #include <gtest/gtest.h>
@@ -10,9 +7,10 @@
 #include <optional>
 #include <random>
 
+// Labs::ModularInverse: uno a mano, los que no tienen inverso, y una propiedad con módulos de 18
+// bits como los de SimpleModulus.
 namespace
 {
-
 using Labs::ModularInverse;
 
 // A mano: 3 × 5 = 15 = 2 × 7 + 1.
@@ -108,5 +106,4 @@ TEST(ModularInverseTest, EighteenBitCompositeModulus)
     EXPECT_GT(withInverse, 0);
     EXPECT_GT(withoutInverse, 0);
 }
-
 } // namespace

@@ -1,15 +1,3 @@
-// TerrainLight.OZJ, la luz de base de cada celda de un mundo (Client/docs/research/
-// 05-formatos-de-datos.md, "Terreno de un mundo"; en el original, el cargador de 0x63b490). Se lee
-// de Data\World<N>\TerrainLight.OZJ.
-//
-// Es un OZJ como el de las texturas (OzjTexture.h): 24 bytes que no se leen y un JPEG, que el
-// original decodifica igual, con libjpeg y sus parámetros por defecto. Pero no lo sube como
-// textura: pasa cada byte a un float de 0 a 1 y lo guarda en una tabla de 256 × 256 colores RGB
-// (0x078ecc10), la luz que después usa el terreno (0x5f8d90). Dos diferencias con la textura:
-//   - la fila 0 de la tabla es la última del JPEG (0063b490-terrainlight-ozj-loader.md §1);
-//   - no mira el tamaño ni los componentes del JPEG (Q-C31). En el laboratorio, los 24
-//     TerrainLight son de 256 × 256 y en color.
-
 #pragma once
 
 #include "Core/Expected.h"
@@ -23,9 +11,19 @@
 #include <memory>
 #include <span>
 
+// TerrainLight.OZJ, la luz de base de cada celda de un mundo (Client/docs/research/
+// 05-formatos-de-datos.md, "Terreno de un mundo"; en el original, el cargador de 0x63b490). Se lee
+// de Data\World<N>\TerrainLight.OZJ.
+//
+// Es un OZJ como el de las texturas (OzjTexture.h): 24 bytes que no se leen y un JPEG, que el
+// original decodifica igual, con libjpeg y sus parámetros por defecto. Pero no lo sube como
+// textura: pasa cada byte a un float de 0 a 1 y lo guarda en una tabla de 256 × 256 colores RGB
+// (0x078ecc10), la luz que después usa el terreno (0x5f8d90). Dos diferencias con la textura:
+//   - la fila 0 de la tabla es la última del JPEG (0063b490-terrainlight-ozj-loader.md §1);
+//   - no mira el tamaño ni los componentes del JPEG (Q-C31). En el laboratorio, los 24
+//     TerrainLight son de 256 × 256 y en color.
 namespace Client::Data::Terrain
 {
-
 // Por cuánto se multiplica cada byte de la imagen: la constante de 0x6b88f8, que es 1/255 en float.
 // 255 por ella da 1 justo, así que la luz va de 0 a 1.
 inline constexpr float TerrainLightScale = std::bit_cast<float>(std::uint32_t{0x3B808081});
@@ -57,5 +55,4 @@ static_assert(sizeof(TerrainLight) == 0xC0000, "el tamaño de la tabla del origi
 //   - Si el JPEG no es de 256 × 256 en color, devuelve DataError::InvalidData. El original no lo
 //     mira, y escribe fuera de la tabla o lee fuera de la imagen (Q-C31).
 Core::Expected<std::unique_ptr<TerrainLight>, DataError> LoadTerrainLight(std::span<const std::byte> file);
-
 } // namespace Client::Data::Terrain

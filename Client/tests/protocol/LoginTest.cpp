@@ -1,6 +1,3 @@
-// Client::Protocol::Connection, el login: el pedido F1 01 contra los fixtures de mu-client, su
-// respuesta y el aviso F1 03. Solo con las credenciales sintéticas de mu-client.
-
 #include "Protocol/Connection/Login.h"
 
 #include "Network/Crypto/Xor32.h"
@@ -28,9 +25,10 @@
 #include <utility>
 #include <vector>
 
+// Client::Protocol::Connection, el login: el pedido F1 01 contra los fixtures de mu-client, su
+// respuesta y el aviso F1 03. Solo con las credenciales sintéticas de mu-client.
 namespace
 {
-
 using Client::Network::EncryptPacket;
 using Client::Network::Packet;
 using Client::Network::PacketSerials;
@@ -203,5 +201,4 @@ TEST(LoginTest, WritesTheDecryptErrorReport)
     EXPECT_TRUE(SameBytes(report.packet.Bytes(), Client::Tests::NoticeBytes()));
     EXPECT_TRUE(SameBytes(EncryptedWithIdentity(report.packet), Client::Tests::NoticeSerial0()));
 }
-
 } // namespace

@@ -2,16 +2,13 @@
 
 namespace
 {
-
 // Cuánto se corre cada byte del campo para llegar a su lugar en el resultado.
 constexpr std::size_t BitsPerByte = 8;
-
 } // namespace
 
 namespace Client::Core
 {
-
-ByteReader::ByteReader(std::span<const std::byte> bytes) : buffer(bytes) {}
+ByteReader::ByteReader(std::span<const std::byte> buffer) : m_buffer(buffer) {}
 
 std::optional<std::uint8_t> ByteReader::ReadU8()
 {
@@ -54,14 +51,14 @@ std::optional<std::span<const std::byte>> ByteReader::ReadBytes(std::size_t coun
     {
         return std::nullopt;
     }
-    const std::span<const std::byte> field = buffer.subspan(position, count);
-    position += count;
+    const std::span<const std::byte> field = m_buffer.subspan(m_position, count);
+    m_position += count;
     return field;
 }
 
 std::size_t ByteReader::Remaining() const
 {
-    return buffer.size() - position;
+    return m_buffer.size() - m_position;
 }
 
 // En little-endian el byte k del campo va en los bits 8k a 8k+7 del resultado; en big-endian, el
@@ -76,12 +73,11 @@ std::optional<std::uint32_t> ByteReader::ReadUnsigned(std::size_t size, std::end
     std::uint32_t value = 0;
     for (std::size_t k = 0; k < size; ++k)
     {
-        const std::uint32_t byte = std::to_integer<std::uint32_t>(buffer[position + k]);
+        const std::uint32_t byte = std::to_integer<std::uint32_t>(m_buffer[m_position + k]);
         const std::size_t significance = order == std::endian::little ? k : size - 1 - k;
         value |= byte << (BitsPerByte * significance);
     }
-    position += size;
+    m_position += size;
     return value;
 }
-
 } // namespace Client::Core

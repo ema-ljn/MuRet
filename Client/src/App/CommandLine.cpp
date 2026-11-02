@@ -5,7 +5,6 @@
 
 namespace
 {
-
 constexpr std::string_view FramesOption = "--frames";
 constexpr std::string_view Usage = "uso: Main [--frames N]";
 
@@ -21,12 +20,10 @@ std::optional<std::uint64_t> ParsePositive(std::string_view text)
     }
     return value;
 }
-
 } // namespace
 
 namespace Client::App
 {
-
 std::optional<CommandLine> ParseCommandLine(std::span<const std::string_view> arguments, std::string& error)
 {
     CommandLine commandLine;
@@ -53,5 +50,4 @@ std::optional<CommandLine> ParseCommandLine(std::span<const std::string_view> ar
     }
     return commandLine;
 }
-
 } // namespace Client::App

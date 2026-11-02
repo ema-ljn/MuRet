@@ -1,5 +1,3 @@
-// Client::Data::Terrain::LoadTerrainMapping: EncTerrain.map, con archivos sintéticos.
-
 #include "Data/Terrain/TerrainMapping.h"
 
 #include "Data/DataError.h"
@@ -15,9 +13,9 @@
 #include <span>
 #include <vector>
 
+// Client::Data::Terrain::LoadTerrainMapping: EncTerrain.map, con archivos sintéticos.
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Terrain::CellIndex;
 using Client::Data::Terrain::LoadTerrainMapping;
@@ -156,5 +154,4 @@ TEST(TerrainMappingTest, ExtraBytesAreIgnored)
     ASSERT_TRUE(loaded.HasValue());
     ExpectThePatterns(*loaded.Value());
 }
-
 } // namespace

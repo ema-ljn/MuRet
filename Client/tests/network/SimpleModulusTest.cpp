@@ -1,7 +1,3 @@
-// Client::Network::Crypto::EncryptBlock y DecryptBlock: los bloques del SimpleModulus, con claves
-// sintéticas escritas acá. Los bloques cifrados que se esperan los dio encrypt_block de
-// c3c4_reference.py, en el repo de research, y los descifrados, decrypt_block.
-
 #include "Network/Crypto/SimpleModulus.h"
 
 #include "support/FixedRandom.h"
@@ -22,9 +18,11 @@
 #include <type_traits>
 #include <vector>
 
+// Client::Network::Crypto::EncryptBlock y DecryptBlock: los bloques del SimpleModulus, con claves
+// sintéticas escritas acá. Los bloques cifrados que se esperan los dio encrypt_block de
+// c3c4_reference.py, en el repo de research, y los descifrados, decrypt_block.
 namespace
 {
-
 using Client::Network::Crypto::CipherBlockSize;
 using Client::Network::Crypto::CryptoError;
 using Client::Network::Crypto::DecryptBlock;
@@ -367,5 +365,4 @@ TEST(SimpleModulusTest, UsesAWideXorWhole)
     EXPECT_TRUE(SameBytes(EncryptBlock(pair.encryption, plain, 8), expected));
     ExpectDecryptsTo(pair.decryption, expected, plain, 8);
 }
-
 } // namespace

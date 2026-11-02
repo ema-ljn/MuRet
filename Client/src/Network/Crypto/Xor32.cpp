@@ -4,10 +4,8 @@
 
 namespace Client::Network::Crypto
 {
-
 namespace
 {
-
 // i & 31: el índice en la clave da la vuelta cada 32 bytes.
 constexpr std::size_t KeyMask = Xor32Key.size() - 1;
 static_assert((Xor32Key.size() & KeyMask) == 0, "la máscara necesita una clave de largo potencia de 2");
@@ -25,7 +23,6 @@ bool HasXor32(PacketType type)
 {
     return type == PacketType::C1 || type == PacketType::C2;
 }
-
 } // namespace
 
 void Xor32EncodeBytes(std::span<std::byte> bytes, std::size_t first, std::size_t keyShift)
@@ -65,5 +62,4 @@ Packet Xor32Decode(Packet packet)
     }
     return packet;
 }
-
 } // namespace Client::Network::Crypto

@@ -1,12 +1,3 @@
-// Lee enteros de un buffer de bytes, en orden, sin pasarse del final.
-//
-// Los archivos de Data\ guardan los enteros en little-endian: el byte menos significativo primero,
-// como los dejaba el x86 del original. El tamaño de un C2/C4 va al revés, en big-endian
-// (Client/docs/research/03-red-y-cifrado.md, "Cadena de recepción"). Acá se arman byte por byte con
-// desplazamientos, y no casteando el buffer a std::uint32_t*: un cast no respeta la alineación ni
-// las reglas de alias, y su resultado dependería del orden de bytes de la máquina (guía de la
-// CL1.0, actividades 4 y 9). Lo usan Data, Network y Protocol.
-
 #pragma once
 
 #include <bit>
@@ -16,14 +7,21 @@
 #include <ranges>
 #include <span>
 
+// Lee enteros de un buffer de bytes, en orden, sin pasarse del final.
+//
+// Los archivos de Data\ guardan los enteros en little-endian: el byte menos significativo primero,
+// como los dejaba el x86 del original. El tamaño de un C2/C4 va al revés, en big-endian
+// (Client/docs/research/03-red-y-cifrado.md, "Cadena de recepción"). Acá se arman byte por byte con
+// desplazamientos, y no casteando el buffer a std::uint32_t*: un cast no respeta la alineación ni
+// las reglas de alias, y su resultado dependería del orden de bytes de la máquina (guía de la
+// CL1.0, actividades 4 y 9). Lo usan Data, Network y Protocol.
 namespace Client::Core
 {
-
 class ByteReader
 {
 public:
-    // No copia los bytes: `bytes` tiene que seguir vivo mientras se lea.
-    explicit ByteReader(std::span<const std::byte> bytes);
+    // No copia los bytes: `buffer` tiene que seguir vivo mientras se lea.
+    explicit ByteReader(std::span<const std::byte> buffer);
 
     // Un std::span<const T> acepta un temporal, y `ByteReader reader(LoadFile());` quedaría
     // colgando en la primera lectura. Este constructor lo rechaza: toma los rangos temporales que
@@ -49,8 +47,7 @@ public:
 private:
     std::optional<std::uint32_t> ReadUnsigned(std::size_t size, std::endian order);
 
-    std::span<const std::byte> buffer;
-    std::size_t position = 0;
+    std::span<const std::byte> m_buffer;
+    std::size_t m_position = 0;
 };
-
 } // namespace Client::Core

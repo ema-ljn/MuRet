@@ -2,10 +2,8 @@
 
 namespace Client::Network::Crypto
 {
-
 namespace
 {
-
 // Los bits de un byte: un carril en claro son dos, y uno cifrado, dos y dos bits sueltos.
 constexpr unsigned BitsPerByte = 8;
 // Un carril en claro, y lo que pasa al carril que sigue: sus 16 bits de abajo.
@@ -34,7 +32,7 @@ constexpr std::array<std::size_t, LaneCount - 1> SecondPassLanes{2, 1, 0};
 class BitWriter
 {
 public:
-    explicit BitWriter(std::span<std::byte> target) : bytes(target) {}
+    explicit BitWriter(std::span<std::byte> target) : m_bytes(target) {}
 
     // Los `count` bits de abajo de `value`, del más alto al más bajo.
     void Put(std::uint32_t value, unsigned count)
@@ -43,22 +41,22 @@ public:
         {
             if (((value >> (k - 1)) & 1u) != 0)
             {
-                bytes[position / BitsPerByte] |= std::byte{0x80} >> (position % BitsPerByte);
+                m_bytes[m_position / BitsPerByte] |= std::byte{0x80} >> (m_position % BitsPerByte);
             }
-            ++position;
+            ++m_position;
         }
     }
 
 private:
-    std::span<std::byte> bytes;
-    std::size_t position = 0;
+    std::span<std::byte> m_bytes;
+    std::size_t m_position = 0;
 };
 
 // Lee bits MSB primero.
 class BitReader
 {
 public:
-    explicit BitReader(std::span<const std::byte> source) : bytes(source) {}
+    explicit BitReader(std::span<const std::byte> source) : m_bytes(source) {}
 
     // `count` bits, el primero como el más alto del resultado.
     std::uint32_t Take(unsigned count)
@@ -66,16 +64,16 @@ public:
         std::uint32_t value = 0;
         for (unsigned k = 0; k < count; ++k)
         {
-            const std::byte bit = bytes[position / BitsPerByte] & (std::byte{0x80} >> (position % BitsPerByte));
+            const std::byte bit = m_bytes[m_position / BitsPerByte] & (std::byte{0x80} >> (m_position % BitsPerByte));
             value = (value << 1) | (bit != std::byte{0} ? 1u : 0u);
-            ++position;
+            ++m_position;
         }
         return value;
     }
 
 private:
-    std::span<const std::byte> bytes;
-    std::size_t position = 0;
+    std::span<const std::byte> m_bytes;
+    std::size_t m_position = 0;
 };
 
 // Los 18 bits de un carril cifrado: sus dos bytes de abajo, el primero el menos significativo, cada
@@ -114,7 +112,6 @@ std::uint8_t Checksum(std::span<const std::byte, PlainBlockSize> plain)
     }
     return checksum;
 }
-
 } // namespace
 
 std::array<std::byte, CipherBlockSize>
@@ -199,5 +196,4 @@ std::optional<DecryptedBlock> DecryptBlock(const DecryptionKey& key, std::span<c
         static_cast<std::uint8_t>(std::to_integer<std::uint8_t>(cipher[UsefulSizeIndex]) ^ checksum ^ UsefulSizeXor);
     return block;
 }
-
 } // namespace Client::Network::Crypto

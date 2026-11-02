@@ -7,10 +7,8 @@
 
 namespace Client::Data::Terrain
 {
-
 namespace
 {
-
 // La cabecera en claro es 00 N FF FF (005f8390-encterrain-att.md, "Formato"): el primer byte y
 // los dos últimos son fijos, y el del medio es el mundo, que se mira aparte.
 constexpr std::byte HeaderStart{0x00};
@@ -20,7 +18,6 @@ bool IsTheHeader(std::span<const std::byte> plain)
 {
     return plain[0] == HeaderStart && plain[2] == HeaderEnd && plain[3] == HeaderEnd;
 }
-
 } // namespace
 
 Core::Expected<std::unique_ptr<TerrainAttributes>, DataError> LoadTerrainAttributes(std::span<const std::byte> file,
@@ -58,5 +55,4 @@ Core::Expected<std::unique_ptr<TerrainAttributes>, DataError> LoadTerrainAttribu
     }
     return attributes;
 }
-
 } // namespace Client::Data::Terrain

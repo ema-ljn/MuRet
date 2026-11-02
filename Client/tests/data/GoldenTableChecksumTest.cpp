@@ -1,11 +1,3 @@
-// El checksum contra tablas reales (Client/tests/support/GoldenDir.h): cada una guarda el suyo
-// después de los registros, y tiene que dar ese con su clave y su paridad.
-//
-// La Item.bmd del laboratorio no sirve de oráculo: trae 0x50 bytes después de los registros y su
-// checksum, y no pasa el suyo, porque el cliente parcheado no lo mira (Q-C01; eso lo prueba su
-// cargador, en GoldenItemTableTest.cpp). La itemtest.bmd de la misma carpeta tiene el tamaño justo
-// y sí pasa: es la que prueba la clave y la paridad de Item.
-
 #include "Data/Tables/TableChecksum.h"
 
 #include "Data/Tables/ItemTable.h"
@@ -21,9 +13,15 @@
 #include <span>
 #include <vector>
 
+// El checksum contra tablas reales (Client/tests/support/GoldenDir.h): cada una guarda el suyo
+// después de los registros, y tiene que dar ese con su clave y su paridad.
+//
+// La Item.bmd del laboratorio no sirve de oráculo: trae 0x50 bytes después de los registros y su
+// checksum, y no pasa el suyo, porque el cliente parcheado no lo mira (Q-C01; eso lo prueba su
+// cargador, en GoldenItemTableTest.cpp). La itemtest.bmd de la misma carpeta tiene el tamaño justo
+// y sí pasa: es la que prueba la clave y la paridad de Item.
 namespace
 {
-
 using Client::Data::Tables::ChecksumParity;
 using Client::Data::Tables::ItemChecksumKey;
 using Client::Data::Tables::ItemTableSize;
@@ -81,5 +79,4 @@ TEST_F(GoldenTableChecksum, MatchesTheOneStoredInItemTestBmd)
     ASSERT_TRUE(checksums.has_value());
     EXPECT_EQ(checksums->computed, checksums->stored);
 }
-
 } // namespace

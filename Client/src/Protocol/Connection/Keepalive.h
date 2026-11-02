@@ -1,3 +1,9 @@
+#pragma once
+
+#include "Protocol/Outgoing.h"
+
+#include <cstdint>
+
 // El keepalive (0E) que el cliente manda al GameServer al entrar y después cada 20 segundos.
 // Contrato: Client/docs/research/04-protocolo.md, "El flujo de conexión", y el plan de la CL2
 // (CL2.5).
@@ -9,16 +15,8 @@
 // no está decidido. El GS del repack tiene esa comparación anulada: 0x41529b y 0x4152b6 saltan
 // siempre al else (repack_patches.tsv). Antes de mandarlas, el original les resta 20 o 25 según
 // dos bits del personaje (0x4bee60 y el WM_TIMER de 0x4af4e0).
-
-#pragma once
-
-#include "Protocol/Outgoing.h"
-
-#include <cstdint>
-
 namespace Client::Protocol::Connection
 {
-
 // Los bits de personaje+0x3C que cambian las velocidades del keepalive. Qué son, el research no lo
 // nombró todavía.
 inline constexpr std::uint8_t KeepaliveAdjust20 = 0x01; // resta 20; gana si están los dos
@@ -38,5 +36,4 @@ struct Keepalive
 // 0E: C1 0C 0E 00, el tick (u32 little-endian) y las dos velocidades (u16 little-endian); con el
 // XOR32 y para cifrar. El 00 alinea el tick a 4 bytes en el struct del GameServer.
 [[nodiscard]] Outgoing WriteKeepalive(const Keepalive& keepalive);
-
 } // namespace Client::Protocol::Connection

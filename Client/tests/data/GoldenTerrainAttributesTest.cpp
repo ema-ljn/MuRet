@@ -1,6 +1,3 @@
-// EncTerrain.att reales: los de la carpeta golden y, si está, el volcado de la memoria del original
-// (Client/tests/support/GoldenDir.h).
-
 #include "Data/Terrain/TerrainAttributes.h"
 
 #include "Core/ByteReader.h"
@@ -22,9 +19,10 @@
 #include <string_view>
 #include <vector>
 
+// EncTerrain.att reales: los de la carpeta golden y, si está, el volcado de la memoria del original
+// (Client/tests/support/GoldenDir.h).
 namespace
 {
-
 using Client::Core::ByteReader;
 using Client::Data::Terrain::LoadTerrainAttributes;
 using Client::Data::Terrain::LoadTerrainMapping;
@@ -238,5 +236,4 @@ TEST_F(MemoryTerrainAttributes, EqualsTheOriginalsMemoryInLorenciaButForTheGameS
     };
     EXPECT_EQ(*changed, gameState);
 }
-
 } // namespace

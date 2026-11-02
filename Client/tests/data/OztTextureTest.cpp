@@ -1,5 +1,3 @@
-// Client::Data::Textures::LoadOztTexture: OZT, con archivos sintéticos.
-
 #include "Data/Textures/OztTexture.h"
 
 #include "Data/DataError.h"
@@ -14,9 +12,9 @@
 #include <optional>
 #include <vector>
 
+// Client::Data::Textures::LoadOztTexture: OZT, con archivos sintéticos.
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Textures::LoadOztTexture;
 using Client::Data::Textures::OztBitsPerPixelOffset;
@@ -211,5 +209,4 @@ TEST(OztTextureTest, IgnoresTheBytesAfterThePixels)
     ASSERT_TRUE(loaded.HasValue());
     ASSERT_NO_FATAL_FAILURE(ExpectTheImage(loaded.Value()));
 }
-
 } // namespace

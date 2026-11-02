@@ -1,11 +1,3 @@
-// FoxAntiObfuscation contra el cable del laboratorio (support/WireCapture.h,
-// MURET_CLIENT_WIRE_DIR): lo que contestaron el ConnectServer y el GameServer, cortado con el 0xAA
-// por paquete, y las traducciones de la lista, del F3 11 y del código de servidor que eligió el
-// cliente. Plan de la CL2, CL2.4, paso 4.
-//
-// El cable lleva el login del jugador: estos tests cuentan paquetes y comparan con
-// SameBytesWithoutValues. Ningún mensaje imprime un byte del cable ni de lo descifrado.
-
 #include "Network/Crypto/SimpleModulus.h"
 #include "Network/Crypto/SimpleModulusKeyFile.h"
 #include "Network/EncryptedPacket.h"
@@ -32,9 +24,15 @@
 #include <utility>
 #include <vector>
 
+// FoxAntiObfuscation contra el cable del laboratorio (support/WireCapture.h,
+// MURET_CLIENT_WIRE_DIR): lo que contestaron el ConnectServer y el GameServer, cortado con el 0xAA
+// por paquete, y las traducciones de la lista, del F3 11 y del código de servidor que eligió el
+// cliente. Plan de la CL2, CL2.4, paso 4.
+//
+// El cable lleva el login del jugador: estos tests cuentan paquetes y comparan con
+// SameBytesWithoutValues. Ningún mensaje imprime un byte del cable ni de lo descifrado.
 namespace
 {
-
 using Client::Network::DecryptPacket;
 using Client::Network::FoxAntiObfuscation;
 using Client::Network::Packet;
@@ -156,15 +154,15 @@ protected:
         ASSERT_TRUE(file.has_value()) << "no se pudo leer " << CaptureFile;
         auto parsed = ParseWireCapture(std::string_view(file->data(), file->size()));
         ASSERT_TRUE(parsed.HasValue()) << CaptureFile << ": la línea " << parsed.Error().line << " no se entiende";
-        connections = std::move(parsed).Value();
+        m_connections = std::move(parsed).Value();
 
         // Lo que contesta el servidor el cliente lo descifra con Dec2.dat.
-        dec2 = LoadKeyFile(DataFile("Dec2.dat"), LoadDecryptionKey);
-        ASSERT_TRUE(dec2);
+        m_dec2 = LoadKeyFile(DataFile("Dec2.dat"), LoadDecryptionKey);
+        ASSERT_TRUE(m_dec2);
     }
 
-    std::vector<WireConnection> connections;
-    std::optional<DecryptionKey> dec2;
+    std::vector<WireConnection> m_connections;
+    std::optional<DecryptionKey> m_dec2;
 };
 
 // Lo que contestaron los dos servidores, en las 72 conexiones: 3.033 paquetes sin bytes de más.
@@ -175,9 +173,9 @@ TEST_F(GoldenFoxAntiObfuscation, CutsWhatBothServersAnswered)
     std::size_t connectServer = 0;
     std::size_t gameServer = 0;
     std::size_t masked = 0;
-    for (std::size_t index = 0; index < connections.size(); ++index)
+    for (std::size_t index = 0; index < m_connections.size(); ++index)
     {
-        const WireConnection& connection = connections[index];
+        const WireConnection& connection = m_connections[index];
         const Cut cut = CutWithFoxAnti(connection.Reads(WireDirection::ServerToClient));
         EXPECT_FALSE(cut.failed) << "conexión " << index;
         EXPECT_EQ(cut.leftover, 0u) << "conexión " << index;
@@ -203,9 +201,9 @@ TEST_F(GoldenFoxAntiObfuscation, CutsWhatBothServersAnswered)
 // su primer byte, aunque le lleguen los demás en otras lecturas.
 TEST_F(GoldenFoxAntiObfuscation, OneByteAtATimeGivesTheSamePackets)
 {
-    for (std::size_t index = 0; index < connections.size(); ++index)
+    for (std::size_t index = 0; index < m_connections.size(); ++index)
     {
-        const WireConnection& connection = connections[index];
+        const WireConnection& connection = m_connections[index];
         if (connection.port != GameServerPort)
         {
             continue;
@@ -241,9 +239,9 @@ TEST_F(GoldenFoxAntiObfuscation, TheLabServerListsBecomeTheOnesMainExeReads)
     constexpr std::size_t ListLoadByte = 9;   // y en la de main.exe, un byte más adelante
     constexpr std::size_t LastEntryByte = 10; // el cuarto byte de la entrada, que sale en 0
     std::size_t lists = 0;
-    for (std::size_t index = 0; index < connections.size(); ++index)
+    for (std::size_t index = 0; index < m_connections.size(); ++index)
     {
-        const WireConnection& connection = connections[index];
+        const WireConnection& connection = m_connections[index];
         if (connection.port != ConnectServerPort)
         {
             continue;
@@ -281,9 +279,9 @@ TEST_F(GoldenFoxAntiObfuscation, EverythingTheGameServerAnsweredReachesTheDispat
     constexpr std::size_t InsertedByte = 5;     // donde reset_queue mete el 00
     std::size_t dispatched = 0;
     std::size_t skillLists = 0;
-    for (std::size_t index = 0; index < connections.size(); ++index)
+    for (std::size_t index = 0; index < m_connections.size(); ++index)
     {
-        const WireConnection& connection = connections[index];
+        const WireConnection& connection = m_connections[index];
         if (connection.port != GameServerPort)
         {
             continue;
@@ -296,7 +294,7 @@ TEST_F(GoldenFoxAntiObfuscation, EverythingTheGameServerAnsweredReachesTheDispat
             Packet packet = std::move(afterCut).Value();
             if (packet.Type() == PacketType::C3 || packet.Type() == PacketType::C4)
             {
-                auto decrypted = DecryptPacket(packet, *dec2, serials);
+                auto decrypted = DecryptPacket(packet, *m_dec2, serials);
                 ASSERT_TRUE(decrypted.HasValue()) << "conexión " << index;
                 packet = std::move(decrypted).Value().packet;
             }
@@ -334,9 +332,9 @@ TEST_F(GoldenFoxAntiObfuscation, TheChosenServerIsWhatTheOriginalClientSent)
     const FoxAntiObfuscation foxAnti;
     const Packet chosen = foxAnti.BeforeSend(Packet::FromBytes(Bytes({0xC1, 0x06, 0xF4, 0x03, 0x90, 0x01})).Value());
     std::size_t selects = 0;
-    for (std::size_t index = 0; index < connections.size(); ++index)
+    for (std::size_t index = 0; index < m_connections.size(); ++index)
     {
-        const WireConnection& connection = connections[index];
+        const WireConnection& connection = m_connections[index];
         if (connection.port != ConnectServerPort)
         {
             continue;
@@ -354,5 +352,4 @@ TEST_F(GoldenFoxAntiObfuscation, TheChosenServerIsWhatTheOriginalClientSent)
 
     EXPECT_EQ(selects, 8u);
 }
-
 } // namespace

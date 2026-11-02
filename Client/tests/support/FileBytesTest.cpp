@@ -1,5 +1,3 @@
-// ReadFileBytes, el que lee los archivos golden: todo el archivo, o nada si no es un archivo.
-
 #include "support/FileBytes.h"
 
 #include <gtest/gtest.h>
@@ -10,9 +8,9 @@
 #include <string>
 #include <vector>
 
+// ReadFileBytes, el que lee los archivos golden: todo el archivo, o nada si no es un archivo.
 namespace
 {
-
 namespace fs = std::filesystem;
 using Client::Tests::ReadFileBytes;
 
@@ -55,5 +53,4 @@ TEST(FileBytesTest, AFolderOrNothingIsNotRead)
     EXPECT_EQ(ReadFileBytes(fs::temp_directory_path()), std::nullopt);
     EXPECT_EQ(ReadFileBytes(TemporaryPath("no-existe")), std::nullopt);
 }
-
 } // namespace

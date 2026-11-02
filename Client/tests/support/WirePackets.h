@@ -1,10 +1,7 @@
-// Los paquetes del cable del laboratorio (WireCapture.h), cortados con el PacketReader, para los
-// tests golden que miran lo que llevan. Ningún mensaje imprime un byte del cable.
-
 #pragma once
 
 #include "Network/IdentityObfuscation.h"
-#include "Network/Obfuscation.h"
+#include "Network/IObfuscation.h"
 #include "Network/Packet.h"
 #include "Network/PacketReader.h"
 
@@ -17,14 +14,15 @@
 #include <utility>
 #include <vector>
 
+// Los paquetes del cable del laboratorio (WireCapture.h), cortados con el PacketReader, para los
+// tests golden que miran lo que llevan. Ningún mensaje imprime un byte del cable.
 namespace Client::Tests
 {
-
 // Los paquetes de `reads`, en orden, cortados con un PacketReader con `obfuscation`: un Feed por
 // lectura. Si el corte falla o sobran bytes, el test falla con el número de la conexión, y vuelve
 // lo que haya salido.
 inline std::vector<Network::Packet> CutPackets(const std::vector<std::span<const std::byte>>& reads,
-                                               const Network::Obfuscation& obfuscation, std::size_t connection)
+                                               const Network::IObfuscation& obfuscation, std::size_t connection)
 {
     Network::PacketReader reader(obfuscation);
     std::vector<Network::Packet> packets;
@@ -76,5 +74,4 @@ inline std::vector<std::vector<std::byte>> Unmasked(const std::vector<std::span<
     }
     return unmasked;
 }
-
 } // namespace Client::Tests

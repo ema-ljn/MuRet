@@ -70,7 +70,7 @@ solo lo lee.
   los 25 C3/C4 que contestó el GameServer, con el serial en orden en cada conexión, y
   `EncryptPacket` vuelve a cifrar los 183 como el original salvo el último bloque, donde el
   original deja bytes de su pila.
-  **La CL2.4, también**: la capa de paquetes de FoxAnti como una interfaz, `Obfuscation`, con dos
+  **La CL2.4, también**: la capa de paquetes de FoxAnti como una interfaz, `IObfuscation`, con dos
   implementaciones: la que no toca nada y la del servidor del laboratorio. El `PacketReader`
   desenmascara el `0xAA` por paquete (Q-C18), la lista y el `F3 11` del laboratorio pasan a la
   forma de `main.exe`, y los remapeos y la escalera del código de servidor dan byte por byte lo
@@ -135,7 +135,7 @@ sesión, junto con los de repaso más viejo.
 | vectores que fijan lo que un ida y vuelta no ve: el orden de los bits 16 y 17 de un carril, y el producto de 32 bits que da la vuelta | CL2.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un contador por conexión que detecta un paquete perdido o repetido, y resincronizar en vez de arrastrar el desfase (`PacketSerials`, Q-C04) | CL2.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | varios errores en un paquete: cuál gana y por qué (el checksum malo sobre el largo útil imposible, porque es el que lleva el aviso) | CL2.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
-| una interfaz con dos implementaciones elegidas por configuración (`Obfuscation`), y por qué una clase base polimórfica no se copia en público (el slicing) | CL2.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| una interfaz con dos implementaciones elegidas por configuración (`IObfuscation`), y por qué una clase base polimórfica no se copia en público (el slicing) | CL2.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un estado que sigue entre dos lecturas: la máscara que eligió el primer byte de un paquete partido, y no desenmascarar nunca un byte del paquete siguiente | CL2.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un XOR encadenado que se deshace, se cambia un byte y se rehace: por qué cambian también los que siguen (los remapeos de FoxAnti) | CL2.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | una ida y vuelta que no cierra entre dos tablas (Q-C17), y fijarla con la tabla entera de la referencia en vez de arreglarla | CL2.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |

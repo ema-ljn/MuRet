@@ -1,3 +1,14 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Data/DataError.h"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <span>
+#include <vector>
+
 // EncTerrain<N>.obj, los objetos de un mundo: árboles, casas, rocas (Client/docs/research/
 // 05-formatos-de-datos.md, "Terreno de un mundo"; en el original, el cargador de 0x607370). Se lee
 // de Data\World<N>\EncTerrain<N>.obj.
@@ -12,21 +23,8 @@
 //
 // Cada objeto: el tipo (int16), la posición (3 floats), el ángulo (3 floats) y la escala (1 float),
 // todo little-endian. Qué modelo es cada tipo y qué hace el original con el ángulo es de la CL7.
-
-#pragma once
-
-#include "Core/Expected.h"
-#include "Data/DataError.h"
-
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <span>
-#include <vector>
-
 namespace Client::Data::Terrain
 {
-
 // El byte con el número del mundo, el que devuelve el cargador del original (0x6074ad).
 inline constexpr std::size_t TerrainObjectsWorldOffset = 1;
 // Dónde está la cantidad de objetos. El original la lee con signo (`movsx` en 0x6074a9).
@@ -67,5 +65,4 @@ struct TerrainObject
 //     igual, y es el que llama el que muestra "%s file corrupted." y cierra el juego.
 Core::Expected<std::vector<TerrainObject>, DataError> LoadTerrainObjects(std::span<const std::byte> file,
                                                                          std::uint8_t world);
-
 } // namespace Client::Data::Terrain

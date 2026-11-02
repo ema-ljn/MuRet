@@ -1,5 +1,3 @@
-// Client::Network::PacketWriter: un paquete C1 o C2 campo por campo, sin XOR32 (eso es Xor32Test).
-
 #include "Network/PacketWriter.h"
 
 #include "support/Bytes.h"
@@ -14,9 +12,9 @@
 #include <utility>
 #include <vector>
 
+// Client::Network::PacketWriter: un paquete C1 o C2 campo por campo, sin XOR32 (eso es Xor32Test).
 namespace
 {
-
 using Client::Network::MaxC1Size;
 using Client::Network::MaxWrittenPacketSize;
 using Client::Network::MinPacketSize;
@@ -174,5 +172,4 @@ TEST(PacketWriterTest, AMovedFromWriterStillBuildsItsType)
     EXPECT_EQ(fromOriginal.Value().Type(), PacketType::C1);
     EXPECT_EQ(fromOriginal.Value().Opcode(), std::uint8_t{0x10});
 }
-
 } // namespace

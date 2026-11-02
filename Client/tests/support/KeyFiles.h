@@ -1,6 +1,3 @@
-// Cargar un archivo de clave real en un test golden: Enc1.dat y Dec2.dat de la carpeta golden, y
-// Dec1.dat y Enc2.dat de la del cable (GoldenDir.h). Ningún mensaje muestra un valor de la clave.
-
 #pragma once
 
 #include "Core/Expected.h"
@@ -17,9 +14,10 @@
 #include <utility>
 #include <vector>
 
+// Cargar un archivo de clave real en un test golden: Enc1.dat y Dec2.dat de la carpeta golden, y
+// Dec1.dat y Enc2.dat de la del cable (GoldenDir.h). Ningún mensaje muestra un valor de la clave.
 namespace Client::Tests
 {
-
 // La clave de `path`, cargada con `load` (LoadEncryptionKey o LoadDecryptionKey). Si la ruta no
 // está, el test ya falló; si el archivo no se lee o no carga, falla acá. En los tres casos,
 // std::nullopt.
@@ -45,5 +43,4 @@ std::optional<Key> LoadKeyFile(const std::optional<std::filesystem::path>& path,
     }
     return std::move(loaded).Value();
 }
-
 } // namespace Client::Tests

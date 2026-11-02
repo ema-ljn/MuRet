@@ -1,3 +1,14 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Data/DataError.h"
+#include "Data/Terrain/TerrainGrid.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <span>
+
 // TerrainHeight.OZB, la altura de cada celda de un mundo (Client/docs/research/
 // 05-formatos-de-datos.md, "Terreno de un mundo"; en el original, el cargador de 0x5f9020). Se lee
 // de Data\World<N>\TerrainHeight.OZB.
@@ -18,21 +29,8 @@
 // Por eso no lo lee una biblioteca de BMP. La que ya está en el proyecto, SDL_LoadBMP_IO de SDL3,
 // salta a bfOffBits y da vuelta las filas: con el de Devias da 64.500 alturas distintas de las del
 // original. Y no carga el de World11 (cortado) ni el de World19 (sin "BM"). Son unas pocas líneas.
-
-#pragma once
-
-#include "Core/Expected.h"
-#include "Data/DataError.h"
-#include "Data/Terrain/TerrainGrid.h"
-
-#include <cstddef>
-#include <cstdint>
-#include <memory>
-#include <span>
-
 namespace Client::Data::Terrain
 {
-
 // Los bytes del principio que el original saltea con fseek antes de leer el BMP (0x5f91d3).
 inline constexpr std::size_t TerrainHeightsPrefixSize = 4;
 // Lo que el original copia como cabecera del BMP: 0x10e dwords (005f9020 §2). Un BMP de 8 bits con
@@ -71,5 +69,4 @@ struct TerrainHeights
 //   - Si es más largo, el resto se ignora, como en el original.
 Core::Expected<std::unique_ptr<TerrainHeights>, DataError> LoadTerrainHeights(std::span<const std::byte> file,
                                                                               std::uint8_t world);
-
 } // namespace Client::Data::Terrain

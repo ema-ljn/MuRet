@@ -1,7 +1,3 @@
-// Las claves reales: Enc1.dat y Dec2.dat del cliente, de la carpeta golden, y Dec1.dat y Enc2.dat
-// del servidor, de la carpeta del cable. Ningún test muestra un valor de una clave, ni cuando
-// falla: solo el carril.
-
 #include "Network/Crypto/SimpleModulus.h"
 #include "Network/Crypto/SimpleModulusKeyFile.h"
 
@@ -20,9 +16,11 @@
 #include <random>
 #include <vector>
 
+// Las claves reales: Enc1.dat y Dec2.dat del cliente, de la carpeta golden, y Dec1.dat y Enc2.dat
+// del servidor, de la carpeta del cable. Ningún test muestra un valor de una clave, ni cuando
+// falla: solo el carril.
 namespace
 {
-
 using Client::Network::Crypto::DecryptBlock;
 using Client::Network::Crypto::DecryptedBlock;
 using Client::Network::Crypto::DecryptionKey;
@@ -65,17 +63,17 @@ protected:
         const std::optional<EncryptionKey> enc2 = LoadKeyFile(WireFile("Enc2.dat"), LoadEncryptionKey);
         const std::optional<DecryptionKey> dec2 = LoadKeyFile(DataFile("Dec2.dat"), LoadDecryptionKey);
         ASSERT_TRUE(enc1 && dec1 && enc2 && dec2);
-        pairs = {{"Enc1.dat y Dec1.dat", *enc1, *dec1}, {"Enc2.dat y Dec2.dat", *enc2, *dec2}};
+        m_pairs = {{"Enc1.dat y Dec1.dat", *enc1, *dec1}, {"Enc2.dat y Dec2.dat", *enc2, *dec2}};
     }
 
-    std::vector<KeyPair> pairs;
+    std::vector<KeyPair> m_pairs;
 };
 
 // En cada par, el mismo módulo y el mismo XOR, y en cada carril la clave de descifrar es la
 // inversa de la de cifrar: su producto da 1 módulo m.
 TEST_F(GoldenSimpleModulusKeyFile, EachPairHasInverseKeys)
 {
-    for (const KeyPair& pair : pairs)
+    for (const KeyPair& pair : m_pairs)
     {
         for (std::size_t lane = 0; lane < pair.encryption.Modulus().size(); ++lane)
         {
@@ -97,7 +95,7 @@ TEST_F(GoldenSimpleModulusKeyFile, EachPairHasInverseKeys)
 // carril cifrado más grande, m - 1, también.
 TEST_F(GoldenSimpleModulusKeyFile, TheRealKeysFitTheLaneArithmetic)
 {
-    for (const KeyPair& pair : pairs)
+    for (const KeyPair& pair : m_pairs)
     {
         for (std::size_t lane = 0; lane < pair.encryption.Modulus().size(); ++lane)
         {
@@ -118,7 +116,7 @@ TEST_F(GoldenSimpleModulusKeyFile, WhatOneSideEncryptsTheOtherDecrypts)
     constexpr std::uint32_t ByteValues = 256;     // los valores de un byte
     std::mt19937 engine(FixedSeed);
 
-    for (const KeyPair& pair : pairs)
+    for (const KeyPair& pair : m_pairs)
     {
         for (std::uint32_t round = 0; round < BlocksPerPair; ++round)
         {
@@ -138,5 +136,4 @@ TEST_F(GoldenSimpleModulusKeyFile, WhatOneSideEncryptsTheOtherDecrypts)
         }
     }
 }
-
 } // namespace

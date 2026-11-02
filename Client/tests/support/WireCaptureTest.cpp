@@ -1,6 +1,3 @@
-// Client::Tests::ParseWireCapture, sobre un log sintético de pocas líneas con la forma del
-// muproxy.log del laboratorio.
-
 #include "support/WireCapture.h"
 
 #include "support/SameBytes.h"
@@ -11,9 +8,10 @@
 #include <cstddef>
 #include <string_view>
 
+// Client::Tests::ParseWireCapture, sobre un log sintético de pocas líneas con la forma del
+// muproxy.log del laboratorio.
 namespace
 {
-
 using Client::Tests::ParseWireCapture;
 using Client::Tests::SameBytes;
 using Client::Tests::WireCaptureProblem;
@@ -116,5 +114,4 @@ TEST(WireCaptureTest, AnEmptyLogHasNoConnections)
     ASSERT_TRUE(parsed.HasValue());
     EXPECT_TRUE(parsed.Value().empty());
 }
-
 } // namespace

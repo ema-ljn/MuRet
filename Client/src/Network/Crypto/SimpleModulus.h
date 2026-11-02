@@ -1,3 +1,14 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Network/Crypto/CryptoError.h"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <span>
+
 // SimpleModulus, el cifrado por bloques de los C3/C4: 8 bytes en claro dan 11 cifrados.
 // Contrato: Client/docs/research/03-red-y-cifrado.md, "C3/C4", el plan de la CL2 (CL2.3), y
 // encrypt_block y decrypt_block de c3c4_reference.py, en el repo de research, que modelan
@@ -11,21 +22,8 @@
 //
 // No protege nada: las claves están en los archivos del cliente y del servidor (la guía de la
 // CL2.0, actividad 5).
-
-#pragma once
-
-#include "Core/Expected.h"
-#include "Network/Crypto/CryptoError.h"
-
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <optional>
-#include <span>
-
 namespace Client::Network::Crypto
 {
-
 // Los carriles de 16 bits de un bloque.
 inline constexpr std::size_t LaneCount = 4;
 // Los bytes en claro de un bloque: el último de un paquete se completa con relleno.
@@ -62,42 +60,42 @@ public:
     // XOR de 16 bits, cualquier módulo de 17 bits o más sirve). Un módulo en 0 tampoco lo cumple, y
     // el `%` dividiría por cero. Las claves pueden ser cualquier valor, como en el original: que el
     // producto entre en 32 bits depende del par, y si no entra da la vuelta como el IMUL.
-    [[nodiscard]] static Core::Expected<SimpleModulusKey, CryptoError> FromLanes(const Lanes& modulus, const Lanes& key,
-                                                                                 const Lanes& xorKey)
+    [[nodiscard]] static Core::Expected<SimpleModulusKey, CryptoError>
+    FromLanes(const Lanes& m_modulus, const Lanes& m_key, const Lanes& m_xorKey)
     {
         for (std::size_t lane = 0; lane < LaneCount; ++lane)
         {
-            if (modulus[lane] > MaxModulus || (xorKey[lane] | MaxPlainLane) >= modulus[lane])
+            if (m_modulus[lane] > MaxModulus || (m_xorKey[lane] | MaxPlainLane) >= m_modulus[lane])
             {
                 return Core::Unexpected(CryptoError::InvalidKey);
             }
         }
-        return SimpleModulusKey(modulus, key, xorKey);
+        return SimpleModulusKey(m_modulus, m_key, m_xorKey);
     }
 
     [[nodiscard]] const Lanes& Modulus() const
     {
-        return modulus;
+        return m_modulus;
     }
     // La de cifrar en una EncryptionKey y la de descifrar en una DecryptionKey.
     [[nodiscard]] const Lanes& Key() const
     {
-        return key;
+        return m_key;
     }
     [[nodiscard]] const Lanes& XorKey() const
     {
-        return xorKey;
+        return m_xorKey;
     }
 
 private:
-    SimpleModulusKey(const Lanes& modulusLanes, const Lanes& keyLanes, const Lanes& xorLanes)
-        : modulus(modulusLanes), key(keyLanes), xorKey(xorLanes)
+    SimpleModulusKey(const Lanes& modulus, const Lanes& key, const Lanes& xorKey)
+        : m_modulus(modulus), m_key(key), m_xorKey(xorKey)
     {
     }
 
-    Lanes modulus;
-    Lanes key;
-    Lanes xorKey;
+    Lanes m_modulus;
+    Lanes m_key;
+    Lanes m_xorKey;
 };
 
 // Enc1.dat del cliente y Enc2.dat del servidor.
@@ -109,7 +107,7 @@ using DecryptionKey = SimpleModulusKey<KeyRole::Decrypt>;
 // `usefulSize` dice cuántos valen: de 1 a 8 en un paquete, pero se escribe el que llegue. Los
 // productos van en std::uint32_t y dan la vuelta, como el IMUL del original.
 [[nodiscard]] std::array<std::byte, CipherBlockSize>
-EncryptBlock(const EncryptionKey& key, std::span<const std::byte, PlainBlockSize> plain, std::uint8_t usefulSize);
+EncryptBlock(const EncryptionKey& m_key, std::span<const std::byte, PlainBlockSize> plain, std::uint8_t usefulSize);
 
 struct DecryptedBlock
 {
@@ -120,7 +118,6 @@ struct DecryptedBlock
 
 // std::nullopt si el checksum no coincide. El checksum es de los 8 bytes en claro, así que un
 // cambio en el byte del largo útil no lo ve.
-[[nodiscard]] std::optional<DecryptedBlock> DecryptBlock(const DecryptionKey& key,
+[[nodiscard]] std::optional<DecryptedBlock> DecryptBlock(const DecryptionKey& m_key,
                                                          std::span<const std::byte, CipherBlockSize> cipher);
-
 } // namespace Client::Network::Crypto

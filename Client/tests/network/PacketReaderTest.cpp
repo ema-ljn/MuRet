@@ -1,6 +1,3 @@
-// Client::Network::PacketReader: la tabla de vectores del plan de la CL2 (CL2.1, paso 4), con los
-// casos de red_reference.py --selftest que no son del cifrado y los quirks que corrige.
-
 #include "Network/PacketReader.h"
 
 #include "support/Bytes.h"
@@ -22,9 +19,10 @@
 #include <utility>
 #include <vector>
 
+// Client::Network::PacketReader: la tabla de vectores del plan de la CL2 (CL2.1, paso 4), con los
+// casos de red_reference.py --selftest que no son del cifrado y los quirks que corrige.
 namespace
 {
-
 using Client::Network::MaxPacketSize;
 using Client::Network::Packet;
 using Client::Network::PacketError;
@@ -527,5 +525,4 @@ TEST(PacketReaderTest, RandomSplitsGiveTheSamePackets)
     EXPECT_EQ(got, expected);
     EXPECT_EQ(reader.Pending(), 0u);
 }
-
 } // namespace

@@ -10,7 +10,6 @@
 
 namespace
 {
-
 constexpr const char* GoldenDirVariable = "MURET_CLIENT_GOLDEN_DIR";
 constexpr const char* MemoryDirVariable = "MURET_CLIENT_MEMORY_DIR";
 constexpr const char* WireDirVariable = "MURET_CLIENT_WIRE_DIR";
@@ -37,12 +36,10 @@ std::optional<std::string> ReadEnvironment(const char* name)
     return std::string(value);
 #endif
 }
-
 } // namespace
 
 namespace Client::Tests
 {
-
 std::optional<std::filesystem::path> GoldenDirFromValue(const std::optional<std::string>& value)
 {
     if (!value || value->empty())
@@ -82,7 +79,6 @@ std::optional<std::filesystem::path> GoldenDir()
 
 namespace
 {
-
 // La regla, para cualquiera de las tres variables (la de los datos, la de los volcados de memoria y
 // la del cable). GTEST_SKIP() y FAIL() salen de esta función, y GoogleTest no corre el cuerpo de un
 // test que quedó salteado o fallado en su SetUp().
@@ -113,26 +109,25 @@ std::optional<std::filesystem::path> FindWireFile(const std::filesystem::path& r
     }
     return path;
 }
-
 } // namespace
 
 void GoldenDataTest::SetUp()
 {
-    RequireDirectory(GoldenDirVariable, dataRoot);
+    RequireDirectory(GoldenDirVariable, m_dataRoot);
 }
 
 std::optional<std::filesystem::path> GoldenDataTest::DataFile(std::string_view originalPath) const
 {
     std::error_code error;
-    std::optional<std::filesystem::path> path = Data::ResolveDataPath(dataRoot, originalPath, error);
+    std::optional<std::filesystem::path> path = Data::ResolveDataPath(m_dataRoot, originalPath, error);
     if (error)
     {
-        ADD_FAILURE() << "no se pudo buscar " << originalPath << " en la carpeta golden " << dataRoot << ": "
+        ADD_FAILURE() << "no se pudo buscar " << originalPath << " en la carpeta golden " << m_dataRoot << ": "
                       << error.message();
     }
     else if (!path)
     {
-        ADD_FAILURE() << "falta " << originalPath << " en la carpeta golden " << dataRoot;
+        ADD_FAILURE() << "falta " << originalPath << " en la carpeta golden " << m_dataRoot;
     }
     return path;
 }
@@ -158,34 +153,34 @@ void MemoryDumpTest::SetUp()
     {
         return;
     }
-    RequireDirectory(MemoryDirVariable, dumpRoot);
+    RequireDirectory(MemoryDirVariable, m_dumpRoot);
 }
 
 std::optional<std::filesystem::path> MemoryDumpTest::DumpFile(const MemoryCapture& capture, std::string_view name) const
 {
-    switch (CheckDump(dumpRoot, capture.folder, name))
+    switch (CheckDump(m_dumpRoot, capture.folder, name))
     {
     case DumpState::Found:
-        return dumpRoot / capture.folder / name;
+        return m_dumpRoot / capture.folder / name;
     case DumpState::RootIsACapture:
-        ADD_FAILURE() << MemoryDirVariable << " apunta a " << dumpRoot << ", que es una captura: tiene que apuntar "
+        ADD_FAILURE() << MemoryDirVariable << " apunta a " << m_dumpRoot << ", que es una captura: tiene que apuntar "
                       << "a la carpeta que las contiene, memoria-cliente";
         return std::nullopt;
     case DumpState::Missing:
         break;
     }
-    ADD_FAILURE() << "falta " << name << " en la captura " << capture.folder << " de " << dumpRoot;
+    ADD_FAILURE() << "falta " << name << " en la captura " << capture.folder << " de " << m_dumpRoot;
     return std::nullopt;
 }
 
 void WireDataTest::SetUp()
 {
-    RequireDirectory(WireDirVariable, wireRoot);
+    RequireDirectory(WireDirVariable, m_wireRoot);
 }
 
 std::optional<std::filesystem::path> WireDataTest::WireFile(std::string_view name) const
 {
-    return FindWireFile(wireRoot, name);
+    return FindWireFile(m_wireRoot, name);
 }
 
 void GoldenAndWireDataTest::SetUp()
@@ -195,12 +190,11 @@ void GoldenAndWireDataTest::SetUp()
     {
         return;
     }
-    RequireDirectory(WireDirVariable, wireRoot);
+    RequireDirectory(WireDirVariable, m_wireRoot);
 }
 
 std::optional<std::filesystem::path> GoldenAndWireDataTest::WireFile(std::string_view name) const
 {
-    return FindWireFile(wireRoot, name);
+    return FindWireFile(m_wireRoot, name);
 }
-
 } // namespace Client::Tests

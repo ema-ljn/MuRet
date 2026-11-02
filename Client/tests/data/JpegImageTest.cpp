@@ -1,6 +1,3 @@
-// DecodeJpeg contra los vectores de CI: cada uno, decodificado, tiene que dar los mismos bytes que
-// la IJG libjpeg 6b, la del original (Client/tests/vectors/jpeg/README.md).
-
 #include "Data/Textures/JpegImage.h"
 
 #include "Data/DataError.h"
@@ -19,9 +16,10 @@
 #include <string_view>
 #include <vector>
 
+// DecodeJpeg contra los vectores de CI: cada uno, decodificado, tiene que dar los mismos bytes que
+// la IJG libjpeg 6b, la del original (Client/tests/vectors/jpeg/README.md).
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Textures::DecodeJpeg;
 using Client::Tests::ReadJpegVector;
@@ -190,5 +188,4 @@ TEST(JpegImageTest, ASideOverTheLimitIsInvalidData)
     EXPECT_EQ(DecodeError(ReadJpegVector("flat-513x8.jpg"), 512), DataError::InvalidData);
     EXPECT_EQ(DecodeError(ReadJpegVector("flat-8x513.jpg"), 512), DataError::InvalidData);
 }
-
 } // namespace

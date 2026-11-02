@@ -8,10 +8,8 @@
 
 namespace Client::Data::Terrain
 {
-
 namespace
 {
-
 using Core::ByteReader;
 
 // Un float: 4 bytes little-endian que std::bit_cast pasa a float sin tocar un bit, también si son
@@ -64,7 +62,6 @@ std::optional<TerrainObject> ReadObject(ByteReader& reader)
     object.scale = *scale;
     return object;
 }
-
 } // namespace
 
 Core::Expected<std::vector<TerrainObject>, DataError> LoadTerrainObjects(std::span<const std::byte> file,
@@ -102,5 +99,4 @@ Core::Expected<std::vector<TerrainObject>, DataError> LoadTerrainObjects(std::sp
     }
     return objects;
 }
-
 } // namespace Client::Data::Terrain

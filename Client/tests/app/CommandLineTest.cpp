@@ -1,5 +1,3 @@
-// Client::App::ParseCommandLine: los argumentos de Main.
-
 #include "App/CommandLine.h"
 
 #include <gtest/gtest.h>
@@ -8,9 +6,9 @@
 #include <string_view>
 #include <vector>
 
+// Client::App::ParseCommandLine: los argumentos de Main.
 namespace
 {
-
 using Client::App::CommandLine;
 using Client::App::ParseCommandLine;
 
@@ -62,5 +60,4 @@ TEST(CommandLineTest, UnknownArgumentsAreAnError)
     EXPECT_FALSE(Parse({"--fullscreen"}, error).has_value());
     EXPECT_NE(error.find("\"--fullscreen\""), std::string::npos) << error;
 }
-
 } // namespace

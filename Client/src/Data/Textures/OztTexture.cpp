@@ -8,10 +8,8 @@
 
 namespace Client::Data::Textures
 {
-
 namespace
 {
-
 using Core::ByteReader;
 
 // El orden de los bytes de un píxel en el archivo: azul, verde, rojo y alfa, como los guarda un
@@ -69,7 +67,6 @@ void CopyRow(std::span<const std::byte> source, Texture& texture, int row)
         *destination++ = std::to_integer<std::uint8_t>(source[pixel + FileAlpha]);
     }
 }
-
 } // namespace
 
 Core::Expected<Texture, DataError> LoadOztTexture(std::span<const std::byte> file)
@@ -116,5 +113,4 @@ Core::Expected<Texture, DataError> LoadOztTexture(std::span<const std::byte> fil
     }
     return texture;
 }
-
 } // namespace Client::Data::Textures

@@ -1,10 +1,3 @@
-// Punto de entrada del cliente.
-//
-// Ola CL0.3: el "hola mundo" gráfico. Abre una ventana SDL3 con un contexto OpenGL 3.3 core, la
-// limpia de un color, imprime GL_VERSION y GL_RENDERER y cierra con la X. Todavía sin capas: la
-// CL3.1 lleva la ventana y el contexto a Platform/ y la CL3.2 arma el bucle con tick fijo. Los
-// argumentos están en App/CommandLine.h.
-
 #include "App/CommandLine.h"
 
 #include <SDL3/SDL.h>
@@ -20,9 +13,14 @@
 #include <utility>
 #include <vector>
 
+// Punto de entrada del cliente.
+//
+// Ola CL0.3: el "hola mundo" gráfico. Abre una ventana SDL3 con un contexto OpenGL 3.3 core, la
+// limpia de un color, imprime GL_VERSION y GL_RENDERER y cierra con la X. Todavía sin capas: la
+// CL3.1 lleva la ventana y el contexto a Platform/ y la CL3.2 arma el bucle con tick fijo. Los
+// argumentos están en App/CommandLine.h.
 namespace
 {
-
 // La resolución de referencia del original (D-C11 del roadmap del cliente).
 constexpr int WindowWidth = 640;
 constexpr int WindowHeight = 480;
@@ -120,7 +118,7 @@ void PrintGlInfo(const GlFunctions& gl)
 class SdlVideo
 {
 public:
-    SdlVideo() : ready(SDL_Init(SDL_INIT_VIDEO)) {}
+    SdlVideo() : m_ready(SDL_Init(SDL_INIT_VIDEO)) {}
     ~SdlVideo()
     {
         SDL_Quit();
@@ -130,11 +128,11 @@ public:
 
     bool Ready() const
     {
-        return ready;
+        return m_ready;
     }
 
 private:
-    bool ready;
+    bool m_ready;
 };
 
 struct WindowDeleter
@@ -232,7 +230,6 @@ std::uint64_t RunFrames(SDL_Window* window, const GlFunctions& gl, std::optional
     }
     return frames;
 }
-
 } // namespace
 
 int main(int argc, char** argv)

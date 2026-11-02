@@ -1,3 +1,13 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Network/Crypto/CryptoError.h"
+#include "Network/Crypto/SimpleModulus.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <span>
+
 // Los archivos de clave del SimpleModulus: Enc1.dat y Dec2.dat del cliente, y Enc2.dat y Dec1.dat
 // del servidor, de 54 bytes cada uno.
 // Contrato: 0x686240 (Client/docs/research/03-red-y-cifrado.md, "C3/C4", y
@@ -10,20 +20,8 @@
 // Todo little-endian, y cada u32 de un bloque va con XOR de KeyFileXor, el del mismo carril. Los de
 // cifrar y los de descifrar tienen el mismo formato: el segundo bloque es la clave de cifrar en uno y
 // la de descifrar en el otro.
-
-#pragma once
-
-#include "Core/Expected.h"
-#include "Network/Crypto/CryptoError.h"
-#include "Network/Crypto/SimpleModulus.h"
-
-#include <cstddef>
-#include <cstdint>
-#include <span>
-
 namespace Client::Network::Crypto
 {
-
 // El magic que pasan los dos que llaman a 0x686240 (0x686070 y 0x6860b0).
 inline constexpr std::uint16_t KeyFileMagic = 0x1112;
 // 6 bytes de cabecera y tres bloques de 16.
@@ -36,5 +34,4 @@ inline constexpr Lanes KeyFileXor{0x3F08A79B, 0xE25CC287, 0x93D27AB9, 0x20DEA7BF
 // el original.
 [[nodiscard]] Core::Expected<EncryptionKey, CryptoError> LoadEncryptionKey(std::span<const std::byte> file);
 [[nodiscard]] Core::Expected<DecryptionKey, CryptoError> LoadDecryptionKey(std::span<const std::byte> file);
-
 } // namespace Client::Network::Crypto

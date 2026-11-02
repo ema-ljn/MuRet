@@ -4,32 +4,29 @@
 
 namespace Client::Network
 {
-
 namespace
 {
-
 // Los bits de un byte: un entero de un campo se escribe de a un byte.
 constexpr unsigned BitsPerByte = 8;
 
 // Lo que mide el tipo de cada uno.
-std::size_t MaxSize(PacketType type)
+std::size_t MaxSize(PacketType m_type)
 {
-    return type == PacketType::C1 ? MaxC1Size : MaxWrittenPacketSize;
+    return m_type == PacketType::C1 ? MaxC1Size : MaxWrittenPacketSize;
 }
-
 } // namespace
 
-PacketWriter PacketWriter::C1(std::uint8_t opcode)
+PacketWriter PacketWriter::C1(std::uint8_t m_opcode)
 {
-    return PacketWriter(PacketType::C1, opcode);
+    return PacketWriter(PacketType::C1, m_opcode);
 }
 
-PacketWriter PacketWriter::C2(std::uint8_t opcode)
+PacketWriter PacketWriter::C2(std::uint8_t m_opcode)
 {
-    return PacketWriter(PacketType::C2, opcode);
+    return PacketWriter(PacketType::C2, m_opcode);
 }
 
-PacketWriter::PacketWriter(PacketType packetType, std::uint8_t packetOpcode) : type(packetType), opcode(packetOpcode) {}
+PacketWriter::PacketWriter(PacketType type, std::uint8_t opcode) : m_type(type), m_opcode(opcode) {}
 
 PacketWriter& PacketWriter::PutU8(std::uint8_t value) &
 {
@@ -57,7 +54,7 @@ PacketWriter& PacketWriter::PutU32Le(std::uint32_t value) &
 
 PacketWriter& PacketWriter::PutBytes(std::span<const std::byte> more) &
 {
-    fields.insert(fields.end(), more.begin(), more.end());
+    m_fields.insert(m_fields.end(), more.begin(), more.end());
     return *this;
 }
 
@@ -97,23 +94,22 @@ template <std::unsigned_integral T> void PacketWriter::PutUnsigned(T value, std:
     for (std::size_t k = 0; k < sizeof(T); ++k)
     {
         const std::size_t shift = order == std::endian::little ? k : sizeof(T) - 1 - k;
-        fields.push_back(static_cast<std::byte>(value >> (BitsPerByte * shift)));
+        m_fields.push_back(static_cast<std::byte>(value >> (BitsPerByte * shift)));
     }
 }
 
 Core::Expected<Packet, PacketError> PacketWriter::Finish() const
 {
-    const std::size_t size = MinPacketSize(type) + fields.size();
-    if (size > MaxSize(type))
+    const std::size_t size = MinPacketSize(m_type) + m_fields.size();
+    if (size > MaxSize(m_type))
     {
         return Core::Unexpected(PacketError::TooLarge);
     }
     std::vector<std::byte> packet;
     packet.reserve(size);
-    AppendHeader(packet, type, size);
-    packet.push_back(static_cast<std::byte>(opcode));
-    packet.insert(packet.end(), fields.begin(), fields.end());
+    AppendHeader(packet, m_type, size);
+    packet.push_back(static_cast<std::byte>(m_opcode));
+    packet.insert(packet.end(), m_fields.begin(), m_fields.end());
     return Packet::FromBytes(std::move(packet));
 }
-
 } // namespace Client::Network

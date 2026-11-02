@@ -1,13 +1,9 @@
-// Client::Network::EncryptPacket y DecryptPacket: un C1/C2 como C3/C4 y de vuelta, con los
-// seriales, Q-C05 y Q-C10, y lo que EncryptPacket le da a la ofuscación (CL2.4). Los bloques solos
-// son SimpleModulusTest, y los seriales solos, PacketSerialsTest.
-
 #include "Network/EncryptedPacket.h"
 
 #include "Core/Expected.h"
 #include "Network/Crypto/CryptoError.h"
 #include "Network/Crypto/SimpleModulus.h"
-#include "Network/Obfuscation.h"
+#include "Network/IObfuscation.h"
 #include "Network/ObfuscationError.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
@@ -36,16 +32,18 @@
 #include <utility>
 #include <vector>
 
+// Client::Network::EncryptPacket y DecryptPacket: un C1/C2 como C3/C4 y de vuelta, con los
+// seriales, Q-C05 y Q-C10, y lo que EncryptPacket le da a la ofuscación (CL2.4). Los bloques solos
+// son SimpleModulusTest, y los seriales solos, PacketSerialsTest.
 namespace
 {
-
 using Client::Core::Expected;
 using Client::Network::DecryptPacket;
 using Client::Network::EncryptPacket;
 using Client::Network::HeaderSize;
+using Client::Network::IObfuscation;
 using Client::Network::MaxPacketSize;
 using Client::Network::MinPacketSize;
-using Client::Network::Obfuscation;
 using Client::Network::ObfuscationError;
 using Client::Network::Packet;
 using Client::Network::PacketSerials;
@@ -696,13 +694,13 @@ TEST(EncryptedPacketTest, DecryptUndoesEncryptWithSyntheticKeys)
 
 // Una ofuscación que guarda lo que EncryptPacket le da para cifrar y le cambia el opcode: así se ve
 // qué recibe BeforeEncrypt y que se cifra lo que deja. Lo demás pasa como vino.
-class RecordingObfuscation final : public Obfuscation
+class RecordingObfuscation final : public IObfuscation
 {
 public:
     // El opcode que deja en lo que se va a cifrar.
     static constexpr std::byte WrittenOpcode{0x5A};
 
-    explicit RecordingObfuscation(ByteVector& seenBytes) : seen(&seenBytes) {}
+    explicit RecordingObfuscation(ByteVector& seenBytes) : m_seen(&seenBytes) {}
 
     [[nodiscard]] std::byte InboundMask(std::byte /*firstWireByte*/) const override
     {
@@ -721,7 +719,7 @@ public:
 
     void BeforeEncrypt(std::span<std::byte> sealed) const override
     {
-        seen->assign(sealed.begin(), sealed.end());
+        m_seen->assign(sealed.begin(), sealed.end());
         if (sealed.size() > 1)
         {
             sealed[1] = WrittenOpcode;
@@ -734,7 +732,7 @@ public:
     }
 
 private:
-    ByteVector* seen; // dónde guarda lo que recibió BeforeEncrypt la última vez
+    ByteVector* m_seen; // dónde guarda lo que recibió BeforeEncrypt la última vez
 };
 
 // BeforeEncrypt recibe [serial][lo útil desde el opcode][relleno]: el aviso, con el serial 4 y el
@@ -784,5 +782,4 @@ TEST(EncryptedPacketTest, BeforeEncryptGetsThePaddingAlsoWhenTheBlockIsFull)
         EXPECT_EQ(AfterHeader(encrypted.Value()).size(), Client::Network::Crypto::CipherBlockSize);
     }
 }
-
 } // namespace

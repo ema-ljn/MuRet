@@ -1,5 +1,3 @@
-// Client::Core::Expected: un valor o un error, nunca los dos.
-
 #include "Core/Expected.h"
 
 #include <gtest/gtest.h>
@@ -9,9 +7,9 @@
 #include <string>
 #include <utility>
 
+// Client::Core::Expected: un valor o un error, nunca los dos.
 namespace
 {
-
 using Client::Core::Expected;
 using Client::Core::Unexpected;
 
@@ -127,5 +125,4 @@ TEST(ExpectedDeathTest, ErrorOfOneWithNeitherStopsTheProgram)
     ASSERT_FALSE(result.HasValue());
     EXPECT_DEATH(static_cast<void>(result.Error()), "de un Expected que no tiene error");
 }
-
 } // namespace

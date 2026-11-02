@@ -1,6 +1,3 @@
-// Text.bmd real: el de la carpeta golden y, si está, el volcado de la memoria del original
-// (Client/tests/support/GoldenDir.h).
-
 #include "Data/Text/TextTable.h"
 
 #include "support/FileBytes.h"
@@ -14,9 +11,10 @@
 #include <string_view>
 #include <vector>
 
+// Text.bmd real: el de la carpeta golden y, si está, el volcado de la memoria del original
+// (Client/tests/support/GoldenDir.h).
 namespace
 {
-
 using Client::Data::Text::LoadTextTable;
 using Client::Data::Text::TextCount;
 using Client::Data::Text::TextRecordSize;
@@ -88,5 +86,4 @@ TEST_F(MemoryTextTable, EqualsTheOriginalsMemory)
                                        << original.size();
     }
 }
-
 } // namespace

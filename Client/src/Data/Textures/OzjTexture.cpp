@@ -8,7 +8,6 @@
 
 namespace Client::Data::Textures
 {
-
 Core::Expected<Texture, DataError> LoadOzjTexture(std::span<const std::byte> file)
 {
     if (file.size() <= OzjPrefixSize)
@@ -44,5 +43,4 @@ Core::Expected<Texture, DataError> LoadOzjTexture(std::span<const std::byte> fil
     }
     return texture;
 }
-
 } // namespace Client::Data::Textures

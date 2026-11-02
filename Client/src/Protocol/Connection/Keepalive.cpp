@@ -5,10 +5,8 @@
 
 namespace Client::Protocol::Connection
 {
-
 namespace
 {
-
 // Lo que resta cada bit (04 § El flujo de conexión).
 constexpr std::uint16_t Adjustment20 = 20;
 constexpr std::uint16_t Adjustment25 = 25;
@@ -29,7 +27,6 @@ std::uint16_t AdjustmentFor(std::uint8_t characterFlags)
     }
     return 0;
 }
-
 } // namespace
 
 std::uint16_t KeepaliveSpeed(std::uint16_t speed, std::uint8_t characterFlags)
@@ -47,5 +44,4 @@ Outgoing WriteKeepalive(const Keepalive& keepalive)
         .PutU16Le(keepalive.magicSpeed);
     return EncryptedC1(writer);
 }
-
 } // namespace Client::Protocol::Connection

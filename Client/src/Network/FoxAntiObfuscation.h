@@ -1,3 +1,7 @@
+#pragma once
+
+#include "Network/IObfuscation.h"
+
 // La capa de paquetes de FoxAnti, la que espera el servidor del laboratorio: el XOR 0xAA de lo que
 // llega y las traducciones entre su forma de algunos paquetes y la de main.exe.
 // Contrato: Client/docs/research/03-red-y-cifrado.md, "La capa de FoxAnti", el plan de la CL2
@@ -18,15 +22,9 @@
 // Donde el original no mira un largo (Q-C09), acá es ObfuscationError::InvalidPacket. Con
 // paquetes bien formados, lo que sale es lo mismo que en el original byte por byte, también donde
 // el original pierde información (los códigos de servidor desde 21, Q-C17).
-
-#pragma once
-
-#include "Network/Obfuscation.h"
-
 namespace Client::Network
 {
-
-class FoxAntiObfuscation final : public Obfuscation
+class FoxAntiObfuscation final : public IObfuscation
 {
 public:
     [[nodiscard]] std::byte InboundMask(std::byte firstWireByte) const override;
@@ -35,5 +33,4 @@ public:
     void BeforeEncrypt(std::span<std::byte> sealed) const override;
     [[nodiscard]] Packet BeforeSend(Packet packet) const override;
 };
-
 } // namespace Client::Network

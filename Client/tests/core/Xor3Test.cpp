@@ -1,5 +1,3 @@
-// Client::Core::Xor3: el cifrado de las tablas .bmd y de la cuenta y la clave del login.
-
 #include "Core/Xor3.h"
 
 #include "support/BytePattern.h"
@@ -10,9 +8,9 @@
 #include <span>
 #include <vector>
 
+// Client::Core::Xor3: el cifrado de las tablas .bmd y de la cuenta y la clave del login.
 namespace
 {
-
 using Client::Core::Xor3;
 using Client::Tests::BytePattern;
 
@@ -77,5 +75,4 @@ TEST(Xor3Test, ByRecordsEqualsAllAtOnceWhenRecordsAreMultiplesOfThree)
     EXPECT_EQ(byRecords, wholeFile);
     EXPECT_NE(badSplit, wholeFile);
 }
-
 } // namespace

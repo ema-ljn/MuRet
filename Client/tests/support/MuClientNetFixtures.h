@@ -1,12 +1,3 @@
-// Los fixtures del envío de mu-client (tests/net/net_send_fixtures.h, en client-research/ del
-// repo de research, generados por tests/net/fixtures/gen_net_send_fixtures.py): el aviso F1 03, el
-// login F1 01 y el keepalive 0E, en claro con su XOR32 y cifrados como C3 con la clave identidad
-// (support/SimpleModulusKeys.h). Están armados con credenciales y datos sintéticos, no con el
-// cable.
-//
-// Los dos que cifran un C2 (FIX_C2_PLAIN y FIX_C4_SERIAL2) no están: mu-client cifra el opcode de
-// un C2 y el binario no, así que se armaron de nuevo (tests/vectors/net/).
-
 #pragma once
 
 #include "support/Bytes.h"
@@ -15,9 +6,16 @@
 #include <cstdint>
 #include <vector>
 
+// Los fixtures del envío de mu-client (tests/net/net_send_fixtures.h, en client-research/ del
+// repo de research, generados por tests/net/fixtures/gen_net_send_fixtures.py): el aviso F1 03, el
+// login F1 01 y el keepalive 0E, en claro con su XOR32 y cifrados como C3 con la clave identidad
+// (support/SimpleModulusKeys.h). Están armados con credenciales y datos sintéticos, no con el
+// cable.
+//
+// Los dos que cifran un C2 (FIX_C2_PLAIN y FIX_C4_SERIAL2) no están: mu-client cifra el opcode de
+// un C2 y el binario no, así que se armaron de nuevo (tests/vectors/net/).
 namespace Client::Tests
 {
-
 // FIX_F1_PLAIN: el aviso de un checksum malo, `C1 06 F1 03 06 00`, con su XOR32.
 inline std::vector<std::byte> NoticeBytes()
 {
@@ -140,5 +138,4 @@ inline std::vector<std::byte> KeepaliveHighYC3SerialFFRandA5()
     return Bytes({0xC3, 0x18, 0x87, 0x7F, 0x3F, 0x90, 0xC2, 0x11, 0x52, 0x9C, 0x9C, 0x4D,
                   0x78, 0xD3, 0xA5, 0x00, 0x00, 0x00, 0x00, 0x01, 0xBB, 0x48, 0x7A, 0x44});
 }
-
 } // namespace Client::Tests

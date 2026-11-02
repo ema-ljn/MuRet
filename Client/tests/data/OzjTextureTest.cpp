@@ -1,7 +1,3 @@
-// LoadOzjTexture con OZJ armados desde los vectores de CI: el JPEG lo decodifica DecodeJpeg (sus
-// tests están en JpegImageTest.cpp), y acá se prueba lo del OZJ: los 24 bytes que no se leen, la
-// textura de potencias de 2, las filas sin dar vuelta y los rechazos.
-
 #include "Data/Textures/OzjTexture.h"
 
 #include "Data/DataError.h"
@@ -19,9 +15,11 @@
 #include <string_view>
 #include <vector>
 
+// LoadOzjTexture con OZJ armados desde los vectores de CI: el JPEG lo decodifica DecodeJpeg (sus
+// tests están en JpegImageTest.cpp), y acá se prueba lo del OZJ: los 24 bytes que no se leen, la
+// textura de potencias de 2, las filas sin dar vuelta y los rechazos.
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Textures::LoadOzjTexture;
 using Client::Data::Textures::OzjPrefixSize;
@@ -179,5 +177,4 @@ TEST(OzjTextureTest, ATgaIsNotAJpeg)
 
     EXPECT_EQ(LoadError(OzjOf(tga)), DataError::InvalidData);
 }
-
 } // namespace

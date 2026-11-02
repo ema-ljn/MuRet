@@ -1,14 +1,3 @@
-// Los paquetes del login contra el cable del laboratorio (support/WireCapture.h,
-// MURET_CLIENT_WIRE_DIR): los C3 que mandó el cliente original, descifrados con Dec1.dat (la clave
-// del servidor) y sin el XOR32, y lo que le contestaron el ConnectServer y el GameServer, leído con
-// Protocol.
-//
-// El cable lleva el login del jugador: estos tests cuentan y miran cabeceras, opcodes, tamaños y la
-// versión, y comparan con SameBytesWithoutValues. De la cuenta, la clave y el serial no se mira
-// nada, y ningún mensaje imprime un byte del cable.
-//
-// El muproxy.log es del build histórico: su versión es 09908, y no la ClientVersion de este.
-
 #include "Core/ByteReader.h"
 #include "Network/Crypto/SimpleModulus.h"
 #include "Network/Crypto/SimpleModulusKeyFile.h"
@@ -44,9 +33,18 @@
 #include <utility>
 #include <vector>
 
+// Los paquetes del login contra el cable del laboratorio (support/WireCapture.h,
+// MURET_CLIENT_WIRE_DIR): los C3 que mandó el cliente original, descifrados con Dec1.dat (la clave
+// del servidor) y sin el XOR32, y lo que le contestaron el ConnectServer y el GameServer, leído con
+// Protocol.
+//
+// El cable lleva el login del jugador: estos tests cuentan y miran cabeceras, opcodes, tamaños y la
+// versión, y comparan con SameBytesWithoutValues. De la cuenta, la clave y el serial no se mira
+// nada, y ningún mensaje imprime un byte del cable.
+//
+// El muproxy.log es del build histórico: su versión es 09908, y no la ClientVersion de este.
 namespace
 {
-
 using Client::Core::ByteReader;
 using Client::Network::DecryptPacket;
 using Client::Network::FoxAntiObfuscation;
@@ -161,21 +159,21 @@ protected:
         ASSERT_TRUE(file.has_value()) << "no se pudo leer " << CaptureFile;
         auto parsed = ParseWireCapture(std::string_view(file->data(), file->size()));
         ASSERT_TRUE(parsed.HasValue()) << CaptureFile << ": la línea " << parsed.Error().line << " no se entiende";
-        connections = std::move(parsed).Value();
-        dec1 = LoadKeyFile(WireFile("Dec1.dat"), LoadDecryptionKey);
-        ASSERT_TRUE(dec1.has_value());
+        m_connections = std::move(parsed).Value();
+        m_dec1 = LoadKeyFile(WireFile("Dec1.dat"), LoadDecryptionKey);
+        ASSERT_TRUE(m_dec1.has_value());
     }
 
     // Los paquetes de un sentido de la conexión `index`, con la máscara `mask` deshecha.
     std::vector<Packet> PacketsOf(std::size_t index, WireDirection direction, std::byte mask) const
     {
-        const std::vector<ByteVector> unmasked = Unmasked(connections[index].Reads(direction), mask);
+        const std::vector<ByteVector> unmasked = Unmasked(m_connections[index].Reads(direction), mask);
         const std::vector<std::span<const std::byte>> reads(unmasked.begin(), unmasked.end());
         return CutPackets(reads, index);
     }
 
-    std::vector<WireConnection> connections;
-    std::optional<DecryptionKey> dec1;
+    std::vector<WireConnection> m_connections;
+    std::optional<DecryptionKey> m_dec1;
 };
 
 // Lo que se encontró en los C3 que mandó el cliente.
@@ -220,9 +218,9 @@ void CheckKeepalive(const Packet& encoded, const Packet& plain, std::size_t inde
 TEST_F(GoldenLogin, FindsTheLoginsAndKeepalivesThatTheClientSent)
 {
     ClientCounts counts;
-    for (std::size_t index = 0; index < connections.size(); ++index)
+    for (std::size_t index = 0; index < m_connections.size(); ++index)
     {
-        if (connections[index].port != GameServerPort)
+        if (m_connections[index].port != GameServerPort)
         {
             continue;
         }
@@ -233,7 +231,7 @@ TEST_F(GoldenLogin, FindsTheLoginsAndKeepalivesThatTheClientSent)
             {
                 continue;
             }
-            const auto decrypted = DecryptPacket(packet, *dec1, serials);
+            const auto decrypted = DecryptPacket(packet, *m_dec1, serials);
             ASSERT_TRUE(decrypted.HasValue()) << "conexión " << index;
             const Packet& encoded = decrypted.Value().packet;
             const Packet plain = Xor32Decode(encoded);
@@ -281,9 +279,9 @@ TEST_F(GoldenLogin, ReadsTheHellosAndLoginResultsOfTheGameServer)
     std::size_t connectionsWithAHelloFirst = 0;
     std::size_t hellos = 0;
     std::size_t accepted = 0;
-    for (std::size_t index = 0; index < connections.size(); ++index)
+    for (std::size_t index = 0; index < m_connections.size(); ++index)
     {
-        if (connections[index].port != GameServerPort)
+        if (m_connections[index].port != GameServerPort)
         {
             continue;
         }
@@ -335,9 +333,9 @@ TEST_F(GoldenLogin, AsksForTheListChoosesAndReadsTheAddressLikeTheConnectServer)
     std::size_t requests = 0;
     std::size_t selects = 0;
     std::size_t addresses = 0;
-    for (std::size_t index = 0; index < connections.size(); ++index)
+    for (std::size_t index = 0; index < m_connections.size(); ++index)
     {
-        if (connections[index].port != ConnectServerPort)
+        if (m_connections[index].port != ConnectServerPort)
         {
             continue;
         }
@@ -383,9 +381,9 @@ TEST_F(GoldenLogin, ReadsTheListsOfTheConnectServerAfterFoxAnti)
     std::size_t lists = 0;
     std::size_t rejectedAsTheyArrive = 0;
     std::size_t readWithTheirCount = 0;
-    for (std::size_t index = 0; index < connections.size(); ++index)
+    for (std::size_t index = 0; index < m_connections.size(); ++index)
     {
-        if (connections[index].port != ConnectServerPort)
+        if (m_connections[index].port != ConnectServerPort)
         {
             continue;
         }
@@ -417,5 +415,4 @@ TEST_F(GoldenLogin, ReadsTheListsOfTheConnectServerAfterFoxAnti)
     EXPECT_EQ(rejectedAsTheyArrive, 72u);
     EXPECT_EQ(readWithTheirCount, 72u);
 }
-
 } // namespace

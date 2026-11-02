@@ -1,5 +1,3 @@
-// Client::Data::Tables::LoadSkillTable: Skill.bmd, con archivos sintéticos.
-
 #include "Data/Tables/SkillTable.h"
 
 #include "Data/DataError.h"
@@ -15,9 +13,9 @@
 #include <span>
 #include <vector>
 
+// Client::Data::Tables::LoadSkillTable: Skill.bmd, con archivos sintéticos.
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Tables::ChecksumParity;
 using Client::Data::Tables::LoadSkillTable;
@@ -105,5 +103,4 @@ TEST(SkillTableTest, ExtraBytesAreIgnored)
     EXPECT_EQ(loaded.Value().Count(), SkillCount);
     EXPECT_EQ(FirstRecordThatDiffers(loaded.Value(), plain), std::nullopt);
 }
-
 } // namespace

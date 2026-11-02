@@ -1,5 +1,3 @@
-// Client::Data::ResolveDataPath contra un Data\ armado en una carpeta temporal.
-
 #include "Data/DataPath.h"
 
 #include <gtest/gtest.h>
@@ -12,9 +10,9 @@
 #include <string_view>
 #include <system_error>
 
+// Client::Data::ResolveDataPath contra un Data\ armado en una carpeta temporal.
 namespace
 {
-
 namespace fs = std::filesystem;
 
 class DataPathTest : public ::testing::Test
@@ -25,30 +23,30 @@ protected:
         // Con un sufijo al azar, dos corridas a la vez (Debug y Release, dos worktrees) no se
         // borran la carpeta una a la otra.
         const std::string testName = ::testing::UnitTest::GetInstance()->current_test_info()->name();
-        root =
+        m_root =
             fs::temp_directory_path() / ("muret-datapath-" + testName + "-" + std::to_string(std::random_device{}()));
-        fs::remove_all(root);
-        fs::create_directories(root);
+        fs::remove_all(m_root);
+        fs::create_directories(m_root);
     }
 
     void TearDown() override
     {
         std::error_code error;
-        fs::remove_all(root, error);
+        fs::remove_all(m_root, error);
     }
 
     // No se llama CreateFile: en Windows <windows.h> la define como macro (CreateFileW).
     void WriteDataFile(const fs::path& relative) const
     {
-        fs::create_directories((root / relative).parent_path());
-        std::ofstream(root / relative) << "x";
+        fs::create_directories((m_root / relative).parent_path());
+        std::ofstream(m_root / relative) << "x";
     }
 
     // ResolveDataPath sin errores de E/S: un error acá es una falla del test.
     std::optional<fs::path> Resolve(std::string_view originalPath) const
     {
         std::error_code error;
-        std::optional<fs::path> path = Client::Data::ResolveDataPath(root, originalPath, error);
+        std::optional<fs::path> path = Client::Data::ResolveDataPath(m_root, originalPath, error);
         EXPECT_FALSE(error) << originalPath << ": " << error.message();
         return path;
     }
@@ -58,12 +56,12 @@ protected:
     {
         WriteDataFile("CaseProbe");
         std::error_code error;
-        const bool ignoresCase = fs::exists(root / "caseprobe", error);
-        fs::remove(root / "CaseProbe", error);
+        const bool ignoresCase = fs::exists(m_root / "caseprobe", error);
+        fs::remove(m_root / "CaseProbe", error);
         return ignoresCase;
     }
 
-    fs::path root;
+    fs::path m_root;
 };
 
 TEST_F(DataPathTest, FindsAnExactPath)
@@ -73,7 +71,7 @@ TEST_F(DataPathTest, FindsAnExactPath)
     const auto path = Resolve("Player/Player.bmd");
 
     ASSERT_TRUE(path.has_value());
-    EXPECT_EQ(*path, root / "Player" / "Player.bmd");
+    EXPECT_EQ(*path, m_root / "Player" / "Player.bmd");
 }
 
 TEST_F(DataPathTest, AcceptsBackslashesAndIgnoresCaseLikeWindows)
@@ -87,7 +85,7 @@ TEST_F(DataPathTest, AcceptsBackslashesAndIgnoresCaseLikeWindows)
     ASSERT_TRUE(fs::is_regular_file(*path));
     // Es el mismo archivo. El nombre devuelto no se compara: en Linux es el del disco
     // ("Player.BMD"), pero en Windows el primer intento ya lo encuentra con la grafía pedida.
-    EXPECT_TRUE(fs::equivalent(*path, root / "player" / "Player.BMD"));
+    EXPECT_TRUE(fs::equivalent(*path, m_root / "player" / "Player.BMD"));
 }
 
 TEST_F(DataPathTest, SkipsDotsAndEmptyParts)
@@ -97,7 +95,7 @@ TEST_F(DataPathTest, SkipsDotsAndEmptyParts)
     const auto path = Resolve(".\\Player\\\\.\\Player.bmd");
 
     ASSERT_TRUE(path.has_value());
-    EXPECT_TRUE(fs::equivalent(*path, root / "Player" / "Player.bmd"));
+    EXPECT_TRUE(fs::equivalent(*path, m_root / "Player" / "Player.bmd"));
 }
 
 TEST_F(DataPathTest, StopsAtTheFirstNulLikeACString)
@@ -109,7 +107,7 @@ TEST_F(DataPathTest, StopsAtTheFirstNulLikeACString)
     const auto path = Resolve(FixedSizeName);
 
     ASSERT_TRUE(path.has_value());
-    EXPECT_EQ(*path, root / "Player" / "Player.bmd");
+    EXPECT_EQ(*path, m_root / "Player" / "Player.bmd");
 }
 
 TEST_F(DataPathTest, ReturnsNulloptWhenTheFileIsMissing)
@@ -142,7 +140,7 @@ TEST_F(DataPathTest, RejectsPathsThatAreNotDataFiles)
 TEST_F(DataPathTest, IgnoresBrokenSymlinks)
 {
     std::error_code error;
-    fs::create_symlink(root / "NoExiste.bmd", root / "Roto.bmd", error);
+    fs::create_symlink(m_root / "NoExiste.bmd", m_root / "Roto.bmd", error);
     if (error)
     {
         GTEST_SKIP() << "no se pudo crear el symlink (en Windows hace falta permiso): " << error.message();
@@ -162,10 +160,10 @@ TEST_F(DataPathTest, PrefersTheExactNameWhenBothCasesExist)
     WriteDataFile("Item/a.bmd");
     WriteDataFile("item/b.bmd");
 
-    EXPECT_EQ(Resolve("Item\\a.bmd"), root / "Item" / "a.bmd");
-    EXPECT_EQ(Resolve("item\\b.bmd"), root / "item" / "b.bmd");
+    EXPECT_EQ(Resolve("Item\\a.bmd"), m_root / "Item" / "a.bmd");
+    EXPECT_EQ(Resolve("item\\b.bmd"), m_root / "item" / "b.bmd");
     // Sin coincidencia exacta, la primera en orden de bytes: "Item" < "item".
-    EXPECT_EQ(Resolve("ITEM\\a.bmd"), root / "Item" / "a.bmd");
+    EXPECT_EQ(Resolve("ITEM\\a.bmd"), m_root / "Item" / "a.bmd");
 }
 
 TEST_F(DataPathTest, FoldsOnlyAsciiLetters)
@@ -187,16 +185,15 @@ TEST_F(DataPathTest, ReportsFoldersThatCannotBeRead)
     std::error_code error;
 
     // La "carpeta" Data\ es un archivo: no se puede recorrer.
-    EXPECT_FALSE(Client::Data::ResolveDataPath(root / "Enc1.dat", "Player.bmd", error).has_value());
+    EXPECT_FALSE(Client::Data::ResolveDataPath(m_root / "Enc1.dat", "Player.bmd", error).has_value());
     EXPECT_TRUE(error);
 
     // No existe la carpeta Data\.
-    EXPECT_FALSE(Client::Data::ResolveDataPath(root / "NoData", "Player.bmd", error).has_value());
+    EXPECT_FALSE(Client::Data::ResolveDataPath(m_root / "NoData", "Player.bmd", error).has_value());
     EXPECT_TRUE(error);
 
     // Sin carpeta: un error de quien llama, no "no está".
     EXPECT_FALSE(Client::Data::ResolveDataPath(fs::path(), "Player.bmd", error).has_value());
     EXPECT_EQ(error, std::make_error_code(std::errc::invalid_argument));
 }
-
 } // namespace

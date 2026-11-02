@@ -1,6 +1,3 @@
-// Cómo imprime GoogleTest los enums de Client::Protocol en un mensaje: sin esto, un
-// std::optional<ProtocolError> sale como "(1-byte object <01>)". Como NetworkPrinters.h.
-
 #pragma once
 
 #include "Protocol/Outgoing.h"
@@ -8,9 +5,10 @@
 
 #include <ostream>
 
+// Cómo imprime GoogleTest los enums de Client::Protocol en un mensaje: sin esto, un
+// std::optional<ProtocolError> sale como "(1-byte object <01>)". Como NetworkPrinters.h.
 namespace Client::Protocol
 {
-
 inline void PrintTo(ProtocolError error, std::ostream* out)
 {
     switch (error)
@@ -41,5 +39,4 @@ inline void PrintTo(Delivery delivery, std::ostream* out)
     }
     *out << "Delivery fuera del enum";
 }
-
 } // namespace Client::Protocol

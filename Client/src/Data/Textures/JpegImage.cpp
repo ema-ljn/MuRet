@@ -12,7 +12,6 @@
 
 namespace Client::Data::Textures
 {
-
 // La API de la libjpeg 6b, con la que el original crea su descompresor (jpeg_CreateDecompress con
 // la versión 62). libjpeg-turbo la da salvo que se compile para emular la 7 o la 8.
 static_assert(JPEG_LIB_VERSION == 62, "la API de la libjpeg 6b, la del original (0063b870-ozj-loader.md)");
@@ -24,12 +23,10 @@ static_assert(LIBJPEG_TURBO_VERSION_NUMBER == 3002000, "libjpeg-turbo 3.2.0, la 
 
 namespace
 {
-
 // La precisión de las muestras que lee la 6b del original: se compila con BITS_IN_JSAMPLE en 8 y
 // corta con cualquier otra (JERR_BAD_PRECISION, en su jdinput.c). Es la que da jpeg_read_scanlines.
 constexpr int SixBSampleBits = 8;
 static_assert(SixBSampleBits == BITS_IN_JSAMPLE, "jpeg_read_scanlines da muestras de 8 bits");
-
 } // namespace
 
 // libjpeg llama a estas dos como funciones de C, así que lo son: una función de C y una de C++ son
@@ -49,7 +46,6 @@ extern "C"
 
 namespace
 {
-
 // El descompresor de libjpeg, que se libera al salir por cualquier camino (regla 8). Liberar uno
 // que no llegó a crearse, o uno que no terminó, no hace nada de más: libjpeg mira si tiene memoria
 // pedida y la suelta.
@@ -220,7 +216,6 @@ bool Decompress(Decompressor& decompressor, std::span<const std::byte> jpeg, int
     // jpeg_start_decompress, y ahí cortan por lo mismo que cortaría finish.
     return true;
 }
-
 } // namespace
 
 Core::Expected<JpegImage, DataError> DecodeJpeg(std::span<const std::byte> jpeg, int maxSide)
@@ -243,5 +238,4 @@ Core::Expected<JpegImage, DataError> DecodeJpeg(std::span<const std::byte> jpeg,
     }
     return image;
 }
-
 } // namespace Client::Data::Textures

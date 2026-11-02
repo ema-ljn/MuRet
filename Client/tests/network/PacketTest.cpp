@@ -1,5 +1,3 @@
-// Client::Network::Packet: un paquete válido, armado con FromBytes.
-
 #include "Network/Packet.h"
 
 #include "support/Bytes.h"
@@ -15,9 +13,9 @@
 #include <utility>
 #include <vector>
 
+// Client::Network::Packet: un paquete válido, armado con FromBytes.
 namespace
 {
-
 using Client::Network::AppendHeader;
 using Client::Network::CheckDeclaredSize;
 using Client::Network::DeclaredSize;
@@ -207,5 +205,4 @@ TEST(PacketTest, TakeBytesLeavesItEmpty)
     EXPECT_TRUE(packet.MutableBody().empty());
     EXPECT_EQ(packet.Opcode(), std::nullopt);
 }
-
 } // namespace

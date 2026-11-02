@@ -1,6 +1,3 @@
-// SameBytes y SameBytesWithoutValues: dónde difieren dos buffers, y que el segundo no diga qué
-// valen.
-
 #include "support/SameBytes.h"
 
 #include <gtest/gtest.h>
@@ -10,9 +7,10 @@
 #include <initializer_list>
 #include <string>
 
+// SameBytes y SameBytesWithoutValues: dónde difieren dos buffers, y que el segundo no diga qué
+// valen.
 namespace
 {
-
 using Client::Tests::SameBytes;
 using Client::Tests::SameBytesWithoutValues;
 
@@ -60,5 +58,4 @@ TEST(SameBytesTest, WithoutValuesSaysTheSizes)
     ASSERT_FALSE(result);
     EXPECT_EQ(std::string(result.message()), "tiene 2 bytes y se esperaban 4");
 }
-
 } // namespace

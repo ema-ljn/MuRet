@@ -1,3 +1,10 @@
+#pragma once
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <span>
+
 // K16, el cifrado de los archivos de terreno EncTerrain<N>.map, .att y .obj
 // (Client/docs/research/05-formatos-de-datos.md, "Terreno de un mundo"; en el original va escrito
 // dentro de cada cargador: 0x5f87b0, 0x5f8390 y 0x607370).
@@ -13,17 +20,8 @@
 // por la posición en el archivo, no en la capa. Como `previo` sale del byte cifrado, que está en
 // el archivo, un pedazo del medio se puede descifrar sin lo anterior: alcanza con saber dónde
 // empieza y cuál es el byte cifrado de antes. DecryptK16 no hace eso: descifra desde el principio.
-
-#pragma once
-
-#include <array>
-#include <cstddef>
-#include <cstdint>
-#include <span>
-
 namespace Client::Data::Terrain
 {
-
 // La clave: los 16 bytes que cada cargador del original arma en la pila, uno por uno.
 inline constexpr std::array<std::byte, 16> K16Key = {
     std::byte{0xD1}, std::byte{0x73}, std::byte{0x52}, std::byte{0xF6}, std::byte{0xD2}, std::byte{0x9A},
@@ -38,5 +36,4 @@ inline constexpr std::uint8_t K16Step = 0x3D;
 
 // Descifra `bytes` en el lugar. `bytes` tiene que ser el archivo desde su primer byte.
 void DecryptK16(std::span<std::byte> bytes);
-
 } // namespace Client::Data::Terrain

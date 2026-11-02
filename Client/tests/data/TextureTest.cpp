@@ -1,12 +1,10 @@
-// Client::Data::Textures::TextureSide: el lado de la textura para el de una imagen.
-
 #include "Data/Textures/Texture.h"
 
 #include <gtest/gtest.h>
 
+// Client::Data::Textures::TextureSide: el lado de la textura para el de una imagen.
 namespace
 {
-
 using Client::Data::Textures::BytesPerPixel;
 using Client::Data::Textures::PixelFormat;
 using Client::Data::Textures::TextureMaxSide;
@@ -46,5 +44,4 @@ TEST(TextureTest, BytesPerPixel)
     EXPECT_EQ(BytesPerPixel(PixelFormat::Rgb), 3u);
     EXPECT_EQ(BytesPerPixel(PixelFormat::Rgba), 4u);
 }
-
 } // namespace

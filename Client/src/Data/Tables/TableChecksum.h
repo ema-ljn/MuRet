@@ -1,3 +1,10 @@
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <span>
+
 // El checksum de Item.bmd y Skill.bmd (Client/docs/research/05-formatos-de-datos.md, "Tablas
 // .bmd"; lo calculan los cargadores de 0x54b9e0 y 0x54acf0). Va en el archivo, después de la
 // tabla, y se calcula sobre la tabla tal como está ahí, cifrada:
@@ -8,17 +15,8 @@
 //
 // Las cuentas son en 32 bits sin signo, que dan la vuelta (módulo 2^32) como en el original. Los
 // bytes que sobran después del último dword completo no cuentan.
-
-#pragma once
-
-#include <cstddef>
-#include <cstdint>
-#include <optional>
-#include <span>
-
 namespace Client::Data::Tables
 {
-
 // Qué dwords entran con XOR; los demás se suman.
 enum class ChecksumParity
 {
@@ -37,5 +35,4 @@ inline constexpr std::uint32_t SkillChecksumKey = 0x5A18;
 // registros, o std::nullopt si `file` no llega a tenerlo. Lo que venga después no cuenta, como con
 // el fread de 4 bytes del original.
 [[nodiscard]] std::optional<std::uint32_t> StoredChecksum(std::span<const std::byte> file, std::size_t recordsSize);
-
 } // namespace Client::Data::Tables

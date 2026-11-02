@@ -1,5 +1,3 @@
-// Client::Data::Terrain::LoadTerrainAttributes: EncTerrain.att, con archivos sintéticos.
-
 #include "Data/Terrain/TerrainAttributes.h"
 
 #include "Data/DataError.h"
@@ -13,9 +11,9 @@
 #include <optional>
 #include <vector>
 
+// Client::Data::Terrain::LoadTerrainAttributes: EncTerrain.att, con archivos sintéticos.
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Terrain::CellIndex;
 using Client::Data::Terrain::LoadTerrainAttributes;
@@ -169,5 +167,4 @@ TEST(TerrainAttributesTest, TheWitnessCellIsNotChecked)
     ASSERT_TRUE(loaded.HasValue());
     EXPECT_EQ(loaded.Value()->cells[WitnessCellOfWorld1], 0);
 }
-
 } // namespace

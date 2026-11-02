@@ -1,6 +1,3 @@
-// EncTerrain.map reales: los de la carpeta golden y, si está, el volcado de la memoria del original
-// (Client/tests/support/GoldenDir.h).
-
 #include "Data/Terrain/TerrainMapping.h"
 
 #include "Data/Terrain/TerrainGrid.h"
@@ -19,9 +16,10 @@
 #include <string_view>
 #include <vector>
 
+// EncTerrain.map reales: los de la carpeta golden y, si está, el volcado de la memoria del original
+// (Client/tests/support/GoldenDir.h).
 namespace
 {
-
 using Client::Data::Terrain::LoadTerrainMapping;
 using Client::Data::Terrain::TerrainCellCount;
 using Client::Data::Terrain::TerrainMapping;
@@ -130,5 +128,4 @@ TEST_F(MemoryTerrainMapping, EqualsTheOriginalsMemoryInLorencia)
 {
     ExpectTheOriginalsMemory(LorenciaCapture, "lor_l2l1.bin", "lor_alpha.bin");
 }
-
 } // namespace

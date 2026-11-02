@@ -1,6 +1,3 @@
-// La regla de la carpeta golden (pregunta 2 del plan CL0): sin variable se saltea, con una
-// carpeta que no existe falla.
-
 #include "support/GoldenDir.h"
 
 #include <gtest/gtest.h>
@@ -12,9 +9,10 @@
 #include <string>
 #include <system_error>
 
+// La regla de la carpeta golden (pregunta 2 del plan CL0): sin variable se saltea, con una
+// carpeta que no existe falla.
 namespace
 {
-
 namespace fs = std::filesystem;
 using Client::Tests::CheckDump;
 using Client::Tests::CheckGoldenDir;
@@ -86,5 +84,4 @@ TEST(GoldenDirTest, TheExtensionIgnoresTheCase)
     EXPECT_FALSE(HasExtension("Data/ozj", ".ozj"));
     EXPECT_FALSE(HasExtension("a.ozjx", ".ozj"));
 }
-
 } // namespace

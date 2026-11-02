@@ -1,7 +1,3 @@
-// Cómo imprime GoogleTest los enums de Client::Network en un mensaje: sin esto, un
-// std::optional<PacketError> sale como "(1-byte object <01>)". GoogleTest busca PrintTo en el
-// namespace del tipo, así que cada uno va en el suyo.
-
 #pragma once
 
 #include "Network/Crypto/CryptoError.h"
@@ -11,9 +7,11 @@
 
 #include <ostream>
 
+// Cómo imprime GoogleTest los enums de Client::Network en un mensaje: sin esto, un
+// std::optional<PacketError> sale como "(1-byte object <01>)". GoogleTest busca PrintTo en el
+// namespace del tipo, así que cada uno va en el suyo.
 namespace Client::Network
 {
-
 inline void PrintTo(PacketError error, std::ostream* out)
 {
     switch (error)
@@ -58,12 +56,10 @@ inline void PrintTo(SerialCheck check, std::ostream* out)
     }
     *out << "SerialCheck fuera del enum";
 }
-
 } // namespace Client::Network
 
 namespace Client::Network::Crypto
 {
-
 inline void PrintTo(CryptoError error, std::ostream* out)
 {
     switch (error)
@@ -95,5 +91,4 @@ inline void PrintTo(CryptoError error, std::ostream* out)
     }
     *out << "CryptoError fuera del enum";
 }
-
 } // namespace Client::Network::Crypto

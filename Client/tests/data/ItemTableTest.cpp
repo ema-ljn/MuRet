@@ -1,5 +1,3 @@
-// Client::Data::Tables::LoadItemTable: Item.bmd, con archivos sintéticos.
-
 #include "Data/Tables/ItemTable.h"
 
 #include "Data/DataError.h"
@@ -15,9 +13,9 @@
 #include <span>
 #include <vector>
 
+// Client::Data::Tables::LoadItemTable: Item.bmd, con archivos sintéticos.
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Tables::ChecksumParity;
 using Client::Data::Tables::ItemChecksumKey;
@@ -136,5 +134,4 @@ TEST(ItemTableTest, ExtraBytesAreIgnored)
     EXPECT_TRUE(loaded.Value().checksumMatches);
     EXPECT_EQ(loaded.Value().table.Count(), ItemCount);
 }
-
 } // namespace

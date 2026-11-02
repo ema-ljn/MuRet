@@ -1,9 +1,3 @@
-// DecodeJpeg contra la IJG libjpeg 6b en los OZJ reales. lab-6b.txt dice lo que da la 6b de cada
-// OZJ de la carpeta golden, decodificado como lo hace el original: el tamaño, los bytes por píxel y
-// un hash de los píxeles (Client/tests/vectors/jpeg/README.md). Acá se le pide lo mismo a
-// DecodeJpeg, que usa libjpeg-turbo: es la prueba de que turbo da los bytes de la 6b en el
-// laboratorio (CODING_RULES.md §10), y la que tiene que pasar al cambiar de versión de turbo.
-
 #include "Data/Textures/JpegImage.h"
 
 #include "Data/DataError.h"
@@ -29,9 +23,13 @@
 #include <system_error>
 #include <vector>
 
+// DecodeJpeg contra la IJG libjpeg 6b en los OZJ reales. lab-6b.txt dice lo que da la 6b de cada
+// OZJ de la carpeta golden, decodificado como lo hace el original: el tamaño, los bytes por píxel y
+// un hash de los píxeles (Client/tests/vectors/jpeg/README.md). Acá se le pide lo mismo a
+// DecodeJpeg, que usa libjpeg-turbo: es la prueba de que turbo da los bytes de la 6b en el
+// laboratorio (CODING_RULES.md §10), y la que tiene que pasar al cambiar de versión de turbo.
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Textures::DecodeJpeg;
 using Client::Tests::Fnv1a64;
@@ -162,11 +160,11 @@ TEST_F(GoldenJpegImage, TheLab6bListHasEveryOzjOfTheLab)
     std::vector<std::string> found;
     // Sin error_code: si no se puede recorrer la carpeta, el iterador tira filesystem_error y el
     // test falla con su mensaje.
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(dataRoot))
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(m_dataRoot))
     {
         if (entry.is_regular_file() && HasExtension(entry.path(), ".ozj"))
         {
-            found.push_back(entry.path().lexically_relative(dataRoot).generic_string());
+            found.push_back(entry.path().lexically_relative(m_dataRoot).generic_string());
         }
     }
     std::ranges::sort(listed);
@@ -220,5 +218,4 @@ TEST_F(GoldenJpegImage, DecodesEveryOzjOfTheLabLikeTheLibjpeg6b)
         EXPECT_EQ(Hex(Fnv1a64(std::as_bytes(std::span(decoded.Value().pixels)))), Hex(entry.hash)) << entry.path;
     }
 }
-
 } // namespace

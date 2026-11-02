@@ -1,6 +1,3 @@
-// Item.bmd real: el de la carpeta golden y, si está, el volcado de la memoria del original
-// (Client/tests/support/GoldenDir.h).
-
 #include "Data/Tables/ItemTable.h"
 
 #include "support/FileBytes.h"
@@ -16,9 +13,10 @@
 #include <string_view>
 #include <vector>
 
+// Item.bmd real: el de la carpeta golden y, si está, el volcado de la memoria del original
+// (Client/tests/support/GoldenDir.h).
 namespace
 {
-
 using Client::Data::Tables::ItemCount;
 using Client::Data::Tables::ItemTableSize;
 using Client::Data::Tables::LoadItemTable;
@@ -82,5 +80,4 @@ TEST_F(MemoryItemTable, EqualsTheOriginalsMemory)
     ASSERT_TRUE(loaded.HasValue());
     EXPECT_EQ(FirstRecordThatDiffers(loaded.Value().table, std::as_bytes(std::span(*memory))), std::nullopt);
 }
-
 } // namespace

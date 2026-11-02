@@ -1,7 +1,3 @@
-// Ayudas para los tests de las tablas .bmd de registros de largo fijo (Gate, Item, Skill): armar
-// un archivo sintético como lo escribe el original, y comparar una tabla cargada con la memoria
-// del original.
-
 #pragma once
 
 #include "Data/Tables/RecordTable.h"
@@ -14,9 +10,11 @@
 #include <span>
 #include <vector>
 
+// Ayudas para los tests de las tablas .bmd de registros de largo fijo (Gate, Item, Skill): armar
+// un archivo sintético como lo escribe el original, y comparar una tabla cargada con la memoria
+// del original.
 namespace Client::Tests
 {
-
 // Lo que habría en el archivo: cada registro cifrado con XOR3 desde su principio, como el escritor
 // del original. Los bytes que no llegan a un registro quedan como están.
 inline std::vector<std::byte> EncryptRecords(std::vector<std::byte> records, std::size_t recordSize)
@@ -64,5 +62,4 @@ std::optional<std::size_t> FirstRecordThatDiffers(const Data::Tables::RecordTabl
     }
     return std::nullopt;
 }
-
 } // namespace Client::Tests

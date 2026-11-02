@@ -1,5 +1,3 @@
-// Client::Data::Text: la tabla de Text.bmd, con archivos sintéticos.
-
 #include "Data/Text/TextTable.h"
 
 #include "Core/Xor3.h"
@@ -15,9 +13,9 @@
 #include <utility>
 #include <vector>
 
+// Client::Data::Text: la tabla de Text.bmd, con archivos sintéticos.
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Text::LoadTextTable;
 using Client::Data::Text::TextCount;
@@ -154,5 +152,4 @@ TEST(TextTableTest, ExtraBytesAreIgnored)
     EXPECT_EQ(loaded.Value().Text(TextCount - 1), "el último");
     EXPECT_EQ(loaded.Value().Text(TextCount), std::nullopt);
 }
-
 } // namespace

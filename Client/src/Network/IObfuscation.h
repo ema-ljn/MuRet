@@ -1,3 +1,12 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Network/ObfuscationError.h"
+#include "Network/Packet.h"
+
+#include <cstddef>
+#include <span>
+
 // La capa que se pone entre el cable y el cliente cuando el servidor espera otra forma de los
 // paquetes: el XOR de lo que llega, y las traducciones de formato que hace FoxAnti en cada sentido.
 // Contrato: Client/docs/research/03-red-y-cifrado.md, "La capa de FoxAnti", y el plan de la CL2
@@ -12,23 +21,12 @@
 // el paquete (con el XOR32 si lo lleva); si va cifrado, EncryptPacket llama a BeforeEncrypt antes
 // de cifrar; y todo lo que sale pasa por BeforeSend. AfterCut, BeforeDispatch y BeforeSend los
 // llama la conexión (CL4).
-
-#pragma once
-
-#include "Core/Expected.h"
-#include "Network/ObfuscationError.h"
-#include "Network/Packet.h"
-
-#include <cstddef>
-#include <span>
-
 namespace Client::Network
 {
-
-class Obfuscation
+class IObfuscation
 {
 public:
-    virtual ~Obfuscation() = default;
+    virtual ~IObfuscation() = default;
 
     // S->C: el XOR que lleva cada byte del paquete que empieza con este byte del cable; 0 si no
     // lleva.
@@ -48,15 +46,14 @@ public:
     [[nodiscard]] virtual Packet BeforeSend(Packet packet) const = 0;
 
 protected:
-    // Se copia y se mueve solo desde una clase hija. Copiar un Obfuscation entero ya no se puede,
-    // porque es abstracta; lo que esto evita es asignar a través de dos Obfuscation&, que copiaría
+    // Se copia y se mueve solo desde una clase hija. Copiar un IObfuscation entero ya no se puede,
+    // porque es abstracta; lo que esto evita es asignar a través de dos IObfuscation&, que copiaría
     // solo la parte de la base y dejaría el resto de cada hija como estaba (slicing). Y si un día
     // la base tiene implementaciones por defecto, copiarla tampoco va a compilar.
-    Obfuscation() = default;
-    Obfuscation(const Obfuscation&) = default;
-    Obfuscation& operator=(const Obfuscation&) = default;
-    Obfuscation(Obfuscation&&) = default;
-    Obfuscation& operator=(Obfuscation&&) = default;
+    IObfuscation() = default;
+    IObfuscation(const IObfuscation&) = default;
+    IObfuscation& operator=(const IObfuscation&) = default;
+    IObfuscation(IObfuscation&&) = default;
+    IObfuscation& operator=(IObfuscation&&) = default;
 };
-
 } // namespace Client::Network

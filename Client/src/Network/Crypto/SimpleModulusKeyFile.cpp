@@ -6,10 +6,8 @@
 
 namespace Client::Network::Crypto
 {
-
 namespace
 {
-
 // Un bloque del archivo: un u32 por carril, cada uno con XOR del de la tabla. std::nullopt si no
 // quedan bytes.
 std::optional<Lanes> ReadBlock(Core::ByteReader& reader)
@@ -50,7 +48,6 @@ template <KeyRole Role> Core::Expected<SimpleModulusKey<Role>, CryptoError> Load
     }
     return SimpleModulusKey<Role>::FromLanes(*modulus, *key, *xorKey);
 }
-
 } // namespace
 
 Core::Expected<EncryptionKey, CryptoError> LoadEncryptionKey(std::span<const std::byte> file)
@@ -62,5 +59,4 @@ Core::Expected<DecryptionKey, CryptoError> LoadDecryptionKey(std::span<const std
 {
     return LoadKey<KeyRole::Decrypt>(file);
 }
-
 } // namespace Client::Network::Crypto

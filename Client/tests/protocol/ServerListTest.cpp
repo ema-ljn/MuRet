@@ -1,6 +1,3 @@
-// Client::Protocol::Connection, la lista de servidores: pedirla (F4 02), leerla (F4 06), elegir uno
-// (F4 03) y leer adónde conectarse, con los bytes del cable del 04.
-
 #include "Protocol/Connection/ServerList.h"
 
 #include "Network/Packet.h"
@@ -19,9 +16,10 @@
 #include <cstdint>
 #include <vector>
 
+// Client::Protocol::Connection, la lista de servidores: pedirla (F4 02), leerla (F4 06), elegir uno
+// (F4 03) y leer adónde conectarse, con los bytes del cable del 04.
 namespace
 {
-
 using Client::Protocol::Delivery;
 using Client::Protocol::ProtocolError;
 using Client::Protocol::Connection::ReadServerAddress;
@@ -226,5 +224,4 @@ TEST(ServerListTest, AnotherPacketIsNotAnAddress)
     EXPECT_EQ(ErrorOf(ReadServerAddress(PacketOf(Bytes({0xC1, 0x06, 0xF1, 0x03, 0x06, 0x00})))),
               ProtocolError::WrongPacket);
 }
-
 } // namespace

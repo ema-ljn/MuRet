@@ -1,9 +1,3 @@
-// Client::Data::Tables::TableChecksum: el checksum de Item.bmd y Skill.bmd.
-//
-// Los valores esperados son los de mu-client/tests/assets/test_bmd_tables.c, que los sacó de
-// assets_reference.py del laboratorio. El de dos dwords a mano es la actividad 12 de la guía de la
-// CL1.0: queda para que lo agregues vos.
-
 #include "Data/Tables/TableChecksum.h"
 
 #include "support/BytePattern.h"
@@ -14,9 +8,13 @@
 #include <span>
 #include <vector>
 
+// Client::Data::Tables::TableChecksum: el checksum de Item.bmd y Skill.bmd.
+//
+// Los valores esperados son los de mu-client/tests/assets/test_bmd_tables.c, que los sacó de
+// assets_reference.py del laboratorio. El de dos dwords a mano es la actividad 12 de la guía de la
+// CL1.0: queda para que lo agregues vos.
 namespace
 {
-
 using Client::Data::Tables::ChecksumParity;
 using Client::Data::Tables::ItemChecksumKey;
 using Client::Data::Tables::SkillChecksumKey;
@@ -79,5 +77,4 @@ TEST(TableChecksumTest, ParityMatters)
     EXPECT_NE(TableChecksum(sequence, ItemChecksumKey, ChecksumParity::XorOddDwords),
               TableChecksum(sequence, ItemChecksumKey, ChecksumParity::XorEvenDwords));
 }
-
 } // namespace

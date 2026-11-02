@@ -1,9 +1,3 @@
-// Claves del SimpleModulus para los tests: la identidad de mu-client y dos pares sintéticos,
-// escritos como literales. Las reales están en los archivos de clave (KeyFiles.h).
-//
-// Encryption() y Decryption() arman una clave que tiene que servir: si FromLanes la rechaza, el
-// test falla y Value() corta el programa con un mensaje. Es un error del literal, no del código.
-
 #pragma once
 
 #include "Network/Crypto/SimpleModulus.h"
@@ -12,9 +6,13 @@
 
 #include <utility>
 
+// Claves del SimpleModulus para los tests: la identidad de mu-client y dos pares sintéticos,
+// escritos como literales. Las reales están en los archivos de clave (KeyFiles.h).
+//
+// Encryption() y Decryption() arman una clave que tiene que servir: si FromLanes la rechaza, el
+// test falla y Value() corta el programa con un mensaje. Es un error del literal, no del código.
 namespace Client::Tests
 {
-
 inline Network::Crypto::EncryptionKey Encryption(const Network::Crypto::Lanes& modulus,
                                                  const Network::Crypto::Lanes& key,
                                                  const Network::Crypto::Lanes& xorKey)
@@ -69,5 +67,4 @@ inline KeyPair Pair18()
     return PairOf({0x24063, 0x3EC45, 0x2E467, 0x3AE38}, {0x6AE1, 0xBDB9, 0xE98F, 0xF5E3},
                   {0x27BB, 0x24B9, 0x1819, 0x235B}, {0x1357, 0x2468, 0x9BDF, 0xACE0});
 }
-
 } // namespace Client::Tests

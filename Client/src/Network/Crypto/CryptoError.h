@@ -1,17 +1,15 @@
+#pragma once
+
+#include <cstdint>
+
 // Lo que puede fallar al cargar una clave del SimpleModulus, el cifrado de los C3/C4, y al cifrar o
 // descifrar un paquete con ella.
 // Contrato: Client/docs/research/03-red-y-cifrado.md, "C3/C4", y el plan de la CL2 (CL2.3).
 // InvalidKey corrige un bug del original: Q-C41 en 07-quirks-y-bugs.md. De los del descifrado,
 // ChecksumMismatch es donde el original también mira (0x685b30 devuelve -1), y NotWholeBlocks,
 // InvalidBlock y TooShort, donde sigue sin mirar (03, "C3/C4").
-
-#pragma once
-
-#include <cstdint>
-
 namespace Client::Network::Crypto
 {
-
 enum class CryptoError : std::uint8_t
 {
     InvalidKeyFile,   // otro magic, otro tamaño declarado, o menos bytes que los que declara
@@ -23,5 +21,4 @@ enum class CryptoError : std::uint8_t
     TooShort,         // lo descifrado no trae el serial y el opcode
     TooLarge,         // cifrado, el paquete pasaría de MaxPacketSize
 };
-
 } // namespace Client::Network::Crypto

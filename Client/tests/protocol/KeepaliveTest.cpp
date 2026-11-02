@@ -1,6 +1,3 @@
-// Client::Protocol::Connection, el keepalive 0E: el ajuste de las velocidades y los cinco fixtures
-// de mu-client.
-
 #include "Protocol/Connection/Keepalive.h"
 
 #include "Network/Crypto/Xor32.h"
@@ -23,9 +20,10 @@
 #include <string_view>
 #include <vector>
 
+// Client::Protocol::Connection, el keepalive 0E: el ajuste de las velocidades y los cinco fixtures
+// de mu-client.
 namespace
 {
-
 using Client::Network::EncryptPacket;
 using Client::Network::Packet;
 using Client::Network::PacketSerials;
@@ -158,5 +156,4 @@ TEST(KeepaliveTest, PutsEachFieldAtItsOffset)
     EXPECT_TRUE(
         SameBytes(plain.Bytes(), Bytes({0xC1, 0x0C, 0x0E, 0x00, 0xD0, 0xC0, 0xB0, 0xA0, 0x28, 0x03, 0x68, 0x02})));
 }
-
 } // namespace

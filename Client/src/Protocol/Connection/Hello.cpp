@@ -11,13 +11,10 @@
 
 namespace Client::Protocol::Connection
 {
-
 namespace
 {
-
 // El saludo llega en un C1.
 constexpr PacketKind HelloKind{Network::PacketType::C1, JoinOpcode, HelloSubcode};
-
 } // namespace
 
 Core::Expected<ServerHello, ProtocolError> ReadServerHello(const Network::Packet& packet)
@@ -40,5 +37,4 @@ Core::Expected<ServerHello, ProtocolError> ReadServerHello(const Network::Packet
                            [](std::byte value) { return std::to_integer<char>(value); });
     return hello;
 }
-
 } // namespace Client::Protocol::Connection

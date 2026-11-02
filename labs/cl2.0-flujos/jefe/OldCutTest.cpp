@@ -1,15 +1,3 @@
-// Jefe de la CL2.0 (docs/learning/ola-cl2.0-flujos-y-bloques.md, actividad 13): Q-C03, el corte del
-// original que lee bytes viejos (Client/docs/research/07-quirks-y-bugs.md).
-//
-// OldCut es un modelo chico de la lectura y el corte de main.exe (0x4e88a0 y 0x4e893d), escrito a
-// partir de RecvBuffer en red_reference.py (repo de research,
-// client-research/analysis/mainexe/scripts/). No es código para el cliente: muestra el bug, y los
-// tests dicen qué hace el FrameCutter con el mismo flujo.
-//
-// El modelo deja afuera el hook de FoxAnti: en el original, 0x4e8938 salta a 0x6b7cb0, que llama a
-// [0x6b7d00] y pisa +0x4014 con lo que devuelve, antes del corte. Es lo que hace selftest de
-// red_reference.py con hook=None, y lo de FoxAnti va en la CL2.4.
-
 #include "FrameCutter.h"
 
 #include "FrameBytes.h"
@@ -26,9 +14,19 @@
 #include <utility>
 #include <vector>
 
+// Jefe de la CL2.0 (docs/learning/ola-cl2.0-flujos-y-bloques.md, actividad 13): Q-C03, el corte del
+// original que lee bytes viejos (Client/docs/research/07-quirks-y-bugs.md).
+//
+// OldCut es un modelo chico de la lectura y el corte de main.exe (0x4e88a0 y 0x4e893d), escrito a
+// partir de RecvBuffer en red_reference.py (repo de research,
+// client-research/analysis/mainexe/scripts/). No es código para el cliente: muestra el bug, y los
+// tests dicen qué hace el FrameCutter con el mismo flujo.
+//
+// El modelo deja afuera el hook de FoxAnti: en el original, 0x4e8938 salta a 0x6b7cb0, que llama a
+// [0x6b7d00] y pisa +0x4014 con lo que devuelve, antes del corte. Es lo que hace selftest de
+// red_reference.py con hook=None, y lo de FoxAnti va en la CL2.4.
 namespace
 {
-
 using Labs::Frame;
 using Labs::FrameCutter;
 using Labs::Tests::Bytes;
@@ -62,20 +60,20 @@ public:
     {
         // 0x4e88af: con el buffer lleno lo anota en MuError.log (0x41fa40) y vuelve sin llamar a
         // recv. El modelo cuenta esas anotaciones para que un test vea que pasó por acá.
-        if (count >= ReceiveCapacity)
+        if (m_count >= ReceiveCapacity)
         {
-            ++overflowLogs;
+            ++m_overflowLogs;
             return ReadResult::NotRead;
         }
         // recv devuelve 0 cuando el otro lado cerró. Más que el lugar libre no pasa en el
         // original (recv pide 0x2000 - n); acá se rechaza para no escribir fuera del buffer.
-        if (chunk.empty() || chunk.size() > ReceiveCapacity - count)
+        if (chunk.empty() || chunk.size() > ReceiveCapacity - m_count)
         {
             return ReadResult::NotRead;
         }
-        std::ranges::copy(chunk, buffer.begin() + static_cast<std::ptrdiff_t>(count));
-        count += chunk.size();
-        if (count < MinBytesToCut)
+        std::ranges::copy(chunk, m_buffer.begin() + static_cast<std::ptrdiff_t>(m_count));
+        m_count += chunk.size();
+        if (m_count < MinBytesToCut)
         {
             return ReadResult::NeedMore;
         }
@@ -86,25 +84,25 @@ public:
     // Los paquetes que el corte puso en la cola (0x4e8f70), en orden.
     [[nodiscard]] const std::vector<Frame>& Queue() const
     {
-        return queue;
+        return m_queue;
     }
 
     // Los bytes que el original cree que tiene sin cortar (+0x4014).
     [[nodiscard]] std::size_t Count() const
     {
-        return count;
+        return m_count;
     }
 
     // Cuántas veces vio el buffer lleno y lo anotó en el log.
     [[nodiscard]] std::size_t OverflowLogs() const
     {
-        return overflowLogs;
+        return m_overflowLogs;
     }
 
     // Los primeros n bytes del buffer, para ver qué se corrió al principio y qué no.
     [[nodiscard]] Frame Prefix(std::size_t n) const
     {
-        return {buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(n)};
+        return {m_buffer.begin(), m_buffer.begin() + static_cast<std::ptrdiff_t>(n)};
     }
 
 private:
@@ -114,7 +112,7 @@ private:
         std::size_t offset = 0;
         while (true)
         {
-            const std::byte type = buffer[offset];
+            const std::byte type = m_buffer[offset];
             std::size_t size = 0;
             if (type == Labs::TypeC1 || type == Labs::TypeC3)
             {
@@ -126,28 +124,28 @@ private:
             }
             else
             {
-                count = 0; // 0x4e89ca: cabecera inválida, descarta todo
+                m_count = 0; // 0x4e89ca: cabecera inválida, descarta todo
                 return;
             }
             if (size == 0)
             {
                 return; // 0x4e897b, jle: sale sin correr lo que quedaba al principio
             }
-            if (size > count)
+            if (size > m_count)
             {
                 // 0x4e89dd: el resto parcial se corre al principio, si no estaba ahí ya (el original
                 // también mira que quede al menos un byte, que acá siempre queda).
                 if (offset > 0)
                 {
-                    std::memmove(buffer.data(), buffer.data() + offset, count);
+                    std::memmove(m_buffer.data(), m_buffer.data() + offset, m_count);
                 }
                 return;
             }
-            const auto begin = buffer.begin() + static_cast<std::ptrdiff_t>(offset);
-            queue.emplace_back(begin, begin + static_cast<std::ptrdiff_t>(size));
-            count -= size;
+            const auto begin = m_buffer.begin() + static_cast<std::ptrdiff_t>(offset);
+            m_queue.emplace_back(begin, begin + static_cast<std::ptrdiff_t>(size));
+            m_count -= size;
             offset += size;
-            if (count == 0)
+            if (m_count == 0)
             {
                 return;
             }
@@ -156,16 +154,16 @@ private:
 
     [[nodiscard]] std::size_t ByteAt(std::size_t index) const
     {
-        return std::to_integer<std::size_t>(buffer[index]);
+        return std::to_integer<std::size_t>(m_buffer[index]);
     }
 
     // El buffer de 0x2000 y 2 bytes más. Un paquete empieza como mucho en 0x1FFF, y el corte lee
     // hasta offset + 2. En el original esos dos bytes son el contador de +0x4014, que está justo
     // después del buffer; acá quedan en 0.
-    std::array<std::byte, ReceiveCapacity + 2> buffer{};
-    std::size_t count = 0;
-    std::size_t overflowLogs = 0;
-    std::vector<Frame> queue;
+    std::array<std::byte, ReceiveCapacity + 2> m_buffer{};
+    std::size_t m_count = 0;
+    std::size_t m_overflowLogs = 0;
+    std::vector<Frame> m_queue;
 };
 
 // El caso 1b de red_reference.py: los dos paquetes del caso 1, partidos después de C2 00.
@@ -298,5 +296,4 @@ TEST(OldCutTest, WaitsWithLessThanThreeBytesAndDoesNotReadAnEmptyRead)
     EXPECT_EQ(cut.OnRead(Frame{}), OldCut::ReadResult::NotRead);
     EXPECT_EQ(cut.OverflowLogs(), 0u);
 }
-
 } // namespace

@@ -1,11 +1,3 @@
-// Client::Network::FoxAntiObfuscation: la capa de paquetes de FoxAnti, con los ejemplos del cable
-// del 03, la máscara por paquete en el PacketReader (Q-C18), los remapeos, la ida y vuelta de los
-// códigos de servidor (Q-C17) y los largos que el original no mira (Q-C09). Plan de la CL2, CL2.4.
-//
-// Lo que se espera de cada traducción sale de la FoxAnti mínima (analysis/foxanti/minimal/src/
-// packet.c en el repo de research) compilada en el host con tests/vectors/net/tools/
-// foxanti_cases.c: los nombres de los casos (A1, B.1E.iv, ...) son los de ese programa.
-
 #include "Network/FoxAntiObfuscation.h"
 
 #include "Network/Crypto/SimpleModulus.h"
@@ -38,9 +30,15 @@
 #include <utility>
 #include <vector>
 
+// Client::Network::FoxAntiObfuscation: la capa de paquetes de FoxAnti, con los ejemplos del cable
+// del 03, la máscara por paquete en el PacketReader (Q-C18), los remapeos, la ida y vuelta de los
+// códigos de servidor (Q-C17) y los largos que el original no mira (Q-C09). Plan de la CL2, CL2.4.
+//
+// Lo que se espera de cada traducción sale de la FoxAnti mínima (analysis/foxanti/minimal/src/
+// packet.c en el repo de research) compilada en el host con tests/vectors/net/tools/
+// foxanti_cases.c: los nombres de los casos (A1, B.1E.iv, ...) son los de ese programa.
 namespace
 {
-
 using Client::Network::DecryptPacket;
 using Client::Network::EncryptPacket;
 using Client::Network::FoxAntiObfuscation;
@@ -439,10 +437,10 @@ TEST(FoxAntiObfuscationTest, AReaderMovedFromInTheMiddleOfAMaskedPacketStartsOve
 }
 
 // Un lector guarda un puntero a su ofuscación, así que no acepta una temporal, que moriría antes
-// que él. Una Obfuscation tampoco se asigna a través de la base; una hija sí se copia.
+// que él. Una IObfuscation tampoco se asigna a través de la base; una hija sí se copia.
 static_assert(!std::is_constructible_v<PacketReader, FoxAntiObfuscation>);
 static_assert(std::is_constructible_v<PacketReader, const FoxAntiObfuscation&>);
-static_assert(!std::is_copy_assignable_v<Client::Network::Obfuscation>);
+static_assert(!std::is_copy_assignable_v<Client::Network::IObfuscation>);
 static_assert(std::is_copy_constructible_v<FoxAntiObfuscation>);
 
 // --- Los remapeos, contra la FoxAnti mínima ---
@@ -933,5 +931,4 @@ TEST(FoxAntiObfuscationTest, BeforeEncryptRemapsAnOpcodeWithNothingAfterIt)
 
     EXPECT_TRUE(SameBytes(serialAndOpcode, Bytes({0x10, 0x1D})));
 }
-
 } // namespace

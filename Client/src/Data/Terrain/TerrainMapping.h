@@ -1,3 +1,15 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Data/DataError.h"
+#include "Data/Terrain/TerrainGrid.h"
+
+#include <bit>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <span>
+
 // EncTerrain<N>.map, las capas de tiles de un mundo (Client/docs/research/05-formatos-de-datos.md,
 // "Terreno de un mundo"; en el original, el cargador de 0x5f87b0). Se lee de
 // Data\World<N>\EncTerrain<N>.map.
@@ -17,22 +29,8 @@
 // Si el archivo no está, el original carga el mundo igual, con valores por defecto y sin avisar
 // (L1 = 0, L2 = 0xFF, alfa = 0; Q-C27). Eso es de quien abre el archivo, en la CL7, como la tabla
 // de rand() que llena el mismo 0x5f8300.
-
-#pragma once
-
-#include "Core/Expected.h"
-#include "Data/DataError.h"
-#include "Data/Terrain/TerrainGrid.h"
-
-#include <bit>
-#include <cstddef>
-#include <cstdint>
-#include <memory>
-#include <span>
-
 namespace Client::Data::Terrain
 {
-
 // El byte con el número del mundo, el que devuelve el cargador del original (0x5f88b5).
 inline constexpr std::size_t TerrainMappingWorldOffset = 1;
 // Dónde empieza cada capa en el archivo, después de los 2 bytes de cabecera y una detrás de la
@@ -77,5 +75,4 @@ struct TerrainMapping
 //     igual, y es el que llama el que muestra "%s file corrupted." y cierra el juego.
 Core::Expected<std::unique_ptr<TerrainMapping>, DataError> LoadTerrainMapping(std::span<const std::byte> file,
                                                                               std::uint8_t world);
-
 } // namespace Client::Data::Terrain

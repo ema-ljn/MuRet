@@ -1,6 +1,3 @@
-// Client::Network::Crypto::Xor32: el cifrado encadenado del motor de envío, con los paquetes del
-// cable (04-protocolo.md), el C2 del binario y los vectores de Client/tests/vectors/net/.
-
 #include "Network/Crypto/Xor32.h"
 
 #include "Network/Packet.h"
@@ -21,9 +18,10 @@
 #include <utility>
 #include <vector>
 
+// Client::Network::Crypto::Xor32: el cifrado encadenado del motor de envío, con los paquetes del
+// cable (04-protocolo.md), el C2 del binario y los vectores de Client/tests/vectors/net/.
 namespace
 {
-
 using Client::Network::Packet;
 using Client::Network::PacketWriter;
 using Client::Network::Crypto::Xor32Decode;
@@ -166,5 +164,4 @@ TEST(Xor32Test, EncodeBytesNeverTouchesTheFirstByte)
     Xor32DecodeBytes(fromZero, 0, 0);
     EXPECT_TRUE(SameBytes(fromZero, plain));
 }
-
 } // namespace

@@ -1,5 +1,3 @@
-// Client::Protocol::FieldsAfterSubcode y TextField: qué paquete es, y los textos de largo fijo.
-
 #include "Protocol/PacketFields.h"
 
 #include "Network/Packet.h"
@@ -19,9 +17,9 @@
 #include <utility>
 #include <vector>
 
+// Client::Protocol::FieldsAfterSubcode y TextField: qué paquete es, y los textos de largo fijo.
 namespace
 {
-
 using Client::Network::Packet;
 using Client::Network::PacketType;
 using Client::Protocol::FieldsAfterSubcode;
@@ -125,5 +123,4 @@ TEST(PacketFieldsTest, ATextKeepsItsHighBytes)
     EXPECT_EQ(static_cast<unsigned char>(text[2]), 0x80);
     EXPECT_EQ(TextField(Bytes({0xFF, 0x31, 0xFF})).size(), 3u);
 }
-
 } // namespace

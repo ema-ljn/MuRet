@@ -1,15 +1,13 @@
-// Tests golden de ejemplo: leen el Data\ real de MURET_CLIENT_GOLDEN_DIR y se saltean si no está
-// (Client/tests/support/GoldenDir.h).
-
 #include "support/GoldenDir.h"
 
 #include <gtest/gtest.h>
 
 #include <filesystem>
 
+// Tests golden de ejemplo: leen el Data\ real de MURET_CLIENT_GOLDEN_DIR y se saltean si no está
+// (Client/tests/support/GoldenDir.h).
 namespace
 {
-
 using GoldenDataFiles = Client::Tests::GoldenDataTest;
 
 // Las claves del cifrado C3/C4 (Client/docs/research/03-red-y-cifrado.md, "C3/C4: cifrado por
@@ -31,5 +29,4 @@ TEST_F(GoldenDataFiles, FindsPlayerModelWhateverTheCase)
     ASSERT_TRUE(path.has_value());
     EXPECT_GT(std::filesystem::file_size(*path), 0u);
 }
-
 } // namespace

@@ -19,6 +19,26 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # El formato del C++ del cliente y de los labs, con el .clang-format del repo (el de MuMain). Va
+  # aparte y sin vcpkg: tarda segundos. clang-format-18 es el que da apt en ubuntu-24.04, la misma
+  # versión mayor que se usa a mano. Server/ todavía no pasa: se alinea cuando se toca cada archivo.
+  format:
+    name: Formato (clang-format 18)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: clang-format-18
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format-18
+          clang-format-18 --version
+
+      - name: Verificar el formato
+        run: |
+          git ls-files -z -- 'Client/*.h' 'Client/*.cpp' 'labs/*.h' 'labs/*.cpp' \
+            | xargs -0 clang-format-18 --dry-run --Werror
+
   build:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}

@@ -4,26 +4,23 @@
 
 namespace Labs
 {
-
 namespace
 {
-
 // Dónde empieza el tamaño, después del byte del tipo, y cuánto se corre el byte alto del de un
 // C2/C4, que es big-endian.
 constexpr std::size_t SizeOffset = 1;
 constexpr unsigned BitsPerByte = 8;
-
 } // namespace
 
 std::optional<Frame> FrameCutter::Feed(std::byte value)
 {
-    if (state == State::Failed)
+    if (m_state == State::Failed)
     {
         return std::nullopt;
     }
-    frame.push_back(value);
+    m_frame.push_back(value);
     // Sin default: si se agrega un estado y no se lo atiende acá, -Wswitch avisa.
-    switch (state)
+    switch (m_state)
     {
     case State::Type:
         OnType(value);
@@ -41,70 +38,69 @@ std::optional<Frame> FrameCutter::Feed(std::byte value)
 
 std::optional<CutError> FrameCutter::Error() const
 {
-    return error;
+    return m_error;
 }
 
 std::size_t FrameCutter::Pending() const
 {
-    return frame.size();
+    return m_frame.size();
 }
 
 void FrameCutter::OnType(std::byte value)
 {
     if (value == TypeC1 || value == TypeC3)
     {
-        headerSize = OneByteSizeHeader;
+        m_headerSize = OneByteSizeHeader;
     }
     else if (value == TypeC2 || value == TypeC4)
     {
-        headerSize = TwoByteSizeHeader;
+        m_headerSize = TwoByteSizeHeader;
     }
     else
     {
         Fail(CutError::InvalidType);
         return;
     }
-    state = State::Size;
+    m_state = State::Size;
 }
 
 // Se llama con cada byte del tamaño. Hasta tener la cabecera entera no hay tamaño que mirar: en un
 // C2 el primer byte solo no dice nada.
 void FrameCutter::OnSize()
 {
-    if (frame.size() < headerSize)
+    if (m_frame.size() < m_headerSize)
     {
         return;
     }
-    declaredSize = std::to_integer<std::size_t>(frame[SizeOffset]);
-    if (headerSize == TwoByteSizeHeader)
+    m_declaredSize = std::to_integer<std::size_t>(m_frame[SizeOffset]);
+    if (m_headerSize == TwoByteSizeHeader)
     {
-        declaredSize = (declaredSize << BitsPerByte) | std::to_integer<std::size_t>(frame[SizeOffset + 1]);
+        m_declaredSize = (m_declaredSize << BitsPerByte) | std::to_integer<std::size_t>(m_frame[SizeOffset + 1]);
     }
-    if (declaredSize < headerSize + OpcodeSize)
+    if (m_declaredSize < m_headerSize + OpcodeSize)
     {
         Fail(CutError::SizeTooSmall);
         return;
     }
-    state = State::Body;
+    m_state = State::Body;
 }
 
 // El tamaño cuenta el paquete entero, así que el cuerpo termina cuando frame llega a declaredSize.
 // El paquete sale por movimiento y el corte queda vacío para el siguiente.
 std::optional<Frame> FrameCutter::OnBody()
 {
-    if (frame.size() < declaredSize)
+    if (m_frame.size() < m_declaredSize)
     {
         return std::nullopt;
     }
-    state = State::Type;
-    return std::exchange(frame, Frame{});
+    m_state = State::Type;
+    return std::exchange(m_frame, Frame{});
 }
 
 void FrameCutter::Fail(CutError reason)
 {
-    state = State::Failed;
-    error = reason;
-    frame.clear();
+    m_state = State::Failed;
+    m_error = reason;
+    m_frame.clear();
 }
-
 } // namespace Labs

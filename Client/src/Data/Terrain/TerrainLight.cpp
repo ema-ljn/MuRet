@@ -7,10 +7,8 @@
 
 namespace Client::Data::Terrain
 {
-
 namespace
 {
-
 // El tamaño que acepta MuRet: el de la tabla del original.
 constexpr int TerrainLightSide = static_cast<int>(TerrainSide);
 
@@ -32,7 +30,6 @@ TerrainLightColor ColorOf(const Textures::JpegImage& image, std::size_t x, std::
     }
     return color;
 }
-
 } // namespace
 
 Core::Expected<std::unique_ptr<TerrainLight>, DataError> LoadTerrainLight(std::span<const std::byte> file)
@@ -64,5 +61,4 @@ Core::Expected<std::unique_ptr<TerrainLight>, DataError> LoadTerrainLight(std::s
     }
     return light;
 }
-
 } // namespace Client::Data::Terrain

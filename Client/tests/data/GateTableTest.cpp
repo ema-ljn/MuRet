@@ -1,5 +1,3 @@
-// Client::Data::Tables::LoadGateTable: Gate.bmd, con archivos sintéticos.
-
 #include "Data/Tables/GateTable.h"
 
 #include "Data/DataError.h"
@@ -12,9 +10,9 @@
 #include <optional>
 #include <vector>
 
+// Client::Data::Tables::LoadGateTable: Gate.bmd, con archivos sintéticos.
 namespace
 {
-
 using Client::Data::DataError;
 using Client::Data::Tables::GateCount;
 using Client::Data::Tables::GateRecordSize;
@@ -59,5 +57,4 @@ TEST(GateTableTest, ExtraBytesAreIgnored)
     EXPECT_EQ(loaded.Value().Count(), GateCount);
     EXPECT_EQ(FirstRecordThatDiffers(loaded.Value(), std::span(plain).first(GateTableSize)), std::nullopt);
 }
-
 } // namespace

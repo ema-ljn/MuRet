@@ -1,6 +1,3 @@
-// Client::Network::IdentityObfuscation: no toca nada, y es la que usan el PacketReader y
-// EncryptPacket cuando no les pasan otra (plan de la CL2, CL2.4).
-
 #include "Network/IdentityObfuscation.h"
 
 #include "Network/Crypto/SimpleModulus.h"
@@ -23,9 +20,10 @@
 #include <utility>
 #include <vector>
 
+// Client::Network::IdentityObfuscation: no toca nada, y es la que usan el PacketReader y
+// EncryptPacket cuando no les pasan otra (plan de la CL2, CL2.4).
 namespace
 {
-
 using Client::Network::EncryptPacket;
 using Client::Network::IdentityObfuscation;
 using Client::Network::Packet;
@@ -132,5 +130,4 @@ TEST(IdentityObfuscationTest, TheSharedOneIsAlwaysTheSame)
 {
     EXPECT_EQ(&IdentityObfuscation::Shared(), &IdentityObfuscation::Shared());
 }
-
 } // namespace

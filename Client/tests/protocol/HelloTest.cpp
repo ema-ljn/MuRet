@@ -1,5 +1,3 @@
-// Client::Protocol::Connection::ReadServerHello: el saludo F1 00 del GameServer.
-
 #include "Protocol/Connection/Hello.h"
 
 #include "Network/Packet.h"
@@ -17,9 +15,9 @@
 #include <string_view>
 #include <vector>
 
+// Client::Protocol::Connection::ReadServerHello: el saludo F1 00 del GameServer.
 namespace
 {
-
 using Client::Protocol::ClientVersion;
 using Client::Protocol::ProtocolError;
 using Client::Protocol::Connection::HelloAccepted;
@@ -106,5 +104,4 @@ TEST(HelloTest, AnotherPacketIsNotAHello)
                   PacketOf(Bytes({0xC1, 0x0C, 0xF3, 0x00, 0x01, 0x00, 0x05, 0x31, 0x30, 0x32, 0x30, 0x39})))),
               ProtocolError::WrongPacket);
 }
-
 } // namespace

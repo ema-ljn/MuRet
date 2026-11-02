@@ -1,5 +1,3 @@
-// Client::Data::Terrain::DecryptK16: el cifrado de los archivos de terreno.
-
 #include "Data/Terrain/K16.h"
 
 #include "support/BytePattern.h"
@@ -10,9 +8,9 @@
 #include <cstddef>
 #include <vector>
 
+// Client::Data::Terrain::DecryptK16: el cifrado de los archivos de terreno.
 namespace
 {
-
 using Client::Data::Terrain::DecryptK16;
 using Client::Tests::BytePattern;
 using Client::Tests::EncryptK16;
@@ -79,5 +77,4 @@ TEST(K16Test, ASecondHalfAloneIsWrongOnlyInItsFirstByte)
     EXPECT_NE(secondHalf[0], plain[16]);
     EXPECT_EQ(std::vector(secondHalf.begin() + 1, secondHalf.end()), std::vector(plain.begin() + 17, plain.end()));
 }
-
 } // namespace

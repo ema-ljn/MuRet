@@ -14,10 +14,8 @@
 
 namespace Client::Protocol::Connection
 {
-
 namespace
 {
-
 // La respuesta del login llega en un C1.
 constexpr PacketKind LoginResultKind{Network::PacketType::C1, JoinOpcode, LoginSubcode};
 
@@ -44,7 +42,6 @@ std::span<const std::byte> BytesOf(std::string_view text)
 {
     return std::as_bytes(std::span(text));
 }
-
 } // namespace
 
 Core::Expected<Outgoing, ProtocolError> WriteLoginRequest(const LoginRequest& request)
@@ -87,5 +84,4 @@ Outgoing WriteDecryptErrorReport()
                            .PutU8(DecryptErrorFirst)
                            .PutU8(DecryptErrorSecond));
 }
-
 } // namespace Client::Protocol::Connection

@@ -1,13 +1,3 @@
-// El PacketReader contra el cable del laboratorio (support/WireCapture.h, MURET_CLIENT_WIRE_DIR):
-// cada lectura entra tal como la devolvió recv, y lo que sale tiene que ser el flujo entero,
-// cortado en paquetes, sin bytes de más.
-//
-// El cable lleva el login del jugador: estos tests cuentan paquetes por tipo y comparan con
-// SameBytesWithoutValues. Ningún mensaje imprime un byte del cable.
-//
-// El S->C del GameServer no está: cada byte lleva el XOR 0xAA de FoxAnti, y se corta con
-// FoxAntiObfuscation en GoldenFoxAntiObfuscationTest.
-
 #include "Network/Packet.h"
 #include "Network/PacketError.h"
 #include "Network/PacketReader.h"
@@ -31,9 +21,17 @@
 #include <string_view>
 #include <vector>
 
+// El PacketReader contra el cable del laboratorio (support/WireCapture.h, MURET_CLIENT_WIRE_DIR):
+// cada lectura entra tal como la devolvió recv, y lo que sale tiene que ser el flujo entero,
+// cortado en paquetes, sin bytes de más.
+//
+// El cable lleva el login del jugador: estos tests cuentan paquetes por tipo y comparan con
+// SameBytesWithoutValues. Ningún mensaje imprime un byte del cable.
+//
+// El S->C del GameServer no está: cada byte lleva el XOR 0xAA de FoxAnti, y se corta con
+// FoxAntiObfuscation en GoldenFoxAntiObfuscationTest.
 namespace
 {
-
 using Client::Network::PacketError;
 using Client::Network::PacketReader;
 using Client::Network::PacketType;
@@ -168,7 +166,7 @@ protected:
         ASSERT_TRUE(file.has_value()) << "no se pudo leer " << CaptureFile;
         auto parsed = ParseWireCapture(std::string_view(file->data(), file->size()));
         ASSERT_TRUE(parsed.HasValue()) << CaptureFile << ": la línea " << parsed.Error().line << " no se entiende";
-        connections = std::move(parsed).Value();
+        m_connections = std::move(parsed).Value();
     }
 
     // Corta el sentido `direction` de cada conexión al puerto `port`, y suma los tipos. Cada corte
@@ -177,9 +175,9 @@ protected:
     {
         TypeCounts total;
         cutConnections = 0;
-        for (std::size_t index = 0; index < connections.size(); ++index)
+        for (std::size_t index = 0; index < m_connections.size(); ++index)
         {
-            const WireConnection& connection = connections[index];
+            const WireConnection& connection = m_connections[index];
             if (connection.port != port)
             {
                 continue;
@@ -201,9 +199,9 @@ protected:
     // contestó el ConnectServer, que tiene los C2.
     template <typename Check> void ForEachClearDirection(Check check) const
     {
-        for (std::size_t index = 0; index < connections.size(); ++index)
+        for (std::size_t index = 0; index < m_connections.size(); ++index)
         {
-            const WireConnection& connection = connections[index];
+            const WireConnection& connection = m_connections[index];
             {
                 SCOPED_TRACE("C->S");
                 check(index, connection, WireDirection::ClientToServer);
@@ -216,7 +214,7 @@ protected:
         }
     }
 
-    std::vector<WireConnection> connections;
+    std::vector<WireConnection> m_connections;
 };
 
 // Que `resplit` dé los mismos paquetes que `asRead`, el flujo tal como llegó. Sin imprimir bytes.
@@ -233,13 +231,13 @@ TEST_F(GoldenPacketReaderCapture, HasTheLabConnections)
 {
     std::size_t connectServer = 0;
     std::size_t gameServer = 0;
-    for (const WireConnection& connection : connections)
+    for (const WireConnection& connection : m_connections)
     {
         connectServer += connection.port == ConnectServerPort ? 1 : 0;
         gameServer += connection.port == GameServerPort ? 1 : 0;
     }
 
-    EXPECT_EQ(connections.size(), 72u);
+    EXPECT_EQ(m_connections.size(), 72u);
     EXPECT_EQ(connectServer, 64u);
     EXPECT_EQ(gameServer, 8u);
 }
@@ -296,5 +294,4 @@ TEST_F(GoldenPacketReaderCapture, ReadsEndingInsideTheNextHeaderGiveTheSamePacke
             });
     }
 }
-
 } // namespace

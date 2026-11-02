@@ -2,7 +2,6 @@
 
 namespace Client::Data::Terrain
 {
-
 Core::Expected<std::unique_ptr<TerrainHeights>, DataError> LoadTerrainHeights(std::span<const std::byte> file,
                                                                               std::uint8_t world)
 {
@@ -21,5 +20,4 @@ Core::Expected<std::unique_ptr<TerrainHeights>, DataError> LoadTerrainHeights(st
     }
     return heights;
 }
-
 } // namespace Client::Data::Terrain

@@ -9,7 +9,6 @@
 
 namespace
 {
-
 using Client::Tests::Fnv1a64;
 
 std::uint64_t HashOf(std::string_view text)
@@ -28,5 +27,4 @@ TEST(Fnv1a64, GivesTheAuthorsValues)
     EXPECT_EQ(HashOf("a"), 0xaf63dc4c8601ec8cU);
     EXPECT_EQ(HashOf("foobar"), 0x85944171f73967e8U);
 }
-
 } // namespace

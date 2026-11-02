@@ -778,7 +778,7 @@ dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
 
   Hecho así: el quirk ya estaba, Q-C44, desde la CL3.R. No se abrió uno nuevo: Q-C44 suma los
   tests y dice que el aviso en el log espera al `Log` de la CL3.4.
-- [ ] **Paso 5 (PR B):** los tests del modo fiel, cada uno con el `FakeClock` en t = 0 y dibujos
+- [x] **Paso 5 (PR B):** los tests del modo fiel, cada uno con el `FakeClock` en t = 0 y dibujos
   de 0 ms salvo que diga otra cosa:
   - `FaithfulPacerTest.TickCountMsFollowsTheGrid`: 0, 15, 31, 46 y 62 en los ticks 0 a 4;
   - `FaithfulPacerTest.SixtyFourFramesEveryThreeSeconds`: 64 frames terminan con el reloj en 3 s
@@ -801,12 +801,31 @@ dar un frame de 62 ms. Los alfas se comparan con `EXPECT_NEAR` (1e-6).
     y el frame siguiente corre 250 pasos;
   - `FaithfulPacerTest.MinimizedKeepsTheWait`: minimizada, 64 frames siguen tardando 3 s y el
     frame 65 empieza con 2 pasos (74 corridos), sin dibujos.
-- [ ] **Paso 6 (PR B):** `TickCountMs`, `FaithfulPacer` y el modo `Faithful` de `GameLoop`; en 07,
+
+  Hecho así, con un test más, `FaithfulPacerTest.DrawsWithAlphaZero` (la fila "dibujo" del
+  contrato). Los tests van por `GameLoop` en `Faithful`, así que prueban el pacer y el orden de
+  `RunFrame` juntos. `EndFrame` duerme hasta el borde del tick siguiente, que es cuando
+  `GetTickCount` cambia, y vuelve a mirar: con el `FakeClock`, 3 sueños por frame. Después de
+  las revisiones suman `TheGetTickCountWrapChangesNothing` (portado del lab),
+  `AClockThatGoesBackKeepsWaiting` (la comparación con signo del JGE de 0x638616) y
+  `TheAccumulatorWrapsLikeTheAdd` (el ADD de 0x638632 da la vuelta como en x86: se suma en
+  `uint32_t`, sin el UB de desbordar un `int32`), y un `static_assert(FaithfulWaitMs == 40)`.
+  `TickCountMs` redondea hacia abajo también con un `now` negativo, que solo da el `FakeClock`.
+- [x] **Paso 6 (PR B):** `TickCountMs`, `FaithfulPacer` y el modo `Faithful` de `GameLoop`; en 07,
   `FaithfulPacerTest.HasNoCap` al lado del test del PR A.
+
+  Hecho así: en Q-C44, con `TimeSpentInStepsIsNotAccumulated` también. `main.cpp` corre el modo
+  fiel con `--pacing faithful`, y sin `--vsync` le pone VSync Off.
 - [ ] **Paso 7:** a mano, en Windows y en Linux: `Main --pacing faithful --stats` da 21,33 FPS y 25
   pasos por segundo, y `Main --vsync off --stats` corre a cientos de FPS con 25 pasos por segundo.
   Anotarlo en el README.
-- [ ] **Paso 8:** verificar:
+
+  En Linux, con Xvfb y llvmpipe (2026-11-02, lo corrió Claude): `--pacing faithful --stats` dio
+  21,38 y 21,33 FPS con 24,98 y 24,92 pasos por segundo, y `--frames 60 --pacing faithful`, 70
+  pasos en 3 s. `--vsync off --stats` dio 2.148 y 2.629 FPS con 24,80 y 25,00 pasos por segundo (el
+  primer aviso incluye el arranque). Xvfb no deja VSync On (no tiene retrazo). Windows queda para
+  Emanuel, y está anotado en el README.
+- [x] **Paso 8:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "FakeClock|FixedStep|GameLoop|FaithfulPacer|CommandLine"
   xvfb-run -a -s '-screen 0 800x600x24' build/linux-x64-debug/Client/Main --frames 60 --vsync off

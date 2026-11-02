@@ -26,7 +26,8 @@
 //
 // Ola CL3.2: la ventana y el contexto GL están en Platform/ (SdlContext, Window, PumpEvents), el
 // reloj es el de SDL (SdlClock) y el bucle es App::GameLoop, con la lógica a 40 ms por paso y el
-// dibujo interpolado. La escena es de prueba: el fondo cambia de color con un ciclo de 32 pasos.
+// dibujo interpolado, o con --pacing faithful, al ritmo del original (FaithfulPacer, VSync
+// apagado). La escena es de prueba: el fondo cambia de color con un ciclo de 32 pasos.
 // Los argumentos están en App/CommandLine.h.
 namespace
 {
@@ -175,11 +176,6 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
     const App::PacingMode pacing = commandLine->pacing.value_or(App::PacingMode::Decoupled);
-    if (pacing == App::PacingMode::Faithful)
-    {
-        std::fprintf(stderr, "MuRet: --pacing faithful todavía no está (llega en el PR B de la CL3.2)\n");
-        return EXIT_FAILURE;
-    }
 
     const Client::Core::Expected<std::unique_ptr<Platform::SdlContext>, std::string> sdl =
         Platform::SdlContext::Create();
@@ -189,7 +185,9 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
     Platform::WindowOptions options;
-    options.vsync = commandLine->vsync.value_or(App::VSyncMode::On);
+    // Sin --vsync, On; en el modo fiel, Off como el original (ParseCommandLine ya rechazó otro).
+    const App::VSyncMode defaultVSync = pacing == App::PacingMode::Faithful ? App::VSyncMode::Off : App::VSyncMode::On;
+    options.vsync = commandLine->vsync.value_or(defaultVSync);
     Client::Core::Expected<Platform::Window, std::string> created = Platform::Window::Create(*sdl.Value(), options);
     if (!created.HasValue())
     {

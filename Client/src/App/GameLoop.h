@@ -1,5 +1,6 @@
 #pragma once
 
+#include "App/FaithfulPacer.h"
 #include "App/FixedStep.h"
 #include "App/ILoopClient.h"
 #include "App/PacingMode.h"
@@ -13,7 +14,8 @@
 // inyectado, así que el mismo bucle corre con el de SDL en Main y con uno falso en los tests.
 //
 // En Decoupled, el frame se mide de un Now() al siguiente, al empezar RunFrame, y va a un
-// FixedStep: el dibujo se interpola con su alfa. El primer frame solo fija el inicio.
+// FixedStep: el dibujo se interpola con su alfa. El primer frame solo fija el inicio. En Faithful,
+// va a un FaithfulPacer: BeginFrame, esos pasos, StartMeasure, el dibujo con alfa 0 y EndFrame.
 namespace Client::App
 {
 // Lo que llevó el bucle hasta ahora, para --stats y para los tests.
@@ -33,20 +35,23 @@ class GameLoop
 {
 public:
     GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode);
-    // Un frame: los pasos que tocan y el dibujo si `state.minimized` es falso. Minimizada, duerme
-    // hasta el próximo paso en vez de girar. Devuelve cuántos pasos corrió.
+    // Un frame: los pasos que tocan y el dibujo si `state.minimized` es falso. Minimizada, en
+    // Decoupled duerme hasta el próximo paso en vez de girar; en Faithful, la espera corre siempre.
+    // Devuelve cuántos pasos corrió.
     int RunFrame(const WindowState& state);
     [[nodiscard]] const FrameStats& Stats() const;
     [[nodiscard]] float LastAlpha() const;
 
 private:
     int RunDecoupled(const WindowState& state);
+    int RunFaithful(const WindowState& state);
     void RunSteps(int steps);
 
     Core::IClock& m_clock;
     ILoopClient& m_client;
     PacingMode m_mode;
     FixedStep m_fixedStep;
+    FaithfulPacer m_pacer;
     // El Now() del frame anterior; vacío antes del primero.
     std::optional<Core::Duration> m_lastNow;
     FrameStats m_stats;

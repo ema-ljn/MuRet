@@ -147,7 +147,8 @@ Tres cosas del original que no se copian:
 
 **Archivos:**
 - Crear: `Client/src/Data/ByteReader.h/.cpp`: la `ByteView` de la CL1.0 llevada a `ClientLib`
-  sobre `std::span` (L-3: en el producto se usa el estándar).
+  sobre `std::span` (L-3: en el producto se usa el estándar). Desde la CL2.1 está en
+  `Client/src/Core/`, con su test en `Client/tests/core/`: la usan también la red y el protocolo.
 - Crear: `Client/src/Data/DataError.h` (`enum class` con lo que puede fallar en esta sub-ola).
 - Crear: `Client/src/Data/Tables/Xor3.h/.cpp` y `Client/src/Data/Tables/TableChecksum.h/.cpp`.
 - Crear: `Client/src/Data/Text/TextTable.h/.cpp`.

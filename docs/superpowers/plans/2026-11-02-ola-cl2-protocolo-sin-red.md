@@ -270,7 +270,7 @@ necesita dos conversiones definidas por el usuario (a `std::optional` y de ahí 
 C++ permite una sola. Se escribe `return std::optional<Packet>{};` y
 `return std::optional<Packet>{std::move(packet)};`.
 
-- [ ] **Paso 1 (PR A):** mover `ByteReader` y sumar `ReadU16Be`. Test: `01 2C` da `0x012C`.
+- [x] **Paso 1 (PR A):** mover `ByteReader` y sumar `ReadU16Be`. Test: `01 2C` da `0x012C`.
 - [ ] **Paso 2:** los tests de `Packet`: `FromBytes` acepta `C1 04 20 AA` y `C2 00 05 52 AA`;
   rechaza `C1 05 20 AA` (`SizeMismatch`), un tipo `C5` (`InvalidType`), nada y `C1 02`
   (`SizeTooSmall`, sin leer un opcode que no está) y un C2 de `0x2001` (`TooLarge`); `Opcode()`

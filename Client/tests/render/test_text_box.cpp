@@ -99,6 +99,25 @@ TEST(TextBoxTest, ABoxStartsAtItsFirstColumn)
     EXPECT_EQ(PixelAt(box, 5, 0), Background);
 }
 
+// 0x467060 no le pasa a TextOutA un texto que empieza con un salto de línea (cmp byte, 0x0a en
+// 0x4671e1): la caja que se ve queda toda con el fondo, sin letras.
+TEST(TextBoxTest, ATextThatStartsWithANewLineIsOnlyItsBackground)
+{
+    const auto box = Paint("\nab", 0, 18, 13);
+
+    constexpr Rgba Background{0, 0, 0, 0x80};
+    for (int row = 0; row < 13; ++row)
+    {
+        for (int column = 0; column < 18; ++column)
+        {
+            EXPECT_EQ(PixelAt(box, column, row), Background) << column << ", " << row;
+        }
+    }
+    EXPECT_EQ(PixelAt(box, 18, 0), (Rgba{0, 0, 0, 0}));
+    // Un salto de línea en el medio no cambia nada: se dibuja como cualquier byte.
+    EXPECT_EQ(PixelAt(Paint("a\nb", 0, 18, 13), 0, 0), (Rgba{0xaa, 0x22, 0x33, 0xff}));
+}
+
 // Solo 0xff es letra, como en 0x465a00 (cmp byte, 0xff): un gris de un rasterizador con suavizado
 // es fondo.
 TEST(TextBoxTest, OnlyFullInkIsText)

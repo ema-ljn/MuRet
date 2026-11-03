@@ -8,6 +8,7 @@
 
 #include "support/GoldenDir.h"
 #include "support/TemporaryFolder.h"
+#include "support/TinyTrueTypeFont.h"
 
 #include <gtest/gtest.h>
 
@@ -179,13 +180,55 @@ TEST_F(FreeTypeRasterizerTest, TheLettersAreInsideTheCell)
     }
 }
 
+// FT_PIXEL_MODE_MONO: el píxel de la izquierda de cada byte es su bit alto, y una fila empieza
+// `pitch` bytes después de la anterior. La "L" lo muestra: la fila de arriba es el palo, del lado
+// izquierdo de la letra, y la de abajo, el pie, que llega más a la derecha. Con los bits leídos al
+// revés, o con otro paso entre filas, la letra sale espejada o corrida.
+TEST_F(FreeTypeRasterizerTest, TheLeftPixelOfAByteIsItsHighBit)
+{
+    for (const int width : {640, 1024, 1280})
+    {
+        const auto rasterizer = OpenFont(width);
+        ASSERT_NE(rasterizer, nullptr);
+        const auto ink = InkOf(*rasterizer, FontKind::Normal, "L");
+
+        // La primera y la última columna con tinta de cada fila.
+        std::vector<std::pair<int, int>> rows;
+        int left = TextBoxWidth;
+        for (int row = 0; row < 32; ++row)
+        {
+            int first = -1;
+            int last = -1;
+            for (int column = 0; column < TextBoxWidth; ++column)
+            {
+                if (ink[static_cast<std::size_t>(row * TextBoxWidth + column)] == 0xff)
+                {
+                    first = first < 0 ? column : first;
+                    last = column;
+                }
+            }
+            if (first >= 0)
+            {
+                rows.emplace_back(first, last);
+                left = std::min(left, first);
+            }
+        }
+        ASSERT_GE(rows.size(), 3u) << width;
+        const auto [topFirst, topLast] = rows.front();
+        const auto [bottomFirst, bottomLast] = rows.back();
+        EXPECT_EQ(topFirst, left) << width;
+        EXPECT_EQ(bottomFirst, left) << width;
+        EXPECT_GT(bottomLast, topLast) << width;
+    }
+}
+
 // Una caja de un texto ancho dibuja desde su columna: la segunda caja de un texto de 300 columnas
 // es la tinta de la primera corrida 256 columnas.
 TEST_F(FreeTypeRasterizerTest, DrawsFromTheFirstColumn)
 {
     const auto rasterizer = OpenFont(640);
     ASSERT_NE(rasterizer, nullptr);
-    const std::string_view text = "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM";
+    const std::string text(64, 'M');
     ASSERT_GT(rasterizer->Measure(FontKind::Normal, text).width, 260);
 
     std::vector<std::uint8_t> whole(TextBoxPixelCount, 0);
@@ -284,5 +327,30 @@ TEST(FreeTypeRasterizerOpenTest, AFileThatIsNotAFontSaysItsPath)
 
     ASSERT_FALSE(opened.HasValue());
     EXPECT_NE(opened.Error().find(Client::Core::PathText(notAFont)), std::string::npos) << opened.Error();
+}
+
+// Una letra sin área, como el guion bajo que el hinting deja en una línea en algunas fuentes:
+// FT_Outline_EmboldenXY no la puede ensanchar (FT_ORIENTATION_NONE) y devuelve un error, que no
+// tiene que hacer fallar Open. La negrita simulada la deja como está, con su píxel de avance. Usa
+// la fuente mínima de support/, sin OS/2 (la celda sale de la hhea): corre sin la variable.
+TEST(FreeTypeRasterizerOpenTest, ALetterWithoutAreaIsBoldToo)
+{
+    const Client::Tests::TemporaryFolder folder("freetype");
+    const std::filesystem::path font = folder.Path() / "minima.ttf";
+    {
+        const std::vector<std::uint8_t> bytes = Client::Tests::TinyTrueTypeFont();
+        std::ofstream file(font, std::ios::binary);
+        file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+    }
+
+    const auto opened = FreeTypeRasterizer::Open(font, std::nullopt, 640);
+
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    const FreeTypeRasterizer& rasterizer = *opened.Value();
+    const std::string flat(1, Client::Tests::FlatGlyphLetter);
+    EXPECT_EQ(rasterizer.Measure(FontKind::Bold, flat).width, rasterizer.Measure(FontKind::Normal, flat).width + 1);
+    EXPECT_EQ(rasterizer.Measure(FontKind::Bold, "a").width, rasterizer.Measure(FontKind::Normal, "a").width + 1);
+    EXPECT_EQ(rasterizer.Measure(FontKind::Normal, flat).height, FontHeightFor(FontKind::Normal, 640));
+    EXPECT_GT(InkCount(InkOf(rasterizer, FontKind::Bold, "a")), InkCount(InkOf(rasterizer, FontKind::Normal, "a")));
 }
 } // namespace

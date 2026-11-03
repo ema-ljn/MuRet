@@ -295,7 +295,9 @@ solo lo lee.
   corta en cajas de 256 columnas; y `FreeTypeRasterizer`, FreeType en un bit con el intérprete v35
   y la celda de la OS/2, detrás de `IGlyphRasterizer`. La fuente sale de `[Video] FontFile` (y de
   `BoldFontFile`), y en los tests, de `MURET_CLIENT_FONT_FILE`. `Text.bmd` es de un byte por letra y
-  se lee como Latin-1 (Q-C67); lo que se aparta de GDI es Q-C76, nuevo.
+  se lee como Latin-1 (Q-C67); lo que se aparta de GDI es Q-C76, nuevo. Con la revisión, una letra
+  sin área ya no hace fallar `Open` con la negrita simulada, y un texto que empieza con un salto de
+  línea queda con su fondo solo, como en `0x467060`.
 
 ## Conceptos
 

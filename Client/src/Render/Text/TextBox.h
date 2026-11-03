@@ -36,7 +36,8 @@ void StoreColor(std::uint32_t color, std::span<std::uint8_t, 4> pixel);
 
 // 0x467060 y 0x465a00 para una caja: el texto dibujado desde la columna `firstColumn` (la caja k de
 // un texto ancho empieza en 256 k), y de él, las `width` columnas y las `rows` filas de arriba a la
-// izquierda, con el color del texto donde hay tinta y el del fondo donde no. El resto de la caja
+// izquierda, con el color del texto donde hay tinta y el del fondo donde no. Un texto que empieza
+// con un salto de línea no se dibuja (0x4671e1): lo que se ve es todo fondo. El resto de la caja
 // queda en 0: el original lo deja como estaba, pero el quad de 0x554000 no lo muestra.
 void PaintTextBox(const IGlyphRasterizer& rasterizer, const TextStyle& style, std::string_view text, int firstColumn,
                   int width, int rows, TextBoxPixels rgba);

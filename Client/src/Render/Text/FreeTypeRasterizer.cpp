@@ -159,10 +159,16 @@ FT_Error LoadGlyph(const Font& font, unsigned char byte)
     if (font.syntheticBold && slot->format == FT_GLYPH_FORMAT_OUTLINE)
     {
         // Ensancha el contorno un píxel hacia la derecha (el borde izquierdo queda donde estaba).
-        const FT_Error embolden = FT_Outline_EmboldenXY(&slot->outline, OnePixel, 0);
-        if (embolden != 0)
+        // Un contorno sin área (el guion bajo de algunas fuentes, que el hinting deja en una línea)
+        // no tiene sentido de giro, y FT_Outline_EmboldenXY lo rechaza: no hay qué ensanchar, y la
+        // letra queda como está, con su píxel de avance.
+        if (FT_Outline_Get_Orientation(&slot->outline) != FT_ORIENTATION_NONE)
         {
-            return embolden;
+            const FT_Error embolden = FT_Outline_EmboldenXY(&slot->outline, OnePixel, 0);
+            if (embolden != 0)
+            {
+                return embolden;
+            }
         }
         slot->advance.x += OnePixel;
     }

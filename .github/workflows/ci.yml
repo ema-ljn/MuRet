@@ -76,7 +76,7 @@ jobs:
       # Lo que el puerto sdl3 de vcpkg pide del sistema para las features x11 y wayland, los
       # headers de OpenGL/EGL, y Xvfb + Mesa (llvmpipe) para abrir la ventana sin pantalla. NASM lo
       # pide el puerto libjpeg-turbo para su SIMD: en Linux, vcpkg no lo baja y usa el del sistema
-      # (en Windows sí lo baja).
+      # (en Windows sí lo baja). clang-tidy-18, para el paso de los includes.
       - name: Paquetes del sistema (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -86,7 +86,8 @@ jobs:
             libwayland-dev libxkbcommon-dev \
             libgl-dev libegl-dev \
             nasm \
-            xvfb libgl1-mesa-dri
+            xvfb libgl1-mesa-dri \
+            clang-tidy-18
 
       # La DejaVu de MURET_CLIENT_FONT_FILE viene en la imagen de ubuntu-24.04; si una imagen nueva
       # no la trae, se instala.
@@ -166,3 +167,21 @@ jobs:
           xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/Client/Main --frames 60
           xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/Client/Main --frames 60 --vsync off
           xvfb-run -a -s '-screen 0 800x600x24' build/${{ matrix.configure-preset }}/Client/Main --frames 60 --pacing faithful
+
+      # Que cada archivo del cliente incluya lo que usa (docs/CODING_RULES.md § 7): el check
+      # misc-include-cleaner de clang-tidy 18, con las opciones y el WarningsAsErrors de
+      # .clang-tidy, así que un hallazgo corta el job. Solo ese check: los otros de .clang-tidy
+      # todavía tienen hallazgos en Client/. Va acá porque este job compila sin precompiled
+      # headers, y lee el compile_commands.json del CMake raíz. Sus comandos son de GCC y
+      # clang-tidy los toma tal cual, sin --extra-arg. include-cleaner mira solo el archivo
+      # principal de cada compilación: los .cpp van con run-clang-tidy, y los headers, que no están
+      # en esa base, de a uno; para cada uno, clang-tidy toma el comando del .cpp más parecido.
+      - name: Includes con clang-tidy (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          clang-tidy-18 --version
+          build=build/${{ matrix.configure-preset }}
+          run-clang-tidy-18 -clang-tidy-binary clang-tidy-18 -p "$build" -quiet \
+            -checks='-*,misc-include-cleaner' 'Client/(src|tests)/'
+          git ls-files -z -- 'Client/src/*.h' 'Client/tests/*.h' \
+            | xargs -0 -P "$(nproc)" -n 8 clang-tidy-18 -p "$build" -quiet -checks='-*,misc-include-cleaner'

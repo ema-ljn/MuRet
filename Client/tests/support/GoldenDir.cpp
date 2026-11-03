@@ -18,6 +18,7 @@ constexpr const char* GoldenDirVariable = "MURET_CLIENT_GOLDEN_DIR";
 constexpr const char* MemoryDirVariable = "MURET_CLIENT_MEMORY_DIR";
 constexpr const char* WireDirVariable = "MURET_CLIENT_WIRE_DIR";
 constexpr const char* FontFileVariable = "MURET_CLIENT_FONT_FILE";
+constexpr const char* GlTraceDirVariable = "MURET_CLIENT_GL_TRACE_DIR";
 } // namespace
 
 namespace Client::Tests
@@ -53,9 +54,9 @@ std::optional<std::filesystem::path> GoldenDir()
 
 namespace
 {
-// La regla, para cualquiera de las tres variables (la de los datos, la de los volcados de memoria y
-// la del cable). GTEST_SKIP() y FAIL() salen de esta función, y GoogleTest no corre el cuerpo de un
-// test que quedó salteado o fallado en su SetUp().
+// La regla, para cualquiera de las carpetas (la de los datos, la de los volcados de memoria, la del
+// cable y la de las trazas). GTEST_SKIP() y FAIL() salen de esta función, y GoogleTest no corre el
+// cuerpo de un test que quedó salteado o fallado en su SetUp().
 void RequireDirectory(const char* variable, std::filesystem::path& dir)
 {
     const std::optional<std::filesystem::path> value = GoldenDirFromValue(Core::ReadEnvironmentVariable(variable));
@@ -71,17 +72,24 @@ void RequireDirectory(const char* variable, std::filesystem::path& dir)
     dir = *value;
 }
 
-// El archivo `name` de la carpeta del cable `root`. Si no está, marca el test como fallado.
-std::optional<std::filesystem::path> FindWireFile(const std::filesystem::path& root, std::string_view name)
+// El archivo `name` de la carpeta `root` (la del cable o la de las trazas, según `what`). Si no está,
+// marca el test como fallado.
+std::optional<std::filesystem::path> FindFile(const std::filesystem::path& root, std::string_view name,
+                                              std::string_view what)
 {
     std::error_code error;
     const std::filesystem::path path = root / name;
     if (!std::filesystem::is_regular_file(path, error))
     {
-        ADD_FAILURE() << "falta " << name << " en la carpeta del cable " << root;
+        ADD_FAILURE() << "falta " << name << " en la carpeta " << what << " " << root;
         return std::nullopt;
     }
     return path;
+}
+
+std::optional<std::filesystem::path> FindWireFile(const std::filesystem::path& root, std::string_view name)
+{
+    return FindFile(root, name, "del cable");
 }
 } // namespace
 
@@ -170,6 +178,21 @@ void GoldenAndWireDataTest::SetUp()
 std::optional<std::filesystem::path> GoldenAndWireDataTest::WireFile(std::string_view name) const
 {
     return FindWireFile(m_wireRoot, name);
+}
+
+void GoldenAndGlTraceTest::SetUp()
+{
+    GoldenDataTest::SetUp();
+    if (IsSkipped() || HasFatalFailure())
+    {
+        return;
+    }
+    RequireDirectory(GlTraceDirVariable, m_traceRoot);
+}
+
+std::optional<std::filesystem::path> GoldenAndGlTraceTest::TraceFile(std::string_view name) const
+{
+    return FindFile(m_traceRoot, name, "de las trazas");
 }
 
 void FontFileTest::SetUp()

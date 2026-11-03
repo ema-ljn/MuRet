@@ -9,8 +9,9 @@ find_package(SDL3 CONFIG REQUIRED)
 # La libjpeg de libjpeg-turbo, para los OZJ (JpegImage.cpp). Se pide la de libjpeg-turbo y no
 # cualquier libjpeg (find_package(JPEG)): es la que se comparó con la 6b del original.
 find_package(libjpeg-turbo CONFIG REQUIRED)
-# glm (vcpkg.json, desde la CL5.0): la matriz del 2D de ClientRender (pregunta 6 de la CL5).
-# Solo los headers: el puerto también arma una biblioteca (glm::glm), que no hace falta.
+# glm (vcpkg.json, desde la CL5.0): la matriz del 2D de ClientRender (pregunta 6 de la CL5) y, desde
+# la CL6.2, los cuaterniones y las matrices de Render/Models/ en ClientLib. Solo los headers: el
+# puerto también arma una biblioteca (glm::glm), que no hace falta.
 find_package(glm CONFIG REQUIRED)
 # FreeType (vcpkg.json, desde la CL5.3): el texto en un bit de Render/Text/FreeTypeRasterizer.cpp
 # (pregunta 7 de la CL5). Es el FindFreetype de CMake, que el puerto de vcpkg envuelve, y en Linux
@@ -33,6 +34,9 @@ target_link_libraries(ClientLib PRIVATE
     $<IF:$<TARGET_EXISTS:libjpeg-turbo::jpeg>,libjpeg-turbo::jpeg,libjpeg-turbo::jpeg-static>)
 # Sus headers quedan en FreeTypeRasterizer.cpp: nadie más los ve.
 target_link_libraries(ClientLib PRIVATE Freetype::Freetype)
+# PUBLIC: los headers de Render/Models/ usan sus tipos (pregunta 4 del plan de la CL6). Sin
+# GLM_FORCE_* ni GLM_ENABLE_EXPERIMENTAL, así el precompiled header no cambia.
+target_link_libraries(ClientLib PUBLIC glm::glm-header-only)
 # Los sockets de Network/SocketApi.cpp (CL4.1): en Windows son de Winsock 2, ws2_32. En Linux están
 # en la libc.
 if(WIN32)

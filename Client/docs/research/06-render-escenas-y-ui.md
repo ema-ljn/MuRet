@@ -247,9 +247,16 @@ la traza:
 
   | Escena | Modelo | Acción (keys) | Frame en los 5 swaps | Error máximo |
   | --- | --- | --- | --- | --- |
-  | Selección | personaje | 3 (7) | 1,737 · 3,320 · 4,896 · 6,739 · 1,578 | 0,015 |
+  | Selección | personaje | 3 (7) | 1,740 · 3,320 · 4,900 · 6,740 · 1,580 | 0,0014 |
   | Lorencia | personaje | 1 (6) | 1,820 · 1,411 · 0,731 · 0,042 · 5,358 | 0,058 sin la cabeza |
-  | Lorencia | guardia | 1 (6) | 0,675 · 0,279 · 5,583 · 4,908 · 4,238 | 0,047 sin la cabeza |
+  | Lorencia | guardia | 1 (6) | 0,681 · 0,281 · 5,601 · 4,921 · 4,241 | 0,001 sin la cabeza |
+
+  Los frames de la selección y del guardia son los de la pose de MuRet (CL6.2,
+  `GoldenSkinningTrace`), buscados de a 0,0005 keys: con ellos cada vértice cae a 0,001 del de la
+  traza, lo que redondea un float en coordenadas de 15.000. Antes la tabla daba 1,737 · 3,320 ·
+  4,896 · 6,739 · 1,578 (0,015) y 0,675 · 0,279 · 5,583 · 4,908 · 4,238 (0,047), ajustados con otra
+  medida del error. Los nuevos saltan justo lo que dan 0,26 y 0,28 keys por paso (abajo): 1,58 y
+  1,84 módulo 7, y 5,60 y 5,32 módulo 6. El personaje de Lorencia sigue con los frames de antes.
 
   El objeto solo agrega la escala 0,9, un giro alrededor de Z (100° en la selección; 116° el
   personaje y 90° el guardia en Lorencia) y su posición. En Lorencia los dos están a z = 165, la

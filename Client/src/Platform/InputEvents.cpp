@@ -1,10 +1,16 @@
 #include "Platform/InputEvents.h"
 
+#include "Input/InputEvent.h"
+#include "Input/Key.h"
+
+#include <SDL3/SDL_events.h>
 #include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL_scancode.h>
 
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <string>
 
 namespace Client::Platform

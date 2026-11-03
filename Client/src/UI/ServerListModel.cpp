@@ -1,8 +1,15 @@
 #include "UI/ServerListModel.h"
 
+#include "Protocol/Connection/ServerList.h"
+
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <map>
+#include <optional>
+#include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace Client::UI

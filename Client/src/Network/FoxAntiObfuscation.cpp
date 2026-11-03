@@ -1,6 +1,9 @@
 #include "Network/FoxAntiObfuscation.h"
 
+#include "Core/Expected.h"
 #include "Network/Crypto/Xor32.h"
+#include "Network/ObfuscationError.h"
+#include "Network/Packet.h"
 #include "Network/PacketWriter.h"
 
 #include <algorithm>
@@ -8,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <utility>
 #include <vector>
 

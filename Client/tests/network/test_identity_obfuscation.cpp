@@ -1,6 +1,5 @@
 #include "Network/IdentityObfuscation.h"
 
-#include "Network/Crypto/SimpleModulus.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/Packet.h"
 #include "Network/PacketError.h"
@@ -15,7 +14,6 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
-#include <optional>
 #include <span>
 #include <utility>
 #include <vector>

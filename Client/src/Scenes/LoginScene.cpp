@@ -1,6 +1,11 @@
 #include "Scenes/LoginScene.h"
 
+#include "App/ServerSession.h"
 #include "App/SessionState.h"
+#include "Core/Expected.h"
+#include "Core/IClock.h"
+#include "Data/Textures/TextureSet.h"
+#include "Input/InputState.h"
 #include "Render/OriginalQuad.h"
 #include "Render/OriginalSkewedQuad.h"
 #include "Render/SpriteBatch.h"
@@ -10,16 +15,28 @@
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
-#include "Data/Textures/TextureSet.h"
+#include "Scenes/GameData.h"
+#include "Scenes/ITextDrawer.h"
+#include "Scenes/SceneCanvas.h"
+#include "Scenes/SceneContext.h"
+#include "Scenes/SceneId.h"
+#include "Scenes/SceneTextures.h"
+#include "Scenes/SceneWorlds.h"
 #include "Scenes/TextureSets.h"
 #include "UI/GameText.h"
+#include "UI/LoginWindow.h"
+#include "UI/Notices.h"
 #include "UI/ServerListModel.h"
+#include "UI/ServerListWindow.h"
 
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace Client::Scenes

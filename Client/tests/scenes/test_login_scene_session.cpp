@@ -6,6 +6,7 @@
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "App/WindowState.h"
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -16,8 +17,10 @@
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Connection/Login.h"
 #include "Protocol/Connection/ServerList.h"
+#include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/GameData.h"
+#include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTextures.h"
@@ -26,6 +29,8 @@
 #include "UI/MenuBar.h"
 #include "UI/NoticeWindow.h"
 #include "UI/ServerListWindow.h"
+#include "UI/Widget.h"
+#include "support/Bytes.h"
 
 #include "support/AppPrinters.h"
 #include "support/FakeClock.h"
@@ -46,12 +51,14 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <iterator>
 #include <map>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // Client::Scenes::LoginScene con la sesión y sus ventanas (CL5.5): la lista cuando la sesión espera

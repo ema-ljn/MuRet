@@ -1,5 +1,14 @@
 #include "Scenes/TextCacheDrawer.h"
 
+#include "Core/Log.h"
+#include "Render/SpriteBatch.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Text/TextCache.h"
+#include "Render/Text/TextStyle.h"
+
+#include <string_view>
+
 namespace Client::Scenes
 {
 TextCacheDrawer::TextCacheDrawer(Render::Text::TextCache& cache, Render::SpriteBatch& batch, Core::Log& log)

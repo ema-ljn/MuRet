@@ -1,9 +1,12 @@
 #include "App/Credentials.h"
 
 #include "Core/Environment.h"
+#include "Core/Expected.h"
 
 #include <format>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace Client::App

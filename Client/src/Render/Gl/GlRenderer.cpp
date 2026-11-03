@@ -1,13 +1,21 @@
 #include "Render/Gl/GlRenderer.h"
 
+#include "App/WindowState.h"
+#include "Core/Expected.h"
+#include "Platform/GlLoader.h"
+#include "Render/Gl/GlName.h"
+#include "Render/Gl/GlShader.h"
+#include "Render/Gl/GlTexture.h"
 #include "Render/Gl/Shaders.h"
+#include "Render/SpriteVertex.h"
 
 #include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/mat4x4.hpp>
 
 #include <cstddef>
 #include <initializer_list>
+#include <span>
 #include <string>
 #include <type_traits>
 #include <utility>

@@ -1,11 +1,16 @@
 #include "Protocol/Connection/Hello.h"
 
 #include "Core/ByteReader.h"
+#include "Core/Expected.h"
+#include "Network/Packet.h"
+#include "Protocol/BuildConstants.h"
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/PacketFields.h"
+#include "Protocol/ProtocolError.h"
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <span>
 

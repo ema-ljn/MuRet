@@ -1,20 +1,31 @@
 #include "Data/Textures/TextureSet.h"
 
+#include "Core/Ascii.h"
+#include "Core/Expected.h"
+#include "Data/DataError.h"
 #include "Data/DataFile.h"
 #include "Data/DataPath.h"
 #include "Data/Textures/OzjTexture.h"
 #include "Data/Textures/OztTexture.h"
+#include "Data/Textures/Texture.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <format>
+#include <optional>
 #include <span>
+#include <string>
+#include <string_view>
+#include <system_error>
 #include <utility>
+#include <vector>
 
 namespace Client::Data::Textures
 {
 namespace
 {
+using Core::EqualsIgnoringAsciiCase;
 using Core::Unexpected;
 
 // Más que cualquier textura del laboratorio (un OZT de 512 × 512 son 1 MB y poco): un archivo más

@@ -7,7 +7,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <string>
 
 // Client::Data: la carpeta World<N> de cada mapa, como la arma 0x61a560 (05 § La carpeta de cada
 // mapa). Lo que hay en el Data\ del laboratorio lo prueba test_golden_world_folder.cpp.

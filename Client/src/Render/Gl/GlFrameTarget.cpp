@@ -1,5 +1,18 @@
 #include "Render/Gl/GlFrameTarget.h"
 
+#include "App/WindowState.h"
+#include "Core/Expected.h"
+#include "Core/IClock.h"
+#include "Core/Log.h"
+#include "Platform/GlLoader.h"
+#include "Render/Gl/GlSpriteRenderer.h"
+#include "Render/Gl/TextureTable.h"
+#include "Scenes/SceneCanvas.h"
+#include "Scenes/SceneText.h"
+
+#include <functional>
+#include <memory>
+#include <string>
 #include <utility>
 
 namespace Client::Render::Gl

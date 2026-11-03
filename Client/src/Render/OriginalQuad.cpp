@@ -1,5 +1,7 @@
 #include "Render/OriginalQuad.h"
 
+#include "App/WindowState.h"
+#include "Render/QuadCorner.h"
 #include "Render/ScreenScale.h"
 
 namespace Client::Render

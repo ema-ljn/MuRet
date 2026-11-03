@@ -1,5 +1,10 @@
 #include "Core/TeeSink.h"
 
+#include "Core/ILogSink.h"
+
+#include <mutex>
+#include <string_view>
+
 namespace Client::Core
 {
 TeeSink::TeeSink(ILogSink& first, ILogSink& second) : m_first(first), m_second(second) {}

@@ -1,8 +1,19 @@
 #include "Scenes/SceneManager.h"
 
+#include "Core/Expected.h"
+#include "Core/IClock.h"
+#include "Core/Log.h"
+#include "Input/InputState.h"
+#include "Scenes/IFrameTarget.h"
+#include "Scenes/SceneCanvas.h"
+#include "Scenes/SceneId.h"
 #include "Scenes/SceneTransitions.h"
 
 #include <format>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <string>
 #include <utility>
 
 namespace Client::Scenes

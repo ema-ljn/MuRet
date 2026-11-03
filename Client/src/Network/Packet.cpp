@@ -1,8 +1,15 @@
 #include "Network/Packet.h"
 
 #include "Core/ByteReader.h"
+#include "Core/Expected.h"
+#include "Network/PacketError.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <span>
 #include <utility>
+#include <vector>
 
 namespace Client::Network
 {

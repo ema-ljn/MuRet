@@ -1,8 +1,14 @@
 #include "App/GameLoop.h"
 
+#include "App/ILoopClient.h"
 #include "App/LoopTiming.h"
+#include "App/PacingMode.h"
+#include "App/WindowState.h"
+#include "Core/IClock.h"
+#include "Input/InputState.h"
 
 #include <chrono>
+#include <cstdint>
 
 namespace Client::App
 {

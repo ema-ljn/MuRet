@@ -1,5 +1,9 @@
 #include "UI/Notices.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+
 namespace Client::UI
 {
 namespace

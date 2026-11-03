@@ -1,5 +1,6 @@
 #include "Core/StderrSink.h"
 
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "support/TemporaryFile.h"
 

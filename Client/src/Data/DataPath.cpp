@@ -1,20 +1,18 @@
 #include "Data/DataPath.h"
 
-#include <algorithm>
-#include <functional>
+#include "Core/Ascii.h"
+
+#include <cstddef>
+#include <filesystem>
+#include <optional>
 #include <string>
+#include <string_view>
+#include <system_error>
 #include <utility>
 #include <vector>
 
 namespace
 {
-// Solo A-Z. std::tolower depende del locale de C y es comportamiento indefinido con un char
-// negativo (cualquier byte >= 0x80 de un nombre en UTF-8).
-char ToLowerAscii(char c)
-{
-    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
-}
-
 bool IsSeparator(char c)
 {
     return c == '\\' || c == '/';
@@ -77,7 +75,7 @@ std::optional<std::filesystem::path> FindIgnoringCase(const std::filesystem::pat
     for (; !error && entries != end; entries.increment(error))
     {
         const std::string entryName = FileNameBytes(entries->path());
-        if (!Client::Data::EqualsIgnoringAsciiCase(entryName, name) || (found && entryName >= foundName))
+        if (!Client::Core::EqualsIgnoringAsciiCase(entryName, name) || (found && entryName >= foundName))
         {
             continue;
         }
@@ -120,14 +118,6 @@ std::optional<std::filesystem::path> FindEntry(const std::filesystem::path& dire
 
 namespace Client::Data
 {
-// operator== de string_view compara bytes exactos, y la biblioteca estándar no trae una
-// comparación sin mayúsculas. ranges::equal sí deja proyectar: pasa cada char de los dos lados
-// por ToLowerAscii antes del ==, y si los tamaños difieren devuelve false sin comparar nada.
-bool EqualsIgnoringAsciiCase(std::string_view a, std::string_view b)
-{
-    return std::ranges::equal(a, b, std::ranges::equal_to{}, ToLowerAscii, ToLowerAscii);
-}
-
 std::optional<std::filesystem::path> ResolveDataPath(const std::filesystem::path& dataRoot,
                                                      std::string_view originalPath, std::error_code& error)
 {

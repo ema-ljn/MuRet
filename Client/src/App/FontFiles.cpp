@@ -1,5 +1,12 @@
 #include "App/FontFiles.h"
 
+#include "App/Config.h"
+#include "Core/Expected.h"
+
+#include <filesystem>
+#include <optional>
+#include <string>
+#include <string_view>
 #include <utility>
 
 namespace Client::App

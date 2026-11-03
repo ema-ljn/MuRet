@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <optional>
+#include <string>
 #include <string_view>
 
 // La config del cliente, muret-client.ini (CL3.4; 02 § Qué implica para MuRet). El original lee el

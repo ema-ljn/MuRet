@@ -37,7 +37,8 @@ inline constexpr int ServerListWidth = 465;
 inline constexpr int DescriptionWidth = 512;
 
 // La descripción del botón de grupo k es el texto 1717 + k (0x645860), en dos renglones de 83
-// bytes (0x632c90).
+// bytes (0x632c90). El botón k del original es el lugar 4 + k; en MuRet, que muestra todos los
+// lugares (Q-C62), es la del lugar del grupo: 1717 + lugar − 4.
 inline constexpr std::size_t FirstDescriptionText = 1717;
 inline constexpr std::size_t DescriptionLines = 2;
 inline constexpr std::size_t DescriptionLineBytes = 83;
@@ -143,6 +144,13 @@ private:
     [[nodiscard]] const ServerGroup* SelectedGroup() const;
     // Si el nombre del grupo elegido es el texto del grupo 20 (el strcmp de 0x6463b0).
     [[nodiscard]] bool ShowsGroupTwentyTexts() const;
+    // Los pasos de 0x6463b0: la caja y, por renglón, las piezas del marco y la descripción; los
+    // botones y las barras, que dan el color del último rótulo, o `textColor` sin ninguno; y los
+    // textos del grupo 20 con ese color.
+    void DrawBoxAndDescription(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen) const;
+    [[nodiscard]] std::uint32_t DrawButtons(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
+                                            App::PixelSize screen, std::uint32_t textColor) const;
+    void DrawGroupTwentyTexts(Scenes::ITextDrawer& text, std::uint32_t color) const;
 
     TextureSizes m_sizes;
     const Data::Text::TextTable* m_texts;

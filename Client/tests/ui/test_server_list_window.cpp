@@ -1,11 +1,11 @@
 #include "UI/ServerListWindow.h"
 
 #include "App/WindowState.h"
+#include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
-#include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
@@ -142,6 +142,7 @@ DrawnList DrawList(ServerListWindow& window, PixelSize screen = Screen640)
 // del grupo 20, en el lugar 4, donde todos tienen PvP.
 constexpr std::uint32_t Gray = 0xffe2e2e2;
 constexpr std::uint32_t White = 0xffffffff;
+constexpr std::uint32_t Yellow = 0xff79ffff;
 
 // 0x6451d0: el alto de la caja es 10 veces el alto del buffer del slot 0x19 más 12.
 TEST(ServerListWindowTest, TheDescriptionIsTenLinesOfItsTexture)
@@ -344,7 +345,7 @@ TEST(ServerListWindowTest, ItDrawsWithTheNormalBlend)
 TEST(ServerListWindowTest, ItDrawsInTheOrderOfTheOriginal)
 {
     auto texts =
-        Client::Tests::MakeTextTable({{1829, "Twenty"}, {552, "Nineteen"}, {562, "Free"}, {1718, "The nineteen"}});
+        Client::Tests::MakeTextTable({{1829, "Twenty"}, {552, "Nineteen"}, {562, "Free"}, {1723, "The nineteen"}});
     ServerListWindow window(LabSizes(), &texts);
     window.Open(GroupServers(std::vector<ServerEntry>{{400, 10}, {380, 0}}));
     const ServerListLayout layout = LayoutServerList(Screen640, Description, 1);
@@ -418,7 +419,7 @@ TEST(ServerListWindowTest, SomePiecesDependOnTheGroups)
 // 0x66a1c0, 0x66a3d0 y 0x66a4e0, en 640 × 480: el fondo de server_ex03 en (67, 443), de 506 × 46
 // y repetido; los bordes de server_ex01, el de abajo con el cuadro (0, 6); y los lados de
 // server_ex02, de 3 × 40, el de la izquierda repetido y el de la derecha desde (3, 0), con las UV
-// del alto de la textura (4), estirado.
+// del alto con que lo arma 0x6451d0 (4), estirado.
 TEST(ServerListWindowTest, TheDescriptionBoxHasFiveImages)
 {
     const std::array<UiImage, 5> box = DescriptionBoxImages(Box640, LabSizes());
@@ -446,6 +447,20 @@ TEST(ServerListWindowTest, TheDescriptionBoxHasFiveImages)
     EXPECT_EQ(right.frameTop, 0);
     EXPECT_EQ(right.uvHeight, 4);
     EXPECT_FALSE(right.resizedHeight);
+}
+
+// El 4 de la derecha es el de la tabla de 0x6451d0 (3 × 4 desde (3, 0)), no el del buffer: con
+// uno de 8 × 8 la caja mide 92 y los lados 80, y las UV de la derecha siguen en 4 filas.
+TEST(ServerListWindowTest, TheRightSideKeepsTheHeightOfItsTable)
+{
+    const auto sizes = Client::Tests::FakeTextureSizes({{0x17, {4, 4}}, {0x18, {512, 16}}, {0x19, {8, 8}}});
+    const std::array<UiImage, 5> box = DescriptionBoxImages(Rect{.x = 64, .y = 420, .width = 512, .height = 92}, sizes);
+    const UiImage& left = box[3];
+    const UiImage& right = box[4];
+    EXPECT_EQ(Area(left), (Rect{.x = 64, .y = 426, .width = 3, .height = 80}));
+    EXPECT_EQ(Area(right), (Rect{.x = 573, .y = 426, .width = 3, .height = 80}));
+    EXPECT_EQ(right.textureHeight, 8.0f);
+    EXPECT_EQ(right.uvHeight, 4);
 }
 
 // 0x645860: al elegir el grupo k, el texto 1717 + k en dos renglones de 83 bytes; 0x6463b0 los
@@ -476,16 +491,42 @@ TEST(ServerListWindowTest, ItDrawsTheDescriptionOfTheChosenGroup)
     EXPECT_EQ(at640.texts[1].style, style);
 
     // En 1024 × 768 la caja va en (256, 584), y los renglones, desde (267, 596) pasados a
-    // 640 × 480.
+    // 640 × 480 con las proporciones en float (1,6 y 1,6000001): 166, 372 y, el de 616, 384.
     const DrawnList at1024 = DrawList(window, Screen1024);
     ASSERT_EQ(at1024.texts.size(), 4u);
-    EXPECT_EQ(at1024.texts[0].x, Client::Render::Text::DesignX(267, Screen1024));
-    EXPECT_EQ(at1024.texts[0].y, Client::Render::Text::DesignY(596, Screen1024));
-    EXPECT_EQ(at1024.texts[1].y, Client::Render::Text::DesignY(616, Screen1024));
+    EXPECT_EQ(at1024.texts[0].x, 166);
+    EXPECT_EQ(at1024.texts[0].y, 372);
+    EXPECT_EQ(at1024.texts[1].y, 384);
 
     window.Open(GroupServers(std::vector<ServerEntry>{{400, 10}}));
     EXPECT_TRUE(window.Description().empty());
     EXPECT_EQ(DrawList(window).texts.size(), 1u);
+}
+
+// En el original el botón k es el lugar 4 + k, y 1717 + k es la descripción de ese lugar. MuRet
+// muestra los grupos de todos los lugares (Q-C62): la descripción es la del lugar del grupo, 1717
+// + lugar − 4, y no la del botón. El 380 es del grupo 19, en el lugar 10: la 1723, solo en el
+// botón 0 o en el 1 después del grupo 20.
+TEST(ServerListWindowTest, TheDescriptionIsTheOneOfTheSlot)
+{
+    auto texts = Client::Tests::MakeTextTable({{1829, "Twenty"},
+                                               {552, "Nineteen"},
+                                               {562, "Free"},
+                                               {1717, "Slot four"},
+                                               {1718, "Slot five"},
+                                               {1723, "Slot ten"}});
+    ServerListWindow window(LabSizes(), &texts);
+    const ServerListLayout layout = LayoutServerList(Screen640, Description, 1);
+
+    window.Open(GroupServers(std::vector<ServerEntry>{{380, 0}}));
+    ClickOn(window, MiddleX(layout.groupButtons[0]), MiddleY(layout.groupButtons[0]));
+    EXPECT_EQ(window.Description(), (std::vector<std::string>{"Slot ten"}));
+
+    window.Open(GroupServers(std::vector<ServerEntry>{{400, 10}, {380, 0}}));
+    ClickOn(window, MiddleX(layout.groupButtons[1]), MiddleY(layout.groupButtons[1]));
+    EXPECT_EQ(window.Description(), (std::vector<std::string>{"Slot ten"}));
+    ClickOn(window, MiddleX(layout.groupButtons[0]), MiddleY(layout.groupButtons[0]));
+    EXPECT_EQ(window.Description(), (std::vector<std::string>{"Slot four"}));
 }
 
 // Q-C83: con el grupo 20 elegido (su nombre es el texto 1829), los textos 565 a 567 van en (90,
@@ -533,6 +574,29 @@ TEST(ServerListWindowTest, TheGroupTwentyTextsTakeTheLastLabelColor)
         EXPECT_NE(drawn.text, "One");
     }
     EXPECT_EQ(nineteen.texts.size(), 3u);
+}
+
+// El strcmp de 0x6463b0 compara textos: un grupo que se llama como el 20 (el 19, con el texto 552
+// igual al 1829) también tiene los tres textos, en el botón 1. Su servidor, el 380, es sin PvP: el
+// último rótulo es amarillo claro, y los tres textos también (Q-C83).
+TEST(ServerListWindowTest, AGroupNamedLikeTheTwentyShowsTheTextsWithItsColor)
+{
+    auto texts = Client::Tests::MakeTextTable(
+        {{1829, "Twenty"}, {552, "Twenty"}, {562, "Free"}, {565, "One"}, {566, "Two"}, {567, "Three"}});
+    ServerListWindow window(LabSizes(), &texts);
+    window.Open(GroupServers(std::vector<ServerEntry>{{400, 10}, {380, 0}}));
+    const ServerListLayout layout = LayoutServerList(Screen640, Description, 1);
+    ClickOn(window, MiddleX(layout.groupButtons[1]), MiddleY(layout.groupButtons[1]));
+
+    const DrawnList drawn = DrawList(window);
+    ASSERT_EQ(drawn.texts.size(), 6u);
+    EXPECT_EQ(drawn.texts[2].text, "Twenty(Non-PVP) Free");
+    EXPECT_EQ(drawn.texts[2].style.colors.text, Yellow);
+    EXPECT_EQ(drawn.texts[3].text, "One");
+    for (std::size_t k = 3; k < drawn.texts.size(); ++k)
+    {
+        EXPECT_EQ(drawn.texts[k].style.colors.text, Yellow);
+    }
 }
 
 // Sin abrir no hace nada: ni elige ni dibuja.

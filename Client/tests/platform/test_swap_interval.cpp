@@ -1,5 +1,7 @@
 #include "Platform/SwapInterval.h"
 
+#include "App/VSyncMode.h"
+
 #include <gtest/gtest.h>
 
 // Client::Platform::SwapIntervalFor y ApplySwapInterval, con dobles de SDL_GL_SetSwapInterval y

@@ -3,6 +3,7 @@
 #include "Network/Crypto/SimpleModulus.h"
 #include "Network/Crypto/Xor32.h"
 #include "Network/EncryptedPacket.h"
+#include "Network/IObfuscation.h"
 #include "Network/ObfuscationError.h"
 #include "Network/Packet.h"
 #include "Network/PacketError.h"

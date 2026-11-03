@@ -1,8 +1,13 @@
 #include "Platform/WindowEvents.h"
 
+#include "App/WindowState.h"
+#include "Input/InputEvent.h"
+#include "Input/InputState.h"
 #include "Platform/InputEvents.h"
 
 #include <SDL3/SDL_events.h>
+#include <SDL3/SDL_stdinc.h>
+#include <SDL3/SDL_video.h>
 
 #include <optional>
 

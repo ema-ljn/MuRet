@@ -1,6 +1,8 @@
 #include "Render/OriginalSkewedQuad.h"
 
+#include "App/WindowState.h"
 #include "Render/OriginalQuad.h"
+#include "Render/QuadCorner.h"
 
 namespace Client::Render
 {

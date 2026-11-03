@@ -1,5 +1,11 @@
 #include "Network/Crypto/SimpleModulus.h"
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <span>
+
 namespace Client::Network::Crypto
 {
 namespace

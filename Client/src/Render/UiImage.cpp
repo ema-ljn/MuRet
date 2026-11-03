@@ -1,5 +1,8 @@
 #include "Render/UiImage.h"
 
+#include "App/WindowState.h"
+#include "Render/QuadCorner.h"
+
 #include <bit>
 #include <cstdint>
 

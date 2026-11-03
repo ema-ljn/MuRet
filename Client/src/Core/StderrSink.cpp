@@ -1,6 +1,11 @@
 #include "Core/StderrSink.h"
 
+#include "Core/ILogSink.h"
+
+#include <cstdio>
+#include <mutex>
 #include <string>
+#include <string_view>
 
 namespace Client::Core
 {

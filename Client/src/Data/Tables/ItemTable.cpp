@@ -1,9 +1,13 @@
 #include "Data/Tables/ItemTable.h"
 
+#include "Core/Expected.h"
+#include "Data/DataError.h"
 #include "Data/Tables/TableChecksum.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 
 namespace Client::Data::Tables
 {

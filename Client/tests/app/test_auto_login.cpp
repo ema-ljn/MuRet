@@ -5,6 +5,7 @@
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Network/Connection.h"
 #include "Network/IdentityObfuscation.h"
@@ -26,6 +27,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>

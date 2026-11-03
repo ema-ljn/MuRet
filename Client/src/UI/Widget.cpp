@@ -1,5 +1,11 @@
 #include "UI/Widget.h"
 
+#include "App/WindowState.h"
+#include "Input/InputState.h"
+#include "Render/TextureSlot.h"
+#include "Render/UiImage.h"
+#include "Scenes/SceneTextures.h"
+
 #include <algorithm>
 
 namespace Client::UI

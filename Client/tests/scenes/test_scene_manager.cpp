@@ -5,6 +5,7 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Textures/TextureSet.h"
 #include "Input/InputState.h"
@@ -21,14 +22,13 @@
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <map>
-#include <set>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>

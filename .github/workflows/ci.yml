@@ -47,16 +47,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Linux compila sin precompiled headers: así un archivo que no incluye lo que usa falla
+          # acá aunque el header precompilado se lo traiga (cmake/PrecompiledHeaders.cmake).
+          # Windows, el job más lento, los usa.
           - name: Linux (GCC, Debug)
             os: ubuntu-24.04
             configure-preset: linux-x64-debug
             build-preset: linux-x64-debug
             test-preset: linux-x64-debug
+            precompiled-headers: 'OFF'
           - name: Windows (MSVC, Debug)
             os: windows-2022
             configure-preset: windows-x64
             build-preset: windows-x64-debug
             test-preset: windows-x64-debug
+            precompiled-headers: 'ON'
     env:
       VCPKG_DISABLE_METRICS: 1
 
@@ -113,7 +118,9 @@ jobs:
           restore-keys: vcpkg-${{ env.RUNNER_IMAGE }}-
 
       - name: Configurar
-        run: cmake --preset ${{ matrix.configure-preset }} -DMURET_WARNINGS_AS_ERRORS=ON
+        run: >-
+          cmake --preset ${{ matrix.configure-preset }} -DMURET_WARNINGS_AS_ERRORS=ON
+          -DMURET_PRECOMPILED_HEADERS=${{ matrix.precompiled-headers }}
 
       - name: Compilar
         run: cmake --build --preset ${{ matrix.build-preset }}

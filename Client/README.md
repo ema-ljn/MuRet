@@ -84,6 +84,11 @@ dibujaría a saltos. Con `--pacing faithful` (el ritmo del original, VSync apaga
 En Windows: `cmake --preset windows-x64`, `cmake --build --preset windows-x64-debug` y
 `build\windows-x64\Client\Debug\Main.exe`.
 
+Los headers de la biblioteca estándar (y GoogleTest en los tests) se precompilan
+(`cmake/PrecompiledHeaders.cmake`): un build limpio usa como un cuarto menos de CPU. Para compilar
+como el job de Linux del CI, que verifica que cada archivo incluya lo que usa, configurá con
+`-DMURET_PRECOMPILED_HEADERS=OFF`.
+
 ## Correr y configurar `Main`
 
 Lo que depende del lugar (el servidor, la carpeta de datos, el video) sale de la línea de comandos

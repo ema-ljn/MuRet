@@ -63,9 +63,9 @@ con `.jpg` → `.OZJ`, `.tga` → `.OZT`, `.bmp` → `.OZB` como hace el cliente
   de la versión: el lector los lee en claro, como los `0x0A`
   ([05](05-formatos-de-datos.md#modelos-bmd)).
 - **Las texturas de las mallas se buscan por nombre**, sin la carpeta (`0x60d550`, Q-C90): por eso
-  andan modelos cuya textura está en otra carpeta. En la carga de arranque y el mundo del login
-  son 31 (**verificado** contra `lor_slots.bin`), y `Helper04` dibuja la de `Skill\`, otro
-  archivo con el mismo nombre.
+  andan modelos cuya textura está en otra carpeta. En la carga de arranque son 29 (**verificado**
+  contra `lor_slots.bin`) y en el mundo del login 2 más (*inferido*, de la misma simulación), y
+  `Helper04` dibuja la de `Skill\`, otro archivo con el mismo nombre.
 - **`Object6` y `World6`** son el mapa 5, que el cliente conoce pero no trae entero. Si se usa,
   sin leer.
 - `Data2\` es la carpeta de desarrollo (modelos `.smd` y dos `.txt` de depuración): los

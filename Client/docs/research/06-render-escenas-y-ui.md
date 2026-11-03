@@ -452,10 +452,11 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   | `0x4` | 0,5·nz + t | 0,5·ny + 2t | `0x5c0` |
   | `0x8` | 0,5·nz + 0,2 | (ny + 1) · 0,5 | `0x5fc` |
 
-  Una textura forzada pisa el slot. `0x800`, `0x1000` y `0x4000` van aditivos y, con alpha
-  < 0,99, multiplican **en el lugar** el color del modelo por el alpha (Q-C95); los demás, `0x40`
-  aditiva, `0x80` `0x620b10`, `0x10` `0x620c90`, alpha < 0,99 `0x620a00(1)`, si no opaca, y
-  `0x2000` sin profundidad. El bucle de las UV escribe una de más (Q-C96). Las filas de `0x4`,
+  Una textura forzada pisa el slot. `0x800`, `0x1000`, `0x4000` y `0x40` van aditivos y, con
+  alpha < 0,99, multiplican **en el lugar** el color del modelo por el alpha (Q-C95: lo ven las
+  mallas que siguen en el mismo `RenderBody`); los demás, `0x80` `0x620b10`, `0x10` `0x620c90`,
+  alpha < 0,99 `0x620a00(1)`, si no opaca, y `0x2000` sin profundidad. El bucle de las UV va por
+  las normales y, con más de 15.000 en una malla, escribiría una de más (Q-C96). Las filas de `0x4`,
   `0x8` y `0x1000` son las verificadas arriba (y `0x1000` lleva UV, *verificado*: la traza dibuja
   la 141 con `glTexCoord`); las otras cinco, *estáticas*.
 - **Cuántos pases: el nivel.** `0x60b3d0` saca el nivel de `(arg >> 3) & 0xf` (con casos por
@@ -525,9 +526,11 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   **Verificado:** un script que repite `0x60d530`, `0x60d550` y `0x60d5f0` con los modelos del
   laboratorio da, para los 750 slots de `0x12e` a `0x41b`, los mismos nombres que el volcado
   `lor_slots.bin` de la tabla (sacado en Lorencia después del login y la selección), uno por uno.
-  En esa carga hay 54 nombres que se encuentran en un slot que cargó otra carpeta: 17 con los
-  mismos bytes, 31 cuyo modelo **no tiene** ese archivo en su carpeta y anda porque otro lo cargó
-  antes, y uno con otro archivo: `Helper04` (`0x1c15`, `Item\`) dibuja el de `Skill\` (`0x285`).
+  En esa carga, 29 nombres se encuentran en un slot que cargó otra carpeta y su modelo **no
+  tiene** ese archivo en la suya (4 de `0x611850` y 25 de `0x615700`: anda porque otro lo cargó
+  antes), y uno con otro archivo: `Helper04` (`0x1c15`, `Item\`) dibuja el de `Skill\` (`0x285`).
+  La misma simulación sigue con el mundo del login (*inferido*: ningún volcado es de ahí): 17
+  nombres más en otra carpeta con los mismos bytes y 2 sin el archivo en la suya.
 - **La piel y el pelo.** `0x60f7d0` sube a mano, con `GL_NEAREST` y `GL_CLAMP`: `0x12e`
   `skin_barbarian_01`, `0x12f` `level_man022`, `0x130` `skin_wizard_01`, `0x131` `level_man01`,
   `0x132` `skin_archer_01`, `0x133` `level_man033`, `0x134` `skin_special_01`, `0x136`
@@ -1053,7 +1056,7 @@ un ítem es grupo · `0x200` + índice, y su modelo, `0x212` más el tipo:
 | las botas | `(((b[8] >> 3) & 1) + (b[14] & 0xf) · 2) · 16 + (b[4] >> 4)` | `0x1812` + índice |
 | las alas | v = `(b[4] >> 2) & 3`; con 3, v = `b[8] & 7` (0, sin alas; 5, `0x1c30`) | `0x1a12` + v, o `0x1a14` + v con 3 |
 | la mascota | v = `b[4] & 3`; con 3, `b[9] & 1` da `0x1c15`, `b[11] & 1` `0x1c16` (con el efecto `0xbf`) y `b[11] & 4` `0x1c37` (con `+0x31b` = `b[15] & 3`) | `0x1c12` + v |
-| los niveles | L = `b[5] << 16 \| b[6] << 8 \| b[7]`, 3 bits cada uno (`0x513340`): la derecha en 0 a 2, la izquierda 3 a 5, el casco 6 a 8, la armadura 9 a 11, el pantalón 12 a 14, los guantes 15 a 17 y las botas 18 a 20 | las alas y la mascota, nivel 0 |
+| los niveles | L = `b[5] << 16 \| b[6] << 8 \| b[7]`, 3 bits cada uno, que `0x513340` pasa al nivel del ítem (0 a 7 dan 0, 3, 5, 7, 9, 11, 12 y 13; la tabla de `0x51338c`): la derecha en 0 a 2, la izquierda 3 a 5, el casco 6 a 8, la armadura 9 a 11, el pantalón 12 a 14, los guantes 15 a 17 y las botas 18 a 20 | las alas y la mascota, nivel 0 |
 | excelente | `b[9]` (bits 7 a 3 las cinco partes, el 2 la derecha y el 1 la izquierda) a `parte + 3`; `b[10]` igual a `parte + 4`, con su bit 0 a `+0x358`; `b[11] & 2` a `+0x360` | |
 
 Un índice `0x1ff` en una parte del cuerpo es "vacío" y deja la de la clase (`0x2212`, `0x221a`,
@@ -1146,8 +1149,9 @@ Tests que fija:
   selección, y 20, 19, 19 y 19 de la acción 1 los de Lorencia (CL6).
 - La mascota: 0,5 keys cada 46,875 ms, a 21,33 FPS y a 240 FPS (CL6).
 - Las UV de brillo: para las normales y el T de un frame de la traza, los modos 115, 120 y 141 dan
-  las UV de la traza a menos de 0,02 (CL6), y las ocho filas de la tabla, con un T fijo
-  (`ShineUvTest.EachModeHasItsFormula`, CL6.2).
+  las UV de la traza a menos de 0,02 (CL6); esas tres filas de la tabla, con un T fijo (`ShineTest`,
+  CL6.2), y las de `0x200` y `0x800`, que piden los niveles 11 y 12 y el `0x840` de `0x60b3d0`,
+  cuando entren con `ItemGlow` (`ShineTest.EachModeHasItsFormula`, CL6.3).
 - Los slots: la carga de arranque de MuRet sobre el `Data\` da los nombres de `lor_slots.bin` en
   `0x12e` a `0x41b` (`ModelTextureSlotsGoldenTest.StartupMatchesTheDump`, local, fuera de CI).
 - El asignador de slots de `0x466560` no se prueba, porque MuRet no lo reproduce (pregunta 11 del

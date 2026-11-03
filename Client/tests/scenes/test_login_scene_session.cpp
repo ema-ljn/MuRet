@@ -51,6 +51,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <iterator>
 #include <map>
 #include <optional>
 #include <span>
@@ -130,9 +131,10 @@ constexpr std::string_view Password = "pass0002";
 constexpr std::string_view GameHost = "10.0.0.2";
 constexpr std::uint16_t GamePort = 55901;
 
-// Los slots de las ventanas: el botón de grupo de la lista, el fondo de la cuenta y la caja del
-// aviso.
+// Los slots de las ventanas: el botón de grupo y el marco de la lista, el fondo de la cuenta y la
+// caja del aviso.
 constexpr TextureSlot GroupButtonSlot{0x0c};
+constexpr TextureSlot FrameSlot{0x0f};
 constexpr TextureSlot LoginBackgroundSlot{0x13};
 constexpr TextureSlot NoticeBoxSlot{0x727};
 
@@ -364,11 +366,16 @@ TEST(LoginSceneSessionTest, TheListShowsWhenItArrives)
     ASSERT_EQ(Harness::QuadsOf(events, GroupButtonSlot), 1u);
     EXPECT_TRUE(Harness::Drew(events, GroupTwentyText));
     const auto firstWindowQuad = std::ranges::find_if(
-        events, [](const FrameEvent& event) { return event.kind == Kind::Quad && event.texture == GroupButtonSlot; });
+        events, [](const FrameEvent& event) { return event.kind == Kind::Quad && event.texture == FrameSlot; });
     ASSERT_NE(firstWindowQuad, events.end());
-    // Los fondos, el fin del 2D, el mundo, las dos arenas y los tres textos, y después la UI.
+    // Los fondos, el fin del 2D, el mundo, las dos arenas y los tres textos, y después la UI: sin
+    // grupo elegido, la pieza del marco de la izquierda y el botón.
     EXPECT_EQ(firstWindowQuad - events.begin(), 9);
     EXPECT_EQ(firstWindowQuad->blend, BlendMode::Alpha);
+    const auto button = std::ranges::find_if(std::next(firstWindowQuad), events.end(),
+                                             [](const FrameEvent& event) { return event.kind == Kind::Quad; });
+    ASSERT_NE(button, events.end());
+    EXPECT_EQ(button->texture, GroupButtonSlot);
 }
 
 // El grupo y después el servidor: la escena le pasa el código a la sesión, que manda el F4 03 (el

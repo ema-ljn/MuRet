@@ -11,6 +11,7 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <optional>
 
 // Client::UI::Button: el botón de la UI nueva (0x63c330, 0x63c490 y 0x63c710), en el paso (CL5.5).
@@ -191,7 +192,8 @@ TEST(ButtonTest, TheLabelIsCenteredWithTheColorOfItsState)
 
     MoveMouse(input, 120, 60);
     StepOnce(button, input);
-    button.DrawLabel(text, Screen640);
+    // Da el color con que lo dibujó (Q-C83).
+    EXPECT_EQ(button.DrawLabel(text, Screen640), std::optional<std::uint32_t>{0xffffffff});
 
     PressLeft(input);
     StepOnce(button, input);
@@ -234,8 +236,8 @@ TEST(ButtonTest, WithoutAScreenTheLabelIsNotDrawn)
     batch.Begin(Screen640);
     Client::Tests::RecordingTextDrawer text(batch);
 
-    button.DrawLabel(text, PixelSize{0, 0});
-    button.DrawLabel(text, PixelSize{640, 0});
+    EXPECT_EQ(button.DrawLabel(text, PixelSize{0, 0}), std::nullopt);
+    EXPECT_EQ(button.DrawLabel(text, PixelSize{640, 0}), std::nullopt);
 
     EXPECT_TRUE(text.texts.empty());
 }
@@ -248,7 +250,7 @@ TEST(ButtonTest, WithoutALabelThereIsNoText)
     batch.Begin(Screen640);
     Client::Tests::RecordingTextDrawer text(batch);
 
-    button.DrawLabel(text, Screen640);
+    EXPECT_EQ(button.DrawLabel(text, Screen640), std::nullopt);
 
     EXPECT_TRUE(text.texts.empty());
 }

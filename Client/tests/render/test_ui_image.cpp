@@ -173,6 +173,50 @@ TEST(UiImageTest, AFrameMovesTheUvDown)
                                                                {193, 480, 0.751953125f, 0.20703125f}}});
 }
 
+// Una imagen que empieza en otro lugar de su textura (0x647260, la lista de 0x647050 con un solo
+// cuadro): la segunda pieza del marco de la lista, de 68 × 95 desde (68, 0) de server_deco_all (159
+// × 95, en un buffer de 256 × 128). La u va de 68,5 / 256 a 135,5 / 256, y la v, de 0,5 / 128 a
+// 94,5 / 128.
+TEST(UiImageTest, AFrameCanStartToTheRight)
+{
+    const UiImage piece{.slot = TextureSlot{0xf},
+                        .x = 0,
+                        .y = 0,
+                        .width = 68,
+                        .height = 95,
+                        .textureWidth = 256,
+                        .textureHeight = 128,
+                        .frameTop = 0,
+                        .frameLeft = 68};
+
+    ExpectCorners(UiImageCorners(piece, Screen640), Expected{{{0, 480, 0.267578125f, 0.00390625f},
+                                                              {0, 385, 0.267578125f, 0.73828125f},
+                                                              {68, 385, 0.529296875f, 0.73828125f},
+                                                              {68, 480, 0.529296875f, 0.00390625f}}});
+}
+
+// El lado derecho de la caja de la descripción (0x66a1c0): 3 × 4 desde (3, 0) de server_ex02 (un
+// buffer de 8 × 4), con cuadros, y 0x66a4e0 le pone 40 de alto sin mover las UV (+0x98 en 0). Las
+// esquinas van de 480 a 440 y la v, de 0,5 / 4 a 3,5 / 4: la textura se estira.
+TEST(UiImageTest, AHeightChangeCanKeepTheUv)
+{
+    const UiImage side{.slot = TextureSlot{0x19},
+                       .x = 0,
+                       .y = 0,
+                       .width = 3,
+                       .height = 40,
+                       .textureWidth = 8,
+                       .textureHeight = 4,
+                       .frameTop = 0,
+                       .frameLeft = 3,
+                       .uvHeight = 4};
+
+    ExpectCorners(UiImageCorners(side, Screen640), Expected{{{0, 480, 0.4375f, 0.125f},
+                                                             {0, 440, 0.4375f, 0.875f},
+                                                             {3, 440, 0.6875f, 0.875f},
+                                                             {3, 480, 0.6875f, 0.125f}}});
+}
+
 // El cuadro 0 es la imagen sin cuadros: 0x647050 llama a 0x647560(0) al armarla.
 TEST(UiImageTest, FrameZeroIsTheImage)
 {

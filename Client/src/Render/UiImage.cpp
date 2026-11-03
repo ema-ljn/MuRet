@@ -60,21 +60,23 @@ Edges HalfTexelUv(const UiImage& image)
     }
     const float rightTexel = image.resizedWidth ? 0.0f : HalfTexel;
     const float bottomTexel = image.resizedHeight ? 0.0f : HalfTexel;
+    const int height = image.uvHeight.value_or(image.height);
     return Edges{.left = HalfTexel / image.textureWidth,
                  .top = HalfTexel / image.textureHeight,
                  .right = (static_cast<float>(image.width) - rightTexel) / image.textureWidth,
-                 .bottom = (static_cast<float>(image.height) - bottomTexel) / image.textureHeight};
+                 .bottom = (static_cast<float>(height) - bottomTexel) / image.textureHeight};
 }
 
 // 0x647560(k) con el cuadro de 0x647050 (0x647185..0x6471c5): el cuadro empieza en
-// ((0 + 0,5) / tw, (frameTop + 0,5) / th), con el entero pasado a float y la suma y la división en
-// la x87, guardadas en float. La u de la derecha es el ancho en u sin redondear (FSUB en la pila)
-// más la nueva izquierda; el alto en v se guarda en float antes (FSTP en [EBP + 8]) y la de abajo
-// es ese más la nueva de arriba. Se corre desde las UV de 0x647050; el original las corre desde el
-// cuadro de antes, que puede dar un ulp de diferencia y no se reproduce.
+// ((frameLeft + 0,5) / tw, (frameTop + 0,5) / th), con cada entero pasado a float y la suma y la
+// división en la x87, guardadas en float. La u de la derecha es el ancho en u sin redondear (FSUB
+// en la pila) más la nueva izquierda; el alto en v se guarda en float antes (FSTP en [EBP + 8]) y
+// la de abajo es ese más la nueva de arriba. Se corre desde las UV de 0x647050; el original las
+// corre desde el cuadro de antes, que puede dar un ulp de diferencia y no se reproduce.
 Edges FrameUv(const Edges& base, const UiImage& image, int frameTop)
 {
-    const auto left = static_cast<float>(static_cast<double>(HalfTexel) / static_cast<double>(image.textureWidth));
+    const auto left = static_cast<float>((static_cast<double>(static_cast<float>(image.frameLeft)) + HalfTexel) /
+                                         static_cast<double>(image.textureWidth));
     const auto top = static_cast<float>((static_cast<double>(static_cast<float>(frameTop)) + HalfTexel) /
                                         static_cast<double>(image.textureHeight));
     const double spanU = static_cast<double>(base.right) - static_cast<double>(base.left);

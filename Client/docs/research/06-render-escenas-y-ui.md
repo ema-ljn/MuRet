@@ -567,6 +567,70 @@ arma uno por servidor sin tope (`0x645a99`), y un grupo puede tener 20 (código 
 adelante escribe sobre las barras, que empiezan donde terminan los botones (`+0x12a0 + 16 · 0xe0`
 es `+0x20a0`), y el clic mira solo 16 (Q-C63).
 
+**El marco y la descripción** (*estático*: `0x6451d0`, `0x645520`, `0x6457c0`, `0x645860`,
+`0x645ba0`, `0x645c70`, `0x645ca0` y `0x6463b0`). La ventana no tiene fondo (`0x669c70` con -2). Lo
+que lleva alrededor de los botones son cuatro imágenes de `server_deco_all` (`0xf`, de 159 × 95),
+cada una con su lugar en la textura (`0x647260`, que le da a `0x647050` un cuadro con ese origen) y
+con un punto propio en `+0x58` y `+0x5c`: `0x6472e0(x, y)` pone ese punto en (x, y), es decir, la
+esquina de la imagen en (x − px, y − py).
+
+| Imagen | En la textura | Su punto | Dónde va el punto | Se ve |
+| --- | --- | --- | --- | --- |
+| `+0x2da0` | (0, 0), 68 × 95 | (8, 19) | la esquina de arriba a la izquierda del botón de grupo 0 | con la lista abierta |
+| `+0x2e48` | (68, 0), 68 × 95 | (60, 19) | la de arriba a la derecha del botón 10 | con más de 10 botones de grupo (`+0x3134`) |
+| `+0x2ef0` | (136, 0), 23 × 29 | (1, 2) | la de arriba a la derecha del botón elegido | con el elegido de 0 a 9 |
+| `+0x2f98` | (136, 30), 23 × 29 | (23, 2) | la de arriba a la izquierda del botón elegido | con el elegido de 10 a 19 |
+
+Con el 20 elegido, o sin elegido, no hay marca. Las dos primeras quedan detrás de las primeras
+filas de cada columna, y las otras dos, al lado del botón elegido, del lado de los servidores.
+
+La caja de la descripción (`+0x3040`) es otra clase (vtable `0x6bab24`, constructor `0x66a120`):
+un marco de cinco imágenes que arma `0x66a1c0` y que dibuja `0x66a960` en este orden, todas
+ubicadas desde la esquina de la caja (`0x66a3d0`) y con los altos de `0x66a4e0`:
+
+| Imagen | Textura, cuadro | Dónde | Tamaño |
+| --- | --- | --- | --- |
+| el fondo | `server_ex03` (`0x17`), (0, 0) | (3, 3) | 506 × (alto − 6), repetida en u y en v |
+| arriba | `server_ex01` (`0x18`), (0, 0) | (0, 0) | 512 × 6 |
+| abajo | `server_ex01`, (0, 6) | (0, 6 + 10 · th) | 512 × 6 |
+| la izquierda | `server_ex02` (`0x19`), (0, 0) | (0, 6) | 3 × 10 · th, repetida en v |
+| la derecha | `server_ex02`, (3, 0) | (509, 6) | 3 × 10 · th, estirada |
+
+El alto de la caja es 10 líneas de th, el alto del buffer de la textura de `0x19` (4 en el
+laboratorio), más 6 y 6: 52. Las líneas son 10 porque `0x66a4e0` acota lo que se le pide a
+[1, 10] y el `vtable + 0x1c(10)` de `0x6451d0` pide 10. El fondo y la izquierda van con la UV del
+lado cambiado hasta el tamaño (`+0x98` en 1, `0x647370`), y como las dos texturas repiten, se
+repiten; la derecha no, porque `0x647050` pone `+0x98` en 0 a toda imagen que tiene cuadros, y la
+suya empieza en (3, 0): sus UV quedan en los 3 × 4 téxeles con que la arma `0x6451d0`, de (3, 0) a
+(6, 4) sea cual sea el buffer, estirados al alto. La caja va centrada abajo de la ventana: en
+(x − (512 − 465) / 2, y + alto de la ventana − 52), que es x − 23. Se abre con la lista solo si
+hay un grupo elegido (`0x645ba0`).
+
+El texto lo arma `0x645860`: vacía los dos renglones (`+0x308c` y `+0x30df`, de 83 bytes cada uno)
+y, con un elegido de 0 a 20, parte el texto `1717 + elegido` con `0x632c90(texto, renglones, 2,
+83)`. `0x632c90` copia carácter por carácter (el largo de cada uno es el de `_mbclen`,
+`0x6a01fa`, con la tabla de la página de códigos del CRT: en una de un byte, todos miden 1,
+*inferido*) y, cuando el que sigue haría llegar el renglón a 83 bytes, lo corta: si hubo un
+espacio en ese renglón a menos de 10 bytes (el menor de 83 / 2 y 10) del carácter que no entró,
+vuelve hasta después de ese espacio, que queda al final del renglón, y sigue desde ahí; si no,
+corta justo antes del carácter. Con el último renglón lleno, lo que sigue no va. Al volver al
+espacio no vuelve a medir: copia el largo del carácter que no entró, que en una página de dos
+bytes puede no ser el del que copia.
+
+El dibujo, `0x6463b0` (`vtable + 0x34`), va así:
+
+1. la caja (`vtable + 0x18` de `+0x3040`: si está abierta, las cinco imágenes);
+2. la fuente `DAT_05763560`, el fondo del texto en 0 y el texto en blanco, y para cada renglón i
+   (0 y 1): la marca de la columna i (`+0x2da0` o `+0x2e48`), la del elegido de esa columna
+   (`+0x2ef0` o `+0x2f98`) y el renglón con `0x5542f0` en (x + 11, y + 12 + 20 i) de la caja, en
+   píxeles pasados a 640 × 480 (`_ftol` de dividir por la proporción); un renglón vacío no se
+   dibuja;
+3. los botones con sus rótulos (`0x66a090`) y después las 16 barras de la carga (`0x6407e0`);
+4. si el nombre del grupo elegido es el texto 1829, el del grupo 20 (`strcmp` con `0x7743138`,
+   en el lugar `4 + elegido`; sin elegido, el lugar 3, que no tiene nombre), los textos 565, 566 y
+   567 con `0x554180` en (90, 104), (90, 119) y (90, 134) de 640 × 480, con la misma fuente y el
+   color del último rótulo que se dibujó (Q-C83).
+
 **Los clics** (`0x645e10`, el `+0x30` de la lista): un clic en un grupo lo elige y manda otra vez el
 pedido de la lista (`F4 02`); un clic en un servidor, con carga menor que 100, cierra la lista
 (`0x65f6c0` con la ventana misma), manda el `F4 03` con su código (u16), muestra los textos 470 y

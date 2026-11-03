@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Protocol/Dispatcher.h"
-#include "Protocol/Outgoing.h"
 #include "Protocol/ProtocolError.h"
 
 #include <ostream>
@@ -25,20 +24,6 @@ inline void PrintTo(ProtocolError error, std::ostream* out)
         return;
     }
     *out << "ProtocolError fuera del enum";
-}
-
-inline void PrintTo(Delivery delivery, std::ostream* out)
-{
-    switch (delivery)
-    {
-    case Delivery::Clear:
-        *out << "Clear";
-        return;
-    case Delivery::Encrypted:
-        *out << "Encrypted";
-        return;
-    }
-    *out << "Delivery fuera del enum";
 }
 
 inline void PrintTo(DispatchResult result, std::ostream* out)

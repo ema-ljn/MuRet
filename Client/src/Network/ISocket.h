@@ -14,6 +14,10 @@
 //
 // Hay dos: SystemSocket, con los sockets del sistema (Network/SocketApi.h), y el FakeSocket de los
 // tests, que sigue un guion. Se puede volver a conectar después de Close().
+//
+// SocketError::Closed junta dos cosas: que el otro lado cerró y que este no está conectado. La
+// Connection (CL4.3) llama a Receive y Send, y a SendQueue::Flush, solo con Connected: ahí un
+// Closed es siempre que el otro lado cerró (lo prueba la CL4.3).
 namespace Client::Network
 {
 enum class ConnectProgress : std::uint8_t

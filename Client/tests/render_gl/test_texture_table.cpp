@@ -169,4 +169,26 @@ TEST_F(TextureTableTest, AnUploadThatFailsSaysTheSlot)
     EXPECT_NE(loaded.Error().find(Hex(0x1a)), std::string::npos) << loaded.Error();
     EXPECT_EQ(table.Find(TextureSlot{0x1a}), nullptr);
 }
+
+// Si GL rechaza la textura nueva de un slot (AUD-C03), el slot se queda con la que tenía: el error
+// nombra el slot y lo que dijo GL, y el nombre de GL del slot no cambia.
+TEST_F(TextureTableTest, ADriverFailureKeepsThePreviousTexture)
+{
+    TextureTable table(Gl());
+    ASSERT_TRUE(table.Load(std::vector{Ozt(0x1a, 4, 4)}).HasValue());
+    const GlTexture* before = table.Find(TextureSlot{0x1a});
+    ASSERT_NE(before, nullptr);
+    const GLuint previousName = before->Name();
+    const LoadedTexture tooWide{0x1a, {}, Client::Tests::TextureOverTheGlLimit(Gl())};
+
+    const Client::Core::Expected<void, std::string> loaded = table.Load(std::vector{tooWide});
+
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find(Hex(0x1a)), std::string::npos) << loaded.Error();
+    EXPECT_NE(loaded.Error().find("GL_INVALID_VALUE"), std::string::npos) << loaded.Error();
+    const GlTexture* after = table.Find(TextureSlot{0x1a});
+    ASSERT_NE(after, nullptr);
+    EXPECT_EQ(after->Name(), previousName);
+    EXPECT_EQ(WidthAt(table, 0x1a), 4);
+}
 } // namespace

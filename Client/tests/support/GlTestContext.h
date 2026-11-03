@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Data/Textures/Texture.h"
 #include "Platform/GlLoader.h"
 #include "Platform/SdlContext.h"
 #include "Platform/Window.h"
@@ -29,6 +30,12 @@ inline constexpr const char* RequireGlVariable = "MURET_CLIENT_REQUIRE_GL";
 
 // La regla, separada de la lectura del entorno para probarla: solo "1" pide GL.
 [[nodiscard]] bool IsGlRequired(const std::optional<std::string>& value);
+
+// Una textura RGBA de (GL_MAX_TEXTURE_SIZE + 1) × 1 con su buffer entero: el buffer está bien, pero
+// glTexImage2D la rechaza con GL_INVALID_VALUE. Es la forma de que el driver diga que no sin
+// quedarse sin memoria de verdad (la auditoría del 2026-11-03, AUD-C03). No usa TextureSide, que
+// no pasa de 512.
+[[nodiscard]] Data::Textures::Texture TextureOverTheGlLimit(const Platform::GlFunctions& gl);
 
 class GlTestContext
 {

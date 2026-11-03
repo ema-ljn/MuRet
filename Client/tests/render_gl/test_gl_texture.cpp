@@ -7,6 +7,7 @@
 #include "Data/Textures/Texture.h"
 #include "Platform/GlLoader.h"
 #include "support/GlDrawTest.h"
+#include "support/GlTestContext.h"
 #include "support/TextureFiles.h"
 
 #include <gtest/gtest.h>
@@ -141,6 +142,42 @@ TEST_F(GlTextureTest, LeavesTheUnpackAlignmentAsItWas)
     GLint after = 0;
     Gl().getIntegerv(GL_UNPACK_ALIGNMENT, &after);
     EXPECT_EQ(after, Before);
+}
+
+// Lo que el driver no acepta no es una textura (AUD-C03): un lado mayor que GL_MAX_TEXTURE_SIZE da
+// GL_INVALID_VALUE en glTexImage2D. Upload da el error con su nombre, deja el alignment como
+// estaba y no deja el error pendiente para la llamada siguiente.
+TEST_F(GlTextureTest, RejectsADriverFailure)
+{
+    constexpr GLint Before = 2;
+    Gl().pixelStorei(GL_UNPACK_ALIGNMENT, Before);
+    const Texture tooWide = Client::Tests::TextureOverTheGlLimit(Gl());
+
+    const Client::Core::Expected<GlTexture, std::string> refused = GlTexture::Upload(Gl(), tooWide, NearestClamp);
+
+    ASSERT_FALSE(refused.HasValue());
+    EXPECT_NE(refused.Error().find("GL_INVALID_VALUE"), std::string::npos) << refused.Error();
+    GLint after = 0;
+    Gl().getIntegerv(GL_UNPACK_ALIGNMENT, &after);
+    EXPECT_EQ(after, Before);
+    EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
+}
+
+// Un error que GL ya tenía de antes no es de esta subida: glGetError no dice qué llamada lo dejó.
+// Upload no sube, da un error que lo nombra como de antes y lo saca, así que la subida siguiente
+// anda. Un alignment de 3 (GL acepta 1, 2, 4 y 8) deja GL_INVALID_VALUE pendiente.
+TEST_F(GlTextureTest, ReportsAPreexistingGlError)
+{
+    const Texture texture = MakeTexture(PixelFormat::Rgba, 1, 1, {255, 0, 0, 255});
+    Gl().pixelStorei(GL_UNPACK_ALIGNMENT, 3);
+
+    const Client::Core::Expected<GlTexture, std::string> refused = GlTexture::Upload(Gl(), texture, NearestClamp);
+
+    ASSERT_FALSE(refused.HasValue());
+    EXPECT_NE(refused.Error().find("pendiente"), std::string::npos) << refused.Error();
+    EXPECT_NE(refused.Error().find("GL_INVALID_VALUE"), std::string::npos) << refused.Error();
+    EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
+    EXPECT_TRUE(GlTexture::Upload(Gl(), texture, NearestClamp).HasValue());
 }
 
 // El tercer argumento del original va al filtro de cerca y al de lejos (06 § El login, al entrar).

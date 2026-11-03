@@ -1,6 +1,7 @@
 #include "Render/Gl/GlTexture.h"
 
 #include <cstddef>
+#include <format>
 #include <string>
 #include <utility>
 
@@ -39,21 +40,75 @@ GLenum PixelLayout(PixelFormat format)
     return format == PixelFormat::Rgb ? GL_RGB : GL_RGBA;
 }
 
+// Cuántas veces se llama a glGetError para vaciar los errores. GL puede tener varios guardados
+// (uno por bandera, y glGetError da uno por llamada); el tope es por si un driver no deja de dar
+// errores, para no quedarse en un bucle.
+constexpr int MaxPendingErrors = 16;
+
+// Saca los errores que tiene GL y da el primero, o GL_NO_ERROR si no había ninguno.
+GLenum TakeErrors(const Platform::GlFunctions& gl)
+{
+    GLenum first = GL_NO_ERROR;
+    for (int taken = 0; taken < MaxPendingErrors; ++taken)
+    {
+        const GLenum error = gl.getError();
+        if (error == GL_NO_ERROR)
+        {
+            break;
+        }
+        if (first == GL_NO_ERROR)
+        {
+            first = error;
+        }
+    }
+    return first;
+}
+
+// El nombre de un error de glGetError con su número, para el mensaje: "GL_INVALID_VALUE (0x501)".
+std::string ErrorText(GLenum error)
+{
+    const char* name = nullptr;
+    switch (error)
+    {
+    case GL_INVALID_ENUM:
+        name = "GL_INVALID_ENUM";
+        break;
+    case GL_INVALID_VALUE:
+        name = "GL_INVALID_VALUE";
+        break;
+    case GL_INVALID_OPERATION:
+        name = "GL_INVALID_OPERATION";
+        break;
+    case GL_OUT_OF_MEMORY:
+        name = "GL_OUT_OF_MEMORY";
+        break;
+    case GL_INVALID_FRAMEBUFFER_OPERATION:
+        name = "GL_INVALID_FRAMEBUFFER_OPERATION";
+        break;
+    default:
+        return std::format("el error {:#x} de GL", error);
+    }
+    return std::format("{} ({:#x})", name, error);
+}
+
+std::string SizeText(const Texture& texture)
+{
+    return std::to_string(texture.textureWidth) + " × " + std::to_string(texture.textureHeight);
+}
+
 // Vacío si `texture` se puede subir: lados de 1 o más y los píxeles del buffer entero.
 std::string CheckBuffer(const Texture& texture)
 {
     if (texture.textureWidth <= 0 || texture.textureHeight <= 0)
     {
-        return "una textura de " + std::to_string(texture.textureWidth) + " × " +
-               std::to_string(texture.textureHeight) + " no se puede subir";
+        return "una textura de " + SizeText(texture) + " no se puede subir";
     }
     const std::size_t expected = static_cast<std::size_t>(texture.textureWidth) *
                                  static_cast<std::size_t>(texture.textureHeight) *
                                  Data::Textures::BytesPerPixel(texture.format);
     if (texture.pixels.size() != expected)
     {
-        return "el buffer de " + std::to_string(texture.textureWidth) + " × " + std::to_string(texture.textureHeight) +
-               " mide " + std::to_string(expected) + " bytes y la textura trae " +
+        return "el buffer de " + SizeText(texture) + " mide " + std::to_string(expected) + " bytes y la textura trae " +
                std::to_string(texture.pixels.size());
     }
     return {};
@@ -71,6 +126,14 @@ Core::Expected<GlTexture, std::string> GlTexture::Upload(const Platform::GlFunct
         return Core::Unexpected(std::move(bufferError));
     }
 
+    // glGetError no dice qué llamada dejó un error: uno que ya estaba es de otra, y no se le echa
+    // la culpa a esta subida (AUD-C03 de la auditoría del 2026-11-03).
+    if (const GLenum previous = TakeErrors(gl); previous != GL_NO_ERROR)
+    {
+        return Core::Unexpected("antes de subir la textura de " + SizeText(texture) +
+                                ", GL ya tenía un error pendiente de otra llamada: " + ErrorText(previous));
+    }
+
     GlName name = GenTexture(gl);
     gl.bindTexture(GL_TEXTURE_2D, name.Get());
     GLint previousAlignment = 0;
@@ -78,7 +141,14 @@ Core::Expected<GlTexture, std::string> GlTexture::Upload(const Platform::GlFunct
     gl.pixelStorei(GL_UNPACK_ALIGNMENT, 1);
     gl.texImage2D(GL_TEXTURE_2D, 0, InternalFormat(texture.format), texture.textureWidth, texture.textureHeight, 0,
                   PixelLayout(texture.format), GL_UNSIGNED_BYTE, texture.pixels.data());
+    const GLenum uploadError = TakeErrors(gl);
     gl.pixelStorei(GL_UNPACK_ALIGNMENT, previousAlignment);
+    if (uploadError != GL_NO_ERROR)
+    {
+        // El GlName borra el nombre al salir: GL desata lo que se borra, y GL_TEXTURE_2D queda
+        // en 0.
+        return Core::Unexpected("GL no aceptó la textura de " + SizeText(texture) + ": " + ErrorText(uploadError));
+    }
     // Como el original: el filtro va de cerca y de lejos, y el wrap en los dos ejes.
     gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GlFilter(sampling.filter));
     gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GlFilter(sampling.filter));

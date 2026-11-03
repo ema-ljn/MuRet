@@ -4,9 +4,12 @@
 
 #include <SDL3/SDL_error.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace Client::Tests
 {
@@ -61,6 +64,19 @@ Core::Expected<std::unique_ptr<GlTestContext>, std::string> GlTestContext::Creat
     // El constructor es privado: make_unique no lo ve.
     return std::unique_ptr<GlTestContext>(
         new GlTestContext(std::move(sdl).Value(), std::move(window), std::move(context), gl.Value()));
+}
+
+Data::Textures::Texture TextureOverTheGlLimit(const Platform::GlFunctions& gl)
+{
+    GLint maxSide = 0;
+    gl.getIntegerv(GL_MAX_TEXTURE_SIZE, &maxSide);
+    const int side = static_cast<int>(maxSide) + 1;
+    return Data::Textures::Texture{.width = side,
+                                   .height = 1,
+                                   .textureWidth = side,
+                                   .textureHeight = 1,
+                                   .format = Data::Textures::PixelFormat::Rgba,
+                                   .pixels = std::vector<std::uint8_t>(static_cast<std::size_t>(side) * 4)};
 }
 
 const Platform::GlFunctions& GlTestContext::Gl() const

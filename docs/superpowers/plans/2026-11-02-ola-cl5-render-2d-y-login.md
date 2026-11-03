@@ -1245,13 +1245,16 @@ se reproduce y queda en 07 si la CL5.R lo confirma.
   (`UsesTheInterpreterOfWindows98`), la negrita sin su píxel de avance
   (`WithoutABoldFileTheBoldIsOnePixelWiderPerLetter`), los bytes altos como UTF-8 inválido
   (`ReadsEachByteAsLatin1`) y el tamaño pedido como em con `FT_Set_Pixel_Sizes`, que vivía hasta que
-  se sumó `TheEmIsSmallerThanTheCell`. - [ ] **Paso 5 (PR B):** los tests de la caché:
-  `TextCacheTest.TheSameTextIsRasterizedOnce`, `ADifferentColorIsAnotherEntry`, `ResizingEmptiesIt`,
-  `KeepsAtMostItsCap` (el más viejo sale); con ventana, `GlTextTextureTest.UploadsTheBoxOf256By32` y
-  `TheTextIsAtTheTopLeftOfTheBox`. - [ ] **Paso 6 (PR B):** `TextCache`, `GlTextTexture` y
-  `SystemFonts`; el 06 y el 07. - [ ] **Paso 7:** verificar: ```bash cmake --build --preset
-  linux-x64-debug ctest --preset linux-x64-debug -R
-  "InlineColors|FontSet|TextLayout|FreeType|TextCache|Config" ```
+  se sumó `TheEmIsSmallerThanTheCell`.
+- [ ] **Paso 5 (PR B):** los tests de la caché: `TextCacheTest.TheSameTextIsRasterizedOnce`,
+  `ADifferentColorIsAnotherEntry`, `ResizingEmptiesIt`, `KeepsAtMostItsCap` (el más viejo sale);
+  con ventana, `GlTextTextureTest.UploadsTheBoxOf256By32` y `TheTextIsAtTheTopLeftOfTheBox`.
+- [ ] **Paso 6 (PR B):** `TextCache`, `GlTextTexture` y `SystemFonts`; el 06 y el 07.
+- [ ] **Paso 7:** verificar:
+  ```bash
+  cmake --build --preset linux-x64-debug
+  ctest --preset linux-x64-debug -R "InlineColors|FontSet|TextLayout|FreeType|TextCache|Config"
+  ```
 
 ## Sub-ola CL5.4: `SceneManager`, la escena de carga y la `LoginScene`
 

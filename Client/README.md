@@ -50,6 +50,12 @@ aceptado en el GameServer y después manda el keepalive cada 20 s, consultada po
 frame. Todavía no hay escena de login (CL5): la cuenta sale del entorno, se elige el primer
 servidor de la lista, y la ventana sigue con la escena de prueba.
 
+Desde la CL5.1, lo que dibuja con OpenGL es el target `ClientRender` (`src/Render/Gl/`), el único
+con GL además de `ClientPlatform`: `ClientLib` sigue sin verlo. Trae el shader del 2D, `GlTexture`
+(sube una textura de la CL1 con su filtro y su wrap), un framebuffer para leer lo dibujado y
+`GlRenderer`, que dibuja triángulos en píxeles con la y para arriba. La tabla de GL es la X-macro de
+`Platform/GlFunctionList.h`: una función nueva es una línea ahí.
+
 ## Compilar y correr
 
 Hace falta vcpkg (las dependencias, SDL3, libjpeg-turbo y GoogleTest, están en `vcpkg.json` y se
@@ -313,6 +319,15 @@ Los del login (`GoldenLogin`, desde la CL2.5) usan solo la carpeta del cable, co
 eligen del cable los login, los keepalive, los saludos y las respuestas, y miran cabeceras,
 tamaños, opcodes y la versión. De la cuenta, la clave y el serial no miran nada.
 
+Los de `tests/render_gl/` (desde la CL5.1) abren una ventana escondida con un contexto 3.3 core
+(`tests/support/GlTestContext.h`), dibujan en un framebuffer de 64 × 64 y leen los píxeles. Llevan
+la etiqueta `gl`. Sin pantalla o sin OpenGL 3.3 se saltean, y con `MURET_CLIENT_REQUIRE_GL=1`
+fallan con el motivo: así los corre el CI, en Xvfb, junto con los del lab de la CL5.0:
+
+```bash
+MURET_CLIENT_REQUIRE_GL=1 xvfb-run -a ctest --preset linux-x64-debug -L '^gl$' --no-tests=error
+```
+
 ## Estructura (a medida que avanzan las olas)
 
 ```
@@ -328,7 +343,8 @@ Client/
     Network/      socket, paquetes, C3/C4, FoxAnti      (CL2, CL4)
     Protocol/     opcodes, structs (el login, en Connection/), dispatcher (CL2, CL4, CL9); el
                   pedido de la mascota (A9), en Pet/ (CL4)
-    Render/       OpenGL 3.3: texturas, sprites, texto  (CL5+)
+    Render/       OpenGL 3.3: texturas, sprites, texto  (CL5+); lo que llama a GL, en Gl/
+                  (ClientRender, CL5.1)
     Scenes/       la escena de prueba (CL3); login, selección, juego (CL5, CL6)
     World/        mapa, cámara, objetos                 (CL7)
     GameLogic/    personaje, entidades, items, chat     (CL7+)

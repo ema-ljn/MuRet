@@ -679,20 +679,20 @@ public:
 } // namespace Client::Render::Gl
 ```
 
-- [ ] **Paso 1 (PR A):** los puertos de vcpkg en el baseline del repo (`builtin-baseline` `9a5dfef5`
+- [x] **Paso 1 (PR A):** los puertos de vcpkg en el baseline del repo (`builtin-baseline` `9a5dfef5`
   de `vcpkg.json`), que Context7 no ve: se miran en el registro de vcpkg en ese commit. La revisión
   del plan ya los miró: `glm` 1.0.3, `freetype` 2.14.3 (features por defecto `brotli`, `bzip2`,
   `png` y `zlib`; FTL o GPL-2.0+; se suma en la CL5.3) y `sdl3-ttf` 3.2.2#1 (descartado). Con
   Context7, las funciones de GL 3.3 core que se piden. La lista de la X-macro, con el uso de cada
   una.
-- [ ] **Paso 2 (PR A):** los tests sin ventana: `GlLoaderTest.EveryFunctionHasItsName` (la lista
+- [x] **Paso 2 (PR A):** los tests sin ventana: `GlLoaderTest.EveryFunctionHasItsName` (la lista
   no repite nombres, y cada uno empieza con `gl`); con ventana (`render_gl/`, pregunta 9):
   `GlShaderTest.CompilesTheSpriteShader`, `GlShaderTest.ABadShaderSaysItsLog` (el log de
   `glGetShaderInfoLog` en el error), `GlTextureTest.UploadsAnRgbaTexture` (el OZT sintético de
   2 × 2: los cuatro texeles leídos de un FBO), `GlTextureTest.UploadsAnRgbTextureOfOddWidth` (un
   OZJ de 1 × 1 y uno de 3 × 2 en su buffer de 4 × 2: las filas no se corren),
   `GlTextureTest.NearestAndLinearSampleAsAsked`, `GlTextureTest.RepeatWrapsAndClampDoesNot`.
-- [ ] **Paso 3 (PR A):** la X-macro y `ClientRender`; `GlShader`, `GlTexture`, `GlFramebuffer` y
+- [x] **Paso 3 (PR A):** la X-macro y `ClientRender`; `GlShader`, `GlTexture`, `GlFramebuffer` y
   el `GlTestContext`. El CI corre `render_gl` con Xvfb.
 - [ ] **Paso 4 (PR B):** los tests de los datos: `TextureSetTest.ChangesTheExtensionLikeTheOriginal`
   (`.jpg` → `.OZJ`, `.TGA` → `.OZT`, otra extensión queda), `TextureSetTest.AMissingFileSaysItsPath`
@@ -707,6 +707,35 @@ public:
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "GlLoader|TextureSet"
   xvfb-run -a env MURET_CLIENT_REQUIRE_GL=1 ctest --preset linux-x64-debug -L '^gl$'
   ```
+Hecho así (PR A, 2026-11-03): la X-macro de `Platform/GlFunctionList.h` tiene 46 funciones en dos
+grupos: `MURET_GL_QUERY_FUNCTIONS` (`glGetString` y `glGetIntegerv`) y el resto. `LoadGlFunctions`
+pide las dos primeras, mira la versión y el perfil (el chequeo que estaba en `Window.cpp` y copiado
+en el lab) y recién ahí pide el resto, así que un driver viejo dice su versión y no la primera
+función de la 3.3 que le falta (`GlLoaderTest.TheContextIsAskedFirst`). El pedido de una función
+quedó público (`Platform::LoadGlFunction`, con el reintento en `opengl32.dll`), y el lab pide con
+él lo único que le queda, `glDrawElements`; lee `MURET_CLIENT_REQUIRE_GL` con
+`Core::ReadEnvironmentVariable`, que llegó con el merge de `origin/claude/cl45` porque `main`
+todavía no tiene `Core/Environment.h`. Cuatro cosas cambiaron de lugar: `Data/Textures/Sampling.h`
+vino al PR A, porque `GlTexture::Upload` lo recibe; `Render/SpriteVertex.h`, con `Color`, se
+adelantó de la CL5.2, y `GlRenderer` ya dibuja triángulos (`Draw(span<const SpriteVertex>, const
+GlTexture&, PixelSize)`), para probar con píxeles leídos que la y va para arriba como en
+`gluOrtho2D`, que el color del vértice modula la textura y que el viewport es la pantalla
+(`GlRendererTest`); y `GlFramebuffer` y `GlName` (este último, el del lab) están en `ClientRender`,
+no en los tests. El test de ancho impar no usa el 1 × 1 ni el 3 × 2 en 4 × 2 que decía el paso 2:
+con `GL_RGB` sus filas miden 3 y 12 bytes, y ninguno corre filas con el alineado en 4. Usa un 2 × 2
+(filas de 6 bytes), un 1 × 2 (de 3) y el 3 × 2 en 4 × 2 con la columna de relleno en negro.
+`GL_UNPACK_ALIGNMENT` vuelve al valor que tenía, no a 4 fijo (`LeavesTheUnpackAlignmentAsItWas`).
+`GL_CLAMP` (`0x2900`) no existe en el perfil core: `Wrap::Clamp` es `GL_CLAMP_TO_EDGE`, y la
+diferencia con `GL_LINEAR` en el borde es Q-C73. Suma tests que el paso 2 no tenía:
+`GlShaderTest.ABadLinkSaysItsLog` (un `vec2` contra un `vec3`, porque Mesa enlaza una entrada que
+nadie escribe), `GlTextureRulesTest` (un buffer que no mide lo que dice no llama a GL),
+`GlFramebufferTest`, `GlTestContextTest` (abre un 3.3 core y carga las 46) y los cuatro `GlNameTest`
+del lab. Los de `render_gl/` llevan la etiqueta `gl` y 60 s cada uno: `muret_add_test` suma `LABEL`
+y `TIMEOUT`, y la ventana escondida va en `ClientGlTestSupport`, aparte de `ClientTestSupport`, para
+que el resto de los tests no enlace GL. Los mutantes a mano (sin `GL_UNPACK_ALIGNMENT` en 1, la
+vuelta a 4 fijo, sin `WRAP_T`, sin el filtro de minificación, `Clamp` como `GL_REPEAT`, `Linear`
+como `GL_NEAREST`, RGB como RGBA, sin el chequeo del buffer, sin viewport, la y para abajo, sin
+modular, el log del shader vacío y un nombre de GL repetido o sin `gl`) mueren todos.
 
 ## Sub-ola CL5.2: `SpriteBatch` en 640 × 480 escalado
 
@@ -733,6 +762,10 @@ en píxeles, y la Y dada vuelta del original; y por lotes: muchos quads en un bu
 `test_sprite_batch.cpp` y `Client/tests/render_gl/test_gl_sprite_renderer.cpp`. Modificar
 `Client/tests/CMakeLists.txt` (`add_subdirectory(render)`), `Client/src/Render/Gl/Shaders.h`,
 PROGRESS y este plan.
+*Nota de la CL5.1:* `SpriteVertex.h`, con `Color`, ya llegó con la CL5.1, y `Gl::GlRenderer` ya
+sube vértices y dibuja triángulos con una textura (`Draw(span<const SpriteVertex>, const GlTexture&,
+PixelSize)`), con el viewport y `glm::ortho(0, W, 0, H)`. `GlSpriteRenderer` lo usa por comando o
+lo absorbe; el alpha test, la mezcla y el color recortado a [0, 1] son de la CL5.2.
 
 **Interfaces:**
 

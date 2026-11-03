@@ -357,7 +357,7 @@ que dicen. Quién pasa de una escena a otra está en
 
 `0x622e40(hdc)` corre una vez y dibuja sola, sin el render loop. Pone en 0 la tabla de texturas
 (1.845 slots de `0x38` bytes desde `0x7d3a198`) y sube seis de `Interface\`, todas con
-`GL_LINEAR` y `GL_CLAMP` salvo la barra, que repite: `lo_back_01.jpg` (`0x71e`),
+`GL_LINEAR` y `GL_CLAMP` (Q-C73) salvo la barra, que repite: `lo_back_01.jpg` (`0x71e`),
 `lo_back_02.jpg` (`0x71f`), `lo_mu_logo.tga` (`0x720`), `lo_121518.tga` (`0x721`),
 `lo_webzen_logo.tga` (`0x722`) y `lo_lo.jpg` (`0x723`, `GL_REPEAT`). Arma su UI (`0x65eeb0`),
 carga los datos del juego (`0x61ccb0`), suelta los seis slots (`0x63c150`) y pasa a la escena 2.

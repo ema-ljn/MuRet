@@ -486,6 +486,10 @@ bool LoginScene::HoldsTheLastFrame() const
     {
         return false;
     }
-    return IsConnecting(m_session->State()) || (m_seen && IsConnecting(*m_seen));
+    // Conectando, y también con lo que el paso todavía no vio (desde Enter, o un Poll que cambió el
+    // estado en un frame sin pasos): un connect que falla enseguida sale en ese Poll, y el frame
+    // sería el login sin el aviso.
+    const App::SessionState state = m_session->State();
+    return IsConnecting(state) || m_seen != state;
 }
 } // namespace Client::Scenes

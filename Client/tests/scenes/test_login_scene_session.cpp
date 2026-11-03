@@ -802,6 +802,46 @@ TEST(LoginSceneSessionTest, AFailingConnectHoldsTheFrameUntilTheNotice)
     EXPECT_TRUE(Harness::Drew(events, ConnectFailedText));
 }
 
+// Un connect que falla enseguida (un puerto cerrado en la misma máquina, un host que no resuelve)
+// sale en el primer Poll después de Enter, y en el modo normal ese frame puede no tener un paso
+// antes del dibujo. La escena todavía no vio la falla: retiene el frame hasta que su paso abre el
+// aviso, y el primer frame del login ya lo trae.
+TEST(LoginSceneSessionTest, AConnectThatFailsAtOnceHoldsTheFrameUntilTheNotice)
+{
+    Harness tested;
+    tested.socket.connectResult = SocketError::Refused;
+    ASSERT_TRUE(tested.scene->Enter().HasValue());
+
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+
+    tested.scene->Step(tested.input);
+    EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
+    EXPECT_TRUE(Harness::Drew(tested.Frame(), ConnectFailedText));
+}
+
+// Lo mismo con el GS: el F4 03 lo abre en un Poll y la falla sale en el siguiente, sin un paso en
+// el medio (dos frames sin pasos). La escena no llegó a verla conectando, y retiene el frame igual.
+TEST(LoginSceneSessionTest, AGameServerConnectThatFailsBetweenStepsHoldsTheFrame)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ChooseTheLabServer());
+    tested.socket.connectResult = SocketError::Refused;
+    tested.socket.reads = {AddressReply(GameHost, GamePort)};
+
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+
+    tested.scene->Step(tested.input);
+    EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
+    EXPECT_TRUE(Harness::Drew(tested.Frame(), ConnectFailedText));
+}
+
 // Con el CS abierto el original sigue con el login y dibuja mientras espera el saludo: la escena
 // suelta el frame.
 TEST(LoginSceneSessionTest, AnOpenedConnectionDrawsTheLogin)
@@ -820,7 +860,7 @@ TEST(LoginSceneSessionTest, AnOpenedConnectionDrawsTheLogin)
 }
 
 // El connect al GS también bloquea en el original (0x4e3396): con la dirección, en la pantalla
-// queda la lista hasta que el GS abre.
+// queda el último frame, ya sin la lista (la cerró el clic, 0x645e10), hasta que el GS abre.
 TEST(LoginSceneSessionTest, TheGameServerConnectHoldsTheFrame)
 {
     Harness tested;

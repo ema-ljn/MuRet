@@ -38,6 +38,10 @@ void RecordingClient::Step(const Input::InputState& input)
     ++steps;
     calls.push_back(LoopCall::Step);
     sawPress.push_back(input.WasPressed(watchedKey));
+    if (holdsAfterAStep)
+    {
+        holdsTheLastFrame = true;
+    }
     m_clock.Advance(stepCost);
 }
 

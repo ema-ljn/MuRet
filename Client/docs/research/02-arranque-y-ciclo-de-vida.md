@@ -57,10 +57,11 @@ arranca solo. *Estático*, salvo donde se dice otra cosa:
    arma el launcher, o `/u<ip> /p<puerto>`, pero nadie lo llama (Q-C36). El laboratorio lanza el
    juego como `main.exe connect /u172.16.198.1 /p44405` (`mu-client/CHECKPOINT.md`), y eso no
    cambia nada: la IP la pone la FoxAnti, y 44405 ya es el puerto compilado.
-6. **La configuración** vive en el registro, en `HKCU\SOFTWARE\Webzen\Mu\Config` (`0x4b90a0`:
-   `ID`, `SoundOnOff`, `MusicOnOff`, `Resolution`, `ColorDepth` y `TextOut`; más adelante,
-   `VolumeLevel`). `FoxAnti.Init` lee además `ConnectIp` de **HKCU** y escribe 16 bytes sobre el
-   host compilado, en `0x6c76e0` (`mu-client/docs/component-packet.md`).
+6. **La configuración** vive en el registro, en `HKCU\SOFTWARE\Webzen\Mu\Config` (`0x4b90a0`: `ID`,
+   `SoundOnOff`, `MusicOnOff`, `Resolution`, `ColorDepth` y `TextOut`; más adelante, `VolumeLevel`;
+   qué hacen `ID`, `Resolution` y `TextOut`, en [Resolución, fuentes y
+   texto](#resolución-fuentes-y-texto)). `FoxAnti.Init` lee además `ConnectIp` de **HKCU** y escribe
+   16 bytes sobre el host compilado, en `0x6c76e0` (`mu-client/docs/component-packet.md`).
 7. **Los launchers del laboratorio.** El paquete trae tres
    (`decompilacion-maxima/metadata/analisis_pe.json`): `Mu.exe`, el de Webzen, el único
    decompilado; `Launcher.exe`, de Lords Games, en Visual Basic 6, cuyos textos nombran
@@ -91,7 +92,7 @@ entry 0x6a2444 (arranque del CRT)
        ├─ ventana         0x4b8ff0: RegisterClassA("MU") + CreateWindowExA
        ├─ contexto GL     0x4b8e10: ChoosePixelFormat + wglCreateContext + wglMakeCurrent
        ├─ ShowWindow + UpdateWindow
-       ├─ fuentes         CreateFontA x4 (HUD y texto)
+       ├─ fuentes         CreateFontA x4 (abajo)
        ├─ volumen         VolumeLevel en el registro SOFTWARE\Webzen\Mu\Config
        ├─ timers          SetTimer x3
        └─ bucle           PeekMessageA en idle, GetMessageA al bloquear
@@ -103,6 +104,38 @@ entry 0x6a2444 (arranque del CRT)
 *Estático*: la cadena se resolvió por referencias de bytes (`call 0x637700` en `0x639501`,
 `call 0x63945d` en `0x4be04a`).
 
+### Resolución, fuentes y texto
+
+Leído en la CL5.R; todo *estático*.
+
+- **La resolución** es el valor `Resolution` del registro (`0x4b90a0`): 0 da 640 × 480, 1 800 ×
+  600, 2 1024 × 768, 3 1280 × 1024 y 4 1600 × 1200. W y H van a `0x6d5d60` y `0x6d5d64`, y las
+  proporciones a `DAT_05762ea8` (W / 640) y `DAT_05762eac` (H / 480). Qué hace con otro valor, sin
+  leer.
+- **Las fuentes:** cuatro `CreateFontA(alto, 0, 0, 0, peso, 0, 0, 0, charset, 0, 0, 3, 0, cara)`
+  (`0x4ba737`, `0x4ba777`, `0x4ba7b9` y `0x4ba813`), todas sin suavizado
+  (`NONANTIALIASED_QUALITY`, el 3) y con el charset que lee de `0x6c76a0`, un dword de la `.data`
+  que vale `0x86` (`GB2312_CHARSET`, Q-C67) y que nadie escribe (lo leen estas cuatro y
+  `0x63f2f2`). La cara es un texto de `Text.bmd`, o `NULL` (la que elija el sistema) si empieza
+  con `\0`:
+
+  | Global | Peso | Alto | Cara |
+  | --- | --- | --- | --- |
+  | `DAT_05763554` | 400 | n − 1 | el texto 0 |
+  | `DAT_05763558` | 700 | n − 1 | el texto 0 |
+  | `DAT_0576355c` | 700 | 2 · (n − 1) | el texto 0 |
+  | `DAT_05763560` | 400 | 12 | el texto 18 |
+
+  n es `DAT_07758568`, que se escribe solo ahí (`0x4ba6af`..`0x4ba6d3`): 12 con W = 640, 13 con
+  800, 14 con 1024 y 15 con 1280. Con 1600 no se escribe y, como está en la `.bss`, vale 0: las
+  alturas quedan en -1, -1 y -2 (Q-C59).
+- **El texto:** `TextOut` (0 si no está) elige cómo se dibuja: con 1, la caché de `0x466000` con
+  los colores `0x02`; con otro valor, un `TextOutA` por texto, el camino de las trazas
+  ([06](06-render-escenas-y-ui.md#texto)).
+- **La cuenta guardada:** `ID` se lee a `DAT_057630a0` con un tope de 11 bytes, y nadie en
+  `main.exe` lo escribe (*inferido*: lo deja el launcher). La ventana de la cuenta la pone en su
+  campo ([06](06-render-escenas-y-ui.md#la-cuenta-y-la-clave)).
+
 ## El frame
 
 El orquestador `0x63945d` elige por el global de escena `DAT_006d5dc8`: la 1 va a `0x622e40`, la 3
@@ -113,6 +146,26 @@ contador (`DAT_05763578`) pasa de 31; sin leer en detalle. *Estático.*
 
 El render loop `0x637700` hace, en orden: cámara, color de cielo por mapa, la escena que toque
 (ver [06](06-render-escenas-y-ui.md)), objetos, HUD, `SwapBuffers` y música. *Estático.*
+
+### Las cinco escenas y sus transiciones
+
+Quién escribe `DAT_006d5dc8`, leído en la CL5.R en el desensamblado (*estático*):
+
+| De | A | Dónde | Con qué |
+| --- | --- | --- | --- |
+| (arranque) | 1 | la `.data` | `DAT_006d5dc8` vale 1 en el archivo |
+| 1 | 2 | `0x622e40` | al terminar la carga ([06](06-render-escenas-y-ui.md#la-carga-escena-1)) |
+| 2 | 4 | `0x634c60` | el login aceptado: el `F1 01` deja el estado de la conexión, `DAT_057678c0`, en `0x14`; la escena lo ve en su paso, lo pasa a `0x32` y manda el `F3 00` |
+| 4 | 3 | `0x6342c0` y `0x633c10` | Enter, o doble clic sobre el personaje elegido, en la lógica de la selección (que corre solo con el estado en `0x33` o más, la lista de personajes); o el botón de la ventana de la selección (`0x633c10`, desde `0x63eb9a`, en su `vtable + 0x30`) |
+| 3 | 5 | `0x6356f0` | al terminar la carga del mundo |
+| 5 o 4 | 4 o 2 | `0x4c2710` | la respuesta del `F1 02`: con `pkt[4]` en 1 pasa a la 4, y con 2 a la 2, y en ese caso pone en 0 la bandera del login (`DAT_07d3a13d`, `0x4c2f24`) y corta: al volver se carga todo otra vez, y vuelve a conectar al CS |
+
+Los estados de la conexión que importan acá son 0 (sin GS), 2 (el `F1 00` aceptado), `0x13` (el
+login mandado), `0x14` (aceptado), `0x32` (la lista de personajes pedida) y `0x33` (llegó).
+Ninguna otra función escribe la escena: los ocho `mov` a `DAT_006d5dc8` del binario son estos,
+todos con un número fijo (`0x4c2f1a`, `0x4c363f`, `0x622f93`, `0x633f05`, `0x634470`, `0x634638`,
+`0x634dce` y `0x635a91`). La primera entrada a la selección (`0x633f20`, desde
+`0x6342c0`) pone el mapa 54, `World55` (05).
 
 ### El ritmo: lógica a 25 por segundo, dibujo a 21,33
 
@@ -518,6 +571,8 @@ arranque hasta el cierre, también antes de conectar. Los otros: el 1001 en `0x4
 | Teclado por `GetAsyncKeyState`, casi todo leído en el paso; "se apretó" por el bit bajo o por un flanco propio, que pierden un apretón corto (Q-C45); el mouse por mensajes y, para la UI nueva, consultado en cada frame | estado del teclado y del mouse armado con eventos, detrás de `Input`; un apretón lo ve un solo paso | CL3 |
 | Sin foco no corre el frame: ni pasos, ni dibujo, ni la espera (Q-C46) | los pasos siguen sin foco y minimizada; minimizada no se dibuja | CL3 |
 | Lo que avanza por reloj: las demoras de las habilidades y el reloj T (`timeGetTime`), el freno de 300 ms (`GetTickCount`) y el delta de la UI (QPC) | por el reloj del cliente, no por pasos, aunque la lógica corra en el paso | CL6 a CL9 |
+| Cinco escenas en un entero que escriben ocho lugares, con números fijos | `Scenes::SceneManager` con la tabla de transiciones de arriba: una que no está es un error en el log | CL5 |
+| Cinco resoluciones, y la letra de a un punto por ancho, que en 1600 × 1200 queda en -1 y -2 (Q-C59) | cualquier tamaño de ventana; la letra por escalones de ancho, con el de 1280 desde 1280 en adelante | CL5 |
 | Red por mensajes de ventana | un socket no bloqueante que el bucle consulta en cada frame; mismo modelo de un solo hilo | CL4 |
 | Keepalive por `WM_TIMER` cada 20 s | temporizador del bucle, testeable con un reloj falso | CL4 |
 | Fin del auto-update del launcher (`0x4b96b0`: copia `mu._xe`, `mumsg._ll`, `wz_zp._ll` y `message._tf` sobre sus nombres) | no se porta: es del launcher ([05](05-formatos-de-datos.md#el-pipeline-de-las-dlls)) | — |
@@ -530,6 +585,8 @@ Tests que fija:
 - El modo fiel con un reloj falso de 15,625 ms: 64 frames cada 3 segundos y, desde el segundo
   frame, 75 pasos de lógica cada 64 frames, 11 de ellos con 2 (7 u 8 cada 6) (CL3).
 - El keepalive sale cada 20 s de reloj simulado y no antes (CL4).
+- Las transiciones de escena de la tabla, y que una que no está se rechace (CL5.4).
+- La letra de cada ancho: 12, 13, 14 y 15 en 640, 800, 1024 y 1280, y 15 en 1600 (CL5.3).
 - El parser de la línea de comandos acepta `connect /u<ip> /p<puerto>` como el original, con las
   letras en mayúscula o minúscula, y rechaza un puerto que no sea un número de 1 a 65535; qué hace
   con `/u` sin `/p` se decide en la CL3 (CL3).

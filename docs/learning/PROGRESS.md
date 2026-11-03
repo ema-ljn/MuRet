@@ -201,6 +201,16 @@ solo lo lee.
   llegaron glm a `vcpkg.json` y ese paso del CI. Las respuestas, en
   [`labs/cl5.0-pipeline/README.md`](../../labs/cl5.0-pipeline/README.md). Para cerrarla falta lo
   tuyo: las preguntas y la sección final de la guía, y explicar los conceptos de abajo.
+  **La CL5.R** la escribió Claude, en el binario: la carga y el login pasaron al research
+  (06, 02, 05). Las escenas las escriben ocho `mov` con números fijos, y la tabla de transiciones es
+  la que prueba la CL5.4; la carga se diseña en 800 × 600 y dibuja 11 frames mientras carga; cada
+  vuelta al login carga todo otra vez. Las siete ventanas de la UI nueva quedaron identificadas,
+  salvo tres; la lista ubica los grupos por una tabla y se corta en el primer lugar vacío (Q-C62);
+  los campos de la cuenta y la clave son controles `EDIT` de Windows, de 10 caracteres, y la ventana
+  sale con el GS ya conectado; cada resultado del `F1 01` tiene su aviso y su texto por índice, y el
+  OK del aviso de la conexión que falló cierra el juego (Q-C69). Los mapas van del 0 al 255 sin
+  mirar el rango, y el 32 deja el juego en el 9 (Q-C58). Quirks nuevos de Q-C57 a Q-C70; P-C04 quedó
+  cerrado, y P-C13 espera la traza y las capturas de estas dos escenas.
 
 ## Conceptos
 
@@ -292,6 +302,7 @@ sesión, junto con los de repaso más viejo.
 | subir una textura: `GL_UNPACK_ALIGNMENT` con filas de 6 bytes, el filtro, el wrap y los lados potencia de 2, con el largo del buffer chequeado antes de llamar a GL (`RequiredUnpackBytes`) | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | la mezcla normal y la aditiva, y por qué con la normal un lote no puede cambiar el orden de dibujo | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | RAII sobre un nombre de GL (`GlName`), que se mueve con `std::exchange`, no se copia y necesita el contexto vivo; una X-macro para la tabla de funciones (`LabGl`); y un test de GL que se saltea sin pantalla salvo con `MURET_CLIENT_REQUIRE_GL=1` | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| leer una UI en el binario: una clase por ventana con su vtable sobre una base común, un administrador con el lugar de cada una, el `switch` de un id de aviso a un índice de `Text.bmd`, y uno compilado como tabla de bytes y tabla de saltos (`0x4e5f04` y `0x4e5ebc`) | CL5.R | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

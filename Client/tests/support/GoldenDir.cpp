@@ -1,13 +1,12 @@
 #include "support/GoldenDir.h"
 
+#include "Core/Ascii.h"
 #include "Core/Environment.h"
 #include "Data/DataPath.h"
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <filesystem>
-#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -32,17 +31,9 @@ std::optional<std::filesystem::path> GoldenDirFromValue(const std::optional<std:
     return std::filesystem::path(*value);
 }
 
-bool EqualsIgnoringAsciiCase(std::string_view a, std::string_view b)
-{
-    // Solo A-Z, como en DataPath.cpp: std::tolower depende del locale.
-    const auto lower = [](char letter)
-    { return letter >= 'A' && letter <= 'Z' ? static_cast<char>(letter - 'A' + 'a') : letter; };
-    return std::ranges::equal(a, b, std::ranges::equal_to{}, lower, lower);
-}
-
 bool HasExtension(const std::filesystem::path& path, std::string_view extension)
 {
-    return EqualsIgnoringAsciiCase(path.extension().string(), extension);
+    return Core::EqualsIgnoringAsciiCase(path.extension().string(), extension);
 }
 
 GoldenDirState CheckGoldenDir(const std::optional<std::filesystem::path>& dir)

@@ -17,7 +17,6 @@ namespace fs = std::filesystem;
 using Client::Tests::CheckDump;
 using Client::Tests::CheckGoldenDir;
 using Client::Tests::DumpState;
-using Client::Tests::EqualsIgnoringAsciiCase;
 using Client::Tests::GoldenDirFromValue;
 using Client::Tests::GoldenDirState;
 using Client::Tests::HasExtension;
@@ -65,14 +64,6 @@ TEST(GoldenDirTest, ADumpIsInTheFolderOfItsCapture)
 
     std::error_code error;
     fs::remove_all(root, error);
-}
-
-// Solo A-Z cambian de mayúscula a minúscula; el resto se compara tal cual.
-TEST(GoldenDirTest, NamesAreComparedIgnoringAsciiCase)
-{
-    EXPECT_TRUE(EqualsIgnoringAsciiCase("TerrainLight", "terrainlight"));
-    EXPECT_FALSE(EqualsIgnoringAsciiCase("TerrainLight", "TerrainLigh"));
-    EXPECT_FALSE(EqualsIgnoringAsciiCase("\xC1", "\xE1"));
 }
 
 // La extensión se compara sin mayúsculas, entera y con su punto.

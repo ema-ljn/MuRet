@@ -30,11 +30,8 @@ enum class GoldenDirState
 std::optional<std::filesystem::path> GoldenDirFromValue(const std::optional<std::string>& value);
 GoldenDirState CheckGoldenDir(const std::optional<std::filesystem::path>& dir);
 
-// Si `a` y `b` son iguales sin distinguir mayúsculas ASCII, como los nombres en Windows.
-bool EqualsIgnoringAsciiCase(std::string_view a, std::string_view b);
-
-// Si `path` termina en `extension` (por ejemplo ".ozj"), sin distinguir mayúsculas ASCII: en la
-// carpeta golden hay .OZJ, .ozj y .Ozj.
+// Si `path` termina en `extension` (por ejemplo ".ozj"), sin distinguir mayúsculas ASCII
+// (Core::EqualsIgnoringAsciiCase): en la carpeta golden hay .OZJ, .ozj y .Ozj.
 bool HasExtension(const std::filesystem::path& path, std::string_view extension);
 
 // Base para los tests que leen archivos reales. SetUp() saltea el test sin carpeta golden y lo

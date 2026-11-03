@@ -7,6 +7,12 @@
 
 namespace Client::Render::Text
 {
+namespace
+{
+// 0x467060 no le pasa a TextOutA un texto que empieza con este byte (0x4671e1).
+constexpr char NewLine = '\n';
+} // namespace
+
 void StoreColor(std::uint32_t color, std::span<std::uint8_t, 4> pixel)
 {
     pixel[0] = static_cast<std::uint8_t>(color & 0xff);
@@ -20,7 +26,10 @@ void PaintTextBox(const IGlyphRasterizer& rasterizer, const TextStyle& style, st
 {
     std::ranges::fill(rgba, std::uint8_t{0});
     std::array<std::uint8_t, TextBoxPixelCount> ink{};
-    rasterizer.DrawInk(style.font, text, firstColumn, ink);
+    if (!text.starts_with(NewLine))
+    {
+        rasterizer.DrawInk(style.font, text, firstColumn, ink);
+    }
 
     const int columns = std::clamp(width, 0, TextBoxWidth);
     const int visibleRows = std::clamp(rows, 0, TextBoxHeight);

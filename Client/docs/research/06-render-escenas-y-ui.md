@@ -343,7 +343,9 @@ cualquier otro, la de `0x466ff0` (vtable `0x6b9538`), cuyo método 1, `0x467060`
 `TextOutA` del texto entero sobre el DIB y llama a `0x554000`: **no mira los `0x02`**, que le
 llegan a GDI como un carácter más. Las trazas son de este camino (*inferido*: en la VM, `TextOut`
 no estaba en 1). `0x467060` también ubica el texto en su caja según un modo (centrado, a la
-derecha, recortado). Verificado aparte: el asignador `0x466560`
+derecha, recortado), y no le pasa a `TextOutA` un texto que empieza con un salto de línea (el
+byte `0x0a`, en `0x4671e1`): su caja sube igual, con el fondo solo. Verificado aparte: el asignador
+`0x466560`
 (reconstruido en `mu-client` con una sonda en la VM).
 
 **El DIB y la caja** (CL5.3, *estático*): `0x61bcd0` arma el DIB con el slot 0 (la

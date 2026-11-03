@@ -295,14 +295,16 @@ solo lo lee.
   corta en cajas de 256 columnas; y `FreeTypeRasterizer`, FreeType en un bit con el intérprete v35
   y la celda de la OS/2, detrás de `IGlyphRasterizer`. La fuente sale de `[Video] FontFile` (y de
   `BoldFontFile`), y en los tests, de `MURET_CLIENT_FONT_FILE`. `Text.bmd` es de un byte por letra y
-  se lee como Latin-1 (Q-C67); lo que se aparta de GDI es Q-C76, nuevo. El B (2026-11-03): la
-  caché y el dibujo. `TextCache` rasteriza un texto una vez por fuente y colores, sube sus cajas de
-  256 × 32 a los slots del texto, 256 después de los 1.845 del original en la `TextureTable`, y
-  saca el que hace más tiempo que no se dibuja cuando no hay lugar; los quads son los de
-  `TextPieces`, con el slot de cada caja. La fuente sin `[Video] FontFile`: `App::ChooseFontFiles`
-  y, en Windows, `Platform::FindSystemFontFile` con la lista del registro. Dos bugs nuevos del
-  original, corregidos: `0x4667a0` reescribe el texto en el buffer del que llama (Q-C77), y la caja
-  que pasa de la columna 1.280 del DIB lee la fila de abajo (Q-C78).
+  se lee como Latin-1 (Q-C67); lo que se aparta de GDI es Q-C76, nuevo. Con la revisión, una letra
+  sin área ya no hace fallar `Open` con la negrita simulada, y un texto que empieza con un salto de
+  línea queda con su fondo solo, como en `0x467060`. El B (2026-11-03): la caché y el dibujo.
+  `TextCache` rasteriza un texto una vez por fuente y colores, sube sus cajas de 256 × 32 a los
+  slots del texto, 256 después de los 1.845 del original en la `TextureTable`, y saca el que hace
+  más tiempo que no se dibuja cuando no hay lugar; los quads son los de `TextPieces`, con el slot de
+  cada caja. La fuente sin `[Video] FontFile`: `App::ChooseFontFiles` y, en Windows,
+  `Platform::FindSystemFontFile` con la lista del registro. Dos bugs nuevos del original,
+  corregidos: `0x4667a0` reescribe el texto en el buffer del que llama (Q-C77), y la caja que pasa
+  de la columna 1.280 del DIB lee la fila de abajo (Q-C78).
 
 ## Conceptos
 

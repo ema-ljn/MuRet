@@ -1246,6 +1246,16 @@ se reproduce y queda en 07 si la CL5.R lo confirma.
   (`WithoutABoldFileTheBoldIsOnePixelWiderPerLetter`), los bytes altos como UTF-8 inválido
   (`ReadsEachByteAsLatin1`) y el tamaño pedido como em con `FT_Set_Pixel_Sizes`, que vivía hasta que
   se sumó `TheEmIsSmallerThanTheCell`.
+  Con la revisión (2026-11-03): una letra sin área (el guion bajo de algunas fuentes, que el hinting
+  deja en una línea) hacía fallar `Open`, porque `FT_Outline_EmboldenXY` no ensancha un contorno sin
+  sentido de giro; ahora esa letra queda como está, con su píxel de avance
+  (`FreeTypeRasterizerOpenTest.ALetterWithoutAreaIsBoldToo`, con una fuente mínima armada en
+  memoria por `support/TinyTrueTypeFont.h`, que corre sin `MURET_CLIENT_FONT_FILE`). Un mutante que
+  leía los bits de cada byte al revés vivía: lo mata `TheLeftPixelOfAByteIsItsHighBit` (una "L"),
+  que también mata el paso entre filas sin `pitch`. Y `PaintTextBox` no dibuja un texto que empieza
+  con un salto de línea, como `0x467060` (`0x4671e1`;
+  `TextBoxTest.ATextThatStartsWithANewLineIsOnlyItsBackground`): ningún texto del `Text.bmd` del
+  laboratorio empieza con uno, contado sin imprimirlos.
 - [x] **Paso 5 (PR B):** los tests de la caché: `TextCacheTest.TheSameTextIsRasterizedOnce`,
   `ADifferentColorIsAnotherEntry`, `ResizingEmptiesIt`, `KeepsAtMostItsCap` (el más viejo sale);
   con ventana, `GlTextTextureTest.UploadsTheBoxOf256By32` y `TheTextIsAtTheTopLeftOfTheBox`.

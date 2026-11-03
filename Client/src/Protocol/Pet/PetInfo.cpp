@@ -1,6 +1,7 @@
 #include "Protocol/Pet/PetInfo.h"
 
 #include "Network/PacketWriter.h"
+#include "Protocol/Outgoing.h"
 
 namespace Client::Protocol::Pet
 {

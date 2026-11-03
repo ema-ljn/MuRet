@@ -1,6 +1,8 @@
 #include "Protocol/Outgoing.h"
 
 #include "Network/Crypto/Xor32.h"
+#include "Network/Delivery.h"
+#include "Network/PacketWriter.h"
 
 namespace Client::Protocol
 {

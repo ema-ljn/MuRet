@@ -1,19 +1,29 @@
 #include "Render/Text/TextCache.h"
 
+#include "Core/Expected.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
+#include "Render/ITextureStore.h"
 #include "Render/OriginalQuad.h"
+#include "Render/SpriteBatch.h"
+#include "Render/Text/FontSet.h"
 #include "Render/Text/TextBox.h"
 #include "Render/Text/TextLayout.h"
+#include "Render/Text/TextStyle.h"
+#include "Render/TextureSlot.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <format>
 #include <limits>
 #include <span>
+#include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 namespace Client::Render::Text
 {

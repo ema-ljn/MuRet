@@ -6,7 +6,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cstddef>
 #include <optional>
 #include <span>
 #include <string_view>

@@ -1,8 +1,12 @@
 #include "Input/InputState.h"
 
+#include "Input/InputEvent.h"
+#include "Input/Key.h"
+
 #include <cmath>
 #include <cstddef>
 #include <optional>
+#include <string_view>
 
 namespace Client::Input
 {

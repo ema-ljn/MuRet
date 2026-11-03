@@ -1,11 +1,17 @@
 #include "support/WireCapture.h"
 
+#include "Core/Expected.h"
+
 #include <charconv>
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <optional>
+#include <span>
 #include <string_view>
 #include <system_error>
 #include <utility>
+#include <vector>
 
 namespace Client::Tests
 {

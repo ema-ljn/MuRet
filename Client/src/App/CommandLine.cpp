@@ -1,10 +1,21 @@
 #include "App/CommandLine.h"
 
 #include "App/LoopTiming.h"
+#include "App/PacingMode.h"
+#include "App/ServerAddress.h"
+#include "App/VSyncMode.h"
+#include "Core/Expected.h"
 #include "Core/PathText.h"
 
 #include <algorithm>
 #include <charconv>
+#include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
 #include <system_error>
 #include <type_traits>
 #include <utility>

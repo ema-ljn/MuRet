@@ -1,7 +1,13 @@
 #include "Network/SocketApi.h"
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <memory>
+#include <optional>
+#include <span>
+#include <string>
 #include <utility>
 
 // Lo único de ClientLib que mira _WIN32: estos includes y el bloque del principio del namespace
@@ -26,7 +32,6 @@
 #include <netinet/in.h>
 #include <poll.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
 #endif
 

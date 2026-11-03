@@ -1,4 +1,7 @@
 #pragma once
+// Lo que trae se usa sin nombrarlo: GoogleTest busca PrintTo por ADL, e include-cleaner no lo
+// ve. Por eso cada include de este header se queda.
+// IWYU pragma: always_keep
 
 #include "UI/LoginWindow.h"
 #include "UI/TextField.h"

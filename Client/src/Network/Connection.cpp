@@ -1,18 +1,32 @@
 #include "Network/Connection.h"
 
 #include "Core/Expected.h"
+#include "Core/IClock.h"
+#include "Core/Log.h"
+#include "Network/CloseReason.h"
+#include "Network/Crypto/CryptoError.h"
+#include "Network/Delivery.h"
 #include "Network/EncryptedPacket.h"
+#include "Network/IObfuscation.h"
+#include "Network/ISocket.h"
+#include "Network/LinkState.h"
 #include "Network/ObfuscationError.h"
+#include "Network/Packet.h"
 #include "Network/PacketError.h"
+#include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <format>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace Client::Network
 {

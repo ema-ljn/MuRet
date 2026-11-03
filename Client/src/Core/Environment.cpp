@@ -1,7 +1,12 @@
 #include "Core/Environment.h"
 
 #include <cstdlib>
+#include <optional>
+#include <string>
+
+#ifdef _MSC_VER
 #include <memory>
+#endif
 
 namespace Client::Core
 {

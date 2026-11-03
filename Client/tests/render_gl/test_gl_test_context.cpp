@@ -1,5 +1,6 @@
 #include "support/GlTestContext.h"
 
+#include "Platform/GlFunctionList.h"
 #include "Platform/GlLoader.h"
 
 #include <gtest/gtest.h>

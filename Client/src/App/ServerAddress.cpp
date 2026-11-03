@@ -1,8 +1,13 @@
 #include "App/ServerAddress.h"
 
+#include "Core/Expected.h"
+
 #include <algorithm>
 #include <charconv>
+#include <cstdint>
 #include <format>
+#include <string>
+#include <string_view>
 #include <system_error>
 
 namespace Client::App

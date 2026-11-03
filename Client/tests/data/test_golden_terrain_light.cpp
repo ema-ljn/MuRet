@@ -1,5 +1,6 @@
 #include "Data/Terrain/TerrainLight.h"
 
+#include "Core/Expected.h"
 #include "Data/DataError.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"

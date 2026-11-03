@@ -1,9 +1,13 @@
 #include "Network/SystemResolver.h"
 
+#include "Core/Expected.h"
+#include "Network/IResolver.h"
 #include "Network/SocketApi.h"
+#include "Network/SocketError.h"
 
 #include <optional>
 #include <string>
+#include <string_view>
 
 namespace Client::Network
 {

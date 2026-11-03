@@ -1,10 +1,12 @@
 #include "UI/LoginWindow.h"
 
 #include "App/WindowState.h"
+#include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
+#include "Render/TextureSlot.h"
 #include "UI/Widget.h"
 #include "support/AppPrinters.h"
 #include "support/RecordingTextDrawer.h"

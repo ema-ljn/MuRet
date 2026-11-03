@@ -1,10 +1,23 @@
 #include "UI/ServerListWindow.h"
 
+#include "App/WindowState.h"
+#include "Data/Text/TextTable.h"
+#include "Input/InputState.h"
+#include "Protocol/Connection/ServerList.h"
+#include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
+#include "Scenes/ITextDrawer.h"
+#include "Scenes/SceneTextures.h"
+#include "UI/Button.h"
 #include "UI/GameText.h"
+#include "UI/ServerListModel.h"
+#include "UI/Widget.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>

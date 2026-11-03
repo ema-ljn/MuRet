@@ -2,7 +2,10 @@
 
 #include "Core/ByteReader.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <optional>
+#include <span>
 
 namespace
 {

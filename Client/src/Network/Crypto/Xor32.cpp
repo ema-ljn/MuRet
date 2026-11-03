@@ -1,6 +1,10 @@
 #include "Network/Crypto/Xor32.h"
 
+#include "Network/Packet.h"
+
 #include <algorithm>
+#include <cstddef>
+#include <span>
 
 namespace Client::Network::Crypto
 {

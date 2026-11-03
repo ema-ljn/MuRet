@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Platform/GlLoader.h"
 #include "support/GlDrawTest.h"
+#include "support/GlTestContext.h"
 
 #include <gtest/gtest.h>
 

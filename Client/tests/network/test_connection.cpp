@@ -10,6 +10,7 @@
 #include "Network/FoxAntiObfuscation.h"
 #include "Network/IdentityObfuscation.h"
 #include "Network/IObfuscation.h"
+#include "Network/LinkState.h"
 #include "Network/ObfuscationError.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
@@ -31,11 +32,13 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <chrono>
+// Por los literales (1ms), que include-cleaner 18 no asocia a <chrono>.
+#include <chrono> // IWYU pragma: keep
 #include <cstddef>
 #include <cstdint>
 #include <format>
 #include <functional>
+#include <initializer_list>
 #include <limits>
 #include <optional>
 #include <random>

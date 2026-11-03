@@ -1,11 +1,15 @@
 #include "Render/Text/TextLayout.h"
 
+#include "App/WindowState.h"
 #include "Render/ScreenScale.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextBox.h"
 
 #include <algorithm>
 #include <bit>
+#include <cstddef>
 #include <cstdint>
+#include <vector>
 
 namespace Client::Render::Text
 {

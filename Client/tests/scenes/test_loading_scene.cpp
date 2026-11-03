@@ -1,6 +1,7 @@
 #include "Scenes/LoadingScene.h"
 
 #include "App/WindowState.h"
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Input/InputState.h"
 #include "Render/QuadCorner.h"

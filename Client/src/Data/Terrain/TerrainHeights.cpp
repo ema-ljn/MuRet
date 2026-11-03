@@ -1,5 +1,14 @@
 #include "Data/Terrain/TerrainHeights.h"
 
+#include "Core/Expected.h"
+#include "Data/DataError.h"
+#include "Data/Terrain/TerrainGrid.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <span>
+
 namespace Client::Data::Terrain
 {
 Core::Expected<std::unique_ptr<TerrainHeights>, DataError> LoadTerrainHeights(std::span<const std::byte> file,

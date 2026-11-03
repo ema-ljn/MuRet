@@ -1,12 +1,19 @@
 #include "support/LoopbackServer.h"
 
+#include "Network/SocketApi.h"
 #include "support/NetworkPrinters.h"
 
 #include <gtest/gtest.h>
 
 #include <array>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <span>
 #include <thread>
 #include <utility>
+#include <vector>
 
 namespace Client::Tests
 {

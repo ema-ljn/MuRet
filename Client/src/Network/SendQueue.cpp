@@ -1,8 +1,13 @@
 #include "Network/SendQueue.h"
 
 #include "Core/Expected.h"
+#include "Network/ISocket.h"
+#include "Network/SocketError.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <optional>
+#include <span>
 
 namespace Client::Network
 {

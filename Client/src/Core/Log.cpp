@@ -1,6 +1,10 @@
 #include "Core/Log.h"
 
+#include "Core/ILogSink.h"
+
+#include <format>
 #include <string>
+#include <string_view>
 
 namespace Client::Core
 {

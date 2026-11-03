@@ -3,9 +3,14 @@
 #include "Core/Environment.h"
 #include "Data/DataPath.h"
 
+#include <gtest/gtest.h>
+
 #include <algorithm>
+#include <filesystem>
 #include <functional>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <system_error>
 
 namespace

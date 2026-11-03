@@ -1,6 +1,12 @@
 #include "Network/EncryptedPacket.h"
 
+#include "Core/Expected.h"
+#include "Network/Crypto/CryptoError.h"
+#include "Network/Crypto/SimpleModulus.h"
+#include "Network/IObfuscation.h"
 #include "Network/IdentityObfuscation.h"
+#include "Network/Packet.h"
+#include "Network/PacketSerials.h"
 
 #include <algorithm>
 #include <cstddef>

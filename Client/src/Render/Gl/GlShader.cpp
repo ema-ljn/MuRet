@@ -1,7 +1,12 @@
 #include "Render/Gl/GlShader.h"
 
+#include "Core/Expected.h"
+#include "Platform/GlLoader.h"
+#include "Render/Gl/GlName.h"
+
 #include <cstddef>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace Client::Render::Gl

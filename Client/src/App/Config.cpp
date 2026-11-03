@@ -1,6 +1,13 @@
 #include "App/Config.h"
 
+#include "App/CommandLine.h"
+#include "App/ConfigError.h"
 #include "App/LoopTiming.h"
+#include "App/ObfuscationMode.h"
+#include "App/PacingMode.h"
+#include "App/ServerAddress.h"
+#include "App/VSyncMode.h"
+#include "Core/Expected.h"
 #include "Core/PathText.h"
 
 #include <algorithm>
@@ -8,11 +15,13 @@
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <format>
 #include <fstream>
 #include <ios>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 

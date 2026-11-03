@@ -63,6 +63,25 @@ Edges HalfTexelUv(const UiImage& image)
                  .bottom = (static_cast<float>(image.height) - bottomTexel) / image.textureHeight};
 }
 
+// 0x647560(k) con el cuadro de 0x647050 (0x647185..0x6471c5): el cuadro empieza en
+// ((0 + 0,5) / tw, (frameTop + 0,5) / th), con el entero pasado a float y la suma y la división en
+// la x87, guardadas en float. La u de la derecha es el ancho en u sin redondear (FSUB en la pila)
+// más la nueva izquierda; el alto en v se guarda en float antes (FSTP en [EBP + 8]) y la de abajo
+// es ese más la nueva de arriba. Se corre desde las UV de 0x647050; el original las corre desde el
+// cuadro de antes, que puede dar un ulp de diferencia y no se reproduce.
+Edges FrameUv(const Edges& base, const UiImage& image, int frameTop)
+{
+    const auto left = static_cast<float>(static_cast<double>(HalfTexel) / static_cast<double>(image.textureWidth));
+    const auto top = static_cast<float>((static_cast<double>(static_cast<float>(frameTop)) + HalfTexel) /
+                                        static_cast<double>(image.textureHeight));
+    const double spanU = static_cast<double>(base.right) - static_cast<double>(base.left);
+    const auto spanV = static_cast<float>(static_cast<double>(base.bottom) - static_cast<double>(base.top));
+    return Edges{.left = left,
+                 .top = top,
+                 .right = static_cast<float>(spanU + static_cast<double>(left)),
+                 .bottom = static_cast<float>(static_cast<double>(spanV) + static_cast<double>(top))};
+}
+
 // Una esquina como la manda 0x647650: glVertex2f(x · fx, y · fy), cada producto en la x87 y
 // pasado a float al apilarlo.
 float ToScreen(float value, float scale)
@@ -74,7 +93,11 @@ float ToScreen(float value, float scale)
 QuadCorners UiImageCorners(const UiImage& image, App::PixelSize screen)
 {
     const Edges placed = PlacedEdges(image, screen);
-    const Edges uv = HalfTexelUv(image);
+    Edges uv = HalfTexelUv(image);
+    if (image.slot.has_value() && image.frameTop.has_value())
+    {
+        uv = FrameUv(uv, image, *image.frameTop);
+    }
     const float left = ToScreen(placed.left, image.scaleX);
     const float right = ToScreen(placed.right, image.scaleX);
     const float top = ToScreen(placed.top, image.scaleY);

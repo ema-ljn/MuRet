@@ -4,6 +4,8 @@
 #include "Input/Key.h"
 
 #include <bitset>
+#include <string>
+#include <string_view>
 
 // El teclado y el mouse del frame, armados con los eventos y no consultados al sistema: un apretón
 // y su soltada entre dos lecturas se ven igual (SDL_GetKeyboardState no los ve, y el original
@@ -29,9 +31,9 @@ class InputState
 public:
     // Suma un evento. Un KeyDown con la tecla ya abajo no es un flanco, y un KeyUp con la tecla
     // arriba tampoco (lo mismo con los botones). FocusLost suelta todo lo que está abajo, con su
-    // WasReleased, y borra los WasPressed y la rueda: el paso siguiente no ve un clic de antes del
-    // alt-tab (como MuMain, Winmain.cpp). Una rueda que no es finita (NaN, infinito) se descarta:
-    // envenenaría la suma hasta ConsumeEdges.
+    // WasReleased, y borra los WasPressed, la rueda y el texto: el paso siguiente no ve un clic de
+    // antes del alt-tab (como MuMain, Winmain.cpp). Una rueda que no es finita (NaN, infinito) se
+    // descarta: envenenaría la suma hasta ConsumeEdges.
     void Apply(const InputEvent& event);
 
     [[nodiscard]] bool IsDown(Key key) const;
@@ -43,11 +45,15 @@ public:
     [[nodiscard]] bool WasReleased(MouseButton button) const;
     // Las muescas sumadas desde el último ConsumeEdges.
     [[nodiscard]] float Wheel() const;
-    // La última posición, en coordenadas de la ventana; 0 hasta el primer Motion.
+    // La última posición, en píxeles del framebuffer (InputEvent.h); 0 hasta el primer Motion.
     [[nodiscard]] float MouseX() const;
     [[nodiscard]] float MouseY() const;
+    // Lo tecleado desde el último ConsumeEdges, en UTF-8 y en orden, como la rueda (CL5.5). Vale
+    // hasta el próximo Apply o ConsumeEdges. FocusLost lo borra, como los apretones.
+    [[nodiscard]] std::string_view Text() const;
 
-    // Lo llama GameLoop después de un paso: borra los flancos y la rueda, no lo que está abajo.
+    // Lo llama GameLoop después de un paso: borra los flancos, la rueda y el texto, no lo que está
+    // abajo.
     void ConsumeEdges();
 
 private:
@@ -69,5 +75,6 @@ private:
     float m_wheel = 0.0f;
     float m_mouseX = 0.0f;
     float m_mouseY = 0.0f;
+    std::string m_text;
 };
 } // namespace Client::Input

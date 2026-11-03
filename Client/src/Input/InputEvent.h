@@ -3,12 +3,14 @@
 #include "Input/Key.h"
 
 #include <cstdint>
+#include <string>
 
 // Un evento de teclado, de mouse o de foco, ya traducido de SDL por Platform (InputEventFor,
 // CL3.3). InputState::Apply lo suma al estado del frame.
-// Contrato: el plan de la CL3, sub-ola CL3.3. Cada tipo usa solo sus campos: KeyDown y KeyUp la
-// tecla, ButtonDown y ButtonUp el botón, Wheel las muescas, Motion la posición y FocusLost
-// ninguno. Un InputEvent sin llenar no hace nada: es el KeyDown de Key::Count, que no es tecla.
+// Contrato: el plan de la CL3, sub-ola CL3.3, y el de la CL5, sub-ola CL5.5 (el texto). Cada tipo
+// usa solo sus campos: KeyDown y KeyUp la tecla, ButtonDown y ButtonUp el botón, Wheel las
+// muescas, Motion la posición, Text el texto y FocusLost ninguno. Un InputEvent sin llenar no hace
+// nada: es el KeyDown de Key::Count, que no es tecla.
 namespace Client::Input
 {
 struct InputEvent
@@ -22,6 +24,9 @@ struct InputEvent
         Wheel,
         Motion,
         FocusLost,
+        // Lo tecleado, de SDL_EVENT_TEXT_INPUT (CL5.5): ya con el layout, Shift y las teclas
+        // muertas aplicados, que el campo de texto de la UI no tiene que saber.
+        Text,
     };
 
     Kind kind = Kind::KeyDown;
@@ -31,13 +36,16 @@ struct InputEvent
     // Las muescas de la rueda, positivas hacia adelante. Salen de `integer_y`, con el signo de
     // `direction` (InputEvents.h).
     float wheel = 0.0f;
-    // La posición, en coordenadas de la ventana: píxeles mientras la ventana no pida
-    // SDL_WINDOW_HIGH_PIXEL_DENSITY (la de 640 x 480 es de la CL5, D-C11). Sin acotar (Q-C47):
-    // el original tiene dos posiciones. La de la UI nueva (0x640940) la acota al tamaño de la
-    // ventana, en píxeles, sin escalar (+0x28 y +0x2c, que 0x4ba84a le pasa de [0x6d5d60] y
-    // [0x6d5d64]); la del WndProc la escala a 640 x 480 sin acotar (0x4b358f..0x4b35c8). Con el
-    // mouse capturado SDL puede dar negativos o más allá del borde. Se decide en la CL5.
+    // La posición, en píxeles del framebuffer: Platform multiplica la de la ventana por su
+    // densidad (CL5.5, pregunta 12 del plan de la CL5). Sin acotar (Q-C47): el original tiene dos
+    // posiciones. La de la UI nueva (0x640940) la acota al tamaño de la ventana, en píxeles, sin
+    // escalar (+0x28 y +0x2c, que 0x4ba84a le pasa de [0x6d5d60] y [0x6d5d64]); eso lo hace
+    // UI::MouseInPixels. La del WndProc la escala a 640 x 480 sin acotar (0x4b358f..0x4b35c8):
+    // queda para la CL8. Con el mouse capturado SDL puede dar negativos o más allá del borde.
     float x = 0.0f;
     float y = 0.0f;
+    // El texto de un Text, en UTF-8 y copiado: el de SDL vive hasta el próximo SDL_PollEvent. Va
+    // último para que los inicializadores designados de los demás campos no cambien.
+    std::string text{};
 };
 } // namespace Client::Input

@@ -1897,12 +1897,27 @@ public:
 } // namespace Client::App
 ```
 
-- [ ] **Paso 1 (PR A):** confirmar con Context7 `SDL_StartTextInput(SDL_Window*)`,
+- [x] **Paso 1 (PR A):** confirmar con Context7 `SDL_StartTextInput(SDL_Window*)`,
   `SDL_StopTextInput` y el `SDL_TextInputEvent` de SDL3 (el texto en UTF-8 y su vida), y que el
   IME no manda texto mientras compone.
-- [ ] **Paso 2 (Emanuel, `TODO(human)`):** antes de los tests, la tabla del `TextField`: qué hace
+
+  Hecho así (PR A, 2026-11-03), en la documentación de SDL3 de Context7: `SDL_StartTextInput` y
+  `SDL_StopTextInput` reciben la ventana y dan `bool`, y `SDL_TextInputActive` dice si está
+  prendido. El `text` de `SDL_TextInputEvent` va en UTF-8 y es de SDL: para guardarlo hay que
+  copiarlo, y `Platform::InputEventFor` lo copia en el `InputEvent`. Mientras el IME compone llega
+  `SDL_EVENT_TEXT_EDITING` y no `TEXT_INPUT`: MuRet no lo lee, y el texto llega cuando el IME lo
+  confirma. El mouse viene en coordenadas de la ventana; en píxeles del framebuffer es eso por
+  `SDL_GetWindowPixelDensity`, que da 0 si falla (entonces va 1).
+- [x] **Paso 2 (Emanuel, `TODO(human)`):** antes de los tests, la tabla del `TextField`: qué hace
   con una letra, una tilde (`á`, dos bytes en UTF-8), un emoji, un espacio, el byte 11 cuando ya
   tiene 10, Backspace con el campo vacío, y qué muestra la clave.
+
+  Hecho así (PR A, 2026-11-03), **resuelto por Claude**: la tabla está arriba de
+  `Client/tests/ui/test_text_field.cpp`, y cada fila tiene su test. Una letra, un dígito y el
+  espacio entran. Ningún byte de `á` (`C3 A1`) ni de un emoji entra, porque todos son de `0x80` en
+  adelante, y lo ASCII que viene al lado sí; los de control (hasta el `0x1f`, y el `0x7f`)
+  tampoco. Con 10 adentro, el 11 no entra, ni lo que sigue de un texto largo. Backspace borra el
+  último byte, y con el campo vacío no hace nada. La clave muestra un asterisco por byte.
 - [x] **Paso 3 (PR A):** los tests:
   - `InputStateTest.CollectsTheTypedText` y `ConsumeEdgesEmptiesIt`;
     `InputEventsTest.TranslatesTheTextInput`, `TheMouseIsInFramebufferPixels`;
@@ -1920,7 +1935,68 @@ public:
     `ShowsTheTwentyServersOfAGroup` (Q-C63);
   - `LoginWindowTest.TabMovesTheFocus`, `EnterWithBothFieldsSubmits`,
     `EnterWithAnEmptyFieldDoesNotSubmit`, `SubmittingEmptiesThePassword`.
-- [ ] **Paso 4 (PR A):** el texto tecleado en `Input` y `Platform`, y los widgets.
+
+  Hecho así (PR A, 2026-11-03): la base ya tenía el paso marcado, sin los tests; ahora están todos
+  los de arriba, con esos nombres, más los de lo que llegó con ellos:
+  - `InputStateTest` suma `FocusLostEmptiesTheText` y `TheTextPressesNoKey`; `InputEventsTest`,
+    `AnEmptyTextAndTheImeCompositionAreNotText` y Backspace en la tabla de las teclas. Nuevo, de
+    GL: `WindowTest.StartsAndStopsTheTextInput` y `HasAPositivePixelDensity`.
+  - `TextFieldTest` suma `DropsTheControlBytes` y `BackspaceErasesTheLastByte`. El `PrintTo` va en
+    `UiPrintersTest.AFieldShowsItsLengthAndNotItsText` y `ARequestShowsItsKindAndTheLengths`.
+  - `ServerListModelTest` suma los nombres de los grupos (`NamesEachGroupByItsText`), el número y
+    el texto de la carga, los sin PvP (`TheFirstAndTheFifteenthAreNonPvp`) y los rótulos.
+  - `ServerListWindowTest` suma la caja de la descripción, los botones de servidor en el medio, el
+    servidor lleno que no se elige (`AFullServerIsNotChosen`), el grupo de uno, la mezcla normal y
+    la ventana cerrada.
+  - `LoginWindowTest` suma once: dónde va, el foco al abrir y con un clic, Backspace en el campo
+    del foco, Enter con el mouse apretado, OK y cancelar, Esc, la ventana cerrada, la clave con
+    asteriscos, la mezcla normal y el pedido que no imprime la cuenta.
+  - Nuevos: `WidgetTest` (cinco: el mouse en píxeles enteros y acotado, el NaN, los bordes del
+    rectángulo y la imagen en píxeles), `ButtonTest` (diez), `NoticesTest` (cinco),
+    `NoticeWindowTest` (siete) y `GameTextTest` (cuatro). En `render/`,
+    `TextLayoutTest.DesignXAndYTruncateThePixelOverTheRatio` y `DesignXTruncatesTowardZero`, y
+    `UiImageTest.AFrameMovesTheUvDown` y `FrameZeroIsTheImage`.
+- [x] **Paso 4 (PR A):** el texto tecleado en `Input` y `Platform`, y los widgets.
+
+  Hecho así (PR A, 2026-11-03):
+  - `Input`: `InputEvent::Kind::Text` con su `text`, e `InputState::Text()`, que se vacía en
+    `ConsumeEdges` y al perder el foco; y `Key::Backspace`. `Platform`: el `SDL_EVENT_TEXT_INPUT`,
+    el mouse por la densidad de la ventana (`PumpEvents` la recibe, y `main.cpp` le da la de
+    `Window::PixelDensity`), y `Window::StartTextInput`, `StopTextInput` y `TextInputActive`. Quién
+    prende el texto es la escena, en el B.
+  - `UI/`, en `ClientLib`: `Widget.h` (`Rect`, que contiene como `PtInRect`; `MouseInPixels`,
+    acotado como `0x640940`; y `PixelImage`), `TextField`, `Button` (`0x63c490` y `0x63c710`),
+    `ServerListModel`, `ServerListWindow`, `LoginWindow`, `Notices`, `NoticeWindow` y `GameText`
+    (`PlaceArguments` y `TextAt`). `UiImage` suma `frameTop` (el cuadro de un botón, `0x647560`), y
+    `TextLayout`, `DesignX` y `DesignY` (`0x641aa1`..`0x641ad6`).
+
+  Se aparta del plan:
+  - `UI::MessageBox` es `UI::NoticeWindow`: `<windows.h>` define una macro `MessageBox`. Los ids y
+    sus textos (06 § Los avisos) van aparte, en `Notices.h`, con `NoticeOfLoginResult` y lo que
+    hace el OK de cada uno (`FollowUpOf`); la escena los usa en el B.
+  - `Button`, `Notices` y `GameText` son archivos de más. Cada botón tiene su captura: un clic es
+    soltar encima del que se apretó, como `0x63c490`, que tiene una para toda la UI. El cuadro de
+    encima va con el botón del mouse arriba: arrastrado desde afuera, el original muestra el 1 y
+    MuRet el 0.
+  - `Step` y `Draw` reciben la pantalla, y `Draw` no es `const`: ubica los botones para la pantalla
+    del frame. La lista guarda sus grupos (`Open(ServerGroups)`), y `GroupServers` da
+    `ServerGroups`: los grupos y cuántos servidores no se muestran, para el aviso del log del B. El
+    clic da un `ServerClick` (elegido, o lleno, que es el aviso `0x63`), y la cuenta, un
+    `LoginRequest` (mandar, cuenta vacía, clave vacía o cancelar).
+  - La lista no tiene la caja de la descripción (`0x645ca0`, el texto `1717 + grupo`), las
+    decoraciones del marco (`0x645c70`) ni los textos 565 a 567 del grupo 20: quedan para P-C13
+    (08). Su alto sí cuenta la caja, porque ubica los botones. Un clic en un grupo no vuelve a
+    pedir la lista (Q-C82, nuevo).
+  - Los rótulos de los botones se centran en píxeles y después se pasan a 640 × 480; el original
+    pasa la x a 640 × 480 y centra en píxeles: hasta un píxel de diferencia.
+  - El cursor del campo no titila, y el texto del campo va con la fuente normal (*inferido*:
+    `0x553ae0` usa la que esté puesta). Backspace borra uno por apretada, sin la repetición del
+    teclado. Cancelar también vacía la clave.
+  - `frameTop` arma las UV desde las de la imagen entera: el redondeo de cada paso del original no
+    se reproduce, y puede cambiar el último bit.
+  - La UI se atiende en el paso, con los flancos del primer paso del frame (Q-C81, nuevo).
+  - Q-C81, Q-C82 y lo que cambia en Q-C47, Q-C62 y Q-C63 van a 07 en este PR, porque el código que
+    los cita está acá; Q-C69 y Q-C71, en el B, con la sesión.
 - [ ] **Paso 5 (PR B):** los tests de la sesión con la UI, con `FakeSocket` de CS y de GS (los de la
   CL4):
   - `ServerSessionTest.WaitsForTheChoiceAfterTheList` (llega la lista: `ChoosingServer`, y no sale

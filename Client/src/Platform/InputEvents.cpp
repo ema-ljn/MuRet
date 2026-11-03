@@ -2,8 +2,10 @@
 
 #include <SDL3/SDL_mouse.h>
 
+#include <cmath>
 #include <cstdint>
 #include <limits>
+#include <string>
 
 namespace Client::Platform
 {
@@ -64,6 +66,23 @@ std::optional<InputEvent> ButtonEventFor(const SDL_MouseButtonEvent& button, Inp
     return InputEvent{.kind = kind, .button = *mapped};
 }
 
+std::optional<InputEvent> MotionEventFor(const SDL_MouseMotionEvent& motion, float pixelDensity)
+{
+    const float density = pixelDensity > 0.0f && std::isfinite(pixelDensity) ? pixelDensity : 1.0f;
+    return InputEvent{.kind = InputEvent::Kind::Motion, .x = motion.x * density, .y = motion.y * density};
+}
+
+std::optional<InputEvent> TextEventFor(const SDL_TextInputEvent& text)
+{
+    if (text.text == nullptr || text.text[0] == '\0')
+    {
+        return std::nullopt;
+    }
+    InputEvent event{.kind = InputEvent::Kind::Text};
+    event.text = std::string{text.text};
+    return event;
+}
+
 std::optional<InputEvent> WheelEventFor(const SDL_MouseWheelEvent& wheel)
 {
     // Negar el mínimo de un int32 es UB; nadie gira tanto en un evento.
@@ -122,6 +141,8 @@ std::optional<Input::Key> KeyFor(SDL_Scancode scancode)
         return Key::Right;
     case SDL_SCANCODE_TAB:
         return Key::Tab;
+    case SDL_SCANCODE_BACKSPACE:
+        return Key::Backspace;
     case SDL_SCANCODE_LSHIFT:
         return Key::ShiftLeft;
     case SDL_SCANCODE_RSHIFT:
@@ -139,7 +160,7 @@ std::optional<Input::Key> KeyFor(SDL_Scancode scancode)
     }
 }
 
-std::optional<Input::InputEvent> InputEventFor(const SDL_Event& event)
+std::optional<Input::InputEvent> InputEventFor(const SDL_Event& event, float pixelDensity)
 {
     switch (event.type)
     {
@@ -154,7 +175,9 @@ std::optional<Input::InputEvent> InputEventFor(const SDL_Event& event)
     case SDL_EVENT_MOUSE_WHEEL:
         return WheelEventFor(event.wheel);
     case SDL_EVENT_MOUSE_MOTION:
-        return InputEvent{.kind = InputEvent::Kind::Motion, .x = event.motion.x, .y = event.motion.y};
+        return MotionEventFor(event.motion, pixelDensity);
+    case SDL_EVENT_TEXT_INPUT:
+        return TextEventFor(event.text);
     case SDL_EVENT_WINDOW_FOCUS_LOST:
         return InputEvent{.kind = InputEvent::Kind::FocusLost};
     default:

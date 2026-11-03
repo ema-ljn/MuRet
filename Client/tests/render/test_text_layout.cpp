@@ -17,6 +17,8 @@ namespace
 {
 using Client::App::PixelSize;
 using Client::Render::Text::BottomAlignedAt;
+using Client::Render::Text::DesignX;
+using Client::Render::Text::DesignY;
 using Client::Render::Text::FontKind;
 using Client::Render::Text::RightAlignedAt;
 using Client::Render::Text::TextExtent;
@@ -182,5 +184,26 @@ TEST(TextLayoutTest, AShortTextIsMovedInsideTheScreen)
 TEST(TextLayoutTest, AnEmptyTextHasNoBoxes)
 {
     EXPECT_TRUE(TextPieces(10, 10, TextExtent{0, 13}, Screen640).empty());
+}
+
+// Las ventanas de la UI nueva ubican sus textos en píxeles y los pasan a 640 × 480 para 0x5542f0:
+// fild del píxel, fdiv por rx o ry en float y _ftol (0x641aa1..0x641ad6, CL5.5). En 640 × 480 los
+// dos valen 1. En 1024 × 768, rx es 1,6 en float, un poco más que 1,6: 240 da 149,99999 y queda
+// en 149. En 800 × 600, ry es 1,2500001: 240 da 191.
+TEST(TextLayoutTest, DesignXAndYTruncateThePixelOverTheRatio)
+{
+    EXPECT_EQ(DesignX(155, Screen640), 155);
+    EXPECT_EQ(DesignY(156, Screen640), 156);
+    EXPECT_EQ(DesignX(240, Screen1024), 149);
+    EXPECT_EQ(DesignX(30, Screen1024), 18);
+    EXPECT_EQ(DesignY(240, PixelSize{800, 600}), 191);
+    EXPECT_EQ(DesignX(240, PixelSize{800, 600}), 192);
+    EXPECT_EQ(DesignY(212, Screen1280), 99);
+}
+
+// _ftol trunca hacia el 0: un píxel negativo no baja al entero de abajo.
+TEST(TextLayoutTest, DesignXTruncatesTowardZero)
+{
+    EXPECT_EQ(DesignX(-5, Screen1024), -3);
 }
 } // namespace

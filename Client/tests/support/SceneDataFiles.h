@@ -18,6 +18,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // Un Data\ sintético para los tests de las escenas (CL5.4), en una carpeta temporal: los archivos
@@ -69,11 +70,8 @@ inline void WriteTextureSet(const std::filesystem::path& root, std::span<const D
     }
 }
 
-// Un Text.bmd con `texts` en sus índices y el resto vacío, cifrado con XOR3, en `relative`. Con
-// `size`, el archivo mide eso (uno más corto que la tabla no carga).
-inline void WriteTextTable(const std::filesystem::path& root, const std::map<std::size_t, std::string>& texts,
-                           const std::filesystem::path& relative = "Local/Text.bmd",
-                           std::size_t size = Data::Text::TextTableSize)
+// Los bytes de un Text.bmd con `texts` en sus índices y el resto vacío, cifrados con XOR3.
+inline std::vector<std::byte> TextTableBytes(const std::map<std::size_t, std::string>& texts)
 {
     std::vector<std::byte> table(Data::Text::TextTableSize);
     for (const auto& [index, text] : texts)
@@ -84,7 +82,26 @@ inline void WriteTextTable(const std::filesystem::path& root, const std::map<std
         }
     }
     Core::Xor3(table);
+    return table;
+}
+
+// Un Text.bmd con `texts` en sus índices y el resto vacío, cifrado con XOR3, en `relative`. Con
+// `size`, el archivo mide eso (uno más corto que la tabla no carga).
+inline void WriteTextTable(const std::filesystem::path& root, const std::map<std::size_t, std::string>& texts,
+                           const std::filesystem::path& relative = "Local/Text.bmd",
+                           std::size_t size = Data::Text::TextTableSize)
+{
+    std::vector<std::byte> table = TextTableBytes(texts);
     table.resize(size);
     WriteSceneFile(root, relative, table);
+}
+
+// La tabla de textos de `texts`, en memoria, para los tests de la UI (CL5.5): textos sintéticos,
+// nunca los del laboratorio.
+inline Data::Text::TextTable MakeTextTable(const std::map<std::size_t, std::string>& texts)
+{
+    auto table = Data::Text::LoadTextTable(TextTableBytes(texts));
+    EXPECT_TRUE(table.HasValue());
+    return std::move(table).Value();
 }
 } // namespace Client::Tests

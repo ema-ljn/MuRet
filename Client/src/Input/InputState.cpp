@@ -106,6 +106,9 @@ void InputState::Apply(const InputEvent& event)
     case InputEvent::Kind::FocusLost:
         ReleaseEverything();
         return;
+    case InputEvent::Kind::Text:
+        m_text += event.text;
+        return;
     }
 }
 
@@ -160,6 +163,11 @@ float InputState::MouseY() const
     return m_mouseY;
 }
 
+std::string_view InputState::Text() const
+{
+    return m_text;
+}
+
 void InputState::ConsumeEdges()
 {
     m_keysPressed.reset();
@@ -167,6 +175,7 @@ void InputState::ConsumeEdges()
     m_buttonsPressed.reset();
     m_buttonsReleased.reset();
     m_wheel = 0.0f;
+    m_text.clear();
 }
 
 void InputState::Press(Key key)
@@ -219,7 +228,8 @@ void InputState::ReleaseEverything()
 {
     // Lo que estaba abajo se suelta con su flanco, como si hubiera llegado cada KeyUp; las teclas
     // lógicas también, porque están en las mismas tablas. Los apretones y la rueda de antes se
-    // borran: el paso siguiente no ve un clic de antes del alt-tab (como MuMain, Winmain.cpp).
+    // borran: el paso siguiente no ve un clic de antes del alt-tab (como MuMain, Winmain.cpp). Lo
+    // tecleado, lo mismo.
     m_keysReleased |= m_keysDown;
     m_keysDown.reset();
     m_keysPressed.reset();
@@ -227,6 +237,7 @@ void InputState::ReleaseEverything()
     m_buttonsDown.reset();
     m_buttonsPressed.reset();
     m_wheel = 0.0f;
+    m_text.clear();
 }
 
 void InputState::UpdateLogical(Key side)

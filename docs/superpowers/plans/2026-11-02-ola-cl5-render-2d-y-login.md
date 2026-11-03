@@ -2154,8 +2154,10 @@ public:
 - [x] Actualizar `docs/learning/PROGRESS.md`. *Hecho con la CL5.5 B (2026-11-03).*
 - [ ] Sumar al plan de la CL7 el mundo de la escena de login (el mapa 55, `World56` y `Object56`,
   con el `IWorldView` de la CL5.4), y al de la CL6, el logo (`0xa2`) y el personaje con el cuervo.
-  *Queda para esos planes, que no existen todavía: va con cada uno, en su PR.*
-- [ ] Escribir el plan de la CL6 (modelos y selección de personaje) en su propio PR, con lo
+  *La mitad de la CL6 está en su plan, en la
+  [CL6.4](2026-11-03-ola-cl6-modelos-y-seleccion.md#sub-ola-cl64-el-logo-y-el-personaje-del-login)
+  (2026-11-03). La de la CL7 espera su plan, que no existe todavía: va con él, en su PR.*
+- [x] Escribir el plan de la CL6 (modelos y selección de personaje) en su propio PR, con lo
   aprendido: la `CharacterSelectScene` vacía de la CL5.4 es la que llena la CL6.3, con el `F3 00`
-  que el original manda al aceptar el login, y el pase 3D con el viewport de `0x634680`. *Queda
-  para su propio PR.*
+  que el original manda al aceptar el login, y el pase 3D con el viewport de `0x634680`. *Hecho en
+  el [plan de la CL6](2026-11-03-ola-cl6-modelos-y-seleccion.md) (2026-11-03).*

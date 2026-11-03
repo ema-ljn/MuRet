@@ -1,6 +1,8 @@
 # 0005. El ritmo: lógica a 25 pasos por segundo y dibujo desacoplado
 
-- **Estado:** aceptado (D-C4 del roadmap y la pregunta 2 del plan de la CL3, 2026-11-02).
+- **Estado:** aceptado. El dibujo desacoplado y el modo fiel son D-C4 del roadmap, de Emanuel
+  (2026-10-30); el tope de 1 s es la recomendación de Claude en la pregunta 2 del plan de la CL3,
+  que Emanuel no cambió (2026-11-02).
 - **Fila:** Q-C44 del [07 del cliente](../../Client/docs/research/07-quirks-y-bugs.md).
 - **Código:** `Client::App::GameLoop`, `FixedStep`, `FaithfulPacer` y las constantes de
   `Client/src/App/LoopTiming.h`; `[Video] Pacing` en la config.
@@ -35,8 +37,9 @@ avanza el juego.
   reloj de 15,625 ms, sin tope, y mide desde el mismo lugar que el original. Sirve para comparar
   lado a lado con el `main.exe`.
 
-No es como el [ADR 0001 de MuMain][mm]: allá, debajo de 25 FPS, el frame avanza un paso como mucho
-y el juego va en cámara lenta. MuRet se pone al día, con hasta 25 pasos por frame.
+D-C4 nombra el [ADR 0001 de MuMain][mm] por la lógica a 25 por segundo, pero en un frame largo
+MuRet no hace lo mismo: allá, debajo de 25 FPS, el frame avanza un paso como mucho y el juego va en
+cámara lenta. MuRet se pone al día, con hasta 25 pasos por frame.
 
 ## Consecuencias
 

@@ -12,9 +12,10 @@ IJG, enlazada adentro del binario (`0x66b8f0`..`0x67f0c0`), desde `0x63b870` y `
 sale de ahí es lo que se ve: un byte distinto es otro color.
 
 La pregunta 1 del [roadmap](../superpowers/specs/2026-10-30-cliente-design.md) era si
-libjpeg-turbo, de vcpkg, alcanza para dar los mismos bytes que la 6b, o si se escribe un
-decodificador. La [regla 10](../CODING_RULES.md#10-pensar-antes-de-agregar) pide eso mismo: una
-biblioteca entra si resuelve ese problema como se espera, y lo prueban los golden.
+libjpeg-turbo, de vcpkg, alcanza para dar los mismos bytes que la 6b, y si no, si se acepta una
+diferencia chica o se escribe un decodificador. La
+[regla 10](../CODING_RULES.md#10-pensar-antes-de-agregar) pide eso mismo: una biblioteca entra si
+resuelve ese problema como se espera, y lo prueban los golden.
 
 El 2026-11-01 Emanuel eligió primero un decodificador propio compatible con la 6b, y esa misma noche
 lo cambió por turbo: "deja este plan y hagamos la implementacion de turbo". El
@@ -39,11 +40,11 @@ repo, en pausa.
 ## Consecuencias
 
 - **Se gana:** una biblioteca mantenida y rápida, con SIMD, en lugar de un decodificador propio que
-  habría que escribir y cuidar. En los 2.380 JPEG del laboratorio y en los tiles de `mu-golden` da
-  los bytes de la 6b, con SIMD y sin él.
-- **Se pierde:** fuera del laboratorio, un JPEG que use lo de Q-C33 se ve distinto que en el
-  original, y algunos que el original lee (un DAC mal armado, ids de componentes repetidos) turbo
-  los rechaza. La IDCT con SIMD depende de la CPU y de
+  habría que escribir y cuidar. En los 2.380 JPEG del laboratorio da los bytes de la 6b, con SIMD y
+  sin él, y también en los tiles de `mu-golden`.
+- **Se pierde:** fuera del laboratorio, un JPEG que caiga en lo que queda de Q-C33, del (3) al (7),
+  se ve distinto que en el original, y algunos que el original lee (un DAC mal armado, ids de
+  componentes repetidos) turbo los rechaza. La IDCT con SIMD depende de la CPU y de
   `JSIMD_FORCENONE`, que es de todo el proceso: no se apaga desde un descompresor.
 - **Lo fijan:**
   - `GoldenJpegImage.DecodesEveryOzjOfTheLabLikeTheLibjpeg6b`, con la carpeta de datos: cada OZJ

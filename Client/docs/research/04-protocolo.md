@@ -133,6 +133,13 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   un buffer de 16 bytes en 0 y le pasa eso y el puerto (`pkt[20..21]`) a `0x4c1340`, así que el
   byte 16, `pkt[19]`, no se lee nunca, y una IP de 16 caracteres sin `\0` queda en 15. En el cable
   del laboratorio, las 8 respuestas traen `pkt[19]` en 0. MuRet lee lo mismo (CL2.5).
+- **`F4 05`:** la otra respuesta al `F4 03`, la de un servidor ocupado. El sub 5 de `0x4e2b10`
+  llama a `0x4c1bf0` sin argumentos, que arma un `C1 04 F4 ..` como el pedido de la lista de
+  `0x4c6070`, pero sin mirar la escena: vuelve a pedir la lista, y el jugador elige de nuevo
+  (*estático* el salto; que el byte del subcódigo sea `02` es *inferido*, del decompilado y de
+  `ReceiveServerConnectBusy` de MuMain, que manda el pedido de la lista). Nada del paquete se lee:
+  MuMain le da un byte, el servidor. No aparece en el cable del laboratorio. MuRet, mientras la
+  elección es automática, falla con `ServerBusy` (Q-C71).
 - **`F1 00`** (`0x4c1e20`): `C1 0C F1 00 01 <idx:2> <versión:5>`. Con `pkt[4] == 1` guarda el
   índice del jugador y valida los 5 bytes de versión de `pkt+7` contra `0x6c8284`. El índice va en
   **big-endian**: lo arma como `pkt[5] * 0x100 + pkt[6]` (*estático*), igual que el `NumberH` y el

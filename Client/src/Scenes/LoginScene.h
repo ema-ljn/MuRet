@@ -15,6 +15,7 @@
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SceneWorlds.h"
 #include "UI/LoginWindow.h"
+#include "UI/MenuBar.h"
 #include "UI/NoticeWindow.h"
 #include "UI/Notices.h"
 #include "UI/ServerListWindow.h"
@@ -27,12 +28,14 @@
 // La escena 2 (CL5.4): el login de 0x634c60, que entra con 0x6349a0 y dibuja con 0x6350b0 (06 § El
 // login, al entrar y § El login, el dibujo), sin el logo ni el personaje (CL6) y sin la música
 // (CL10). Con la sesión, su UI (CL5.5): la lista de servidores cuando la sesión espera la elección,
-// la cuenta cuando espera la cuenta y la clave, y los avisos de 06 § Los avisos. La sesión dice qué
-// ventana va: la escena la mira en cada paso y, con lo que pide el jugador, la llama.
+// con la barra de abajo, que se abre con ella y queda hasta salir; la cuenta cuando espera la
+// cuenta y la clave, y los avisos de 06 § Los avisos. La sesión dice qué ventana va: la escena la
+// mira en cada paso y, con lo que pide el jugador, la llama.
 //
 // En cada paso se atiende solo la ventana de arriba (el aviso, la cuenta o la lista): así el Enter
-// que cierra una no le llega a la que se abre en el mismo paso. El OK de los avisos 0x1a, 0x1c,
-// 0x6f y 0x70 cierra el juego (Q-C69): la escena lo dice en WantsToQuit.
+// que cierra una no le llega a la que se abre en el mismo paso. Sin aviso, también la barra, cuyos
+// botones no se pisan con los de la cuenta ni con los de la lista (Q-C84). El OK de los avisos
+// 0x1a, 0x1c, 0x6f y 0x70 cierra el juego (Q-C69): la escena lo dice en WantsToQuit.
 namespace Client::Scenes
 {
 // Los tres textos de abajo, por su índice en Text.bmd.
@@ -62,11 +65,11 @@ public:
     // de las ventanas, de 0x61ccb0) y después conecta al ConnectServer (0x4c1340,
     // ServerSession::Start). Una textura que falta corta antes de conectar.
     Core::Expected<void, std::string> Enter() override;
-    // La UI de 0x634c60 en el paso (Q-C81): lo que pide la sesión y la ventana de arriba. La sesión
-    // la corre el SceneManager, antes.
+    // La UI de 0x634c60 en el paso (Q-C81): lo que pide la sesión, la ventana de arriba y, sin
+    // aviso, la barra. La sesión la corre el SceneManager, antes.
     void Step(const Input::InputState& input) override;
     // 0x6350b0 sin la cámara, el fundido (Q-C66) ni lo común a las escenas, y al final la UI: la
-    // lista, la cuenta y el aviso, cada uno con la mezcla normal.
+    // lista, la barra de abajo, la cuenta y el aviso, cada uno con la mezcla normal.
     void Render(SceneCanvas& canvas, float alpha) override;
     // Cierra las ventanas (la de la cuenta vacía la clave) y suelta sus 21 slots.
     void Leave() override;
@@ -84,6 +87,8 @@ private:
     void OnServerClick(const UI::ServerClick& click);
     void OnLoginRequest(const UI::LoginRequest& request);
     void OnNoticeClosed(UI::NoticeId notice);
+    // Los dos botones de la barra, que todavía no hacen nada (P-C13).
+    void OnMenuBarClick(UI::MenuBarClick click);
     // La ventana de la cuenta, con el título del servidor elegido.
     void OpenLogin(UI::LoginFocus focus);
     // El aviso de una sesión que falló: 0x6f con otra versión, 0x70 con lo demás.
@@ -104,6 +109,8 @@ private:
     std::optional<std::string> m_version;
 
     UI::ServerListWindow m_serverList;
+    // La abre la lista y queda abierta hasta salir (06 § Las ventanas de la UI nueva).
+    UI::MenuBar m_menuBar;
     UI::LoginWindow m_login;
     UI::NoticeWindow m_notice;
     // El estado de la sesión que vio el último paso, para abrir cada ventana una vez.

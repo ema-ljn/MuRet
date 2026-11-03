@@ -29,6 +29,7 @@ using Client::Network::SocketError;
 using Client::Network::SystemResolver;
 using Client::Network::SystemSocket;
 using Client::Network::SocketApi::NetworkInit;
+namespace SocketApi = Client::Network::SocketApi;
 using Client::Tests::Bytes;
 using Client::Tests::ErrorOf;
 using Client::Tests::FakeResolver;
@@ -202,16 +203,17 @@ TEST_F(SystemSocketTest, AResetIsClosed)
     EXPECT_EQ(ReceiveUntilAnError(m_socket), SocketError::Closed);
 }
 
-// Un puerto donde nadie escucha: el de un listener que ya cerró. En Linux el rechazo llega
-// enseguida y en Windows tarda unos 2 s, por los reintentos. SO_ERROR se borra al leerlo, y el
-// siguiente PollConnect daría Connected si el resultado no quedara guardado.
+// Un puerto donde nadie escucha: el de un socket atado a 127.0.0.1 sin listen, vivo todo el test.
+// Nadie más puede tomar ese puerto mientras tanto, y el connect no puede volver a sí mismo (el
+// puerto efímero del cliente nunca es uno ocupado). El SYN no encuentra un listener y vuelve un
+// RST: en Linux el connect da EINPROGRESS y el rechazo llega en el primer PollConnect; en Windows
+// tarda unos 2 s, por los reintentos. SO_ERROR se borra al leerlo, y el siguiente PollConnect
+// daría Connected si el resultado no quedara guardado.
 TEST_F(SystemSocketTest, AClosedPortIsRefused)
 {
-    std::uint16_t closedPort = 0;
-    {
-        const LoopbackServer closed;
-        closedPort = closed.Port();
-    }
+    const SocketApi::Opened bound = SocketApi::BindOnLoopback();
+    ASSERT_TRUE(bound.socket.IsOpen()) << "bind: " << bound.result.systemError;
+    const std::uint16_t closedPort = SocketApi::LocalPort(bound.socket.Get());
     ASSERT_NE(closedPort, 0);
 
     auto result = m_socket.StartConnect(Loopback, closedPort);

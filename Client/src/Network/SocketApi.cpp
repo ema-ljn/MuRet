@@ -468,19 +468,32 @@ std::optional<std::array<std::uint8_t, 4>> LookUpIpv4(const std::string& host)
     return std::nullopt;
 }
 
-Opened ListenOnLoopback()
+Opened BindOnLoopback()
 {
     constexpr std::uint16_t AnyPort = 0;
-    constexpr int Backlog = 4;
     Opened opened = OpenTcp();
     if (!opened.socket.IsOpen())
     {
         return opened;
     }
     const sockaddr_in address = AddressOf({127, 0, 0, 1}, AnyPort);
-    const NativeSocket native = ToNative(opened.socket.Get());
     const auto length = static_cast<AddressLength>(sizeof(address));
-    if (bind(native, reinterpret_cast<const sockaddr*>(&address), length) != 0 || listen(native, Backlog) != 0)
+    if (bind(ToNative(opened.socket.Get()), reinterpret_cast<const sockaddr*>(&address), length) != 0)
+    {
+        return FailedToOpen(Failure(LastError()));
+    }
+    return opened;
+}
+
+Opened ListenOnLoopback()
+{
+    constexpr int Backlog = 4;
+    Opened opened = BindOnLoopback();
+    if (!opened.socket.IsOpen())
+    {
+        return opened;
+    }
+    if (listen(ToNative(opened.socket.Get()), Backlog) != 0)
     {
         return FailedToOpen(Failure(LastError()));
     }

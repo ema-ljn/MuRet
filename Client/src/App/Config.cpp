@@ -30,6 +30,7 @@ enum class Key : std::uint8_t
     DataPath,
     ServerHost,
     ServerPort,
+    ServerObfuscation,
     VideoWidth,
     VideoHeight,
     VideoVSync,
@@ -48,10 +49,10 @@ struct KnownKey
 // Las claves de muret-client.ini, con la sección donde van (Config.h).
 constexpr std::array KnownKeys = {
     KnownKey{"Data", "Path", Key::DataPath},       KnownKey{"Server", "Host", Key::ServerHost},
-    KnownKey{"Server", "Port", Key::ServerPort},   KnownKey{"Video", "Width", Key::VideoWidth},
-    KnownKey{"Video", "Height", Key::VideoHeight}, KnownKey{"Video", "VSync", Key::VideoVSync},
-    KnownKey{"Video", "Pacing", Key::VideoPacing}, KnownKey{"Video", "MaxFps", Key::VideoMaxFps},
-    KnownKey{"Log", "Path", Key::LogPath},
+    KnownKey{"Server", "Port", Key::ServerPort},   KnownKey{"Server", "Obfuscation", Key::ServerObfuscation},
+    KnownKey{"Video", "Width", Key::VideoWidth},   KnownKey{"Video", "Height", Key::VideoHeight},
+    KnownKey{"Video", "VSync", Key::VideoVSync},   KnownKey{"Video", "Pacing", Key::VideoPacing},
+    KnownKey{"Video", "MaxFps", Key::VideoMaxFps}, KnownKey{"Log", "Path", Key::LogPath},
 };
 
 bool IsBlank(char c)
@@ -196,6 +197,19 @@ Core::Expected<PacingMode, std::string> ParsePacing(std::string_view value)
     return Unexpected(std::string("tiene que ser decoupled o faithful"));
 }
 
+Core::Expected<ObfuscationMode, std::string> ParseObfuscation(std::string_view value)
+{
+    if (EqualsIgnoringCase(value, "foxanti"))
+    {
+        return ObfuscationMode::FoxAnti;
+    }
+    if (EqualsIgnoringCase(value, "none"))
+    {
+        return ObfuscationMode::None;
+    }
+    return Unexpected(std::string("tiene que ser foxanti o none"));
+}
+
 // El archivo es UTF-8, y path(std::string) en Windows lee la página de códigos ANSI: una carpeta
 // con una letra que no sea ASCII quedaría mal. Core::PathFromUtf8 la lee como UTF-8 y rechaza el
 // texto que no lo es.
@@ -261,6 +275,17 @@ std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view
             config.server.emplace();
         }
         config.server->port = port.Value();
+        return std::nullopt;
+    }
+    case Key::ServerObfuscation:
+    {
+        // No arma config.server: la ofuscación no es parte de la dirección.
+        const auto obfuscation = ParseObfuscation(value);
+        if (!obfuscation.HasValue())
+        {
+            return obfuscation.Error();
+        }
+        config.obfuscation = obfuscation.Value();
         return std::nullopt;
     }
     case Key::VideoWidth:

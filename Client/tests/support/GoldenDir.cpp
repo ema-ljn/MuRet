@@ -13,6 +13,7 @@ namespace
 constexpr const char* GoldenDirVariable = "MURET_CLIENT_GOLDEN_DIR";
 constexpr const char* MemoryDirVariable = "MURET_CLIENT_MEMORY_DIR";
 constexpr const char* WireDirVariable = "MURET_CLIENT_WIRE_DIR";
+constexpr const char* FontFileVariable = "MURET_CLIENT_FONT_FILE";
 } // namespace
 
 namespace Client::Tests
@@ -173,5 +174,21 @@ void GoldenAndWireDataTest::SetUp()
 std::optional<std::filesystem::path> GoldenAndWireDataTest::WireFile(std::string_view name) const
 {
     return FindWireFile(m_wireRoot, name);
+}
+
+void FontFileTest::SetUp()
+{
+    const std::optional<std::filesystem::path> value =
+        GoldenDirFromValue(Core::ReadEnvironmentVariable(FontFileVariable));
+    if (!value)
+    {
+        GTEST_SKIP() << FontFileVariable << " no está definida o está vacía: test salteado";
+    }
+    std::error_code error;
+    if (!std::filesystem::is_regular_file(*value, error))
+    {
+        FAIL() << FontFileVariable << " apunta a " << *value << ", que no es un archivo";
+    }
+    m_fontFile = *value;
 }
 } // namespace Client::Tests

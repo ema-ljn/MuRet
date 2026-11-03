@@ -12,6 +12,10 @@ find_package(libjpeg-turbo CONFIG REQUIRED)
 # glm (vcpkg.json, desde la CL5.0): la matriz del 2D de ClientRender (pregunta 6 de la CL5).
 # Solo los headers: el puerto también arma una biblioteca (glm::glm), que no hace falta.
 find_package(glm CONFIG REQUIRED)
+# FreeType (vcpkg.json, desde la CL5.3): el texto en un bit de Render/Text/FreeTypeRasterizer.cpp
+# (pregunta 7 de la CL5). Es el FindFreetype de CMake, que el puerto de vcpkg envuelve, y en Linux
+# sin vcpkg encuentra el del sistema (libfreetype-dev).
+find_package(Freetype REQUIRED)
 
 # Los fuentes de src/ se juntan solos, como en MuMain: un .cpp nuevo entra al reconfigurar
 # (CONFIGURE_DEPENDS lo mira en cada build). main.cpp es de Main, no de la biblioteca, src/Platform/
@@ -27,6 +31,8 @@ target_compile_features(ClientLib PUBLIC cxx_std_20)
 # En vcpkg, libjpeg-turbo es estática en Linux y dinámica en Windows: el target cambia de nombre.
 target_link_libraries(ClientLib PRIVATE
     $<IF:$<TARGET_EXISTS:libjpeg-turbo::jpeg>,libjpeg-turbo::jpeg,libjpeg-turbo::jpeg-static>)
+# Sus headers quedan en FreeTypeRasterizer.cpp: nadie más los ve.
+target_link_libraries(ClientLib PRIVATE Freetype::Freetype)
 # Los sockets de Network/SocketApi.cpp (CL4.1): en Windows son de Winsock 2, ws2_32. En Linux están
 # en la libc.
 if(WIN32)

@@ -1,0 +1,57 @@
+#include "Render/Text/FontSet.h"
+
+#include <gtest/gtest.h>
+
+// Client::Render::Text::FontStepFor, FontHeightFor e IsBold: las cuatro fuentes de WinMain
+// (0x4ba6af..0x4ba813) y el paso de la letra por el ancho de la pantalla (pregunta 10 del plan de
+// la CL5, Q-C59).
+namespace
+{
+using Client::Render::Text::FontHeightFor;
+using Client::Render::Text::FontKind;
+using Client::Render::Text::FontStepFor;
+using Client::Render::Text::IsBold;
+
+// Los cuatro anchos de la tabla de WinMain, y el escalón para los demás: el paso del más grande de
+// los cuatro que no pasa al ancho, y 12 por debajo de 800. Con 1600, el original deja el paso en
+// 0 y las letras en -1 y -2 (Q-C59); MuRet da 15.
+TEST(FontSetTest, TheStepFollowsTheWidth)
+{
+    EXPECT_EQ(FontStepFor(640), 12);
+    EXPECT_EQ(FontStepFor(800), 13);
+    EXPECT_EQ(FontStepFor(1024), 14);
+    EXPECT_EQ(FontStepFor(1280), 15);
+
+    EXPECT_EQ(FontStepFor(320), 12);
+    EXPECT_EQ(FontStepFor(799), 12);
+    EXPECT_EQ(FontStepFor(1000), 13);
+    EXPECT_EQ(FontStepFor(1023), 13);
+    EXPECT_EQ(FontStepFor(1279), 14);
+    EXPECT_EQ(FontStepFor(1600), 15);
+    EXPECT_EQ(FontStepFor(1920), 15);
+}
+
+// CreateFontA con n − 1 la normal y la negrita, 2 (n − 1) la negrita grande y 12 fijo la de la otra
+// cara (0x4ba737, 0x4ba777, 0x4ba7b9 y 0x4ba813).
+TEST(FontSetTest, EachFontHasItsHeight)
+{
+    EXPECT_EQ(FontHeightFor(FontKind::Normal, 640), 11);
+    EXPECT_EQ(FontHeightFor(FontKind::Bold, 640), 11);
+    EXPECT_EQ(FontHeightFor(FontKind::BigBold, 640), 22);
+    EXPECT_EQ(FontHeightFor(FontKind::OtherFace12, 640), 12);
+
+    EXPECT_EQ(FontHeightFor(FontKind::Normal, 1280), 14);
+    EXPECT_EQ(FontHeightFor(FontKind::Bold, 1024), 13);
+    EXPECT_EQ(FontHeightFor(FontKind::BigBold, 1280), 28);
+    EXPECT_EQ(FontHeightFor(FontKind::OtherFace12, 1920), 12);
+}
+
+// Peso 700 la negrita y la negrita grande; 400 las otras dos.
+TEST(FontSetTest, OnlyTheBoldOnesAreBold)
+{
+    EXPECT_FALSE(IsBold(FontKind::Normal));
+    EXPECT_TRUE(IsBold(FontKind::Bold));
+    EXPECT_TRUE(IsBold(FontKind::BigBold));
+    EXPECT_FALSE(IsBold(FontKind::OtherFace12));
+}
+} // namespace

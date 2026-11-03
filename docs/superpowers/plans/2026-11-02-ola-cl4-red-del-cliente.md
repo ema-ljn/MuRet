@@ -190,10 +190,12 @@ Cada uno tiene su test en la sub-ola que lo dice. En la review se miran primero:
   Windows un `connect` que falla no se ve como escribible sino en el conjunto de excepciones de
   `select` (por eso, en Windows, `select` con los dos conjuntos: `WSAPoll` no lo avisaba en
   versiones viejas). En POSIX va `poll`, porque `select` no puede con un descriptor desde
-  `FD_SETSIZE`. Uno rechazado en `127.0.0.1` puede tardar unos 2 s por los reintentos en Windows,
-  o llegar del mismo `connect` en Linux. `SO_ERROR` se borra al leerlo: el resultado final se
-  guarda, o un segundo `PollConnect` después del rechazo daría `Connected`. El paso 2 de la CL4.1
-  lo confirma (`AClosedPortIsRefused`, con un tope de 5 s reales).
+  `FD_SETSIZE`. Contra un puerto cerrado de `127.0.0.1`, en Linux el `connect` da `EINPROGRESS`
+  y el rechazo llega en el primer `PollConnect`; en Windows puede tardar unos 2 s por los
+  reintentos. El contrato deja que el `Refused` salga del mismo `StartConnect` si el sistema ya lo
+  sabe, pero en loopback no se vio. `SO_ERROR` se borra al leerlo: el resultado final se guarda, o
+  un segundo `PollConnect` después del rechazo daría `Connected`. El paso 2 de la CL4.1 lo midió
+  y `AClosedPortIsRefused` lo prueba, con un tope de 5 s reales.
 - **`recv` que da 0, que da -1 o que no tiene nada.** 0 es que el otro lado cerró; -1 con
   `EWOULDBLOCK`, `EAGAIN`, `WSAEWOULDBLOCK` o `EINTR` es "probá más tarde"; con `ECONNRESET`,
   `ECONNABORTED`, `EPIPE` o sus `WSA*`, en `recv` o en `send`, también cerró el otro lado (un kick
@@ -346,7 +348,8 @@ y este plan.
   parcial: el decompilado muestra el principio del paquete con el largo de lo que falta, y si es
   así, es el mismo defecto. Sumar a 07 el quirk nuevo: ese envío llama a `send` sin mirar
   `+0x2010` (*verificado*), así que un paquete nuevo sale antes que lo encolado; MuRet nunca
-  manda directo con algo pendiente (`SendQueueTest.NewBytesWaitBehindThePending`).
+  manda directo con algo pendiente: lo va a probar `ConnectionTest.NewPacketsWaitBehindThePending`
+  (CL4.3), y `SendQueueTest.NewBytesWaitBehindThePending` prueba solo la cola.
 - [x] **Paso 5 (la lectura y el cierre del otro lado):** en `0x4e88a0`, que un `recv` de 0 o de -1
   vuelve sin cerrar, y la rama `FD_CLOSE` del mensaje `0x400`: qué muestra (`0x555190`, el objeto
   de `0x65ee60`).
@@ -566,7 +569,7 @@ public:
     // Manda lo que el socket tome, desde el cursor, hasta que no tome más.
     [[nodiscard]] std::optional<SendQueueError> Flush(ISocket& socket);
     [[nodiscard]] std::size_t Pending() const;
-    [[nodiscard]] SocketError LastSocketError() const; // el del último Socket
+    [[nodiscard]] std::optional<SocketError> LastSocketError() const; // el del último Socket
     void Clear();
 };
 } // namespace Client::Network
@@ -653,7 +656,7 @@ class FakeResolver final : public Network::IResolver { /* std::optional<std::arr
   | --- | --- | --- | --- |
   | `connect` no bloqueante | -1 con `EINPROGRESS`, también en loopback y contra un puerto cerrado; con `EINTR` el connect sigue en el fondo | `SOCKET_ERROR` con `WSAEWOULDBLOCK` (`WSAEINPROGRESS` es de otra cosa: una llamada bloqueante en curso) | `InProgress` |
   | `connect` que ya terminó | 0 | 0 | `Done` |
-  | un rechazo | `ECONNREFUSED`, en el mismo `connect` o en `SO_ERROR` | `WSAECONNREFUSED` en `SO_ERROR`, unos 2 s después: reintenta el SYN | `Refused` |
+  | un rechazo | el `connect` da `EINPROGRESS`, y `ECONNREFUSED` llega en `SO_ERROR` en el primer `poll` (POSIX deja que lo dé el mismo `connect`; en loopback no se vio) | `WSAECONNREFUSED` en `SO_ERROR`, unos 2 s después: reintenta el SYN | `Refused` |
   | cómo se ve que terminó | `poll` con `POLLOUT`: conectado da `POLLOUT`; un rechazo, `POLLOUT`, `POLLERR` y `POLLHUP`. `SO_ERROR` dice cuál y se borra al leerlo: el segundo da 0, y `poll` sigue con `POLLOUT` | `select`: conectado, en las de escritura; uno que falló, en las de excepciones y no en las de escritura. `SO_ERROR` dice cuál | `CheckConnect`, y el resultado final lo guarda `SystemSocket` |
   | probá más tarde, en `recv` y `send` | -1 con `EAGAIN` o `EWOULDBLOCK` (en Linux valen lo mismo), o `EINTR` | `SOCKET_ERROR` con `WSAEWOULDBLOCK` (`WSAEINTR` solo lo da una llamada bloqueante cancelada) | `TryLater` |
   | un `recv` de 0 bytes | -1 con `EAGAIN` si no llegó nada; 0 si hay bytes esperando o si el otro lado cerró | no se llama | `Done` con 0, sin llamar a `recv` |
@@ -673,8 +676,9 @@ class FakeResolver final : public Network::IResolver { /* std::optional<std::arr
     `SendsAndReceivesBytes` (`C1 04 F4 02` del cliente llega igual al servidor, y `C1 04 00 01`
     del servidor llega igual al cliente), `APeerThatClosesIsClosed` (`CloseClient`: `Receive` da
     `Closed`), `AResetIsClosed` (`ResetClient`: `Receive` da `Closed`, no `Failed`),
-    `AClosedPortIsRefused` (`Refused` desde `StartConnect`, como en Linux, o desde `PollConnect`,
-    con un tope de 5 s reales; y un `PollConnect` más después da `Refused` otra vez),
+    `AClosedPortIsRefused` (`Refused` desde `PollConnect`, con un tope de 5 s reales: en Linux en
+    el primero, en Windows unos 2 s después; desde `StartConnect` también vale, si el sistema ya
+    lo sabe; y un `PollConnect` más después da `Refused` otra vez),
     `AnUnknownHostFailsToResolve` (con un `FakeResolver` vacío: `ResolveFailed` y `IsOpen` en
     `false`; el `SystemResolver` con `nombre.invalid` queda para la prueba a mano, porque depende
     del DNS), `SendingAfterThePeerClosedDoesNotKillTheProcess` (después de `CloseClient`, primero
@@ -693,6 +697,12 @@ class FakeResolver final : public Network::IResolver { /* std::optional<std::arr
   - `AnEmptyReceiveIsNotAClose` deja bytes esperando antes del `Receive` vacío: en Linux un `recv`
     de 0 bytes sin nada que leer da `EAGAIN` (sería un "probá más tarde", y el test pasaría sin la
     guarda), y con bytes esperando da 0, que es lo que se leería como un cierre.
+  - El puerto cerrado de `AClosedPortIsRefused` es el de un socket atado a `127.0.0.1` sin
+    `listen` (`SocketApi::BindOnLoopback`), vivo todo el test, y no el de un listener que ya
+    cerró: así ningún otro proceso ni otro test en paralelo puede tomar ese puerto entre que se
+    mira y el `connect`. Sin listener, el SYN vuelve con un RST: es el caso de `WSAECONNREFUSED`
+    en la documentación de Winsock (un servicio sin aplicación que escuche). En Linux se midió;
+    en Windows lo prueba el CI.
   - `SendingAfterThePeerClosedDoesNotKillTheProcess` manda de a 1.024 bytes hasta el primer error,
     con el tope de 5 s, y no diez seguidos: en Windows el RST se procesa en el fondo y puede llegar
     después del décimo, y lo que da un `send` después del primer error no lo fija el contrato. El
@@ -718,10 +728,11 @@ class FakeResolver final : public Network::IResolver { /* std::optional<std::arr
   - `SocketApi` suma `Opened` (el socket, o vacío con su `Result`), que es lo que dan `OpenTcp`,
     `ListenOnLoopback` y `Accept`; `ParseIpv4` (`inet_pton`) y `LookUpIpv4` (`getaddrinfo` con
     `AF_INET`), que usa el `SystemResolver`; `BytesPerCall` y `MaxBytesPerCall`, el tope de
-    `INT_MAX` de Winsock, usado también en Linux para que los dos se porten igual; y, para el
-    `LoopbackServer`, `ListenOnLoopback`, `LocalPort`, `Accept` y `CloseWithReset`: el servidor de
-    prueba usa el mismo `#ifdef` y no uno propio. `NetworkInit` tiene `IsReady` y `SystemError`
-    (lo que dio `WSAStartup`).
+    `INT_MAX` de Winsock, usado también en Linux para que los dos se porten igual; y, para los
+    tests, `ListenOnLoopback`, `LocalPort`, `Accept` y `CloseWithReset` (los del `LoopbackServer`)
+    y `BindOnLoopback` (el puerto cerrado de `AClosedPortIsRefused`): el servidor de prueba usa el
+    mismo `#ifdef` y no uno propio. `NetworkInit` tiene `IsReady` y `SystemError` (lo que dio
+    `WSAStartup`).
   - `Ipv4Address` (`std::array<std::uint8_t, 4>`, en el orden en que se escribe) va en
     `IResolver.h`. `IResolver` e `ISocket` tienen la copia y el movimiento protegidos, como
     `IObfuscation`, para que `SystemSocket` se pueda mover.
@@ -734,7 +745,11 @@ class FakeResolver final : public Network::IResolver { /* std::optional<std::arr
     verdad.
   - `FakeSocket` suma `systemError` (lo que da `LastSystemError`); `pollsUntilConnected` es
     cuántos `PollConnect` dan `InProgress` (con 0, el `StartConnect` ya termina); `sendError` vale
-    para un solo `Send`. `FakeResolver` anota en `hosts` lo que le preguntaron.
+    para un solo `Send`. Como el `SystemSocket`, guarda el resultado final del connect (un
+    `PollConnect` después de un fallo lo repite aunque cambie `connectResult`), y un
+    `ResolveFailed` termina en el `StartConnect` y deja `IsOpen` en `false` (en la revisión:
+    `FakeSocketTest.AFailedConnectStaysFailed` y `AnUnresolvedHostIsNotOpen`). `FakeResolver`
+    anota en `hosts` lo que le preguntaron.
   - `LoopbackServer` suma `ClientClosed` (un `Read` vio el FIN o el RST del cliente), y su header
     trae `RetryUntil` y `LoopbackTimeout`, que van a usar también los tests en loopback de la CL4.3
     y la CL4.5.
@@ -754,14 +769,24 @@ class FakeResolver final : public Network::IResolver { /* std::optional<std::arr
     `Flush` sin límites: `sent` termina en `06 07 08 09 0A 0B`;
   - `SendQueueTest.ASocketErrorIsReported` (`sendError = Closed`: `Socket`, `LastSocketError()`
     da `Closed`, y lo pendiente queda);
+  - `SendQueueTest.AnErrorMidFlushKeepsWhatDidNotLeave` (`{2, Closed}`: `Socket`, 8 pendientes, y
+    un segundo `Flush` manda `02..09` una vez: lo que ya salió no vuelve);
 
     Los de `SendQueue`, hechos en el PR B, con tres más: `MoreThanTheBufferInOnePushIsFull`
     (`0x2001` bytes de una vez, con la cola vacía), `FlushingNothingDoesNotCallTheSocket` y
-    `ClearDropsThePending`. Los bytes de los de `0x2000` no se repiten cada 256, así un byte
-    corrido o repetido se ve. Ocho mutantes a mano (el cursor que corre de más, el tope medido
+    `ClearDropsThePending`. En la revisión se sumaron `AnErrorMidFlushKeepsWhatDidNotLeave` (para
+    eso `sendLimits` acepta un `SocketError` en el guion, que da ese error en ese `Send`:
+    `FakeSocketTest.AScriptedSendErrorComesInItsTurn`), `ASocketThatClaimsMoreDoesNotRunOff` (un
+    `ISocket` del test que dice haber tomado de más: el cursor no pasa del final) y
+    `NoSocketErrorBeforeTheFirst`. Los bytes de los de `0x2000` no se repiten cada 256, así un
+    byte corrido o repetido se ve. Ocho mutantes a mano (el cursor que corre de más, el tope medido
     desde el final y no desde lo pendiente, el tope con `>=`, un error que tira lo pendiente o que
     pierde su `SocketError`, un `Flush` sin nada que llama al socket, y la compactación sin
-    descontar el cursor o sin hacerse): los mata algún test.
+    descontar el cursor o sin hacerse): los mata algún test. Los de la revisión matan otros siete:
+    el cursor que vuelve atrás con un error, el `Flush` sin el tope, `LastSocketError` con
+    `Closed` de entrada, el error del guion ignorado, el `FakeSocket` sin el resultado guardado o
+    que abre con un `ResolveFailed`, y el `SystemSocket` que vuelve a mirar `SO_ERROR` después
+    del rechazo.
   - `GameLoopTest.PollsOncePerFrameBeforeTheSteps`, en `Decoupled` y en `Faithful`: el segundo
     frame, 80 ms después del primero (que solo fija el inicio), anota `Poll`, `Step`, `Step`,
     `Render`;
@@ -789,11 +814,15 @@ class FakeResolver final : public Network::IResolver { /* std::optional<std::arr
     cola vacía vuelve el cursor a 0: en el caso de siempre (todo sale en el mismo `Flush`) no se
     corre nada.
   - `Push` no manda: quien la usa hace `Push` y `Flush`, así lo nuevo nunca se adelanta a lo
-    pendiente (`NewBytesWaitBehindThePending`). Lo arma la `Connection` (CL4.3).
+    pendiente. `NewBytesWaitBehindThePending` lo prueba en la cola; que MuRet nunca mande directo
+    con algo pendiente lo va a probar `ConnectionTest.NewPacketsWaitBehindThePending` (CL4.3).
   - Un socket que dice haber tomado más de lo que se le dio no corre el cursor afuera del buffer:
     se toma como que tomó todo.
-  - `LastSocketError()` da `Closed` antes del primer error, y `SendQueueError` tiene su `PrintTo`
-    en `support/NetworkPrinters.h`.
+  - `LastSocketError()` es un `std::optional<SocketError>`, vacío antes del primer error (en la
+    revisión: antes daba `Closed`, que no se distinguía de uno real), y `SendQueueError` tiene su
+    `PrintTo` en `support/NetworkPrinters.h`.
+  - Con un error en la mitad de un `Flush`, lo que ya salió no vuelve y lo demás queda: el cursor
+    se corre con cada `Send` que tomó algo, antes del que falla.
 
   *PR C, hecho así:* `RunFrame` llama a `Poll` lo primero, en los dos modos: en Decoupled, antes
   del `Now()` del frame, así lo que tarda entra en el frame que lo pagó; en Faithful, antes de
@@ -1120,6 +1149,9 @@ public:
     `0x2001` bytes: `Closed` con `SendQueueFull`).
 - [ ] **Paso 3 (PR A):** `Connection` (sin el cifrado, que llega en la CL4.4) y `Delivery` en
   Network.
+  - `SocketError::Closed` es también "no conectado" (`ISocket.h`): la `Connection` llama a
+    `Receive`, `Send` y `SendQueue::Flush` solo con `Connected`, así un `Closed` ahí es siempre
+    que el otro lado cerró. Lo prueba `ConnectionTest.APeerThatClosesCloses`.
 - [ ] **Paso 4 (PR B):** los tests de la sesión, con `FakeSocket` haciendo de CS:
   - `A9Test.WritesTheBytesOfTheWire` (`C1 06 A9 00 00 01` con XOR32 es `C1 06 A9 20 9C 2F`,
     en claro);

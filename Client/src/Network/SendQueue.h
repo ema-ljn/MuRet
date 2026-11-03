@@ -37,13 +37,14 @@ public:
     [[nodiscard]] std::optional<SendQueueError> Push(std::span<const std::byte> bytes);
 
     // Manda lo que el socket tome, desde el cursor, hasta que no tome más o no quede nada. Sin nada
-    // pendiente no llama al socket. Con un error del socket, lo pendiente queda como estaba.
+    // pendiente no llama al socket. Con un error del socket, lo que ya salió no vuelve; lo demás
+    // queda.
     [[nodiscard]] std::optional<SendQueueError> Flush(ISocket& socket);
 
     [[nodiscard]] std::size_t Pending() const;
 
-    // El del último Socket; Closed si no hubo ninguno.
-    [[nodiscard]] SocketError LastSocketError() const;
+    // El del último Socket; vacío si no hubo ninguno.
+    [[nodiscard]] std::optional<SocketError> LastSocketError() const;
 
     // Tira lo pendiente: la conexión se cerró y lo que no salió no va a la próxima.
     void Clear();
@@ -55,6 +56,6 @@ private:
     std::array<std::byte, MaxPendingSend> m_buffer{};
     std::size_t m_sent = 0; // el cursor: lo que ya salió de lo que hay
     std::size_t m_end = 0;  // hasta dónde hay
-    SocketError m_lastSocketError = SocketError::Closed;
+    std::optional<SocketError> m_lastSocketError;
 };
 } // namespace Client::Network

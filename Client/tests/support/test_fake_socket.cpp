@@ -80,8 +80,33 @@ TEST(FakeSocketTest, AFailedConnectStaysFailed)
     EXPECT_EQ(socket.StartConnect("127.0.0.1", AnyPort).Value(), ConnectProgress::InProgress);
     EXPECT_EQ(socket.PollConnect().Value(), ConnectProgress::InProgress);
     EXPECT_EQ(ErrorOf(socket.PollConnect()), SocketError::Refused);
+    // Lo guardado no es el guion: cambiarlo después no cambia lo que terminó.
+    socket.connectResult.reset();
     EXPECT_EQ(ErrorOf(socket.PollConnect()), SocketError::Refused);
     EXPECT_EQ(ErrorOf(socket.Receive(std::span<std::byte>())), SocketError::Closed);
+    // Un Refused deja el socket hasta Close, como SystemSocket.
+    EXPECT_TRUE(socket.IsOpen());
+}
+
+// Como SystemSocket: un nombre que no resuelve falla en el StartConnect, aunque el guion pida
+// PollConnect en curso, y no deja un socket abierto.
+TEST(FakeSocketTest, AnUnresolvedHostIsNotOpen)
+{
+    FakeSocket socket;
+    socket.pollsUntilConnected = 2;
+    socket.connectResult = SocketError::ResolveFailed;
+
+    EXPECT_EQ(ErrorOf(socket.StartConnect("nombre.invalid", AnyPort)), SocketError::ResolveFailed);
+    EXPECT_FALSE(socket.IsOpen());
+    EXPECT_EQ(ErrorOf(socket.PollConnect()), SocketError::ResolveFailed);
+
+    // Otro StartConnect no cierra nada: no había un socket.
+    socket.connectResult.reset();
+    socket.pollsUntilConnected = 0;
+    EXPECT_EQ(socket.StartConnect("127.0.0.1", AnyPort).Value(), ConnectProgress::Connected);
+    EXPECT_TRUE(socket.IsOpen());
+    EXPECT_EQ(socket.closes, 0);
+    EXPECT_EQ(socket.connects.size(), 2u);
 }
 
 TEST(FakeSocketTest, AReadLongerThanTheBufferComesInPieces)
@@ -123,6 +148,20 @@ TEST(FakeSocketTest, ASendLimitOfNulloptTakesNothingAndAnErrorIsOnce)
     EXPECT_EQ(socket.Send(packet).Value(), 0u);
     EXPECT_EQ(socket.Send(packet).Value(), 3u);
     EXPECT_TRUE(SameBytes(socket.sent, packet));
+}
+
+// Un error en el guion de sendLimits sale en su turno, después de los Send de antes.
+TEST(FakeSocketTest, AScriptedSendErrorComesInItsTurn)
+{
+    FakeSocket socket;
+    Connect(socket);
+    socket.sendLimits = {std::size_t{2}, SocketError::Closed};
+    const auto packet = Bytes({1, 2, 3});
+
+    EXPECT_EQ(socket.Send(packet).Value(), 2u);
+    EXPECT_EQ(ErrorOf(socket.Send(packet)), SocketError::Closed);
+    EXPECT_EQ(socket.Send(packet).Value(), 3u);
+    EXPECT_TRUE(SameBytes(socket.sent, Bytes({1, 2, 1, 2, 3})));
 }
 
 TEST(FakeSocketTest, WithoutAConnectionReceiveAndSendAreClosed)

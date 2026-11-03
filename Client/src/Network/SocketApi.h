@@ -140,9 +140,13 @@ struct Opened
 // La primera IPv4 de un nombre, con getaddrinfo y AF_INET: espera lo que tarde el DNS.
 [[nodiscard]] std::optional<std::array<std::uint8_t, 4>> LookUpIpv4(const std::string& host);
 
-// Del lado del servidor, para el LoopbackServer de los tests: el cliente no escucha.
+// Del lado del servidor, para los tests (el LoopbackServer y un puerto sin nadie que escuche): el
+// cliente no escucha.
 //
-// Un listener en 127.0.0.1 con el puerto que elija el sistema (bind al 0), no bloqueante.
+// Un socket atado a 127.0.0.1 con el puerto que elija el sistema (bind al 0), sin listen y no
+// bloqueante. Mientras viva, nadie más toma ese puerto, y un connect a él se rechaza.
+[[nodiscard]] Opened BindOnLoopback();
+// Un listener en 127.0.0.1 con el puerto que elija el sistema: BindOnLoopback y listen.
 [[nodiscard]] Opened ListenOnLoopback();
 // El puerto local de un socket (getsockname), o 0 si no se pudo leer.
 [[nodiscard]] std::uint16_t LocalPort(Handle socket);

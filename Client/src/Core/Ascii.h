@@ -2,11 +2,11 @@
 
 #include <string_view>
 
-// Mayúsculas y minúsculas de ASCII, byte a byte: solo de la A a la Z. Así compara Windows los
-// nombres de archivo, y así compara el cliente las rutas de Data\ (Data/DataPath.h), las
-// extensiones de las texturas, la lista de fuentes del registro, las claves y los valores de la
-// config y las palabras de la línea de comandos. Cada uno decide qué compara y qué dice si no
-// coincide; la regla es esta sola.
+// Mayúsculas y minúsculas de ASCII, byte a byte: solo de la A a la Z, como compara Windows un
+// nombre de archivo en ASCII (fuera de ASCII Windows junta más letras, y esto no). Así compara el
+// cliente las rutas de Data\ (Data/DataPath.h), las extensiones de las texturas, la lista de
+// fuentes del registro, las claves y los valores de la config y las palabras de la línea de
+// comandos. Cada uno decide qué compara y qué dice si no coincide; la regla es esta sola.
 //
 // std::tolower no sirve: depende del locale de C y es comportamiento indefinido con un char
 // negativo, como cualquier byte >= 0x80 de un texto en UTF-8 o en la página de códigos de Windows.

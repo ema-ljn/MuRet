@@ -77,7 +77,14 @@ namespace:
   antes de commitear y no lo discutas en la revisión. CI lo verifica en `Client/`, `labs/` y
   `Server/` (`clang-format --dry-run --Werror`, versión 18).
 - Seguí el estilo del código que está alrededor. No inventes una convención nueva en un archivo.
-- Includes mínimos: solo lo que el archivo usa.
+- Includes mínimos: solo lo que el archivo usa, y todo lo que usa. Un header compila solo, con sus
+  propios includes, y un archivo no cuenta con lo que le llega por el include de otro (Core
+  Guidelines SF.10 y SF.11): si usa `std::vector`, incluye `<vector>`. Si un header solo nombra un
+  tipo por puntero o referencia, alcanza con declararlo (`class ISocket;`). No hay `stdafx.h` que
+  incluir: los precompiled headers los arma CMake y los fuerza solo
+  ([`cmake/PrecompiledHeaders.cmake`](../cmake/PrecompiledHeaders.cmake)), con la biblioteca
+  estándar. Son para compilar más rápido, no reemplazan ningún include, y el job de Linux del CI
+  compila sin ellos para que lo que falte falle.
 - Comentarios, mensajes y docs en castellano; identificadores y nombres de tests en inglés
   (`Feed`, `TEST(PacketReaderTest, CutsAC1)`).
 - `.editorconfig` fija espacios, LF y UTF-8; `.clang-tidy` (el de MuMain, con las carpetas de

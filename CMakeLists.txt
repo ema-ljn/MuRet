@@ -27,6 +27,7 @@ add_compile_definitions($<$<PLATFORM_ID:Windows>:NOMINMAX>)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CompilerWarnings)
+include(PrecompiledHeaders)
 
 # Los tests se registran con add_test() o gtest_discover_tests() y los corre CTest
 # (ctest --preset <preset>).

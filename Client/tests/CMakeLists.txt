@@ -20,12 +20,14 @@ target_compile_definitions(ClientTestSupport PUBLIC
     MURET_CLIENT_JPEG_VECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/vectors/jpeg"
     MURET_CLIENT_NET_VECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/vectors/net")
 muret_set_warnings(ClientTestSupport)
+muret_precompile_headers(ClientTestSupport <gtest/gtest.h>)
 
 # Lo de support/ que abre OpenGL (CL5.1): la ventana escondida con su contexto 3.3 core y la regla
 # de MURET_CLIENT_REQUIRE_GL. Va aparte para que el resto de los tests no enlace SDL3 ni GL.
 add_library(ClientGlTestSupport STATIC support/GlTestContext.cpp)
 target_link_libraries(ClientGlTestSupport PUBLIC ClientTestSupport ClientRender)
 muret_set_warnings(ClientGlTestSupport)
+muret_precompile_headers(ClientGlTestSupport <gtest/gtest.h>)
 
 # La carpeta golden llega a los tests como variable de entorno. Se puede fijar acá, al configurar
 # (-DMURET_CLIENT_GOLDEN_DIR=...), o en el entorno al correr ctest. La de los volcados de memoria
@@ -60,6 +62,15 @@ function(muret_add_test)
     target_link_libraries(${MAT_NAME} PRIVATE ClientTestSupport ClientLib GTest::gtest GTest::gtest_main
         ${MAT_LINK_LIBS})
     muret_set_warnings(${MAT_NAME})
+    # El precompiled header de ClientGlTestSupport si el test ve ClientPlatform, que suma una
+    # definición; si no, el de ClientTestSupport (cmake/PrecompiledHeaders.cmake).
+    set(pch_from ClientTestSupport)
+    foreach(platform_lib IN ITEMS ClientPlatform ClientRender ClientGlTestSupport)
+        if(platform_lib IN_LIST MAT_LINK_LIBS)
+            set(pch_from ClientGlTestSupport)
+        endif()
+    endforeach()
+    muret_reuse_precompiled_headers(${MAT_NAME} ${pch_from})
     if(NOT MAT_TIMEOUT)
         set(MAT_TIMEOUT ${MURET_TEST_CASE_TIMEOUT})
     endif()

@@ -33,6 +33,7 @@ if(WIN32)
     target_link_libraries(ClientLib PRIVATE ws2_32)
 endif()
 muret_set_warnings(ClientLib)
+muret_precompile_headers(ClientLib)
 # libjpeg avisa de sus errores con longjmp, y JpegImage.cpp lo recibe con setjmp. MSVC avisa de
 # cualquier setjmp en C++ (C4611: longjmp no corre destructores); el archivo está armado para que
 # no haya ninguno en el medio (Decompress, en JpegImage.cpp).
@@ -50,6 +51,9 @@ target_link_libraries(ClientPlatform PUBLIC ClientLib SDL3::SDL3)
 # por eso es PUBLIC (Main y los tests de platform/ los ven).
 target_compile_definitions(ClientPlatform PUBLIC SDL_OPENGL_1_FUNCTION_TYPEDEFS)
 muret_set_warnings(ClientPlatform)
+# Su propio precompiled header y no el de ClientLib: SDL_OPENGL_1_FUNCTION_TYPEDEFS cambia las
+# definiciones (cmake/PrecompiledHeaders.cmake). ClientRender y Main ven las mismas y lo reusan.
+muret_precompile_headers(ClientPlatform)
 
 # Render/Gl (CL5.1): lo que habla con OpenGL. Los nombres de GL con RAII, los shaders, las texturas,
 # el framebuffer de los tests y el pipeline del 2D. Llama a GL por la tabla de ClientPlatform
@@ -59,12 +63,14 @@ file(GLOB_RECURSE render_gl_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DI
 add_library(ClientRender STATIC ${render_gl_sources})
 target_link_libraries(ClientRender PUBLIC ClientPlatform PRIVATE glm::glm-header-only)
 muret_set_warnings(ClientRender)
+muret_reuse_precompiled_headers(ClientRender ClientPlatform)
 
 add_executable(Main
     src/main.cpp
 )
 target_link_libraries(Main PRIVATE ClientPlatform ClientLib)
 muret_set_warnings(Main)
+muret_reuse_precompiled_headers(Main ClientPlatform)
 
 if(MURET_BUILD_TESTS)
     add_subdirectory(tests)

@@ -13,6 +13,11 @@
 // (Client/docs/research/09-datos-disponibles.md, "Cómo se verificó").
 namespace Client::Data
 {
+// Si `a` y `b` son iguales sin distinguir mayúsculas ASCII (solo de la A a la Z), como compara
+// Windows los nombres: la regla con que ResolveDataPath compara cada parte, y la de las
+// extensiones de Textures/TextureSet.cpp. Los bytes >= 0x80 se comparan tal cual.
+[[nodiscard]] bool EqualsIgnoringAsciiCase(std::string_view a, std::string_view b);
+
 // Busca `originalPath` (un archivo o una carpeta), separado por '\\' o '/', adentro de `dataRoot`.
 // Cada parte se compara sin distinguir mayúsculas ASCII, como en Windows: si hay una coincidencia
 // exacta gana esa, y si no, la primera en orden de bytes, sin volver atrás si la siguiente parte

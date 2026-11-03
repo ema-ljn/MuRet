@@ -272,7 +272,12 @@ solo lo lee.
   estaba), un framebuffer para leer lo dibujado y `GlRenderer`, que ya dibuja triángulos con la y
   para arriba. Los tests de `render_gl/` abren una ventana escondida (`GlTestContext`) y en CI
   corren en Xvfb. El lab de la CL5.0 dejó sus copias y pide con el loader del cliente. `GL_CLAMP` no
-  existe en core: va `GL_CLAMP_TO_EDGE`, y la diferencia en el borde es Q-C73.
+  existe en core: va `GL_CLAMP_TO_EDGE`, y la diferencia en el borde es Q-C73. El B: un juego de
+  texturas es un dato (`Scenes/TextureSets.h`: las 18 del login y las 6 de la carga, con su slot y
+  su muestreo), y `LoadTextureSet` lo lee del disco como el original, cortando el nombre en el
+  primer punto y poniéndole la extensión del cargador (Q-C74, sin punto). El golden lee las 24 del
+  `Data\` del laboratorio. `Gl::TextureTable` es la tabla de la escena, por el slot del original,
+  detrás de `ITextureStore`; y `Core::Expected` tiene su `void`.
 
 ## Conceptos
 
@@ -375,6 +380,7 @@ sesión, junto con los de repaso más viejo.
 | un loader de GL propio como X-macro: una lista que arma el struct, el pedido y los nombres que prueba un test, y por qué se pregunta la versión y el perfil con dos funciones de la 1.0 antes de pedir las de la 3.3 | CL5.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | una textura de GL desde un buffer en memoria: el formato interno con tamaño (`GL_RGB8`) contra el del buffer (`GL_RGB`), `GL_UNPACK_ALIGNMENT` en 1 y vuelto a como estaba, por qué sin mipmaps el filtro de minificación por defecto deja la textura incompleta (negra), y `GL_CLAMP` contra `GL_CLAMP_TO_EDGE` con `GL_LINEAR` (Q-C73) | CL5.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | probar GL con píxeles: un framebuffer con una textura de color, `glReadPixels` que da las filas de abajo para arriba, un fixture que se saltea sin pantalla y falla con `MURET_CLIENT_REQUIRE_GL=1`, y un shader que no compila o no enlaza con el log del driver en el error | CL5.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| un juego de texturas como dato y no como código: la ruta del original, su slot y su muestreo en una tabla `constexpr`; la primera lectura del disco de la capa de datos, con un error por tipo (falta, no se lee, no es de ningún cargador) que dice la ruta; una tabla por escena indexada por el slot del original detrás de una interfaz sin GL; y `Expected<void, E>` para lo que solo puede fallar | CL5.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
+#include <optional>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -121,5 +122,35 @@ private:
     }
 
     std::variant<T, E> m_storage;
+};
+
+// Sin valor: lo que solo puede fallar, como subir las texturas de una escena (CL5.1). Como
+// std::expected<void, E>, construido sin nada es el éxito, así una función hace `return {};`. No
+// tiene Value(): no hay nada que sacar.
+template <typename E> class [[nodiscard]] Expected<void, E>
+{
+    static_assert(!std::is_reference_v<E>, "Expected guarda valores, no referencias");
+
+public:
+    Expected() = default;
+
+    Expected(Unexpected<E> error) : m_error(std::move(error).Error()) {}
+
+    [[nodiscard]] bool HasValue() const
+    {
+        return !m_error.has_value();
+    }
+
+    [[nodiscard]] const E& Error() const&
+    {
+        if (!m_error.has_value())
+        {
+            Detail::StopOnBadAccess("Error() de un Expected que no tiene error");
+        }
+        return *m_error;
+    }
+
+private:
+    std::optional<E> m_error;
 };
 } // namespace Client::Core

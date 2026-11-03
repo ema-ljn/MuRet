@@ -706,15 +706,15 @@ public:
   `GlTextureTest.NearestAndLinearSampleAsAsked`, `GlTextureTest.RepeatWrapsAndClampDoesNot`.
 - [x] **Paso 3 (PR A):** la X-macro y `ClientRender`; `GlShader`, `GlTexture`, `GlFramebuffer` y
   el `GlTestContext`. El CI corre `render_gl` con Xvfb.
-- [ ] **Paso 4 (PR B):** los tests de los datos: `TextureSetTest.ChangesTheExtensionLikeTheOriginal`
+- [x] **Paso 4 (PR B):** los tests de los datos: `TextureSetTest.ChangesTheExtensionLikeTheOriginal`
   (`.jpg` → `.OZJ`, `.TGA` → `.OZT`, otra extensión queda), `TextureSetTest.AMissingFileSaysItsPath`
   (en una carpeta temporal), `TextureSetTest.AnUnreadableFileSaysWhy` (un OZT de 24 bits),
   `TextureSetTest.LoadsInOrder`; golden: `GoldenTextureSet.TheLoginSetLoads` y
   `TheLoadingSetLoads` (las tablas de la CL5.4, contra el `Data\` del laboratorio: todas están y
   todas se leen, con el tamaño de cada una), y con ventana `TextureTableTest.FindsWhatItLoaded`,
   `TextureTableTest.ReleaseForgetsTheSlot`.
-- [ ] **Paso 5 (PR B):** `Sampling`, `TextureSet`, `TextureSlot` y `TextureTable`.
-- [ ] **Paso 6:** verificar:
+- [x] **Paso 5 (PR B):** `Sampling`, `TextureSet`, `TextureSlot` y `TextureTable`.
+- [x] **Paso 6:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "GlLoader|TextureSet"
   xvfb-run -a env MURET_CLIENT_REQUIRE_GL=1 ctest --preset linux-x64-debug -L '^gl$'
@@ -756,6 +756,43 @@ pedía todas antes de mirar el contexto pasaba todos los tests),
 `GL_TRIANGLE_FAN` o `GL_TRIANGLE_STRIP` pasaban todos) y, en `NearestAndLinearSampleAsAsked`, el
 téxel de lejos con `Nearest` puede ser cualquiera de los cuatro: el centro cae justo en el borde
 entre téxeles, y una GPU de verdad puede redondear la UV para cualquier lado.
+Hecho así (PR B, 2026-11-03): `LoadTextureSet` es la primera lectura del disco de la capa de
+datos (los cargadores de la CL1 reciben los bytes). El nombre sale como en los dos cargadores, que
+copian hasta el **primer** punto, con él, y le ponen su extensión (`0x63b8e4`..`0x63b8fd` en el del
+OZJ): `Monster\bossmap1_R.jpg.jpg` abre `bossmap1_R.OZJ`. La extensión la pone el cargador y no
+el nombre, así que "otra extensión queda" del paso 4 no es como el original: el cargador sale de la
+extensión pedida (`.jpg` el OZJ, `.tga` el OZT, sin mirar mayúsculas, `TextureLoaderOf`), y una que
+no es ninguna de las dos es un error de la tabla, `TextureSetErrorKind::UnknownFormat`, un tercer
+tipo que el contrato no tenía; no se busca en el disco. Sin punto, el original no escribe el byte
+que va antes de la extensión (Q-C74); MuRet pone un punto. `ResolveTexturePath` no quedó: lo hacen
+`TextureFileName` y `ResolveDataPath`. `TextureSetError` suma el `std::error_code` del sistema
+(una carpeta sin permiso, un archivo de más de 16 MB) y `Describe`, que lo pone en palabras con la
+ruta pedida. El contrato pedía `Core::Expected<void, std::string>` y no existía: `Expected<void, E>`
+llegó con este PR, con sus tests (`ExpectedVoidTest`), y la CL5.4 lo usa en `Enter` y `Start`.
+`Scenes/TextureSets.h`, las tablas de la CL5.4, vino acá para el golden: es solo el `.h`, con
+`constexpr`, y sus tests (`TextureSetsTest`: cada entrada con cargador, slots sin repetir y dentro
+de los 1.845, y cuántas hay de cada muestreo). El golden quedó en
+`tests/scenes/test_golden_texture_sets.cpp` y no en `tests/data/`, porque lee las tablas de
+`Scenes`: las 24 están y se leen, cada una con su slot, el formato de su cargador, el tamaño de la
+imagen medido en el `Data\` del laboratorio y su buffer, sin mirar un píxel. `TextureTable` guarda
+1.845 `std::optional<GlTexture>` indexados por el slot, ni se copia ni se mueve (las escenas la
+guardan como `ITextureStore&`), reemplaza un slot ocupado y corta con un slot fuera de la tabla o
+con una textura que `GlTexture` no sube, con el slot en hexadecimal en el error. Suma tests que el
+paso 4 no tenía: `TextureSetTest.FindsTheFileInAnyCase`, `AnUnknownExtensionIsRefused` y
+`AnEmptySetLoadsNothing`, y `TextureTableTest.ALoadReplacesTheSlot`,
+`ASlotOutsideTheTableIsRefused` y `AnUploadThatFailsSaysTheSlot`. Los mutantes a mano (cortar en
+el último punto, siempre `.OZJ`, `.tga` con mayúsculas, siempre el cargador del OZT, una que falta
+como ilegible, sin el error del cargador, seguir después de un error, sin el slot o sin el
+muestreo, un `Release` que no suelta, una carga que no reemplaza, el tope corrido en uno, un `Find`
+sin tope y un `Expected<void>` que siempre es éxito) mueren todos; el del tope corrido muere por un
+acceso fuera del vector, no por una aserción.
+En la revisión del PR B se sumaron dos tests: `TextureSetTest.ANameWithoutADotGetsOne` (el punto que
+pone MuRet donde el original deja un byte de la pila, Q-C74: un nombre armado con
+`substr(0, punto + 1)` pasaba todos los tests) y `TextureTableTest.TheLastSlotIsInTheTable` (el
+slot 1.844 se carga: un tope corrido en uno para el otro lado, que rechazaba el último, también
+pasaba). `TextureLoaderOf` compara con `Data::EqualsIgnoringAsciiCase`, la de `ResolveDataPath`,
+que pasó a `DataPath.h` en vez de tener una tercera copia, y su comentario dice que las texturas de
+un modelo (`0x60d5f0`, CL6) eligen el cargador con otra regla: la letra después del primer punto.
 
 ## Sub-ola CL5.2: `SpriteBatch` en 640 × 480 escalado
 
@@ -1059,6 +1096,10 @@ tabla escena → mapa), `TextureSets.h/.cpp` (los juegos de la carga y del login
 `IFrameTarget` de `main.cpp`). Modificar `Client/src/main.cpp` (con `--data`, el `SceneManager` en
 vez de la `TestScene`), `Client/CMakeLists.txt` (`MURET_VERSION`), `Client/README.md`, PROGRESS y
 este plan.
+*Nota de la CL5.1:* `Scenes/TextureSets.h` (solo el `.h`: las dos tablas son `constexpr`) ya llegó
+con la CL5.1, con `test_texture_sets.cpp` y el golden (`test_golden_texture_sets.cpp`), y también
+`Render/ITextureStore.h`, `Render/TextureSlot.h` y `Core::Expected<void, E>`. Falta el
+`FakeTextureStore` de `support/`.
 
 **Interfaces:**
 

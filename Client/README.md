@@ -56,6 +56,11 @@ con GL además de `ClientPlatform`: `ClientLib` sigue sin verlo. Trae el shader 
 `GlRenderer`, que dibuja triángulos en píxeles con la y para arriba. La tabla de GL es la X-macro de
 `Platform/GlFunctionList.h`: una función nueva es una línea ahí.
 
+Las texturas de una escena son un juego, un dato (`Scenes/TextureSets.h`, el del login y el de la
+carga): `Data::Textures::LoadTextureSet` las busca en `Data\` como el original (el nombre hasta el
+primer punto y `.OZJ` u `.OZT`) y las lee, y `Gl::TextureTable` las sube a la tabla de la escena,
+por el slot del original.
+
 ## Compilar y correr
 
 Hace falta vcpkg (las dependencias, SDL3, libjpeg-turbo y GoogleTest, están en `vcpkg.json` y se

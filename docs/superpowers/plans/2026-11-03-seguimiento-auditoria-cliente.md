@@ -32,15 +32,15 @@ Los nombres de tests nuevos que aparecen abajo son **propuestos**, no tests ya i
 | --- | --- | --- | --- |
 | DOC | Informe y este plan | En `main` por el #77 | `docs(client): registrar la auditoría y su seguimiento` |
 | T1 | AUD-C01, escritura append entre sinks | Hecha en el #78, con su test rojo y verde | `fix(client): conservar las líneas de otros sinks tras vaciar el log` |
-| T2 | AUD-C02, fallo de escritura observable | Claude, después de T3; mini-spec antes del test | `fix(client): informar los fallos de escritura del log` |
+| T2 | AUD-C02, fallo de escritura observable | Hecha en el #82 | `fix(client): informar los fallos de escritura del log` |
 | T3 | AUD-C03, fallo del driver al subir | Hecha en el #79 | `fix(client): rechazar una subida de textura que falla en GL` |
 | T4 | AUD-C04, registro de decisiones | Claude el índice, después de T3; los ADR 0001 y 0002, Emanuel | `docs(client): ordenar las decisiones de compatibilidad pendientes` |
 | R1 a R4 | REF-C01 a REF-C04 | Opcionales, por separado | Un PR por refactor que se decida tomar |
 
-T1 está en el #78 y T3 en el #79, antes de que la CL5.4 conecte la tabla de texturas con las escenas
-(la caché del texto de la CL5.3 ya sube por `GlTexture`). T2 no depende de un refactor de config. T4
-puede avanzar como documentación independiente. Ningún checkbox de esta lista significa que una
-corrección esté hecha hasta enlazar su PR y registrar su verificación.
+T1 está en el #78, T3 en el #79 y T2 en el #82. T3 entró antes de que la CL5.4 conectara la tabla de
+texturas con las escenas; la caché del texto de la CL5.3 ya subía por `GlTexture`. T4 puede avanzar
+como documentación independiente. Ningún checkbox de esta lista significa que una corrección esté
+hecha hasta enlazar su PR y registrar su verificación.
 
 ## Restricciones globales
 
@@ -83,19 +83,19 @@ si atribuyen a los tests una garantía que no verifican.
 `FileSink::Write(LogLevel, std::string_view)`; produce el mismo contrato público. No agrega
 rotación, locks entre procesos ni otra biblioteca de log.
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** escribir
+- [x] **Paso 1 (hecho en el #78):** escribir
   `FileSinkTest.AppendsFromIndependentSinksAfterTheCap`. A hace crecer el archivo por encima
   de `MaxLogFileBytes`; B abre y vacía. B escribe `BBB`, A `AAAA`, B `CCC`. Afirmar contenido
   exacto `BBB\nAAAA\nCCC\n` y ambos sinks todavía abiertos al leer.
-- [ ] **Paso 2 (Emanuel):** compilar el test y correrlo con `--no-tests=error`. Debe fallar por
-  contenido sobrescrito, como en AUD-C01; registrar la salida antes de cambiar producción.
-- [ ] **Paso 3 (Emanuel, `TODO(human)`):** corregir exclusivamente el modo de escritura que
+- [x] **Paso 2 (hecho en el #78):** compilar el test y correrlo con `--no-tests=error`. Debe fallar
+  por contenido sobrescrito, como en AUD-C01; registrar la salida antes de cambiar producción.
+- [x] **Paso 3 (hecho en el #78):** corregir exclusivamente el modo de escritura que
   queda después del vaciado. Mantener el tope de 1 MiB y la política de vaciar al abrir.
-- [ ] **Paso 4 (Emanuel):** agregar `FileSinkTest.KeepsAFileExactlyAtTheCap` y conservar los
+- [x] **Paso 4 (hecho en el #78):** agregar `FileSinkTest.KeepsAFileExactlyAtTheCap` y conservar los
   tests de append, vaciado y dos hilos. Verificar el borde exacto y el caso mayor al tope.
-- [ ] **Paso 5:** ejecutar la suite `FileSinkTest` en Linux y Windows. Dos sinks en un hilo
+- [x] **Paso 5:** ejecutar la suite `FileSinkTest` en Linux y Windows. Dos sinks en un hilo
   prueban este defecto; no presentarlos como prueba de atomicidad entre procesos.
-- [ ] **Paso 6:** revisar como tutor, enlazar el PR y hacer un commit Angular en castellano,
+- [x] **Paso 6:** revisar como tutor, enlazar el PR y hacer un commit Angular en castellano,
   con el porqué en el cuerpo. Cerrar AUD-C01 cuando su regresión pase.
 
 Checks previstos desde la raíz:
@@ -105,10 +105,16 @@ cmake --build --preset linux-x64-debug --target test_file_sink
 ctest --preset linux-x64-debug -R '^FileSinkTest\.' --no-tests=error
 ```
 
+**Hecho así (#78):** al vaciar, `Open` abre con `trunc`, cierra y vuelve a abrir con `app`; si
+algo falla, cae en el error de siempre, que nombra la ruta. `AppendsFromIndependentSinksAfterTheCap`
+fallaba con el `FileSink` de antes (`"BBB\nCCC\n\n"`) y `KeepsAFileExactlyAtTheCap` fija el borde
+(`>` y no `>=`). El CI pasó en Linux y en Windows. La fila Q-C48 de 07 cita el test de dos sinks
+desde el #82.
+
 **Límite:** que B vacíe mensajes anteriores de A es la tensión de retención señalada en el
 informe. T1 no cambia esa decisión; su aclaración corresponde a T4.
 
-## T2 — Fallo de escritura observable (Claude)
+## T2 — Fallo de escritura observable (#82)
 
 **Archivos:** `Client/src/Core/FileSink.h/.cpp`,
 `Client/tests/core/test_file_sink.cpp`; según la mini-spec, el punto de notificación en
@@ -119,22 +125,22 @@ contrato elegido lo necesita y queda justificado.
 `FileSink::Open` informa únicamente errores de apertura. No hay hoy una interfaz de fallo
 posterior: esta tarea no está lista para implementación automática.
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** escribir una mini-spec breve en esta sección con la
+- [x] **Paso 1 (resuelto por Claude):** escribir una mini-spec breve en esta sección con la
   firma exacta de la señal de error, quién la observa y dónde se informa una sola vez. Pesar
   devolución hasta el dueño frente a consulta de estado fuera de `Write`; justificar la
   opción con menor cambio de llamadores. Definir también si el fallo queda latente hasta
   abrir otro sink o si existe recuperación. No introducir reintentos implícitos.
-- [ ] **Paso 2 (Emanuel):** una vez fijada esa interfaz, escribir
+- [x] **Paso 2 (resuelto por Claude):** una vez fijada esa interfaz, escribir
   `FileSinkTest.AWriteFailureCanBeObserved`: abrir correctamente, provocar fallo posterior y
   comprobar la señal. En Linux `/dev/full` sirve para el caso real; el equivalente portable
   necesita el punto de prueba definido en la mini-spec. No cambiar la firma solo para el test.
-- [ ] **Paso 3 (Emanuel):** agregar cobertura de un stream que sigue recibiendo mensajes tras
-  fallar, notificación única y cierre sin bloqueo. Comprobar que `stderr` conserva los
-  mensajes y que ningún `Write` vuelve a entrar al logger.
-- [ ] **Paso 4:** correr los tests nuevos y registrar el fallo rojo antes del arreglo.
-- [ ] **Paso 5 (Emanuel, `TODO(human)`):** implementar el contrato elegido, actualizar el
+- [x] **Paso 3 (resuelto por Claude):** agregar cobertura de un stream que sigue recibiendo mensajes
+  tras fallar, notificación única y cierre sin bloqueo. Comprobar que `stderr` conserva los mensajes
+  y que ningún `Write` vuelve a entrar al logger.
+- [x] **Paso 4:** correr los tests nuevos y registrar el fallo rojo antes del arreglo.
+- [x] **Paso 5 (resuelto por Claude):** implementar el contrato elegido, actualizar el
   comportamiento operativo en `Client/README.md` y verificar las suites afectadas.
-- [ ] **Paso 6:** revisar lifetime y orden de locks, correr Linux/Windows y abrir el PR de T2
+- [x] **Paso 6:** revisar lifetime y orden de locks, correr Linux/Windows y abrir el PR de T2
   separado de T1. Cerrar AUD-C02 con sus evidencias.
 
 Check previsto, más los tests de integración que defina la mini-spec:
@@ -144,6 +150,26 @@ ctest --preset linux-x64-debug -R '^(FileSinkTest|TeeSinkTest|LogTest)\.' --no-t
 ```
 
 El caso `/dev/full` por sí solo no certifica el comportamiento de Windows.
+
+**Hecho así (#82), la mini-spec:**
+
+- **La señal:** una línea `[warning] no se pudo escribir en el archivo de log <ruta>: el log sigue
+  solo en stderr`, que `FileSink` escribe con un `fwrite` en la primera escritura que falla. No pasa
+  por el `Log`: desde un sink, el `Log` volvería a entrar al `TeeSink`, que tiene su mutex tomado.
+  El aviso se arma al abrir.
+- **Quién la observa:** la persona que mira `stderr`, donde ya van todas las líneas por el
+  `TeeSink`. Se eligió esto y no devolver el fallo hasta el dueño ni una consulta de estado: no
+  cambia `ILogSink` ni a ningún llamador, y `main.cpp` no tiene nada que hacer con el fallo.
+- **La firma:** `FileSink::Open(path, std::FILE* failureNotice = stderr)`, como el `std::FILE*` de
+  `StderrSink`. Los llamadores no cambian; los tests le pasan un `tmpfile`.
+- **Después del fallo:** latente hasta abrir otro sink, sin reintentos. El stream queda con
+  `badbit`, no se limpia, y las escrituras siguientes no hacen nada.
+- **Los tests:** `AWriteFailureCanBeObserved`, `ReportsAWriteFailureOnce` y
+  `StderrKeepsTheLinesAfterTheFileFails`, con `/dev/full`, fallaban sin el arreglo; en Windows se
+  saltean, porque no hay un archivo que abra y falle al escribir. El de stderr arma el `TeeSink` de
+  `main` y ve que llegan todas las líneas y un solo aviso, por su lado. `AWorkingFileGivesNoNotice`
+  corre en los dos. Mutantes muertos: sin marcar el fallo (avisa en cada línea), nunca avisar,
+  avisar siempre y sin `flush`.
 
 ## T3 — Publicar la textura solo si la subida funcionó (Claude)
 

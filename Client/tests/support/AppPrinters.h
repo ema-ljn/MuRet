@@ -94,6 +94,9 @@ inline void PrintTo(SessionFailure failure, std::ostream* out)
     case SessionFailure::CredentialsTooLong:
         *out << "CredentialsTooLong";
         return;
+    case SessionFailure::NoReply:
+        *out << "NoReply";
+        return;
     }
     *out << "SessionFailure fuera del enum";
 }

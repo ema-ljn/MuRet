@@ -39,4 +39,10 @@ TEST(AppPrintersTest, TheGameServerStatesAndFailuresShowTheirNames)
     EXPECT_EQ(::testing::PrintToString(SessionFailure::LoginRejected), "LoginRejected");
     EXPECT_EQ(::testing::PrintToString(SessionFailure::CredentialsTooLong), "CredentialsTooLong");
 }
+
+// La falla del tope de los Waiting* (CL4.5).
+TEST(AppPrintersTest, NoReplyShowsItsName)
+{
+    EXPECT_EQ(::testing::PrintToString(SessionFailure::NoReply), "NoReply");
+}
 } // namespace

@@ -159,6 +159,18 @@ solo lo lee.
   cerrar como el original.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
+- **Cliente, la CL5 (render 2D y login), al lado de la CL4:** su
+  [plan](../superpowers/plans/2026-11-02-ola-cl5-render-2d-y-login.md) y la [guía de la
+  CL5.0](ola-cl5.0-el-pipeline-grafico.md). **La CL5.0 la resolvió Claude** el 2026-11-02, como la
+  CL3.0: el quad de `0x621b60` con la y dada vuelta (`OriginalQuad`), que escala multiplicando por
+  la inversa en float, como el binario, y saca el borde de abajo de la resta sin redondear; la
+  matriz de `gluOrtho2D` a mano, igual bit a bit a `glm::ortho` (`Ortho2D`); de fan a triángulos
+  (`FanToTriangles`); el jefe, el NDC del original y el viewport de `0x620db0`; y en `gl/` el quad
+  dibujado en un framebuffer de 64 × 64 con una ventana escondida, la mezcla y
+  `GL_UNPACK_ALIGNMENT`, que en CI corren en Xvfb con `MURET_CLIENT_REQUIRE_GL=1`. Con ella
+  llegaron glm a `vcpkg.json` y ese paso del CI. Las respuestas, en
+  [`labs/cl5.0-pipeline/README.md`](../../labs/cl5.0-pipeline/README.md). Para cerrarla falta lo
+  tuyo: las preguntas y la sección final de la guía, y explicar los conceptos de abajo.
 
 ## Conceptos
 
@@ -234,6 +246,14 @@ sesión, junto con los de repaso más viejo.
 | un limitador de frames con meta absoluta contra un sueño relativo: la deriva de lo que corre entre frames, qué valor toma la meta cuando un frame se pasa (donde terminó, para no ponerse al día ni volver a sumar el hueco), y por qué con VSync no se usa (`SleepRestOfFrame`, el `FpsCap` de MuMain) | CL3.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | E/S no bloqueante detrás de una interfaz chica (`ISocket`, con `SystemSocket` y `FakeSocket`): el connect como máquina de estados que guarda su resultado porque `SO_ERROR` se borra al leerlo, "probá más tarde" contra un cierre (`recv` en 0, `ECONNRESET`), `SIGPIPE` y `MSG_NOSIGNAL`, y un `#ifdef _WIN32` en un solo archivo (`SocketApi`) | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | una cola de envío con cursor sobre un buffer fijo (`SendQueue`): por qué restar lo que salió dos veces repite el principio y pierde el final (Q-C11), compactar solo cuando lo nuevo no entra, y un tope que cierra en vez de crecer | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| de la función fija al pipeline programable: los vértices en un VBO con su formato en un VAO, un vertex shader que hace lo de la pila de matrices, un fragment shader que hace lo de `glTexEnv`, y `discard` en vez de `glAlphaFunc` | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| las coordenadas de un vértice: del clip al NDC dividiendo por w, y del NDC al píxel con el viewport; la y para arriba de `gluOrtho2D` y la que el original da vuelta en cada vértice (`OriginalQuad`, el jefe) | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| una matriz en column-major (`Ortho2D`, `glm::ortho` y `glm::value_ptr`), qué espera `glUniformMatrix4fv` con `GL_FALSE`, y qué se ve con la transpuesta | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un fan pasado a triángulos con índices (`FanToTriangles`), el sentido de giro y el culling, y por qué dar vuelta la y dos veces deja los triángulos de espaldas | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| las cuentas de float del binario: escalar multiplicando por una inversa que no es exacta (1/640 en `0x6ba070`), y una resta que la x87 hace sin redondear (`FST` y `FLD ST0`) y el decompilado no muestra | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| subir una textura: `GL_UNPACK_ALIGNMENT` con filas de 6 bytes, el filtro, el wrap y los lados potencia de 2, con el largo del buffer chequeado antes de llamar a GL (`RequiredUnpackBytes`) | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| la mezcla normal y la aditiva, y por qué con la normal un lote no puede cambiar el orden de dibujo | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| RAII sobre un nombre de GL (`GlName`), que se mueve con `std::exchange`, no se copia y necesita el contexto vivo; una X-macro para la tabla de funciones (`LabGl`); y un test de GL que se saltea sin pantalla salvo con `MURET_CLIENT_REQUIRE_GL=1` | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

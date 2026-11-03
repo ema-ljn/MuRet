@@ -14,6 +14,14 @@ GameLoop::GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode, in
 
 int GameLoop::RunFrame(const WindowState& state, Input::InputState& input)
 {
+    // La red primero, también minimizada: lo que llegue lo ven los pasos de este frame. El
+    // original despacha la cola después del frame (0x4be5b3), que entre un frame y otro es lo
+    // mismo. En Decoupled lo que tarda entra en el frame (se mide de un Now() al siguiente,
+    // después del Poll); en Faithful queda antes de BeginFrame y fuera de la medición, como el
+    // bucle de mensajes de WinMain (Q-C44). Minimizado, el original da vueltas sin parar y acá el
+    // Poll va a unos 25 Hz (duerme hasta el próximo paso de 40 ms), de sobra para un keepalive de
+    // 20 s.
+    m_client.Poll();
     const int steps = m_mode == PacingMode::Faithful ? RunFaithful(state, input) : RunDecoupled(state, input);
     ++m_stats.frames;
     m_stats.steps += static_cast<std::uint64_t>(steps);

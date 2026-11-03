@@ -61,6 +61,20 @@ target_include_directories(MuRetLabsCl30 PUBLIC cl3.0-bucle)
 target_compile_features(MuRetLabsCl30 PUBLIC cxx_std_20)
 muret_set_warnings(MuRetLabsCl30)
 
+# La CL4.0 (docs/learning/ola-cl4.0-sockets-no-bloqueantes.md): el socket con RAII, el par en
+# 127.0.0.1 y la cola con cursor. En Windows, los sockets son de Winsock 2 (ws2_32).
+add_library(MuRetLabsCl40 STATIC
+    cl4.0-sockets/DrainQueue.cpp
+    cl4.0-sockets/LabSocket.cpp
+    cl4.0-sockets/LoopbackPair.cpp
+)
+target_include_directories(MuRetLabsCl40 PUBLIC cl4.0-sockets)
+target_compile_features(MuRetLabsCl40 PUBLIC cxx_std_20)
+if(WIN32)
+    target_link_libraries(MuRetLabsCl40 PUBLIC ws2_32)
+endif()
+muret_set_warnings(MuRetLabsCl40)
+
 # La CL5.0 (docs/learning/ola-cl5.0-el-pipeline-grafico.md): el quad de 0x621b60, la matriz de
 # gluOrtho2D escrita a mano y el fan pasado a triángulos. Sin GL: corre en los dos sistemas.
 add_library(MuRetLabsCl50 STATIC
@@ -115,6 +129,18 @@ if(MURET_BUILD_TESTS)
     target_link_libraries(LabCl30Tests PRIVATE MuRetLabsCl30 GTest::gtest GTest::gtest_main)
     muret_set_warnings(LabCl30Tests)
     gtest_discover_tests(LabCl30Tests TEST_PREFIX "LabCl30.")
+
+    # Los de la CL4.0, con el prefijo LabCl40.: los del socket y el par usan sockets de verdad en
+    # 127.0.0.1, con un puerto que elige el sistema, así que corren en CI sin red de afuera.
+    add_executable(LabCl40Tests
+        cl4.0-sockets/test_drain_queue.cpp
+        cl4.0-sockets/test_lab_socket.cpp
+        cl4.0-sockets/test_loopback_pair.cpp
+        cl4.0-sockets/jefe/test_original_drain.cpp
+    )
+    target_link_libraries(LabCl40Tests PRIVATE MuRetLabsCl40 GTest::gtest GTest::gtest_main)
+    muret_set_warnings(LabCl40Tests)
+    gtest_discover_tests(LabCl40Tests TEST_PREFIX "LabCl40.")
 
     # glm (vcpkg.json): la CL5.0 compara su matriz a mano con glm::ortho. Solo los headers: el
     # puerto de vcpkg también arma una biblioteca (glm::glm), que el lab no necesita.

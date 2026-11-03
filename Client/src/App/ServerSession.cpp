@@ -1,12 +1,20 @@
 #include "App/ServerSession.h"
 
+#include "App/FaithfulPacer.h"
+#include "Network/Crypto/CryptoError.h"
 #include "Network/LinkState.h"
+#include "Protocol/BuildConstants.h"
+#include "Protocol/Connection/Hello.h"
+#include "Protocol/Connection/Login.h"
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
 
+#include <algorithm>
+#include <array>
 #include <cassert>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <variant>
@@ -27,12 +35,32 @@ template <typename... Handlers> struct Overloaded : Handlers...
     using Handlers::operator()...;
 };
 template <typename... Handlers> Overloaded(Handlers...) -> Overloaded<Handlers...>;
+
+// La versión del saludo como texto para el log: viene del servidor, y un byte que no se ve (un \0,
+// un salto de línea) sale como '?', así la línea sigue siendo una.
+std::string VersionText(const std::array<char, Protocol::VersionSize>& version)
+{
+    std::string text(version.begin(), version.end());
+    std::ranges::replace_if(text, [](char value) { return value < ' ' || value > '~'; }, '?');
+    return text;
+}
+
+// Los errores que se contestan con el F1 03: el checksum malo, como el original, y lo que no mide
+// bloques enteros, como contesta probablemente el original (03, "C3/C4").
+bool DeservesTheReport(const Network::Undecryptable& undecryptable)
+{
+    return undecryptable.error == Network::Crypto::CryptoError::ChecksumMismatch ||
+           undecryptable.error == Network::Crypto::CryptoError::NotWholeBlocks;
+}
 } // namespace
 
-ServerSession::ServerSession(Network::Connection& connection, Core::Log& log, SessionSettings settings)
-    : m_connection(connection), m_log(log), m_settings(std::move(settings)), m_connectServer(log), m_gameServer(log)
+ServerSession::ServerSession(Network::Connection& connection, Core::IClock& clock, Core::Log& log,
+                             Network::ConnectionKeys keys, SessionSettings settings)
+    : m_connection(connection), m_clock(clock), m_log(log), m_keys(keys), m_settings(std::move(settings)),
+      m_connectServer(log), m_gameServer(log)
 {
     RegisterConnectServerHandlers();
+    RegisterGameServerHandlers();
 }
 
 void ServerSession::RegisterConnectServerHandlers()
@@ -51,11 +79,23 @@ void ServerSession::RegisterConnectServerHandlers()
     assert(registered && "los handlers del ConnectServer se registran una vez");
 }
 
+void ServerSession::RegisterGameServerHandlers()
+{
+    using Protocol::Connection::HelloSubcode;
+    using Protocol::Connection::JoinOpcode;
+    using Protocol::Connection::LoginSubcode;
+    [[maybe_unused]] const bool registered =
+        m_gameServer.On(JoinOpcode, HelloSubcode, [this](const Network::Packet& packet) { OnGameHello(packet); }) &&
+        m_gameServer.On(JoinOpcode, LoginSubcode, [this](const Network::Packet& packet) { OnLoginResult(packet); });
+    assert(registered && "los handlers del GameServer se registran una vez");
+}
+
 void ServerSession::Start()
 {
     m_failure.reset();
     m_gameServerAddress.reset();
-    Connect(m_settings.connectServer);
+    m_loginResult.reset();
+    Connect(m_settings.connectServer, std::nullopt);
     m_state = SessionState::ConnectingConnectServer;
 }
 
@@ -74,9 +114,7 @@ void ServerSession::Poll()
             Overloaded{
                 [this](const Network::Opened&) { OnOpened(); },
                 [this](const Network::Packet& packet) { OnPacket(packet); },
-                // Ya tiene su aviso, de la conexión. El F1 03 que el original manda con un checksum
-                // malo es de la sesión con el GameServer (CL4.4, PR B).
-                [](const Network::Undecryptable&) {},
+                [this](const Network::Undecryptable& undecryptable) { OnUndecryptable(undecryptable); },
                 [this](const Network::Closed& closed) { OnClosed(closed.reason); },
             },
             event);
@@ -103,8 +141,13 @@ std::optional<ServerAddress> ServerSession::GameServer() const
     return m_gameServerAddress;
 }
 
+std::optional<std::uint8_t> ServerSession::LoginResult() const
+{
+    return m_loginResult;
+}
+
 // Al CS, lo primero es el A9, como lo manda 0x415be0 apenas la escena de login conecta (Q-C16). El
-// GS saluda primero (CL4.4): al abrirlo no sale nada.
+// GS saluda primero: al abrirlo no sale nada.
 void ServerSession::OnOpened()
 {
     if (m_state == SessionState::ConnectingConnectServer)
@@ -115,7 +158,8 @@ void ServerSession::OnOpened()
         m_state = SessionState::WaitingConnectHello;
         return;
     }
-    m_log.Info("conectó con el GameServer");
+    m_log.Info("conectó con el GameServer: se espera su saludo");
+    m_state = SessionState::WaitingGameHello;
 }
 
 void ServerSession::OnPacket(const Network::Packet& packet)
@@ -126,6 +170,18 @@ void ServerSession::OnPacket(const Network::Packet& packet)
     {
         m_log.Warning("se descarta un paquete mal formado del {}", withConnectServer ? "ConnectServer" : "GameServer");
     }
+}
+
+// El aviso ya lo dejó la conexión. Sin claves (el CS) no hay error, y no se contesta.
+void ServerSession::OnUndecryptable(const Network::Undecryptable& undecryptable)
+{
+    if (!DeservesTheReport(undecryptable))
+    {
+        return;
+    }
+    m_log.Info("un C3/C4 del GameServer no se descifró: se le avisa al GameServer (F1 03)");
+    Protocol::Outgoing report = Protocol::Connection::WriteDecryptErrorReport();
+    m_connection.Send(std::move(report.packet), report.delivery);
 }
 
 void ServerSession::OnClosed(Network::CloseReason reason)
@@ -196,14 +252,91 @@ void ServerSession::OnServerAddress(const Network::Packet& packet)
     }
     m_log.Info("el ConnectServer dio la dirección del GameServer: se cierra y se conecta a ese");
     m_gameServerAddress = ServerAddress{address.Value().host, address.Value().port};
-    Connect(*m_gameServerAddress);
+    Connect(*m_gameServerAddress, m_keys);
     m_state = SessionState::ConnectingGameServer;
 }
 
-// Sin claves todavía: las del GameServer las suma la CL4.4, PR B, con el login.
-void ServerSession::Connect(const ServerAddress& address)
+// 0x4c1e20 muestra "Connectting error" con otro resultado y "Version dismatch" con otra versión,
+// aunque el resultado tampoco sea 1. Acá el resultado se mira primero: un saludo rechazado no
+// llega a comparar la versión.
+void ServerSession::OnGameHello(const Network::Packet& packet)
 {
-    m_connection.Open(address.host, address.port, std::nullopt);
+    if (m_state != SessionState::WaitingGameHello)
+    {
+        m_log.Warning("se ignora el saludo del GameServer (F1 00): {}", OutOfTurn);
+        return;
+    }
+    const auto hello = Protocol::Connection::ReadServerHello(packet);
+    if (!hello.HasValue())
+    {
+        m_log.Warning("se ignora el saludo del GameServer (F1 00): {}", Unreadable);
+        return;
+    }
+    if (hello.Value().result != Protocol::Connection::HelloAccepted)
+    {
+        m_log.Error("el GameServer rechazó la conexión (resultado {})", hello.Value().result);
+        Fail(SessionFailure::HelloRejected);
+        return;
+    }
+    const std::string_view version(hello.Value().version.data(), hello.Value().version.size());
+    if (version != Protocol::ClientVersion)
+    {
+        m_log.Error("el GameServer tiene la versión {} y este cliente la {}: no se manda el login",
+                    VersionText(hello.Value().version), Protocol::ClientVersion);
+        Fail(SessionFailure::VersionMismatch);
+        return;
+    }
+    SendLogin();
+}
+
+// El tick es el de GetTickCount en el original (0x641bf0): el del reloj del bucle en este momento.
+// Ni la cuenta ni la clave van al log, tampoco cuando no entran.
+void ServerSession::SendLogin()
+{
+    const Protocol::Connection::LoginRequest request{m_settings.credentials.account, m_settings.credentials.password,
+                                                     TickCountMs(m_clock.Now())};
+    auto login = Protocol::Connection::WriteLoginRequest(request);
+    if (!login.HasValue())
+    {
+        m_log.Error("no se puede escribir el login: la cuenta o la clave pasan de {} bytes",
+                    Protocol::Connection::CredentialSize);
+        Fail(SessionFailure::CredentialsTooLong);
+        return;
+    }
+    m_log.Info("el GameServer saludó: se manda el login");
+    Protocol::Outgoing outgoing = std::move(login).Value();
+    m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+    m_state = SessionState::WaitingLoginResult;
+}
+
+void ServerSession::OnLoginResult(const Network::Packet& packet)
+{
+    if (m_state != SessionState::WaitingLoginResult)
+    {
+        m_log.Warning("se ignora el resultado del login (F1 01): {}", OutOfTurn);
+        return;
+    }
+    const auto result = Protocol::Connection::ReadLoginResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora el resultado del login (F1 01): {}", Unreadable);
+        return;
+    }
+    m_loginResult = result.Value();
+    if (result.Value() != Protocol::Connection::LoginAccepted)
+    {
+        m_log.Error("el GameServer rechazó el login (resultado {})", result.Value());
+        Fail(SessionFailure::LoginRejected);
+        return;
+    }
+    m_log.Info("el GameServer aceptó el login");
+    m_state = SessionState::LoggedIn;
+}
+
+// El CS va sin claves y el GS con las suyas: cada Open vuelve los seriales a 0.
+void ServerSession::Connect(const ServerAddress& address, const std::optional<Network::ConnectionKeys>& keys)
+{
+    m_connection.Open(address.host, address.port, keys);
     ++m_generation;
 }
 
@@ -226,6 +359,9 @@ bool ServerSession::WithConnectServer() const
         return true;
     case SessionState::Idle:
     case SessionState::ConnectingGameServer:
+    case SessionState::WaitingGameHello:
+    case SessionState::WaitingLoginResult:
+    case SessionState::LoggedIn:
     case SessionState::Failed:
         break;
     }

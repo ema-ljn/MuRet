@@ -13,9 +13,10 @@
 #include <vector>
 
 // La tabla de texturas de una escena, indexada como la del original por el número de slot
-// (0x7d3a198, 1.845 slots; el nombre de GL en +0x2c). La del original es global y una escena
-// suelta lo suyo con 0x63c150; esta es de la escena que la crea (pregunta 11 del plan de la CL5), y
-// lo que queda se borra en el destructor, con el contexto vivo.
+// (0x7d3a198, 1.845 slots; el nombre de GL en +0x2c), con los 256 del texto de MuRet después
+// (TextureSlot.h, CL5.3). La del original es global y una escena suelta lo suyo con 0x63c150; esta
+// es de la escena que la crea (pregunta 11 del plan de la CL5), y lo que queda se borra en el
+// destructor, con el contexto vivo.
 namespace Client::Render::Gl
 {
 class TextureTable final : public Render::ITextureStore
@@ -30,8 +31,9 @@ public:
     TextureTable& operator=(TextureTable&&) = delete;
     ~TextureTable() override = default;
 
-    // Sube cada una con GlTexture::Upload, en su slot. Un slot de 1.845 o más, o una textura que
-    // GlTexture no sube, corta con un error que nombra el slot en hexadecimal, como el research.
+    // Sube cada una con GlTexture::Upload, en su slot. Un slot de TextureSlotCount (2.101) o más, o
+    // una textura que GlTexture no sube, corta con un error que nombra el slot en hexadecimal, como
+    // el research.
     [[nodiscard]] Core::Expected<void, std::string>
     Load(std::span<const Data::Textures::LoadedTexture> textures) override;
 
@@ -42,7 +44,7 @@ public:
 
 private:
     const Platform::GlFunctions* m_gl;
-    // Uno por slot del original: el índice es el número de slot.
+    // Uno por slot, los del original y los del texto: el índice es el número de slot.
     std::vector<std::optional<GlTexture>> m_slots;
 };
 } // namespace Client::Render::Gl

@@ -6,7 +6,7 @@
 
 namespace Client::Render::Gl
 {
-TextureTable::TextureTable(const Platform::GlFunctions& gl) : m_gl(&gl), m_slots(OriginalTextureSlotCount) {}
+TextureTable::TextureTable(const Platform::GlFunctions& gl) : m_gl(&gl), m_slots(TextureSlotCount) {}
 
 Core::Expected<void, std::string> TextureTable::Load(std::span<const Data::Textures::LoadedTexture> textures)
 {
@@ -14,8 +14,10 @@ Core::Expected<void, std::string> TextureTable::Load(std::span<const Data::Textu
     {
         if (texture.slot >= m_slots.size())
         {
-            return Core::Unexpected(std::format("el slot {:#x} no está en la tabla del original, que tiene {}",
-                                                texture.slot, OriginalTextureSlotCount));
+            return Core::Unexpected(std::format("el slot {:#x} no está en la tabla, que tiene {} (los {} del original "
+                                                "y los {} del texto)",
+                                                texture.slot, TextureSlotCount, OriginalTextureSlotCount,
+                                                TextTextureSlotCount));
         }
         Core::Expected<GlTexture, std::string> uploaded = GlTexture::Upload(*m_gl, texture.texture, texture.sampling);
         if (!uploaded.HasValue())

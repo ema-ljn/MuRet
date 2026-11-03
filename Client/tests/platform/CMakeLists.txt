@@ -6,3 +6,4 @@ muret_add_test(NAME test_swap_interval SOURCES test_swap_interval.cpp LINK_LIBS 
 muret_add_test(NAME test_window_events SOURCES test_window_events.cpp LINK_LIBS ClientPlatform)
 muret_add_test(NAME test_input_events SOURCES test_input_events.cpp LINK_LIBS ClientPlatform)
 muret_add_test(NAME test_sdl_log SOURCES test_sdl_log.cpp LINK_LIBS ClientPlatform)
+muret_add_test(NAME test_system_fonts SOURCES test_system_fonts.cpp LINK_LIBS ClientPlatform)

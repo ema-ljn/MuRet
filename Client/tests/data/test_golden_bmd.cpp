@@ -34,6 +34,7 @@ using Client::Data::Models::EncryptedBmdVersion;
 using Client::Data::Models::LoadBmd;
 using Client::Data::Models::LoadModelFile;
 using Client::Data::Models::MaxModelFileBytes;
+using Client::Data::Models::MaxPosedBoneActions;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
 using Client::Data::Models::ModelFile;
@@ -269,5 +270,25 @@ TEST_F(GoldenBmd, EveryModelFitsTheReadLimit)
     }
     EXPECT_LE(largest, MaxModelFileBytes);
     EXPECT_EQ(largest, 2414277u) << "el más grande del laboratorio, player\\playerTest.bmd";
+}
+
+// Ningún modelo pasa del tope de huesos que se posan por acciones con que LoadBmd los lee.
+TEST_F(GoldenBmd, EveryModelFitsThePosedBoneLimit)
+{
+    std::size_t largest = 0;
+    fs::path largestPath;
+    for (const LabModel& lab : LabModels())
+    {
+        const auto posed = static_cast<std::size_t>(
+            std::ranges::count_if(lab.model.bones, [](const Bone& bone) { return !bone.dummy; }));
+        if (posed * lab.model.actions.size() > largest)
+        {
+            largest = posed * lab.model.actions.size();
+            largestPath = lab.path;
+        }
+    }
+    EXPECT_LE(largest, MaxPosedBoneActions);
+    EXPECT_EQ(largest, 10250u) << "Player.bmd, con 50 de sus 60 huesos que se posan por 205 acciones";
+    EXPECT_EQ(largestPath.generic_string(), "player/Player.bmd");
 }
 } // namespace

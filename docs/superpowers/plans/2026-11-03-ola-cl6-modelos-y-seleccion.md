@@ -843,14 +843,15 @@ public:
   `"%s%d"` sin el cero y un archivo corto que no falla.
 
   Hecho así (PR A, 2026-11-03, resuelto por Claude): `Data/Models/Model.h`, `Bmd.h/.cpp` y
-  `ModelFiles.h/.cpp`, con 31 tests (`test_bmd.cpp`, `test_model_files.cpp` y
+  `ModelFiles.h/.cpp`, con 28 tests (`test_bmd.cpp`, `test_model_files.cpp` y
   `test_golden_bmd.cpp`) y el `.bmd` sintético de `support/SyntheticModels.h`, que escribe con
   basura (`0xA5`) lo que el lector no lee. Lo que cambió del contrato de arriba:
   - `Normal` suma el índice de vértice de `+16`, y `ModelLoadError` el `std::error_code` del
     sistema, como `TextureSetError`.
   - Una cantidad negativa (de mallas, huesos, acciones, de cada parte de una malla o de keys) es
-    `DataError::InvalidData`: el original pediría memoria con ella. Ninguno del laboratorio la
-    tiene (`BmdTest.ANegativeCountIsInvalidData`).
+    `DataError::InvalidData`: el original pediría memoria con las de una malla y las keys, y las
+    tres del modelo las saltea como un 0 (`0x4f1882`) pero las deja guardadas. Ninguno del
+    laboratorio la tiene (`BmdTest.ANegativeCountIsInvalidData`).
   - Lo que va en el archivo después del bloque cifrado no se lee ni se cuenta en `trailingBytes`
     (`BmdTest.BytesAfterTheEncryptedBlockAreNotRead`); el golden mira que ningún cifrado del
     laboratorio lo tenga.
@@ -869,6 +870,20 @@ public:
   mayúsculas y el dummy solo con 1) los mata al menos un test cada uno. Sin la VM de Windows, se
   compiló y corrió en Linux con `-Werror` y sin precompiled headers, con `misc-include-cleaner` y
   `clang-format` 18 limpios.
+
+  Revisión adversarial (2026-11-03, resuelta por Claude): un revisor del C++ y otro que contrastó
+  el lector con el desensamblado, y después la decompilación de Ghidra del mismo `main.exe`. El
+  formato, el cifrado y los nombres de archivo quedaron confirmados. Lo que se arregló, con un test
+  que falló primero:
+  - Cada hueso que se posa lleva un `BoneKeys` por acción aunque la acción no tenga keys, que no
+    ocupan bytes: un `.bmd` de 1,2 MB con 32.767 acciones y 32.767 huesos pedía unos 50 GB. El
+    original tampoco tiene tope: por cada hueso reserva 12 bytes por acción y tres bloques más por
+    acción, aunque queden vacíos. `LoadBmd` corta con `InvalidData` pasando de
+    `MaxPosedBoneActions` (65.536) huesos que se posan por acciones, y lo cuenta antes de pedir la
+    memoria; el que más tiene en el laboratorio es `Player.bmd`, con 10.250
+    (`BmdTest.TooManyPosedBonesTimesActionsIsInvalidData`,
+    `GoldenBmd.EveryModelFitsThePosedBoneLimit`). Los tres mutantes del tope (sin descontar, con
+    `>=` y contando los dummy) los mata ese test.
 - [ ] **Paso 6 (PR B):** los tests de las tablas, con los números de la CL6.R:
   `PlayerModelsTest.ThePlayerIsModel0x20a`, `ItemModelsAreGroupTimes512PlusIndex`,
   `ClassPartsAreOneToFive`, `HelmMaleOneIsItemZero` (el `HelmMale` N es el índice N − 1 del grupo

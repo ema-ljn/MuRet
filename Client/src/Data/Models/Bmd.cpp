@@ -107,7 +107,8 @@ std::optional<std::string> ReadName(ByteReader& reader)
 }
 
 // Lee `count` elementos de `elementSize` bytes con `readOne`, sin pedir memoria antes de saber que
-// entran: una cantidad grande en un archivo corto no reserva nada.
+// entran: una cantidad grande en un archivo corto no reserva nada. Lo único que no ocupa bytes son
+// los BoneKeys de las acciones sin keys, y esos los cuenta ReadBone.
 template <typename T, typename ReadOne>
 std::optional<std::vector<T>> ReadEach(ByteReader& reader, std::size_t count, std::size_t elementSize, ReadOne readOne)
 {
@@ -284,12 +285,14 @@ std::optional<BoneKeys> ReadBoneKeys(ByteReader& reader, std::size_t keyCount)
     return BoneKeys{std::move(*positions), std::move(*rotations)};
 }
 
-std::optional<Bone> ReadBone(ByteReader& reader, const std::vector<Action>& actions)
+// Un hueso. Uno que se posa lleva un BoneKeys por acción y descuenta las acciones de
+// `posedActionsLeft` (MaxPosedBoneActions) antes de pedir memoria para ellas.
+Read<Bone> ReadBone(ByteReader& reader, const std::vector<Action>& actions, std::size_t& posedActionsLeft)
 {
     const std::optional<std::uint8_t> dummy = reader.ReadU8();
     if (!dummy.has_value())
     {
-        return std::nullopt;
+        return Unexpected(DataError::FileTooShort);
     }
     Bone bone;
     bone.dummy = *dummy != RealBoneByte;
@@ -301,16 +304,22 @@ std::optional<Bone> ReadBone(ByteReader& reader, const std::vector<Action>& acti
     const std::optional<std::int16_t> parent = ReadInt16(reader);
     if (!name || !parent)
     {
-        return std::nullopt;
+        return Unexpected(DataError::FileTooShort);
     }
+    if (actions.size() > posedActionsLeft)
+    {
+        return Unexpected(DataError::InvalidData);
+    }
+    posedActionsLeft -= actions.size();
     bone.name = std::move(*name);
     bone.parent = *parent;
+    bone.actions.reserve(actions.size());
     for (const Action& action : actions)
     {
         std::optional<BoneKeys> keys = ReadBoneKeys(reader, static_cast<std::size_t>(action.keyCount));
         if (!keys.has_value())
         {
-            return std::nullopt;
+            return Unexpected(DataError::FileTooShort);
         }
         bone.actions.push_back(std::move(*keys));
     }
@@ -339,14 +348,15 @@ Read<Model> ReadParts(ByteReader& reader, Model model, const ModelCounts& counts
         }
         model.actions.push_back(std::move(action).Value());
     }
+    std::size_t posedActionsLeft = MaxPosedBoneActions;
     for (std::size_t k = 0; k < counts.bones; ++k)
     {
-        std::optional<Bone> bone = ReadBone(reader, model.actions);
-        if (!bone.has_value())
+        Read<Bone> bone = ReadBone(reader, model.actions, posedActionsLeft);
+        if (!bone.HasValue())
         {
-            return Unexpected(DataError::FileTooShort);
+            return Unexpected(bone.Error());
         }
-        model.bones.push_back(std::move(*bone));
+        model.bones.push_back(std::move(bone).Value());
     }
     model.trailingBytes = reader.Remaining();
     return model;

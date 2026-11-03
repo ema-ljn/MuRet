@@ -54,6 +54,11 @@ inline constexpr std::size_t BmdTriangleVerticesOffset = 2;
 inline constexpr std::size_t BmdTriangleNormalsOffset = 10;
 inline constexpr std::size_t BmdTriangleTexCoordsOffset = 18;
 
+// Lo más que LoadBmd acepta de huesos que se posan por acciones: cada uno lleva un BoneKeys por
+// acción aunque la acción no tenga keys, que no ocupan bytes, y así un archivo chico pediría mucha
+// memoria. El original no tiene tope; el modelo del laboratorio que más tiene es Player.bmd.
+inline constexpr std::size_t MaxPosedBoneActions = std::size_t{1} << 16;
+
 // Bytes → Model, como 0x4f13d0. A propósito, también como él:
 //   - no mira el "BMD" (Q-C86) y lee en claro cualquier versión que no sea 0x0C;
 //   - con 0x0C, descifra con K16 el bloque de +8, desde su primer byte;
@@ -62,6 +67,9 @@ inline constexpr std::size_t BmdTriangleTexCoordsOffset = 18;
 //   - si una parte no entra en lo que queda, o el tamaño cifrado de +4 pasa del archivo,
 //     DataError::FileTooShort;
 //   - si una cantidad (de mallas, huesos, acciones, de cada parte de una malla o de keys) es
-//     negativa, DataError::InvalidData: el original la usaría para pedir memoria.
+//     negativa, DataError::InvalidData: el original pediría memoria con las de las mallas y las keys,
+//     y las tres del modelo las saltea como un 0 (0x4f1882) pero las guarda;
+//   - si los huesos que se posan por las acciones pasan de MaxPosedBoneActions,
+//     DataError::InvalidData.
 [[nodiscard]] Core::Expected<Model, DataError> LoadBmd(std::span<const std::byte> file);
 } // namespace Client::Data::Models

@@ -381,8 +381,10 @@ solo lo lee.
   `Player.bmd` con mallas (Q-C88). Los golden recorren los 1.962 modelos del laboratorio sin un
   byte de sobra, y encontraron lo que el plan no esperaba: en `NPC\BloodCastle01.bmd` dos huesos
   cuelgan de uno que va después, y la pose del original los arma con una matriz vieja (Q-C106,
-  nuevo). 31 tests y 14 mutantes a mano. La PR B (el catálogo del personaje, las velocidades y los
-  slots de las texturas) va apilada.
+  nuevo). 28 tests y 14 mutantes a mano. La revisión adversarial encontró que un `.bmd` chico
+  podía pedir gigas de memoria, porque cada hueso lleva algo por acción aunque la acción no ocupe
+  bytes: ahora `LoadBmd` tiene un tope de huesos por acciones, con dos tests más. La PR B (el
+  catálogo del personaje, las velocidades y los slots de las texturas) va apilada.
 
 ## Conceptos
 

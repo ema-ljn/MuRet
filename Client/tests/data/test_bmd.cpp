@@ -30,6 +30,7 @@ using Client::Data::Models::BmdVertexSize;
 using Client::Data::Models::Bone;
 using Client::Data::Models::EncryptedBmdVersion;
 using Client::Data::Models::LoadBmd;
+using Client::Data::Models::MaxPosedBoneActions;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
 using Client::Data::Models::Triangle;
@@ -365,6 +366,43 @@ TEST(BmdTest, TheTriangleKeepsItsThreeIndexSets)
 
 // Una cantidad negativa no es un modelo: el original la usaría para pedir memoria. Ninguno del
 // laboratorio la tiene.
+// Un modelo con un hueso dummy, `posed` que se posan y `actions` acciones sin keys: ocupa pocos bytes,
+// y en memoria un BoneKeys por cada hueso que se posa y cada acción.
+Model PosedBonesTimesActions(std::size_t posed, std::size_t actions)
+{
+    Model model;
+    model.name = "Huesos por acciones";
+    model.actions.resize(actions);
+    Bone dummy;
+    dummy.dummy = true;
+    model.bones.push_back(dummy);
+    for (std::size_t k = 0; k < posed; ++k)
+    {
+        Bone bone;
+        bone.name = "Hueso";
+        bone.actions.resize(actions);
+        model.bones.push_back(bone);
+    }
+    return model;
+}
+
+// Una acción sin keys no ocupa bytes en cada hueso, pero sí un BoneKeys: más de MaxPosedBoneActions
+// huesos que se posan por acciones es InvalidData, también en un archivo chico. Los dummy no cuentan.
+TEST(BmdTest, TooManyPosedBonesTimesActionsIsInvalidData)
+{
+    constexpr std::size_t Posed = 4;
+    constexpr std::size_t Actions = MaxPosedBoneActions / Posed;
+    static_assert(Posed * Actions == MaxPosedBoneActions, "el tope justo, con cuatro huesos");
+
+    const auto atTheLimit = LoadBmd(PlainBmd(BmdContent(PosedBonesTimesActions(Posed, Actions)), ClearVersion));
+    const std::vector<std::byte> over = PlainBmd(BmdContent(PosedBonesTimesActions(Posed + 1, Actions)), ClearVersion);
+
+    ASSERT_TRUE(atTheLimit.HasValue());
+    EXPECT_EQ(atTheLimit.Value().bones.size(), Posed + 1);
+    EXPECT_LT(over.size(), MaxPosedBoneActions);
+    EXPECT_EQ(ErrorOf(LoadBmd(over)), DataError::InvalidData);
+}
+
 TEST(BmdTest, ANegativeCountIsInvalidData)
 {
     const std::vector<std::byte> content = BmdContent(SampleModel());

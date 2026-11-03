@@ -1,5 +1,11 @@
 #include "Render/Gl/GlTexture.h"
 
+#include "Core/Expected.h"
+#include "Data/Textures/Sampling.h"
+#include "Data/Textures/Texture.h"
+#include "Platform/GlLoader.h"
+#include "Render/Gl/GlName.h"
+
 #include <cstddef>
 #include <format>
 #include <string>

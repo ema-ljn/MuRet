@@ -1,14 +1,23 @@
 #include "App/ServerSession.h"
 
+#include "App/Credentials.h"
 #include "App/FaithfulPacer.h"
+#include "App/ServerAddress.h"
+#include "App/SessionState.h"
+#include "Core/IClock.h"
+#include "Core/Log.h"
+#include "Network/CloseReason.h"
+#include "Network/Connection.h"
 #include "Network/Crypto/CryptoError.h"
 #include "Network/LinkState.h"
+#include "Network/Packet.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Connection/Hello.h"
 #include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
+#include "Protocol/Dispatcher.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
 
@@ -16,6 +25,9 @@
 #include <array>
 #include <cassert>
 #include <chrono>
+#include <cstdint>
+#include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>

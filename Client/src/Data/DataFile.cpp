@@ -1,8 +1,16 @@
 #include "Data/DataFile.h"
 
+#include "Core/Expected.h"
+#include "Data/DataError.h"
+
 #include <cstddef>
+#include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <ios>
+#include <string_view>
+#include <system_error>
+#include <vector>
 
 namespace Client::Data
 {

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Platform/GlLoader.h"
 #include "Render/Gl/GlFramebuffer.h"
 #include "Render/Gl/GlRenderer.h"
 #include "Render/Gl/GlTexture.h"

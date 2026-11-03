@@ -1,5 +1,6 @@
 #include "Data/Textures/OzjTexture.h"
 
+#include "Core/Expected.h"
 #include "Data/DataError.h"
 #include "Data/Textures/Texture.h"
 #include "support/FileBytes.h"

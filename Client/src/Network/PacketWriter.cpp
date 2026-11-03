@@ -1,6 +1,16 @@
 #include "Network/PacketWriter.h"
 
+#include "Core/Expected.h"
+#include "Network/Packet.h"
+#include "Network/PacketError.h"
+
+#include <bit>
+#include <concepts>
+#include <cstddef>
+#include <cstdint>
+#include <span>
 #include <utility>
+#include <vector>
 
 namespace Client::Network
 {

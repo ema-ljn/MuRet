@@ -13,9 +13,10 @@
 #include "App/ServerSession.h"
 #include "App/VSyncMode.h"
 #include "App/WindowState.h"
+#include "Core/Expected.h"
 #include "Core/FileSink.h"
 #include "Core/IClock.h"
-#include "Core/Expected.h"
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Core/StderrSink.h"
 #include "Core/TeeSink.h"
@@ -33,6 +34,7 @@
 #include "Platform/SdlClock.h"
 #include "Platform/SdlContext.h"
 #include "Platform/SdlLog.h"
+#include "Platform/SwapInterval.h"
 #include "Platform/SystemFonts.h"
 #include "Platform/Window.h"
 #include "Platform/WindowEvents.h"
@@ -66,8 +68,9 @@
 #include <utility>
 #include <vector>
 
-// Al final: en Windows define main como SDL_main, y así no alcanza a ningún otro header.
-#include <SDL3/SDL_main.h>
+// Al final: en Windows define main como SDL_main, y así no alcanza a ningún otro header. Nada
+// de lo que trae se nombra, e include-cleaner lo daría por sobrante.
+#include <SDL3/SDL_main.h> // IWYU pragma: keep
 
 // El punto de entrada del cliente: arma las capas y arranca, sin lógica propia. main va por fases,
 // como los pasos de WinMain en MuMain (InitializeWorkingDirectoryAndLog, MainLoop, ShutdownRuntime

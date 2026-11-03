@@ -1,10 +1,15 @@
 #include "Data/Textures/OztTexture.h"
 
 #include "Core/ByteReader.h"
+#include "Core/Expected.h"
+#include "Data/DataError.h"
+#include "Data/Textures/Texture.h"
 
 #include <bit>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 
 namespace Client::Data::Textures
 {

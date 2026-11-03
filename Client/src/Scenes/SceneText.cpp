@@ -1,5 +1,14 @@
 #include "Scenes/SceneText.h"
 
+#include "Core/Expected.h"
+#include "Core/Log.h"
+#include "Render/ITextureStore.h"
+#include "Render/SpriteBatch.h"
+#include "Render/Text/IGlyphRasterizer.h"
+#include "Scenes/ITextDrawer.h"
+
+#include <memory>
+#include <string>
 #include <utility>
 
 namespace Client::Scenes

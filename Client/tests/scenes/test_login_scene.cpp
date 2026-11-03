@@ -4,6 +4,7 @@
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "App/WindowState.h"
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/WorldFolder.h"
 #include "Input/InputState.h"
@@ -47,6 +48,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 

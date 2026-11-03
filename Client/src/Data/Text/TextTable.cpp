@@ -1,9 +1,16 @@
 #include "Data/Text/TextTable.h"
 
+#include "Core/Expected.h"
 #include "Core/Xor3.h"
+#include "Data/DataError.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <optional>
+#include <span>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 namespace Client::Data::Text
 {

@@ -1,8 +1,11 @@
 #include "Platform/SdlContext.h"
 
+#include "Core/Expected.h"
+
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_init.h>
 
+#include <memory>
 #include <string>
 #include <utility>
 

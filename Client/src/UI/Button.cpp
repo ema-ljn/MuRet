@@ -1,12 +1,21 @@
 #include "UI/Button.h"
 
+#include "App/WindowState.h"
+#include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/ScreenScale.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
+#include "Render/TextureSlot.h"
+#include "Render/UiImage.h"
+#include "Scenes/ITextDrawer.h"
+#include "UI/Widget.h"
 
+#include <cstdint>
+#include <optional>
+#include <string>
 #include <utility>
 
 namespace Client::UI
@@ -102,12 +111,12 @@ void Button::SetLabel(std::string label, ButtonColors colors)
     m_colors = colors;
 }
 
-void Button::DrawLabel(Scenes::ITextDrawer& text, App::PixelSize screen) const
+std::optional<std::uint32_t> Button::DrawLabel(Scenes::ITextDrawer& text, App::PixelSize screen) const
 {
     // Sin pantalla no hay proporción por la que dividir la y.
     if (m_label.empty() || screen.width <= 0 || screen.height <= 0)
     {
-        return;
+        return std::nullopt;
     }
     constexpr Render::Text::FontKind Font = Render::Text::FontKind::OtherFace12;
     const Render::Text::TextExtent extent = text.Measure(Font, m_label);
@@ -119,8 +128,10 @@ void Button::DrawLabel(Scenes::ITextDrawer& text, App::PixelSize screen) const
     const double ratioY = Render::ScaleY(1.0f, screen);
     const double offset = Pressed() ? PressedLabelOffset : LabelOffset;
     const int y = static_cast<int>(middle / ratioY + offset);
+    const std::uint32_t color = LabelColor();
     text.Draw(Render::Text::DesignX(centered, screen), y, m_label,
-              Render::Text::TextStyle{Font, Render::Text::TextColors{LabelColor(), 0}});
+              Render::Text::TextStyle{Font, Render::Text::TextColors{color, 0}});
+    return color;
 }
 
 std::uint32_t Button::LabelColor() const

@@ -1,5 +1,11 @@
 #include "Render/Text/InlineColors.h"
 
+#include "Render/Text/TextStyle.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <string_view>
+
 namespace Client::Render::Text
 {
 TextColors InlineColor(std::uint8_t code, const InlineColorContext& context)

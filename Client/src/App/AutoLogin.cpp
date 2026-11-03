@@ -1,6 +1,9 @@
 #include "App/AutoLogin.h"
 
+#include "App/Credentials.h"
+#include "App/ServerSession.h"
 #include "App/SessionState.h"
+#include "Core/Log.h"
 
 #include <utility>
 

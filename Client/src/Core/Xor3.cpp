@@ -1,6 +1,8 @@
 #include "Core/Xor3.h"
 
 #include <array>
+#include <cstddef>
+#include <span>
 
 namespace
 {

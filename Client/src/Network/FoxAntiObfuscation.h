@@ -1,6 +1,12 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "Network/IObfuscation.h"
+#include "Network/ObfuscationError.h"
+#include "Network/Packet.h"
+
+#include <cstddef>
+#include <span>
 
 // La capa de paquetes de FoxAnti, la que espera el servidor del laboratorio: el XOR 0xAA de lo que
 // llega y las traducciones entre su forma de algunos paquetes y la de main.exe.

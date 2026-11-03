@@ -1,5 +1,13 @@
 #include "Scenes/CharacterSelectScene.h"
 
+#include "Core/Expected.h"
+#include "Input/InputState.h"
+#include "Scenes/SceneCanvas.h"
+#include "Scenes/SceneId.h"
+
+#include <optional>
+#include <string>
+
 namespace Client::Scenes
 {
 Core::Expected<void, std::string> CharacterSelectScene::Enter()

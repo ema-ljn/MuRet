@@ -1,15 +1,24 @@
 #include "UI/LoginWindow.h"
 
+#include "App/Credentials.h"
+#include "App/WindowState.h"
+#include "Data/Text/TextTable.h"
 #include "Input/InputEvent.h"
+#include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/ITextDrawer.h"
 #include "UI/GameText.h"
+#include "UI/Widget.h"
 
 #include <cstddef>
+#include <optional>
+#include <string>
 #include <string_view>
 #include <utility>
 

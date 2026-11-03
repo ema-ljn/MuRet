@@ -128,7 +128,9 @@ En Windows: `cmake --preset windows-x64`, `cmake --build --preset windows-x64-de
 Los headers de la biblioteca estándar (y GoogleTest en los tests) se precompilan
 (`cmake/PrecompiledHeaders.cmake`): un build limpio usa como un cuarto menos de CPU. Para compilar
 como el job de Linux del CI, que verifica que cada archivo incluya lo que usa, configurá con
-`-DMURET_PRECOMPILED_HEADERS=OFF`.
+`-DMURET_PRECOMPILED_HEADERS=OFF`. Ese job corre además `misc-include-cleaner` de clang-tidy 18
+sobre `Client/`; cómo correrlo a mano lo dice la regla 7 de
+[`docs/CODING_RULES.md`](../docs/CODING_RULES.md).
 
 ## Correr y configurar `Main`
 

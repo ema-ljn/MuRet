@@ -1,6 +1,10 @@
 #include "support/FakeClock.h"
 
+#include "Core/IClock.h"
+
 #include <gtest/gtest.h>
+
+#include <span>
 
 namespace Client::Tests
 {

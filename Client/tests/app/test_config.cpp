@@ -1,7 +1,12 @@
 #include "App/Config.h"
 
+#include "App/CommandLine.h"
+#include "App/ConfigError.h"
 #include "App/LoopTiming.h"
 #include "App/ObfuscationMode.h"
+#include "App/PacingMode.h"
+#include "App/ServerAddress.h"
+#include "App/VSyncMode.h"
 
 #include "support/AppPrinters.h"
 
@@ -9,6 +14,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <ios>
 #include <random>
 #include <string>
 #include <string_view>

@@ -4,7 +4,8 @@
 
 #include <gtest/gtest.h>
 
-#include <chrono>
+// Por los literales (1s, 1ns), que include-cleaner 18 no asocia a <chrono>.
+#include <chrono> // IWYU pragma: keep
 
 // Client::App::FrameRateMeter: los promedios de --stats, de a StatsInterval.
 namespace

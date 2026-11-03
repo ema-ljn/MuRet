@@ -1,15 +1,18 @@
 #include "Scenes/GameData.h"
 
+#include "Core/Expected.h"
 #include "Core/PathText.h"
 #include "Data/DataFile.h"
 #include "Data/DataPath.h"
+#include "Data/Text/TextTable.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <format>
 #include <span>
+#include <string>
 #include <system_error>
 #include <utility>
-#include <vector>
 
 namespace Client::Scenes
 {

@@ -1,6 +1,7 @@
 #include "App/Resolution.h"
 
 #include <algorithm>
+#include <span>
 #include <string>
 #include <vector>
 

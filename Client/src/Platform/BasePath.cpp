@@ -1,10 +1,14 @@
 #include "Platform/BasePath.h"
 
+#include "Core/Expected.h"
+
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_filesystem.h>
 
 #include <algorithm>
 #include <cstring>
+#include <filesystem>
+#include <string>
 
 namespace Client::Platform
 {

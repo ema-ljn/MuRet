@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <initializer_list>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 // Las tablas son las de la especificación de OpenType (las de TrueType), con los campos en su
 // orden y en big endian; cada una lleva su nombre en un comentario donde el número no se explica.

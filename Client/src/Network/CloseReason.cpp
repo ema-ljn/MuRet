@@ -1,5 +1,7 @@
 #include "Network/CloseReason.h"
 
+#include <string_view>
+
 namespace Client::Network
 {
 std::string_view CloseReasonText(CloseReason reason)

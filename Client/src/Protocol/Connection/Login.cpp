@@ -1,16 +1,23 @@
 #include "Protocol/Connection/Login.h"
 
 #include "Core/ByteReader.h"
+#include "Core/Expected.h"
 #include "Core/Xor3.h"
+#include "Network/Packet.h"
 #include "Network/PacketWriter.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Connection/Opcodes.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/PacketFields.h"
+#include "Protocol/ProtocolError.h"
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <span>
+#include <string_view>
 
 namespace Client::Protocol::Connection
 {

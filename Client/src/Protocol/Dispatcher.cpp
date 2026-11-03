@@ -1,5 +1,10 @@
 #include "Protocol/Dispatcher.h"
 
+#include "Core/Log.h"
+#include "Network/Packet.h"
+
+#include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <span>
 #include <utility>

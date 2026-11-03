@@ -1,10 +1,10 @@
 #include "Scenes/LoginScene.h"
 
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/GameData.h"
 #include "Scenes/LoadingScene.h"
-#include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/TextureSets.h"
 #include "UI/Notices.h"
@@ -13,6 +13,7 @@
 #include "support/GoldenDir.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
+#include "support/RecordingTextDrawer.h"
 
 #include <gtest/gtest.h>
 

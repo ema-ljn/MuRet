@@ -6,6 +6,7 @@
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "App/WindowState.h"
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -16,15 +17,20 @@
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Connection/Login.h"
 #include "Protocol/Connection/ServerList.h"
+#include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/GameData.h"
+#include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTextures.h"
 #include "Scenes/TextureSets.h"
 #include "UI/LoginWindow.h"
+#include "UI/MenuBar.h"
 #include "UI/NoticeWindow.h"
 #include "UI/ServerListWindow.h"
+#include "UI/Widget.h"
+#include "support/Bytes.h"
 
 #include "support/AppPrinters.h"
 #include "support/FakeClock.h"
@@ -45,11 +51,14 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
+#include <iterator>
 #include <map>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // Client::Scenes::LoginScene con la sesión y sus ventanas (CL5.5): la lista cuando la sesión espera
@@ -123,9 +132,13 @@ constexpr std::string_view Password = "pass0002";
 constexpr std::string_view GameHost = "10.0.0.2";
 constexpr std::uint16_t GamePort = 55901;
 
-// Los slots de las ventanas: el botón de grupo de la lista, el fondo de la cuenta y la caja del
-// aviso.
+// Los slots de las ventanas: el botón de grupo y el marco de la lista, los dos botones y el adorno
+// de la barra, el fondo de la cuenta y la caja del aviso.
 constexpr TextureSlot GroupButtonSlot{0x0c};
+constexpr TextureSlot FrameSlot{0x0f};
+constexpr TextureSlot MenuSlot{0x10};
+constexpr TextureSlot CreditSlot{0x11};
+constexpr TextureSlot OrnamentSlot{0x12};
 constexpr TextureSlot LoginBackgroundSlot{0x13};
 constexpr TextureSlot NoticeBoxSlot{0x727};
 
@@ -292,6 +305,48 @@ struct Harness
             events, [slot](const FrameEvent& event) { return event.kind == Kind::Quad && event.texture == slot; }));
     }
 
+    // Las texturas de los quads de `events` que son de `slots`, en orden.
+    [[nodiscard]] static std::vector<TextureSlot> QuadsAmong(const std::vector<FrameEvent>& events,
+                                                             const std::vector<TextureSlot>& slots)
+    {
+        std::vector<TextureSlot> found;
+        for (const FrameEvent& event : events)
+        {
+            if (event.kind == Kind::Quad && event.texture && std::ranges::find(slots, *event.texture) != slots.end())
+            {
+                found.push_back(*event.texture);
+            }
+        }
+        return found;
+    }
+
+    // La v de arriba del primer quad de `slot`, o nada.
+    [[nodiscard]] static std::optional<float> TopV(const std::vector<FrameEvent>& events, TextureSlot slot)
+    {
+        const auto quad = std::ranges::find_if(events, [slot](const FrameEvent& event)
+                                               { return event.kind == Kind::Quad && event.texture == slot; });
+        if (quad == events.end())
+        {
+            return std::nullopt;
+        }
+        return quad->vertices[0].v;
+    }
+
+    // El alto del buffer que subió la escena para `slot`.
+    [[nodiscard]] float BufferHeight(TextureSlot slot) const
+    {
+        const auto found = store.Find(slot);
+        EXPECT_TRUE(found.has_value());
+        return found ? static_cast<float>(found->texture.textureHeight) : 1.0f;
+    }
+
+    // Un paso con el mouse en el medio de `rect`, sin apretar.
+    void HoverOn(const Rect& rect)
+    {
+        Client::Tests::MoveMouse(input, MiddleX(rect), MiddleY(rect));
+        Step();
+    }
+
     // Si algún texto de `events` es `text`.
     [[nodiscard]] static bool Drew(const std::vector<FrameEvent>& events, std::string_view text)
     {
@@ -357,11 +412,99 @@ TEST(LoginSceneSessionTest, TheListShowsWhenItArrives)
     ASSERT_EQ(Harness::QuadsOf(events, GroupButtonSlot), 1u);
     EXPECT_TRUE(Harness::Drew(events, GroupTwentyText));
     const auto firstWindowQuad = std::ranges::find_if(
-        events, [](const FrameEvent& event) { return event.kind == Kind::Quad && event.texture == GroupButtonSlot; });
+        events, [](const FrameEvent& event) { return event.kind == Kind::Quad && event.texture == FrameSlot; });
     ASSERT_NE(firstWindowQuad, events.end());
-    // Los fondos, el fin del 2D, el mundo, las dos arenas y los tres textos, y después la UI.
+    // Los fondos, el fin del 2D, el mundo, las dos arenas y los tres textos, y después la UI: sin
+    // grupo elegido, la pieza del marco de la izquierda y el botón.
     EXPECT_EQ(firstWindowQuad - events.begin(), 9);
     EXPECT_EQ(firstWindowQuad->blend, BlendMode::Alpha);
+    const auto button = std::ranges::find_if(std::next(firstWindowQuad), events.end(),
+                                             [](const FrameEvent& event) { return event.kind == Kind::Quad; });
+    ASSERT_NE(button, events.end());
+    EXPECT_EQ(button->texture, GroupButtonSlot);
+}
+
+// 0x4c1860 abre la barra de abajo después de la lista, así que va arriba de ella. Nada la cierra en
+// el login: sigue con la cuenta, debajo de su ventana, cuando se cancela y cuando vuelve la lista,
+// que la abre otra vez sin repetirla.
+TEST(LoginSceneSessionTest, TheBarOpensWithTheListAndStays)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.scene->Enter().HasValue());
+    tested.socket.reads = {Hello()};
+    tested.Step();
+    EXPECT_EQ(Harness::QuadsOf(tested.Frame(), OrnamentSlot), 0u);
+    tested.socket.reads = {ServerList({400})};
+    tested.Step();
+    const std::vector<TextureSlot> order{GroupButtonSlot, OrnamentSlot, MenuSlot, CreditSlot, LoginBackgroundSlot};
+    EXPECT_EQ(Harness::QuadsAmong(tested.Frame(), order),
+              (std::vector<TextureSlot>{GroupButtonSlot, OrnamentSlot, MenuSlot, CreditSlot}));
+
+    Harness login;
+    ASSERT_NO_FATAL_FAILURE(login.ReachTheLogin());
+    EXPECT_EQ(Harness::QuadsAmong(login.Frame(), order),
+              (std::vector<TextureSlot>{OrnamentSlot, MenuSlot, CreditSlot, LoginBackgroundSlot}));
+    login.Tap(Key::Escape);
+    EXPECT_EQ(Harness::QuadsAmong(login.Frame(), order),
+              (std::vector<TextureSlot>{OrnamentSlot, MenuSlot, CreditSlot}));
+    login.socket.reads = {Hello()};
+    login.Step();
+    login.socket.reads = {ServerList({400})};
+    login.Step();
+    ASSERT_EQ(login.session.State(), SessionState::ChoosingServer);
+    EXPECT_EQ(Harness::QuadsAmong(login.Frame(), order),
+              (std::vector<TextureSlot>{GroupButtonSlot, OrnamentSlot, MenuSlot, CreditSlot}));
+}
+
+// Sin aviso, la barra se atiende junto con la lista (Q-C84): con el mouse encima, los créditos
+// muestran el cuadro 1, y un clic no manda nada ni cambia la sesión, solo queda en el log (P-C13).
+// Con un aviso abierto, el aviso tiene el mouse, como en el original, donde es de toda la pantalla.
+TEST(LoginSceneSessionTest, TheBarStepsWithTheList)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheList(ServerListOf({{400, 100}})));
+    const Client::UI::MenuBarLayout bar = Client::UI::LayoutMenuBar(PixelSize{640, 480});
+    const float height = tested.BufferHeight(CreditSlot);
+
+    tested.HoverOn(bar.credit);
+    EXPECT_EQ(Harness::TopV(tested.Frame(), CreditSlot), (30.0f + 0.5f) / height);
+
+    const std::size_t sent = tested.socket.sent.size();
+    tested.ClickOn(bar.credit);
+    tested.ClickOn(bar.menu);
+    EXPECT_EQ(tested.socket.sent.size(), sent);
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "el botón de los créditos de la barra todavía no hace nada"));
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "el botón del menú de la barra todavía no hace nada"));
+
+    // El 400 con carga 100: el aviso 0x63.
+    const ServerListLayout layout = tested.ListLayout(1);
+    tested.ClickOn(layout.groupButtons[0]);
+    tested.ClickOn(layout.serverButtons[0]);
+    ASSERT_EQ(Harness::QuadsOf(tested.Frame(), NoticeBoxSlot), 1u);
+    tested.HoverOn(bar.credit);
+    EXPECT_EQ(Harness::TopV(tested.Frame(), CreditSlot), 0.5f / height);
+}
+
+// Y junto con la cuenta (Q-C84): los créditos muestran el cuadro 1 con el mouse encima, y un clic
+// en el menú queda en el log sin mandar nada, sin cerrar la cuenta ni sacarle el teclado.
+TEST(LoginSceneSessionTest, TheBarStepsWithTheLogin)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheLogin());
+    const Client::UI::MenuBarLayout bar = Client::UI::LayoutMenuBar(PixelSize{640, 480});
+    const float height = tested.BufferHeight(CreditSlot);
+
+    tested.HoverOn(bar.credit);
+    EXPECT_EQ(Harness::TopV(tested.Frame(), CreditSlot), (30.0f + 0.5f) / height);
+
+    const std::size_t sent = tested.socket.sent.size();
+    tested.ClickOn(bar.menu);
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "el botón del menú de la barra todavía no hace nada"));
+    EXPECT_EQ(tested.socket.sent.size(), sent);
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_TRUE(tested.scene->WantsTextInput());
+    EXPECT_EQ(Harness::QuadsOf(tested.Frame(), LoginBackgroundSlot), 1u);
 }
 
 // El grupo y después el servidor: la escena le pasa el código a la sesión, que manda el F4 03 (el
@@ -581,8 +724,8 @@ TEST(LoginSceneSessionTest, LeavingClosesTheLogin)
     EXPECT_FALSE(tested.scene->WantsTextInput());
 }
 
-// Entrar otra vez empieza de cero: sin la lista ni el aviso de antes, que no se dibujan hasta que
-// la sesión los pida otra vez.
+// Entrar otra vez empieza de cero: sin la lista, la barra ni el aviso de antes, que no se dibujan
+// hasta que la sesión los pida otra vez.
 TEST(LoginSceneSessionTest, EnteringAgainClosesTheWindows)
 {
     Harness tested;
@@ -599,6 +742,7 @@ TEST(LoginSceneSessionTest, EnteringAgainClosesTheWindows)
     events = tested.Frame();
     EXPECT_EQ(Harness::QuadsOf(events, NoticeBoxSlot), 0u);
     EXPECT_EQ(Harness::QuadsOf(events, GroupButtonSlot), 0u);
+    EXPECT_EQ(Harness::QuadsOf(events, OrnamentSlot), 0u);
 }
 
 // Y con la cuenta abierta: entrar otra vez la cierra.

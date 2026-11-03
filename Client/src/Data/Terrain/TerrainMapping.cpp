@@ -1,7 +1,14 @@
 #include "Data/Terrain/TerrainMapping.h"
 
+#include "Core/Expected.h"
+#include "Data/DataError.h"
 #include "Data/Terrain/K16.h"
+#include "Data/Terrain/TerrainGrid.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <span>
 #include <vector>
 
 namespace Client::Data::Terrain

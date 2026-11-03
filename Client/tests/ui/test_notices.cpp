@@ -4,7 +4,6 @@
 
 #include <array>
 #include <cstddef>
-#include <cstdint>
 #include <optional>
 
 // Client::UI: los avisos del login por número (CL5.5; 06 § Los avisos). El texto de cada uno sale

@@ -1,7 +1,10 @@
 #include "support/FakeServers.h"
 
+#include "Network/Connection.h"
 #include "Network/Crypto/Xor32.h"
 #include "Network/EncryptedPacket.h"
+#include "Network/Packet.h"
+#include "Network/PacketSerials.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Connection/Opcodes.h"
 
@@ -9,9 +12,15 @@
 #include "support/Packets.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <format>
+#include <optional>
 #include <span>
+#include <string>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 namespace Client::Tests
 {

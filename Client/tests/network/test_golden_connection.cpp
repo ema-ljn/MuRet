@@ -1,5 +1,6 @@
 #include "Network/Connection.h"
 
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Network/Crypto/SimpleModulus.h"
 #include "Network/Crypto/SimpleModulusKeyFile.h"

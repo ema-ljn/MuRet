@@ -6,9 +6,10 @@ que la sostiene ([`CODING_RULES.md` § 11](../CODING_RULES.md#11-documentar-el-u
 quien la decidió.
 
 Este archivo es el índice. La tabla del cliente es el inventario que pidió AUD-C04 de la
-[auditoría del 2026-11-03](../audits/2026-11-03-cliente-cpp20.md): dice qué ADR ya está escrito y
-cuál falta. La evidencia ya existe en el research y en los planes, y el ADR la enlaza sin copiarla.
-AUD-C04 se cierra cuando estén todos: este índice no los reemplaza.
+[auditoría del 2026-11-03](../audits/2026-11-03-cliente-cpp20.md), y sus seis ADR ya están
+escritos, del 0003 al 0008: con ellos, AUD-C04 queda cerrado. Los 0001 y 0002, del servidor, no son
+de la auditoría y siguen pendientes. La evidencia está en el research y en los planes, y cada ADR
+la enlaza sin copiarla.
 
 ## Cómo se escribe uno
 
@@ -33,7 +34,7 @@ resueltos. Los del cliente empiezan en el 0003.
 
 Las decisiones que la auditoría encontró documentadas en el research y en los planes, pero sin su
 ADR. Todas tienen la fila en el [07 del cliente](../../Client/docs/research/07-quirks-y-bugs.md) y
-tests que las fijan. La última columna enlaza el ADR cuando ya está escrito.
+tests que las fijan, y la última columna enlaza su ADR.
 
 | Decisión | Research | Tests | Quién | Estado |
 | --- | --- | --- | --- | --- |
@@ -42,7 +43,7 @@ tests que las fijan. La última columna enlaza el ADR cuando ya está escrito.
 | El ritmo: lógica a 25 pasos por segundo, dibujo desacoplado por defecto con un tope de 1 s por frame, y el modo fiel, sin tope, como opción | Q-C44 y D-C4 del [roadmap](../superpowers/specs/2026-10-30-cliente-design.md) | `ConfigTest.DefaultsWhenAKeyIsMissing`, `GameLoopTest.AFrameLongerThanTheCapRunsOnlyTheCap`, `FixedStepTest.TheCapIsOneSecond`, `FaithfulPacerTest.HasNoCap` | Claude | [0005](0005-ritmo-del-bucle.md) |
 | El log: agrega, se vacía al pasar 1 MiB, en claro, y avisa si deja de poder escribirse | Q-C48, AUD-C01 y AUD-C02 | `FileSinkTest.AppendsFromIndependentSinksAfterTheCap`, `EmptiesAFileOverTheCap`, `ReportsAWriteFailureOnce` | Claude | [0006](0006-el-log.md) |
 | La sesión: el keepalive desde el login aceptado y las esperas con tope de 30 s | Q-C53 y Q-C56 | `ServerSessionTest.NoKeepaliveBeforeTheLogin`, `KeepaliveEveryTwentySecondsAndNotBefore`, `EachWaitCountsFromItsStart` | Claude | [0007](0007-keepalive-y-esperas-de-la-sesion.md) |
-| El wrap `GL_CLAMP`, que el perfil core no tiene, como `GL_CLAMP_TO_EDGE` | Q-C73 | `GlTextureTest.RepeatWrapsAndClampDoesNot` | Claude | sin ADR |
+| El wrap `GL_CLAMP`, que el perfil core no tiene, como `GL_CLAMP_TO_EDGE` | Q-C73 | `GlTextureTest.RepeatWrapsAndClampDoesNot` | Claude | [0008](0008-gl-clamp-como-clamp-to-edge.md) |
 
 "Quién" sigue la decisión del 2026-11-02: Claude escribe hasta que Emanuel diga que participa, y
 marca lo que resolvió. Si Emanuel toma uno, lo cambia acá.

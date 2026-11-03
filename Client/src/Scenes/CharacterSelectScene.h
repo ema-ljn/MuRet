@@ -22,8 +22,9 @@ public:
     void Render(SceneCanvas& canvas, float alpha) override;
     void Leave() override;
     [[nodiscard]] std::optional<SceneId> Next() const override;
-    // Sin sus avisos ni sus campos todavía (CL6): nunca, las dos.
+    // Sin sus avisos ni sus campos todavía (CL6), y sin connect: nunca, las tres.
     [[nodiscard]] bool WantsToQuit() const override;
     [[nodiscard]] bool WantsTextInput() const override;
+    [[nodiscard]] bool HoldsTheLastFrame() const override;
 };
 } // namespace Client::Scenes

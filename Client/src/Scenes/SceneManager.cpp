@@ -138,6 +138,11 @@ bool SceneManager::WantsTextInput() const
     return m_scene && m_scene->WantsTextInput();
 }
 
+bool SceneManager::HoldsTheLastFrame() const
+{
+    return m_scene && m_scene->HoldsTheLastFrame();
+}
+
 Core::Expected<void, std::string> SceneManager::Enter(SceneId id)
 {
     std::unique_ptr<IScene> scene = m_factory(id);

@@ -772,6 +772,115 @@ TEST(LoginSceneSessionTest, ARefusedConnectShowsText402)
     EXPECT_TRUE(Harness::Drew(events, ConnectFailedText));
 }
 
+// El connect al CS del original es bloqueante y corre antes del primer frame del login (0x6349eb
+// llama a 0x4c1340, que llama a connect en 0x4e8625): en la pantalla queda la carga hasta que
+// termina, y el primer frame del login ya trae el aviso (Q-C85). Acá el connect no bloquea, y la
+// escena retiene el último frame mientras conecta: el GameLoop no dibuja. Lo suelta cuando la
+// escena vio la falla, con el aviso abierto, no cuando la sesión falla: un frame dibujado entre el
+// Poll y el Step sería el login sin el aviso.
+TEST(LoginSceneSessionTest, AFailingConnectHoldsTheFrameUntilTheNotice)
+{
+    Harness tested;
+    tested.socket.pollsUntilConnected = 2;
+    tested.socket.connectResult = SocketError::Refused;
+    ASSERT_TRUE(tested.scene->Enter().HasValue());
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+
+    tested.Step();
+    tested.Step();
+    ASSERT_EQ(tested.session.State(), SessionState::ConnectingConnectServer);
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+
+    tested.scene->Step(tested.input);
+    EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
+    const std::vector<FrameEvent> events = tested.Frame();
+    EXPECT_EQ(Harness::QuadsOf(events, NoticeBoxSlot), 1u);
+    EXPECT_TRUE(Harness::Drew(events, ConnectFailedText));
+}
+
+// Un connect que falla enseguida (un puerto cerrado en la misma máquina, un host que no resuelve)
+// sale en el primer Poll después de Enter, y en el modo normal ese frame puede no tener un paso
+// antes del dibujo. La escena todavía no vio la falla: retiene el frame hasta que su paso abre el
+// aviso, y el primer frame del login ya lo trae.
+TEST(LoginSceneSessionTest, AConnectThatFailsAtOnceHoldsTheFrameUntilTheNotice)
+{
+    Harness tested;
+    tested.socket.connectResult = SocketError::Refused;
+    ASSERT_TRUE(tested.scene->Enter().HasValue());
+
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+
+    tested.scene->Step(tested.input);
+    EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
+    EXPECT_TRUE(Harness::Drew(tested.Frame(), ConnectFailedText));
+}
+
+// Lo mismo con el GS: el F4 03 lo abre en un Poll y la falla sale en el siguiente, sin un paso en
+// el medio (dos frames sin pasos). La escena no llegó a verla conectando, y retiene el frame igual.
+TEST(LoginSceneSessionTest, AGameServerConnectThatFailsBetweenStepsHoldsTheFrame)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ChooseTheLabServer());
+    tested.socket.connectResult = SocketError::Refused;
+    tested.socket.reads = {AddressReply(GameHost, GamePort)};
+
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+
+    tested.scene->Step(tested.input);
+    EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
+    EXPECT_TRUE(Harness::Drew(tested.Frame(), ConnectFailedText));
+}
+
+// Con el CS abierto el original sigue con el login y dibuja mientras espera el saludo: la escena
+// suelta el frame.
+TEST(LoginSceneSessionTest, AnOpenedConnectionDrawsTheLogin)
+{
+    Harness tested;
+    tested.socket.pollsUntilConnected = 1;
+    ASSERT_TRUE(tested.scene->Enter().HasValue());
+
+    tested.Step();
+    ASSERT_EQ(tested.session.State(), SessionState::ConnectingConnectServer);
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+
+    tested.Step();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
+    EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
+}
+
+// El connect al GS también bloquea en el original (0x4e3396): con la dirección, en la pantalla
+// queda el último frame, ya sin la lista (la cerró el clic, 0x645e10), hasta que el GS abre.
+TEST(LoginSceneSessionTest, TheGameServerConnectHoldsTheFrame)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ChooseTheLabServer());
+    EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
+    tested.socket.pollsUntilConnected = 1;
+    tested.socket.reads = {AddressReply(GameHost, GamePort)};
+
+    tested.Step();
+    ASSERT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+    tested.Step();
+    ASSERT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+
+    tested.Step();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingGameHello);
+    EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
+}
+
 // El otro lado que cierra (el FD_CLOSE de 03): con la cuenta abierta, la cuenta se cierra y sale el
 // 0x70. El texto 3 que el original pone antes en el área de mensajes (0x555190) es del chat, que
 // llega con la CL8.

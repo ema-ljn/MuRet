@@ -61,7 +61,9 @@ int GameLoop::RunDecoupled(const WindowState& state, Input::InputState& input)
     m_stats.accumulated = m_fixedStep.Accumulated();
     m_lastAlpha = m_fixedStep.Alpha();
 
-    if (state.minimized)
+    // Con el frame retenido (el connect del login, Q-C85), como minimizada: se mira después de los
+    // pasos, que son los que ven lo que trajo el Poll.
+    if (state.minimized || m_client.HoldsTheLastFrame())
     {
         // Sin dibujo, el swap no frena el bucle: duerme lo que falta para el próximo paso, que
         // es más que 0 porque el acumulador quedó debajo de LogicStep. El tope no se usa, y al
@@ -118,11 +120,11 @@ int GameLoop::RunFaithful(const WindowState& state, Input::InputState& input)
     // El original dibuja el estado después de los pasos, sin interpolar. Render también presenta
     // (ILoopClient), así que el swap queda adentro de la medición, como en 0x63852b..0x638632.
     m_lastAlpha = 0.0f;
-    if (!state.minimized)
+    if (!state.minimized && !m_client.HoldsTheLastFrame())
     {
         m_client.Render(m_lastAlpha);
     }
-    // Minimizada también: sin la espera el acumulador no suma y no corre nunca más un paso.
+    // Sin dibujo también: sin la espera el acumulador no suma y no corre nunca más un paso.
     m_pacer.EndFrame(m_clock);
     m_stats.accumulated = std::chrono::milliseconds{m_pacer.AccumulatedMs()};
     m_stats.lastMeasuredMs = m_pacer.LastMeasuredMs();

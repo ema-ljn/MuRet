@@ -83,6 +83,8 @@ struct Stage
     std::set<SceneId> quitting;
     // Las escenas que piden el texto tecleado (WantsTextInput).
     std::set<SceneId> typing;
+    // Las escenas que retienen el último frame (HoldsTheLastFrame).
+    std::set<SceneId> holding;
     // La escena cuyo Enter falla.
     std::optional<SceneId> failingEnter;
     // Los slots que sube cada escena al entrar y suelta al salir, como sus juegos de texturas.
@@ -160,6 +162,11 @@ public:
     [[nodiscard]] bool WantsTextInput() const override
     {
         return m_stage.typing.contains(m_id);
+    }
+
+    [[nodiscard]] bool HoldsTheLastFrame() const override
+    {
+        return m_stage.holding.contains(m_id);
     }
 
 private:
@@ -583,5 +590,20 @@ TEST(SceneManagerTest, SaysWhenTheSceneWantsTextInput)
     tested.stage.typing.insert(SceneId::Loading);
 
     EXPECT_TRUE(tested.manager.WantsTextInput());
+}
+
+// Una escena que retiene el último frame (el login mientras conecta, Q-C85): el SceneManager lo
+// dice, para que el GameLoop no dibuje y en la pantalla quede el frame anterior. Sin escena, o con
+// una que no lo pide, no.
+TEST(SceneManagerTest, SaysWhenTheSceneHoldsTheLastFrame)
+{
+    Harness tested;
+    EXPECT_FALSE(tested.manager.HoldsTheLastFrame());
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+    EXPECT_FALSE(tested.manager.HoldsTheLastFrame());
+
+    tested.stage.holding.insert(SceneId::Loading);
+
+    EXPECT_TRUE(tested.manager.HoldsTheLastFrame());
 }
 } // namespace

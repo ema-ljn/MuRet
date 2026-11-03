@@ -179,6 +179,50 @@ TEST(GameLoopTest, AMinimizedWindowStepsWithoutDrawing)
     EXPECT_EQ(std::accumulate(sleeps.begin(), sleeps.end(), Duration::zero()), 1040ms);
 }
 
+// Con el frame retenido (el connect del login, que en el original bloquea antes del dibujo,
+// Q-C85), como minimizada: la red y los pasos siguen, no dibuja y duerme hasta el próximo paso.
+// Cuando lo suelta, dibuja otra vez.
+TEST(GameLoopTest, AHeldFrameStepsWithoutDrawing)
+{
+    FakeClock clock;
+    RecordingClient client{clock};
+    GameLoop loop{clock, client, PacingMode::Decoupled};
+    InputState input;
+    client.holdsTheLastFrame = true;
+
+    for (int frame = 0; frame < 26; ++frame)
+    {
+        loop.RunFrame(WindowState{}, input);
+    }
+
+    EXPECT_EQ(client.polls, 26u);
+    EXPECT_EQ(client.steps, 25u);
+    EXPECT_TRUE(client.alphas.empty());
+    const auto sleeps = clock.Sleeps();
+    EXPECT_EQ(std::accumulate(sleeps.begin(), sleeps.end(), Duration::zero()), 1040ms);
+
+    client.holdsTheLastFrame = false;
+    loop.RunFrame(WindowState{}, input);
+    EXPECT_EQ(client.alphas.size(), 1u);
+}
+
+// El frame retenido se mira después de los pasos: el paso que empieza el connect (el que entra al
+// login) ya no deja dibujar su frame. Mirado antes, ese frame sería el login sin el aviso.
+TEST(GameLoopTest, AHoldFromAStepSkipsThatFramesDrawing)
+{
+    FakeClock clock;
+    RecordingClient client{clock};
+    GameLoop loop{clock, client, PacingMode::Decoupled};
+    InputState input;
+    client.holdsAfterAStep = true;
+
+    loop.RunFrame(WindowState{}, input);
+    clock.Advance(40ms);
+    loop.RunFrame(WindowState{}, input);
+
+    EXPECT_EQ(client.calls, (std::vector<LoopCall>{LoopCall::Poll, LoopCall::Render, LoopCall::Poll, LoopCall::Step}));
+}
+
 // Minimizada, duerme lo que falta del paso: 10 ms acumulados son 30 ms de sueño, no 40.
 TEST(GameLoopTest, AMinimizedWindowSleepsWhatIsLeftOfTheStep)
 {

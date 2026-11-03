@@ -38,6 +38,10 @@ void RecordingClient::Step(const Input::InputState& input)
     ++steps;
     calls.push_back(LoopCall::Step);
     sawPress.push_back(input.WasPressed(watchedKey));
+    if (holdsAfterAStep)
+    {
+        holdsTheLastFrame = true;
+    }
     m_clock.Advance(stepCost);
 }
 
@@ -46,5 +50,10 @@ void RecordingClient::Render(float alpha)
     calls.push_back(LoopCall::Render);
     alphas.push_back(alpha);
     m_clock.Advance(renderCost);
+}
+
+bool RecordingClient::HoldsTheLastFrame() const
+{
+    return holdsTheLastFrame;
 }
 } // namespace Client::Tests

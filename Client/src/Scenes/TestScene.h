@@ -34,6 +34,8 @@ public:
     // La escena de prueba no lee el input.
     void Step(const Input::InputState& input) override;
     void Render(float alpha) override;
+    // Nunca: no conecta.
+    [[nodiscard]] bool HoldsTheLastFrame() const override;
     // El fondo entre el paso actual y el próximo: `alpha` en [0, 1), como el de Render.
     [[nodiscard]] Color Background(float alpha) const;
 

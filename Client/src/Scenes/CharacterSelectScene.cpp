@@ -35,4 +35,9 @@ bool CharacterSelectScene::WantsTextInput() const
 {
     return false;
 }
+
+bool CharacterSelectScene::HoldsTheLastFrame() const
+{
+    return false;
+}
 } // namespace Client::Scenes

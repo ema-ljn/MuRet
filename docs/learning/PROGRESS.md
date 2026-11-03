@@ -163,6 +163,13 @@ solo lo lee.
   juego se frena a 48 frames y 56 pasos en 3 s (`GameLoopTest.FaithfulDoesNotMeasureThePoll`). La
   escena de prueba tiene un `Poll()` vacío. Al arrastrar la ventana en Windows, el original sigue
   con el keepalive y MuRet no consulta la red hasta soltarla (Q-C49).
+- **CL4.2 (el `Dispatcher`), resuelta por Claude** el 2026-11-02: una tabla opcode → handler, con
+  un segundo nivel por subcódigo (el byte que sigue al opcode, `pkt[3]` en un C1 y `pkt[4]` en un
+  C2), en vez del `switch` de 10,5 KB de `0x4e2b10`. Lo que no tiene handler da `Unknown` y una
+  línea de aviso la primera vez de cada opcode, o de cada opcode y subcódigo, sin los bytes; un
+  C3 o un opcode con subcódigos que termina en el opcode dan `Malformed` (el original lee el byte
+  que no llegó, Q-C42). Registrar dos veces da `false` y no pisa. Tu paso 1, la tabla de qué lee
+  cada uno, lo resolvió Claude: está en el plan.
 - **CL4.0 (sockets no bloqueantes), resuelta por Claude** el 2026-11-02, como la CL3.0: el
   `LabSocket` con RAII y todos los `#ifdef _WIN32` en un archivo, el `LoopbackPair` que conecta en
   `127.0.0.1` sin bloquear y en un solo hilo, y la `DrainQueue`, la cola con cursor. El puerto
@@ -257,6 +264,7 @@ sesión, junto con los de repaso más viejo.
 | E/S no bloqueante detrás de una interfaz chica (`ISocket`, con `SystemSocket` y `FakeSocket`): el connect como máquina de estados que guarda su resultado porque `SO_ERROR` se borra al leerlo, "probá más tarde" contra un cierre (`recv` en 0, `ECONNRESET`), `SIGPIPE` y `MSG_NOSIGNAL`, y un `#ifdef _WIN32` en un solo archivo (`SocketApi`) | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | una cola de envío con cursor sobre un buffer fijo (`SendQueue`): por qué restar lo que salió dos veces repite el principio y pierde el final (Q-C11), compactar solo cuando lo nuevo no entra, y un tope que cierra en vez de crecer | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | la red consultada una vez por frame en el mismo hilo que la lógica (`ILoopClient::Poll`), y dónde va en el modo fiel: fuera de la medición, donde lo que tarda se pierde de a ticks enteros, como los pasos (`FaithfulDoesNotMeasureThePoll`) | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| una tabla de despacho en vez de un `switch`: opcode → handler con un segundo nivel por subcódigo, `std::function` como handler, registrar dos veces como un error que se devuelve, y un aviso que sale una sola vez por opcode (`Dispatcher`, `std::bitset`) | CL4.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

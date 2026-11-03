@@ -65,8 +65,8 @@ TEST(BonesTest, AChildFollowsItsParent)
     ExpectNear(Transform((*pose)[2], Vec3{5, 0, 0}), Vec3{0, 25, 0});
 }
 
-// La raíz cuelga del objeto: con el objeto en (100, 0, 0), girado 90° y con escala 2, el codo cae a
-// 20 en y y la mano a 40, corridos 100 en x.
+// La raíz cuelga del objeto: con el objeto en (100, 0, 0), el brazo entero se corre 100 en x; con
+// el objeto además girado 90° y con escala 2, el codo y la mano quedan a 20 y a 40 hacia −x.
 TEST(BonesTest, TheRootHangsFromTheObject)
 {
     const auto arm = Arm();

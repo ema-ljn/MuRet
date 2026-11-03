@@ -87,7 +87,7 @@ TEST(QuaternionTest, TheMatrixIsTheSameRotation)
             {
                 EXPECT_NEAR(byHandRow[static_cast<std::size_t>(column)], fromGlm[column][row], Tolerance);
             }
-            EXPECT_EQ(byHandRow[3], 0);
+            EXPECT_EQ(byHandRow[3], 0.0f);
         }
     }
 }

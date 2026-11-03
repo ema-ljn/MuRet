@@ -152,7 +152,7 @@ el paso 6 del plan. Los números salen del jefe
 
 - **Respuesta: por qué el 05 distingue a uno y no al otro.** El slerp y el lerp normalizado
   recorren el mismo arco, a velocidad distinta: la diferencia crece con el cubo del ángulo entre
-  las keys (de 6,9° a 33°, 4,8 veces más ángulo, 106 veces más diferencia), y entre keys de unos
+  las keys (de 6,9° a 33°, 4,8 veces más ángulo, 107 veces más diferencia), y entre keys de unos
   grados es de milésimas, debajo del 0,015 del ajuste de la selección en el 06. Los ángulos
   interpolados recorren otro camino, y el error crece con lo que cambian los ejes a la vez: 0,039
   con 6,9°, más del doble del ajuste.

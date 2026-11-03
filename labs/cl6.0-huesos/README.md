@@ -27,12 +27,19 @@ cmake --preset linux-x64-debug && cmake --build --preset linux-x64-debug
 ctest --preset linux-x64-debug -R "LabCl60"
 ```
 
-Los tests se probaron con 15 mutantes a mano (el signo de la vuelta, el lazo de tres de los
-opuestos, el 1e-8, el cos sin redondear en cada comparación, el ≤ de la igualdad, un peso del
-slerp, un signo en `AngleQuaternion`, otro en `QuaternionMatrix` y otro en `AngleMatrix`, la
-traslación de `Concat`, la escala del objeto, el padre que viene después y la traslación en
-`Rotate`). 14 los ponen en rojo. El que queda en verde cambia `>` por `≥` en `AlmostEqual`, y es
-equivalente: la resta de dos floats en double no da nunca el double 0,001 justo (actividad 14).
+Los tests se probaron con 20 mutantes a mano. 15 los ponen en rojo: el signo de la vuelta, el lazo
+de cuatro en los opuestos, el orden del perpendicular, el 1e-8, el cos redondeado en la primera
+comparación, el cos sin redondear en la segunda, un peso del slerp, un signo en `AngleQuaternion`,
+otro en `QuaternionMatrix` y otro en `AngleMatrix`, la traslación de `Concat`, la escala del
+objeto, el padre que viene después, la traslación en `Rotate` y, en el jefe, la key anterior que no
+se guarda. Quedan cinco en verde, y se sabe por qué:
+
+- `>` por `≥` en `AlmostEqual` es equivalente: la resta de dos floats en double no da nunca el
+  double 0,001 justo (actividad 14).
+- En el jefe, la vuelta con `frame − 7` en vez del módulo, también: con menos de una key por paso,
+  el frame no pasa de 8.
+- El ω o el sin ω sin redondear a float, y un coseno redondeado en `AngleQuaternion`, cambian un
+  ulp, menos de lo que separa al lab de glm. Eso lo ve recién la CL6.2, contra la traza.
 
 ## Cómo hacen las cuentas
 
@@ -48,8 +55,8 @@ actividad 14 dice dónde. Contra glm, que hace todo en float:
   0,737. Los 1.331 van por los senos.
 - `AngleMatrix` en grados contra `QuaternionMatrix(AngleQuaternion(…))` en radianes: 2,7e-7.
 
-Los tests piden 1e-6 (1e-5 el slerp): el doble de un error de cuenta y no más, para que un error
-de verdad (un signo, un eje cambiado) no pase.
+Los tests piden 1e-6 (1e-5 el slerp contra glm): unas veces el error de cuenta de arriba, y muy
+por debajo de lo que mueve un error de verdad (un signo, un eje cambiado, la rama equivocada).
 
 ## 1. Calentamiento
 
@@ -77,10 +84,10 @@ distintos, y interpolar los números no da lo del medio.
 ## 3. Cuaterniones
 
 **Respuesta.** Media vuelta alrededor de x: θ = π, así que w = cos(π/2) = 0 y (x, y, z) =
-(1, 0, 0) · sin(π/2): (1, 0, 0, 0). `AngleQuaternion(π, 0, 0)` da (1, 0, −0, −0). Una vuelta
-entera alrededor de z: w = cos(π) = −1, (0, 0, 0, −1), que es −1 por la identidad: el mismo giro
-que no girar, con la misma matriz, pero otro cuaternión. `AngleQuaternion(0, 0, 2π)` da
-(0, −0, −1e-7, −1).
+(1, 0, 0) · sin(π/2): (1, 0, 0, 0). `AngleQuaternion(π, 0, 0)` da (1, 0, −0, −4,4e-8): la w no es
+0 porque π en float no es π. Una vuelta entera alrededor de z: w = cos(π) = −1, (0, 0, 0, −1), que
+es −1 por la identidad: el mismo giro que no girar, con la misma matriz, pero otro cuaternión.
+`AngleQuaternion(0, 0, 2π)` da (0, −0, −8,7e-8, −1).
 
 ## 4. Misión: `AngleQuaternion` y `QuaternionMatrix`
 
@@ -123,14 +130,14 @@ el original, para comparar bits con la traza.
 
 ## 6. Misión: el slerp
 
-Los nueve tests de `SlerpTest` pasan. Lo que dicen:
+Los ocho tests de `SlerpTest` pasan. Lo que dicen:
 
 - **El umbral de lo lineal no hace nada en float.** El float más cercano a 1 por debajo es
   1 − 2⁻²⁴ = 0,99999994, y 1 − cos = 5,96e-8 ya pasa el 1e-8. El slerp va por los senos salvo con
   el cos en 1 o más (un cuaternión que no es unitario).
-- **Cada comparación mira su cos** (`EachComparisonSeesItsOwnCosine`): 1 − 5e-9 es 1 en float y
-  va lineal; −1 + 2e-8 es −1 en float, pero la primera comparación lo ve sin redondear, 2e-8 > 1e-8,
-  y no va a los opuestos.
+- **Cada comparación mira su cos** (`EachComparisonSeesItsOwnCosine`): 1 − 2e-8 es 1 en float y
+  va lineal, aunque sin redondear 1 − cos = 2e-8 > 1e-8; −1 + 2e-8 es −1 en float, pero la primera
+  comparación lo ve sin redondear, 2e-8 > 1e-8, y no va a los opuestos.
 - **La 0,001 es un double** (`TheToleranceIsTheDoubleOneThousandth`): 0,001f es
   0,0010000000474974513 y no pasa; el float de abajo sí.
 
@@ -152,8 +159,9 @@ Los nueve tests de `SlerpTest` pasan. Lo que dicen:
   1 − 2⁻²⁴ o en 1; Half-Life, solo en 1. En 1 − 2⁻²⁴ los dos giros están a 0,04°, y el resultado
   queda a 1e-7.
 - **Los opuestos no le hacen falta a ninguno.** Después de la vuelta el producto es positivo, y
-  1 + cos > 1e-8 siempre. En Half-Life la rama está, pero no corre con números: solo con un NaN
-  (actividad 14).
+  1 + cos > 1e-8 siempre. En Half-Life la rama está, pero con cuaterniones de largo 1 no corre:
+  solo con un NaN o un infinito (actividad 14), o con uno enorme, de largo 1e8, en el que el
+  redondeo de las dos sumas esconde la vuelta.
 
 **Respuesta.** Dan distinto a nivel de redondeo, 1,8e-7 en los pares del test, y en dos bordes
 que no cambian el giro: el producto de casi 0 y el cos de casi 1. En un personaje no se ve. La
@@ -259,9 +267,16 @@ con los números del jefe.
 - **Un NaN:** `FCOMP` con un NaN da "sin orden" y prende C0, C2 y C3. `test ah,0x41` mira C0 y C3:
   con NaN no da 0, y el `JNE` de `0x5fcf24` va a la rama de los opuestos (`0x5fcf9f`). La vuelta
   tampoco corre: con NaN, las dos sumas son NaN y `a > b` es falso. Es lo que prueba
-  `OnlyANanReachesTheOppositeBranch`: la x y la y salen NaN, la z sale −√½ y la w se queda en p.z.
-  Es la única manera de llegar ahí: un `.bmd` roto.
+  `ANanOrAnInfinityReachesTheOppositeBranch`: la x y la y salen NaN, la z sale −√½ y la w se queda
+  en p.z. Con un infinito pasa algo parecido: las dos sumas dan ∞, `∞ > ∞` es falso y el cos es −∞.
+  Ninguno de los dos sale de un `.bmd` sano.
 - **`0x5fc700`:** `JE` salta a "distintos" cuando C0 y C3 están en 0, o sea con la diferencia
   mayor que 0,001. La igualdad es con ≤. Con floats da lo mismo que `<`: la resta de dos floats en
   la pila es exacta o casi, y no cae nunca en el double 0,001 justo, que tiene 53 bits de mantisa.
   El mutante que la cambia queda en verde, y es equivalente.
+- **`0x4ec200`:** el `FST` de `0x4ec249` guarda el frame nuevo en float y deja la suma en la pila,
+  y el `__ftol` de `0x4ec24b` trunca esa suma, sin redondear. Si la suma queda apenas debajo de un
+  entero y el float sube a ese entero, el cruce no se guarda nunca: durante esa key, la pose sale
+  de la key de dos antes. Con 0,26 por paso pasa unas pocas veces en un millón de pasos, ninguna en
+  el jefe (*Verificado* en el desensamblado; en pantalla, sin ver). Es un dato para la CL6.2, que
+  guarda el estado como el original.

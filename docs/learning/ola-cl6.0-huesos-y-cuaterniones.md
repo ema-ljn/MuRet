@@ -197,7 +197,7 @@ primera y no llama al slerp. Van en `Slerp.h/.cpp`.
 2. `TheFlipIsGlmsForUnitQuaternions`: con 1.331 pares sin azar, lo mismo que `glm::slerp`.
 3. `GoesLinearOnlyBelowOneInAHundredMillion` y `EachComparisonSeesItsOwnCosine`: qué cos va por
    cada rama.
-4. `ThePerpendicularCaseNeverRunsAfterTheFlip` y `OnlyANanReachesTheOppositeBranch`.
+4. `ThePerpendicularCaseNeverRunsAfterTheFlip` y `ANanOrAnInfinityReachesTheOppositeBranch`.
 5. `AlmostEqualKeysAreTheSameKey` y `TheToleranceIsTheDoubleOneThousandth`.
 6. La implementación.
 
@@ -391,7 +391,8 @@ Están en el repo de research,
   un ulp es mínimo, y una componente que debería dar 0 da 1e-8 después de unos productos: falla.
   Una tolerancia absoluta dice cuánto error se acepta en las unidades del problema.
 - **`std::numbers::pi_v<float>`** es π redondeado a float, en tiempo de compilación (C++20,
-  `<numbers>`). No es lo mismo dividirlo por 180 que redondear π/180 en double: la actividad 5.
+  `<numbers>`). Dividido por 180 da el mismo float que π/180 redondeado desde el double, pero
+  multiplicado por `1.0f / 180` da el de al lado: la actividad 5.
 - **`std::nextafter` y `0x1p-24`.** El float de al lado, y un literal exacto de 2⁻²⁴: para armar un
   caso en el borde sin depender de cómo se escribe un decimal.
 - **`std::optional<std::vector<...>>` y `std::span<const Bone>`.** La cadena puede venir rota y

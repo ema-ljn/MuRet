@@ -375,7 +375,7 @@ qué no `EXPECT_FLOAT_EQ` después de una cadena de productos).
   lineales; se ve qué rama corre con `Labs::SlerpBranch(p, q)`),
   `ThePerpendicularCaseNeverRunsAfterTheFlip`. Con `SlerpBranchForCosine` (la primera comparación ve
   el cos de la pila, la segunda el redondeado: `EachComparisonSeesItsOwnCosine`),
-  `OnlyANanReachesTheOppositeBranch` y la igualdad de `0x5fc700` (`AlmostEqual`).
+  `ANanOrAnInfinityReachesTheOppositeBranch` y la igualdad de `0x5fc700` (`AlmostEqual`).
 - [x] **Paso 4 (Emanuel; lo resolvió Claude):** `Labs::PoseChain(std::span<const Labs::Bone>, const
   Matrix34& object) -> std::optional<std::vector<Matrix34>>` (cada hueso con su padre, su posición y
   su giro; `nullopt` si un padre no está antes) y `Labs::Transform(const Matrix34&,

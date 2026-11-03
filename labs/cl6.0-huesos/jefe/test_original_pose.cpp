@@ -175,7 +175,10 @@ struct OriginalAnimation
     float priorFrame = 0;
 
     // 0x4ec200 con una acción que repite y sin lock_positions: suma la velocidad, guarda la key
-    // vieja si cruzó a otra y, al pasar la última, vuelve con el módulo de la parte entera.
+    // vieja si cruzó a otra y, al pasar la última, vuelve con el módulo de la parte entera. El
+    // original decide si cruzó con la suma de la pila, sin redondear (el FST de 0x4ec249 y el
+    // __ftol de después): si la suma queda apenas debajo de un entero y el float sube a ese entero,
+    // ese cruce no se guarda. Acá se mira el float; con estos frames da lo mismo.
     void Step(float speed, int keys)
     {
         const int before = static_cast<int>(frame);

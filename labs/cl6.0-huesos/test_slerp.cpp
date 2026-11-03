@@ -141,13 +141,13 @@ TEST(SlerpTest, GoesLinearOnlyBelowOneInAHundredMillion)
 }
 
 // Las dos comparaciones miran el cos en momentos distintos: la de los opuestos, el que quedó en la
-// pila; la lineal, el que se guardó en float. Un cos de 1 − 5e-9 es 1 en float y va lineal; uno de
-// −1 + 2e-8 también es −1 en float, pero la primera comparación lo ve antes de redondear y no lo
-// manda a los opuestos.
+// pila; la lineal, el que se guardó en float. Un cos de 1 − 2e-8 es 1 en float y va lineal, aunque
+// sin redondear 1 − cos = 2e-8 pasa el 1e-8; uno de −1 + 2e-8 también es −1 en float, pero la
+// primera comparación lo ve antes de redondear y no lo manda a los opuestos.
 TEST(SlerpTest, EachComparisonSeesItsOwnCosine)
 {
-    EXPECT_EQ(static_cast<float>(1 - 5e-9), 1.0f);
-    EXPECT_EQ(SlerpBranchForCosine(1 - 5e-9), SlerpCase::Linear);
+    EXPECT_EQ(static_cast<float>(1 - 2e-8), 1.0f);
+    EXPECT_EQ(SlerpBranchForCosine(1 - 2e-8), SlerpCase::Linear);
     EXPECT_EQ(SlerpBranchForCosine(1 - 0x1p-24), SlerpCase::Sines);
     EXPECT_EQ(SlerpBranchForCosine(1.0), SlerpCase::Linear);
 
@@ -158,7 +158,7 @@ TEST(SlerpTest, EachComparisonSeesItsOwnCosine)
 }
 
 // La rama de los opuestos pide 1 + cos ≤ 1e-8, un cos de casi −1. Después de dar vuelta q, el
-// producto es positivo: con números de verdad (sin NaN) no corre nunca, ni con q = −p.
+// producto es positivo: con cuaterniones de largo 1 no corre nunca, ni con q = −p.
 TEST(SlerpTest, ThePerpendicularCaseNeverRunsAfterTheFlip)
 {
     for (const auto& [p, q] : RotationPairs())
@@ -167,16 +167,19 @@ TEST(SlerpTest, ThePerpendicularCaseNeverRunsAfterTheFlip)
         EXPECT_NE(SlerpBranch(p, Negated(p)), SlerpCase::Opposite);
     }
 
-    // −p se da vuelta a p, y el slerp de p a p es p.
+    // −p se da vuelta a p, y el slerp de p a p es p. Con este p va lineal porque |p|², en float, es
+    // 1; con otros es el float de abajo y va por los senos, al mismo p.
     const Quat p = AngleQuaternion(Vec3{0.3f, -1.2f, 2.5f});
     EXPECT_EQ(SlerpBranch(p, Negated(p)), SlerpCase::Linear);
     ExpectNear(HalfLifeSlerp(p, Negated(p), 0.3f), p, Tolerance);
 }
 
-// Lo único que llega a la rama de los opuestos es un NaN: ninguna comparación con NaN es verdadera,
-// así que q no se da vuelta y el cos NaN no pasa el 1 + cos > 1e-8 (en la x87, FCOMP con NaN prende
-// C0 y C3, y el salto de 0x5fcf24 va a los opuestos). La w del resultado se queda en p.z.
-TEST(SlerpTest, OnlyANanReachesTheOppositeBranch)
+// A la rama de los opuestos llega lo que no es un cuaternión de largo 1. Un NaN: ninguna
+// comparación con NaN es verdadera, así que q no se da vuelta y el cos NaN no pasa el
+// 1 + cos > 1e-8 (en la x87, FCOMP con NaN prende C0, C2 y C3, y el salto de 0x5fcf24 va a los
+// opuestos). La w del resultado se queda en p.z. Y un infinito: las dos sumas dan ∞, ∞ > ∞ es
+// falso, y el cos es −∞.
+TEST(SlerpTest, ANanOrAnInfinityReachesTheOppositeBranch)
 {
     const Quat broken{.x = std::numeric_limits<float>::quiet_NaN(), .y = 0, .z = 0, .w = 1};
     EXPECT_EQ(SlerpBranch(broken, Identity), SlerpCase::Opposite);
@@ -184,7 +187,10 @@ TEST(SlerpTest, OnlyANanReachesTheOppositeBranch)
     EXPECT_TRUE(std::isnan(result.x));
     EXPECT_TRUE(std::isnan(result.y));
     EXPECT_NEAR(result.z, -std::sqrt(0.5f), Tolerance);
-    EXPECT_EQ(result.w, 0);
+    EXPECT_EQ(result.w, 0.0f);
+
+    const Quat infinite{.x = 0, .y = 0, .z = 0, .w = -std::numeric_limits<float>::infinity()};
+    EXPECT_EQ(SlerpBranch(Identity, infinite), SlerpCase::Opposite);
 }
 
 // 0x5fc700: cada componente a 0,001 o menos de la otra.

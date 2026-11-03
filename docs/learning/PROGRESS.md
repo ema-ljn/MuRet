@@ -352,10 +352,10 @@ solo lo lee.
   CL5.0: `AngleQuaternion` (`0x5fcd20`) y `QuaternionMatrix` (`0x5fcdb0`) contra glm, con los senos
   redondeados a float y los cosenos no, como los deja la x87; el slerp de `0x5fce90`, con la vuelta
   de q, la primera comparación con el cos de la pila y la segunda con el redondeado, y la rama de
-  los opuestos, que solo alcanza un NaN; la cadena de huesos con `Concat` (`0x5fca90`),
-  `AngleMatrix` en grados (`0x5fc8f0`) y el skinning rígido; y el jefe: el slerp contra los ángulos
-  interpolados y el lerp normalizado, y en qué key está el original (la tabla del 06 va una key
-  atrás). Son 23 tests, sin GL. Las respuestas, en
+  los opuestos, que con cuaterniones de largo 1 no corre (sí con un NaN o un infinito); la cadena
+  de huesos con `Concat` (`0x5fca90`), `AngleMatrix` en grados (`0x5fc8f0`) y el skinning rígido;
+  y el jefe: el slerp contra los ángulos interpolados y el lerp normalizado, y en qué key está el
+  original (la tabla del 06 va una key atrás). Son 23 tests, sin GL. Las respuestas, en
   [`labs/cl6.0-huesos/README.md`](../../labs/cl6.0-huesos/README.md), y la comparación, en
   [`labs/README.md`](../../labs/README.md). Para cerrarla falta lo tuyo: las preguntas y la sección
   final de la guía, y explicar los conceptos de abajo.
@@ -480,7 +480,7 @@ sesión, junto con los de repaso más viejo.
 | la UI que sigue al modelo: mirar el estado en cada paso y actuar solo cuando cambia, también después de lo que pidió el jugador; una sola ventana atendida por paso, la de arriba, para que el Enter que cierra una no le llegue a la que se abre; y una escena que pide cerrar el juego en vez de cerrarlo | CL5.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | un giro como ángulos de Euler: el orden de los ejes, el gimbal lock (con el pitch en 90° solo cuenta x − z), y por qué interpolar los ángulos puede dar la vuelta larga | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | un cuaternión unitario: los medios ángulos de `AngleQuaternion`, su matriz (`QuaternionMatrix`), q y −q como el mismo giro, y el orden x, y, z, w contra el constructor de cuatro de glm, que toma la w primero (`glm::quat::wxyz`) | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
-| el slerp: dar vuelta q para ir por el camino corto, el arco con senos y el paso a lineal cerca de cos = 1; las dos comparaciones de `0x5fce90`, una con el cos de la pila y otra con el redondeado, y una rama que solo alcanza un NaN | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| el slerp: dar vuelta q para ir por el camino corto, el arco con senos y el paso a lineal cerca de cos = 1; las dos comparaciones de `0x5fce90`, una con el cos de la pila y otra con el redondeado, y una rama que con cuaterniones de largo 1 no corre (sí con un NaN o un infinito) | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | una cadena de huesos: la 3 × 4 por filas de Half-Life contra la de glm por columnas, cada hueso por la matriz de su padre (el padre antes), la raíz por la del objeto con su escala, y el skinning rígido: el punto con la traslación, la normal solo con el giro | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | el frame fraccionario: la pose entre dos keys con la parte fraccionaria, la key anterior que guarda el original (`0x4ec200` y `0x4eb860`), y por qué la tabla del 06 va una key atrás | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | slerp, lerp normalizado y ángulos interpolados: cuánto se aparta cada uno del slerp, que con el lerp normalizado crece con el cubo del ángulo entre las keys, y cuándo se ve en una traza (la comparación de `labs/README.md`) | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |

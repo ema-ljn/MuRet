@@ -71,12 +71,14 @@ Data::Textures::Texture TextureOverTheGlLimit(const Platform::GlFunctions& gl)
     GLint maxSide = 0;
     gl.getIntegerv(GL_MAX_TEXTURE_SIZE, &maxSide);
     const int side = static_cast<int>(maxSide) + 1;
+    constexpr Data::Textures::PixelFormat Format = Data::Textures::PixelFormat::Rgba;
+    const std::size_t bytes = static_cast<std::size_t>(side) * Data::Textures::BytesPerPixel(Format);
     return Data::Textures::Texture{.width = side,
                                    .height = 1,
                                    .textureWidth = side,
                                    .textureHeight = 1,
-                                   .format = Data::Textures::PixelFormat::Rgba,
-                                   .pixels = std::vector<std::uint8_t>(static_cast<std::size_t>(side) * 4)};
+                                   .format = Format,
+                                   .pixels = std::vector<std::uint8_t>(bytes)};
 }
 
 const Platform::GlFunctions& GlTestContext::Gl() const

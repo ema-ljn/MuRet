@@ -346,6 +346,19 @@ solo lo lee.
   (Q-C69). Lo que la CL4 hacía sola quedó en `--auto-login` (`AutoLogin`), una vez por vuelta para
   no repetir un rechazo. Sin la VM del laboratorio, el login se miró en Xvfb contra un CS y un GS
   falsos, con capturas fuera de Git; contra el laboratorio queda el paso 7.
+- **Cliente, la CL6 (modelos y selección):** su
+  [plan](../superpowers/plans/2026-11-03-ola-cl6-modelos-y-seleccion.md) y la [guía de la
+  CL6.0](ola-cl6.0-huesos-y-cuaterniones.md). **La CL6.0 la resolvió Claude** el 2026-11-03, como la
+  CL5.0: `AngleQuaternion` (`0x5fcd20`) y `QuaternionMatrix` (`0x5fcdb0`) contra glm, con los senos
+  redondeados a float y los cosenos no, como los deja la x87; el slerp de `0x5fce90`, con la vuelta
+  de q, la primera comparación con el cos de la pila y la segunda con el redondeado, y la rama de
+  los opuestos, que con cuaterniones de largo 1 no corre (sí con un NaN o un infinito); la cadena
+  de huesos con `Concat` (`0x5fca90`), `AngleMatrix` en grados (`0x5fc8f0`) y el skinning rígido;
+  y el jefe: el slerp contra los ángulos interpolados y el lerp normalizado, y en qué key está el
+  original (la tabla del 06 va una key atrás). Son 23 tests, sin GL. Las respuestas, en
+  [`labs/cl6.0-huesos/README.md`](../../labs/cl6.0-huesos/README.md), y la comparación, en
+  [`labs/README.md`](../../labs/README.md). Para cerrarla falta lo tuyo: las preguntas y la sección
+  final de la guía, y explicar los conceptos de abajo.
 
 ## Conceptos
 
@@ -465,6 +478,13 @@ sesión, junto con los de repaso más viejo.
 | ventanas en píxeles del framebuffer, centradas, con sus textos en 640 × 480: la densidad de la pantalla, el mouse acotado como en `0x640940`, y pasar de un espacio al otro truncando como la x87 (`DesignX`) | CL5.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | una máquina de estados de red que espera al jugador: estados sin tope ni keepalive, lo que llega fuera de turno ignorado con un aviso, y un resultado guardado para que la UI elija el aviso; y un modo sin UI (`AutoLogin`) que hace lo del jugador una vez por vuelta, para no quedar en un lazo | CL5.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | la UI que sigue al modelo: mirar el estado en cada paso y actuar solo cuando cambia, también después de lo que pidió el jugador; una sola ventana atendida por paso, la de arriba, para que el Enter que cierra una no le llegue a la que se abre; y una escena que pide cerrar el juego en vez de cerrarlo | CL5.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| un giro como ángulos de Euler: el orden de los ejes, el gimbal lock (con el pitch en 90° solo cuenta x − z), y por qué interpolar los ángulos puede dar la vuelta larga | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| un cuaternión unitario: los medios ángulos de `AngleQuaternion`, su matriz (`QuaternionMatrix`), q y −q como el mismo giro, y el orden x, y, z, w contra el constructor de cuatro de glm, que toma la w primero (`glm::quat::wxyz`) | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| el slerp: dar vuelta q para ir por el camino corto, el arco con senos y el paso a lineal cerca de cos = 1; las dos comparaciones de `0x5fce90`, una con el cos de la pila y otra con el redondeado, y una rama que con cuaterniones de largo 1 no corre (sí con un NaN o un infinito) | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| una cadena de huesos: la 3 × 4 por filas de Half-Life contra la de glm por columnas, cada hueso por la matriz de su padre (el padre antes), la raíz por la del objeto con su escala, y el skinning rígido: el punto con la traslación, la normal solo con el giro | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| el frame fraccionario: la pose entre dos keys con la parte fraccionaria, la key anterior que guarda el original (`0x4ec200` y `0x4eb860`), y por qué la tabla del 06 va una key atrás | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| slerp, lerp normalizado y ángulos interpolados: cuánto se aparta cada uno del slerp, que con el lerp normalizado crece con el cubo del ángulo entre las keys, y cuándo se ve en una traza (la comparación de `labs/README.md`) | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| la x87 con la precisión en 53 bits (`_controlfp` en `0x6a4b73`): qué queda en la pila como double y qué se redondea a float en cada store, y probar unos tests con mutantes a mano, uno equivalente incluido | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

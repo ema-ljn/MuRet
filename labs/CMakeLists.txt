@@ -104,6 +104,18 @@ target_include_directories(MuRetLabsCl50Gl PUBLIC cl5.0-pipeline/gl)
 target_link_libraries(MuRetLabsCl50Gl PUBLIC MuRetLabsCl50 ClientPlatform)
 muret_set_warnings(MuRetLabsCl50Gl)
 
+# La CL6.0 (docs/learning/ola-cl6.0-huesos-y-cuaterniones.md): los cuaterniones de Half-Life a mano
+# (AngleQuaternion y QuaternionMatrix), el slerp de 0x5fce90 y una cadena de huesos con el skinning
+# rígido. Sin GL y sin glm: glm entra solo en los tests, para comparar.
+add_library(MuRetLabsCl60 STATIC
+    cl6.0-huesos/Bones.cpp
+    cl6.0-huesos/Quaternion.cpp
+    cl6.0-huesos/Slerp.cpp
+)
+target_include_directories(MuRetLabsCl60 PUBLIC cl6.0-huesos)
+target_compile_features(MuRetLabsCl60 PUBLIC cxx_std_20)
+muret_set_warnings(MuRetLabsCl60)
+
 if(MURET_BUILD_TESTS)
     find_package(GTest CONFIG REQUIRED)
     include(GoogleTest)
@@ -173,4 +185,16 @@ if(MURET_BUILD_TESTS)
     target_link_libraries(LabCl50GlTests PRIVATE MuRetLabsCl50Gl GTest::gtest GTest::gtest_main)
     muret_set_warnings(LabCl50GlTests)
     gtest_discover_tests(LabCl50GlTests TEST_PREFIX "LabCl50Gl." PROPERTIES LABELS gl TIMEOUT 60)
+
+    # Los de la CL6.0, con el prefijo LabCl60.: comparan lo de a mano con glm::quat, glm::mat3_cast,
+    # glm::slerp y glm::mat4x3. Sin GL: corren en los dos sistemas.
+    add_executable(LabCl60Tests
+        cl6.0-huesos/test_bones.cpp
+        cl6.0-huesos/test_quaternion.cpp
+        cl6.0-huesos/test_slerp.cpp
+        cl6.0-huesos/jefe/test_original_pose.cpp
+    )
+    target_link_libraries(LabCl60Tests PRIVATE MuRetLabsCl60 glm::glm-header-only GTest::gtest GTest::gtest_main)
+    muret_set_warnings(LabCl60Tests)
+    gtest_discover_tests(LabCl60Tests TEST_PREFIX "LabCl60.")
 endif()

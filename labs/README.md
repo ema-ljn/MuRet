@@ -2,8 +2,8 @@
 
 El código de las N.0: lo que se construye desde cero para aprender un concepto, antes de usar el
 estándar en el servidor o en el cliente. Lo escribe Emanuel; la 0.0, la CL2.0, la CL3.0, la
-CL4.0 y la CL5.0 las resolvió Claude a su pedido. Cada carpeta es una N.0 y su guía está en
-[`docs/learning/`](../docs/learning/README.md).
+CL4.0, la CL5.0 y la CL6.0 las resolvió Claude a su pedido. Cada carpeta es una N.0 y su guía está
+en [`docs/learning/`](../docs/learning/README.md).
 
 | Carpeta | N.0 | Guía |
 | --- | --- | --- |
@@ -12,6 +12,7 @@ CL4.0 y la CL5.0 las resolvió Claude a su pedido. Cada carpeta es una N.0 y su 
 | [`cl3.0-bucle/`](cl3.0-bucle/) | el bucle de juego: el paso fijo con acumulador, el reloj de `GetTickCount` y el jefe, el bucle de `0x637700` y la espiral que no tiene. Resuelta como ejemplo, con las respuestas en su [README](cl3.0-bucle/README.md) | [ola-cl3.0](../docs/learning/ola-cl3.0-el-bucle-de-juego.md) |
 | [`cl4.0-sockets/`](cl4.0-sockets/) | sockets no bloqueantes: el socket con RAII, el `connect` como máquina de estados y `SO_ERROR`, el `send` que toma menos y la cola con cursor, y el jefe Q-C11, el drenaje de `0x4e87b0`. Resuelta como ejemplo, con las respuestas en su [README](cl4.0-sockets/README.md) | [ola-cl4.0](../docs/learning/ola-cl4.0-sockets-no-bloqueantes.md) |
 | [`cl5.0-pipeline/`](cl5.0-pipeline/) | el pipeline gráfico: el quad de `0x621b60` con la y dada vuelta y la escala del binario, la matriz de `gluOrtho2D` contra glm, de fan a triángulos, el jefe (el NDC del original y el viewport de `0x620db0`) y, en `gl/`, el quad dibujado en un framebuffer con Xvfb. Resuelta como ejemplo, con las respuestas en su [README](cl5.0-pipeline/README.md) | [ola-cl5.0](../docs/learning/ola-cl5.0-el-pipeline-grafico.md) |
+| [`cl6.0-huesos/`](cl6.0-huesos/) | huesos y cuaterniones: `AngleQuaternion` y `QuaternionMatrix` contra glm, el slerp de `0x5fce90` con sus dos comparaciones y la rama que no corre, la cadena de huesos con el skinning rígido, y el jefe (el slerp contra los ángulos y el lerp normalizado, y en qué key está el original). Resuelta como ejemplo, con las respuestas en su [README](cl6.0-huesos/README.md) | [ola-cl6.0](../docs/learning/ola-cl6.0-huesos-y-cuaterniones.md) |
 
 Los tests de la 0.0 son ejecutables que salen con 0 o con 1, registrados con `add_test()`; desde
 la CL2.0, de GoogleTest. Se corren con CTest:
@@ -133,3 +134,38 @@ el paso 7 del plan.
   adentro, pero no con lo que tiene antes y después, y el original no lo hace.
 - **Lo que va al producto:** un VBO que se llena por frame con todo el 2D (la CL5.2), y un comando
   por tramo de la misma textura y mezcla, en el orden en que la escena los pidió.
+
+## CL6.0: slerp, lerp normalizado y ángulos interpolados
+
+La actividad 12 de la
+[guía](../docs/learning/ola-cl6.0-huesos-y-cuaterniones.md#12-comparar-slerp-lerp-normalizado-y-ángulos),
+el paso 6 del plan. Los números salen del jefe
+(`OriginalPoseTest.NlerpHidesBelowTheTraceErrorAndEulerDoesNot`).
+
+- **Medido.** Un vértice a 50 de su hueso, lo más lejos que se aparta del slerp del original entre
+  t = 0 y 1, cada 0,01:
+
+  | Keys | Lerp normalizado | Ángulos interpolados |
+  | --- | --- | --- |
+  | (10°, 20°, 30°) a (12°, 24°, 36°), 6,9° | 0,00035 | 0,039 |
+  | (30°, 40°, 50°) a (50°, 20°, 80°), 33° | 0,037 | 1,66 |
+
+- **Respuesta: por qué el 05 distingue a uno y no al otro.** El slerp y el lerp normalizado
+  recorren el mismo arco, a velocidad distinta: la diferencia crece con el cubo del ángulo entre
+  las keys (de 6,9° a 33°, 4,8 veces más ángulo, 107 veces más diferencia), y entre keys de unos
+  grados es de milésimas, debajo del 0,015 del ajuste de la selección en el 06. Los ángulos
+  interpolados recorren otro camino, y el error crece con lo que cambian los ejes a la vez: 0,039
+  con 6,9°, más del doble del ajuste.
+- **No vale para cualquier par.** Con keys a 33°, el lerp normalizado ya se aparta 0,037, y en la
+  traza se vería. Los ángulos siguen 44 veces peor.
+- **Lo que cuesta cada uno, por hueso.** El slerp del original, un `acos`, tres senos y dos
+  divisiones. El lerp normalizado, una raíz y cuatro divisiones (o una multiplicación por la
+  inversa). Los ángulos interpolados, seis senos y cosenos, los de `AngleQuaternion`. Con los 60
+  huesos de `Player.bmd` (05) y los cinco personajes de la selección, no hay diferencia que medir.
+- **Respuesta a la pregunta.** El test contra la traza de la CL6.2 (0,02 de tolerancia) no
+  encontraría el lerp normalizado entre keys cercanas. Igual conviene el del original: es lo que
+  se espera de esa función (`docs/CODING_RULES.md` § 10), y si alguna acción tiene keys lejanas, la
+  diferencia aparece donde nadie la busca.
+- **Lo que va al producto:** el slerp de `0x5fce90` tal cual, con sus dos comparaciones y la
+  vuelta de `q` (la CL6.2), no `glm::slerp`: los dos dan lo mismo a 1,8e-7 en el lab, pero el de
+  glm pasa a lineal en otro lugar.

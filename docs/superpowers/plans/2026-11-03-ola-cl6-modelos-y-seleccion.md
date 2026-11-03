@@ -356,37 +356,44 @@ qué no `EXPECT_FLOAT_EQ` después de una cadena de productos).
   con `gtest_discover_tests(... TEST_PREFIX "LabCl60.")`, enlazado con `glm::glm-header-only`
   como `LabCl50Tests`), `labs/README.md`
 
-- [ ] **Paso 1 (Claude):** la guía, justo antes de empezar.
-- [ ] **Paso 2 (Emanuel, `TODO(human)`):** `Labs::AngleQuaternion(std::array<float, 3> radians)
-  -> Quat` y `Labs::QuaternionMatrix(Quat) -> std::array<std::array<float, 4>, 3>` (la 3 × 4 por
-  filas, con la traslación en 0). Primero los tests: `QuaternionTest.AQuarterTurnAroundZ` ((0, 0,
-  π/2) da (0, 0, √½, √½)), `MatchesGlmForAnyAngles` (una grilla de ángulos de −π a π contra
-  `glm::quat(glm::vec3)`, componente a componente), `TheMatrixIsTheSameRotation` (contra
-  `glm::mat3_cast`, dando vuelta filas y columnas), `QAndMinusQAreTheSameMatrix`.
-- [ ] **Paso 3 (Emanuel):** `Labs::HalfLifeSlerp(Quat p, Quat q, float t) -> Quat`, como
-  `0x5fce90`: la vuelta si Σ(p − q)² > Σ(p + q)², lineal si 1 − cos ≤ 1e-8 (en double, con el cos
-  ya redondeado a float) y el caso perpendicular. Tests: `SlerpTest.HalfWayIsTheMiddleRotation`,
-  `TheFlipIsGlmsForUnitQuaternions` (para unitarios, Σ(p − q)² > Σ(p + q)² es el producto
-  negativo: mismo resultado que `glm::slerp` con tolerancia),
+- [x] **Paso 1 (Claude):** la guía, justo antes de empezar.
+- [x] **Paso 2 (Emanuel, `TODO(human)`; lo resolvió Claude):**
+  `Labs::AngleQuaternion(std::array<float, 3> radians) -> Quat` y `Labs::QuaternionMatrix(Quat) ->
+  std::array<std::array<float, 4>, 3>` (la 3 × 4 por filas, con la traslación en 0). Primero los
+  tests: `QuaternionTest.AQuarterTurnAroundZ` ((0, 0, π/2) da (0, 0, √½, √½)),
+  `MatchesGlmForAnyAngles` (una grilla de ángulos de −π a π contra `glm::quat(glm::vec3)`,
+  componente a componente), `TheMatrixIsTheSameRotation` (contra `glm::mat3_cast`, dando vuelta
+  filas y columnas), `QAndMinusQAreTheSameMatrix`. Con `GlmTakesTheWFirst`, el orden del constructor
+  de cuatro de `glm::quat`.
+- [x] **Paso 3 (Emanuel; lo resolvió Claude):** `Labs::HalfLifeSlerp(Quat p, Quat q, float t) ->
+  Quat`, como `0x5fce90`: la vuelta si Σ(p − q)² > Σ(p + q)², lineal si 1 − cos ≤ 1e-8 (en double,
+  con el cos ya redondeado a float) y el caso perpendicular. Tests:
+  `SlerpTest.HalfWayIsTheMiddleRotation`, `TheFlipIsGlmsForUnitQuaternions` (para unitarios,
+  Σ(p − q)² > Σ(p + q)² es el producto negativo: mismo resultado que `glm::slerp` con tolerancia),
   `GoesLinearOnlyBelowOneInAHundredMillion` (con el cos en `std::nextafter(1.0f, 0.0f)`, o sea
   1 − cos = 2⁻²⁴, unos 6e-8: Half-Life usa senos y glm ya es lineal; con el cos en 1, los dos son
   lineales; se ve qué rama corre con `Labs::SlerpBranch(p, q)`),
-  `ThePerpendicularCaseNeverRunsAfterTheFlip`.
-- [ ] **Paso 4 (Emanuel):** `Labs::PoseChain(std::span<const Labs::Bone>) ->
-  std::vector<Matrix34>` (cada hueso con su padre, posición y ángulos; el padre antes) y
-  `Labs::Transform(const Matrix34&, std::array<float, 3>)`. Tests:
-  `BonesTest.AChildFollowsItsParent` (un brazo de tres huesos con el hombro girado 90°: la mano
-  cae donde se calcula a mano), `TheRootHangsFromTheObject` (la raíz con la matriz de un objeto en
-  (100, 0, 0)), `RowsAgainstColumns` (la misma matriz en `glm::mat4x3`: `m[3]` es la traslación,
-  y en la 3 × 4 es la columna 3), `TheNormalOnlyRotates`.
-- [ ] **Paso 5 (Emanuel, jefe):** `LabCl60Jefe.SlerpBeatsEulerBetweenTwoKeys`: un hueso con dos
-  keys de ángulos (0, 0, 170°) y (0, 0, −170°): a mitad de camino, el lerp de los ángulos da 0°
-  (la vuelta larga) y el slerp da 180°; y `TheOriginalStoresTheNextKey`: con el frame f de la
-  tabla del 06, el original guarda f + 1 y ⌊f⌋ como anterior (06 § Cuánto avanza la animación),
-  y las dos maneras dan la misma pose.
-- [ ] **Paso 6 (Emanuel, lo anota en `labs/README.md`):** por qué 05 dice que slerp y nlerp no se
-  distinguen en la traza y el lerp de ángulos sí, con los números del paso 5.
-- [ ] **Paso 7:** verificar:
+  `ThePerpendicularCaseNeverRunsAfterTheFlip`. Con `SlerpBranchForCosine` (la primera comparación ve
+  el cos de la pila, la segunda el redondeado: `EachComparisonSeesItsOwnCosine`),
+  `ANanOrAnInfinityReachesTheOppositeBranch` y la igualdad de `0x5fc700` (`AlmostEqual`).
+- [x] **Paso 4 (Emanuel; lo resolvió Claude):** `Labs::PoseChain(std::span<const Labs::Bone>, const
+  Matrix34& object) -> std::optional<std::vector<Matrix34>>` (cada hueso con su padre, su posición y
+  su giro; `nullopt` si un padre no está antes) y `Labs::Transform(const Matrix34&,
+  std::array<float, 3>)`. Tests: `BonesTest.AChildFollowsItsParent` (un brazo de tres huesos con el
+  hombro girado 90°: la mano cae donde se calcula a mano), `TheRootHangsFromTheObject` (la raíz con
+  la matriz de un objeto en (100, 0, 0)), `RowsAgainstColumns` (la misma matriz en `glm::mat4x3`:
+  `m[3]` es la traslación, y en la 3 × 4 es la columna 3), `TheNormalOnlyRotates`,
+  `AParentAfterItsChildIsRefused` y `AngleMatrixIsTheQuaternionRotation` (`0x5fc8f0`, en grados).
+- [x] **Paso 5 (Emanuel, jefe; lo resolvió Claude):**
+  `OriginalPoseTest.SlerpBeatsEulerBetweenTwoKeys`: un hueso con dos keys de ángulos (0, 0, 170°) y
+  (0, 0, −170°): a mitad de camino, el lerp de los ángulos da 0° (la vuelta larga) y el slerp da
+  180°; y `TheOriginalStoresTheNextKey`: con el frame f de la tabla del 06, el original guarda f + 1
+  y ⌊f⌋ como anterior (06 § Cuánto avanza la animación), y las dos maneras dan la misma pose. Con
+  `NlerpHidesBelowTheTraceErrorAndEulerDoesNot` (los números del paso 6) y
+  `TheJumpsAreStepsOfTheAction` (33, 33, 34 y 34 pasos de 0,26).
+- [x] **Paso 6 (Emanuel, lo anota en `labs/README.md`; lo resolvió Claude):** por qué 05 dice que
+  slerp y nlerp no se distinguen en la traza y el lerp de ángulos sí, con los números del paso 5.
+- [x] **Paso 7:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "LabCl60"
   ```

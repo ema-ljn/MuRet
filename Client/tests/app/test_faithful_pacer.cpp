@@ -30,6 +30,7 @@ using Client::App::PacingMode;
 using Client::App::TickCountMs;
 using Client::App::WindowState;
 using Client::Tests::FakeClock;
+using Client::Tests::LoopCall;
 using Client::Tests::RecordingClient;
 
 // En la grilla de 15,625 ms nunca se mide 40: con una espera de 32 a 46 ms pasarían los mismos
@@ -201,6 +202,34 @@ TEST(FaithfulPacerTest, MinimizedKeepsTheWait)
     EXPECT_EQ(faithful.loop.Stats().steps, 74u);
     EXPECT_EQ(faithful.loop.RunFrame(minimized, faithful.input), 2);
     EXPECT_TRUE(faithful.client.alphas.empty());
+}
+
+// Con el frame retenido (Q-C85), como minimizada: la espera de GetTickCount sigue y no dibuja.
+TEST(FaithfulPacerTest, AHeldFrameKeepsTheWait)
+{
+    FaithfulLoop faithful;
+    faithful.client.holdsTheLastFrame = true;
+    faithful.StepsPerFrame(64);
+
+    EXPECT_EQ(faithful.clock.Now(), 3s);
+    EXPECT_EQ(faithful.loop.Stats().steps, 74u);
+    EXPECT_TRUE(faithful.client.alphas.empty());
+
+    faithful.client.holdsTheLastFrame = false;
+    faithful.StepsPerFrame(1);
+    EXPECT_EQ(faithful.client.alphas.size(), 1u);
+}
+
+// Como en Decoupled, el frame retenido se mira después de los pasos: el del primer frame lo prende
+// y ese frame ya no se dibuja.
+TEST(FaithfulPacerTest, AHoldFromAStepSkipsThatFramesDrawing)
+{
+    FaithfulLoop faithful;
+    faithful.client.holdsAfterAStep = true;
+
+    EXPECT_EQ(faithful.loop.RunFrame(WindowState{}, faithful.input), 1);
+
+    EXPECT_EQ(faithful.client.calls, (std::vector<LoopCall>{LoopCall::Poll, LoopCall::Step}));
 }
 
 // El dibujo del modo fiel no se interpola: el estado después de los pasos.

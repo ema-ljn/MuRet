@@ -34,6 +34,7 @@ public:
     void Poll() override;
     void Step(const Input::InputState& input) override;
     void Render(float alpha) override;
+    [[nodiscard]] bool HoldsTheLastFrame() const override;
 
     Core::Duration pollCost{};
     Core::Duration stepCost{};
@@ -44,6 +45,11 @@ public:
     std::vector<LoopCall> calls;
     // Uno por dibujo.
     std::vector<float> alphas;
+    // Lo que contesta HoldsTheLastFrame: si el bucle tiene que dejar el último frame.
+    bool holdsTheLastFrame = false;
+    // Si cada paso lo prende, como el que entra al login y conecta: así un test ve que el bucle lo
+    // mira después de los pasos.
+    bool holdsAfterAStep = false;
     // La tecla que mira cada paso; Count, que nunca se aprieta, si el test no mira ninguna.
     Input::Key watchedKey = Input::Key::Count;
     // Uno por paso: si ese paso vio el apretón de watchedKey (WasPressed).

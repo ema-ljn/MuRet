@@ -117,6 +117,12 @@ constexpr int NoSlot = -1;
     return std::ranges::any_of(WindowTextureSet, [slot](const Data::Textures::TextureSetEntry& entry)
                                { return entry.slot == slot.value; });
 }
+
+// Los dos estados del connect, que en el original es bloqueante (Q-C85).
+[[nodiscard]] bool IsConnecting(App::SessionState state)
+{
+    return state == App::SessionState::ConnectingConnectServer || state == App::SessionState::ConnectingGameServer;
+}
 } // namespace
 
 std::string PlaceVersion(std::string_view text, std::string_view version)
@@ -472,5 +478,18 @@ bool LoginScene::WantsToQuit() const
 bool LoginScene::WantsTextInput() const
 {
     return m_login.IsOpen();
+}
+
+bool LoginScene::HoldsTheLastFrame() const
+{
+    if (m_session == nullptr)
+    {
+        return false;
+    }
+    // Conectando, y también con lo que el paso todavía no vio (desde Enter, o un Poll que cambió el
+    // estado en un frame sin pasos): un connect que falla enseguida sale en ese Poll, y el frame
+    // sería el login sin el aviso.
+    const App::SessionState state = m_session->State();
+    return IsConnecting(state) || m_seen != state;
 }
 } // namespace Client::Scenes

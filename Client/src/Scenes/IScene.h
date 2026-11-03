@@ -38,5 +38,8 @@ public:
     // del login (CL5.5). main.cpp prende el texto de SDL solo mientras tanto
     // (SDL_StartTextInput) y lo apaga cuando deja de pedirlo, después de cada frame.
     [[nodiscard]] virtual bool WantsTextInput() const = 0;
+    // Si el frame de ahora no se dibuja y queda el anterior (ILoopClient::HoldsTheLastFrame): el
+    // login mientras conecta, que en el original es un connect bloqueante (Q-C85).
+    [[nodiscard]] virtual bool HoldsTheLastFrame() const = 0;
 };
 } // namespace Client::Scenes

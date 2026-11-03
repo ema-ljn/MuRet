@@ -2,8 +2,11 @@
 
 > **Para agentes:** usar `superpowers:executing-plans` para ejecutar una tarea autorizada, o
 > `superpowers:subagent-driven-development` si Emanuel elige ejecución delegada. Los pasos se
-> siguen con checkbox. **AGENTS.md manda:** `(Emanuel)` y `TODO(human)` no autorizan al agente
-> a escribir lógica ni resolver ejercicios. Este pedido autoriza documentar el seguimiento.
+> siguen con checkbox. **Quién escribe:** desde el 2026-11-02, Claude escribe el código del
+> cliente, también los pasos `(Emanuel)` y `TODO(human)`, hasta que Emanuel diga que participa
+> (PROGRESS los marca "resuelto por Claude"). Para este plan, Emanuel eligió el 2026-11-03 que
+> Claude haga T3 ya, antes de que entre la CL5.4, y T2 y T4 después. Los ADR 0001 y 0002 del
+> camino de aprendizaje siguen siendo de Emanuel.
 
 **Objetivo:** cerrar los hallazgos de la auditoría del 2026-11-03 con una regresión y un PR por
 concepto, manteniendo el contrato 1.02i y el rol de tutor.
@@ -28,16 +31,16 @@ Los nombres de tests nuevos que aparecen abajo son **propuestos**, no tests ya i
 | Unidad | Hallazgo | Estado | PR propuesto |
 | --- | --- | --- | --- |
 | DOC | Informe y este plan | Documentados; revisión pendiente | `docs(client): registrar la auditoría y su seguimiento` |
-| T1 | AUD-C01, escritura append entre sinks | Lista para empezar por el test rojo | `fix(client): conservar las líneas de otros sinks tras vaciar el log` |
-| T2 | AUD-C02, fallo de escritura observable | Mini-spec de interfaz pendiente antes del test | `fix(client): informar los fallos de escritura del log` |
-| T3 | AUD-C03, fallo del driver al subir | Contrato de errores previos a confirmar antes del test | `fix(client): rechazar una subida de textura que falla en GL` |
-| T4 | AUD-C04, registro de decisiones | Inventario documental pendiente | `docs(client): ordenar las decisiones de compatibilidad pendientes` |
+| T1 | AUD-C01, escritura append entre sinks | Hecha en el #78, con su test rojo y verde | `fix(client): conservar las líneas de otros sinks tras vaciar el log` |
+| T2 | AUD-C02, fallo de escritura observable | Claude, después de T3; mini-spec antes del test | `fix(client): informar los fallos de escritura del log` |
+| T3 | AUD-C03, fallo del driver al subir | Claude, ya, antes de la CL5.4 | `fix(client): rechazar una subida de textura que falla en GL` |
+| T4 | AUD-C04, registro de decisiones | Claude el índice, después de T3; los ADR 0001 y 0002, Emanuel | `docs(client): ordenar las decisiones de compatibilidad pendientes` |
 | R1 a R4 | REF-C01 a REF-C04 | Opcionales, por separado | Un PR por refactor que se decida tomar |
 
-Empezar por T1. T2 y T3 pueden prepararse por separado; no dependen de un refactor de config.
-Revisar T3 antes de integrar la tabla de texturas en las escenas de CL5. T4 puede avanzar como
-documentación independiente. Ningún checkbox de esta lista significa que una corrección esté
-hecha hasta enlazar su PR y registrar su verificación.
+T1 está en el #78. Sigue T3, antes de que la CL5.4 conecte la tabla de texturas con las escenas (la
+caché del texto de la CL5.3 ya sube por `GlTexture`). T2 no depende de un refactor de config. T4
+puede avanzar como documentación independiente. Ningún checkbox de esta lista significa que una
+corrección esté hecha hasta enlazar su PR y registrar su verificación.
 
 ## Restricciones globales
 
@@ -53,8 +56,9 @@ hecha hasta enlazar su PR y registrar su verificación.
 - No versionar assets, claves, cable, volcados, caches, resultados generados ni rutas locales.
 - Los PR citan CL3.4 o CL5.1, el ID `AUD-Cxx` y la sección del research. Las APIs y firmas
   indicadas abajo describen el alcance del plan; su fuente de verdad sigue siendo el código.
-- El tutor puede preparar andamiaje autorizado y revisar con pistas. El código marcado
-  `(Emanuel)` o `TODO(human)` queda para Emanuel salvo pedido explícito suyo.
+- Claude escribe los pasos marcados `(Emanuel)` o `TODO(human)` mientras siga la decisión del
+  2026-11-02, y los marca como resueltos por Claude. Si Emanuel retoma una tarea, la marca vuelve
+  a ser suya.
 
 ## Foco de revisión
 
@@ -69,7 +73,7 @@ hecha hasta enlazar su PR y registrar su verificación.
 5. Ya había un error de GL antes de la llamada: no se lo atribuye a la nueva subida ni se
    publica un éxito sin explicar la frontera de errores (T3, `ReportsAPreexistingGlError`).
 
-## T1 — Append después de vaciar el log (Emanuel)
+## T1 — Append después de vaciar el log (#78)
 
 **Archivos:** modificar `Client/src/Core/FileSink.cpp`; test en
 `Client/tests/core/test_file_sink.cpp`. Revisar los comentarios de `FileSink.h` y Q-C48 solo
@@ -104,7 +108,7 @@ ctest --preset linux-x64-debug -R '^FileSinkTest\.' --no-tests=error
 **Límite:** que B vacíe mensajes anteriores de A es la tensión de retención señalada en el
 informe. T1 no cambia esa decisión; su aclaración corresponde a T4.
 
-## T2 — Fallo de escritura observable (Emanuel)
+## T2 — Fallo de escritura observable (Claude)
 
 **Archivos:** `Client/src/Core/FileSink.h/.cpp`,
 `Client/tests/core/test_file_sink.cpp`; según la mini-spec, el punto de notificación en
@@ -141,7 +145,7 @@ ctest --preset linux-x64-debug -R '^(FileSinkTest|TeeSinkTest|LogTest)\.' --no-t
 
 El caso `/dev/full` por sí solo no certifica el comportamiento de Windows.
 
-## T3 — Publicar la textura solo si la subida funcionó (Emanuel)
+## T3 — Publicar la textura solo si la subida funcionó (Claude)
 
 **Archivos:** `Client/src/Render/Gl/GlTexture.h/.cpp`,
 `Client/src/Render/Gl/TextureTable.cpp`,
@@ -182,7 +186,7 @@ MURET_CLIENT_REQUIRE_GL=1 xvfb-run -a ctest --preset linux-x64-debug -L '^gl$' -
 La limitación de LeakSanitizer/EGL de la auditoría es evidencia pendiente. No trasladar
 `detect_leaks=0` al CI como parte de esta corrección.
 
-## T4 — Trazabilidad de decisiones (Emanuel y tutor)
+## T4 — Trazabilidad de decisiones (Claude y Emanuel)
 
 **Archivos:** crear `docs/adr/README.md` como índice de pendientes; revisar la introducción de
 `docs/superpowers/specs/2026-10-30-cliente-design.md`, y los comentarios de Q-C48 y `FileSink.h`.

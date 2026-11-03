@@ -17,10 +17,10 @@
 // se dibuja va al framebuffer del test, no a la ventana.
 //
 // Usa lo que ya tiene el cliente: SdlContext para SDL_Init y SDL_Quit, los deleters de la ventana y
-// del contexto de Platform/Window.h, LoadGlFunctions (las cinco de la CL0.3, que alcanzan para
-// preguntar la versión) y los chequeos de la versión y del perfil. Recién con un 3.3 core pide el
-// resto, con LoadLabGl. No usa Window::Create porque esa ventana se muestra, es de 640 × 480 y pide
-// VSync, que un test no necesita.
+// del contexto de Platform/Window.h y LoadGlFunctions, que desde la CL5.1 mira la versión y el
+// perfil antes de pedir el resto. Sobre esa tabla pide la del lab, con LoadLabGl. No usa
+// Window::Create porque esa ventana se muestra, es de 640 × 480 y pide VSync, que un test no
+// necesita. El cliente tiene la suya para sus tests: Client/tests/support/GlTestContext.
 namespace Labs
 {
 // Con "1", un test que no puede abrir OpenGL falla en vez de saltearse: el paso de Xvfb del CI la

@@ -79,16 +79,42 @@ namespace:
 - Seguí el estilo del código que está alrededor. No inventes una convención nueva en un archivo.
 - Includes mínimos: solo lo que el archivo usa, y todo lo que usa. Un header compila solo, con sus
   propios includes, y un archivo no cuenta con lo que le llega por el include de otro (Core
-  Guidelines SF.10 y SF.11): si usa `std::vector`, incluye `<vector>`. Si un header solo nombra un
-  tipo por puntero o referencia, alcanza con declararlo (`class ISocket;`). No hay `stdafx.h` que
-  incluir: los precompiled headers los arma CMake y los fuerza solo
+  Guidelines SF.10 y SF.11): si usa `std::vector`, incluye `<vector>`, y un `.cpp` incluye lo que
+  usa aunque su header ya lo traiga. Si un header solo nombra un tipo por puntero o referencia,
+  alcanza con declararlo (`class ISocket;`). De SDL3 va el header de cada parte
+  (`<SDL3/SDL_video.h>`, no `<SDL3/SDL.h>`), y los tipos y constantes de GL llegan por
+  `Platform/GlLoader.h`, nunca por `SDL_opengl.h` directo. No hay `stdafx.h` que incluir: los
+  precompiled headers los arma CMake y los fuerza solo
   ([`cmake/PrecompiledHeaders.cmake`](../cmake/PrecompiledHeaders.cmake)), con la biblioteca
   estándar. Son para compilar más rápido, no reemplazan ningún include, y el job de Linux del CI
   compila sin ellos para que lo que falte falle.
+- Lo verifica `misc-include-cleaner` de clang-tidy 18 en `Client/`: el job de Linux del CI lo
+  corre y corta con cualquier hallazgo, sea un include que falta o uno que sobra. El check mira
+  solo el archivo principal de cada compilación, así que los headers van aparte, de a uno. A mano
+  se corre así, con el `compile_commands.json` de un build sin precompiled headers
+  (`-DMURET_PRECOMPILED_HEADERS=OFF`): clang-tidy no lee el `.gch` de GCC y corta con un error.
+
+  ```bash
+  run-clang-tidy-18 -p build/linux-x64-debug -quiet -checks='-*,misc-include-cleaner' \
+    'Client/(src|tests)/'
+  git ls-files -z 'Client/src/*.h' 'Client/tests/*.h' \
+    | xargs -0 -n 8 clang-tidy-18 -p build/linux-x64-debug -quiet -checks='-*,misc-include-cleaner'
+  ```
+
+- Si un include hace falta pero el archivo no nombra nada de él, el check lo da por sobrante. Ahí
+  va `// IWYU pragma: keep`, con un comentario que diga por qué: `<SDL3/SDL_main.h>` en
+  `main.cpp`, que cambia `main` en Windows, o `<compare>` para un `operator<=>` por defecto. Un
+  header que reexporta otro a propósito lo marca con `// IWYU pragma: export` (`SDL_opengl.h` en
+  `Platform/GlLoader.h`), y uno que siempre se incluye por lo que trae, sin nombrarlo, con
+  `// IWYU pragma: always_keep` (los `*Printers.h` de los tests, cuyo `PrintTo` busca GoogleTest).
+  Los headers que nadie incluye a mano, como los `bits/` de libstdc++, están en el
+  `IgnoreHeaders` de `.clang-tidy`.
 - Comentarios, mensajes y docs en castellano; identificadores y nombres de tests en inglés
   (`Feed`, `TEST(PacketReaderTest, CutsAC1)`).
-- `.editorconfig` fija espacios, LF y UTF-8; `.clang-tidy` (el de MuMain, con las carpetas de
-  MuRet) se corre a mano: `run-clang-tidy -p build/linux-x64-debug -quiet 'Client/(src|tests)/'`.
+- `.editorconfig` fija espacios, LF y UTF-8. `.clang-tidy` es el de MuMain, con las carpetas de
+  MuRet y `misc-include-cleaner`. CI corre solo el de los includes. El resto todavía tiene
+  hallazgos en `Client/` y se corre a mano:
+  `run-clang-tidy -p build/linux-x64-debug -quiet 'Client/(src|tests)/'`.
 
 ### Nombres (decidido el 2026-11-02, alineado con el código nuevo de MuMain)
 

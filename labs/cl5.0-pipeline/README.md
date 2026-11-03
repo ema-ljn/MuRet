@@ -42,21 +42,18 @@ en el fallo.
 
 La ventana escondida (`HiddenGlWindow`) usa lo que ya está en `ClientPlatform`: `SdlContext` para
 `SDL_Init` y `SDL_Quit`, los deleters de la ventana y del contexto de `Platform/Window.h`,
-`LoadGlFunctions` (las cinco funciones de la CL0.3, que alcanzan para preguntar la versión),
-`HasRequiredGlVersion`, `IsCoreProfile`, `GlString`, `IsValidProcAddress` y la versión pedida
-(`GlMajorVersion` y `GlMinorVersion`). No usa `Window::Create`, porque esa ventana se muestra, es de
-640 × 480 y pide VSync, que un test no necesita.
+`LoadGlFunctions` y la versión pedida (`GlMajorVersion`, `GlMinorVersion` y `GlVersionText`). No
+usa `Window::Create`, porque esa ventana se muestra, es de 640 × 480 y pide VSync, que un test no
+necesita.
 
-Lo que el cliente no tiene todavía es la tabla grande: el lab arma la suya con una X-macro
-(`gl/LabGl.h`, la pregunta 5 del plan en chico), 41 funciones sobre las 5 de la CL0.3, con los
-mismos chequeos de `IsValidProcAddress` y el mismo reintento en `opengl32.dll` de Windows. El de
-`Platform/GlLoader.cpp` es interno, así que el lab lo copia (son 12 líneas); la CL5.1 deja uno solo,
-con la X-macro en `Platform/GlFunctionList.h`, y esta lista, con quién usa cada grupo, es su punto
-de partida. `MURET_CLIENT_REQUIRE_GL` se lee como `Client/tests/support/GoldenDir.cpp` lee su
-variable: con `_dupenv_s` en MSVC y `getenv` en lo demás. **Las dos son copias, y se van:** en la
-CL5.1 el lab pasa a pedir sus funciones con el loader de `Platform` (el pedido y el reintento en
-`opengl32.dll` quedan en un solo lugar), y a leer la variable con `Core::ReadEnvironmentVariable`,
-que trae la pila de la CL4 y todavía no está en esta base (CODING_RULES §4).
+Hasta la CL5.1 el lab tenía su propia tabla de 41 funciones y una copia del pedido, del reintento en
+`opengl32.dll` de Windows, de los chequeos de la versión y del perfil y de la lectura de
+`MURET_CLIENT_REQUIRE_GL`. La CL5.1 se las llevó al cliente: la tabla es la X-macro de
+`Platform/GlFunctionList.h`, `LoadGlFunctions` mira la versión y el perfil antes de pedir el resto,
+el pedido de cada función es `Platform::LoadGlFunction`, y la variable se lee con
+`Core::ReadEnvironmentVariable`. En `gl/LabGl.h` queda una sola función, `glDrawElements`, que el
+cliente no usa (dibuja con `glDrawArrays`), pedida con `LoadGlFunction` sobre la tabla del cliente.
+La ventana escondida del cliente para sus propios tests es `Client/tests/support/GlTestContext`.
 
 ## 1. Calentamiento
 

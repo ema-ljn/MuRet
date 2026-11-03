@@ -1,8 +1,9 @@
 #include "HiddenGlWindow.h"
 
+#include "Core/Environment.h"
+
 #include <SDL3/SDL_error.h>
 
-#include <cstdlib>
 #include <memory>
 #include <string>
 #include <utility>
@@ -14,49 +15,14 @@ namespace
 // La ventana no se dibuja: el tamaño da igual, y uno chico pide poco.
 constexpr int HiddenWindowSide = 64;
 
-const std::string& GlVersionText()
-{
-    static const std::string text =
-        std::to_string(Client::Platform::GlMajorVersion) + "." + std::to_string(Client::Platform::GlMinorVersion);
-    return text;
-}
-
-// La versión y el perfil del contexto actual, con las cinco funciones de la CL0.3. Vacío si sirve.
-std::string CheckContext(const Client::Platform::GlFunctions& gl)
-{
-    GLint major = 0;
-    GLint minor = 0;
-    GLint profileMask = 0;
-    gl.getIntegerv(GL_MAJOR_VERSION, &major);
-    gl.getIntegerv(GL_MINOR_VERSION, &minor);
-    // Antes de la 3.0 GL_MAJOR_VERSION no existe y da 0.0: GL_VERSION dice cuál es.
-    const std::string driverVersion = Client::Platform::GlString(gl, GL_VERSION);
-    if (!Client::Platform::HasRequiredGlVersion(major, minor))
-    {
-        return "se pidió OpenGL " + GlVersionText() + " y el driver dio " + std::to_string(major) + "." +
-               std::to_string(minor) + " (" + driverVersion + ")";
-    }
-    gl.getIntegerv(GL_CONTEXT_PROFILE_MASK, &profileMask);
-    if (!Client::Platform::IsCoreProfile(profileMask))
-    {
-        return "se pidió OpenGL " + GlVersionText() + " core y el driver dio un contexto sin el perfil core (" +
-               driverVersion + ")";
-    }
-    return {};
-}
-
-// Con el contexto ya actual: las cinco de la CL0.3, la versión y el perfil, y recién ahí el resto.
+// Con el contexto ya actual: la tabla del cliente, que mira la versión y el perfil antes de pedir
+// el resto (desde la CL5.1), y recién ahí la del lab.
 Client::Core::Expected<LabGl, std::string> LoadCheckedGl()
 {
     const Client::Core::Expected<Client::Platform::GlFunctions, std::string> base = Client::Platform::LoadGlFunctions();
     if (!base.HasValue())
     {
         return Client::Core::Unexpected(base.Error());
-    }
-    std::string contextError = CheckContext(base.Value());
-    if (!contextError.empty())
-    {
-        return Client::Core::Unexpected(std::move(contextError));
     }
     return LoadLabGl(base.Value());
 }
@@ -69,25 +35,7 @@ bool IsGlRequired(const std::optional<std::string>& value)
 
 std::optional<std::string> ReadRequireGl()
 {
-#ifdef _MSC_VER
-    // getenv es "inseguro" para MSVC (C4996), como en Client/tests/support/GoldenDir.cpp.
-    char* value = nullptr;
-    std::size_t size = 0;
-    if (_dupenv_s(&value, &size, RequireGlVariable) != 0 || value == nullptr)
-    {
-        return std::nullopt;
-    }
-    std::string result(value);
-    std::free(value);
-    return result;
-#else
-    const char* value = std::getenv(RequireGlVariable);
-    if (value == nullptr)
-    {
-        return std::nullopt;
-    }
-    return std::string(value);
-#endif
+    return Client::Core::ReadEnvironmentVariable(RequireGlVariable);
 }
 
 HiddenGlWindow::HiddenGlWindow(SdlPtr sdl, WindowPtr window, GlContextPtr context, const LabGl& gl)
@@ -119,7 +67,7 @@ Client::Core::Expected<std::unique_ptr<HiddenGlWindow>, std::string> HiddenGlWin
     GlContextPtr context(SDL_GL_CreateContext(window.get()));
     if (!context)
     {
-        return Client::Core::Unexpected("no se pudo crear el contexto OpenGL " + GlVersionText() +
+        return Client::Core::Unexpected("no se pudo crear el contexto OpenGL " + Client::Platform::GlVersionText() +
                                         " core: " + SDL_GetError());
     }
 

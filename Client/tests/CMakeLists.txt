@@ -10,6 +10,7 @@ include(GoogleTest)
 # se incluyen como "support/...". Usa GoogleTest (GoldenDir marca los tests salteados).
 file(GLOB support_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/support/*.cpp")
 list(FILTER support_sources EXCLUDE REGEX "/test_[^/]*\\.cpp$")
+list(FILTER support_sources EXCLUDE REGEX "/support/GlTestContext\\.cpp$")
 add_library(ClientTestSupport STATIC ${support_sources})
 target_include_directories(ClientTestSupport PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ClientTestSupport PUBLIC ClientLib GTest::gtest)
@@ -19,6 +20,12 @@ target_compile_definitions(ClientTestSupport PUBLIC
     MURET_CLIENT_JPEG_VECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/vectors/jpeg"
     MURET_CLIENT_NET_VECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/vectors/net")
 muret_set_warnings(ClientTestSupport)
+
+# Lo de support/ que abre OpenGL (CL5.1): la ventana escondida con su contexto 3.3 core y la regla
+# de MURET_CLIENT_REQUIRE_GL. Va aparte para que el resto de los tests no enlace SDL3 ni GL.
+add_library(ClientGlTestSupport STATIC support/GlTestContext.cpp)
+target_link_libraries(ClientGlTestSupport PUBLIC ClientTestSupport ClientRender)
+muret_set_warnings(ClientGlTestSupport)
 
 # La carpeta golden llega a los tests como variable de entorno. Se puede fijar acá, al configurar
 # (-DMURET_CLIENT_GOLDEN_DIR=...), o en el entorno al correr ctest. La de los volcados de memoria
@@ -35,12 +42,15 @@ set(MURET_TEST_DISCOVERY_TIMEOUT 60)
 # del laboratorio y con los sanitizers tardan.
 set(MURET_TEST_CASE_TIMEOUT 600)
 
-# muret_add_test(NAME <ejecutable> SOURCES a.cpp [b.cpp ...] [LINK_LIBS lib ...])
+# muret_add_test(NAME <ejecutable> SOURCES a.cpp [b.cpp ...] [LINK_LIBS lib ...] [LABEL <etiqueta>]
+#                [TIMEOUT <segundos>])
 #
 # Como mu_add_test de MuMain: arma el ejecutable, lo enlaza con ClientLib, ClientTestSupport y
-# GoogleTest (con su main), le pone los warnings del repo y registra cada TEST en CTest.
+# GoogleTest (con su main), le pone los warnings del repo y registra cada TEST en CTest. LABEL le
+# pone una etiqueta de CTest a cada uno (`ctest -L`), y TIMEOUT cambia su tope, que si no es
+# MURET_TEST_CASE_TIMEOUT.
 function(muret_add_test)
-    cmake_parse_arguments(MAT "" "NAME" "SOURCES;LINK_LIBS" ${ARGN})
+    cmake_parse_arguments(MAT "" "NAME;LABEL;TIMEOUT" "SOURCES;LINK_LIBS" ${ARGN})
     add_executable(${MAT_NAME} ${MAT_SOURCES})
     # Anota cada fuente, con su ruta entera, para el chequeo del final de este archivo.
     foreach(source IN LISTS MAT_SOURCES)
@@ -50,23 +60,29 @@ function(muret_add_test)
     target_link_libraries(${MAT_NAME} PRIVATE ClientTestSupport ClientLib GTest::gtest GTest::gtest_main
         ${MAT_LINK_LIBS})
     muret_set_warnings(${MAT_NAME})
-    if(MURET_CLIENT_GOLDEN_DIR)
-        gtest_discover_tests(${MAT_NAME} DISCOVERY_TIMEOUT ${MURET_TEST_DISCOVERY_TIMEOUT}
-            PROPERTIES TIMEOUT ${MURET_TEST_CASE_TIMEOUT}
-                       ENVIRONMENT "MURET_CLIENT_GOLDEN_DIR=${MURET_CLIENT_GOLDEN_DIR}")
-    else()
-        gtest_discover_tests(${MAT_NAME} DISCOVERY_TIMEOUT ${MURET_TEST_DISCOVERY_TIMEOUT}
-            PROPERTIES TIMEOUT ${MURET_TEST_CASE_TIMEOUT})
+    if(NOT MAT_TIMEOUT)
+        set(MAT_TIMEOUT ${MURET_TEST_CASE_TIMEOUT})
     endif()
+    set(test_properties TIMEOUT ${MAT_TIMEOUT})
+    if(MAT_LABEL)
+        list(APPEND test_properties LABELS ${MAT_LABEL})
+    endif()
+    if(MURET_CLIENT_GOLDEN_DIR)
+        list(APPEND test_properties ENVIRONMENT "MURET_CLIENT_GOLDEN_DIR=${MURET_CLIENT_GOLDEN_DIR}")
+    endif()
+    gtest_discover_tests(${MAT_NAME} DISCOVERY_TIMEOUT ${MURET_TEST_DISCOVERY_TIMEOUT}
+        PROPERTIES ${test_properties})
 endfunction()
 
-# muret_add_module_tests(): un ejecutable por cada test_*.cpp de la carpeta que lo llama, con el
-# nombre del archivo (test_packet_reader). Un test nuevo entra al reconfigurar.
+# muret_add_module_tests([LINK_LIBS lib ...] [LABEL <etiqueta>] [TIMEOUT <segundos>]): un
+# ejecutable por cada test_*.cpp de la carpeta que lo llama, con el nombre del archivo
+# (test_packet_reader), y lo que reciba se lo pasa a muret_add_test. Un test nuevo entra al
+# reconfigurar.
 function(muret_add_module_tests)
     file(GLOB tests CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp")
     foreach(test_source IN LISTS tests)
         get_filename_component(test_name ${test_source} NAME_WE)
-        muret_add_test(NAME ${test_name} SOURCES ${test_source})
+        muret_add_test(NAME ${test_name} SOURCES ${test_source} ${ARGN})
     endforeach()
 endfunction()
 
@@ -77,6 +93,7 @@ add_subdirectory(input)
 add_subdirectory(network)
 add_subdirectory(platform)
 add_subdirectory(protocol)
+add_subdirectory(render_gl)
 add_subdirectory(scenes)
 add_subdirectory(support)
 

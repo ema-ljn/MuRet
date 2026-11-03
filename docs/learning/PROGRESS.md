@@ -265,6 +265,14 @@ solo lo lee.
   OK del aviso de la conexión que falló cierra el juego (Q-C69). Los mapas van del 0 al 255 sin
   mirar el rango, y el 32 deja el juego en el 9 (Q-C58). Quirks nuevos de Q-C57 a Q-C70; P-C04 quedó
   cerrado, y P-C13 espera la traza y las capturas de estas dos escenas.
+  **La CL5.1** la resuelve Claude en dos PRs. El A (2026-11-03): la tabla de GL es una X-macro de
+  46 funciones (`Platform/GlFunctionList.h`), y `LoadGlFunctions` mira la versión y el perfil antes
+  de pedir el resto. `ClientRender`, la única biblioteca con GL, trae el shader del 2D, `GlTexture`
+  (el OZJ y el OZT de la CL1 con su filtro y su wrap, con `GL_UNPACK_ALIGNMENT` en 1 y vuelto a como
+  estaba), un framebuffer para leer lo dibujado y `GlRenderer`, que ya dibuja triángulos con la y
+  para arriba. Los tests de `render_gl/` abren una ventana escondida (`GlTestContext`) y en CI
+  corren en Xvfb. El lab de la CL5.0 dejó sus copias y pide con el loader del cliente. `GL_CLAMP` no
+  existe en core: va `GL_CLAMP_TO_EDGE`, y la diferencia en el borde es Q-C73.
 
 ## Conceptos
 
@@ -364,6 +372,9 @@ sesión, junto con los de repaso más viejo.
 | la mezcla normal y la aditiva, y por qué con la normal un lote no puede cambiar el orden de dibujo | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | RAII sobre un nombre de GL (`GlName`), que se mueve con `std::exchange`, no se copia y necesita el contexto vivo; una X-macro para la tabla de funciones (`LabGl`); y un test de GL que se saltea sin pantalla salvo con `MURET_CLIENT_REQUIRE_GL=1` | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | leer una UI en el binario: una clase por ventana con su vtable sobre una base común, un administrador con el lugar de cada una, el `switch` de un id de aviso a un índice de `Text.bmd`, y uno compilado como tabla de bytes y tabla de saltos (`0x4e5f04` y `0x4e5ebc`) | CL5.R | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| un loader de GL propio como X-macro: una lista que arma el struct, el pedido y los nombres que prueba un test, y por qué se pregunta la versión y el perfil con dos funciones de la 1.0 antes de pedir las de la 3.3 | CL5.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| una textura de GL desde un buffer en memoria: el formato interno con tamaño (`GL_RGB8`) contra el del buffer (`GL_RGB`), `GL_UNPACK_ALIGNMENT` en 1 y vuelto a como estaba, por qué sin mipmaps el filtro de minificación por defecto deja la textura incompleta (negra), y `GL_CLAMP` contra `GL_CLAMP_TO_EDGE` con `GL_LINEAR` (Q-C73) | CL5.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| probar GL con píxeles: un framebuffer con una textura de color, `glReadPixels` que da las filas de abajo para arriba, un fixture que se saltea sin pantalla y falla con `MURET_CLIENT_REQUIRE_GL=1`, y un shader que no compila o no enlaza con el log del driver en el error | CL5.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

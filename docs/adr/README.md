@@ -6,9 +6,10 @@ que la sostiene ([`CODING_RULES.md` § 11](../CODING_RULES.md#11-documentar-el-u
 quien la decidió.
 
 Este archivo es el índice. La tabla del cliente es el inventario que pidió AUD-C04 de la
-[auditoría del 2026-11-03](../audits/2026-11-03-cliente-cpp20.md), y los seis ya están escritos,
-del 0003 al 0008: con ellos, AUD-C04 queda cerrado. La evidencia está en el research y en los
-planes, y cada ADR la enlaza sin copiarla.
+[auditoría del 2026-11-03](../audits/2026-11-03-cliente-cpp20.md), y sus seis ADR ya están
+escritos, del 0003 al 0008: con ellos, AUD-C04 queda cerrado. Los 0001 y 0002, del servidor, no son
+de la auditoría y siguen pendientes. La evidencia está en el research y en los planes, y cada ADR
+la enlaza sin copiarla.
 
 ## Cómo se escribe uno
 
@@ -33,7 +34,7 @@ resueltos. Los del cliente empiezan en el 0003.
 
 Las decisiones que la auditoría encontró documentadas en el research y en los planes, pero sin su
 ADR. Todas tienen la fila en el [07 del cliente](../../Client/docs/research/07-quirks-y-bugs.md) y
-tests que las fijan. La última columna enlaza el ADR cuando ya está escrito.
+tests que las fijan, y la última columna enlaza su ADR.
 
 | Decisión | Research | Tests | Quién | Estado |
 | --- | --- | --- | --- | --- |

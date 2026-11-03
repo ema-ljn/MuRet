@@ -34,7 +34,7 @@ Los nombres de tests nuevos que aparecen abajo son **propuestos**, no tests ya i
 | T1 | AUD-C01, escritura append entre sinks | Hecha en el #78, con su test rojo y verde | `fix(client): conservar las líneas de otros sinks tras vaciar el log` |
 | T2 | AUD-C02, fallo de escritura observable | Hecha en el #82 | `fix(client): informar los fallos de escritura del log` |
 | T3 | AUD-C03, fallo del driver al subir | Hecha en el #79 | `fix(client): rechazar una subida de textura que falla en GL` |
-| T4 | AUD-C04, registro de decisiones | Hecha: el índice y las aclaraciones en el #83, y los ADR 0003 a 0008 del inventario, uno por PR. Los 0001 y 0002 siguen reservados para Emanuel | `docs(client): ordenar las decisiones de compatibilidad pendientes` |
+| T4 | AUD-C04, registro de decisiones | AUD-C04 cerrado: el índice y las aclaraciones en el #83, y los ADR 0003 a 0008 del inventario, uno por PR. Falta lo de Emanuel, los 0001 y 0002, que no son de la auditoría | `docs(client): ordenar las decisiones de compatibilidad pendientes` |
 | R1 a R4 | REF-C01 a REF-C04 | Opcionales, por separado | Un PR por refactor que se decida tomar |
 
 T1 está en el #78, T3 en el #79 y T2 en el #82. T3 entró antes de que la CL5.4 conectara la tabla de
@@ -248,9 +248,11 @@ Los ADR individuales se planifican después de comprobar los números reservados
   cambiar la política de vaciado, abrir otra mini-spec y PR funcional, separado de T1.
 - [x] **Paso 5:** revisar los enlaces y abrir el PR documental del índice y las aclaraciones.
   Cerrar AUD-C04 solo cuando los ADR exigidos existan: el índice de pendientes no los reemplaza.
-- [x] **Paso 6 (resuelto por Claude; los 0001 y 0002 son de Emanuel):** completar los ADR del
-  inventario, un concepto por PR, con original, decisión de MuRet, motivo y tests. Actualizar el
-  índice con los enlaces y recién entonces registrar el cierre de AUD-C04 en este plan.
+- [x] **Paso 6 (resuelto por Claude):** completar los ADR del inventario, un concepto por PR, con
+  original, decisión de MuRet, motivo y tests. Actualizar el índice con los enlaces y recién
+  entonces registrar el cierre de AUD-C04 en este plan.
+  - [ ] **Los 0001 y 0002 (Emanuel):** el paso los nombraba, pero son del servidor y del camino de
+    aprendizaje, no de AUD-C04 (la auditoría dejó afuera el DataServer). Siguen pendientes.
 
 **Hecho así (#83):** el paso 1 salió del [plan de la ola 0](2026-10-26-ola-0-fundaciones.md),
 pasos 2 y 3: el 0001 es el contrato wire y SQL del servidor, y el 0002, IOCP y epoll a mano; los
@@ -268,9 +270,13 @@ dice además qué prueba cada test de `FileSink`: ninguno prueba dos procesos a 
 libjpeg-turbo, 0005 el ritmo, 0006 el log, 0007 el keepalive y las esperas, y 0008 el wrap. Cada
 uno enlaza su fila del 07, y la fila lo enlaza a él. La fila de Q-C56 decía "cada espera
 `Waiting*`", y desde la CL5.5 `ChoosingServer` y `WaitingCredentials` no tienen tope: el 0007 la
-corrigió. Con el 0008, AUD-C04 queda cerrado. Los 0001 y 0002 son ejercicios de Emanuel en el
-camino de aprendizaje, del servidor: no son parte de AUD-C04, y siguen pendientes en el índice.
-Queda abierto, en el índice, qué otras filas de diseño del 07 merecen un ADR propio.
+corrigió. Cada ADR se revisó contra su fila, el research, el código y los tests de `main`, y se
+comprobaron sus enlaces. La revisión corrigió también tres filas del 07 que decían algo viejo o de
+más: Q-C04 y Q-C44 anunciaban un aviso en el log que ya existe, y Q-C73 hacía más transparente el
+borde de toda textura, cuando el color del borde solo cambia el alfa de una que lo tiene. Con el
+0008, AUD-C04 queda cerrado. Los 0001 y 0002 son ejercicios de Emanuel en el camino de aprendizaje,
+del servidor: no son parte de AUD-C04, y siguen pendientes en el índice. Queda abierto, en el
+índice, qué otras filas de diseño del 07 merecen un ADR propio.
 
 Cada ADR posterior registra un concepto y su porqué. Esta tarea no autoriza al tutor a escribir
 la decisión que corresponde a Emanuel ni modifica el research del original para acomodar MuRet.

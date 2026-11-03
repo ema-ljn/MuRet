@@ -2,6 +2,7 @@
 
 #include "App/Credentials.h"
 #include "App/ObfuscationMode.h"
+#include "App/Resolution.h"
 #include "App/SessionState.h"
 
 #include <ostream>
@@ -29,6 +30,11 @@ inline void PrintTo(ObfuscationMode mode, std::ostream* out)
         return;
     }
     *out << "ObfuscationMode fuera del enum";
+}
+
+inline void PrintTo(Resolution resolution, std::ostream* out)
+{
+    *out << resolution.width << " × " << resolution.height;
 }
 
 inline void PrintTo(SessionState state, std::ostream* out)

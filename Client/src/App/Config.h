@@ -73,7 +73,8 @@ struct ClientConfig
     // no de la dirección, y /u /p no la cambia.
     ObfuscationMode obfuscation = ObfuscationMode::FoxAnti;
     // [Video] Width y Height, de 1 a MaxWindowSize; 640 × 480 por defecto (la tabla de la CL3.4 en
-    // el plan de la CL3).
+    // el plan de la CL3). Para abrir la ventana tienen que ser una resolución que valga
+    // (App/Resolution.h): eso lo mira main.cpp, con los modos del monitor, después de SDL_Init.
     int width = 640;
     int height = 480;
     // [Video] VSync. Vacío: lo decide Resolve (paso 4), según el Pacing.

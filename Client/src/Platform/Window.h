@@ -17,13 +17,14 @@
 // después y se destruye antes.
 namespace Client::Platform
 {
+// La ventana no cambia de tamaño, como la del original: su tamaño es una resolución que valga
+// (App/Resolution.h), y main.cpp la mira antes de crearla.
 struct WindowOptions
 {
     // La resolución de referencia del original (D-C11 del roadmap del cliente).
     int width = 640;
     int height = 480;
     std::string title = "MuRet";
-    bool resizable = true;
     App::VSyncMode vsync = App::VSyncMode::On;
 };
 

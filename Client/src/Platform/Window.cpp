@@ -31,12 +31,7 @@ Core::Expected<Window, std::string> Window::Create(const SdlContext& /*sdl*/, co
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-    SDL_WindowFlags flags = SDL_WINDOW_OPENGL;
-    if (options.resizable)
-    {
-        flags |= SDL_WINDOW_RESIZABLE;
-    }
-    WindowPtr window(SDL_CreateWindow(options.title.c_str(), options.width, options.height, flags));
+    WindowPtr window(SDL_CreateWindow(options.title.c_str(), options.width, options.height, SDL_WINDOW_OPENGL));
     if (!window)
     {
         return Core::Unexpected(std::string("no se pudo crear la ventana: ") + SDL_GetError());

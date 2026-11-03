@@ -374,7 +374,7 @@ de OpenGL como un recurso que vive dentro de la ventana.
 
 | Qué | Original | MuRet |
 | --- | --- | --- |
-| ventana | `0x4b8ff0`: `RegisterClassA("MU")` + `CreateWindowExA`, a la resolución del registro | `Platform::Window`, 640 × 480 por defecto (D-C11), redimensionable, título `MuRet` |
+| ventana | `0x4b8ff0`: `RegisterClassA("MU")` + `CreateWindowExA`, a la resolución del registro | `Platform::Window`, 640 × 480 por defecto (D-C11), redimensionable, título `MuRet`. *Desde el 2026-11-03, fija y con una resolución que valga: las cinco del original o un modo del monitor (`App::IsValidResolution`, D-C11)* |
 | contexto | `0x4b8e10`: `ChoosePixelFormat` + `wglCreateContext`, OpenGL 1.x | OpenGL 3.3 core con doble buffer (D-C3), pedido antes de crear la ventana |
 | VSync | no lo pide (`0x69e830` y `0x69e860` no se llaman) | `VSyncMode::On` por defecto, `Adaptive` y `Off` por config; en el modo fiel, `Off` |
 | cerrar | `WM_DESTROY`: cierra todo y `PostQuitMessage(0)` | `SDL_EVENT_QUIT` o `SDL_EVENT_WINDOW_CLOSE_REQUESTED`: sale el bucle |

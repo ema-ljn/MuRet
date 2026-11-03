@@ -1,6 +1,7 @@
 #include "support/AppPrinters.h"
 
 #include "App/Credentials.h"
+#include "App/Resolution.h"
 #include "App/SessionState.h"
 
 #include <gtest/gtest.h>
@@ -8,10 +9,11 @@
 #include <string>
 
 // support/AppPrinters.h: lo que imprime GoogleTest de unas Credentials, que no puede ser la clave,
-// y de los estados y las fallas de la sesión.
+// de una resolución, y de los estados y las fallas de la sesión.
 namespace
 {
 using Client::App::Credentials;
+using Client::App::Resolution;
 using Client::App::SessionFailure;
 using Client::App::SessionState;
 
@@ -50,5 +52,10 @@ TEST(AppPrintersTest, NoReplyShowsItsName)
 TEST(AppPrintersTest, ServerBusyShowsItsName)
 {
     EXPECT_EQ(::testing::PrintToString(SessionFailure::ServerBusy), "ServerBusy");
+}
+
+TEST(AppPrintersTest, AResolutionShowsWidthByHeight)
+{
+    EXPECT_EQ(::testing::PrintToString(Resolution{1024, 768}), "1024 × 768");
 }
 } // namespace

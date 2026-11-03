@@ -76,14 +76,16 @@ endif()
 muret_set_warnings(MuRetLabsCl40)
 
 # La CL5.0 (docs/learning/ola-cl5.0-el-pipeline-grafico.md): el quad de 0x621b60, la matriz de
-# gluOrtho2D escrita a mano y el fan pasado a triángulos. Sin GL: corre en los dos sistemas.
+# gluOrtho2D escrita a mano y el fan pasado a triángulos. Sin GL: corre en los dos sistemas. Desde
+# la CL5.2, las cuentas del quad son las del cliente (Render/ScreenScale y Render/OriginalQuad, en
+# ClientLib), que el lab usa en vez de tener su copia.
 add_library(MuRetLabsCl50 STATIC
     cl5.0-pipeline/Fan.cpp
-    cl5.0-pipeline/OriginalQuad.cpp
     cl5.0-pipeline/Ortho.cpp
 )
 target_include_directories(MuRetLabsCl50 PUBLIC cl5.0-pipeline)
 target_compile_features(MuRetLabsCl50 PUBLIC cxx_std_20)
+target_link_libraries(MuRetLabsCl50 PUBLIC ClientLib)
 muret_set_warnings(MuRetLabsCl50)
 
 # Lo de la CL5.0 que habla con OpenGL (cl5.0-pipeline/gl/): la ventana escondida con el contexto

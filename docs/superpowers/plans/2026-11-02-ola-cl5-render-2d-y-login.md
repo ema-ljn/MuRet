@@ -1548,8 +1548,25 @@ public:
 } // namespace Client::Scenes
 ```
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, la tabla de transiciones con lo que
-  dé el paso 1 de la CL5.R, y la de `WorldFolderNumber` para los mapas 0 a 36, el 54 y el 55.
+- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de los tests, la tabla de
+  transiciones con lo que dé el paso 1 de la CL5.R, y la de `WorldFolderNumber` para los mapas 0 a
+  36, el 54 y el 55.
+
+  Hecho así (PR A, 2026-11-03), otra vez en el desensamblado de `c32bbd5f` y no solo en el plan
+  (*estático*). Las transiciones son los ocho `mov` a `DAT_006d5dc8`, que siguen siendo los únicos
+  (`0x622f93` 1 → 2, `0x634dce` 2 → 4, `0x633f05`, `0x634470` y `0x634638` 4 → 3, `0x635a91` 3 →
+  5, `0x4c363f` a 4 y `0x4c2f1a` a 2), y la escena arranca en 1 (la `.data`, `0x2d5dc8` del
+  archivo). Las dos de `0x4c2710` no miran la escena de ahora, salvo la 5 para limpiar
+  (`0x4c275c`), ni las mira el dispatcher (`0x4e2b10`, la tabla del `F1` en `0x4e5ea8` y
+  `0x4e5e88`, el 2 en `0x4e2d80`): la tabla deja las de 02, desde la 4 y la 5, y lo demás es Q-C79.
+  Quedó en `Scenes/SceneTransitions.h` (`OriginalTransitions`, `IsOriginalTransition` y
+  `FirstScene`), que el plan no listaba. `WorldFolderNumber`: el 32 y `DAT_006c9dd0` en 32 pasan a 9
+  (`0x61a56c`..`0x61a57d`); después, con `esi` en el mapa + 1, los `cmp` con signo contra 11 y 17,
+  24 y 29 o el 36, y 18 y 23 (`0x61a5e4`..`0x61a61d`), y el mismo `esi` va a `"World%d"`
+  (`0x6c7330`) y a `"Data\%s\EncTerrain%d.map"` (`0x6d12e8`). Los cinco que la llaman: `0x4c41d4`,
+  `0x4c4eab` y `0x4c7817` con un byte del paquete (`xor eax, eax` y `mov al`, sin mirar el rango),
+  `0x633f4e` con el 54 (`0x633f44`) y `0x6349bc` con el 55 (`0x6349b2`). La tabla de 39 filas está
+  en `WorldFolderTest.MapsEachMapToItsFolder`.
 - [ ] **Paso 2:** los tests:
   - `WorldFolderTest.MapsEachMapToItsFolder` (0 → 1, 10 → 11, 11 a 17 → 12, 18 a 23 → 19, 24 a 29
     y 36 → 25, 30 → 31, 35 → 36, 55 → 56), `WorldFolderTest.TheMapThirtyTwoUsesTheFolderOfNine`
@@ -1583,8 +1600,57 @@ public:
   - golden: `GoldenLoginScene.EntersWithTheLabData` (con el `Data\` del laboratorio, `Enter` sube
     las 18 texturas a sus slots en un `FakeTextureStore` y lee `Text.bmd`; ningún texto va a la
     salida del test).
+
+  Hecho así (PR A, 2026-11-03): los de `WorldFolderTest` como dice arriba, más
+  `OriginalMapsAreTheGameMapsAndTheTwoScenes` y `TheEventRangesEndWhereTheOriginalCompares` (los
+  bordes de cada rango); los dos `GoldenWorldFolder`, que también buscan la carpeta de cada mundo
+  del laboratorio. `SceneTransitionsTest` (cinco: los números, la primera escena, la tabla y las 25
+  de cinco escenas, de las que valen ocho). En `SceneManagerTest`, los ocho de arriba con escenas de
+  prueba (en `LoginGoesToCharacterSelectWhenLoggedIn` la de prueba pide la selección cuando el test
+  dice; el de la `LoginScene` con la sesión es del B), y suma `ARequestFollowsTheSameTable`,
+  `AFailedFirstEnterFailsTheStart`, `AFactoryWithoutTheSceneFails`,
+  `TheSceneLeavesWhenTheManagerCloses` y `ReentersTheSelectionFresh` (4 → 4).
+  `PollsTheNetworkOncePerFrame` corre con el `GameLoop` de verdad, minimizado y no. Los mutantes a
+  mano, cada uno con su test que falla: el 32 sin su `if` (`MapsEachMapToItsFolder`,
+  `TheMapThirtyTwoUsesTheFolderOfNine`), un rango que termina en 16 o sin el 36
+  (`MapsEachMapToItsFolder`, `TheEventRangesEndWhereTheOriginalCompares`), el número en un byte,
+  que da 0 para el 255 (`MapsBeyondThirtySixAreMapPlusOne`), una transición inválida en la tabla
+  o aceptada por el `SceneManager` (`RefusesEveryOther`, `AnInvalidTransitionIsRejected`), el
+  aviso en cada paso (`AnInvalidTransitionIsRejected`), el `Enter` de la nueva antes del `Leave`
+  de la vieja (`LeavingReleasesTheTextures` y cuatro más), `pollNetwork` dos veces o solo con
+  escena (`PollsTheNetworkOncePerFrame`), `Present` antes del `Render` de la escena
+  (`RendersBetweenBeginAndPresent`), y sin el `Leave` al fallar o al cerrar
+  (`AFailedEnterStopsWithItsError`, `TheSceneLeavesWhenTheManagerCloses`).
+
+  Revisión (PR A, 2026-11-03): un segundo `Start` con una escena ya entrada la reemplazaba sin su
+  `Leave`, y sus texturas quedaban subidas; ahora es un error y la de ahora sigue
+  (`StartingAgainKeepsTheScene`), y un `Start` después de uno que falló borra el error de antes
+  (`AStartAfterAFailedOneClearsTheFailure`). El aviso de un pedido rechazado es uno por pedido
+  seguido: un paso sin pedido o un cambio de escena lo habilitan otra vez
+  (`ARejectionIsLoggedAgainWhenTheRequestComesBack`; antes, después de un paso sin pedido, el
+  mismo pedido ya no se avisaba). `ARequestWithoutASceneChangesNothing` fija la guarda de `Request`
+  sin escena, que ningún test cubría: sin ella, `Request` leía un `std::optional` vacío.
 - [ ] **Paso 3:** `WorldFolder`, las escenas, el `SceneManager`, el `GlFrameTarget` y `main.cpp`. La
   `TestScene` queda para `Main` sin `--data` (CI).
+
+  Hecho así (PR A, 2026-11-03): `Data/WorldFolder.h` con `OriginalMaps` y los rangos como una tabla
+  (`FolderRange`) en el orden en que compara el original; `Scenes/SceneId.h` (con `SceneName`, para
+  el log: "Login (2)"), `SceneTransitions.h`, `IScene.h`, `SceneCanvas.h` (aparte, y en el A solo
+  con `sprites`, `screen` y `frameClock`: el texto y el mundo los suma el B, que los usa),
+  `IFrameTarget.h`, `SceneContext.h` (con `GameData`) y `SceneManager.h/.cpp`. Se aparta de la
+  interfaz: `Current()` da un `std::optional<SceneId>`, vacío antes de `Start` o después de un
+  `Enter` que falló; `Failure()` da ese error, para que `main.cpp` cierre; `Request` es público
+  (lo va a llamar la red con el `F1 02`, CL6 y CL9) y no se llama desde una escena, que pide con
+  `Next`; un pedido rechazado se avisa una vez mientras se repita, y no en cada paso. Cambiar es
+  `Leave` de la que sale, la fábrica y `Enter`; una fábrica sin la escena (`nullptr`) es un error
+  como un `Enter` que falla, y la escena que falló hace su `Leave`, que suelta lo que alcanzó a
+  subir; al destruirse, el `SceneManager` hace el `Leave` de la de ahora (así las texturas no quedan
+  para el que cierra, y la `TextureTable` tiene que vivir más que él). El 4 → 4 arma una escena
+  nueva, como el original con `0x7d3a13f` en 0 (`0x4c38eb`). Los dobles:
+  `support/RecordingFrameTarget.h` (un `SpriteBatch` de verdad, y cada frame con su reloj, si se
+  presentó y lo que tenía el lote) y `support/ScenePrinters.h`; el `FakeTextureStore` ya estaba
+  (CL5.3). La línea entre los PRs se corrió un poco: Q-C79 (07 y la fila del 02) va en el A, con la
+  tabla que lo explica.
 - [ ] **Paso 4:** a mano, en Linux con el `Data\` del laboratorio, `Main --data <Data>`: la carga,
       el login con sus fondos, la arena y los textos (la UI llega en la CL5.5). Una captura, fuera
       de Git.

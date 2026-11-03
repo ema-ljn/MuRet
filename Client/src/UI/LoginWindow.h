@@ -13,12 +13,14 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 
 // La ventana de la cuenta (CL5.5; 06 § El login): la arma 0x6415c0, la ubica 0x641700, la dibuja
 // 0x641990 y la atiende 0x6418b0; el emisor es 0x641bf0. La abre el F1 00 del GameServer
 // (0x4c1e20). Dos campos de 10 bytes, la cuenta y la clave, OK y cancelar. Un clic en un campo le
-// da el foco; Tab lo pasa al otro; OK, o Enter con el mouse arriba, manda; cancelar, o Esc con el
-// mouse arriba, cancela. Se atiende en el paso (Q-C81). *Estático*.
+// da el foco; Tab lo pasa al otro; OK o Enter manda; cancelar o Esc cancela. Lo tecleado, Tab y
+// Backspace van en el orden en que llegaron (InputState::Text), como los WM_CHAR al EDIT del foco.
+// Se atiende en el paso (Q-C81). *Estático*.
 //
 // Lo que manda nunca va al log: el pedido trae la cuenta y la clave, y su PrintTo de los tests
 // (tests/support/UiPrinters.h) escribe los largos.
@@ -73,6 +75,8 @@ public:
 
     // Como 0x643560: abre con el foco en `focus`. Lo que tenían los campos queda.
     void Open(LoginFocus focus);
+    // Cierra desde afuera (la escena, cuando la sesión deja de esperar la cuenta o se va) y vacía
+    // la clave: lo tecleado no queda en la ventana. La cuenta queda, como el EDIT del original.
     void Close();
     [[nodiscard]] bool IsOpen() const;
     [[nodiscard]] LoginFocus Focus() const;
@@ -83,7 +87,7 @@ public:
     [[nodiscard]] const TextField& Password() const;
 
     // 0x6418b0 en el paso, con lo tecleado desde el paso anterior. Con Submit, la clave queda
-    // vacía en la ventana; con Cancel, también.
+    // vacía en la ventana; con Cancel, también; con EmptyAccount queda, como el emisor la deja.
     std::optional<LoginRequest> Step(const Input::InputState& input, App::PixelSize screen);
     // Pone la mezcla normal (Q-C80) y dibuja el fondo, los campos, los botones, lo que tiene cada
     // campo (la clave con asteriscos) con el cursor en el del foco, los rótulos y el título.
@@ -91,6 +95,9 @@ public:
 
 private:
     [[nodiscard]] TextField& Focused();
+    // Lo tecleado, byte por byte: TabChar pasa el foco, BackspaceChar borra en el campo del foco y
+    // lo demás va a ese campo (TextField descarta lo que no es ASCII imprimible).
+    void TypeInOrder(std::string_view typed);
     void Place(App::PixelSize screen);
     LoginRequest Send();
     LoginRequest Cancel();

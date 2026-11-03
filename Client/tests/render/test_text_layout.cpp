@@ -206,4 +206,13 @@ TEST(TextLayoutTest, DesignXTruncatesTowardZero)
 {
     EXPECT_EQ(DesignX(-5, Screen1024), -3);
 }
+
+// Sin pantalla (un lado en 0, que el original dividiría), el píxel queda como está, como en
+// RightAlignedAt: dividir por una proporción de 0 y pasar el infinito a int sería UB.
+TEST(TextLayoutTest, DesignXAndYWithoutAScreenAreThePixel)
+{
+    EXPECT_EQ(DesignX(240, PixelSize{0, 0}), 240);
+    EXPECT_EQ(DesignY(240, PixelSize{640, 0}), 240);
+    EXPECT_EQ(DesignX(0, PixelSize{0, 480}), 0);
+}
 } // namespace

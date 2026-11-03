@@ -48,4 +48,11 @@ struct InputEvent
     // último para que los inicializadores designados de los demás campos no cambien.
     std::string text{};
 };
+
+// Los bytes que lleva el texto tecleado por Backspace y por Tab, en el lugar en que llegaron: los
+// WM_CHAR 8 y 9 que Windows le da al EDIT de un campo (0x467b10), con la repetición del teclado.
+// SDL no los manda como texto (SDL_EVENT_TEXT_INPUT trae solo lo imprimible): el apretón lo suma
+// InputState::Apply y la repetición la manda Platform como un Text (InputEvents.h).
+inline constexpr char BackspaceChar = '\b';
+inline constexpr char TabChar = '\t';
 } // namespace Client::Input

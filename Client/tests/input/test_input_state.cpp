@@ -395,6 +395,25 @@ TEST(InputStateTest, FocusLostEmptiesTheText)
     EXPECT_EQ(input.Text(), "");
 }
 
+// Backspace y Tab van también en el texto, como los WM_CHAR 8 y 9 de un EDIT: cada apretón deja su
+// byte en el lugar en que llegó, y la tecla se aprieta igual. Una tecla que ya estaba abajo no es
+// otro apretón y no deja nada (la repetición llega como texto, InputEvents.h).
+TEST(InputStateTest, BackspaceAndTabGoInTheTextInOrder)
+{
+    InputState input;
+    input.Apply(TextEvent("ab"));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Backspace));
+    input.Apply(TextEvent("c"));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Tab));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Tab));
+    input.Apply(TextEvent("d"));
+
+    EXPECT_EQ(input.Text(), "ab\bc\td");
+    EXPECT_TRUE(input.WasPressed(Key::Backspace));
+    EXPECT_TRUE(input.WasPressed(Key::Tab));
+    static_assert(Client::Input::BackspaceChar == '\b' && Client::Input::TabChar == '\t');
+}
+
 // El texto no es una tecla: no aprieta ninguna.
 TEST(InputStateTest, TheTextPressesNoKey)
 {

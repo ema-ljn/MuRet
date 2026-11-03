@@ -1,5 +1,6 @@
 #include "UI/LoginWindow.h"
 
+#include "Input/InputEvent.h"
 #include "Input/Key.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
@@ -86,6 +87,7 @@ void LoginWindow::Open(LoginFocus focus)
 void LoginWindow::Close()
 {
     m_open = false;
+    m_password.Clear();
 }
 
 bool LoginWindow::IsOpen() const
@@ -132,15 +134,7 @@ std::optional<LoginRequest> LoginWindow::Step(const Input::InputState& input, Ap
             m_focus = LoginFocus::Password;
         }
     }
-    if (input.WasPressed(Input::Key::Tab))
-    {
-        m_focus = m_focus == LoginFocus::Account ? LoginFocus::Password : LoginFocus::Account;
-    }
-    Focused().Type(input.Text());
-    if (input.WasPressed(Input::Key::Backspace))
-    {
-        Focused().Backspace();
-    }
+    TypeInOrder(input.Text());
 
     const bool ok = m_ok.Step(input, mouse);
     const bool cancel = m_cancel.Step(input, mouse);
@@ -152,17 +146,15 @@ std::optional<LoginRequest> LoginWindow::Step(const Input::InputState& input, Ap
     {
         return Cancel();
     }
-    // 0x6418b0: Enter y Esc, solo con el botón del mouse arriba.
-    if (!input.IsDown(Input::MouseButton::Left))
+    // 0x6418b0: Enter y Esc, si el byte +0x31 del mouse (0x640850) está en 0. Solo lo escribe su
+    // init, en 0 (0x640926): valen también con un botón del mouse abajo.
+    if (input.WasPressed(Input::Key::Enter))
     {
-        if (input.WasPressed(Input::Key::Enter))
-        {
-            return Send();
-        }
-        if (input.WasPressed(Input::Key::Escape))
-        {
-            return Cancel();
-        }
+        return Send();
+    }
+    if (input.WasPressed(Input::Key::Escape))
+    {
+        return Cancel();
     }
     return std::nullopt;
 }
@@ -206,6 +198,25 @@ TextField& LoginWindow::Focused()
     return m_focus == LoginFocus::Account ? m_account : m_password;
 }
 
+void LoginWindow::TypeInOrder(std::string_view typed)
+{
+    for (const char byte : typed)
+    {
+        if (byte == Input::TabChar)
+        {
+            m_focus = m_focus == LoginFocus::Account ? LoginFocus::Password : LoginFocus::Account;
+        }
+        else if (byte == Input::BackspaceChar)
+        {
+            Focused().Backspace();
+        }
+        else
+        {
+            Focused().Type(std::string_view(&byte, 1));
+        }
+    }
+}
+
 void LoginWindow::Place(App::PixelSize screen)
 {
     m_layout = LayoutLogin(screen);
@@ -215,8 +226,9 @@ void LoginWindow::Place(App::PixelSize screen)
 
 LoginRequest LoginWindow::Send()
 {
-    // 0x641bf0: cierra la ventana de arriba y mira los campos.
-    Close();
+    // 0x641bf0: cierra la ventana de arriba y mira los campos, sin tocarlos: con la cuenta vacía,
+    // la clave queda para cuando el aviso abra otra vez la cuenta.
+    m_open = false;
     if (m_account.Size() == 0)
     {
         return LoginRequest{.kind = LoginRequest::Kind::EmptyAccount, .credentials = {}};
@@ -234,8 +246,8 @@ LoginRequest LoginWindow::Send()
 
 LoginRequest LoginWindow::Cancel()
 {
+    // Close vacía la clave.
     Close();
-    m_password.Clear();
     return LoginRequest{.kind = LoginRequest::Kind::Cancel, .credentials = {}};
 }
 

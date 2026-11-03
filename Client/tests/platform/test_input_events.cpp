@@ -102,6 +102,21 @@ TEST(InputEventsTest, AutoRepeatIsNotAnEvent)
     EXPECT_EQ(InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_A, true)), std::nullopt);
 }
 
+// Salvo Backspace y Tab: su repetición es texto, el byte de cada una (InputState.h), como el
+// WM_CHAR que Windows repite al EDIT del campo. Sin tecla: no es otro apretón.
+TEST(InputEventsTest, ARepeatedBackspaceOrTabIsTyped)
+{
+    const auto backspace = InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_BACKSPACE, true));
+    ASSERT_TRUE(backspace.has_value());
+    EXPECT_EQ(backspace->kind, InputEvent::Kind::Text);
+    EXPECT_EQ(backspace->text, std::string(1, Client::Input::BackspaceChar));
+
+    const auto tab = InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_TAB, true));
+    ASSERT_TRUE(tab.has_value());
+    EXPECT_EQ(tab->kind, InputEvent::Kind::Text);
+    EXPECT_EQ(tab->text, std::string(1, Client::Input::TabChar));
+}
+
 TEST(InputEventsTest, KeyDownAndUpCarryTheKey)
 {
     const auto down = InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_ESCAPE));

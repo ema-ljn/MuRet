@@ -147,6 +147,60 @@ TEST(LoginWindowTest, BackspaceErasesInTheFocusedField)
     EXPECT_EQ(window.Password().Value(), "pass000");
 }
 
+// Lo tecleado en un paso va en el orden en que llegó, como los WM_CHAR al EDIT del foco: lo de
+// antes de un Tab queda en la cuenta y lo de después en la clave, aunque lleguen juntos (una
+// ráfaga, o el auto-type de un gestor de claves). Y el Enter del mismo paso manda los dos.
+TEST(LoginWindowTest, WhatIsTypedAroundATabKeepsItsField)
+{
+    LoginWindow window(LabSizes(), nullptr);
+    window.Open(LoginFocus::Account);
+    InputState input;
+    TypeText(input, "user0001");
+    TapKey(input, Key::Tab);
+    TypeText(input, "pass0002");
+    TapKey(input, Key::Enter);
+
+    const std::optional<LoginRequest> request = StepOnce(window, input);
+
+    ASSERT_TRUE(request.has_value());
+    EXPECT_EQ(request->kind, LoginRequest::Kind::Submit);
+    EXPECT_TRUE(request->credentials.account == "user0001");
+    EXPECT_TRUE(request->credentials.password == "pass0002");
+}
+
+// Un Backspace antes de lo tecleado, en el mismo paso, borra antes de sumar.
+TEST(LoginWindowTest, ABackspaceBeforeTheTextErasesFirst)
+{
+    LoginWindow window(LabSizes(), nullptr);
+    window.Open(LoginFocus::Account);
+    InputState input;
+    TypeText(input, "user0002");
+    StepOnce(window, input);
+
+    TapKey(input, Key::Backspace);
+    TypeText(input, "1");
+    StepOnce(window, input);
+
+    EXPECT_EQ(window.Account().Value(), "user0001");
+}
+
+// Backspace sostenido borra uno por cada repetición del teclado, que Platform manda como texto
+// (InputEvents.h), como el EDIT de Windows con los WM_CHAR 8 que se repiten.
+TEST(LoginWindowTest, AHeldBackspaceRepeats)
+{
+    LoginWindow window(LabSizes(), nullptr);
+    window.Open(LoginFocus::Account);
+    InputState input;
+    TypeText(input, "user0001");
+    StepOnce(window, input);
+
+    Client::Tests::PressKey(input, Key::Backspace);
+    TypeText(input, std::string(2, Client::Input::BackspaceChar));
+    StepOnce(window, input);
+
+    EXPECT_EQ(window.Account().Value(), "user0");
+}
+
 TEST(LoginWindowTest, EnterWithBothFieldsSubmits)
 {
     LoginWindow window(LabSizes(), nullptr);
@@ -201,8 +255,10 @@ TEST(LoginWindowTest, SubmittingEmptiesThePassword)
     EXPECT_EQ(window.Account().Value(), "user0001");
 }
 
-// 0x6418b0 lee Enter y Esc solo si el botón del mouse no está abajo.
-TEST(LoginWindowTest, EnterWithTheMouseHeldDoesNothing)
+// 0x6418b0 lee Enter y Esc si el byte +0x31 del mouse (0x640850) está en 0, y nada lo prende: solo
+// lo escribe, en 0, su init (0x640926). Con el botón del mouse abajo, Enter manda igual, y Esc
+// cancela.
+TEST(LoginWindowTest, EnterAndEscWorkWithTheMouseHeld)
 {
     LoginWindow window(LabSizes(), nullptr);
     window.Open(LoginFocus::Account);
@@ -213,8 +269,87 @@ TEST(LoginWindowTest, EnterWithTheMouseHeldDoesNothing)
     StepOnce(window, input);
 
     TapKey(input, Key::Enter);
-    EXPECT_EQ(StepOnce(window, input), std::nullopt);
+    const std::optional<LoginRequest> sent = StepOnce(window, input);
+    ASSERT_TRUE(sent.has_value());
+    EXPECT_EQ(sent->kind, LoginRequest::Kind::Submit);
+
+    window.Open(LoginFocus::Account);
     TapKey(input, Key::Escape);
+    const std::optional<LoginRequest> cancelled = StepOnce(window, input);
+    ASSERT_TRUE(cancelled.has_value());
+    EXPECT_EQ(cancelled->kind, LoginRequest::Kind::Cancel);
+}
+
+// Cancelar, con el botón o con Esc, vacía la clave; la cuenta queda.
+TEST(LoginWindowTest, CancellingEmptiesThePassword)
+{
+    const LoginLayout layout = LayoutLogin(Screen640);
+    LoginWindow window(LabSizes(), nullptr);
+    window.Open(LoginFocus::Account);
+    InputState input;
+    TypeBoth(window, input);
+    ClickAt(input, MiddleX(layout.cancel), MiddleY(layout.cancel));
+    ASSERT_TRUE(StepOnce(window, input).has_value());
+    EXPECT_EQ(window.Password().Size(), 0u);
+    EXPECT_EQ(window.Account().Value(), "user0001");
+
+    window.Open(LoginFocus::Password);
+    TypeText(input, "pass0002");
+    StepOnce(window, input);
+    TapKey(input, Key::Escape);
+    ASSERT_TRUE(StepOnce(window, input).has_value());
+    EXPECT_EQ(window.Password().Size(), 0u);
+}
+
+// Cerrada desde afuera (la escena, cuando la sesión deja de esperar la cuenta o se va), la clave
+// tecleada no queda en la ventana.
+TEST(LoginWindowTest, ClosingItEmptiesThePassword)
+{
+    LoginWindow window(LabSizes(), nullptr);
+    window.Open(LoginFocus::Account);
+    InputState input;
+    TypeBoth(window, input);
+
+    window.Close();
+
+    EXPECT_FALSE(window.IsOpen());
+    EXPECT_EQ(window.Password().Size(), 0u);
+    EXPECT_EQ(window.Account().Value(), "user0001");
+}
+
+// Con la cuenta vacía, el emisor no toca los campos (0x641bf0): la clave queda para cuando el OK
+// del aviso 0x64 abra otra vez la cuenta.
+TEST(LoginWindowTest, AnEmptyAccountKeepsThePassword)
+{
+    LoginWindow window(LabSizes(), nullptr);
+    window.Open(LoginFocus::Password);
+    InputState input;
+    TypeText(input, "pass0002");
+    TapKey(input, Key::Enter);
+
+    const std::optional<LoginRequest> request = StepOnce(window, input);
+
+    ASSERT_TRUE(request.has_value());
+    EXPECT_EQ(request->kind, LoginRequest::Kind::EmptyAccount);
+    EXPECT_EQ(window.Password().Size(), 8u);
+}
+
+// Lo apretado antes de cerrar no cuenta al abrir otra vez: soltar encima del OK no es un clic.
+TEST(LoginWindowTest, ReopeningForgetsAPress)
+{
+    const LoginLayout layout = LayoutLogin(Screen640);
+    LoginWindow window(LabSizes(), nullptr);
+    window.Open(LoginFocus::Account);
+    InputState input;
+    TypeBoth(window, input);
+    Client::Tests::MoveMouse(input, MiddleX(layout.ok), MiddleY(layout.ok));
+    PressLeft(input);
+    StepOnce(window, input);
+    window.Close();
+    window.Open(LoginFocus::Account);
+
+    Client::Tests::ReleaseLeft(input);
+
     EXPECT_EQ(StepOnce(window, input), std::nullopt);
     EXPECT_TRUE(window.IsOpen());
 }

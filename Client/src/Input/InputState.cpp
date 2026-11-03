@@ -43,6 +43,20 @@ bool IsLogical(Key key)
     return key == Key::Shift || key == Key::Ctrl || key == Key::Alt;
 }
 
+// El byte que Backspace y Tab dejan en el texto tecleado (InputEvent.h); las demás, ninguno.
+std::optional<char> TypedCharOf(Key key)
+{
+    switch (key)
+    {
+    case Key::Backspace:
+        return BackspaceChar;
+    case Key::Tab:
+        return TabChar;
+    default:
+        return std::nullopt;
+    }
+}
+
 // La tecla lógica de un lado, o std::nullopt si la tecla no es un lado.
 std::optional<Key> LogicalOf(Key side)
 {
@@ -188,6 +202,10 @@ void InputState::Press(Key key)
     m_keysDown.set(*index);
     m_keysPressed.set(*index);
     UpdateLogical(key);
+    if (const std::optional<char> typed = TypedCharOf(key))
+    {
+        m_text.push_back(*typed);
+    }
 }
 
 void InputState::Release(Key key)

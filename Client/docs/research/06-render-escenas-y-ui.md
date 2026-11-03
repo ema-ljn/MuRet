@@ -604,9 +604,12 @@ CL4.R). Si no, el aviso `0x70`. Con la versión distinta, cierra la ventana de l
   carácter de la clave no se cambia (`EM_SETPASSWORDCHAR` no aparece): el de Windows (*inferido*:
   asteriscos). El IME queda apagado al arrancar (`ImmSetConversionStatus(…, 0, 0)` en `WinMain`).
 - **Por frame** (`0x6418b0`): un clic sobre un campo le da el foco; OK (`+0x23a`) o Enter (`==
-  0x8001`, si el mouse no está tomado) mandan el login, con el sonido `0x19` en el caso de Enter;
-  cancelar (`+0x31a`) o Esc (con el sonido) llaman a `0x642810`, que cierra el GS, pone el estado
-  en 0, vuelve a conectar al CS y cierra la ventana: el CS manda el `00`, y vuelve la lista.
+  0x8001`) mandan el login, con el sonido `0x19` en el caso de Enter; cancelar (`+0x31a`) o Esc
+  (con el sonido) llaman a `0x642810`, que cierra el GS, pone el estado en 0, vuelve a conectar al
+  CS y cierra la ventana: el CS manda el `00`, y vuelve la lista. Antes de Enter y de Esc mira el
+  byte `+0x31` del mouse (`0x640850`), como el aviso (`0x642e30`), pero solo lo escribe su init, en
+  0 (`0x640926`): ninguna de las 35 funciones que piden el mouse lo cambia, así que valen siempre,
+  también con un botón abajo (*estático*).
 - **El dibujo** (`0x641990`): el fondo, los dos campos, el control (`0x469350`), los textos 450 y
   451 a la izquierda de cada campo (x + 30, y + 113 y y + 139) con la fuente `DAT_05763560`, en
   blanco y sin fondo, y el título, el texto 460 o 461 (según `0x447c70(grupo, número)`) con el

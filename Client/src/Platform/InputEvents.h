@@ -34,6 +34,8 @@ namespace Client::Platform
 
 // El evento de Input de un SDL_Event. Da std::nullopt con un evento que no es de input, un
 // auto-repeat, una tecla o un botón que el cliente no usa (X1, X2) y una rueda sin muesca entera.
+// El auto-repeat de Backspace y de Tab es la excepción: da un Text con su byte (InputEvent.h),
+// como el WM_CHAR que Windows repite al EDIT de un campo (CL5.5).
 // SDL_EVENT_WINDOW_FOCUS_LOST da FocusLost (PumpEvents lo pasa también al estado de la ventana).
 //
 // La posición del mouse va en píxeles del framebuffer (CL5.5): SDL la da en coordenadas de la

@@ -44,7 +44,8 @@ enum class Key : std::uint16_t
     Tab,
     // Retroceso: el original no la lee con GetAsyncKeyState. Le llega al EDIT de Windows de cada
     // campo como WM_CHAR 8, y la subclase 0x467b10 la deja pasar a CallWindowProc (0x467d57).
-    // Acá la lee UI::TextField (CL5.5).
+    // Acá InputState la suma también al texto tecleado (BackspaceChar, InputEvent.h), y la ventana
+    // de la cuenta la lee ahí, en orden (CL5.5).
     Backspace,
     // Los modificadores lógicos, que arma InputState con los dos lados de abajo; Platform no los
     // manda. Shift: 0x59adf0, 0x652330, 0x420e30 y, por frame, 0x637700 (0x638305). Ctrl:

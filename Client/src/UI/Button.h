@@ -66,7 +66,7 @@ public:
     // ancho del botón (el modo 2 de 0x467060). La y en 640 × 480 es ((h − cy) · 0,5 + y) / ry más
     // 0,5, o 1,5 apretado (+0xd8), truncada. La x la centra 0x467060 en píxeles, después de pasar
     // la del botón a 640 × 480; MuRet centra en píxeles y después pasa a 640 × 480 (DesignX), que
-    // puede correr el rótulo un píxel fuera de 640 × 480.
+    // puede correr el rótulo un píxel fuera de 640 × 480. Sin pantalla (un lado en 0), nada.
     void DrawLabel(Scenes::ITextDrawer& text, App::PixelSize screen) const;
 
 private:

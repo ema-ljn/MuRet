@@ -21,6 +21,14 @@ namespace Client::Render::Text
 // texto queda un punto más arriba (Q-C60). MuRet usa el alto.
 [[nodiscard]] int BottomAlignedAt(int y, TextExtent extent, App::PixelSize screen);
 
+// De un píxel de la pantalla a 640 × 480, como las ventanas de la UI nueva le pasan sus textos a
+// 0x5542f0 (0x641aa1..0x641ad6, CL5.5): fild del píxel, fdiv por rx o ry (W o H por la inversa
+// de 640 o 480, en float: DAT_05762ea8 y DAT_05762eac) y _ftol, que trunca hacia el 0. La vuelta
+// de TextPieces puede perder un píxel: en 1024 × 768, el 240 da 149 y vuelve como 238. Sin
+// pantalla (un lado en 0), el píxel tal cual, como RightAlignedAt.
+[[nodiscard]] int DesignX(int pixelX, App::PixelSize screen);
+[[nodiscard]] int DesignY(int pixelY, App::PixelSize screen);
+
 // Una caja de un texto y el quad que la muestra.
 struct TextPiece
 {

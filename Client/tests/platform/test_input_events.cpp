@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <string>
 #include <vector>
 
 // Client::Platform::KeyFor e InputEventFor: de SDL a Input, con el SDL_Event armado a mano, sin
@@ -64,6 +65,7 @@ TEST(InputEventsTest, MapsTheScancodes)
     EXPECT_EQ(KeyFor(SDL_SCANCODE_0), Key::Digit0);
     EXPECT_EQ(KeyFor(SDL_SCANCODE_F1), Key::F1);
     EXPECT_EQ(KeyFor(SDL_SCANCODE_F12), Key::F12);
+    EXPECT_EQ(KeyFor(SDL_SCANCODE_BACKSPACE), Key::Backspace);
     EXPECT_EQ(KeyFor(SDL_SCANCODE_LSHIFT), Key::ShiftLeft);
     EXPECT_EQ(KeyFor(SDL_SCANCODE_RSHIFT), Key::ShiftRight);
     EXPECT_EQ(KeyFor(SDL_SCANCODE_LCTRL), Key::CtrlLeft);
@@ -98,6 +100,21 @@ TEST(InputEventsTest, EveryPhysicalKeyHasExactlyOneScancode)
 TEST(InputEventsTest, AutoRepeatIsNotAnEvent)
 {
     EXPECT_EQ(InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_A, true)), std::nullopt);
+}
+
+// Salvo Backspace y Tab: su repetición es texto, el byte de cada una (InputState.h), como el
+// WM_CHAR que Windows repite al EDIT del campo. Sin tecla: no es otro apretón.
+TEST(InputEventsTest, ARepeatedBackspaceOrTabIsTyped)
+{
+    const auto backspace = InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_BACKSPACE, true));
+    ASSERT_TRUE(backspace.has_value());
+    EXPECT_EQ(backspace->kind, InputEvent::Kind::Text);
+    EXPECT_EQ(backspace->text, std::string(1, Client::Input::BackspaceChar));
+
+    const auto tab = InputEventFor(KeyboardEvent(SDL_EVENT_KEY_DOWN, SDL_SCANCODE_TAB, true));
+    ASSERT_TRUE(tab.has_value());
+    EXPECT_EQ(tab->kind, InputEvent::Kind::Text);
+    EXPECT_EQ(tab->text, std::string(1, Client::Input::TabChar));
 }
 
 TEST(InputEventsTest, KeyDownAndUpCarryTheKey)
@@ -195,6 +212,62 @@ TEST(InputEventsTest, MotionCarriesThePosition)
     EXPECT_EQ(motion->kind, InputEvent::Kind::Motion);
     EXPECT_FLOAT_EQ(motion->x, 12.5f);
     EXPECT_FLOAT_EQ(motion->y, 40.0f);
+}
+
+// Sin la densidad de la ventana, la posición es la del evento.
+TEST(InputEventsTest, TheMouseIsInFramebufferPixels)
+{
+    SDL_Event event{};
+    event.type = SDL_EVENT_MOUSE_MOTION;
+    event.motion.x = 12.5f;
+    event.motion.y = 40.0f;
+
+    // Con densidad 2 (una ventana de 640 × 480 con un framebuffer de 1280 × 960), el doble.
+    const auto dense = InputEventFor(event, 2.0f);
+    ASSERT_TRUE(dense.has_value());
+    EXPECT_FLOAT_EQ(dense->x, 25.0f);
+    EXPECT_FLOAT_EQ(dense->y, 80.0f);
+
+    // SDL_GetWindowPixelDensity da 0 si falla: la posición queda como llegó.
+    const auto failed = InputEventFor(event, 0.0f);
+    ASSERT_TRUE(failed.has_value());
+    EXPECT_FLOAT_EQ(failed->x, 12.5f);
+    EXPECT_FLOAT_EQ(failed->y, 40.0f);
+}
+
+// El texto del SDL_EVENT_TEXT_INPUT, copiado: SDL lo libera en el próximo SDL_PollEvent.
+TEST(InputEventsTest, TranslatesTheTextInput)
+{
+    std::string typed = "a\xc3\xa1";
+    SDL_Event event{};
+    event.type = SDL_EVENT_TEXT_INPUT;
+    event.text.text = typed.c_str();
+
+    const auto text = InputEventFor(event);
+    typed.assign("zz");
+
+    ASSERT_TRUE(text.has_value());
+    EXPECT_EQ(text->kind, InputEvent::Kind::Text);
+    EXPECT_EQ(text->text, "a\xc3\xa1");
+}
+
+// Uno sin texto, y lo que manda el IME mientras compone (SDL_EVENT_TEXT_EDITING), no son texto.
+TEST(InputEventsTest, AnEmptyTextAndTheImeCompositionAreNotText)
+{
+    SDL_Event empty{};
+    empty.type = SDL_EVENT_TEXT_INPUT;
+    empty.text.text = "";
+    EXPECT_EQ(InputEventFor(empty), std::nullopt);
+
+    SDL_Event missing{};
+    missing.type = SDL_EVENT_TEXT_INPUT;
+    missing.text.text = nullptr;
+    EXPECT_EQ(InputEventFor(missing), std::nullopt);
+
+    SDL_Event editing{};
+    editing.type = SDL_EVENT_TEXT_EDITING;
+    editing.edit.text = "a";
+    EXPECT_EQ(InputEventFor(editing), std::nullopt);
 }
 
 TEST(InputEventsTest, FocusLostIsAnEvent)

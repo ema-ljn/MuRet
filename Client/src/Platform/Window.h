@@ -63,6 +63,15 @@ public:
     [[nodiscard]] const std::string& VSyncError() const;
     // La tabla de funciones de GL del contexto de esta ventana.
     [[nodiscard]] const GlFunctions& Gl() const;
+    // Cuántos píxeles del framebuffer mide cada coordenada de la ventana
+    // (SDL_GetWindowPixelDensity), para el mouse de InputEventFor; 0 si SDL falla.
+    [[nodiscard]] float PixelDensity() const;
+    // Prende y apaga los SDL_EVENT_TEXT_INPUT, que SDL no manda si no se piden (CL5.5). En
+    // algunas plataformas prender muestra un teclado en pantalla o el IME. El error trae el
+    // SDL_GetError().
+    [[nodiscard]] Core::Expected<void, std::string> StartTextInput();
+    [[nodiscard]] Core::Expected<void, std::string> StopTextInput();
+    [[nodiscard]] bool TextInputActive() const;
 
 private:
     using WindowPtr = std::unique_ptr<SDL_Window, WindowDeleter>;

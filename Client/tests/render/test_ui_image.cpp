@@ -152,6 +152,43 @@ TEST(UiImageTest, OnlyTheResizedSideLosesTheHalfTexel)
     EXPECT_EQ(corners[2].v, 15.0f / 16.0f);
 }
 
+// Los cuadros de un botón (CL5.5): 0x63c330 los apila para abajo, cada uno a k · h téxeles, y
+// 0x647560(k) corre las UV: la de arriba a (k · h + 0,5) / th, y la de abajo, la de arriba más lo
+// que medía la imagen en v. Un botón de servidor de 193 × 26 (server_b2_all, en un buffer de
+// 256 × 128), en el cuadro 1: la v va de 26,5 / 128 a 51,5 / 128, y la u no cambia.
+TEST(UiImageTest, AFrameMovesTheUvDown)
+{
+    const UiImage button{.slot = TextureSlot{0xd},
+                         .x = 0,
+                         .y = 0,
+                         .width = 193,
+                         .height = 26,
+                         .textureWidth = 256,
+                         .textureHeight = 128,
+                         .frameTop = 26};
+
+    ExpectCorners(UiImageCorners(button, Screen640), Expected{{{0, 480, 0.001953125f, 0.20703125f},
+                                                               {0, 454, 0.001953125f, 0.40234375f},
+                                                               {193, 454, 0.751953125f, 0.40234375f},
+                                                               {193, 480, 0.751953125f, 0.20703125f}}});
+}
+
+// El cuadro 0 es la imagen sin cuadros: 0x647050 llama a 0x647560(0) al armarla.
+TEST(UiImageTest, FrameZeroIsTheImage)
+{
+    UiImage framed = AccountSizedImage;
+    framed.frameTop = 0;
+
+    const QuadCorners plain = UiImageCorners(AccountSizedImage, Screen640);
+    const QuadCorners first = UiImageCorners(framed, Screen640);
+    for (std::size_t i = 0; i < plain.size(); ++i)
+    {
+        SCOPED_TRACE(i);
+        EXPECT_EQ(first[i].u, plain[i].u);
+        EXPECT_EQ(first[i].v, plain[i].v);
+    }
+}
+
 // 0x65eeb0: W · (1/800 en float) y H · (1/600 en float), guardados en float. Ninguna inversa es
 // exacta: en 640 × 480, 0,79999995 y 0,80000001; en 800 × 600, 1 justo.
 TEST(DesignScaleTest, MultipliesByTheInverseOfTheDesign)

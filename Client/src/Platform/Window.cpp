@@ -1,6 +1,7 @@
 #include "Platform/Window.h"
 
 #include <SDL3/SDL_error.h>
+#include <SDL3/SDL_keyboard.h>
 
 #include <string>
 #include <utility>
@@ -84,5 +85,33 @@ const std::string& Window::VSyncError() const
 const GlFunctions& Window::Gl() const
 {
     return m_gl;
+}
+
+float Window::PixelDensity() const
+{
+    return SDL_GetWindowPixelDensity(m_window.get());
+}
+
+Core::Expected<void, std::string> Window::StartTextInput()
+{
+    if (!SDL_StartTextInput(m_window.get()))
+    {
+        return Core::Unexpected(std::string("no se pudo prender el texto tecleado: ") + SDL_GetError());
+    }
+    return {};
+}
+
+Core::Expected<void, std::string> Window::StopTextInput()
+{
+    if (!SDL_StopTextInput(m_window.get()))
+    {
+        return Core::Unexpected(std::string("no se pudo apagar el texto tecleado: ") + SDL_GetError());
+    }
+    return {};
+}
+
+bool Window::TextInputActive() const
+{
+    return SDL_TextInputActive(m_window.get());
 }
 } // namespace Client::Platform

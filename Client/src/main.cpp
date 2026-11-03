@@ -380,7 +380,8 @@ App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::Game
     }
     while (!commandLine.maxFrames || loop.Stats().frames < *commandLine.maxFrames)
     {
-        Platform::PumpEvents(state, input, window.Id());
+        // El mouse, en píxeles del framebuffer (CL5.5): la UI del login los usa.
+        Platform::PumpEvents(state, input, window.Id(), window.PixelDensity());
         if (!state.running)
         {
             break;

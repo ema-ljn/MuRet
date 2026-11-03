@@ -326,6 +326,17 @@ solo lo lee.
   en orden. Las fuentes siguen el ancho de la pantalla (`SceneText`). El `SessionClient` se fue:
   la sesión la corre el `SceneManager`. Q-C80, nuevo: los textos del login salen con la mezcla
   aditiva de la arena.
+  **La CL5.5** la resuelve Claude en dos PRs, con el paso 2, la tabla del `TextField`, **resuelto
+  por Claude**. El A (2026-11-03): la UI del login, sin red. El texto tecleado llega aparte de las
+  teclas (`SDL_EVENT_TEXT_INPUT`, `InputState::Text()`), y el mouse de la UI va en píxeles del
+  framebuffer, acotado a la ventana como en `0x640940` (Q-C47, decidido). Las ventanas son las de la
+  UI nueva del original, en píxeles y centradas (D-C11, corregido): el `TextField` de 10 bytes de
+  ASCII imprimible, con la clave en asteriscos; el `Button`, con sus cuadros, su captura y su
+  rótulo; la lista de servidores, con los 21 grupos en el orden de `0x4c1860` y 20 botones de
+  servidor (Q-C62 y Q-C63); la cuenta, con el foco, Tab, Enter y Esc; y el aviso, con los textos
+  de 06 por índice. Todo se atiende en el paso y no en el frame (Q-C81, nuevo), y un clic en un
+  grupo no vuelve a pedir la lista (Q-C82, nuevo). La cuenta y la clave no salen en ningún
+  `PrintTo` ni en el log.
 
 ## Conceptos
 
@@ -440,6 +451,9 @@ sesión, junto con los de repaso más viejo.
 | el mundo como dato: una función que da la carpeta de cualquier mapa desde una tabla de rangos, leída de los `cmp` y los saltos con signo del desensamblado, y un golden que recorre todos los mundos que hay en vez de uno | CL5.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | un doble que anota en orden para probar un dibujo: el lienzo como interfaz (el lote, el texto, el mundo y el fin del 2D), el `RecordingFrameTarget` que pasa el lote a una lista de quads, textos y pases, y por qué el orden y el estado de cada quad dicen más que los píxeles | CL5.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | un recurso que vive lo que su dueño: el juego de texturas que sube el `Enter` y suelta el `Leave`, la caché del texto que suelta sus slots en su destructor, y el orden de las declaraciones de `main.cpp`, que decide quién muere antes | CL5.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| el texto tecleado contra las teclas: un evento de texto en UTF-8 que se copia porque es de SDL, el IME que compone sin mandar texto, y un campo que guarda bytes de ASCII imprimible hasta un tope y muestra la clave en asteriscos (`TextField`) | CL5.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| una UI retenida mínima: ventanas que guardan su estado entre pasos, el foco del teclado, la captura del mouse de un botón (un clic es soltar encima del que se apretó), y una ventana que devuelve lo que pasó en vez de llamar a la red | CL5.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| ventanas en píxeles del framebuffer, centradas, con sus textos en 640 × 480: la densidad de la pantalla, el mouse acotado como en `0x640940`, y pasar de un espacio al otro truncando como la x87 (`DesignX`) | CL5.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

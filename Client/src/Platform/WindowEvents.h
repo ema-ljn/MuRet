@@ -21,6 +21,8 @@ inline constexpr SDL_WindowID AnyWindow = 0;
 
 // Vacía la cola de SDL: cada evento de ventana de `windowId` va a `state` con App::Apply, cada
 // evento de input a `input` con InputState::Apply, y los demás se descartan. El foco perdido va a
-// los dos: la ventana lo anota y el input suelta todo.
-void PumpEvents(App::WindowState& state, Input::InputState& input, SDL_WindowID windowId = AnyWindow);
+// los dos: la ventana lo anota y el input suelta todo. `pixelDensity` pasa el mouse a píxeles del
+// framebuffer (InputEventFor, CL5.5): main.cpp le da Window::PixelDensity.
+void PumpEvents(App::WindowState& state, Input::InputState& input, SDL_WindowID windowId = AnyWindow,
+                float pixelDensity = 1.0f);
 } // namespace Client::Platform

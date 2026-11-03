@@ -15,7 +15,8 @@
 // 800 × 600 (fx = W / 800, fy = H / 600), y el fondo de cada ventana, los campos de la cuenta, el
 // aviso y la barra de abajo, en píxeles (fx = fy = 1). Lo que no lleva todavía: el ancla de +0x9c
 // (las imágenes de la carga y las de las ventanas que se leyeron van con 0), el corrimiento de
-// +0x58 y +0x5c (en 0) y los cuadros de una animación (+0x64 y +0x74).
+// +0x58 y +0x5c (en 0) y el avance solo de una animación (0x6475d0). Los cuadros de un botón, uno
+// abajo del otro, sí (frameTop, CL5.5).
 namespace Client::Render
 {
 struct UiImage
@@ -45,6 +46,9 @@ struct UiImage
     // las saca como 0x647050 y 0x6472e0.
     bool resizedWidth = false;
     bool resizedHeight = false;
+    // El cuadro que eligió 0x647560, como la fila de téxeles de su borde de arriba: los botones
+    // (0x63c330) apilan los suyos para abajo, el k en k · h. Sin cuadros, nada. Solo con slot.
+    std::optional<int> frameTop{};
 };
 
 // Las cuatro esquinas, como 0x647050, 0x6472e0 y 0x647650. El borde de arriba es H / fy − y,
@@ -52,7 +56,8 @@ struct UiImage
 // 0x6472e0 saca de las esquinas que dejó 0x647050); cada esquina va por fx o fy. Las UV van de
 // (0,5 / tw, 0,5 / th) arriba a la izquierda a ((w − 0,5) / tw, (h − 0,5) / th) abajo a la
 // derecha, o a w / tw y h / th del lado cambiado (resizedWidth, resizedHeight); sin slot, en 0,
-// como las deja 0x647050.
+// como las deja 0x647050. Con frameTop, 0x647560 corre la v de arriba a (frameTop + 0,5) / th y
+// la de abajo a esa más lo que medía la imagen en v (guardado en float); la u queda.
 [[nodiscard]] QuadCorners UiImageCorners(const UiImage& image, App::PixelSize screen);
 
 // El factor de un eje de la pantalla para una UI diseñada en `designSize` píxeles: el tamaño por

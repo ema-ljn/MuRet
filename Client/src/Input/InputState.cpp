@@ -43,6 +43,20 @@ bool IsLogical(Key key)
     return key == Key::Shift || key == Key::Ctrl || key == Key::Alt;
 }
 
+// El byte que Backspace y Tab dejan en el texto tecleado (InputEvent.h); las demás, ninguno.
+std::optional<char> TypedCharOf(Key key)
+{
+    switch (key)
+    {
+    case Key::Backspace:
+        return BackspaceChar;
+    case Key::Tab:
+        return TabChar;
+    default:
+        return std::nullopt;
+    }
+}
+
 // La tecla lógica de un lado, o std::nullopt si la tecla no es un lado.
 std::optional<Key> LogicalOf(Key side)
 {
@@ -106,6 +120,9 @@ void InputState::Apply(const InputEvent& event)
     case InputEvent::Kind::FocusLost:
         ReleaseEverything();
         return;
+    case InputEvent::Kind::Text:
+        m_text += event.text;
+        return;
     }
 }
 
@@ -160,6 +177,11 @@ float InputState::MouseY() const
     return m_mouseY;
 }
 
+std::string_view InputState::Text() const
+{
+    return m_text;
+}
+
 void InputState::ConsumeEdges()
 {
     m_keysPressed.reset();
@@ -167,6 +189,7 @@ void InputState::ConsumeEdges()
     m_buttonsPressed.reset();
     m_buttonsReleased.reset();
     m_wheel = 0.0f;
+    m_text.clear();
 }
 
 void InputState::Press(Key key)
@@ -179,6 +202,10 @@ void InputState::Press(Key key)
     m_keysDown.set(*index);
     m_keysPressed.set(*index);
     UpdateLogical(key);
+    if (const std::optional<char> typed = TypedCharOf(key))
+    {
+        m_text.push_back(*typed);
+    }
 }
 
 void InputState::Release(Key key)
@@ -219,7 +246,8 @@ void InputState::ReleaseEverything()
 {
     // Lo que estaba abajo se suelta con su flanco, como si hubiera llegado cada KeyUp; las teclas
     // lógicas también, porque están en las mismas tablas. Los apretones y la rueda de antes se
-    // borran: el paso siguiente no ve un clic de antes del alt-tab (como MuMain, Winmain.cpp).
+    // borran: el paso siguiente no ve un clic de antes del alt-tab (como MuMain, Winmain.cpp). Lo
+    // tecleado, lo mismo.
     m_keysReleased |= m_keysDown;
     m_keysDown.reset();
     m_keysPressed.reset();
@@ -227,6 +255,7 @@ void InputState::ReleaseEverything()
     m_buttonsDown.reset();
     m_buttonsPressed.reset();
     m_wheel = 0.0f;
+    m_text.clear();
 }
 
 void InputState::UpdateLogical(Key side)

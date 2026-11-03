@@ -6,6 +6,8 @@
 
 #include <cstddef>
 #include <limits>
+#include <string>
+#include <utility>
 
 // Client::Input::InputState: el teclado y el mouse por frame, con sus flancos (plan de la CL3,
 // sub-ola CL3.3, la tabla del paso 1).
@@ -27,6 +29,13 @@ InputEvent ButtonEvent(InputEvent::Kind kind, MouseButton button)
 {
     InputEvent event{.kind = kind};
     event.button = button;
+    return event;
+}
+
+InputEvent TextEvent(std::string text)
+{
+    InputEvent event{.kind = InputEvent::Kind::Text};
+    event.text = std::move(text);
     return event;
 }
 
@@ -349,5 +358,69 @@ TEST(InputStateTest, ALogicalKeyEventIsIgnored)
 
     EXPECT_TRUE(input.IsDown(Key::Shift));
     EXPECT_FALSE(input.WasReleased(Key::Shift));
+}
+
+// El texto tecleado (CL5.5): lo de cada Text se junta, en orden, hasta ConsumeEdges, como la rueda.
+TEST(InputStateTest, CollectsTheTypedText)
+{
+    InputState input;
+    EXPECT_EQ(input.Text(), "");
+
+    input.Apply(TextEvent("ab"));
+    input.Apply(TextEvent("c"));
+
+    EXPECT_EQ(input.Text(), "abc");
+}
+
+TEST(InputStateTest, ConsumeEdgesEmptiesIt)
+{
+    InputState input;
+    input.Apply(TextEvent("ab"));
+
+    input.ConsumeEdges();
+    EXPECT_EQ(input.Text(), "");
+
+    input.Apply(TextEvent("d"));
+    EXPECT_EQ(input.Text(), "d");
+}
+
+// Como un clic de antes del alt-tab, lo tecleado antes de perder el foco no lo ve el paso.
+TEST(InputStateTest, FocusLostEmptiesTheText)
+{
+    InputState input;
+    input.Apply(TextEvent("ab"));
+
+    input.Apply(InputEvent{.kind = InputEvent::Kind::FocusLost});
+
+    EXPECT_EQ(input.Text(), "");
+}
+
+// Backspace y Tab van también en el texto, como los WM_CHAR 8 y 9 de un EDIT: cada apretón deja su
+// byte en el lugar en que llegó, y la tecla se aprieta igual. Una tecla que ya estaba abajo no es
+// otro apretón y no deja nada (la repetición llega como texto, InputEvents.h).
+TEST(InputStateTest, BackspaceAndTabGoInTheTextInOrder)
+{
+    InputState input;
+    input.Apply(TextEvent("ab"));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Backspace));
+    input.Apply(TextEvent("c"));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Tab));
+    input.Apply(KeyEvent(InputEvent::Kind::KeyDown, Key::Tab));
+    input.Apply(TextEvent("d"));
+
+    EXPECT_EQ(input.Text(), "ab\bc\td");
+    EXPECT_TRUE(input.WasPressed(Key::Backspace));
+    EXPECT_TRUE(input.WasPressed(Key::Tab));
+    static_assert(Client::Input::BackspaceChar == '\b' && Client::Input::TabChar == '\t');
+}
+
+// El texto no es una tecla: no aprieta ninguna.
+TEST(InputStateTest, TheTextPressesNoKey)
+{
+    InputState input;
+    input.Apply(TextEvent("a"));
+
+    EXPECT_FALSE(input.WasPressed(Key::A));
+    EXPECT_FALSE(input.IsDown(Key::A));
 }
 } // namespace

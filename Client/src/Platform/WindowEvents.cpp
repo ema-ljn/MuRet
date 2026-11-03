@@ -50,12 +50,12 @@ std::optional<App::WindowEvent> WindowEventFor(const SDL_Event& event, SDL_Windo
     }
 }
 
-void PumpEvents(App::WindowState& state, Input::InputState& input, SDL_WindowID windowId)
+void PumpEvents(App::WindowState& state, Input::InputState& input, SDL_WindowID windowId, float pixelDensity)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-        if (const std::optional<Input::InputEvent> inputEvent = InputEventFor(event))
+        if (const std::optional<Input::InputEvent> inputEvent = InputEventFor(event, pixelDensity))
         {
             input.Apply(*inputEvent);
         }

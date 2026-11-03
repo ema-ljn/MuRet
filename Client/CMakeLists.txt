@@ -52,6 +52,11 @@ endif()
 file(GLOB_RECURSE platform_sources CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/*.cpp")
 add_library(ClientPlatform STATIC ${platform_sources})
 target_link_libraries(ClientPlatform PUBLIC ClientLib SDL3::SDL3)
+# El registro de Platform/SystemFonts.cpp (CL5.3): en Windows, advapi32, que MSVC ya enlaza por
+# defecto; va explícito, como ws2_32.
+if(WIN32)
+    target_link_libraries(ClientPlatform PRIVATE advapi32)
+endif()
 # Los typedef PFNGL…PROC de las funciones de GL 1.x (glClear, glViewport); los de la 3.3 vienen
 # siempre. Con ellos se tipan los punteros que da SDL_GL_GetProcAddress, y GlLoader.h los expone:
 # por eso es PUBLIC (Main y los tests de platform/ los ven).

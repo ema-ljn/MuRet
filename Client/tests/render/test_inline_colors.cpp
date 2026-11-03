@@ -161,4 +161,23 @@ TEST(InlineColorsTest, StopsAtTheFirstNul)
     EXPECT_EQ(parsed.text, "ab");
     EXPECT_TRUE(parsed.runs.empty());
 }
+
+// 0x4667a0 copia el texto a un buffer de 256 bytes de su pila y lo reescribe desde ahí en el del
+// que llama: de un texto más largo, lo que pasa del 256 sale de la pila (Q-C77). MuRet arma el
+// texto limpio aparte, sin tope, y no toca el del que llama.
+TEST(InlineColorsTest, ALongTextKeepsItsTail)
+{
+    std::string tail;
+    for (int i = 0; i < 300; ++i)
+    {
+        tail.push_back(static_cast<char>('a' + (i % 26)));
+    }
+    const std::string text = Pair(0xf4) + tail;
+
+    const auto parsed = ParseInlineColors(text, Context);
+
+    EXPECT_EQ(parsed.text, tail);
+    EXPECT_EQ(parsed.runs, (std::vector<ColorRun>{{0, 0xf4, Red}}));
+    EXPECT_EQ(text, Pair(0xf4) + tail);
+}
 } // namespace

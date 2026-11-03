@@ -22,15 +22,17 @@
 
 // La tabla de texturas de una escena, indexada por el slot del original (pregunta 11 del plan de
 // la CL5): lo que se carga se encuentra por su slot, se suelta como con 0x63c150, y lo que no
-// entra en los 1.845 slots no se sube.
+// entra en los 1.845 slots del original y los 256 del texto de MuRet (CL5.3) no se sube.
 namespace
 {
 using Client::Data::Textures::LoadedTexture;
 using Client::Data::Textures::LoadOztTexture;
 using Client::Data::Textures::Texture;
+using Client::Render::FirstTextTextureSlot;
 using Client::Render::ITextureStore;
 using Client::Render::OriginalTextureSlotCount;
 using Client::Render::TextureSlot;
+using Client::Render::TextureSlotCount;
 using Client::Render::Gl::GlTexture;
 using Client::Render::Gl::TextureTable;
 using Client::Tests::PlainOzt;
@@ -91,7 +93,7 @@ TEST_F(TextureTableTest, ReleaseForgetsTheSlot)
     EXPECT_EQ(WidthAt(table, 0x16), 2);
     // Soltar uno vacío, o uno que no entra en la tabla, no hace nada.
     table.Release(TextureSlot{0x15});
-    table.Release(TextureSlot{static_cast<std::uint16_t>(OriginalTextureSlotCount)});
+    table.Release(TextureSlot{static_cast<std::uint16_t>(TextureSlotCount)});
     EXPECT_EQ(WidthAt(table, 0x16), 2);
 }
 
@@ -106,12 +108,13 @@ TEST_F(TextureTableTest, ALoadReplacesTheSlot)
     EXPECT_EQ(WidthAt(table, 0x15), 8);
 }
 
-// El original tiene 1.845 slots (0x64e6 dwords en 0x622e40): uno de afuera no se sube, y el error
-// dice cuál. Lo cargado antes queda: la escena que falla suelta la tabla entera.
+// El original tiene 1.845 slots (0x64e6 dwords en 0x622e40), y MuRet suma 256 para el texto: uno de
+// afuera no se sube, y el error dice cuál. Lo cargado antes queda: la escena que falla suelta la
+// tabla entera.
 TEST_F(TextureTableTest, ASlotOutsideTheTableIsRefused)
 {
     TextureTable table(Gl());
-    const auto outside = static_cast<std::uint16_t>(OriginalTextureSlotCount);
+    const auto outside = static_cast<std::uint16_t>(TextureSlotCount);
     const std::vector<LoadedTexture> textures{Ozt(0x15, 2, 2), Ozt(outside, 2, 2)};
 
     const Client::Core::Expected<void, std::string> loaded = table.Load(textures);
@@ -135,6 +138,22 @@ TEST_F(TextureTableTest, TheLastSlotIsInTheTable)
     EXPECT_EQ(WidthAt(table, last), 4);
     table.Release(TextureSlot{last});
     EXPECT_EQ(table.Find(TextureSlot{last}), nullptr);
+}
+
+// Los slots del texto van después de los del original: el 1.845 (0x735) es el primero y el 2.100,
+// el último.
+TEST_F(TextureTableTest, TheTextSlotsComeAfterTheOriginal)
+{
+    TextureTable table(Gl());
+    const std::uint16_t first = FirstTextTextureSlot.value;
+    const auto last = static_cast<std::uint16_t>(TextureSlotCount - 1);
+    ASSERT_EQ(first, OriginalTextureSlotCount);
+
+    const Client::Core::Expected<void, std::string> loaded = table.Load(std::vector{Ozt(first, 4, 2), Ozt(last, 8, 2)});
+
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    EXPECT_EQ(WidthAt(table, first), 4);
+    EXPECT_EQ(WidthAt(table, last), 8);
 }
 
 // Una textura que GlTexture no sube (un buffer que no mide lo que dice) corta, con su slot.

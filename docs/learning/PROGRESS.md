@@ -295,7 +295,14 @@ solo lo lee.
   corta en cajas de 256 columnas; y `FreeTypeRasterizer`, FreeType en un bit con el intérprete v35
   y la celda de la OS/2, detrás de `IGlyphRasterizer`. La fuente sale de `[Video] FontFile` (y de
   `BoldFontFile`), y en los tests, de `MURET_CLIENT_FONT_FILE`. `Text.bmd` es de un byte por letra y
-  se lee como Latin-1 (Q-C67); lo que se aparta de GDI es Q-C76, nuevo.
+  se lee como Latin-1 (Q-C67); lo que se aparta de GDI es Q-C76, nuevo. El B (2026-11-03): la
+  caché y el dibujo. `TextCache` rasteriza un texto una vez por fuente y colores, sube sus cajas de
+  256 × 32 a los slots del texto, 256 después de los 1.845 del original en la `TextureTable`, y
+  saca el que hace más tiempo que no se dibuja cuando no hay lugar; los quads son los de
+  `TextPieces`, con el slot de cada caja. La fuente sin `[Video] FontFile`: `App::ChooseFontFiles`
+  y, en Windows, `Platform::FindSystemFontFile` con la lista del registro. Dos bugs nuevos del
+  original, corregidos: `0x4667a0` reescribe el texto en el buffer del que llama (Q-C77), y la caja
+  que pasa de la columna 1.280 del DIB lee la fila de abajo (Q-C78).
 
 ## Conceptos
 
@@ -405,6 +412,7 @@ sesión, junto con los de repaso más viejo.
 | rasterizar una fuente en un bit: el contorno, el hinting de TrueType (el intérprete v35 contra el v40), un bitmap de un bit por píxel con su `pitch`, y por qué el alto de `CreateFontA` es la celda (el ascenso más el descenso) y no el em | CL5.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | medir como `GetTextExtentPointA` (los avances con hinting, sumados sin kerning) y ubicar con la aritmética del original: una división entera sin signo que trunca y un producto que da la vuelta en 32 bits | CL5.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | colores dentro de un texto: un parser que saca pares de bytes y anota tramos sobre el texto limpio, con un tope que corta los tramos y no la limpieza (`0x4667a0`); y las codificaciones de un byte (Latin-1) contra GB2312 y UTF-8, decididas contando bytes sin imprimir el texto | CL5.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| una caché con tope y la regla de sacar el menos usado (LRU): una lista que se reordena con `splice` sin mover sus nodos, un índice que apunta a ellos, una clave con todo lo que cambia el resultado (texto, fuente y colores), y los recursos (slots) que vuelven al soltar | CL5.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

@@ -108,10 +108,12 @@ entry 0x6a2444 (arranque del CRT)
 
 Leído en la CL5.R; todo *estático*.
 
-- **La resolución** es el valor `Resolution` del registro (`0x4b90a0`): 0 da 640 × 480, 1 800 ×
-  600, 2 1024 × 768, 3 1280 × 1024 y 4 1600 × 1200. W y H van a `0x6d5d60` y `0x6d5d64`, y las
-  proporciones a `DAT_05762ea8` (W / 640) y `DAT_05762eac` (H / 480). Qué hace con otro valor, sin
-  leer.
+- **La resolución** es el valor `Resolution` del registro (`0x4b90a0`): 1 da 800 × 600, 2 1024 ×
+  768, 3 1280 × 1024 y 4 1600 × 1200. Un 0, o el valor que falta, pasa a 1 (`0x4b9349`..`0x4b9353`),
+  y 640 × 480 sale solo si no abre la clave `Config`: queda el 0 que puso antes (`0x4b92a2`). Con
+  más de 4 (`ja`, sin signo, en `0x4b93bb`) no escribe nada y quedan los de la `.data`, 1024 × 768.
+  W y H van a `0x6d5d60` y `0x6d5d64`, y las proporciones a `DAT_05762ea8` (W / 640) y
+  `DAT_05762eac` (H / 480).
 - **Las fuentes:** cuatro `CreateFontA(alto, 0, 0, 0, peso, 0, 0, 0, charset, 0, 0, 3, 0, cara)`
   (`0x4ba737`, `0x4ba777`, `0x4ba7b9` y `0x4ba813`), todas sin suavizado
   (`NONANTIALIASED_QUALITY`, el 3) y con el charset que lee de `0x6c76a0`, un dword de la `.data`
@@ -126,8 +128,9 @@ Leído en la CL5.R; todo *estático*.
   | `DAT_0576355c` | 700 | 2 · (n − 1) | el texto 0 |
   | `DAT_05763560` | 400 | 12 | el texto 18 |
 
-  n es `DAT_07758568`, que se escribe solo ahí (`0x4ba6af`..`0x4ba6d3`): 12 con W = 640, 13 con
-  800, 14 con 1024 y 15 con 1280. Con 1600 no se escribe y, como está en la `.bss`, vale 0: las
+  n es `DAT_07758568`, que se escribe ahí (`0x4ba6af`..`0x4ba6d3`): 12 con W = 640, 13 con 800, 14
+  con 1024 y 15 con 1280. La otra escritura, en `0x556333` (dentro de `0x555b00`), la acota a 32, y
+  con estos valores no la cambia. Con 1600 no se escribe y, como está en la `.bss`, vale 0: las
   alturas quedan en -1, -1 y -2 (Q-C59).
 - **El texto:** `TextOut` (0 si no está) elige cómo se dibuja: con 1, la caché de `0x466000` con
   los colores `0x02`; con otro valor, un `TextOutA` por texto, el camino de las trazas
@@ -156,9 +159,9 @@ Quién escribe `DAT_006d5dc8`, leído en la CL5.R en el desensamblado (*estátic
 | (arranque) | 1 | la `.data` | `DAT_006d5dc8` vale 1 en el archivo |
 | 1 | 2 | `0x622e40` | al terminar la carga ([06](06-render-escenas-y-ui.md#la-carga-escena-1)) |
 | 2 | 4 | `0x634c60` | el login aceptado: el `F1 01` deja el estado de la conexión, `DAT_057678c0`, en `0x14`; la escena lo ve en su paso, lo pasa a `0x32` y manda el `F3 00` |
-| 4 | 3 | `0x6342c0` y `0x633c10` | Enter, o doble clic sobre el personaje elegido, en la lógica de la selección (que corre solo con el estado en `0x33` o más, la lista de personajes); o el botón de la ventana de la selección (`0x633c10`, desde `0x63eb9a`, en su `vtable + 0x30`) |
+| 4 | 3 | `0x6342c0` y `0x633c10` | en la lógica de la selección (que corre solo con el estado en `0x33` o más, la lista de personajes): Enter con un personaje elegido (`DAT_006d5edc`, de 0 a 4), o doble clic sobre un personaje (el de `0x6c8e30`, que pasa a ser el elegido) con la ventana de la selección (`+0x7f50`) abierta; o el botón de esa ventana (`0x633c10`, desde `0x63eb9a`, en su `vtable + 0x30`). Si el personaje tiene el bit `0x1` de `+0x1d8`, abre el aviso `0x84` en vez de entrar |
 | 3 | 5 | `0x6356f0` | al terminar la carga del mundo |
-| 5 o 4 | 4 o 2 | `0x4c2710` | la respuesta del `F1 02`: con `pkt[4]` en 1 pasa a la 4, y con 2 a la 2, y en ese caso pone en 0 la bandera del login (`DAT_07d3a13d`, `0x4c2f24`) y corta: al volver se carga todo otra vez, y vuelve a conectar al CS |
+| 5 o 4 | 4 o 2 | `0x4c2710` | la respuesta del `F1 02`: con `pkt[4]` en 1 pasa a la 4, y con 2 a la 2, y en ese caso cierra el GS, pone en 0 la bandera del login (`DAT_07d3a13d`, `0x4c2f24`) y corta: al volver se carga todo otra vez, y vuelve a conectar al CS. Las dos, solo si el paquete llegó cifrado: el cuarto argumento del dispatcher (el "cifrado" de [03](03-red-y-cifrado.md), `[ebp+0xc]` en `0x4c2781` y `0x4c2f5e`); sin cifrar no cambia de escena, y lo que hace llama a la tabla de hash de `0x40b240` (no se siguió). Con `pkt[4]` en 0, `SendMessageA(WM_DESTROY)` (`0x4c391b`): el juego se cierra |
 
 Los estados de la conexión que importan acá son 0 (sin GS), 2 (el `F1 00` aceptado), `0x13` (el
 login mandado), `0x14` (aceptado), `0x32` (la lista de personajes pedida) y `0x33` (llegó).

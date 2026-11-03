@@ -784,6 +784,13 @@ como ilegible, sin el error del cargador, seguir después de un error, sin el sl
 muestreo, un `Release` que no suelta, una carga que no reemplaza, el tope corrido en uno, un `Find`
 sin tope y un `Expected<void>` que siempre es éxito) mueren todos; el del tope corrido muere por un
 acceso fuera del vector, no por una aserción.
+En la revisión del PR B se sumaron dos tests: `TextureSetTest.ANameWithoutADotGetsOne` (el punto que
+pone MuRet donde el original deja un byte de la pila, Q-C74: un nombre armado con
+`substr(0, punto + 1)` pasaba todos los tests) y `TextureTableTest.TheLastSlotIsInTheTable` (el
+slot 1.844 se carga: un tope corrido en uno para el otro lado, que rechazaba el último, también
+pasaba). `TextureLoaderOf` compara con `Data::EqualsIgnoringAsciiCase`, la de `ResolveDataPath`,
+que pasó a `DataPath.h` en vez de tener una tercera copia, y su comentario dice que las texturas de
+un modelo (`0x60d5f0`, CL6) eligen el cargador con otra regla: la letra después del primer punto.
 
 ## Sub-ola CL5.2: `SpriteBatch` en 640 × 480 escalado
 

@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <optional>
 #include <span>
 #include <string>
@@ -84,6 +85,162 @@ TEST(GlTextureRulesTest, RefusesPixelsThatAreNotTheWholeBuffer)
     Texture empty = MakeTexture(PixelFormat::Rgba, 1, 1, {});
     empty.textureWidth = 0;
     EXPECT_FALSE(GlTexture::Upload(noGl, empty, NearestClamp).HasValue());
+}
+
+// El nombre que da el driver falso, su GL_UNPACK_ALIGNMENT al empezar (el 4 de GL) y cuántas
+// veces da error el que no para: después da GL_NO_ERROR, así un Upload sin tope termina y el test
+// falla en vez de colgarse.
+constexpr GLuint FakeTextureName = 7;
+constexpr GLint FakeUnpackAlignment = 4;
+constexpr int EndlessDriverCalls = 1000;
+
+// Un driver falso para Upload, sin contexto, como el de test_gl_loader.cpp. Tiene varias banderas
+// de error, y glGetError da una por llamada: la referencia de glGetError pide llamarlo hasta que dé
+// GL_NO_ERROR. Mesa tiene una sola, así que con el contexto de los tests eso no se ve. glTexImage2D
+// suma sus errores a los pendientes. Es estado global porque la tabla es de punteros a función, sin
+// captura; el fixture lo deja limpio antes de cada test.
+struct FakeErrorDriver
+{
+    std::deque<GLenum> pending;
+    std::vector<GLenum> texImageErrors;
+    bool neverClears = false;
+    int getErrorCalls = 0;
+    GLint unpackAlignment = FakeUnpackAlignment;
+    std::vector<GLuint> generated;
+    std::vector<GLuint> deleted;
+};
+
+FakeErrorDriver s_driver;
+
+GLenum GLAPIENTRY FakeGetError()
+{
+    ++s_driver.getErrorCalls;
+    if (s_driver.neverClears && s_driver.getErrorCalls <= EndlessDriverCalls)
+    {
+        return GL_OUT_OF_MEMORY;
+    }
+    if (s_driver.pending.empty())
+    {
+        return GL_NO_ERROR;
+    }
+    const GLenum error = s_driver.pending.front();
+    s_driver.pending.pop_front();
+    return error;
+}
+
+void GLAPIENTRY FakeGenTextures(GLsizei count, GLuint* names)
+{
+    for (GLsizei k = 0; k < count; ++k)
+    {
+        names[k] = FakeTextureName;
+        s_driver.generated.push_back(FakeTextureName);
+    }
+}
+
+void GLAPIENTRY FakeDeleteTextures(GLsizei count, const GLuint* names)
+{
+    s_driver.deleted.insert(s_driver.deleted.end(), names, names + count);
+}
+
+void GLAPIENTRY FakeBindTexture(GLenum /*target*/, GLuint /*name*/) {}
+
+void GLAPIENTRY FakeGetIntegerv(GLenum name, GLint* value)
+{
+    if (name == GL_UNPACK_ALIGNMENT)
+    {
+        *value = s_driver.unpackAlignment;
+    }
+}
+
+void GLAPIENTRY FakePixelStorei(GLenum name, GLint value)
+{
+    if (name == GL_UNPACK_ALIGNMENT)
+    {
+        s_driver.unpackAlignment = value;
+    }
+}
+
+void GLAPIENTRY FakeTexImage2D(GLenum /*target*/, GLint /*level*/, GLint /*internalFormat*/, GLsizei /*width*/,
+                               GLsizei /*height*/, GLint /*border*/, GLenum /*format*/, GLenum /*type*/,
+                               const GLvoid* /*pixels*/)
+{
+    s_driver.pending.insert(s_driver.pending.end(), s_driver.texImageErrors.begin(), s_driver.texImageErrors.end());
+}
+
+void GLAPIENTRY FakeTexParameteri(GLenum /*target*/, GLenum /*name*/, GLint /*value*/) {}
+
+class GlTextureDriverTest : public ::testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        s_driver = FakeErrorDriver{};
+    }
+
+    // La tabla con lo que llama Upload, del driver falso. Vive más que la textura que dé.
+    static Client::Platform::GlFunctions FakeGl()
+    {
+        Client::Platform::GlFunctions gl{};
+        gl.getError = &FakeGetError;
+        gl.genTextures = &FakeGenTextures;
+        gl.deleteTextures = &FakeDeleteTextures;
+        gl.bindTexture = &FakeBindTexture;
+        gl.getIntegerv = &FakeGetIntegerv;
+        gl.pixelStorei = &FakePixelStorei;
+        gl.texImage2D = &FakeTexImage2D;
+        gl.texParameteri = &FakeTexParameteri;
+        return gl;
+    }
+
+    static Texture OneTexel()
+    {
+        return MakeTexture(PixelFormat::Rgba, 1, 1, {255, 0, 0, 255});
+    }
+};
+
+// Dos errores de antes, en dos banderas: Upload los saca a los dos, nombra el primero como de otra
+// llamada y no le pide un nombre a GL.
+TEST_F(GlTextureDriverTest, TakesEveryPendingError)
+{
+    s_driver.pending = {GL_INVALID_ENUM, GL_INVALID_OPERATION};
+    const Client::Platform::GlFunctions gl = FakeGl();
+
+    const Client::Core::Expected<GlTexture, std::string> refused = GlTexture::Upload(gl, OneTexel(), NearestClamp);
+
+    ASSERT_FALSE(refused.HasValue());
+    EXPECT_NE(refused.Error().find("pendiente"), std::string::npos) << refused.Error();
+    EXPECT_NE(refused.Error().find("GL_INVALID_ENUM"), std::string::npos) << refused.Error();
+    EXPECT_TRUE(s_driver.pending.empty());
+    EXPECT_TRUE(s_driver.generated.empty());
+}
+
+// Dos errores de glTexImage2D: son de la subida, no de otra llamada. Upload da el primero, saca
+// los dos, borra el nombre que pidió y deja el alignment como estaba.
+TEST_F(GlTextureDriverTest, TakesEveryErrorOfTheUpload)
+{
+    s_driver.texImageErrors = {GL_OUT_OF_MEMORY, GL_INVALID_VALUE};
+    const Client::Platform::GlFunctions gl = FakeGl();
+
+    const Client::Core::Expected<GlTexture, std::string> refused = GlTexture::Upload(gl, OneTexel(), NearestClamp);
+
+    ASSERT_FALSE(refused.HasValue());
+    EXPECT_NE(refused.Error().find("GL_OUT_OF_MEMORY"), std::string::npos) << refused.Error();
+    EXPECT_EQ(refused.Error().find("pendiente"), std::string::npos) << refused.Error();
+    EXPECT_TRUE(s_driver.pending.empty());
+    EXPECT_EQ(s_driver.generated, std::vector<GLuint>{FakeTextureName});
+    EXPECT_EQ(s_driver.deleted, s_driver.generated);
+    EXPECT_EQ(s_driver.unpackAlignment, FakeUnpackAlignment);
+}
+
+// Un driver que no deja de dar errores no cuelga a Upload: deja de preguntar antes que el driver
+// deje de contestar.
+TEST_F(GlTextureDriverTest, StopsAskingADriverThatNeverClears)
+{
+    s_driver.neverClears = true;
+    const Client::Platform::GlFunctions gl = FakeGl();
+
+    EXPECT_FALSE(GlTexture::Upload(gl, OneTexel(), NearestClamp).HasValue());
+    EXPECT_LT(s_driver.getErrorCalls, EndlessDriverCalls);
 }
 
 // El OZT sintético de 2 × 2, leído como en la CL1 (las filas dadas vuelta, en RGBA): los cuatro

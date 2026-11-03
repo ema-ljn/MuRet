@@ -72,6 +72,13 @@ sin la clave, `App::ChooseFontFiles` busca la cara del original en la lista de f
 laboratorio la cara está vacía: con esos datos, también en Windows hace falta `FontFile`. El
 cliente dibuja texto desde la CL5.4, que conecta todo esto en `main.cpp`.
 
+## Auditoría y mantenimiento
+
+La [auditoría de C++20 y contrato 1.02i del 2026-11-03](../docs/audits/2026-11-03-cliente-cpp20.md)
+registra los hallazgos, sus reproducciones y los límites de verificación. El
+[plan de seguimiento](../docs/superpowers/plans/2026-11-03-seguimiento-auditoria-cliente.md)
+los separa en tareas y PR por concepto de CL3.4 y CL5.1; las correcciones siguen pendientes.
+
 ## Compilar y correr
 
 Hace falta vcpkg (las dependencias, SDL3, libjpeg-turbo, glm, FreeType y GoogleTest, están en

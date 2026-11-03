@@ -25,6 +25,7 @@
 #include "Scenes/TextureSets.h"
 #include "UI/GameText.h"
 #include "UI/LoginWindow.h"
+#include "UI/MenuBar.h"
 #include "UI/Notices.h"
 #include "UI/ServerListModel.h"
 #include "UI/ServerListWindow.h"

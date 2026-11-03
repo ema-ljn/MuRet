@@ -53,6 +53,15 @@ inline void PrintTo(SessionState state, std::ostream* out)
     case SessionState::ConnectingGameServer:
         *out << "ConnectingGameServer";
         return;
+    case SessionState::WaitingGameHello:
+        *out << "WaitingGameHello";
+        return;
+    case SessionState::WaitingLoginResult:
+        *out << "WaitingLoginResult";
+        return;
+    case SessionState::LoggedIn:
+        *out << "LoggedIn";
+        return;
     case SessionState::Failed:
         *out << "Failed";
         return;
@@ -72,6 +81,18 @@ inline void PrintTo(SessionFailure failure, std::ostream* out)
         return;
     case SessionFailure::GameServerLost:
         *out << "GameServerLost";
+        return;
+    case SessionFailure::HelloRejected:
+        *out << "HelloRejected";
+        return;
+    case SessionFailure::VersionMismatch:
+        *out << "VersionMismatch";
+        return;
+    case SessionFailure::LoginRejected:
+        *out << "LoginRejected";
+        return;
+    case SessionFailure::CredentialsTooLong:
+        *out << "CredentialsTooLong";
         return;
     }
     *out << "SessionFailure fuera del enum";

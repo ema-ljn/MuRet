@@ -1,8 +1,11 @@
 #include "App/CommandLine.h"
 #include "App/Config.h"
+#include "App/ConnectionKeyFiles.h"
+#include "App/Credentials.h"
 #include "App/FrameRateMeter.h"
 #include "App/GameLoop.h"
 #include "App/LoopTiming.h"
+#include "App/ServerAddress.h"
 #include "App/VSyncMode.h"
 #include "App/WindowState.h"
 #include "Core/FileSink.h"
@@ -11,6 +14,8 @@
 #include "Core/StderrSink.h"
 #include "Core/TeeSink.h"
 #include "Input/InputState.h"
+#include "Network/Connection.h"
+#include "Network/SocketApi.h"
 #include "Platform/BasePath.h"
 #include "Platform/GlLoader.h"
 #include "Platform/SdlClock.h"
@@ -38,25 +43,41 @@
 // El punto de entrada del cliente: arma las capas y arranca, sin lógica propia. main va por fases,
 // como los pasos de WinMain en MuMain (InitializeWorkingDirectoryAndLog, MainLoop, ShutdownRuntime
 // en App/Platform/Windows/Winmain.cpp), y las de más de un paso tienen su función:
-//   1. ReadStartup, antes de SDL_Init: la carpeta del ejecutable, los argumentos y la config. Un
-//      error corta acá, sin abrir la ventana, y va solo a stderr: el archivo del log lo dice la
-//      config.
+//   1. ReadStartup, antes de SDL_Init: la carpeta del ejecutable, los argumentos y la config, y,
+//      con un host (de la config o de /u /p), la cuenta y la clave del entorno y las claves de la
+//      conexión (ReadServerStartup). Un error corta acá, sin abrir la ventana, y va solo a stderr:
+//      el archivo del log lo dice la config.
 //   2. El log entero, stderr y el archivo. Queda en main porque el TeeSink y el Log guardan
-//      referencias a sus salidas, que tienen que vivir más que ellos.
+//      referencias a sus salidas, que tienen que vivir más que ellos. Con un host, también la red
+//      del sistema (NetworkInit).
 //   3. SDL (SdlContext) y OpenWindow: la ventana y el contexto GL.
 //   4. RunLoop: el bucle hasta que se cierre la ventana o se llegue a --frames.
 // El cierre es el orden de las declaraciones de main al revés: el bucle y la escena, la ventana, el
-// SdlLog, SDL_Quit (SdlContext), el Log y al final sus salidas, para que lo que se cierra antes
-// pueda escribir.
+// SdlLog, SDL_Quit (SdlContext), la red, el Log y al final sus salidas, para que lo que se cierra
+// antes pueda escribir.
+//
+// La sesión con los servidores va en el bucle desde la CL4.5: hasta ahí, con un host, Main lee y
+// valida todo lo que la sesión va a necesitar, arranca la red y sigue como sin host. Sin host no
+// mira el entorno ni las claves, y `Main --frames 60` corre igual sin un servidor.
 namespace
 {
 namespace App = Client::App;
 namespace Core = Client::Core;
+namespace Network = Client::Network;
 namespace Platform = Client::Platform;
 namespace Scenes = Client::Scenes;
 
 // El log, junto al ejecutable, si [Log] Path no dice otra cosa (CL3.4, fila "log" del contrato).
 constexpr std::string_view LogFileName = "muret-client.log";
+
+// Lo que necesita la sesión con los servidores (CL4.5), leído en la fase 1 si hay un host. Sin
+// operator<< ni log: la cuenta y la clave no se imprimen (pregunta 7), y las claves tampoco.
+struct ServerStartup
+{
+    App::ServerAddress connectServer;
+    App::Credentials credentials;
+    Network::ConnectionKeys keys;
+};
 
 // Lo que sale de la fase 1.
 struct Startup
@@ -65,7 +86,30 @@ struct Startup
     std::filesystem::path folder;
     App::CommandLine commandLine;
     App::ClientConfig config;
+    // Con un host: el servidor, la cuenta y las claves. Vacío sin host.
+    std::optional<ServerStartup> server;
 };
+
+// Fase 1, con un host: primero la cuenta y la clave del entorno y después las claves de la carpeta
+// de datos (el plan de la CL4, CL4.4). Cada error dice qué falta y cómo darlo, sin un valor.
+std::optional<ServerStartup> ReadServerStartup(const App::ClientConfig& config, Core::Log& log)
+{
+    auto credentials = App::ReadCredentials(App::SystemEnvironment);
+    if (!credentials.HasValue())
+    {
+        log.Error("{}", credentials.Error());
+        return std::nullopt;
+    }
+    const auto keys = App::LoadConnectionKeys(config.dataPath);
+    if (!keys.HasValue())
+    {
+        log.Error("{}", keys.Error());
+        return std::nullopt;
+    }
+    return ServerStartup{.connectServer = config.server.value_or(App::ServerAddress{}),
+                         .credentials = std::move(credentials).Value(),
+                         .keys = keys.Value()};
+}
 
 // Fase 1. SDL_GetBasePath anda antes de SDL_Init: en la carpeta del ejecutable están la config y,
 // si no dice otra cosa, el log.
@@ -95,8 +139,19 @@ std::optional<Startup> ReadStartup(int argc, char* argv[], Core::Log& log)
         log.Error("{}", config.Error());
         return std::nullopt;
     }
-    return Startup{
-        .folder = folder, .commandLine = std::move(commandLine).Value(), .config = std::move(config).Value()};
+    std::optional<ServerStartup> server;
+    if (App::HasServerHost(config.Value()))
+    {
+        server = ReadServerStartup(config.Value(), log);
+        if (!server)
+        {
+            return std::nullopt;
+        }
+    }
+    return Startup{.folder = folder,
+                   .commandLine = std::move(commandLine).Value(),
+                   .config = std::move(config).Value(),
+                   .server = std::move(server)};
 }
 
 void PrintGlInfo(const Platform::GlFunctions& gl)
@@ -105,6 +160,21 @@ void PrintGlInfo(const Platform::GlFunctions& gl)
     std::printf("GL_VERSION:  %s\n", Platform::GlString(gl, GL_VERSION));
     std::printf("GL_RENDERER: %s\n", Platform::GlString(gl, GL_RENDERER));
     std::fflush(stdout);
+}
+
+// Fase 2, con un servidor: la red del sistema, WSAStartup en Windows (Network/SocketApi.h). false
+// si no arranca, con el error en el log.
+bool StartNetwork(std::optional<Network::SocketApi::NetworkInit>& network, Core::Log& log)
+{
+    network.emplace();
+    if (!network->IsReady())
+    {
+        log.Error("no arranca la red del sistema (WSAStartup dio {})", network->SystemError());
+        return false;
+    }
+    log.Info("hay un servidor (la config o /u /p) y están la cuenta y las claves, pero este cliente todavía no "
+             "conecta: la sesión llega con la CL4.5");
+    return true;
 }
 
 // Fase 3: la ventana con el tamaño y el VSync de la config. Si el driver no deja el VSync pedido,
@@ -249,6 +319,13 @@ int main(int argc, char* argv[])
         log.Warning("{}: el log sigue solo en stderr", logFile.Error());
     }
     log.Info("MuRet Client arranca");
+
+    // Antes de SDL, así cierra después: todo socket tiene que morir antes que el NetworkInit.
+    std::optional<Network::SocketApi::NetworkInit> network;
+    if (startup->server && !StartNetwork(network, log))
+    {
+        return EXIT_FAILURE;
+    }
 
     const auto sdl = Platform::SdlContext::Create();
     if (!sdl.HasValue())

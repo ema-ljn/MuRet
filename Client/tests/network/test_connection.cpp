@@ -7,13 +7,11 @@
 #include "Network/Crypto/CryptoError.h"
 #include "Network/Crypto/SimpleModulus.h"
 #include "Network/Delivery.h"
-#include "Network/EncryptedPacket.h"
 #include "Network/FoxAntiObfuscation.h"
 #include "Network/IdentityObfuscation.h"
 #include "Network/IObfuscation.h"
 #include "Network/ObfuscationError.h"
 #include "Network/Packet.h"
-#include "Network/PacketReader.h"
 #include "Network/PacketSerials.h"
 #include "Network/SendQueue.h"
 #include "Network/SocketError.h"
@@ -28,7 +26,7 @@
 #include "support/Packets.h"
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
-#include "support/SimpleModulusKeys.h"
+#include "support/TestGameServer.h"
 
 #include <gtest/gtest.h>
 
@@ -61,11 +59,8 @@ using Client::Network::Closed;
 using Client::Network::CloseReason;
 using Client::Network::CloseReasonText;
 using Client::Network::Connection;
-using Client::Network::ConnectionKeys;
 using Client::Network::ConnectTimeout;
-using Client::Network::DecryptPacket;
 using Client::Network::Delivery;
-using Client::Network::EncryptPacket;
 using Client::Network::Event;
 using Client::Network::FoxAntiObfuscation;
 using Client::Network::HeaderSize;
@@ -78,7 +73,6 @@ using Client::Network::MaxReadsPerPoll;
 using Client::Network::ObfuscationError;
 using Client::Network::Opened;
 using Client::Network::Packet;
-using Client::Network::PacketReader;
 using Client::Network::PacketSerials;
 using Client::Network::PacketType;
 using Client::Network::ReceiveChunkSize;
@@ -92,10 +86,15 @@ using Client::Network::Crypto::CryptoErrorText;
 using Client::Network::Crypto::DecryptBlock;
 using Client::Network::Crypto::PlainBlockSize;
 using Client::Protocol::Connection::WriteServerSelect;
+using Client::Tests::AsTheGameServerReceives;
 using Client::Tests::Bytes;
 using Client::Tests::ClaimsMoreSocket;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeSocket;
+using Client::Tests::FromTheGameServer;
+using Client::Tests::GameClientKeys;
+using Client::Tests::GameServerDecryption;
+using Client::Tests::GameServerReceived;
 using Client::Tests::PacketOf;
 using Client::Tests::RecordingSink;
 using Client::Tests::SameBytes;
@@ -115,25 +114,6 @@ constexpr std::nullopt_t NoKeys = std::nullopt;
 
 // La semilla del relleno de lo que se cifra: fija, para que un test dé siempre lo mismo.
 constexpr std::uint32_t PaddingSeed = 1;
-
-// Las claves sintéticas de SimpleModulusKeys.h: lo que manda el cliente va con un par y lo que
-// contesta el servidor con otro, así una clave cambiada de lugar no descifra.
-Client::Tests::KeyPair ClientToServer()
-{
-    return Client::Tests::Pair17();
-}
-
-Client::Tests::KeyPair ServerToClient()
-{
-    return Client::Tests::Pair18();
-}
-
-// Las de la conexión del cliente con el GameServer: cifra con la de ida y descifra con la de
-// vuelta.
-ConnectionKeys GameKeys()
-{
-    return {ClientToServer().encryption, ServerToClient().decryption};
-}
 
 // Un error del sistema para el log de un SocketFailed: el número no importa, solo que se vea.
 constexpr int SomeSystemError = 12345;
@@ -209,64 +189,6 @@ Lines Describe(const std::vector<Event>& events)
     return lines;
 }
 
-// Un C1/C2 como lo manda el GameServer de los tests: cifrado con su clave y sus seriales.
-ByteVector FromTheServer(const ByteVector& plain, PacketSerials& serials)
-{
-    const auto encrypted = EncryptPacket(PacketOf(plain), ServerToClient().encryption, serials);
-    EXPECT_TRUE(encrypted.HasValue());
-    if (!encrypted.HasValue())
-    {
-        return {};
-    }
-    const std::span<const std::byte> bytes = encrypted.Value().Bytes();
-    return {bytes.begin(), bytes.end()};
-}
-
-// Lo que recibe el GameServer de los tests de lo que mandó el cliente: cortado y, cada C3/C4,
-// descifrado con su clave y sus seriales. Un C3/C4 que no descifra hace fallar el test.
-struct ServerSide
-{
-    std::vector<Packet> packets;      // el C1/C2 rearmado de cada C3/C4, o el C1/C2 que vino así
-    std::vector<SerialCheck> serials; // el de cada C3/C4, en orden
-};
-
-ServerSide AsTheServerReceives(std::span<const std::byte> sent, PacketSerials& serials)
-{
-    ServerSide received;
-    PacketReader reader;
-    reader.Feed(sent);
-    while (true)
-    {
-        auto next = reader.Next();
-        EXPECT_TRUE(next.HasValue());
-        if (!next.HasValue())
-        {
-            break;
-        }
-        std::optional<Packet> cut = std::move(next).Value();
-        if (!cut)
-        {
-            break;
-        }
-        Packet packet = std::move(*cut);
-        if (packet.Type() == PacketType::C1 || packet.Type() == PacketType::C2)
-        {
-            received.packets.push_back(std::move(packet));
-            continue;
-        }
-        auto decrypted = DecryptPacket(packet, ClientToServer().decryption, serials);
-        EXPECT_TRUE(decrypted.HasValue());
-        if (!decrypted.HasValue())
-        {
-            break;
-        }
-        received.serials.push_back(decrypted.Value().serial);
-        received.packets.push_back(std::move(decrypted).Value().packet);
-    }
-    EXPECT_EQ(reader.Pending(), 0u);
-    return received;
-}
-
 // El byte de relleno de un C3 de un solo bloque: el que sigue a lo útil, que el GameServer ve al
 // descifrar el bloque. std::nullopt si no descifra o si lo útil llena el bloque.
 std::optional<std::byte> PaddingOf(std::span<const std::byte> c3)
@@ -276,7 +198,7 @@ std::optional<std::byte> PaddingOf(std::span<const std::byte> c3)
     {
         return std::nullopt;
     }
-    const auto block = DecryptBlock(ClientToServer().decryption, c3.subspan(header).first<CipherBlockSize>());
+    const auto block = DecryptBlock(GameServerDecryption(), c3.subspan(header).first<CipherBlockSize>());
     if (!block || block->usefulSize >= PlainBlockSize)
     {
         return std::nullopt;
@@ -357,7 +279,7 @@ protected:
     // Open al GameServer, con las claves, y el Poll que da el Opened.
     void OpenTheGameServer(Connection& connection)
     {
-        connection.Open(GameHost, GamePort, GameKeys());
+        connection.Open(GameHost, GamePort, GameClientKeys());
         ASSERT_EQ(Describe(connection.Poll()), Lines{"Opened"});
     }
 
@@ -793,7 +715,7 @@ TEST_F(ConnectionTest, EncryptsWhatGoesEncrypted)
     ASSERT_FALSE(m_socket.sent.empty());
     EXPECT_EQ(m_socket.sent[0], std::byte{0xC3});
     PacketSerials server;
-    const ServerSide received = AsTheServerReceives(m_socket.sent, server);
+    const GameServerReceived received = AsTheGameServerReceives(m_socket.sent, server);
     ASSERT_EQ(received.packets.size(), 3u);
     EXPECT_TRUE(SameBytesWithoutValues(received.packets[0].Bytes(), first));
     EXPECT_TRUE(SameBytes(received.packets[1].Bytes(), Hello()));
@@ -806,7 +728,7 @@ TEST_F(ConnectionTest, EncryptsWhatGoesEncrypted)
 TEST_F(ConnectionTest, WhatIsEncryptedWhileConnectingLeavesWhenItOpens)
 {
     m_socket.pollsUntilConnected = 1;
-    m_connection.Open(GameHost, GamePort, GameKeys());
+    m_connection.Open(GameHost, GamePort, GameClientKeys());
     m_connection.Send(PacketOf(Bytes({0xC1, 0x04, 0x0E, 0x00})), Delivery::Encrypted);
     ASSERT_TRUE(m_socket.sent.empty());
 
@@ -814,7 +736,7 @@ TEST_F(ConnectionTest, WhatIsEncryptedWhileConnectingLeavesWhenItOpens)
     EXPECT_EQ(Describe(m_connection.Poll()), Lines{"Opened"});
 
     PacketSerials server;
-    const ServerSide received = AsTheServerReceives(m_socket.sent, server);
+    const GameServerReceived received = AsTheGameServerReceives(m_socket.sent, server);
     ASSERT_EQ(received.packets.size(), 1u);
     EXPECT_TRUE(SameBytesWithoutValues(received.packets[0].Bytes(), Bytes({0xC1, 0x04, 0x0E, 0x00})));
     EXPECT_EQ(received.serials, std::vector<SerialCheck>{SerialCheck::InOrder});
@@ -825,8 +747,8 @@ TEST_F(ConnectionTest, DecryptsWhatArrivesEncrypted)
 {
     OpenTheGameServer();
     PacketSerials server;
-    m_socket.reads = {Join({FromTheServer(Bytes({0xC1, 0x05, 0xF1, 0x01, 0x01}), server),
-                            FromTheServer(Bytes({0xC2, 0x00, 0x06, 0xF3, 0x00, 0x02}), server)})};
+    m_socket.reads = {Join({FromTheGameServer(Bytes({0xC1, 0x05, 0xF1, 0x01, 0x01}), server),
+                            FromTheGameServer(Bytes({0xC2, 0x00, 0x06, 0xF3, 0x00, 0x02}), server)})};
 
     EXPECT_EQ(Describe(m_connection.Poll()), (Lines{"C1 05 F1 01 01", "C2 00 06 F3 00 02"}));
     EXPECT_EQ(Warnings(), Lines{});
@@ -840,19 +762,19 @@ TEST_F(ConnectionTest, OpeningAgainResetsTheSerials)
     PacketSerials before;
     m_connection.Send(PacketOf(Bytes({0xC1, 0x04, 0x0E, 0x00})), Delivery::Encrypted);
     m_connection.Send(PacketOf(Bytes({0xC1, 0x04, 0x0E, 0x00})), Delivery::Encrypted);
-    m_socket.reads = {Join({FromTheServer(Hello(), before), FromTheServer(Hello(), before)})};
+    m_socket.reads = {Join({FromTheGameServer(Hello(), before), FromTheGameServer(Hello(), before)})};
     ASSERT_EQ(Describe(m_connection.Poll()), (Lines{"C1 04 00 01", "C1 04 00 01"}));
 
-    m_connection.Open(GameHost, GamePort, GameKeys());
+    m_connection.Open(GameHost, GamePort, GameClientKeys());
     ASSERT_EQ(Describe(m_connection.Poll()), Lines{"Opened"});
     const std::size_t sentBefore = m_socket.sent.size();
     m_connection.Send(PacketOf(Bytes({0xC1, 0x04, 0x0E, 0x00})), Delivery::Encrypted);
     PacketSerials after;
-    m_socket.reads = {FromTheServer(Hello(), after)};
+    m_socket.reads = {FromTheGameServer(Hello(), after)};
 
     EXPECT_EQ(Describe(m_connection.Poll()), Lines{"C1 04 00 01"});
     PacketSerials server;
-    const ServerSide received = AsTheServerReceives(std::span(m_socket.sent).subspan(sentBefore), server);
+    const GameServerReceived received = AsTheGameServerReceives(std::span(m_socket.sent).subspan(sentBefore), server);
     EXPECT_EQ(received.serials, std::vector<SerialCheck>{SerialCheck::InOrder});
     EXPECT_EQ(Warnings(), Lines{});
 }
@@ -865,7 +787,7 @@ TEST_F(ConnectionTest, OpeningWithoutKeysForgetsTheOldOnes)
     m_connection.Open(GameHost, GamePort, NoKeys);
     ASSERT_EQ(Describe(m_connection.Poll()), Lines{"Opened"});
     PacketSerials server;
-    m_socket.reads = {FromTheServer(Hello(), server)};
+    m_socket.reads = {FromTheGameServer(Hello(), server)};
 
     EXPECT_EQ(Describe(m_connection.Poll()), Lines{"Undecryptable(sin claves)"});
     m_connection.Send(PacketOf(Bytes({0xC1, 0x04, 0x0E, 0x00})), Delivery::Encrypted);
@@ -880,11 +802,11 @@ TEST_F(ConnectionTest, ABadChecksumIsUndecryptable)
 {
     OpenTheGameServer();
     PacketSerials server;
-    ByteVector bad = FromTheServer(Hello(), server);
+    ByteVector bad = FromTheGameServer(Hello(), server);
     const std::size_t firstChecksum = HeaderSize(PacketType::C3) + CipherBlockSize - 1;
     ASSERT_GT(bad.size(), firstChecksum);
     bad[firstChecksum] ^= std::byte{0xFF};
-    m_socket.reads = {Join({bad, FromTheServer(Bytes({0xC1, 0x05, 0xF1, 0x01, 0x01}), server)})};
+    m_socket.reads = {Join({bad, FromTheGameServer(Bytes({0xC1, 0x05, 0xF1, 0x01, 0x01}), server)})};
 
     EXPECT_EQ(Describe(m_connection.Poll()), (Lines{"Undecryptable(ChecksumMismatch)", "C1 05 F1 01 01"}));
     EXPECT_EQ(m_connection.State(), LinkState::Open);
@@ -908,12 +830,12 @@ TEST_F(ConnectionTest, ASerialOutOfOrderIsResyncedOnce)
 {
     OpenTheGameServer();
     PacketSerials server;
-    const ByteVector first = FromTheServer(Hello(), server);
+    const ByteVector first = FromTheGameServer(Hello(), server);
     for (int skipped = 0; skipped < 3; ++skipped)
     {
         [[maybe_unused]] const std::uint8_t serial = server.TakeSend();
     }
-    m_socket.reads = {Join({first, FromTheServer(Hello(), server), FromTheServer(Hello(), server)})};
+    m_socket.reads = {Join({first, FromTheGameServer(Hello(), server), FromTheGameServer(Hello(), server)})};
 
     EXPECT_EQ(Describe(m_connection.Poll()), (Lines{"C1 04 00 01", "C1 04 00 01", "C1 04 00 01"}));
     EXPECT_EQ(Warnings(), Lines{"[warning] un C3 que llegó trae otro serial que el que se esperaba: se "
@@ -929,7 +851,7 @@ TEST_F(ConnectionTest, WithFoxAntiWhatArrivesEncryptedIsUnmaskedDecryptedAndTran
     OpenTheGameServer(connection);
     PacketSerials server;
     ByteVector masked =
-        Join({FromTheServer(Hello(), server), FromTheServer(Bytes({0xC1, 0x05, 0xF3, 0x11, 0x07}), server)});
+        Join({FromTheGameServer(Hello(), server), FromTheGameServer(Bytes({0xC1, 0x05, 0xF3, 0x11, 0x07}), server)});
     for (std::byte& value : masked)
     {
         value ^= std::byte{0xAA};
@@ -951,7 +873,7 @@ TEST_F(ConnectionTest, WithFoxAntiWhatIsEncryptedIsRemapped)
     connection.Send(PacketOf(Bytes({0xC1, 0x05, 0x10, 0x11, 0x22})), Delivery::Encrypted);
 
     PacketSerials server;
-    const ServerSide received = AsTheServerReceives(m_socket.sent, server);
+    const GameServerReceived received = AsTheGameServerReceives(m_socket.sent, server);
     ASSERT_EQ(received.packets.size(), 1u);
     EXPECT_EQ(received.packets[0].Opcode(), std::optional<std::uint8_t>{std::uint8_t{0x1D}});
 }
@@ -966,7 +888,7 @@ TEST_F(ConnectionTest, WhatArrivesIsDecryptedBetweenAfterCutAndBeforeDispatch)
     Connection connection(m_socket, spy, m_clock, m_log, PaddingSeed);
     OpenTheGameServer(connection);
     PacketSerials server;
-    m_socket.reads = {FromTheServer(Hello(), server)};
+    m_socket.reads = {FromTheGameServer(Hello(), server)};
 
     EXPECT_EQ(Describe(connection.Poll()), Lines{"C1 04 00 01"});
     EXPECT_EQ(seen, (Lines{"AfterCut C3", "BeforeDispatch C1"}));
@@ -996,7 +918,7 @@ TEST_F(ConnectionTest, WithFoxAntiAnEncryptedD3IsNotRemapped)
     connection.Send(PacketOf(Bytes({0xC1, 0x05, 0xD3, 0x11, 0x22})), Delivery::Encrypted);
 
     PacketSerials server;
-    const ServerSide received = AsTheServerReceives(m_socket.sent, server);
+    const GameServerReceived received = AsTheGameServerReceives(m_socket.sent, server);
     ASSERT_EQ(received.packets.size(), 1u);
     EXPECT_EQ(received.packets[0].Opcode(), std::optional<std::uint8_t>{std::uint8_t{0xD3}});
 }
@@ -1029,7 +951,7 @@ TEST_F(ConnectionTest, APacketThatDoesNotEncryptDoesNotLeave)
     m_connection.Send(PacketOf(Bytes({0xC1, 0x04, 0x0E, 0x00})), Delivery::Encrypted);
 
     PacketSerials server;
-    const ServerSide received = AsTheServerReceives(m_socket.sent, server);
+    const GameServerReceived received = AsTheGameServerReceives(m_socket.sent, server);
     EXPECT_EQ(received.serials, std::vector<SerialCheck>{SerialCheck::InOrder});
     EXPECT_EQ(Warnings(), Lines{std::format("[warning] no se cifra un C2 99 que iba a salir: {}",
                                             CryptoErrorText(CryptoError::TooLarge))});

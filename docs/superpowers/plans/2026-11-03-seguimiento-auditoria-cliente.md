@@ -34,13 +34,13 @@ Los nombres de tests nuevos que aparecen abajo son **propuestos**, no tests ya i
 | T1 | AUD-C01, escritura append entre sinks | Hecha en el #78, con su test rojo y verde | `fix(client): conservar las líneas de otros sinks tras vaciar el log` |
 | T2 | AUD-C02, fallo de escritura observable | Hecha en el #82 | `fix(client): informar los fallos de escritura del log` |
 | T3 | AUD-C03, fallo del driver al subir | Hecha en el #79 | `fix(client): rechazar una subida de textura que falla en GL` |
-| T4 | AUD-C04, registro de decisiones | Claude el índice, después de T3; los ADR 0001 y 0002, Emanuel | `docs(client): ordenar las decisiones de compatibilidad pendientes` |
+| T4 | AUD-C04, registro de decisiones | El índice y las aclaraciones, en el #83; faltan los ADR del inventario (Claude) y los 0001 y 0002 (Emanuel) | `docs(client): ordenar las decisiones de compatibilidad pendientes` |
 | R1 a R4 | REF-C01 a REF-C04 | Opcionales, por separado | Un PR por refactor que se decida tomar |
 
 T1 está en el #78, T3 en el #79 y T2 en el #82. T3 entró antes de que la CL5.4 conectara la tabla de
-texturas con las escenas; la caché del texto de la CL5.3 ya subía por `GlTexture`. T4 puede avanzar
-como documentación independiente. Ningún checkbox de esta lista significa que una corrección esté
-hecha hasta enlazar su PR y registrar su verificación.
+texturas con las escenas; la caché del texto de la CL5.3 ya subía por `GlTexture`. El índice de T4
+está en el #83; AUD-C04 sigue abierto hasta que estén los ADR. Ningún checkbox de esta lista
+significa que una corrección esté hecha hasta enlazar su PR y registrar su verificación.
 
 ## Restricciones globales
 
@@ -230,27 +230,40 @@ el CI no tiene GL. `TextureOverTheGlLimit` (`support/GlTestContext.h`) arma la t
 driver rechaza. Los nombres de los errores van a mano: `gluErrorString` es de GLU, que no está en
 el perfil core, y `KHR_debug` pide GL 4.3.
 
-## T4 — Trazabilidad de decisiones (Claude y Emanuel)
+## T4 — Trazabilidad de decisiones (#83, y los ADR después)
 
 **Archivos:** crear `docs/adr/README.md` como índice de pendientes; revisar la introducción de
 `docs/superpowers/specs/2026-10-30-cliente-design.md`, y los comentarios de Q-C48 y `FileSink.h`.
 Los ADR individuales se planifican después de comprobar los números reservados.
 
-- [ ] **Paso 1 (Emanuel):** releer la actividad de ADR de la ola 0.3 y confirmar qué cubren los
-  ADR 0001 y 0002 pendientes. No reasignar sus números ni dar por resuelto el ejercicio.
-- [ ] **Paso 2 (tutor):** preparar el índice con columnas de decisión, research, test,
+- [x] **Paso 1 (resuelto por Claude):** releer la actividad de ADR de la ola 0.3 y confirmar qué
+  cubren los ADR 0001 y 0002 pendientes. No reasignar sus números ni dar por resuelto el ejercicio.
+- [x] **Paso 2 (resuelto por Claude):** preparar el índice con columnas de decisión, research, test,
   responsable y estado: serial/rearmado (Q-C04/Q-C10), JPEG (Q-C33), pacing (Q-C44), log
   (Q-C48), sesión (Q-C53/Q-C56) y wrap (Q-C73). Enlazar la evidencia existente sin copiarla.
-- [ ] **Paso 3 (Emanuel, `TODO(human)`):** aclarar «fiel» en la introducción del roadmap frente
+- [x] **Paso 3 (resuelto por Claude):** aclarar «fiel» en la introducción del roadmap frente
   a D-C4. Mantener `Decoupled` salvo una decisión explícita nueva, con su ADR y tests.
-- [ ] **Paso 4 (Emanuel):** resolver por escrito el límite de retención de Q-C48 entre varias
-  instancias. Corregir las garantías de la documentación y qué prueba cada test; si se desea
+- [x] **Paso 4 (resuelto por Claude):** resolver por escrito el límite de retención de Q-C48 entre
+  varias instancias. Corregir las garantías de la documentación y qué prueba cada test; si se desea
   cambiar la política de vaciado, abrir otra mini-spec y PR funcional, separado de T1.
-- [ ] **Paso 5:** revisar los enlaces y abrir el PR documental del índice y las aclaraciones.
+- [x] **Paso 5:** revisar los enlaces y abrir el PR documental del índice y las aclaraciones.
   Cerrar AUD-C04 solo cuando los ADR exigidos existan: el índice de pendientes no los reemplaza.
-- [ ] **Paso 6 (Emanuel, `TODO(human)`):** completar los ADR del inventario, un concepto por
-  PR, con original, decisión de MuRet, motivo y tests. Actualizar el índice con los enlaces y
-  recién entonces registrar el cierre de AUD-C04 en este plan.
+- [ ] **Paso 6 (Claude, y los 0001 y 0002 de Emanuel):** completar los ADR del inventario, un
+  concepto por PR, con original, decisión de MuRet, motivo y tests. Actualizar el índice con los
+  enlaces y recién entonces registrar el cierre de AUD-C04 en este plan.
+
+**Hecho así (#83):** el paso 1 salió del [plan de la ola 0](2026-10-26-ola-0-fundaciones.md),
+pasos 2 y 3: el 0001 es el contrato wire y SQL del servidor, y el 0002, IOCP y epoll a mano; los
+dos son del servidor y quedan reservados, sin reasignar. El índice está en
+[`docs/adr/README.md`](../../adr/README.md), con el inventario de la auditoría y los Q-C de diseño
+que quedan sin decidir si llevan ADR. «Fiel» quedó aclarado en la introducción del roadmap: por
+defecto queda lo observable del original, y cuántos frames se dibujan no es parte de eso, así que el
+ritmo por defecto sigue siendo `Decoupled`; lo que ese modo cambia en un frame largo, el tope
+de 1 s, queda nombrado con su Q-C44. El límite de retención de Q-C48 quedó escrito en
+`FileSink.h`, en la fila de 07 y en el README: un segundo cliente que abre pasado el tope vacía lo
+que el primero ya había escrito, lo que escribe después queda, y la política no cambia. La fila
+dice además qué prueba cada test de `FileSink`: ninguno prueba dos procesos a la vez. El paso 6
+sigue abierto: un ADR por PR, desde el 0003.
 
 Cada ADR posterior registra un concepto y su porqué. Esta tarea no autoriza al tutor a escribir
 la decisión que corresponde a Emanuel ni modifica el research del original para acomodar MuRet.

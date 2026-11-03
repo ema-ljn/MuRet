@@ -1,12 +1,9 @@
 #include "Core/StderrSink.h"
 
 #include "Core/Log.h"
+#include "support/TemporaryFile.h"
 
 #include <gtest/gtest.h>
-
-#include <cstdio>
-#include <memory>
-#include <string>
 
 // Client::Core::StderrSink, contra un archivo temporal en vez de stderr.
 namespace
@@ -14,30 +11,8 @@ namespace
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Core::StderrSink;
-
-struct FileCloser
-{
-    void operator()(std::FILE* file) const
-    {
-        std::fclose(file);
-    }
-};
-
-// Un archivo temporal que se borra al cerrarlo. En MSVC, std::tmpfile da el aviso C4996 (que es un
-// error con /WX) y pide tmpfile_s.
-std::unique_ptr<std::FILE, FileCloser> OpenTemporaryFile()
-{
-#ifdef _MSC_VER
-    std::FILE* file = nullptr;
-    if (tmpfile_s(&file) != 0)
-    {
-        return nullptr;
-    }
-    return std::unique_ptr<std::FILE, FileCloser>(file);
-#else
-    return std::unique_ptr<std::FILE, FileCloser>(std::tmpfile());
-#endif
-}
+using Client::Tests::OpenTemporaryFile;
+using Client::Tests::ReadAll;
 
 TEST(StderrSinkTest, WritesOneLinePerMessage)
 {
@@ -49,12 +24,6 @@ TEST(StderrSinkTest, WritesOneLinePerMessage)
     log.Info("uno");
     log.Error("dos {}", 2);
 
-    std::rewind(output.get());
-    std::string text;
-    for (int c = std::fgetc(output.get()); c != EOF; c = std::fgetc(output.get()))
-    {
-        text += static_cast<char>(c);
-    }
-    EXPECT_EQ(text, "[info] uno\n[error] dos 2\n");
+    EXPECT_EQ(ReadAll(output.get()), "[info] uno\n[error] dos 2\n");
 }
 } // namespace

@@ -280,10 +280,12 @@ config, que llegan antes de saber qué archivo es, van solo a `stderr`. Cada lí
 nivel: `[debug]`, `[info]`, `[warning]` o `[error]`; el mínimo es uno solo, `info`, para las dos
 salidas. Los mensajes de SDL entran al mismo log, con `SDL: ` adelante y su prioridad pasada a uno
 de esos cuatro. Si el archivo no se puede abrir, el log va solo a `stderr`, con un aviso que nombra
-la ruta. El archivo no se empieza de nuevo: cada corrida agrega al final, desde una línea `[info]
-MuRet Client arranca`, como el `MuError.log` del original, así el log de una caída sigue ahí al
-volver a abrir, y dos clientes abiertos a la vez escriben los dos sin pisarse. Para que no crezca
-sin fin, al abrir se vacía si ya pasa de 1 MiB (el original corta el principio, Q-C48).
+la ruta. Si después una escritura falla (un disco lleno), sale una sola vez a `stderr` un
+`[warning]` que nombra la ruta, y desde ahí el log sigue solo en `stderr`. El archivo no se empieza
+de nuevo: cada corrida agrega al final, desde una línea `[info] MuRet Client arranca`, como el
+`MuError.log` del original, así el log de una caída sigue ahí al volver a abrir, y dos clientes
+abiertos a la vez escriben los dos sin pisarse. Para que no crezca sin fin, al abrir se vacía si ya
+pasa de 1 MiB (el original corta el principio, Q-C48).
 
 Lo que conviene buscar ahí: el aviso de un frame de más de 1 s, que cuenta 1 s (un breakpoint, o
 una ventana arrastrada en Windows, Q-C44), y que empieza con `[warning] un frame pasó de 1000 ms`;

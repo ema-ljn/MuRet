@@ -2,6 +2,9 @@
 
 #include "Core/Log.h"
 #include "Core/PathText.h"
+#include "Core/StderrSink.h"
+#include "Core/TeeSink.h"
+#include "support/TemporaryFile.h"
 #include "support/TemporaryFolder.h"
 
 #include <gtest/gtest.h>
@@ -11,13 +14,14 @@
 #include <format>
 #include <fstream>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
 #include <vector>
 
 // Client::Core::FileSink: agregar, el tope, aperturas independientes, dos hilos y una ruta que no
-// abre, en una carpeta temporal.
+// abre, en una carpeta temporal; una escritura que falla, con /dev/full.
 namespace
 {
 namespace fs = std::filesystem;
@@ -26,6 +30,10 @@ using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Core::MaxLogFileBytes;
 using Client::Core::PathText;
+using Client::Core::StderrSink;
+using Client::Core::TeeSink;
+using Client::Tests::OpenTemporaryFile;
+using Client::Tests::ReadAll;
 using Client::Tests::TemporaryFolder;
 
 // "ñ" en UTF-8, para las rutas que no son ASCII (PathText y, en Windows, la ruta ancha de abrir).
@@ -176,5 +184,108 @@ TEST(FileSinkTest, NamesAPathThatDoesNotOpen)
     ASSERT_FALSE(opened.HasValue());
     EXPECT_NE(opened.Error().find("no-existe-" + std::string(EnyeUtf8)), std::string::npos) << opened.Error();
     EXPECT_NE(opened.Error().find(PathText(path)), std::string::npos) << opened.Error();
+}
+
+// Un archivo que abre y falla en cada escritura, como un disco lleno: /dev/full da ENOSPC. Windows
+// no tiene uno así, y ahí los tests que lo usan se saltean (AUD-C02 se prueba solo en Linux).
+std::optional<fs::path> FullDevice()
+{
+#ifdef _WIN32
+    return std::nullopt;
+#else
+    std::error_code error;
+    const fs::path path = "/dev/full";
+    if (!fs::exists(path, error))
+    {
+        return std::nullopt;
+    }
+    return path;
+#endif
+}
+
+// El aviso de FileSink, con la ruta como la escribe PathText.
+std::string FailureNotice(const fs::path& path)
+{
+    return "[warning] no se pudo escribir en el archivo de log " + PathText(path) + ": el log sigue solo en stderr\n";
+}
+
+TEST(FileSinkTest, AWriteFailureCanBeObserved)
+{
+    const std::optional<fs::path> full = FullDevice();
+    if (!full)
+    {
+        GTEST_SKIP() << "sin /dev/full en este sistema";
+    }
+    const auto notice = OpenTemporaryFile();
+    ASSERT_NE(notice, nullptr);
+    const auto opened = FileSink::Open(*full, notice.get());
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+
+    opened.Value()->Write(LogLevel::Info, "[info] uno");
+
+    EXPECT_EQ(ReadAll(notice.get()), FailureNotice(*full));
+}
+
+TEST(FileSinkTest, ReportsAWriteFailureOnce)
+{
+    const std::optional<fs::path> full = FullDevice();
+    if (!full)
+    {
+        GTEST_SKIP() << "sin /dev/full en este sistema";
+    }
+    const auto notice = OpenTemporaryFile();
+    ASSERT_NE(notice, nullptr);
+    const auto opened = FileSink::Open(*full, notice.get());
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+
+    for (int i = 0; i < 3; ++i)
+    {
+        opened.Value()->Write(LogLevel::Info, std::format("[info] línea {}", i));
+    }
+
+    EXPECT_EQ(ReadAll(notice.get()), FailureNotice(*full));
+}
+
+// Como en main: el Tee manda cada línea a stderr y al archivo. Con el archivo roto, stderr sigue
+// recibiendo todas, y el aviso va por su lado, sin volver a entrar al Log ni al Tee.
+TEST(FileSinkTest, StderrKeepsTheLinesAfterTheFileFails)
+{
+    const std::optional<fs::path> full = FullDevice();
+    if (!full)
+    {
+        GTEST_SKIP() << "sin /dev/full en este sistema";
+    }
+    const auto errorOutput = OpenTemporaryFile();
+    const auto notice = OpenTemporaryFile();
+    ASSERT_NE(errorOutput, nullptr);
+    ASSERT_NE(notice, nullptr);
+    const auto opened = FileSink::Open(*full, notice.get());
+    ASSERT_TRUE(opened.HasValue()) << opened.Error();
+    StderrSink stderrSink(errorOutput.get());
+    TeeSink tee(stderrSink, *opened.Value());
+    Log log(tee, LogLevel::Info);
+
+    log.Info("uno");
+    log.Warning("dos");
+    log.Error("tres");
+
+    EXPECT_EQ(ReadAll(errorOutput.get()), "[info] uno\n[warning] dos\n[error] tres\n");
+    EXPECT_EQ(ReadAll(notice.get()), FailureNotice(*full));
+}
+
+TEST(FileSinkTest, AWorkingFileGivesNoNotice)
+{
+    const TemporaryFolder folder("file-sink");
+    const fs::path path = folder.Path() / "muret-client.log";
+    const auto notice = OpenTemporaryFile();
+    ASSERT_NE(notice, nullptr);
+    {
+        const auto opened = FileSink::Open(path, notice.get());
+        ASSERT_TRUE(opened.HasValue()) << opened.Error();
+        opened.Value()->Write(LogLevel::Info, "[info] uno");
+    }
+
+    EXPECT_EQ(ReadText(path), "[info] uno\n");
+    EXPECT_EQ(ReadAll(notice.get()), "");
 }
 } // namespace

@@ -4,6 +4,7 @@
 #include "Core/ILogSink.h"
 
 #include <cstdint>
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -21,6 +22,10 @@
 // segundo cliente se queda sin log (Q-C48 de 07). El original lo cifra con un XOR; MuRet lo
 // escribe en claro, a propósito. Para que no crezca sin fin, al abrir se vacía si ya pasa de
 // MaxLogFileBytes.
+//
+// Si una escritura falla después de abrir (el disco se llenó, se fue la unidad), FileSink escribe
+// un aviso que nombra la ruta, una sola vez, y no vuelve a intentar: el archivo queda corto, pero
+// las líneas siguen en stderr por el TeeSink de main (AUD-C02 de la auditoría del 2026-11-03).
 namespace Client::Core
 {
 // El tope del log al abrir. El original no vacía: al arrancar, 0x41f830 lee hasta 0x1ffff bytes
@@ -36,16 +41,22 @@ class FileSink final : public ILogSink
 public:
     // Si no se puede abrir (la carpeta no existe, no hay permiso), un error que nombra la ruta:
     // main lo avisa por stderr y sigue sin archivo. Va en un unique_ptr porque el mutex no se
-    // mueve, y el Expected guarda su valor moviéndolo.
-    [[nodiscard]] static Expected<std::unique_ptr<FileSink>, std::string> Open(const std::filesystem::path& path);
+    // mueve, y el Expected guarda su valor moviéndolo. `failureNotice` es adonde va el aviso de una
+    // escritura que falla, con un fwrite y no por el Log; un test pasa un std::tmpfile(), como en
+    // StderrSink. No es dueña: no lo cierra.
+    [[nodiscard]] static Expected<std::unique_ptr<FileSink>, std::string> Open(const std::filesystem::path& path,
+                                                                               std::FILE* failureNotice = stderr);
 
     void Write(LogLevel level, std::string_view line) override;
 
 private:
     // Privado: solo Open, que mira que el archivo haya abierto, arma un FileSink.
-    explicit FileSink(std::ofstream file);
+    FileSink(std::ofstream file, std::string failureNotice, std::FILE* noticeOutput);
 
     std::ofstream m_file;
+    std::string m_failureNotice; // armado al abrir: escribirlo no necesita memoria nueva
+    std::FILE* m_noticeOutput;
+    bool m_failed = false; // con m_mutex tomado
     std::mutex m_mutex;
 };
 } // namespace Client::Core

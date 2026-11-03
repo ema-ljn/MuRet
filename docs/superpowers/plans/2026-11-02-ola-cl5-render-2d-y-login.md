@@ -91,27 +91,28 @@ la CL5.0 (L-10). De la CL5.1 en adelante, la sección de cada sub-ola de este pl
 **Lo que dice el binario de las escenas de carga y de login** (salió del decompilado para este
 plan; la CL5.R lo confirma en el desensamblado con `objdump` y lo pasa al research). Como en el
 research, *estático* es lo leído en el binario; *verificado*, lo que mostraron las trazas de GL;
-*inferido*, lo que se deduce. Todo lo de la escena de login es *estático*, porque no hay traza:
+*inferido*, lo que se deduce. Todo lo de la escena de login es *estático*, porque no hay traza.
+**La CL5.R lo confirmó el 2026-11-03** y lo pasó a 06 (§ La escena de carga y la de login), 02 y
+05; abajo quedó corregido, con "(CL5.R)" en lo que cambió o se completó:
 
 | Qué | Dónde | Qué hace |
 | --- | --- | --- |
-| las escenas | `DAT_006d5dc8`, `0x63945d` | 1 la carga inicial (`0x622e40`), 2 el login, 3 la carga del mundo (`0x6356f0`, los fondos `Interface\LSBg01` a `LSBg04`), 4 la selección, 5 el juego. Pasan 1 → 2 (`0x622e40`), 2 → 4 (`0x634c60`), 4 → 3 (`0x6342c0`), 3 → 5 (`0x6356f0`), y `0x4c2710` pone 4 o 2 (desde dónde, sin leer). *Estático* |
+| las escenas | `DAT_006d5dc8`, `0x63945d` | 1 la carga inicial (`0x622e40`), 2 el login, 3 la carga del mundo (`0x6356f0`, los fondos `Interface\LSBg01` a `LSBg04`), 4 la selección, 5 el juego. Pasan 1 → 2 (`0x622e40`), 2 → 4 (`0x634c60`), 4 → 3 (`0x6342c0`), 3 → 5 (`0x6356f0`), y `0x4c2710`, con la respuesta del `F1 02` cifrada, pone 4 si `pkt[4]` es 1 y 2 si es 2 (CL5.R; la tabla entera, en 02). *Estático* |
 | la carga | `0x622e40` | sube `Interface\lo_back_01.jpg`, `lo_back_02.jpg`, `lo_mu_logo.tga`, `lo_121518.tga`, `lo_webzen_logo.tga` y `lo_lo.jpg` a los slots `0x71e` a `0x723`, arma su UI (`0x65eeb0`: cinco imágenes y una barra con el `0x723`), carga los datos del juego (`0x61ccb0`), libera los seis slots (`0x63c150`), loguea `> Loading ok.` y pasa a la 2. *Estático* |
 | entrar al login | `0x634c60` llama a `0x6349a0` cada vez que se entra a la escena: la bandera `DAT_07d3a13d` la vuelve a 0 `0x4c2f24`, al pasar a la 2 (`0x4c2f1a`), así que al volver al login carga otra vez el mundo y reconecta al CS | el mapa pasa a `0x37`, el 55 (`DAT_006c9dd0`), y `0x61a560` carga ese mundo; sube las texturas de la escena (`0x61c7c0`); arma las ventanas de la UI (`0x65f300`); conecta al CS (`0x4c1340`); pone el objeto `0xa2` en una posición fija y arma el personaje de la escena con el cuervo (`0x517270`, el `A9` de la CL4.R); suena `data\music\main_theme.mp3` (`0x4acfd0`) y loguea `> Login Scene init success.` *Estático* |
-| la carpeta del mundo | `0x61a560`, con `0x616ec0` | `World%d` con el mapa + 1, salvo del 11 al 17 → `World12`, del 18 al 23 → `World19`, del 24 al 29 y el 36 → `World25`; el mismo número va en `EncTerrain%d`. Dos casos más: con el argumento y `DAT_006c9dd0` en 32, el mapa pasa a 9 (`0x61a56c`..`0x61a57d`) y la carpeta es `World10` (los cinco llamadores pasan los dos iguales), y antes de la carpeta `0x616ec0` fuerza el mapa 7 si `DAT_07d366bc` está prendido (`0x616ee1`; en el binario nadie lo escribe). Los mapas que llegan: los de los tres handlers de `0x4c41c9`, `0x4c4e9d` y `0x4c780c` (un byte del paquete), el 54 de `0x633f20` (desde `0x6342c0`, `0x633f44`: `World55`) y el 55 del login. El 55 da `World56`, que está en el `Data\` del laboratorio con `Object56`, y es el único mundo que multiplica las alturas por 3 (`GoldenTerrainHeights.World56ReachesThreeTimes255`, CL1). *Estático*; las alturas, *verificado* en la CL1 |
+| la carpeta del mundo | `0x61a560`, con `0x616ec0` | `World%d` con el mapa + 1, salvo del 11 al 17 → `World12`, del 18 al 23 → `World19`, del 24 al 29 y el 36 → `World25`; el mismo número va en `EncTerrain%d`. Dos casos más: con el argumento y `DAT_006c9dd0` en 32, el mapa pasa a 9 (`0x61a56c`..`0x61a57d`) y la carpeta es `World10` (los cinco llamadores pasan los dos iguales), y antes de la carpeta `0x616ec0` fuerza el mapa 7 si `DAT_07d366bc` está prendido (`0x616ee1`; en el binario nadie lo escribe: código muerto, y `WorldFolder` no lo lleva, CL5.R). Los mapas que llegan: los de los tres handlers de `0x4c41c9`, `0x4c4e9d` y `0x4c780c` (un byte sin signo del paquete, de 0 a 255, y ninguno mira el rango: Q-C58, CL5.R), el 54 de `0x633f20` (desde `0x6342c0`, `0x633f44`: `World55`) y el 55 del login. El 55 da `World56`, que está en el `Data\` del laboratorio con `Object56`, y es el único mundo que multiplica las alturas por 3 (`GoldenTerrainHeights.World56ReachesThreeTimes255`, CL1). *Estático*; las alturas, *verificado* en la CL1 |
 | las texturas del login | `0x61c7c0` | `Logo\Login_Back01.jpg` y `Login_Back02.jpg` (slots `0x15` y `0x16`), `Object9\sand01.jpg` y `sand02.jpg` (`0x5c2` y `0x5c3`), `Effect\FireSnuff.jpg` (`0x635`), el modelo `0xa2` (`0x60da30` con `Data\Logo\`: `Logo03.bmd`, *inferido* por cómo arma los nombres) y 13 de `Interface\` en `0xc` a `0x1a` (sin `0x15` y `0x16`): `cha_bt`, `server_b2_all`, `server_b2_loding`, `server_deco_all`, `server_menu_b_all`, `server_credit_b_all`, `deco`, `login_back`, `login_me`, `server_ex03`, `server_ex01`, `server_ex02` y `cr_mu_lo`. El tercer argumento vale `0x2600` o `0x2601` y el cuarto `0x2900` o `0x2901`: `GL_NEAREST` o `GL_LINEAR`, y `GL_CLAMP` o `GL_REPEAT` (*inferido* por los valores) |
-| el dibujo | `0x6350b0`, en este orden | (1) la cámara (`0x635ae0`) y la mezcla normal (`0x620a00(1)`); (2) 2D (`0x6219b0`) y los dos fondos, `0x621b60(0x15, 0, 25, 320, 320, 0, 0, 1, 1, 1, 1, 0)` y el `0x16` en x = 320, escalados desde 640 × 480; (2b) un pase entre los dos: `0x621a90` cierra el 2D, `0x620db0(0, 0, w, 0x30)` con el ancho de `0x5bb8d0`, `0x5fbb00(w · k, …)` (con una tangente: el frustum, *inferido*) y `0x620fc0` (dos llamadas a una importación de GL, con `0x1701` y `0x1700`, las constantes de `GL_PROJECTION` y `GL_MODELVIEW`): qué arman y si dibujan, sin leer (CL5.R, paso 4); (3) el pase 3D en `0x620db0(0, 25, 640, 430)`: si la ventana de `+0x4584` de la UI no está abierta, el terreno (`0x5fc260`), los personajes (`0x510d00`), los objetos (`0x53c6a0`) y los efectos; (4) 2D otra vez, mezcla aditiva (`0x620a90`), el color (0,25; 0,1; 0,1) y las dos arenas (`0x622000(0x5c2, 0, 25, 640, 430, …)` y el `0x5c3`), corridas por el reloj; (5) tres textos con la fuente `DAT_05763554` y el color (0,8; 0,7; 0,6), apoyados en y = 479: el 454 de `Text.bmd` termina en x = 335, el 455 empieza ahí y el 456, con la versión (`DAT_057630ac`), va en x = 0; (6) un fundido de 16 cuentas (`DAT_07d3a0cc`, `DAT_006d5e30`, de a 1/16); (7) lo común a las escenas (`0x5f7bc0`, `0x554810`, `0x5554e0`, `0x5b0550`, `0x40eca0`, `0x65fe00` la UI nueva, `0x5ac2d0`, `0x633110`). *Estático*. La selección (`0x634680`) tiene la misma forma, y en su traza está: una perspectiva que no dibuja y un ortho con 2 quads antes del mundo (*verificado*, 06) |
+| el dibujo | `0x6350b0`, en este orden | (1) la cámara (`0x635ae0`) y la mezcla normal (`0x620a00(1)`); (2) 2D (`0x6219b0`) y los dos fondos, `0x621b60(0x15, 0, 25, 320, 320, 0, 0, 1, 1, 1, 1, 0)` y el `0x16` en x = 320, escalados desde 640 × 480; (2b) un pase entre los dos: `0x621a90` cierra el 2D, `0x620db0(0, 0, w, 0x30)` con el ancho de `0x5bb8d0`, `0x5fbb00(w · k, …)` (con una tangente: el frustum, *inferido*) y `0x620fc0` (dos llamadas a una importación de GL, con `0x1701` y `0x1700`, las constantes de `GL_PROJECTION` y `GL_MODELVIEW`): no dibuja nada, y `0x620fc0` saca las dos matrices (CL5.R); (3) el pase 3D en `0x620db0(0, 25, 640, 430)`: si la ventana de `+0x4578` de la UI está cerrada (`+0x4584` es su bandera de abierta, `+0xc`: CL5.R), el terreno (`0x5fc260`), los personajes (`0x510d00`), los objetos (`0x53c6a0`) y los efectos; (4) 2D otra vez, mezcla aditiva (`0x620a90`), el color (0,25; 0,1; 0,1) y las dos arenas (`0x622000(0x5c2, 0, 25, 640, 430, …)` y el `0x5c3`), corridas por el reloj; (5) tres textos con la fuente `DAT_05763554` y el color (0,8; 0,7; 0,6), apoyados en y = 479: el 454 de `Text.bmd` termina en x = 335, el 455 empieza ahí y el 456, con la versión (`DAT_057630ac`), va en x = 0; (6) un fundido de 16 pasos (`DAT_07d3a0cc`, `DAT_006d5e30`, de a 1/16), que pone el color y no dibuja nada (Q-C66, CL5.R); (7) lo común a las escenas (`0x5f7bc0`, `0x554810`, `0x5554e0`, `0x5b0550`, `0x40eca0`, `0x65fe00` la UI nueva, `0x5ac2d0`, `0x633110`). *Estático*. La selección (`0x634680`) tiene la misma forma, y en su traza está: una perspectiva que no dibuja y un ortho con 2 quads antes del mundo (*verificado*, 06) |
 | el quad | `0x621b60(slot, x, y, w, h, u, v, du, dv, escalar tamaño, escalar posición, alfa)` | (06, *verificado* en las trazas) `GL_TRIANGLE_FAN` con (x, H − y), (x, H − y − h), (x + w, H − y − h) y (x + w, H − y), y las UV (u, v), (u, v + dv), (u + du, v + dv), (u + du, v). Con el alfa en más de 0 (`DAT_006b86a0`), cada vértice va con (1, 1, 1, alfa) y después vuelve a (1, 1, 1, 1): **el color que había antes se pierde**, y el quad siguiente sin alfa sale blanco. Con alfa 0, usa el color que haya. *Estático* |
-| la arena | `0x622000` | el mismo quad, siempre escalado, con la v corrida 0,25 · dv de un lado: la textura se inclina. Ghidra muestra seis de sus nueve argumentos en `0x6350b0`; los otros (la u que corre con el reloj, por 0,0001 y por 0,0005) los ordena la CL5.R. *Estático* |
+| la arena | `0x622000` | el mismo quad, siempre escalado, con la v corrida 0,25 · dv de un lado: la textura se inclina. Los nueve argumentos (CL5.R): `0x622000(0x5c2, 0, 25, 640, 430, u, 0, 0,3, 0,3)` con u = `((int) T % 100000) · 0,0001`, y `0x622000(0x5c3, 0, 25, 640, 430, u, 0, 3, 2)` con `· 0,0005`; T es `DAT_05767b88`, el `timeGetTime` absoluto en float (Q-C65). Las UV: (u, v + 0,25 dv), (u, v + 0,75 dv), (u + du, v + dv) y (u + du, v). *Estático* |
 | la mezcla | `0x620a00`, `0x620a90`, `0x620780` | el modo va en `DAT_07d366dc`: el 2, `GL_BLEND` con (`SRC_ALPHA`, `ONE_MINUS_SRC_ALPHA`) y el alpha test prendido; el 3, (`ONE`, `ONE`) y el alpha test apagado. Los dos prenden la textura. La textura atada se recuerda en `DAT_006d5d68` (un slot negativo es un nombre de GL directo). El alpha test es el `GL_GREATER 0,25` que dejó la cámara (06). *Estático*; los estados, *verificado* en las trazas |
 | el texto | `0x554180` → `0x553e50` y `0x554000` | (06, *verificado*) un `glTexImage2D` de 256 × 32 por string y por frame en el slot 0, rasterizado con GDI. Antes, la escena pone el color del texto (`DAT_006c8e5c`), el del fondo (`DAT_006c8e64`, `0x80000000` en el login), un ancho (`DAT_006c8e70`, `0x100`) y la fuente (`SelectObject`). La posición sale de `GetTextExtentPointA`, pasada a 640 con `cx · 640 / W` (división entera sin signo). *Estático* |
-| las fuentes | `WinMain`, `0x4b9b80` | cuatro `CreateFontA` **sin suavizado** (`NONANTIALIASED_QUALITY`, el 3) y con el charset de `0x6c76a0` (`0x86` en la `.data`): normal (400) y negrita (700) de alto n − 1, negrita de 2 (n − 1), y una normal de 12 con otra cara. n sale del ancho de la pantalla: 12 con 640, 13 con 800, 14 con 1024 y 15 con 1280; otro ancho no lo cambia. Las caras son los textos 0 y 18 de `Text.bmd` (la tabla empieza en `0x76bd1dc`), o la del sistema si están vacíos. *Estático* |
-| los colores `0x02` | `0x4667a0` y `0x4665d0`, solo desde `0x466000` | un `0x02` y el byte que sigue: el byte elige el color del texto y el del fondo (`0x4665d0`: 1 y `0xf4` rojo, `0xf0` y `0xf1` toman los dos de la escena, uno al revés del otro, `0xf2`, `0xf3` y `0xf5` a `0xf8` el suyo, y cualquier otro, blanco). Guarda hasta 9 cambios, cada uno con dónde empieza en el texto limpio y su ancho (`GetTextExtentPointA` menos 1), y saca del texto todos los pares. Lo usa solo el camino con caché (`0x466000`), que en las trazas no corrió (06). *Estático* |
-| las ventanas | `0x65f300`, desde `0x6349a0` | arma siete ventanas de la UI nueva (en `+0x8`, `+0x3d0`, `+0x7e8`, `+0xe40`, `+0x10e8`, `+0x4228` y `+0x4578`) y las ubica en **píxeles de la ventana** (el tamaño está en `0x640850`, `+0x28` y `+0x2c`): la de `+0x8`, de 352 × 113, al centro; la de `+0x4228`, centrada en x y a dos tercios en y. Cuál es la lista de servidores y cuál la cuenta, sin leer. Tres ventanas leen Enter y Esc por frame (`0x63d880`, `0x642e30`, `0x6418b0`; 02). *Estático* |
+| las fuentes | `WinMain`, `0x4b9b80` | cuatro `CreateFontA` **sin suavizado** (`NONANTIALIASED_QUALITY`, el 3) y con el charset de `0x6c76a0` (`0x86` en la `.data`): normal (400) y negrita (700) de alto n − 1, negrita de 2 (n − 1), y una normal de 12 con otra cara. n sale del ancho de la pantalla: 12 con 640, 13 con 800, 14 con 1024 y 15 con 1280; con 1600, la quinta resolución, n queda en 0 (de la `.bss`) y las alturas en -1, -1 y -2 (Q-C59, CL5.R). Las caras son los textos 0 y 18 de `Text.bmd` (la tabla empieza en `0x76bd1dc`), o la del sistema si están vacíos. *Estático* |
+| los colores `0x02` | `0x4667a0` y `0x4665d0`, solo desde `0x466000` | un `0x02` y el byte que sigue: el byte elige el color del texto y el del fondo (`0x4665d0`: 1 y `0xf4` rojo, `0xf0` y `0xf1` toman los dos de la escena, uno al revés del otro, `0xf2`, `0xf3` y `0xf5` a `0xf8` el suyo, y cualquier otro, blanco). Guarda hasta 9 cambios, cada uno con dónde empieza en el texto limpio y su ancho (`GetTextExtentPointA` menos 1), y saca del texto todos los pares. Lo usa solo el camino con caché (`0x466000`), que en las trazas no corrió (06), y que corre solo con `TextOut` en 1 en el registro; con otro valor, `0x467060` le pasa el texto entero a `TextOutA`, con los `0x02` adentro (CL5.R, 02 y 06). *Estático* |
+| las ventanas | `0x65f300`, desde `0x6349a0` | arma siete ventanas de la UI nueva (en `+0x8`, `+0x3d0`, `+0x7e8`, `+0xe40`, `+0x10e8`, `+0x4228` y `+0x4578`) y las ubica en **píxeles de la ventana** (el tamaño está en `0x640850`, `+0x28` y `+0x2c`): la de `+0x8`, de 352 × 113, al centro; la de `+0x4228`, centrada en x y a dos tercios en y. La de `+0x8` es el aviso, la de `+0xe40` la barra de abajo, la de `+0x10e8` la lista y la de `+0x4228` la cuenta; las de `+0x3d0` (la de Esc), `+0x7e8` y `+0x4578`, sin leer (CL5.R, 06; P-C13). Tres ventanas leen Enter y Esc por frame (`0x63d880`, `0x642e30`, `0x6418b0`; 02). *Estático* |
 | las teclas del login | `0x634c60`, por paso | Esc, con ciertas ventanas cerradas, suena el 0x19 y abre la de `+0x3d0`. Con el login aceptado (`DAT_057678c0 == 0x14`, que pone el `F1 01`), loguea `> Request Character list`, pasa a la escena 4 y manda el `F3 00` (CL6). Además, cada tanto el personaje de la escena toma la acción `0x54` o `0x55` (`rand() % 6`, CL6). *Estático* |
 
-**Lo que falta para dibujarlo como el original** (la CL5.R abre un pendiente nuevo en 08, P-C13 si
-sigue libre, con lo que no cierre):
+**Lo que falta para dibujarlo como el original** (la CL5.R abrió P-C13 en 08 con lo que no cerró):
 - **Una traza de GL de la carga y del login**, con GLIntercept como `graphics-01` y con `ImageLog`
   prendido: el orden de los quads, sus posiciones, sus texturas, la mezcla y el quad del texto, en
   640 × 480 y en 1024 × 768. Hoy todo es estático, y los tests de la CL5.2 y la CL5.4 dicen
@@ -119,13 +120,15 @@ sigue libre, con lo que no cierre):
   terreno.
 - **Capturas de pantalla** del login en esas dos resoluciones, fuera de Git: el texto de GDI y el
   de FreeType no van a ser iguales píxel a píxel, y se comparan a ojo.
-- **Qué ventana es cada una** de las siete de `0x65f300`, su dibujo y sus botones (CL5.R).
+- **Qué ventana es cada una** de las siete de `0x65f300`, su dibujo y sus botones (CL5.R: hecho
+  salvo tres, que quedan en P-C13).
 - **La lista con varios servidores** (P-C04): la tabla de 25 índices de `0x4c1860` y cómo dibuja
   los grupos. Lo cierra la lectura del binario y, si hace falta, un CS falso con varias entradas en
-  la VM.
+  la VM. (CL5.R: cerrado en el binario, 06 § La lista de servidores; verlo, con las capturas.)
 - **La cara de la fuente** del `Text.bmd` del laboratorio y si Windows la tiene: si no, GDI elige
   otra, y lo que se ve depende del sistema.
-- **Qué texto muestra cada resultado del `F1 01`** (cuenta inválida, en uso, bloqueada…).
+- **Qué texto muestra cada resultado del `F1 01`** (cuenta inválida, en uso, bloqueada…). (CL5.R:
+  hecho, 06 § Los avisos.)
 
 **Terminada cuando** (roadmap: la pantalla de login se ve y se usa). En concreto:
 - con `--data`, `Main` muestra la escena de carga y pasa a la de login: los dos fondos, la arena
@@ -231,16 +234,18 @@ sigue libre, con lo que no cierre):
    `xvfb-run -a ctest -L gl` con esa variable, para que un Xvfb mal armado no los deje salteados
    en silencio. En Windows, a mano.
 10. **La escala de la UI y el tamaño de la letra.** El original escala x por W/640 e y por H/480,
-    cada una por su lado (`0x620d50`, `0x620d80`), y sus resoluciones son 640, 800, 1024 y 1280 de
-    ancho; la UI nueva va en píxeles, centrada, y la letra crece de a un punto con el ancho.
-    *Recomendación:* las mismas fórmulas para cualquier tamaño de ventana, también ancha (lo
-    escalado se estira, como lo haría el original); la letra con la tabla de `WinMain` y, para un
-    ancho que no está, el escalón del mayor de los cuatro anchos que no lo pasa, y el de 640 por
-    debajo (menos de 800, 12; menos de 1024, 13; menos de 1280, 14; si no, 15), que es una
-    diferencia con el original (que deja el valor de antes) y va a 07. Con la ventana
-    redimensionada, las fuentes y la caché se rehacen. Un modo que mantenga el 4:3 de lo escalado
-    cambia lo que se ve: va detrás de una opción, con un ADR, cuando haga falta. **Esto se aparta
-    de D-C11**, que pide toda la UI en 640 × 480 escalada: las ventanas de la UI nueva del original
+    cada una por su lado (`0x620d50`, `0x620d80`), y sus resoluciones son 640, 800, 1024, 1280 y
+    1600 de ancho (CL5.R); la UI nueva va en píxeles, centrada, y la letra crece de a un punto con
+    el ancho. *Recomendación:* las mismas fórmulas para cualquier resolución que valga, también
+    ancha (lo escalado se estira, como lo haría el original); la letra con la tabla de `WinMain` y,
+    para un ancho que no está, el escalón del mayor de los cuatro anchos que no lo pasa, y el de 640
+    por debajo (menos de 800, 12; menos de 1024, 13; menos de 1280, 14; si no, 15), que es una
+    diferencia con el original (que con 1600 deja la letra en -1 y -2: Q-C59). *Decidido (Emanuel,
+    2026-11-03, #72):* valen las cinco resoluciones del original o un modo del monitor, y la ventana
+    no cambia de tamaño (`App::IsValidResolution`); si el área de dibujo cambia igual (otra densidad
+    de pantalla), las fuentes y la caché se rehacen. Un modo que mantenga el 4:3 de lo escalado
+    cambia lo que se ve: va detrás de una opción, con un ADR, cuando haga falta. **Esto se aparta de
+    D-C11**, que pide toda la UI en 640 × 480 escalada: las ventanas de la UI nueva del original
     (`0x65f300`) van en píxeles, y MuRet las sigue, por fidelidad. Si se acepta, la CL5.5 corrige
     D-C11 en el roadmap (lo escalado en 640 × 480, la UI nueva en píxeles, centrada como el
     original); si no, las ventanas se escalan y la diferencia con el original va a 07.
@@ -424,13 +429,13 @@ escena de carga y la de login": el orden de dibujo, las texturas, el texto, las 
 quirks nuevos), `08-pendientes.md` (P-C04 cerrado o con lo que falte, P-C12 con la carpeta de cada
 mapa, y P-C13 con la traza), PROGRESS y este plan.
 
-- [ ] **Paso 1 (las escenas):** el `switch` de `0x63945d` y quién escribe `DAT_006d5dc8`
+- [x] **Paso 1 (las escenas):** el `switch` de `0x63945d` y quién escribe `DAT_006d5dc8`
   (`0x622e40`, `0x634c60`, `0x6342c0`, `0x6356f0`, `0x633c10`, `0x4c2710`): de qué escena a cuál,
   y con qué. Sale la tabla de transiciones que prueba el `SceneManager` de la CL5.4.
-- [ ] **Paso 2 (la carga):** `0x622e40`, `0x65eeb0` y `0x647050`, `0x6402d0`: dónde y de qué
+- [x] **Paso 2 (la carga):** `0x622e40`, `0x65eeb0` y `0x647050`, `0x6402d0`: dónde y de qué
   tamaño va cada una de las seis texturas `lo_*`, y cómo avanza la barra (qué cuenta `0x61ccb0` y
   cuándo dibuja: si hay `SwapBuffers` en el medio de la carga).
-- [ ] **Paso 3 (el login, al entrar):** `0x6349a0` en orden; el mundo 55 por `0x61a560` (la
+- [x] **Paso 3 (el login, al entrar):** `0x6349a0` en orden; el mundo 55 por `0x61a560` (la
   carpeta de cada mapa, del `cmp` del desensamblado, a 05 y a P-C12); `0x61c7c0` con el tercer y
   cuarto argumento leídos en `0x63b870` y `0x63bd00` (el filtro y el wrap); el objeto `0xa2` y el
   nombre de su modelo (`0x60da30`, `DAT_006d2758`). Lo que queda abierto de la carpeta: quién
@@ -439,7 +444,7 @@ mapa, y P-C13 con la traza), PROGRESS y este plan.
   mandan los tres handlers que llaman a `0x61a560` (`0x4c41c9`, `0x4c4e9d`, `0x4c780c`) y si
   alguno pasa de 36; y si `0x633f20` es la entrada a la selección con el 54 (*inferido* por la
   forma, igual a la de `0x6349a0`). El 35 da `World36`, que no está en el laboratorio: a P-C12.
-- [ ] **Paso 4 (el login, el dibujo):** `0x6350b0` con sus llamadas en orden (también el pase (2b)
+- [x] **Paso 4 (el login, el dibujo):** `0x6350b0` con sus llamadas en orden (también el pase (2b)
   de la tabla: `0x621a90`, `0x620db0(0, 0, w, 0x30)`, `0x5fbb00` y `0x620fc0`), los argumentos de
   `0x622000` que Ghidra no muestra (cómo corre la arena con el reloj, y qué reloj: el T de
   `0x4eb620` u otro), qué apagan o prenden `0x6208f0`, `0x620890` y `0x6208b0` (la textura y el
@@ -448,12 +453,12 @@ mapa, y P-C13 con la traza), PROGRESS y este plan.
   cursor, el chat, los avisos). El quad del texto: con qué banderas llama `0x554000` a `0x621b60`
   (la posición escalada y el tamaño en píxeles, *inferido* por el 06) y qué hacen el color, el fondo
   y el ancho de `DAT_006c8e5c`, `64` y `70`.
-- [ ] **Paso 5 (el texto):** las cuatro `CreateFontA` en el desensamblado (los 14 argumentos), el
+- [x] **Paso 5 (el texto):** las cuatro `CreateFontA` en el desensamblado (los 14 argumentos), el
   valor de `DAT_07758568` para un ancho que no está en la tabla, quién más escribe `0x6c76a0` (el
   charset), y quién llama a `0x466000` (`0x465eb0`): dónde se usan los colores `0x02`, con la
   tabla entera de `0x4665d0` y el formato de sus colores. Ningún texto de `Text.bmd` va al research:
   se nombran por índice.
-- [ ] **Paso 6 (las ventanas y la lista, P-C04):** las siete ventanas de `0x65f300`: qué clase es
+- [x] **Paso 6 (las ventanas y la lista, P-C04):** las siete ventanas de `0x65f300`: qué clase es
   cada una (su vtable), cuál es la lista de servidores, cuál la cuenta y la clave y cuál la de Esc
   (`+0x3d0`); qué dibuja cada una con qué slots (`0xc` a `0x1a`), en qué píxeles, y qué hace con
   el mouse (`0x640940`) y con Enter y Esc. La lista: `0x4c1860` y su tabla de 25 índices (cómo
@@ -463,10 +468,10 @@ mapa, y P-C13 con la traza), PROGRESS y este plan.
   *Inferido* hoy: la ventana de la cuenta aparece con el GS ya conectado (en el cable, el keepalive
   sale 2 y 4 s antes del login, y en una conexión sin login salen 34: el quirk del keepalive de la
   CL4.R).
-- [ ] **Paso 7 (los avisos):** el aviso `0x70` (`0x65fe50`), los textos de cada resultado del
+- [x] **Paso 7 (los avisos):** el aviso `0x70` (`0x65fe50`), los textos de cada resultado del
   `F1 01` (por índice de `Text.bmd`), el de "no se pudo conectar" (402) y el del `FD_CLOSE` (3):
   dónde se dibuja y qué botón lo cierra.
-- [ ] **Paso 8:** pasar todo al research con *estático* o *inferido* en cada cosa, abrir P-C13 en
+- [x] **Paso 8:** pasar todo al research con *estático* o *inferido* en cada cosa, abrir P-C13 en
   08 con la traza y las capturas de la lista de arriba ("Lo que falta"), y corregir la tabla de
   este plan con lo que haya cambiado. Los quirks nuevos a 07: el color que pierde `0x621b60` y lo
   que salga de los pasos 4 a 6, y el 32, que deja el mapa del juego en 9 al cargar `World10`
@@ -474,6 +479,75 @@ mapa, y P-C13 con la traza), PROGRESS y este plan.
   el desensamblado: `0x620d50` y `0x620d80` multiplican por la inversa en float (`0x6ba070`,
   `0x6ba06c`) y no dividen, y en `0x621b60` el borde de abajo sale de `H − y` sin redondear
   (`FST` y `FLD ST0`, `0x621beb`..`0x621bf3`), no del float guardado que muestra el decompilado.
+
+Hecho así (2026-11-03): todo en el desensamblado de `c32bbd5f` con `objdump`, y casi todo
+*estático*, porque no hay traza de estas escenas (P-C13). Los pasos 1 a 7 están en 06 (§ La escena
+de carga y la de login, con la sección nueva y lo de la x87 en "Primitivas 2D"), en 02 (§ Las
+cinco escenas y sus transiciones, y § Resolución, fuentes y texto) y en 05 (la carpeta de cada
+mapa). Lo que cambió respecto de la tabla de arriba quedó corregido en ella. Lo que no estaba:
+
+- la escena la escriben ocho `mov` con números fijos, y el `F1 02` (`0x4c2710`), si llegó cifrado,
+  la lleva a 4 o a 2;
+- la carga diseña su UI en 800 × 600, con la imagen de la UI nueva (`0x647650`, la misma de los
+  fondos de las ventanas: UV a medio téxel, y atando la textura sin `0x620780`, Q-C64), y dibuja 11
+  frames con `SwapBuffers` mientras carga;
+- la ventana de `+0x4584` era la bandera de abierta de la de `+0x4578`; el `0x4c6070` del plan es el
+  pedido de la lista, no el `F4 03` (ese lo manda el clic, `0x645e10`);
+- hay una quinta resolución, 1600 × 1200, donde la letra queda en -1 y -2 (Q-C59);
+- los campos de la cuenta y la clave son dos `EDIT` de Windows con `EM_LIMITTEXT` 10 y la clave
+  con `ES_PASSWORD`; la ventana la abre el `F1 00`, con el GS conectado (ya no es *inferido*);
+- el OK de cuatro avisos cierra el juego (Q-C69), y en el juego no hay avisos (Q-C70);
+- la lista se corta en el primer lugar vacío y no muestra los grupos 21 a 23 (Q-C62), y no mira
+  rangos ni topes: la ventana tiene 16 botones de servidor y un grupo puede tener 20 (Q-C63).
+
+Los quirks nuevos van de Q-C57 a Q-C70; P-C04 quedó cerrado, P-C12 tiene la carpeta de cada mapa
+y P-C13 lo que falta. Sin leer: las ventanas de `+0x3d0`, `+0x7e8` y `+0x4578`, los botones de la
+barra de `+0xe40`, y el resto de `0x641bf0`, que llama a la tabla de hash de `0x40b240` (puede ser
+el anticheat: fuera de alcance).
+
+**Lo que la CL5.R deja para las sub-olas que siguen:**
+
+- **CL5.1:** el filtro y el wrap de cada textura del juego del login: `GL_NEAREST` los fondos y
+  casi todas las de `Interface\`; `GL_LINEAR` la arena, `FireSnuff` y `cr_mu_lo`; `GL_REPEAT` la
+  arena, `server_ex03` y `server_ex02`. Las seis de la carga, `GL_LINEAR` y `GL_CLAMP`, salvo
+  `lo_lo.jpg`, la barra, que repite (`GoldenTextureSet.TheLoginSetLoads` y el juego de la carga).
+- **CL5.2:** Q-C57 sigue en `SpriteBatchTest.AQuadWithAlphaLeavesTheColorWhite`. La arena
+  (`SkewedQuad`) con las UV de 06 (u, v + 0,25 dv arriba a la izquierda y u, v + 0,75 dv abajo).
+  La UI de la carga no es el quad de `0x621b60`: va en 800 × 600 con la y desde arriba, `600 − y`
+  y UV a medio téxel; o la `LoadingScene` la pasa a píxeles, o el `SpriteBatch` suma esa forma
+  (`SpriteBatchTest.PlacesTheLoadingImagesLikeTheOriginal`, en 640 × 480 y en 1024 × 768). No es
+  solo de la carga: es la imagen de toda la UI nueva, y las ventanas de la CL5.5 la usan en píxeles
+  (fx = fy = 1, la y desde H), así que lo que se elija acá sirve para las dos.
+- **CL5.3:** el texto de las trazas es el de `TextOut` distinto de 1: un `TextOutA` por texto, sin
+  los colores `0x02`, que el original solo separa con `TextOut` en 1. `InlineColors` se escribe
+  igual (lo usa el chat de la CL8), pero el login no lo necesita. El quad del texto: el tamaño
+  siempre en píxeles, la posición escalada si el que llama lo pide, y du = (w + 0,01) / 256. La
+  letra: n de 12 a 15 por ancho y 15 desde 1280 (Q-C59, `FontSetTest.TheStepFollowsTheWidth`); la
+  y de los textos del login, con H (Q-C60, `TextLayoutTest.TheLoginTextUsesTheHeightForY`); el
+  charset GB2312 (Q-C67).
+- **CL5.4:** la tabla de transiciones del paso 1 es la de 02. `WorldFolderNumber` recibe de 0 a 255
+  (el byte de los handlers) y da el mapa + 1 de 37 en adelante, con el 255 en 256: devuelve un
+  `std::uint16_t` (`WorldFolderTest.MapsBeyondThirtySixAreMapPlusOne`); `OriginalMaps` sigue con los
+  39 de los tests; la bandera de `0x616ec0` no va. La carga dibuja un frame por avance. El fundido
+  no dibuja (Q-C66): `LoginSceneTest.DrawsInTheOrderOfTheOriginal` no tiene un quad de fundido. La
+  arena: aditiva, con el color (0,25; 0,1; 0,1), u de los ms de la escena (Q-C65); los textos, sin
+  copia (Q-C61).
+- **CL5.5:** el orden de la lista, sus nombres por índice y lo que se aparta (Q-C62, Q-C63). En
+  `ServerListModelTest.GroupsByCodeOverTwenty`, el 420 sería del grupo 21, que no tiene botón (MuRet
+  lo ignora, Q-C62): el ejemplo pasa a 400 y 401 juntos y 380 aparte (el grupo 19). El 380 sale por
+  la regla de MuRet: el original corta en el lugar 5, vacío, y no lo muestra. Los tests nuevos:
+  `KeepsTheOrderOfTheOriginal`, `AListWithoutGroupTwentyShowsItsGroups`,
+  `IgnoresTheGroupsWithoutAButton` y `AGroupKeepsTwentyServers`. **Decidido:** `ServerListWindow`
+  tiene 20 botones de servidor, uno por cada número de un grupo: MuRet muestra todos los servidores
+  del grupo, y el original, con 16, pisa sus barras desde el 17 (Q-C63,
+  `ServerListWindowTest.ShowsTheTwentyServersOfAGroup`). Las imágenes de las ventanas tienen la
+  forma de las de la carga, en píxeles (CL5.2). Los campos: 10 caracteres, la clave enmascarada; el
+  original deja pasar todo salvo Esc y `0x19` a `0x1c`, y MuRet, ASCII imprimible (Q-C43). En el
+  original, el subclass toma Tab y Enter (salvo los casos de 06): los manda a la ventana del juego,
+  o Tab pasa el foco al control de `+0x98` si `+0x44` está prendido (en el login, sin leer); que Tab
+  cambie de campo es de MuRet. Cancelar en la cuenta vuelve al CS y a la lista. En el aviso, Enter y
+  Esc hacen lo de OK. `APeerCloseShowsText3` también ve el aviso `0x70` con el texto 402, como el
+  `FD_CLOSE`; y `LoginSceneSessionTest.OkOnTheConnectNoticeQuits` fija Q-C69.
 
 ## Sub-ola CL5.1: `Renderer` y texturas desde OZT/OZJ
 
@@ -923,7 +997,7 @@ da su carpeta para cualquier mapa.
 | Qué | Original | MuRet |
 | --- | --- | --- |
 | las escenas | `DAT_006d5dc8`: 1, 2, 3, 4, 5 | `SceneId` con esos números (para el log y las trazas) y una clase por escena |
-| las transiciones | 1 → 2, 2 → 4, 4 → 3, 3 → 5, y las de `0x4c2710` (CL5.R) | `SceneManager::Request(SceneId)`: una que no está en la tabla es un error en el log y no cambia nada |
+| las transiciones | 1 → 2, 2 → 4, 4 → 3, 3 → 5, y las de `0x4c2710`: de 5 o 4 a 4, y a 2 (CL5.R, 02) | `SceneManager::Request(SceneId)`: una que no está en la tabla es un error en el log y no cambia nada |
 | la carga | `0x622e40`: sus seis texturas, su UI, los datos, y a la 2 | `LoadingScene`: su juego de texturas (la tabla de `0x622e40`), lo que carga MuRet (`Text.bmd`, el juego del login) con la barra, y a `Login` |
 | entrar al login | `0x6349a0`, cada vez que se entra: mapa 55, texturas, ventanas, CS, objeto, personaje, música | `LoginScene::Enter`, también cada vez: su mundo de la tabla de escenas (`SceneWorld{55}`), su juego de texturas en el `ITextureStore`, sus ventanas (CL5.5) y `ServerSession::Start` (CL4); el logo y el personaje, CL6; la música, CL10 |
 | las texturas de la escena | `0x61c7c0` sube las 18 del login; la carga suelta las suyas con `0x63c150` | `Render::ITextureStore` (CL5.1): la escena sube su juego en `Enter` y lo suelta en `Leave`; lo implementa `Gl::TextureTable` |
@@ -950,14 +1024,15 @@ este plan.
 ```cpp
 namespace Client::Data
 {
-// Los mapas que llegan a 0x61a560: del 0 al 36 (los de los handlers del juego, CL5.R paso 3), el
-// 54 de la selección (0x633f20) y el 55 del login (0x6349a0). Los tests de todos los mapas van
-// por esta lista.
+// Los mapas que llegan a 0x61a560: del 0 al 36 (los del juego; los handlers mandan un byte, de 0 a
+// 255, sin mirar el rango: CL5.R, Q-C58), el 54 de la selección (0x633f20) y el 55 del login
+// (0x6349a0). Los tests de todos los mapas van por esta lista.
 inline constexpr std::array<std::uint8_t, 39> OriginalMaps = {0,  1,  2, /* … */ 35, 36, 54, 55};
 // 0x61a560: el número de la carpeta World<N> y de EncTerrain<N> para el mapa `map`, con los tres
 // rangos de evento y el 32, que usa la carpeta del 9 (World10, 0x61a56c..0x61a57d). La bandera
-// con que 0x616ec0 fuerza el 7 no va mientras la CL5.R no encuentre quién la escribe.
-std::uint8_t WorldFolderNumber(std::uint8_t map);
+// con que 0x616ec0 fuerza el 7 no va: nadie la escribe (CL5.R). Devuelve más de un byte, porque
+// el 255 da 256.
+std::uint16_t WorldFolderNumber(std::uint8_t map);
 std::string WorldFolder(std::uint8_t map); // "World56" para el 55
 } // namespace Client::Data
 
@@ -1094,7 +1169,9 @@ public:
   - `WorldFolderTest.MapsEachMapToItsFolder` (0 → 1, 10 → 11, 11 a 17 → 12, 18 a 23 → 19, 24 a 29
     y 36 → 25, 30 → 31, 35 → 36, 55 → 56), `WorldFolderTest.TheMapThirtyTwoUsesTheFolderOfNine`
     (32 → 10, como el 9: `0x61a56c`..`0x61a57d`), `WorldFolderTest.TheSelectionMapIsWorld55`
-    (54 → 55, `0x633f44`) y `WorldFolderTest.NamesTheFolder` (`"World56"`);
+    (54 → 55, `0x633f44`), `WorldFolderTest.NamesTheFolder` (`"World56"`) y
+    `WorldFolderTest.MapsBeyondThirtySixAreMapPlusOne` (37 → 38, 53 → 54, 56 → 57 y 255 → 256:
+    ningún handler mira el rango, Q-C58);
   - `GoldenWorldFolder.EveryLabWorldIsTheFolderOfAMap` (para cada uno de los 20 mundos del
     laboratorio, `LabWorlds` de `TerrainFiles.h`, hay un mapa de `OriginalMaps` que da esa
     carpeta: `World10` por el 9 y el 32, `World55` por el 54) y
@@ -1143,14 +1220,14 @@ al jugador. Va en dos PRs: **PR A**, el texto tecleado, los widgets y la lista (
 
 | Qué | Original | MuRet |
 | --- | --- | --- |
-| la lista | `F4 06` → `0x4c1860`, agrupada por `código / 20` con una tabla de 25 (P-C04) | `UI::ServerListModel`: los grupos y su orden, con lo que diga la CL5.R; la carga de cada servidor |
+| la lista | `F4 06` → `0x4c1860`, agrupada por `código / 20` con una tabla de 25 (P-C04); 16 botones de servidor, aunque un grupo puede tener 20 (Q-C63) | `UI::ServerListModel`: los grupos y su orden, con lo que diga la CL5.R; la carga de cada servidor; `ServerListWindow` con 20 botones de servidor (decidido en la CL5.R) |
 | elegir | un clic en el servidor → `F4 03` con su código | `ServerSession::ChooseServer(code)`, en `ChoosingServer` |
-| cuándo sale la cuenta | con el GS conectado (*inferido* por el keepalive de la CL4.R) | `SessionState::WaitingCredentials`: la ventana de la cuenta se muestra |
-| los campos | `0x468320`, con IME; la cuenta y la clave de hasta 10 bytes en el paquete (Q-C43) | `UI::TextField` con tope de 10 bytes, ASCII imprimible, la clave con asteriscos; Tab cambia de campo |
-| mandar | Enter u OK (la CL5.R) → el emisor `0x641bf0` | `ServerSession::SubmitCredentials(Credentials)`; el campo de la clave se vacía |
+| cuándo sale la cuenta | con el GS conectado: la abre el `F1 00` (`0x4c1e20`, CL5.R) | `SessionState::WaitingCredentials`: la ventana de la cuenta se muestra |
+| los campos | dos `EDIT` de Windows con `EM_LIMITTEXT` 10, la clave con `ES_PASSWORD` (CL5.R), y Tab y Enter los toma el subclass (`0x467b10`, 06); la cuenta y la clave de hasta 10 bytes en el paquete (Q-C43) | `UI::TextField` con tope de 10 bytes, ASCII imprimible, la clave con asteriscos; Tab cambia de campo (de MuRet) |
+| mandar | Enter u OK, en `0x6418b0` → el emisor `0x641bf0`; con un campo vacío, el aviso `0x64` o `0x65` (CL5.R) | `ServerSession::SubmitCredentials(Credentials)`; el campo de la clave se vacía |
 | la UI por frame | las ventanas leen Enter y Esc y el mouse por frame (`0x640940`) | la UI se atiende en el paso, con los flancos de la CL3.3 (los ve el primer paso del frame): a 25 pasos por segundo, la demora es parecida a la de 21,33 frames; la diferencia va a 07 |
 | el mouse | píxeles de la ventana, acotados (Q-C47) | píxeles del framebuffer, acotados (pregunta 12) |
-| los avisos | el `0x70` con el texto 402 (no conectó), el 3 (`FD_CLOSE`) y el del resultado del `F1 01` | `UI::MessageBox` con el texto de `Text.bmd` por índice; los índices, de la CL5.R |
+| los avisos | el `0x70` con el texto 402 (no conectó, y después del texto 3 del `FD_CLOSE`) y el del resultado del `F1 01` | `UI::MessageBox` con el texto de `Text.bmd` por índice; los índices, los de 06 § Los avisos (CL5.R) |
 | sin UI | (no hay) | `App::AutoLogin` con `--auto-login`: el primero de la lista y las variables de la pregunta 7 de la CL4 |
 
 **Archivos:**
@@ -1201,6 +1278,7 @@ struct ServerGroup
 };
 std::vector<ServerGroup> GroupServers(std::span<const Protocol::Connection::ServerEntry> list);
 
+// 21 botones de grupo y 20 de servidor, uno por número (el original tiene 16: Q-C63).
 class ServerListWindow
 {
 public:
@@ -1273,10 +1351,15 @@ public:
   - `TextFieldTest.TakesPrintableAscii`, `DropsWhatIsNotAscii`, `StopsAtTenBytes`,
     `BackspaceOnEmptyDoesNothing`, `TheMaskedFieldShowsStars`, `ClearEmptiesIt`; y que el
     `PrintTo` de un campo con clave no la escribe (`UiPrinters.h`);
-  - `ServerListModelTest.GroupsByCodeOverTwenty` (400 y 401 juntos, 420 aparte; el orden, el de
-    la CL5.R), `ServerListModelTest.AnEmptyListHasNoGroups`;
+  - `ServerListModelTest.GroupsByCodeOverTwenty` (400 y 401 juntos, 380 aparte; el orden, el de la
+    CL5.R: el 420 sería del grupo 21, que no tiene botón y MuRet ignora, Q-C62; el 380 sale por la
+    regla de MuRet, porque el original corta en el lugar 5, vacío),
+    `ServerListModelTest.AnEmptyListHasNoGroups`, y los de Q-C62 y Q-C63
+    (`KeepsTheOrderOfTheOriginal`, `AListWithoutGroupTwentyShowsItsGroups`,
+    `IgnoresTheGroupsWithoutAButton`, `AGroupKeepsTwentyServers`);
   - `ServerListWindowTest.AClickOnAServerChoosesItsCode`, `AClickOutsideChoosesNothing`,
-    `ItIsCenteredInPixels` (en 640 × 480 y en 1024 × 768, con la ubicación de `0x65f300`);
+    `ItIsCenteredInPixels` (en 640 × 480 y en 1024 × 768, con la ubicación de `0x65f300`),
+    `ShowsTheTwentyServersOfAGroup` (Q-C63);
   - `LoginWindowTest.TabMovesTheFocus`, `EnterWithBothFieldsSubmits`,
     `EnterWithAnEmptyFieldDoesNotSubmit`, `SubmittingEmptiesThePassword`.
 - [ ] **Paso 4 (PR A):** el texto tecleado en `Input` y `Platform`, y los widgets.

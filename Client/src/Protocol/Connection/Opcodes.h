@@ -16,6 +16,7 @@ inline constexpr std::uint8_t ConnectHelloOpcode = 0x00;
 inline constexpr std::uint8_t ServerListOpcode = 0xF4;
 inline constexpr std::uint8_t ServerListRequestSubcode = 0x02; // pedir la lista
 inline constexpr std::uint8_t ServerSelectSubcode = 0x03;      // elegir uno, y la respuesta
+inline constexpr std::uint8_t ServerBusySubcode = 0x05;        // la respuesta si está ocupado
 inline constexpr std::uint8_t ServerListSubcode = 0x06;        // la lista, como la deja FoxAnti
 
 // F1: la entrada al GameServer.

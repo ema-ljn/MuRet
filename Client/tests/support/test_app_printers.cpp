@@ -48,6 +48,12 @@ TEST(AppPrintersTest, NoReplyShowsItsName)
     EXPECT_EQ(::testing::PrintToString(SessionFailure::NoReply), "NoReply");
 }
 
+// La falla del servidor ocupado, F4 05 (Q-C71).
+TEST(AppPrintersTest, ServerBusyShowsItsName)
+{
+    EXPECT_EQ(::testing::PrintToString(SessionFailure::ServerBusy), "ServerBusy");
+}
+
 TEST(AppPrintersTest, AResolutionShowsWidthByHeight)
 {
     EXPECT_EQ(::testing::PrintToString(Resolution{1024, 768}), "1024 × 768");

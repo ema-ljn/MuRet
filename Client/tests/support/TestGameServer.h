@@ -18,10 +18,11 @@
 #include <utility>
 #include <vector>
 
-// Lo que hace con los C3/C4 el GameServer de los tests de la Connection y de la ServerSession
-// (CL4.4), con las claves sintéticas de SimpleModulusKeys.h: lo que manda el cliente va con
-// Pair17 y lo que contesta el servidor con Pair18, así una clave cambiada de lugar no descifra.
-// Los tests no comparan lo cifrado: el servidor descifra lo que salió y el test mira el C1/C2.
+// Lo que hace con los C3/C4 el GameServer de los tests de la Connection, de la ServerSession y de
+// los FakeServers (CL4.4), con las claves sintéticas de SimpleModulusKeys.h: lo que manda el
+// cliente va con Pair17 y lo que contesta el servidor con Pair18, así una clave cambiada de lugar
+// no descifra. Los tests no comparan lo cifrado: el servidor descifra lo que salió y el test mira
+// el C1/C2.
 namespace Client::Tests
 {
 // Las claves de la conexión del cliente con el GameServer: cifra con la de ida y descifra con la
@@ -41,6 +42,13 @@ inline Network::Crypto::DecryptionKey GameServerDecryption()
 inline Network::Crypto::EncryptionKey GameServerEncryption()
 {
     return Pair18().encryption;
+}
+
+// Las dos del lado del GameServer, como las de una conexión: cifra lo que contesta y descifra lo
+// que recibe (las de support/FakeServers.h).
+inline Network::ConnectionKeys GameServerKeys()
+{
+    return {GameServerEncryption(), GameServerDecryption()};
 }
 
 // Un C1/C2 como lo manda el GameServer: cifrado con su clave y sus seriales.

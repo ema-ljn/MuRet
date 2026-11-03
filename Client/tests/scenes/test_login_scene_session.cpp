@@ -425,7 +425,8 @@ TEST(LoginSceneSessionTest, TheListShowsWhenItArrives)
 }
 
 // 0x4c1860 abre la barra de abajo después de la lista, así que va arriba de ella. Nada la cierra en
-// el login: sigue con la cuenta, debajo de su ventana, y cuando se cancela y vuelve la lista.
+// el login: sigue con la cuenta, debajo de su ventana, cuando se cancela y cuando vuelve la lista,
+// que la abre otra vez sin repetirla.
 TEST(LoginSceneSessionTest, TheBarOpensWithTheListAndStays)
 {
     Harness tested;
@@ -446,11 +447,18 @@ TEST(LoginSceneSessionTest, TheBarOpensWithTheListAndStays)
     login.Tap(Key::Escape);
     EXPECT_EQ(Harness::QuadsAmong(login.Frame(), order),
               (std::vector<TextureSlot>{OrnamentSlot, MenuSlot, CreditSlot}));
+    login.socket.reads = {Hello()};
+    login.Step();
+    login.socket.reads = {ServerList({400})};
+    login.Step();
+    ASSERT_EQ(login.session.State(), SessionState::ChoosingServer);
+    EXPECT_EQ(Harness::QuadsAmong(login.Frame(), order),
+              (std::vector<TextureSlot>{GroupButtonSlot, OrnamentSlot, MenuSlot, CreditSlot}));
 }
 
 // Sin aviso, la barra se atiende junto con la lista (Q-C84): con el mouse encima, los créditos
 // muestran el cuadro 1, y un clic no manda nada ni cambia la sesión, solo queda en el log (P-C13).
-// Con un aviso abierto, el aviso tiene el mouse.
+// Con un aviso abierto, el aviso tiene el mouse, como en el original, donde es de toda la pantalla.
 TEST(LoginSceneSessionTest, TheBarStepsWithTheList)
 {
     Harness tested;
@@ -476,6 +484,27 @@ TEST(LoginSceneSessionTest, TheBarStepsWithTheList)
     ASSERT_EQ(Harness::QuadsOf(tested.Frame(), NoticeBoxSlot), 1u);
     tested.HoverOn(bar.credit);
     EXPECT_EQ(Harness::TopV(tested.Frame(), CreditSlot), 0.5f / height);
+}
+
+// Y junto con la cuenta (Q-C84): los créditos muestran el cuadro 1 con el mouse encima, y un clic
+// en el menú queda en el log sin mandar nada, sin cerrar la cuenta ni sacarle el teclado.
+TEST(LoginSceneSessionTest, TheBarStepsWithTheLogin)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheLogin());
+    const Client::UI::MenuBarLayout bar = Client::UI::LayoutMenuBar(PixelSize{640, 480});
+    const float height = tested.BufferHeight(CreditSlot);
+
+    tested.HoverOn(bar.credit);
+    EXPECT_EQ(Harness::TopV(tested.Frame(), CreditSlot), (30.0f + 0.5f) / height);
+
+    const std::size_t sent = tested.socket.sent.size();
+    tested.ClickOn(bar.menu);
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "el botón del menú de la barra todavía no hace nada"));
+    EXPECT_EQ(tested.socket.sent.size(), sent);
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_TRUE(tested.scene->WantsTextInput());
+    EXPECT_EQ(Harness::QuadsOf(tested.Frame(), LoginBackgroundSlot), 1u);
 }
 
 // El grupo y después el servidor: la escena le pasa el código a la sesión, que manda el F4 03 (el

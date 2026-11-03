@@ -27,8 +27,8 @@ using Client::UI::Rect;
 
 constexpr PixelSize Screen640{640, 480};
 
-// Los buffers del laboratorio: server_menu_b_all y server_credit_b_all miden 54 × 90 (tres cuadros
-// de 30), y deco.tga, 189 × 103.
+// Las texturas del laboratorio: server_menu_b_all y server_credit_b_all miden 54 × 90 (tres cuadros
+// de 30), en buffers de 64 × 128, y deco.tga, 189 × 103, en uno de 256 × 128.
 Client::UI::TextureSizes LabSizes()
 {
     return Client::Tests::FakeTextureSizes({{0x10, {64, 128}}, {0x11, {64, 128}}, {0x12, {256, 128}}});

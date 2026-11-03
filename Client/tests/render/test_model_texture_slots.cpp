@@ -9,9 +9,12 @@
 
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <ostream>
 #include <span>
 #include <string_view>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 // Client::Render::Models::ModelTextureSlots: 0x60d530, 0x60d550 y 0x60d5f0 como datos.
@@ -118,17 +121,19 @@ TEST(ModelTextureSlotsTest, TheSearchIsCaseSensitive)
     EXPECT_EQ(assigned, Slots({0x138, 0x139}));
 }
 
-// 0x60d530 pone la búsqueda en el 0: lo que pidió otro cargador antes, en otro primer slot, se reusa.
+// 0x60d530 pone la búsqueda en el 0, no en el primer slot ni en el último que se puso: lo que pidió
+// otro cargador más abajo se reusa.
 TEST(ModelTextureSlotsTest, TheSearchStartsAtSlotZero)
 {
-    ModelTextureSlots slots(PlayerParts);
+    ModelTextureSlots slots(Items);
+    slots.SetNext(PlayerParts);
     (void)slots.Assign(ModelWith({"armor_a.jpg"}), "Player\\", ModelSampling);
-    slots.SetNext(Items);
+    slots.SetNext(TextureSlot{Items.value + 1});
 
     const std::vector<TextureSlot> assigned =
         slots.Assign(ModelWith({"armor_a.jpg", "sword.jpg"}), "Item\\", ModelSampling);
 
-    EXPECT_EQ(assigned, Slots({0x138, 0x25a}));
+    EXPECT_EQ(assigned, Slots({0x138, 0x25b}));
 }
 
 // La búsqueda llega hasta el próximo libre: con él para atrás (0x615700 vuelve al 0x138, Q-C89), un
@@ -143,6 +148,36 @@ TEST(ModelTextureSlotsTest, TheSearchStopsAtNext)
 
     EXPECT_EQ(assigned, Slots({0x138}));
     EXPECT_EQ(slots.ToLoad().size(), 2u);
+}
+
+// El próximo libre tampoco se mira: vuelto justo sobre un nombre, ese nombre se pide otra vez en él.
+TEST(ModelTextureSlotsTest, TheNextSlotItselfIsNotSearched)
+{
+    ModelTextureSlots slots(PlayerParts);
+    (void)slots.Assign(ModelWith({"armor_a.jpg", "armor_b.jpg"}), "Player\\", ModelSampling);
+    slots.SetNext(TextureSlot{0x139});
+
+    const std::vector<TextureSlot> assigned = slots.Assign(ModelWith({"armor_b.jpg"}), "Player\\", ModelSampling);
+
+    EXPECT_EQ(assigned, Slots({0x139}));
+    EXPECT_EQ(slots.ToLoad().size(), 3u);
+    EXPECT_EQ(slots.Next(), TextureSlot{0x13a});
+}
+
+// Las rutas de ToLoad apuntan a las que guarda el asignador: una copia apuntaría a las del otro, así
+// que no se copia. Movido sí, y las rutas siguen valiendo después de que el de antes se va.
+TEST(ModelTextureSlotsTest, MovesButDoesNotCopy)
+{
+    EXPECT_FALSE(std::is_copy_constructible_v<ModelTextureSlots>);
+    EXPECT_FALSE(std::is_copy_assignable_v<ModelTextureSlots>);
+
+    std::optional<ModelTextureSlots> before(std::in_place, PlayerParts);
+    (void)before->Assign(ModelWith({"armor_with_a_long_name.jpg"}), "Player\\", ModelSampling);
+    const ModelTextureSlots moved(std::move(*before));
+    before.reset();
+
+    ASSERT_EQ(moved.ToLoad().size(), 1u);
+    EXPECT_EQ(moved.ToLoad()[0].path, "Player\\armor_with_a_long_name.jpg");
 }
 
 // Las OZT van siempre con GL_NEAREST; el wrap es el de quien pide. La ruta lleva la extensión del

@@ -843,14 +843,15 @@ public:
   `"%s%d"` sin el cero y un archivo corto que no falla.
 
   Hecho así (PR A, 2026-11-03, resuelto por Claude): `Data/Models/Model.h`, `Bmd.h/.cpp` y
-  `ModelFiles.h/.cpp`, con 31 tests (`test_bmd.cpp`, `test_model_files.cpp` y
+  `ModelFiles.h/.cpp`, con 28 tests (`test_bmd.cpp`, `test_model_files.cpp` y
   `test_golden_bmd.cpp`) y el `.bmd` sintético de `support/SyntheticModels.h`, que escribe con
   basura (`0xA5`) lo que el lector no lee. Lo que cambió del contrato de arriba:
   - `Normal` suma el índice de vértice de `+16`, y `ModelLoadError` el `std::error_code` del
     sistema, como `TextureSetError`.
   - Una cantidad negativa (de mallas, huesos, acciones, de cada parte de una malla o de keys) es
-    `DataError::InvalidData`: el original pediría memoria con ella. Ninguno del laboratorio la
-    tiene (`BmdTest.ANegativeCountIsInvalidData`).
+    `DataError::InvalidData`: el original pediría memoria con las de una malla y las keys, y las
+    tres del modelo las saltea como un 0 (`0x4f1882`) pero las deja guardadas. Ninguno del
+    laboratorio la tiene (`BmdTest.ANegativeCountIsInvalidData`).
   - Lo que va en el archivo después del bloque cifrado no se lee ni se cuenta en `trailingBytes`
     (`BmdTest.BytesAfterTheEncryptedBlockAreNotRead`); el golden mira que ningún cifrado del
     laboratorio lo tenga.
@@ -911,9 +912,11 @@ public:
   - El cargador de una textura de modelo es el `TextureLoader` que ya estaba (regla 4), no un enum
     nuevo, y `BodyPart` no entra hasta que lo use la CL6.3. `PlayerFootBones` (6 y 13) sí, junto
     con la cabeza.
-  - `ModelTextureLoaderOf` sin punto mira la segunda letra: el índice del punto queda en 0
-    (`0x60d66c`). `TextureScriptOf` sigue a `0x459940`: hasta cuatro letras después del primer `_`,
+  - `ModelTextureLoaderOf` sin punto da el OZJ (Q-C107, corregido en la revisión de abajo).
+    `TextureScriptOf` sigue a `0x459940`: hasta cuatro letras después del primer `_`,
     y una que no es `R`, `H`, `S` ni `N` deja la malla sin script, también lo que ya prendió.
+  - `PlayerActionsWithoutRepeat` va en el orden en que las escribe el original (195, 196, 193 y
+    68), no ordenado como en el contrato.
   - `ModelTextureSlots` suma `SetNext` (otra llamada a `0x60d530`, que puede ir para atrás, Q-C89),
     y `ToLoad` pide la carpeta, el nombre hasta el primer punto y la extensión del cargador que
     eligió la letra, así `LoadTextureSet` abre el mismo archivo que el original.
@@ -925,12 +928,36 @@ public:
 
   Los 13 mutantes a mano (los siete de arriba y la búsqueda que pasa del próximo, la piel antes de
   pedir, la OZT con el filtro de quien pide, el script con minúsculas, con cinco letras y con una
-  letra mala salteada) los mata al menos un test cada uno.
+  letra mala salteada) los mata al menos un test cada uno, salvo dos que la revisión encontró
+  vivos: la búsqueda que pasa del próximo y la que empieza en el slot del constructor.
+
+  Revisión adversarial (2026-11-03, resuelta por Claude): un revisor del C++ y otro que contrastó
+  cada afirmación con el desensamblado y una emulación propia. Las tablas, las velocidades, el
+  lector y los nombres de archivo quedaron confirmados. Lo que se arregló, cada cosa con un test
+  que falló primero:
+  - Cada hueso que se posa lleva un `BoneKeys` por acción aunque la acción no tenga keys, que no
+    ocupan bytes: un `.bmd` de 1,2 MB con 32.767 acciones y 32.767 huesos pedía unos 50 GB.
+    `LoadBmd` corta con `InvalidData` pasando de `MaxPosedBoneActions` (65.536) huesos que se posan
+    por acciones, y lo cuenta antes de pedir la memoria; el que más tiene en el laboratorio es
+    `Player.bmd`, con 10.250 (`BmdTest.TooManyPosedBonesTimesActionsIsInvalidData`,
+    `GoldenBmd.EveryModelFitsThePosedBoneLimit`).
+  - `ModelTextureSlots` no se copia: las rutas de `ToLoad` de la copia apuntaban a las del otro
+    (ASan: `heap-use-after-free`). Se mueve, y las rutas siguen valiendo
+    (`ModelTextureSlotsTest.MovesButDoesNotCopy`).
+  - Sin punto, `0x60d68a` deja el índice en el largo del nombre, no en 0: el original mira el byte
+    del archivo después del 0, y MuRet da el OZJ (Q-C107, `WithoutADotItIsAnOzj`).
+  - Los dos mutantes vivos: `TheSearchStartsAtSlotZero` ahora pide más abajo del slot del
+    constructor y busca con el próximo más arriba, y `TheNextSlotItselfIsNotSearched` vuelve el
+    próximo justo sobre un nombre.
 
 **Qué queda para después:** el cuaternión de cada key y el esqueleto (CL6.2), las cajas de
-`0x4f1f80` (CL6.3, el picking), el script de la textura de cada malla (`0x459940`: lo lee la CL6.R,
-pasos 1 y 6, y lo usa el dibujo de la CL6.3), los modelos de los monstruos (`Monster`, CL9: con el
-research ya corregido, `Monster50` cerraría el original) y los de los objetos del mapa (CL7).
+`0x4f1f80` (CL6.3, el picking), una sola `ModelTextureSlots` para todos los cargadores, porque la
+tabla del original es una y la búsqueda de los ítems ve los nombres del personaje, y la cuenta de
+usos con que `0x63c150` suelta un slot y borra su nombre (CL6.3), el `+0` que `0x60ff50` prende en
+cinco mallas de ítems (`0x6117fd`..`0x611847`, 06), el script de la textura de cada malla
+(`0x459940`: lo lee la CL6.R, pasos 1 y 6, y lo usa el dibujo de la CL6.3), los modelos de los
+monstruos (`Monster`, CL9: con el research ya corregido, `Monster50` cerraría el original) y los de
+los objetos del mapa (CL7).
 
 ## Sub-ola CL6.2: skinning y animación
 

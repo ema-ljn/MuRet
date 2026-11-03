@@ -511,7 +511,7 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   de GL en `+0x2c`, la cuenta de usos en `+0x30`). Compara con `strcmp` el **nombre desnudo**,
   sin la carpeta y distinguiendo mayúsculas (Q-C90). Si está, la malla usa ese slot y suma un uso;
   si no, carga `carpeta + nombre` en el próximo (la letra después del primer punto, con
-  `tolower`: `t` es OZT con `0x63bd00`, siempre con `GL_NEAREST`; otra, OZJ con `0x63b870` y el
+  `tolower`, o sin punto el byte que sigue al 0 del nombre, Q-C107: `t` es OZT con `0x63bd00`, siempre con `GL_NEAREST`; otra, OZJ con `0x63b870` y el
   filtro), guarda el nombre y corre el próximo, aunque el archivo falte. **Después** los nombres
   que empiezan con `ski` o `level` (en minúscula, byte a byte) pasan al slot `0x12e`, `hid` al
   `0x12d` y `hair` al `0x137`: el que se cargó queda ocupado. El quinto argumento de los cargadores

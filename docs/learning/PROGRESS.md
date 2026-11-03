@@ -381,13 +381,17 @@ solo lo lee.
   `Player.bmd` con mallas (Q-C88). Los golden recorren los 1.962 modelos del laboratorio sin un
   byte de sobra, y encontraron lo que el plan no esperaba: en `NPC\BloodCastle01.bmd` dos huesos
   cuelgan de uno que va después, y la pose del original los arma con una matriz vieja (Q-C106,
-  nuevo). 31 tests y 14 mutantes a mano. **La CL6.1 B** (2026-11-03, resuelta por Claude): los
+  nuevo). 28 tests y 14 mutantes a mano. **La CL6.1 B** (2026-11-03, resuelta por Claude): los
   modelos que piden el personaje (213) y los ítems (243), las 181 velocidades de las acciones de
   `Player.bmd`, el cargador, la piel y el script de la textura de una malla, y los slots que les
   reparte el original (`ModelTextureSlots`, en `Render/Models/`). Las tablas no se copiaron a mano
   del desensamblado: salen de emular los dos cargadores del `main.exe`
   (`Client/docs/research/scripts/emulate_model_loaders.py`), con la dirección de cada llamada. El
   golden corrigió al research: 17 mallas del personaje tienen script. 36 tests más y 13 mutantes.
+  La revisión adversarial de la ola (un revisor del C++ y otro contra el binario) encontró un `.bmd`
+  chico que pedía gigas de memoria (ahora `LoadBmd` tiene un tope de huesos por acciones), un
+  `ModelTextureSlots` que se podía copiar con las rutas colgando, la letra del cargador sin punto
+  mal leída (Q-C107) y dos mutantes vivos de la búsqueda: cuatro tests más, que fallaron primero.
 
 ## Conceptos
 

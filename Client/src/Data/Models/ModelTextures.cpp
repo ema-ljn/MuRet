@@ -66,13 +66,14 @@ bool ApplyScriptLetter(char letter, TextureScript& script)
 
 TextureLoader ModelTextureLoaderOf(std::string_view textureName)
 {
+    // Sin punto, el original lee el byte que sigue al 0 del nombre, que el string no tiene: el OZJ,
+    // como con ese byte en 0 (Q-C107). Con el punto al final, la letra es el 0.
     const std::size_t dot = textureName.find(ScriptEnd);
-    const std::size_t letterIndex = (dot == std::string_view::npos ? 0 : dot) + 1;
-    if (letterIndex >= textureName.size())
+    if (dot == std::string_view::npos || dot + 1 >= textureName.size())
     {
         return TextureLoader::Ozj;
     }
-    return LowerAscii(textureName[letterIndex]) == OztLetter ? TextureLoader::Ozt : TextureLoader::Ozj;
+    return LowerAscii(textureName[dot + 1]) == OztLetter ? TextureLoader::Ozt : TextureLoader::Ozj;
 }
 
 std::optional<std::uint16_t> SkinSlotOf(std::string_view textureName)

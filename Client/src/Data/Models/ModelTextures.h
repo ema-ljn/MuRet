@@ -12,8 +12,9 @@
 namespace Client::Data::Models
 {
 // El cargador de una textura de modelo, como 0x60d5f0: la letra después del primer punto, con tolower
-// (0x6a0cce); 't' es el OZT, y cualquier otra el OZJ. Sin punto, el índice del punto queda en 0 y
-// mira la segunda letra del nombre. "Monster\\bossmap1_R.jpg.jpg" es un OZJ, y "x.Tga.jpg", un OZT.
+// (0x6a0cce); 't' es el OZT, y cualquier otra el OZJ. "Monster\\bossmap1_R.jpg.jpg" es un OZJ, y
+// "x.Tga.jpg", un OZT. Sin punto, el original mira el byte del archivo que sigue al 0 del nombre;
+// MuRet da el OZJ, lo que da él con ese byte en 0 (Q-C107).
 [[nodiscard]] Textures::TextureLoader ModelTextureLoaderOf(std::string_view textureName);
 
 // Los slots a los que 0x60d5f0 manda una malla por el principio del nombre de su textura, después de

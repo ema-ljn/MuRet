@@ -163,6 +163,13 @@ solo lo lee.
   juego se frena a 48 frames y 56 pasos en 3 s (`GameLoopTest.FaithfulDoesNotMeasureThePoll`). La
   escena de prueba tiene un `Poll()` vacío. Al arrastrar la ventana en Windows, el original sigue
   con el keepalive y MuRet no consulta la red hasta soltarla (Q-C49).
+  **La CL4.R** la escribió Claude, en el binario: la conexión del original pasó al research (03, 04,
+  02). El `A9` es el pedido de la información de una mascota, no del anticheat, y el del CS se
+  reproduce en la CL4.3; el `connect` espera, rechaza `127.0.0.1` (Q-C50) y toma como conectado un
+  nombre que no resuelve (Q-C51); cada cierre corta con un RST (Q-C54); el envío en línea se
+  adelanta a lo encolado (Q-C52) y Q-C11 tiene sus bytes (basta un parcial, como halló el jefe de la
+  CL4.0); el timer de 20 s manda sin mirar el login (Q-C53, visto en el cable), y sin personaje las
+  velocidades salen en 0. P-C11 quedó cerrado, y P-C04 pasa a la CL5.R.
 - **CL4.2 (el `Dispatcher`), resuelta por Claude** el 2026-11-02: una tabla opcode → handler, con
   un segundo nivel por subcódigo (el byte que sigue al opcode, `pkt[3]` en un C1 y `pkt[4]` en un
   C2), en vez del `switch` de 10,5 KB de `0x4e2b10`. Lo que no tiene handler da `Unknown` y una

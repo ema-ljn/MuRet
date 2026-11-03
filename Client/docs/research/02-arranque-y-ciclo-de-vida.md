@@ -327,8 +327,8 @@ Cada frame termina con `glFlush` y `wglSwapBuffers` (2.375 de cada uno en la ses
 | sin foco | lo que no atiende el primer `switch` (`WM_SYSCOMMAND`, los mensajes de 0x2 a 0x20 de esta tabla, `0x400`, `0x401`, `0x2B11`, `WM_TIMER` y `0x500`..`0x5FF`) pasa por la prueba del foco (`0x4b33fe`..`0x4b3427`) y, sin foco, va a `DefWindowProcA` (`0x4b3439`) sin tocar nada: el segundo `switch` entero, con `WM_CHAR` (0x102), los `WM_IME_*` de 0x10D a 0x10F, el mouse (0x200 a 0x20A) y 0x282. Sin foco se pierden el mouse, el texto del chat y el IME |
 | `WM_CLOSE` (0x10) | no tiene caso: cae a `DefWindowProcA` (sin foco en `0x4b3439`, con foco en `0x4b8c0f`), que destruye la ventana y lleva a `WM_DESTROY` |
 | `WM_SYSCOMMAND` (0x112) | bloquea `SC_KEYMENU` y `SC_MONITORPOWER` |
-| `WM_TIMER` (0x113) | timer `0x3E8`: keepalive `0x0E` (ver [03](03-red-y-cifrado.md)) y tick; no mira el foco (`0x4af945`..`0x4b1a43` no lee `DAT_05763580`) |
-| `WM_USER` (0x400) | mensajes propios 1, 2 y 0x20 |
+| `WM_TIMER` (0x113) | el id menos `0x3e8` por la tabla de `0x4b8c5f`, del 1000 al 1003. El 1000, cada 20 s: `thunk_FUN_00450376`, que no hace nada, y el keepalive `0x0E` si hay conexión al GS (`DAT_05767918`), sin mirar el login (Q-C53; [04](04-protocolo.md)); no mira el foco (`0x4af945`..`0x4b1a43` no lee `DAT_05763580`). El 1001 es del anticheat |
+| `WM_USER` (0x400) | los eventos del socket principal, por `lParam & 0xFFFF`: 1 (`FD_READ`) lee, 2 (`FD_WRITE`) drena y `0x20` (`FD_CLOSE`) avisa y cierra ([03](03-red-y-cifrado.md#sockets)) |
 | `0x2B11` | señal del anticheat: cierra el cliente (`paso4-killer.md`) |
 
 **El teclado no usa `WM_KEYDOWN`**: se lee con `GetAsyncKeyState`, casi siempre en el paso
@@ -477,8 +477,9 @@ consulta `IsIconic` (`0x4bdaef`), que solo elige una rama del hash, y en `0x4be0
     que destruye la ventana;
   - el otro, desde `0x4be222`, llama `ShowWindow(ventana, SW_MINIMIZE)` en `0x4be454` y después
     `ShowWindow(ventana, SW_MAXIMIZE)` en `0x4be5ad`: todos sus caminos pasan por los dos.
-- Las dos ramas terminan en `0x4be5b3` con `0x4e1d50` y `0x49e510`, que corren en cada vuelta;
-  qué hacen, sin leer.
+- Las dos ramas terminan en `0x4be5b3` con `0x4e1d50` y `0x49e510`, que corren en cada vuelta:
+  el primero despacha todos los paquetes de la cola de la conexión principal, y el segundo, los de
+  cada conexión del chat (CL4.R, [03](03-red-y-cifrado.md#sockets)).
 
 Mientras `DAT_05763580` valga 0, lo que va por paso queda en pausa, porque el acumulador no suma
 nada y al volver no alcanza, pero lo que va por reloj no (*análisis*, sobre la tabla de arriba). En
@@ -497,6 +498,13 @@ queda para una prueba dinámica, con alt-tab en la VM. MuRet no lo copia (Q-C46)
 periodo instalado es de 20.000 ms, y el cable lo confirma: 156 keepalives `0x0E`, uno cada 20 s
 (`analysis/mainexe/evidence/s31-cifrado/README.md`). **El dato bueno es 20 s.** El timer de 1 s es
 otro: el del anticheat, id 1001 (`paso4-killer.md` §1).
+
+En el desensamblado (CL4.R): el `SetTimer(ventana, 1000, 20000, NULL)` está en `WinMain`, en
+`0x4bad89`, después de poner la primera escena (`0x632d80`) y antes del bucle de mensajes. Es
+el único `SetTimer` con el 1000 y el binario no importa `KillTimer`: el timer corre desde el
+arranque hasta el cierre, también antes de conectar. Los otros: el 1001 en `0x4b3196`,
+`0x4bd8c3` y `0x4be205`, el 1002 (15 s) en `0x48e5f7` y el 1003 en `0x46b071`. Qué manda el
+1000 y cuándo, en [04](04-protocolo.md) ("Quién manda el keepalive y cuándo").
 
 ## Qué implica para MuRet
 

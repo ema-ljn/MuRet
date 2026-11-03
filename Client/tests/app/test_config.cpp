@@ -727,6 +727,26 @@ TEST(ConfigTest, AHostIsAServerHost)
     EXPECT_TRUE(HasServerHost(config.Value()));
 }
 
+// --auto-login (CL5.5) es para entrar a un servidor: sin un host, de la config o de /u /p, no hay
+// a qué entrar, y Resolve lo dice antes de abrir la ventana.
+TEST(ConfigTest, AutoLoginNeedsAServer)
+{
+    const TempFolder exeFolder;
+    CommandLine commandLine;
+    commandLine.autoLogin = true;
+
+    const auto withoutHost = Resolve(exeFolder.Path(), commandLine);
+    ASSERT_FALSE(withoutHost.HasValue());
+    EXPECT_NE(withoutHost.Error().find("--auto-login necesita un servidor"), std::string::npos) << withoutHost.Error();
+
+    exeFolder.Write("[Server]\nHost = 10.0.0.1\n");
+    EXPECT_TRUE(Resolve(exeFolder.Path(), commandLine).HasValue());
+
+    const TempFolder empty;
+    commandLine.connect = ServerAddress{"10.0.0.2", 44405};
+    EXPECT_TRUE(Resolve(empty.Path(), commandLine).HasValue());
+}
+
 // La ofuscación pasa por Resolve como está: un /u /p cambia la dirección y no la ofuscación.
 TEST(ConfigTest, ResolveKeepsTheObfuscation)
 {

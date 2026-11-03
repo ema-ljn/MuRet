@@ -61,6 +61,8 @@ public:
     [[nodiscard]] std::optional<SceneId> Current() const;
     // El error del Enter que falló, o vacío.
     [[nodiscard]] const std::optional<std::string>& Failure() const;
+    // Si la escena de ahora pide cerrar el juego (IScene::WantsToQuit); sin escena, false.
+    [[nodiscard]] bool WantsToQuit() const;
 
 private:
     // La fábrica y el Enter de `id`; si falla, queda sin escena y con el error.

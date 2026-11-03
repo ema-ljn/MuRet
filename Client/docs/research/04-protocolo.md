@@ -138,8 +138,8 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   `0x4c6070`, pero sin mirar la escena: vuelve a pedir la lista, y el jugador elige de nuevo
   (*estático* el salto; que el byte del subcódigo sea `02` es *inferido*, del decompilado y de
   `ReceiveServerConnectBusy` de MuMain, que manda el pedido de la lista). Nada del paquete se lee:
-  MuMain le da un byte, el servidor. No aparece en el cable del laboratorio. MuRet, mientras la
-  elección es automática, falla con `ServerBusy` (Q-C71).
+  MuMain le da un byte, el servidor. No aparece en el cable del laboratorio. MuRet vuelve a pedir
+  la lista como el original desde la CL5.5 (Q-C71); en la CL4, con la elección automática, fallaba.
 - **`F1 00`** (`0x4c1e20`): `C1 0C F1 00 01 <idx:2> <versión:5>`. Con `pkt[4] == 1` guarda el
   índice del jugador y valida los 5 bytes de versión de `pkt+7` contra `0x6c8284`. El índice va en
   **big-endian**: lo arma como `pkt[5] * 0x100 + pkt[6]` (*estático*), igual que el `NumberH` y el

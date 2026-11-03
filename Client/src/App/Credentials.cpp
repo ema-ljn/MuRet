@@ -50,7 +50,7 @@ Core::Expected<Credentials, std::string> ReadCredentials(const EnvironmentLookup
     }
     if (!problems.empty())
     {
-        return Core::Unexpected(std::format("{}: con un servidor, la cuenta y la clave del login salen del entorno "
+        return Core::Unexpected(std::format("{}: con --auto-login, la cuenta y la clave del login salen del entorno "
                                             "(Client/README.md dice cómo cargarlas)",
                                             problems));
     }

@@ -47,8 +47,8 @@ archivo y sus tests.
 
 Desde la CL4.5, con un host, `Main` se conecta: la `ServerSession` va del ConnectServer al login
 aceptado en el GameServer y después manda el keepalive cada 20 s, consultada por el bucle en cada
-frame. La cuenta sale del entorno y se elige el primer servidor de la lista; desde la CL5.4, la
-sesión la empieza la escena de login al entrar, y la UI para elegir y escribir llega en la CL5.5.
+frame. En la CL4 la cuenta salía del entorno y se elegía el primer servidor de la lista; desde la
+CL5.4, la sesión la empieza la escena de login al entrar, y desde la CL5.5 espera al jugador.
 
 Desde la CL5.1, lo que dibuja con OpenGL es el target `ClientRender` (`src/Render/Gl/`), el único
 con GL además de `ClientPlatform`: `ClientLib` sigue sin verlo. Trae el shader del 2D, `GlTexture`
@@ -78,8 +78,16 @@ original en un `Scenes::SceneManager`, con la tabla de transiciones de `DAT_006d
 y los tres textos de abajo, con la versión de MuRet) y una selección vacía, adonde va el login
 aceptado. Antes de la ventana lee `Text.bmd` y elige la fuente, como `WinMain`. El mundo detrás
 del login es un dato de la escena (el mapa 55, `World56`), que dibuja la CL7; hasta entonces, ahí
-queda el negro. La UI del login (la lista de servidores, la cuenta y la clave) es de la CL5.5. Sin
-carpeta de datos, `Main` sigue con la escena de prueba, como en CI.
+queda el negro. Sin carpeta de datos, `Main` sigue con la escena de prueba, como en CI.
+
+Desde la CL5.5, el login tiene su UI (`UI/`): la lista de servidores cuando llega, la ventana de
+la cuenta y la clave cuando el GameServer saluda, y los avisos de `Text.bmd`, cada uno con su OK.
+La `ServerSession` espera al jugador en dos estados, `ChoosingServer` y `WaitingCredentials`, y
+la escena abre la ventana que va cuando el estado cambia. Las ventanas se atienden en el paso,
+con el mouse en píxeles del framebuffer y el texto tecleado de SDL. Un login rechazado muestra su
+aviso y vuelve a la cuenta, por la misma conexión; el OK del aviso de una conexión que falló
+cierra el juego, como el original (Q-C69). Para depurar la red sin la UI, `--auto-login` elige el
+primero de la lista y entra con la cuenta del entorno, como en la CL4.
 
 ## Auditoría y mantenimiento
 
@@ -131,6 +139,7 @@ config, `Main` corre con los valores por defecto, como en CI.
 
 | Opción | Qué hace |
 | --- | --- |
+| `--auto-login` | con un servidor, elige el primero de la lista y entra con la cuenta y la clave del entorno, sin la UI (la sección de abajo). Sin un servidor, de `/u /p` o de `[Server] Host`, es un error |
 | `connect /u<host> /p<puerto>` | el servidor, como lo pasa el launcher. `connect` es opcional, las letras van en mayúscula o minúscula y en cualquier orden. El valor va pegado a la letra. El puerto va de 1 a 65535, y el host, de 1 a 255 bytes de ASCII visible: una IP o un nombre, que con acentos va en punycode (Q-C37). Uno sin el otro, o uno repetido, es un error (Q-C36), y `/y` y `/z`, también |
 | `--config <ruta>` | lee esa config en vez de `muret-client.ini`; si no existe, es un error que la nombra |
 | `--data <ruta>` | la carpeta de datos del cliente original, en vez de `[Data] Path`; si no existe o no es una carpeta, es un error que la nombra (Q-C35) |
@@ -176,21 +185,23 @@ FontFile = /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
 ```
 
 Se ve la carga (cinco imágenes y la barra, que avanza una vez por paso, así que dura menos de
-medio segundo) y el login sin su UI: los fondos, la arena que corre y los tres textos de abajo, con
-la versión de MuRet en vez de la del original. Una textura que falta corta `Main` con su nombre.
-Con un host, además, la escena de login conecta al entrar y, con el login aceptado, pasa a la
-selección, que todavía no dibuja nada.
+medio segundo) y el login: los fondos, la arena que corre y los tres textos de abajo, con la
+versión de MuRet en vez de la del original. Una textura que falta corta `Main` con su nombre. Con
+un host, además, la escena de login conecta al entrar y muestra su UI: la lista de servidores, un
+clic en un grupo y otro en un servidor, y la ventana de la cuenta y la clave (Tab cambia de campo
+y Enter manda). Con el login aceptado pasa a la selección, que todavía no dibuja nada.
 
 ### Con un servidor: la cuenta y las claves
 
-Con un host, de `/u` o de `[Server] Host`, `Main` necesita dos cosas más antes de abrir la ventana,
-en este orden:
+Con un host, de `/u` o de `[Server] Host`, `Main` necesita antes de abrir la ventana las claves
+de la conexión y, con `--auto-login`, antes que ellas, la cuenta y la clave del entorno:
 
-1. La cuenta y la clave del login, en `MURET_CLIENT_ACCOUNT` y `MURET_CLIENT_PASSWORD`, hasta que
-   la escena de login las pida (CL5.5). No van en la config, que es un archivo, ni en la línea de
-   comandos, que queda en el historial y en `ps`. Cada una va de 1 a 10 bytes, el campo del
-   login: si falta, está vacía o pasa de 10, el error nombra la variable y nunca trae su valor.
-   Se cargan sin que se vean en la pantalla:
+1. Solo con `--auto-login`: la cuenta y la clave del login, en `MURET_CLIENT_ACCOUNT` y
+   `MURET_CLIENT_PASSWORD`. Sin `--auto-login` se teclean en la ventana de la cuenta y el entorno
+   no se mira. No van en la config, que es un archivo, ni en la línea de comandos, que queda en el
+   historial y en `ps`. Cada una va de 1 a 10 bytes, el campo del login: si falta, está vacía o
+   pasa de 10, el error nombra la variable y nunca trae su valor. Se cargan sin que se vean en la
+   pantalla:
 
    ```bash
    IFS= read -rs -p "cuenta: " MURET_CLIENT_ACCOUNT; echo
@@ -212,13 +223,18 @@ en este orden:
    (`--data` o `[Data] Path`), sin mirar mayúsculas. Sin carpeta, o si alguna no está o no carga,
    el error nombra las dos y dice qué pasó con cada una. No se versionan (D-C7).
 
-Con las dos, `Main` arranca la red del sistema y la sesión, y el log dice cada paso: "se conecta
-al ConnectServer", "conectó con el ConnectServer", la lista, la dirección del GameServer (sin
-decirla), "el GameServer saludó: se manda el login", "el GameServer aceptó el login" y, desde
-ahí, "se mandó el keepalive al GameServer" cada 20 s. Ni la cuenta ni la clave ni las direcciones
-van al log. Si algo falla, el log dice qué (un servidor que rechaza, otra versión, un login
-rechazado, una conexión que se pierde, o 30 s sin respuesta) y la ventana sigue abierta: la sesión
-no se reconecta sola.
+Con eso, `Main` arranca la red del sistema y la sesión, y el log dice cada paso: "se conecta al
+ConnectServer", "conectó con el ConnectServer", "la lista trae N servidores: se espera la
+elección", "se elige un servidor: se pide su dirección", la dirección del GameServer (sin
+decirla), "el GameServer saludó: se espera la cuenta y la clave", "se manda el login", "el
+GameServer aceptó el login" y, desde ahí, "se mandó el keepalive al GameServer" cada 20 s. La
+lista y la cuenta esperan al jugador sin tope; las respuestas de los servidores, 30 s. Ni la
+cuenta ni la clave ni las direcciones van al log, tampoco lo tecleado. Un login rechazado muestra
+su aviso y, con su OK, la cuenta otra vez, con el foco donde va. Si la conexión falla (un servidor
+que rechaza, otra versión, una conexión que se pierde, o 30 s sin respuesta), el log dice qué y
+la escena muestra el aviso de la conexión: su OK cierra el juego, como el del original (Q-C69). La
+sesión no se reconecta sola. Con un servidor ocupado, la lista vuelve a pedirse y se elige otro
+(Q-C71); cancelar en la cuenta vuelve a la lista.
 
 ### Contra el servidor del laboratorio (a mano)
 
@@ -227,8 +243,7 @@ de la CL4.5, en el
 [plan de la CL4](../docs/superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md)):
 
 1. Levantar la VM del laboratorio con el ConnectServer y el GameServer andando.
-2. Cargar la cuenta y la clave como dice la sección de arriba, con una cuenta del laboratorio.
-3. Correr, con la IP del ConnectServer de la VM y la carpeta `Data` del cliente del laboratorio,
+2. Correr, con la IP del ConnectServer de la VM y la carpeta `Data` del cliente del laboratorio,
    que trae `Enc1.dat` y `Dec2.dat`:
 
    ```bash
@@ -236,18 +251,26 @@ de la CL4.5, en el
    ```
 
    Desde la CL5.4, con la carpeta de datos corren la carga y el login, así que la config necesita
-   `[Video] FontFile` (la sección de arriba). Con el login aceptado, la ventana pasa a la selección,
-   que está en negro.
+   `[Video] FontFile` (la sección de arriba).
 
+3. En la lista, un clic en el grupo y otro en el servidor. En la ventana de la cuenta, teclear
+   una cuenta del laboratorio con una clave mala y Enter: sale el aviso de la clave, y su OK
+   vuelve a la cuenta con el foco en la clave. Teclear la buena y Enter: la ventana pasa a la
+   selección, que está en negro. Con `--auto-login` y la cuenta en el entorno (la sección de
+   arriba), lo mismo sin teclear, salvo la clave mala.
 4. Mirar el log durante dos minutos: tiene que llegar a "el GameServer aceptó el login" y, desde
    ahí, mostrar seis o siete "se mandó el keepalive al GameServer", uno cada 20 s, sin "se perdió
    la conexión con el GameServer". Con `[Server] Obfuscation = foxanti`, que es el valor por
    defecto: el GameServer del laboratorio usa FoxAnti.
-5. Cerrar la ventana y borrar la clave del entorno (`unset MURET_CLIENT_PASSWORD`).
+5. Cerrar la ventana y, si se usó `--auto-login`, borrar la clave del entorno
+   (`unset MURET_CLIENT_PASSWORD`).
 
 Si se captura el cable para comparar el login y el keepalive con los de la sesión real del 04
 (P-C05), la captura queda fuera de Git, porque se descifra con las claves reales, y la comparación
-se mira sin imprimir la cuenta. Acá se anota solo el resultado: todavía no se corrió.
+se mira sin imprimir la cuenta. Acá se anota solo el resultado: todavía no se corrió. Sin la VM, la
+UI de la CL5.5 se probó contra un ConnectServer y un GameServer falsos en 127.0.0.1 (la lista, la
+elección, la cuenta, un login rechazado, cancelar y el aviso que cierra el juego), con las
+capturas fuera de Git.
 
 ### `muret-client.ini`
 
@@ -415,7 +438,7 @@ Client/
   src/
     main.cpp      arma las capas y arranca; sin lógica
     App/          línea de comandos, estado de la ventana, bucle con tick fijo (CL3); la sesión
-                  con los servidores (CL4)
+                  con los servidores (CL4) y el --auto-login (CL5.5)
     Core/         Expected, ByteReader, Xor3; config, log, reloj (CL1+)
     Platform/     ventana, contexto GL, input: lo único que ve SDL3 (ClientPlatform, CL3)
     Data/         tablas .bmd, Text.bmd, terreno, OZJ/OZT, modelos: bytes a tipos, sin GL (CL1, CL6)
@@ -428,7 +451,7 @@ Client/
                   la selección y el juego (CL6, CL7)
     World/        mapa, cámara, objetos                 (CL7)
     GameLogic/    personaje, entidades, items, chat     (CL7+)
-    UI/           widgets, ventanas, HUD                (CL5, CL8)
+    UI/           widgets, la lista, la cuenta y los avisos del login (CL5.5); HUD (CL8)
     Audio/        música y efectos                      (CL10)
   tests/          GoogleTest                            (CL0.2+)
   docs/research/  qué hace el original, byte a byte (01..09)

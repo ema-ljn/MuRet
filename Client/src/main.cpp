@@ -1,3 +1,4 @@
+#include "App/AutoLogin.h"
 #include "App/CommandLine.h"
 #include "App/Config.h"
 #include "App/ConnectionKeyFiles.h"
@@ -72,9 +73,9 @@
 // como los pasos de WinMain en MuMain (InitializeWorkingDirectoryAndLog, MainLoop, ShutdownRuntime
 // en App/Platform/Windows/Winmain.cpp), y las de más de un paso tienen su función:
 //   1. ReadStartup, antes de SDL_Init: la carpeta del ejecutable, los argumentos y la config, y,
-//      con un host (de la config o de /u /p), la cuenta y la clave del entorno y las claves de la
-//      conexión (ReadServerStartup). Un error corta acá, sin abrir la ventana, y va solo a stderr:
-//      el archivo del log lo dice la config.
+//      con un host (de la config o de /u /p), las claves de la conexión y, con --auto-login, antes
+//      la cuenta y la clave del entorno (ReadServerStartup). Un error corta acá, sin abrir la
+//      ventana, y va solo a stderr: el archivo del log lo dice la config.
 //   2. El log entero, stderr y el archivo. Queda en main porque el TeeSink y el Log guardan
 //      referencias a sus salidas, que tienen que vivir más que ellos. Con una carpeta de datos
 //      (--data o [Data] Path), lo de WinMain antes de la escena 1 (ReadSceneStartup): Text.bmd y,
@@ -83,20 +84,22 @@
 //   3. SDL (SdlContext) y OpenWindow: la resolución de la config, que tiene que valer
 //      (CheckResolution), y la ventana con el contexto GL.
 //   4. Con la carpeta de datos, RunScenes: la tabla de texturas, el frame de GL, con un host la
-//      sesión (Online), y el SceneManager desde la carga (CL5.4). Sin ella, la escena de prueba de
-//      la CL3.2. Las dos con RunLoop, hasta que se cierre la ventana, se llegue a --frames o una
-//      escena no pueda entrar.
+//      sesión (Online) y el texto tecleado, y el SceneManager desde la carga (CL5.4). Sin ella, la
+//      escena de prueba de la CL3.2. Las dos con RunLoop, hasta que se cierre la ventana, se llegue
+//      a --frames, una escena no pueda entrar o el OK de un aviso cierre el juego (Q-C69).
 // El cierre es el orden de las declaraciones al revés: el bucle, el SceneManager (la escena de
 // ahora suelta sus texturas), la sesión y su socket, el frame (con la caché del texto), la tabla de
 // texturas, la ventana, el SdlLog, SDL_Quit (SdlContext), la red, el Log y al final sus salidas,
 // para que lo que se cierra antes pueda escribir.
 //
-// Con un host, la LoginScene empieza la sesión al entrar, el SceneManager la consulta en cada
-// frame, antes que la escena, y la sesión deja en el log cada estado, del connect al login
-// aceptado, y cada keepalive. Si falla, lo dice el log y la ventana sigue: no se reconecta sola. Un
-// host exige la carpeta de datos (las claves están ahí), así que la escena de prueba nunca tiene
-// red: sin host no mira el entorno ni las claves, no arma la red, y `Main --frames 60` corre igual
-// sin un servidor ni datos.
+// Con un host, la LoginScene empieza la sesión al entrar y muestra su UI (CL5.5): la lista cuando
+// llega, la cuenta con el saludo del GameServer y los avisos. El SceneManager consulta la sesión en
+// cada frame, antes que la escena, y con --auto-login, después de la sesión, el AutoLogin, que
+// elige y entra sin la UI. La sesión deja en el log cada estado, del connect al login aceptado, y
+// cada keepalive. Si falla, la escena muestra su aviso y no se reconecta sola; el OK del aviso
+// cierra el juego con EXIT_SUCCESS, como el WM_CLOSE del original. Un host exige la carpeta de
+// datos (las claves están ahí), así que la escena de prueba nunca tiene red: sin host no mira el
+// entorno ni las claves, no arma la red, y `Main --frames 60` corre igual sin un servidor ni datos.
 namespace
 {
 namespace App = Client::App;
@@ -120,7 +123,8 @@ constexpr std::string_view Version = MURET_VERSION;
 struct ServerStartup
 {
     App::ServerAddress connectServer;
-    App::Credentials credentials;
+    // Solo con --auto-login: sin él, las teclea el jugador en la ventana de la cuenta.
+    std::optional<App::Credentials> credentials;
     Network::ConnectionKeys keys;
 };
 
@@ -131,19 +135,25 @@ struct Startup
     std::filesystem::path folder;
     App::CommandLine commandLine;
     App::ClientConfig config;
-    // Con un host: el servidor, la cuenta y las claves. Vacío sin host.
+    // Con un host: el servidor, las claves y, con --auto-login, la cuenta. Vacío sin host.
     std::optional<ServerStartup> server;
 };
 
-// Fase 1, con un host: primero la cuenta y la clave del entorno y después las claves de la carpeta
-// de datos (el plan de la CL4, CL4.4). Cada error dice qué falta y cómo darlo, sin un valor.
-std::optional<ServerStartup> ReadServerStartup(const App::ClientConfig& config, Core::Log& log)
+// Fase 1, con un host: con --auto-login, primero la cuenta y la clave del entorno, y después las
+// claves de la carpeta de datos (el plan de la CL4, CL4.4). Cada error dice qué falta y cómo darlo,
+// sin un valor. Sin --auto-login el entorno no se mira.
+std::optional<ServerStartup> ReadServerStartup(const App::ClientConfig& config, bool autoLogin, Core::Log& log)
 {
-    auto credentials = App::ReadCredentials(App::SystemEnvironment);
-    if (!credentials.HasValue())
+    std::optional<App::Credentials> credentials;
+    if (autoLogin)
     {
-        log.Error("{}", credentials.Error());
-        return std::nullopt;
+        auto read = App::ReadCredentials(App::SystemEnvironment);
+        if (!read.HasValue())
+        {
+            log.Error("{}", read.Error());
+            return std::nullopt;
+        }
+        credentials = std::move(read).Value();
     }
     const auto keys = App::LoadConnectionKeys(config.dataPath);
     if (!keys.HasValue())
@@ -152,7 +162,7 @@ std::optional<ServerStartup> ReadServerStartup(const App::ClientConfig& config, 
         return std::nullopt;
     }
     return ServerStartup{.connectServer = config.server.value_or(App::ServerAddress{}),
-                         .credentials = std::move(credentials).Value(),
+                         .credentials = std::move(credentials),
                          .keys = keys.Value()};
 }
 
@@ -187,7 +197,7 @@ std::optional<Startup> ReadStartup(int argc, char* argv[], Core::Log& log)
     std::optional<ServerStartup> server;
     if (App::HasServerHost(config.Value()))
     {
-        server = ReadServerStartup(config.Value(), log);
+        server = ReadServerStartup(config.Value(), commandLine.Value().autoLogin, log);
         if (!server)
         {
             return std::nullopt;
@@ -284,9 +294,10 @@ const Network::IObfuscation& ChooseObfuscation(App::ObfuscationMode mode, const 
     return Network::IdentityObfuscation::Shared();
 }
 
-// Fase 4, con un servidor: el socket, la conexión con la ofuscación de la config y la sesión, que
-// empieza la LoginScene al entrar. Los miembros mueren al revés de como se declaran, y todo antes
-// que el NetworkInit, declarado antes en main.
+// Fase 4, con un servidor: el socket, la conexión con la ofuscación de la config, la sesión, que
+// empieza la LoginScene al entrar, y con --auto-login el AutoLogin. Los miembros mueren al revés de
+// como se declaran (el AutoLogin antes que la sesión que guarda), y todo antes que el NetworkInit,
+// declarado antes en main.
 //
 // El relleno de lo que cifra la conexión sale de std::random_device: solo tiene que cambiar de una
 // corrida a otra (Network/Connection.h), y los tests le dan uno fijo.
@@ -294,9 +305,22 @@ struct Online
 {
     Online(const ServerStartup& server, App::ObfuscationMode obfuscation, Core::IClock& clock, Core::Log& log)
         : connection(socket, ChooseObfuscation(obfuscation, foxAnti), clock, log, std::random_device{}()),
-          session(connection, clock, log, server.keys,
-                  App::SessionSettings{.connectServer = server.connectServer, .credentials = server.credentials})
+          session(connection, clock, log, server.keys, App::SessionSettings{.connectServer = server.connectServer})
     {
+        if (server.credentials)
+        {
+            autoLogin.emplace(session, *server.credentials, log);
+        }
+    }
+
+    // El pollNetwork del SceneManager: la sesión y, después, el AutoLogin, que mira lo que llegó.
+    void Poll()
+    {
+        session.Poll();
+        if (autoLogin)
+        {
+            autoLogin->Poll();
+        }
     }
 
     Network::SystemResolver resolver;
@@ -304,6 +328,7 @@ struct Online
     const Network::FoxAntiObfuscation foxAnti;
     Network::Connection connection;
     App::ServerSession session;
+    std::optional<App::AutoLogin> autoLogin;
 };
 
 // El tope de FPS va solo con el VSync que quedó apagado, como en MuMain (App::EffectiveMaxFps).
@@ -479,9 +504,10 @@ std::optional<SceneStartup> ReadSceneStartup(const App::ClientConfig& config, Co
     return SceneStartup{.data = std::move(data).Value(), .fonts = std::move(fonts).Value()};
 }
 
-// Fase 4 con una carpeta de datos: la tabla de texturas y el frame de GL, la sesión si hay un host,
-// y el SceneManager desde la carga. Un error antes del bucle, o una escena que no puede entrar,
-// cierra con EXIT_FAILURE y el error en el log.
+// Fase 4 con una carpeta de datos: la tabla de texturas y el frame de GL, la sesión y el texto
+// tecleado si hay un host, y el SceneManager desde la carga. Un error antes del bucle, o una escena
+// que no puede entrar, cierra con EXIT_FAILURE y el error en el log; el OK de un aviso que cierra
+// el juego (Q-C69), con EXIT_SUCCESS.
 int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Window& window, Core::IClock& clock,
               Core::Log& log)
 {
@@ -498,20 +524,34 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     if (startup.server)
     {
         online.emplace(*startup.server, startup.config.obfuscation, clock, log);
+        // La ventana de la cuenta lee el texto de SDL (CL5.5). Sin él se puede elegir y cancelar,
+        // pero no teclear: se avisa y se sigue.
+        if (const auto started = window.StartTextInput(); !started.HasValue())
+        {
+            log.Warning("{}: la ventana de la cuenta no va a recibir lo tecleado", started.Error());
+        }
     }
     App::ServerSession* session = online ? &online->session : nullptr;
     const Scenes::SceneContext context{.dataRoot = *startup.config.dataPath, .textures = textures, .log = log};
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, session), *frame.Value(), clock,
-                                 session ? std::function<void()>([session] { session->Poll(); }) : nullptr, log);
+                                 online ? std::function<void()>([&online] { online->Poll(); }) : nullptr, log);
     if (!manager.Start(Scenes::FirstScene).HasValue())
     {
         return EXIT_FAILURE;
     }
     App::GameLoop loop{clock, manager, startup.config.pacing, LoopMaxFps(startup.config, window, log)};
-    const App::FrameStats stats =
-        RunLoop(window, clock, loop, startup.commandLine, log, [&manager] { return manager.Failure().has_value(); });
+    const App::FrameStats stats = RunLoop(window, clock, loop, startup.commandLine, log, [&manager]
+                                          { return manager.Failure().has_value() || manager.WantsToQuit(); });
     PrintFrames(stats);
-    return manager.Failure() ? EXIT_FAILURE : EXIT_SUCCESS;
+    if (manager.Failure())
+    {
+        return EXIT_FAILURE;
+    }
+    if (manager.WantsToQuit())
+    {
+        log.Info("se cierra el juego, como pidió el aviso");
+    }
+    return EXIT_SUCCESS;
 }
 } // namespace
 

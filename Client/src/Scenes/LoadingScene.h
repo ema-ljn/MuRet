@@ -36,6 +36,8 @@ public:
     void Leave() override;
     // El login, después del último avance (0x622f93).
     [[nodiscard]] std::optional<SceneId> Next() const override;
+    // La carga no tiene ventanas: nunca.
+    [[nodiscard]] bool WantsToQuit() const override;
 
     // El `actual` de 0x640580: de 0 a LoadingAdvances.
     [[nodiscard]] int Progress() const;

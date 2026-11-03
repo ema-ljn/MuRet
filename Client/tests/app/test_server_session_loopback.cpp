@@ -1,5 +1,6 @@
 #include "App/ServerSession.h"
 
+#include "App/AutoLogin.h"
 #include "App/Credentials.h"
 #include "App/FaithfulPacer.h"
 #include "App/ServerAddress.h"
@@ -35,12 +36,14 @@
 // siguen el guion del 04 con los bytes del cable y las claves sintéticas. Todo en un hilo: el test
 // consulta a los servidores y a la sesión en el mismo lazo, hasta 5 s reales (RetryUntil), y lo
 // que el sistema hace en el fondo no cambia el resultado, porque cada lado contesta lo que le
-// llegó. El reloj de la sesión es un FakeClock: da el tick del login, y el connect no vence.
+// llegó. El reloj de la sesión es un FakeClock: da el tick del login, y el connect no vence. La
+// sesión espera la elección y la cuenta (CL5.5): las da el AutoLogin, como con --auto-login.
 //
 // Solo la cuenta y la clave sintéticas de MuClientNetFixtures.h; el login se compara con
 // SameBytesWithoutValues, y ningún mensaje trae un byte de lo que pasó por los sockets.
 namespace
 {
+using Client::App::AutoLogin;
 using Client::App::Credentials;
 using Client::App::ServerAddress;
 using Client::App::ServerSession;
@@ -108,8 +111,8 @@ TEST(ServerSessionLoopbackTest, LogsInAgainstFakeServers)
     const FoxAntiObfuscation foxAnti;
     Connection connection(socket, foxAnti, clock, log, PaddingSeed);
     ServerSession session(connection, clock, log, GameClientKeys(),
-                          SessionSettings{ServerAddress{std::string(Loopback), servers.ConnectServerPort()},
-                                          Credentials{std::string(Account), std::string(Password)}});
+                          SessionSettings{ServerAddress{std::string(Loopback), servers.ConnectServerPort()}});
+    AutoLogin autoLogin(session, Credentials{std::string(Account), std::string(Password)}, log);
 
     session.Start();
     const bool settled = RetryUntil(
@@ -117,6 +120,7 @@ TEST(ServerSessionLoopbackTest, LogsInAgainstFakeServers)
         {
             servers.Poll();
             session.Poll();
+            autoLogin.Poll();
             return session.State() == SessionState::LoggedIn || session.State() == SessionState::Failed;
         });
 

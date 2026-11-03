@@ -17,4 +17,9 @@ std::optional<SceneId> CharacterSelectScene::Next() const
 {
     return std::nullopt;
 }
+
+bool CharacterSelectScene::WantsToQuit() const
+{
+    return false;
+}
 } // namespace Client::Scenes

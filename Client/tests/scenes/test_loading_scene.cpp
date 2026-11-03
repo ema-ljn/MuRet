@@ -58,6 +58,7 @@ using Client::Scenes::LoginTextureSet;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
 using Client::Scenes::SceneManager;
+using Client::Scenes::WindowTextureSet;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::FrameEvent;
@@ -302,12 +303,14 @@ TEST(LoadingSceneTest, LeaveReleasesItsSixSlots)
     EXPECT_EQ(tested.store.Size(), 0u);
 }
 // Con el SceneManager y el login de verdad: la carga suelta sus seis antes de que el login suba
-// sus 18, como 0x63c150 al final de 0x622e40, antes de que 0x634c60 llame a 0x6349a0.
+// sus 18 y las 3 de las ventanas, como 0x63c150 al final de 0x622e40, antes de que 0x634c60 llame a
+// 0x6349a0.
 TEST(LoadingSceneTest, ReleasesItsSlotsBeforeTheLoginLoadsItsOwn)
 {
     TemporaryFolder folder{"loading-to-login"};
     WriteTextureSet(folder.Path(), LoadingTextureSet);
     WriteTextureSet(folder.Path(), LoginTextureSet);
+    WriteTextureSet(folder.Path(), WindowTextureSet);
     FakeTextureStore store;
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
@@ -340,7 +343,8 @@ TEST(LoadingSceneTest, ReleasesItsSlotsBeforeTheLoginLoadsItsOwn)
     manager.Step(input);
 
     ASSERT_EQ(manager.Current(), SceneId::Login);
-    ASSERT_EQ(store.calls.size(), LoadingTextureSet.size() * 2 + LoginTextureSet.size());
+    const std::size_t loginSlots = LoginTextureSet.size() + WindowTextureSet.size();
+    ASSERT_EQ(store.calls.size(), LoadingTextureSet.size() * 2 + loginSlots);
     for (std::size_t i = 0; i < store.calls.size(); ++i)
     {
         SCOPED_TRACE(i);
@@ -349,6 +353,6 @@ TEST(LoadingSceneTest, ReleasesItsSlotsBeforeTheLoginLoadsItsOwn)
         const StoreCall::Kind expected = releasing ? StoreCall::Kind::Release : StoreCall::Kind::Load;
         EXPECT_EQ(store.calls[i].kind, expected);
     }
-    EXPECT_EQ(store.Size(), LoginTextureSet.size());
+    EXPECT_EQ(store.Size(), loginSlots);
 }
 } // namespace

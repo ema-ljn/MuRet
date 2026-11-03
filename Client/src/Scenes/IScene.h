@@ -31,5 +31,8 @@ public:
     // A qué escena quiere ir; vacío si sigue en esta. El SceneManager lo mira después de cada
     // Step.
     [[nodiscard]] virtual std::optional<SceneId> Next() const = 0;
+    // Si el jugador cerró el juego desde la escena, como el OK del aviso de la conexión del login,
+    // que en el original postea WM_CLOSE (Q-C69, CL5.5). main.cpp lo mira después de cada frame.
+    [[nodiscard]] virtual bool WantsToQuit() const = 0;
 };
 } // namespace Client::Scenes

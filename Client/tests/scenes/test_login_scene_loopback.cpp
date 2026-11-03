@@ -1,5 +1,6 @@
 #include "Scenes/LoginScene.h"
 
+#include "App/AutoLogin.h"
 #include "App/Credentials.h"
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
@@ -44,12 +45,15 @@
 // Del login a la selección de punta a punta (CL5.4): el SceneManager con la LoginScene de verdad,
 // la ServerSession sobre sockets de verdad y los FakeServers de la CL4.4 en 127.0.0.1, todo en un
 // hilo, como test_server_session_loopback.cpp. La LoginScene conecta al entrar, el SceneManager
-// corre la sesión en cada Poll y, con el login aceptado, la escena pide la selección.
+// corre la sesión en cada Poll y, con el login aceptado, la escena pide la selección. La elección y
+// la cuenta las da el AutoLogin (CL5.5), como Main con --auto-login: la escena no abre sus
+// ventanas, porque nunca ve la sesión esperando.
 //
 // Solo la cuenta y la clave sintéticas de MuClientNetFixtures.h, y ningún mensaje trae un byte de
 // lo que pasó por los sockets.
 namespace
 {
+using Client::App::AutoLogin;
 using Client::App::Credentials;
 using Client::App::ServerAddress;
 using Client::App::ServerSession;
@@ -71,6 +75,7 @@ using Client::Scenes::LoginTextureSet;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
 using Client::Scenes::SceneManager;
+using Client::Scenes::WindowTextureSet;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeServers;
 using Client::Tests::FakeTextureStore;
@@ -105,10 +110,12 @@ TEST(LoginSceneLoopbackTest, GoesToTheSelectionWhenTheLoginIsAccepted)
     const FoxAntiObfuscation foxAnti;
     Connection connection(socket, foxAnti, clock, log, PaddingSeed);
     ServerSession session(connection, clock, log, GameClientKeys(),
-                          SessionSettings{ServerAddress{std::string(Loopback), servers.ConnectServerPort()},
-                                          Credentials{std::string(Account), std::string(Password)}});
+                          SessionSettings{ServerAddress{std::string(Loopback), servers.ConnectServerPort()}});
+    // Como Main con --auto-login: después de la sesión, en el mismo pollNetwork (CL5.5).
+    AutoLogin autoLogin(session, Credentials{std::string(Account), std::string(Password)}, log);
     TemporaryFolder folder{"login-scene-loopback"};
     WriteTextureSet(folder.Path(), LoginTextureSet);
+    WriteTextureSet(folder.Path(), WindowTextureSet);
     FakeTextureStore store;
     const GameData data;
     RecordingFrameTarget target;
@@ -127,7 +134,13 @@ TEST(LoginSceneLoopbackTest, GoesToTheSelectionWhenTheLoginIsAccepted)
             }
             return nullptr;
         },
-        target, clock, [&session] { session.Poll(); }, log);
+        target, clock,
+        [&session, &autoLogin]
+        {
+            session.Poll();
+            autoLogin.Poll();
+        },
+        log);
     const InputState input;
 
     ASSERT_TRUE(manager.Start(SceneId::Login).HasValue());
@@ -146,8 +159,8 @@ TEST(LoginSceneLoopbackTest, GoesToTheSelectionWhenTheLoginIsAccepted)
     EXPECT_EQ(session.State(), SessionState::LoggedIn);
     EXPECT_EQ(manager.Current(), SceneId::CharacterSelect);
     EXPECT_EQ(built, (std::vector<SceneId>{SceneId::Login, SceneId::CharacterSelect}));
-    // El login soltó sus 18 al salir, y la sesión sigue: es de main.cpp, no de la escena.
-    EXPECT_EQ(store.released.size(), LoginTextureSet.size());
+    // El login soltó sus 21 al salir, y la sesión sigue: es de main.cpp, no de la escena.
+    EXPECT_EQ(store.released.size(), LoginTextureSet.size() + WindowTextureSet.size());
     EXPECT_EQ(store.Size(), 0u);
     EXPECT_TRUE(std::ranges::none_of(
         sink.lines, [](const std::string& line)

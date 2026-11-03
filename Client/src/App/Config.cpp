@@ -574,6 +574,12 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
     {
         config.vsync = VSyncMode::On;
     }
+    // Y --auto-login entra a un servidor (CL5.5): sin un host no hay a cuál.
+    if (commandLine.autoLogin && !HasServerHost(config))
+    {
+        return Unexpected(std::string("--auto-login necesita un servidor: /u<host> /p<puerto>, o [Server] Host en la "
+                                      "config"));
+    }
     // 5. La carpeta de datos, solo si se dio (Q-C35: el original salía sin avisar).
     if (config.dataPath)
     {

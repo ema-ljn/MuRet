@@ -105,6 +105,11 @@ std::optional<SceneId> LoadingScene::Next() const
     return std::nullopt;
 }
 
+bool LoadingScene::WantsToQuit() const
+{
+    return false;
+}
+
 int LoadingScene::Progress() const
 {
     return m_progress;

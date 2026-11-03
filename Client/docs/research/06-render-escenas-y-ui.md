@@ -141,8 +141,9 @@ El aspect no es el de la ventana sino el del viewport: 1024/691 = 1,4819 en Lore
   *verificado*): el slot 0, el tamaño siempre en píxeles y la posición escalada solo si el que
   llama lo pide (su séptimo argumento). Antes acota la x: de 0 a W − w en píxeles o, escalada, a un
   tope que pasa el que llama, con el ancho pasado a 640 por `w · 640 / W` sin signo. La y solo se
-  acota con `DAT_077f3b66` prendida (el login la apaga): de 0 a `H − 47 · H / 640` en píxeles, o a
-  `433 − h · 480 / H` escalada (Q-C68). *Estático*.
+  acota con `DAT_077f3b66` prendida (el login la apaga): desde 0 y, en píxeles, con el borde de
+  abajo (y + h) hasta `H − 47 · H / 640`; escalada, con la y hasta `433 − h · 480 / H` (Q-C68).
+  *Estático*.
 
 ### Terreno
 
@@ -376,14 +377,19 @@ saca los factores multiplicando W y H por las inversas en float de `0x6ba884` (1
 | `0x722` | 187 × 151 | (307, 225) |
 | `0x723`, la barra (`0x6402d0`, `0x6404b0`) | 656 × 15 | (72, 482) |
 
-Las imágenes son de otra clase que el quad de `0x621b60`: objetos de `0xa8` bytes (vtable
-`0x6baa08`, constructor `0x646fe0`) que dibuja `0x647650` con un `GL_TRIANGLE_FAN`,
-`glColor4ub` (blanco) y `glVertex2f(x · fx, (600 − y) · fy)`, con las UV a medio téxel del
-borde: de (0,5 / tw, 0,5 / th) a ((w − 0,5) / tw, (h − 0,5) / th), con el ancho y el alto de la
+Las imágenes son de otra clase que el quad de `0x621b60`, **la imagen de la UI nueva**, y no solo de
+la carga: la misma clase es el fondo de cada ventana (`0x669c70` la arma y la guarda en `+0x14`, y
+la dibuja `0x66a050`), los campos de la cuenta, el aviso y la barra de abajo (19 llamadas a
+`0x647650` en el binario). Son objetos de `0xa8` bytes (vtable `0x6baa08`, constructor `0x646fe0`,
+armados con `0x647050`) que dibuja `0x647650` con un `GL_TRIANGLE_FAN`, `glColor4ub` (blanco, salvo
+que se cambie: el alfa en `+0x60` y el color en `+0x61` a `+0x63`) y
+`glVertex2f(x · fx, (H / fy − y) · fy)`: la y sale de `H / fy` (`+0x8`, en `0x647050`), que en la
+carga, con fy = H / 600, es 600, y en las ventanas, con fx = fy = 1, es H. Las UV van a medio téxel
+del borde: de (0,5 / tw, 0,5 / th) a ((w − 0,5) / tw, (h − 0,5) / th), con el ancho y el alto de la
 textura en floats de su slot (`+0x20` y `+0x24`) y el 0,5 de `0x6b882c`. Atan la textura con
-`glBindTexture` directo, sin pasar por `0x620780` (Q-C64). La barra (`0x640580(actual, 10)`)
-mide `656 · actual / 10` (división entera sin signo) y su u va de 0 a ese ancho sobre el de la
-textura, sin medio téxel: con `GL_REPEAT`, la textura se repite a lo largo.
+`glBindTexture` directo, sin pasar por `0x620780` (Q-C64). La barra (`0x640580(actual, 10)`) mide
+`656 · actual / 10` (división entera sin signo) y su u va de 0 a ese ancho sobre el de la textura,
+sin medio téxel: con `GL_REPEAT`, la textura se repite a lo largo.
 
 Cada avance es un frame entero: `0x61ccb0` llama 11 veces (de 0 a 10) a `0x65f200(hdc, actual,
 10)`, que hace `0x620db0(0, 0, 640, 480)`, `glClear` de color y profundidad, el 2D (`0x6219b0`),
@@ -436,8 +442,9 @@ la cuenta (abajo).
    `+0x4578` está cerrada (su bandera de abierta, `+0xc`, es el byte `+0x4584` del administrador),
    el terreno (`0x5fc260`), los personajes (`0x510d00`), los objetos (`0x53c6a0`) y los efectos;
    después `0x6213e0`, `0x549440(0)`, `0x548550(0)` y `glPopMatrix`;
-5. 2D otra vez, `glColor4f(1, 1, 1, 0,5)`, la mezcla aditiva (`0x620a90`), `glColor3f(0,25; 0,1;
-   0,1)` y las dos arenas, `0x622000(slot, x, y, w, h, u, v, du, dv)`:
+5. 2D otra vez, la mezcla normal (`0x620a00(1)`), `glColor4f(1, 1, 1, 0,5)`, la mezcla aditiva
+   (`0x620a90`), `glColor3f(0,25; 0,1; 0,1)` y las dos arenas, `0x622000(slot, x, y, w, h, u, v,
+   du, dv)`:
    - `0x5c2` en (0, 25, 640, 430) con u = `((int) T % 100000) · 0,0001`, v = 0 y du = dv = 0,3;
    - `0x5c3` en el mismo lugar con u = `((int) T % 100000) · 0,0005`, v = 0, du = 3 y dv = 2.
 
@@ -459,18 +466,19 @@ la cuenta (abajo).
 8. lo común a las escenas: `0x5f7bc0`, `0x554810` (los avisos centrados, con la fuente negrita
    `DAT_05763558`), `0x5554e0` (si `DAT_006c7a88` es 1 o la escena no es la 5), `0x5b0550`,
    `0x40eca0`, `0x65fe00` (la UI nueva: si hay modo, `0x63cf80` y la lista de `+0x8de0` por
-   `vtable + 0x18`), `0x5ac2d0` y `0x633110` (modelos 3D dentro de la UI).
+   `vtable + 0x18`), `0x5ac2d0` y `0x633110` (modelos 3D dentro de la UI); al final, `0x621a90` y
+   `0x620fc0`.
 
 ### Las ventanas de la UI nueva
 
-Las arma `0x65f300` en el administrador de `0x07d53728` (lo da `0x65ee60`; constructor
-`0x65ec60`), que pone el modo de la UI (`+0x8dec`) en 2: la carga lo pone en 1 (`0x65eeb0`), la
-selección en 4 (`0x65f4b0`) y la entrada al juego en 5 (`0x65f5f0`, desde `0x636290`). Cada ventana
-es una clase con vtable sobre una base común (`0x669c70(w, h, slot, …)`): x, y, ancho y alto en
-`+0x18` a `+0x24`, abierta en `+0xc` y un fondo en `+0x14` (el slot, o -1 para un negro con alfa
-`0x80`, o -2 sin fondo). `vtable + 8` la ubica, `+0x18` dibuja el fondo y llama a `+0x34` si está
-abierta (`0x66a050`), `+0x30` es su lógica por frame y `+0x34` su dibujo. Todo en **píxeles de la
-ventana**, como el mouse de `0x640940` (Q-C47):
+Las arma `0x65f300` en el administrador de `0x07d53728` (lo da `0x65ee60`; constructor `0x65ec60`),
+que pone el modo de la UI (`+0x8dec`) en 2: la carga lo pone en 1 (`0x65eeb0`), la selección en 4
+(`0x65f4b0`) y la entrada al juego en 5 (`0x65f5f0`, desde `0x636290`). Cada ventana es una clase
+con vtable sobre una base común (`0x669c70(w, h, slot, …)`): x, y, ancho y alto en `+0x18` a
+`+0x24`, abierta en `+0xc` y, en `+0x14`, un puntero a la imagen del fondo (una de `0x647650`,
+armada con el slot; con -1, un negro con alfa `0x80`; con -2, ninguna). `vtable + 8` la ubica,
+`+0x18` dibuja el fondo y llama a `+0x34` si está abierta (`0x66a050`), `+0x30` es su lógica por
+frame y `+0x34` su dibujo. Todo en **píxeles de la ventana**, como el mouse de `0x640940` (Q-C47):
 
 | En el administrador | Clase (vtable) | Qué es | Tamaño y lugar |
 | --- | --- | --- | --- |
@@ -478,7 +486,7 @@ ventana**, como el mouse de `0x640940` (Q-C47):
 | `+0x3d0` | `0x6baa0c` (`0x6477b0`, arma `0x6478c0`) | la que abre Esc (`0x634c60`, con la lista y el menú abiertos y las demás cerradas) | sin leer |
 | `+0x7e8` | `0x6ba988` (`0x643fd0`, arma `0x644120`) | sin identificar | sin leer |
 | `+0xe40` | `0x6ba8c8` (`0x640ef0`, arma `0x641000`) | la barra de abajo, con dos botones (*inferido* por sus texturas, `server_menu_b_all` y `server_credit_b_all`: el menú y los créditos) | botones de 54 × 30 (`0x10`, `0x11`) y un adorno de 189 × 103 (`0x12`); ancho W − 60, en x = 30 e y = `0,945 · H − 11 − h` (truncado) |
-| `+0x10e8` | `0x6ba9c0` (`0x644fd0`, arma `0x6451d0`) | la lista de servidores (abajo) | 21 botones de grupo de 108 × 26 (`0xc`), 16 de servidor de 193 × 26 (`0xd`) con una barra de 160 × 4 (`0xe`), el marco en `0x17` a `0x19`; centrada |
+| `+0x10e8` | `0x6ba9c0` (`0x644fd0`, arma `0x6451d0`) | la lista de servidores (abajo) | 21 botones de grupo de 108 × 26 (`0xc`), 16 de servidor de 193 × 26 (`0xd`) con una barra de 160 × 4 (`0xe`), aunque un grupo puede tener 20 (Q-C63), el marco en `0x17` a `0x19`; centrada |
 | `+0x4228` | `0x6ba900` (`0x641490`, arma `0x6415c0`) | la cuenta y la clave (abajo) | 329 × 245 (`0x13`), centrada en x y a dos tercios en y: `((W − w) / 2, (H − h) · 2 / 3)` |
 | `+0x4578` | `0x6ba848` (`0x63ef00`, arma `0x63f020`) | sin identificar; abierta, tapa el mundo (paso 4 del dibujo) y no deja abrir la lista (`0x4c1860`); con su propia fuente (`0x63f2f2` lee el charset) | sin leer |
 
@@ -499,13 +507,15 @@ g:     0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24
 lugar 23 22 21 20 19 18 17 16 15 14 13  9 24  8  7  6  5 12 11 10  4  2  1  0 -1
 ```
 
-El lugar es `23 − tabla[g]` con la tabla `{0..10, 14, 20, 15, 16, 17, 18, 11, 12, 13, 19, 21, 22,
-23, 24}`, salvo el 12, que va al 24. El nombre del grupo es el texto 559 para el 12, el 552 para el
-19, el 1829 para el 20 y el `540 + g` para los demás: el 12 y el 19 se cambian los nombres
-(Q-C62). No mira rangos: el 24 va al lugar -1, antes del arreglo, y un código de 500 o más lee la
-tabla fuera de la pila; tampoco mira cuántos servidores lleva un grupo (Q-C63). Al final, si la
-ventana de `+0x4578` está cerrada, abre la lista (`+0x10e8`), le carga los botones (`0x645860`) y
-abre el menú (`+0xe40`).
+El lugar es `23 − tabla[g]` con la tabla
+`{0..10, 14, 20, 15, 16, 17, 18, 11, 12, 13, 19, 21, 22, 23, 24}`, salvo el 12, que va al 24. El
+nombre del grupo es el texto 559 para el 12, el 552 para el 19, el 1829 para el 20 y el `540 + g`
+para los demás: el 12 y el 19 se cambian los nombres (Q-C62). No mira rangos: el 24 va al lugar -1,
+antes del arreglo, y un código de 500 o más lee la tabla fuera de la pila; tampoco mira cuántos
+servidores lleva un grupo, y el nombre lo copia con un `strcpy` sin tope (`0x4c1a8f`..`0x4c1a9b`),
+una vez por servidor, justo antes de leer la cantidad (`+0x14`, en `0x4c1a9d`): un nombre de 20
+bytes o más la pisa (Q-C63). Al final, si la ventana de `+0x4578` está cerrada, abre la lista
+(`+0x10e8`), le carga los botones (`0x645860`) y abre el menú (`+0xe40`).
 
 **Qué se ve** (`0x645860`): un botón por lugar, del 4 en adelante, **hasta el primer lugar
 vacío**, con el nombre del grupo y el color `0xffe2e2e2`. Así, el orden es 20, 16, 15, 14, 13, 11,
@@ -513,43 +523,51 @@ vacío**, con el nombre del grupo y el color `0xffe2e2e2`. Así, el orden es 20,
 sin el grupo 20 no muestra ningún botón (Q-C62). Con la capa FoxAnti, el código 0 del CS del
 laboratorio llega como 400, del grupo 20: va primero. Con un grupo elegido (`+0x3138`, de 0 a
 20), la descripción es el texto `1717 + elegido` en dos líneas (`0x632c90`); si tiene un solo
-servidor, un botón con el nombre del grupo y un sufijo de la `.data` (`0x6d6738`, color
-`0xff79ffff`) que elige `0x447c70(grupo, número)`; si tiene más, uno por servidor con el nombre y
-su número, `código % 20 + 1`. Cada servidor muestra su carga en una barra (carga / 100) y el texto
-560 (128 o más), 561 (de 100 a 127) o 562 (menos de 100).
+servidor, un botón con el nombre del grupo; si tiene más, uno por servidor con el nombre y su
+número, `código % 20 + 1`. En los dos casos, `0x447c70(grupo, número)` puede sumar al botón un
+sufijo de la `.data` (`0x6d6738`) con el color `0xff79ffff` (`0x6459b7` y `0x645abd`). Cada
+servidor muestra su carga en una barra (carga / 100) y el texto 560 (128 o más), 561 (de 100 a
+127) o 562 (menos de 100). La ventana tiene 16 botones de servidor (`0x6451d0`), pero `0x645860`
+arma uno por servidor sin tope (`0x645a99`), y un grupo puede tener 20 (código % 20): del 17 en
+adelante escribe sobre las barras, que empiezan donde terminan los botones (`+0x12a0 + 16 · 0xe0`
+es `+0x20a0`), y el clic mira solo 16 (Q-C63).
 
 **Los clics** (`0x645e10`, el `+0x30` de la lista): un clic en un grupo lo elige y manda otra vez el
-pedido de la lista (`F4 02`); un clic en un servidor, con carga menor que 100, cierra la ventana de
-arriba (`0x65f6c0`), manda el `F4 03` con su código (u16), muestra los textos 470 y 471 en el área
-de mensajes (`0x555190`), y guarda el número (`código % 20 + 1`, `DAT_006d5ecc`) y el lugar del
-grupo (`elegido + 4`, `DAT_006d5ec4`). Con carga de 100 a 127 abre el aviso 99 (`0x63`); con 128 o
-más, nada. La lista la pide `0x4c6070` cuando el CS manda el `00` y la escena es la 2 (la llamada
-está en `0x4e33e8`, en el dispatcher). La respuesta al `F4 03` (sub 3, `0x4e3341`) cierra el CS,
-conecta al GS (`0x4c1340`) y, si conectó, pone `DAT_05767918` en 1 y muestra en el área de mensajes
-el texto 481 armado con sus datos.
+pedido de la lista (`F4 02`); un clic en un servidor, con carga menor que 100, cierra la lista
+(`0x65f6c0` con la ventana misma), manda el `F4 03` con su código (u16), muestra los textos 470 y
+471 en el área de mensajes (`0x555190`), y guarda el número (`código % 20 + 1`, `DAT_006d5ecc`) y el
+lugar del grupo (`elegido + 4`, `DAT_006d5ec4`). Con carga de 100 a 127 abre el aviso 99 (`0x63`);
+con 128 o más, nada. La lista la pide `0x4c6070` cuando el CS manda el `00` y la escena es la 2 (la
+llamada está en `0x4e33e8`, en el dispatcher). La respuesta al `F4 03` (sub 3, `0x4e3341`) cierra el
+CS, conecta al GS (`0x4c1340`), pone `DAT_05767918` en 1 si conectó y, conecte o no, muestra en el
+área de mensajes el texto 481 armado con sus datos.
 
 ### La cuenta y la clave
 
-La ventana de `+0x4228` la abre el `F1 00` del GS (`0x4c1e20`): con `pkt[4]` en 1 la abre y pone
-el estado de la conexión, `DAT_057678c0`, en 2, así que **aparece con el GS ya conectado**
-(*estático*; antes, *inferido* por el keepalive de la CL4.R). Si no, el aviso `0x70`; con la
-versión distinta, el `0x6f` y cierra la ventana de arriba.
+La ventana de `+0x4228` la abre el `F1 00` del GS (`0x4c1e20`), con `DAT_05767928` en 0 (si no, solo
+guarda `pkt[5..6]`): con `pkt[4]` en 1 la abre y pone el estado de la conexión, `DAT_057678c0`, en
+2, así que **aparece con el GS ya conectado** (*estático*; antes, *inferido* por el keepalive de la
+CL4.R). Si no, el aviso `0x70`. Con la versión distinta, cierra la ventana de la cuenta y abre el
+`0x6f`, una vez por cada byte distinto: compara los cinco sin cortar (`0x4c1ec8`..`0x4c1f0a`).
 
 - **Al armarse** (`0x6415c0`): los dos campos de 156 × 23 (`0x14`) en (x + 109, y + 106) y (x +
   109, y + 131) y los botones OK y cancelar (54 × 30, `0x724` y `0x725`) en (x + 150, y + 178) y
   (x + 211, y + 178). Pone la cuenta guardada en el registro (`ID`, 02) en el campo de la cuenta
   y, si no está vacía, el foco en la clave (`DAT_077f3b70` = 1); si no, en la cuenta.
 - **Los campos** son dos controles `EDIT` de Win32 de verdad, hijos de la ventana del juego
-  (`0x467fe0`, `CreateWindowExA` con `WS_CHILD | WS_VISIBLE`), dibujados a un DIB y de ahí al
-  juego; viven en el objeto de `DAT_057634fc` (`+4` la cuenta, `+0xf0` la clave), que arma
-  `WinMain` y prepara `0x469e50`. Los dos con `EM_LIMITTEXT` 10 (`0x467f30`): **10 caracteres**.
-  La clave lleva `ES_PASSWORD` (`0x20`), y la cuenta, `ES_AUTOHSCROLL`. El foco es un
-  `EM_SETSEL(0, -1)` que selecciona todo (`0x469370`). El subclass `0x467b10` descarta Esc y los
-  caracteres `0x19` a `0x1c`; los filtros de solo dígitos o de letras y dígitos en mayúscula
-  (`+0x4c`) quedan en 0 en estos campos (los pone en 0 la base, `0x45a210`), así que el resto
-  pasa. El carácter de la clave no se cambia (`EM_SETPASSWORDCHAR` no aparece): el de Windows
-  (*inferido*: asteriscos). El IME queda apagado al arrancar (`ImmSetConversionStatus(…, 0, 0)` en
-  `WinMain`).
+  (`0x467fe0`, `CreateWindowExA` con `WS_CHILD | WS_VISIBLE`), dibujados a un DIB y de ahí al juego;
+  viven en el objeto de `DAT_057634fc` (`+4` la cuenta, `+0xf0` la clave), que arma `WinMain` y
+  prepara `0x469e50`. Los dos con `EM_LIMITTEXT` 10 (`0x467f30`): **10 caracteres**. La clave lleva
+  `ES_PASSWORD` (`0x20`), y las dos, `ES_AUTOHSCROLL` (`0x80`), salvo que sean de varias líneas
+  (`+0xc4`). El foco es un `EM_SETSEL(0, -1)` que selecciona todo (`0x469370`). El subclass
+  `0x467b10` descarta Esc y los caracteres `0x19` a `0x1c`, y a Tab y Enter los toma él (salvo Enter
+  en un campo de varias líneas y dos casos más, `0x467c6c`): los manda a la ventana del juego, la
+  madre del campo (`+0x84`), como `WM_CHAR`; con `+0x44` prendido, Tab pasa el foco al control de
+  `+0x98` (`0x467cdf`) y Enter llama a `0x490b40` (sin seguir). Si en el login `+0x44` está
+  prendido, sin leer. Los filtros de solo dígitos o de letras y dígitos en mayúscula (`+0x4c`)
+  quedan en 0 en estos campos (los pone en 0 la base, `0x45a210`), así que el resto pasa. El
+  carácter de la clave no se cambia (`EM_SETPASSWORDCHAR` no aparece): el de Windows (*inferido*:
+  asteriscos). El IME queda apagado al arrancar (`ImmSetConversionStatus(…, 0, 0)` en `WinMain`).
 - **Por frame** (`0x6418b0`): un clic sobre un campo le da el foco; OK (`+0x23a`) o Enter (`==
   0x8001`, si el mouse no está tomado) mandan el login, con el sonido `0x19` en el caso de Enter;
   cancelar (`+0x31a`) o Esc (con el sonido) llaman a `0x642810`, que cierra el GS, pone el estado
@@ -606,8 +624,9 @@ frame): cierran el aviso (`0x65f6c0`) y siguen según el id (`0x643560`):
 - `0x16` a `0x19`, `0x1b`, `0x1d` a `0x20`, `0x22` a `0x26` y `0x64`: lo mismo con el foco en la
   cuenta;
 - `0x1a`, `0x1c`, `0x6f` y `0x70`: `PostMessageA(WM_CLOSE)`, **el juego se cierra** (Q-C69);
-- otro: solo se cierra el aviso. El botón de cancelar de los otros tipos (`0x6436a0`) deja el id
-  en -1 y cierra.
+- otro: solo se cierra el aviso, salvo dos de la selección: el `0x5e` abre el `0x5f`, y el `0x5f`
+  llama a `0x643740` y abre el `0x5d`. El botón de cancelar de los otros tipos (`0x6436a0`) deja el
+  id en -1 y cierra.
 
 ## Lo que no se sabe
 
@@ -642,7 +661,7 @@ Ver [08](08-pendientes.md).
 | Texto por GDI → una textura que se sube por string | rasterizado con una biblioteca portable (FreeType o SDL_ttf), con caché propio (el resultado en pantalla es el mismo); se conserva el byte `0x02` de color | CL5 |
 | La carga dibuja sola, con su UI en 800 × 600 y un frame entero por cada uno de los 11 avances | `LoadingScene` con su juego de texturas y la barra, dentro del `SceneManager`, con un frame por avance | CL5.4 |
 | El login carga todo otra vez cada vez que se entra (mundo 55, texturas, ventanas, CS) | `LoginScene::Enter` también cada vez, con el mundo como dato de la escena | CL5.4 |
-| Siete ventanas de la UI nueva en píxeles, avisos por id con un texto de `Text.bmd` y un botón | `UI::` con la lista, la cuenta y el aviso; el id del aviso y su texto en una tabla, la de arriba | CL5.5 |
+| Siete ventanas de la UI nueva en píxeles, con la imagen de la UI nueva (`0x647650`, la de la carga) en sus fondos; avisos por id con un texto de `Text.bmd` y un botón | `UI::` con la lista, la cuenta y el aviso, y sus imágenes con la forma de la carga (UV a medio téxel, la y desde arriba) en píxeles; la lista con 20 botones de servidor (Q-C63); el id del aviso y su texto en una tabla, la de arriba | CL5.5 |
 | Ventanas como clases con vtable de 22 métodos | `UI::Window` con una interfaz chica (dibujar, evento) y una clase por ventana; el administrador ordena por prioridad | CL8 |
 | Cámara con seis globales, far × 1,4 en el mundo | `Camera` como valor, testeable: matrices de vista y proyección comparadas con las de las trazas | CL7 |
 | Terreno celda por celda, dos pasadas por celda | una malla por bloque de 4 × 4 con las mismas reglas de capa, alfa y luz, y el mismo orden | CL7 |
@@ -659,7 +678,8 @@ Tests que fija:
 - La carga y el login: la UI de la carga en 800 × 600 y la barra, los quads del login en 640 × 480
   y en 1024 × 768, la arena con el reloj y los tres textos con la fórmula de arriba (CL5.2 a
   CL5.4); y, con la traza de P-C13, contra ella.
-- La lista: el lugar de cada grupo y sus nombres por índice, con la tabla de `0x4c1860` (CL5.5).
+- La lista: el lugar de cada grupo y sus nombres por índice, con la tabla de `0x4c1860`, y que un
+  grupo de 20 servidores dé 20 botones (CL5.5, Q-C63).
 - Los avisos: cada resultado del `F1 01` da el aviso y el texto de la tabla, y qué hace su OK
   (CL5.5).
 - Las matrices de la cámara: para los ángulos, la posición y el viewport de las dos tablas de

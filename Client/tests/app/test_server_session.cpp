@@ -5,7 +5,6 @@
 #include "App/GameLoop.h"
 #include "App/PacingMode.h"
 #include "App/ServerAddress.h"
-#include "App/SessionClient.h"
 #include "App/WindowState.h"
 #include "Core/IClock.h"
 #include "Core/Log.h"
@@ -25,6 +24,10 @@
 #include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
 #include "Protocol/Connection/Opcodes.h"
+#include "Scenes/CharacterSelectScene.h"
+#include "Scenes/IScene.h"
+#include "Scenes/SceneId.h"
+#include "Scenes/SceneManager.h"
 
 #include "support/AppPrinters.h"
 #include "support/Bytes.h"
@@ -32,7 +35,7 @@
 #include "support/FakeSocket.h"
 #include "support/MuClientNetFixtures.h"
 #include "support/NetworkPrinters.h"
-#include "support/RecordingClient.h"
+#include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
 #include "support/TestGameServer.h"
@@ -46,6 +49,7 @@
 #include <cstdint>
 #include <format>
 #include <initializer_list>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -70,7 +74,6 @@ using Client::App::PacingMode;
 using Client::App::ReplyTimeout;
 using Client::App::ServerAddress;
 using Client::App::ServerSession;
-using Client::App::SessionClient;
 using Client::App::SessionFailure;
 using Client::App::SessionSettings;
 using Client::App::SessionState;
@@ -104,6 +107,10 @@ using Client::Protocol::Connection::KeepaliveOpcode;
 using Client::Protocol::Connection::LoginRequest;
 using Client::Protocol::Connection::WriteKeepalive;
 using Client::Protocol::Connection::WriteLoginRequest;
+using Client::Scenes::CharacterSelectScene;
+using Client::Scenes::IScene;
+using Client::Scenes::SceneId;
+using Client::Scenes::SceneManager;
 using Client::Tests::Bytes;
 using Client::Tests::BytesOf;
 using Client::Tests::FakeClock;
@@ -113,7 +120,7 @@ using Client::Tests::GameClientKeys;
 using Client::Tests::GameServerEncryption;
 using Client::Tests::GameServerReceived;
 using Client::Tests::NoticeBytes;
-using Client::Tests::RecordingClient;
+using Client::Tests::RecordingFrameTarget;
 using Client::Tests::RecordingSink;
 using Client::Tests::SameBytes;
 using Client::Tests::SameBytesWithoutValues;
@@ -1300,15 +1307,17 @@ TEST(ServerSessionTest, ASixtySecondFrameSendsOneKeepalive)
 }
 
 // Con el GameLoop y la ventana minimizada, el Poll sigue (CL4.1) y con él el keepalive: 100 s
-// después del login, el del login y cinco más. Main pone la sesión en el bucle con SessionClient,
-// como acá; la escena no dibuja.
+// después del login, el del login y cinco más. Main pone la sesión en el Poll del SceneManager,
+// como acá, con la selección vacía de la CL5 (adonde llega el login aceptado); no se dibuja nada.
 TEST(ServerSessionTest, KeepsTheKeepaliveWhileMinimized)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
-    RecordingClient scene{tested.clock};
-    SessionClient client(tested.session, scene);
-    GameLoop loop{tested.clock, client, PacingMode::Decoupled};
+    RecordingFrameTarget frame;
+    SceneManager scenes([](SceneId) -> std::unique_ptr<IScene> { return std::make_unique<CharacterSelectScene>(); },
+                        frame, tested.clock, [&tested] { tested.session.Poll(); }, tested.log);
+    ASSERT_TRUE(scenes.Start(SceneId::CharacterSelect).HasValue());
+    GameLoop loop{tested.clock, scenes, PacingMode::Decoupled};
     WindowState minimized;
     minimized.minimized = true;
     InputState input;
@@ -1320,8 +1329,8 @@ TEST(ServerSessionTest, KeepsTheKeepaliveWhileMinimized)
     }
 
     EXPECT_EQ(tested.Keepalives().size(), 6u);
-    EXPECT_EQ(scene.polls, loop.Stats().frames);
-    EXPECT_TRUE(scene.alphas.empty());
+    EXPECT_GT(loop.Stats().frames, 0u);
+    EXPECT_TRUE(frame.frames.empty());
 }
 
 // Las velocidades que dio SetKeepaliveSpeeds, con el ajuste de KeepaliveSpeed: 0x0328 + 20 y

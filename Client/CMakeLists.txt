@@ -79,7 +79,10 @@ muret_reuse_precompiled_headers(ClientRender ClientPlatform)
 add_executable(Main
     src/main.cpp
 )
-target_link_libraries(Main PRIVATE ClientPlatform ClientLib)
+# El frame de las escenas (Render/Gl/GlFrameTarget, CL5.4) es de ClientRender.
+target_link_libraries(Main PRIVATE ClientRender ClientPlatform ClientLib)
+# La versión que muestra el login (el texto 456 de Text.bmd, CL5.4): la del proyecto.
+target_compile_definitions(Main PRIVATE MURET_VERSION="${PROJECT_VERSION}")
 muret_set_warnings(Main)
 muret_reuse_precompiled_headers(Main ClientPlatform)
 
@@ -125,10 +128,15 @@ if(MURET_BUILD_TESTS)
     set_tests_properties(Client.Main.ConnectWithoutKeysNamesThem PROPERTIES
         PASS_REGULAR_EXPRESSION "no está Enc1.dat; no está Dec2.dat"
         ENVIRONMENT_MODIFICATION "MURET_CLIENT_ACCOUNT=set:user0001;MURET_CLIENT_PASSWORD=set:pass0002")
+    # Con una carpeta de datos y sin host, las escenas (CL5.4): primero Text.bmd, como WinMain antes
+    # de la carga. Una carpeta sin él lo nombra, sin abrir la ventana.
+    add_test(NAME Client.Main.ScenesWithoutTheTextTableNameIt COMMAND Main --data "${empty_data_folder}" --frames 1)
+    set_tests_properties(Client.Main.ScenesWithoutTheTextTableNameIt PROPERTIES
+        PASS_REGULAR_EXPRESSION "no está Local.Text.bmd en .*datos-sin-claves")
     # Ningún otro test de Main ve las variables de quien corre CTest: sin host no se leen, y los
     # dos de arriba dicen lo que tienen.
     set_tests_properties(Client.Main.RejectsBadArguments Client.Main.RejectsBadPort
         Client.Main.NamesTheMissingDataFolder Client.Main.ReadsTheDataPathInUtf8
-        Client.Main.ConnectWithoutCredentialsNamesThem PROPERTIES
+        Client.Main.ConnectWithoutCredentialsNamesThem Client.Main.ScenesWithoutTheTextTableNameIt PROPERTIES
         ENVIRONMENT_MODIFICATION "MURET_CLIENT_ACCOUNT=unset:;MURET_CLIENT_PASSWORD=unset:")
 endif()

@@ -33,4 +33,10 @@ using SystemFontSearch = std::function<std::optional<std::filesystem::path>(std:
 // encuentra, está vacía o no hay búsqueda: el mensaje nombra la clave.
 [[nodiscard]] Core::Expected<FontFiles, std::string> ChooseFontFiles(const ClientConfig& config, std::string_view face,
                                                                      const SystemFontSearch& search);
+
+// El error de FreeTypeRasterizer::Open con los archivos de ChooseFontFiles, para el log. Con
+// [Video] FontFile son los de la config, y sale `error` tal cual (nombra el archivo que dio el
+// jugador). Sin FontFile, la ruta salió de la búsqueda y su nombre puede ser el de la cara: sale
+// uno que nombra la clave y nada de `error`.
+[[nodiscard]] std::string FontOpenError(const ClientConfig& config, std::string_view error);
 } // namespace Client::App

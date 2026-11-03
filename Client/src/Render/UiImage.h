@@ -39,13 +39,20 @@ struct UiImage
     // El de glColor4ub (+0x61 a +0x63, y el alfa en +0x60): blanco salvo que se cambie. Queda como
     // el color de GL después de dibujarla (Q-C75).
     Color color{};
+    // 0x647370(w, h, modo) le cambió el ancho (modo 1) o el alto (modo 2) después de armarla: la u
+    // de la derecha es width / tw (0x6473dd) o la v de abajo, height / th (0x647457), sin medio
+    // téxel. Lo usa la barra de la carga (0x6402d0 y 0x640580). Las esquinas no cambian: 0x647370
+    // las saca como 0x647050 y 0x6472e0.
+    bool resizedWidth = false;
+    bool resizedHeight = false;
 };
 
 // Las cuatro esquinas, como 0x647050, 0x6472e0 y 0x647650. El borde de arriba es H / fy − y,
 // guardado en float, y el de abajo, el de arriba sin redondear menos el alto de la imagen (que
 // 0x6472e0 saca de las esquinas que dejó 0x647050); cada esquina va por fx o fy. Las UV van de
 // (0,5 / tw, 0,5 / th) arriba a la izquierda a ((w − 0,5) / tw, (h − 0,5) / th) abajo a la
-// derecha; sin slot, en 0, como las deja 0x647050.
+// derecha, o a w / tw y h / th del lado cambiado (resizedWidth, resizedHeight); sin slot, en 0,
+// como las deja 0x647050.
 [[nodiscard]] QuadCorners UiImageCorners(const UiImage& image, App::PixelSize screen);
 
 // El factor de un eje de la pantalla para una UI diseñada en `designSize` píxeles: el tamaño por

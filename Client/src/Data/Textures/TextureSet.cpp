@@ -1,5 +1,6 @@
 #include "Data/Textures/TextureSet.h"
 
+#include "Data/DataFile.h"
 #include "Data/DataPath.h"
 #include "Data/Textures/OzjTexture.h"
 #include "Data/Textures/OztTexture.h"
@@ -7,8 +8,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
-#include <fstream>
-#include <ios>
 #include <span>
 #include <utility>
 
@@ -26,50 +25,6 @@ constexpr std::uintmax_t MaxTextureFileBytes = 16u * 1024u * 1024u;
 constexpr std::string_view LoaderExtension(TextureLoader loader)
 {
     return loader == TextureLoader::Ozj ? "OZJ" : "OZT";
-}
-
-// Todos los bytes de `path`, o el error del sistema.
-Core::Expected<std::vector<char>, std::error_code> ReadTextureFile(const std::filesystem::path& path)
-{
-    std::error_code error;
-    const std::uintmax_t size = std::filesystem::file_size(path, error);
-    if (error)
-    {
-        return Unexpected(error);
-    }
-    if (size > MaxTextureFileBytes)
-    {
-        return Unexpected(std::make_error_code(std::errc::file_too_large));
-    }
-    std::ifstream file(path, std::ios::binary);
-    std::vector<char> bytes(static_cast<std::size_t>(size));
-    file.read(bytes.data(), static_cast<std::streamsize>(bytes.size()));
-    if (!file.is_open() || file.bad())
-    {
-        return Unexpected(std::make_error_code(std::errc::io_error));
-    }
-    // Si el archivo se achicó mientras se leía, queda lo que se leyó: el cargador mira el largo.
-    bytes.resize(static_cast<std::size_t>(file.gcount()));
-    return bytes;
-}
-
-// Lo que dice cada DataError, para Describe.
-std::string_view DataErrorText(DataError error)
-{
-    switch (error)
-    {
-    case DataError::FileTooShort:
-        return "el archivo es más corto de lo que pide su formato";
-    case DataError::ChecksumMismatch:
-        return "el checksum no es el de sus registros";
-    case DataError::WrongWorld:
-        return "es de otro mundo";
-    case DataError::UnexpectedSize:
-        return "no tiene ninguno de los tamaños que acepta su formato";
-    case DataError::InvalidData:
-        return "un valor no es uno de los que acepta su formato";
-    }
-    return "un error sin nombre";
 }
 
 TextureSetError MakeError(TextureSetErrorKind kind, std::string_view path)
@@ -95,7 +50,7 @@ Core::Expected<LoadedTexture, TextureSetError> LoadEntry(const std::filesystem::
         missing.system = error;
         return Unexpected(std::move(missing));
     }
-    const Core::Expected<std::vector<char>, std::error_code> file = ReadTextureFile(*path);
+    const Core::Expected<std::vector<char>, std::error_code> file = ReadDataFile(*path, MaxTextureFileBytes);
     if (!file.HasValue())
     {
         TextureSetError unreadable = MakeError(TextureSetErrorKind::Unreadable, entry.path);
@@ -176,7 +131,7 @@ std::string Describe(const TextureSetError& error)
     case TextureSetErrorKind::Unreadable:
         if (error.data.has_value())
         {
-            return std::format("no se pudo leer la textura {}: {}", error.path, DataErrorText(*error.data));
+            return std::format("no se pudo leer la textura {}: {}", error.path, DescribeDataError(*error.data));
         }
         return std::format("no se pudo leer la textura {}: {}", error.path, error.system.message());
     }

@@ -47,8 +47,8 @@ archivo y sus tests.
 
 Desde la CL4.5, con un host, `Main` se conecta: la `ServerSession` va del ConnectServer al login
 aceptado en el GameServer y después manda el keepalive cada 20 s, consultada por el bucle en cada
-frame. Todavía no hay escena de login (CL5): la cuenta sale del entorno, se elige el primer
-servidor de la lista, y la ventana sigue con la escena de prueba.
+frame. La cuenta sale del entorno y se elige el primer servidor de la lista; desde la CL5.4, la
+sesión la empieza la escena de login al entrar, y la UI para elegir y escribir llega en la CL5.5.
 
 Desde la CL5.1, lo que dibuja con OpenGL es el target `ClientRender` (`src/Render/Gl/`), el único
 con GL además de `ClientPlatform`: `ClientLib` sigue sin verlo. Trae el shader del 2D, `GlTexture`
@@ -71,6 +71,15 @@ sin la clave, `App::ChooseFontFiles` busca la cara del original en la lista de f
 (`Platform/SystemFonts.h`), y en Linux es un error que nombra la clave. En el `Text.bmd` del
 laboratorio la cara está vacía: con esos datos, también en Windows hace falta `FontFile`. El
 cliente dibuja texto desde la CL5.4, que conecta todo esto en `main.cpp`.
+
+Desde la CL5.4, con una carpeta de datos (`--data` o `[Data] Path`), `Main` corre las escenas del
+original en un `Scenes::SceneManager`, con la tabla de transiciones de `DAT_006d5dc8`: la carga
+(`LoadingScene`, con su UI de 800 × 600 y la barra), el login (`LoginScene`: los fondos, la arena
+y los tres textos de abajo, con la versión de MuRet) y una selección vacía, adonde va el login
+aceptado. Antes de la ventana lee `Text.bmd` y elige la fuente, como `WinMain`. El mundo detrás
+del login es un dato de la escena (el mapa 55, `World56`), que dibuja la CL7; hasta entonces, ahí
+queda el negro. La UI del login (la lista de servidores, la cuenta y la clave) es de la CL5.5. Sin
+carpeta de datos, `Main` sigue con la escena de prueba, como en CI.
 
 ## Auditoría y mantenimiento
 
@@ -149,6 +158,29 @@ Por ejemplo:
 Sin host no es un error: `Main` no mira el entorno ni las claves, y corre sin un servidor, como en
 CI.
 
+### Con la carpeta de datos: la carga y el login
+
+Con `--data` (o `[Data] Path`), `Main` lee `Local\Text.bmd` y elige la fuente antes de abrir la
+ventana, y corre la carga y el login con las texturas de esa carpeta. Sin `Text.bmd`, o sin una
+fuente, termina con un error que lo dice. La fuente va en `[Video] FontFile` de
+`muret-client.ini`: en Linux siempre, y en Windows también con el `Data\` del laboratorio, cuya
+cara está vacía. Por ejemplo, en Linux:
+
+```ini
+[Video]
+FontFile = /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+```
+
+```bash
+./build/linux-x64-debug/Client/Main --data /ruta/a/Data
+```
+
+Se ve la carga (cinco imágenes y la barra, que avanza una vez por paso, así que dura menos de
+medio segundo) y el login sin su UI: los fondos, la arena que corre y los tres textos de abajo, con
+la versión de MuRet en vez de la del original. Una textura que falta corta `Main` con su nombre.
+Con un host, además, la escena de login conecta al entrar y, con el login aceptado, pasa a la
+selección, que todavía no dibuja nada.
+
 ### Con un servidor: la cuenta y las claves
 
 Con un host, de `/u` o de `[Server] Host`, `Main` necesita dos cosas más antes de abrir la ventana,
@@ -202,6 +234,10 @@ de la CL4.5, en el
    ```bash
    ./build/linux-x64-debug/Client/Main connect /u<ip del CS> /p44405 --data <Data del laboratorio>
    ```
+
+   Desde la CL5.4, con la carpeta de datos corren la carga y el login, así que la config necesita
+   `[Video] FontFile` (la sección de arriba). Con el login aceptado, la ventana pasa a la selección,
+   que está en negro.
 
 4. Mirar el log durante dos minutos: tiene que llegar a "el GameServer aceptó el login" y, desde
    ahí, mostrar seis o siete "se mandó el keepalive al GameServer", uno cada 20 s, sin "se perdió
@@ -388,7 +424,8 @@ Client/
                   pedido de la mascota (A9), en Pet/ (CL4)
     Render/       OpenGL 3.3: texturas, sprites, texto  (CL5+); lo que llama a GL, en Gl/
                   (ClientRender, CL5.1)
-    Scenes/       la escena de prueba (CL3); login, selección, juego (CL5, CL6)
+    Scenes/       la escena de prueba (CL3); el SceneManager, la carga, el login (CL5);
+                  la selección y el juego (CL6, CL7)
     World/        mapa, cámara, objetos                 (CL7)
     GameLogic/    personaje, entidades, items, chat     (CL7+)
     UI/           widgets, ventanas, HUD                (CL5, CL8)

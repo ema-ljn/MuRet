@@ -286,7 +286,8 @@ archivo no se empieza de nuevo: cada corrida agrega al final, desde una línea `
 arranca`, como el `MuError.log` del original, así el log de una caída sigue ahí al volver a abrir, y
 dos clientes abiertos a la vez escriben los dos sin pisarse. Para que no crezca sin fin, al abrir se
 vacía si ya pasa de 1 MiB (el original corta el principio, Q-C48). Si un segundo cliente lo abre
-cuando ya pasó el tope, lo vacía también para el primero, que pierde lo que había escrito antes.
+cuando ya pasó el tope, lo vacía también para el primero, que pierde lo que había escrito antes; lo
+que escribe después sí queda.
 
 Lo que conviene buscar ahí: el aviso de un frame de más de 1 s, que cuenta 1 s (un breakpoint, o
 una ventana arrastrada en Windows, Q-C44), y que empieza con `[warning] un frame pasó de 1000 ms`;

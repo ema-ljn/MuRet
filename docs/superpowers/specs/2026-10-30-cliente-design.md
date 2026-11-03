@@ -39,8 +39,10 @@ moderno es la implementación (C++20, OpenGL 3.3, capas, tests) y lo que el orig
 frames se dibujan entre dos ticks, la resolución, el suavizado. Si una mejora cambiara algo
 observable, va detrás de una opción y con un ADR, y por defecto queda lo que hace el original.
 Cuántos frames se dibujan no es parte de eso: por eso el ritmo por defecto es el desacoplado de
-D-C4, y el modo fiel (`Pacing = faithful`, los 21,33 FPS del original) es la opción para comparar
-lado a lado.
+D-C4, con la lógica a 25 pasos por segundo, como el original. En los frames largos se aparta: mide
+el frame entero y lo recorta a 1 s, y el original no tiene tope (Q-C44 del
+[07](../../../Client/docs/research/07-quirks-y-bugs.md)). El modo fiel (`Pacing = faithful`, los
+21,33 FPS del original, sin ese tope) es la opción para comparar lado a lado.
 
 Es un **proyecto de aprendizaje**, igual que el servidor: Emanuel escribe la lógica del cliente
 sub-ola por sub-ola y Claude hace de tutor. Claude escribe el andamiaje (CMake, dependencias, CI,

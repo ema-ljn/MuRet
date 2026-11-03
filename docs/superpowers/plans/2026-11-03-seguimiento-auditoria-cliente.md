@@ -258,10 +258,12 @@ dos son del servidor y quedan reservados, sin reasignar. El índice está en
 [`docs/adr/README.md`](../../adr/README.md), con el inventario de la auditoría y los Q-C de diseño
 que quedan sin decidir si llevan ADR. «Fiel» quedó aclarado en la introducción del roadmap: por
 defecto queda lo observable del original, y cuántos frames se dibujan no es parte de eso, así que el
-ritmo por defecto sigue siendo `Decoupled`. El límite de retención de Q-C48 quedó escrito en
+ritmo por defecto sigue siendo `Decoupled`; lo que ese modo cambia en un frame largo, el tope
+de 1 s, queda nombrado con su Q-C44. El límite de retención de Q-C48 quedó escrito en
 `FileSink.h`, en la fila de 07 y en el README: un segundo cliente que abre pasado el tope vacía lo
-que el primero ya había escrito, y la política no cambia. El paso 6 sigue abierto: un ADR por PR,
-desde el 0003.
+que el primero ya había escrito, lo que escribe después queda, y la política no cambia. La fila
+dice además qué prueba cada test de `FileSink`: ninguno prueba dos procesos a la vez. El paso 6
+sigue abierto: un ADR por PR, desde el 0003.
 
 Cada ADR posterior registra un concepto y su porqué. Esta tarea no autoriza al tutor a escribir
 la decisión que corresponde a Emanuel ni modifica el research del original para acomodar MuRet.

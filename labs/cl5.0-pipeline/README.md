@@ -14,19 +14,19 @@ final.
 
 | Archivo | Qué es |
 | --- | --- |
-| `OriginalQuad.h` / `.cpp` | la misión de la actividad 4: los cuatro vértices de `0x621b60`, con `ScaleX` y `ScaleY` de la 5 |
+| `OriginalQuad.h` | la misión de la actividad 4: los cuatro vértices de `0x621b60`, con `ScaleX` y `ScaleY` de la 5. Desde la CL5.2 son alias de las del cliente (`Client/src/Render/OriginalQuad.h` y `ScreenScale.h`), y el `.cpp` se fue para allá |
 | `Ortho.h` / `.cpp` | la misión de la actividad 6: la matriz de `gluOrtho2D`, en column-major |
 | `Fan.h` / `.cpp` | la misión de la actividad 8: de un fan a sus triángulos |
 | `test_*.cpp` | sus tests, de GoogleTest |
 | `jefe/test_original_pipeline.cpp` | el jefe: el pipeline del original contra el de MuRet, sin GL, y el viewport de `0x620db0` |
 | `gl/` | lo de Claude (actividad 11): la ventana escondida, la tabla de GL del lab, los nombres de GL con dueño, la textura, el framebuffer, el shader del 2D y sus tests |
 
-Las tres misiones van en la biblioteca `MuRetLabsCl50`, sin GL, y sus tests y el jefe en
-`LabCl50Tests`, con el prefijo `LabCl50.` en CTest: son 20. Lo de `gl/` va en `MuRetLabsCl50Gl`,
-que enlaza `ClientPlatform`, y sus tests en `LabCl50GlTests`, con el prefijo `LabCl50Gl.` y la
-etiqueta `gl`: son 11, y 4 de ellos abren GL. Sin pantalla esos 4 se saltean, y con
-`MURET_CLIENT_REQUIRE_GL=1` fallan (la pregunta 9 del plan); el CI los corre en Xvfb con la
-variable:
+Las tres misiones van en la biblioteca `MuRetLabsCl50`, sin GL (desde la CL5.2 enlaza `ClientLib`,
+donde quedaron las cuentas del quad), y sus tests y el jefe en `LabCl50Tests`, con el prefijo
+`LabCl50.` en CTest: son 20. Lo de `gl/` va en `MuRetLabsCl50Gl`, que enlaza `ClientPlatform`, y sus
+tests en `LabCl50GlTests`, con el prefijo `LabCl50Gl.` y la etiqueta `gl`: son 11, y 4 de ellos
+abren GL. Sin pantalla esos 4 se saltean, y con `MURET_CLIENT_REQUIRE_GL=1` fallan (la pregunta 9
+del plan); el CI los corre en Xvfb con la variable:
 
 ```bash
 cmake --preset linux-x64-debug && cmake --build --preset linux-x64-debug
@@ -120,7 +120,8 @@ $ objdump -s -j .rdata --start-address=0x6ba06c --stop-address=0x6ba074 main.exe
 
 En little-endian son `0x3b088889` en `0x6ba06c` y `0x3acccccd` en `0x6ba070`: justo
 `std::bit_cast<std::uint32_t>(1.0f / 480)` y `(1.0f / 640)`, y los `static_assert` de
-`OriginalQuad.cpp` lo comprueban al compilar. Como decimales, 0,0020833334419876337 y
+`OriginalQuad.cpp` lo comprobaban al compilar (desde la CL5.2 están en
+`Client/src/Render/ScreenScale.cpp`). Como decimales, 0,0020833334419876337 y
 0,0015625000232830644: los dos, un poco más que 1/480 y 1/640.
 
 Las predicciones (`ScalesByTheInverseOfTheSize`): `ScaleY(25)` da 25,000001907348633 en 640 × 480 y

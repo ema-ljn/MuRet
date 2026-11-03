@@ -892,10 +892,40 @@ public:
 } // namespace Client::Render::Gl
 ```
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, la tabla de los quads del login en
-  640 × 480 y en 1024 × 768: para el `0x15`, el `0x16` y las dos arenas, los cuatro vértices y sus
-  UV, calculados a mano con las fórmulas de `0x621b60` y `0x622000`.
-- [ ] **Paso 2:** los tests:
+- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de los tests, la tabla de los
+  quads del login en 640 × 480 y en 1024 × 768: para el `0x15`, el `0x16` y las dos arenas, los
+  cuatro vértices y sus UV, calculados a mano con las fórmulas de `0x621b60` y `0x622000`.
+
+  Los argumentos, de 06 § El login, el dibujo: `0x621b60(0x15, 0, 25, 320, 320, 0, 0, 1, 1, 1, 1,
+  0)`, el `0x16` igual en x = 320, y las arenas `0x622000(0x5c2, 0, 25, 640, 430, u, 0, 0,3, 0,3)`
+  y `0x622000(0x5c3, 0, 25, 640, 430, u, 0, 3, 2)`, con la u del reloj en 0. Cada esquina es
+  (x, y; u, v), en el orden del fan; la y, en píxeles con la y para arriba. *Estático* hasta la
+  traza de P-C13.
+
+  | quad | pantalla | arriba a la izquierda | abajo a la izquierda | abajo a la derecha | arriba a la derecha |
+  | --- | --- | --- | --- | --- | --- |
+  | `0x15` | 640 × 480 | (0, 455; 0, 0) | (0, 134,99997; 0, 1) | (320, 134,99997; 1, 1) | (320, 455; 1, 0) |
+  | `0x16` | 640 × 480 | (320, 455; 0, 0) | (320, 134,99997; 0, 1) | (640, 134,99997; 1, 1) | (640, 455; 1, 0) |
+  | `0x5c2` | 640 × 480 | (0, 455; 0, 0,075) | (0, 24,999968; 0, 0,225) | (640, 24,999968; 0,3, 0,3) | (640, 455; 0,3, 0) |
+  | `0x5c3` | 640 × 480 | (0, 455; 0, 0,5) | (0, 24,999968; 0, 1,5) | (640, 24,999968; 3, 2) | (640, 455; 3, 0) |
+  | `0x15` | 1024 × 768 | (0, 728; 0, 0) | (0, 216; 0, 1) | (512, 216; 1, 1) | (512, 728; 1, 0) |
+  | `0x16` | 1024 × 768 | (512, 728; 0, 0) | (512, 216; 0, 1) | (1024, 216; 1, 1) | (1024, 728; 1, 0) |
+  | `0x5c2` | 1024 × 768 | (0, 728; 0, 0,075) | (0, 39,999935; 0, 0,225) | (1024, 39,999935; 0,3, 0,3) | (1024, 728; 0,3, 0) |
+  | `0x5c3` | 1024 × 768 | (0, 728; 0, 0,5) | (0, 39,999935; 0, 1,5) | (1024, 39,999935; 3, 2) | (1024, 728; 3, 0) |
+
+  Las cuentas, con la inversa en float de la CL5.0. En 640 × 480, 25 escalado es 12.000 · 1/480
+  = 25,0000013, guardado 25,000002, y 480 menos eso es 454,9999981 en la pila, guardado 455. El
+  alto, 320 escalado, es 320,0000168, guardado 320,00003, y el borde de abajo sale de la pila:
+  454,9999981 − 320,0000305 = 134,9999676, guardado 134,99997. La arena: 430 escalado es
+  430,0000225, guardado 430,00003, y abajo da 24,9999676, guardado 24,999968. En 1024 × 768, 25
+  escalado es 40,000004 y arriba queda 727,9999962, guardado 728; 320 escalado es 512,0000269,
+  guardado 512 justo, y abajo, 215,9999962, guardado 216. La arena, 688,00006 de alto: abajo,
+  39,9999352, guardado 39,999935. Las x son enteras: 320 y 640 escalados en 640 son
+  320,0000048 y 640,0000095, que en float dan 320 y 640 (y 512 y 1024 en 1024), y la derecha es
+  x + w. La v de la arena, de la x87: el cuarto de dv es 0,3 · 0,25 = 0,075000000745, guardado
+  0,075, y abajo a la izquierda va v + dv sin redondear menos ese cuarto, 0,2250000089, guardado
+  0,225 (`OriginalSkewedQuadTest.TheLowerLeftVComesFromTheUnroundedSum`). Las UV no se escalan.
+- [x] **Paso 2:** los tests:
   - `ScreenScaleTest.ScalesEachAxisApart` (en 1024 × 768, 320 → 512 y 25 → 40; en 1920 × 1080,
     320 → 960 y 25 → 56,25; con `EXPECT_FLOAT_EQ`, porque los 25 dan un ULP arriba, CL5.0);
   - `SpriteBatchTest.PlacesTheLoginBackgroundLikeTheOriginal` (los vértices del paso 1, en los dos
@@ -912,14 +942,84 @@ public:
   - con ventana: `GlSpriteRendererTest.TheFirstRowIsAtTheTop` (la textura de 2 × 2 como fondo),
     `GlSpriteRendererTest.AdditiveAddsAndAlphaBlends`, `TheAlphaTestDropsAQuarter` (0,25 no se
     dibuja, 0,26 sí, y con la aditiva los dos), `AMissingSlotIsSkippedWithAWarning`.
-- [ ] **Paso 3:** `ScreenScale`, `SpriteBatch` y `GlSpriteRenderer`.
-- [ ] **Paso 4:** verificar:
+- [x] **Paso 3:** `ScreenScale`, `SpriteBatch` y `GlSpriteRenderer`.
+- [x] **Paso 4:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug
   ctest --preset linux-x64-debug -R "ScreenScale|SpriteBatch"
   xvfb-run -a env MURET_CLIENT_REQUIRE_GL=1 ctest --preset linux-x64-debug -L '^gl$' \
     -R GlSpriteRenderer
   ```
+Hecho así (2026-11-03): las cuentas del original quedaron en `ClientLib`, sin GL, cada primitiva en
+su archivo: `Render/ScreenScale` (`0x620d50` y `0x620d80`), `OriginalQuad` (`FanCorners`, las cuatro
+esquinas de `0x621b60`), `OriginalSkewedQuad` (`SkewedFanCorners`, las de `0x622000`) y `UiImage`
+(`UiImageCorners` y `DesignScale`), con las esquinas en `QuadCorner.h`. El `SpriteBatch` las junta
+en vértices y tramos. Las del lab de la CL5.0 se movieron acá: `labs/cl5.0-pipeline/OriginalQuad.h`
+quedó como alias de las del cliente, su `.cpp` se borró y `MuRetLabsCl50` enlaza `ClientLib`, así
+que los `OriginalQuadTest` del lab prueban el código del cliente. `ScaleX` y `ScaleY` escalan cada
+eje por su lado en cualquier resolución que valga (`App/Resolution.h`, #72); el caso de 1920 × 1080
+sigue, porque es un modo de monitor. Lo que se aparta del contrato: (a) `ColorQuad(x, y, w, h)` no
+lleva el `bool scale`: `0x621aa0` recibe cuatro argumentos, escala los cuatro siempre con `0x620d50`
+y `0x620d80` y hace las cuentas de `0x621b60`, con el borde de abajo desde la pila
+(`0x621b01`..`0x621b0b`), y sin UV. (b) El `SpriteBatch` guarda el estado de GL que tocan las
+primitivas, como lo deja el original: el color, la mezcla, la textura prendida y el alpha test.
+`SetBlend` (`0x620a00` y `0x620a90`) prende la textura siempre y el alpha test solo con la normal;
+`ColorQuad` apaga los dos, como `0x620910(0)`, y quedan apagados hasta el próximo `SetBlend`; la
+imagen de la UI nueva deja su color y prende o apaga la textura según su slot. Es Q-C75, nuevo en
+07: un quad de `0x621b60` después de uno sin textura sale sin textura. Por eso `DrawCommand` suma
+`alphaTest`, y un tramo se corta por textura, mezcla o alpha test. `Begin` vacía el lote y no toca
+el estado, que pasa de un frame al siguiente como en el original; el primero empieza como el login
+(normal, blanco, textura y alpha test prendidos). (c) El color se recorta a [0, 1] en el
+`SpriteBatch` (`SetColor`, el alfa del quad y el color de la imagen) y no en el shader: así se
+prueba una vez, sin GL. (d) `UiImage` es la imagen de la UI nueva que pedía la nota de la CL5.R: su
+propio espacio con la y desde arriba, `H / fy` como borde de arriba, cada esquina por fx y fy, UV a
+medio téxel del tamaño del buffer y el color de `glColor4ub`. `DesignScale(W, 800)` y
+`DesignScale(H, 600)` dan los fx y fy de la carga (`0x65eeb0`, con las inversas de `0x6ba884` y
+`0x6ba880`). No lleva el ancla de `+0x9c`, el corrimiento de `+0x58` y `+0x5c`, los cuadros de una
+animación ni la u de la barra de la carga (`0x647370`, que no va a medio téxel): son de la CL5.4 y
+la CL5.5. (e) `GlSpriteRenderer::Create` devuelve un `Core::Expected`, como `GlRenderer::Create`, en
+vez de un constructor: el shader puede no compilar. `GlRenderer` se partió en `Upload` (el VBO, una
+vez por frame, el viewport, la matriz, el programa y el VAO, que quedan atados) y `DrawRange` (un
+tramo, con su textura o sin ninguna y con el alpha test o sin él); `Draw` es los dos. El fragment
+shader suma dos banderas, `textured` y `alphaTest`, con `glUniform1i` en la X-macro (47 funciones):
+sin textura el fragmento es el color, y con el alpha test, `if (color.a <= 0.25) discard;`.
+`GlSpriteRenderer::Draw` prende `GL_BLEND`, pone el `glBlendFunc` de cada tramo y deja la mezcla
+prendida, como `0x620a00` y `0x620a90`. Un slot que la tabla no tiene se avisa una sola vez por slot
+(el lote se dibuja en cada frame), con el slot en hexadecimal, y su tramo no se dibuja. Los tests de
+`PlacesTheLoginBackgroundLikeTheOriginal` son dos, uno por pantalla (`...In1024x768`). Suma tests
+que el paso 2 no tenía: `OriginalQuadTest` y `OriginalSkewedQuadTest` (el borde de abajo y la v de
+la arena desde la pila), `UiImageTest` y `DesignScaleTest`,
+`ScreenScaleTest.MultipliesByTheInverseOfTheSize` y `In640x480ItStillScales`, y en
+`SpriteBatchTest`: `AColorQuadIsScaledAndHasNoTexture`,
+`AColorQuadLeavesTheTextureAndTheAlphaTestOff`, `ASkewedQuadUsesTheCurrentColor`,
+`PlacesTheLoadingImagesLikeTheOriginal` (en 640 × 480 y en 1024 × 768), `AnImageLeavesItsColor`,
+`AnImageTurnsTheTextureOnByItsSlot`, `BeginEmptiesTheFrameAndKeepsTheState`, `StartsLikeTheLogin` y
+`ADifferentBlendStartsACommandWithTheSameAlphaTest`; con ventana,
+`GlSpriteRendererTest.AColorQuadHasNoTextureNorAlphaTest` y `AMissingSlotIsWarnedOnce`. Los mutantes
+a mano mueren todos: escalar la x con la inversa de 480 (15 tests, entre ellos
+`ScreenScaleTest.ScalesEachAxisApart`), dividir en vez de multiplicar por la inversa
+(`MultipliesByTheInverseOfTheSize`), el fan en (0, 1, 2) y (2, 3, 0)
+(`TheFanIsTwoTrianglesInOrder`), un quad con alfa que no deja el blanco
+(`AQuadWithAlphaLeavesTheColorWhite`) o que usa el color actual
+(`AnAlphaAboveZeroIsTheVertexColor`), sin recortar (`TheColorIsClampedToOne`), un tramo que no mira
+la mezcla (`ADifferentBlendStartsACommandWithTheSameAlphaTest`) o que nunca junta
+(`QuadsOfTheSameTextureAreOneCommand`), el quad sin textura que deja la textura prendida
+(`AColorQuadLeavesTheTextureAndTheAlphaTestOff`), la arena corrida medio dv
+(`IsAlwaysScaledAndSkewsTheLeftSide`), la imagen sin el medio téxel
+(`InPixelsTheYGoesDownFromTheHeight`), la aditiva con `GL_SRC_ALPHA` o la normal con `(GL_ONE,
+GL_ZERO)` (`AdditiveAddsAndAlphaBlends`), sin `glEnable(GL_BLEND)`, el alpha test con `<` o apagado
+(`TheAlphaTestDropsAQuarter`), siempre con textura (`AColorQuadHasNoTextureNorAlphaTest`), el aviso
+en cada frame (`AMissingSlotIsWarnedOnce`) y un slot que falta que se dibuja igual
+(`AMissingSlotIsSkippedWithAWarning`). El mutante de la mezcla aditiva vivía con el verde de alfa 1
+y el que no miraba la mezcla vivía porque el alpha test cambia con ella: por eso el verde de
+`AdditiveAddsAndAlphaBlends` lleva alfa 0,6 y está el test de los dos quads sin textura. En la
+revisión vivían cuatro más, y cada uno tiene ahora su test: la imagen que apaga el alpha test
+(`SpriteBatchTest.AnImageKeepsTheAlphaTest`), el tramo que no mira el alpha test
+(`AnotherAlphaTestStartsACommand`), la imagen sin recortar su color (`TheColorIsClampedToOne`) y el
+viewport o la matriz con W y H cambiados, que con el framebuffer cuadrado no se veían
+(`GlSpriteRendererTest.TheScreenIsWidthByHeight`, con una pantalla de 64 × 32). En 06 quedó que
+la textura la vuelven a prender las siete mezclas del original, no solo la normal y la aditiva, y
+en 07, que Q-C64 lo fija `AnImageTurnsTheTextureOnByItsSlot`.
 
 ## Sub-ola CL5.3: texto con caché y colores `0x02`
 
@@ -958,6 +1058,12 @@ PRs: **PR A**, lo que no ve GL (los colores `0x02`, el diseño, el rasterizador 
   `Client/tests/render/test_text_cache.cpp` y `Client/tests/render_gl/test_gl_text_texture.cpp`.
   Modificar `Client/docs/research/06` (la línea de `test_texture_slots`, pregunta 11), `07` (el
   quirk de GDI y FreeType, y el de la letra en un ancho que no está), PROGRESS y este plan.
+
+*Nota de la CL5.2:* el quad del texto es un `SpriteBatch::Quad` con el `OriginalQuad` de 06
+(slot 0, du = (w + 0,01) / 256, dv = (h + 0,01) / 32, `scaleSize` en `false` y `scalePosition`
+como lo pida el que llama). `GlSpriteRenderer` busca cada slot en la `TextureTable`: la textura de
+un texto tiene que estar ahí, en un slot que entre en los 1.845, o el renderer suma de dónde
+sacarla. Un slot que no está se avisa una vez y su tramo no se dibuja.
 
 **Interfaces:**
 
@@ -1100,6 +1206,18 @@ este plan.
 con la CL5.1, con `test_texture_sets.cpp` y el golden (`test_golden_texture_sets.cpp`), y también
 `Render/ITextureStore.h`, `Render/TextureSlot.h` y `Core::Expected<void, E>`. Falta el
 `FakeTextureStore` de `support/`.
+
+*Nota de la CL5.2:* el `SpriteBatch` no tiene `Flush`: el `GlFrameTarget` dibuja lo juntado
+con `GlSpriteRenderer::Draw(batch, textures, log)` y vuelve a `Begin`, que vacía el lote y no toca
+el estado (el color, la mezcla, la textura y el alpha test pasan de un tramo al otro y de un frame
+al siguiente, Q-C75), o suma el `Flush` ahí. La arena es `SetBlend(Additive)`, `SetColor` y
+`SkewedQuad`. La carga dibuja con `SpriteBatch::Image(UiImage)`, con `scaleX = DesignScale(W,
+800)`, `scaleY = DesignScale(H, 600)` y, para las UV, el tamaño del buffer de cada textura
+(`Texture::textureWidth` y `textureHeight`). La u de la barra (`0x647370`) no va a medio téxel y
+el `UiImage` no la tiene: se suma con su test. `GlSpriteRenderer` deja `GL_BLEND` prendida. No
+apaga `GL_DEPTH_TEST` ni `GL_CULL_FACE`, que el original apaga al entrar al 2D (`0x6219b0` llama a
+`0x620870`) y con la mezcla normal y la aditiva (`0x6208f0`): hoy nadie los prende, y cuando el
+pase 3D lo haga (la CL7), el 2D que sigue los apaga, con un test.
 
 **Interfaces:**
 
@@ -1328,6 +1446,10 @@ al jugador. Va en dos PRs: **PR A**, el texto tecleado, los widgets y la lista (
   `Client/src/App/ServerSession.h/.cpp` y su test, `App/CommandLine.h/.cpp` y su test
   (`--auto-login`), `Scenes/LoginScene.h/.cpp`, `main.cpp`, `Client/README.md` (la prueba a mano),
   el 07 (la UI en el paso), PROGRESS, el roadmap (la fila de la CL5, si cambia) y este plan.
+
+*Nota de la CL5.2:* las imágenes de las ventanas son `UiImage` con `scaleX = scaleY = 1`, en
+píxeles y con la y desde H. El ancla de `+0x9c`, el corrimiento de `+0x58` y `+0x5c` y los cuadros
+de una animación no están: si una ventana los usa, se suman a `UiImageCorners` con su test.
 
 **Interfaces:**
 

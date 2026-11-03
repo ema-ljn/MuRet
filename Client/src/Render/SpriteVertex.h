@@ -12,6 +12,8 @@ struct Color
     float green = 1.0f;
     float blue = 1.0f;
     float alpha = 1.0f;
+
+    friend bool operator==(const Color&, const Color&) = default;
 };
 
 struct SpriteVertex

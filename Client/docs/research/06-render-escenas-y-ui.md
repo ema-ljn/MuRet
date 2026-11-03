@@ -447,7 +447,9 @@ en 0. Arranca en 0 (está en la `.bss`), y la vuelta al login de `0x4c2710` la p
    con `GL_NEAREST`; la arena, `FireSnuff` y `cr_mu_lo` con `GL_LINEAR`, y repiten la arena,
    `server_ex03` y `server_ex02`;
 3. `0x65f300` arma las ventanas de la UI nueva (abajo);
-4. `0x4c1340` conecta al ConnectServer ([03](03-red-y-cifrado.md));
+4. `0x4c1340` conecta al ConnectServer ([03](03-red-y-cifrado.md)). El `connect` bloquea, y del 1 al
+   4 corre todo en el primer paso de la escena: hasta que termina, en la pantalla queda la carga con
+   la barra llena, y si el connect falla, el primer frame del login ya trae el aviso `0x70` (Q-C85);
 5. el objeto `0xa2` en (10.680, 15.550, 1.710), con ángulos (10, 0, 36) y escala 1, y el
    personaje de la escena (`0x517270(2, 4, …)`, con el cuervo del `A9`, P-C11) en (10.603, 14.112,
    580), girado 188° en z y con escala 1,6; un efecto `0xbf`; 120 llamadas a `0x555190` con dos

@@ -223,6 +223,10 @@ solo lo lee.
   `Enc1.dat` y `Dec2.dat` de la carpeta de datos (`LoadConnectionKeys`): `Main` las lee solo con
   un host, antes de la ventana, y cada error dice qué falta sin traer un valor. La sesión entra
   al bucle en la CL4.5.
+  El tercero cierra la CL4.4: un ConnectServer y un GameServer falsos (`FakeServers`), con sockets
+  de verdad en `127.0.0.1` y los bytes del cable del 04, y un test que corre `SystemSocket`,
+  `Connection` con FoxAnti y la sesión desde el `Start` hasta `LoggedIn`, en un hilo y con un tope
+  de 5 s reales. Lo que no está en el guion, el servidor falso lo dice en palabras y corta.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 
@@ -312,6 +316,7 @@ sesión, junto con los de repaso más viejo.
 | un protocolo con turnos como máquina de estados (`ServerSession`): qué espera cada estado y qué hace con lo que llega fuera de turno, un dispatcher por servidor, y dejar de recorrer un lote de eventos cuando un handler cambia o cierra la conexión (un contador que cambia con cada `Open`), sin perder el `Closed` que cerró el lote | CL4.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | el cifrado como una etapa más del camino de un paquete (`Connection`): dónde va entre las de la ofuscación, claves y seriales por conexión que vuelven a 0 en cada `Open`, un serial que solo se gasta si el paquete sale, un relleno con semilla para que el test sea repetible, y un paquete que no descifra como un evento y no como un cierre | CL4.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | secretos fuera de todo lo que se imprime: la cuenta y la clave del entorno y no de la config ni de la línea de comandos, errores que nombran la variable sin su valor, un `PrintTo` que da los largos, un log que no las trae (lo mira un test), y el login comparado con `SameBytesWithoutValues`; y un dato del servidor que va al log limpio (la versión, con `?` en lo que no se ve) | CL4.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un test de integración en un hilo con sockets de verdad: servidores falsos con un guion que contestan lo que les llegó (así el orden del sistema no cambia el resultado), un tope de reloj real y no de vueltas, y un servidor que, fuera del guion, se queja en palabras y corta para que el test falle enseguida | CL4.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

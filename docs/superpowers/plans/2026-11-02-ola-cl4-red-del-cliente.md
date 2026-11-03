@@ -1500,7 +1500,7 @@ public:
     del `AfterCut` y que llaman a `BeforeSend` antes de cifrar. Los dos tests golden pasaron a
     usar `ExpectDecryptedLikeDecryptPacket`, `ResendEncrypted` y `ExpectLikeTheWire`. El 03 suma
     la fila de las claves por conexión: un C3/C4 en el CS no manda el `F1 03`.
-- [ ] **Paso 4 (PR B y PR C):** los tests de la sesión:
+- [x] **Paso 4 (PR B y PR C):** los tests de la sesión:
   - `ServerSessionTest.ConnectsToTheGameServerItWasGiven` (después del `F4 03`, `connects` tiene el
     endpoint del GS);
   - `ServerSessionTest.SendsTheLoginAfterTheHello` (con `C1 0C F1 00 01 00 05 "10209"`, el C3 que
@@ -1550,7 +1550,7 @@ public:
     cualquier error, la versión sin limpiar, cada chequeo de turno), y siete de `Credentials.cpp`
     y otros siete de `ConnectionKeyFiles.cpp`: los mata algún test, aunque a dos de los de
     `ConnectionKeyFiles.cpp`, hasta la revisión, solo con la carpeta golden.
-- [ ] **Paso 5 (PR B y PR C):** la sesión del GS hasta `LoggedIn`, `ReadCredentials`, y las
+- [x] **Paso 5 (PR B y PR C):** la sesión del GS hasta `LoggedIn`, `ReadCredentials`, y las
   variables y las claves en `main.cpp` (PR B); los `FakeServers` y el test en loopback (PR C).
 
   Lo que se decidió en el PR B, y lo que cambió respecto de la interfaz:
@@ -1595,7 +1595,31 @@ public:
     cómo borrar la clave del entorno al terminar.
   - 07: Q-C41 dice lo que hace `Main` sin clave, y Q-C55, que MuRet cierra el GS con un saludo o
     un login rechazados y mira el resultado antes que la versión.
-- [ ] **Paso 6:** verificar:
+
+  Lo que se decidió en el PR C, y lo que cambió respecto de la interfaz:
+  - `FakeServers` sigue el guion del 04 de a un paquete: cada servidor contesta solo lo que toca
+    después de lo que le llegó. El CS espera el A9 antes de saludar (el orden del cable), y el GS
+    saluda apenas acepta. Lo que manda el cliente se compara con los bytes del cable: el A9 con
+    su XOR32, el `F4 02` y el `F4 03` con el código que FoxAnti pasó a 0. El GS manda el saludo
+    y el resultado cifrados con la clave sintética del servidor y con el `0xAA` en cada byte,
+    como el del laboratorio (398 de 398 segmentos del GS en el 04).
+  - Suma a la interfaz `GameServerPort()`, `Login()` (el login descifrado, para compararlo con
+    `WriteLoginRequest` con `SameBytesWithoutValues`), `ClientLeftTheConnectServer()` (el CS ve
+    el corte) y `Complaints()`: con algo fuera del guion, el servidor lo anota en palabras, sin un
+    byte, corta al cliente y deja de contestar, así la sesión falla enseguida y el test dice qué
+    vio. `TestGameServer.h` suma `GameServerKeys()`, las dos claves del lado del servidor.
+  - El tope no son 200 vueltas del lazo sino los 5 s reales de `RetryUntil`, como los tests de
+    `SystemSocket`: una vuelta no es tiempo, y lo que hace el sistema en el fondo (el connect, el
+    accept, los bytes) puede pedir muchas en una máquina cargada. En loopback pasa en menos de un
+    milisegundo; 4800 corridas, 16 a la vez, pasaron todas.
+  - El reloj de la sesión es un `FakeClock`: da el tick del login, que el test compara, y el
+    connect no vence por el reloj.
+  - `FakeServersTest.TheConnectServerComplainsAboutWhatIsNotInTheScript`: un `F4 02` antes del A9
+    deja la queja, y el cliente ve el cierre.
+  - Cinco mutantes a mano mueren en el test en loopback: el login en claro, el GS sin claves, la
+    sesión que no pide la lista (este, por el tope de 5 s), el `F4 03` con otro código, y FoxAnti
+    sin quitar el `0xAA` (los otros, enseguida, por una queja o un cierre).
+- [x] **Paso 6:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug &&
     ctest --preset linux-x64-debug -R "Connection|ServerSession|Credentials|Client.Main"

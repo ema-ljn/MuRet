@@ -1,5 +1,8 @@
 #include "UI/TextField.h"
 
+#include <cstddef>
+#include <string_view>
+
 namespace Client::UI
 {
 namespace

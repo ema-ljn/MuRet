@@ -1,9 +1,13 @@
 #include "Data/Textures/OzjTexture.h"
 
+#include "Core/Expected.h"
+#include "Data/DataError.h"
 #include "Data/Textures/JpegImage.h"
+#include "Data/Textures/Texture.h"
 
 #include <algorithm>
 #include <cstddef>
+#include <span>
 #include <utility>
 
 namespace Client::Data::Textures

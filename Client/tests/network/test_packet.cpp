@@ -1,5 +1,6 @@
 #include "Network/Packet.h"
 
+#include "Network/PacketError.h"
 #include "support/Bytes.h"
 #include "support/NetworkPrinters.h"
 #include "support/SameBytes.h"

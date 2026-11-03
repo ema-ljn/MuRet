@@ -2,8 +2,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
+#include <ios>
+#include <optional>
 #include <system_error>
+#include <vector>
 
 namespace Client::Tests
 {

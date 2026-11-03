@@ -1,6 +1,7 @@
 #include "UI/ServerListWindow.h"
 
 #include "App/WindowState.h"
+#include "Data/Text/TextTable.h"
 #include "Input/InputState.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Render/SpriteBatch.h"

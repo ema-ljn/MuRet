@@ -1,11 +1,18 @@
 #include "Platform/GlLoader.h"
 
-#include <SDL3/SDL_loadso.h>
+#include "Core/Expected.h"
+#include "Platform/GlFunctionList.h"
+
+#include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_video.h>
 
 #include <cstdint>
 #include <string>
 #include <utility>
+
+#ifdef _WIN32
+#include <SDL3/SDL_loadso.h>
+#endif
 
 // La tabla de punteros de GL: la de la CL0.3, que desde la CL5.1 arma GlFunctionList.h.
 namespace Client::Platform

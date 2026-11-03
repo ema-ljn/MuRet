@@ -1,5 +1,7 @@
 #include "Platform/GlLoader.h"
 
+#include "Platform/GlFunctionList.h"
+
 #include <gtest/gtest.h>
 
 #include <SDL3/SDL_stdinc.h>

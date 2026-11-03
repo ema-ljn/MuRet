@@ -1,7 +1,8 @@
 #pragma once
 
 #include <array>
-#include <compare>
+// La pide el operator<=> por defecto de abajo, aunque no nombre nada de ella.
+#include <compare> // IWYU pragma: keep
 #include <span>
 #include <string>
 

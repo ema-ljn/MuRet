@@ -1,5 +1,6 @@
 #include "Core/FileSink.h"
 
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Core/PathText.h"
 #include "Core/StderrSink.h"
@@ -23,6 +24,7 @@
 
 #ifndef _WIN32
 #include <csignal>
+#include <signal.h>
 #include <sys/resource.h>
 #endif
 

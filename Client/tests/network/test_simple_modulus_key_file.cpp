@@ -1,5 +1,7 @@
 #include "Network/Crypto/SimpleModulusKeyFile.h"
 
+#include "Network/Crypto/CryptoError.h"
+#include "Network/Crypto/SimpleModulus.h"
 #include "support/LittleEndian.h"
 #include "support/NetworkPrinters.h"
 

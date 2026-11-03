@@ -1,10 +1,12 @@
 #include "Render/Gl/TextureTable.h"
 
 #include "Core/Expected.h"
+#include "Data/DataError.h"
 #include "Data/Textures/OztTexture.h"
-#include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
+#include "Platform/GlLoader.h"
+#include "Render/Gl/GlTexture.h"
 #include "Render/ITextureStore.h"
 #include "Render/TextureSlot.h"
 #include "support/GlTestContext.h"
@@ -12,7 +14,6 @@
 
 #include <gtest/gtest.h>
 
-#include <array>
 #include <cstdint>
 #include <format>
 #include <string>

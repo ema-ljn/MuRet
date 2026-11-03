@@ -1,5 +1,6 @@
 #include "Core/TeeSink.h"
 
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "support/RecordingSink.h"
 

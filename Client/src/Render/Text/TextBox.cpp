@@ -1,9 +1,14 @@
 #include "Render/Text/TextBox.h"
 
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Text/TextStyle.h"
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <cstdint>
+#include <span>
+#include <string_view>
 
 namespace Client::Render::Text
 {

@@ -1,5 +1,8 @@
 #include "App/CommandLine.h"
 
+#include "App/PacingMode.h"
+#include "App/ServerAddress.h"
+#include "App/VSyncMode.h"
 #include "Core/PathText.h"
 
 #include <gtest/gtest.h>

@@ -1,5 +1,10 @@
 #include "support/RecordingClient.h"
 
+#include "Input/InputState.h"
+#include "support/FakeClock.h"
+
+#include <ostream>
+
 namespace Client::Tests
 {
 void PrintTo(LoopCall call, std::ostream* out)

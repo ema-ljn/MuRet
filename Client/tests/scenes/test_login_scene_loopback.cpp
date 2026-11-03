@@ -5,6 +5,7 @@
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Input/InputState.h"
 #include "Network/Connection.h"

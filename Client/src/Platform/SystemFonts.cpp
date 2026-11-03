@@ -4,7 +4,10 @@
 
 #include <array>
 #include <cstddef>
+#include <filesystem>
+#include <optional>
 #include <string>
+#include <string_view>
 
 #ifdef _WIN32
 // Sin las macros min y max de <windows.h>, que pisan std::min, ni lo que el registro no necesita.

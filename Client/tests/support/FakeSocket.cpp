@@ -1,7 +1,17 @@
 #include "support/FakeSocket.h"
 
+#include "App/ServerAddress.h"
+#include "Core/Expected.h"
+#include "Network/ISocket.h"
+#include "Network/SocketError.h"
+
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <span>
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace Client::Tests
 {

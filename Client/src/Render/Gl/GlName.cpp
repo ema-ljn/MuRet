@@ -1,5 +1,7 @@
 #include "Render/Gl/GlName.h"
 
+#include "Platform/GlLoader.h"
+
 #include <utility>
 
 namespace Client::Render::Gl

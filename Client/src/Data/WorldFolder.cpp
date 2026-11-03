@@ -1,6 +1,8 @@
 #include "Data/WorldFolder.h"
 
 #include <array>
+#include <cstdint>
+#include <string>
 
 namespace Client::Data
 {

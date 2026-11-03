@@ -1,5 +1,6 @@
 #include "Core/Log.h"
 
+#include "Core/ILogSink.h"
 #include "support/RecordingSink.h"
 
 #include <gtest/gtest.h>

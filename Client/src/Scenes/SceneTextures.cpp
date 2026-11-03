@@ -1,5 +1,13 @@
 #include "Scenes/SceneTextures.h"
 
+#include "Core/Expected.h"
+#include "Data/Textures/TextureSet.h"
+#include "Render/ITextureStore.h"
+#include "Render/TextureSlot.h"
+
+#include <filesystem>
+#include <span>
+#include <string>
 #include <utility>
 #include <vector>
 

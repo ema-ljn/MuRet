@@ -1,7 +1,14 @@
 #include "Render/Gl/TextureTable.h"
 
-#include <cstddef>
+#include "Core/Expected.h"
+#include "Data/Textures/TextureSet.h"
+#include "Platform/GlLoader.h"
+#include "Render/Gl/GlTexture.h"
+#include "Render/TextureSlot.h"
+
 #include <format>
+#include <span>
+#include <string>
 #include <utility>
 
 namespace Client::Render::Gl

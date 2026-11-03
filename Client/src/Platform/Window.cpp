@@ -1,7 +1,15 @@
 #include "Platform/Window.h"
 
+#include "App/VSyncMode.h"
+#include "App/WindowState.h"
+#include "Core/Expected.h"
+#include "Platform/GlLoader.h"
+#include "Platform/SdlContext.h"
+#include "Platform/SwapInterval.h"
+
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_video.h>
 
 #include <string>
 #include <utility>

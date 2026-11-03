@@ -1,5 +1,7 @@
 #include "Network/PacketReader.h"
 
+#include "Network/Packet.h"
+#include "Network/PacketError.h"
 #include "support/Bytes.h"
 #include "support/FixedRandom.h"
 #include "support/NetworkPrinters.h"

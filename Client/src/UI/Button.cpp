@@ -1,12 +1,21 @@
 #include "UI/Button.h"
 
+#include "App/WindowState.h"
+#include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/ScreenScale.h"
 #include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
+#include "Render/TextureSlot.h"
+#include "Render/UiImage.h"
+#include "Scenes/ITextDrawer.h"
+#include "UI/Widget.h"
 
+#include <cstdint>
+#include <optional>
+#include <string>
 #include <utility>
 
 namespace Client::UI

@@ -5,9 +5,11 @@
 #include "App/FaithfulPacer.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Network/Connection.h"
 #include "Network/FoxAntiObfuscation.h"
+#include "Network/Packet.h"
 #include "Network/SocketApi.h"
 #include "Network/SystemResolver.h"
 #include "Network/SystemSocket.h"
@@ -25,6 +27,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>

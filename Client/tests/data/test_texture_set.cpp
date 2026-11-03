@@ -16,10 +16,12 @@
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <ios>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // Un juego de texturas leído del disco como lo pide el original: el nombre con la extensión del

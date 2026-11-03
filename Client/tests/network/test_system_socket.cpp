@@ -1,6 +1,8 @@
 #include "Network/SystemSocket.h"
 
+#include "Network/ISocket.h"
 #include "Network/SocketApi.h"
+#include "Network/SocketError.h"
 #include "Network/SystemResolver.h"
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"

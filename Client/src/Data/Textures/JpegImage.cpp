@@ -1,5 +1,8 @@
 #include "Data/Textures/JpegImage.h"
 
+#include "Core/Expected.h"
+#include "Data/DataError.h"
+
 #include <algorithm>
 #include <csetjmp>
 #include <cstddef>

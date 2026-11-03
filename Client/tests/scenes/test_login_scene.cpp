@@ -459,6 +459,7 @@ TEST(LoginSceneTest, WithoutASessionItDrawsAndDoesNotConnect)
     }
 
     EXPECT_EQ(scene.Next(), std::nullopt);
+    EXPECT_FALSE(scene.HoldsTheLastFrame());
     EXPECT_EQ(tested.Frame().size(), 9u);
 }
 

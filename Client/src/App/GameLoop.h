@@ -44,9 +44,10 @@ public:
     // maxFps: el tope de FPS del modo normal; 0 o menos es sin tope. Main pasa 0 o un valor de
     // MinFpsLimit a MaxFpsLimit (Resolve y EffectiveMaxFps).
     GameLoop(Core::IClock& clock, ILoopClient& client, PacingMode mode, int maxFps = 0);
-    // Un frame: un Poll, los pasos que tocan y el dibujo si `state.minimized` es falso. El Poll
-    // corre siempre, también minimizada y en un frame sin pasos. Minimizada, en Decoupled duerme
-    // hasta el próximo paso en vez de girar; en Faithful, la espera corre siempre.
+    // Un frame: un Poll, los pasos que tocan y el dibujo si `state.minimized` es falso y el
+    // cliente no retiene el último frame (ILoopClient::HoldsTheLastFrame). El Poll corre siempre,
+    // también minimizada y en un frame sin pasos. Sin dibujo, en Decoupled duerme hasta el próximo
+    // paso en vez de girar; en Faithful, la espera corre siempre.
     // Cada paso recibe `input`, y después del primero GameLoop le llama a ConsumeEdges: un
     // apretón lo ve un solo paso, y en un frame sin pasos `input` no se toca y el apretón espera
     // al próximo (CL3.3, Q-C45). Devuelve cuántos pasos corrió.

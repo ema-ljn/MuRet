@@ -47,4 +47,9 @@ void RecordingClient::Render(float alpha)
     alphas.push_back(alpha);
     m_clock.Advance(renderCost);
 }
+
+bool RecordingClient::HoldsTheLastFrame() const
+{
+    return holdsTheLastFrame;
+}
 } // namespace Client::Tests

@@ -203,6 +203,22 @@ TEST(FaithfulPacerTest, MinimizedKeepsTheWait)
     EXPECT_TRUE(faithful.client.alphas.empty());
 }
 
+// Con el frame retenido (Q-C85), como minimizada: la espera de GetTickCount sigue y no dibuja.
+TEST(FaithfulPacerTest, AHeldFrameKeepsTheWait)
+{
+    FaithfulLoop faithful;
+    faithful.client.holdsTheLastFrame = true;
+    faithful.StepsPerFrame(64);
+
+    EXPECT_EQ(faithful.clock.Now(), 3s);
+    EXPECT_EQ(faithful.loop.Stats().steps, 74u);
+    EXPECT_TRUE(faithful.client.alphas.empty());
+
+    faithful.client.holdsTheLastFrame = false;
+    faithful.StepsPerFrame(1);
+    EXPECT_EQ(faithful.client.alphas.size(), 1u);
+}
+
 // El dibujo del modo fiel no se interpola: el estado después de los pasos.
 TEST(FaithfulPacerTest, DrawsWithAlphaZero)
 {

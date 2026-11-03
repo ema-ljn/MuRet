@@ -79,6 +79,12 @@ public:
     [[nodiscard]] bool WantsToQuit() const override;
     // Con la ventana de la cuenta abierta: es la de arriba, porque un aviso la cierra al abrirse.
     [[nodiscard]] bool WantsTextInput() const override;
+    // Mientras la sesión conecta al CS o al GS, o el último paso todavía la vio conectando: el
+    // original conecta con un connect bloqueante (0x4c1340, que llama a 0x4e8570: al CS desde
+    // 0x6349a0, antes del primer frame del login, y desde el cancelar, 0x642837; al GS desde
+    // 0x4e3396), y en la pantalla queda el último frame hasta que termina (Q-C85). Así el primer
+    // frame que se dibuja después ya trae lo que abrió el paso: el aviso de la falla, o la espera.
+    [[nodiscard]] bool HoldsTheLastFrame() const override;
 
 private:
     void DrawTexts(SceneCanvas& canvas) const;

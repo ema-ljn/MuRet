@@ -65,6 +65,8 @@ public:
     [[nodiscard]] bool WantsToQuit() const;
     // Si la escena de ahora pide el texto tecleado (IScene::WantsTextInput); sin escena, false.
     [[nodiscard]] bool WantsTextInput() const;
+    // Si la escena de ahora retiene el último frame (IScene::HoldsTheLastFrame); sin escena, false.
+    [[nodiscard]] bool HoldsTheLastFrame() const override;
 
 private:
     // La fábrica y el Enter de `id`; si falla, queda sin escena y con el error.

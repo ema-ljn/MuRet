@@ -24,5 +24,9 @@ public:
     // con el dibujo, como el original. alpha en [0, 1): cuánto del próximo paso ya pasó
     // (Decoupled), o 0 (Faithful).
     virtual void Render(float alpha) = 0;
+    // Si este frame no se dibuja: en la pantalla queda el último que se presentó, como en el
+    // original mientras un connect bloqueante tiene parado el bucle (el del login, Q-C85). GameLoop
+    // lo mira después de los pasos, y el frame sigue como minimizada: la red y los pasos corren.
+    [[nodiscard]] virtual bool HoldsTheLastFrame() const = 0;
 };
 } // namespace Client::App

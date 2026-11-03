@@ -124,6 +124,11 @@ bool LoadingScene::WantsTextInput() const
     return false;
 }
 
+bool LoadingScene::HoldsTheLastFrame() const
+{
+    return false;
+}
+
 int LoadingScene::Progress() const
 {
     return m_progress;

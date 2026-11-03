@@ -117,6 +117,12 @@ constexpr int NoSlot = -1;
     return std::ranges::any_of(WindowTextureSet, [slot](const Data::Textures::TextureSetEntry& entry)
                                { return entry.slot == slot.value; });
 }
+
+// Los dos estados del connect, que en el original es bloqueante (Q-C85).
+[[nodiscard]] bool IsConnecting(App::SessionState state)
+{
+    return state == App::SessionState::ConnectingConnectServer || state == App::SessionState::ConnectingGameServer;
+}
 } // namespace
 
 std::string PlaceVersion(std::string_view text, std::string_view version)
@@ -472,5 +478,14 @@ bool LoginScene::WantsToQuit() const
 bool LoginScene::WantsTextInput() const
 {
     return m_login.IsOpen();
+}
+
+bool LoginScene::HoldsTheLastFrame() const
+{
+    if (m_session == nullptr)
+    {
+        return false;
+    }
+    return IsConnecting(m_session->State()) || (m_seen && IsConnecting(*m_seen));
 }
 } // namespace Client::Scenes

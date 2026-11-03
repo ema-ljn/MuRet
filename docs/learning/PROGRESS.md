@@ -305,6 +305,16 @@ solo lo lee.
   `App::ChooseFontFiles` y, en Windows, `Platform::FindSystemFontFile` con la lista del registro.
   Dos bugs nuevos del original, corregidos: `0x4667a0` reescribe el texto en el buffer del que llama
   (Q-C77), y la caja que pasa de la columna 1.280 del DIB lee la fila de abajo (Q-C78).
+  **La CL5.4** la resuelve Claude en dos PRs, con el paso 1, la tabla de transiciones y la de
+  `WorldFolderNumber`, **resuelto por Claude**. El A (2026-11-03): la carpeta de cada mapa es un
+  dato (`Data::WorldFolder`, con `OriginalMaps`, los 39 mapas que llegan a `0x61a560`), con los
+  tres rangos de evento, el 32 en la carpeta del 9 y el 255 en `World256`; el golden ve que los 20
+  mundos del laboratorio son la carpeta de algún mapa y que solo falta la del 35. Las escenas son
+  objetos (`IScene`: entrar, paso, dibujo, salir y a cuál ir), y el `SceneManager` cambia solo por
+  una de las ocho transiciones del original (`SceneTransitions.h`): otra es un error en el log, una
+  vez. Sale la de antes y entra la nueva, que la fábrica arma de cero; un `Enter` que falla deja el
+  error para que `main.cpp` cierre. La red corre en cada `Poll`, también minimizada. Q-C79, nuevo:
+  el `F1 02` cambia de escena sin mirar en cuál está.
 
 ## Conceptos
 
@@ -415,6 +425,8 @@ sesión, junto con los de repaso más viejo.
 | medir como `GetTextExtentPointA` (los avances con hinting, sumados sin kerning) y ubicar con la aritmética del original: una división entera sin signo que trunca y un producto que da la vuelta en 32 bits | CL5.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | colores dentro de un texto: un parser que saca pares de bytes y anota tramos sobre el texto limpio, con un tope que corta los tramos y no la limpieza (`0x4667a0`); y las codificaciones de un byte (Latin-1) contra GB2312 y UTF-8, decididas contando bytes sin imprimir el texto | CL5.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | una caché con tope y la regla de sacar el menos usado (LRU): una lista que se reordena con `splice` sin mover sus nodos, un índice que apunta a ellos, una clave con todo lo que cambia el resultado (texto, fuente y colores), y los recursos (slots) que vuelven al soltar | CL5.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| una máquina de estados con transiciones explícitas: una tabla de pares que se prueba entera (las 25 de cinco escenas), un pedido que no está que se rechaza sin cambiar nada, y el ciclo de vida de un estado (entrar, paso, dibujo, salir) con sus recursos soltados antes de que entre el siguiente | CL5.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| el mundo como dato: una función que da la carpeta de cualquier mapa desde una tabla de rangos, leída de los `cmp` y los saltos con signo del desensamblado, y un golden que recorre todos los mundos que hay en vez de uno | CL5.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

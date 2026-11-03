@@ -316,8 +316,12 @@ por un script que lee como él, sin bytes de sobra en ninguno):
   un script (`0x459940`): los caracteres 1 a 4 prenden, en mayúscula, `R`, `H`, `S` y `N` los
   bytes 0 a 3 de `malla + 0x24`, y cualquier otro deja la malla sin script (los casos `DC` y `DT`
   son código muerto: el byte 4 queda en 0). En el laboratorio, 142 mallas tienen script (135 `R`,
-  6 `H` en `Object11\Object01` a `06` y 1 `S` en `Item\Quest03`, ninguna `N`), ninguna del
-  personaje; los 13 nombres en minúscula (entre ellos los `_s` de `player\`) no cuentan. Qué hace
+  6 `H` en `Object11\Object01` a `06` y 1 `S` en `Item\Quest03`, ninguna `N`), y 17 son de partes
+  del personaje, todas `R`: el pelo de los cascos (`hair_R.jpg`), `FShoots_R.jpg` y `lowerTest_R.jpg`
+  y `lowerTest2_R.jpg` (*verificado* en la CL6.1, `GoldenBmd.TheTextureScriptsOfTheLab`; antes este
+  punto decía que ninguna); los 13 nombres en minúscula (entre ellos los `_s` de `player\`) no
+  cuentan. Una letra que no es de las cuatro deja la malla sin script, también las que ya prendió:
+  `0x459a2f` devuelve 0 y el llamador (`0x4f17f3`) no lo guarda. Qué hace
   cada byte en el dibujo, en [06](06-render-escenas-y-ui.md#el-modelo-en-el-binario).
 - Al final, `0x4f1f20(0)`: el hueso de la cabeza (`+0x54`) en -1 y, por hueso, una caja con el
   mínimo y el máximo de los vértices que cuelgan de él (`0x4f1f80`, las 8 esquinas en `hueso +

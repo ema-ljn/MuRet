@@ -364,6 +364,13 @@ la velocidad de su acción; la mascota y las alas, por frame dibujado.**
 Leído en la CL6.R en el desensamblado de `c32bbd5f`: todo *estático* salvo lo que se marca. El
 archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, lo que pasa después.
 
+- **Lo que carga cada cargador** (CL6.1, *verificado* emulando el `main.exe` con
+  [`scripts/emulate_model_loaders.py`](scripts/emulate_model_loaders.py)): `0x60dbe0` hace 213
+  llamadas a `0x60da30` (de `Player.bmd` a `Shadow01.bmd`) y las 181 escrituras de velocidad de
+  abajo; `0x60ff50`, 243, todas con un modelo distinto, de las que faltan en el laboratorio los
+  tres `giftbox`; y `0x61ca30`, `Logo05` y `NewFace01` a `05` de `Logo\`. Las filas, con la
+  dirección de cada llamada, son `PlayerModelFiles` e `ItemModelFiles` de
+  `Client/src/Data/Models/PlayerModels.cpp`.
 - **El modelo y el objeto.** La tabla de modelos tiene `0x489d` de `0xe0` bytes, con la base
   corrida `rand() & 0x3ff` modelos (contra quien lea la memoria). Del modelo cuentan acá `+0x44`
   (con luz por vértice), `+0x48..+0x50` (el color), `+0x54` (el hueso de la cabeza: 20 en

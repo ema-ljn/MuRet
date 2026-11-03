@@ -869,7 +869,7 @@ public:
   mayúsculas y el dummy solo con 1) los mata al menos un test cada uno. Sin la VM de Windows, se
   compiló y corrió en Linux con `-Werror` y sin precompiled headers, con `misc-include-cleaner` y
   `clang-format` 18 limpios.
-- [ ] **Paso 6 (PR B):** los tests de las tablas, con los números de la CL6.R:
+- [x] **Paso 6 (PR B):** los tests de las tablas, con los números de la CL6.R:
   `PlayerModelsTest.ThePlayerIsModel0x20a`, `ItemModelsAreGroupTimes512PlusIndex`,
   `ClassPartsAreOneToFive`, `HelmMaleOneIsItemZero` (el `HelmMale` N es el índice N − 1 del grupo
   7), `EveryRowIsAModelOfTheTable`; `PlayerActionsTest.TheSelectionActionIsPointTwoSix` (la 3),
@@ -881,20 +881,51 @@ public:
   `ModelTextureSlotsTest.ARepeatedNameReusesItsSlot`, `ANewNameTakesTheNextSlot`,
   `TheSearchStartsAtSlotZero` (un nombre que subió otra llamada antes de `first` se reusa),
   `OztIsAlwaysNearest`, `TheSkinMeshesPointAtTheSkinSlots`.
-- [ ] **Paso 7 (PR B, Emanuel):** las tablas como `constexpr`, con la dirección de cada fila en un
+- [x] **Paso 7 (PR B, Emanuel, resuelto por Claude):** las tablas como `constexpr`, con la dirección de cada fila en un
   comentario; `ModelTextureSlots` con lo que diga la CL6.R del paso 3 (mayúsculas, el slot que
   queda ocupado).
-- [ ] **Paso 8 (PR B):** los golden: `GoldenModelFiles.EveryModelOfThePlayerLoaderExists` (cada
+- [x] **Paso 8 (PR B):** los golden: `GoldenModelFiles.EveryModelOfThePlayerLoaderExists` (cada
   fila de `PlayerModelFiles`, o la lista de faltantes conocidos, vacía hasta que el golden diga
   otra cosa), `EveryMeshTextureOfThePlayerResolves` (la textura de cada malla de cada parte, con su
   cargador, en la carpeta de su llamador), `EveryPartVertexHangsFromAPosedBone` (el hueso de cada
   vértice de cada parte está en los 60 de `Player.bmd` y no es dummy, que no se posa: CL6.2) y
   `TheSelectionModelsExist` (`Logo05` y `NewFace01` a `05`, de `0x61ca30`).
-- [ ] **Paso 9 (PR B):** verificar como en el paso 5, con `-R "PlayerModels|PlayerActions|
+- [x] **Paso 9 (PR B):** verificar como en el paso 5, con `-R "PlayerModels|PlayerActions|
   ModelTexture|GoldenModelFiles"`. Los mutantes: una velocidad de antes que pisa a la de después,
   el `+0` de las cuatro al revés, `ItemModel` con 511, la letra de la extensión en vez de la del
   primer punto, la letra sin `tolower`, `hair` al `0x12e`, y la búsqueda desde `first` en vez de
   desde 0.
+
+  Hecho así (PR B, 2026-11-03, resuelto por Claude): `Data/Models/PlayerModels`, `PlayerActions` y
+  `ModelTextures`, y `Render/Models/ModelTextureSlots`, con 36 tests más (golden incluidos, en
+  `test_golden_model_files.cpp` y uno en `test_golden_bmd.cpp`). Las dos tablas y las velocidades salen de **emular** `0x60dbe0`
+  (desde `0x60e8fc`, el modo `Data\`) y `0x60ff50` sobre el `main.exe` con Unicorn
+  (`Client/docs/research/scripts/emulate_model_loaders.py`): cada fila lleva la dirección de su
+  llamada o de su escritura. Lo que cambió del contrato de arriba:
+  - `PlayerActionSpeeds` tiene 47 filas, una por instrucción del original (un bucle o una sola
+    escritura), y no los 35 grupos de 06: suman las mismas 181 escrituras, con la misma velocidad
+    final en cada acción. Cada float tiene los bits del inmediato del original.
+  - `ItemModelFiles` son 243 llamadas con 243 modelos distintos; faltan solo los tres `giftbox`. Ojo
+    al emular: arrancado a mitad de `0x60ff50`, `ebx` queda en 0 y `0x6109ed` apaga el modo `Data\`
+    (daba 244 llamadas, una repetida, y diez familias desde el 0).
+  - El cargador de una textura de modelo es el `TextureLoader` que ya estaba (regla 4), no un enum
+    nuevo, y `BodyPart` no entra hasta que lo use la CL6.3. `PlayerFootBones` (6 y 13) sí, junto
+    con la cabeza.
+  - `ModelTextureLoaderOf` sin punto mira la segunda letra: el índice del punto queda en 0
+    (`0x60d66c`). `TextureScriptOf` sigue a `0x459940`: hasta cuatro letras después del primer `_`,
+    y una que no es `R`, `H`, `S` ni `N` deja la malla sin script, también lo que ya prendió.
+  - `ModelTextureSlots` suma `SetNext` (otra llamada a `0x60d530`, que puede ir para atrás, Q-C89),
+    y `ToLoad` pide la carpeta, el nombre hasta el primer punto y la extensión del cargador que
+    eligió la letra, así `LoadTextureSet` abre el mismo archivo que el original.
+  - El golden encontró que 17 mallas de partes del personaje tienen el script `R` (`hair_R.jpg`,
+    `FShoots_R.jpg`, `lowerTest_R.jpg`, `lowerTest2_R.jpg`): 05 decía que ninguna, y quedó
+    corregido (`GoldenBmd.TheTextureScriptsOfTheLab`). Suman `TheItemLoaderMissesOnlyTheGiftBoxes`
+    y `ThePlayerActionsFitTheSkeleton`; los modelos de la selección son los de `Logo\`
+    (`0x61cb92` y `0x61cbb1`).
+
+  Los 13 mutantes a mano (los siete de arriba y la búsqueda que pasa del próximo, la piel antes de
+  pedir, la OZT con el filtro de quien pide, el script con minúsculas, con cinco letras y con una
+  letra mala salteada) los mata al menos un test cada uno.
 
 **Qué queda para después:** el cuaternión de cada key y el esqueleto (CL6.2), las cajas de
 `0x4f1f80` (CL6.3, el picking), el script de la textura de cada malla (`0x459940`: lo lee la CL6.R,

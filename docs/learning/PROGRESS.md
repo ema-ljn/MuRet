@@ -381,8 +381,13 @@ solo lo lee.
   `Player.bmd` con mallas (Q-C88). Los golden recorren los 1.962 modelos del laboratorio sin un
   byte de sobra, y encontraron lo que el plan no esperaba: en `NPC\BloodCastle01.bmd` dos huesos
   cuelgan de uno que va después, y la pose del original los arma con una matriz vieja (Q-C106,
-  nuevo). 31 tests y 14 mutantes a mano. La PR B (el catálogo del personaje, las velocidades y los
-  slots de las texturas) va apilada.
+  nuevo). 31 tests y 14 mutantes a mano. **La CL6.1 B** (2026-11-03, resuelta por Claude): los
+  modelos que piden el personaje (213) y los ítems (243), las 181 velocidades de las acciones de
+  `Player.bmd`, el cargador, la piel y el script de la textura de una malla, y los slots que les
+  reparte el original (`ModelTextureSlots`, en `Render/Models/`). Las tablas no se copiaron a mano
+  del desensamblado: salen de emular los dos cargadores del `main.exe`
+  (`Client/docs/research/scripts/emulate_model_loaders.py`), con la dirección de cada llamada. El
+  golden corrigió al research: 17 mallas del personaje tienen script. 36 tests más y 13 mutantes.
 
 ## Conceptos
 
@@ -511,6 +516,7 @@ sesión, junto con los de repaso más viejo.
 | la x87 con la precisión en 53 bits (`_controlfp` en `0x6a4b73`): qué queda en la pila como double y qué se redondea a float en cada store, y probar unos tests con mutantes a mano, uno equivalente incluido | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | leer un formato y un cargador en el binario y probarlos contra datos reales: un script que lee los `.bmd` como `0x4f13d0`, el asignador de slots simulado contra un volcado de la memoria, y qué queda *estático*, *inferido* o verificado | CL6.R | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | un formato con conteos que dicen cuánto leer de cada parte: no pedir memoria antes de saber que entra, un cifrado que vale solo para un bloque (`0x0C` desde `+8`), y un golden que encuentra lo que el plan no esperaba (Q-C106) | CL6.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| una tabla del original sacada del binario y no copiada a mano: emular un cargador, qué registros dependen de lo de antes (el `ebx` de `0x60ff50`), y un slot que se busca por nombre desde el 0 hasta el próximo libre | CL6.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

@@ -35,9 +35,12 @@ original, pero moderno:
 **Modernizar nunca sacrifica fidelidad.** Todo lo que el original hace observable se mantiene al
 byte o al tick: lo que se manda y se entiende por la red, cómo se leen los archivos de `Data\`, la
 velocidad de la lógica (movimiento, animaciones, cooldowns, keepalive) y lo que ve el jugador. Lo
-moderno es la implementación (C++20, OpenGL 3.3, capas, tests) y lo que el original no fija:
-cuántos frames se dibujan entre dos ticks, la resolución, el suavizado. Si una mejora cambiara algo
-observable, va detrás de una opción y con un ADR, y el modo por defecto es el fiel.
+moderno es la implementación (C++20, OpenGL 3.3, capas, tests) y lo que el original no fija: cuántos
+frames se dibujan entre dos ticks, la resolución, el suavizado. Si una mejora cambiara algo
+observable, va detrás de una opción y con un ADR, y por defecto queda lo que hace el original.
+Cuántos frames se dibujan no es parte de eso: por eso el ritmo por defecto es el desacoplado de
+D-C4, y el modo fiel (`Pacing = faithful`, los 21,33 FPS del original) es la opción para comparar
+lado a lado.
 
 Es un **proyecto de aprendizaje**, igual que el servidor: Emanuel escribe la lógica del cliente
 sub-ola por sub-ola y Claude hace de tutor. Claude escribe el andamiaje (CMake, dependencias, CI,

@@ -1,5 +1,7 @@
 #include "Platform/SdlLog.h"
 
+#include "Core/ILogSink.h"
+#include "Core/Log.h"
 #include "support/RecordingSink.h"
 
 #include <gtest/gtest.h>

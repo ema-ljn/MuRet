@@ -1,7 +1,6 @@
 #include "Scenes/CharacterSelectScene.h"
 
 #include "Input/InputState.h"
-#include "Scenes/SceneCanvas.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/ScenePrinters.h"
 

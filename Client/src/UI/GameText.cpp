@@ -1,7 +1,14 @@
 #include "UI/GameText.h"
 
+#include "Data/Text/TextTable.h"
+
 #include <algorithm>
+#include <cstddef>
 #include <optional>
+#include <span>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace Client::UI
 {

@@ -1,5 +1,7 @@
 #include "Network/Crypto/CryptoError.h"
 
+#include <string_view>
+
 namespace Client::Network::Crypto
 {
 std::string_view CryptoErrorText(CryptoError error)

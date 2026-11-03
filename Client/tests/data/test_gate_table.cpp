@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <span>
 #include <vector>
 
 // Client::Data::Tables::LoadGateTable: Gate.bmd, con archivos sintéticos.

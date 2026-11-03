@@ -2,6 +2,7 @@
 
 #include "Network/IResolver.h"
 #include "Network/SocketApi.h"
+#include "Network/SocketError.h"
 #include "support/ExpectedError.h"
 #include "support/NetworkPrinters.h"
 

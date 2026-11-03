@@ -2,7 +2,10 @@
 
 #include "Core/Log.h"
 #include "Render/SpriteBatch.h"
+#include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextCache.h"
+#include "Render/Text/TextStyle.h"
 #include "Scenes/ITextDrawer.h"
 
 #include <set>

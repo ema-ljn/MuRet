@@ -1,5 +1,7 @@
 #include "Network/PacketSerials.h"
 
+#include <cstdint>
+
 namespace Client::Network
 {
 // Un std::uint8_t que suma 1 da la vuelta de 255 a 0: la suma es en int, y la conversión de vuelta

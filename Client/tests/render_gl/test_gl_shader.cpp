@@ -1,6 +1,7 @@
 #include "Render/Gl/GlShader.h"
 
 #include "Core/Expected.h"
+#include "Platform/GlLoader.h"
 #include "Render/Gl/Shaders.h"
 #include "support/GlTestContext.h"
 

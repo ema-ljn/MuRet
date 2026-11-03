@@ -2,7 +2,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <string_view>

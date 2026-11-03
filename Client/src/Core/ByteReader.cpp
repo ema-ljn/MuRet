@@ -1,5 +1,11 @@
 #include "Core/ByteReader.h"
 
+#include <bit>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <span>
+
 namespace
 {
 // Cuánto se corre cada byte del campo para llegar a su lugar en el resultado.

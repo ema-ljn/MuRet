@@ -1,6 +1,14 @@
 #include "App/Config.h"
 
+#include "App/CommandLine.h"
+#include "App/ConfigError.h"
 #include "App/LoopTiming.h"
+#include "App/ObfuscationMode.h"
+#include "App/PacingMode.h"
+#include "App/ServerAddress.h"
+#include "App/VSyncMode.h"
+#include "Core/Ascii.h"
+#include "Core/Expected.h"
 #include "Core/PathText.h"
 
 #include <algorithm>
@@ -8,16 +16,19 @@
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <format>
 #include <fstream>
 #include <ios>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 
 namespace Client::App
 {
+using Core::EqualsIgnoringAsciiCase;
 using Core::Unexpected;
 
 namespace
@@ -92,16 +103,6 @@ std::string_view WithoutQuotes(std::string_view value)
     return value;
 }
 
-char ToLowerAscii(char c)
-{
-    return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c;
-}
-
-bool EqualsIgnoringCase(std::string_view a, std::string_view b)
-{
-    return std::ranges::equal(a, b, [](char x, char y) { return ToLowerAscii(x) == ToLowerAscii(y); });
-}
-
 std::string_view Trim(std::string_view text)
 {
     while (!text.empty() && IsBlank(text.front()))
@@ -130,8 +131,8 @@ std::string_view WithoutComment(std::string_view line)
 
 bool IsKnownSection(std::string_view section)
 {
-    return std::ranges::any_of(KnownKeys,
-                               [section](const KnownKey& known) { return EqualsIgnoringCase(known.section, section); });
+    return std::ranges::any_of(KnownKeys, [section](const KnownKey& known)
+                               { return EqualsIgnoringAsciiCase(known.section, section); });
 }
 
 // La posición en KnownKeys, o KnownKeys.size() si no está.
@@ -139,7 +140,7 @@ std::size_t FindKey(std::string_view section, std::string_view name)
 {
     const auto found = std::ranges::find_if(
         KnownKeys, [section, name](const KnownKey& known)
-        { return EqualsIgnoringCase(known.section, section) && EqualsIgnoringCase(known.name, name); });
+        { return EqualsIgnoringAsciiCase(known.section, section) && EqualsIgnoringAsciiCase(known.name, name); });
     return static_cast<std::size_t>(found - KnownKeys.begin());
 }
 
@@ -178,15 +179,15 @@ Core::Expected<int, std::string> ParseMaxFps(std::string_view value)
 
 Core::Expected<VSyncMode, std::string> ParseVSync(std::string_view value)
 {
-    if (EqualsIgnoringCase(value, "on"))
+    if (EqualsIgnoringAsciiCase(value, "on"))
     {
         return VSyncMode::On;
     }
-    if (EqualsIgnoringCase(value, "adaptive"))
+    if (EqualsIgnoringAsciiCase(value, "adaptive"))
     {
         return VSyncMode::Adaptive;
     }
-    if (EqualsIgnoringCase(value, "off"))
+    if (EqualsIgnoringAsciiCase(value, "off"))
     {
         return VSyncMode::Off;
     }
@@ -195,11 +196,11 @@ Core::Expected<VSyncMode, std::string> ParseVSync(std::string_view value)
 
 Core::Expected<PacingMode, std::string> ParsePacing(std::string_view value)
 {
-    if (EqualsIgnoringCase(value, "decoupled"))
+    if (EqualsIgnoringAsciiCase(value, "decoupled"))
     {
         return PacingMode::Decoupled;
     }
-    if (EqualsIgnoringCase(value, "faithful"))
+    if (EqualsIgnoringAsciiCase(value, "faithful"))
     {
         return PacingMode::Faithful;
     }
@@ -208,11 +209,11 @@ Core::Expected<PacingMode, std::string> ParsePacing(std::string_view value)
 
 Core::Expected<ObfuscationMode, std::string> ParseObfuscation(std::string_view value)
 {
-    if (EqualsIgnoringCase(value, "foxanti"))
+    if (EqualsIgnoringAsciiCase(value, "foxanti"))
     {
         return ObfuscationMode::FoxAnti;
     }
-    if (EqualsIgnoringCase(value, "none"))
+    if (EqualsIgnoringAsciiCase(value, "none"))
     {
         return ObfuscationMode::None;
     }

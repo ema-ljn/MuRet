@@ -35,7 +35,8 @@ Los nombres de tests nuevos que aparecen abajo son **propuestos**, no tests ya i
 | T2 | AUD-C02, fallo de escritura observable | Hecha en el #82 | `fix(client): informar los fallos de escritura del log` |
 | T3 | AUD-C03, fallo del driver al subir | Hecha en el #79 | `fix(client): rechazar una subida de textura que falla en GL` |
 | T4 | AUD-C04, registro de decisiones | El índice y las aclaraciones, en el #83; faltan los ADR del inventario (Claude) y los 0001 y 0002 (Emanuel) | `docs(client): ordenar las decisiones de compatibilidad pendientes` |
-| R1 a R4 | REF-C01 a REF-C04 | Opcionales, por separado | Un PR por refactor que se decida tomar |
+| R1 | REF-C01, comparación ASCII común | Hecha en `claude/client-ascii-compare` | `refactor(client): una sola comparación ASCII sin mayúsculas` |
+| R2 a R4 | REF-C02 a REF-C04 | Opcionales, por separado | Un PR por refactor que se decida tomar |
 
 T1 está en el #78, T3 en el #79 y T2 en el #82. T3 entró antes de que la CL5.4 conectara la tabla de
 texturas con las escenas; la caché del texto de la CL5.3 ya subía por `GlTexture`. El índice de T4
@@ -282,6 +283,17 @@ Tomarlos por separado, con un beneficio visible al tocar ese límite. No son pre
 Para cada unidad elegida: fijar el contrato, ejecutar la cobertura existente antes y después,
 agregar un caso nuevo solo si cubre comportamiento no fijado, revisar el diff y abrir su PR.
 No sumar un framework de strings, parser genérico ni otra capa para hacer estas extracciones.
+
+R1 está en `claude/client-ascii-compare` (2026-11-03). `Core/Ascii.h` tiene `ToLowerAscii` y
+`EqualsIgnoringAsciiCase`, y las usan la config, la línea de comandos, las rutas de `Data\`, las
+extensiones de las texturas, la lista de fuentes de Windows y el soporte de los tests. Ya no
+existen las copias de `Config.cpp`, `CommandLine.cpp` y `DataPath.cpp`, ni
+`Data::EqualsIgnoringAsciiCase` ni la de `tests/support/GoldenDir`. Los parsers no se tocaron:
+cada uno sigue con su política de mayúsculas y sus mensajes. `test_ascii.cpp` fija los bordes
+(vacíos, tamaños distintos, `@` y `` ` ``, `[` y `{`, los bytes desde 0x80 y un `\0` adentro), y
+cinco mutantes a mano lo ponen en rojo: plegar `[` en `{`, plegar los bytes altos de Latin-1,
+plegar con `| 0x20`, comparar solo el prefijo más corto y cortar en el primer `\0`. Las suites de
+config, CLI y rutas pasan sin cambios.
 
 ## Verificación y cierre por PR
 

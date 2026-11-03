@@ -1,10 +1,13 @@
 #include "Platform/SystemFonts.h"
 
-#include "Data/DataPath.h"
+#include "Core/Ascii.h"
 
 #include <array>
 #include <cstddef>
+#include <filesystem>
+#include <optional>
 #include <string>
+#include <string_view>
 
 #ifdef _WIN32
 // Sin las macros min y max de <windows.h>, que pisan std::min, ni lo que el registro no necesita.
@@ -33,7 +36,7 @@ constexpr std::string_view BoldSuffix = " Bold";
 bool EndsWithIgnoringAsciiCase(std::string_view text, std::string_view suffix)
 {
     return text.size() >= suffix.size() &&
-           Data::EqualsIgnoringAsciiCase(text.substr(text.size() - suffix.size()), suffix);
+           Core::EqualsIgnoringAsciiCase(text.substr(text.size() - suffix.size()), suffix);
 }
 } // namespace
 
@@ -66,7 +69,7 @@ bool FontEntryNamesFace(std::string_view entryName, std::string_view face, bool 
     while (true)
     {
         const std::size_t separator = names.find(FaceSeparator);
-        if (Data::EqualsIgnoringAsciiCase(names.substr(0, separator), wanted))
+        if (Core::EqualsIgnoringAsciiCase(names.substr(0, separator), wanted))
         {
             return true;
         }

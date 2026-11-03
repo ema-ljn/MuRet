@@ -5,6 +5,7 @@
 #include "Input/Key.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
+#include "Render/TextureSlot.h"
 #include "UI/Notices.h"
 #include "UI/Widget.h"
 #include "support/RecordingTextDrawer.h"

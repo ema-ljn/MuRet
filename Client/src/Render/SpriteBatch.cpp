@@ -1,8 +1,18 @@
 #include "Render/SpriteBatch.h"
 
+#include "App/WindowState.h"
+#include "Render/OriginalQuad.h"
+#include "Render/OriginalSkewedQuad.h"
+#include "Render/QuadCorner.h"
+#include "Render/SpriteVertex.h"
+#include "Render/TextureSlot.h"
+#include "Render/UiImage.h"
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <optional>
+#include <span>
 
 namespace Client::Render
 {

@@ -1,8 +1,15 @@
 #include "Network/PacketReader.h"
 
+#include "Core/Expected.h"
+#include "Network/IObfuscation.h"
 #include "Network/IdentityObfuscation.h"
+#include "Network/Packet.h"
+#include "Network/PacketError.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <optional>
+#include <span>
 #include <utility>
 
 namespace Client::Network

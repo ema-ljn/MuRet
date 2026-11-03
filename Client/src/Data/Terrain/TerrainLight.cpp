@@ -1,9 +1,15 @@
 #include "Data/Terrain/TerrainLight.h"
 
+#include "Core/Expected.h"
+#include "Data/DataError.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Data/Textures/JpegImage.h"
 #include "Data/Textures/OzjTexture.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <span>
 
 namespace Client::Data::Terrain
 {

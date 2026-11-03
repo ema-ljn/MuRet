@@ -1,11 +1,17 @@
 #include "Platform/DisplayModes.h"
 
+#include "App/Resolution.h"
+#include "Core/Expected.h"
+#include "Platform/SdlContext.h"
+
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_stdinc.h>
 #include <SDL3/SDL_video.h>
 
 #include <cstddef>
 #include <memory>
+#include <string>
+#include <vector>
 
 // DisplayModes: lo que dice SDL del monitor principal.
 namespace Client::Platform

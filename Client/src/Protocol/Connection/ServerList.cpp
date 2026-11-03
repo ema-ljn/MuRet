@@ -1,13 +1,19 @@
 #include "Protocol/Connection/ServerList.h"
 
 #include "Core/ByteReader.h"
+#include "Core/Expected.h"
+#include "Network/Packet.h"
 #include "Network/PacketWriter.h"
 #include "Protocol/Connection/Opcodes.h"
+#include "Protocol/Outgoing.h"
 #include "Protocol/PacketFields.h"
+#include "Protocol/ProtocolError.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <span>
+#include <vector>
 
 namespace Client::Protocol::Connection
 {

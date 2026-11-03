@@ -1,6 +1,12 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "Network/IObfuscation.h"
+#include "Network/ObfuscationError.h"
+#include "Network/Packet.h"
+
+#include <cstddef>
+#include <span>
 
 // La ofuscación que no toca nada: para un servidor que manda y espera los paquetes como main.exe.
 // Contrato: el plan de la CL2 (CL2.4).

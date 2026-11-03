@@ -1,5 +1,6 @@
 #include "Network/Crypto/SimpleModulus.h"
 
+#include "Network/Crypto/CryptoError.h"
 #include "support/FixedRandom.h"
 #include "support/NetworkPrinters.h"
 #include "support/SameBytes.h"

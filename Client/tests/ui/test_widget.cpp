@@ -1,6 +1,7 @@
 #include "UI/Widget.h"
 
 #include "App/WindowState.h"
+#include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/SceneTextures.h"

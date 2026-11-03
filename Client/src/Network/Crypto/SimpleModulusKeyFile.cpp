@@ -1,8 +1,14 @@
 #include "Network/Crypto/SimpleModulusKeyFile.h"
 
 #include "Core/ByteReader.h"
+#include "Core/Expected.h"
+#include "Network/Crypto/CryptoError.h"
+#include "Network/Crypto/SimpleModulus.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <optional>
+#include <span>
 
 namespace Client::Network::Crypto
 {

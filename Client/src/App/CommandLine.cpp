@@ -1,10 +1,21 @@
 #include "App/CommandLine.h"
 
 #include "App/LoopTiming.h"
+#include "App/PacingMode.h"
+#include "App/ServerAddress.h"
+#include "App/VSyncMode.h"
+#include "Core/Ascii.h"
+#include "Core/Expected.h"
 #include "Core/PathText.h"
 
-#include <algorithm>
 #include <charconv>
+#include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
 #include <system_error>
 #include <type_traits>
 #include <utility>
@@ -13,6 +24,8 @@ namespace
 {
 using Client::App::PacingMode;
 using Client::App::VSyncMode;
+using Client::Core::EqualsIgnoringAsciiCase;
+using Client::Core::ToLowerAscii;
 using Client::Core::Unexpected;
 
 constexpr std::string_view FramesOption = "--frames";
@@ -28,16 +41,6 @@ constexpr std::string_view ConnectWord = "connect";
 constexpr std::string_view Usage =
     "uso: Main [connect /u<host> /p<puerto>] [--auto-login] [--config RUTA] [--data RUTA] [--frames N] "
     "[--pacing decoupled|faithful] [--vsync on|adaptive|off] [--max-fps N] [--stats]";
-
-char ToLowerAscii(char c)
-{
-    return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c;
-}
-
-bool EqualsIgnoringCase(std::string_view a, std::string_view b)
-{
-    return std::ranges::equal(a, b, [](char x, char y) { return ToLowerAscii(x) == ToLowerAscii(y); });
-}
 
 // La letra de una opción del launcher ("/u10.0.0.1" da 'u'), en minúscula, o '\0' si no es una.
 char LauncherLetter(std::string_view argument)
@@ -167,7 +170,7 @@ Core::Expected<CommandLine, std::string> ParseCommandLine(std::span<const std::s
         }
         // El launcher pasa "connect /u<ip> /p<puerto>"; el parser sin usar del original (0x4b9890,
         // Q-C36) busca /u y /p sin mirar mayúsculas y sin necesitar el connect.
-        if (EqualsIgnoringCase(argument, ConnectWord))
+        if (EqualsIgnoringAsciiCase(argument, ConnectWord))
         {
             continue;
         }

@@ -1,7 +1,15 @@
 #include "Protocol/PacketFields.h"
 
+#include "Core/ByteReader.h"
+#include "Core/Expected.h"
+#include "Network/Packet.h"
+#include "Protocol/ProtocolError.h"
+
+#include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
+#include <string>
 
 namespace Client::Protocol
 {

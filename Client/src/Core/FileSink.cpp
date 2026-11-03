@@ -1,7 +1,18 @@
 #include "Core/FileSink.h"
 
+#include "Core/Expected.h"
+#include "Core/ILogSink.h"
 #include "Core/PathText.h"
 
+#include <cstdint>
+#include <cstdio>
+#include <filesystem>
+#include <fstream>
+#include <ios>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 

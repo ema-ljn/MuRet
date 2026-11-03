@@ -1,8 +1,8 @@
 #include "App/GameLoop.h"
 
-#include "App/LoopTiming.h"
 #include "App/PacingMode.h"
 #include "App/WindowState.h"
+#include "Core/IClock.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <numeric>
 #include <vector>

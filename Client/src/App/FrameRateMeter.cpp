@@ -1,5 +1,11 @@
 #include "App/FrameRateMeter.h"
 
+#include "App/GameLoop.h"
+#include "Core/IClock.h"
+
+#include <chrono>
+#include <optional>
+
 namespace Client::App
 {
 FrameRateMeter::FrameRateMeter(Core::Duration start) : m_last(start) {}

@@ -1,5 +1,9 @@
 #include "Data/Terrain/K16.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <span>
+
 namespace Client::Data::Terrain
 {
 // Las cuentas se hacen en int, como todo en C++, y cada resultado vuelve a 8 bits con un cast

@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Render/ITextureStore.h"
 #include "Render/SpriteBatch.h"
+#include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"

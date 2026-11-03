@@ -1,7 +1,10 @@
-# Análisis estático, adaptado del .clang-tidy de sven-n/MuMain: las mismas familias de checks y
-# solo cambia HeaderFilterRegex, para las carpetas de MuRet. CI todavía no lo corre; a mano, con el
-# compile_commands.json que exporta el CMake raíz:
+# Análisis estático, adaptado del .clang-tidy de sven-n/MuMain: las mismas familias de checks, con
+# HeaderFilterRegex para las carpetas de MuRet y misc-include-cleaner, que pide la regla 7 de
+# docs/CODING_RULES.md (cada archivo incluye lo que usa). A mano, con el compile_commands.json que
+# exporta el CMake raíz:
 #   run-clang-tidy -p build/linux-x64-debug -quiet 'Client/(src|tests)/'
+# CI (job de Linux) corre solo misc-include-cleaner sobre Client/; el resto de los checks todavía
+# tiene hallazgos en el cliente y entra cuando se limpien.
 Checks: >
   -*,
   bugprone-*,
@@ -12,8 +15,21 @@ Checks: >
   performance-*,
   readability-redundant-smartptr-get,
   readability-container-size-empty,
-  misc-unused-using-decls
+  misc-unused-using-decls,
+  misc-include-cleaner
 
 HeaderFilterRegex: '(Client|Server|labs)/.*'
 WarningsAsErrors: '*'
 FormatStyle: file
+
+CheckOptions:
+  # Headers que nadie incluye a mano, aunque declaren el símbolo. include-cleaner 18 no sabe a qué
+  # header público corresponden y pediría incluirlos:
+  #   /bits/          los internos de libstdc++ y de glibc (los literales de <chrono> salen de
+  #                   bits/chrono.h);
+  #   /asm-generic/   los del kernel que trae <sys/socket.h> (SOL_SOCKET, SO_ERROR);
+  #   sys/poll.h      el que <poll.h>, el de POSIX, incluye entero en glibc;
+  #   freetype/config/ la configuración de FreeType (FT_Int32, las macros FT_*_H), que llega por
+  #                   <ft2build.h> y fttypes.h.
+  - key: misc-include-cleaner.IgnoreHeaders
+    value: '/bits/.*;/asm-generic/.*;/sys/poll\.h;/freetype/config/.*'

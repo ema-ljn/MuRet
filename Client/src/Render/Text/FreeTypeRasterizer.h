@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Render/Text/FontSet.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Text/TextBox.h"
 
 #include <filesystem>
 #include <memory>

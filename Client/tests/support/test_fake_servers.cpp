@@ -1,5 +1,6 @@
 #include "support/FakeServers.h"
 
+#include "Network/ISocket.h"
 #include "Network/SocketApi.h"
 #include "Network/SocketError.h"
 #include "Network/SystemResolver.h"

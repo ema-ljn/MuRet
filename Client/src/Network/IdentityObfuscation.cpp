@@ -1,5 +1,12 @@
 #include "Network/IdentityObfuscation.h"
 
+#include "Core/Expected.h"
+#include "Network/ObfuscationError.h"
+#include "Network/Packet.h"
+
+#include <cstddef>
+#include <span>
+
 namespace Client::Network
 {
 // Una static local se construye la primera vez que se pide, aunque la pida otro objeto static: no

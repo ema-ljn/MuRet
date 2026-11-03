@@ -1,7 +1,14 @@
 #include "Render/Gl/GlSpriteRenderer.h"
 
+#include "Core/Expected.h"
+#include "Core/Log.h"
+#include "Platform/GlLoader.h"
+#include "Render/Gl/GlRenderer.h"
 #include "Render/Gl/GlTexture.h"
+#include "Render/Gl/TextureTable.h"
+#include "Render/SpriteBatch.h"
 
+#include <string>
 #include <utility>
 
 namespace Client::Render::Gl

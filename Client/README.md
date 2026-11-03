@@ -61,6 +61,17 @@ carga): `Data::Textures::LoadTextureSet` las busca en `Data\` como el original (
 primer punto y `.OZJ` u `.OZT`) y las lee, y `Gl::TextureTable` las sube a la tabla de la escena,
 por el slot del original.
 
+Desde la CL5.3, el texto (`Render/Text/`): las cuatro fuentes de `WinMain` con su alto por el
+ancho de la pantalla (`FontSet`), los cambios de color `0x02` del chat (`InlineColors`), dónde va un
+texto y cómo se corta en cajas de 256 columnas (`TextLayout`), y `FreeTypeRasterizer`, que mide y
+dibuja con FreeType en un bit, detrás de `IGlyphRasterizer`. `TextCache` rasteriza cada texto una
+vez por fuente y colores, guarda sus cajas de 256 × 32 en los slots del texto de la tabla (después
+de los 1.845 del original) y las dibuja con el `SpriteBatch`. La fuente sale de `[Video] FontFile`;
+sin la clave, `App::ChooseFontFiles` busca la cara del original en la lista de fuentes de Windows
+(`Platform/SystemFonts.h`), y en Linux es un error que nombra la clave. En el `Text.bmd` del
+laboratorio la cara está vacía: con esos datos, también en Windows hace falta `FontFile`. El
+cliente dibuja texto desde la CL5.4, que conecta todo esto en `main.cpp`.
+
 ## Auditoría y mantenimiento
 
 La [auditoría de C++20 y contrato 1.02i del 2026-11-03](../docs/audits/2026-11-03-cliente-cpp20.md)
@@ -70,9 +81,9 @@ los separa en tareas y PR por concepto de CL3.4 y CL5.1; las correcciones siguen
 
 ## Compilar y correr
 
-Hace falta vcpkg (las dependencias, SDL3, libjpeg-turbo y GoogleTest, están en `vcpkg.json` y se
-bajan solas al configurar) y la variable `VCPKG_ROOT` apuntando a su clon; ver el
-[README raíz](../README.md#compilar).
+Hace falta vcpkg (las dependencias, SDL3, libjpeg-turbo, glm, FreeType y GoogleTest, están en
+`vcpkg.json` y se bajan solas al configurar) y la variable `VCPKG_ROOT` apuntando a su clon; ver
+el [README raíz](../README.md#compilar).
 Desde la raíz del repo:
 
 ```bash
@@ -224,6 +235,8 @@ Height = 480
 VSync = on               ; on, adaptive u off
 Pacing = decoupled       ; decoupled o faithful
 MaxFps = 0               ; tope de FPS con VSync off: 0 (sin tope), o de 25 a 1000
+FontFile = letra.ttf     ; la fuente TrueType del texto
+BoldFontFile = negrita.ttf ; su negrita (sin darla, se ensancha la de FontFile)
 
 [Log]
 Path = muret-client.log
@@ -239,12 +252,14 @@ Path = muret-client.log
 | `[Video] VSync` | `on`, y `off` en el modo fiel | como `--vsync`. Con `Pacing = faithful` (o `--pacing faithful`), `on` o `adaptive` es un error que nombra `Pacing` y `VSync` |
 | `[Video] Pacing` | `decoupled` | como `--pacing` |
 | `[Video] MaxFps` | 0 (sin tope) | como `--max-fps`. Con `Pacing = faithful`, un tope que no es 0 es un error que nombra `Pacing` y `MaxFps` |
+| `[Video] FontFile` | ninguna | la fuente TrueType (o una colección TTC: su primera cara) de todo el texto. El original pide la suya por nombre a Windows; MuRet necesita un archivo. Las cuatro fuentes del original salen de esta, cada una con su alto (`Render/Text/FontSet.h`). Sin la clave, en Windows se busca la cara del original en la lista de fuentes del sistema; en Linux, o si la cara está vacía (como en el `Text.bmd` del laboratorio), es un error |
+| `[Video] BoldFontFile` | ninguna | la de la negrita. Sin darla, la negrita es la de `FontFile` ensanchada un píxel, como la que simula Windows |
 | `[Log] Path` | `muret-client.log` junto al ejecutable | el archivo del log |
 
-Una ruta relativa de la config (`[Data] Path`, `[Log] Path`) se toma desde la carpeta del
-ejecutable, no desde la actual. Un par de comillas dobles alrededor de una ruta o del host se saca
-(lo que da "Copiar como ruta" del Explorador). El archivo es UTF-8, con o sin BOM, y con fin de
-línea `\n` o `\r\n`.
+Una ruta relativa de la config (`[Data] Path`, `[Log] Path` y las dos fuentes) se toma desde la
+carpeta del ejecutable, no desde la actual; que una fuente exista lo mira FreeType al abrirla. Un
+par de comillas dobles alrededor de una ruta o del host se saca (lo que da "Copiar como ruta" del
+Explorador). El archivo es UTF-8, con o sin BOM, y con fin de línea `\n` o `\r\n`.
 
 Las secciones, las claves y los valores de `Obfuscation`, `VSync` y `Pacing` no distinguen
 mayúsculas. Un `;` al principio de la línea, o después de un espacio, empieza un comentario; `#`
@@ -345,6 +360,17 @@ fallan con el motivo: así los corre el CI, en Xvfb, junto con los del lab de la
 MURET_CLIENT_REQUIRE_GL=1 xvfb-run -a ctest --preset linux-x64-debug -L '^gl$' --no-tests=error
 ```
 
+Los de FreeType (`FreeTypeRasterizerTest`, desde la CL5.3) necesitan una fuente TrueType, que
+MuRet no versiona: `MURET_CLIENT_FONT_FILE` apunta al archivo, con la regla de las carpetas (sin
+la variable se saltean; si no es un archivo, o FreeType no lo abre, fallan). No comparan con GDI:
+miden y dibujan con esa fuente y miran que no haya suavizado, el alto de la celda y los avances.
+En CI es una fuente del runner:
+
+```bash
+export MURET_CLIENT_FONT_FILE=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+ctest --preset linux-x64-debug -R FreeType
+```
+
 ## Estructura (a medida que avanzan las olas)
 
 ```
@@ -370,3 +396,11 @@ Client/
   tests/          GoogleTest                            (CL0.2+)
   docs/research/  qué hace el original, byte a byte (01..09)
 ```
+
+## Créditos
+
+El texto se dibuja con [FreeType](https://freetype.org), que se usa bajo la FreeType License (FTL),
+y la FTL pide decirlo así en la documentación:
+
+> Portions of this software are copyright © 2026 The FreeType Project (https://freetype.org). All
+> rights reserved.

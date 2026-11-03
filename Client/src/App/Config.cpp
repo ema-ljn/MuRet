@@ -36,6 +36,8 @@ enum class Key : std::uint8_t
     VideoVSync,
     VideoPacing,
     VideoMaxFps,
+    VideoFontFile,
+    VideoBoldFontFile,
     LogPath,
 };
 
@@ -48,11 +50,18 @@ struct KnownKey
 
 // Las claves de muret-client.ini, con la sección donde van (Config.h).
 constexpr std::array KnownKeys = {
-    KnownKey{"Data", "Path", Key::DataPath},       KnownKey{"Server", "Host", Key::ServerHost},
-    KnownKey{"Server", "Port", Key::ServerPort},   KnownKey{"Server", "Obfuscation", Key::ServerObfuscation},
-    KnownKey{"Video", "Width", Key::VideoWidth},   KnownKey{"Video", "Height", Key::VideoHeight},
-    KnownKey{"Video", "VSync", Key::VideoVSync},   KnownKey{"Video", "Pacing", Key::VideoPacing},
-    KnownKey{"Video", "MaxFps", Key::VideoMaxFps}, KnownKey{"Log", "Path", Key::LogPath},
+    KnownKey{"Data", "Path", Key::DataPath},
+    KnownKey{"Server", "Host", Key::ServerHost},
+    KnownKey{"Server", "Port", Key::ServerPort},
+    KnownKey{"Server", "Obfuscation", Key::ServerObfuscation},
+    KnownKey{"Video", "Width", Key::VideoWidth},
+    KnownKey{"Video", "Height", Key::VideoHeight},
+    KnownKey{"Video", "VSync", Key::VideoVSync},
+    KnownKey{"Video", "Pacing", Key::VideoPacing},
+    KnownKey{"Video", "MaxFps", Key::VideoMaxFps},
+    KnownKey{"Video", "FontFile", Key::VideoFontFile},
+    KnownKey{"Video", "BoldFontFile", Key::VideoBoldFontFile},
+    KnownKey{"Log", "Path", Key::LogPath},
 };
 
 bool IsBlank(char c)
@@ -232,12 +241,30 @@ Core::Expected<std::filesystem::path, std::string> ParsePath(std::string_view va
     return std::move(*path);
 }
 
+// El campo de una clave que es una ruta.
+std::optional<std::filesystem::path>& PathField(ClientConfig& config, Key key)
+{
+    switch (key)
+    {
+    case Key::VideoFontFile:
+        return config.fontFile;
+    case Key::VideoBoldFontFile:
+        return config.boldFontFile;
+    case Key::LogPath:
+        return config.logPath;
+    default:
+        return config.dataPath;
+    }
+}
+
 // Guarda el valor en su campo; si no se puede leer, devuelve por qué.
 std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view value)
 {
     switch (key)
     {
     case Key::DataPath:
+    case Key::VideoFontFile:
+    case Key::VideoBoldFontFile:
     case Key::LogPath:
     {
         const auto path = ParsePath(value);
@@ -245,7 +272,7 @@ std::optional<std::string> Store(ClientConfig& config, Key key, std::string_view
         {
             return path.Error();
         }
-        (key == Key::DataPath ? config.dataPath : config.logPath) = path.Value();
+        PathField(config, key) = path.Value();
         return std::nullopt;
     }
     case Key::ServerHost:
@@ -496,13 +523,13 @@ Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& e
                                           parsed.Error().message));
         }
         config = std::move(parsed).Value();
-        if (config.dataPath)
+        for (std::optional<std::filesystem::path>* path :
+             {&config.dataPath, &config.logPath, &config.fontFile, &config.boldFontFile})
         {
-            config.dataPath = FromFolder(exeFolder, *config.dataPath);
-        }
-        if (config.logPath)
-        {
-            config.logPath = FromFolder(exeFolder, *config.logPath);
+            if (*path)
+            {
+                *path = FromFolder(exeFolder, **path);
+            }
         }
     }
     // 3. La línea de comandos pisa.

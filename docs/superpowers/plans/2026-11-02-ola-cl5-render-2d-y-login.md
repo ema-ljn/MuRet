@@ -1142,14 +1142,48 @@ public:
 Ojo con `BottomAlignedAt`: el original resta `cy · 640 / W` también para la y (no `cy · 480 / H`);
 se reproduce y queda en 07 si la CL5.R lo confirma.
 
-- [ ] **Paso 1 (PR A):** confirmar con Context7 el uso de FreeType en mono (`FT_Set_Pixel_Sizes`
+- [x] **Paso 1 (PR A):** confirmar con Context7 el uso de FreeType en mono (`FT_Set_Pixel_Sizes`
   contra el alto de celda de `CreateFontA`, que con un alto positivo es la celda y no la letra;
   `FT_LOAD_TARGET_MONO`, `FT_RENDER_MODE_MONO`, el `pitch` de `FT_PIXEL_MODE_MONO`, y qué
   intérprete de TrueType corre en mono) y el puerto de vcpkg sin sus features por defecto.
-- [ ] **Paso 2 (Emanuel, `TODO(human)`):** antes de los tests, la tabla de `ParseInlineColors`
-  para cinco textos: sin `0x02`, uno al principio, dos seguidos, uno al final sin byte detrás y
-  diez cambios (qué queda del décimo), con lo que dice `0x4667a0`.
-- [ ] **Paso 3 (PR A):** los tests:
+
+  Hecho así (2026-11-03): Context7 tiene poco de FreeType, así que manda el header (la 2.13.2 del
+  sistema) y las fuentes de la 2.14.3 del puerto (`ttgload.c` y `ttinterp.c`). `FT_Set_Pixel_Sizes`
+  pide el em, no la celda: con la celda de `CreateFontA` las letras salen un 15 % más grandes. La
+  celda es el ascenso más el descenso; `FreeTypeRasterizer` pide la escala con `FT_Request_Size` y
+  `FT_SIZE_REQUEST_TYPE_SCALES`: el alto sobre `usWinAscent + usWinDescent` de la OS/2, los que usa
+  GDI (`REAL_DIM` usa los de la hhea, que en DejaVu y Arial son los mismos). `FT_LOAD_TARGET_MONO`
+  es el hinting fuerte para un bit e implica `FT_LOAD_MONOCHROME`; `FT_RENDER_MODE_MONO` da
+  `FT_PIXEL_MODE_MONO`, un bit por píxel con el de la izquierda en el bit alto; `pitch` son los
+  bytes de una fila, positivo de arriba hacia abajo, y negativo con `buffer` en la fila de abajo
+  (siempre se suma `pitch` para bajar). El intérprete por defecto es el v40, y en mono
+  `tt_loader_init` le apaga el modo compatible: queda todo al programa de la fuente, y `GETINFO`
+  dice 40. Se fija el v35, el del rasterizador de Windows 98, con `FT_Property_Set(library,
+  "truetype", "interpreter-version", ...)`, que está en todos los builds; con el v35 y el hinting,
+  FreeType toma los anchos de la `hdmx`, como GDI. El puerto, en la baseline: `freetype` 2.14.3,
+  FTL o GPL-2.0+, con `brotli`, `bzip2`, `png` y `zlib` por defecto, que con `"default-features":
+  false` no baja; sin HarfBuzz y sin `error-strings` (los errores van con su número); se usa con
+  `find_package(Freetype)` y `Freetype::Freetype`, el mismo target del `FindFreetype` del sistema.
+- [x] **Paso 2 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de los tests, la tabla de
+  `ParseInlineColors` para cinco textos: sin `0x02`, uno al principio, dos seguidos, uno al final
+  sin byte detrás y diez cambios (qué queda del décimo), con lo que dice `0x4667a0`.
+
+  Hecho así (2026-11-03), del desensamblado de `0x4667a0` y `0x4665d0` (*estático*). Los colores
+  van como `0xAABBGGRR`; la escena es la del login, texto `0xffffffff` y fondo `0x80000000`:
+
+  | Texto (bytes) | Texto limpio | Tramos (inicio, código, texto, fondo) | Por qué |
+  | --- | --- | --- | --- |
+  | `abc` | `abc` | ninguno | sin `0x02` no hay tramos, y con 0 tramos no se reescribe nada (`0x466829`) |
+  | `02 f4` `abc` | `abc` | (0, `f4`, `0xff0000ff`, 0) | el inicio es la posición menos dos por par anterior (`0x4667f7`); el código es el byte que sigue (`0x4667fe`), y `0x4665d0` da rojo sin fondo para `0x01` y `0xf4` |
+  | `ab` `02 f0` `02 f1` `cd` | `abcd` | (2, `f0`, escena), (2, `f1`, escena cruzada) | el segundo `0x02` está en 4, menos 2: los dos empiezan en 2, y vale el segundo. `0xf0` deja `DAT_006c8e5c` y `DAT_006c8e64`; `0xf1` los cruza (`0x466610`) |
+  | `ab` `02` | `ab` | (2, `00`, `0xffffffff`, 0) | el código es el 0 que termina el texto; con 0, `0x4665d0` cae en el `ja` (0 − 1 pasa de `0xf7`) y da blanco sin fondo. El tramo empieza donde termina el texto y no pinta nada |
+  | diez pares `02 c` `x`, con c = `01`, `f2` a `f8`, `f0`, `f1` y las letras de la a a la j | `abcdefghij` | nueve, del 0 al 8; el noveno, `f0` | `0x4667e9` corta cuando lleva 18 bytes de pares, y la reescritura (`0x46687b`..`0x466894`) saca todos los pares, también el décimo: la j sigue con el color del noveno |
+
+  Además, `0x4667a0` mide cada tramo con `GetTextExtentPointA` del texto limpio hasta su inicio y
+  guarda el ancho menos 1 (0 queda 0, `0x4668c3`..`0x4668cb`): es para la CL8, que pinta el chat por
+  columnas. Y reescribe el texto en el buffer del que llama, después de poner en 0 sus 256 bytes
+  (`0x46686e`): un bug, Q-C77 en 07 (PR B).
+- [x] **Paso 3 (PR A):** los tests:
   - `InlineColorsTest.StripsTheMarkerAndItsCode`, `RecordsWhereEachColorStarts`,
     `TheCodeIsAColorOfTheTable` (1 y `0xf4` rojo, otro blanco), `F0AndF1SwapTheSceneColors`,
     `KeepsAtMostNineColors`, `AMarkerAtTheEndHasNoCode` (lo que diga el paso 2);
@@ -1162,16 +1196,147 @@ se reproduce y queda en 07 si la CL5.R lo confirma.
     es del color del texto o del fondo), `MeasuresTheAdvance` (el ancho de "ab" es la suma de los
     dos), `TheCellHeightIsTheFontHeight`, `AMissingFileSaysItsPath`;
   - `ConfigTest.ReadsTheFontFiles`.
-- [ ] **Paso 4 (PR A):** `InlineColors`, `FontSet`, `TextLayout` y `FreeTypeRasterizer`.
-- [ ] **Paso 5 (PR B):** los tests de la caché: `TextCacheTest.TheSameTextIsRasterizedOnce`,
+- [x] **Paso 4 (PR A):** `InlineColors`, `FontSet`, `TextLayout` y `FreeTypeRasterizer`.
+
+  Hecho así (PR A, 2026-11-03): todo en `Client/src/Render/Text/`, en `ClientLib`, con FreeType solo
+  en `FreeTypeRasterizer.cpp` (sus headers no salen de ahí). Lo que se aparta de las interfaces de
+  arriba: (a) `IGlyphRasterizer` no colorea: `DrawInk(font, text, firstColumn, InkMask)` deja 0xff
+  donde hay letra, como el primer byte del DIB de `TextOutA`, y `PaintTextBox` (`TextBox.h`) hace lo
+  de `0x465a00`: 0xff es el color del texto y cualquier otro byte, el del fondo. La regla es del
+  original y no de la fuente, así se prueba con el falso, y la caja k de un texto ancho necesita la
+  columna 256 k. (b) `TextStyle` no lleva `boxWidth`: `0x467060` no lee `DAT_006c8e70`, que lee solo
+  `0x553ae0` (en `0x553bef`); los dos colores van en un `TextColors`. (c) `ParseInlineColors(text,
+  InlineColorContext)`: los dos colores de la escena y la bandera de `0xf8` (`DAT_006c7a88`, 1 en la
+  `.data`, que escriben ventanas de la UI). (d) `BottomAlignedAt` resta `cy · 480 / H`, como pedía
+  Q-C60, y no `cy · 640 / W`. (e) Suma `TextPieces`, lo de `0x467060` con el modo 1 del login y de
+  `0x554000`: las filas hasta 32, el corte en el borde derecho de un texto de más de 256 columnas
+  (truncado), una caja por cada 256 columnas, la x y la y truncadas (`_ftol`) y corridas por
+  `0x554000` (una x negativa a 0, una caja que pasa de W contra el borde), y el quad en píxeles, sin
+  escalar (`0x467060` pasa 0 en la bandera), con du = (w + 0,01) / 256 y dv = (filas + 0,01) / 32.
+  (f) La tabla del contrato dice `FontSizeFor(width)`; la función es `FontStepFor`, como en las
+  interfaces. (g) `FreeTypeRasterizer` suma `InterpreterVersion()` y `PixelsPerEm(font)`, para sus
+  tests. La celda sale de la OS/2 (paso 1); la línea de base, del ascenso de Windows sobre la celda,
+  redondeado; la negrita sin `BoldFontFile`, de `FT_Outline_EmboldenXY` con un píxel a lo ancho y un
+  píxel más de avance por letra (*inferido* de la negrita que simula GDI); los avances de los 256
+  bytes se calculan al abrir, y `Measure` los suma sin kerning; sin los bitmaps de la fuente
+  (`FT_LOAD_NO_BITMAP`). Cada byte es su carácter de Latin-1 (Q-C67, que quedó decidido con los
+  bytes del `Local\Text.bmd` del laboratorio, contados sin imprimirlos). La diferencia con GDI es
+  Q-C76, nuevo en 07 (se escribió en el PR A porque es de este código). La config suma `[Video]
+  FontFile` y `BoldFontFile`, rutas desde la carpeta del ejecutable; que el archivo exista lo dice
+  `Open`, con la ruta. Los tests de FreeType leen `MURET_CLIENT_FONT_FILE` con `Tests::FontFileTest`
+  (`support/GoldenDir.h`); los de abrir un archivo que falta o que no es una fuente son
+  `FreeTypeRasterizerOpenTest` y corren sin la variable. Suma tests que el paso 3 no tenía:
+  `InlineColorsTest.ATextWithoutMarkersStaysAsItIs`, `F8HasABackgroundWhenTheFlagIsOff`,
+  `TheByteAfterTheMarkerIsAlwaysTheCode` y `StopsAtTheFirstNul`;
+  `FontSetTest.OnlyTheBoldOnesAreBold` y `EveryValidResolutionHasAStep` (las cinco del original de
+  `App/Resolution.h`, #72, y anchos de monitor); `TextBoxTest` (el color en RGBA, tinta y fondo, lo
+  que no se ve en 0, la columna de la caja y que solo 0xff es letra);
+  `TextLayoutTest.TheLoginTextUsesTheHeightForY`, `TheQuadIsInPixelsWithTheUvOfTheBox`,
+  `TheRowsAreTheCellUpTo32`, `AWideTextGoesInBoxesOf256`, `AWideTextIsCutAtTheRightEdge`,
+  `AShortTextIsMovedInsideTheScreen` y `AnEmptyTextHasNoBoxes`;
+  `FreeTypeRasterizerTest.TheEmIsSmallerThanTheCell`, `TheLettersAreInsideTheCell`,
+  `DrawsFromTheFirstColumn`, `WithoutABoldFileTheBoldIsOnePixelWiderPerLetter`,
+  `WithABoldFileThereIsNoSyntheticBold`, `ReadsEachByteAsLatin1`, `UsesTheInterpreterOfWindows98` y
+  `AMissingBoldFileSaysItsPath`; y `ConfigTest.ARelativeFontFileIsFromTheExeFolder`. Los mutantes a
+  mano mueren todos: el `0x02` del final sin tramo (`AMarkerAtTheEndHasNoCode`), diez tramos o el
+  décimo par que queda en el texto (`KeepsAtMostNineColors`), `0xf0` y `0xf1` cambiados
+  (`F0AndF1SwapTheSceneColors` y dos más), el escalón de 1280 con `<=`, el de 800 desde 640 o el 0
+  del original fuera de la tabla (`TheStepFollowsTheWidth`), la división en 64 bits con signo o en
+  double (`TheDivisionIsUnsignedAndInteger`), la y con W (`TheLoginTextUsesTheHeightForY`), el corte
+  redondeado o sin corte (`AWideTextIsCutAtTheRightEdge`), las UV sin el 0,01
+  (`TheQuadIsInPixelsWithTheUvOfTheBox` y dos más), FreeType con suavizado
+  (`RendersWithoutAntialiasing` y los otros ocho con fuente: `Open` lo rechaza), el intérprete v40
+  (`UsesTheInterpreterOfWindows98`), la negrita sin su píxel de avance
+  (`WithoutABoldFileTheBoldIsOnePixelWiderPerLetter`), los bytes altos como UTF-8 inválido
+  (`ReadsEachByteAsLatin1`) y el tamaño pedido como em con `FT_Set_Pixel_Sizes`, que vivía hasta que
+  se sumó `TheEmIsSmallerThanTheCell`.
+  Con la revisión (2026-11-03): una letra sin área (el guion bajo de algunas fuentes, que el hinting
+  deja en una línea) hacía fallar `Open`, porque `FT_Outline_EmboldenXY` no ensancha un contorno sin
+  sentido de giro; ahora esa letra queda como está, con su píxel de avance
+  (`FreeTypeRasterizerOpenTest.ALetterWithoutAreaIsBoldToo`, con una fuente mínima armada en
+  memoria por `support/TinyTrueTypeFont.h`, que corre sin `MURET_CLIENT_FONT_FILE`). Un mutante que
+  leía los bits de cada byte al revés vivía: lo mata `TheLeftPixelOfAByteIsItsHighBit` (una "L"),
+  que también mata el paso entre filas sin `pitch`. Y `PaintTextBox` no dibuja un texto que empieza
+  con un salto de línea, como `0x467060` (`0x4671e1`;
+  `TextBoxTest.ATextThatStartsWithANewLineIsOnlyItsBackground`): ningún texto del `Text.bmd` del
+  laboratorio empieza con uno, contado sin imprimirlos.
+- [x] **Paso 5 (PR B):** los tests de la caché: `TextCacheTest.TheSameTextIsRasterizedOnce`,
   `ADifferentColorIsAnotherEntry`, `ResizingEmptiesIt`, `KeepsAtMostItsCap` (el más viejo sale);
   con ventana, `GlTextTextureTest.UploadsTheBoxOf256By32` y `TheTextIsAtTheTopLeftOfTheBox`.
-- [ ] **Paso 6 (PR B):** `TextCache`, `GlTextTexture` y `SystemFonts`; el 06 y el 07.
-- [ ] **Paso 7:** verificar:
+
+  Hecho así (PR B, 2026-11-03): los cuatro de `TextCacheTest`, sin GL, con el rasterizador falso y
+  `support/FakeTextureStore.h` (la tabla falsa, que anota cada `Load` y cada `Release`; el plan la
+  ponía en la CL5.4). Los de la ventana son `TextCacheGlTest.UploadsTheBoxOf256By32` y
+  `TheTextIsAtTheTopLeftOfTheBox`, porque no hay `GlTextTexture` (paso 6): la caché sube a la
+  `TextureTable` de verdad y `GlSpriteRenderer` dibuja la caja en el framebuffer de 64 × 64.
+  Suma: `TextCacheTest.AWideTextUsesABoxPer256Columns`, `ATextOf256ColumnsIsOneBox`,
+  `ABoxPastTheColumn1280HasItsLetters` (Q-C78), `TheBoxIsTheTextOnItsColors` (256 × 32 RGBA,
+  `GL_NEAREST` y `GL_CLAMP`), `TheQuadsAreThoseOfTextPieces`, `AnEmptyTextDrawsNothing`,
+  `ATextWiderThanTheCacheIsAnError`, `AStoreThatFailsIsAnError` e `ItReleasesItsSlots`;
+  `TextureTableTest.TheTextSlotsComeAfterTheOriginal`; `InlineColorsTest.ALongTextKeepsItsTail`
+  (Q-C77); `FontFilesTest` (ocho) y `SystemFontsTest` (siete; seis en Windows).
+- [x] **Paso 6 (PR B):** `TextCache`, `GlTextTexture` y `SystemFonts`; el 06 y el 07.
+
+  Hecho así (PR B, 2026-11-03): sin `GlTextTexture`. La caja es un `Data::Textures::Texture` de 256
+  × 32 RGBA, con `GL_NEAREST` y `GL_CLAMP` como sube `0x63bd00` la `FontInput.tga` del slot 0, que
+  `TextCache` sube por `ITextureStore`: la `TextureTable` ya la sube con `GlTexture`, y una clase de
+  GL para el texto la duplicaría. Así `TextCache` vive en `ClientLib` y se prueba sin ventana. Los
+  slots: `TextureSlot.h` suma 256 del texto después de los 1.845 del original
+  (`FirstTextTextureSlot`, el 1.845, y `TextureSlotCount`, 2.101), y la `TextureTable` los tiene
+  todos, como pedía la nota de la CL5.2: `GlSpriteRenderer` los encuentra sin cambios. `TextCache`
+  guarda por texto, fuente y colores (`TextColors`) el ancho medido y una caja por cada 256
+  columnas, en una `std::list` del más reciente al más viejo (un acierto pasa adelante con `splice`)
+  y un `std::map` que apunta a sus nodos; el tope son sus slots (256: 8 MiB), y un texto nuevo que
+  no entra saca al del fondo y suelta sus slots. Un texto que pide más cajas que todos los slots es
+  un error que no saca a nadie; si la tabla no sube, sus slots vuelven. `Draw(batch, x, y, texto,
+  estilo)` pone los quads de `TextPieces` con la pantalla del lote y el slot de cada caja; un texto
+  vacío no dibuja nada; `ChangeRasterizer` (otro ancho, otras fuentes) la vacía, y al morir suelta
+  sus slots. La interfaz se aparta del `ITextDrawer` de la CL5.4 (recibe el lote y devuelve
+  `Expected`): el de la CL5.4 la envuelve (su nota). La fuente sin la clave:
+  `Platform/SystemFonts.h` con `FindSystemFontFile(cara, negrita)`, que busca en HKLM y después en
+  HKCU con las funciones A del registro, como la cara llega a `CreateFontA`, y `FontEntryNamesFace`,
+  la regla de los nombres ("<cara> (TrueType)", " Bold" para la negrita, las caras de un .ttc
+  separadas por " & ", sin mirar mayúsculas, solo contornos), que se prueba también en Linux. Suma
+  `App/FontFiles.h`: `ChooseFontFiles(config, cara, búsqueda)`, la decisión de la pregunta 8 sin
+  Windows: la config manda; sin `FontFile`, la búsqueda con la cara, y la negrita del sistema si
+  falta `BoldFontFile` (como `CreateFontA` con peso 700 elige la negrita de la cara, *inferido*);
+  sin búsqueda o sin la cara, un error que nombra la clave y no la cara. Nadie la llama todavía: la
+  cara es el texto 0 de `Text.bmd`, que `main.cpp` carga en la CL5.4. El código de Windows no se
+  compiló acá (sin SDK): se revisó con un `windows.h` de prueba y lo compila el CI. En 06: el DIB y
+  la caja en § Texto, la fila del texto en "Qué implica para MuRet" y la línea de
+  `test_texture_slots`, con la razón de la pregunta 11. En 07: Q-C77 (`0x4667a0` pone 256 ceros en
+  el buffer del que llama y reescribe ahí el texto, leyendo de más de su copia de 256 bytes) y Q-C78
+  (el DIB de 1.280 columnas, que `0x465a00` lee sin mirar el ancho), los dos *estáticos* y
+  corregidos; Q-C76 llegó con el PR A. Los mutantes a mano mueren todos: la clave sin los colores,
+  sin el fondo o sin la fuente (`ADifferentColorIsAnotherEntry`), el acierto sin pasar adelante
+  (`KeepsAtMostItsCap`), sacar al más nuevo (`KeepsAtMostItsCap` e `ItReleasesItsSlots`), sin sacar
+  a nadie (`KeepsAtMostItsCap` y `ADifferentColorIsAnotherEntry`, que abortan), el tope contra los
+  slots libres (`KeepsAtMostItsCap` y `ADifferentColorIsAnotherEntry`), las cajas redondeadas para
+  abajo o truncadas (`ATextOf256ColumnsIsOneBox`, y once con la truncada), sin soltar los slots si
+  la tabla falla (`AStoreThatFailsIsAnError`) o al morir (`ItReleasesItsSlots`), los slots del texto
+  fuera de la `TextureTable` (los dos `TextCacheGlTest` y `TheTextSlotsComeAfterTheOriginal`), la
+  cara en el error (`AFaceThatIsNotInTheSystemIsAnErrorWithoutTheFace`), sin buscar la negrita
+  (`WithoutTheKeyTheSystemListIsSearched`), un prefijo como la cara (`APrefixIsAnotherFace` y dos
+  más) y las .fon como fuentes (`OnlyOutlineFontsCount`).
+
+  Con la revisión (2026-11-03): un texto nuevo podía sacar a uno que ya estaba en el lote del
+  frame, y como `GlSpriteRenderer` busca cada slot recién al dibujar, el quad del viejo salía con
+  la caja del nuevo. Ahora la caché no saca una entrada que tiene un slot en el lote: si la del
+  fondo lo tiene, el texto nuevo es un error y no se suelta nada
+  (`TextCacheTest.ATextOfThisBatchIsNotEvicted`, que mata al mutante sin la regla), y
+  `KeepsAtMostItsCap` y `ADifferentColorIsAnotherEntry` empiezan otro lote antes de sacar.
+  `SystemFonts.cpp` compara con `Data::EqualsIgnoringAsciiCase` en vez de una copia propia.
+- [x] **Paso 7:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug
   ctest --preset linux-x64-debug -R "InlineColors|FontSet|TextLayout|FreeType|TextCache|Config"
   ```
+
+  Hecho así (2026-11-03): en Linux, con GCC, Debug y sin precompiled headers, como el job del CI.
+  El PR A: 1.120 tests, 0 fallan, con `MURET_CLIENT_FONT_FILE` y sin ella (los 12 de
+  `FreeTypeRasterizerTest` se saltean). El PR B: 1.153, 0 fallan, también con y sin la variable.
+  Los de GL con `MURET_CLIENT_REQUIRE_GL=1 xvfb-run -a ctest -L '^gl$'`: 46 en el A y 49 en el B,
+  0 fallan; `Main --frames 60` en Xvfb sale con 0 en los dos.
 
 ## Sub-ola CL5.4: `SceneManager`, la escena de carga y la `LoginScene`
 
@@ -1222,6 +1387,22 @@ el `UiImage` no la tiene: se suma con su test. `GlSpriteRenderer` deja `GL_BLEND
 apaga `GL_DEPTH_TEST` ni `GL_CULL_FACE`, que el original apaga al entrar al 2D (`0x6219b0` llama a
 `0x620870`) y con la mezcla normal y la aditiva (`0x6208f0`): hoy nadie los prende, y cuando el
 pase 3D lo haga (la CL7), el 2D que sigue los apaga, con un test.
+
+*Nota de la CL5.3:* el `ITextDrawer` de la escena envuelve un `Render::Text::TextCache`, que
+recibe el lote (`Draw(batch, x, y, texto, estilo)`) y devuelve un `Expected`: el error (la tabla no
+subió, el texto no entra en los slots, o todos están en textos del lote, que no salen hasta el
+próximo `Begin`) va al log una vez y el texto no se dibuja. Un lote por frame. La caché vive
+lo que su `ITextureStore`, y sus slots (del 1.845 al 2.100) no chocan con los de las escenas.
+`FakeTextureStore.h` ya está en `support/`. Antes de los textos, `0x6350b0` deja
+`glColor3f(0,8; 0,7; 0,6)` después de la arena y la mezcla que ella dejó: los quads del texto, con
+alfa 0, salen con ese color, y la escena lo tiene que poner como el original (06 § El login, el
+dibujo). `main.cpp` arma el `FreeTypeRasterizer` con `App::ChooseFontFiles(config, cara,
+búsqueda)`: la cara es el texto 0 de `Text.bmd`, y la búsqueda, `Platform::FindSystemFontFile` en
+Windows y ninguna en Linux. En el `Text.bmd` del laboratorio los textos 0 y 18 están vacíos: con
+esos datos, también en Windows hace falta `[Video] FontFile`. Una ruta que encontró la búsqueda no
+va al log, porque su nombre puede ser el de la cara: si `Open` falla con ella, su error (que nombra
+el archivo) se cambia por uno que nombra la clave. Con otra densidad de pantalla (el
+área de dibujo cambia aunque la ventana no), otro `FreeTypeRasterizer` y `ChangeRasterizer`.
 
 **Interfaces:**
 
@@ -1455,6 +1636,12 @@ al jugador. Va en dos PRs: **PR A**, el texto tecleado, los widgets y la lista (
 píxeles y con la y desde H. El ancla de `+0x9c`, el corrimiento de `+0x58` y `+0x5c` y los cuadros
 de una animación no están: si una ventana los usa, se suman a `UiImageCorners` con su test.
 
+*Nota de la CL5.3:* los textos de las ventanas van por el mismo `ITextDrawer` de la CL5.4 (la
+`TextCache`), con `FontKind` y `TextColors` por llamada. Un texto que cambia en cada frame (lo que
+se teclea, un contador) es una entrada nueva cada vez: el tope saca las viejas, pero un campo que
+cambia mucho puede vaciar la caché; si se nota, el campo dibuja sin caché o la caché suma una
+entrada por campo. `InlineColors` es para el chat (CL8); el login no lo usa.
+
 **Interfaces:**
 
 ```cpp
@@ -1553,7 +1740,7 @@ public:
 - [ ] **Paso 2 (Emanuel, `TODO(human)`):** antes de los tests, la tabla del `TextField`: qué hace
   con una letra, una tilde (`á`, dos bytes en UTF-8), un emoji, un espacio, el byte 11 cuando ya
   tiene 10, Backspace con el campo vacío, y qué muestra la clave.
-- [ ] **Paso 3 (PR A):** los tests:
+- [x] **Paso 3 (PR A):** los tests:
   - `InputStateTest.CollectsTheTypedText` y `ConsumeEdgesEmptiesIt`;
     `InputEventsTest.TranslatesTheTextInput`, `TheMouseIsInFramebufferPixels`;
   - `TextFieldTest.TakesPrintableAscii`, `DropsWhatIsNotAscii`, `StopsAtTenBytes`,

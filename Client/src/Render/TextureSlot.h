@@ -20,4 +20,14 @@ struct TextureSlot
 // 0x38 bytes desde 0x7d3a198.
 inline constexpr std::size_t OriginalTextureSlotCount = 1845;
 static_assert(OriginalTextureSlotCount * 0x38 == 0x64e6 * 4, "el memset de 0x622e40");
+
+// Los slots del texto de MuRet (CL5.3), después de los del original. El original sube cada texto
+// al slot 0 (Interface\FontInput.tga, la caja de 256 × 32) cada vez que lo dibuja, y su texto con
+// caché (0x466000) usa los slots 10000 + índice que reparte 0x466560, que MuRet no reproduce
+// (pregunta 11 del plan de la CL5). La caché de MuRet (Render/Text/TextCache.h) guarda cada caja en
+// uno de estos: con 256, 8 MiB de texturas.
+inline constexpr std::size_t TextTextureSlotCount = 256;
+inline constexpr TextureSlot FirstTextTextureSlot{static_cast<std::uint16_t>(OriginalTextureSlotCount)};
+// Todos los slots de una tabla de MuRet: los del original y los del texto.
+inline constexpr std::size_t TextureSlotCount = OriginalTextureSlotCount + TextTextureSlotCount;
 } // namespace Client::Render

@@ -132,4 +132,16 @@ protected:
 
     std::filesystem::path m_wireRoot;
 };
+
+// La fuente de los tests de FreeType (CL5.3). MURET_CLIENT_FONT_FILE apunta a un archivo
+// TrueType, fuera de Git: en CI, una fuente del runner (DejaVu en Ubuntu, una de C:\Windows\Fonts
+// en Windows). La regla es la de la carpeta golden: sin la variable, o vacía, el test se saltea; si
+// apunta a algo que no es un archivo, falla.
+class FontFileTest : public ::testing::Test
+{
+protected:
+    void SetUp() override;
+
+    std::filesystem::path m_fontFile;
+};
 } // namespace Client::Tests

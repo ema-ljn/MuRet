@@ -343,8 +343,22 @@ cualquier otro, la de `0x466ff0` (vtable `0x6b9538`), cuyo método 1, `0x467060`
 `TextOutA` del texto entero sobre el DIB y llama a `0x554000`: **no mira los `0x02`**, que le
 llegan a GDI como un carácter más. Las trazas son de este camino (*inferido*: en la VM, `TextOut`
 no estaba en 1). `0x467060` también ubica el texto en su caja según un modo (centrado, a la
-derecha, recortado). Verificado aparte: el asignador `0x466560`
+derecha, recortado), y no le pasa a `TextOutA` un texto que empieza con un salto de línea (el
+byte `0x0a`, en `0x4671e1`): su caja sube igual, con el fondo solo. Verificado aparte: el asignador
+`0x466560`
 (reconstruido en `mu-client` con una sonda en la VM).
+
+**El DIB y la caja** (CL5.3, *estático*): `0x61bcd0` arma el DIB con el slot 0 (la `FontInput.tga`,
+de 256 × 32): el ancho por `DAT_006c7a84` (5) y el mismo alto, 1.280 × 32, de 24 bits y de arriba
+hacia abajo (el alto negativo). `0x465a00(columna, ancho, filas)` pasa de ahí a la caja de 256 × 32
+RGBA del slot 0: un píxel cuyo primer byte es `0xff` va con el color del texto (`DAT_006c8e5c`) y
+cualquier otro, con el del fondo (`DAT_006c8e64`). Lee desde la columna que le pasan sin mirar el
+ancho del DIB: con un texto de más de 1.280 columnas, la sexta caja sale de la fila de abajo
+(Q-C78). Y `0x4667a0`, el de los `0x02`, reescribe el texto en el buffer del que llama después de
+ponerle 256 ceros (Q-C77). MuRet rasteriza cada caja desde su columna con FreeType en un bit
+(`Render/Text/`, Q-C76), y una caché (`TextCache`) guarda las cajas de cada texto, fuente y colores
+en los slots del texto, después de los 1.845 del original (`TextureSlot.h`): no se sube nada en cada
+frame.
 
 ### HUD y ventanas
 
@@ -673,7 +687,7 @@ Ver [08](08-pendientes.md).
 | Colores por vértice recortados a 1 por la función fija | el shader recorta el color a [0, 1] antes de usarlo; sin eso, los colores de 1,34 brillan de más | CL5 |
 | Escenas por un entero global | `Scenes::SceneManager` con una clase por escena (`LoginScene`, `CharacterSelectScene`, `GameScene`) y transiciones explícitas | CL5 |
 | Viewport en coordenadas de 640 × 480, ortho en píxeles reales, quad en `GL_TRIANGLE_FAN` | `Render::SpriteBatch` con las dos coordenadas: lógicas de 640 × 480 escaladas y píxeles reales, con la misma Y dada vuelta | CL5 |
-| Texto por GDI → una textura que se sube por string | rasterizado con una biblioteca portable (FreeType o SDL_ttf), con caché propio (el resultado en pantalla es el mismo); se conserva el byte `0x02` de color | CL5 |
+| Texto por GDI → una textura que se sube por string | FreeType en un bit (D-C2), en las mismas cajas de 256 × 32, con una caché propia (`TextCache`) que las guarda en los slots del texto; los píxeles no son los de GDI (Q-C76); los `0x02`, con la tabla de `0x4665d0` (`ParseInlineColors`) | CL5.3 |
 | La carga dibuja sola, con su UI en 800 × 600 y un frame entero por cada uno de los 11 avances | `LoadingScene` con su juego de texturas y la barra, dentro del `SceneManager`, con un frame por avance | CL5.4 |
 | El login carga todo otra vez cada vez que se entra (mundo 55, texturas, ventanas, CS) | `LoginScene::Enter` también cada vez, con el mundo como dato de la escena | CL5.4 |
 | Siete ventanas de la UI nueva en píxeles, con la imagen de la UI nueva (`0x647650`, la de la carga) en sus fondos; avisos por id con un texto de `Text.bmd` y un botón | `UI::` con la lista, la cuenta y el aviso, y sus imágenes con la forma de la carga (UV a medio téxel, la y desde arriba) en píxeles; la lista con 20 botones de servidor (Q-C63); el id del aviso y su texto en una tabla, la de arriba | CL5.5 |
@@ -712,4 +726,6 @@ Tests que fija:
 - La mascota: 0,5 keys cada 46,875 ms, a 21,33 FPS y a 240 FPS (CL6).
 - Las UV de brillo: para las normales y el T de un frame de la traza, los modos 115, 120 y 141 dan
   las UV de la traza a menos de 0,02 (CL6).
-- El asignador de slots: los casos de `test_texture_slots` de `mu-client` (CL5).
+- El asignador de slots de `0x466560` no se prueba, porque MuRet no lo reproduce (pregunta 11 del
+  plan de la CL5): es interno, en las escenas medidas no corre (`0x466000` no corrió, § Texto), y
+  la caché del texto de MuRet es otra, con sus slots después de los 1.845 del original (CL5.3).

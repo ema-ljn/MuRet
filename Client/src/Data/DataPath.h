@@ -14,8 +14,9 @@
 namespace Client::Data
 {
 // Si `a` y `b` son iguales sin distinguir mayúsculas ASCII (solo de la A a la Z), como compara
-// Windows los nombres: la regla con que ResolveDataPath compara cada parte, y la de las
-// extensiones de Textures/TextureSet.cpp. Los bytes >= 0x80 se comparan tal cual.
+// Windows los nombres: la regla con que ResolveDataPath compara cada parte, la de las extensiones
+// de Textures/TextureSet.cpp y la de la lista de fuentes de Platform/SystemFonts.cpp. Los bytes
+// >= 0x80 se comparan tal cual.
 [[nodiscard]] bool EqualsIgnoringAsciiCase(std::string_view a, std::string_view b);
 
 // Busca `originalPath` (un archivo o una carpeta), separado por '\\' o '/', adentro de `dataRoot`.

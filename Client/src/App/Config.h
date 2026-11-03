@@ -29,6 +29,8 @@
 //   Pacing = decoupled         ; decoupled o faithful
 //   MaxFps = 0                 ; tope de FPS con VSync off: 0 (sin tope), o de MinFpsLimit a
 //                              ; MaxFpsLimit
+//   FontFile = letra.ttf       ; la fuente TrueType del texto (CL5.3)
+//   BoldFontFile = negrita.ttf ; su negrita; sin darla, se ensancha la de FontFile
 //   [Log]
 //   Path = muret-client.log
 //
@@ -83,6 +85,10 @@ struct ClientConfig
     // de MuMain), que solo se usa con VSync off (EffectiveMaxFps). 0, el valor por defecto, es sin
     // tope, como MuMain.
     int maxFps = 0;
+    // [Video] FontFile y BoldFontFile: las fuentes TrueType del texto (pregunta 8 del plan de la
+    // CL5). Vacías: no se dieron. Sin BoldFontFile, la negrita es la de FontFile ensanchada.
+    std::optional<std::filesystem::path> fontFile;
+    std::optional<std::filesystem::path> boldFontFile;
     // [Log] Path. Vacío: muret-client.log junto al ejecutable.
     std::optional<std::filesystem::path> logPath;
 };
@@ -94,8 +100,8 @@ Core::Expected<ClientConfig, ConfigError> ParseConfig(std::string_view text);
 // La config que usa Main, en este orden (el primer error corta):
 //   1. el archivo: el de --config, que tiene que existir, o DefaultConfigFileName en exeFolder, y
 //      si ese no está, los valores por defecto (así Main --frames 60 anda sin nada);
-//   2. ParseConfig: un error nombra el archivo y la línea. Una ruta relativa de la config se
-//      toma desde exeFolder, no desde la carpeta actual;
+//   2. ParseConfig: un error nombra el archivo y la línea. Una ruta relativa de la config (la
+//      carpeta de datos, el log y las fuentes) se toma desde exeFolder, no desde la carpeta actual;
 //   3. la línea de comandos pisa la config (/u /p, --data, --pacing, --vsync, --max-fps);
 //   4. en el modo fiel, un VSync que no es off es error (nombra Pacing y VSync), y sin VSync
 //      queda en off; un MaxFps que no es 0, también (nombra Pacing y MaxFps): el modo fiel

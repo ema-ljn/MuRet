@@ -33,9 +33,12 @@ namespace Client::Core
 // El tope del log al abrir. El original no vacía: al arrancar, 0x41f830 lee hasta 0x1ffff bytes
 // y, si leyó 0x7fff o más, se queda con lo que va desde el byte 0x7fff; si no, con las cuatro
 // últimas sesiones ("###### Log Begin ######"). Después borra el archivo y lo reescribe (Q-C48,
-// estático, verificado con objdump). MuRet loguea más por corrida (el arranque, los avisos del bucle, SDL),
-// y vaciarlo entero al pasar 1 MiB es más simple que cortar el principio y deja varias corridas.
-// Se mira solo al abrir: así una corrida no pierde lo suyo a la mitad.
+// estático, verificado con objdump). MuRet loguea más por corrida (el arranque, los avisos del
+// bucle, SDL), y vaciarlo entero al pasar 1 MiB es más simple que cortar el principio y deja varias
+// corridas. Se mira solo al abrir: así una corrida no pierde lo suyo a la mitad por su propio
+// tope. Si otro cliente abre el mismo archivo cuando ya pasó el tope, lo vacía, y la corrida que
+// ya estaba pierde lo que había escrito; lo que escribe después sí queda
+// (AppendsFromIndependentSinksAfterTheCap).
 inline constexpr std::uintmax_t MaxLogFileBytes = 1024 * 1024;
 
 class FileSink final : public ILogSink

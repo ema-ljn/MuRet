@@ -97,6 +97,14 @@ TEST(TextureSetTest, ChangesTheExtensionLikeTheOriginal)
     EXPECT_EQ(TextureFileName("Monster\\bossmap1_R.jpg.jpg", TextureLoader::Ozj), "Monster\\bossmap1_R.OZJ");
 }
 
+// Sin punto, el original deja sin escribir el byte que va antes de la extensión, y el nombre lleva
+// lo que había en la pila (Q-C74): MuRet pone el punto, como si lo hubiera.
+TEST(TextureSetTest, ANameWithoutADotGetsOne)
+{
+    EXPECT_EQ(TextureFileName("Interface\\deco", TextureLoader::Ozj), "Interface\\deco.OZJ");
+    EXPECT_EQ(TextureFileName("Interface\\deco", TextureLoader::Ozt), "Interface\\deco.OZT");
+}
+
 // Lo pedido se busca con ResolveDataPath: la carpeta y el archivo pueden estar en otras mayúsculas.
 TEST(TextureSetTest, FindsTheFileInAnyCase)
 {

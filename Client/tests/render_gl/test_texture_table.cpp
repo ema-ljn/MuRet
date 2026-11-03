@@ -122,6 +122,21 @@ TEST_F(TextureTableTest, ASlotOutsideTheTableIsRefused)
     EXPECT_EQ(WidthAt(table, 0x15), 2);
 }
 
+// El último slot del original, el 1.844 (0x734), sí está en la tabla: se carga, se encuentra y se
+// suelta como cualquiera.
+TEST_F(TextureTableTest, TheLastSlotIsInTheTable)
+{
+    TextureTable table(Gl());
+    const auto last = static_cast<std::uint16_t>(OriginalTextureSlotCount - 1);
+
+    const Client::Core::Expected<void, std::string> loaded = table.Load(std::vector{Ozt(last, 4, 2)});
+
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    EXPECT_EQ(WidthAt(table, last), 4);
+    table.Release(TextureSlot{last});
+    EXPECT_EQ(table.Find(TextureSlot{last}), nullptr);
+}
+
 // Una textura que GlTexture no sube (un buffer que no mide lo que dice) corta, con su slot.
 TEST_F(TextureTableTest, AnUploadThatFailsSaysTheSlot)
 {

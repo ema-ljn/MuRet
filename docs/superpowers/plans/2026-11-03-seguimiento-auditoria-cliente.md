@@ -160,16 +160,22 @@ El caso `/dev/full` por sí solo no certifica el comportamiento de Windows.
 - **Quién la observa:** la persona que mira `stderr`, donde ya van todas las líneas por el
   `TeeSink`. Se eligió esto y no devolver el fallo hasta el dueño ni una consulta de estado: no
   cambia `ILogSink` ni a ningún llamador, y `main.cpp` no tiene nada que hacer con el fallo.
-- **La firma:** `FileSink::Open(path, std::FILE* failureNotice = stderr)`, como el `std::FILE*` de
+- **La firma:** `FileSink::Open(path, std::FILE* noticeOutput = stderr)`, como el `std::FILE*` de
   `StderrSink`. Los llamadores no cambian; los tests le pasan un `tmpfile`.
-- **Después del fallo:** latente hasta abrir otro sink, sin reintentos. El stream queda con
-  `badbit`, no se limpia, y las escrituras siguientes no hacen nada.
+- **Después del fallo:** latente hasta abrir otro sink, sin reintentos. `FileSink` cierra el
+  archivo en el momento, y las escrituras siguientes no hacen nada. Abierto, lo que no se pudo
+  escribir seguía en el buffer del `ofstream` de libstdc++, y su destructor lo mandaba al salir,
+  cuando quizás ya había lugar. Un error que el sistema da recién al cerrar no se ve.
 - **Los tests:** `AWriteFailureCanBeObserved`, `ReportsAWriteFailureOnce` y
-  `StderrKeepsTheLinesAfterTheFileFails`, con `/dev/full`, fallaban sin el arreglo; en Windows se
-  saltean, porque no hay un archivo que abra y falle al escribir. El de stderr arma el `TeeSink` de
-  `main` y ve que llegan todas las líneas y un solo aviso, por su lado. `AWorkingFileGivesNoNotice`
-  corre en los dos. Mutantes muertos: sin marcar el fallo (avisa en cada línea), nunca avisar,
-  avisar siempre y sin `flush`.
+  `StderrKeepsTheLinesAfterTheFileFails`, con `/dev/full`, fallaban sin el arreglo. El de stderr
+  arma el `TeeSink` de `main` y ve que llegan todas las líneas y un solo aviso, por su lado.
+  `WritesNothingAfterAFailure` pone un tope al tamaño de los archivos del proceso (`RLIMIT_FSIZE`),
+  hace fallar una línea, saca el tope y escribe otra: el archivo queda como estaba, también después
+  de cerrar. Sin el cierre fallaba: la línea que había fallado llegaba al destruir el sink. En
+  Windows esos cuatro se saltean, porque no tiene un dispositivo como `/dev/full` ni
+  `RLIMIT_FSIZE`; `AWorkingFileGivesNoNotice` corre en los dos. Mutantes muertos: sin cerrar (avisa
+  en cada línea, y la que falló llega al cerrar), `clear` en vez de cerrar, sin la salida temprana,
+  nunca avisar, avisar siempre, el aviso a `stderr` y no a la salida que se pasa, y sin `flush`.
 
 ## T3 — Publicar la textura solo si la subida funcionó (Claude)
 

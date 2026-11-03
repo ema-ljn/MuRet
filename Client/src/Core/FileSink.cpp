@@ -8,7 +8,7 @@
 namespace Client::Core
 {
 Expected<std::unique_ptr<FileSink>, std::string> FileSink::Open(const std::filesystem::path& path,
-                                                                std::FILE* failureNotice)
+                                                                std::FILE* noticeOutput)
 {
     std::error_code error;
     const std::uintmax_t size = std::filesystem::file_size(path, error);
@@ -32,7 +32,7 @@ Expected<std::unique_ptr<FileSink>, std::string> FileSink::Open(const std::files
     // Con new y no make_unique: el constructor es privado.
     std::string notice =
         "[warning] no se pudo escribir en el archivo de log " + PathText(path) + ": el log sigue solo en stderr\n";
-    return std::unique_ptr<FileSink>(new FileSink(std::move(file), std::move(notice), failureNotice));
+    return std::unique_ptr<FileSink>(new FileSink(std::move(file), std::move(notice), noticeOutput));
 }
 
 FileSink::FileSink(std::ofstream file, std::string failureNotice, std::FILE* noticeOutput)
@@ -45,17 +45,20 @@ void FileSink::Write(LogLevel /*level*/, std::string_view line)
     std::string text(line);
     text += '\n';
     const std::scoped_lock lock(m_mutex);
-    if (m_failed)
+    if (!m_file.is_open())
     {
-        return;
+        return; // falló antes, y ya avisó
     }
     m_file.write(text.data(), static_cast<std::streamsize>(text.size()));
     m_file.flush();
     if (!m_file)
     {
-        // Un fwrite, no el Log: desde un sink, el Log volvería a entrar al Tee, que tiene su mutex
-        // tomado. Una sola vez y sin reintentar: el stream queda con badbit y no se limpia.
-        m_failed = true;
+        // Se cierra en el momento. En libstdc++, lo que no se pudo escribir queda en el buffer del
+        // ofstream: close lo prueba una vez más, ahora, y abierto lo mandaría su destructor al
+        // salir, cuando quizás ya hay lugar. Después no se intenta más. El aviso, una sola vez y
+        // con un fwrite, no por el Log: desde un sink, el Log volvería a entrar al Tee, que tiene
+        // su mutex tomado.
+        m_file.close();
         std::fwrite(m_failureNotice.data(), 1, m_failureNotice.size(), m_noticeOutput);
     }
 }

@@ -17,11 +17,17 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <thread>
 #include <vector>
 
+#ifndef _WIN32
+#include <csignal>
+#include <sys/resource.h>
+#endif
+
 // Client::Core::FileSink: agregar, el tope, aperturas independientes, dos hilos y una ruta que no
-// abre, en una carpeta temporal; una escritura que falla, con /dev/full.
+// abre, en una carpeta temporal; una escritura que falla, con /dev/full y con un tope de tamaño.
 namespace
 {
 namespace fs = std::filesystem;
@@ -271,6 +277,85 @@ TEST(FileSinkTest, StderrKeepsTheLinesAfterTheFileFails)
 
     EXPECT_EQ(ReadAll(errorOutput.get()), "[info] uno\n[warning] dos\n[error] tres\n");
     EXPECT_EQ(ReadAll(notice.get()), FailureNotice(*full));
+}
+
+#ifndef _WIN32
+// Mientras vive, ningún archivo del proceso crece más allá de `bytes`: escribir más allá da EFBIG.
+// La señal que manda el sistema (SIGXFSZ) terminaría el test, y se ignora. A diferencia de
+// /dev/full, el archivo vuelve a andar al sacar el tope, y así se ve si FileSink vuelve a intentar.
+class FileSizeLimit
+{
+public:
+    explicit FileSizeLimit(rlim_t bytes)
+    {
+        m_previousHandler = std::signal(SIGXFSZ, SIG_IGN);
+        m_saved = getrlimit(RLIMIT_FSIZE, &m_previous) == 0;
+        rlimit limit = m_previous;
+        limit.rlim_cur = bytes;
+        m_active = m_saved && m_previousHandler != SIG_ERR && setrlimit(RLIMIT_FSIZE, &limit) == 0;
+    }
+
+    ~FileSizeLimit()
+    {
+        if (m_saved)
+        {
+            setrlimit(RLIMIT_FSIZE, &m_previous);
+        }
+        if (m_previousHandler != SIG_ERR)
+        {
+            std::signal(SIGXFSZ, m_previousHandler);
+        }
+    }
+
+    FileSizeLimit(const FileSizeLimit&) = delete;
+    FileSizeLimit& operator=(const FileSizeLimit&) = delete;
+
+    [[nodiscard]] bool Active() const
+    {
+        return m_active;
+    }
+
+private:
+    using SignalHandler = void (*)(int);
+
+    SignalHandler m_previousHandler = SIG_ERR;
+    rlimit m_previous{};
+    bool m_saved = false;
+    bool m_active = false;
+};
+#endif
+
+// Sin reintentos: después del fallo no llega nada más al archivo, aunque vuelva a haber lugar. Ni
+// las líneas siguientes ni, al cerrar, la que falló, que el ofstream de libstdc++ guarda en su
+// buffer y su destructor vuelve a mandar.
+TEST(FileSinkTest, WritesNothingAfterAFailure)
+{
+#ifdef _WIN32
+    GTEST_SKIP() << "sin RLIMIT_FSIZE en Windows";
+#else
+    const TemporaryFolder folder("file-sink");
+    const fs::path path = folder.Path() / "muret-client.log";
+    // Lo de otra corrida, más largo que el aviso: el tope vale para todos los archivos del proceso,
+    // también para el temporal del aviso.
+    const std::string previous = std::string(1023, 'x') + '\n';
+    ASSERT_LT(FailureNotice(path).size(), previous.size());
+    std::ofstream(path) << previous;
+    const auto notice = OpenTemporaryFile();
+    ASSERT_NE(notice, nullptr);
+    {
+        const auto opened = FileSink::Open(path, notice.get());
+        ASSERT_TRUE(opened.HasValue()) << opened.Error();
+        {
+            const FileSizeLimit limit(static_cast<rlim_t>(previous.size()));
+            ASSERT_TRUE(limit.Active());
+            opened.Value()->Write(LogLevel::Info, "[info] uno");
+        }
+        opened.Value()->Write(LogLevel::Info, "[info] dos");
+    }
+
+    EXPECT_EQ(ReadText(path), previous);
+    EXPECT_EQ(ReadAll(notice.get()), FailureNotice(path));
+#endif
 }
 
 TEST(FileSinkTest, AWorkingFileGivesNoNotice)

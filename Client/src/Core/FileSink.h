@@ -24,8 +24,10 @@
 // MaxLogFileBytes.
 //
 // Si una escritura falla después de abrir (el disco se llenó, se fue la unidad), FileSink escribe
-// un aviso que nombra la ruta, una sola vez, y no vuelve a intentar: el archivo queda corto, pero
-// las líneas siguen en stderr por el TeeSink de main (AUD-C02 de la auditoría del 2026-11-03).
+// un aviso que nombra la ruta, una sola vez, cierra el archivo y no vuelve a intentar: el archivo
+// queda corto, pero las líneas siguen en stderr por el TeeSink de main (AUD-C02 de la auditoría
+// del 2026-11-03). Un error que el sistema da recién al cerrar (en una unidad de red, por ejemplo)
+// no se ve: el ofstream lo traga en su destructor.
 namespace Client::Core
 {
 // El tope del log al abrir. El original no vacía: al arrancar, 0x41f830 lee hasta 0x1ffff bytes
@@ -41,11 +43,11 @@ class FileSink final : public ILogSink
 public:
     // Si no se puede abrir (la carpeta no existe, no hay permiso), un error que nombra la ruta:
     // main lo avisa por stderr y sigue sin archivo. Va en un unique_ptr porque el mutex no se
-    // mueve, y el Expected guarda su valor moviéndolo. `failureNotice` es adonde va el aviso de una
+    // mueve, y el Expected guarda su valor moviéndolo. `noticeOutput` es adonde va el aviso de una
     // escritura que falla, con un fwrite y no por el Log; un test pasa un std::tmpfile(), como en
-    // StderrSink. No es dueña: no lo cierra.
+    // StderrSink. Tiene que vivir más que el FileSink, que no es dueño: no lo cierra.
     [[nodiscard]] static Expected<std::unique_ptr<FileSink>, std::string> Open(const std::filesystem::path& path,
-                                                                               std::FILE* failureNotice = stderr);
+                                                                               std::FILE* noticeOutput = stderr);
 
     void Write(LogLevel level, std::string_view line) override;
 
@@ -53,10 +55,9 @@ private:
     // Privado: solo Open, que mira que el archivo haya abierto, arma un FileSink.
     FileSink(std::ofstream file, std::string failureNotice, std::FILE* noticeOutput);
 
-    std::ofstream m_file;
+    std::ofstream m_file;        // se cierra al primer fallo: is_open() dice si ya falló
     std::string m_failureNotice; // armado al abrir: escribirlo no necesita memoria nueva
     std::FILE* m_noticeOutput;
-    bool m_failed = false; // con m_mutex tomado
     std::mutex m_mutex;
 };
 } // namespace Client::Core

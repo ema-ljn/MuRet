@@ -32,14 +32,18 @@ TEST(ModelTexturesTest, TheLoaderIsTheLetterAfterTheFirstDot)
     EXPECT_EQ(ModelTextureLoaderOf("x.bmp"), TextureLoader::Ozj);
 }
 
-// Sin punto, el índice del punto queda en 0 (0x60d66c) y la letra es la segunda.
-TEST(ModelTexturesTest, WithoutADotItIsTheSecondLetter)
+// Sin punto, el original lee el byte que sigue al 0 que termina el nombre (0x60d68a deja el índice en
+// el largo y 0x60d6dd mira el de después), lo que haya en el archivo. MuRet no lo lee: sin punto es el
+// OZJ, como el original con ese byte en 0 (Q-C107). Ninguna malla del laboratorio tiene un nombre sin
+// punto. Con el punto al final, la letra es el 0 que termina el nombre.
+TEST(ModelTexturesTest, WithoutADotItIsAnOzj)
 {
-    EXPECT_EQ(ModelTextureLoaderOf("ataque"), TextureLoader::Ozt);
-    EXPECT_EQ(ModelTextureLoaderOf("aTaque"), TextureLoader::Ozt);
+    EXPECT_EQ(ModelTextureLoaderOf("ataque"), TextureLoader::Ozj);
+    EXPECT_EQ(ModelTextureLoaderOf("aTaque"), TextureLoader::Ozj);
     EXPECT_EQ(ModelTextureLoaderOf("piedra"), TextureLoader::Ozj);
-    EXPECT_EQ(ModelTextureLoaderOf("a"), TextureLoader::Ozj);
+    EXPECT_EQ(ModelTextureLoaderOf("t"), TextureLoader::Ozj);
     EXPECT_EQ(ModelTextureLoaderOf(""), TextureLoader::Ozj);
+    EXPECT_EQ(ModelTextureLoaderOf("ataque."), TextureLoader::Ozj);
 }
 
 // 0x60d5f0: cuatro principios en minúscula, byte a byte, mandan la malla a la piel o al pelo.

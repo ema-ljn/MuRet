@@ -390,7 +390,9 @@ solo lo lee.
   Las tablas no se copiaron a mano del desensamblado: salen de emular los dos cargadores del
   `main.exe` (`Client/docs/research/scripts/emulate_model_loaders.py`), con la dirección de cada
   llamada. El golden corrigió al research: 17 mallas del personaje tienen script. 36 tests más y 13
-  mutantes.
+  mutantes. La revisión adversarial encontró un `ModelTextureSlots` que se podía copiar con las
+  rutas colgando, la letra del cargador sin punto mal leída (Q-C107) y dos variantes de mutantes de
+  la búsqueda que seguían vivas: dos tests más, que fallaron primero.
 
 ## Conceptos
 

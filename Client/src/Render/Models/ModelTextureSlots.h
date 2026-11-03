@@ -25,6 +25,14 @@ public:
     // 0x60d530: el próximo slot libre en `next`; la búsqueda por nombre empieza en el 0.
     explicit ModelTextureSlots(TextureSlot next);
 
+    // Las rutas de ToLoad apuntan a las que guarda: una copia apuntaría a las del otro. Movido, siguen
+    // valiendo, porque un std::deque movido no mueve sus elementos.
+    ModelTextureSlots(const ModelTextureSlots&) = delete;
+    ModelTextureSlots& operator=(const ModelTextureSlots&) = delete;
+    ModelTextureSlots(ModelTextureSlots&&) = default;
+    ModelTextureSlots& operator=(ModelTextureSlots&&) = default;
+    ~ModelTextureSlots() = default;
+
     // 0x60d530 otra vez, como cada cargador del original: corre el próximo libre y deja lo que ya
     // tiene nombre. Puede ir para atrás (0x615700 vuelve al 0x138, Q-C89).
     void SetNext(TextureSlot next);

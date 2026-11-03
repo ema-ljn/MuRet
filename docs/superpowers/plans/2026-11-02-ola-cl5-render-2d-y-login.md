@@ -236,12 +236,14 @@ research, *estático* es lo leído en el binario; *verificado*, lo que mostraron
 10. **La escala de la UI y el tamaño de la letra.** El original escala x por W/640 e y por H/480,
     cada una por su lado (`0x620d50`, `0x620d80`), y sus resoluciones son 640, 800, 1024, 1280 y
     1600 de ancho (CL5.R); la UI nueva va en píxeles, centrada, y la letra crece de a un punto con
-    el ancho. *Recomendación:* las mismas fórmulas para cualquier tamaño de ventana, también ancha
-    (lo escalado se estira, como lo haría el original); la letra con la tabla de `WinMain` y, para
-    un ancho que no está, el escalón del mayor de los cuatro anchos que no lo pasa, y el de 640 por
-    debajo (menos de 800, 12; menos de 1024, 13; menos de 1280, 14; si no, 15), que es una
-    diferencia con el original (que con 1600 deja la letra en -1 y -2: Q-C59). Con la ventana
-    redimensionada, las fuentes y la caché se rehacen. Un modo que mantenga el 4:3 de lo escalado
+    el ancho. *Recomendación:* las mismas fórmulas para cualquier resolución que valga, también
+    ancha (lo escalado se estira, como lo haría el original); la letra con la tabla de `WinMain` y,
+    para un ancho que no está, el escalón del mayor de los cuatro anchos que no lo pasa, y el de 640
+    por debajo (menos de 800, 12; menos de 1024, 13; menos de 1280, 14; si no, 15), que es una
+    diferencia con el original (que con 1600 deja la letra en -1 y -2: Q-C59). *Decidido (Emanuel,
+    2026-11-03, #72):* valen las cinco resoluciones del original o un modo del monitor, y la ventana
+    no cambia de tamaño (`App::IsValidResolution`); si el área de dibujo cambia igual (otra densidad
+    de pantalla), las fuentes y la caché se rehacen. Un modo que mantenga el 4:3 de lo escalado
     cambia lo que se ve: va detrás de una opción, con un ADR, cuando haga falta. **Esto se aparta de
     D-C11**, que pide toda la UI en 640 × 480 escalada: las ventanas de la UI nueva del original
     (`0x65f300`) van en píxeles, y MuRet las sigue, por fidelidad. Si se acepta, la CL5.5 corrige

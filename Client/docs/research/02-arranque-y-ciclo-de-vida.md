@@ -575,7 +575,7 @@ arranque hasta el cierre, también antes de conectar. Los otros: el 1001 en `0x4
 | Sin foco no corre el frame: ni pasos, ni dibujo, ni la espera (Q-C46) | los pasos siguen sin foco y minimizada; minimizada no se dibuja | CL3 |
 | Lo que avanza por reloj: las demoras de las habilidades y el reloj T (`timeGetTime`), el freno de 300 ms (`GetTickCount`) y el delta de la UI (QPC) | por el reloj del cliente, no por pasos, aunque la lógica corra en el paso | CL6 a CL9 |
 | Cinco escenas en un entero que escriben ocho lugares, con números fijos | `Scenes::SceneManager` con la tabla de transiciones de arriba: una que no está es un error en el log | CL5 |
-| Cinco resoluciones, y la letra de a un punto por ancho, que en 1600 × 1200 queda en -1 y -2 (Q-C59) | cualquier tamaño de ventana; la letra por escalones de ancho, con el de 1280 desde 1280 en adelante | CL5 |
+| Cinco resoluciones, y la letra de a un punto por ancho, que en 1600 × 1200 queda en -1 y -2 (Q-C59) | las cinco del original o un modo del monitor, con la ventana fija (`App::IsValidResolution`, decidido el 2026-11-03); la letra por escalones de ancho, con el de 1280 desde 1280 en adelante | CL5 |
 | Red por mensajes de ventana | un socket no bloqueante que el bucle consulta en cada frame; mismo modelo de un solo hilo | CL4 |
 | Keepalive por `WM_TIMER` cada 20 s | temporizador del bucle, testeable con un reloj falso | CL4 |
 | Fin del auto-update del launcher (`0x4b96b0`: copia `mu._xe`, `mumsg._ll`, `wz_zp._ll` y `message._tf` sobre sus nombres) | no se porta: es del launcher ([05](05-formatos-de-datos.md#el-pipeline-de-las-dlls)) | — |

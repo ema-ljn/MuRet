@@ -10,7 +10,15 @@
 // buffers y el VAO. Es la X-macro de la pregunta 5 del plan de la CL5, en chico: una línea por
 // función, con su typedef PFNGL...PROC, el nombre del miembro y el de GL, arma el miembro del
 // struct y su pedido en LoadLabGl. La CL5.1 lleva la misma forma a Platform/GlFunctionList.h; esta
-// lista, con lo que usa cada una el lab, es su punto de partida.
+// lista es su punto de partida. Quién usa cada grupo, en el orden de la lista:
+//   glGetError                       los tests, después de cada paso
+//   glEnable, glDisable, glBlendFunc la mezcla (test_lab_framebuffer.cpp)
+//   glPixelStorei                    GL_UNPACK_ALIGNMENT al subir la textura (LabTexture)
+//   glReadPixels                     leer lo dibujado (LabFramebuffer)
+//   glGenTextures a glTexParameteri  las texturas (GlName, LabTexture y el color del framebuffer)
+//   glGenFramebuffers a glCheck...   el framebuffer de 64 × 64 (GlName, LabFramebuffer)
+//   glCreateShader a glUniform...    los dos shaders, el programa y la matriz (LabQuadRenderer)
+//   glGenVertexArrays a glDraw...    el VAO, el VBO, el de índices y el dibujo (LabQuadRenderer)
 #define MURET_LAB_GL_FUNCTIONS(X)                                                                                      \
     X(PFNGLGETERRORPROC, getError, "glGetError")                                                                       \
     X(PFNGLENABLEPROC, enable, "glEnable")                                                                             \

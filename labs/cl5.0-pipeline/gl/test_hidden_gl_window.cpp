@@ -8,6 +8,7 @@
 
 #include <optional>
 #include <string>
+#include <type_traits>
 
 // Labs::HiddenGlWindow y la regla de MURET_CLIENT_REQUIRE_GL (la pregunta 9 del plan de la CL5).
 namespace
@@ -15,6 +16,13 @@ namespace
 using Labs::IsGlRequired;
 
 using HiddenGlWindowTest = Labs::LabGlTest;
+
+// GlName, LabFramebuffer y LabQuadRenderer guardan un puntero a Gl(): si la ventana se pudiera
+// mover o copiar, quedaría colgado. Por eso Create la da en un unique_ptr (revisión de la CL5.0).
+static_assert(!std::is_move_constructible_v<Labs::HiddenGlWindow>);
+static_assert(!std::is_move_assignable_v<Labs::HiddenGlWindow>);
+static_assert(!std::is_copy_constructible_v<Labs::HiddenGlWindow>);
+static_assert(!std::is_copy_assignable_v<Labs::HiddenGlWindow>);
 
 // Solo "1" hace fallar a un test sin GL: sin la variable, vacía o con otro valor, se saltea.
 TEST(GlRequirementTest, OnlyOneRequiresGl)

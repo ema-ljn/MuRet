@@ -3,6 +3,7 @@
 #include <SDL3/SDL_error.h>
 
 #include <cstdlib>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -43,6 +44,22 @@ std::string CheckContext(const Client::Platform::GlFunctions& gl)
     }
     return {};
 }
+
+// Con el contexto ya actual: las cinco de la CL0.3, la versión y el perfil, y recién ahí el resto.
+Client::Core::Expected<LabGl, std::string> LoadCheckedGl()
+{
+    const Client::Core::Expected<Client::Platform::GlFunctions, std::string> base = Client::Platform::LoadGlFunctions();
+    if (!base.HasValue())
+    {
+        return Client::Core::Unexpected(base.Error());
+    }
+    std::string contextError = CheckContext(base.Value());
+    if (!contextError.empty())
+    {
+        return Client::Core::Unexpected(std::move(contextError));
+    }
+    return LoadLabGl(base.Value());
+}
 } // namespace
 
 bool IsGlRequired(const std::optional<std::string>& value)
@@ -79,7 +96,7 @@ HiddenGlWindow::HiddenGlWindow(SdlPtr sdl, WindowPtr window, GlContextPtr contex
 }
 
 // Si algo falla en el medio, lo creado se destruye al revés: el contexto, la ventana y SDL.
-Client::Core::Expected<HiddenGlWindow, std::string> HiddenGlWindow::Create()
+Client::Core::Expected<std::unique_ptr<HiddenGlWindow>, std::string> HiddenGlWindow::Create()
 {
     Client::Core::Expected<std::unique_ptr<Client::Platform::SdlContext>, std::string> sdl =
         Client::Platform::SdlContext::Create();
@@ -106,22 +123,14 @@ Client::Core::Expected<HiddenGlWindow, std::string> HiddenGlWindow::Create()
                                         " core: " + SDL_GetError());
     }
 
-    const Client::Core::Expected<Client::Platform::GlFunctions, std::string> base = Client::Platform::LoadGlFunctions();
-    if (!base.HasValue())
-    {
-        return Client::Core::Unexpected(base.Error());
-    }
-    std::string contextError = CheckContext(base.Value());
-    if (!contextError.empty())
-    {
-        return Client::Core::Unexpected(std::move(contextError));
-    }
-    const Client::Core::Expected<LabGl, std::string> gl = LoadLabGl(base.Value());
+    Client::Core::Expected<LabGl, std::string> gl = LoadCheckedGl();
     if (!gl.HasValue())
     {
         return Client::Core::Unexpected(gl.Error());
     }
-    return HiddenGlWindow(std::move(sdl).Value(), std::move(window), std::move(context), gl.Value());
+    // El constructor es privado: make_unique no lo ve.
+    return std::unique_ptr<HiddenGlWindow>(
+        new HiddenGlWindow(std::move(sdl).Value(), std::move(window), std::move(context), gl.Value()));
 }
 
 const LabGl& HiddenGlWindow::Gl() const

@@ -126,12 +126,13 @@ jobs:
       # paso de Tests se saltean porque no hay pantalla; acá corren en Xvfb con
       # MURET_CLIENT_REQUIRE_GL=1, que los hace fallar si el Xvfb no da el contexto, en vez de
       # dejarlos salteados en silencio. Con --no-tests=error, si ningún test lleva la etiqueta,
-      # también falla. En Windows no va: el runner tiene solo el OpenGL 1.1 de GDI.
+      # también falla. La etiqueta es una regex: '^gl$' no toma otra que la contenga. En Windows
+      # no va: el runner tiene solo el OpenGL 1.1 de GDI.
       - name: Tests de GL en Xvfb (Linux)
         if: runner.os == 'Linux'
         env:
           MURET_CLIENT_REQUIRE_GL: 1
-        run: xvfb-run -a -s '-screen 0 800x600x24' ctest --preset ${{ matrix.test-preset }} -L gl --no-tests=error
+        run: xvfb-run -a -s '-screen 0 800x600x24' ctest --preset ${{ matrix.test-preset }} -L '^gl$' --no-tests=error
 
       # El hola mundo de la CL0.3: abre la ventana con OpenGL 3.3 core, dibuja 60 frames y sale.
       # En Windows no hay driver de OpenGL 3.3 en el runner (solo el 1.1 de GDI), así que va solo acá.

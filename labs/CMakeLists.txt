@@ -134,7 +134,8 @@ if(MURET_BUILD_TESTS)
     # Los de cl5.0-pipeline/gl/, con el prefijo LabCl50Gl. y la etiqueta gl de CTest: los que
     # dibujan abren una ventana escondida con un contexto 3.3 core. Sin pantalla o sin 3.3 se
     # saltean, salvo con MURET_CLIENT_REQUIRE_GL=1, que los hace fallar: el paso de Xvfb del CI
-    # corre `ctest -L gl` con esa variable (la pregunta 9 del plan de la CL5).
+    # corre `ctest -L '^gl$'` con esa variable (la pregunta 9 del plan de la CL5). Cada uno tiene
+    # 60 s: un driver colgado en Xvfb falla el test en vez de frenar el CI hasta su tope de 6 h.
     add_executable(LabCl50GlTests
         cl5.0-pipeline/gl/test_gl_name.cpp
         cl5.0-pipeline/gl/test_hidden_gl_window.cpp
@@ -143,5 +144,5 @@ if(MURET_BUILD_TESTS)
     )
     target_link_libraries(LabCl50GlTests PRIVATE MuRetLabsCl50Gl GTest::gtest GTest::gtest_main)
     muret_set_warnings(LabCl50GlTests)
-    gtest_discover_tests(LabCl50GlTests TEST_PREFIX "LabCl50Gl." PROPERTIES LABELS gl)
+    gtest_discover_tests(LabCl50GlTests TEST_PREFIX "LabCl50Gl." PROPERTIES LABELS gl TIMEOUT 60)
 endif()

@@ -53,15 +53,19 @@ const void* BufferOffset(std::size_t bytes)
     return reinterpret_cast<const void*>(bytes);
 }
 
+// El largo de GL_INFO_LOG_LENGTH cuenta el NUL del final; el texto es lo que dice written.
 std::string ShaderLog(const LabGl& gl, GLuint shader)
 {
     GLint length = 0;
     gl.getShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
-    std::string log(static_cast<std::size_t>(length > 0 ? length : 0), '\0');
-    if (length > 0)
+    if (length <= 0)
     {
-        gl.getShaderInfoLog(shader, length, nullptr, log.data());
+        return {};
     }
+    std::string log(static_cast<std::size_t>(length), '\0');
+    GLsizei written = 0;
+    gl.getShaderInfoLog(shader, length, &written, log.data());
+    log.resize(static_cast<std::size_t>(written > 0 ? written : 0));
     return log;
 }
 
@@ -69,11 +73,14 @@ std::string ProgramLog(const LabGl& gl, GLuint program)
 {
     GLint length = 0;
     gl.getProgramiv(program, GL_INFO_LOG_LENGTH, &length);
-    std::string log(static_cast<std::size_t>(length > 0 ? length : 0), '\0');
-    if (length > 0)
+    if (length <= 0)
     {
-        gl.getProgramInfoLog(program, length, nullptr, log.data());
+        return {};
     }
+    std::string log(static_cast<std::size_t>(length), '\0');
+    GLsizei written = 0;
+    gl.getProgramInfoLog(program, length, &written, log.data());
+    log.resize(static_cast<std::size_t>(written > 0 ? written : 0));
     return log;
 }
 

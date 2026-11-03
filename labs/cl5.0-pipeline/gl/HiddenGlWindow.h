@@ -38,14 +38,15 @@ class HiddenGlWindow
 public:
     // SDL_Init, la ventana escondida y su contexto 3.3 core, que queda como el actual de este hilo,
     // con las funciones del lab. El error dice qué faltó: la pantalla, el contexto, la versión, el
-    // perfil o una función.
-    [[nodiscard]] static Client::Core::Expected<HiddenGlWindow, std::string> Create();
+    // perfil o una función. Va en un unique_ptr, como SdlContext: GlName, LabFramebuffer y
+    // LabQuadRenderer guardan un puntero a Gl(), así que la ventana no puede cambiar de dirección.
+    [[nodiscard]] static Client::Core::Expected<std::unique_ptr<HiddenGlWindow>, std::string> Create();
 
-    // Se mueve (Expected la devuelve por valor) pero no se asigna, como Platform::Window.
-    HiddenGlWindow(HiddenGlWindow&&) noexcept = default;
-    HiddenGlWindow& operator=(HiddenGlWindow&&) = delete;
+    // Ni se copia ni se mueve: moverla dejaría colgados los punteros a m_gl.
     HiddenGlWindow(const HiddenGlWindow&) = delete;
     HiddenGlWindow& operator=(const HiddenGlWindow&) = delete;
+    HiddenGlWindow(HiddenGlWindow&&) = delete;
+    HiddenGlWindow& operator=(HiddenGlWindow&&) = delete;
     ~HiddenGlWindow() = default;
 
     [[nodiscard]] const LabGl& Gl() const;

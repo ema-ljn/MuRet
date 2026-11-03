@@ -173,7 +173,7 @@ con `ScaleX`, `ScaleY` y `Screen`.
 
 ## 5. Detective de números: 1/640 en float
 
-`0x620d50` son cinco instrucciones con la FPU x87: carga W como entero (`FILD`), lo multiplica por
+`0x620d50` son tres instrucciones de la FPU x87: carga W como entero (`FILD`), lo multiplica por
 la x (`FMUL`) y después por un float que está en `0x6ba070`. `0x620d80`, lo mismo con H y el float
 de `0x6ba06c`.
 

@@ -31,7 +31,7 @@ variable:
 ```bash
 cmake --preset linux-x64-debug && cmake --build --preset linux-x64-debug
 ctest --preset linux-x64-debug -R "LabCl50"
-MURET_CLIENT_REQUIRE_GL=1 xvfb-run -a ctest --preset linux-x64-debug -L gl
+MURET_CLIENT_REQUIRE_GL=1 xvfb-run -a ctest --preset linux-x64-debug -L '^gl$'
 ```
 
 Sin pantalla, el salteo dice qué faltó: "sin OpenGL 3.3 core (SDL_Init falló: No available video
@@ -51,9 +51,12 @@ Lo que el cliente no tiene todavía es la tabla grande: el lab arma la suya con 
 (`gl/LabGl.h`, la pregunta 5 del plan en chico), 41 funciones sobre las 5 de la CL0.3, con los
 mismos chequeos de `IsValidProcAddress` y el mismo reintento en `opengl32.dll` de Windows. El de
 `Platform/GlLoader.cpp` es interno, así que el lab lo copia (son 12 líneas); la CL5.1 deja uno solo,
-con la X-macro en `Platform/GlFunctionList.h`, y esta lista, con lo que usa cada función, es su
-punto de partida. `MURET_CLIENT_REQUIRE_GL` se lee como `Client/tests/support/GoldenDir.cpp` lee
-su variable: con `_dupenv_s` en MSVC y `getenv` en lo demás.
+con la X-macro en `Platform/GlFunctionList.h`, y esta lista, con quién usa cada grupo, es su punto
+de partida. `MURET_CLIENT_REQUIRE_GL` se lee como `Client/tests/support/GoldenDir.cpp` lee su
+variable: con `_dupenv_s` en MSVC y `getenv` en lo demás. **Las dos son copias, y se van:** en la
+CL5.1 el lab pasa a pedir sus funciones con el loader de `Platform` (el pedido y el reintento en
+`opengl32.dll` quedan en un solo lugar), y a leer la variable con `Core::ReadEnvironmentVariable`,
+que trae la pila de la CL4 y todavía no está en esta base (CODING_RULES §4).
 
 ## 1. Calentamiento
 
@@ -131,9 +134,9 @@ es menor que medio ULP.
 **El tipo de la cuenta.** Con todas las coordenadas enteras de 0 a 640 y de 0 a 480, en 640 × 480,
 800 × 600, 1024 × 768, 1280 × 1024 y 1920 × 1080, la cuenta en `float` y en `double` dan el mismo
 float (un modelo en Python con NumPy, fuera del repo). Lo que cambia es **dividir**: `H · y / 480`
-da otro float que el original en 300 a 400 de las 481 y, según la resolución; en x, solo en 1024 de
-ancho, en 127 de las 641. Con `long double` (los 64 bits de la x87, con GCC en x86-64) tampoco
-cambia ninguno: un programa en C++ fuera del repo, con las mismas coordenadas.
+da otro float que el original en 294 (con H = 768) a 401 (con H = 480) de las 481 coordenadas y; en
+x, solo en 1024 de ancho, en 127 de las 641. Con `long double` (los 64 bits de la x87, con GCC en
+x86-64) tampoco cambia ninguno: un programa en C++ fuera del repo, con las mismas coordenadas.
 
 **Respuesta.** 640 es 2⁷ · 5, y 1/5 en binario es periódico (0,00110011...): no entra en 24 bits.
 1/512 es 2⁻⁹, exacto. El test que lo deja fijo es `ScalesByTheInverseOfTheSize`: `ScaleY(25)` en
@@ -302,7 +305,9 @@ Las líneas de la guía están en `00620d50_FUN_00620d50.asm`, `00621b60_FUN_006
   borde de arriba es 970,6666870117188 y el de abajo 287,99996948242188; restando del float de
   arriba daría 288 justos (`TheBottomComesFromTheUnroundedTop`). La resta de dos floats en 53
   bits es exacta, así que con la x87 en 64 bits daría lo mismo.
-- **Las divisiones del viewport.** `MUL` por `0xcccccccd` y `SHR 9` (sobre la parte alta, `EDX`)
-  es dividir por 640, truncando; `MUL` por `0x88888889` y `SHR 8`, dividir por 480. Son `MUL`, sin
-  signo, como los `IMUL` que multiplican antes por W y H. 768 · 432 = 331.776, y 331.776 / 480 da
-  691 (691,2 truncado): la altura del viewport del juego en la traza.
+- **Las divisiones del viewport.** `MUL` por `0xcccccccd` y `SHR 9` (sobre la parte alta, `EDX`) es
+  dividir por 640, truncando; `MUL` por `0x88888889` y `SHR 8`, dividir por 480. El `MUL` es la
+  multiplicación sin signo, y es lo que hace que la división sea sin signo. Los `IMUL` que
+  multiplican antes por W y H son con signo, pero los 32 bits de abajo dan lo mismo que un `MUL`.
+  768 · 432 = 331.776, y 331.776 / 480 da 691 (691,2 truncado): la altura del viewport del juego en
+  la traza.

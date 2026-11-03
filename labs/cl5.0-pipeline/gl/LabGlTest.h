@@ -13,6 +13,7 @@
 
 #include <array>
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <ostream>
 #include <string>
@@ -57,16 +58,23 @@ struct Quadrants
     std::optional<Rgba> bottomRight;
 };
 
+// El índice del píxel (x, y) en lo leído, fila por fila. Se ensancha antes de multiplicar:
+// y · ancho en int puede pasarse en un framebuffer grande.
+inline std::size_t PixelIndex(int x, int y, int width)
+{
+    return (static_cast<std::size_t>(y) * static_cast<std::size_t>(width)) + static_cast<std::size_t>(x);
+}
+
 // El color del rectángulo [x0, x1) × [y0, y1) de lo leído (la y desde abajo, como GL), si es uno
 // solo.
 inline std::optional<Rgba> UniformColor(const std::vector<Rgba>& pixels, int width, int x0, int y0, int x1, int y1)
 {
-    const Rgba first = pixels[static_cast<std::size_t>(y0 * width + x0)];
+    const Rgba first = pixels[PixelIndex(x0, y0, width)];
     for (int y = y0; y < y1; ++y)
     {
         for (int x = x0; x < x1; ++x)
         {
-            if (!(pixels[static_cast<std::size_t>(y * width + x)] == first))
+            if (!(pixels[PixelIndex(x, y, width)] == first))
             {
                 return std::nullopt;
             }
@@ -96,7 +104,7 @@ class LabGlTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        Client::Core::Expected<HiddenGlWindow, std::string> window = HiddenGlWindow::Create();
+        Client::Core::Expected<std::unique_ptr<HiddenGlWindow>, std::string> window = HiddenGlWindow::Create();
         if (!window.HasValue())
         {
             if (IsGlRequired(ReadRequireGl()))
@@ -106,7 +114,7 @@ protected:
             GTEST_SKIP() << "sin OpenGL 3.3 core (" << window.Error() << "): test salteado; con " << RequireGlVariable
                          << "=1 falla";
         }
-        m_window.emplace(std::move(window).Value());
+        m_window = std::move(window).Value();
     }
 
     [[nodiscard]] const LabGl& Gl() const
@@ -116,6 +124,6 @@ protected:
 
     // La ventana va primero: lo que el test cree después (texturas, framebuffers, el renderer) se
     // destruye antes, con el contexto vivo.
-    std::optional<HiddenGlWindow> m_window;
+    std::unique_ptr<HiddenGlWindow> m_window;
 };
 } // namespace Labs

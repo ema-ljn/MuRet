@@ -278,6 +278,15 @@ solo lo lee.
   primer punto y poniéndole la extensión del cargador (Q-C74, sin punto). El golden lee las 24 del
   `Data\` del laboratorio. `Gl::TextureTable` es la tabla de la escena, por el slot del original,
   detrás de `ITextureStore`; y `Core::Expected` tiene su `void`.
+  **La CL5.2** la resolvió Claude (2026-11-03), con el paso 1, la tabla de los quads del login
+  calculada a mano, **resuelto por Claude**. Las cuentas del original están en `ClientLib`, sin GL:
+  `ScreenScale`, las esquinas de `0x621b60` y de la arena (`0x622000`) y la imagen de la UI nueva
+  (`UiImage`, la de la carga y las ventanas, con la y desde arriba y las UV a medio téxel). El
+  `SpriteBatch` las junta en triángulos y tramos, sin reordenar, y guarda el estado de GL como lo
+  deja el original: el color, la mezcla, la textura prendida y el alpha test, que el quad sin
+  textura apaga hasta la próxima mezcla (Q-C75, nuevo). `GlSpriteRenderer` sube los vértices una
+  vez por frame y dibuja cada tramo con su mezcla, su textura o ninguna, y el alpha test como un
+  `discard`; un slot que falta se avisa una vez. El lab de la CL5.0 usa ahora este código.
 
 ## Conceptos
 
@@ -381,6 +390,9 @@ sesión, junto con los de repaso más viejo.
 | una textura de GL desde un buffer en memoria: el formato interno con tamaño (`GL_RGB8`) contra el del buffer (`GL_RGB`), `GL_UNPACK_ALIGNMENT` en 1 y vuelto a como estaba, por qué sin mipmaps el filtro de minificación por defecto deja la textura incompleta (negra), y `GL_CLAMP` contra `GL_CLAMP_TO_EDGE` con `GL_LINEAR` (Q-C73) | CL5.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | probar GL con píxeles: un framebuffer con una textura de color, `glReadPixels` que da las filas de abajo para arriba, un fixture que se saltea sin pantalla y falla con `MURET_CLIENT_REQUIRE_GL=1`, y un shader que no compila o no enlaza con el log del driver en el error | CL5.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | un juego de texturas como dato y no como código: la ruta del original, su slot y su muestreo en una tabla `constexpr`; la primera lectura del disco de la capa de datos, con un error por tipo (falta, no se lee, no es de ningún cargador) que dice la ruta; una tabla por escena indexada por el slot del original detrás de una interfaz sin GL; y `Expected<void, E>` para lo que solo puede fallar | CL5.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| coordenadas lógicas contra físicas: la UI escalada desde 640 × 480 cada eje por su lado, la que va en píxeles y la de la UI nueva en su propio espacio (800 × 600 en la carga), con la y desde arriba que el original da vuelta en cada esquina | CL5.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| un lote de sprites: muchos quads en un VBO por frame y un `glDrawArrays` por tramo de la misma textura, mezcla y alpha test, sin reordenar nunca; y el estado de la función fija (color, mezcla, `GL_TEXTURE_2D`, alpha test) guardado como lo deja el original, que pasa de un quad al otro (Q-C57, Q-C75) | CL5.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| la mezcla y el alpha test en el pipeline programable: `glBlendFunc` por tramo, la textura apagada y el alpha test como banderas del fragment shader (`glUniform1i`), y por qué 0,25 justo no pasa `GL_GREATER` | CL5.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

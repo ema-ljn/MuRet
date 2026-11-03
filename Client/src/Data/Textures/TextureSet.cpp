@@ -28,24 +28,6 @@ constexpr std::string_view LoaderExtension(TextureLoader loader)
     return loader == TextureLoader::Ozj ? "OZJ" : "OZT";
 }
 
-// Si `a` y `b` son iguales sin distinguir mayúsculas ASCII.
-bool EqualsIgnoringCase(std::string_view a, std::string_view b)
-{
-    if (a.size() != b.size())
-    {
-        return false;
-    }
-    for (std::size_t i = 0; i < a.size(); ++i)
-    {
-        const auto lower = [](char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; };
-        if (lower(a[i]) != lower(b[i]))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
 // Todos los bytes de `path`, o el error del sistema.
 Core::Expected<std::vector<char>, std::error_code> ReadTextureFile(const std::filesystem::path& path)
 {
@@ -141,11 +123,11 @@ std::optional<TextureLoader> TextureLoaderOf(std::string_view originalPath)
         return std::nullopt;
     }
     const std::string_view extension = originalPath.substr(dot + 1);
-    if (EqualsIgnoringCase(extension, "jpg"))
+    if (EqualsIgnoringAsciiCase(extension, "jpg"))
     {
         return TextureLoader::Ozj;
     }
-    if (EqualsIgnoringCase(extension, "tga"))
+    if (EqualsIgnoringAsciiCase(extension, "tga"))
     {
         return TextureLoader::Ozt;
     }

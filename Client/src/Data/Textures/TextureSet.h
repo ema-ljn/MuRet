@@ -68,7 +68,10 @@ struct LoadedTexture
 };
 
 // El cargador de `originalPath` por su extensión, sin mirar mayúsculas: ".jpg" el OZJ y ".tga" el
-// OZT. Con otra, o sin extensión, std::nullopt.
+// OZT. Con otra, o sin extensión, std::nullopt. Es la regla de las tablas de las escenas, donde
+// cada llamada del original nombra su cargador y su extensión coincide. Las texturas de un modelo
+// (0x60d5f0, CL6) siguen otra: la letra después del primer punto, 't' o 'T' el OZT y cualquier
+// otra el OZJ.
 [[nodiscard]] std::optional<TextureLoader> TextureLoaderOf(std::string_view originalPath);
 
 // El archivo que abre el cargador, como en 0x63b870 y 0x63bd00 con Data\: el nombre hasta el

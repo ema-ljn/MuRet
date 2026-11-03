@@ -759,10 +759,26 @@ public:
 } // namespace Client::Protocol
 ```
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, la tabla: para `C1 04 F4 02`,
-  `C2 00 0B F4 06 00 01 90 01 00 00`, `C1 05 F1 01 01`, `C1 0C F1 00 …`, `C1 04 0E 00`,
-  `C1 03 F1` y un C3, qué opcode y qué subcódigo lee el original y qué lee el `Dispatcher`.
-- [ ] **Paso 2:** los tests:
+- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de los tests, la tabla: para
+  `C1 04 F4 02`, `C2 00 0B F4 06 00 01 90 01 00 00`, `C1 05 F1 01 01`, `C1 0C F1 00 …`,
+  `C1 04 0E 00`, `C1 03 F1` y un C3, qué opcode y qué subcódigo lee el original y qué lee el
+  `Dispatcher`.
+
+  | Paquete | El original (`0x4e2b10`) | El `Dispatcher` |
+  | --- | --- | --- |
+  | `C1 04 F4 02` | el opcode en `pkt[2]`, `F4`; `F4` toma el subcódigo de `pkt[3]` en un C1: `02` | `F4 02`, el byte que sigue al opcode |
+  | `C2 00 0B F4 06 00 01 90 01 00 00` | el opcode en `pkt[3]`, `F4`; en un C2, el subcódigo de `pkt[4]`: `06` | `F4 06`: en un C2 el byte que sigue al opcode también es `pkt[4]` |
+  | `C1 05 F1 01 01` | `F1`; el nivel 2, `pkt[3]`: `01`; el nivel 3, `pkt[4]`: `01` | `F1 01`; el `01` de `pkt[4]` (el resultado) lo lee el handler, `ReadLoginResult` |
+  | `C1 0C F1 00 …` | `F1` y `pkt[3]`: `00`, el saludo | `F1 00` |
+  | `C1 04 0E 00` | `0E`, sin nivel 2: `0E` no tiene subcódigos | `0E`, con un handler para todo el opcode: el `00` no se mira |
+  | `C1 03 F1` | `F1`, y lee `pkt[3]` aunque no llegó: el byte que haya quedado en el buffer (Q-C42) | `Malformed`, sin llamar a ningún handler |
+  | un C3 | no llega cifrado: `0x4e1d50` lo descifra y lo rearma como C1 (Q-C10), y el dispatcher ve el opcode de adentro | `Malformed`: el opcode de un C3 viaja cifrado (`Packet::Opcode()` da `std::nullopt`); la `Connection` lo descifra antes (CL4.3) |
+
+  La única diferencia en el contrato es el nivel 2 de `F1` en un C2: el original lo lee siempre en
+  `pkt[3]`, y el `Dispatcher` en `pkt[4]`. Los `F1` de la conexión llegan como C1 (04, "El flujo
+  de conexión"), así que no cambia nada; si un handler de otra ola recibe un `F1` en C2, se mira
+  ahí.
+- [x] **Paso 2:** los tests:
   - `DispatcherTest.CallsTheHandlerOfTheOpcode` (`C1 04 0E 00` con un handler para `0E`: lo
     llama una vez con el paquete entero);
   - `DispatcherTest.RoutesBySubcode` (`C1 05 F1 01 01` va al de `F1 01` y no al de `F1 00`);
@@ -775,8 +791,24 @@ public:
   - `DispatcherTest.AnEncryptedPacketIsMalformed` (un C3);
   - `DispatcherTest.RegisteringTwiceKeepsTheFirst` (el segundo `On` da `false` y despacha el
     primero; también un `On(F1)` después de un `On(F1, 01)`).
-- [ ] **Paso 3:** `Dispatcher`.
-- [ ] **Paso 4:** verificar:
+
+  Hecho así, en rojo contra un `Dispatcher` que no registraba nada, con dos tests más:
+  `AnOpcodeWithoutSubcodesNeedsNoMoreBytes` (`C1 03 0E` con un handler para todo `0E` es
+  `Handled`: solo un opcode con subcódigos necesita el byte que sigue) y
+  `AnEmptyHandlerIsNotRegistered` (`On` con un `Handler` vacío da `false` y no deja nada a medias;
+  si no, `Dispatch` lo llamaría y `std::function` tiraría `bad_function_call`). Los de los avisos
+  también miran que un opcode, o un opcode y subcódigo, distinto tenga su propia línea. Después,
+  por la revisión del PR, `AC2WithoutItsSubcodeIsMalformed` (`C2 00 04 F4`, con `F4` registrado
+  con subcódigos: en un C2 el subcódigo es `pkt[4]`, que no llegó).
+- [x] **Paso 3:** `Dispatcher`.
+
+  Hecho así: un `std::map` de opcode a lo registrado (un handler para todo el opcode, o un
+  `std::map` de subcódigo a handler, nunca los dos), y dos `std::bitset<256>` con lo ya avisado,
+  uno del `Dispatcher` para los opcodes y uno por opcode para sus subcódigos. Buscar no reserva
+  memoria, así que despachar un paquete tampoco (regla 12). Un `Malformed` no va al log: lo
+  decide quien llama, la `ServerSession` de la CL4.3, que tiene los dos `Dispatcher`. El aviso
+  dice `un paquete con el opcode 99 no tiene handler: se descarta, y este aviso no se repite`.
+- [x] **Paso 4:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "Dispatcher"
   ```

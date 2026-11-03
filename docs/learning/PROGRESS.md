@@ -187,6 +187,15 @@ solo lo lee.
   [`labs/cl4.0-sockets/README.md`](../../labs/cl4.0-sockets/README.md), y la comparación con hilos,
   IOCP, `select` y `poll`, en [`labs/README.md`](../../labs/README.md). Para cerrarla falta lo tuyo:
   las preguntas y la sección final de la [guía de la CL4.0](ola-cl4.0-sockets-no-bloqueantes.md).
+- **La CL4.3 la escribe Claude**, en dos PRs. El primero trae la `Connection`: el camino de un
+  paquete en claro por una conexión, en el orden del original. Al recibir, el socket, el corte con
+  la máscara de la ofuscación, `AfterCut` y `BeforeDispatch`; al mandar, `BeforeSend` y la
+  `SendQueue`, sin adelantarse nunca a lo pendiente. Lo que pasa en un frame sale como eventos, en
+  orden (`Opened`, los paquetes y al final `Closed` con su motivo), porque Network no despacha. Un
+  error del corte cierra, porque se perdió dónde empieza el siguiente, y un paquete que la
+  ofuscación no traduce se descarta y la conexión sigue. Volver a abrir vacía el corte y la cola:
+  nada del ConnectServer llega al GameServer. Si resolver el host tarda más de 100 ms, va al log.
+  El cifrado llega en la CL4.4.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 
@@ -272,6 +281,7 @@ sesión, junto con los de repaso más viejo.
 | una cola de envío con cursor sobre un buffer fijo (`SendQueue`): por qué restar lo que salió dos veces repite el principio y pierde el final (Q-C11), compactar solo cuando lo nuevo no entra, y un tope que cierra en vez de crecer | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | la red consultada una vez por frame en el mismo hilo que la lógica (`ILoopClient::Poll`), y dónde va en el modo fiel: fuera de la medición, donde lo que tarda se pierde de a ticks enteros, como los pasos (`FaithfulDoesNotMeasureThePoll`) | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | una tabla de despacho en vez de un `switch`: opcode → handler con un segundo nivel por subcódigo, `std::function` como handler, registrar dos veces como un error que se devuelve, y un aviso que sale una sola vez por opcode (`Dispatcher`, `std::bitset`) | CL4.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| una conexión consultada por frame que devuelve eventos en orden (`Connection`): el `Opened` antes de lo que llegó con él, un cierre que pasa en un `Send` y sale en el próximo `Poll`, el tope del connect mirado después del `PollConnect`, y qué error corta (el del corte) y cuál se descarta (el de la ofuscación) | CL4.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 
 ## Preguntas para olas futuras
 

@@ -164,6 +164,20 @@ TEST(FakeSocketTest, AScriptedSendErrorComesInItsTurn)
     EXPECT_TRUE(SameBytes(socket.sent, Bytes({1, 2, 1, 2, 3})));
 }
 
+// Lo que tarda el resolver, para los tests de la Connection: el hook corre al principio de cada
+// StartConnect, como el resolver, que va antes que todo.
+TEST(FakeSocketTest, RunsItsHookInsideStartConnect)
+{
+    FakeSocket socket;
+    std::size_t connectsSeen = 99;
+    socket.onStartConnect = [&socket, &connectsSeen] { connectsSeen = socket.connects.size(); };
+
+    Connect(socket);
+    EXPECT_EQ(connectsSeen, 0u);
+    Connect(socket);
+    EXPECT_EQ(connectsSeen, 1u);
+}
+
 TEST(FakeSocketTest, WithoutAConnectionReceiveAndSendAreClosed)
 {
     FakeSocket socket;

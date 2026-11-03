@@ -1,9 +1,9 @@
 #include "Network/SendQueue.h"
 
-#include "Core/Expected.h"
 #include "Network/ISocket.h"
 #include "Network/SocketError.h"
 #include "support/Bytes.h"
+#include "support/ClaimsMoreSocket.h"
 #include "support/FakeSocket.h"
 #include "support/NetworkPrinters.h"
 #include "support/SameBytes.h"
@@ -13,7 +13,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <span>
 #include <string_view>
 #include <vector>
 
@@ -21,13 +20,13 @@
 // paso 5, y Q-C11), sobre un FakeSocket que toma lo que dice el guion.
 namespace
 {
-using Client::Core::Expected;
 using Client::Network::ConnectProgress;
 using Client::Network::MaxPendingSend;
 using Client::Network::SendQueue;
 using Client::Network::SendQueueError;
 using Client::Network::SocketError;
 using Client::Tests::Bytes;
+using Client::Tests::ClaimsMoreSocket;
 using Client::Tests::FakeSocket;
 using Client::Tests::SameBytes;
 
@@ -46,47 +45,6 @@ ByteVector Sequence(std::size_t first, std::size_t count)
     }
     return bytes;
 }
-
-// Un ISocket roto: el primer Send dice haber tomado 5 bytes más de los que se le dieron, y los
-// siguientes, 0. No lee lo que se le da.
-class ClaimsMoreSocket final : public Client::Network::ISocket
-{
-public:
-    static constexpr std::size_t Extra = 5;
-
-    int sends = 0;
-
-    Expected<ConnectProgress, SocketError> StartConnect(std::string_view, std::uint16_t) override
-    {
-        return ConnectProgress::Connected;
-    }
-    Expected<ConnectProgress, SocketError> PollConnect() override
-    {
-        return ConnectProgress::Connected;
-    }
-    Expected<std::size_t, SocketError> Receive(std::span<std::byte>) override
-    {
-        return std::size_t{0};
-    }
-    Expected<std::size_t, SocketError> Send(std::span<const std::byte> bytes) override
-    {
-        ++sends;
-        if (sends == 1)
-        {
-            return bytes.size() + Extra;
-        }
-        return std::size_t{0};
-    }
-    void Close() override {}
-    [[nodiscard]] bool IsOpen() const override
-    {
-        return true;
-    }
-    [[nodiscard]] int LastSystemError() const override
-    {
-        return 0;
-    }
-};
 
 class SendQueueTest : public ::testing::Test
 {

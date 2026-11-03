@@ -14,6 +14,16 @@ Expected<std::unique_ptr<FileSink>, std::string> FileSink::Open(const std::files
     const bool overTheCap = !error && size > MaxLogFileBytes;
 
     std::ofstream file(path, overTheCap ? (std::ios::out | std::ios::trunc) : (std::ios::out | std::ios::app));
+    if (overTheCap && file.is_open())
+    {
+        // El vaciado es solo al abrir: después también agrega al final para no pisar lo que
+        // escriba otro sink. Mantener trunc dejaría este stream con su propio cursor (Q-C48).
+        file.close();
+        if (file)
+        {
+            file.open(path, std::ios::out | std::ios::app);
+        }
+    }
     if (!file.is_open())
     {
         return Unexpected("no se pudo abrir el archivo de log " + PathText(path));

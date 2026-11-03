@@ -302,6 +302,11 @@ por un script que lee como él, sin bytes de sobra en ninguno):
   adyacencia de las aristas que calculan: lo que trae el archivo ahí no se usa.
 - La normal: los 301.367 índices de vértice entran en el rango de su malla (que sea el vértice
   que la usa, *inferido*).
+- Los 450.338 triángulos del laboratorio son de tipo 3, y sus índices de vértices, normales y UV
+  entran en su malla. Cada padre va antes que su hijo, salvo en `NPC\BloodCastle01.bmd`, donde
+  los huesos 43 y 44 cuelgan del 45 (Q-C106). El más grande es `player\playerTest.bmd`, de
+  2.414.277 bytes, y ningún cifrado trae bytes después de su bloque (*verificado* con `LoadBmd`, CL6.1:
+  `GoldenBmd`).
 - De cada acción escribe `+0` (no repite) en 0, las keys en `+8`, el `lock_positions` en `+0xa` y
   las posiciones de `lock` en `+0xc`; **no escribe la velocidad de `+4`**: el arreglo sale de
   `operator new` sin limpiar, y una acción a la que `0x60dbe0` no le pone velocidad queda con lo

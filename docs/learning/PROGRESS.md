@@ -372,6 +372,17 @@ solo lo lee.
   lista y el equipo campo por campo, y los `F3` 0 a 3 por largo, tipo y subcódigo. Quirks nuevos de
   Q-C86 a Q-C105, y cambiaron Q-C21, Q-C23, Q-C29 y Q-C74; P-C01 y P-C06 quedaron cerrados, y P-C14
   a P-C16 esperan capturas.
+  **La CL6.1 A** (2026-11-03, resuelta por Claude): el `.bmd` de un modelo como datos, en
+  `Data/Models/`. `LoadBmd` lee como `0x4f13d0`: no mira el `"BMD"`, descifra con K16 el bloque de
+  `+8` solo en la versión `0x0C` y lee en claro las otras, y a diferencia del original corta con
+  `FileTooShort` lo que no entra y con `InvalidData` una cantidad negativa. `ModelFileName` arma el
+  nombre como `0x60da30` (`"0-2"` con -2), `IsRequiredModel` compara byte a byte los tres que cierran
+  el juego, y `LoadModelFile` busca sin mayúsculas, lee con un tope de 8 MiB y no deja pasar un
+  `Player.bmd` con mallas (Q-C88). Los golden recorren los 1.962 modelos del laboratorio sin un
+  byte de sobra, y encontraron lo que el plan no esperaba: en `NPC\BloodCastle01.bmd` dos huesos
+  cuelgan de uno que va después, y la pose del original los arma con una matriz vieja (Q-C106,
+  nuevo). 31 tests y 14 mutantes a mano. La PR B (el catálogo del personaje, las velocidades y los
+  slots de las texturas) va apilada.
 
 ## Conceptos
 
@@ -499,6 +510,7 @@ sesión, junto con los de repaso más viejo.
 | slerp, lerp normalizado y ángulos interpolados: cuánto se aparta cada uno del slerp, que con el lerp normalizado crece con el cubo del ángulo entre las keys, y cuándo se ve en una traza (la comparación de `labs/README.md`) | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | la x87 con la precisión en 53 bits (`_controlfp` en `0x6a4b73`): qué queda en la pila como double y qué se redondea a float en cada store, y probar unos tests con mutantes a mano, uno equivalente incluido | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | leer un formato y un cargador en el binario y probarlos contra datos reales: un script que lee los `.bmd` como `0x4f13d0`, el asignador de slots simulado contra un volcado de la memoria, y qué queda *estático*, *inferido* o verificado | CL6.R | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| un formato con conteos que dicen cuánto leer de cada parte: no pedir memoria antes de saber que entra, un cifrado que vale solo para un bloque (`0x0C` desde `+8`), y un golden que encuentra lo que el plan no esperaba (Q-C106) | CL6.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

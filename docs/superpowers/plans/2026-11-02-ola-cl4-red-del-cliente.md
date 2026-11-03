@@ -950,7 +950,7 @@ la respuesta que corresponde, y pasar a otro servidor. Va en dos PRs: **PR A**, 
 | Paso | Original | MuRet |
 | --- | --- | --- |
 | conectar | `0x4c1340` con el host y el puerto del CS (el compilado, el del launcher o el de FoxAnti) | `Connection::Open` con el `App::ServerAddress` de `[Server] Host` y `Port`, o de `/u /p` (CL3.4), campo por campo; el `ConnectTimeout` de la pregunta 5 |
-| el `A9` | `C1 06 A9 00 00 01` con XOR32 antes del saludo (`C1 06 A9 20 9C 2F` en el cable); qué es, sin saber (Q-C16) | igual, con el evento `Opened`, con lo que diga la CL4.R: sale antes que el `F4 02` aunque el saludo llegue en el mismo `Poll` |
+| el `A9` | `C1 06 A9 00 00 01` con XOR32 antes del saludo (`C1 06 A9 20 9C 2F` en el cable): el pedido de la información de una mascota (Q-C16, CL4.R) | igual, con el evento `Opened`: `WritePetInfoRequest(LoginScenePetInfoRequest)`, que sale antes que el `F4 02` aunque el saludo llegue en el mismo `Poll` |
 | el saludo | `C1 04 00 01`; con la escena en 2, loguea `Send Request Server List` (`0x4e33e4`) | el handler del `00` en el dispatcher del CS |
 | pedir la lista | `C1 04 F4 02` en claro (`0x4c6070`); en 8 de 64 conexiones sale dos veces | `WriteServerListRequest()` (CL2.5), una vez por saludo |
 | la lista | `C2 00 0A F4 02 01 00 00 00 CC` en el cable; FoxAnti la pasa a `C2 00 0B F4 06 00 01 90 01 00 00` | `AfterCut` de la `Connection`, y `ReadServerList` da `{400, carga 0}` |
@@ -965,15 +965,16 @@ la respuesta que corresponde, y pasar a otro servidor. Va en dos PRs: **PR A**, 
   no ve a Protocol; `Outgoing` lo usa desde ahí); `Client/tests/network/test_connection.cpp`.
   Modificar `Client/src/Protocol/Outgoing.h/.cpp` y quien use `Protocol::Delivery`, PROGRESS y
   este plan.
-- **PR B:** crear `Client/src/App/ServerSession.h/.cpp`, `Client/src/Protocol/Connection/A9.h/.cpp`
-  (`WriteA9`: el nombre es el del opcode hasta que la CL4.R diga qué es),
-  `Client/tests/app/test_server_session.cpp`, `Client/tests/protocol/test_a9.cpp` y
-  `Client/src/App/Credentials.h` (el struct, sacado de la sesión para que la CL4.4 le sume la
-  lectura), y `Client/tests/support/AppPrinters.h` (el `PrintTo` de `Credentials`, que no
-  imprime la clave).
-  Modificar `Protocol/Connection/Opcodes.h` (el `00` del saludo del CS y el `A9`),
-  `App/Config.h/.cpp` y su test (`[Server] Obfuscation`, pregunta 8), `Client/README.md`,
-  PROGRESS y este plan.
+- **PR B:** crear `Client/src/App/ServerSession.h/.cpp`, `Client/src/Protocol/Pet/PetInfo.h/.cpp`
+  (`WritePetInfoRequest`: la CL4.R dijo qué es el `A9`, y el plan lo llamaba `A9.h` y `WriteA9`
+  hasta saberlo), `Client/tests/app/test_server_session.cpp`,
+  `Client/tests/protocol/test_pet_info.cpp`, `Client/src/App/Credentials.h` (el struct, sacado de
+  la sesión para que la CL4.4 le sume la lectura), `Client/src/App/ObfuscationMode.h`, y
+  `Client/tests/support/AppPrinters.h` (el `PrintTo` de `Credentials`, que no imprime la clave)
+  con su test.
+  Modificar `Protocol/Connection/Opcodes.h` (el `00` del saludo del CS; el `A9` va en
+  `PetInfo.h`), `Protocol/Outgoing.h/.cpp` (`Xor32C1`), `App/Config.h/.cpp` y su test
+  (`[Server] Obfuscation`, pregunta 8), `Client/README.md`, PROGRESS y este plan.
 
 **Interfaces:**
 
@@ -1112,10 +1113,28 @@ public:
 } // namespace Client::App
 ```
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, el diagrama de estados de la
-  `ServerSession` del CS: qué paquete espera cada estado, qué manda al recibirlo, a qué estado
-  pasa, y qué hace con un paquete que no espera (se ignora con un aviso) y con un cierre
-  (`Failed`).
+- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de los tests, el diagrama de
+  estados de la `ServerSession` del CS: qué paquete espera cada estado, qué manda al recibirlo, a
+  qué estado pasa, y qué hace con un paquete que no espera (se ignora con un aviso) y con un
+  cierre (`Failed`).
+
+  | Estado | Espera | Al recibirlo manda | Pasa a |
+  | --- | --- | --- | --- |
+  | `Idle` | `Start()` | abre el CS (`Connection::Open`) | `ConnectingConnectServer` |
+  | `ConnectingConnectServer` | el `Opened` | el `A9`, `C1 06 A9 00 00 01` con XOR32 y en claro | `WaitingConnectHello` |
+  | `WaitingConnectHello` | `00`, el saludo | `C1 04 F4 02` | `WaitingServerList` |
+  | `WaitingServerList` | `F4 06`, la lista | `F4 03` con el código del primero | `WaitingServerAddress` |
+  | `WaitingServerList` | `F4 06` sin servidores | nada: cierra el CS | `Failed` (`EmptyServerList`) |
+  | `WaitingServerAddress` | `F4 03`, la dirección | nada: cierra el CS y abre el GS, y deja el resto del lote | `ConnectingGameServer` |
+  | `ConnectingGameServer` | el `Opened` del GS | nada: el GS saluda primero (CL4.4) | sigue en `ConnectingGameServer` |
+
+  Un paquete del CS que su estado no espera (un segundo saludo, una lista o una dirección fuera de
+  turno) se ignora con un aviso que dice cuál es y no manda nada; uno que no se lee (una lista
+  que dice más servidores de los que trae, una dirección sin puerto), también, y el estado espera
+  uno que sirva. Uno que el `Dispatcher` da como `Malformed` se descarta con un aviso de la
+  sesión, y uno sin handler, con el del `Dispatcher`. Un `Closed` con el CS, en cualquiera de sus
+  estados, es `Failed` con `ConnectServerLost`, y con el GS, `GameServerLost`, con el
+  `CloseReasonText` en el log. `Start()` vuelve a empezar desde cualquier estado.
 - [x] **Paso 2 (PR A):** los tests de `Connection`, con `FakeSocket`, `FakeClock` y el
   `RecordingSink` de `Client/tests/support/` (la CL3.4 lo deja ahí), detrás de un `ILogSink`:
   - `ConnectionTest.OpensWhenTheSocketConnects` (`pollsUntilConnected = 2`: `Connecting`,
@@ -1232,7 +1251,7 @@ public:
     `support/ProtocolPrinters.h` a `support/NetworkPrinters.h`, con los de `CloseReason` y
     `LinkState`. `LinkState` va en su `Network/LinkState.h`, como `CloseReason.h`, para que los
     printers no incluyan la `Connection` entera.
-- [ ] **Paso 4 (PR B):** los tests de la sesión, con `FakeSocket` haciendo de CS:
+- [x] **Paso 4 (PR B):** los tests de la sesión, con `FakeSocket` haciendo de CS:
   - `A9Test.WritesTheBytesOfTheWire` (`C1 06 A9 00 00 01` con XOR32 es `C1 06 A9 20 9C 2F`,
     en claro);
   - `ServerSessionTest.SendsTheA9WhenTheConnectServerOpens` (lo primero que sale es
@@ -1257,10 +1276,72 @@ public:
     `ConnectServerLost`);
   - `ConfigTest.ReadsTheObfuscation` (`foxanti`, `none`, por defecto `foxanti`; `xor` es un error
     con su línea).
-- [ ] **Paso 5 (PR B):** `ServerSession` hasta `ConnectingGameServer`, el `A9` y la config.
-- [ ] **Paso 6:** verificar:
+
+  Hechos en el PR B, con lo que cambió al escribirlos:
+  - El `A9` se llama por lo que es: `A9Test` es `PetInfoTest`,
+    `SendsTheA9WhenTheConnectServerOpens` es `SendsThePetInfoRequestWhenTheConnectServerOpens` y
+    `TheA9LeavesBeforeAHelloThatArrivesWithTheConnect` es
+    `ThePetInfoRequestLeavesBeforeAHelloThatArrivesWithTheConnect`. `PetInfoTest` suma
+    `PutsEachFieldAtItsOffset`.
+  - `ReadsTheGameServerAddress` usa una dirección cualquiera (`10.0.0.2`, 55901) y no la IP del
+    laboratorio: el `FakeSocket` no conecta, y la del cable no tiene por qué estar en un test.
+    Mira además que no haya avisos. `WhatFollowsTheAddressIsDropped` sigue hasta el `Opened` del
+    GS, que no manda nada.
+  - Se sumaron, en `ServerSessionTest`: `StartsIdle`, `ChoosesTheFirstOfSeveral` (el primero en el
+    orden en que llega, no el de código más bajo), `WithTheGameServerThe00IsNotTheConnectHello`
+    (con el GS, el `00` va a su dispatcher, que no tiene handlers: el aviso es el del
+    `Dispatcher`), `AnEmptyListBeforeTheCloseKeepsItsFailure`, `ASecondHelloIsIgnored` (el
+    original pide la lista dos veces en 8 de 64 conexiones), `AListOutOfTurnIsIgnored`,
+    `AListThatDoesNotReadIsIgnored`, `AnAddressThatDoesNotReadIsIgnored`,
+    `AMalformedPacketIsLogged`, `AConnectServerThatRefusesFails`, `LosingTheGameServerFails`,
+    `WhatFollowsACloseInAHandlerIsDropped`, `WhatArrivesBeforeTheServerClosesIsHandled` y
+    `StartingAgainStartsClean`; en `ConfigTest`, `ResolveKeepsTheObfuscation` (`/u /p` no la
+    cambia); y `AppPrintersTest.CredentialsShowTheLengthsAndNotTheText`, con la cuenta y la clave
+    sintéticas de `MuClientNetFixtures.h`.
+  - Treinta y tres mutantes a mano de `ServerSession.cpp` (sin cortar el lote por el `Open` o por
+    un cierre en un handler, cortarlo también con un cierre del `Poll`, sin el `A9`, el `Opened`
+    del GS como el del CS, el saludo sin mirar el turno o sin pedir la lista, el último de la
+    lista, una lista vacía que no falla o que sigue el lote, la lista o la dirección sin mirar el
+    turno o sin aviso si no se leen, la dirección sin guardar o con otro puerto, `Fail` sin cerrar,
+    un cierre del GS como del CS, los avisos en otro nivel, siempre el dispatcher del CS, `Start`
+    sin olvidar la falla o el GS, entre otros): los mata algún test.
+  - De la revisión del PR: `Poll` recorre el lote con un `std::visit` que tiene un caso por tipo de
+    `Network::Event`, así el `Undecryptable` de la CL4.4 no compila hasta que la sesión diga qué
+    hace con él (con el `std::get` de antes, compilaba y tiraba `bad_variant_access`).
+    `TheLogDoesNotSayTheAddresses`, y una línea más en `StartingAgainStartsClean`, miran que
+    ninguna línea del log diga el host ni el puerto del CS o del GS: tres mutantes más (la
+    dirección del GS en el aviso del `F4 03`, el host o el puerto del CS en `Start`) mueren.
+    `SessionState` y `SessionFailure` pasaron a `App/SessionState.h`, así `AppPrinters.h` no trae
+    la `Connection`. Los `Reach*` de los tests van dentro de `ASSERT_NO_FATAL_FAILURE`.
+- [x] **Paso 5 (PR B):** `ServerSession` hasta `ConnectingGameServer`, el `A9` y la config. Lo que
+  se decidió al escribirla, y lo que cambió respecto de la interfaz de arriba:
+  - El constructor es `ServerSession(Connection&, Log&, SessionSettings)`: sin el `IClock` ni las
+    `ConnectionKeys`, que suman la CL4.4 (el login lleva el tick y el GS cifra) y la CL4.5 (el
+    keepalive). `SessionState` y `SessionFailure` llegan hasta lo que usa este PR; la CL4.4 suma
+    `WaitingGameHello`, `WaitingLoginResult`, `LoggedIn`, `HelloRejected`, `VersionMismatch` y
+    `LoginRejected`. `SessionSettings` ya trae las `Credentials`, que no se usan hasta el login.
+  - El pedido de la mascota es `Protocol::Pet::WritePetInfoRequest`, en `Protocol/Pet/PetInfo.h`
+    con su opcode (`PetInfoOpcode`) y las constantes de la mascota, el lugar y la casilla;
+    `LoginScenePetInfoRequest` es el del CS, el cuervo oscuro de la mano izquierda, igual en
+    cualquier mapa y con cualquier personaje. Va con el XOR32 y en claro, que no daban ni
+    `ClearC1` ni `EncryptedC1`: `Outgoing` suma `Xor32C1`. No se reproduce nada del anticheat (la
+    bandera `0x2000000` es de la UI, y el `A9` del juego es de la CL8).
+  - Hay dos `Dispatcher`, el del CS con el `00`, el `F4 06` y el `F4 03`, y el del GS, vacío hasta
+    la CL4.4; el estado elige cuál. Para dejar el resto del lote, la sesión lleva un contador que
+    cambia con cada `Open` y cada `Fail`, y mira también si un `Send` de un handler cerró la
+    conexión (la revisión del PR A sumó eso al comentario de `Connection::Poll`). Si la cerró el
+    `Poll` mismo, el `Closed` es lo último del lote y lo de antes se despacha: si no, la sesión no
+    vería nunca ese `Closed`.
+  - Los avisos dicen qué paquete se ignora y por qué, sin sus bytes; el log no dice la dirección
+    del GS (el original la loguea), como no dice el host de la config. Perder la conexión y la
+    lista vacía van en `error`.
+  - `[Server] Obfuscation` es `ClientConfig::obfuscation`, un `ObfuscationMode` en su propio header
+    como `PacingMode`, y no arma `config.server`. Elegir la `IObfuscation` según el modo es de quien
+    arme la red en `main.cpp`, igual que el `NetworkInit`: en este PR `Main` no conecta.
+- [x] **Paso 6:** verificar:
   ```bash
-  cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "Connection|A9|ServerSession|Config"
+  cmake --build --preset linux-x64-debug &&
+    ctest --preset linux-x64-debug -R "Connection|PetInfo|ServerSession|Config|AppPrinters"
   ```
 
 ## Sub-ola CL4.4: GameServer: saludo, versión y login
@@ -1331,11 +1412,25 @@ public:
 } // namespace Client::Tests
 ```
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, a mano: el serial de cada C3 que
+- [x] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, a mano: el serial de cada C3 que
   manda el cliente desde que abre el GS hasta el tercer keepalive (el login, el primer keepalive y
   dos más), y qué pasa con el serial de recepción si llega un C3 con el checksum malo y después
-  uno bueno.
-- [ ] **Paso 2 (PR A):** los tests, con claves sintéticas:
+  uno bueno. Lo resolvió Claude:
+
+  | Qué | El serial de envío | El de recepción |
+  | --- | --- | --- |
+  | `Open` al GS | 0 (`PacketSerials::Reset`) | espera el 0 |
+  | el login, el primer C3 | 0 | |
+  | el primer keepalive | 1 | |
+  | el segundo y el tercero | 2 y 3 | |
+  | un C3 del GS con el checksum malo (el GS le puso el 0) | | no se despacha: `SkipReceive`, espera el 1 sin mirar el que trajo |
+  | el C3 bueno que sigue (con el 1) | | `InOrder`; espera el 2 |
+
+  Lo que sale en claro no gasta serial. El `F1 03` que manda la sesión con un checksum malo es un
+  C3 y toma el siguiente: si llega entre el login y el primer keepalive, el keepalive sale con el
+  2. Si el GS no hubiera gastado el 0 en el malo y mandara el bueno con el 0, ese sería
+  `Resynced`, con un aviso, y desde ahí se esperaría el 1.
+- [x] **Paso 2 (PR A):** los tests, con claves sintéticas:
   - `ConnectionTest.EncryptsWhatGoesEncrypted` (un C1 `Encrypted` sale como C3 y, descifrado con
     la clave del servidor, es el mismo C1 con serial 0; el siguiente, serial 1);
   - `ConnectionTest.DecryptsWhatArrivesEncrypted` (un C3 del servidor sale como el C1 rearmado);
@@ -1346,7 +1441,65 @@ public:
   - `ConnectionTest.AnEncryptedPacketWithoutKeysIsUndecryptable` (un C3 en la conexión del CS: un
     `Undecryptable`, y la conexión sigue `Open`);
   - `ConnectionTest.WithFoxAntiWhatArrivesFromTheGameServerIsUnmasked` (un C1 con el `0xAA`).
-- [ ] **Paso 3 (PR A):** el cifrado en `Connection`.
+
+  Hechos en el PR A, con lo que cambió al escribirlos:
+  - `WithFoxAntiWhatArrivesFromTheGameServerIsUnmasked` ya estaba, de la CL4.3: la máscara es del
+    corte. Lo de los C3 es `WithFoxAntiWhatArrivesEncryptedIsUnmaskedDecryptedAndTranslated`: el
+    `0xAA` se saca en el corte, después se descifra, y lo descifrado pasa por `BeforeDispatch` (un
+    `F3 11` recibe su byte).
+  - `AnEncryptedPacketIsNotDelivered` y `AnEncryptedSendDoesNotLeave`, de la CL4.3, son
+    `AnEncryptedPacketWithoutKeysIsUndecryptable` y `AnEncryptedSendWithoutKeysDoesNotLeave`.
+  - Los tests no comparan lo cifrado: lo que salió se corta y se descifra con la clave sintética
+    del servidor (`SimpleModulusKeys.h`), y se compara con `SameBytesWithoutValues`; lo que llega
+    lo cifra el test con la otra.
+  - Se sumaron, en `ConnectionTest`: `WhatIsEncryptedWhileConnectingLeavesWhenItOpens`,
+    `OpeningWithoutKeysForgetsTheOldOnes`, `AnEncryptedPacketThatIsNotWholeBlocksIsUndecryptable`,
+    `ASerialOutOfOrderIsResyncedOnce` (un aviso, una vez), `WithFoxAntiWhatIsEncryptedIsRemapped`
+    (el `BeforeEncrypt`: el `0x10` llega al GS como `0x1D`), `ThePaddingComesFromTheSeededGenerator`
+    y `APacketThatDoesNotEncryptDoesNotLeave` (un C2 que como C4 pasaría de `MaxPacketSize`: no
+    sale y no gasta serial); `CryptoErrorTest.EveryErrorHasItsOwnText`;
+    `ServerSessionTest.AnUndecryptablePacketIsIgnored`; y, contra el cable del laboratorio con las
+    claves reales, `GoldenConnection.DeliversWhatTheGameServerAnswered` (los 25 C3/C4 del GS, en 7
+    conexiones, salen como los dan `DecryptPacket` y el `BeforeDispatch` de FoxAnti) y
+    `GoldenConnection.EncryptsLikeTheClient` (los 183 C3 del cliente, descifrados y mandados otra
+    vez, salen con la cabecera y los bloques del cable menos el último, que lleva el relleno). Los
+    dos usan una sola `Connection` y la abren de nuevo en cada conexión del log, y cuentan sin
+    imprimir bytes.
+  - Diecisiete mutantes a mano de `Connection.cpp` (`Open` sin guardar las claves, o guardándolas
+    solo si hay, o sin volver los seriales a 0; un cifrado que falla y sale igual; cifrar sin la
+    ofuscación; el relleno en 0 o con el byte de arriba; lo descifrado sin `BeforeDispatch`; el
+    `Undecryptable` que no sale o sin su error; el `Resynced` sin aviso o el aviso también en
+    orden; sin claves, sin aviso al recibir o el `Encrypted` que sale en claro; un C3 que pasa sin
+    descifrar; lo `Clear` cifrado también): los mata algún test.
+- [x] **Paso 3 (PR A):** el cifrado en `Connection`. Lo que se decidió al escribirlo, y lo que
+  cambió respecto de la interfaz de la CL4.3:
+  - `Undecryptable` lleva un `std::optional<Crypto::CryptoError>`, y no un `CryptoError` a secas:
+    `std::nullopt` es un C3/C4 en una conexión sin claves (la del CS). Ningún `CryptoError` dice
+    eso, y sumarle uno al enum del cifrado lo mezclaría con los de la clave. La PR B manda el
+    `F1 03` solo con `ChecksumMismatch` o `NotWholeBlocks`, como dice el contrato.
+  - El aviso de un `Undecryptable` lo deja la conexión, uno por paquete, y la sesión no lo repite.
+    Dice el tipo del cable (de un C3/C4, nunca el opcode, que va cifrado) y el error en palabras:
+    `Crypto::CryptoErrorText`, en un `CryptoError.cpp` nuevo. Un `Resynced` deja un aviso cada vez
+    que pasa: como `PacketSerials` se resincroniza, un desfase da uno solo.
+  - El relleno es el byte de abajo de cada número del `std::mt19937`: el motor lo fija el
+    estándar, así la serie es la misma con cualquier biblioteca (`std::uniform_int_distribution`
+    no). Se saca uno por paquete que se intenta cifrar.
+  - Lo que va `Encrypted` se cifra en `Send`, con el serial de ese momento, y espera cifrado en la
+    cola si la conexión todavía conecta. Si `EncryptPacket` falla, no sale, con un aviso que dice
+    el tipo, el opcode y el error, y la conexión sigue. Sin claves, el aviso de la CL4.3 dice
+    "esta conexión no tiene claves".
+  - `Open` toma las claves por valor y se las queda, y volver a abrir sin claves se olvida de las
+    de antes. La `ServerSession` abre las dos conexiones con `std::nullopt` hasta que la PR B
+    cargue las del GS, y no hace nada con un `Undecryptable`: su `std::visit` (de la revisión de
+    la CL4.3, PR B) no compilaba sin ese caso.
+  - De la revisión: `WhatArrivesIsDecryptedBetweenAfterCutAndBeforeDispatch` y
+    `WhatIsEncryptedIsEncryptedBeforeBeforeSend`, con una ofuscación espía que anota cada etapa y
+    el tipo del paquete que ve (`AfterCut` ve el C3 y `BeforeDispatch` el C1; `BeforeSend` ve el
+    C3), y `WithFoxAntiAnEncryptedD3IsNotRemapped` (un D3 que va cifrado llega como D3, porque el
+    `BeforeSend` de FoxAnti solo toca los C1 en claro). Los matan los mutantes que descifran antes
+    del `AfterCut` y que llaman a `BeforeSend` antes de cifrar. Los dos tests golden pasaron a
+    usar `ExpectDecryptedLikeDecryptPacket`, `ResendEncrypted` y `ExpectLikeTheWire`. El 03 suma
+    la fila de las claves por conexión: un C3/C4 en el CS no manda el `F1 03`.
 - [ ] **Paso 4 (PR B y PR C):** los tests de la sesión:
   - `ServerSessionTest.ConnectsToTheGameServerItWasGiven` (después del `F4 03`, `connects` tiene el
     endpoint del GS);
@@ -1398,6 +1551,11 @@ por frame y por reloj"):
 | las velocidades | los WORD de `personaje+0x4C` y `+0x58` con su ajuste (CL2.5) | `SetKeepaliveSpeeds(attack, magic, flags)`; hasta que haya personaje (CL6), 0 y 0, sin ajuste (CL4.R, paso 6) |
 | el tick | `GetTickCount` | `App::TickCountMs(now)` (CL3.2), que da la vuelta como un `DWORD` |
 | el cierre del otro lado | `FD_CLOSE`: un mensaje, el log, `0x4e8380` y el objeto de `0x65ee60`; en la escena 5, el socket en -1 cada frame | `Failed` con `GameServerLost` y el `CloseReason` en el log; el keepalive se detiene; no se reconecta solo (la CL5.4 muestra el aviso) |
+
+Nada le pone tope todavía a los estados `Waiting*` de la sesión (de la revisión de la CL4.3, PR
+B): un CS que acepta y nunca saluda deja la sesión en `WaitingConnectHello` para siempre, sin
+`Failed`, porque el `ConnectTimeout` es solo del connect. Esta sub-ola decide si la sesión suma un
+tope por reloj, con el `IClock` que ya trae para el keepalive.
 
 **Archivos:** crear `Client/src/Core/IntervalTimer.h/.cpp` y
 `Client/tests/core/test_interval_timer.cpp`. Modificar `Client/src/App/ServerSession.h/.cpp` y

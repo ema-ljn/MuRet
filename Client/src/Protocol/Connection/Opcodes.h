@@ -7,6 +7,11 @@
 // después del opcode: pkt[3] en un C1 y pkt[4] en un C2.
 namespace Client::Protocol::Connection
 {
+// 00: el saludo del ConnectServer, C1 04 00 01, con un handler para el opcode entero. En el
+// GameServer el mismo opcode es el chat: el original los separa por la escena (0x4e33e4), y MuRet
+// con un Dispatcher por servidor (CL4.3).
+inline constexpr std::uint8_t ConnectHelloOpcode = 0x00;
+
 // F4: la lista de servidores, con el ConnectServer.
 inline constexpr std::uint8_t ServerListOpcode = 0xF4;
 inline constexpr std::uint8_t ServerListRequestSubcode = 0x02; // pedir la lista

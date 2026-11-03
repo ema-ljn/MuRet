@@ -7,10 +7,13 @@
 #include <string>
 #include <string_view>
 
-// La dirección del ConnectServer, de la config ([Server] Host y Port) o de la línea de comandos
-// (/u<ip> /p<puerto>). Las dos la validan con las mismas funciones, así aceptan lo mismo y lo
-// dicen igual: el host es ASCII visible, que no depende de la codificación (UTF-8 en la config, la
-// página ANSI en el argv de Windows), y el tope de Q-C37 cuenta los mismos bytes en las dos.
+// La dirección de un servidor. La del ConnectServer llega de la config ([Server] Host y Port) o de
+// la línea de comandos (/u<ip> /p<puerto>), y las dos la validan con las mismas funciones, así
+// aceptan lo mismo y lo dicen igual: el host es ASCII visible, que no depende de la codificación
+// (UTF-8 en la config, la página ANSI en el argv de Windows), y el tope de Q-C37 cuenta los mismos
+// bytes en las dos. La del GameServer llega del cable, en el F4 03 (ReadServerAddress), y la
+// ServerSession la guarda sin pasarla por ParseHost: un host que no sirve termina en un
+// ResolveFailed de la conexión.
 namespace Client::App
 {
 // El puerto compilado del ConnectServer, 0x6d5dc4 (02 § Del launcher al juego).

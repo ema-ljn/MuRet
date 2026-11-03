@@ -1,6 +1,7 @@
 #include "Network/Connection.h"
 
 #include "Core/Expected.h"
+#include "Network/EncryptedPacket.h"
 #include "Network/ObfuscationError.h"
 #include "Network/PacketError.h"
 #include "Network/SocketError.h"
@@ -35,9 +36,9 @@ CloseReason ReasonFor(SocketError error)
     return CloseReason::SocketFailed;
 }
 
-// Por qué se descarta un paquete que llegó.
+// Por qué se descarta un paquete que llegó, o uno que iba a salir.
 constexpr std::string_view NotTranslated = "la ofuscación no lo traduce";
-constexpr std::string_view NotDecrypted = "esta conexión no descifra";
+constexpr std::string_view NoKeys = "esta conexión no tiene claves";
 
 bool IsEncrypted(PacketType type)
 {
@@ -61,12 +62,14 @@ std::string KindOf(const Packet& packet)
 }
 } // namespace
 
-Connection::Connection(ISocket& socket, const IObfuscation& obfuscation, Core::IClock& clock, Core::Log& log)
-    : m_socket(socket), m_obfuscation(obfuscation), m_clock(clock), m_log(log), m_reader(obfuscation)
+Connection::Connection(ISocket& socket, const IObfuscation& obfuscation, Core::IClock& clock, Core::Log& log,
+                       std::uint32_t paddingSeed)
+    : m_socket(socket), m_obfuscation(obfuscation), m_clock(clock), m_log(log), m_reader(obfuscation),
+      m_padding(paddingSeed)
 {
 }
 
-void Connection::Open(std::string_view host, std::uint16_t port)
+void Connection::Open(std::string_view host, std::uint16_t port, std::optional<ConnectionKeys> keys)
 {
     // Cerrada, el corte y la cola ya están vacíos: los vacía CloseWith, y Send no encola.
     if (m_state != LinkState::Closed)
@@ -75,6 +78,8 @@ void Connection::Open(std::string_view host, std::uint16_t port)
     }
     m_lastCloseReason.reset();
     m_closeToReport.reset();
+    m_keys = keys;
+    m_serials.Reset();
 
     const Core::Duration before = m_clock.Now();
     const Core::Expected<ConnectProgress, SocketError> started = m_socket.StartConnect(host, port);
@@ -121,8 +126,20 @@ void Connection::Send(Packet packet, Delivery delivery)
     }
     if (delivery == Delivery::Encrypted)
     {
-        m_log.Warning("se descarta un {} que va cifrado: esta conexión no cifra", KindOf(packet));
-        return;
+        if (!m_keys)
+        {
+            m_log.Warning("se descarta un {} que va cifrado: {}", KindOf(packet), NoKeys);
+            return;
+        }
+        Core::Expected<Packet, Crypto::CryptoError> encrypted =
+            EncryptPacket(packet, m_keys->encryption, m_serials, m_obfuscation, NextPadding());
+        if (!encrypted.HasValue())
+        {
+            m_log.Warning("no se cifra un {} que iba a salir: {}", KindOf(packet),
+                          Crypto::CryptoErrorText(encrypted.Error()));
+            return;
+        }
+        packet = std::move(encrypted).Value();
     }
     const Packet wire = m_obfuscation.BeforeSend(std::move(packet));
     if (m_queue.Push(wire.Bytes()).has_value())
@@ -231,7 +248,7 @@ bool Connection::TakePackets(std::vector<Event>& events)
         {
             return true;
         }
-        if (std::optional<Packet> translated = Translate(std::move(*packet)))
+        if (std::optional<Event> translated = Translate(std::move(*packet)))
         {
             events.emplace_back(std::move(*translated));
         }
@@ -239,8 +256,8 @@ bool Connection::TakePackets(std::vector<Event>& events)
 }
 
 // El aviso dice lo que llegó del cable, el tipo y el opcode: se guardan antes de pasarle el paquete
-// a la ofuscación, que se queda con él.
-std::optional<Packet> Connection::Translate(Packet packet)
+// a la ofuscación, que se queda con él. De un C3/C4 dice solo el tipo: el opcode va cifrado.
+std::optional<Event> Connection::Translate(Packet packet)
 {
     const PacketType type = packet.Type();
     const std::optional<std::uint8_t> opcode = packet.Opcode();
@@ -250,18 +267,57 @@ std::optional<Packet> Connection::Translate(Packet packet)
         m_log.Warning("se descarta un {} que llegó: {}", KindOf(type, opcode), NotTranslated);
         return std::nullopt;
     }
-    if (IsEncrypted(cut.Value().Type()))
+    Packet clear = std::move(cut).Value();
+    if (IsEncrypted(clear.Type()))
     {
-        m_log.Warning("se descarta un {} que llegó: {}", KindOf(type, opcode), NotDecrypted);
-        return std::nullopt;
+        Core::Expected<Packet, Undecryptable> decrypted = Decrypt(clear);
+        if (!decrypted.HasValue())
+        {
+            return decrypted.Error();
+        }
+        clear = std::move(decrypted).Value();
     }
-    Core::Expected<Packet, ObfuscationError> ready = m_obfuscation.BeforeDispatch(std::move(cut).Value());
+    Core::Expected<Packet, ObfuscationError> ready = m_obfuscation.BeforeDispatch(std::move(clear));
     if (!ready.HasValue())
     {
         m_log.Warning("se descarta un {} que llegó: {}", KindOf(type, opcode), NotTranslated);
         return std::nullopt;
     }
     return std::move(ready).Value();
+}
+
+// DecryptPacket ya movió el serial de recepción: con un error, al siguiente del que se esperaba;
+// con Resynced, al siguiente del que trajo.
+Core::Expected<Packet, Undecryptable> Connection::Decrypt(const Packet& encrypted)
+{
+    if (!m_keys)
+    {
+        m_log.Warning("se descarta un {} que llegó: {}", KindOf(encrypted), NoKeys);
+        return Core::Unexpected(Undecryptable{std::nullopt});
+    }
+    Core::Expected<DecryptedPacket, Crypto::CryptoError> decrypted =
+        DecryptPacket(encrypted, m_keys->decryption, m_serials);
+    if (!decrypted.HasValue())
+    {
+        const Crypto::CryptoError error = decrypted.Error();
+        m_log.Warning("se descarta un {} que llegó: no se descifra ({})", KindOf(encrypted),
+                      Crypto::CryptoErrorText(error));
+        return Core::Unexpected(Undecryptable{error});
+    }
+    DecryptedPacket result = std::move(decrypted).Value();
+    if (result.serial == SerialCheck::Resynced)
+    {
+        m_log.Warning("un {} que llegó trae otro serial que el que se esperaba: se sigue desde el suyo",
+                      KindOf(encrypted));
+    }
+    return std::move(result.packet);
+}
+
+// El byte de abajo de cada número: así la serie es la misma con cualquier biblioteca estándar,
+// porque std::mt19937 está fijado por el estándar (std::uniform_int_distribution, no).
+std::byte Connection::NextPadding()
+{
+    return static_cast<std::byte>(m_padding() & 0xFFu);
 }
 
 // Solo la conexión ve el socket, así que el error del sistema de un SocketFailed lo anota ella,

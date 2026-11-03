@@ -120,6 +120,7 @@ Todas las claves son opcionales:
 [Server]
 Host = 127.0.0.1         ; de 1 a 255 bytes, sin espacios
 Port = 44405             ; de 1 a 65535
+Obfuscation = foxanti    ; foxanti o none
 
 [Data]
 Path = C:\MU\Data        ; la carpeta de datos del cliente original
@@ -139,6 +140,7 @@ Path = muret-client.log
 | --- | --- | --- |
 | `[Server] Host` | ninguno | el host del ConnectServer; lo pide la red (CL4) |
 | `[Server] Port` | 44405 | el puerto del ConnectServer, el compilado en el original (`0x6d5dc4`) |
+| `[Server] Obfuscation` | `foxanti` | la forma de los paquetes que espera el servidor: `foxanti`, la capa de FoxAnti del servidor del laboratorio, o `none`, un servidor que habla como `main.exe`. `/u /p` no la cambia |
 | `[Data] Path` | ninguna | la carpeta `Data\` de una instalación del cliente original |
 | `[Video] Width`, `Height` | 640, 480 | el tamaño de la ventana al abrir, de 1 a 16384 |
 | `[Video] VSync` | `on`, y `off` en el modo fiel | como `--vsync`. Con `Pacing = faithful` (o `--pacing faithful`), `on` o `adaptive` es un error que nombra `Pacing` y `VSync` |
@@ -151,9 +153,9 @@ ejecutable, no desde la actual. Un par de comillas dobles alrededor de una ruta 
 (lo que da "Copiar como ruta" del Explorador). El archivo es UTF-8, con o sin BOM, y con fin de
 línea `\n` o `\r\n`.
 
-Las secciones, las claves y los valores de `VSync` y `Pacing` no distinguen mayúsculas. Un `;` al
-principio de la línea, o después de un espacio, empieza un comentario; `#` no. Son errores, y el
-mensaje dice el archivo y la línea (`muret-client.ini, línea 3: ...`):
+Las secciones, las claves y los valores de `Obfuscation`, `VSync` y `Pacing` no distinguen
+mayúsculas. Un `;` al principio de la línea, o después de un espacio, empieza un comentario; `#`
+no. Son errores, y el mensaje dice el archivo y la línea (`muret-client.ini, línea 3: ...`):
 
 - una línea que no es `[Sección]` ni `Clave = valor`, o con texto después del `]`;
 - una sección o una clave que no existen, una clave antes de la primera sección, repetida o sin
@@ -248,12 +250,14 @@ Client/
   CMakeLists.txt
   src/
     main.cpp      arma las capas y arranca; sin lógica
-    App/          línea de comandos, estado de la ventana, bucle con tick fijo (CL3)
+    App/          línea de comandos, estado de la ventana, bucle con tick fijo (CL3); la sesión
+                  con los servidores (CL4)
     Core/         Expected, ByteReader, Xor3; config, log, reloj (CL1+)
     Platform/     ventana, contexto GL, input: lo único que ve SDL3 (ClientPlatform, CL3)
     Data/         tablas .bmd, Text.bmd, terreno, OZJ/OZT, modelos: bytes a tipos, sin GL (CL1, CL6)
     Network/      socket, paquetes, C3/C4, FoxAnti      (CL2, CL4)
-    Protocol/     opcodes, structs (el login, en Connection/), dispatcher (CL2, CL4, CL9)
+    Protocol/     opcodes, structs (el login, en Connection/), dispatcher (CL2, CL4, CL9); el
+                  pedido de la mascota (A9), en Pet/ (CL4)
     Render/       OpenGL 3.3: texturas, sprites, texto  (CL5+)
     Scenes/       la escena de prueba (CL3); login, selección, juego (CL5, CL6)
     World/        mapa, cámara, objetos                 (CL7)

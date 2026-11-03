@@ -75,7 +75,8 @@ public:
     void SkewedQuad(const OriginalSkewedQuad& quad);
 
     // 0x621aa0(x, y, w, h): el rectángulo en 640 × 480, siempre escalado, del color que haya y sin
-    // textura. Antes, como 0x620910(0), apaga la textura y el alpha test, y quedan apagados (Q-C75).
+    // textura. Antes, como 0x620910(0), apaga la textura y el alpha test, y quedan apagados
+    // (Q-C75).
     void ColorQuad(float x, float y, float width, float height);
 
     // 0x647650 (UiImage.h): pone su color como el de GL y prende la textura si tiene slot, o la

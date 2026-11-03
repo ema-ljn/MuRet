@@ -7,7 +7,7 @@
 // línea acá, en el grupo de quien la usa.
 //
 // No es glad ni GLEW: el puerto glad de vcpkg trae el perfil de compatibilidad y pide Python, y un
-// glad.c generado son miles de líneas con su propia forma de actualizarse. Con 46 funciones, la
+// glad.c generado son miles de líneas con su propia forma de actualizarse. Con 47 funciones, la
 // tabla propia son pocas líneas, y el pedido (SDL_GL_GetProcAddress, el reintento en opengl32.dll)
 // ya estaba escrito desde la CL0.3 (CODING_RULES §10). Salió de la del lab de la CL5.0
 // (labs/cl5.0-pipeline/gl/LabGl.h), que tenía 41: el lab se queda solo con glDrawElements, que el
@@ -23,12 +23,13 @@
 // El resto, en el orden de quién lo usa:
 //   glViewport, glClearColor, glClear     el frame de Main (CL0.3) y el viewport de GlRenderer
 //   glGetError                            los tests, después de cada paso
-//   glEnable, glDisable, glBlendFunc      la mezcla (el lab de la CL5.0; la CL5.2)
+//   glEnable, glDisable, glBlendFunc      la mezcla (el lab de la CL5.0 y GlSpriteRenderer)
 //   glPixelStorei                         GL_UNPACK_ALIGNMENT al subir una textura (GlTexture)
 //   glReadPixels                          leer lo dibujado (GlFramebuffer)
 //   glGenTextures a glTexParameteri       las texturas (GlTexture y el color de GlFramebuffer)
 //   glGenFramebuffers a glCheck...        el framebuffer de los tests (GlFramebuffer)
-//   glCreateShader a glUniformMatrix4fv   los dos shaders, el programa y la matriz (GlShader)
+//   glCreateShader a glUniform1i          los shaders, el programa, la matriz y las banderas del
+//                                         fragment shader (GlShader y GlRenderer)
 //   glGenVertexArrays a glDrawArrays      el VAO, el VBO y el dibujo (GlRenderer)
 #define MURET_GL_RENDER_FUNCTIONS(X)                                                                                   \
     X(PFNGLVIEWPORTPROC, viewport, "glViewport")                                                                       \
@@ -65,6 +66,7 @@
     X(PFNGLUSEPROGRAMPROC, useProgram, "glUseProgram")                                                                 \
     X(PFNGLGETUNIFORMLOCATIONPROC, getUniformLocation, "glGetUniformLocation")                                         \
     X(PFNGLUNIFORMMATRIX4FVPROC, uniformMatrix4fv, "glUniformMatrix4fv")                                               \
+    X(PFNGLUNIFORM1IPROC, uniform1i, "glUniform1i")                                                                    \
     X(PFNGLGENVERTEXARRAYSPROC, genVertexArrays, "glGenVertexArrays")                                                  \
     X(PFNGLDELETEVERTEXARRAYSPROC, deleteVertexArrays, "glDeleteVertexArrays")                                         \
     X(PFNGLBINDVERTEXARRAYPROC, bindVertexArray, "glBindVertexArray")                                                  \

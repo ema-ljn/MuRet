@@ -34,9 +34,9 @@ Edges PlacedEdges(const UiImage& image, App::PixelSize screen)
     const auto spaceHeight = static_cast<float>(static_cast<double>(screen.height) / static_cast<double>(image.scaleY));
     const auto firstBottom = static_cast<float>(static_cast<double>(spaceHeight) - image.height);
 
-    // 0x6472e0: el ancho y el alto salen de las esquinas que dejó 0x647050, y cada borde se guarda en
-    // float; el de la derecha y el de abajo salen del otro sin redondear (FADDP y FSUBRP con el valor
-    // de la pila).
+    // 0x6472e0: el ancho y el alto salen de las esquinas que dejó 0x647050, y cada borde se
+    // guarda en float; el de la derecha y el de abajo salen del otro sin redondear (FADDP y FSUBRP
+    // con el valor de la pila).
     const double spanX = image.width;
     const double spanY = static_cast<double>(spaceHeight) - static_cast<double>(firstBottom);
     const double topInTheStack = static_cast<double>(spaceHeight) - image.y;

@@ -12,7 +12,8 @@ QuadCorners FanCorners(const OriginalQuad& quad, App::PixelSize screen)
     const float height = quad.scaleSize ? ScaleY(quad.height, screen) : quad.height;
 
     // 0x621bc9..0x621bf3: FILD H y FSUB y dejan H − y en la pila; FST la guarda como float (el
-    // borde de arriba), y FLD ST0 y FSUB h restan del valor de la pila, sin redondear (el de abajo).
+    // borde de arriba), y FLD ST0 y FSUB h restan del valor de la pila, sin redondear (el de
+    // abajo).
     const double topInTheStack = static_cast<double>(screen.height) - static_cast<double>(y);
     const auto top = static_cast<float>(topInTheStack);
     const auto bottom = static_cast<float>(topInTheStack - static_cast<double>(height));

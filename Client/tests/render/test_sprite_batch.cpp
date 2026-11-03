@@ -322,6 +322,25 @@ TEST(SpriteBatchTest, ADifferentBlendStartsACommand)
     EXPECT_EQ(commands[2].firstVertex, 18u);
 }
 
+// El quad sin textura apaga el alpha test con las dos mezclas: dos seguidos, uno con la normal y
+// otro con la aditiva, tienen la misma textura (ninguna) y el mismo alpha test, y solo la mezcla
+// los separa.
+TEST(SpriteBatchTest, ADifferentBlendStartsACommandWithTheSameAlphaTest)
+{
+    SpriteBatch batch;
+    batch.Begin(Screen640);
+
+    batch.ColorQuad(0, 0, 10, 10);
+    batch.SetBlend(BlendMode::Additive);
+    batch.ColorQuad(0, 0, 10, 10);
+
+    const std::span<const DrawCommand> commands = batch.Commands();
+    ASSERT_EQ(commands.size(), 2u);
+    EXPECT_EQ(commands[0].blend, BlendMode::Alpha);
+    EXPECT_EQ(commands[1].blend, BlendMode::Additive);
+    EXPECT_EQ(commands[0].alphaTest, commands[1].alphaTest);
+}
+
 // A, B, A son tres tramos, en ese orden: con la mezcla normal, juntar las dos A cambiaría qué tapa
 // a qué.
 TEST(SpriteBatchTest, TheOrderIsKept)

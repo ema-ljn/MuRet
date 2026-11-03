@@ -347,40 +347,68 @@ copia, y que necesita el contexto vivo), `std::span` para subir un buffer, `glm:
   con `gtest_discover_tests(... TEST_PREFIX "LabCl50.")`, como `LabCl40Tests`; el de `gl/` aparte,
   `LabCl50GlTests`, con la etiqueta `gl`), `labs/README.md`, `vcpkg.json` (`glm`)
 
-- [ ] **Paso 1 (Claude):** la guía, justo antes de empezar.
-- [ ] **Paso 2 (Emanuel, `TODO(human)`):** `Labs::OriginalQuad`: los cuatro vértices y las cuatro
-  UV de `0x621b60` para (x, y, w, h, u, v, du, dv, escalar tamaño, escalar posición) en una
-  pantalla de W × H, en el orden del fan. Primero los tests:
-  `OriginalQuadTest.FlipsYLikeTheOriginal` (en 640 × 480, el `0x15` del login: (0, 455),
-  (0, 135), (320, 135), (320, 455)), `ScalesFrom640x480` (en 1024 × 768: (0, 728), (0, 216),
-  (512, 216), (512, 728)), `ScalesPositionAndSizeApart` (solo la posición, solo el tamaño),
+- [x] **Paso 1 (Claude):** la guía, justo antes de empezar.
+- [x] **Paso 2 (Emanuel, `TODO(human)`; lo resolvió Claude):** `Labs::OriginalQuad`: los cuatro
+  vértices y las cuatro UV de `0x621b60` para (x, y, w, h, u, v, du, dv, escalar tamaño, escalar
+  posición) en una pantalla de W × H, en el orden del fan. Primero los tests:
+  `OriginalQuadTest.FlipsYLikeTheOriginal` (en 640 × 480, el `0x15` del login: (0, 455), (0, 135),
+  (320, 135), (320, 455)), `ScalesFrom640x480` (en 1024 × 768: (0, 728), (0, 216), (512, 216),
+  (512, 728)), `ScalesPositionAndSizeApart` (solo la posición, solo el tamaño),
   `TheUvGoesDownTheTexture` ((u, v), (u, v + dv), (u + du, v + dv), (u + du, v)).
-- [ ] **Paso 3 (Emanuel):** `Labs::Ortho`, la matriz de `gluOrtho2D(l, r, b, t)` a mano (la de la
-  página de manual: 2/(r − l), 2/(t − b), −1 en z, y la traslación). Tests:
-  `OrthoTest.MapsTheCornersToNdc` ((0, 0) a (−1, −1) y (W, H) a (1, 1)), `MatchesGlm` (los 16
-  floats de `glm::ortho(0, W, 0, H)` en 640 × 480 y 1024 × 768), `IsColumnMajor` (la traslación
-  en los elementos 12 y 13).
-- [ ] **Paso 4 (Emanuel):** `Labs::FanToTriangles`: de n vértices de un fan a los índices de sus
-  n − 2 triángulos. Tests: `FanTest.FourVerticesAreTwoTriangles` ((0, 1, 2), (0, 2, 3)),
-  `ThreeVerticesAreOne`, `LessThanThreeAreNone`.
-- [ ] **Paso 5 (Emanuel, jefe):** el pipeline del original contra el de MuRet, sin GL: los vértices
-  de `OriginalQuad` multiplicados por `Ortho` caen en el NDC donde caería el píxel que dibuja el
-  original. Con el `0x15` en 1024 × 768, la esquina de arriba a la izquierda cae en (−1, 0,8958) y
-  la de abajo a la derecha en (0, −0,4375); un punto en el medio de la UV (0,5; 0,5) cae en el
-  centro del quad. Y lo mismo con el viewport del pase 3D, `0x620db0(0, 25, 640, 430)` en 1024 ×
-  768: `glViewport(0, 40, 1024, 688)`, la fila de la selección del 06 (*verificado* en su traza).
-- [ ] **Paso 6 (Claude, `gl/`):** `LabCl50Gl.DrawsTheQuadIntoAFramebuffer`: con Xvfb, una ventana
+- [x] **Paso 3 (Emanuel; lo resolvió Claude):** `Labs::Ortho`, la matriz de `gluOrtho2D(l, r, b, t)`
+  a mano (la de la página de manual: 2/(r − l), 2/(t − b), −1 en z, y la traslación). Tests:
+  `OrthoTest.MapsTheCornersToNdc` ((0, 0) a (−1, −1) y (W, H) a (1, 1)), `MatchesGlm` (los 16 floats
+  de `glm::ortho(0, W, 0, H)` en 640 × 480 y 1024 × 768), `IsColumnMajor` (la traslación en los
+  elementos 12 y 13).
+- [x] **Paso 4 (Emanuel; lo resolvió Claude):** `Labs::FanToTriangles`: de n vértices de un fan a
+  los índices de sus n − 2 triángulos. Tests: `FanTest.FourVerticesAreTwoTriangles` ((0, 1, 2),
+  (0, 2, 3)), `ThreeVerticesAreOne`, `LessThanThreeAreNone`.
+- [x] **Paso 5 (Emanuel, jefe; lo resolvió Claude):** el pipeline del original contra el de MuRet,
+  sin GL: los vértices de `OriginalQuad` multiplicados por `Ortho` caen en el NDC donde caería el
+  píxel que dibuja el original. Con el `0x15` en 1024 × 768, la esquina de arriba a la izquierda cae
+  en (−1, 0,8958) y la de abajo a la derecha en (0, −0,4375); un punto en el medio de la UV
+  (0,5; 0,5) cae en el centro del quad. Y lo mismo con el viewport del pase 3D,
+  `0x620db0(0, 25, 640, 430)` en 1024 × 768: `glViewport(0, 40, 1024, 688)`, la fila de la selección
+  del 06 (*verificado* en su traza).
+- [x] **Paso 6 (Claude, `gl/`):** `LabCl50Gl.DrawsTheQuadIntoAFramebuffer`: con Xvfb, una ventana
   escondida, un FBO de 64 × 64, una textura de 2 × 2 con cuatro colores y el quad que la cubre
   entera: los cuatro cuadrantes del framebuffer leídos con `glReadPixels` son los cuatro colores,
   con el (0, 0) de la textura arriba a la izquierda. Sin pantalla, `GTEST_SKIP`.
-- [ ] **Paso 7 (Emanuel; lo anota en `labs/README.md`):** comparar, con la traza del 06 a mano,
-  cuánto le cuesta al original mandar 95.000 vértices de a uno contra un VBO por frame, y por qué
-  el orden de dibujo no se puede cambiar donde hay mezcla.
-- [ ] **Paso 8:** verificar:
+- [x] **Paso 7 (Emanuel, lo anota en `labs/README.md`; lo resolvió Claude):** comparar, con la traza
+  del 06 a mano, cuánto le cuesta al original mandar 95.000 vértices de a uno contra un VBO por
+  frame, y por qué el orden de dibujo no se puede cambiar donde hay mezcla.
+- [x] **Paso 8:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "LabCl50"
   xvfb-run -a ctest --preset linux-x64-debug -R "LabCl50Gl"
   ```
+Hecho así: todos los números de los pasos 2 a 5 salieron como estaban escritos (con
+`EXPECT_FLOAT_EQ`, porque el original no da enteros justos), y el desensamblado cambió dos cuentas
+que el decompilado no muestra. `0x620d50` y `0x620d80` **multiplican por la inversa en float**
+(`0x3acccccd` en `0x6ba070` y `0x3b088889` en `0x6ba06c`), no dividen: 25 escalado en 640 × 480 es
+25,000002, y dividiendo daría otro float en 294 (con H = 768) a 401 (con H = 480) de las 481
+coordenadas y enteras (`OriginalQuadTest.ScalesByTheInverseOfTheSize`). Y el borde de abajo de
+`0x621b60` sale de la resta sin redondear: `FST` guarda `H − y` como float y lo deja en la pila, y
+`FSUB` le resta h a ese (`0x621beb`..`0x621bf3`); en 1280 × 1024 el `0x15` va de 970,66669 a
+287,99997, no a 288 (`TheBottomComesFromTheUnroundedTop`). El lab hace la cuenta en `double` (la x87
+con los 53 bits de Windows) y guarda en float. Suma tests que el plan no tenía:
+`FanTest.EachTriangleSharesTheFirstVertex`, y en el jefe `TheNdcGoesBackToThePixelOfTheOriginal` (en
+las cuatro resoluciones del original), `BothTrianglesFaceTheCamera` (con la y para abajo quedan de
+espaldas), `TheGameViewportTruncatesLikeTheTrace` (`0x620db0(0, 0, 640, 432)` da el `0,77,1024,691`
+de la traza) y `At800x600TheViewportTruncatesAndTheQuadDoesNot` (el viewport en enteros sin signo
+queda 0,75 y 0,25 píxeles corrido del quad escalado). En `gl/`, la ventana escondida usa
+`SdlContext`, los deleters de `Window.h`, `LoadGlFunctions` y los chequeos de versión y perfil de
+`ClientPlatform`, y una X-macro propia con 41 funciones (con el reintento en `opengl32.dll`), que es
+el punto de partida de la CL5.1. Los nombres en CTest llevan la suite: el
+`LabCl50Gl.DrawsTheQuadIntoAFramebuffer` de este plan es
+`LabCl50Gl.LabFramebufferTest.DrawsTheQuadIntoAFramebuffer`, y al lado están la mezcla
+(`TheOrderMattersOnlyWithNormalBlending`), `GL_UNPACK_ALIGNMENT` en 4
+(`LabTextureTest.TheDefaultAlignmentReadsTheSecondRowFromByteEight`) y los nombres con dueño
+(`GlNameTest`). Sin pantalla, los 4 de `gl/` que abren GL se saltean, y con
+`MURET_CLIENT_REQUIRE_GL=1` fallan. El paso del CI de la pregunta 9 (Xvfb con `ctest -L '^gl$'`,
+`MURET_CLIENT_REQUIRE_GL=1` y `--no-tests=error`) y `glm` en `vcpkg.json` llegaron con esta sub-ola,
+no con la CL5.1. Las respuestas, con las salidas, en
+[`labs/cl5.0-pipeline/README.md`](../../../labs/cl5.0-pipeline/README.md).
 
 ## Sub-ola CL5.R: las escenas de carga y de login, en el binario (P-C04, P-C13)
 
@@ -442,7 +470,10 @@ mapa, y P-C13 con la traza), PROGRESS y este plan.
   08 con la traza y las capturas de la lista de arriba ("Lo que falta"), y corregir la tabla de
   este plan con lo que haya cambiado. Los quirks nuevos a 07: el color que pierde `0x621b60` y lo
   que salga de los pasos 4 a 6, y el 32, que deja el mapa del juego en 9 al cargar `World10`
-  (`0x61a57d`; la CL7 lo reproduce o lo anota).
+  (`0x61a57d`; la CL7 lo reproduce o lo anota). Al 06, en "Primitivas 2D", lo que vio la CL5.0 en
+  el desensamblado: `0x620d50` y `0x620d80` multiplican por la inversa en float (`0x6ba070`,
+  `0x6ba06c`) y no dividen, y en `0x621b60` el borde de abajo sale de `H − y` sin redondear
+  (`FST` y `FLD ST0`, `0x621beb`..`0x621bf3`), no del float guardado que muestra el decompilado.
 
 ## Sub-ola CL5.1: `Renderer` y texturas desde OZT/OZJ
 
@@ -473,7 +504,18 @@ y `TextureTable`.
   pregunta 9). Modificar `Client/src/Platform/GlLoader.h/.cpp`, `Client/CMakeLists.txt`
   (`ClientRender`, el filtro de `ClientLib`, `glm`), `vcpkg.json`, `Client/tests/CMakeLists.txt`
   (`add_subdirectory(render_gl)`), el CI (el paso de Xvfb con `ctest -L gl` y
-  `MURET_CLIENT_REQUIRE_GL=1`), el roadmap (D-C2: el loader y glm) y este plan.
+  `MURET_CLIENT_REQUIRE_GL=1`), el roadmap (D-C2: el loader y glm) y este plan. *Nota de la
+  CL5.0:* `glm` en `vcpkg.json` y el paso del CI ya llegaron con ella: la CL5.1 enlaza
+  `glm::glm-header-only` en `ClientRender` y le pone la etiqueta `gl` a los tests de `render_gl/`
+  (`gtest_discover_tests(... PROPERTIES LABELS gl)`, como `LabCl50GlTests`), y el paso los corre
+  sin cambiar el CI. La X-macro de `labs/cl5.0-pipeline/gl/LabGl.h`, con 41 funciones y quién usa
+  cada grupo, es el punto de partida de `GlFunctionList.h`, y `HiddenGlWindow` (que no se mueve:
+  `Create` la da en un `unique_ptr`, porque los nombres de GL guardan un puntero a sus funciones),
+  el del `GlTestContext`. Modificar también `labs/cl5.0-pipeline/gl/LabGl.cpp` y
+  `HiddenGlWindow.cpp`: el lab deja su copia del pedido de `Platform/GlLoader.cpp` y pide las
+  funciones con el de `Platform`, y lee `MURET_CLIENT_REQUIRE_GL` con
+  `Core::ReadEnvironmentVariable` (de la pila de la CL4) en vez de copiar el de `GoldenDir.cpp`
+  (CODING_RULES §4).
 - **PR B:** crear `Client/src/Data/Textures/Sampling.h`, `TextureSet.h/.cpp` (la entrada, el error y
   `LoadTextureSet`), `Client/src/Render/TextureSlot.h`, `Client/src/Render/ITextureStore.h` (lo que
   ve la escena), `Client/src/Render/Gl/TextureTable.h/.cpp`,
@@ -601,7 +643,7 @@ public:
 - [ ] **Paso 6:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "GlLoader|TextureSet"
-  xvfb-run -a env MURET_CLIENT_REQUIRE_GL=1 ctest --preset linux-x64-debug -L gl
+  xvfb-run -a env MURET_CLIENT_REQUIRE_GL=1 ctest --preset linux-x64-debug -L '^gl$'
   ```
 
 ## Sub-ola CL5.2: `SpriteBatch` en 640 × 480 escalado
@@ -615,8 +657,8 @@ en píxeles, y la Y dada vuelta del original; y por lotes: muchos quads en un bu
 | Qué | Original | MuRet |
 | --- | --- | --- |
 | entrar al 2D | `0x6219b0`: viewport entero y `gluOrtho2D(0, W, 0, H)`, en píxeles reales | `SpriteBatch::Begin(PixelSize)`; el renderer pone el viewport y `glm::ortho(0, W, 0, H)` |
-| el quad | `0x621b60(slot, x, y, w, h, u, v, du, dv, escalar tamaño, escalar posición, alfa)` | `SpriteBatch::Quad(OriginalQuad)`, los mismos campos y en el mismo orden; los vértices de la tabla de arriba |
-| escalar | `0x620d50` (`x · W / 640`) y `0x620d80` (`y · H / 480`), cada eje por su lado | `ScaleX`, `ScaleY`, en `float` como el original; en una ventana ancha, lo escalado se estira (pregunta 10) |
+| el quad | `0x621b60(slot, x, y, w, h, u, v, du, dv, escalar tamaño, escalar posición, alfa)` | `SpriteBatch::Quad(OriginalQuad)`, los mismos campos y en el mismo orden; los vértices de la tabla de arriba. *De la CL5.0:* el borde de abajo es `H − y − h` restado en `double` sin redondear `H − y` antes, como `Labs::FanVertices` (en 1280 × 1024 el `0x15` termina en 287,99997, no en 288) |
+| escalar | `0x620d50` (`x · W / 640`) y `0x620d80` (`y · H / 480`), cada eje por su lado | `ScaleX`, `ScaleY`, en `float` como el original; en una ventana ancha, lo escalado se estira (pregunta 10). *De la CL5.0:* multiplican por la inversa en float (`1.0f / 640`, `1.0f / 480`, las de `0x6ba070` y `0x6ba06c`) con la cuenta en `double`, como la x87, y no dividen: 25 da 40,000004 en 1024 × 768 y 56,250004 en 1920 × 1080, un ULP arriba |
 | sin textura | `0x621aa0` | `SpriteBatch::ColorQuad` |
 | la arena | `0x622000`, la v corrida 0,25 · dv | `SpriteBatch::SkewedQuad`, con lo que diga la CL5.R |
 | el color | `glColor` global; con alfa, (1, 1, 1, alfa) por vértice y después blanco | `SpriteBatch::SetColor`; con alfa, el vértice va con (1, 1, 1, alfa) y el color queda blanco (Q-C nuevo, "Lo que más puede morder"); el shader lo recorta a [0, 1] |
@@ -703,7 +745,7 @@ public:
   UV, calculados a mano con las fórmulas de `0x621b60` y `0x622000`.
 - [ ] **Paso 2:** los tests:
   - `ScreenScaleTest.ScalesEachAxisApart` (en 1024 × 768, 320 → 512 y 25 → 40; en 1920 × 1080,
-    320 → 960 y 25 → 56,25);
+    320 → 960 y 25 → 56,25; con `EXPECT_FLOAT_EQ`, porque los 25 dan un ULP arriba, CL5.0);
   - `SpriteBatchTest.PlacesTheLoginBackgroundLikeTheOriginal` (los vértices del paso 1, en los dos
     tamaños; los de 640 × 480, *estático* hasta la traza de P-C13);
   - `SpriteBatchTest.WithoutTheScaleFlagsItIsInPixels` (y con una sola de las dos);
@@ -723,7 +765,8 @@ public:
   ```bash
   cmake --build --preset linux-x64-debug
   ctest --preset linux-x64-debug -R "ScreenScale|SpriteBatch"
-  xvfb-run -a env MURET_CLIENT_REQUIRE_GL=1 ctest --preset linux-x64-debug -L gl -R GlSpriteRenderer
+  xvfb-run -a env MURET_CLIENT_REQUIRE_GL=1 ctest --preset linux-x64-debug -L '^gl$' \
+    -R GlSpriteRenderer
   ```
 
 ## Sub-ola CL5.3: texto con caché y colores `0x02`

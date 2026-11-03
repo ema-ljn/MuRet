@@ -79,6 +79,9 @@ inline void PrintTo(SessionFailure failure, std::ostream* out)
     case SessionFailure::EmptyServerList:
         *out << "EmptyServerList";
         return;
+    case SessionFailure::ServerBusy:
+        *out << "ServerBusy";
+        return;
     case SessionFailure::GameServerLost:
         *out << "GameServerLost";
         return;

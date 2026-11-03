@@ -93,6 +93,7 @@ ServerSession::ServerSession(Network::Connection& connection, Core::IClock& cloc
 void ServerSession::RegisterConnectServerHandlers()
 {
     using Protocol::Connection::ConnectHelloOpcode;
+    using Protocol::Connection::ServerBusySubcode;
     using Protocol::Connection::ServerListOpcode;
     using Protocol::Connection::ServerListSubcode;
     using Protocol::Connection::ServerSelectSubcode;
@@ -102,7 +103,8 @@ void ServerSession::RegisterConnectServerHandlers()
         m_connectServer.On(ServerListOpcode, ServerListSubcode,
                            [this](const Network::Packet& packet) { OnServerList(packet); }) &&
         m_connectServer.On(ServerListOpcode, ServerSelectSubcode,
-                           [this](const Network::Packet& packet) { OnServerAddress(packet); });
+                           [this](const Network::Packet& packet) { OnServerAddress(packet); }) &&
+        m_connectServer.On(ServerListOpcode, ServerBusySubcode, [this](const Network::Packet&) { OnServerBusy(); });
     assert(registered && "los handlers del ConnectServer se registran una vez");
 }
 
@@ -302,6 +304,22 @@ void ServerSession::OnServerAddress(const Network::Packet& packet)
     m_gameServerAddress = ServerAddress{address.Value().host, address.Value().port};
     Connect(*m_gameServerAddress, m_keys);
     SetState(SessionState::ConnectingGameServer);
+}
+
+// El F4 05 contesta la elección de un servidor ocupado. El original (0x4e2b10 llama a 0x4c1bf0)
+// vuelve a pedir la lista y la muestra, para que el jugador elija otro; acá la elección es
+// automática hasta la CL5.5, y pedirla de nuevo elegiría otra vez el mismo, así que la sesión falla
+// como con la lista vacía (Q-C71). El byte que sigue al subcódigo, el servidor, no se lee: el
+// original tampoco lo mira.
+void ServerSession::OnServerBusy()
+{
+    if (m_state != SessionState::WaitingServerAddress)
+    {
+        m_log.Warning("se ignora el aviso de servidor ocupado (F4 05): {}", OutOfTurn);
+        return;
+    }
+    m_log.Error("el servidor elegido está ocupado: el ConnectServer no da su dirección");
+    Fail(SessionFailure::ServerBusy);
 }
 
 // 0x4c1e20 muestra "Connectting error" con otro resultado y "Version dismatch" con otra versión,

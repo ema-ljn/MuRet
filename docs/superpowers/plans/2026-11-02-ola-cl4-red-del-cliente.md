@@ -1126,6 +1126,7 @@ public:
   | `WaitingServerList` | `F4 06`, la lista | `F4 03` con el código del primero | `WaitingServerAddress` |
   | `WaitingServerList` | `F4 06` sin servidores | nada: cierra el CS | `Failed` (`EmptyServerList`) |
   | `WaitingServerAddress` | `F4 03`, la dirección | nada: cierra el CS y abre el GS, y deja el resto del lote | `ConnectingGameServer` |
+  | `WaitingServerAddress` | `F4 05`, el servidor está ocupado | nada: cierra el CS (Q-C71; el original vuelve a pedir la lista) | `Failed` (`ServerBusy`) |
   | `ConnectingGameServer` | el `Opened` del GS | nada: el GS saluda primero (CL4.4) | sigue en `ConnectingGameServer` |
 
   Un paquete del CS que su estado no espera (un segundo saludo, una lista o una dirección fuera de

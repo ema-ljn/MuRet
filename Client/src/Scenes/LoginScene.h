@@ -13,6 +13,7 @@
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SceneWorlds.h"
 #include "UI/LoginWindow.h"
+#include "UI/MenuBar.h"
 #include "UI/NoticeWindow.h"
 #include "UI/Notices.h"
 #include "UI/ServerListWindow.h"
@@ -64,7 +65,7 @@ public:
     // la corre el SceneManager, antes.
     void Step(const Input::InputState& input) override;
     // 0x6350b0 sin la cámara, el fundido (Q-C66) ni lo común a las escenas, y al final la UI: la
-    // lista, la cuenta y el aviso, cada uno con la mezcla normal.
+    // lista, la barra de abajo, la cuenta y el aviso, cada uno con la mezcla normal.
     void Render(SceneCanvas& canvas, float alpha) override;
     // Cierra las ventanas (la de la cuenta vacía la clave) y suelta sus 21 slots.
     void Leave() override;
@@ -82,6 +83,8 @@ private:
     void OnServerClick(const UI::ServerClick& click);
     void OnLoginRequest(const UI::LoginRequest& request);
     void OnNoticeClosed(UI::NoticeId notice);
+    // Los dos botones de la barra, que todavía no hacen nada (P-C13).
+    void OnMenuBarClick(UI::MenuBarClick click);
     // La ventana de la cuenta, con el título del servidor elegido.
     void OpenLogin(UI::LoginFocus focus);
     // El aviso de una sesión que falló: 0x6f con otra versión, 0x70 con lo demás.
@@ -102,6 +105,8 @@ private:
     std::optional<std::string> m_version;
 
     UI::ServerListWindow m_serverList;
+    // La abre la lista y queda abierta hasta salir (06 § Las ventanas de la UI nueva).
+    UI::MenuBar m_menuBar;
     UI::LoginWindow m_login;
     UI::NoticeWindow m_notice;
     // El estado de la sesión que vio el último paso, para abrir cada ventana una vez.

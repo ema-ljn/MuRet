@@ -120,6 +120,7 @@ LoginScene::LoginScene(const SceneContext& context, const GameData& data, App::S
       m_textures(context.textures, LoginTextureSet), m_windowTextures(context.textures, WindowTextureSet),
       m_world(WorldOf(SceneId::Login)),
       m_serverList([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
+      m_menuBar([this](Render::TextureSlot slot) { return BufferSize(slot); }),
       m_login([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
       m_notice([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts)
 {
@@ -147,6 +148,7 @@ Core::Expected<void, std::string> LoginScene::Enter()
         return windows;
     }
     m_serverList.Close();
+    m_menuBar.Close();
     m_login.Close();
     m_notice.Close();
     m_seen.reset();
@@ -166,6 +168,15 @@ void LoginScene::Step(const Input::InputState& input)
     }
     // Lo que cambió con el Poll de este frame.
     FollowSession();
+    // Sin aviso, la barra se atiende junto con la cuenta o la lista: sus botones no se pisan con
+    // los de ellas (Q-C84).
+    if (!m_notice.IsOpen())
+    {
+        if (const std::optional<UI::MenuBarClick> click = m_menuBar.Step(input, m_screen))
+        {
+            OnMenuBarClick(*click);
+        }
+    }
     if (m_notice.IsOpen())
     {
         if (const std::optional<UI::NoticeId> closed = m_notice.Step(input, m_screen))
@@ -214,6 +225,8 @@ void LoginScene::FollowSession()
         }
         m_login.Close();
         m_serverList.Open(std::move(groups));
+        // Y la barra, después de la lista: va arriba de ella.
+        m_menuBar.Open();
         return;
     }
     case App::SessionState::WaitingCredentials:
@@ -282,6 +295,14 @@ void LoginScene::OnLoginRequest(const UI::LoginRequest& request)
         m_session->Start();
         return;
     }
+}
+
+void LoginScene::OnMenuBarClick(UI::MenuBarClick click)
+{
+    // El original abre la ventana de Esc con el menú, y con los créditos manda el F4 06 al CS y
+    // abre la de +0x4578; ninguna de las dos se leyó.
+    m_context.log.Info("el botón {} de la barra todavía no hace nada (P-C13)",
+                       click == UI::MenuBarClick::Menu ? "del menú" : "de los créditos");
 }
 
 void LoginScene::OnNoticeClosed(UI::NoticeId notice)
@@ -378,6 +399,7 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     DrawTexts(canvas);
     // 7: el fundido no dibuja nada (Q-C66). 8: la UI (CL5.5), cada ventana con la mezcla normal.
     m_serverList.Draw(sprites, canvas.text, canvas.screen);
+    m_menuBar.Draw(sprites, canvas.screen);
     m_login.Draw(sprites, canvas.text, canvas.screen);
     m_notice.Draw(sprites, canvas.text, canvas.screen);
 }
@@ -408,6 +430,7 @@ void LoginScene::Leave()
 {
     // Las ventanas también: la cuenta vacía la clave al cerrarse (LoginWindow::Close).
     m_serverList.Close();
+    m_menuBar.Close();
     m_login.Close();
     m_notice.Close();
     m_textures.Release();

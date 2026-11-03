@@ -81,4 +81,24 @@ if(MURET_BUILD_TESTS)
     add_test(NAME Client.Main.ReadsTheDataPathInUtf8 COMMAND Main --data "${utf8_data_file}")
     set_tests_properties(Client.Main.ReadsTheDataPathInUtf8 PROPERTIES
         PASS_REGULAR_EXPRESSION "la carpeta de datos .* no es una carpeta")
+    # Con un host (CL4.4), primero la cuenta y la clave del entorno (pregunta 7 del plan de la CL4):
+    # sin las variables, la salida nombra las dos, antes de mirar las claves y sin red ni ventana.
+    add_test(NAME Client.Main.ConnectWithoutCredentialsNamesThem COMMAND Main connect /u127.0.0.1 /p44405)
+    set_tests_properties(Client.Main.ConnectWithoutCredentialsNamesThem PROPERTIES
+        PASS_REGULAR_EXPRESSION "falta MURET_CLIENT_ACCOUNT; falta MURET_CLIENT_PASSWORD")
+    # Y con la cuenta y la clave sintéticas de los fixtures, las claves de la conexión: una carpeta
+    # de datos vacía no las tiene, y la salida nombra Enc1.dat y Dec2.dat, sin abrir la ventana.
+    set(empty_data_folder "${CMAKE_CURRENT_BINARY_DIR}/datos-sin-claves")
+    file(MAKE_DIRECTORY "${empty_data_folder}")
+    add_test(NAME Client.Main.ConnectWithoutKeysNamesThem
+        COMMAND Main connect /u127.0.0.1 /p44405 --data "${empty_data_folder}")
+    set_tests_properties(Client.Main.ConnectWithoutKeysNamesThem PROPERTIES
+        PASS_REGULAR_EXPRESSION "no está Enc1.dat; no está Dec2.dat"
+        ENVIRONMENT_MODIFICATION "MURET_CLIENT_ACCOUNT=set:user0001;MURET_CLIENT_PASSWORD=set:pass0002")
+    # Ningún otro test de Main ve las variables de quien corre CTest: sin host no se leen, y los
+    # dos de arriba dicen lo que tienen.
+    set_tests_properties(Client.Main.RejectsBadArguments Client.Main.RejectsBadPort
+        Client.Main.NamesTheMissingDataFolder Client.Main.ReadsTheDataPathInUtf8
+        Client.Main.ConnectWithoutCredentialsNamesThem PROPERTIES
+        ENVIRONMENT_MODIFICATION "MURET_CLIENT_ACCOUNT=unset:;MURET_CLIENT_PASSWORD=unset:")
 endif()

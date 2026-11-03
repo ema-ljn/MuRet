@@ -214,6 +214,15 @@ solo lo lee.
   y se sigue desde el que trajo. Contra el cable del laboratorio, con las claves reales: los C3/C4
   del GameServer salen descifrados, y los del cliente, mandados otra vez, salen con sus bytes
   menos el relleno. Tu paso 1, los seriales a mano, lo resolvió Claude: está en el plan.
+  El segundo lleva la `ServerSession` hasta `LoggedIn`: abre el GameServer con sus claves y espera
+  su saludo; con el resultado y la versión bien, manda el login cifrado con la cuenta, la clave y
+  el tick del reloj, y con el resultado del login queda en `LoggedIn` o falla. Un saludo
+  rechazado, otra versión (las dos van al log) o un login rechazado cierran el GS. Un C3/C4 con el
+  checksum malo o que no mide bloques enteros se contesta con el `F1 03`. La cuenta y la clave
+  salen de `MURET_CLIENT_ACCOUNT` y `MURET_CLIENT_PASSWORD` (`ReadCredentials`), y las claves de
+  `Enc1.dat` y `Dec2.dat` de la carpeta de datos (`LoadConnectionKeys`): `Main` las lee solo con
+  un host, antes de la ventana, y cada error dice qué falta sin traer un valor. La sesión entra
+  al bucle en la CL4.5.
 - Documentación lista: el [roadmap](../superpowers/specs/2026-10-25-dataserver-port-design.md) (qué hace MuRet, las olas 0 a 8 y la tabla de las 9 a 14), el [camino de aprendizaje](../superpowers/specs/2026-10-28-camino-de-aprendizaje-design.md) (cómo se aprende), el [research del original](../../Server/DataServer/docs/research/) (01..10, qué hace el binario byte a byte), los [planes por ola](../superpowers/plans/) y una [guía de estudio por ola](README.md)
 - De la 0.3 ya están `docs/CODING_RULES.md`, `AGENTS.md` y `.clang-format`, adaptados de MuMain; quedan los ADR 0001 (tuyo) y 0002
 - **Cliente, la CL5 (render 2D y login), al lado de la CL4:** su
@@ -324,6 +333,7 @@ sesión, junto con los de repaso más viejo.
 | una conexión consultada por frame que devuelve eventos en orden (`Connection`): el `Opened` antes de lo que llegó con él, un cierre que pasa en un `Send` y sale en el próximo `Poll`, el tope del connect mirado después del `PollConnect`, y qué error corta (el del corte) y cuál se descarta (el de la ofuscación) | CL4.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un protocolo con turnos como máquina de estados (`ServerSession`): qué espera cada estado y qué hace con lo que llega fuera de turno, un dispatcher por servidor, y dejar de recorrer un lote de eventos cuando un handler cambia o cierra la conexión (un contador que cambia con cada `Open`), sin perder el `Closed` que cerró el lote | CL4.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | el cifrado como una etapa más del camino de un paquete (`Connection`): dónde va entre las de la ofuscación, claves y seriales por conexión que vuelven a 0 en cada `Open`, un serial que solo se gasta si el paquete sale, un relleno con semilla para que el test sea repetible, y un paquete que no descifra como un evento y no como un cierre | CL4.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| secretos fuera de todo lo que se imprime: la cuenta y la clave del entorno y no de la config ni de la línea de comandos, errores que nombran la variable sin su valor, un `PrintTo` que da los largos, un log que no las trae (lo mira un test), y el login comparado con `SameBytesWithoutValues`; y un dato del servidor que va al log limpio (la versión, con `?` en lo que no se ve) | CL4.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | de la función fija al pipeline programable: los vértices en un VBO con su formato en un VAO, un vertex shader que hace lo de la pila de matrices, un fragment shader que hace lo de `glTexEnv`, y `discard` en vez de `glAlphaFunc` | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | las coordenadas de un vértice: del clip al NDC dividiendo por w, y del NDC al píxel con el viewport; la y para arriba de `gluOrtho2D` y la que el original da vuelta en cada vértice (`OriginalQuad`, el jefe) | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | una matriz en column-major (`Ortho2D`, `glm::ortho` y `glm::value_ptr`), qué espera `glUniformMatrix4fv` con `GL_FALSE`, y qué se ve con la transpuesta | CL5.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |

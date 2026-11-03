@@ -8,7 +8,8 @@ carpeta abre GL.
 
 Para cerrar la CL6.0 en el [cuaderno](../../docs/learning/PROGRESS.md) falta lo tuyo, cuando
 entres: contar con tus palabras las "Preguntas para chequearte" de la guía y completar su sección
-final.
+final. Las respuestas de Claude están [al final](#preguntas-para-chequearte), para comparar
+después de contarlas.
 
 | Archivo | Qué es |
 | --- | --- |
@@ -280,3 +281,48 @@ con los números del jefe.
   de la key de dos antes. Con 0,26 por paso pasa unas pocas veces en un millón de pasos, ninguna en
   el jefe (*Verificado* en el desensamblado; en pantalla, sin ver). Es un dato para la CL6.2, que
   guarda el estado como el original.
+
+## Preguntas para chequearte
+
+1. **Euler.** Tres giros seguidos, cada uno alrededor de un eje. Los mismos tres números en otro
+   orden dan otro giro (actividad 1): por eso un ángulo de Euler es los tres números y el orden.
+   En Half-Life la matriz es Rz · Ry · Rx: al vértice le aplica primero el giro en x, después el
+   de y y al final el de z (`AngleMatrix` y `AngleQuaternion`).
+2. **La vuelta larga.** Cada ángulo se interpola como un número, sin saber que es un ángulo: de
+   170° a −170° hay 20° de giro, pero el número baja 340 y pasa por 0°. Y aunque no den la
+   vuelta, con varios ejes que cambian juntos el camino de en medio no es el arco más corto entre
+   los dos giros. En el jefe, a mitad de camino, el slerp está en 180° y los ángulos en 0°.
+3. **Un cuaternión unitario.** El eje por el seno del medio ángulo en x, y y z, y el coseno del
+   medio ángulo en w. −q es el ángulo θ + 2π alrededor del mismo eje: el mismo giro. La matriz
+   tiene solo productos de dos componentes, así que q y −q dan la misma, bit a bit
+   (`QAndMinusQAreTheSameMatrix`).
+4. **Slerp contra lerp normalizado.** El slerp recorre el arco a velocidad pareja: con el peso t,
+   el giro es t veces el ángulo entre las keys. El lerp normalizado recorre el mismo arco, más
+   rápido en el medio y más lento en las puntas. La diferencia crece con el cubo del ángulo: entre
+   keys a 6,9°, 0,00035 a 50 unidades del hueso, debajo de lo que mide la traza; a 33°, 0,037 (la
+   comparación de
+   [`labs/README.md`](../README.md#cl60-slerp-lerp-normalizado-y-ángulos-interpolados)).
+5. **glm contra Half-Life.** Los dos dan vuelta q para ir por el camino corto: glm con el producto
+   negativo, `0x5fce90` con Σ(p − q)² > Σ(p + q)², que para unitarios es lo mismo. glm hace todo
+   en float y pasa a lineal con cos > 1 − 1,19e-7 (`epsilon<float>()`); Half-Life lo hace en la
+   x87 y pasa a lineal con 1 − cos ≤ 1e-8, con el cos redondeado a float en esa comparación.
+   Dan distinto entre esos dos topes (con el cos en `std::nextafter(1.0f, 0.0f)`, Half-Life usa
+   senos y glm es lineal), en los redondeos (1,8e-7 en el lab) y con un NaN o un infinito, que en
+   Half-Life van a la rama de los opuestos.
+6. **La matriz del mundo de un hueso.** La de su padre por la suya: `Concat(padre, local)`, con
+   la local hecha del cuaternión y la posición del hueso en la columna 3. La raíz cuelga de la
+   matriz del objeto, con sus ángulos, su escala y su posición. El padre va antes porque su
+   matriz tiene que estar calculada: recorriendo los huesos en orden, una sola pasada alcanza, y
+   `PoseChain` rechaza la cadena que no cumple.
+7. **El skinning rígido.** Cada vértice tiene un hueso (05) y está guardado en el espacio de ese
+   hueso: la matriz del hueso lo gira y le suma la traslación (`Transform`). Una normal es una
+   dirección: solo gira, sin la traslación (`Rotate`).
+8. **La traslación.** En la 3 × 4 de Half-Life, `m[fila][columna]`, es la columna 3:
+   `m[0][3]`, `m[1][3]` y `m[2][3]`. En una `glm::mat4x3`, cuatro columnas de tres que se leen
+   `m[columna][fila]`, es `m[3]`. Los 12 floats van en otro orden en la memoria, y copiarlos tal
+   cual da otra matriz (actividad 13).
+9. **Las dos keys.** El original posa desde la key anterior, la que guardó `0x4ec200` cuando
+   cambió la parte entera del frame, junto con su acción, hasta ⌊frame⌋, con la parte fraccionaria
+   como peso (`0x4eb860`). En una animación que ya corre, la anterior es ⌊frame⌋ − 1: lo que se ve
+   va una key atrás del frame. La tabla del 06 se ajustó leyendo la pose entre ⌊f⌋ y ⌊f⌋ + 1, y
+   por eso sus frames dan uno menos que los del original.

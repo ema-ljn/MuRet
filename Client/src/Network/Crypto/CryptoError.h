@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
 
 // Lo que puede fallar al cargar una clave del SimpleModulus, el cifrado de los C3/C4, y al cifrar o
 // descifrar un paquete con ella.
@@ -21,4 +22,8 @@ enum class CryptoError : std::uint8_t
     TooShort,         // lo descifrado no trae el serial y el opcode
     TooLarge,         // cifrado, el paquete pasaría de MaxPacketSize
 };
+
+// El error en palabras, para el log (la Connection, CL4.4): "el checksum de un bloque no coincide".
+// Nunca dice un valor de la clave ni del paquete.
+[[nodiscard]] std::string_view CryptoErrorText(CryptoError error);
 } // namespace Client::Network::Crypto

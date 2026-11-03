@@ -161,5 +161,12 @@ TEST(SceneTextTest, FontsThatDoNotOpenKeepTheOldOnes)
     // Con otro ancho que sí abre, cambia.
     text->FollowScreenWidth(800);
     EXPECT_EQ(text->Drawer().Measure(FontKind::Normal, Synthetic).width, 3 * 8);
+
+    // Y el que no abrió se prueba otra vez si vuelve después de otro, con su aviso: no queda
+    // marcado para siempre.
+    text->FollowScreenWidth(1280);
+    EXPECT_EQ(tested.fonts.opened, (std::vector<int>{640, 1280, 800, 1280}));
+    EXPECT_EQ(tested.sink.lines.size(), 2u);
+    EXPECT_EQ(text->Drawer().Measure(FontKind::Normal, Synthetic).width, 3 * 8);
 }
 } // namespace

@@ -183,6 +183,11 @@ std::optional<std::filesystem::path> SearchList(HKEY root, std::string_view face
 }
 } // namespace
 
+bool HasSystemFontList()
+{
+    return true;
+}
+
 std::optional<std::filesystem::path> FindSystemFontFile(std::string_view face, bool bold)
 {
     if (face.empty())
@@ -196,6 +201,11 @@ std::optional<std::filesystem::path> FindSystemFontFile(std::string_view face, b
     return SearchList(HKEY_CURRENT_USER, face, bold);
 }
 #else
+bool HasSystemFontList()
+{
+    return false;
+}
+
 std::optional<std::filesystem::path> FindSystemFontFile(std::string_view /*face*/, bool /*bold*/)
 {
     return std::nullopt;

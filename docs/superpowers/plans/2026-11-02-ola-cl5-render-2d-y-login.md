@@ -1734,6 +1734,19 @@ public:
   Xvfb y `MURET_CLIENT_REQUIRE_GL=1`, los 55 de `ctest -L '^gl$'`, sin fallas; `Main --frames 60`
   sale con 0, y `Main --data <Data> --frames 120` también.
 
+  Revisión (PR B, 2026-11-03): `main.cpp` le pasaba `Platform::FindSystemFontFile` a
+  `ChooseFontFiles` también en Linux, donde siempre da vacío, y sin `[Video] FontFile` el error
+  decía que la cara no estaba en las fuentes del sistema, cuando el cliente no la busca. Ahora la
+  búsqueda va solo con `Platform::HasSystemFontList()` (Windows), como pedía la nota de la CL5.3,
+  y el error es el que nombra la clave y dice que no se busca
+  (`SystemFontsTest.OutsideWindowsThereIsNoList`, y en Windows `WindowsHasTheList`).
+  `SceneTextTest.FontsThatDoNotOpenKeepTheOldOnes` suma que un ancho que no abrió se prueba otra
+  vez si vuelve después de otro (sin el `reset` de `m_failedWidth`, no se probaba más). Con el
+  #79 mezclado a mano (la subida corta si GL ya tiene un error), sin conflictos: el `ctest`
+  entero, los de GL y `Main --data` con `MESA_DEBUG=1` pasan, sin avisos de Mesa. El `ctest`
+  queda en 1.249 y los de GL en 55. Ojo con `Main --data <Data> --frames 120` en Xvfb sin VSync:
+  los 120 frames duran cuatro pasos y no llegan al login; con `--max-fps 30` llegan (99 pasos).
+
 ## Sub-ola CL5.5: UI de login conectada a CL4: lista de servidores, cuenta y clave
 
 **Concepto:** UI retenida mínima (una ventana con widgets que se dibujan y reciben el input), el

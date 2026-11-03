@@ -10,6 +10,7 @@ namespace
 {
 using Client::Platform::FindSystemFontFile;
 using Client::Platform::FontEntryNamesFace;
+using Client::Platform::HasSystemFontList;
 
 // La normal es el nombre exacto de la cara, y la negrita, el nombre con " Bold".
 TEST(SystemFontsTest, AnEntryNamesItsFace)
@@ -60,11 +61,19 @@ TEST(SystemFontsTest, AnEmptyFaceIsNeverFound)
 }
 
 #ifndef _WIN32
-// Fuera de Windows no hay lista: sin [Video] FontFile, App::ChooseFontFiles da el error.
+// Fuera de Windows no hay lista: main.cpp no le pasa una búsqueda a App::ChooseFontFiles, y sin
+// [Video] FontFile su error dice que el cliente no la busca.
 TEST(SystemFontsTest, OutsideWindowsThereIsNoList)
 {
+    EXPECT_FALSE(HasSystemFontList());
     EXPECT_FALSE(FindSystemFontFile("Cara", false).has_value());
     EXPECT_FALSE(FindSystemFontFile("Cara", true).has_value());
+}
+#else
+// En Windows, la lista del registro: main.cpp le pasa FindSystemFontFile a App::ChooseFontFiles.
+TEST(SystemFontsTest, WindowsHasTheList)
+{
+    EXPECT_TRUE(HasSystemFontList());
 }
 #endif
 } // namespace

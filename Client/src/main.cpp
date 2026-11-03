@@ -465,7 +465,11 @@ std::optional<SceneStartup> ReadSceneStartup(const App::ClientConfig& config, Co
     // La cara es un texto del juego: no va al log (App/FontFiles.h).
     const Scenes::GameData& loaded = data.Value();
     const std::string_view face = loaded.text ? loaded.text->Text(0).value_or("") : "";
-    auto fonts = App::ChooseFontFiles(config, face, Platform::FindSystemFontFile);
+    // La búsqueda, solo donde hay una lista de fuentes del sistema: en otro, ninguna, y el error de
+    // ChooseFontFiles dice que el cliente no busca la cara.
+    const App::SystemFontSearch search =
+        Platform::HasSystemFontList() ? App::SystemFontSearch(Platform::FindSystemFontFile) : App::SystemFontSearch();
+    auto fonts = App::ChooseFontFiles(config, face, search);
     if (!fonts.HasValue())
     {
         log.Error("{}", fonts.Error());

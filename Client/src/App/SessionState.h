@@ -26,6 +26,7 @@ enum class SessionFailure : std::uint8_t
 {
     ConnectServerLost,  // la conexión con el CS se cerró: el motivo va al log y queda en la conexión
     EmptyServerList,    // el CS no tiene ningún servidor
+    ServerBusy,         // el CS contestó la elección con F4 05: el servidor está ocupado (Q-C71)
     GameServerLost,     // la conexión con el GS se cerró
     HelloRejected,      // el saludo del GS trae otro resultado que HelloAccepted
     VersionMismatch,    // el saludo aceptado trae otra versión que ClientVersion

@@ -32,6 +32,7 @@
 //   WaitingServerList --F4 06: manda F4 03 con el primero--> WaitingServerAddress
 //   WaitingServerList --F4 06 vacía: cierra--> Failed (EmptyServerList)
 //   WaitingServerAddress --F4 03: cierra el CS y abre el GS con las claves--> ConnectingGameServer
+//   WaitingServerAddress --F4 05: cierra--> Failed (ServerBusy)
 //   ConnectingGameServer --Opened--> WaitingGameHello
 //   WaitingGameHello --F1 00 aceptado y con la versión: manda el login--> WaitingLoginResult
 //   WaitingGameHello --F1 00 con otro resultado--> Failed (HelloRejected)
@@ -53,10 +54,10 @@
 // bloque, y ese checksum casi siempre falla, así que es probable que conteste igual (03, "C3/C4").
 // Los otros que no se descifran solo dejan el aviso de la conexión.
 //
-// Un handler que cambia de conexión (el F4 03) o que la cierra (una lista vacía, un Send que
-// falla) deja el resto del lote sin recorrer: es de una conexión que ya no está, y lo que quedaba
-// del CS no llega nunca al dispatcher del GS. Si la cerró el otro lado, lo que llegó antes del
-// cierre se despacha, y después el Closed.
+// Un handler que cambia de conexión (el F4 03) o que la cierra (una lista vacía, un F4 05, un
+// Send que falla) deja el resto del lote sin recorrer: es de una conexión que ya no está, y lo que
+// quedaba del CS no llega nunca al dispatcher del GS. Si la cerró el otro lado, lo que llegó antes
+// del cierre se despacha, y después el Closed.
 namespace Client::App
 {
 // 04 § El flujo de conexión: el timer 1000 de 20.000 ms del original, y 156 keepalives, uno cada
@@ -140,6 +141,7 @@ private:
     void OnConnectHello(const Network::Packet& packet);
     void OnServerList(const Network::Packet& packet);
     void OnServerAddress(const Network::Packet& packet);
+    void OnServerBusy();
 
     void OnGameHello(const Network::Packet& packet);
     void OnLoginResult(const Network::Packet& packet);

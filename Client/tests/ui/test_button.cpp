@@ -226,6 +226,21 @@ TEST(ButtonTest, TheLabelGoesToTheDesignSpace)
     EXPECT_EQ(text.texts[0].y, 35);
 }
 
+// Sin pantalla (un lado en 0) el rótulo no tiene dónde ir: la y se divide por la proporción.
+TEST(ButtonTest, WithoutAScreenTheLabelIsNotDrawn)
+{
+    Button button = GroupButton();
+    button.SetLabel("abc", ButtonColors{});
+    Client::Render::SpriteBatch batch;
+    batch.Begin(Screen640);
+    Client::Tests::RecordingTextDrawer text(batch);
+
+    button.DrawLabel(text, PixelSize{0, 0});
+    button.DrawLabel(text, PixelSize{640, 0});
+
+    EXPECT_TRUE(text.texts.empty());
+}
+
 // Sin rótulo no se dibuja texto.
 TEST(ButtonTest, WithoutALabelThereIsNoText)
 {

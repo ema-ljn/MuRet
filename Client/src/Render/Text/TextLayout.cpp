@@ -56,12 +56,21 @@ int BottomAlignedAt(int y, TextExtent extent, App::PixelSize screen)
 
 int DesignX(int pixelX, App::PixelSize screen)
 {
-    // Con la x87 en 53 bits, la división en double da lo mismo.
+    // Sin pantalla, como Shrink: la proporción sería 0. Con la x87 en 53 bits, la división en
+    // double da lo mismo.
+    if (screen.width <= 0)
+    {
+        return pixelX;
+    }
     return Truncate(static_cast<double>(pixelX) / static_cast<double>(ScaleX(1.0f, screen)));
 }
 
 int DesignY(int pixelY, App::PixelSize screen)
 {
+    if (screen.height <= 0)
+    {
+        return pixelY;
+    }
     return Truncate(static_cast<double>(pixelY) / static_cast<double>(ScaleY(1.0f, screen)));
 }
 

@@ -1938,9 +1938,11 @@ public:
 
   Hecho así (PR A, 2026-11-03): la base ya tenía el paso marcado, sin los tests; ahora están todos
   los de arriba, con esos nombres, más los de lo que llegó con ellos:
-  - `InputStateTest` suma `FocusLostEmptiesTheText` y `TheTextPressesNoKey`; `InputEventsTest`,
-    `AnEmptyTextAndTheImeCompositionAreNotText` y Backspace en la tabla de las teclas. Nuevo, de
-    GL: `WindowTest.StartsAndStopsTheTextInput` y `HasAPositivePixelDensity`.
+  - `InputStateTest` suma `FocusLostEmptiesTheText`, `TheTextPressesNoKey` y
+    `BackspaceAndTabGoInTheTextInOrder`; `InputEventsTest`,
+    `AnEmptyTextAndTheImeCompositionAreNotText`, `ARepeatedBackspaceOrTabIsTyped` y Backspace en la
+    tabla de las teclas. Nuevo, de GL: `WindowTest.StartsAndStopsTheTextInput` y
+    `HasAPositivePixelDensity`.
   - `TextFieldTest` suma `DropsTheControlBytes` y `BackspaceErasesTheLastByte`. El `PrintTo` va en
     `UiPrintersTest.AFieldShowsItsLengthAndNotItsText` y `ARequestShowsItsKindAndTheLengths`.
   - `ServerListModelTest` suma los nombres de los grupos (`NamesEachGroupByItsText`), el número y
@@ -1948,8 +1950,10 @@ public:
   - `ServerListWindowTest` suma la caja de la descripción, los botones de servidor en el medio, el
     servidor lleno que no se elige (`AFullServerIsNotChosen`), el grupo de uno, la mezcla normal y
     la ventana cerrada.
-  - `LoginWindowTest` suma once: dónde va, el foco al abrir y con un clic, Backspace en el campo
-    del foco, Enter con el mouse apretado, OK y cancelar, Esc, la ventana cerrada, la clave con
+  - `LoginWindowTest` suma dieciocho: dónde va, el foco al abrir y con un clic, Backspace en el
+    campo del foco, antes de lo tecleado y sostenido, lo tecleado alrededor de un Tab en un paso,
+    Enter y Esc con el mouse apretado, OK y cancelar, Esc, cancelar y cerrar que vacían la clave,
+    la cuenta vacía que la deja, reabrir sin el apretón de antes, la ventana cerrada, la clave con
     asteriscos, la mezcla normal y el pedido que no imprime la cuenta.
   - Nuevos: `WidgetTest` (cinco: el mouse en píxeles enteros y acotado, el NaN, los bordes del
     rectángulo y la imagen en píxeles), `ButtonTest` (diez), `NoticesTest` (cinco),
@@ -1960,7 +1964,10 @@ public:
 
   Hecho así (PR A, 2026-11-03):
   - `Input`: `InputEvent::Kind::Text` con su `text`, e `InputState::Text()`, que se vacía en
-    `ConsumeEdges` y al perder el foco; y `Key::Backspace`. `Platform`: el `SDL_EVENT_TEXT_INPUT`,
+    `ConsumeEdges` y al perder el foco y lleva, en su lugar, un byte por cada Backspace y cada Tab
+    (`BackspaceChar` y `TabChar`, los `WM_CHAR` 8 y 9 que recibe un EDIT), también los de la
+    repetición del teclado, que `Platform` manda como texto; y `Key::Backspace`. `Platform`: el
+    `SDL_EVENT_TEXT_INPUT`,
     el mouse por la densidad de la ventana (`PumpEvents` la recibe, y `main.cpp` le da la de
     `Window::PixelDensity`), y `Window::StartTextInput`, `StopTextInput` y `TextInputActive`. Quién
     prende el texto es la escena, en el B.
@@ -1990,13 +1997,20 @@ public:
   - Los rótulos de los botones se centran en píxeles y después se pasan a 640 × 480; el original
     pasa la x a 640 × 480 y centra en píxeles: hasta un píxel de diferencia.
   - El cursor del campo no titila, y el texto del campo va con la fuente normal (*inferido*:
-    `0x553ae0` usa la que esté puesta). Backspace borra uno por apretada, sin la repetición del
-    teclado. Cancelar también vacía la clave.
+    `0x553ae0` usa la que esté puesta). Cancelar, y cerrar desde la escena, también vacían la
+    clave; con la cuenta vacía queda, como la deja el emisor.
   - `frameTop` arma las UV desde las de la imagen entera: el redondeo de cada paso del original no
     se reproduce, y puede cambiar el último bit.
   - La UI se atiende en el paso, con los flancos del primer paso del frame (Q-C81, nuevo).
   - Q-C81, Q-C82 y lo que cambia en Q-C47, Q-C62 y Q-C63 van a 07 en este PR, porque el código que
     los cita está acá; Q-C69 y Q-C71, en el B, con la sesión.
+
+  Después de la review (2026-11-03): Enter y Esc valen también con un botón del mouse abajo. El
+  byte `+0x31` que mira `0x6418b0` antes de leerlos solo lo escribe, en 0, el init del mouse
+  (`0x640926`), así que no los corta nunca; el 06 decía "si el mouse no está tomado". Y lo
+  tecleado va en orden con Tab y Backspace: antes, lo de un paso iba entero al campo del foco
+  después del Tab, y una ráfaga (o el auto-type de un gestor de claves) mandaba la cuenta a la
+  clave; Backspace borraba uno por apretón, y ahora repite como el EDIT del original.
 - [x] **Paso 5 (PR B):** los tests de la sesión con la UI, con `FakeSocket` de CS y de GS (los de la
   CL4):
   - `ServerSessionTest.WaitsForTheChoiceAfterTheList` (llega la lista: `ChoosingServer`, y no sale

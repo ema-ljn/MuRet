@@ -104,7 +104,8 @@ void Button::SetLabel(std::string label, ButtonColors colors)
 
 void Button::DrawLabel(Scenes::ITextDrawer& text, App::PixelSize screen) const
 {
-    if (m_label.empty())
+    // Sin pantalla no hay proporción por la que dividir la y.
+    if (m_label.empty() || screen.width <= 0 || screen.height <= 0)
     {
         return;
     }

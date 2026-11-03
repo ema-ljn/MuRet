@@ -441,6 +441,7 @@ TEST(LoginSceneTest, StartsTheSessionOnEnter)
     EXPECT_EQ(tested.store.Size(), LoginTextureSet.size() + WindowTextureSet.size());
     EXPECT_EQ(scene.Next(), std::nullopt);
     EXPECT_FALSE(scene.WantsToQuit());
+    EXPECT_FALSE(scene.WantsTextInput());
 }
 
 // Sin servidor (Main sin host), la escena dibuja igual y no pide la selección.

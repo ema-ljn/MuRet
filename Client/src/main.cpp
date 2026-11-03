@@ -84,9 +84,10 @@
 //   3. SDL (SdlContext) y OpenWindow: la resolución de la config, que tiene que valer
 //      (CheckResolution), y la ventana con el contexto GL.
 //   4. Con la carpeta de datos, RunScenes: la tabla de texturas, el frame de GL, con un host la
-//      sesión (Online) y el texto tecleado, y el SceneManager desde la carga (CL5.4). Sin ella, la
-//      escena de prueba de la CL3.2. Las dos con RunLoop, hasta que se cierre la ventana, se llegue
-//      a --frames, una escena no pueda entrar o el OK de un aviso cierre el juego (Q-C69).
+//      sesión (Online), y el SceneManager desde la carga (CL5.4), con el texto tecleado de SDL
+//      prendido mientras la escena lo pide. Sin ella, la escena de prueba de la CL3.2. Las dos con
+//      RunLoop, hasta que se cierre la ventana, se llegue a --frames, una escena no pueda entrar o
+//      el OK de un aviso cierre el juego (Q-C69).
 // El cierre es el orden de las declaraciones al revés: el bucle, el SceneManager (la escena de
 // ahora suelta sus texturas), la sesión y su socket, el frame (con la caché del texto), la tabla de
 // texturas, la ventana, el SdlLog, SDL_Quit (SdlContext), la red, el Log y al final sus salidas,
@@ -390,8 +391,10 @@ void PrintStats(App::FrameRateMeter& meter, Core::Duration now, const App::Frame
 }
 
 // Fase 4: hasta que se cierre la ventana, se llegue a --frames o `stop` diga que no se sigue.
+// `afterFrame` corre después de cada frame, antes de `stop`.
 App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::GameLoop& loop,
-                        const App::CommandLine& commandLine, Core::Log& log, const std::function<bool()>& stop = {})
+                        const App::CommandLine& commandLine, Core::Log& log, const std::function<bool()>& stop = {},
+                        const std::function<void()>& afterFrame = {})
 {
     App::WindowState state;
     state.pixelSize = window.PixelSize();
@@ -413,6 +416,10 @@ App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::Game
         }
         FollowPixelSize(window.Gl(), state.pixelSize, viewport);
         RunFrame(loop, state, input, log);
+        if (afterFrame)
+        {
+            afterFrame();
+        }
         if (stop && stop())
         {
             break;
@@ -504,10 +511,45 @@ std::optional<SceneStartup> ReadSceneStartup(const App::ClientConfig& config, Co
     return SceneStartup{.data = std::move(data).Value(), .fonts = std::move(fonts).Value()};
 }
 
-// Fase 4 con una carpeta de datos: la tabla de texturas y el frame de GL, la sesión y el texto
-// tecleado si hay un host, y el SceneManager desde la carga. Un error antes del bucle, o una escena
-// que no puede entrar, cierra con EXIT_FAILURE y el error en el log; el OK de un aviso que cierra
-// el juego (Q-C69), con EXIT_SUCCESS.
+// El texto tecleado de SDL, prendido solo mientras la escena lo pide (IScene::WantsTextInput): SDL3
+// pide prenderlo solo cuando se quiere texto, porque puede mostrar un IME o un teclado en pantalla
+// y saltear teclas (SDL_keyboard.h), y el original solo tiene un EDIT con foco mientras está la
+// cuenta. Follow prende o apaga cuando cambia el pedido; si SDL falla, una línea al log y no
+// insiste hasta el próximo cambio: sin el texto se puede elegir y cancelar, pero no teclear.
+class TextInputFollower
+{
+public:
+    TextInputFollower(Platform::Window& window, Core::Log& log)
+        : m_window(window), m_log(log), m_on(window.TextInputActive())
+    {
+    }
+
+    void Follow(bool wanted)
+    {
+        if (wanted == m_on)
+        {
+            return;
+        }
+        m_on = wanted;
+        const auto switched = wanted ? m_window.StartTextInput() : m_window.StopTextInput();
+        if (!switched.HasValue())
+        {
+            m_log.Warning("{}: {}", switched.Error(),
+                          wanted ? "la ventana de la cuenta no va a recibir lo tecleado"
+                                 : "el texto tecleado queda prendido");
+        }
+    }
+
+private:
+    Platform::Window& m_window;
+    Core::Log& m_log;
+    bool m_on;
+};
+
+// Fase 4 con una carpeta de datos: la tabla de texturas y el frame de GL, la sesión si hay un host,
+// y el SceneManager desde la carga, con el texto tecleado mientras la escena lo pide. Un error
+// antes del bucle, o una escena que no puede entrar, cierra con EXIT_FAILURE y el error en el log;
+// el OK de un aviso que cierra el juego (Q-C69), con EXIT_SUCCESS.
 int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Window& window, Core::IClock& clock,
               Core::Log& log)
 {
@@ -524,12 +566,6 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     if (startup.server)
     {
         online.emplace(*startup.server, startup.config.obfuscation, clock, log);
-        // La ventana de la cuenta lee el texto de SDL (CL5.5). Sin él se puede elegir y cancelar,
-        // pero no teclear: se avisa y se sigue.
-        if (const auto started = window.StartTextInput(); !started.HasValue())
-        {
-            log.Warning("{}: la ventana de la cuenta no va a recibir lo tecleado", started.Error());
-        }
     }
     App::ServerSession* session = online ? &online->session : nullptr;
     const Scenes::SceneContext context{.dataRoot = *startup.config.dataPath, .textures = textures, .log = log};
@@ -540,8 +576,13 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         return EXIT_FAILURE;
     }
     App::GameLoop loop{clock, manager, startup.config.pacing, LoopMaxFps(startup.config, window, log)};
-    const App::FrameStats stats = RunLoop(window, clock, loop, startup.commandLine, log, [&manager]
-                                          { return manager.Failure().has_value() || manager.WantsToQuit(); });
+    TextInputFollower textInput(window, log);
+    const App::FrameStats stats = RunLoop(
+        window, clock, loop, startup.commandLine, log,
+        [&manager] { return manager.Failure().has_value() || manager.WantsToQuit(); },
+        [&textInput, &manager] { textInput.Follow(manager.WantsTextInput()); });
+    // Apagado en todas las salidas del bucle: la ventana, el --frames, la escena que falla o el OK.
+    textInput.Follow(false);
     PrintFrames(stats);
     if (manager.Failure())
     {

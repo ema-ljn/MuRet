@@ -406,6 +406,10 @@ void LoginScene::DrawTexts(SceneCanvas& canvas) const
 
 void LoginScene::Leave()
 {
+    // Las ventanas también: la cuenta vacía la clave al cerrarse (LoginWindow::Close).
+    m_serverList.Close();
+    m_login.Close();
+    m_notice.Close();
     m_textures.Release();
     m_windowTextures.Release();
 }
@@ -422,5 +426,10 @@ std::optional<SceneId> LoginScene::Next() const
 bool LoginScene::WantsToQuit() const
 {
     return m_quit;
+}
+
+bool LoginScene::WantsTextInput() const
+{
+    return m_login.IsOpen();
 }
 } // namespace Client::Scenes

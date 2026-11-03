@@ -289,6 +289,8 @@ TEST(LoadingSceneTest, GoesToTheLoginAfterTheLastAdvance)
     tested.scene.Step(tested.input);
 
     EXPECT_EQ(tested.scene.Next(), SceneId::Login);
+    EXPECT_FALSE(tested.scene.WantsToQuit());
+    EXPECT_FALSE(tested.scene.WantsTextInput());
 }
 
 // Como 0x63c150 con los seis slots, al final de 0x622e40.

@@ -341,11 +341,11 @@ solo lo lee.
   con un aviso lo que llega fuera de turno; un servidor ocupado vuelve a pedir la lista (Q-C71), y
   un login rechazado vuelve a la cuenta por la misma conexión, con su resultado para el aviso. La
   `LoginScene` mira el estado en cada paso, antes y después de atender la ventana de arriba, y
-  abre la lista, la cuenta o el aviso cuando cambia; el OK de los avisos de una conexión que falló
-  cierra el juego, como el original (Q-C69). Lo que la CL4 hacía sola quedó en `--auto-login`
-  (`AutoLogin`), una vez por vuelta para no repetir un rechazo. Sin la VM del laboratorio, el login
-  se miró en Xvfb contra un CS y un GS falsos, con capturas fuera de Git; contra el laboratorio
-  queda el paso 7.
+  abre la lista, la cuenta o el aviso cuando cambia, y pide el texto tecleado de SDL solo con la
+  cuenta abierta; el OK de los avisos de una conexión que falló cierra el juego, como el original
+  (Q-C69). Lo que la CL4 hacía sola quedó en `--auto-login` (`AutoLogin`), una vez por vuelta para
+  no repetir un rechazo. Sin la VM del laboratorio, el login se miró en Xvfb contra un CS y un GS
+  falsos, con capturas fuera de Git; contra el laboratorio queda el paso 7.
 
 ## Conceptos
 

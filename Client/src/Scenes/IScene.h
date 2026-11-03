@@ -34,5 +34,9 @@ public:
     // Si el jugador cerró el juego desde la escena, como el OK del aviso de la conexión del login,
     // que en el original postea WM_CLOSE (Q-C69, CL5.5). main.cpp lo mira después de cada frame.
     [[nodiscard]] virtual bool WantsToQuit() const = 0;
+    // Si la escena tiene arriba un campo de texto que lee lo tecleado, como la ventana de la cuenta
+    // del login (CL5.5). main.cpp prende el texto de SDL solo mientras tanto
+    // (SDL_StartTextInput) y lo apaga cuando deja de pedirlo, después de cada frame.
+    [[nodiscard]] virtual bool WantsTextInput() const = 0;
 };
 } // namespace Client::Scenes

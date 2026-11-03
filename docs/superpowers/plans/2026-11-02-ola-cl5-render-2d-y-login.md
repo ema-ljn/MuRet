@@ -2038,17 +2038,22 @@ public:
     `ARejectedLoginFails` es `ARejectedLoginKeepsItsResult`, y
     `AHelloThatArrivesEncryptedAlsoSendsTheLogin` es `...AlsoWaitsForTheCredentials`. Las
     esperas de la lista y de la cuenta no tienen tope ni keepalive: 60 s después siguen igual.
-    `StartingAgainStartsClean` mira también que se olviden la lista y la elección.
+    `StartingAgainStartsClean` mira también que se olviden la lista y la elección. Después de la
+    review suma `LosingTheConnectServerWhileChoosingFails` y
+    `LosingTheGameServerWhileWaitingForTheCredentialsFails`: sin tope, un cierre se nota igual.
   - `AutoLoginTest` suma `DoesNothingWhileTheSessionDoesNotWait`, `ABusyServerIsNotChosenAgain`,
     `ARejectedLoginIsNotSubmittedAgain` y `AStartAgainIsANewRound`.
-  - `LoginSceneSessionTest`, 16: además de los del paso, la elección (`ClickingAServerChoosesIt`,
+  - `LoginSceneSessionTest`, 21: además de los del paso, la elección (`ClickingAServerChoosesIt`,
     `AFullServerShowsItsNotice`, `TheServersThatAreNotShownAreLogged`), la cuenta
     (`TypingAndEnterSubmitsTheLogin`, `AnEmptyAccountShowsItsNotice`,
     `AnEmptyPasswordShowsItsNotice`, `ARejectedLoginShowsItsNotice`), los avisos que cierran el
     juego (`OkOnTheConnectNoticeQuits`, `AnotherVersionShowsItsNotice`), `CancelGoesBackToTheList`
-    y `TheWindowsFollowTheScreenOfTheLastFrame`. Los textos son inventados, y el login tecleado se
-    compara por igualdad, sin imprimirlo.
-  - `SceneManagerTest.SaysWhenTheSceneWantsToQuit`;
+    y `TheWindowsFollowTheScreenOfTheLastFrame`; después de la review, el texto tecleado
+    (`TheSceneWantsTheTextOnlyWithTheLogin`), `LeavingClosesTheLogin`,
+    `EnteringAgainClosesTheWindows`, `EnteringAgainClosesTheLogin` y
+    `EnteringAgainForgetsTheQuit`. Los textos son inventados, y el login tecleado se compara por
+    igualdad, sin imprimirlo.
+  - `SceneManagerTest.SaysWhenTheSceneWantsToQuit` y `SaysWhenTheSceneWantsTextInput`;
     `LoginSceneTest.AMissingWindowTextureFailsWithItsName` y `LeaveReleasesItsTwentyOneSlots`;
     `TextureSetsTest.TheWindowSetIsTheOneOf0x61ccb0`;
     `ServerListModelTest.TheGroupIsTheCodeOverTwenty`; `CommandLineTest.ParsesAutoLogin`,
@@ -2071,9 +2076,12 @@ public:
     la misma vuelta la sesión vuelve a esperar, por un servidor ocupado o un login rechazado, la
     deja para la UI con un aviso, en vez de repetir lo mismo para siempre.
   - `--auto-login` va en `CommandLine`, y sin un host es un error de `Resolve`. `main.cpp` lee el
-    entorno solo con él, y su `Online` corre la sesión y después el `AutoLogin`. Con un host prende
-    el texto tecleado (`Window::StartTextInput`), y el bucle para también cuando la escena lo pide
-    (`IScene::WantsToQuit`, nuevo, y `SceneManager::WantsToQuit`), con `EXIT_SUCCESS`.
+    entorno solo con él, y su `Online` corre la sesión y después el `AutoLogin`. El bucle para
+    también cuando la escena lo pide (`IScene::WantsToQuit`, nuevo, y
+    `SceneManager::WantsToQuit`), con `EXIT_SUCCESS`. El texto tecleado de SDL se prende solo
+    mientras la escena lo pide (`IScene::WantsTextInput`, nuevo, y `SceneManager::WantsTextInput`):
+    después de cada frame, `TextInputFollower` llama a `Window::StartTextInput` o `StopTextInput`
+    cuando el pedido cambia, y al salir del bucle lo apaga.
   - `LoginScene`: sube también `WindowTextureSet`, las tres de `0x61ccb0` que usan las ventanas
     (el OK, el cancelar y la caja del aviso), que el original sube una vez con los datos del juego:
     21 slots. En el paso mira la sesión antes y después de atender la ventana de arriba, y abre o
@@ -2081,7 +2089,14 @@ public:
     `0x70` con lo demás: con una lista vacía, sin respuesta o una cuenta que no entra, el `0x70` es
     de MuRet. El título de la cuenta usa `UI::GroupOf`, nuevo. Las ventanas usan la pantalla del
     último frame, porque el paso no tiene el lienzo. Los servidores que no se muestran van a un
-    aviso del log, con la cuenta (Q-C62).
+    aviso del log, con la cuenta (Q-C62). Pide el texto tecleado con la cuenta abierta, y `Leave`
+    cierra las tres ventanas, como `Enter`: la cuenta vacía la clave al cerrarse.
+
+  Después de la review (2026-11-03): el texto de SDL estaba prendido desde antes de la escena
+  hasta el final, aunque SDL3 pide prenderlo solo cuando se quiere texto (con él puede salir un IME
+  o un teclado en pantalla, y saltear teclas). Ahora lo pide la escena, y el A ya decía que
+  "quién prende el texto es la escena". `ChosenServer` vale hasta el próximo `Start` o un `F4 05`,
+  como hace el código; el comentario decía solo el `Start`.
 - [ ] **Paso 7 (a mano):** en Windows, `Main connect /u<ip del CS> /p44405 --data <Data>` contra el
   laboratorio: la lista, la elección, el login aceptado (pasa a la selección vacía) y uno con una
   clave mala (el aviso). En Linux, lo mismo si hay red al laboratorio. Las capturas, fuera de Git;
@@ -2094,7 +2109,8 @@ public:
   clave sintéticas, el login rechazado con su aviso y la cuenta otra vez con el foco en la clave,
   cancelar y la lista de nuevo; y contra un puerto cerrado, el `0x70`, cuyo OK cerró `Main` con 0.
   Las capturas quedaron fuera de Git. El paso, contra el laboratorio, queda escrito en
-  `Client/README.md`.
+  `Client/README.md`. Después de la review se corrió otra vez, con el texto que se prende y se
+  apaga con la cuenta: se teclea la cuenta y la clave, y otra vez la clave después del rechazo.
 - [x] **Paso 8:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug

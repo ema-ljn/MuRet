@@ -139,7 +139,8 @@ public:
     // otro estado, un aviso y nada.
     void ChooseServer(std::uint16_t code);
 
-    // El código del último F4 03, desde ChooseServer hasta el próximo Start.
+    // El código del último F4 03, desde ChooseServer hasta el próximo Start o un F4 05 (el servidor
+    // ocupado, que vuelve a la lista).
     [[nodiscard]] std::optional<std::uint16_t> ChosenServer() const;
 
     // En WaitingCredentials, manda el login con `credentials` y el tick del reloj de ahora

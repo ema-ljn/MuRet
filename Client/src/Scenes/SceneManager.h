@@ -63,6 +63,8 @@ public:
     [[nodiscard]] const std::optional<std::string>& Failure() const;
     // Si la escena de ahora pide cerrar el juego (IScene::WantsToQuit); sin escena, false.
     [[nodiscard]] bool WantsToQuit() const;
+    // Si la escena de ahora pide el texto tecleado (IScene::WantsTextInput); sin escena, false.
+    [[nodiscard]] bool WantsTextInput() const;
 
 private:
     // La fábrica y el Enter de `id`; si falla, queda sin escena y con el error.

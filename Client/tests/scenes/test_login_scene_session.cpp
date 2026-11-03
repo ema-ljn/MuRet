@@ -537,6 +537,82 @@ TEST(LoginSceneSessionTest, ARejectedLoginShowsItsNotice)
     EXPECT_EQ(tested.GameServerReads().packets.size(), 2u);
 }
 
+// El texto tecleado, solo con la cuenta arriba: ni con la lista, ni con un aviso que la tapa, ni
+// después de mandar. Main prende y apaga el de SDL con esto (CL5.5).
+TEST(LoginSceneSessionTest, TheSceneWantsTheTextOnlyWithTheLogin)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheList(ServerList({400})));
+    EXPECT_FALSE(tested.scene->WantsTextInput());
+    const ServerListLayout layout = tested.ListLayout(1);
+    tested.ClickOn(layout.groupButtons[0]);
+    tested.ClickOn(layout.serverButtons[0]);
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
+    EXPECT_FALSE(tested.scene->WantsTextInput());
+    tested.socket.reads = {AddressReply(GameHost, GamePort)};
+    tested.Step();
+    tested.Step();
+    tested.socket.reads = {GameHello(1, ClientVersion)};
+    tested.Step();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_TRUE(tested.scene->WantsTextInput());
+
+    tested.Tap(Key::Enter);
+    EXPECT_FALSE(tested.scene->WantsTextInput());
+    tested.Tap(Key::Enter);
+    EXPECT_TRUE(tested.scene->WantsTextInput());
+
+    tested.TypeTheCredentials();
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
+    EXPECT_FALSE(tested.scene->WantsTextInput());
+}
+
+// Leave cierra las ventanas, como suelta sus texturas: la cuenta, con la clave tecleada, no queda
+// abierta ni pide el texto.
+TEST(LoginSceneSessionTest, LeavingClosesTheLogin)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheLogin());
+    tested.Tap(Key::Tab);
+    tested.Type(Password);
+
+    tested.scene->Leave();
+
+    EXPECT_FALSE(tested.scene->WantsTextInput());
+}
+
+// Entrar otra vez empieza de cero: sin la lista ni el aviso de antes, que no se dibujan hasta que
+// la sesión los pida otra vez.
+TEST(LoginSceneSessionTest, EnteringAgainClosesTheWindows)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheList(ServerListOf({{400, 100}})));
+    const ServerListLayout layout = tested.ListLayout(1);
+    tested.ClickOn(layout.groupButtons[0]);
+    tested.ClickOn(layout.serverButtons[0]);
+    std::vector<FrameEvent> events = tested.Frame();
+    ASSERT_EQ(Harness::QuadsOf(events, NoticeBoxSlot), 1u);
+    ASSERT_EQ(Harness::QuadsOf(events, GroupButtonSlot), 1u);
+
+    ASSERT_TRUE(tested.scene->Enter().HasValue());
+
+    events = tested.Frame();
+    EXPECT_EQ(Harness::QuadsOf(events, NoticeBoxSlot), 0u);
+    EXPECT_EQ(Harness::QuadsOf(events, GroupButtonSlot), 0u);
+}
+
+// Y con la cuenta abierta: entrar otra vez la cierra.
+TEST(LoginSceneSessionTest, EnteringAgainClosesTheLogin)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheLogin());
+
+    ASSERT_TRUE(tested.scene->Enter().HasValue());
+
+    EXPECT_EQ(Harness::QuadsOf(tested.Frame(), LoginBackgroundSlot), 0u);
+    EXPECT_FALSE(tested.scene->WantsTextInput());
+}
+
 // Un ConnectServer que rechaza la conexión: el aviso 0x70, con el texto 402 (0x4c1340).
 TEST(LoginSceneSessionTest, ARefusedConnectShowsText402)
 {
@@ -608,6 +684,21 @@ TEST(LoginSceneSessionTest, AnotherVersionShowsItsNotice)
 
     tested.Tap(Key::Escape);
     EXPECT_TRUE(tested.scene->WantsToQuit());
+}
+
+// Entrar otra vez olvida el pedido de cerrar el juego.
+TEST(LoginSceneSessionTest, EnteringAgainForgetsTheQuit)
+{
+    Harness tested;
+    tested.socket.connectResult = SocketError::Refused;
+    ASSERT_TRUE(tested.scene->Enter().HasValue());
+    tested.Step();
+    tested.Tap(Key::Enter);
+    ASSERT_TRUE(tested.scene->WantsToQuit());
+
+    ASSERT_TRUE(tested.scene->Enter().HasValue());
+
+    EXPECT_FALSE(tested.scene->WantsToQuit());
 }
 
 // Cancelar en la cuenta (0x642810): la sesión vuelve a empezar con el CS, y con su lista vuelve la

@@ -53,5 +53,7 @@ TEST(CharacterSelectSceneTest, StaysInTheSelection)
     scene.Leave();
 
     EXPECT_EQ(scene.Next(), std::nullopt);
+    EXPECT_FALSE(scene.WantsToQuit());
+    EXPECT_FALSE(scene.WantsTextInput());
 }
 } // namespace

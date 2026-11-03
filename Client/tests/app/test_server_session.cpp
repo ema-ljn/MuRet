@@ -678,6 +678,7 @@ TEST(ServerSessionTest, ABusyServerAsksForTheListAgain)
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
     EXPECT_EQ(tested.session.GameServer(), std::nullopt);
+    EXPECT_EQ(tested.session.ChosenServer(), std::nullopt);
     EXPECT_EQ(tested.connection.State(), LinkState::Open);
     EXPECT_EQ(tested.socket.connects.size(), 1u);
     EXPECT_TRUE(SameBytes(tested.socket.sent, Join({sent, ListRequest()})));
@@ -823,6 +824,33 @@ TEST(ServerSessionTest, LosingTheConnectServerFails)
     EXPECT_EQ(tested.session.Failure(), SessionFailure::ConnectServerLost);
     EXPECT_TRUE(tested.Logged(LogLevel::Error, std::format("se perdió la conexión con el ConnectServer: {}",
                                                            CloseReasonText(CloseReason::PeerClosed))));
+}
+
+// Sin timeout, la espera de la elección no cuelga: un CS que cierra con la lista en pantalla es un
+// ConnectServerLost.
+TEST(ServerSessionTest, LosingTheConnectServerWhileChoosingFails)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingServer());
+
+    tested.socket.peerClosed = true;
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::ConnectServerLost);
+}
+
+// Y la de la cuenta: un GS que cierra con la cuenta en pantalla es un GameServerLost.
+TEST(ServerSessionTest, LosingTheGameServerWhileWaitingForTheCredentialsFails)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCredentials());
+
+    tested.socket.peerClosed = true;
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
 }
 
 // También mientras conecta: un CS que rechaza la conexión.

@@ -66,12 +66,14 @@ public:
     // 0x6350b0 sin la cámara, el fundido (Q-C66) ni lo común a las escenas, y al final la UI: la
     // lista, la cuenta y el aviso, cada uno con la mezcla normal.
     void Render(SceneCanvas& canvas, float alpha) override;
-    // Suelta sus 21 slots.
+    // Cierra las ventanas (la de la cuenta vacía la clave) y suelta sus 21 slots.
     void Leave() override;
     // La selección con el login aceptado (SessionState::LoggedIn), como 0x634dce con el 0x14.
     [[nodiscard]] std::optional<SceneId> Next() const override;
     // Con el OK de un aviso que cierra el juego (Q-C69).
     [[nodiscard]] bool WantsToQuit() const override;
+    // Con la ventana de la cuenta abierta: es la de arriba, porque un aviso la cierra al abrirse.
+    [[nodiscard]] bool WantsTextInput() const override;
 
 private:
     void DrawTexts(SceneCanvas& canvas) const;

@@ -81,6 +81,8 @@ struct Stage
     std::map<SceneId, SceneId> next;
     // Las escenas que piden cerrar el juego (WantsToQuit).
     std::set<SceneId> quitting;
+    // Las escenas que piden el texto tecleado (WantsTextInput).
+    std::set<SceneId> typing;
     // La escena cuyo Enter falla.
     std::optional<SceneId> failingEnter;
     // Los slots que sube cada escena al entrar y suelta al salir, como sus juegos de texturas.
@@ -153,6 +155,11 @@ public:
     [[nodiscard]] bool WantsToQuit() const override
     {
         return m_stage.quitting.contains(m_id);
+    }
+
+    [[nodiscard]] bool WantsTextInput() const override
+    {
+        return m_stage.typing.contains(m_id);
     }
 
 private:
@@ -561,5 +568,20 @@ TEST(SceneManagerTest, SaysWhenTheSceneWantsToQuit)
 
     EXPECT_TRUE(tested.manager.WantsToQuit());
     EXPECT_EQ(tested.manager.Current(), SceneId::Loading);
+}
+
+// Una escena con un campo de texto abierto (la cuenta del login): el SceneManager lo dice, para que
+// main.cpp prenda el texto tecleado de SDL solo mientras tanto. Sin escena, o con una que no lo
+// pide, no.
+TEST(SceneManagerTest, SaysWhenTheSceneWantsTextInput)
+{
+    Harness tested;
+    EXPECT_FALSE(tested.manager.WantsTextInput());
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+    EXPECT_FALSE(tested.manager.WantsTextInput());
+
+    tested.stage.typing.insert(SceneId::Loading);
+
+    EXPECT_TRUE(tested.manager.WantsTextInput());
 }
 } // namespace

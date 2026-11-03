@@ -80,14 +80,15 @@ aceptado. Antes de la ventana lee `Text.bmd` y elige la fuente, como `WinMain`. 
 del login es un dato de la escena (el mapa 55, `World56`), que dibuja la CL7; hasta entonces, ahí
 queda el negro. Sin carpeta de datos, `Main` sigue con la escena de prueba, como en CI.
 
-Desde la CL5.5, el login tiene su UI (`UI/`): la lista de servidores cuando llega, la ventana de
-la cuenta y la clave cuando el GameServer saluda, y los avisos de `Text.bmd`, cada uno con su OK.
-La `ServerSession` espera al jugador en dos estados, `ChoosingServer` y `WaitingCredentials`, y
-la escena abre la ventana que va cuando el estado cambia. Las ventanas se atienden en el paso,
-con el mouse en píxeles del framebuffer y el texto tecleado de SDL. Un login rechazado muestra su
-aviso y vuelve a la cuenta, por la misma conexión; el OK del aviso de una conexión que falló
-cierra el juego, como el original (Q-C69). Para depurar la red sin la UI, `--auto-login` elige el
-primero de la lista y entra con la cuenta del entorno, como en la CL4.
+Desde la CL5.5, el login tiene su UI (`UI/`): la lista de servidores cuando llega, la ventana de la
+cuenta y la clave cuando el GameServer saluda, y los avisos de `Text.bmd`, cada uno con su OK. La
+`ServerSession` espera al jugador en dos estados, `ChoosingServer` y `WaitingCredentials`, y la
+escena abre la ventana que va cuando el estado cambia. Las ventanas se atienden en el paso, con el
+mouse en píxeles del framebuffer y el texto tecleado de SDL, que `Main` prende solo mientras está la
+ventana de la cuenta. Un login rechazado muestra su aviso y vuelve a la cuenta, por la misma
+conexión; el OK del aviso de una conexión que falló cierra el juego, como el original (Q-C69). Para
+depurar la red sin la UI, `--auto-login` elige el primero de la lista y entra con la cuenta del
+entorno, como en la CL4.
 
 ## Auditoría y mantenimiento
 

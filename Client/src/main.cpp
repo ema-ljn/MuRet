@@ -7,6 +7,7 @@
 #include "App/ILoopClient.h"
 #include "App/LoopTiming.h"
 #include "App/ObfuscationMode.h"
+#include "App/Resolution.h"
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionClient.h"
@@ -26,6 +27,7 @@
 #include "Network/SystemResolver.h"
 #include "Network/SystemSocket.h"
 #include "Platform/BasePath.h"
+#include "Platform/DisplayModes.h"
 #include "Platform/GlLoader.h"
 #include "Platform/SdlClock.h"
 #include "Platform/SdlContext.h"
@@ -60,7 +62,8 @@
 //   2. El log entero, stderr y el archivo. Queda en main porque el TeeSink y el Log guardan
 //      referencias a sus salidas, que tienen que vivir más que ellos. Con un host, también la red
 //      del sistema (NetworkInit).
-//   3. SDL (SdlContext) y OpenWindow: la ventana y el contexto GL.
+//   3. SDL (SdlContext) y OpenWindow: la resolución de la config, que tiene que valer
+//      (CheckResolution), y la ventana con el contexto GL.
 //   4. LoopClient y RunLoop: con un host, la sesión empezada (Online), y el bucle hasta que se
 //      cierre la ventana o se llegue a --frames.
 // El cierre es el orden de las declaraciones de main al revés: el bucle, la sesión y su socket, la
@@ -187,11 +190,40 @@ bool StartNetwork(std::optional<Network::SocketApi::NetworkInit>& network, Core:
     return true;
 }
 
+// Fase 3, antes de la ventana: [Video] Width y Height tienen que ser una de las cinco del original
+// o un modo del monitor (App/Resolution.h). Si SDL no da los modos, valen las cinco y lo avisa.
+// false si no vale, con las que valen en el log.
+bool CheckResolution(const Platform::SdlContext& sdl, const App::ClientConfig& config, Core::Log& log)
+{
+    std::vector<App::Resolution> monitorModes;
+    auto modes = Platform::MonitorResolutions(sdl);
+    if (modes.HasValue())
+    {
+        monitorModes = std::move(modes).Value();
+    }
+    else
+    {
+        log.Warning("{}: valen solo las resoluciones del original", modes.Error());
+    }
+    const App::Resolution resolution{config.width, config.height};
+    if (App::IsValidResolution(resolution, monitorModes))
+    {
+        return true;
+    }
+    log.Error("[Video] {} × {} no es una resolución que valga: van las del original y las del monitor ({})",
+              resolution.width, resolution.height, App::DescribeValidResolutions(monitorModes));
+    return false;
+}
+
 // Fase 3: la ventana con el tamaño y el VSync de la config. Si el driver no deja el VSync pedido,
 // lo avisa y sigue: la lógica va igual a 25 pasos por segundo y el dibujo, más rápido.
 std::optional<Platform::Window> OpenWindow(const Platform::SdlContext& sdl, const App::ClientConfig& config,
                                            Core::Log& log)
 {
+    if (!CheckResolution(sdl, config, log))
+    {
+        return std::nullopt;
+    }
     // Resolve siempre deja puesto el VSync: On en el modo normal y Off en el fiel, si no se dio.
     const Platform::WindowOptions options{
         .width = config.width, .height = config.height, .vsync = config.vsync.value_or(App::VSyncMode::On)};

@@ -192,6 +192,12 @@ void LoginScene::Step(const Input::InputState& input)
     }
     // Lo que cambió con el Poll de este frame.
     FollowSession();
+    // Con la orden de cerrar el juego, el paso no atiende nada: el original no corre otro después
+    // del WM_DESTROY (Q-C106), y un Esc en la cuenta volvería a conectar.
+    if (m_session->State() == App::SessionState::QuitOrdered)
+    {
+        return;
+    }
     // Sin aviso, la barra se atiende junto con la cuenta o la lista: sus botones no se pisan con
     // los de ellas (Q-C84).
     if (!m_notice.IsOpen())
@@ -283,6 +289,10 @@ void LoginScene::FollowSession()
     case App::SessionState::LoggedIn:
         m_serverList.Close();
         m_login.Close();
+        return;
+    case App::SessionState::QuitOrdered:
+        // El juego se cierra al final de este frame (main.cpp), sin aviso: el original no dibuja
+        // otro después del WM_DESTROY (Q-C106), así que las ventanas quedan como estaban.
         return;
     }
 }

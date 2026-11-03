@@ -131,6 +131,7 @@ using Client::Tests::Hello;
 using Client::Tests::Join;
 using Client::Tests::ListRequest;
 using Client::Tests::LoginResult;
+using Client::Tests::LogoutResult;
 using Client::Tests::NoticeBytes;
 using Client::Tests::PetInfoRequest;
 using Client::Tests::RecordingFrameTarget;
@@ -1295,6 +1296,152 @@ TEST(ServerSessionTest, LosingTheGameServerAfterTheLoginFails)
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
     EXPECT_TRUE(tested.Logged(LogLevel::Error, std::format("se perdió la conexión con el GameServer: {}",
                                                            CloseReasonText(CloseReason::PeerClosed))));
+}
+
+// La orden de cerrar el juego (Q-C106): el F1 02 con 0, cifrado como lo manda el GS al final de su
+// cuenta de 5 s. La sesión cierra la conexión y queda en QuitOrdered, sin falla y sin errores en
+// el log: no es un GameServerLost, y main.cpp cierra el juego sin aviso.
+TEST(ServerSessionTest, TheGameServersQuitOrderClosesWithoutAFailure)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+
+    tested.socket.reads = {FromTheGameServer(LogoutResult(0), tested.gameServerSends)};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    EXPECT_EQ(tested.session.Failure(), std::nullopt);
+    EXPECT_EQ(tested.connection.State(), LinkState::Closed);
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "el GameServer ordenó cerrar el juego (F1 02 con 0)"));
+    EXPECT_EQ(tested.Warnings(), Lines{});
+    EXPECT_EQ(tested.CountLogged(LogLevel::Error, ""), 0u);
+}
+
+// El GS cierra la conexión justo después de la orden (CloseClient), y los dos pueden llegar en la
+// misma lectura: el cierre es lo último del lote y no se recorre. Sigue sin falla.
+TEST(ServerSessionTest, TheCloseThatFollowsTheQuitOrderIsNotALoss)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+
+    tested.socket.reads = {FromTheGameServer(LogoutResult(0), tested.gameServerSends)};
+    tested.socket.peerClosed = true;
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    EXPECT_EQ(tested.session.Failure(), std::nullopt);
+    EXPECT_FALSE(tested.Logged(LogLevel::Error, "se perdió la conexión"));
+}
+
+// 0x4c2710 no mira la escena ni si llegó cifrado: la orden en claro, con la cuenta en pantalla,
+// también cierra.
+TEST(ServerSessionTest, AQuitOrderInClearWhileWaitingForTheCredentialsAlsoCloses)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCredentials());
+
+    tested.socket.reads = {LogoutResult(0)};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    EXPECT_EQ(tested.connection.State(), LinkState::Closed);
+}
+
+// Con la orden, el keepalive se detiene, la sesión no se reconecta y no espera nada: en los 40 s
+// siguientes no sale nada, no conecta y no hay un NoReply.
+TEST(ServerSessionTest, TheQuitOrderStopsTheKeepalive)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{3}));
+    tested.socket.reads = {FromTheGameServer(LogoutResult(0), tested.gameServerSends)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    const std::size_t sentBefore = tested.socket.sent.size();
+    const std::size_t connectsBefore = tested.socket.connects.size();
+
+    tested.PollEachFrameUntil(seconds{43});
+
+    EXPECT_EQ(tested.socket.sent.size(), sentBefore);
+    EXPECT_EQ(tested.socket.connects.size(), connectsBefore);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 1u);
+    EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    EXPECT_EQ(tested.session.Failure(), std::nullopt);
+}
+
+// Con 1 (la selección) y con 2 (la lista), el original cambia de escena (Q-C79): hasta la CL6 y la
+// CL9, la sesión los ignora con un aviso y sigue con el login. Con otro, el original no hace nada,
+// y acá, lo mismo con su aviso. Sin el resultado, no se puede leer.
+TEST(ServerSessionTest, TheOtherLogoutResultsAreIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+
+    tested.socket.reads = {FromTheGameServer(LogoutResult(1), tested.gameServerSends),
+                           FromTheGameServer(LogoutResult(2), tested.gameServerSends),
+                           FromTheGameServer(LogoutResult(3), tested.gameServerSends), Bytes({0xC1, 0x04, 0xF1, 0x02})};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+    EXPECT_EQ(tested.connection.State(), LinkState::Open);
+    const auto ignored = [](int result)
+    {
+        return std::format("[warning] se ignora la orden de salida del GameServer (F1 02 con {}): MuRet solo sigue la "
+                           "de cerrar el juego, con 0",
+                           result);
+    };
+    EXPECT_EQ(tested.Warnings(),
+              (Lines{ignored(1), ignored(2), ignored(3),
+                     "[warning] se ignora la orden de salida del GameServer (F1 02): no se puede leer"}));
+}
+
+// El ConnectServer no tiene F1: su dispatcher no tiene la orden (CL4.3), y un F1 02 con 0 de él no
+// cierra nada. El original tiene un dispatcher solo y cerraría; un CS no lo manda.
+TEST(ServerSessionTest, TheConnectServerCannotOrderTheQuit)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
+
+    tested.socket.reads = {LogoutResult(0)};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
+    EXPECT_EQ(tested.connection.State(), LinkState::Open);
+}
+
+// QuitOrdered es el final: el juego se cierra en ese frame, y un Start de la escena (el Esc de la
+// cuenta) no vuelve a conectar. Un aviso, y la sesión sigue igual.
+TEST(ServerSessionTest, TheQuitOrderIsFinal)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {FromTheGameServer(LogoutResult(0), tested.gameServerSends)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    const std::size_t connectsBefore = tested.socket.connects.size();
+    const std::uint32_t startsBefore = tested.session.StartCount();
+
+    tested.session.Start();
+
+    EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    EXPECT_EQ(tested.session.StartCount(), startsBefore);
+    EXPECT_EQ(tested.socket.connects.size(), connectsBefore);
+    EXPECT_EQ(tested.Warnings(), Lines{"[warning] no se vuelve a conectar: el GameServer ordenó cerrar el juego"});
+}
+
+// Lo que llega detrás de la orden en la misma lectura no se despacha, como en el original, que al
+// cerrar vacía su cola (0x4e8380): un saludo de más no deja el aviso de fuera de turno.
+TEST(ServerSessionTest, WhatFollowsTheQuitOrderIsDropped)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+
+    const ByteVector order = FromTheGameServer(LogoutResult(0), tested.gameServerSends);
+    const ByteVector hello = FromTheGameServer(GameHello(1, ClientVersion), tested.gameServerSends);
+    tested.socket.reads = {Join({order, hello})};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    EXPECT_EQ(tested.Warnings(), Lines{});
 }
 
 // Pregunta 7: de Start a LoggedIn, ninguna línea del log trae la cuenta ni la clave.

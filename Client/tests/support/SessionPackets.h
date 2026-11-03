@@ -109,4 +109,10 @@ inline std::vector<std::byte> LoginResult(int result)
 {
     return Bytes({0xC1, 0x05, 0xF1, 0x01, result});
 }
+
+// La respuesta de la salida (F1 02): con 0, la orden de cerrar el juego (Q-C106).
+inline std::vector<std::byte> LogoutResult(int result)
+{
+    return Bytes({0xC1, 0x05, 0xF1, 0x02, result});
+}
 } // namespace Client::Tests

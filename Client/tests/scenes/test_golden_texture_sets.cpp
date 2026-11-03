@@ -12,9 +12,9 @@
 #include <span>
 #include <vector>
 
-// Los juegos de la carga y del login contra el Data\ del laboratorio: todas están, todas se leen,
-// cada una con su slot, y la imagen tiene el tamaño de la que leyó el original. Se comparan
-// tamaños, nunca píxeles.
+// Los juegos de la carga, del login y de sus ventanas contra el Data\ del laboratorio: todas
+// están, todas se leen, cada una con su slot, y la imagen tiene el tamaño de la que leyó el
+// original. Se comparan tamaños, nunca píxeles.
 namespace
 {
 using Client::Data::Textures::LoadedTexture;
@@ -26,6 +26,7 @@ using Client::Data::Textures::TextureSetEntry;
 using Client::Data::Textures::TextureSide;
 using Client::Scenes::LoadingTextureSet;
 using Client::Scenes::LoginTextureSet;
+using Client::Scenes::WindowTextureSet;
 
 using GoldenTextureSet = Client::Tests::GoldenDataTest;
 
@@ -69,6 +70,15 @@ inline constexpr std::array<ImageSize, 6> LoadingImageSizes{{
 }};
 static_assert(LoadingImageSizes.size() == LoadingTextureSet.size());
 
+// El OK y el cancelar, con sus tres estados uno arriba del otro, y la caja del aviso, que mide lo
+// que la ventana (0x6429b0).
+inline constexpr std::array<ImageSize, 3> WindowImageSizes{{
+    {54, 90},
+    {54, 90},
+    {352, 113},
+}};
+static_assert(WindowImageSizes.size() == WindowTextureSet.size());
+
 // Cada textura cargada contra su entrada: el slot, el formato de su cargador, el tamaño de la
 // imagen y el buffer de lados potencia de 2 que la cubre.
 void ExpectTheSet(std::span<const TextureSetEntry> set, std::span<const ImageSize> sizes,
@@ -97,6 +107,15 @@ TEST_F(GoldenTextureSet, TheLoginSetLoads)
 
     ASSERT_TRUE(loaded.HasValue()) << Describe(loaded.Error());
     ExpectTheSet(LoginTextureSet, LoginImageSizes, loaded.Value());
+}
+
+// Las tres de 0x61ccb0 que usan las ventanas del login (CL5.5).
+TEST_F(GoldenTextureSet, TheWindowSetLoads)
+{
+    const auto loaded = LoadTextureSet(m_dataRoot, WindowTextureSet);
+
+    ASSERT_TRUE(loaded.HasValue()) << Describe(loaded.Error());
+    ExpectTheSet(WindowTextureSet, WindowImageSizes, loaded.Value());
 }
 
 // Las seis de 0x622e40, las de la escena de carga (06 § La carga).

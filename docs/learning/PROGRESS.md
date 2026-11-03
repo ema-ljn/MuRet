@@ -336,7 +336,16 @@ solo lo lee.
   servidor (Q-C62 y Q-C63); la cuenta, con el foco, Tab, Enter y Esc; y el aviso, con los textos
   de 06 por índice. Todo se atiende en el paso y no en el frame (Q-C81, nuevo), y un clic en un
   grupo no vuelve a pedir la lista (Q-C82, nuevo). La cuenta y la clave no salen en ningún
-  `PrintTo` ni en el log.
+  `PrintTo` ni en el log. El B (2026-11-03): el login entero. La `ServerSession` espera al jugador
+  en dos estados nuevos, `ChoosingServer` y `WaitingCredentials`, sin tope ni keepalive, e ignora
+  con un aviso lo que llega fuera de turno; un servidor ocupado vuelve a pedir la lista (Q-C71), y
+  un login rechazado vuelve a la cuenta por la misma conexión, con su resultado para el aviso. La
+  `LoginScene` mira el estado en cada paso, antes y después de atender la ventana de arriba, y
+  abre la lista, la cuenta o el aviso cuando cambia, y pide el texto tecleado de SDL solo con la
+  cuenta abierta; el OK de los avisos de una conexión que falló cierra el juego, como el original
+  (Q-C69). Lo que la CL4 hacía sola quedó en `--auto-login` (`AutoLogin`), una vez por vuelta para
+  no repetir un rechazo. Sin la VM del laboratorio, el login se miró en Xvfb contra un CS y un GS
+  falsos, con capturas fuera de Git; contra el laboratorio queda el paso 7.
 
 ## Conceptos
 
@@ -454,6 +463,8 @@ sesión, junto con los de repaso más viejo.
 | el texto tecleado contra las teclas: un evento de texto en UTF-8 que se copia porque es de SDL, el IME que compone sin mandar texto, y un campo que guarda bytes de ASCII imprimible hasta un tope y muestra la clave en asteriscos (`TextField`) | CL5.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | una UI retenida mínima: ventanas que guardan su estado entre pasos, el foco del teclado, la captura del mouse de un botón (un clic es soltar encima del que se apretó), y una ventana que devuelve lo que pasó en vez de llamar a la red | CL5.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | ventanas en píxeles del framebuffer, centradas, con sus textos en 640 × 480: la densidad de la pantalla, el mouse acotado como en `0x640940`, y pasar de un espacio al otro truncando como la x87 (`DesignX`) | CL5.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| una máquina de estados de red que espera al jugador: estados sin tope ni keepalive, lo que llega fuera de turno ignorado con un aviso, y un resultado guardado para que la UI elija el aviso; y un modo sin UI (`AutoLogin`) que hace lo del jugador una vez por vuelta, para no quedar en un lazo | CL5.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| la UI que sigue al modelo: mirar el estado en cada paso y actuar solo cuando cambia, también después de lo que pidió el jugador; una sola ventana atendida por paso, la de arriba, para que el Enter que cierra una no le llegue a la que se abre; y una escena que pide cerrar el juego en vez de cerrarlo | CL5.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

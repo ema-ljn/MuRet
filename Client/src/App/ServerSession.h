@@ -9,45 +9,58 @@
 #include "Network/CloseReason.h"
 #include "Network/Connection.h"
 #include "Network/Packet.h"
+#include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
 
 #include <chrono>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string_view>
+#include <vector>
 
 // La sesión con los servidores del juego: con el ConnectServer, hasta la dirección del GameServer
-// (CL4.3); con el GameServer, hasta el login (CL4.4); y después, el keepalive (CL4.5).
-// Contrato: el plan de la CL4, "Contrato" y el diagrama de estados de la CL4.3, paso 1, y
-// "Contrato" de la CL4.4 y de la CL4.5; 04-protocolo.md, "El flujo de conexión".
+// (CL4.3); con el GameServer, hasta el login (CL4.4); y después, el keepalive (CL4.5). Desde la
+// CL5.5 no elige ni manda la cuenta sola: espera a la UI (o al AutoLogin) en ChoosingServer y en
+// WaitingCredentials. Contrato: el plan de la CL4, "Contrato" y el diagrama de estados de la
+// CL4.3, paso 1, y "Contrato" de la CL4.4 y de la CL4.5; el de la CL5.5 en el plan de la CL5;
+// 04-protocolo.md, "El flujo de conexión".
 //
 // La consulta el bucle una vez por frame (Poll). Recorre los eventos de la Connection en orden, y
 // despacha cada paquete en el Dispatcher del servidor con el que habla: el opcode 00 es el saludo
 // en el ConnectServer y el chat en el GameServer. Cada estado espera un paquete; uno que llega
-// fuera de turno se ignora con un aviso, y un cierre de la conexión es Failed.
+// fuera de turno se ignora con un aviso, y un cierre de la conexión es Failed. Lo mismo con una
+// llamada de la UI fuera de turno: ChooseServer o SubmitCredentials en otro estado.
 //
 //   Idle o cualquiera --Start: abre el CS--> ConnectingConnectServer
 //   ConnectingConnectServer --Opened: manda el A9--> WaitingConnectHello
 //   WaitingConnectHello --00: manda F4 02--> WaitingServerList
-//   WaitingServerList --F4 06: manda F4 03 con el primero--> WaitingServerAddress
+//   WaitingServerList --F4 06: guarda la lista--> ChoosingServer
 //   WaitingServerList --F4 06 vacía: cierra--> Failed (EmptyServerList)
+//   ChoosingServer --ChooseServer: manda F4 03 con el código--> WaitingServerAddress
 //   WaitingServerAddress --F4 03: cierra el CS y abre el GS con las claves--> ConnectingGameServer
-//   WaitingServerAddress --F4 05: cierra--> Failed (ServerBusy)
+//   WaitingServerAddress --F4 05: manda F4 02 (Q-C71)--> WaitingServerList
 //   ConnectingGameServer --Opened--> WaitingGameHello
-//   WaitingGameHello --F1 00 aceptado y con la versión: manda el login--> WaitingLoginResult
+//   WaitingGameHello --F1 00 aceptado y con la versión--> WaitingCredentials
 //   WaitingGameHello --F1 00 con otro resultado--> Failed (HelloRejected)
 //   WaitingGameHello --F1 00 con otra versión--> Failed (VersionMismatch)
-//   WaitingGameHello --F1 00 con unas credenciales que no entran--> Failed (CredentialsTooLong)
+//   WaitingCredentials --SubmitCredentials: manda el login--> WaitingLoginResult
+//   WaitingCredentials --SubmitCredentials con unas que no entran--> Failed (CredentialsTooLong)
 //   WaitingLoginResult --F1 01 con 1: manda el primer keepalive--> LoggedIn
-//   WaitingLoginResult --F1 01 con otro--> Failed (LoginRejected)
+//   WaitingLoginResult --F1 01 con otro: guarda el resultado--> WaitingCredentials
 //   LoggedIn --cada KeepalivePeriod desde el primero: manda el keepalive--> LoggedIn
-//   cualquier Waiting* --ReplyTimeout sin su respuesta: cierra--> Failed (NoReply)
+//   cualquier Waiting* que espera un servidor --ReplyTimeout sin su respuesta: cierra--> Failed
+//     (NoReply); ChoosingServer y WaitingCredentials esperan al jugador y no tienen tope
 //   con el CS --Closed--> Failed (ConnectServerLost)
 //   con el GS --Closed--> Failed (GameServerLost)
 //
 // El keepalive corre solo en LoggedIn, también minimizada, y se detiene al salir de ahí: la sesión
-// no se reconecta sola (la escena de login de la CL5.4 muestra el aviso). El original manda desde
-// el arranque si hay conexión al GS, aunque no haya login (pregunta 6 del plan de la CL4).
+// no se reconecta sola (la escena de login muestra el aviso). El original manda desde el arranque
+// si hay conexión al GS, aunque no haya login (pregunta 6 del plan de la CL4): acá tampoco sale
+// mientras se espera la cuenta y la clave.
+//
+// Un login rechazado deja el GS abierto, como el original, que con el OK del aviso vuelve al
+// estado 2 y abre otra vez la cuenta (0x643560): el próximo login sale por la misma conexión.
 //
 // Un C3/C4 del GS con el checksum malo se contesta con el F1 03, en cualquier estado, como el
 // original. Uno que no mide bloques enteros, también: el original lee de más para el último
@@ -81,10 +94,11 @@ struct KeepaliveSpeeds
     std::uint8_t characterFlags = 0;
 };
 
+// Desde la CL5.5 la cuenta y la clave no están acá: llegan con SubmitCredentials, de la ventana de
+// la cuenta o del AutoLogin.
 struct SessionSettings
 {
     ServerAddress connectServer; // de la config o de /u /p (CL3.4)
-    Credentials credentials;     // para el login (CL4.4)
 };
 
 class ServerSession
@@ -102,7 +116,7 @@ public:
     ~ServerSession() = default;
 
     // Conecta al ConnectServer de la config, desde cualquier estado: lo que había se cierra y
-    // se olvida (la falla, el GameServer y el resultado del login).
+    // se olvida (la falla, la lista, la elección, el GameServer y el resultado del login).
     void Start();
 
     // Una vez por frame, desde ILoopClient::Poll: primero lo que llegó, después el tope del
@@ -112,14 +126,37 @@ public:
 
     [[nodiscard]] SessionState State() const;
 
+    // Cuántas veces se llamó a Start: lo que elige o manda alguien de afuera (el AutoLogin) es de
+    // una vuelta, y con un Start empieza otra.
+    [[nodiscard]] std::uint32_t StartCount() const;
+
+    // La lista del F4 06, en el orden en que llegó, desde que llega hasta el próximo Start o la
+    // próxima lista. Vacía antes.
+    [[nodiscard]] std::span<const Protocol::Connection::ServerEntry> ServerList() const;
+
+    // En ChoosingServer, manda el F4 03 con `code` (0x645e10, el clic en un servidor de la lista).
+    // El código no se mira contra la lista: lo da la ventana, que solo tiene los de la lista. En
+    // otro estado, un aviso y nada.
+    void ChooseServer(std::uint16_t code);
+
+    // El código del último F4 03, desde ChooseServer hasta el próximo Start o un F4 05 (el servidor
+    // ocupado, que vuelve a la lista).
+    [[nodiscard]] std::optional<std::uint16_t> ChosenServer() const;
+
+    // En WaitingCredentials, manda el login con `credentials` y el tick del reloj de ahora
+    // (0x641bf0). Con unas que no entran, Failed (CredentialsTooLong). En otro estado, un aviso
+    // sin ellas, y nada. No las guarda.
+    void SubmitCredentials(const Credentials& credentials);
+
     // Por qué falló; std::nullopt si no está en Failed.
     [[nodiscard]] std::optional<SessionFailure> Failure() const;
 
     // La dirección que dio el F4 03, desde que llegó hasta el próximo Start.
     [[nodiscard]] std::optional<ServerAddress> GameServer() const;
 
-    // El resultado del F1 01, aceptado o no, desde que llegó hasta el próximo Start. Qué dice cada
-    // uno es de la escena de login (CL5.5).
+    // El resultado del último F1 01, aceptado o no, desde que llegó hasta el próximo Start o el
+    // próximo SubmitCredentials. Con WaitingCredentials, el rechazado: el aviso de la escena de
+    // login (UI::NoticeOfLoginResult).
     [[nodiscard]] std::optional<std::uint8_t> LoginResult() const;
 
     // Las velocidades de los keepalives que siguen. Hasta que se llame, las de un KeepaliveSpeeds
@@ -145,7 +182,6 @@ private:
 
     void OnGameHello(const Network::Packet& packet);
     void OnLoginResult(const Network::Packet& packet);
-    void SendLogin();
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.
     void SendKeepalive(Core::Duration now);
 
@@ -166,11 +202,14 @@ private:
     Core::Log& m_log;
     Network::ConnectionKeys m_keys;
     SessionSettings m_settings;
+    std::uint32_t m_starts = 0;
     Protocol::Dispatcher m_connectServer;
     Protocol::Dispatcher m_gameServer;
     SessionState m_state = SessionState::Idle;
     Core::Duration m_stateSince{}; // desde cuándo está en m_state
     std::optional<SessionFailure> m_failure;
+    std::vector<Protocol::Connection::ServerEntry> m_serverList;
+    std::optional<std::uint16_t> m_chosenServer;
     std::optional<ServerAddress> m_gameServerAddress;
     std::optional<std::uint8_t> m_loginResult;
     // Cambia con cada Connect y cada Fail: Poll deja de recorrer el lote si cambió.

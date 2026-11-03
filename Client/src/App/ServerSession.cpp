@@ -29,6 +29,9 @@ namespace
 // Lo que dice el aviso de un paquete que el estado no espera, o que no se puede leer.
 constexpr std::string_view OutOfTurn = "llegó fuera de turno";
 constexpr std::string_view Unreadable = "no se puede leer";
+// Lo que dice el aviso de una llamada de la UI que el estado no espera.
+constexpr std::string_view NotAwaited = "la sesión no la espera";
+constexpr std::string_view NotAwaitedPlural = "la sesión no las espera";
 
 // Un visitor de std::visit con un operator() por tipo: si Network::Event suma un tipo, Poll no
 // compila hasta que la sesión diga qué hace con él.
@@ -48,7 +51,7 @@ std::string VersionText(const std::array<char, Protocol::VersionSize>& version)
 }
 
 // Lo que espera cada estado Waiting*, para el log de ReplyTimeout; vacío en los que no esperan una
-// respuesta.
+// respuesta de un servidor. Los que esperan al jugador no tienen tope.
 std::string_view Awaited(SessionState state)
 {
     switch (state)
@@ -64,7 +67,9 @@ std::string_view Awaited(SessionState state)
         return "el resultado del login";
     case SessionState::Idle:
     case SessionState::ConnectingConnectServer:
+    case SessionState::ChoosingServer:
     case SessionState::ConnectingGameServer:
+    case SessionState::WaitingCredentials:
     case SessionState::LoggedIn:
     case SessionState::Failed:
         break;
@@ -121,7 +126,10 @@ void ServerSession::RegisterGameServerHandlers()
 
 void ServerSession::Start()
 {
+    ++m_starts;
     m_failure.reset();
+    m_serverList.clear();
+    m_chosenServer.reset();
     m_gameServerAddress.reset();
     m_loginResult.reset();
     m_log.Info("se conecta al ConnectServer");
@@ -177,6 +185,62 @@ void ServerSession::HandleEvents()
 SessionState ServerSession::State() const
 {
     return m_state;
+}
+
+std::uint32_t ServerSession::StartCount() const
+{
+    return m_starts;
+}
+
+std::span<const Protocol::Connection::ServerEntry> ServerSession::ServerList() const
+{
+    return m_serverList;
+}
+
+// 0x645e10 manda el F4 03 con el código del botón y cierra la lista; el log no dice cuál.
+void ServerSession::ChooseServer(std::uint16_t code)
+{
+    if (m_state != SessionState::ChoosingServer)
+    {
+        m_log.Warning("se ignora la elección de un servidor: {}", NotAwaited);
+        return;
+    }
+    m_log.Info("se elige un servidor: se pide su dirección");
+    m_chosenServer = code;
+    Protocol::Outgoing choice = Protocol::Connection::WriteServerSelect(code);
+    m_connection.Send(std::move(choice.packet), choice.delivery);
+    SetState(SessionState::WaitingServerAddress);
+}
+
+std::optional<std::uint16_t> ServerSession::ChosenServer() const
+{
+    return m_chosenServer;
+}
+
+// El tick es el de GetTickCount en el original (0x641bf0): el del reloj del bucle en este momento.
+// Ni la cuenta ni la clave van al log, tampoco cuando no entran.
+void ServerSession::SubmitCredentials(const Credentials& credentials)
+{
+    if (m_state != SessionState::WaitingCredentials)
+    {
+        m_log.Warning("se ignoran la cuenta y la clave: {}", NotAwaitedPlural);
+        return;
+    }
+    const Protocol::Connection::LoginRequest request{credentials.account, credentials.password,
+                                                     TickCountMs(m_clock.Now())};
+    auto login = Protocol::Connection::WriteLoginRequest(request);
+    if (!login.HasValue())
+    {
+        m_log.Error("no se puede escribir el login: la cuenta o la clave pasan de {} bytes",
+                    Protocol::Connection::CredentialSize);
+        Fail(SessionFailure::CredentialsTooLong);
+        return;
+    }
+    m_log.Info("se manda el login");
+    m_loginResult.reset();
+    Protocol::Outgoing outgoing = std::move(login).Value();
+    m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+    SetState(SessionState::WaitingLoginResult);
 }
 
 std::optional<SessionFailure> ServerSession::Failure() const
@@ -257,8 +321,9 @@ void ServerSession::OnConnectHello([[maybe_unused]] const Network::Packet& packe
     SetState(SessionState::WaitingServerList);
 }
 
-// Pregunta 9 del plan de la CL4: el primero de la lista, en el orden en que llega, hasta que la
-// escena de login deje elegir (CL5.5).
+// La lista se guarda en el orden en que llega, y la elección es de la UI (CL5.5) o del AutoLogin,
+// que elige el primero (pregunta 9 del plan de la CL4). 0x4c1860 la reparte en grupos para la
+// ventana: eso es de UI::GroupServers.
 void ServerSession::OnServerList(const Network::Packet& packet)
 {
     if (m_state != SessionState::WaitingServerList)
@@ -279,10 +344,9 @@ void ServerSession::OnServerList(const Network::Packet& packet)
         Fail(SessionFailure::EmptyServerList);
         return;
     }
-    m_log.Info("la lista trae {} servidores: se elige el primero", entries.size());
-    Protocol::Outgoing choice = Protocol::Connection::WriteServerSelect(entries.front().code);
-    m_connection.Send(std::move(choice.packet), choice.delivery);
-    SetState(SessionState::WaitingServerAddress);
+    m_log.Info("la lista trae {} servidores: se espera la elección", entries.size());
+    m_serverList = entries;
+    SetState(SessionState::ChoosingServer);
 }
 
 // El original loguea la dirección, cierra el CS (0x4e8380) y conecta al GS (0x4c1340). Acá el log
@@ -306,11 +370,10 @@ void ServerSession::OnServerAddress(const Network::Packet& packet)
     SetState(SessionState::ConnectingGameServer);
 }
 
-// El F4 05 contesta la elección de un servidor ocupado. El original (0x4e2b10 llama a 0x4c1bf0)
-// vuelve a pedir la lista y la muestra, para que el jugador elija otro; acá la elección es
-// automática hasta la CL5.5, y pedirla de nuevo elegiría otra vez el mismo, así que la sesión falla
-// como con la lista vacía (Q-C71). El byte que sigue al subcódigo, el servidor, no se lee: el
-// original tampoco lo mira.
+// El F4 05 contesta la elección de un servidor ocupado. Como el original (0x4e2b10 llama a
+// 0x4c1bf0, que manda C1 04 F4 02), la sesión vuelve a pedir la lista al mismo CS, para que el
+// jugador elija otro (Q-C71). El byte que sigue al subcódigo, el servidor, no se lee: el original
+// tampoco lo mira.
 void ServerSession::OnServerBusy()
 {
     if (m_state != SessionState::WaitingServerAddress)
@@ -318,8 +381,11 @@ void ServerSession::OnServerBusy()
         m_log.Warning("se ignora el aviso de servidor ocupado (F4 05): {}", OutOfTurn);
         return;
     }
-    m_log.Error("el servidor elegido está ocupado: el ConnectServer no da su dirección");
-    Fail(SessionFailure::ServerBusy);
+    m_log.Warning("el servidor elegido está ocupado: se pide la lista otra vez");
+    m_chosenServer.reset();
+    Protocol::Outgoing request = Protocol::Connection::WriteServerListRequest();
+    m_connection.Send(std::move(request.packet), request.delivery);
+    SetState(SessionState::WaitingServerList);
 }
 
 // 0x4c1e20 muestra "Connectting error" con otro resultado y "Version dismatch" con otra versión,
@@ -352,27 +418,9 @@ void ServerSession::OnGameHello(const Network::Packet& packet)
         Fail(SessionFailure::VersionMismatch);
         return;
     }
-    SendLogin();
-}
-
-// El tick es el de GetTickCount en el original (0x641bf0): el del reloj del bucle en este momento.
-// Ni la cuenta ni la clave van al log, tampoco cuando no entran.
-void ServerSession::SendLogin()
-{
-    const Protocol::Connection::LoginRequest request{m_settings.credentials.account, m_settings.credentials.password,
-                                                     TickCountMs(m_clock.Now())};
-    auto login = Protocol::Connection::WriteLoginRequest(request);
-    if (!login.HasValue())
-    {
-        m_log.Error("no se puede escribir el login: la cuenta o la clave pasan de {} bytes",
-                    Protocol::Connection::CredentialSize);
-        Fail(SessionFailure::CredentialsTooLong);
-        return;
-    }
-    m_log.Info("el GameServer saludó: se manda el login");
-    Protocol::Outgoing outgoing = std::move(login).Value();
-    m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
-    SetState(SessionState::WaitingLoginResult);
+    // 0x4c1e20 abre la ventana de la cuenta con el GS ya conectado (DAT_057678c0 en 2).
+    m_log.Info("el GameServer saludó: se espera la cuenta y la clave");
+    SetState(SessionState::WaitingCredentials);
 }
 
 void ServerSession::OnLoginResult(const Network::Packet& packet)
@@ -391,8 +439,10 @@ void ServerSession::OnLoginResult(const Network::Packet& packet)
     m_loginResult = result.Value();
     if (result.Value() != Protocol::Connection::LoginAccepted)
     {
-        m_log.Error("el GameServer rechazó el login (resultado {})", result.Value());
-        Fail(SessionFailure::LoginRejected);
+        // El GS queda abierto: el aviso de la escena, y otra vez la cuenta (0x643560).
+        m_log.Warning("el GameServer rechazó el login (resultado {}): se espera otra vez la cuenta y la clave",
+                      result.Value());
+        SetState(SessionState::WaitingCredentials);
         return;
     }
     m_log.Info("el GameServer aceptó el login");
@@ -452,11 +502,13 @@ bool ServerSession::WithConnectServer() const
     case SessionState::ConnectingConnectServer:
     case SessionState::WaitingConnectHello:
     case SessionState::WaitingServerList:
+    case SessionState::ChoosingServer:
     case SessionState::WaitingServerAddress:
         return true;
     case SessionState::Idle:
     case SessionState::ConnectingGameServer:
     case SessionState::WaitingGameHello:
+    case SessionState::WaitingCredentials:
     case SessionState::WaitingLoginResult:
     case SessionState::LoggedIn:
     case SessionState::Failed:

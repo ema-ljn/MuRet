@@ -105,9 +105,10 @@ Core::Expected<ClientConfig, ConfigError> ParseConfig(std::string_view text);
 //   3. la línea de comandos pisa la config (/u /p, --data, --pacing, --vsync, --max-fps);
 //   4. en el modo fiel, un VSync que no es off es error (nombra Pacing y VSync), y sin VSync
 //      queda en off; un MaxFps que no es 0, también (nombra Pacing y MaxFps): el modo fiel
-//      espera como el original. En el normal, sin VSync queda en on;
+//      espera como el original. En el normal, sin VSync queda en on. --auto-login sin un host
+//      (HasServerHost) también es error (CL5.5);
 //   5. la carpeta de datos, solo si se dio, tiene que existir.
-// El host vacío no es error acá: lo pide la CL4 al conectarse.
+// Sin --auto-login, el host vacío no es error acá: Main sigue sin red.
 Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& exeFolder,
                                                   const CommandLine& commandLine);
 

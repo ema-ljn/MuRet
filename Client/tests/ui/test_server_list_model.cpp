@@ -17,6 +17,7 @@ namespace
 {
 using Client::Protocol::Connection::ServerEntry;
 using Client::UI::GroupNameText;
+using Client::UI::GroupOf;
 using Client::UI::GroupServers;
 using Client::UI::GroupSlot;
 using Client::UI::IsNonPvp;
@@ -142,6 +143,16 @@ TEST(ServerListModelTest, NamesEachGroupByItsText)
     EXPECT_EQ(GroupNameText(18), 558u);
     EXPECT_EQ(GroupNameText(19), 552u);
     EXPECT_EQ(GroupNameText(20), 1829u);
+}
+
+// 0x4c1860: el grupo de un servidor es código / 20, con la división entera. La cuenta lo usa para
+// su título (0x641990).
+TEST(ServerListModelTest, TheGroupIsTheCodeOverTwenty)
+{
+    EXPECT_EQ(GroupOf(400), 20u);
+    EXPECT_EQ(GroupOf(419), 20u);
+    EXPECT_EQ(GroupOf(420), 21u);
+    EXPECT_EQ(GroupOf(19), 0u);
 }
 
 // 0x645860: el número es código % 20 + 1, y la carga elige el texto: 562 debajo de 100, 561 de

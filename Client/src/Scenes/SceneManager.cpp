@@ -117,6 +117,16 @@ const std::optional<std::string>& SceneManager::Failure() const
     return m_failure;
 }
 
+bool SceneManager::WantsToQuit() const
+{
+    return m_scene && m_scene->WantsToQuit();
+}
+
+bool SceneManager::WantsTextInput() const
+{
+    return m_scene && m_scene->WantsTextInput();
+}
+
 Core::Expected<void, std::string> SceneManager::Enter(SceneId id)
 {
     std::unique_ptr<IScene> scene = m_factory(id);

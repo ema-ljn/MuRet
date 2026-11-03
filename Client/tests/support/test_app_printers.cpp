@@ -38,7 +38,6 @@ TEST(AppPrintersTest, TheGameServerStatesAndFailuresShowTheirNames)
     EXPECT_EQ(::testing::PrintToString(SessionState::LoggedIn), "LoggedIn");
     EXPECT_EQ(::testing::PrintToString(SessionFailure::HelloRejected), "HelloRejected");
     EXPECT_EQ(::testing::PrintToString(SessionFailure::VersionMismatch), "VersionMismatch");
-    EXPECT_EQ(::testing::PrintToString(SessionFailure::LoginRejected), "LoginRejected");
     EXPECT_EQ(::testing::PrintToString(SessionFailure::CredentialsTooLong), "CredentialsTooLong");
 }
 
@@ -48,10 +47,11 @@ TEST(AppPrintersTest, NoReplyShowsItsName)
     EXPECT_EQ(::testing::PrintToString(SessionFailure::NoReply), "NoReply");
 }
 
-// La falla del servidor ocupado, F4 05 (Q-C71).
-TEST(AppPrintersTest, ServerBusyShowsItsName)
+// Los estados que esperan a la UI (CL5.5).
+TEST(AppPrintersTest, TheStatesThatWaitForTheUiShowTheirNames)
 {
-    EXPECT_EQ(::testing::PrintToString(SessionFailure::ServerBusy), "ServerBusy");
+    EXPECT_EQ(::testing::PrintToString(SessionState::ChoosingServer), "ChoosingServer");
+    EXPECT_EQ(::testing::PrintToString(SessionState::WaitingCredentials), "WaitingCredentials");
 }
 
 TEST(AppPrintersTest, AResolutionShowsWidthByHeight)

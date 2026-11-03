@@ -27,6 +27,9 @@
 //                         el servidor, como lo pasa el launcher (02 § Del launcher al juego):
 //                         connect es opcional, /u y /p van en cualquier orden y sin mirar
 //                         mayúsculas, y uno sin el otro es error. Pisan [Server] de la config
+//   Main --auto-login     con un servidor, elige el primero de la lista y entra con la cuenta y la
+//                         clave del entorno, sin la UI (CL5.5; App/AutoLogin.h). Sin un servidor
+//                         es error (Resolve)
 namespace Client::App
 {
 struct CommandLine
@@ -41,6 +44,8 @@ struct CommandLine
     // de la config.
     std::optional<int> maxFps;
     bool stats = false;
+    // --auto-login: sin él, la cuenta y la clave las teclea el jugador en la ventana del login.
+    bool autoLogin = false;
     // /u<host> /p<puerto>, con o sin connect adelante. Vacío si no se dio ninguno.
     std::optional<ServerAddress> connect;
     // --config y --data. Relativas, desde la carpeta actual: son de quien lanza el cliente.

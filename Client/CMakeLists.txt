@@ -114,29 +114,36 @@ if(MURET_BUILD_TESTS)
     add_test(NAME Client.Main.ReadsTheDataPathInUtf8 COMMAND Main --data "${utf8_data_file}")
     set_tests_properties(Client.Main.ReadsTheDataPathInUtf8 PROPERTIES
         PASS_REGULAR_EXPRESSION "la carpeta de datos .* no es una carpeta")
-    # Con un host (CL4.4), primero la cuenta y la clave del entorno (pregunta 7 del plan de la CL4):
-    # sin las variables, la salida nombra las dos, antes de mirar las claves y sin red ni ventana.
-    add_test(NAME Client.Main.ConnectWithoutCredentialsNamesThem COMMAND Main connect /u127.0.0.1 /p44405)
+    # Con un host y --auto-login (CL5.5), primero la cuenta y la clave del entorno (pregunta 7 del
+    # plan de la CL4): sin las variables, la salida nombra las dos, antes de mirar las claves y sin
+    # red ni ventana.
+    add_test(NAME Client.Main.ConnectWithoutCredentialsNamesThem
+        COMMAND Main connect /u127.0.0.1 /p44405 --auto-login)
     set_tests_properties(Client.Main.ConnectWithoutCredentialsNamesThem PROPERTIES
         PASS_REGULAR_EXPRESSION "falta MURET_CLIENT_ACCOUNT; falta MURET_CLIENT_PASSWORD")
-    # Y con la cuenta y la clave sintéticas de los fixtures, las claves de la conexión: una carpeta
-    # de datos vacía no las tiene, y la salida nombra Enc1.dat y Dec2.dat, sin abrir la ventana.
+    # --auto-login sin un host no tiene a qué entrar: Resolve lo dice antes de abrir la ventana.
+    add_test(NAME Client.Main.AutoLoginWithoutAServerSaysSo COMMAND Main --auto-login)
+    set_tests_properties(Client.Main.AutoLoginWithoutAServerSaysSo PROPERTIES
+        PASS_REGULAR_EXPRESSION "--auto-login necesita un servidor")
+    # Sin --auto-login, la cuenta la teclea el jugador y el entorno no se mira: un host pide solo
+    # las claves de la conexión. Una carpeta de datos vacía no las tiene, y la salida nombra
+    # Enc1.dat y Dec2.dat, sin abrir la ventana.
     set(empty_data_folder "${CMAKE_CURRENT_BINARY_DIR}/datos-sin-claves")
     file(MAKE_DIRECTORY "${empty_data_folder}")
     add_test(NAME Client.Main.ConnectWithoutKeysNamesThem
         COMMAND Main connect /u127.0.0.1 /p44405 --data "${empty_data_folder}")
     set_tests_properties(Client.Main.ConnectWithoutKeysNamesThem PROPERTIES
-        PASS_REGULAR_EXPRESSION "no está Enc1.dat; no está Dec2.dat"
-        ENVIRONMENT_MODIFICATION "MURET_CLIENT_ACCOUNT=set:user0001;MURET_CLIENT_PASSWORD=set:pass0002")
+        PASS_REGULAR_EXPRESSION "no está Enc1.dat; no está Dec2.dat")
     # Con una carpeta de datos y sin host, las escenas (CL5.4): primero Text.bmd, como WinMain antes
     # de la carga. Una carpeta sin él lo nombra, sin abrir la ventana.
     add_test(NAME Client.Main.ScenesWithoutTheTextTableNameIt COMMAND Main --data "${empty_data_folder}" --frames 1)
     set_tests_properties(Client.Main.ScenesWithoutTheTextTableNameIt PROPERTIES
         PASS_REGULAR_EXPRESSION "no está Local.Text.bmd en .*datos-sin-claves")
-    # Ningún otro test de Main ve las variables de quien corre CTest: sin host no se leen, y los
-    # dos de arriba dicen lo que tienen.
+    # Ningún test de Main ve las variables de quien corre CTest: sin --auto-login no se leen, y con
+    # él, el de arriba las necesita sin poner.
     set_tests_properties(Client.Main.RejectsBadArguments Client.Main.RejectsBadPort
         Client.Main.NamesTheMissingDataFolder Client.Main.ReadsTheDataPathInUtf8
-        Client.Main.ConnectWithoutCredentialsNamesThem Client.Main.ScenesWithoutTheTextTableNameIt PROPERTIES
+        Client.Main.ConnectWithoutCredentialsNamesThem Client.Main.AutoLoginWithoutAServerSaysSo
+        Client.Main.ConnectWithoutKeysNamesThem Client.Main.ScenesWithoutTheTextTableNameIt PROPERTIES
         ENVIRONMENT_MODIFICATION "MURET_CLIENT_ACCOUNT=unset:;MURET_CLIENT_PASSWORD=unset:")
 endif()

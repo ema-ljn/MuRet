@@ -65,7 +65,7 @@ ServerGroups GroupServers(std::span<const Protocol::Connection::ServerEntry> lis
     ServerGroups grouped;
     for (const Protocol::Connection::ServerEntry& entry : list)
     {
-        const auto group = static_cast<std::uint16_t>(entry.code / CodesPerGroup);
+        const std::uint16_t group = GroupOf(entry.code);
         const std::optional<int> slot = GroupSlot(group);
         if (!slot || !HasButton(*slot))
         {
@@ -102,6 +102,11 @@ std::size_t GroupNameText(std::uint16_t group)
     default:
         return FirstGroupNameText + group;
     }
+}
+
+std::uint16_t GroupOf(std::uint16_t code)
+{
+    return static_cast<std::uint16_t>(code / CodesPerGroup);
 }
 
 int ServerNumber(std::uint16_t code)

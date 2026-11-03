@@ -38,6 +38,7 @@
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
+#include "support/SessionPackets.h"
 #include "support/TestGameServer.h"
 
 #include <gtest/gtest.h>
@@ -105,25 +106,35 @@ using Client::Protocol::Connection::Keepalive;
 using Client::Protocol::Connection::KeepaliveAdjust20;
 using Client::Protocol::Connection::KeepaliveOpcode;
 using Client::Protocol::Connection::LoginRequest;
+using Client::Protocol::Connection::ServerEntry;
 using Client::Protocol::Connection::WriteKeepalive;
 using Client::Protocol::Connection::WriteLoginRequest;
 using Client::Scenes::CharacterSelectScene;
 using Client::Scenes::IScene;
 using Client::Scenes::SceneId;
 using Client::Scenes::SceneManager;
+using Client::Tests::AddressReply;
+using Client::Tests::BusyReply;
 using Client::Tests::Bytes;
 using Client::Tests::BytesOf;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeSocket;
 using Client::Tests::FromTheGameServer;
 using Client::Tests::GameClientKeys;
+using Client::Tests::GameHello;
 using Client::Tests::GameServerEncryption;
 using Client::Tests::GameServerReceived;
+using Client::Tests::Hello;
+using Client::Tests::Join;
+using Client::Tests::ListRequest;
+using Client::Tests::LoginResult;
 using Client::Tests::NoticeBytes;
+using Client::Tests::PetInfoRequest;
 using Client::Tests::RecordingFrameTarget;
 using Client::Tests::RecordingSink;
 using Client::Tests::SameBytes;
 using Client::Tests::SameBytesWithoutValues;
+using Client::Tests::ServerList;
 
 using std::chrono::milliseconds;
 using std::chrono::seconds;
@@ -135,9 +146,6 @@ constexpr std::string_view ConnectHost = "10.0.0.1";
 constexpr std::uint16_t ConnectPort = 44405;
 constexpr std::string_view GameHost = "10.0.0.2";
 constexpr std::uint16_t GamePort = 55901;
-
-// Lo que mide el host en la respuesta F4 03 (04 § El flujo de conexión).
-constexpr std::size_t AddressHostSize = 16;
 
 // La semilla del relleno de lo que cifra la conexión: fija.
 constexpr std::uint32_t PaddingSeed = 1;
@@ -164,68 +172,10 @@ constexpr std::string_view Password = "pass0002";
 // Otra versión que la del cliente: la que manda el cliente del muproxy.log (BuildConstants.h).
 constexpr std::string_view OtherVersion = "09908";
 
-// El pedido de la información de la mascota, como llega al cable con su XOR32.
-ByteVector PetInfoRequest()
-{
-    return Bytes({0xC1, 0x06, 0xA9, 0x20, 0x9C, 0x2F});
-}
-
-ByteVector Hello()
-{
-    return Bytes({0xC1, 0x04, 0x00, 0x01});
-}
-
-ByteVector ListRequest()
-{
-    return Bytes({0xC1, 0x04, 0xF4, 0x02});
-}
-
-// Pega varios paquetes, como llegan en una lectura o como salen en `sent`.
-ByteVector Join(std::initializer_list<ByteVector> parts)
-{
-    ByteVector joined;
-    for (const ByteVector& part : parts)
-    {
-        joined.insert(joined.end(), part.begin(), part.end());
-    }
-    return joined;
-}
-
-// La lista como la lee main.exe (F4 06): la cantidad en dos bytes big-endian y, por servidor, el
-// código en little-endian, la carga y un byte que no se lee.
-ByteVector ServerList(std::initializer_list<std::uint16_t> codes)
-{
-    const std::size_t size = 7 + 4 * codes.size();
-    ByteVector bytes = Bytes({0xC2, static_cast<int>(size >> 8), static_cast<int>(size & 0xFF), 0xF4, 0x06,
-                              static_cast<int>(codes.size() >> 8), static_cast<int>(codes.size() & 0xFF)});
-    for (const std::uint16_t code : codes)
-    {
-        const ByteVector entry = Bytes({code & 0xFF, code >> 8, 0x00, 0x00});
-        bytes.insert(bytes.end(), entry.begin(), entry.end());
-    }
-    return bytes;
-}
-
 // La lista del laboratorio como llega al cable, antes de que FoxAnti la pase a F4 06: un servidor.
 ByteVector LabServerList()
 {
     return Bytes({0xC2, 0x00, 0x0A, 0xF4, 0x02, 0x01, 0x00, 0x00, 0x00, 0xCC});
-}
-
-// El saludo del GameServer (F1 00): el resultado, el índice del jugador (5, en big-endian) y la
-// versión, 5 bytes sin \0.
-ByteVector GameHello(int result, std::string_view version)
-{
-    ByteVector bytes = Bytes({0xC1, 0x0C, 0xF1, 0x00, result, 0x00, 0x05});
-    const std::span<const std::byte> text = BytesOf(version);
-    bytes.insert(bytes.end(), text.begin(), text.end());
-    return bytes;
-}
-
-// La respuesta del login (F1 01).
-ByteVector LoginResult(int result)
-{
-    return Bytes({0xC1, 0x05, 0xF1, 0x01, result});
 }
 
 // Un C3 de un bloque con un solo byte útil, el serial 0: pasa el checksum y no trae el opcode, así
@@ -239,21 +189,15 @@ ByteVector OnlyTheSerial()
     return bytes;
 }
 
-// La respuesta F4 03: el host en 16 bytes con \0 detrás y el puerto en little-endian.
-ByteVector AddressReply(std::string_view host, std::uint16_t port)
+SessionSettings Settings()
 {
-    ByteVector bytes = Bytes({0xC1, 0x16, 0xF4, 0x03});
-    const std::span<const std::byte> text = BytesOf(host);
-    bytes.insert(bytes.end(), text.begin(), text.end());
-    bytes.resize(4 + AddressHostSize);
-    const ByteVector portBytes = Bytes({port & 0xFF, port >> 8});
-    bytes.insert(bytes.end(), portBytes.begin(), portBytes.end());
-    return bytes;
+    return SessionSettings{{std::string(ConnectHost), ConnectPort}};
 }
 
-SessionSettings Settings(Credentials credentials = Credentials{std::string(Account), std::string(Password)})
+// La cuenta y la clave sintéticas, como las manda la ventana de la cuenta o el AutoLogin.
+Credentials TheCredentials()
 {
-    return SessionSettings{{std::string(ConnectHost), ConnectPort}, std::move(credentials)};
+    return Credentials{std::string(Account), std::string(Password)};
 }
 
 // Una sesión con su conexión y lo que la rodea. La ofuscación es de quien la arma y vive más. La
@@ -320,12 +264,20 @@ struct Harness
         ASSERT_EQ(session.State(), SessionState::WaitingServerList);
     }
 
-    // Y la lista, de un servidor: espera la dirección.
-    void ReachServerAddress()
+    // Y la lista, de un servidor: espera la elección.
+    void ReachChoosingServer()
     {
         ASSERT_NO_FATAL_FAILURE(ReachServerList());
         socket.reads = {ServerList({LabServerCode})};
         session.Poll();
+        ASSERT_EQ(session.State(), SessionState::ChoosingServer);
+    }
+
+    // Y la elección, el de la lista: espera la dirección.
+    void ReachServerAddress()
+    {
+        ASSERT_NO_FATAL_FAILURE(ReachChoosingServer());
+        session.ChooseServer(LabServerCode);
         ASSERT_EQ(session.State(), SessionState::WaitingServerAddress);
     }
 
@@ -347,12 +299,20 @@ struct Harness
         ASSERT_EQ(session.State(), SessionState::WaitingGameHello);
     }
 
-    // Y el saludo, cifrado como lo manda el GS del laboratorio: el login salió.
-    void ReachLoginResult()
+    // Y el saludo, cifrado como lo manda el GS del laboratorio: espera la cuenta y la clave.
+    void ReachWaitingCredentials()
     {
         ASSERT_NO_FATAL_FAILURE(ReachGameHello());
         socket.reads = {FromTheGameServer(GameHello(1, ClientVersion), gameServerSends)};
         session.Poll();
+        ASSERT_EQ(session.State(), SessionState::WaitingCredentials);
+    }
+
+    // Y la cuenta y la clave: el login salió.
+    void ReachLoginResult()
+    {
+        ASSERT_NO_FATAL_FAILURE(ReachWaitingCredentials());
+        session.SubmitCredentials(TheCredentials());
         ASSERT_EQ(session.State(), SessionState::WaitingLoginResult);
     }
 
@@ -510,37 +470,93 @@ TEST(ServerSessionTest, ThePetInfoRequestLeavesBeforeAHelloThatArrivesWithTheCon
     EXPECT_TRUE(SameBytes(tested.socket.sent, Join({PetInfoRequest(), ListRequest()})));
 }
 
-// La lista del laboratorio, con FoxAnti: la conexión la pasa a F4 06, la sesión elige el código
-// 400, y FoxAnti lo pasa de vuelta al 0 del ConnectServer.
-TEST(ServerSessionTest, ChoosesTheFirstServer)
+// Con la lista, la sesión espera la elección (CL5.5): ChoosingServer, con la lista en el orden en
+// que llegó, y no sale ningún F4 03. La elección no tiene tope: el jugador puede tardar, y 60 s
+// después sigue esperando sin mandar nada.
+TEST(ServerSessionTest, WaitsForTheChoiceAfterTheList)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
+
+    tested.socket.reads = {
+        Client::Tests::ServerListWithLoads(std::vector<ServerEntry>{{401, 10}, {400, 20}, {402, 100}})};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
+    const std::span<const ServerEntry> list = tested.session.ServerList();
+    ASSERT_EQ(list.size(), 3u);
+    EXPECT_EQ(list[0].code, 401);
+    EXPECT_EQ(list[0].load, 10);
+    EXPECT_EQ(list[1].code, 400);
+    EXPECT_EQ(list[2].code, 402);
+    EXPECT_EQ(list[2].load, 100);
+    EXPECT_EQ(tested.session.ChosenServer(), std::nullopt);
+    tested.PollEachFrameUntil(seconds{60});
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
+    EXPECT_TRUE(SameBytes(tested.socket.sent, Join({PetInfoRequest(), ListRequest()})));
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "la lista trae 3 servidores: se espera la elección"));
+}
+
+// La lista del laboratorio, con FoxAnti: la conexión la pasa a F4 06, ChooseServer(400) sale como
+// C1 06 F4 03 00 00, porque FoxAnti lo pasa de vuelta al 0 del ConnectServer.
+TEST(ServerSessionTest, ChoosingSendsTheCode)
 {
     const FoxAntiObfuscation foxAnti;
     Harness tested(foxAnti);
     tested.session.Start();
     tested.socket.reads = {Hello()};
     tested.session.Poll();
-    ASSERT_EQ(tested.session.State(), SessionState::WaitingServerList);
-
     tested.socket.reads = {LabServerList()};
     tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::ChoosingServer);
+    ASSERT_EQ(tested.session.ServerList().size(), 1u);
+    EXPECT_EQ(tested.session.ServerList()[0].code, LabServerCode);
+
+    tested.session.ChooseServer(LabServerCode);
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
+    EXPECT_EQ(tested.session.ChosenServer(), std::optional<std::uint16_t>{LabServerCode});
     EXPECT_TRUE(SameBytes(tested.socket.sent,
                           Join({PetInfoRequest(), ListRequest(), Bytes({0xC1, 0x06, 0xF4, 0x03, 0x00, 0x00})})));
 }
 
-// De varios, el primero en el orden en que llegan (pregunta 9), no el de código más bajo.
-TEST(ServerSessionTest, ChoosesTheFirstOfSeveral)
+// Cualquiera de la lista, no el primero: sin FoxAnti, el 402 sale como 92 01.
+TEST(ServerSessionTest, ChoosingSendsTheCodeItWasGiven)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
-
     tested.socket.reads = {ServerList({401, 400, 402})};
     tested.session.Poll();
 
+    tested.session.ChooseServer(402);
+
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
     EXPECT_TRUE(SameBytes(tested.socket.sent,
-                          Join({PetInfoRequest(), ListRequest(), Bytes({0xC1, 0x06, 0xF4, 0x03, 0x91, 0x01})})));
+                          Join({PetInfoRequest(), ListRequest(), Bytes({0xC1, 0x06, 0xF4, 0x03, 0x92, 0x01})})));
+}
+
+// ChooseServer fuera de ChoosingServer: un aviso y nada sale, antes de la lista y con la elección
+// ya mandada.
+TEST(ServerSessionTest, ChoosingOutOfTurnIsIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
+    tested.session.ChooseServer(LabServerCode);
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
+    EXPECT_EQ(tested.session.ChosenServer(), std::nullopt);
+    EXPECT_TRUE(SameBytes(tested.socket.sent, Join({PetInfoRequest(), ListRequest()})));
+
+    tested.socket.reads = {ServerList({LabServerCode, 401})};
+    tested.session.Poll();
+    tested.session.ChooseServer(LabServerCode);
+    const ByteVector sent = tested.socket.sent;
+    tested.session.ChooseServer(401);
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
+    EXPECT_EQ(tested.session.ChosenServer(), std::optional<std::uint16_t>{LabServerCode});
+    EXPECT_TRUE(SameBytes(tested.socket.sent, sent));
+    EXPECT_EQ(tested.Warnings(), (Lines{"[warning] se ignora la elección de un servidor: la sesión no la espera",
+                                        "[warning] se ignora la elección de un servidor: la sesión no la espera"}));
 }
 
 // La dirección del F4 03: la sesión la guarda, cierra el CS y conecta al GS, sin avisos.
@@ -648,29 +664,31 @@ TEST(ServerSessionTest, AnEmptyListBeforeTheCloseKeepsItsFailure)
 }
 
 // El F4 05 es la respuesta del CS a un servidor ocupado, con el byte del servidor (el handler del
-// original, 0x4c1bf0, no lo lee). El original vuelve a pedir la lista y la muestra; acá, mientras
-// la elección es automática, la sesión falla como con la lista vacía y cierra el CS (Q-C71).
-TEST(ServerSessionTest, ABusyServerFails)
+// original, 0x4c1bf0, no lo lee). Como el original, la sesión vuelve a pedir la lista con el
+// mismo CS (Q-C71), y con la lista nueva espera otra elección.
+TEST(ServerSessionTest, ABusyServerAsksForTheListAgain)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerAddress());
     const ByteVector sent = tested.socket.sent;
 
-    tested.socket.reads = {Bytes({0xC1, 0x05, 0xF4, 0x05, 0x00})};
+    tested.socket.reads = {BusyReply()};
     tested.session.Poll();
 
-    EXPECT_EQ(tested.session.State(), SessionState::Failed);
-    EXPECT_EQ(tested.session.Failure(), SessionFailure::ServerBusy);
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
+    EXPECT_EQ(tested.session.Failure(), std::nullopt);
     EXPECT_EQ(tested.session.GameServer(), std::nullopt);
-    EXPECT_EQ(tested.connection.State(), LinkState::Closed);
-    EXPECT_EQ(tested.socket.closes, 1);
+    EXPECT_EQ(tested.session.ChosenServer(), std::nullopt);
+    EXPECT_EQ(tested.connection.State(), LinkState::Open);
     EXPECT_EQ(tested.socket.connects.size(), 1u);
-    EXPECT_TRUE(SameBytes(tested.socket.sent, sent));
-    EXPECT_TRUE(tested.Logged(LogLevel::Error, "el servidor elegido está ocupado"));
+    EXPECT_TRUE(SameBytes(tested.socket.sent, Join({sent, ListRequest()})));
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el servidor elegido está ocupado: se pide la lista otra vez"));
 
-    // El cierre lo pidió la sesión: no vuelve como un ConnectServerLost.
+    tested.socket.reads = {ServerList({401})};
     tested.session.Poll();
-    EXPECT_EQ(tested.session.Failure(), SessionFailure::ServerBusy);
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
+    ASSERT_EQ(tested.session.ServerList().size(), 1u);
+    EXPECT_EQ(tested.session.ServerList()[0].code, 401);
 }
 
 // Antes de elegir, un F4 05 no es la respuesta a nada: se ignora con un aviso (Q-C72).
@@ -679,7 +697,7 @@ TEST(ServerSessionTest, ABusyAnswerOutOfTurnIsIgnored)
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
-    tested.socket.reads = {Bytes({0xC1, 0x05, 0xF4, 0x05, 0x00})};
+    tested.socket.reads = {BusyReply()};
     tested.session.Poll();
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
@@ -744,10 +762,9 @@ TEST(ServerSessionTest, AnUndecryptablePacketIsIgnored)
     tested.socket.reads = {Join({Bytes({0xC3, 0x05, 0x11, 0x22, 0x33}), ServerList({LabServerCode})})};
     tested.session.Poll();
 
-    EXPECT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
-    EXPECT_TRUE(SameBytes(tested.socket.sent,
-                          Join({PetInfoRequest(), ListRequest(), Bytes({0xC1, 0x06, 0xF4, 0x03, 0x90, 0x01})})));
+    EXPECT_EQ(tested.session.ServerList().size(), 1u);
     EXPECT_EQ(tested.Warnings(), Lines{"[warning] se descarta un C3 que llegó: esta conexión no tiene claves"});
 }
 
@@ -807,6 +824,33 @@ TEST(ServerSessionTest, LosingTheConnectServerFails)
     EXPECT_EQ(tested.session.Failure(), SessionFailure::ConnectServerLost);
     EXPECT_TRUE(tested.Logged(LogLevel::Error, std::format("se perdió la conexión con el ConnectServer: {}",
                                                            CloseReasonText(CloseReason::PeerClosed))));
+}
+
+// Sin timeout, la espera de la elección no cuelga: un CS que cierra con la lista en pantalla es un
+// ConnectServerLost.
+TEST(ServerSessionTest, LosingTheConnectServerWhileChoosingFails)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingServer());
+
+    tested.socket.peerClosed = true;
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::ConnectServerLost);
+}
+
+// Y la de la cuenta: un GS que cierra con la cuenta en pantalla es un GameServerLost.
+TEST(ServerSessionTest, LosingTheGameServerWhileWaitingForTheCredentialsFails)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCredentials());
+
+    tested.socket.peerClosed = true;
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
 }
 
 // También mientras conecta: un CS que rechaza la conexión.
@@ -888,8 +932,12 @@ TEST(ServerSessionTest, StartingAgainStartsClean)
     tested.session.Start();
     EXPECT_EQ(tested.session.State(), SessionState::ConnectingConnectServer);
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
-    tested.socket.reads = {Hello(), ServerList({LabServerCode}), AddressReply(GameHost, GamePort)};
-    // El primer Poll lee las tres y abre el GS; el segundo da su Opened.
+    tested.socket.reads = {Hello(), ServerList({LabServerCode})};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::ChoosingServer);
+    tested.session.ChooseServer(LabServerCode);
+    tested.socket.reads = {AddressReply(GameHost, GamePort)};
+    // El primer Poll lee la dirección y abre el GS; el segundo da su Opened.
     tested.session.Poll();
     tested.session.Poll();
     ASSERT_EQ(tested.session.State(), SessionState::WaitingGameHello);
@@ -897,6 +945,8 @@ TEST(ServerSessionTest, StartingAgainStartsClean)
     tested.session.Start();
     EXPECT_EQ(tested.session.State(), SessionState::ConnectingConnectServer);
     EXPECT_EQ(tested.session.GameServer(), std::nullopt);
+    EXPECT_TRUE(tested.session.ServerList().empty());
+    EXPECT_EQ(tested.session.ChosenServer(), std::nullopt);
     ASSERT_EQ(tested.socket.connects.size(), 4u);
     EXPECT_EQ(tested.socket.connects[3].host, ConnectHost);
     EXPECT_EQ(tested.socket.connects[3].port, ConnectPort);
@@ -924,17 +974,35 @@ TEST(ServerSessionTest, ConnectsToTheGameServerItWasGiven)
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "conectó con el GameServer"));
 }
 
-// El test del 04: con C1 0C F1 00 01 00 05 "10209", el login sale cifrado como C3, con el serial
-// 0, y el GS lo descifra a los 49 bytes de WriteLoginRequest con la cuenta, la clave y el tick
-// del reloj en el momento del saludo.
-TEST(ServerSessionTest, SendsTheLoginAfterTheHello)
+// Con el saludo del GS aceptado y la versión, la sesión espera la cuenta y la clave (CL5.5): no
+// sale nada, ni el login ni el keepalive del timer de la CL4.5, y la espera no tiene tope. Acá, 60
+// s después, sigue igual.
+TEST(ServerSessionTest, WaitsForTheCredentialsAfterTheGameHello)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
-    tested.clock.Advance(std::chrono::milliseconds{123456});
 
     tested.socket.reads = {GameHello(1, ClientVersion)};
     tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "el GameServer saludó: se espera la cuenta y la clave"));
+    tested.PollEachFrameUntil(seconds{60});
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_EQ(tested.socket.sent.size(), tested.gameServerStart);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 0u);
+}
+
+// El test del 04: con C1 0C F1 00 01 00 05 "10209" y la cuenta y la clave, el login sale cifrado
+// como C3, con el serial 0, y el GS lo descifra a los 49 bytes de WriteLoginRequest con la cuenta,
+// la clave y el tick del reloj en el momento de SubmitCredentials.
+TEST(ServerSessionTest, SubmittingSendsTheLogin)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCredentials());
+    tested.clock.Advance(std::chrono::milliseconds{123456});
+
+    tested.session.SubmitCredentials(TheCredentials());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
     const auto expected = WriteLoginRequest(LoginRequest{Account, Password, TickCountMs(tested.clock.Now())});
@@ -945,10 +1013,33 @@ TEST(ServerSessionTest, SendsTheLoginAfterTheHello)
     EXPECT_EQ(received.packets[0].Bytes().size(), 49u);
     EXPECT_TRUE(SameBytesWithoutValues(received.packets[0].Bytes(), expected.Value().packet.Bytes()));
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "se manda el login"));
+    EXPECT_FALSE(tested.LoggedTheCredentials());
+}
+
+// SubmitCredentials fuera de WaitingCredentials: un aviso, sin la cuenta ni la clave, y nada sale.
+// Antes del saludo, y con el login ya mandado.
+TEST(ServerSessionTest, SubmittingOutOfTurnIsIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
+    tested.session.SubmitCredentials(TheCredentials());
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
+    EXPECT_EQ(tested.socket.sent.size(), tested.gameServerStart);
+
+    tested.socket.reads = {GameHello(1, ClientVersion)};
+    tested.session.Poll();
+    tested.session.SubmitCredentials(TheCredentials());
+    tested.session.SubmitCredentials(TheCredentials());
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
+    EXPECT_EQ(tested.GameServerReads().packets.size(), 1u);
+    EXPECT_EQ(tested.Warnings(), (Lines{"[warning] se ignoran la cuenta y la clave: la sesión no las espera",
+                                        "[warning] se ignoran la cuenta y la clave: la sesión no las espera"}));
+    EXPECT_FALSE(tested.LoggedTheCredentials());
 }
 
 // El GS del laboratorio manda el saludo cifrado: la conexión del GS tiene las claves y lo descifra.
-TEST(ServerSessionTest, AHelloThatArrivesEncryptedAlsoSendsTheLogin)
+TEST(ServerSessionTest, AHelloThatArrivesEncryptedAlsoWaitsForTheCredentials)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
@@ -956,8 +1047,7 @@ TEST(ServerSessionTest, AHelloThatArrivesEncryptedAlsoSendsTheLogin)
     tested.socket.reads = {FromTheGameServer(GameHello(1, ClientVersion), tested.gameServerSends)};
     tested.session.Poll();
 
-    EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
-    EXPECT_EQ(tested.GameServerReads().packets.size(), 1u);
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
     EXPECT_EQ(tested.Warnings(), Lines{});
 }
 
@@ -1034,9 +1124,10 @@ TEST(ServerSessionTest, AnAcceptedLoginIsLoggedIn)
     EXPECT_EQ(tested.Warnings(), Lines{});
 }
 
-// Otro resultado: LoginRejected, con el resultado guardado (qué dice cada uno es de la CL5.5), y
-// la sesión cierra el GS.
-TEST(ServerSessionTest, ARejectedLoginFails)
+// Otro resultado: como el original, que vuelve al estado 2 con el GS abierto (0x643560), la sesión
+// espera otra vez la cuenta y la clave, con el resultado guardado para el aviso de la escena. El
+// login siguiente sale con el serial que sigue, y olvida el resultado de antes.
+TEST(ServerSessionTest, ARejectedLoginKeepsItsResult)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
@@ -1044,11 +1135,22 @@ TEST(ServerSessionTest, ARejectedLoginFails)
     tested.socket.reads = {FromTheGameServer(LoginResult(0), tested.gameServerSends)};
     tested.session.Poll();
 
-    EXPECT_EQ(tested.session.State(), SessionState::Failed);
-    EXPECT_EQ(tested.session.Failure(), SessionFailure::LoginRejected);
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_EQ(tested.session.Failure(), std::nullopt);
     EXPECT_EQ(tested.session.LoginResult(), std::optional<std::uint8_t>{std::uint8_t{0}});
-    EXPECT_EQ(tested.connection.State(), LinkState::Closed);
-    EXPECT_TRUE(tested.Logged(LogLevel::Error, "el GameServer rechazó el login (resultado 0)"));
+    EXPECT_EQ(tested.connection.State(), LinkState::Open);
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el GameServer rechazó el login (resultado 0)"));
+    tested.PollEachFrameUntil(seconds{60});
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 0u);
+
+    tested.session.SubmitCredentials(TheCredentials());
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
+    EXPECT_EQ(tested.session.LoginResult(), std::nullopt);
+    const GameServerReceived received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), 2u);
+    EXPECT_EQ(received.serials, (std::vector<SerialCheck>{SerialCheck::InOrder, SerialCheck::InOrder}));
 }
 
 // Un C3 con el checksum malo: la sesión manda el F1 03, que el GS descifra a C1 06 F1 7B C1 73 con
@@ -1148,8 +1250,10 @@ TEST(ServerSessionTest, WhatDoesNotReadFromTheGameServerIsIgnored)
     EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
     EXPECT_EQ(tested.socket.sent.size(), tested.gameServerStart);
 
-    tested.socket.reads = {GameHello(1, ClientVersion), Bytes({0xC1, 0x04, 0xF1, 0x01})};
+    tested.socket.reads = {GameHello(1, ClientVersion)};
     tested.session.Poll();
+    tested.session.SubmitCredentials(TheCredentials());
+    tested.socket.reads = {Bytes({0xC1, 0x04, 0xF1, 0x01})};
     tested.session.Poll();
     EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
 
@@ -1157,16 +1261,15 @@ TEST(ServerSessionTest, WhatDoesNotReadFromTheGameServerIsIgnored)
                                         "[warning] se ignora el resultado del login (F1 01): no se puede leer"}));
 }
 
-// Una cuenta de 11 bytes no entra en el login (ReadCredentials ya no la deja pasar): la sesión no
-// manda nada, falla con CredentialsTooLong y el error no trae la cuenta.
+// Una cuenta de 11 bytes no entra en el login (ni ReadCredentials ni el TextField la dejan pasar):
+// la sesión no manda nada, falla con CredentialsTooLong y el error no trae la cuenta.
 TEST(ServerSessionTest, CredentialsThatDoNotFitFail)
 {
     const std::string tooLong = std::string(Account) + "xyz";
-    Harness tested(IdentityObfuscation::Shared(), Settings(Credentials{tooLong, std::string(Password)}));
-    ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCredentials());
 
-    tested.socket.reads = {GameHello(1, ClientVersion)};
-    tested.session.Poll();
+    tested.session.SubmitCredentials(Credentials{tooLong, std::string(Password)});
 
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_EQ(tested.session.Failure(), SessionFailure::CredentialsTooLong);
@@ -1270,9 +1373,10 @@ TEST(ServerSessionTest, KeepaliveEveryTwentySecondsAndNotBefore)
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// Pregunta 6 del plan: antes del login aceptado no sale ninguno, aunque el GS esté abierto. Acá, 58
-// s con el GS abierto y sin resultado: 29 esperando el saludo y 29 el resultado, cada espera debajo
-// de ReplyTimeout. El original mandaría dos o tres, con su timer desde el arranque (Q-C53).
+// Pregunta 6 del plan: antes del login aceptado no sale ninguno, aunque el GS esté abierto. Acá, 98
+// s con el GS abierto y sin resultado: 29 esperando el saludo, 40 la cuenta y la clave y 29 el
+// resultado, cada espera con tope debajo de ReplyTimeout. El original mandaría cuatro o cinco, con
+// su timer desde el arranque (Q-C53).
 TEST(ServerSessionTest, NoKeepaliveBeforeTheLogin)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1280,9 +1384,12 @@ TEST(ServerSessionTest, NoKeepaliveBeforeTheLogin)
     tested.PollEachFrameUntil(seconds{29});
     tested.socket.reads = {GameHello(1, ClientVersion)};
     tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    tested.PollEachFrameUntil(seconds{69});
+    tested.session.SubmitCredentials(TheCredentials());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
 
-    tested.PollEachFrameUntil(seconds{58});
+    tested.PollEachFrameUntil(seconds{98});
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
     EXPECT_EQ(tested.GameServerReads().packets.size(), 1u);
@@ -1467,15 +1574,14 @@ TEST(ServerSessionTest, AGameServerThatDoesNotAnswerTheLoginFails)
         tested.Logged(LogLevel::Error, "el GameServer no contestó en 30 s: se esperaba el resultado del login"));
 }
 
-// Un CS que da la lista y no la dirección: la espera de la dirección cuenta desde que llegó la
-// lista (a los 10 s), así que falla a los 40 s y no a los 30.
+// Un CS que da la lista y no la dirección: la espera de la dirección cuenta desde la elección (a
+// los 10 s), así que falla a los 40 s y no a los 30.
 TEST(ServerSessionTest, AConnectServerThatDoesNotGiveTheAddressFails)
 {
     Harness tested(IdentityObfuscation::Shared());
-    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingServer());
     tested.AdvanceTo(seconds{10});
-    tested.socket.reads = {ServerList({LabServerCode})};
-    tested.session.Poll();
+    tested.session.ChooseServer(LabServerCode);
     ASSERT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
 
     tested.AdvanceTo(seconds{40} - milliseconds{1});
@@ -1528,7 +1634,7 @@ TEST(ServerSessionTest, AReplyThatArrivedDuringALongFrameIsRead)
 
 // Main loguea cada cambio de estado (el plan de la CL4, CL4.5): de Start a LoggedIn, una línea de
 // info por estado, en orden, y después la del primer keepalive. La del cierre del CS es de la
-// Connection.
+// Connection. La elección no dice el código, y el login no dice la cuenta.
 TEST(ServerSessionTest, EachStateChangeIsLogged)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1544,12 +1650,13 @@ TEST(ServerSessionTest, EachStateChangeIsLogged)
     }
     EXPECT_EQ(infos, (Lines{"[info] se conecta al ConnectServer", "[info] conectó con el ConnectServer",
                             "[info] el ConnectServer saludó: se pide la lista de servidores",
-                            "[info] la lista trae 1 servidores: se elige el primero",
+                            "[info] la lista trae 1 servidores: se espera la elección",
+                            "[info] se elige un servidor: se pide su dirección",
                             "[info] el ConnectServer dio la dirección del GameServer: se cierra y se conecta a ese",
                             "[info] la conexión se cerró: la cerró el cliente",
                             "[info] conectó con el GameServer: se espera su saludo",
-                            "[info] el GameServer saludó: se manda el login", "[info] el GameServer aceptó el login",
-                            "[info] se mandó el keepalive al GameServer"}));
+                            "[info] el GameServer saludó: se espera la cuenta y la clave", "[info] se manda el login",
+                            "[info] el GameServer aceptó el login", "[info] se mandó el keepalive al GameServer"}));
 }
 
 } // namespace

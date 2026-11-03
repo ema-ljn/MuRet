@@ -1,6 +1,5 @@
 #include "Scenes/LoginScene.h"
 
-#include "App/Credentials.h"
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
@@ -51,13 +50,13 @@
 #include <utility>
 #include <vector>
 
-// Client::Scenes::LoginScene: la escena 2 sin su UI (la CL5.5). Entra como 0x6349a0 (sus texturas
-// y el ConnectServer) y dibuja como 0x6350b0, con un Data\ sintético, la tabla de texturas falsa y
-// el RecordingFrameTarget, que anota cada quad, cada texto, el fin del 2D y el pase 3D en orden.
-// Los textos son inventados: los de Text.bmd no van a los tests.
+// Client::Scenes::LoginScene: la escena 2 sin que la sesión pida una ventana. Entra como 0x6349a0
+// (sus texturas, las de las ventanas y el ConnectServer) y dibuja como 0x6350b0. Con un Data\ que
+// es sintético, la tabla de texturas falsa y el RecordingFrameTarget, que anota cada quad, cada
+// texto, el fin del 2D y el pase 3D en orden. Su UI con la sesión (CL5.5) está en
+// test_login_scene_session.cpp. Los textos son inventados: los de Text.bmd no van a los tests.
 namespace
 {
-using Client::App::Credentials;
 using Client::App::PixelSize;
 using Client::App::ServerAddress;
 using Client::App::ServerSession;
@@ -92,6 +91,7 @@ using Client::Scenes::LoginVersionText;
 using Client::Scenes::PlaceVersion;
 using Client::Scenes::SceneContext;
 using Client::Scenes::SceneId;
+using Client::Scenes::WindowTextureSet;
 using Client::Scenes::WorldOf;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeSocket;
@@ -210,6 +210,7 @@ struct Harness
         : log(sink, LogLevel::Debug), target(screen)
     {
         WriteTextureSet(folder.Path(), LoginTextureSet);
+        WriteTextureSet(folder.Path(), WindowTextureSet);
         WriteTextTable(folder.Path(), texts);
         auto loaded = LoadGameData(folder.Path());
         EXPECT_TRUE(loaded.HasValue()) << loaded.Error();
@@ -244,13 +245,12 @@ struct Harness
     InputState input;
 };
 
-// Una sesión que no conectó todavía, sobre un FakeSocket: la cuenta y la clave sintéticas.
+// Una sesión que no conectó todavía, sobre un FakeSocket.
 struct Session
 {
     Session()
         : connection(socket, IdentityObfuscation::Shared(), clock, log, 1),
-          session(connection, clock, log, GameClientKeys(),
-                  SessionSettings{ServerAddress{"10.0.0.1", 44405}, Credentials{"user0001", "pass0002"}})
+          session(connection, clock, log, GameClientKeys(), SessionSettings{ServerAddress{"10.0.0.1", 44405}})
     {
     }
 
@@ -424,7 +424,7 @@ TEST(LoginSceneTest, PlacesTheVersionOnlyWhereTheTextMarksIt)
     EXPECT_EQ(PlaceVersion("", "1.2"), "");
 }
 
-// 0x6349a0: las texturas y después el ConnectServer (0x4c1340).
+// 0x6349a0: las texturas, las suyas y las de las ventanas, y después el ConnectServer (0x4c1340).
 TEST(LoginSceneTest, StartsTheSessionOnEnter)
 {
     Harness tested;
@@ -438,8 +438,10 @@ TEST(LoginSceneTest, StartsTheSessionOnEnter)
     ASSERT_EQ(online.socket.connects.size(), 1u);
     EXPECT_EQ(online.socket.connects[0].host, "10.0.0.1");
     EXPECT_EQ(online.socket.connects[0].port, 44405);
-    EXPECT_EQ(tested.store.Size(), LoginTextureSet.size());
+    EXPECT_EQ(tested.store.Size(), LoginTextureSet.size() + WindowTextureSet.size());
     EXPECT_EQ(scene.Next(), std::nullopt);
+    EXPECT_FALSE(scene.WantsToQuit());
+    EXPECT_FALSE(scene.WantsTextInput());
 }
 
 // Sin servidor (Main sin host), la escena dibuja igual y no pide la selección.
@@ -491,7 +493,27 @@ TEST(LoginSceneTest, AMissingTextureFailsWithItsName)
     EXPECT_TRUE(online.socket.connects.empty());
 }
 
-TEST(LoginSceneTest, LeaveReleasesItsEighteenSlots)
+// Una de las ventanas que falta también corta antes de conectar. Lo que subió se suelta con el
+// Leave, como hace el SceneManager con un Enter que falla.
+TEST(LoginSceneTest, AMissingWindowTextureFailsWithItsName)
+{
+    Harness tested;
+    std::filesystem::remove(tested.folder.Path() / "Interface/message_back.OZT");
+    Session online;
+    LoginScene& scene = tested.Make(&online.session);
+
+    const auto entered = scene.Enter();
+
+    ASSERT_FALSE(entered.HasValue());
+    EXPECT_NE(entered.Error().find("Interface\\message_back.tga"), std::string::npos) << entered.Error();
+    EXPECT_EQ(online.session.State(), SessionState::Idle);
+    EXPECT_TRUE(online.socket.connects.empty());
+    scene.Leave();
+    EXPECT_EQ(tested.store.Size(), 0u);
+}
+
+// Las 18 del login y las 3 de las ventanas, en ese orden.
+TEST(LoginSceneTest, LeaveReleasesItsTwentyOneSlots)
 {
     Harness tested;
     LoginScene& scene = tested.Make();
@@ -501,6 +523,10 @@ TEST(LoginSceneTest, LeaveReleasesItsEighteenSlots)
 
     std::vector<std::uint16_t> slots;
     for (const auto& entry : LoginTextureSet)
+    {
+        slots.push_back(entry.slot);
+    }
+    for (const auto& entry : WindowTextureSet)
     {
         slots.push_back(entry.slot);
     }

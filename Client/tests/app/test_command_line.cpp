@@ -135,6 +135,19 @@ TEST(CommandLineTest, ParsesStats)
     EXPECT_EQ(commandLine->maxFrames, 60u);
 }
 
+// --auto-login (CL5.5): sin valor, como --stats. Sin él, la cuenta la teclea el jugador.
+TEST(CommandLineTest, ParsesAutoLogin)
+{
+    std::string error;
+    EXPECT_FALSE(Parse({}, error).value().autoLogin) << error;
+
+    const auto commandLine = Parse({"--auto-login", "connect", "/u10.0.0.1", "/p44405"}, error);
+
+    ASSERT_TRUE(commandLine.has_value()) << error;
+    EXPECT_TRUE(commandLine->autoLogin);
+    ASSERT_TRUE(commandLine->connect.has_value());
+}
+
 // En el modo fiel VSync va apagado, como el original: el mensaje nombra las dos opciones.
 // La regla del modo fiel sin VSync la mira Resolve (ConfigTest.FaithfulWithVSyncOnIsAnError).
 TEST(CommandLineTest, LeavesTheFaithfulRuleToResolve)
@@ -228,6 +241,7 @@ TEST(CommandLineTest, RejectsARepeatedOption)
     EXPECT_EQ(ErrorOf({"--pacing", "faithful", "--pacing", "decoupled"}), "--pacing está repetido");
     EXPECT_EQ(ErrorOf({"--vsync", "off", "--vsync", "on"}), "--vsync está repetido");
     EXPECT_EQ(ErrorOf({"--stats", "--stats"}), "--stats está repetido");
+    EXPECT_EQ(ErrorOf({"--auto-login", "--auto-login"}), "--auto-login está repetido");
 }
 
 // Q-C37, en la línea de comandos: el mismo ParseHost que la config.

@@ -10,10 +10,17 @@
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
+#include "Data/Textures/TextureSet.h"
 #include "Scenes/TextureSets.h"
+#include "UI/GameText.h"
+#include "UI/ServerListModel.h"
 
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstdint>
+#include <string>
+#include <utility>
 
 namespace Client::Scenes
 {
@@ -82,6 +89,16 @@ constexpr int TextBottom = 479;
 constexpr int TextSplit = 335;
 
 constexpr std::string_view VersionMark = "%s";
+
+// El lugar de un grupo sin botón para el título: solo llega con --auto-login, que elige el primero
+// de la lista aunque la ventana no lo muestre. Cualquiera que no sea el 4 da lo mismo (IsNonPvp).
+constexpr int NoSlot = -1;
+
+[[nodiscard]] bool IsWindowTexture(Render::TextureSlot slot)
+{
+    return std::ranges::any_of(WindowTextureSet, [slot](const Data::Textures::TextureSetEntry& entry)
+                               { return entry.slot == slot.value; });
+}
 } // namespace
 
 std::string PlaceVersion(std::string_view text, std::string_view version)
@@ -99,8 +116,12 @@ std::string PlaceVersion(std::string_view text, std::string_view version)
 
 LoginScene::LoginScene(const SceneContext& context, const GameData& data, App::ServerSession* session,
                        std::string_view version)
-    : m_context(context), m_session(session), m_textures(context.textures, LoginTextureSet),
-      m_world(WorldOf(SceneId::Login))
+    : m_context(context), m_session(session), m_texts(data.text ? &*data.text : nullptr),
+      m_textures(context.textures, LoginTextureSet), m_windowTextures(context.textures, WindowTextureSet),
+      m_world(WorldOf(SceneId::Login)),
+      m_serverList([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
+      m_login([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
+      m_notice([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts)
 {
     if (data.text)
     {
@@ -120,6 +141,16 @@ Core::Expected<void, std::string> LoginScene::Enter()
     {
         return loaded;
     }
+    auto windows = m_windowTextures.Load(m_context.dataRoot);
+    if (!windows.HasValue())
+    {
+        return windows;
+    }
+    m_serverList.Close();
+    m_login.Close();
+    m_notice.Close();
+    m_seen.reset();
+    m_quit = false;
     if (m_session != nullptr)
     {
         m_session->Start();
@@ -127,10 +158,201 @@ Core::Expected<void, std::string> LoginScene::Enter()
     return {};
 }
 
-void LoginScene::Step(const Input::InputState& /*input*/) {}
+void LoginScene::Step(const Input::InputState& input)
+{
+    if (m_session == nullptr)
+    {
+        return;
+    }
+    // Lo que cambió con el Poll de este frame.
+    FollowSession();
+    if (m_notice.IsOpen())
+    {
+        if (const std::optional<UI::NoticeId> closed = m_notice.Step(input, m_screen))
+        {
+            OnNoticeClosed(*closed);
+        }
+    }
+    else if (m_login.IsOpen())
+    {
+        if (const std::optional<UI::LoginRequest> request = m_login.Step(input, m_screen))
+        {
+            OnLoginRequest(*request);
+        }
+    }
+    else if (m_serverList.IsOpen())
+    {
+        if (const std::optional<UI::ServerClick> click = m_serverList.Step(input, m_screen))
+        {
+            OnServerClick(*click);
+        }
+    }
+    // Y lo que cambió con lo que la escena le pidió a la sesión: un login que se rechaza en el
+    // próximo Poll vuelve a WaitingCredentials, y la escena tiene que haber visto que salió.
+    FollowSession();
+}
+
+void LoginScene::FollowSession()
+{
+    const App::SessionState state = m_session->State();
+    if (m_seen == state)
+    {
+        return;
+    }
+    m_seen = state;
+    switch (state)
+    {
+    case App::SessionState::ChoosingServer:
+    {
+        // 0x4c1860 con el F4 06.
+        UI::ServerGroups groups = UI::GroupServers(m_session->ServerList());
+        if (groups.ignored > 0)
+        {
+            m_context.log.Warning("{} servidores de la lista no se muestran: son de un grupo sin botón o pasan los "
+                                  "20 de su grupo (Q-C62 y Q-C63)",
+                                  groups.ignored);
+        }
+        m_login.Close();
+        m_serverList.Open(std::move(groups));
+        return;
+    }
+    case App::SessionState::WaitingCredentials:
+        m_serverList.Close();
+        // Con un resultado, el login se rechazó: su aviso, y el OK abre la cuenta (0x643560). Sin
+        // él, el F1 00 (0x4c1e20).
+        if (const std::optional<std::uint8_t> result = m_session->LoginResult())
+        {
+            if (const std::optional<UI::NoticeId> notice = UI::NoticeOfLoginResult(*result))
+            {
+                m_notice.Open(*notice);
+                return;
+            }
+        }
+        OpenLogin(UI::LoginFocus::Account);
+        return;
+    case App::SessionState::Failed:
+        m_serverList.Close();
+        m_login.Close();
+        ShowFailure();
+        return;
+    case App::SessionState::Idle:
+    case App::SessionState::ConnectingConnectServer:
+    case App::SessionState::WaitingConnectHello:
+    case App::SessionState::WaitingServerList:
+    case App::SessionState::WaitingServerAddress:
+    case App::SessionState::ConnectingGameServer:
+    case App::SessionState::WaitingGameHello:
+    case App::SessionState::WaitingLoginResult:
+    case App::SessionState::LoggedIn:
+        m_serverList.Close();
+        m_login.Close();
+        return;
+    }
+}
+
+void LoginScene::OnServerClick(const UI::ServerClick& click)
+{
+    switch (click.kind)
+    {
+    case UI::ServerClick::Kind::Chosen:
+        m_session->ChooseServer(click.code);
+        return;
+    case UI::ServerClick::Kind::Full:
+        m_notice.Open(UI::ServerFullNotice);
+        return;
+    }
+}
+
+void LoginScene::OnLoginRequest(const UI::LoginRequest& request)
+{
+    switch (request.kind)
+    {
+    case UI::LoginRequest::Kind::Submit:
+        m_session->SubmitCredentials(request.credentials);
+        return;
+    case UI::LoginRequest::Kind::EmptyAccount:
+        m_notice.Open(UI::EmptyAccountNotice);
+        return;
+    case UI::LoginRequest::Kind::EmptyPassword:
+        m_notice.Open(UI::EmptyPasswordNotice);
+        return;
+    case UI::LoginRequest::Kind::Cancel:
+        // 0x642810: cierra el GameServer y conecta otra vez al ConnectServer.
+        m_context.log.Info("se cancela la cuenta: se vuelve a pedir la lista");
+        m_session->Start();
+        return;
+    }
+}
+
+void LoginScene::OnNoticeClosed(UI::NoticeId notice)
+{
+    const UI::NoticeFollowUp followUp = UI::FollowUpOf(notice);
+    switch (followUp)
+    {
+    case UI::NoticeFollowUp::Close:
+        return;
+    case UI::NoticeFollowUp::ReopenAtAccount:
+    case UI::NoticeFollowUp::ReopenAtPassword:
+        // Solo si la sesión sigue esperando la cuenta. Si falló, el aviso de la falla ya tapó a
+        // este: la guarda es por las dudas.
+        if (m_session->State() == App::SessionState::WaitingCredentials)
+        {
+            OpenLogin(followUp == UI::NoticeFollowUp::ReopenAtPassword ? UI::LoginFocus::Password
+                                                                       : UI::LoginFocus::Account);
+        }
+        return;
+    case UI::NoticeFollowUp::Quit:
+        // El PostMessage con WM_CLOSE de 0x643560 (Q-C69): lo hace Main.
+        m_context.log.Info("el OK del aviso cierra el juego (el {:#04x})", static_cast<int>(notice));
+        m_quit = true;
+        return;
+    }
+}
+
+void LoginScene::OpenLogin(UI::LoginFocus focus)
+{
+    m_login.SetTitle(LoginTitle());
+    m_login.Open(focus);
+}
+
+void LoginScene::ShowFailure()
+{
+    // 0x4c1e20 abre el 0x6f con otra versión y el 0x70 cuando no conecta o el F1 00 no acepta. Con
+    // una lista vacía, sin respuesta o una cuenta que no entra, MuRet abre el 0x70 también.
+    const bool otherVersion = m_session->Failure() == App::SessionFailure::VersionMismatch;
+    m_notice.Open(otherVersion ? UI::VersionMismatchNotice : UI::ConnectFailedNotice);
+}
+
+std::string LoginScene::LoginTitle() const
+{
+    const std::optional<std::uint16_t> code = m_session->ChosenServer();
+    if (!code)
+    {
+        return {};
+    }
+    const std::uint16_t group = UI::GroupOf(*code);
+    const int number = UI::ServerNumber(*code);
+    const std::optional<std::string_view> format =
+        UI::TextAt(m_texts, UI::LoginTitleText(UI::GroupSlot(group).value_or(NoSlot), number));
+    if (!format)
+    {
+        return {};
+    }
+    const std::string_view name = UI::TextAt(m_texts, UI::GroupNameText(group)).value_or(std::string_view{});
+    const std::string numberText = std::to_string(number);
+    const std::array<std::string_view, 2> arguments{name, numberText};
+    return UI::PlaceArguments(*format, arguments);
+}
+
+Scenes::TextureBufferSize LoginScene::BufferSize(Render::TextureSlot slot) const
+{
+    return IsWindowTexture(slot) ? m_windowTextures.BufferSize(slot) : m_textures.BufferSize(slot);
+}
 
 void LoginScene::Render(SceneCanvas& canvas, float alpha)
 {
+    // Las ventanas leen el mouse del próximo paso con esta pantalla.
+    m_screen = canvas.screen;
     Render::SpriteBatch& sprites = canvas.sprites;
     // 1 y 2: la mezcla normal, el blanco y los dos fondos.
     sprites.SetBlend(Render::BlendMode::Alpha);
@@ -154,7 +376,10 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     // 6: los textos, con la mezcla aditiva que quedó (0x554000 no la cambia).
     sprites.SetColor(TextColor);
     DrawTexts(canvas);
-    // 7: el fundido no dibuja nada (Q-C66). 8: la UI, en la CL5.5.
+    // 7: el fundido no dibuja nada (Q-C66). 8: la UI (CL5.5), cada ventana con la mezcla normal.
+    m_serverList.Draw(sprites, canvas.text, canvas.screen);
+    m_login.Draw(sprites, canvas.text, canvas.screen);
+    m_notice.Draw(sprites, canvas.text, canvas.screen);
 }
 
 void LoginScene::DrawTexts(SceneCanvas& canvas) const
@@ -181,7 +406,12 @@ void LoginScene::DrawTexts(SceneCanvas& canvas) const
 
 void LoginScene::Leave()
 {
+    // Las ventanas también: la cuenta vacía la clave al cerrarse (LoginWindow::Close).
+    m_serverList.Close();
+    m_login.Close();
+    m_notice.Close();
     m_textures.Release();
+    m_windowTextures.Release();
 }
 
 std::optional<SceneId> LoginScene::Next() const
@@ -191,5 +421,15 @@ std::optional<SceneId> LoginScene::Next() const
         return SceneId::CharacterSelect;
     }
     return std::nullopt;
+}
+
+bool LoginScene::WantsToQuit() const
+{
+    return m_quit;
+}
+
+bool LoginScene::WantsTextInput() const
+{
+    return m_login.IsOpen();
 }
 } // namespace Client::Scenes

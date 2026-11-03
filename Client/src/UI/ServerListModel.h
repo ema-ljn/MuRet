@@ -63,6 +63,9 @@ struct ServerGroups
 // El texto del nombre del grupo: 540 + g, salvo el 12 (559), el 19 (552) y el 20 (1829).
 [[nodiscard]] std::size_t GroupNameText(std::uint16_t group);
 
+// código / 20.
+[[nodiscard]] std::uint16_t GroupOf(std::uint16_t code);
+
 // código % 20 + 1.
 [[nodiscard]] int ServerNumber(std::uint16_t code);
 

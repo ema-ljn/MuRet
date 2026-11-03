@@ -2011,7 +2011,7 @@ public:
   tecleado va en orden con Tab y Backspace: antes, lo de un paso iba entero al campo del foco
   después del Tab, y una ráfaga (o el auto-type de un gestor de claves) mandaba la cuenta a la
   clave; Backspace borraba uno por apretón, y ahora repite como el EDIT del original.
-- [ ] **Paso 5 (PR B):** los tests de la sesión con la UI, con `FakeSocket` de CS y de GS (los de la
+- [x] **Paso 5 (PR B):** los tests de la sesión con la UI, con `FakeSocket` de CS y de GS (los de la
   CL4):
   - `ServerSessionTest.WaitsForTheChoiceAfterTheList` (llega la lista: `ChoosingServer`, y no sale
     ningún `F4 03` hasta `ChooseServer`);
@@ -2026,19 +2026,113 @@ public:
   - `AutoLoginTest.ChoosesTheFirstAndSubmitsTheEnvironment`;
   - `LoginSceneSessionTest.TheListShowsWhenItArrives`, `TheLoginWindowShowsWithTheGameServer`,
     `ARefusedConnectShowsText402`, `APeerCloseShowsText3`, `LoggedInGoesToCharacterSelect`.
-- [ ] **Paso 6 (PR B):** la `ServerSession` que espera, `AutoLogin`, `--auto-login` y la
+
+  Hecho así (PR B, 2026-11-03): están todos, con esos nombres salvo uno, y antes del código, que
+  no compilaba. `APeerCloseShowsText3` es `APeerCloseShowsTheConnectNotice`: el texto 3 que el
+  original pone antes en el área de mensajes (`0x555190`) es del chat, que llega con la CL8, y el
+  test mira el `0x70` que sale después. Los paquetes escritos a mano de los tests de la sesión
+  pasaron a `tests/support/SessionPackets.h`, para el `AutoLogin` y la escena. Lo que llegó con
+  ellos:
+  - `ServerSessionTest` suma `ChoosingSendsTheCodeItWasGiven`. Cambian de nombre con lo que
+    prueban: `ABusyServerFails` es `ABusyServerAsksForTheListAgain` (Q-C71),
+    `ARejectedLoginFails` es `ARejectedLoginKeepsItsResult`, y
+    `AHelloThatArrivesEncryptedAlsoSendsTheLogin` es `...AlsoWaitsForTheCredentials`. Las
+    esperas de la lista y de la cuenta no tienen tope ni keepalive: 60 s después siguen igual.
+    `StartingAgainStartsClean` mira también que se olviden la lista y la elección. Después de la
+    review suma `LosingTheConnectServerWhileChoosingFails` y
+    `LosingTheGameServerWhileWaitingForTheCredentialsFails`: sin tope, un cierre se nota igual.
+  - `AutoLoginTest` suma `DoesNothingWhileTheSessionDoesNotWait`, `ABusyServerIsNotChosenAgain`,
+    `ARejectedLoginIsNotSubmittedAgain` y `AStartAgainIsANewRound`.
+  - `LoginSceneSessionTest`, 21: además de los del paso, la elección (`ClickingAServerChoosesIt`,
+    `AFullServerShowsItsNotice`, `TheServersThatAreNotShownAreLogged`), la cuenta
+    (`TypingAndEnterSubmitsTheLogin`, `AnEmptyAccountShowsItsNotice`,
+    `AnEmptyPasswordShowsItsNotice`, `ARejectedLoginShowsItsNotice`), los avisos que cierran el
+    juego (`OkOnTheConnectNoticeQuits`, `AnotherVersionShowsItsNotice`), `CancelGoesBackToTheList`
+    y `TheWindowsFollowTheScreenOfTheLastFrame`; después de la review, el texto tecleado
+    (`TheSceneWantsTheTextOnlyWithTheLogin`), `LeavingClosesTheLogin`,
+    `EnteringAgainClosesTheWindows`, `EnteringAgainClosesTheLogin` y
+    `EnteringAgainForgetsTheQuit`. Los textos son inventados, y el login tecleado se compara por
+    igualdad, sin imprimirlo.
+  - `SceneManagerTest.SaysWhenTheSceneWantsToQuit` y `SaysWhenTheSceneWantsTextInput`;
+    `LoginSceneTest.AMissingWindowTextureFailsWithItsName` y `LeaveReleasesItsTwentyOneSlots`;
+    `TextureSetsTest.TheWindowSetIsTheOneOf0x61ccb0`;
+    `ServerListModelTest.TheGroupIsTheCodeOverTwenty`; `CommandLineTest.ParsesAutoLogin`,
+    `ConfigTest.AutoLoginNeedsAServer` y `Client.Main.AutoLoginWithoutAServerSaysSo`. Golden:
+    `GoldenTextureSet.TheWindowSetLoads` y `GoldenLoginScene.TheTextsOfItsWindowsAreInTheLabTable`,
+    que mira que cada texto de las ventanas esté y no sea vacío, y si falla dice el índice.
+- [x] **Paso 6 (PR B):** la `ServerSession` que espera, `AutoLogin`, `--auto-login` y la
   `LoginScene` con sus ventanas.
+
+  Hecho así (PR B, 2026-11-03):
+  - `ServerSession`: `SessionSettings` tiene solo el ConnectServer. Con la lista queda en
+    `ChoosingServer` y con el saludo del GS en `WaitingCredentials`, sin tope y sin keepalive;
+    `ChooseServer` y `SubmitCredentials` fuera de turno dan un aviso y nada. Se fueron
+    `ServerBusy` y `LoginRejected`: el `F4 05` vuelve a pedir la lista (Q-C71), y un login
+    rechazado vuelve a `WaitingCredentials` con el GS abierto y su resultado en `LoginResult`
+    (Q-C55). Son nuevos `ChosenServer` y `StartCount`. `SubmitCredentials` recibe una referencia
+    y borra el resultado anterior: así, `WaitingCredentials` con un resultado es siempre un
+    rechazo, aunque la escena no haya visto el estado de en medio.
+  - `AutoLogin` recibe también el log, y hace cada cosa una vez por vuelta (`StartCount`): si en
+    la misma vuelta la sesión vuelve a esperar, por un servidor ocupado o un login rechazado, la
+    deja para la UI con un aviso, en vez de repetir lo mismo para siempre.
+  - `--auto-login` va en `CommandLine`, y sin un host es un error de `Resolve`. `main.cpp` lee el
+    entorno solo con él, y su `Online` corre la sesión y después el `AutoLogin`. El bucle para
+    también cuando la escena lo pide (`IScene::WantsToQuit`, nuevo, y
+    `SceneManager::WantsToQuit`), con `EXIT_SUCCESS`. El texto tecleado de SDL se prende solo
+    mientras la escena lo pide (`IScene::WantsTextInput`, nuevo, y `SceneManager::WantsTextInput`):
+    después de cada frame, `TextInputFollower` llama a `Window::StartTextInput` o `StopTextInput`
+    cuando el pedido cambia, y al salir del bucle lo apaga.
+  - `LoginScene`: sube también `WindowTextureSet`, las tres de `0x61ccb0` que usan las ventanas
+    (el OK, el cancelar y la caja del aviso), que el original sube una vez con los datos del juego:
+    21 slots. En el paso mira la sesión antes y después de atender la ventana de arriba, y abre o
+    cierra cuando el estado cambia. Los avisos de una falla son el `0x6f` con otra versión y el
+    `0x70` con lo demás: con una lista vacía, sin respuesta o una cuenta que no entra, el `0x70` es
+    de MuRet. El título de la cuenta usa `UI::GroupOf`, nuevo. Las ventanas usan la pantalla del
+    último frame, porque el paso no tiene el lienzo. Los servidores que no se muestran van a un
+    aviso del log, con la cuenta (Q-C62). Pide el texto tecleado con la cuenta abierta, y `Leave`
+    cierra las tres ventanas, como `Enter`: la cuenta vacía la clave al cerrarse.
+
+  Después de la review (2026-11-03): el texto de SDL estaba prendido desde antes de la escena
+  hasta el final, aunque SDL3 pide prenderlo solo cuando se quiere texto (con él puede salir un IME
+  o un teclado en pantalla, y saltear teclas). Ahora lo pide la escena, y el A ya decía que
+  "quién prende el texto es la escena". `ChosenServer` vale hasta el próximo `Start` o un `F4 05`,
+  como hace el código; el comentario decía solo el `Start`.
 - [ ] **Paso 7 (a mano):** en Windows, `Main connect /u<ip del CS> /p44405 --data <Data>` contra el
   laboratorio: la lista, la elección, el login aceptado (pasa a la selección vacía) y uno con una
   clave mala (el aviso). En Linux, lo mismo si hay red al laboratorio. Las capturas, fuera de Git;
   la cuenta, solo tecleada.
-- [ ] **Paso 8:** verificar:
+
+  *Hecho así* (PR B, 2026-11-03): falta. Donde se escribió no hay red al laboratorio ni su VM.
+  En su lugar, `Main` corrió en Xvfb contra un ConnectServer y un GameServer falsos en 127.0.0.1,
+  fuera de Git, con clics y teclas sintéticos: la lista con tres grupos, un grupo con tres
+  servidores y sus cargas, la elección, la ventana de la cuenta con su título, la cuenta y la
+  clave sintéticas, el login rechazado con su aviso y la cuenta otra vez con el foco en la clave,
+  cancelar y la lista de nuevo; y contra un puerto cerrado, el `0x70`, cuyo OK cerró `Main` con 0.
+  Las capturas quedaron fuera de Git. El paso, contra el laboratorio, queda escrito en
+  `Client/README.md`. Después de la review se corrió otra vez, con el texto que se prende y se
+  apaga con la cuenta: se teclea la cuenta y la clave, y otra vez la clave después del rechazo.
+- [x] **Paso 8:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug
   ctest --preset linux-x64-debug \
     -R "InputState|InputEvents|TextField|ServerList|LoginWindow|ServerSession|AutoLogin|LoginScene"
   xvfb-run -a -s '-screen 0 800x600x24' build/linux-x64-debug/Client/Main --frames 60
   ```
+
+  Hecho así (PR B, 2026-11-03): el `ctest` entero pasa, también con clang 18 y
+  `-Wconversion -Wsign-conversion`, y los de `gl` en Xvfb con `MURET_CLIENT_REQUIRE_GL=1`. `Main
+  --frames 60` sale con 0, y con el `Data\` del laboratorio, `--max-fps 30 --frames 200`, también.
+  Los mutantes a mano mueren todos, cada uno con su test: la lista que elige sola, el saludo que no
+  espera la cuenta, `ChooseServer` y `SubmitCredentials` fuera de turno, el keepalive desde el
+  saludo, un tope en la lista o en la cuenta, el rechazo que falla, el resultado que no se borra
+  al mandar, el ocupado que no pide la lista; el `AutoLogin` sin vueltas, que elige o manda otra
+  vez, o que elige el último; la escena que atiende todas las ventanas, que no mira la sesión
+  después del paso, los avisos de la falla al revés, la cuenta y la clave vacías con el aviso de
+  la otra, el OK que no cierra, el título sin el lugar, el foco al reabrir, el aviso de los
+  ignorados, cancelar sin `Start`, la pantalla fija y el lleno sin aviso; los índices de los
+  textos de los avisos (407, 402, 405 y 406, 416 y 403) y el aviso del resultado 0; y
+  `--auto-login`, en `Resolve`, en `ParseCommandLine` y en el entorno de `main.cpp`. El de la
+  clave vacía vivía: lo mató `AnEmptyPasswordShowsItsNotice`, nuevo.
 
 ## Qué no se prueba en CI, y cómo se cubre
 
@@ -2055,10 +2149,13 @@ public:
 
 ## Al cerrar la CL5
 
-- [ ] Completar el cierre de la guía de la CL5.0.
-- [ ] Actualizar `docs/learning/PROGRESS.md`.
+- [ ] Completar el cierre de la guía de la CL5.0. *Queda para Emanuel (CL5.5, 2026-11-03): la
+  sección "Al cerrar la CL5.0" es suya.*
+- [x] Actualizar `docs/learning/PROGRESS.md`. *Hecho con la CL5.5 B (2026-11-03).*
 - [ ] Sumar al plan de la CL7 el mundo de la escena de login (el mapa 55, `World56` y `Object56`,
   con el `IWorldView` de la CL5.4), y al de la CL6, el logo (`0xa2`) y el personaje con el cuervo.
+  *Queda para esos planes, que no existen todavía: va con cada uno, en su PR.*
 - [ ] Escribir el plan de la CL6 (modelos y selección de personaje) en su propio PR, con lo
   aprendido: la `CharacterSelectScene` vacía de la CL5.4 es la que llena la CL6.3, con el `F3 00`
-  que el original manda al aceptar el login, y el pase 3D con el viewport de `0x634680`.
+  que el original manda al aceptar el login, y el pase 3D con el viewport de `0x634680`. *Queda
+  para su propio PR.*

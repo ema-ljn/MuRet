@@ -10,8 +10,9 @@
 #include <string_view>
 
 // La cuenta y la clave con las que la sesión entra al GameServer (el login de la CL4.4).
-// Contrato: el plan de la CL4, pregunta 7. Hasta la escena de login (CL5.5) salen de dos variables
-// de entorno, solo para la prueba a mano: ni en la config (un archivo con una clave) ni en la línea
+// Contrato: el plan de la CL4, pregunta 7. Desde la CL5.5 las teclea el jugador en la ventana de
+// la cuenta; con --auto-login (App/AutoLogin.h) salen de dos variables de entorno, solo para la
+// prueba a mano y para depurar la red: ni en la config (un archivo con una clave) ni en la línea
 // de comandos (el historial y `ps`). El README del cliente las carga con `read -rs` o
 // `Read-Host -MaskInput`.
 //

@@ -22,10 +22,12 @@ constexpr std::string_view MaxFpsOption = "--max-fps";
 constexpr std::string_view StatsOption = "--stats";
 constexpr std::string_view ConfigOption = "--config";
 constexpr std::string_view DataOption = "--data";
+constexpr std::string_view AutoLoginOption = "--auto-login";
 // Lo que pasa el launcher adelante de /u y /p (02 § Del launcher al juego).
 constexpr std::string_view ConnectWord = "connect";
-constexpr std::string_view Usage = "uso: Main [connect /u<host> /p<puerto>] [--config RUTA] [--data RUTA] [--frames N] "
-                                   "[--pacing decoupled|faithful] [--vsync on|adaptive|off] [--max-fps N] [--stats]";
+constexpr std::string_view Usage =
+    "uso: Main [connect /u<host> /p<puerto>] [--auto-login] [--config RUTA] [--data RUTA] [--frames N] "
+    "[--pacing decoupled|faithful] [--vsync on|adaptive|off] [--max-fps N] [--stats]";
 
 char ToLowerAscii(char c)
 {
@@ -43,13 +45,13 @@ char LauncherLetter(std::string_view argument)
     return argument.size() >= 2 && argument.front() == '/' ? ToLowerAscii(argument[1]) : '\0';
 }
 
-// Las opciones que llevan un valor atrás, o --stats: cada una va una vez.
+// Las opciones que llevan un valor atrás, --stats y --auto-login: cada una va una vez.
 bool AlreadyGiven(const Client::App::CommandLine& commandLine, std::string_view option)
 {
-    return (option == StatsOption && commandLine.stats) || (option == FramesOption && commandLine.maxFrames) ||
-           (option == PacingOption && commandLine.pacing) || (option == VSyncOption && commandLine.vsync) ||
-           (option == MaxFpsOption && commandLine.maxFps) || (option == ConfigOption && commandLine.configPath) ||
-           (option == DataOption && commandLine.dataPath);
+    return (option == StatsOption && commandLine.stats) || (option == AutoLoginOption && commandLine.autoLogin) ||
+           (option == FramesOption && commandLine.maxFrames) || (option == PacingOption && commandLine.pacing) ||
+           (option == VSyncOption && commandLine.vsync) || (option == MaxFpsOption && commandLine.maxFps) ||
+           (option == ConfigOption && commandLine.configPath) || (option == DataOption && commandLine.dataPath);
 }
 
 std::string Unknown(std::string_view argument)
@@ -156,6 +158,11 @@ Core::Expected<CommandLine, std::string> ParseCommandLine(std::span<const std::s
         if (argument == StatsOption)
         {
             commandLine.stats = true;
+            continue;
+        }
+        if (argument == AutoLoginOption)
+        {
+            commandLine.autoLogin = true;
             continue;
         }
         // El launcher pasa "connect /u<ip> /p<puerto>"; el parser sin usar del original (0x4b9890,

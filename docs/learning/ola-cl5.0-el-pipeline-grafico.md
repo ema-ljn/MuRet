@@ -10,7 +10,9 @@ salir mal al subir una textura. Plan (tiene las respuestas: abrilo después):
 **Resuelta por Claude** el 2026-11-02, a tu pedido: el código está en
 [`labs/cl5.0-pipeline/`](../../labs/cl5.0-pipeline/), y las respuestas de las 14 actividades, con
 las salidas reales, en su [README](../../labs/cl5.0-pipeline/README.md). Si la hacés vos, abrilo
-después de cada actividad, no antes. La sección final de esta guía sigue siendo tuya.
+después de cada actividad, no antes. La sección final de esta guía sigue siendo tuya. Desde la
+CL5.2, las cuentas de la actividad 4 viven en el cliente (`Client/src/Render/ScreenScale.cpp` y
+`OriginalQuad.cpp`, que usa el `SpriteBatch`), y el `OriginalQuad.h` del lab las nombra.
 
 Qué cubre:
 

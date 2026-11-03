@@ -1012,7 +1012,14 @@ GL_ZERO)` (`AdditiveAddsAndAlphaBlends`), sin `glEnable(GL_BLEND)`, el alpha tes
 en cada frame (`AMissingSlotIsWarnedOnce`) y un slot que falta que se dibuja igual
 (`AMissingSlotIsSkippedWithAWarning`). El mutante de la mezcla aditiva vivía con el verde de alfa 1
 y el que no miraba la mezcla vivía porque el alpha test cambia con ella: por eso el verde de
-`AdditiveAddsAndAlphaBlends` lleva alfa 0,6 y está el test de los dos quads sin textura.
+`AdditiveAddsAndAlphaBlends` lleva alfa 0,6 y está el test de los dos quads sin textura. En la
+revisión vivían cuatro más, y cada uno tiene ahora su test: la imagen que apaga el alpha test
+(`SpriteBatchTest.AnImageKeepsTheAlphaTest`), el tramo que no mira el alpha test
+(`AnotherAlphaTestStartsACommand`), la imagen sin recortar su color (`TheColorIsClampedToOne`) y el
+viewport o la matriz con W y H cambiados, que con el framebuffer cuadrado no se veían
+(`GlSpriteRendererTest.TheScreenIsWidthByHeight`, con una pantalla de 64 × 32). En 06 quedó que
+la textura la vuelven a prender las siete mezclas del original, no solo la normal y la aditiva, y
+en 07, que Q-C64 lo fija `AnImageTurnsTheTextureOnByItsSlot`.
 
 ## Sub-ola CL5.3: texto con caché y colores `0x02`
 
@@ -1207,7 +1214,10 @@ al siguiente, Q-C75), o suma el `Flush` ahí. La arena es `SetBlend(Additive)`, 
 `SkewedQuad`. La carga dibuja con `SpriteBatch::Image(UiImage)`, con `scaleX = DesignScale(W,
 800)`, `scaleY = DesignScale(H, 600)` y, para las UV, el tamaño del buffer de cada textura
 (`Texture::textureWidth` y `textureHeight`). La u de la barra (`0x647370`) no va a medio téxel y
-el `UiImage` no la tiene: se suma con su test. `GlSpriteRenderer` deja `GL_BLEND` prendida.
+el `UiImage` no la tiene: se suma con su test. `GlSpriteRenderer` deja `GL_BLEND` prendida. No
+apaga `GL_DEPTH_TEST` ni `GL_CULL_FACE`, que el original apaga al entrar al 2D (`0x6219b0` llama a
+`0x620870`) y con la mezcla normal y la aditiva (`0x6208f0`): hoy nadie los prende, y cuando el
+pase 3D lo haga (la CL7), el 2D que sigue los apaga, con un test.
 
 **Interfaces:**
 

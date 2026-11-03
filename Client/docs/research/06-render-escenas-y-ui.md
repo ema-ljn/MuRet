@@ -143,10 +143,14 @@ El aspect no es el de la ventana sino el del viewport: 1024/691 = 1,4819 en Lore
   No vuelve a prender nada. `0x620a00` y `0x620a90` cambian la mezcla solo si es otra que la
   recordada (`DAT_07d366dc`): `glEnable(GL_BLEND)` y `(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)` la
   normal, `(GL_ONE, GL_ONE)` la aditiva. Lo demás lo ponen siempre: la normal prende
-  `GL_ALPHA_TEST` y `GL_TEXTURE_2D`, y la aditiva apaga el alpha test y prende la textura. Hasta
-  la próxima de las dos, un `0x621b60` después de un `0x621aa0` sale sin textura, solo con el
-  color, y sin alpha test (Q-C75). La imagen de la UI nueva (`0x647650`) deja su `glColor4ub` como
-  el color de GL y prende `GL_TEXTURE_2D` si tiene slot o lo apaga si no.
+  `GL_ALPHA_TEST` y `GL_TEXTURE_2D`, y la aditiva apaga el alpha test y prende la textura. No son
+  las únicas: la textura la vuelven a prender las siete funciones de mezcla, una por cada valor de
+  `DAT_07d366dc` (`0x620980` el 0, `0x620c90` el 1, `0x620a00` el 2, `0x620a90` el 3, `0x620b10`
+  el 4, `0x620b90` el 5 y `0x620c10` el 6), y el alpha test, solo `0x620a00` y `0x620910(1)` (que
+  apaga la textura). Un `0x621b60` después de un `0x621aa0` sale sin textura, solo con el color,
+  hasta la próxima de esas mezclas, y sin alpha test hasta un `0x620a00` o un `0x620910(1)`
+  (Q-C75). La imagen de la UI nueva (`0x647650`) deja su `glColor4ub` como el color de GL y prende
+  `GL_TEXTURE_2D` si tiene slot o lo apaga si no.
 - **El quad del texto** (`0x554000`): `0x621b60(0, x, y, w, h, 0, 0, (w + 0,01) / tw, (h + 0,01) /
   th, 0, escalar_posición, 0)`, con tw × th el tamaño de la textura del texto (256 × 32,
   *verificado*): el slot 0, el tamaño siempre en píxeles y la posición escalada solo si el que

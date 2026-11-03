@@ -336,7 +336,7 @@ frames:
 | la UI nueva: foco, arrastre y el delta | `0x65fc30`, con el delta de `0x459b60` (tope de 200 ms) y el mouse de `0x640940`: busca la ventana bajo el cursor, la arrastra (`0x669f40`) y le pasa el delta a cada ventana (métodos `+0x28` y `+0x30` de su vtable) | por frame, con el delta real | por frame y por tiempo real (CL8); qué hace cada ventana con el delta, sin leer |
 | las demoras de las habilidades | una tabla de `int` en `[0x7681eb0] + 0x76c`, una por casilla de habilidad del personaje; `0x552c50` y `0x552990` cargan la de una casilla con el campo `+0x28` del registro de `Skill.bmd` de su habilidad (`0x3c` bytes por registro, desde `[0x76bd1d8]`) y no dejan usarla mientras sea mayor que 0 | **por reloj**: en la escena 5, `0x4eb620` le pasa a `0x552f10` (`0x4eb758`) los ms de `timeGetTime` desde el frame anterior, sin tope, que los resta de cada una sin bajar de 0 (alrededor, el hash del bloque, que no se porta) | por reloj real, no por pasos (CL9) |
 | un freno de 300 ms entre acciones | `_DAT_0576791c`, con `GetTickCount`, en `0x57cfc0`, `0x559890`, `0x55b6f0`, `0x55cbc0` y `0x55faa0`, todas desde el paso: si `abs(GetTickCount() - último)` es 300 o menos (`CMP ...,0x12c` + `JLE`) no manda, y si no, anota la hora y arma un C1. Cada comprobación se salta, y manda sin mirar el freno, cuando un valor que la acompaña vale `0x28` (un byte en `0x55ac91`, un local en `0x55cdc3`) | **por reloj** | por reloj real (CL9). *Análisis*: en el modo fiel, con ticks de 15,625 ms, se abre a los 312 o 313 ms |
-| el keepalive | `WM_TIMER` `0x3E8`, cada 20 s, con foco o sin él (abajo) | **por reloj** (un mensaje) | temporizador del bucle (CL4) |
+| el keepalive | `WM_TIMER` `0x3E8`, cada 20 s, con foco o sin él (abajo) | **por reloj** (un mensaje) | por reloj, con un `IntervalTimer` en la `ServerSession`, consultada una vez por frame y solo con el login aceptado (CL4.5) |
 | la conexión | `0x4e8560`, después de la espera, en la escena 5 y con el byte `0x7d3a13c` distinto de 0 (`0x638640`): con -1 avisa que se cerró y llama `0x6236f0(0x70)` | por frame | por frame (CL4) |
 
 El censo del reloj es *análisis*, contado en el desensamblado: 80 funciones tocan `DAT_05767b88`;
@@ -584,7 +584,8 @@ Tests que fija:
   1, 25 o 240 frames dibujados, y el alcanzar ante un frame de 130 ms (3 pasos seguidos) (CL3).
 - El modo fiel con un reloj falso de 15,625 ms: 64 frames cada 3 segundos y, desde el segundo
   frame, 75 pasos de lógica cada 64 frames, 11 de ellos con 2 (7 u 8 cada 6) (CL3).
-- El keepalive sale cada 20 s de reloj simulado y no antes (CL4).
+- El keepalive sale cada 20 s de reloj simulado y no antes (CL4.5,
+  `ServerSessionTest.KeepaliveEveryTwentySecondsAndNotBefore`).
 - Las transiciones de escena de la tabla, y que una que no está se rechace (CL5.4).
 - La letra de cada ancho: 12, 13, 14 y 15 en 640, 800, 1024 y 1280, y 15 en 1600 (CL5.3).
 - El parser de la línea de comandos acepta `connect /u<ip> /p<puerto>` como el original, con las

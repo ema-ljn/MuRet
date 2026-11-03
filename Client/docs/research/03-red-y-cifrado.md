@@ -179,6 +179,10 @@ modelo: no sirven de oráculo para el C2.
   suma lo que dicen, despacha y compara el serial como siempre (`0x685cc0` no acota el largo útil
   y `0x685b30` lo suma). Despacha también un solo bloque que trae solo el serial: el opcode que lee,
   `dec[1]`, es el byte que le sigue, el de relleno.
+- **Lo que no mide bloques enteros:** `0x685b30` lee `11 * ceil(largo / 11)` bytes, así que con
+  el último bloque partido lee hasta 10 bytes después del paquete, y el checksum de ese bloque casi
+  siempre falla: lo más probable es que mande el mismo aviso (*probable*, sin probar;
+  `00685b30-decrypt-buffer.md`).
 - Checksum por bloque con las constantes `0xF8` / `0x3D`: es un byte, así que un cambio en un carril
   falla casi siempre (pasa uno de cada 256, más o menos), uno en el checksum siempre, y uno en el
   byte del largo útil nunca.
@@ -232,6 +236,7 @@ mínima los reproduce a propósito, MuRet no.
 | Corte de paquetes con bugs de cabecera incompleta (Q-C03) | `PacketReader` puro (bytes → paquetes), sin red, con los vectores del cable como tests; los bugs se arreglan y se documentan | CL2 |
 | Motor XOR32 inlineado en cada emisor | un `PacketWriter` C1/C2 con el XOR32 como etapa separada y testeable | CL2 |
 | C3/C4 con dos seriales globales | `SimpleModulus` (nombre de la comunidad) + `EncryptionKey` y `DecryptionKey`, cargadas de `Enc1.dat`/`Dec2.dat`; seriales por conexión, no globales | CL2 |
+| Las claves y los seriales son globales: un C3/C4 que llegara en la conexión al CS se descifraría con los mismos que en el GS (el CS del laboratorio manda todo en claro) | las claves son de cada conexión (`Connection::Open` las recibe) y el CS abre sin claves: un C3/C4 que llega ahí es un `Undecryptable` sin error (`std::nullopt`), que no manda el `F1 03` ni mueve un serial (`AnEncryptedPacketWithoutKeysIsUndecryptable`) | CL4 |
 | FoxAnti como DLL que parchea el binario | `Network::IObfuscation`, una interfaz con dos implementaciones, `IdentityObfuscation` y `FoxAntiObfuscation`, elegida por config según el servidor (CL4). Cada pieza de FoxAnti es una etapa, en el orden del original: `InboundMask` en el `PacketReader`, `AfterCut` (la lista), `BeforeDispatch` (el `F3 11`), `BeforeEncrypt` dentro de `EncryptPacket` (con el relleno) y `BeforeSend` | CL2, CL4 |
 | FoxAnti traduce el formato del laboratorio al de `main.exe` | la traducción vive solo en `Network::IObfuscation`; `Protocol` lee siempre el formato de `main.exe` (`F4 06`, `F3 11` con su byte de más), venga del servidor que venga | CL2, CL4 |
 | El `0xAA` se decide por lectura de `recv` | se decide por paquete, mirando el primer byte en el cable (`6B`, `68`, `69`, `6E` llevan `0xAA`; `C1`, `C2`, `C3` y `C4` van en claro) (Q-C18) | CL2 |

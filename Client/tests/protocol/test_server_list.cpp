@@ -1,11 +1,13 @@
 #include "Protocol/Connection/ServerList.h"
 
+#include "Network/Delivery.h"
 #include "Network/Packet.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/ProtocolError.h"
 
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
+#include "support/NetworkPrinters.h"
 #include "support/Packets.h"
 #include "support/ProtocolPrinters.h"
 #include "support/SameBytes.h"
@@ -20,7 +22,7 @@
 // (F4 03) y leer adónde conectarse, con los bytes del cable del 04.
 namespace
 {
-using Client::Protocol::Delivery;
+using Client::Network::Delivery;
 using Client::Protocol::ProtocolError;
 using Client::Protocol::Connection::ReadServerAddress;
 using Client::Protocol::Connection::ReadServerList;

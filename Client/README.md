@@ -45,6 +45,11 @@ pasos de `WinMain` en MuMain: la config antes de `SDL_Init`, el log, la ventana 
 escena de prueba (`Scenes/TestScene`) y el medidor de `--stats` (`App/FrameRateMeter`) tienen su
 archivo y sus tests.
 
+Desde la CL4.5, con un host, `Main` se conecta: la `ServerSession` va del ConnectServer al login
+aceptado en el GameServer y después manda el keepalive cada 20 s, consultada por el bucle en cada
+frame. Todavía no hay escena de login (CL5): la cuenta sale del entorno, se elige el primer
+servidor de la lista, y la ventana sigue con la escena de prueba.
+
 ## Compilar y correr
 
 Hace falta vcpkg (las dependencias, SDL3, libjpeg-turbo y GoogleTest, están en `vcpkg.json` y se
@@ -107,7 +112,72 @@ Por ejemplo:
 ./build/linux-x64-debug/Client/Main --config ~/mu/otra.ini
 ```
 
-Hasta la CL4, el servidor solo se valida: todavía no se conecta, y sin host no es un error.
+Sin host no es un error: `Main` no mira el entorno ni las claves, y corre sin un servidor, como en
+CI.
+
+### Con un servidor: la cuenta y las claves
+
+Con un host, de `/u` o de `[Server] Host`, `Main` necesita dos cosas más antes de abrir la ventana,
+en este orden:
+
+1. La cuenta y la clave del login, en `MURET_CLIENT_ACCOUNT` y `MURET_CLIENT_PASSWORD`, hasta que
+   la escena de login las pida (CL5.5). No van en la config, que es un archivo, ni en la línea de
+   comandos, que queda en el historial y en `ps`. Cada una va de 1 a 10 bytes, el campo del
+   login: si falta, está vacía o pasa de 10, el error nombra la variable y nunca trae su valor.
+   Se cargan sin que se vean en la pantalla:
+
+   ```bash
+   IFS= read -rs -p "cuenta: " MURET_CLIENT_ACCOUNT; echo
+   IFS= read -rs -p "clave: " MURET_CLIENT_PASSWORD; echo
+   export MURET_CLIENT_ACCOUNT MURET_CLIENT_PASSWORD
+   ```
+
+   ```powershell
+   # -MaskInput es de PowerShell 7.1 o más nuevo.
+   $env:MURET_CLIENT_ACCOUNT = Read-Host "cuenta" -MaskInput
+   $env:MURET_CLIENT_PASSWORD = Read-Host "clave" -MaskInput
+   ```
+
+   Con `IFS=`, `read` no les saca los espacios del principio ni del final. Al terminar, la clave
+   se borra del entorno de la consola: `unset MURET_CLIENT_PASSWORD` en bash, o
+   `Remove-Item Env:MURET_CLIENT_PASSWORD` en PowerShell.
+
+2. Las claves de la conexión con el GameServer, `Enc1.dat` y `Dec2.dat`, de la carpeta de datos
+   (`--data` o `[Data] Path`), sin mirar mayúsculas. Sin carpeta, o si alguna no está o no carga,
+   el error nombra las dos y dice qué pasó con cada una. No se versionan (D-C7).
+
+Con las dos, `Main` arranca la red del sistema y la sesión, y el log dice cada paso: "se conecta
+al ConnectServer", "conectó con el ConnectServer", la lista, la dirección del GameServer (sin
+decirla), "el GameServer saludó: se manda el login", "el GameServer aceptó el login" y, desde
+ahí, "se mandó el keepalive al GameServer" cada 20 s. Ni la cuenta ni la clave ni las direcciones
+van al log. Si algo falla, el log dice qué (un servidor que rechaza, otra versión, un login
+rechazado, una conexión que se pierde, o 30 s sin respuesta) y la ventana sigue abierta: la sesión
+no se reconecta sola.
+
+### Contra el servidor del laboratorio (a mano)
+
+CI no tiene la VM del laboratorio, así que el login de punta a punta se prueba a mano (el paso 4
+de la CL4.5, en el
+[plan de la CL4](../docs/superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md)):
+
+1. Levantar la VM del laboratorio con el ConnectServer y el GameServer andando.
+2. Cargar la cuenta y la clave como dice la sección de arriba, con una cuenta del laboratorio.
+3. Correr, con la IP del ConnectServer de la VM y la carpeta `Data` del cliente del laboratorio,
+   que trae `Enc1.dat` y `Dec2.dat`:
+
+   ```bash
+   ./build/linux-x64-debug/Client/Main connect /u<ip del CS> /p44405 --data <Data del laboratorio>
+   ```
+
+4. Mirar el log durante dos minutos: tiene que llegar a "el GameServer aceptó el login" y, desde
+   ahí, mostrar seis o siete "se mandó el keepalive al GameServer", uno cada 20 s, sin "se perdió
+   la conexión con el GameServer". Con `[Server] Obfuscation = foxanti`, que es el valor por
+   defecto: el GameServer del laboratorio usa FoxAnti.
+5. Cerrar la ventana y borrar la clave del entorno (`unset MURET_CLIENT_PASSWORD`).
+
+Si se captura el cable para comparar el login y el keepalive con los de la sesión real del 04
+(P-C05), la captura queda fuera de Git, porque se descifra con las claves reales, y la comparación
+se mira sin imprimir la cuenta. Acá se anota solo el resultado: todavía no se corrió.
 
 ### `muret-client.ini`
 
@@ -120,6 +190,7 @@ Todas las claves son opcionales:
 [Server]
 Host = 127.0.0.1         ; de 1 a 255 bytes, sin espacios
 Port = 44405             ; de 1 a 65535
+Obfuscation = foxanti    ; foxanti o none
 
 [Data]
 Path = C:\MU\Data        ; la carpeta de datos del cliente original
@@ -139,6 +210,7 @@ Path = muret-client.log
 | --- | --- | --- |
 | `[Server] Host` | ninguno | el host del ConnectServer; lo pide la red (CL4) |
 | `[Server] Port` | 44405 | el puerto del ConnectServer, el compilado en el original (`0x6d5dc4`) |
+| `[Server] Obfuscation` | `foxanti` | la forma de los paquetes que espera el servidor: `foxanti`, la capa de FoxAnti del servidor del laboratorio, o `none`, un servidor que habla como `main.exe`. `/u /p` no la cambia |
 | `[Data] Path` | ninguna | la carpeta `Data\` de una instalación del cliente original |
 | `[Video] Width`, `Height` | 640, 480 | el tamaño de la ventana al abrir, de 1 a 16384 |
 | `[Video] VSync` | `on`, y `off` en el modo fiel | como `--vsync`. Con `Pacing = faithful` (o `--pacing faithful`), `on` o `adaptive` es un error que nombra `Pacing` y `VSync` |
@@ -151,9 +223,9 @@ ejecutable, no desde la actual. Un par de comillas dobles alrededor de una ruta 
 (lo que da "Copiar como ruta" del Explorador). El archivo es UTF-8, con o sin BOM, y con fin de
 línea `\n` o `\r\n`.
 
-Las secciones, las claves y los valores de `VSync` y `Pacing` no distinguen mayúsculas. Un `;` al
-principio de la línea, o después de un espacio, empieza un comentario; `#` no. Son errores, y el
-mensaje dice el archivo y la línea (`muret-client.ini, línea 3: ...`):
+Las secciones, las claves y los valores de `Obfuscation`, `VSync` y `Pacing` no distinguen
+mayúsculas. Un `;` al principio de la línea, o después de un espacio, empieza un comentario; `#`
+no. Son errores, y el mensaje dice el archivo y la línea (`muret-client.ini, línea 3: ...`):
 
 - una línea que no es `[Sección]` ni `Clave = valor`, o con texto después del `]`;
 - una sección o una clave que no existen, una clave antes de la primera sección, repetida o sin
@@ -248,12 +320,14 @@ Client/
   CMakeLists.txt
   src/
     main.cpp      arma las capas y arranca; sin lógica
-    App/          línea de comandos, estado de la ventana, bucle con tick fijo (CL3)
+    App/          línea de comandos, estado de la ventana, bucle con tick fijo (CL3); la sesión
+                  con los servidores (CL4)
     Core/         Expected, ByteReader, Xor3; config, log, reloj (CL1+)
     Platform/     ventana, contexto GL, input: lo único que ve SDL3 (ClientPlatform, CL3)
     Data/         tablas .bmd, Text.bmd, terreno, OZJ/OZT, modelos: bytes a tipos, sin GL (CL1, CL6)
     Network/      socket, paquetes, C3/C4, FoxAnti      (CL2, CL4)
-    Protocol/     opcodes, structs (el login, en Connection/), dispatcher (CL2, CL4, CL9)
+    Protocol/     opcodes, structs (el login, en Connection/), dispatcher (CL2, CL4, CL9); el
+                  pedido de la mascota (A9), en Pet/ (CL4)
     Render/       OpenGL 3.3: texturas, sprites, texto  (CL5+)
     Scenes/       la escena de prueba (CL3); login, selección, juego (CL5, CL6)
     World/        mapa, cámara, objetos                 (CL7)

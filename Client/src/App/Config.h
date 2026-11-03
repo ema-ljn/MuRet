@@ -2,6 +2,7 @@
 
 #include "App/CommandLine.h"
 #include "App/ConfigError.h"
+#include "App/ObfuscationMode.h"
 #include "App/PacingMode.h"
 #include "App/ServerAddress.h"
 #include "App/VSyncMode.h"
@@ -20,6 +21,7 @@
 //   [Server]
 //   Host = 10.0.0.1            ; de 1 a 255 bytes y sin espacios (Q-C37)
 //   Port = 44405               ; de 1 a 65535
+//   Obfuscation = foxanti      ; foxanti (la del laboratorio) o none
 //   [Video]
 //   Width = 640
 //   Height = 480
@@ -30,14 +32,14 @@
 //   [Log]
 //   Path = muret-client.log
 //
-// Las secciones, las claves y los valores de VSync y Pacing no distinguen mayúsculas. Un `;` al
-// principio de la línea, o después de un espacio, empieza un comentario; `#` no es comentario, y
-// una línea que empieza con `#` es error. Se acepta el BOM de UTF-8 y el fin de línea de Windows.
-// Un par de comillas dobles alrededor de una ruta o del host se saca (lo que da "Copiar como
-// ruta" del Explorador); una comilla sola queda como parte del valor. Es error, y dice su línea:
-// una línea que no es `[Sección]` ni `Clave = valor`, una sección o una clave que no existen, una
-// clave repetida o sin valor, un valor que no se puede leer, un \r sin \n, una ruta con caracteres
-// de control o que no es UTF-8, y un host que no es ASCII visible (ParseHost).
+// Las secciones, las claves y los valores de Obfuscation, VSync y Pacing no distinguen
+// mayúsculas. Un `;` al principio de la línea, o después de un espacio, empieza un comentario; `#`
+// no es comentario, y una línea que empieza con `#` es error. Se acepta el BOM de UTF-8 y el fin de
+// línea de Windows. Un par de comillas dobles alrededor de una ruta o del host se saca (lo que da
+// "Copiar como ruta" del Explorador); una comilla sola queda como parte del valor. Es error, y
+// dice su línea: una línea que no es `[Sección]` ni `Clave = valor`, una sección o una clave que no
+// existen, una clave repetida o sin valor, un valor que no se puede leer, un \r sin \n, una ruta
+// con caracteres de control o que no es UTF-8, y un host que no es ASCII visible (ParseHost).
 //
 // El parser es propio y no inih (CODING_RULES §10; paso 1 de la CL3.4 en el plan de la CL3). El
 // puerto de vcpkg (inih 62) compila con las opciones por defecto de su meson. Lo que lo descarta:
@@ -65,6 +67,9 @@ struct ClientConfig
     // [Server] Host y Port. Vacío si no está ninguno de los dos; con uno solo, el otro queda en su
     // valor por defecto (host vacío, puerto DefaultConnectPort).
     std::optional<ServerAddress> server;
+    // [Server] Obfuscation (pregunta 8 del plan de la CL4). No arma `server`: es de la conexión,
+    // no de la dirección, y /u /p no la cambia.
+    ObfuscationMode obfuscation = ObfuscationMode::FoxAnti;
     // [Video] Width y Height, de 1 a MaxWindowSize; 640 × 480 por defecto (la tabla de la CL3.4 en
     // el plan de la CL3).
     int width = 640;
@@ -98,6 +103,10 @@ Core::Expected<ClientConfig, ConfigError> ParseConfig(std::string_view text);
 // El host vacío no es error acá: lo pide la CL4 al conectarse.
 Core::Expected<ClientConfig, std::string> Resolve(const std::filesystem::path& exeFolder,
                                                   const CommandLine& commandLine);
+
+// Si la config da a qué conectarse: un host que no está vacío. Un [Server] con solo el puerto no
+// alcanza, y Main sigue sin red (el plan de la CL4, CL4.4).
+[[nodiscard]] bool HasServerHost(const ClientConfig& config);
 
 // El tope de FPS que usa el bucle: `maxFps` solo con el VSync que quedó en la ventana apagado, y
 // si no, 0 (sin tope), como el FpsCap de MuMain (ApplyVSyncPreferenceNow en Winmain.cpp). Con

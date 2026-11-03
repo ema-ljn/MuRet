@@ -1,6 +1,9 @@
 #include "Network/SendQueue.h"
 
+#include "Network/ISocket.h"
+#include "Network/SocketError.h"
 #include "support/Bytes.h"
+#include "support/ClaimsMoreSocket.h"
 #include "support/FakeSocket.h"
 #include "support/NetworkPrinters.h"
 #include "support/SameBytes.h"
@@ -10,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 #include <vector>
 
 // Client::Network::SendQueue: el envío que no entró, con un cursor (el plan de la CL4, CL4.1,
@@ -22,6 +26,7 @@ using Client::Network::SendQueue;
 using Client::Network::SendQueueError;
 using Client::Network::SocketError;
 using Client::Tests::Bytes;
+using Client::Tests::ClaimsMoreSocket;
 using Client::Tests::FakeSocket;
 using Client::Tests::SameBytes;
 
@@ -66,8 +71,8 @@ TEST_F(SendQueueTest, SendsEverythingWhenTheSocketTakesIt)
 }
 
 // Q-C11: el drenaje de 0x4e87b0, con este guion, manda 00 01 02 03 en el primer FD_WRITE y
-// 00 01 02 03 04 05 en el segundo: repite 00..03 y pierde 06..09 (el jefe de la CL4.0). Con el
-// cursor, 00..09 sale una vez y en orden.
+// 00 01 02 03 04 05 en el segundo: repite 00..03 y pierde 06..09 (lo va a fijar el jefe de la
+// CL4.0, paso 5). Con el cursor, 00..09 sale una vez y en orden.
 TEST_F(SendQueueTest, PartialSendsKeepTheOrder)
 {
     const ByteVector bytes = Bytes({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
@@ -136,6 +141,15 @@ TEST_F(SendQueueTest, NewBytesWaitBehindThePending)
     EXPECT_TRUE(SameBytes(m_socket.sent, Bytes({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0x0A, 0x0B})));
 }
 
+TEST_F(SendQueueTest, NoSocketErrorBeforeTheFirst)
+{
+    EXPECT_EQ(m_queue.LastSocketError(), std::nullopt);
+
+    ASSERT_EQ(m_queue.Push(Bytes({0, 1, 2})), std::nullopt);
+    ASSERT_EQ(m_queue.Flush(m_socket), std::nullopt);
+    EXPECT_EQ(m_queue.LastSocketError(), std::nullopt);
+}
+
 TEST_F(SendQueueTest, ASocketErrorIsReported)
 {
     const ByteVector bytes = Bytes({0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
@@ -149,6 +163,39 @@ TEST_F(SendQueueTest, ASocketErrorIsReported)
     // Lo pendiente quedó entero: con el socket de vuelta, sale todo.
     EXPECT_EQ(m_queue.Flush(m_socket), std::nullopt);
     EXPECT_TRUE(SameBytes(m_socket.sent, bytes));
+}
+
+// Un error en la mitad de un Flush: lo que ya salió no vuelve, lo demás queda. Si el cursor
+// volviera a donde estaba al empezar el Flush, el segundo mandaría 00 01 otra vez.
+TEST_F(SendQueueTest, AnErrorMidFlushKeepsWhatDidNotLeave)
+{
+    ASSERT_EQ(m_queue.Push(Bytes({0, 1, 2, 3, 4, 5, 6, 7, 8, 9})), std::nullopt);
+    m_socket.sendLimits = {std::size_t{2}, SocketError::Closed};
+
+    EXPECT_EQ(m_queue.Flush(m_socket), SendQueueError::Socket);
+    EXPECT_EQ(m_queue.LastSocketError(), SocketError::Closed);
+    EXPECT_EQ(m_queue.Pending(), 8u);
+    EXPECT_TRUE(SameBytes(m_socket.sent, Bytes({0, 1})));
+
+    EXPECT_EQ(m_queue.Flush(m_socket), std::nullopt);
+    EXPECT_EQ(m_queue.Pending(), 0u);
+    EXPECT_TRUE(SameBytes(m_socket.sent, Bytes({0, 1, 2, 3, 4, 5, 6, 7, 8, 9})));
+}
+
+// Un socket roto que dice haber tomado más de lo que se le dio: la cola lo toma como que tomó
+// todo, y el cursor no pasa del final (sin el tope, Pending daría la vuelta y Flush seguiría
+// pidiendo).
+TEST_F(SendQueueTest, ASocketThatClaimsMoreDoesNotRunOff)
+{
+    ClaimsMoreSocket socket;
+    ASSERT_EQ(m_queue.Push(Bytes({0, 1, 2, 3, 4, 5, 6, 7, 8, 9})), std::nullopt);
+
+    EXPECT_EQ(m_queue.Flush(socket), std::nullopt);
+
+    EXPECT_EQ(socket.sends, 1);
+    EXPECT_EQ(m_queue.Pending(), 0u);
+    // El buffer quedó libre entero.
+    EXPECT_EQ(m_queue.Push(Sequence(0, MaxPendingSend)), std::nullopt);
 }
 
 TEST_F(SendQueueTest, FlushingNothingDoesNotCallTheSocket)

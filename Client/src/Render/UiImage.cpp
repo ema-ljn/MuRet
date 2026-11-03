@@ -46,18 +46,21 @@ Edges PlacedEdges(const UiImage& image, App::PixelSize screen)
                  .bottom = static_cast<float>(topInTheStack - spanY)};
 }
 
-// 0x6470c9..0x647151, con un slot: las UV a medio téxel de cada borde. Sin slot quedan en 0
-// (0x6471e4).
+// 0x6470c9..0x647151, con un slot: las UV a medio téxel de cada borde, salvo el lado que cambió
+// 0x647370, que llega al tamaño (fild del tamaño, fdiv por el de la textura y fst en float). Sin
+// slot quedan en 0 (0x6471e4).
 Edges HalfTexelUv(const UiImage& image)
 {
     if (!image.slot.has_value())
     {
         return Edges{};
     }
+    const float rightTexel = image.resizedWidth ? 0.0f : HalfTexel;
+    const float bottomTexel = image.resizedHeight ? 0.0f : HalfTexel;
     return Edges{.left = HalfTexel / image.textureWidth,
                  .top = HalfTexel / image.textureHeight,
-                 .right = (static_cast<float>(image.width) - HalfTexel) / image.textureWidth,
-                 .bottom = (static_cast<float>(image.height) - HalfTexel) / image.textureHeight};
+                 .right = (static_cast<float>(image.width) - rightTexel) / image.textureWidth,
+                 .bottom = (static_cast<float>(image.height) - bottomTexel) / image.textureHeight};
 }
 
 // Una esquina como la manda 0x647650: glVertex2f(x · fx, y · fy), cada producto en la x87 y

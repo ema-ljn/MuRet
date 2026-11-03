@@ -2,19 +2,19 @@
 #include "App/Config.h"
 #include "App/ConnectionKeyFiles.h"
 #include "App/Credentials.h"
+#include "App/FontFiles.h"
 #include "App/FrameRateMeter.h"
 #include "App/GameLoop.h"
-#include "App/ILoopClient.h"
 #include "App/LoopTiming.h"
 #include "App/ObfuscationMode.h"
 #include "App/Resolution.h"
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
-#include "App/SessionClient.h"
 #include "App/VSyncMode.h"
 #include "App/WindowState.h"
 #include "Core/FileSink.h"
 #include "Core/IClock.h"
+#include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Core/StderrSink.h"
 #include "Core/TeeSink.h"
@@ -32,8 +32,23 @@
 #include "Platform/SdlClock.h"
 #include "Platform/SdlContext.h"
 #include "Platform/SdlLog.h"
+#include "Platform/SystemFonts.h"
 #include "Platform/Window.h"
 #include "Platform/WindowEvents.h"
+#include "Render/Gl/GlFrameTarget.h"
+#include "Render/Gl/TextureTable.h"
+#include "Render/Text/FreeTypeRasterizer.h"
+#include "Render/Text/IGlyphRasterizer.h"
+#include "Scenes/CharacterSelectScene.h"
+#include "Scenes/GameData.h"
+#include "Scenes/IScene.h"
+#include "Scenes/LoadingScene.h"
+#include "Scenes/LoginScene.h"
+#include "Scenes/SceneContext.h"
+#include "Scenes/SceneId.h"
+#include "Scenes/SceneManager.h"
+#include "Scenes/SceneText.h"
+#include "Scenes/SceneTransitions.h"
 #include "Scenes/TestScene.h"
 
 #include <chrono>
@@ -41,6 +56,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <random>
@@ -60,20 +76,27 @@
 //      conexión (ReadServerStartup). Un error corta acá, sin abrir la ventana, y va solo a stderr:
 //      el archivo del log lo dice la config.
 //   2. El log entero, stderr y el archivo. Queda en main porque el TeeSink y el Log guardan
-//      referencias a sus salidas, que tienen que vivir más que ellos. Con un host, también la red
-//      del sistema (NetworkInit).
+//      referencias a sus salidas, que tienen que vivir más que ellos. Con una carpeta de datos
+//      (--data o [Data] Path), lo de WinMain antes de la escena 1 (ReadSceneStartup): Text.bmd y,
+//      con su texto 0 como cara, los archivos de las fuentes; un error corta sin abrir la ventana.
+//      Con un host, también la red del sistema (NetworkInit).
 //   3. SDL (SdlContext) y OpenWindow: la resolución de la config, que tiene que valer
 //      (CheckResolution), y la ventana con el contexto GL.
-//   4. LoopClient y RunLoop: con un host, la sesión empezada (Online), y el bucle hasta que se
-//      cierre la ventana o se llegue a --frames.
-// El cierre es el orden de las declaraciones de main al revés: el bucle, la sesión y su socket, la
-// escena, la ventana, el SdlLog, SDL_Quit (SdlContext), la red, el Log y al final sus salidas,
+//   4. Con la carpeta de datos, RunScenes: la tabla de texturas, el frame de GL, con un host la
+//      sesión (Online), y el SceneManager desde la carga (CL5.4). Sin ella, la escena de prueba de
+//      la CL3.2. Las dos con RunLoop, hasta que se cierre la ventana, se llegue a --frames o una
+//      escena no pueda entrar.
+// El cierre es el orden de las declaraciones al revés: el bucle, el SceneManager (la escena de
+// ahora suelta sus texturas), la sesión y su socket, el frame (con la caché del texto), la tabla de
+// texturas, la ventana, el SdlLog, SDL_Quit (SdlContext), la red, el Log y al final sus salidas,
 // para que lo que se cierra antes pueda escribir.
 //
-// Con un host, el bucle consulta la sesión en cada frame, antes que la escena (SessionClient), y la
-// sesión deja en el log cada estado, del connect al login aceptado, y cada keepalive. Si falla, lo
-// dice el log y la ventana sigue: no se reconecta sola. Sin host no mira el entorno ni las claves,
-// no arma la red, y `Main --frames 60` corre igual sin un servidor.
+// Con un host, la LoginScene empieza la sesión al entrar, el SceneManager la consulta en cada
+// frame, antes que la escena, y la sesión deja en el log cada estado, del connect al login
+// aceptado, y cada keepalive. Si falla, lo dice el log y la ventana sigue: no se reconecta sola. Un
+// host exige la carpeta de datos (las claves están ahí), así que la escena de prueba nunca tiene
+// red: sin host no mira el entorno ni las claves, no arma la red, y `Main --frames 60` corre igual
+// sin un servidor ni datos.
 namespace
 {
 namespace App = Client::App;
@@ -84,6 +107,13 @@ namespace Scenes = Client::Scenes;
 
 // El log, junto al ejecutable, si [Log] Path no dice otra cosa (CL3.4, fila "log" del contrato).
 constexpr std::string_view LogFileName = "muret-client.log";
+
+// La versión que muestra el login en el texto 456 (02 § Del launcher al juego): la del proyecto,
+// del CMake.
+#ifndef MURET_VERSION
+#error "MURET_VERSION la define el CMake de Main"
+#endif
+constexpr std::string_view Version = MURET_VERSION;
 
 // Lo que necesita la sesión con los servidores (CL4.5), leído en la fase 1 si hay un host. Sin
 // operator<< ni log: la cuenta y la clave no se imprimen (pregunta 7), y las claves tampoco.
@@ -254,20 +284,18 @@ const Network::IObfuscation& ChooseObfuscation(App::ObfuscationMode mode, const 
     return Network::IdentityObfuscation::Shared();
 }
 
-// Fase 4, con un servidor: el socket, la conexión con la ofuscación de la config, la sesión y el
-// cliente del bucle que la consulta antes que la escena (CL4.5). Los miembros mueren al revés de
-// como se declaran, y todo antes que el NetworkInit, declarado antes en main.
+// Fase 4, con un servidor: el socket, la conexión con la ofuscación de la config y la sesión, que
+// empieza la LoginScene al entrar. Los miembros mueren al revés de como se declaran, y todo antes
+// que el NetworkInit, declarado antes en main.
 //
 // El relleno de lo que cifra la conexión sale de std::random_device: solo tiene que cambiar de una
 // corrida a otra (Network/Connection.h), y los tests le dan uno fijo.
 struct Online
 {
-    Online(const ServerStartup& server, App::ObfuscationMode obfuscation, Core::IClock& clock, Core::Log& log,
-           App::ILoopClient& scene)
+    Online(const ServerStartup& server, App::ObfuscationMode obfuscation, Core::IClock& clock, Core::Log& log)
         : connection(socket, ChooseObfuscation(obfuscation, foxAnti), clock, log, std::random_device{}()),
           session(connection, clock, log, server.keys,
-                  App::SessionSettings{.connectServer = server.connectServer, .credentials = server.credentials}),
-          client(session, scene)
+                  App::SessionSettings{.connectServer = server.connectServer, .credentials = server.credentials})
     {
     }
 
@@ -276,22 +304,7 @@ struct Online
     const Network::FoxAntiObfuscation foxAnti;
     Network::Connection connection;
     App::ServerSession session;
-    App::SessionClient client;
 };
-
-// Fase 4: con un servidor, arma Online, empieza la sesión y da su cliente; sin servidor, la escena
-// sola, como antes de la CL4.5.
-App::ILoopClient& LoopClient(std::optional<Online>& online, const Startup& startup, Core::IClock& clock, Core::Log& log,
-                             App::ILoopClient& scene)
-{
-    if (!startup.server)
-    {
-        return scene;
-    }
-    online.emplace(*startup.server, startup.config.obfuscation, clock, log, scene);
-    online->session.Start();
-    return online->client;
-}
 
 // El tope de FPS va solo con el VSync que quedó apagado, como en MuMain (App::EffectiveMaxFps).
 int LoopMaxFps(const App::ClientConfig& config, const Platform::Window& window, Core::Log& log)
@@ -351,9 +364,9 @@ void PrintStats(App::FrameRateMeter& meter, Core::Duration now, const App::Frame
     }
 }
 
-// Fase 4: hasta que se cierre la ventana o se llegue a --frames.
+// Fase 4: hasta que se cierre la ventana, se llegue a --frames o `stop` diga que no se sigue.
 App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::GameLoop& loop,
-                        const App::CommandLine& commandLine, Core::Log& log)
+                        const App::CommandLine& commandLine, Core::Log& log, const std::function<bool()>& stop = {})
 {
     App::WindowState state;
     state.pixelSize = window.PixelSize();
@@ -374,12 +387,130 @@ App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::Game
         }
         FollowPixelSize(window.Gl(), state.pixelSize, viewport);
         RunFrame(loop, state, input, log);
+        if (stop && stop())
+        {
+            break;
+        }
         if (meter)
         {
             PrintStats(*meter, clock.Now(), loop.Stats());
         }
     }
     return loop.Stats();
+}
+
+void PrintFrames(const App::FrameStats& stats)
+{
+    std::printf("frames: %llu, pasos: %llu\n", static_cast<unsigned long long>(stats.frames),
+                static_cast<unsigned long long>(stats.steps));
+}
+
+// Las fuentes de `files` para cada ancho de pantalla (Scenes/SceneText.h). Si no abren, el error
+// de FontOpenError: sin [Video] FontFile, la ruta salió de la búsqueda y no va al log.
+Scenes::RasterizerFactory FontFactory(const App::ClientConfig& config, App::FontFiles files)
+{
+    return [&config, files = std::move(files)](
+               int screenWidth) -> Core::Expected<std::unique_ptr<Client::Render::Text::IGlyphRasterizer>, std::string>
+    {
+        auto opened = Client::Render::Text::FreeTypeRasterizer::Open(files.regular, files.bold, screenWidth);
+        if (!opened.HasValue())
+        {
+            return Core::Unexpected(App::FontOpenError(config, opened.Error()));
+        }
+        return std::unique_ptr<Client::Render::Text::IGlyphRasterizer>(std::move(opened).Value());
+    };
+}
+
+// Las escenas de la CL5.4; las que no están todavía (la carga del mundo y el juego) no se arman, y
+// pedirlas es un error del SceneManager.
+Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const Scenes::GameData& data,
+                                      App::ServerSession* session)
+{
+    return [context, &data, session](Scenes::SceneId id) -> std::unique_ptr<Scenes::IScene>
+    {
+        switch (id)
+        {
+        case Scenes::SceneId::Loading:
+            return std::make_unique<Scenes::LoadingScene>(context);
+        case Scenes::SceneId::Login:
+            return std::make_unique<Scenes::LoginScene>(context, data, session, Version);
+        case Scenes::SceneId::CharacterSelect:
+            return std::make_unique<Scenes::CharacterSelectScene>();
+        case Scenes::SceneId::WorldLoading:
+        case Scenes::SceneId::Game:
+            return nullptr;
+        }
+        return nullptr;
+    };
+}
+
+// Lo que lee la fase 2 con una carpeta de datos.
+struct SceneStartup
+{
+    Scenes::GameData data;
+    App::FontFiles fonts;
+};
+
+// Fase 2, con una carpeta de datos: lo de WinMain antes de la escena 1, Text.bmd (0x4b9b9f) y los
+// archivos de las fuentes, con su texto 0 como cara (App::ChooseFontFiles). Sin [Video] FontFile,
+// la cara se busca en las fuentes del sistema, que solo Windows tiene. Cada error, al log.
+std::optional<SceneStartup> ReadSceneStartup(const App::ClientConfig& config, Core::Log& log)
+{
+    auto data = Scenes::LoadGameData(*config.dataPath);
+    if (!data.HasValue())
+    {
+        log.Error("{}", data.Error());
+        return std::nullopt;
+    }
+    // La cara es un texto del juego: no va al log (App/FontFiles.h).
+    const Scenes::GameData& loaded = data.Value();
+    const std::string_view face = loaded.text ? loaded.text->Text(0).value_or("") : "";
+    // La búsqueda, solo donde hay una lista de fuentes del sistema: en otro, ninguna, y el error de
+    // ChooseFontFiles dice que el cliente no busca la cara.
+    const App::SystemFontSearch search =
+        Platform::HasSystemFontList() ? App::SystemFontSearch(Platform::FindSystemFontFile) : App::SystemFontSearch();
+    auto fonts = App::ChooseFontFiles(config, face, search);
+    if (!fonts.HasValue())
+    {
+        log.Error("{}", fonts.Error());
+        return std::nullopt;
+    }
+    return SceneStartup{.data = std::move(data).Value(), .fonts = std::move(fonts).Value()};
+}
+
+// Fase 4 con una carpeta de datos: la tabla de texturas y el frame de GL, la sesión si hay un host,
+// y el SceneManager desde la carga. Un error antes del bucle, o una escena que no puede entrar,
+// cierra con EXIT_FAILURE y el error en el log.
+int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Window& window, Core::IClock& clock,
+              Core::Log& log)
+{
+    Client::Render::Gl::TextureTable textures(window.Gl());
+    auto frame = Client::Render::Gl::GlFrameTarget::Create(
+        window.Gl(), textures, FontFactory(startup.config, scenes.fonts), [&window] { return window.PixelSize(); },
+        [&window] { window.Swap(); }, log);
+    if (!frame.HasValue())
+    {
+        log.Error("{}", frame.Error());
+        return EXIT_FAILURE;
+    }
+    std::optional<Online> online;
+    if (startup.server)
+    {
+        online.emplace(*startup.server, startup.config.obfuscation, clock, log);
+    }
+    App::ServerSession* session = online ? &online->session : nullptr;
+    const Scenes::SceneContext context{.dataRoot = *startup.config.dataPath, .textures = textures, .log = log};
+    Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, session), *frame.Value(), clock,
+                                 session ? std::function<void()>([session] { session->Poll(); }) : nullptr, log);
+    if (!manager.Start(Scenes::FirstScene).HasValue())
+    {
+        return EXIT_FAILURE;
+    }
+    App::GameLoop loop{clock, manager, startup.config.pacing, LoopMaxFps(startup.config, window, log)};
+    const App::FrameStats stats =
+        RunLoop(window, clock, loop, startup.commandLine, log, [&manager] { return manager.Failure().has_value(); });
+    PrintFrames(stats);
+    return manager.Failure() ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 } // namespace
 
@@ -411,6 +542,15 @@ int main(int argc, char* argv[])
         log.Warning("{}: el log sigue solo en stderr", logFile.Error());
     }
     log.Info("MuRet Client arranca");
+    std::optional<SceneStartup> scenes;
+    if (startup->config.dataPath)
+    {
+        scenes = ReadSceneStartup(startup->config, log);
+        if (!scenes)
+        {
+            return EXIT_FAILURE;
+        }
+    }
 
     // Antes de SDL, así cierra después: todo socket tiene que morir antes que el NetworkInit.
     std::optional<Network::SocketApi::NetworkInit> network;
@@ -435,12 +575,13 @@ int main(int argc, char* argv[])
     }
 
     Platform::SdlClock clock;
+    if (scenes)
+    {
+        return RunScenes(*startup, *scenes, *window, clock, log);
+    }
+    // Sin datos (el CI): la escena de prueba, sin red, porque un host exige la carpeta de datos.
     Scenes::TestScene scene{[&window](const Scenes::TestScene::Color& color) { Present(*window, color); }};
-    std::optional<Online> online;
-    App::GameLoop loop{clock, LoopClient(online, *startup, clock, log, scene), startup->config.pacing,
-                       LoopMaxFps(startup->config, *window, log)};
-    const App::FrameStats stats = RunLoop(*window, clock, loop, startup->commandLine, log);
-    std::printf("frames: %llu, pasos: %llu\n", static_cast<unsigned long long>(stats.frames),
-                static_cast<unsigned long long>(stats.steps));
+    App::GameLoop loop{clock, scene, startup->config.pacing, LoopMaxFps(startup->config, *window, log)};
+    PrintFrames(RunLoop(*window, clock, loop, startup->commandLine, log));
     return EXIT_SUCCESS;
 }

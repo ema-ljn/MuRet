@@ -34,4 +34,14 @@ Core::Expected<FontFiles, std::string> ChooseFontFiles(const ClientConfig& confi
     }
     return FontFiles{std::move(*regular), std::move(bold)};
 }
+
+std::string FontOpenError(const ClientConfig& config, std::string_view error)
+{
+    if (config.fontFile.has_value())
+    {
+        return std::string(error);
+    }
+    return "la fuente del sistema para la cara del texto 0 de Text.bmd no se pudo abrir con FreeType: "
+           "dé [Video] FontFile en muret-client.ini";
+}
 } // namespace Client::App

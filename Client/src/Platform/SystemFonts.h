@@ -18,6 +18,11 @@ namespace Client::Platform
 // cuentan nunca.
 [[nodiscard]] bool FontEntryNamesFace(std::string_view entryName, std::string_view face, bool bold);
 
+// true si este sistema tiene la lista (solo Windows). Sin ella, main.cpp no le pasa una búsqueda a
+// App::ChooseFontFiles, y su error dice que el cliente no busca la cara, en vez de que no la
+// encontró.
+[[nodiscard]] bool HasSystemFontList();
+
 // El archivo de la cara en la lista del sistema: el del primer valor que la nombra, en HKLM y
 // después en HKCU, con la carpeta Fonts de Windows delante si el valor no trae la ruta entera.
 // std::nullopt si no está, si la cara está vacía o fuera de Windows.

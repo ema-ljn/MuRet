@@ -417,8 +417,12 @@ carga, con fy = H / 600, es 600, y en las ventanas, con fx = fy = 1, es H. Las U
 del borde: de (0,5 / tw, 0,5 / th) a ((w − 0,5) / tw, (h − 0,5) / th), con el ancho y el alto de la
 textura en floats de su slot (`+0x20` y `+0x24`) y el 0,5 de `0x6b882c`. Atan la textura con
 `glBindTexture` directo, sin pasar por `0x620780` (Q-C64). La barra (`0x640580(actual, 10)`) mide
-`656 · actual / 10` (división entera sin signo) y su u va de 0 a ese ancho sobre el de la textura,
-sin medio téxel: con `GL_REPEAT`, la textura se repite a lo largo.
+`656 · actual / 10` (división entera sin signo) y `0x647370(ancho, 0, 1)` le pone ese ancho: la u
+de la derecha llega a ese ancho sobre el de la textura, sin medio téxel, y la de la izquierda queda
+a medio téxel; con `GL_REPEAT`, la textura se repite a lo largo. La v de abajo también llega a
+15 / th: `0x6402d0` arma la imagen con 4 de ancho (`0x647050(4, 15, 0x723, …)`, desde
+`0x65f0f9`) y, con el rectángulo de 656 × 15 que le pasa `0x65eeb0`, llama a `0x647370(0, 15, 2)`
+(*estático*).
 
 Cada avance es un frame entero: `0x61ccb0` llama 11 veces (de 0 a 10) a `0x65f200(hdc, actual,
 10)`, que hace `0x620db0(0, 0, 640, 480)`, `glClear` de color y profundidad, el 2D (`0x6219b0`),
@@ -482,7 +486,9 @@ la cuenta (abajo).
 6. tres textos con la fuente `DAT_05763554`, `glColor3f(0,8; 0,7; 0,6)`, el texto en blanco
    (`DAT_006c8e5c`), el fondo en `0x80000000` (`DAT_006c8e64`) y el ancho en `0x100`
    (`DAT_006c8e70`): el texto se rasteriza en blanco y el quad, sin alfa, toma el color de GL, así
-   que sale en (0,8; 0,7; 0,6). Van apoyados abajo: y = `479 − cy · 640 / W` (con W, no con H:
+   que sale en (0,8; 0,7; 0,6), con la mezcla aditiva de la arena: ni `0x554180`, ni `0x467060`,
+   ni `0x554000` la cambian, así que el fondo con alfa `0x80` no oscurece nada (Q-C80). Van
+   apoyados abajo: y = `479 − cy · 640 / W` (con W, no con H:
    Q-C60). El 454 termina en x = 335 (`335 − cx · 640 / W`), el 455 empieza ahí y el 456, armado con
    la versión (`DAT_057630ac`, 02), va en x = 0. Las divisiones son enteras y sin signo, y los
    textos se copian a un buffer de 100 bytes de la pila (Q-C61);
@@ -688,8 +694,9 @@ Ver [08](08-pendientes.md).
 | Escenas por un entero global | `Scenes::SceneManager` con una clase por escena (`LoginScene`, `CharacterSelectScene`, `GameScene`) y transiciones explícitas | CL5 |
 | Viewport en coordenadas de 640 × 480, ortho en píxeles reales, quad en `GL_TRIANGLE_FAN` | `Render::SpriteBatch` con las dos coordenadas: lógicas de 640 × 480 escaladas y píxeles reales, con la misma Y dada vuelta | CL5 |
 | Texto por GDI → una textura que se sube por string | FreeType en un bit (D-C2), en las mismas cajas de 256 × 32, con una caché propia (`TextCache`) que las guarda en los slots del texto; los píxeles no son los de GDI (Q-C76); los `0x02`, con la tabla de `0x4665d0` (`ParseInlineColors`) | CL5.3 |
-| La carga dibuja sola, con su UI en 800 × 600 y un frame entero por cada uno de los 11 avances | `LoadingScene` con su juego de texturas y la barra, dentro del `SceneManager`, con un frame por avance | CL5.4 |
-| El login carga todo otra vez cada vez que se entra (mundo 55, texturas, ventanas, CS) | `LoginScene::Enter` también cada vez, con el mundo como dato de la escena | CL5.4 |
+| La carga dibuja sola, con su UI en 800 × 600 y un frame entero por cada uno de los 11 avances | `LoadingScene` con su juego de texturas y la barra, dentro del `SceneManager`, con un avance por paso: MuRet no carga nada en ella (`Text.bmd` lo lee `main.cpp` antes, como WinMain en `0x4b9b9f`) | CL5.4 |
+| El login carga todo otra vez cada vez que se entra (mundo 55, texturas, ventanas, CS) | `LoginScene::Enter` también cada vez: las 18 texturas y `ServerSession::Start`; el mundo, como dato de la escena (`SceneWorlds.h`), lo dibuja la CL7 | CL5.4 |
+| El login dibuja en el frame del render loop, con la cámara, el pase 3D y lo común a las escenas | `LoginScene::Render` en un `SceneCanvas` (el lote, el texto, el fin del 2D y el pase 3D), sin el fundido (Q-C66) ni la UI (CL5.5); `Gl::GlFrameTarget` limpia en negro, dibuja el lote y presenta | CL5.4 |
 | Siete ventanas de la UI nueva en píxeles, con la imagen de la UI nueva (`0x647650`, la de la carga) en sus fondos; avisos por id con un texto de `Text.bmd` y un botón | `UI::` con la lista, la cuenta y el aviso, y sus imágenes con la forma de la carga (UV a medio téxel, la y desde arriba) en píxeles; la lista con 20 botones de servidor (Q-C63); el id del aviso y su texto en una tabla, la de arriba | CL5.5 |
 | Ventanas como clases con vtable de 22 métodos | `UI::Window` con una interfaz chica (dibujar, evento) y una clase por ventana; el administrador ordena por prioridad | CL8 |
 | Cámara con seis globales, far × 1,4 en el mundo | `Camera` como valor, testeable: matrices de vista y proyección comparadas con las de las trazas | CL7 |

@@ -315,7 +315,17 @@ solo lo lee.
   vez mientras se pida seguido. Sale la de antes y entra la nueva, que la fábrica arma de cero; un
   `Enter` que falla deja el error para que `main.cpp` cierre, y un segundo `Start` no pisa la escena
   de ahora (lo encontró la revisión). La red corre en cada `Poll`, también minimizada. Q-C79,
-  nuevo: el `F1 02` cambia de escena sin mirar en cuál está.
+  nuevo: el `F1 02` cambia de escena sin mirar en cuál está. El B (2026-11-03): las escenas de
+  verdad y `main.cpp`. Con `--data`, `Main` lee `Text.bmd` y elige la fuente antes de la ventana, y
+  corre la carga (`LoadingScene`, su UI de 800 × 600 y la barra, un avance por paso), el login
+  (`LoginScene`: entra con sus 18 texturas y la sesión; dibuja los fondos, el fin del 2D, el pase
+  3D, que no dibuja nada hasta la CL7, la arena con el reloj del frame y los tres textos, con la
+  versión de MuRet) y una selección vacía, adonde lleva el login aceptado. Cada escena lo pide
+  todo por un `SceneCanvas` (el lote, el texto, el mundo y el fin del 2D), y lo da el
+  `Gl::GlFrameTarget`, o el `RecordingFrameTarget` de los tests, que anota cada quad, texto y pase
+  en orden. Las fuentes siguen el ancho de la pantalla (`SceneText`). El `SessionClient` se fue:
+  la sesión la corre el `SceneManager`. Q-C80, nuevo: los textos del login salen con la mezcla
+  aditiva de la arena.
 
 ## Conceptos
 
@@ -428,6 +438,8 @@ sesión, junto con los de repaso más viejo.
 | una caché con tope y la regla de sacar el menos usado (LRU): una lista que se reordena con `splice` sin mover sus nodos, un índice que apunta a ellos, una clave con todo lo que cambia el resultado (texto, fuente y colores), y los recursos (slots) que vuelven al soltar | CL5.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | una máquina de estados con transiciones explícitas: una tabla de pares que se prueba entera (las 25 de cinco escenas), un pedido que no está que se rechaza sin cambiar nada, y el ciclo de vida de un estado (entrar, paso, dibujo, salir) con sus recursos soltados antes de que entre el siguiente | CL5.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | el mundo como dato: una función que da la carpeta de cualquier mapa desde una tabla de rangos, leída de los `cmp` y los saltos con signo del desensamblado, y un golden que recorre todos los mundos que hay en vez de uno | CL5.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| un doble que anota en orden para probar un dibujo: el lienzo como interfaz (el lote, el texto, el mundo y el fin del 2D), el `RecordingFrameTarget` que pasa el lote a una lista de quads, textos y pases, y por qué el orden y el estado de cada quad dicen más que los píxeles | CL5.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| un recurso que vive lo que su dueño: el juego de texturas que sube el `Enter` y suelta el `Leave`, la caché del texto que suelta sus slots en su destructor, y el orden de las declaraciones de `main.cpp`, que decide quién muere antes | CL5.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

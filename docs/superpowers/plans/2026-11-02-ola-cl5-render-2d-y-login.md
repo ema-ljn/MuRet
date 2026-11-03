@@ -1567,7 +1567,7 @@ public:
   `0x4c4eab` y `0x4c7817` con un byte del paquete (`xor eax, eax` y `mov al`, sin mirar el rango),
   `0x633f4e` con el 54 (`0x633f44`) y `0x6349bc` con el 55 (`0x6349b2`). La tabla de 39 filas está
   en `WorldFolderTest.MapsEachMapToItsFolder`.
-- [ ] **Paso 2:** los tests:
+- [x] **Paso 2:** los tests:
   - `WorldFolderTest.MapsEachMapToItsFolder` (0 → 1, 10 → 11, 11 a 17 → 12, 18 a 23 → 19, 24 a 29
     y 36 → 25, 30 → 31, 35 → 36, 55 → 56), `WorldFolderTest.TheMapThirtyTwoUsesTheFolderOfNine`
     (32 → 10, como el 9: `0x61a56c`..`0x61a57d`), `WorldFolderTest.TheSelectionMapIsWorld55`
@@ -1630,7 +1630,39 @@ public:
   (`ARejectionIsLoggedAgainWhenTheRequestComesBack`; antes, después de un paso sin pedido, el
   mismo pedido ya no se avisaba). `ARequestWithoutASceneChangesNothing` fija la guarda de `Request`
   sin escena, que ningún test cubría: sin ella, `Request` leía un `std::optional` vacío.
-- [ ] **Paso 3:** `WorldFolder`, las escenas, el `SceneManager`, el `GlFrameTarget` y `main.cpp`. La
+
+  Hecho así (PR B, 2026-11-03): `LoginSceneTest` con los siete de arriba (el del orden en dos
+  frames, el segundo con la mezcla aditiva que dejó el primero; el del mundo, también con el alpha
+  del frame) y seis más: `UsesTheQuadsOfTheOriginal` (los fondos y las arenas contra `FanCorners`
+  y `SkewedFanCorners` en 640 × 480, 1024 × 768 y 1280 × 1024), `PlacesTheTextsLikeTheOriginal`,
+  `PlacesTheVersionOnlyWhereTheTextMarksIt` (Q-C61), `StaysWhileTheSessionIsNotLoggedIn`,
+  `LeaveReleasesItsEighteenSlots` y `WithoutTextsItDrawsTheRest`. El paso a la selección con la
+  sesión, de punta a punta: `LoginSceneLoopbackTest.GoesToTheSelectionWhenTheLoginIsAccepted`
+  (los `FakeServers` de la CL4.4 en 127.0.0.1, el `SceneManager` y la `LoginScene` de verdad), en
+  `test_login_scene_loopback.cpp`, porque `test_login_scene_session.cpp` es de la CL5.5.
+  `LoadingSceneTest` (nueve: las seis, las imágenes y la barra en 640 × 480 y 1024 × 768, la
+  mezcla normal aunque el lote venga con la aditiva, el fondo en y = 432, la barra en cada avance,
+  el login al paso que sigue al último, los seis slots y, con el `SceneManager` y el login de
+  verdad, la carga que suelta sus seis antes de que el login suba sus 18). Los dos golden en
+  `GoldenLoginScene` (el login y la carga con el `Data\` del laboratorio: los slots y que los tres
+  textos están, sin imprimir ninguno). Y los de lo que llegó con ellos: `CharacterSelectSceneTest`,
+  `SceneTexturesTest`, `SceneTextTest`, `GameDataTest`, `TextCacheDrawerTest`, `SceneWorldsTest`,
+  `DataFileTest`, dos de `UiImageTest` y dos de `FontFilesTest`; en GL, `GlFrameTargetTest` (seis,
+  y ninguno deja un error de GL); y `Client.Main.ScenesWithoutTheTextTableNameIt`.
+  `ServerSessionTest.KeepsTheKeepaliveWhileMinimized` pasa al `SceneManager`, porque el
+  `SessionClient` se fue. Los mutantes a mano, cada uno con su test que falla: los fondos después
+  del mundo, sin el fin del 2D, los textos antes de la arena o con la mezcla normal, sin la normal
+  al empezar (`DrawsInTheOrderOfTheOriginal` y otros); la arena con un reloj fijo, sin el módulo o
+  con la velocidad de la otra (`TheSandRunsWithTheFrameClock`, `UsesTheQuadsOfTheOriginal`); la
+  sesión antes de las texturas (`AMissingTextureFailsWithItsName`), la selección con la sesión
+  empezada (`StaysWhileTheSessionIsNotLoggedIn`) o nunca (el de loopback); la versión en cada
+  `%s`; el 454 empezando en 335; el `Leave` que no suelta y el que suelta sin `Load`; el `Enter`
+  del login antes del `Leave` de la carga (`ReleasesItsSlotsBeforeTheLoginLoadsItsOwn`); la barra
+  sobre 11, sin `resizedWidth` o sin `resizedHeight`; el login al llegar a 10; la carga diseñada
+  en 640 × 480 o sin su mezcla; el buffer de 1 × 1; y en el `GlFrameTarget`, sin limpiar, limpio
+  en transparente, sin dibujar en el `Present` o en el fin del 2D, sin `Begin` después, dos
+  `Present`, las fuentes que no siguen el ancho y un error de GL que queda.
+- [x] **Paso 3:** `WorldFolder`, las escenas, el `SceneManager`, el `GlFrameTarget` y `main.cpp`. La
   `TestScene` queda para `Main` sin `--data` (CI).
 
   Hecho así (PR A, 2026-11-03): `Data/WorldFolder.h` con `OriginalMaps` y los rangos como una tabla
@@ -1651,14 +1683,69 @@ public:
   presentó y lo que tenía el lote) y `support/ScenePrinters.h`; el `FakeTextureStore` ya estaba
   (CL5.3). La línea entre los PRs se corrió un poco: Q-C79 (07 y la fila del 02) va en el A, con la
   tabla que lo explica.
-- [ ] **Paso 4:** a mano, en Linux con el `Data\` del laboratorio, `Main --data <Data>`: la carga,
+
+  Hecho así (PR B, 2026-11-03): `Scenes/LoadingScene`, `LoginScene` y `CharacterSelectScene`,
+  `SceneWorlds.h`, `IWorldView.h` (con `EmptyWorldView`), `ITextDrawer.h` y `TextCacheDrawer`, y
+  `Render/Gl/GlFrameTarget`. Se aparta del plan:
+  - `Text.bmd` no lo lee la carga sino `main.cpp`, antes de la ventana y junto con la fuente (su
+    texto 0 es la cara), como WinMain en `0x4b9b9f`: `Scenes::LoadGameData`, en `GameData.h` y no
+    en `SceneContext.h`. Así un `Text.bmd` que falta corta sin abrir la ventana. La carga no carga
+    nada: avanza uno por paso, once frames del 0 al 10, y pide el login al paso que sigue.
+  - `SceneCanvas` suma `flushSprites`, el fin del 2D (`0x621a90`): el `SpriteBatch` no tiene
+    `Flush` (nota de la CL5.2), y el lote tiene que salir antes del pase 3D.
+  - `UiImage` suma `resizedWidth` y `resizedHeight` (`0x647370`): la barra tiene los dos, el ancho
+    de `0x640580` y el alto de `0x6402d0`, que la arma con 4 de ancho y la achica (06, corregido).
+  - Lo que comparten las dos escenas va aparte: `SceneTextures` (el juego, subido en `Enter`,
+    soltado en `Leave` y con el tamaño del buffer de cada slot) y `SceneText` (el `TextCache` con
+    las fuentes del ancho de cada frame: con otro ancho, otras, y si no abren, siguen las de antes).
+    `Data/DataFile.h` (`ReadDataFile`) sale de `TextureSet.cpp`, porque `Text.bmd` lo usa.
+  - `LoginScene(SceneContext, const GameData&, ServerSession*, version)`: el contexto se copia, y
+    los índices de los textos son `LoginLeftText`, `LoginRightText` y `LoginVersionText`; la
+    versión va con `PlaceVersion`, que cambia solo el primer `%s` (Q-C61). El fundido no dibuja
+    (Q-C66), y el pase que no dibuja de `0x620db0(0, 0, w, 48)` no va. Los textos salen con la
+    mezcla aditiva de la arena, como el original (Q-C80, nuevo).
+  - `GlFrameTarget::Create(gl, TextureTable&, RasterizerFactory, pantalla, presentar, log)`: la
+    pantalla y el swap son funciones de la ventana. Limpia en negro, dibuja el lote en el fin del
+    2D y en el `Present`, y no deja errores de GL antes de que una escena suba texturas.
+  - `main.cpp` corre las escenas con una carpeta de datos (`--data` o `[Data] Path`) y la
+    `TestScene` sin ella; `RunLoop` corta si una escena no pudo entrar (`EXIT_FAILURE`). Un host
+    exige la carpeta de datos, así que el `SessionClient` quedó sin uso y se fue. La versión es
+    `MURET_VERSION`, el `PROJECT_VERSION` del CMake.
+  - Los dobles: el `RecordingFrameTarget` anota cada quad (con su textura, mezcla, alpha test y
+    vértices), cada texto (el `RecordingTextDrawer` pone un quad de marca en el lote), cada fin del
+    2D y cada pase 3D, en orden; el `FakeTextureStore` suma `calls`, las subidas y las sueltas
+    juntas.
+- [x] **Paso 4:** a mano, en Linux con el `Data\` del laboratorio, `Main --data <Data>`: la carga,
       el login con sus fondos, la arena y los textos (la UI llega en la CL5.5). Una captura, fuera
       de Git.
-- [ ] **Paso 5:** verificar:
+
+  Hecho así (PR B, 2026-11-03), con Xvfb y `[Video] FontFile` en una fuente DejaVu: capturas de la
+  carga en 800 × 600 (las cinco imágenes en su lugar y la barra por la mitad) y del login en
+  640 × 480 y 1024 × 768 (los dos fondos arriba, desde y = 25, la arena encima del negro del
+  mundo y los tres textos apoyados abajo, la versión 0.1.0 a la izquierda). Las capturas quedaron
+  fuera de Git. `Main --data <Data> --frames 120` sale con 0. Falta mirarlo en Windows (Emanuel).
+- [x] **Paso 5:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug
   ctest --preset linux-x64-debug -R "WorldFolder|SceneManager|LoadingScene|LoginScene"
   ```
+
+  Hecho así (PR B, 2026-11-03): el `ctest` entero (1.245, con `MURET_CLIENT_FONT_FILE`) y, con
+  Xvfb y `MURET_CLIENT_REQUIRE_GL=1`, los 55 de `ctest -L '^gl$'`, sin fallas; `Main --frames 60`
+  sale con 0, y `Main --data <Data> --frames 120` también.
+
+  Revisión (PR B, 2026-11-03): `main.cpp` le pasaba `Platform::FindSystemFontFile` a
+  `ChooseFontFiles` también en Linux, donde siempre da vacío, y sin `[Video] FontFile` el error
+  decía que la cara no estaba en las fuentes del sistema, cuando el cliente no la busca. Ahora la
+  búsqueda va solo con `Platform::HasSystemFontList()` (Windows), como pedía la nota de la CL5.3,
+  y el error es el que nombra la clave y dice que no se busca
+  (`SystemFontsTest.OutsideWindowsThereIsNoList`, y en Windows `WindowsHasTheList`).
+  `SceneTextTest.FontsThatDoNotOpenKeepTheOldOnes` suma que un ancho que no abrió se prueba otra
+  vez si vuelve después de otro (sin el `reset` de `m_failedWidth`, no se probaba más). Con el
+  #79 mezclado a mano (la subida corta si GL ya tiene un error), sin conflictos: el `ctest`
+  entero, los de GL y `Main --data` con `MESA_DEBUG=1` pasan, sin avisos de Mesa. El `ctest`
+  queda en 1.249 y los de GL en 55. Ojo con `Main --data <Data> --frames 120` en Xvfb sin VSync:
+  los 120 frames duran cuatro pasos y no llegan al login; con `--max-fps 30` llegan (99 pasos).
 
 ## Sub-ola CL5.5: UI de login conectada a CL4: lista de servidores, cuenta y clave
 
@@ -1707,6 +1794,16 @@ de una animación no están: si una ventana los usa, se suman a `UiImageCorners`
 se teclea, un contador) es una entrada nueva cada vez: el tope saca las viejas, pero un campo que
 cambia mucho puede vaciar la caché; si se nota, el campo dibuja sin caché o la caché suma una
 entrada por campo. `InlineColors` es para el chat (CL8); el login no lo usa.
+
+*Nota de la CL5.4:* la UI va al final de `LoginScene::Render`, después de los textos (el paso 8
+de `0x6350b0`), y el lote llega con la mezcla aditiva que dejó la arena (Q-C80): cada ventana pone
+la suya, y el fondo negro con alfa `0x80` de una ventana necesita la normal. Las imágenes de las
+ventanas sacan el tamaño del buffer de su textura de `SceneTextures::BufferSize`. La `LoginScene`
+recibe la `ServerSession*` y la empieza en `Enter`; con la sesión que espera a la UI, pasa a la
+selección con `LoggedIn` como ahora. El `SceneManager` da el `InputState` en cada `Step`, y
+`main.cpp` corre la red en `pollNetwork`: `AutoLogin::Poll` va ahí. El de punta a punta de la
+CL5.4 está en `test_login_scene_loopback.cpp`; `test_login_scene_session.cpp` queda para la
+CL5.5. Para probar el dibujo, el `RecordingFrameTarget` y el `RecordingTextDrawer` de `support/`.
 
 **Interfaces:**
 

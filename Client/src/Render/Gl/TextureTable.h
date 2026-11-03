@@ -32,8 +32,9 @@ public:
     ~TextureTable() override = default;
 
     // Sube cada una con GlTexture::Upload, en su slot. Un slot de TextureSlotCount (2.101) o más, o
-    // una textura que GlTexture no sube, corta con un error que nombra el slot en hexadecimal, como
-    // el research.
+    // una textura que GlTexture no sube (también si GL la rechaza), corta con un error que nombra
+    // el slot en hexadecimal, como el research. El slot de la que falló se queda con lo que tenía;
+    // las de antes en `textures` ya quedaron subidas, porque cada escena sube su juego entero.
     [[nodiscard]] Core::Expected<void, std::string>
     Load(std::span<const Data::Textures::LoadedTexture> textures) override;
 

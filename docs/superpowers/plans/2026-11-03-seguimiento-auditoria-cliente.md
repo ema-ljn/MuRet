@@ -30,15 +30,15 @@ Los nombres de tests nuevos que aparecen abajo son **propuestos**, no tests ya i
 
 | Unidad | Hallazgo | Estado | PR propuesto |
 | --- | --- | --- | --- |
-| DOC | Informe y este plan | Documentados; revisión pendiente | `docs(client): registrar la auditoría y su seguimiento` |
+| DOC | Informe y este plan | En `main` por el #77 | `docs(client): registrar la auditoría y su seguimiento` |
 | T1 | AUD-C01, escritura append entre sinks | Hecha en el #78, con su test rojo y verde | `fix(client): conservar las líneas de otros sinks tras vaciar el log` |
 | T2 | AUD-C02, fallo de escritura observable | Claude, después de T3; mini-spec antes del test | `fix(client): informar los fallos de escritura del log` |
-| T3 | AUD-C03, fallo del driver al subir | Claude, ya, antes de la CL5.4 | `fix(client): rechazar una subida de textura que falla en GL` |
+| T3 | AUD-C03, fallo del driver al subir | Hecha en el #79 | `fix(client): rechazar una subida de textura que falla en GL` |
 | T4 | AUD-C04, registro de decisiones | Claude el índice, después de T3; los ADR 0001 y 0002, Emanuel | `docs(client): ordenar las decisiones de compatibilidad pendientes` |
 | R1 a R4 | REF-C01 a REF-C04 | Opcionales, por separado | Un PR por refactor que se decida tomar |
 
-T1 está en el #78. Sigue T3, antes de que la CL5.4 conecte la tabla de texturas con las escenas (la
-caché del texto de la CL5.3 ya sube por `GlTexture`). T2 no depende de un refactor de config. T4
+T1 está en el #78 y T3 en el #79, antes de que la CL5.4 conecte la tabla de texturas con las escenas
+(la caché del texto de la CL5.3 ya sube por `GlTexture`). T2 no depende de un refactor de config. T4
 puede avanzar como documentación independiente. Ningún checkbox de esta lista significa que una
 corrección esté hecha hasta enlazar su PR y registrar su verificación.
 
@@ -156,24 +156,24 @@ La tabla de funciones ya tiene `getError`; no sumar otro loader ni una dependenc
 const Data::Textures::Texture&, Data::Textures::Sampling)` con
 `Core::Expected<GlTexture, std::string>`, y `TextureTable::Load` con su error que nombra el slot.
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** confirmar la frontera de errores con la referencia
+- [x] **Paso 1 (resuelto por Claude):** confirmar la frontera de errores con la referencia
   de GL y Context7. Propuesta del plan: un error ya pendiente se informa como previo y la
   nueva subida no se publica; uno de la subida devuelve error y no reemplaza el slot.
   Dejar esa precondición y sus efectos sobre el flag escritos en `GlTexture.h`. No prometer
   recuperación del contexto tras `GL_OUT_OF_MEMORY`.
-- [ ] **Paso 2 (Emanuel):** escribir `GlTextureTest.RejectsADriverFailure`: consultar
+- [x] **Paso 2 (resuelto por Claude):** escribir `GlTextureTest.RejectsADriverFailure`: consultar
   `GL_MAX_TEXTURE_SIZE = M`, pasar RGBA `(M + 1) × 1` con buffer completo y esperar error.
   No usar `TextureSide`, que limita a 512, ni provocar falta de memoria real.
-- [ ] **Paso 3 (Emanuel):** escribir
+- [x] **Paso 3 (resuelto por Claude):** escribir
   `TextureTableTest.ADriverFailureKeepsThePreviousTexture`: cargar el slot `0x1a`, guardar su
   nombre, intentar reemplazarlo con esa textura y afirmar error con `0x1a` y nombre anterior
   conservado. Agregar `GlTextureTest.ReportsAPreexistingGlError` según el paso 1.
-- [ ] **Paso 4:** correr los tests en contexto real, con `MURET_CLIENT_REQUIRE_GL=1`, y
+- [x] **Paso 4:** correr los tests en contexto real, con `MURET_CLIENT_REQUIRE_GL=1`, y
   registrar el rojo. Conservar `GlTextureRulesTest`: un buffer inválido sigue rechazándose
   antes de llamar a GL y debe poder probarse con la tabla de funciones vacía.
-- [ ] **Paso 5 (Emanuel, `TODO(human)`):** implementar el manejo mínimo de fallo y comprobar
+- [x] **Paso 5 (resuelto por Claude):** implementar el manejo mínimo de fallo y comprobar
   que el nombre nuevo se libera por RAII, el alignment se restaura y el slot anterior queda.
-- [ ] **Paso 6:** correr los tests de GL y el resto del cliente. Abrir el PR de CL5.1 con el
+- [x] **Paso 6:** correr los tests de GL y el resto del cliente. Abrir el PR de CL5.1 con el
   alcance de AUD-C03: robustez de la API, sin afirmar que los assets válidos exceden el límite.
 
 Check previsto en Linux, como el CI:
@@ -185,6 +185,18 @@ MURET_CLIENT_REQUIRE_GL=1 xvfb-run -a ctest --preset linux-x64-debug -L '^gl$' -
 
 La limitación de LeakSanitizer/EGL de la auditoría es evidencia pendiente. No trasladar
 `detect_leaks=0` al CI como parte de esta corrección.
+
+**Hecho así (#79):** el paso 1 quedó como proponía el plan, verificado con la referencia de
+`glGetError` en Context7. GL puede tener varias banderas y da una por llamada, así que `Upload`
+las saca en un bucle con un tope de 16. Un error que ya estaba antes de subir corta sin subir y
+se nombra como de otra llamada. Los de la subida se leen después de su última llamada a GL
+(`glTexImage2D`, el alignment y los `glTexParameteri`); con uno, se borra el nombre nuevo,
+`GL_TEXTURE_2D` queda en 0 y el slot conserva su textura. Los tres tests del plan fallaban antes
+del arreglo. La revisión sumó `GlTextureDriverTest`, con un driver falso sin contexto: fija el
+bucle, el primer error, el tope y un error de `glTexParameteri`, y corre también en Windows, donde
+el CI no tiene GL. `TextureOverTheGlLimit` (`support/GlTestContext.h`) arma la textura que el
+driver rechaza. Los nombres de los errores van a mano: `gluErrorString` es de GLU, que no está en
+el perfil core, y `KHR_debug` pide GL 4.3.
 
 ## T4 — Trazabilidad de decisiones (Claude y Emanuel)
 

@@ -81,6 +81,13 @@ del login es un dato de la escena (el mapa 55, `World56`), que dibuja la CL7; ha
 queda el negro. La UI del login (la lista de servidores, la cuenta y la clave) es de la CL5.5. Sin
 carpeta de datos, `Main` sigue con la escena de prueba, como en CI.
 
+## Auditoría y mantenimiento
+
+La [auditoría de C++20 y contrato 1.02i del 2026-11-03](../docs/audits/2026-11-03-cliente-cpp20.md)
+registra los hallazgos, sus reproducciones y los límites de verificación. El
+[plan de seguimiento](../docs/superpowers/plans/2026-11-03-seguimiento-auditoria-cliente.md)
+los separa en tareas y PR por concepto de CL3.4 y CL5.1; las correcciones siguen pendientes.
+
 ## Compilar y correr
 
 Hace falta vcpkg (las dependencias, SDL3, libjpeg-turbo, glm, FreeType y GoogleTest, están en

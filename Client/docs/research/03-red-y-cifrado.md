@@ -9,14 +9,88 @@ cable real del laboratorio (72 conexiones, 3.033 paquetes del servidor, 183 C3 d
 
 ## Sockets
 
-- Winsock por ordinal (`socket`, `connect`, `send`, `recv`, `shutdown`, `closesocket`,
-  `WSAAsyncSelect`, `WSAStartup(0x202)`…), más `MessageBoxA` para los errores de red.
-- `0x4e81b0`: `WSAStartup` con mensajes de error en coreano ("소켓 생성 에러").
-- `0x4e8270` / `0x4e8380`: cierre ordenado: `shutdown(sock, 1)`, drenar `recv` hasta 0,
-  `closesocket`.
-- Los eventos llegan a la ventana con `WSAAsyncSelect` (`FD_READ`, `FD_WRITE`): todo pasa en el
-  hilo de la ventana. *Estático.*
-- El objeto de conexión vive en `0x57630C8`.
+Leído en el decompilado y confirmado en el desensamblado con `objdump` en la CL4.R (*estático*);
+lo que dice *verificado* se vio en el cable (`muproxy.log`, 64 conexiones al CS y 8 al GS).
+
+- Winsock por ordinal (`socket`, `connect`, `send`, `recv`, `setsockopt`, `shutdown`,
+  `closesocket`, `WSAAsyncSelect`, `WSAStartup(0x202)`…), más `MessageBoxA` para los errores de
+  red. FoxAnti reemplaza el slot de `send` (`0x6b8588`).
+- **El objeto de la conexión principal** está en `0x57636c0`, y los emisores lo leen por el
+  puntero de `0x6c82a0`: la ventana en `+0x0`; en `+0x4`, si es la principal (1) o una del chat
+  (0); el socket en `+0xc`; el buffer de envío en `+0x10` (`0x2000` bytes) con lo pendiente en
+  `+0x2010`; el de recepción en `+0x2014` (`0x2000`) con lo que hay en `+0x4014`; la cola de
+  paquetes en `+0x4020`. Con `+0x4018` distinto de 0 avisa lo que mandó a `0x4e8880`, que en este
+  build es un `ret`.
+- **Iniciar:** `0x4e81b0`, `WSAStartup(0x202)`. Si falla, loguea "Winsock DLL Initialize error."
+  (`0x6c8718`) y muestra un `MessageBoxA` con otra cadena (`0x6c8700`); si la versión no alcanza,
+  loguea "Winsock version low." (`0x6c86e8`), y el `MessageBoxA` muestra la de `0x6c86cc`.
+  `0x4c1340` la llama la primera vez que conecta (`DAT_057636bc`).
+- **Crear:** `0x4e82e0`, `socket(2, 1, 0)`: IPv4 y TCP, todavía bloqueante. Guarda su segundo
+  argumento en `+0x4`, y con uno distinto de 0 pone `DAT_05767918` en 0 (`0x4e8305`). Si falla,
+  loguea "소켓 생성 에러 %d" con `WSAGetLastError`.
+- **Conectar:** `0x4e8570(host, puerto, mensaje)`. Sin ventana en `+0x0`, un `MessageBoxA` y 0.
+  `inet_addr` y, si no es una IP, `gethostbyname`; si el nombre no resuelve **devuelve 2**
+  (`0x4e85cf`). Después rechaza `7F 00 00 01` (`0x4e85f7`..`0x4e8611`: devuelve 0), también si llegó
+  por un nombre (`localhost`), y solo esa dirección. Ni con el 2 ni con el rechazo cierra el socket
+  que creó `0x4e82e0`: lo cierra el primer envío que falla (en la escena de login, el `A9`), o
+  nadie, y el `0x4e82e0` siguiente lo pierde (Q-C50, Q-C51). Recién entonces `connect` (`0x4e8625`),
+  con el socket todavía bloqueante: espera a que termine. Si da -1 con otro error que
+  `WSAEWOULDBLOCK` (`0x2733`, que un socket bloqueante no da), `closesocket` y 0. Por último
+  `WSAAsyncSelect(socket, ventana, mensaje, 0x23)` (`0x4e865e`): `FD_READ`, `FD_WRITE` y `FD_CLOSE`,
+  sin `FD_CONNECT`; desde ahí el socket es no bloqueante (Q-C50, Q-C51).
+- **El que conecta:** `0x4c1340(host, puerto)` loguea `[Connect to Server] ip address = %s, port
+  = %d`, crea el socket con 1 y conecta con el mensaje `0x400`. Solo un 0 es error: loguea "Failed
+  to connect." y abre el aviso `0x70` de la UI (`0x65fe50`, el texto 402 de `Text.bmd`), y
+  devuelve 0; el 2 sigue como si hubiera conectado. Con error o sin él, pone en 0 los dos seriales
+  (`0x4c14ac` y `0x4c162c`). Lo llaman la escena de login con el ConnectServer (`0x6349eb`), la
+  vuelta al ConnectServer (`0x642837`, en `0x642810`), el `F4 03` con el GameServer (`0x4e3396`),
+  el sub 0 de `B1` con otro GameServer (`0x412b86`, en `0x412b30`) y `0x4c1b9f`, en una copia del
+  handler del `F4 03` que no tiene llamadores.
+- **Otra conexión:** `0x49de50` arma un objeto de `0x402c` bytes por sala, llama a `0x4e81b0` sin
+  la bandera, crea el socket con 0 (no toca `DAT_05767918`) y conecta al puerto 55980 con el
+  mensaje `0x500` más un índice (`0x49df01`). La IP llega en el `CA` del servidor (`0x4dce10`,
+  `pkt+3`, 15 bytes), con el número de sala y un ticket: es el chat del sistema de amigos
+  (*inferido*: el layout del `CA` es el del resultado de crear una sala). No es del login.
+- **Los eventos:** el mensaje `0x400` del WndProc (`0x4b31b5`) mira `lParam & 0xFFFF`, así que no
+  ve el error que trae la palabra alta: 1 (`FD_READ`) va a `0x4e88a0`, 2 (`FD_WRITE`) a
+  `0x4e87b0`, y `0x20` (`FD_CLOSE`) muestra el texto 3 de `Text.bmd` en pantalla (`0x555190`),
+  loguea "서버와의 접속종료." ("se terminó la conexión con el servidor"), cierra con `0x4e8380` y
+  abre el aviso `0x70`. Todo pasa en el hilo de la ventana.
+- **Leer:** `0x4e88a0`. Con el buffer lleno no lee y lo loguea (Q-C40). Un `recv` hasta llenar los
+  `0x2000`; con 0 o con -1, por cualquier error, vuelve sin cerrar: el cierre lo hace `FD_CLOSE`.
+  Con menos de 3 bytes juntos espera; si no, salta a `decode_inbound` y al corte (abajo).
+- **Despachar:** `0x4e1d50(cola, 0, 0)`, en cada vuelta del bucle de `WinMain` (`0x4be5bc`), con
+  foco o sin él, saca **todos** los paquetes de la cola (cada caso vuelve a `0x4e1d75`) y llama al
+  dispatcher. Enseguida `0x49e510` hace lo mismo con cada conexión del chat, con otro handler
+  (`0x4be5ca`).
+- **Mandar:** cada emisor manda en línea: un lazo de `send` desde lo ya enviado, sin mirar lo que
+  quedó pendiente en `+0x2010` (Q-C52). Con `WSAEWOULDBLOCK`, si `pendiente + total` entra en
+  `0x2000`, copia al buffer de envío lo que falta, pero **desde el principio del paquete** (`lea
+  esi,[ebp-X]`): el mismo defecto que Q-C11. Si no entra, loguea `[Send Packet Error] SendBuffer
+  Overflow` y cierra; con otro error, `[Send Packet Error] WSAGetLastError() != WSAEWOULDBLOCK` y
+  cierra. Un `send` que da 0 corta el lazo como si hubiera salido todo. Leído en el keepalive del
+  timer (`0x4b162a`..`0x4b17b7`) y en el aviso `F1 03` (`0x4e22f1`..`0x4e23c7`); las 492 copias en
+  línea a `+0x10 + [+0x2010]` del binario toman el principio de un buffer de la pila (*estático*,
+  contadas en el desensamblado: 485 con `lea esi,[ebp-X]` y 7 con un puntero guardado, `mov
+  esi,[ebp-X]`, como `0x4ae48e`), y `0x4e8690`, la versión que no está en línea y no tiene
+  llamadores, hace lo mismo. Por esos lazos, con el error y el desborde, `0x4e8380` tiene 1.264
+  `call`.
+- **Drenar:** `0x4e87b0`, con `FD_WRITE`. `enviado` vuelve a 0 en cada `FD_WRITE` (`0x4e87b4`).
+  Manda desde `buf + enviado` el largo `pendiente - enviado`, con `pendiente` ya descontado: resta
+  dos veces lo que salió. Con `WSAEWOULDBLOCK` vuelve sin correr lo que quedó al principio del
+  buffer. Con otro error loguea `FD_WRITE Send Error = %d` y cierra; con un `send` que da 0, cierra
+  sin loguear (Q-C11). Basta un parcial para repetir el principio y perder el final, y después de
+  un parcial ese `FD_WRITE` no termina bien: lo enviado nunca llega a lo pendiente, y el lazo sale
+  con `WSAEWOULDBLOCK`, con un largo 0 o con uno negativo (*estático*; los casos, con el jefe de
+  la CL4.0, en Q-C11).
+- **Cerrar:** `0x4e8380`. Con `+0x4` distinto de 0, `DAT_05767918` en 0. `setsockopt(SOL_SOCKET,
+  SO_LINGER, {1, 0})` (`0x4e83b9`), con lo que `closesocket` corta con un RST y tira lo que quedaba
+  por mandar; vacía los dos buffers y la cola de paquetes, loguea `[Socket Closed][Clear
+  PacketQueue]`, `closesocket` y el socket en -1. Es el que corre en todos los cierres: al pasar
+  del CS al GS (`0x4e3388`), con `FD_CLOSE`, con un error de envío y en `WM_DESTROY` (Q-C54).
+- **El cierre ordenado no se usa:** `0x4e8270` hace `shutdown(socket, 1)`, `recv` hasta 0 y
+  `closesocket`, y `0x4e8520` `closesocket` con `DAT_05767918` en 0. Ninguna de las dos tiene un
+  `call` ni un puntero en todo el archivo, que no tiene relocaciones.
 
 ## Cadena de recepción
 
@@ -163,6 +237,9 @@ mínima los reproduce a propósito, MuRet no.
 | FoxAnti traduce el formato del laboratorio al de `main.exe` | la traducción vive solo en `Network::IObfuscation`; `Protocol` lee siempre el formato de `main.exe` (`F4 06`, `F3 11` con su byte de más), venga del servidor que venga | CL2, CL4 |
 | El `0xAA` se decide por lectura de `recv` | se decide por paquete, mirando el primer byte en el cable (`6B`, `68`, `69`, `6E` llevan `0xAA`; `C1`, `C2`, `C3` y `C4` van en claro) (Q-C18) | CL2 |
 | `WSAAsyncSelect` en el hilo de la ventana | socket no bloqueante consultado por el bucle (un hilo); el envío que no entra se encola como en `FD_WRITE` | CL4 |
+| `connect` bloqueante; rechaza `127.0.0.1` (Q-C50) y sigue con un nombre que no resuelve (Q-C51) | `connect` no bloqueante con un `ConnectTimeout`; `127.0.0.1` se acepta y un nombre que no resuelve es `ResolveFailed` | CL4 |
+| Cada emisor manda en línea sin mirar lo pendiente y, con `WSAEWOULDBLOCK`, encola el principio del paquete (Q-C52); el drenaje repite y pierde bytes (Q-C11) | una `SendQueue` con cursor: con algo pendiente lo nuevo va detrás, y lo que salió no se repite | CL4 |
+| Todo cierre es con RST (`SO_LINGER {1, 0}`, Q-C54); el cierre ordenado de `0x4e8270` no se usa | `close` o `closesocket` sin `SO_LINGER`: el otro lado ve un FIN | CL4 |
 | El rearmado declara menos de lo que ocupa (Q-C10), el serial de recepción no se resincroniza (Q-C04) y el descifrado suma los largos útiles sin mirarlos | `DecryptPacket` rearma con el tamaño que ocupa, resincroniza el serial y lo informa (`SerialCheck::Resynced`), y rechaza un largo útil imposible (`InvalidBlock`) y lo que no son bloques enteros (`NotWholeBlocks`); `EncryptPacket` sigue la regla de C3 o C4 del envoltorio, con el relleno como parámetro y el resto en 0 | CL2 |
 | Pila de ~2 KB en `0x4e1d50` que un C4 grande desborda (Q-C05), y un paquete de más de `0x2000` que deja de leer la conexión (Q-C40) | el corte rechaza lo que pasa de `MaxPacketSize` (`0x2000`), y el descifrado escribe en un buffer del tamaño de lo que entra | CL2 |
 

@@ -721,9 +721,11 @@ Hecho así (PR A, 2026-11-03): la X-macro de `Platform/GlFunctionList.h` tiene 4
 grupos: `MURET_GL_QUERY_FUNCTIONS` (`glGetString` y `glGetIntegerv`) y el resto. `LoadGlFunctions`
 pide las dos primeras, mira la versión y el perfil (el chequeo que estaba en `Window.cpp` y copiado
 en el lab) y recién ahí pide el resto, así que un driver viejo dice su versión y no la primera
-función de la 3.3 que le falta (`GlLoaderTest.TheContextIsAskedFirst`). El pedido de una función
-quedó público (`Platform::LoadGlFunction`, con el reintento en `opengl32.dll`), y el lab pide con
-él lo único que le queda, `glDrawElements`; lee `MURET_CLIENT_REQUIRE_GL` con
+función de la 3.3 que le falta. Lo prueba `GlLoaderDriverTest`, sin ventana: `LoadGlFunctions`
+recibe cómo pedir cada función (`GlProcLookup`, por defecto `GlProcAddress`), y un driver falso que
+dice 2.1, o 3.3 sin el perfil core, recibe solo los dos pedidos de la consulta. El pedido de una
+función quedó público (`Platform::LoadGlFunction`, con el reintento en `opengl32.dll`), y el lab
+pide con él lo único que le queda, `glDrawElements`; lee `MURET_CLIENT_REQUIRE_GL` con
 `Core::ReadEnvironmentVariable`, que llegó con el merge de `origin/claude/cl45` porque `main`
 todavía no tiene `Core/Environment.h`. Cuatro cosas cambiaron de lugar: `Data/Textures/Sampling.h`
 vino al PR A, porque `GlTexture::Upload` lo recibe; `Render/SpriteVertex.h`, con `Color`, se
@@ -746,6 +748,12 @@ que el resto de los tests no enlace GL. Los mutantes a mano (sin `GL_UNPACK_ALIG
 vuelta a 4 fijo, sin `WRAP_T`, sin el filtro de minificación, `Clamp` como `GL_REPEAT`, `Linear`
 como `GL_NEAREST`, RGB como RGBA, sin el chequeo del buffer, sin viewport, la y para abajo, sin
 modular, el log del shader vacío y un nombre de GL repetido o sin `gl`) mueren todos.
+En la revisión del PR A se sumaron tres cosas: `GlLoaderDriverTest` (un `LoadGlFunctions` que
+pedía todas antes de mirar el contexto pasaba todos los tests),
+`GlRendererTest.EachThreeVerticesAreATriangle` (dos quads separados en un solo `Draw`: con
+`GL_TRIANGLE_FAN` o `GL_TRIANGLE_STRIP` pasaban todos) y, en `NearestAndLinearSampleAsAsked`, el
+téxel de lejos con `Nearest` puede ser cualquiera de los cuatro: el centro cae justo en el borde
+entre téxeles, y una GPU de verdad puede redondear la UV para cualquier lado.
 Hecho así (PR B, 2026-11-03): `LoadTextureSet` es la primera lectura del disco de la capa de
 datos (los cargadores de la CL1 reciben los bytes). El nombre sale como en los dos cargadores, que
 copian hasta el **primer** punto, con él, y le ponen su extensión (`0x63b8e4`..`0x63b8fd` en el del

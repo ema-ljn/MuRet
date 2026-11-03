@@ -86,4 +86,31 @@ TEST_F(GlRendererTest, TheViewportIsTheScreen)
 
     EXPECT_EQ(Cells(2, 2), (std::vector<std::optional<Rgba8>>{Transparent, Transparent, White, Transparent}));
 }
+
+// Cada tres vértices son un triángulo suelto (GL_TRIANGLES), así que en un solo Draw van varios
+// quads que no se tocan, como los que juntará el SpriteBatch de la CL5.2: uno en la celda de abajo
+// a la izquierda y otro en la de arriba a la derecha de una grilla de 4 × 4, y el resto queda sin
+// dibujar. Un abanico o una tira armarían triángulos entre los vértices de los dos y llenarían algo
+// del medio.
+TEST_F(GlRendererTest, EachThreeVerticesAreATriangle)
+{
+    const Client::Core::Expected<GlTexture, std::string> white =
+        GlTexture::Upload(Gl(), OneTexel(255, 255, 255, 255), {});
+    ASSERT_TRUE(white.HasValue()) << white.Error();
+    constexpr float Quarter = FramebufferSide / 4.0f;
+    constexpr auto Side = static_cast<float>(FramebufferSide);
+    const auto bottomLeft = Client::Tests::Triangles(TestQuad{.right = Quarter, .top = Quarter});
+    const auto topRight = Client::Tests::Triangles(
+        TestQuad{.left = Side - Quarter, .bottom = Side - Quarter, .right = Side, .top = Side});
+    std::vector<Client::Render::SpriteVertex> vertices(bottomLeft.begin(), bottomLeft.end());
+    vertices.insert(vertices.end(), topRight.begin(), topRight.end());
+
+    m_renderer->Draw(vertices, white.Value(), m_framebuffer->Size());
+    ASSERT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
+
+    std::vector<std::optional<Rgba8>> expected(16, Transparent);
+    expected[3] = White;  // la fila de arriba, a la derecha
+    expected[12] = White; // la de abajo, a la izquierda
+    EXPECT_EQ(Cells(4, 4), expected);
+}
 } // namespace

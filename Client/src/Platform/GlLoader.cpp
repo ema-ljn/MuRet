@@ -94,13 +94,13 @@ SDL_FunctionPointer GlProcAddress(const char* name)
     return address;
 }
 
-Core::Expected<GlFunctions, std::string> LoadGlFunctions()
+Core::Expected<GlFunctions, std::string> LoadGlFunctions(GlProcLookup lookup)
 {
     GlFunctions gl;
     std::string error;
     // Una línea por función de la lista: la primera que falta corta.
 #define MURET_GL_LOAD(type, member, name)                                                                              \
-    if (!LoadGlFunction(gl.member, name, error))                                                                       \
+    if (!LoadGlFunction(gl.member, name, error, lookup))                                                               \
     {                                                                                                                  \
         return Core::Unexpected(std::move(error));                                                                     \
     }

@@ -146,8 +146,10 @@ TEST_F(GlTextureTest, LeavesTheUnpackAlignmentAsItWas)
 // El tercer argumento del original va al filtro de cerca y al de lejos (06 § El login, al entrar).
 // De cerca, dos téxeles negro y blanco estirados a 64 píxeles: con Nearest son dos mitades, y con
 // Linear el medio es gris. De lejos, cuatro téxeles en un píxel, en el centro de la textura: con
-// Nearest es uno de ellos, el (1, 1), y con Linear el promedio de los cuatro. Sin mipmaps: con el
-// filtro de lejos que GL trae por defecto, la textura no estaría completa y saldría negra.
+// Nearest es uno de ellos, y con Linear el promedio de los cuatro. Cuál de los cuatro no se fija:
+// el centro cae justo en el borde entre téxeles, y en una GPU de verdad la UV interpolada puede
+// quedar un poco antes o después (Mesa da el (1, 1)). Sin mipmaps: con el filtro de lejos que GL
+// trae por defecto, la textura no estaría completa y saldría negra.
 TEST_F(GlTextureTest, NearestAndLinearSampleAsAsked)
 {
     const Texture blackWhite = MakeTexture(PixelFormat::Rgb, 2, 1, {0, 0, 0, 255, 255, 255});
@@ -171,7 +173,9 @@ TEST_F(GlTextureTest, NearestAndLinearSampleAsAsked)
     const auto farNearest = GlTexture::Upload(Gl(), fourColors, {Filter::Nearest, Wrap::Clamp});
     ASSERT_TRUE(farNearest.HasValue()) << farNearest.Error();
     Draw(farNearest.Value(), onePixel);
-    EXPECT_EQ(m_framebuffer->ReadPixels().front(), White);
+    const Rgba8 nearestTexel = m_framebuffer->ReadPixels().front();
+    EXPECT_TRUE(nearestTexel == Red || nearestTexel == Green || nearestTexel == Blue || nearestTexel == White)
+        << "con Nearest no es uno de los cuatro téxeles";
 
     const auto farLinear = GlTexture::Upload(Gl(), fourColors, {Filter::Linear, Wrap::Clamp});
     ASSERT_TRUE(farLinear.HasValue()) << farLinear.Error();

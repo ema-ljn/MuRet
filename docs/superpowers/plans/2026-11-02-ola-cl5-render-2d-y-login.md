@@ -97,7 +97,7 @@ research, *estático* es lo leído en el binario; *verificado*, lo que mostraron
 
 | Qué | Dónde | Qué hace |
 | --- | --- | --- |
-| las escenas | `DAT_006d5dc8`, `0x63945d` | 1 la carga inicial (`0x622e40`), 2 el login, 3 la carga del mundo (`0x6356f0`, los fondos `Interface\LSBg01` a `LSBg04`), 4 la selección, 5 el juego. Pasan 1 → 2 (`0x622e40`), 2 → 4 (`0x634c60`), 4 → 3 (`0x6342c0`), 3 → 5 (`0x6356f0`), y `0x4c2710`, con la respuesta del `F1 02`, pone 4 si `pkt[4]` es 1 y 2 si es 2 (CL5.R; la tabla entera, en 02). *Estático* |
+| las escenas | `DAT_006d5dc8`, `0x63945d` | 1 la carga inicial (`0x622e40`), 2 el login, 3 la carga del mundo (`0x6356f0`, los fondos `Interface\LSBg01` a `LSBg04`), 4 la selección, 5 el juego. Pasan 1 → 2 (`0x622e40`), 2 → 4 (`0x634c60`), 4 → 3 (`0x6342c0`), 3 → 5 (`0x6356f0`), y `0x4c2710`, con la respuesta del `F1 02` cifrada, pone 4 si `pkt[4]` es 1 y 2 si es 2 (CL5.R; la tabla entera, en 02). *Estático* |
 | la carga | `0x622e40` | sube `Interface\lo_back_01.jpg`, `lo_back_02.jpg`, `lo_mu_logo.tga`, `lo_121518.tga`, `lo_webzen_logo.tga` y `lo_lo.jpg` a los slots `0x71e` a `0x723`, arma su UI (`0x65eeb0`: cinco imágenes y una barra con el `0x723`), carga los datos del juego (`0x61ccb0`), libera los seis slots (`0x63c150`), loguea `> Loading ok.` y pasa a la 2. *Estático* |
 | entrar al login | `0x634c60` llama a `0x6349a0` cada vez que se entra a la escena: la bandera `DAT_07d3a13d` la vuelve a 0 `0x4c2f24`, al pasar a la 2 (`0x4c2f1a`), así que al volver al login carga otra vez el mundo y reconecta al CS | el mapa pasa a `0x37`, el 55 (`DAT_006c9dd0`), y `0x61a560` carga ese mundo; sube las texturas de la escena (`0x61c7c0`); arma las ventanas de la UI (`0x65f300`); conecta al CS (`0x4c1340`); pone el objeto `0xa2` en una posición fija y arma el personaje de la escena con el cuervo (`0x517270`, el `A9` de la CL4.R); suena `data\music\main_theme.mp3` (`0x4acfd0`) y loguea `> Login Scene init success.` *Estático* |
 | la carpeta del mundo | `0x61a560`, con `0x616ec0` | `World%d` con el mapa + 1, salvo del 11 al 17 → `World12`, del 18 al 23 → `World19`, del 24 al 29 y el 36 → `World25`; el mismo número va en `EncTerrain%d`. Dos casos más: con el argumento y `DAT_006c9dd0` en 32, el mapa pasa a 9 (`0x61a56c`..`0x61a57d`) y la carpeta es `World10` (los cinco llamadores pasan los dos iguales), y antes de la carpeta `0x616ec0` fuerza el mapa 7 si `DAT_07d366bc` está prendido (`0x616ee1`; en el binario nadie lo escribe: código muerto, y `WorldFolder` no lo lleva, CL5.R). Los mapas que llegan: los de los tres handlers de `0x4c41c9`, `0x4c4e9d` y `0x4c780c` (un byte sin signo del paquete, de 0 a 255, y ninguno mira el rango: Q-C58, CL5.R), el 54 de `0x633f20` (desde `0x6342c0`, `0x633f44`: `World55`) y el 55 del login. El 55 da `World56`, que está en el `Data\` del laboratorio con `Object56`, y es el único mundo que multiplica las alturas por 3 (`GoldenTerrainHeights.World56ReachesThreeTimes255`, CL1). *Estático*; las alturas, *verificado* en la CL1 |
@@ -484,10 +484,11 @@ de carga y la de login, con la sección nueva y lo de la x87 en "Primitivas 2D")
 cinco escenas y sus transiciones, y § Resolución, fuentes y texto) y en 05 (la carpeta de cada
 mapa). Lo que cambió respecto de la tabla de arriba quedó corregido en ella. Lo que no estaba:
 
-- la escena la escriben ocho `mov` con números fijos, y el `F1 02` (`0x4c2710`) la lleva a 4 o a 2;
-- la carga diseña su UI en 800 × 600, con una clase de imagen propia (`0x647650`, UV a medio
-  téxel, y atando la textura sin `0x620780`: Q-C64), y dibuja 11 frames con `SwapBuffers` mientras
-  carga;
+- la escena la escriben ocho `mov` con números fijos, y el `F1 02` (`0x4c2710`), si llegó cifrado,
+  la lleva a 4 o a 2;
+- la carga diseña su UI en 800 × 600, con la imagen de la UI nueva (`0x647650`, la misma de los
+  fondos de las ventanas: UV a medio téxel, y atando la textura sin `0x620780`, Q-C64), y dibuja 11
+  frames con `SwapBuffers` mientras carga;
 - la ventana de `+0x4584` era la bandera de abierta de la de `+0x4578`; el `0x4c6070` del plan es el
   pedido de la lista, no el `F4 03` (ese lo manda el clic, `0x645e10`);
 - hay una quinta resolución, 1600 × 1200, donde la letra queda en -1 y -2 (Q-C59);
@@ -495,7 +496,7 @@ mapa). Lo que cambió respecto de la tabla de arriba quedó corregido en ella. L
   con `ES_PASSWORD`; la ventana la abre el `F1 00`, con el GS conectado (ya no es *inferido*);
 - el OK de cuatro avisos cierra el juego (Q-C69), y en el juego no hay avisos (Q-C70);
 - la lista se corta en el primer lugar vacío y no muestra los grupos 21 a 23 (Q-C62), y no mira
-  rangos (Q-C63).
+  rangos ni topes: la ventana tiene 16 botones de servidor y un grupo puede tener 20 (Q-C63).
 
 Los quirks nuevos van de Q-C57 a Q-C70; P-C04 quedó cerrado, P-C12 tiene la carpeta de cada mapa
 y P-C13 lo que falta. Sin leer: las ventanas de `+0x3d0`, `+0x7e8` y `+0x4578`, los botones de la
@@ -512,7 +513,9 @@ el anticheat: fuera de alcance).
   (`SkewedQuad`) con las UV de 06 (u, v + 0,25 dv arriba a la izquierda y u, v + 0,75 dv abajo).
   La UI de la carga no es el quad de `0x621b60`: va en 800 × 600 con la y desde arriba, `600 − y`
   y UV a medio téxel; o la `LoadingScene` la pasa a píxeles, o el `SpriteBatch` suma esa forma
-  (`SpriteBatchTest.PlacesTheLoadingImagesLikeTheOriginal`, en 640 × 480 y en 1024 × 768).
+  (`SpriteBatchTest.PlacesTheLoadingImagesLikeTheOriginal`, en 640 × 480 y en 1024 × 768). No es
+  solo de la carga: es la imagen de toda la UI nueva, y las ventanas de la CL5.5 la usan en píxeles
+  (fx = fy = 1, la y desde H), así que lo que se elija acá sirve para las dos.
 - **CL5.3:** el texto de las trazas es el de `TextOut` distinto de 1: un `TextOutA` por texto, sin
   los colores `0x02`, que el original solo separa con `TextOut` en 1. `InlineColors` se escribe
   igual (lo usa el chat de la CL8), pero el login no lo necesita. El quad del texto: el tamaño
@@ -528,13 +531,20 @@ el anticheat: fuera de alcance).
   arena: aditiva, con el color (0,25; 0,1; 0,1), u de los ms de la escena (Q-C65); los textos, sin
   copia (Q-C61).
 - **CL5.5:** el orden de la lista, sus nombres por índice y lo que se aparta (Q-C62, Q-C63). En
-  `ServerListModelTest.GroupsByCodeOverTwenty`, el 420 es del grupo 21, que el original no muestra:
-  el ejemplo pasa a 400 y 401 juntos y 380 aparte (el grupo 19). Los tests nuevos:
+  `ServerListModelTest.GroupsByCodeOverTwenty`, el 420 sería del grupo 21, que no tiene botón (MuRet
+  lo ignora, Q-C62): el ejemplo pasa a 400 y 401 juntos y 380 aparte (el grupo 19). El 380 sale por
+  la regla de MuRet: el original corta en el lugar 5, vacío, y no lo muestra. Los tests nuevos:
   `KeepsTheOrderOfTheOriginal`, `AListWithoutGroupTwentyShowsItsGroups`,
-  `IgnoresTheGroupsWithoutAButton` y `AGroupKeepsTwentyServers`. Los campos: 10 caracteres, la
-  clave enmascarada; el original deja pasar todo salvo Esc y `0x19` a `0x1c`, y MuRet, ASCII
-  imprimible (Q-C43). Cancelar en la cuenta vuelve al CS y a la lista. En el aviso, Enter y Esc
-  hacen lo de OK. `APeerCloseShowsText3` también ve el aviso `0x70` con el texto 402, como el
+  `IgnoresTheGroupsWithoutAButton` y `AGroupKeepsTwentyServers`. **Decidido:** `ServerListWindow`
+  tiene 20 botones de servidor, uno por cada número de un grupo: MuRet muestra todos los servidores
+  del grupo, y el original, con 16, pisa sus barras desde el 17 (Q-C63,
+  `ServerListWindowTest.ShowsTheTwentyServersOfAGroup`). Las imágenes de las ventanas tienen la
+  forma de las de la carga, en píxeles (CL5.2). Los campos: 10 caracteres, la clave enmascarada; el
+  original deja pasar todo salvo Esc y `0x19` a `0x1c`, y MuRet, ASCII imprimible (Q-C43). En el
+  original, el subclass toma Tab y Enter (salvo los casos de 06): los manda a la ventana del juego,
+  o Tab pasa el foco al control de `+0x98` si `+0x44` está prendido (en el login, sin leer); que Tab
+  cambie de campo es de MuRet. Cancelar en la cuenta vuelve al CS y a la lista. En el aviso, Enter y
+  Esc hacen lo de OK. `APeerCloseShowsText3` también ve el aviso `0x70` con el texto 402, como el
   `FD_CLOSE`; y `LoginSceneSessionTest.OkOnTheConnectNoticeQuits` fija Q-C69.
 
 ## Sub-ola CL5.1: `Renderer` y texturas desde OZT/OZJ
@@ -1241,10 +1251,10 @@ al jugador. Va en dos PRs: **PR A**, el texto tecleado, los widgets y la lista (
 
 | Qué | Original | MuRet |
 | --- | --- | --- |
-| la lista | `F4 06` → `0x4c1860`, agrupada por `código / 20` con una tabla de 25 (P-C04) | `UI::ServerListModel`: los grupos y su orden, con lo que diga la CL5.R; la carga de cada servidor |
+| la lista | `F4 06` → `0x4c1860`, agrupada por `código / 20` con una tabla de 25 (P-C04); 16 botones de servidor, aunque un grupo puede tener 20 (Q-C63) | `UI::ServerListModel`: los grupos y su orden, con lo que diga la CL5.R; la carga de cada servidor; `ServerListWindow` con 20 botones de servidor (decidido en la CL5.R) |
 | elegir | un clic en el servidor → `F4 03` con su código | `ServerSession::ChooseServer(code)`, en `ChoosingServer` |
 | cuándo sale la cuenta | con el GS conectado: la abre el `F1 00` (`0x4c1e20`, CL5.R) | `SessionState::WaitingCredentials`: la ventana de la cuenta se muestra |
-| los campos | dos `EDIT` de Windows con `EM_LIMITTEXT` 10, la clave con `ES_PASSWORD` (CL5.R); la cuenta y la clave de hasta 10 bytes en el paquete (Q-C43) | `UI::TextField` con tope de 10 bytes, ASCII imprimible, la clave con asteriscos; Tab cambia de campo |
+| los campos | dos `EDIT` de Windows con `EM_LIMITTEXT` 10, la clave con `ES_PASSWORD` (CL5.R), y Tab y Enter los toma el subclass (`0x467b10`, 06); la cuenta y la clave de hasta 10 bytes en el paquete (Q-C43) | `UI::TextField` con tope de 10 bytes, ASCII imprimible, la clave con asteriscos; Tab cambia de campo (de MuRet) |
 | mandar | Enter u OK, en `0x6418b0` → el emisor `0x641bf0`; con un campo vacío, el aviso `0x64` o `0x65` (CL5.R) | `ServerSession::SubmitCredentials(Credentials)`; el campo de la clave se vacía |
 | la UI por frame | las ventanas leen Enter y Esc y el mouse por frame (`0x640940`) | la UI se atiende en el paso, con los flancos de la CL3.3 (los ve el primer paso del frame): a 25 pasos por segundo, la demora es parecida a la de 21,33 frames; la diferencia va a 07 |
 | el mouse | píxeles de la ventana, acotados (Q-C47) | píxeles del framebuffer, acotados (pregunta 12) |
@@ -1299,6 +1309,7 @@ struct ServerGroup
 };
 std::vector<ServerGroup> GroupServers(std::span<const Protocol::Connection::ServerEntry> list);
 
+// 21 botones de grupo y 20 de servidor, uno por número (el original tiene 16: Q-C63).
 class ServerListWindow
 {
 public:
@@ -1372,12 +1383,14 @@ public:
     `BackspaceOnEmptyDoesNothing`, `TheMaskedFieldShowsStars`, `ClearEmptiesIt`; y que el
     `PrintTo` de un campo con clave no la escribe (`UiPrinters.h`);
   - `ServerListModelTest.GroupsByCodeOverTwenty` (400 y 401 juntos, 380 aparte; el orden, el de la
-    CL5.R: el 420 sería del grupo 21, que el original no muestra, Q-C62),
+    CL5.R: el 420 sería del grupo 21, que no tiene botón y MuRet ignora, Q-C62; el 380 sale por la
+    regla de MuRet, porque el original corta en el lugar 5, vacío),
     `ServerListModelTest.AnEmptyListHasNoGroups`, y los de Q-C62 y Q-C63
     (`KeepsTheOrderOfTheOriginal`, `AListWithoutGroupTwentyShowsItsGroups`,
     `IgnoresTheGroupsWithoutAButton`, `AGroupKeepsTwentyServers`);
   - `ServerListWindowTest.AClickOnAServerChoosesItsCode`, `AClickOutsideChoosesNothing`,
-    `ItIsCenteredInPixels` (en 640 × 480 y en 1024 × 768, con la ubicación de `0x65f300`);
+    `ItIsCenteredInPixels` (en 640 × 480 y en 1024 × 768, con la ubicación de `0x65f300`),
+    `ShowsTheTwentyServersOfAGroup` (Q-C63);
   - `LoginWindowTest.TabMovesTheFocus`, `EnterWithBothFieldsSubmits`,
     `EnterWithAnEmptyFieldDoesNotSubmit`, `SubmittingEmptiesThePassword`.
 - [ ] **Paso 4 (PR A):** el texto tecleado en `Input` y `Platform`, y los widgets.

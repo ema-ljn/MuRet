@@ -280,6 +280,88 @@ TEST(SceneManagerTest, AnInvalidTransitionIsRejected)
     EXPECT_EQ(tested.manager.Current(), SceneId::Login);
 }
 
+// El aviso es uno por pedido seguido: si la escena deja de pedir un paso y vuelve a pedir lo mismo,
+// o si la escena que sigue pide lo que se le rechazó a la anterior, el log lo dice otra vez.
+TEST(SceneManagerTest, ARejectionIsLoggedAgainWhenTheRequestComesBack)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+    tested.stage.next[SceneId::Loading] = SceneId::Game;
+    tested.manager.Step(tested.input);
+    tested.stage.next.erase(SceneId::Loading);
+    tested.manager.Step(tested.input);
+    tested.stage.next[SceneId::Loading] = SceneId::Game;
+    tested.manager.Step(tested.input);
+    ASSERT_EQ(tested.Lines(LogLevel::Error).size(), 2u) << "volvió después de un paso sin pedido";
+
+    tested.stage.next[SceneId::Loading] = SceneId::Login;
+    tested.manager.Step(tested.input);
+    ASSERT_EQ(tested.manager.Current(), SceneId::Login);
+    tested.stage.next[SceneId::Login] = SceneId::Game;
+    tested.manager.Step(tested.input);
+
+    const std::vector<std::string> errors = tested.Lines(LogLevel::Error);
+    ASSERT_EQ(errors.size(), 3u) << "lo pidió otra escena";
+    EXPECT_TRUE(Contains(errors[2], "Login (2)")) << errors[2];
+    EXPECT_TRUE(Contains(errors[2], "Game (5)")) << errors[2];
+}
+
+// Sin escena (antes de Start, o después de un Enter que falló) no hay de dónde ir: un pedido no
+// arma ninguna escena, no cambia nada y no avisa.
+TEST(SceneManagerTest, ARequestWithoutASceneChangesNothing)
+{
+    Harness tested;
+    tested.manager.Request(SceneId::Login);
+    EXPECT_EQ(tested.manager.Current(), std::nullopt);
+    EXPECT_TRUE(tested.stage.created.empty());
+    EXPECT_TRUE(tested.Lines(LogLevel::Error).empty());
+
+    tested.stage.failingEnter = SceneId::Loading;
+    ASSERT_FALSE(tested.manager.Start(FirstScene).HasValue());
+    tested.manager.Request(SceneId::Login);
+
+    EXPECT_EQ(tested.manager.Current(), std::nullopt);
+    EXPECT_EQ(tested.stage.created, (std::map<SceneId, int>{{SceneId::Loading, 1}}));
+    EXPECT_EQ(tested.stage.journal, (std::vector<std::string>{"enter Loading", "leave Loading"}));
+    EXPECT_EQ(tested.Lines(LogLevel::Error).size(), 1u) << "solo el del Enter que falló";
+}
+
+// Start es la primera escena: con una ya entrada es un error, y la de ahora sigue, sin Leave ni
+// otra fábrica (si no, la de ahora se destruiría sin soltar sus texturas). Para cambiar está
+// Request.
+TEST(SceneManagerTest, StartingAgainKeepsTheScene)
+{
+    Harness tested;
+    tested.stage.slots[SceneId::Loading] = {0x71e, 0x723};
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+
+    const auto again = tested.manager.Start(SceneId::Login);
+
+    ASSERT_FALSE(again.HasValue());
+    EXPECT_TRUE(Contains(again.Error(), "Loading (1)")) << again.Error();
+    EXPECT_EQ(tested.manager.Current(), SceneId::Loading);
+    EXPECT_EQ(tested.stage.journal, (std::vector<std::string>{"enter Loading"}));
+    EXPECT_EQ(tested.stage.created, (std::map<SceneId, int>{{SceneId::Loading, 1}}));
+    EXPECT_EQ(tested.stage.textures.Size(), 2u);
+    EXPECT_EQ(tested.manager.Failure(), std::nullopt);
+    EXPECT_EQ(tested.Lines(LogLevel::Error).size(), 1u);
+}
+
+// Después de un Start que falló, otro empieza de cero: si entra, ya no queda el error de antes.
+TEST(SceneManagerTest, AStartAfterAFailedOneClearsTheFailure)
+{
+    Harness tested;
+    tested.stage.failingEnter = SceneId::Loading;
+    ASSERT_FALSE(tested.manager.Start(FirstScene).HasValue());
+    ASSERT_TRUE(tested.manager.Failure().has_value());
+    tested.stage.failingEnter.reset();
+
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+
+    EXPECT_EQ(tested.manager.Current(), SceneId::Loading);
+    EXPECT_EQ(tested.manager.Failure(), std::nullopt);
+}
+
 // Request, desde afuera de las escenas (la red de la CL6 y la CL9, con el F1 02 de 0x4c2710), sigue
 // la misma tabla.
 TEST(SceneManagerTest, ARequestFollowsTheSameTable)

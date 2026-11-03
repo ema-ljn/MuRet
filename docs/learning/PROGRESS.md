@@ -312,9 +312,10 @@ solo lo lee.
   mundos del laboratorio son la carpeta de algún mapa y que solo falta la del 35. Las escenas son
   objetos (`IScene`: entrar, paso, dibujo, salir y a cuál ir), y el `SceneManager` cambia solo por
   una de las ocho transiciones del original (`SceneTransitions.h`): otra es un error en el log, una
-  vez. Sale la de antes y entra la nueva, que la fábrica arma de cero; un `Enter` que falla deja el
-  error para que `main.cpp` cierre. La red corre en cada `Poll`, también minimizada. Q-C79, nuevo:
-  el `F1 02` cambia de escena sin mirar en cuál está.
+  vez mientras se pida seguido. Sale la de antes y entra la nueva, que la fábrica arma de cero; un
+  `Enter` que falla deja el error para que `main.cpp` cierre, y un segundo `Start` no pisa la escena
+  de ahora (lo encontró la revisión). La red corre en cada `Poll`, también minimizada. Q-C79,
+  nuevo: el `F1 02` cambia de escena sin mirar en cuál está.
 
 ## Conceptos
 

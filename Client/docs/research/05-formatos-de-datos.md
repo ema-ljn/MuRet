@@ -16,7 +16,7 @@ parciales, 44 binarios de soporte, 0 errores de decodificación):
 | --- | ---: | --- |
 | OZJ (JPEG) | 2.387 | prefijo de 24 bytes; 2.380 son JPEG y **7, TGA con extensión OZJ** (Q-C14) |
 | OZT (TGA) | 664 | prefijo de 4 bytes |
-| BMD de modelo | 1.962 | v0A en claro o v0C cifrado con K16; todos recorridos sin bytes sobrantes |
+| BMD de modelo | 1.962 | v0C cifrado con K16, y en claro cualquier otra versión (1.142 v0A y 4 con `0x00`); todos recorridos sin bytes sobrantes |
 | BMD de tabla | 7 + 26 estructuras | XOR3 `FC CF AB` |
 | terreno | 23 `EncTerrain` `.map`/`.obj`, 29 `.att`; además 18 `.map`, 20 `.obj` y 24 `.att` que el manifiesto clasifica como `Terrain/*` y no `EncTerrain/*`. El cliente carga solo los `EncTerrain` de `World<N>`, con el N de la carpeta o, en dos `.att`, otro número (confirmado en la CL1.3, ver abajo) | K16 (+ XOR3 en `.att`) |
 | OZB | 19 | BMP con prefijo de 4 bytes |
@@ -253,7 +253,7 @@ en los 1.962 modelos del cliente sin bytes sobrantes (`scripts/asset_manifest.py
 ```text
 "BMD" + versión (1 byte)
   v0x0C: tamaño (u32) + payload cifrado con K16 (el mismo de EncTerrain)
-  v0x0A: el resto va en claro
+  otra:  el resto va en claro (v0x0A, y cuatro con 0x00)
 nombre[32]
 n_mallas, n_huesos, n_acciones        (int16 cada uno)
 por malla:   n_vert, n_norm, n_uv, n_tri, textura (int16 x5)
@@ -268,12 +268,55 @@ lo que hace falta para dibujar un personaje animado:
 
 ```text
 vértice    hueso (int16) + relleno (int16) + posición float[3] en el espacio de ese hueso
+normal     hueso (int16) + relleno en 0 (int16) + normal float[3] + índice de vértice (int16)
+           + relleno en 0 (int16)
 UV         u, v (float)
-triángulo  tipo (u8; 3 en todas las mallas del personaje) + relleno; índices int16 de 4 vértices
-           en +2, de 4 normales en +10 y de 4 UV en +18; el resto de los 64 B, sin leer
+triángulo  tipo (u8; 3 en todas las mallas) + relleno; índices int16 de 4 vértices en +2, de 4
+           normales en +10 y de 4 UV en +18; en +0x1a..+0x1f, 6 bytes que el lector pisa (abajo);
+           en +0x20..+0x23, 4 que copia como vienen; los 28 que siguen no se copian
 hueso      por cada acción: n_keys posiciones float[3] y después n_keys rotaciones float[3]
            (ángulos de Euler en radianes); los dos, relativos al padre; padre −1 en la raíz
 ```
+
+**El lector, en el binario** (CL6.R, *estático* en `0x4f13d0`, con los 1.962 archivos recorridos
+por un script que lee como él, sin bytes de sobra en ninguno):
+
+- `0x60da30(modelo, carpeta, nombre, número)` arma el nombre: `"%s.bmd"` con -1, `"%s0%d.bmd"`
+  con un número menor que 10 (con signo: un -2 da `Nombre0-2.bmd`) y `"%s%d.bmd"` con los demás.
+  Con `DAT_006c9e0c` en 1 (el valor de la `.data`; las tres escrituras de 0 están detrás de
+  `DAT_07d366bc`, que nadie escribe) lee con `0x4f13d0`; `0x4f1ac0` **escribe** un `.bmd` (con
+  `"wb"`) y solo corre en el modo de desarrollo, con `DAT_006c9e0c` en 0.
+- Un archivo que no abre se saltea sin avisar, salvo que el nombre sea `Monster`, `Player` o
+  `PlayerTest`: `"%s file does not exist."`, `MessageBoxA` y `WM_DESTROY` (Q-C23). `Player.bmd`
+  con mallas también cierra el juego (`"Player.bmd file error!!!"`, Q-C88).
+- El byte 3 es la versión y va a `modelo + 0x20`: con `0x0C`, el tamaño en `+4` y K16 desde `+8`
+  (la misma clave, semilla y paso que el terreno); con cualquier otra, en claro desde `+4`. No mira
+  el `"BMD"` ni que el tamaño entre en el archivo (Q-C86). Hay 816 de `0x0C`, 1.142 de `0x0A` y 4
+  de `0x00` (`Object3\Object25`, `27`, `33` y `90`), que se leen en claro.
+- Los tres int16 de la cabecera van, en el orden del archivo, a `+0x24` (mallas), `+0x22`
+  (huesos) y `+0x26` (acciones) del modelo de `0xe0` bytes; los arreglos, a `+0x28` (mallas de
+  `0x28`), `+0x2c` (huesos de `0x8c`), `+0x30` (acciones de `0x10`) y `+0x34` (los nombres de
+  textura), y `+0x38` guarda un slot de textura por malla (el de
+  [06](06-render-escenas-y-ui.md#el-modelo-en-el-binario)).
+- De cada triángulo copia 36 bytes, y `0x4f0870` y `0x4f0910` pisan los de `+0x1a..+0x1f` con la
+  adyacencia de las aristas que calculan: lo que trae el archivo ahí no se usa.
+- La normal: los 301.367 índices de vértice entran en el rango de su malla (que sea el vértice
+  que la usa, *inferido*).
+- De cada acción escribe `+0` (no repite) en 0, las keys en `+8`, el `lock_positions` en `+0xa` y
+  las posiciones de `lock` en `+0xc`; **no escribe la velocidad de `+4`**: el arreglo sale de
+  `operator new` sin limpiar, y una acción a la que `0x60dbe0` no le pone velocidad queda con lo
+  que había en el heap (Q-C87). Las posiciones de `lock_positions` se guardan y nada las lee (129
+  modelos tienen alguna acción con `lock`).
+- De cada malla, lo que sigue al primer `_` del nombre de su textura, hasta el primer punto, es
+  un script (`0x459940`): los caracteres 1 a 4 prenden, en mayúscula, `R`, `H`, `S` y `N` los
+  bytes 0 a 3 de `malla + 0x24`, y cualquier otro deja la malla sin script (los casos `DC` y `DT`
+  son código muerto: el byte 4 queda en 0). En el laboratorio, 142 mallas tienen script (135 `R`,
+  6 `H` en `Object11\Object01` a `06` y 1 `S` en `Item\Quest03`, ninguna `N`), ninguna del
+  personaje; los 13 nombres en minúscula (entre ellos los `_s` de `player\`) no cuentan. Qué hace
+  cada byte en el dibujo, en [06](06-render-escenas-y-ui.md#el-modelo-en-el-binario).
+- Al final, `0x4f1f20(0)`: el hueso de la cabeza (`+0x54`) en -1 y, por hueso, una caja con el
+  mínimo y el máximo de los vértices que cuelgan de él (`0x4f1f80`, las 8 esquinas en `hueso +
+  0x2c..0x8b`, con la z más rápida). No mira que el hueso del vértice entre en la cuenta.
 
 - **Cada vértice cuelga de un solo hueso**, rígido: no hay pesos.
 - La pose de un hueso es su rotación (los tres ángulos pasados a cuaternión como hace
@@ -284,10 +327,12 @@ hueso      por cada acción: n_keys posiciones float[3] y después n_keys rotaci
 - **El esqueleto y las mallas van en archivos distintos.** `Player.bmd` es el esqueleto con las
   animaciones: 60 huesos (10 dummy), 205 acciones y ninguna malla. Las partes (`HelmMale17.bmd`,
   `ArmorMale17.bmd`, `PantMale02.bmd`…) traen las mallas, y el hueso de cada vértice es un índice
-  en los huesos de `Player.bmd`: la pose sale de las acciones del esqueleto. Para qué traen las
-  partes su propia copia de 56 huesos con una acción, sin saber.
-- Sin contrastar todavía: las normales (la luz llega a GL como un color por vértice), el resto de
-  los 64 B del triángulo, `lock_positions` con sus 12 B por key, y los huesos dummy.
+  en los huesos de `Player.bmd`: la pose sale de las acciones del esqueleto. Las partes traen su
+  propia copia de los huesos (125 con 56, 10 dummy; 86 con 51, 6 dummy; todas con una acción de
+  una key): el lector la lee y solo sirve para las cajas de `0x4f1f80`. El dibujo de una parte
+  (`0x60cf70`) no posa sus huesos: usa las matrices que dejó la pose del cuerpo (*estático*).
+- Sin contrastar contra una traza: las normales (la luz llega a GL como un color por vértice) y
+  los huesos dummy, que la pose no toca (`0x4eb860`, *estático*).
 
 Cómo se verificó: cada bloque de `GL_TRIANGLES` de las trazas se emparejó con la malla que manda la
 misma secuencia de UV (cada triángulo, sus tres UV en orden); con esa malla se probaron las 205
@@ -321,6 +366,7 @@ por el protocolo (`divergencias-cliente-servidor.md`).
 | Rarezas de datos (checksum anulado de `Item.bmd`, alturas desde BMP + 1080, registro 7 de `Text.bmd` sin NUL, OZJ que son TGA) | **se reproducen**: son parte de cómo se leen los archivos reales (ver [07](07-quirks-y-bugs.md)) | CL1 |
 | La carpeta de un mapa sale de `0x61a560`, con tres rangos de evento, el 32 que usa la del 9, y sin mirar el rango | `Data::WorldFolderNumber(map)` y `WorldFolder(map)` para cualquier mapa de 0 a 255, con la tabla de arriba; un mapa sin carpeta en el `Data\` es un error que la nombra | CL5, CL7 |
 | Esqueleto (`Player.bmd`) y partes del equipo en archivos separados | `Data::Model` lee los dos con el mismo parser; la pose se calcula con el esqueleto y cada parte se dibuja con esa pose | CL6 |
+| `0x4f13d0` no mira `"BMD"` ni el tamaño, y lee en claro cualquier versión que no sea `0x0C`; un modelo que falta se saltea salvo `Monster`, `Player` y `PlayerTest` | `LoadBmd` acepta en claro cualquier versión que no sea `0x0C` (como el original) y rechaza un tamaño que no entra (Q-C86); `LoadModelFile` devuelve el error y quien carga decide con la regla de los tres nombres (Q-C23) | CL6.1 |
 | Los assets son del juego | MuRet **no** versiona ningún asset; los tests golden reciben la ruta por `MURET_CLIENT_GOLDEN_DIR` y se saltean si no está | CL1 |
 
 Tests que fija:
@@ -333,3 +379,6 @@ Tests que fija:
 - XOR3, K16 y checksum con vectores literales chicos escritos a mano (CL1).
 - La carpeta de cada mapa de la tabla, y que los 20 mundos del laboratorio son la de alguno
   (`WorldFolderTest`, `GoldenWorldFolder`, CL5.4).
+- Los 1.962 modelos se leen sin bytes de sobra, con las cuentas de versión (816, 1.142 y 4) y de
+  script (142 mallas) de arriba (`GoldenModelsTest`, CL6.1); un `.bmd` sintético con la versión
+  `0x00` se lee en claro, y uno con un tamaño que no entra se rechaza (`BmdTest`, CL6.1).

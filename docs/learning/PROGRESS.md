@@ -359,6 +359,19 @@ solo lo lee.
   [`labs/cl6.0-huesos/README.md`](../../labs/cl6.0-huesos/README.md), y la comparación, en
   [`labs/README.md`](../../labs/README.md). Para cerrarla falta lo tuyo: las preguntas y la sección
   final de la guía, y explicar los conceptos de abajo.
+  **La CL6.R** la escribió Claude, en el binario y con dos lectores en paralelo: los modelos, la
+  selección y el logo del login pasaron al research (05, 06, 04, 02, 07, 08 y 09). El lector de
+  `.bmd` es `0x4f13d0` (`0x4f1ac0` escribe), y un script que lee como él recorre los 1.962 modelos
+  del laboratorio sin bytes de sobra; un modelo que falta cierra el juego solo si se llama
+  `Monster`, `Player` o `PlayerTest`, así que `Monster50`, que falta, cierra el original cuando
+  aparece (Q-C23). La malla la dibuja `0x4ecc30` (`0x4ed890` es código muerto), y cuántos pases de
+  brillo lleva una parte lo decide su nivel (`0x60b3d0`). El asignador de los slots de textura,
+  simulado con los modelos del laboratorio, da uno por uno los 750 de `lor_slots.bin`; busca por el
+  nombre sin la carpeta (Q-C90), y `Logo03` va detrás del mundo 55 (Q-C92). La selección quedó leída
+  entera: el picking con un segmento contra una caja corrida, el doble clic con un reloj propio, la
+  lista y el equipo campo por campo, y los `F3` 0 a 3 por largo, tipo y subcódigo. Quirks nuevos de
+  Q-C86 a Q-C105, y cambiaron Q-C21, Q-C23, Q-C29 y Q-C74; P-C01 y P-C06 quedaron cerrados, y P-C14
+  a P-C16 esperan capturas.
 
 ## Conceptos
 
@@ -485,6 +498,7 @@ sesión, junto con los de repaso más viejo.
 | el frame fraccionario: la pose entre dos keys con la parte fraccionaria, la key anterior que guarda el original (`0x4ec200` y `0x4eb860`), y por qué la tabla del 06 va una key atrás | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | slerp, lerp normalizado y ángulos interpolados: cuánto se aparta cada uno del slerp, que con el lerp normalizado crece con el cubo del ángulo entre las keys, y cuándo se ve en una traza (la comparación de `labs/README.md`) | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | la x87 con la precisión en 53 bits (`_controlfp` en `0x6a4b73`): qué queda en la pila como double y qué se redondea a float en cada store, y probar unos tests con mutantes a mano, uno equivalente incluido | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| leer un formato y un cargador en el binario y probarlos contra datos reales: un script que lee los `.bmd` como `0x4f13d0`, el asignador de slots simulado contra un volcado de la memoria, y qué queda *estático*, *inferido* o verificado | CL6.R | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

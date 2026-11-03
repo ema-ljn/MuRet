@@ -203,7 +203,8 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
     keepalive de las 8 conexiones al GS lleva 0 y 0, y el byte 3 en 0.
 - **Selección de personaje (`F3`)**: `0x4e2f93` es un sub-dispatcher de hasta 0x40 casos. En el
   cable: `F3 00` (pedir lista, sin cuerpo), `F3 03` con el nombre de 10 bytes (elegir), `F3 06`,
-  `F3 12`. El layout de la respuesta `F3 00` y del resto falta reconstruirlo (P-C06).
+  `F3 12`. Los subcódigos 0 a 3, campo por campo, están abajo, en
+  [La selección de personaje](#la-selección-de-personaje-f3) (CL6.R; P-C06 cerrado).
 - **`F3 11`, S->C** (`0x4c5070`): llega dos veces en la sesión (`C1 08 F3 11 FE 04 16 68` y uno
   de 20 bytes con 5 entradas de 3 bytes). FoxAnti le mete un `00` en `pkt[5]` (`reset_queue`), y
   así el handler encuentra el slot en `pkt[6]`. El handler guarda en un array de slots y los
@@ -211,6 +212,48 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   ([05](05-formatos-de-datos.md)): *inferido*, **es la lista de skills**, no de items como dice
   `paso5d`. Con FoxAnti, `pkt[5]` llega siempre en 0, así que la rama `pkt[5] == 2` (borrar
   todo) no se ve con el GS del laboratorio.
+
+### La selección de personaje (`F3`)
+
+Leída en la CL6.R en el desensamblado (*estático*) y comparada con la sesión real de abajo solo
+por el largo, el tipo y el subcódigo: los tres que están en el cable coinciden. `0x4e2f93` toma el
+subcódigo de `pkt[3]` (C1) o de `pkt[4]` (C2): el 0 va a `0x4c20a0`, el 1 a `0x4c2290`, el 2 se
+lee en línea y el 3 va a `0x4c3940`. Los C->S salen con el XOR32 desde el byte 3.
+
+| Paquete | Dónde | Forma | Estado de la conexión | En el cable |
+| --- | --- | --- | --- | --- |
+| `F3 00` C->S, pedir la lista | `0x634e0e`, en la lógica del login (`0x634c60`) con el estado en `0x14` | C1, 4 bytes, sin cuerpo | pasa a `0x32` y a la escena 4 | coincide |
+| la lista S->C | `0x4c20a0` | C1, 7 + `0x22` por personaje | `0x33` | coincide (41 = 7 + 34) |
+| `F3 01` C->S, crear | `0x63d990` | C1, 15: el nombre en 10 bytes (con ceros) y un byte con la clase y la piel de la vista previa | `0x34` | no está |
+| su respuesta | `0x4c2290` | `pkt[4]`: 1, creado (con el nombre en `pkt[5..14]`, el lugar en `pkt[0xf]`, el nivel en `pkt[0x10..0x11]` y la clase en `pkt[0x12]`); 0, el aviso `0x36`; 2, el `0x37` | `0x35` | no está |
+| `F3 02` C->S, borrar | `0x643740` | C1, 24: el nombre del elegido (10 bytes, con ceros) y los 10 bytes del campo de texto de la ventana (`0x7798bf8`), como vienen | `0x38` | no está |
+| su respuesta | en línea (`0x4e2fe9`) | `pkt[4]`: 0, el aviso `0x92`; 1, el `0x60`, que borra el elegido; 3, el `0x62`; otro, el `0x89` | | no está |
+| `F3 03` C->S, entrar | `0x636290`, el primer paso de la escena 5 | C1, 14: el nombre en 10 bytes | `0x3c` | coincide |
+| su respuesta | `0x4c3940` (1.289 líneas) | pone el mundo (`0x61a560`), el personaje propio y el estado `0x3d` (`0x4c4854`); la lee la CL7 | `0x3d` | (CL7) |
+
+- **La lista** (`0x4c20a0`): `pkt[4]` va a `0x622b20` (lo lee la ventana de crear, `0x63d7c0`: las
+  clases que se pueden crear, *inferido*), los dos números de `pkt[5]` al texto 1240, y `pkt[6]` es
+  la cantidad (con 0, el estado `0x33` y nada más). Desde `pkt[7]`, una entrada de `0x22` bytes
+  por personaje: `[0]` el lugar; `[1..10]` el nombre (10 bytes, sin terminador); `[0xc..0xd]` el
+  nivel (un `word`, a `+0x1d6`; *inferido*: la selección lo copia al `+0xe` del personaje propio,
+  que es el nivel); `[0xe]` las banderas (a `+0x1d8`; con `0x1`, bloqueado); `[0xf]` la clase
+  (`((b & 0x10) | (b >> 4)) >> 1`: la clase y la segunda clase en el bit 3); `[0x10..0x20]` el
+  equipo (`0x5139f0`, [06](06-render-escenas-y-ui.md#la-selección-de-personaje)); y `[0x21]`, a
+  `+0x368`, el estado en el gremio (*inferido*: `0xff` por defecto en `0x511ca6` y `0x415d56`, y
+  comparado con `0x80` en `0x4148aa` y `0x4c64f5`). No mira el largo del paquete, y un lugar de
+  más de 4 deja al personaje sin posición (Q-C101).
+- **Crear** (`0x4c2290`): arma al nuevo con la clase de la vista previa, la pisa con la del
+  paquete y no le pone equipo (Q-C103). Los avisos llevan un texto por índice: `0x36` el 1716 y
+  `0x37` el 396 (los dos vuelven a abrir la ventana de crear), y `0x5d` el 471 (sin botón, después
+  de mandar el `F3 01`); antes de mandarlo, por el nombre, `0x72` (1715), `0x79` (390) y `0x7a`
+  (391), según el largo (menos de 4) y lo que digan `0x622c70` y `0x447ca0`.
+- **Borrar**: el campo de 10 bytes de la ventana sale como está. En otras versiones es un código
+  personal de la cuenta, así que se trata como la clave (nunca en el log). El aviso `0x60` (1714)
+  borra `chars[DAT_006d5edc]`, el elegido al llegar la respuesta (Q-C104); `0x92` lleva el 1654,
+  `0x62` el 439 y `0x89` el 401.
+- **Entrar**: con el personaje bloqueado, el aviso `0x84` (434) en vez de entrar
+  ([06](06-render-escenas-y-ui.md#la-selección-de-personaje)). Con `DAT_07d366bc` en 1 (nadie lo
+  escribe) no se manda el `F3 03`.
 
 ## Una sesión real de juego (2026-10-30)
 
@@ -299,6 +342,7 @@ de 0x100 bytes, el historial de chat y la máquina de acciones diferidas.
 | 104 opcodes al default | el default loguea el opcode desconocido una vez (sirve para descubrir lo que falta) | CL4 |
 | El `A9 00 00 01` al CS sale porque la escena de login arma un personaje con el cuervo (Q-C16) | se manda igual al abrir el CS, como pedido de la información de la mascota; el `A9 01 00 08` del juego va con la UI de las mascotas | CL4, CL8 |
 | El keepalive: un timer desde el arranque que manda con el GS conectado, sin mirar el login (Q-C53), y el primero con el login aceptado; las velocidades en 0 hasta que hay personaje | el primero con el login aceptado y después cada 20 s desde ese, solo en `LoggedIn`; 0 y 0, sin ajuste, hasta que la CL6 dé las del personaje | CL4 |
+| Los `F3` de la selección: el `F3 00` desde la lógica del login, la lista sin mirar el largo y el `F3 03` desde el primer paso de la escena 5 | `Protocol::Character` (`WriteCharacterListRequest`, `ReadCharacterList` con `TooShort` y el lugar de más de 4 descartado, Q-C101, y `WriteCharacterSelect`) y tres estados más de la `ServerSession`; crear y borrar, con sus avisos, en la CL6.5 | CL6.3, CL6.5 |
 
 Tests que fija:
 
@@ -313,3 +357,6 @@ Tests que fija:
 - Sin personaje, el keepalive manda las dos velocidades en 0 y el byte 3 en 0 (CL4.5,
   `ServerSessionTest.WithoutACharacterTheSpeedsAreZero`).
 - Integración: un CS y un GS falsos en el test, el cliente llega a "login aceptado" (CL4).
+- La lista con entradas sintéticas (nombres como `"char0001"`), y el `F3 00` y el `F3 03` de MuRet
+  contra los del cable por el largo, el tipo y el subcódigo, sin imprimir valores
+  (`SameBytesWithoutValues`, CL6.3).

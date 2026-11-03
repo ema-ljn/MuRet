@@ -15,15 +15,21 @@
 #undef MURET_GL_LOADER_DEFINED_APIENTRY
 #endif
 
+#include "Platform/GlFunctionList.h"
+
+#include <SDL3/SDL_stdinc.h>
+
+#include <array>
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 // Las funciones de OpenGL no se enlazan como las de una biblioteca: las da el driver, en tiempo
-// de ejecución, y recién cuando hay un contexto. Esta es la tabla mínima de la CL0.3, pedida a
-// SDL_GL_GetProcAddress (D-C2: sin GLAD ni GLEW). El tipo de cada puntero es su typedef
-// PFNGL…PROC, con la convención de llamada de GL: los de la 1.x los declara SDL_opengl.h con
-// SDL_OPENGL_1_FUNCTION_TYPEDEFS (PUBLIC en ClientPlatform, Client/CMakeLists.txt) y los de la 3.3
-// (shaders, buffers) SDL_opengl_glext.h, siempre.
+// de ejecución, y recién cuando hay un contexto. La tabla, que en la CL0.3 eran cinco, la arma la
+// X-macro de GlFunctionList.h (CL5.1), y se pide a SDL_GL_GetProcAddress (D-C2: sin GLAD ni GLEW).
+// El tipo de cada puntero es su typedef PFNGL…PROC, con la convención de llamada de GL: los de la
+// 1.x los declara SDL_opengl.h con SDL_OPENGL_1_FUNCTION_TYPEDEFS (PUBLIC en ClientPlatform,
+// Client/CMakeLists.txt) y los de la 3.3 (shaders, buffers) SDL_opengl_glext.h, siempre.
 namespace Client::Platform
 {
 // OpenGL 3.3 core (D-C3 del roadmap): la versión que se pide antes de crear la ventana y la mínima
@@ -31,19 +37,26 @@ namespace Client::Platform
 inline constexpr int GlMajorVersion = 3;
 inline constexpr int GlMinorVersion = 3;
 
+// "3.3", para los mensajes de error.
+[[nodiscard]] const std::string& GlVersionText();
+
+// Un puntero por función de MURET_GL_FUNCTIONS. Un GlFunctions{} los tiene todos en nulo.
 struct GlFunctions
 {
-    PFNGLGETSTRINGPROC getString = nullptr;
-    PFNGLGETINTEGERVPROC getIntegerv = nullptr;
-    PFNGLVIEWPORTPROC viewport = nullptr;
-    PFNGLCLEARCOLORPROC clearColor = nullptr;
-    PFNGLCLEARPROC clear = nullptr;
+#define MURET_GL_MEMBER(type, member, name) type member = nullptr;
+    MURET_GL_FUNCTIONS(MURET_GL_MEMBER)
+#undef MURET_GL_MEMBER
 };
+
+// Los nombres de GL de la tabla, en el orden en que se piden.
+#define MURET_GL_NAME(type, member, name) std::string_view{name},
+inline constexpr std::array GlFunctionNames{MURET_GL_FUNCTIONS(MURET_GL_NAME)};
+#undef MURET_GL_NAME
 
 // En Windows, algunos drivers devuelven 1, 2, 3 o -1 en vez de nulo para una función que no
 // tienen (o para una de la 1.1, que wglGetProcAddress no da), y SDL no los filtra: busca en
 // opengl32.dll solo cuando wglGetProcAddress da nulo (SDL_windowsopengl.c, WIN_GL_GetProcAddress).
-// Por eso LoadGlFunctions reintenta ahí. En GLX pasa lo contrario: cualquier nombre da un puntero
+// Por eso GlProcAddress reintenta ahí. En GLX pasa lo contrario: cualquier nombre da un puntero
 // no nulo, así que este chequeo no garantiza nada ahí; lo que garantiza es la versión del contexto.
 [[nodiscard]] bool IsValidProcAddress(std::uintptr_t address);
 
@@ -56,7 +69,28 @@ struct GlFunctions
 // un contexto legado y solo deja el error (SDL_windowsopengl.c).
 [[nodiscard]] bool IsCoreProfile(int profileMask);
 
-// Pide cada función de la tabla al contexto actual. El error nombra la primera que falta.
+// La dirección de `name` en el contexto actual (con el reintento en opengl32.dll de Windows), o
+// nulo si no es válida (IsValidProcAddress).
+[[nodiscard]] SDL_FunctionPointer GlProcAddress(const char* name);
+
+// Pide `name` y lo deja en `function`, con su tipo PFNGL...PROC. Si el driver no la tiene, deja en
+// `error` cuál falta y devuelve false. Es el pedido de cada función de LoadGlFunctions, y el lab de
+// la CL5.0 lo usa para la suya (labs/cl5.0-pipeline/gl/LabGl.cpp).
+template <typename Function> [[nodiscard]] bool LoadGlFunction(Function& function, const char* name, std::string& error)
+{
+    const SDL_FunctionPointer address = GlProcAddress(name);
+    if (address == nullptr)
+    {
+        error = std::string("el driver no tiene ") + name;
+        return false;
+    }
+    function = reinterpret_cast<Function>(address);
+    return true;
+}
+
+// Con un contexto actual: pide las dos de MURET_GL_QUERY_FUNCTIONS, mira que el contexto sea 3.3 o
+// más y core, y recién ahí pide el resto. El error dice qué faltó: la versión que dio el driver, el
+// perfil o la primera función que no tiene.
 [[nodiscard]] Core::Expected<GlFunctions, std::string> LoadGlFunctions();
 
 // glGetString como texto, o "(sin dato)" si el driver da nulo.

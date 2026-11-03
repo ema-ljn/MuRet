@@ -18,9 +18,10 @@
 // lo lee como cadena de C y sigue en el registro 8 (519 bytes con el archivo real); MuRet corta en
 // los 300 del registro.
 //
-// Los textos quedan como bytes, en la codificación del archivo; pasarlos a UTF-8 para dibujarlos
-// es de la CL5.3. El original usa algunos como formato de sprintf (FUN_00633300). MuRet nunca
-// pasa un texto de datos como formato.
+// Los textos quedan como bytes, en la codificación del archivo, que es de un byte por letra: el
+// rasterizador del texto (Render/Text, CL5.3) lee cada byte como el carácter de Latin-1 de su
+// número, sin pasar por UTF-8 (Q-C67). El original usa algunos como formato de sprintf
+// (FUN_00633300). MuRet nunca pasa un texto de datos como formato.
 namespace Client::Data::Text
 {
 // Cuántos textos trae la tabla, uno por registro: el texto i es el que el original busca con el

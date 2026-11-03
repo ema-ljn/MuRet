@@ -647,6 +647,44 @@ TEST(ConfigTest, NoDataFolderIsNotAnError)
     EXPECT_FALSE(config.Value().dataPath.has_value());
 }
 
+// [Video] FontFile y BoldFontFile (pregunta 8 del plan de la CL5): las fuentes de FreeType, rutas
+// como la de [Data]. Sin ellas quedan vacías; qué hace el cliente sin FontFile lo dice la CL5.3 en
+// la búsqueda de Platform, no la config.
+TEST(ConfigTest, ReadsTheFontFiles)
+{
+    const auto config = ParseConfig("[Video]\nFontFile = \"fuentes/letra.ttf\"\nBoldFontFile = negrita.ttf\n");
+
+    ASSERT_TRUE(config.HasValue());
+    EXPECT_EQ(config.Value().fontFile, std::filesystem::path("fuentes/letra.ttf"));
+    EXPECT_EQ(config.Value().boldFontFile, std::filesystem::path("negrita.ttf"));
+
+    const auto empty = ParseConfig("");
+    ASSERT_TRUE(empty.HasValue());
+    EXPECT_FALSE(empty.Value().fontFile.has_value());
+    EXPECT_FALSE(empty.Value().boldFontFile.has_value());
+
+    const auto onlyRegular = ParseConfig("[Video]\nFontFile = letra.ttf\n");
+    ASSERT_TRUE(onlyRegular.HasValue());
+    EXPECT_TRUE(onlyRegular.Value().fontFile.has_value());
+    EXPECT_FALSE(onlyRegular.Value().boldFontFile.has_value());
+
+    EXPECT_EQ(ErrorOf("[Video]\nFontFile = \"\"\n").message, "[Video] FontFile: la ruta está vacía");
+}
+
+// Como las de [Data] y [Log]: desde la carpeta del ejecutable. Resolve no mira si existen: el error
+// de un archivo que falta lo da FreeTypeRasterizer::Open, con la ruta.
+TEST(ConfigTest, ARelativeFontFileIsFromTheExeFolder)
+{
+    const TempFolder exeFolder;
+    exeFolder.Write("[Video]\nFontFile = letra.ttf\nBoldFontFile = negrita.ttf\n");
+
+    const auto config = Resolve(exeFolder.Path(), CommandLine{});
+
+    ASSERT_TRUE(config.HasValue()) << config.Error();
+    EXPECT_EQ(config.Value().fontFile, exeFolder.Path() / "letra.ttf");
+    EXPECT_EQ(config.Value().boldFontFile, exeFolder.Path() / "negrita.ttf");
+}
+
 // Lo pide la CL4, al conectarse.
 TEST(ConfigTest, NoHostIsNotAnError)
 {

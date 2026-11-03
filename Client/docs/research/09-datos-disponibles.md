@@ -42,9 +42,12 @@ con `.jpg` → `.OZJ`, `.tga` → `.OZT`, `.bmp` → `.OZB` como hace el cliente
 | Sonidos (`0x41eac0`) | 532 | 441 | 91 (abajo) |
 
 - **Qué pasa si falta algo**, *estático*: una textura que falta corta el juego (`0x63b870` arma
-  "File not exist", `MessageBox` y `WM_DESTROY`); un modelo que falta no se carga y no avisa
-  (`0x4f1ac0` devuelve 0); un sonido que falta tampoco (`0x41eac0` sale si `0x41e6d0` falla). Por
-  eso el cliente corre con estos huecos (Q-C23 en [07](07-quirks-y-bugs.md)).
+  "File not exist", `MessageBox` y `WM_DESTROY`), también la de un modelo (`0x60d5f0`); un modelo
+  que falta no se carga y no avisa (el lector es `0x4f13d0`, y `0x60da30` sigue; `0x4f1ac0`, que
+  este documento daba como el lector, **escribe** un `.bmd` en el modo de desarrollo), salvo que
+  se llame `Monster`, `Player` o `PlayerTest`, que cierran el juego; un sonido que falta tampoco
+  avisa (`0x41eac0` sale si `0x41e6d0` falla). Por eso el cliente corre con estos huecos (Q-C23
+  en [07](07-quirks-y-bugs.md)).
 - **Los 91 sonidos.** 35 son del personaje (`p*`: pasos, gritos, muerte, subir de nivel,
   pociones, levantar y tirar items), 17 de las skills (`s*`), 3 de NPCs, 27 de los monstruos del
   mundo 31 (`w31\`), 8 del castillo (`BattleCastle\`) y 1 de `w34\`. Los piden sobre todo
@@ -52,8 +55,17 @@ con `.jpg` → `.OZJ`, `.tga` → `.OZT`, `.bmp` → `.OZB` como hace el cliente
   con `p` ni con `s`, y la segunda copia no trae sonidos: se dan por faltantes.
 - **`Monster50` sí hace falta.** El tipo de monstruo 58 (`0x3a`, caso de `0x5141e0`) pide
   `0x612d90(0x31)`, o sea `Monster50.bmd`, y el `MonsterSetBase.txt` del servidor en uso pone 63
-  en el mapa 8. En el original no se dibujaría (*inferido*; la sesión del cable no pasó por ahí).
-  Los otros tres números que faltan no los pide ningún tipo.
+  en el mapa 8. El nombre que pasa a `0x60da30` es `Monster`, así que cuando aparece uno, **el
+  original se cierra** (`0x612dd6`..`0x612de1`: el `MessageBoxA` y el `WM_DESTROY` de Q-C23;
+  *estático*, CL6.R). Antes este documento decía "no se dibujaría". La sesión del cable no pasó
+  por ahí. Los otros tres números que faltan no los pide ningún tipo.
+- **Cuatro modelos de versión `0x00`.** `Object3\Object25`, `27`, `33` y `90` llevan 0 en el byte
+  de la versión: el lector los lee en claro, como los `0x0A`
+  ([05](05-formatos-de-datos.md#modelos-bmd)).
+- **Las texturas de las mallas se buscan por nombre**, sin la carpeta (`0x60d550`, Q-C90): por eso
+  andan modelos cuya textura está en otra carpeta. En la carga de arranque y el mundo del login
+  son 31 (**verificado** contra `lor_slots.bin`), y `Helper04` dibuja la de `Skill\`, otro
+  archivo con el mismo nombre.
 - **`Object6` y `World6`** son el mapa 5, que el cliente conoce pero no trae entero. Si se usa,
   sin leer.
 - `Data2\` es la carpeta de desarrollo (modelos `.smd` y dos `.txt` de depuración): los

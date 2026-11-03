@@ -159,8 +159,8 @@ Quién escribe `DAT_006d5dc8`, leído en la CL5.R en el desensamblado (*estátic
 | (arranque) | 1 | la `.data` | `DAT_006d5dc8` vale 1 en el archivo |
 | 1 | 2 | `0x622e40` | al terminar la carga ([06](06-render-escenas-y-ui.md#la-carga-escena-1)) |
 | 2 | 4 | `0x634c60` | el login aceptado: el `F1 01` deja el estado de la conexión, `DAT_057678c0`, en `0x14`; la escena lo ve en su paso, lo pasa a `0x32` y manda el `F3 00` |
-| 4 | 3 | `0x6342c0` y `0x633c10` | en la lógica de la selección (que corre solo con el estado en `0x33` o más, la lista de personajes): Enter con un personaje elegido (`DAT_006d5edc`, de 0 a 4), o doble clic sobre un personaje (el de `0x6c8e30`, que pasa a ser el elegido) con la ventana de la selección (`+0x7f50`) abierta; o el botón de esa ventana (`0x633c10`, desde `0x63eb9a`, en su `vtable + 0x30`). Si el personaje tiene el bit `0x1` de `+0x1d8`, abre el aviso `0x84` en vez de entrar |
-| 3 | 5 | `0x6356f0` | al terminar la carga del mundo |
+| 4 | 3 | `0x6342c0` y `0x633c10` | en la lógica de la selección (que corre solo con el estado en `0x33` o más, la lista de personajes): Enter con un personaje elegido (`DAT_006d5edc`, de 0 a 4), o doble clic sobre un personaje (el de `0x6c8e30`, que pasa a ser el elegido) con la ventana de la selección (`+0x7f50`) abierta; o el botón de esa ventana (`0x633c10`, desde `0x63eb9a`, en su `vtable + 0x30`). Si el personaje tiene el bit `0x1` de `+0x1d8`, abre el aviso `0x84` en vez de entrar. Enter pide además `[input + 0x31]` en 0 y cuatro ventanas cerradas, y suena el `0x19`; el doble clic, no. Al entrar copia el nombre, la clase, la piel y el nivel al personaje propio y suelta lo de la selección (`0x61cc50`; CL6.R, [06](06-render-escenas-y-ui.md#la-selección-de-personaje)) |
+| 3 | 5 | `0x6356f0` | al terminar la carga del mundo, que dibuja un solo frame con las cuatro `LSBg` en mosaico y las suelta (CL6.R); el `F3 03` lo manda el primer paso de la 5 (`0x636290`), no la selección ([04](04-protocolo.md#la-selección-de-personaje-f3)) |
 | 5 o 4 | 4 o 2 | `0x4c2710` | la respuesta del `F1 02`: con `pkt[4]` en 1 pasa a la 4, y con 2 a la 2, y en ese caso cierra el GS, pone en 0 la bandera del login (`DAT_07d3a13d`, `0x4c2f24`) y corta: al volver se carga todo otra vez, y vuelve a conectar al CS. Las dos, solo si el paquete llegó cifrado: el cuarto argumento del dispatcher (el "cifrado" de [03](03-red-y-cifrado.md), `[ebp+0xc]` en `0x4c2781` y `0x4c2f5e`); sin cifrar no cambia de escena, y lo que hace llama a la tabla de hash de `0x40b240` (no se siguió). Con `pkt[4]` en 0, `SendMessageA(WM_DESTROY)` (`0x4c391b`): el juego se cierra. De la escena solo mira si es la 5, para limpiar el juego (`0x4c275c`), y el dispatcher no la mira: también la cambiaría desde la 1, la 2 o la 3 (Q-C79) |
 
 Los estados de la conexión que importan acá son 0 (sin GS), 2 (el `F1 00` aceptado), `0x13` (el
@@ -168,7 +168,9 @@ login mandado), `0x14` (aceptado), `0x32` (la lista de personajes pedida) y `0x3
 Ninguna otra función escribe la escena: los ocho `mov` a `DAT_006d5dc8` del binario son estos,
 todos con un número fijo (`0x4c2f1a`, `0x4c363f`, `0x622f93`, `0x633f05`, `0x634470`, `0x634638`,
 `0x634dce` y `0x635a91`). La primera entrada a la selección (`0x633f20`, desde
-`0x6342c0`) pone el mapa 54, `World55` (05).
+`0x6342c0`) pone el mapa 54, `World55` (05), sube las texturas y los modelos de la escena
+(`0x61ca30`), arma la vista previa de la ventana de crear (el modelo `0xa9`) y pone la UI en el
+modo 4 ([06](06-render-escenas-y-ui.md#la-selección-de-personaje)).
 
 ### El ritmo: lógica a 25 por segundo, dibujo a 21,33
 

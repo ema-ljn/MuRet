@@ -59,7 +59,7 @@ aviso) que manejan los handlers de red (`paso5-protocolo-handlers.md`).
 render de la escena
  ├─ cámara       0x635ae0 + 0x44dc60 + 0x620db0 (proyección y modelview)
  ├─ pase 3D      fondo, frustum 0x5fbb00, terreno 0x5fc260, objetos 0x53c6a0
- │               [selección] preview 3D del personaje 0x5f9780 + luz 0x620980 + nombre 0x4129f0
+ │               [selección] personajes 0x510d00, el elegido 0x5f9780 y 0x53fe70, nombre 0x4129f0
  ├─ pase 2D      0x6219b0 (ortho) … 0x621a90 (vuelve)
  │    ├─ UI en el juego 0x62db60 (20 KB, 52 llamadas GL)
  │    ├─ texto 0x554180
@@ -106,6 +106,15 @@ los nombres "webzen" y "webzen2" hay una cámara especial.
 | posición | (15.057,1; 11.342,9; 1.015) | (13.909; 14.482; 543) |
 
 El aspect no es el de la ventana sino el del viewport: 1024/691 = 1,4819 en Lorencia.
+
+En el login y en la selección la cámara es fija (CL6.R, *estático* en `0x635ae0`): fov 35 al
+entrar (`0x6d5d48`), near 20 (`0x6d5d40`) y el far de `0x6d5d44` según `DAT_07d3a0ec` (con 0:
+20.400 en la escena 2, 11.519,9 en la 4 y 2.000 en las otras; con 1 a 4: 2.500, 2.600, 2.950 y
+3.200), que `0x620db0` multiplica por 1,4. En la escena 2, x −96,5° (`0x6ba7c0`) más
+`DAT_07d325c8`, z −36° y la posición (12.778; 12.678; 579); en la 4, x −84,5° más `DAT_07d325c8`,
+z −45° y (13.909; 14.482; 543), la de la tabla. Las rutas de `0x633920` (desde `0x634c60` y
+`0x6342c0`) escriben la posición, los ángulos y un fov de 45, pero `0x635ae0` los pisa antes de
+`0x620db0`: no llegan a GL.
 
 ### Primitivas 2D
 
@@ -205,8 +214,8 @@ slot de Q-C19; sin diferencias en geometría, UV, textura ni alfa):
 
 ### Modelos y objetos
 
-**Verificado** contra las trazas, incluido el skinning del personaje; lo que no dicen las trazas es
-en qué funciones del binario se hace (P-C01):
+**Verificado** contra las trazas, incluido el skinning del personaje. En qué funciones del binario
+se hace lo leyó la CL6.R ([El modelo en el binario](#el-modelo-en-el-binario)):
 
 - **Todo modelo llega en coordenadas de mundo.** Ningún bloque de `GL_TRIANGLES` tiene una matriz
   propia encima de la cámara (185 de 185 en Lorencia, 285 de 285 en la selección): el cliente
@@ -248,25 +257,35 @@ la traza:
 - **La cabeza gira aparte.** En Lorencia el hueso `Bip01 Head` (20) no sigue la animación: queda a
   0,5 unidades en el personaje y a 4,6 en el guardia, con el resto del cuerpo a menos de 0,06. En
   la selección la cabeza sigue la animación. *Estático*, en `0x4eb860`: al hueso de la cabeza del
-  modelo (su índice está en `modelo + 0x54`) le resta a los ángulos de Euler x e y un ángulo del
-  objeto (`objeto + 0x28` y `+ 0x2c`, en grados, por π/180) en las dos keys que interpola, antes de
-  pasar a cuaternión (`0x5fcd20`); los demás huesos usan los cuaterniones ya calculados. Quién
-  escribe ese ángulo en los personajes, sin leer (probablemente hacia dónde mira, *inferido*).
+  modelo (su índice está en `modelo + 0x54`) le resta a los ángulos de Euler x y **z** un ángulo
+  del objeto (`objeto + 0x28` al x y `+ 0x2c` al z, en grados, por π/180; `0x4eb9ff`..`0x4eba1d`)
+  en las dos keys que interpola, antes de pasar a cuaternión (`0x5fcd20`); los demás huesos usan
+  los cuaterniones ya calculados. (Antes este documento decía x e y.) El ángulo lo escribe
+  `0x505de0` (`0x506972`..`0x5069a9`): `+0x28` y `+0x2c` giran hacia `+0x34` y `+0x38` (× 0,2,
+  con `0x4e9560` y `0x4e96f0`), y a quien no es el personaje propio ni se está muriendo, con
+  `rand() % 32` en 0, le elige un objetivo al azar (x de −64 a 63; z de −16 a 15, más 360 si es
+  negativo). No corre con `+0x16c` en 0 (no visible, `0x5fba90`) ni con los bits `0x20` o
+  `0x1000` de `+0x78`, y `0x4e8090` los pone en 0. *Estático*; el tramo de antes, `0x505ef8`..,
+  parece del anticheat y no se leyó. Si la cadena de la selección llega a `0x505de0`, sin leer: la
+  traza dice que ahí la cabeza sigue la animación (P-C14).
 - **Pases extra de brillo.** Las mallas `Male17` y la espada se dibujan tres veces más, con las
   mismas posiciones y UV que no están en el archivo (texturas GL 141, 115 y 120); las del guardia y
   las pociones, una vez más (la 120). Las UV salen de la normal de cada vértice en el mundo
-  (`nx`, `ny`, `nz`) según banderas del dibujo, en `0x4ed890`. **Verificado** ajustando las UV de
-  la traza sobre las normales del `.bmd` posado (residuo máximo de 0,016 en las dos escenas):
+  (`nx`, `ny`, `nz`) según banderas del dibujo, en `0x4ecc30` (no en `0x4ed890`, que es código
+  muerto: § El modelo en el binario). **Verificado** ajustando las UV de la traza sobre las normales
+  del `.bmd` posado (residuo máximo de 0,016 en las dos escenas):
 
   | Textura | Bandera | u | v |
   | --- | --- | --- | --- |
-  | 115 | ninguna | 0,5·nz + 0,2 | 0,5·(ny + 1) |
-  | 120 | `0x4` | 0,5·nz + t | 0,5·ny + 2t |
-  | 141 | `0x1000` | c·nx + (s + 0,5)·ny + nz + 3s | 1 − c·nx − s·ny − 1,5·nz − 3t |
+  | 115 | `0x8` (slot `0x5fc`) | 0,5·nz + 0,2 | 0,5·(ny + 1) |
+  | 120 | `0x4` (slot `0x5c0`) | 0,5·nz + t | 0,5·ny + 2t |
+  | 141 | `0x1000` (slot `0x620`) | c·nx + (s + 0,5)·ny + nz + 3s | 1 − c·nx − s·ny − 1,5·nz − 3t |
 
   con t = (T mod 10000) · 0,0001, c = cos(0,001·T) y s = sin(0,002·T), donde T es el reloj del
-  frame en ms (abajo). Hay más modos sin pase en estas trazas (`0x200`, `0x800`, `0x4000`,
-  `0x10000`), *estáticos*. De qué depende cuántos pases lleva cada item (¿el nivel?), sin leer.
+  frame en ms (abajo). (Antes este documento daba el 115 sin bandera: es la `0x8`.) Los otros
+  cinco modos, sin pase en estas trazas, son *estáticos*, y cuántos pases lleva cada ítem lo
+  decide su nivel: los dos, en [El modelo en el binario](#el-modelo-en-el-binario). Los tres pases
+  del personaje de las trazas son los de un nivel 13 (*inferido* por cuáles y en qué orden).
 
 #### Cuánto avanza la animación
 
@@ -275,14 +294,34 @@ la velocidad de su acción; la mascota y las alas, por frame dibujado.**
 
 - **La velocidad es de la acción.** Cada acción del modelo tiene 0x10 bytes: `+0` no repite (se
   queda en la última key), `+4` la velocidad en keys por paso, `+8` la cantidad de keys y `+10`
-  `lock_positions`. El cargador de `Player.bmd` (`0x60dbe0`) las fija a mano: 0,28 de la 1 a la 12,
-  salvo la 3 (0,26), la 4 y la 5 (0,24) y la 7 y la 8 (0,22), y 0,3 en la mayoría de las demás.
+  `lock_positions`. El lector no escribe `+4` (Q-C87, [05](05-formatos-de-datos.md#modelos-bmd)):
+  el cargador del personaje (`0x60dbe0`) las fija a mano en las acciones de `Player.bmd`, al final
+  y después de `Shadow` (`0x60f349`..`0x60f754`, *estático*). Son 181 escrituras en este orden, y
+  las de después pisan a las de antes (acciones y velocidad):
+
+  ```text
+  1..12 0,28 · 3 0,26 · 4..5 0,24 · 7..8 0,22 · 13..33 0,3 · 21 0,35 · 29 0,35
+  152..194 0,32 · 195..196 0,45 · 197..204 0,4 · 194 0,4 · 171..172 0,28 · 201..202 0,2
+  64..65 0,2 · 138 0,24 · 139..140 0,3 · 141 0,24 · 67 0,45 · 72..74 0,3 · 75 0,3 · 76 0,2
+  77 0,28 · 78..79 0,3 · 80 0,28 · 81..82 0,3 · 83 0,2 · 84..85 1,0 · 86..125 0,45
+  106..117 0,71 · 118..121 0,4 · 93 0,3 · 88 0,3 · 90 0,3 · 89 0,28 · 91 0,3 · 137 0,3
+  ```
+
+  Quedan 148 acciones con velocidad y 57 sin ninguna (la 0, de la 34 a la 63, la 66, de la 68 a
+  la 71, de la 126 a la 136 y de la 142 a la 151), con lo que dejó el heap: la 0 la usa el
+  preview de la ventana de crear (`0x63e430`), y la 68 se multiplica por 0,5 en `0x4f9580`, que
+  pasa a 0 una velocidad negativa o un NaN. Las cuatro que no repiten (`+0` en 1) son la 195, la
+  196, la 193 y la 68. Los `NewFace` de la selección (`0xa8` a `0xac`) llevan 0,3 en sus acciones
+  0 y 1 (`0x61ca30`).
 - **El paso la aplica.** Dentro del bucle de pasos de `0x637700` ([02](02-arranque-y-ciclo-de-vida.md)),
   la lógica de la escena llega por `0x508f00` → `0x508ea0` → `0x4fd5f0` → `0x4fcd00` a `0x4f9580`,
   que multiplica la velocidad según el tipo y la acción del personaje (×1,5, ×0,5, ×2, ×4 y
-  otros), y a `0x4ec200`, que hace `frame += velocidad`. Al pasar la última key vuelve con módulo
-  (n keys, o n − 1 con `lock_positions`), o se queda en n − 0,01 si la acción no repite. Cambiar de
-  acción (`0x4ea030`) vuelve el frame a 0 solo si la acción es otra.
+  otros; los `NewFace` × 2, de 0,3 a 0,6; con el bit `0x1000` de `+0x78`, no avanza), y a
+  `0x4ec200`, que hace `frame += velocidad` con la acción de `modelo + 0xa0` (sus argumentos 5 y 6
+  no se usan). Con el frame en 0 o menos le suma n − 1; al pasar la última key vuelve con módulo
+  (n keys, o n − 1 con `lock_positions`), o se queda en n − 0,01 si la acción no repite. Cambiar
+  de acción (`0x4ea030`) vuelve el frame a 0 solo si la acción es otra, y guarda el de antes tal
+  cual, sin truncar (`0x4ea072`..`0x4ea078`): da lo mismo, porque la pose trunca.
 - **Las trazas lo confirman con dos velocidades.** En la selección (acción 3, 0,26) el frame salta
   1,583, 1,577, 1,842 y 1,839 keys entre swaps: 8,58 y 8,84 módulo 7, o sea 33, 33, 34 y 34 pasos.
   En Lorencia (acción 1, 0,28) el personaje salta 5,59 · 5,32 · 5,31 · 5,32 keys módulo 6 y el
@@ -310,11 +349,194 @@ la velocidad de su acción; la mascota y las alas, por frame dibujado.**
   Los saltos no cambian.
 - **Fin de acción adelantado en la selección.** En la escena 4, `0x4ec200` le suma 2 al frame solo
   para decidir si la acción terminó: avisa "terminó" dos keys antes, pero el módulo usa el frame
-  real (Q-C21). *Estático.*
+  real (Q-C21). Con el aviso, `0x4fcd00` (`0x4fce25`) pone `+0x3c4` del personaje en −1 y `+0x3e0`
+  y `+0x3e1` en 0, y vuelve a elegir la acción de parado (`0x4fcb10` → `0x4f2250`); si es la misma,
+  `0x4ea030` no hace nada: en pantalla no cambia nada. *Estático.* La acción de parado sale de la
+  mascota (`+0x318`), de las alas (`+0x2f8`) y del arma; la 3 de la traza va con un arma de una
+  mano (*inferido*, P-C14).
 - En el guardia, el frame f y el 6 − f dan casi el mismo error (sobre sus vértices la acción 1 es
   casi simétrica); en la tabla va la rama que sigue la secuencia. En el personaje no hay duda: en
   cuatro de los cinco frames la otra rama queda a más de 4 unidades (en el quinto, cerca de la key
   0, a 0,16).
+
+#### El modelo en el binario
+
+Leído en la CL6.R en el desensamblado de `c32bbd5f`: todo *estático* salvo lo que se marca. El
+archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, lo que pasa después.
+
+- **El modelo y el objeto.** La tabla de modelos tiene `0x489d` de `0xe0` bytes, con la base
+  corrida `rand() & 0x3ff` modelos (contra quien lea la memoria). Del modelo cuentan acá `+0x44`
+  (con luz por vértice), `+0x48..+0x50` (el color), `+0x54` (el hueso de la cabeza: 20 en
+  `Player.bmd`, que pone además `+0x58` en 6 y `+0x5c` en 13, los pies, *inferido*), `+0x68` (la
+  escala), `+0x6c` (la posición), `+0x78` (los ángulos), `+0x84` (la z de más del hueso 0 con
+  `lock_positions`), `+0x88` (la malla que va sin luz), `+0x98` y `+0x99` (la piel, abajo) y
+  `+0xa0` (la acción). `0x5ffdf0(objeto, bandera, modo, _)` los copia del objeto (la escala de
+  `+0xc`, la posición de `+0x10` y los ángulos de `+0x1c`), pone `+0x84` en 0 y posa con
+  `0x4eb860`: el frame (`objeto + 0x114`), el anterior (`+0x118`), la acción anterior (`+0x112`),
+  los ángulos, los de la cabeza (`objeto + 0x28`), 0 y `!bandera`, con las matrices en
+  `objeto + 0x120` o en el global `0x68b181c`. `+0x84` queda en 0 en los personajes (`0x5ffdf0`,
+  `0x6001b0` y `0x509340`); lo cambian `0x5e0720` (un valor por parte) y `0x5208a0` (±30).
+- **La pose** (`0x4eb860`, `thiscall`, `ret 0x20`). La key anterior es el frame anterior truncado,
+  en 0 si es negativa o se pasa de las keys de la acción anterior. Dos cuaterniones iguales a
+  0,001 (`0x5fc700`) copian el primero; si no, slerp (`0x5fce90`). El hueso 0, con
+  `lock_positions` en la acción anterior o en la de ahora, toma x e y de la key 0 de la de ahora y
+  suma `+0x84` a la z interpolada; no lee las posiciones de `lock` de la acción. El séptimo
+  argumento en 0 arma la raíz con los ángulos del modelo (`0x5fc8f0`, en el global `0x68c4a1c`);
+  con otro valor usa lo que dejó quien llama en ese global (así cuelgan las armas, abajo). El
+  octavo, con el séptimo en 0, multiplica la raíz por la escala y le pone la posición; en 0, la
+  raíz queda sin las dos y las pone `0x4ebc80` en cada vértice. Los hijos, con
+  `R_ConcatTransforms` y el padre; los dummy no se tocan.
+- **Los vértices** (`0x4ebc80(matrices, objeto + 0x124, + 0x130, + 0x13c, bandera)`, `ret 0x14`).
+  Cada vértice por la matriz de su hueso y, con la bandera, por la escala más la posición del
+  modelo. Con `DAT_006c881c` distinto de 1, además, `VectorRotate` por esa escala más la
+  traslación del hueso: lo pone `0x5ffdf0` después de la pose, en 1 salvo en el modo 3 (1,4) y el
+  2 (1,2), los dos desde `0x602e90`, y en el modo 1, el contorno del personaje bajo el mouse
+  (`0x510d00` con `DAT_006c8e30`): dos pases de `0x60cd60` sin luz, en (0,1; 0,01; 0) a 1 + 0,1 /
+  escala y en (0,7; 0,07; 0) a 1 + 0,04 / escala, o con la escala de `objeto + 0x94` si no es 1,2
+  comparada por bits (Q-C94), y en verde con `objeto + 0x88` en 4 fuera de los mapas 18 a 23. La
+  luz por vértice, solo con `+0x44` (copia de `objeto + 0xe8`): L = (0; −1,5; 0), (0,5; −1; 1) en
+  el mapa 30 y (1,3; 0; 2) con `DAT_006c8818`, y cada normal da max(0,2; 0,8 · L·n + 0,4). La
+  misma función deja la caja de picking en `objeto + 0x13c` (`+0x124` y `+0x130` más la
+  posición) y escribe `modelo + 0xc4` con un valor de la pila sin inicializar (Q-C93).
+- **El dibujo de una malla.** `RenderBody` (`0x4ef0c0`, `ret 0x20`: las banderas, el alpha, el
+  `blendMesh`, su luz, U, V, la malla oculta y una textura forzada) abre un `glPushMatrix`,
+  recorre las mallas y llama a `0x4ecc30` (`thiscall`, `ret 0x20`), la que dibuja. `0x4ed890`
+  (`ret 0x28`), la que decía este documento, es **código muerto**: su único llamador, `0x4ef290`,
+  no tiene llamadas ni aparece su dirección en el archivo (lo mismo `0x4efea0`, desde `0x4ef340`),
+  y adentro tiene una tabla de hash (`0x4ee075`..`0x4ee500`, protección: no se leyó). Del script
+  de la textura ([05](05-formatos-de-datos.md#modelos-bmd)), `0x4ef0c0` mira el byte 0 (esa malla
+  es el `blendMesh`), el 1 (no se dibuja) y el 4 (un segundo pase en negro con `0x21` o `0x22`,
+  que no corre: `0x459940` lo deja en 0), y `0x4ecc30` el 2 y el 3. `0x4ecc30`:
+  - sale con la malla fuera de rango o sin triángulos; T = `ftol(DAT_05767b88) % 10000` y
+    t = T · 0,0001;
+  - el slot es `modelo + 0x38[textura]`: `0x12d` no se dibuja, `0x12e` va a `0x12e` más
+    `modelo + 0x98` y `0x137` a `0x12f` más `modelo + 0x98` (los dos salteados con
+    `modelo + 0x99`), `0x41` a `0x41` más `DAT_07d2d360`, y una textura forzada distinta de -1
+    pisa todo;
+  - corre las UV con (U, V) distintos de 0 en el `blendMesh`, o con el byte 2 del script en la
+    malla de `modelo + 0x88`;
+  - la malla de `modelo + 0x88` va con `glColor3fv(color)` y sin luz; las demás, con `+0x44`, con
+    la luz de cada normal por el color;
+  - las banderas:
+
+  | Bandera | Qué hace |
+  | --- | --- |
+  | `0x1` | sin textura: `0x40` aditiva (`0x620a90`), `0x80` `0x620b10`, si no opaca (`0x620980`); `0x2000` sin profundidad (`0x620870`); alpha < 0,99 → `0x620a00(1)` y `glColor4f` |
+  | la malla cuya textura es el `blendMesh` (todas, con uno de −2 o menos) | con textura, aditiva (`0x80`: `0x620b10`), `0x2000` sin profundidad, y `glColor3f(color · luz del blendMesh)` |
+  | `0x2` | con textura: `0x40` aditiva, `0x80` `0x620b10`, alpha < 0,99 o un slot de cuatro componentes (`+0x28` en 4) → `0x620a00(1)`; si no, opaca |
+  | `0x40` sin `0x2` | aditiva y sin UV; un slot de cuatro componentes no se dibuja |
+  | `0x20` | la sombra plana: X = x' + (x' + 2000) · z' / (z' − 4000) + px, Z = pz + 5 |
+  | `0x400` | la onda: v + sin((T + 931 · i) · 0,007) · n · 28, con i el vértice |
+  | `0x4`, `0x8`, `0x200`, `0x800`, `0x1000`, `0x4000`, `0x8000`, `0x10000` | un pase de brillo (abajo) |
+
+  Las mezclas no tocan `glDepthFunc` y guardan la última en `0x7d366dc`: `0x620980` opaca (sin
+  mezcla, con culling y máscara, sin alpha test, la niebla según `0x7d368a0`), `0x620a00(b)`
+  `SRC_ALPHA/ONE_MINUS_SRC_ALPHA` sin culling, con alpha test y la máscara si b, `0x620a90`
+  `ONE/ONE` sin culling, máscara ni niebla, `0x620b10` `ZERO/ONE_MINUS_SRC_COLOR`, `0x620b90`
+  `ONE_MINUS_SRC_COLOR/ONE`, `0x620c10` la normal sin máscara ni alpha test y `0x620c90`
+  `ZERO/SRC_COLOR`.
+- **Los pases de brillo.** No corren si la malla tiene el byte 3 del script (`N`) o su byte `+0`
+  en 1 (`0x4ed07a`..`0x4ed092`): `0x60ff50` lo prende al final (`0x6117fd`..`0x611847`) en cinco
+  mallas de ítems, la 1 de `Spear01`, `Sword11`, `Mace07` y `MagicBox07` y la 2 de `Staff07`, que
+  así no brillan nunca. Con f = (T % 5000) · 0,00024 − 0,4, c = cos(0,001 · T), s = sin(0,002 · T)
+  y la normal en el mundo:
+
+  | Bandera | u | v | Slot |
+  | --- | --- | --- | --- |
+  | `0x200` | (nz + nx) · 0,8 + 2f | nx + ny + 3f | `0x620` |
+  | `0x800` | L·n, con L = (0; −0,1; −0,8) | 1 − L·n | `0x620` |
+  | `0x1000` | c·nx + s·ny + nz + 0,5·ny + 3s | 1 − (c·nx + s·ny + nz) − (0,5·nz + 3t) | `0x620` |
+  | `0x4000` | c·nx + s·ny + nz + 5s + 3ny | 1 − (c·nx + s·ny + nz) − (2,5·nz + t) | el de la malla |
+  | `0x10000` | (nz + nx) · 0,8 + 2f | igual que u | `0x6b2` |
+  | `0x8000` | nx | ny | el de la malla |
+  | `0x4` | 0,5·nz + t | 0,5·ny + 2t | `0x5c0` |
+  | `0x8` | 0,5·nz + 0,2 | (ny + 1) · 0,5 | `0x5fc` |
+
+  Una textura forzada pisa el slot. `0x800`, `0x1000` y `0x4000` van aditivos y, con alpha
+  < 0,99, multiplican **en el lugar** el color del modelo por el alpha (Q-C95); los demás, `0x40`
+  aditiva, `0x80` `0x620b10`, `0x10` `0x620c90`, alpha < 0,99 `0x620a00(1)`, si no opaca, y
+  `0x2000` sin profundidad. El bucle de las UV escribe una de más (Q-C96). Las filas de `0x4`,
+  `0x8` y `0x1000` son las verificadas arriba (y `0x1000` lleva UV, *verificado*: la traza dibuja
+  la 141 con `glTexCoord`); las otras cinco, *estáticas*.
+- **Cuántos pases: el nivel.** `0x60b3d0` saca el nivel de `(arg >> 3) & 0xf` (con casos por
+  modelo) y lo recorta a 2 · `DAT_006c9dcc` + 5 si ese byte de las opciones (4 en la `.data`; lo
+  escriben `0x623e70` y `0x644730`) es menor que 4. Con L la luz del personaje:
+
+  | Nivel | Color base | Pases |
+  | --- | --- | --- |
+  | 0 a 2 | L | el base |
+  | 3 a 6 | L, latiendo con `DAT_07d36ba8` | el base |
+  | 7 y 8 | L · 0,8 | el base y `0x44` |
+  | 9 y 10 (con el byte > 1) | L · 0,9 | el base, `0x44` y `0x48` |
+  | 11 y 12 (> 2) | L · 0,9 | el base, `0x240`, `0x48` y `0x44` |
+  | 13 (4) | L · 0,9 | el base, `0x1040`, `0x48` y `0x44` (`0x60ca5a`..`0x60cb0d`) |
+  | 14 y 15 | L | el base (Q-C97) |
+
+  Un ítem excelente (`param_6 & 0x3f`) suma un pase `0x42`, y `param_7 & 3` en 1 o 2, uno `0x840`.
+  El orden base → 141 → 115 → 120 está **verificado** en la traza de la selección: la textura GL
+  384 opaca con el color 0,27, `glBlendFunc(GL_ONE, GL_ONE)`, la 141 con 1,35 y la 115 y la 120
+  con (0,75; 0,65; 0,5), y la secuencia se repite (la 141, 25 veces): un nivel 13.
+- **El color del personaje.** La luz `+0xf4` no entra por `0x4ebc80`: `0x50ba30` (`0x50cc29`)
+  arma `personaje + 0x3b4` = base + `+0xf4`, con la base en (0,4; 0,4; 0,4) en la escena 4 y la
+  luz del terreno (`0x5f99e0(x, y)`) en las otras (el modelo `0x189`, en 0,6), y `0x60cf70` se la
+  pasa a `0x60b3d0`, que escribe `modelo + 0x48..+0x50` con el factor del nivel. En la selección,
+  0,4 y 1,4 (el elegido) antes de ese factor. El pase base pasa además por `0x609640` (2,5 KB de
+  casos por ítem), sin leer: el 0,27 de la traza cierra con 0,4 · 0,9 · 0,75 o con 0,3 · 0,9
+  (P-C14). Los demás modelos toman el color de `0x5ffce0`: la luz del terreno más `objeto +
+  0xf4`, o por 0,1 con `objeto + 0xe8` en 0.
+- **Lo que cuelga del personaje.** `0x511290` pone los huesos de cada modelo; para `0x20a`, la
+  mano derecha en 33 (`+0x2bd`) y la izquierda en 42 (`+0x2dd`). `0x50ba30`: las alas en 47
+  (`+0x2fd`, a 1,0 keys por frame en las acciones `0x1e` y `0x1f` y a 0,25 en las demás, con el
+  desplazamiento (0, 0, 15)) y la mascota en 34 (`+0x31d`, a 0,5, con (20, 0, 0)), que solo se
+  dibuja si es `0x1c13` (Q-C98). Las cuelga `0x509340`: con la bandera en 0, `0x4ec190`
+  (`VectorRotate` del desplazamiento por el hueso, por la escala, y el hueso al global
+  `0x68c4a1c`); con la bandera, un `AngleMatrix` por modelo encadenado. Las avanza con `0x4ec200`
+  (la velocidad de la parte; el arma, la de la acción 1 de `Player.bmd`) y las posa con
+  `0x4eb860(…, 1, 1)`, cuya raíz es la de `0x68c4a1c`. El arma va a la espalda, en el lugar de las
+  alas, con el ítem de la mano entre `0x212` y `0x1011` (las condiciones, leídas en parte). Las
+  partes del cuerpo (`0x60cf70`) no se posan: van con las matrices de la pose del cuerpo.
+- **Las texturas de un modelo.** `0x60d530(n)` pone el principio de la búsqueda
+  (`DAT_07d366b4`) en 0 y el próximo libre (`DAT_07d366b8`) en n; nadie más escribe el principio.
+  `0x60d5f0(modelo, carpeta, wrap, filtro, chequear)` busca cada nombre de textura del modelo con
+  `0x60d550` en los slots de 0 al próximo de la tabla de `0x7d3a198` (`0x38` bytes cada uno: el
+  nombre en `+0`, el ancho y el alto en `+0x20` y `+0x24`, los componentes en `+0x28`, el nombre
+  de GL en `+0x2c`, la cuenta de usos en `+0x30`). Compara con `strcmp` el **nombre desnudo**,
+  sin la carpeta y distinguiendo mayúsculas (Q-C90). Si está, la malla usa ese slot y suma un uso;
+  si no, carga `carpeta + nombre` en el próximo (la letra después del primer punto, con
+  `tolower`: `t` es OZT con `0x63bd00`, siempre con `GL_NEAREST`; otra, OZJ con `0x63b870` y el
+  filtro), guarda el nombre y corre el próximo, aunque el archivo falte. **Después** los nombres
+  que empiezan con `ski` o `level` (en minúscula, byte a byte) pasan al slot `0x12e`, `hid` al
+  `0x12d` y `hair` al `0x137`: el que se cargó queda ocupado. El quinto argumento de los cargadores
+  es el modelo, por su nombre de cabecera en el error (`"%s of %s - File not exist."`), y
+  `chequear` vale 1 en todas las llamadas del binario: una textura de modelo que falta cierra el
+  juego (Q-C23). `0x63c150` suelta un slot (con la cuenta en 0 borra el nombre). Quién fija el
+  próximo:
+
+  | Cargador | `0x60d530` | Qué carga desde ahí |
+  | --- | --- | --- |
+  | `0x60f7d0` (avance 2 de la carga) | `0x12e`, `0x137` y `0x138` | la piel y el pelo de cada clase, en slots fijos (abajo); las partes del personaje desde `0x138` |
+  | `0x611850` (avance 4) | `0x25a` | los ítems (los modelos son de `0x60ff50`, el avance 3) |
+  | `0x615700` (avance 5) | `0x69`, `0x138` y `0x3b8` | `StoneCoffin` desde `0x69`; `LaceArrow` desde `0x138`, encima de dos de la piel (Q-C89); las habilidades desde `0x3b8` |
+  | `0x616ec0` (cada mundo) | `0x69` y `0x41c` | los modelos especiales del mapa; los `ObjectNN` del mundo |
+  | `0x61ca30` (la selección) | `0x6f8` | `Logo05` y los `NewFace` (Q-C91) |
+  | `0x615500` | `0x548` | nada: lo llama `0x61eeb0`, detrás de `DAT_07d366bc` |
+  | `0x612270`, `0x612d90` (monstruos y NPC a pedido) y `0x61c7c0` (el login) | ninguno | donde dejó el próximo el último (Q-C92) |
+
+  **Verificado:** un script que repite `0x60d530`, `0x60d550` y `0x60d5f0` con los modelos del
+  laboratorio da, para los 750 slots de `0x12e` a `0x41b`, los mismos nombres que el volcado
+  `lor_slots.bin` de la tabla (sacado en Lorencia después del login y la selección), uno por uno.
+  En esa carga hay 54 nombres que se encuentran en un slot que cargó otra carpeta: 17 con los
+  mismos bytes, 31 cuyo modelo **no tiene** ese archivo en su carpeta y anda porque otro lo cargó
+  antes, y uno con otro archivo: `Helper04` (`0x1c15`, `Item\`) dibuja el de `Skill\` (`0x285`).
+- **La piel y el pelo.** `0x60f7d0` sube a mano, con `GL_NEAREST` y `GL_CLAMP`: `0x12e`
+  `skin_barbarian_01`, `0x12f` `level_man022`, `0x130` `skin_wizard_01`, `0x131` `level_man01`,
+  `0x132` `skin_archer_01`, `0x133` `level_man033`, `0x134` `skin_special_01`, `0x136`
+  `level_man02` y `0x137` `hair_r` (de `Player\`); `0x12d` y `0x135` quedan vacíos (**verificado**
+  en `lor_slots.bin`: los otros nueve tienen textura). Antes de cada parte, `0x50d41c`..`0x50d431`
+  pone `modelo + 0x98` = 2 · (b & 7) + (b >> 3), con b la clase del personaje (`+0x1d4`): la clase
+  c usa `0x12e + 2c` y su segunda clase el `level_man` de al lado; la clase 4 (`Class05`) va a
+  `0x136`, y su `HelmClass05`, la única parte con pelo, al de `0x137`. Ningún nombre del
+  laboratorio empieza con `Hair` o `Skin` en mayúscula. Qué número es cada clase, *inferido*.
 
 ### Texto
 
@@ -427,7 +649,13 @@ a medio téxel; con `GL_REPEAT`, la textura se repite a lo largo. La v de abajo 
 Cada avance es un frame entero: `0x61ccb0` llama 11 veces (de 0 a 10) a `0x65f200(hdc, actual,
 10)`, que hace `0x620db0(0, 0, 640, 480)`, `glClear` de color y profundidad, el 2D (`0x6219b0`),
 las cinco imágenes, la barra, `0x621a90`, `0x620fc0`, `glFlush` y `SwapBuffers`. Entre uno y otro
-corre la carga, sin mensajes: la ventana no responde mientras tanto (*inferido*).
+corre la carga, sin mensajes: la ventana no responde mientras tanto (*inferido*). Qué carga en
+cada avance (CL6.R, *estático*): el 0, las texturas fijas de la interfaz; el 1,
+`0x60dbe0` (el personaje); el 2, `0x60f7d0` (sus texturas); el 3, `0x60ff50` (los modelos de los
+ítems, 243 cargas, con el número `0x212` + grupo · 512 + índice); el 4, `0x611850` (sus
+texturas); el 5, `0x615700` (habilidades, efectos y algunos monstruos); el 6, `0x61ae60` (más
+texturas de la interfaz); el 7, `0x61b350` (los sonidos); y el 8, las tablas. Cada cargador de
+texturas fija su primer slot ([El modelo en el binario](#el-modelo-en-el-binario)).
 
 ### El login, al entrar
 
@@ -440,19 +668,40 @@ en 0. Arranca en 0 (está en la `.bss`), y la vuelta al login de `0x4c2710` la p
 2. `0x61c7c0` sube las texturas de la escena: `Logo\Login_Back01.jpg` y `Login_Back02.jpg` (slots
    `0x15` y `0x16`), `Object9\sand01.jpg` y `sand02.jpg` (`0x5c2` y `0x5c3`), `Effect\FireSnuff.jpg`
    (`0x635`), 13 de `Interface\` en `0xc` a `0x1a` (sin `0x15` ni `0x16`) y el modelo `0xa2`
-   (`0x60da30` con `Data\Logo\` y `"%s0%d.bmd"`: `Logo03.bmd`, con sus texturas de `Logo\`). El
-   tercer y cuarto argumento van a `glTexParameteri` en `0x63b870` y `0x63bd00`: el tercero a
-   `GL_TEXTURE_MAG_FILTER` y `GL_TEXTURE_MIN_FILTER` (`0x2800`, `0x2801`), el cuarto a
+   (`0x60da30` con `Data\Logo\` y `"%s0%d.bmd"`: `Logo03.bmd`, con sus texturas de `Logo\` por
+   `0x60d5f0`, sin un `0x60d530` antes: van al próximo slot que dejó el mundo 55, que termina su
+   carga con `0x60d530(0x41c)` (`0x61a0e8`) y 57 texturas nuevas de `Object56\`, así que a `0x455`
+   y `0x456`; *inferido*, de la simulación de los slots de arriba y de los archivos, P-C15;
+   Q-C92). El tercer y cuarto argumento van a `glTexParameteri` en `0x63b870` y `0x63bd00`: el
+   tercero a `GL_TEXTURE_MAG_FILTER` y `GL_TEXTURE_MIN_FILTER` (`0x2800`, `0x2801`), el cuarto a
    `GL_TEXTURE_WRAP_S` y `_T` (`0x2802`, `0x2803`). Los fondos y casi todas las de `Interface\` van
    con `GL_NEAREST`; la arena, `FireSnuff` y `cr_mu_lo` con `GL_LINEAR`, y repiten la arena,
    `server_ex03` y `server_ex02`;
 3. `0x65f300` arma las ventanas de la UI nueva (abajo);
 4. `0x4c1340` conecta al ConnectServer ([03](03-red-y-cifrado.md));
-5. el objeto `0xa2` en (10.680, 15.550, 1.710), con ángulos (10, 0, 36) y escala 1, y el
-   personaje de la escena (`0x517270(2, 4, …)`, con el cuervo del `A9`, P-C11) en (10.603, 14.112,
-   580), girado 188° en z y con escala 1,6; un efecto `0xbf`; 120 llamadas a `0x555190` con dos
+5. el objeto `0xa2` en (10.680, 15.550, 1.710), con ángulos (10, 0, 36) y escala 1, que
+   `0x606660` pisa (abajo), y el personaje de la escena (`0x517270(2, 4, …)`, con el cuervo del
+   `A9`, P-C11) en (10.603, 14.112, 580), girado 188° en z y con escala 1,6; un efecto `0xbf`
+   (`0x443fa0`, de la ola de los efectos); 120 llamadas a `0x555190` con dos
    cadenas de la `.bss` (*inferido*: vacían el área de mensajes); la música (`0x4acfd0`) y una
    línea en el log.
+
+El logo (CL6.R, *estático*): `0x606660` arma un objeto del mundo de `0x1d4` bytes en la grilla de
+16 × 16 sectores (la posición por 0,000625; fuera de 0 a 15 no crea nada), vivo, con el modelo,
+la escala, alpha 1, luz por vértice (`+0xe8` en 1), la luz en 0, sin malla oculta (`+0x58` en
+-1), sin `blendMesh` (`+0x64` en -1) y su luz en 1 (`+0x68`), y la caja de (−40, −40, 0) a
+(40, 40, 80): son los argumentos de `RenderBody` (`0x60ce68`). En las escenas 2 y 4 tiene casos por
+modelo, y el `0xa2` (`0x6068d5`) **pisa la escala con 2,2**, pone el `blendMesh` en 1 (la malla de
+la textura 1 va aditiva) y apaga la luz por vértice (`+0xe8` en 0). (Antes este documento daba la
+escala 1.) Su luz la sube `0x604ab0` (abajo, en el dibujo).
+
+El personaje (`0x517270(2, 4, 0, 0, 0, 0)`, *estático*): en la escena 2 lleva la ropa fija, el
+casco y lo demás de `0x102e`, `0x122e`, `0x142e`, `0x162e` y `0x182e` (el juego 29), la maza
+`0x620` en la derecha, el cuervo `0x1c17` en la izquierda, la capa `0x1c30` y el caballo oscuro
+`0x1c16`; `0x512930` le deja la cabeza en -1. `0x420d60` le cuelga al cuervo un objeto aparte, de
+`0x460` bytes (`0x4167b0`, en `personaje + 0x430`), con su propio paso: su conducta no se leyó
+(P-C15). La acción la elige `0x634c60` en cada paso: con `ftol(T) % 2300` entre 0 y 99,
+`rand() % 6` en 1 pone la `0x54` y en 2 la `0x55` (`0x4ea030`).
 
 `0x6349a0` tiene además un camino con `DAT_006c7b8c` en 0 que copia la cuenta guardada al viejo
 campo de texto con un tope de 10 (`_DAT_006c8e78`). Es código muerto: `DAT_006c7b8c` está en 1 en
@@ -495,7 +744,10 @@ la cuenta (abajo).
 7. el fundido: con `DAT_07d3a0cc` en 1 y la cuenta `DAT_006d5e30` debajo de 16, `glColor3f(k;
    0,9 k; 0,8 k)` con k = (16 − cuenta) / 16 (el 1/16 de `0x6b8850`); con 16, la bandera pasa a 2.
    No dibuja nada con ese color (Q-C66). La cuenta la lleva `0x633920`, por paso: 40 pasos con
-   la bandera en 0 (el logo se aclara de a poco, en `0x604ab0`), después la pone en 1, y desde ahí
+   la bandera en 0 (el logo se aclara de a poco: `0x604ab0`, en las escenas 2 y 4, le pone al
+   `0xa2` la luz cuenta · 0,02 en `+0xf4..+0xfc` y en `+0x68`, la de su malla aditiva, de 0 a 0,78,
+   y 1,5 con la bandera en 1: salta, Q-C105; y corre la V de los `0xa0` y `0xa1` con
+   −(T % 4000) · 0,00025), después la pone en 1, y desde ahí
    cada 128 pasos la cámara elige otro recorrido (en el login, `rand() % 4 + 1` y `rand() % 2`;
    en la selección, siempre el 5), con FOV 45;
 8. lo común a las escenas: `0x5f7bc0`, `0x554810` (los avisos centrados, con la fuente negrita
@@ -666,12 +918,166 @@ frame): cierran el aviso (`0x65f6c0`) y siguen según el id (`0x643560`):
   llama a `0x643740` y abre el `0x5d`. El botón de cancelar de los otros tipos (`0x6436a0`) deja el
   id en -1 y cierra.
 
+## La selección de personaje
+
+Leída en la CL6.R en el desensamblado de `c32bbd5f`: todo *estático* salvo lo que se marca, y lo
+**verificado** sale de la traza de la selección (§ Modelos y objetos). Los textos van por su
+índice en `Text.bmd`. Los paquetes, campo por campo, están en
+[04](04-protocolo.md#la-selección-de-personaje-f3), y quién pasa de una escena a otra, en
+[02](02-arranque-y-ciclo-de-vida.md#las-cinco-escenas-y-sus-transiciones).
+
+### Al entrar
+
+`0x6342c0`, la lógica de la escena 4, no hace nada mientras el estado de la conexión
+(`DAT_057678c0`) esté antes de `0x33` (la lista), y la primera vez llama a `0x633f20`:
+
+- `0x7d3a101` en 1, `0x775857c` y `0x7d3a10c` en 0, y el mapa 54 (`0x61a560(0x36)`, `World55`);
+- `0x61ca30`: las texturas de la escena (las de `Interface\` en `0xc` a `0x13`, `character_back01`
+  y `02` en `0x717` y `0x718`, `Impack03` en `0x719` y `chasellight` en `0x729`) y, desde
+  `0x60d530(0x6f8)`, los modelos `0xa4` (`Logo05`) y `0xa8` a `0xac` (`NewFace01` a `05`) con las
+  suyas, y la velocidad 0,3 en las acciones 0 y 1 de los `NewFace`;
+- `0x511290(0x7437050, 0xa9, 0, 0, 0)`: un objeto de personaje suelto, de `0x438` bytes y fuera
+  de los 400 de la tabla, con el modelo `0xa9` (`NewFace02`), la clase en 1 (`+0x1d4`) y `+0x88`
+  en 0. Es la vista previa de la ventana de crear: el `F3 01` lee de ahí la clase y la piel
+  (`0x7437224` y `0x7437225`);
+- ninguno elegido (`DAT_006d5edc` en -1) y la UI en el modo 4 (`0x65f4b0`): el aviso de `+0x8`
+  (352 × 113, al centro), las ventanas de `+0x3d0` y `+0x7e8`, la de la selección (`+0x7f50`, en x
+  22, abierta) y la de `+0x8498` (454 × 406, al centro); los botones, con `0x63eb40`;
+- `0x633f96`..`0x63417a`, la tabla de hash de `0x57630c8`: no se leyó;
+- vacía el área de mensajes (120 líneas, `0x555190`) y, si alguno de los dos números de `pkt[5]`
+  de la lista (`0x5767958`, `0x576795c`) no es 0, escribe una línea con `sprintf` y el texto 1240
+  **como formato** (`0x63420a`).
+
+### La lógica
+
+Cada paso, `0x6342c0` anima (`0x508ea0`, la vista previa entre otros) y corre las rutas de la
+cámara (`0x633920`). Después:
+
+- **Enter:** con `[input + 0x31]` en 0, `GetAsyncKeyState(VK_RETURN) == 0x8001`, las ventanas de
+  `+0x14`, `+0x84a4`, `+0x3dc` y `+0x7f4` cerradas y uno elegido de 0 a 4: el sonido `0x19`
+  (`0x41ed10`); con el bit `0x1` de su `+0x1d8`, el aviso `0x84` (el texto 434); si no, la tabla de
+  hash (no se leyó) y copia al personaje propio (`[0x7681eb0]`) el nombre (`+0x1d9`, a `+0`), la
+  clase (`+0x1d4`, a `+0xb`), la piel (`+0x1d5`, a `+0xc`) y el nivel (el `word` de `+0x1d6`, a
+  `+0xe`); `0x61cc50` suelta los slots `0xc` a `0x1d` y `0x6f8` a `0x71d` y los modelos `0xa8` a
+  `0xac` (no el `0xa4`), pone `0x7d3a13e` en 0 y pasa a la escena 3.
+- **Esc:** con las mismas ventanas cerradas, el sonido y la ventana de `+0x3d0`.
+- Con la ventana de `+0x8ddc` cerrada (`+0x8de8` en 0), el **doble clic** (`[input + 0x1f]`) con
+  la ventana de la selección abierta (`+0x7f5c`) y un personaje bajo el mouse (`DAT_006c8e30`, de
+  0 a 4) lo elige y hace lo de Enter **sin el sonido** (y el aviso `0x84` si está bloqueado); si
+  no, el **clic** (`[input + 0x1c]`) elige el que está bajo el mouse, o ninguno (-1), y
+  `0x63eb40` acomoda los botones: crear si hay un lugar vacío de 0 a 4, conectar y borrar si hay
+  uno elegido.
+- El doble clic es un reloj propio de `0x640940`, no `WM_LBUTTONDBLCLK`: el segundo
+  `GetAsyncKeyState(VK_LBUTTON) == 0x8001` dentro de `GetDoubleClickTime()` (con el reloj de
+  `0x459bc0`, `QueryPerformanceCounter` o `timeGetTime`, en el `double` de `+0x40`), con el
+  primero pendiente en `+0x60`, prende `+0x1f`. Cualquier movimiento del mouse entre los dos
+  borra `+0x60` (`0x6409c3`, Q-C99).
+- Quién escribe `[input + 0x30]` y `[input + 0x31]` (`0x640850`), que cambian el botón y traban
+  Enter, sin leer (P-C14).
+
+### El picking
+
+`0x620480(mx, my, salida, 1)` pasa el mouse de 640 × 480 a píxeles (· W / 640 y · H / 480) y arma
+el punto `(dx · tx · d, −dy · ty · d, −d)` con d = `0x6d5d44` (el far de antes del × 1,4: 11.519,9
+en la escena 4) y las tangentes de `0x6203c0` (tan(fov · π/360)); lo gira con la inversa de la
+vista (`0x5fcc30`) y le suma la posición de la cámara (`0x7d36834`, sacada de la `GL_MODELVIEW`
+traspuesta que `0x620370` guarda en `0x7d366f0`): el punto lejano queda en `0x7d366c0`.
+`0x59e700(máscara)` recorre los 400 personajes (vivos, visibles, con alpha > 0, `+0x389` en 0,
+sin el bit `0x10000000` de `+0x7c` ni `+0x42c`, y la clase de `+0x88` en la máscara; en la escena
+4 no saltea al propio) y prueba el **segmento** de la cámara a ese punto contra la caja de cada uno
+con `0x622900`, una separación en 6 ejes (las 3 aristas de la caja y su producto con el rayo,
+`0x6227b0`). Gana el de menor distancia² de la cámara a su origen (desde 10¹²). La caja es la de
+`0x4ebc80` (§ El modelo en el binario): alineada a los ejes y sin girar, con las medidas de
+`+0x124` y `+0x130`, que `0x511290` pone en (−60, −60, 0) y (40, 40, 120) para el `0x20a`
+(`0x512270`, `0x5122d4`; Q-C100). Con `0x77f3b18` en 2 (nadie lo escribe) usaría la de los
+vértices. `0x59ec80` llama con `0x22` y 1 (y 4 a `0x6c8e2c`). `0x59e700` pone además `+0xe8` en 1
+y un tinte en `+0xf4`, según `+0x1d6` (de 0 a 4), en todos los de la máscara; en la escena 4 lo
+pisa `0x634680` antes del dibujo siguiente.
+
+### El dibujo
+
+`0x634680` sale con `0x7d3a13f` en 0 o el estado antes de `0x33`. La niebla en 0; los fondos
+(`0x621b60(0x717, 0, 25, 320, 320, …)` y el `0x718` en x 320); `0x620db0(0, 25, 640, 430)`; el
+rayo del mouse (`0x620480`); los cinco primeros con z = 163 y `+0xf4` en 0 y, con uno elegido, la
+mezcla aditiva, su `+0xf4` en (1, 1, 1), `0x5f9780(x, y, &(1, 1, 1), 1, 0x7b4ccc4)` (una luz en el
+terreno, en su lugar) y la opaca; los personajes (`0x510d00`, los 400); el picking (`0x59ec80`, con
+`+0x8de8` en 0); y con uno elegido, su `+0xf4..+0xfc` en 0,15 (`0x6348a8`..`0x6348c4`), dos
+`0x53fe70(0x729, posición, ángulos, &luz, 0 y después 1, 1,0, 0)` (la `chasellight` debajo del
+elegido, con esa luz) y su nombre (`0x4129f0`, con `this` en `0x6eed7c` y `+0x1d9`). El 0,15 no
+llega al cuerpo: el frame siguiente lo vuelve a 0 o a 1 antes de `0x510d00`. Así, la luz de cada
+personaje es 0,4 y la del elegido 1,4, antes del factor del nivel (§ El modelo en el binario).
+`DAT_07d36899`, que saca el giro en x de `0x620db0` (`0x620e94`), no lo escribe nadie (no hay un
+`mov` a esa dirección). **Verificado** en la traza (1024 × 768): la cámara y el viewport de
+§ Cámara, los fondos de (0, 728) a (512, 216) y de (512, 728) a (1024, 216), antes del pase del
+mundo la perspectiva de 45° que no dibuja y el pase de la franja de arriba, y los pies del
+personaje a la altura de z = 163.
+
+### Los personajes de la lista
+
+`0x4c20a0` ([04](04-protocolo.md#la-selección-de-personaje-f3)) pone cada personaje en
+`chars[lugar]` con `0x517270`, en la posición de su lugar (x, y y el ángulo en z):
+
+| Lugar | x | y | Ángulo |
+| --- | ---: | ---: | ---: |
+| 0 | 12.880 | 15.046 | 100° |
+| 1 | 12.863 | 15.251 | 75° |
+| 2 | 12.974 | 15.425 | 50° |
+| 3 | 13.151 | 15.533 | 25° |
+| 4 | 13.349,6 | 15.527 | 0° |
+
+Las mallas del personaje de la traza caen alrededor del lugar 0 (**verificado**). Con un lugar de
+más de 4 la posición no se carga (Q-C101).
+
+`0x517270(índice, clase, piel, x, y, ángulo)` llama a `0x511290(chars[índice], 0x20a, 0, 0,
+ángulo)` (la z, de `0x5f93c0`) y pone `+0x1f4` en el índice, la luz `+0xf4` en 0,3, la posición,
+la clase, la piel, y `+0x78` y `+0x7c` en 0. En la escena 2 viste la ropa fija del login (§ El
+login, al entrar); en las otras, casco, armadura, pantalón, guantes y botas en `0x2212`, `0x221a`,
+`0x2222`, `0x222a` y `0x2232` más `clase & 7`, y las manos, las alas y la mascota en -1. Después,
+`0x4e6910(0x1000000, c)`, `+0x1d8` en 0, `0x512930` y `0x4f2250` (la acción de parado).
+`0x512930` pone la cabeza (`+0x1f8`) en `0x2212 + (clase >> 3) · 5 + (clase & 7)` solo con los
+cascos `0x1012`, `0x1014` y `0x101c` a `0x101f` (si no, en -1), y la escala (`+0xc`) por clase y
+según la piel sea 0 o no: 0,9 o 0,93 en las clases 0 y 1, 0,88 o 0,86 en la 2, 0,95 en la 3 y
+0,92 en la 4.
+
+`0x5139f0(lugar, equipo, 0, 0)` lee los 17 bytes del equipo (b), solo para el `0x20a`. El tipo de
+un ítem es grupo · `0x200` + índice, y su modelo, `0x212` más el tipo:
+
+| Qué | De los 17 bytes | Modelo |
+| --- | --- | --- |
+| la mano derecha | tipo `((b[11] & 0xf0) << 4) \| b[0]` | `0x212` + tipo; el vacío se compara con `0x1fff` (Q-C102) |
+| la izquierda | tipo `((b[12] & 0xf0) << 4) \| b[1]` | igual; la clase 4 con el tipo `0xa05` va a `0x1c17` (`0x420cf0`) |
+| el casco | índice `((b[8] >> 7) + (b[12] & 0xf) · 2) · 16 + (b[2] >> 4)` | `0x1012` + índice |
+| la armadura | `(((b[8] >> 6) & 1) + (b[13] >> 4) · 2) · 16 + (b[2] & 0xf)` | `0x1212` + índice |
+| el pantalón | `(((b[8] >> 5) & 1) + (b[13] & 0xf) · 2) · 16 + (b[3] >> 4)` | `0x1412` + índice |
+| los guantes | `(((b[8] >> 4) & 1) + (b[14] >> 4) · 2) · 16 + (b[3] & 0xf)` | `0x1612` + índice |
+| las botas | `(((b[8] >> 3) & 1) + (b[14] & 0xf) · 2) · 16 + (b[4] >> 4)` | `0x1812` + índice |
+| las alas | v = `(b[4] >> 2) & 3`; con 3, v = `b[8] & 7` (0, sin alas; 5, `0x1c30`) | `0x1a12` + v, o `0x1a14` + v con 3 |
+| la mascota | v = `b[4] & 3`; con 3, `b[9] & 1` da `0x1c15`, `b[11] & 1` `0x1c16` (con el efecto `0xbf`) y `b[11] & 4` `0x1c37` (con `+0x31b` = `b[15] & 3`) | `0x1c12` + v |
+| los niveles | L = `b[5] << 16 \| b[6] << 8 \| b[7]`, 3 bits cada uno (`0x513340`): la derecha en 0 a 2, la izquierda 3 a 5, el casco 6 a 8, la armadura 9 a 11, el pantalón 12 a 14, los guantes 15 a 17 y las botas 18 a 20 | las alas y la mascota, nivel 0 |
+| excelente | `b[9]` (bits 7 a 3 las cinco partes, el 2 la derecha y el 1 la izquierda) a `parte + 3`; `b[10]` igual a `parte + 4`, con su bit 0 a `+0x358`; `b[11] & 2` a `+0x360` | |
+
+Un índice `0x1ff` en una parte del cuerpo es "vacío" y deja la de la clase (`0x2212`, `0x221a`,
+`0x2222`, `0x222a` y `0x2232` más `(clase >> 3) · 5 + (clase & 7)`). Después, `0x414340`,
+`0x4053f0` y `0x512930` (la cabeza y la escala). Con `+0x3e3` no toca la ropa.
+
+### La carga del mundo (escena 3)
+
+`0x6356f0`, la primera vez: la tabla de hash (no se leyó), `Interface\LSBg01` a `04` en `0x71e`
+a `0x721` (`GL_LINEAR`, `GL_CLAMP`) y un objeto de `0x2a8` bytes (`0x640c10`, `0x640c90`) con **las
+cuatro** en un mosaico de 800 × 600: `LSBg01` arriba a la izquierda (400 × 512), `02` arriba a la
+derecha (en x 400), `03` abajo a la izquierda (400 × 88, en y 512) y `04` abajo a la derecha, con
+la escala W / 800 y H / 600 (`0x6ba884`, `0x6ba880`), como la UI de la carga. Dibuja un frame
+(`0x620db0(0, 0, 640, 480)`, `glClear`, `0x640ea0`, que llama a `0x647650` con cada una,
+`glFlush` y `SwapBuffers`), borra el objeto, pasa a la escena 5 y suelta las cuatro texturas.
+
 ## Lo que no se sabe
 
-- **Modelos, en el binario** (P-C01): el skinning, la pose, el avance del frame, la cabeza y las UV
-  de brillo ya están (arriba). Falta quién escribe el ángulo de la cabeza de los personajes, de
-  qué depende cuántos pases de brillo lleva cada item y el resto del render de modelos
-  (`0x53c6a0`, tabla de 0xA10 bytes con un `switch` de tipo), leído solo en sus dispatchers. Las
+- **Modelos, en el binario** (P-C01, cerrado en la CL6.R): el skinning, la pose, el avance, la
+  cabeza, el dibujo de una malla, los brillos por nivel y los slots de las texturas ya están
+  (arriba). Falta (P-C14): si la selección gira la cabeza, la velocidad que queda en las acciones
+  sin escritura, la acción de parado sin arma y con una de dos manos, el color de cada pase
+  (`0x609640`) y una mano vacía; y el resto del render de modelos (`0x53c6a0`, tabla de 0xA10
+  bytes con un `switch` de tipo), leído solo en sus dispatchers. Las
   100 capturas de pantalla de la selección (`graphics-01/CHARACTER-ANIMATION-NOTES.md`, VMware
   MKS, privadas) muestran que la pose y el arma cambian con la UI quieta; no están sincronizadas
   con la traza.
@@ -683,7 +1089,8 @@ frame): cierran el aviso (`0x65f6c0`) y siguen según el id (`0x643560`):
   con `TextOut` en 1).
 - **La carga y el login, en GL** (P-C13): no hay traza ni captura de estas dos escenas; el orden,
   las posiciones y la mezcla de arriba son del binario. Tampoco se leyeron las ventanas de
-  `+0x3d0`, `+0x7e8` y `+0x4578`.
+  `+0x3d0`, `+0x7e8` y `+0x4578`. Del login de la CL6 (P-C15): el slot de `Logo03`, cómo sube la
+  luz del logo y la conducta del cuervo (`0x4167b0`).
 
 Ver [08](08-pendientes.md).
 
@@ -709,6 +1116,9 @@ Ver [08](08-pendientes.md).
 | El cuerpo avanza por paso de lógica con la velocidad de su acción | `Data::Model` guarda la velocidad de cada acción (la tabla de `0x60dbe0`) y el frame se avanza en el paso de 40 ms; el dibujo interpola entre el frame del paso anterior y el del actual (D-C4), y el modo fiel dibuja el del paso, sin interpolar | CL6 |
 | Mascota y alas avanzan por frame dibujado (0,5 y 0,25 keys) | avanzan por tiempo: 0,5 keys cada 46,875 ms es la velocidad del original a 21,33 FPS, igual a cualquier FPS (Q-C20) | CL6 |
 | Brillo de items con UV de la normal y el reloj del frame | un shader por modo de brillo con las fórmulas de arriba; T es el reloj del frame en ms | CL6 |
+| Cuántos pases de brillo lleva una parte, por su nivel (`0x60b3d0`), con el tope de las opciones | `ItemGlow`: la tabla de arriba, una fila por nivel, y los 14 y 15 sin brillo (Q-C97) | CL6.3 |
+| Los slots de las texturas de los modelos: un próximo que fija cada cargador y la búsqueda por nombre desnudo | `ModelTextureSlots` con el mismo próximo por cargador y la misma búsqueda (Q-C90), y un golden local contra `lor_slots.bin`; el login sigue el próximo del mundo (Q-C92) | CL6.1, CL6.3, CL6.4 |
+| La selección: la lista en cinco lugares fijos, el picking contra una caja corrida, el doble clic por reloj y la luz 0,4 / 1,4 | `CharacterSelectScene` con las tablas de arriba; un lugar de más de 4 se descarta (Q-C101) | CL6.3 |
 
 Tests que fija:
 
@@ -736,7 +1146,10 @@ Tests que fija:
   selección, y 20, 19, 19 y 19 de la acción 1 los de Lorencia (CL6).
 - La mascota: 0,5 keys cada 46,875 ms, a 21,33 FPS y a 240 FPS (CL6).
 - Las UV de brillo: para las normales y el T de un frame de la traza, los modos 115, 120 y 141 dan
-  las UV de la traza a menos de 0,02 (CL6).
+  las UV de la traza a menos de 0,02 (CL6), y las ocho filas de la tabla, con un T fijo
+  (`ShineUvTest.EachModeHasItsFormula`, CL6.2).
+- Los slots: la carga de arranque de MuRet sobre el `Data\` da los nombres de `lor_slots.bin` en
+  `0x12e` a `0x41b` (`ModelTextureSlotsGoldenTest.StartupMatchesTheDump`, local, fuera de CI).
 - El asignador de slots de `0x466560` no se prueba, porque MuRet no lo reproduce (pregunta 11 del
   plan de la CL5): es interno, en las escenas medidas no corre (`0x466000` no corrió, § Texto), y
   la caché del texto de MuRet es otra, con sus slots después de los 1.845 del original (CL5.3).

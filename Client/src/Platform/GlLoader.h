@@ -73,12 +73,18 @@ inline constexpr std::array GlFunctionNames{MURET_GL_FUNCTIONS(MURET_GL_NAME)};
 // nulo si no es válida (IsValidProcAddress).
 [[nodiscard]] SDL_FunctionPointer GlProcAddress(const char* name);
 
+// Cómo se pide una función por su nombre, nulo si no está: GlProcAddress, o un driver falso en los
+// tests (test_gl_loader.cpp), que así prueban el orden de LoadGlFunctions sin ventana.
+using GlProcLookup = SDL_FunctionPointer (*)(const char* name);
+
 // Pide `name` y lo deja en `function`, con su tipo PFNGL...PROC. Si el driver no la tiene, deja en
 // `error` cuál falta y devuelve false. Es el pedido de cada función de LoadGlFunctions, y el lab de
 // la CL5.0 lo usa para la suya (labs/cl5.0-pipeline/gl/LabGl.cpp).
-template <typename Function> [[nodiscard]] bool LoadGlFunction(Function& function, const char* name, std::string& error)
+template <typename Function>
+[[nodiscard]] bool LoadGlFunction(Function& function, const char* name, std::string& error,
+                                  GlProcLookup lookup = GlProcAddress)
 {
-    const SDL_FunctionPointer address = GlProcAddress(name);
+    const SDL_FunctionPointer address = lookup(name);
     if (address == nullptr)
     {
         error = std::string("el driver no tiene ") + name;
@@ -91,7 +97,7 @@ template <typename Function> [[nodiscard]] bool LoadGlFunction(Function& functio
 // Con un contexto actual: pide las dos de MURET_GL_QUERY_FUNCTIONS, mira que el contexto sea 3.3 o
 // más y core, y recién ahí pide el resto. El error dice qué faltó: la versión que dio el driver, el
 // perfil o la primera función que no tiene.
-[[nodiscard]] Core::Expected<GlFunctions, std::string> LoadGlFunctions();
+[[nodiscard]] Core::Expected<GlFunctions, std::string> LoadGlFunctions(GlProcLookup lookup = GlProcAddress);
 
 // glGetString como texto, o "(sin dato)" si el driver da nulo.
 [[nodiscard]] const char* GlString(const GlFunctions& gl, GLenum name);

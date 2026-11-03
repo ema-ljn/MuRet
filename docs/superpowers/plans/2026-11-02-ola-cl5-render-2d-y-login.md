@@ -1224,8 +1224,9 @@ se reproduce y queda en 07 si la CL5.R lo confirma.
   `FreeTypeRasterizerOpenTest` y corren sin la variable. Suma tests que el paso 3 no tenía:
   `InlineColorsTest.ATextWithoutMarkersStaysAsItIs`, `F8HasABackgroundWhenTheFlagIsOff`,
   `TheByteAfterTheMarkerIsAlwaysTheCode` y `StopsAtTheFirstNul`;
-  `FontSetTest.OnlyTheBoldOnesAreBold`; `TextBoxTest` (el color en RGBA, tinta y fondo, lo que no se
-  ve en 0, la columna de la caja y que solo 0xff es letra);
+  `FontSetTest.OnlyTheBoldOnesAreBold` y `EveryValidResolutionHasAStep` (las cinco del original de
+  `App/Resolution.h`, #72, y anchos de monitor); `TextBoxTest` (el color en RGBA, tinta y fondo, lo
+  que no se ve en 0, la columna de la caja y que solo 0xff es letra);
   `TextLayoutTest.TheLoginTextUsesTheHeightForY`, `TheQuadIsInPixelsWithTheUvOfTheBox`,
   `TheRowsAreTheCellUpTo32`, `AWideTextGoesInBoxesOf256`, `AWideTextIsCutAtTheRightEdge`,
   `AShortTextIsMovedInsideTheScreen` y `AnEmptyTextHasNoBoxes`;

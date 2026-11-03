@@ -1,6 +1,11 @@
 #include "Render/Text/FontSet.h"
 
+#include "App/Resolution.h"
+
 #include <gtest/gtest.h>
+
+#include <array>
+#include <cstddef>
 
 // Client::Render::Text::FontStepFor, FontHeightFor e IsBold: las cuatro fuentes de WinMain
 // (0x4ba6af..0x4ba813) y el paso de la letra por el ancho de la pantalla (pregunta 10 del plan de
@@ -29,6 +34,22 @@ TEST(FontSetTest, TheStepFollowsTheWidth)
     EXPECT_EQ(FontStepFor(1279), 14);
     EXPECT_EQ(FontStepFor(1600), 15);
     EXPECT_EQ(FontStepFor(1920), 15);
+}
+
+// Las resoluciones que valen (App::IsValidResolution) son las cinco del original o un modo del
+// monitor, de cualquier ancho: las cinco con su paso, y unos modos de monitor de hoy.
+TEST(FontSetTest, EveryValidResolutionHasAStep)
+{
+    constexpr std::array<int, 5> OriginalSteps = {12, 13, 14, 15, 15};
+    for (std::size_t i = 0; i < Client::App::OriginalResolutions.size(); ++i)
+    {
+        EXPECT_EQ(FontStepFor(Client::App::OriginalResolutions[i].width), OriginalSteps[i]) << i;
+    }
+
+    EXPECT_EQ(FontStepFor(1152), 14);
+    EXPECT_EQ(FontStepFor(1366), 15);
+    EXPECT_EQ(FontStepFor(2560), 15);
+    EXPECT_EQ(FontStepFor(3840), 15);
 }
 
 // CreateFontA con n − 1 la normal y la negrita, 2 (n − 1) la negrita grande y 12 fijo la de la otra

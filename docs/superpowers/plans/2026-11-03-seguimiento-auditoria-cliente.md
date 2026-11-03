@@ -1,0 +1,243 @@
+# Plan de seguimiento de la auditoría del cliente
+
+> **Para agentes:** usar `superpowers:executing-plans` para ejecutar una tarea autorizada, o
+> `superpowers:subagent-driven-development` si Emanuel elige ejecución delegada. Los pasos se
+> siguen con checkbox. **Quién escribe:** desde el 2026-11-02, Claude escribe el código del
+> cliente, también los pasos `(Emanuel)` y `TODO(human)`, hasta que Emanuel diga que participa
+> (PROGRESS los marca "resuelto por Claude"). Para este plan, Emanuel eligió el 2026-11-03 que
+> Claude haga T3 ya, antes de que entre la CL5.4, y T2 y T4 después. Los ADR 0001 y 0002 del
+> camino de aprendizaje siguen siendo de Emanuel.
+
+**Objetivo:** cerrar los hallazgos de la auditoría del 2026-11-03 con una regresión y un PR por
+concepto, manteniendo el contrato 1.02i y el rol de tutor.
+
+**Arquitectura:** conservar las capas y dependencias actuales. El primer arreglo mantiene las
+interfaces; la comunicación de errores de E/S requiere una mini-spec previa, a cargo de
+Emanuel. Los refactors opcionales se separan de las correcciones funcionales.
+
+**Stack:** C++20, biblioteca estándar, SDL3, OpenGL 3.3 core, GoogleTest, CTest, CMake, vcpkg y
+clang-format 18. Sin nuevas dependencias previstas.
+
+**Spec:** [auditoría y evidencia](../../audits/2026-11-03-cliente-cpp20.md),
+[roadmap del cliente](../specs/2026-10-30-cliente-design.md) y contratos de las
+[olas CL3](2026-11-02-ola-cl3-plataforma-y-bucle.md) y
+[CL5](2026-11-02-ola-cl5-render-2d-y-login.md).
+
+## Estado y orden
+
+Este es mantenimiento de CL3.4 y CL5.1; no crea otra ola ni reabre las sub-olas terminadas.
+Los nombres de tests nuevos que aparecen abajo son **propuestos**, no tests ya incorporados.
+
+| Unidad | Hallazgo | Estado | PR propuesto |
+| --- | --- | --- | --- |
+| DOC | Informe y este plan | Documentados; revisión pendiente | `docs(client): registrar la auditoría y su seguimiento` |
+| T1 | AUD-C01, escritura append entre sinks | Hecha en el #78, con su test rojo y verde | `fix(client): conservar las líneas de otros sinks tras vaciar el log` |
+| T2 | AUD-C02, fallo de escritura observable | Claude, después de T3; mini-spec antes del test | `fix(client): informar los fallos de escritura del log` |
+| T3 | AUD-C03, fallo del driver al subir | Claude, ya, antes de la CL5.4 | `fix(client): rechazar una subida de textura que falla en GL` |
+| T4 | AUD-C04, registro de decisiones | Claude el índice, después de T3; los ADR 0001 y 0002, Emanuel | `docs(client): ordenar las decisiones de compatibilidad pendientes` |
+| R1 a R4 | REF-C01 a REF-C04 | Opcionales, por separado | Un PR por refactor que se decida tomar |
+
+T1 está en el #78. Sigue T3, antes de que la CL5.4 conecte la tabla de texturas con las escenas (la
+caché del texto de la CL5.3 ya sube por `GlTexture`). T2 no depende de un refactor de config. T4
+puede avanzar como documentación independiente. Ningún checkbox de esta lista significa que una
+corrección esté hecha hasta enlazar su PR y registrar su verificación.
+
+## Restricciones globales
+
+- DataServer excluido. Los cambios del cliente van a `main`, una sub-ola y un concepto por PR.
+- C++20 sin extensiones; no `std::expected`, `std::print` ni otras APIs de C++23.
+- Aplicar `AGENTS.md`, `CODING_RULES.md` y `cpp-pro`. Consultar Context7 antes de fijar un
+  comportamiento de API; para la versión exacta, contrastar el header instalado por vcpkg.
+- Primero el test rojo, después la implementación mínima, después refactor. No desactivar
+  tests ni cambiar el valor esperado para ocultar el defecto.
+- Conservar el wire, los formatos, las constantes del build y los redondeos del research.
+  Una diferencia deliberada se registra con ADR y test; una corrección de MuRet que restaura
+  su contrato no implica reproducir un bug interno del original.
+- No versionar assets, claves, cable, volcados, caches, resultados generados ni rutas locales.
+- Los PR citan CL3.4 o CL5.1, el ID `AUD-Cxx` y la sección del research. Las APIs y firmas
+  indicadas abajo describen el alcance del plan; su fuente de verdad sigue siendo el código.
+- Claude escribe los pasos marcados `(Emanuel)` o `TODO(human)` mientras siga la decisión del
+  2026-11-02, y los marca como resueltos por Claude. Si Emanuel retoma una tarea, la marca vuelve
+  a ser suya.
+
+## Foco de revisión
+
+1. Un sink que vació un archivo y otro que agrega: ninguna línea posterior a abrir B se pisa
+   (T1, `AppendsFromIndependentSinksAfterTheCap`).
+2. Un archivo exactamente en el tope no se vacía; uno mayor se vacía solo según la política
+   existente (T1, `KeepsAFileExactlyAtTheCap` y `EmptiesAFileOverTheCap`).
+3. La apertura funciona pero una escritura falla: la pérdida de persistencia se observa sin
+   reentrar al logger ni atascar el cierre (T2, `AWriteFailureCanBeObserved`).
+4. GL rechaza la imagen de un slot ya ocupado: se informa el slot y se conserva su textura
+   anterior (T3, `ADriverFailureKeepsThePreviousTexture`).
+5. Ya había un error de GL antes de la llamada: no se lo atribuye a la nueva subida ni se
+   publica un éxito sin explicar la frontera de errores (T3, `ReportsAPreexistingGlError`).
+
+## T1 — Append después de vaciar el log (#78)
+
+**Archivos:** modificar `Client/src/Core/FileSink.cpp`; test en
+`Client/tests/core/test_file_sink.cpp`. Revisar los comentarios de `FileSink.h` y Q-C48 solo
+si atribuyen a los tests una garantía que no verifican.
+
+**Interfaces:** consume `FileSink::Open(const std::filesystem::path&)` y
+`FileSink::Write(LogLevel, std::string_view)`; produce el mismo contrato público. No agrega
+rotación, locks entre procesos ni otra biblioteca de log.
+
+- [ ] **Paso 1 (Emanuel, `TODO(human)`):** escribir
+  `FileSinkTest.AppendsFromIndependentSinksAfterTheCap`. A hace crecer el archivo por encima
+  de `MaxLogFileBytes`; B abre y vacía. B escribe `BBB`, A `AAAA`, B `CCC`. Afirmar contenido
+  exacto `BBB\nAAAA\nCCC\n` y ambos sinks todavía abiertos al leer.
+- [ ] **Paso 2 (Emanuel):** compilar el test y correrlo con `--no-tests=error`. Debe fallar por
+  contenido sobrescrito, como en AUD-C01; registrar la salida antes de cambiar producción.
+- [ ] **Paso 3 (Emanuel, `TODO(human)`):** corregir exclusivamente el modo de escritura que
+  queda después del vaciado. Mantener el tope de 1 MiB y la política de vaciar al abrir.
+- [ ] **Paso 4 (Emanuel):** agregar `FileSinkTest.KeepsAFileExactlyAtTheCap` y conservar los
+  tests de append, vaciado y dos hilos. Verificar el borde exacto y el caso mayor al tope.
+- [ ] **Paso 5:** ejecutar la suite `FileSinkTest` en Linux y Windows. Dos sinks en un hilo
+  prueban este defecto; no presentarlos como prueba de atomicidad entre procesos.
+- [ ] **Paso 6:** revisar como tutor, enlazar el PR y hacer un commit Angular en castellano,
+  con el porqué en el cuerpo. Cerrar AUD-C01 cuando su regresión pase.
+
+Checks previstos desde la raíz:
+
+```bash
+cmake --build --preset linux-x64-debug --target test_file_sink
+ctest --preset linux-x64-debug -R '^FileSinkTest\.' --no-tests=error
+```
+
+**Límite:** que B vacíe mensajes anteriores de A es la tensión de retención señalada en el
+informe. T1 no cambia esa decisión; su aclaración corresponde a T4.
+
+## T2 — Fallo de escritura observable (Claude)
+
+**Archivos:** `Client/src/Core/FileSink.h/.cpp`,
+`Client/tests/core/test_file_sink.cpp`; según la mini-spec, el punto de notificación en
+`Client/src/main.cpp` y sus tests. Ampliar a `ILogSink`, `TeeSink` o `StderrSink` solo si el
+contrato elegido lo necesita y queda justificado.
+
+**Interfaces actuales:** `ILogSink::Write(LogLevel, std::string_view)` devuelve `void`.
+`FileSink::Open` informa únicamente errores de apertura. No hay hoy una interfaz de fallo
+posterior: esta tarea no está lista para implementación automática.
+
+- [ ] **Paso 1 (Emanuel, `TODO(human)`):** escribir una mini-spec breve en esta sección con la
+  firma exacta de la señal de error, quién la observa y dónde se informa una sola vez. Pesar
+  devolución hasta el dueño frente a consulta de estado fuera de `Write`; justificar la
+  opción con menor cambio de llamadores. Definir también si el fallo queda latente hasta
+  abrir otro sink o si existe recuperación. No introducir reintentos implícitos.
+- [ ] **Paso 2 (Emanuel):** una vez fijada esa interfaz, escribir
+  `FileSinkTest.AWriteFailureCanBeObserved`: abrir correctamente, provocar fallo posterior y
+  comprobar la señal. En Linux `/dev/full` sirve para el caso real; el equivalente portable
+  necesita el punto de prueba definido en la mini-spec. No cambiar la firma solo para el test.
+- [ ] **Paso 3 (Emanuel):** agregar cobertura de un stream que sigue recibiendo mensajes tras
+  fallar, notificación única y cierre sin bloqueo. Comprobar que `stderr` conserva los
+  mensajes y que ningún `Write` vuelve a entrar al logger.
+- [ ] **Paso 4:** correr los tests nuevos y registrar el fallo rojo antes del arreglo.
+- [ ] **Paso 5 (Emanuel, `TODO(human)`):** implementar el contrato elegido, actualizar el
+  comportamiento operativo en `Client/README.md` y verificar las suites afectadas.
+- [ ] **Paso 6:** revisar lifetime y orden de locks, correr Linux/Windows y abrir el PR de T2
+  separado de T1. Cerrar AUD-C02 con sus evidencias.
+
+Check previsto, más los tests de integración que defina la mini-spec:
+
+```bash
+ctest --preset linux-x64-debug -R '^(FileSinkTest|TeeSinkTest|LogTest)\.' --no-tests=error
+```
+
+El caso `/dev/full` por sí solo no certifica el comportamiento de Windows.
+
+## T3 — Publicar la textura solo si la subida funcionó (Claude)
+
+**Archivos:** `Client/src/Render/Gl/GlTexture.h/.cpp`,
+`Client/src/Render/Gl/TextureTable.cpp`,
+`Client/tests/render_gl/test_gl_texture.cpp` y `test_texture_table.cpp`.
+La tabla de funciones ya tiene `getError`; no sumar otro loader ni una dependencia.
+
+**Interfaces:** conservar `GlTexture::Upload(const Platform::GlFunctions&,
+const Data::Textures::Texture&, Data::Textures::Sampling)` con
+`Core::Expected<GlTexture, std::string>`, y `TextureTable::Load` con su error que nombra el slot.
+
+- [ ] **Paso 1 (Emanuel, `TODO(human)`):** confirmar la frontera de errores con la referencia
+  de GL y Context7. Propuesta del plan: un error ya pendiente se informa como previo y la
+  nueva subida no se publica; uno de la subida devuelve error y no reemplaza el slot.
+  Dejar esa precondición y sus efectos sobre el flag escritos en `GlTexture.h`. No prometer
+  recuperación del contexto tras `GL_OUT_OF_MEMORY`.
+- [ ] **Paso 2 (Emanuel):** escribir `GlTextureTest.RejectsADriverFailure`: consultar
+  `GL_MAX_TEXTURE_SIZE = M`, pasar RGBA `(M + 1) × 1` con buffer completo y esperar error.
+  No usar `TextureSide`, que limita a 512, ni provocar falta de memoria real.
+- [ ] **Paso 3 (Emanuel):** escribir
+  `TextureTableTest.ADriverFailureKeepsThePreviousTexture`: cargar el slot `0x1a`, guardar su
+  nombre, intentar reemplazarlo con esa textura y afirmar error con `0x1a` y nombre anterior
+  conservado. Agregar `GlTextureTest.ReportsAPreexistingGlError` según el paso 1.
+- [ ] **Paso 4:** correr los tests en contexto real, con `MURET_CLIENT_REQUIRE_GL=1`, y
+  registrar el rojo. Conservar `GlTextureRulesTest`: un buffer inválido sigue rechazándose
+  antes de llamar a GL y debe poder probarse con la tabla de funciones vacía.
+- [ ] **Paso 5 (Emanuel, `TODO(human)`):** implementar el manejo mínimo de fallo y comprobar
+  que el nombre nuevo se libera por RAII, el alignment se restaura y el slot anterior queda.
+- [ ] **Paso 6:** correr los tests de GL y el resto del cliente. Abrir el PR de CL5.1 con el
+  alcance de AUD-C03: robustez de la API, sin afirmar que los assets válidos exceden el límite.
+
+Check previsto en Linux, como el CI:
+
+```bash
+cmake --build --preset linux-x64-debug --target test_gl_texture test_texture_table
+MURET_CLIENT_REQUIRE_GL=1 xvfb-run -a ctest --preset linux-x64-debug -L '^gl$' --no-tests=error
+```
+
+La limitación de LeakSanitizer/EGL de la auditoría es evidencia pendiente. No trasladar
+`detect_leaks=0` al CI como parte de esta corrección.
+
+## T4 — Trazabilidad de decisiones (Claude y Emanuel)
+
+**Archivos:** crear `docs/adr/README.md` como índice de pendientes; revisar la introducción de
+`docs/superpowers/specs/2026-10-30-cliente-design.md`, y los comentarios de Q-C48 y `FileSink.h`.
+Los ADR individuales se planifican después de comprobar los números reservados.
+
+- [ ] **Paso 1 (Emanuel):** releer la actividad de ADR de la ola 0.3 y confirmar qué cubren los
+  ADR 0001 y 0002 pendientes. No reasignar sus números ni dar por resuelto el ejercicio.
+- [ ] **Paso 2 (tutor):** preparar el índice con columnas de decisión, research, test,
+  responsable y estado: serial/rearmado (Q-C04/Q-C10), JPEG (Q-C33), pacing (Q-C44), log
+  (Q-C48), sesión (Q-C53/Q-C56) y wrap (Q-C73). Enlazar la evidencia existente sin copiarla.
+- [ ] **Paso 3 (Emanuel, `TODO(human)`):** aclarar «fiel» en la introducción del roadmap frente
+  a D-C4. Mantener `Decoupled` salvo una decisión explícita nueva, con su ADR y tests.
+- [ ] **Paso 4 (Emanuel):** resolver por escrito el límite de retención de Q-C48 entre varias
+  instancias. Corregir las garantías de la documentación y qué prueba cada test; si se desea
+  cambiar la política de vaciado, abrir otra mini-spec y PR funcional, separado de T1.
+- [ ] **Paso 5:** revisar los enlaces y abrir el PR documental del índice y las aclaraciones.
+  Cerrar AUD-C04 solo cuando los ADR exigidos existan: el índice de pendientes no los reemplaza.
+- [ ] **Paso 6 (Emanuel, `TODO(human)`):** completar los ADR del inventario, un concepto por
+  PR, con original, decisión de MuRet, motivo y tests. Actualizar el índice con los enlaces y
+  recién entonces registrar el cierre de AUD-C04 en este plan.
+
+Cada ADR posterior registra un concepto y su porqué. Esta tarea no autoriza al tutor a escribir
+la decisión que corresponde a Emanuel ni modifica el research del original para acomodar MuRet.
+
+## Refactors opcionales
+
+Tomarlos por separado, con un beneficio visible al tocar ese límite. No son prerequisitos de T1.
+
+| Unidad | Archivos previstos | Condición de aceptación |
+| --- | --- | --- |
+| R1, ASCII común | Crear `Client/src/Core/Ascii.h/.cpp` y `Client/tests/core/test_ascii.cpp`; cambiar `Config.cpp`, `CommandLine.cpp`, `DataPath.cpp` | Una comparación ASCII compartida; bytes `>= 0x80` intactos. Pasan config, CLI y rutas, incluyendo sus distintas políticas de mayúsculas. |
+| R2, texto de filename | `Client/src/Data/DataPath.cpp` | Reutilizar `Core::PathText(path.filename())`; tests de rutas ASCII y UTF-8 sin cambio. No reemplazar la conversión de entrada por otra que valida distinto. |
+| R3, fases de config | `Client/src/App/Config.cpp` y `Client/tests/app/test_config.cpp` | Separar lectura, precedencia y combinaciones; sin cambiar primer error, rutas relativas ni defaults. Si hace falta otro archivo, elegirlo por responsabilidad en una mini-spec previa. |
+| R4, dato de claves | Crear `Client/src/Network/ConnectionKeys.h`; ajustar `Connection.h` y `App/ConnectionKeyFiles.h` | Consumir las claves sin incluir toda la conexión; mismas firmas y tests. Evaluar al tocar ese código. |
+
+Para cada unidad elegida: fijar el contrato, ejecutar la cobertura existente antes y después,
+agregar un caso nuevo solo si cubre comportamiento no fijado, revisar el diff y abrir su PR.
+No sumar un framework de strings, parser genérico ni otra capa para hacer estas extracciones.
+
+## Verificación y cierre por PR
+
+- [ ] Registrar el test rojo del defecto y el verde con la corrección; conservar regresiones.
+- [ ] Compilar con warnings como errores y probar sin PCH para no ocultar includes faltantes.
+- [ ] Correr las suites afectadas y el CI de Linux/Windows; las limitaciones se escriben.
+- [ ] Ejecutar clang-format 18 sobre lo cambiado y `git diff --check`.
+- [ ] Si cambia lectura de datos o una dependencia, correr los golden con el corpus necesario;
+  los salteos no se cuentan como aprobados.
+- [ ] Revisar como `muret-reviewer`: contrato, corrección/recursos, concurrencia, tests y estilo.
+- [ ] Anotar aquí el PR, commit y resultado, y conservar el informe histórico.
+- [ ] Actualizar aprendizaje solo después de la explicación de Emanuel, con el nivel que
+  demostró (usar, explicar, romper o transferir).
+
+La evidencia ya ejecutada está en el informe. Los comandos y tests de este plan son checks
+**previstos** hasta que cada PR los ejecute. Preparar el plan no inicia la implementación.

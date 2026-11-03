@@ -1,5 +1,9 @@
 # Plan de la ola CL3: Plataforma y bucle de juego
 
+> **Seguimiento del 2026-11-03:** los hallazgos del log de CL3.4 se trabajan en el
+> [plan de la auditoría del cliente](2026-11-03-seguimiento-auditoria-cliente.md), tareas T1 y
+> T2. La evidencia y el registro de decisiones se siguen allí, sin reabrir toda esta ola.
+
 > Plan de ejecución en el formato de superpowers (writing-plans): cada tarea tiene
 > archivos, pasos chicos con checkbox y el comando que verifica el resultado.
 > Roadmap: [`2026-10-30-cliente-design.md`](../specs/2026-10-30-cliente-design.md).

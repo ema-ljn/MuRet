@@ -125,4 +125,37 @@ TEST(ExpectedDeathTest, ErrorOfOneWithNeitherStopsTheProgram)
     ASSERT_FALSE(result.HasValue());
     EXPECT_DEATH(static_cast<void>(result.Error()), "de un Expected que no tiene error");
 }
+
+// Expected<void, E>: lo que solo puede fallar (subir las texturas de una escena, CL5.1). Un
+// Expected construido sin nada es el éxito, así una función hace `return {};`.
+Expected<void, std::string> SucceedsUnless(bool fail)
+{
+    if (fail)
+    {
+        return Unexpected(std::string("falta la textura"));
+    }
+    return {};
+}
+
+TEST(ExpectedVoidTest, NothingIsASuccess)
+{
+    const Expected<void, std::string> result = SucceedsUnless(false);
+
+    EXPECT_TRUE(result.HasValue());
+}
+
+TEST(ExpectedVoidTest, HoldsAnError)
+{
+    const Expected<void, std::string> result = SucceedsUnless(true);
+
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_EQ(result.Error(), "falta la textura");
+}
+
+TEST(ExpectedVoidDeathTest, ErrorOfASuccessStopsTheProgram)
+{
+    const Expected<void, std::string> result = SucceedsUnless(false);
+
+    EXPECT_DEATH(static_cast<void>(result.Error()), "de un Expected que no tiene error");
+}
 } // namespace

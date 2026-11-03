@@ -34,7 +34,7 @@ Los nombres de tests nuevos que aparecen abajo son **propuestos**, no tests ya i
 | T1 | AUD-C01, escritura append entre sinks | Hecha en el #78, con su test rojo y verde | `fix(client): conservar las líneas de otros sinks tras vaciar el log` |
 | T2 | AUD-C02, fallo de escritura observable | Hecha en el #82 | `fix(client): informar los fallos de escritura del log` |
 | T3 | AUD-C03, fallo del driver al subir | Hecha en el #79 | `fix(client): rechazar una subida de textura que falla en GL` |
-| T4 | AUD-C04, registro de decisiones | AUD-C04 cerrado: el índice y las aclaraciones en el #83, y los ADR 0003 a 0008 del inventario, uno por PR. Falta lo de Emanuel, los 0001 y 0002, que no son de la auditoría | `docs(client): ordenar las decisiones de compatibilidad pendientes` |
+| T4 | AUD-C04, registro de decisiones | AUD-C04 cerrado: el índice y las aclaraciones en el #83, y los ADR 0003 a 0008 del inventario, uno por PR, del #87 al #92. Falta lo de Emanuel, los 0001 y 0002, que no son de la auditoría | `docs(client): ordenar las decisiones de compatibilidad pendientes` |
 | R1 a R4 | REF-C01 a REF-C04 | Opcionales, por separado | Un PR por refactor que se decida tomar |
 
 T1 está en el #78, T3 en el #79 y T2 en el #82. T3 entró antes de que la CL5.4 conectara la tabla de

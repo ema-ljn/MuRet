@@ -640,6 +640,47 @@ TEST(ServerSessionTest, AnEmptyListBeforeTheCloseKeepsItsFailure)
     EXPECT_EQ(tested.session.Failure(), SessionFailure::EmptyServerList);
 }
 
+// El F4 05 es la respuesta del CS a un servidor ocupado, con el byte del servidor (el handler del
+// original, 0x4c1bf0, no lo lee). El original vuelve a pedir la lista y la muestra; acá, mientras
+// la elección es automática, la sesión falla como con la lista vacía y cierra el CS (Q-C71).
+TEST(ServerSessionTest, ABusyServerFails)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerAddress());
+    const ByteVector sent = tested.socket.sent;
+
+    tested.socket.reads = {Bytes({0xC1, 0x05, 0xF4, 0x05, 0x00})};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::ServerBusy);
+    EXPECT_EQ(tested.session.GameServer(), std::nullopt);
+    EXPECT_EQ(tested.connection.State(), LinkState::Closed);
+    EXPECT_EQ(tested.socket.closes, 1);
+    EXPECT_EQ(tested.socket.connects.size(), 1u);
+    EXPECT_TRUE(SameBytes(tested.socket.sent, sent));
+    EXPECT_TRUE(tested.Logged(LogLevel::Error, "el servidor elegido está ocupado"));
+
+    // El cierre lo pidió la sesión: no vuelve como un ConnectServerLost.
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::ServerBusy);
+}
+
+// Antes de elegir, un F4 05 no es la respuesta a nada: se ignora con un aviso (Q-C72).
+TEST(ServerSessionTest, ABusyAnswerOutOfTurnIsIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
+
+    tested.socket.reads = {Bytes({0xC1, 0x05, 0xF4, 0x05, 0x00})};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
+    EXPECT_EQ(tested.session.Failure(), std::nullopt);
+    EXPECT_EQ(tested.Warnings(),
+              Lines{"[warning] se ignora el aviso de servidor ocupado (F4 05): llegó fuera de turno"});
+}
+
 // Un F4 03 antes de la lista no es la dirección: se ignora con un aviso, sin conectar a nada.
 TEST(ServerSessionTest, AnUnexpectedPacketIsIgnored)
 {

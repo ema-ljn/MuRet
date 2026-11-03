@@ -45,4 +45,10 @@ TEST(AppPrintersTest, NoReplyShowsItsName)
 {
     EXPECT_EQ(::testing::PrintToString(SessionFailure::NoReply), "NoReply");
 }
+
+// La falla del servidor ocupado, F4 05 (Q-C71).
+TEST(AppPrintersTest, ServerBusyShowsItsName)
+{
+    EXPECT_EQ(::testing::PrintToString(SessionFailure::ServerBusy), "ServerBusy");
+}
 } // namespace

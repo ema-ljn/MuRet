@@ -108,7 +108,10 @@ namespace:
   `Platform/GlLoader.h`), y uno que siempre se incluye por lo que trae, sin nombrarlo, con
   `// IWYU pragma: always_keep` (los `*Printers.h` de los tests, cuyo `PrintTo` busca GoogleTest).
   Los headers que nadie incluye a mano, como los `bits/` de libstdc++, están en el
-  `IgnoreHeaders` de `.clang-tidy`.
+  `IgnoreHeaders` de `.clang-tidy`. Lo que solo declaran ellos, como los literales de `<chrono>`
+  (`1ms`), el check no lo pide: ese include se pone a mano, con `keep` si el archivo no nombra nada
+  más de él. Tampoco ve lo que está adentro de un `#ifdef _WIN32` o `_MSC_VER`, que en Linux no se
+  compila: esos includes se revisan a mano.
 - Comentarios, mensajes y docs en castellano; identificadores y nombres de tests en inglés
   (`Feed`, `TEST(PacketReaderTest, CutsAC1)`).
 - `.editorconfig` fija espacios, LF y UTF-8. `.clang-tidy` es el de MuMain, con las carpetas de

@@ -16,6 +16,7 @@ AUD-C04 se cierra cuando estén todos: este índice no los reemplaza.
 - **Secciones:** Contexto (qué hace el original, con su dirección y su fila: Q-C en el 07 del
   cliente, Q-nn en el 08 del DataServer), Decisión (qué hace MuRet y por qué), Consecuencias (qué se
   gana, qué se pierde, qué test lo fija) y Estado (propuesto, aceptado o reemplazado por otro ADR).
+  El Estado va arriba, como en los de MuMain, con quién lo decidió y cuándo.
 - **Al escribirlo:** sumar su enlace en la tabla, y en esa fila del 07 o del 08.
 
 ## Números reservados

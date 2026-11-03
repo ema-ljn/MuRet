@@ -1,19 +1,21 @@
 # 0006. El log: agrega, se vacía al pasar 1 MiB, va en claro y avisa si deja de escribir
 
-- **Estado:** aceptado (CL3.4, 2026-11-02; los arreglos de AUD-C01 y AUD-C02, 2026-11-03).
+- **Estado:** aceptado. Lo resolvió Claude en el plan de la CL3 (CL3.4, 2026-11-02); los arreglos
+  de AUD-C01 y AUD-C02 salen de la auditoría y de su plan de seguimiento (2026-11-03).
 - **Fila:** Q-C48 del [07 del cliente](../../Client/docs/research/07-quirks-y-bugs.md).
 - **Código:** `Client::Core::FileSink` y `MaxLogFileBytes` (`Client/src/Core/FileSink.h`), detrás
   del `TeeSink` de `main.cpp`, que manda cada línea también a stderr.
 
 ## Contexto
 
-El original escribe `MuError.log` (`0x41f7a0`). Lo abre con `OPEN_ALWAYS`, compartido solo para
-leer, y escribe al final. Antes de abrirlo, `0x41f830` lo recorta: lee hasta `0x1ffff` bytes, y se
-queda con lo que va desde el byte `0x7fff` o, en un archivo más chico, con las cuatro últimas
-sesiones (las marcas `###### Log Begin ######`). Después lo borra y lo reescribe. Cifra cada línea
-con un XOR de 16 bytes. Un segundo cliente abierto a la vez no puede abrirlo para escribir, y se
-queda sin log: el `CreateFileA` no se mira (*inferido*, sin probar). Todo eso está en Q-C48,
-*estático* y verificado con objdump.
+El original escribe `MuError.log` (`0x41f7a0`). Lo abre con `OPEN_ALWAYS` (`0x41f7e8`), compartido
+solo para leer, y se para al final para escribir (`SetFilePointer`, `0x41f802`). Entre las dos
+cosas, `0x41f830` lo recorta: lee hasta `0x1ffff` bytes, y se queda con lo que va desde el byte
+`0x7fff` o, en un archivo más chico, con las cuatro últimas sesiones (las marcas
+`###### Log Begin ######`). Después lo borra y lo reescribe. Lo escribe cifrado con un XOR de 16
+bytes. Eso es *estático*, verificado con objdump
+(Q-C48). Un segundo cliente abierto a la vez no puede abrirlo para escribir, y se queda sin log: el
+`CreateFileA` no se mira. Eso es *inferido*, sin probar.
 
 En MU es normal tener dos clientes abiertos. MuRet loguea más que el original por corrida (el
 arranque, los avisos del bucle, SDL). La
@@ -26,7 +28,8 @@ AUD-C02, una escritura que fallaba después de abrir no avisaba.
 - **Agrega al final**, como el original, en `muret-client.log` (o `[Log] Path`): el log de una
   caída sigue ahí al volver a abrir. Cada línea es una sola escritura con su flush.
 - **Dos clientes escriben los dos.** En modo agregar, cada escritura va al final, y las líneas
-  quedan intercaladas pero enteras. Es una diferencia con el original, que deja al segundo sin log.
+  quedan intercaladas pero enteras. Es una diferencia con el original, que deja al segundo sin log
+  (*inferido*).
 - **Al abrir, si pasa de 1 MiB (`MaxLogFileBytes`), se vacía entero** en lugar de cortar el
   principio. Es más simple, deja varias corridas, y se mira solo al abrir: una corrida no pierde
   lo suyo a la mitad por su propio tope. Después de vaciarlo, el archivo se vuelve a abrir para

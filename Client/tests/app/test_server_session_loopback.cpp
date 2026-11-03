@@ -89,7 +89,8 @@ Lines LinesFrom(const RecordingSink& sink, LogLevel level)
 
 // Del Start a LoggedIn: el CS con el A9, el saludo, la lista del laboratorio que FoxAnti pasa a
 // F4 06, la elección que FoxAnti pasa al código 0 y la dirección del GS falso; el GS con el
-// saludo, el login cifrado con el serial 0 y el resultado. Después, el CS ve que el cliente cortó.
+// saludo, el login cifrado con el serial 0 y el resultado. Después, el GS recibe el primer
+// keepalive, con el serial 1 (CL4.5), y el CS ve que el cliente cortó.
 TEST(ServerSessionLoopbackTest, LogsInAgainstFakeServers)
 {
     // En este orden: lo que tiene un socket muere antes que el NetworkInit.
@@ -137,9 +138,19 @@ TEST(ServerSessionLoopbackTest, LogsInAgainstFakeServers)
         [&]
         {
             servers.Poll();
+            session.Poll();
+            return servers.Keepalives() >= 1 || !servers.Complaints().empty();
+        }))
+        << "el GameServer no vio el primer keepalive";
+    EXPECT_EQ(servers.Keepalives(), 1u);
+    EXPECT_TRUE(RetryUntil(
+        [&]
+        {
+            servers.Poll();
             return servers.ClientLeftTheConnectServer();
         }))
         << "el ConnectServer no vio que el cliente cortó";
+    EXPECT_EQ(servers.Complaints(), Lines{});
     EXPECT_EQ(LinesFrom(sink, LogLevel::Warning), Lines{});
     EXPECT_TRUE(std::ranges::none_of(
         sink.lines, [](const std::string& line)

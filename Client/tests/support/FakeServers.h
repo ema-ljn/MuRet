@@ -20,6 +20,7 @@
 // los bytes del cable del laboratorio y su FoxAnti: el CS manda la lista en la forma del
 // laboratorio y espera la elección ya pasada al código 0, y el GS manda todo cifrado y con el
 // 0xAA en cada byte. El F4 03 da 127.0.0.1 y el puerto del GS falso, no la dirección del cable.
+// Después del login, el GS solo acepta keepalives (CL4.5), y los cuenta.
 //
 // Cada uno contesta solo lo que sigue en el guion. Con algo que no está en el guion, el servidor lo
 // anota en Complaints(), sin un byte, corta al cliente y deja de contestar: la sesión falla
@@ -45,6 +46,8 @@ public:
     // Ese login, descifrado y todavía con su XOR32, para compararlo con WriteLoginRequest con
     // SameBytesWithoutValues; vacío hasta que llega.
     [[nodiscard]] const std::optional<Network::Packet>& Login() const;
+    // Los keepalives que le llegaron al GS después del login, cifrados y en orden.
+    [[nodiscard]] std::size_t Keepalives() const;
     // Si el CS, ya contestada la dirección, vio que el cliente cortó (04: "el cliente corta con el
     // CS").
     [[nodiscard]] bool ClientLeftTheConnectServer() const;
@@ -66,7 +69,7 @@ private:
     {
         WaitingClient,
         WaitingLogin, // el saludo salió
-        LoggedIn,     // el resultado salió
+        LoggedIn,     // el resultado salió: lo que sigue son keepalives
         Stopped,      // algo fuera del guion: cortó al cliente
     };
 
@@ -74,6 +77,7 @@ private:
     void PollGameServer();
     void OnConnectServerPacket(const Network::Packet& packet);
     void OnGameServerPacket(const Network::Packet& packet);
+    void OnKeepalive(const Network::Packet& packet);
 
     // El próximo paquete de `reader`, o std::nullopt si no hay uno entero o si el corte falló.
     [[nodiscard]] std::optional<Network::Packet> NextPacket(Network::PacketReader& reader, bool& failed);
@@ -94,6 +98,7 @@ private:
     ConnectStep m_connectStep = ConnectStep::WaitingClient;
     GameStep m_gameStep = GameStep::WaitingClient;
     std::optional<Network::Packet> m_login;
+    std::size_t m_keepalives = 0;
     std::vector<std::string> m_complaints;
 };
 } // namespace Client::Tests

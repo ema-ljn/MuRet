@@ -5,6 +5,7 @@
 #include "Network/LinkState.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Connection/Hello.h"
+#include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
@@ -14,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <chrono>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -43,6 +45,31 @@ std::string VersionText(const std::array<char, Protocol::VersionSize>& version)
     std::string text(version.begin(), version.end());
     std::ranges::replace_if(text, [](char value) { return value < ' ' || value > '~'; }, '?');
     return text;
+}
+
+// Lo que espera cada estado Waiting*, para el log de ReplyTimeout; vacío en los que no esperan una
+// respuesta.
+std::string_view Awaited(SessionState state)
+{
+    switch (state)
+    {
+    case SessionState::WaitingConnectHello:
+    case SessionState::WaitingGameHello:
+        return "su saludo";
+    case SessionState::WaitingServerList:
+        return "la lista de servidores";
+    case SessionState::WaitingServerAddress:
+        return "la dirección del GameServer";
+    case SessionState::WaitingLoginResult:
+        return "el resultado del login";
+    case SessionState::Idle:
+    case SessionState::ConnectingConnectServer:
+    case SessionState::ConnectingGameServer:
+    case SessionState::LoggedIn:
+    case SessionState::Failed:
+        break;
+    }
+    return {};
 }
 
 // Los errores que se contestan con el F1 03: el checksum malo, como el original, y lo que no mide
@@ -95,15 +122,34 @@ void ServerSession::Start()
     m_failure.reset();
     m_gameServerAddress.reset();
     m_loginResult.reset();
+    m_log.Info("se conecta al ConnectServer");
     Connect(m_settings.connectServer, std::nullopt);
-    m_state = SessionState::ConnectingConnectServer;
+    SetState(SessionState::ConnectingConnectServer);
+}
+
+void ServerSession::Poll()
+{
+    HandleEvents();
+    const Core::Duration now = m_clock.Now();
+    const std::string_view awaited = Awaited(m_state);
+    if (!awaited.empty() && now - m_stateSince >= ReplyTimeout)
+    {
+        m_log.Error("el {} no contestó en {} s: se esperaba {}", ServerName(),
+                    std::chrono::duration_cast<std::chrono::seconds>(ReplyTimeout).count(), awaited);
+        Fail(SessionFailure::NoReply);
+        return;
+    }
+    if (m_keepalive.Due(now))
+    {
+        SendKeepalive(now);
+    }
 }
 
 // Lo que queda del lote después de un Connect o un Fail es de la conexión de antes, y lo que queda
 // después de que un Send de un handler cerró la conexión, de una que ya no está: ese cierre sale en
 // el Poll siguiente (Connection.h). Si la cerró el Poll mismo (el otro lado, un corte perdido), el
 // Closed es lo último del lote y lo que llegó antes se despacha.
-void ServerSession::Poll()
+void ServerSession::HandleEvents()
 {
     const std::uint32_t generation = m_generation;
     const std::vector<Network::Event> events = m_connection.Poll();
@@ -146,6 +192,11 @@ std::optional<std::uint8_t> ServerSession::LoginResult() const
     return m_loginResult;
 }
 
+void ServerSession::SetKeepaliveSpeeds(const KeepaliveSpeeds& speeds)
+{
+    m_speeds = speeds;
+}
+
 // Al CS, lo primero es el A9, como lo manda 0x415be0 apenas la escena de login conecta (Q-C16). El
 // GS saluda primero: al abrirlo no sale nada.
 void ServerSession::OnOpened()
@@ -155,20 +206,19 @@ void ServerSession::OnOpened()
         m_log.Info("conectó con el ConnectServer");
         Protocol::Outgoing request = Protocol::Pet::WritePetInfoRequest(Protocol::Pet::LoginScenePetInfoRequest);
         m_connection.Send(std::move(request.packet), request.delivery);
-        m_state = SessionState::WaitingConnectHello;
+        SetState(SessionState::WaitingConnectHello);
         return;
     }
     m_log.Info("conectó con el GameServer: se espera su saludo");
-    m_state = SessionState::WaitingGameHello;
+    SetState(SessionState::WaitingGameHello);
 }
 
 void ServerSession::OnPacket(const Network::Packet& packet)
 {
-    const bool withConnectServer = WithConnectServer();
-    Protocol::Dispatcher& dispatcher = withConnectServer ? m_connectServer : m_gameServer;
+    Protocol::Dispatcher& dispatcher = WithConnectServer() ? m_connectServer : m_gameServer;
     if (dispatcher.Dispatch(packet) == Protocol::DispatchResult::Malformed)
     {
-        m_log.Warning("se descarta un paquete mal formado del {}", withConnectServer ? "ConnectServer" : "GameServer");
+        m_log.Warning("se descarta un paquete mal formado del {}", ServerName());
     }
 }
 
@@ -186,10 +236,8 @@ void ServerSession::OnUndecryptable(const Network::Undecryptable& undecryptable)
 
 void ServerSession::OnClosed(Network::CloseReason reason)
 {
-    const bool withConnectServer = WithConnectServer();
-    m_log.Error("se perdió la conexión con el {}: {}", withConnectServer ? "ConnectServer" : "GameServer",
-                Network::CloseReasonText(reason));
-    Fail(withConnectServer ? SessionFailure::ConnectServerLost : SessionFailure::GameServerLost);
+    m_log.Error("se perdió la conexión con el {}: {}", ServerName(), Network::CloseReasonText(reason));
+    Fail(WithConnectServer() ? SessionFailure::ConnectServerLost : SessionFailure::GameServerLost);
 }
 
 // 0x4e33e4 pide la lista con cada saludo: en 8 de 64 conexiones sale dos veces (04 § El flujo de
@@ -204,7 +252,7 @@ void ServerSession::OnConnectHello([[maybe_unused]] const Network::Packet& packe
     m_log.Info("el ConnectServer saludó: se pide la lista de servidores");
     Protocol::Outgoing request = Protocol::Connection::WriteServerListRequest();
     m_connection.Send(std::move(request.packet), request.delivery);
-    m_state = SessionState::WaitingServerList;
+    SetState(SessionState::WaitingServerList);
 }
 
 // Pregunta 9 del plan de la CL4: el primero de la lista, en el orden en que llega, hasta que la
@@ -232,7 +280,7 @@ void ServerSession::OnServerList(const Network::Packet& packet)
     m_log.Info("la lista trae {} servidores: se elige el primero", entries.size());
     Protocol::Outgoing choice = Protocol::Connection::WriteServerSelect(entries.front().code);
     m_connection.Send(std::move(choice.packet), choice.delivery);
-    m_state = SessionState::WaitingServerAddress;
+    SetState(SessionState::WaitingServerAddress);
 }
 
 // El original loguea la dirección, cierra el CS (0x4e8380) y conecta al GS (0x4c1340). Acá el log
@@ -253,7 +301,7 @@ void ServerSession::OnServerAddress(const Network::Packet& packet)
     m_log.Info("el ConnectServer dio la dirección del GameServer: se cierra y se conecta a ese");
     m_gameServerAddress = ServerAddress{address.Value().host, address.Value().port};
     Connect(*m_gameServerAddress, m_keys);
-    m_state = SessionState::ConnectingGameServer;
+    SetState(SessionState::ConnectingGameServer);
 }
 
 // 0x4c1e20 muestra "Connectting error" con otro resultado y "Version dismatch" con otra versión,
@@ -306,7 +354,7 @@ void ServerSession::SendLogin()
     m_log.Info("el GameServer saludó: se manda el login");
     Protocol::Outgoing outgoing = std::move(login).Value();
     m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
-    m_state = SessionState::WaitingLoginResult;
+    SetState(SessionState::WaitingLoginResult);
 }
 
 void ServerSession::OnLoginResult(const Network::Packet& packet)
@@ -330,7 +378,23 @@ void ServerSession::OnLoginResult(const Network::Packet& packet)
         return;
     }
     m_log.Info("el GameServer aceptó el login");
-    m_state = SessionState::LoggedIn;
+    SetState(SessionState::LoggedIn);
+    // El primero sale con el login, como el de 0x4ad100, y los siguientes cuentan desde este.
+    const Core::Duration now = m_clock.Now();
+    SendKeepalive(now);
+    m_keepalive.Start(now);
+}
+
+// El tick es el de GetTickCount en el original (0x4bee60), y las velocidades van con su ajuste.
+void ServerSession::SendKeepalive(Core::Duration now)
+{
+    using Protocol::Connection::KeepaliveSpeed;
+    const Protocol::Connection::Keepalive keepalive{TickCountMs(now),
+                                                    KeepaliveSpeed(m_speeds.attackSpeed, m_speeds.characterFlags),
+                                                    KeepaliveSpeed(m_speeds.magicSpeed, m_speeds.characterFlags)};
+    Protocol::Outgoing outgoing = Protocol::Connection::WriteKeepalive(keepalive);
+    m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+    m_log.Info("se mandó el keepalive al GameServer");
 }
 
 // El CS va sin claves y el GS con las suyas: cada Open vuelve los seriales a 0.
@@ -345,7 +409,22 @@ void ServerSession::Fail(SessionFailure failure)
     m_connection.Close();
     ++m_generation;
     m_failure = failure;
-    m_state = SessionState::Failed;
+    SetState(SessionState::Failed);
+}
+
+void ServerSession::SetState(SessionState state)
+{
+    m_state = state;
+    m_stateSince = m_clock.Now();
+    if (state != SessionState::LoggedIn)
+    {
+        m_keepalive.Stop();
+    }
+}
+
+std::string_view ServerSession::ServerName() const
+{
+    return WithConnectServer() ? "ConnectServer" : "GameServer";
 }
 
 bool ServerSession::WithConnectServer() const

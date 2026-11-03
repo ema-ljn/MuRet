@@ -4,19 +4,22 @@
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
 #include "Core/IClock.h"
+#include "Core/IntervalTimer.h"
 #include "Core/Log.h"
 #include "Network/CloseReason.h"
 #include "Network/Connection.h"
 #include "Network/Packet.h"
 #include "Protocol/Dispatcher.h"
 
+#include <chrono>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 
 // La sesión con los servidores del juego: con el ConnectServer, hasta la dirección del GameServer
-// (CL4.3), y con el GameServer, hasta el login (CL4.4).
+// (CL4.3); con el GameServer, hasta el login (CL4.4); y después, el keepalive (CL4.5).
 // Contrato: el plan de la CL4, "Contrato" y el diagrama de estados de la CL4.3, paso 1, y
-// "Contrato" de la CL4.4; 04-protocolo.md, "El flujo de conexión".
+// "Contrato" de la CL4.4 y de la CL4.5; 04-protocolo.md, "El flujo de conexión".
 //
 // La consulta el bucle una vez por frame (Poll). Recorre los eventos de la Connection en orden, y
 // despacha cada paquete en el Dispatcher del servidor con el que habla: el opcode 00 es el saludo
@@ -34,10 +37,16 @@
 //   WaitingGameHello --F1 00 con otro resultado--> Failed (HelloRejected)
 //   WaitingGameHello --F1 00 con otra versión--> Failed (VersionMismatch)
 //   WaitingGameHello --F1 00 con unas credenciales que no entran--> Failed (CredentialsTooLong)
-//   WaitingLoginResult --F1 01 con 1--> LoggedIn
+//   WaitingLoginResult --F1 01 con 1: manda el primer keepalive--> LoggedIn
 //   WaitingLoginResult --F1 01 con otro--> Failed (LoginRejected)
+//   LoggedIn --cada KeepalivePeriod desde el primero: manda el keepalive--> LoggedIn
+//   cualquier Waiting* --ReplyTimeout sin su respuesta: cierra--> Failed (NoReply)
 //   con el CS --Closed--> Failed (ConnectServerLost)
 //   con el GS --Closed--> Failed (GameServerLost)
+//
+// El keepalive corre solo en LoggedIn, también minimizada, y se detiene al salir de ahí: la sesión
+// no se reconecta sola (la escena de login de la CL5.4 muestra el aviso). El original manda desde
+// el arranque si hay conexión al GS, aunque no haya login (pregunta 6 del plan de la CL4).
 //
 // Un C3/C4 del GS con el checksum malo se contesta con el F1 03, en cualquier estado, como el
 // original. Uno que no mide bloques enteros, también: el original lee de más para el último
@@ -50,6 +59,27 @@
 // cierre se despacha, y después el Closed.
 namespace Client::App
 {
+// 04 § El flujo de conexión: el timer 1000 de 20.000 ms del original, y 156 keepalives, uno cada
+// 20 s, en el cable (02 § Una discrepancia entre documentos).
+inline constexpr Core::Duration KeepalivePeriod = std::chrono::seconds{20};
+
+// Lo que espera cada estado Waiting* su respuesta. No sale del original: el research no le vio un
+// tope, y sin uno, un servidor que acepta y no contesta deja la sesión esperando para siempre, sin
+// un error. Los Connecting* tienen el ConnectTimeout de la Connection, y LoggedIn no tiene tope:
+// el GS puede no mandar nada por un rato.
+inline constexpr Core::Duration ReplyTimeout = std::chrono::seconds{30};
+
+// Las velocidades del keepalive: las del personaje antes de su ajuste, y los bits de
+// personaje+0x3C que eligen el ajuste (KeepaliveSpeed, CL2.5). Un struct y no tres argumentos,
+// para que las dos velocidades no se cambien de lugar sin que se note. Sin personaje, 0 y 0, sin
+// ajuste, como el original (CL4.R, paso 6).
+struct KeepaliveSpeeds
+{
+    std::uint16_t attackSpeed = 0;
+    std::uint16_t magicSpeed = 0;
+    std::uint8_t characterFlags = 0;
+};
+
 struct SessionSettings
 {
     ServerAddress connectServer; // de la config o de /u /p (CL3.4)
@@ -74,7 +104,9 @@ public:
     // se olvida (la falla, el GameServer y el resultado del login).
     void Start();
 
-    // Una vez por frame, desde ILoopClient::Poll.
+    // Una vez por frame, desde ILoopClient::Poll: primero lo que llegó, después el tope del
+    // estado y por último el keepalive, si toca. Así lo que llegó durante un frame largo se lee
+    // antes de mirar el tope.
     void Poll();
 
     [[nodiscard]] SessionState State() const;
@@ -89,9 +121,16 @@ public:
     // uno es de la escena de login (CL5.5).
     [[nodiscard]] std::optional<std::uint8_t> LoginResult() const;
 
+    // Las velocidades de los keepalives que siguen. Hasta que se llame, las de un KeepaliveSpeeds
+    // vacío. Valen también después de un Start: son de quien tiene el personaje (CL6).
+    void SetKeepaliveSpeeds(const KeepaliveSpeeds& speeds);
+
 private:
     void RegisterConnectServerHandlers();
     void RegisterGameServerHandlers();
+
+    // Los eventos de la conexión, en orden, hasta que un handler cambie o cierre la conexión.
+    void HandleEvents();
 
     void OnOpened();
     void OnPacket(const Network::Packet& packet);
@@ -105,14 +144,20 @@ private:
     void OnGameHello(const Network::Packet& packet);
     void OnLoginResult(const Network::Packet& packet);
     void SendLogin();
+    // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.
+    void SendKeepalive(Core::Duration now);
 
     // Abre la conexión a `address`, que cierra la que hubiera, con `keys` o sin claves.
     void Connect(const ServerAddress& address, const std::optional<Network::ConnectionKeys>& keys);
     // Cierra la conexión, si no estaba cerrada, y pasa a Failed.
     void Fail(SessionFailure failure);
+    // Pasa a `state` desde ahora, para el tope de los Waiting*; fuera de LoggedIn, sin keepalive.
+    void SetState(SessionState state);
 
     // Si el estado es de los que hablan con el ConnectServer.
     [[nodiscard]] bool WithConnectServer() const;
+    // "ConnectServer" o "GameServer", para el log, según con cuál habla el estado.
+    [[nodiscard]] std::string_view ServerName() const;
 
     Network::Connection& m_connection;
     Core::IClock& m_clock;
@@ -122,10 +167,13 @@ private:
     Protocol::Dispatcher m_connectServer;
     Protocol::Dispatcher m_gameServer;
     SessionState m_state = SessionState::Idle;
+    Core::Duration m_stateSince{}; // desde cuándo está en m_state
     std::optional<SessionFailure> m_failure;
     std::optional<ServerAddress> m_gameServerAddress;
     std::optional<std::uint8_t> m_loginResult;
     // Cambia con cada Connect y cada Fail: Poll deja de recorrer el lote si cambió.
     std::uint32_t m_generation = 0;
+    Core::IntervalTimer m_keepalive{KeepalivePeriod};
+    KeepaliveSpeeds m_speeds;
 };
 } // namespace Client::App

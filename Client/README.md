@@ -45,6 +45,11 @@ pasos de `WinMain` en MuMain: la config antes de `SDL_Init`, el log, la ventana 
 escena de prueba (`Scenes/TestScene`) y el medidor de `--stats` (`App/FrameRateMeter`) tienen su
 archivo y sus tests.
 
+Desde la CL4.5, con un host, `Main` se conecta: la `ServerSession` va del ConnectServer al login
+aceptado en el GameServer y después manda el keepalive cada 20 s, consultada por el bucle en cada
+frame. Todavía no hay escena de login (CL5): la cuenta sale del entorno, se elige el primer
+servidor de la lista, y la ventana sigue con la escena de prueba.
+
 ## Compilar y correr
 
 Hace falta vcpkg (las dependencias, SDL3, libjpeg-turbo y GoogleTest, están en `vcpkg.json` y se
@@ -141,8 +146,38 @@ en este orden:
    (`--data` o `[Data] Path`), sin mirar mayúsculas. Sin carpeta, o si alguna no está o no carga,
    el error nombra las dos y dice qué pasó con cada una. No se versionan (D-C7).
 
-Con las dos, `Main` arranca la red del sistema y sigue como sin host: la sesión que conecta y
-entra al GameServer va en el bucle desde la CL4.5.
+Con las dos, `Main` arranca la red del sistema y la sesión, y el log dice cada paso: "se conecta
+al ConnectServer", "conectó con el ConnectServer", la lista, la dirección del GameServer (sin
+decirla), "el GameServer saludó: se manda el login", "el GameServer aceptó el login" y, desde
+ahí, "se mandó el keepalive al GameServer" cada 20 s. Ni la cuenta ni la clave ni las direcciones
+van al log. Si algo falla, el log dice qué (un servidor que rechaza, otra versión, un login
+rechazado, una conexión que se pierde, o 30 s sin respuesta) y la ventana sigue abierta: la sesión
+no se reconecta sola.
+
+### Contra el servidor del laboratorio (a mano)
+
+CI no tiene la VM del laboratorio, así que el login de punta a punta se prueba a mano (el paso 4
+de la CL4.5, en el
+[plan de la CL4](../docs/superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md)):
+
+1. Levantar la VM del laboratorio con el ConnectServer y el GameServer andando.
+2. Cargar la cuenta y la clave como dice la sección de arriba, con una cuenta del laboratorio.
+3. Correr, con la IP del ConnectServer de la VM y la carpeta `Data` del cliente del laboratorio,
+   que trae `Enc1.dat` y `Dec2.dat`:
+
+   ```bash
+   ./build/linux-x64-debug/Client/Main connect /u<ip del CS> /p44405 --data <Data del laboratorio>
+   ```
+
+4. Mirar el log durante dos minutos: tiene que llegar a "el GameServer aceptó el login" y, desde
+   ahí, mostrar seis o siete "se mandó el keepalive al GameServer", uno cada 20 s, sin "se perdió
+   la conexión con el GameServer". Con `[Server] Obfuscation = foxanti`, que es el valor por
+   defecto: el GameServer del laboratorio usa FoxAnti.
+5. Cerrar la ventana y borrar la clave del entorno (`unset MURET_CLIENT_PASSWORD`).
+
+Si se captura el cable para comparar el login y el keepalive con los de la sesión real del 04
+(P-C05), la captura queda fuera de Git, porque se descifra con las claves reales, y la comparación
+se mira sin imprimir la cuenta. Acá se anota solo el resultado: todavía no se corrió.
 
 ### `muret-client.ini`
 

@@ -21,7 +21,8 @@ namespace Client::Render::Gl
 class GlSpriteRenderer
 {
 public:
-    // El pipeline de GlRenderer: el error trae el log del compilador de GLSL o el uniform que falta.
+    // El pipeline de GlRenderer: el error trae el log del compilador de GLSL o el uniform que
+    // falta.
     [[nodiscard]] static Core::Expected<GlSpriteRenderer, std::string> Create(const Platform::GlFunctions& gl);
 
     // Dibuja `batch` en el framebuffer que esté atado, con el viewport y la matriz de su pantalla.

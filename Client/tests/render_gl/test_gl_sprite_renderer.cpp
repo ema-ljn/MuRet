@@ -62,7 +62,8 @@ constexpr PixelSize Screen{FramebufferSide, FramebufferSide};
 constexpr auto Side = static_cast<float>(FramebufferSide);
 constexpr float Half = Side / 2.0f;
 
-// Una textura RGBA de `width` × `height`, con los téxeles en el orden del buffer: la fila 0 primero.
+// Una textura RGBA de `width` × `height`, con los téxeles en el orden del buffer: la fila 0
+// primero.
 LoadedTexture Rgba(TextureSlot slot, int width, int height, std::vector<std::uint8_t> pixels)
 {
     return {slot.value,

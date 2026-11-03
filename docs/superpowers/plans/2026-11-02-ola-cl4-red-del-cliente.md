@@ -950,7 +950,7 @@ la respuesta que corresponde, y pasar a otro servidor. Va en dos PRs: **PR A**, 
 | Paso | Original | MuRet |
 | --- | --- | --- |
 | conectar | `0x4c1340` con el host y el puerto del CS (el compilado, el del launcher o el de FoxAnti) | `Connection::Open` con el `App::ServerAddress` de `[Server] Host` y `Port`, o de `/u /p` (CL3.4), campo por campo; el `ConnectTimeout` de la pregunta 5 |
-| el `A9` | `C1 06 A9 00 00 01` con XOR32 antes del saludo (`C1 06 A9 20 9C 2F` en el cable); qué es, sin saber (Q-C16) | igual, con el evento `Opened`, con lo que diga la CL4.R: sale antes que el `F4 02` aunque el saludo llegue en el mismo `Poll` |
+| el `A9` | `C1 06 A9 00 00 01` con XOR32 antes del saludo (`C1 06 A9 20 9C 2F` en el cable): el pedido de la información de una mascota (Q-C16, CL4.R) | igual, con el evento `Opened`: `WritePetInfoRequest(LoginScenePetInfoRequest)`, que sale antes que el `F4 02` aunque el saludo llegue en el mismo `Poll` |
 | el saludo | `C1 04 00 01`; con la escena en 2, loguea `Send Request Server List` (`0x4e33e4`) | el handler del `00` en el dispatcher del CS |
 | pedir la lista | `C1 04 F4 02` en claro (`0x4c6070`); en 8 de 64 conexiones sale dos veces | `WriteServerListRequest()` (CL2.5), una vez por saludo |
 | la lista | `C2 00 0A F4 02 01 00 00 00 CC` en el cable; FoxAnti la pasa a `C2 00 0B F4 06 00 01 90 01 00 00` | `AfterCut` de la `Connection`, y `ReadServerList` da `{400, carga 0}` |
@@ -965,15 +965,16 @@ la respuesta que corresponde, y pasar a otro servidor. Va en dos PRs: **PR A**, 
   no ve a Protocol; `Outgoing` lo usa desde ahí); `Client/tests/network/test_connection.cpp`.
   Modificar `Client/src/Protocol/Outgoing.h/.cpp` y quien use `Protocol::Delivery`, PROGRESS y
   este plan.
-- **PR B:** crear `Client/src/App/ServerSession.h/.cpp`, `Client/src/Protocol/Connection/A9.h/.cpp`
-  (`WriteA9`: el nombre es el del opcode hasta que la CL4.R diga qué es),
-  `Client/tests/app/test_server_session.cpp`, `Client/tests/protocol/test_a9.cpp` y
-  `Client/src/App/Credentials.h` (el struct, sacado de la sesión para que la CL4.4 le sume la
-  lectura), y `Client/tests/support/AppPrinters.h` (el `PrintTo` de `Credentials`, que no
-  imprime la clave).
-  Modificar `Protocol/Connection/Opcodes.h` (el `00` del saludo del CS y el `A9`),
-  `App/Config.h/.cpp` y su test (`[Server] Obfuscation`, pregunta 8), `Client/README.md`,
-  PROGRESS y este plan.
+- **PR B:** crear `Client/src/App/ServerSession.h/.cpp`, `Client/src/Protocol/Pet/PetInfo.h/.cpp`
+  (`WritePetInfoRequest`: la CL4.R dijo qué es el `A9`, y el plan lo llamaba `A9.h` y `WriteA9`
+  hasta saberlo), `Client/tests/app/test_server_session.cpp`,
+  `Client/tests/protocol/test_pet_info.cpp`, `Client/src/App/Credentials.h` (el struct, sacado de
+  la sesión para que la CL4.4 le sume la lectura), `Client/src/App/ObfuscationMode.h`, y
+  `Client/tests/support/AppPrinters.h` (el `PrintTo` de `Credentials`, que no imprime la clave)
+  con su test.
+  Modificar `Protocol/Connection/Opcodes.h` (el `00` del saludo del CS; el `A9` va en
+  `PetInfo.h`), `Protocol/Outgoing.h/.cpp` (`Xor32C1`), `App/Config.h/.cpp` y su test
+  (`[Server] Obfuscation`, pregunta 8), `Client/README.md`, PROGRESS y este plan.
 
 **Interfaces:**
 
@@ -1112,10 +1113,28 @@ public:
 } // namespace Client::App
 ```
 
-- [ ] **Paso 1 (Emanuel, `TODO(human)`):** antes de los tests, el diagrama de estados de la
-  `ServerSession` del CS: qué paquete espera cada estado, qué manda al recibirlo, a qué estado
-  pasa, y qué hace con un paquete que no espera (se ignora con un aviso) y con un cierre
-  (`Failed`).
+- [x] **Paso 1 (Emanuel, `TODO(human)`; lo resolvió Claude):** antes de los tests, el diagrama de
+  estados de la `ServerSession` del CS: qué paquete espera cada estado, qué manda al recibirlo, a
+  qué estado pasa, y qué hace con un paquete que no espera (se ignora con un aviso) y con un
+  cierre (`Failed`).
+
+  | Estado | Espera | Al recibirlo manda | Pasa a |
+  | --- | --- | --- | --- |
+  | `Idle` | `Start()` | abre el CS (`Connection::Open`) | `ConnectingConnectServer` |
+  | `ConnectingConnectServer` | el `Opened` | el `A9`, `C1 06 A9 00 00 01` con XOR32 y en claro | `WaitingConnectHello` |
+  | `WaitingConnectHello` | `00`, el saludo | `C1 04 F4 02` | `WaitingServerList` |
+  | `WaitingServerList` | `F4 06`, la lista | `F4 03` con el código del primero | `WaitingServerAddress` |
+  | `WaitingServerList` | `F4 06` sin servidores | nada: cierra el CS | `Failed` (`EmptyServerList`) |
+  | `WaitingServerAddress` | `F4 03`, la dirección | nada: cierra el CS y abre el GS, y deja el resto del lote | `ConnectingGameServer` |
+  | `ConnectingGameServer` | el `Opened` del GS | nada: el GS saluda primero (CL4.4) | sigue en `ConnectingGameServer` |
+
+  Un paquete del CS que su estado no espera (un segundo saludo, una lista o una dirección fuera de
+  turno) se ignora con un aviso que dice cuál es y no manda nada; uno que no se lee (una lista
+  que dice más servidores de los que trae, una dirección sin puerto), también, y el estado espera
+  uno que sirva. Uno que el `Dispatcher` da como `Malformed` se descarta con un aviso de la
+  sesión, y uno sin handler, con el del `Dispatcher`. Un `Closed` con el CS, en cualquiera de sus
+  estados, es `Failed` con `ConnectServerLost`, y con el GS, `GameServerLost`, con el
+  `CloseReasonText` en el log. `Start()` vuelve a empezar desde cualquier estado.
 - [x] **Paso 2 (PR A):** los tests de `Connection`, con `FakeSocket`, `FakeClock` y el
   `RecordingSink` de `Client/tests/support/` (la CL3.4 lo deja ahí), detrás de un `ILogSink`:
   - `ConnectionTest.OpensWhenTheSocketConnects` (`pollsUntilConnected = 2`: `Connecting`,
@@ -1232,7 +1251,7 @@ public:
     `support/ProtocolPrinters.h` a `support/NetworkPrinters.h`, con los de `CloseReason` y
     `LinkState`. `LinkState` va en su `Network/LinkState.h`, como `CloseReason.h`, para que los
     printers no incluyan la `Connection` entera.
-- [ ] **Paso 4 (PR B):** los tests de la sesión, con `FakeSocket` haciendo de CS:
+- [x] **Paso 4 (PR B):** los tests de la sesión, con `FakeSocket` haciendo de CS:
   - `A9Test.WritesTheBytesOfTheWire` (`C1 06 A9 00 00 01` con XOR32 es `C1 06 A9 20 9C 2F`,
     en claro);
   - `ServerSessionTest.SendsTheA9WhenTheConnectServerOpens` (lo primero que sale es
@@ -1257,10 +1276,72 @@ public:
     `ConnectServerLost`);
   - `ConfigTest.ReadsTheObfuscation` (`foxanti`, `none`, por defecto `foxanti`; `xor` es un error
     con su línea).
-- [ ] **Paso 5 (PR B):** `ServerSession` hasta `ConnectingGameServer`, el `A9` y la config.
-- [ ] **Paso 6:** verificar:
+
+  Hechos en el PR B, con lo que cambió al escribirlos:
+  - El `A9` se llama por lo que es: `A9Test` es `PetInfoTest`,
+    `SendsTheA9WhenTheConnectServerOpens` es `SendsThePetInfoRequestWhenTheConnectServerOpens` y
+    `TheA9LeavesBeforeAHelloThatArrivesWithTheConnect` es
+    `ThePetInfoRequestLeavesBeforeAHelloThatArrivesWithTheConnect`. `PetInfoTest` suma
+    `PutsEachFieldAtItsOffset`.
+  - `ReadsTheGameServerAddress` usa una dirección cualquiera (`10.0.0.2`, 55901) y no la IP del
+    laboratorio: el `FakeSocket` no conecta, y la del cable no tiene por qué estar en un test.
+    Mira además que no haya avisos. `WhatFollowsTheAddressIsDropped` sigue hasta el `Opened` del
+    GS, que no manda nada.
+  - Se sumaron, en `ServerSessionTest`: `StartsIdle`, `ChoosesTheFirstOfSeveral` (el primero en el
+    orden en que llega, no el de código más bajo), `WithTheGameServerThe00IsNotTheConnectHello`
+    (con el GS, el `00` va a su dispatcher, que no tiene handlers: el aviso es el del
+    `Dispatcher`), `AnEmptyListBeforeTheCloseKeepsItsFailure`, `ASecondHelloIsIgnored` (el
+    original pide la lista dos veces en 8 de 64 conexiones), `AListOutOfTurnIsIgnored`,
+    `AListThatDoesNotReadIsIgnored`, `AnAddressThatDoesNotReadIsIgnored`,
+    `AMalformedPacketIsLogged`, `AConnectServerThatRefusesFails`, `LosingTheGameServerFails`,
+    `WhatFollowsACloseInAHandlerIsDropped`, `WhatArrivesBeforeTheServerClosesIsHandled` y
+    `StartingAgainStartsClean`; en `ConfigTest`, `ResolveKeepsTheObfuscation` (`/u /p` no la
+    cambia); y `AppPrintersTest.CredentialsShowTheLengthsAndNotTheText`, con la cuenta y la clave
+    sintéticas de `MuClientNetFixtures.h`.
+  - Treinta y tres mutantes a mano de `ServerSession.cpp` (sin cortar el lote por el `Open` o por
+    un cierre en un handler, cortarlo también con un cierre del `Poll`, sin el `A9`, el `Opened`
+    del GS como el del CS, el saludo sin mirar el turno o sin pedir la lista, el último de la
+    lista, una lista vacía que no falla o que sigue el lote, la lista o la dirección sin mirar el
+    turno o sin aviso si no se leen, la dirección sin guardar o con otro puerto, `Fail` sin cerrar,
+    un cierre del GS como del CS, los avisos en otro nivel, siempre el dispatcher del CS, `Start`
+    sin olvidar la falla o el GS, entre otros): los mata algún test.
+  - De la revisión del PR: `Poll` recorre el lote con un `std::visit` que tiene un caso por tipo de
+    `Network::Event`, así el `Undecryptable` de la CL4.4 no compila hasta que la sesión diga qué
+    hace con él (con el `std::get` de antes, compilaba y tiraba `bad_variant_access`).
+    `TheLogDoesNotSayTheAddresses`, y una línea más en `StartingAgainStartsClean`, miran que
+    ninguna línea del log diga el host ni el puerto del CS o del GS: tres mutantes más (la
+    dirección del GS en el aviso del `F4 03`, el host o el puerto del CS en `Start`) mueren.
+    `SessionState` y `SessionFailure` pasaron a `App/SessionState.h`, así `AppPrinters.h` no trae
+    la `Connection`. Los `Reach*` de los tests van dentro de `ASSERT_NO_FATAL_FAILURE`.
+- [x] **Paso 5 (PR B):** `ServerSession` hasta `ConnectingGameServer`, el `A9` y la config. Lo que
+  se decidió al escribirla, y lo que cambió respecto de la interfaz de arriba:
+  - El constructor es `ServerSession(Connection&, Log&, SessionSettings)`: sin el `IClock` ni las
+    `ConnectionKeys`, que suman la CL4.4 (el login lleva el tick y el GS cifra) y la CL4.5 (el
+    keepalive). `SessionState` y `SessionFailure` llegan hasta lo que usa este PR; la CL4.4 suma
+    `WaitingGameHello`, `WaitingLoginResult`, `LoggedIn`, `HelloRejected`, `VersionMismatch` y
+    `LoginRejected`. `SessionSettings` ya trae las `Credentials`, que no se usan hasta el login.
+  - El pedido de la mascota es `Protocol::Pet::WritePetInfoRequest`, en `Protocol/Pet/PetInfo.h`
+    con su opcode (`PetInfoOpcode`) y las constantes de la mascota, el lugar y la casilla;
+    `LoginScenePetInfoRequest` es el del CS, el cuervo oscuro de la mano izquierda, igual en
+    cualquier mapa y con cualquier personaje. Va con el XOR32 y en claro, que no daban ni
+    `ClearC1` ni `EncryptedC1`: `Outgoing` suma `Xor32C1`. No se reproduce nada del anticheat (la
+    bandera `0x2000000` es de la UI, y el `A9` del juego es de la CL8).
+  - Hay dos `Dispatcher`, el del CS con el `00`, el `F4 06` y el `F4 03`, y el del GS, vacío hasta
+    la CL4.4; el estado elige cuál. Para dejar el resto del lote, la sesión lleva un contador que
+    cambia con cada `Open` y cada `Fail`, y mira también si un `Send` de un handler cerró la
+    conexión (la revisión del PR A sumó eso al comentario de `Connection::Poll`). Si la cerró el
+    `Poll` mismo, el `Closed` es lo último del lote y lo de antes se despacha: si no, la sesión no
+    vería nunca ese `Closed`.
+  - Los avisos dicen qué paquete se ignora y por qué, sin sus bytes; el log no dice la dirección
+    del GS (el original la loguea), como no dice el host de la config. Perder la conexión y la
+    lista vacía van en `error`.
+  - `[Server] Obfuscation` es `ClientConfig::obfuscation`, un `ObfuscationMode` en su propio header
+    como `PacingMode`, y no arma `config.server`. Elegir la `IObfuscation` según el modo es de quien
+    arme la red en `main.cpp`, igual que el `NetworkInit`: en este PR `Main` no conecta.
+- [x] **Paso 6:** verificar:
   ```bash
-  cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "Connection|A9|ServerSession|Config"
+  cmake --build --preset linux-x64-debug &&
+    ctest --preset linux-x64-debug -R "Connection|PetInfo|ServerSession|Config|AppPrinters"
   ```
 
 ## Sub-ola CL4.4: GameServer: saludo, versión y login
@@ -1398,6 +1479,11 @@ por frame y por reloj"):
 | las velocidades | los WORD de `personaje+0x4C` y `+0x58` con su ajuste (CL2.5) | `SetKeepaliveSpeeds(attack, magic, flags)`; hasta que haya personaje (CL6), 0 y 0, sin ajuste (CL4.R, paso 6) |
 | el tick | `GetTickCount` | `App::TickCountMs(now)` (CL3.2), que da la vuelta como un `DWORD` |
 | el cierre del otro lado | `FD_CLOSE`: un mensaje, el log, `0x4e8380` y el objeto de `0x65ee60`; en la escena 5, el socket en -1 cada frame | `Failed` con `GameServerLost` y el `CloseReason` en el log; el keepalive se detiene; no se reconecta solo (la CL5.4 muestra el aviso) |
+
+Nada le pone tope todavía a los estados `Waiting*` de la sesión (de la revisión de la CL4.3, PR
+B): un CS que acepta y nunca saluda deja la sesión en `WaitingConnectHello` para siempre, sin
+`Failed`, porque el `ConnectTimeout` es solo del connect. Esta sub-ola decide si la sesión suma un
+tope por reloj, con el `IClock` que ya trae para el keepalive.
 
 **Archivos:** crear `Client/src/Core/IntervalTimer.h/.cpp` y
 `Client/tests/core/test_interval_timer.cpp`. Modificar `Client/src/App/ServerSession.h/.cpp` y

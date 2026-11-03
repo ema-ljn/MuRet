@@ -26,6 +26,10 @@ struct Outgoing
 // En claro, sin el XOR32, como los F4 que van al ConnectServer.
 [[nodiscard]] Outgoing ClearC1(const Network::PacketWriter& writer);
 
+// Con el XOR32 y en claro, como el pedido de la información de una mascota (A9) que va al
+// ConnectServer.
+[[nodiscard]] Outgoing Xor32C1(const Network::PacketWriter& writer);
+
 // Con el XOR32 y para cifrar como C3, como el login y el keepalive.
 [[nodiscard]] Outgoing EncryptedC1(const Network::PacketWriter& writer);
 } // namespace Client::Protocol

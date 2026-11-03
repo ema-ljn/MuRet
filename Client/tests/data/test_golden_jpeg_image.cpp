@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <iomanip>
+#include <ios>
 #include <limits>
 #include <optional>
 #include <span>

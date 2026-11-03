@@ -1,5 +1,7 @@
 #include "Render/ScreenScale.h"
 
+#include "App/WindowState.h"
+
 #include <bit>
 #include <cstdint>
 

@@ -1,6 +1,10 @@
 #include "Scenes/TestScene.h"
 
+#include "Input/InputState.h"
+
 #include <cmath>
+#include <cstdint>
+#include <functional>
 #include <utility>
 
 namespace Client::Scenes

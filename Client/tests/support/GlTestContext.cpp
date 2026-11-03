@@ -1,12 +1,20 @@
 #include "support/GlTestContext.h"
 
 #include "Core/Environment.h"
+#include "Core/Expected.h"
+#include "Data/Textures/Texture.h"
+#include "Platform/GlLoader.h"
+#include "Platform/SdlContext.h"
 
 #include <SDL3/SDL_error.h>
+#include <SDL3/SDL_video.h>
+
+#include <gtest/gtest.h>
 
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>

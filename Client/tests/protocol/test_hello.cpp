@@ -1,6 +1,5 @@
 #include "Protocol/Connection/Hello.h"
 
-#include "Network/Packet.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/ProtocolError.h"
 

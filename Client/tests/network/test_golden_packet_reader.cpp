@@ -19,6 +19,7 @@
 #include <ostream>
 #include <span>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // El PacketReader contra el cable del laboratorio (support/WireCapture.h, MURET_CLIENT_WIRE_DIR):

@@ -1,5 +1,15 @@
 #include "Network/SystemSocket.h"
 
+#include "Core/Expected.h"
+#include "Network/IResolver.h"
+#include "Network/ISocket.h"
+#include "Network/SocketApi.h"
+#include "Network/SocketError.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <span>
+#include <string_view>
 #include <utility>
 
 namespace Client::Network

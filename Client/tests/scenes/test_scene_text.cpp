@@ -2,6 +2,7 @@
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
@@ -15,6 +16,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 // Client::Scenes::SceneText: el texto de las escenas en main.cpp, con las fuentes del ancho de la

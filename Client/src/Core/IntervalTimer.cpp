@@ -1,5 +1,7 @@
 #include "Core/IntervalTimer.h"
 
+#include "Core/IClock.h"
+
 #include <cassert>
 
 namespace Client::Core

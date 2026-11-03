@@ -1,8 +1,14 @@
 #include "Render/Gl/GlFramebuffer.h"
 
+#include "App/WindowState.h"
+#include "Core/Expected.h"
+#include "Platform/GlLoader.h"
+#include "Render/Gl/GlName.h"
+
 #include <cstddef>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace Client::Render::Gl
 {

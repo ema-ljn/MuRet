@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 
 #include <SDL3/SDL_log.h>

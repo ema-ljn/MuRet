@@ -4,11 +4,13 @@
 
 // SDL_opengl.h incluye <windows.h> (y sus macros near, far, ERROR) solo si APIENTRY no está
 // definido. Se define con el valor de windows.h y se saca después: GL lo usa solo al declarar.
+// Por eso los tipos y las constantes de GL se toman de este header, que los reexporta, y ningún
+// otro archivo incluye SDL_opengl.h.
 #if defined(_WIN32) && !defined(APIENTRY)
 #define APIENTRY __stdcall
 #define MURET_GL_LOADER_DEFINED_APIENTRY
 #endif
-#include <SDL3/SDL_opengl.h>
+#include <SDL3/SDL_opengl.h> // IWYU pragma: export
 #ifdef MURET_GL_LOADER_DEFINED_APIENTRY
 #undef APIENTRY
 #undef APIENTRYP

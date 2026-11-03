@@ -1,5 +1,7 @@
 #include "support/FakeSocket.h"
 
+#include "Network/ISocket.h"
+#include "Network/SocketError.h"
 #include "support/Bytes.h"
 #include "support/ExpectedError.h"
 #include "support/NetworkPrinters.h"
@@ -9,6 +11,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <span>
 

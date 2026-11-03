@@ -9,7 +9,6 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <cstdint>
 #include <optional>
 #include <span>
 #include <string_view>

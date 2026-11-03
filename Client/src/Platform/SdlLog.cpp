@@ -1,10 +1,17 @@
 #include "Platform/SdlLog.h"
 
+#include "Core/ILogSink.h"
+#include "Core/Log.h"
+
+#include <SDL3/SDL_log.h>
+#include <SDL3/SDL_stdinc.h>
+
 #include <atomic>
 #include <cassert>
 #include <cstdio>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace Client::Platform
 {

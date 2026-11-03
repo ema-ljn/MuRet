@@ -1,6 +1,7 @@
 #include "App/FixedStep.h"
 
 #include "App/LoopTiming.h"
+#include "Core/IClock.h"
 
 #include <algorithm>
 #include <cmath>

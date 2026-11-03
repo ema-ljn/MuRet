@@ -1,12 +1,21 @@
 #include "Scenes/LoadingScene.h"
 
+#include "App/WindowState.h"
+#include "Core/Expected.h"
+#include "Input/InputState.h"
 #include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
+#include "Scenes/SceneCanvas.h"
+#include "Scenes/SceneContext.h"
+#include "Scenes/SceneId.h"
+#include "Scenes/SceneTextures.h"
 #include "Scenes/TextureSets.h"
 
 #include <array>
 #include <cstdint>
+#include <optional>
+#include <string>
 
 namespace Client::Scenes
 {

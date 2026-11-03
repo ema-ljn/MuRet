@@ -1,6 +1,7 @@
 #include "Scenes/TextCacheDrawer.h"
 
 #include "App/WindowState.h"
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
@@ -13,7 +14,6 @@
 
 #include <gtest/gtest.h>
 
-#include <cstddef>
 #include <string>
 
 // Client::Scenes::TextCacheDrawer: el ITextDrawer de las escenas sobre el TextCache de la CL5.3.

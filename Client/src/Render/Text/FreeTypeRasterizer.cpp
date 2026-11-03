@@ -1,24 +1,34 @@
 #include "Render/Text/FreeTypeRasterizer.h"
 
+#include "Core/Expected.h"
 #include "Core/PathText.h"
 #include "Render/Text/FontSet.h"
+#include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Text/TextBox.h"
 
-#include <ft2build.h>
+// Define las macros FT_*_H de abajo: include-cleaner no ve ese uso.
+#include <ft2build.h> // IWYU pragma: keep
 
 #include FT_FREETYPE_H
 #include FT_DRIVER_H
+#include FT_IMAGE_H
 #include FT_MODULE_H
 #include FT_OUTLINE_H
 #include FT_TRUETYPE_TABLES_H
+#include FT_TYPES_H
 
 #include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <format>
 #include <fstream>
 #include <ios>
 #include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 #include <vector>

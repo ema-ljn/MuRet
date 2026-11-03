@@ -6,6 +6,7 @@
 #include "Core/Log.h"
 #include "Data/Textures/Texture.h"
 #include "Data/Textures/TextureSet.h"
+#include "Platform/GlLoader.h"
 #include "Render/Gl/GlFramebuffer.h"
 #include "Render/Gl/TextureTable.h"
 #include "Render/OriginalQuad.h"

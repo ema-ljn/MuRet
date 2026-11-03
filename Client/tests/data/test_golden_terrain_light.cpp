@@ -1,5 +1,7 @@
 #include "Data/Terrain/TerrainLight.h"
 
+#include "Core/Ascii.h"
+#include "Core/Expected.h"
 #include "Data/DataError.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
@@ -20,11 +22,11 @@
 // original (Client/tests/support/GoldenDir.h).
 namespace
 {
+using Client::Core::EqualsIgnoringAsciiCase;
 using Client::Data::DataError;
 using Client::Data::Terrain::LoadTerrainLight;
 using Client::Data::Terrain::TerrainLight;
 using Client::Tests::DeviasCapture;
-using Client::Tests::EqualsIgnoringAsciiCase;
 using Client::Tests::HasExtension;
 using Client::Tests::LorenciaCapture;
 using Client::Tests::MemoryCapture;

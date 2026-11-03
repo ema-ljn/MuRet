@@ -1,5 +1,11 @@
 #include "Data/Tables/GateTable.h"
 
+#include "Core/Expected.h"
+#include "Data/DataError.h"
+
+#include <cstddef>
+#include <span>
+
 namespace Client::Data::Tables
 {
 Core::Expected<GateTable, DataError> LoadGateTable(std::span<const std::byte> file)

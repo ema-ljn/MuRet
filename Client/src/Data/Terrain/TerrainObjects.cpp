@@ -1,10 +1,16 @@
 #include "Data/Terrain/TerrainObjects.h"
 
 #include "Core/ByteReader.h"
+#include "Core/Expected.h"
+#include "Data/DataError.h"
 #include "Data/Terrain/K16.h"
 
 #include <bit>
+#include <cstddef>
+#include <cstdint>
 #include <optional>
+#include <span>
+#include <vector>
 
 namespace Client::Data::Terrain
 {

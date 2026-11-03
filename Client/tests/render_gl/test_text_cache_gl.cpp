@@ -4,6 +4,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Platform/GlLoader.h"
 #include "Render/Gl/GlFramebuffer.h"
 #include "Render/Gl/GlSpriteRenderer.h"
 #include "Render/Gl/GlTexture.h"

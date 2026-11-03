@@ -4,6 +4,8 @@
 
 #include <filesystem>
 #include <fstream>
+#include <ios>
+#include <optional>
 #include <random>
 #include <string>
 #include <vector>

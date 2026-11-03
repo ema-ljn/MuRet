@@ -1,6 +1,10 @@
 #include "App/FaithfulPacer.h"
 
+#include "App/LoopTiming.h"
+#include "Core/IClock.h"
+
 #include <chrono>
+#include <cstdint>
 #include <ratio>
 
 namespace Client::App

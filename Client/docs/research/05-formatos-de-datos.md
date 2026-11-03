@@ -79,6 +79,38 @@ del servidor. En el `Data\` del laboratorio, los 20 mundos tienen un `.map` de `
 bytes y un `.att` de `0x10004` o `0x20004` con su propio número en la cabecera, y los tres `.att`
 con otro nombre son de `0x20004`.
 
+**La carpeta de cada mapa** (CL5.R, con los `cmp` del desensamblado de `0x61a560`; *estático*).
+Antes de elegir la carpeta, si el argumento y `DAT_006c9dd0` valen 32, el mapa pasa a 9
+(`0x61a56c`..`0x61a57d`): carga `World10` y el juego queda en el mapa 9 (Q-C58). Los cinco que
+llaman a `0x61a560` escriben `DAT_006c9dd0` con el mismo número justo antes, así que el 32 da
+siempre eso. Las comparaciones son con signo. Los mapas que llegan:
+
+- tres handlers leen un byte del paquete, sin signo (de 0 a 255, `xor eax, eax` y `mov al`), y
+  ninguno mira el rango: el `F3 03` (`0x4c41cb`, `pkt[6]`, siempre), el `F3 04` (`0x4c4e94`,
+  `pkt[6]`, si cambió) y el `1C` (`0x4c77ff`, `pkt[4]`, si cambió);
+- el 54, de la primera entrada a la selección (`0x633f20`), y el 55, del login (`0x6349a0`).
+
+| Mapa | Carpeta | En el `Data\` del laboratorio |
+| --- | --- | --- |
+| 0 a 10 | `World1` a `World11`, el mapa + 1 | sí; `World6` (el 5) sin alturas, luz ni tiles |
+| 11 a 17 | `World12` | sí |
+| 18 a 23 | `World19` | sí |
+| 24 a 29 y 36 | `World25` | sí |
+| 30 | `World31`, con su `.att` y su luz según el estado (arriba) | sí |
+| 31 | `World32` | sí |
+| 32 | `World10`, y el mapa pasa a 9 | sí |
+| 33 | `World34` | sí |
+| 34 | `World35`, con su `.att` y su luz según el estado | sí |
+| 35 | `World36` | **no** |
+| 54 | `World55` (la selección) | sí |
+| 55 | `World56` (el login) | sí |
+| 37 a 53 y 56 a 255 | el mapa + 1 | no: ningún handler los descarta, y el original pide la carpeta igual |
+
+Los 20 mundos del laboratorio son la carpeta de algún mapa (`World10`, la del 9 y la del 32), y
+nadie pide `World33`. Antes de la carpeta, `0x616ec0` fuerza el mapa 7 si `DAT_07d366bc` está
+prendida (`0x616ee1`), pero esa bandera está en la `.bss` y tiene 9 lecturas y ninguna escritura:
+es código muerto, y queda siempre en 0.
+
 **El `.obj`** (CL1.3): K16 de punta a punta, sin XOR3. Cabecera de 4 bytes (uno que no se lee, el
 mundo y la cantidad de objetos, un int16 con signo) y un objeto cada 30 bytes: tipo (int16),
 posición, ángulo y escala (7 floats). Si la cantidad es cero o negativa no hay objetos, y no se mira
@@ -287,6 +319,7 @@ por el protocolo (`divergencias-cliente-servidor.md`).
 | `MessageBox` + `WM_DESTROY` si falta un archivo | error explícito al que llama (un `Expected` propio, porque `std::expected` es de C++23), sin UI en la capa de datos | CL1 |
 | libjpeg 6b estática | libjpeg-turbo de vcpkg, con la API de la 6b y sus parámetros por defecto: da los mismos bytes que la 6b en los 2.380 JPEG del laboratorio, y lo que difiere fuera de ellos queda en Q-C33 (pregunta 1 del roadmap, decidida el 2026-11-01) | CL1 |
 | Rarezas de datos (checksum anulado de `Item.bmd`, alturas desde BMP + 1080, registro 7 de `Text.bmd` sin NUL, OZJ que son TGA) | **se reproducen**: son parte de cómo se leen los archivos reales (ver [07](07-quirks-y-bugs.md)) | CL1 |
+| La carpeta de un mapa sale de `0x61a560`, con tres rangos de evento, el 32 que usa la del 9, y sin mirar el rango | `Data::WorldFolderNumber(map)` y `WorldFolder(map)` para cualquier mapa de 0 a 255, con la tabla de arriba; un mapa sin carpeta en el `Data\` es un error que la nombra | CL5, CL7 |
 | Esqueleto (`Player.bmd`) y partes del equipo en archivos separados | `Data::Model` lee los dos con el mismo parser; la pose se calcula con el esqueleto y cada parte se dibuja con esa pose | CL6 |
 | Los assets son del juego | MuRet **no** versiona ningún asset; los tests golden reciben la ruta por `MURET_CLIENT_GOLDEN_DIR` y se saltean si no está | CL1 |
 
@@ -298,3 +331,5 @@ Tests que fija:
 - Por cada formato, recorrer **todos** los archivos de `assets/original-data/` y comparar con
   `assets/decoded/` y con los conteos de `assets_manifest.csv` (CL1; los modelos en CL6).
 - XOR3, K16 y checksum con vectores literales chicos escritos a mano (CL1).
+- La carpeta de cada mapa de la tabla, y que los 20 mundos del laboratorio son la de alguno
+  (`WorldFolderTest`, `GoldenWorldFolder`, CL5.4).

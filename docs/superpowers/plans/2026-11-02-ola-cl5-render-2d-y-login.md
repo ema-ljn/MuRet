@@ -199,7 +199,8 @@ research, *estático* es lo leído en el binario; *verificado*, lo que mostraron
    `gluPerspective` que da su manual), el clip de −1 a 1 por defecto (sin
    `GLM_FORCE_DEPTH_ZERO_TO_ONE`) y `glm::quat`. *Recomendación:* glm, sin macros `GLM_FORCE_*`, y
    `glm::value_ptr` para `glUniformMatrix4fv`. La CL5.0 prueba que `glm::ortho` da la matriz de
-   `gluOrtho2D`; la CL6 mira si `glm::slerp` da lo mismo que `0x5fcd20` antes de usarlo.
+   `gluOrtho2D`; la CL6 mira si `glm::slerp` da lo mismo que el slerp del original, `0x5fce90`,
+   antes de usarlo (antes decía `0x5fcd20`, que es `AngleQuaternion`: CL6.0 y CL6.R).
 7. **El rasterizado del texto (§10, D-C12).** El original usa GDI sin suavizado: glifos de un bit
    con el hinting de TrueType de Windows. Se miraron con Context7:
    - **FreeType** 2.14.3 (`/freetype/freetype`, puerto `freetype` de vcpkg, licencia FTL o

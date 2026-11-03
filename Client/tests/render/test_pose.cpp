@@ -9,6 +9,7 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
+#include <bit>
 #include <cmath>
 #include <numbers>
 #include <vector>
@@ -149,6 +150,24 @@ TEST(PoseTest, TheHeadSubtractsXAndZ)
     }
     // Los otros huesos no giran con la cabeza.
     ExpectNear(VectorRotate({1, 0, 0}, bones[0]), {1, 0, 0});
+}
+
+// La cabeza pasa sus grados a radianes con el float de 0x6ba140 (0x3c8efa36), un ulp más que el más
+// cercano a π/180, que es el de la raíz (0x6ba360). Con 3.600° la diferencia se ve.
+TEST(PoseTest, TheHeadUsesTheDegreeFloatOfTheOriginal)
+{
+    Skeleton skeleton = SampleSkeleton();
+    skeleton.headBone = 1;
+    constexpr float HeadDegreesToRadians = std::bit_cast<float>(0x3c8efa36u);
+
+    const std::vector<BoneTransform> bones = Pose(skeleton, AnimationState{}, {}, {3600.0f, 0.0f});
+
+    const BoneTransform expected =
+        QuaternionMatrix(AngleQuaternion({0.0f - 3600.0f * HeadDegreesToRadians, 0.0f, 0.0f}));
+    for (int column = 0; column < 3; ++column)
+    {
+        EXPECT_EQ(bones[1][column], expected[column]) << "columna " << column;
+    }
 }
 
 // Con lock_positions, el hueso 0 toma x e y de la key 0 de la acción de ahora, y su z es la

@@ -1217,7 +1217,8 @@ enum class ShinePass : std::uint8_t { Shiny /*0x8*/, Chrome /*0x4*/, Chrome4 /*0
   - De `0x4eb860` (pseudo-C de Ghidra y desensamblado): la key de ahora es el frame truncado, la
     anterior la que guardó el avance, y una acción o una key de más es la 0; la parte fraccionaria
     sale del frame antes de cortarlo (`PoseTest.AFrameOutOfRangeKeepsItsFraction`); con dos keys
-    iguales a 0,001 copia la anterior.
+    iguales a 0,001 copia la anterior. El π/180 de la cabeza (`0x6ba140`) es `0x3c8efa36`, un ulp más
+    que el de la raíz (`0x6ba360`): `PoseTest.TheHeadUsesTheDegreeFloatOfTheOriginal`.
   - `ThePlayerHeadIsBoneTwenty` va con `MakePlayerSkeleton`, en el PR B.
   - **El golden busca el frame.** Con los frames del 06 la selección daba 0,020 y el guardia 0,033;
     buscando cada frame a ±0,03 keys del de la tabla, de a 0,0005, los diez caen a 0,0014 o menos,

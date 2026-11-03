@@ -7,6 +7,7 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -17,8 +18,9 @@ namespace Client::Render::Models
 {
 namespace
 {
-// El float de 0x6ba140: π/180, redondeado una vez (los bits 0x3c8efa35).
-constexpr float DegreesToRadians = 0.017453292f;
+// El float de 0x6ba140, con el que la cabeza pasa sus grados a radianes: los bits 0x3c8efa36, un ulp
+// más que el float más cercano a π/180 (0x3c8efa35, el de 0x6ba360, que usa AngleMatrix).
+constexpr float HeadDegreesToRadians = std::bit_cast<float>(0x3c8efa36u);
 
 // Las dos keys entre las que interpola cada hueso, y cuánto.
 struct Keys
@@ -82,8 +84,8 @@ glm::quat KeyRotation(const BoneKey& key, bool isHead, const glm::vec2& headAngl
         return key.rotation;
     }
     glm::vec3 angles = key.angles;
-    angles.x -= headAngles.x * DegreesToRadians;
-    angles.z -= headAngles.y * DegreesToRadians;
+    angles.x -= headAngles.x * HeadDegreesToRadians;
+    angles.z -= headAngles.y * HeadDegreesToRadians;
     return AngleQuaternion(angles);
 }
 } // namespace

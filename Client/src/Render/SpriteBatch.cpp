@@ -1,11 +1,16 @@
 #include "Render/SpriteBatch.h"
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
 
 namespace Client::Render
 {
 namespace
 {
+// El fan (0, 1, 2, 3) de un quad son los triángulos (0, 1, 2) y (0, 2, 3): seis vértices por quad.
+constexpr std::array<std::size_t, 6> FanTriangles{0, 1, 2, 0, 2, 3};
+
 // Un canal como lo usa la función fija: recortado a [0, 1].
 float Clamped(float channel)
 {
@@ -113,8 +118,7 @@ void SpriteBatch::Append(const QuadCorners& corners, const std::array<Color, 4>&
     // Con GL_TEXTURE_2D apagado, la textura atada no se usa (Q-C75).
     const std::optional<TextureSlot> used = m_textureOn ? texture : std::nullopt;
     const std::size_t first = m_vertices.size();
-    // El fan (0, 1, 2, 3) son los triángulos (0, 1, 2) y (0, 2, 3).
-    for (const std::size_t corner : {0u, 1u, 2u, 0u, 2u, 3u})
+    for (const std::size_t corner : FanTriangles)
     {
         const QuadCorner& from = corners[corner];
         m_vertices.push_back(SpriteVertex{from.x, from.y, from.u, from.v, colors[corner]});
@@ -124,10 +128,13 @@ void SpriteBatch::Append(const QuadCorners& corners, const std::array<Color, 4>&
                            m_commands.back().blend == m_blend && m_commands.back().alphaTest == m_alphaTest;
     if (continues)
     {
-        m_commands.back().vertexCount += 6;
+        m_commands.back().vertexCount += FanTriangles.size();
         return;
     }
-    m_commands.push_back(DrawCommand{
-        .texture = used, .blend = m_blend, .alphaTest = m_alphaTest, .firstVertex = first, .vertexCount = 6});
+    m_commands.push_back(DrawCommand{.texture = used,
+                                     .blend = m_blend,
+                                     .alphaTest = m_alphaTest,
+                                     .firstVertex = first,
+                                     .vertexCount = FanTriangles.size()});
 }
 } // namespace Client::Render

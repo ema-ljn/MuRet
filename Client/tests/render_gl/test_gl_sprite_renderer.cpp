@@ -152,6 +152,20 @@ TEST_F(GlSpriteRendererTest, TheFirstRowIsAtTheTop)
     EXPECT_EQ(Cells(2, 2), (std::vector<std::optional<Rgba8>>{Red, Green, Blue, White}));
 }
 
+// El viewport y la matriz son los de la pantalla del lote, W × H y no H × W: con una de 64 × 32, el
+// quad de 640 × 480 escalado llena la mitad de abajo del framebuffer, como el viewport (0, 0, W, H)
+// y gluOrtho2D(0, W, 0, H) de 0x6219b0. Con una pantalla cuadrada no se vería si se cambian.
+TEST_F(GlSpriteRendererTest, TheScreenIsWidthByHeight)
+{
+    m_batch.Begin(PixelSize{FramebufferSide, FramebufferSide / 2});
+    m_batch.Quad(
+        OriginalQuad{.slot = WhiteSlot, .width = 640, .height = 480, .scaleSize = true, .scalePosition = true});
+
+    DrawBatch();
+
+    EXPECT_EQ(Cells(2, 2), (std::vector<std::optional<Rgba8>>{Transparent, Transparent, White, White}));
+}
+
 // La aditiva de 0x620a90 suma (GL_ONE, GL_ONE) sin mirar el alfa: el verde con 0,6 sobre el rojo
 // da amarillo entero. La normal de 0x620a00 mezcla por el alfa (GL_SRC_ALPHA,
 // GL_ONE_MINUS_SRC_ALPHA): el azul con 0,6 sobre el rojo da (0,4 · 255, 0, 0,6 · 255), y el alfa,

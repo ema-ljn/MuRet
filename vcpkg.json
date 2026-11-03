@@ -5,6 +5,7 @@
   "description": "Servidores y cliente de MU Online 1.02 reescritos en C++20",
   "builtin-baseline": "9a5dfef5d1a0438a7d24856a85bd60f309d355e9",
   "dependencies": [
+    "glm",
     "gtest",
     "libjpeg-turbo",
     {

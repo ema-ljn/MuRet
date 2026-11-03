@@ -75,6 +75,33 @@ if(WIN32)
 endif()
 muret_set_warnings(MuRetLabsCl40)
 
+# La CL5.0 (docs/learning/ola-cl5.0-el-pipeline-grafico.md): el quad de 0x621b60, la matriz de
+# gluOrtho2D escrita a mano y el fan pasado a triángulos. Sin GL: corre en los dos sistemas.
+add_library(MuRetLabsCl50 STATIC
+    cl5.0-pipeline/Fan.cpp
+    cl5.0-pipeline/OriginalQuad.cpp
+    cl5.0-pipeline/Ortho.cpp
+)
+target_include_directories(MuRetLabsCl50 PUBLIC cl5.0-pipeline)
+target_compile_features(MuRetLabsCl50 PUBLIC cxx_std_20)
+muret_set_warnings(MuRetLabsCl50)
+
+# Lo de la CL5.0 que habla con OpenGL (cl5.0-pipeline/gl/): la ventana escondida con el contexto
+# 3.3 core, la tabla de funciones del lab, los nombres de GL con RAII, el framebuffer y el quad
+# dibujado. Enlaza ClientPlatform por lo que ya tiene el cliente: SdlContext, los deleters de la
+# ventana y del contexto, la tabla de la CL0.3 y los chequeos de la versión y del perfil.
+add_library(MuRetLabsCl50Gl STATIC
+    cl5.0-pipeline/gl/GlName.cpp
+    cl5.0-pipeline/gl/HiddenGlWindow.cpp
+    cl5.0-pipeline/gl/LabFramebuffer.cpp
+    cl5.0-pipeline/gl/LabGl.cpp
+    cl5.0-pipeline/gl/LabQuadRenderer.cpp
+    cl5.0-pipeline/gl/LabTexture.cpp
+)
+target_include_directories(MuRetLabsCl50Gl PUBLIC cl5.0-pipeline/gl)
+target_link_libraries(MuRetLabsCl50Gl PUBLIC MuRetLabsCl50 ClientPlatform)
+muret_set_warnings(MuRetLabsCl50Gl)
+
 if(MURET_BUILD_TESTS)
     find_package(GTest CONFIG REQUIRED)
     include(GoogleTest)
@@ -114,4 +141,34 @@ if(MURET_BUILD_TESTS)
     target_link_libraries(LabCl40Tests PRIVATE MuRetLabsCl40 GTest::gtest GTest::gtest_main)
     muret_set_warnings(LabCl40Tests)
     gtest_discover_tests(LabCl40Tests TEST_PREFIX "LabCl40.")
+
+    # glm (vcpkg.json): la CL5.0 compara su matriz a mano con glm::ortho. Solo los headers: el
+    # puerto de vcpkg también arma una biblioteca (glm::glm), que el lab no necesita.
+    find_package(glm CONFIG REQUIRED)
+
+    # Los de la CL5.0 sin GL, con el prefijo LabCl50.: corren en los dos sistemas.
+    add_executable(LabCl50Tests
+        cl5.0-pipeline/test_fan.cpp
+        cl5.0-pipeline/test_original_quad.cpp
+        cl5.0-pipeline/test_ortho.cpp
+        cl5.0-pipeline/jefe/test_original_pipeline.cpp
+    )
+    target_link_libraries(LabCl50Tests PRIVATE MuRetLabsCl50 glm::glm-header-only GTest::gtest GTest::gtest_main)
+    muret_set_warnings(LabCl50Tests)
+    gtest_discover_tests(LabCl50Tests TEST_PREFIX "LabCl50.")
+
+    # Los de cl5.0-pipeline/gl/, con el prefijo LabCl50Gl. y la etiqueta gl de CTest: los que
+    # dibujan abren una ventana escondida con un contexto 3.3 core. Sin pantalla o sin 3.3 se
+    # saltean, salvo con MURET_CLIENT_REQUIRE_GL=1, que los hace fallar: el paso de Xvfb del CI
+    # corre `ctest -L '^gl$'` con esa variable (la pregunta 9 del plan de la CL5). Cada uno tiene
+    # 60 s: un driver colgado en Xvfb falla el test en vez de frenar el CI hasta su tope de 6 h.
+    add_executable(LabCl50GlTests
+        cl5.0-pipeline/gl/test_gl_name.cpp
+        cl5.0-pipeline/gl/test_hidden_gl_window.cpp
+        cl5.0-pipeline/gl/test_lab_framebuffer.cpp
+        cl5.0-pipeline/gl/test_lab_texture.cpp
+    )
+    target_link_libraries(LabCl50GlTests PRIVATE MuRetLabsCl50Gl GTest::gtest GTest::gtest_main)
+    muret_set_warnings(LabCl50GlTests)
+    gtest_discover_tests(LabCl50GlTests TEST_PREFIX "LabCl50Gl." PROPERTIES LABELS gl TIMEOUT 60)
 endif()

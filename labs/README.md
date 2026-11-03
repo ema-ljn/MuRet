@@ -1,8 +1,8 @@
 # labs
 
 El código de las N.0: lo que se construye desde cero para aprender un concepto, antes de usar el
-estándar en el servidor o en el cliente. Lo escribe Emanuel; la 0.0, la CL2.0, la CL3.0 y la
-CL4.0 las resolvió Claude a su pedido. Cada carpeta es una N.0 y su guía está en
+estándar en el servidor o en el cliente. Lo escribe Emanuel; la 0.0, la CL2.0, la CL3.0, la
+CL4.0 y la CL5.0 las resolvió Claude a su pedido. Cada carpeta es una N.0 y su guía está en
 [`docs/learning/`](../docs/learning/README.md).
 
 | Carpeta | N.0 | Guía |
@@ -11,6 +11,7 @@ CL4.0 las resolvió Claude a su pedido. Cada carpeta es una N.0 y su guía está
 | [`cl2.0-flujos/`](cl2.0-flujos/) | flujos y bloques: el corte de un flujo TCP, bits MSB primero, el inverso modular y el jefe Q-C03. Resuelta como ejemplo, con las respuestas y la comparación con el `PacketReader` y `<bit>` en su [README](cl2.0-flujos/README.md) | [ola-cl2.0](../docs/learning/ola-cl2.0-flujos-y-bloques.md) |
 | [`cl3.0-bucle/`](cl3.0-bucle/) | el bucle de juego: el paso fijo con acumulador, el reloj de `GetTickCount` y el jefe, el bucle de `0x637700` y la espiral que no tiene. Resuelta como ejemplo, con las respuestas en su [README](cl3.0-bucle/README.md) | [ola-cl3.0](../docs/learning/ola-cl3.0-el-bucle-de-juego.md) |
 | [`cl4.0-sockets/`](cl4.0-sockets/) | sockets no bloqueantes: el socket con RAII, el `connect` como máquina de estados y `SO_ERROR`, el `send` que toma menos y la cola con cursor, y el jefe Q-C11, el drenaje de `0x4e87b0`. Resuelta como ejemplo, con las respuestas en su [README](cl4.0-sockets/README.md) | [ola-cl4.0](../docs/learning/ola-cl4.0-sockets-no-bloqueantes.md) |
+| [`cl5.0-pipeline/`](cl5.0-pipeline/) | el pipeline gráfico: el quad de `0x621b60` con la y dada vuelta y la escala del binario, la matriz de `gluOrtho2D` contra glm, de fan a triángulos, el jefe (el NDC del original y el viewport de `0x620db0`) y, en `gl/`, el quad dibujado en un framebuffer con Xvfb. Resuelta como ejemplo, con las respuestas en su [README](cl5.0-pipeline/README.md) | [ola-cl5.0](../docs/learning/ola-cl5.0-el-pipeline-grafico.md) |
 
 Los tests de la 0.0 son ejecutables que salen con 0 o con 1, registrados con `add_test()`; desde
 la CL2.0, de GoogleTest. Se corren con CTest:
@@ -88,3 +89,47 @@ La actividad 10 de la
   - **Lo que va al producto:** lo mismo, según el plan (el `CheckConnect` de la CL4.1): `poll` en
     POSIX y `select` con escritura y excepciones en Windows, con tiempo 0, y `SO_ERROR` leído una
     vez.
+
+## CL5.0: 95.000 vértices de a uno contra un VBO, y el orden con mezcla
+
+La actividad 12 de la
+[guía](../docs/learning/ola-cl5.0-el-pipeline-grafico.md#12-comparar-95000-vértices-de-a-uno-contra-un-vbo-y-el-orden-con-mezcla),
+el paso 7 del plan.
+
+- **Con la traza del 06, a mano.** 224,8 millones de `glVertex3fv` en 2.375 frames son unos 95.000
+  vértices por frame, y las 285.000 llamadas por frame son tres por vértice: el color, la
+  coordenada de textura y el vértice, más un `glBegin` y un `glEnd` por fan. Con un VBO que se
+  llena por frame, como el lote de la CL5.2, son un `glBufferData` con todos los vértices y una
+  llamada de dibujo por tramo de la misma textura y mezcla: decenas, no cientos de miles.
+- **Medido**, en Xvfb con Mesa 25.2.8 (llvmpipe), con dos programas fuera del repo:
+  - 95.000 vértices de a uno, en 23.750 fans de 4 con `glColor4f`, `glTexCoord2f` y `glVertex3fv`
+    (332.500 llamadas, en un contexto "4.5 (Compatibility Profile)", porque en core no existen) y
+    todos en el mismo punto, para que casi no haya nada que rasterizar: entre 5,8 y 6,2 ms por
+    frame, con el `glFinish`. El primer frame, de 16 a 49 ms según la corrida, calienta el driver.
+  - Los mismos 95.000 vértices como `QuadVertex` (16 bytes cada uno, 1.520.000 en total) en un
+    `glBufferData` con `GL_STREAM_DRAW`: entre 0,11 y 0,13 ms.
+  - 285.000 llamadas a `glGetError`, que no hace nada: entre 1,2 y 1,5 ms, unos 4 o 5 ns por
+    llamada. Es lo que cuesta solo llamar a GL por un puntero; el resto de los 6 ms es lo que hace
+    el driver con cada vértice.
+
+  Con el VBO, unas 50 veces menos, sin contar el dibujo. En la VM XP del original el driver es
+  otro y los números también; lo que no cambia es dónde está el costo.
+- **Respuesta: el costo es de la CPU.** La GPU recibe los mismos vértices de las dos maneras; lo
+  que cambia es cuántas veces el programa entra al driver y cuánto trabaja el driver por llamada
+  (guardar el color actual, armar el vértice, ver si su buffer se llenó). Acá, 6 ms son casi el
+  13 % de un frame del ritmo del original, 46,875 ms (CL3).
+- **El orden con mezcla** (`LabFramebufferTest.TheOrderMattersOnlyWithNormalBlending`): un naranja
+  (100, 50, 0) y un verde azulado (0, 50, 100), los dos con alfa 128 (0,502), sobre negro.
+  - Con la normal, naranja y después verde azulado da (25, 37, 50), y al revés, (50, 37, 25). El
+    primero deja (50, 25, 0), y el segundo pone la mitad de lo suyo y deja la mitad de eso. En el
+    verde la cuenta da 37,55 y Mesa da 37: el redondeo a 8 bits mueve uno, y el test acepta ±1.
+  - Con la aditiva, (100, 100, 100) en los dos órdenes.
+
+  **Respuesta.** Con la normal, cada quad tapa en parte al anterior: lo que se ve depende de quién
+  va arriba, y un lote que reordene para juntar las texturas cambia la pantalla. Por eso el
+  `SpriteBatch` de la CL5.2 corta un comando cada vez que cambia la textura o la mezcla, y nunca
+  reordena ("Lo que más puede morder", en el plan). Con la aditiva la suma conmuta, también con el
+  recorte a 1, porque los colores no son negativos: un tramo todo aditivo se podría reordenar
+  adentro, pero no con lo que tiene antes y después, y el original no lo hace.
+- **Lo que va al producto:** un VBO que se llena por frame con todo el 2D (la CL5.2), y un comando
+  por tramo de la misma textura y mezcla, en el orden en que la escena los pidió.

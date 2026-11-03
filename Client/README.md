@@ -61,6 +61,13 @@ carga): `Data::Textures::LoadTextureSet` las busca en `Data\` como el original (
 primer punto y `.OZJ` u `.OZT`) y las lee, y `Gl::TextureTable` las sube a la tabla de la escena,
 por el slot del original.
 
+## Auditoría y mantenimiento
+
+La [auditoría de C++20 y contrato 1.02i del 2026-11-03](../docs/audits/2026-11-03-cliente-cpp20.md)
+registra los hallazgos, sus reproducciones y los límites de verificación. El
+[plan de seguimiento](../docs/superpowers/plans/2026-11-03-seguimiento-auditoria-cliente.md)
+los separa en tareas y PR por concepto de CL3.4 y CL5.1; las correcciones siguen pendientes.
+
 ## Compilar y correr
 
 Hace falta vcpkg (las dependencias, SDL3, libjpeg-turbo y GoogleTest, están en `vcpkg.json` y se

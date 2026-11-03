@@ -1,5 +1,9 @@
 # Plan de la ola CL5: Render 2D y la escena de login
 
+> **Seguimiento del 2026-11-03:** la robustez de la subida de texturas de CL5.1 se trabaja en el
+> [plan de la auditoría del cliente](2026-11-03-seguimiento-auditoria-cliente.md), tarea T3,
+> antes de integrar la tabla en las escenas. No cambia el contrato de los assets de esta ola.
+
 > Plan de ejecución en el formato de superpowers (writing-plans): cada tarea tiene
 > archivos, pasos chicos con checkbox y el comando que verifica el resultado.
 > Roadmap: [`2026-10-30-cliente-design.md`](../specs/2026-10-30-cliente-design.md).

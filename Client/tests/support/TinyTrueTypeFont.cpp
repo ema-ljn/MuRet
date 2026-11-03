@@ -24,7 +24,13 @@ constexpr std::uint16_t GlyphCount = 2;
 constexpr std::uint16_t FlatGlyph = 1;
 constexpr std::uint32_t Version1 = 0x00010000;
 
-using Point = std::pair<std::int16_t, std::int16_t>;
+// Un agregado y no un std::pair: el constructor de pair pasaría cada literal int a std::int16_t
+// adentro de <utility>, y MSVC lo avisa (C4242) con /W4 /WX.
+struct Point
+{
+    std::int16_t x = 0;
+    std::int16_t y = 0;
+};
 // El .notdef, un cuadrado en el sentido de las agujas del reloj (el de afuera en TrueType), y la
 // raya sin área, con los cuatro puntos en y = 0.
 constexpr std::array<Point, 4> Square = {Point{InkLeft, 0}, Point{InkLeft, InkTop}, Point{InkRight, InkTop},
@@ -192,16 +198,16 @@ std::vector<std::uint8_t> Cmap()
 // la curva con sus deltas de 16 bits.
 void AppendGlyph(BigEndian& glyf, const std::array<Point, 4>& points)
 {
-    std::int16_t xMin = points[0].first;
-    std::int16_t xMax = points[0].first;
-    std::int16_t yMin = points[0].second;
-    std::int16_t yMax = points[0].second;
+    std::int16_t xMin = points[0].x;
+    std::int16_t xMax = points[0].x;
+    std::int16_t yMin = points[0].y;
+    std::int16_t yMax = points[0].y;
     for (const Point& point : points)
     {
-        xMin = std::min(xMin, point.first);
-        xMax = std::max(xMax, point.first);
-        yMin = std::min(yMin, point.second);
-        yMax = std::max(yMax, point.second);
+        xMin = std::min(xMin, point.x);
+        xMax = std::max(xMax, point.x);
+        yMin = std::min(yMin, point.y);
+        yMax = std::max(yMax, point.y);
     }
     glyf.I16(1); // numberOfContours
     glyf.I16(xMin);
@@ -214,21 +220,27 @@ void AppendGlyph(BigEndian& glyf, const std::array<Point, 4>& points)
     {
         glyf.U8(0x01); // ON_CURVE_POINT, x e y de 16 bits
     }
-    Point previous{0, 0};
+    Point previous;
     for (const Point& point : points)
     {
-        glyf.I16(static_cast<std::int16_t>(point.first - previous.first));
-        previous.first = point.first;
+        glyf.I16(static_cast<std::int16_t>(point.x - previous.x));
+        previous.x = point.x;
     }
     for (const Point& point : points)
     {
-        glyf.I16(static_cast<std::int16_t>(point.second - previous.second));
-        previous.second = point.second;
+        glyf.I16(static_cast<std::int16_t>(point.y - previous.y));
+        previous.y = point.y;
     }
     glyf.PadTo4();
 }
 
-std::pair<std::vector<std::uint8_t>, std::vector<std::uint8_t>> GlyfAndLoca()
+struct GlyphTables
+{
+    std::vector<std::uint8_t> glyf;
+    std::vector<std::uint8_t> loca;
+};
+
+GlyphTables GlyfAndLoca()
 {
     BigEndian glyf;
     BigEndian loca;
@@ -240,6 +252,12 @@ std::pair<std::vector<std::uint8_t>, std::vector<std::uint8_t>> GlyfAndLoca()
     loca.U16(static_cast<std::uint16_t>(glyf.Size() / 2));
     return {glyf.Take(), loca.Take()};
 }
+
+struct Table
+{
+    std::string_view tag;
+    std::vector<std::uint8_t> bytes;
+};
 
 std::uint32_t Tag(std::string_view name)
 {
@@ -275,15 +293,15 @@ std::vector<std::uint8_t> TinyTrueTypeFont()
     constexpr std::uint16_t TableCount = 7;
     constexpr std::uint16_t SearchRange = 16 * 4;
     constexpr std::uint16_t EntrySelector = 2;
-    auto [glyf, loca] = GlyfAndLoca();
+    GlyphTables glyphs = GlyfAndLoca();
     // En el orden de sus etiquetas, como pide el directorio.
-    const std::array<std::pair<std::string_view, std::vector<std::uint8_t>>, TableCount> tables = {{
+    const std::array<Table, TableCount> tables = {{
         {"cmap", Cmap()},
-        {"glyf", std::move(glyf)},
+        {"glyf", std::move(glyphs.glyf)},
         {"head", Head()},
         {"hhea", Hhea()},
         {"hmtx", Hmtx()},
-        {"loca", std::move(loca)},
+        {"loca", std::move(glyphs.loca)},
         {"maxp", Maxp()},
     }};
 
@@ -294,17 +312,17 @@ std::vector<std::uint8_t> TinyTrueTypeFont()
     font.U16(EntrySelector);
     font.U16(static_cast<std::uint16_t>(TableCount * 16 - SearchRange));
     std::size_t offset = 12 + 16 * tables.size();
-    for (const auto& [name, bytes] : tables)
+    for (const Table& table : tables)
     {
-        font.U32(Tag(name));
-        font.U32(Checksum(bytes));
+        font.U32(Tag(table.tag));
+        font.U32(Checksum(table.bytes));
         font.U32(static_cast<std::uint32_t>(offset));
-        font.U32(static_cast<std::uint32_t>(bytes.size()));
-        offset += (bytes.size() + 3) / 4 * 4;
+        font.U32(static_cast<std::uint32_t>(table.bytes.size()));
+        offset += (table.bytes.size() + 3) / 4 * 4;
     }
-    for (const auto& table : tables)
+    for (const Table& table : tables)
     {
-        font.Append(table.second);
+        font.Append(table.bytes);
         font.PadTo4();
     }
     return font.Take();

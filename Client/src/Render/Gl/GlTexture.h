@@ -26,11 +26,12 @@ public:
     //
     // Los errores de GL (AUD-C03 de la auditoría del 2026-11-03): si GL ya tenía uno pendiente
     // antes de subir, no sube y da un error que lo nombra como de otra llamada, porque glGetError
-    // no dice cuál lo dejó. Si glTexImage2D no acepta la textura (un lado mayor que
-    // GL_MAX_TEXTURE_SIZE, o GL_OUT_OF_MEMORY), da el error con su nombre y borra el nombre nuevo.
-    // En los dos casos saca los errores que leyó, así la llamada siguiente empieza sin ninguno, y
-    // el alignment vuelve a lo que estaba. Después de GL_OUT_OF_MEMORY, GL no promete nada del
-    // contexto: Upload no intenta arreglarlo.
+    // no dice cuál lo dejó; no toca nada más de GL. Los que GL marque desde ahí hasta su última
+    // llamada son de la subida: si glTexImage2D no acepta la textura (un lado mayor que
+    // GL_MAX_TEXTURE_SIZE) o hay GL_OUT_OF_MEMORY, da el error con su nombre, borra el nombre nuevo
+    // y GL_TEXTURE_2D queda en 0. Saca todos los que lee (glGetError da uno por bandera), así que
+    // la llamada siguiente empieza sin ninguno, y el alignment vuelve a lo que estaba. Después de
+    // GL_OUT_OF_MEMORY, GL no promete nada del contexto: Upload no intenta arreglarlo.
     [[nodiscard]] static Core::Expected<GlTexture, std::string>
     Upload(const Platform::GlFunctions& gl, const Data::Textures::Texture& texture, Data::Textures::Sampling sampling);
 

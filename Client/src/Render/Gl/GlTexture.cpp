@@ -141,19 +141,21 @@ Core::Expected<GlTexture, std::string> GlTexture::Upload(const Platform::GlFunct
     gl.pixelStorei(GL_UNPACK_ALIGNMENT, 1);
     gl.texImage2D(GL_TEXTURE_2D, 0, InternalFormat(texture.format), texture.textureWidth, texture.textureHeight, 0,
                   PixelLayout(texture.format), GL_UNSIGNED_BYTE, texture.pixels.data());
-    const GLenum uploadError = TakeErrors(gl);
     gl.pixelStorei(GL_UNPACK_ALIGNMENT, previousAlignment);
-    if (uploadError != GL_NO_ERROR)
-    {
-        // El GlName borra el nombre al salir: GL desata lo que se borra, y GL_TEXTURE_2D queda
-        // en 0.
-        return Core::Unexpected("GL no aceptó la textura de " + SizeText(texture) + ": " + ErrorText(uploadError));
-    }
     // Como el original: el filtro va de cerca y de lejos, y el wrap en los dos ejes.
     gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GlFilter(sampling.filter));
     gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GlFilter(sampling.filter));
     gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GlWrap(sampling.wrap));
     gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GlWrap(sampling.wrap));
+
+    // Lo que GL marcó desde el chequeo de arriba es de esta subida: el glTexImage2D o, con
+    // GL_OUT_OF_MEMORY, cualquier otra de las llamadas. Se lee después de la última, así no queda
+    // nada para la llamada siguiente. El GlName borra el nombre al salir: GL desata lo que se
+    // borra, y GL_TEXTURE_2D queda en 0.
+    if (const GLenum uploadError = TakeErrors(gl); uploadError != GL_NO_ERROR)
+    {
+        return Core::Unexpected("GL no aceptó la textura de " + SizeText(texture) + ": " + ErrorText(uploadError));
+    }
     return GlTexture(std::move(name), texture.textureWidth, texture.textureHeight);
 }
 

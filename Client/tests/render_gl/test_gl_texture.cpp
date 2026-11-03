@@ -97,12 +97,13 @@ constexpr int EndlessDriverCalls = 1000;
 // Un driver falso para Upload, sin contexto, como el de test_gl_loader.cpp. Tiene varias banderas
 // de error, y glGetError da una por llamada: la referencia de glGetError pide llamarlo hasta que dé
 // GL_NO_ERROR. Mesa tiene una sola, así que con el contexto de los tests eso no se ve. glTexImage2D
-// suma sus errores a los pendientes. Es estado global porque la tabla es de punteros a función, sin
-// captura; el fixture lo deja limpio antes de cada test.
+// suma sus errores a los pendientes, y el primer glTexParameteri los suyos. Es estado global porque
+// la tabla es de punteros a función, sin captura; el fixture lo deja limpio antes de cada test.
 struct FakeErrorDriver
 {
     std::deque<GLenum> pending;
     std::vector<GLenum> texImageErrors;
+    std::vector<GLenum> texParameterErrors;
     bool neverClears = false;
     int getErrorCalls = 0;
     GLint unpackAlignment = FakeUnpackAlignment;
@@ -167,7 +168,12 @@ void GLAPIENTRY FakeTexImage2D(GLenum /*target*/, GLint /*level*/, GLint /*inter
     s_driver.pending.insert(s_driver.pending.end(), s_driver.texImageErrors.begin(), s_driver.texImageErrors.end());
 }
 
-void GLAPIENTRY FakeTexParameteri(GLenum /*target*/, GLenum /*name*/, GLint /*value*/) {}
+void GLAPIENTRY FakeTexParameteri(GLenum /*target*/, GLenum /*name*/, GLint /*value*/)
+{
+    s_driver.pending.insert(s_driver.pending.end(), s_driver.texParameterErrors.begin(),
+                            s_driver.texParameterErrors.end());
+    s_driver.texParameterErrors.clear();
+}
 
 class GlTextureDriverTest : public ::testing::Test
 {
@@ -230,6 +236,23 @@ TEST_F(GlTextureDriverTest, TakesEveryErrorOfTheUpload)
     EXPECT_EQ(s_driver.generated, std::vector<GLuint>{FakeTextureName});
     EXPECT_EQ(s_driver.deleted, s_driver.generated);
     EXPECT_EQ(s_driver.unpackAlignment, FakeUnpackAlignment);
+}
+
+// glTexParameteri también es de la subida. Con estos argumentos solo puede dar GL_OUT_OF_MEMORY,
+// que GL permite en cualquier llamada: Upload no da la textura ni lo deja pendiente, porque la
+// llamada siguiente lo culparía a otra.
+TEST_F(GlTextureDriverTest, ATexParameterErrorIsTheUploads)
+{
+    s_driver.texParameterErrors = {GL_OUT_OF_MEMORY};
+    const Client::Platform::GlFunctions gl = FakeGl();
+
+    const Client::Core::Expected<GlTexture, std::string> refused = GlTexture::Upload(gl, OneTexel(), NearestClamp);
+
+    ASSERT_FALSE(refused.HasValue());
+    EXPECT_NE(refused.Error().find("GL_OUT_OF_MEMORY"), std::string::npos) << refused.Error();
+    EXPECT_EQ(refused.Error().find("pendiente"), std::string::npos) << refused.Error();
+    EXPECT_TRUE(s_driver.pending.empty());
+    EXPECT_EQ(s_driver.deleted, s_driver.generated);
 }
 
 // Un driver que no deja de dar errores no cuelga a Upload: deja de preguntar antes que el driver
@@ -303,7 +326,8 @@ TEST_F(GlTextureTest, LeavesTheUnpackAlignmentAsItWas)
 
 // Lo que el driver no acepta no es una textura (AUD-C03): un lado mayor que GL_MAX_TEXTURE_SIZE da
 // GL_INVALID_VALUE en glTexImage2D. Upload da el error con su nombre, deja el alignment como
-// estaba y no deja el error pendiente para la llamada siguiente.
+// estaba y no deja el error pendiente para la llamada siguiente. Borró el nombre nuevo, que estaba
+// atado: GL_TEXTURE_2D queda en 0.
 TEST_F(GlTextureTest, RejectsADriverFailure)
 {
     constexpr GLint Before = 2;
@@ -317,6 +341,9 @@ TEST_F(GlTextureTest, RejectsADriverFailure)
     GLint after = 0;
     Gl().getIntegerv(GL_UNPACK_ALIGNMENT, &after);
     EXPECT_EQ(after, Before);
+    GLint bound = -1;
+    Gl().getIntegerv(GL_TEXTURE_BINDING_2D, &bound);
+    EXPECT_EQ(bound, 0);
     EXPECT_EQ(Gl().getError(), static_cast<GLenum>(GL_NO_ERROR));
 }
 

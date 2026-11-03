@@ -348,17 +348,17 @@ byte `0x0a`, en `0x4671e1`): su caja sube igual, con el fondo solo. Verificado a
 `0x466560`
 (reconstruido en `mu-client` con una sonda en la VM).
 
-**El DIB y la caja** (CL5.3, *estático*): `0x61bcd0` arma el DIB con el slot 0 (la
-`FontInput.tga`, de 256 × 32): `DAT_006c7a84` (5) veces su ancho y su alto, 1.280 × 32, de 24 bits
-y de arriba hacia abajo. `0x465a00(columna, ancho, filas)` pasa de ahí a la caja de 256 × 32 RGBA
-del slot 0: un píxel cuyo primer byte es `0xff` va con el color del texto (`DAT_006c8e5c`) y
+**El DIB y la caja** (CL5.3, *estático*): `0x61bcd0` arma el DIB con el slot 0 (la `FontInput.tga`,
+de 256 × 32): el ancho por `DAT_006c7a84` (5) y el mismo alto, 1.280 × 32, de 24 bits y de arriba
+hacia abajo (el alto negativo). `0x465a00(columna, ancho, filas)` pasa de ahí a la caja de 256 × 32
+RGBA del slot 0: un píxel cuyo primer byte es `0xff` va con el color del texto (`DAT_006c8e5c`) y
 cualquier otro, con el del fondo (`DAT_006c8e64`). Lee desde la columna que le pasan sin mirar el
 ancho del DIB: con un texto de más de 1.280 columnas, la sexta caja sale de la fila de abajo
 (Q-C78). Y `0x4667a0`, el de los `0x02`, reescribe el texto en el buffer del que llama después de
 ponerle 256 ceros (Q-C77). MuRet rasteriza cada caja desde su columna con FreeType en un bit
 (`Render/Text/`, Q-C76), y una caché (`TextCache`) guarda las cajas de cada texto, fuente y colores
-en los slots del texto, después de los 1.845 del original (`TextureSlot.h`): no se sube nada en
-cada frame.
+en los slots del texto, después de los 1.845 del original (`TextureSlot.h`): no se sube nada en cada
+frame.
 
 ### HUD y ventanas
 

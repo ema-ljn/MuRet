@@ -118,6 +118,8 @@ TEST_F(TextCacheTest, ADifferentColorIsAnotherEntry)
 
     EXPECT_EQ(m_rasterizer.drawCalls, 4);
     EXPECT_EQ(cache.Size(), 4u);
+    // En otro lote: los cuatro de este no salen (ATextOfThisBatchIsNotEvicted).
+    m_batch.Begin(Screen);
     Draw(cache, "abd");
     EXPECT_EQ(m_rasterizer.drawCalls, 5);
 }
@@ -143,7 +145,8 @@ TEST_F(TextCacheTest, ResizingEmptiesIt)
 }
 
 // Con los cuatro slots ocupados, el texto nuevo saca al que hace más tiempo que no se dibuja: A,
-// B, C y D, otra vez A, y E saca a B, no a A. Después B vuelve y saca a C.
+// B, C y D en un lote, A otra vez en el siguiente, y E saca a B, no a A. Después B vuelve y saca a
+// C.
 TEST_F(TextCacheTest, KeepsAtMostItsCap)
 {
     TextCache cache(m_rasterizer, m_store, First, FourSlots);
@@ -151,6 +154,7 @@ TEST_F(TextCacheTest, KeepsAtMostItsCap)
     {
         Draw(cache, text);
     }
+    m_batch.Begin(Screen);
     Draw(cache, "A");
     ASSERT_TRUE(m_store.released.empty());
 
@@ -169,6 +173,34 @@ TEST_F(TextCacheTest, KeepsAtMostItsCap)
     Draw(cache, "B");
     EXPECT_EQ(m_rasterizer.drawCalls, 6);
     EXPECT_EQ(m_store.released.back(), static_cast<std::uint16_t>(First.value + 2));
+}
+
+// El lote guarda el slot de cada quad, y GlSpriteRenderer lo busca recién al dibujarlo: un texto
+// que ya está en el lote no sale, porque su slot dibujaría otra caja. Con los cuatro slots en
+// textos del lote, el quinto es un error y no suelta nada; en el lote siguiente, saca al más viejo.
+TEST_F(TextCacheTest, ATextOfThisBatchIsNotEvicted)
+{
+    TextCache cache(m_rasterizer, m_store, First, FourSlots);
+    for (const std::string_view text : {"A", "B", "C", "D"})
+    {
+        Draw(cache, text);
+    }
+
+    const auto drawn = cache.Draw(m_batch, 10, 20, "E", Login);
+
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("4 slots"), std::string::npos) << drawn.Error();
+    EXPECT_TRUE(m_store.released.empty());
+    EXPECT_EQ(cache.Size(), 4u);
+    EXPECT_EQ(m_store.loadCalls, 4);
+    EXPECT_EQ(SlotsOf(m_batch), (std::vector<std::uint16_t>{First.value, static_cast<std::uint16_t>(First.value + 1),
+                                                            static_cast<std::uint16_t>(First.value + 2),
+                                                            static_cast<std::uint16_t>(First.value + 3)}));
+
+    m_batch.Begin(Screen);
+    Draw(cache, "E");
+    EXPECT_EQ(m_store.released, (std::vector<std::uint16_t>{First.value}));
+    EXPECT_EQ(SlotsOf(m_batch), (std::vector<std::uint16_t>{First.value}));
 }
 
 // Un texto de más de 256 columnas ocupa una caja por cada 256, y cada quad de TextPieces va con la

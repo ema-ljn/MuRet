@@ -1314,6 +1314,14 @@ se reproduce y queda en 07 si la CL5.R lo confirma.
   cara en el error (`AFaceThatIsNotInTheSystemIsAnErrorWithoutTheFace`), sin buscar la negrita
   (`WithoutTheKeyTheSystemListIsSearched`), un prefijo como la cara (`APrefixIsAnotherFace` y dos
   más) y las .fon como fuentes (`OnlyOutlineFontsCount`).
+
+  Con la revisión (2026-11-03): un texto nuevo podía sacar a uno que ya estaba en el lote del
+  frame, y como `GlSpriteRenderer` busca cada slot recién al dibujar, el quad del viejo salía con
+  la caja del nuevo. Ahora la caché no saca una entrada que tiene un slot en el lote: si la del
+  fondo lo tiene, el texto nuevo es un error y no se suelta nada
+  (`TextCacheTest.ATextOfThisBatchIsNotEvicted`, que mata al mutante sin la regla), y
+  `KeepsAtMostItsCap` y `ADifferentColorIsAnotherEntry` empiezan otro lote antes de sacar.
+  `SystemFonts.cpp` compara con `Data::EqualsIgnoringAsciiCase` en vez de una copia propia.
 - [x] **Paso 7:** verificar:
   ```bash
   cmake --build --preset linux-x64-debug
@@ -1321,8 +1329,8 @@ se reproduce y queda en 07 si la CL5.R lo confirma.
   ```
 
   Hecho así (2026-11-03): en Linux, con GCC, Debug y sin precompiled headers, como el job del CI.
-  El PR A: 1.117 tests, 0 fallan, con `MURET_CLIENT_FONT_FILE` y sin ella (los 11 de
-  `FreeTypeRasterizerTest` se saltean). El PR B: 1.149, 0 fallan, también con y sin la variable.
+  El PR A: 1.120 tests, 0 fallan, con `MURET_CLIENT_FONT_FILE` y sin ella (los 12 de
+  `FreeTypeRasterizerTest` se saltean). El PR B: 1.153, 0 fallan, también con y sin la variable.
   Los de GL con `MURET_CLIENT_REQUIRE_GL=1 xvfb-run -a ctest -L '^gl$'`: 46 en el A y 49 en el B,
   0 fallan; `Main --frames 60` en Xvfb sale con 0 en los dos.
 
@@ -1378,7 +1386,8 @@ pase 3D lo haga (la CL7), el 2D que sigue los apaga, con un test.
 
 *Nota de la CL5.3:* el `ITextDrawer` de la escena envuelve un `Render::Text::TextCache`, que
 recibe el lote (`Draw(batch, x, y, texto, estilo)`) y devuelve un `Expected`: el error (la tabla no
-subió, o el texto no entra en los slots) va al log una vez y el texto no se dibuja. La caché vive
+subió, el texto no entra en los slots, o todos están en textos del lote, que no salen hasta el
+próximo `Begin`) va al log una vez y el texto no se dibuja. Un lote por frame. La caché vive
 lo que su `ITextureStore`, y sus slots (del 1.845 al 2.100) no chocan con los de las escenas.
 `FakeTextureStore.h` ya está en `support/`. Antes de los textos, `0x6350b0` deja
 `glColor3f(0,8; 0,7; 0,6)` después de la arena y la mezcla que ella dejó: los quads del texto, con
@@ -1386,7 +1395,9 @@ alfa 0, salen con ese color, y la escena lo tiene que poner como el original (06
 dibujo). `main.cpp` arma el `FreeTypeRasterizer` con `App::ChooseFontFiles(config, cara,
 búsqueda)`: la cara es el texto 0 de `Text.bmd`, y la búsqueda, `Platform::FindSystemFontFile` en
 Windows y ninguna en Linux. En el `Text.bmd` del laboratorio los textos 0 y 18 están vacíos: con
-esos datos, también en Windows hace falta `[Video] FontFile`. Con otra densidad de pantalla (el
+esos datos, también en Windows hace falta `[Video] FontFile`. Una ruta que encontró la búsqueda no
+va al log, porque su nombre puede ser el de la cara: si `Open` falla con ella, su error (que nombra
+el archivo) se cambia por uno que nombra la clave. Con otra densidad de pantalla (el
 área de dibujo cambia aunque la ventana no), otro `FreeTypeRasterizer` y `ChangeRasterizer`.
 
 **Interfaces:**

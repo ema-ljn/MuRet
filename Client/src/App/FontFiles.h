@@ -13,7 +13,8 @@
 // cuatro de WinMain por nombre a GDI, con la cara del texto 0 de Text.bmd (y la del 18 para la
 // cuarta); FreeType necesita un archivo. Manda [Video] FontFile, y BoldFontFile si está; sin
 // FontFile, se busca la cara en la lista de fuentes del sistema, que solo Windows tiene
-// (Platform::FindSystemFontFile). La cara es un texto del juego: no va a ningún mensaje.
+// (Platform::FindSystemFontFile). La cara es un texto del juego: no va a ningún mensaje, y la ruta
+// que devuelve la búsqueda tampoco, porque el nombre del archivo puede ser el de la cara.
 namespace Client::App
 {
 // Los archivos para FreeTypeRasterizer::Open. Sin `bold`, la negrita se arma desde la normal.

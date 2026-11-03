@@ -300,11 +300,11 @@ solo lo lee.
   línea queda con su fondo solo, como en `0x467060`. El B (2026-11-03): la caché y el dibujo.
   `TextCache` rasteriza un texto una vez por fuente y colores, sube sus cajas de 256 × 32 a los
   slots del texto, 256 después de los 1.845 del original en la `TextureTable`, y saca el que hace
-  más tiempo que no se dibuja cuando no hay lugar; los quads son los de `TextPieces`, con el slot de
-  cada caja. La fuente sin `[Video] FontFile`: `App::ChooseFontFiles` y, en Windows,
-  `Platform::FindSystemFontFile` con la lista del registro. Dos bugs nuevos del original,
-  corregidos: `0x4667a0` reescribe el texto en el buffer del que llama (Q-C77), y la caja que pasa
-  de la columna 1.280 del DIB lee la fila de abajo (Q-C78).
+  más tiempo que no se dibuja cuando no hay lugar, salvo uno que ya está en el lote del frame; los
+  quads son los de `TextPieces`, con el slot de cada caja. La fuente sin `[Video] FontFile`:
+  `App::ChooseFontFiles` y, en Windows, `Platform::FindSystemFontFile` con la lista del registro.
+  Dos bugs nuevos del original, corregidos: `0x4667a0` reescribe el texto en el buffer del que llama
+  (Q-C77), y la caja que pasa de la columna 1.280 del DIB lee la fila de abajo (Q-C78).
 
 ## Conceptos
 

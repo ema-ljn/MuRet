@@ -68,8 +68,9 @@ dibuja con FreeType en un bit, detrás de `IGlyphRasterizer`. `TextCache` raster
 vez por fuente y colores, guarda sus cajas de 256 × 32 en los slots del texto de la tabla (después
 de los 1.845 del original) y las dibuja con el `SpriteBatch`. La fuente sale de `[Video] FontFile`;
 sin la clave, `App::ChooseFontFiles` busca la cara del original en la lista de fuentes de Windows
-(`Platform/SystemFonts.h`), y en Linux es un error que nombra la clave. El cliente dibuja texto
-desde la CL5.4, que conecta todo esto en `main.cpp`.
+(`Platform/SystemFonts.h`), y en Linux es un error que nombra la clave. En el `Text.bmd` del
+laboratorio la cara está vacía: con esos datos, también en Windows hace falta `FontFile`. El
+cliente dibuja texto desde la CL5.4, que conecta todo esto en `main.cpp`.
 
 ## Compilar y correr
 
@@ -244,7 +245,7 @@ Path = muret-client.log
 | `[Video] VSync` | `on`, y `off` en el modo fiel | como `--vsync`. Con `Pacing = faithful` (o `--pacing faithful`), `on` o `adaptive` es un error que nombra `Pacing` y `VSync` |
 | `[Video] Pacing` | `decoupled` | como `--pacing` |
 | `[Video] MaxFps` | 0 (sin tope) | como `--max-fps`. Con `Pacing = faithful`, un tope que no es 0 es un error que nombra `Pacing` y `MaxFps` |
-| `[Video] FontFile` | ninguna | la fuente TrueType (o una colección TTC: su primera cara) de todo el texto. El original pide la suya por nombre a Windows; MuRet necesita un archivo. Las cuatro fuentes del original salen de esta, cada una con su alto (`Render/Text/FontSet.h`). Sin la clave, en Windows se busca la cara del original en la lista de fuentes del sistema; en Linux, es un error |
+| `[Video] FontFile` | ninguna | la fuente TrueType (o una colección TTC: su primera cara) de todo el texto. El original pide la suya por nombre a Windows; MuRet necesita un archivo. Las cuatro fuentes del original salen de esta, cada una con su alto (`Render/Text/FontSet.h`). Sin la clave, en Windows se busca la cara del original en la lista de fuentes del sistema; en Linux, o si la cara está vacía (como en el `Text.bmd` del laboratorio), es un error |
 | `[Video] BoldFontFile` | ninguna | la de la negrita. Sin darla, la negrita es la de `FontFile` ensanchada un píxel, como la que simula Windows |
 | `[Log] Path` | `muret-client.log` junto al ejecutable | el archivo del log |
 

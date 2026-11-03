@@ -29,6 +29,15 @@ std::size_t BoxesFor(int width)
     return static_cast<std::size_t>((width + TextBoxWidth - 1) / TextBoxWidth);
 }
 
+// Si un tramo de `batch` dibuja con una de `boxes`.
+bool BatchUses(const SpriteBatch& batch, const std::vector<TextureSlot>& boxes)
+{
+    return std::ranges::any_of(batch.Commands(),
+                               [&boxes](const DrawCommand& command) {
+                                   return command.texture && std::ranges::find(boxes, *command.texture) != boxes.end();
+                               });
+}
+
 // Los slots de la caché que entran en un std::uint16_t desde `firstSlot`.
 std::size_t SlotsThatFit(TextureSlot firstSlot, std::size_t slotCount)
 {
@@ -62,7 +71,7 @@ Core::Expected<void, std::string> TextCache::Draw(SpriteBatch& batch, int x, int
     {
         return {};
     }
-    const Core::Expected<Entries::iterator, std::string> found = Find(Key{style.font, style.colors, text});
+    const Core::Expected<Entries::iterator, std::string> found = Find(Key{style.font, style.colors, text}, batch);
     if (!found.HasValue())
     {
         return Core::Unexpected(found.Error());
@@ -117,7 +126,7 @@ bool TextCache::KeyLess::operator()(const Key& a, const Key& b) const
            std::tie(b.font, b.colors.text, b.colors.background, b.text);
 }
 
-Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const Key& key)
+Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const Key& key, const SpriteBatch& batch)
 {
     if (const auto indexed = m_index.find(key); indexed != m_index.end())
     {
@@ -132,8 +141,15 @@ Core::Expected<TextCache::Entries::iterator, std::string> TextCache::Find(const 
     {
         return Core::Unexpected(std::format("el texto pide {} cajas y la caché tiene {} slots", boxes, m_slotCount));
     }
+    // Con menos slots libres que cajas hay alguno ocupado, así que hay una entrada atrás. Si esa ya
+    // está en el lote, las de adelante se dibujaron después, en el mismo frame: no se busca más.
     while (m_freeSlots.size() < boxes)
     {
+        if (BatchUses(batch, m_entries.back().boxes))
+        {
+            return Core::Unexpected(std::format(
+                "la caché tiene sus {} slots en textos de este lote, que todavía no se dibujó", m_slotCount));
+        }
         EvictOldest();
     }
 

@@ -1,5 +1,7 @@
 #include "Platform/SystemFonts.h"
 
+#include "Data/DataPath.h"
+
 #include <array>
 #include <cstddef>
 #include <string>
@@ -28,30 +30,10 @@ constexpr std::array OutlineSuffixes{" (TrueType)"sv, " (OpenType)"sv};
 constexpr std::string_view FaceSeparator = " & ";
 constexpr std::string_view BoldSuffix = " Bold";
 
-char LowerAscii(char c)
-{
-    return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c;
-}
-
-bool EqualsIgnoringAsciiCase(std::string_view a, std::string_view b)
-{
-    if (a.size() != b.size())
-    {
-        return false;
-    }
-    for (std::size_t i = 0; i < a.size(); ++i)
-    {
-        if (LowerAscii(a[i]) != LowerAscii(b[i]))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
 bool EndsWithIgnoringAsciiCase(std::string_view text, std::string_view suffix)
 {
-    return text.size() >= suffix.size() && EqualsIgnoringAsciiCase(text.substr(text.size() - suffix.size()), suffix);
+    return text.size() >= suffix.size() &&
+           Data::EqualsIgnoringAsciiCase(text.substr(text.size() - suffix.size()), suffix);
 }
 } // namespace
 
@@ -84,7 +66,7 @@ bool FontEntryNamesFace(std::string_view entryName, std::string_view face, bool 
     while (true)
     {
         const std::size_t separator = names.find(FaceSeparator);
-        if (EqualsIgnoringAsciiCase(names.substr(0, separator), wanted))
+        if (Data::EqualsIgnoringAsciiCase(names.substr(0, separator), wanted))
         {
             return true;
         }

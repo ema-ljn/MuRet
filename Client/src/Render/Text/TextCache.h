@@ -22,8 +22,11 @@
 // pantalla (el corte en el borde, la posición) lo pone TextPieces en el quad.
 //
 // Tiene un tope: los slots que le dan. Cuando un texto nuevo no entra, salen los que hace más
-// tiempo que no se dibujan, y sus slots se sueltan. No es la caché de 0x466000 (un árbol por hash
-// con los slots de 0x466560, que en las escenas medidas no corre: pregunta 11 del plan de la CL5).
+// tiempo que no se dibujan, y sus slots se sueltan, salvo uno que ya está en el lote donde se
+// dibuja: el lote guarda el slot de cada quad y Gl::GlSpriteRenderer lo busca recién al dibujar,
+// así que una caja soltada o pisada antes cambiaría lo que se ve. No es la caché de 0x466000 (un
+// árbol por hash con los slots de 0x466560, que en las escenas medidas no corre: pregunta 11 del
+// plan de la CL5).
 // Vive lo que la tabla donde sube, y no es para varios hilos.
 namespace Client::Render::Text
 {
@@ -45,8 +48,10 @@ public:
     // 0x554180(x, y, texto, 0, 0, 0) con TextOut distinto de 1, el del login: el texto en (x, y)
     // de 640 × 480, con la fuente y los colores de `style`, como quads de TextPieces en `batch`
     // (con su pantalla, su color y su mezcla). Un texto que no está se rasteriza y se sube; uno
-    // vacío no dibuja nada, como 0x467060. Error si la tabla no sube una caja, o si el texto pide
-    // más cajas que los slots de la caché.
+    // vacío no dibuja nada, como 0x467060. Error si la tabla no sube una caja, si el texto pide
+    // más cajas que los slots de la caché, o si para hacerle lugar habría que sacar un texto que ya
+    // está en `batch`. Un lote por frame: un texto de otro lote que todavía no se dibujó puede
+    // salir.
     [[nodiscard]] Core::Expected<void, std::string> Draw(SpriteBatch& batch, int x, int y, std::string_view text,
                                                          const TextStyle& style);
 
@@ -54,10 +59,10 @@ public:
     [[nodiscard]] TextExtent Measure(FontKind font, std::string_view text) const;
 
     // Otro rasterizador, el de otro ancho de pantalla (las fuentes cambian de alto, FontSet.h):
-    // vacía la caché y suelta sus slots.
+    // vacía la caché y suelta sus slots. Entre frames, como Clear.
     void ChangeRasterizer(const IGlyphRasterizer& rasterizer);
 
-    // Vacía la caché y suelta sus slots.
+    // Vacía la caché y suelta sus slots, aunque estén en un lote: entre frames.
     void Clear();
 
     // Cuántos textos guarda y cuántos slots ocupan.
@@ -87,8 +92,9 @@ private:
     };
     using Entries = std::list<Entry>;
 
-    // La entrada de `key`, rasterizada y subida si no estaba, al frente de la lista.
-    [[nodiscard]] Core::Expected<Entries::iterator, std::string> Find(const Key& key);
+    // La entrada de `key`, rasterizada y subida si no estaba, al frente de la lista. Para hacerle
+    // lugar no saca una entrada que ya está en `batch`.
+    [[nodiscard]] Core::Expected<Entries::iterator, std::string> Find(const Key& key, const SpriteBatch& batch);
     // Saca la entrada del fondo de la lista (la que hace más tiempo que no se dibuja).
     void EvictOldest();
 

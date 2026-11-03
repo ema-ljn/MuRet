@@ -212,7 +212,7 @@ Path = muret-client.log
 | `[Server] Port` | 44405 | el puerto del ConnectServer, el compilado en el original (`0x6d5dc4`) |
 | `[Server] Obfuscation` | `foxanti` | la forma de los paquetes que espera el servidor: `foxanti`, la capa de FoxAnti del servidor del laboratorio, o `none`, un servidor que habla como `main.exe`. `/u /p` no la cambia |
 | `[Data] Path` | ninguna | la carpeta `Data\` de una instalación del cliente original |
-| `[Video] Width`, `Height` | 640, 480 | el tamaño de la ventana al abrir, de 1 a 16384 |
+| `[Video] Width`, `Height` | 640, 480 | el tamaño de la ventana, que no cambia. Tiene que ser una de las cinco del original (640 × 480, 800 × 600, 1024 × 768, 1280 × 1024 y 1600 × 1200) o un modo del monitor, el del escritorio o uno de pantalla completa; si no, `Main` no abre la ventana y el log dice cuáles valen |
 | `[Video] VSync` | `on`, y `off` en el modo fiel | como `--vsync`. Con `Pacing = faithful` (o `--pacing faithful`), `on` o `adaptive` es un error que nombra `Pacing` y `VSync` |
 | `[Video] Pacing` | `decoupled` | como `--pacing` |
 | `[Video] MaxFps` | 0 (sin tope) | como `--max-fps`. Con `Pacing = faithful`, un tope que no es 0 es un error que nombra `Pacing` y `MaxFps` |

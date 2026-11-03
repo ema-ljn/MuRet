@@ -21,10 +21,10 @@ struct SkinnedMesh
     std::vector<glm::vec3> normals;
 };
 
-// 0x4ebc80 con su último argumento en 1, como el cuerpo de un personaje: cada vértice por la matriz
-// de su hueso (0x5fccc0), por la escala del objeto y más su posición; cada normal, solo girada
-// (0x5fcbd0). Devuelve false, sin escribir, si un vértice o una normal nombra un hueso que no está
-// en `bones`: el original leería fuera del arreglo.
+// 0x4ebc80 con su último argumento en 1, como dibuja 0x60cf70 cada parte de un personaje con los
+// huesos que posó 0x6001b0: cada vértice por la matriz de su hueso (0x5fccc0), por la escala del
+// objeto y más su posición; cada normal, solo girada (0x5fcbd0). Devuelve false, sin escribir, si un
+// vértice o una normal nombra un hueso que no está en `bones`: el original leería fuera del arreglo.
 [[nodiscard]] bool SkinMesh(const Data::Models::Mesh& mesh, std::span<const BoneTransform> bones,
                             const ObjectTransform& object, SkinnedMesh& out);
 } // namespace Client::Render::Models

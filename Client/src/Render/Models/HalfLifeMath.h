@@ -19,8 +19,9 @@ using BoneTransform = glm::mat4x3;
 [[nodiscard]] glm::quat AngleQuaternion(const glm::vec3& radians);
 
 // 0x5fce90: de p a q con t, como Half-Life y no como glm::slerp. Da vuelta q si Σ(p − q)² >
-// Σ(p + q)², pasa a lineal si 1 − cos ≤ 1e-8 con el cos en float, y con p y q casi opuestos gira
-// hacia un cuaternión perpendicular a p. No normaliza.
+// Σ(p + q)², y pasa a lineal si 1 − cos ≤ 1e-8 con el cos en float. La rama de p y q opuestos (hacia
+// un cuaternión perpendicular a p) está, pero después de dar vuelta el producto no es negativo y solo
+// llega un NaN. No normaliza.
 [[nodiscard]] glm::quat QuaternionSlerp(const glm::quat& p, const glm::quat& q, float t);
 
 // 0x5fc700: las cuatro componentes a 0,001 o menos. Con dos keys así, la pose copia la primera y no

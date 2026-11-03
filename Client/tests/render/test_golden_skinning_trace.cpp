@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdlib>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -61,13 +62,13 @@ constexpr float UvTolerance = 1e-5f;
 // Lo más que un vértice de MuRet puede quedar del de la traza, en unidades del mundo (una celda del
 // terreno son 100). Con el frame justo da 0,001: lo que redondea un float en coordenadas de 15.000.
 constexpr float MaxError = 0.005f;
-// Cuánto puede estar corrido el frame de la tabla del 06, en keys, y de a cuánto se busca. Un error
-// de verdad (sin el + 1 del original, la interpolación al revés, un eje cambiado) no se arregla
-// corriendo el frame unas centésimas.
-constexpr float SearchRange = 0.03f;
+// Cuánto puede estar corrido el frame de la tabla del 06, en keys (SearchSteps pasos de SearchStep
+// para cada lado), y de a cuánto se busca. La búsqueda absorbe un error que equivale a correr el
+// frame, como una t corrida pareja en todos los huesos: ese lo atrapan los PoseTest. Lo que no se
+// arregla corriendo el frame unas centésimas (sin el + 1 del original, la interpolación al revés, un
+// eje cambiado) lo atrapa este.
 constexpr float SearchStep = 0.0005f;
 constexpr int SearchSteps = 60;
-static_assert(static_cast<float>(SearchSteps) * SearchStep < SearchRange + 0.0001f);
 
 struct Part
 {
@@ -216,6 +217,67 @@ float FrameError(const Skeleton& skeleton, const std::vector<TracedMesh>& meshes
     return worst;
 }
 
+// Cada malla que se dibuja de cada parte, con los bloques de cada frame de la traza que tienen sus UV.
+// La que el original manda al slot 0x12d no se dibuja (CL6.1, SkinSlotOf).
+std::vector<TracedMesh> TraceMeshes(const GlTrace& trace, const std::vector<Part>& parts,
+                                    const std::vector<Model>& models, const std::set<std::size_t>& head)
+{
+    std::vector<TracedMesh> meshes;
+    for (std::size_t p = 0; p < models.size(); ++p)
+    {
+        for (std::size_t m = 0; m < models[p].meshes.size(); ++m)
+        {
+            const Mesh& mesh = models[p].meshes[m];
+            if (SkinSlotOf(mesh.textureName) == std::optional<std::uint16_t>{HiddenTextureSlot})
+            {
+                continue;
+            }
+            TracedMesh traced{std::string(parts[p].name) + std::to_string(parts[p].number) + ", malla " +
+                                  std::to_string(m) + " (" + mesh.textureName + ")",
+                              &mesh,
+                              Sequence(mesh, head),
+                              {}};
+            for (std::size_t f = 0; f < trace.frames.size(); ++f)
+            {
+                std::vector<const GlTraceBlock*> found;
+                for (const GlTraceBlock& block : trace.frames[f].blocks)
+                {
+                    if (SameTexCoords(block, traced.sequence))
+                    {
+                        found.push_back(&block);
+                    }
+                }
+                EXPECT_FALSE(found.empty()) << traced.label << ": ningún bloque del frame " << f << " tiene sus UV";
+                traced.blocks.push_back(std::move(found));
+            }
+            meshes.push_back(std::move(traced));
+        }
+    }
+    return meshes;
+}
+
+// El frame que más se acerca al swap `f`: cuántos pasos de SearchStep está del de la tabla, y su error.
+struct FrameFit
+{
+    int step = 0;
+    float error = std::numeric_limits<float>::infinity();
+};
+
+FrameFit FitFrame(const Skeleton& skeleton, const std::vector<TracedMesh>& meshes, std::size_t f, float tableFrame,
+                  const Scene& scene)
+{
+    FrameFit best;
+    for (int step = -SearchSteps; step <= SearchSteps; ++step)
+    {
+        const float error = FrameError(skeleton, meshes, f, tableFrame + static_cast<float>(step) * SearchStep, scene);
+        if (error < best.error)
+        {
+            best = FrameFit{step, error};
+        }
+    }
+    return best;
+}
+
 class GoldenSkinningTrace : public Client::Tests::GoldenAndGlTraceTest
 {
 protected:
@@ -246,80 +308,64 @@ protected:
         return std::move(trace).Value();
     }
 
-    // Posa Player.bmd con cada frame del 06 y compara las partes con la traza. El 06 da los frames con
-    // tres decimales: el de cada swap se busca a ±SearchRange keys del de la tabla, y con él cada
-    // vértice tiene que caer a menos de MaxError del de la traza.
-    void ExpectTheTrace(std::string_view traceName, const std::vector<Part>& parts, const std::array<float, 5>& frames,
-                        const Scene& scene)
+    // Player.bmd con su cabeza (el hueso 20, como lo deja 0x60dbe0): con los ángulos de la cabeza en 0
+    // da lo mismo que sin ella, pero el camino de la cabeza corre contra la traza.
+    std::optional<Skeleton> LoadPlayerSkeleton() const
     {
-        const std::optional<GlTrace> trace = LoadTrace(traceName);
         const std::optional<Model> player = LoadPlayerModel("Player", -1);
-        ASSERT_TRUE(trace && player);
-        ASSERT_EQ(trace->frames.size(), frames.size());
-        const auto skeleton = MakeSkeleton(*player);
-        ASSERT_TRUE(skeleton.HasValue()) << "Player.bmd: el hueso " << skeleton.Error().bone << " cuelga del "
-                                         << skeleton.Error().parent;
-        const std::set<std::size_t> head = HeadBones(skeleton.Value());
+        if (!player)
+        {
+            return std::nullopt;
+        }
+        auto skeleton = MakeSkeleton(*player);
+        if (!skeleton.HasValue())
+        {
+            ADD_FAILURE() << "Player.bmd: el hueso " << skeleton.Error().bone << " cuelga del "
+                          << skeleton.Error().parent;
+            return std::nullopt;
+        }
+        Skeleton made = std::move(skeleton).Value();
+        made.headBone = PlayerHeadBone;
+        return made;
+    }
 
+    std::optional<std::vector<Model>> LoadParts(const std::vector<Part>& parts) const
+    {
         std::vector<Model> models;
         for (const Part& part : parts)
         {
             std::optional<Model> model = LoadPlayerModel(part.name, part.number);
-            ASSERT_TRUE(model.has_value());
+            if (!model)
+            {
+                return std::nullopt;
+            }
             models.push_back(std::move(*model));
         }
-        std::vector<TracedMesh> meshes;
-        for (std::size_t p = 0; p < models.size(); ++p)
-        {
-            for (std::size_t m = 0; m < models[p].meshes.size(); ++m)
-            {
-                const Mesh& mesh = models[p].meshes[m];
-                // La que el original manda al slot 0x12d no se dibuja (CL6.1, SkinSlotOf).
-                if (SkinSlotOf(mesh.textureName) == std::optional<std::uint16_t>{HiddenTextureSlot})
-                {
-                    continue;
-                }
-                TracedMesh traced{std::string(parts[p].name) + std::to_string(parts[p].number) + ", malla " +
-                                      std::to_string(m) + " (" + mesh.textureName + ")",
-                                  &mesh,
-                                  Sequence(mesh, head),
-                                  {}};
-                for (std::size_t f = 0; f < frames.size(); ++f)
-                {
-                    std::vector<const GlTraceBlock*> found;
-                    for (const GlTraceBlock& block : trace->frames[f].blocks)
-                    {
-                        if (SameTexCoords(block, traced.sequence))
-                        {
-                            found.push_back(&block);
-                        }
-                    }
-                    EXPECT_FALSE(found.empty()) << traced.label << ": ningún bloque del frame " << f << " tiene sus UV";
-                    traced.blocks.push_back(std::move(found));
-                }
-                meshes.push_back(std::move(traced));
-            }
-        }
+        return models;
+    }
+
+    // Posa Player.bmd con cada frame del 06 y compara las partes con la traza. El 06 da los frames con
+    // tres decimales: el de cada swap se busca cerca del de la tabla, y con él cada vértice tiene que
+    // caer a menos de MaxError del de la traza, sin que el mejor quede en el borde de la búsqueda.
+    void ExpectTheTrace(std::string_view traceName, const std::vector<Part>& parts, const std::array<float, 5>& frames,
+                        const Scene& scene)
+    {
+        const std::optional<GlTrace> trace = LoadTrace(traceName);
+        const std::optional<Skeleton> skeleton = LoadPlayerSkeleton();
+        const std::optional<std::vector<Model>> models = LoadParts(parts);
+        ASSERT_TRUE(trace && skeleton && models);
+        ASSERT_EQ(trace->frames.size(), frames.size());
+        const std::vector<TracedMesh> meshes = TraceMeshes(*trace, parts, *models, HeadBones(*skeleton));
 
         for (std::size_t f = 0; f < frames.size(); ++f)
         {
-            float bestFrame = frames[f];
-            float bestError = std::numeric_limits<float>::infinity();
-            for (int step = -SearchSteps; step <= SearchSteps; ++step)
-            {
-                const float frame = frames[f] + static_cast<float>(step) * SearchStep;
-                const float error = FrameError(skeleton.Value(), meshes, f, frame, scene);
-                if (error < bestError)
-                {
-                    bestError = error;
-                    bestFrame = frame;
-                }
-            }
-            EXPECT_LT(bestError, MaxError)
+            const FrameFit fit = FitFrame(*skeleton, meshes, f, frames[f], scene);
+            const float bestFrame = frames[f] + static_cast<float>(fit.step) * SearchStep;
+            EXPECT_LT(fit.error, MaxError)
                 << "frame " << f << ": " << frames[f] << " en la tabla, " << bestFrame << " el que más se acerca";
-            EXPECT_LT(std::fabs(bestFrame - frames[f]), SearchRange)
+            EXPECT_LT(std::abs(fit.step), SearchSteps)
                 << "frame " << f << ": el mejor está en el borde de la búsqueda (" << bestFrame << ")";
-            RecordProperty("frame" + std::to_string(f), std::to_string(bestFrame) + " " + std::to_string(bestError));
+            RecordProperty("frame" + std::to_string(f), std::to_string(bestFrame) + " " + std::to_string(fit.error));
         }
     }
 };

@@ -11,6 +11,7 @@
 
 #include <bit>
 #include <cmath>
+#include <cstdint>
 #include <numbers>
 #include <vector>
 
@@ -26,6 +27,7 @@ using Client::Render::Models::BoneTransform;
 using Client::Render::Models::ObjectTransform;
 using Client::Render::Models::PoseSkeleton;
 using Client::Render::Models::QuaternionMatrix;
+using Client::Render::Models::QuaternionSlerp;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 using Client::Render::Models::VectorRotate;
@@ -234,6 +236,62 @@ TEST(PoseTest, AnActionOrAKeyOutOfRangeIsTheFirst)
     const std::vector<BoneTransform> first = Pose(SampleSkeleton(), AnimationState{0, 0.0f, 0, 0});
 
     EXPECT_EQ(outOfRange, first);
+}
+
+// Justo en el borde también: la acción que es la cantidad de acciones, y la key que es la cantidad de
+// keys, son la 0.
+TEST(PoseTest, AnActionOrAKeyJustOutOfRangeIsTheFirst)
+{
+    const std::vector<BoneTransform> atTheEdge = Pose(SampleSkeleton(), AnimationState{2, 2.0f, 2, 2});
+    const std::vector<BoneTransform> first = Pose(SampleSkeleton(), AnimationState{0, 0.0f, 0, 0});
+
+    EXPECT_EQ(atTheEdge, first);
+}
+
+// La cabeza resta sus ángulos en las dos keys que interpola, y el slerp va entre las dos.
+TEST(PoseTest, TheHeadInterpolatesBothKeys)
+{
+    Skeleton skeleton = SampleSkeleton();
+    skeleton.headBone = 1;
+    skeleton.bones[0].actions[0][1] = Key({10, 0, 0}, {0, 0, 0});
+    skeleton.bones[1].actions[0][1] = Key({10, 0, 0}, {0, 0, 90});
+    const glm::vec2 head{30.0f, 40.0f};
+
+    const std::vector<BoneTransform> bones = Pose(skeleton, AnimationState{0, 1.5f, 0, 0}, {}, head);
+
+    const glm::quat from = AngleQuaternion({Radians(-30.0f), 0.0f, Radians(-40.0f)});
+    const glm::quat to = AngleQuaternion({Radians(-30.0f), 0.0f, Radians(90.0f - 40.0f)});
+    const BoneTransform expected = QuaternionMatrix(QuaternionSlerp(from, to, 0.5f));
+    for (int column = 0; column < 3; ++column)
+    {
+        ExpectNear(bones[1][column], expected[column]);
+    }
+}
+
+// Si un hueso que se posa no tiene la key que toca, no se escribe nada.
+TEST(PoseTest, AMissingKeyIsRefused)
+{
+    Skeleton skeleton = SampleSkeleton();
+    skeleton.bones[1].actions[0].pop_back();
+    std::vector<BoneTransform> bones(skeleton.bones.size(), BoneTransform(7.0f));
+
+    EXPECT_FALSE(PoseSkeleton(skeleton, AnimationState{0, 1.5f, 0, 0}, {}, NoHead, bones));
+    EXPECT_EQ(bones[0], BoneTransform(7.0f));
+}
+
+// Un Skeleton armado a mano con un padre que no es −1 ni un hueso de antes: no se posa, como el que
+// rechaza MakeSkeleton.
+TEST(PoseTest, ABadParentIsRefused)
+{
+    for (const int parent : {1, 2, 5, -2})
+    {
+        Skeleton skeleton = SampleSkeleton();
+        skeleton.bones[1].parent = static_cast<std::int16_t>(parent);
+        std::vector<BoneTransform> bones(skeleton.bones.size(), BoneTransform(7.0f));
+
+        EXPECT_FALSE(PoseSkeleton(skeleton, AnimationState{}, {}, NoHead, bones)) << parent;
+        EXPECT_EQ(bones[0], BoneTransform(7.0f)) << parent;
+    }
 }
 
 // Con un frame que pasa de las keys, la key es la 0 pero la parte fraccionaria es la del frame: de la

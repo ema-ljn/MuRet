@@ -397,7 +397,7 @@ solo lo lee.
   (`Render/Models/HalfLifeMath`, a mano el slerp de `0x5fce90` y la igualdad de `0x5fc700`), el
   esqueleto con un cuaternión por key, la pose de `0x4eb860` y el skinning de `0x4ebc80`, en la CPU
   y sin GL. El cuerpo del personaje lleva la escala y la posición en cada vértice, no en la raíz
-  (`0x5ffdf0` con su segundo argumento en 1). Contra las dos trazas de GL del laboratorio
+  (`0x50ba30` → `0x6001b0` posa, y `0x60cf70` lleva cada parte con `0x4ebc80` en 1). Contra las dos trazas de GL del laboratorio
   (`tests/support/GlTrace`, con la variable nueva `MURET_CLIENT_GL_TRACE_DIR`), cada vértice del
   personaje de la selección y del guardia de Lorencia cae a 0,0014 o menos del original en los cinco
   frames: lo que redondea un float. Los frames que lo dan corrigieron la tabla del 06. 36 tests y 17

@@ -8,6 +8,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <cstdint>
 #include <vector>
 
 // Client::Render::Models::SkinMesh: 0x4ebc80, un hueso por vértice y sin pesos.
@@ -86,26 +87,40 @@ TEST(SkinningTest, TheNormalOnlyRotates)
     ExpectNear(skinned.normals[1], {0, 1, 0});
 }
 
-// Un hueso que no está: no escribe nada.
+// Un hueso que no está, también justo en el borde: no escribe nada.
 TEST(SkinningTest, ABoneOutOfRangeIsRefused)
 {
-    for (const bool inANormal : {false, true})
+    struct Case
+    {
+        bool inANormal;
+        std::int16_t bone;
+    };
+    for (const Case bad : {Case{false, -1}, Case{false, 2}, Case{true, -1}, Case{true, 2}})
     {
         Mesh mesh = TwoVertexMesh();
-        if (inANormal)
-        {
-            mesh.normals[1].bone = -1;
-        }
-        else
-        {
-            mesh.vertices[1].bone = 2;
-        }
+        (bad.inANormal ? mesh.normals[1].bone : mesh.vertices[1].bone) = bad.bone;
         SkinnedMesh skinned;
         skinned.positions = {glm::vec3(7.0f)};
 
-        EXPECT_FALSE(SkinMesh(mesh, TwoBones(), ObjectTransform{}, skinned)) << inANormal;
+        EXPECT_FALSE(SkinMesh(mesh, TwoBones(), ObjectTransform{}, skinned)) << bad.inANormal << " " << bad.bone;
         ASSERT_EQ(skinned.positions.size(), 1u);
         EXPECT_EQ(skinned.positions[0], glm::vec3(7.0f));
     }
+}
+
+// El SkinnedMesh se puede usar frame tras frame: queda con lo de la última malla, no lo de antes.
+TEST(SkinningTest, ReusesItsBuffers)
+{
+    Mesh small = TwoVertexMesh();
+    small.vertices.pop_back();
+    small.normals.pop_back();
+    SkinnedMesh skinned;
+
+    ASSERT_TRUE(SkinMesh(TwoVertexMesh(), TwoBones(), ObjectTransform{}, skinned));
+    ASSERT_TRUE(SkinMesh(small, TwoBones(), ObjectTransform{}, skinned));
+
+    ASSERT_EQ(skinned.positions.size(), 1u);
+    ASSERT_EQ(skinned.normals.size(), 1u);
+    ExpectNear(skinned.positions[0], {2, 2, 3});
 }
 } // namespace

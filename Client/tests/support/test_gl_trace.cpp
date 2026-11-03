@@ -124,7 +124,8 @@ TEST(GlTraceTest, ReadsTheMatricesInOrder)
 }
 
 // Una línea que no se entiende, o una que se lee con otros argumentos, es un error que dice su
-// número, contando la cabecera.
+// número, contando la cabecera. Después de la primera llamada no hay más cabecera: una línea que
+// empieza con un espacio también es un error, y un frame no se cierra con un glBegin abierto.
 TEST(GlTraceTest, AMalformedLineSaysItsNumber)
 {
     for (const std::string& bad :
@@ -132,7 +133,10 @@ TEST(GlTraceTest, AMalformedLineSaysItsNumber)
           std::string("glBegin(GL_TRIANGLES)\nesto no es una llamada\n"),
           std::string("glEnable(GL_BLEND)\nglVertex3fv([1.000000,2.000000,3.000000])\n"),
           std::string("glEnable(GL_BLEND)\nglEnd()\n"), std::string("glBegin(GL_TRIANGLES)\nglBegin(GL_TRIANGLES)\n"),
-          std::string("glBegin(GL_TRIANGLES)\nglTexCoord2f(0.5,x)\n")})
+          std::string("glBegin(GL_TRIANGLES)\nglTexCoord2f(0.5,x)\n"),
+          std::string("glBegin(GL_TRIANGLES)\n glVertex3fv([1.000000,2.000000,3.000000])\n"),
+          std::string("glEnable(GL_BLEND)\nglBindTexture(GL_TEXTURE_2D,12abc)\n"),
+          std::string("glBegin(GL_TRIANGLES)\nwglSwapBuffers(2C010564)=true \n")})
     {
         std::istringstream input(Header + bad);
 

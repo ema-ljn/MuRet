@@ -1203,14 +1203,16 @@ enum class ShinePass : std::uint8_t { Shiny /*0x8*/, Chrome /*0x4*/, Chrome4 /*0
   `mat4(mat4x3)` con la traslación en la última columna. La matemática es la de la CL6.0
   (`labs/cl6.0-huesos`) con los tipos de glm. Lo que cambió del contrato de arriba:
   - **La escala y la posición del objeto van en el vértice, no en la raíz.** El cuerpo de un
-    personaje va por `0x50ba30` → `0x5ffdf0(objeto, 1, …)`, y con ese 1 `0x5ffdf0` llama a
-    `0x4eb860` con su último argumento en 0 (la raíz es solo `AngleMatrix` de los ángulos) y a
-    `0x4ebc80` con el suyo en 1, que escala y mueve cada vértice (*estático*, en el desensamblado:
-    `0x5fff4e`..`0x5fff7a` y `0x600177`). Las posiciones dan lo mismo; las normales no se escalan, y
-    eso lo decide el brillo del PR C contra la traza. Por eso `SkinMesh` recibe el
-    `ObjectTransform`, y `TheRootCarriesTheObjectTranslation` y `TheRootScalesButTheChildrenDoNot`
-    son `PoseTest.TheRootTurnsWithTheObjectButDoesNotMoveWithIt` y
-    `SkinningTest.TheObjectScalesAndMovesTheVertices`.
+    personaje va por `0x50ba30` → `0x6001b0(objeto, 1, …)`, que solo posa: llama a `0x4eb860` con su
+    último argumento en 0 (la raíz es solo `AngleMatrix` de los ángulos). Cada parte va después por
+    `0x60cf70`, que llama a `0x4ebc80` con los huesos de `objeto + 0x120` y su último argumento en
+    1: escala y mueve cada vértice (*estático*: `0x50bbe4`..`0x50bbf7`, `0x600294`..`0x6002ce` y
+    `0x60d186`). `0x5ffdf0`, con el mismo cableado, es el de los monstruos y los NPC (antes este
+    párrafo lo daba como el del personaje; de la revisión). Las posiciones dan lo mismo; las
+    normales no se escalan, y eso lo confirmó el brillo del PR C contra la traza. Por eso `SkinMesh`
+    recibe el `ObjectTransform`, y `TheRootCarriesTheObjectTranslation` y
+    `TheRootScalesButTheChildrenDoNot` son `PoseTest.TheRootTurnsWithTheObjectButDoesNotMoveWithIt`
+    y `SkinningTest.TheObjectScalesAndMovesTheVertices`.
   - `MakeSkeleton` devuelve un `SkeletonError` con el hueso y el padre, no un `std::string`, como
     `ModelLoadError`. `PoseSkeleton` y `SkinMesh` devuelven `bool`: sin escribir, si los huesos no
     son del tamaño del esqueleto, si falta una key o si un vértice nombra un hueso que no está.
@@ -1241,6 +1243,26 @@ enum class ShinePass : std::uint8_t { Shiny /*0x8*/, Chrome /*0x4*/, Chrome4 /*0
   usa la misma fórmula: difiere en el redondeo, 1,8e-7 en la CL6.0) y la rama lineal con el cos sin
   redondear (entre 1 − 3e-8 y 1 − 1e-8 las dos ramas dan el mismo float; la CL6.0 lo veía porque
   exponía la rama elegida).
+
+  Revisión adversarial (2026-11-03, resuelta por Claude): un revisor del C++, con ASan, UBSan y sus
+  propios mutantes, y otro que contrastó cada afirmación con el desensamblado y armó su propio
+  skinning: le dieron los mismos frames, el mismo reloj y el lugar del guardia, (14.350; 12.850;
+  165). Lo que se arregló, cada cosa con un test que falló primero o que mata un mutante que vivía:
+  - `PoseSkeleton` leía fuera de `bones` con un `Skeleton` armado a mano con un padre que no va
+    antes (ASan): ahora devuelve false (`PoseTest.ABadParentIsRefused`). Se partió en
+    `LocalTransform` (regla 1).
+  - La cabeza con dos keys distintas no tenía test, y tres mutantes vivían
+    (`TheHeadInterpolatesBothKeys`). Los golden posan con la cabeza del personaje, el hueso 20.
+  - Los bordes justos: la acción y la key que son la cantidad, una key que falta, el hueso de una
+    normal justo de más y el `SkinnedMesh` que se reusa (`AnActionOrAKeyJustOutOfRangeIsTheFirst`,
+    `AMissingKeyIsRefused`, `ABoneOutOfRangeIsRefused`, `ReusesItsBuffers`).
+  - El chequeo de "el mejor está en el borde de la búsqueda" no saltaba nunca, por el redondeo de la
+    resta: ahora mira el paso, y con t corrida 0,03 salta. La búsqueda absorbe un error que equivale
+    a correr el frame; ese lo ven los `PoseTest` (y el golden del brillo, que no busca).
+  - El cuerpo del personaje no va por `0x5ffdf0`, que es el de los monstruos, sino por `0x6001b0` y
+    `0x60cf70`: se corrigieron las citas de arriba, de los headers y de PROGRESS.
+  - El lector de la traza: la cabecera solo antes de la primera llamada, el número de
+    `glBindTexture` entero y una función por llamada (regla 1).
 - [ ] **Paso 8 (PR B):** los tests, con un reloj falso y el `FixedStep` de la CL3:
   `AnimationTest.AdvancesBySpeedPerStep`, `WrapsModuloTheKeys`,
   `WrapsModuloKeysMinusOneWithLockPositions`, `HoldsJustBeforeTheLastKeyWithoutRepeat` (n − 0,01),
@@ -1268,10 +1290,14 @@ enum class ShinePass : std::uint8_t { Shiny /*0x8*/, Chrome /*0x4*/, Chrome4 /*0
 - [ ] **Paso 11 (PR C, Emanuel):** `Shine.h/.cpp`. Verificar con `-R "Shine"` y el golden. Los
   mutantes: la normal sin rotar, T en segundos, y el seno y el coseno cambiados de lugar.
 
-**Qué queda para después:** cuántos pases lleva cada ítem (P-C01 b: la CL6.R lo leyó, es el nivel
-de `0x60b3d0`, y va en la CL6.3 con `ItemGlow`), la luz por vértice de `0x4ebc80` (con `+0x44`
-del modelo; en la traza el personaje va con un color por malla), los multiplicadores de `0x4f9580`
-(CL7) y los efectos.
+**Qué queda para después:** cuántos pases lleva cada ítem (P-C01 b: la CL6.R lo leyó, es el nivel de
+`0x60b3d0`, y va en la CL6.3 con `ItemGlow`), la luz por vértice de `0x4ebc80` (con `+0x44` del
+modelo; en la traza el personaje va con un color por malla), los multiplicadores de `0x4f9580` (CL7)
+y los efectos. De la revisión, para la CL6.3: la pose con su séptimo argumento en 1 (la raíz que
+dejó quien llama en `0x68c4a1c`, como cuelgan las armas, la mascota y las alas en `0x509340`), la
+escala de los vértices de `0x6c881c` (1,2 y 1,4 en los modos 2 y 3 del contorno), y el contorno del
+personaje bajo el mouse, que para un jugador hace `0x60cf70` por parte con otros valores que los de
+`0x5ffdf0` (Q-C94 y 06 describen los de `0x5ffdf0`: verificar).
 
 ## Sub-ola CL6.3: `CharacterSelectScene` con preview 3D y los paquetes de selección
 

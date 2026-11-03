@@ -518,7 +518,7 @@ frame y `+0x34` su dibujo. Todo en **píxeles de la ventana**, como el mouse de 
 | En el administrador | Clase (vtable) | Qué es | Tamaño y lugar |
 | --- | --- | --- | --- |
 | `+0x8` | `0x6ba938` (`0x642880`, arma `0x6429b0`) | el aviso (abajo) | 352 × 113 con los slots `0x727` y `0x728`, al centro; detrás, la pantalla en negro con alfa `0x80`; botones de 54 × 30 con `0x724` y `0x725` |
-| `+0x3d0` | `0x6baa0c` (`0x6477b0`, arma `0x6478c0`) | la que abre Esc (`0x634c60`, con la lista y el menú abiertos y las demás cerradas) | sin leer |
+| `+0x3d0` | `0x6baa0c` (`0x6477b0`, arma `0x6478c0`) | la que abre Esc (`0x634c60`, con la lista y la barra de abajo abiertas, `+0x10f4` y `+0xe4c`, y las demás cerradas) | sin leer |
 | `+0x7e8` | `0x6ba988` (`0x643fd0`, arma `0x644120`) | sin identificar | sin leer |
 | `+0xe40` | `0x6ba8c8` (`0x640ef0`, arma `0x641000`) | la barra de abajo, con dos botones, el menú y los créditos (abajo) | botones de 54 × 30 (`0x10`, `0x11`) y un adorno de 189 × 103 (`0x12`); ancho W − 60, en x = 30 e y = `−11 − (int) (H · −0,945) − h` |
 | `+0x10e8` | `0x6ba9c0` (`0x644fd0`, arma `0x6451d0`) | la lista de servidores (abajo) | 21 botones de grupo de 108 × 26 (`0xc`), 16 de servidor de 193 × 26 (`0xd`) con una barra de 160 × 4 (`0xe`), aunque un grupo puede tener 20 (Q-C63), el marco en `0x17` a `0x19`; centrada |
@@ -538,11 +538,14 @@ cerrarla (`0x65f6c0`) la pasa a la cola con `0x644b90`: **la última que se abri
 El mouse sigue el mismo orden. En cada frame, `0x65fc30` les pone `+0xa9` en 0 a los botones de
 todas las ventanas (`0x669ed0`) y en 1 a los de la primera, desde la cabeza, que tiene el mouse
 adentro de su rectángulo (`vtable + 0xc` con 0, que es `0x669df0`), aunque no dibuje nada ahí; un
-botón con `+0xa9` en 0 nunca está debajo del mouse (`0x63c470`). Con el botón izquierdo apretado,
-esa ventana pasa además a la cabeza con `0x65f610`, que le pone `+0xd` (`vtable + 0x14` con 1) y
-se lo saca a la que estaba. Y `0x669f40`, que atiende cada ventana abierta, corre su `+0x30`, la
-lógica que mira los clics, solo con `+0xd`: atiende sus clics la de la cabeza. El arrastre
-(`0x65f720`) y el resto de `0x65fc30` quedan para la CL8 (P-C08).
+botón con `+0xa9` en 0 nunca está debajo del mouse (`0x63c470`). En el frame en que se aprieta el
+botón izquierdo (el `+0x1c` de `0x640940`), esa ventana pasa además a la cabeza con `0x65f610`, que
+le pone `+0xd` (`vtable + 0x14` con 1) y se lo saca a la que estaba. Y `0x669f40`, que atiende cada
+ventana abierta, corre su `+0x30`, la lógica que mira los clics, solo con `+0xd`: atiende sus clics
+la de la cabeza. El aviso es de toda la pantalla: `0x6429b0` lo arma de W × H
+(`0x669c70(W, H, −1, 0)`, el negro de atrás) y su `vtable + 8` (`0x642bc0`) mueve solo la caja, así
+que su rectángulo queda en (0, 0) y, mientras está en la cabeza, ninguna otra ventana tiene el
+mouse. El arrastre (`0x65f720`) y el resto de `0x65fc30` quedan para la CL8 (P-C08).
 
 **La barra de abajo** (`+0xe40`; *estático*). `0x641000` arma dos botones de 54 × 30 con tres
 cuadros (`0x63c330(54, 30, slot, 3, 2, 1, …)`, como los de servidor: el 0 normal, el 1 con el
@@ -558,10 +561,13 @@ la constante es el float `0xbf71eb85` (`0x6baae0`), un poco más chico que 0,945
 `fmul` multiplica el alto (`fild`) por él en la precisión de la x87, y `_ftol` trunca hacia el 0;
 con 600 da 525 (con 0,945 exacto, o con el producto redondeado a float, daría 526). El dibujo
 (`0x641440`) es el adorno y después los botones (`0x66a090`). La abre `0x4c1860` con la lista,
-después de ella: va arriba de la lista. Fuera de esa, de `0x65f300` y del constructor y el
-destructor del administrador, ninguna función nombra la barra: en el login sigue abierta con la
-cuenta y con los avisos. En 640 × 480 su rectángulo (de 30 a 610 en x y de 412 a 442 en y) pisa
-la parte de abajo del botón del grupo 20 de la lista, que va de 409 a 435 (Q-C84).
+después de ella: va arriba de la lista. Apretar en la lista la pasa arriba de la barra, hasta que
+el `F4 06` que pide el clic en un grupo (Q-C82) vuelve a abrir las dos. Fuera de `0x4c1860`, de
+`0x65f300`, del constructor y el destructor del administrador y de `0x634c60`, que mira si está
+abierta (`+0xe4c`) antes de abrir la de Esc, ninguna función nombra la barra, y ninguna la cierra:
+en el login sigue abierta con la cuenta y con los avisos. En 640 × 480 su rectángulo (de 30 a 610
+en x y de 412 a 442 en y) pisa la parte de abajo del botón del grupo 20 de la lista, que va de 409
+a 435 (Q-C84).
 
 Su lógica (`0x6411b0`, `vtable + 0x30`) mira los dos clics (`+0xea` y `+0x1ca`, el `+0xaa` de
 cada botón). El del menú abre la ventana de Esc (`0x65f690` con `+0x3d0`). El de los créditos manda
@@ -805,7 +811,7 @@ Ver [08](08-pendientes.md).
 | Texto por GDI → una textura que se sube por string | FreeType en un bit (D-C2), en las mismas cajas de 256 × 32, con una caché propia (`TextCache`) que las guarda en los slots del texto; los píxeles no son los de GDI (Q-C76); los `0x02`, con la tabla de `0x4665d0` (`ParseInlineColors`) | CL5.3 |
 | La carga dibuja sola, con su UI en 800 × 600 y un frame entero por cada uno de los 11 avances | `LoadingScene` con su juego de texturas y la barra, dentro del `SceneManager`, con un avance por paso: MuRet no carga nada en ella (`Text.bmd` lo lee `main.cpp` antes, como WinMain en `0x4b9b9f`) | CL5.4 |
 | El login carga todo otra vez cada vez que se entra (mundo 55, texturas, ventanas, CS) | `LoginScene::Enter` también cada vez: las 18 texturas, las 3 de las ventanas (que el original sube una sola vez, con los datos del juego, en `0x61ccb0`; `WindowTextureSet`, CL5.5) y `ServerSession::Start`; el mundo, como dato de la escena (`SceneWorlds.h`), lo dibuja la CL7 | CL5.4, CL5.5 |
-| El login dibuja en el frame del render loop, con la cámara, el pase 3D y lo común a las escenas | `LoginScene::Render` en un `SceneCanvas` (el lote, el texto, el fin del 2D y el pase 3D), sin el fundido (Q-C66), y al final la UI (CL5.5): la lista, la cuenta y el aviso, cada una con la mezcla normal (Q-C80); `Gl::GlFrameTarget` limpia en negro, dibuja el lote y presenta | CL5.4, CL5.5 |
+| El login dibuja en el frame del render loop, con la cámara, el pase 3D y lo común a las escenas | `LoginScene::Render` en un `SceneCanvas` (el lote, el texto, el fin del 2D y el pase 3D), sin el fundido (Q-C66), y al final la UI (CL5.5): la lista, la barra de abajo, la cuenta y el aviso, cada una con la mezcla normal (Q-C80); `Gl::GlFrameTarget` limpia en negro, dibuja el lote y presenta | CL5.4, CL5.5 |
 | Siete ventanas de la UI nueva en píxeles, con la imagen de la UI nueva (`0x647650`, la de la carga) en sus fondos; avisos por id con un texto de `Text.bmd` y un botón | `UI::` con la lista, la cuenta, el aviso y la barra de abajo, y sus imágenes con la forma de la carga (UV a medio téxel, la y desde arriba) en píxeles; la lista con 20 botones de servidor (Q-C63); el id del aviso y su texto en una tabla, la de arriba | CL5.5 |
 | Los que leen los paquetes abren las ventanas: `0x4c1860` la lista con el `F4 06`, `0x4c1e20` la cuenta con el `F1 00`, `0x4e5ebc` el aviso del `F1 01` | la `ServerSession` no conoce la UI: dice en qué estado está (`ChoosingServer`, `WaitingCredentials`, `Failed`), y la `LoginScene` abre la ventana que va cuando el estado cambia. El OK de un aviso que cierra el juego lo pide la escena (`IScene::WantsToQuit`) y lo hace `Main` (Q-C69) | CL5.5 |
 | Ventanas como clases con vtable de 22 métodos | `UI::Window` con una interfaz chica (dibujar, evento) y una clase por ventana; el administrador ordena por prioridad | CL8 |

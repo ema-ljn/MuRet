@@ -28,12 +28,14 @@
 // La escena 2 (CL5.4): el login de 0x634c60, que entra con 0x6349a0 y dibuja con 0x6350b0 (06 § El
 // login, al entrar y § El login, el dibujo), sin el logo ni el personaje (CL6) y sin la música
 // (CL10). Con la sesión, su UI (CL5.5): la lista de servidores cuando la sesión espera la elección,
-// la cuenta cuando espera la cuenta y la clave, y los avisos de 06 § Los avisos. La sesión dice qué
-// ventana va: la escena la mira en cada paso y, con lo que pide el jugador, la llama.
+// con la barra de abajo, que se abre con ella y queda hasta salir; la cuenta cuando espera la
+// cuenta y la clave, y los avisos de 06 § Los avisos. La sesión dice qué ventana va: la escena la
+// mira en cada paso y, con lo que pide el jugador, la llama.
 //
 // En cada paso se atiende solo la ventana de arriba (el aviso, la cuenta o la lista): así el Enter
-// que cierra una no le llega a la que se abre en el mismo paso. El OK de los avisos 0x1a, 0x1c,
-// 0x6f y 0x70 cierra el juego (Q-C69): la escena lo dice en WantsToQuit.
+// que cierra una no le llega a la que se abre en el mismo paso. Sin aviso, también la barra, cuyos
+// botones no se pisan con los de la cuenta ni con los de la lista (Q-C84). El OK de los avisos
+// 0x1a, 0x1c, 0x6f y 0x70 cierra el juego (Q-C69): la escena lo dice en WantsToQuit.
 namespace Client::Scenes
 {
 // Los tres textos de abajo, por su índice en Text.bmd.
@@ -63,8 +65,8 @@ public:
     // de las ventanas, de 0x61ccb0) y después conecta al ConnectServer (0x4c1340,
     // ServerSession::Start). Una textura que falta corta antes de conectar.
     Core::Expected<void, std::string> Enter() override;
-    // La UI de 0x634c60 en el paso (Q-C81): lo que pide la sesión y la ventana de arriba. La sesión
-    // la corre el SceneManager, antes.
+    // La UI de 0x634c60 en el paso (Q-C81): lo que pide la sesión, la ventana de arriba y, sin
+    // aviso, la barra. La sesión la corre el SceneManager, antes.
     void Step(const Input::InputState& input) override;
     // 0x6350b0 sin la cámara, el fundido (Q-C66) ni lo común a las escenas, y al final la UI: la
     // lista, la barra de abajo, la cuenta y el aviso, cada uno con la mezcla normal.

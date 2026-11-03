@@ -37,6 +37,7 @@ void AutoLogin::Poll()
     case SessionState::WaitingGameHello:
     case SessionState::WaitingLoginResult:
     case SessionState::LoggedIn:
+    case SessionState::QuitOrdered:
     case SessionState::Failed:
         return;
     }

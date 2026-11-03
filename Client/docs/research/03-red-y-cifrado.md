@@ -55,7 +55,12 @@ lo que dice *verificado* se vio en el cable (`muproxy.log`, 64 conexiones al CS 
   ve el error que trae la palabra alta: 1 (`FD_READ`) va a `0x4e88a0`, 2 (`FD_WRITE`) a
   `0x4e87b0`, y `0x20` (`FD_CLOSE`) muestra el texto 3 de `Text.bmd` en pantalla (`0x555190`),
   loguea "서버와의 접속종료." ("se terminó la conexión con el servidor"), cierra con `0x4e8380` y
-  abre el aviso `0x70`. Todo pasa en el hilo de la ventana.
+  abre el aviso `0x70`, que solo se ve en el login y la selección; en el juego, el frame ve después
+  el socket cerrado y abre la ventana `0x70` de la interfaz (Q-C70). Todo pasa en el hilo de la
+  ventana. Un GameServer que se apaga o se cae no manda una orden de cierre: solo cierra cada
+  socket (`gObjAllDisconnect`, en la reconstrucción del GS; el cierre programado avisa antes con
+  mensajes del servidor, `0x0D`), y lo que ve el cliente es este `FD_CLOSE`. La orden de cerrar el
+  juego es otra cosa, el `F1 02` con 0 ([04](04-protocolo.md), Q-C106).
 - **Leer:** `0x4e88a0`. Con el buffer lleno no lee y lo loguea (Q-C40). Un `recv` hasta llenar los
   `0x2000`; con 0 o con -1, por cualquier error, vuelve sin cerrar: el cierre lo hace `FD_CLOSE`.
   Con menos de 3 bytes juntos espera; si no, salta a `decode_inbound` y al corte (abajo).

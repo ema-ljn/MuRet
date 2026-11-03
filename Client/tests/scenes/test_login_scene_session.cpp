@@ -111,6 +111,7 @@ using Client::Tests::GameHello;
 using Client::Tests::GameServerReceived;
 using Client::Tests::Hello;
 using Client::Tests::LoginResult;
+using Client::Tests::LogoutResult;
 using Client::Tests::RecordingFrameTarget;
 using Client::Tests::RecordingSink;
 using Client::Tests::ServerList;
@@ -897,6 +898,30 @@ TEST(LoginSceneSessionTest, APeerCloseShowsTheConnectNotice)
     EXPECT_EQ(Harness::QuadsOf(events, LoginBackgroundSlot), 0u);
     EXPECT_EQ(Harness::QuadsOf(events, NoticeBoxSlot), 1u);
     EXPECT_TRUE(Harness::Drew(events, ConnectFailedText));
+}
+
+// La orden del GS de cerrar el juego (F1 02 con 0, Q-C106), con la cuenta abierta y el cierre del
+// GS detrás: no es un GameServerLost, así que no sale el 0x70 y la cuenta queda como estaba, con
+// su título. El original no corre otro paso después del WM_DESTROY: el Esc de ese mismo paso no
+// cancela la cuenta ni vuelve a conectar. El juego lo cierra main.cpp, con la sesión, y no la
+// escena.
+TEST(LoginSceneSessionTest, AQuitOrderLeavesTheLoginAsItWas)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheLogin());
+
+    tested.socket.reads = {LogoutResult(0)};
+    tested.socket.peerClosed = true;
+    tested.Tap(Key::Escape);
+
+    ASSERT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    const std::vector<FrameEvent> events = tested.Frame();
+    EXPECT_EQ(Harness::QuadsOf(events, LoginBackgroundSlot), 1u);
+    EXPECT_TRUE(Harness::Drew(events, "servidor Veinte-1"));
+    EXPECT_EQ(Harness::QuadsOf(events, NoticeBoxSlot), 0u);
+    EXPECT_FALSE(Harness::Drew(events, ConnectFailedText));
+    EXPECT_FALSE(tested.scene->WantsToQuit());
+    EXPECT_FALSE(tested.Logged(LogLevel::Info, "se cancela la cuenta"));
 }
 
 // El OK del 0x70 cierra el juego (Q-C69): la escena lo pide con WantsToQuit, con una línea en el

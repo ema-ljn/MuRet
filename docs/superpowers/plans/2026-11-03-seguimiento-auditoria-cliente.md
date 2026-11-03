@@ -34,12 +34,12 @@ Los nombres de tests nuevos que aparecen abajo son **propuestos**, no tests ya i
 | T1 | AUD-C01, escritura append entre sinks | Hecha en el #78, con su test rojo y verde | `fix(client): conservar las líneas de otros sinks tras vaciar el log` |
 | T2 | AUD-C02, fallo de escritura observable | Hecha en el #82 | `fix(client): informar los fallos de escritura del log` |
 | T3 | AUD-C03, fallo del driver al subir | Hecha en el #79 | `fix(client): rechazar una subida de textura que falla en GL` |
-| T4 | AUD-C04, registro de decisiones | El índice y las aclaraciones, en el #83; faltan los ADR del inventario (Claude) y los 0001 y 0002 (Emanuel) | `docs(client): ordenar las decisiones de compatibilidad pendientes` |
+| T4 | AUD-C04, registro de decisiones | Hecha: el índice y las aclaraciones en el #83, y los ADR 0003 a 0008 del inventario, uno por PR. Los 0001 y 0002 siguen reservados para Emanuel | `docs(client): ordenar las decisiones de compatibilidad pendientes` |
 | R1 a R4 | REF-C01 a REF-C04 | Opcionales, por separado | Un PR por refactor que se decida tomar |
 
 T1 está en el #78, T3 en el #79 y T2 en el #82. T3 entró antes de que la CL5.4 conectara la tabla de
 texturas con las escenas; la caché del texto de la CL5.3 ya subía por `GlTexture`. El índice de T4
-está en el #83; AUD-C04 sigue abierto hasta que estén los ADR. Ningún checkbox de esta lista
+está en el #83, y los ADR del inventario cierran AUD-C04. Ningún checkbox de esta lista
 significa que una corrección esté hecha hasta enlazar su PR y registrar su verificación.
 
 ## Restricciones globales
@@ -248,9 +248,9 @@ Los ADR individuales se planifican después de comprobar los números reservados
   cambiar la política de vaciado, abrir otra mini-spec y PR funcional, separado de T1.
 - [x] **Paso 5:** revisar los enlaces y abrir el PR documental del índice y las aclaraciones.
   Cerrar AUD-C04 solo cuando los ADR exigidos existan: el índice de pendientes no los reemplaza.
-- [ ] **Paso 6 (Claude, y los 0001 y 0002 de Emanuel):** completar los ADR del inventario, un
-  concepto por PR, con original, decisión de MuRet, motivo y tests. Actualizar el índice con los
-  enlaces y recién entonces registrar el cierre de AUD-C04 en este plan.
+- [x] **Paso 6 (resuelto por Claude; los 0001 y 0002 son de Emanuel):** completar los ADR del
+  inventario, un concepto por PR, con original, decisión de MuRet, motivo y tests. Actualizar el
+  índice con los enlaces y recién entonces registrar el cierre de AUD-C04 en este plan.
 
 **Hecho así (#83):** el paso 1 salió del [plan de la ola 0](2026-10-26-ola-0-fundaciones.md),
 pasos 2 y 3: el 0001 es el contrato wire y SQL del servidor, y el 0002, IOCP y epoll a mano; los
@@ -262,8 +262,15 @@ ritmo por defecto sigue siendo `Decoupled`; lo que ese modo cambia en un frame l
 de 1 s, queda nombrado con su Q-C44. El límite de retención de Q-C48 quedó escrito en
 `FileSink.h`, en la fila de 07 y en el README: un segundo cliente que abre pasado el tope vacía lo
 que el primero ya había escrito, lo que escribe después queda, y la política no cambia. La fila
-dice además qué prueba cada test de `FileSink`: ninguno prueba dos procesos a la vez. El paso 6
-sigue abierto: un ADR por PR, desde el 0003.
+dice además qué prueba cada test de `FileSink`: ninguno prueba dos procesos a la vez.
+
+**Hecho así (paso 6):** un ADR por PR, apilados: 0003 el serial y el rearmado, 0004 JPEG con
+libjpeg-turbo, 0005 el ritmo, 0006 el log, 0007 el keepalive y las esperas, y 0008 el wrap. Cada
+uno enlaza su fila del 07, y la fila lo enlaza a él. La fila de Q-C56 decía "cada espera
+`Waiting*`", y desde la CL5.5 `ChoosingServer` y `WaitingCredentials` no tienen tope: el 0007 la
+corrigió. Con el 0008, AUD-C04 queda cerrado. Los 0001 y 0002 son ejercicios de Emanuel en el
+camino de aprendizaje, del servidor: no son parte de AUD-C04, y siguen pendientes en el índice.
+Queda abierto, en el índice, qué otras filas de diseño del 07 merecen un ADR propio.
 
 Cada ADR posterior registra un concepto y su porqué. Esta tarea no autoriza al tutor a escribir
 la decisión que corresponde a Emanuel ni modifica el research del original para acomodar MuRet.

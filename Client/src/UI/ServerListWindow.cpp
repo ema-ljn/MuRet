@@ -365,6 +365,15 @@ void ServerListWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& t
     }
     Place(screen);
     sprites.SetBlend(Render::BlendMode::Alpha);
+    DrawBoxAndDescription(sprites, text, screen);
+    // El color del texto queda en blanco, el de la descripción, hasta el primer rótulo (Q-C83).
+    const std::uint32_t lastLabel = DrawButtons(sprites, text, screen, DescriptionColor);
+    DrawGroupTwentyTexts(text, lastLabel);
+}
+
+void ServerListWindow::DrawBoxAndDescription(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
+                                             App::PixelSize screen) const
+{
     // 1: la caja, abierta con un grupo elegido (0x645ba0).
     if (m_selected)
     {
@@ -374,10 +383,12 @@ void ServerListWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& t
         }
     }
 
-    // 2: por cada renglón, la pieza de arriba de su columna, la marca y el renglón. El color del
-    // texto queda en blanco hasta el primer rótulo (Q-C83).
+    // 2: por cada renglón, la pieza de arriba de la columna del mismo número, la marca y el
+    // renglón.
     const ServerListFrame frame = LayoutServerListFrame(m_layout, m_groupButtons.size(), m_selected, m_sizes);
-    std::uint32_t textColor = DescriptionColor;
+    static_assert(DescriptionLines == std::tuple_size<decltype(ServerListFrame::corners)>::value,
+                  "un renglón por columna");
+    const Rect& box = m_layout.description;
     for (std::size_t line = 0; line < DescriptionLines; ++line)
     {
         if (frame.corners[line])
@@ -391,14 +402,17 @@ void ServerListWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& t
         // 0x5542f0 no dibuja un texto vacío.
         if (line < m_description.size() && !m_description[line].empty())
         {
-            const Rect& box = m_layout.description;
             const int y = box.y + DescriptionTop + static_cast<int>(line) * DescriptionLineStep;
             text.Draw(Render::Text::DesignX(box.x + DescriptionLeft, screen), Render::Text::DesignY(y, screen),
                       m_description[line],
                       Render::Text::TextStyle{ListFont, Render::Text::TextColors{DescriptionColor, 0}});
         }
     }
+}
 
+std::uint32_t ServerListWindow::DrawButtons(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
+                                            App::PixelSize screen, std::uint32_t textColor) const
+{
     // 3: los botones con sus rótulos (0x66a090), primero los de grupo, y después las barras.
     const auto drawButton = [&](const Button& button)
     {
@@ -410,34 +424,40 @@ void ServerListWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& t
     };
     std::ranges::for_each(m_groupButtons, drawButton);
     const ServerGroup* group = SelectedGroup();
-    if (group != nullptr)
+    if (group == nullptr)
     {
-        for (std::size_t i = 0; i < ShownServers(); ++i)
-        {
-            drawButton(m_serverButtons[i]);
-        }
-        for (std::size_t i = 0; i < ShownServers(); ++i)
-        {
-            Render::UiImage bar = PixelImage(LoadBarSlot, m_layout.loadBars[i], m_sizes(LoadBarSlot));
-            // 0x640580 le cambia el ancho con 0x647370(ancho, 0, 1): la u de la derecha, sin medio
-            // téxel.
-            bar.width = BarWidth(group->servers[i].load);
-            bar.resizedWidth = true;
-            sprites.Image(bar);
-        }
+        return textColor;
     }
+    for (std::size_t i = 0; i < ShownServers(); ++i)
+    {
+        drawButton(m_serverButtons[i]);
+    }
+    for (std::size_t i = 0; i < ShownServers(); ++i)
+    {
+        Render::UiImage bar = PixelImage(LoadBarSlot, m_layout.loadBars[i], m_sizes(LoadBarSlot));
+        // 0x640580 le cambia el ancho con 0x647370(ancho, 0, 1): la u de la derecha, sin medio
+        // téxel.
+        bar.width = BarWidth(group->servers[i].load);
+        bar.resizedWidth = true;
+        sprites.Image(bar);
+    }
+    return textColor;
+}
 
+void ServerListWindow::DrawGroupTwentyTexts(Scenes::ITextDrawer& text, std::uint32_t color) const
+{
     // 4: con el grupo 20, sus tres textos, con el color del último rótulo (Q-C83). Uno vacío no
     // deja nada en la pantalla, como en las otras ventanas.
-    if (ShowsGroupTwentyTexts())
+    if (!ShowsGroupTwentyTexts())
     {
-        for (std::size_t k = 0; k < GroupTwentyTextCount; ++k)
+        return;
+    }
+    for (std::size_t k = 0; k < GroupTwentyTextCount; ++k)
+    {
+        if (const auto line = TextAt(m_texts, FirstGroupTwentyText + k); line && !line->empty())
         {
-            if (const auto line = TextAt(m_texts, FirstGroupTwentyText + k); line && !line->empty())
-            {
-                text.Draw(GroupTwentyLeft, GroupTwentyTop + static_cast<int>(k) * GroupTwentyStep, *line,
-                          Render::Text::TextStyle{ListFont, Render::Text::TextColors{textColor, 0}});
-            }
+            text.Draw(GroupTwentyLeft, GroupTwentyTop + static_cast<int>(k) * GroupTwentyStep, *line,
+                      Render::Text::TextStyle{ListFont, Render::Text::TextColors{color, 0}});
         }
     }
 }

@@ -144,6 +144,13 @@ private:
     [[nodiscard]] const ServerGroup* SelectedGroup() const;
     // Si el nombre del grupo elegido es el texto del grupo 20 (el strcmp de 0x6463b0).
     [[nodiscard]] bool ShowsGroupTwentyTexts() const;
+    // Los pasos de 0x6463b0: la caja y, por renglón, las piezas del marco y la descripción; los
+    // botones y las barras, que dan el color del último rótulo, o `textColor` sin ninguno; y los
+    // textos del grupo 20 con ese color.
+    void DrawBoxAndDescription(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen) const;
+    [[nodiscard]] std::uint32_t DrawButtons(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text,
+                                            App::PixelSize screen, std::uint32_t textColor) const;
+    void DrawGroupTwentyTexts(Scenes::ITextDrawer& text, std::uint32_t color) const;
 
     TextureSizes m_sizes;
     const Data::Text::TextTable* m_texts;

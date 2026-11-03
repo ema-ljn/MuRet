@@ -106,6 +106,52 @@ TEST(UiImageTest, WithoutASlotTheUvIsZero)
     }
 }
 
+// La barra de la carga (0x6402d0 y 0x640580): 0x647370 le cambia el ancho y el alto después de
+// armarla, y con ellos la u de la derecha (ancho / tw, 0x6473dd) y la v de abajo (alto / th,
+// 0x647457), sin medio téxel; la izquierda y la de arriba siguen a medio téxel. Con una barra de
+// 328 de ancho (la mitad de 656) y 15 de alto en un buffer de 4 × 16, la u llega a 82: con
+// GL_REPEAT, la textura se repite a lo largo.
+TEST(UiImageTest, AResizedImageEndsItsUvOnItsSize)
+{
+    const UiImage bar{.slot = TextureSlot{0x723},
+                      .x = 72,
+                      .y = 482,
+                      .width = 328,
+                      .height = 15,
+                      .textureWidth = 4,
+                      .textureHeight = 16,
+                      .resizedWidth = true,
+                      .resizedHeight = true};
+
+    ExpectCorners(UiImageCorners(bar, Screen640), Expected{{{72, -2, 0.125f, 0.03125f},
+                                                            {72, -17, 0.125f, 0.9375f},
+                                                            {400, -17, 82.0f, 0.9375f},
+                                                            {400, -2, 82.0f, 0.03125f}}});
+}
+
+// Cada eje por su lado: solo el ancho cambiado deja la v de abajo a medio téxel.
+TEST(UiImageTest, OnlyTheResizedSideLosesTheHalfTexel)
+{
+    UiImage bar{.slot = TextureSlot{0x723},
+                .x = 0,
+                .y = 0,
+                .width = 8,
+                .height = 15,
+                .textureWidth = 4,
+                .textureHeight = 16,
+                .resizedWidth = true};
+
+    QuadCorners corners = UiImageCorners(bar, Screen640);
+    EXPECT_EQ(corners[2].u, 2.0f);
+    EXPECT_EQ(corners[2].v, 14.5f / 16.0f);
+
+    bar.resizedWidth = false;
+    bar.resizedHeight = true;
+    corners = UiImageCorners(bar, Screen640);
+    EXPECT_EQ(corners[2].u, 7.5f / 4.0f);
+    EXPECT_EQ(corners[2].v, 15.0f / 16.0f);
+}
+
 // 0x65eeb0: W · (1/800 en float) y H · (1/600 en float), guardados en float. Ninguna inversa es
 // exacta: en 640 × 480, 0,79999995 y 0,80000001; en 800 × 600, 1 justo.
 TEST(DesignScaleTest, MultipliesByTheInverseOfTheDesign)

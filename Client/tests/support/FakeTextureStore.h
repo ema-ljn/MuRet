@@ -18,6 +18,18 @@
 // `failNextLoad`, el próximo Load falla sin subir nada.
 namespace Client::Tests
 {
+// Una llamada a la tabla, con su slot: para ver qué pasó antes, una subida o una suelta.
+struct StoreCall
+{
+    enum class Kind : std::uint8_t
+    {
+        Load,
+        Release,
+    };
+    Kind kind = Kind::Load;
+    std::uint16_t slot = 0;
+};
+
 class FakeTextureStore final : public Render::ITextureStore
 {
 public:
@@ -33,6 +45,7 @@ public:
         for (const Data::Textures::LoadedTexture& texture : textures)
         {
             loaded.push_back(texture.slot);
+            calls.push_back(StoreCall{StoreCall::Kind::Load, texture.slot});
             m_textures.insert_or_assign(texture.slot, texture);
         }
         return {};
@@ -41,6 +54,7 @@ public:
     void Release(Render::TextureSlot slot) override
     {
         released.push_back(slot.value);
+        calls.push_back(StoreCall{StoreCall::Kind::Release, slot.value});
         m_textures.erase(slot.value);
     }
 
@@ -66,6 +80,8 @@ public:
     // Los slots subidos y los soltados, en orden.
     std::vector<std::uint16_t> loaded;
     std::vector<std::uint16_t> released;
+    // Los dos, juntos y en orden.
+    std::vector<StoreCall> calls;
 
 private:
     std::map<std::uint16_t, Data::Textures::LoadedTexture> m_textures;

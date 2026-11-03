@@ -156,3 +156,30 @@ TEST(FontFilesTest, AnEmptyFaceIsNotSearched)
     EXPECT_TRUE(requests.empty());
 }
 } // namespace
+
+namespace
+{
+using Client::App::FontOpenError;
+
+// Si Open falla con las rutas de la config, su error sale tal cual: nombra el archivo que dio el
+// jugador.
+TEST(FontFilesTest, AnOpenErrorWithTheConfigKeepsItsText)
+{
+    const ClientConfig config = WithFonts(std::filesystem::path("config/normal.ttf"), std::nullopt);
+
+    EXPECT_EQ(FontOpenError(config, "no abre config/normal.ttf"), "no abre config/normal.ttf");
+}
+
+// Con una ruta de la búsqueda, el error de Open la nombraría, y su nombre puede ser el de la cara
+// (la nota de la CL5.3): sale uno que nombra la clave, sin nada del de Open.
+TEST(FontFilesTest, AnOpenErrorWithTheSearchNamesTheKey)
+{
+    const ClientConfig config = WithFonts(std::nullopt, std::filesystem::path("config/negrita.ttf"));
+
+    const std::string error = FontOpenError(config, "no abre sistema/normal.ttf");
+
+    EXPECT_NE(error.find("[Video] FontFile"), std::string::npos) << error;
+    EXPECT_EQ(error.find("sistema/"), std::string::npos) << error;
+    EXPECT_EQ(error.find("normal.ttf"), std::string::npos) << error;
+}
+} // namespace

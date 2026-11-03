@@ -75,7 +75,8 @@ arrancar la CL6.0 (L-10). De la CL6.1 en adelante, la sección de cada sub-ola d
   transiciones, y qué avanza por paso, por frame y por reloj (P-C03).
 - [07](../../../Client/docs/research/07-quirks-y-bugs.md): Q-C20 (la mascota y las alas por
   frame), Q-C21 (el fin de acción adelantado en la selección), Q-C22 (el reloj del brillo en un
-  `float`) y Q-C23 (un modelo que falta), que la CL6.R corrige.
+  `float`) y Q-C23 (un modelo que falta), que la CL6.R corrige; y Q-C29 (`wolfa02`, el OZT que
+  el cargador rechaza), porque qué dibuja una malla sin su textura es de esta ola (CL6.R, paso 6).
 - [08](../../../Client/docs/research/08-pendientes.md): P-C01 (a) a (d) y P-C06.
 - [09](../../../Client/docs/research/09-datos-disponibles.md): qué modelos hay (1.962) y faltan
   (`Monster50`), qué cargador pide cada uno (`0x60dbe0` el personaje), las texturas de los pases
@@ -96,18 +97,18 @@ mostraron las trazas; *inferido*, lo que se deduce:
 | Qué | Dónde | Qué hace |
 | --- | --- | --- |
 | el nombre del archivo | `0x60da30(modelo, carpeta, nombre, número)` | `"%s.bmd"` con el número en -1 (`0x6c9e74`), `"%s0%d.bmd"` con uno menor que 10 (`0x6c9e68`) y `"%s%d.bmd"` con los demás (`0x6c9e5c`). Con `DAT_006c9e0c` en 1 (el de la `.data`, el modo `Data\`) lee con `0x4f13d0`; si el archivo no abre, `"%s file does not exist."` (`0x6c9e28`), `MessageBoxA` y `WM_DESTROY` **solo si el nombre es `Monster`, `Player` o `PlayerTest`** (`0x60daec`, `0x60db24`, `0x60db5c`); cualquier otro se saltea sin avisar. *Estático* |
-| leer un `.bmd` | `0x4f13d0`, con `"rb"` (`0x4f1408`) | el archivo entero; el byte 3 es la versión. Con `0x0C`, el tamaño en `+4` (u32) y el resto cifrado con K16 desde `+8` (la clave, la semilla y el paso de `Data/Terrain/K16.h`, escritos otra vez adentro); con cualquier otra versión, en claro desde `+4`. No mira el `"BMD"` ni que los tamaños entren. Nombre en `+0`, mallas en `+0x20`, huesos en `+0x22`, acciones en `+0x24` (int16), y de cada triángulo copia los primeros 36 de sus 64 bytes. Calcula el cuaternión de cada key con `0x5fcd20`. Al final, `0x4f1f20(0)`: sin hueso de la cabeza (`+0x54` en -1) y las cajas de cada hueso (`0x4f1f80`). *Estático* |
+| leer un `.bmd` | `0x4f13d0`, con `"rb"` (`0x4f1408`) | el archivo entero; el byte 3 es la versión. Con `0x0C`, el tamaño en `+4` (u32) y el resto cifrado con K16 desde `+8` (la clave, la semilla y el paso de `Data/Terrain/K16.h`, escritos otra vez adentro); con cualquier otra versión, en claro desde `+4`. No mira el `"BMD"` ni que los tamaños entren. Nombre en `+0`, mallas en `+0x20`, huesos en `+0x22`, acciones en `+0x24` (int16), y de cada triángulo copia los primeros 36 de sus 64 bytes. De cada malla, lo que sigue al `_` del nombre de su textura es un script (`0x459940`: las letras `R`, `H`, `S` y `N` y una bandera más, en cinco bytes que la malla guarda en `+0x24`, o 0 sin script). De cada acción escribe `+0` en 0, las keys y `lock_positions`, y no `+4`: el arreglo sale de `operator new` sin limpiar, y la velocidad de una acción que `0x60dbe0` no escribe es lo que había en el heap. Calcula el cuaternión de cada key con `0x5fcd20`. Al final, `0x4f1f20(0)`: sin hueso de la cabeza (`+0x54` en -1) y las cajas de cada hueso (`0x4f1f80`). *Estático* |
 | `0x4f1ac0` | con `"wb"` (`0x4f1adc`) | **escribe** un `.bmd`: `'B'`, `'M'`, `'D'` y la versión `0x0C`. Lo llama `0x60da30` solo con `DAT_006c9e0c` en 0, el modo de desarrollo que lee `Data2\`. El research lo da como el cargador (Q-C23, 09): la CL6.R lo corrige. *Estático* |
 | el personaje | `0x60dbe0`, desde `0x61ccb0` (la carga, paso 1 de 10) | la tabla de modelos (`0x489d` de `0xe0` bytes, con la base corrida `rand() & 0x3ff` modelos: no se reproduce, pregunta 4); `Player.bmd` en el `0x20a`, y si trae mallas, `"Player.bmd file error!!!"` y `WM_DESTROY` (quirk nuevo); las partes por clase (`HelmClass` a `BootClass` del 1 al 5 en `0x2212` y siguientes) y las del equipo (`HelmMale` N en `0x1011` + N, `ArmorMale` en `0x1211` + N, y así), con tres huesos en el modelo (`+0x54`, la cabeza, en 20; `+0x58` en 6 y `+0x5c` en 13, los pies, *inferido*), y la velocidad de cada acción. *Estático* |
 | la velocidad | `0x60dbe0`, después de `Player.bmd` | 181 escrituras en `+4` de las acciones de `0x10` bytes, en rangos y sueltas, y las de después pisan a las de antes: 148 acciones con velocidad, 57 sin ninguna (la 0 y de la 34 a la 63, entre otras), y cuatro que no repiten (`+0` en 1: la 68, la 193, la 195 y la 196). 0,28 de la 1 a la 12 salvo la 3 (0,26), la 4 y la 5 (0,24) y la 7 y la 8 (0,22); 0,3 de la 13 a la 33 salvo la 21 y la 29 (0,35). *Estático*; la 3 y la 1, *verificado* con el reloj de la traza (06) |
-| las texturas de un modelo | `0x60d530(primero)` y `0x60d5f0(modelo, carpeta, wrap, filtro, …)` | `0x60d530` fija el próximo slot libre. Por cada malla, `0x60d550` busca su nombre en los slots desde el 0 hasta el próximo: si está, la malla usa ese; si no, carga `carpeta + nombre` en el próximo y lo corre. El cargador es por la letra después del primer punto (`'t'` el OZT, siempre con `GL_NEAREST`; otra el OZJ, con `filtro`), y el wrap es `wrap`. Después, los nombres que empiezan con `ski` o `level` pasan al slot `0x12e`, `hid` al `0x12d` y `hair` al `0x137` (la piel y el pelo, que el dibujo cambia por clase). El login no llama a `0x60d530`: su `Logo03` va donde dejó el próximo la última carga (quirk nuevo). *Estático* |
-| la pose | `0x4eb860` | por hueso, entre la key entera anterior (la acción y la key que guarda el objeto) y la de ahora, con la parte fraccionaria del frame: `0x5fce90` (slerp) entre los cuaterniones, salvo que `0x5fc700` los dé iguales (cada componente a 0,001 o menos, el double `0x6b8a88`), y lineal entre las posiciones. El hueso de la cabeza resta a su ángulo x el `+0x28` del objeto y a su z el `+0x2c` (en grados por el π/180 en float de `0x6ba140`; `0x4eb9ff`..`0x4eba1d`) y pasa a cuaternión con `0x5fcd20`. La raíz con `lock_positions` toma x e y de la key 0 y suma `+0x84` a la z. La raíz cuelga del objeto: `0x5fc8f0` (los ángulos, en grados, π/180 en `0x6ba360`), la escala de `+0x68` y la posición. Los huesos dummy no se posan. Después, `0x4ebc80` lleva cada vértice al mundo con `0x5fccc0` y cada normal con `0x5fcbd0`. *Estático*; la pose entera, *verificado* contra las trazas (06) |
+| las texturas de un modelo | `0x60d530(primero)` y `0x60d5f0(modelo, carpeta, wrap, filtro, …)` | `0x60d530` fija el próximo slot libre. Por cada malla, `0x60d550` busca su nombre en los slots desde el 0 hasta el próximo: si está, la malla usa ese; si no, carga `carpeta + nombre` en el próximo y lo corre. El cargador es por la letra después del primer punto, con `tolower` (`0x6a0cce`: `'t'` o `'T'` el OZT, siempre con `GL_NEAREST`; otra el OZJ, con `filtro`), y el wrap es `wrap`. Después, los nombres que empiezan con `ski` o `level` (en minúsculas, byte a byte) pasan al slot `0x12e`, `hid` al `0x12d` y `hair` al `0x137` (la piel y el pelo, que el dibujo cambia por clase). El login no llama a `0x60d530`: su `Logo03` va donde dejó el próximo la última carga (quirk nuevo). *Estático* |
+| la pose | `0x4eb860` | por hueso, entre la key entera anterior (la acción y la key que guarda el objeto) y la de ahora, con la parte fraccionaria del frame: `0x5fce90` (slerp) entre los cuaterniones, salvo que `0x5fc700` los dé iguales (cada componente a 0,001 o menos, el double `0x6b8a88`), y lineal entre las posiciones. El hueso de la cabeza resta a su ángulo x el `+0x28` del objeto y a su z el `+0x2c` (en grados por el π/180 en float de `0x6ba140`; `0x4eb9ff`..`0x4eba1d`) y pasa a cuaternión con `0x5fcd20`. El hueso 0 (por su índice, no por no tener padre), si la acción anterior o la de ahora tiene `lock_positions`, toma x e y de la key 0 de la de ahora y suma `+0x84` a la z interpolada. La raíz cuelga del objeto: `0x5fc8f0` (los ángulos, en grados, π/180 en `0x6ba360`), la escala de `+0x68` y la posición. Los huesos dummy no se posan. Después, `0x4ebc80` lleva cada vértice al mundo con `0x5fccc0` y cada normal con `0x5fcbd0`. *Estático*; la pose entera, *verificado* contra las trazas (06) |
 | la matemática | `0x5fcd20`, `0x5fce90`, `0x5fcdb0`, `0x5fca90`, `0x5fc8f0`, `0x5fccc0`, `0x5fcbd0` | la de Half-Life: `AngleQuaternion` (medio ángulo con el double 0,5 de `0x6ba718`, Rz · Ry · Rx), `QuaternionSlerp` (da vuelta q en el lugar si Σ(p − q)² > Σ(p + q)²; lineal si 1 − cos ≤ 1e-8, el double `0x6ba728`; el caso perpendicular, con π/2 en `0x6ba720`, no corre después de dar vuelta), `QuaternionMatrix` (3 × 4), `R_ConcatTransforms`, `AngleMatrix`, `VectorTransform` y `VectorRotate`, en la x87. *Estático* |
-| el avance | `0x4ec200` (`ret 0x18`) | `frame += velocidad`; al cambiar la key entera, guarda la vieja y su acción como anteriores. Con el frame en 0 o menos, le suma las keys menos 1; al pasar la última, módulo las keys (o las keys menos 1 con `lock_positions`) si repite, o se queda en las keys menos 0,01 (`0x6b88d4`) si no. En la escena 4 decide "terminó" con el frame + 2 (`0x6b8818`, `0x4ec2ea`), y el módulo usa el real (Q-C21). *Estático*; los saltos de 33 y 34 pasos, *verificado* (06) |
+| el avance | `0x4ec200` (`ret 0x18`) | solo si el modelo tiene acciones y la de ahora más de una key (si no, ni avanza ni termina): `frame += velocidad`; al cambiar la key entera, guarda la vieja y su acción como anteriores. Con el frame en 0 o menos, le suma las keys menos 1; al pasar la última, módulo las keys (o las keys menos 1 con `lock_positions`) si repite, o se queda en las keys menos 0,01 (`0x6b88d4`) si no. En la escena 4 decide "terminó" con el frame + 2 (`0x6b8818`, `0x4ec2ea`), y el módulo usa el real (Q-C21). *Estático*; los saltos de 33 y 34 pasos, *verificado* (06) |
 | entrar a la selección | `0x633f20`, desde `0x6342c0` | el mapa 54 (`0x61a560(0x36)`, `World55`), sus texturas (`0x61ca30`), un objeto con el modelo `0xa9` (`0x511290`, sin leer), ningún personaje elegido (-1), la UI en el modo 4 (`0x65f4b0`), y el texto 1240 de `Text.bmd` con los dos números de `pkt[5]` de la lista, si alguno no es 0. *Estático*; lo de `0x4e79a0`, `0x40f370` y `0x40b240` es del anticheat y no se lee |
 | las texturas de la selección | `0x61ca30` | `Interface\cha_id`, `cha_bt`, `deco`, `b_create`, `server_menu_b_all`, `b_connect`, `b_delete` y `character_ex` (`.tga`, slots `0xc` a `0x13`), `Logo\character_back01.jpg` y `02` (`0x717`, `0x718`), `Effect\Impack03.jpg` (`0x719`) y `Logo\chasellight.jpg` (`0x729`), todas con `0x2600` y `0x2900`; los modelos `0xa4` (`Logo05.bmd`) y `0xa8` a `0xac` (`NewFace01` a `05.bmd`), con sus texturas desde el slot `0x6f8`, y la velocidad 0,3 en las acciones 0 y 1 de cada `NewFace`. *Estático* |
-| el dibujo | `0x634680` | sale si no entró o la conexión está antes de `0x33`; la cámara (`0x635ae0`, la ruta 5, que no se mueve) y los dos fondos 2D (`0x621b60(0x717, 0, 25, 320, 320, …)` y el `0x718` en x = 320); el pase que no dibuja (`0x620db0(0, 0, w, 48)`); `glClearColor(0, 0, 0, 1)`; el pase 3D en `0x620db0(0, 25, 640, 430)`; los cinco primeros personajes en z = 163; con uno elegido, la luz `0x5f9780` y `0x620980`; el terreno (`0x5fc260`), los personajes (`0x510d00`, `0x59ec80`), los objetos (`0x53c6a0`) y los efectos; con uno elegido, dos `0x53fe70(0x729, …)` (la luz de abajo) y el nombre (`0x4129f0`); el 2D y la UI. *Estático*; la cámara, el viewport, los fondos y el personaje en z = 163, *verificado* (abajo) |
-| la lógica | `0x6342c0` | Enter (`GetAsyncKeyState(0xd) == 0x8001`) con cuatro ventanas cerradas y uno elegido del 0 al 4 suena el `0x19`; con el bit `0x1` de su `+0x1d8`, el aviso `0x84`; si no, copia su clase, su nivel y su nombre al personaje propio, suelta los slots `0xc` a `0x1d` y `0x6f8` a `0x71d` y los modelos (`0x61cc50`) y pasa a la escena 3. Esc suena el `0x19` y abre la ventana `+0x3d0`. El clic elige el que está bajo el mouse (`DAT_006c8e30`, de `0x59ec80` → `0x59e700`: un rayo contra la caja de cada personaje, `0x622900`), y el doble clic entra. *Estático* |
+| el dibujo | `0x634680` | sale si no entró o la conexión está antes de `0x33`; la cámara (`0x635ae0`, fija en la escena 4: pisa la ruta 5 que `0x633920` movió en la lógica) y los dos fondos 2D (`0x621b60(0x717, 0, 25, 320, 320, …)` y el `0x718` en x = 320); el pase que no dibuja (`0x620db0(0, 0, w, 48)`); `glClearColor(0, 0, 0, 1)`; el pase 3D en `0x620db0(0, 25, 640, 430)`; los cinco primeros personajes en z = 163 y con la luz `+0xf4` en (0, 0, 0); con uno elegido, la suya en (1, 1, 1) y la luz del terreno `0x5f9780` en su lugar, entre `0x620a90` y `0x620980`; el terreno (`0x5fc260`), los personajes (`0x510d00`, `0x59ec80`), los objetos (`0x53c6a0`) y los efectos; con uno elegido, su `+0xf4` en 0,15, dos `0x53fe70(0x729, …)` (la luz de abajo) y el nombre (`0x4129f0`); el 2D y la UI. *Estático*; la cámara, el viewport, los fondos y el personaje en z = 163, *verificado* (abajo) |
+| la lógica | `0x6342c0` | Con el estado antes de `0x33` no hace nada. Enter (`GetAsyncKeyState(0xd) == 0x8001`) con cuatro ventanas cerradas y uno elegido del 0 al 4 suena el `0x19`; con el bit `0x1` de su `+0x1d8`, el aviso `0x84`; si no, copia su clase, su nivel y su nombre al personaje propio, suelta los slots `0xc` a `0x1d` y `0x6f8` a `0x71d` y los modelos (`0x61cc50`) y pasa a la escena 3. Esc suena el `0x19` y abre la ventana `+0x3d0`. Con `+0x8de8` de la UI en 0, el clic elige el que está bajo el mouse (`DAT_006c8e30`, de `0x59ec80` → `0x59e700`: un rayo contra la caja de cada personaje, `0x622900`), y sobre ninguno deja ninguno elegido (-1); el doble clic, con la bandera `+0x7f5c` de la UI, elige el de abajo y entra como Enter, sin el sonido. *Estático* |
 | la lista | `0x4c20a0`, `F3 00` | `pkt[4]` a `0x622b20` (lo lee la ventana de crear, `0x63d7c0`: las clases que se pueden crear, *inferido*), las dos mitades de `pkt[5]` al texto 1240, `pkt[6]` la cantidad (0: estado `0x33` y nada más), y desde `pkt[7]` una entrada de `0x22` bytes por personaje: `[0]` el lugar (0 a 4, con una posición fija cada uno), `[1..10]` el nombre, `[0xc..0xd]` el nivel (*inferido*), `[0xe]` las banderas (`0x1`: bloqueado), `[0xf]` la clase (`0x517270` recibe `((b & 0x10) | (b >> 4)) >> 1`: la clase y la segunda clase en el bit 3), `[0x10..0x20]` el equipo (`0x5139f0`) y `[0x21]` a `+0x368` (sin leer). Un lugar de más de 4 deja la posición del anterior (quirk nuevo). No mira el largo del paquete. *Estático*; `C1 29` (7 + 34) en el cable, *verificado* (04) |
 | la carga del mundo | `0x6356f0` (escena 3) | sube `Interface\LSBg01` a `04.JPG` a `0x71e`..`0x721`, arma una ventana (`0x640c10`), dibuja **un** frame (`0x620db0(0, 0, 640, 480)`, `glClear`, el 2D, `0x640ea0`, `SwapBuffers`), pasa a la 5 y suelta los cuatro. *Estático* |
 | el `F3 03` | `0x636290`, el primer paso de la escena 5 | loguea `> Character selected <%d> %s` (el nombre) y, con `DAT_07d366bc` en 0 (nadie lo escribe, CL5.R: siempre), pasa al estado `0x3c` y manda `C1 0E F3 03` con el nombre y el XOR32 (`0x6362b2`..`0x63638d`). **No lo manda la selección.** *Estático*; la forma, *verificado* en el cable (04) |
@@ -119,8 +120,8 @@ mundo es la misma en los cinco frames (`glRotatef` Y 0°, X −84,5°, Z −45°
 −14.482; −543)`, la perspectiva con cot 17,5° = 3,171595, o sea 35°, y el aspect 1024/688); antes
 van la perspectiva de 45° que no dibuja, los dos fondos (`0x717` y `0x718`, de (0, 728) a (512,
 216) y de (512, 728) a (1024, 216) en 1024 × 768) y el pase de la franja de arriba; y las mallas
-del personaje están centradas en el lugar 0 de `0x4c20a0`, (12.880; 15.046), con el vértice más
-bajo de las botas en z = 163.
+del personaje caen alrededor del lugar 0 de `0x4c20a0`, (12.880; 15.046), con los pies a la
+altura de z = 163 (el vértice más bajo de las botas queda apenas por debajo).
 
 **Lo que el binario dice distinto del research o del roadmap** (la CL6.R lo corrige donde está):
 - **El `F3 03` sale de la escena 5, no de la selección.** El roadmap pone "los paquetes de
@@ -194,7 +195,8 @@ bajo de las botas en z = 163.
    `glm::translate` son `gluPerspective`, `glRotatef` y `glTranslatef`. `glm::slerp` no es el de
    `0x5fce90`: da vuelta cuando el producto es negativo (el original compara Σ(p − q)² con
    Σ(p + q)², que con cuaterniones unitarios es lo mismo salvo el redondeo), pasa a lineal con
-   `cos > 1 − epsilon<float>()` (el original, con `1 − cos ≤ 1e-8` en double) y no toca q.
+   `cos > 1 − epsilon<float>()` (el original, con `1 − cos ≤ 1e-8` en double, pero con el cos ya
+   redondeado a float, `0x5fcf10` y `0x5fcf26`: en float, solo con el cos en 1) y no toca q.
    *Recomendación:* glm para los tipos, `AngleQuaternion`,
    `QuaternionMatrix`, la composición de matrices y la cámara; a mano el slerp de `0x5fce90` y la
    igualdad de `0x5fc700`, que son pocas líneas y lo que se espera de ellas es la salida del
@@ -238,10 +240,11 @@ bajo de las botas en z = 163.
     tocar lo demás: la selección se usa sin ella con una cuenta que ya tiene personajes.
 11. **El logo y el personaje del login.** *Recomendación:* una CL6.4 después de la selección, con
     lo que ya sirve para ella (modelos, pose, apariencia, pase 3D): el `0xa2` con su luz que sube
-    (`0x604ab0`) y el personaje 2 con su equipo, su mascota y el cuervo como objeto aparte. Las
-    cámaras de las rutas 1 a 4 de `0x635ae0` y la acción `0x54` o `0x55` al azar de `0x634c60`
-    van con ella. El efecto `0xbf` no: es de la ola de los efectos, que el roadmap no tiene
-    todavía (va al cerrar).
+    (`0x604ab0`) y el personaje 2 con su equipo, su mascota y el cuervo como objeto aparte. La
+    acción `0x54` o `0x55` al azar de `0x634c60` va con ella. La cámara no: la del login es fija
+    (`0x635ae0` en la escena 2, `LoginCamera` de la CL6.3), y las rutas de `0x633920` (en la
+    escena 2, una de las 1 a 4 al azar) corren en la lógica, pero el dibujo las pisa. El efecto
+    `0xbf` tampoco: es de la ola de los efectos, que el roadmap no tiene todavía (va al cerrar).
 12. **La traza como oráculo.** El skinning, el brillo y la cámara se comparan con las trazas de
     GLIntercept, que están en las ramas `pr45` a `pr45d` del lab, comprimidas. *Recomendación:* una
     variable nueva, `MURET_CLIENT_GL_TRACE_DIR`, que apunta a una carpeta fuera de Git con las dos
@@ -273,7 +276,8 @@ Cada uno tiene su test en la sub-ola que lo dice. En la review se miran primero:
   `PoseTest.TheRootCarriesTheObjectTranslation`).
 - **Grados y radianes en la misma función.** Los ángulos de las keys del `.bmd` van en radianes, y
   los del objeto y los de la cabeza en grados (por el π/180 en float de `0x6ba360` y `0x6ba140`).
-  `glm::rotate` pide radianes (CL6.2 y CL6.3, `Pass3DTest.MatchesTheMatricesOfTheSelectionTrace`).
+  `glm::rotate` y el fov de `glm::perspective` piden radianes, y `glRotatef` y `gluPerspective`,
+  grados (CL6.2 y CL6.3, `Pass3DTest.MatchesTheMatricesOfTheSelectionTrace`).
 - **El frame de la traza es uno menos.** El original guarda f + 1 y ⌊f⌋ como anterior, y posa
   entre las dos: los frames de la tabla del 06 (1,737, 3,320…) son los de la pose, y el estado
   del original va una key adelante. El test de la traza arma el estado como el original
@@ -295,6 +299,12 @@ Cada uno tiene su test en la sub-ola que lo dice. En la review se miran primero:
   siguiente salen tapados (nota de la CL5.2; CL6.3,
   `GlModelRendererTest.TheTwoDAfterTurnsTheDepthOff`). La mezcla aditiva escribe sin profundidad
   (`glDepthMask(false)`, 06).
+- **La profundidad es de 16 bits.** El original pide `cDepthBits` 16 (`0x4b8e10`), lo mismo que
+  SDL3 da por defecto, y `Platform/Window.cpp` hoy no la pide. La CL6.3 la pide explícita
+  (`SDL_GL_DEPTH_SIZE` en 16) y el framebuffer de los tests usa `GL_DEPTH_COMPONENT16`: así los
+  tests de GL y la ventana tienen la misma precisión. GL 3.3 arranca con `GL_LESS`, `GL_BACK` y
+  `GL_CCW`, y el original no llama a `glCullFace` ni a `glFrontFace` (ni el binario ni la traza):
+  el pase pone `GL_LEQUAL` y deja los otros dos como vienen.
 - **El color por vértice pasa de 1.** La luz del original llega a 1,34 y la función fija la recorta
   a 1 antes de rasterizar: el shader recorta igual (`GlModelRendererTest.ClampsTheColorToOne`).
 - **El aspect es el del viewport.** `gluPerspective` va con el ancho y el alto del viewport
@@ -354,11 +364,13 @@ qué no `EXPECT_FLOAT_EQ` después de una cadena de productos).
   `glm::quat(glm::vec3)`, componente a componente), `TheMatrixIsTheSameRotation` (contra
   `glm::mat3_cast`, dando vuelta filas y columnas), `QAndMinusQAreTheSameMatrix`.
 - [ ] **Paso 3 (Emanuel):** `Labs::HalfLifeSlerp(Quat p, Quat q, float t) -> Quat`, como
-  `0x5fce90`: la vuelta si Σ(p − q)² > Σ(p + q)², lineal si 1 − cos ≤ 1e-8 (en double) y el caso
-  perpendicular. Tests: `SlerpTest.HalfWayIsTheMiddleRotation`, `TheFlipIsGlmsForUnitQuaternions`
-  (para unitarios, Σ(p − q)² > Σ(p + q)² es el producto negativo: mismo resultado que
-  `glm::slerp` con tolerancia), `GoesLinearOnlyBelowOneInAHundredMillion` (con 1 − cos = 5e-8,
-  Half-Life usa senos y glm ya es lineal: se ve qué rama corre con `Labs::SlerpBranch(p, q)`),
+  `0x5fce90`: la vuelta si Σ(p − q)² > Σ(p + q)², lineal si 1 − cos ≤ 1e-8 (en double, con el cos
+  ya redondeado a float) y el caso perpendicular. Tests: `SlerpTest.HalfWayIsTheMiddleRotation`,
+  `TheFlipIsGlmsForUnitQuaternions` (para unitarios, Σ(p − q)² > Σ(p + q)² es el producto
+  negativo: mismo resultado que `glm::slerp` con tolerancia),
+  `GoesLinearOnlyBelowOneInAHundredMillion` (con el cos en `std::nextafter(1.0f, 0.0f)`, o sea
+  1 − cos = 2⁻²⁴, unos 6e-8: Half-Life usa senos y glm ya es lineal; con el cos en 1, los dos son
+  lineales; se ve qué rama corre con `Labs::SlerpBranch(p, q)`),
   `ThePerpendicularCaseNeverRunsAfterTheFlip`.
 - [ ] **Paso 4 (Emanuel):** `Labs::PoseChain(std::span<const Labs::Bone>) ->
   std::vector<Matrix34>` (cada hueso con su padre, posición y ángulos; el padre antes) y
@@ -387,25 +399,29 @@ pasa al research. Lo que solo se ve con una traza o una captura queda como pendi
 cierra. Nada del anticheat: las llamadas de hash de la selección (`0x4e79a0`, `0x40f370`,
 `0x40b240`) se nombran y no se leen.
 
-**Archivos:** modificar `Client/docs/research/05-formatos-de-datos.md` (§ Modelos bmd: el lector,
-la versión, el nombre de cada archivo, los faltantes), `06-render-escenas-y-ui.md` (§ Modelos y
+**Archivos:** modificar `Client/docs/research/05-formatos-de-datos.md` (§ Modelos bmd: el lector, la
+versión, el nombre de cada archivo, los faltantes), `06-render-escenas-y-ui.md` (§ Modelos y
 objetos, § Cuánto avanza la animación con la tabla entera de velocidades, y una sección nueva, "La
-selección de personaje"), `04-protocolo.md` (los `F3` campo por campo), `02-arranque-y-ciclo-de-
-vida.md` (la escena 3 y el `F3 03` de la 5), `07-quirks-y-bugs.md` (Q-C23 corregido y los quirks
-nuevos, con número), `08-pendientes.md` (P-C01 y P-C06 cerrados o con lo que falte),
-`09-datos-disponibles.md` (`0x4f1ac0` y `Monster50`), PROGRESS y este plan.
+selección de personaje"), `04-protocolo.md` (los `F3` campo por campo),
+`02-arranque-y-ciclo-de-vida.md` (la escena 3 y el `F3 03` de la 5), `07-quirks-y-bugs.md` (Q-C23
+corregido, Q-C29 con lo que dibuja la CL6 y los quirks nuevos, con número), `08-pendientes.md`
+(P-C01 y P-C06 cerrados o con lo que falte), `09-datos-disponibles.md` (`0x4f1ac0` y `Monster50`),
+PROGRESS y este plan.
 
 Cada paso se lee con `objdump -d -M intel --start-address=A --stop-address=B` sobre el
 `main.exe` de `c32bbd5f`, con el decompilado al lado; los rangos van en cada paso.
 
 - [ ] **Paso 1 (el archivo):** `0x60da30`..`0x60dbdd`, `0x4f13d0`..`0x4f1aba` y
-  `0x4f1ac0`..`0x4f1f1c`: los tres formatos del nombre, el modo de `DAT_006c9e0c` (quién lo
-  escribe, si alguien), qué hace el lector con una versión que no es `0x0C`, qué copia de cada
-  parte (los 36 de 64 bytes del triángulo, los 12 bytes por key de `lock_positions`, la normal de
-  20 bytes) y qué deja en `+4` de cada acción (la velocidad que tiene una acción sin escritura de
-  `0x60dbe0`). `0x4f1f20` y `0x4f1f80`: el hueso de la cabeza en -1 y las cajas de los huesos (las
-  que usa el picking, CL6.3). Q-C23 se corrige: el cargador es `0x4f13d0`, y los tres nombres que
-  cierran el juego; 09, con `Monster50`.
+  `0x4f1ac0`..`0x4f1f1c`: los tres formatos del nombre, el modo de `DAT_006c9e0c` (vale 1 en la
+  `.data` y `0x60dbe0` lo vuelve a poner en 1 después de `Player`: si algo lo pone en 0), qué hace
+  el lector con una versión que no es `0x0C`, qué copia de cada parte (los 36 de 64 bytes del
+  triángulo, los 12 bytes por key de `lock_positions`, la normal de 20 bytes), el script de la
+  textura de cada malla (`0x459940` y `0x459910`: qué prende cada letra, y qué nombres del
+  laboratorio lo traen), y que no escribe `+4` en ninguna acción (el arreglo sale de
+  `operator new` sin limpiar: quién usa la velocidad de una acción sin escritura de `0x60dbe0`).
+  `0x4f1f20` y `0x4f1f80`: el hueso de la cabeza en -1 y las cajas de los huesos (las que usa el
+  picking, CL6.3). Q-C23 se corrige: el cargador es `0x4f13d0`, y los tres nombres que cierran el
+  juego; 09, con `Monster50`.
 - [ ] **Paso 2 (el personaje):** `0x60dbe0`..`0x60f76f` entero: cada modelo que carga, con su
   número, su carpeta, su nombre y su número de archivo (la tabla que prueba `PlayerModelFiles`), las
   181 escrituras de velocidad en orden (la tabla de `PlayerActionSpeeds`), las cuatro que no
@@ -424,9 +440,14 @@ Cada paso se lee con `objdump -d -M intel --start-address=A --stop-address=B` so
   bandera (`param_8` y `param_9`: cuándo la raíz no toma los ángulos del objeto y cuándo no toma la
   escala y la posición), quién escribe `+0x84` (la z que suma la raíz con `lock_positions`), que los
   huesos dummy no se posan (se queda lo que había), y la cabeza: el desensamblado resta el `+0x28`
-  del objeto al ángulo x y el `+0x2c` al **z** (`0x4eb9ff`..`0x4eba1d`), no al y como dice 06. (a):
-  quién escribe `+0x28` y `+0x2c` en los personajes (`0x4fd5f0` y lo que llama). (d): si algo lee
-  los 56 huesos de las partes, y qué hace `lock_positions` con sus 12 bytes por key.
+  del objeto al ángulo x y el `+0x2c` al **z** (`0x4eb9ff`..`0x4eba1d`), no al y como dice 06. El
+  `lock_positions` se mira en el hueso 0, con la acción anterior o con la de ahora. `0x4ebc80`..
+  `0x4ec100`: `param_6` (la escala `+0x68` y la posición `+0x6c` del modelo en cada vértice, en vez
+  de en la raíz) y `DAT_006c881c`, una escala de los vértices que escribe `0x5ffdf0` (1, 1,4, 1,2 o
+  la `+0x94` del objeto; con otra que 1, `VectorRotate` por la escala más la traslación del
+  hueso): en qué dibujos no es 1. (a): quién escribe `+0x28` y `+0x2c` en los personajes
+  (`0x4fd5f0` y lo que llama). (d): si algo lee los 56 huesos de las partes, y qué hace
+  `lock_positions` con sus 12 bytes por key.
 - [ ] **Paso 5 (el avance, P-C01 c):** `0x4ec200`..`0x4ec340` con sus seis argumentos (`ret 0x18`)
   y sus llamadores en la escena 4: qué hacen con el "terminó" adelantado (Q-C21: si cambia algo en
   pantalla, o si es para la UI); `0x4ea030` (cambiar de acción) y qué acción pone a cada personaje
@@ -438,20 +459,24 @@ Cada paso se lee con `objdump -d -M intel --start-address=A --stop-address=B` so
   `0x620a00(1)` normal con alpha test, `0x620a90` aditiva, `0x620b10` y `0x620c90`; y
   `0x620870`, sin profundidad), que una textura de cuatro componentes (el byte `+0x28` del slot en
   4) va con la mezcla normal, que una malla con la textura `0x12d` no se dibuja, los slots de los
-  pases de brillo (`0x5c0`, `0x620` y `0x5fc`), y el color de la malla (`+0x48`..`+0x50` del
-  modelo: quién lo escribe en la selección). `0x509340`..`0x50b808` y `0x50ba30`..`0x510ad4`: de
+  pases de brillo (`0x5c0`, `0x620` y `0x5fc`), el color de la malla (`+0x48`..`+0x50` del
+  modelo: quién lo escribe en la selección), qué banderas del script de la textura mira (`+0x24`
+  de la malla, paso 1) y qué dibuja una malla cuyo slot no tiene textura (Q-C29: el slot queda
+  como estaba). `0x509340`..`0x50b808` y `0x50ba30`..`0x510ad4`: de
   qué hueso cuelgan el arma, el escudo, las alas y la mascota, y de qué depende cuántos pases de
   brillo lleva cada ítem (b: ¿el nivel?).
 - [ ] **Paso 7 (la selección):** `0x633f20`..`0x6342b2` (el objeto `0xa9` de `0x511290`, la UI en
   el modo 4 de `0x65f4b0`, el texto 1240), `0x6342c0`..`0x63467d` (el doble clic: un
-  `WM_LBUTTONDBLCLK` o un reloj propio; los textos del aviso `0x84`; qué se copia al personaje
-  propio), `0x59e700`..`0x59eb70` y `0x622900`..`0x622a5e` (el rayo y la caja de cada personaje,
-  con lo que guardan `0x6203c0` y `0x620370`), `0x634680`..`0x63499d` (la luz `0x5f9780`, la de
-  abajo del elegido `0x53fe70(0x729, …)`, el nombre `0x4129f0` y la bandera `DAT_07d36899`, que saca
-  la rotación x de `0x620db0`), `0x4c20a0`..`0x4c226e` (el nivel, el `+0x368`), `0x5139f0`..
-  `0x5140b4` (los 17 bytes del equipo, byte a byte: qué ítem y qué nivel da cada uno) y
-  `0x517270`..`0x5173f8` (de la clase a las partes). `0x6356f0`..`0x635acb` con `0x640c10` y
-  `0x640ea0`: qué imagen de las cuatro dibuja la carga del mundo, y dónde.
+  `WM_LBUTTONDBLCLK` o un reloj propio, y la bandera `+0x7f5c` de la UI que pide; los textos del
+  aviso `0x84`; qué se copia al personaje propio), `0x59e700`..`0x59eb70` y `0x622900`..`0x622a5e`
+  (el rayo y la caja de cada personaje, con lo que guardan `0x6203c0` y `0x620370`),
+  `0x634680`..`0x63499d` (la luz `+0xf4` de cada personaje, en 0 y la del elegido en 1 y después en
+  0,15, y cómo entra en el color de `0x4ebc80`; la luz `0x5f9780`, la de abajo del elegido
+  `0x53fe70(0x729, …)`, el nombre `0x4129f0` y la bandera `DAT_07d36899`, que saca la rotación x de
+  `0x620db0`), `0x4c20a0`..`0x4c226e` (el nivel, el `+0x368`), `0x5139f0`..`0x5140b4` (los 17 bytes
+  del equipo, byte a byte: qué ítem y qué nivel da cada uno) y `0x517270`..`0x5173f8` (de la clase a
+  las partes). `0x6356f0`..`0x635acb` con `0x640c10` y `0x640ea0`: qué imagen de las cuatro dibuja
+  la carga del mundo, y dónde.
 - [ ] **Paso 8 (el flujo `F3`, P-C06):** los emisores y los handlers de `0x4e2f93` contra la sesión
   real de 04: el `F3 00` (`0x634e0e`, en `0x634c60`..`0x6350a4`), la lista (`0x4c20a0`), el `F3 01`
   (`0x63d990`..`0x63e09c`) y su respuesta (`0x4c2290`..`0x4c240a`), el `F3 02` (`0x643740`..
@@ -459,10 +484,12 @@ Cada paso se lee con `objdump -d -M intel --start-address=A --stop-address=B` so
   (`0x636290`..`0x637194`) y su respuesta (`0x4c3940`..`0x4c4b47`, para la CL7). La forma de cada
   uno contra el cable se compara sin escribir valores: el largo, el tipo y el subcódigo.
 - [ ] **Paso 9 (el login de la CL6.4):** en `0x6349a0`..`0x634c52`, `0x61c7c0`..`0x61c9e4` (el
-  `Logo03`) y `0x606660`..`0x606dac` (el objeto); `0x517270(2, 4, …)` con las partes y el equipo;
-  el cuervo (`0x420d60`..`0x420dc9`); la luz del logo (`0x604ab0`..`0x605ab3`); las rutas de cámara
-  1 a 4 de `0x635ae0`..`0x636259`; y la acción `0x54` o `0x55` al azar de `0x634c60`. El efecto
-  `0xbf` (`0x443fa0`) se nombra y no se lee: es de la ola de los efectos.
+  `Logo03`) y `0x606660`..`0x606dac` (el objeto); `0x517270(2, 4, …)` con las partes y el equipo; el
+  cuervo (`0x420d60`..`0x420dc9`); la luz del logo (`0x604ab0`..`0x605ab3`); la cámara fija de la
+  escena 2 en `0x635ae0`..`0x636259`, y que las rutas de `0x633920`..`0x633b8f` no llegan a GL (si
+  algo más lee lo que dejan); y la acción `0x54` o `0x55` de `0x634c60`, con su ventana del reloj
+  del frame (`DAT_05767b88`, el de `0x4eb620`). El efecto `0xbf` (`0x443fa0`) se nombra y no se lee:
+  es de la ola de los efectos.
 - [ ] **Paso 10:** pasar todo al research con *estático*, *inferido* o *verificado* en cada cosa, y
   corregir 06 (la cabeza en x y en z), 07 (Q-C23), 09 (`0x4f1ac0` y `Monster50`) y la pregunta 6 del
   plan de la CL5 (el slerp es `0x5fce90`). Los quirks nuevos van a 07 con su número: `Player.bmd`
@@ -642,9 +669,11 @@ struct ActionSpeedWrite
 inline constexpr std::array<std::uint8_t, 4> PlayerActionsWithoutRepeat = {68, 193, 195, 196};
 
 enum class ModelTextureLoader : std::uint8_t { Ozj, Ozt };
-// La letra después del primer punto: 't' es OZT (siempre con GL_NEAREST), otra es OZJ.
+// La letra después del primer punto, con tolower (0x6a0cce): 't' o 'T' es OZT (siempre con
+// GL_NEAREST), otra es OZJ.
 [[nodiscard]] ModelTextureLoader ModelTextureLoaderOf(std::string_view textureName);
-// ski y level al 0x12e, hid al 0x12d (una malla que no se dibuja, 0x4ed890) y hair al 0x137.
+// ski y level al 0x12e, hid al 0x12d (una malla que no se dibuja, 0x4ed890) y hair al 0x137,
+// byte a byte y en minúsculas: "Hair" no cuenta.
 [[nodiscard]] std::optional<std::uint16_t> SkinSlotOf(std::string_view textureName);
 } // namespace Client::Data::Models
 
@@ -702,10 +731,11 @@ public:
   `OneToTwelveArePointTwoEightButSix` (salvo la 3, la 4, la 5, la 7 y la 8),
   `ThirteenToThirtyThreeArePointThree` (salvo la 21 y la 29, 0,35), `FiftySevenHaveNone`,
   `FourDoNotRepeat`, `AHundredAndEightyOneWrites` (la suma de los rangos),
-  `LaterWritesOverrideEarlier`; `ModelTexturesTest.TheLoaderIsTheLetterAfterTheFirstDot`,
-  `SkinPrefixesGoToTheirSlots`; `ModelTextureSlotsTest.ARepeatedNameReusesItsSlot`,
-  `ANewNameTakesTheNextSlot`, `TheSearchStartsAtSlotZero` (un nombre que subió otra llamada antes
-  de `first` se reusa), `OztIsAlwaysNearest`, `TheSkinMeshesPointAtTheSkinSlots`.
+  `LaterWritesOverrideEarlier`; `ModelTexturesTest.TheLoaderIsTheLetterAfterTheFirstDot` (`.t` y
+  `.T`), `SkinPrefixesGoToTheirSlots` (solo en minúsculas);
+  `ModelTextureSlotsTest.ARepeatedNameReusesItsSlot`, `ANewNameTakesTheNextSlot`,
+  `TheSearchStartsAtSlotZero` (un nombre que subió otra llamada antes de `first` se reusa),
+  `OztIsAlwaysNearest`, `TheSkinMeshesPointAtTheSkinSlots`.
 - [ ] **Paso 7 (PR B, Emanuel):** las tablas como `constexpr`, con la dirección de cada fila en un
   comentario; `ModelTextureSlots` con lo que diga la CL6.R del paso 3 (mayúsculas, el slot que
   queda ocupado).
@@ -718,11 +748,13 @@ public:
 - [ ] **Paso 9 (PR B):** verificar como en el paso 5, con `-R "PlayerModels|PlayerActions|
   ModelTexture|GoldenModelFiles"`. Los mutantes: una velocidad de antes que pisa a la de después,
   el `+0` de las cuatro al revés, `ItemModel` con 511, la letra de la extensión en vez de la del
-  primer punto, `hair` al `0x12e`, y la búsqueda desde `first` en vez de desde 0.
+  primer punto, la letra sin `tolower`, `hair` al `0x12e`, y la búsqueda desde `first` en vez de
+  desde 0.
 
 **Qué queda para después:** el cuaternión de cada key y el esqueleto (CL6.2), las cajas de
-`0x4f1f80` (CL6.3, el picking), los modelos de los monstruos (`Monster`, CL9: con el research ya
-corregido, `Monster50` cerraría el original) y los de los objetos del mapa (CL7).
+`0x4f1f80` (CL6.3, el picking), el script de la textura de cada malla (`0x459940`: lo lee la CL6.R,
+pasos 1 y 6, y lo usa el dibujo de la CL6.3), los modelos de los monstruos (`Monster`, CL9: con el
+research ya corregido, `Monster50` cerraría el original) y los de los objetos del mapa (CL7).
 
 ## Sub-ola CL6.2: skinning y animación
 
@@ -741,12 +773,13 @@ arriba; lo que diga la CL6.R):
 | el cuaternión de una key | `0x5fcd20`, en `0x4f13d0` al leer | `MakeSkeleton`, con `AngleQuaternion` (`glm::quat(vec3)`, pregunta 5) |
 | la pose de un hueso | `0x4eb860`: slerp entre la key anterior y la de ahora con la parte fraccionaria, salvo que `0x5fc700` las dé iguales; lineal entre las posiciones | `PoseSkeleton`, con `QuaternionSlerp` y `QuaternionsAlmostEqual` a mano |
 | la cabeza | el hueso de `+0x54` resta en grados el `+0x28` del objeto a su x y el `+0x2c` a su z (π/180 en float, `0x6ba140`) antes de pasar a cuaternión | `PoseSkeleton(…, headAngles, …)`; 06 dice "x e y" y se corrige (CL6.R) |
-| la raíz | `0x5fc8f0` con los ángulos del objeto en grados, la escala `+0x68` y la posición; con `lock_positions`, x e y de la key 0 y la z con `+0x84` | `ObjectTransform` y `AngleMatrix` |
+| la raíz | `0x5fc8f0` con los ángulos del objeto en grados, la escala `+0x68` y la posición | `ObjectTransform` y `AngleMatrix` |
+| `lock_positions` | en el hueso 0, por su índice, si la acción anterior o la de ahora lo tiene: x e y de la key 0 de la de ahora, y la z interpolada más `+0x84` | `PoseSkeleton` |
 | la cadena | `0x5fca90` (`R_ConcatTransforms`) con el padre, en orden | `ConcatTransforms`; `MakeSkeleton` rechaza un padre que no va antes |
 | un hueso dummy | no se posa: queda lo que había | igual: `PoseSkeleton` no lo toca |
 | un vértice | `0x4ebc80`: `0x5fccc0` (`VectorTransform`) con la matriz de su hueso; la normal con `0x5fcbd0` (`VectorRotate`) | `SkinMesh`, en la CPU (pregunta 6) |
-| el avance | `0x4ec200`: `frame += velocidad`, con el módulo, el tope de n − 0,01 y la key anterior | `AdvanceAnimation` (PR B) |
-| cambiar de acción | `0x4ea030`: el frame a 0 solo si es otra | `SetAction` (PR B) |
+| el avance | `0x4ec200`: sin acciones en el modelo o con una key o ninguna en la de ahora, nada; si no, `frame += velocidad`, con el módulo, el tope de n − 0,01 y la key anterior | `AdvanceAnimation` (PR B) |
+| cambiar de acción | `0x4ea030`: con una acción que el modelo no tiene o con la misma, nada; con otra, la de ahora y su frame pasan a anteriores y el frame a 0 | `SetAction` (PR B) |
 | el fin en la selección | el frame + 2 para "terminó", el real para el módulo (Q-C21) | `AdvanceAnimation(…, AnimationScene::CharacterSelect)` lo reproduce (PR B) |
 | la mascota y las alas | por frame dibujado: 0,5 y 0,25 (1 en las acciones `0x1e` y `0x1f`), `0x509340` (Q-C20) | `AdvanceByTime`: lo mismo cada 46,875 ms, a cualquier FPS (PR B) |
 | el render | posa lo que dejó el último paso | `Interpolated`: una copia avanzada `alpha` de un paso con la misma regla (D-C4, pregunta 7; PR B) |
@@ -862,8 +895,9 @@ enum class AnimationScene : std::uint8_t { Other, CharacterSelect };
 // anterior al cruzar una, y devuelve si terminó.
 bool AdvanceAnimation(AnimationState& state, const ActionInfo& action, float speed,
                       AnimationScene scene);
-// 0x4ea030.
-void SetAction(AnimationState& state, std::uint8_t action);
+// 0x4ea030: nada con una acción que `skeleton` no tiene o con la misma; si no, la de ahora y
+// ⌊frame⌋ pasan a anteriores y el frame a 0.
+void SetAction(AnimationState& state, const Skeleton& skeleton, std::uint8_t action);
 // 1 / 21,33 FPS: el frame del modo fiel de la CL3 (64 frames cada 3 s).
 inline constexpr Core::Duration OriginalFrameTime = std::chrono::microseconds{46'875};
 // Q-C20 corregido: `keysPerOriginalFrame` cada OriginalFrameTime de `elapsed`, con la regla de
@@ -906,7 +940,8 @@ enum class ShinePass : std::uint8_t { Plain, Chrome /*0x4*/, Chrome4 /*0x1000*/ 
   `AParentAfterItsChildIsAnError`, `ThePlayerHeadIsBoneTwenty`; `PoseTest.AChildFollowsItsParent`,
   `TheRootCarriesTheObjectTranslation`, `TheRootScalesButTheChildrenDoNot` (la escala va en la
   raíz y llega por la cadena), `InterpolatesBetweenThePreviousKeyAndTheCurrent`,
-  `TheHeadSubtractsXAndZ`, `LockPositionsTakesXAndYFromKeyZero`, `DummyBonesAreNotPosed` (el
+  `TheHeadSubtractsXAndZ`, `LockPositionsTakesXAndYFromKeyZero`,
+  `LockPositionsIsBoneZeroWithEitherAction`, `DummyBonesAreNotPosed` (el
   `BoneTransform` de un dummy queda como estaba); `SkinningTest.AVertexFollowsItsBone`,
   `TheNormalOnlyRotates`.
 - [ ] **Paso 3 (PR A):** correrlos y verlos fallar:
@@ -948,7 +983,9 @@ enum class ShinePass : std::uint8_t { Plain, Chrome /*0x4*/, Chrome4 /*0x1000*/ 
   `WrapsModuloKeysMinusOneWithLockPositions`, `HoldsJustBeforeTheLastKeyWithoutRepeat` (n − 0,01),
   `ANegativeFrameAddsKeysMinusOne`, `StoresThePreviousKeyWhenItCrossesOne`,
   `TheSelectionEndsTwoKeysEarlyButWrapsOnTheRealFrame` (Q-C21),
-  `SetActionResetsOnlyForAnotherAction`, `TheSelectionJumpsAreThoseOfTheTrace` (33, 33, 34 y 34
+  `AnActionOfOneKeyDoesNotMove`, `SetActionResetsOnlyForAnotherAction`,
+  `SetActionKeepsTheOldOneAsPrevious`, `SetActionIgnoresAnActionTheModelDoesNotHave`,
+  `TheSelectionJumpsAreThoseOfTheTrace` (33, 33, 34 y 34
   pasos con 0,26 dan los saltos de 06 módulo 7), `TheLorenciaJumpsAreThoseOfTheTrace` (20, 19, 19
   y 19 con 0,28, módulo 6), `TheBodyRunsTheSameKeysPerSecondAtEveryFrameRate` (21,33, 60 y 240
   FPS), `ThePetRunsByTimeAtEveryFrameRate` (10,67 keys por segundo a las tres),
@@ -956,8 +993,8 @@ enum class ShinePass : std::uint8_t { Plain, Chrome /*0x4*/, Chrome4 /*0x1000*/ 
   con `alpha` 1 es un paso), `MakePlayerSkeletonSetsTheSpeeds`.
 - [ ] **Paso 9 (PR B, Emanuel):** `Animation.h/.cpp`, y `MakePlayerSkeleton` con las tablas de la
   CL6.1. Verificar con `ctest --preset linux-x64-debug -R "Animation"`. Los mutantes: el módulo con
-  el frame + 2, sin guardar la key anterior, la mascota por frame, y `Interpolated` que no guarda la
-  key que cruza.
+  el frame + 2, sin guardar la key anterior, la mascota por frame, una acción de una key que avanza,
+  `SetAction` que no guarda la anterior, y `Interpolated` que no guarda la key que cruza.
 - [ ] **Paso 10 (PR C):** los tests: `ShineTest.ThePlainPassIsHalfTheNormal` (u = 0,5·nz + 0,2,
   v = 0,5·(ny + 1)), `TheChromePassRunsWithTheClock`, `TheChrome4PassUsesSinAndCos`,
   `TheClockCountsFromTheStart` (con T = 2²⁴ + 1 ms la u cambia lo de un ms, que en un `float` no
@@ -989,17 +1026,18 @@ de arriba; lo que diga la CL6.R):
 | --- | --- | --- |
 | pedir la lista | `0x634c60` pasa a la escena 4 y manda `C1 04 F3 00` con el XOR32 en el mismo paso (`0x634dce`, `0x634e0e`) | `CharacterSelectScene::Enter` llama a `ServerSession::RequestCharacterList` (`WriteCharacterListRequest`, `Xor32C1`) |
 | la lista | `0x4c20a0`: `pkt[4]` las clases que se pueden crear, `pkt[5]` dos números, `pkt[6]` la cantidad, una entrada de `0x22` bytes desde `pkt[7]`; no mira el largo | `ReadCharacterList`: `TooShort` si la cantidad no entra en el paquete (diferencia nombrada) |
+| antes de la lista | `0x6342c0` y `0x634680` salen con el estado antes de `0x33`, y `0x637700` no hace el `SwapBuffers`: queda el último frame del login | con sesión, `Step` y `Render` no hacen nada hasta la lista, y el frame sale con el clear del `GlFrameTarget` (diferencia nombrada); sin sesión, los fondos |
 | la sesión | `0x32` al pedir, `0x33` con la lista, `0x3c` al mandar el `F3 03` | `WaitingCharacterList`, `ChoosingCharacter`, `EnteringWorld` (pregunta 9); el keepalive corre en `LoggedIn` y en los tres |
 | los lugares | cinco posiciones y ángulos fijos (`0x4c20a0`): (12.880; 15.046) a 100°, (12.863; 15.251) a 75°, (12.974; 15.425) a 50°, (13.151; 15.533) a 25° y (13.349,6; 15.527) a 0°; z = 163 en cada frame (`0x634680`) | `CharacterSlots`, una tabla con su dirección; un lugar de más de 4 deja la del anterior (quirk nuevo) |
 | la clase | `0x517270(lugar, ((b & 0x10) \| (b >> 4)) >> 1, …)` | `CharacterClassOf(b)` |
 | el equipo | `0x5139f0(lugar, los 17 bytes, 0, 0)` | `GameLogic::AppearanceOf` (CL6.R, paso 7) |
 | el pase 3D | `0x620db0(0, 25, 640, 430)`: el viewport escalado en enteros (x · W / 640, y · H / 480), la y de GL desde abajo (`0x620d10`), `gluPerspective(fov, w / h, near, far · 1,4)` (`0x6203c0`, `0x6b8c00`), `glRotatef` en y, x (salvo `DAT_07d36899`) y z, `glTranslatef(−posición)`; prende el depth test (`GL_LEQUAL`) y el culling, escribe la profundidad | `Render::MakePass3D`; `GlModelRenderer` pone ese estado |
-| la cámara de la selección | `0x635ae0`, escena 4: fov 35 (`0x6d5d48`, que en la `.data` vale 55), near 20 (`0x6d5d40`), far `0x6d5d44` (en la traza, unos 11.520 antes del × 1,4: el `0x4633ff9a` de una de las ramas de `0x635ae0`, *inferido*), z −45°, x −84,5° (`0x6ba7bc` más `DAT_07d325c8`), posición (13.909; 14.482; 543) | `SelectionCamera`, con la dirección de cada valor; *verificado* en la traza (1024 × 768: `glViewport(0, 40, 1024, 688)`) |
+| la cámara de la selección | `0x635ae0`, escena 4: fov 35 (`0x6d5d48`, que en la `.data` vale 55), near 20 (`0x6d5d40`), far `0x6d5d44` (el `0x4633ff9a` de la escena 4 con `DAT_07d3a0ec` en 0, *estático*; que esa es la rama que corre, *verificado*: en la traza, unos 11.520 antes del × 1,4), z −45°, x −84,5° (`0x6ba7bc` más `DAT_07d325c8`), posición (13.909; 14.482; 543) | `SelectionCamera`, con la dirección de cada valor; *verificado* en la traza (1024 × 768: `glViewport(0, 40, 1024, 688)`) |
 | la mezcla de una malla | `0x4ed890`: opaca (`0x620980`) o normal con alpha test y sin culling (`0x620a00(1)`, una textura de cuatro componentes), aditiva sin escribir la profundidad (`0x620a90`), sin profundidad con `0x2000` | `ModelDrawState`, del `ModelBatch` |
-| el color | `glColor3fv` del modelo (`+0x48`), de más de 1 en la traza; la función fija lo recorta | el shader lo recorta a [0, 1] |
+| el color | `glColor3fv` del modelo (`+0x48`), de más de 1 en la traza; la función fija lo recorta. La luz `+0xf4` de cada personaje va en 0, y la del elegido en (1, 1, 1) (`0x634680`) | el shader lo recorta a [0, 1]; la luz de cada personaje, con lo que lea la CL6.R (paso 7) |
 | el orden | los fondos 2D, el pase que no dibuja, el pase 3D (el terreno, los personajes, los objetos, los efectos), la luz del elegido y su nombre, el 2D y la UI | `CharacterSelectScene::Render` igual, sin el terreno, los objetos ni los efectos (CL7 y la ola de los efectos) |
-| elegir | el clic bajo el mouse (`0x59ec80` → `0x59e700`: un rayo contra la caja de cada personaje, `0x622900`) | `Pass3D::RayThrough` y `RayHitsBox` |
-| entrar | Enter (`0x8001`) o doble clic con uno elegido: con el bit `0x1` de `+0x1d8`, el aviso `0x84`; si no, a la escena 3 | `ChooseCharacter(slot)` y `Next()` = `WorldLoading`; `LockedCharacterNotice` |
+| elegir | el clic bajo el mouse (`0x59ec80` → `0x59e700`: un rayo contra la caja de cada personaje, `0x622900`); sobre ninguno, ninguno elegido (-1) | `Pass3D::RayThrough` y `RayHitsBox`; `ChooseCharacter` sin ninguno lo olvida |
+| entrar | Enter (`0x8001`) con uno elegido, o el doble clic sobre uno (lo elige, sin el sonido de Enter, con la bandera `+0x7f5c` de la UI): con el bit `0x1` de `+0x1d8`, el aviso `0x84`; si no, a la escena 3 | `ChooseCharacter(slot)` y `Next()` = `WorldLoading`; `LockedCharacterNotice` |
 | la carga del mundo | `0x6356f0`: sube `LSBg01` a `04`, dibuja un frame y pasa a la 5 | `WorldLoadingScene`: su juego de texturas, un frame, y `Game` en el paso que sigue (un paso más tarde que el original, que lo hace en la misma llamada) |
 | el `F3 03` | `0x636290`, el primer paso de la escena 5: `C1 0E F3 03` con el nombre y el XOR32, y el estado `0x3c` | `GameScene::Step` llama a `ServerSession::EnterWorld` (`WriteCharacterSelect`) |
 | el log | `> Character selected <%d> %s` con el nombre | el lugar, sin el nombre |
@@ -1020,11 +1058,12 @@ de arriba; lo que diga la CL6.R):
   (`WorldViewport`, `SelectionCamera` y `LoginCamera`), `Client/tests/scenes/test_scene_cameras.cpp`
   y, en `support/`, `RecordingWorldView.h`.
   Modificar `Client/src/Platform/GlFunctionList.h` (`glDepthFunc` y `glDepthMask`),
-  `GlFramebuffer.h/.cpp` (una textura de profundidad, `GL_DEPTH_COMPONENT24`, con las funciones que
-  ya están), `Client/src/Render/Gl/Shaders.h` (el par del 3D), `GlSpriteRenderer.cpp` (apaga el
+  `GlFramebuffer.h/.cpp` (una textura de profundidad, `GL_DEPTH_COMPONENT16`, con las funciones que
+  ya están), `Client/src/Platform/Window.cpp` (`SDL_GL_DEPTH_SIZE` en 16, el `cDepthBits` de
+  `0x4b8e10`), `Client/src/Render/Gl/Shaders.h` (el par del 3D), `GlSpriteRenderer.cpp` (apaga el
   depth test y el culling antes del 2D, como `0x6219b0` → `0x620870`), `GlFrameTarget.h/.cpp`,
   `Client/src/Scenes/SceneCanvas.h`, `IWorldView.h`, `LoginScene.cpp` (arma su pase con
-  `WorldViewport` y `LoginCamera()`, la de reposo, y se lo pasa al `IWorldView`),
+  `WorldViewport` y `LoginCamera()`, la fija, y se lo pasa al `IWorldView`),
   `Client/tests/support/RecordingFrameTarget.h`, PROGRESS y este plan.
 - **PR C:** crear `Client/src/GameLogic/CharacterAppearance.h/.cpp`,
   `Client/src/Render/Models/RayPicking.h/.cpp`, `Client/src/Scenes/GameModels.h/.cpp`,
@@ -1093,8 +1132,9 @@ public:
     void RequestCharacterList();
     // La lista del último F3 00, desde que llega hasta el próximo Start o la próxima lista.
     [[nodiscard]] const std::optional<Protocol::Character::CharacterList>& Characters() const;
-    // En ChoosingCharacter, guarda el de `slot` si está en la lista; no manda nada.
-    void ChooseCharacter(std::uint8_t slot);
+    // En ChoosingCharacter, guarda el de `slot` si está en la lista, y con std::nullopt o un
+    // lugar que no está, ninguno (el -1 de 0x6342c0); no manda nada.
+    void ChooseCharacter(std::optional<std::uint8_t> slot);
     [[nodiscard]] const Protocol::Character::CharacterEntry* ChosenCharacter() const;
     // En ChoosingCharacter con uno elegido, manda el F3 03 con su nombre. En otro estado, un aviso.
     void EnterWorld();
@@ -1145,6 +1185,7 @@ enum class ModelBlend : std::uint8_t
     Opaque,   // 0x620980
     Alpha,    // 0x620a00(1): sin culling y con alpha test
     Additive, // 0x620a90: sin culling y sin escribir la profundidad
+    // 0x620b10 y 0x620c90 suman su valor si la CL6.R los ve en el dibujo de un modelo (paso 6).
 };
 struct ModelDrawState
 {
@@ -1211,7 +1252,8 @@ inline constexpr std::array<CharacterSlot, 5> CharacterSlots = {/* los cinco de 
 inline constexpr float CharacterSlotHeight = 163.0f; // 0x634680, en cada frame
 // El pase 3D de las dos escenas: 0x620db0(0, 25, 640, 430) en 0x6350b0 y en 0x634680.
 inline constexpr Render::ViewportRect WorldViewport{0, 25, 640, 430};
-// Las de 0x635ae0 en la escena 4 y en la 2 (en reposo), con la dirección de cada valor.
+// Las fijas de 0x635ae0 en la escena 4 y en la 2, con la dirección de cada valor. Las rutas de
+// 0x633920 corren en la lógica, pero 0x635ae0 las pisa antes de que lleguen a GL.
 [[nodiscard]] Render::Camera3D SelectionCamera();
 [[nodiscard]] Render::Camera3D LoginCamera();
 // En TextureSets.h: los 12 de 0x61ca30 (0xc a 0x13, 0x717, 0x718, 0x719 y 0x729) y los cuatro
@@ -1297,6 +1339,7 @@ namespace Client::Input
   `ServerSessionTest.RequestCharacterListSendsF300`, `TheListMovesToChoosingCharacter`,
   `AnEmptyListAlsoChooses` (el `0x33` con ninguno), `ChooseCharacterSendsNothing`,
   `EnterWorldSendsF303WithTheChosenName`, `EnterWorldWithoutAChoiceWarns`,
+  `ChoosingNothingForgetsTheChoice`,
   `TheKeepaliveRunsInTheThreeNewStates`, `WaitingCharacterListHasTheReplyTimeout`,
   `EnteringWorldHasNoTimeout`, `AStartForgetsTheList`; y el loopback,
   `ServerSessionLoopbackTest.FromLoginToEnterWorld` (el GS de prueba contesta el `F3 00` con una
@@ -1344,15 +1387,15 @@ namespace Client::Input
   `AnEmptySlotIsTheClassPart`; `RayPickingTest.HitsTheBoxInFront`, `MissesBeside`,
   `TheNearestWins`.
 - [ ] **Paso 8 (PR C):** los de las escenas, con `RecordingFrameTarget`, `FakeTextureStore`,
-  `FakeClock` y una sesión con `FakeSocket`:
-  `LoadingSceneTest.ReadsTheModelsOnAdvanceOne` y `AMissingPlayerFailsTheLoad` (con el nombre del
-  archivo); `CharacterSelectSceneTest.EnterRequestsTheList`,
+  `FakeClock` y una sesión con `FakeSocket`: `LoadingSceneTest.ReadsTheModelsOnAdvanceOne` y
+  `AMissingPlayerFailsTheLoad` (con el nombre del archivo);
+  `CharacterSelectSceneTest.EnterRequestsTheList`, `DrawsNothingBeforeTheList`,
   `PlacesEachCharacterInItsSlot` (las cinco posiciones y z = 163), `ASlotBeyondFourKeepsThePrevious`
   (el quirk nuevo), `DrawsInTheOrderOfTheOriginal` (los fondos, el pase que no dibuja, el pase 3D,
   el nombre del elegido, el 2D), `AClickChoosesTheOneUnderTheMouse`,
-  `EnterNeedsTheKeyDownAndPressed`, `ADoubleClickEnters`, `ALockedCharacterShowsTheNotice`,
-  `EnterGoesToWorldLoading`, `NoCharacterChosenDoesNotEnter`, `LeaveReleasesItsSlots`,
-  `TheBodyAdvancesPerStepAndThePetPerTime`, `WithoutASessionOnlyDraws`;
+  `AClickOnNothingClearsTheChoice`, `EnterNeedsTheKeyDownAndPressed`, `ADoubleClickEnters`,
+  `ALockedCharacterShowsTheNotice`, `EnterGoesToWorldLoading`, `NoCharacterChosenDoesNotEnter`,
+  `LeaveReleasesItsSlots`, `TheBodyAdvancesPerStepAndThePetPerTime`, `WithoutASessionOnlyDraws`;
   `WorldLoadingSceneTest.DrawsOneFrameAndGoesToTheGame` y `ReleasesItsFourImages`;
   `GameSceneTest.TheFirstStepSendsF303` y `TheLogHasTheSlotNotTheName` (con `RecordingSink`);
   `InputStateTest.ADoubleClickIsTheSecondClick` y `InputEventsTest.CopiesTheClicks`. Golden:
@@ -1367,7 +1410,8 @@ namespace Client::Input
   MURET_CLIENT_GOLDEN_DIR=<Data> ctest --preset linux-x64-debug -R "GoldenGameModels"
   ```
   Los mutantes: los lugares en otro orden, la z de la lista y no 163, el clic que elige el primero,
-  Enter con solo el flanco, el doble clic de dos botones distintos, el `F3 03` desde la selección,
+  el clic sobre nada que deja el elegido, la escena que dibuja antes de la lista, Enter con solo el
+  flanco, el doble clic de dos botones distintos, el `F3 03` desde la selección,
   y la escena que no suelta sus slots.
 - [ ] **Paso 10 (a mano):** contra el GS del laboratorio, con `--data`: el login aceptado, la
   selección con los personajes de la cuenta de prueba animados en sus lugares, el clic, el doble
@@ -1381,8 +1425,9 @@ dibujo de un efecto, y va con los efectos.
 ## Sub-ola CL6.4: el logo y el personaje del login
 
 **Concepto:** lo que la CL5 le dejó al login, con lo que ya sirve para la selección: un modelo
-suelto con su objeto (el logo), un personaje armado desde una tabla y no desde la lista, una cámara
-que se mueve por rutas, y un número al azar que el test fija. Va en un PR.
+suelto con su objeto (el logo), un personaje armado desde una tabla y no desde la lista, y un
+número al azar, en una ventana del reloj, que el test fija. La cámara es la fija de la CL6.3
+(`LoginCamera`). Va en un PR.
 
 **Contrato** (06 § El login, al entrar y § El login, el dibujo; la tabla de arriba; lo que diga la
 CL6.R, paso 9):
@@ -1394,8 +1439,8 @@ CL6.R, paso 9):
 | su luz | `0x604ab0`, que sube | lo que lea la CL6.R; si es un efecto, va con los efectos |
 | el personaje | `0x517270(2, 4, …)`, las partes `0x102e`, `0x122e`, `0x142e`, `0x162e` y `0x182e` en +7, el arma `0x620` en +13, y `0x1c17`, `0x1c30` y `0x1c16`; escala 1,6, ángulos (0, 0, 188), posición (10.603; 14.112; 580) | `LoginCharacter`: una `GameLogic::CharacterAppearance` armada desde la tabla (no desde bytes de la lista) y su objeto |
 | el cuervo | `0x420d60`, un objeto aparte | lo que lea la CL6.R |
-| su acción | `0x54` o `0x55` al azar (`0x634c60`) | con un `std::mt19937` de la escena, sembrado desde afuera como el de la `Connection`: el test lo fija con `FixedSeed` |
-| la cámara | las rutas 1 a 4 de `0x635ae0`, y en la escena 2 z −36°, x −96,5° (`0x6ba7c0` más `DAT_07d325c8`), posición (12.778; 12.678; 579) | `LoginCamera`, con lo que lea la CL6.R de las rutas |
+| su acción | `0x634c60`, en cada paso: con el reloj del frame (`DAT_05767b88`, de `0x4eb620`, Q-C22) en los primeros 100 ms de cada 2.300, `rand() % 6` en 1 pone la `0x54` y en 2 la `0x55` (`0x4ea030`); los otros cuatro, y fuera de esa ventana, nada | con un `std::mt19937` de la escena, sembrado desde afuera como el de la `Connection`: el test lo fija con `FixedSeed`; la ventana, con el reloj de `SceneCanvas::frameClock`, que `IScene::Step` hoy no recibe y la CL6.4 le pasa |
+| la cámara | `0x635ae0` en la escena 2, fija: z −36°, x −96,5° (`0x6ba7c0` más `DAT_07d325c8`), posición (12.778; 12.678; 579), far 20.400 (`0x469f6000`, con `DAT_07d3a0ec` en 0); las rutas de `0x633920` (en la escena 2, una de las 1 a 4 al azar) quedan pisadas | `LoginCamera`, de la CL6.3; nada nuevo |
 | el efecto `0xbf` | `0x443fa0` | no: la ola de los efectos |
 | el pase | el 3D de `0x6350b0`, entre los fondos y la arena | el mismo pase de la CL5.4: el `IWorldView` y después los dos modelos |
 
@@ -1418,16 +1463,17 @@ inline constexpr std::uint16_t LoginLogoModel = 0xa2;
 [[nodiscard]] ModelObject LoginLogo();                        // 0x606660
 [[nodiscard]] GameLogic::CharacterAppearance LoginCharacter(); // 0x517270(2, 4, …)
 [[nodiscard]] Render::Models::ObjectTransform LoginCharacterTransform();
-// LoginCamera() (CL6.3, PR B) suma las rutas 1 a 4 de 0x635ae0, como las lea la CL6.R.
+// LoginCamera() (CL6.3, PR B) ya es la del login: fija, como 0x635ae0 en la escena 2.
 // LoginScene suma, en el constructor, `const GameModels& models` y
 // `std::mt19937::result_type seed`.
 } // namespace Client::Scenes
 ```
 
 - [ ] **Paso 1:** los tests: `LoginModelsTest.TheLogoIsModel0xA2AtItsPlace`,
-  `TheCharacterIsClassFourWithItsSet` (las cinco partes, el arma, el cuervo, la capa y la
-  mascota, por número), `TheCharacterActionIsOneOfTwo` (con `FixedSeed`, y las dos salen en 100
-  entradas), `TheLogoTexturesStartWhereTheLoadLeft`; `LoginSceneTest.DrawsInTheOrderOfTheOriginal`
+  `TheCharacterIsClassFourWithItsSet` (las cinco partes, el arma, el cuervo, la capa y la mascota,
+  por número), `TheActionOnlyChangesInItsWindow` (fuera de los primeros 100 ms de cada 2.300 del
+  reloj, nunca; adentro, con `FixedSeed`, las dos salen en 100 pasos y en otros se queda la que
+  tenía), `TheLogoTexturesStartWhereTheLoadLeft`; `LoginSceneTest.DrawsInTheOrderOfTheOriginal`
   (crece: el pase 3D tiene el logo y el personaje después del `IWorldView`), `LeaveReleasesTheLogo`;
   y el golden `GoldenLoginScene.TheLogoLoads`.
 - [ ] **Paso 2 (Emanuel, `TODO(human)`):** `LoginModels` y lo que suma la escena. Verificar:
@@ -1435,8 +1481,8 @@ inline constexpr std::uint16_t LoginLogoModel = 0xa2;
   ctest --preset linux-x64-debug -R "LoginModels|LoginScene"
   MURET_CLIENT_GOLDEN_DIR=<Data> ctest --preset linux-x64-debug -R "GoldenLoginScene"
   ```
-  Los mutantes: el logo en grados por radianes, el personaje sin la escala 1,6, una acción fija, y
-  los slots del logo desde 0.
+  Los mutantes: el logo en grados por radianes, el personaje sin la escala 1,6, una acción fija, la
+  tirada en cada paso sin la ventana del reloj, y los slots del logo desde 0.
 - [ ] **Paso 3 (a mano):** con `--data`, el login con el logo y el personaje sobre los fondos; sin
   traza del login (P-C13), se mira a ojo contra una captura fuera de Git.
 

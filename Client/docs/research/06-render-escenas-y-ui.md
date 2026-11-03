@@ -601,9 +601,10 @@ laboratorio), más 6 y 6: 52. Las líneas son 10 porque `0x66a4e0` acota lo que 
 [1, 10] y el `vtable + 0x1c(10)` de `0x6451d0` pide 10. El fondo y la izquierda van con la UV del
 lado cambiado hasta el tamaño (`+0x98` en 1, `0x647370`), y como las dos texturas repiten, se
 repiten; la derecha no, porque `0x647050` pone `+0x98` en 0 a toda imagen que tiene cuadros, y la
-suya empieza en (3, 0): sus UV quedan en los 3 × 4 téxeles del principio, estirados al alto. La
-caja va centrada abajo de la ventana: en (x − (512 − 465) / 2, y + alto de la ventana − 52), que
-es x − 23. Se abre con la lista solo si hay un grupo elegido (`0x645ba0`).
+suya empieza en (3, 0): sus UV quedan en los 3 × 4 téxeles con que la arma `0x6451d0`, de (3, 0) a
+(6, 4) sea cual sea el buffer, estirados al alto. La caja va centrada abajo de la ventana: en
+(x − (512 − 465) / 2, y + alto de la ventana − 52), que es x − 23. Se abre con la lista solo si
+hay un grupo elegido (`0x645ba0`).
 
 El texto lo arma `0x645860`: vacía los dos renglones (`+0x308c` y `+0x30df`, de 83 bytes cada uno)
 y, con un elegido de 0 a 20, parte el texto `1717 + elegido` con `0x632c90(texto, renglones, 2,

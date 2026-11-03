@@ -96,6 +96,9 @@ constexpr std::size_t MarkedGroups = 2 * GroupsPerColumn;
 constexpr int BoxEdgeHeight = 6;
 constexpr int BoxSideWidth = 3;
 constexpr int BoxFillInset = 3;
+// 0x6451d0: el lado de la derecha es el cuadro de 3 × 4 que empieza en la columna 3 de server_ex02.
+constexpr int RightSideColumn = 3;
+constexpr int RightSideRows = 4;
 
 // 0x6463b0: los renglones van en (+11, +12) de la caja, cada uno 20 más abajo, con la fuente
 // DAT_05763560, en blanco y sin fondo; los textos del grupo 20, en (90, 104), (90, 119) y (90, 134)
@@ -125,6 +128,14 @@ Render::UiImage PlacePiece(const FramePiece& piece, Point at, const TextureSizes
         image.frameTop = piece.v;
     }
     return image;
+}
+
+// 0x645860 parte el texto 1717 + elegido, y el botón k del original es el lugar 4 + k. MuRet
+// muestra los grupos de todos los lugares (Q-C62), y el botón k puede ser otro lugar: la
+// descripción es la del lugar del grupo.
+std::size_t DescriptionText(int slot)
+{
+    return FirstDescriptionText + static_cast<std::size_t>(slot - FirstButtonSlot);
 }
 
 int BarWidth(std::uint8_t load)
@@ -242,17 +253,17 @@ std::array<Render::UiImage, 5> DescriptionBoxImages(Rect box, const TextureSizes
     left.resizedHeight = true;
 
     // El de la derecha empieza en (3, 0) de server_ex02: tiene cuadros, y 0x647050 le pone +0x98
-    // en 0. Sus UV quedan en el alto con que se armó, el de la textura (0x66a1c0), y se estira.
-    const Scenes::TextureBufferSize lineTexture = sizes(DescriptionLineSlot);
+    // en 0. Sus UV quedan en las 4 filas con que lo arma 0x6451d0, no en las del buffer, y se
+    // estira.
     Render::UiImage right = PixelImage(DescriptionLineSlot,
                                        Rect{.x = box.x + box.width - BoxSideWidth,
                                             .y = box.y + BoxEdgeHeight,
                                             .width = BoxSideWidth,
                                             .height = sideHeight},
-                                       lineTexture);
+                                       sizes(DescriptionLineSlot));
     right.frameTop = 0;
-    right.frameLeft = BoxSideWidth;
-    right.uvHeight = lineTexture.height;
+    right.frameLeft = RightSideColumn;
+    right.uvHeight = RightSideRows;
     return {fill, top, bottom, left, right};
 }
 
@@ -434,9 +445,10 @@ void ServerListWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& t
 void ServerListWindow::Select(std::size_t index)
 {
     m_selected = index;
+    const ServerGroup& group = m_groups.groups[index];
     // 0x645860: los dos renglones, vacíos sin el texto.
     m_description.clear();
-    if (const auto description = TextAt(m_texts, FirstDescriptionText + index))
+    if (const auto description = TextAt(m_texts, DescriptionText(group.slot)))
     {
         m_description = SplitIntoLines(*description, DescriptionLines, DescriptionLineBytes);
     }
@@ -445,7 +457,6 @@ void ServerListWindow::Select(std::size_t index)
         m_groupButtons[i].SetChecked(i == index);
     }
     m_serverButtons.clear();
-    const ServerGroup& group = m_groups.groups[index];
     const std::optional<std::string_view> name = TextAt(m_texts, GroupNameText(group.group));
     const bool single = group.servers.size() <= 1;
     for (const Protocol::Connection::ServerEntry& server : group.servers)

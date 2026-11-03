@@ -37,7 +37,8 @@ inline constexpr int ServerListWidth = 465;
 inline constexpr int DescriptionWidth = 512;
 
 // La descripción del botón de grupo k es el texto 1717 + k (0x645860), en dos renglones de 83
-// bytes (0x632c90).
+// bytes (0x632c90). El botón k del original es el lugar 4 + k; en MuRet, que muestra todos los
+// lugares (Q-C62), es la del lugar del grupo: 1717 + lugar − 4.
 inline constexpr std::size_t FirstDescriptionText = 1717;
 inline constexpr std::size_t DescriptionLines = 2;
 inline constexpr std::size_t DescriptionLineBytes = 83;

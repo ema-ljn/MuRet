@@ -80,11 +80,28 @@ OriginalQuad PixelQuad(TextureSlot slot, float alpha = 0.0f)
 // Las cuatro de (x, y, u, v), en el orden del fan.
 using Corners = std::array<std::array<float, 4>, 4>;
 
+// Los seis vértices del quad `index` del lote. Si el lote no llega a ese quad, es un fallo del test
+// y no hay vértices: subspan fuera del lote sería comportamiento indefinido.
+std::span<const SpriteVertex> QuadVertices(const SpriteBatch& batch, std::size_t index)
+{
+    const std::span<const SpriteVertex> vertices = batch.Vertices();
+    if (vertices.size() < (index + 1) * 6)
+    {
+        ADD_FAILURE() << "el lote tiene " << vertices.size() << " vértices: no llega al quad " << index;
+        return {};
+    }
+    return vertices.subspan(index * 6, 6);
+}
+
 // Las esquinas del quad `index` del lote: cada uno son seis vértices, los triángulos (0, 1, 2) y
 // (0, 2, 3) del fan (TheFanIsTwoTrianglesInOrder), así que las cuatro son el 0, el 1, el 2 y el 5.
 std::array<SpriteVertex, 4> CornersOf(const SpriteBatch& batch, std::size_t index)
 {
-    const std::span<const SpriteVertex> six = batch.Vertices().subspan(index * 6, 6);
+    const std::span<const SpriteVertex> six = QuadVertices(batch, index);
+    if (six.empty())
+    {
+        return {};
+    }
     return {six[0], six[1], six[2], six[5]};
 }
 
@@ -105,7 +122,7 @@ void ExpectCorners(const SpriteBatch& batch, std::size_t index, const Corners& e
 std::vector<Color> ColorsOf(const SpriteBatch& batch, std::size_t index)
 {
     std::vector<Color> colors;
-    for (const SpriteVertex& vertex : batch.Vertices().subspan(index * 6, 6))
+    for (const SpriteVertex& vertex : QuadVertices(batch, index))
     {
         colors.push_back(vertex.color);
     }
@@ -259,7 +276,7 @@ TEST(SpriteBatchTest, AZeroAlphaUsesTheCurrentColor)
 }
 
 // La función fija recorta el color a [0, 1] (06 § Primitivas 2D): 1,34 queda en 1 y -0,5 en 0, y el
-// alfa de un quad, también.
+// alfa de un quad y el color de una imagen, también.
 TEST(SpriteBatchTest, TheColorIsClampedToOne)
 {
     SpriteBatch batch;
@@ -268,9 +285,16 @@ TEST(SpriteBatchTest, TheColorIsClampedToOne)
     batch.SetColor(Color{.red = 1.34f, .green = -0.5f, .blue = 0.25f, .alpha = 2.0f});
     batch.Quad(PixelQuad(SlotA));
     batch.Quad(PixelQuad(SlotA, 1.5f));
+    batch.Image(UiImage{.slot = SlotA,
+                        .width = 4,
+                        .height = 4,
+                        .textureWidth = 4,
+                        .textureHeight = 4,
+                        .color = Color{.red = 2.0f, .green = -1.0f, .blue = 0.5f, .alpha = 1.5f}});
 
     EXPECT_EQ(ColorsOf(batch, 0), SixOf(Color{.red = 1.0f, .green = 0.0f, .blue = 0.25f, .alpha = 1.0f}));
     EXPECT_EQ(ColorsOf(batch, 1), SixOf(White));
+    EXPECT_EQ(ColorsOf(batch, 2), SixOf(Color{.red = 1.0f, .green = 0.0f, .blue = 0.5f, .alpha = 1.0f}));
 }
 
 // Los quads seguidos con la misma textura, la misma mezcla y el mismo alpha test son un tramo: el
@@ -539,7 +563,9 @@ TEST(SpriteBatchTest, AnImageLeavesItsColor)
 }
 
 // Q-C75: una imagen sin slot apaga la textura y una con slot la prende; la mezcla y el alpha test
-// quedan como estaban. Después de una sin slot, el quad sale sin textura.
+// quedan como estaban. Después de una sin slot, el quad sale sin textura. Y Q-C64: el último quad
+// es del slot A, el último que ató 0x620780, y la imagen ató el B sin pasar por ahí; el original no
+// vuelve a atar el A y lo dibuja con el B, y MuRet lo dibuja con el suyo.
 TEST(SpriteBatchTest, AnImageTurnsTheTextureOnByItsSlot)
 {
     SpriteBatch batch;
@@ -562,6 +588,49 @@ TEST(SpriteBatchTest, AnImageTurnsTheTextureOnByItsSlot)
     EXPECT_FALSE(commands[1].alphaTest);
     EXPECT_EQ(commands[2].texture, SlotA);
     EXPECT_FALSE(commands[2].alphaTest);
+}
+
+// 0x647650 no toca el alpha test: con la mezcla normal la imagen va con él, y después del quad sin
+// textura va sin él, aunque prenda la textura.
+TEST(SpriteBatchTest, AnImageKeepsTheAlphaTest)
+{
+    const UiImage image{.slot = SlotA, .width = 4, .height = 4, .textureWidth = 4, .textureHeight = 4};
+    SpriteBatch batch;
+    batch.Begin(Screen640);
+
+    batch.Image(image);
+    batch.ColorQuad(0, 0, 10, 10);
+    batch.Image(image);
+
+    const std::span<const DrawCommand> commands = batch.Commands();
+    ASSERT_EQ(commands.size(), 3u);
+    EXPECT_EQ(commands[0].texture, SlotA);
+    EXPECT_TRUE(commands[0].alphaTest);
+    EXPECT_EQ(commands[2].texture, SlotA);
+    EXPECT_EQ(commands[2].blend, BlendMode::Alpha);
+    EXPECT_FALSE(commands[2].alphaTest);
+}
+
+// El alpha test solo también corta el tramo: el quad sin textura lo apaga, SetBlend lo prende con
+// la misma mezcla, y la imagen sin slot vuelve a ir sin textura. Los dos van sin textura y con la
+// normal, pero uno descarta lo que tiene un alfa de 0,25 o menos y el otro no.
+TEST(SpriteBatchTest, AnotherAlphaTestStartsACommand)
+{
+    SpriteBatch batch;
+    batch.Begin(Screen640);
+
+    batch.ColorQuad(0, 0, 10, 10);
+    batch.SetBlend(BlendMode::Alpha);
+    batch.Image(UiImage{.slot = std::nullopt, .width = 4, .height = 4});
+
+    const std::span<const DrawCommand> commands = batch.Commands();
+    ASSERT_EQ(commands.size(), 2u);
+    EXPECT_EQ(commands[0].texture, std::nullopt);
+    EXPECT_EQ(commands[1].texture, std::nullopt);
+    EXPECT_EQ(commands[0].blend, commands[1].blend);
+    EXPECT_FALSE(commands[0].alphaTest);
+    EXPECT_TRUE(commands[1].alphaTest);
+    EXPECT_EQ(commands[1].firstVertex, 6u);
 }
 
 // Begin vacía el frame y toma la pantalla nueva, pero el estado de GL pasa al frame siguiente como

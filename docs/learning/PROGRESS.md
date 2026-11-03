@@ -163,6 +163,13 @@ solo lo lee.
   juego se frena a 48 frames y 56 pasos en 3 s (`GameLoopTest.FaithfulDoesNotMeasureThePoll`). La
   escena de prueba tiene un `Poll()` vacío. Al arrastrar la ventana en Windows, el original sigue
   con el keepalive y MuRet no consulta la red hasta soltarla (Q-C49).
+  **La CL4.R** la escribió Claude, en el binario: la conexión del original pasó al research (03, 04,
+  02). El `A9` es el pedido de la información de una mascota, no del anticheat, y el del CS se
+  reproduce en la CL4.3; el `connect` espera, rechaza `127.0.0.1` (Q-C50) y toma como conectado un
+  nombre que no resuelve (Q-C51); cada cierre corta con un RST (Q-C54); el envío en línea se
+  adelanta a lo encolado (Q-C52) y Q-C11 tiene sus bytes (basta un parcial, como halló el jefe de la
+  CL4.0); el timer de 20 s manda sin mirar el login (Q-C53, visto en el cable), y sin personaje las
+  velocidades salen en 0. P-C11 quedó cerrado, y P-C04 pasa a la CL5.R.
 - **CL4.2 (el `Dispatcher`), resuelta por Claude** el 2026-11-02: una tabla opcode → handler, con
   un segundo nivel por subcódigo (el byte que sigue al opcode, `pkt[3]` en un C1 y `pkt[4]` en un
   C2), en vez del `switch` de 10,5 KB de `0x4e2b10`. Lo que no tiene handler da `Unknown` y una
@@ -170,6 +177,16 @@ solo lo lee.
   C3 o un opcode con subcódigos que termina en el opcode dan `Malformed` (el original lee el byte
   que no llegó, Q-C42). Registrar dos veces da `false` y no pisa. Tu paso 1, la tabla de qué lee
   cada uno, lo resolvió Claude: está en el plan.
+- **CL4.0 (sockets no bloqueantes), resuelta por Claude** el 2026-11-02, como la CL3.0: el
+  `LabSocket` con RAII y todos los `#ifdef _WIN32` en un archivo, el `LoopbackPair` que conecta en
+  `127.0.0.1` sin bloquear y en un solo hilo, y la `DrainQueue`, la cola con cursor. El puerto
+  cerrado mostró que `SO_ERROR` se borra al leerlo: un segundo `CheckConnect` después del rechazo da
+  conectado. El jefe es el drenaje de `FD_WRITE` de `0x4e87b0` (Q-C11): con `{2, 2, WSAEWOULDBLOCK}`
+  repite `00..03` y pierde `06..09`, como dice el plan, y además basta un parcial, y después de uno
+  ese `FD_WRITE` ya no llega a 0 pendiente. Las respuestas de las 12 actividades están en
+  [`labs/cl4.0-sockets/README.md`](../../labs/cl4.0-sockets/README.md), y la comparación con hilos,
+  IOCP, `select` y `poll`, en [`labs/README.md`](../../labs/README.md). Para cerrarla falta lo tuyo:
+  las preguntas y la sección final de la [guía de la CL4.0](ola-cl4.0-sockets-no-bloqueantes.md).
 - **La CL4.3 la escribe Claude**, en dos PRs. El primero trae la `Connection`: el camino de un
   paquete en claro por una conexión, en el orden del original. Al recibir, el socket, el corte con
   la máscara de la ofuscación, `AfterCut` y `BeforeDispatch`; al mandar, `BeforeSend` y la
@@ -299,6 +316,12 @@ sesión, junto con los de repaso más viejo.
 | de dónde sale lo que depende del lugar (la carpeta de datos, el servidor, el video), validado antes de abrir nada (`Resolve`), y un log que se lee en un test (`ILogSink`) | CL3.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un log sin globales, con la salida inyectada (`ILogSink`), un `std::mutex` en cada salida porque SDL loguea desde sus hilos y otro en el `TeeSink` para el orden, un archivo que agrega con un tope de 1 MiB al abrir (`FileSink`), y un RAII que devuelve la salida de SDL antes de que muera el `Log` (`SdlLog`) | CL3.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | un limitador de frames con meta absoluta contra un sueño relativo: la deriva de lo que corre entre frames, qué valor toma la meta cuando un frame se pasa (donde terminó, para no ponerse al día ni volver a sumar el hueco), y por qué con VSync no se usa (`SleepRestOfFrame`, el `FpsCap` de MuMain) | CL3.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un socket con RAII sobre el descriptor del sistema: el destructor cierra, se mueve con `std::exchange` y no se copia, con un handle que entra en Windows y en POSIX y el `#ifdef _WIN32` en un solo archivo (`LabSocket`) | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| el `connect` no bloqueante como una máquina de estados (en curso, conectado, rechazado): escribible no quiere decir conectado, y `SO_ERROR`, que dice cómo terminó, se borra al leerlo (`CheckConnect`) | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| "probá más tarde" (`EWOULDBLOCK`, `EAGAIN`, `WSAEWOULDBLOCK`, `EINTR`) contra un error y contra el `recv` en 0, que es el FIN del otro lado; `SIGPIPE` y `MSG_NOSIGNAL`, y un `recv` con buffer vacío que no se llama | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| el `send` que toma menos de lo pedido, y la cola con cursor, de tamaño fijo, que manda el resto sin repetir ni perder (`DrainQueue`) | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| el drenaje de `FD_WRITE` de `0x4e87b0`, que resta dos veces lo mandado y no corre el buffer: con un parcial repite los primeros bytes y pierde los últimos (el jefe, Q-C11), leído en el desensamblado (carril R) | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
+| un socket consultado una vez por frame contra un hilo por conexión o IOCP y epoll, y `select` contra `poll` y `WSAPoll` para saber si un `connect` terminó (la comparación de `labs/README.md`) | CL4.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | E/S no bloqueante detrás de una interfaz chica (`ISocket`, con `SystemSocket` y `FakeSocket`): el connect como máquina de estados que guarda su resultado porque `SO_ERROR` se borra al leerlo, "probá más tarde" contra un cierre (`recv` en 0, `ECONNRESET`), `SIGPIPE` y `MSG_NOSIGNAL`, y un `#ifdef _WIN32` en un solo archivo (`SocketApi`) | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | una cola de envío con cursor sobre un buffer fijo (`SendQueue`): por qué restar lo que salió dos veces repite el principio y pierde el final (Q-C11), compactar solo cuando lo nuevo no entra, y un tope que cierra en vez de crecer | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |
 | la red consultada una vez por frame en el mismo hilo que la lógica (`ILoopClient::Poll`), y dónde va en el modo fiel: fuera de la medición, donde lo que tarda se pierde de a ticks enteros, como los pasos (`FaithfulDoesNotMeasureThePoll`) | CL4.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-02 |

@@ -13,9 +13,9 @@ solo para leer, y se para al final para escribir (`SetFilePointer`, `0x41f802`).
 cosas, `0x41f830` lo recorta: lee hasta `0x1ffff` bytes, y se queda con lo que va desde el byte
 `0x7fff` o, en un archivo más chico, con las cuatro últimas sesiones (las marcas
 `###### Log Begin ######`). Después lo borra y lo reescribe. Lo escribe cifrado con un XOR de 16
-bytes. Eso es *estático*, verificado con objdump
-(Q-C48). Un segundo cliente abierto a la vez no puede abrirlo para escribir, y se queda sin log: el
-`CreateFileA` no se mira. Eso es *inferido*, sin probar.
+bytes. Eso es *estático*, verificado con objdump (Q-C48). Un segundo cliente abierto a la vez no
+puede abrirlo para escribir, y se queda sin log: el `CreateFileA` no se mira. Eso es *inferido*,
+sin probar.
 
 En MU es normal tener dos clientes abiertos. MuRet loguea más que el original por corrida (el
 arranque, los avisos del bucle, SDL). La

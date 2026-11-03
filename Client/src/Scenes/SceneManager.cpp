@@ -33,6 +33,14 @@ SceneManager::~SceneManager()
 
 Core::Expected<void, std::string> SceneManager::Start(SceneId first)
 {
+    if (m_current)
+    {
+        std::string error = std::format("el SceneManager ya está en la escena {}: Start no entra a la {}",
+                                        Describe(*m_current), Describe(first));
+        m_log.Error("{}", error);
+        return Core::Unexpected(std::move(error));
+    }
+    m_failure.reset();
     m_log.Info("escena {}", Describe(first));
     return Enter(first);
 }
@@ -53,10 +61,13 @@ void SceneManager::Step(const Input::InputState& input)
     }
     m_scene->Step(input);
     const std::optional<SceneId> next = m_scene->Next();
-    if (next)
+    if (!next)
     {
-        Request(*next);
+        // La escena dejó de pedir: si el pedido rechazado vuelve, se avisa otra vez.
+        m_rejected.reset();
+        return;
     }
+    Request(*next);
 }
 
 void SceneManager::Render(float alpha)

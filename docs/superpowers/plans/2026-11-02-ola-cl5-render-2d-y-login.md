@@ -1622,6 +1622,15 @@ public:
   (`RendersBetweenBeginAndPresent`), y sin el `Leave` al fallar o al cerrar
   (`AFailedEnterStopsWithItsError`, `TheSceneLeavesWhenTheManagerCloses`).
 
+  Revisión (PR A, 2026-11-03): un segundo `Start` con una escena ya entrada la reemplazaba sin su
+  `Leave`, y sus texturas quedaban subidas; ahora es un error y la de ahora sigue
+  (`StartingAgainKeepsTheScene`), y un `Start` después de uno que falló borra el error de antes
+  (`AStartAfterAFailedOneClearsTheFailure`). El aviso de un pedido rechazado es uno por pedido
+  seguido: un paso sin pedido o un cambio de escena lo habilitan otra vez
+  (`ARejectionIsLoggedAgainWhenTheRequestComesBack`; antes, después de un paso sin pedido, el
+  mismo pedido ya no se avisaba). `ARequestWithoutASceneChangesNothing` fija la guarda de `Request`
+  sin escena, que ningún test cubría: sin ella, `Request` leía un `std::optional` vacío.
+
   Hecho así (PR B, 2026-11-03): `LoginSceneTest` con los siete de arriba (el del orden en dos
   frames, el segundo con la mezcla aditiva que dejó el primero; el del mundo, también con el alpha
   del frame) y seis más: `UsesTheQuadsOfTheOriginal` (los fondos y las arenas contra `FanCorners`

@@ -312,11 +312,12 @@ solo lo lee.
   mundos del laboratorio son la carpeta de algún mapa y que solo falta la del 35. Las escenas son
   objetos (`IScene`: entrar, paso, dibujo, salir y a cuál ir), y el `SceneManager` cambia solo por
   una de las ocho transiciones del original (`SceneTransitions.h`): otra es un error en el log, una
-  vez. Sale la de antes y entra la nueva, que la fábrica arma de cero; un `Enter` que falla deja el
-  error para que `main.cpp` cierre. La red corre en cada `Poll`, también minimizada. Q-C79, nuevo:
-  el `F1 02` cambia de escena sin mirar en cuál está. El B (2026-11-03): las escenas de verdad y
-  `main.cpp`. Con `--data`, `Main` lee `Text.bmd` y elige la fuente antes de la ventana, y corre la
-  carga (`LoadingScene`, su UI de 800 × 600 y la barra, un avance por paso), el login
+  vez mientras se pida seguido. Sale la de antes y entra la nueva, que la fábrica arma de cero; un
+  `Enter` que falla deja el error para que `main.cpp` cierre, y un segundo `Start` no pisa la escena
+  de ahora (lo encontró la revisión). La red corre en cada `Poll`, también minimizada. Q-C79,
+  nuevo: el `F1 02` cambia de escena sin mirar en cuál está. El B (2026-11-03): las escenas de
+  verdad y `main.cpp`. Con `--data`, `Main` lee `Text.bmd` y elige la fuente antes de la ventana, y
+  corre la carga (`LoadingScene`, su UI de 800 × 600 y la barra, un avance por paso), el login
   (`LoginScene`: entra con sus 18 texturas y la sesión; dibuja los fondos, el fin del 2D, el pase
   3D, que no dibuja nada hasta la CL7, la arena con el reloj del frame y los tres textos, con la
   versión de MuRet) y una selección vacía, adonde lleva el login aceptado. Cada escena lo pide

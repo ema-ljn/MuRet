@@ -41,11 +41,13 @@ public:
     SceneManager& operator=(const SceneManager&) = delete;
 
     // Entra a `first` (main.cpp pasa FirstScene, la carga). Si su Enter falla, el error, que queda
-    // también en Failure.
+    // también en Failure. Con una escena ya entrada es un error y la de ahora sigue: para cambiar
+    // está Request.
     Core::Expected<void, std::string> Start(SceneId first);
     // La red, también minimizada y antes de Start.
     void Poll() override;
-    // El paso de la escena y, si pide otra (Next), Request.
+    // El paso de la escena y, si pide otra (Next), Request. Un paso sin pedido corta la seguidilla
+    // de un pedido rechazado: si vuelve, se avisa otra vez.
     void Step(const Input::InputState& input) override;
     // BeginFrame con el reloj, el Render de la escena y Present. Sin escena, nada.
     void Render(float alpha) override;
@@ -72,7 +74,7 @@ private:
     std::unique_ptr<IScene> m_scene;
     std::optional<SceneId> m_current;
     std::optional<std::string> m_failure;
-    // El último pedido rechazado, para no repetir el aviso en cada paso.
+    // El último pedido rechazado, para no repetir el aviso en cada paso mientras se pida seguido.
     std::optional<SceneId> m_rejected;
 };
 } // namespace Client::Scenes

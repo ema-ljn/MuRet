@@ -13,13 +13,13 @@ Los tests golden no los piden.
 
 | Fuente | Qué tiene | Dónde |
 | --- | --- | --- |
-| `Data\` del cliente | 5.726 archivos: 1.962 modelos, 3.044 texturas, 484 WAV, 26 temas de música, el terreno de 20 mundos | `mu-online-reverse-lab`, `analysis/decompilacion-maxima/assets/original-data/` (copia exacta por SHA-256 de la fuente) |
-| Segunda copia del `Data\` | 48 carpetas: las mismas sin `sound\` ni `Music\`. Comparada por nombre y tamaño en `Monster`, `Item`, `Skill`, `World6` y la raíz: no tiene ninguno de los 100 faltantes; `Wing02.bmd` y `Wing03.bmd` son más grandes (de 2009 y 2018), `Macro.txt` cambia y suma 5 texturas de 2009 y 2018 que la del laboratorio no tiene. Es una variante modificada de la misma base | `cliente-lab/Data` en la máquina de Emanuel (no se copió nada) |
+| `Data\` del cliente | 5.726 archivos: 1.962 modelos, 3.044 texturas, 484 WAV, 26 temas de música, el terreno de 20 mundos | `mu-online-reverse-lab`, `analysis/decompilacion-maxima/assets/original-data/` (copia exacta por SHA-256 de la fuente); en MuRet, `Client/assets/Data/` desde el 2026-11-04, con su `Data.sha256` (los 5.726 hashes están en el `assets_manifest.csv` del laboratorio) |
+| Segunda copia del `Data\` | 48 carpetas: las mismas sin `sound\` ni `Music\`. Comparada por nombre y tamaño en `Monster`, `Item`, `Skill`, `World6` y la raíz: no tiene ninguno de los 100 faltantes; `Wing02.bmd` y `Wing03.bmd` son más grandes (de 2009 y 2018), `Macro.txt` cambia y suma 5 texturas de 2009 y 2018 que la del laboratorio no tiene. Es una variante modificada de la misma base, que no sirve de referencia ([abajo](#las-dos-copias-del-data)) | `cliente-lab/Data` en la máquina de Emanuel (no se copió nada) |
 | Decompilado de `main.exe` | qué archivo carga cada función y en qué slot o índice | `client-research/mainexe-vmxp-c32bbd5f/decompiled/` |
 | GameServer reconstruido | el código fuente del servidor original, en C++ de VC6 | `gameserver/src/reconstructed/win32-vc6/` del repo de research |
 | Datos del servidor en uso | 10 archivos de su `data`: `MonsterSetBase.txt`, `gate.txt`, `item` y `skill`, `commonserver.cfg` | `client-research/mu-golden/servidor-en-uso-vm2003/` |
 | Memoria del cliente vivo | la tabla de 1.845 slots de textura, terreno, luz, atributos y objetos de Lorencia y Devias | `client-research/mu-golden/memoria-cliente/` |
-| Trazas de GL y sesión del cable | 5 frames de la selección y 5 de Lorencia; 3,5 minutos de juego ([04](04-protocolo.md), [06](06-render-escenas-y-ui.md)) | PR #45 del laboratorio |
+| Trazas de GL y sesión del cable | 5 frames de la selección y 5 de Lorencia; 3,5 minutos de juego ([04](04-protocolo.md), [06](06-render-escenas-y-ui.md)) | PR #45 del laboratorio; las de GL, en la máquina de Emanuel, en `analisis-mu-baires/lab-capture/sessions/graphics-01` (la carpeta de `MURET_CLIENT_GL_TRACE_DIR`) |
 
 ## El `Data\` del cliente, contra lo que pide `main.exe`
 
@@ -73,8 +73,44 @@ con `.jpg` → `.OZJ`, `.tga` → `.OZT`, `.bmp` → `.OZB` como hace el cliente
 - El nombre `Monster\bossmap1_R.jpg.jpg` no es un hueco: el cargador corta el nombre en el primer
   punto y lee `bossmap1_R.OZJ`, que está.
 
-Ningún archivo del cliente se versiona en MuRet: la auditoría corre contra
-`MURET_CLIENT_GOLDEN_DIR` (decisión del roadmap).
+La auditoría corre contra `MURET_CLIENT_GOLDEN_DIR`. Desde el 2026-11-04 esa carpeta es
+`Client/assets/Data/`, en el repo (D-C7 del roadmap).
+
+## Las dos copias del `Data\`
+
+**Verificado el 2026-11-04**, por SHA-256 y corriendo los tests golden y de memoria con cada una.
+La de referencia es la primera de la tabla de arriba, la de `Client/assets/Data/`: con ella pasan
+todos los tests de datos, también `MemoryTextTable` y `MemoryItemTable`, que comparan con la
+memoria del `main.exe` `c32bbd5f…`. Cuando los tests y los planes dicen "el `Data\` del
+laboratorio" (`OfTheLab`, D-C9) es esta. La segunda, `cliente-lab/Data`, es una edición posterior
+de un servidor privado y falla 17 de esos tests.
+
+Sin mirar mayúsculas (las carpetas cambian: `Player\` en una, `player\` en la otra), 5.004
+archivos son iguales, 33 cambian, 689 están solo en la de referencia (los 484 WAV, los 26 temas y
+165 de `Local\`, como `Local\Logo\` e `itemtest.bmd`) y 17 solo en la segunda (`Monster\Monster71\`,
+con fuentes `.smd`; `Item\Axe10.bmd`, que no pide nadie porque el bucle de las hachas va del 1 al
+9, y cinco texturas de sus alas custom). De lo que cambia, lo que lee `main.exe`:
+
+| Archivo | En la segunda copia |
+| --- | --- |
+| `Local\Text.bmd` | otra traducción: 1.669 textos no vacíos contra 1.645 (Q-C67), y del 1.717 al 1.738 escritos, que en la referencia están vacíos. El registro 714 también ocupa sus 300 bytes sin `\0`, además del 7 (Q-C07) |
+| `Local\Item.bmd` | 688.132 bytes contra 688.212, y el checksum coincide; en la referencia no coincide y el original la carga igual (Q-C01) |
+| `Local\Skill.bmd`, `Quest.bmd`, `MoveReq.bmd`, `Credit.bmd` | otros bytes |
+| `Interface\lo_webzen_logo.OZT` | 53 bytes, un reemplazo vacío (en la referencia, 112.996): por eso la segunda falla `GoldenTextureSet.TheLoadingSetLoads` |
+| `Item\Wing02.bmd`, `Wing03.bmd` | alas custom: 19.631 y 49.805 bytes contra 6.507 y 5.371 |
+| `Player\` de los sets 16 y 26, `Wing03.bmd` y las texturas `*_14m` | reexportados con otra herramienta; las trazas de GL no los usan y pasan con las dos |
+| los fondos de la carga, el login y la selección (`lo_back_01` y `02`, `Login_Back01` y `02`, `character_back01` y `02`) | recodificados |
+
+Lo que cambia para el research:
+
+- **La caja de la descripción de la lista** (P-C13 f, Q-C62) sale vacía con la referencia: los
+  textos 1.715 a 1.745 no tienen nada. Una captura con texto en esa caja se sacó con la segunda.
+- **La cara del texto** (los textos 0 y 18) está vacía en las dos: `[Video] FontFile` hace falta
+  con cualquiera, también en Windows.
+- **Las alas** (P-C18 b) van con las de la referencia.
+- Las capturas a mano de la CL5.4 (paso 4 del
+  [plan de la CL5](../../../docs/superpowers/plans/2026-11-02-ola-cl5-render-2d-y-login.md)) dicen
+  "el `Data\` del laboratorio": con cuál de las dos se sacaron, sin verificar.
 
 ## Qué función dice qué archivo va dónde
 

@@ -8,17 +8,25 @@
 #include <string>
 #include <string_view>
 
-// La carpeta golden: una copia del Data\ del cliente original, fuera del repo.
+// La carpeta golden: el Data\ del cliente original (Enc1.dat, Dec2.dat, Player\, World1\…).
 //
-// MURET_CLIENT_GOLDEN_DIR apunta a una carpeta con el contenido de Data\ (Enc1.dat, Dec2.dat,
-// Player\, World1\…). La del laboratorio es analysis/decompilacion-maxima/assets/original-data
-// de EmaNLJN/mu-online-reverse-lab. La regla, como en el repo de research:
-//   - si la variable no está o está vacía, el test se saltea;
-//   - si está pero la carpeta no existe, o le falta el archivo que el test pide, el test falla.
+// Es la del repo, Client/assets/Data, la misma que la del laboratorio
+// (analysis/decompilacion-maxima/assets/original-data de EmaNLJN/mu-online-reverse-lab, por
+// SHA-256). MURET_CLIENT_GOLDEN_DIR apunta a otra, si hace falta. La regla:
+//   - si la variable no está o está vacía, el test lee la del repo (D-C9, desde el 2026-11-04);
+//   - si la carpeta no existe, o le falta el archivo que el test pide, el test falla.
+// Las otras carpetas de este archivo (los volcados, el cable, las trazas) están fuera del repo, y
+// sin su variable el test se saltea.
 namespace Client::Tests
 {
-// El valor de MURET_CLIENT_GOLDEN_DIR, o std::nullopt si no está o está vacía.
-std::optional<std::filesystem::path> GoldenDir();
+// La Data del repo, Client/assets/Data.
+std::filesystem::path RepoDataDir();
+
+// El valor de MURET_CLIENT_GOLDEN_DIR, o la Data del repo si no está o está vacía.
+std::filesystem::path GoldenDir();
+
+// La regla de GoldenDir, separada de la lectura del entorno para poder testearla.
+std::filesystem::path GoldenDirOrRepoData(const std::optional<std::string>& value);
 
 // La regla, separada de la lectura del entorno para poder testearla (test_golden_dir.cpp).
 enum class GoldenDirState
@@ -34,8 +42,8 @@ GoldenDirState CheckGoldenDir(const std::optional<std::filesystem::path>& dir);
 // (Core::EqualsIgnoringAsciiCase): en la carpeta golden hay .OZJ, .ozj y .Ozj.
 bool HasExtension(const std::filesystem::path& path, std::string_view extension);
 
-// Base para los tests que leen archivos reales. SetUp() saltea el test sin carpeta golden y lo
-// hace fallar si la carpeta no existe.
+// Base para los tests que leen archivos reales. SetUp() hace fallar el test si la carpeta golden
+// no existe.
 class GoldenDataTest : public ::testing::Test
 {
 protected:

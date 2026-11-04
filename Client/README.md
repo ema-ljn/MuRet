@@ -14,7 +14,9 @@ tema), reconstruido desde la carpeta `client-research/` de
 Qué hace MuRet y en qué orden está en el
 [roadmap del cliente](../docs/superpowers/specs/2026-10-30-cliente-design.md).
 
-MuRet **no incluye assets del juego**: el cliente lee los `Data\` de una instalación existente.
+La `Data\` del cliente original está en [`assets/Data/`](assets/README.md), tal cual: es el
+original que MuRet reimagina y la base de los tests. El cliente igual la lee de la carpeta que se
+le pase (`--data` o `[Data] Path`).
 
 ## Estado
 
@@ -184,8 +186,8 @@ CI.
 Con `--data` (o `[Data] Path`), `Main` lee `Local\Text.bmd` y elige la fuente antes de abrir la
 ventana, y corre la carga y el login con las texturas de esa carpeta. Sin `Text.bmd`, o sin una
 fuente, termina con un error que lo dice. La fuente va en `[Video] FontFile` de
-`muret-client.ini`: en Linux siempre, y en Windows también con el `Data\` del laboratorio, cuya
-cara está vacía. Por ejemplo, en Linux:
+`muret-client.ini`: en Linux siempre, y en Windows también con la de `assets/Data/`, cuya cara
+está vacía. Por ejemplo, en Linux:
 
 ```ini
 [Video]
@@ -261,11 +263,11 @@ falta correr está en P-C21 del [08](docs/research/08-pendientes.md).
 1. Levantar la VM del laboratorio con el ConnectServer y el GameServer andando. La cuenta de
    prueba necesita personajes: MuRet todavía no los crea (CL6.5), así que se crean antes con el
    cliente original, de clases distintas y con algo de equipo.
-2. Correr, con la IP del ConnectServer de la VM y la carpeta `Data` del cliente del laboratorio,
-   que trae `Enc1.dat` y `Dec2.dat`:
+2. Correr, con la IP del ConnectServer de la VM y la carpeta `Client/assets/Data`, que trae
+   `Enc1.dat` y `Dec2.dat`:
 
    ```bash
-   ./build/linux-x64-debug/Client/Main connect /u<ip del CS> /p44405 --data <Data del laboratorio>
+   ./build/linux-x64-debug/Client/Main connect /u<ip del CS> /p44405 --data Client/assets/Data
    ```
 
    En Windows, lo mismo con `build\windows-x64\Client\Debug\Main.exe`, o con `[Server] Host`,
@@ -397,17 +399,16 @@ Cada `tests/<módulo>/test_<algo>.cpp` es su propio ejecutable (`test_packet_rea
 MuMain, y cada `TEST` es un test de CTest con el nombre de su suite: `ctest -R PacketReader` corre
 los del lector. Lo que comparten está en `tests/support/` (la biblioteca `ClientTestSupport`).
 
-Los tests golden leen archivos reales del cliente original, que MuRet no versiona. Se les pasa una
-carpeta con el contenido de `Data\` (`Enc1.dat`, `Player\`, `World1\`…) en
-`MURET_CLIENT_GOLDEN_DIR`, al correr o al configurar:
+Los tests golden leen archivos reales del cliente original: los de `Client/assets/Data/`, sin
+nada que configurar, también en CI. Para probar con otra copia de `Data\` (`Enc1.dat`, `Player\`,
+`World1\`…), `MURET_CLIENT_GOLDEN_DIR` apunta a ella, al correr o al configurar:
 
 ```bash
 MURET_CLIENT_GOLDEN_DIR=/ruta/a/Data ctest --preset linux-x64-debug
 cmake --preset linux-x64-debug -DMURET_CLIENT_GOLDEN_DIR=/ruta/a/Data   # queda en la caché
 ```
 
-Sin la variable, se saltean (`Skipped`). Si apunta a una carpeta que no existe, o le falta el
-archivo que el test pide, fallan.
+Si la carpeta no existe, o le falta el archivo que el test pide, fallan.
 
 Los OZJ, además, se comparan con lo que da la IJG libjpeg 6b del original, que no está en CI: el
 tamaño y un hash de cada uno están en `tests/vectors/jpeg/lab-6b.txt`, y cómo se sacan, en el
@@ -494,6 +495,7 @@ Client/
     UI/           widgets, la lista, la cuenta y los avisos del login (CL5.5); HUD (CL8)
     Audio/        música y efectos                      (CL10)
   tests/          GoogleTest                            (CL0.2+)
+  assets/         la Data\ del original, tal cual, y su manifiesto de hashes
   docs/research/  qué hace el original, byte a byte (01..09)
 ```
 

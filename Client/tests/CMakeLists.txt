@@ -15,10 +15,13 @@ add_library(ClientTestSupport STATIC ${support_sources})
 target_include_directories(ClientTestSupport PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ClientTestSupport PUBLIC ClientLib GTest::gtest)
 # Los vectores JPEG y los de red (el README.md de vectors/jpeg y de vectors/net) están en el repo:
-# los tests los leen de acá.
+# los tests los leen de acá. La Data del original también (Client/assets/Data): es la carpeta
+# golden cuando MURET_CLIENT_GOLDEN_DIR no está.
+cmake_path(SET muret_repo_data_dir NORMALIZE "${CMAKE_CURRENT_SOURCE_DIR}/../assets/Data")
 target_compile_definitions(ClientTestSupport PUBLIC
     MURET_CLIENT_JPEG_VECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/vectors/jpeg"
-    MURET_CLIENT_NET_VECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/vectors/net")
+    MURET_CLIENT_NET_VECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/vectors/net"
+    MURET_CLIENT_REPO_DATA_DIR="${muret_repo_data_dir}")
 muret_set_warnings(ClientTestSupport)
 muret_precompile_headers(ClientTestSupport <gtest/gtest.h>)
 
@@ -29,11 +32,12 @@ target_link_libraries(ClientGlTestSupport PUBLIC ClientTestSupport ClientRender)
 muret_set_warnings(ClientGlTestSupport)
 muret_precompile_headers(ClientGlTestSupport <gtest/gtest.h>)
 
-# La carpeta golden llega a los tests como variable de entorno. Se puede fijar acá, al configurar
-# (-DMURET_CLIENT_GOLDEN_DIR=...), o en el entorno al correr ctest. La de los volcados de memoria
-# (MURET_CLIENT_MEMORY_DIR) y la del cable (MURET_CLIENT_WIRE_DIR) van solo en el entorno:
-# gtest_discover_tests parte en dos una lista de variables en ENVIRONMENT, y la segunda se pierde.
-set(MURET_CLIENT_GOLDEN_DIR "" CACHE PATH "Copia del Data\\ del cliente original para los tests golden (vacío: se saltean)")
+# La carpeta golden llega a los tests como variable de entorno. Sin ella, es la Data del repo. Otra
+# se puede fijar acá, al configurar (-DMURET_CLIENT_GOLDEN_DIR=...), o en el entorno al correr
+# ctest. La de los volcados de memoria (MURET_CLIENT_MEMORY_DIR) y la del cable
+# (MURET_CLIENT_WIRE_DIR) van solo en el entorno: gtest_discover_tests parte en dos una lista de
+# variables en ENVIRONMENT, y la segunda se pierde.
+set(MURET_CLIENT_GOLDEN_DIR "" CACHE PATH "Otra copia del Data\\ del cliente original para los tests golden (vacío: la del repo, Client/assets/Data)")
 
 # Cuánto puede tardar un ejecutable en listar sus tests al compilar. El valor por defecto (5 s) no
 # alcanza con los sanitizers en una máquina cargada.

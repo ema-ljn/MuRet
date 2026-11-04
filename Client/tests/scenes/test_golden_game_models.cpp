@@ -4,6 +4,7 @@
 #include "Core/Log.h"
 #include "Data/Models/ModelTextureCalls.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CreatePreview.h"
@@ -170,6 +171,43 @@ TEST_F(GoldenGameModels, ThePetDrawsWithItsTextures)
     {
         EXPECT_TRUE(loaded.contains(slot.value)) << std::hex << slot.value;
     }
+}
+
+// 0x61ca30 lee Logo05 y los cinco NewFace de Data\Logo (en la Data del repo), y les pone 0,3 a las
+// acciones 0 y 1 de los NewFace; sin la tabla de la carga, sus texturas empiezan en 0x6f8.
+TEST_F(GoldenGameModels, TheSelectionModelsLoadWithTheirSpeeds)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    Client::Scenes::SelectionModels selection;
+
+    ASSERT_TRUE(selection.Load(m_dataRoot, textures, log, nullptr).HasValue());
+
+    EXPECT_NE(selection.Find(Client::Scenes::SelectionLogoModel), nullptr);
+    for (std::uint16_t model = 0xa8; model <= 0xac; ++model)
+    {
+        const auto* skeleton = selection.SkeletonOf(model);
+        ASSERT_NE(skeleton, nullptr) << std::hex << model;
+        ASSERT_GE(skeleton->actions.size(), 2u) << std::hex << model;
+        EXPECT_FLOAT_EQ(skeleton->actions[0].speed, 0.3f) << std::hex << model;
+        EXPECT_FLOAT_EQ(skeleton->actions[1].speed, 0.3f) << std::hex << model;
+        EXPECT_FALSE(selection.MeshTextures(model).empty()) << std::hex << model;
+    }
+    ASSERT_NE(selection.TextureSlots(), nullptr);
+    EXPECT_EQ(selection.MeshTextures(Client::Scenes::SelectionLogoModel).front(), TextureSlot{0x6f8});
+    // Las del 0xa4 con GL_LINEAR (0x2601) y las de los NewFace con GL_NEAREST (0x2600), repitiendo.
+    const auto logo = textures.Find(TextureSlot{0x6f8});
+    ASSERT_TRUE(logo.has_value());
+    EXPECT_EQ(logo->sampling.filter, Client::Data::Textures::Filter::Linear);
+    EXPECT_EQ(logo->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
+    const auto face = textures.Find(selection.MeshTextures(0xa8).front());
+    ASSERT_TRUE(face.has_value());
+    if (face->texture.format == Client::Data::Textures::PixelFormat::Rgb)
+    {
+        EXPECT_EQ(face->sampling.filter, Client::Data::Textures::Filter::Nearest);
+    }
+    EXPECT_EQ(face->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
 }
 
 class ModelTextureSlotsGoldenTest : public Client::Tests::MemoryDumpTest

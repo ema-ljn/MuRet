@@ -45,11 +45,12 @@ ItemGlow ItemGlowOf(std::uint8_t level, bool excellent, bool ancient, std::uint8
     default:
         break;
     }
+    // 0x60b3d0 vuelve después del 0x42 (LAB_0060cb3b): el de set va solo sin excelente.
     if (excellent)
     {
         glow.passes.push_back(GlowPass{});
     }
-    if (ancient)
+    else if (ancient)
     {
         glow.passes.push_back(GlowPass{ShinePass::Chrome3});
     }

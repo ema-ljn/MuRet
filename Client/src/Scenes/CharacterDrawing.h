@@ -47,6 +47,8 @@ struct DrawnCharacter
     Render::Models::AnimationState wings;
     // La luz del personaje: la base de 0x50ba30 más +0xf4, 0,4 y 1,4 el elegido en la selección.
     float light = 0.4f;
+    // El que está bajo el mouse (DAT_006c8e30 en 0x510d00): sus partes llevan el contorno.
+    bool outlined = false;
 };
 
 // Los slots de las texturas de los pases de brillo (06): 0x5fc el 0x8, 0x5c0 el 0x4 y 0x620 los
@@ -68,7 +70,9 @@ inline constexpr Render::TextureSlot MetalTextureSlot{0x620};
 // 0x50ba30: el cuerpo posado con `body` y la cabeza, las cinco partes y la cabeza de la apariencia,
 // las manos, las alas y la mascota que se dibuja (Q-C98). Cada malla va con su textura, opaca o, con
 // una OZT (de cuatro componentes), con la mezcla normal, y el color de la luz por el factor de su
-// nivel; después, sus pases de brillo, aditivos. Un modelo que la biblioteca no tiene no se dibuja.
+// nivel; después, sus pases de brillo, aditivos. Con `outlined`, cada una de las seis partes (la
+// cabeza también) lleva antes el contorno de 0x60cf70; lo que cuelga, no. Un modelo que la biblioteca
+// no tiene no se dibuja.
 void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
                    Core::Duration frameClock);
 } // namespace Client::Scenes

@@ -4,6 +4,7 @@
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
+#include "Data/Models/PlayerModels.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -41,16 +42,17 @@ namespace Client::Scenes
 {
 namespace
 {
-// El esqueleto de los personajes y la mascota que se dibuja.
-constexpr std::uint16_t PlayerModel = 0x20a;
 
 // La acción de parado de la selección. La elige 0x4f2250 por la mascota, las alas y el arma; la de
 // la traza es la 3, con un arma de una mano. Las otras, sin leer (P-C14 c): hasta entonces, la 3.
 constexpr std::uint8_t StandingAction = 3;
 
-// La luz de cada personaje y la del elegido (0x50ba30 y 0x634680).
+// La luz de 0x50ba30 en la escena 4: 0,4, y 0,5 para el "héroe" (DAT_0743a170, el objeto 0, que es
+// el del lugar 0: 0x50d219), más el +0xf4 que pone 0x634680, 1 para el elegido.
 constexpr float CharacterLight = 0.4f;
-constexpr float ChosenLight = 1.4f;
+constexpr float HeroLight = 0.5f;
+constexpr float ChosenExtraLight = 1.0f;
+constexpr std::uint8_t HeroSlot = 0;
 
 // Los dos fondos, 0x621b60(0x717, 0, 25, 320, 320, …) y el 0x718 en x 320, escalados desde 640 × 480.
 Render::OriginalQuad Background(std::uint16_t slot, float x)
@@ -102,7 +104,7 @@ void CharacterSelectScene::TakeTheList()
         return;
     }
     m_tookTheList = true;
-    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(PlayerModel);
+    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     for (const Protocol::Character::CharacterEntry& entry : m_session->Characters()->characters)
     {
         Character character;
@@ -118,10 +120,11 @@ void CharacterSelectScene::TakeTheList()
     m_context.log.Info("la selección tiene {} personajes", m_characters.size());
 }
 
-// El cuerpo por paso con la velocidad de su acción; la mascota por tiempo (Q-C20).
+// El cuerpo por paso con la velocidad de su acción; la mascota y las alas por tiempo (Q-C20), las alas
+// con la velocidad que 0x50ba30 les pone en +0x308 por la acción del cuerpo.
 void CharacterSelectScene::StepCharacters()
 {
-    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(PlayerModel);
+    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     for (Character& character : m_characters)
     {
         if (skeleton != nullptr && character.body.action < skeleton->actions.size())
@@ -139,13 +142,55 @@ void CharacterSelectScene::StepCharacters()
                                               App::LogicStep);
             }
         }
+        if (character.appearance.wings)
+        {
+            const Render::Models::Skeleton* wings = m_models.SkeletonOf(*character.appearance.wings);
+            if (wings != nullptr && !wings->actions.empty())
+            {
+                Render::Models::AdvanceByTime(character.wings, wings->actions[0],
+                                              Render::Models::WingKeysPerOriginalFrame(character.body.action),
+                                              App::LogicStep);
+            }
+        }
+    }
+}
+
+// Q-C70: en la selección, un FD_CLOSE abre el aviso 0x70, como en el login, una vez. MuRet lo abre
+// también sin respuesta (NoReply), como el login (Q-C69).
+void CharacterSelectScene::ShowTheFailure()
+{
+    if (m_failureShown || m_session == nullptr || m_session->State() != App::SessionState::Failed)
+    {
+        return;
+    }
+    m_failureShown = true;
+    m_context.log.Info("la sesión falló en la selección: se abre el aviso {:#04x}",
+                       static_cast<int>(UI::ConnectFailedNotice));
+    m_notice.Open(UI::ConnectFailedNotice);
+}
+
+// El aviso abierto tiene el mouse (Q-C84): nadie está debajo. El OK de uno que cierra el juego (el
+// 0x70, Q-C69) lo dice en WantsToQuit; el del bloqueado, solo cierra el aviso.
+void CharacterSelectScene::StepTheNotice(const Input::InputState& input)
+{
+    m_hovered.reset();
+    const std::optional<UI::NoticeId> closed = m_notice.Step(input, m_screen);
+    if (closed && UI::FollowUpOf(*closed) == UI::NoticeFollowUp::Quit)
+    {
+        m_context.log.Info("el OK del aviso cierra el juego (el {:#04x})", static_cast<int>(*closed));
+        m_quit = true;
     }
 }
 
 void CharacterSelectScene::Step(const Input::InputState& input)
 {
+    ShowTheFailure();
     if (WaitingForTheList())
     {
+        if (m_notice.IsOpen())
+        {
+            StepTheNotice(input);
+        }
         return;
     }
     ++m_steps;
@@ -153,11 +198,12 @@ void CharacterSelectScene::Step(const Input::InputState& input)
     StepCharacters();
     if (m_notice.IsOpen())
     {
-        m_notice.Step(input, m_screen);
+        StepTheNotice(input);
         return;
     }
     const auto now = App::LogicStep * static_cast<std::int64_t>(m_steps);
     const std::optional<std::uint8_t> hovered = UnderTheMouse(input);
+    m_hovered = hovered;
     if (m_doubleClick.Step(input, now) && hovered)
     {
         // El doble clic elige y entra como Enter, sin el sonido (0x6342c0).
@@ -236,6 +282,8 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     m_screen = canvas.screen;
     if (WaitingForTheList())
     {
+        // Sin la lista, 0x634680 no dibuja; el aviso es de la UI, que sí.
+        m_notice.Draw(canvas.sprites, canvas.text, canvas.screen);
         return;
     }
     Render::SpriteBatch& sprites = canvas.sprites;
@@ -252,7 +300,7 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     {
         canvas.world.Draw(*world, pass, alpha);
     }
-    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(PlayerModel);
+    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
     for (const Character& character : m_characters)
     {
@@ -265,8 +313,11 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
             drawn.body = Render::Models::Interpolated(character.body, action, action.speed, alpha);
         }
         drawn.pet = character.pet.state;
+        drawn.wings = character.wings.state;
         drawn.object = ObjectOf(character);
-        drawn.light = chosen != nullptr && chosen->slot == character.slot ? ChosenLight : CharacterLight;
+        const bool isChosen = chosen != nullptr && chosen->slot == character.slot;
+        drawn.light = (character.slot == HeroSlot ? HeroLight : CharacterLight) + (isChosen ? ChosenExtraLight : 0.0f);
+        drawn.outlined = m_hovered == character.slot;
         DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
     }
     canvas.flushModels();
@@ -281,16 +332,12 @@ void CharacterSelectScene::Leave()
 
 std::optional<SceneId> CharacterSelectScene::Next() const
 {
-    if (m_session != nullptr && m_session->State() == App::SessionState::Failed)
-    {
-        return SceneId::Login;
-    }
     return m_next;
 }
 
 bool CharacterSelectScene::WantsToQuit() const
 {
-    return false;
+    return m_quit;
 }
 
 bool CharacterSelectScene::WantsTextInput() const

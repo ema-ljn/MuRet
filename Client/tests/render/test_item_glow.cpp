@@ -72,8 +72,9 @@ TEST(ItemGlowTest, DetailCapsTheLevel)
               Shines({ShinePass::Chrome4, ShinePass::Shiny, ShinePass::Chrome}));
 }
 
-// Un ítem excelente suma el pase 0x42 (la textura de la malla, aditiva), y uno de set el 0x840.
-TEST(ItemGlowTest, ExcellentAndAncientAddTheirPasses)
+// Un ítem excelente suma el pase 0x42 (la textura de la malla, aditiva), y uno de set el 0x840. Son
+// excluyentes: 0x60b3d0 vuelve después del 0x42 (LAB_0060cb3b), así que el de set solo va sin él.
+TEST(ItemGlowTest, ExcellentAndAncientAreExclusive)
 {
     const std::vector<GlowPass> excellent = ItemGlowOf(0, true, false).passes;
     ASSERT_EQ(excellent.size(), 1u);
@@ -81,9 +82,8 @@ TEST(ItemGlowTest, ExcellentAndAncientAddTheirPasses)
 
     EXPECT_EQ(ItemGlowOf(0, false, true).passes, Shines({ShinePass::Chrome3}));
     const std::vector<GlowPass> both = ItemGlowOf(7, true, true).passes;
-    ASSERT_EQ(both.size(), 3u);
+    ASSERT_EQ(both.size(), 2u);
     EXPECT_EQ(both[0], GlowPass{ShinePass::Chrome});
     EXPECT_FALSE(both[1].shine.has_value());
-    EXPECT_EQ(both[2], GlowPass{ShinePass::Chrome3});
 }
 } // namespace

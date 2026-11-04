@@ -5,6 +5,7 @@
 #include "Data/Models/ModelTextureCalls.h"
 #include "Data/Models/PlayerModels.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/TextureSets.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/FileBytes.h"
@@ -35,6 +36,7 @@ using Client::Data::Models::PlayerFixedTextures;
 using Client::Data::Models::PlayerModelFiles;
 using Client::Render::TextureSlot;
 using Client::Scenes::GameModels;
+using Client::Scenes::GlowTextureSet;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::ReadFileBytes;
 using Client::Tests::RecordingSink;
@@ -89,6 +91,11 @@ TEST_F(GoldenGameModels, TheTexturesGoWhereTheLoadersPutThem)
     EXPECT_FALSE(loaded.contains(0x135));
     EXPECT_TRUE(loaded.contains(0x138));
     EXPECT_TRUE(loaded.contains(0x25a));
+    // Y las de los pases de brillo (0x61ccb0, avance 0), que el dibujo de las partes pide.
+    for (const int slot : {0x5c0, 0x5fc, 0x620})
+    {
+        EXPECT_TRUE(loaded.contains(static_cast<std::uint16_t>(slot))) << std::hex << slot;
+    }
     // 0x2901 y 0x2600 en todas las de los modelos.
     for (const auto& entry : models.TextureSlots().ToLoad())
     {
@@ -108,7 +115,8 @@ TEST_F(GoldenGameModels, EveryTextureTheLoadersAskForIsThere)
 
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
-    EXPECT_EQ(textures.loaded.size(), models.TextureSlots().ToLoad().size() + PlayerFixedTextures().size());
+    EXPECT_EQ(textures.loaded.size(),
+              models.TextureSlots().ToLoad().size() + PlayerFixedTextures().size() + GlowTextureSet.size());
     for (const std::string& line : sink.lines)
     {
         EXPECT_EQ(line.find("una textura de un modelo"), std::string::npos) << line;

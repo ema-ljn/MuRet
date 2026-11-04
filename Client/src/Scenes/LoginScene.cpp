@@ -1,4 +1,3 @@
-#include "Render/Pass3D.h"
 #include "Scenes/LoginScene.h"
 
 #include "App/ServerSession.h"
@@ -9,6 +8,7 @@
 #include "Input/InputState.h"
 #include "Render/OriginalQuad.h"
 #include "Render/OriginalSkewedQuad.h"
+#include "Render/Pass3D.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -18,8 +18,8 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/GameData.h"
 #include "Scenes/ITextDrawer.h"
-#include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneCameras.h"
+#include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTextures.h"

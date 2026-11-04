@@ -8,6 +8,7 @@
 #include "Input/Key.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/ModelVertex.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterSlots.h"
@@ -83,8 +84,19 @@ using Kind = FrameEvent::Kind;
 class FlatModels final : public IModelLibrary
 {
 public:
-    FlatModels()
+    // Con `withWings`, las alas del equipo en 0 (0x1a12) tienen un esqueleto de un hueso que sube 10
+    // de una key a la otra, y se dibujan.
+    explicit FlatModels(bool withWings = false) : m_withWings(withWings)
     {
+        SkeletonBone wingBone;
+        wingBone.parent = -1;
+        BoneKey low;
+        low.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+        BoneKey high = low;
+        high.position = {0.0f, 0.0f, 10.0f};
+        wingBone.actions = {{low, high}};
+        m_wings.bones = {wingBone};
+        m_wings.actions = {ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 2, .lockPositions = false}};
         SkeletonBone bone;
         bone.parent = -1;
         for (std::size_t action = 0; action < 4; ++action)
@@ -105,13 +117,18 @@ public:
         m_part.meshes = {mesh};
     }
 
-    [[nodiscard]] const Model* Find(std::uint16_t /*model*/) const override
+    // Sin la sombra (0x20b), que tiene sus tests en CharacterDrawingTest: así se cuentan las partes.
+    [[nodiscard]] const Model* Find(std::uint16_t model) const override
     {
-        return &m_part;
+        return model == 0x20b ? nullptr : &m_part;
     }
     [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
     {
-        return model == 0x20a ? &m_body : nullptr;
+        if (model == 0x20a)
+        {
+            return &m_body;
+        }
+        return m_withWings && model == 0x1a12 ? &m_wings : nullptr;
     }
     [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
     {
@@ -119,7 +136,9 @@ public:
     }
 
 private:
+    bool m_withWings;
     Skeleton m_body;
+    Skeleton m_wings;
     Model m_part;
 };
 
@@ -131,11 +150,12 @@ std::vector<CharacterEntryFields> TwoCharacters(bool locked = false)
 
 struct Harness
 {
-    explicit Harness(bool withSession = true) : log(sink, Client::Core::LogLevel::Debug)
+    explicit Harness(bool withSession = true, bool withWings = false)
+        : log(sink, Client::Core::LogLevel::Debug), models(withWings)
     {
         Client::Tests::WriteTextureSet(folder.Path(), SelectionTextureSet);
         Client::Tests::WriteTextureSet(folder.Path(), WindowTextureSet);
-        Client::Tests::WriteTextTable(folder.Path(), {{434, "bloqueado"}});
+        Client::Tests::WriteTextTable(folder.Path(), {{402, "no conecta"}, {434, "bloqueado"}});
         auto loaded = Client::Scenes::LoadGameData(folder.Path());
         EXPECT_TRUE(loaded.HasValue());
         if (loaded.HasValue())
@@ -291,20 +311,40 @@ TEST(CharacterSelectSceneTest, AClickChoosesTheOneUnderTheMouse)
     EXPECT_EQ(tested.online.session.ChosenCharacter(), nullptr);
 }
 
-// 0x50ba30 y 0x634680: la luz de cada uno es 0,4 y la del elegido 1,4.
-TEST(SelectLightTest, ChosenIsBrighter)
+// La luz de un personaje en la selección (06 § El color del personaje), con el mouse afuera para
+// que nadie lleve el contorno: la de cada lugar, los 18 primeros vértices del lugar 0 y los otros
+// del 3.
+std::pair<float, float> LightsAfterChoosing(std::uint8_t slot)
 {
     Harness tested;
-    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
-    tested.ClickAt(tested.OnScreen(0));
-
+    EXPECT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(tested.OnScreen(slot));
+    Client::Tests::MoveMouse(tested.input, 5, 5);
+    tested.Step();
     const std::vector<FrameEvent> events = tested.Frame();
-
     const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
-    ASSERT_NE(models, events.end());
-    ASSERT_EQ(models->modelVertices.size(), 36u);
-    EXPECT_FLOAT_EQ(models->modelVertices[0].color.red, 1.4f);
-    EXPECT_FLOAT_EQ(models->modelVertices[18].color.red, 0.4f);
+    EXPECT_NE(models, events.end());
+    EXPECT_EQ(models->modelVertices.size(), 36u);
+    return {models->modelVertices[0].color.red, models->modelVertices[18].color.red};
+}
+
+// 0x50ba30: la base es 0,4 más +0xf4, y el elegido lleva +0xf4 en 1 (0x634680).
+TEST(SelectLightTest, ChosenIsBrighter)
+{
+    const auto [slot0, slot3] = LightsAfterChoosing(3);
+
+    EXPECT_FLOAT_EQ(slot3, 1.4f);
+    EXPECT_FLOAT_EQ(slot0, 0.5f);
+}
+
+// El personaje del lugar 0 es el "héroe" (DAT_0743a170, el objeto 0 desde el arranque): en la escena
+// 4, 0x50ba30 le da 0,5 más +0xf4 (0x50d219), y la traza lo muestra: 1,5 con él elegido.
+TEST(SelectLightTest, TheFirstSlotIsTheHero)
+{
+    const auto [slot0, slot3] = LightsAfterChoosing(0);
+
+    EXPECT_FLOAT_EQ(slot0, 1.5f);
+    EXPECT_FLOAT_EQ(slot3, 0.4f);
 }
 
 // Enter con uno elegido va a la carga del mundo; sin elegido, nada.
@@ -399,8 +439,16 @@ TEST(CharacterSelectSceneTest, WithTheNoticeOpenAClickDoesNotChoose)
     EXPECT_EQ(tested.online.session.ChosenCharacter()->slot, 3);
 }
 
-// Si la sesión falla (el servidor cerró), la escena vuelve al login.
-TEST(CharacterSelectSceneTest, AFailedSessionGoesBackToTheLogin)
+// Si el frame trae la caja de un aviso (0x727, de las ventanas).
+bool ShowsANotice(const std::vector<FrameEvent>& events)
+{
+    return std::ranges::any_of(events, [](const FrameEvent& event)
+                               { return event.texture == std::optional<TextureSlot>{TextureSlot{0x727}}; });
+}
+
+// Q-C70: en la selección (el modo 4 de la UI), el FD_CLOSE abre el aviso 0x70, como en el login, y
+// su OK cierra el juego (Q-C69). La escena no vuelve al login.
+TEST(CharacterSelectSceneTest, AFailedSessionShowsTheConnectNoticeAndItsOkQuits)
 {
     Harness tested;
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
@@ -408,8 +456,105 @@ TEST(CharacterSelectSceneTest, AFailedSessionGoesBackToTheLogin)
     tested.online.socket.peerClosed = true;
     tested.Step();
 
-    EXPECT_EQ(tested.online.session.State(), SessionState::Failed);
-    EXPECT_EQ(tested.scene->Next(), SceneId::Login);
+    ASSERT_EQ(tested.online.session.State(), SessionState::Failed);
+    EXPECT_TRUE(ShowsANotice(tested.Frame()));
+    EXPECT_EQ(tested.scene->Next(), std::nullopt);
+    EXPECT_FALSE(tested.scene->WantsToQuit());
+    Client::Tests::TapKey(tested.input, Key::Enter);
+    tested.Step();
+    EXPECT_TRUE(tested.scene->WantsToQuit());
+}
+
+// Esperando la lista, lo mismo: el aviso se dibuja aunque la escena todavía no dibuje nada más.
+TEST(CharacterSelectSceneTest, AFailureBeforeTheListShowsTheNoticeToo)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.Enter());
+
+    tested.online.socket.peerClosed = true;
+    tested.Step();
+
+    ASSERT_EQ(tested.online.session.State(), SessionState::Failed);
+    EXPECT_TRUE(ShowsANotice(tested.Frame()));
+    EXPECT_EQ(tested.scene->Next(), std::nullopt);
+}
+
+// Los vértices del segundo pase del contorno, en (0,7; 0,2; 0), y el primero de ellos.
+std::vector<Client::Render::ModelVertex> OutlineVertices(const std::vector<FrameEvent>& events)
+{
+    std::vector<Client::Render::ModelVertex> outline;
+    const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
+    if (models == events.end())
+    {
+        return outline;
+    }
+    for (const Client::Render::ModelVertex& vertex : models->modelVertices)
+    {
+        if (vertex.color.red == 0.7f && vertex.color.green == 0.2f && vertex.color.blue == 0.0f)
+        {
+            outline.push_back(vertex);
+        }
+    }
+    return outline;
+}
+
+// El personaje bajo el mouse lleva el contorno (0x510d00 con DAT_006c8e30): las seis mallas de un
+// triángulo, en su lugar; el de al lado no, y sin el mouse encima, nadie.
+TEST(CharacterSelectSceneTest, TheOneUnderTheMouseIsOutlined)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    const glm::vec2 point = tested.OnScreen(3);
+
+    Client::Tests::MoveMouse(tested.input, static_cast<int>(point.x), static_cast<int>(point.y));
+    tested.Step();
+    const std::vector<Client::Render::ModelVertex> outline = OutlineVertices(tested.Frame());
+
+    ASSERT_EQ(outline.size(), 6u * 3u);
+    EXPECT_NEAR(outline[0].position.x, CharacterSlots[3].position.x, 1e-2f);
+    EXPECT_NEAR(outline[0].position.y, CharacterSlots[3].position.y, 1e-2f);
+    Client::Tests::MoveMouse(tested.input, 5, 5);
+    tested.Step();
+    EXPECT_TRUE(OutlineVertices(tested.Frame()).empty());
+}
+
+// Con el aviso abierto, el mouse es del aviso (Q-C84): nadie lleva el contorno.
+TEST(CharacterSelectSceneTest, WithTheNoticeOpenNobodyIsOutlined)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice(true));
+    const glm::vec2 point = tested.OnScreen(3);
+    tested.ClickAt(point);
+    tested.PressEnter();
+
+    tested.Step();
+
+    EXPECT_TRUE(OutlineVertices(tested.Frame()).empty());
+}
+
+// 0x50ba30 avanza las alas (0x509340 con +0x308: 0,25 keys por frame del original, 1 en las acciones
+// 0x1e y 0x1f), y la selección las avanza por tiempo, como la mascota: las alas del lugar 0 (la
+// séptima malla, después de las cinco partes y la cabeza) suben.
+TEST(CharacterSelectSceneTest, TheWingsMove)
+{
+    Harness tested(true, true);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    const auto wingZ = [&tested]
+    {
+        const std::vector<FrameEvent> events = tested.Frame();
+        const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
+        EXPECT_NE(models, events.end());
+        EXPECT_EQ(models->modelVertices.size(), 2u * 7u * 3u);
+        return models->modelVertices[6u * 3u].position.z;
+    };
+    const float before = wingZ();
+
+    for (int step = 0; step < 10; ++step)
+    {
+        tested.Step();
+    }
+
+    EXPECT_GT(wingZ(), before);
 }
 
 // Leave suelta las de la escena y las de las ventanas.

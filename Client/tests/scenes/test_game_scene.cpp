@@ -54,8 +54,9 @@ TEST(GameSceneTest, TheFirstStepSendsF303)
                                      { return line.find("se ignora la entrada al mundo") != std::string::npos; }));
 }
 
-// Si la sesión falla (el servidor cerró), vuelve al login.
-TEST(GameSceneTest, AFailedSessionGoesBackToTheLogin)
+// Q-C70: en el juego (el modo 5), el FD_CLOSE no abre un aviso y el juego sigue sin conexión: el
+// texto 3 en el área de mensajes es de la CL9. La escena no vuelve al login.
+TEST(GameSceneTest, AFailedSessionKeepsTheGame)
 {
     LoggedInSession online;
     ASSERT_NO_FATAL_FAILURE(ChooseSlotThree(online));
@@ -63,13 +64,14 @@ TEST(GameSceneTest, AFailedSessionGoesBackToTheLogin)
     GameScene scene(SceneContext{{}, store, online.log}, &online.session);
     const Client::Input::InputState input;
     scene.Step(input);
-    EXPECT_EQ(scene.Next(), std::nullopt);
 
     online.socket.peerClosed = true;
     online.session.Poll();
+    scene.Step(input);
 
     EXPECT_EQ(online.session.State(), SessionState::Failed);
-    EXPECT_EQ(scene.Next(), SceneId::Login);
+    EXPECT_EQ(scene.Next(), std::nullopt);
+    EXPECT_FALSE(scene.WantsToQuit());
 }
 
 // El original loguea el lugar y el nombre; MuRet, el lugar (el nombre es del jugador).

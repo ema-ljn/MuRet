@@ -11,6 +11,7 @@
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/TextureSets.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -84,6 +85,7 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
     AssignTextures(Data::Models::PlayerTextureCalls());
     m_slots.SetNext(ItemTexturesStart);
     AssignTextures(Data::Models::ItemTextureCalls());
+    UploadEach(dataRoot, GlowTextureSet, textures, log);
     UploadEach(dataRoot, Data::Models::PlayerFixedTextures(), textures, log);
     UploadEach(dataRoot, m_slots.ToLoad(), textures, log);
     log.Info("se leyeron {} modelos del personaje y de los ítems", m_models.size());

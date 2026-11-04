@@ -31,7 +31,8 @@ public:
     // Lee las 213 filas de PlayerModelFiles y las 243 de ItemModelFiles, y les da a sus mallas las
     // texturas que piden 0x60f7d0 y 0x611850 (PlayerTextureCalls e ItemTextureCalls: cada llamada con
     // su carpeta, desde 0x138 y desde 0x25a, con ModelTextureSlots), y las sube con las fijas de
-    // PlayerFixedTextures. Un modelo que el original exige (Player, PlayerTest) y falta corta, con un
+    // PlayerFixedTextures y las de los pases de brillo (GlowTextureSet, del avance 0 de 0x61ccb0). Un
+    // modelo que el original exige (Player, PlayerTest) y falta corta, con un
     // error que lo nombra (Q-C23); otro que falta, o una textura que no carga, se saltea con una
     // línea en el log (el original, con una textura que falta, se cierra).
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot,

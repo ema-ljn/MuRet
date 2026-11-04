@@ -1941,6 +1941,65 @@ namespace Client::Input
   de `0x412` en otro orden, el casco 23, los modelos con filtro, los ítems sin su `0x60d530` y sin
   las fijas): los mata al menos un test cada uno, salvo uno equivalente (la segunda llamada a un
   modelo que no pisa la primera: encuentra los mismos nombres y da los mismos slots).
+
+  Hecho así (PR E, 2026-11-04, resuelto por Claude): el contorno bajo el mouse, con 10 tests. Leído
+  en el binario: para un jugador lo hace `0x60cf70`, no `0x5ffdf0`. Antes de cada una de las seis
+  partes (la cabeza también; lo que cuelga, no) dibuja dos pases de `0x60cd60`, aditivos, sin
+  textura ni máscara: en (0,1; 0,03; 0) con los vértices a 1,2 de su hueso (`objeto + 0x94`) y en
+  (0,7; 0,2; 0) a 1,18. Entraron `SkinMeshAroundBones` (el `DAT_006c881c` de `0x4ebc80`, 2 tests),
+  `DrawnCharacter::outlined` (6 tests: los dos pases antes de todas las mallas de la parte, sin la
+  OZT ni la oculta, y sin lo que cuelga) y, en la selección, el de bajo el mouse del último paso,
+  con nadie mientras el aviso está abierto (2 tests). Lo demás del PR E del PR D:
+  - **El nombre del elegido no se dibuja**: `0x4129f0` es la asignación de un string (copia el
+    nombre en el objeto de `0x6eed7c`), así que `0x634680` no dibuja ningún nombre.
+  - **Q-C95 va con el primer modelo que se desvanezca** (CL9): en la selección nada lo hace, y el
+    personaje de MuRet no tiene alpha.
+  - **Para un PR F de la CL6.3**, leído al leer el contorno: `DrawCharacter` no dibuja el script de
+    las texturas (el `R` del `blendMesh`, aditivo con su luz; el `H`; el `S`, que corre las UV; y el
+    `N`, sin brillo, más las cinco mallas que `0x60ff50` marca), ni la máscara de la clase 4 (los
+    cascos `0x1012`, `0x1017`, `0x1018`, `0x101a` y `0x101b` van con el modelo + `0x328b`, con la
+    luz del `blendMesh` latiendo en sin(0,001 · T) · 0,1 + 0,7; 06 § La clase 4 en el lazo de las
+    partes).
+
+  Los 17 mutantes a mano (el contorno a 1, sin el 0,02, los colores cruzados, con textura, opaco,
+  después de la parte, con lo que cuelga, sin la cabeza, con la OZT, con la oculta, la escala en la
+  traslación, el aviso que lo deja, el del elegido y el de todos) los mata al menos un test cada
+  uno, salvo uno equivalente: con la escala en 1, el otro camino da lo mismo.
+  La revisión adversarial de la CL6.3 (2026-11-04), con un revisor del C++ y otro contra el binario,
+  arreglada sobre el PR E con un test que falló primero cada vez:
+  - **Las texturas de los pases de brillo no se subían** (`0x5fc`, `0x5c0` y `0x620`, que
+    `0x61ccb0` sube en su avance 0): un ítem de +7 o más salía con un lavado parejo, y de +11 una
+    silueta blanca. Ahora las sube `GameModels` (`GlowTextureSet`;
+    `TextureSetsTest.TheGlowSetIsTheOneOf0x61ccb0` y el golden de `GameModels`).
+  - **Una falla de la sesión en la selección volvía al login sin aviso**: el original abre el
+    `0x70` (Q-C70) y su OK cierra el juego (Q-C69), y en el juego sigue sin conexión
+    (`AFailedSessionShowsTheConnectNoticeAndItsOkQuits`, `AFailureBeforeTheListShowsTheNoticeToo`
+    y `GameSceneTest.AFailedSessionKeepsTheGame`).
+  - **Un `.bmd` roto se leía fuera** al dibujarlo (un índice de un triángulo sin su vértice, su
+    normal o su UV): esa malla no se dibuja (`AMeshThatNamesWhatItLacksIsNotDrawn`).
+  - Dos de las reglas: el `.cpp` del login con su header primero, y `PlayerSkeletonModel` en vez
+    de un `0x20a` repetido.
+
+  Y la del binario, arreglada en tres commits más, con un test que falló primero y 7 mutantes:
+  - **La sombra** (`0x20b`, 0x50ba30 y 0x4eff40): negra, opaca, sin textura ni profundidad, y
+    aplastada sobre el piso. **Verificado:** `GoldenCharacterDrawing` encuentra ahora 36 bloques por
+    frame; el de la sombra es el de 318 vértices en z = 168 de la traza. Con esto, el "uno a uno"
+    del PR C era de 35 bloques de 36, más los 14 del contorno, que MuRet no dibujaba entonces.
+  - **El rayo del mouse** se estira en y por el alto de la pantalla sobre el del viewport, como
+    `0x6203c0` (Q-C109): la zona que elige a cada personaje queda donde la del original.
+  - **Los colores de los pases de brillo**, con las tablas de `0x608e00`, `0x6093d0` y `0x609560`
+    emuladas para cada modelo. Un +13 sin elegir brillaba 2,8 veces de más. El 1,35 de la traza
+    es la luz del "héroe" por 0,9. El excelente late y no va con el set, y lo que cuelga no lleva
+    el set.
+  - **La luz del lugar 0**, el "héroe" (`DAT_0743a170`), es 0,5 y no 0,4, y **las alas** avanzan
+    en la selección.
+  - **Las saetas, las flechas y el cuervo** no van en la mano. Que las dos primeras vayan a la
+    espalda (`0x509340` con su bandera y `local_20`) y el cuervo como objeto aparte (`0x420cf0`)
+    va en el PR F.
+  - Quedan para después (minors): el orden de las partes (de las botas a la cabeza), de lo que
+    cuelga y de los pases (por pasada y no por malla); la capa (`0x1c30`, una tela); el `F3 03`
+    con `strlen` y ceros; y una textura de modelo que falta, que el original no tolera (Q-C23).
+
 - [ ] **Paso 10 (a mano):** contra el GS del laboratorio, con `--data`: el login aceptado, la
   selección con los personajes de la cuenta de prueba animados en sus lugares, el clic, el doble
   clic, la carga del mundo y el `F3 03`; el log del GS muestra la entrada. Sin capturas en Git.

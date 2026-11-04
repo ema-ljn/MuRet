@@ -33,7 +33,7 @@ inline constexpr std::uint8_t DefaultGlowDetail = 4;
 // 0x60b3d0 con el nivel ya recortado a 2 · detail + 5 si detail es menor que 4: de 7 y 8, el 0x44
 // (Chrome) y el color · 0,8; de 9 y 10, además el 0x48 (Shiny), con · 0,9; de 11 y 12, el 0x240
 // (Chrome2), el 0x48 y el 0x44; del 13, el 0x1040 (Chrome4), el 0x48 y el 0x44; del 14 y el 15,
-// ninguno (Q-C97). Uno excelente suma el 0x42 y uno de set el 0x840 (Chrome3), en ese orden (*inferido*).
+// ninguno (Q-C97). Uno excelente suma el 0x42, y uno de set que no es excelente el 0x840 (Chrome3).
 // Los niveles 3 a 6 laten con DAT_07d36ba8 en el original: acá, el color sin latir (P-C18).
 [[nodiscard]] ItemGlow ItemGlowOf(std::uint8_t level, bool excellent, bool ancient,
                                   std::uint8_t detail = DefaultGlowDetail);

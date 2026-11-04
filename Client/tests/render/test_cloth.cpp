@@ -277,6 +277,19 @@ TEST(ClothTest, TheEdgesMatchTheBinaryStepByStep)
     ExpectTheDirectCase("g_direct_edges.txt");
 }
 
+// Los ángulos x e y del objeto distintos de 0: el cos del ángulo 2 de 0x5fc8f0, que queda en double,
+// entra en la grilla y en el anclaje.
+TEST(ClothTest, TheObjectAnglesMatchTheBinaryStepByStep)
+{
+    ExpectTheDirectCase("h_direct_angles.txt");
+}
+
+// Un resorte estirado entre 10 y 20 veces su largo no rompe la tela: la restricción lo trae.
+TEST(ClothTest, AStretchUnderTwentyTimesIsPulledBack)
+{
+    ExpectTheDirectCase("i_direct_stretch.txt");
+}
+
 // El paseo del viento base (0x456b10): a 0,001 por cada rand() % 200 − 100, entre −0,2 y 1.
 TEST(ClothTest, TheWindBaseWalksBetweenItsLimits)
 {

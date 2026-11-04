@@ -13,6 +13,8 @@ parámetros a elección. Cada float va como los 8 dígitos hexadecimales de sus 
 | `c_class3_robe.txt` | la clase 3, fuera del `0x37`, con el viento base paseado y otro acceso al contador abierto |
 | `e_broken.txt` | la rotura (los huesos saltan 4000) y el rearmado del frame siguiente |
 | `f_direct_flags.txt` | las banderas que `0x50ba30` no usa: `0x100`, `0x20000000`, `0x2000`/`0x3000` con brillo, `0x400`/`0x800`, los arcos 2 y 3, sin ancho que crece |
+| `h_direct_angles.txt` | los ángulos x e y del objeto distintos de 0, con la capa del Dark Lord |
+| `i_direct_stretch.txt` | un resorte estirado entre 10 y 20 veces su largo, que la restricción trae sin romper |
 | `g_direct_edges.txt` | las distancias mínimas (0,001 y 0,01), la restricción que separa, la rotura por el mínimo y el color nulo |
 
 Cómo se sacan, con `main.exe`, unicorn y los scripts de `Client/docs/research/scripts/`:

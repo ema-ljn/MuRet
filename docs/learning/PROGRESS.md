@@ -416,7 +416,13 @@ solo lo lee.
   (`Protocol/Character`, el `F3 00` y el `F3 03` con el XOR32 en claro) y la `ServerSession` con
   tres estados más, con el keepalive que sigue su ritmo en los cuatro. Contra el cable: los 7
   pedidos y las 7 entradas del `muproxy.log` son los de MuRet byte a byte, y sus listas se leen.
-  35 tests y 14 mutantes.
+  35 tests y 14 mutantes. **La CL6.3 B** (2026-11-04, resuelta por Claude): el pase 3D de
+  `0x620db0` sin GL (`Render/Pass3D`, el rayo del mouse de `0x620480` incluido), el `ModelBatch` y
+  el `GlModelRenderer` con la profundidad de 16 bits y las tres mezclas de `0x4ecc30`, y las
+  cámaras fijas de la selección y del login. Contra las dos trazas, `MakePass3D` da el viewport,
+  la perspectiva y la vista de cada pase con cámara de MuRet. La traza mostró también por qué el
+  original limpia bien la profundidad: su primer pase, que no dibuja, prende la máscara antes del
+  `glClear`. 34 tests y 16 mutantes.
 
 ## Conceptos
 

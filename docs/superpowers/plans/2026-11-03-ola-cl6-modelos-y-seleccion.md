@@ -1755,7 +1755,7 @@ namespace Client::Input
   descartar el lugar de más de 4, el keepalive que vuelve a empezar al cambiar de estado, un lugar
   que no está que queda elegido, `Start` sin olvidar la lista, la lista sin tope, la lista aceptada
   fuera de turno y entrar sin mirar el estado) los mata al menos un test cada uno.
-- [ ] **Paso 4 (PR B):** los tests sin GL: `Pass3DTest.ScalesTheViewportInIntegers` (`(0, 25, 640,
+- [x] **Paso 4 (PR B):** los tests sin GL: `Pass3DTest.ScalesTheViewportInIntegers` (`(0, 25, 640,
   430)` en 1024 × 768 da `glViewport(0, 40, 1024, 688)`, y en 800 × 600, `(0, 32, 800, 537)`: la
   y escalada es 31 y el alto 537, con la división entera, y la de GL, 600 − 31 − 537),
   `TheGlYIsFromTheBottom`, `TheAspectIsThatOfTheViewport`,
@@ -1766,17 +1766,17 @@ namespace Client::Input
   `ModelBatchTest.TrianglesWithTheSameStateShareACommand`, `NeverReorders`,
   `BeginEmptiesTheBatch`. Golden: `GoldenPass3DTrace.EveryPassOfTheSelectionHasItsViewport` (los
   tres `glViewport` y las tres perspectivas de cada frame de la traza).
-- [ ] **Paso 5 (PR B):** los de GL, con Xvfb (`ctest -L gl`):
+- [x] **Paso 5 (PR B):** los de GL, con Xvfb (`ctest -L gl`):
   `GlModelRendererTest.DrawsATriangleWithDepth` (dos triángulos que se cruzan: en cada píxel, el más
   cerca), `CullsTheBackFaces` (el de atrás no sale con `Opaque` y sí con `Alpha`),
   `TheAdditiveDoesNotWriteTheDepth`, `ClampsTheColorToOne` (un color de 1,34 da 255),
   `TheAlphaTestCutsAtAQuarter`, `UsesTheViewportOfThePass`, `TheTwoDAfterTurnsTheDepthOff` (un quad
   del `SpriteBatch` después del pase sale entero, aunque el pase dejó la profundidad escrita),
   `AMissingSlotIsSkippedWithAWarning`.
-- [ ] **Paso 6 (PR B, Emanuel):** `MakePass3D` con `glm::perspective`, `glm::rotate` y
-  `glm::translate` (los tres de §10: dan las matrices de `gluPerspective`, `glRotatef` y
-  `glTranslatef`), `ModelBatch`, `GlModelRenderer`, el lienzo con `models` y `flushModels`, y el
-  `IWorldView` con el pase. Verificar:
+- [x] **Paso 6 (PR B, Emanuel, resuelto por Claude):** `MakePass3D` con `glm::perspective`,
+  `glm::rotate` y `glm::translate` (los tres de §10: dan las matrices de `gluPerspective`,
+  `glRotatef` y `glTranslatef`), `ModelBatch`, `GlModelRenderer`, el lienzo con `models` y
+  `flushModels`, y el `IWorldView` con el pase. Verificar:
   ```bash
   ctest --preset linux-x64-debug -R "Pass3D|ModelBatch|LoginScene"
   xvfb-run -a ctest --preset linux-x64-debug -L gl
@@ -1784,6 +1784,38 @@ namespace Client::Input
   Los mutantes: el viewport en float, la y de GL desde arriba, el aspect de la ventana, sin el ×
   1,4, el 2D que no apaga la profundidad, el color sin recortar, y la aditiva que escribe la
   profundidad.
+
+  Hecho así (PR B, 2026-11-04, resuelto por Claude): `Render/Pass3D`, `ModelVertex.h`,
+  `ModelBatch`, `Render/Gl/GlModelRenderer` y `Scenes/SceneCameras`, con el lienzo (`models` y
+  `flushModels`) y el `IWorldView` con el pase. 34 tests: 10 de `Pass3DTest`, 4 de
+  `ModelBatchTest`, 3 de `SceneCamerasTest`, 2 golden, 10 de `GlModelRendererTest`, 2 de
+  `GlFrameTargetTest`, `LoginSceneTest.TheWorldGetsThePassOfTheLoginCamera` y los de las
+  funciones de GL nuevas en el cargador. Lo que cambió del contrato de arriba:
+  - **`Pass3D` guarda el far de la cámara** (`farPlane`, sin el × 1,4), y `RayThrough` va de la
+    posición de la cámara al punto del píxel a esa distancia, como `0x620480` (06 § El picking),
+    y no hasta el far de la perspectiva.
+  - **El golden son dos:** `GoldenPass3DTrace.TheSelectionCameraPassesMatch` (la franja y el mundo
+    con `SelectionCamera`, en cada frame: viewport, perspectiva y vista) y
+    `TheLorenciaWorldPassMatches` (con la cámara de cada frame de la traza). Cada frame de la
+    selección tiene cuatro viewports y no tres: el primero es el `0x620db0(0, 0, 640, 480)` de
+    `0x637700`, con la cámara de una ruta, y va antes del `glClear` (06 § Cámara, corregido).
+  - **Un slot que la tabla no tiene sale sin textura** (Q-C29, como pide la CL6.R) y no se saltea:
+    `GlModelRendererTest.AMissingSlotDrawsUntexturedWithAWarning`. El `ModelBatch` no conoce la
+    tabla, así que el test es del renderer y no del lote.
+  - **`BeginFrame` prende la máscara de la profundidad antes del `glClear`**, como el primer pase
+    del original: la aditiva la deja apagada (`GlFrameTargetTest.EachFrameClearsTheDepth`).
+  - **No hay `RecordingWorldView.h`:** el `RecordingFrameTarget` anota el pase con el mundo, y un
+    evento `Models` con los tramos y los vértices de cada `flushModels`; un `Present` con modelos
+    sin su fin hace fallar el test.
+  - **Tests de más:** el orden Y, X, Z con los tres ángulos (las trazas tienen la Y en 0),
+    `ModelBatchTest.AStateWithoutTrianglesAddsNothing`, la profundidad apagada (`0x2000`), la
+    opaca sin mezcla y el color recortado antes de la textura (1,34 por un gris al 50 % da 128).
+
+  Los 16 mutantes a mano (los siete de arriba, la X antes que la Y, el rayo hasta el far × 1,4,
+  `Project` sin dar vuelta la y, el lote que junta tramos que no son seguidos, la opaca que mezcla,
+  la normal con culling, el slot que falta que no se dibuja, `GL_GREATER` en lugar de `GL_LEQUAL` y
+  el frame sin la máscara antes del `glClear`) los mata al menos un test cada uno; el de la X antes
+  que la Y vivió hasta `TheRotationsGoInTheOrderYXZ`.
 - [ ] **Paso 7 (PR C):** los tests de la apariencia y el picking, con los casos de la CL6.R:
   `CharacterAppearanceTest.WithoutEquipmentWearsTheClassParts` (para cada clase de la tabla de
   `0x517270`, `HelmClass` N a `BootClass` N), `TheSecondClassKeepsTheParts`,

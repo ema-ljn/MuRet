@@ -1,4 +1,6 @@
 #include "Scenes/LoginScene.h"
+#include "Render/Pass3D.h"
+#include "Scenes/SceneCameras.h"
 
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
@@ -354,6 +356,25 @@ TEST(LoginSceneTest, TheWorldIsTheOneOfItsTable)
     EXPECT_EQ(events[3].world.map, WorldOf(SceneId::Login)->map);
     EXPECT_EQ(Client::Data::WorldFolder(events[3].world.map), "World56");
     EXPECT_EQ(events[3].alpha, 0.25f);
+}
+
+// Y el pase de la cámara fija de la escena 2 (0x635ae0) en el viewport de 0x620db0(0, 25, 640, 430):
+// en 640 × 480, la y de GL es 480 − 25 − 430 (CL6.3).
+TEST(LoginSceneTest, TheWorldGetsThePassOfTheLoginCamera)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.Make().Enter().HasValue());
+
+    const std::vector<FrameEvent> events = tested.Frame(AnyClock, 0.25f);
+
+    ASSERT_EQ(events.size(), 9u);
+    ASSERT_EQ(events[3].kind, Kind::World);
+    ASSERT_TRUE(events[3].pass.has_value());
+    const Client::Render::Pass3D expected = Client::Render::MakePass3D(
+        Client::App::PixelSize{640, 480}, Client::Scenes::WorldViewport, Client::Scenes::LoginCamera());
+    EXPECT_EQ(events[3].pass->viewport, glm::ivec4(0, 25, 640, 430));
+    EXPECT_EQ(events[3].pass->projection, expected.projection);
+    EXPECT_EQ(events[3].pass->view, expected.view);
 }
 
 // La u de las arenas sale del reloj del frame (Q-C65): otro reloj, otra u; 100 s después, la

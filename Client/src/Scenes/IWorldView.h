@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Render/Pass3D.h"
 #include "Scenes/SceneWorlds.h"
 
 // El pase 3D de una escena (CL5.4): el terreno, los objetos, los personajes y los efectos del
@@ -12,15 +13,16 @@ class IWorldView
 {
 public:
     virtual ~IWorldView() = default;
-    // `alpha` en [0, 1), el de ILoopClient::Render. Va después del fin del 2D (flushSprites), y lo
-    // que dibuja la escena después va encima.
-    virtual void Draw(SceneWorld world, float alpha) = 0;
+    // `alpha` en [0, 1), el de ILoopClient::Render, y `pass`, el de la escena: su viewport y su
+    // cámara (CL6.3). Va después del fin del 2D (flushSprites), y lo que dibuja la escena después va
+    // encima.
+    virtual void Draw(SceneWorld world, const Render::Pass3D& pass, float alpha) = 0;
 };
 
 // El de la CL5: no dibuja nada.
 class EmptyWorldView final : public IWorldView
 {
 public:
-    void Draw(SceneWorld /*world*/, float /*alpha*/) override {}
+    void Draw(SceneWorld /*world*/, const Render::Pass3D& /*pass*/, float /*alpha*/) override {}
 };
 } // namespace Client::Scenes

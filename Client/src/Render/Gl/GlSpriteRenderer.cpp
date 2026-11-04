@@ -48,6 +48,10 @@ Core::Expected<GlSpriteRenderer, std::string> GlSpriteRenderer::Create(const Pla
 void GlSpriteRenderer::Draw(const SpriteBatch& batch, const TextureTable& textures, Core::Log& log)
 {
     m_renderer.Upload(batch.Vertices(), batch.Screen());
+    // 0x6219b0 → 0x620870: el 2D va sin profundidad ni culling, aunque el pase 3D de antes los dejó
+    // prendidos (CL6.3).
+    m_gl->disable(GL_DEPTH_TEST);
+    m_gl->disable(GL_CULL_FACE);
     m_gl->enable(GL_BLEND);
     for (const DrawCommand& command : batch.Commands())
     {

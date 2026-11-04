@@ -2,6 +2,9 @@
 
 #include "App/WindowState.h"
 #include "Core/IClock.h"
+#include "Render/ModelBatch.h"
+#include "Render/ModelVertex.h"
+#include "Render/Pass3D.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
@@ -25,9 +28,11 @@
 // main.cpp: da un lienzo con un SpriteBatch de verdad, el RecordingTextDrawer y un mundo que anota,
 // y guarda cada frame como una lista de lo que se dibujó, en el orden en que GL lo dibujaría: cada
 // quad del lote (con su textura, su mezcla, su alpha test y sus vértices), cada texto (el quad de
-// marca, con lo que pidió la escena), cada fin del 2D (flushSprites) y cada pase 3D. Lo del lote se
-// anota al terminar un tramo: en un fin del 2D, en un pase 3D o en el Present. Un BeginFrame con el
-// frame anterior abierto, o un Present sin frame, hacen fallar el test.
+// marca, con lo que pidió la escena), cada fin del 2D (flushSprites), cada pase 3D del mundo, con su
+// pase, y cada fin del pase de los modelos (flushModels, CL6.3), con sus tramos y sus vértices. Lo
+// del lote se anota al terminar un tramo: en un fin del 2D, en un pase 3D o en el Present. Un
+// BeginFrame con el frame anterior abierto, un Present sin frame o con modelos sin su fin, hacen
+// fallar el test.
 namespace Client::Tests
 {
 struct FrameEvent
@@ -38,6 +43,7 @@ struct FrameEvent
         Text,
         Flush,
         World,
+        Models,
     };
     Kind kind = Kind::Quad;
     // Quad y Text: el estado del tramo y los seis vértices del quad.
@@ -50,6 +56,11 @@ struct FrameEvent
     // World.
     Scenes::SceneWorld world{};
     float alpha = 0.0f;
+    // World y Models: el pase.
+    std::optional<Render::Pass3D> pass;
+    // Models: los tramos y los vértices del lote.
+    std::vector<Render::ModelDrawCommand> modelCommands;
+    std::vector<Render::ModelVertex> modelVertices;
 };
 
 struct RecordedFrame
@@ -63,8 +74,8 @@ class RecordingFrameTarget final : public Scenes::IFrameTarget
 {
 public:
     explicit RecordingFrameTarget(App::PixelSize screen = {.width = 640, .height = 480})
-        : m_screen(screen), m_text(m_sprites),
-          m_world([this](Scenes::SceneWorld world, float alpha) { RecordWorld(world, alpha); })
+        : m_screen(screen), m_text(m_sprites), m_world([this](Scenes::SceneWorld world, const Render::Pass3D& pass,
+                                                              float alpha) { RecordWorld(world, pass, alpha); })
     {
     }
 
@@ -81,11 +92,14 @@ public:
         frame.clock = frameClock;
         frames.push_back(std::move(frame));
         m_sprites.Begin(m_screen);
+        m_models.Begin(Render::Pass3D{});
         m_synced = 0;
         m_canvas.emplace(Scenes::SceneCanvas{.sprites = m_sprites,
                                              .text = m_text,
                                              .world = m_world,
+                                             .models = m_models,
                                              .flushSprites = [this] { Flush(); },
+                                             .flushModels = [this] { FlushModels(); },
                                              .screen = m_screen,
                                              .frameClock = frameClock});
         return *m_canvas;
@@ -99,6 +113,10 @@ public:
             return;
         }
         Sync();
+        if (!m_models.Vertices().empty())
+        {
+            ADD_FAILURE() << "Present con modelos sin flushModels";
+        }
         frames.back().presented = true;
     }
 
@@ -129,13 +147,13 @@ private:
     public:
         template <typename Draw> explicit WorldRecorder(Draw draw) : m_draw(std::move(draw)) {}
 
-        void Draw(Scenes::SceneWorld world, float alpha) override
+        void Draw(Scenes::SceneWorld world, const Render::Pass3D& pass, float alpha) override
         {
-            m_draw(world, alpha);
+            m_draw(world, pass, alpha);
         }
 
     private:
-        std::function<void(Scenes::SceneWorld, float)> m_draw;
+        std::function<void(Scenes::SceneWorld, const Render::Pass3D&, float)> m_draw;
     };
 
     // Anota los quads del lote que no se anotaron todavía, en orden.
@@ -189,7 +207,25 @@ private:
         m_synced = 0;
     }
 
-    void RecordWorld(Scenes::SceneWorld world, float alpha)
+    // El fin del pase de los modelos: lo del lote se anota y el lote queda vacío, con el mismo pase.
+    void FlushModels()
+    {
+        if (!FrameOpen())
+        {
+            ADD_FAILURE() << "flushModels sin frame";
+            return;
+        }
+        Sync();
+        FrameEvent event;
+        event.kind = FrameEvent::Kind::Models;
+        event.pass = m_models.Pass();
+        event.modelCommands.assign(m_models.Commands().begin(), m_models.Commands().end());
+        event.modelVertices.assign(m_models.Vertices().begin(), m_models.Vertices().end());
+        frames.back().events.push_back(std::move(event));
+        m_models.Begin(m_models.Pass());
+    }
+
+    void RecordWorld(Scenes::SceneWorld world, const Render::Pass3D& pass, float alpha)
     {
         if (!FrameOpen())
         {
@@ -200,12 +236,14 @@ private:
         FrameEvent event;
         event.kind = FrameEvent::Kind::World;
         event.world = world;
+        event.pass = pass;
         event.alpha = alpha;
         frames.back().events.push_back(event);
     }
 
     App::PixelSize m_screen;
     Render::SpriteBatch m_sprites;
+    Render::ModelBatch m_models;
     RecordingTextDrawer m_text;
     WorldRecorder m_world;
     std::optional<Scenes::SceneCanvas> m_canvas;

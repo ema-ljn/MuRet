@@ -1,4 +1,5 @@
 #include "Render/Gl/GlFrameTarget.h"
+#include "Render/ModelBatch.h"
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
@@ -43,6 +44,8 @@ using Client::Data::Textures::LoadedTexture;
 using Client::Data::Textures::PixelFormat;
 using Client::Data::Textures::Texture;
 using Client::Render::Color;
+using Client::Render::ModelBlend;
+using Client::Render::ModelDrawState;
 using Client::Render::OriginalQuad;
 using Client::Render::TextureSlot;
 using Client::Render::Gl::GlFrameTarget;
@@ -173,6 +176,45 @@ TEST_F(GlFrameTargetTest, TheEndOfTheTwoDimensionsDrawsWhatCameBefore)
 
     EXPECT_EQ(Cells(2, 1), (std::vector<std::optional<Rgba8>>{Red, White}));
     EXPECT_EQ(m_presents, 1);
+}
+
+// El fin del pase 3D dibuja los modelos con su profundidad, y el 2D que sigue va encima (CL6.3).
+TEST_F(GlFrameTargetTest, TheEndOfTheModelsDrawsThePassAndTheTwoDGoesOver)
+{
+    SceneCanvas& canvas = m_target->BeginFrame(std::chrono::milliseconds{40});
+    canvas.models.Begin(Client::Tests::TestPass(m_screen));
+    Client::Tests::AddSquare(canvas.models, ModelDrawState{WhiteSlot, ModelBlend::Opaque, true}, 1.1f,
+                             Color{.red = 1.0f, .green = 0.0f, .blue = 0.0f});
+    canvas.flushModels();
+
+    EXPECT_EQ(Cells(1, 1)[0], Red);
+    EXPECT_TRUE(canvas.models.Vertices().empty());
+    canvas.sprites.Quad(PixelQuad(0, 0, Half, Side));
+    m_target->Present();
+
+    EXPECT_EQ(Cells(2, 1), (std::vector<std::optional<Rgba8>>{White, Red}));
+}
+
+// La mezcla aditiva deja la máscara de la profundidad apagada, y el glClear de la profundidad la
+// respeta: el frame siguiente la limpia igual, y un modelo más lejos que el de antes se dibuja.
+TEST_F(GlFrameTargetTest, EachFrameClearsTheDepth)
+{
+    SceneCanvas& first = m_target->BeginFrame(std::chrono::milliseconds{40});
+    first.models.Begin(Client::Tests::TestPass(m_screen));
+    Client::Tests::AddSquare(first.models, ModelDrawState{WhiteSlot, ModelBlend::Opaque, true}, 5.0f,
+                             Color{.red = 1.0f, .green = 0.0f, .blue = 0.0f});
+    Client::Tests::AddSquare(first.models, ModelDrawState{WhiteSlot, ModelBlend::Additive, true}, 5.0f,
+                             Color{.red = 0.0f, .green = 0.0f, .blue = 0.0f});
+    first.flushModels();
+    m_target->Present();
+
+    SceneCanvas& second = m_target->BeginFrame(std::chrono::milliseconds{80});
+    second.models.Begin(Client::Tests::TestPass(m_screen));
+    Client::Tests::AddSquare(second.models, ModelDrawState{WhiteSlot, ModelBlend::Opaque, true}, 20.0f, Color{});
+    second.flushModels();
+    m_target->Present();
+
+    EXPECT_EQ(Cells(1, 1)[0], White);
 }
 
 // El lienzo trae el reloj y la pantalla del frame.

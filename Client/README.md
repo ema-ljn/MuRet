@@ -14,7 +14,9 @@ tema), reconstruido desde la carpeta `client-research/` de
 Qué hace MuRet y en qué orden está en el
 [roadmap del cliente](../docs/superpowers/specs/2026-10-30-cliente-design.md).
 
-MuRet **no incluye assets del juego**: el cliente lee los `Data\` de una instalación existente.
+La `Data\` del cliente original está en [`assets/Data/`](assets/README.md), tal cual: es el
+original que MuRet reimagina y la base de los tests. El cliente igual la lee de la carpeta que se
+le pase (`--data` o `[Data] Path`).
 
 ## Estado
 
@@ -89,6 +91,20 @@ ventana de la cuenta. Un login rechazado muestra su aviso y vuelve a la cuenta, 
 conexión; el OK del aviso de una conexión que falló cierra el juego, como el original (Q-C69). Para
 depurar la red sin la UI, `--auto-login` elige el primero de la lista y entra con la cuenta del
 entorno, como en la CL4.
+
+Desde la CL6.3, el login aceptado lleva a la selección de personaje del original. Los modelos
+`.bmd` se leen en `Data/Models/` (CL6.1). La pose, el skinning, el avance de la animación y los
+pases de brillo se calculan en la CPU, en `Render/Models/` (CL6.2), y se comparan vértice por
+vértice con las trazas de GL. La selección pide la lista (`F3 00`) y pone a cada personaje en su
+lugar, animado, con su clase y su equipo (`GameLogic/CharacterAppearance`). Lleva el contorno el
+que está bajo el mouse; un clic elige uno, y Enter o el doble clic entran. La carga del mundo
+dibuja su frame, y la escena del juego manda el `F3 03`. El terreno detrás de la selección y el
+mundo son de la CL7: hasta entonces, el juego queda en negro.
+
+Desde la CL6.4, el login dibuja en su pase 3D el logo (`Logo03.bmd`, un objeto del mundo) y el
+personaje de la clase 4 que monta el caballo oscuro (el caballo, todavía no), con la luz del terreno
+del mapa 55 en su lugar (`World/TerrainLighting`), como el original. El logo se aclara en los
+primeros 40 pasos y el personaje hace uno de sus dos gestos cada tanto (`Scenes/LoginModels`).
 
 ## Auditoría y mantenimiento
 
@@ -175,8 +191,8 @@ CI.
 Con `--data` (o `[Data] Path`), `Main` lee `Local\Text.bmd` y elige la fuente antes de abrir la
 ventana, y corre la carga y el login con las texturas de esa carpeta. Sin `Text.bmd`, o sin una
 fuente, termina con un error que lo dice. La fuente va en `[Video] FontFile` de
-`muret-client.ini`: en Linux siempre, y en Windows también con el `Data\` del laboratorio, cuya
-cara está vacía. Por ejemplo, en Linux:
+`muret-client.ini`: en Linux siempre, y en Windows también con la de `assets/Data/`, cuya cara
+está vacía. Por ejemplo, en Linux:
 
 ```ini
 [Video]
@@ -192,7 +208,8 @@ medio segundo) y el login: los fondos, la arena que corre y los tres textos de a
 versión de MuRet en vez de la del original. Una textura que falta corta `Main` con su nombre. Con
 un host, además, la escena de login conecta al entrar y muestra su UI: la lista de servidores, un
 clic en un grupo y otro en un servidor, y la ventana de la cuenta y la clave (Tab cambia de campo
-y Enter manda). Con el login aceptado pasa a la selección, que todavía no dibuja nada.
+y Enter manda). Con el login aceptado pasa a la selección, que pide la lista de personajes y los
+muestra en sus lugares (CL6.3).
 
 ### Con un servidor: la cuenta y las claves
 
@@ -241,32 +258,54 @@ sesión no se reconecta sola. Con un servidor ocupado, la lista vuelve a pedirse
 
 ### Contra el servidor del laboratorio (a mano)
 
-CI no tiene la VM del laboratorio, así que el login de punta a punta se prueba a mano (el paso 4
-de la CL4.5, en el
-[plan de la CL4](../docs/superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md)):
+CI no tiene la VM del laboratorio, así que el login de punta a punta se prueba a mano. Son el paso
+4 de la CL4.5, en el
+[plan de la CL4](../docs/superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md), y el paso 10
+de la CL6.3, en el
+[plan de la CL6](../docs/superpowers/plans/2026-11-03-ola-cl6-modelos-y-seleccion.md). Lo que
+falta correr está en P-C21 del [08](docs/research/08-pendientes.md).
 
-1. Levantar la VM del laboratorio con el ConnectServer y el GameServer andando.
-2. Correr, con la IP del ConnectServer de la VM y la carpeta `Data` del cliente del laboratorio,
-   que trae `Enc1.dat` y `Dec2.dat`:
+1. Levantar la VM del laboratorio con el ConnectServer y el GameServer andando. La cuenta de
+   prueba necesita personajes: MuRet todavía no los crea (CL6.5), así que se crean antes con el
+   cliente original, de clases distintas y con algo de equipo.
+2. Correr, con la IP del ConnectServer de la VM y la carpeta `Client/assets/Data`, que trae
+   `Enc1.dat` y `Dec2.dat`:
 
    ```bash
-   ./build/linux-x64-debug/Client/Main connect /u<ip del CS> /p44405 --data <Data del laboratorio>
+   ./build/linux-x64-debug/Client/Main connect /u<ip del CS> /p44405 --data Client/assets/Data
    ```
 
-   Desde la CL5.4, con la carpeta de datos corren la carga y el login, así que la config necesita
-   `[Video] FontFile` (la sección de arriba).
+   En Windows, lo mismo con `build\windows-x64\Client\Debug\Main.exe`, o con `[Server] Host`,
+   `[Server] Port` y `[Data] Path` en el `muret-client.ini` junto al ejecutable. Desde la CL5.4,
+   con la carpeta de datos corren la carga y el login, así que la config necesita
+   `[Video] FontFile` (la sección de arriba), también en Windows.
 
 3. En la lista, un clic en el grupo y otro en el servidor. En la ventana de la cuenta, teclear
    una cuenta del laboratorio con una clave mala y Enter: sale el aviso de la clave, y su OK
-   vuelve a la cuenta con el foco en la clave. Teclear la buena y Enter: la ventana pasa a la
-   selección, que está en negro. Con `--auto-login` y la cuenta en el entorno (la sección de
-   arriba), lo mismo sin teclear, salvo la clave mala.
-4. Mirar el log durante dos minutos: tiene que llegar a "el GameServer aceptó el login" y, desde
-   ahí, mostrar seis o siete "se mandó el keepalive al GameServer", uno cada 20 s, sin "se perdió
-   la conexión con el GameServer". Con `[Server] Obfuscation = foxanti`, que es el valor por
-   defecto: el GameServer del laboratorio usa FoxAnti.
-5. Cerrar la ventana y, si se usó `--auto-login`, borrar la clave del entorno
+   vuelve a la cuenta con el foco en la clave. Teclear la buena y Enter: el log dice "el
+   GameServer aceptó el login", "se pide la lista de personajes", "la lista trae N personajes: se
+   espera la elección" y "la selección tiene N personajes". Con `--auto-login` y la cuenta en el
+   entorno (la sección de arriba), lo mismo sin teclear, salvo la clave mala.
+4. En la selección: cada personaje de la cuenta en su lugar, con su clase y su equipo, animado y
+   parado; el que está bajo el mouse con el contorno; un clic lo elige (se ve más claro) y un clic
+   en el vacío lo suelta.
+5. Con uno elegido, Enter: el log dice "se elige el personaje del lugar X para entrar al mundo" y
+   "se entra al mundo con el personaje del lugar X", se ve un frame de la carga del mundo (las
+   cuatro `LSBg`) y después el negro del juego. El log del GameServer muestra que ese personaje
+   entró. Cerrar y repetirlo con doble clic en vez de Enter.
+6. Mirar el log durante dos minutos: desde "el GameServer aceptó el login", seis o siete "se mandó
+   el keepalive al GameServer", uno cada 20 s, sin "se perdió la conexión con el GameServer". Con
+   `[Server] Obfuscation = foxanti`, que es el valor por defecto: el GameServer del laboratorio
+   usa FoxAnti.
+7. Cancelar: en otra corrida, en la ventana de la cuenta, el botón de cancelar (o Esc). El
+   original cierra el GameServer, vuelve a conectar al ConnectServer y muestra la lista otra vez
+   (06 § La cuenta y la clave). Anotar si MuRet vuelve a la lista o se cierra, y si antes sale un aviso.
+   Hacer lo mismo con el cliente original en la VM.
+8. Cerrar la ventana y, si se usó `--auto-login`, borrar la clave del entorno
    (`unset MURET_CLIENT_PASSWORD`).
+
+El log (`muret-client.log`, junto al ejecutable) no trae la cuenta, la clave ni las direcciones:
+se puede compartir. Las capturas de pantalla quedan fuera de Git.
 
 Si se captura el cable para comparar el login y el keepalive con los de la sesión real del 04
 (P-C05), la captura queda fuera de Git, porque se descifra con las claves reales, y la comparación
@@ -365,17 +404,16 @@ Cada `tests/<módulo>/test_<algo>.cpp` es su propio ejecutable (`test_packet_rea
 MuMain, y cada `TEST` es un test de CTest con el nombre de su suite: `ctest -R PacketReader` corre
 los del lector. Lo que comparten está en `tests/support/` (la biblioteca `ClientTestSupport`).
 
-Los tests golden leen archivos reales del cliente original, que MuRet no versiona. Se les pasa una
-carpeta con el contenido de `Data\` (`Enc1.dat`, `Player\`, `World1\`…) en
-`MURET_CLIENT_GOLDEN_DIR`, al correr o al configurar:
+Los tests golden leen archivos reales del cliente original: los de `Client/assets/Data/`, sin
+nada que configurar, también en CI. Para probar con otra copia de `Data\` (`Enc1.dat`, `Player\`,
+`World1\`…), `MURET_CLIENT_GOLDEN_DIR` apunta a ella, al correr o al configurar:
 
 ```bash
 MURET_CLIENT_GOLDEN_DIR=/ruta/a/Data ctest --preset linux-x64-debug
 cmake --preset linux-x64-debug -DMURET_CLIENT_GOLDEN_DIR=/ruta/a/Data   # queda en la caché
 ```
 
-Sin la variable, se saltean (`Skipped`). Si apunta a una carpeta que no existe, o le falta el
-archivo que el test pide, fallan.
+Si la carpeta no existe, o le falta el archivo que el test pide, fallan.
 
 Los OZJ, además, se comparan con lo que da la IJG libjpeg 6b del original, que no está en CI: el
 tamaño y un hash de cada uno están en `tests/vectors/jpeg/lab-6b.txt`, y cómo se sacan, en el
@@ -453,14 +491,16 @@ Client/
     Protocol/     opcodes, structs (el login, en Connection/), dispatcher (CL2, CL4, CL9); el
                   pedido de la mascota (A9), en Pet/ (CL4)
     Render/       OpenGL 3.3: texturas, sprites, texto  (CL5+); lo que llama a GL, en Gl/
-                  (ClientRender, CL5.1)
+                  (ClientRender, CL5.1); la pose, el skinning y el brillo de los modelos, en
+                  Models/, y el pase 3D (CL6)
     Scenes/       la escena de prueba (CL3); el SceneManager, la carga, el login (CL5);
                   la selección y el juego (CL6, CL7)
     World/        mapa, cámara, objetos                 (CL7)
-    GameLogic/    personaje, entidades, items, chat     (CL7+)
+    GameLogic/    la apariencia del personaje (CL6); entidades, items, chat (CL7+)
     UI/           widgets, la lista, la cuenta y los avisos del login (CL5.5); HUD (CL8)
     Audio/        música y efectos                      (CL10)
   tests/          GoogleTest                            (CL0.2+)
+  assets/         la Data\ del original, tal cual, y su manifiesto de hashes
   docs/research/  qué hace el original, byte a byte (01..09)
 ```
 

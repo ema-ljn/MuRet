@@ -4,7 +4,7 @@
 
 #include <filesystem>
 
-// Tests golden de ejemplo: leen el Data\ real de MURET_CLIENT_GOLDEN_DIR y se saltean si no está
+// Tests golden de ejemplo: leen el Data\ real, el del repo o el de MURET_CLIENT_GOLDEN_DIR
 // (Client/tests/support/GoldenDir.h).
 namespace
 {

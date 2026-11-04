@@ -98,12 +98,29 @@ struct DrawnObject
     Render::Models::ObjectTransform transform;
     Render::Models::ObjectState state;
     glm::vec3 color{1.0f, 1.0f, 1.0f};
+    // +0x174, el alpha que se le pasa a RenderBody.
+    float alpha = 1.0f;
+    // +0xe8: la luz por vértice, que 0x5ffce0 copia a +0x44 del modelo.
+    bool vertexLight = false;
 };
 
-// 0x602e90 con un objeto sin casos por tipo: 0x5ffdf0 lo posa con su escala, sus ángulos y su
-// posición, sin cabeza, y 0x6002e0 llama a RenderBody(2): el pase base de cada malla, sin brillo y sin
-// contorno, con el script de su textura y el blendMesh, la luz, la U, la V y la malla oculta del
-// objeto. Un modelo que la biblioteca no tiene no se dibuja.
+// 0x602e90 con un objeto sin casos por tipo: 0x5ffdf0 no lo dibuja con el alpha por debajo de 0,01, y
+// si no lo posa con su escala, sus ángulos y su posición, sin cabeza; 0x6002e0 llama a
+// RenderBody(2): el pase base de cada malla, sin brillo y sin contorno, con el script de su textura y
+// el blendMesh, la luz, la U, la V y la malla oculta del objeto. Con el alpha por debajo de 0,99 cada
+// malla va con la mezcla normal y ese alpha (0x4ecc30); con la luz por vértice, cada esquina va con
+// el color por la luz de su normal (Render::Models::NormalLight), salvo la del blendMesh. Un modelo
+// que la biblioteca no tiene no se dibuja.
 void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                 Core::Duration frameClock);
+
+// 0x602e90 con el caso del caballo oscuro (0xbf) de 0x6002e0: el pase base de DrawObject en blanco
+// (pisa el color de 0x5ffce0); después el 0x44 (cromo aditivo, Render::Models::ShinePass::Chrome) de
+// las mallas 12 a 15 que existen (en DarkHorse.bmd, la 12) en (1; 0,8; 0,3), por el alpha si es menor
+// que 0,99; y la sombra de la malla 8 (0x4eff40 entre 8 y 9) en (0, 0, 0, 0,7), mezclada y aplastada
+// sobre el piso desde su lugar. El original no dibuja la sombra en los mapas 10, 24 a 29 y 36, y la
+// pone en 0,2 en el 7, que MuRet todavía no tiene. Las normales llevan la escala del objeto, para la
+// luz y para las UV del cromo.
+void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& horse,
+                   Core::Duration frameClock);
 } // namespace Client::Scenes

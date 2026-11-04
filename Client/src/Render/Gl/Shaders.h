@@ -61,8 +61,9 @@ void main()
 
 // El par del 3D (CL6.3): lo mismo para un ModelVertex, con la posición en el mundo llevada al clip
 // por la perspectiva y la vista del pase (projection · view), y el color recortado a [0, 1] antes de
-// la textura, como la función fija recorta el glColor del vértice (la luz del original llega a
-// 1,34). La niebla no va: la selección y el login la apagan (06 § La selección de personaje).
+// la textura, como la función fija recorta el glColor del vértice (la luz del original pasa de 1:
+// 1,34 en la selección, hasta 3,45 con la luz por vértice). La niebla no va: la selección y el login la apagan (06 § La
+// selección de personaje).
 inline constexpr unsigned ModelPositionLocation = 0;
 inline constexpr unsigned ModelUvLocation = 1;
 inline constexpr unsigned ModelColorLocation = 2;

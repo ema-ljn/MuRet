@@ -30,6 +30,8 @@ using Client::Data::Models::PlayerFixedTextures;
 using Client::Data::Models::PlayerModelFiles;
 using Client::Data::Models::PlayerSkeletonModel;
 using Client::Data::Models::PlayerTextureCalls;
+using Client::Data::Models::SkillModelFiles;
+using Client::Data::Models::SkillTextureCalls;
 using Client::Data::Textures::Filter;
 using Client::Data::Textures::TextureSetEntry;
 using Client::Data::Textures::Wrap;
@@ -103,7 +105,8 @@ TEST(ModelTextureCallsTest, TheHelpersTakeTheirTexturesFromItem)
 TEST(ModelTextureCallsTest, EveryModelButTheSkeletonGetsItsTextures)
 {
     std::set<std::uint16_t> called;
-    for (const std::span<const ModelTextureCall> calls : {PlayerTextureCalls(), ItemTextureCalls()})
+    for (const std::span<const ModelTextureCall> calls :
+         {PlayerTextureCalls(), ItemTextureCalls(), SkillTextureCalls()})
     {
         for (const ModelTextureCall& call : calls)
         {
@@ -111,12 +114,27 @@ TEST(ModelTextureCallsTest, EveryModelButTheSkeletonGetsItsTextures)
         }
     }
 
-    for (const std::span<const ModelFile> table : {PlayerModelFiles(), ItemModelFiles()})
+    for (const std::span<const ModelFile> table : {PlayerModelFiles(), ItemModelFiles(), SkillModelFiles()})
     {
         for (const ModelFile& file : table)
         {
             EXPECT_EQ(called.contains(file.model), file.model != PlayerSkeletonModel) << std::hex << file.model;
         }
+    }
+}
+
+// Las cuatro primeras de 0x615700 después de su 0x60d530(0x3b8) (0x61692a), en su orden y con
+// Skill\: las de 0x145, 0x146 y 0x147, y después las del caballo (0x6169a7).
+TEST(ModelTextureCallsTest, TheSkillLoaderAsksForTheDarkHorseFourth)
+{
+    const std::span<const ModelTextureCall> calls = SkillTextureCalls();
+
+    ASSERT_EQ(calls.size(), 4u);
+    const std::vector<std::uint16_t> models{calls[0].model, calls[1].model, calls[2].model, calls[3].model};
+    EXPECT_EQ(models, (std::vector<std::uint16_t>{0x145, 0x146, 0x147, 0xbf}));
+    for (const ModelTextureCall& call : calls)
+    {
+        EXPECT_EQ(call.folder, "Skill\\") << std::hex << call.model;
     }
 }
 

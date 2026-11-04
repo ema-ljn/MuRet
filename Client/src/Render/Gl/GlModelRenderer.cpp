@@ -135,7 +135,7 @@ void GlModelRenderer::BeginPass(const ModelBatch& batch) const
     m_gl->depthMask(GL_TRUE);
 }
 
-// 0x620980, 0x620a00(1) y 0x620a90, la sombra de 0x4eff40, y 0x620870 con la bandera 0x2000.
+// 0x620980, 0x620a00(1) y 0x620a90, las dos sombras de 0x4eff40, y 0x620870 con la bandera 0x2000.
 void GlModelRenderer::SetDrawState(const ModelDrawState& state) const
 {
     switch (state.blend)
@@ -160,6 +160,12 @@ void GlModelRenderer::SetDrawState(const ModelDrawState& state) const
     case ModelBlend::Shadow:
         m_gl->disable(GL_BLEND);
         m_gl->enable(GL_CULL_FACE);
+        m_gl->depthMask(GL_FALSE);
+        break;
+    case ModelBlend::BlendedShadow:
+        m_gl->enable(GL_BLEND);
+        m_gl->blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        m_gl->disable(GL_CULL_FACE);
         m_gl->depthMask(GL_FALSE);
         break;
     }

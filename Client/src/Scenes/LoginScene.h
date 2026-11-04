@@ -12,6 +12,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/DarkHorse.h"
 #include "Scenes/GameData.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoginModels.h"
@@ -150,6 +151,8 @@ private:
     // El personaje de 0x517270(2, 4, …).
     GameLogic::CharacterAppearance m_character;
     CharacterAnimation m_characterAnimation;
+    // El caballo que monta (0x443fa0(0xbf, …) de 0x6349a0): sigue al personaje.
+    DarkHorse m_horse;
     std::mt19937 m_random;
     // Los tres textos, o vacíos sin Text.bmd. El de la versión, ya armado.
     std::optional<std::string_view> m_left;

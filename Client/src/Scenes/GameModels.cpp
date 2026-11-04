@@ -27,6 +27,8 @@ namespace
 // Los slots donde empiezan las texturas de cada cargador (06 § El modelo en el binario).
 constexpr Render::TextureSlot PlayerTexturesStart{0x138};
 constexpr Render::TextureSlot ItemTexturesStart{0x25a};
+// 0x615700 (0x61692a), antes de las del caballo.
+constexpr Render::TextureSlot SkillTexturesStart{0x3b8};
 
 // Sube las de `entries` de a una: la que no carga deja su línea en el log, y las demás siguen.
 void UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Textures::TextureSetEntry> entries,
@@ -57,7 +59,7 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
                                                    Render::ITextureStore& textures, Core::Log& log)
 {
     for (const std::span<const Data::Models::ModelFile> table :
-         {Data::Models::PlayerModelFiles(), Data::Models::ItemModelFiles()})
+         {Data::Models::PlayerModelFiles(), Data::Models::ItemModelFiles(), Data::Models::SkillModelFiles()})
     {
         for (const Data::Models::ModelFile& file : table)
         {
@@ -85,10 +87,12 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
     AssignTextures(Data::Models::PlayerTextureCalls());
     m_slots.SetNext(ItemTexturesStart);
     AssignTextures(Data::Models::ItemTextureCalls());
+    m_slots.SetNext(SkillTexturesStart);
+    AssignTextures(Data::Models::SkillTextureCalls());
     UploadEach(dataRoot, GlowTextureSet, textures, log);
     UploadEach(dataRoot, Data::Models::PlayerFixedTextures(), textures, log);
     UploadEach(dataRoot, m_slots.ToLoad(), textures, log);
-    log.Info("se leyeron {} modelos del personaje y de los ítems", m_models.size());
+    log.Info("se leyeron {} modelos del personaje, de los ítems y del caballo", m_models.size());
     return {};
 }
 

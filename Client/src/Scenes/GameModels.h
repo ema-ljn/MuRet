@@ -18,19 +18,21 @@
 #include <string>
 #include <vector>
 
-// Los modelos del personaje (0x60dbe0) y de los ítems (0x60ff50), con el esqueleto de cada uno y el
-// slot de la textura de cada malla, como los lee la carga en su avance 1 (0x61ccb0) y los usan las
-// escenas que siguen. Viven en main.cpp, como GameData: se leen una vez, y sus texturas quedan.
-// Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario", y el plan de
-// la CL6 (pregunta 4 y CL6.3).
+// Los modelos del personaje (0x60dbe0), de los ítems (0x60ff50) y el caballo oscuro con los tres que
+// van antes de él en sus texturas (0x615700), con el esqueleto de cada uno y el slot de la textura de
+// cada malla, como los lee la carga en su avance 1 (0x61ccb0) y los usan las escenas que siguen.
+// Viven en main.cpp, como GameData: se leen una vez, y sus texturas quedan. Contrato:
+// Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario" y "El caballo oscuro",
+// y el plan de la CL6 (pregunta 4, CL6.3 y CL6.4).
 namespace Client::Scenes
 {
 class GameModels final : public IModelLibrary
 {
 public:
-    // Lee las 213 filas de PlayerModelFiles y las 243 de ItemModelFiles, y les da a sus mallas las
-    // texturas que piden 0x60f7d0 y 0x611850 (PlayerTextureCalls e ItemTextureCalls: cada llamada con
-    // su carpeta, desde 0x138 y desde 0x25a, con ModelTextureSlots), y las sube con las fijas de
+    // Lee las 213 filas de PlayerModelFiles, las 243 de ItemModelFiles y las 4 de SkillModelFiles, y
+    // les da a sus mallas las texturas que piden 0x60f7d0, 0x611850 y 0x615700 (PlayerTextureCalls,
+    // ItemTextureCalls y SkillTextureCalls: cada llamada con su carpeta, desde 0x138, 0x25a y 0x3b8,
+    // con ModelTextureSlots), y las sube con las fijas de
     // PlayerFixedTextures y las de los pases de brillo (GlowTextureSet, del avance 0 de 0x61ccb0). Un
     // modelo que el original exige (Player, PlayerTest) y falta corta, con un
     // error que lo nombra (Q-C23); otro que falta, o una textura que no carga, se saltea con una

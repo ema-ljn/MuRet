@@ -207,6 +207,52 @@ TEST_F(GlModelRendererTest, TheShadowDoesNotWriteTheDepth)
     ExpectNear(Cell(0), Green);
 }
 
+// La sombra de un objeto del mundo (0x6002e0 con el caballo: 0x620a00(1) y la máscara apagada de
+// 0x4eff40) mezcla con el alfa del vértice: el negro al 0,7 sobre el blanco deja 0,3.
+TEST_F(GlModelRendererTest, TheBlendedShadowMixesWithItsAlpha)
+{
+    AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 20.0f, Color{1.0f, 1.0f, 1.0f, 1.0f});
+    AddSquare({std::nullopt, ModelBlend::BlendedShadow, true}, 5.0f, Color{0.0f, 0.0f, 0.0f, 0.7f});
+
+    DrawBatch();
+
+    ExpectNear(Cell(0), Rgba8{77, 77, 77, 201});
+}
+
+// Y no escribe la profundidad: el verde opaco a 20, dibujado después, la pisa.
+TEST_F(GlModelRendererTest, TheBlendedShadowDoesNotWriteTheDepth)
+{
+    AddSquare({std::nullopt, ModelBlend::BlendedShadow, true}, 5.0f, Color{0.0f, 0.0f, 0.0f, 0.7f});
+    AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 20.0f, GreenColor);
+
+    DrawBatch();
+
+    ExpectNear(Cell(0), Green);
+}
+
+// Y sin alpha test: 0x4eff40 lo apaga (0x620910(0)), y la sombra del mapa 7 va en 0,2. El negro al 0,2
+// sobre el blanco deja 0,8.
+TEST_F(GlModelRendererTest, TheBlendedShadowHasNoAlphaTest)
+{
+    AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 20.0f, Color{1.0f, 1.0f, 1.0f, 1.0f});
+    AddSquare({std::nullopt, ModelBlend::BlendedShadow, true}, 5.0f, Color{0.0f, 0.0f, 0.0f, 0.2f});
+
+    DrawBatch();
+
+    ExpectNear(Cell(0), Rgba8{204, 204, 204, 214});
+}
+
+// Ni recorta las caras de atrás (0x620a00 apaga el culling): una de atrás, roja al 0,7 sobre el vacío,
+// se ve.
+TEST_F(GlModelRendererTest, TheBlendedShadowDoesNotCull)
+{
+    AddSquare({std::nullopt, ModelBlend::BlendedShadow, true}, 10.0f, Color{1.0f, 0.0f, 0.0f, 0.7f}, true);
+
+    DrawBatch();
+
+    ExpectNear(Cell(0), Rgba8{179, 0, 0, 125});
+}
+
 // La opaca no mezcla: un alfa de 0,5 se escribe tal cual, sin el fondo.
 TEST_F(GlModelRendererTest, TheOpaqueIgnoresTheAlpha)
 {

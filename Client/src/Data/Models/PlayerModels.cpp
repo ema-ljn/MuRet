@@ -13,6 +13,7 @@ namespace
 // Las carpetas que pasan los dos cargadores, sin el "Data\\" del principio, que pone LoadModelFile.
 constexpr std::string_view PlayerFolder = "Player\\";
 constexpr std::string_view ItemFolder = "Item\\";
+constexpr std::string_view SkillFolder = "Skill\\";
 
 // Cada llamada a 0x60da30 de 0x60dbe0 en el modo Data\, desde 0x60e8fc: el modelo, la carpeta, el
 // nombre y el número, con la dirección de la llamada (las de un bucle se repiten).
@@ -478,6 +479,14 @@ constexpr std::array<ModelFile, 243> ItemFiles = {{
     {0xa27, ItemFolder, "HDK_Bow", -1},           // 0x6117df
     {0xc1e, ItemFolder, "HDK_Staff", -1},         // 0x6117f8
 }};
+
+// Las cuatro llamadas a 0x60da30 de 0x615700 que MuRet ya hace, en su orden.
+constexpr std::array<ModelFile, 4> SkillFiles = {{
+    {0xbf, SkillFolder, "DarkHorse", -1},    // 0x615f46
+    {0x145, SkillFolder, "elf_skill", -1},   // 0x6168f4
+    {0x146, SkillFolder, "WaveForce", -1},   // 0x61690a
+    {0x147, SkillFolder, "deathsp_eff", -1}, // 0x616920
+}};
 } // namespace
 
 std::span<const ModelFile> PlayerModelFiles()
@@ -488,5 +497,10 @@ std::span<const ModelFile> PlayerModelFiles()
 std::span<const ModelFile> ItemModelFiles()
 {
     return ItemFiles;
+}
+
+std::span<const ModelFile> SkillModelFiles()
+{
+    return SkillFiles;
 }
 } // namespace Client::Data::Models

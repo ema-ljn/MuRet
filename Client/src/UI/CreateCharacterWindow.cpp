@@ -19,7 +19,6 @@
 #include "UI/TextField.h"
 #include "UI/Widget.h"
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -174,10 +173,10 @@ CreateCharacterWindow::CreateCharacterWindow(TextureSizes sizes, const Data::Tex
 
 void CreateCharacterWindow::EnableClasses(std::uint8_t creatable)
 {
-    const std::size_t last = std::min<std::size_t>(creatable, CreatableClassCount - 1);
+    // Solo los cinco: un pkt[4] de 5 o más no escribe fuera, como el original (Q-C119).
     for (std::size_t i = 0; i < CreatableClassCount; ++i)
     {
-        m_classes[i].SetEnabled(i <= last);
+        m_classes[i].SetEnabled(i <= creatable);
     }
 }
 

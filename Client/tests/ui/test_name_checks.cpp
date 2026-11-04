@@ -76,10 +76,10 @@ TEST(NameChecksTest, TheLabNamesGiveTheEmulatedNotices)
     }
 }
 
-// 0x622c70: FilterName.bmd contra el nombre sin espacios ("G M" es "GM"); las fijas, contra el
-// nombre tal cual: el espacio, el punto, los dos de GB2312 y las cuatro de Webzen, y los textos 457
-// y 458.
-TEST(NameChecksTest, TheFilterNameWordsSeeTheNameWithoutSpaces)
+// 0x622c70: FilterName.bmd contra el nombre sin espacios; las fijas, contra el nombre tal cual: el
+// espacio, el punto, los tres de GB2312 y las cuatro de Webzen, y los textos 457 y 458. Que la
+// primera vaya sin espacios no se ve: un nombre con un espacio ya lo filtra la fija " ".
+TEST(NameChecksTest, TheWordsOfTheFilesAndTheFixedOnesAreFiltered)
 {
     const NameFilters filters = LabFilters();
     EXPECT_TRUE(IsFilteredName("aG Mb", filters));

@@ -30,7 +30,8 @@ struct NameFilters
 // 0x622c70: alguna palabra de FilterName.bmd en el nombre sin espacios; alguna de Filter.bmd en el
 // nombre sin espacios, salvo que empiece con '/' (0x622b40 con 1); o, en el nombre tal cual, el
 // espacio, el punto, los "\xa1\xa1", "\xa1\xa4" y "\xa1\xad" de GB2312, "Webzen", "WebZen",
-// "webzen", "WEBZEN" o los textos 457 y 458.
+// "webzen", "WEBZEN" o los textos 457 y 458. Como el espacio ya filtra, sacar los espacios antes
+// no cambia el resultado.
 [[nodiscard]] bool IsFilteredName(std::string_view name, const NameFilters& filters);
 
 // 0x447ca0, con el parche de NOPs de este binario: mira los bytes 0, 2, 4… mientras el de dos más

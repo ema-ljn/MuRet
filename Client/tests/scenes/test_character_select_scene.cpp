@@ -1254,6 +1254,31 @@ TEST(CharacterSelectSceneTest, TheClassesFollowTheList)
     EXPECT_EQ(creates[0].Bytes().back(), std::byte{0x20});
 }
 
+// Con un aviso del nombre arriba, los botones de la ventana sueltan el mouse: el OK de la ventana,
+// con el mouse encima cuando se apretó Enter, vuelve a su cuadro normal, como el OK del aviso.
+TEST(CharacterSelectSceneTest, UnderANoticeTheWindowLetsGoOfTheMouse)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    const Client::UI::CreateWindowLayout layout = Client::UI::LayoutCreateWindow(PixelSize{640, 480}, 1);
+    Client::Tests::MoveMouse(tested.input, layout.ok.x + 5, layout.ok.y + 5);
+    tested.Step();
+    tested.Tap(Key::Enter);
+    tested.Step();
+
+    std::vector<float> tops;
+    for (const FrameEvent& event : tested.Frame())
+    {
+        if (event.texture == std::optional<TextureSlot>{TextureSlot{0x724}})
+        {
+            tops.push_back(std::ranges::min(event.vertices, {}, &Client::Render::SpriteVertex::v).v);
+        }
+    }
+    ASSERT_EQ(tops.size(), 2u);
+    EXPECT_FLOAT_EQ(tops[0], tops[1]);
+}
+
 // Con la ventana abierta, Esc la cierra y Enter es de ella: no entra al mundo con el elegido.
 TEST(CharacterSelectSceneTest, TheWindowTakesEnterAndEsc)
 {

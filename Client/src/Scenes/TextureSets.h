@@ -70,4 +70,31 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 6> LoadingTextureSe
     {"Interface\\lo_webzen_logo.tga", 0x722, TextureSetsDetail::LinearClamp},
     {"Interface\\lo_lo.jpg", 0x723, TextureSetsDetail::LinearRepeat},
 }};
+
+// Las doce de 0x61ca30, la selección: las de Interface\ en 0xc a 0x13, los dos fondos de Logo\,
+// Impack03 y chasellight, sin filtro y sin repetir (0x2600, 0x2900). Las suelta 0x61cc50 al entrar
+// al mundo.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 12> SelectionTextureSet{{
+    {"Interface\\cha_id.tga", 0xc, TextureSetsDetail::NearestClamp},
+    {"Interface\\cha_bt.tga", 0xd, TextureSetsDetail::NearestClamp},
+    {"Interface\\deco.tga", 0xe, TextureSetsDetail::NearestClamp},
+    {"Interface\\b_create.tga", 0xf, TextureSetsDetail::NearestClamp},
+    {"Interface\\server_menu_b_all.tga", 0x10, TextureSetsDetail::NearestClamp},
+    {"Interface\\b_connect.tga", 0x11, TextureSetsDetail::NearestClamp},
+    {"Interface\\b_delete.tga", 0x12, TextureSetsDetail::NearestClamp},
+    {"Interface\\character_ex.tga", 0x13, TextureSetsDetail::NearestClamp},
+    {"Logo\\character_back01.jpg", 0x717, TextureSetsDetail::NearestClamp},
+    {"Logo\\character_back02.jpg", 0x718, TextureSetsDetail::NearestClamp},
+    {"Effect\\Impack03.jpg", 0x719, TextureSetsDetail::NearestClamp},
+    {"Logo\\chasellight.jpg", 0x729, TextureSetsDetail::NearestClamp},
+}};
+
+// Las cuatro de 0x6356f0, la carga del mundo: el mosaico de LSBg01 a 04, con filtro y sin repetir
+// (0x2601, 0x2900). Las suelta al pasar al juego.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 4> WorldLoadingTextureSet{{
+    {"Interface\\LSBg01.JPG", 0x71e, TextureSetsDetail::LinearClamp},
+    {"Interface\\LSBg02.JPG", 0x71f, TextureSetsDetail::LinearClamp},
+    {"Interface\\LSBg03.JPG", 0x720, TextureSetsDetail::LinearClamp},
+    {"Interface\\LSBg04.JPG", 0x721, TextureSetsDetail::LinearClamp},
+}};
 } // namespace Client::Scenes

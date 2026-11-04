@@ -426,7 +426,15 @@ solo lo lee.
   personaje, de los bytes de la lista al lote, sin las escenas. Lo arma la apariencia de `0x5139f0`;
   el picking tiene sus 6 ejes; el brillo va por nivel; lo que cuelga va desde su hueso; y el dibujo
   de `0x50ba30`. Contra la traza de la selección, la espada y la mascota cuelgan a 0,0014, y el
-  personaje entero sale bloque por bloque, uno a uno. 46 tests y 17 mutantes.
+  personaje entero sale bloque por bloque, uno a uno. 46 tests y 17 mutantes. **La CL6.3 D**
+  (2026-11-04, resuelta por Claude): las escenas, de la carga al primer paso del juego. La carga
+  lee los modelos y sus texturas; la selección pide la lista, pone a los personajes en sus lugares,
+  elige con el clic y entra con Enter o el doble clic de `0x640940`; la carga del mundo dibuja su
+  mosaico; y el juego manda el `F3 03`. La primera corrida con los datos reales mostró que las
+  texturas no salen de las tablas de los modelos: las piden 505 llamadas de dos cargadores, cada
+  una con su carpeta y sin filtro. Una emulación del binario las confirmó, y el volcado de la
+  memoria da los mismos 489 nombres. El contorno bajo el mouse y el nombre del elegido van en un
+  PR E. 40 tests y 31 mutantes, uno equivalente.
 
 ## Conceptos
 
@@ -560,6 +568,7 @@ sesión, junto con los de repaso más viejo.
 | una animación por paso y otra por tiempo: el módulo, el tope y la key anterior, un reloj falso a varios FPS, y la copia interpolada que cruza keys como el paso | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | UV que salen de la normal en el mundo y de un reloj: por qué un float de ms deja de contar, y sacar de la traza el valor que no se ve (T entero desde T módulo 10.000 y un seno y un coseno) | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | una sesión que suma estados sin cortar lo que corre en todos (el keepalive con su ritmo), una lista de largo variable que no se lee de más, y un nombre del jugador que no llega ni al log ni a un mensaje de un test | CL6.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
+| correr el programa con los datos reales además de los tests: un modelo falso no encuentra que el original pide las texturas con otra carpeta que la del archivo; sacar las llamadas de un cargador con una emulación y no a ojo, y un mutante equivalente que se nombra en vez de forzar un test | CL6.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
 
 ## Preguntas para olas futuras
 

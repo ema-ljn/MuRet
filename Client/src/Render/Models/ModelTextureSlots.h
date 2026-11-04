@@ -52,6 +52,10 @@ public:
 
     [[nodiscard]] TextureSlot Next() const;
 
+    // El nombre desnudo que guarda `slot`, como la tabla de 0x7d3a198: el de la última malla que lo
+    // pidió, o vacío si nadie lo pidió o si está fuera de la tabla. Para comparar con un volcado.
+    [[nodiscard]] std::string_view NameOf(TextureSlot slot) const;
+
 private:
     std::optional<TextureSlot> Find(std::string_view name) const;
     TextureSlot Request(std::string_view folder, std::string_view name, Data::Textures::Sampling sampling);

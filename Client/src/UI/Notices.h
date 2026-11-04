@@ -24,6 +24,10 @@ inline constexpr NoticeId VersionMismatchNotice = 0x6f;
 // No conectó, o el F1 00 no aceptó (0x4c1e20): el 402.
 inline constexpr NoticeId ConnectFailedNotice = 0x70;
 
+// El de la selección: entrar con un personaje bloqueado (el bit 0x1 de sus banderas, 0x6342c0): el
+// 434 (CL6.3).
+inline constexpr NoticeId LockedCharacterNotice = 0x84;
+
 // Los textos de un aviso: uno, o dos líneas.
 struct NoticeTexts
 {

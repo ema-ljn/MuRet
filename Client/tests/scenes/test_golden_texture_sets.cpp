@@ -25,7 +25,9 @@ using Client::Data::Textures::TextureSetEntry;
 using Client::Data::Textures::TextureSide;
 using Client::Scenes::LoadingTextureSet;
 using Client::Scenes::LoginTextureSet;
+using Client::Scenes::SelectionTextureSet;
 using Client::Scenes::WindowTextureSet;
+using Client::Scenes::WorldLoadingTextureSet;
 
 using GoldenTextureSet = Client::Tests::GoldenDataTest;
 
@@ -78,6 +80,29 @@ inline constexpr std::array<ImageSize, 3> WindowImageSizes{{
 }};
 static_assert(WindowImageSizes.size() == WindowTextureSet.size());
 
+// Las de la selección (CL6.3): los ocho botones y marcos de Interface\, los dos fondos de 512 × 512,
+// Impack03 y la chasellight.
+inline constexpr std::array<ImageSize, 12> SelectionImageSizes{{
+    {346, 38},
+    {108, 104},
+    {189, 103},
+    {54, 120},
+    {54, 90},
+    {54, 120},
+    {54, 120},
+    {118, 54},
+    {512, 512},
+    {512, 512},
+    {64, 64},
+    {16, 128},
+}};
+static_assert(SelectionImageSizes.size() == SelectionTextureSet.size());
+
+// Las cuatro del mosaico de la carga del mundo: 400 × 512 arriba y 400 × 88 abajo (06 § La carga del
+// mundo).
+inline constexpr std::array<ImageSize, 4> WorldLoadingImageSizes{{{400, 512}, {400, 512}, {400, 88}, {400, 88}}};
+static_assert(WorldLoadingImageSizes.size() == WorldLoadingTextureSet.size());
+
 // Cada textura cargada contra su entrada: el slot, el formato de su cargador, el tamaño de la
 // imagen y el buffer de lados potencia de 2 que la cubre.
 void ExpectTheSet(std::span<const TextureSetEntry> set, std::span<const ImageSize> sizes,
@@ -124,5 +149,22 @@ TEST_F(GoldenTextureSet, TheLoadingSetLoads)
 
     ASSERT_TRUE(loaded.HasValue()) << Describe(loaded.Error());
     ExpectTheSet(LoadingTextureSet, LoadingImageSizes, loaded.Value());
+}
+// Las doce de 0x61ca30, las de la selección (06 § La selección de personaje).
+TEST_F(GoldenTextureSet, TheSelectionSetLoads)
+{
+    const auto loaded = LoadTextureSet(m_dataRoot, SelectionTextureSet);
+
+    ASSERT_TRUE(loaded.HasValue()) << Describe(loaded.Error());
+    ExpectTheSet(SelectionTextureSet, SelectionImageSizes, loaded.Value());
+}
+
+// Las cuatro de 0x6356f0, las de la carga del mundo.
+TEST_F(GoldenTextureSet, TheWorldLoadingSetLoads)
+{
+    const auto loaded = LoadTextureSet(m_dataRoot, WorldLoadingTextureSet);
+
+    ASSERT_TRUE(loaded.HasValue()) << Describe(loaded.Error());
+    ExpectTheSet(WorldLoadingTextureSet, WorldLoadingImageSizes, loaded.Value());
 }
 } // namespace

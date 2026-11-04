@@ -572,7 +572,7 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   | --- | --- | --- |
   | `0x60f7d0` (avance 2 de la carga) | `0x12e`, `0x137` y `0x138` | la piel y el pelo de cada clase, en slots fijos (abajo); las partes del personaje desde `0x138` |
   | `0x611850` (avance 4) | `0x25a` | los ítems (los modelos son de `0x60ff50`, el avance 3) |
-  | `0x615700` (avance 5) | `0x69`, `0x138` y `0x3b8` | `StoneCoffin` desde `0x69`; `LaceArrow` desde `0x138`, encima de dos de la piel (Q-C89); las habilidades desde `0x3b8` |
+  | `0x615700` (avance 5) | `0x69`, `0x138` y `0x3b8` | antes del primero, siete habilidades y efectos (`0x14a` a `0x14d`, `0x109`, `0xf9` y `0x10f`) donde dejó `0x611850`, desde `0x371`; `StoneCoffin` desde `0x69`; `LaceArrow` desde `0x138`, encima de dos de la piel (Q-C89); las habilidades desde `0x3b8` |
   | `0x616ec0` (cada mundo) | `0x69` y `0x41c` | los modelos especiales del mapa; los `ObjectNN` del mundo |
   | `0x61ca30` (la selección) | `0x6f8` | `Logo05` y los `NewFace` (Q-C91) |
   | `0x615500` | `0x548` | nada: lo llama `0x61eeb0`, detrás de `DAT_07d366bc` |
@@ -586,6 +586,19 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   antes), y uno con otro archivo: `Helper04` (`0x1c15`, `Item\`) dibuja el de `Skill\` (`0x285`).
   La misma simulación sigue con el mundo del login (*inferido*: ningún volcado es de ahí): 17
   nombres más en otra carpeta con los mismos bytes y 2 sin el archivo en la suya.
+  **Qué modelos y con qué carpeta** no sale de las tablas de los modelos: `0x60f7d0` hace 214
+  llamadas a `0x60d5f0`, todas con `Player\`, y `0x611850` 291, con `Item\` salvo `0x1c16`,
+  `0x1c17` y `0x1c15` (`Skill\`), `0x224c` (`Monster\`), `0x1c2f` (`Npc\`) y `0xdb`
+  (`Item\Bow\`, que no carga ninguna tabla). Los `Helper01` a `03` (`0x1c12` a `0x1c14`) están en
+  `Player\` y sus texturas salen de `Item\`; 26 modelos se piden dos veces, y la segunda encuentra
+  los nombres de la primera. Todas con `0x2901` y `0x2600`: repitiendo y **sin filtro** (el logo del
+  login, `0x61c7c0`, pide `0x2601`). Fuera de los lazos, `0x60f7d0` sube a mano, sin nombre en la
+  tabla, las cuatro capas: `Robe01` y `Robe02` en `0x250` y `0x251`, `Robe03.tga` en `0x252` y
+  `DarklordRobe.tga` en `0x257`. Con la carpeta de cada `.bmd`, 14 de esas texturas no están en el
+  laboratorio (entre ellas las de las mascotas): el original, que se cierra con una que falta, no
+  las pide así. **Verificado:** una emulación de los dos cargadores sobre el `main.exe` da las
+  mismas 505 llamadas que `Data::Models::PlayerTextureCalls` e `ItemTextureCalls`, en el mismo
+  orden y con la misma carpeta.
 - **La piel y el pelo.** `0x60f7d0` sube a mano, con `GL_NEAREST` y `GL_CLAMP`: `0x12e`
   `skin_barbarian_01`, `0x12f` `level_man022`, `0x130` `skin_wizard_01`, `0x131` `level_man01`,
   `0x132` `skin_archer_01`, `0x133` `level_man033`, `0x134` `skin_special_01`, `0x136`
@@ -1320,9 +1333,12 @@ Tests que fija:
 - Las UV de brillo: para las normales y el T de un frame de la traza, los modos 115, 120 y 141 dan
   las UV de la traza a menos de 0,02 (CL6); esas tres filas de la tabla, con un T fijo (`ShineTest`,
   CL6.2), y las de `0x200` y `0x800`, que piden los niveles 11 y 12 y el `0x840` de `0x60b3d0`,
-  cuando entren con `ItemGlow` (`ShineTest.EachModeHasItsFormula`, CL6.3).
-- Los slots: la carga de arranque de MuRet sobre el `Data\` da los nombres de `lor_slots.bin` en
-  `0x12e` a `0x41b` (`ModelTextureSlotsGoldenTest.StartupMatchesTheDump`, local, fuera de CI).
+  cuando entren con `ItemGlow` (`ShineTest.TheChrome2PassRunsWithAFiveSecondClock` y
+  `TheChrome3PassIsTheLightAgainstTheNormal`, CL6.3).
+- Los slots: la carga de los modelos de MuRet sobre el `Data\` (`GameModels`, con las 505 llamadas
+  de `0x60f7d0` y `0x611850`) da los nombres de `lor_slots.bin` de `0x12e` a `0x370`, y deja el
+  próximo en `0x371`, donde sigue `0x615700` (`ModelTextureSlotsGoldenTest.StartupMatchesTheDump`,
+  local, fuera de CI); de `0x371` a `0x41b`, las habilidades, los efectos y el mundo, cuando entren.
 - El asignador de slots de `0x466560` no se prueba, porque MuRet no lo reproduce (pregunta 11 del
   plan de la CL5): es interno, en las escenas medidas no corre (`0x466000` no corrió, § Texto), y
   la caché del texto de MuRet es otra, con sus slots después de los 1.845 del original (CL5.3).

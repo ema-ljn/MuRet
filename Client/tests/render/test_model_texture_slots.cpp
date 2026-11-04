@@ -225,4 +225,19 @@ TEST(ModelTextureSlotsTest, ASkinNameStillTakesASlot)
     EXPECT_EQ(slots.ToLoad().size(), 1u);
     EXPECT_EQ(slots.Next(), TextureSlot{0x139});
 }
+// El nombre que guarda cada slot, como la tabla de 0x7d3a198: el de la malla, sin la carpeta; el que
+// se pide encima de otro (Q-C89) se queda con el último; vacío el que nadie pidió y el de fuera.
+TEST(ModelTextureSlotsTest, EachSlotKeepsTheNameOfItsMesh)
+{
+    ModelTextureSlots slots(PlayerParts);
+    (void)slots.Assign(ModelWith({"armor_a.jpg", "Sword.JPG"}), "Player\\", ModelSampling);
+    slots.SetNext(PlayerParts);
+    (void)slots.Assign(ModelWith({"nfb_R.jpg"}), "Item\\", ModelSampling);
+
+    EXPECT_EQ(slots.NameOf(TextureSlot{0x138}), "nfb_R.jpg");
+    EXPECT_EQ(slots.NameOf(TextureSlot{0x139}), "Sword.JPG");
+    EXPECT_EQ(slots.NameOf(TextureSlot{0x13a}), "");
+    EXPECT_EQ(slots.NameOf(TextureSlot{0x137}), "");
+    EXPECT_EQ(slots.NameOf(TextureSlot{0xffff}), "");
+}
 } // namespace

@@ -26,6 +26,9 @@ enum class ModelBlend : std::uint8_t
     Alpha,
     // 0x620a90: ONE / ONE, sin culling ni alpha test, y no escribe la profundidad.
     Additive,
+    // La sombra: 0x620980 con la máscara que apaga 0x4eff40, sin mezcla, con culling, sin alpha test y
+    // sin escribir la profundidad.
+    Shadow,
 };
 
 struct ModelDrawState

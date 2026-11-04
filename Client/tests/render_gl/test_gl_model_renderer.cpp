@@ -195,6 +195,18 @@ TEST_F(GlModelRendererTest, TheAdditiveDoesNotWriteTheDepth)
     ExpectNear(Cell(0), Green);
 }
 
+// La sombra (0x620980 y la máscara apagada de 0x4eff40) no mezcla ni escribe la profundidad: lo que
+// va detrás y después se ve.
+TEST_F(GlModelRendererTest, TheShadowDoesNotWriteTheDepth)
+{
+    AddSquare({std::nullopt, ModelBlend::Shadow, true}, 5.0f, RedColor);
+    AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 20.0f, GreenColor);
+
+    DrawBatch();
+
+    ExpectNear(Cell(0), Green);
+}
+
 // La opaca no mezcla: un alfa de 0,5 se escribe tal cual, sin el fondo.
 TEST_F(GlModelRendererTest, TheOpaqueIgnoresTheAlpha)
 {

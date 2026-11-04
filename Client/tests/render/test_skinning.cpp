@@ -17,8 +17,10 @@ namespace
 using Client::Data::Models::Mesh;
 using Client::Render::Models::AngleMatrix;
 using Client::Render::Models::BoneTransform;
+using Client::Render::Models::FlattenOnTheGround;
 using Client::Render::Models::ObjectTransform;
 using Client::Render::Models::SkinMesh;
+using Client::Render::Models::SkinMeshAroundBones;
 using Client::Render::Models::SkinnedMesh;
 
 constexpr float Tolerance = 1e-4f;
@@ -72,6 +74,46 @@ TEST(SkinningTest, TheObjectScalesAndMovesTheVertices)
 
     ExpectNear(skinned.positions[0], {104, 204, 306});
     ExpectNear(skinned.positions[1], {120, 202, 300});
+}
+
+// 0x4ebc80 con DAT_006c881c distinto de 1, como lo pone 0x60cd60 para el contorno: el vértice girado
+// por su hueso y por la escala, más la traslación del hueso; después la escala y la posición del
+// objeto.
+TEST(SkinningTest, TheOutlineScalesAroundTheBone)
+{
+    const ObjectTransform object{{100, 200, 300}, {0, 0, 0}, 2.0f, 0.0f};
+    SkinnedMesh skinned;
+
+    ASSERT_TRUE(SkinMeshAroundBones(TwoVertexMesh(), TwoBones(), object, 1.5f, skinned));
+
+    // (1, 0, 0) · 1,5 + (1, 2, 3), por 2 y más el objeto.
+    ExpectNear(skinned.positions[0], {105, 204, 306});
+    // Girado 90°: (0, 1,5, 0) + (10, 0, 0), por 2 y más el objeto.
+    ExpectNear(skinned.positions[1], {120, 203, 300});
+}
+
+// Con la escala en 1 justo, el original toma el camino de siempre (0x5fccc0).
+TEST(SkinningTest, AnOutlineScaleOfOneIsTheNormalSkinning)
+{
+    const ObjectTransform object{{100, 200, 300}, {0, 0, 0}, 2.0f, 0.0f};
+    SkinnedMesh scaled;
+    SkinnedMesh normal;
+
+    ASSERT_TRUE(SkinMeshAroundBones(TwoVertexMesh(), TwoBones(), object, 1.0f, scaled));
+    ASSERT_TRUE(SkinMesh(TwoVertexMesh(), TwoBones(), object, normal));
+
+    EXPECT_EQ(scaled.positions, normal.positions);
+}
+
+// 0x4eff40, la sombra: con x' y z' desde la posición del objeto, X = (x' + 2000) · z' / (z' − 4000) +
+// x' + px, la y queda, y Z = pz + 5.
+TEST(SkinningTest, TheShadowFlattensOnTheGround)
+{
+    const glm::vec3 flat = FlattenOnTheGround({110.0f, 77.0f, 80.0f}, {10.0f, 20.0f, 30.0f});
+
+    EXPECT_NEAR(flat.x, (100.0f + 2000.0f) * 50.0f / (50.0f - 4000.0f) + 100.0f + 10.0f, 1e-3f);
+    EXPECT_FLOAT_EQ(flat.y, 77.0f);
+    EXPECT_FLOAT_EQ(flat.z, 35.0f);
 }
 
 // Una normal solo gira: ni la traslación del hueso, ni la escala, ni la posición del objeto.

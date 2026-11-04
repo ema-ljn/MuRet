@@ -59,7 +59,7 @@ aviso) que manejan los handlers de red (`paso5-protocolo-handlers.md`).
 render de la escena
  ├─ cámara       0x635ae0 + 0x44dc60 + 0x620db0 (proyección y modelview)
  ├─ pase 3D      fondo, frustum 0x5fbb00, terreno 0x5fc260, objetos 0x53c6a0
- │               [selección] personajes 0x510d00, el elegido 0x5f9780 y 0x53fe70, nombre 0x4129f0
+ │               [selección] personajes 0x510d00, el elegido 0x5f9780 y 0x53fe70 (0x4129f0 no dibuja)
  ├─ pase 2D      0x6219b0 (ortho) … 0x621a90 (vuelve)
  │    ├─ UI en el juego 0x62db60 (20 KB, 52 llamadas GL)
  │    ├─ texto 0x554180
@@ -500,6 +500,19 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   | `0x4` | 0,5·nz + t | 0,5·ny + 2t | `0x5c0` |
   | `0x8` | 0,5·nz + 0,2 | (ny + 1) · 0,5 | `0x5fc` |
 
+  El color de cada pase lo pone `0x60b3d0` antes de su `RenderBody`: el `0x44` y el `0x48`, con
+  `0x60b130` → `0x608e00(modelo, alpha, 1, color)`, uno por ítem que no mira la luz ((1; 0,5; 0),
+  salvo 165 modelos: las Male17, (0,75; 0,65; 0,5)); el `0x240` y el `0x1040`, con `0x60b300` →
+  `0x6093d0`, que multiplica el color base (la luz por el factor del nivel) por 1, salvo 29 modelos;
+  el de set (`0x840`), `0x609560`, (0,1; 0,6; 1) salvo 15 partes doradas; y el `0x42` del
+  excelente, k = (sin(0,002 · T) + 1) · 0,5 → (k; 0,3k; 1 − k), con `0x60b3d0` que vuelve después:
+  excelente y set no van juntos, y ni el excelente ni el set van en `0x1a12..0x1a18` ni en
+  `0x1c30`. Lo que cuelga no lleva el set (`0x509340` le pasa 0). **Verificado:** las tres tablas
+  salen de emular las tres funciones sobre el `main.exe` para cada modelo (`Render/Models/
+  PassColors`), y dan el (0,75; 0,65; 0,5) de las Male17 y el (1; 0,5; 0) de `Sword17` de la traza.
+  Los slots `0x5fc`, `0x5c0` y `0x620` los sube `0x61ccb0` en su avance 0 y nadie los suelta:
+  `Effect\Shiny01` con filtro y sin repetir, `Effect\Chrome01` con filtro y repitiendo, y
+  `Effect\Chrome02` sin filtro ni repetir (en MuRet, `GlowTextureSet`, que sube `GameModels`).
   Una textura forzada pisa el slot. `0x800`, `0x1000`, `0x4000` y `0x40` van aditivos y, con
   alpha < 0,99, multiplican **en el lugar** el color del modelo por el alpha (Q-C95: lo ven las
   mallas que siguen en el mismo `RenderBody`); los demás, `0x80` `0x620b10`, `0x10` `0x620c90`,
@@ -529,9 +542,12 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   arma `personaje + 0x3b4` = base + `+0xf4`, con la base en (0,4; 0,4; 0,4) en la escena 4 y la
   luz del terreno (`0x5f99e0(x, y)`) en las otras (el modelo `0x189`, en 0,6), y `0x60cf70` se la
   pasa a `0x60b3d0`, que escribe `modelo + 0x48..+0x50` con el factor del nivel. En la selección,
-  0,4 y 1,4 (el elegido) antes de ese factor. El pase base pasa además por `0x609640` (2,5 KB de
-  casos por ítem), sin leer: el 0,27 de la traza cierra con 0,4 · 0,9 · 0,75 o con 0,3 · 0,9
-  (P-C14). Los demás modelos toman el color de `0x5ffce0`: la luz del terreno más `objeto +
+  0,4 y 1,4 (el elegido) antes de ese factor, salvo el "héroe": `DAT_0743a170`, el objeto 0 desde
+  el arranque (el del lugar 0), sigue hasta `0x50d219`, que en la escena 4 le da 0,5 más `+0xf4`,
+  también a lo que cuelga. **Verificado** en la traza: su personaje está en el lugar 0 y elegido,
+  y `Helper02` sale con 1,5 y `Sword17` con 1,35 = 1,5 · 0,9. El pase base pasa además por
+  `0x609640` (2,5 KB de casos por ítem), sin leer; el 0,27 de la traza sería 1,35 por el piso 0,2 de
+  la luz por vértice de `0x4ebc80` (`0x6b8854`; *inferido*, P-C14). Los demás modelos toman el color de `0x5ffce0`: la luz del terreno más `objeto +
   0xf4`, o por 0,1 con `objeto + 0xe8` en 0.
 - **Lo que cuelga del personaje.** `0x511290` pone los huesos de cada modelo; para `0x20a`, la
   mano derecha en 33 (`+0x2bd`) y la izquierda en 42 (`+0x2dd`). `0x50ba30`: las alas en 47
@@ -551,6 +567,37 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   llevado al mundo con la escala y la posición del personaje en cada vértice, como las partes: cada
   vértice a 0,0014 del de la traza en los cinco swaps (desde el 42, la espada cae a 170). La
   mascota está en el frame 1,5 · 2 · 2,5 · 3 · 3,5 (el de la pose, como la tabla de arriba).
+- **La sombra.** Antes de las partes, `0x50ba30` dibuja `Shadow01` (`0x20b`) con las matrices
+  del cuerpo y `+0x98` en 1 (con el alpha en 0,5 o más, fuera de los mundos 10, `0x18..0x1d` y
+  `0x24`, y sin las mascotas que se montan, `0x1c14` y `0x1c15`). `0x60b3d0` pone la opaca y el
+  negro, y `0x4eff40` apaga la textura y la máscara y aplasta cada vértice, con x' y z' desde la
+  posición del objeto: X = (x' + 2000) · z' / (z' − 4000) + x' + px, Z = pz + 5 (2500 en el mundo
+  30). Saltea la malla de `+0x58` y el `blendMesh`, pero no mira la textura: la de `Shadow01` es la
+  oculta (`hide_m`). **Verificado** en la traza: el bloque de 318 vértices en z = 168, antes de
+  las botas, uno a uno con el de MuRet (`GoldenCharacterDrawing`, CL6.3).
+- **El contorno bajo el mouse, en un jugador.** `0x510d00` le pasa a `0x50ba30` un 1 con el
+  personaje de `DAT_006c8e30` (el que dejó bajo el mouse el picking del frame anterior: `0x59ec80`
+  corre después del dibujo) o de `DAT_006c8e2c`, y `0x50ba30` lo pasa a `0x60cf70` como su
+  duodécimo argumento en las seis partes del lazo (de `+0x1f8`, la cabeza, a `+0x298`); lo que
+  cuelga (`0x509340`) no lo lleva. Con el 1, y si el alpha del objeto pasa de 0,01, `0x60cf70`
+  dibuja antes de la parte dos pases de `0x60cd60`: cada uno pone la luz por vértice en 0 y
+  `DAT_006c881c` en su escala, vuelve a pasar los vértices con `0x4ebc80` (s · R·v + t, la escala
+  después del giro y antes de la traslación del hueso) y dibuja todas las mallas con `0x40` (en
+  `0x4ecc30`: aditivo, sin textura, sin escribir la profundidad y sin alpha test; una malla de
+  cuatro componentes no va). Fuera de los mapas 18 a 23, el primero en (0,1; 0,03; 0) a la escala
+  de `objeto + 0x94` (1,2, que pone `0x511290`) y el segundo en (0,7; 0,2; 0) a ella menos 0,02;
+  en los mapas 18 a 23, (0,1; 0,01; 0) a 1 + 0,1 / escala y (0,7; 0,07; 0) a 1,02 + 0,04 / escala
+  menos 0,02; con `objeto + 0x88` en 4, el verde (0,02; 0,1; 0) y (0,16; 0,7; 0). Son otros
+  valores que los de `0x5ffdf0` (arriba), que son de los modelos sin partes (Q-C94).
+  **Verificado** en la traza de la selección, cuyo personaje estaba bajo el mouse: dos pases sin
+  textura y `GL_ONE, GL_ONE` por parte, en (0,1; 0,03; 0) y (0,7; 0,2; 0), a 1,2 y 1,18 del hueso,
+  sin la malla de cuatro componentes ni lo que cuelga.
+- **La clase 4 en el lazo de las partes.** Con `(personaje + 0x1d4) & 7` en 4, en la parte del
+  casco (`+0x218`), `0x50ba30` pone `objeto + 0x68`, la luz del `blendMesh` que `RenderBody` le
+  pasa a `0x4ecc30`, en sin(0,001 · T) · 0,1 + 0,7, y dibuja los cascos `0x1012`, `0x1017`,
+  `0x1018`, `0x101a` y `0x101b` con el modelo + `0x328b`, su máscara (`MaskHelmMale01`, `06`, `07`,
+  `09` y `10`), con la piel del casco. MuRet todavía no lo hace, ni dibuja el script de las
+  texturas (el `R` del `blendMesh`, el `H`, el `S` y el `N`): va en el PR F de la CL6.3. *Estático*.
 - **Las texturas de un modelo.** `0x60d530(n)` pone el principio de la búsqueda
   (`DAT_07d366b4`) en 0 y el próximo libre (`DAT_07d366b8`) en n; nadie más escribe el principio.
   `0x60d5f0(modelo, carpeta, wrap, filtro, chequear)` busca cada nombre de textura del modelo con
@@ -1163,7 +1210,9 @@ cámara (`0x633920`). Después:
 
 `0x620480(mx, my, salida, 1)` pasa el mouse de 640 × 480 a píxeles (· W / 640 y · H / 480) y arma
 el punto `(dx · tx · d, −dy · ty · d, −d)` con d = `0x6d5d44` (el far de antes del × 1,4: 11.519,9
-en la escena 4) y las tangentes de `0x6203c0` (tan(fov · π/360)); lo gira con la inversa de la
+en la escena 4) y las tangentes de `0x6203c0`: tan(fov · π/360) por el viewport en x y, en y, además
+por el alto de la pantalla sobre el del viewport (`0x62045c..0x62046c`: `DAT_006d5d64 /
+DAT_07d36860`, 480/430 en la selección, Q-C109); lo gira con la inversa de la
 vista (`0x5fcc30`) y le suma la posición de la cámara (`0x7d36834`, sacada de la `GL_MODELVIEW`
 traspuesta que `0x620370` guarda en `0x7d366f0`): el punto lejano queda en `0x7d366c0`.
 `0x59e700(máscara)` recorre los 400 personajes (vivos, visibles, con alpha > 0, `+0x389` en 0,
@@ -1187,9 +1236,11 @@ mezcla aditiva, su `+0xf4` en (1, 1, 1), `0x5f9780(x, y, &(1, 1, 1), 1, 0x7b4ccc
 terreno, en su lugar) y la opaca; los personajes (`0x510d00`, los 400); el picking (`0x59ec80`, con
 `+0x8de8` en 0); y con uno elegido, su `+0xf4..+0xfc` en 0,15 (`0x6348a8`..`0x6348c4`), dos
 `0x53fe70(0x729, posición, ángulos, &luz, 0 y después 1, 1,0, 0)` (la `chasellight` debajo del
-elegido, con esa luz) y su nombre (`0x4129f0`, con `this` en `0x6eed7c` y `+0x1d9`). El 0,15 no
+elegido, con esa luz), y copia su nombre (`+0x1d9`) en un string del objeto de `0x6eed7c`
+(`0x4129f0` es la asignación de un string, `thiscall`: no dibuja nada). El 0,15 no
 llega al cuerpo: el frame siguiente lo vuelve a 0 o a 1 antes de `0x510d00`. Así, la luz de cada
-personaje es 0,4 y la del elegido 1,4, antes del factor del nivel (§ El modelo en el binario).
+personaje es 0,4 y la del elegido 1,4, y la del lugar 0 (el "héroe") 0,5 y 1,5, antes del factor
+del nivel (§ El modelo en el binario).
 `DAT_07d36899`, que saca el giro en x de `0x620db0` (`0x620e94`), no lo escribe nadie (no hay un
 `mov` a esa dirección). **Verificado** en la traza (1024 × 768): la cámara y el viewport de
 § Cámara, los fondos de (0, 728) a (512, 216) y de (512, 728) a (1024, 216), antes del pase del

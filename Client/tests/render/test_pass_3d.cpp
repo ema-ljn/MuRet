@@ -181,7 +181,22 @@ TEST(Pass3DTest, TheRayGoesThroughThePixel)
     const std::optional<glm::vec2> projected = pass.Project(end);
     ASSERT_TRUE(projected.has_value());
     EXPECT_NEAR(projected->x, 300.0f, 0.01f);
-    EXPECT_NEAR(projected->y, 400.0f, 0.01f);
+}
+
+// Q-C109: 0x6203c0 multiplica la tangente vertical por el alto de la pantalla sobre el del viewport
+// (DAT_006d5d64 / DAT_07d36860, 0x62045c..0x62046c), y la horizontal no: el rayo de una fila que no
+// es la del centro sale más lejos del centro que el píxel, 768 / 688 en este viewport.
+TEST(Pass3DTest, TheRayIsStretchedVerticallyLikeTheOriginal)
+{
+    const Pass3D pass = MakePass3D(Window1024, WorldRect, SomeCamera());
+
+    const auto [origin, end] = pass.RayThrough(300.0f, 400.0f);
+
+    const glm::vec4 endInCamera = pass.view * glm::vec4(end, 1.0f);
+    // El viewport es (0, 40, 1024, 688): la fila 400 desde arriba es la 368 de GL.
+    const float dy = 2.0f * (368.0f - 40.0f) / 688.0f - 1.0f;
+    const float exact = dy * pass.farPlane / pass.projection[1][1];
+    EXPECT_NEAR(endInCamera.y, exact * 768.0f / 688.0f, 0.05f);
 }
 
 // En el centro del viewport, el rayo va por el eje de la cámara.
@@ -196,12 +211,16 @@ TEST(Pass3DTest, TheRayThroughTheCentreGoesStraightAhead)
     EXPECT_NEAR(endInCamera.y, 0.0f, 0.05f);
 }
 
-// Project da, con la y desde arriba, el píxel por el que pasa el rayo; un punto detrás de la cámara
-// no cae en la pantalla.
+// Project da, con la y desde arriba, el píxel por el que pasa el rayo: el mismo x, y la y corrida
+// desde el centro del viewport por el alto de la pantalla sobre el del viewport (Q-C109). Un punto
+// detrás de la cámara no cae en la pantalla.
 TEST(Pass3DTest, ProjectIsTheInverseOfTheRay)
 {
     const Camera3D camera = SomeCamera();
     const Pass3D pass = MakePass3D(Window800, WorldRect, camera);
+    const float centreY = static_cast<float>(pass.screen.height) -
+                          (static_cast<float>(pass.viewport.y) + static_cast<float>(pass.viewport.w) * 0.5f);
+    const float stretch = static_cast<float>(pass.screen.height) / static_cast<float>(pass.viewport.w);
     for (const auto& [x, y] : {std::pair{0.0f, 40.0f}, std::pair{799.0f, 560.0f}, std::pair{123.0f, 321.0f}})
     {
         const auto [origin, end] = pass.RayThrough(x, y);
@@ -211,7 +230,7 @@ TEST(Pass3DTest, ProjectIsTheInverseOfTheRay)
 
         ASSERT_TRUE(projected.has_value()) << x << ", " << y;
         EXPECT_NEAR(projected->x, x, 0.01f);
-        EXPECT_NEAR(projected->y, y, 0.01f);
+        EXPECT_NEAR(projected->y, centreY + (y - centreY) * stretch, 0.01f);
     }
     const auto [origin, end] = pass.RayThrough(400.0f, 300.0f);
     EXPECT_FALSE(pass.Project(origin - (end - origin)).has_value());

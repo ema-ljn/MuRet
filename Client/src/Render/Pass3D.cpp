@@ -70,15 +70,18 @@ Pass3D MakePass3D(App::PixelSize screen, const ViewportRect& rect, const Camera3
 }
 
 // 0x620480 arma el punto (dx · tx · d, −dy · ty · d, −d) en la cámara, con d el far de la cámara y
-// las tangentes de la perspectiva, y lo lleva al mundo con la inversa de la vista. Acá dx y dy son
-// las del píxel en el viewport, de −1 a 1, y las tangentes salen de la perspectiva misma.
+// las tangentes de 0x6203c0, y lo lleva al mundo con la inversa de la vista. Acá dx y dy son las del
+// píxel en el viewport, de −1 a 1, y las tangentes salen de la perspectiva misma; la vertical, por
+// el alto de la pantalla sobre el del viewport, como la arma 0x6203c0 (Q-C109): el rayo no pasa por
+// el píxel en y salvo en la fila del centro.
 std::pair<glm::vec3, glm::vec3> Pass3D::RayThrough(float x, float y) const
 {
     const float glY = static_cast<float>(screen.height) - y;
     const float dx = 2.0f * (x - static_cast<float>(viewport.x)) / static_cast<float>(viewport.z) - 1.0f;
     const float dy = 2.0f * (glY - static_cast<float>(viewport.y)) / static_cast<float>(viewport.w) - 1.0f;
     const float tangentX = 1.0f / projection[0][0];
-    const float tangentY = 1.0f / projection[1][1];
+    const float tangentY =
+        1.0f / projection[1][1] * (static_cast<float>(screen.height) / static_cast<float>(viewport.w));
     const glm::vec4 inCamera(dx * tangentX * farPlane, dy * tangentY * farPlane, -farPlane, 1.0f);
     const glm::mat4 toWorld = glm::inverse(view);
     const glm::vec3 origin(toWorld * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));

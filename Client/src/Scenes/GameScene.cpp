@@ -1,7 +1,6 @@
 #include "Scenes/GameScene.h"
 
 #include "App/ServerSession.h"
-#include "App/SessionState.h"
 #include "Core/Expected.h"
 #include "Input/InputState.h"
 #include "Scenes/SceneCanvas.h"
@@ -37,12 +36,9 @@ void GameScene::Render(SceneCanvas& /*canvas*/, float /*alpha*/) {}
 
 void GameScene::Leave() {}
 
+// Q-C70: sin conexión, el juego sigue; el texto 3 del área de mensajes es de la CL9.
 std::optional<SceneId> GameScene::Next() const
 {
-    if (m_session != nullptr && m_session->State() == App::SessionState::Failed)
-    {
-        return SceneId::Login;
-    }
     return std::nullopt;
 }
 

@@ -26,7 +26,7 @@ public:
     void Step(const Input::InputState& input) override;
     void Render(SceneCanvas& canvas, float alpha) override;
     void Leave() override;
-    // El login si la sesión falló.
+    // Ninguna: sin conexión, el juego sigue (Q-C70).
     [[nodiscard]] std::optional<SceneId> Next() const override;
     [[nodiscard]] bool WantsToQuit() const override;
     [[nodiscard]] bool WantsTextInput() const override;

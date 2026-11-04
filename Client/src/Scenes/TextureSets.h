@@ -26,6 +26,15 @@ inline constexpr Sampling LinearRepeat{Filter::Linear, Wrap::Repeat};
 inline constexpr Sampling NearestRepeat{Filter::Nearest, Wrap::Repeat};
 } // namespace TextureSetsDetail
 
+// Las de los pases de brillo, que 0x61ccb0 sube en su avance 0 y nadie suelta: Shiny01 para el 0x8,
+// Chrome01 para el 0x4 y Chrome02 para el 0x200, el 0x800 y el 0x1000 (06 § Los pases de brillo).
+// No son de una escena: las sube GameModels con los modelos, y quedan.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
+    {"Effect\\Shiny01.jpg", 0x5fc, TextureSetsDetail::LinearClamp},
+    {"Effect\\Chrome01.jpg", 0x5c0, TextureSetsDetail::LinearRepeat},
+    {"Effect\\Chrome02.jpg", 0x620, TextureSetsDetail::NearestClamp},
+}};
+
 // Las 18 de 0x61c7c0, la escena de login. El modelo 0xa2 (Logo\Logo03.bmd), que 0x61c7c0 también
 // carga, no es una textura: llega con los modelos (CL6).
 inline constexpr std::array<Data::Textures::TextureSetEntry, 18> LoginTextureSet{{

@@ -434,7 +434,18 @@ solo lo lee.
   texturas no salen de las tablas de los modelos: las piden 505 llamadas de dos cargadores, cada
   una con su carpeta y sin filtro. Una emulación del binario las confirmó, y el volcado de la
   memoria da los mismos 489 nombres. El contorno bajo el mouse y el nombre del elegido van en un
-  PR E. 40 tests y 31 mutantes, uno equivalente.
+  PR E. 40 tests y 31 mutantes, uno equivalente. **La CL6.3 E** (2026-11-04, resuelta por
+  Claude): el contorno del personaje bajo el mouse. Son dos pases aditivos sin textura antes de cada
+  parte, con los vértices corridos desde su hueso. Para un jugador lo hace `0x60cf70`, con otros
+  valores que los del research. Al leerlo salió que el nombre del elegido no se dibuja (`0x4129f0`
+  copia un string). Salió también que el dibujo de MuRet todavía no lleva el script de las
+  texturas ni la máscara de la clase 4, que van en un PR F. 10 tests y 17 mutantes, uno
+  equivalente. **La revisión adversarial de la CL6.3** encontró, sobre todo contra el binario, lo
+  que el personaje de la traza no mostraba solo. Faltaba la sombra (ahora verificada contra la
+  traza) y las texturas del brillo. Los colores de los pases salen de tres tablas por ítem, que se
+  sacaron emulando el binario. Además: el rayo del mouse estirado en y (Q-C109), la luz del
+  "héroe", las alas que avanzan, el aviso cuando la sesión falla en la selección, y las mallas
+  rotas.
 
 ## Conceptos
 

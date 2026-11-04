@@ -46,12 +46,14 @@ public:
     // 0x6342c0: nada hasta la lista; después, el avance de cada personaje, el aviso si está abierto, y
     // si no, el doble clic que entra, el clic que elige y Enter.
     void Step(const Input::InputState& input) override;
-    // 0x634680 sin el terreno, los objetos ni los efectos: con sesión, nada hasta la lista.
+    // 0x634680 sin el terreno, los objetos ni los efectos: con sesión, nada hasta la lista; el de bajo
+    // el mouse, con el contorno.
     void Render(SceneCanvas& canvas, float alpha) override;
     // Suelta sus slots.
     void Leave() override;
-    // WorldLoading después de entrar; Login si la sesión falló.
+    // WorldLoading después de entrar. Si la sesión falla, la escena no se va: abre el aviso 0x70.
     [[nodiscard]] std::optional<SceneId> Next() const override;
+    // Con el OK del aviso 0x70, que cierra el juego (Q-C69).
     [[nodiscard]] bool WantsToQuit() const override;
     [[nodiscard]] bool WantsTextInput() const override;
     [[nodiscard]] bool HoldsTheLastFrame() const override;
@@ -64,6 +66,7 @@ private:
         GameLogic::CharacterAppearance appearance;
         Render::Models::AnimationState body;
         Render::Models::TimedAnimation pet;
+        Render::Models::TimedAnimation wings;
     };
 
     // Si la escena todavía espera la lista: con sesión, hasta ChoosingCharacter.
@@ -71,6 +74,8 @@ private:
     // La lista de la sesión a los personajes, una vez.
     void TakeTheList();
     void StepCharacters();
+    void ShowTheFailure();
+    void StepTheNotice(const Input::InputState& input);
     // El lugar del personaje bajo el mouse, con el rayo del último pase dibujado.
     [[nodiscard]] std::optional<std::uint8_t> UnderTheMouse(const Input::InputState& input) const;
     void Choose(std::optional<std::uint8_t> slot);
@@ -89,9 +94,14 @@ private:
     std::vector<Character> m_characters;
     bool m_tookTheList = false;
     std::optional<Render::Pass3D> m_lastPass;
+    // El que estaba bajo el mouse en el último paso, que lleva el contorno: como el DAT_006c8e30
+    // que 0x59ec80 deja para el frame siguiente.
+    std::optional<std::uint8_t> m_hovered;
     App::PixelSize m_screen{640, 480};
     // Los pasos desde que se entró: el reloj del doble clic.
     std::uint64_t m_steps = 0;
     std::optional<SceneId> m_next;
+    bool m_failureShown = false;
+    bool m_quit = false;
 };
 } // namespace Client::Scenes

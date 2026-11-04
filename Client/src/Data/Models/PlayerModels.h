@@ -15,6 +15,8 @@ namespace Client::Data::Models
 {
 // El número de la tabla de modelos de Player.bmd, el esqueleto (0x60e90d).
 inline constexpr std::uint16_t PlayerSkeletonModel = 0x20a;
+// Shadow01.bmd, la sombra que 0x50ba30 dibuja debajo de cada personaje (0x60f2f4).
+inline constexpr std::uint16_t PlayerShadowModel = 0x20b;
 // La cantidad de modelos de la tabla del original: 0x489d de 0xe0 bytes (0x60dc23).
 inline constexpr std::size_t ModelTableSize = 0x489d;
 

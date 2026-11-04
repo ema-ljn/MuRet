@@ -98,8 +98,8 @@ class TracedModels final : public IModelLibrary
 public:
     [[nodiscard]] bool Load(const std::filesystem::path& dataRoot)
     {
-        for (const std::uint16_t model :
-             {std::uint16_t{0x20a}, HelmMale17, ArmorMale17, PantMale02, GloveMale17, BootMale17, Sword17, Helper02})
+        for (const std::uint16_t model : {std::uint16_t{0x20a}, std::uint16_t{0x20b}, HelmMale17, ArmorMale17,
+                                          PantMale02, GloveMale17, BootMale17, Sword17, Helper02})
         {
             const std::optional<ModelFile> file = FileOf(model);
             if (!file)
@@ -184,7 +184,10 @@ AnimationState StateAt(std::uint8_t action, float frame, int keyCount)
 }
 
 // Si los vértices del lote desde `start` son los del bloque, en orden.
-bool SameRun(std::span<const ModelVertex> vertices, std::size_t start, const GlTraceBlock& block)
+// Las UV se comparan solo en lo que va con textura: un bloque sin glTexCoord (la sombra, 0x4eff40)
+// trae en la traza la última que quedó.
+bool SameRun(std::span<const ModelVertex> vertices, const std::vector<bool>& textured, std::size_t start,
+             const GlTraceBlock& block)
 {
     if (start + block.vertices.size() > vertices.size())
     {
@@ -193,14 +196,29 @@ bool SameRun(std::span<const ModelVertex> vertices, std::size_t start, const GlT
     for (std::size_t k = 0; k < block.vertices.size(); ++k)
     {
         const ModelVertex& mine = vertices[start + k];
-        if (glm::distance(mine.position, block.vertices[k].position) > MaxError ||
-            std::fabs(mine.uv.x - block.vertices[k].texCoord.x) > MaxUvError ||
-            std::fabs(mine.uv.y - block.vertices[k].texCoord.y) > MaxUvError)
+        if (glm::distance(mine.position, block.vertices[k].position) > MaxError)
+        {
+            return false;
+        }
+        if (textured[start + k] && (std::fabs(mine.uv.x - block.vertices[k].texCoord.x) > MaxUvError ||
+                                    std::fabs(mine.uv.y - block.vertices[k].texCoord.y) > MaxUvError))
         {
             return false;
         }
     }
     return true;
+}
+
+// Si cada vértice del lote va en un tramo con textura.
+std::vector<bool> TexturedVertices(const ModelBatch& batch)
+{
+    std::vector<bool> textured(batch.Vertices().size(), false);
+    for (const Client::Render::ModelDrawCommand& command : batch.Commands())
+    {
+        std::fill_n(textured.begin() + static_cast<std::ptrdiff_t>(command.firstVertex),
+                    static_cast<std::ptrdiff_t>(command.vertexCount), command.state.texture.has_value());
+    }
+    return textured;
 }
 
 class GoldenCharacterDrawing : public Client::Tests::GoldenAndGlTraceTest
@@ -221,7 +239,8 @@ TEST_F(GoldenCharacterDrawing, MatchesTheCharacterOfTheSelection)
     ASSERT_EQ(trace.frames.size(), BodyFrames.size());
     // Lo que la traza manda por frame: cuatro bloques por malla visible de las Male17 y de la espada
     // (la base y los tres pases del nivel 13) y uno por malla del pantalón y de la mascota.
-    std::size_t expectedBlocks = 0;
+    // Y la sombra (0x20b), un bloque, antes de las partes.
+    std::size_t expectedBlocks = 1;
     for (const auto& [model, perMesh] :
          {std::pair{HelmMale17, 4}, std::pair{ArmorMale17, 4}, std::pair{PantMale02, 1}, std::pair{GloveMale17, 4},
           std::pair{BootMale17, 4}, std::pair{Sword17, 4}, std::pair{Helper02, 1}})
@@ -248,6 +267,7 @@ TEST_F(GoldenCharacterDrawing, MatchesTheCharacterOfTheSelection)
 
         const std::span<const ModelVertex> vertices = batch.Vertices();
         ASSERT_FALSE(vertices.empty());
+        const std::vector<bool> textured = TexturedVertices(batch);
         std::vector<bool> covered(vertices.size(), false);
         std::size_t blocks = 0;
         for (const GlTraceBlock& block : trace.frames[f].blocks)
@@ -258,7 +278,7 @@ TEST_F(GoldenCharacterDrawing, MatchesTheCharacterOfTheSelection)
             }
             for (std::size_t start = 0; start + block.vertices.size() <= vertices.size(); start += 3)
             {
-                if (!covered[start] && SameRun(vertices, start, block))
+                if (!covered[start] && SameRun(vertices, textured, start, block))
                 {
                     std::fill(covered.begin() + static_cast<std::ptrdiff_t>(start),
                               covered.begin() + static_cast<std::ptrdiff_t>(start + block.vertices.size()), true);

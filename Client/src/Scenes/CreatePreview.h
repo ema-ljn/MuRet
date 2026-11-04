@@ -89,8 +89,8 @@ void StepPreview(CreatePreview& preview, const IModelLibrary& models);
 
 // Lo que dibuja 0x63e460 entre dos pasos (`stepAlpha` de un paso más): el NewFace en (50, 50, 0)
 // (0x511290 con x = y = 0 · 100 + 50; la z del terreno, que MuRet no tiene, no se ve porque la
-// cámara va con el objeto), con los ángulos, la escala y el corrimiento de su clase, en blanco: la luz
-// de 0x5ffce0, 0,1 de la del terreno más el +0xf4 en (1, 1, 1), pasa de 1 y el color se recorta.
+// cámara va con el objeto), con los ángulos, la escala y el corrimiento de su clase, con la luz por
+// vértice (+0xe8, de 0x511290) y el color en 4,8 que le pone 0x6002e0.
 [[nodiscard]] DrawnObject DrawnPreview(const CreatePreview& preview, const IModelLibrary& models, float stepAlpha);
 
 // 0x6338a0(objeto, (10, −500, 48), (−90, 0, 0)) con el fov en 10 (0x63e460) y el near y el far de la

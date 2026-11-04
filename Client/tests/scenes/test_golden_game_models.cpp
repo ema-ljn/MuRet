@@ -281,6 +281,13 @@ TEST_F(ModelTextureSlotsGoldenTest, TheSelectionTexturesEndAt0x716)
         std::memcpy(&width, record + 0x20, sizeof width);
         std::memcpy(&height, record + 0x24, sizeof height);
         std::memcpy(&components, record + 0x28, sizeof components);
+        // Los nombres de GL de 0x6f8 a 0x716 van seguidos: los de 0x61ca30, que sube estas 31 después
+        // de sus cuatro del 2D.
+        std::uint32_t glName = 0;
+        std::uint32_t firstGlName = 0;
+        std::memcpy(&glName, record + 0x2c, sizeof glName);
+        std::memcpy(&firstGlName, table->data() + (0x6f8 * SlotBytes) + 0x2c, sizeof firstGlName);
+        EXPECT_EQ(glName, firstGlName + (slot - 0x6f8u)) << std::hex << slot;
         const auto uploaded = textures.Find(TextureSlot{slot});
         ASSERT_TRUE(uploaded.has_value()) << std::hex << slot;
         EXPECT_EQ(static_cast<float>(uploaded->texture.textureWidth), width) << std::hex << slot;

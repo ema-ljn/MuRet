@@ -48,7 +48,7 @@ public:
         bone.actions.assign(2, std::vector<BoneKey>(4, key));
         m_skeleton.bones = {bone};
         m_skeleton.actions = {ActionInfo{.repeats = true, .speed = 0.3f, .keyCount = 4, .lockPositions = false},
-                              ActionInfo{.repeats = false, .speed = 0.3f, .keyCount = 4, .lockPositions = false}};
+                              ActionInfo{.repeats = true, .speed = 0.3f, .keyCount = 4, .lockPositions = false}};
     }
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
     {
@@ -99,7 +99,8 @@ TEST(CreatePreviewTest, TheViewportIs410By335FromTheBox)
 }
 
 // 0x63e460 por clase: los ángulos y la escala, y la clase 2 corrida 4,8 en x y la 3 1,8 en z (de la
-// cámara, que se arma antes). El modelo es el NewFace de la clase, blanco, sin luz por vértice.
+// cámara, que se arma antes). El modelo es el NewFace de la clase, con la luz por vértice que prende
+// 0x511290 (+0xe8 en 1, 0x511be6) y el color en 4,8 que le pone 0x6002e0 a los 0xa8 a 0xac.
 TEST(CreatePreviewTest, EachClassHasItsAngleAndScale)
 {
     const FaceModels models;
@@ -125,13 +126,15 @@ TEST(CreatePreviewTest, EachClassHasItsAngleAndScale)
         EXPECT_FLOAT_EQ(drawn.transform.position.z, expected.position.z) << static_cast<int>(characterClass);
         EXPECT_EQ(drawn.transform.angles, expected.angles) << static_cast<int>(characterClass);
         EXPECT_FLOAT_EQ(drawn.transform.scale, expected.scale) << static_cast<int>(characterClass);
-        EXPECT_EQ(drawn.color, (glm::vec3{1.0f, 1.0f, 1.0f}));
-        EXPECT_FALSE(drawn.vertexLight);
+        EXPECT_EQ(drawn.color, (glm::vec3{4.8f, 4.8f, 4.8f}));
+        EXPECT_TRUE(drawn.vertexLight);
     }
 }
 
 // 0x63e3e0 arma el objeto de nuevo con la acción 1; 0x63e430 lo avanza 0,6 keys (la velocidad 0,3
-// por el 2 de 0x4f9580 con los NewFace) y, cuando la acción terminó, pasa a la 0.
+// por el 2 de 0x4f9580 con los NewFace) y, cuando la acción terminó, pasa a la 0. Las de los NewFace
+// repiten, así que termina por la regla de la escena 4 (0x4ec200 mira el frame + 2): con 4 keys, en el
+// cuarto paso (2,4 + 2 ≥ 4), y no en el séptimo.
 TEST(CreatePreviewTest, ActionOneThenZero)
 {
     const FaceModels models;
@@ -142,10 +145,10 @@ TEST(CreatePreviewTest, ActionOneThenZero)
 
     StepPreview(preview, models);
     EXPECT_FLOAT_EQ(preview.animation.frame, 0.6f);
-    for (int step = 0; step < 20 && preview.animation.action == 1; ++step)
-    {
-        StepPreview(preview, models);
-    }
+    StepPreview(preview, models);
+    StepPreview(preview, models);
+    EXPECT_EQ(preview.animation.action, 1u);
+    StepPreview(preview, models);
     EXPECT_EQ(preview.animation.action, 0u);
 
     // Otra clase: otra vez la 1 desde el principio.

@@ -140,8 +140,9 @@ private:
     UI::CreateCharacterWindow m_create;
     const Render::Models::ModelTextureSlots* m_gameSlots;
     SelectionModels m_selectionModels;
-    // El objeto de la vista previa (0x7437050).
+    // El objeto de la vista previa (0x7437050), y si avanzó en el último paso.
     CreatePreview m_preview;
+    bool m_previewAdvanced = false;
     Input::DoubleClick m_doubleClick;
     std::vector<Character> m_characters;
     bool m_tookTheList = false;

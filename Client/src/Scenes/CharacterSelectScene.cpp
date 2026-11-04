@@ -133,6 +133,9 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     {
         return loaded;
     }
+    // 0x633f20 → 0x65f4b0 → 0x63d1a0 → 0x63d7c0 → 0x63e3e0, al entrar: la vista previa con la clase
+    // de la ventana (el Dark Knight) y la acción 1.
+    ChoosePreviewClass(m_preview, m_create.ChosenClass(), m_selectionModels);
     if (m_session != nullptr)
     {
         m_session->RequestCharacterList();
@@ -193,8 +196,6 @@ void CharacterSelectScene::SyncTheCharacters()
                                                     { return (entry.flags & BlockedAccountFlag) != 0; }));
         // 0x4c20a0 → 0x622b20 → 0x63d7c0: las clases de la 0 a pkt[4].
         m_create.EnableClasses(m_session->Characters()->creatableClasses);
-        // 0x63d7c0 → 0x63e3e0 en el armado: la vista previa con la clase de la ventana y la acción 1.
-        ChoosePreviewClass(m_preview, m_create.ChosenClass(), m_selectionModels);
         m_context.log.Info("la selección tiene {} personajes", m_characters.size());
     }
     else if (changed)
@@ -411,6 +412,7 @@ void CharacterSelectScene::SendTheDeletion()
 
 void CharacterSelectScene::Step(const Input::InputState& input)
 {
+    m_previewAdvanced = false;
     // Un aviso que se abre en este paso se atiende desde el siguiente: lo que se apretó en este no
     // lo cierra antes de que se vea.
     const bool failureOpened = ShowTheFailure();
@@ -593,6 +595,7 @@ void CharacterSelectScene::StepThePreview()
     {
         return;
     }
+    m_previewAdvanced = true;
     // 0x63d880 → 0x63d7c0 → 0x63e3e0: la clase que eligió el clic de este paso arma otra vez la
     // vista previa, que después avanza.
     if (m_create.ChosenClass() != m_preview.characterClass)
@@ -616,7 +619,10 @@ void CharacterSelectScene::DrawTheCreateWindow(SceneCanvas& canvas, float alpha)
     const UI::Rect box = UI::LayoutCreateWindow(canvas.screen, m_create.ChosenClass()).box;
     const Render::Pass3D pass = Render::MakePass3D(canvas.screen, PreviewViewport(box, canvas.screen), PreviewCamera());
     canvas.models.Begin(pass);
-    DrawObject(canvas.models, m_selectionModels, DrawnPreview(m_preview, m_selectionModels, alpha), canvas.frameClock);
+    // Sin el avance de este paso (un aviso arriba), la vista previa va quieta: interpolar uno que no
+    // va a dar la haría temblar.
+    DrawObject(canvas.models, m_selectionModels,
+               DrawnPreview(m_preview, m_selectionModels, m_previewAdvanced ? alpha : 0.0f), canvas.frameClock);
     canvas.flushModels();
     m_create.Draw(canvas.sprites, canvas.text, canvas.screen);
 }

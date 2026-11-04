@@ -46,6 +46,10 @@ constexpr std::uint8_t StandingAction = 0;
 constexpr std::uint8_t GreetingAction = 1;
 // 0x511290(objeto, modelo, 0, 0, 0): x = y = 0 · 100 + 50.
 constexpr glm::vec3 PreviewPosition{50.0f, 50.0f, 0.0f};
+// 0x511290 prende la luz por vértice (+0xe8 en 1, 0x511be6), y 0x6002e0 les pisa el color a los
+// 0xa8 a 0xac con 4,8 (0x4099999a, 0x6007d7) antes de RenderBody(2): cada esquina queda en
+// 4,8 · max(0,2; 0,8 · L · n + 0,4), que el shader recorta a 1 salvo de espaldas a la luz.
+constexpr float PreviewColor = 4.8f;
 // 0x63e460: el desplazamiento de la cámara, sus ángulos y el fov.
 constexpr glm::vec3 CameraOffset{10.0f, -500.0f, 48.0f};
 constexpr glm::vec3 CameraAngles{-90.0f, 0.0f, 0.0f};
@@ -205,8 +209,8 @@ DrawnObject DrawnPreview(const CreatePreview& preview, const IModelLibrary& mode
     drawn.transform.position = PreviewPosition + pose.offset;
     drawn.transform.angles = pose.angles;
     drawn.transform.scale = pose.scale;
-    drawn.color = glm::vec3(1.0f);
-    drawn.vertexLight = false;
+    drawn.color = glm::vec3(PreviewColor);
+    drawn.vertexLight = true;
     return drawn;
 }
 

@@ -24,8 +24,8 @@
 // muestra el cuadro 1 y MuRet el 0. Se atiende en el paso, no en el frame (Q-C81).
 namespace Client::UI
 {
-// Los colores del rótulo por estado (la tabla de +0xd0, 0xAABBGGRR), sin los de deshabilitado:
-// ningún botón del login se deshabilita.
+// Los colores del rótulo por estado (la tabla de +0xd0, 0xAABBGGRR): [0] a [3] sin marcar (normal,
+// apretado, encima y deshabilitado) y [4] a [7] marcado.
 struct ButtonColors
 {
     std::uint32_t normal = 0xffffffff;
@@ -34,13 +34,21 @@ struct ButtonColors
     std::uint32_t checkedNormal = 0xffffffff;
     std::uint32_t checkedPressed = 0xffffffff;
     std::uint32_t checkedHover = 0xffffffff;
+    std::uint32_t disabled = 0xffffffff;
+    std::uint32_t checkedDisabled = 0xffffffff;
 };
 
 class Button
 {
 public:
-    // `checkedFrame`: el cuadro de marcado (+0xbc), o nada si el botón no se marca.
-    Button(Render::TextureSlot slot, int width, int height, std::optional<int> checkedFrame = std::nullopt);
+    // `checkedFrame`: el cuadro de marcado (+0xbc), o nada si el botón no se marca. `disabledFrame`:
+    // el de deshabilitado (+0xb8, y +0xc8 marcado), o nada para el normal.
+    Button(Render::TextureSlot slot, int width, int height, std::optional<int> checkedFrame = std::nullopt,
+           std::optional<int> disabledFrame = std::nullopt);
+
+    // +0xa8: deshabilitado no tiene clic ni se ve encima ni apretado (0x63c490). Arranca habilitado.
+    void SetEnabled(bool enabled);
+    [[nodiscard]] bool Enabled() const;
 
     // 0x6472e0(x, y, 3): la esquina de arriba a la izquierda, en píxeles.
     void MoveTo(Point topLeft);
@@ -77,6 +85,8 @@ private:
     Render::TextureSlot m_slot;
     Rect m_area;
     std::optional<int> m_checkedFrame;
+    std::optional<int> m_disabledFrame;
+    bool m_enabled = true;
     bool m_checked = false;
     bool m_captured = false;
     bool m_over = false;

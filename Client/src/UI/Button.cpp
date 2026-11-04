@@ -31,9 +31,26 @@ constexpr double LabelOffset = 0.5;
 constexpr double PressedLabelOffset = 1.5;
 } // namespace
 
-Button::Button(Render::TextureSlot slot, int width, int height, std::optional<int> checkedFrame)
-    : m_slot(slot), m_area{.x = 0, .y = 0, .width = width, .height = height}, m_checkedFrame(checkedFrame)
+Button::Button(Render::TextureSlot slot, int width, int height, std::optional<int> checkedFrame,
+               std::optional<int> disabledFrame)
+    : m_slot(slot), m_area{.x = 0, .y = 0, .width = width, .height = height}, m_checkedFrame(checkedFrame),
+      m_disabledFrame(disabledFrame)
 {
+}
+
+void Button::SetEnabled(bool enabled)
+{
+    m_enabled = enabled;
+    if (!enabled)
+    {
+        m_captured = false;
+        m_hover = false;
+    }
+}
+
+bool Button::Enabled() const
+{
+    return m_enabled;
 }
 
 void Button::MoveTo(Point topLeft)
@@ -50,6 +67,12 @@ Rect Button::Area() const
 bool Button::Step(const Input::InputState& input, Point mouse)
 {
     m_over = m_area.Contains(mouse);
+    if (!m_enabled)
+    {
+        m_captured = false;
+        m_hover = false;
+        return false;
+    }
     if (m_over && input.WasPressed(Input::MouseButton::Left))
     {
         m_captured = true;
@@ -82,6 +105,10 @@ bool Button::Checked() const
 
 int Button::Frame() const
 {
+    if (!m_enabled)
+    {
+        return m_disabledFrame.value_or(NormalFrame);
+    }
     if (m_checked && m_checkedFrame.has_value())
     {
         return *m_checkedFrame;
@@ -95,7 +122,7 @@ int Button::Frame() const
 
 bool Button::Pressed() const
 {
-    return m_over && m_captured;
+    return m_enabled && m_over && m_captured;
 }
 
 Render::UiImage Button::Image(const TextureSizes& sizes) const
@@ -137,6 +164,10 @@ std::optional<std::uint32_t> Button::DrawLabel(Scenes::ITextDrawer& text, App::P
 std::uint32_t Button::LabelColor() const
 {
     // 0x63c490 elige el color con el mismo estado que el cuadro.
+    if (!m_enabled)
+    {
+        return m_checked ? m_colors.checkedDisabled : m_colors.disabled;
+    }
     if (m_checked)
     {
         return Pressed() ? m_colors.checkedPressed : (m_hover ? m_colors.checkedHover : m_colors.checkedNormal);

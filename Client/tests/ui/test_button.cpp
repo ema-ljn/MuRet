@@ -178,6 +178,48 @@ TEST(ButtonTest, TheImageShowsTheFrame)
 // el ancho del botón (el modo 2 de 0x467060), y la y en 640 × 480 es ((h − cy) · 0,5 + y) / ry más
 // 0,5, o 1,5 apretado, truncada. En 640 × 480, un rótulo de 3 letras (18 × 13) en un botón de
 // 108 × 26 en (100, 50) va en (145, 57), y apretado en (145, 58).
+// Uno deshabilitado (+0xa8 en 0, 0x63c490) no tiene clic ni se ve encima ni apretado: muestra su
+// cuadro de deshabilitado, el 3 en los de la barra de la selección.
+TEST(ButtonTest, ADisabledButtonHasNoClickAndShowsItsFrame)
+{
+    Button button(TextureSlot{0xf}, 54, 30, std::nullopt, 3);
+    button.MoveTo(Point{100, 50});
+    button.SetEnabled(false);
+    InputState input;
+    MoveMouse(input, 120, 60);
+    PressLeft(input);
+    EXPECT_FALSE(StepOnce(button, input));
+    EXPECT_EQ(button.Frame(), 3);
+    ReleaseLeft(input);
+    EXPECT_FALSE(StepOnce(button, input));
+    EXPECT_FALSE(button.Enabled());
+
+    // Habilitado otra vez, el clic vuelve; uno sin cuadro de deshabilitado muestra el normal.
+    button.SetEnabled(true);
+    PressLeft(input);
+    StepOnce(button, input);
+    ReleaseLeft(input);
+    EXPECT_TRUE(StepOnce(button, input));
+    Button plain = GroupButton();
+    plain.SetEnabled(false);
+    EXPECT_EQ(plain.Frame(), 0);
+}
+
+// Deshabilitado, el rótulo va con su color ([3] o [7] marcado).
+TEST(ButtonTest, ADisabledLabelHasItsColor)
+{
+    Button button = GroupButton();
+    button.SetLabel("abc", ButtonColors{.disabled = 0xff777777, .checkedDisabled = 0xff666666});
+    button.SetEnabled(false);
+    Client::Render::SpriteBatch batch;
+    batch.Begin(Screen640);
+    Client::Tests::RecordingTextDrawer text(batch);
+
+    EXPECT_EQ(button.DrawLabel(text, Screen640), std::optional<std::uint32_t>{0xff777777});
+    button.SetChecked(true);
+    EXPECT_EQ(button.DrawLabel(text, Screen640), std::optional<std::uint32_t>{0xff666666});
+}
+
 TEST(ButtonTest, TheLabelIsCenteredWithTheColorOfItsState)
 {
     Button button = GroupButton();

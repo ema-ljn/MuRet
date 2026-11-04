@@ -6,6 +6,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
+#include "Scenes/GameModels.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -62,8 +63,8 @@ Render::UiImage ImageOf(const LoadingImage& image, const SceneTextures& textures
 }
 } // namespace
 
-LoadingScene::LoadingScene(const SceneContext& context)
-    : m_context(context), m_textures(context.textures, LoadingTextureSet)
+LoadingScene::LoadingScene(const SceneContext& context, GameModels* models)
+    : m_context(context), m_models(models), m_textures(context.textures, LoadingTextureSet)
 {
 }
 
@@ -74,9 +75,22 @@ Core::Expected<void, std::string> LoadingScene::Enter()
 
 void LoadingScene::Step(const Input::InputState& /*input*/)
 {
+    if (m_failed)
+    {
+        return;
+    }
     if (m_progress < LoadingAdvances)
     {
         ++m_progress;
+        // El avance 1 de 0x61ccb0 lee los modelos (0x60dbe0 y 0x60ff50) y sus texturas.
+        if (m_progress == 1 && m_models != nullptr)
+        {
+            if (auto loaded = m_models->Load(m_context.dataRoot, m_context.textures, m_context.log); !loaded.HasValue())
+            {
+                m_context.log.Error("la carga no puede seguir: {}", loaded.Error());
+                m_failed = true;
+            }
+        }
         return;
     }
     m_done = true;
@@ -116,7 +130,7 @@ std::optional<SceneId> LoadingScene::Next() const
 
 bool LoadingScene::WantsToQuit() const
 {
-    return false;
+    return m_failed;
 }
 
 bool LoadingScene::WantsTextInput() const

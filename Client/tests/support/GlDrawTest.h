@@ -1,14 +1,20 @@
 #pragma once
 
+#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Platform/GlLoader.h"
 #include "Render/Gl/GlFramebuffer.h"
 #include "Render/Gl/GlRenderer.h"
 #include "Render/Gl/GlTexture.h"
+#include "Render/ModelBatch.h"
+#include "Render/ModelVertex.h"
+#include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "support/GlTestContext.h"
 
 #include <gtest/gtest.h>
+
+#include <glm/ext/vector_float3.hpp>
 
 #include <array>
 #include <cstddef>
@@ -62,6 +68,35 @@ inline std::array<Render::SpriteVertex, 6> Triangles(const TestQuad& quad)
     const Render::SpriteVertex bottomRight{quad.right, quad.bottom, quad.u1, quad.v1, quad.color};
     const Render::SpriteVertex topRight{quad.right, quad.top, quad.u1, quad.v0, quad.color};
     return {topLeft, bottomLeft, bottomRight, topLeft, bottomRight, topRight};
+}
+
+// La cámara de los tests del 3D (CL6.3), en el rectángulo `rect` de 640 × 480 de una pantalla de
+// `screen` píxeles: en el origen, sin girar (mira hacia −z con la y para arriba), 90° de fov, near 1
+// y far 100 (71,4 · 1,4). En la profundidad −d, el cuadrado de −d a d llena el viewport.
+inline Render::Pass3D TestPass(App::PixelSize screen, Render::ViewportRect rect = {0, 0, 640, 480})
+{
+    Render::Camera3D camera;
+    camera.fieldOfView = 90.0f;
+    camera.nearPlane = 1.0f;
+    camera.farPlane = 100.0f / 1.4f;
+    return Render::MakePass3D(screen, rect, camera);
+}
+
+// Ese cuadrado en la profundidad −depth, con `color` en cada vértice, en dos triángulos con `state`:
+// en sentido antihorario visto desde la cámara (la cara de adelante), u horario si `backFacing`.
+inline void AddSquare(Render::ModelBatch& batch, const Render::ModelDrawState& state, float depth, Render::Color color,
+                      bool backFacing = false)
+{
+    std::array<glm::vec3, 4> corners{glm::vec3{-depth, -depth, -depth}, glm::vec3{depth, -depth, -depth},
+                                     glm::vec3{depth, depth, -depth}, glm::vec3{-depth, depth, -depth}};
+    if (backFacing)
+    {
+        std::swap(corners[1], corners[3]);
+    }
+    const auto vertex = [&](std::size_t k) { return Render::ModelVertex{corners[k], {0.0f, 0.0f}, color}; };
+    batch.SetState(state);
+    batch.Triangle({vertex(0), vertex(1), vertex(2)});
+    batch.Triangle({vertex(0), vertex(2), vertex(3)});
 }
 
 // El índice del píxel (x, y) en lo leído, con la y desde abajo, como lo da glReadPixels. Se

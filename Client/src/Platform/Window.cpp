@@ -39,6 +39,9 @@ Core::Expected<Window, std::string> Window::Create(const SdlContext& /*sdl*/, co
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, GlMinorVersion);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    // La profundidad de 16 bits que pide el original (cDepthBits en 0x4b8e10), la que SDL3 da por
+    // defecto: explícita, para que la ventana y el framebuffer de los tests tengan la misma (CL6.3).
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 
     WindowPtr window(SDL_CreateWindow(options.title.c_str(), options.width, options.height, SDL_WINDOW_OPENGL));
     if (!window)

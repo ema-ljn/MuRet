@@ -126,10 +126,10 @@ BoneTransform LocalTransform(const SkeletonBone& bone, std::size_t index, const 
     local[3] = position;
     return local;
 }
-} // namespace
 
-bool PoseSkeleton(const Skeleton& skeleton, const AnimationState& animation, const ObjectTransform& object,
-                  const glm::vec2& headAngles, std::span<BoneTransform> bones)
+// La pose con la raíz `root` para los huesos sin padre.
+bool PoseFromRoot(const Skeleton& skeleton, const AnimationState& animation, const ObjectTransform& object,
+                  const BoneTransform& root, const glm::vec2& headAngles, std::span<BoneTransform> bones)
 {
     if (bones.size() != skeleton.bones.size())
     {
@@ -144,7 +144,6 @@ bool PoseSkeleton(const Skeleton& skeleton, const AnimationState& animation, con
     {
         return false;
     }
-    const BoneTransform root = AngleMatrix(object.angles);
     for (std::size_t index = 0; index < skeleton.bones.size(); ++index)
     {
         const SkeletonBone& bone = skeleton.bones[index];
@@ -157,5 +156,18 @@ bool PoseSkeleton(const Skeleton& skeleton, const AnimationState& animation, con
         bones[index] = ConcatTransforms(parent, local);
     }
     return true;
+}
+} // namespace
+
+bool PoseSkeleton(const Skeleton& skeleton, const AnimationState& animation, const ObjectTransform& object,
+                  const glm::vec2& headAngles, std::span<BoneTransform> bones)
+{
+    return PoseFromRoot(skeleton, animation, object, AngleMatrix(object.angles), headAngles, bones);
+}
+
+bool PoseAttached(const Skeleton& skeleton, const AnimationState& animation, const BoneTransform& root,
+                  std::span<BoneTransform> bones)
+{
+    return PoseFromRoot(skeleton, animation, ObjectTransform{}, root, glm::vec2(0.0f), bones);
 }
 } // namespace Client::Render::Models

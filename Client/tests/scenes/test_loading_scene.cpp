@@ -1,5 +1,7 @@
 #include "Scenes/LoadingScene.h"
 
+#include "Scenes/GameModels.h"
+
 #include "App/WindowState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -26,6 +28,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstddef>
@@ -358,4 +361,30 @@ TEST(LoadingSceneTest, ReleasesItsSlotsBeforeTheLoginLoadsItsOwn)
     }
     EXPECT_EQ(store.Size(), loginSlots);
 }
+// La carga lee los modelos en su avance 1 (0x61ccb0). Sin Player.bmd, que el original exige
+// (Q-C23), no sigue: la escena pide cerrar y el error nombra el archivo (CL6.3).
+TEST(LoadingSceneTest, AMissingPlayerFailsTheLoad)
+{
+    TemporaryFolder folder{"loading-scene-models"};
+    WriteTextureSet(folder.Path(), LoadingTextureSet);
+    FakeTextureStore store;
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+    Client::Scenes::GameModels models;
+    LoadingScene scene{SceneContext{folder.Path(), store, log}, &models};
+    ASSERT_TRUE(scene.Enter().HasValue());
+    const Client::Input::InputState input;
+
+    scene.Step(input);
+
+    EXPECT_TRUE(scene.WantsToQuit());
+    EXPECT_TRUE(std::ranges::any_of(sink.lines, [](const std::string& line)
+                                    { return line.find("Player.bmd") != std::string::npos; }));
+    for (int step = 0; step < 20; ++step)
+    {
+        scene.Step(input);
+    }
+    EXPECT_EQ(scene.Next(), std::nullopt);
+}
+
 } // namespace

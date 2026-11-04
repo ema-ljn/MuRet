@@ -26,6 +26,15 @@ inline constexpr Sampling LinearRepeat{Filter::Linear, Wrap::Repeat};
 inline constexpr Sampling NearestRepeat{Filter::Nearest, Wrap::Repeat};
 } // namespace TextureSetsDetail
 
+// Las de los pases de brillo, que 0x61ccb0 sube en su avance 0 y nadie suelta: Shiny01 para el 0x8,
+// Chrome01 para el 0x4 y Chrome02 para el 0x200, el 0x800 y el 0x1000 (06 § Los pases de brillo).
+// No son de una escena: las sube GameModels con los modelos, y quedan.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
+    {"Effect\\Shiny01.jpg", 0x5fc, TextureSetsDetail::LinearClamp},
+    {"Effect\\Chrome01.jpg", 0x5c0, TextureSetsDetail::LinearRepeat},
+    {"Effect\\Chrome02.jpg", 0x620, TextureSetsDetail::NearestClamp},
+}};
+
 // Las 18 de 0x61c7c0, la escena de login. El modelo 0xa2 (Logo\Logo03.bmd), que 0x61c7c0 también
 // carga, no es una textura: llega con los modelos (CL6).
 inline constexpr std::array<Data::Textures::TextureSetEntry, 18> LoginTextureSet{{
@@ -69,5 +78,32 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 6> LoadingTextureSe
     {"Interface\\lo_121518.tga", 0x721, TextureSetsDetail::LinearClamp},
     {"Interface\\lo_webzen_logo.tga", 0x722, TextureSetsDetail::LinearClamp},
     {"Interface\\lo_lo.jpg", 0x723, TextureSetsDetail::LinearRepeat},
+}};
+
+// Las doce de 0x61ca30, la selección: las de Interface\ en 0xc a 0x13, los dos fondos de Logo\,
+// Impack03 y chasellight, sin filtro y sin repetir (0x2600, 0x2900). Las suelta 0x61cc50 al entrar
+// al mundo.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 12> SelectionTextureSet{{
+    {"Interface\\cha_id.tga", 0xc, TextureSetsDetail::NearestClamp},
+    {"Interface\\cha_bt.tga", 0xd, TextureSetsDetail::NearestClamp},
+    {"Interface\\deco.tga", 0xe, TextureSetsDetail::NearestClamp},
+    {"Interface\\b_create.tga", 0xf, TextureSetsDetail::NearestClamp},
+    {"Interface\\server_menu_b_all.tga", 0x10, TextureSetsDetail::NearestClamp},
+    {"Interface\\b_connect.tga", 0x11, TextureSetsDetail::NearestClamp},
+    {"Interface\\b_delete.tga", 0x12, TextureSetsDetail::NearestClamp},
+    {"Interface\\character_ex.tga", 0x13, TextureSetsDetail::NearestClamp},
+    {"Logo\\character_back01.jpg", 0x717, TextureSetsDetail::NearestClamp},
+    {"Logo\\character_back02.jpg", 0x718, TextureSetsDetail::NearestClamp},
+    {"Effect\\Impack03.jpg", 0x719, TextureSetsDetail::NearestClamp},
+    {"Logo\\chasellight.jpg", 0x729, TextureSetsDetail::NearestClamp},
+}};
+
+// Las cuatro de 0x6356f0, la carga del mundo: el mosaico de LSBg01 a 04, con filtro y sin repetir
+// (0x2601, 0x2900). Las suelta al pasar al juego.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 4> WorldLoadingTextureSet{{
+    {"Interface\\LSBg01.JPG", 0x71e, TextureSetsDetail::LinearClamp},
+    {"Interface\\LSBg02.JPG", 0x71f, TextureSetsDetail::LinearClamp},
+    {"Interface\\LSBg03.JPG", 0x720, TextureSetsDetail::LinearClamp},
+    {"Interface\\LSBg04.JPG", 0x721, TextureSetsDetail::LinearClamp},
 }};
 } // namespace Client::Scenes

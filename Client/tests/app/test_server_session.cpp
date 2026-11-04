@@ -30,7 +30,6 @@
 #include "Protocol/Connection/Login.h"
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
-#include "Scenes/CharacterSelectScene.h"
 #include "Scenes/IScene.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
@@ -39,6 +38,7 @@
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
 #include "support/FakeClock.h"
+#include "support/IdleScene.h"
 #include "support/FakeSocket.h"
 #include "support/MuClientNetFixtures.h"
 #include "support/NetworkPrinters.h"
@@ -121,7 +121,6 @@ using Client::Protocol::Connection::LoginRequest;
 using Client::Protocol::Connection::ServerEntry;
 using Client::Protocol::Connection::WriteKeepalive;
 using Client::Protocol::Connection::WriteLoginRequest;
-using Client::Scenes::CharacterSelectScene;
 using Client::Scenes::IScene;
 using Client::Scenes::SceneId;
 using Client::Scenes::SceneManager;
@@ -139,6 +138,7 @@ using Client::Tests::GameHello;
 using Client::Tests::GameServerEncryption;
 using Client::Tests::GameServerReceived;
 using Client::Tests::Hello;
+using Client::Tests::IdleScene;
 using Client::Tests::Join;
 using Client::Tests::ListRequest;
 using Client::Tests::LoginResult;
@@ -1630,14 +1630,14 @@ TEST(ServerSessionTest, ASixtySecondFrameSendsOneKeepalive)
 
 // Con el GameLoop y la ventana minimizada, el Poll sigue (CL4.1) y con él el keepalive: 100 s
 // después del login, el del login y cinco más. Main pone la sesión en el Poll del SceneManager,
-// como acá, con la selección vacía de la CL5 (adonde llega el login aceptado); no se dibuja nada.
+// como acá, con una escena que no hace nada en el lugar de la selección; no se dibuja nada.
 TEST(ServerSessionTest, KeepsTheKeepaliveWhileMinimized)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     RecordingFrameTarget frame;
-    SceneManager scenes([](SceneId) -> std::unique_ptr<IScene> { return std::make_unique<CharacterSelectScene>(); },
-                        frame, tested.clock, [&tested] { tested.session.Poll(); }, tested.log);
+    SceneManager scenes([](SceneId) -> std::unique_ptr<IScene> { return std::make_unique<IdleScene>(); }, frame,
+                        tested.clock, [&tested] { tested.session.Poll(); }, tested.log);
     ASSERT_TRUE(scenes.Start(SceneId::CharacterSelect).HasValue());
     GameLoop loop{tested.clock, scenes, PacingMode::Decoupled};
     WindowState minimized;

@@ -416,7 +416,44 @@ solo lo lee.
   (`Protocol/Character`, el `F3 00` y el `F3 03` con el XOR32 en claro) y la `ServerSession` con
   tres estados más, con el keepalive que sigue su ritmo en los cuatro. Contra el cable: los 7
   pedidos y las 7 entradas del `muproxy.log` son los de MuRet byte a byte, y sus listas se leen.
-  35 tests y 14 mutantes.
+  35 tests y 14 mutantes. **La CL6.3 B** (2026-11-04, resuelta por Claude): el pase 3D de
+  `0x620db0` sin GL (`Render/Pass3D`, el rayo del mouse de `0x620480` incluido), el `ModelBatch` y
+  el `GlModelRenderer` con la profundidad de 16 bits y las tres mezclas de `0x4ecc30`, y las
+  cámaras fijas de la selección y del login. Contra las dos trazas, `MakePass3D` da el viewport,
+  la perspectiva y la vista de cada pase con cámara de MuRet. La traza mostró también por qué el
+  original limpia bien la profundidad: su primer pase, que no dibuja, prende la máscara antes del
+  `glClear`. 34 tests y 16 mutantes. **La CL6.3 C** (2026-11-04, resuelta por Claude): el
+  personaje, de los bytes de la lista al lote, sin las escenas. Lo arma la apariencia de `0x5139f0`;
+  el picking tiene sus 6 ejes; el brillo va por nivel; lo que cuelga va desde su hueso; y el dibujo
+  de `0x50ba30`. Contra la traza de la selección, la espada y la mascota cuelgan a 0,0014, y el
+  personaje entero sale bloque por bloque, uno a uno. 46 tests y 17 mutantes. **La CL6.3 D**
+  (2026-11-04, resuelta por Claude): las escenas, de la carga al primer paso del juego. La carga
+  lee los modelos y sus texturas; la selección pide la lista, pone a los personajes en sus lugares,
+  elige con el clic y entra con Enter o el doble clic de `0x640940`; la carga del mundo dibuja su
+  mosaico; y el juego manda el `F3 03`. La primera corrida con los datos reales mostró que las
+  texturas no salen de las tablas de los modelos: las piden 505 llamadas de dos cargadores, cada
+  una con su carpeta y sin filtro. Una emulación del binario las confirmó, y el volcado de la
+  memoria da los mismos 489 nombres. El contorno bajo el mouse y el nombre del elegido van en un
+  PR E. 40 tests y 31 mutantes, uno equivalente. **La CL6.3 E** (2026-11-04, resuelta por
+  Claude): el contorno del personaje bajo el mouse. Son dos pases aditivos sin textura antes de cada
+  parte, con los vértices corridos desde su hueso. Para un jugador lo hace `0x60cf70`, con otros
+  valores que los del research. Al leerlo salió que el nombre del elegido no se dibuja (`0x4129f0`
+  copia un string). Salió también que el dibujo de MuRet todavía no lleva el script de las
+  texturas ni la máscara de la clase 4, que van en un PR F. 10 tests y 17 mutantes, uno
+  equivalente. **La revisión adversarial de la CL6.3** encontró, sobre todo contra el binario, lo
+  que el personaje de la traza no mostraba solo. Faltaba la sombra (ahora verificada contra la
+  traza) y las texturas del brillo. Los colores de los pases salen de tres tablas por ítem, que se
+  sacaron emulando el binario. Además: el rayo del mouse estirado en y (Q-C109), la luz del
+  "héroe", las alas que avanzan, el aviso cuando la sesión falla en la selección, y las mallas
+  rotas. **La CL6.3 F** (2026-11-04, resuelta por Claude): lo que el dibujo dejaba del original.
+  Entraron el script de cada textura (la `H` no se dibuja, la `R` es aditiva por su luz y la `N` no
+  brilla), la máscara de la clase 4 con su luz que late, la malla que algunos ítems ocultan en sus
+  pases, el cromo de `Spear10`, el set que se apaga malla a malla (corrige el PR E) y el carcaj a la
+  espalda. Después, la revisión adversarial: lo que cuelga lleva su propio objeto (`0x607b60`: arcos
+  y ballestas enteros aditivos, mallas que se corren o se ocultan), la luz del personaje la escriben
+  también algunas partes, y el orden de dibujo es el del original (las botas primero, cada modelo
+  pase por pase, las manos al final), verificado contra la traza. Todo leído en el binario; salvo el
+  orden, ninguna traza lo tiene (P-C20).
 
 ## Conceptos
 
@@ -550,6 +587,8 @@ sesión, junto con los de repaso más viejo.
 | una animación por paso y otra por tiempo: el módulo, el tope y la key anterior, un reloj falso a varios FPS, y la copia interpolada que cruza keys como el paso | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | UV que salen de la normal en el mundo y de un reloj: por qué un float de ms deja de contar, y sacar de la traza el valor que no se ve (T entero desde T módulo 10.000 y un seno y un coseno) | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | una sesión que suma estados sin cortar lo que corre en todos (el keepalive con su ritmo), una lista de largo variable que no se lee de más, y un nombre del jugador que no llega ni al log ni a un mensaje de un test | CL6.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
+| correr el programa con los datos reales además de los tests: un modelo falso no encuentra que el original pide las texturas con otra carpeta que la del archivo; sacar las llamadas de un cargador con una emulación y no a ojo, y un mutante equivalente que se nombra en vez de forzar un test | CL6.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
+| un estado que el original guarda en un objeto y reusa (la luz del `blendMesh`, el color que un pase multiplica en el lugar): qué ve la malla siguiente, y cuándo una diferencia de un frame es una decisión y no un bug | CL6.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
 
 ## Preguntas para olas futuras
 

@@ -1755,7 +1755,7 @@ namespace Client::Input
   descartar el lugar de más de 4, el keepalive que vuelve a empezar al cambiar de estado, un lugar
   que no está que queda elegido, `Start` sin olvidar la lista, la lista sin tope, la lista aceptada
   fuera de turno y entrar sin mirar el estado) los mata al menos un test cada uno.
-- [ ] **Paso 4 (PR B):** los tests sin GL: `Pass3DTest.ScalesTheViewportInIntegers` (`(0, 25, 640,
+- [x] **Paso 4 (PR B):** los tests sin GL: `Pass3DTest.ScalesTheViewportInIntegers` (`(0, 25, 640,
   430)` en 1024 × 768 da `glViewport(0, 40, 1024, 688)`, y en 800 × 600, `(0, 32, 800, 537)`: la
   y escalada es 31 y el alto 537, con la división entera, y la de GL, 600 − 31 − 537),
   `TheGlYIsFromTheBottom`, `TheAspectIsThatOfTheViewport`,
@@ -1766,17 +1766,17 @@ namespace Client::Input
   `ModelBatchTest.TrianglesWithTheSameStateShareACommand`, `NeverReorders`,
   `BeginEmptiesTheBatch`. Golden: `GoldenPass3DTrace.EveryPassOfTheSelectionHasItsViewport` (los
   tres `glViewport` y las tres perspectivas de cada frame de la traza).
-- [ ] **Paso 5 (PR B):** los de GL, con Xvfb (`ctest -L gl`):
+- [x] **Paso 5 (PR B):** los de GL, con Xvfb (`ctest -L gl`):
   `GlModelRendererTest.DrawsATriangleWithDepth` (dos triángulos que se cruzan: en cada píxel, el más
   cerca), `CullsTheBackFaces` (el de atrás no sale con `Opaque` y sí con `Alpha`),
   `TheAdditiveDoesNotWriteTheDepth`, `ClampsTheColorToOne` (un color de 1,34 da 255),
   `TheAlphaTestCutsAtAQuarter`, `UsesTheViewportOfThePass`, `TheTwoDAfterTurnsTheDepthOff` (un quad
   del `SpriteBatch` después del pase sale entero, aunque el pase dejó la profundidad escrita),
   `AMissingSlotIsSkippedWithAWarning`.
-- [ ] **Paso 6 (PR B, Emanuel):** `MakePass3D` con `glm::perspective`, `glm::rotate` y
-  `glm::translate` (los tres de §10: dan las matrices de `gluPerspective`, `glRotatef` y
-  `glTranslatef`), `ModelBatch`, `GlModelRenderer`, el lienzo con `models` y `flushModels`, y el
-  `IWorldView` con el pase. Verificar:
+- [x] **Paso 6 (PR B, Emanuel, resuelto por Claude):** `MakePass3D` con `glm::perspective`,
+  `glm::rotate` y `glm::translate` (los tres de §10: dan las matrices de `gluPerspective`,
+  `glRotatef` y `glTranslatef`), `ModelBatch`, `GlModelRenderer`, el lienzo con `models` y
+  `flushModels`, y el `IWorldView` con el pase. Verificar:
   ```bash
   ctest --preset linux-x64-debug -R "Pass3D|ModelBatch|LoginScene"
   xvfb-run -a ctest --preset linux-x64-debug -L gl
@@ -1784,13 +1784,82 @@ namespace Client::Input
   Los mutantes: el viewport en float, la y de GL desde arriba, el aspect de la ventana, sin el ×
   1,4, el 2D que no apaga la profundidad, el color sin recortar, y la aditiva que escribe la
   profundidad.
-- [ ] **Paso 7 (PR C):** los tests de la apariencia y el picking, con los casos de la CL6.R:
+
+  Hecho así (PR B, 2026-11-04, resuelto por Claude): `Render/Pass3D`, `ModelVertex.h`,
+  `ModelBatch`, `Render/Gl/GlModelRenderer` y `Scenes/SceneCameras`, con el lienzo (`models` y
+  `flushModels`) y el `IWorldView` con el pase. 34 tests: 10 de `Pass3DTest`, 4 de
+  `ModelBatchTest`, 3 de `SceneCamerasTest`, 2 golden, 10 de `GlModelRendererTest`, 2 de
+  `GlFrameTargetTest`, `LoginSceneTest.TheWorldGetsThePassOfTheLoginCamera` y los de las
+  funciones de GL nuevas en el cargador. Lo que cambió del contrato de arriba:
+  - **`Pass3D` guarda el far de la cámara** (`farPlane`, sin el × 1,4), y `RayThrough` va de la
+    posición de la cámara al punto del píxel a esa distancia, como `0x620480` (06 § El picking),
+    y no hasta el far de la perspectiva.
+  - **El golden son dos:** `GoldenPass3DTrace.TheSelectionCameraPassesMatch` (la franja y el mundo
+    con `SelectionCamera`, en cada frame: viewport, perspectiva y vista) y
+    `TheLorenciaWorldPassMatches` (con la cámara de cada frame de la traza). Cada frame de la
+    selección tiene cuatro viewports y no tres: el primero es el `0x620db0(0, 0, 640, 480)` de
+    `0x637700`, con la cámara de una ruta, y va antes del `glClear` (06 § Cámara, corregido).
+  - **Un slot que la tabla no tiene sale sin textura** (Q-C29, como pide la CL6.R) y no se saltea:
+    `GlModelRendererTest.AMissingSlotDrawsUntexturedWithAWarning`. El `ModelBatch` no conoce la
+    tabla, así que el test es del renderer y no del lote.
+  - **`BeginFrame` prende la máscara de la profundidad antes del `glClear`**, como el primer pase
+    del original: la aditiva la deja apagada (`GlFrameTargetTest.EachFrameClearsTheDepth`).
+  - **No hay `RecordingWorldView.h`:** el `RecordingFrameTarget` anota el pase con el mundo, y un
+    evento `Models` con los tramos y los vértices de cada `flushModels`; un `Present` con modelos
+    sin su fin hace fallar el test.
+  - **Tests de más:** el orden Y, X, Z con los tres ángulos (las trazas tienen la Y en 0),
+    `ModelBatchTest.AStateWithoutTrianglesAddsNothing`, la profundidad apagada (`0x2000`), la
+    opaca sin mezcla y el color recortado antes de la textura (1,34 por un gris al 50 % da 128).
+
+  Los 16 mutantes a mano (los siete de arriba, la X antes que la Y, el rayo hasta el far × 1,4,
+  `Project` sin dar vuelta la y, el lote que junta tramos que no son seguidos, la opaca que mezcla,
+  la normal con culling, el slot que falta que no se dibuja, `GL_GREATER` en lugar de `GL_LEQUAL` y
+  el frame sin la máscara antes del `glClear`) los mata al menos un test cada uno; el de la X antes
+  que la Y vivió hasta `TheRotationsGoInTheOrderYXZ`.
+- [x] **Paso 7 (PR C):** los tests de la apariencia y el picking, con los casos de la CL6.R:
   `CharacterAppearanceTest.WithoutEquipmentWearsTheClassParts` (para cada clase de la tabla de
   `0x517270`, `HelmClass` N a `BootClass` N), `TheSecondClassKeepsTheParts`,
   `EachEquipmentByteGivesItsItem` (los 17 bytes, uno por uno, desde la tabla de la CL6.R),
   `AnEmptySlotIsTheClassPart`; `RayPickingTest.HitsTheBoxInFront`, `MissesBeside`,
   `TheNearestWins`.
-- [ ] **Paso 8 (PR C):** los de las escenas, con `RecordingFrameTarget`, `FakeTextureStore`,
+
+  Hecho así (PR C, 2026-11-04, resuelto por Claude): el PR C de arriba se partió en dos. Este es
+  **el personaje**, de los bytes de la lista al lote; las escenas, `GameModels`, el doble clic y
+  `main.cpp` van en un **PR D**. Lo que entró, con 46 tests:
+  - **`GameLogic/CharacterAppearance`** (11 tests): `ClassAppearance` y `AppearanceOf`, campo por
+    campo, con la cabeza de los cascos abiertos y la escala de `0x512930`. La piel que pasa la
+    lista es 0 (`0x4c20a0` llama a `0x517270(lugar, clase, 0, …)`, en el pseudo-C del lab), y las
+    mascotas de `b[11]` pisan en orden, el bit 0 y después el 2. Q-C102: la mano `0xfff` es sin
+    ítem.
+  - **`Render/Models/RayPicking`** (6 tests): `SegmentHitsBox` con los 6 ejes, `PlayerBoxAt`
+    (Q-C100) y `NearestHit`, por la distancia² al origen y no a dónde entra el segmento.
+  - **`Render/Models/ItemGlow`** (3 tests) y los modos `0x200` y `0x800` de `Shine` (2 más): los
+    pases por nivel de `0x60b3d0` (Q-C97), el recorte por el byte de las opciones, y el `0x42` y el
+    `0x840` de excelente y de set. Los niveles 3 a 6 no laten, porque `DAT_07d36ba8` no se leyó
+    (P-C18).
+  - **`Render/Models/Attachment` y `PoseAttached`** (5 tests): de qué hueso cuelga cada cosa (Q-C98)
+    y la pose con la raíz de quien llama. **Verificado** contra la traza
+    (`GoldenSkinningTrace.TheSwordAndThePetHangFromTheirBones`): la espada del 33 y la mascota del
+    34 con (20, 0, 0) sin la escala, a 0,0014.
+  - **`Scenes/CharacterDrawing`** (3 tests y un golden): `DrawCharacter`, el `0x50ba30` de la
+    selección, con el slot de la piel y del pelo por clase y la oculta afuera. Con el personaje de
+    la traza, `GoldenCharacterDrawing.MatchesTheCharacterOfTheSelection` encuentra en el lote, uno a
+    uno, los 35 bloques que el original le mandó a GL por él en cada frame, con sus posiciones y sus
+    UV, y nada más. Los colores de los pases son los de las Male17 en la traza; los de otros ítems
+    salen de `0x609640`, sin leer (P-C14: en la traza, el 120 lleva tres colores distintos según la
+    parte).
+  - **Para el PR D:** `GameModels` (la carga de los modelos y sus slots, con
+    `ModelTextureSlotsGoldenTest.StartupMatchesTheDump`, Q-C89 y Q-C91), las tres escenas, el doble
+    clic de `0x640940` (Q-C99), el contorno bajo el mouse (Q-C94) y el oscurecido de Q-C95, que solo
+    se ve con un alpha de menos de 0,99, y la luz 0,4 y 1,4 (`SelectLightTest`).
+
+  Los 17 mutantes a mano (la segunda clase sin su corrimiento, el `0x1ff` que no es vacío, las
+  mascotas en otro orden, la tabla de niveles corrida, la escala sin la piel, la cabeza con
+  cualquier casco, el picking sin los ejes producto, la caja centrada, el más cercano por dónde
+  entra, el brillo sin el recorte, el 13 en otro orden, el desplazamiento sin girar, la mascota del
+  33, la oculta que se dibuja, sin los pases, cualquier mascota y las manos sin su nivel) los mata
+  al menos un test cada uno.
+- [x] **Paso 8 (PR D):** los de las escenas, con `RecordingFrameTarget`, `FakeTextureStore`,
   `FakeClock` y una sesión con `FakeSocket`: `LoadingSceneTest.ReadsTheModelsOnAdvanceOne` y
   `AMissingPlayerFailsTheLoad` (con el nombre del archivo);
   `CharacterSelectSceneTest.EnterRequestsTheList`, `DrawsNothingBeforeTheList`,
@@ -1804,11 +1873,11 @@ namespace Client::Input
   `GameSceneTest.TheFirstStepSendsF303` y `TheLogHasTheSlotNotTheName` (con `RecordingSink`);
   `InputStateTest.ADoubleClickIsTheSecondClick` y `InputEventsTest.CopiesTheClicks`. Golden:
   `GoldenGameModels.LoadsEveryModelOfThePlayerLoader` y `TheSelectionTextureSetLoads`.
-- [ ] **Paso 9 (PR C, Emanuel):** la apariencia, el picking, `GameModels`, las tres escenas y el
-  doble clic, y en `main.cpp` la fábrica con la selección, la carga del mundo y el juego. Los
-  modelos de cada personaje: el esqueleto de `Player.bmd`, sus cinco partes y lo que lleva, con la
-  textura de cada malla de `GameModels::MeshTextures`, la mezcla de `0x4ecc30` (CL6.R, paso 6) y
-  los pases de brillo de su nivel. Verificar:
+- [x] **Paso 9 (PR D, Emanuel, resuelto por Claude):** la apariencia, el picking, `GameModels`, las
+  tres escenas y el doble clic, y en `main.cpp` la fábrica con la selección, la carga del mundo y el
+  juego. Los modelos de cada personaje: el esqueleto de `Player.bmd`, sus cinco partes y lo que
+  lleva, con la textura de cada malla de `GameModels::MeshTextures`, la mezcla de `0x4ecc30` (CL6.R,
+  paso 6) y los pases de brillo de su nivel. Verificar:
   ```bash
   ctest --preset linux-x64-debug -R "CharacterAppearance|RayPicking|Scene|InputState|InputEvents"
   MURET_CLIENT_GOLDEN_DIR=<Data> ctest --preset linux-x64-debug -R "GoldenGameModels"
@@ -1817,6 +1886,163 @@ namespace Client::Input
   el clic sobre nada que deja el elegido, la escena que dibuja antes de la lista, Enter con solo el
   flanco, el doble clic de dos botones distintos, el `F3 03` desde la selección,
   y la escena que no suelta sus slots.
+
+  Hecho así (PR D, 2026-11-04, resuelto por Claude): las escenas y la carga de los modelos, con 40
+  tests:
+  - **`Data/Models/ModelTextureCalls`** (7 tests) y **`Scenes/GameModels`** (5 golden): los 456
+    modelos de las dos tablas y sus texturas, que no salen de las tablas sino de las 505 llamadas
+    de `0x60f7d0` y `0x611850` a `0x60d5f0`, cada una con su carpeta (los `Helper` de `Player\`
+    con las de `Item\`; `0x1c15` a `0x1c17` con las de `Skill\`), repitiendo y sin filtro
+    (`0x2901` y `0x2600`), y las 13 fijas de `0x60f7d0` (la piel, el pelo y las cuatro capas). Lo
+    encontró la primera corrida de `Main` con `--data`: con la carpeta del `.bmd` faltaban 14
+    texturas, entre ellas las de la mascota que se dibuja, y el original se cierra con una que
+    falta. **Verificado:** una emulación de los dos cargadores sobre el `main.exe` da las mismas
+    505 llamadas, en orden; con el laboratorio no falta ninguna
+    (`GoldenGameModels.EveryTextureTheLoadersAskForIsThere`), y
+    `ModelTextureSlotsGoldenTest.StartupMatchesTheDump` da los 489 nombres de `lor_slots.bin` de
+    `0x12e` a `0x370`, con el próximo en `0x371`, donde sigue `0x615700`.
+  - **`Input/DoubleClick`** (4 tests): el reloj de `0x640940` (Q-C99), con los 500 ms justos
+    todavía doble (`0x640940` arma con `límite < ahora − primero`).
+  - **`Scenes/CharacterSelectScene`** (15 tests): el `F3 00` al entrar, nada antes de la lista (ni
+    un clic que cuente para el doble), los personajes en sus lugares con la acción 3, el clic que
+    elige con el rayo, Enter y el doble clic que entran, el aviso `0x84` con el bloqueado (y con el
+    aviso abierto, nada más), la luz 0,4 y 1,4, y el login si la sesión falla.
+  - **`WorldLoadingScene`** (2 tests), **`GameScene`** (3 tests: el `F3 03` en el primer paso,
+    una vez, y el login si la sesión falla), `LoadingScene` con los modelos en el avance 1 (1 test
+    más) y `main.cpp` con las cinco escenas. Con `--data`, `Main` carga los 453 modelos y sus 504
+    texturas y llega al login.
+
+  Los nombres del paso 8 que cambiaron: `AClickOnNothingClearsTheChoice` va dentro de
+  `AClickChoosesTheOneUnderTheMouse`; `NoCharacterChosenDoesNotEnter`, dentro de
+  `EnterGoesToWorldLoading`; `ReadsTheModelsOnAdvanceOne`, en `AMissingPlayerFailsTheLoad`;
+  `InputStateTest.ADoubleClickIsTheSecondClick` es
+  `SelectInputTest.TheSecondPressInTimeIsADoubleClick`, e `InputEventsTest.CopiesTheClicks` no hace
+  falta (el `InputEvent` no lleva el `clicks` de SDL); `TheBodyAdvancesPerStepAndThePetPerTime`
+  queda en los tests de la CL6.2 (`AdvanceAnimation` y `AdvanceByTime`), y
+  `TheSelectionTextureSetLoads` en `GoldenTextureSets`. Las decisiones:
+  - **Enter con el flanco solo**, sin `EnterNeedsTheKeyDownAndPressed`: pedir además la tecla abajo
+    (el `0x8001`) solo pierde un Enter corto, el bug de Q-C45 que MuRet no reproduce, como el login
+    (`AShortEnterAlsoEnters`).
+  - **El contorno bajo el mouse (Q-C94), el nombre del elegido (`0x4129f0`) y el oscurecido de
+    Q-C95 van en un PR E**: son lo que marca a un personaje, y piden leer `0x60cf70` y `0x4129f0`
+    antes. La luz de abajo del elegido (`0x53fe70`, la `chasellight`) va con los efectos, y la del
+    terreno (`0x5f9780`), con la CL7.
+  - **La carga lee todo en el avance 1**: el original reparte los modelos y las texturas entre los
+    avances 1 a 4; la barra se queda más en el 1 y pasa más rápido por los otros.
+  - Q-C91 (`Logo05` y los `NewFace` desde `0x6f8`) va con la creación (CL6.5); la acción de parado
+    es la 3 para todos (P-C14 c); la pose del primer segundo y el tiempo del doble clic, en P-C19.
+
+  Los 31 mutantes a mano (el clic que no elige, Enter con la tecla abajo, el bloqueado que entra, la
+  luz, las escenas que no sueltan sus slots, el dibujo y el paso antes de la lista, entrar sin
+  elegido, la lista sin pedir, otra acción de parado, el aviso que deja pasar la entrada, el login
+  si la sesión falla en las dos escenas, el doble clic sin el movimiento, con menos de 500 y
+  triple, el `F3 03` dos veces, la carga del mundo antes de dibujar, la carga que falla y no
+  cierra, los modelos en otro avance, `0x1c15` con `Item\`, dos llamadas en otro orden, el lazo
+  de `0x412` en otro orden, el casco 23, los modelos con filtro, los ítems sin su `0x60d530` y sin
+  las fijas): los mata al menos un test cada uno, salvo uno equivalente (la segunda llamada a un
+  modelo que no pisa la primera: encuentra los mismos nombres y da los mismos slots).
+
+  Hecho así (PR E, 2026-11-04, resuelto por Claude): el contorno bajo el mouse, con 10 tests. Leído
+  en el binario: para un jugador lo hace `0x60cf70`, no `0x5ffdf0`. Antes de cada una de las seis
+  partes (la cabeza también; lo que cuelga, no) dibuja dos pases de `0x60cd60`, aditivos, sin
+  textura ni máscara: en (0,1; 0,03; 0) con los vértices a 1,2 de su hueso (`objeto + 0x94`) y en
+  (0,7; 0,2; 0) a 1,18. Entraron `SkinMeshAroundBones` (el `DAT_006c881c` de `0x4ebc80`, 2 tests),
+  `DrawnCharacter::outlined` (6 tests: los dos pases antes de todas las mallas de la parte, sin la
+  OZT ni la oculta, y sin lo que cuelga) y, en la selección, el de bajo el mouse del último paso,
+  con nadie mientras el aviso está abierto (2 tests). Lo demás del PR E del PR D:
+  - **El nombre del elegido no se dibuja**: `0x4129f0` es la asignación de un string (copia el
+    nombre en el objeto de `0x6eed7c`), así que `0x634680` no dibuja ningún nombre.
+  - **Q-C95 va con el primer modelo que se desvanezca** (CL9): en la selección nada lo hace, y el
+    personaje de MuRet no tiene alpha.
+  - **Para un PR F de la CL6.3**, leído al leer el contorno: `DrawCharacter` no dibuja el script de
+    las texturas (el `R` del `blendMesh`, aditivo con su luz; el `H`; el `S`, que corre las UV; y el
+    `N`, sin brillo, más las cinco mallas que `0x60ff50` marca), ni la máscara de la clase 4 (los
+    cascos `0x1012`, `0x1017`, `0x1018`, `0x101a` y `0x101b` van con el modelo + `0x328b`, con la
+    luz del `blendMesh` latiendo en sin(0,001 · T) · 0,1 + 0,7; 06 § La clase 4 en el lazo de las
+    partes).
+
+  Los 17 mutantes a mano (el contorno a 1, sin el 0,02, los colores cruzados, con textura, opaco,
+  después de la parte, con lo que cuelga, sin la cabeza, con la OZT, con la oculta, la escala en la
+  traslación, el aviso que lo deja, el del elegido y el de todos) los mata al menos un test cada
+  uno, salvo uno equivalente: con la escala en 1, el otro camino da lo mismo.
+  La revisión adversarial de la CL6.3 (2026-11-04), con un revisor del C++ y otro contra el binario,
+  arreglada sobre el PR E con un test que falló primero cada vez:
+  - **Las texturas de los pases de brillo no se subían** (`0x5fc`, `0x5c0` y `0x620`, que
+    `0x61ccb0` sube en su avance 0): un ítem de +7 o más salía con un lavado parejo, y de +11 una
+    silueta blanca. Ahora las sube `GameModels` (`GlowTextureSet`;
+    `TextureSetsTest.TheGlowSetIsTheOneOf0x61ccb0` y el golden de `GameModels`).
+  - **Una falla de la sesión en la selección volvía al login sin aviso**: el original abre el
+    `0x70` (Q-C70) y su OK cierra el juego (Q-C69), y en el juego sigue sin conexión
+    (`AFailedSessionShowsTheConnectNoticeAndItsOkQuits`, `AFailureBeforeTheListShowsTheNoticeToo`
+    y `GameSceneTest.AFailedSessionKeepsTheGame`).
+  - **Un `.bmd` roto se leía fuera** al dibujarlo (un índice de un triángulo sin su vértice, su
+    normal o su UV): esa malla no se dibuja (`AMeshThatNamesWhatItLacksIsNotDrawn`).
+  - Dos de las reglas: el `.cpp` del login con su header primero, y `PlayerSkeletonModel` en vez
+    de un `0x20a` repetido.
+
+  Y la del binario, arreglada en tres commits más, con un test que falló primero y 7 mutantes:
+  - **La sombra** (`0x20b`, 0x50ba30 y 0x4eff40): negra, opaca, sin textura ni profundidad, y
+    aplastada sobre el piso. **Verificado:** `GoldenCharacterDrawing` encuentra ahora 36 bloques por
+    frame; el de la sombra es el de 318 vértices en z = 168 de la traza. Con esto, el "uno a uno"
+    del PR C era de 35 bloques de 36, más los 14 del contorno, que MuRet no dibujaba entonces.
+  - **El rayo del mouse** se estira en y por el alto de la pantalla sobre el del viewport, como
+    `0x6203c0` (Q-C109): la zona que elige a cada personaje queda donde la del original.
+  - **Los colores de los pases de brillo**, con las tablas de `0x608e00`, `0x6093d0` y `0x609560`
+    emuladas para cada modelo. Un +13 sin elegir brillaba 2,8 veces de más. El 1,35 de la traza
+    es la luz del "héroe" por 0,9. El excelente late y no va con el set, y lo que cuelga no lleva
+    el set.
+  - **La luz del lugar 0**, el "héroe" (`DAT_0743a170`), es 0,5 y no 0,4, y **las alas** avanzan
+    en la selección.
+  - **Las saetas, las flechas y el cuervo** no van en la mano. Que las dos primeras vayan a la
+    espalda (`0x509340` con su bandera y `local_20`) va en el PR F; el cuervo como objeto aparte
+    (`0x420cf0`) va con los efectos o las mascotas (CL8), como dice su fila de la CL6.4.
+  - Quedan para después (minors): el orden de las partes (de las botas a la cabeza), de lo que
+    cuelga y de los pases (por pasada y no por malla); la capa (`0x1c30`, una tela); el `F3 03`
+    con `strlen` y ceros; y una textura de modelo que falta, que el original no tolera (Q-C23).
+
+  Hecho así (PR F, 2026-11-04, resuelto por Claude): lo que el PR E dejó del dibujo, leído en
+  `0x4ef0c0`, `0x4ecc30`, `0x60cd60`, `0x60b3d0`, `0x60b130`, `0x60b300`, `0x50ba30`, `0x509340`,
+  `0x511290` y `0x60ff50` (06 § El script en un personaje, § Los pases de brillo, § Cuántos pases y
+  § Lo que cuelga del personaje). Todo *estático*: ninguna traza lo tiene (P-C20).
+  - **El script en el dibujo:** la `H` no se dibuja; la `R`, con la textura de su índice, es el
+    `blendMesh`, aditivo con su textura y por la luz del `blendMesh` en el base, el `0x42` y el
+    contorno; con `N`, o en las cinco mallas que marca `0x60ff50` (`MeshesWithoutShine`), sin pases
+    de brillo; la `S` no hace nada en un jugador (U y V en 0). Lo que comparten los modelos de un
+    personaje en el frame va en `CharacterFrame`.
+  - **La clase 4:** la luz del `blendMesh` late (sin(0,001 · T) · 0,1 + 0,7) y los cascos 1, 6, 7,
+    9 y 10 van con su `MaskHelmMale` (`HelmsWithMask`, `MaskHelmOffset`).
+  - **Los casos por modelo de `0x60b3d0`** que alcanza un personaje: la malla que ocultan en sus
+    pases `0xc17`, `0x226`, `0x227` y `0x619` (`PassHiddenMesh`), el cromo de `Spear10` antes de
+    sus pases (por el tipo del objeto: en lo que cuelga, el de su ítem; `ModelUse`) y el set, que
+    va con el alpha sin(0,001 · T) · 0,5 + 0,4 y se apaga malla a malla (Q-C95, `SetAlphaAt`). Esto
+    último corrige el PR E, que dibujaba el set sin ese alpha.
+  - **El carcaj:** las saetas de la izquierda o las flechas de la derecha, a la espalda del hueso de
+    las alas por `AngleMatrix(70, 0, 90)` y (−10, 5, 10) (`PlacedRoot`, `QuiverPlacement`), con el
+    nivel 2L + 1 (`QuiverGlowLevel`), el excelente de la mano y sin el set.
+  - **Tras la revisión adversarial** (dos revisores, el C++ y el binario): lo que cuelga lleva el
+    objeto que `0x509340` le arma con `0x607b60` (`Render/Models/ObjectState`: el `blendMesh`, en −2
+    todas las mallas, la luz que late o de `rand()`, la U y la V y la malla que no dibuja el pase
+    base), con la luz que `0x60b3d0` les escribe a `Wing05`, `Wing06` y `Staff12`; la luz del
+    personaje la escriben también `PantMale25` y `HelmMale25` y la vuelven a 1 las `Test20`, y queda
+    de una parte a la siguiente, con el contorno antes de que `0x60b3d0` escriba la suya; el `0x240`
+    y el `0x1040` de una malla del `blendMesh` no van por su luz; `0x60b130` pasa el `+0x58` del
+    objeto con `0x231`, `0x81c`, `0xe22` y `0x61a` a `0x61f`; el chrome de `Spear10` corre su V, y el
+    `0x1040` lleva la U y la V del objeto; y el orden es el del original: las partes de la 5 a la 0,
+    la espalda, las alas, la mascota y las manos, y cada modelo pase por pase (`RenderBody`), lo que
+    verifica `GoldenCharacterDrawing` contra la traza.
+  - **Decisiones:** el cuervo va en la CL8 (la fila del cuervo de la CL6.4 y P-C15 c); la luz del
+    personaje empieza cada frame en la que dejó el último que la escribe, con el reloj de este (el
+    original la guarda en el objeto: difiere al sacarse la parte y en la diferencia de un frame); los
+    `rand()` de `0x607b60` salen de un `std::minstd_rand` con el reloj de semilla en cada frame; el
+    carcaj se posa con la acción 0 y el frame 0 (sus dos modelos tienen una acción de una key); y
+    `local_20` queda en 0, sin la zona segura (CL7).
+  - **Tests:** 54 nuevos (38 del dibujo, 7 de `ObjectState`, 3 de las tablas de `PlayerModels` y su
+    golden, 3 de `PassColors`, 2 de `Attachment` y 1 de `ItemGlow`); el de las manos, dos del dibujo
+    y uno de `PassColors`, reescritos; y el orden, en `GoldenCharacterDrawing`. 67 mutantes a mano, todos en rojo: 40
+    antes de la revisión y 27 después. Tres vivían hasta sus tests (el contorno del `blendMesh` sin
+    la luz, la máscara en otra parte que el casco y un `rand()` fijo), y doce no compilaban hasta
+    usar el parámetro que dejaban sin uso.
+
 - [ ] **Paso 10 (a mano):** contra el GS del laboratorio, con `--data`: el login aceptado, la
   selección con los personajes de la cuenta de prueba animados en sus lugares, el clic, el doble
   clic, la carga del mundo y el `F3 03`; el log del GS muestra la entrada. Sin capturas en Git.

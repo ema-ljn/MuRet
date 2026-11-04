@@ -14,8 +14,9 @@
 // El SpriteBatch de un frame en GL (CL5.2): sube sus vértices una vez y corre sus tramos en orden,
 // cada uno con un glDrawArrays, la mezcla de 0x620a00 o 0x620a90, la textura de su slot (o ninguna)
 // y el alpha test del original, el glAlphaFunc(GL_GREATER, 0,25) que el shader hace con un discard
-// (06 § Primitivas 2D). Prende la mezcla y la deja prendida, como esas dos funciones. Se mueve y no
-// se copia, y necesita el contexto vivo.
+// (06 § Primitivas 2D). Prende la mezcla y la deja prendida, como esas dos funciones, y apaga la
+// profundidad y el culling que deja un pase 3D (0x6219b0 → 0x620870). Se mueve y no se copia, y
+// necesita el contexto vivo.
 namespace Client::Render::Gl
 {
 class GlSpriteRenderer

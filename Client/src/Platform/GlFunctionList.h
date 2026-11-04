@@ -24,6 +24,7 @@
 //   glViewport, glClearColor, glClear     el frame de Main (CL0.3) y el viewport de GlRenderer
 //   glGetError                            los tests, después de cada paso
 //   glEnable, glDisable, glBlendFunc      la mezcla (el lab de la CL5.0 y GlSpriteRenderer)
+//   glDepthFunc, glDepthMask              la profundidad del pase 3D (GlModelRenderer, CL6.3)
 //   glPixelStorei                         GL_UNPACK_ALIGNMENT al subir una textura (GlTexture)
 //   glReadPixels                          leer lo dibujado (GlFramebuffer)
 //   glGenTextures a glTexParameteri       las texturas (GlTexture y el color de GlFramebuffer)
@@ -39,6 +40,8 @@
     X(PFNGLENABLEPROC, enable, "glEnable")                                                                             \
     X(PFNGLDISABLEPROC, disable, "glDisable")                                                                          \
     X(PFNGLBLENDFUNCPROC, blendFunc, "glBlendFunc")                                                                    \
+    X(PFNGLDEPTHFUNCPROC, depthFunc, "glDepthFunc")                                                                    \
+    X(PFNGLDEPTHMASKPROC, depthMask, "glDepthMask")                                                                    \
     X(PFNGLPIXELSTOREIPROC, pixelStorei, "glPixelStorei")                                                              \
     X(PFNGLREADPIXELSPROC, readPixels, "glReadPixels")                                                                 \
     X(PFNGLGENTEXTURESPROC, genTextures, "glGenTextures")                                                              \

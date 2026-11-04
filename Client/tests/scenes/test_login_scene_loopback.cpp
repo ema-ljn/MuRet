@@ -13,7 +13,6 @@
 #include "Network/SocketApi.h"
 #include "Network/SystemResolver.h"
 #include "Network/SystemSocket.h"
-#include "Scenes/CharacterSelectScene.h"
 #include "Scenes/GameData.h"
 #include "Scenes/IScene.h"
 #include "Scenes/SceneContext.h"
@@ -22,6 +21,7 @@
 #include "Scenes/TextureSets.h"
 #include "support/AppPrinters.h"
 #include "support/FakeClock.h"
+#include "support/IdleScene.h"
 #include "support/FakeServers.h"
 #include "support/FakeTextureStore.h"
 #include "support/LoopbackServer.h"
@@ -68,7 +68,6 @@ using Client::Network::FoxAntiObfuscation;
 using Client::Network::SystemResolver;
 using Client::Network::SystemSocket;
 using Client::Network::SocketApi::NetworkInit;
-using Client::Scenes::CharacterSelectScene;
 using Client::Scenes::GameData;
 using Client::Scenes::IScene;
 using Client::Scenes::LoginScene;
@@ -82,6 +81,7 @@ using Client::Tests::FakeServers;
 using Client::Tests::FakeTextureStore;
 using Client::Tests::GameClientKeys;
 using Client::Tests::GameServerKeys;
+using Client::Tests::IdleScene;
 using Client::Tests::RecordingFrameTarget;
 using Client::Tests::RecordingSink;
 using Client::Tests::RetryUntil;
@@ -131,7 +131,7 @@ TEST(LoginSceneLoopbackTest, GoesToTheSelectionWhenTheLoginIsAccepted)
             }
             if (id == SceneId::CharacterSelect)
             {
-                return std::make_unique<CharacterSelectScene>();
+                return std::make_unique<IdleScene>();
             }
             return nullptr;
         },

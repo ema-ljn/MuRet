@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Input/InputState.h"
+#include "Scenes/GameModels.h"
 #include "Scenes/IScene.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
@@ -13,8 +14,9 @@
 
 // La escena 1 (CL5.4): la carga de 0x622e40, con su UI de 0x65eeb0 (cinco imágenes y la barra, en
 // 800 × 600) y el frame de 0x65f200. El original dibuja sola, fuera del bucle: once frames, uno por
-// avance de 0x61ccb0 (06 § La carga). MuRet no carga nada en ella todavía (Text.bmd lo lee main.cpp
-// antes, como WinMain), así que avanza uno por paso y al paso que sigue al último pide el login.
+// avance de 0x61ccb0 (06 § La carga). MuRet avanza uno por paso, lee en el avance 1 los modelos del
+// personaje y de los ítems (GameModels, CL6.3; Text.bmd lo lee main.cpp antes, como WinMain) y al
+// paso que sigue al último pide el login.
 namespace Client::Scenes
 {
 // El total de 0x640580(actual, 10): la barra va de 0 a 10.
@@ -23,7 +25,8 @@ inline constexpr int LoadingAdvances = 10;
 class LoadingScene final : public IScene
 {
 public:
-    explicit LoadingScene(const SceneContext& context);
+    // `models` tiene que vivir más; con nullptr, la carga no lee modelos (los tests de la CL5).
+    explicit LoadingScene(const SceneContext& context, GameModels* models = nullptr);
 
     // Sube su juego (LoadingTextureSet).
     Core::Expected<void, std::string> Enter() override;
@@ -36,7 +39,7 @@ public:
     void Leave() override;
     // El login, después del último avance (0x622f93).
     [[nodiscard]] std::optional<SceneId> Next() const override;
-    // La carga no tiene ventanas ni red: nunca, las tres.
+    // Si los modelos no se pudieron leer (falta Player.bmd): el error ya está en el log.
     [[nodiscard]] bool WantsToQuit() const override;
     [[nodiscard]] bool WantsTextInput() const override;
     [[nodiscard]] bool HoldsTheLastFrame() const override;
@@ -46,7 +49,9 @@ public:
 
 private:
     SceneContext m_context;
+    GameModels* m_models;
     SceneTextures m_textures;
+    bool m_failed = false;
     int m_progress = 0;
     bool m_done = false;
 };

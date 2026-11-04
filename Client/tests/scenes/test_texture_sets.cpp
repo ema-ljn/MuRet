@@ -23,6 +23,7 @@ using Client::Data::Textures::TextureLoaderOf;
 using Client::Data::Textures::TextureSetEntry;
 using Client::Data::Textures::Wrap;
 using Client::Render::OriginalTextureSlotCount;
+using Client::Scenes::GlowTextureSet;
 using Client::Scenes::LoadingTextureSet;
 using Client::Scenes::LoginTextureSet;
 using Client::Scenes::WindowTextureSet;
@@ -77,6 +78,26 @@ TEST(TextureSetsTest, TheWindowSetIsTheOneOf0x61ccb0)
             EXPECT_NE(window.slot, login.slot);
         }
     }
+}
+
+// Las de los pases de brillo, que 0x61ccb0 sube en su avance 0 (0x61cd9b, 0x61cdc5 y 0x61cf1f):
+// Shiny01 y Chrome01 con filtro, Chrome01 repitiendo, y Chrome02 sin filtro ni repetir.
+TEST(TextureSetsTest, TheGlowSetIsTheOneOf0x61ccb0)
+{
+    ExpectAValidSet(GlowTextureSet);
+    ASSERT_EQ(GlowTextureSet.size(), 3u);
+    EXPECT_EQ(GlowTextureSet[0].path, "Effect\\Shiny01.jpg");
+    EXPECT_EQ(GlowTextureSet[0].slot, 0x5fc);
+    EXPECT_EQ(GlowTextureSet[0].sampling.filter, Filter::Linear);
+    EXPECT_EQ(GlowTextureSet[0].sampling.wrap, Wrap::Clamp);
+    EXPECT_EQ(GlowTextureSet[1].path, "Effect\\Chrome01.jpg");
+    EXPECT_EQ(GlowTextureSet[1].slot, 0x5c0);
+    EXPECT_EQ(GlowTextureSet[1].sampling.filter, Filter::Linear);
+    EXPECT_EQ(GlowTextureSet[1].sampling.wrap, Wrap::Repeat);
+    EXPECT_EQ(GlowTextureSet[2].path, "Effect\\Chrome02.jpg");
+    EXPECT_EQ(GlowTextureSet[2].slot, 0x620);
+    EXPECT_EQ(GlowTextureSet[2].sampling.filter, Filter::Nearest);
+    EXPECT_EQ(GlowTextureSet[2].sampling.wrap, Wrap::Clamp);
 }
 
 // 0x622e40 sube seis, todas con filtro y sin repetir salvo la barra.

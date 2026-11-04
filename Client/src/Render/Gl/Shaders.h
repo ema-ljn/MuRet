@@ -58,4 +58,51 @@ void main()
     outputColor = color;
 }
 )";
+
+// El par del 3D (CL6.3): lo mismo para un ModelVertex, con la posición en el mundo llevada al clip
+// por la perspectiva y la vista del pase (projection · view), y el color recortado a [0, 1] antes de
+// la textura, como la función fija recorta el glColor del vértice (la luz del original llega a
+// 1,34). La niebla no va: la selección y el login la apagan (06 § La selección de personaje).
+inline constexpr unsigned ModelPositionLocation = 0;
+inline constexpr unsigned ModelUvLocation = 1;
+inline constexpr unsigned ModelColorLocation = 2;
+
+inline constexpr const char* ModelViewProjectionUniform = "viewProjection";
+inline constexpr const char* ModelTexturedUniform = "textured";
+inline constexpr const char* ModelAlphaTestUniform = "alphaTest";
+
+inline constexpr std::string_view ModelVertexShader = R"(#version 330 core
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec2 uv;
+layout(location = 2) in vec4 color;
+uniform mat4 viewProjection;
+out vec2 fragmentUv;
+out vec4 fragmentColor;
+void main()
+{
+    fragmentUv = uv;
+    fragmentColor = clamp(color, 0.0, 1.0);
+    gl_Position = viewProjection * vec4(position, 1.0);
+}
+)";
+
+inline constexpr std::string_view ModelFragmentShader = R"(#version 330 core
+in vec2 fragmentUv;
+in vec4 fragmentColor;
+uniform sampler2D image;
+uniform bool textured;
+uniform bool alphaTest;
+out vec4 outputColor;
+// El valor de glAlphaFunc(GL_GREATER, 0.25): pasa lo que tiene más.
+const float alphaReference = 0.25;
+void main()
+{
+    vec4 color = textured ? texture(image, fragmentUv) * fragmentColor : fragmentColor;
+    if (alphaTest && color.a <= alphaReference)
+    {
+        discard;
+    }
+    outputColor = color;
+}
+)";
 } // namespace Client::Render::Gl

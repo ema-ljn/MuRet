@@ -8,6 +8,7 @@
 #include "Input/InputState.h"
 #include "Render/OriginalQuad.h"
 #include "Render/OriginalSkewedQuad.h"
+#include "Render/Pass3D.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Text/FontSet.h"
@@ -17,6 +18,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/GameData.h"
 #include "Scenes/ITextDrawer.h"
+#include "Scenes/SceneCameras.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -422,7 +424,8 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     canvas.flushSprites();
     if (m_world)
     {
-        canvas.world.Draw(*m_world, alpha);
+        // La cámara fija de la escena 2 (0x635ae0), en el viewport de 0x620db0(0, 25, 640, 430).
+        canvas.world.Draw(*m_world, Render::MakePass3D(canvas.screen, WorldViewport, LoginCamera()), alpha);
     }
     // 5: las dos arenas, aditivas.
     sprites.SetBlend(Render::BlendMode::Alpha);

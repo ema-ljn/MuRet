@@ -19,9 +19,13 @@
 namespace
 {
 using Client::Data::Models::FirstItemModel;
+using Client::Data::Models::HelmsWithMask;
 using Client::Data::Models::ItemModel;
 using Client::Data::Models::ItemModelFiles;
+using Client::Data::Models::MaskHelmOffset;
+using Client::Data::Models::MeshesWithoutShine;
 using Client::Data::Models::ModelFile;
+using Client::Data::Models::ModelMesh;
 using Client::Data::Models::ModelTableSize;
 using Client::Data::Models::PlayerModelFiles;
 using Client::Data::Models::PlayerSkeletonModel;
@@ -133,5 +137,37 @@ TEST(PlayerModelsTest, TheItemLoaderStartsWithTheSwords)
     EXPECT_EQ(sword.number, 1);
     EXPECT_TRUE(
         std::ranges::all_of(ItemModelFiles(), [](const ModelFile& file) { return file.model >= FirstItemModel; }));
+}
+
+// Las cinco mallas que 0x60ff50 marca al final son de ítems suyos: la 1 de Spear01, Sword11, Mace07 y
+// MagicBox07 y la 2 de Staff07.
+TEST(PlayerModelsTest, The0x60ff50MarksFiveMeshesOfItsItems)
+{
+    std::vector<std::string> marked;
+    for (const ModelMesh& mesh : MeshesWithoutShine)
+    {
+        const auto file = std::ranges::find(ItemModelFiles(), mesh.model, &ModelFile::model);
+        ASSERT_NE(file, ItemModelFiles().end()) << mesh.model;
+        marked.push_back(std::string(file->name) + std::to_string(file->number) + ":" + std::to_string(mesh.mesh));
+    }
+
+    EXPECT_EQ(marked, (std::vector<std::string>{"Spear1:1", "Sword11:1", "Staff7:2", "Mace7:1", "MagicBox7:1"}));
+}
+
+// La máscara de cada casco de la clase 4 es el MaskHelmMale de su número, cargado por 0x60dbe0: los
+// HelmMale01, 06, 07, 09 y 10 con MaskHelmMale01, 06, 07, 09 y 10.
+TEST(PlayerModelsTest, EachMaskIsTheMaskHelmOfItsHelm)
+{
+    for (const std::uint16_t helm : HelmsWithMask)
+    {
+        const auto helmFile = std::ranges::find(PlayerModelFiles(), helm, &ModelFile::model);
+        const auto maskFile =
+            std::ranges::find(PlayerModelFiles(), static_cast<std::uint16_t>(helm + MaskHelmOffset), &ModelFile::model);
+        ASSERT_NE(helmFile, PlayerModelFiles().end()) << helm;
+        ASSERT_NE(maskFile, PlayerModelFiles().end()) << helm;
+        EXPECT_EQ(helmFile->name, "HelmMale");
+        EXPECT_EQ(maskFile->name, "MaskHelmMale");
+        EXPECT_EQ(maskFile->number, helmFile->number);
+    }
 }
 } // namespace

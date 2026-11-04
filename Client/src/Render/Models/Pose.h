@@ -56,4 +56,11 @@ struct ObjectTransform
 [[nodiscard]] bool PoseSkeleton(const Skeleton& skeleton, const AnimationState& animation,
                                 const ObjectTransform& object, const glm::vec2& headAngles,
                                 std::span<BoneTransform> bones);
+
+// 0x4eb860 con su séptimo argumento en 1, como posa 0x509340 lo que cuelga del personaje
+// (Attachment.h): los huesos sin padre van con `root`, la que dejó quien llama en 0x68c4a1c, y no
+// con el giro del objeto. Sin ángulos de cabeza y con +0x84 en 0. Devuelve false como
+// PoseSkeleton.
+[[nodiscard]] bool PoseAttached(const Skeleton& skeleton, const AnimationState& animation, const BoneTransform& root,
+                                std::span<BoneTransform> bones);
 } // namespace Client::Render::Models

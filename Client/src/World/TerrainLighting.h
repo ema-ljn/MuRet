@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainLight.h"
@@ -7,7 +8,9 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <cstdint>
+#include <filesystem>
 #include <memory>
+#include <string>
 
 // La luz del terreno de un mundo con la sombra de sus alturas, y la luz en un punto del mundo, como
 // la usan los modelos que no van por la luz de cada vértice (Client/docs/research/
@@ -35,6 +38,12 @@ struct TerrainLighting
 [[nodiscard]] std::unique_ptr<TerrainLighting> ShadeTerrainLight(const Data::Terrain::TerrainLight& light,
                                                                  const Data::Terrain::TerrainHeights& heights,
                                                                  std::uint8_t map);
+
+// 0x5f8f40 con el mundo de `map`: lee TerrainHeight.OZB y TerrainLight.OZJ de su carpeta
+// (Data::WorldFolder) en `dataRoot` y los sombrea con ShadeTerrainLight. Un archivo que falta o que no
+// se lee es un error que lo nombra.
+[[nodiscard]] Core::Expected<std::unique_ptr<TerrainLighting>, std::string>
+LoadTerrainLighting(const std::filesystem::path& dataRoot, std::uint8_t map);
 
 // 0x5f99e0: la luz en (x, y) del mundo, entre las cuatro celdas de alrededor. La celda es x · 0,01
 // truncado (de −1 a 0 todavía es la 0, y sale de la grilla de afuera para adentro); fuera de las

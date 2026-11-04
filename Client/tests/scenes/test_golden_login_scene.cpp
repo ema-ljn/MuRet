@@ -14,6 +14,11 @@
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/RecordingTextDrawer.h"
+#include "Scenes/LoginModels.h"
+#include "support/FixedRandom.h"
+#include "Render/ModelBatch.h"
+#include "Data/Textures/Sampling.h"
+#include "Input/InputState.h"
 
 #include <gtest/gtest.h>
 
@@ -25,6 +30,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <algorithm>
+#include <ios>
 
 // La carga y el login con el Data\ del laboratorio: entran (sus juegos de texturas en sus slots
 // de la tabla falsa, el login con las de las ventanas), y el login dibuja sus tres textos de
@@ -32,6 +39,10 @@
 // se miran el largo y dónde quedó la versión, nunca lo que dicen.
 namespace
 {
+using Client::Scenes::SingleModelLibrary;
+using Client::Tests::FixedSeed;
+using Client::Tests::FrameEvent;
+using Kind = Client::Tests::FrameEvent::Kind;
 using Client::Core::Log;
 using Client::Core::LogLevel;
 using Client::Render::TextureSlot;
@@ -67,12 +78,14 @@ TEST_F(GoldenLoginScene, EntersWithTheLabData)
     FakeTextureStore store;
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
-    LoginScene scene(SceneContext{m_dataRoot, store, log}, data.Value(), nullptr, Version);
+    const SingleModelLibrary models;
+    LoginScene scene(SceneContext{m_dataRoot, store, log}, data.Value(), models, nullptr, Version, FixedSeed);
 
     const auto entered = scene.Enter();
 
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
-    ASSERT_EQ(store.Size(), LoginTextureSet.size() + WindowTextureSet.size());
+    // Y las dos del logo (TheLogoLoads).
+    ASSERT_EQ(store.Size(), LoginTextureSet.size() + WindowTextureSet.size() + 2);
     for (const auto& entry : LoginTextureSet)
     {
         EXPECT_TRUE(store.Find(TextureSlot{entry.slot}).has_value()) << entry.slot;
@@ -97,6 +110,47 @@ TEST_F(GoldenLoginScene, EntersWithTheLabData)
     EXPECT_NE(texts[2].text.find(Version), std::string::npos);
     EXPECT_EQ(texts[2].text.find("%s"), std::string::npos);
     EXPECT_EQ(store.Size(), 0u);
+}
+
+// Q-C92: Logo03.bmd tiene dos mallas, logo.jpg y logo2.jpg, que 0x60d5f0 sube al 0x455 y al 0x456
+// con GL_LINEAR; al salir, se sueltan. El logo se dibuja: un tramo opaco y el aditivo de su
+// blendMesh, con la luz del primer paso.
+TEST_F(GoldenLoginScene, TheLogoLoads)
+{
+    auto data = LoadGameData(m_dataRoot);
+    ASSERT_TRUE(data.HasValue()) << data.Error();
+    FakeTextureStore store;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    const SingleModelLibrary models;
+    LoginScene scene(SceneContext{m_dataRoot, store, log}, data.Value(), models, nullptr, Version, FixedSeed);
+
+    ASSERT_TRUE(scene.Enter().HasValue());
+
+    for (const std::uint16_t slot : {std::uint16_t{0x455}, std::uint16_t{0x456}})
+    {
+        const auto texture = store.Find(TextureSlot{slot});
+        ASSERT_TRUE(texture.has_value()) << std::hex << slot;
+        EXPECT_EQ(texture->sampling.filter, Client::Data::Textures::Filter::Linear) << std::hex << slot;
+        EXPECT_EQ(texture->sampling.wrap, Client::Data::Textures::Wrap::Repeat) << std::hex << slot;
+    }
+    EXPECT_FALSE(store.Find(TextureSlot{0x457}).has_value());
+
+    scene.Step(Client::Input::InputState{});
+    RecordingFrameTarget target;
+    scene.Render(target.BeginFrame(std::chrono::milliseconds{40}), 0.0f);
+    target.Present();
+    const auto drawn = std::ranges::find(target.frames.back().events, Kind::Models, &FrameEvent::kind);
+    ASSERT_NE(drawn, target.frames.back().events.end());
+    ASSERT_EQ(drawn->modelCommands.size(), 2u);
+    EXPECT_EQ(drawn->modelCommands[0].state.texture, TextureSlot{0x455});
+    EXPECT_EQ(drawn->modelCommands[0].state.blend, Client::Render::ModelBlend::Opaque);
+    EXPECT_EQ(drawn->modelCommands[1].state.texture, TextureSlot{0x456});
+    EXPECT_EQ(drawn->modelCommands[1].state.blend, Client::Render::ModelBlend::Additive);
+
+    scene.Leave();
+    EXPECT_FALSE(store.Find(TextureSlot{0x455}).has_value());
+    EXPECT_FALSE(store.Find(TextureSlot{0x456}).has_value());
 }
 
 // Los textos de las ventanas (CL5.5), por índice: los de cada aviso que abre el login (los del F1

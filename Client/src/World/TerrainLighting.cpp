@@ -1,15 +1,26 @@
 #include "World/TerrainLighting.h"
 
+#include "Core/Expected.h"
+#include "Data/DataFile.h"
+#include "Data/DataPath.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainLight.h"
+#include "Data/WorldFolder.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <glm/geometric.hpp>
 
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
+#include <optional>
+#include <span>
+#include <string>
+#include <system_error>
+#include <utility>
+#include <vector>
 
 namespace Client::World
 {
@@ -66,6 +77,26 @@ float ShadeOf(const glm::vec3& normal, const Shading& shading)
     return shade > 1.0f ? 1.0f : shade;
 }
 
+// Más que cualquier TerrainHeight.OZB (1.080 + 65.536 bytes) o TerrainLight.OZJ del laboratorio.
+constexpr std::uintmax_t MaxTerrainFileBytes = std::uintmax_t{16} * 1024 * 1024;
+
+Core::Expected<std::vector<char>, std::string> ReadWorldFile(const std::filesystem::path& dataRoot,
+                                                             const std::string& relative)
+{
+    std::error_code error;
+    const std::optional<std::filesystem::path> path = Data::ResolveDataPath(dataRoot, relative, error);
+    if (!path.has_value())
+    {
+        return Core::Unexpected("Data\\" + relative + (error ? " no se puede buscar: " + error.message() : " no está"));
+    }
+    Core::Expected<std::vector<char>, std::error_code> bytes = Data::ReadDataFile(*path, MaxTerrainFileBytes);
+    if (!bytes.HasValue())
+    {
+        return Core::Unexpected("Data\\" + relative + " no se puede leer: " + bytes.Error().message());
+    }
+    return std::move(bytes).Value();
+}
+
 const Data::Terrain::TerrainLightColor& CellLight(const TerrainLighting& lighting, int x, int y)
 {
     return lighting.cells[Data::Terrain::CellIndex(static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y))];
@@ -90,6 +121,38 @@ std::unique_ptr<TerrainLighting> ShadeTerrainLight(const Data::Terrain::TerrainL
         }
     }
     return lighting;
+}
+
+Core::Expected<std::unique_ptr<TerrainLighting>, std::string> LoadTerrainLighting(const std::filesystem::path& dataRoot,
+                                                                                  std::uint8_t map)
+{
+    const std::string folder = Data::WorldFolder(map) + "\\";
+    const Core::Expected<std::vector<char>, std::string> heightsFile =
+        ReadWorldFile(dataRoot, folder + "TerrainHeight.OZB");
+    if (!heightsFile.HasValue())
+    {
+        return Core::Unexpected(heightsFile.Error());
+    }
+    const auto heights = Data::Terrain::LoadTerrainHeights(std::as_bytes(std::span(heightsFile.Value())),
+                                                           static_cast<std::uint8_t>(Data::WorldFolderNumber(map)));
+    if (!heights.HasValue())
+    {
+        return Core::Unexpected("Data\\" + folder +
+                                "TerrainHeight.OZB: " + std::string(Data::DescribeDataError(heights.Error())));
+    }
+    const Core::Expected<std::vector<char>, std::string> lightFile =
+        ReadWorldFile(dataRoot, folder + "TerrainLight.OZJ");
+    if (!lightFile.HasValue())
+    {
+        return Core::Unexpected(lightFile.Error());
+    }
+    const auto light = Data::Terrain::LoadTerrainLight(std::as_bytes(std::span(lightFile.Value())));
+    if (!light.HasValue())
+    {
+        return Core::Unexpected("Data\\" + folder +
+                                "TerrainLight.OZJ: " + std::string(Data::DescribeDataError(light.Error())));
+    }
+    return ShadeTerrainLight(*light.Value(), *heights.Value(), map);
 }
 
 glm::vec3 LightAt(const TerrainLighting& lighting, float x, float y)

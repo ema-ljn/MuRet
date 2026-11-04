@@ -1,18 +1,24 @@
 #pragma once
 
 #include "Core/IClock.h"
+#include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
 #include "Data/Textures/Sampling.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
+#include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/CharacterDrawing.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <cstdint>
 #include <optional>
 #include <random>
+#include <span>
+#include <string_view>
+#include <vector>
 
 // Lo que el login dibuja en su pase 3D (CL6.4): el logo, un objeto del mundo (0x606660), y el
 // personaje de la escena 2 (0x517270(2, 4, …)), con lo que les cambia la lógica en cada paso
@@ -38,9 +44,30 @@ inline constexpr std::uint16_t LoginLogoModel = 0xa2;
 inline constexpr Data::Models::ModelFile LoginLogoFile{LoginLogoModel, "Logo\\", "Logo", 3};
 inline constexpr Data::Textures::Sampling LoginLogoSampling{Data::Textures::Filter::Linear,
                                                             Data::Textures::Wrap::Repeat};
+inline constexpr std::string_view LoginLogoTextureFolder = "Logo\\";
 // Sin un 0x60d530 antes: sus texturas van al próximo slot que dejó el mundo 55, 0x41c (0x61a0e8) más
 // las 57 nuevas de Object56\ (Q-C92; *inferido* hasta la captura de P-C15).
 inline constexpr Render::TextureSlot LoginLogoFirstSlot{0x455};
+
+// Un modelo suelto con su esqueleto y el slot de cada malla, como los guarda la tabla del original para
+// el logo: lo que DrawObject pide de una biblioteca. Vacío, no tiene ninguno.
+class SingleModelLibrary final : public IModelLibrary
+{
+public:
+    void Set(std::uint16_t model, Data::Models::Model data, Render::Models::Skeleton skeleton,
+             std::vector<Render::TextureSlot> meshTextures);
+    void Clear();
+
+    [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
+    [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
+    [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
+
+private:
+    std::optional<std::uint16_t> m_model;
+    Data::Models::Model m_data;
+    Render::Models::Skeleton m_skeleton;
+    std::vector<Render::TextureSlot> m_meshTextures;
+};
 
 // 0x606660(0xa2, (10.680; 15.550; 1.710), (10, 0, 36), 1) y su caso en las escenas 2 y 4
 // (0x6068d5): la escala 2,2, el blendMesh en 1 (la malla de la textura 1 va aditiva) y sin luz por

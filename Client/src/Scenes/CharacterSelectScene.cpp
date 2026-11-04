@@ -18,6 +18,7 @@
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/GameData.h"
@@ -113,45 +114,20 @@ void CharacterSelectScene::TakeTheList()
             GameLogic::AppearanceOf(Protocol::Character::CharacterClassOf(entry.classByte), 0, entry.equipment);
         if (skeleton != nullptr)
         {
-            Render::Models::SetAction(character.body, *skeleton, StandingAction);
+            Render::Models::SetAction(character.animation.body, *skeleton, StandingAction);
         }
         m_characters.push_back(character);
     }
     m_context.log.Info("la selección tiene {} personajes", m_characters.size());
 }
 
-// El cuerpo por paso con la velocidad de su acción; la mascota y las alas por tiempo (Q-C20), las alas
-// con la velocidad que 0x50ba30 les pone en +0x308 por la acción del cuerpo.
+// El cuerpo, la mascota y las alas de cada uno (StepCharacterAnimation), con la regla de la escena 4.
 void CharacterSelectScene::StepCharacters()
 {
-    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     for (Character& character : m_characters)
     {
-        if (skeleton != nullptr && character.body.action < skeleton->actions.size())
-        {
-            const Render::Models::ActionInfo& action = skeleton->actions[character.body.action];
-            Render::Models::AdvanceAnimation(character.body, action, action.speed,
-                                             Render::Models::AnimationScene::CharacterSelect);
-        }
-        if (character.appearance.pet)
-        {
-            const Render::Models::Skeleton* pet = m_models.SkeletonOf(*character.appearance.pet);
-            if (pet != nullptr && !pet->actions.empty())
-            {
-                Render::Models::AdvanceByTime(character.pet, pet->actions[0], Render::Models::PetKeysPerOriginalFrame,
-                                              App::LogicStep);
-            }
-        }
-        if (character.appearance.wings)
-        {
-            const Render::Models::Skeleton* wings = m_models.SkeletonOf(*character.appearance.wings);
-            if (wings != nullptr && !wings->actions.empty())
-            {
-                Render::Models::AdvanceByTime(character.wings, wings->actions[0],
-                                              Render::Models::WingKeysPerOriginalFrame(character.body.action),
-                                              App::LogicStep);
-            }
-        }
+        StepCharacterAnimation(character.animation, character.appearance, m_models,
+                               Render::Models::AnimationScene::CharacterSelect);
     }
 }
 
@@ -300,20 +276,14 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     {
         canvas.world.Draw(*world, pass, alpha);
     }
-    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
     for (const Character& character : m_characters)
     {
         DrawnCharacter drawn;
         drawn.appearance = character.appearance;
-        drawn.body = character.body;
-        if (skeleton != nullptr && character.body.action < skeleton->actions.size())
-        {
-            const Render::Models::ActionInfo& action = skeleton->actions[character.body.action];
-            drawn.body = Render::Models::Interpolated(character.body, action, action.speed, alpha);
-        }
-        drawn.pet = character.pet.state;
-        drawn.wings = character.wings.state;
+        drawn.body = BodyBetweenSteps(character.animation, m_models, alpha);
+        drawn.pet = character.animation.pet.state;
+        drawn.wings = character.animation.wings.state;
         drawn.object = ObjectOf(character);
         const bool isChosen = chosen != nullptr && chosen->slot == character.slot;
         drawn.light =

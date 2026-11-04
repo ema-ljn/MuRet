@@ -1,9 +1,12 @@
 #include "Scenes/LoginModels.h"
 
 #include "Core/IClock.h"
+#include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
+#include "Render/Models/Skeleton.h"
+#include "Render/TextureSlot.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -13,6 +16,9 @@
 #include <cstdint>
 #include <optional>
 #include <random>
+#include <span>
+#include <utility>
+#include <vector>
 
 namespace Client::Scenes
 {
@@ -54,6 +60,39 @@ constexpr int SecondChoice = 2;
 constexpr std::uint8_t FirstAction = 0x54;
 constexpr std::uint8_t SecondAction = 0x55;
 } // namespace
+
+void SingleModelLibrary::Set(std::uint16_t model, Data::Models::Model data, Render::Models::Skeleton skeleton,
+                             std::vector<Render::TextureSlot> meshTextures)
+{
+    m_model = model;
+    m_data = std::move(data);
+    m_skeleton = std::move(skeleton);
+    m_meshTextures = std::move(meshTextures);
+}
+
+void SingleModelLibrary::Clear()
+{
+    m_model.reset();
+    m_data = {};
+    m_skeleton = {};
+    m_meshTextures.clear();
+}
+
+const Data::Models::Model* SingleModelLibrary::Find(std::uint16_t model) const
+{
+    return m_model == model ? &m_data : nullptr;
+}
+
+const Render::Models::Skeleton* SingleModelLibrary::SkeletonOf(std::uint16_t model) const
+{
+    return m_model == model ? &m_skeleton : nullptr;
+}
+
+std::span<const Render::TextureSlot> SingleModelLibrary::MeshTextures(std::uint16_t model) const
+{
+    return m_model == model ? std::span<const Render::TextureSlot>(m_meshTextures)
+                            : std::span<const Render::TextureSlot>{};
+}
 
 ModelObject LoginLogo()
 {

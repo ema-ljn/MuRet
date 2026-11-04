@@ -3,6 +3,7 @@
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainLight.h"
+#include "support/TemporaryFolder.h"
 
 #include <gtest/gtest.h>
 
@@ -13,6 +14,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
 
 // Client::World::ShadeTerrainLight y LightAt, con alturas y luces armadas a mano: la sombra de una
 // celda sale de las alturas de sus vecinas (0x5f8b10 y 0x5f8d90), y la luz en un punto, de las cuatro
@@ -26,6 +28,7 @@ using Client::Data::Terrain::TerrainLightColor;
 using Client::Data::Terrain::TerrainSide;
 using Client::World::BrightShadingMap;
 using Client::World::LightAt;
+using Client::World::LoadTerrainLighting;
 using Client::World::ShadeTerrainLight;
 using Client::World::TerrainLighting;
 
@@ -168,5 +171,14 @@ TEST(TerrainLightingTest, OutsideTheGridThereIsNoLight)
     EXPECT_EQ(LightAt(*lighting, 500.0f, 25500.0f), glm::vec3(0.0f));
     EXPECT_NEAR(LightAt(*lighting, 25499.0f, 500.0f).x, 255.99f, 1e-3f);
     EXPECT_NEAR(LightAt(*lighting, -50.0f, 500.0f).x, 0.5f, Rounding);
+}
+// Sin la carpeta del mundo, el error nombra el primer archivo que falta, en la carpeta del mapa (el 55
+// es World56).
+TEST(TerrainLightingTest, LoadingAWorldWithoutItsFilesNamesWhatIsMissing)
+{
+    const Client::Tests::TemporaryFolder folder("terrain-lighting");
+    const auto loaded = LoadTerrainLighting(folder.Path(), 55);
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find("World56\\TerrainHeight.OZB"), std::string::npos) << loaded.Error();
 }
 } // namespace

@@ -31,6 +31,8 @@
 #include "support/ScenePrinters.h"
 #include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
+#include "Scenes/LoginModels.h"
+#include "support/FixedRandom.h"
 
 #include <gtest/gtest.h>
 
@@ -79,6 +81,7 @@ using Client::Scenes::WindowTextureSet;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeServers;
 using Client::Tests::FakeTextureStore;
+using Client::Tests::FixedSeed;
 using Client::Tests::GameClientKeys;
 using Client::Tests::GameServerKeys;
 using Client::Tests::IdleScene;
@@ -119,6 +122,7 @@ TEST(LoginSceneLoopbackTest, GoesToTheSelectionWhenTheLoginIsAccepted)
     WriteTextureSet(folder.Path(), WindowTextureSet);
     FakeTextureStore store;
     const GameData data;
+    const Client::Scenes::SingleModelLibrary models;
     RecordingFrameTarget target;
     std::vector<SceneId> built;
     SceneManager manager(
@@ -127,7 +131,8 @@ TEST(LoginSceneLoopbackTest, GoesToTheSelectionWhenTheLoginIsAccepted)
             built.push_back(id);
             if (id == SceneId::Login)
             {
-                return std::make_unique<LoginScene>(SceneContext{folder.Path(), store, log}, data, &session, "0.0.0");
+                return std::make_unique<LoginScene>(SceneContext{folder.Path(), store, log}, data, models, &session,
+                                                    "0.0.0", FixedSeed);
             }
             if (id == SceneId::CharacterSelect)
             {

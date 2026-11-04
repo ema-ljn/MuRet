@@ -45,6 +45,8 @@
 #include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
 #include "support/UiInput.h"
+#include "Scenes/LoginModels.h"
+#include "support/FixedRandom.h"
 
 #include <gtest/gtest.h>
 
@@ -105,6 +107,7 @@ using Client::Tests::AddressReply;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeSocket;
 using Client::Tests::FakeTextureStore;
+using Client::Tests::FixedSeed;
 using Client::Tests::FrameEvent;
 using Client::Tests::GameClientKeys;
 using Client::Tests::GameHello;
@@ -203,7 +206,7 @@ struct Harness
         {
             data = std::move(loaded).Value();
         }
-        scene.emplace(SceneContext{folder.Path(), store, log}, data, &session, "0.0.0");
+        scene.emplace(SceneContext{folder.Path(), store, log}, data, models, &session, "0.0.0", FixedSeed);
     }
 
     // Lo de un frame del GameLoop con un paso: la sesión, el paso de la escena y los flancos.
@@ -389,6 +392,7 @@ struct Harness
     Connection connection;
     ServerSession session;
     GameData data;
+    Client::Scenes::SingleModelLibrary models;
     RecordingFrameTarget target;
     InputState input;
     std::optional<LoginScene> scene;
@@ -415,9 +419,9 @@ TEST(LoginSceneSessionTest, TheListShowsWhenItArrives)
     const auto firstWindowQuad = std::ranges::find_if(
         events, [](const FrameEvent& event) { return event.kind == Kind::Quad && event.texture == FrameSlot; });
     ASSERT_NE(firstWindowQuad, events.end());
-    // Los fondos, el fin del 2D, el mundo, las dos arenas y los tres textos, y después la UI: sin
-    // grupo elegido, la pieza del marco de la izquierda y el botón.
-    EXPECT_EQ(firstWindowQuad - events.begin(), 9);
+    // Los fondos, el fin del 2D, el mundo, los modelos, las dos arenas y los tres textos, y después la
+    // UI: sin grupo elegido, la pieza del marco de la izquierda y el botón.
+    EXPECT_EQ(firstWindowQuad - events.begin(), 10);
     EXPECT_EQ(firstWindowQuad->blend, BlendMode::Alpha);
     const auto button = std::ranges::find_if(std::next(firstWindowQuad), events.end(),
                                              [](const FrameEvent& event) { return event.kind == Kind::Quad; });

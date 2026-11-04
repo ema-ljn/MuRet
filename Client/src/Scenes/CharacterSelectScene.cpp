@@ -13,6 +13,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterName.h"
 #include "Render/Models/Animation.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/RayPicking.h"
@@ -412,6 +413,10 @@ void CharacterSelectScene::SendTheDeletion()
 
 void CharacterSelectScene::Step(const Input::InputState& input)
 {
+    if (m_context.cloth != nullptr)
+    {
+        Render::Models::StepTheClothWorld(*m_context.cloth);
+    }
     m_previewAdvanced = false;
     // Un aviso que se abre en este paso se atiende desde el siguiente: lo que se apretó en este no
     // lo cierra antes de que se vea.
@@ -560,7 +565,8 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         canvas.world.Draw(*world, pass, alpha);
     }
     const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
-    for (const Character& character : m_characters)
+    const std::uint8_t map = WorldOf(SceneId::CharacterSelect) ? WorldOf(SceneId::CharacterSelect)->map : 0;
+    for (Character& character : m_characters)
     {
         DrawnCharacter drawn;
         drawn.appearance = character.appearance;
@@ -572,6 +578,9 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         drawn.light =
             glm::vec3((character.slot == HeroSlot ? HeroLight : CharacterLight) + (isChosen ? ChosenExtraLight : 0.0f));
         drawn.outlined = m_hovered == character.slot;
+        drawn.cloth = &character.cloth;
+        drawn.clothWorld = m_context.cloth;
+        drawn.map = map;
         DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
     }
     canvas.flushModels();

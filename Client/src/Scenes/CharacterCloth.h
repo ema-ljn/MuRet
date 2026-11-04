@@ -1,0 +1,80 @@
+#pragma once
+
+#include "Render/ModelBatch.h"
+#include "Render/Models/Cloth.h"
+
+#include <glm/ext/vector_float3.hpp>
+
+#include <cstdint>
+#include <optional>
+#include <span>
+#include <vector>
+
+// Las telas de un personaje: el bloque 0x50d58b..0x50db57 de 0x50ba30, que las arma, las simula y las
+// dibuja en cada frame dibujado, después de las partes del cuerpo y antes de lo que cuelga (06 § La
+// tela de la clase 4). Las del Dark Lord son tres, la capa y sus dos telas de adelante, y una cuarta
+// con su armadura de la clase; la de la clase 3, una.
+namespace Client::Scenes
+{
+// Lo que el bloque lee del personaje.
+struct ClothWearer
+{
+    // +0x1d4: la clase en los bits 0 a 2.
+    std::uint8_t characterClass = 0;
+    // +0x238: la armadura. Con ArmorClass05 (0x221e), el Dark Lord lleva la cuarta tela.
+    std::uint16_t armor = 0;
+    // +0x2f8: las alas. Sin la capa 0x1c30, la tercera tela del Dark Lord no va.
+    std::optional<std::uint16_t> wings;
+    // +0x376: el número de monstruo (−1 en un jugador); el 0x37 tiene su tela.
+    std::optional<std::uint16_t> monster;
+    // objeto + 0x78: con 0x4000 no se simula ni se dibuja; con 0x1000, el dt es 0.
+    std::uint32_t objectFlags = 0;
+};
+
+// bVar23 para un jugador (0x50c929..): la clase 3 o 4 con el modelo 0x20a y +0x3e3 en 0, salvo en
+// los mapas 0x12 a 0x17. Lo de los duelos y las guerras de guild, que la prende en cualquier clase,
+// no está en MuRet.
+[[nodiscard]] bool WearsACloth(std::uint8_t characterClass, std::uint8_t map);
+
+// El color de 0x50ba30 sin duelo ni guerra: blanco.
+inline constexpr glm::vec3 PlainClothColor{1.0f, 1.0f, 1.0f};
+
+class CharacterCloth
+{
+public:
+    // Un frame del bloque: si no hay telas (objeto + 0x190 en 0) las arma desde la pose de ahora; con
+    // el arreglo armado, la cuarta del Dark Lord se arma encima o se suelta según la armadura; y cada
+    // tela da sus cinco pasos de 0,005 y se dibuja en `batch` antes de pasar a la siguiente. Si un paso
+    // la rompe, las suelta todas (0x4fb1a0) y el frame siguiente las vuelve a armar. `wears` es
+    // bVar23 y `color` el de 0x50ba30.
+    void Frame(Render::ModelBatch& batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
+               Render::Models::ClothWorld& world, std::uint8_t map, float worldTime, bool wears,
+               const glm::vec3& color = PlainClothColor);
+
+    // objeto + 0x190: las telas armadas (cuatro con la clase 4, una con las demás), o ninguna.
+    [[nodiscard]] std::span<const Render::Models::Cloth> Cloths() const
+    {
+        return m_cloths;
+    }
+    // objeto + 0x18c: cuántas recorre el lazo.
+    [[nodiscard]] std::uint8_t Count() const
+    {
+        return m_count;
+    }
+    // Los sprites del brillo del último frame (Effect\flare01.jpg, 0x5491e0). Los dibuja el
+    // administrador de efectos (0x549440 → 0x549290), que MuRet todavía no tiene.
+    [[nodiscard]] std::span<const Render::Models::ClothFlare> Flares() const
+    {
+        return m_flares;
+    }
+
+private:
+    void Build(const ClothWearer& wearer, const Render::Models::ClothBody& body);
+    void Draw(Render::ModelBatch& batch, const Render::Models::Cloth& cloth, const glm::vec3& color, float worldTime);
+
+    std::vector<Render::Models::Cloth> m_cloths;
+    std::uint8_t m_count = 0;
+    std::vector<Render::Models::ClothFlare> m_flares;
+    Render::ModelBlend m_lastBlend = Render::ModelBlend::Opaque;
+};
+} // namespace Client::Scenes

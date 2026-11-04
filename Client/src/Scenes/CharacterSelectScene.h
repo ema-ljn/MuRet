@@ -12,6 +12,7 @@
 #include "Render/Models/Pose.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CreatePreview.h"
@@ -84,6 +85,8 @@ private:
         Protocol::Character::CharacterEntry entry;
         GameLogic::CharacterAppearance appearance;
         CharacterAnimation animation;
+        // Su tela (0x50ba30 la arma desde el primer frame en que se dibuja).
+        CharacterCloth cloth;
     };
 
     // Si la escena todavía espera la lista: con sesión, hasta ChoosingCharacter.

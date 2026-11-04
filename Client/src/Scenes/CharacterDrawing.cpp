@@ -9,6 +9,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/Models/Attachment.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/ItemGlow.h"
 #include "Render/Models/ObjectState.h"
@@ -19,6 +20,7 @@
 #include "Render/Models/Skinning.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/CharacterCloth.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -749,6 +751,30 @@ void DrawQuiver(const CharacterFrame& frame, std::span<const BoneTransform> body
                     Render::Models::AnimationState{}, glow);
 }
 
+// 0x50d58b..0x50db57: las telas, después del lazo de las partes (0x50d3dc) y antes de lo que cuelga,
+// con los huesos del cuerpo de este frame y el reloj T en ms como el float DAT_05767b88.
+void DrawTheCloth(const CharacterFrame& frame, std::span<const BoneTransform> body)
+{
+    const DrawnCharacter& character = frame.character;
+    if (character.cloth == nullptr || character.clothWorld == nullptr)
+    {
+        return;
+    }
+    const GameLogic::CharacterAppearance& appearance = character.appearance;
+    ClothWearer wearer;
+    wearer.characterClass = appearance.characterClass;
+    wearer.armor = appearance.bodyParts[static_cast<std::size_t>(GameLogic::BodyPart::Armor)].model;
+    wearer.wings = appearance.wings;
+    const Render::Models::ClothBody clothBody{.bones = body,
+                                              .angles = character.object.angles,
+                                              .scale = character.object.scale,
+                                              .position = character.object.position};
+    const auto worldTime =
+        static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(frame.clock).count());
+    character.cloth->Frame(frame.batch, wearer, clothBody, *character.clothWorld, character.map, worldTime,
+                           WearsACloth(appearance.characterClass, character.map));
+}
+
 // El lazo de las manos de 0x50ba30 (0x50e6af), después de la espalda, las alas y la mascota.
 void DrawHands(const CharacterFrame& frame, std::span<const BoneTransform> body)
 {
@@ -812,6 +838,7 @@ void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const
     const CharacterFrame frame{batch, models, character, frameClock, random};
     DrawShadow(frame, body);
     DrawParts(frame, body);
+    DrawTheCloth(frame, body);
     DrawQuiver(frame, body);
     const Render::Models::ItemGlow noGlow{};
     using Render::Models::AttachmentSlot;

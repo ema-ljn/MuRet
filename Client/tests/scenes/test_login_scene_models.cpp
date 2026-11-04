@@ -93,9 +93,9 @@ void WriteWorld56(const std::filesystem::path& root)
                                   Client::Tests::OzjOf(Client::Tests::ReadJpegVector("light-256.jpg")));
 }
 
-// Un esqueleto de un hueso con `actions` acciones de dos keys que avanzan una por paso: en las de
-// `raised`, el hueso a 100 de altura; en las demás, en el origen.
-Skeleton OneBoneSkeleton(std::size_t actions, std::size_t bones, std::array<std::size_t, 2> raised)
+// Un esqueleto de `bones` huesos sin padre con `actions` acciones de dos keys que avanzan una por paso:
+// en las dos de `raised`, cada hueso a 100 de altura; en las demás, en el origen.
+Skeleton RaisingSkeleton(std::size_t actions, std::size_t bones, std::array<std::size_t, 2> raised)
 {
     SkeletonBone bone;
     bone.parent = -1;
@@ -119,7 +119,7 @@ class LoginPlayer final : public IModelLibrary
 {
 public:
     LoginPlayer()
-        : m_body(OneBoneSkeleton(PlayerActions, 48, {0x54, 0x55})), m_horse(OneBoneSkeleton(7, 1, {5, 6})),
+        : m_body(RaisingSkeleton(PlayerActions, 48, {0x54, 0x55})), m_horse(RaisingSkeleton(7, 1, {5, 6})),
           m_part(Client::Data::Models::Model{})
     {
         m_part.meshes = {Client::Tests::TriangleMesh(0, "part.jpg")};

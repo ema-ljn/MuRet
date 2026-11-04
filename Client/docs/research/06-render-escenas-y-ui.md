@@ -442,8 +442,10 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   (`0x510d00` con `DAT_006c8e30`): dos pases de `0x60cd60` sin luz, en (0,1; 0,01; 0) a 1 + 0,1 /
   escala y en (0,7; 0,07; 0) a 1 + 0,04 / escala, o con la escala de `objeto + 0x94` si no es 1,2
   comparada por bits (Q-C94), y en verde con `objeto + 0x88` en 4 fuera de los mapas 18 a 23. La
-  luz por vértice, solo con `+0x44` (copia de `objeto + 0xe8`): L = (0; −1,5; 0), (0,5; −1; 1) en
-  el mapa 30 y (1,3; 0; 2) con `DAT_006c8818`, y cada normal da max(0,2; 0,8 · L·n + 0,4). La
+  luz por vértice, solo con `+0x44` (copia de `objeto + 0xe8`): L = (1,3; 0; 2), la de
+  `DAT_006c8818`, que vale 1 desde el `.data` y nadie escribe (las ramas de (0; −1,5; 0) y del mapa
+  30, (0,5; −1; 1), no corren nunca: Q-C115, verificado en la revisión de la CL6.4 PR B), y cada
+  normal girada por su hueso, sin normalizar, da max(0,2; 0,8 · L·n + 0,4). La
   misma función deja la caja de picking en `objeto + 0x13c` (`+0x124` y `+0x130` más la
   posición) y escribe `modelo + 0xc4` con un valor de la pila sin inicializar (Q-C93).
 - **El dibujo de una malla.** `RenderBody` (`0x4ef0c0`, `ret 0x20`: las banderas, el alpha, el
@@ -1061,23 +1063,29 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   y antes de `0x508f00` (los personajes): ve la acción que el jinete tiene en ese paso).
   `0x4e9980` lleva el alpha hacia su meta un décimo (`0x6b87b8`) de lo que falta con `+0x16d` en 0, y
   baja `+0x68` al alpha si es mayor: como el alpha sube, `+0x68` queda en el del primer paso, 0,1
-  (Q-C112). En una celda de zona segura (el bit 0 del atributo en `0x7d0d348`, la del caballo por
-  0,01) el alpha va a 0 y no hace nada más: la celda (106, 141) del mundo 56 tiene `0x08`, no lo es.
-  Si no, copia del jinete la posición, los ángulos y `+0x28..+0x30` (la cabeza), pone el hueso de
-  la cabeza del modelo (`+0x54`) en 7 y elige su acción por la del jinete (`+0x111`), con
-  `0x4ea030`:
+  (Q-C112). En una celda de zona segura (el bit 0 del atributo en `0x7d0d348`, la del **jinete** por
+  0,01: `0x4440b8` lee `[EDI + 0x14]` con `EDI = [ESI + 0x108]`) el alpha va a 0 y salta al avance,
+  con la `+0xd8` de antes, sin copiar nada del jinete: la celda (106, 141) del mundo 56 tiene
+  `0x08`, y el mundo 56 no tiene ninguna con el bit 0. Si no, copia del jinete la posición, los
+  ángulos y `+0x28..+0x30` (la cabeza), pone el hueso de la cabeza del modelo (`+0x54`) en 7 (en
+  `DarkHorse.bmd` es una raíz sin hijos que ningún vértice usa: no se ve) y elige su acción por la
+  del jinete (`+0x111`), con `0x4ea030`:
 
   | La del jinete | La del caballo | `+0xd8` |
   | --- | --- | --- |
   | `0x53` | 3 | 0,34 |
-  | `0x4b` | 1 (y el polvo del mapa 10, o `0x5f2` y `0x5f3` al azar) | 0,34 |
+  | `0x4b` | 1 (y su polvo: en el mapa 10, siempre; en los demás, con `rand() % 2`, el `0x5f2` en el 2 y el `0x5f3` en los otros) | 0,34 |
   | `0x4e` a `0x52` | 2 | 0,34 |
   | `0x54` | 5 | 1 |
   | `0x55` | 6 | 1 |
   | otra (la `0x4a` del login) | 0 | 0,3 |
 
   Después, con `rand() % 3` en 0 y la acción distinta de 1, el polvo (`0x5f2`, o `0x607` en el mapa
-  7) desde un hueso, y con la 3 otro efecto; y avanza con `0x4ec200` a `+0xd8`.
+  7), que `0x53fe70` pone en el arreglo de `0x743a198` (de `0x78` bytes; lo mueve `0x5446e0` desde
+  `0x634c60` y lo dibuja `0x548550` desde `0x6350b0`), desde el hueso 27 (`0x4ec110` con
+  `0x68b1d2c`, *inferido*: en el paso, ese buffer tiene la pose del frame anterior); con la 3, otro
+  efecto; con `jinete + 8` en 1, doce `0x60f` (`0x530860`), y `+8` vuelve a 0. Y avanza con
+  `0x4ec200` a `+0xd8`.
 - **Su dibujo** (`0x6350b0`: `0x510d00`, los personajes; `0x4453b0`, los ayudantes; `0x6046a0`, los
   objetos). `0x445260` prende `+0x16c` con el frustum (`0x5fba90`, en su lugar por 0,01, −20) y, con
   el jinete `0x20a`, le pone la escala 1,6 en la escena 2 (1 en la 4) y llama a `0x602e90(caballo, 0,
@@ -1086,16 +1094,26 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   pisa: el caso `0xbf` pone el color en (1, 1, 1) y hace `RenderBody(2, +0x174, +0x64, +0x68, +0x6c,
   +0x70, +0x58, −1)`; después el color en (1; 0,8; 0,3) y `0x4ecc30(12..15, 0x44, …)` directo, el
   cromo aditivo de la malla 12 (`dkneck2`; las 13 a 15 no existen y `0x4ecc30` sale, Q-C113); y,
-  fuera de los mapas 10, `0x18` a `0x1d` y `0x24`, `0x620a00(1)`, `glColor4f(0, 0, 0, 0,7)` y
-  `0x4eff40(−1, −1, 8, 9)`: la sombra de la malla 8 (`dkhorsebase`), aplastada como la del
-  personaje, con la mezcla normal y sin escribir la profundidad.
+  fuera de los mapas 10, `0x18` a `0x1d` y `0x24`, `0x620a00(1)`, `glColor4f(0, 0, 0, 0,7)` (0,2
+  en el mapa 7) y `0x4eff40(−1, −1, 8, 9)`: la sombra de la malla 8 (`dkhorsebase`), aplastada
+  como la del personaje, con la mezcla normal y sin culling (de `0x620a00`), y sin alpha test, sin
+  textura y sin escribir la profundidad (`0x620910(0)` y `0x6208b0`, que `0x620890` vuelve a prender
+  al final).
 - **La luz por vértice.** Con `+0x44` del modelo (la copia de `+0xe8`), `0x4ebc80` deja por cada
-  normal girada por su hueso max(0,2; 0,8 · L·n + 0,4), con L = (0; −1,5; 0) girada al revés por el
-  ángulo de la sombra del modelo (`+0x8c`), que solo escribe el mundo 30 (y (1,3; 0; 2) con
-  `DAT_006c8818`), y `0x4ecc30` la multiplica por el color en el pase con textura (el modo 2): con el
-  blanco del caballo, va de 0,2 a 1,6, que el GL recorta a 1. El cromo (el modo 4) va con el color
-  parejo y, con el alpha por debajo de 0,99, por el alpha (Q-C95). El pase base con ese alpha va
-  con `0x620a00(1)` y `glColor4f`.
+  normal girada por su hueso max(0,2; 0,8 · L·n + 0,4), con L = (1,3; 0; 2): la rama de
+  `DAT_006c8818`, que vale 1 desde el `.data` y nadie escribe (Q-C115). El ángulo con que se gira L
+  (`+0x8c` del modelo) lo escribe solo la rama del mundo 30, que no corre. La normal no se normaliza
+  y, en un objeto de `0x5ffdf0`, lleva su escala: `0x4eb860` (con Translate) pone la escala en la
+  raíz, y `0x4ebc80` (sin Translate) gira la normal con esa matriz (emulado: largo 1,6 en el login).
+  `0x4ecc30` la multiplica por el color en el pase con textura (el modo 2): con el blanco del caballo
+  y la escala 1,6, va de 0,2 a 0,8 · 1,6 · 2,385 + 0,4 = 3,45, que el GL recorta a 1. **Verificado**
+  contra las trazas de GL: el color por vértice de los bloques con luz por vértice ajusta con
+  (1,3; 0; 2) (R² mediano 0,93 en la selección y 0,42 en Lorencia, contra −0,26 y −0,41 con
+  (0; −1,5; 0)). El cromo (el modo 4) va con el color parejo, con las UV de la normal con su escala
+  (u = 0,5 · nz + t, v = 0,5 · ny + 2t) y, con el alpha por debajo de 0,99, por el alpha (Q-C95). El
+  pase base con ese alpha va con `0x620a00(1)` y `glColor4f`, con su alpha test (0,25): en los pasos
+  1 y 2 (0,1 y 0,19) el cuerpo no se ve, aparece en el 3 (0,271) y queda opaco en el 44 (0,9903); la
+  sombra al 0,7 y el cromo por el alpha se ven desde el primero.
 - **La carga.** `0x615700` (desde `0x61ccb0`, después de `0x611850`) carga `Data\Skill\DarkHorse.bmd`
   (`0x615f46`) y, después de su `0x60d530(0x3b8)` (`0x61692a`), les da texturas de `Skill\`, con
   `0x2901` y `0x2600`, a `0x145`, `0x146` y `0x147` (`elf_skill`, `WaveForce` y `deathsp_eff`:
@@ -1606,7 +1624,7 @@ Ver [08](08-pendientes.md).
 | Cuántos pases de brillo lleva una parte, por su nivel (`0x60b3d0`), con el tope de las opciones | `ItemGlow`: la tabla de arriba, una fila por nivel, y los 14 y 15 sin brillo (Q-C97) | CL6.3 |
 | Los slots de las texturas de los modelos: un próximo que fija cada cargador y la búsqueda por nombre desnudo | `ModelTextureSlots` con el mismo próximo por cargador y la misma búsqueda (Q-C90), y un golden local contra `lor_slots.bin`; el login sigue el próximo del mundo (Q-C92) | CL6.1, CL6.3, CL6.4 |
 | La selección: la lista en cinco lugares fijos, el picking contra una caja corrida, el doble clic por reloj y la luz 0,4 / 1,4 | `CharacterSelectScene` con las tablas de arriba; un lugar de más de 4 se descarta (Q-C101) | CL6.3 |
-| El caballo oscuro: un ayudante que aparece de a poco y sigue la acción del jinete, con luz por vértice, un cromo y su sombra | `Scenes/DarkHorse` (el paso) y `DrawDarkHorse` (el caso `0xbf` de `0x6002e0`), con `Render::Models::NormalLight` y `ModelBlend::BlendedShadow`; en el login, entre el personaje y el logo | CL6.4 |
+| El caballo oscuro: un ayudante que aparece de a poco y sigue la acción del jinete, con luz por vértice, un cromo y su sombra | `Scenes/DarkHorse` (el paso) y `DrawDarkHorse` (el caso `0xbf` de `0x6002e0`), con `Render::Models::NormalLight` (L = (1,3; 0; 2), la normal con la escala del objeto) y `ModelBlend::BlendedShadow`; en el login, entre el personaje y el logo | CL6.4 |
 
 Tests que fija:
 

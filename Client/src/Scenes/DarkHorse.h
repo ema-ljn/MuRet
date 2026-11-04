@@ -9,8 +9,9 @@
 // El caballo oscuro: el ayudante 0xbf (Skill\DarkHorse.bmd) que monta el personaje con la mascota
 // 0x1c16. Lo crea 0x443d70 en el lugar del jinete, lo mueve 0x444010 en cada paso y lo dibuja
 // 0x445260 → 0x602e90 (Client/docs/research/06-render-escenas-y-ui.md, "El caballo oscuro"). Sin la
-// zona segura, que lo apaga (la celda del login no lo es), y sin el polvo y los efectos de sus
-// acciones, que son de la ola de los efectos.
+// zona segura de la celda del jinete, que lo apaga (el mundo 56 no tiene ninguna), sin el polvo y los
+// efectos de sus acciones, que son de la ola de los efectos, y sin la cabeza del jinete en su hueso 7
+// (en DarkHorse.bmd, una raíz que ningún vértice usa).
 namespace Client::Scenes
 {
 inline constexpr std::uint16_t DarkHorseModel = 0xbf;

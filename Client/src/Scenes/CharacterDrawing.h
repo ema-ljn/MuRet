@@ -116,10 +116,11 @@ void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const Dr
 
 // 0x602e90 con el caso del caballo oscuro (0xbf) de 0x6002e0: el pase base de DrawObject en blanco
 // (pisa el color de 0x5ffce0); después el 0x44 (cromo aditivo, Render::Models::ShinePass::Chrome) de
-// la malla 12 en (1; 0,8; 0,3), por el alpha si es menor que 0,99 (las 13 a 15 que pide no existen); y
-// la sombra de la malla 8 (0x4eff40 entre 8 y 9) en (0, 0, 0, 0,7), mezclada y aplastada sobre el
-// piso desde su lugar. El original no dibuja la sombra en los mapas 10, 24 a 29 y 36, que MuRet
-// todavía no tiene.
+// las mallas 12 a 15 que existen (en DarkHorse.bmd, la 12) en (1; 0,8; 0,3), por el alpha si es menor
+// que 0,99; y la sombra de la malla 8 (0x4eff40 entre 8 y 9) en (0, 0, 0, 0,7), mezclada y aplastada
+// sobre el piso desde su lugar. El original no dibuja la sombra en los mapas 10, 24 a 29 y 36, y la
+// pone en 0,2 en el 7, que MuRet todavía no tiene. Las normales llevan la escala del objeto, para la
+// luz y para las UV del cromo.
 void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& horse,
                    Core::Duration frameClock);
 } // namespace Client::Scenes

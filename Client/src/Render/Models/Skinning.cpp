@@ -100,7 +100,8 @@ bool SkinMeshAroundBones(const Data::Models::Mesh& mesh, std::span<const BoneTra
 
 float NormalLight(const glm::vec3& worldNormal)
 {
-    constexpr glm::vec3 Light{0.0f, -1.5f, 0.0f};
+    // La de DAT_006c8818 en 1 (0x4ebca1..0x4ebcaf): nadie escribe esa bandera.
+    constexpr glm::vec3 Light{1.3f, 0.0f, 2.0f};
     constexpr float Gain = 0.8f;    // 0x6b8a38
     constexpr float Ambient = 0.4f; // 0x6b87b4
     constexpr float Darkest = 0.2f; // 0x6b8854

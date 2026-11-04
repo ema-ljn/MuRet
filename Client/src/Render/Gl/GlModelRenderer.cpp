@@ -109,9 +109,7 @@ void GlModelRenderer::Draw(const ModelBatch& batch, const TextureTable& textures
             m_gl->bindTexture(GL_TEXTURE_2D, texture->Name());
         }
         m_gl->uniform1i(m_uniforms.textured, texture != nullptr ? 1 : 0);
-        const bool alphaTest =
-            command.state.blend == ModelBlend::Alpha || command.state.blend == ModelBlend::BlendedShadow;
-        m_gl->uniform1i(m_uniforms.alphaTest, alphaTest ? 1 : 0);
+        m_gl->uniform1i(m_uniforms.alphaTest, command.state.blend == ModelBlend::Alpha ? 1 : 0);
         m_gl->drawArrays(GL_TRIANGLES, static_cast<GLint>(command.firstVertex),
                          static_cast<GLsizei>(command.vertexCount));
     }

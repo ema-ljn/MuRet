@@ -472,8 +472,10 @@ solo lo lee.
   aparece de a poco, sigue la acción del jinete y lleva luz por vértice, que ningún modelo de MuRet
   usaba (`Render::Models::NormalLight`), un cromo y su sombra (`Scenes/DarkHorse` y
   `DrawDarkHorse`). Sus texturas caen en los slots del original, verificados en `lor_slots.bin`.
-  Dos quirks (Q-C112 y Q-C113). El caballo de la selección espera la acción de parado de
-  `0x4f2250` (P-C14 c). 24 tests y 48 mutantes.
+  Dos quirks (Q-C112 y Q-C113). La revisión contra el binario encontró que la luz por vértice va con
+  L = (1,3; 0; 2), por una bandera que vale 1 desde el `.data` y nadie escribe (Q-C115), y que la
+  normal lleva la escala del objeto. El caballo de la selección espera la acción de parado de
+  `0x4f2250` (P-C14 c). 28 tests y 58 mutantes.
 
 ## Conceptos
 

@@ -117,21 +117,22 @@ TEST(SkinningTest, TheShadowFlattensOnTheGround)
     EXPECT_FLOAT_EQ(flat.z, 35.0f);
 }
 
-// Una normal solo gira: ni la traslación del hueso, ni la escala, ni la posición del objeto.
-// La luz por vértice de 0x4ebc80 (con +0x44 del modelo): max(0,2; 0,8 · L·n + 0,4) con L = (0; −1,5; 0).
-// La normal que mira a −y da 1,6; la que mira a +y, el piso de 0,2; una de costado, 0,4; y una a 45°
-// en −y, 0,8 · 1,5 · 0,7071 + 0,4.
-TEST(SkinningTest, TheVertexLightFacesMinusY)
+// La luz por vértice de 0x4ebc80 (con +0x44 del modelo): max(0,2; 0,8 · L·n + 0,4) con L = (1,3; 0; 2),
+// la de DAT_006c8818, que vale 1 desde el .data y nadie escribe. La normal que mira a z da 2; la de x,
+// 1,44; una de costado en y, 0,4; la de −z, el piso de 0,2. Una normal que viene con la escala del
+// objeto (1,6) da 0,8 · 1,6 · 2 + 0,4.
+TEST(SkinningTest, TheVertexLightComesFromXAndZ)
 {
-    EXPECT_FLOAT_EQ(NormalLight({0.0f, -1.0f, 0.0f}), 1.6f);
-    EXPECT_FLOAT_EQ(NormalLight({0.0f, 1.0f, 0.0f}), 0.2f);
-    EXPECT_FLOAT_EQ(NormalLight({1.0f, 0.0f, 0.0f}), 0.4f);
-    EXPECT_FLOAT_EQ(NormalLight({0.0f, 0.0f, 1.0f}), 0.4f);
-    EXPECT_NEAR(NormalLight({0.7071068f, -0.7071068f, 0.0f}), 0.8f * 1.5f * 0.7071068f + 0.4f, 1e-6f);
-    // Justo en el piso: 0,8 · (−0,25) + 0,4 = 0,2.
-    EXPECT_NEAR(NormalLight({0.0f, 1.0f / 6.0f, 0.0f}), 0.2f, 1e-6f);
+    EXPECT_FLOAT_EQ(NormalLight({0.0f, 0.0f, 1.0f}), 2.0f);
+    EXPECT_FLOAT_EQ(NormalLight({1.0f, 0.0f, 0.0f}), 1.44f);
+    EXPECT_FLOAT_EQ(NormalLight({0.0f, -1.0f, 0.0f}), 0.4f);
+    EXPECT_FLOAT_EQ(NormalLight({0.0f, 0.0f, -1.0f}), 0.2f);
+    EXPECT_NEAR(NormalLight({0.0f, 0.0f, 1.6f}), (0.8f * 1.6f * 2.0f) + 0.4f, 1e-6f);
+    // Justo en el piso: 0,8 · (−0,25) + 0,4 = 0,2, con n = (0; 0; −0,125).
+    EXPECT_NEAR(NormalLight({0.0f, 0.0f, -0.125f}), 0.2f, 1e-6f);
 }
 
+// Una normal solo gira: ni la traslación del hueso, ni la escala, ni la posición del objeto.
 TEST(SkinningTest, TheNormalOnlyRotates)
 {
     const ObjectTransform object{{100, 200, 300}, {0, 0, 0}, 2.0f, 0.0f};

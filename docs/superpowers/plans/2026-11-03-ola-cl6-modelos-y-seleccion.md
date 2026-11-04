@@ -2227,7 +2227,7 @@ inline constexpr Render::TextureSlot LoginLogoFirstSlot{0x455};
     personaje y el logo. 5 tests.
 
   48 mutantes a mano, todos en rojo: dos se reescribieron para compilar, y uno (el culling de la
-  sombra) vivía hasta separar su test. Con los datos del laboratorio, `Main` dibuja el caballo
+  sombra) vivía hasta separar su test. (Abajo, lo que cambió con la revisión.) Con los datos del laboratorio, `Main` dibuja el caballo
   debajo del jinete (captura fuera de Git).
 
   Decisiones, con lo que cuestan si están mal:
@@ -2239,8 +2239,30 @@ inline constexpr Render::TextureSlot LoginLogoFirstSlot{0x455};
     cada tanto y MuRet no.
   - Ruling: `+0x68` (la luz del blendMesh, Q-C112) no se lleva: el caballo no tiene blendMesh. Si
     está mal, no cambia nada.
-  - Ruling: L = (0; −1,5; 0) sin girar, porque el ángulo de la sombra del modelo (`+0x8c`) solo lo
-    escribe el mundo 30. Si está mal, la luz de cada normal del caballo sale girada.
+
+  Tras la revisión adversarial (dos revisores: uno del C++, sin Critical ni Important; otro contra el
+  binario y las trazas de GL):
+  - **Crítico, del binario:** la luz por vértice va con L = (1,3; 0; 2) y no con (0; −1,5; 0).
+    `DAT_006c8818` vale 1 desde el `.data` y es su única referencia: las otras dos ramas no corren
+    nunca (Q-C115). Las trazas de GL ajustan con (1,3; 0; 2). Con el modelo real, 624 de las 904
+    normales del caballo cambiaban en más de 0,1 (`SkinningTest.TheVertexLightComesFromXAndZ`).
+  - **Importante, del binario:** en un objeto de `0x5ffdf0`, la normal lleva la escala del objeto
+    (1,6 en el login), para la luz y para las UV del cromo (`TheNormalsOfAnObjectCarryItsScale`,
+    `TheHorseChromeTakesTheScaledNormal`).
+  - **Del binario, que se arreglan con el mismo pase:** la sombra va sin alpha test (`0x4eff40` lo
+    apaga, y en el mapa 7 va en 0,2: `TheBlendedShadowHasNoAlphaTest`), y el cromo va en las mallas
+    12 a 15 que existan, cada una por el alpha otra vez (`TheHorseChromeGoesOnMeshesTwelveToFifteen`).
+  - **Del C++:** el test de la luz por vértice no distinguía el índice de la normal del del vértice,
+    y nada miraba las UV del cromo: los dos mutantes vivían, y ahora mueren.
+  - **Docs:** la zona segura mira la celda del jinete y, en ella, el caballo avanza igual; la fila de
+    la `0x4b`; el polvo, para la ola de los efectos; P-C15 (d) (el alpha va por 1 − 0,9ⁿ: el cuerpo
+    se ve desde el paso 3, por el alpha test).
+  - **Minors para después:** la cabeza del jinete en el hueso 7 del caballo (no se ve: es una raíz que
+    ningún vértice usa); una malla del caballo con `H` dibujaría la sombra en el original y no en
+    MuRet (las de serie no tienen script); P-C14 (e) infiere el 1,35 con "el piso 0,2 de la luz por
+    vértice", y la L era otra.
+
+  4 tests y 10 mutantes más, todos en rojo. 1921 de 1921 con GL y los golden.
 - [ ] **Paso 3 (a mano):** con `--data`, el login con el logo y el personaje sobre los fondos,
   contra el original en la VM (P-C15 y P-C21); sin traza del login (P-C13), se mira a ojo contra
   una captura fuera de Git.

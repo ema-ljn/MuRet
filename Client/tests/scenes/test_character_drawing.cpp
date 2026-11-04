@@ -1322,8 +1322,8 @@ TEST(CharacterDrawingTest, AnObjectFollowsTheScriptOfItsTextures)
 }
 
 // Un objeto con luz por vértice (+0xe8, que 0x5ffce0 copia a +0x44 del modelo): 0x4ecc30 le da a cada
-// esquina el color del modelo por la luz de su normal (0x4ebc80). La que mira a −y, 1,6; la de +y, el
-// piso de 0,2; la de z, 0,4.
+// esquina el color del modelo por la luz de su normal (0x4ebc80), por el índice de normal de la esquina
+// y no el de su vértice. La de x da 1,44; la de −z, el piso de 0,2; la de y, 0,4.
 DrawnObject LitObject()
 {
     DrawnObject object = LogoLike();
@@ -1337,21 +1337,37 @@ DrawnObject LitObject()
 TEST(CharacterDrawingTest, AnObjectWithVertexLightLightsEachCornerByItsNormal)
 {
     OneModel models(0xbf, "dk.jpg", 1);
-    models.FirstMesh().normals = {{0, {0, -1, 0}, 0}, {0, {0, 1, 0}, 1}, {0, {0, 0, 1}, 2}};
-    models.FirstMesh().triangles[0].normals = {0, 1, 2, 0};
+    models.FirstMesh().normals = {{0, {1, 0, 0}, 1}, {0, {0, 0, -1}, 2}, {0, {0, 1, 0}, 0}};
+    models.FirstMesh().triangles[0].normals = {2, 0, 1, 0};
+    DrawnObject object = LitObject();
+    object.transform.scale = 1.0f;
 
-    const ModelBatch batch = DrawnObjectOf(models, LitObject());
+    const ModelBatch batch = DrawnObjectOf(models, object);
 
     ASSERT_EQ(batch.Vertices().size(), 3u);
-    ExpectColor(batch.Vertices()[0], 0.8f, 0.8f, 0.8f);
-    ExpectColor(batch.Vertices()[1], 0.1f, 0.1f, 0.1f);
-    ExpectColor(batch.Vertices()[2], 0.2f, 0.2f, 0.2f);
+    ExpectColor(batch.Vertices()[0], 0.2f, 0.2f, 0.2f);
+    ExpectColor(batch.Vertices()[1], 0.72f, 0.72f, 0.72f);
+    ExpectColor(batch.Vertices()[2], 0.1f, 0.1f, 0.1f);
     // Sin ella, el color del modelo en las tres.
     DrawnObject unlit = LitObject();
     unlit.vertexLight = false;
     const ModelBatch flat = DrawnObjectOf(models, unlit);
     ASSERT_EQ(flat.Vertices().size(), 3u);
     ExpectColor(flat.Vertices()[0], 0.5f, 0.5f, 0.5f);
+}
+
+// Un objeto de 0x5ffdf0 lleva la escala en la raíz (0x4eb860 con Translate), y 0x4ebc80 gira cada
+// normal con esa matriz sin normalizarla: con la escala 2, la normal en z mide 2 y da 0,8 · 2 · 2 + 0,4.
+TEST(CharacterDrawingTest, TheNormalsOfAnObjectCarryItsScale)
+{
+    const OneModel models(0xbf, "dk.jpg", 1);
+    DrawnObject object = LitObject();
+    object.transform.scale = 2.0f;
+
+    const ModelBatch batch = DrawnObjectOf(models, object);
+
+    ASSERT_EQ(batch.Vertices().size(), 3u);
+    ExpectColor(batch.Vertices()[0], 0.5f * 3.6f, 0.5f * 3.6f, 0.5f * 3.6f);
 }
 
 // La malla del blendMesh va por su rama, con glColor3f(color · luz del blendMesh), sin la de la normal.
@@ -1436,7 +1452,7 @@ TEST(CharacterDrawingTest, TheDarkHorseGoesWhiteThenItsChromeThenItsShadow)
     EXPECT_EQ(batch.Commands()[2].state, (ModelDrawState{std::nullopt, ModelBlend::BlendedShadow, true}));
     EXPECT_EQ(batch.Commands()[2].vertexCount, 3u);
     const auto vertices = batch.Vertices();
-    ExpectColor(vertices[0], 0.4f, 0.4f, 0.4f);
+    ExpectColor(vertices[0], 2.0f, 2.0f, 2.0f);
     ExpectColor(vertices[13 * 3], 1.0f, 0.8f, 0.3f);
     const Client::Render::ModelVertex& shadow = vertices[13 * 3 + 3];
     ExpectColor(shadow, 0.0f, 0.0f, 0.0f);
@@ -1459,6 +1475,43 @@ TEST(CharacterDrawingTest, TheChromeOfAFadingHorseGoesByItsAlpha)
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.alpha, 0.5f);
     ExpectColor(batch.Vertices()[13 * 3], 0.5f, 0.4f, 0.15f);
     EXPECT_FLOAT_EQ(batch.Vertices()[13 * 3 + 3].color.alpha, 0.7f);
+}
+
+// El cromo de 0x4ecc30 con 0x4 (Chrome): u = 0,5 · nz + t y v = 0,5 · ny + 2t, con la normal con la
+// escala del caballo: con 1,6 y el reloj en 0, la normal en z da u = 0,8.
+TEST(CharacterDrawingTest, TheHorseChromeTakesTheScaledNormal)
+{
+    const OneModel models(0xbf, "dk.jpg", 13);
+    DrawnObject horse = HorseLike();
+    horse.transform.scale = 1.6f;
+
+    const ModelBatch batch = DrawnHorseOf(models, horse);
+
+    ASSERT_EQ(batch.Commands().size(), 3u);
+    const Client::Render::ModelVertex& chrome = batch.Vertices()[13 * 3];
+    EXPECT_FLOAT_EQ(chrome.uv.x, 0.8f);
+    EXPECT_FLOAT_EQ(chrome.uv.y, 0.0f);
+}
+
+// 0x6002e0 pide el cromo de las mallas 12 a 15, y cada una que existe multiplica el color en el lugar
+// por el alpha (Q-C95): con 16 mallas y 0,5, van por 0,5, 0,25, 0,125 y 0,0625.
+TEST(CharacterDrawingTest, TheHorseChromeGoesOnMeshesTwelveToFifteen)
+{
+    const OneModel models(0xbf, "dk.jpg", 16);
+    DrawnObject horse = HorseLike();
+    horse.alpha = 0.5f;
+
+    const ModelBatch batch = DrawnHorseOf(models, horse);
+
+    ASSERT_EQ(batch.Commands().size(), 3u);
+    EXPECT_EQ(batch.Commands()[1].state.texture, TextureSlot{0x5c0});
+    ASSERT_EQ(batch.Commands()[1].vertexCount, 4u * 3u);
+    const std::size_t first = batch.Commands()[1].firstVertex;
+    for (std::size_t mesh = 0; mesh < 4; ++mesh)
+    {
+        const float factor = std::pow(0.5f, static_cast<float>(mesh + 1));
+        ExpectColor(batch.Vertices()[first + (mesh * 3)], factor, 0.8f * factor, 0.3f * factor);
+    }
 }
 
 // El cromo va por 0x4ecc30, que no corre los pases de brillo de una malla con N en el script.

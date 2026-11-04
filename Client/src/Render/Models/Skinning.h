@@ -36,9 +36,9 @@ struct SkinnedMesh
                                        const ObjectTransform& object, float boneScale, SkinnedMesh& out);
 
 // La luz por vértice de 0x4ebc80, con +0x44 del modelo (la copia de +0xe8 del objeto): por cada normal
-// girada por su hueso, max(0,2; 0,8 · L·n + 0,4), con L = (0; −1,5; 0) girada al revés por el ángulo
-// de la sombra del modelo (+0x8c), que nadie escribe salvo en el mundo 30, que MuRet todavía no tiene
-// (*inferido*). Ahí y con DAT_006c8818 L es otra.
+// girada por su hueso, sin normalizar, max(0,2; 0,8 · L·n + 0,4), con L = (1,3; 0; 2). Es la rama de
+// DAT_006c8818, que vale 1 desde el .data y nadie escribe: las de (0; −1,5; 0) y del mundo 30 no corren
+// nunca, y el ángulo con que se gira L (+0x8c del modelo) solo lo escribe la del mundo 30.
 [[nodiscard]] float NormalLight(const glm::vec3& worldNormal);
 
 // 0x4eff40: un vértice de la sombra, aplastado sobre el piso desde la posición del objeto. Con x' y

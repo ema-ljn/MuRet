@@ -20,9 +20,10 @@
 
 // Los modelos del personaje (0x60dbe0), de los ítems (0x60ff50) y el caballo oscuro con los tres que
 // van antes de él en sus texturas (0x615700), con el esqueleto de cada uno y el slot de la textura de
-// cada malla, como los lee la carga en su avance 1 (0x61ccb0) y los usan las escenas que siguen. Viven en main.cpp,
-// como GameData: se leen una vez, y sus texturas quedan. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El
-// modelo en el binario", y el plan de la CL6 (pregunta 4 y CL6.3).
+// cada malla, como los lee la carga en su avance 1 (0x61ccb0) y los usan las escenas que siguen.
+// Viven en main.cpp, como GameData: se leen una vez, y sus texturas quedan. Contrato:
+// Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario" y "El caballo oscuro",
+// y el plan de la CL6 (pregunta 4, CL6.3 y CL6.4).
 namespace Client::Scenes
 {
 class GameModels final : public IModelLibrary

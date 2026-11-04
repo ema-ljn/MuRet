@@ -202,6 +202,9 @@ struct MeshDraw
     // personaje va en 1 y sin ella.
     float alpha = 1.0f;
     bool vertexLight = false;
+    // El largo de cada normal girada: la escala de un objeto de 0x5ffdf0, que la lleva en la raíz
+    // (0x4eb860 con Translate) y 0x4ebc80 no normaliza; un personaje, 1 (la escala va en cada vértice).
+    float normalScale = 1.0f;
 };
 
 // Las UV de un pase: las de la malla o, con `shine`, las del pase de brillo con la normal en el
@@ -217,7 +220,9 @@ glm::vec2 CornerUv(const MeshDraw& draw, const Data::Models::Triangle& triangle,
     if (uv.shine)
     {
         const auto normal = static_cast<std::size_t>(triangle.normals[corner]);
-        return Render::Models::ShineTexCoords(*uv.shine, draw.skinned->normals[normal], draw.frameClock) + uv.shift;
+        return Render::Models::ShineTexCoords(*uv.shine, draw.skinned->normals[normal] * draw.normalScale,
+                                              draw.frameClock) +
+               uv.shift;
     }
     const Data::Models::TexCoord& texCoord = draw.mesh->texCoords[static_cast<std::size_t>(triangle.texCoords[corner])];
     return glm::vec2{texCoord.u, texCoord.v} + uv.shift;
@@ -239,7 +244,7 @@ void Triangles(Render::ModelBatch& batch, const MeshDraw& draw, const Render::Mo
             if (normalLight)
             {
                 const auto normal = static_cast<std::size_t>(triangle.normals[corner]);
-                const float light = Render::Models::NormalLight(draw.skinned->normals[normal]);
+                const float light = Render::Models::NormalLight(draw.skinned->normals[normal] * draw.normalScale);
                 shaded = Render::Color{color.red * light, color.green * light, color.blue * light, color.alpha};
             }
             corners[corner] =
@@ -847,12 +852,14 @@ std::vector<MeshDraw> ObjectMeshDraws(const IModelLibrary& models, const DrawnOb
     {
         draw.alpha = object.alpha;
         draw.vertexLight = object.vertexLight;
+        draw.normalScale = object.transform.scale;
     }
     return draws;
 }
 
 // Lo que 0x6002e0 le agrega al caballo después de su RenderBody (0x6002e0, el caso 0xbf).
-constexpr std::size_t DarkHorseChromeMesh = 12;
+constexpr std::size_t DarkHorseFirstChromeMesh = 12;
+constexpr std::size_t DarkHorseLastChromeMesh = 15;
 constexpr Render::Color DarkHorseChromeColor{1.0f, 0.8f, 0.3f, 1.0f};
 constexpr std::size_t DarkHorseShadowMesh = 8;
 constexpr Render::Color DarkHorseShadowColor{0.0f, 0.0f, 0.0f, 0.7f};
@@ -880,17 +887,25 @@ void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const
     {
         DrawBase(batch, draw);
     }
-    // 0x4ecc30(12, 0x44, …) directo, sin RenderBody: el cromo aditivo, sin la U y la V (en 0) y con el
-    // color multiplicado en el lugar por el alpha (Q-C95), salvo con N en el script.
-    if (const auto chrome = std::ranges::find(draws, DarkHorseChromeMesh, &MeshDraw::index);
-        chrome != draws.end() && chrome->role.shines)
+    // 0x4ecc30(12..15, 0x44, …) directo, sin RenderBody: el cromo aditivo de cada una que existe (las de
+    // serie: solo la 12, Q-C113), sin la U y la V (en 0) y, con el alpha por debajo de 0,99, con el color
+    // que cada una multiplica en el lugar por él (Q-C95). Salvo con N en el script. Las mallas salen de
+    // MeshDrawsOf, que deja afuera las de H y las rotas; las de serie no tienen script.
+    Render::Color chromeColor = DarkHorseChromeColor;
+    for (const MeshDraw& chrome : draws)
     {
-        const Render::Color color =
-            chrome->alpha < OpaqueAlpha ? Scaled(DarkHorseChromeColor, chrome->alpha) : DarkHorseChromeColor;
-        Triangles(batch, *chrome, {PassSlot(Render::Models::ShinePass::Chrome), Render::ModelBlend::Additive, true},
-                  color, PassUv{Render::Models::ShinePass::Chrome, glm::vec2{}});
+        if (chrome.index < DarkHorseFirstChromeMesh || chrome.index > DarkHorseLastChromeMesh || !chrome.role.shines)
+        {
+            continue;
+        }
+        if (chrome.alpha < OpaqueAlpha)
+        {
+            chromeColor = Scaled(chromeColor, chrome.alpha);
+        }
+        Triangles(batch, chrome, {PassSlot(Render::Models::ShinePass::Chrome), Render::ModelBlend::Additive, true},
+                  chromeColor, PassUv{Render::Models::ShinePass::Chrome, glm::vec2{}});
     }
-    // 0x4eff40(−1, −1, 8, 9): la malla 8, sin mirar su textura ni su script.
+    // 0x4eff40(−1, −1, 8, 9): la malla 8. Sale de MeshDrawsOf, como el cromo.
     if (const auto shadow = std::ranges::find(draws, DarkHorseShadowMesh, &MeshDraw::index); shadow != draws.end())
     {
         Render::Models::SkinnedMesh flat = *shadow->skinned;

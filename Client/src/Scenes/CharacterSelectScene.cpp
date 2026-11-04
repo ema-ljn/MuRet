@@ -316,7 +316,8 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         drawn.wings = character.wings.state;
         drawn.object = ObjectOf(character);
         const bool isChosen = chosen != nullptr && chosen->slot == character.slot;
-        drawn.light = (character.slot == HeroSlot ? HeroLight : CharacterLight) + (isChosen ? ChosenExtraLight : 0.0f);
+        drawn.light =
+            glm::vec3((character.slot == HeroSlot ? HeroLight : CharacterLight) + (isChosen ? ChosenExtraLight : 0.0f));
         drawn.outlined = m_hovered == character.slot;
         DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
     }

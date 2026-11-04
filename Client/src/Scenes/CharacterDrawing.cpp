@@ -468,6 +468,36 @@ void DrawPasses(const CharacterFrame& frame, std::span<const MeshDraw> draws, co
     }
 }
 
+// Las mallas de `modelId` que se dibujan, pasadas al mundo con `bones` y `object` en `skinned` (una
+// por malla): cada una con su papel, su textura (la piel y el pelo de `characterClass`), `shade` y
+// `state`. Las de H, la oculta (0x12d), las rotas y las que no se pueden pasar al mundo no van.
+std::vector<MeshDraw> MeshDrawsOf(const IModelLibrary& models, std::uint16_t modelId, const Data::Models::Model& model,
+                                  std::span<const BoneTransform> bones, const Render::Models::ObjectTransform& object,
+                                  std::uint8_t characterClass, Render::Color shade, const ObjectState& state,
+                                  Core::Duration clock, std::vector<Render::Models::SkinnedMesh>& skinned)
+{
+    const std::span<const Render::TextureSlot> slots = models.MeshTextures(modelId);
+    skinned.assign(model.meshes.size(), Render::Models::SkinnedMesh{});
+    std::vector<MeshDraw> draws;
+    draws.reserve(model.meshes.size());
+    for (std::size_t index = 0; index < model.meshes.size(); ++index)
+    {
+        const Data::Models::Mesh& mesh = model.meshes[index];
+        const MeshRole role = RoleOf(modelId, mesh, index);
+        const MeshTexture texture = TextureOf(mesh, slots, index, characterClass);
+        if (role.hidden || !texture.drawn || !IndicesInRange(mesh) ||
+            !Render::Models::SkinMesh(mesh, bones, object, skinned[index]))
+        {
+            continue;
+        }
+        const std::int16_t blendMesh = BlendMeshOf(role, index, state);
+        draws.push_back(MeshDraw{modelId, index, &mesh, &skinned[index], role, texture.slot, shade,
+                                 Blends(mesh, blendMesh),
+                                 static_cast<std::int16_t>(index) == blendMesh || role.scrollScript, &state, clock});
+    }
+    return draws;
+}
+
 // Un modelo con las matrices `bones`, cada malla con su textura y el brillo de su nivel; con el
 // contorno, antes el contorno.
 void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<const BoneTransform> bones,
@@ -478,27 +508,11 @@ void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<con
     {
         return;
     }
-    const std::span<const Render::TextureSlot> slots = frame.models.MeshTextures(modelId);
-    const float shade = frame.character.light * use.glow.baseFactor;
-    std::vector<Render::Models::SkinnedMesh> skinned(model->meshes.size());
-    std::vector<MeshDraw> draws;
-    draws.reserve(model->meshes.size());
-    for (std::size_t index = 0; index < model->meshes.size(); ++index)
-    {
-        const Data::Models::Mesh& mesh = model->meshes[index];
-        const MeshRole role = RoleOf(modelId, mesh, index);
-        const MeshTexture texture = TextureOf(mesh, slots, index, frame.character.appearance.characterClass);
-        if (role.hidden || !texture.drawn || !IndicesInRange(mesh) ||
-            !Render::Models::SkinMesh(mesh, bones, frame.character.object, skinned[index]))
-        {
-            continue;
-        }
-        const std::int16_t blendMesh = BlendMeshOf(role, index, use.object);
-        draws.push_back(MeshDraw{modelId, index, &mesh, &skinned[index], role, texture.slot,
-                                 Render::Color{shade, shade, shade, 1.0f}, Blends(mesh, blendMesh),
-                                 static_cast<std::int16_t>(index) == blendMesh || role.scrollScript, &use.object,
-                                 frame.clock});
-    }
+    const glm::vec3 shade = frame.character.light * use.glow.baseFactor;
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    const std::vector<MeshDraw> draws = MeshDrawsOf(
+        frame.models, modelId, *model, bones, frame.character.object, frame.character.appearance.characterClass,
+        Render::Color{shade.x, shade.y, shade.z, 1.0f}, use.object, frame.clock, skinned);
     if (use.outlined)
     {
         ObjectState outlineObject = use.object;
@@ -731,6 +745,10 @@ void DrawHands(const CharacterFrame& frame, std::span<const BoneTransform> body)
 
 // La semilla de los rand() de un frame: el reloj en ms. El original usa el rand() de todo el cliente,
 // que no se puede repetir.
+// Un objeto del mundo no tiene la piel de una clase: sus mallas no van a los slots de la piel ni del
+// pelo (ninguna se llama así).
+constexpr std::uint8_t ObjectClass = 0;
+
 std::uint_fast32_t RandomSeedOf(Core::Duration clock)
 {
     return static_cast<std::uint_fast32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(clock).count());
@@ -783,5 +801,29 @@ void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const
         DrawHanging(frame, *appearance.pet, AttachmentSlot::Pet, character.pet, body, noGlow);
     }
     DrawHands(frame, body);
+}
+
+void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                Core::Duration frameClock)
+{
+    const Data::Models::Model* model = models.Find(object.model);
+    const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
+    if (model == nullptr || skeleton == nullptr)
+    {
+        return;
+    }
+    std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(1.0f));
+    if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
+    {
+        return;
+    }
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    const std::vector<MeshDraw> draws = MeshDrawsOf(models, object.model, *model, bones, object.transform, ObjectClass,
+                                                    Render::Color{object.color.x, object.color.y, object.color.z, 1.0f},
+                                                    object.state, frameClock, skinned);
+    for (const MeshDraw& draw : draws)
+    {
+        DrawBase(batch, draw);
+    }
 }
 } // namespace Client::Scenes

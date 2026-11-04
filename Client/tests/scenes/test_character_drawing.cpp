@@ -15,6 +15,7 @@
 #include <gtest/gtest.h>
 
 #include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -47,6 +48,8 @@ using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 using Client::Scenes::DrawCharacter;
 using Client::Scenes::DrawnCharacter;
+using Client::Scenes::DrawnObject;
+using Client::Scenes::DrawObject;
 using Client::Scenes::IModelLibrary;
 using Client::Scenes::MeshSlotOf;
 using Client::Scenes::SkinIndexOf;
@@ -1219,5 +1222,109 @@ TEST(CharacterDrawingTest, AModelGoesPassByPass)
     EXPECT_EQ(batch.Commands()[0].state.texture, TextureSlot{0x300});
     EXPECT_EQ(batch.Commands()[1].vertexCount, 2u * 3u);
     EXPECT_NE(batch.Commands()[1].state.texture, TextureSlot{0x300});
+}
+// La luz del personaje va por canal: la del login es la del terreno, que tiene color (0x50ba30 con
+// 0x5f99e0 fuera de la escena 4).
+TEST(CharacterDrawingTest, TheLightOfACharacterGoesByChannel)
+{
+    DrawnCharacter character;
+    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.light = glm::vec3{0.2f, 0.4f, 0.6f};
+    const OneModel models(character.appearance.bodyParts[1].model);
+
+    const ModelBatch batch = Drawn(models, character);
+
+    ASSERT_EQ(batch.Vertices().size(), 3u);
+    ExpectColor(batch.Vertices()[0], 0.2f, 0.4f, 0.6f);
+}
+
+ModelBatch DrawnObjectOf(const OneModel& models, const DrawnObject& object)
+{
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    DrawObject(batch, models, object, std::chrono::milliseconds{0});
+    return batch;
+}
+
+DrawnObject LogoLike()
+{
+    DrawnObject object;
+    object.model = 0xa2;
+    object.transform.position = {10.0f, 20.0f, 30.0f};
+    object.transform.scale = 2.0f;
+    object.state.blendMesh = 1;
+    object.state.light = 0.5f;
+    object.color = {0.3f, 0.4f, 0.5f};
+    return object;
+}
+
+// Un objeto del mundo sin casos por tipo (0x6002e0): RenderBody(2) y nada más. Cada malla con el color
+// del modelo (0x5ffce0), y la del blendMesh aditiva y por la luz del objeto; posado con su escala y su
+// posición (0x5ffdf0).
+TEST(CharacterDrawingTest, AnObjectGoesWithItsBasePassOnly)
+{
+    const OneModel models(0xa2, "logo.jpg", 2);
+
+    const ModelBatch batch = DrawnObjectOf(models, LogoLike());
+
+    ASSERT_EQ(batch.Commands().size(), 2u);
+    EXPECT_EQ(batch.Commands()[0].state, (ModelDrawState{TextureSlot{0x300}, ModelBlend::Opaque, true}));
+    EXPECT_EQ(batch.Commands()[1].state, (ModelDrawState{TextureSlot{0x300}, ModelBlend::Additive, true}));
+    const auto vertices = batch.Vertices();
+    ASSERT_EQ(vertices.size(), 6u);
+    ExpectColor(vertices[0], 0.3f, 0.4f, 0.5f);
+    ExpectColor(vertices[3], 0.3f * 0.5f, 0.4f * 0.5f, 0.5f * 0.5f);
+    EXPECT_FLOAT_EQ(vertices[1].position.x, 12.0f);
+    EXPECT_FLOAT_EQ(vertices[1].position.y, 20.0f);
+    EXPECT_FLOAT_EQ(vertices[1].position.z, 30.0f);
+    EXPECT_FLOAT_EQ(vertices[2].position.y, 22.0f);
+}
+
+// La raíz gira con los ángulos del objeto (0x5ffdf0 → 0x4eb860 con +0x1c): con 90° en z, el vértice
+// (1, 0, 0) va a (0, 2, 0) de su lugar.
+TEST(CharacterDrawingTest, AnObjectTurnsWithItsAngles)
+{
+    const OneModel models(0xa2, "logo.jpg", 1);
+    DrawnObject object = LogoLike();
+    object.transform.angles = {0.0f, 0.0f, 90.0f};
+
+    const ModelBatch batch = DrawnObjectOf(models, object);
+
+    ASSERT_EQ(batch.Vertices().size(), 3u);
+    EXPECT_NEAR(batch.Vertices()[1].position.x, 10.0f, 1e-4f);
+    EXPECT_NEAR(batch.Vertices()[1].position.y, 22.0f, 1e-4f);
+}
+
+// La malla que el objeto oculta (+0x58) no va, y las demás sí.
+TEST(CharacterDrawingTest, AnObjectSkipsItsHiddenMesh)
+{
+    const OneModel models(0xa2, "logo.jpg", 2);
+    DrawnObject object = LogoLike();
+    object.state.hiddenMesh = 0;
+
+    const ModelBatch batch = DrawnObjectOf(models, object);
+
+    ASSERT_EQ(batch.Commands().size(), 1u);
+    EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
+}
+
+// El script de la textura vale también en un objeto (0x4ef0c0): con H, la malla no va.
+TEST(CharacterDrawingTest, AnObjectFollowsTheScriptOfItsTextures)
+{
+    OneModel models(0xa2, "logo.jpg", 2);
+    models.FirstMesh().textureName = "logo_H.jpg";
+
+    const ModelBatch batch = DrawnObjectOf(models, LogoLike());
+
+    ASSERT_EQ(batch.Commands().size(), 1u);
+    EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
+}
+
+// Un objeto cuyo modelo no está no se dibuja.
+TEST(CharacterDrawingTest, AnObjectWithoutItsModelIsNotDrawn)
+{
+    const OneModel models(0xa3, "logo.jpg", 2);
+
+    EXPECT_TRUE(DrawnObjectOf(models, LogoLike()).Commands().empty());
 }
 } // namespace

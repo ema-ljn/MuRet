@@ -2104,23 +2104,77 @@ inline constexpr Render::TextureSlot LoginLogoFirstSlot{0x455};
 } // namespace Client::Scenes
 ```
 
-- [ ] **Paso 1:** los tests: `LoginModelsTest.TheLogoIsModel0xA2AtItsPlace`,
+- [x] **Paso 1:** los tests: `LoginModelsTest.TheLogoIsModel0xA2AtItsPlace`,
   `TheCharacterIsClassFourWithItsSet` (las cinco partes, el arma, el cuervo, la capa y la mascota,
-  por número), `TheActionOnlyChangesInItsWindow` (fuera de los primeros 100 ms de cada 2.300 del
-  reloj, nunca; adentro, con `FixedSeed`, las dos salen en 100 pasos y en otros se queda la que
-  tenía), `TheLogoTexturesStartWhereTheWorldLeft` (Q-C92), `TheLogoIsScaled2_2WithBlendMesh1`,
+  por número), `TheActionOnlyChangesInItsWindow` (fuera de la ventana de cada 2.300 ms del reloj,
+  nunca; adentro, con `FixedSeed`, las dos salen en 100 pasos y en otros se queda la que tenía),
+  `TheLogoTexturesStartWhereTheWorldLeft` (Q-C92), `TheLogoIsScaled2_2WithBlendMesh1`,
   `TheLogoLightJumpsWhenThePhaseChanges` (Q-C105); `LoginSceneTest.DrawsInTheOrderOfTheOriginal`
   (crece: el pase 3D tiene el logo y el personaje después del `IWorldView`), `LeaveReleasesTheLogo`;
   y el golden `GoldenLoginScene.TheLogoLoads`.
-- [ ] **Paso 2 (Emanuel, `TODO(human)`):** `LoginModels` y lo que suma la escena. Verificar:
+- [x] **Paso 2 (Emanuel, `TODO(human)`):** `LoginModels` y lo que suma la escena. Verificar:
   ```bash
-  ctest --preset linux-x64-debug -R "LoginModels|LoginScene"
-  MURET_CLIENT_GOLDEN_DIR=<Data> ctest --preset linux-x64-debug -R "GoldenLoginScene"
+  ctest --preset linux-x64-debug -R "LoginModels|LoginScene|TerrainLighting"
+  MURET_CLIENT_GOLDEN_DIR=<Data> ctest --preset linux-x64-debug -R "GoldenLoginScene|GoldenTerrainLighting"
   ```
   Los mutantes: el logo en grados por radianes, el personaje sin la escala 1,6, una acción fija, la
   tirada en cada paso sin la ventana del reloj, y los slots del logo desde 0.
-- [ ] **Paso 3 (a mano):** con `--data`, el login con el logo y el personaje sobre los fondos; sin
-  traza del login (P-C13), se mira a ojo contra una captura fuera de Git.
+
+  Hecho así (2026-11-04, resuelto por Claude). Antes, una lectura del binario (CL6.4.R, *estático*,
+  en el 06 § El logo en el binario y § La luz del terreno en un punto), porque el contrato de arriba
+  no alcanzaba:
+  - el logo es un objeto del mundo y lo dibuja `0x6046a0`, después de los personajes, no
+    `0x53c6a0`. Emulado sobre el `main.exe`: `0x6002e0` hace con el `0xa2` un solo RenderBody(2)
+    con el objeto, sin brillo;
+  - el color del logo es 0,1 de la luz del terreno en su lugar más la suya (`0x5ffce0`), y el
+    personaje va con la luz del terreno más 0,3, que le pone `0x517270` (`0x50ba30` fuera de la
+    escena 4). Esa luz no es la del OZJ sola: `0x5f8b10` y `0x5f8d90` la sombrean con las alturas;
+  - el personaje para en la acción `0x4a`, la de montar, que le da `0x4f2250` con el caballo
+    oscuro; el caballo no lo dibuja `0x50ba30` (P-C15 d);
+  - el logo avanza a 0,16 por paso (`+0xd8` de `0x606660`), pero `Logo03.bmd` tiene una acción de
+    una key: no se anima;
+  - la luz del logo corre antes que la cuenta de las rutas, que arranca en −1: el primer paso da
+    −0,02 (Q-C105);
+  - la ventana de la acción va de 0 a 100 ms, por la x87 (Q-C110);
+  - la fase de las rutas no vuelve a 0 al volver al login (Q-C111).
+
+  En un PR, con un commit por concepto:
+  - **`World/TerrainLighting`** (8 tests, 1 golden, 16 mutantes): la sombra de cada celda y la luz
+    en un punto, bilineal, y `LoadTerrainLighting` con la carpeta del mapa. `World/` nace acá; era
+    de la CL7.
+  - **`Scenes/LoginModels`** (10 tests, 26 mutantes): el logo, su luz y la cuenta de las rutas, el
+    color de un objeto sin luz por vértice, el personaje, su lugar, su luz y su acción.
+  - **`DrawObject` y la luz por canal de `DrawnCharacter`** (6 tests, 8 mutantes, uno equivalente):
+    el pase base de un objeto del mundo, con el armado de las mallas que comparte con el dibujo del
+    personaje (`MeshDrawsOf`).
+  - **La `LoginScene`** (8 tests con un `Logo03.bmd` y un `World56` sintéticos, el golden
+    `GoldenLoginScene.TheLogoLoads`, 16 mutantes): la carga al entrar, el paso como `0x634c60` y el dibujo, con
+    `Scenes/CharacterAnimation` (el avance del personaje, que ahora comparte con la selección).
+
+  Lo que cambió del contrato de arriba:
+  - `LoginScene` recibe un `IModelLibrary` y no los `GameModels`.
+  - El reloj del paso no sale de `IScene::Step`, que tiene 83 llamadas: las escenas lo ven en el
+    `SceneContext` (el del bucle).
+  - Se nombran también `SingleModelLibrary` (el logo) y `UnlitObjectColor`.
+
+  Decisiones, con lo que cuestan si están mal:
+  - Ruling: el caballo, el cuervo y el efecto `0xbf` no se dibujan (mascotas y efectos, CL8). Si
+    está mal, el login se ve distinto hasta la CL8, con el personaje en la pose de montar sin el
+    caballo.
+  - Ruling: la luz del terreno se calcula en todas las celdas, sin la ventana de `0x5fbf60` ni las
+    luces dinámicas. Si está mal, un lugar fuera de la ventana da 0 en el original.
+  - Ruling: el frustum de los objetos no se reproduce; con la cámara fija, el logo se ve siempre.
+    Si está mal: nada, con esta cámara.
+  - Ruling: la fase de las rutas vuelve a 0 en cada entrada al login (Q-C111). Si está mal, la
+    segunda vez el logo de MuRet se aclara de a poco y el del original no.
+  - Ruling: el reloj del paso es el del bucle cuando corre el paso, no el del frame. Si está mal, la
+    ventana de la acción se corre menos de un frame.
+
+  Con los datos del laboratorio, `Main` entra al login y dibuja el logo y el personaje: hay una
+  captura en 1024 × 768, fuera de Git. 1888 de 1888 tests con los golden y GL. En CI no hay golden.
+- [ ] **Paso 3 (a mano):** con `--data`, el login con el logo y el personaje sobre los fondos,
+  contra el original en la VM (P-C15 y P-C21); sin traza del login (P-C13), se mira a ojo contra
+  una captura fuera de Git.
 
 ## Sub-ola CL6.5: crear y borrar personajes, con la UI de la selección
 

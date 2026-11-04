@@ -6,9 +6,11 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/ProtocolError.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <string_view>
 
 // Borrar un personaje: el pedido (F3 02, C->S) y su respuesta (F3 02, S->C).
 // Contrato: Client/docs/research/04-protocolo.md, "La selección de personaje (F3)", y el plan de la
@@ -18,6 +20,10 @@ namespace Client::Protocol::Character
 // Los bytes del campo de la ventana de borrar que van en el pedido: en otras versiones, un número
 // personal de la cuenta. Se tratan como la clave: nunca en el log.
 inline constexpr std::size_t DeleteCodeSize = 10;
+
+// Los bytes del campo como los copia 0x643740 a 0x7798bf8, que 0x6436c0 vació al abrir: el texto y
+// ceros hasta DeleteCodeSize. Uno más largo se corta (el campo toma hasta 7).
+[[nodiscard]] std::array<std::byte, DeleteCodeSize> DeleteCodeFromText(std::string_view text);
 
 // C1 18 F3 02, los 10 bytes del nombre del elegido y los 10 del campo de la ventana, como vienen,
 // con el XOR32 y en claro (0x643740). El nombre va hasta su primer cero y con ceros hasta 10

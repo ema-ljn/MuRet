@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <optional>
 #include <span>
+#include <string>
 #include <string_view>
 
 // El nombre de un personaje en un pedido de la selección, como lo arman 0x63d990 (crear) y 0x643740
@@ -15,6 +16,10 @@ namespace Client::Protocol::Character
 // Los bytes de `name` hasta su primer cero, y ceros hasta el final: lo que venía después del primer
 // cero no sale.
 [[nodiscard]] std::array<std::byte, NameSize> NameUpToItsEnd(std::span<const std::byte, NameSize> name);
+
+// El nombre como texto: los bytes hasta el primero en cero, o los NameSize si lo llena (el %s del
+// formato del aviso 0x5e, que lee el nombre de +0x1d9 con su terminador en +0x1e3).
+[[nodiscard]] std::string NameAsText(std::span<const std::byte, NameSize> name);
 
 // Los bytes de `text` y ceros hasta NameSize, o std::nullopt si no entra o tiene un cero: el original
 // manda un nombre de más de 10 bytes entero y el paquete crece (0x63d990), y MuRet no lo manda.

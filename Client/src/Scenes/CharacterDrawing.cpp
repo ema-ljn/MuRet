@@ -821,35 +821,86 @@ void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const
     DrawHands(frame, body);
 }
 
-void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
-                Core::Duration frameClock)
+namespace
 {
-    // 0x5ffdf0 con 0x6b88d4.
+// Las mallas de un objeto del mundo posado como 0x5ffdf0, con su alpha y su luz por vértice, o
+// ninguna si 0x5ffdf0 no lo dibuja (el alpha por debajo de 0,01, 0x6b88d4) o falta su modelo.
+std::vector<MeshDraw> ObjectMeshDraws(const IModelLibrary& models, const DrawnObject& object, Core::Duration clock,
+                                      std::vector<Render::Models::SkinnedMesh>& skinned)
+{
     constexpr float VisibleAlpha = 0.01f;
-    if (object.alpha < VisibleAlpha)
-    {
-        return;
-    }
     const Data::Models::Model* model = models.Find(object.model);
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
-    if (model == nullptr || skeleton == nullptr)
+    if (object.alpha < VisibleAlpha || model == nullptr || skeleton == nullptr)
     {
-        return;
+        return {};
     }
     std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(1.0f));
     if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
     {
-        return;
+        return {};
     }
-    std::vector<Render::Models::SkinnedMesh> skinned;
-    const std::vector<MeshDraw> draws = MeshDrawsOf(models, object.model, *model, bones, object.transform, ObjectClass,
-                                                    Render::Color{object.color.x, object.color.y, object.color.z, 1.0f},
-                                                    object.state, frameClock, skinned);
-    for (MeshDraw draw : draws)
+    std::vector<MeshDraw> draws =
+        MeshDrawsOf(models, object.model, *model, bones, object.transform, ObjectClass,
+                    Render::Color{object.color.x, object.color.y, object.color.z, 1.0f}, object.state, clock, skinned);
+    for (MeshDraw& draw : draws)
     {
         draw.alpha = object.alpha;
         draw.vertexLight = object.vertexLight;
+    }
+    return draws;
+}
+
+// Lo que 0x6002e0 le agrega al caballo después de su RenderBody (0x6002e0, el caso 0xbf).
+constexpr std::size_t DarkHorseChromeMesh = 12;
+constexpr Render::Color DarkHorseChromeColor{1.0f, 0.8f, 0.3f, 1.0f};
+constexpr std::size_t DarkHorseShadowMesh = 8;
+constexpr Render::Color DarkHorseShadowColor{0.0f, 0.0f, 0.0f, 0.7f};
+constexpr Render::ModelDrawState BlendedShadowState{std::nullopt, Render::ModelBlend::BlendedShadow, true};
+} // namespace
+
+void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                Core::Duration frameClock)
+{
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    for (const MeshDraw& draw : ObjectMeshDraws(models, object, frameClock, skinned))
+    {
         DrawBase(batch, draw);
+    }
+}
+
+void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& horse,
+                   Core::Duration frameClock)
+{
+    DrawnObject white = horse;
+    white.color = glm::vec3(1.0f);
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    const std::vector<MeshDraw> draws = ObjectMeshDraws(models, white, frameClock, skinned);
+    for (const MeshDraw& draw : draws)
+    {
+        DrawBase(batch, draw);
+    }
+    // 0x4ecc30(12, 0x44, …) directo, sin RenderBody: el cromo aditivo, sin la U y la V (en 0) y con el
+    // color multiplicado en el lugar por el alpha (Q-C95), salvo con N en el script.
+    if (const auto chrome = std::ranges::find(draws, DarkHorseChromeMesh, &MeshDraw::index);
+        chrome != draws.end() && chrome->role.shines)
+    {
+        const Render::Color color =
+            chrome->alpha < OpaqueAlpha ? Scaled(DarkHorseChromeColor, chrome->alpha) : DarkHorseChromeColor;
+        Triangles(batch, *chrome, {PassSlot(Render::Models::ShinePass::Chrome), Render::ModelBlend::Additive, true},
+                  color, PassUv{Render::Models::ShinePass::Chrome, glm::vec2{}});
+    }
+    // 0x4eff40(−1, −1, 8, 9): la malla 8, sin mirar su textura ni su script.
+    if (const auto shadow = std::ranges::find(draws, DarkHorseShadowMesh, &MeshDraw::index); shadow != draws.end())
+    {
+        Render::Models::SkinnedMesh flat = *shadow->skinned;
+        for (glm::vec3& position : flat.positions)
+        {
+            position = Render::Models::FlattenOnTheGround(position, horse.transform.position);
+        }
+        MeshDraw draw = *shadow;
+        draw.skinned = &flat;
+        Triangles(batch, draw, BlendedShadowState, DarkHorseShadowColor, PassUv{});
     }
 }
 } // namespace Client::Scenes

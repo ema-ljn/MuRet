@@ -47,6 +47,7 @@ using Client::Render::Models::BoneKey;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 using Client::Scenes::DrawCharacter;
+using Client::Scenes::DrawDarkHorse;
 using Client::Scenes::DrawnCharacter;
 using Client::Scenes::DrawnObject;
 using Client::Scenes::DrawObject;
@@ -1398,6 +1399,83 @@ TEST(CharacterDrawingTest, AnObjectBelowAHundredthOfAlphaIsNotDrawn)
     EXPECT_TRUE(DrawnObjectOf(models, object).Commands().empty());
     object.alpha = 0.01f;
     EXPECT_FALSE(DrawnObjectOf(models, object).Commands().empty());
+}
+
+// El caballo oscuro (0x6002e0 con el 0xbf), con 13 mallas de un triángulo y la normal en z (la luz
+// por vértice da 0,4): el pase base en blanco por esa luz, después el cromo aditivo de la malla 12 en
+// (1; 0,8; 0,3) y la sombra de la malla 8, mezclada, sin textura, en (0, 0, 0, 0,7) y aplastada sobre
+// el piso.
+ModelBatch DrawnHorseOf(const OneModel& models, const DrawnObject& horse)
+{
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    DrawDarkHorse(batch, models, horse, std::chrono::milliseconds{0});
+    return batch;
+}
+
+DrawnObject HorseLike()
+{
+    DrawnObject horse = LitObject();
+    horse.color = {0.3f, 0.3f, 0.3f};
+    horse.transform.position = {10.0f, 20.0f, 30.0f};
+    horse.transform.scale = 1.0f;
+    return horse;
+}
+
+TEST(CharacterDrawingTest, TheDarkHorseGoesWhiteThenItsChromeThenItsShadow)
+{
+    const OneModel models(0xbf, "dk.jpg", 13);
+
+    const ModelBatch batch = DrawnHorseOf(models, HorseLike());
+
+    ASSERT_EQ(batch.Commands().size(), 3u);
+    EXPECT_EQ(batch.Commands()[0].state, (ModelDrawState{TextureSlot{0x300}, ModelBlend::Opaque, true}));
+    EXPECT_EQ(batch.Commands()[0].vertexCount, 13u * 3u);
+    EXPECT_EQ(batch.Commands()[1].state, (ModelDrawState{TextureSlot{0x5c0}, ModelBlend::Additive, true}));
+    EXPECT_EQ(batch.Commands()[1].vertexCount, 3u);
+    EXPECT_EQ(batch.Commands()[2].state, (ModelDrawState{std::nullopt, ModelBlend::BlendedShadow, true}));
+    EXPECT_EQ(batch.Commands()[2].vertexCount, 3u);
+    const auto vertices = batch.Vertices();
+    ExpectColor(vertices[0], 0.4f, 0.4f, 0.4f);
+    ExpectColor(vertices[13 * 3], 1.0f, 0.8f, 0.3f);
+    const Client::Render::ModelVertex& shadow = vertices[13 * 3 + 3];
+    ExpectColor(shadow, 0.0f, 0.0f, 0.0f);
+    EXPECT_FLOAT_EQ(shadow.color.alpha, 0.7f);
+    EXPECT_FLOAT_EQ(shadow.position.z, 30.0f + 5.0f);
+}
+
+// Mientras aparece, el pase base mezcla con su alpha y el cromo va por él (0x4ecc30 multiplica el
+// color en el lugar); la sombra sigue en 0,7.
+TEST(CharacterDrawingTest, TheChromeOfAFadingHorseGoesByItsAlpha)
+{
+    const OneModel models(0xbf, "dk.jpg", 13);
+    DrawnObject horse = HorseLike();
+    horse.alpha = 0.5f;
+
+    const ModelBatch batch = DrawnHorseOf(models, horse);
+
+    ASSERT_EQ(batch.Commands().size(), 3u);
+    EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Alpha);
+    EXPECT_FLOAT_EQ(batch.Vertices()[0].color.alpha, 0.5f);
+    ExpectColor(batch.Vertices()[13 * 3], 0.5f, 0.4f, 0.15f);
+    EXPECT_FLOAT_EQ(batch.Vertices()[13 * 3 + 3].color.alpha, 0.7f);
+}
+
+// Sin la malla 12 no hay cromo, y sin la 8 no hay sombra; con el alpha por debajo de 0,01, nada.
+TEST(CharacterDrawingTest, TheHorseDrawsOnlyTheMeshesItHas)
+{
+    const OneModel nine(0xbf, "dk.jpg", 9);
+    const ModelBatch withoutChrome = DrawnHorseOf(nine, HorseLike());
+    ASSERT_EQ(withoutChrome.Commands().size(), 2u);
+    EXPECT_EQ(withoutChrome.Commands()[1].state.blend, ModelBlend::BlendedShadow);
+
+    const OneModel eight(0xbf, "dk.jpg", 8);
+    EXPECT_EQ(DrawnHorseOf(eight, HorseLike()).Commands().size(), 1u);
+
+    const OneModel models(0xbf, "dk.jpg", 13);
+    DrawnObject hidden = HorseLike();
+    hidden.alpha = 0.0f;
+    EXPECT_TRUE(DrawnHorseOf(models, hidden).Commands().empty());
 }
 
 // Un objeto cuyo modelo no está no se dibuja.

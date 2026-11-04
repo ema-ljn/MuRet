@@ -7,6 +7,7 @@
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/DoubleClick.h"
 #include "Input/InputState.h"
+#include "Protocol/Character/CharacterList.h"
 #include "Render/Models/Pose.h"
 #include "Render/Pass3D.h"
 #include "Scenes/CharacterAnimation.h"
@@ -18,6 +19,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTextures.h"
 #include "UI/NoticeWindow.h"
+#include "UI/SelectionBar.h"
 
 #include <cstdint>
 #include <optional>
@@ -26,8 +28,10 @@
 
 // La escena 4, la selección de personaje (0x633f20 al entrar, 0x6342c0 la lógica y 0x634680 el
 // dibujo): los personajes de la lista en sus lugares, animados, el clic que elige el que está bajo el
-// mouse, y Enter o el doble clic que entra al mundo con el elegido. Sin el terreno, los objetos ni los
-// efectos (CL7 y la ola de los efectos) y sin la UI de crear y borrar (CL6.5).
+// mouse, y Enter o el doble clic que entra al mundo con el elegido. Arriba, la barra de la selección
+// (UI::SelectionBar) con conectar y borrar, y los avisos del borrado. Sin el terreno, los objetos ni
+// los efectos (CL7 y la ola de los efectos), sin la ventana de crear (CL6.5 PR B2), el menú y las
+// opciones (CL8), los carteles de los personajes ni el área de mensajes.
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La selección de personaje", y el plan de
 // la CL6 (CL6.3, "Contrato").
 namespace Client::Scenes
@@ -43,11 +47,12 @@ public:
     // Como 0x633f20: su juego de texturas (0x61ca30) y el de las ventanas, ninguno elegido, y el
     // F3 00 (ServerSession::RequestCharacterList).
     Core::Expected<void, std::string> Enter() override;
-    // 0x6342c0: nada hasta la lista; después, el avance de cada personaje, el aviso si está abierto, y
-    // si no, el doble clic que entra, el clic que elige y Enter.
+    // 0x6342c0: nada hasta la lista; después, los personajes de la lista y su avance, la respuesta del
+    // borrado, el aviso si está abierto, y si no, la barra, el doble clic que entra, el clic que elige
+    // y Enter. Con el mouse sobre la barra, ni el clic ni el doble clic ni el contorno (+0x8de8).
     void Step(const Input::InputState& input) override;
     // 0x634680 sin el terreno, los objetos ni los efectos: con sesión, nada hasta la lista; el de bajo
-    // el mouse, con el contorno.
+    // el mouse, con el contorno. Después, la UI: la barra y el aviso.
     void Render(SceneCanvas& canvas, float alpha) override;
     // Suelta sus slots.
     void Leave() override;
@@ -59,21 +64,33 @@ public:
     [[nodiscard]] bool HoldsTheLastFrame() const override;
 
 private:
-    // Un personaje de la lista en su lugar.
+    // Un personaje de la lista en su lugar, con la entrada de la que salió.
     struct Character
     {
         std::uint8_t slot = 0;
+        Protocol::Character::CharacterEntry entry;
         GameLogic::CharacterAppearance appearance;
         CharacterAnimation animation;
     };
 
     // Si la escena todavía espera la lista: con sesión, hasta ChoosingCharacter.
     [[nodiscard]] bool WaitingForTheList() const;
-    // La lista de la sesión a los personajes, una vez.
-    void TakeTheList();
+    // La lista de la sesión a los personajes: la primera vez, todos, y el +0x543 de la barra; después,
+    // el que crea la sesión entra y el que borra se va, y los que siguen guardan su animación.
+    void SyncTheCharacters();
+    [[nodiscard]] Character MakeCharacter(const Protocol::Character::CharacterEntry& entry) const;
     void StepCharacters();
     void ShowTheFailure();
+    // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9).
+    void TakeTheDeletionResult();
     void StepTheNotice(const Input::InputState& input);
+    // 0x63eb40: crear con un lugar libre de los cinco; conectar y borrar con uno elegido.
+    void EnableTheBar();
+    void OnTheBar(UI::SelectionBarClick click);
+    // 0x63edf0: las revisiones del borrado con el elegido, y su aviso.
+    void AskToDelete();
+    // 0x643740: el F3 02 con el código del aviso 0x5f, y el 0x5d.
+    void SendTheDeletion();
     // El lugar del personaje bajo el mouse, con el rayo del último pase dibujado.
     [[nodiscard]] std::optional<std::uint8_t> UnderTheMouse(const Input::InputState& input) const;
     void Choose(std::optional<std::uint8_t> slot);
@@ -88,9 +105,12 @@ private:
     SceneTextures m_textures;
     SceneTextures m_windowTextures;
     UI::NoticeWindow m_notice;
+    UI::SelectionBar m_bar;
     Input::DoubleClick m_doubleClick;
     std::vector<Character> m_characters;
     bool m_tookTheList = false;
+    // Desde que se mandó el F3 02 hasta su respuesta.
+    bool m_waitingForTheDeletion = false;
     std::optional<Render::Pass3D> m_lastPass;
     // El que estaba bajo el mouse en el último paso, que lleva el contorno: como el DAT_006c8e30
     // que 0x59ec80 deja para el frame siguiente.

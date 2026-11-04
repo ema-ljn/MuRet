@@ -8,7 +8,9 @@
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Protocol/Character/CharacterName.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/RayPicking.h"
@@ -29,14 +31,19 @@
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/TextureSets.h"
+#include "UI/DeleteChecks.h"
 #include "UI/Notices.h"
+#include "UI/SelectionBar.h"
+#include "UI/Widget.h"
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Client::Scenes
@@ -55,6 +62,16 @@ constexpr float HeroLight = 0.5f;
 constexpr float ChosenExtraLight = 1.0f;
 constexpr std::uint8_t HeroSlot = 0;
 
+// El bit de las banderas (+0x1d8) con el que el armado de la barra muestra los textos 436 y 437.
+constexpr std::uint8_t BlockedAccountFlag = 0x10;
+
+// Si la entrada es la misma que dio el personaje: un crear en un lugar ocupado lo pisa.
+bool SameEntry(const Protocol::Character::CharacterEntry& one, const Protocol::Character::CharacterEntry& other)
+{
+    return one.slot == other.slot && one.name == other.name && one.classByte == other.classByte &&
+           one.equipment == other.equipment && one.withoutEquipment == other.withoutEquipment;
+}
+
 // Los dos fondos, 0x621b60(0x717, 0, 25, 320, 320, …) y el 0x718 en x 320, escalados desde 640 × 480.
 Render::OriginalQuad Background(std::uint16_t slot, float x)
 {
@@ -72,7 +89,8 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ga
                                            const IModelLibrary& models, App::ServerSession* session)
     : m_context(context), m_texts(data.text ? &*data.text : nullptr), m_models(models), m_session(session),
       m_textures(context.textures, SelectionTextureSet), m_windowTextures(context.textures, WindowTextureSet),
-      m_notice([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts)
+      m_notice([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts),
+      m_bar([this](Render::TextureSlot slot) { return m_textures.BufferSize(slot); }, m_texts)
 {
 }
 
@@ -98,27 +116,58 @@ bool CharacterSelectScene::WaitingForTheList() const
     return m_session != nullptr && !m_session->Characters().has_value();
 }
 
-void CharacterSelectScene::TakeTheList()
+CharacterSelectScene::Character
+CharacterSelectScene::MakeCharacter(const Protocol::Character::CharacterEntry& entry) const
 {
-    if (m_tookTheList || m_session == nullptr || !m_session->Characters())
+    Character character;
+    character.slot = entry.slot;
+    character.entry = entry;
+    const std::uint8_t characterClass = Protocol::Character::CharacterClassOf(entry.classByte);
+    // El que armó la respuesta de crear sale sin equipo (0x517270 sin 0x5139f0, Q-C103).
+    character.appearance = entry.withoutEquipment ? GameLogic::ClassAppearance(characterClass, 0)
+                                                  : GameLogic::AppearanceOf(characterClass, 0, entry.equipment);
+    if (const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel))
+    {
+        Render::Models::SetAction(character.animation.body, *skeleton, StandingAction);
+    }
+    return character;
+}
+
+void CharacterSelectScene::SyncTheCharacters()
+{
+    if (m_session == nullptr || !m_session->Characters())
     {
         return;
     }
-    m_tookTheList = true;
-    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
-    for (const Protocol::Character::CharacterEntry& entry : m_session->Characters()->characters)
+    const std::vector<Protocol::Character::CharacterEntry>& entries = m_session->Characters()->characters;
+    bool changed = !m_tookTheList || entries.size() != m_characters.size();
+    std::vector<Character> synced;
+    synced.reserve(entries.size());
+    for (const Protocol::Character::CharacterEntry& entry : entries)
     {
-        Character character;
-        character.slot = entry.slot;
-        character.appearance =
-            GameLogic::AppearanceOf(Protocol::Character::CharacterClassOf(entry.classByte), 0, entry.equipment);
-        if (skeleton != nullptr)
+        const auto same = std::ranges::find_if(m_characters, [&entry](const Character& character)
+                                               { return SameEntry(character.entry, entry); });
+        if (same != m_characters.end())
         {
-            Render::Models::SetAction(character.animation.body, *skeleton, StandingAction);
+            synced.push_back(std::move(*same));
+            continue;
         }
-        m_characters.push_back(character);
+        synced.push_back(MakeCharacter(entry));
+        changed = true;
     }
-    m_context.log.Info("la selección tiene {} personajes", m_characters.size());
+    m_characters = std::move(synced);
+    if (!m_tookTheList)
+    {
+        m_tookTheList = true;
+        // 0x63e820, una vez: algún personaje de los cinco lugares con el bit 0x10 de las banderas.
+        m_bar.SetBlockedAccount(std::ranges::any_of(entries, [](const Protocol::Character::CharacterEntry& entry)
+                                                    { return (entry.flags & BlockedAccountFlag) != 0; }));
+        m_context.log.Info("la selección tiene {} personajes", m_characters.size());
+    }
+    else if (changed)
+    {
+        m_context.log.Info("la selección tiene ahora {} personajes", m_characters.size());
+    }
 }
 
 // El cuerpo, la mascota y las alas de cada uno (StepCharacterAnimation), con la regla de la escena 4.
@@ -147,16 +196,121 @@ void CharacterSelectScene::ShowTheFailure()
     m_notice.Open(UI::ConnectFailedNotice);
 }
 
+void CharacterSelectScene::TakeTheDeletionResult()
+{
+    if (!m_waitingForTheDeletion || m_session == nullptr ||
+        m_session->State() == App::SessionState::WaitingDeleteResult)
+    {
+        return;
+    }
+    m_waitingForTheDeletion = false;
+    if (const std::optional<std::uint8_t> result = m_session->DeleteResult())
+    {
+        m_notice.Open(UI::NoticeOfDeleteResult(*result));
+    }
+    else if (m_notice.Notice() == UI::PleaseWaitNotice)
+    {
+        // La sesión dejó de esperar sin respuesta: el 0x5d, que no tiene botón, no se queda.
+        m_notice.Close();
+    }
+}
+
 // El aviso abierto tiene el mouse (Q-C84): nadie está debajo. El OK de uno que cierra el juego (el
-// 0x70, Q-C69) lo dice en WantsToQuit; el del bloqueado, solo cierra el aviso.
+// 0x70, Q-C69) lo dice en WantsToQuit; el de la confirmación del borrado abre el del código, y el del
+// código manda el F3 02. Los demás solo se cierran.
 void CharacterSelectScene::StepTheNotice(const Input::InputState& input)
 {
     m_hovered.reset();
     const std::optional<UI::NoticeId> closed = m_notice.Step(input, m_screen);
-    if (closed && UI::FollowUpOf(*closed) == UI::NoticeFollowUp::Quit)
+    if (!closed)
     {
+        return;
+    }
+    switch (UI::FollowUpOf(*closed))
+    {
+    case UI::NoticeFollowUp::Quit:
         m_context.log.Info("el OK del aviso cierra el juego (el {:#04x})", static_cast<int>(*closed));
         m_quit = true;
+        break;
+    case UI::NoticeFollowUp::AskForTheCode:
+        m_notice.Open(UI::DeletionCodeNotice);
+        break;
+    case UI::NoticeFollowUp::SendTheDeletion:
+        SendTheDeletion();
+        break;
+    case UI::NoticeFollowUp::Close:
+    case UI::NoticeFollowUp::ReopenAtAccount:
+    case UI::NoticeFollowUp::ReopenAtPassword:
+        break;
+    }
+}
+
+void CharacterSelectScene::EnableTheBar()
+{
+    bool aFreeSlot = true;
+    if (m_session != nullptr && m_session->Characters())
+    {
+        const std::vector<Protocol::Character::CharacterEntry>& entries = m_session->Characters()->characters;
+        aFreeSlot = false;
+        for (std::uint8_t slot = 0; slot <= Protocol::Character::MaxCharacterSlot; ++slot)
+        {
+            if (std::ranges::find(entries, slot, &Protocol::Character::CharacterEntry::slot) == entries.end())
+            {
+                aFreeSlot = true;
+                break;
+            }
+        }
+    }
+    m_bar.Enable(aFreeSlot, m_session != nullptr && m_session->ChosenCharacter() != nullptr);
+}
+
+void CharacterSelectScene::OnTheBar(UI::SelectionBarClick click)
+{
+    switch (click)
+    {
+    case UI::SelectionBarClick::Connect:
+        TryToEnter();
+        break;
+    case UI::SelectionBarClick::Menu:
+        // El menú (+0x3d0) es de la CL8, como el del login (P-C13).
+        m_context.log.Info("el menú de la selección todavía no está");
+        break;
+    case UI::SelectionBarClick::Create:
+        m_context.log.Info("la ventana de crear un personaje todavía no está");
+        break;
+    case UI::SelectionBarClick::Delete:
+        AskToDelete();
+        break;
+    }
+}
+
+void CharacterSelectScene::AskToDelete()
+{
+    const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
+    if (chosen == nullptr)
+    {
+        return;
+    }
+    const UI::NoticeId notice =
+        UI::NoticeOfDeleteButton(*chosen, UI::FreeDeletionGroup(m_texts, m_session->ChosenServer()));
+    m_context.log.Info("borrar el personaje del lugar {} abre el aviso {:#04x}", chosen->slot,
+                       static_cast<int>(notice));
+    // El nombre va en el %s del texto 1712 del 0x5e (0x6431b0); no va al log.
+    m_notice.Open(notice, Protocol::Character::NameAsText(chosen->name));
+}
+
+void CharacterSelectScene::SendTheDeletion()
+{
+    if (m_session == nullptr)
+    {
+        return;
+    }
+    // El código, como la clave, no va al log.
+    m_session->DeleteCharacter(Protocol::Character::DeleteCodeFromText(m_notice.Code()));
+    if (m_session->State() == App::SessionState::WaitingDeleteResult)
+    {
+        m_waitingForTheDeletion = true;
+        m_notice.Open(UI::PleaseWaitNotice);
     }
 }
 
@@ -172,15 +326,24 @@ void CharacterSelectScene::Step(const Input::InputState& input)
         return;
     }
     ++m_steps;
-    TakeTheList();
+    SyncTheCharacters();
     StepCharacters();
+    TakeTheDeletionResult();
+    EnableTheBar();
     if (m_notice.IsOpen())
     {
         StepTheNotice(input);
         return;
     }
+    if (const std::optional<UI::SelectionBarClick> click = m_bar.Step(input, m_screen))
+    {
+        OnTheBar(*click);
+        return;
+    }
     const auto now = App::LogicStep * static_cast<std::int64_t>(m_steps);
-    const std::optional<std::uint8_t> hovered = UnderTheMouse(input);
+    // Con el mouse sobre la barra, la UI lo tiene (+0x8de8): la escena no elige ni marca a nadie.
+    const bool overTheBar = m_bar.Covers(UI::MouseInPixels(input, m_screen), m_screen);
+    const std::optional<std::uint8_t> hovered = overTheBar ? std::nullopt : UnderTheMouse(input);
     m_hovered = hovered;
     if (m_doubleClick.Step(input, now) && hovered)
     {
@@ -189,7 +352,7 @@ void CharacterSelectScene::Step(const Input::InputState& input)
         TryToEnter();
         return;
     }
-    if (input.WasPressed(Input::MouseButton::Left))
+    if (!overTheBar && input.WasPressed(Input::MouseButton::Left))
     {
         Choose(hovered);
     }
@@ -294,6 +457,8 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
     }
     canvas.flushModels();
+    // La UI del modo 4 (0x65fe00): la barra, y el aviso arriba.
+    m_bar.Draw(sprites, canvas.text, canvas.screen);
     m_notice.Draw(sprites, canvas.text, canvas.screen);
 }
 
@@ -315,7 +480,7 @@ bool CharacterSelectScene::WantsToQuit() const
 
 bool CharacterSelectScene::WantsTextInput() const
 {
-    return false;
+    return m_notice.WantsTextInput();
 }
 
 bool CharacterSelectScene::HoldsTheLastFrame() const

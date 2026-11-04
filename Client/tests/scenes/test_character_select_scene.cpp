@@ -6,6 +6,10 @@
 #include "Data/Models/Model.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Network/Crypto/Xor32.h"
+#include "Network/Packet.h"
+#include "Network/PacketSerials.h"
+#include "Protocol/Character/CharacterDelete.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/ModelVertex.h"
@@ -17,13 +21,16 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/TextureSets.h"
 
+#include "support/Bytes.h"
 #include "support/CharacterPackets.h"
 #include "support/FakeTextureStore.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
+#include "support/SameBytes.h"
 #include "support/ScenePrinters.h"
 #include "support/SessionHarness.h"
+#include "support/TestGameServer.h"
 #include "support/TemporaryFolder.h"
 #include "support/UiInput.h"
 
@@ -40,6 +47,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -155,7 +163,21 @@ struct Harness
     {
         Client::Tests::WriteTextureSet(folder.Path(), SelectionTextureSet);
         Client::Tests::WriteTextureSet(folder.Path(), WindowTextureSet);
-        Client::Tests::WriteTextTable(folder.Path(), {{402, "no conecta"}, {434, "bloqueado"}});
+        Client::Tests::WriteTextTable(folder.Path(), {{402, "no conecta"},
+                                                      {434, "bloqueado"},
+                                                      {401, "codigo invalido"},
+                                                      {417, "cuenta bloqueada"},
+                                                      {439, "char bloqueado"},
+                                                      {436, "cuenta del ADM"},
+                                                      {437, "el sitio"},
+                                                      {471, "espere"},
+                                                      {540, "Synthetic A"},
+                                                      {559, "Synthetic B"},
+                                                      {1654, "del gremio"},
+                                                      {1711, "nivel alto"},
+                                                      {1712, "borrar %s"},
+                                                      {1713, "el codigo"},
+                                                      {1714, "borrado"}});
         auto loaded = Client::Scenes::LoadGameData(folder.Path());
         EXPECT_TRUE(loaded.HasValue());
         if (loaded.HasValue())
@@ -175,10 +197,49 @@ struct Harness
     // Y la lista, y un paso: los personajes están en sus lugares.
     void ReachTheChoice(bool locked = false)
     {
+        ASSERT_NO_FATAL_FAILURE(ReachTheChoiceWith(TwoCharacters(locked)));
+    }
+
+    void ReachTheChoiceWith(const std::vector<CharacterEntryFields>& characters)
+    {
         ASSERT_NO_FATAL_FAILURE(Enter());
-        online.ReceiveTheList(TwoCharacters(locked));
+        online.ReceiveTheList(characters);
         ASSERT_EQ(online.session.State(), SessionState::ChoosingCharacter);
         Step();
+    }
+
+    // Un paso con `bytes` del GameServer, en claro.
+    void Receive(const std::vector<std::byte>& bytes)
+    {
+        online.socket.reads = {bytes};
+        Step();
+    }
+
+    void Tap(Key key)
+    {
+        Client::Tests::TapKey(input, key);
+        Step();
+    }
+
+    // Los F3 02 que mandó el cliente, sin el XOR32.
+    [[nodiscard]] std::vector<Client::Network::Packet> DeletesSent() const
+    {
+        Client::Network::PacketSerials serials;
+        std::vector<Client::Network::Packet> deletes;
+        for (const Client::Network::Packet& packet :
+             Client::Tests::AsTheGameServerReceives(online.socket.sent, serials).packets)
+        {
+            if (packet.Opcode() != 0xF3)
+            {
+                continue;
+            }
+            Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(packet);
+            if (clear.Bytes().size() > 3 && clear.Bytes()[3] == std::byte{0x02})
+            {
+                deletes.push_back(std::move(clear));
+            }
+        }
+        return deletes;
     }
 
     void Step()
@@ -256,7 +317,22 @@ TEST(CharacterSelectSceneTest, DrawsNothingBeforeTheList)
     EXPECT_TRUE(tested.Frame().empty());
 }
 
-// Los fondos, el fin del 2D, el pase del mundo y los modelos, en el orden de 0x634680.
+// La barra de la selección (0x63ec00): el adorno, la franja sin textura y los cuatro botones.
+void ExpectTheBar(const std::vector<FrameEvent>& events, std::size_t first)
+{
+    ASSERT_GE(events.size(), first + 6);
+    EXPECT_EQ(events[first].texture, std::optional<TextureSlot>{TextureSlot{0xe}});
+    EXPECT_EQ(events[first + 1].texture, std::nullopt);
+    for (std::size_t k = 0; k < 4; ++k)
+    {
+        EXPECT_EQ(events[first + 2 + k].texture,
+                  std::optional<TextureSlot>{TextureSlot{static_cast<std::uint16_t>(0xf + k)}})
+            << k;
+    }
+}
+
+// Los fondos, el fin del 2D, el pase del mundo y los modelos, en el orden de 0x634680, y la UI arriba:
+// la barra (0x65fe00).
 TEST(CharacterSelectSceneTest, DrawsInTheOrderOfTheOriginal)
 {
     Harness tested;
@@ -264,13 +340,14 @@ TEST(CharacterSelectSceneTest, DrawsInTheOrderOfTheOriginal)
 
     const std::vector<FrameEvent> events = tested.Frame();
 
-    ASSERT_EQ(events.size(), 5u);
+    ASSERT_EQ(events.size(), 11u);
     EXPECT_EQ(events[0].kind, Kind::Quad);
     EXPECT_EQ(events[0].texture, std::optional<TextureSlot>{TextureSlot{0x717}});
     EXPECT_EQ(events[1].texture, std::optional<TextureSlot>{TextureSlot{0x718}});
     EXPECT_EQ(events[2].kind, Kind::Flush);
     EXPECT_EQ(events[3].kind, Kind::World);
     EXPECT_EQ(events[4].kind, Kind::Models);
+    ExpectTheBar(events, 5);
 }
 
 // Cada personaje en su lugar de 0x4c20a0, a z = 163, con su giro: el triángulo de cada parte empieza
@@ -581,8 +658,261 @@ TEST(CharacterSelectSceneTest, WithoutASessionOnlyDraws)
 
     const std::vector<FrameEvent> events = tested.Frame();
 
-    ASSERT_EQ(events.size(), 5u);
+    ASSERT_EQ(events.size(), 11u);
     EXPECT_EQ(events[0].texture, std::optional<TextureSlot>{TextureSlot{0x717}});
     EXPECT_TRUE(events[4].modelVertices.empty());
+    ExpectTheBar(events, 5);
+}
+
+// Los textos que dibuja el frame, en orden.
+std::vector<std::string> TextsOf(const std::vector<FrameEvent>& events)
+{
+    std::vector<std::string> texts;
+    for (const FrameEvent& event : events)
+    {
+        if (event.kind == Kind::Text)
+        {
+            texts.push_back(event.text.text);
+        }
+    }
+    return texts;
+}
+
+bool Draws(const std::vector<FrameEvent>& events, std::string_view text)
+{
+    const std::vector<std::string> texts = TextsOf(events);
+    return std::ranges::find(texts, text) != texts.end();
+}
+
+// Los botones de la barra en 640 × 480: crear en (22, 399), conectar en (509, 399) y borrar en
+// (564, 399), de 54 × 30.
+constexpr glm::vec2 CreateButton{30.0f, 410.0f};
+constexpr glm::vec2 ConnectButton{515.0f, 410.0f};
+constexpr glm::vec2 DeleteButton{570.0f, 410.0f};
+
+// La barra no es modal, pero tapa su rectángulo (+0x8de8, 06 § La lógica): un clic encima no elige
+// ni saca la elección, y nadie lleva el contorno.
+TEST(CharacterSelectSceneTest, TheBarBlocksThePicking)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(tested.OnScreen(3));
+    ASSERT_NE(tested.online.session.ChosenCharacter(), nullptr);
+
+    tested.ClickAt({300.0f, 420.0f});
+
+    ASSERT_NE(tested.online.session.ChosenCharacter(), nullptr);
+    EXPECT_EQ(tested.online.session.ChosenCharacter()->slot, 3);
+    EXPECT_TRUE(OutlineVertices(tested.Frame()).empty());
+    // Afuera de la barra, el mismo clic sobre nadie saca la elección.
+    tested.ClickAt({300.0f, 390.0f});
+    EXPECT_EQ(tested.online.session.ChosenCharacter(), nullptr);
+}
+
+// El armado de la barra (0x63e820) mira las banderas de la lista una vez: con el bit 0x10 en alguno,
+// los textos 436 y 437; sin él, no.
+TEST(CharacterSelectSceneTest, ABlockedAccountShowsItsTexts)
+{
+    Harness blocked;
+    ASSERT_NO_FATAL_FAILURE(blocked.ReachTheChoiceWith({{0, "char0001"}, {3, "char0002", 1, 0x10}}));
+    const std::vector<FrameEvent> events = blocked.Frame();
+    EXPECT_TRUE(Draws(events, "cuenta del ADM"));
+    EXPECT_TRUE(Draws(events, "el sitio"));
+
+    Harness free;
+    ASSERT_NO_FATAL_FAILURE(free.ReachTheChoiceWith({{0, "char0001"}, {3, "char0002", 1, 0x0f}}));
+    EXPECT_FALSE(Draws(free.Frame(), "cuenta del ADM"));
+}
+
+// Conectar es lo de Enter (0x633c10): sin elegido está deshabilitado; con uno, entra.
+TEST(CharacterSelectSceneTest, TheConnectButtonEnters)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(ConnectButton);
+    EXPECT_EQ(tested.scene->Next(), std::nullopt);
+
+    tested.ClickAt(tested.OnScreen(3));
+    tested.ClickAt(ConnectButton);
+
+    EXPECT_EQ(tested.scene->Next(), std::optional{SceneId::WorldLoading});
+}
+
+// La v de arriba del botón de crear en el frame: el cuadro 3 (deshabilitado) baja la textura.
+float CreateButtonTop(const std::vector<FrameEvent>& events)
+{
+    const auto create = std::ranges::find(events, std::optional<TextureSlot>{TextureSlot{0xf}}, &FrameEvent::texture);
+    EXPECT_NE(create, events.end());
+    if (create == events.end())
+    {
+        return 0.0f;
+    }
+    return std::ranges::min(create->vertices, {}, &Client::Render::SpriteVertex::v).v;
+}
+
+// 0x63eb40: crear, con un lugar libre de los cinco. Con los cinco, el cuadro deshabilitado.
+TEST(CharacterSelectSceneTest, CreateIsDisabledWithFiveCharacters)
+{
+    Harness two;
+    ASSERT_NO_FATAL_FAILURE(two.ReachTheChoice());
+    two.Step();
+    Harness five;
+    ASSERT_NO_FATAL_FAILURE(
+        five.ReachTheChoiceWith({{0, "char0001"}, {1, "char0002"}, {2, "char0003"}, {3, "char0004"}, {4, "char0005"}}));
+    five.Step();
+
+    EXPECT_GT(CreateButtonTop(five.Frame()), CreateButtonTop(two.Frame()));
+}
+
+// 0x63edf0: uno del gremio no se borra (el 0x92), y el aviso se cierra con su OK.
+TEST(CharacterSelectSceneTest, AGuildMemberIsNotDeleted)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({{0, "char0001"}, {3, "char0002", 1, 0, 0, {}, 0x80}}));
+    tested.ClickAt(tested.OnScreen(3));
+
+    tested.ClickAt(DeleteButton);
+
+    EXPECT_TRUE(Draws(tested.Frame(), "del gremio"));
+    tested.Tap(Key::Enter);
+    EXPECT_FALSE(ShowsANotice(tested.Frame()));
+    EXPECT_TRUE(tested.DeletesSent().empty());
+}
+
+// De nivel 80 o más, en un grupo que no se llama como el texto 559, el 0x83. El servidor elegido
+// del arnés es el 400, del grupo 20 (el texto 1829, que falta: vacío).
+TEST(CharacterSelectSceneTest, AHighLevelOneOutsideTheFreeGroupIsNotDeleted)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({{0, "char0001"}, {3, "char0002", 80}}));
+    tested.ClickAt(tested.OnScreen(3));
+
+    tested.ClickAt(DeleteButton);
+
+    EXPECT_TRUE(Draws(tested.Frame(), "nivel alto"));
+}
+
+// El borrado entero: la confirmación con el nombre (0x5e), el código (0x5f, solo dígitos y con el
+// campo de texto), el F3 02 con el nombre y el código y el "espere" (0x5d), y con la respuesta 1, el
+// 0x60: el personaje se va y nadie queda elegido.
+TEST(CharacterSelectSceneTest, ADeletionAsksTheCodeAndSendsIt)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(tested.OnScreen(3));
+
+    tested.ClickAt(DeleteButton);
+    EXPECT_TRUE(Draws(tested.Frame(), "borrar char0002"));
+    EXPECT_FALSE(tested.scene->WantsTextInput());
+    tested.Tap(Key::Enter);
+    EXPECT_TRUE(Draws(tested.Frame(), "el codigo"));
+    EXPECT_TRUE(tested.scene->WantsTextInput());
+    Client::Tests::TypeText(tested.input, "12a34");
+    tested.Step();
+    tested.Tap(Key::Enter);
+
+    EXPECT_EQ(tested.online.session.State(), SessionState::WaitingDeleteResult);
+    const std::vector<Client::Network::Packet> deletes = tested.DeletesSent();
+    ASSERT_EQ(deletes.size(), 1u);
+    const auto expected = Client::Protocol::Character::WriteCharacterDelete(
+        Client::Tests::NameBytes("char0002"), Client::Protocol::Character::DeleteCodeFromText("1234"));
+    EXPECT_TRUE(
+        Client::Tests::SameBytes(deletes[0].Bytes(), Client::Network::Crypto::Xor32Decode(expected.packet).Bytes()));
+    EXPECT_TRUE(Draws(tested.Frame(), "espere"));
+    EXPECT_FALSE(tested.scene->WantsTextInput());
+
+    tested.Receive(Client::Tests::Bytes({0xC1, 0x05, 0xF3, 0x02, 0x01}));
+
+    const std::vector<FrameEvent> events = tested.Frame();
+    EXPECT_TRUE(Draws(events, "borrado"));
+    EXPECT_EQ(tested.online.session.ChosenCharacter(), nullptr);
+    const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
+    ASSERT_NE(models, events.end());
+    ASSERT_EQ(models->modelVertices.size(), 6u * 3u);
+    EXPECT_NEAR(models->modelVertices[0].position.x, CharacterSlots[0].position.x, 1e-3f);
+    tested.Tap(Key::Enter);
+    EXPECT_FALSE(ShowsANotice(tested.Frame()));
+}
+
+// Las respuestas que no borran: 0 → 0x92, 3 → 0x62 y otra → 0x89 (0x4e2fe9). El personaje queda.
+TEST(CharacterSelectSceneTest, ARefusedDeletionShowsItsNotice)
+{
+    for (const auto& [result, text] : {std::pair{std::uint8_t{0}, std::string_view{"del gremio"}},
+                                       std::pair{std::uint8_t{3}, std::string_view{"char bloqueado"}},
+                                       std::pair{std::uint8_t{4}, std::string_view{"codigo invalido"}}})
+    {
+        Harness tested;
+        ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+        tested.ClickAt(tested.OnScreen(3));
+        tested.ClickAt(DeleteButton);
+        tested.Tap(Key::Enter);
+        tested.Tap(Key::Enter);
+
+        tested.Receive(Client::Tests::Bytes({0xC1, 0x05, 0xF3, 0x02, result}));
+
+        const std::vector<FrameEvent> events = tested.Frame();
+        EXPECT_TRUE(Draws(events, text)) << static_cast<int>(result);
+        ASSERT_NE(tested.online.session.ChosenCharacter(), nullptr);
+        EXPECT_EQ(tested.online.session.ChosenCharacter()->slot, 3);
+        const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
+        ASSERT_NE(models, events.end());
+        EXPECT_EQ(models->modelVertices.size(), 2u * 6u * 3u);
+    }
+}
+
+// Esc en la confirmación o en el código cierra sin mandar nada (0x6436a0).
+TEST(CharacterSelectSceneTest, CancellingTheDeletionSendsNothing)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(tested.OnScreen(3));
+    tested.ClickAt(DeleteButton);
+    tested.Tap(Key::Escape);
+    EXPECT_FALSE(ShowsANotice(tested.Frame()));
+
+    tested.ClickAt(DeleteButton);
+    tested.Tap(Key::Enter);
+    tested.Tap(Key::Escape);
+
+    EXPECT_FALSE(ShowsANotice(tested.Frame()));
+    EXPECT_FALSE(tested.scene->WantsTextInput());
+    EXPECT_TRUE(tested.DeletesSent().empty());
+    EXPECT_EQ(tested.online.session.State(), SessionState::ChoosingCharacter);
+}
+
+// El que creó la sesión (F3 01 con 1) aparece en su lugar, con las partes de su clase y sin equipo
+// (Q-C103), y los otros siguen con su animación.
+TEST(CharacterSelectSceneTest, ACreatedOneAppearsInItsSlot)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.online.session.CreateCharacter("char0003", 1);
+    std::vector<std::byte> created = Client::Tests::Bytes({0xC1, 0x13, 0xF3, 0x01, 0x01});
+    const auto name = Client::Tests::NameBytes("char0003");
+    created.insert(created.end(), name.begin(), name.end());
+    for (const std::uint8_t value : {std::uint8_t{1}, std::uint8_t{1}, std::uint8_t{0}, std::uint8_t{0x20}})
+    {
+        created.push_back(std::byte{value});
+    }
+
+    tested.Receive(created);
+
+    const std::vector<FrameEvent> events = tested.Frame();
+    const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
+    ASSERT_NE(models, events.end());
+    // Las cinco partes de la clase, sin la cabeza (que va solo con los cascos 0x1012 y otros), de un
+    // triángulo cada una.
+    ASSERT_EQ(models->modelVertices.size(), 2u * 6u * 3u + 5u * 3u);
+    const bool inSlotOne =
+        std::ranges::any_of(models->modelVertices,
+                            [](const Client::Render::ModelVertex& vertex)
+                            {
+                                return std::abs(vertex.position.x - CharacterSlots[1].position.x) < 1e-3f &&
+                                       std::abs(vertex.position.y - CharacterSlots[1].position.y) < 1e-3f;
+                            });
+    EXPECT_TRUE(inSlotOne);
+    EXPECT_TRUE(
+        std::ranges::any_of(tested.sink.lines, [](const std::string& line)
+                            { return line.find("la selección tiene ahora 3 personajes") != std::string::npos; }));
 }
 } // namespace

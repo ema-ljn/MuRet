@@ -666,10 +666,11 @@ struct Vertex
     std::int16_t bone = 0; // en los huesos de Player.bmd, en las partes del personaje (05)
     std::array<float, 3> position{}; // en el espacio de ese hueso
 };
-struct Normal // 20 B: el hueso, la normal y 4 bytes que la CL6.R lee (P-C01 d)
+struct Normal // 20 B: el hueso, relleno, la normal, un índice de vértice y relleno (CL6.R)
 {
     std::int16_t bone = 0;
     std::array<float, 3> normal{};
+    std::int16_t vertex = 0; // el int16 de +16: un vértice de la malla (*inferido*)
 };
 struct TexCoord
 {
@@ -746,6 +747,7 @@ struct ModelLoadError
     ModelLoadErrorKind kind = ModelLoadErrorKind::Missing;
     std::string path; // como la pide el original ("Data\\Player\\Player.bmd")
     std::optional<DataError> data; // con Unreadable
+    std::error_code system; // con Missing o Unreadable, lo que dijo el sistema, como TextureSetError
 };
 // Busca `folder + ModelFileName(...)` en `dataRoot` sin mirar mayúsculas (ResolveDataPath) y lo
 // lee. Player con mallas es SkeletonWithMeshes.
@@ -811,7 +813,7 @@ public:
 } // namespace Client::Render::Models
 ```
 
-- [ ] **Paso 1 (PR A):** los tests sintéticos, con el `.bmd` de `support/SyntheticModels.h` (una
+- [x] **Paso 1 (PR A):** los tests sintéticos, con el `.bmd` de `support/SyntheticModels.h` (una
   malla de tres vértices y un triángulo, dos acciones, tres huesos: una raíz, un hijo y un dummy):
   `BmdTest.ReadsAClearModel` (cada campo), `ReadsAnEncryptedModel` (el mismo, cifrado),
   `AnyVersionButTwelveIsClear` (`0x0A`, `0x0B` y `0x00`), `DoesNotLookAtTheMagic`,
@@ -821,17 +823,17 @@ public:
   `TheTriangleKeepsItsThreeIndexSets`; `ModelFileNameTest.FollowsTheThreeFormats` (-1, 0, 9, 10 y
   17); `ModelFilesTest.OnlyMonsterPlayerAndPlayerTestAreRequired`, `AMissingFileSaysItsPath`,
   `TheSkeletonWithMeshesIsAnError` y `FindsTheFileInAnyCase`.
-- [ ] **Paso 2 (PR A):** correrlos y verlos fallar:
+- [x] **Paso 2 (PR A):** correrlos y verlos fallar:
   `cmake --build --preset linux-x64-debug && ctest --preset linux-x64-debug -R "Bmd|ModelFile"`.
-- [ ] **Paso 3 (PR A, Emanuel, `TODO(human)`):** `LoadBmd` con `Core::ByteReader` (CL1) y
+- [x] **Paso 3 (PR A, Emanuel, `TODO(human)`, resuelto por Claude):** `LoadBmd` con `Core::ByteReader` (CL1) y
   `DecryptK16` sobre una copia; `ModelFileName`, `IsRequiredModel` y `LoadModelFile`, con
   `ResolveDataPath` y `ReadDataFile` (el tope, `MaxModelFileBytes`, lo fija el golden).
-- [ ] **Paso 4 (PR A):** los golden (`GoldenDataTest`): `GoldenBmd.ReadsEveryModelOfTheLab` (cada
+- [x] **Paso 4 (PR A):** los golden (`GoldenDataTest`): `GoldenBmd.ReadsEveryModelOfTheLab` (cada
   archivo del `Data\` que empieza con `"BMD"`: los 1.962 se leen y ninguno deja bytes de más; las
   tablas `.bmd`, sin `"BMD"`, no son modelos), `ThePlayerIsASkeleton` (60 huesos, 10 dummy, 205
   acciones, ninguna malla), `ParentsComeBeforeChildren` (en los 1.962),
   `EveryIndexOfATriangleIsInItsMesh` (vértices, normales y UV) y `EveryModelFitsTheReadLimit`.
-- [ ] **Paso 5 (PR A):** verificar, con y sin la carpeta:
+- [x] **Paso 5 (PR A):** verificar, con y sin la carpeta:
   ```bash
   ctest --preset linux-x64-debug -R "Bmd|ModelFile"
   MURET_CLIENT_GOLDEN_DIR=<Data del laboratorio> ctest --preset linux-x64-debug -R "GoldenBmd"
@@ -839,6 +841,49 @@ public:
   Los mutantes a mano, cada uno con el test que lo mata: sin descifrar, con K16 desde `+4`, sin
   los 12 bytes de `lock_positions`, el triángulo de 36 bytes de paso, el padre como `uint8`, el
   `"%s%d"` sin el cero y un archivo corto que no falla.
+
+  Hecho así (PR A, 2026-11-03, resuelto por Claude): `Data/Models/Model.h`, `Bmd.h/.cpp` y
+  `ModelFiles.h/.cpp`, con 28 tests (`test_bmd.cpp`, `test_model_files.cpp` y
+  `test_golden_bmd.cpp`) y el `.bmd` sintético de `support/SyntheticModels.h`, que escribe con
+  basura (`0xA5`) lo que el lector no lee. Lo que cambió del contrato de arriba:
+  - `Normal` suma el índice de vértice de `+16`, y `ModelLoadError` el `std::error_code` del
+    sistema, como `TextureSetError`.
+  - Una cantidad negativa (de mallas, huesos, acciones, de cada parte de una malla o de keys) es
+    `DataError::InvalidData`: el original pediría memoria con las de una malla y las keys, y las
+    tres del modelo las saltea como un 0 (`0x4f1882`) pero las deja guardadas. Ninguno del
+    laboratorio la tiene (`BmdTest.ANegativeCountIsInvalidData`).
+  - Lo que va en el archivo después del bloque cifrado no se lee ni se cuenta en `trailingBytes`
+    (`BmdTest.BytesAfterTheEncryptedBlockAreNotRead`); el golden mira que ningún cifrado del
+    laboratorio lo tenga.
+  - `MaxModelFileBytes` es 8 MiB: el más grande del laboratorio es `player\playerTest.bmd`, de
+    2.414.277 bytes.
+  - `IsRequiredModel` compara byte a byte: `0x60daec`.. es un `strcmp` en línea.
+  - `ParentsComeBeforeChildren` no vale en los 1.962: en `NPC\BloodCastle01.bmd` los huesos 43 y
+    44 cuelgan del 45, y la pose de `0x4eb860` los concatena con la matriz que dejó una pose
+    anterior (Q-C108, nuevo). El golden lista esos dos, y la pose de los NPC queda para la CL9.
+  - Suman al golden `CountsTheVersionsOfTheLab` (816, 1.142 y los cuatro `0x00` de `Object3`) y
+    `EveryNormalPointsAtAVertexOfItsMesh` (los 301.367); `EveryIndexOfATriangleIsInItsMesh`
+    cuenta los 450.338 triángulos, todos de tipo 3.
+
+  Los 14 mutantes a mano (los siete de arriba, más el orden de las cantidades, un negativo como
+  cero, el nombre sin cortar en el 0, el esqueleto con mallas aceptado, los requeridos sin
+  mayúsculas y el dummy solo con 1) los mata al menos un test cada uno. Sin la VM de Windows, se
+  compiló y corrió en Linux con `-Werror` y sin precompiled headers, con `misc-include-cleaner` y
+  `clang-format` 18 limpios.
+
+  Revisión adversarial (2026-11-03, resuelta por Claude): un revisor del C++ y otro que contrastó
+  el lector con el desensamblado, y después la decompilación de Ghidra del mismo `main.exe`. El
+  formato, el cifrado y los nombres de archivo quedaron confirmados. Lo que se arregló, con un test
+  que falló primero:
+  - Cada hueso que se posa lleva un `BoneKeys` por acción aunque la acción no tenga keys, que no
+    ocupan bytes: un `.bmd` de 1,2 MB con 32.767 acciones y 32.767 huesos pedía unos 50 GB. El
+    original tampoco tiene tope: por cada hueso reserva 12 bytes por acción y tres bloques más por
+    acción, aunque queden vacíos. `LoadBmd` corta con `InvalidData` pasando de
+    `MaxPosedBoneActions` (65.536) huesos que se posan por acciones, y lo cuenta antes de pedir la
+    memoria; el que más tiene en el laboratorio es `Player.bmd`, con 10.250
+    (`BmdTest.TooManyPosedBonesTimesActionsIsInvalidData`,
+    `GoldenBmd.EveryModelFitsThePosedBoneLimit`). Los tres mutantes del tope (sin descontar, con
+    `>=` y contando los dummy) los mata ese test.
 - [ ] **Paso 6 (PR B):** los tests de las tablas, con los números de la CL6.R:
   `PlayerModelsTest.ThePlayerIsModel0x20a`, `ItemModelsAreGroupTimes512PlusIndex`,
   `ClassPartsAreOneToFive`, `HelmMaleOneIsItemZero` (el `HelmMale` N es el índice N − 1 del grupo

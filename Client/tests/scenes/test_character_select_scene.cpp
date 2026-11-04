@@ -13,6 +13,7 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/ModelVertex.h"
+#include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterSlots.h"
@@ -735,9 +736,7 @@ bool Draws(const std::vector<FrameEvent>& events, std::string_view text)
     return std::ranges::find(texts, text) != texts.end();
 }
 
-// Los botones de la barra en 640 × 480: crear en (22, 399), conectar en (509, 399) y borrar en
-// (564, 399), de 54 × 30.
-constexpr glm::vec2 CreateButton{30.0f, 410.0f};
+// Los botones de la barra en 640 × 480: conectar en (509, 399) y borrar en (564, 399), de 54 × 30.
 constexpr glm::vec2 ConnectButton{515.0f, 410.0f};
 constexpr glm::vec2 DeleteButton{570.0f, 410.0f};
 

@@ -49,8 +49,9 @@ sub-ola por sub-ola y Claude hace de tutor. Claude escribe el andamiaje (CMake, 
 plantillas de docs) cuando se lo piden y los pasos marcados `(Claude)` en los planes.
 
 **Qué NO es el objetivo:** un cliente de Season 6 (eso es MuMain), ni portar el anticheat, ni
-servir los assets del juego. MuRet no versiona ningún archivo de `Data\`: el jugador apunta el
-cliente a una instalación existente.
+distribuir un cliente para jugar. La `Data\` del original está en `Client/assets/Data/`, tal cual,
+porque es el original que MuRet reimagina y la base de sus tests (decidido por Emanuel el
+2026-11-04); el cliente igual la lee de la carpeta que se le pase.
 
 ## Cómo trabajamos
 
@@ -85,9 +86,9 @@ La regla guía es la del servidor: el **contrato** (wire + archivos de datos) se
 | D-C4 | Ritmo del frame | pasos de lógica de 40 ms (25 por segundo) y una espera activa de 40 ms medida con `GetTickCount`, que con ticks de 15,625 ms termina a los 46,875 ms: **21,33 FPS**, medido en la selección y en Lorencia, y desde el segundo frame 75 pasos de lógica cada 64 frames, 11 de ellos con 2 (7 u 8 cada 6), *análisis* de la aritmética del bucle; el acumulador no tiene tope y no mide los pasos, y sin foco no corre el frame ([02](../../../Client/docs/research/02-arranque-y-ciclo-de-vida.md), CL3.R) | **tick de lógica de 40 ms** con el mismo bucle de alcanzar que el original + **render desacoplado** con interpolación, VSync por defecto; sin VSync, sin tope o con un tope opcional (`[Video] MaxFps`, como el `FpsCap` de MuMain, que tampoco topea por defecto); como el [ADR 0001 de MuMain](https://github.com/sven-n/MuMain/blob/main/docs/adr/0001-preserve-25-fps-reference-timing.md). Un **modo fiel** en la config reproduce la espera del original con un reloj de 15,625 ms (46,875 ms por frame), para comparar lado a lado | el bucle de juego con paso fijo; más FPS sin que el juego vaya más rápido ni cambie lo que se manda al servidor |
 | D-C5 | Red | `WSAAsyncSelect` en el hilo de la ventana | un socket TCP no bloqueante que el bucle consulta en cada frame; un solo hilo | E/S no bloqueante; por qué un cliente no necesita IOCP |
 | D-C6 | FoxAnti | DLL que parchea el binario | `Network::IObfuscation` opcional, con una implementación identidad y una FoxAnti (solo la capa de paquetes), elegida por config según el servidor | separar el contrato de un servidor concreto del cliente |
-| D-C7 | Datos | cargadores que escriben globales; `MessageBox` si falta algo | funciones puras bytes → tipos, errores como valor con un `Expected` propio (decidido por Emanuel el 2026-11-01, L-3 del camino); los assets no se versionan | testear sin ventana; datos de prueba sin violar derechos |
+| D-C7 | Datos | cargadores que escriben globales; `MessageBox` si falta algo | funciones puras bytes → tipos, errores como valor con un `Expected` propio (decidido por Emanuel el 2026-11-01, L-3 del camino); la `Data\` del original se versiona en `Client/assets/Data/`, tal cual (decidido por Emanuel el 2026-11-04) | testear sin ventana; una sola `Data\` de referencia para todos |
 | D-C8 | Quirks | se replican tal cual | contrato de datos se reproduce; bugs internos se corrigen con test viejo/nuevo (regla de [07](../../../Client/docs/research/07-quirks-y-bugs.md)) | distinguir contrato de accidente |
-| D-C9 | Tests | — | GoogleTest; los de datos reales leen `MURET_CLIENT_GOLDEN_DIR`, una carpeta con el contenido de `Data\` (por ejemplo `analysis/decompilacion-maxima/assets/original-data` de `mu-online-reverse-lab`). Sin la variable, se saltean; si apunta a una carpeta que no existe o le falta el archivo pedido, fallan (CL0.2) | oráculos sin meter assets al repo |
+| D-C9 | Tests | — | GoogleTest; los de datos reales leen `Client/assets/Data/`, la base del proyecto, o la carpeta de `MURET_CLIENT_GOLDEN_DIR` si está. Si la carpeta no existe o le falta el archivo pedido, fallan (CL0.2). Hasta el 2026-11-04, sin la variable se salteaban; desde ese día corren siempre, también en CI (decidido por Emanuel: no depender de otras copias). Los volcados de memoria, el cable y las trazas siguen afuera, y sin su variable se saltean | oráculos que corren en cada PR |
 | D-C10 | Config | registro de Windows; el ConnectServer viene compilado y el launcher lo puede cambiar por el registro; los argumentos no se leen, y el parser de `/u /p` está sin usar ([02](../../../Client/docs/research/02-arranque-y-ciclo-de-vida.md#del-launcher-al-juego)) | archivo de config + argumentos; se acepta `connect /u<ip> /p<puerto>`, como se lo lanza en el laboratorio | nada hardcodeado |
 | D-C11 | Resolución | 640 × 480 de referencia | lo que el original escala (`0x620d50` y `0x620d80`) se diseña en 640 × 480 y se escala a la ventana real, cada eje por su lado; las ventanas de la UI nueva (`0x65f300`: la lista, la cuenta, los avisos) van en píxeles del framebuffer, centradas como en el original, con sus textos en 640 × 480 (corregido en la CL5.5, con la pregunta 10 del plan de la CL5); resoluciones y pantallas anchas modernas. La ventana no cambia de tamaño, y su resolución es una de las cinco del original (640 × 480, 800 × 600, 1024 × 768, 1280 × 1024 y 1600 × 1200) o un modo real del monitor, el del escritorio o uno de pantalla completa (decidido con Emanuel el 2026-11-03; `App::IsValidResolution`) | separar coordenadas lógicas de físicas |
 | D-C12 | Texto | GDI → textura, caché por texto, IME coreano | FreeType en un bit (el hinting del intérprete v35, sin suavizado) → la caja de 256 × 32 del original, con una caché propia (CL5.3); se conserva el byte `0x02` de color. Los textos son de un byte por letra, leídos como Latin-1 (Q-C67) | rasterizado de fuentes, hinting, codificaciones de un byte |
@@ -168,7 +169,8 @@ de MuMain no se copian (revisado contra su `src/source/` el 2026-11-01):
   propio target, `ClientPlatform`, y es lo único que ve SDL3: `Input` no conoce SDL, y `Platform`
   le pasa los eventos ya traducidos ([plan de la CL3](../plans/2026-11-02-ola-cl3-plataforma-y-bucle.md)).
 - **Sin `Core/Globals` ni `Core/Utilities`** (`_struct.h`, `Singleton`, `_GlobalFunctions`): D-C1.
-- **Sin assets en el repo** (MuMain versiona `src/bin/Data`).
+- **La `Data\` va en `Client/assets/Data/`**, como MuMain versiona `src/bin/Data`, pero la del 1.02
+  original y sin tocar: es la referencia que se reimagina (decidido por Emanuel el 2026-11-04).
 
 `Data/` se divide por lo que se lee y no por la extensión: en MU, `.bmd` son las tablas
 (`Item`, `Skill`, `Gate`) y también los modelos (`Player.bmd`), que son otro formato. Las tablas
@@ -270,6 +272,7 @@ también en los mapas de evento. CL10 — música y efectos.
   [05](../../../Client/docs/research/05-formatos-de-datos.md#el-pipeline-de-las-dlls)) y el
   servidor que deja en el registro para el juego (`wzPopLaunchInfo`,
   [02](../../../Client/docs/research/02-arranque-y-ciclo-de-vida.md#del-launcher-al-juego)).
-- Versionar assets del juego o distribuir un cliente jugable con datos.
+- Distribuir un cliente jugable con datos. La `Data\` del original está en el repo como referencia
+  (2026-11-04), no como parte de un cliente para jugar.
 - Funciones de clientes posteriores al 1.02 (Season 6, MU Helper, tienda).
 - Cambiar quién escribe la lógica del cliente: sigue siendo Emanuel.

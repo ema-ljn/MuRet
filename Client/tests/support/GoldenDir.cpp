@@ -47,9 +47,19 @@ GoldenDirState CheckGoldenDir(const std::optional<std::filesystem::path>& dir)
     return std::filesystem::is_directory(*dir, error) ? GoldenDirState::Ready : GoldenDirState::Missing;
 }
 
-std::optional<std::filesystem::path> GoldenDir()
+std::filesystem::path RepoDataDir()
 {
-    return GoldenDirFromValue(Core::ReadEnvironmentVariable(GoldenDirVariable));
+    return std::filesystem::path(MURET_CLIENT_REPO_DATA_DIR);
+}
+
+std::filesystem::path GoldenDirOrRepoData(const std::optional<std::string>& value)
+{
+    return GoldenDirFromValue(value).value_or(RepoDataDir());
+}
+
+std::filesystem::path GoldenDir()
+{
+    return GoldenDirOrRepoData(Core::ReadEnvironmentVariable(GoldenDirVariable));
 }
 
 namespace
@@ -95,7 +105,14 @@ std::optional<std::filesystem::path> FindWireFile(const std::filesystem::path& r
 
 void GoldenDataTest::SetUp()
 {
-    RequireDirectory(GoldenDirVariable, m_dataRoot);
+    // Sin la variable no se saltea: lee la Data del repo.
+    const std::filesystem::path dir = GoldenDir();
+    if (CheckGoldenDir(dir) == GoldenDirState::Missing)
+    {
+        FAIL() << "la carpeta golden " << dir << " no es una carpeta (" << GoldenDirVariable
+               << ", o la Data del repo si no está)";
+    }
+    m_dataRoot = dir;
 }
 
 std::optional<std::filesystem::path> GoldenDataTest::DataFile(std::string_view originalPath) const

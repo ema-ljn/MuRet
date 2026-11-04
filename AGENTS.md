@@ -82,7 +82,10 @@ y se saltean sin ella ([`Client/README.md`](Client/README.md#tests)). El CI
 ## Fuera de alcance para cambios de IA
 
 - Resolver los ejercicios de Emanuel o escribir lógica del servidor o del cliente sin que lo pida.
-- Versionar assets del juego (`Data\` del cliente) o volcados de memoria: solo hashes y scripts.
+- Versionar assets del juego o volcados de memoria: solo hashes y scripts. La excepción es
+  `Client/assets/Data/`, la `Data\` entera del cliente original, tal cual: está en el repo porque
+  es el original que MuRet reimagina y la base de sus tests (decidido por Emanuel el 2026-11-04).
+  Los volcados de memoria y el `muproxy.log`, que lleva el login del jugador, siguen afuera.
 - Limpiezas grandes del código existente para que cumpla las reglas, salvo que se pida. Las reglas
   se aplican hacia adelante.
 - Portar lo que el roadmap deja afuera: el auto-update y la UI MFC del original.

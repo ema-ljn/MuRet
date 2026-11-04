@@ -2,6 +2,7 @@
 
 #include "App/WindowState.h"
 #include "Data/Text/TextTable.h"
+#include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Render/SpriteBatch.h"
@@ -20,6 +21,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>

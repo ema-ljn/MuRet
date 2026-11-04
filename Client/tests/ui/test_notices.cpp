@@ -4,7 +4,9 @@
 
 #include <array>
 #include <cstddef>
+#include <ios>
 #include <optional>
+#include <vector>
 
 // Client::UI: los avisos del login por número (CL5.5; 06 § Los avisos). El texto de cada uno sale
 // de la tabla de saltos de 0x6431b0, el aviso del resultado del F1 01 de 0x4e5ebc y 0x4e5f04, y lo

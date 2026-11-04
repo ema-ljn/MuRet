@@ -177,8 +177,8 @@ CI.
 Con `--data` (o `[Data] Path`), `Main` lee `Local\Text.bmd` y elige la fuente antes de abrir la
 ventana, y corre la carga y el login con las texturas de esa carpeta. Sin `Text.bmd`, o sin una
 fuente, termina con un error que lo dice. La fuente va en `[Video] FontFile` de
-`muret-client.ini`: en Linux siempre, y en Windows también con el `Data\` del laboratorio, cuya
-cara está vacía. Por ejemplo, en Linux:
+`muret-client.ini`: en Linux siempre, y en Windows también con la de `assets/Data/`, cuya cara
+está vacía. Por ejemplo, en Linux:
 
 ```ini
 [Video]
@@ -248,11 +248,11 @@ de la CL4.5, en el
 [plan de la CL4](../docs/superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md)):
 
 1. Levantar la VM del laboratorio con el ConnectServer y el GameServer andando.
-2. Correr, con la IP del ConnectServer de la VM y la carpeta `Data` del cliente del laboratorio,
-   que trae `Enc1.dat` y `Dec2.dat`:
+2. Correr, con la IP del ConnectServer de la VM y la carpeta `Client/assets/Data`, que trae
+   `Enc1.dat` y `Dec2.dat`:
 
    ```bash
-   ./build/linux-x64-debug/Client/Main connect /u<ip del CS> /p44405 --data <Data del laboratorio>
+   ./build/linux-x64-debug/Client/Main connect /u<ip del CS> /p44405 --data Client/assets/Data
    ```
 
    Desde la CL5.4, con la carpeta de datos corren la carga y el login, así que la config necesita

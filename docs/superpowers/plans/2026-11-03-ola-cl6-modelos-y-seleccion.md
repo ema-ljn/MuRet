@@ -2301,6 +2301,47 @@ versiones, un número personal de la cuenta), y se tratan como la clave (un camp
 nunca en el log, `PrintTo` con el largo); y el nombre que se escribe para crear se dibuja pero no
 va al log ni a los tests, que usan nombres sintéticos.
 
+**PR A, los paquetes y la sesión** (2026-11-04, resuelto por Claude). Antes, una lectura de los dos
+emisores y las dos respuestas (*estático*, en el 04 § La selección de personaje), que corrigió esta
+sección:
+- el byte de la clase del `F3 01` es la clase por 16 más la piel, y la piel nadie la escribe;
+- los tres chequeos del nombre van así:
+  - menos de 4 bytes, el aviso `0x79`;
+  - una palabra prohibida, el `0x72`;
+  - un carácter fuera de rango, el `0x7a`;
+- el nombre de los dos pedidos va hasta su primer cero, con ceros hasta 10;
+- la respuesta de borrar no cambia el estado, y la de crear lo cambia solo con 1.
+
+En un PR, con un commit por concepto:
+- **Los paquetes** (`Protocol/Character/CharacterCreate`, `CharacterDelete` y `CharacterName`, 9
+  tests):
+  - `WriteCharacterCreate(name, class)` y `ReadCharacterCreateResult`, con el nuevo cuando sale 1;
+  - `WriteCharacterDelete(name, code)` y `ReadCharacterDeleteResult`;
+  - `NameUpToItsEnd` y `NameFromText`.
+- **La sesión** (12 tests):
+  - `CreateCharacter(name, class)` y `DeleteCharacter(code)`, desde `ChoosingCharacter`;
+  - dos estados que esperan con el tope y el keepalive: `WaitingCreateResult` (`0x34`) y
+    `WaitingDeleteResult` (`0x38`);
+  - `CreateResult()` y `DeleteResult()`, para los avisos de la UI;
+  - el nuevo entra a la lista con `CharacterEntry::withoutEquipment` (Q-C103).
+
+21 mutantes a mano: 20 en rojo (3 reescritos para compilar, 2 vivían hasta su test: el elegido que
+no se olvidaba al borrar y el `Start` que no olvidaba los resultados) y uno equivalente (sacar al
+elegido o al que se mandó es lo mismo: el elegido no cambia mientras se espera).
+
+Decisiones, con lo que cuestan si están mal:
+- Ruling: un nombre de más de 10 bytes no sale. El original lo manda entero y el paquete crece; la
+  ventana de MuRet no deja escribir más. Si está mal, un nombre largo que el GS aceptaría no llega.
+- Ruling: con un resultado de crear que no es 0, 1 ni 2, la sesión se queda esperando, como el
+  original (Q-C114), y el tope de la espera la cierra. Si está mal, el jugador pierde la conexión
+  donde el original queda trabado.
+- Ruling: el nuevo va con la clase del paquete. El original arma sus partes con la de la vista
+  previa y después le escribe la del paquete (Q-C103). Si está mal, con un GS que contesta otra clase,
+  MuRet dibuja las partes de esa y el original las de la vista previa.
+- Ruling: después de cualquier respuesta, la sesión vuelve a `ChoosingCharacter`. El original queda
+  en `0x34`, `0x35` o `0x38`, y nadie leyó si algo los trata distinto del `0x33` (P-C16 c). Si está
+  mal, en el original se podría hacer algo que acá no, o al revés, hasta la próxima lista.
+
 ## Qué no se prueba en CI, y cómo se cubre
 
 | Qué | Cómo |

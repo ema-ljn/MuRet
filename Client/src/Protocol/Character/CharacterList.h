@@ -30,6 +30,9 @@ struct CharacterEntry
     std::uint8_t classByte = 0;                       // [0xf]: CharacterClassOf
     std::array<std::byte, EquipmentSize> equipment{}; // [0x10..0x20], a 0x5139f0
     std::uint8_t guildStatus = 0;                     // [0x21], a +0x368 (inferido: el gremio)
+    // No vino en la lista: lo armó la respuesta de crear (0x4c2290 con 0x517270), sin equipo
+    // (Q-C103). `equipment` no cuenta.
+    bool withoutEquipment = false;
 };
 
 // El lugar más alto de la selección: cinco, del 0 al 4 (0x4c20a0).

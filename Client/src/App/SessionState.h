@@ -26,6 +26,8 @@ enum class SessionState : std::uint8_t
     LoggedIn,                // el GS aceptó el login: sale el keepalive (CL4.5)
     WaitingCharacterList,    // F3 00 salió (el 0x32 del original)
     ChoosingCharacter,       // la lista llegó (0x33); se espera EnterWorld (CL6.3)
+    WaitingCreateResult,     // F3 01 salió (0x34); con su respuesta vuelve a ChoosingCharacter (CL6.5)
+    WaitingDeleteResult,     // F3 02 salió (0x38); con su respuesta vuelve a ChoosingCharacter (CL6.5)
     EnteringWorld,           // F3 03 salió (0x3c); su respuesta es de la CL7: hasta ahí, sin tope
     QuitOrdered,             // el GS ordenó cerrar el juego (F1 02 con 0): la conexión se cerró (Q-C106)
     Failed,

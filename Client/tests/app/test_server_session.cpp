@@ -23,6 +23,8 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/Character/CharacterCreate.h"
+#include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelect.h"
 #include "Protocol/Character/Opcodes.h"
@@ -111,8 +113,13 @@ using Client::Network::Crypto::Xor32Decode;
 using Client::Protocol::ClientVersion;
 using Client::Protocol::Character::CharacterEntry;
 using Client::Protocol::Character::CharacterOpcode;
+using Client::Protocol::Character::CreateSubcode;
+using Client::Protocol::Character::DeleteCodeSize;
+using Client::Protocol::Character::DeleteSubcode;
 using Client::Protocol::Character::ListSubcode;
 using Client::Protocol::Character::SelectSubcode;
+using Client::Protocol::Character::WriteCharacterCreate;
+using Client::Protocol::Character::WriteCharacterDelete;
 using Client::Protocol::Character::WriteCharacterSelect;
 using Client::Protocol::Connection::Keepalive;
 using Client::Protocol::Connection::KeepaliveAdjust20;
@@ -2074,6 +2081,299 @@ TEST(ServerSessionTest, TheKeepaliveRunsInTheThreeNewStates)
 
     EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
     EXPECT_EQ(tested.Keepalives().size(), 4u);
+}
+
+// Un código de borrar sintético, de 10 bytes.
+std::array<std::byte, DeleteCodeSize> SyntheticDeleteCode()
+{
+    std::array<std::byte, DeleteCodeSize> code{};
+    for (std::size_t k = 0; k < 4; ++k)
+    {
+        code[k] = static_cast<std::byte>('1' + k);
+    }
+    return code;
+}
+
+// La respuesta de crear con 1 (0x4c2290): el nombre, el lugar, el nivel y la clase.
+std::vector<std::byte> CreatedReply(std::uint8_t slot, std::uint8_t classByte = 0x20)
+{
+    std::vector<std::byte> bytes = Bytes({0xC1, 0x13, 0xF3, 0x01, 0x01});
+    const auto name = NameBytes("char0003");
+    bytes.insert(bytes.end(), name.begin(), name.end());
+    bytes.push_back(std::byte{slot});
+    bytes.push_back(std::byte{0x01});
+    bytes.push_back(std::byte{0x00});
+    bytes.push_back(std::byte{classByte});
+    return bytes;
+}
+
+// En ChoosingCharacter, CreateCharacter manda el F3 01 con el nombre y la clase y espera su respuesta
+// (0x34). El log dice la clase y no el nombre.
+TEST(ServerSessionTest, CreateCharacterSendsF301WithTheNameAndTheClass)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+
+    tested.session.CreateCharacter("char0003", 1);
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCreateResult);
+    const std::vector<Packet> creates = tested.CharacterPacketsSent(CreateSubcode);
+    ASSERT_EQ(creates.size(), 1u);
+    EXPECT_TRUE(
+        SameBytes(creates[0].Bytes(), Xor32Decode(WriteCharacterCreate(NameBytes("char0003"), 1).packet).Bytes()));
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "se pide crear un personaje de la clase 1"));
+    EXPECT_FALSE(tested.Logged(LogLevel::Info, "char0003"));
+}
+
+// Un nombre que no entra en el paquete no sale, y crear fuera de ChoosingCharacter tampoco.
+TEST(ServerSessionTest, CreatingOutOfTurnOrWithALongNameIsIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.session.CreateCharacter("char0003", 1);
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora el pedido de crear un personaje: la sesión no lo espera"));
+
+    Harness choosing(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(choosing.ReachChoosingCharacter());
+    choosing.session.CreateCharacter("abcdefghijk", 1);
+    EXPECT_EQ(choosing.session.State(), SessionState::ChoosingCharacter);
+    EXPECT_TRUE(choosing.CharacterPacketsSent(CreateSubcode).empty());
+    EXPECT_TRUE(choosing.Logged(LogLevel::Warning, "no se crea el personaje: el nombre no entra en 10 bytes"));
+}
+
+// Con 1, el nuevo va a su lugar, sin equipo (0x517270, Q-C103), y la sesión vuelve a la elección.
+TEST(ServerSessionTest, TheNewOneGoesToItsSlotWithoutEquipment)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.session.CreateCharacter("char0003", 1);
+
+    tested.socket.reads = {CreatedReply(1)};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
+    EXPECT_EQ(tested.session.CreateResult(), std::optional<std::uint8_t>{std::uint8_t{1}});
+    const std::vector<CharacterEntry>& characters = tested.session.Characters()->characters;
+    ASSERT_EQ(characters.size(), 3u);
+    EXPECT_EQ(characters[2].slot, 1);
+    EXPECT_EQ(characters[2].name, NameBytes("char0003"));
+    EXPECT_EQ(characters[2].level, 1);
+    EXPECT_EQ(characters[2].classByte, 0x20);
+    EXPECT_TRUE(characters[2].withoutEquipment);
+    EXPECT_FALSE(characters[0].withoutEquipment);
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "se creó el personaje del lugar 1"));
+}
+
+// Uno que llega a un lugar ocupado lo pisa (0x4c2290 escribe chars[lugar]); uno de un lugar de más de 4
+// no se suma: el original no le da posición.
+TEST(ServerSessionTest, TheNewOneReplacesItsSlotAndOneBeyondFourIsDropped)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.session.CreateCharacter("char0003", 1);
+    tested.socket.reads = {CreatedReply(3)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.Characters()->characters.size(), 2u);
+    EXPECT_EQ(tested.session.Characters()->characters[1].name, NameBytes("char0003"));
+
+    tested.session.CreateCharacter("char0003", 1);
+    tested.socket.reads = {CreatedReply(5)};
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
+    EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el personaje creado no se suma: el lugar 5 no está en la selección"));
+}
+
+// Con 0 o 2, solo el resultado, para el aviso de la ventana; con otro, el original no hace nada y se
+// queda esperando (Q-C114).
+TEST(ServerSessionTest, ARefusedCreationKeepsItsResult)
+{
+    for (const int result : {0, 2})
+    {
+        Harness tested(IdentityObfuscation::Shared());
+        ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+        tested.session.CreateCharacter("char0003", 1);
+        tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x01, static_cast<unsigned char>(result)})};
+        tested.session.Poll();
+        EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter) << result;
+        EXPECT_EQ(tested.session.CreateResult(), std::optional<std::uint8_t>{static_cast<std::uint8_t>(result)});
+        EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
+    }
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.session.CreateCharacter("char0003", 1);
+    tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x01, 0x05})};
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCreateResult);
+    EXPECT_EQ(tested.session.CreateResult(), std::nullopt);
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el resultado 5 no lo atiende el original"));
+}
+
+// La respuesta de crear fuera de turno se ignora.
+TEST(ServerSessionTest, ACreateReplyOutOfTurnIsIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+
+    tested.socket.reads = {CreatedReply(1)};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
+    EXPECT_TRUE(
+        tested.Logged(LogLevel::Warning, "se ignora la respuesta de crear un personaje (F3 01): llegó fuera de turno"));
+}
+
+// DeleteCharacter manda el F3 02 con el nombre del elegido y el código, y espera (0x38). El log dice
+// el lugar, y ni el nombre ni el código.
+TEST(ServerSessionTest, DeleteCharacterSendsF302WithTheChosenNameAndTheCode)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.session.ChooseCharacter(std::uint8_t{3});
+
+    tested.session.DeleteCharacter(SyntheticDeleteCode());
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingDeleteResult);
+    const std::vector<Packet> deletes = tested.CharacterPacketsSent(DeleteSubcode);
+    ASSERT_EQ(deletes.size(), 1u);
+    EXPECT_TRUE(
+        SameBytes(deletes[0].Bytes(),
+                  Xor32Decode(WriteCharacterDelete(NameBytes("char0002"), SyntheticDeleteCode()).packet).Bytes()));
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "se pide borrar el personaje del lugar 3"));
+    EXPECT_FALSE(tested.Logged(LogLevel::Info, "1234"));
+}
+
+// Sin elegido, o fuera de ChoosingCharacter, no sale nada.
+TEST(ServerSessionTest, DeletingWithoutAChoiceOrOutOfTurnIsIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.session.DeleteCharacter(SyntheticDeleteCode());
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
+    EXPECT_TRUE(tested.CharacterPacketsSent(DeleteSubcode).empty());
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "no se borra un personaje: no hay uno elegido"));
+
+    Harness logged(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(logged.ReachLoggedIn());
+    logged.session.DeleteCharacter(SyntheticDeleteCode());
+    EXPECT_TRUE(logged.Logged(LogLevel::Warning, "se ignora el pedido de borrar un personaje: la sesión no lo espera"));
+}
+
+// Con 1 se saca al que se mandó, y queda sin elegido: uno nuevo en el mismo lugar no sale elegido. El
+// original borra al elegido al llegar la respuesta (Q-C104); en MuRet no puede cambiar mientras se
+// espera, porque ChooseCharacter es de ChoosingCharacter.
+TEST(ServerSessionTest, DeleteRemovesTheSlotItSent)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.session.ChooseCharacter(std::uint8_t{3});
+    tested.session.DeleteCharacter(SyntheticDeleteCode());
+
+    tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x02, 0x01})};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
+    EXPECT_EQ(tested.session.DeleteResult(), std::optional<std::uint8_t>{std::uint8_t{1}});
+    const std::vector<CharacterEntry>& characters = tested.session.Characters()->characters;
+    ASSERT_EQ(characters.size(), 1u);
+    EXPECT_EQ(characters[0].slot, 0);
+    EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "se borró el personaje del lugar 3"));
+    tested.session.CreateCharacter("char0003", 1);
+    tested.socket.reads = {CreatedReply(3)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.Characters()->characters.size(), 2u);
+    EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
+}
+
+// Start olvida los dos resultados, como la lista.
+TEST(ServerSessionTest, StartForgetsTheResults)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.session.CreateCharacter("char0003", 1);
+    tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x01, 0x00})};
+    tested.session.Poll();
+    tested.session.ChooseCharacter(std::uint8_t{0});
+    tested.session.DeleteCharacter(SyntheticDeleteCode());
+    tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x02, 0x00})};
+    tested.session.Poll();
+    ASSERT_TRUE(tested.session.CreateResult().has_value());
+    ASSERT_TRUE(tested.session.DeleteResult().has_value());
+
+    tested.session.Start();
+
+    EXPECT_EQ(tested.session.CreateResult(), std::nullopt);
+    EXPECT_EQ(tested.session.DeleteResult(), std::nullopt);
+}
+
+// Con otro resultado no se saca a nadie, y el elegido sigue: el aviso es de la ventana.
+TEST(ServerSessionTest, ARefusedDeletionKeepsTheCharacter)
+{
+    for (const int result : {0, 3, 9})
+    {
+        Harness tested(IdentityObfuscation::Shared());
+        ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+        tested.session.ChooseCharacter(std::uint8_t{3});
+        tested.session.DeleteCharacter(SyntheticDeleteCode());
+        tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x02, static_cast<unsigned char>(result)})};
+        tested.session.Poll();
+        EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter) << result;
+        EXPECT_EQ(tested.session.DeleteResult(), std::optional<std::uint8_t>{static_cast<std::uint8_t>(result)});
+        EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
+        EXPECT_NE(tested.session.ChosenCharacter(), nullptr);
+    }
+}
+
+// Las dos respuestas se esperan con el tope de los Waiting*, y el keepalive sigue en los dos estados.
+TEST(ServerSessionTest, CreatingAndDeletingHaveTheReplyTimeout)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.AdvanceTo(seconds{5});
+    tested.session.CreateCharacter("char0003", 1);
+    tested.AdvanceTo(seconds{5} + ReplyTimeout - milliseconds{1});
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCreateResult);
+    tested.AdvanceTo(seconds{5} + ReplyTimeout);
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
+    EXPECT_TRUE(tested.Logged(LogLevel::Error,
+                              "el GameServer no contestó en 30 s: se esperaba el resultado de crear un personaje"));
+
+    Harness deleting(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(deleting.ReachChoosingCharacter());
+    deleting.session.ChooseCharacter(std::uint8_t{0});
+    deleting.AdvanceTo(seconds{5});
+    deleting.session.DeleteCharacter(SyntheticDeleteCode());
+    deleting.AdvanceTo(seconds{5} + ReplyTimeout);
+    deleting.session.Poll();
+    EXPECT_TRUE(deleting.Logged(LogLevel::Error,
+                                "el GameServer no contestó en 30 s: se esperaba el resultado de borrar un personaje"));
+}
+
+TEST(ServerSessionTest, TheKeepaliveRunsWhileCreatingAndDeleting)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{1}));
+    tested.session.RequestCharacterList();
+    tested.socket.reads = {CharacterListBytes(TwoCharacters())};
+    tested.PollEachFrameUntil(seconds{2});
+    ASSERT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
+    const std::size_t before = tested.Keepalives().size();
+
+    tested.session.CreateCharacter("char0003", 1);
+    tested.PollEachFrameUntil(seconds{22});
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCreateResult);
+    EXPECT_EQ(tested.Keepalives().size(), before + 1);
+    tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x01, 0x00})};
+    tested.PollEachFrameUntil(seconds{23});
+    tested.session.ChooseCharacter(std::uint8_t{0});
+    tested.session.DeleteCharacter(SyntheticDeleteCode());
+    tested.PollEachFrameUntil(seconds{42});
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingDeleteResult);
+    EXPECT_EQ(tested.Keepalives().size(), before + 2);
 }
 
 // La lista se espera con el tope de los Waiting*, desde el pedido.

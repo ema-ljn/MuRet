@@ -107,6 +107,11 @@ personaje de la clase 4 montado en el caballo oscuro, con la luz del terreno del
 personaje hace uno de sus dos gestos cada tanto (`Scenes/LoginModels`) y el caballo aparece de a
 poco y lo sigue (`Scenes/DarkHorse`).
 
+Desde la CL6.5, la selección tiene la barra de abajo del original (`UI/SelectionBar`): conectar
+entra como Enter, y borrar pide la confirmación y el código y manda el `F3 02`; con la respuesta, el
+personaje se va de la selección o sale el aviso que diga el GameServer. Crear todavía no abre su
+ventana (es de la PR que sigue) y el botón del menú no hace nada (CL8).
+
 ## Auditoría y mantenimiento
 
 La [auditoría de C++20 y contrato 1.02i del 2026-11-03](../docs/audits/2026-11-03-cliente-cpp20.md)
@@ -293,7 +298,8 @@ falta correr está en P-C21 del [08](docs/research/08-pendientes.md).
 5. Con uno elegido, Enter: el log dice "se elige el personaje del lugar X para entrar al mundo" y
    "se entra al mundo con el personaje del lugar X", se ve un frame de la carga del mundo (las
    cuatro `LSBg`) y después el negro del juego. El log del GameServer muestra que ese personaje
-   entró. Cerrar y repetirlo con doble clic en vez de Enter.
+   entró. Cerrar y repetirlo con doble clic en vez de Enter, y con el botón de conectar de la
+   barra.
 6. Mirar el log durante dos minutos: desde "el GameServer aceptó el login", seis o siete "se mandó
    el keepalive al GameServer", uno cada 20 s, sin "se perdió la conexión con el GameServer". Con
    `[Server] Obfuscation = foxanti`, que es el valor por defecto: el GameServer del laboratorio

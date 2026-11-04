@@ -2342,6 +2342,75 @@ Decisiones, con lo que cuestan si están mal:
   en `0x34`, `0x35` o `0x38`, y nadie leyó si algo los trata distinto del `0x33` (P-C16 c). Si está
   mal, en el original se podría hacer algo que acá no, o al revés, hasta la próxima lista.
 
+**PR B, la UI** (2026-11-04, resuelto por Claude). Antes, un contrato de la UI del modo 4 leído en
+el binario (*estático*, y *emulado* el lugar de las ventanas y el armado de los avisos), que está
+ahora en el 06 § La barra de la selección y el borrado. Con él, la UI va en dos PRs: **B1**, la
+barra, los avisos y el borrado; **B2**, la ventana de crear, con la vista previa y los filtros del
+nombre.
+
+**B1** (un commit por concepto):
+- **El botón deshabilitado** (`UI::Button`, 2 tests): sin clic, con su cuadro y sus dos colores.
+- **Los avisos de la selección** (`UI::Notices` y `UI::NoticeWindow`, 11 tests):
+  - los 14 ids de la selección con su texto;
+  - los tipos: sin botón (`0x5d`), OK y cancelar (`0x5e`), y el del código (`0x5f`): la caja
+    `0x728`, hasta 7 dígitos enmascarados y vaciado al abrir;
+  - el texto partido en dos renglones (`SplitIntoLines(texto, 2, 52)`) y el nombre en el `%s` del
+    1712, el único texto que es un formato;
+  - el OK del `0x5e` abre el `0x5f`, y el del `0x5f` manda el borrado.
+- **La barra** (`UI::SelectionBar`, 5 tests, y `Render::Text::CenteredAt`, 1): el lugar de las
+  cuatro pantallas, la habilitación de `0x63eb40`, el clic de `0x63eb90` en su orden, y el dibujo
+  de `0x63ec00` con los textos 1710, 436 y 437.
+- **Las revisiones del borrado** (`UI::DeleteChecks`, 6 tests): el gremio, el nivel 80 con el
+  nombre del grupo contra el texto 559, y las banderas `0x12`. Y `NameAsText` y
+  `DeleteCodeFromText` (2 tests).
+- **La escena** (`CharacterSelectScene`, 10 tests y 2 cambiados):
+  - la barra encima de los personajes, que tapa el picking, con los textos de la cuenta bloqueada;
+  - conectar como Enter;
+  - borrar: las revisiones, la confirmación, el código, el `F3 02` y el `0x5d`, y el aviso de la
+    respuesta;
+  - la lista de la sesión en cada paso: el que crea entra (sin equipo, Q-C103) y el que borra se
+    va, y los demás siguen con su animación.
+- Y el golden de los textos del login, que ahora deja afuera los seis textos vacíos de la
+  selección y fija que están vacíos (1).
+
+38 tests. La suite entera, 1.981 en verde, con GL y los golden. 52 mutantes a mano:
+- 48 en rojo, 5 de ellos reescritos para compilar;
+- 3 vivían hasta su test: el creado sin equipo, la cuenta bloqueada y el formato de los otros
+  avisos, que era un error (`NoticeWindow` pasaba por `PlaceArguments` el texto de cualquier
+  aviso);
+- 3 equivalentes:
+  - el botón deshabilitado ya suelta la captura;
+  - los botones de la barra no se tocan en ningún ancho real, así que el orden de los clics no
+    cambia nada;
+  - ningún personaje cae bajo la barra: el contorno no se puede probar ahí;
+- uno se fue con el arreglo del formato.
+
+Y un hallazgo del primer test del dibujo: la franja sin textura deja la textura apagada, y faltaba
+el `0x620a00(1)` con `glColor4f(1, 1, 1, 1)` antes de los textos.
+
+Decisiones, con lo que cuestan si están mal:
+- Ruling: la UI va en dos PRs, B1 y B2. La ventana de crear tiene su vista previa en 3D y los
+  filtros del nombre, y es tan grande como el resto. Si está mal, nada: es el orden de los PRs.
+- Ruling: en B1, crear y el menú solo dejan una línea en el log, y Esc no abre nada. Crear abre su
+  ventana en la B2; el menú y las opciones son de la CL8, como los del login (P-C13). Si está mal,
+  el jugador ve dos botones que no hacen nada hasta esas olas.
+- Ruling: la habilitación de la barra se calcula en cada paso, no en los cuatro momentos de
+  `0x63eb40` (el armado, el clic que elige, el crear que salió bien y el `0x60`). La lista y el
+  elegido solo cambian en esos momentos, así que da lo mismo. Si está mal, un botón cambiaría un
+  paso antes que en el original.
+- Ruling: sin servidor elegido (MuRet sin ConnectServer), las revisiones del borrado no miran el
+  grupo. El original pasa siempre por la lista. Si está mal, con un GS directo se pide borrar a uno
+  de nivel 80 que el original no dejaría pedir; el GS decide igual.
+- Ruling: el string del primer `0x0D` de la barra (`+0x511`) no se dibuja: MuRet no lee el `0x0D`.
+  Si está mal, falta ese texto a la izquierda de la franja.
+- Ruling: cancelar el `0x5f` cierra el campo con el aviso (Q-C116). Si está mal, MuRet no
+  reproduce un EDIT invisible que se queda con el teclado.
+- Ruling: con el aviso abierto, la barra no se atiende (el aviso tiene el mouse, Q-C84). Si la
+  sesión deja de esperar el borrado sin respuesta, el `0x5d` se cierra. Si está mal, en el original
+  los botones de la barra podrían marcar el mouse encima con el aviso abierto.
+- Ruling: sin sesión (sin servidor), la escena dibuja la barra, con crear habilitado y nada que
+  hacer. Si está mal, esa escena de prueba muestra la barra donde el original no tiene ese caso.
+
 ## Qué no se prueba en CI, y cómo se cubre
 
 | Qué | Cómo |

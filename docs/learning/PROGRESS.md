@@ -484,6 +484,14 @@ solo lo lee.
   log. La ventana de crear y la de borrar son del PR que sigue. 21 tests y 21 mutantes. Falta verlo
   contra el GS del laboratorio (P-C16).
 
+  **La CL6.5 PR B1** (2026-11-04, resuelta por Claude): la barra de la selección (crear, el menú,
+  conectar y borrar, con los botones deshabilitados del original) y el borrado entero: las
+  revisiones de `0x63edf0`, la confirmación con el nombre, el aviso del código (hasta 7 dígitos,
+  enmascarados), el `F3 02` y el aviso de la respuesta. La selección sigue la lista de la sesión:
+  el que se borra se va y el que se crea entra. Crear y el menú todavía no abren su ventana (la PR
+  B2 y la CL8). 38 tests y 52 mutantes. Falta verlo en pantalla
+  contra el original (P-C16 e).
+
 ## Conceptos
 
 **Niveles:** 1 **usar** (lo escribiste con tests) · 2 **explicar** (lo contás sin mirar) ·

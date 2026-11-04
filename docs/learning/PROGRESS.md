@@ -496,8 +496,8 @@ solo lo lee.
   **La CL6.5 PR B2** (2026-11-04, resuelta por Claude): la ventana de crear, con las clases que deja
   la lista, el nombre y sus tres chequeos (corto, filtrado con `FilterName.bmd` y `Filter.bmd`, y
   con símbolos), el `F3 01` y la respuesta, que vuelve a abrir la ventana con su aviso si el GS no
-  crea. La vista previa en 3D es de la PR que sigue. 32 tests y 32 mutantes. Falta verla en
-  pantalla (P-C16 f).
+  crea. El nombre toma las letras de Latin-1, como el EDIT del original. La vista previa en 3D es de
+  la PR que sigue. 44 tests y 45 mutantes. Falta verla en pantalla (P-C16 f).
 
 ## Conceptos
 

@@ -71,8 +71,8 @@ private:
 
 // 0x606660(0xa2, (10.680; 15.550; 1.710), (10, 0, 36), 1) y su caso en las escenas 2 y 4
 // (0x6068d5): la escala 2,2, el blendMesh en 1 (la malla de la textura 1 va aditiva) y sin luz por
-// vértice. La luz del blendMesh en 1 y la del objeto en 0 hasta el primer paso, y el avance de 0,16
-// (0x3e23d70a) por paso.
+// vértice. La luz del blendMesh en 1 y la del objeto en 0 hasta que 0x604ab0 las escribe, y el
+// avance de 0,16 (0x3e23d70a) por paso.
 [[nodiscard]] ModelObject LoginLogo();
 
 // La cuenta (0x6d5e30) y la fase (0x7d3a0cc) de las rutas de la cámara, que lleva 0x633920 en cada
@@ -90,7 +90,8 @@ void AdvanceRoutes(LoginRoutes& routes);
 
 // 0x604ab0 con el 0xa2: con la fase en 0, la cuenta · 0,02 (0x6b8b90); con otra, 1,5 (0x6b8b94).
 // Va a la luz del objeto y a la del blendMesh (Q-C105). Corre antes que AdvanceRoutes en el mismo
-// paso: el primero da −0,02, y el 41, 0,78.
+// paso, y solo con el logo ya dibujado: el primer paso no la escribe, y desde el segundo da
+// (paso − 2) · 0,02, 0,78 en el 41.
 [[nodiscard]] float LoginLogoLight(const LoginRoutes& routes);
 
 // 0x5ffce0 con un objeto sin luz por vértice: el color del modelo es la luz del terreno en su lugar

@@ -10,14 +10,15 @@
 
 namespace Client::Scenes
 {
-void StepCharacterAnimation(CharacterAnimation& animation, const GameLogic::CharacterAppearance& appearance,
+bool StepCharacterAnimation(CharacterAnimation& animation, const GameLogic::CharacterAppearance& appearance,
                             const IModelLibrary& models, Render::Models::AnimationScene scene)
 {
+    bool finished = false;
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (skeleton != nullptr && animation.body.action < skeleton->actions.size())
     {
         const Render::Models::ActionInfo& action = skeleton->actions[animation.body.action];
-        Render::Models::AdvanceAnimation(animation.body, action, action.speed, scene);
+        finished = Render::Models::AdvanceAnimation(animation.body, action, action.speed, scene);
     }
     if (appearance.pet)
     {
@@ -38,6 +39,7 @@ void StepCharacterAnimation(CharacterAnimation& animation, const GameLogic::Char
                                           App::LogicStep);
         }
     }
+    return finished;
 }
 
 Render::Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation, const IModelLibrary& models,

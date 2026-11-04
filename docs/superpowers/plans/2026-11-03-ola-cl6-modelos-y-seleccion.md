@@ -2130,11 +2130,11 @@ inline constexpr Render::TextureSlot LoginLogoFirstSlot{0x455};
     personaje va con la luz del terreno más 0,3, que le pone `0x517270` (`0x50ba30` fuera de la
     escena 4). Esa luz no es la del OZJ sola: `0x5f8b10` y `0x5f8d90` la sombrean con las alturas;
   - el personaje para en la acción `0x4a`, la de montar, que le da `0x4f2250` con el caballo
-    oscuro; el caballo no lo dibuja `0x50ba30` (P-C15 d);
+    oscuro; el caballo no lo dibuja `0x50ba30` (lo dibuja `0x4453b0`: es el `0xbf`, abajo);
   - el logo avanza a 0,16 por paso (`+0xd8` de `0x606660`), pero `Logo03.bmd` tiene una acción de
     una key: no se anima;
-  - la luz del logo corre antes que la cuenta de las rutas, que arranca en −1: el primer paso da
-    −0,02 (Q-C105);
+  - la luz del logo corre antes que la cuenta de las rutas, que arranca en −1, y solo con el logo
+    ya dibujado (Q-C105, corregido en la revisión);
   - la ventana de la acción va de 0 a 100 ms, por la x87 (Q-C110);
   - la fase de las rutas no vuelve a 0 al volver al login (Q-C111).
 
@@ -2158,13 +2158,14 @@ inline constexpr Render::TextureSlot LoginLogoFirstSlot{0x455};
   - Se nombran también `SingleModelLibrary` (el logo) y `UnlitObjectColor`.
 
   Decisiones, con lo que cuestan si están mal:
-  - Ruling: el caballo, el cuervo y el efecto `0xbf` no se dibujan (mascotas y efectos, CL8). Si
-    está mal, el login se ve distinto hasta la CL8, con el personaje en la pose de montar sin el
-    caballo.
+  - Ruling: el caballo (el `0xbf`) y el cuervo no se dibujan en este PR: el cuervo es de la CL8, y
+    el caballo va en el PR que sigue de la CL6.4 (falta leer su dibujo y su carga). Si está mal, el
+    login se ve distinto hasta ese PR, con el personaje en la pose de montar sin el caballo.
   - Ruling: la luz del terreno se calcula en todas las celdas, sin la ventana de `0x5fbf60` ni las
     luces dinámicas. Si está mal, un lugar fuera de la ventana da 0 en el original.
-  - Ruling: el frustum de los objetos no se reproduce; con la cámara fija, el logo se ve siempre.
-    Si está mal: nada, con esta cámara.
+  - Ruling: el frustum de los objetos no se reproduce: el logo se dibuja siempre y se avanza desde
+    que se dibujó una vez, que es lo que hace el `+0x16c` con la cámara fija. Si está mal: con otra
+    cámara, un objeto fuera de la vista seguiría avanzando.
   - Ruling: la fase de las rutas vuelve a 0 en cada entrada al login (Q-C111). Si está mal, la
     segunda vez el logo de MuRet se aclara de a poco y el del original no.
   - Ruling: el reloj del paso es el del bucle cuando corre el paso, no el del frame. Si está mal, la
@@ -2172,6 +2173,32 @@ inline constexpr Render::TextureSlot LoginLogoFirstSlot{0x455};
 
   Con los datos del laboratorio, `Main` entra al login y dibuja el logo y el personaje: hay una
   captura en 1024 × 768, fuera de Git. 1888 de 1888 tests con los golden y GL. En CI no hay golden.
+
+  Tras la revisión adversarial (dos revisores, uno del C++ y otro contra el binario, que emuló
+  `0x602e90`, `0x604ab0` y la ventana de `0x5fbf60`, y decodificó el `.att` del mundo 56):
+  - **Del C++ y del binario:** el personaje no volvía a la de parado. `0x4fcd00` le pone la `0x4a`
+    otra vez cuando la `0x54` o la `0x55` terminan; MuRet las repetía para siempre.
+    `StepCharacterAnimation` devuelve ahora si terminó, y el login le vuelve a dar la de parado
+    (`TheCharacterStandsAgainWhenItsGestureEnds`).
+  - **De los dos:** el primer paso no le escribe la luz al logo. `0x606560` solo corre los objetos
+    con `+0x16c`, que prende el dibujo. Ahora el logo cambia desde que se dibujó
+    (`TheLogoDoesNotChangeUntilItIsDrawn`), y el 06, Q-C105 y P-C15 quedaron corregidos.
+  - **Del binario:** el `0xbf` es el caballo (`Skill\DarkHorse.bmd`), un objeto ayudante que sigue
+    al jinete, y no un efecto. Además hay dos cosas que el original hace en la escena 2 y MuRet no:
+    la tela de la clase 4 (`0x50ba30`) y la cabeza que mira al azar (`0x505de0`). Quedaron en el 06
+    y en P-C15 (d, g y h).
+  - **Del binario:** la luz del terreno coincide con un cálculo aparte en Python sobre los mismos
+    archivos, en el lugar del personaje (0,988) y en el del logo (0,698; 0,678; 0,655). Quedó en
+    `GoldenTerrainLighting.TheLightOfTheLoginMatchesAnIndependentComputation`, que mata los dos
+    mutantes que vivían (sin la sombra, y con las alturas por 1,5). Los dos lugares caen en la
+    ventana de `0x5fbf60`.
+  - **Del C++, chicos:**
+    - el paso de la orden de cerrar movía el mundo (`AQuitOrderDoesNotMoveTheLoginWorld`);
+    - las texturas del logo se sueltan antes que sus slots;
+    - un comentario había quedado fuera de lugar.
+  - **Minors para después:**
+    - las mallas que van después de la del blendMesh heredan su color en el original (P-C20 i);
+    - el contorno al volver de la selección (P-C15 i).
 - [ ] **Paso 3 (a mano):** con `--data`, el login con el logo y el personaje sobre los fondos,
   contra el original en la VM (P-C15 y P-C21); sin traza del login (P-C13), se mira a ojo contra
   una captura fuera de Git.

@@ -239,6 +239,8 @@ Core::Expected<void, std::string> LoginScene::LoadTheLogo()
         m_context.log.Warning("el logo no tiene un esqueleto que se pueda posar y no se dibuja");
         return {};
     }
+    // Las texturas apuntan a lo que piden los slots: se van antes que ellos.
+    m_logoTextures.reset();
     m_logoSlots.emplace(LoginLogoFirstSlot);
     std::vector<Render::TextureSlot> meshTextures =
         m_logoSlots->Assign(model.Value(), LoginLogoTextureFolder, LoginLogoSampling);
@@ -258,6 +260,7 @@ Core::Expected<void, std::string> LoginScene::LoadTheLogo()
 void LoginScene::PlaceTheModels()
 {
     m_logoObject = LoginLogo();
+    m_logoSeen = false;
     m_logoAnimation = {};
     m_routes = {};
     m_character = LoginCharacter();
@@ -270,19 +273,20 @@ void LoginScene::PlaceTheModels()
 
 void LoginScene::Step(const Input::InputState& input)
 {
-    StepTheWorld();
     if (m_session == nullptr)
     {
+        StepTheWorld();
         return;
     }
     // Lo que cambió con el Poll de este frame.
     FollowSession();
-    // Con la orden de cerrar el juego, el paso no atiende nada: el original no corre otro después
-    // del WM_DESTROY (Q-C106), y un Esc en la cuenta volvería a conectar.
+    // Con la orden de cerrar el juego, el paso no atiende nada, ni el mundo: el original no corre otro
+    // después del WM_DESTROY (Q-C106), y un Esc en la cuenta volvería a conectar.
     if (m_session->State() == App::SessionState::QuitOrdered)
     {
         return;
     }
+    StepTheWorld();
     // Sin aviso, la barra se atiende junto con la cuenta o la lista: sus botones no se pisan con
     // los de ellas (Q-C84).
     if (!m_notice.IsOpen())
@@ -328,17 +332,26 @@ void LoginScene::StepTheWorld()
             Render::Models::SetAction(m_characterAnimation.body, *player, *action);
         }
     }
-    // 0x604ab0: la luz del logo, en el objeto y en el blendMesh, y su avance a +0xd8.
-    const float light = LoginLogoLight(m_routes);
-    m_logoObject.light = glm::vec3(light);
-    m_logoObject.state.light = light;
-    if (const Render::Models::Skeleton* logo = m_logo.SkeletonOf(LoginLogoModel);
-        logo != nullptr && m_logoAnimation.action < logo->actions.size())
+    // 0x606560 → 0x604ab0, solo con el logo que ya se dibujó (+0x16c, del frustum de 0x6046a0): la luz
+    // del logo, en el objeto y en el blendMesh, y su avance a +0xd8.
+    if (m_logoSeen)
     {
-        Render::Models::AdvanceAnimation(m_logoAnimation, logo->actions[m_logoAnimation.action], m_logoObject.speed,
-                                         Render::Models::AnimationScene::Other);
+        const float light = LoginLogoLight(m_routes);
+        m_logoObject.light = glm::vec3(light);
+        m_logoObject.state.light = light;
+        if (const Render::Models::Skeleton* logo = m_logo.SkeletonOf(LoginLogoModel);
+            logo != nullptr && m_logoAnimation.action < logo->actions.size())
+        {
+            Render::Models::AdvanceAnimation(m_logoAnimation, logo->actions[m_logoAnimation.action], m_logoObject.speed,
+                                             Render::Models::AnimationScene::Other);
+        }
     }
-    StepCharacterAnimation(m_characterAnimation, m_character, m_models, Render::Models::AnimationScene::Other);
+    // 0x508f00 → 0x4fcd00: lo que termina vuelve a la de parado (0x4fcb10 → 0x4f2250).
+    if (StepCharacterAnimation(m_characterAnimation, m_character, m_models, Render::Models::AnimationScene::Other) &&
+        player != nullptr)
+    {
+        Render::Models::SetAction(m_characterAnimation.body, *player, LoginCharacterStandingAction);
+    }
     AdvanceRoutes(m_routes);
 }
 
@@ -538,6 +551,8 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     }
     DrawTheModels(canvas, alpha);
     canvas.flushModels();
+    // El dibujo prende el +0x16c del logo (0x6046a0): sin frustum, siempre se ve.
+    m_logoSeen = true;
     // 5: las dos arenas, aditivas.
     sprites.SetBlend(Render::BlendMode::Alpha);
     sprites.SetColor(HalfWhite);

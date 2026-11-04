@@ -143,6 +143,8 @@ private:
     std::optional<Render::Models::ModelTextureSlots> m_logoSlots;
     std::optional<SceneTextures> m_logoTextures;
     ModelObject m_logoObject;
+    // El +0x16c del logo: 0x606560 solo corre los objetos que se dibujaron.
+    bool m_logoSeen = false;
     Render::Models::AnimationState m_logoAnimation;
     LoginRoutes m_routes;
     // El personaje de 0x517270(2, 4, …).

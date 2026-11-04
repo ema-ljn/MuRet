@@ -36,4 +36,21 @@ TEST_F(GoldenTerrainLighting, TheLoginWorldHasLightWhereItsModelsGo)
     ExpectALight(LightAt(*lighting.Value(), 10603.0f, 14112.0f));
     ExpectALight(LightAt(*lighting.Value(), 10680.0f, 15550.0f));
 }
+
+// Contra un cálculo aparte, en Python sobre los mismos archivos (la revisión de la CL6.4): donde va el
+// personaje las alturas no son planas (579, 546 y 555) y la sombra da 0,989; donde va el logo son 0, y
+// la luz es la del OZJ. Con la escala de las alturas en 1,5 en vez de 3, o sin la sombra, el personaje
+// daría 0,9996 o 1.
+TEST_F(GoldenTerrainLighting, TheLightOfTheLoginMatchesAnIndependentComputation)
+{
+    const auto lighting = LoadTerrainLighting(m_dataRoot, LoginMap);
+    ASSERT_TRUE(lighting.HasValue()) << lighting.Error();
+    constexpr float Rounding = 2e-3f;
+    const glm::vec3 character = LightAt(*lighting.Value(), 10603.0f, 14112.0f);
+    EXPECT_NEAR(character.x, 0.988f, Rounding);
+    const glm::vec3 logo = LightAt(*lighting.Value(), 10680.0f, 15550.0f);
+    EXPECT_NEAR(logo.x, 0.698f, Rounding);
+    EXPECT_NEAR(logo.y, 0.678f, Rounding);
+    EXPECT_NEAR(logo.z, 0.655f, Rounding);
+}
 } // namespace

@@ -126,8 +126,10 @@ void CharacterSelectScene::StepCharacters()
 {
     for (Character& character : m_characters)
     {
-        StepCharacterAnimation(character.animation, character.appearance, m_models,
-                               Render::Models::AnimationScene::CharacterSelect);
+        // Lo que termina vuelve a la de parado (0x4fcb10), que en la selección es la 3: como la 3 repite,
+        // es la de ahora, y SetAction no cambia nada.
+        static_cast<void>(StepCharacterAnimation(character.animation, character.appearance, m_models,
+                                                 Render::Models::AnimationScene::CharacterSelect));
     }
 }
 

@@ -59,7 +59,7 @@ TEST(LoginModelsTest, TheLogoIsModel0xA2AtItsPlace)
 }
 
 // 0x6068d5 pisa la escala 1 con 2,2 y pone el blendMesh en 1; el resto, de 0x606660: sin malla oculta,
-// la luz del blendMesh en 1 y la del objeto en 0 hasta el primer paso, y 0,16 por paso.
+// la luz del blendMesh en 1 y la del objeto en 0 hasta que 0x604ab0 las escribe, y 0,16 por paso.
 TEST(LoginModelsTest, TheLogoIsScaled2_2WithBlendMesh1)
 {
     const ModelObject logo = LoginLogo();
@@ -108,8 +108,9 @@ TEST(LoginModelsTest, TheRoutesCountLikeTheCamera)
     EXPECT_EQ(routes.phase, 1);
 }
 
-// Q-C105: la luz va por la cuenta · 0,02 con la fase en 0, de −0,02 en el primer paso a 0,78 en el 41,
-// y salta a 1,5 en el 42, cuando la fase pasa a 1; después queda ahí.
+// Q-C105: la luz va por la cuenta · 0,02 con la fase en 0, de −0,02 con la cuenta en −1 (en el primer
+// paso, que no la escribe: LoginSceneModelsTest) a 0,78 en el 41, y salta a 1,5 en el 42, cuando la
+// fase pasa a 1; después queda ahí.
 TEST(LoginModelsTest, TheLogoLightJumpsWhenThePhaseChanges)
 {
     LoginRoutes routes;

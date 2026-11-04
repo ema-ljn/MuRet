@@ -901,8 +901,8 @@ en 0. Arranca en 0 (está en la `.bss`), y la vuelta al login de `0x4c2710` la p
    la barra llena, y si el connect falla, el primer frame del login ya trae el aviso `0x70` (Q-C85);
 5. el objeto `0xa2` en (10.680, 15.550, 1.710), con ángulos (10, 0, 36) y escala 1, que
    `0x606660` pisa (abajo), y el personaje de la escena (`0x517270(2, 4, …)`, con el cuervo del
-   `A9`, P-C11) en (10.603, 14.112, 580), girado 188° en z y con escala 1,6; un efecto `0xbf`
-   (`0x443fa0`, de la ola de los efectos); 120 llamadas a `0x555190` con dos
+   `A9`, P-C11) en (10.603, 14.112, 580), girado 188° en z y con escala 1,6; el caballo oscuro en
+   que monta, el `0xbf` (`0x443fa0`, abajo; antes este documento lo daba como un efecto); 120 llamadas a `0x555190` con dos
    cadenas de la `.bss` (*inferido*: vacían el área de mensajes); la música (`0x4acfd0`) y una
    línea en el log.
 
@@ -917,7 +917,27 @@ escala 1.) Su luz la sube `0x604ab0` (abajo, en el dibujo).
 
 El personaje (`0x517270(2, 4, 0, 0, 0, 0)`, *estático*): `0x517270` le pone la luz `+0xf4..+0xfc` en
 0,3 (`0x3e99999a`), y `0x4f2250`, con el caballo oscuro de mascota (`+0x318` en `0x1c16`, y `+0x3e2` en
-0), la acción `0x4a` (la de montar: el caballo no lo dibuja `0x50ba30`, Q-C98). En la escena 2 lleva la ropa fija, el
+0), la acción `0x4a`, la de montar. Lo demás que el original hace con él en la escena 2 (de la
+revisión de la CL6.4, *estático*):
+- **El caballo** es el modelo `0xbf`, `Skill\DarkHorse.bmd` (lo carga `0x615700`). `0x443fa0(0xbf,
+  posición, personaje)` lo crea como un objeto ayudante en `0x7d335d0`; su lógica (`0x445230` →
+  `0x444010`) sigue la posición, los ángulos y la cabeza del jinete, y elige su acción por la de él:
+  la 5 (51 keys) con la `0x54`, la 6 (31 keys) con la `0x55`, las dos a 1, y la 0 a 0,3 con las
+  demás. Lo dibuja `0x4453b0` → `0x445260`, con la escala 1,6 en la escena 2, entre los personajes y
+  los objetos del mundo. `0x50ba30` no dibuja la mascota `0x1c16` (Q-C98): el caballo va por este
+  camino.
+- **La vuelta a la de parado:** cuando la `0x54` o la `0x55` terminan (`0x4ec200` da la vuelta y
+  `0x4f9580` devuelve 0), `0x4fcd00` (`0x4fce29`) pone `+0x3c4` en −1 y `0x4fcb10` le vuelve a dar
+  la de parado (`0x4f2250`: la `0x4a`). El gesto se ve una vez, 2,04 s o 1,24 s.
+- **La tela de la clase 4:** con la clase 3 o 4, el modelo `0x20a`, `+0x3e3` en 0 y fuera de los
+  mapas `0x12` a `0x17`, `0x50ba30` arma tres telas (`0x50d5b9`): dos con la textura `0x256`
+  (`Monster\iui06.jpg`) en el hueso 20 y una con la `0x257` (`DarklordRobe`) en el hueso 19, la
+  tercera solo con `+0x2f8` en `0x1c30`; las simula con 5 pasos por frame (`0x455190`) y las dibuja.
+- **La cabeza:** `0x505de0`, en cada paso, con un personaje que no es el propio (el 0) y que se ve:
+  con `rand() % 32` en 0 elige un objetivo nuevo, de −64 a 63 de giro y de −16 a 15 de inclinación,
+  y se acerca un 20 % por paso (`0x6b8854`).
+
+En la escena 2 lleva la ropa fija, el
 casco y lo demás de `0x102e`, `0x122e`, `0x142e`, `0x162e` y `0x182e` (el juego 29), la maza
 `0x620` en la derecha, el cuervo `0x1c17` en la izquierda, la capa `0x1c30` y el caballo oscuro
 `0x1c16`; `0x512930` le deja la cabeza en -1. `0x420d60` le cuelga al cuervo un objeto aparte, de
@@ -990,25 +1010,35 @@ Leído en la CL6.4 (*estático*; el dibujo del `0xa2`, emulado sobre el `main.ex
 
 - **El dibujo.** Los objetos del mundo (los de `0x606660`, en las 256 listas de `0x7d325d0`) los
   dibuja `0x6046a0`, después de los personajes: para cada sector de 16 × 16 celdas que pasa el
-  frustum (`0x5fba90`, en el centro del sector) y cada objeto vivo que lo pasa (en su posición por
-  0,01 y la z de `+0xdc`, −30), `0x602e90` (`0x5ffdf0` y, si devuelve 1, `0x6002e0`). `0x5ffdf0`
+  frustum (`0x5fba90`, en el centro del sector, con un margen de −180) y cada objeto vivo que lo
+  pasa (en su posición por 0,01, con `+0xdc` de margen, −30), prende `+0x16c` y llama a `0x602e90`
+  (`0x5ffdf0` y, si devuelve 1, `0x6002e0`) y a `0x602ed0` (los efectos de cada mapa, que tira un
+  `rand()` por objeto y en el 55 solo hace algo con los tipos `0x54` y `0x59`). `0x5ffdf0`
   no dibuja con el alpha `+0x174` debajo de 0,01; si no, le copia al modelo la luz por vértice
   (`+0xe8`), la escala (`+0xc`), la posición (`+0x10`) y la acción (`+0x111`), y lo posa con
   `0x4eb860` (los ángulos de `+0x1c`, los de la cabeza de `+0x28`, la raíz con la escala y la
   posición) y `0x4ebc80`. `0x6002e0` tiene un caso por tipo y por mapa; para el `0xa2` en el mapa
   55 (emulado) hace **un solo** `RenderBody(2, +0x174, +0x64, +0x68, +0x6c, +0x70, +0x58, −1)`: el
   pase base con el alpha, el blendMesh, la luz, la U, la V y la malla oculta del objeto, sin pases
-  de brillo.
+  de brillo (`+0x78 & 2` en 0 y `+0x74` distinto de `0x80`: ningún pase más).
 - **El color** (`0x5ffce0`, en `0x5ffdf0`): con luz por vértice, la del terreno en su lugar más
   `+0xf4..+0xfc`; sin ella, como el `0xa2`, la del terreno por 0,1 (`0x6b87b8`) más
-  `+0xf4..+0xfc`. Los tipos `0x189` (0,6) y `0xe4` (un seno del reloj) tienen el suyo.
+  `+0xf4..+0xfc`. Los tipos `0x189` (0,6) y `0xe4` (un seno del reloj) tienen el suyo. Sin luz por
+  vértice, `RenderBody` hace un solo `glColor3fv(+0x48)` al empezar, y una malla normal del modo 2
+  no lo vuelve a poner: la rama del blendMesh de `0x4ecc30` hace `glColor3f(luz · color)`, y **las
+  mallas que vienen después la heredan** (las de después de un pase de script 1 o 2, el blanco que
+  pone `0x4ef0c0`). En `Logo03` el blendMesh es la última malla y no pasa; en otro modelo, sí
+  (P-C20 i).
 - **La lógica** (`0x606560`, en cada paso del login desde `0x634c60`, solo para los objetos que se
   vieron en el último dibujo): `0x604ab0` avanza la animación con `0x4ec200` a la velocidad del
   objeto (`+0xd8`, 0,16 desde `0x606660`), no a la de la acción, y en las escenas 2 y 4 le escribe al
   `0xa2` la luz de `+0xf4..+0xfc` y de `+0x68`: la cuenta de las rutas · 0,02 con la fase en 0, y
-  1,5 con otra (Q-C105). `0x606560` corre antes que `0x633920`, que sube la cuenta, y la cuenta
-  arranca en −1 (`0x6349a0` y la `.data`): el primer paso da −0,02, el 41 da 0,78 y el 42, 1,5.
-  Hasta el primer paso, la luz de `+0x68` es la de `0x606660` (1) y la de `+0xf4` es 0.
+  1,5 con otra (Q-C105). `0x606560` solo corre los objetos con `+0x16c`, que `0x606660` deja en 0 y
+  prende el dibujo: el primer paso, el que crea el logo (`0x6349a0` desde `0x634c60`), no lo toca, y
+  el primer frame sale con la luz de `0x606660`, 1 en `+0x68` y 0 en `+0xf4`. `0x606560` corre
+  antes que `0x633920`, que sube la cuenta, y la cuenta arranca en −1 (`0x6349a0` y la `.data`): el
+  paso 2 da 0, el n da (n − 2) · 0,02, el 41 da 0,78 y el 42, 1,5 (verificado con una emulación de
+  `0x604ab0` en la revisión de la CL6.4).
 - **`Logo03.bmd`**: dos mallas, `logo.jpg` (555 vértices) y `logo2.jpg` (4 vértices y 2 triángulos:
   la de la textura 1, la del blendMesh, aditiva), dos huesos y una acción de una key: el avance no
   hace nada y el logo no se anima.

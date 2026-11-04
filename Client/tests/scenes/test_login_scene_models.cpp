@@ -4,7 +4,6 @@
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainHeights.h"
-#include "Data/Textures/TextureSet.h"
 #include "Input/InputState.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
@@ -23,10 +22,10 @@
 #include "support/FakeTextureStore.h"
 #include "support/FixedRandom.h"
 #include "support/JpegVectors.h"
+#include "support/LoginLogoFiles.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
-#include "support/SyntheticModels.h"
 #include "support/TemporaryFolder.h"
 
 #include <gtest/gtest.h>
@@ -44,7 +43,7 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <utility>
+#include <tuple>
 #include <vector>
 
 // Client::Scenes::LoginScene con su logo y su personaje (CL6.4): Logo03.bmd y la luz del mundo 56
@@ -84,43 +83,6 @@ constexpr float Rounding = 1e-4f;
 constexpr std::size_t PlayerActions = 0x56;
 constexpr float RaisedHeight = 100.0f;
 
-// Un triángulo del hueso 0 con la textura `texture` (su índice) y `name`.
-Client::Data::Models::Mesh TriangleMesh(std::int16_t texture, std::string name)
-{
-    Client::Data::Models::Mesh mesh;
-    mesh.texture = texture;
-    mesh.vertices = {{0, {0, 0, 0}}, {0, {1, 0, 0}}, {0, {0, 1, 0}}};
-    mesh.normals = {{0, {0, 0, 1}, 0}};
-    mesh.texCoords = {{0, 0}};
-    mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
-    mesh.textureName = std::move(name);
-    return mesh;
-}
-
-// Un Logo03.bmd de dos mallas, logo.jpg y logo2.jpg, con un hueso y una acción de una key, como el del
-// laboratorio; y sus dos texturas, salvo `withoutSecondTexture`.
-void WriteLogo(const std::filesystem::path& root, bool withoutSecondTexture = false)
-{
-    Client::Data::Models::Model logo;
-    logo.version = 0x0a;
-    logo.name = "logo";
-    logo.meshes = {TriangleMesh(0, "logo.jpg"), TriangleMesh(1, "logo2.jpg")};
-    Client::Data::Models::Action action;
-    action.keyCount = 1;
-    logo.actions = {action};
-    Client::Data::Models::Bone bone;
-    bone.name = "root";
-    bone.actions = {Client::Data::Models::BoneKeys{{{0.0f, 0.0f, 0.0f}}, {{0.0f, 0.0f, 0.0f}}}};
-    logo.bones = {bone};
-    Client::Tests::WriteSceneFile(root, "Logo/Logo03.bmd",
-                                  Client::Tests::PlainBmd(Client::Tests::BmdContent(logo), logo.version));
-    const std::array<Client::Data::Textures::TextureSetEntry, 2> textures{{
-        {"Logo\\logo.jpg", 0x455, Client::Scenes::LoginLogoSampling},
-        {"Logo\\logo2.jpg", 0x456, Client::Scenes::LoginLogoSampling},
-    }};
-    Client::Tests::WriteTextureSet(root, std::span(textures).first(withoutSecondTexture ? 1 : 2));
-}
-
 // World56 con las alturas en 0 (plano: la sombra es 1) y la luz de light-256.jpg.
 void WriteWorld56(const std::filesystem::path& root)
 {
@@ -150,7 +112,7 @@ public:
         m_body.bones.assign(48, bone);
         m_body.actions.assign(PlayerActions,
                               ActionInfo{.repeats = true, .speed = 1.0f, .keyCount = 2, .lockPositions = false});
-        m_part.meshes = {TriangleMesh(0, "part.jpg")};
+        m_part.meshes = {Client::Tests::TriangleMesh(0, "part.jpg")};
     }
 
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
@@ -180,7 +142,7 @@ struct Harness
         Client::Tests::WriteTextureSet(folder.Path(), Client::Scenes::WindowTextureSet);
         if (withLogo)
         {
-            WriteLogo(folder.Path());
+            Client::Tests::WriteLoginLogo(folder.Path());
         }
         if (withWorld)
         {
@@ -302,16 +264,19 @@ TEST(LoginSceneModelsTest, WithoutTheWorldLightTheCharacterGoesWithItsOwn)
     EXPECT_TRUE(Logged(tested.sink, "sin la luz del terreno"));
 }
 
-// Q-C105: el color del logo es 0,1 de la luz del terreno más la suya, cuenta · 0,02, de −0,02 en el
-// primer paso a 0,78 en el 41, y 1,5 desde el 42; su blendMesh va además por esa luz.
+// Q-C105: el color del logo es 0,1 de la luz del terreno más la suya, y su blendMesh va además por
+// esa luz. 0x606560 solo corre los objetos que se dibujaron (+0x16c): el primer paso no escribe la
+// luz, que queda la de 0x606660 (+0xf4 en 0 y +0x68 en 1); desde el segundo, cuenta · 0,02, de 0 en
+// el 2 a 0,78 en el 41, y 1,5 desde el 42.
 TEST(LoginSceneModelsTest, TheLogoLightRisesAndThenJumps)
 {
     Harness tested;
     ASSERT_TRUE(tested.Make().Enter().HasValue());
     const glm::vec3 terrain = WorldLightAt(tested.folder.Path(), LoginLogo().transform.position) * 0.1f;
     int steps = 0;
-    for (const auto& [step, light] : {std::pair{1, -0.02f}, std::pair{2, 0.0f}, std::pair{41, 39.0f * 0.02f},
-                                      std::pair{42, 1.5f}, std::pair{200, 1.5f}})
+    for (const auto& [step, light, blendLight] :
+         {std::tuple{1, 0.0f, 1.0f}, std::tuple{2, 0.0f, 0.0f}, std::tuple{41, 39.0f * 0.02f, 39.0f * 0.02f},
+          std::tuple{42, 1.5f, 1.5f}, std::tuple{200, 1.5f, 1.5f}})
     {
         SCOPED_TRACE(step);
         tested.Steps(step - steps);
@@ -323,8 +288,27 @@ TEST(LoginSceneModelsTest, TheLogoLightRisesAndThenJumps)
         ASSERT_GE(count, 6u);
         const glm::vec3 color = terrain + glm::vec3(light);
         ExpectNear(ColorOf(models.modelVertices[count - 6]), color);
-        ExpectNear(ColorOf(models.modelVertices[count - 3]), color * light);
+        ExpectNear(ColorOf(models.modelVertices[count - 3]), color * blendLight);
     }
+}
+
+// Mientras no se dibujó, el logo no cambia (0x606560 con +0x16c en 0), y las rutas siguen: a los diez
+// pasos sin dibujo, la luz es la de 0x606660; dibujado, el paso siguiente le da la cuenta, 9 · 0,02.
+TEST(LoginSceneModelsTest, TheLogoDoesNotChangeUntilItIsDrawn)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.Make().Enter().HasValue());
+    const glm::vec3 terrain = WorldLightAt(tested.folder.Path(), LoginLogo().transform.position) * 0.1f;
+    tested.Steps(10);
+
+    const FrameEvent before = tested.ModelsOfAFrame();
+    tested.Steps(1);
+    const FrameEvent after = tested.ModelsOfAFrame();
+
+    ASSERT_GE(before.modelVertices.size(), 6u);
+    ASSERT_GE(after.modelVertices.size(), 6u);
+    ExpectNear(ColorOf(before.modelVertices[before.modelVertices.size() - 3]), terrain);
+    ExpectNear(ColorOf(after.modelVertices[after.modelVertices.size() - 6]), terrain + glm::vec3(9.0f * 0.02f));
 }
 
 // Al salir se sueltan las dos texturas del logo, como las demás de la escena.
@@ -365,7 +349,7 @@ TEST(LoginSceneModelsTest, WithoutLogo03TheLoginEntersWithoutIt)
 TEST(LoginSceneModelsTest, AMissingLogoTextureStopsTheLogin)
 {
     Harness tested(false);
-    WriteLogo(tested.folder.Path(), true);
+    Client::Tests::WriteLoginLogo(tested.folder.Path(), true);
 
     const auto entered = tested.Make().Enter();
 
@@ -425,5 +409,24 @@ TEST(LoginSceneModelsTest, TheCharacterChangesItsActionInItsWindow)
         tested.Steps(1);
         EXPECT_NEAR(CharacterHeight(tested), standing, Rounding);
     }
+}
+// 0x4fcd00: cuando la acción termina (0x4ec200 da la vuelta), 0x4fcb10 le pone la de parado otra vez
+// (0x4f2250, la 0x4a con el caballo). La 0x54 de la biblioteca tiene dos keys a una por paso: termina
+// en el segundo, y en el tercero el personaje ya está parado.
+TEST(LoginSceneModelsTest, TheCharacterStandsAgainWhenItsGestureEnds)
+{
+    const float standing = LoginCharacterTransform().position.z;
+    const float raised = standing + (RaisedHeight * LoginCharacterTransform().scale);
+    Harness tested;
+    FakeClock clock;
+    clock.Advance(std::chrono::milliseconds{(3 * 2300) + 50});
+    ASSERT_TRUE(tested.Make(SeedWhoseFirstRollIs(1), &clock).Enter().HasValue());
+    tested.Steps(1);
+    ASSERT_NEAR(CharacterHeight(tested), raised, Rounding);
+    clock.Advance(std::chrono::milliseconds{500});
+
+    tested.Steps(2);
+
+    EXPECT_NEAR(CharacterHeight(tested), standing, Rounding);
 }
 } // namespace

@@ -743,12 +743,12 @@ void DrawHands(const CharacterFrame& frame, std::span<const BoneTransform> body)
     }
 }
 
-// La semilla de los rand() de un frame: el reloj en ms. El original usa el rand() de todo el cliente,
-// que no se puede repetir.
 // Un objeto del mundo no tiene la piel de una clase: sus mallas no van a los slots de la piel ni del
 // pelo (ninguna se llama así).
 constexpr std::uint8_t ObjectClass = 0;
 
+// La semilla de los rand() de un frame: el reloj en ms. El original usa el rand() de todo el cliente,
+// que no se puede repetir.
 std::uint_fast32_t RandomSeedOf(Core::Duration clock)
 {
     return static_cast<std::uint_fast32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(clock).count());

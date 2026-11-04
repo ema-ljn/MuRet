@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Xor3.h"
+#include "Data/Text/FilterWords.h"
 #include "Data/Text/TextTable.h"
 #include "Data/Textures/TextureSet.h"
 #include "support/JpegVectors.h"
@@ -95,6 +96,37 @@ inline void WriteTextTable(const std::filesystem::path& root, const std::map<std
     std::vector<std::byte> table = TextTableBytes(texts);
     table.resize(size);
     WriteSceneFile(root, relative, table);
+}
+
+// FilterName.bmd o Filter.bmd con `words` (sintéticas): cada registro de 20, también los vacíos, con
+// el XOR3 desde su principio, y la suma de `key` al final, en little-endian.
+inline std::vector<std::byte> FilterFileBytes(const std::vector<std::string>& words, Data::Text::FilterChecksumKey key)
+{
+    EXPECT_LE(words.size(), Data::Text::FilterTableSize / Data::Text::FilterRecordSize);
+    std::vector<std::byte> file(Data::Text::FilterTableSize + 4, std::byte{0});
+    for (std::size_t first = 0; first < Data::Text::FilterTableSize; first += Data::Text::FilterRecordSize)
+    {
+        const std::span<std::byte> record(file.data() + first, Data::Text::FilterRecordSize);
+        if (const std::size_t index = first / Data::Text::FilterRecordSize; index < words.size())
+        {
+            EXPECT_LE(words[index].size(), Data::Text::FilterRecordSize);
+            std::ranges::transform(words[index].substr(0, Data::Text::FilterRecordSize), record.begin(),
+                                   [](char letter) { return static_cast<std::byte>(letter); });
+        }
+        Core::Xor3(record);
+    }
+    const std::uint32_t sum = Data::Text::FilterChecksum(std::span(file).first<Data::Text::FilterTableSize>(), key);
+    for (std::size_t k = 0; k < 4; ++k)
+    {
+        file[Data::Text::FilterTableSize + k] = static_cast<std::byte>((sum >> (8 * k)) & 0xffU);
+    }
+    return file;
+}
+
+inline void WriteFilterFile(const std::filesystem::path& root, const std::vector<std::string>& words,
+                            Data::Text::FilterChecksumKey key, const std::filesystem::path& relative)
+{
+    WriteSceneFile(root, relative, FilterFileBytes(words, key));
 }
 
 // La tabla de textos de `texts`, en memoria, para los tests de la UI (CL5.5): textos sintéticos,

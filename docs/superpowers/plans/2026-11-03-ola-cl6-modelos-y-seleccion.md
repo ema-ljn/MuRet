@@ -2046,6 +2046,10 @@ namespace Client::Input
 - [ ] **Paso 10 (a mano):** contra el GS del laboratorio, con `--data`: el login aceptado, la
   selección con los personajes de la cuenta de prueba animados en sus lugares, el clic, el doble
   clic, la carga del mundo y el `F3 03`; el log del GS muestra la entrada. Sin capturas en Git.
+  Cómo correrlo, paso por paso, en el
+  [README del cliente](../../../Client/README.md#contra-el-servidor-del-laboratorio-a-mano), con la
+  prueba de cancelar en la cuenta; qué falta y qué se manda, en P-C21 del
+  [08](../../../Client/docs/research/08-pendientes.md). Sigue sin correr (2026-11-04).
 
 **Qué queda para después:** el terreno y los objetos del mapa 54 (CL7, en el mismo pase), la
 respuesta del `F3 03` (`0x4c3940`, CL7), la UI del modo 4 con crear y borrar (CL6.5), el texto
@@ -2171,6 +2175,8 @@ va al log ni a los tests, que usan nombres sintéticos.
 
 ## Al cerrar la CL6
 
+- [ ] Las pruebas a mano en la VM: P-C21 (el paso 10 de la CL6.3 y cancelar en la cuenta) y el
+  paso 3 de la CL6.4, con las trazas y capturas de P-C13 a P-C20 que entren en la misma sesión.
 - [ ] Completar el cierre de la guía de la CL6.0.
 - [ ] Actualizar `docs/learning/PROGRESS.md`.
 - [ ] Sumar al plan de la CL7: el mundo de la selección (el mapa 54, `World55`) y el del login (el

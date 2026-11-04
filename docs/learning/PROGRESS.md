@@ -453,7 +453,8 @@ solo lo lee.
   y ballestas enteros aditivos, mallas que se corren o se ocultan), la luz del personaje la escriben
   también algunas partes, y el orden de dibujo es el del original (las botas primero, cada modelo
   pase por pase, las manos al final), verificado contra la traza. Todo leído en el binario; salvo el
-  orden, ninguna traza lo tiene (P-C20).
+  orden, ninguna traza lo tiene (P-C20). **Falta la prueba a mano en la VM** (el paso 10, con
+  cancelar en la cuenta): P-C21 del 08, con los pasos en el README del cliente.
 
 ## Conceptos
 

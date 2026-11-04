@@ -247,27 +247,35 @@ la traza:
 
   | Escena | Modelo | Acción (keys) | Frame en los 5 swaps | Error máximo |
   | --- | --- | --- | --- | --- |
-  | Selección | personaje | 3 (7) | 1,737 · 3,320 · 4,896 · 6,739 · 1,578 | 0,015 |
+  | Selección | personaje | 3 (7) | 1,740 · 3,320 · 4,900 · 6,740 · 1,580 | 0,0014 |
   | Lorencia | personaje | 1 (6) | 1,820 · 1,411 · 0,731 · 0,042 · 5,358 | 0,058 sin la cabeza |
-  | Lorencia | guardia | 1 (6) | 0,675 · 0,279 · 5,583 · 4,908 · 4,238 | 0,047 sin la cabeza |
+  | Lorencia | guardia | 1 (6) | 0,681 · 0,281 · 5,601 · 4,921 · 4,241 | 0,001 sin la cabeza |
+
+  Los frames de la selección y del guardia son los de la pose de MuRet (CL6.2,
+  `GoldenSkinningTrace`), buscados de a 0,0005 keys: con ellos cada vértice cae a 0,001 del de la
+  traza, lo que redondea un float en coordenadas de 15.000. Antes la tabla daba 1,737 · 3,320 ·
+  4,896 · 6,739 · 1,578 (0,015) y 0,675 · 0,279 · 5,583 · 4,908 · 4,238 (0,047), ajustados con otra
+  medida del error. Los nuevos saltan justo lo que dan 0,26 y 0,28 keys por paso (abajo): 1,58 y
+  1,84 módulo 7, y 5,60 y 5,32 módulo 6. El personaje de Lorencia sigue con los frames de antes.
 
   El objeto solo agrega la escala 0,9, un giro alrededor de Z (100° en la selección; 116° el
   personaje y 90° el guardia en Lorencia) y su posición. En Lorencia los dos están a z = 165, la
   altura del terreno en esa zona (byte 110 × 1,5).
 - **La cabeza gira aparte.** En Lorencia el hueso `Bip01 Head` (20) no sigue la animación: queda a
-  0,5 unidades en el personaje y a 4,6 en el guardia, con el resto del cuerpo a menos de 0,06. En
-  la selección la cabeza sigue la animación. *Estático*, en `0x4eb860`: al hueso de la cabeza del
-  modelo (su índice está en `modelo + 0x54`) le resta a los ángulos de Euler x y **z** un ángulo
-  del objeto (`objeto + 0x28` al x y `+ 0x2c` al z, en grados, por π/180; `0x4eb9ff`..`0x4eba1d`)
-  en las dos keys que interpola, antes de pasar a cuaternión (`0x5fcd20`); los demás huesos usan
-  los cuaterniones ya calculados. (Antes este documento decía x e y.) El ángulo lo escribe
-  `0x505de0` (`0x506972`..`0x5069a9`): `+0x28` y `+0x2c` giran hacia `+0x34` y `+0x38` (× 0,2,
-  con `0x4e9560` y `0x4e96f0`), y a quien no es el personaje propio ni se está muriendo, con
-  `rand() % 32` en 0, le elige un objetivo al azar (x de −64 a 63; z de −16 a 15, más 360 si es
-  negativo). No corre con `+0x16c` en 0 (no visible, `0x5fba90`) ni con los bits `0x20` o
-  `0x1000` de `+0x78`, y `0x4e8090` los pone en 0. *Estático*; el tramo de antes, `0x505ef8`..,
-  parece del anticheat y no se leyó. Si la cadena de la selección llega a `0x505de0`, sin leer: la
-  traza dice que ahí la cabeza sigue la animación (P-C14).
+  0,5 unidades en el personaje y a 4,6 en el guardia, con el resto del cuerpo a menos de 0,06. En la
+  selección la cabeza sigue la animación. *Estático*, en `0x4eb860`: al hueso de la cabeza del
+  modelo (su índice está en `modelo + 0x54`) le resta a los ángulos de Euler x y **z** un ángulo del
+  objeto (`objeto + 0x28` al x y `+ 0x2c` al z, en grados, por el π/180 de `0x6ba140`, que es
+  `0x3c8efa36`, un ulp más que el de `0x6ba360`; `0x4eb9ff`..`0x4eba1d`) en las dos keys que
+  interpola, antes de pasar a cuaternión (`0x5fcd20`); los demás huesos usan los cuaterniones ya
+  calculados. (Antes este documento decía x e y.) El ángulo lo escribe `0x505de0`
+  (`0x506972`..`0x5069a9`): `+0x28` y `+0x2c` giran hacia `+0x34` y `+0x38` (× 0,2, con `0x4e9560` y
+  `0x4e96f0`), y a quien no es el personaje propio ni se está muriendo, con `rand() % 32` en 0, le
+  elige un objetivo al azar (x de −64 a 63; z de −16 a 15, más 360 si es negativo). No corre con
+  `+0x16c` en 0 (no visible, `0x5fba90`) ni con los bits `0x20` o `0x1000` de `+0x78`, y `0x4e8090`
+  los pone en 0. *Estático*; el tramo de antes, `0x505ef8`.., parece del anticheat y no se leyó. Si
+  la cadena de la selección llega a `0x505de0`, sin leer: la traza dice que ahí la cabeza sigue la
+  animación (P-C14).
 - **Pases extra de brillo.** Las mallas `Male17` y la espada se dibujan tres veces más, con las
   mismas posiciones y UV que no están en el archivo (texturas GL 141, 115 y 120); las del guardia y
   las pociones, una vez más (la 120). Las UV salen de la normal de cada vértice en el mundo

@@ -282,7 +282,7 @@ Cada uno tiene su test en la sub-ola que lo dice. En la review se miran primero:
   `glm::rotate` y el fov de `glm::perspective` piden radianes, y `glRotatef` y `gluPerspective`,
   grados (CL6.2 y CL6.3, `Pass3DTest.MatchesTheMatricesOfTheSelectionTrace`).
 - **El frame de la traza es uno menos.** El original guarda f + 1 y ⌊f⌋ como anterior, y posa
-  entre las dos: los frames de la tabla del 06 (1,737, 3,320…) son los de la pose, y el estado
+  entre las dos: los frames de la tabla del 06 (1,740, 3,320…) son los de la pose, y el estado
   del original va una key adelante. El test de la traza arma el estado como el original
   (`GoldenSkinningTrace.MatchesTheFiveFramesOfTheSelection`).
 - **El slerp de glm no es el del original** (pregunta 5), y la igualdad de 0,001 de `0x5fc700`
@@ -1142,10 +1142,10 @@ enum class ShinePass : std::uint8_t { Shiny /*0x8*/, Chrome /*0x4*/, Chrome4 /*0
 } // namespace Client::Render::Models
 ```
 
-- [ ] **Paso 1 (PR A):** con Context7 (`/g-truc/glm`), confirmar la pregunta 5 otra vez antes de
+- [x] **Paso 1 (PR A):** con Context7 (`/g-truc/glm`), confirmar la pregunta 5 otra vez antes de
   escribir: `glm::quat(glm::vec3)`, `glm::mat3_cast`, `glm::quat::wxyz`, `glm::mat4x3` y
   `glm::mat4(mat4x3)`. Si algo cambió, la pregunta 5 se corrige acá.
-- [ ] **Paso 2 (PR A):** los tests: `HalfLifeMathTest.AQuarterTurnAroundZ`,
+- [x] **Paso 2 (PR A):** los tests: `HalfLifeMathTest.AQuarterTurnAroundZ`,
   `AngleQuaternionIsTheHalfLifeFormula` (contra la fórmula de 06 escrita en el test),
   `AlmostEqualKeysCopyTheFirst` (0,001 de diferencia en cada componente: devuelve p sin slerp),
   `SlerpFlipsLikeHalfLife`, `SlerpIsLinearBelowOneInAHundredMillion`, `TheMatrixIsColumnMajor`
@@ -1158,12 +1158,13 @@ enum class ShinePass : std::uint8_t { Shiny /*0x8*/, Chrome /*0x4*/, Chrome4 /*0
   `LockPositionsIsBoneZeroWithEitherAction`, `DummyBonesAreNotPosed` (el
   `BoneTransform` de un dummy queda como estaba); `SkinningTest.AVertexFollowsItsBone`,
   `TheNormalOnlyRotates`.
-- [ ] **Paso 3 (PR A):** correrlos y verlos fallar:
+- [x] **Paso 3 (PR A):** correrlos y verlos fallar:
   `ctest --preset linux-x64-debug -R "HalfLifeMath|Skeleton|Pose|Skinning"`.
-- [ ] **Paso 4 (PR A, Emanuel, `TODO(human)`):** `HalfLifeMath`, `MakeSkeleton`, `PoseSkeleton` y
-  `SkinMesh`. Las constantes double del original (0,5, 1e-8, 0,001) con su tipo: el slerp compara
-  en double como `0x5fce90`, y lo que vuelve a float lleva un `static_cast` (C4244).
-- [ ] **Paso 5 (PR A):** el lector de la traza: `tests/support/GlTrace.h`, con
+- [x] **Paso 4 (PR A, Emanuel, `TODO(human)`, resuelto por Claude):** `HalfLifeMath`,
+  `MakeSkeleton`, `PoseSkeleton` y `SkinMesh`. Las constantes double del original (0,5, 1e-8, 0,001)
+  con su tipo: el slerp compara en double como `0x5fce90`, y lo que vuelve a float lleva un
+  `static_cast` (C4244).
+- [x] **Paso 5 (PR A):** el lector de la traza: `tests/support/GlTrace.h`, con
   `ReadGlTrace(const std::filesystem::path&) -> Core::Expected<GlTrace, std::string>`: los frames
   cortados en cada `wglSwapBuffers`, y en cada frame los `glViewport`, las matrices
   (`glMultMatrixd`, `glRotatef`, `glTranslatef`, `glOrtho`) y los bloques de `glBegin` a `glEnd`
@@ -1172,7 +1173,7 @@ enum class ShinePass : std::uint8_t { Shiny /*0x8*/, Chrome /*0x4*/, Chrome4 /*0
   `ReadsTheMatricesInOrder`, `AMalformedLineSaysItsNumber`. Y en `GoldenDir.h`, `GlTraceDir()` con
   la regla de D-C9 y `GoldenAndGlTraceTest`, como `GoldenAndWireDataTest`, con
   `TraceFile(std::string_view name)`; `GoldenDirTest` suma sus casos.
-- [ ] **Paso 6 (PR A):** el golden de la pose (`GoldenAndGlTraceTest`: `MURET_CLIENT_GOLDEN_DIR` y
+- [x] **Paso 6 (PR A):** el golden de la pose (`GoldenAndGlTraceTest`: `MURET_CLIENT_GOLDEN_DIR` y
   `MURET_CLIENT_GL_TRACE_DIR`): `GoldenSkinningTrace.MatchesTheFiveFramesOfTheSelection`. Lee
   `Player.bmd` y las cinco partes del personaje de la traza (06 § El personaje, vértice a vértice),
   identifica cada bloque por su secuencia de UV, arma el estado como el original (la acción 3, el
@@ -1182,7 +1183,7 @@ enum class ShinePass : std::uint8_t { Shiny /*0x8*/, Chrome /*0x4*/, Chrome4 /*0
   06), que prueba otro personaje con otras partes; su posición sale del ajuste, como en 05 (la
   media de la diferencia), porque no está en ninguna tabla. Ningún número de la traza va al test
   que no esté ya en el 06.
-- [ ] **Paso 7 (PR A):** verificar:
+- [x] **Paso 7 (PR A):** verificar:
   ```bash
   ctest --preset linux-x64-debug -R "HalfLifeMath|Skeleton|Pose|Skinning|GlTrace"
   MURET_CLIENT_GOLDEN_DIR=<Data> MURET_CLIENT_GL_TRACE_DIR=<trazas> \
@@ -1192,6 +1193,76 @@ enum class ShinePass : std::uint8_t { Shiny /*0x8*/, Chrome /*0x4*/, Chrome4 /*0
   0,001, la traslación en la fila de abajo, la cabeza en x e y, la escala en cada hueso, los
   ángulos del objeto en radianes, y el frame sin el + 1 del original. Cada uno con el test que lo
   mata, y los de la traza con su error máximo en el mensaje.
+
+  Hecho así (PR A, 2026-11-03, resuelto por Claude): `Render/Models/HalfLifeMath`, `Skeleton`,
+  `Pose` y `Skinning`, `tests/support/GlTrace` y `GoldenAndGlTraceTest`, con 36 tests
+  (`test_half_life_math.cpp`, `test_skeleton.cpp`, `test_pose.cpp`, `test_skinning.cpp`,
+  `test_gl_trace.cpp` y los dos golden de `test_golden_skinning_trace.cpp`). glm entra a `ClientLib`
+  como `PUBLIC`. El paso 1 confirmó la pregunta 5 en Context7 y en el header de glm 1.0.3: la
+  fórmula de `glm::quat(vec3)`, `mat3_cast`, `glm::quat::wxyz`, el orden x, y, z, w en memoria y
+  `mat4(mat4x3)` con la traslación en la última columna. La matemática es la de la CL6.0
+  (`labs/cl6.0-huesos`) con los tipos de glm. Lo que cambió del contrato de arriba:
+  - **La escala y la posición del objeto van en el vértice, no en la raíz.** El cuerpo de un
+    personaje va por `0x50ba30` → `0x6001b0(objeto, 1, …)`, que solo posa: llama a `0x4eb860` con su
+    último argumento en 0 (la raíz es solo `AngleMatrix` de los ángulos). Cada parte va después por
+    `0x60cf70`, que llama a `0x4ebc80` con los huesos de `objeto + 0x120` y su último argumento en
+    1: escala y mueve cada vértice (*estático*: `0x50bbe4`..`0x50bbf7`, `0x600294`..`0x6002ce` y
+    `0x60d186`). `0x5ffdf0`, con el mismo cableado, es el de los monstruos y los NPC (antes este
+    párrafo lo daba como el del personaje; de la revisión). Las posiciones dan lo mismo; las
+    normales no se escalan, y eso lo confirmó el brillo del PR C contra la traza. Por eso `SkinMesh`
+    recibe el `ObjectTransform`, y `TheRootCarriesTheObjectTranslation` y
+    `TheRootScalesButTheChildrenDoNot` son `PoseTest.TheRootTurnsWithTheObjectButDoesNotMoveWithIt`
+    y `SkinningTest.TheObjectScalesAndMovesTheVertices`.
+  - `MakeSkeleton` devuelve un `SkeletonError` con el hueso y el padre, no un `std::string`, como
+    `ModelLoadError`. `PoseSkeleton` y `SkinMesh` devuelven `bool`: sin escribir, si los huesos no
+    son del tamaño del esqueleto, si falta una key o si un vértice nombra un hueso que no está.
+  - De `0x4eb860` (pseudo-C de Ghidra y desensamblado): la key de ahora es el frame truncado, la
+    anterior la que guardó el avance, y una acción o una key de más es la 0; la parte fraccionaria
+    sale del frame antes de cortarlo (`PoseTest.AFrameOutOfRangeKeepsItsFraction`); con dos keys
+    iguales a 0,001 copia la anterior. El π/180 de la cabeza (`0x6ba140`) es `0x3c8efa36`, un ulp más
+    que el de la raíz (`0x6ba360`): `PoseTest.TheHeadUsesTheDegreeFloatOfTheOriginal`.
+  - `ThePlayerHeadIsBoneTwenty` va con `MakePlayerSkeleton`, en el PR B.
+  - **El golden busca el frame.** Con los frames del 06 la selección daba 0,020 y el guardia 0,033;
+    buscando cada frame a ±0,03 keys del de la tabla, de a 0,0005, los diez caen a 0,0014 o menos,
+    lo que redondea un float en coordenadas de 15.000. El test pide menos de 0,005: un error de
+    verdad (sin el + 1, la interpolación al revés, un eje cambiado) no se arregla corriendo el frame
+    unas centésimas. Los frames buscados corrigieron la tabla del 06, y saltan justo 33 y 34 pasos
+    de 0,26 en la selección y 20 y 19 de 0,28 en el guardia, lo que pide el PR B.
+  - Las mallas que van al slot `0x12d` (`hide.jpg`, `hide_m.jpg`) no se dibujan, y el golden las
+    saltea. El guardia se compara sin el casco: `HelmMale10` y `MaskHelmMale10` cuelgan enteros de
+    la cabeza, que en Lorencia no sigue la animación.
+  - `GoldenDirTest` no suma casos: `GoldenAndGlTraceTest` usa la misma regla (`RequireDirectory`), y
+    sin la carpeta falla diciendo la variable (probado a mano con una que no existe).
+
+  De los 17 mutantes a mano mueren 15: el cuaternión con `glm::quat(x, y, z, w)`, sin la igualdad de
+  0,001, el giro traspuesto, la cabeza en x e y, la escala en la raíz, los ángulos del objeto en
+  radianes, de la key de ahora a la siguiente (el + 1), t y 1 − t cambiados, `lock_positions` con la
+  key 0 de la anterior, solo con la de ahora y en cualquier raíz, la parte fraccionaria después de
+  cortar, la normal con la traslación, un padre de después aceptado y el slerp sin dar vuelta.
+  Quedan dos equivalentes: el slerp de glm (da vuelta con el mismo criterio, el producto negativo, y
+  usa la misma fórmula: difiere en el redondeo, 1,8e-7 en la CL6.0) y la rama lineal con el cos sin
+  redondear (entre 1 − 3e-8 y 1 − 1e-8 las dos ramas dan el mismo float; la CL6.0 lo veía porque
+  exponía la rama elegida).
+
+  Revisión adversarial (2026-11-03, resuelta por Claude): un revisor del C++, con ASan, UBSan y sus
+  propios mutantes, y otro que contrastó cada afirmación con el desensamblado y armó su propio
+  skinning: le dieron los mismos frames, el mismo reloj y el lugar del guardia, (14.350; 12.850;
+  165). Lo que se arregló, cada cosa con un test que falló primero o que mata un mutante que vivía:
+  - `PoseSkeleton` leía fuera de `bones` con un `Skeleton` armado a mano con un padre que no va
+    antes (ASan): ahora devuelve false (`PoseTest.ABadParentIsRefused`). Se partió en
+    `LocalTransform` (regla 1).
+  - La cabeza con dos keys distintas no tenía test, y tres mutantes vivían
+    (`TheHeadInterpolatesBothKeys`). Los golden posan con la cabeza del personaje, el hueso 20.
+  - Los bordes justos: la acción y la key que son la cantidad, una key que falta, el hueso de una
+    normal justo de más y el `SkinnedMesh` que se reusa (`AnActionOrAKeyJustOutOfRangeIsTheFirst`,
+    `AMissingKeyIsRefused`, `ABoneOutOfRangeIsRefused`, `ReusesItsBuffers`).
+  - El chequeo de "el mejor está en el borde de la búsqueda" no saltaba nunca, por el redondeo de la
+    resta: ahora mira el paso, y con t corrida 0,03 salta. La búsqueda absorbe un error que equivale
+    a correr el frame; ese lo ven los `PoseTest` (y el golden del brillo, que no busca).
+  - El cuerpo del personaje no va por `0x5ffdf0`, que es el de los monstruos, sino por `0x6001b0` y
+    `0x60cf70`: se corrigieron las citas de arriba, de los headers y de PROGRESS.
+  - El lector de la traza: la cabecera solo antes de la primera llamada, el número de
+    `glBindTexture` entero y una función por llamada (regla 1).
 - [ ] **Paso 8 (PR B):** los tests, con un reloj falso y el `FixedStep` de la CL3:
   `AnimationTest.AdvancesBySpeedPerStep`, `WrapsModuloTheKeys`,
   `WrapsModuloKeysMinusOneWithLockPositions`, `HoldsJustBeforeTheLastKeyWithoutRepeat` (n − 0,01),
@@ -1219,10 +1290,14 @@ enum class ShinePass : std::uint8_t { Shiny /*0x8*/, Chrome /*0x4*/, Chrome4 /*0
 - [ ] **Paso 11 (PR C, Emanuel):** `Shine.h/.cpp`. Verificar con `-R "Shine"` y el golden. Los
   mutantes: la normal sin rotar, T en segundos, y el seno y el coseno cambiados de lugar.
 
-**Qué queda para después:** cuántos pases lleva cada ítem (P-C01 b: la CL6.R lo leyó, es el nivel
-de `0x60b3d0`, y va en la CL6.3 con `ItemGlow`), la luz por vértice de `0x4ebc80` (con `+0x44`
-del modelo; en la traza el personaje va con un color por malla), los multiplicadores de `0x4f9580`
-(CL7) y los efectos.
+**Qué queda para después:** cuántos pases lleva cada ítem (P-C01 b: la CL6.R lo leyó, es el nivel de
+`0x60b3d0`, y va en la CL6.3 con `ItemGlow`), la luz por vértice de `0x4ebc80` (con `+0x44` del
+modelo; en la traza el personaje va con un color por malla), los multiplicadores de `0x4f9580` (CL7)
+y los efectos. De la revisión, para la CL6.3: la pose con su séptimo argumento en 1 (la raíz que
+dejó quien llama en `0x68c4a1c`, como cuelgan las armas, la mascota y las alas en `0x509340`), la
+escala de los vértices de `0x6c881c` (1,2 y 1,4 en los modos 2 y 3 del contorno), y el contorno del
+personaje bajo el mouse, que para un jugador hace `0x60cf70` por parte con otros valores que los de
+`0x5ffdf0` (Q-C94 y 06 describen los de `0x5ffdf0`: verificar).
 
 ## Sub-ola CL6.3: `CharacterSelectScene` con preview 3D y los paquetes de selección
 

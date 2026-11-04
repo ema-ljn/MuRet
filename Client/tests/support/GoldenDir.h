@@ -130,6 +130,23 @@ protected:
     std::filesystem::path m_wireRoot;
 };
 
+// Las trazas de GL del laboratorio. MURET_CLIENT_GL_TRACE_DIR apunta a una carpeta, fuera de Git, con
+// las trazas de GLIntercept descomprimidas (gunzip -k): character-selection-Frame_003207.txt y
+// lorencia-Frame_016215.txt, de graphics-01/ en el PR #45 de EmaNLJN/mu-online-reverse-lab
+// (pregunta 12 del plan de la CL6). La regla es la de la carpeta golden, y la variable va solo en el
+// entorno. Un test de la traza necesita también Data\: compara lo que MuRet hace con los modelos con
+// lo que el original le mandó a GL.
+class GoldenAndGlTraceTest : public GoldenDataTest
+{
+protected:
+    void SetUp() override;
+
+    // La ruta de la traza `name`. Si no está, marca el test como fallado y devuelve std::nullopt.
+    std::optional<std::filesystem::path> TraceFile(std::string_view name) const;
+
+    std::filesystem::path m_traceRoot;
+};
+
 // La fuente de los tests de FreeType (CL5.3). MURET_CLIENT_FONT_FILE apunta a un archivo
 // TrueType, fuera de Git: en CI, una fuente del runner (DejaVu en Ubuntu, una de C:\Windows\Fonts
 // en Windows). La regla es la de la carpeta golden: sin la variable, o vacía, el test se saltea; si

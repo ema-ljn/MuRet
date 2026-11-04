@@ -393,6 +393,15 @@ solo lo lee.
   mutantes. La revisión adversarial encontró un `ModelTextureSlots` que se podía copiar con las
   rutas colgando, la letra del cargador sin punto mal leída (Q-C107) y dos variantes de mutantes de
   la búsqueda que seguían vivas: dos tests más, que fallaron primero.
+  **La CL6.2 A** (2026-11-03, resuelta por Claude): la matemática de Half-Life con los tipos de glm
+  (`Render/Models/HalfLifeMath`, a mano el slerp de `0x5fce90` y la igualdad de `0x5fc700`), el
+  esqueleto con un cuaternión por key, la pose de `0x4eb860` y el skinning de `0x4ebc80`, en la CPU
+  y sin GL. El cuerpo del personaje lleva la escala y la posición en cada vértice, no en la raíz
+  (`0x50ba30` → `0x6001b0` posa, y `0x60cf70` lleva cada parte con `0x4ebc80` en 1). Contra las dos trazas de GL del laboratorio
+  (`tests/support/GlTrace`, con la variable nueva `MURET_CLIENT_GL_TRACE_DIR`), cada vértice del
+  personaje de la selección y del guardia de Lorencia cae a 0,0014 o menos del original en los cinco
+  frames: lo que redondea un float. Los frames que lo dan corrigieron la tabla del 06. 36 tests y 17
+  mutantes a mano, dos equivalentes.
 
 ## Conceptos
 
@@ -522,6 +531,7 @@ sesión, junto con los de repaso más viejo.
 | leer un formato y un cargador en el binario y probarlos contra datos reales: un script que lee los `.bmd` como `0x4f13d0`, el asignador de slots simulado contra un volcado de la memoria, y qué queda *estático*, *inferido* o verificado | CL6.R | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | un formato con conteos que dicen cuánto leer de cada parte: no pedir memoria antes de saber que entra, un cifrado que vale solo para un bloque (`0x0C` desde `+8`), y un golden que encuentra lo que el plan no esperaba (Q-C108) | CL6.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | una tabla del original sacada del binario y no copiada a mano: emular un cargador, qué registros dependen de lo de antes (el `ebx` de `0x60ff50`), y un slot que se busca por nombre desde el 0 hasta el próximo libre | CL6.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| la pose de un esqueleto: dos keys y la parte fraccionaria del frame, el slerp y su vuelta, la cadena de padres, filas contra columnas, y un golden que busca el frame en vez de tolerar el error | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

@@ -2521,9 +2521,19 @@ Decisiones, con lo que cuestan si están mal:
 - Ruling: el objeto va en (50, 50, 0), sin la z del terreno del mapa 54, que es de la CL7. La cámara
   va con el objeto, así que no se ve. Si está mal, nada, hasta que algo del mundo entre en el
   viewport.
-- Ruling: el color de la vista previa es blanco. La luz de `0x5ffce0` pasa de 1 y el shader la
-  recorta. Si está mal, con un terreno muy oscuro y un `+0xf4` que no es el de `0x63e460`, el color
-  sería otro.
+
+**Tras la revisión adversarial de B3** (un revisor del C++ y del binario, sin críticos):
+- **La vista previa temblaba con un aviso arriba** (Importante): no avanza, pero el dibujo la
+  interpolaba con un paso de más. Ahora va quieta (`UnderANoticeThePreviewStaysStill`).
+- La luz es otra: `0x511290` prende la luz por vértice, y `0x6002e0` les pone el color en 4,8 a los
+  NewFace. MuRet la dibuja así, y el shader la recorta.
+- La vista previa se arma al entrar a la escena, no con la lista (`ThePreviewGreetsFromTheStart`).
+- Tests más fuertes:
+  - la base antes de la vista previa;
+  - una acción 1 que repite, que termina por la regla de la escena 4;
+  - los nombres de GL seguidos del volcado.
+
+20 mutantes más de la pasada y de los tests nuevos, todos en rojo.
 
 ## Qué no se prueba en CI, y cómo se cubre
 

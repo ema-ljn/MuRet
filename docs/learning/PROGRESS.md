@@ -502,7 +502,9 @@ solo lo lee.
   **La CL6.5 PR B3** (2026-11-04, resuelta por Claude): la vista previa de la ventana de crear, el
   NewFace de cada clase con su cámara y su viewport, saludando con la acción 1. Sus texturas van
   desde el slot 0x6f8 siguiendo la tabla de la carga, verificadas contra el volcado de Lorencia
-  (Q-C91). 10 tests y 17 mutantes. Con esto la CL6.5 queda completa, salvo verla en pantalla.
+  (Q-C91). 13 tests y 24 mutantes, con lo que encontró la revisión: la luz por vértice con el
+  color en 4,8 y que no tiemble con un aviso arriba. Con esto la CL6.5 queda completa, salvo verla
+  en pantalla.
 
 ## Conceptos
 

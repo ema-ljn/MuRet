@@ -1620,11 +1620,13 @@ abrirse, vacía, con el `0x36` o el `0x37` arriba.
 
 **La vista previa** (`0x63e460`, después de la base de la ventana y antes de lo demás, así que no se
 oscurece). El objeto suelto `0x7437050` lleva el NewFace de la clase:
-- `0x63e3e0`, con cada clase que se elige, lo arma de nuevo con `0x511290` en (50, 50) y la acción 1;
+- `0x63e3e0` lo arma de nuevo con `0x511290` en (50, 50) y la acción 1. Corre al entrar a la escena
+  (`0x633f20` → `0x65f4b0` → `0x63d1a0` → `0x63d7c0`) y con cada clase que se elige;
 - `0x50ba30` lo dibuja por `0x602e90`, porque no es el `0x20a`, y sin la sombra (los `0xa8` a `0xac`
   quedan afuera);
-- su luz es la de `0x5ffce0`: 0,1 de la del terreno más el `+0xf4` en (1, 1, 1), que pasa de 1 y se
-  recorta.
+- `0x511290` le prende la luz por vértice (`+0xe8`, `0x511be6`), y `0x6002e0` les pone a los `0xa8`
+  a `0xac` el color en 4,8 antes de `RenderBody(2)` (`0x6007d7`). Cada esquina queda en 4,8 ·
+  max(0,2; 0,8 · L · n + 0,4): 1 al recortarse, salvo de espaldas a la luz.
 
 La cámara (`0x6338a0`) queda en el objeto más (10, −500, 48), mirando con (−90, 0, 0), con el fov en
 10 y el near y el far de la escena 4. El viewport es `0x620db0(ftol(x / rx), ftol(y / ry), ftol(410 /

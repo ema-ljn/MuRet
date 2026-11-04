@@ -135,6 +135,14 @@ constexpr CallList<291> ItemCalls = MakeItemCalls();
 static_assert(PlayerCalls.count == PlayerCalls.calls.size(), "las llamadas de 0x60f7d0");
 static_assert(ItemCalls.count == ItemCalls.calls.size(), "las llamadas de 0x611850");
 
+// 0x616953, 0x616971, 0x61698c y 0x6169a7.
+constexpr std::array<ModelTextureCall, 4> SkillCalls{{
+    {0x145, SkillFolder},
+    {0x146, SkillFolder},
+    {0x147, SkillFolder},
+    {0xbf, SkillFolder},
+}};
+
 // 0x2600 y 0x2900 en las trece.
 constexpr Textures::Sampling FixedSampling{Textures::Filter::Nearest, Textures::Wrap::Clamp};
 constexpr std::array<Textures::TextureSetEntry, 13> FixedTextures{{
@@ -162,6 +170,11 @@ std::span<const ModelTextureCall> PlayerTextureCalls()
 std::span<const ModelTextureCall> ItemTextureCalls()
 {
     return ItemCalls.calls;
+}
+
+std::span<const ModelTextureCall> SkillTextureCalls()
+{
+    return SkillCalls;
 }
 
 std::span<const Textures::TextureSetEntry> PlayerFixedTextures()

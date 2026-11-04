@@ -12,6 +12,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/DarkHorse.h"
 #include "Scenes/GameData.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SceneCanvas.h"
@@ -92,26 +93,35 @@ void WriteWorld56(const std::filesystem::path& root)
                                   Client::Tests::OzjOf(Client::Tests::ReadJpegVector("light-256.jpg")));
 }
 
-// Player.bmd con 48 huesos y 0x56 acciones de dos keys que avanzan una por paso: en las 0x54 y 0x55,
-// el hueso 0 a 100 de altura; en las demás, en el origen. Y una parte de un triángulo para cualquier
-// otro modelo, sin la sombra.
+// Un esqueleto de `bones` huesos sin padre con `actions` acciones de dos keys que avanzan una por paso:
+// en las dos de `raised`, cada hueso a 100 de altura; en las demás, en el origen.
+Skeleton RaisingSkeleton(std::size_t actions, std::size_t bones, std::array<std::size_t, 2> raised)
+{
+    SkeletonBone bone;
+    bone.parent = -1;
+    for (std::size_t action = 0; action < actions; ++action)
+    {
+        BoneKey key;
+        key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+        key.position = {0.0f, 0.0f, action == raised[0] || action == raised[1] ? RaisedHeight : 0.0f};
+        bone.actions.push_back({key, key});
+    }
+    Skeleton skeleton;
+    skeleton.bones.assign(bones, bone);
+    skeleton.actions.assign(actions, ActionInfo{.repeats = true, .speed = 1.0f, .keyCount = 2, .lockPositions = false});
+    return skeleton;
+}
+
+// Player.bmd con 48 huesos y 0x56 acciones (las 0x54 y 0x55 alzan el hueso 0), una parte de un
+// triángulo para cualquier otro modelo, sin la sombra, y el caballo (0xbf) con sus siete acciones (la
+// 5 y la 6 lo alzan) y su textura en 0x3bc.
 class LoginPlayer final : public IModelLibrary
 {
 public:
-    LoginPlayer() : m_part(Client::Data::Models::Model{})
+    LoginPlayer()
+        : m_body(RaisingSkeleton(PlayerActions, 48, {0x54, 0x55})), m_horse(RaisingSkeleton(7, 1, {5, 6})),
+          m_part(Client::Data::Models::Model{})
     {
-        SkeletonBone bone;
-        bone.parent = -1;
-        for (std::size_t action = 0; action < PlayerActions; ++action)
-        {
-            BoneKey key;
-            key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
-            key.position = {0.0f, 0.0f, action == 0x54 || action == 0x55 ? RaisedHeight : 0.0f};
-            bone.actions.push_back({key, key});
-        }
-        m_body.bones.assign(48, bone);
-        m_body.actions.assign(PlayerActions,
-                              ActionInfo{.repeats = true, .speed = 1.0f, .keyCount = 2, .lockPositions = false});
         m_part.meshes = {Client::Tests::TriangleMesh(0, "part.jpg")};
     }
 
@@ -121,17 +131,23 @@ public:
     }
     [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
     {
+        if (model == Client::Scenes::DarkHorseModel)
+        {
+            return &m_horse;
+        }
         return model == 0x20a ? &m_body : nullptr;
     }
-    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t model) const override
     {
-        return m_slots;
+        return model == Client::Scenes::DarkHorseModel ? m_horseSlots : m_slots;
     }
 
 private:
     Skeleton m_body;
+    Skeleton m_horse;
     Client::Data::Models::Model m_part;
     std::array<TextureSlot, 1> m_slots{TextureSlot{0x300}};
+    std::array<TextureSlot, 1> m_horseSlots{TextureSlot{0x3bc}};
 };
 
 struct Harness
@@ -428,5 +444,128 @@ TEST(LoginSceneModelsTest, TheCharacterStandsAgainWhenItsGestureEnds)
     tested.Steps(2);
 
     EXPECT_NEAR(CharacterHeight(tested), standing, Rounding);
+}
+
+// El tramo del caballo (su textura, 0x3bc) entre los del frame, o el final si no está.
+std::size_t HorseCommand(const FrameEvent& models)
+{
+    const auto horse =
+        std::ranges::find(models.modelCommands, std::optional{TextureSlot{0x3bc}},
+                          [](const Client::Render::ModelDrawCommand& command) { return command.state.texture; });
+    return static_cast<std::size_t>(horse - models.modelCommands.begin());
+}
+
+// 0x6350b0: los personajes (0x510d00), los ayudantes (0x4453b0, el caballo) y los objetos (0x6046a0,
+// el logo). Después del primer paso, el caballo ya está, con la mezcla normal: su alpha es 0,1.
+TEST(LoginSceneModelsTest, TheHorseGoesBetweenTheCharacterAndTheLogo)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.Make().Enter().HasValue());
+    tested.Steps(1);
+
+    const FrameEvent models = tested.ModelsOfAFrame();
+
+    const std::size_t count = models.modelCommands.size();
+    ASSERT_GE(count, 4u);
+    EXPECT_EQ(HorseCommand(models), count - 3);
+    EXPECT_EQ(models.modelCommands[count - 3].state.blend, ModelBlend::Alpha);
+    EXPECT_EQ(models.modelCommands[count - 2].state.texture, TextureSlot{0x455});
+    EXPECT_EQ(models.modelCommands[0].state.texture, TextureSlot{0x300});
+}
+
+// 0x443d70 lo crea con el alpha en 0, y 0x5ffdf0 no dibuja nada por debajo de 0,01: antes del primer
+// paso no está. Después sube un décimo de lo que le falta en cada uno (0x4e9980), y desde el 44 pasa
+// 0,99 y va opaco.
+TEST(LoginSceneModelsTest, TheHorseFadesInStepByStep)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.Make().Enter().HasValue());
+    {
+        const FrameEvent models = tested.ModelsOfAFrame();
+        EXPECT_EQ(HorseCommand(models), models.modelCommands.size());
+    }
+    tested.Steps(2);
+    {
+        const FrameEvent models = tested.ModelsOfAFrame();
+        ASSERT_LT(HorseCommand(models), models.modelCommands.size());
+        const Client::Render::ModelDrawCommand& horse = models.modelCommands[HorseCommand(models)];
+        EXPECT_FLOAT_EQ(models.modelVertices[horse.firstVertex].color.alpha, 0.19f);
+    }
+    tested.Steps(42);
+    {
+        const FrameEvent models = tested.ModelsOfAFrame();
+        ASSERT_LT(HorseCommand(models), models.modelCommands.size());
+        const Client::Render::ModelDrawCommand& horse = models.modelCommands[HorseCommand(models)];
+        EXPECT_EQ(horse.state.blend, ModelBlend::Opaque);
+        EXPECT_FLOAT_EQ(models.modelVertices[horse.firstVertex].color.alpha, 1.0f);
+    }
+}
+
+// 0x444010 en el mismo paso, después de que 0x634c60 le dio al jinete la 0x54: el caballo toma su 5,
+// que lo alza, en el lugar del jinete y con la escala 1,6 de 0x445260.
+TEST(LoginSceneModelsTest, TheHorseRearsWithItsRider)
+{
+    const float standing = LoginCharacterTransform().position.z;
+    const float raised = standing + (RaisedHeight * Client::Scenes::DarkHorseLoginScale);
+    for (const int roll : {1, 0})
+    {
+        Harness tested;
+        FakeClock clock;
+        clock.Advance(std::chrono::milliseconds{(3 * 2300) + 50});
+        ASSERT_TRUE(tested.Make(SeedWhoseFirstRollIs(roll), &clock).Enter().HasValue());
+        tested.Steps(1);
+
+        const FrameEvent models = tested.ModelsOfAFrame();
+
+        ASSERT_LT(HorseCommand(models), models.modelCommands.size());
+        const ModelVertex& first = models.modelVertices[models.modelCommands[HorseCommand(models)].firstVertex];
+        EXPECT_NEAR(first.position.z, roll == 1 ? raised : standing, Rounding) << roll;
+        EXPECT_NEAR(first.position.x, LoginCharacterTransform().position.x, 2.0f);
+    }
+}
+
+// El caballo ve la acción del jinete antes de que el jinete avance (0x445230 antes de 0x508f00): en el
+// paso en que termina el gesto (el segundo, fuera de la ventana), el jinete vuelve a la 0x4a después,
+// y el caballo sigue alzado. En el que sigue toma su 0 y avanza 0,3: la pose va un 30 % desde la key
+// del gesto hacia la de parado (0x4eb860 con la acción anterior).
+TEST(LoginSceneModelsTest, TheHorseStandsAStepAfterItsRider)
+{
+    const float standing = LoginCharacterTransform().position.z;
+    const float raised = standing + (RaisedHeight * Client::Scenes::DarkHorseLoginScale);
+    Harness tested;
+    FakeClock clock;
+    clock.Advance(std::chrono::milliseconds{(3 * 2300) + 50});
+    ASSERT_TRUE(tested.Make(SeedWhoseFirstRollIs(1), &clock).Enter().HasValue());
+    tested.Steps(1);
+    clock.Advance(std::chrono::milliseconds{500});
+    const auto horseHeight = [&tested]
+    {
+        const FrameEvent models = tested.ModelsOfAFrame();
+        EXPECT_LT(HorseCommand(models), models.modelCommands.size());
+        return HorseCommand(models) < models.modelCommands.size()
+                   ? models.modelVertices[models.modelCommands[HorseCommand(models)].firstVertex].position.z
+                   : 0.0f;
+    };
+
+    tested.Steps(1);
+    EXPECT_NEAR(horseHeight(), raised, Rounding);
+    tested.Steps(1);
+    EXPECT_NEAR(horseHeight(), raised - (0.3f * RaisedHeight * Client::Scenes::DarkHorseLoginScale), Rounding);
+    EXPECT_GT(horseHeight(), standing);
+}
+
+// Cada entrada al login crea el caballo otra vez (0x6349a0): invisible hasta el primer paso.
+TEST(LoginSceneModelsTest, TheHorseIsCreatedAgainOnEachEntry)
+{
+    Harness tested;
+    LoginScene& scene = tested.Make();
+    ASSERT_TRUE(scene.Enter().HasValue());
+    tested.Steps(5);
+    scene.Leave();
+
+    ASSERT_TRUE(scene.Enter().HasValue());
+
+    const FrameEvent models = tested.ModelsOfAFrame();
+    EXPECT_EQ(HorseCommand(models), models.modelCommands.size());
 }
 } // namespace

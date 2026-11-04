@@ -102,9 +102,10 @@ dibuja su frame, y la escena del juego manda el `F3 03`. El terreno detrás de l
 mundo son de la CL7: hasta entonces, el juego queda en negro.
 
 Desde la CL6.4, el login dibuja en su pase 3D el logo (`Logo03.bmd`, un objeto del mundo) y el
-personaje de la clase 4 que monta el caballo oscuro (el caballo, todavía no), con la luz del terreno
-del mapa 55 en su lugar (`World/TerrainLighting`), como el original. El logo se aclara en los
-primeros 40 pasos y el personaje hace uno de sus dos gestos cada tanto (`Scenes/LoginModels`).
+personaje de la clase 4 montado en el caballo oscuro, con la luz del terreno del mapa 55 en su lugar
+(`World/TerrainLighting`), como el original. El logo se aclara en los primeros 40 pasos, el
+personaje hace uno de sus dos gestos cada tanto (`Scenes/LoginModels`) y el caballo aparece de a
+poco y lo sigue (`Scenes/DarkHorse`).
 
 ## Auditoría y mantenimiento
 

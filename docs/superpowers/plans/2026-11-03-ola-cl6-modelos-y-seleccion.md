@@ -2203,6 +2203,66 @@ inline constexpr Render::TextureSlot LoginLogoFirstSlot{0x455};
   - **Minors para después:**
     - las mallas que van después de la del blendMesh heredan su color en el original (P-C20 i);
     - el contorno al volver de la selección (P-C15 i).
+
+  **PR B, el caballo oscuro** (2026-11-04, resuelto por Claude). Antes, otra lectura del binario
+  (*estático*; el dibujo del `0xbf` emulado sobre el `main.exe`; en el 06 § El caballo oscuro):
+  - lo crea `0x6349a0` con `0x443fa0(0xbf, …)` en el lugar del jinete, invisible (el alpha en 0), y
+    `0x444010` lo mueve en cada paso, después del logo y antes de los personajes: el alpha sube un
+    décimo de lo que le falta, y la acción y la velocidad van por la del jinete (la 0 a 0,3 con la
+    `0x4a`; la 5 y la 6 a 1 con los gestos);
+  - lo dibuja `0x4453b0` entre los personajes y los objetos, con la escala 1,6. El caso `0xbf` de
+    `0x6002e0` lo pinta en blanco con la luz por vértice, que ningún modelo de MuRet usaba, le suma
+    el cromo de la malla 12 en (1; 0,8; 0,3) y la sombra de la malla 8, mezclada al 0,7;
+  - sus texturas las pide `0x615700` desde `0x3b8`, después de las de tres modelos más: caen de
+    `0x3bc` a `0x3c6`, y dos se encuentran en `0x26b` y `0x26c`. **Verificado** en `lor_slots.bin`;
+  - la celda del login no es zona segura, que lo apagaría; dos quirks nuevos (Q-C112 y Q-C113).
+
+  En un PR, con un commit por concepto:
+  - **La carga:** `GameModels` lee el caballo y los tres de antes (`SkillModelFiles` y
+    `SkillTextureCalls`). 3 tests, y el golden de los slots compara 15 más.
+  - **El dibujo:** `Render::Models::NormalLight`, el alpha y la luz por vértice de `DrawnObject`, y
+    `ModelBlend::BlendedShadow`. 8 tests.
+  - **El caballo:** `Scenes/DarkHorse` (el paso) y `DrawDarkHorse` (el dibujo). 8 tests.
+  - **La `LoginScene`:** lo crea al entrar, lo mueve con la acción del jinete y lo dibuja entre el
+    personaje y el logo. 5 tests.
+
+  48 mutantes a mano, todos en rojo: dos se reescribieron para compilar, y uno (el culling de la
+  sombra) vivía hasta separar su test. (Abajo, lo que cambió con la revisión.) Con los datos del laboratorio, `Main` dibuja el caballo
+  debajo del jinete (captura fuera de Git).
+
+  Decisiones, con lo que cuestan si están mal:
+  - Ruling: el caballo de la selección no entra. `0x5139f0` se lo crea a un personaje con el bit 0
+    del byte 11, pero sin la acción de parado de `0x4f2250` por la mascota (P-C14 c) el jinete no va
+    montado. Si está mal, un Dark Lord con caballo sale en la selección sin él, como hoy.
+  - Ruling: la zona segura, el polvo (`0x5f2`) y los efectos de sus acciones no se reproducen. La
+    celda del login no es segura, y los efectos son de su ola. Si está mal, el original levanta polvo
+    cada tanto y MuRet no.
+  - Ruling: `+0x68` (la luz del blendMesh, Q-C112) no se lleva: el caballo no tiene blendMesh. Si
+    está mal, no cambia nada.
+
+  Tras la revisión adversarial (dos revisores: uno del C++, sin Critical ni Important; otro contra el
+  binario y las trazas de GL):
+  - **Crítico, del binario:** la luz por vértice va con L = (1,3; 0; 2) y no con (0; −1,5; 0).
+    `DAT_006c8818` vale 1 desde el `.data` y es su única referencia: las otras dos ramas no corren
+    nunca (Q-C115). Las trazas de GL ajustan con (1,3; 0; 2). Con el modelo real, 624 de las 904
+    normales del caballo cambiaban en más de 0,1 (`SkinningTest.TheVertexLightComesFromXAndZ`).
+  - **Importante, del binario:** en un objeto de `0x5ffdf0`, la normal lleva la escala del objeto
+    (1,6 en el login), para la luz y para las UV del cromo (`TheNormalsOfAnObjectCarryItsScale`,
+    `TheHorseChromeTakesTheScaledNormal`).
+  - **Del binario, que se arreglan con el mismo pase:** la sombra va sin alpha test (`0x4eff40` lo
+    apaga, y en el mapa 7 va en 0,2: `TheBlendedShadowHasNoAlphaTest`), y el cromo va en las mallas
+    12 a 15 que existan, cada una por el alpha otra vez (`TheHorseChromeGoesOnMeshesTwelveToFifteen`).
+  - **Del C++:** el test de la luz por vértice no distinguía el índice de la normal del del vértice,
+    y nada miraba las UV del cromo: los dos mutantes vivían, y ahora mueren.
+  - **Docs:** la zona segura mira la celda del jinete y, en ella, el caballo avanza igual; la fila de
+    la `0x4b`; el polvo, para la ola de los efectos; P-C15 (d) (el alpha va por 1 − 0,9ⁿ: el cuerpo
+    se ve desde el paso 3, por el alpha test).
+  - **Minors para después:** la cabeza del jinete en el hueso 7 del caballo (no se ve: es una raíz que
+    ningún vértice usa); una malla del caballo con `H` dibujaría la sombra en el original y no en
+    MuRet (las de serie no tienen script); P-C14 (e) infiere el 1,35 con "el piso 0,2 de la luz por
+    vértice", y la L era otra.
+
+  4 tests y 10 mutantes más, todos en rojo. 1921 de 1921 con GL y los golden.
 - [ ] **Paso 3 (a mano):** con `--data`, el login con el logo y el personaje sobre los fondos,
   contra el original en la VM (P-C15 y P-C21); sin traza del login (P-C13), se mira a ojo contra
   una captura fuera de Git.
@@ -2307,8 +2367,9 @@ Decisiones, con lo que cuestan si están mal:
   (`0x4c3940`) y el tope de `EnteringWorld`; las velocidades del keepalive
   (`ServerSession::SetKeepaliveSpeeds`) con lo que traiga esa respuesta; los multiplicadores de
   `0x4f9580`; y que la cámara que se mueve (CL7.3) dé un `Render::Camera3D`.
-- [ ] Decidir dónde van los efectos (el `0xbf` del login, la luz de abajo del elegido si no entró en
-  la CL6.3, los de las armas): el roadmap no tiene esa ola.
+- [ ] Decidir dónde van los efectos (el polvo del caballo, `0x5f2`, la luz de abajo del elegido si no
+  entró en la CL6.3, los de las armas): el roadmap no tiene esa ola. El `0xbf` del login resultó ser
+  el caballo, y lo dibuja la CL6.4 PR B.
 - [ ] Sumar al plan de la CL9 los modelos de los monstruos con el research corregido: `Monster50`
   falta en el laboratorio y cerraría el original.
 - [ ] Si la CL6.5 pasó a la CL8, sumarla a su plan.

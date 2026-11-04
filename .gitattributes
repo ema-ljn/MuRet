@@ -38,3 +38,8 @@ CMakePresets.json text
 *.sh text eol=lf
 *.py text eol=lf
 *.sha256 text eol=lf
+
+# La Data\ del original, tal cual: ningún archivo es texto para git, ni los .txt (Macro.txt) ni los
+# .bmd sin un byte 0. Va al final para pisar las reglas de arriba; el ** es porque un patrón que
+# nombra la carpeta no alcanza a los archivos de adentro.
+Client/assets/Data/** -text

@@ -10,6 +10,3 @@ out/
 
 # Overrides locales de presets (cada uno el suyo)
 CMakeUserPresets.json
-
-# Los Data\ del cliente original: assets del juego, no se versionan (AGENTS.md). Entra su manifiesto.
-Client/assets/Data/

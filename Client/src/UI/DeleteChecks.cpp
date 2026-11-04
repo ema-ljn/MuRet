@@ -15,8 +15,6 @@ namespace Client::UI
 {
 namespace
 {
-// El +0x368 de un personaje sin gremio.
-constexpr std::uint8_t NoGuild = 0xff;
 // El byte 0x6d5e24, 0x50, que nadie escribe.
 constexpr std::uint16_t HighLevel = 80;
 // Las banderas (+0x1d8) que no dejan borrar.
@@ -38,7 +36,7 @@ bool FreeDeletionGroup(const Data::Text::TextTable* texts, std::optional<std::ui
 
 NoticeId NoticeOfDeleteButton(const Protocol::Character::CharacterEntry& chosen, bool freeDeletionGroup)
 {
-    if (chosen.guildStatus != NoGuild)
+    if (chosen.guildStatus != Protocol::Character::NoGuildStatus)
     {
         return GuildMemberNotice;
     }

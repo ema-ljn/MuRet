@@ -35,6 +35,10 @@ struct CharacterEntry
     bool withoutEquipment = false;
 };
 
+// El +0x368 de un personaje sin gremio: lo pone 0x511290 (0x511ca6) a cualquiera que arma, y la
+// respuesta de crear no lo cambia.
+inline constexpr std::uint8_t NoGuildStatus = 0xff;
+
 // El lugar más alto de la selección: cinco, del 0 al 4 (0x4c20a0).
 inline constexpr std::uint8_t MaxCharacterSlot = 4;
 

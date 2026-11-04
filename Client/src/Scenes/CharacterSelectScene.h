@@ -49,7 +49,9 @@ public:
     Core::Expected<void, std::string> Enter() override;
     // 0x6342c0: nada hasta la lista; después, los personajes de la lista y su avance, la respuesta del
     // borrado, el aviso si está abierto, y si no, la barra, el doble clic que entra, el clic que elige
-    // y Enter. Con el mouse sobre la barra, ni el clic ni el doble clic ni el contorno (+0x8de8).
+    // y Enter. Con el mouse sobre la barra o un aviso abierto (+0x8de8), ni el clic ni el doble clic,
+    // y el contorno se queda en el último; un aviso que se abre en el paso se atiende desde el que
+    // sigue.
     void Step(const Input::InputState& input) override;
     // 0x634680 sin el terreno, los objetos ni los efectos: con sesión, nada hasta la lista; el de bajo
     // el mouse, con el contorno. Después, la UI: la barra y el aviso.
@@ -80,9 +82,11 @@ private:
     void SyncTheCharacters();
     [[nodiscard]] Character MakeCharacter(const Protocol::Character::CharacterEntry& entry) const;
     void StepCharacters();
-    void ShowTheFailure();
-    // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9).
-    void TakeTheDeletionResult();
+    // Si abrió el aviso 0x70 en este paso.
+    bool ShowTheFailure();
+    // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9), salvo que la sesión haya
+    // caído. Si abrió uno en este paso.
+    bool TakeTheDeletionResult();
     void StepTheNotice(const Input::InputState& input);
     // 0x63eb40: crear con un lugar libre de los cinco; conectar y borrar con uno elegido.
     void EnableTheBar();

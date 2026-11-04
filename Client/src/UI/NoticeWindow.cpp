@@ -160,9 +160,10 @@ std::optional<NoticeId> NoticeWindow::Step(const Input::InputState& input, App::
     }
     if (cancel || escape)
     {
-        // 0x6436a0: el id en −1 y cierra; el campo del código se esconde (el original lo deja con el
-        // foco: no se reproduce).
+        // 0x6436a0: el id en −1 y cierra; el campo del código se esconde y se vacía (el original lo
+        // deja con el foco: Q-C116, no se reproduce).
         Close();
+        m_code.Clear();
     }
     return std::nullopt;
 }
@@ -175,6 +176,13 @@ const NoticeControls& NoticeWindow::Layout() const
 std::string_view NoticeWindow::Code() const
 {
     return m_code.Value();
+}
+
+std::string NoticeWindow::TakeCode()
+{
+    std::string code(m_code.Value());
+    m_code.Clear();
+    return code;
 }
 
 bool NoticeWindow::WantsTextInput() const

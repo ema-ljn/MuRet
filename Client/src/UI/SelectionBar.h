@@ -57,6 +57,9 @@ public:
     void Enable(bool aFreeSlot, bool aChosenOne);
 
     std::optional<SelectionBarClick> Step(const Input::InputState& input, App::PixelSize screen);
+    // Con una ventana modal arriba (0x65fc30 le da el mouse a la de la cabeza): los botones siguen
+    // con su estado (0x63c490) pero sin el mouse encima, y no hay clic.
+    void StepWithoutTheMouse(const Input::InputState& input);
 
     // Si `mouse`, en píxeles, cae en el rectángulo de la barra.
     [[nodiscard]] bool Covers(Point mouse, App::PixelSize screen) const;

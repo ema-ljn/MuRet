@@ -80,8 +80,6 @@ TEST(TextLayoutTest, TheDivisionIsUnsignedAndInteger)
     EXPECT_EQ(BottomAlignedAt(479, TextExtent{0, 8947849}, Screen640), 479);
 }
 
-// Q-C60: el original resta cy · 640 / W también en la y. En 4:3 da lo mismo; en 1280 × 1024, con un
-// alto de 14, resta 7 en vez de 6.
 // 0x623690: x − (cx · 640 / W) / 2, con la división entera sin signo y la mitad truncada: 13
 // columnas en 1024 dan 8,125 → 8 → 4; 15 en 640, 15 → 7.
 TEST(TextLayoutTest, TheCenteredTextTakesHalfOfItsWidthIn640)
@@ -93,6 +91,8 @@ TEST(TextLayoutTest, TheCenteredTextTakesHalfOfItsWidthIn640)
     EXPECT_EQ(CenteredAt(320, TextExtent{15, 0}, PixelSize{0, 0}), 320);
 }
 
+// Q-C60: el original resta cy · 640 / W también en la y. En 4:3 da lo mismo; en 1280 × 1024, con un
+// alto de 14, resta 7 en vez de 6.
 TEST(TextLayoutTest, TheLoginTextUsesTheHeightForY)
 {
     const TextExtent extent{60, 14};

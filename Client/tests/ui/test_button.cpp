@@ -174,10 +174,6 @@ TEST(ButtonTest, TheImageShowsTheFrame)
     EXPECT_EQ(button.Area(), (Rect{.x = 100, .y = 50, .width = 108, .height = 26}));
 }
 
-// 0x63c710: el rótulo va con la fuente DAT_05763560, el color del estado y fondo 0, centrado en
-// el ancho del botón (el modo 2 de 0x467060), y la y en 640 × 480 es ((h − cy) · 0,5 + y) / ry más
-// 0,5, o 1,5 apretado, truncada. En 640 × 480, un rótulo de 3 letras (18 × 13) en un botón de
-// 108 × 26 en (100, 50) va en (145, 57), y apretado en (145, 58).
 // Uno deshabilitado (+0xa8 en 0, 0x63c490) no tiene clic ni se ve encima ni apretado: muestra su
 // cuadro de deshabilitado, el 3 en los de la barra de la selección.
 TEST(ButtonTest, ADisabledButtonHasNoClickAndShowsItsFrame)
@@ -220,6 +216,10 @@ TEST(ButtonTest, ADisabledLabelHasItsColor)
     EXPECT_EQ(button.DrawLabel(text, Screen640), std::optional<std::uint32_t>{0xff666666});
 }
 
+// 0x63c710: el rótulo va con la fuente DAT_05763560, el color del estado y fondo 0, centrado en
+// el ancho del botón (el modo 2 de 0x467060), y la y en 640 × 480 es ((h − cy) · 0,5 + y) / ry más
+// 0,5, o 1,5 apretado, truncada. En 640 × 480, un rótulo de 3 letras (18 × 13) en un botón de
+// 108 × 26 en (100, 50) va en (145, 57), y apretado en (145, 58).
 TEST(ButtonTest, TheLabelIsCenteredWithTheColorOfItsState)
 {
     Button button = GroupButton();

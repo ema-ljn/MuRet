@@ -54,6 +54,14 @@ TEST(AppPrintersTest, TheStatesThatWaitForTheUiShowTheirNames)
     EXPECT_EQ(::testing::PrintToString(SessionState::WaitingCredentials), "WaitingCredentials");
 }
 
+// Los de la selección de personaje (CL6.3).
+TEST(AppPrintersTest, TheCharacterStatesShowTheirNames)
+{
+    EXPECT_EQ(::testing::PrintToString(SessionState::WaitingCharacterList), "WaitingCharacterList");
+    EXPECT_EQ(::testing::PrintToString(SessionState::ChoosingCharacter), "ChoosingCharacter");
+    EXPECT_EQ(::testing::PrintToString(SessionState::EnteringWorld), "EnteringWorld");
+}
+
 // El de la orden del GameServer de cerrar el juego (Q-C106).
 TEST(AppPrintersTest, QuitOrderedShowsItsName)
 {

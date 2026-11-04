@@ -287,6 +287,9 @@ void LoginScene::FollowSession()
     case App::SessionState::WaitingGameHello:
     case App::SessionState::WaitingLoginResult:
     case App::SessionState::LoggedIn:
+    case App::SessionState::WaitingCharacterList:
+    case App::SessionState::ChoosingCharacter:
+    case App::SessionState::EnteringWorld:
         m_serverList.Close();
         m_login.Close();
         return;

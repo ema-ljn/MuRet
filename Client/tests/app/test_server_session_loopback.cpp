@@ -13,9 +13,12 @@
 #include "Network/SocketApi.h"
 #include "Network/SystemResolver.h"
 #include "Network/SystemSocket.h"
+#include "Network/Crypto/Xor32.h"
+#include "Protocol/Character/CharacterSelect.h"
 #include "Protocol/Connection/Login.h"
 
 #include "support/AppPrinters.h"
+#include "support/CharacterPackets.h"
 #include "support/FakeClock.h"
 #include "support/FakeServers.h"
 #include "support/LoopbackServer.h"
@@ -59,15 +62,19 @@ using Client::Network::Connection;
 using Client::Network::FoxAntiObfuscation;
 using Client::Network::SystemResolver;
 using Client::Network::SystemSocket;
+using Client::Network::Crypto::Xor32Decode;
 using Client::Network::SocketApi::NetworkInit;
+using Client::Protocol::Character::WriteCharacterSelect;
 using Client::Protocol::Connection::LoginRequest;
 using Client::Protocol::Connection::WriteLoginRequest;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeServers;
 using Client::Tests::GameClientKeys;
 using Client::Tests::GameServerKeys;
+using Client::Tests::NameBytes;
 using Client::Tests::RecordingSink;
 using Client::Tests::RetryUntil;
+using Client::Tests::SameBytes;
 using Client::Tests::SameBytesWithoutValues;
 
 using Lines = std::vector<std::string>;
@@ -93,74 +100,130 @@ Lines LinesFrom(const RecordingSink& sink, LogLevel level)
     return found;
 }
 
+// Los dos servidores falsos y una sesión que les habla por sockets de verdad, con el AutoLogin que
+// elige y manda la cuenta. En este orden: lo que tiene un socket muere antes que el NetworkInit.
+struct LoopbackSession
+{
+    LoopbackSession()
+        : servers(GameServerKeys()), socket(resolver), connection(socket, foxAnti, clock, log, PaddingSeed),
+          session(connection, clock, log, GameClientKeys(),
+                  SessionSettings{ServerAddress{std::string(Loopback), servers.ConnectServerPort()}}),
+          autoLogin(session, Credentials{std::string(Account), std::string(Password)}, log)
+    {
+        clock.Advance(std::chrono::milliseconds{123456});
+    }
+
+    // Start, y los dos lados en el mismo lazo hasta LoggedIn o Failed.
+    [[nodiscard]] bool LogIn()
+    {
+        session.Start();
+        return RetryUntil(
+            [&]
+            {
+                servers.Poll();
+                session.Poll();
+                autoLogin.Poll();
+                return session.State() == SessionState::LoggedIn || session.State() == SessionState::Failed;
+            });
+    }
+
+    // Los dos lados en el mismo lazo hasta `done` o una queja del servidor.
+    template <typename Done> [[nodiscard]] bool PollUntil(Done done)
+    {
+        return RetryUntil(
+            [&]
+            {
+                servers.Poll();
+                session.Poll();
+                return done() || !servers.Complaints().empty() || session.State() == SessionState::Failed;
+            });
+    }
+
+    NetworkInit network;
+    FakeServers servers;
+    SystemResolver resolver;
+    SystemSocket socket;
+    FakeClock clock;
+    RecordingSink sink;
+    Log log{sink, LogLevel::Debug};
+    FoxAntiObfuscation foxAnti;
+    Connection connection;
+    ServerSession session;
+    AutoLogin autoLogin;
+};
+
 // Del Start a LoggedIn: el CS con el A9, el saludo, la lista del laboratorio que FoxAnti pasa a
 // F4 06, la elección que FoxAnti pasa al código 0 y la dirección del GS falso; el GS con el
 // saludo, el login cifrado con el serial 0 y el resultado. Después, el GS recibe el primer
 // keepalive, con el serial 1 (CL4.5), y el CS ve que el cliente cortó.
 TEST(ServerSessionLoopbackTest, LogsInAgainstFakeServers)
 {
-    // En este orden: lo que tiene un socket muere antes que el NetworkInit.
-    const NetworkInit network;
-    ASSERT_TRUE(network.IsReady()) << "WSAStartup: " << network.SystemError();
-    FakeServers servers(GameServerKeys());
-    ASSERT_NE(servers.ConnectServerPort(), 0);
-    ASSERT_NE(servers.GameServerPort(), 0);
-    SystemResolver resolver;
-    SystemSocket socket(resolver);
-    FakeClock clock;
-    clock.Advance(std::chrono::milliseconds{123456});
-    RecordingSink sink;
-    Log log(sink, LogLevel::Debug);
-    const FoxAntiObfuscation foxAnti;
-    Connection connection(socket, foxAnti, clock, log, PaddingSeed);
-    ServerSession session(connection, clock, log, GameClientKeys(),
-                          SessionSettings{ServerAddress{std::string(Loopback), servers.ConnectServerPort()}});
-    AutoLogin autoLogin(session, Credentials{std::string(Account), std::string(Password)}, log);
+    LoopbackSession tested;
+    ASSERT_TRUE(tested.network.IsReady()) << "WSAStartup: " << tested.network.SystemError();
+    ASSERT_NE(tested.servers.ConnectServerPort(), 0);
+    ASSERT_NE(tested.servers.GameServerPort(), 0);
 
-    session.Start();
-    const bool settled = RetryUntil(
-        [&]
-        {
-            servers.Poll();
-            session.Poll();
-            autoLogin.Poll();
-            return session.State() == SessionState::LoggedIn || session.State() == SessionState::Failed;
-        });
+    const bool settled = tested.LogIn();
 
-    EXPECT_TRUE(settled) << "la sesión quedó en " << ::testing::PrintToString(session.State());
-    EXPECT_EQ(servers.Complaints(), Lines{});
-    EXPECT_EQ(session.State(), SessionState::LoggedIn);
-    EXPECT_EQ(session.Failure(), std::nullopt);
-    EXPECT_TRUE(servers.SawLogin());
-    const std::optional<Client::Network::Packet>& login = servers.Login();
+    EXPECT_TRUE(settled) << "la sesión quedó en " << ::testing::PrintToString(tested.session.State());
+    EXPECT_EQ(tested.servers.Complaints(), Lines{});
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+    EXPECT_EQ(tested.session.Failure(), std::nullopt);
+    EXPECT_TRUE(tested.servers.SawLogin());
+    const std::optional<Client::Network::Packet>& login = tested.servers.Login();
     if (!login)
     {
         FAIL() << "el GameServer no vio el login";
     }
-    const auto expected = WriteLoginRequest(LoginRequest{Account, Password, TickCountMs(clock.Now())});
+    const auto expected = WriteLoginRequest(LoginRequest{Account, Password, TickCountMs(tested.clock.Now())});
     ASSERT_TRUE(expected.HasValue());
     EXPECT_TRUE(SameBytesWithoutValues(login->Bytes(), expected.Value().packet.Bytes()));
 
-    EXPECT_TRUE(RetryUntil(
-        [&]
-        {
-            servers.Poll();
-            session.Poll();
-            return servers.Keepalives() >= 1 || !servers.Complaints().empty();
-        }))
+    EXPECT_TRUE(tested.PollUntil([&] { return tested.servers.Keepalives() >= 1; }))
         << "el GameServer no vio el primer keepalive";
-    EXPECT_EQ(servers.Keepalives(), 1u);
+    EXPECT_EQ(tested.servers.Keepalives(), 1u);
     EXPECT_TRUE(RetryUntil(
         [&]
         {
-            servers.Poll();
-            return servers.ClientLeftTheConnectServer();
+            tested.servers.Poll();
+            return tested.servers.ClientLeftTheConnectServer();
         }))
         << "el ConnectServer no vio que el cliente cortó";
-    EXPECT_EQ(servers.Complaints(), Lines{});
-    EXPECT_EQ(LinesFrom(sink, LogLevel::Warning), Lines{});
+    EXPECT_EQ(tested.servers.Complaints(), Lines{});
+    EXPECT_EQ(LinesFrom(tested.sink, LogLevel::Warning), Lines{});
     EXPECT_TRUE(std::ranges::none_of(
-        sink.lines, [](const std::string& line)
+        tested.sink.lines, [](const std::string& line)
         { return line.find(Account) != std::string::npos || line.find(Password) != std::string::npos; }));
+}
+
+// Del login a la entrada (CL6.3): el F3 00 en claro, la lista del GS falso en claro y con el 0xAA
+// de FoxAnti, la elección del lugar 2 y el F3 03 con el nombre de ese, char0002.
+TEST(ServerSessionLoopbackTest, FromLoginToEnterWorld)
+{
+    LoopbackSession tested;
+    ASSERT_TRUE(tested.network.IsReady()) << "WSAStartup: " << tested.network.SystemError();
+    ASSERT_TRUE(tested.LogIn()) << "la sesión quedó en " << ::testing::PrintToString(tested.session.State());
+    ASSERT_EQ(tested.session.State(), SessionState::LoggedIn);
+
+    tested.session.RequestCharacterList();
+    ASSERT_TRUE(tested.PollUntil([&] { return tested.session.State() == SessionState::ChoosingCharacter; }))
+        << "la sesión quedó en " << ::testing::PrintToString(tested.session.State());
+    ASSERT_EQ(tested.servers.Complaints(), Lines{});
+    ASSERT_TRUE(tested.session.Characters().has_value());
+    EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
+    tested.session.ChooseCharacter(std::uint8_t{2});
+    tested.session.EnterWorld();
+    ASSERT_TRUE(tested.PollUntil([&] { return tested.servers.CharacterSelect().has_value(); }))
+        << "el GameServer no vio el F3 03";
+
+    EXPECT_EQ(tested.servers.Complaints(), Lines{});
+    EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
+    const std::optional<Client::Network::Packet>& select = tested.servers.CharacterSelect();
+    if (!select)
+    {
+        FAIL() << "el GameServer no vio el F3 03";
+    }
+    EXPECT_TRUE(SameBytes(select->Bytes(), Xor32Decode(WriteCharacterSelect(NameBytes("char0002")).packet).Bytes()));
+    EXPECT_EQ(LinesFrom(tested.sink, LogLevel::Warning), Lines{});
 }
 } // namespace

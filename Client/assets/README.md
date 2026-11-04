@@ -21,11 +21,11 @@ otra instalación, con los nombres con las mismas mayúsculas.
 
 ## Usarla
 
-La carpeta no se toma sola: se le pasa a `Main` y a los tests como cualquier otra.
+Es la base del proyecto: no hace falta otra copia (2026-11-04). Los tests la leen solos, sin
+`MURET_CLIENT_GOLDEN_DIR` (D-C9). A `Main` se le pasa como cualquier carpeta de datos:
 
 ```bash
 ./build/linux-x64-debug/Client/Main --data Client/assets/Data
-MURET_CLIENT_GOLDEN_DIR="$PWD/Client/assets/Data" ctest --preset linux-x64-debug
 ```
 
 O en `muret-client.ini`, con `[Data] Path`. Una ruta relativa ahí se toma desde la carpeta del

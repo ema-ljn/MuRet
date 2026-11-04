@@ -9,8 +9,8 @@
 #include <string>
 #include <system_error>
 
-// La regla de la carpeta golden (pregunta 2 del plan CL0): sin variable se saltea, con una
-// carpeta que no existe falla.
+// La regla de las carpetas golden (pregunta 2 del plan CL0): sin variable se saltea, con una
+// carpeta que no existe falla. La de Data, sin variable, es la del repo (D-C9).
 namespace
 {
 namespace fs = std::filesystem;
@@ -18,8 +18,10 @@ using Client::Tests::CheckDump;
 using Client::Tests::CheckGoldenDir;
 using Client::Tests::DumpState;
 using Client::Tests::GoldenDirFromValue;
+using Client::Tests::GoldenDirOrRepoData;
 using Client::Tests::GoldenDirState;
 using Client::Tests::HasExtension;
+using Client::Tests::RepoDataDir;
 
 TEST(GoldenDirTest, UnsetOrEmptyVariableMeansNoGoldenDir)
 {
@@ -31,6 +33,16 @@ TEST(GoldenDirTest, UnsetOrEmptyVariableMeansNoGoldenDir)
 TEST(GoldenDirTest, WithoutAFolderTheTestIsSkipped)
 {
     EXPECT_EQ(CheckGoldenDir(std::nullopt), GoldenDirState::NotSet);
+}
+
+// Sin la variable, la Data no se saltea: es la del repo, que está en el checkout.
+TEST(GoldenDirTest, WithoutTheVariableTheDataIsTheOneOfTheRepo)
+{
+    EXPECT_EQ(GoldenDirOrRepoData(std::nullopt), RepoDataDir());
+    EXPECT_EQ(GoldenDirOrRepoData(std::string()), RepoDataDir());
+    EXPECT_EQ(GoldenDirOrRepoData(std::string("/datos/Data")), fs::path("/datos/Data"));
+    EXPECT_EQ(RepoDataDir().filename(), fs::path("Data"));
+    EXPECT_EQ(CheckGoldenDir(RepoDataDir()), GoldenDirState::Ready);
 }
 
 TEST(GoldenDirTest, AFolderThatIsNotThereFailsTheTest)

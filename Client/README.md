@@ -367,17 +367,16 @@ Cada `tests/<módulo>/test_<algo>.cpp` es su propio ejecutable (`test_packet_rea
 MuMain, y cada `TEST` es un test de CTest con el nombre de su suite: `ctest -R PacketReader` corre
 los del lector. Lo que comparten está en `tests/support/` (la biblioteca `ClientTestSupport`).
 
-Los tests golden leen archivos reales del cliente original. Se les pasa una carpeta con el
-contenido de `Data\` (`Enc1.dat`, `Player\`, `World1\`…), la del repo es `Client/assets/Data/`, en
-`MURET_CLIENT_GOLDEN_DIR`, al correr o al configurar:
+Los tests golden leen archivos reales del cliente original: los de `Client/assets/Data/`, sin
+nada que configurar, también en CI. Para probar con otra copia de `Data\` (`Enc1.dat`, `Player\`,
+`World1\`…), `MURET_CLIENT_GOLDEN_DIR` apunta a ella, al correr o al configurar:
 
 ```bash
 MURET_CLIENT_GOLDEN_DIR=/ruta/a/Data ctest --preset linux-x64-debug
 cmake --preset linux-x64-debug -DMURET_CLIENT_GOLDEN_DIR=/ruta/a/Data   # queda en la caché
 ```
 
-Sin la variable, se saltean (`Skipped`). Si apunta a una carpeta que no existe, o le falta el
-archivo que el test pide, fallan.
+Si la carpeta no existe, o le falta el archivo que el test pide, fallan.
 
 Los OZJ, además, se comparan con lo que da la IJG libjpeg 6b del original, que no está en CI: el
 tamaño y un hash de cada uno están en `tests/vectors/jpeg/lab-6b.txt`, y cómo se sacan, en el

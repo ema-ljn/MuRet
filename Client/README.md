@@ -14,9 +14,9 @@ tema), reconstruido desde la carpeta `client-research/` de
 Qué hace MuRet y en qué orden está en el
 [roadmap del cliente](../docs/superpowers/specs/2026-10-30-cliente-design.md).
 
-MuRet **no incluye assets del juego**: el cliente lee los `Data\` de una instalación existente.
-La que usa el proyecto va en `Client/assets/Data/`, fuera de Git; el repo tiene su manifiesto de
-hashes ([assets](assets/README.md)).
+La `Data\` del cliente original está en [`assets/Data/`](assets/README.md), tal cual: es el
+original que MuRet reimagina y la base de los tests. El cliente igual la lee de la carpeta que se
+le pase (`--data` o `[Data] Path`).
 
 ## Estado
 
@@ -367,8 +367,8 @@ Cada `tests/<módulo>/test_<algo>.cpp` es su propio ejecutable (`test_packet_rea
 MuMain, y cada `TEST` es un test de CTest con el nombre de su suite: `ctest -R PacketReader` corre
 los del lector. Lo que comparten está en `tests/support/` (la biblioteca `ClientTestSupport`).
 
-Los tests golden leen archivos reales del cliente original, que MuRet no versiona. Se les pasa una
-carpeta con el contenido de `Data\` (`Enc1.dat`, `Player\`, `World1\`…) en
+Los tests golden leen archivos reales del cliente original. Se les pasa una carpeta con el
+contenido de `Data\` (`Enc1.dat`, `Player\`, `World1\`…), la del repo es `Client/assets/Data/`, en
 `MURET_CLIENT_GOLDEN_DIR`, al correr o al configurar:
 
 ```bash
@@ -377,7 +377,7 @@ cmake --preset linux-x64-debug -DMURET_CLIENT_GOLDEN_DIR=/ruta/a/Data   # queda 
 ```
 
 Sin la variable, se saltean (`Skipped`). Si apunta a una carpeta que no existe, o le falta el
-archivo que el test pide, fallan. La del proyecto es `Client/assets/Data/` ([assets](assets/README.md)).
+archivo que el test pide, fallan.
 
 Los OZJ, además, se comparan con lo que da la IJG libjpeg 6b del original, que no está en CI: el
 tamaño y un hash de cada uno están en `tests/vectors/jpeg/lab-6b.txt`, y cómo se sacan, en el
@@ -463,7 +463,7 @@ Client/
     UI/           widgets, la lista, la cuenta y los avisos del login (CL5.5); HUD (CL8)
     Audio/        música y efectos                      (CL10)
   tests/          GoogleTest                            (CL0.2+)
-  assets/         la Data\ del original (fuera de Git) y su manifiesto de hashes
+  assets/         la Data\ del original, tal cual, y su manifiesto de hashes
   docs/research/  qué hace el original, byte a byte (01..09)
 ```
 

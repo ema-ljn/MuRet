@@ -1,15 +1,13 @@
 # Assets
 
-La carpeta `Data\` del cliente original que usa MuRet va acá, en `Client/assets/Data/`. Son
-assets del juego: no se versionan (`AGENTS.md`), así que la carpeta está en `.gitignore` y cada
-uno pone la suya. Lo que entra al repo es `Data.sha256`, el hash de cada archivo, para saber que
-la `Data\` de cada uno es la misma.
+`Client/assets/Data/` es la `Data\` entera del cliente original, los 5726 archivos tal cual: el
+original que MuRet reimagina y la base de los tests golden y de memoria (decidido por Emanuel el
+2026-11-04, `AGENTS.md` y D-C7 del roadmap). Los nombres van como vienen, con mayúsculas mezcladas
+(`player\`, `World7\`): MuRet los busca sin mirarlas, como Windows.
 
-## Ponerla
-
-Copiar el contenido de `Data\` de la instalación (`Enc1.dat`, `Local\`, `player\`, `World1\`…) en
-`Client/assets/Data/`, con los nombres como vienen: MuRet los busca sin mirar mayúsculas, como
-Windows.
+Nada de adentro se toca. El `.gitattributes` de la raíz la marca `-text`, para que git no le
+cambie un fin de línea a `Macro.txt` ni a un `.bmd` sin un byte 0. `Data.sha256` tiene el hash
+de cada archivo.
 
 ## Verificarla
 
@@ -18,7 +16,8 @@ cd Client/assets/Data && sha256sum -c --quiet ../Data.sha256
 ```
 
 Sin salida es que están todos y son iguales. Un archivo que falta o que cambió sale con `FAILED`.
-Los que sobran no se ven: el manifiesto lista 5726 archivos (`find . -type f | wc -l`).
+Los que sobran no se ven: son 5726 (`find . -type f | wc -l`). Sirve también para una `Data\` de
+otra instalación, con los nombres con las mismas mayúsculas.
 
 ## Usarla
 

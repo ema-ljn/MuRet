@@ -61,4 +61,9 @@ struct SkeletonError
 // Los cuaterniones de cada key, como 0x4f13d0. Un padre que no es −1 ni un hueso de antes es un
 // error: NPC\BloodCastle01.bmd tiene dos (Q-C108), y qué hacer con ellos es de la CL9.
 [[nodiscard]] Core::Expected<Skeleton, SkeletonError> MakeSkeleton(const Data::Models::Model& model);
+
+// MakeSkeleton más lo que 0x60dbe0 le pone a Player.bmd: la velocidad de cada acción
+// (Data::Models::PlayerActionSpeed; las 57 sin escritura quedan en 0, Q-C87), las cuatro que no
+// repiten (PlayerActionsWithoutRepeat) y el hueso de la cabeza (PlayerHeadBone).
+[[nodiscard]] Core::Expected<Skeleton, SkeletonError> MakePlayerSkeleton(const Data::Models::Model& model);
 } // namespace Client::Render::Models

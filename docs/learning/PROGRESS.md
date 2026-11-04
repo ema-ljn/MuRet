@@ -401,7 +401,11 @@ solo lo lee.
   (`tests/support/GlTrace`, con la variable nueva `MURET_CLIENT_GL_TRACE_DIR`), cada vértice del
   personaje de la selección y del guardia de Lorencia cae a 0,0014 o menos del original en los cinco
   frames: lo que redondea un float. Los frames que lo dan corrigieron la tabla del 06. 36 tests y 17
-  mutantes a mano, dos equivalentes.
+  mutantes a mano, dos equivalentes. **La CL6.2 B** (2026-11-03, resuelta por Claude): el avance de
+  `0x4ec200` y el cambio de acción de `0x4ea030` (`Render/Models/Animation`), la mascota y las alas
+  por tiempo (Q-C20 corregido) y la copia que posa el render, y `MakePlayerSkeleton` con las
+  velocidades, las que no repiten y la cabeza. Los saltos de la traza, con los frames corregidos,
+  son pasos justos de 0,26 y 0,28. 24 tests y 16 mutantes.
 
 ## Conceptos
 
@@ -532,6 +536,7 @@ sesión, junto con los de repaso más viejo.
 | un formato con conteos que dicen cuánto leer de cada parte: no pedir memoria antes de saber que entra, un cifrado que vale solo para un bloque (`0x0C` desde `+8`), y un golden que encuentra lo que el plan no esperaba (Q-C108) | CL6.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | una tabla del original sacada del binario y no copiada a mano: emular un cargador, qué registros dependen de lo de antes (el `ebx` de `0x60ff50`), y un slot que se busca por nombre desde el 0 hasta el próximo libre | CL6.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | la pose de un esqueleto: dos keys y la parte fraccionaria del frame, el slerp y su vuelta, la cadena de padres, filas contra columnas, y un golden que busca el frame en vez de tolerar el error | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| una animación por paso y otra por tiempo: el módulo, el tope y la key anterior, un reloj falso a varios FPS, y la copia interpolada que cruza keys como el paso | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

@@ -1263,7 +1263,7 @@ enum class ShinePass : std::uint8_t { Shiny /*0x8*/, Chrome /*0x4*/, Chrome4 /*0
     `0x60cf70`: se corrigieron las citas de arriba, de los headers y de PROGRESS.
   - El lector de la traza: la cabecera solo antes de la primera llamada, el número de
     `glBindTexture` entero y una función por llamada (regla 1).
-- [ ] **Paso 8 (PR B):** los tests, con un reloj falso y el `FixedStep` de la CL3:
+- [x] **Paso 8 (PR B):** los tests, con un reloj falso y el `FixedStep` de la CL3:
   `AnimationTest.AdvancesBySpeedPerStep`, `WrapsModuloTheKeys`,
   `WrapsModuloKeysMinusOneWithLockPositions`, `HoldsJustBeforeTheLastKeyWithoutRepeat` (n − 0,01),
   `ANegativeFrameAddsKeysMinusOne`, `StoresThePreviousKeyWhenItCrossesOne`,
@@ -1276,10 +1276,48 @@ enum class ShinePass : std::uint8_t { Shiny /*0x8*/, Chrome /*0x4*/, Chrome4 /*0
   FPS), `ThePetRunsByTimeAtEveryFrameRate` (10,67 keys por segundo a las tres),
   `TheWingsRunFasterInThirtyAndThirtyOne`, `TheRenderCopyCrossesKeysLikeTheStep` (`Interpolated`
   con `alpha` 1 es un paso), `MakePlayerSkeletonSetsTheSpeeds`.
-- [ ] **Paso 9 (PR B, Emanuel):** `Animation.h/.cpp`, y `MakePlayerSkeleton` con las tablas de la
+- [x] **Paso 9 (PR B, Emanuel, resuelto por Claude):** `Animation.h/.cpp`, y `MakePlayerSkeleton` con las tablas de la
   CL6.1. Verificar con `ctest --preset linux-x64-debug -R "Animation"`. Los mutantes: el módulo con
   el frame + 2, sin guardar la key anterior, la mascota por frame, una acción de una key que avanza,
   `SetAction` que no guarda la anterior, y `Interpolated` que no guarda la key que cruza.
+
+  Hecho así (PR B, 2026-11-03, resuelto por Claude): `Render/Models/Animation` y
+  `MakePlayerSkeleton` (en `Skeleton`), con 24 tests: 19 de `AnimationTest`, 4 de `SkeletonTest`
+  (`MakePlayerSkeletonSetsTheSpeeds`, `ThePlayerHeadIsBoneTwenty`, que pasó de la A,
+  `MakePlayerSkeletonSetsWhatTheModelHas` y `MakePlayerSkeletonKeepsTheErrors`) y el golden
+  `GoldenModelFiles.TheActionsOfTheTracesAreThoseOfTheJumpTests` (la 3 de `Player.bmd` tiene siete
+  keys a 0,26 y la 1 seis a 0,28, las dos repiten y sin `lock_positions`). Las reglas salen del
+  pseudo-C de `0x4ec200` y `0x4ea030` y de los floats del binario (0, 1, 2 y 0,01 en `0x6b86a0`,
+  `0x6b87d4`, `0x6b8818` y `0x6b88d4`). Lo que cambió del contrato de arriba:
+  - **Q-C87 no se queda en el frame 0.** Con velocidad 0, el primer avance deja el frame en 0, y la
+    regla de "0 o menos, más las keys menos 1" lo pasa a la última key, donde se queda
+    (`AnActionWithoutSpeedGoesToItsLastKeyAndStays`). La key entera no cambió al sumar, así que la
+    anterior queda la que había, y eso es lo que muestra la pose (de la revisión). La acción 0, la
+    única sin velocidad con `lock_positions`, vuelve a 0 en cada avance
+    (`AnActionWithoutSpeedAndWithLockStaysAtZero`). Se corrigió la fila del 07.
+  - Las alas miran la acción del **personaje** (`objeto + 0x111` en `0x50ba30`): 1 key por frame con
+    la `0x1e` o la `0x1f`, y 0,25 con cualquier otra (`WingKeysPerOriginalFrame`). La mascota es 0,5
+    para `Helper02` (`0x1c13`, `PetKeysPerOriginalFrame`).
+  - `AdvanceByTime` cuenta 0 un tiempo negativo (`ANegativeTimeCountsZero`). `Interpolated` avanza
+    con la escena `Other`: el + 2 de la selección solo cambia "terminó", no el frame.
+  - Los saltos de la traza usan los frames corregidos del 06 (de la A): 33, 33, 34 y 34 pasos de
+    0,26 llevan cada uno al siguiente a menos de 0,002, y 20, 19, 19 y 19 de 0,28 los del guardia.
+  - `MakePlayerSkeletonSetsTheSpeeds` es de `SkeletonTest`, no de `AnimationTest`: va con el
+    esqueleto.
+
+  Los 16 mutantes a mano (los seis de arriba y el tope en n − 1, `lock_positions` con el módulo de
+  todas las keys, el frame negativo solo con menos de 0, el + 2 en cualquier escena, `SetAction`
+  con la misma acción, con una que no está, sin las que no repiten, sin la cabeza, las alas rápidas
+  solo en la `0x1e` y un tiempo negativo que resta) los mata al menos un test cada uno.
+
+  Revisión adversarial (2026-11-03, resuelta por Claude): los mismos dos revisores que la A. Las
+  reglas de `0x4ec200` y `0x4ea030`, las velocidades de las alas y la mascota, y los saltos de la
+  traza quedaron confirmados. Cinco tests más matan los mutantes que vivían: la velocidad negativa
+  que trunca hacia 0 (`ANegativeSpeedTruncatesTowardZero`), un paso que cruza dos keys
+  (`CrossingTwoKeysStoresTheOldOne`), caer justo en la cantidad de keys
+  (`LandingOnTheKeyCountIsPastTheLastKey`), el + 2 de la selección solo en las que repiten
+  (`TheSelectionDoesNotLookAheadWithoutRepeat`) y Q-C87 con `lock_positions`. El comentario de
+  `Truncate` decía mal qué da `__ftol` fuera de un int.
 - [ ] **Paso 10 (PR C):** los tests: `ShineTest.TheShinyPassIsHalfTheNormal` (`0x8`;
   u = 0,5·nz + 0,2, v = 0,5·(ny + 1)), `TheChromePassRunsWithTheClock`,
   `TheChrome4PassUsesSinAndCos`, `TheClockCountsFromTheStart` (con T = 2²⁴ + 1 ms la u cambia lo de

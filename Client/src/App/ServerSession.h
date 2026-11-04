@@ -49,10 +49,18 @@
 //   WaitingLoginResult --F1 01 con 1: manda el primer keepalive--> LoggedIn
 //   WaitingLoginResult --F1 01 con otro: guarda el resultado--> WaitingCredentials
 //   LoggedIn --cada KeepalivePeriod desde el primero: manda el keepalive--> LoggedIn
+//   con el GS --F1 02 con 0: cierra, sin aviso--> QuitOrdered (Q-C106)
 //   cualquier Waiting* que espera un servidor --ReplyTimeout sin su respuesta: cierra--> Failed
 //     (NoReply); ChoosingServer y WaitingCredentials esperan al jugador y no tienen tope
 //   con el CS --Closed--> Failed (ConnectServerLost)
 //   con el GS --Closed--> Failed (GameServerLost)
+//
+// El F1 02 con 0 es la orden del GS de cerrar el juego: el original hace WM_DESTROY (0x4c391b), sin
+// aviso y en cualquier escena, y main.cpp cierra con QuitOrdered al terminar el frame. El GS la
+// manda al final de su cuenta de 5 s (gObjCloseSet) y justo después cierra la conexión: ese cierre
+// ya no es GameServerLost, porque la sesión cerró antes y deja el resto del lote, como el original,
+// que al cerrar vacía su cola de paquetes (0x4e8380). QuitOrdered es el final: ni Start la saca. Con
+// 1 o con 2 (la selección o la lista, Q-C79) se ignora con un aviso hasta la CL6 y la CL9.
 //
 // El keepalive corre solo en LoggedIn, también minimizada, y se detiene al salir de ahí: la sesión
 // no se reconecta sola (la escena de login muestra el aviso). El original manda desde el arranque
@@ -67,7 +75,7 @@
 // bloque, y ese checksum casi siempre falla, así que es probable que conteste igual (03, "C3/C4").
 // Los otros que no se descifran solo dejan el aviso de la conexión.
 //
-// Un handler que cambia de conexión (el F4 03) o que la cierra (una lista vacía, un F4 05, un
+// Un handler que cambia de conexión (el F4 03) o que la cierra (una lista vacía, un F1 02 con 0, un
 // Send que falla) deja el resto del lote sin recorrer: es de una conexión que ya no está, y lo que
 // quedaba del CS no llega nunca al dispatcher del GS. Si la cerró el otro lado, lo que llegó antes
 // del cierre se despacha, y después el Closed.
@@ -115,8 +123,9 @@ public:
     ServerSession& operator=(const ServerSession&) = delete;
     ~ServerSession() = default;
 
-    // Conecta al ConnectServer de la config, desde cualquier estado: lo que había se cierra y
-    // se olvida (la falla, la lista, la elección, el GameServer y el resultado del login).
+    // Conecta al ConnectServer de la config, desde cualquier estado menos QuitOrdered: lo que había
+    // se cierra y se olvida (la falla, la lista, la elección, el GameServer y el resultado del
+    // login). Con la orden de cerrar el juego, un aviso y nada: el juego se cierra en ese frame.
     void Start();
 
     // Una vez por frame, desde ILoopClient::Poll: primero lo que llegó, después el tope del
@@ -182,6 +191,7 @@ private:
 
     void OnGameHello(const Network::Packet& packet);
     void OnLoginResult(const Network::Packet& packet);
+    void OnLogoutResult(const Network::Packet& packet);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.
     void SendKeepalive(Core::Duration now);
 

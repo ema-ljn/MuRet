@@ -380,7 +380,7 @@ solo lo lee.
   el juego, y `LoadModelFile` busca sin mayúsculas, lee con un tope de 8 MiB y no deja pasar un
   `Player.bmd` con mallas (Q-C88). Los golden recorren los 1.962 modelos del laboratorio sin un
   byte de sobra, y encontraron lo que el plan no esperaba: en `NPC\BloodCastle01.bmd` dos huesos
-  cuelgan de uno que va después, y la pose del original los arma con una matriz vieja (Q-C106,
+  cuelgan de uno que va después, y la pose del original los arma con una matriz vieja (Q-C108,
   nuevo). 28 tests y 14 mutantes a mano. La revisión adversarial encontró que un `.bmd` chico
   podía pedir gigas de memoria, porque cada hueso lleva algo por acción aunque la acción no ocupe
   bytes: ahora `LoadBmd` tiene un tope de huesos por acciones, con dos tests más. **La CL6.1 B**
@@ -529,7 +529,7 @@ sesión, junto con los de repaso más viejo.
 | slerp, lerp normalizado y ángulos interpolados: cuánto se aparta cada uno del slerp, que con el lerp normalizado crece con el cubo del ángulo entre las keys, y cuándo se ve en una traza (la comparación de `labs/README.md`) | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | la x87 con la precisión en 53 bits (`_controlfp` en `0x6a4b73`): qué queda en la pila como double y qué se redondea a float en cada store, y probar unos tests con mutantes a mano, uno equivalente incluido | CL6.0 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | leer un formato y un cargador en el binario y probarlos contra datos reales: un script que lee los `.bmd` como `0x4f13d0`, el asignador de slots simulado contra un volcado de la memoria, y qué queda *estático*, *inferido* o verificado | CL6.R | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
-| un formato con conteos que dicen cuánto leer de cada parte: no pedir memoria antes de saber que entra, un cifrado que vale solo para un bloque (`0x0C` desde `+8`), y un golden que encuentra lo que el plan no esperaba (Q-C106) | CL6.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| un formato con conteos que dicen cuánto leer de cada parte: no pedir memoria antes de saber que entra, un cifrado que vale solo para un bloque (`0x0C` desde `+8`), y un golden que encuentra lo que el plan no esperaba (Q-C108) | CL6.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | una tabla del original sacada del binario y no copiada a mano: emular un cargador, qué registros dependen de lo de antes (el `ebx` de `0x60ff50`), y un slot que se busca por nombre desde el 0 hasta el próximo libre | CL6.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | la pose de un esqueleto: dos keys y la parte fraccionaria del frame, el slerp y su vuelta, la cadena de padres, filas contra columnas, y un golden que busca el frame en vez de tolerar el error | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 

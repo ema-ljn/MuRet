@@ -23,6 +23,7 @@ inline constexpr std::uint8_t ServerListSubcode = 0x06;        // la lista, como
 inline constexpr std::uint8_t JoinOpcode = 0xF1;
 inline constexpr std::uint8_t HelloSubcode = 0x00;        // el saludo del GameServer
 inline constexpr std::uint8_t LoginSubcode = 0x01;        // el login y su respuesta
+inline constexpr std::uint8_t LogoutSubcode = 0x02;       // la salida: el pedido del cliente y la respuesta
 inline constexpr std::uint8_t DecryptErrorSubcode = 0x03; // el aviso de un C3/C4 que no se descifró
 
 // 0E: el keepalive, sin subcódigo.

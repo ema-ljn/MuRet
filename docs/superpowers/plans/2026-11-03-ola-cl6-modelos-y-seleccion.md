@@ -860,7 +860,7 @@ public:
   - `IsRequiredModel` compara byte a byte: `0x60daec`.. es un `strcmp` en línea.
   - `ParentsComeBeforeChildren` no vale en los 1.962: en `NPC\BloodCastle01.bmd` los huesos 43 y
     44 cuelgan del 45, y la pose de `0x4eb860` los concatena con la matriz que dejó una pose
-    anterior (Q-C106, nuevo). El golden lista esos dos, y la pose de los NPC queda para la CL9.
+    anterior (Q-C108, nuevo). El golden lista esos dos, y la pose de los NPC queda para la CL9.
   - Suman al golden `CountsTheVersionsOfTheLab` (816, 1.142 y los cuatro `0x00` de `Object3`) y
     `EveryNormalPointsAtAVertexOfItsMesh` (los 301.367); `EveryIndexOfATriangleIsInItsMesh`
     cuenta los 450.338 triángulos, todos de tipo 3.

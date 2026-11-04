@@ -194,7 +194,7 @@ TEST_F(GoldenBmd, ThePlayerIsASkeleton)
 }
 
 // El padre de cada hueso va antes que él, y la pose de 0x4eb860, que los recorre en orden, ya lo
-// posó. Salvo en NPC\BloodCastle01.bmd, donde el 43 y el 44 cuelgan del 45 (Q-C106).
+// posó. Salvo en NPC\BloodCastle01.bmd, donde el 43 y el 44 cuelgan del 45 (Q-C108).
 TEST_F(GoldenBmd, ParentsComeBeforeChildren)
 {
     std::vector<BonePlace> parentAfter;

@@ -201,6 +201,18 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
     (`0x4bafc9`), y `0x4bee60` lee de ahí `+0x3c` (los bits del ajuste), `+0x4c` y `+0x58`. Hasta
     que llega el personaje, las dos velocidades salen en 0, sin ajuste. *Verificado*: el primer
     keepalive de las 8 conexiones al GS lleva 0 y 0, y el byte 3 en 0.
+- **`F1 02`, la salida** (`0x4c2710`, desde `0x4e2d80`): el GS contesta `C1 05 F1 02
+  <resultado>` como C3 (`GCCloseMsgSend`, `0x417280` en la reconstrucción del GS) cuando termina la
+  cuenta de 5 s de `gObjCloseSet` (`CloseCount` en 6, solo con el jugador logueado). Con 0 cierra
+  la conexión enseguida (`CloseClient`), con 1 manda solo si `gObjGameClose` dio 1, y con 2 no
+  cierra. En el cliente, con 0 el juego se cierra sin aviso (`SendMessageA(WM_DESTROY)`,
+  `0x4c391b`; Q-C106), con 1 vuelve a la selección y con 2 a la lista, solo si llegó cifrado
+  (Q-C79), y con otro no hace nada. La cuenta la empieza el pedido del propio cliente desde el menú
+  del juego (`CGClientCloseMsg`, con el mismo valor), o el GS solo: con 0 cuando echa a un jugador
+  (`gObjUserKill`), y con 2 con la respuesta del DataServer a la transferencia del personaje
+  (`DGMoveOtherServer`). Un GS que se apaga o se cae no la manda: solo cierra cada socket
+  (`gObjAllDisconnect`; el cierre programado avisa antes con mensajes del servidor), y el cliente
+  ve el `FD_CLOSE` ([03](03-red-y-cifrado.md#sockets)). *Estático*.
 - **Selección de personaje (`F3`)**: `0x4e2f93` es un sub-dispatcher de hasta 0x40 casos. En el
   cable: `F3 00` (pedir lista, sin cuerpo), `F3 03` con el nombre de 10 bytes (elegir), `F3 06`,
   `F3 12`. Los subcódigos 0 a 3, campo por campo, están abajo, en

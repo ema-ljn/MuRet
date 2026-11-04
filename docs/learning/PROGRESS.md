@@ -405,7 +405,13 @@ solo lo lee.
   `0x4ec200` y el cambio de acción de `0x4ea030` (`Render/Models/Animation`), la mascota y las alas
   por tiempo (Q-C20 corregido) y la copia que posa el render, y `MakePlayerSkeleton` con las
   velocidades, las que no repiten y la cabeza. Los saltos de la traza, con los frames corregidos,
-  son pasos justos de 0,26 y 0,28. 24 tests y 16 mutantes.
+  son pasos justos de 0,26 y 0,28. 24 tests y 16 mutantes. **La CL6.2 C** (2026-11-03, resuelta por
+  Claude): las UV de los tres pases de brillo de `0x4ecc30` (`Render/Models/Shine`), con el reloj
+  entero desde que arranca el cliente (Q-C22). Contra la traza de la selección caen a 0,00003 de las
+  del original, con las normales sin la escala del objeto, que el PR A había decidido leyendo el
+  binario y la traza confirmó. El reloj de cada swap, que la traza deja ver entero, quedó en el 06.
+  6 tests y 10 mutantes. Después, a fondo: el personaje y el guardia de Lorencia, con la cabeza, a
+  0,0014 de la traza, y el giro de la cabeza de `0x505de0` (un 20 % por paso) verificado con ella.
 
 ## Conceptos
 
@@ -537,6 +543,7 @@ sesión, junto con los de repaso más viejo.
 | una tabla del original sacada del binario y no copiada a mano: emular un cargador, qué registros dependen de lo de antes (el `ebx` de `0x60ff50`), y un slot que se busca por nombre desde el 0 hasta el próximo libre | CL6.1 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | la pose de un esqueleto: dos keys y la parte fraccionaria del frame, el slerp y su vuelta, la cadena de padres, filas contra columnas, y un golden que busca el frame en vez de tolerar el error | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | una animación por paso y otra por tiempo: el módulo, el tope y la key anterior, un reloj falso a varios FPS, y la copia interpolada que cruza keys como el paso | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| UV que salen de la normal en el mundo y de un reloj: por qué un float de ms deja de contar, y sacar de la traza el valor que no se ve (T entero desde T módulo 10.000 y un seno y un coseno) | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 
 ## Preguntas para olas futuras
 

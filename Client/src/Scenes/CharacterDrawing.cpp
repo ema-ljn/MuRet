@@ -198,6 +198,10 @@ struct MeshDraw
     bool scrolls = false;
     const ObjectState* object = nullptr;
     Core::Duration frameClock{};
+    // El alpha de RenderBody y la luz por vértice (+0x44 del modelo): los de un objeto del mundo; un
+    // personaje va en 1 y sin ella.
+    float alpha = 1.0f;
+    bool vertexLight = false;
 };
 
 // Las UV de un pase: las de la malla o, con `shine`, las del pase de brillo con la normal en el
@@ -219,9 +223,10 @@ glm::vec2 CornerUv(const MeshDraw& draw, const Data::Models::Triangle& triangle,
     return glm::vec2{texCoord.u, texCoord.v} + uv.shift;
 }
 
-// Los triángulos de la malla con un estado, un color y sus UV.
+// Los triángulos de la malla con un estado, un color y sus UV; con `normalLight`, el color de cada
+// esquina por la luz de su normal (0x4ecc30 con +0x44, en el pase con textura).
 void Triangles(Render::ModelBatch& batch, const MeshDraw& draw, const Render::ModelDrawState& state,
-               Render::Color color, const PassUv& uv)
+               Render::Color color, const PassUv& uv, bool normalLight = false)
 {
     batch.SetState(state);
     for (const Data::Models::Triangle& triangle : draw.mesh->triangles)
@@ -230,8 +235,15 @@ void Triangles(Render::ModelBatch& batch, const MeshDraw& draw, const Render::Mo
         for (std::size_t corner = 0; corner < corners.size(); ++corner)
         {
             const auto vertex = static_cast<std::size_t>(triangle.vertices[corner]);
+            Render::Color shaded = color;
+            if (normalLight)
+            {
+                const auto normal = static_cast<std::size_t>(triangle.normals[corner]);
+                const float light = Render::Models::NormalLight(draw.skinned->normals[normal]);
+                shaded = Render::Color{color.red * light, color.green * light, color.blue * light, color.alpha};
+            }
             corners[corner] =
-                Render::ModelVertex{draw.skinned->positions[vertex], CornerUv(draw, triangle, corner, uv), color};
+                Render::ModelVertex{draw.skinned->positions[vertex], CornerUv(draw, triangle, corner, uv), shaded};
         }
         batch.Triangle(corners);
     }
@@ -249,26 +261,32 @@ bool HasFourComponents(const Data::Models::Mesh& mesh)
     return Data::Models::ModelTextureLoaderOf(mesh.textureName) == Data::Textures::TextureLoader::Ozt;
 }
 
+// 0x6b8d00: con el alpha por debajo, 0x4ecc30 mezcla y lo manda en el color.
+constexpr float OpaqueAlpha = 0.99f;
+
 // El pase base (0x609640 → RenderBody(2) con el objeto), sin la malla que el objeto oculta: la del
-// blendMesh aditiva y por la luz, una de cuatro componentes con la mezcla normal y si no opaca.
+// blendMesh aditiva y por la luz, una de cuatro componentes o con el alpha por debajo de 0,99 con la
+// mezcla normal (y ese alpha), y si no opaca; con la luz por vértice, por la de cada normal, salvo la
+// del blendMesh.
 void DrawBase(Render::ModelBatch& batch, const MeshDraw& draw)
 {
     if (static_cast<std::int16_t>(draw.index) == draw.object->hiddenMesh)
     {
         return;
     }
-    Render::ModelBlend blend = Render::ModelBlend::Opaque;
     if (draw.blends)
     {
-        blend = Render::ModelBlend::Additive;
+        Triangles(batch, draw, {draw.texture, Render::ModelBlend::Additive, true},
+                  Scaled(draw.shade, draw.object->light), PassUv{std::nullopt, TexturedShift(draw)});
+        return;
     }
-    else if (HasFourComponents(*draw.mesh))
-    {
-        blend = Render::ModelBlend::Alpha;
-    }
-    Triangles(batch, draw, {draw.texture, blend, true},
-              draw.blends ? Scaled(draw.shade, draw.object->light) : draw.shade,
-              PassUv{std::nullopt, TexturedShift(draw)});
+    const bool fading = draw.alpha < OpaqueAlpha;
+    const Render::ModelBlend blend =
+        fading || HasFourComponents(*draw.mesh) ? Render::ModelBlend::Alpha : Render::ModelBlend::Opaque;
+    Render::Color color = draw.shade;
+    color.alpha = fading ? draw.alpha : 1.0f;
+    Triangles(batch, draw, {draw.texture, blend, true}, color, PassUv{std::nullopt, TexturedShift(draw)},
+              draw.vertexLight);
 }
 
 // El alpha del pase de set y lo que ya multiplicó: 0x4ecc30 multiplica el color del modelo en el lugar,
@@ -806,6 +824,12 @@ void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const
 void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                 Core::Duration frameClock)
 {
+    // 0x5ffdf0 con 0x6b88d4.
+    constexpr float VisibleAlpha = 0.01f;
+    if (object.alpha < VisibleAlpha)
+    {
+        return;
+    }
     const Data::Models::Model* model = models.Find(object.model);
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
     if (model == nullptr || skeleton == nullptr)
@@ -821,8 +845,10 @@ void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const Dr
     const std::vector<MeshDraw> draws = MeshDrawsOf(models, object.model, *model, bones, object.transform, ObjectClass,
                                                     Render::Color{object.color.x, object.color.y, object.color.z, 1.0f},
                                                     object.state, frameClock, skinned);
-    for (const MeshDraw& draw : draws)
+    for (MeshDraw draw : draws)
     {
+        draw.alpha = object.alpha;
+        draw.vertexLight = object.vertexLight;
         DrawBase(batch, draw);
     }
 }

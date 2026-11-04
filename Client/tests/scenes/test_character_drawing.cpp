@@ -1320,6 +1320,86 @@ TEST(CharacterDrawingTest, AnObjectFollowsTheScriptOfItsTextures)
     EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
 }
 
+// Un objeto con luz por vértice (+0xe8, que 0x5ffce0 copia a +0x44 del modelo): 0x4ecc30 le da a cada
+// esquina el color del modelo por la luz de su normal (0x4ebc80). La que mira a −y, 1,6; la de +y, el
+// piso de 0,2; la de z, 0,4.
+DrawnObject LitObject()
+{
+    DrawnObject object = LogoLike();
+    object.model = 0xbf;
+    object.state.blendMesh = -1;
+    object.color = {0.5f, 0.5f, 0.5f};
+    object.vertexLight = true;
+    return object;
+}
+
+TEST(CharacterDrawingTest, AnObjectWithVertexLightLightsEachCornerByItsNormal)
+{
+    OneModel models(0xbf, "dk.jpg", 1);
+    models.FirstMesh().normals = {{0, {0, -1, 0}, 0}, {0, {0, 1, 0}, 1}, {0, {0, 0, 1}, 2}};
+    models.FirstMesh().triangles[0].normals = {0, 1, 2, 0};
+
+    const ModelBatch batch = DrawnObjectOf(models, LitObject());
+
+    ASSERT_EQ(batch.Vertices().size(), 3u);
+    ExpectColor(batch.Vertices()[0], 0.8f, 0.8f, 0.8f);
+    ExpectColor(batch.Vertices()[1], 0.1f, 0.1f, 0.1f);
+    ExpectColor(batch.Vertices()[2], 0.2f, 0.2f, 0.2f);
+    // Sin ella, el color del modelo en las tres.
+    DrawnObject unlit = LitObject();
+    unlit.vertexLight = false;
+    const ModelBatch flat = DrawnObjectOf(models, unlit);
+    ASSERT_EQ(flat.Vertices().size(), 3u);
+    ExpectColor(flat.Vertices()[0], 0.5f, 0.5f, 0.5f);
+}
+
+// La malla del blendMesh va por su rama, con glColor3f(color · luz del blendMesh), sin la de la normal.
+TEST(CharacterDrawingTest, TheBlendMeshOfALitObjectGoesWithoutTheVertexLight)
+{
+    OneModel models(0xbf, "dk.jpg", 1);
+    models.FirstMesh().normals = {{0, {0, -1, 0}, 0}};
+    DrawnObject object = LitObject();
+    object.state.blendMesh = 0;
+    object.state.light = 0.5f;
+
+    const ModelBatch batch = DrawnObjectOf(models, object);
+
+    ASSERT_EQ(batch.Commands().size(), 1u);
+    EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
+    ExpectColor(batch.Vertices()[0], 0.25f, 0.25f, 0.25f);
+}
+
+// Con el alpha del objeto (+0x174) por debajo de 0,99, 0x4ecc30 mezcla (0x620a00(1)) y lo manda en el
+// glColor4f; desde 0,99, va opaca y en 1.
+TEST(CharacterDrawingTest, AnObjectFadingInBlendsWithItsAlpha)
+{
+    const OneModel models(0xbf, "dk.jpg", 1);
+    DrawnObject object = LitObject();
+    object.alpha = 0.5f;
+
+    const ModelBatch fading = DrawnObjectOf(models, object);
+    object.alpha = 0.99f;
+    const ModelBatch opaque = DrawnObjectOf(models, object);
+
+    ASSERT_EQ(fading.Commands().size(), 1u);
+    EXPECT_EQ(fading.Commands()[0].state.blend, ModelBlend::Alpha);
+    EXPECT_FLOAT_EQ(fading.Vertices()[0].color.alpha, 0.5f);
+    ASSERT_EQ(opaque.Commands().size(), 1u);
+    EXPECT_EQ(opaque.Commands()[0].state.blend, ModelBlend::Opaque);
+    EXPECT_FLOAT_EQ(opaque.Vertices()[0].color.alpha, 1.0f);
+}
+
+// 0x5ffdf0 no dibuja un objeto con el alpha por debajo de 0,01 (0x6b88d4).
+TEST(CharacterDrawingTest, AnObjectBelowAHundredthOfAlphaIsNotDrawn)
+{
+    const OneModel models(0xbf, "dk.jpg", 1);
+    DrawnObject object = LitObject();
+    object.alpha = 0.0099f;
+    EXPECT_TRUE(DrawnObjectOf(models, object).Commands().empty());
+    object.alpha = 0.01f;
+    EXPECT_FALSE(DrawnObjectOf(models, object).Commands().empty());
+}
+
 // Un objeto cuyo modelo no está no se dibuja.
 TEST(CharacterDrawingTest, AnObjectWithoutItsModelIsNotDrawn)
 {

@@ -98,6 +98,17 @@ bool SkinMeshAroundBones(const Data::Models::Mesh& mesh, std::span<const BoneTra
     return true;
 }
 
+float NormalLight(const glm::vec3& worldNormal)
+{
+    constexpr glm::vec3 Light{0.0f, -1.5f, 0.0f};
+    constexpr float Gain = 0.8f;    // 0x6b8a38
+    constexpr float Ambient = 0.4f; // 0x6b87b4
+    constexpr float Darkest = 0.2f; // 0x6b8854
+    // En el orden de 0x4ebc80: y, x y z.
+    const float lit = (Light.y * worldNormal.y + Light.x * worldNormal.x + Light.z * worldNormal.z) * Gain + Ambient;
+    return lit < Darkest ? Darkest : lit;
+}
+
 glm::vec3 FlattenOnTheGround(const glm::vec3& world, const glm::vec3& objectPosition)
 {
     constexpr float Spread = 2000.0f;  // 2500 en el mundo 30

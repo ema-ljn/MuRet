@@ -18,6 +18,7 @@ using Client::Data::Models::Mesh;
 using Client::Render::Models::AngleMatrix;
 using Client::Render::Models::BoneTransform;
 using Client::Render::Models::FlattenOnTheGround;
+using Client::Render::Models::NormalLight;
 using Client::Render::Models::ObjectTransform;
 using Client::Render::Models::SkinMesh;
 using Client::Render::Models::SkinMeshAroundBones;
@@ -117,6 +118,20 @@ TEST(SkinningTest, TheShadowFlattensOnTheGround)
 }
 
 // Una normal solo gira: ni la traslación del hueso, ni la escala, ni la posición del objeto.
+// La luz por vértice de 0x4ebc80 (con +0x44 del modelo): max(0,2; 0,8 · L·n + 0,4) con L = (0; −1,5; 0).
+// La normal que mira a −y da 1,6; la que mira a +y, el piso de 0,2; una de costado, 0,4; y una a 45°
+// en −y, 0,8 · 1,5 · 0,7071 + 0,4.
+TEST(SkinningTest, TheVertexLightFacesMinusY)
+{
+    EXPECT_FLOAT_EQ(NormalLight({0.0f, -1.0f, 0.0f}), 1.6f);
+    EXPECT_FLOAT_EQ(NormalLight({0.0f, 1.0f, 0.0f}), 0.2f);
+    EXPECT_FLOAT_EQ(NormalLight({1.0f, 0.0f, 0.0f}), 0.4f);
+    EXPECT_FLOAT_EQ(NormalLight({0.0f, 0.0f, 1.0f}), 0.4f);
+    EXPECT_NEAR(NormalLight({0.7071068f, -0.7071068f, 0.0f}), 0.8f * 1.5f * 0.7071068f + 0.4f, 1e-6f);
+    // Justo en el piso: 0,8 · (−0,25) + 0,4 = 0,2.
+    EXPECT_NEAR(NormalLight({0.0f, 1.0f / 6.0f, 0.0f}), 0.2f, 1e-6f);
+}
+
 TEST(SkinningTest, TheNormalOnlyRotates)
 {
     const ObjectTransform object{{100, 200, 300}, {0, 0, 0}, 2.0f, 0.0f};

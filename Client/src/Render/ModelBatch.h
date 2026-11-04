@@ -29,6 +29,10 @@ enum class ModelBlend : std::uint8_t
     // La sombra: 0x620980 con la máscara que apaga 0x4eff40, sin mezcla, con culling, sin alpha test y
     // sin escribir la profundidad.
     Shadow,
+    // La sombra de un objeto del mundo (el caballo, 0x6002e0): 0x620a00(1) y la máscara que apaga
+    // 0x4eff40, SRC_ALPHA / ONE_MINUS_SRC_ALPHA, sin culling, con alpha test y sin escribir la
+    // profundidad.
+    BlendedShadow,
 };
 
 struct ModelDrawState

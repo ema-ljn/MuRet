@@ -114,7 +114,16 @@ entrar (`0x6d5d48`), near 20 (`0x6d5d40`) y el far de `0x6d5d44` según `DAT_07d
 `DAT_07d325c8`, z −36° y la posición (12.778; 12.678; 579); en la 4, x −84,5° más `DAT_07d325c8`,
 z −45° y (13.909; 14.482; 543), la de la tabla. Las rutas de `0x633920` (desde `0x634c60` y
 `0x6342c0`) escriben la posición, los ángulos y un fov de 45, pero `0x635ae0` los pisa antes de
-`0x620db0`: no llegan a GL.
+`0x620db0`: no llegan a los pases de la escena. Sí llegan al primero de cada frame, el
+`0x620db0(0, 0, 640, 480)` de `0x637700`, que no dibuja nada: en la traza de la selección va con fov
+45, X −87°, Z −10° y la posición (335,88; −753,12; 250) (*inferido*: los de una ruta; antes este
+documento decía que no llegaban a GL). Ese pase va **antes del `glClear`** del frame, y su
+`glDepthMask(true)` es lo que deja limpiar la profundidad cuando la mezcla aditiva del 2D del
+frame anterior apagó la máscara (*verificado* en los cinco frames de las dos trazas). La
+perspectiva del 2D, antes de su `glOrtho`, va sin el × 1,4. MuRet prende la máscara antes de
+limpiar, sin el pase (CL6.3, `GlFrameTargetTest.EachFrameClearsTheDepth`), y `MakePass3D` da la
+perspectiva y la vista de la franja y del mundo de la selección, y del mundo de Lorencia con su
+cámara, en cada frame (`GoldenPass3DTrace`).
 
 ### Primitivas 2D
 

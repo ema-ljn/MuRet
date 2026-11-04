@@ -15,8 +15,10 @@ namespace Client::Render::Gl
 // glReadPixels escribe 4 bytes por píxel, uno detrás del otro: un Rgba8 tiene que medir eso.
 static_assert(sizeof(Rgba8) == 4);
 
-GlFramebuffer::GlFramebuffer(const Platform::GlFunctions& gl, GlName color, GlName framebuffer, int width, int height)
-    : m_gl(&gl), m_color(std::move(color)), m_framebuffer(std::move(framebuffer)), m_width(width), m_height(height)
+GlFramebuffer::GlFramebuffer(const Platform::GlFunctions& gl, GlName color, GlName depth, GlName framebuffer, int width,
+                             int height)
+    : m_gl(&gl), m_color(std::move(color)), m_depth(std::move(depth)), m_framebuffer(std::move(framebuffer)),
+      m_width(width), m_height(height)
 {
 }
 
@@ -34,9 +36,19 @@ Core::Expected<GlFramebuffer, std::string> GlFramebuffer::Create(const Platform:
     gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
+    // La profundidad, también una textura y no un renderbuffer: así alcanzan las funciones que ya pide
+    // el cliente (GlFunctionList.h).
+    GlName depth = GenTexture(gl);
+    gl.bindTexture(GL_TEXTURE_2D, depth.Get());
+    gl.texImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT,
+                  nullptr);
+    gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    gl.texParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
     GlName framebuffer = GenFramebuffer(gl);
     gl.bindFramebuffer(GL_FRAMEBUFFER, framebuffer.Get());
     gl.framebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color.Get(), 0);
+    gl.framebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth.Get(), 0);
     const GLenum status = gl.checkFramebufferStatus(GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE)
     {
@@ -45,8 +57,8 @@ Core::Expected<GlFramebuffer, std::string> GlFramebuffer::Create(const Platform:
     }
     gl.viewport(0, 0, width, height);
     gl.clearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    gl.clear(GL_COLOR_BUFFER_BIT);
-    return GlFramebuffer(gl, std::move(color), std::move(framebuffer), width, height);
+    gl.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    return GlFramebuffer(gl, std::move(color), std::move(depth), std::move(framebuffer), width, height);
 }
 
 int GlFramebuffer::Width() const

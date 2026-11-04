@@ -34,7 +34,7 @@ std::optional<NoticeTexts> TextsOf(NoticeId notice)
     case ServerFullNotice:
         return One(416);
     case 0x19:
-    case 0x61:
+    case BlockedAccountNotice:
         return One(417);
     case 0x1a:
     case VersionMismatchNotice:
@@ -64,8 +64,77 @@ std::optional<NoticeTexts> TextsOf(NoticeId notice)
         return One(402);
     case LockedCharacterNotice:
         return One(434);
+    case CreateRefusedNotice:
+        return One(1716);
+    case CharacterLimitNotice:
+        return One(396);
+    case PleaseWaitNotice:
+        return One(471);
+    case ConfirmDeletionNotice:
+        return One(1712);
+    case DeletionCodeNotice:
+        return One(1713);
+    case CharacterDeletedNotice:
+        return One(1714);
+    case BlockedCharacterNotice:
+        return One(439);
+    case ForbiddenNameNotice:
+        return One(1715);
+    case ShortNameNotice:
+        return One(390);
+    case SymbolNameNotice:
+        return One(391);
+    case HighLevelNotice:
+        return One(1711);
+    case InvalidCodeNotice:
+        return One(401);
+    case GuildMemberNotice:
+        return One(1654);
     default:
         return std::nullopt;
+    }
+}
+
+NoticeKind KindOf(NoticeId notice)
+{
+    switch (notice)
+    {
+    case PleaseWaitNotice:
+        return NoticeKind::NoButton;
+    case ConfirmDeletionNotice:
+        return NoticeKind::OkCancel;
+    case DeletionCodeNotice:
+        return NoticeKind::Code;
+    default:
+        return NoticeKind::Ok;
+    }
+}
+
+std::optional<NoticeId> NoticeOfCreateResult(std::uint8_t result)
+{
+    switch (result)
+    {
+    case 0:
+        return Notice(CreateRefusedNotice);
+    case 2:
+        return Notice(CharacterLimitNotice);
+    default:
+        return std::nullopt;
+    }
+}
+
+NoticeId NoticeOfDeleteResult(std::uint8_t result)
+{
+    switch (result)
+    {
+    case 0:
+        return GuildMemberNotice;
+    case 1:
+        return CharacterDeletedNotice;
+    case 3:
+        return BlockedCharacterNotice;
+    default:
+        return InvalidCodeNotice;
     }
 }
 
@@ -144,6 +213,10 @@ NoticeFollowUp FollowUpOf(NoticeId notice)
     case VersionMismatchNotice:
     case ConnectFailedNotice:
         return NoticeFollowUp::Quit;
+    case ConfirmDeletionNotice:
+        return NoticeFollowUp::AskForTheCode;
+    case DeletionCodeNotice:
+        return NoticeFollowUp::SendTheDeletion;
     default:
         return NoticeFollowUp::Close;
     }

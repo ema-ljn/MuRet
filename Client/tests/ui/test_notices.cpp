@@ -12,8 +12,12 @@
 namespace
 {
 using Client::UI::FollowUpOf;
+using Client::UI::KindOf;
 using Client::UI::NoticeFollowUp;
 using Client::UI::NoticeId;
+using Client::UI::NoticeKind;
+using Client::UI::NoticeOfCreateResult;
+using Client::UI::NoticeOfDeleteResult;
 using Client::UI::NoticeOfLoginResult;
 using Client::UI::NoticeTexts;
 using Client::UI::TextsOf;
@@ -127,5 +131,63 @@ TEST(NoticesTest, TheOkOfEachNotice)
     }
     EXPECT_EQ(FollowUpOf(0x63), NoticeFollowUp::Close);
     EXPECT_EQ(FollowUpOf(0x61), NoticeFollowUp::Close);
+}
+
+// Los de la selección (CL6.5), con el texto de la tabla de saltos de 0x6431b0.
+TEST(NoticesTest, EachSelectionNoticeHasItsText)
+{
+    struct NoticeText
+    {
+        NoticeId notice;
+        std::size_t text;
+    };
+    const std::vector<NoticeText> expected{{0x36, 1716}, {0x37, 396},  {0x5d, 471}, {0x5e, 1712}, {0x5f, 1713},
+                                           {0x60, 1714}, {0x61, 417},  {0x62, 439}, {0x72, 1715}, {0x79, 390},
+                                           {0x7a, 391},  {0x83, 1711}, {0x89, 401}, {0x92, 1654}};
+    for (const auto& [notice, text] : expected)
+    {
+        const std::optional<NoticeTexts> texts = TextsOf(notice);
+        ASSERT_TRUE(texts.has_value()) << std::hex << static_cast<int>(notice);
+        EXPECT_EQ(texts->first, text) << std::hex << static_cast<int>(notice);
+        EXPECT_FALSE(texts->second.has_value()) << std::hex << static_cast<int>(notice);
+    }
+}
+
+// Los tipos de 0x6431b0 (0x642bf0): el 0x5d sin botones, el 0x5e con OK y cancelar, el 0x5f con el
+// campo del código; los demás, y todos los del login, con un OK.
+TEST(NoticesTest, EachNoticeHasItsKind)
+{
+    EXPECT_EQ(KindOf(0x5d), NoticeKind::NoButton);
+    EXPECT_EQ(KindOf(0x5e), NoticeKind::OkCancel);
+    EXPECT_EQ(KindOf(0x5f), NoticeKind::Code);
+    for (const NoticeId notice :
+         {NoticeId{0x36}, NoticeId{0x60}, NoticeId{0x84}, NoticeId{0x92}, NoticeId{0x70}, NoticeId{0x15}})
+    {
+        EXPECT_EQ(KindOf(notice), NoticeKind::Ok) << std::hex << static_cast<int>(notice);
+    }
+}
+
+// El OK del 0x5e abre el del código, y el del 0x5f manda el borrado (0x643560).
+TEST(NoticesTest, TheDeletionGoesFromTheConfirmationToTheCode)
+{
+    EXPECT_EQ(FollowUpOf(0x5e), NoticeFollowUp::AskForTheCode);
+    EXPECT_EQ(FollowUpOf(0x5f), NoticeFollowUp::SendTheDeletion);
+    EXPECT_EQ(FollowUpOf(0x60), NoticeFollowUp::Close);
+    EXPECT_EQ(FollowUpOf(0x92), NoticeFollowUp::Close);
+}
+
+// Las respuestas: crear (0x4c2290) con 0 el 0x36 y con 2 el 0x37; borrar (0x4e2b10) con 0 el 0x92,
+// con 1 el 0x60, con 3 el 0x62 y con otro el 0x89.
+TEST(NoticesTest, EachCreateAndDeleteResultHasItsNotice)
+{
+    EXPECT_EQ(NoticeOfCreateResult(0), std::optional{NoticeId{0x36}});
+    EXPECT_EQ(NoticeOfCreateResult(2), std::optional{NoticeId{0x37}});
+    EXPECT_EQ(NoticeOfCreateResult(1), std::nullopt);
+    EXPECT_EQ(NoticeOfCreateResult(5), std::nullopt);
+    EXPECT_EQ(NoticeOfDeleteResult(0), NoticeId{0x92});
+    EXPECT_EQ(NoticeOfDeleteResult(1), NoticeId{0x60});
+    EXPECT_EQ(NoticeOfDeleteResult(3), NoticeId{0x62});
+    EXPECT_EQ(NoticeOfDeleteResult(2), NoticeId{0x89});
+    EXPECT_EQ(NoticeOfDeleteResult(9), NoticeId{0x89});
 }
 } // namespace

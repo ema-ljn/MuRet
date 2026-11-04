@@ -37,7 +37,8 @@ constexpr PixelSize Screen640{640, 480};
 
 Client::UI::TextureSizes LabSizes()
 {
-    return Client::Tests::FakeTextureSizes({{0x727, {512, 128}}, {0x724, {64, 128}}});
+    return Client::Tests::FakeTextureSizes(
+        {{0x727, {512, 128}}, {0x724, {64, 128}}, {0x725, {64, 128}}, {0x728, {256, 32}}});
 }
 
 std::optional<NoticeId> Some(NoticeId notice)
@@ -173,5 +174,150 @@ TEST(NoticeWindowTest, TwoLinesGoOnTheLeft)
     EXPECT_EQ(text.texts[1].text, "Second");
     EXPECT_EQ(text.texts[1].x, 169);
     EXPECT_EQ(text.texts[1].y, 234);
+}
+
+// El tipo 0 (el 0x5d, "Aguarde por favor..."): sin botones; Enter y Esc no lo cierran.
+TEST(NoticeWindowTest, ANoButtonNoticeStaysOpen)
+{
+    NoticeWindow window(LabSizes(), nullptr);
+    window.Open(0x5d);
+    InputState input;
+    TapKey(input, Key::Enter);
+    EXPECT_EQ(StepOnce(window, input), std::nullopt);
+    TapKey(input, Key::Escape);
+    EXPECT_EQ(StepOnce(window, input), std::nullopt);
+    ClickAt(input, 293 + 10, 255 + 10);
+    EXPECT_EQ(StepOnce(window, input), std::nullopt);
+    EXPECT_TRUE(window.IsOpen());
+    EXPECT_EQ(window.Layout().ok, std::nullopt);
+    EXPECT_EQ(window.Layout().cancel, std::nullopt);
+}
+
+// El tipo 3 (el 0x5e): OK en (+98, +72) y cancelar en (+200, +72). OK o Enter lo dan; cancelar o
+// Esc lo cierran sin darlo (0x6436a0 pone el id en −1).
+TEST(NoticeWindowTest, AnOkCancelNoticeCancelsWithEsc)
+{
+    NoticeWindow window(LabSizes(), nullptr);
+    window.Open(0x5e);
+    InputState input;
+    EXPECT_EQ(StepOnce(window, input), std::nullopt);
+    EXPECT_EQ(window.Layout().ok, (std::optional<Rect>{Rect{.x = 242, .y = 255, .width = 54, .height = 30}}));
+    EXPECT_EQ(window.Layout().cancel, (std::optional<Rect>{Rect{.x = 344, .y = 255, .width = 54, .height = 30}}));
+
+    TapKey(input, Key::Escape);
+    EXPECT_EQ(StepOnce(window, input), std::nullopt);
+    EXPECT_FALSE(window.IsOpen());
+
+    window.Open(0x5e);
+    ClickAt(input, 344 + 10, 255 + 10);
+    EXPECT_EQ(StepOnce(window, input), std::nullopt);
+    EXPECT_FALSE(window.IsOpen());
+
+    window.Open(0x5e);
+    TapKey(input, Key::Enter);
+    EXPECT_EQ(StepOnce(window, input), Some(0x5e));
+    window.Open(0x5e);
+    ClickAt(input, 242 + 10, 255 + 10);
+    EXPECT_EQ(StepOnce(window, input), Some(0x5e));
+}
+
+// El tipo 4 (el 0x5f): la caja del código en (+32, +76), OK en (+209, +72) y cancelar en (+264, +72).
+// El campo toma solo dígitos, hasta 7, va enmascarado y se vacía al abrir (0x6436c0).
+TEST(NoticeWindowTest, TheCodeNoticeTakesUpToSevenDigits)
+{
+    NoticeWindow window(LabSizes(), nullptr);
+    window.Open(0x5f);
+    InputState input;
+    EXPECT_EQ(StepOnce(window, input), std::nullopt);
+    EXPECT_EQ(window.Layout().codeBox, (std::optional<Rect>{Rect{.x = 176, .y = 259, .width = 171, .height = 23}}));
+    EXPECT_EQ(window.Layout().ok, (std::optional<Rect>{Rect{.x = 353, .y = 255, .width = 54, .height = 30}}));
+    EXPECT_EQ(window.Layout().cancel, (std::optional<Rect>{Rect{.x = 408, .y = 255, .width = 54, .height = 30}}));
+    EXPECT_TRUE(window.WantsTextInput());
+
+    Client::Tests::TypeText(input, "12a3 45-67890");
+    EXPECT_EQ(StepOnce(window, input), std::nullopt);
+    EXPECT_EQ(window.Code(), "1234567");
+
+    TapKey(input, Key::Enter);
+    EXPECT_EQ(StepOnce(window, input), Some(0x5f));
+    // Lo que se escribió queda hasta que se abre otro, para el pedido.
+    EXPECT_EQ(window.Code(), "1234567");
+    window.Open(0x5f);
+    EXPECT_EQ(window.Code(), "");
+    window.Open(0x5e);
+    EXPECT_FALSE(window.WantsTextInput());
+}
+
+// El código se dibuja enmascarado, en la caja, en (+42, +84).
+TEST(NoticeWindowTest, TheCodeIsDrawnMasked)
+{
+    NoticeWindow window(LabSizes(), nullptr);
+    window.Open(0x5f);
+    InputState input;
+    Client::Tests::TypeText(input, "123");
+    StepOnce(window, input);
+    Client::Render::SpriteBatch batch;
+    batch.Begin(Screen640);
+    Client::Tests::RecordingTextDrawer text(batch);
+
+    window.Draw(batch, text, Screen640);
+
+    ASSERT_EQ(text.texts.size(), 1u);
+    EXPECT_EQ(text.texts[0].text, "***");
+    EXPECT_EQ(text.texts[0].x, 144 + 42);
+    EXPECT_EQ(text.texts[0].y, 183 + 84);
+}
+
+// 0x643100 parte un texto solo en dos renglones de menos de 52 bytes (0x632c90): el 1654 va en dos,
+// a la izquierda.
+TEST(NoticeWindowTest, ALongTextSplitsInTwo)
+{
+    const auto texts = Client::Tests::MakeTextTable({{1654, "Voce nao pode apagar o personagem que pertence a Guild"}});
+    NoticeWindow window(LabSizes(), &texts);
+    window.Open(0x92);
+    Client::Render::SpriteBatch batch;
+    batch.Begin(Screen640);
+    Client::Tests::RecordingTextDrawer text(batch);
+
+    window.Draw(batch, text, Screen640);
+
+    ASSERT_EQ(text.texts.size(), 2u);
+    EXPECT_EQ(text.texts[0].text, "Voce nao pode apagar o personagem que pertence a ");
+    EXPECT_EQ(text.texts[0].x, 169);
+    EXPECT_EQ(text.texts[0].y, 215);
+    EXPECT_EQ(text.texts[1].text, "Guild");
+    EXPECT_EQ(text.texts[1].y, 234);
+}
+
+// El 0x5e arma su texto con el nombre del elegido (sprintf del 1712).
+TEST(NoticeWindowTest, TheConfirmationPlacesTheName)
+{
+    const auto texts = Client::Tests::MakeTextTable({{1712, "Delete %s?"}});
+    NoticeWindow window(LabSizes(), &texts);
+    window.Open(0x5e, "char0001");
+    Client::Render::SpriteBatch batch;
+    batch.Begin(Screen640);
+    Client::Tests::RecordingTextDrawer text(batch);
+
+    window.Draw(batch, text, Screen640);
+
+    ASSERT_EQ(text.texts.size(), 1u);
+    EXPECT_EQ(text.texts[0].text, "Delete char0001?");
+}
+
+// Solo el 0x5e pasa su texto por sprintf (0x6431b0): en los otros, un "%s" sale tal cual.
+TEST(NoticeWindowTest, OnlyTheConfirmationIsAFormat)
+{
+    const auto texts = Client::Tests::MakeTextTable({{1654, "Guild %s 100%"}});
+    NoticeWindow window(LabSizes(), &texts);
+    window.Open(0x92, "char0001");
+    Client::Render::SpriteBatch batch;
+    batch.Begin(Screen640);
+    Client::Tests::RecordingTextDrawer text(batch);
+
+    window.Draw(batch, text, Screen640);
+
+    ASSERT_EQ(text.texts.size(), 1u);
+    EXPECT_EQ(text.texts[0].text, "Guild %s 100%");
 }
 } // namespace

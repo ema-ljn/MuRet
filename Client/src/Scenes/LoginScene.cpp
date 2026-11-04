@@ -25,6 +25,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/DarkHorse.h"
 #include "Scenes/GameData.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/LoginModels.h"
@@ -255,8 +256,8 @@ Core::Expected<void, std::string> LoginScene::LoadTheLogo()
     return {};
 }
 
-// 0x6349a0 con 0x606660 y 0x517270, y la cuenta de las rutas en −1. La fase vuelve a 0 (el original
-// no la vuelve: Q-C111).
+// 0x6349a0 con 0x606660, 0x517270 y el caballo (0x443fa0(0xbf, …), invisible), y la cuenta de las
+// rutas en −1. La fase vuelve a 0 (el original no la vuelve: Q-C111).
 void LoginScene::PlaceTheModels()
 {
     m_logoObject = LoginLogo();
@@ -265,6 +266,7 @@ void LoginScene::PlaceTheModels()
     m_routes = {};
     m_character = LoginCharacter();
     m_characterAnimation = {};
+    m_horse = {};
     if (const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel))
     {
         Render::Models::SetAction(m_characterAnimation.body, *skeleton, LoginCharacterStandingAction);
@@ -345,6 +347,12 @@ void LoginScene::StepTheWorld()
             Render::Models::AdvanceAnimation(m_logoAnimation, logo->actions[m_logoAnimation.action], m_logoObject.speed,
                                              Render::Models::AnimationScene::Other);
         }
+    }
+    // 0x445230 → 0x444010: el caballo, con la acción que el jinete tiene en este paso (la de arriba, o la
+    // del gesto que todavía no terminó).
+    if (const Render::Models::Skeleton* horse = m_models.SkeletonOf(DarkHorseModel))
+    {
+        StepDarkHorse(m_horse, *horse, m_characterAnimation.body.action);
     }
     // 0x508f00 → 0x4fcd00: lo que termina vuelve a la de parado (0x4fcb10 → 0x4f2250).
     if (StepCharacterAnimation(m_characterAnimation, m_character, m_models, Render::Models::AnimationScene::Other) &&
@@ -570,8 +578,9 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     m_notice.Draw(sprites, canvas.text, canvas.screen);
 }
 
-// El personaje (0x510d00 → 0x50ba30, con la luz del terreno en su lugar más la suya) y después el logo
-// (0x6046a0 → 0x602e90, con el color de 0x5ffce0).
+// El personaje (0x510d00 → 0x50ba30, con la luz del terreno en su lugar más la suya), el caballo
+// (0x4453b0 → 0x445260, con la escala de la escena 2) y después el logo (0x6046a0 → 0x602e90, con el
+// color de 0x5ffce0).
 void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha) const
 {
     DrawnCharacter character;
@@ -582,6 +591,11 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha) const
     character.object = LoginCharacterTransform();
     character.light = TerrainLightAt(character.object.position) + glm::vec3(LoginCharacterLight);
     DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
+
+    DrawDarkHorse(
+        canvas.models, m_models,
+        DrawnDarkHorse(m_horse, m_models.SkeletonOf(DarkHorseModel), character.object, DarkHorseLoginScale, alpha),
+        canvas.frameClock);
 
     DrawnObject logo;
     logo.model = m_logoObject.model;

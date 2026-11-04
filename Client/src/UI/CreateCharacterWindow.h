@@ -69,12 +69,16 @@ public:
     // El nombre del campo. Vale hasta el próximo cambio; no va al log.
     [[nodiscard]] std::string_view Name() const;
     [[nodiscard]] const Button& ClassButton(std::size_t index) const;
+    [[nodiscard]] const Button& OkButton() const;
     // Con la ventana abierta, el campo tiene el teclado.
     [[nodiscard]] bool WantsTextInput() const;
 
     // 0x63d880: lo que se escribe va al campo; el clic en una clase habilitada la elige; después, el
     // OK, cancelar, Enter o Esc, en ese orden.
     std::optional<CreateWindowEvent> Step(const Input::InputState& input, App::PixelSize screen);
+    // Con un aviso arriba (0x65fc30 le da el mouse a la cabeza): los botones siguen con su estado,
+    // sin el mouse encima y sin clic, y el campo no toma nada.
+    void StepWithoutTheMouse(const Input::InputState& input);
 
     // 0x66a050: la base negra de alfa 0x80 de toda la pantalla. La vista previa va entre esto y
     // Draw, que no se oscurece.

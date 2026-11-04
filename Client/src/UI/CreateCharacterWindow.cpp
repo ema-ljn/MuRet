@@ -213,6 +213,23 @@ const Button& CreateCharacterWindow::ClassButton(std::size_t index) const
     return m_classes.at(index);
 }
 
+const Button& CreateCharacterWindow::OkButton() const
+{
+    return m_ok;
+}
+
+void CreateCharacterWindow::StepWithoutTheMouse(const Input::InputState& input)
+{
+    // Un punto que no está en ningún botón.
+    constexpr Point Nowhere{-1, -1};
+    for (Button& button : m_classes)
+    {
+        static_cast<void>(button.Step(input, Nowhere));
+    }
+    static_cast<void>(m_ok.Step(input, Nowhere));
+    static_cast<void>(m_cancel.Step(input, Nowhere));
+}
+
 bool CreateCharacterWindow::WantsTextInput() const
 {
     return m_open;

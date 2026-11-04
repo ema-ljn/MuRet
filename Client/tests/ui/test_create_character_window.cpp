@@ -190,6 +190,23 @@ TEST(CreateCharacterWindowTest, EnterSubmitsAndEscCloses)
     EXPECT_FALSE(window.IsOpen());
 }
 
+// Con un aviso arriba (el del nombre, o el de la respuesta), la ventana no tiene el mouse: sus
+// botones quedan sin encima y sin clic (0x65fc30 y 0x63c490).
+TEST(CreateCharacterWindowTest, UnderANoticeTheButtonsLetGoOfTheMouse)
+{
+    const CreateWindowLayout layout = LayoutCreateWindow(Screen640, 1);
+    CreateCharacterWindow window(LabSizes(), nullptr);
+    window.Open();
+    InputState input;
+    Client::Tests::MoveMouse(input, layout.ok.x + 5, layout.ok.y + 5);
+    static_cast<void>(StepOnce(window, input));
+    ASSERT_EQ(window.OkButton().Frame(), 1);
+
+    window.StepWithoutTheMouse(input);
+
+    EXPECT_EQ(window.OkButton().Frame(), 0);
+}
+
 // La textura de cada quad del lote, en orden: 0xffff sin textura.
 std::vector<std::uint16_t> QuadSlots(const Client::Render::SpriteBatch& batch)
 {

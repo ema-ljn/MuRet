@@ -5,6 +5,7 @@
 #include <array>
 #include <cstddef>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -100,6 +101,11 @@ bool HasForbiddenSymbol(std::string_view name)
 
 std::optional<NoticeId> NoticeOfNewName(std::string_view name, const NameFilters& filters)
 {
+    return NoticeOfNewName(name, name, filters);
+}
+
+std::optional<NoticeId> NoticeOfNewName(std::string_view name, std::string_view buffer, const NameFilters& filters)
+{
     if (name.size() < ShortestName)
     {
         return ShortNameNotice;
@@ -108,7 +114,7 @@ std::optional<NoticeId> NoticeOfNewName(std::string_view name, const NameFilters
     {
         return ForbiddenNameNotice;
     }
-    if (HasForbiddenSymbol(name))
+    if (HasForbiddenSymbol(buffer))
     {
         return SymbolNameNotice;
     }

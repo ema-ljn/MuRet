@@ -19,6 +19,7 @@
 #include "UI/TextField.h"
 #include "UI/Widget.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -161,7 +162,8 @@ CreateCharacterWindow::CreateCharacterWindow(TextureSizes sizes, const Data::Tex
                 Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame),
                 Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame),
                 Button(ClassSlot, ClassWidth, ClassHeight, CheckedFrame, DisabledFrame)},
-      m_ok(OkSlot, ButtonWidth, ButtonHeight), m_cancel(CancelSlot, ButtonWidth, ButtonHeight), m_name(NameBytes, false)
+      m_ok(OkSlot, ButtonWidth, ButtonHeight), m_cancel(CancelSlot, ButtonWidth, ButtonHeight),
+      m_name(NameBytes, false, TextField::Charset::Latin1)
 {
     for (std::size_t i = 0; i < CreatableClassCount; ++i)
     {
@@ -173,7 +175,7 @@ CreateCharacterWindow::CreateCharacterWindow(TextureSizes sizes, const Data::Tex
 
 void CreateCharacterWindow::EnableClasses(std::uint8_t creatable)
 {
-    // Solo los cinco: un pkt[4] de 5 o más no escribe fuera, como el original (Q-C119).
+    // Solo los cinco: con un pkt[4] de 5 o más el original escribe fuera de ellos (Q-C119).
     for (std::size_t i = 0; i < CreatableClassCount; ++i)
     {
         m_classes[i].SetEnabled(i <= creatable);
@@ -184,6 +186,7 @@ void CreateCharacterWindow::Open()
 {
     m_open = true;
     m_name.Clear();
+    m_buffer.fill('\0');
 }
 
 void CreateCharacterWindow::Close()
@@ -207,6 +210,41 @@ std::string_view CreateCharacterWindow::Name() const
     return m_name.Value();
 }
 
+std::string_view CreateCharacterWindow::Buffer() const
+{
+    return {m_buffer.data(), m_buffer.size()};
+}
+
+void CreateCharacterWindow::CopyTheName()
+{
+    const std::string_view name = m_name.Value();
+    const std::size_t copied = std::min(name.size(), m_buffer.size() - 1);
+    std::copy_n(name.begin(), copied, m_buffer.begin());
+    m_buffer[copied] = '\0';
+}
+
+void CreateCharacterWindow::TypeInto(const Input::InputState& input)
+{
+    // El subclass del EDIT (0x467b10) descarta Esc y le pasa Enter a la ventana; Tab no es un byte
+    // que el campo tome.
+    const std::string_view typed = input.Text();
+    std::size_t start = 0;
+    for (std::size_t index = 0; index <= typed.size(); ++index)
+    {
+        if (index < typed.size() && typed[index] != Input::BackspaceChar && typed[index] != Input::TabChar)
+        {
+            continue;
+        }
+        // Lo de entre dos teclas de control va entero: una letra de Latin-1 llega en dos bytes.
+        m_name.Type(typed.substr(start, index - start));
+        if (index < typed.size() && typed[index] == Input::BackspaceChar)
+        {
+            m_name.Backspace();
+        }
+        start = index + 1;
+    }
+}
+
 const Button& CreateCharacterWindow::ClassButton(std::size_t index) const
 {
     return m_classes.at(index);
@@ -217,8 +255,13 @@ const Button& CreateCharacterWindow::OkButton() const
     return m_ok;
 }
 
-void CreateCharacterWindow::StepWithoutTheMouse(const Input::InputState& input)
+void CreateCharacterWindow::StepUnderANotice(const Input::InputState& input)
 {
+    if (!m_open)
+    {
+        return;
+    }
+    TypeInto(input);
     // Un punto que no está en ningún botón.
     constexpr Point Nowhere{-1, -1};
     for (Button& button : m_classes)
@@ -250,19 +293,7 @@ std::optional<CreateWindowEvent> CreateCharacterWindow::Step(const Input::InputS
         return std::nullopt;
     }
     Place(screen);
-    // El subclass del EDIT (0x467b10) descarta Esc y le pasa Enter a la ventana; Tab no es un byte
-    // que el campo tome.
-    for (const char byte : input.Text())
-    {
-        if (byte == Input::BackspaceChar)
-        {
-            m_name.Backspace();
-        }
-        else if (byte != Input::TabChar)
-        {
-            m_name.Type(std::string_view(&byte, 1));
-        }
-    }
+    TypeInto(input);
     const Point mouse = MouseInPixels(input, screen);
     std::optional<std::uint8_t> clicked;
     for (std::size_t i = 0; i < CreatableClassCount; ++i)
@@ -280,6 +311,7 @@ std::optional<CreateWindowEvent> CreateCharacterWindow::Step(const Input::InputS
     const bool cancel = m_cancel.Step(input, mouse);
     if (ok)
     {
+        CopyTheName();
         return CreateWindowEvent::Submitted;
     }
     if (cancel)
@@ -289,6 +321,7 @@ std::optional<CreateWindowEvent> CreateCharacterWindow::Step(const Input::InputS
     }
     if (input.WasPressed(Input::Key::Enter))
     {
+        CopyTheName();
         return CreateWindowEvent::Submitted;
     }
     if (input.WasPressed(Input::Key::Escape))
@@ -322,8 +355,7 @@ void CreateCharacterWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDraw
     sprites.Image(PixelImage(NameBackSlot, m_layout.nameBack, m_sizes(NameBackSlot)));
     sprites.Image(BlackBox(m_layout.attributes, BoxAlpha));
     sprites.Image(BlackBox(m_layout.strip, BoxAlpha));
-    sprites.SetBlend(Render::BlendMode::Alpha);
-    sprites.SetColor(Render::Color{});
+    // Las cajas apagaron la textura (Q-C75): la imagen de cada botón, con su slot, la vuelve a prender.
     for (const Button& button : m_classes)
     {
         sprites.Image(button.Image(m_sizes));
@@ -331,7 +363,13 @@ void CreateCharacterWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDraw
     }
     sprites.Image(m_ok.Image(m_sizes));
     sprites.Image(m_cancel.Image(m_sizes));
+    DrawAttributes(text, screen);
+    DrawDescription(text, screen);
+    DrawTheName(text, screen);
+}
 
+void CreateCharacterWindow::DrawAttributes(Scenes::ITextDrawer& text, App::PixelSize screen) const
+{
     const Rect& box = m_layout.attributes;
     const auto drawAttribute = [&](std::string_view value, std::size_t label, int top)
     {
@@ -351,18 +389,27 @@ void CreateCharacterWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDraw
     {
         drawAttribute(CommandValue, CommandText, CommandTop);
     }
-    if (const std::optional<std::string_view> description = TextAt(m_texts, FirstDescriptionText + m_class);
-        description && !description->empty())
+}
+
+void CreateCharacterWindow::DrawDescription(Scenes::ITextDrawer& text, App::PixelSize screen) const
+{
+    const std::optional<std::string_view> description = TextAt(m_texts, FirstDescriptionText + m_class);
+    if (!description || description->empty())
     {
-        const std::vector<std::string> lines = SplitIntoLines(*description, DescriptionLines, DescriptionBytes);
-        for (std::size_t j = 0; j < lines.size(); ++j)
-        {
-            text.Draw(
-                Render::Text::DesignX(m_layout.box.x + DescriptionLeft, screen),
-                Render::Text::DesignY(m_layout.box.y + DescriptionTop + DescriptionStep * static_cast<int>(j), screen),
-                lines[j], LabelStyle);
-        }
+        return;
     }
+    const std::vector<std::string> lines = SplitIntoLines(*description, DescriptionLines, DescriptionBytes);
+    for (std::size_t j = 0; j < lines.size(); ++j)
+    {
+        text.Draw(
+            Render::Text::DesignX(m_layout.box.x + DescriptionLeft, screen),
+            Render::Text::DesignY(m_layout.box.y + DescriptionTop + DescriptionStep * static_cast<int>(j), screen),
+            lines[j], LabelStyle);
+    }
+}
+
+void CreateCharacterWindow::DrawTheName(Scenes::ITextDrawer& text, App::PixelSize screen) const
+{
     const std::string_view name = m_name.Value();
     if (!name.empty())
     {

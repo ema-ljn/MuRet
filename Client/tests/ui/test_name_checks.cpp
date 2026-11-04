@@ -139,4 +139,22 @@ TEST(NameChecksTest, OnlyTheEvenBytesAreChecked)
     EXPECT_TRUE(HasForbiddenSymbol("abcd\xff"));
     EXPECT_FALSE(HasForbiddenSymbol("abc\xff"));
 }
+
+// El largo va antes que los filtros: "GM" y "a b" son cortos (0x79) aunque estén filtrados.
+TEST(NameChecksTest, TheLengthComesFirst)
+{
+    const NameFilters filters = LabFilters();
+    EXPECT_EQ(NoticeOfNewName("GM", filters), std::optional{ShortNameNotice});
+    EXPECT_EQ(NoticeOfNewName("a b", filters), std::optional{ShortNameNotice});
+}
+
+// 0x447ca0 lee el buffer de la ventana: detrás del nombre pueden quedar bytes de un intento anterior
+// más largo, y los mira (Q-C118). Con "abcde" sobre "abcdef g", el byte 6 es el espacio.
+TEST(NameChecksTest, TheSymbolsSeeWhatIsLeftInTheBuffer)
+{
+    const NameFilters filters = LabFilters();
+    const std::string buffer("abcde\0 g\0", 9);
+    EXPECT_EQ(NoticeOfNewName("abcde", buffer, filters), std::optional{SymbolNameNotice});
+    EXPECT_EQ(NoticeOfNewName("abcde", filters), std::nullopt);
+}
 } // namespace

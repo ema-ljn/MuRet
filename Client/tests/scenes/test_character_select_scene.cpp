@@ -175,8 +175,8 @@ struct Harness
              {439, "char bloqueado"}, {436, "cuenta del ADM"}, {437, "el sitio"},        {471, "espere"},
              {540, "Synthetic A"},    {559, "Synthetic B"},    {1654, "del gremio"},     {1711, "nivel alto"},
              {1712, "borrar %s"},     {1713, "el codigo"},     {1714, "borrado"},        {390, "corto"},
-             {457, "Synthetic Op"},   {458, "Synthetic Srv"},  {396, "limite"},          {1715, "filtrado"},
-             {1716, "rechazado"}});
+             {391, "simbolos"},       {457, "Synthetic Op"},   {458, "Synthetic Srv"},   {396, "limite"},
+             {1715, "filtrado"},      {1716, "rechazado"}});
         Client::Tests::WriteFilterFile(folder.Path(), {"GM"}, Client::Data::Text::FilterNameChecksumKey,
                                        "Local/FilterName.bmd");
         auto loaded = Client::Scenes::LoadGameData(folder.Path());
@@ -760,7 +760,9 @@ bool Draws(const std::vector<FrameEvent>& events, std::string_view text)
     return std::ranges::find(texts, text) != texts.end();
 }
 
-// Los botones de la barra en 640 × 480: conectar en (509, 399) y borrar en (564, 399), de 54 × 30.
+// Los botones de la barra en 640 × 480: crear en (22, 399), conectar en (509, 399) y borrar en
+// (564, 399), de 54 × 30.
+constexpr glm::vec2 CreateButton{30.0f, 410.0f};
 constexpr glm::vec2 ConnectButton{515.0f, 410.0f};
 constexpr glm::vec2 DeleteButton{570.0f, 410.0f};
 
@@ -1295,5 +1297,102 @@ TEST(CharacterSelectSceneTest, TheWindowTakesEnterAndEsc)
     EXPECT_FALSE(ShowsTheCreateWindow(tested.Frame()));
     EXPECT_FALSE(tested.scene->WantsTextInput());
     EXPECT_EQ(tested.scene->Next(), std::nullopt);
+}
+// La respuesta del F3 01 con 0 y el cierre del GS en la misma lectura: queda el 0x70 de la falla, y
+// la ventana no se vuelve a abrir sobre una sesión caída.
+TEST(CharacterSelectSceneTest, ACreationResultWithTheCloseLeavesTheFailureNotice)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    tested.Type("char0003");
+    tested.Tap(Key::Enter);
+    ASSERT_EQ(tested.online.session.State(), SessionState::WaitingCreateResult);
+
+    tested.online.socket.reads = {Client::Tests::Bytes({0xC1, 0x05, 0xF3, 0x01, 0x00})};
+    tested.online.socket.peerClosed = true;
+    tested.Step();
+
+    const std::vector<FrameEvent> events = tested.Frame();
+    EXPECT_TRUE(Draws(events, "no conecta"));
+    EXPECT_FALSE(Draws(events, "rechazado"));
+    EXPECT_FALSE(ShowsTheCreateWindow(events));
+    tested.Tap(Key::Enter);
+    EXPECT_TRUE(tested.scene->WantsToQuit());
+}
+
+// El aviso de la respuesta del F3 01 se atiende desde el paso que sigue: un Enter del paso en que
+// llega no lo cierra antes de que se vea.
+TEST(CharacterSelectSceneTest, TheCreationNoticeIsSeenEvenWithAnEnterInItsStep)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    tested.Type("char0003");
+    tested.Tap(Key::Enter);
+
+    tested.online.socket.reads = {Client::Tests::Bytes({0xC1, 0x05, 0xF3, 0x01, 0x00})};
+    tested.Tap(Key::Enter);
+
+    EXPECT_TRUE(Draws(tested.Frame(), "rechazado"));
+}
+
+// Las dos listas van a su lugar: un nombre que empieza con '/' se saltea Filter.bmd, no FilterName.bmd.
+TEST(CharacterSelectSceneTest, ASlashNameStillMeetsFilterName)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    tested.Type("/GMxx");
+
+    tested.Tap(Key::Enter);
+
+    EXPECT_TRUE(Draws(tested.Frame(), "filtrado"));
+    EXPECT_TRUE(tested.CharacterPacketsSent(0x01).empty());
+}
+
+// Q-C118: con un intento más largo antes, 0x447ca0 ve sus restos en el buffer: "abcde" detrás de
+// "abcdef g" da el 0x7a. Y con un aviso arriba, lo que se escribe sigue yendo al nombre.
+TEST(CharacterSelectSceneTest, TheBufferOfAnEarlierTryCounts)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    tested.Type("abcdef g");
+    tested.Tap(Key::Enter);
+    ASSERT_TRUE(Draws(tested.Frame(), "filtrado"));
+    tested.Type("\b\b\b");
+    tested.Tap(Key::Enter);
+    ASSERT_FALSE(ShowsANotice(tested.Frame()));
+    ASSERT_TRUE(Draws(tested.Frame(), "abcde"));
+
+    tested.Tap(Key::Enter);
+
+    EXPECT_TRUE(Draws(tested.Frame(), "simbolos"));
+    EXPECT_TRUE(tested.CharacterPacketsSent(0x01).empty());
+}
+
+// El nombre que se escribe no va al log, ni el que no pasa ni el que se manda: ni el de la escena
+// ni el de la sesión.
+TEST(CharacterSelectSceneTest, TheNameIsNotLogged)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    tested.Type("xGMx");
+    tested.Tap(Key::Enter);
+    tested.Tap(Key::Enter);
+    tested.Type("\b\b\b\bchar0009");
+    tested.Tap(Key::Enter);
+    ASSERT_EQ(tested.online.session.State(), SessionState::WaitingCreateResult);
+
+    for (const std::vector<std::string>* lines : {&tested.sink.lines, &tested.online.sink.lines})
+    {
+        for (const std::string& line : *lines)
+        {
+            EXPECT_EQ(line.find("xGMx"), std::string::npos) << line;
+            EXPECT_EQ(line.find("char0009"), std::string::npos) << line;
+        }
+    }
 }
 } // namespace

@@ -5,6 +5,7 @@
 #include "App/SessionState.h"
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Textures/TextureSet.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -257,7 +258,8 @@ void CharacterSelectScene::StepTheCreateWindow(const Input::InputState& input)
 
 void CharacterSelectScene::SubmitTheCreation()
 {
-    if (const std::optional<UI::NoticeId> refused = UI::NoticeOfNewName(m_create.Name(), m_nameFilters))
+    if (const std::optional<UI::NoticeId> refused =
+            UI::NoticeOfNewName(m_create.Name(), m_create.Buffer(), m_nameFilters))
     {
         // El nombre no va al log: solo el aviso. La ventana queda abajo, con el nombre.
         m_context.log.Info("el nombre del personaje nuevo no pasa: el aviso {:#04x}", static_cast<int>(*refused));
@@ -418,7 +420,7 @@ void CharacterSelectScene::Step(const Input::InputState& input)
         m_bar.StepWithoutTheMouse(input);
         if (m_create.IsOpen())
         {
-            m_create.StepWithoutTheMouse(input);
+            m_create.StepUnderANotice(input);
         }
         if (!failureOpened && !deletionOpened && !creationOpened)
         {

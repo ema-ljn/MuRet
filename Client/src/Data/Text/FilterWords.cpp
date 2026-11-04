@@ -38,7 +38,7 @@ Core::Expected<std::vector<std::string>, DataError> LoadFilterWords(std::span<co
         Core::Xor3(record);
         if (record[0] == std::byte{0})
         {
-            break;
+            return words;
         }
         std::string word;
         for (const std::byte letter : record)
@@ -51,6 +51,8 @@ Core::Expected<std::vector<std::string>, DataError> LoadFilterWords(std::span<co
         }
         words.push_back(std::move(word));
     }
-    return words;
+    // Sin un registro vacío, 0x549fa0 sale por el tope (0x54a139) sin guardar la cuenta, que queda en
+    // 0: ninguna palabra.
+    return std::vector<std::string>{};
 }
 } // namespace Client::Data::Text

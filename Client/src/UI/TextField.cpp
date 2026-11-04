@@ -11,6 +11,15 @@ namespace
 constexpr unsigned char FirstPrintable = 0x20;
 constexpr unsigned char LastPrintable = 0x7e;
 constexpr char Star = '*';
+// Las letras de Latin-1 que toma el campo de ese juego: de U+00A0 a U+00FF, en UTF-8 con C2 o C3
+// delante.
+constexpr unsigned char Latin1Lead = 0xc2;
+constexpr unsigned char Latin1HighLead = 0xc3;
+constexpr unsigned char ContinuationMask = 0xc0;
+constexpr unsigned char ContinuationBits = 0x80;
+constexpr unsigned LeadBits = 0x1f;
+constexpr unsigned TrailBits = 0x3f;
+constexpr unsigned FirstLatin1Letter = 0xa0;
 
 bool IsPrintableAscii(char byte)
 {
@@ -19,20 +28,42 @@ bool IsPrintableAscii(char byte)
 }
 } // namespace
 
-TextField::TextField(std::size_t maxBytes, bool masked) : m_maxBytes(maxBytes), m_masked(masked) {}
+TextField::TextField(std::size_t maxBytes, bool masked, Charset charset)
+    : m_maxBytes(maxBytes), m_masked(masked), m_charset(charset)
+{
+}
 
 void TextField::Type(std::string_view utf8)
 {
-    for (const char byte : utf8)
+    for (std::size_t index = 0; index < utf8.size(); ++index)
     {
         if (m_value.size() >= m_maxBytes)
         {
             return;
         }
+        const char byte = utf8[index];
         if (IsPrintableAscii(byte))
         {
             m_value.push_back(byte);
+            continue;
         }
+        // U+00A0 a U+00FF en UTF-8: C2 A0 a C3 BF. Lo demás, de a un byte, no entra.
+        const auto lead = static_cast<unsigned char>(byte);
+        if (m_charset != Charset::Latin1 || (lead != Latin1Lead && lead != Latin1HighLead) || index + 1 >= utf8.size())
+        {
+            continue;
+        }
+        const auto trail = static_cast<unsigned char>(utf8[index + 1]);
+        if ((trail & ContinuationMask) != ContinuationBits)
+        {
+            continue;
+        }
+        const unsigned value = ((lead & LeadBits) << 6U) | (trail & TrailBits);
+        if (value >= FirstLatin1Letter)
+        {
+            m_value.push_back(static_cast<char>(value));
+        }
+        ++index;
     }
 }
 

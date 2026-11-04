@@ -28,9 +28,9 @@ inline constexpr std::uint32_t FilterNameChecksumKey = 0x2bc1; // 0x549fa0
 inline constexpr std::uint32_t FilterChecksumKey = 0x3e7d;     // 0x549c60
 
 // Las palabras de `file`, descifradas, hasta el primer registro vacío; cada una hasta su primer
-// cero, o de 20 bytes si lo llena. FileTooShort con menos de 20.004 bytes; ChecksumMismatch si la
-// suma no es la de `checksumKey` (el original avisa "File corrupted" y se cierra). Lo que sobra se
-// ignora.
+// cero, o de 20 bytes si lo llena. Sin un registro vacío, ninguna (el original no guarda la cuenta). FileTooShort con
+// menos de 20.004 bytes; ChecksumMismatch si la suma no es la de `checksumKey` (el original avisa "File corrupted" y se
+// cierra). Lo que sobra se ignora.
 [[nodiscard]] Core::Expected<std::vector<std::string>, DataError> LoadFilterWords(std::span<const std::byte> file,
                                                                                   std::uint32_t checksumKey);
 } // namespace Client::Data::Text

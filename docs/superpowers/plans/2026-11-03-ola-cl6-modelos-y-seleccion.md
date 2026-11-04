@@ -1702,7 +1702,7 @@ namespace Client::Input
 } // namespace Client::Input
 ```
 
-- [ ] **Paso 1 (PR A):** los tests de los paquetes, con `SameBytes` sobre bytes armados a mano
+- [x] **Paso 1 (PR A):** los tests de los paquetes, con `SameBytes` sobre bytes armados a mano
   (sintéticos, sin valores del cable): `CharacterListTest.TheRequestIsC104F300`,
   `ReadsTheEntriesInOrder`, `AnEmptyListHasNoEntries` (`pkt[6]` en 0),
   `ACountBeyondThePacketIsTooShort`, `KeepsTheNameBytes` (un nombre de 10 bytes sin terminador),
@@ -1710,7 +1710,7 @@ namespace Client::Input
   `ASlotAboveFourIsDropped` (Q-C101);
   `CharacterSelectTest.TheRequestIsC10EF303WithTheName`. El XOR32 sale de `Xor32C1`, que ya está
   probado: el test descifra con `Xor32DecodeBytes` y compara el plano.
-- [ ] **Paso 2 (PR A):** los de la sesión, con `FakeSocket` y el `TestGameServer`:
+- [x] **Paso 2 (PR A):** los de la sesión, con `FakeSocket` y el `TestGameServer`:
   `ServerSessionTest.RequestCharacterListSendsF300`, `TheListMovesToChoosingCharacter`,
   `AnEmptyListAlsoChooses` (el `0x33` con ninguno), `ChooseCharacterSendsNothing`,
   `EnterWorldSendsF303WithTheChosenName`, `EnterWorldWithoutAChoiceWarns`,
@@ -1722,10 +1722,39 @@ namespace Client::Input
   `GoldenWireCharacterSession.TheRequestsHaveTheShapeOfTheCable` (el `F3 00` y el `F3 03` de MuRet
   contra los del `muproxy.log`, con `SameBytesWithoutValues`: el nombre sale del cable en el test,
   y no se escribe ni se imprime).
-- [ ] **Paso 3 (PR A, Emanuel, `TODO(human)`):** los paquetes, los estados y las tres llamadas.
+- [x] **Paso 3 (PR A, Emanuel, `TODO(human)`, resuelto por Claude):** los paquetes, los estados y
+  las tres llamadas.
   Verificar: `ctest --preset linux-x64-debug -R "CharacterList|CharacterSelect|ServerSession"`.
   Los mutantes: la lista sin mirar la cantidad, la clase sin el bit 3, el `F3 00` en claro, el
   `F3 03` desde `ChooseCharacter`, y el keepalive solo en `LoggedIn`.
+
+  Hecho así (PR A, 2026-11-04, resuelto por Claude): `Protocol/Character` (`Opcodes.h`,
+  `CharacterList` y `CharacterSelect`) y la `ServerSession` con los tres estados, con 35 tests:
+  9 de `CharacterListTest`, 2 de `CharacterSelectTest`, 19 de `ServerSessionTest`,
+  `ServerSessionLoopbackTest.FromLoginToEnterWorld`, 2 golden y 2 de los printers. El keepalive
+  corre en `LoggedIn` y en los tres con el ritmo que empezó con el login, y la lista se espera con
+  `ReplyTimeout`; `AutoLogin` y `LoginScene` suman los tres estados donde estaba `LoggedIn`. Lo que
+  cambió del contrato de arriba:
+  - **`IsLocked(entry)` y `MaxCharacterSlot`**, una función y una constante con nombre en lugar de
+    la máscara y el 4 sueltos en quien los usa.
+  - **El `F3 00` lo contesta el GS de `support/FakeServers`**, no `TestGameServer.h`, que no tiene
+    un servidor (son las claves y el descifrado): después del login acepta el `F3 00` en claro, una
+    vez, contesta una lista en claro con el `0xAA` de FoxAnti, y guarda el `F3 03`.
+  - **El golden es `GoldenCharacterPackets`** (`protocol/test_golden_character.cpp`), con
+    `WireDataTest` y no `GoldenAndWireDataTest`: los `F3` son C1 con el XOR32 y no hace falta el
+    `Data\` ni las claves. Compara los 7 `F3 00` y los 7 `F3 03` del `muproxy.log` con los de MuRet
+    (`TheRequestsHaveTheShapeOfTheCable`) y lee las listas del GS con `ReadCharacterList` sin que
+    descarte ninguna (`TheListsOfTheCableRead`), algo que el plan no pedía.
+  - **El `PrintTo` de `CharacterEntry` va en `ProtocolPrinters.h`**: GoogleTest lo busca por ADL en
+    `Protocol::Character`. Sin él, una entrada que falla sale con los bytes del nombre (el test lo
+    vio en rojo). `AppPrinters.h` suma los tres estados.
+  - **Tests de más:** lo que llega o se llama fuera de turno (pedir, la lista, elegir y entrar), la
+    lista que no se lee, otro subcódigo, perder el GS eligiendo y el log sin los nombres.
+
+  Los 14 mutantes a mano (los cinco de arriba, el `F3 03` cifrado, el nivel en big-endian, sin
+  descartar el lugar de más de 4, el keepalive que vuelve a empezar al cambiar de estado, un lugar
+  que no está que queda elegido, `Start` sin olvidar la lista, la lista sin tope, la lista aceptada
+  fuera de turno y entrar sin mirar el estado) los mata al menos un test cada uno.
 - [ ] **Paso 4 (PR B):** los tests sin GL: `Pass3DTest.ScalesTheViewportInIntegers` (`(0, 25, 640,
   430)` en 1024 × 768 da `glViewport(0, 40, 1024, 688)`, y en 800 × 600, `(0, 32, 800, 537)`: la
   y escalada es 31 y el alto 537, con la división entera, y la de GL, 600 − 31 − 537),

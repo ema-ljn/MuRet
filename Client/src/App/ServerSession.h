@@ -9,6 +9,7 @@
 #include "Network/CloseReason.h"
 #include "Network/Connection.h"
 #include "Network/Packet.h"
+#include "Protocol/Character/CharacterList.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
 
@@ -22,9 +23,11 @@
 // La sesión con los servidores del juego: con el ConnectServer, hasta la dirección del GameServer
 // (CL4.3); con el GameServer, hasta el login (CL4.4); y después, el keepalive (CL4.5). Desde la
 // CL5.5 no elige ni manda la cuenta sola: espera a la UI (o al AutoLogin) en ChoosingServer y en
-// WaitingCredentials. Contrato: el plan de la CL4, "Contrato" y el diagrama de estados de la
-// CL4.3, paso 1, y "Contrato" de la CL4.4 y de la CL4.5; el de la CL5.5 en el plan de la CL5;
-// 04-protocolo.md, "El flujo de conexión".
+// WaitingCredentials. Desde la CL6.3, la lista de personajes y la entrada al mundo, que pide la
+// escena de la selección. Contrato: el plan de la CL4, "Contrato" y el diagrama de estados de la
+// CL4.3, paso 1, y "Contrato" de la CL4.4 y de la CL4.5; el de la CL5.5 en el plan de la CL5; el de
+// la CL6.3 en el plan de la CL6; 04-protocolo.md, "El flujo de conexión" y "La selección de
+// personaje (F3)".
 //
 // La consulta el bucle una vez por frame (Poll). Recorre los eventos de la Connection en orden, y
 // despacha cada paquete en el Dispatcher del servidor con el que habla: el opcode 00 es el saludo
@@ -48,10 +51,15 @@
 //   WaitingCredentials --SubmitCredentials con unas que no entran--> Failed (CredentialsTooLong)
 //   WaitingLoginResult --F1 01 con 1: manda el primer keepalive--> LoggedIn
 //   WaitingLoginResult --F1 01 con otro: guarda el resultado--> WaitingCredentials
-//   LoggedIn --cada KeepalivePeriod desde el primero: manda el keepalive--> LoggedIn
+//   LoggedIn --RequestCharacterList: manda F3 00--> WaitingCharacterList
+//   WaitingCharacterList --F3 00: guarda la lista, aunque venga vacía--> ChoosingCharacter
+//   ChoosingCharacter --EnterWorld con uno elegido: manda F3 03 con su nombre--> EnteringWorld
+//   LoggedIn y los tres de después --cada KeepalivePeriod desde el primero: manda el keepalive-->
+//     el mismo estado
 //   con el GS --F1 02 con 0: cierra, sin aviso--> QuitOrdered (Q-C106)
 //   cualquier Waiting* que espera un servidor --ReplyTimeout sin su respuesta: cierra--> Failed
-//     (NoReply); ChoosingServer y WaitingCredentials esperan al jugador y no tienen tope
+//     (NoReply); ChoosingServer, WaitingCredentials y ChoosingCharacter esperan al jugador y no
+//     tienen tope, y EnteringWorld tampoco: su respuesta es de la CL7
 //   con el CS --Closed--> Failed (ConnectServerLost)
 //   con el GS --Closed--> Failed (GameServerLost)
 //
@@ -62,8 +70,9 @@
 // que al cerrar vacía su cola de paquetes (0x4e8380). QuitOrdered es el final: ni Start la saca. Con
 // 1 o con 2 (la selección o la lista, Q-C79) se ignora con un aviso hasta la CL6 y la CL9.
 //
-// El keepalive corre solo en LoggedIn, también minimizada, y se detiene al salir de ahí: la sesión
-// no se reconecta sola (la escena de login muestra el aviso). El original manda desde el arranque
+// El keepalive corre en LoggedIn y en los tres estados de la selección, también minimizada, con el
+// ritmo que empezó con el login, y se detiene al salir de ellos: la sesión no se reconecta sola (la
+// escena de login muestra el aviso). El original manda desde el arranque
 // si hay conexión al GS, aunque no haya login (pregunta 6 del plan de la CL4): acá tampoco sale
 // mientras se espera la cuenta y la clave.
 //
@@ -172,6 +181,24 @@ public:
     // vacío. Valen también después de un Start: son de quien tiene el personaje (CL6).
     void SetKeepaliveSpeeds(const KeepaliveSpeeds& speeds);
 
+    // En LoggedIn, manda el F3 00 (0x634e0e, cuando 0x634c60 pasa a la escena 4) y espera la lista.
+    // En otro estado, un aviso y nada.
+    void RequestCharacterList();
+
+    // La lista del último F3 00, desde que llega hasta el próximo Start. std::nullopt antes.
+    [[nodiscard]] const std::optional<Protocol::Character::CharacterList>& Characters() const;
+
+    // En ChoosingCharacter, elige al de `slot` si está en la lista; con std::nullopt o un lugar que
+    // no está, a ninguno (el -1 de 0x6342c0). No manda nada. En otro estado, un aviso y nada.
+    void ChooseCharacter(std::optional<std::uint8_t> slot);
+
+    // El elegido, de la lista; nullptr si no hay. Vale hasta el próximo Start.
+    [[nodiscard]] const Protocol::Character::CharacterEntry* ChosenCharacter() const;
+
+    // En ChoosingCharacter con uno elegido, manda el F3 03 con su nombre (0x636290) y espera la
+    // entrada. Sin elegido, o en otro estado, un aviso y nada.
+    void EnterWorld();
+
 private:
     void RegisterConnectServerHandlers();
     void RegisterGameServerHandlers();
@@ -191,6 +218,7 @@ private:
 
     void OnGameHello(const Network::Packet& packet);
     void OnLoginResult(const Network::Packet& packet);
+    void OnCharacterList(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.
     void SendKeepalive(Core::Duration now);
@@ -222,6 +250,8 @@ private:
     std::optional<std::uint16_t> m_chosenServer;
     std::optional<ServerAddress> m_gameServerAddress;
     std::optional<std::uint8_t> m_loginResult;
+    std::optional<Protocol::Character::CharacterList> m_characters;
+    std::optional<std::uint8_t> m_chosenSlot; // un lugar de m_characters
     // Cambia con cada Connect y cada Fail: Poll deja de recorrer el lote si cambió.
     std::uint32_t m_generation = 0;
     Core::IntervalTimer m_keepalive{KeepalivePeriod};

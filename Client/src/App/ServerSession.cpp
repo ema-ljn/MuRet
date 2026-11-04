@@ -12,6 +12,9 @@
 #include "Network/LinkState.h"
 #include "Network/Packet.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/Character/CharacterList.h"
+#include "Protocol/Character/CharacterSelect.h"
+#include "Protocol/Character/Opcodes.h"
 #include "Protocol/Connection/Hello.h"
 #include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
@@ -45,6 +48,7 @@ constexpr std::string_view Unreadable = "no se puede leer";
 // Lo que dice el aviso de una llamada de la UI que el estado no espera.
 constexpr std::string_view NotAwaited = "la sesión no la espera";
 constexpr std::string_view NotAwaitedPlural = "la sesión no las espera";
+constexpr std::string_view NotAwaitedMasculine = "la sesión no lo espera";
 
 // Un visitor de std::visit con un operator() por tipo: si Network::Event suma un tipo, Poll no
 // compila hasta que la sesión diga qué hace con él.
@@ -78,17 +82,28 @@ std::string_view Awaited(SessionState state)
         return "la dirección del GameServer";
     case SessionState::WaitingLoginResult:
         return "el resultado del login";
+    case SessionState::WaitingCharacterList:
+        return "la lista de personajes";
     case SessionState::Idle:
     case SessionState::ConnectingConnectServer:
     case SessionState::ChoosingServer:
     case SessionState::ConnectingGameServer:
     case SessionState::WaitingCredentials:
     case SessionState::LoggedIn:
+    case SessionState::ChoosingCharacter:
+    case SessionState::EnteringWorld:
     case SessionState::QuitOrdered:
     case SessionState::Failed:
         break;
     }
     return {};
+}
+
+// Los estados con el login aceptado, en los que corre el keepalive.
+bool IsLoggedIn(SessionState state)
+{
+    return state == SessionState::LoggedIn || state == SessionState::WaitingCharacterList ||
+           state == SessionState::ChoosingCharacter || state == SessionState::EnteringWorld;
 }
 
 // Los errores que se contestan con el F1 03: el checksum malo, como el original, y lo que no mide
@@ -129,6 +144,8 @@ void ServerSession::RegisterConnectServerHandlers()
 
 void ServerSession::RegisterGameServerHandlers()
 {
+    using Protocol::Character::CharacterOpcode;
+    using Protocol::Character::ListSubcode;
     using Protocol::Connection::HelloSubcode;
     using Protocol::Connection::JoinOpcode;
     using Protocol::Connection::LoginSubcode;
@@ -136,6 +153,8 @@ void ServerSession::RegisterGameServerHandlers()
     [[maybe_unused]] const bool registered =
         m_gameServer.On(JoinOpcode, HelloSubcode, [this](const Network::Packet& packet) { OnGameHello(packet); }) &&
         m_gameServer.On(JoinOpcode, LoginSubcode, [this](const Network::Packet& packet) { OnLoginResult(packet); }) &&
+        m_gameServer.On(CharacterOpcode, ListSubcode,
+                        [this](const Network::Packet& packet) { OnCharacterList(packet); }) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
 }
@@ -153,6 +172,8 @@ void ServerSession::Start()
     m_chosenServer.reset();
     m_gameServerAddress.reset();
     m_loginResult.reset();
+    m_characters.reset();
+    m_chosenSlot.reset();
     m_log.Info("se conecta al ConnectServer");
     Connect(m_settings.connectServer, std::nullopt);
     SetState(SessionState::ConnectingConnectServer);
@@ -282,6 +303,72 @@ std::optional<std::uint8_t> ServerSession::LoginResult() const
 void ServerSession::SetKeepaliveSpeeds(const KeepaliveSpeeds& speeds)
 {
     m_speeds = speeds;
+}
+
+// 0x634c60 pasa a la escena 4 y manda el F3 00 en el mismo paso (0x634dce, 0x634e0e): quien llama
+// es la escena de la selección, al entrar.
+void ServerSession::RequestCharacterList()
+{
+    if (m_state != SessionState::LoggedIn)
+    {
+        m_log.Warning("se ignora el pedido de la lista de personajes: {}", NotAwaitedMasculine);
+        return;
+    }
+    m_log.Info("se pide la lista de personajes");
+    Protocol::Outgoing request = Protocol::Character::WriteCharacterListRequest();
+    m_connection.Send(std::move(request.packet), request.delivery);
+    SetState(SessionState::WaitingCharacterList);
+}
+
+const std::optional<Protocol::Character::CharacterList>& ServerSession::Characters() const
+{
+    return m_characters;
+}
+
+void ServerSession::ChooseCharacter(std::optional<std::uint8_t> slot)
+{
+    if (m_state != SessionState::ChoosingCharacter)
+    {
+        m_log.Warning("se ignora la elección de un personaje: {}", NotAwaited);
+        return;
+    }
+    m_chosenSlot = slot;
+    if (ChosenCharacter() == nullptr)
+    {
+        m_chosenSlot.reset();
+    }
+}
+
+const Protocol::Character::CharacterEntry* ServerSession::ChosenCharacter() const
+{
+    if (!m_characters || !m_chosenSlot)
+    {
+        return nullptr;
+    }
+    const auto& characters = m_characters->characters;
+    const auto chosen = std::ranges::find(characters, *m_chosenSlot, &Protocol::Character::CharacterEntry::slot);
+    return chosen == characters.end() ? nullptr : &*chosen;
+}
+
+// 0x636290 manda el F3 03 en el primer paso de la escena 5 y loguea el lugar y el nombre; acá, el
+// lugar: el nombre es del jugador.
+void ServerSession::EnterWorld()
+{
+    if (m_state != SessionState::ChoosingCharacter)
+    {
+        m_log.Warning("se ignora la entrada al mundo: {}", NotAwaited);
+        return;
+    }
+    const Protocol::Character::CharacterEntry* chosen = ChosenCharacter();
+    if (chosen == nullptr)
+    {
+        m_log.Warning("no se entra al mundo: no hay un personaje elegido");
+        return;
+    }
+    m_log.Info("se entra al mundo con el personaje del lugar {}", chosen->slot);
+    Protocol::Outgoing select = Protocol::Character::WriteCharacterSelect(chosen->name);
+    m_connection.Send(std::move(select.packet), select.delivery);
+    SetState(SessionState::EnteringWorld);
 }
 
 // Al CS, lo primero es el A9, como lo manda 0x415be0 apenas la escena de login conecta (Q-C16). El
@@ -474,6 +561,27 @@ void ServerSession::OnLoginResult(const Network::Packet& packet)
     m_keepalive.Start(now);
 }
 
+// La lista se guarda en el orden en que llega, aunque venga vacía: el original pasa igual al estado
+// 0x33 (0x4c20a0). Elegir es del jugador.
+void ServerSession::OnCharacterList(const Network::Packet& packet)
+{
+    if (m_state != SessionState::WaitingCharacterList)
+    {
+        m_log.Warning("se ignora la lista de personajes (F3 00): {}", OutOfTurn);
+        return;
+    }
+    auto list = Protocol::Character::ReadCharacterList(packet);
+    if (!list.HasValue())
+    {
+        m_log.Warning("se ignora la lista de personajes (F3 00): {}", Unreadable);
+        return;
+    }
+    m_characters = std::move(list).Value();
+    m_chosenSlot.reset();
+    m_log.Info("la lista trae {} personajes: se espera la elección", m_characters->characters.size());
+    SetState(SessionState::ChoosingCharacter);
+}
+
 // 0x4c2710 no mira el estado ni la escena para el 0: SendMessageA(WM_DESTROY) en 0x4c391b, y el
 // WM_DESTROY cierra el socket con un RST y vacía la cola de paquetes (0x4e8380), y hace
 // PostQuitMessage. Acá se acepta en cualquier estado con el GS, como el original, aunque el GS
@@ -530,11 +638,13 @@ void ServerSession::Fail(SessionFailure failure)
     SetState(SessionState::Failed);
 }
 
+// El keepalive empieza con el login (OnLoginResult) y sigue con su ritmo en los estados de la
+// selección.
 void ServerSession::SetState(SessionState state)
 {
     m_state = state;
     m_stateSince = m_clock.Now();
-    if (state != SessionState::LoggedIn)
+    if (!IsLoggedIn(state))
     {
         m_keepalive.Stop();
     }
@@ -561,6 +671,9 @@ bool ServerSession::WithConnectServer() const
     case SessionState::WaitingCredentials:
     case SessionState::WaitingLoginResult:
     case SessionState::LoggedIn:
+    case SessionState::WaitingCharacterList:
+    case SessionState::ChoosingCharacter:
+    case SessionState::EnteringWorld:
     case SessionState::QuitOrdered:
     case SessionState::Failed:
         break;

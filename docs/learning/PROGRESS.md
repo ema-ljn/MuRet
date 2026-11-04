@@ -412,6 +412,11 @@ solo lo lee.
   binario y la traza confirmó. El reloj de cada swap, que la traza deja ver entero, quedó en el 06.
   6 tests y 10 mutantes. Después, a fondo: el personaje y el guardia de Lorencia, con la cabeza, a
   0,0014 de la traza, y el giro de la cabeza de `0x505de0` (un 20 % por paso) verificado con ella.
+  **La CL6.3 A** (2026-11-04, resuelta por Claude): la lista de personajes y la entrada al mundo
+  (`Protocol/Character`, el `F3 00` y el `F3 03` con el XOR32 en claro) y la `ServerSession` con
+  tres estados más, con el keepalive que sigue su ritmo en los cuatro. Contra el cable: los 7
+  pedidos y las 7 entradas del `muproxy.log` son los de MuRet byte a byte, y sus listas se leen.
+  35 tests y 14 mutantes.
 
 ## Conceptos
 
@@ -544,6 +549,7 @@ sesión, junto con los de repaso más viejo.
 | la pose de un esqueleto: dos keys y la parte fraccionaria del frame, el slerp y su vuelta, la cadena de padres, filas contra columnas, y un golden que busca el frame en vez de tolerar el error | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | una animación por paso y otra por tiempo: el módulo, el tope y la key anterior, un reloj falso a varios FPS, y la copia interpolada que cruza keys como el paso | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | UV que salen de la normal en el mundo y de un reloj: por qué un float de ms deja de contar, y sacar de la traza el valor que no se ve (T entero desde T módulo 10.000 y un seno y un coseno) | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
+| una sesión que suma estados sin cortar lo que corre en todos (el keepalive con su ritmo), una lista de largo variable que no se lee de más, y un nombre del jugador que no llega ni al log ni a un mensaje de un test | CL6.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
 
 ## Preguntas para olas futuras
 

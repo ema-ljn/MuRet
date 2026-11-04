@@ -20,7 +20,9 @@
 // los bytes del cable del laboratorio y su FoxAnti: el CS manda la lista en la forma del
 // laboratorio y espera la elección ya pasada al código 0, y el GS manda todo cifrado y con el
 // 0xAA en cada byte. El F4 03 da 127.0.0.1 y el puerto del GS falso, no la dirección del cable.
-// Después del login, el GS solo acepta keepalives (CL4.5), y los cuenta.
+// Después del login, el GS acepta keepalives (CL4.5), y los cuenta; un F3 00, que contesta con una
+// lista de dos personajes en claro (char0001 en el lugar 0 y char0002 en el 2, CL6.3); y un F3 03,
+// que guarda.
 //
 // Cada uno contesta solo lo que sigue en el guion. Con algo que no está en el guion, el servidor lo
 // anota en Complaints(), sin un byte, corta al cliente y deja de contestar: la sesión falla
@@ -48,6 +50,8 @@ public:
     [[nodiscard]] const std::optional<Network::Packet>& Login() const;
     // Los keepalives que le llegaron al GS después del login, cifrados y en orden.
     [[nodiscard]] std::size_t Keepalives() const;
+    // El F3 03 que le llegó al GS, en claro y sin el XOR32; vacío hasta que llega.
+    [[nodiscard]] const std::optional<Network::Packet>& CharacterSelect() const;
     // Si el CS, ya contestada la dirección, vio que el cliente cortó (04: "el cliente corta con el
     // CS").
     [[nodiscard]] bool ClientLeftTheConnectServer() const;
@@ -77,7 +81,10 @@ private:
     void PollGameServer();
     void OnConnectServerPacket(const Network::Packet& packet);
     void OnGameServerPacket(const Network::Packet& packet);
+    // Después del login: un keepalive cifrado, o un F3 en claro.
+    void OnAfterLogin(const Network::Packet& packet);
     void OnKeepalive(const Network::Packet& packet);
+    void OnCharacterPacket(const Network::Packet& packet);
 
     // El próximo paquete de `reader`, o std::nullopt si no hay uno entero o si el corte falló.
     [[nodiscard]] std::optional<Network::Packet> NextPacket(Network::PacketReader& reader, bool& failed);
@@ -88,6 +95,8 @@ private:
     void StopGameServer(std::string complaint);
     // Lo que contesta el GS: cifrado con su clave y sus seriales, y con el 0xAA de FoxAnti.
     void SendFromTheGameServer(const std::vector<std::byte>& plain);
+    // Lo que contesta el GS en claro, como la lista de personajes: solo con el 0xAA de FoxAnti.
+    void SendClearFromTheGameServer(std::vector<std::byte> plain);
 
     Network::ConnectionKeys m_keys;
     LoopbackServer m_connectServer;
@@ -99,6 +108,8 @@ private:
     GameStep m_gameStep = GameStep::WaitingClient;
     std::optional<Network::Packet> m_login;
     std::size_t m_keepalives = 0;
+    bool m_characterListSent = false;
+    std::optional<Network::Packet> m_characterSelect;
     std::vector<std::string> m_complaints;
 };
 } // namespace Client::Tests

@@ -5,9 +5,10 @@
 // En qué está la ServerSession (App/ServerSession.h) y por qué falló, aparte de la sesión: así los
 // PrintTo de los tests (tests/support/AppPrinters.h) no traen la Connection ni el Dispatcher.
 // Contrato: el plan de la CL4, "Interfaces" y el diagrama de estados de la CL4.3, paso 1, y la
-// CL4.4, "Contrato"; los dos estados que esperan a la UI, el de la CL5 (CL5.5). Un servidor
-// ocupado y un login rechazado no son fallas desde la CL5.5: la sesión vuelve a esperar. La orden
-// de cerrar el juego tampoco es una falla: no tiene aviso (Q-C106).
+// CL4.4, "Contrato"; los dos estados que esperan a la UI, el de la CL5 (CL5.5); y los de la
+// selección de personaje, el de la CL6 (CL6.3, pregunta 9). Un servidor ocupado y un login
+// rechazado no son fallas desde la CL5.5: la sesión vuelve a esperar. La orden de cerrar el juego
+// tampoco es una falla: no tiene aviso (Q-C106).
 namespace Client::App
 {
 enum class SessionState : std::uint8_t
@@ -23,6 +24,9 @@ enum class SessionState : std::uint8_t
     WaitingCredentials,      // el GS saludó; se espera SubmitCredentials (CL5.5)
     WaitingLoginResult,      // el login, F1 01, salió cifrado
     LoggedIn,                // el GS aceptó el login: sale el keepalive (CL4.5)
+    WaitingCharacterList,    // F3 00 salió (el 0x32 del original)
+    ChoosingCharacter,       // la lista llegó (0x33); se espera EnterWorld (CL6.3)
+    EnteringWorld,           // F3 03 salió (0x3c); su respuesta es de la CL7: hasta ahí, sin tope
     QuitOrdered,             // el GS ordenó cerrar el juego (F1 02 con 0): la conexión se cerró (Q-C106)
     Failed,
 };

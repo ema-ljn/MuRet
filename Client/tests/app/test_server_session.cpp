@@ -23,6 +23,9 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/Character/CharacterList.h"
+#include "Protocol/Character/CharacterSelect.h"
+#include "Protocol/Character/Opcodes.h"
 #include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
 #include "Protocol/Connection/Opcodes.h"
@@ -34,6 +37,7 @@
 
 #include "support/AppPrinters.h"
 #include "support/Bytes.h"
+#include "support/CharacterPackets.h"
 #include "support/FakeClock.h"
 #include "support/FakeSocket.h"
 #include "support/MuClientNetFixtures.h"
@@ -105,6 +109,11 @@ using Client::Network::Crypto::EncryptBlock;
 using Client::Network::Crypto::PlainBlockSize;
 using Client::Network::Crypto::Xor32Decode;
 using Client::Protocol::ClientVersion;
+using Client::Protocol::Character::CharacterEntry;
+using Client::Protocol::Character::CharacterOpcode;
+using Client::Protocol::Character::ListSubcode;
+using Client::Protocol::Character::SelectSubcode;
+using Client::Protocol::Character::WriteCharacterSelect;
 using Client::Protocol::Connection::Keepalive;
 using Client::Protocol::Connection::KeepaliveAdjust20;
 using Client::Protocol::Connection::KeepaliveOpcode;
@@ -120,6 +129,8 @@ using Client::Tests::AddressReply;
 using Client::Tests::BusyReply;
 using Client::Tests::Bytes;
 using Client::Tests::BytesOf;
+using Client::Tests::CharacterEntryFields;
+using Client::Tests::CharacterListBytes;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeSocket;
 using Client::Tests::FromTheGameServer;
@@ -132,6 +143,7 @@ using Client::Tests::Join;
 using Client::Tests::ListRequest;
 using Client::Tests::LoginResult;
 using Client::Tests::LogoutResult;
+using Client::Tests::NameBytes;
 using Client::Tests::NoticeBytes;
 using Client::Tests::PetInfoRequest;
 using Client::Tests::RecordingFrameTarget;
@@ -202,6 +214,12 @@ SessionSettings Settings()
 Credentials TheCredentials()
 {
     return Credentials{std::string(Account), std::string(Password)};
+}
+
+// Dos personajes sintéticos, en los lugares 0 y 3, como los manda el GS en la lista (F3 00).
+std::vector<CharacterEntryFields> TwoCharacters()
+{
+    return {{0, "char0001"}, {3, "char0002"}};
 }
 
 // Una sesión con su conexión y lo que la rodea. La ofuscación es de quien la arma y vive más. La
@@ -327,6 +345,39 @@ struct Harness
         socket.reads = {FromTheGameServer(LoginResult(1), gameServerSends)};
         session.Poll();
         ASSERT_EQ(session.State(), SessionState::LoggedIn);
+    }
+
+    // Y el pedido de la lista de personajes: espera la lista.
+    void ReachWaitingCharacterList()
+    {
+        ASSERT_NO_FATAL_FAILURE(ReachLoggedIn());
+        session.RequestCharacterList();
+        ASSERT_EQ(session.State(), SessionState::WaitingCharacterList);
+    }
+
+    // Y la lista, en claro como la manda el GS (04 § La selección de personaje): espera la elección.
+    void ReachChoosingCharacter(const std::vector<CharacterEntryFields>& characters = TwoCharacters())
+    {
+        ASSERT_NO_FATAL_FAILURE(ReachWaitingCharacterList());
+        socket.reads = {CharacterListBytes(characters)};
+        session.Poll();
+        ASSERT_EQ(session.State(), SessionState::ChoosingCharacter);
+    }
+
+    // Los F3 de `subcode` que le llegaron al GS, sin el XOR32, en orden.
+    [[nodiscard]] std::vector<Packet> CharacterPacketsSent(std::uint8_t subcode) const
+    {
+        std::vector<Packet> found;
+        for (const Packet& packet : GameServerReads().packets)
+        {
+            Packet clear = Xor32Decode(packet);
+            if (clear.Type() == PacketType::C1 && clear.Opcode() == CharacterOpcode && clear.Bytes().size() > 3 &&
+                std::to_integer<std::uint8_t>(clear.Bytes()[3]) == subcode)
+            {
+                found.push_back(std::move(clear));
+            }
+        }
+        return found;
     }
 
     // El login aceptado en el instante `time` del reloj, que empieza en 0.
@@ -1317,6 +1368,20 @@ TEST(ServerSessionTest, TheGameServersQuitOrderClosesWithoutAFailure)
     EXPECT_EQ(tested.CountLogged(LogLevel::Error, ""), 0u);
 }
 
+// 0x4c2710 no mira la escena: la orden cierra también en la selección, y con ella se va la lista.
+TEST(ServerSessionTest, TheQuitOrderAlsoClosesInTheSelection)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+
+    tested.socket.reads = {FromTheGameServer(LogoutResult(0), tested.gameServerSends)};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    EXPECT_EQ(tested.session.Failure(), std::nullopt);
+    EXPECT_EQ(tested.connection.State(), LinkState::Closed);
+}
+
 // El GS cierra la conexión justo después de la orden (CloseClient), y los dos pueden llegar en la
 // misma lectura: el cierre es lo último del lote y no se recorre. Sigue sin falla.
 TEST(ServerSessionTest, TheCloseThatFollowsTheQuitOrderIsNotALoss)
@@ -1807,6 +1872,287 @@ TEST(ServerSessionTest, EachStateChangeIsLogged)
                             "[info] conectó con el GameServer: se espera su saludo",
                             "[info] el GameServer saludó: se espera la cuenta y la clave", "[info] se manda el login",
                             "[info] el GameServer aceptó el login", "[info] se mandó el keepalive al GameServer"}));
+}
+
+// La lista de personajes y la entrada al mundo (el plan de la CL6, CL6.3, paso 2). Los nombres son
+// sintéticos (support/CharacterPackets.h).
+
+// En LoggedIn, el F3 00 sale en claro con su XOR32, como lo manda 0x634e0e, y la sesión espera la
+// lista (el estado 0x32). Al GS le llegaron dos cifrados, el login y el primer keepalive: el F3 00
+// no fue uno.
+TEST(ServerSessionTest, RequestCharacterListSendsF300)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+
+    tested.session.RequestCharacterList();
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
+    const std::vector<Packet> requests = tested.CharacterPacketsSent(ListSubcode);
+    ASSERT_EQ(requests.size(), 1u);
+    EXPECT_TRUE(SameBytes(requests[0].Bytes(), Bytes({0xC1, 0x04, 0xF3, 0x00})));
+    EXPECT_EQ(tested.GameServerReads().serials.size(), 2u);
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "se pide la lista de personajes"));
+}
+
+TEST(ServerSessionTest, RequestingTheCharacterListOutOfTurnIsIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCredentials());
+    const std::size_t sentBefore = tested.socket.sent.size();
+
+    tested.session.RequestCharacterList();
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_EQ(tested.socket.sent.size(), sentBefore);
+    EXPECT_TRUE(
+        tested.Logged(LogLevel::Warning, "se ignora el pedido de la lista de personajes: la sesión no lo espera"));
+}
+
+// La lista llega en claro (04): la sesión la guarda en el orden del paquete y espera la elección
+// (el 0x33), sin ninguno elegido.
+TEST(ServerSessionTest, TheListMovesToChoosingCharacter)
+{
+    Harness tested(IdentityObfuscation::Shared());
+
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+
+    ASSERT_TRUE(tested.session.Characters().has_value());
+    const std::vector<CharacterEntry>& characters = tested.session.Characters()->characters;
+    ASSERT_EQ(characters.size(), 2u);
+    EXPECT_EQ(characters[0].slot, 0);
+    EXPECT_EQ(characters[1].slot, 3);
+    EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "la lista trae 2 personajes: se espera la elección"));
+}
+
+// Con la cantidad en 0 el original pasa igual al 0x33: la selección, sin nadie para elegir.
+TEST(ServerSessionTest, AnEmptyListAlsoChooses)
+{
+    Harness tested(IdentityObfuscation::Shared());
+
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter({}));
+
+    ASSERT_TRUE(tested.session.Characters().has_value());
+    EXPECT_TRUE(tested.session.Characters()->characters.empty());
+}
+
+TEST(ServerSessionTest, ACharacterListOutOfTurnIsIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+
+    tested.socket.reads = {CharacterListBytes(TwoCharacters())};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+    EXPECT_FALSE(tested.session.Characters().has_value());
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora la lista de personajes (F3 00): llegó fuera de turno"));
+}
+
+TEST(ServerSessionTest, ACharacterListThatDoesNotReadIsIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCharacterList());
+
+    tested.socket.reads = {CharacterListBytes({{}}, 2)};
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
+    EXPECT_FALSE(tested.session.Characters().has_value());
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora la lista de personajes (F3 00): no se puede leer"));
+}
+
+// Elegir es del clic (0x6342c0): guarda el elegido y no manda nada.
+TEST(ServerSessionTest, ChooseCharacterSendsNothing)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    const std::size_t sentBefore = tested.socket.sent.size();
+
+    tested.session.ChooseCharacter(std::uint8_t{3});
+
+    const CharacterEntry* chosen = tested.session.ChosenCharacter();
+    ASSERT_NE(chosen, nullptr);
+    EXPECT_EQ(chosen->slot, 3);
+    EXPECT_EQ(chosen->name, NameBytes("char0002"));
+    EXPECT_EQ(tested.socket.sent.size(), sentBefore);
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
+}
+
+// Un clic sobre nadie (std::nullopt, el -1 de 0x6342c0) o un lugar que no está en la lista dejan
+// sin elegido.
+TEST(ServerSessionTest, ChoosingNothingForgetsTheChoice)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+
+    tested.session.ChooseCharacter(std::uint8_t{3});
+    ASSERT_NE(tested.session.ChosenCharacter(), nullptr);
+    tested.session.ChooseCharacter(std::nullopt);
+    EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
+    tested.session.ChooseCharacter(std::uint8_t{0});
+    ASSERT_NE(tested.session.ChosenCharacter(), nullptr);
+    tested.session.ChooseCharacter(std::uint8_t{2});
+    EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
+}
+
+TEST(ServerSessionTest, ChoosingACharacterOutOfTurnIsIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCharacterList());
+
+    tested.session.ChooseCharacter(std::uint8_t{0});
+
+    EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora la elección de un personaje: la sesión no la espera"));
+}
+
+// Con uno elegido, el F3 03 sale en claro con su nombre como vino en la lista, y la sesión pasa al
+// 0x3c. El log dice el lugar y no el nombre.
+TEST(ServerSessionTest, EnterWorldSendsF303WithTheChosenName)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.session.ChooseCharacter(std::uint8_t{3});
+
+    tested.session.EnterWorld();
+
+    EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
+    const std::vector<Packet> selects = tested.CharacterPacketsSent(SelectSubcode);
+    ASSERT_EQ(selects.size(), 1u);
+    EXPECT_TRUE(SameBytes(selects[0].Bytes(), Xor32Decode(WriteCharacterSelect(NameBytes("char0002")).packet).Bytes()));
+    EXPECT_EQ(tested.GameServerReads().serials.size(), 2u);
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "se entra al mundo con el personaje del lugar 3"));
+}
+
+TEST(ServerSessionTest, EnterWorldWithoutAChoiceWarns)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+
+    tested.session.EnterWorld();
+
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
+    EXPECT_TRUE(tested.CharacterPacketsSent(SelectSubcode).empty());
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "no se entra al mundo: no hay un personaje elegido"));
+}
+
+TEST(ServerSessionTest, EnteringTheWorldOutOfTurnIsIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+
+    tested.session.EnterWorld();
+
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+    EXPECT_TRUE(tested.CharacterPacketsSent(SelectSubcode).empty());
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora la entrada al mundo: la sesión no la espera"));
+}
+
+// El keepalive sigue en los tres estados nuevos con el ritmo del login (a los 1, 21, 41 y 61 s):
+// cambiar de estado no lo vuelve a empezar. Si empezara con el pedido, a los 10 s, a los 22 s
+// habría uno solo.
+TEST(ServerSessionTest, TheKeepaliveRunsInTheThreeNewStates)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{1}));
+
+    tested.PollEachFrameUntil(seconds{10});
+    tested.session.RequestCharacterList();
+    tested.PollEachFrameUntil(seconds{22});
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
+    EXPECT_EQ(tested.Keepalives().size(), 2u);
+    tested.socket.reads = {CharacterListBytes(TwoCharacters())};
+    tested.PollEachFrameUntil(seconds{30});
+    ASSERT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
+    tested.session.ChooseCharacter(std::uint8_t{0});
+    tested.session.EnterWorld();
+    tested.PollEachFrameUntil(seconds{42});
+    EXPECT_EQ(tested.Keepalives().size(), 3u);
+    tested.PollEachFrameUntil(seconds{62});
+
+    EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
+    EXPECT_EQ(tested.Keepalives().size(), 4u);
+}
+
+// La lista se espera con el tope de los Waiting*, desde el pedido.
+TEST(ServerSessionTest, WaitingCharacterListHasTheReplyTimeout)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.AdvanceTo(seconds{5});
+    tested.session.RequestCharacterList();
+
+    tested.AdvanceTo(seconds{5} + ReplyTimeout - milliseconds{1});
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
+    tested.AdvanceTo(seconds{5} + ReplyTimeout);
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
+    EXPECT_TRUE(
+        tested.Logged(LogLevel::Error, "el GameServer no contestó en 30 s: se esperaba la lista de personajes"));
+}
+
+// La elección espera al jugador: no tiene tope.
+TEST(ServerSessionTest, ChoosingCharacterHasNoTimeout)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+
+    tested.PollEachFrameUntil(ReplyTimeout * 3);
+
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
+}
+
+// La respuesta del F3 03 es de la CL7 (0x4c3940): hasta entonces, la entrada no tiene tope.
+TEST(ServerSessionTest, EnteringWorldHasNoTimeout)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.session.ChooseCharacter(std::uint8_t{0});
+    tested.session.EnterWorld();
+
+    tested.PollEachFrameUntil(ReplyTimeout * 3);
+
+    EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
+}
+
+TEST(ServerSessionTest, AStartForgetsTheList)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.session.ChooseCharacter(std::uint8_t{0});
+
+    tested.session.Start();
+
+    EXPECT_FALSE(tested.session.Characters().has_value());
+    EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
+    EXPECT_EQ(tested.session.State(), SessionState::ConnectingConnectServer);
+}
+
+TEST(ServerSessionTest, LosingTheGameServerWhileChoosingACharacterFails)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+
+    tested.socket.peerClosed = true;
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
+}
+
+// Los nombres son del jugador: el log dice lugares (como el de 0x636290 sin el nombre).
+TEST(ServerSessionTest, TheLogDoesNotHaveTheCharacterNames)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.session.ChooseCharacter(std::uint8_t{3});
+    tested.session.EnterWorld();
+
+    EXPECT_FALSE(std::ranges::any_of(tested.sink.lines, [](const std::string& line)
+                                     { return line.find("char000") != std::string::npos; }));
 }
 
 } // namespace

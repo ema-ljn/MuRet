@@ -77,6 +77,15 @@ inline void PrintTo(SessionState state, std::ostream* out)
     case SessionState::LoggedIn:
         *out << "LoggedIn";
         return;
+    case SessionState::WaitingCharacterList:
+        *out << "WaitingCharacterList";
+        return;
+    case SessionState::ChoosingCharacter:
+        *out << "ChoosingCharacter";
+        return;
+    case SessionState::EnteringWorld:
+        *out << "EnteringWorld";
+        return;
     case SessionState::QuitOrdered:
         *out << "QuitOrdered";
         return;

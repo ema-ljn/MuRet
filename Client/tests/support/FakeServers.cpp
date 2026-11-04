@@ -6,9 +6,11 @@
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/Character/Opcodes.h"
 #include "Protocol/Connection/Opcodes.h"
 
 #include "support/Bytes.h"
+#include "support/CharacterPackets.h"
 #include "support/Packets.h"
 
 #include <algorithm>
@@ -95,6 +97,12 @@ std::vector<std::byte> LoginAccepted()
     return Bytes({0xC1, 0x05, 0xF1, 0x01, 0x01});
 }
 
+// La lista de personajes que contesta el GS al F3 00: dos, con nombres sintéticos.
+std::vector<std::byte> CharacterList()
+{
+    return CharacterListBytes({{0, "char0001"}, {2, "char0002"}});
+}
+
 bool IsEncrypted(const Network::Packet& packet)
 {
     return packet.Type() == Network::PacketType::C3 || packet.Type() == Network::PacketType::C4;
@@ -149,6 +157,11 @@ const std::optional<Network::Packet>& FakeServers::Login() const
 std::size_t FakeServers::Keepalives() const
 {
     return m_keepalives;
+}
+
+const std::optional<Network::Packet>& FakeServers::CharacterSelect() const
+{
+    return m_characterSelect;
 }
 
 bool FakeServers::ClientLeftTheConnectServer() const
@@ -267,7 +280,7 @@ void FakeServers::OnGameServerPacket(const Network::Packet& packet)
 {
     if (m_gameStep == GameStep::LoggedIn)
     {
-        OnKeepalive(packet);
+        OnAfterLogin(packet);
         return;
     }
     if (!IsEncrypted(packet))
@@ -296,15 +309,20 @@ void FakeServers::OnGameServerPacket(const Network::Packet& packet)
     SendFromTheGameServer(LoginAccepted());
 }
 
-// Después del login, lo único que manda el cliente es el keepalive, cifrado y con el serial que
-// sigue: el primero, el 1.
-void FakeServers::OnKeepalive(const Network::Packet& packet)
+// Después del login, el cliente manda el keepalive cifrado y los F3 en claro (04).
+void FakeServers::OnAfterLogin(const Network::Packet& packet)
 {
-    if (!IsEncrypted(packet))
+    if (IsEncrypted(packet))
     {
-        StopGameServer("el GameServer esperaba un keepalive cifrado y llegó un paquete en claro");
+        OnKeepalive(packet);
         return;
     }
+    OnCharacterPacket(packet);
+}
+
+// El keepalive, con el serial que sigue: el primero, el 1.
+void FakeServers::OnKeepalive(const Network::Packet& packet)
+{
     const auto decrypted = Network::DecryptPacket(packet, m_keys.decryption, m_gameSerials);
     if (!decrypted.HasValue() || decrypted.Value().serial != Network::SerialCheck::InOrder)
     {
@@ -313,10 +331,33 @@ void FakeServers::OnKeepalive(const Network::Packet& packet)
     }
     if (!IsKeepalive(decrypted.Value().packet))
     {
-        StopGameServer("el GameServer recibió después del login algo que no es un keepalive");
+        StopGameServer("el GameServer recibió después del login algo cifrado que no es un keepalive");
         return;
     }
     ++m_keepalives;
+}
+
+// Un F3 00 de 4 bytes, una vez, que contesta con la lista; y un F3 03 con el nombre, después de la
+// lista, que guarda.
+void FakeServers::OnCharacterPacket(const Network::Packet& packet)
+{
+    Network::Packet clear = Network::Crypto::Xor32Decode(packet);
+    const std::span<const std::byte> bytes = clear.Bytes();
+    const bool isCharacter = clear.Type() == Network::PacketType::C1 &&
+                             clear.Opcode() == Protocol::Character::CharacterOpcode && bytes.size() > SubcodeIndex;
+    const auto subcode = isCharacter ? std::to_integer<std::uint8_t>(bytes[SubcodeIndex]) : std::uint8_t{0xFF};
+    if (subcode == Protocol::Character::ListSubcode && bytes.size() == 4 && !m_characterListSent)
+    {
+        m_characterListSent = true;
+        SendClearFromTheGameServer(CharacterList());
+        return;
+    }
+    if (subcode == Protocol::Character::SelectSubcode && m_characterListSent && !m_characterSelect)
+    {
+        m_characterSelect = std::move(clear);
+        return;
+    }
+    StopGameServer("el GameServer recibió en claro después del login algo que no es el F3 00 ni el F3 03 del guion");
 }
 
 std::optional<Network::Packet> FakeServers::NextPacket(Network::PacketReader& reader, bool& failed)
@@ -352,6 +393,15 @@ void FakeServers::StopGameServer(std::string complaint)
     m_complaints.push_back(std::move(complaint));
     m_gameServer.CloseClient();
     m_gameStep = GameStep::Stopped;
+}
+
+void FakeServers::SendClearFromTheGameServer(std::vector<std::byte> plain)
+{
+    for (std::byte& value : plain)
+    {
+        value ^= FoxAntiXor;
+    }
+    m_gameServer.Write(plain);
 }
 
 void FakeServers::SendFromTheGameServer(const std::vector<std::byte>& plain)

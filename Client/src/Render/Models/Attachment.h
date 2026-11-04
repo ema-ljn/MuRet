@@ -40,6 +40,15 @@ inline constexpr std::uint16_t DrawnPet = 0x1c13;
     return model == DrawnPet;
 }
 
+// 0x509340 sale sin dibujar con la capa del Dark Lord (0x509363: CMP EDI,0x1c30 y JZ al final), en
+// cualquier lugar del que cuelgue: DarkLordRobe.bmd es el plano del inventario, y lo que se ve es la
+// tela de 0x50ba30.
+inline constexpr std::uint16_t LordsCape = 0x1c30;
+[[nodiscard]] constexpr bool HangsAsAModel(std::uint16_t model)
+{
+    return model != LordsCape;
+}
+
 // 0x4ec190: el hueso del que cuelga, con el desplazamiento girado por él y sumado a su traslación.
 // La escala del personaje no: va en cada vértice (verificado: con ella, la mascota cae a 1,8).
 [[nodiscard]] BoneTransform AttachmentRoot(const BoneTransform& parent, const glm::vec3& offset);

@@ -236,10 +236,10 @@ lee en línea y el 3 va a `0x4c3940`. Los C->S salen con el XOR32 desde el byte 
 | --- | --- | --- | --- | --- |
 | `F3 00` C->S, pedir la lista | `0x634e0e`, en la lógica del login (`0x634c60`) con el estado en `0x14` | C1, 4 bytes, sin cuerpo | pasa a `0x32` y a la escena 4 | coincide |
 | la lista S->C | `0x4c20a0` | C1, 7 + `0x22` por personaje | `0x33` | coincide (41 = 7 + 34) |
-| `F3 01` C->S, crear | `0x63d990` | C1, 15: el nombre en 10 bytes (con ceros) y un byte con la clase y la piel de la vista previa | `0x34` | no está |
-| su respuesta | `0x4c2290` | `pkt[4]`: 1, creado (con el nombre en `pkt[5..14]`, el lugar en `pkt[0xf]`, el nivel en `pkt[0x10..0x11]` y la clase en `pkt[0x12]`); 0, el aviso `0x36`; 2, el `0x37` | `0x35` | no está |
-| `F3 02` C->S, borrar | `0x643740` | C1, 24: el nombre del elegido (10 bytes, con ceros) y los 10 bytes del campo de texto de la ventana (`0x7798bf8`), como vienen | `0x38` | no está |
-| su respuesta | en línea (`0x4e2fe9`) | `pkt[4]`: 0, el aviso `0x92`; 1, el `0x60`, que borra el elegido; 3, el `0x62`; otro, el `0x89` | | no está |
+| `F3 01` C->S, crear | `0x63d990` | C1, 15: el nombre hasta su primer cero y con ceros hasta 10, y un byte con la clase de la vista previa por 16 más su piel (que nadie escribe: 0) | `0x34` | no está |
+| su respuesta | `0x4c2290` | `pkt[4]`: 1, creado (con el nombre en `pkt[5..14]`, el lugar en `pkt[0xf]`, el nivel en `pkt[0x10..0x11]` y la clase en `pkt[0x12]`); 0, el aviso `0x36`; 2, el `0x37`; otro, nada (Q-C114) | `0x35` con 1; con 0 o 2 queda en `0x34` | no está |
+| `F3 02` C->S, borrar | `0x643740` | C1, 24: el nombre del elegido (hasta su primer cero y con ceros hasta 10) y los 10 bytes del campo de texto de la ventana (`0x7798bf8`), como vienen | `0x38` | no está |
+| su respuesta | en línea (`0x4e2b10`, el caso del subcódigo 2) | `pkt[4]`: 0, el aviso `0x92`; 1, el `0x60`, que borra el elegido; 3, el `0x62`; otro, el `0x89` | queda en `0x38` | no está |
 | `F3 03` C->S, entrar | `0x636290`, el primer paso de la escena 5 | C1, 14: el nombre en 10 bytes | `0x3c` | coincide |
 | su respuesta | `0x4c3940` (1.289 líneas) | pone el mundo (`0x61a560`), el personaje propio y el estado `0x3d` (`0x4c4854`); la lee la CL7 | `0x3d` | (CL7) |
 
@@ -257,8 +257,18 @@ lee en línea y el 3 va a `0x4c3940`. Los C->S salen con el XOR32 desde el byte 
 - **Crear** (`0x4c2290`): arma al nuevo con la clase de la vista previa, la pisa con la del
   paquete y no le pone equipo (Q-C103). Los avisos llevan un texto por índice: `0x36` el 1716 y
   `0x37` el 396 (los dos vuelven a abrir la ventana de crear), y `0x5d` el 471 (sin botón, después
-  de mandar el `F3 01`); antes de mandarlo, por el nombre, `0x72` (1715), `0x79` (390) y `0x7a`
-  (391), según el largo (menos de 4) y lo que digan `0x622c70` y `0x447ca0`.
+  de mandar el `F3 01`). Antes de mandarlo, `0x63d990` mira el nombre del campo de la ventana
+  (`0x7798bf8`): con menos de 4 bytes, el aviso `0x79` (390); con una palabra prohibida, el `0x72`
+  (1715): `0x622c70` lo busca, sin los espacios, en la lista de `0x76baac8` (de `0x14` bytes por
+  palabra, `DAT_0775855c` palabras) y en unas cadenas fijas, con `0x576960` y `0x622b40`; y con un
+  byte suelto fuera de `0x21..0x7e` o un primer byte de dos fuera de `0xb0..0xf7` (GB2312), el `0x7a`
+  (391, `0x447ca0`). Con un nombre de más de 10 bytes, el original no completa con ceros y manda el
+  nombre entero: el paquete crece. El byte de la clase es `DAT_07437224 · 16 + DAT_07437225`, la clase
+  y la piel de la vista previa (`0x7437050 + 0x1d4` y `+ 0x1d5`): la clase la pone el botón de cada
+  una (`0x63e3e0`, con el modelo `0xa8` + clase, el `NewFace` de esa clase) y la piel no la escribe
+  nadie. Con 1, `0x4c2290` arma al nuevo con `0x517270(lugar, la clase y la piel de la vista previa,
+  x, y, ángulo)`, con el lugar y el ángulo de cada uno de los cinco, y le escribe el nivel, la clase
+  del paquete, el nombre y su terminador; cierra la ventana de crear (`0x65f6c0`).
 - **Borrar**: el campo de 10 bytes de la ventana sale como está. En otras versiones es un código
   personal de la cuenta, así que se trata como la clave (nunca en el log). El aviso `0x60` (1714)
   borra `chars[DAT_006d5edc]`, el elegido al llegar la respuesta (Q-C104); `0x92` lleva el 1654,

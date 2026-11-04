@@ -12,7 +12,10 @@
 #include "Network/LinkState.h"
 #include "Network/Packet.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/Character/CharacterCreate.h"
+#include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Protocol/Character/CharacterName.h"
 #include "Protocol/Character/CharacterSelect.h"
 #include "Protocol/Character/Opcodes.h"
 #include "Protocol/Connection/Hello.h"
@@ -29,6 +32,7 @@
 #include <array>
 #include <cassert>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -84,6 +88,10 @@ std::string_view Awaited(SessionState state)
         return "el resultado del login";
     case SessionState::WaitingCharacterList:
         return "la lista de personajes";
+    case SessionState::WaitingCreateResult:
+        return "el resultado de crear un personaje";
+    case SessionState::WaitingDeleteResult:
+        return "el resultado de borrar un personaje";
     case SessionState::Idle:
     case SessionState::ConnectingConnectServer:
     case SessionState::ChoosingServer:
@@ -103,7 +111,8 @@ std::string_view Awaited(SessionState state)
 bool IsLoggedIn(SessionState state)
 {
     return state == SessionState::LoggedIn || state == SessionState::WaitingCharacterList ||
-           state == SessionState::ChoosingCharacter || state == SessionState::EnteringWorld;
+           state == SessionState::ChoosingCharacter || state == SessionState::WaitingCreateResult ||
+           state == SessionState::WaitingDeleteResult || state == SessionState::EnteringWorld;
 }
 
 // Los errores que se contestan con el F1 03: el checksum malo, como el original, y lo que no mide
@@ -145,6 +154,8 @@ void ServerSession::RegisterConnectServerHandlers()
 void ServerSession::RegisterGameServerHandlers()
 {
     using Protocol::Character::CharacterOpcode;
+    using Protocol::Character::CreateSubcode;
+    using Protocol::Character::DeleteSubcode;
     using Protocol::Character::ListSubcode;
     using Protocol::Connection::HelloSubcode;
     using Protocol::Connection::JoinOpcode;
@@ -155,6 +166,10 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(JoinOpcode, LoginSubcode, [this](const Network::Packet& packet) { OnLoginResult(packet); }) &&
         m_gameServer.On(CharacterOpcode, ListSubcode,
                         [this](const Network::Packet& packet) { OnCharacterList(packet); }) &&
+        m_gameServer.On(CharacterOpcode, CreateSubcode,
+                        [this](const Network::Packet& packet) { OnCreateResult(packet); }) &&
+        m_gameServer.On(CharacterOpcode, DeleteSubcode,
+                        [this](const Network::Packet& packet) { OnDeleteResult(packet); }) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
 }
@@ -173,6 +188,9 @@ void ServerSession::Start()
     m_gameServerAddress.reset();
     m_loginResult.reset();
     m_characters.reset();
+    m_createResult.reset();
+    m_deleteResult.reset();
+    m_deletingSlot.reset();
     m_chosenSlot.reset();
     m_log.Info("se conecta al ConnectServer");
     Connect(m_settings.connectServer, std::nullopt);
@@ -369,6 +387,62 @@ void ServerSession::EnterWorld()
     Protocol::Outgoing select = Protocol::Character::WriteCharacterSelect(chosen->name);
     m_connection.Send(std::move(select.packet), select.delivery);
     SetState(SessionState::EnteringWorld);
+}
+
+// 0x63d990 manda el F3 01 después de sus chequeos del nombre, que son de la ventana: acá solo se mira
+// que entre en el paquete. El nombre es del jugador y no va al log.
+void ServerSession::CreateCharacter(std::string_view name, std::uint8_t characterClass)
+{
+    if (m_state != SessionState::ChoosingCharacter)
+    {
+        m_log.Warning("se ignora el pedido de crear un personaje: {}", NotAwaitedMasculine);
+        return;
+    }
+    const std::optional<std::array<std::byte, Protocol::Character::NameSize>> bytes =
+        Protocol::Character::NameFromText(name);
+    if (!bytes)
+    {
+        m_log.Warning("no se crea el personaje: el nombre no entra en 10 bytes");
+        return;
+    }
+    m_log.Info("se pide crear un personaje de la clase {}", characterClass);
+    Protocol::Outgoing create = Protocol::Character::WriteCharacterCreate(*bytes, characterClass);
+    m_connection.Send(std::move(create.packet), create.delivery);
+    m_createResult.reset();
+    SetState(SessionState::WaitingCreateResult);
+}
+
+std::optional<std::uint8_t> ServerSession::CreateResult() const
+{
+    return m_createResult;
+}
+
+// 0x643740 manda el F3 02 con el nombre del elegido y el campo de la ventana. El código es como la
+// clave: no va al log.
+void ServerSession::DeleteCharacter(std::span<const std::byte, Protocol::Character::DeleteCodeSize> code)
+{
+    if (m_state != SessionState::ChoosingCharacter)
+    {
+        m_log.Warning("se ignora el pedido de borrar un personaje: {}", NotAwaitedMasculine);
+        return;
+    }
+    const Protocol::Character::CharacterEntry* chosen = ChosenCharacter();
+    if (chosen == nullptr)
+    {
+        m_log.Warning("no se borra un personaje: no hay uno elegido");
+        return;
+    }
+    m_log.Info("se pide borrar el personaje del lugar {}", chosen->slot);
+    Protocol::Outgoing request = Protocol::Character::WriteCharacterDelete(chosen->name, code);
+    m_connection.Send(std::move(request.packet), request.delivery);
+    m_deletingSlot = chosen->slot;
+    m_deleteResult.reset();
+    SetState(SessionState::WaitingDeleteResult);
+}
+
+std::optional<std::uint8_t> ServerSession::DeleteResult() const
+{
+    return m_deleteResult;
 }
 
 // Al CS, lo primero es el A9, como lo manda 0x415be0 apenas la escena de login conecta (Q-C16). El
@@ -582,6 +656,99 @@ void ServerSession::OnCharacterList(const Network::Packet& packet)
     SetState(SessionState::ChoosingCharacter);
 }
 
+// 0x4c2290: con 1, el nuevo va a su lugar con su nombre, su nivel y su clase, sin equipo (0x517270,
+// Q-C103), y pisa al que estuviera ahí; con 0 o 2, un aviso que vuelve a abrir la ventana. Con otro,
+// el original no hace nada y se queda esperando con el aviso 0x5d abierto (Q-C114): acá, también, y
+// el tope de la espera cierra la sesión. Un lugar de más de 4 no tiene posición en el original
+// (0x4c2290 deja la de la pila): no se suma.
+void ServerSession::OnCreateResult(const Network::Packet& packet)
+{
+    if (m_state != SessionState::WaitingCreateResult)
+    {
+        m_log.Warning("se ignora la respuesta de crear un personaje (F3 01): {}", OutOfTurn);
+        return;
+    }
+    auto read = Protocol::Character::ReadCharacterCreateResult(packet);
+    if (!read.HasValue())
+    {
+        m_log.Warning("se ignora la respuesta de crear un personaje (F3 01): {}", Unreadable);
+        return;
+    }
+    const Protocol::Character::CharacterCreateResult& created = read.Value();
+    if (created.result != Protocol::Character::CharacterCreated &&
+        created.result != Protocol::Character::CreateRefused &&
+        created.result != Protocol::Character::CreateRefusedOther)
+    {
+        m_log.Warning("se ignora la respuesta de crear un personaje (F3 01): el resultado {} no lo atiende el original",
+                      created.result);
+        return;
+    }
+    m_createResult = created.result;
+    if (created.result == Protocol::Character::CharacterCreated)
+    {
+        if (created.slot > Protocol::Character::MaxCharacterSlot || !m_characters)
+        {
+            m_log.Warning("el personaje creado no se suma: el lugar {} no está en la selección", created.slot);
+        }
+        else
+        {
+            Protocol::Character::CharacterEntry entry;
+            entry.slot = created.slot;
+            entry.name = created.name;
+            entry.level = created.level;
+            entry.classByte = created.classByte;
+            entry.withoutEquipment = true;
+            std::vector<Protocol::Character::CharacterEntry>& characters = m_characters->characters;
+            const auto same = std::ranges::find(characters, entry.slot, &Protocol::Character::CharacterEntry::slot);
+            if (same != characters.end())
+            {
+                *same = entry;
+            }
+            else
+            {
+                characters.push_back(entry);
+            }
+            m_log.Info("se creó el personaje del lugar {}", entry.slot);
+        }
+    }
+    else
+    {
+        m_log.Info("el GameServer no creó el personaje: {}", created.result);
+    }
+    SetState(SessionState::ChoosingCharacter);
+}
+
+// 0x4e2b10 lee la respuesta en línea y solo abre su aviso; el 0x60 (con 1) borra al elegido cuando
+// llega (Q-C104). Acá se saca al que se mandó, y queda sin elegido.
+void ServerSession::OnDeleteResult(const Network::Packet& packet)
+{
+    if (m_state != SessionState::WaitingDeleteResult)
+    {
+        m_log.Warning("se ignora la respuesta de borrar un personaje (F3 02): {}", OutOfTurn);
+        return;
+    }
+    auto read = Protocol::Character::ReadCharacterDeleteResult(packet);
+    if (!read.HasValue())
+    {
+        m_log.Warning("se ignora la respuesta de borrar un personaje (F3 02): {}", Unreadable);
+        return;
+    }
+    m_deleteResult = read.Value();
+    if (*m_deleteResult == Protocol::Character::CharacterDeleted && m_characters && m_deletingSlot)
+    {
+        std::erase_if(m_characters->characters, [this](const Protocol::Character::CharacterEntry& entry)
+                      { return entry.slot == *m_deletingSlot; });
+        m_chosenSlot.reset();
+        m_log.Info("se borró el personaje del lugar {}", *m_deletingSlot);
+    }
+    else
+    {
+        m_log.Info("el GameServer no borró el personaje: {}", *m_deleteResult);
+    }
+    m_deletingSlot.reset();
+    SetState(SessionState::ChoosingCharacter);
+}
+
 // 0x4c2710 no mira el estado ni la escena para el 0: SendMessageA(WM_DESTROY) en 0x4c391b, y el
 // WM_DESTROY cierra el socket con un RST y vacía la cola de paquetes (0x4e8380), y hace
 // PostQuitMessage. Acá se acepta en cualquier estado con el GS, como el original, aunque el GS
@@ -673,6 +840,8 @@ bool ServerSession::WithConnectServer() const
     case SessionState::LoggedIn:
     case SessionState::WaitingCharacterList:
     case SessionState::ChoosingCharacter:
+    case SessionState::WaitingCreateResult:
+    case SessionState::WaitingDeleteResult:
     case SessionState::EnteringWorld:
     case SessionState::QuitOrdered:
     case SessionState::Failed:

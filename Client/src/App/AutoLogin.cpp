@@ -39,6 +39,8 @@ void AutoLogin::Poll()
     case SessionState::LoggedIn:
     case SessionState::WaitingCharacterList:
     case SessionState::ChoosingCharacter:
+    case SessionState::WaitingCreateResult:
+    case SessionState::WaitingDeleteResult:
     case SessionState::EnteringWorld:
     case SessionState::QuitOrdered:
     case SessionState::Failed:

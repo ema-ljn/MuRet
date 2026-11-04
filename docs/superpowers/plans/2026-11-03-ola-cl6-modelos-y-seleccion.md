@@ -1816,12 +1816,49 @@ namespace Client::Input
   la normal con culling, el slot que falta que no se dibuja, `GL_GREATER` en lugar de `GL_LEQUAL` y
   el frame sin la máscara antes del `glClear`) los mata al menos un test cada uno; el de la X antes
   que la Y vivió hasta `TheRotationsGoInTheOrderYXZ`.
-- [ ] **Paso 7 (PR C):** los tests de la apariencia y el picking, con los casos de la CL6.R:
+- [x] **Paso 7 (PR C):** los tests de la apariencia y el picking, con los casos de la CL6.R:
   `CharacterAppearanceTest.WithoutEquipmentWearsTheClassParts` (para cada clase de la tabla de
   `0x517270`, `HelmClass` N a `BootClass` N), `TheSecondClassKeepsTheParts`,
   `EachEquipmentByteGivesItsItem` (los 17 bytes, uno por uno, desde la tabla de la CL6.R),
   `AnEmptySlotIsTheClassPart`; `RayPickingTest.HitsTheBoxInFront`, `MissesBeside`,
   `TheNearestWins`.
+
+  Hecho así (PR C, 2026-11-04, resuelto por Claude): el PR C de arriba se partió en dos. Este es
+  **el personaje**, de los bytes de la lista al lote; las escenas, `GameModels`, el doble clic y
+  `main.cpp` van en un **PR D**. Lo que entró, con 46 tests:
+  - **`GameLogic/CharacterAppearance`** (11 tests): `ClassAppearance` y `AppearanceOf`, campo por
+    campo, con la cabeza de los cascos abiertos y la escala de `0x512930`. La piel que pasa la
+    lista es 0 (`0x4c20a0` llama a `0x517270(lugar, clase, 0, …)`, en el pseudo-C del lab), y las
+    mascotas de `b[11]` pisan en orden, el bit 0 y después el 2. Q-C102: la mano `0xfff` es sin
+    ítem.
+  - **`Render/Models/RayPicking`** (6 tests): `SegmentHitsBox` con los 6 ejes, `PlayerBoxAt`
+    (Q-C100) y `NearestHit`, por la distancia² al origen y no a dónde entra el segmento.
+  - **`Render/Models/ItemGlow`** (3 tests) y los modos `0x200` y `0x800` de `Shine` (2 más): los
+    pases por nivel de `0x60b3d0` (Q-C97), el recorte por el byte de las opciones, y el `0x42` y el
+    `0x840` de excelente y de set. Los niveles 3 a 6 no laten, porque `DAT_07d36ba8` no se leyó
+    (P-C18).
+  - **`Render/Models/Attachment` y `PoseAttached`** (5 tests): de qué hueso cuelga cada cosa (Q-C98)
+    y la pose con la raíz de quien llama. **Verificado** contra la traza
+    (`GoldenSkinningTrace.TheSwordAndThePetHangFromTheirBones`): la espada del 33 y la mascota del
+    34 con (20, 0, 0) sin la escala, a 0,0014.
+  - **`Scenes/CharacterDrawing`** (3 tests y un golden): `DrawCharacter`, el `0x50ba30` de la
+    selección, con el slot de la piel y del pelo por clase y la oculta afuera. Con el personaje de
+    la traza, `GoldenCharacterDrawing.MatchesTheCharacterOfTheSelection` encuentra en el lote, uno a
+    uno, los 35 bloques que el original le mandó a GL por él en cada frame, con sus posiciones y sus
+    UV, y nada más. Los colores de los pases son los de las Male17 en la traza; los de otros ítems
+    salen de `0x609640`, sin leer (P-C14: en la traza, el 120 lleva tres colores distintos según la
+    parte).
+  - **Para el PR D:** `GameModels` (la carga de los modelos y sus slots, con
+    `ModelTextureSlotsGoldenTest.StartupMatchesTheDump`, Q-C89 y Q-C91), las tres escenas, el doble
+    clic de `0x640940` (Q-C99), el contorno bajo el mouse (Q-C94) y el oscurecido de Q-C95, que solo
+    se ve con un alpha de menos de 0,99, y la luz 0,4 y 1,4 (`SelectLightTest`).
+
+  Los 17 mutantes a mano (la segunda clase sin su corrimiento, el `0x1ff` que no es vacío, las
+  mascotas en otro orden, la tabla de niveles corrida, la escala sin la piel, la cabeza con
+  cualquier casco, el picking sin los ejes producto, la caja centrada, el más cercano por dónde
+  entra, el brillo sin el recorte, el 13 en otro orden, el desplazamiento sin girar, la mascota del
+  33, la oculta que se dibuja, sin los pases, cualquier mascota y las manos sin su nivel) los mata
+  al menos un test cada uno.
 - [ ] **Paso 8 (PR C):** los de las escenas, con `RecordingFrameTarget`, `FakeTextureStore`,
   `FakeClock` y una sesión con `FakeSocket`: `LoadingSceneTest.ReadsTheModelsOnAdvanceOne` y
   `AMissingPlayerFailsTheLoad` (con el nombre del archivo);

@@ -64,6 +64,26 @@ TEST(ShineTest, TheChrome4PassUsesSinAndCos)
                {c * 0.2f + (s + 0.5f) * -0.4f + 0.6f + 3 * s, 1 - c * 0.2f - s * -0.4f - 1.5f * 0.6f - 3 * t});
 }
 
+// 0x200 (los niveles 11 y 12, slot 0x620): u = (nz + nx) · 0,8 + 2f y v = nx + ny + 3f, con
+// f = (T mod 5000) · 0,00024 − 0,4. A los 6.234 ms, T mod 5000 es 1.234.
+TEST(ShineTest, TheChrome2PassRunsWithAFiveSecondClock)
+{
+    const float f = 1234 * 0.00024f - 0.4f;
+
+    ExpectNear(ShineTexCoords(ShinePass::Chrome2, Normal, Milliseconds(6234)),
+               {(0.6f + 0.2f) * 0.8f + 2 * f, 0.2f - 0.4f + 3 * f});
+}
+
+// 0x800 (un ítem de set, slot 0x620): la luz L = (0; −0,1; −0,8) contra la normal, u = L·n y
+// v = 1 − L·n, sin el reloj.
+TEST(ShineTest, TheChrome3PassIsTheLightAgainstTheNormal)
+{
+    const float dot = -0.1f * -0.4f - 0.8f * 0.6f;
+
+    ExpectNear(ShineTexCoords(ShinePass::Chrome3, Normal, Milliseconds(1000)), {dot, 1 - dot});
+    ExpectNear(ShineTexCoords(ShinePass::Chrome3, Normal, Milliseconds(7777)), {dot, 1 - dot});
+}
+
 // Q-C22: el original guarda T en un float, y en 2²⁴ + 1 ms ya no cuenta de a uno. Acá T es el reloj
 // entero desde que arranca el cliente: un ms más corre la u del pase 120 lo de un ms.
 TEST(ShineTest, TheClockCountsFromTheStart)

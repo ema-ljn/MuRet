@@ -544,6 +544,13 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   `0x4eb860(…, 1, 1)`, cuya raíz es la de `0x68c4a1c`. El arma va a la espalda, en el lugar de las
   alas, con el ítem de la mano entre `0x212` y `0x1011` (las condiciones, leídas en parte). Las
   partes del cuerpo (`0x60cf70`) no se posan: van con las matrices de la pose del cuerpo.
+  **Verificado** en la traza de la selección (CL6.3,
+  `GoldenSkinningTrace.TheSwordAndThePetHangFromTheirBones`): `Sword17` cuelga del hueso 33 sin
+  desplazamiento, y `Helper02` del 34 con (20, 0, 0) girado por
+  el hueso y **sin** la escala del personaje (con ella, a 1,8), cada uno posado desde esa raíz y
+  llevado al mundo con la escala y la posición del personaje en cada vértice, como las partes: cada
+  vértice a 0,0014 del de la traza en los cinco swaps (desde el 42, la espada cae a 170). La
+  mascota está en el frame 1,5 · 2 · 2,5 · 3 · 3,5 (el de la pose, como la tabla de arriba).
 - **Las texturas de un modelo.** `0x60d530(n)` pone el principio de la búsqueda
   (`DAT_07d366b4`) en 0 y el próximo libre (`DAT_07d366b8`) en n; nadie más escribe el principio.
   `0x60d5f0(modelo, carpeta, wrap, filtro, chequear)` busca cada nombre de textura del modelo con

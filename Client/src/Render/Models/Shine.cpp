@@ -17,6 +17,14 @@ namespace
 // 0,5 (0x6b882c), 0,2 (0x6b8854) y 1 (0x6b87d4). El seno y el coseno van en la x87, con el reloj y el
 // factor en float: acá en double, con los mismos floats.
 constexpr std::int64_t ClockPeriod = 10000;
+// Los de 0x200 y 0x800 (06, *estáticos*): el reloj de 5 s, su escala y su corrimiento, el 0,8 y la
+// luz de 0x800.
+constexpr std::int64_t Chrome2Period = 5000;
+constexpr float Chrome2Scale = 0.00024f;
+constexpr float Chrome2Offset = 0.4f;
+constexpr float Chrome2Normal = 0.8f;
+constexpr float Two = 2.0f;
+constexpr glm::vec3 Chrome3Light{0.0f, -0.1f, -0.8f};
 constexpr float ClockScale = 0.0001f;
 constexpr float CosineScale = 0.001f;
 constexpr float SineScale = 0.002f;
@@ -54,6 +62,16 @@ glm::vec2 ShineTexCoords(ShinePass pass, const glm::vec3& worldNormal, Core::Dur
         const float v = (One - sum) - (t * Three + nz * Half);
         const float u = ny * Half + s * Three + sum;
         return {u, v};
+    }
+    case ShinePass::Chrome2:
+    {
+        const float f = static_cast<float>(ms % Chrome2Period) * Chrome2Scale - Chrome2Offset;
+        return {(nz + nx) * Chrome2Normal + Two * f, nx + ny + Three * f};
+    }
+    case ShinePass::Chrome3:
+    {
+        const float dot = Chrome3Light.x * nx + Chrome3Light.y * ny + Chrome3Light.z * nz;
+        return {dot, One - dot};
     }
     }
     return {};

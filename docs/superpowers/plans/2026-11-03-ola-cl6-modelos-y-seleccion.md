@@ -2540,6 +2540,65 @@ Decisiones, con lo que cuestan si están mal:
 
 20 mutantes más de la pasada y de los tests nuevos, todos en rojo.
 
+## Sub-ola CL6.6: la tela de la clase 4
+
+**Por qué.** Emanuel comparó el login con un video del original: el Dark Lord llevaba en MuRet una
+capa parada sobre los hombros, y en el original la capa cuelga de los hombros y flamea hacia atrás.
+Pidió la física **exacta del binario, sin inferir**, y que se le pidiera lo que faltara del original.
+
+**PR A, la capa que no cuelga** (#121). `0x509340` sale sin dibujar con el modelo `0x1c30`
+(`0x509363`: `CMP EDI,0x1c30` y `JZ` al final; Ghidra lo mostraba como `param_6 == 1.01118e-41`, los
+bits de `0x1c30` leídos como float). `DarkLordRobe.bmd` es el plano del inventario, y MuRet lo
+colgaba del hueso 47. `Render::Models::HangsAsAModel` y su test.
+
+**PR B, la tela.** Antes del código, un agente leyó la clase entera (la vtable `0x6b8cd8`, sus siete
+métodos, las partículas, los resortes, las esferas y el bloque `0x50d58b..0x50db57` de `0x50ba30`),
+escribió el contrato y un oráculo que corre el código real del `main.exe` con unicorn, y una
+reimplementación en Python escrita solo a partir del contrato, que da lo mismo bit a bit en nueve
+casos (06 § La tela de la clase 4; los scripts, en `Client/docs/research/scripts/`). MuRet:
+
+- `Render/Models/Cloth`: `CrtRandom` (el `rand()` de la CRT), `ClothWorld` (el viento base, el
+  contador de pasos de lógica y el `rand()`), `WalkTheWind` (`0x456b10`), `StepTheClothWorld` (lo de
+  `0x637700`) y `Cloth`: el armado, el paso, las esquinas de las caras, el brillo y sus sprites.
+- `Scenes/CharacterCloth`: el bloque de `0x50ba30`, con las telas del Dark Lord y la de la clase 3, la
+  cuarta, la rotura y el dibujo en el lote de modelos.
+- `DrawCharacter` la corre después de las partes; el login y la selección le dan a cada personaje su
+  tela, y las escenas 2, 4 y 5 avanzan `ClothWorld` en cada paso. `GameModels` sube `iui06` (`0x256`)
+  y `kaa` (`0x6ea`) como `0x61ccb0`.
+
+Tests: los vectores del oráculo (`tests/vectors/cloth`, nueve casos menos el del monstruo `0x37`, que
+es de la CL9): cada paso de cada tela, partícula por partícula, cada triángulo del lote, cada sprite y
+cada `rand()`, bit a bit. 13 tests. 22 mutantes a mano: 20 en rojo (dos con los casos que se sumaron
+para ellos, los ángulos del objeto y el estiramiento bajo 20 veces) y 2 equivalentes:
+
+- la posición con la velocidad redondeada: con coordenadas del mundo la diferencia queda debajo del
+  ULP de la posición;
+- no soltar la cuarta antes de volver a armarla: la esfera dos veces da la misma corrección y las
+  banderas quedan en lo mismo.
+
+Lo que encontró la primera corrida contra el oráculo: el 0,4 de `0x6b8cf4` es `0x3ecccccc`, no el
+0,4f del compilador; con el literal, la capa daba otra grilla en un ULP. Desde ahí, cada constante
+de la tela va por sus bits.
+
+Decisiones, con lo que cuestan si están mal:
+- Ruling: la tela tiene su propio `rand()` de la CRT, sembrado con la hora, y no el de todo el cliente.
+  El original lo comparte con todo lo que corre en el frame, y MuRet no reproduce a los demás. Si está
+  mal, el viento de las capas es otro número que en una corrida del original; el algoritmo, el mismo.
+- Ruling: los 30 sprites del brillo se arman (`CharacterCloth::Flares`) y no se dibujan: los dibuja el
+  administrador de efectos (`0x549440` → `0x549290`), sin leer, y va con los efectos (CL7.6). Si
+  está mal, falta el destello de la primera tela del Dark Lord.
+- Ruling: el contador V cuenta los pasos de lógica de las escenas 2, 4 y 5 desde que arranca MuRet, y
+  cada paso saca los 4 `rand()` de su protección después de los cinco paseos del viento. El original
+  tiene más accesos y otros `rand()` en `0x637700`, que no se siguieron. Si está mal, el centro del
+  viento cambia en otro momento (cada 10 pasos) que en el original.
+- Ruling: `+0x3e3` va en 0 y no hay duelos ni guerras de guild: el color de la tela es blanco. Si está
+  mal, falta la tela de colores de esos casos (CL9).
+- Ruling: los cuadrados van en dos triángulos (0, 1, 2) y (0, 2, 3), como los arma GL de un
+  `GL_QUADS`. Si está mal, un cuadrado no plano se dobla por la otra diagonal.
+
+Falta verlo contra el original en la VM: P-C22, con lo que se capturaría (el volcado del bloque en
+`0x50d58b` y `0x50db57`).
+
 ## La revisión adversarial de la ola
 
 Dos revisores en paralelo sobre la ola entera (`a8a7322..df02971`). Uno miró el C++ en las costuras

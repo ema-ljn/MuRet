@@ -113,6 +113,12 @@ personaje se va de la selección o sale el aviso que diga el GameServer. Crear a
 las clases que deja la cuenta y los chequeos del nombre del original (`FilterName.bmd`), y manda el
 `F3 01`, con la vista previa del personaje de cada clase. El botón del menú no hace nada (CL8).
 
+Desde la CL6.6, el Dark Lord y la clase 3 llevan su tela: la capa y las dos telas de adelante del
+Dark Lord, y la de la clase 3, simuladas en cada frame dibujado como el original (`Render/Models/Cloth`
+y `Scenes/CharacterCloth`), en el login y en la selección. Dan lo mismo que el código real del
+`main.exe`, emulado, bit a bit (`tests/vectors/cloth`). Los 30 destellos de la primera tela todavía no
+se dibujan (son de los efectos).
+
 ## Auditoría y mantenimiento
 
 La [auditoría de C++20 y contrato 1.02i del 2026-11-03](../docs/audits/2026-11-03-cliente-cpp20.md)
@@ -438,6 +444,11 @@ Si la carpeta no existe, o le falta el archivo que el test pide, fallan.
 Los OZJ, además, se comparan con lo que da la IJG libjpeg 6b del original, que no está en CI: el
 tamaño y un hash de cada uno están en `tests/vectors/jpeg/lab-6b.txt`, y cómo se sacan, en el
 README de esa carpeta. Es lo que hay que correr al cambiar de versión de libjpeg-turbo.
+
+Los de la tela (`ClothTest` y `CharacterClothTest`, desde la CL6.6) comparan bit a bit con lo que
+hizo el código real del `main.exe`, emulado con unicorn: cada paso de cada tela, cada triángulo y
+cada `rand()`. Los vectores están en el repo (`tests/vectors/cloth`), así que corren también en CI;
+cómo se sacan, en el README de esa carpeta.
 
 Algunos además comparan con la memoria del `main.exe` original, con los archivos ya cargados: los
 volcados de `client-research/mu-golden/memoria-cliente`, en el repo de research (fuera de Git).

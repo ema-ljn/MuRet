@@ -521,6 +521,17 @@ solo lo lee.
   - lo tuyo: las preguntas y la sección final de la guía de la CL6.0, y explicar los conceptos de
     abajo.
 
+  **La CL6.6** (2026-11-04, resuelta por Claude): la tela de la clase 4. Emanuel vio en el login una
+  capa parada sobre los hombros del Dark Lord, y mandó un video del original, donde la capa cuelga y
+  flamea. La causa: el original nunca dibuja el modelo de la capa (`0x509340` sale con `0x1c30`), y
+  lo que se ve es una tela simulada. La PR A saca el modelo; la PR B trae la tela, leída entera en el
+  binario y emulada con unicorn sobre el `main.exe` real: el armado, el paso (viento, fuerzas,
+  resortes, anclaje, integración, esferas, relajación y restricción), el `rand()` de la CRT, el viento
+  base y el contador de pasos, y el dibujo. MuRet da lo mismo que el binario bit a bit en cada paso,
+  cada partícula y cada triángulo. La primera corrida encontró que un 0,4 del binario no es el 0,4f
+  del compilador. 13 tests y 22 mutantes. Falta el volcado del original en la VM para comparar una
+  corrida entera (P-C22).
+
 ## Conceptos
 
 **Niveles:** 1 **usar** (lo escribiste con tests) · 2 **explicar** (lo contás sin mirar) ·
@@ -659,6 +670,7 @@ sesión, junto con los de repaso más viejo.
 | capas modales en una UI retenida: quién se queda con el mouse y el teclado con un aviso sobre una ventana sobre la barra, un clic por paso en un orden fijo, y un aviso que se abre en un paso y se atiende desde el siguiente | CL6.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
 | reproducir una validación con sus fallas: un chequeo parchado con NOPs que mira los bytes pares, una búsqueda en la que la palabra vacía está en todo, los bytes de un intento anterior que siguen en el buffer, y tests con nombres inventados | CL6.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
 | un 3D dentro de una ventana 2D: un viewport en píxeles desde 640 × 480, su propia cámara, la profundidad sin limpiar y el orden de la base, la vista previa y lo demás | CL6.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
+| simular una tela como el original: partículas, resortes que solo tiran, Euler semi-implícito, relajación de Jacobi y restricción de Gauss-Seidel; y probar una física contra el código real emulado, con cada float por sus bits y un 0,4 que no es el 0,4f | CL6.6 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
 
 ## Preguntas para olas futuras
 

@@ -456,6 +456,18 @@ solo lo lee.
   orden, ninguna traza lo tiene (P-C20). **Falta la prueba a mano en la VM** (el paso 10, con
   cancelar en la cuenta): P-C21 del 08, con los pasos en el README del cliente.
 
+  **La CL6.4** (2026-11-04, resuelta por Claude): el logo y el personaje del login. Antes, una
+  lectura del binario, porque el contrato del plan no alcanzaba: el logo es un objeto del mundo
+  que dibuja `0x6046a0` después de los personajes (un RenderBody, emulado sobre el `main.exe`), y
+  su color y la luz del personaje salen de la luz del terreno del mapa 55, sombreada con sus alturas
+  (`World/TerrainLighting`, que nace acá). El personaje para en la acción de montar del caballo
+  oscuro, que todavía no se dibuja: la revisión adversarial encontró que es el `0xbf`, que va en el
+  PR que sigue. Lo nuevo de los quirks: la ventana de la acción va de 0 a 100 ms por la x87 (Q-C110)
+  y la fase de las rutas no vuelve a 0 (Q-C111). La revisión encontró también que el personaje no
+  volvía a la de parado después de un gesto y que el primer paso no le escribe la luz al logo. 39
+  tests y 72 mutantes. Con los datos del laboratorio, `Main` dibuja el logo y el personaje; falta
+  mirarlo contra el original en la VM (P-C15).
+
 ## Conceptos
 
 **Niveles:** 1 **usar** (lo escribiste con tests) · 2 **explicar** (lo contás sin mirar) ·

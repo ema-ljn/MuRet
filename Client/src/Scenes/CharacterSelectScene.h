@@ -7,9 +7,9 @@
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/DoubleClick.h"
 #include "Input/InputState.h"
-#include "Render/Models/Animation.h"
 #include "Render/Models/Pose.h"
 #include "Render/Pass3D.h"
+#include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameData.h"
 #include "Scenes/IScene.h"
@@ -64,9 +64,7 @@ private:
     {
         std::uint8_t slot = 0;
         GameLogic::CharacterAppearance appearance;
-        Render::Models::AnimationState body;
-        Render::Models::TimedAnimation pet;
-        Render::Models::TimedAnimation wings;
+        CharacterAnimation animation;
     };
 
     // Si la escena todavía espera la lista: con sesión, hasta ChoosingCharacter.

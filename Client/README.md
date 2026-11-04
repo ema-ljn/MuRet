@@ -101,6 +101,11 @@ que está bajo el mouse; un clic elige uno, y Enter o el doble clic entran. La c
 dibuja su frame, y la escena del juego manda el `F3 03`. El terreno detrás de la selección y el
 mundo son de la CL7: hasta entonces, el juego queda en negro.
 
+Desde la CL6.4, el login dibuja en su pase 3D el logo (`Logo03.bmd`, un objeto del mundo) y el
+personaje de la clase 4 que monta el caballo oscuro (el caballo, todavía no), con la luz del terreno
+del mapa 55 en su lugar (`World/TerrainLighting`), como el original. El logo se aclara en los
+primeros 40 pasos y el personaje hace uno de sus dos gestos cada tanto (`Scenes/LoginModels`).
+
 ## Auditoría y mantenimiento
 
 La [auditoría de C++20 y contrato 1.02i del 2026-11-03](../docs/audits/2026-11-03-cliente-cpp20.md)

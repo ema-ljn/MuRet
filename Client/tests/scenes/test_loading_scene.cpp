@@ -25,6 +25,8 @@
 #include "support/SceneDataFiles.h"
 #include "support/ScenePrinters.h"
 #include "support/TemporaryFolder.h"
+#include "Scenes/LoginModels.h"
+#include "support/FixedRandom.h"
 
 #include <gtest/gtest.h>
 
@@ -65,6 +67,7 @@ using Client::Scenes::SceneManager;
 using Client::Scenes::WindowTextureSet;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeTextureStore;
+using Client::Tests::FixedSeed;
 using Client::Tests::FrameEvent;
 using Client::Tests::RecordingFrameTarget;
 using Client::Tests::RecordingSink;
@@ -323,6 +326,7 @@ TEST(LoadingSceneTest, ReleasesItsSlotsBeforeTheLoginLoadsItsOwn)
     RecordingFrameTarget target;
     FakeClock clock;
     const Client::Scenes::GameData data;
+    const Client::Scenes::SingleModelLibrary models;
     const SceneContext context{folder.Path(), store, log};
     SceneManager manager(
         [&](SceneId id) -> std::unique_ptr<Client::Scenes::IScene>
@@ -333,7 +337,7 @@ TEST(LoadingSceneTest, ReleasesItsSlotsBeforeTheLoginLoadsItsOwn)
             }
             if (id == SceneId::Login)
             {
-                return std::make_unique<LoginScene>(context, data, nullptr, "0.0.0");
+                return std::make_unique<LoginScene>(context, data, models, nullptr, "0.0.0", FixedSeed);
             }
             return nullptr;
         },

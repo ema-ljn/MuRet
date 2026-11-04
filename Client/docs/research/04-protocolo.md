@@ -243,10 +243,10 @@ lee en línea y el 3 va a `0x4c3940`. Los C->S salen con el XOR32 desde el byte 
 | `F3 03` C->S, entrar | `0x636290`, el primer paso de la escena 5 | C1, 14: el nombre en 10 bytes | `0x3c` | coincide |
 | su respuesta | `0x4c3940` (1.289 líneas) | pone el mundo (`0x61a560`), el personaje propio y el estado `0x3d` (`0x4c4854`); la lee la CL7 | `0x3d` | (CL7) |
 
-- **La lista** (`0x4c20a0`): `pkt[4]` va a `0x622b20` (lo lee la ventana de crear, `0x63d7c0`: las
-  clases que se pueden crear, *inferido*), los dos números de `pkt[5]` al texto 1240, y `pkt[6]` es
-  la cantidad (con 0, el estado `0x33` y nada más). Desde `pkt[7]`, una entrada de `0x22` bytes
-  por personaje: `[0]` el lugar; `[1..10]` el nombre (10 bytes, sin terminador); `[0xc..0xd]` el
+- **La lista** (`0x4c20a0`): `pkt[4]` va a `0x622b20` (la clase más alta que se puede crear:
+  `0x63d7c0` habilita los botones de la ventana de crear de la 0 a ella, *estático*, Q-C119), los
+  dos números de `pkt[5]` al texto 1240, y `pkt[6]` es la cantidad (con 0, el estado `0x33` y
+  nada más). Desde `pkt[7]`, una entrada de `0x22` bytes por personaje: `[0]` el lugar; `[1..10]` el nombre (10 bytes, sin terminador); `[0xc..0xd]` el
   nivel (un `word`, a `+0x1d6`; *inferido*: la selección lo copia al `+0xe` del personaje propio,
   que es el nivel); `[0xe]` las banderas (a `+0x1d8`; con `0x1`, bloqueado); `[0xf]` la clase
   (`((b & 0x10) | (b >> 4)) >> 1`: la clase y la segunda clase en el bit 3); `[0x10..0x20]` el
@@ -259,11 +259,15 @@ lee en línea y el 3 va a `0x4c3940`. Los C->S salen con el XOR32 desde el byte 
   `0x37` el 396 (los dos vuelven a abrir la ventana de crear), y `0x5d` el 471 (sin botón, después
   de mandar el `F3 01`). Antes de mandarlo, `0x63d990` mira el nombre del campo de la ventana
   (`0x7798bf8`): con menos de 4 bytes, el aviso `0x79` (390); con una palabra prohibida, el `0x72`
-  (1715): `0x622c70` lo busca, sin los espacios, en la lista de `0x76baac8` (de `0x14` bytes por
-  palabra, `DAT_0775855c` palabras) y en unas cadenas fijas, con `0x576960` y `0x622b40`; y con un
-  byte suelto fuera de `0x21..0x7e` o un primer byte de dos fuera de `0xb0..0xf7` (GB2312), el `0x7a`
-  (391, `0x447ca0`). Con un nombre de más de 10 bytes, el original no completa con ceros y manda el
-  nombre entero: el paquete crece. El byte de la clase es `DAT_07437224 · 16 + DAT_07437225`, la clase
+  (1715): `0x622c70` busca las de `FilterName.bmd` y las de `Filter.bmd` (estas, si el nombre no
+  empieza con `/`, `0x622b40`) en el nombre sin espacios, y unas cadenas fijas y los textos 457 y 458
+  en el nombre tal cual, con `0x576960` (Q-C117); y con un byte malo, el `0x7a` (391, `0x447ca0`,
+  parchado con NOPs en este binario: mira solo los bytes pares, y uno es malo si es menor que
+  `0x21`, está de `0x7f` a `0xaf` o es mayor que `0xf7`, también los que quedaron de un intento
+  anterior, Q-C118). El detalle, en
+  [06](06-render-escenas-y-ui.md#la-ventana-de-crear). El campo tiene un tope de 10 bytes, así que
+  un nombre más largo no llega desde la UI; si llegara, el original no completa con ceros y lo manda
+  entero. El byte de la clase es `DAT_07437224 · 16 + DAT_07437225`, la clase
   y la piel de la vista previa (`0x7437050 + 0x1d4` y `+ 0x1d5`): la clase la pone el botón de cada
   una (`0x63e3e0`, con el modelo `0xa8` + clase, el `NewFace` de esa clase) y la piel no la escribe
   nadie. Con 1, `0x4c2290` arma al nuevo con `0x517270(lugar, la clase y la piel de la vista previa,
@@ -363,7 +367,7 @@ de 0x100 bytes, el historial de chat y la máquina de acciones diferidas.
 | El dispatcher solo se alcanza por FoxAnti | el dispatcher es parte del cliente; la ofuscación es una capa aparte | CL2 |
 | 104 opcodes al default | el default loguea el opcode desconocido una vez (sirve para descubrir lo que falta) | CL4 |
 | El `A9 00 00 01` al CS sale porque la escena de login arma un personaje con el cuervo (Q-C16) | se manda igual al abrir el CS, como pedido de la información de la mascota; el `A9 01 00 08` del juego va con la UI de las mascotas | CL4, CL8 |
-| El keepalive: un timer desde el arranque que manda con el GS conectado, sin mirar el login (Q-C53), y el primero con el login aceptado; las velocidades en 0 hasta que hay personaje | el primero con el login aceptado y después cada 20 s desde ese, solo en `LoggedIn`; 0 y 0, sin ajuste, hasta que la CL6 dé las del personaje | CL4 |
+| El keepalive: un timer desde el arranque que manda con el GS conectado, sin mirar el login (Q-C53), y el primero con el login aceptado; las velocidades en 0 hasta que hay personaje | el primero con el login aceptado y después cada 20 s desde ese, en `LoggedIn` y, desde la CL6.3 y la CL6.5, también en la espera de la lista, la elección, crear, borrar y la entrada al mundo; 0 y 0, sin ajuste, hasta que la CL7 lea las del personaje en la respuesta del `F3 03` | CL4, CL6.3, CL6.5, CL7 |
 | Los `F3` de la selección: el `F3 00` desde la lógica del login, la lista sin mirar el largo y el `F3 03` desde el primer paso de la escena 5 | `Protocol::Character` (`WriteCharacterListRequest`, `ReadCharacterList` con `TooShort` y el lugar de más de 4 descartado, Q-C101, y `WriteCharacterSelect`) y tres estados más de la `ServerSession`; crear y borrar, con sus avisos, en la CL6.5 | CL6.3, CL6.5 |
 
 Tests que fija:

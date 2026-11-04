@@ -141,7 +141,7 @@ solo lo lee.
   con un RAII que devuelve la salida de SDL antes de que muera el `Log`, y `Main` arma todo y
   avisa cuando un frame pasa de 1 s.
   Con eso el código de la CL3 está entero; para cerrarla falta lo tuyo: correr `Main` en tu
-  Windows ([README del cliente](../../Client/README.md#la-prueba-a-mano-en-windows)), las
+  Windows ([README del cliente](../../Client/README.md#compilar-y-correr)), las
   preguntas y la sección final de la [guía de la CL3.0](ola-cl3.0-el-bucle-de-juego.md), y
   explicar los conceptos de abajo. Próxima: la CL4 (red del cliente), con su
   [plan](../superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md).
@@ -502,7 +502,7 @@ solo lo lee.
   **La CL6.5 PR B3** (2026-11-04, resuelta por Claude): la vista previa de la ventana de crear, el
   NewFace de cada clase con su cámara y su viewport, saludando con la acción 1. Sus texturas van
   desde el slot 0x6f8 siguiendo la tabla de la carga, verificadas contra el volcado de Lorencia
-  (Q-C91). 13 tests y 24 mutantes, con lo que encontró la revisión: la luz por vértice con el
+  (Q-C91). 13 tests y 37 mutantes, con lo que encontró la revisión: la luz por vértice con el
   color en 4,8 y que no tiemble con un aviso arriba. Con esto la CL6.5 queda completa, salvo verla
   en pantalla.
 
@@ -515,8 +515,9 @@ solo lo lee.
   - a la CL8, el menú de la selección y el área de mensajes;
   - a la CL9, los monstruos.
   Falta lo que no se hace en CI:
-  - las pruebas a mano en la VM: P-C21, el paso 3 de la CL6.4, y ver la barra, la ventana de crear
-    y su vista previa en pantalla (P-C16 e y f);
+  - las pruebas a mano en la VM: P-C21, el paso 3 de la CL6.4 y P-C16 (crear y borrar contra el GS,
+    y ver la barra, la ventana de crear y su vista previa en pantalla: el paso 5 del README del
+    cliente);
   - lo tuyo: las preguntas y la sección final de la guía de la CL6.0, y explicar los conceptos de
     abajo.
 
@@ -654,6 +655,10 @@ sesión, junto con los de repaso más viejo.
 | una sesión que suma estados sin cortar lo que corre en todos (el keepalive con su ritmo), una lista de largo variable que no se lee de más, y un nombre del jugador que no llega ni al log ni a un mensaje de un test | CL6.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
 | correr el programa con los datos reales además de los tests: un modelo falso no encuentra que el original pide las texturas con otra carpeta que la del archivo; sacar las llamadas de un cargador con una emulación y no a ojo, y un mutante equivalente que se nombra en vez de forzar un test | CL6.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
 | un estado que el original guarda en un objeto y reusa (la luz del `blendMesh`, el color que un pase multiplica en el lugar): qué ve la malla siguiente, y cuándo una diferencia de un frame es una decisión y no un bug | CL6.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
+| un objeto ayudante que sigue a su dueño: el caballo con el lugar, los ángulos y la acción del jinete, un alpha que sube un décimo de lo que le falta (1 − 0,9ⁿ), y una tabla de slots que sigue la que dejó otro cargador | CL6.4 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
+| capas modales en una UI retenida: quién se queda con el mouse y el teclado con un aviso sobre una ventana sobre la barra, un clic por paso en un orden fijo, y un aviso que se abre en un paso y se atiende desde el siguiente | CL6.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
+| reproducir una validación con sus fallas: un chequeo parchado con NOPs que mira los bytes pares, una búsqueda en la que la palabra vacía está en todo, los bytes de un intento anterior que siguen en el buffer, y tests con nombres inventados | CL6.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
+| un 3D dentro de una ventana 2D: un viewport en píxeles desde 640 × 480, su propia cámara, la profundidad sin limpiar y el orden de la base, la vista previa y lo demás | CL6.5 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
 
 ## Preguntas para olas futuras
 

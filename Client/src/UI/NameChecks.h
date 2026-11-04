@@ -24,7 +24,8 @@ struct NameFilters
 
 // 0x576960(texto, palabra, 0): si `word` está en `text`, distinguiendo mayúsculas. Una palabra vacía
 // está en cualquier texto. El original avanza de a un carácter de su página de códigos (_mbclen);
-// MuRet, de a un byte, que es lo mismo con los nombres de su campo (ASCII).
+// MuRet, de a un byte, que es lo mismo con los nombres de su campo, en Latin-1: un byte por carácter,
+// como la página de códigos de Occidente (CP1252).
 [[nodiscard]] bool ContainsLikeTheOriginal(std::string_view text, std::string_view word);
 
 // 0x622c70: alguna palabra de FilterName.bmd en el nombre sin espacios; alguna de Filter.bmd en el

@@ -194,9 +194,9 @@ Client/
     Protocol/              opcodes, structs, Dispatcher, handlers por dominio (CL2, CL4, CL9)
     Render/                Renderer, Shader, Texture, SpriteBatch, Text, Terrain, Models (CL5+)
     Scenes/                Login, CharacterSelect, Game                    (CL5, CL6)
-    World/                 Map, Camera, objetos del mapa                   (CL7)
-    GameLogic/             personaje, viewport de entidades, items, chat   (CL7+)
-    UI/                    widgets, ventanas, HUD                          (CL5, CL8)
+    World/                 Map, Camera, objetos del mapa                   (CL6.4, CL7)
+    GameLogic/             personaje, viewport de entidades, items, chat   (CL6, CL7+)
+    UI/                    widgets, ventanas, HUD                          (CL5, CL6.5, CL8)
     Audio/                 música y efectos                                (CL10)
   tests/                   data/ network/ protocol/ app/ … (GoogleTest)
 ```
@@ -256,6 +256,9 @@ Cada plan lo suma al escribirse. El detalle está en las sub-olas del
     keepalive (`ServerSession::SetKeepaliveSpeeds`) con lo que traiga esa respuesta.
   - **El movimiento:** los multiplicadores de `0x4f9580`, y que la cámara que se mueve (CL7.3) dé un
     `Render::Camera3D`.
+  - **Volver a la selección desde el juego** (el `F1 02` con 1): `SceneTransitions` ya lo deja, pero
+    `CharacterSelectScene::Enter` pide la lista solo en `LoggedIn`, y con la sesión en
+    `EnteringWorld` la escena quedaría con la lista vieja y sin poder elegir, crear ni borrar.
 - **CL7.6, los efectos.** El roadmap no tenía su ola. Van al final de la CL7 porque se dibujan en el
   pase 3D del mundo, con su cámara, y para entonces el terreno y los objetos ya están. Entran:
   - el polvo del caballo (`0x5f2`) y los efectos de sus acciones;

@@ -6,7 +6,8 @@
 // PrintTo de los tests (tests/support/AppPrinters.h) no traen la Connection ni el Dispatcher.
 // Contrato: el plan de la CL4, "Interfaces" y el diagrama de estados de la CL4.3, paso 1, y la
 // CL4.4, "Contrato"; los dos estados que esperan a la UI, el de la CL5 (CL5.5). Un servidor
-// ocupado y un login rechazado no son fallas desde la CL5.5: la sesión vuelve a esperar.
+// ocupado y un login rechazado no son fallas desde la CL5.5: la sesión vuelve a esperar. La orden
+// de cerrar el juego tampoco es una falla: no tiene aviso (Q-C106).
 namespace Client::App
 {
 enum class SessionState : std::uint8_t
@@ -22,6 +23,7 @@ enum class SessionState : std::uint8_t
     WaitingCredentials,      // el GS saludó; se espera SubmitCredentials (CL5.5)
     WaitingLoginResult,      // el login, F1 01, salió cifrado
     LoggedIn,                // el GS aceptó el login: sale el keepalive (CL4.5)
+    QuitOrdered,             // el GS ordenó cerrar el juego (F1 02 con 0): la conexión se cerró (Q-C106)
     Failed,
 };
 

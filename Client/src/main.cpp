@@ -11,6 +11,7 @@
 #include "App/Resolution.h"
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
+#include "App/SessionState.h"
 #include "App/VSyncMode.h"
 #include "App/WindowState.h"
 #include "Core/Expected.h"
@@ -549,10 +550,18 @@ private:
     bool m_on;
 };
 
+// Si el GameServer ordenó cerrar el juego (F1 02 con 0, Q-C106), en cualquier escena: el original
+// hace WM_DESTROY apenas lo lee. Sin sesión, nunca.
+bool GameServerOrderedTheQuit(const App::ServerSession* session)
+{
+    return session != nullptr && session->State() == App::SessionState::QuitOrdered;
+}
+
 // Fase 4 con una carpeta de datos: la tabla de texturas y el frame de GL, la sesión si hay un host,
 // y el SceneManager desde la carga, con el texto tecleado mientras la escena lo pide. Un error
 // antes del bucle, o una escena que no puede entrar, cierra con EXIT_FAILURE y el error en el log;
-// el OK de un aviso que cierra el juego (Q-C69), con EXIT_SUCCESS.
+// el OK de un aviso que cierra el juego (Q-C69) y la orden del GameServer (Q-C106), con
+// EXIT_SUCCESS, al final del frame en que llegan.
 int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Window& window, Core::IClock& clock,
               Core::Log& log)
 {
@@ -580,18 +589,24 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     }
     App::GameLoop loop{clock, manager, startup.config.pacing, LoopMaxFps(startup.config, window, log)};
     TextInputFollower textInput(window, log);
-    const App::FrameStats stats = RunLoop(
-        window, clock, loop, startup.commandLine, log,
-        [&manager] { return manager.Failure().has_value() || manager.WantsToQuit(); },
-        [&textInput, &manager] { textInput.Follow(manager.WantsTextInput()); });
-    // Apagado en todas las salidas del bucle: la ventana, el --frames, la escena que falla o el OK.
+    // Lo que corta el bucle además de la ventana y el --frames.
+    const auto stop = [&manager, session]
+    { return manager.Failure().has_value() || manager.WantsToQuit() || GameServerOrderedTheQuit(session); };
+    const App::FrameStats stats = RunLoop(window, clock, loop, startup.commandLine, log, stop,
+                                          [&textInput, &manager] { textInput.Follow(manager.WantsTextInput()); });
+    // Apagado en todas las salidas del bucle: la ventana, el --frames, la escena que falla, el OK o la
+    // orden del GameServer.
     textInput.Follow(false);
     PrintFrames(stats);
     if (manager.Failure())
     {
         return EXIT_FAILURE;
     }
-    if (manager.WantsToQuit())
+    if (GameServerOrderedTheQuit(session))
+    {
+        log.Info("se cierra el juego, como ordenó el GameServer");
+    }
+    else if (manager.WantsToQuit())
     {
         log.Info("se cierra el juego, como pidió el aviso");
     }

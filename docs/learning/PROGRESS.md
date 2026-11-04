@@ -422,7 +422,11 @@ solo lo lee.
   cámaras fijas de la selección y del login. Contra las dos trazas, `MakePass3D` da el viewport,
   la perspectiva y la vista de cada pase con cámara de MuRet. La traza mostró también por qué el
   original limpia bien la profundidad: su primer pase, que no dibuja, prende la máscara antes del
-  `glClear`. 34 tests y 16 mutantes.
+  `glClear`. 34 tests y 16 mutantes. **La CL6.3 C** (2026-11-04, resuelta por Claude): el
+  personaje, de los bytes de la lista al lote, sin las escenas. Lo arma la apariencia de `0x5139f0`;
+  el picking tiene sus 6 ejes; el brillo va por nivel; lo que cuelga va desde su hueso; y el dibujo
+  de `0x50ba30`. Contra la traza de la selección, la espada y la mascota cuelgan a 0,0014, y el
+  personaje entero sale bloque por bloque, uno a uno. 46 tests y 17 mutantes.
 
 ## Conceptos
 

@@ -2,6 +2,7 @@
 #include "Data/Models/ModelFiles.h"
 #include "Data/Models/ModelTextures.h"
 #include "Data/Models/PlayerModels.h"
+#include "Render/Models/Attachment.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Shine.h"
@@ -426,6 +427,68 @@ TEST_F(GoldenSkinningTrace, MatchesThePlayerOfLorencia)
 TEST_F(GoldenSkinningTrace, MatchesTheGuardOfLorencia)
 {
     ExpectTheTrace(LorenciaTrace, LorenciaGuard());
+}
+
+// Lo que cuelga en la selección (CL6.3): Sword17 de la mano derecha (el hueso 33, sin desplazamiento)
+// y Helper02 del 34 con (20, 0, 0) girado por el hueso, cada uno posado desde esa raíz (0x509340)
+// y llevado al mundo con el objeto del personaje. La espada tiene una key; la mascota avanza 0,5 por
+// frame (Q-C20), y en los cinco swaps está en 1,5 · 2 · 2,5 · 3 · 3,5 (06).
+struct HangingModel
+{
+    ModelFile file;
+    Client::Render::Models::AttachmentSlot slot;
+    std::array<float, 5> frames;
+};
+
+TEST_F(GoldenSkinningTrace, TheSwordAndThePetHangFromTheirBones)
+{
+    using Client::Render::Models::AttachmentOf;
+    using Client::Render::Models::AttachmentRoot;
+    using Client::Render::Models::AttachmentSlot;
+    using Client::Render::Models::PoseAttached;
+    const Scene scene = SelectionPlayer();
+    const std::optional<GlTrace> trace = LoadTrace(SelectionTrace);
+    const std::optional<Skeleton> skeleton = LoadPlayerSkeleton();
+    ASSERT_TRUE(trace && skeleton);
+    const std::array<HangingModel, 2> hanging = {{
+        {ModelFile{0x222, "Item\\", "Sword", 17}, AttachmentSlot::RightHand, {0, 0, 0, 0, 0}},
+        {ModelFile{0x1c13, "Player\\", "Helper", 2}, AttachmentSlot::Pet, {1.5f, 2.0f, 2.5f, 3.0f, 3.5f}},
+    }};
+    for (const HangingModel& model : hanging)
+    {
+        auto loaded = LoadModelFile(m_dataRoot, model.file);
+        ASSERT_TRUE(loaded.HasValue()) << model.file.name;
+        const std::vector<Model> models = {std::move(loaded).Value()};
+        auto made = MakeSkeleton(models[0]);
+        ASSERT_TRUE(made.HasValue()) << model.file.name;
+        const Skeleton hangingSkeleton = std::move(made).Value();
+        const int keys = hangingSkeleton.actions[0].keyCount;
+        const std::vector<TracedMesh> meshes = TraceMeshes(*trace, {{model.file.name, model.file.number}}, models);
+        for (std::size_t f = 0; f < scene.frames.size(); ++f)
+        {
+            std::vector<BoneTransform> body(skeleton->bones.size(), BoneTransform(1.0f));
+            ASSERT_TRUE(
+                PoseSkeleton(*skeleton, StateAt(scene, scene.frames[f]), scene.object, scene.headAngles[f], body));
+            const auto attachment = AttachmentOf(model.slot);
+            const BoneTransform root =
+                AttachmentRoot(body[static_cast<std::size_t>(attachment.bone)], attachment.offset);
+            const AnimationState state{0, std::fmod(model.frames[f] + 1.0f, static_cast<float>(keys)), 0,
+                                       static_cast<std::int16_t>(std::floor(model.frames[f]))};
+            std::vector<BoneTransform> bones(hangingSkeleton.bones.size(), BoneTransform(1.0f));
+            ASSERT_TRUE(PoseAttached(hangingSkeleton, state, root, bones));
+            for (const TracedMesh& traced : meshes)
+            {
+                SkinnedMesh skinned;
+                ASSERT_TRUE(SkinMesh(*traced.mesh, bones, scene.object, skinned));
+                float best = std::numeric_limits<float>::infinity();
+                for (const GlTraceBlock* block : traced.blocks[f])
+                {
+                    best = std::min(best, BlockError(*block, traced.sequence, skinned.positions));
+                }
+                EXPECT_LT(best, MaxError) << traced.label << ", frame " << f;
+            }
+        }
+    }
 }
 
 // Los pases de brillo de la selección por su textura en la traza (06): 115, 120 y 141.

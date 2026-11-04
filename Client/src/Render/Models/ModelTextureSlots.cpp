@@ -69,6 +69,11 @@ TextureSlot ModelTextureSlots::Next() const
     return TextureSlot{static_cast<std::uint16_t>(m_next)};
 }
 
+std::string_view ModelTextureSlots::NameOf(TextureSlot slot) const
+{
+    return slot.value < m_names.size() ? std::string_view(m_names[slot.value]) : std::string_view{};
+}
+
 // 0x60d550: del slot 0 al próximo libre, sin contar este.
 std::optional<TextureSlot> ModelTextureSlots::Find(std::string_view name) const
 {

@@ -1859,7 +1859,7 @@ namespace Client::Input
   entra, el brillo sin el recorte, el 13 en otro orden, el desplazamiento sin girar, la mascota del
   33, la oculta que se dibuja, sin los pases, cualquier mascota y las manos sin su nivel) los mata
   al menos un test cada uno.
-- [ ] **Paso 8 (PR C):** los de las escenas, con `RecordingFrameTarget`, `FakeTextureStore`,
+- [x] **Paso 8 (PR D):** los de las escenas, con `RecordingFrameTarget`, `FakeTextureStore`,
   `FakeClock` y una sesión con `FakeSocket`: `LoadingSceneTest.ReadsTheModelsOnAdvanceOne` y
   `AMissingPlayerFailsTheLoad` (con el nombre del archivo);
   `CharacterSelectSceneTest.EnterRequestsTheList`, `DrawsNothingBeforeTheList`,
@@ -1873,11 +1873,11 @@ namespace Client::Input
   `GameSceneTest.TheFirstStepSendsF303` y `TheLogHasTheSlotNotTheName` (con `RecordingSink`);
   `InputStateTest.ADoubleClickIsTheSecondClick` y `InputEventsTest.CopiesTheClicks`. Golden:
   `GoldenGameModels.LoadsEveryModelOfThePlayerLoader` y `TheSelectionTextureSetLoads`.
-- [ ] **Paso 9 (PR C, Emanuel):** la apariencia, el picking, `GameModels`, las tres escenas y el
-  doble clic, y en `main.cpp` la fábrica con la selección, la carga del mundo y el juego. Los
-  modelos de cada personaje: el esqueleto de `Player.bmd`, sus cinco partes y lo que lleva, con la
-  textura de cada malla de `GameModels::MeshTextures`, la mezcla de `0x4ecc30` (CL6.R, paso 6) y
-  los pases de brillo de su nivel. Verificar:
+- [x] **Paso 9 (PR D, Emanuel, resuelto por Claude):** la apariencia, el picking, `GameModels`, las
+  tres escenas y el doble clic, y en `main.cpp` la fábrica con la selección, la carga del mundo y el
+  juego. Los modelos de cada personaje: el esqueleto de `Player.bmd`, sus cinco partes y lo que
+  lleva, con la textura de cada malla de `GameModels::MeshTextures`, la mezcla de `0x4ecc30` (CL6.R,
+  paso 6) y los pases de brillo de su nivel. Verificar:
   ```bash
   ctest --preset linux-x64-debug -R "CharacterAppearance|RayPicking|Scene|InputState|InputEvents"
   MURET_CLIENT_GOLDEN_DIR=<Data> ctest --preset linux-x64-debug -R "GoldenGameModels"
@@ -1886,6 +1886,61 @@ namespace Client::Input
   el clic sobre nada que deja el elegido, la escena que dibuja antes de la lista, Enter con solo el
   flanco, el doble clic de dos botones distintos, el `F3 03` desde la selección,
   y la escena que no suelta sus slots.
+
+  Hecho así (PR D, 2026-11-04, resuelto por Claude): las escenas y la carga de los modelos, con 40
+  tests:
+  - **`Data/Models/ModelTextureCalls`** (7 tests) y **`Scenes/GameModels`** (5 golden): los 456
+    modelos de las dos tablas y sus texturas, que no salen de las tablas sino de las 505 llamadas
+    de `0x60f7d0` y `0x611850` a `0x60d5f0`, cada una con su carpeta (los `Helper` de `Player\`
+    con las de `Item\`; `0x1c15` a `0x1c17` con las de `Skill\`), repitiendo y sin filtro
+    (`0x2901` y `0x2600`), y las 13 fijas de `0x60f7d0` (la piel, el pelo y las cuatro capas). Lo
+    encontró la primera corrida de `Main` con `--data`: con la carpeta del `.bmd` faltaban 14
+    texturas, entre ellas las de la mascota que se dibuja, y el original se cierra con una que
+    falta. **Verificado:** una emulación de los dos cargadores sobre el `main.exe` da las mismas
+    505 llamadas, en orden; con el laboratorio no falta ninguna
+    (`GoldenGameModels.EveryTextureTheLoadersAskForIsThere`), y
+    `ModelTextureSlotsGoldenTest.StartupMatchesTheDump` da los 489 nombres de `lor_slots.bin` de
+    `0x12e` a `0x370`, con el próximo en `0x371`, donde sigue `0x615700`.
+  - **`Input/DoubleClick`** (4 tests): el reloj de `0x640940` (Q-C99), con los 500 ms justos
+    todavía doble (`0x640940` arma con `límite < ahora − primero`).
+  - **`Scenes/CharacterSelectScene`** (15 tests): el `F3 00` al entrar, nada antes de la lista (ni
+    un clic que cuente para el doble), los personajes en sus lugares con la acción 3, el clic que
+    elige con el rayo, Enter y el doble clic que entran, el aviso `0x84` con el bloqueado (y con el
+    aviso abierto, nada más), la luz 0,4 y 1,4, y el login si la sesión falla.
+  - **`WorldLoadingScene`** (2 tests), **`GameScene`** (3 tests: el `F3 03` en el primer paso,
+    una vez, y el login si la sesión falla), `LoadingScene` con los modelos en el avance 1 (1 test
+    más) y `main.cpp` con las cinco escenas. Con `--data`, `Main` carga los 453 modelos y sus 504
+    texturas y llega al login.
+
+  Los nombres del paso 8 que cambiaron: `AClickOnNothingClearsTheChoice` va dentro de
+  `AClickChoosesTheOneUnderTheMouse`; `NoCharacterChosenDoesNotEnter`, dentro de
+  `EnterGoesToWorldLoading`; `ReadsTheModelsOnAdvanceOne`, en `AMissingPlayerFailsTheLoad`;
+  `InputStateTest.ADoubleClickIsTheSecondClick` es
+  `SelectInputTest.TheSecondPressInTimeIsADoubleClick`, e `InputEventsTest.CopiesTheClicks` no hace
+  falta (el `InputEvent` no lleva el `clicks` de SDL); `TheBodyAdvancesPerStepAndThePetPerTime`
+  queda en los tests de la CL6.2 (`AdvanceAnimation` y `AdvanceByTime`), y
+  `TheSelectionTextureSetLoads` en `GoldenTextureSets`. Las decisiones:
+  - **Enter con el flanco solo**, sin `EnterNeedsTheKeyDownAndPressed`: pedir además la tecla abajo
+    (el `0x8001`) solo pierde un Enter corto, el bug de Q-C45 que MuRet no reproduce, como el login
+    (`AShortEnterAlsoEnters`).
+  - **El contorno bajo el mouse (Q-C94), el nombre del elegido (`0x4129f0`) y el oscurecido de
+    Q-C95 van en un PR E**: son lo que marca a un personaje, y piden leer `0x60cf70` y `0x4129f0`
+    antes. La luz de abajo del elegido (`0x53fe70`, la `chasellight`) va con los efectos, y la del
+    terreno (`0x5f9780`), con la CL7.
+  - **La carga lee todo en el avance 1**: el original reparte los modelos y las texturas entre los
+    avances 1 a 4; la barra se queda más en el 1 y pasa más rápido por los otros.
+  - Q-C91 (`Logo05` y los `NewFace` desde `0x6f8`) va con la creación (CL6.5); la acción de parado
+    es la 3 para todos (P-C14 c); la pose del primer segundo y el tiempo del doble clic, en P-C19.
+
+  Los 31 mutantes a mano (el clic que no elige, Enter con la tecla abajo, el bloqueado que entra, la
+  luz, las escenas que no sueltan sus slots, el dibujo y el paso antes de la lista, entrar sin
+  elegido, la lista sin pedir, otra acción de parado, el aviso que deja pasar la entrada, el login
+  si la sesión falla en las dos escenas, el doble clic sin el movimiento, con menos de 500 y
+  triple, el `F3 03` dos veces, la carga del mundo antes de dibujar, la carga que falla y no
+  cierra, los modelos en otro avance, `0x1c15` con `Item\`, dos llamadas en otro orden, el lazo
+  de `0x412` en otro orden, el casco 23, los modelos con filtro, los ítems sin su `0x60d530` y sin
+  las fijas): los mata al menos un test cada uno, salvo uno equivalente (la segunda llamada a un
+  modelo que no pisa la primera: encuentra los mismos nombres y da los mismos slots).
 - [ ] **Paso 10 (a mano):** contra el GS del laboratorio, con `--data`: el login aceptado, la
   selección con los personajes de la cuenta de prueba animados en sus lugares, el clic, el doble
   clic, la carga del mundo y el `F3 03`; el log del GS muestra la entrada. Sin capturas en Git.

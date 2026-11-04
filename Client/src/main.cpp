@@ -45,8 +45,11 @@
 #include "Render/Text/IGlyphRasterizer.h"
 #include "Scenes/CharacterSelectScene.h"
 #include "Scenes/GameData.h"
+#include "Scenes/GameModels.h"
+#include "Scenes/GameScene.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoadingScene.h"
+#include "Scenes/WorldLoadingScene.h"
 #include "Scenes/LoginScene.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -458,24 +461,24 @@ Scenes::RasterizerFactory FontFactory(const App::ClientConfig& config, App::Font
     };
 }
 
-// Las escenas de la CL5.4; las que no están todavía (la carga del mundo y el juego) no se arman, y
-// pedirlas es un error del SceneManager.
+// Las cinco escenas (CL5.4 y CL6.3). Los modelos los lee la carga y los usa la selección.
 Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const Scenes::GameData& data,
-                                      App::ServerSession* session)
+                                      Scenes::GameModels& models, App::ServerSession* session)
 {
-    return [context, &data, session](Scenes::SceneId id) -> std::unique_ptr<Scenes::IScene>
+    return [context, &data, &models, session](Scenes::SceneId id) -> std::unique_ptr<Scenes::IScene>
     {
         switch (id)
         {
         case Scenes::SceneId::Loading:
-            return std::make_unique<Scenes::LoadingScene>(context);
+            return std::make_unique<Scenes::LoadingScene>(context, &models);
         case Scenes::SceneId::Login:
             return std::make_unique<Scenes::LoginScene>(context, data, session, Version);
         case Scenes::SceneId::CharacterSelect:
-            return std::make_unique<Scenes::CharacterSelectScene>();
+            return std::make_unique<Scenes::CharacterSelectScene>(context, data, models, session);
         case Scenes::SceneId::WorldLoading:
+            return std::make_unique<Scenes::WorldLoadingScene>(context);
         case Scenes::SceneId::Game:
-            return nullptr;
+            return std::make_unique<Scenes::GameScene>(context, session);
         }
         return nullptr;
     };
@@ -581,7 +584,9 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     }
     App::ServerSession* session = online ? &online->session : nullptr;
     const Scenes::SceneContext context{.dataRoot = *startup.config.dataPath, .textures = textures, .log = log};
-    Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, session), *frame.Value(), clock,
+    // Los modelos del personaje y de los ítems: los lee la carga (0x61ccb0) y quedan, como GameData.
+    Scenes::GameModels models;
+    Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,
                                  online ? std::function<void()>([&online] { online->Poll(); }) : nullptr, log);
     if (!manager.Start(Scenes::FirstScene).HasValue())
     {

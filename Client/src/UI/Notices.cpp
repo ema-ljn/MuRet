@@ -62,6 +62,8 @@ std::optional<NoticeTexts> TextsOf(NoticeId notice)
         return One(404);
     case ConnectFailedNotice:
         return One(402);
+    case LockedCharacterNotice:
+        return One(434);
     default:
         return std::nullopt;
     }

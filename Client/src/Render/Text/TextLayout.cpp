@@ -53,6 +53,17 @@ int RightAlignedAt(int x, TextExtent extent, App::PixelSize screen)
     return Shrink(x, extent.width, 640, screen.width);
 }
 
+int CenteredAt(int x, TextExtent extent, App::PixelSize screen)
+{
+    if (screen.width <= 0)
+    {
+        return x;
+    }
+    const std::uint32_t scaled = static_cast<std::uint32_t>(extent.width) * 640U;
+    const std::uint32_t half = scaled / static_cast<std::uint32_t>(screen.width) >> 1U;
+    return static_cast<int>(static_cast<std::uint32_t>(x) - half);
+}
+
 int BottomAlignedAt(int y, TextExtent extent, App::PixelSize screen)
 {
     return Shrink(y, extent.height, 480, screen.height);

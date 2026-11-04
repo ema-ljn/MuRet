@@ -10,13 +10,14 @@
 
 #include <vector>
 
-// Client::Render::Text::RightAlignedAt, BottomAlignedAt y TextPieces: dónde van los textos del
+// Client::Render::Text::RightAlignedAt, CenteredAt, BottomAlignedAt y TextPieces: dónde van los textos del
 // login (0x6350b0) y cómo los corta y los ubica 0x467060 con 0x554000 (06 § Texto). Los textos son
 // sintéticos y los mide el rasterizador falso: 6 columnas por letra y 13 filas.
 namespace
 {
 using Client::App::PixelSize;
 using Client::Render::Text::BottomAlignedAt;
+using Client::Render::Text::CenteredAt;
 using Client::Render::Text::DesignX;
 using Client::Render::Text::DesignY;
 using Client::Render::Text::FontKind;
@@ -81,6 +82,17 @@ TEST(TextLayoutTest, TheDivisionIsUnsignedAndInteger)
 
 // Q-C60: el original resta cy · 640 / W también en la y. En 4:3 da lo mismo; en 1280 × 1024, con un
 // alto de 14, resta 7 en vez de 6.
+// 0x623690: x − (cx · 640 / W) / 2, con la división entera sin signo y la mitad truncada: 13
+// columnas en 1024 dan 8,125 → 8 → 4; 15 en 640, 15 → 7.
+TEST(TextLayoutTest, TheCenteredTextTakesHalfOfItsWidthIn640)
+{
+    EXPECT_EQ(CenteredAt(320, TextExtent{13, 0}, Screen1024), 316);
+    EXPECT_EQ(CenteredAt(320, TextExtent{15, 0}, Screen640), 313);
+    EXPECT_EQ(CenteredAt(320, TextExtent{0, 0}, Screen640), 320);
+    EXPECT_EQ(CenteredAt(320, TextExtent{6710887, 0}, Screen640), 320);
+    EXPECT_EQ(CenteredAt(320, TextExtent{15, 0}, PixelSize{0, 0}), 320);
+}
+
 TEST(TextLayoutTest, TheLoginTextUsesTheHeightForY)
 {
     const TextExtent extent{60, 14};

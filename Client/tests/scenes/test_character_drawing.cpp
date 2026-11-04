@@ -955,6 +955,23 @@ TEST(CharacterDrawingTest, TheLightOfWing05Pulses)
     EXPECT_NEAR(batch.Vertices()[0].color.red, 0.4f * (std::sin(1.0f) + 1.1f), 1e-6f);
 }
 
+// 0x509340 sale sin dibujar con el modelo 0x1c30 (0x509363: CMP EDI,0x1c30 y JZ al final): la capa
+// del Dark Lord, DarkLordRobe.bmd, un plano del inventario, no cuelga del hueso 47. Lo que se ve es la
+// tela de 0x50ba30.
+TEST(CharacterDrawingTest, TheLordsCapeDoesNotHangAsAModel)
+{
+    DrawnCharacter character;
+    character.appearance = Client::GameLogic::ClassAppearance(4, 0);
+    character.appearance.wings = std::uint16_t{0x1c30};
+    const OneModel models(0x1c30, "DarkLordRobe.jpg");
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+
+    DrawCharacter(batch, models, character, std::chrono::milliseconds{1000});
+
+    EXPECT_TRUE(batch.Vertices().empty());
+}
+
 // Los vértices del arma `item` de +13 en la mano derecha, con `meshes` mallas.
 std::size_t HandVertices(std::uint16_t item, std::size_t meshes)
 {

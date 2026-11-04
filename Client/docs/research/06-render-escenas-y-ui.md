@@ -935,6 +935,10 @@ revisión de la CL6.4, *estático*):
   mapas `0x12` a `0x17`, `0x50ba30` arma tres telas (`0x50d5b9`): dos con la textura `0x256`
   (`Monster\iui06.jpg`) en el hueso 20 y una con la `0x257` (`DarklordRobe`) en el hueso 19, la
   tercera solo con `+0x2f8` en `0x1c30`; las simula con 5 pasos por frame (`0x455190`) y las dibuja.
+  La capa misma, `0x1c30` (`Item\DarkLordRobe.bmd`, el plano del inventario: un hueso y 15 vértices,
+  de 168 de alto), no cuelga del hueso 47: `0x509340` sale sin dibujar con ese modelo, desde
+  cualquier lugar (`0x509363`: `CMP EDI,0x1c30` y `JZ` al final; *estático*). Lo que se ve es la tela.
+  MuRet lo hace así desde la CL6.6 A (`CharacterDrawingTest.TheLordsCapeDoesNotHangAsAModel`).
 - **La cabeza:** `0x505de0`, en cada paso, con un personaje que no es el propio (el 0) y que se ve:
   con `rand() % 32` en 0 elige un objetivo nuevo, de −64 a 63 de giro y de −16 a 15 de inclinación,
   y se acerca un 20 % por paso (`0x6b8854`).

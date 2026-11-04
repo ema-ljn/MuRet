@@ -33,6 +33,11 @@ public:
     ModelTextureSlots& operator=(ModelTextureSlots&&) = default;
     ~ModelTextureSlots() = default;
 
+    // Una tabla con los mismos nombres y el próximo libre en `next`, sin nada que subir: la de un
+    // cargador que viene después y sigue con la tabla global (0x61ca30 con 0x60d530(0x6f8)). Esta no
+    // cambia.
+    [[nodiscard]] ModelTextureSlots ContinuedAt(TextureSlot next) const;
+
     // 0x60d530 otra vez, como cada cargador del original: corre el próximo libre y deja lo que ya
     // tiene nombre. Puede ir para atrás (0x615700 vuelve al 0x138, Q-C89).
     void SetNext(TextureSlot next);

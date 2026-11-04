@@ -35,6 +35,13 @@ std::string RequestPath(std::string_view folder, std::string_view name, TextureL
 
 ModelTextureSlots::ModelTextureSlots(TextureSlot next) : m_names(OriginalTextureSlotCount), m_next(next.value) {}
 
+ModelTextureSlots ModelTextureSlots::ContinuedAt(TextureSlot next) const
+{
+    ModelTextureSlots continued(next);
+    continued.m_names = m_names;
+    return continued;
+}
+
 void ModelTextureSlots::SetNext(TextureSlot next)
 {
     m_next = next.value;

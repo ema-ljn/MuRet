@@ -4,7 +4,9 @@
 #include "Core/Log.h"
 #include "Data/Models/ModelTextureCalls.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Textures/Texture.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/CreatePreview.h"
 #include "Scenes/TextureSets.h"
 
 #include "support/FakeTextureStore.h"
@@ -16,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <ios>
 #include <optional>
 #include <set>
@@ -208,5 +211,44 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
         compared += name.empty() ? 0u : 1u;
     }
     EXPECT_EQ(compared, 489u + 15u);
+}
+// 0x61ca30 con 0x60d530(0x6f8): Logo05 y los cinco NewFace, siguiendo la tabla de la carga, dejan
+// sus 31 texturas de 0x6f8 a 0x716 (Q-C91). En el volcado de Lorencia, 0x61cc50 ya soltó los slots y
+// borró los nombres, pero cada uno guarda el tamaño del buffer (los floats de +0x20 y +0x24) y los
+// componentes (+0x28: 3 o 4) de lo que tuvo: los de lo que sube MuRet en cada slot.
+TEST_F(ModelTextureSlotsGoldenTest, TheSelectionTexturesEndAt0x716)
+{
+    const auto dump = DumpFile(Client::Tests::LorenciaCapture, "lor_slots.bin");
+    ASSERT_TRUE(dump.has_value());
+    const std::optional<std::vector<char>> table = ReadFileBytes(*dump);
+    ASSERT_TRUE(table.has_value());
+    constexpr std::size_t SlotBytes = 0x38;
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+    Client::Scenes::SelectionModels selection;
+
+    ASSERT_TRUE(selection.Load(m_dataRoot, textures, log, &models.TextureSlots()).HasValue());
+
+    ASSERT_NE(selection.TextureSlots(), nullptr);
+    EXPECT_EQ(selection.TextureSlots()->Next(), TextureSlot{0x717});
+    for (std::uint16_t slot = 0x6f8; slot < 0x717; ++slot)
+    {
+        const char* record = table->data() + (slot * SlotBytes);
+        float width = 0.0f;
+        float height = 0.0f;
+        std::uint32_t components = 0;
+        std::memcpy(&width, record + 0x20, sizeof width);
+        std::memcpy(&height, record + 0x24, sizeof height);
+        std::memcpy(&components, record + 0x28, sizeof components);
+        const auto uploaded = textures.Find(TextureSlot{slot});
+        ASSERT_TRUE(uploaded.has_value()) << std::hex << slot;
+        EXPECT_EQ(static_cast<float>(uploaded->texture.textureWidth), width) << std::hex << slot;
+        EXPECT_EQ(static_cast<float>(uploaded->texture.textureHeight), height) << std::hex << slot;
+        EXPECT_EQ(uploaded->texture.format == Client::Data::Textures::PixelFormat::Rgba ? 4u : 3u, components)
+            << std::hex << slot;
+    }
 }
 } // namespace

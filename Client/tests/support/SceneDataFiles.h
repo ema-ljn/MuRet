@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Xor3.h"
+#include "Data/Tables/TableChecksum.h"
 #include "Data/Text/FilterWords.h"
 #include "Data/Text/TextTable.h"
 #include "Data/Textures/TextureSet.h"
@@ -99,8 +100,8 @@ inline void WriteTextTable(const std::filesystem::path& root, const std::map<std
 }
 
 // FilterName.bmd o Filter.bmd con `words` (sintéticas): cada registro de 20, también los vacíos, con
-// el XOR3 desde su principio, y la suma de `key` al final, en little-endian.
-inline std::vector<std::byte> FilterFileBytes(const std::vector<std::string>& words, Data::Text::FilterChecksumKey key)
+// el XOR3 desde su principio, y la suma de `checksumKey` al final, en little-endian.
+inline std::vector<std::byte> FilterFileBytes(const std::vector<std::string>& words, std::uint32_t checksumKey)
 {
     EXPECT_LE(words.size(), Data::Text::FilterTableSize / Data::Text::FilterRecordSize);
     std::vector<std::byte> file(Data::Text::FilterTableSize + 4, std::byte{0});
@@ -115,7 +116,8 @@ inline std::vector<std::byte> FilterFileBytes(const std::vector<std::string>& wo
         }
         Core::Xor3(record);
     }
-    const std::uint32_t sum = Data::Text::FilterChecksum(std::span(file).first<Data::Text::FilterTableSize>(), key);
+    const std::uint32_t sum = Data::Tables::TableChecksum(std::span(file).first(Data::Text::FilterTableSize),
+                                                          checksumKey, Data::Tables::ChecksumParity::XorOddDwords);
     for (std::size_t k = 0; k < 4; ++k)
     {
         file[Data::Text::FilterTableSize + k] = static_cast<std::byte>((sum >> (8 * k)) & 0xffU);
@@ -124,9 +126,9 @@ inline std::vector<std::byte> FilterFileBytes(const std::vector<std::string>& wo
 }
 
 inline void WriteFilterFile(const std::filesystem::path& root, const std::vector<std::string>& words,
-                            Data::Text::FilterChecksumKey key, const std::filesystem::path& relative)
+                            std::uint32_t checksumKey, const std::filesystem::path& relative)
 {
-    WriteSceneFile(root, relative, FilterFileBytes(words, key));
+    WriteSceneFile(root, relative, FilterFileBytes(words, checksumKey));
 }
 
 // La tabla de textos de `texts`, en memoria, para los tests de la UI (CL5.5): textos sintéticos,

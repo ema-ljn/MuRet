@@ -27,8 +27,8 @@ constexpr std::uintmax_t MaxTextTableFileBytes = 1024u * 1024u;
 constexpr std::uintmax_t MaxFilterFileBytes = 64u * 1024u;
 
 // Las palabras de `name` en `dataRoot`, o ninguna si no está.
-Core::Expected<std::vector<std::string>, std::string>
-LoadFilter(const std::filesystem::path& dataRoot, std::string_view name, Data::Text::FilterChecksumKey key)
+Core::Expected<std::vector<std::string>, std::string> LoadFilter(const std::filesystem::path& dataRoot,
+                                                                 std::string_view name, std::uint32_t checksumKey)
 {
     std::error_code error;
     const auto path = Data::ResolveDataPath(dataRoot, name, error);
@@ -46,7 +46,7 @@ LoadFilter(const std::filesystem::path& dataRoot, std::string_view name, Data::T
     {
         return Core::Unexpected(std::format("no se pudo leer {}: {}", name, file.Error().message()));
     }
-    auto words = Data::Text::LoadFilterWords(std::as_bytes(std::span(file.Value())), key);
+    auto words = Data::Text::LoadFilterWords(std::as_bytes(std::span(file.Value())), checksumKey);
     if (!words.HasValue())
     {
         return Core::Unexpected(std::format("{}: {}", name, Data::DescribeDataError(words.Error())));
@@ -80,13 +80,13 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
     }
     GameData data;
     data.text.emplace(std::move(table).Value());
-    auto filter = LoadFilter(dataRoot, FilterFile, Data::Text::FilterKey);
+    auto filter = LoadFilter(dataRoot, FilterFile, Data::Text::FilterChecksumKey);
     if (!filter.HasValue())
     {
         return Core::Unexpected(std::move(filter).Error());
     }
     data.filter = std::move(filter).Value();
-    auto filterName = LoadFilter(dataRoot, FilterNameFile, Data::Text::FilterNameKey);
+    auto filterName = LoadFilter(dataRoot, FilterNameFile, Data::Text::FilterNameChecksumKey);
     if (!filterName.HasValue())
     {
         return Core::Unexpected(std::move(filterName).Error());

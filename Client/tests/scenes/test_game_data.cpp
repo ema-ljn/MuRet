@@ -90,8 +90,9 @@ TEST(GameDataTest, ReadsTheTwoFilters)
 {
     const TemporaryFolder folder("game-data");
     WriteTextTable(folder.Path(), {{1, "uno"}});
-    WriteFilterFile(folder.Path(), {"Synth", "Other"}, Client::Data::Text::FilterNameKey, "Local/FilterName.bmd");
-    WriteFilterFile(folder.Path(), {"word"}, Client::Data::Text::FilterKey, "Local/filter.BMD");
+    WriteFilterFile(folder.Path(), {"Synth", "Other"}, Client::Data::Text::FilterNameChecksumKey,
+                    "Local/FilterName.bmd");
+    WriteFilterFile(folder.Path(), {"word"}, Client::Data::Text::FilterChecksumKey, "Local/filter.BMD");
 
     const auto data = LoadGameData(folder.Path());
 
@@ -119,7 +120,7 @@ TEST(GameDataTest, ACorruptFilterIsNamed)
 {
     const TemporaryFolder folder("game-data");
     WriteTextTable(folder.Path(), {{1, "uno"}});
-    WriteFilterFile(folder.Path(), {"Synth"}, Client::Data::Text::FilterKey, "Local/FilterName.bmd");
+    WriteFilterFile(folder.Path(), {"Synth"}, Client::Data::Text::FilterChecksumKey, "Local/FilterName.bmd");
 
     const auto data = LoadGameData(folder.Path());
 

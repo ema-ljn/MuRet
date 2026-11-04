@@ -15,8 +15,8 @@
 // palabras que no puede tener un nombre y el segundo empieza vacío.
 namespace
 {
-using Client::Data::Text::FilterKey;
-using Client::Data::Text::FilterNameKey;
+using Client::Data::Text::FilterChecksumKey;
+using Client::Data::Text::FilterNameChecksumKey;
 using Client::Data::Text::LoadFilterWords;
 using Client::Tests::ReadFileBytes;
 using GoldenFilterWords = Client::Tests::GoldenDataTest;
@@ -28,7 +28,7 @@ TEST_F(GoldenFilterWords, FilterNameHasSixWords)
     const std::optional<std::vector<char>> file = ReadFileBytes(*path);
     ASSERT_TRUE(file.has_value());
 
-    const auto words = LoadFilterWords(std::as_bytes(std::span(*file)), FilterNameKey);
+    const auto words = LoadFilterWords(std::as_bytes(std::span(*file)), FilterNameChecksumKey);
 
     ASSERT_TRUE(words.HasValue());
     EXPECT_EQ(words.Value(), (std::vector<std::string>{"ADMIN", "admin", "GM", "gm", "Gm", "gM"}));
@@ -41,7 +41,7 @@ TEST_F(GoldenFilterWords, FilterIsEmpty)
     const std::optional<std::vector<char>> file = ReadFileBytes(*path);
     ASSERT_TRUE(file.has_value());
 
-    const auto words = LoadFilterWords(std::as_bytes(std::span(*file)), FilterKey);
+    const auto words = LoadFilterWords(std::as_bytes(std::span(*file)), FilterChecksumKey);
 
     ASSERT_TRUE(words.HasValue());
     EXPECT_TRUE(words.Value().empty());

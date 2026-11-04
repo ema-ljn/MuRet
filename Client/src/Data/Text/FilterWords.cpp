@@ -3,11 +3,13 @@
 #include "Core/Expected.h"
 #include "Core/Xor3.h"
 #include "Data/DataError.h"
+#include "Data/Tables/TableChecksum.h"
 
 #include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <utility>
@@ -15,53 +17,16 @@
 
 namespace Client::Data::Text
 {
-namespace
-{
-constexpr std::size_t SumSize = 4;
-
-std::uint32_t WordAt(std::span<const std::byte> bytes, std::size_t offset)
-{
-    std::uint32_t word = 0;
-    for (std::size_t k = 0; k < SumSize; ++k)
-    {
-        word |= std::to_integer<std::uint32_t>(bytes[offset + k]) << (8 * k);
-    }
-    return word;
-}
-} // namespace
-
-std::uint32_t FilterChecksum(std::span<const std::byte, FilterTableSize> table, FilterChecksumKey key)
-{
-    std::uint32_t sum = key.seed;
-    for (std::uint32_t offset = 0; offset < FilterTableSize; offset += SumSize)
-    {
-        const std::uint32_t index = offset >> 2;
-        // ((k - 1) & 1): 1, suma, con k par; 0, XOR, con k impar (0x549ff0).
-        if (((index - 1) & 1) == 0)
-        {
-            sum ^= WordAt(table, offset);
-        }
-        else
-        {
-            sum += WordAt(table, offset);
-        }
-        if ((offset & 0xf) == 0)
-        {
-            sum ^= (sum + key.step) >> ((index & 7) + 1);
-        }
-    }
-    return sum;
-}
-
 Core::Expected<std::vector<std::string>, DataError> LoadFilterWords(std::span<const std::byte> file,
-                                                                    FilterChecksumKey key)
+                                                                    std::uint32_t checksumKey)
 {
-    if (file.size() < FilterTableSize + SumSize)
+    const std::optional<std::uint32_t> stored = Tables::StoredChecksum(file, FilterTableSize);
+    if (!stored)
     {
         return Core::Unexpected(DataError::FileTooShort);
     }
-    const std::span<const std::byte, FilterTableSize> table = file.first<FilterTableSize>();
-    if (WordAt(file, FilterTableSize) != FilterChecksum(table, key))
+    const std::span<const std::byte> table = file.first(FilterTableSize);
+    if (*stored != Tables::TableChecksum(table, checksumKey, Tables::ChecksumParity::XorOddDwords))
     {
         return Core::Unexpected(DataError::ChecksumMismatch);
     }

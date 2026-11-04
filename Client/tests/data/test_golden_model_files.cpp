@@ -13,6 +13,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -30,9 +31,11 @@ using Client::Data::Models::Bone;
 using Client::Data::Models::ItemModelFiles;
 using Client::Data::Models::LoadModelFile;
 using Client::Data::Models::Mesh;
+using Client::Data::Models::MeshesWithoutShine;
 using Client::Data::Models::ModelFile;
 using Client::Data::Models::ModelFileName;
 using Client::Data::Models::ModelLoadErrorKind;
+using Client::Data::Models::ModelMesh;
 using Client::Data::Models::PlayerActionSpeeds;
 using Client::Data::Models::PlayerActionsWithoutRepeat;
 using Client::Data::Models::PlayerModelFiles;
@@ -93,6 +96,19 @@ TEST_F(GoldenModelFiles, TheItemLoaderMissesOnlyTheGiftBoxes)
     }
     EXPECT_EQ(missing,
               (std::vector<std::string>{"Item\\giftbox_bp.bmd", "Item\\giftbox_br.bmd", "Item\\giftbox_bb.bmd"}));
+}
+
+// Cada malla que marca 0x60ff50 existe en el modelo del laboratorio.
+TEST_F(GoldenModelFiles, TheMeshesWithoutShineExist)
+{
+    for (const ModelMesh& marked : MeshesWithoutShine)
+    {
+        const auto file = std::ranges::find(ItemModelFiles(), marked.model, &ModelFile::model);
+        ASSERT_NE(file, ItemModelFiles().end()) << marked.model;
+        const auto model = LoadModelFile(m_dataRoot, *file);
+        ASSERT_TRUE(model.HasValue()) << Named(*file);
+        EXPECT_LT(marked.mesh, model.Value().meshes.size()) << Named(*file);
+    }
 }
 
 // El hueso de cada vértice de cada parte está en los 60 de Player.bmd y no es dummy: las partes se

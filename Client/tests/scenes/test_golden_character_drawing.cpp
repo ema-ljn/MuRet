@@ -270,6 +270,8 @@ TEST_F(GoldenCharacterDrawing, MatchesTheCharacterOfTheSelection)
         const std::vector<bool> textured = TexturedVertices(batch);
         std::vector<bool> covered(vertices.size(), false);
         std::size_t blocks = 0;
+        // Dónde empieza en el lote cada bloque de la traza, en el orden de la traza.
+        std::vector<std::size_t> starts;
         for (const GlTraceBlock& block : trace.frames[f].blocks)
         {
             if (block.mode != "GL_TRIANGLES" || block.vertices.empty())
@@ -283,6 +285,7 @@ TEST_F(GoldenCharacterDrawing, MatchesTheCharacterOfTheSelection)
                     std::fill(covered.begin() + static_cast<std::ptrdiff_t>(start),
                               covered.begin() + static_cast<std::ptrdiff_t>(start + block.vertices.size()), true);
                     ++blocks;
+                    starts.push_back(start);
                     break;
                 }
             }
@@ -290,6 +293,10 @@ TEST_F(GoldenCharacterDrawing, MatchesTheCharacterOfTheSelection)
         const auto uncovered = static_cast<std::size_t>(std::count(covered.begin(), covered.end(), false));
         EXPECT_EQ(uncovered, 0u) << "frame " << f << ": vértices del lote que no son de ningún bloque de la traza";
         EXPECT_EQ(blocks, expectedBlocks) << "frame " << f;
+        // Y en el orden del original: lo aditivo no escribe la profundidad, así que el orden se ve.
+        const auto unordered = std::ranges::is_sorted_until(starts);
+        EXPECT_EQ(unordered, starts.end())
+            << "frame " << f << ": el bloque " << (unordered - starts.begin()) << " de la traza va antes en el lote";
         RecordProperty("blocks" + std::to_string(f), static_cast<int>(blocks));
     }
 }

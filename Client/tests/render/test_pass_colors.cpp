@@ -1,5 +1,6 @@
 #include "Render/Models/PassColors.h"
 
+#include "Render/Models/Shine.h"
 #include "Render/SpriteVertex.h"
 
 #include <gtest/gtest.h>
@@ -8,7 +9,10 @@
 
 #include <chrono>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <numbers>
+#include <optional>
 #include <ratio>
 
 // Client::Render::Models::ShineColorOf, MetalFactorOf, SetColorOf y ExcellentColorAt: el color de
@@ -19,8 +23,11 @@ namespace
 using Client::Render::Color;
 using Client::Render::Models::ExcellentColorAt;
 using Client::Render::Models::MetalFactorOf;
+using Client::Render::Models::PassHiddenMesh;
+using Client::Render::Models::SetAlphaAt;
 using Client::Render::Models::SetColorOf;
 using Client::Render::Models::ShineColorOf;
+using Client::Render::Models::ShinePass;
 
 void ExpectColor(const Color& color, float red, float green, float blue)
 {
@@ -64,5 +71,45 @@ TEST(PassColorsTest, TheExcellentColorPulses)
     EXPECT_NEAR(brightest.red, 1.0f, 1e-5f);
     EXPECT_NEAR(brightest.green, 0.3f, 1e-5f);
     EXPECT_NEAR(brightest.blue, 0.0f, 1e-5f);
+}
+
+// 0x60b3d0 llama al pase de set con el alpha sin(0,001 · T) · 0,5 + 0,4.
+TEST(PassColorsTest, TheSetAlphaPulses)
+{
+    EXPECT_FLOAT_EQ(SetAlphaAt(std::chrono::milliseconds{0}), 0.4f);
+    EXPECT_FLOAT_EQ(SetAlphaAt(std::chrono::milliseconds{250}), std::sin(0.25f) * 0.5f + 0.4f);
+}
+
+// La malla que 0x60b130 (los pases 0x48 y 0x44) y 0x60b300 (0x240, 0x1040 y el set) le pasan a
+// RenderBody como la oculta: la 1 de 0xc17 y 0x226 y la 0 de 0x227 en todos, y la 2 de 0x619 solo
+// en los de 0x60b130. Las demás, ninguna, aunque su objeto oculte una.
+TEST(PassColorsTest, SomeItemsHideAMeshInTheirPasses)
+{
+    for (const ShinePass pass :
+         {ShinePass::Chrome, ShinePass::Shiny, ShinePass::Chrome2, ShinePass::Chrome3, ShinePass::Chrome4})
+    {
+        EXPECT_EQ(PassHiddenMesh(0xc17, pass, -1), std::optional<std::size_t>{1});
+        EXPECT_EQ(PassHiddenMesh(0x226, pass, -1), std::optional<std::size_t>{1});
+        EXPECT_EQ(PassHiddenMesh(0x227, pass, -1), std::optional<std::size_t>{0});
+        EXPECT_EQ(PassHiddenMesh(0x212, pass, 2), std::nullopt);
+    }
+    EXPECT_EQ(PassHiddenMesh(0x619, ShinePass::Chrome, -1), std::optional<std::size_t>{2});
+    EXPECT_EQ(PassHiddenMesh(0x619, ShinePass::Shiny, -1), std::optional<std::size_t>{2});
+    EXPECT_EQ(PassHiddenMesh(0x619, ShinePass::Chrome2, 2), std::nullopt);
+    EXPECT_EQ(PassHiddenMesh(0x619, ShinePass::Chrome4, 2), std::nullopt);
+}
+
+// 0x60b130 les pasa el +0x58 del objeto a 0x231, 0x81c y 0xe22 y a 0x61a..0x61f; 0x60b300, no.
+TEST(PassColorsTest, SomeItemsHideTheMeshOfTheirObjectInTheShinePasses)
+{
+    for (const std::uint16_t model :
+         {std::uint16_t{0x231}, std::uint16_t{0x81c}, std::uint16_t{0xe22}, std::uint16_t{0x61a}, std::uint16_t{0x61f}})
+    {
+        EXPECT_EQ(PassHiddenMesh(model, ShinePass::Chrome, 1), std::optional<std::size_t>{1}) << model;
+        EXPECT_EQ(PassHiddenMesh(model, ShinePass::Shiny, 2), std::optional<std::size_t>{2}) << model;
+        EXPECT_EQ(PassHiddenMesh(model, ShinePass::Shiny, -1), std::nullopt) << model;
+        EXPECT_EQ(PassHiddenMesh(model, ShinePass::Chrome4, 1), std::nullopt) << model;
+    }
+    EXPECT_EQ(PassHiddenMesh(0x620, ShinePass::Chrome, 1), std::nullopt);
 }
 } // namespace

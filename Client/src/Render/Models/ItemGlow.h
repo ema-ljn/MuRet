@@ -37,4 +37,11 @@ inline constexpr std::uint8_t DefaultGlowDetail = 4;
 // Los niveles 3 a 6 laten con DAT_07d36ba8 en el original: acá, el color sin latir (P-C18).
 [[nodiscard]] ItemGlow ItemGlowOf(std::uint8_t level, bool excellent, bool ancient,
                                   std::uint8_t detail = DefaultGlowDetail);
+
+// El nivel con que 0x60b3d0 dibuja las saetas (0xa19) y las flechas (0xa21): el 0 queda en 0 y los
+// demás van a 2 · nivel + 1. De 14 para arriba, ItemGlowOf no da pases (LAB_0060cb0f).
+[[nodiscard]] constexpr std::uint8_t QuiverGlowLevel(std::uint8_t level)
+{
+    return level == 0 ? std::uint8_t{0} : static_cast<std::uint8_t>(2 * level + 1);
+}
 } // namespace Client::Render::Models

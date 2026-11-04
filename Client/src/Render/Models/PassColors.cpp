@@ -1,6 +1,7 @@
 #include "Render/Models/PassColors.h"
 
 #include "Core/IClock.h"
+#include "Render/Models/Shine.h"
 #include "Render/SpriteVertex.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -9,7 +10,9 @@
 #include <array>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <ratio>
 #include <span>
 
@@ -263,5 +266,45 @@ Color ExcellentColorAt(Core::Duration clock)
     // 0,002 y 0,3 como los floats de 0x6b89bc y 0x6b89dc.
     const auto k = static_cast<float>((std::sin(milliseconds * static_cast<double>(0.002f)) + 1.0) * 0.5);
     return Color{k, k * 0.3f, 1.0f - k, 1.0f};
+}
+
+float SetAlphaAt(Core::Duration clock)
+{
+    const double milliseconds = std::chrono::duration<double, std::milli>(clock).count();
+    // 0,001, 0,5 y 0,4 como los floats de 0x6b89c8, 0x6b882c y 0x6b87b4.
+    return static_cast<float>(std::sin(milliseconds * static_cast<double>(0.001f)) * 0.5 + static_cast<double>(0.4f));
+}
+
+std::optional<std::size_t> PassHiddenMesh(std::uint16_t model, ShinePass pass, std::int16_t objectHidden)
+{
+    const bool shines = pass == ShinePass::Chrome || pass == ShinePass::Shiny;
+    switch (model)
+    {
+    case 0xc17:
+    case 0x226:
+        return 1;
+    case 0x227:
+        return 0;
+    case 0x619:
+        // 0x60b130 pone el +0x58 del objeto en 2 para ese RenderBody (y en −1 después); 0x60b300 no
+        // tiene el caso.
+        return shines ? std::optional<std::size_t>{2} : std::nullopt;
+    case 0x231:
+    case 0x81c:
+    case 0xe22:
+    case 0x61a:
+    case 0x61b:
+    case 0x61c:
+    case 0x61d:
+    case 0x61e:
+    case 0x61f:
+        if (shines && objectHidden >= 0)
+        {
+            return static_cast<std::size_t>(objectHidden);
+        }
+        return std::nullopt;
+    default:
+        return std::nullopt;
+    }
 }
 } // namespace Client::Render::Models

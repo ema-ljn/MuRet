@@ -16,6 +16,7 @@ namespace
 using Client::Render::Models::GlowPass;
 using Client::Render::Models::ItemGlow;
 using Client::Render::Models::ItemGlowOf;
+using Client::Render::Models::QuiverGlowLevel;
 using Client::Render::Models::ShinePass;
 
 std::vector<GlowPass> Shines(std::initializer_list<ShinePass> passes)
@@ -85,5 +86,16 @@ TEST(ItemGlowTest, ExcellentAndAncientAreExclusive)
     ASSERT_EQ(both.size(), 2u);
     EXPECT_EQ(both[0], GlowPass{ShinePass::Chrome});
     EXPECT_FALSE(both[1].shine.has_value());
+}
+// 0x60b3d0 con las saetas (0xa19) y las flechas (0xa21): el nivel 0 queda en 0 y los demás van a
+// 2 · nivel + 1; de 14 para arriba, sin pases (LAB_0060cb0f).
+TEST(ItemGlowTest, TheQuiverGlowsAtTwiceItsLevelPlusOne)
+{
+    EXPECT_EQ(QuiverGlowLevel(0), 0);
+    EXPECT_EQ(QuiverGlowLevel(3), 7);
+    EXPECT_EQ(QuiverGlowLevel(5), 11);
+    EXPECT_EQ(QuiverGlowLevel(13), 27);
+    EXPECT_TRUE(ItemGlowOf(27, false, false).passes.empty());
+    EXPECT_FLOAT_EQ(ItemGlowOf(27, false, false).baseFactor, 1.0f);
 }
 } // namespace

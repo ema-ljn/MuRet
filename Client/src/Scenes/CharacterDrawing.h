@@ -20,7 +20,8 @@
 // (0x60b3d0, Render/Models/ItemGlow.h), cada malla con su textura y la mezcla de 0x4ecc30.
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El modelo en el binario" y "La selección
 // de personaje"; el plan de la CL6 (CL6.3). Sin la luz por vértice (en la selección el personaje va
-// con un color por malla), sin el contorno bajo el mouse (P-C18) y sin el color de 0x609640 (P-C14).
+// con un color por malla), sin el color de 0x609640 (P-C14) y con las armas siempre en la mano: la
+// zona segura que las manda a la espalda es de la CL7.
 namespace Client::Scenes
 {
 // Los modelos que pide el dibujo: los del personaje y los de sus ítems, con su esqueleto y el slot
@@ -67,12 +68,21 @@ inline constexpr Render::TextureSlot MetalTextureSlot{0x620};
 // 0x12f + la piel, y la oculta (0x12d) no se dibuja (06 § El modelo en el binario).
 [[nodiscard]] std::optional<Render::TextureSlot> MeshSlotOf(Render::TextureSlot assigned, std::uint8_t characterClass);
 
-// 0x50ba30: el cuerpo posado con `body` y la cabeza, las cinco partes y la cabeza de la apariencia,
-// las manos, las alas y la mascota que se dibuja (Q-C98). Cada malla va con su textura, opaca o, con
-// una OZT (de cuatro componentes), con la mezcla normal, y el color de la luz por el factor de su
-// nivel; después, sus pases de brillo, aditivos. Con `outlined`, cada una de las seis partes (la
-// cabeza también) lleva antes el contorno de 0x60cf70; lo que cuelga, no. Un modelo que la biblioteca
-// no tiene no se dibuja.
+// 0x50ba30: el cuerpo posado con `body` y la cabeza; la sombra; las cinco partes de las botas al casco
+// y la cabeza; la espalda, las alas y la mascota que se dibuja (Q-C98); y las manos. Cada modelo va
+// pase por pase (RenderBody): cada malla con su textura, opaca o, con una OZT (de cuatro
+// componentes), con la mezcla normal, y el color de la luz por el factor de su nivel; después, sus
+// pases de brillo, aditivos. Con `outlined`, cada una de las seis partes lleva antes el contorno de
+// 0x60cf70; lo que cuelga, no. Un modelo que la biblioteca no tiene no se dibuja.
+// Lo que el objeto le pasa a RenderBody (Render/Models/ObjectState.h): en las partes, el del personaje,
+// con la luz que escriben la clase 4 en el casco y 0x60b3d0 por el modelo; en lo que cuelga, el que
+// 0x509340 le arma con 0x607b60. El script de la textura de cada malla (0x4ef0c0 y 0x4ecc30): con H no
+// se dibuja; con R pasa su índice como el blendMesh, y la malla cuya textura es el blendMesh (todas,
+// con −2) va aditiva con su textura y por la luz; con N, o si 0x60ff50 la marca, no brilla; S y el
+// blendMesh corren las UV con la U y la V del objeto. La clase 4 lleva sus cascos con máscara con el
+// MaskHelmMale de cada uno. Los casos por modelo de 0x60b3d0 que alcanza un personaje: la malla que
+// algunos ítems ocultan en sus pases, el cromo de Spear10 antes y el set que se apaga malla a malla.
+// Las saetas de la izquierda o las flechas de la derecha van a la espalda, del hueso de las alas.
 void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
                    Core::Duration frameClock);
 } // namespace Client::Scenes

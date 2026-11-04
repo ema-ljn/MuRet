@@ -28,4 +28,11 @@ BoneTransform AttachmentRoot(const BoneTransform& parent, const glm::vec3& offse
     root[3] += VectorRotate(offset, parent);
     return root;
 }
+
+BoneTransform PlacedRoot(const BoneTransform& parent, const HangingPlacement& placement)
+{
+    BoneTransform local = AngleMatrix(placement.angles);
+    local[3] = placement.translation;
+    return ConcatTransforms(parent, local);
+}
 } // namespace Client::Render::Models

@@ -483,6 +483,39 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   `ONE/ONE` sin culling, máscara ni niebla, `0x620b10` `ZERO/ONE_MINUS_SRC_COLOR`, `0x620b90`
   `ONE_MINUS_SRC_COLOR/ONE`, `0x620c10` la normal sin máscara ni alpha test y `0x620c90`
   `ZERO/SRC_COLOR`.
+- **El script en un personaje** (CL6.3 PR F, *estático*). `RenderBody` recibe de su objeto cinco
+  valores: `+0x58` (la malla que no dibuja), `+0x64` (el `blendMesh`), `+0x68` (su luz) y `+0x6c` y
+  `+0x70` (U y V). `0x511290` arma el del jugador con −1, −1, 1, 0 y 0, y `0x60b3d0`, `0x60b130`,
+  `0x60b300`, `0x609640` y el contorno (`0x60cd60`) se los pasan; lo que cuelga lleva otro objeto
+  (abajo, "Lo que cuelga"). Así, en cada pase:
+  - una malla con `H`, o la del `+0x58` del objeto, no se dibuja (`RenderBody` no llama a
+    `0x4ecc30`);
+  - `RenderBody` le pasa a `0x4ecc30` el `blendMesh` del objeto o, con `R`, el índice de la malla
+    (`local_8`, que vuelve al del objeto en cada malla), y `0x4ecc30` lo compara con **su textura**
+    (`+2`): la malla va por esa rama si son iguales o si el `blendMesh` es menor que −1 (todas). En
+    las 32 mallas `R` de `Player\` y de `Item\` del laboratorio, la textura es la de su índice. Esa
+    rama va antes que la de `0x2` y la de `0x40`: en el pase base, en el `0x42` y en el contorno, la
+    malla va con su textura, `0x620a90` (aditiva, sin escribir la profundidad) y el color por la luz
+    del `blendMesh`, aunque sea de cuatro componentes. Los pases de brillo van antes en `0x4ecc30` y
+    no cambian, ni su color: el `0x240` y el `0x1040` van con el color base, sin esa luz. En el
+    laboratorio son 17 de `Player\`, el pelo de los cascos (`hair_R.jpg`: `HelmMale26` a `29`,
+    `HelmClass05`, `HDK_HelmMale05` y los cinco `MaskHelmMale`), `FShoots_R` de `HelmMale25` y
+    `PantMale25` y `lowerTest_R` de los cuatro `Test20`, y 15 de `Item\` (`Bow18` a `20`, `Mace08` y
+    `12`, `Staff11` y `12`, `Sword20`, `Wing05` y `06`, `shield17`, `spear11` y `skillScroll`);
+  - con `N`, o con el `+0` de `0x60ff50`, no hay pases de brillo; el `0x42` sí;
+  - con U o V distintos de 0, `0x4ecc30` se los suma a las UV (`local_5`) de la malla cuyo **índice**
+    es el `blendMesh` que recibe (con `R`, la suya), de la que tiene `S` y de la de `modelo + 0x88`
+    (−1, salvo en el pase del chrome de `Spear10`), en los pases con textura; y a las de todas en el
+    modo `0x1000` (el `0x1040`) y el `0x8000`. En un jugador U y V son 0. La única malla con `S` del
+    laboratorio es la de `Item\Quest03`.
+
+  La luz del objeto del jugador la escriben dos: `0x50ba30` en la parte del casco de la clase 4
+  (abajo) y `0x60b3d0` por el modelo que dibuja, antes de sus pases y después del contorno:
+  sin(0,001 · T) · 0,4 + 0,6 con `PantMale25` y `HelmMale25` (`0x142a` y `0x102a`, los de los
+  `FShoots_R`) y 1 con `HelmMaleTest20`, `GloveMaleTest20` y `BootMaleTest20` (`0x1025`, `0x1625` y
+  `0x1825`). Nadie más la vuelve a 1, así que queda de una parte a la siguiente y de un frame al
+  otro. MuRet la recorre en el orden del lazo y empieza cada frame con la que dejó el último que la
+  escribe, con el reloj de este (o 1).
 - **Los pases de brillo.** No corren si la malla tiene el byte 3 del script (`N`) o su byte `+0`
   en 1 (`0x4ed07a`..`0x4ed092`): `0x60ff50` lo prende al final (`0x6117fd`..`0x611847`) en cinco
   mallas de ítems, la 1 de `Spear01`, `Sword11`, `Mace07` y `MagicBox07` y la 2 de `Staff07`, que
@@ -510,6 +543,14 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   `0x1c30`. Lo que cuelga no lleva el set (`0x509340` le pasa 0). **Verificado:** las tres tablas
   salen de emular las tres funciones sobre el `main.exe` para cada modelo (`Render/Models/
   PassColors`), y dan el (0,75; 0,65; 0,5) de las Male17 y el (1; 0,5; 0) de `Sword17` de la traza.
+  El de set va con el alpha sin(0,001 · T) · 0,5 + 0,4 (`0x60b3d0`), que nunca llega a 0,99: cada
+  malla que dibuja el pase multiplica en el lugar el color por él, y la k-ésima va por a^k (Q-C95,
+  CL6.3 PR F, *estático*). `0x609560` no mira ese alpha. Y `0x60b130` (los `0x44` y `0x48`) y
+  `0x60b300` (`0x240`, `0x1040` y el de set) le pasan a `RenderBody` una malla oculta por ítem: la 1
+  de `0xc17` y `0x226` y la 0 de `0x227` en todos; en los de `0x60b130`, la 2 de `0x619` (`Mace08`:
+  pone `+0x58` en 2 y después en −1) y el `+0x58` del objeto con `0x231`, `0x81c`, `0xe22` y `0x61a` a
+  `0x61f` (en lo que cuelga, 2, 1, 2 y −1, de `0x607b60`); las demás, −1. El `0x42` del excelente,
+  −1.
   Los slots `0x5fc`, `0x5c0` y `0x620` los sube `0x61ccb0` en su avance 0 y nadie los suelta:
   `Effect\Shiny01` con filtro y sin repetir, `Effect\Chrome01` con filtro y repitiendo, y
   `Effect\Chrome02` sin filtro ni repetir (en MuRet, `GlowTextureSet`, que sube `GameModels`).
@@ -522,7 +563,20 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   la 141 con `glTexCoord`); las otras cinco, *estáticas*.
 - **Cuántos pases: el nivel.** `0x60b3d0` saca el nivel de `(arg >> 3) & 0xf` (con casos por
   modelo) y lo recorta a 2 · `DAT_006c9dcc` + 5 si ese byte de las opciones (4 en la `.data`; lo
-  escriben `0x623e70` y `0x644730`) es menor que 4. Con L la luz del personaje:
+  escriben `0x623e70` y `0x644730`) es menor que 4. De los casos por modelo, a un personaje le tocan
+  las saetas y las flechas (`0xa19` y `0xa21`: el 0 queda en 0 y L va a 2L + 1, así que de +7 para
+  arriba no brillan) y las alas `0x1a12` a `0x1a18` y la capa `0x1c30` (a 0); los demás (`0x1c15`,
+  `0x1c1c`, los de `0x1a19` a `0x1a31`, `0x1e1e` en adelante y `0x223a` a `0x224a`) son de cosas que el
+  personaje no lleva o no dibuja. Hay también casos por el **tipo del objeto** (`+2`): en las partes
+  es el del personaje, pero `0x509340` arma para lo que cuelga un objeto con el modelo de su ítem.
+  De lo que alcanza un personaje: `0x81b` (`Spear10`), antes de los pases, `RenderBody(2)` con el
+  `0x5c0` forzado, el color (0,5; 0,5; 1,5) y `modelo + 0x88` en 0, con que `0x4ecc30` le corre a la
+  malla 0 las UV con la V de su objeto, y después lo de siempre (`0x60b5a1`..`0x60b5e5`; con
+  `GL_LEQUAL` el pase base lo tapa, salvo donde mezcla); y la luz del objeto (`+0x68`, en
+  `0x60c5c0`) de `Wing05` (`0x1a16`, sin(0,001 · T) + 1,1), `Wing06` (`0x1a17`, (sin(0,001 · T) + 1)
+  · 0,25) y `Staff12` (`0xc1d`, la de `0x607b60`). `Wing07` (`0x1a18`) suelta partículas (CL8).
+  Cada pase es un `RenderBody` sobre todas las mallas del modelo, uno detrás del otro. *Estático*
+  (CL6.3 PR F). Con L la luz del personaje:
 
   | Nivel | Color base | Pases |
   | --- | --- | --- |
@@ -557,9 +611,54 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   (`VectorRotate` del desplazamiento por el hueso, por la escala, y el hueso al global
   `0x68c4a1c`); con la bandera, un `AngleMatrix` por modelo encadenado. Las avanza con `0x4ec200`
   (la velocidad de la parte; el arma, la de la acción 1 de `Player.bmd`) y las posa con
-  `0x4eb860(…, 1, 1)`, cuya raíz es la de `0x68c4a1c`. El arma va a la espalda, en el lugar de las
-  alas, con el ítem de la mano entre `0x212` y `0x1011` (las condiciones, leídas en parte). Las
-  partes del cuerpo (`0x60cf70`) no se posan: van con las matrices de la pose del cuerpo.
+  `0x4eb860(…, 1, 1)`, cuya raíz es la de `0x68c4a1c`. Con la bandera (el byte bajo del noveno
+  argumento, que `0x50ba30` prende con un modelo de `0x212` a `0x1011`), la raíz es el hueso por un
+  `AngleMatrix` y una traslación de cada modelo (`0x509481`..`0x5095e2`): (0, 20, 180) y (−10, 8, 40)
+  los de `0xa1a` a `0xa20`, `0xa22`, `0xa24` y `0xa25`; (110, 180, 90) y (−10, 5, −10) `0xc1b`;
+  (−60, 0, −80) y (−5, 20, 0) `0xa26`; (70, 0, 90) con (−10, 5, 10) los demás de `0xa12` a `0xc11` y
+  `0xc1a`, y con (−20, 5, 40) el resto. `0x50ba30` usa ese camino para la espalda, del hueso de las
+  alas (`+0x2fd` en 47) y con su lugar: con las armas en la mano (`local_20` en 0, como en la
+  selección), las saetas (`0xa19`) de la mano izquierda o, si no, las flechas (`0xa21`) de la
+  derecha; con `local_20` en 1 (`+0x3e2`, las acciones `0x99` a `0xb8`, o las `0x15` y `0x1d` en los
+  mapas 7, `0x18` a `0x1d` y `0x24`; nunca en los 11 a 23), el arco de la izquierda, o la ballesta o el
+  bastón de la derecha (`0x50dd44`). *Estático*; el carcaj lo dibuja MuRet desde la CL6.3 PR F, y lo de
+  `local_20` en 1 va con la zona segura (CL7). Con la acción del personaje (`+0x376`) de `0x84` a
+  `0x86`, el camino con la bandera usa otro lugar por modelo (`0x5093d2`), sin leer (P-C20). El lazo
+  de las partes va de la 5 a la 0 (`0x50d3dc`: las botas, los guantes, el pantalón, la armadura, el
+  casco y la cabeza), y el de las manos (`0x50e6af`), con `local_20` en 0, después de la espalda
+  (`0x50de55`), las alas (`0x50df80`) y la mascota (`0x50dfcf`): lo aditivo no escribe la
+  profundidad, así que el orden se ve. **Verificado** en la traza de la selección: sus bloques van
+  en ese orden, y cada modelo pase por pase (`GoldenCharacterDrawing`, CL6.3 PR F). Las partes del
+  cuerpo (`0x60cf70`) no se posan: van con las matrices de la pose del cuerpo.
+- **El objeto de lo que cuelga.** `0x509340` le arma a cada cosa que cuelga, en cada frame, un objeto
+  con el tipo de su ítem (`0x5093b4`), lo inicializa con `0x607b60` y se lo pasa a `0x60b3d0`. Lo de
+  siempre es el del jugador (−1, −1, 1, 0, 0), y por tipo, con P1 = sin(0,004 · T) · 0,3 + 0,7, P2 =
+  sin(0,004 · T) · 0,2 + 0,8 y P3 = sin(0,004 · T) · 0,2 + 0,9 (los floats de `0x6b89e8`, `0x6b89dc`,
+  `0x6b8a5c`, `0x6b8854`, `0x6b8a38` y `0x6b8a1c`):
+
+  | Tipo | `blendMesh` | Luz | U, V | `+0x58` |
+  | --- | --- | --- | --- | --- |
+  | `Bow07`, `CrossBow06` y `07`, `Staff07` (`0xa18`, `0xa1f`, `0xa20`, `0xc18`) | −2 (todas) | P1 | | |
+  | `Bow17`, `Staff09` (`0xa22`, `0xc1a`) | −2 | P3 | | |
+  | `Sword06`, `Sword14`, `Staff10`, `Helper01` (`0x217`, `0x21f`, `0xc1b`, `0x1c12`) | 1 | | | |
+  | `Sword11`, `Mace07`, `Spear01`, `Shield12` a `14` (`0x21c`, `0x618`, `0x812`, `0xe1d`..`0xe1f`) | 1 | P1 | | |
+  | `Sword15` (`0x220`) | 1 | P1 | U = (rand() % 10) · 0,1 | |
+  | `Mace05` (`0x616`) | 1 | P2 | | |
+  | `Staff08` (`0xc19`) | 1 | (rand() % 11) · 0,1 | | |
+  | `Shield15` (`0xe20`) | 1 | | U y V de rand() % 10 · 0,1 | |
+  | `Staff01` (`0xc12`) | 2 | | | |
+  | `Staff06` (`0xc17`) | 2 | | U y V de rand() % 10 · 0,1 | |
+  | `Staff12` (`0xc1d`) | 2 | P1 | | |
+  | `Mace06`, `Wing01`, `Wing04` y las gemas (`0x617`, `0x1a12`, `0x1a15`, `0x1a1a`..`0x1a1d`, `0x1a26`) | 0 | | | |
+  | `Spear10` (`0x81b`) | | | V = (T % 2000) · −0,0005 | |
+  | `Sword32`, `Mace08`, `Shield17` (`0x231`, `0x619`, `0xe22`) | | | | 2 |
+  | `Spear11` (`0x81c`) | | | | 1 |
+
+  Así lo que cuelga no ve la luz del personaje (ni la de la clase 4): una malla `R` en la mano va
+  por la de su objeto. *Verificado* emulando `0x607b60` sobre el `main.exe` con T = 1000 y 2500
+  (`Render/Models/ObjectState`); en la traza, `Sword17` y `Helper02` tienen el de siempre. El
+  `rand()` es el de todo el cliente: MuRet usa, en cada frame, un `std::minstd_rand` con el reloj de
+  semilla.
   **Verificado** en la traza de la selección (CL6.3,
   `GoldenSkinningTrace.TheSwordAndThePetHangFromTheirBones`): `Sword17` cuelga del hueso 33 sin
   desplazamiento, y `Helper02` del 34 con (20, 0, 0) girado por
@@ -596,8 +695,9 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   casco (`+0x218`), `0x50ba30` pone `objeto + 0x68`, la luz del `blendMesh` que `RenderBody` le
   pasa a `0x4ecc30`, en sin(0,001 · T) · 0,1 + 0,7, y dibuja los cascos `0x1012`, `0x1017`,
   `0x1018`, `0x101a` y `0x101b` con el modelo + `0x328b`, su máscara (`MaskHelmMale01`, `06`, `07`,
-  `09` y `10`), con la piel del casco. MuRet todavía no lo hace, ni dibuja el script de las
-  texturas (el `R` del `blendMesh`, el `H`, el `S` y el `N`): va en el PR F de la CL6.3. *Estático*.
+  `09` y `10`), con la piel del casco. La ven la cabeza y, en el frame siguiente, las partes de antes
+  del casco, salvo donde `0x60b3d0` escribe la suya ("El script en un personaje"); lo que cuelga no,
+  porque lleva su objeto. MuRet lo hace desde la CL6.3 PR F. *Estático*.
 - **Las texturas de un modelo.** `0x60d530(n)` pone el principio de la búsqueda
   (`DAT_07d366b4`) en 0 y el próximo libre (`DAT_07d366b8`) en n; nadie más escribe el principio.
   `0x60d5f0(modelo, carpeta, wrap, filtro, chequear)` busca cada nombre de textura del modelo con

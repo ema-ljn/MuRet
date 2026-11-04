@@ -445,7 +445,15 @@ solo lo lee.
   traza) y las texturas del brillo. Los colores de los pases salen de tres tablas por ítem, que se
   sacaron emulando el binario. Además: el rayo del mouse estirado en y (Q-C109), la luz del
   "héroe", las alas que avanzan, el aviso cuando la sesión falla en la selección, y las mallas
-  rotas.
+  rotas. **La CL6.3 F** (2026-11-04, resuelta por Claude): lo que el dibujo dejaba del original.
+  Entraron el script de cada textura (la `H` no se dibuja, la `R` es aditiva por su luz y la `N` no
+  brilla), la máscara de la clase 4 con su luz que late, la malla que algunos ítems ocultan en sus
+  pases, el cromo de `Spear10`, el set que se apaga malla a malla (corrige el PR E) y el carcaj a la
+  espalda. Después, la revisión adversarial: lo que cuelga lleva su propio objeto (`0x607b60`: arcos
+  y ballestas enteros aditivos, mallas que se corren o se ocultan), la luz del personaje la escriben
+  también algunas partes, y el orden de dibujo es el del original (las botas primero, cada modelo
+  pase por pase, las manos al final), verificado contra la traza. Todo leído en el binario; salvo el
+  orden, ninguna traza lo tiene (P-C20).
 
 ## Conceptos
 
@@ -580,6 +588,7 @@ sesión, junto con los de repaso más viejo.
 | UV que salen de la normal en el mundo y de un reloj: por qué un float de ms deja de contar, y sacar de la traza el valor que no se ve (T entero desde T módulo 10.000 y un seno y un coseno) | CL6.2 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-03 |
 | una sesión que suma estados sin cortar lo que corre en todos (el keepalive con su ritmo), una lista de largo variable que no se lee de más, y un nombre del jugador que no llega ni al log ni a un mensaje de un test | CL6.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
 | correr el programa con los datos reales además de los tests: un modelo falso no encuentra que el original pide las texturas con otra carpeta que la del archivo; sacar las llamadas de un cargador con una emulación y no a ojo, y un mutante equivalente que se nombra en vez de forzar un test | CL6.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
+| un estado que el original guarda en un objeto y reusa (la luz del `blendMesh`, el color que un pase multiplica en el lugar): qué ve la malla siguiente, y cuándo una diferencia de un frame es una decisión y no un bug | CL6.3 | — | pendiente: lo resolvió Claude, falta que lo expliques | 2026-11-04 |
 
 ## Preguntas para olas futuras
 

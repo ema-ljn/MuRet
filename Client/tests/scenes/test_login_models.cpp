@@ -163,8 +163,8 @@ TEST(LoginModelsTest, TheCharacterIsClassFourWithItsSet)
     ASSERT_TRUE(character.leftHand.has_value());
     EXPECT_EQ(character.leftHand->model, 0x1c17);
     EXPECT_EQ(character.leftHand->level, 0);
-    EXPECT_EQ(character.wings, std::optional<std::uint16_t>{0x1c30});
-    EXPECT_EQ(character.pet, std::optional<std::uint16_t>{0x1c16});
+    EXPECT_EQ(character.wings, std::optional<std::uint16_t>{std::uint16_t{0x1c30}});
+    EXPECT_EQ(character.pet, std::optional<std::uint16_t>{std::uint16_t{0x1c16}});
     EXPECT_EQ(character.head, std::nullopt);
 }
 
@@ -210,7 +210,7 @@ TEST(LoginModelsTest, TheActionOnlyChangesInItsWindow)
         EXPECT_TRUE(!action || *action == 0x54 || *action == 0x55);
         seen.insert(action);
     }
-    EXPECT_EQ(seen, (std::set<std::optional<std::uint8_t>>{std::nullopt, 0x54, 0x55}));
+    EXPECT_EQ(seen, (std::set<std::optional<std::uint8_t>>{std::nullopt, std::uint8_t{0x54}, std::uint8_t{0x55}}));
     EXPECT_FALSE(random == untouched);
 }
 
@@ -226,8 +226,8 @@ TEST(LoginModelsTest, TheActionComesFromRandModSix)
         const int remainder = static_cast<int>(copy() % 32768) % 6;
         remainders.insert(remainder);
         const std::optional<std::uint8_t> expected =
-            remainder == 1 ? std::optional<std::uint8_t>{0x54}
-                           : (remainder == 2 ? std::optional<std::uint8_t>{0x55} : std::nullopt);
+            remainder == 1 ? std::optional<std::uint8_t>{std::uint8_t{0x54}}
+                           : (remainder == 2 ? std::optional<std::uint8_t>{std::uint8_t{0x55}} : std::nullopt);
         EXPECT_EQ(LoginCharacterActionAt(std::chrono::milliseconds{2300}, random), expected) << seed;
         EXPECT_TRUE(random == copy) << seed;
     }

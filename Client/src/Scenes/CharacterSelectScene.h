@@ -11,6 +11,7 @@
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Pose.h"
 #include "Render/Pass3D.h"
+#include "Render/TextureSlot.h"
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CreatePreview.h"

@@ -687,7 +687,7 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
                      const Render::Models::AnimationState& state, const Render::Models::ItemGlow& glow)
 {
     const Render::Models::Skeleton* skeleton = frame.models.SkeletonOf(modelId);
-    if (skeleton == nullptr)
+    if (skeleton == nullptr || !Render::Models::HangsAsAModel(modelId))
     {
         return;
     }

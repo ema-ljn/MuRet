@@ -304,7 +304,7 @@ por un script que lee como él, sin bytes de sobra en ninguno):
   que la usa, *inferido*).
 - Los 450.338 triángulos del laboratorio son de tipo 3, y sus índices de vértices, normales y UV
   entran en su malla. Cada padre va antes que su hijo, salvo en `NPC\BloodCastle01.bmd`, donde
-  los huesos 43 y 44 cuelgan del 45 (Q-C106). El más grande es `player\playerTest.bmd`, de
+  los huesos 43 y 44 cuelgan del 45 (Q-C108). El más grande es `player\playerTest.bmd`, de
   2.414.277 bytes, y ningún cifrado trae bytes después de su bloque (*verificado* con `LoadBmd`, CL6.1:
   `GoldenBmd`).
 - De cada acción escribe `+0` (no repite) en 0, las keys en `+8`, el `lock_positions` en `+0xa` y

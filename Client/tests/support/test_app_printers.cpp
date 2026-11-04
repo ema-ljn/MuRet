@@ -54,6 +54,12 @@ TEST(AppPrintersTest, TheStatesThatWaitForTheUiShowTheirNames)
     EXPECT_EQ(::testing::PrintToString(SessionState::WaitingCredentials), "WaitingCredentials");
 }
 
+// El de la orden del GameServer de cerrar el juego (Q-C106).
+TEST(AppPrintersTest, QuitOrderedShowsItsName)
+{
+    EXPECT_EQ(::testing::PrintToString(SessionState::QuitOrdered), "QuitOrdered");
+}
+
 TEST(AppPrintersTest, AResolutionShowsWidthByHeight)
 {
     EXPECT_EQ(::testing::PrintToString(Resolution{1024, 768}), "1024 × 768");

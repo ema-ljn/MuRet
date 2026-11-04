@@ -15,6 +15,7 @@
 #include "Protocol/Connection/Hello.h"
 #include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
+#include "Protocol/Connection/Logout.h"
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
@@ -83,6 +84,7 @@ std::string_view Awaited(SessionState state)
     case SessionState::ConnectingGameServer:
     case SessionState::WaitingCredentials:
     case SessionState::LoggedIn:
+    case SessionState::QuitOrdered:
     case SessionState::Failed:
         break;
     }
@@ -130,14 +132,21 @@ void ServerSession::RegisterGameServerHandlers()
     using Protocol::Connection::HelloSubcode;
     using Protocol::Connection::JoinOpcode;
     using Protocol::Connection::LoginSubcode;
+    using Protocol::Connection::LogoutSubcode;
     [[maybe_unused]] const bool registered =
         m_gameServer.On(JoinOpcode, HelloSubcode, [this](const Network::Packet& packet) { OnGameHello(packet); }) &&
-        m_gameServer.On(JoinOpcode, LoginSubcode, [this](const Network::Packet& packet) { OnLoginResult(packet); });
+        m_gameServer.On(JoinOpcode, LoginSubcode, [this](const Network::Packet& packet) { OnLoginResult(packet); }) &&
+        m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
 }
 
 void ServerSession::Start()
 {
+    if (m_state == SessionState::QuitOrdered)
+    {
+        m_log.Warning("no se vuelve a conectar: el GameServer ordenó cerrar el juego");
+        return;
+    }
     ++m_starts;
     m_failure.reset();
     m_serverList.clear();
@@ -465,6 +474,35 @@ void ServerSession::OnLoginResult(const Network::Packet& packet)
     m_keepalive.Start(now);
 }
 
+// 0x4c2710 no mira el estado ni la escena para el 0: SendMessageA(WM_DESTROY) en 0x4c391b, y el
+// WM_DESTROY cierra el socket con un RST y vacía la cola de paquetes (0x4e8380), y hace
+// PostQuitMessage. Acá se acepta en cualquier estado con el GS, como el original, aunque el GS
+// solo la manda con el login aceptado (su cuenta corre con Connected >= 2). La conexión se cierra
+// sin el Closed, y lo que quede del lote (otro paquete, o el cierre del GS si llegó en la misma
+// lectura) no se recorre (Q-C106).
+void ServerSession::OnLogoutResult(const Network::Packet& packet)
+{
+    const auto result = Protocol::Connection::ReadLogoutResult(packet);
+    if (!result.HasValue())
+    {
+        m_log.Warning("se ignora la orden de salida del GameServer (F1 02): {}", Unreadable);
+        return;
+    }
+    if (result.Value() != Protocol::Connection::LogoutQuitsTheGame)
+    {
+        // 1 es la selección y 2 la lista, que cambian de escena (Q-C79): la CL6 y la CL9. Con otro,
+        // el original no hace nada.
+        m_log.Warning("se ignora la orden de salida del GameServer (F1 02 con {}): MuRet solo sigue la de "
+                      "cerrar el juego, con 0",
+                      result.Value());
+        return;
+    }
+    m_log.Info("el GameServer ordenó cerrar el juego (F1 02 con 0): se cierra la conexión y el juego, sin aviso");
+    m_connection.Close();
+    ++m_generation;
+    SetState(SessionState::QuitOrdered);
+}
+
 // El tick es el de GetTickCount en el original (0x4bee60), y las velocidades van con su ajuste.
 void ServerSession::SendKeepalive(Core::Duration now)
 {
@@ -523,6 +561,7 @@ bool ServerSession::WithConnectServer() const
     case SessionState::WaitingCredentials:
     case SessionState::WaitingLoginResult:
     case SessionState::LoggedIn:
+    case SessionState::QuitOrdered:
     case SessionState::Failed:
         break;
     }

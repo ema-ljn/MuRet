@@ -14,7 +14,6 @@
 #include <cstdint>
 #include <span>
 #include <string>
-#include <string_view>
 #include <vector>
 
 // Client::Data::Text::LoadFilterWords: FilterName.bmd y Filter.bmd (0x549fa0 y 0x549c60), con
@@ -79,16 +78,25 @@ TEST(FilterWordsTest, TheWordsEndAtTheFirstEmptyRecord)
     EXPECT_TRUE(LoadFilterWords(FilterFile({}), FilterNameChecksumKey).Value().empty());
 }
 
-// Un registro lleno, sin cero, es una palabra de 20 bytes; y los 1.000 llenos son 1.000 palabras.
+// Un registro lleno, sin cero, es una palabra de 20 bytes.
 TEST(FilterWordsTest, AFullRecordIsAWordOfTwentyBytes)
+{
+    const auto words = LoadFilterWords(FilterFile({std::string(20, 'w'), "x"}), FilterNameChecksumKey);
+
+    ASSERT_TRUE(words.HasValue());
+    EXPECT_EQ(words.Value(), (std::vector<std::string>{std::string(20, 'w'), "x"}));
+}
+
+// Con los 1.000 llenos, 0x549fa0 sale por el tope (0x54a139) sin guardar la cuenta, que queda en 0:
+// ninguna palabra.
+TEST(FilterWordsTest, ATableWithoutAnEmptyRecordHasNoWords)
 {
     const std::vector<std::string> all(1000, std::string(20, 'w'));
 
     const auto words = LoadFilterWords(FilterFile(all), FilterNameChecksumKey);
 
     ASSERT_TRUE(words.HasValue());
-    ASSERT_EQ(words.Value().size(), 1000u);
-    EXPECT_EQ(words.Value()[999], std::string(20, 'w'));
+    EXPECT_TRUE(words.Value().empty());
 }
 
 // Con otra suma, ChecksumMismatch (el original avisa "File corrupted" y cierra); corto,

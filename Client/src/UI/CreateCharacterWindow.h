@@ -24,6 +24,8 @@
 namespace Client::UI
 {
 inline constexpr std::size_t CreatableClassCount = 5;
+// Lo que copia GetWindowTextA en 0x7798bf8 (tope 0xff, con su cero).
+inline constexpr std::size_t NameBufferSize = 0x100;
 
 struct CreateWindowLayout
 {
@@ -55,7 +57,8 @@ public:
     // Dark Knight (+0x890 en 1) y habilita todas las clases hasta que llegue la lista.
     CreateCharacterWindow(TextureSizes sizes, const Data::Text::TextTable* texts);
 
-    // 0x63d7c0: habilita las clases de la 0 a `creatable` (pkt[4] de la lista), acotado a 4.
+    // 0x63d7c0: habilita las clases de la 0 a `creatable` (pkt[4] de la lista); con 5 o más, las cinco
+    // (el original escribe fuera de los botones: Q-C119).
     void EnableClasses(std::uint8_t creatable);
 
     // 0x63d670(1): el campo vacío. La clase queda la que estaba.
@@ -68,6 +71,10 @@ public:
     [[nodiscard]] std::uint8_t ChosenClass() const;
     // El nombre del campo. Vale hasta el próximo cambio; no va al log.
     [[nodiscard]] std::string_view Name() const;
+    // 0x7798bf8, los 256 bytes donde el OK copia el campo con su cero (GetWindowTextA): detrás pueden
+    // quedar los de un intento anterior más largo, porque solo se vacía al abrir (0x553570). Es lo
+    // que mira 0x447ca0 (Q-C118).
+    [[nodiscard]] std::string_view Buffer() const;
     [[nodiscard]] const Button& ClassButton(std::size_t index) const;
     [[nodiscard]] const Button& OkButton() const;
     // Con la ventana abierta, el campo tiene el teclado.
@@ -77,8 +84,9 @@ public:
     // OK, cancelar, Enter o Esc, en ese orden.
     std::optional<CreateWindowEvent> Step(const Input::InputState& input, App::PixelSize screen);
     // Con un aviso arriba (0x65fc30 le da el mouse a la cabeza): los botones siguen con su estado,
-    // sin el mouse encima y sin clic, y el campo no toma nada.
-    void StepWithoutTheMouse(const Input::InputState& input);
+    // sin el mouse encima y sin clic; el EDIT sigue con el foco de Win32 (nadie se lo saca), así que
+    // lo que se escribe entra al nombre.
+    void StepUnderANotice(const Input::InputState& input);
 
     // 0x66a050: la base negra de alfa 0x80 de toda la pantalla. La vista previa va entre esto y
     // Draw, que no se oscurece.
@@ -90,6 +98,11 @@ public:
 private:
     void Place(App::PixelSize screen);
     void Choose(std::uint8_t characterClass);
+    void TypeInto(const Input::InputState& input);
+    void CopyTheName();
+    void DrawAttributes(Scenes::ITextDrawer& text, App::PixelSize screen) const;
+    void DrawDescription(Scenes::ITextDrawer& text, App::PixelSize screen) const;
+    void DrawTheName(Scenes::ITextDrawer& text, App::PixelSize screen) const;
 
     TextureSizes m_sizes;
     const Data::Text::TextTable* m_texts;
@@ -99,6 +112,7 @@ private:
     Button m_ok;
     Button m_cancel;
     TextField m_name;
+    std::array<char, NameBufferSize> m_buffer{};
     CreateWindowLayout m_layout{};
 };
 } // namespace Client::UI

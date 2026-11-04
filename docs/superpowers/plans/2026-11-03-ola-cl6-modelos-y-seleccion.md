@@ -2452,7 +2452,8 @@ concepto entero. En B2, un commit por concepto:
   si van, manda el `F3 01` y abre el `0x5d`; la respuesta cierra el `0x5d` o vuelve a abrir la
   ventana con el `0x36` o el `0x37`.
 
-32 tests. La suite, 2.021 en verde, con GL y los golden. 32 mutantes a mano:
+32 tests (44 con los de la revisión). La suite, 2.021 en verde antes de la revisión, con GL y los
+golden. 32 mutantes a mano (45 con los 13 de la revisión, todos en rojo):
 - 30 en rojo: 2 reescritos para compilar, y uno vivía hasta su test (los botones de la ventana bajo
   un aviso);
 - 2 equivalentes: el tope de `pkt[4]` a 4, que sobraba (el lazo solo tiene los cinco) y se fue, y
@@ -2468,10 +2469,27 @@ Decisiones, con lo que cuestan si están mal:
   el `_` de cursor): el dibujo del EDIT (`0x468320`) no se leyó entero (P-C16 f). Si está mal, el
   campo se ve un poco distinto.
 - Ruling: la búsqueda de las palabras avanza de a un byte, no de a un carácter de la página de
-  códigos (`_mbclen`). Con los nombres ASCII del campo da lo mismo. Si está mal, con otra página de
-  códigos y un nombre de dos bytes por letra MuRet filtraría algo que el original no.
-- Ruling: los chequeos de símbolos miran solo el nombre, no los restos de un intento anterior que
-  el original encuentra en su buffer (Q-C118). Con ASCII no cambia nada.
+  códigos (`_mbclen`). Con las letras que toma el campo (ASCII y Latin-1, de un byte cada una) da lo
+  mismo. Si está mal, con una página de códigos de dos bytes por letra MuRet filtraría algo que el
+  original no.
+- Ruling: el campo del nombre toma ASCII y las letras de Latin-1 (U+00A0 a U+00FF, que en esa franja
+  son las de CP1252); las de CP1252 de 0x80 a 0x9f y las de otras páginas, no. Si está mal, un
+  jugador con otra página de códigos no puede escribir su nombre como en el original.
+
+**Tras la revisión adversarial de B2** (los dos revisores, sin críticos):
+- **El campo del nombre solo tomaba ASCII** (Importante, del binario): el EDIT de `0x63d670` no
+  filtra, y el original manda "Peña" con su `0xf1`. `TextField` toma Latin-1 en el campo del nombre
+  (`ALatin1FieldTakesTheLettersOfItsPage`, `TheNameTakesLatin1Letters`).
+- **Ningún test miraba la respuesta del `F3 01` con la sesión caída** (Importante, del C++): la
+  guarda estaba, pero un mutante que la sacaba vivía
+  (`ACreationResultWithTheCloseLeavesTheFailureNotice`).
+- Q-C118 se reproduce: la ventana guarda el buffer de `0x7798bf8`, y el costo que decía la decisión
+  ("con ASCII no cambia nada") estaba mal, porque el espacio se escribe.
+- Con un aviso arriba, lo que se escribe sigue yendo al nombre (el EDIT no pierde el foco).
+- Un filtro con los 1.000 registros llenos no filtra nada (Q-C120).
+- Tests que faltaban: el Enter en el paso de la respuesta, `/GMxx` (las dos listas en su lugar), el
+  orden de los chequeos ("GM" es corto) y que el nombre no va al log.
+- Menores: `Draw` en tres partes, un `SetBlend` de más, y comentarios.
 
 ## Qué no se prueba en CI, y cómo se cubre
 

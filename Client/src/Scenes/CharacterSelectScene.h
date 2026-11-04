@@ -50,14 +50,15 @@ public:
     // Como 0x633f20: su juego de texturas (0x61ca30) y el de las ventanas, ninguno elegido, y el
     // F3 00 (ServerSession::RequestCharacterList).
     Core::Expected<void, std::string> Enter() override;
-    // 0x6342c0: nada hasta la lista; después, los personajes de la lista y su avance, la respuesta del
-    // borrado, el aviso si está abierto, y si no, la barra, el doble clic que entra, el clic que elige
-    // y Enter. Con el mouse sobre la barra o un aviso abierto (+0x8de8), ni el clic ni el doble clic,
-    // y el contorno se queda en el último; un aviso que se abre en el paso se atiende desde el que
-    // sigue.
+    // 0x6342c0: nada hasta la lista; después, los personajes de la lista y su avance, las respuestas
+    // del borrado y de crear, y la UI de arriba hacia abajo: el aviso si está abierto (con la ventana
+    // de crear debajo, que sigue tomando lo que se escribe); si no, la ventana de crear, que es modal;
+    // si no, la barra, el doble clic que entra, el clic que elige y Enter. Con el mouse sobre la
+    // barra o una ventana abierta (+0x8de8), ni el clic ni el doble clic, y el contorno se queda en el
+    // último; un aviso que se abre en el paso se atiende desde el que sigue.
     void Step(const Input::InputState& input) override;
     // 0x634680 sin el terreno, los objetos ni los efectos: con sesión, nada hasta la lista; el de bajo
-    // el mouse, con el contorno. Después, la UI: la barra y el aviso.
+    // el mouse, con el contorno. Después, la UI: la barra, la ventana de crear y el aviso.
     void Render(SceneCanvas& canvas, float alpha) override;
     // Suelta sus slots.
     void Leave() override;

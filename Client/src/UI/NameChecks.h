@@ -29,18 +29,21 @@ struct NameFilters
 
 // 0x622c70: alguna palabra de FilterName.bmd en el nombre sin espacios; alguna de Filter.bmd en el
 // nombre sin espacios, salvo que empiece con '/' (0x622b40 con 1); o, en el nombre tal cual, el
-// espacio, el punto, los "\xa1\xa1", "\xa1\xa4" y "\xa1\xad" de GB2312, "Webzen", "WebZen",
+// espacio, el punto, los de doble byte "\xa1\xa1", "\xa1\xa4" y "\xa1\xad", "Webzen", "WebZen",
 // "webzen", "WEBZEN" o los textos 457 y 458. Como el espacio ya filtra, sacar los espacios antes
 // no cambia el resultado.
 [[nodiscard]] bool IsFilteredName(std::string_view name, const NameFilters& filters);
 
-// 0x447ca0, con el parche de NOPs de este binario: mira los bytes 0, 2, 4… mientras el de dos más
-// adelante no sea 0, y uno es malo si es menor que 0x21, está de 0x7f a 0xaf o es mayor que 0xf7.
-// El original lee el buffer de la ventana, donde detrás del nombre puede quedar el de un intento
-// anterior más largo; MuRet mira solo `name` (detrás, ceros).
+// 0x447ca0, con el parche de NOPs de este binario: mira los bytes 0, 2, 4… de `buffer` mientras el
+// de dos más adelante no sea 0 (detrás del final, ceros), y uno es malo si es menor que 0x21, está de
+// 0x7f a 0xaf o es mayor que 0xf7.
 [[nodiscard]] bool HasForbiddenSymbol(std::string_view name);
 
-// En el orden de 0x63d990: menos de 4 bytes, el aviso 0x79; filtrado, el 0x72; con un byte malo, el
-// 0x7a; si no, nada: se manda.
+// En el orden de 0x63d990: menos de 4 bytes, el aviso 0x79; filtrado, el 0x72; con un byte malo en
+// `buffer` (0x7798bf8, donde está el nombre y lo que quedó detrás: Q-C118), el 0x7a; si no, nada: se
+// manda.
+[[nodiscard]] std::optional<NoticeId> NoticeOfNewName(std::string_view name, std::string_view buffer,
+                                                      const NameFilters& filters);
+// Lo mismo con el nombre solo, sin nada detrás.
 [[nodiscard]] std::optional<NoticeId> NoticeOfNewName(std::string_view name, const NameFilters& filters);
 } // namespace Client::UI

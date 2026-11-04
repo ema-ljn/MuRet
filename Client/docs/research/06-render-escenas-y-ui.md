@@ -1592,8 +1592,10 @@ Las clases van con el cuadro 3 marcadas y el 0 deshabilitadas, y con los textos 
 rótulo. `pkt[4]` de la lista es la clase más alta que se puede crear: `0x63d7c0` habilita de la 0 a
 ella. Con 5 o más escribe fuera de los cinco botones (Q-C119). El armado marca al Dark Knight
 (`+0x890` en 1): con `pkt[4]` en 0 queda marcado y deshabilitado, y el OK lo crea igual. La clase no
-vuelve a la 1 al cerrar y abrir. El campo, sin `ES_PASSWORD` y con tope de 10 bytes, se vacía al
-abrir y al cerrar. El dibujo, después de la base y de la vista previa (que no se oscurece): el fondo
+vuelve a la 1 al cerrar y abrir. El campo, sin `ES_PASSWORD`, sin filtro y con tope de 10 bytes,
+se vacía al abrir y al cerrar; toma los bytes de la página de códigos de Windows (en Occidente,
+CP1252: "Peña" se manda con su `0xf1`), y como nadie le saca el foco, sigue tomando lo que se escribe
+con un aviso arriba. El dibujo, después de la base y de la vista previa (que no se oscurece): el fondo
 del nombre, las dos cajas, los siete botones, los atributos (los valores de `0x6d657c..0x6d659c` en
 `0xff00b4ff` y los rótulos 1701 a 1704 y 1738 en blanco, de a 17 desde ay + 10), la descripción
 (el texto 1705 + clase en dos renglones de menos de 75 bytes, en (x + 10, y + 367 + 19 j)) y el
@@ -1610,7 +1612,9 @@ campo. Con este `Text.bmd` los textos 1655 a 1799 están vacíos: se ven solo lo
    que `0x21`, está de `0x7f` a `0xaf` o es mayor que `0xf7` (Q-C118): el `0x7a`;
 4. si pasa: el `F3 01` con el nombre y la clase, cierra la ventana y abre el `0x5d`.
 
-Un aviso del nombre se abre arriba: su OK lo cierra y la ventana queda con el nombre. La respuesta
+El OK copia el campo con su cero en `0x7798bf8` (`GetWindowTextA`), que solo se vacía al abrir: detrás
+del nombre quedan los bytes de un intento anterior más largo, y `0x447ca0` los mira (Q-C118). Un
+aviso del nombre se abre arriba: su OK lo cierra y la ventana queda con el nombre. La respuesta
 (`0x4c2290`): con 1 se cierra el `0x5d` y el nuevo entra a la lista; con 0 o 2, la ventana vuelve a
 abrirse, vacía, con el `0x36` o el `0x37` arriba.
 

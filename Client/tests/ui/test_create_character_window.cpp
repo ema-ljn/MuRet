@@ -18,6 +18,8 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 // Client::UI::CreateCharacterWindow: la ventana de crear de la selección (+0x8498: 0x63d1a0,
@@ -202,7 +204,7 @@ TEST(CreateCharacterWindowTest, UnderANoticeTheButtonsLetGoOfTheMouse)
     static_cast<void>(StepOnce(window, input));
     ASSERT_EQ(window.OkButton().Frame(), 1);
 
-    window.StepWithoutTheMouse(input);
+    window.StepUnderANotice(input);
 
     EXPECT_EQ(window.OkButton().Frame(), 0);
 }
@@ -305,5 +307,54 @@ TEST(CreateCharacterWindowTest, TheDarkLordHasCommandAndTwoLines)
                                                longLine + " " + std::string(13, 'b'), std::string(17, 'b'), "_"}));
     EXPECT_EQ(text.texts[4].y, 87 + 78);
     EXPECT_EQ(text.texts[7].y, 37 + 355 + 12 + 19);
+}
+
+// El nombre toma las letras de Latin-1 (el EDIT no filtra): "Peña" es "Pe\xf1a".
+TEST(CreateCharacterWindowTest, TheNameTakesLatin1Letters)
+{
+    CreateCharacterWindow window(LabSizes(), nullptr);
+    window.Open();
+    InputState input;
+    TypeText(input, "Pe\xc3\xb1"
+                    "a");
+    static_cast<void>(StepOnce(window, input));
+    EXPECT_EQ(window.Name(), "Pe\xf1"
+                             "a");
+}
+
+// El buffer de 0x7798bf8: el OK copia el campo con su cero (GetWindowTextA) y lo de detrás queda; se
+// vacía solo al abrir (0x553570).
+TEST(CreateCharacterWindowTest, TheBufferKeepsWhatWasBehindTheName)
+{
+    CreateCharacterWindow window(LabSizes(), nullptr);
+    window.Open();
+    InputState input;
+    TypeText(input, "abcdef g");
+    static_cast<void>(StepOnce(window, input));
+    TapKey(input, Key::Enter);
+    ASSERT_EQ(StepOnce(window, input), std::optional{CreateWindowEvent::Submitted});
+    TypeText(input, "\b\b\b");
+    static_cast<void>(StepOnce(window, input));
+    TapKey(input, Key::Enter);
+    ASSERT_EQ(StepOnce(window, input), std::optional{CreateWindowEvent::Submitted});
+
+    EXPECT_EQ(window.Buffer().substr(0, 9), std::string_view("abcde\0 g\0", 9));
+    window.Open();
+    EXPECT_EQ(window.Buffer().substr(0, 9), std::string_view("\0\0\0\0\0\0\0\0\0", 9));
+}
+
+// Con un aviso arriba, el EDIT sigue con el foco de Win32: lo que se escribe entra al nombre, sin
+// clic en los botones.
+TEST(CreateCharacterWindowTest, UnderANoticeTheNameStillTakesTheTyping)
+{
+    CreateCharacterWindow window(LabSizes(), nullptr);
+    window.Open();
+    InputState input;
+    TypeText(input, "abc");
+    window.StepUnderANotice(input);
+    input.ConsumeEdges();
+    TypeText(input, "\bx");
+    window.StepUnderANotice(input);
+    EXPECT_EQ(window.Name(), "abx");
 }
 } // namespace

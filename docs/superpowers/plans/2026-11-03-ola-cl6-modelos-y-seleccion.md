@@ -2405,11 +2405,37 @@ Decisiones, con lo que cuestan si están mal:
   Si está mal, falta ese texto a la izquierda de la franja.
 - Ruling: cancelar el `0x5f` cierra el campo con el aviso (Q-C116). Si está mal, MuRet no
   reproduce un EDIT invisible que se queda con el teclado.
-- Ruling: con el aviso abierto, la barra no se atiende (el aviso tiene el mouse, Q-C84). Si la
-  sesión deja de esperar el borrado sin respuesta, el `0x5d` se cierra. Si está mal, en el original
-  los botones de la barra podrían marcar el mouse encima con el aviso abierto.
+- Ruling: el `0x5d` se abre solo si la sesión quedó esperando la respuesta. El original lo abre
+  siempre, pero la sesión de MuRet solo no espera fuera de la elección, un estado que el original no
+  tiene. Si está mal, en ese caso no se ve el "espere".
 - Ruling: sin sesión (sin servidor), la escena dibuja la barra, con crear habilitado y nada que
   hacer. Si está mal, esa escena de prueba muestra la barra donde el original no tiene ese caso.
+
+**Tras la revisión adversarial de B1** (dos revisores, uno del C++ y uno contra el binario):
+- **Un personaje creado se podía borrar como del gremio** (Importante, del binario): `0x511290` deja
+  `+0x368` en `0xff` (`0x511ca6`) y la respuesta de crear no lo toca; la entrada de la sesión salía
+  con 0. Arreglado en la sesión (`NoGuildStatus`), con `TheNewOneGoesToItsSlotWithoutEquipment` y
+  `ACreatedOneCanBeDeleted` en rojo antes.
+- **La respuesta del borrado tapaba al `0x70`** (Importante, del C++): con la respuesta y el cierre
+  del GS en la misma lectura, el aviso de la respuesta quedaba arriba y el de la falla se perdía.
+  Ahora, con la sesión caída, queda el `0x70` (`AResultThatComesWithTheCloseLeavesTheFailureNotice`).
+- **Faltaban dos tests** (Importante, del C++): que los que siguen guardan su animación
+  (`TheOthersKeepTheirAnimation`) y que el que se crea en un lugar ocupado lo pisa
+  (`ACreatedOneReplacesTheOneInItsSlot`).
+- El contorno, con el mouse sobre la barra o con un aviso abierto, se queda en el último en vez de
+  irse (del binario: `0x634680` no llama a `0x59ec80` con `+0x8de8`). Cierra P-C19 (c) y cambia el
+  test de la CL6.3 (`WithTheNoticeOpenTheOutlineStaysWhereItWas`).
+- Los botones de la barra sueltan el mouse con un aviso abierto (`SelectionBar::StepWithoutTheMouse`).
+- Un aviso que se abre en un paso se atiende desde el siguiente: un Enter de ese paso no lo cierra
+  antes de que se vea (`TheResultNoticeIsSeenEvenWithAnEnterInItsStep`).
+- El código no se queda en la ventana: cancelar lo borra y `TakeCode` lo da y lo borra.
+- Se fue la rama que cerraba el `0x5d` sin respuesta, a la que no se llegaba.
+- Menores: las precondiciones de `CancellingTheDeletionSendsNothing`, la línea "ahora" del log una
+  sola vez, tres comentarios de tests que habían quedado sobre el test equivocado y los de
+  `Notices.h`.
+
+12 tests más (50 en la B1). La suite, 1.990 en verde. 12 mutantes de la pasada: 11 en rojo y uno
+equivalente en efecto (comparar el nombre de la entrada: la apariencia sale de la clase y el equipo).
 
 ## Qué no se prueba en CI, y cómo se cubre
 

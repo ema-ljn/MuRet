@@ -489,8 +489,9 @@ solo lo lee.
   revisiones de `0x63edf0`, la confirmación con el nombre, el aviso del código (hasta 7 dígitos,
   enmascarados), el `F3 02` y el aviso de la respuesta. La selección sigue la lista de la sesión:
   el que se borra se va y el que se crea entra. Crear y el menú todavía no abren su ventana (la PR
-  B2 y la CL8). 38 tests y 52 mutantes. Falta verlo en pantalla
-  contra el original (P-C16 e).
+  B2 y la CL8). 50 tests y 64 mutantes, con lo que encontró la revisión: el que se crea
+  sale sin gremio, y el contorno se queda en el último con el mouse sobre la barra o con un aviso.
+  Falta verlo en pantalla contra el original (P-C16 e).
 
 ## Conceptos
 

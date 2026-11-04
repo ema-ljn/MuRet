@@ -1524,7 +1524,11 @@ Leída en la CL6.5 (*estático*, y *emulado* el lugar de las ventanas y el armad
 `0x63ec00` la dibuja). Va en x = 22 e y = −ftol(H · −0,945f) − 54, con el producto en la x87 como la
 barra del login pero sin el −11: 399 en 480, 512 en 600, 671 en 768 y 913 en 1024. Mide (W − 44) ×
 54 y no es modal: solo tapa su rectángulo, y con el mouse ahí `+0x8de8` queda en 1 y la escena no
-elige, no hace el doble clic ni el picking. Lleva:
+elige ni hace el doble clic, y `0x634680` no llama a `0x59ec80` (`0x63485b`): `DAT_006c8e30` queda
+con el último que estuvo bajo el mouse, y **el contorno se queda en él**. Lo mismo con un aviso
+abierto, que tiene el mouse; entonces `0x65fc30` le da el mouse solo a la ventana de la cabeza, y
+los botones de la barra siguen con su estado (`0x669f40` corre `0x63c490` en todas), sin el mouse
+encima. Enter no mira `+0x8de8`. Lleva:
 
 | Pieza | Textura (slot) | Tamaño | Lugar |
 | --- | --- | --- | --- |
@@ -1562,6 +1566,10 @@ y + 38; dos, en (+25, +32) y (+25, +51). Los tipos (`0x642bf0`): 0 sin botón; 2
 con el OK en (+209, +72) y el cancelar en (+264, +72). Los textos 1711 a 1716 están vacíos en el
 `Text.bmd` del laboratorio (**verificado**): el `0x83`, el `0x5e`, el `0x5f`, el `0x60`, el `0x72` y
 el `0x36` salen sin texto.
+
+Un personaje que arma `0x511290` sale sin gremio: `0x511ca6` pone su `+0x368` en `0xff`, y la
+respuesta de crear (`0x4c2290`) no lo toca. El que se crea en la sesión se puede borrar sin otra
+lista.
 
 ### Los personajes de la lista
 

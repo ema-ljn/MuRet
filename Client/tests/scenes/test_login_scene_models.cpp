@@ -523,4 +523,49 @@ TEST(LoginSceneModelsTest, TheHorseRearsWithItsRider)
         EXPECT_NEAR(first.position.x, LoginCharacterTransform().position.x, 2.0f);
     }
 }
+
+// El caballo ve la acción del jinete antes de que el jinete avance (0x445230 antes de 0x508f00): en el
+// paso en que termina el gesto (el segundo, fuera de la ventana), el jinete vuelve a la 0x4a después,
+// y el caballo sigue alzado. En el que sigue toma su 0 y avanza 0,3: la pose va un 30 % desde la key
+// del gesto hacia la de parado (0x4eb860 con la acción anterior).
+TEST(LoginSceneModelsTest, TheHorseStandsAStepAfterItsRider)
+{
+    const float standing = LoginCharacterTransform().position.z;
+    const float raised = standing + (RaisedHeight * Client::Scenes::DarkHorseLoginScale);
+    Harness tested;
+    FakeClock clock;
+    clock.Advance(std::chrono::milliseconds{(3 * 2300) + 50});
+    ASSERT_TRUE(tested.Make(SeedWhoseFirstRollIs(1), &clock).Enter().HasValue());
+    tested.Steps(1);
+    clock.Advance(std::chrono::milliseconds{500});
+    const auto horseHeight = [&tested]
+    {
+        const FrameEvent models = tested.ModelsOfAFrame();
+        EXPECT_LT(HorseCommand(models), models.modelCommands.size());
+        return HorseCommand(models) < models.modelCommands.size()
+                   ? models.modelVertices[models.modelCommands[HorseCommand(models)].firstVertex].position.z
+                   : 0.0f;
+    };
+
+    tested.Steps(1);
+    EXPECT_NEAR(horseHeight(), raised, Rounding);
+    tested.Steps(1);
+    EXPECT_NEAR(horseHeight(), raised - (0.3f * RaisedHeight * Client::Scenes::DarkHorseLoginScale), Rounding);
+    EXPECT_GT(horseHeight(), standing);
+}
+
+// Cada entrada al login crea el caballo otra vez (0x6349a0): invisible hasta el primer paso.
+TEST(LoginSceneModelsTest, TheHorseIsCreatedAgainOnEachEntry)
+{
+    Harness tested;
+    LoginScene& scene = tested.Make();
+    ASSERT_TRUE(scene.Enter().HasValue());
+    tested.Steps(5);
+    scene.Leave();
+
+    ASSERT_TRUE(scene.Enter().HasValue());
+
+    const FrameEvent models = tested.ModelsOfAFrame();
+    EXPECT_EQ(HorseCommand(models), models.modelCommands.size());
+}
 } // namespace

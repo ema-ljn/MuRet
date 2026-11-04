@@ -6,8 +6,8 @@
 
 #include <gtest/gtest.h>
 
-#include <cstddef>
 #include <cstdint>
+#include <ios>
 #include <vector>
 
 // Client::Scenes::DarkHorse: el caballo oscuro (0xbf) que crea 0x443d70 y mueve 0x444010 en cada paso

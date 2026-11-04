@@ -468,6 +468,13 @@ solo lo lee.
   tests y 72 mutantes. Con los datos del laboratorio, `Main` dibuja el logo y el personaje; falta
   mirarlo contra el original en la VM (P-C15).
 
+  **La CL6.4 PR B** (2026-11-04, resuelta por Claude): el caballo oscuro, un objeto ayudante que
+  aparece de a poco, sigue la acción del jinete y lleva luz por vértice, que ningún modelo de MuRet
+  usaba (`Render::Models::NormalLight`), un cromo y su sombra (`Scenes/DarkHorse` y
+  `DrawDarkHorse`). Sus texturas caen en los slots del original, verificados en `lor_slots.bin`.
+  Dos quirks (Q-C112 y Q-C113). El caballo de la selección espera la acción de parado de
+  `0x4f2250` (P-C14 c). 24 tests y 48 mutantes.
+
 ## Conceptos
 
 **Niveles:** 1 **usar** (lo escribiste con tests) · 2 **explicar** (lo contás sin mirar) ·

@@ -219,19 +219,26 @@ TEST_F(GlModelRendererTest, TheBlendedShadowMixesWithItsAlpha)
     ExpectNear(Cell(0), Rgba8{77, 77, 77, 201});
 }
 
-// Y no escribe la profundidad ni recorta las caras de atrás: el verde opaco a 20, dibujado después,
-// la pisa, y una de atrás se ve.
-TEST_F(GlModelRendererTest, TheBlendedShadowDoesNotWriteTheDepthNorCull)
+// Y no escribe la profundidad: el verde opaco a 20, dibujado después, la pisa.
+TEST_F(GlModelRendererTest, TheBlendedShadowDoesNotWriteTheDepth)
 {
     AddSquare({std::nullopt, ModelBlend::BlendedShadow, true}, 5.0f, Color{0.0f, 0.0f, 0.0f, 0.7f});
     AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 20.0f, GreenColor);
-    DrawBatch();
-    ExpectNear(Cell(0), Green);
 
-    m_batch.Begin(TestPass(Screen));
-    AddSquare({std::nullopt, ModelBlend::BlendedShadow, true}, 10.0f, Color{1.0f, 0.0f, 0.0f, 0.7f}, true);
     DrawBatch();
-    EXPECT_NE(Cell(0), Transparent);
+
+    ExpectNear(Cell(0), Green);
+}
+
+// Ni recorta las caras de atrás (0x620a00 apaga el culling): una de atrás, roja al 0,7 sobre el vacío,
+// se ve.
+TEST_F(GlModelRendererTest, TheBlendedShadowDoesNotCull)
+{
+    AddSquare({std::nullopt, ModelBlend::BlendedShadow, true}, 10.0f, Color{1.0f, 0.0f, 0.0f, 0.7f}, true);
+
+    DrawBatch();
+
+    ExpectNear(Cell(0), Rgba8{179, 0, 0, 125});
 }
 
 // La opaca no mezcla: un alfa de 0,5 se escribe tal cual, sin el fondo.

@@ -1461,6 +1461,18 @@ TEST(CharacterDrawingTest, TheChromeOfAFadingHorseGoesByItsAlpha)
     EXPECT_FLOAT_EQ(batch.Vertices()[13 * 3 + 3].color.alpha, 0.7f);
 }
 
+// El cromo va por 0x4ecc30, que no corre los pases de brillo de una malla con N en el script.
+TEST(CharacterDrawingTest, TheHorseChromeSkipsAMeshWithoutShine)
+{
+    OneModel models(0xbf, "dk.jpg", 13);
+    models.MeshAt(12).textureName = "dkneck2_N.jpg";
+
+    const ModelBatch batch = DrawnHorseOf(models, HorseLike());
+
+    ASSERT_EQ(batch.Commands().size(), 2u);
+    EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::BlendedShadow);
+}
+
 // Sin la malla 12 no hay cromo, y sin la 8 no hay sombra; con el alpha por debajo de 0,01, nada.
 TEST(CharacterDrawingTest, TheHorseDrawsOnlyTheMeshesItHas)
 {

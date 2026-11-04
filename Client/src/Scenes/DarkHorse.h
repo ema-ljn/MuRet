@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Render/Models/Animation.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/CharacterDrawing.h"

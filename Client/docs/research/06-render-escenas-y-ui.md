@@ -925,7 +925,7 @@ revisión de la CL6.4, *estático*):
   la 5 (51 keys) con la `0x54`, la 6 (31 keys) con la `0x55`, las dos a 1, y la 0 a 0,3 con las
   demás. Lo dibuja `0x4453b0` → `0x445260`, con la escala 1,6 en la escena 2, entre los personajes y
   los objetos del mundo. `0x50ba30` no dibuja la mascota `0x1c16` (Q-C98): el caballo va por este
-  camino.
+  camino. Todo, abajo, en [El caballo oscuro](#el-caballo-oscuro).
 - **La vuelta a la de parado:** cuando la `0x54` o la `0x55` terminan (`0x4ec200` da la vuelta y
   `0x4f9580` devuelve 0), `0x4fcd00` (`0x4fce29`) pone `+0x3c4` en −1 y `0x4fcb10` le vuelve a dar
   la de parado (`0x4f2250`: la `0x4a`). El gesto se ve una vez, 2,04 s o 1,24 s.
@@ -1042,6 +1042,69 @@ Leído en la CL6.4 (*estático*; el dibujo del `0xa2`, emulado sobre el `main.ex
 - **`Logo03.bmd`**: dos mallas, `logo.jpg` (555 vértices) y `logo2.jpg` (4 vértices y 2 triángulos:
   la de la textura 1, la del blendMesh, aditiva), dos huesos y una acción de una key: el avance no
   hace nada y el logo no se anima.
+
+### El caballo oscuro
+
+Leído en la CL6.4 PR B (*estático*; el dibujo del `0xbf`, emulado sobre el `main.exe` con el objeto
+de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_slots.bin`).
+
+- **Quién lo crea.** `0x443fa0(tipo, posición, jinete, …)`, fuera de los mapas `0x12` a `0x17` y
+  con el jinete del tipo `0x20a` (o el tipo `0x1c12`), busca un lugar libre en los 10 ayudantes de
+  `0x7d335d0` (de `0x1d4` bytes) y llama a `0x443d70`. En el login, `0x6349a0` lo crea con el
+  personaje de `0x517270` (`0x443fa0(0xbf, +0x880, +0x870)`); en la selección, `0x513430` y
+  `0x5139f0` (el armado desde la lista) lo crean con el bit 0 del byte 11 (`+0x318` en `0x1c16`).
+  `0x443d70` lo deja vivo con el alpha (`+0x174`) en 0 y su meta (`+0x170`) en 1, la luz por vértice
+  (`+0xe8`) prendida, el blendMesh y la malla oculta en −1, la luz del blendMesh (`+0x68`) en 1,
+  `+0xf4..+0xfc` en 3, la velocidad (`+0xd8`) en 0,5, los ángulos del jinete y, con el `0xbf`, la
+  escala en 1.
+- **Su paso** (`0x445230` → `0x444010`, en el login desde `0x634c60`, después de `0x606560` (el logo)
+  y antes de `0x508f00` (los personajes): ve la acción que el jinete tiene en ese paso).
+  `0x4e9980` lleva el alpha hacia su meta un décimo (`0x6b87b8`) de lo que falta con `+0x16d` en 0, y
+  baja `+0x68` al alpha si es mayor: como el alpha sube, `+0x68` queda en el del primer paso, 0,1
+  (Q-C112). En una celda de zona segura (el bit 0 del atributo en `0x7d0d348`, la del caballo por
+  0,01) el alpha va a 0 y no hace nada más: la celda (106, 141) del mundo 56 tiene `0x08`, no lo es.
+  Si no, copia del jinete la posición, los ángulos y `+0x28..+0x30` (la cabeza), pone el hueso de
+  la cabeza del modelo (`+0x54`) en 7 y elige su acción por la del jinete (`+0x111`), con
+  `0x4ea030`:
+
+  | La del jinete | La del caballo | `+0xd8` |
+  | --- | --- | --- |
+  | `0x53` | 3 | 0,34 |
+  | `0x4b` | 1 (y el polvo del mapa 10, o `0x5f2` y `0x5f3` al azar) | 0,34 |
+  | `0x4e` a `0x52` | 2 | 0,34 |
+  | `0x54` | 5 | 1 |
+  | `0x55` | 6 | 1 |
+  | otra (la `0x4a` del login) | 0 | 0,3 |
+
+  Después, con `rand() % 3` en 0 y la acción distinta de 1, el polvo (`0x5f2`, o `0x607` en el mapa
+  7) desde un hueso, y con la 3 otro efecto; y avanza con `0x4ec200` a `+0xd8`.
+- **Su dibujo** (`0x6350b0`: `0x510d00`, los personajes; `0x4453b0`, los ayudantes; `0x6046a0`, los
+  objetos). `0x445260` prende `+0x16c` con el frustum (`0x5fba90`, en su lugar por 0,01, −20) y, con
+  el jinete `0x20a`, le pone la escala 1,6 en la escena 2 (1 en la 4) y llama a `0x602e90(caballo, 0,
+  0, 0)` (10 con `+0x78 & 0x4000` del jinete). `0x5ffdf0` no lo dibuja con el alpha por debajo de
+  0,01; si no, el color de `0x5ffce0` con luz por vértice (la del terreno más 3), que `0x6002e0`
+  pisa: el caso `0xbf` pone el color en (1, 1, 1) y hace `RenderBody(2, +0x174, +0x64, +0x68, +0x6c,
+  +0x70, +0x58, −1)`; después el color en (1; 0,8; 0,3) y `0x4ecc30(12..15, 0x44, …)` directo, el
+  cromo aditivo de la malla 12 (`dkneck2`; las 13 a 15 no existen y `0x4ecc30` sale, Q-C113); y,
+  fuera de los mapas 10, `0x18` a `0x1d` y `0x24`, `0x620a00(1)`, `glColor4f(0, 0, 0, 0,7)` y
+  `0x4eff40(−1, −1, 8, 9)`: la sombra de la malla 8 (`dkhorsebase`), aplastada como la del
+  personaje, con la mezcla normal y sin escribir la profundidad.
+- **La luz por vértice.** Con `+0x44` del modelo (la copia de `+0xe8`), `0x4ebc80` deja por cada
+  normal girada por su hueso max(0,2; 0,8 · L·n + 0,4), con L = (0; −1,5; 0) girada al revés por el
+  ángulo de la sombra del modelo (`+0x8c`), que solo escribe el mundo 30 (y (1,3; 0; 2) con
+  `DAT_006c8818`), y `0x4ecc30` la multiplica por el color en el pase con textura (el modo 2): con el
+  blanco del caballo, va de 0,2 a 1,6, que el GL recorta a 1. El cromo (el modo 4) va con el color
+  parejo y, con el alpha por debajo de 0,99, por el alpha (Q-C95). El pase base con ese alpha va
+  con `0x620a00(1)` y `glColor4f`.
+- **La carga.** `0x615700` (desde `0x61ccb0`, después de `0x611850`) carga `Data\Skill\DarkHorse.bmd`
+  (`0x615f46`) y, después de su `0x60d530(0x3b8)` (`0x61692a`), les da texturas de `Skill\`, con
+  `0x2901` y `0x2600`, a `0x145`, `0x146` y `0x147` (`elf_skill`, `WaveForce` y `deathsp_eff`:
+  cuatro nuevas, de `0x3b8` a `0x3bb`) y al `0xbf` (`0x6169a7`): 11 nuevas, de `0x3bc` a `0x3c6`, y
+  `dkhead2` y `dkheadwing`, que encuentra en `0x26b` y `0x26c` (las subió `0x1c16`, `DarkHorseHorn`,
+  también de `Skill\`, en `0x611850`). **Verificado:** los 15 nombres de `0x3b8` a `0x3c6` son los
+  de `lor_slots.bin` (`ModelTextureSlotsGoldenTest.StartupMatchesTheDump`).
+- **`DarkHorse.bmd`**: 13 mallas (`dkfurop.TGA`, de cuatro componentes, y 12 JPG), 60 huesos y siete
+  acciones (7, 7, 6, 10, 41, 51 y 31 keys).
 
 ### La luz del terreno en un punto
 
@@ -1543,6 +1606,7 @@ Ver [08](08-pendientes.md).
 | Cuántos pases de brillo lleva una parte, por su nivel (`0x60b3d0`), con el tope de las opciones | `ItemGlow`: la tabla de arriba, una fila por nivel, y los 14 y 15 sin brillo (Q-C97) | CL6.3 |
 | Los slots de las texturas de los modelos: un próximo que fija cada cargador y la búsqueda por nombre desnudo | `ModelTextureSlots` con el mismo próximo por cargador y la misma búsqueda (Q-C90), y un golden local contra `lor_slots.bin`; el login sigue el próximo del mundo (Q-C92) | CL6.1, CL6.3, CL6.4 |
 | La selección: la lista en cinco lugares fijos, el picking contra una caja corrida, el doble clic por reloj y la luz 0,4 / 1,4 | `CharacterSelectScene` con las tablas de arriba; un lugar de más de 4 se descarta (Q-C101) | CL6.3 |
+| El caballo oscuro: un ayudante que aparece de a poco y sigue la acción del jinete, con luz por vértice, un cromo y su sombra | `Scenes/DarkHorse` (el paso) y `DrawDarkHorse` (el caso `0xbf` de `0x6002e0`), con `Render::Models::NormalLight` y `ModelBlend::BlendedShadow`; en el login, entre el personaje y el logo | CL6.4 |
 
 Tests que fija:
 
@@ -1575,9 +1639,10 @@ Tests que fija:
   cuando entren con `ItemGlow` (`ShineTest.TheChrome2PassRunsWithAFiveSecondClock` y
   `TheChrome3PassIsTheLightAgainstTheNormal`, CL6.3).
 - Los slots: la carga de los modelos de MuRet sobre el `Data\` (`GameModels`, con las 505 llamadas
-  de `0x60f7d0` y `0x611850`) da los nombres de `lor_slots.bin` de `0x12e` a `0x370`, y deja el
-  próximo en `0x371`, donde sigue `0x615700` (`ModelTextureSlotsGoldenTest.StartupMatchesTheDump`,
-  local, fuera de CI); de `0x371` a `0x41b`, las habilidades, los efectos y el mundo, cuando entren.
+  de `0x60f7d0` y `0x611850` y las 4 de `0x615700` desde su `0x3b8`) da los nombres de
+  `lor_slots.bin` de `0x12e` a `0x370` y de `0x3b8` a `0x3c6` (el caballo), y deja el próximo en
+  `0x3c7` (`ModelTextureSlotsGoldenTest.StartupMatchesTheDump`, local, fuera de CI); de `0x371` a
+  `0x3b7` y de `0x3c7` a `0x41b`, las otras habilidades, los efectos y el mundo, cuando entren.
 - El asignador de slots de `0x466560` no se prueba, porque MuRet no lo reproduce (pregunta 11 del
   plan de la CL5): es interno, en las escenas medidas no corre (`0x466000` no corrió, § Texto), y
   la caché del texto de MuRet es otra, con sus slots después de los 1.845 del original (CL5.3).

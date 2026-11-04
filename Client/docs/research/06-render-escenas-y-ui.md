@@ -58,7 +58,7 @@ aviso) que manejan los handlers de red (`paso5-protocolo-handlers.md`).
 ```text
 render de la escena
  ├─ cámara       0x635ae0 + 0x44dc60 + 0x620db0 (proyección y modelview)
- ├─ pase 3D      fondo, frustum 0x5fbb00, terreno 0x5fc260, objetos 0x53c6a0
+ ├─ pase 3D      fondo, frustum 0x5fbb00, terreno 0x5fc260, personajes 0x510d00, objetos 0x6046a0
  │               [selección] personajes 0x510d00, el elegido 0x5f9780 y 0x53fe70 (0x4129f0 no dibuja)
  ├─ pase 2D      0x6219b0 (ortho) … 0x621a90 (vuelve)
  │    ├─ UI en el juego 0x62db60 (20 KB, 52 llamadas GL)
@@ -901,8 +901,8 @@ en 0. Arranca en 0 (está en la `.bss`), y la vuelta al login de `0x4c2710` la p
    la barra llena, y si el connect falla, el primer frame del login ya trae el aviso `0x70` (Q-C85);
 5. el objeto `0xa2` en (10.680, 15.550, 1.710), con ángulos (10, 0, 36) y escala 1, que
    `0x606660` pisa (abajo), y el personaje de la escena (`0x517270(2, 4, …)`, con el cuervo del
-   `A9`, P-C11) en (10.603, 14.112, 580), girado 188° en z y con escala 1,6; un efecto `0xbf`
-   (`0x443fa0`, de la ola de los efectos); 120 llamadas a `0x555190` con dos
+   `A9`, P-C11) en (10.603, 14.112, 580), girado 188° en z y con escala 1,6; el caballo oscuro en
+   que monta, el `0xbf` (`0x443fa0`, abajo; antes este documento lo daba como un efecto); 120 llamadas a `0x555190` con dos
    cadenas de la `.bss` (*inferido*: vacían el área de mensajes); la música (`0x4acfd0`) y una
    línea en el log.
 
@@ -915,13 +915,37 @@ modelo, y el `0xa2` (`0x6068d5`) **pisa la escala con 2,2**, pone el `blendMesh`
 la textura 1 va aditiva) y apaga la luz por vértice (`+0xe8` en 0). (Antes este documento daba la
 escala 1.) Su luz la sube `0x604ab0` (abajo, en el dibujo).
 
-El personaje (`0x517270(2, 4, 0, 0, 0, 0)`, *estático*): en la escena 2 lleva la ropa fija, el
+El personaje (`0x517270(2, 4, 0, 0, 0, 0)`, *estático*): `0x517270` le pone la luz `+0xf4..+0xfc` en
+0,3 (`0x3e99999a`), y `0x4f2250`, con el caballo oscuro de mascota (`+0x318` en `0x1c16`, y `+0x3e2` en
+0), la acción `0x4a`, la de montar. Lo demás que el original hace con él en la escena 2 (de la
+revisión de la CL6.4, *estático*):
+- **El caballo** es el modelo `0xbf`, `Skill\DarkHorse.bmd` (lo carga `0x615700`). `0x443fa0(0xbf,
+  posición, personaje)` lo crea como un objeto ayudante en `0x7d335d0`; su lógica (`0x445230` →
+  `0x444010`) sigue la posición, los ángulos y la cabeza del jinete, y elige su acción por la de él:
+  la 5 (51 keys) con la `0x54`, la 6 (31 keys) con la `0x55`, las dos a 1, y la 0 a 0,3 con las
+  demás. Lo dibuja `0x4453b0` → `0x445260`, con la escala 1,6 en la escena 2, entre los personajes y
+  los objetos del mundo. `0x50ba30` no dibuja la mascota `0x1c16` (Q-C98): el caballo va por este
+  camino.
+- **La vuelta a la de parado:** cuando la `0x54` o la `0x55` terminan (`0x4ec200` da la vuelta y
+  `0x4f9580` devuelve 0), `0x4fcd00` (`0x4fce29`) pone `+0x3c4` en −1 y `0x4fcb10` le vuelve a dar
+  la de parado (`0x4f2250`: la `0x4a`). El gesto se ve una vez, 2,04 s o 1,24 s.
+- **La tela de la clase 4:** con la clase 3 o 4, el modelo `0x20a`, `+0x3e3` en 0 y fuera de los
+  mapas `0x12` a `0x17`, `0x50ba30` arma tres telas (`0x50d5b9`): dos con la textura `0x256`
+  (`Monster\iui06.jpg`) en el hueso 20 y una con la `0x257` (`DarklordRobe`) en el hueso 19, la
+  tercera solo con `+0x2f8` en `0x1c30`; las simula con 5 pasos por frame (`0x455190`) y las dibuja.
+- **La cabeza:** `0x505de0`, en cada paso, con un personaje que no es el propio (el 0) y que se ve:
+  con `rand() % 32` en 0 elige un objetivo nuevo, de −64 a 63 de giro y de −16 a 15 de inclinación,
+  y se acerca un 20 % por paso (`0x6b8854`).
+
+En la escena 2 lleva la ropa fija, el
 casco y lo demás de `0x102e`, `0x122e`, `0x142e`, `0x162e` y `0x182e` (el juego 29), la maza
 `0x620` en la derecha, el cuervo `0x1c17` en la izquierda, la capa `0x1c30` y el caballo oscuro
 `0x1c16`; `0x512930` le deja la cabeza en -1. `0x420d60` le cuelga al cuervo un objeto aparte, de
 `0x460` bytes (`0x4167b0`, en `personaje + 0x430`), con su propio paso: su conducta no se leyó
 (P-C15). La acción la elige `0x634c60` en cada paso: con `ftol(T) % 2300` entre 0 y 99,
-`rand() % 6` en 1 pone la `0x54` y en 2 la `0x55` (`0x4ea030`).
+`rand() % 6` en 1 pone la `0x54` y en 2 la `0x55` (`0x4ea030`). La condición es `ftol(resto ·
+0,01)` en 0, con el producto en la x87: 100 · 0,01f da 0,99999998, así que la ventana va de 0 a 100
+ms (Q-C110). Las dos acciones van a 1 por paso (`0x60f679` y `0x60f68b`).
 
 `0x6349a0` tiene además un camino con `DAT_006c7b8c` en 0 que copia la cuenta guardada al viejo
 campo de texto con un tope de 10 (`_DAT_006c8e78`). Es código muerto: `DAT_006c7b8c` está en 1 en
@@ -942,8 +966,11 @@ la cuenta (abajo).
    tiene la misma forma, la traza muestra esa perspectiva sin nada adentro (*verificado*, arriba);
 4. `glClearColor(0, 0, 0, 1)` y el pase 3D en `0x620db0(0, 25, 640, 430)`: si la ventana de
    `+0x4578` está cerrada (su bandera de abierta, `+0xc`, es el byte `+0x4584` del administrador),
-   el terreno (`0x5fc260`), los personajes (`0x510d00`), los objetos (`0x53c6a0`) y los efectos;
-   después `0x6213e0`, `0x549440(0)`, `0x548550(0)` y `glPopMatrix`;
+   el terreno (`0x5fc260(0)`), los personajes (`0x510d00`), `0x4453b0`, los objetos del mundo
+   (`0x6046a0`, abajo: el logo), `0x53c6a0(0)` (una tabla de `0xa10` bytes con su mezcla por
+   entrada: *inferido*, efectos), `0x52d620(0)`, `0x549510` y `0x5306a0`; después `0x6213e0`,
+   `0x549440(0)`, `0x548550(0)` y `glPopMatrix` (CL6.4: antes este documento daba los objetos en
+   `0x53c6a0`);
 5. 2D otra vez, la mezcla normal (`0x620a00(1)`), `glColor4f(1, 1, 1, 0,5)`, la mezcla aditiva
    (`0x620a90`), `glColor3f(0,25; 0,1; 0,1)` y las dos arenas, `0x622000(slot, x, y, w, h, u, v,
    du, dv)`:
@@ -975,6 +1002,67 @@ la cuenta (abajo).
    `0x40eca0`, `0x65fe00` (la UI nueva: si hay modo, `0x63cf80` y la lista de `+0x8de0` por
    `vtable + 0x18`), `0x5ac2d0` y `0x633110` (modelos 3D dentro de la UI); al final, `0x621a90` y
    `0x620fc0`.
+
+### El logo en el binario
+
+Leído en la CL6.4 (*estático*; el dibujo del `0xa2`, emulado sobre el `main.exe` con el objeto de
+`0x606660` en el mapa 55 y la escena 2).
+
+- **El dibujo.** Los objetos del mundo (los de `0x606660`, en las 256 listas de `0x7d325d0`) los
+  dibuja `0x6046a0`, después de los personajes: para cada sector de 16 × 16 celdas que pasa el
+  frustum (`0x5fba90`, en el centro del sector, con un margen de −180) y cada objeto vivo que lo
+  pasa (en su posición por 0,01, con `+0xdc` de margen, −30), prende `+0x16c` y llama a `0x602e90`
+  (`0x5ffdf0` y, si devuelve 1, `0x6002e0`) y a `0x602ed0` (los efectos de cada mapa, que tira un
+  `rand()` por objeto y en el 55 solo hace algo con los tipos `0x54` y `0x59`). `0x5ffdf0`
+  no dibuja con el alpha `+0x174` debajo de 0,01; si no, le copia al modelo la luz por vértice
+  (`+0xe8`), la escala (`+0xc`), la posición (`+0x10`) y la acción (`+0x111`), y lo posa con
+  `0x4eb860` (los ángulos de `+0x1c`, los de la cabeza de `+0x28`, la raíz con la escala y la
+  posición) y `0x4ebc80`. `0x6002e0` tiene un caso por tipo y por mapa; para el `0xa2` en el mapa
+  55 (emulado) hace **un solo** `RenderBody(2, +0x174, +0x64, +0x68, +0x6c, +0x70, +0x58, −1)`: el
+  pase base con el alpha, el blendMesh, la luz, la U, la V y la malla oculta del objeto, sin pases
+  de brillo (`+0x78 & 2` en 0 y `+0x74` distinto de `0x80`: ningún pase más).
+- **El color** (`0x5ffce0`, en `0x5ffdf0`): con luz por vértice, la del terreno en su lugar más
+  `+0xf4..+0xfc`; sin ella, como el `0xa2`, la del terreno por 0,1 (`0x6b87b8`) más
+  `+0xf4..+0xfc`. Los tipos `0x189` (0,6) y `0xe4` (un seno del reloj) tienen el suyo. Sin luz por
+  vértice, `RenderBody` hace un solo `glColor3fv(+0x48)` al empezar, y una malla normal del modo 2
+  no lo vuelve a poner: la rama del blendMesh de `0x4ecc30` hace `glColor3f(luz · color)`, y **las
+  mallas que vienen después la heredan** (las de después de un pase de script 1 o 2, el blanco que
+  pone `0x4ef0c0`). En `Logo03` el blendMesh es la última malla y no pasa; en otro modelo, sí
+  (P-C20 i).
+- **La lógica** (`0x606560`, en cada paso del login desde `0x634c60`, solo para los objetos que se
+  vieron en el último dibujo): `0x604ab0` avanza la animación con `0x4ec200` a la velocidad del
+  objeto (`+0xd8`, 0,16 desde `0x606660`), no a la de la acción, y en las escenas 2 y 4 le escribe al
+  `0xa2` la luz de `+0xf4..+0xfc` y de `+0x68`: la cuenta de las rutas · 0,02 con la fase en 0, y
+  1,5 con otra (Q-C105). `0x606560` solo corre los objetos con `+0x16c`, que `0x606660` deja en 0 y
+  prende el dibujo: el primer paso, el que crea el logo (`0x6349a0` desde `0x634c60`), no lo toca, y
+  el primer frame sale con la luz de `0x606660`, 1 en `+0x68` y 0 en `+0xf4`. `0x606560` corre
+  antes que `0x633920`, que sube la cuenta, y la cuenta arranca en −1 (`0x6349a0` y la `.data`): el
+  paso 2 da 0, el n da (n − 2) · 0,02, el 41 da 0,78 y el 42, 1,5 (verificado con una emulación de
+  `0x604ab0` en la revisión de la CL6.4).
+- **`Logo03.bmd`**: dos mallas, `logo.jpg` (555 vértices) y `logo2.jpg` (4 vértices y 2 triángulos:
+  la de la textura 1, la del blendMesh, aditiva), dos huesos y una acción de una key: el avance no
+  hace nada y el logo no se anima.
+
+### La luz del terreno en un punto
+
+Lo que usan los modelos sin luz por vértice: el personaje fuera de la escena 4 (`0x50ba30`) y los
+objetos como el logo (`0x5ffce0`). *Estático*, leído en la CL6.4.
+
+- **Al cargar un mundo** (`0x5f8f40`): `0x63b490` lee `TerrainLight.OZJ` en `0x78ecc10`; `0x5f8b10`
+  saca la normal de cada celda (x, y) del triángulo (x + 1, y), (x + 1, y + 1), (x, y + 1), con las
+  celdas a 100 unidades y las alturas de `0x7accca4` buscadas con x + 1 e y + 1 en un byte (la
+  columna y la fila 255 toman las de la 0; las posiciones, no): `0x5fd000` da (p2 − p1) × (p3 − p1)
+  normalizada, y con largo 0 no escribe; y `0x5f8d90` sombrea en `0x7c0ccc4` cada canal de la luz
+  con n.x · 0,5 − 0,5 · n.y + 0,5 · n.z + 0,5, de 0 a 1 (en el mapa 30, −1 y 1 en vez de −0,5 y
+  0,5). En un terreno plano la sombra es 1: la zona de la traza de Lorencia es plana, así que no
+  distingue esta luz de la del OZJ (*inferido* qué tabla lee el terreno).
+- **En cada paso** (`0x5fbf60`, desde la lógica del login y de la selección): copia `0x7c0ccc4` a
+  `0x7b4ccc4` en las celdas de la ventana que se ve (`0x7d2d364` a `0x6c9d68` + 3 en x, `0x7d2d368`
+  a `0x6c9d6c` + 3 en y), donde después se suman las luces dinámicas (`0x5f9780`).
+- **En un punto** (`0x5f99e0`): con la escena distinta de 0, 1 y 3 y el terreno cargado
+  (`0x7d2d35c`, que pone `0x5f9000` al cargar), la celda es x · 0,01 y y · 0,01 truncados, y entre
+  0 y 254 la luz es la bilineal de `0x7b4ccc4` entre las cuatro de alrededor (primero cada columna
+  en y). Fuera, (0, 0, 0). Como `ftol` trunca hacia el 0, de −1 a 0 todavía es la celda 0.
 
 ### Las ventanas de la UI nueva
 

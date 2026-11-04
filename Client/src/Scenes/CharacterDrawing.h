@@ -4,11 +4,13 @@
 #include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
+#include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 
 #include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
 
 #include <cstdint>
 #include <optional>
@@ -46,8 +48,9 @@ struct DrawnCharacter
     // La mascota y las alas avanzan por tiempo (Render/Models/Animation.h).
     Render::Models::AnimationState pet;
     Render::Models::AnimationState wings;
-    // La luz del personaje: la base de 0x50ba30 más +0xf4, 0,4 y 1,4 el elegido en la selección.
-    float light = 0.4f;
+    // La luz del personaje, canal por canal: la base de 0x50ba30 más +0xf4 (0,4 y 1,4 el elegido en la
+    // selección; en el login, la del terreno en su lugar más 0,3).
+    glm::vec3 light{0.4f, 0.4f, 0.4f};
     // El que está bajo el mouse (DAT_006c8e30 en 0x510d00): sus partes llevan el contorno.
     bool outlined = false;
 };
@@ -85,4 +88,22 @@ inline constexpr Render::TextureSlot MetalTextureSlot{0x620};
 // Las saetas de la izquierda o las flechas de la derecha van a la espalda, del hueso de las alas.
 void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
                    Core::Duration frameClock);
+
+// Un objeto del mundo (0x606660): el modelo, su animación (+0x111 a +0x118), dónde va, lo que le pasa
+// a RenderBody y el color del modelo (+0x48..+0x50, el que le pone 0x5ffce0 antes de posar).
+struct DrawnObject
+{
+    std::uint16_t model = 0;
+    Render::Models::AnimationState animation;
+    Render::Models::ObjectTransform transform;
+    Render::Models::ObjectState state;
+    glm::vec3 color{1.0f, 1.0f, 1.0f};
+};
+
+// 0x602e90 con un objeto sin casos por tipo: 0x5ffdf0 lo posa con su escala, sus ángulos y su
+// posición, sin cabeza, y 0x6002e0 llama a RenderBody(2): el pase base de cada malla, sin brillo y sin
+// contorno, con el script de su textura y el blendMesh, la luz, la U, la V y la malla oculta del
+// objeto. Un modelo que la biblioteca no tiene no se dibuja.
+void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                Core::Duration frameClock);
 } // namespace Client::Scenes

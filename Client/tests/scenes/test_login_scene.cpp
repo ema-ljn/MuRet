@@ -39,6 +39,8 @@
 #include "support/ScenePrinters.h"
 #include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
+#include "Scenes/LoginModels.h"
+#include "support/FixedRandom.h"
 
 #include <gtest/gtest.h>
 
@@ -100,6 +102,7 @@ using Client::Scenes::WorldOf;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeSocket;
 using Client::Tests::FakeTextureStore;
+using Client::Tests::FixedSeed;
 using Client::Tests::FrameEvent;
 using Client::Tests::GameClientKeys;
 using Client::Tests::RecordedText;
@@ -227,7 +230,7 @@ struct Harness
     // La escena, con la sesión o sin ella.
     LoginScene& Make(ServerSession* session = nullptr)
     {
-        return scene.emplace(SceneContext{folder.Path(), store, log}, data, session, Version);
+        return scene.emplace(SceneContext{folder.Path(), store, log}, data, models, session, Version, FixedSeed);
     }
 
     // Un frame con el reloj `clock`. Devuelve lo que se dibujó.
@@ -245,6 +248,7 @@ struct Harness
     Log log;
     RecordingFrameTarget target;
     GameData data;
+    Client::Scenes::SingleModelLibrary models;
     std::optional<LoginScene> scene;
     InputState input;
 };
@@ -283,8 +287,8 @@ TEST(LoginSceneTest, DrawsInTheOrderOfTheOriginal)
 {
     Harness tested;
     ASSERT_TRUE(tested.Make().Enter().HasValue());
-    const std::vector<Kind> expected = {Kind::Quad, Kind::Quad, Kind::Flush, Kind::World, Kind::Quad,
-                                        Kind::Quad, Kind::Text, Kind::Text,  Kind::Text};
+    const std::vector<Kind> expected = {Kind::Quad, Kind::Quad, Kind::Flush, Kind::World, Kind::Models,
+                                        Kind::Quad, Kind::Quad, Kind::Text,  Kind::Text,  Kind::Text};
 
     for (int frame = 0; frame < 2; ++frame)
     {
@@ -294,29 +298,29 @@ TEST(LoginSceneTest, DrawsInTheOrderOfTheOriginal)
         ASSERT_EQ(KindsOf(events), expected);
         EXPECT_EQ(events[0].texture, TextureSlot{0x15});
         EXPECT_EQ(events[1].texture, TextureSlot{0x16});
-        EXPECT_EQ(events[4].texture, TextureSlot{0x5c2});
-        EXPECT_EQ(events[5].texture, TextureSlot{0x5c3});
+        EXPECT_EQ(events[5].texture, TextureSlot{0x5c2});
+        EXPECT_EQ(events[6].texture, TextureSlot{0x5c3});
         for (const std::size_t background : {0u, 1u})
         {
             EXPECT_EQ(events[background].blend, BlendMode::Alpha);
             EXPECT_TRUE(events[background].alphaTest);
             ExpectColor(events[background], White);
         }
-        for (const std::size_t sand : {4u, 5u})
+        for (const std::size_t sand : {5u, 6u})
         {
             EXPECT_EQ(events[sand].blend, BlendMode::Additive);
             EXPECT_FALSE(events[sand].alphaTest);
             ExpectColor(events[sand], SandColor);
         }
         // 0x554000 no cambia la mezcla: los textos salen aditivos, con el color de GL.
-        for (const std::size_t text : {6u, 7u, 8u})
+        for (const std::size_t text : {7u, 8u, 9u})
         {
             EXPECT_EQ(events[text].blend, BlendMode::Additive);
             ExpectColor(events[text], TextColor);
         }
-        EXPECT_EQ(events[6].text.text, LeftText);
-        EXPECT_EQ(events[7].text.text, RightText);
-        EXPECT_EQ(events[8].text.text, VersionPlaced);
+        EXPECT_EQ(events[7].text.text, LeftText);
+        EXPECT_EQ(events[8].text.text, RightText);
+        EXPECT_EQ(events[9].text.text, VersionPlaced);
     }
 }
 
@@ -332,12 +336,12 @@ TEST(LoginSceneTest, UsesTheQuadsOfTheOriginal)
 
         const std::vector<FrameEvent> events = tested.Frame(clock);
 
-        ASSERT_EQ(events.size(), 9u);
+        ASSERT_EQ(events.size(), 10u);
         ExpectSameCorners(CornersOf(events[0]), FanCorners(Background(0x15, 0.0f), screen));
         ExpectSameCorners(CornersOf(events[1]), FanCorners(Background(0x16, 320.0f), screen));
-        ExpectSameCorners(CornersOf(events[4]),
-                          SkewedFanCorners(Sand(0x5c2, SandU(clock, 0.0001f), 0.3f, 0.3f), screen));
         ExpectSameCorners(CornersOf(events[5]),
+                          SkewedFanCorners(Sand(0x5c2, SandU(clock, 0.0001f), 0.3f, 0.3f), screen));
+        ExpectSameCorners(CornersOf(events[6]),
                           SkewedFanCorners(Sand(0x5c3, SandU(clock, 0.0005f), 3.0f, 2.0f), screen));
     }
 }
@@ -350,7 +354,7 @@ TEST(LoginSceneTest, TheWorldIsTheOneOfItsTable)
 
     const std::vector<FrameEvent> events = tested.Frame(AnyClock, 0.25f);
 
-    ASSERT_EQ(events.size(), 9u);
+    ASSERT_EQ(events.size(), 10u);
     ASSERT_EQ(events[3].kind, Kind::World);
     ASSERT_TRUE(WorldOf(SceneId::Login).has_value());
     EXPECT_EQ(events[3].world.map, WorldOf(SceneId::Login)->map);
@@ -367,7 +371,7 @@ TEST(LoginSceneTest, TheWorldGetsThePassOfTheLoginCamera)
 
     const std::vector<FrameEvent> events = tested.Frame(AnyClock, 0.25f);
 
-    ASSERT_EQ(events.size(), 9u);
+    ASSERT_EQ(events.size(), 10u);
     ASSERT_EQ(events[3].kind, Kind::World);
     ASSERT_TRUE(events[3].pass.has_value());
     const Client::Render::Pass3D expected = Client::Render::MakePass3D(
@@ -384,10 +388,10 @@ TEST(LoginSceneTest, TheSandRunsWithTheFrameClock)
     Harness tested;
     ASSERT_TRUE(tested.Make().Enter().HasValue());
 
-    const QuadCorners first = CornersOf(tested.Frame(std::chrono::milliseconds{1234})[4]);
-    const QuadCorners later = CornersOf(tested.Frame(std::chrono::milliseconds{5678})[4]);
-    const QuadCorners wrapped = CornersOf(tested.Frame(std::chrono::milliseconds{101234})[4]);
-    const QuadCorners fast = CornersOf(tested.Frame(std::chrono::milliseconds{1234})[5]);
+    const QuadCorners first = CornersOf(tested.Frame(std::chrono::milliseconds{1234})[5]);
+    const QuadCorners later = CornersOf(tested.Frame(std::chrono::milliseconds{5678})[5]);
+    const QuadCorners wrapped = CornersOf(tested.Frame(std::chrono::milliseconds{101234})[5]);
+    const QuadCorners fast = CornersOf(tested.Frame(std::chrono::milliseconds{1234})[6]);
 
     EXPECT_EQ(first[0].u, SandU(std::chrono::milliseconds{1234}, 0.0001f));
     EXPECT_NE(later[0].u, first[0].u);
@@ -481,7 +485,7 @@ TEST(LoginSceneTest, WithoutASessionItDrawsAndDoesNotConnect)
 
     EXPECT_EQ(scene.Next(), std::nullopt);
     EXPECT_FALSE(scene.HoldsTheLastFrame());
-    EXPECT_EQ(tested.Frame().size(), 9u);
+    EXPECT_EQ(tested.Frame().size(), 10u);
 }
 
 // La sesión empezada no alcanza: la selección es con el login aceptado (LoggedIn). Lo prueba de
@@ -567,8 +571,8 @@ TEST(LoginSceneTest, WithoutTextsItDrawsTheRest)
 
     const std::vector<FrameEvent> events = tested.Frame();
 
-    EXPECT_EQ(KindsOf(events),
-              (std::vector<Kind>{Kind::Quad, Kind::Quad, Kind::Flush, Kind::World, Kind::Quad, Kind::Quad}));
+    EXPECT_EQ(KindsOf(events), (std::vector<Kind>{Kind::Quad, Kind::Quad, Kind::Flush, Kind::World, Kind::Models,
+                                                  Kind::Quad, Kind::Quad}));
     EXPECT_TRUE(tested.target.Texts().empty());
 }
 } // namespace

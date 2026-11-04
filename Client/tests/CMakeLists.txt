@@ -114,6 +114,7 @@ add_subdirectory(render_gl)
 add_subdirectory(scenes)
 add_subdirectory(support)
 add_subdirectory(ui)
+add_subdirectory(world)
 
 # Un test_*.cpp que no quedó en ningún ejecutable (en una subcarpeta, o en una carpeta sin su
 # CMakeLists.txt) no correría nunca y nadie lo notaría: el configure se corta y lo nombra.

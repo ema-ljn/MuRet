@@ -9,11 +9,13 @@
 #include "Network/CloseReason.h"
 #include "Network/Connection.h"
 #include "Network/Packet.h"
+#include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -54,7 +56,15 @@
 //   LoggedIn --RequestCharacterList: manda F3 00--> WaitingCharacterList
 //   WaitingCharacterList --F3 00: guarda la lista, aunque venga vacía--> ChoosingCharacter
 //   ChoosingCharacter --EnterWorld con uno elegido: manda F3 03 con su nombre--> EnteringWorld
-//   LoggedIn y los tres de después --cada KeepalivePeriod desde el primero: manda el keepalive-->
+//   ChoosingCharacter --CreateCharacter: manda F3 01 con el nombre y la clase--> WaitingCreateResult
+//   WaitingCreateResult --F3 01 con 1: suma al nuevo, sin equipo--> ChoosingCharacter
+//   WaitingCreateResult --F3 01 con 0 o 2: guarda el resultado--> ChoosingCharacter
+//   WaitingCreateResult --F3 01 con otro: un aviso (el original se queda, Q-C114)--> el mismo
+//   ChoosingCharacter --DeleteCharacter con uno elegido: manda F3 02 con su nombre y el código-->
+//     WaitingDeleteResult
+//   WaitingDeleteResult --F3 02 con 1: saca al que se mandó (Q-C104)--> ChoosingCharacter
+//   WaitingDeleteResult --F3 02 con otro: guarda el resultado--> ChoosingCharacter
+//   LoggedIn y los cinco de después --cada KeepalivePeriod desde el primero: manda el keepalive-->
 //     el mismo estado
 //   con el GS --F1 02 con 0: cierra, sin aviso--> QuitOrdered (Q-C106)
 //   cualquier Waiting* que espera un servidor --ReplyTimeout sin su respuesta: cierra--> Failed
@@ -70,7 +80,7 @@
 // que al cerrar vacía su cola de paquetes (0x4e8380). QuitOrdered es el final: ni Start la saca. Con
 // 1 o con 2 (la selección o la lista, Q-C79) se ignora con un aviso hasta la CL6 y la CL9.
 //
-// El keepalive corre en LoggedIn y en los tres estados de la selección, también minimizada, con el
+// El keepalive corre en LoggedIn y en los cinco estados de la selección, también minimizada, con el
 // ritmo que empezó con el login, y se detiene al salir de ellos: la sesión no se reconecta sola (la
 // escena de login muestra el aviso). El original manda desde el arranque
 // si hay conexión al GS, aunque no haya login (pregunta 6 del plan de la CL4): acá tampoco sale
@@ -199,6 +209,25 @@ public:
     // entrada. Sin elegido, o en otro estado, un aviso y nada.
     void EnterWorld();
 
+    // En ChoosingCharacter, manda el F3 01 con `name` y la clase `characterClass` (de 0 a 4, la de la
+    // vista previa: 0x63d990) y espera la respuesta. El nombre no va al log. Uno de más de 10 bytes o
+    // con un cero, o en otro estado, un aviso y nada: los chequeos del nombre de antes (el largo y los
+    // filtros) son de la ventana de crear.
+    void CreateCharacter(std::string_view name, std::uint8_t characterClass);
+
+    // El pkt[4] de la última respuesta del F3 01 (Protocol::Character::CharacterCreated, o el de un
+    // aviso), desde que llega hasta el próximo CreateCharacter o Start. std::nullopt antes.
+    [[nodiscard]] std::optional<std::uint8_t> CreateResult() const;
+
+    // En ChoosingCharacter con uno elegido, manda el F3 02 con su nombre y los bytes del campo de la
+    // ventana de borrar (0x643740), y espera la respuesta. El código no va al log. Sin elegido, o en
+    // otro estado, un aviso y nada.
+    void DeleteCharacter(std::span<const std::byte, Protocol::Character::DeleteCodeSize> code);
+
+    // El pkt[4] de la última respuesta del F3 02 (Protocol::Character::CharacterDeleted, o el de un
+    // aviso), desde que llega hasta el próximo DeleteCharacter o Start. std::nullopt antes.
+    [[nodiscard]] std::optional<std::uint8_t> DeleteResult() const;
+
 private:
     void RegisterConnectServerHandlers();
     void RegisterGameServerHandlers();
@@ -219,6 +248,8 @@ private:
     void OnGameHello(const Network::Packet& packet);
     void OnLoginResult(const Network::Packet& packet);
     void OnCharacterList(const Network::Packet& packet);
+    void OnCreateResult(const Network::Packet& packet);
+    void OnDeleteResult(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.
     void SendKeepalive(Core::Duration now);
@@ -252,6 +283,9 @@ private:
     std::optional<std::uint8_t> m_loginResult;
     std::optional<Protocol::Character::CharacterList> m_characters;
     std::optional<std::uint8_t> m_chosenSlot; // un lugar de m_characters
+    std::optional<std::uint8_t> m_createResult;
+    std::optional<std::uint8_t> m_deleteResult;
+    std::optional<std::uint8_t> m_deletingSlot; // el lugar del F3 02 que salió
     // Cambia con cada Connect y cada Fail: Poll deja de recorrer el lote si cambió.
     std::uint32_t m_generation = 0;
     Core::IntervalTimer m_keepalive{KeepalivePeriod};

@@ -59,6 +59,8 @@ TEST(AppPrintersTest, TheCharacterStatesShowTheirNames)
 {
     EXPECT_EQ(::testing::PrintToString(SessionState::WaitingCharacterList), "WaitingCharacterList");
     EXPECT_EQ(::testing::PrintToString(SessionState::ChoosingCharacter), "ChoosingCharacter");
+    EXPECT_EQ(::testing::PrintToString(SessionState::WaitingCreateResult), "WaitingCreateResult");
+    EXPECT_EQ(::testing::PrintToString(SessionState::WaitingDeleteResult), "WaitingDeleteResult");
     EXPECT_EQ(::testing::PrintToString(SessionState::EnteringWorld), "EnteringWorld");
 }
 

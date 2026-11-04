@@ -83,6 +83,12 @@ inline void PrintTo(SessionState state, std::ostream* out)
     case SessionState::ChoosingCharacter:
         *out << "ChoosingCharacter";
         return;
+    case SessionState::WaitingCreateResult:
+        *out << "WaitingCreateResult";
+        return;
+    case SessionState::WaitingDeleteResult:
+        *out << "WaitingDeleteResult";
+        return;
     case SessionState::EnteringWorld:
         *out << "EnteringWorld";
         return;

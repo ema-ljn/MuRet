@@ -3,6 +3,7 @@
 #include "Core/ByteReader.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
+#include "Data/Models/ModelTextures.h"
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
 
@@ -38,6 +39,8 @@ using Client::Data::Models::MaxPosedBoneActions;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
 using Client::Data::Models::ModelFile;
+using Client::Data::Models::TextureScript;
+using Client::Data::Models::TextureScriptOf;
 using Client::Data::Models::Triangle;
 using Client::Tests::HasExtension;
 using Client::Tests::ReadFileBytes;
@@ -290,5 +293,54 @@ TEST_F(GoldenBmd, EveryModelFitsThePosedBoneLimit)
     EXPECT_LE(largest, MaxPosedBoneActions);
     EXPECT_EQ(largest, 10250u) << "Player.bmd, con 50 de sus 60 huesos que se posan por 205 acciones";
     EXPECT_EQ(largestPath.generic_string(), "player/Player.bmd");
+}
+
+// 05: 142 mallas del laboratorio tienen script (0x459940), 135 con R, 6 con H (las de Object11\Object01
+// a 06) y 1 con S (Item\Quest03), y ninguna con N. 17 son de partes del personaje, todas con R: el
+// pelo de los cascos (hair_R.jpg) y otras tres texturas (CL6.1; antes 05 decía que ninguna).
+TEST_F(GoldenBmd, TheTextureScriptsOfTheLab)
+{
+    std::size_t scripts = 0;
+    std::map<char, std::size_t> letters;
+    std::vector<std::string> hidden;
+    std::vector<std::string> scrolling;
+    std::size_t player = 0;
+    for (const LabModel& lab : LabModels())
+    {
+        for (const Mesh& mesh : lab.model.meshes)
+        {
+            const std::optional<TextureScript> script = TextureScriptOf(mesh.textureName);
+            if (!script.has_value())
+            {
+                continue;
+            }
+            ++scripts;
+            letters['R'] += script->blendMesh ? 1u : 0u;
+            letters['H'] += script->hidden ? 1u : 0u;
+            letters['S'] += script->scrollUv ? 1u : 0u;
+            letters['N'] += script->withoutShine ? 1u : 0u;
+            if (script->hidden)
+            {
+                hidden.push_back(lab.path.generic_string());
+            }
+            if (script->scrollUv)
+            {
+                scrolling.push_back(lab.path.generic_string());
+            }
+            if (lab.path.begin()->generic_string() == "player")
+            {
+                ++player;
+                EXPECT_TRUE(script->blendMesh) << lab.path.generic_string();
+            }
+        }
+    }
+
+    EXPECT_EQ(scripts, 142u);
+    EXPECT_EQ(letters, (std::map<char, std::size_t>{{'H', 6}, {'N', 0}, {'R', 135}, {'S', 1}}));
+    EXPECT_EQ(hidden,
+              (std::vector<std::string>{"Object11/Object01.bmd", "Object11/Object02.bmd", "Object11/Object03.bmd",
+                                        "Object11/Object04.bmd", "Object11/Object05.bmd", "Object11/Object06.bmd"}));
+    EXPECT_EQ(scrolling, (std::vector<std::string>{"Item/Quest03.bmd"}));
+    EXPECT_EQ(player, 17u);
 }
 } // namespace

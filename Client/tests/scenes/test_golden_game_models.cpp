@@ -34,6 +34,7 @@ using Client::Data::Models::ItemModelFiles;
 using Client::Data::Models::ModelTextureSampling;
 using Client::Data::Models::PlayerFixedTextures;
 using Client::Data::Models::PlayerModelFiles;
+using Client::Data::Models::SkillModelFiles;
 using Client::Render::TextureSlot;
 using Client::Scenes::GameModels;
 using Client::Scenes::GlowTextureSet;
@@ -60,7 +61,8 @@ TEST_F(GoldenGameModels, LoadsEveryModelOfThePlayerLoader)
     const auto loaded = models.Load(m_dataRoot, textures, log);
 
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    EXPECT_EQ(models.Count(), PlayerModelFiles().size() + ItemModelFiles().size() - MissingInTheLab);
+    EXPECT_EQ(models.Count(),
+              PlayerModelFiles().size() + ItemModelFiles().size() + SkillModelFiles().size() - MissingInTheLab);
     ASSERT_NE(models.SkeletonOf(0x20a), nullptr);
     EXPECT_EQ(models.SkeletonOf(0x20a)->headBone, 20);
     for (const auto& file : PlayerModelFiles())
@@ -123,6 +125,32 @@ TEST_F(GoldenGameModels, EveryTextureTheLoadersAskForIsThere)
     }
 }
 
+// El caballo oscuro (0xbf, Skill\DarkHorse.bmd): sus 13 mallas, su esqueleto y sus texturas, 11 desde
+// 0x3bc, después de las cuatro de 0x145, 0x146 y 0x147, y dos que ya estaban: dkhead2 y dkheadwing,
+// que subió 0x1c16 (DarkHorseHorn, también de Skill\) en 0x26b y 0x26c.
+TEST_F(GoldenGameModels, TheDarkHorseGetsItsTexturesAfterTheThreeBeforeIt)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    const auto* horse = models.Find(0xbf);
+    ASSERT_NE(horse, nullptr);
+    EXPECT_EQ(horse->meshes.size(), 13u);
+    ASSERT_NE(models.SkeletonOf(0xbf), nullptr);
+    std::vector<std::uint16_t> slots;
+    for (const TextureSlot slot : models.MeshTextures(0xbf))
+    {
+        slots.push_back(slot.value);
+    }
+    EXPECT_EQ(slots, (std::vector<std::uint16_t>{0x3bc, 0x3bd, 0x26b, 0x3be, 0x3bf, 0x3c0, 0x3c1, 0x3c2, 0x3c3, 0x3c4,
+                                                 0x3c5, 0x26c, 0x3c6}));
+    EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{0x26b}), "dkhead2.JPG");
+}
+
 // La mascota que se dibuja (0x1c13, Helper02 de Player\) con las texturas de Item\, todas subidas.
 TEST_F(GoldenGameModels, ThePetDrawsWithItsTextures)
 {
@@ -145,10 +173,11 @@ class ModelTextureSlotsGoldenTest : public Client::Tests::MemoryDumpTest
 {
 };
 
-// El nombre de cada slot de 0x12e a 0x370, como lo dejan 0x60f7d0 y 0x611850, contra la tabla de
-// 0x7d3a198 volcada en Lorencia (0x38 bytes por slot, el nombre en +0). 0x138 y 0x139 son de
-// LaceArrow, que 0x615700 carga encima (Q-C89); desde 0x371, el próximo donde quedan los dos, siguen
-// las habilidades y los efectos que 0x615700 pide antes de su 0x60d530(0x69).
+// El nombre de cada slot de 0x12e a 0x370, como lo dejan 0x60f7d0 y 0x611850, y de 0x3b8 a 0x3c6, como
+// los deja 0x615700 desde su 0x60d530(0x3b8) hasta el caballo, contra la tabla de 0x7d3a198 volcada
+// en Lorencia (0x38 bytes por slot, el nombre en +0). 0x138 y 0x139 son de LaceArrow, que 0x615700
+// carga encima (Q-C89); de 0x371 a 0x3b7 van las habilidades y los efectos que 0x615700 pide antes,
+// que MuRet todavía no carga.
 TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
 {
     const auto dump = DumpFile(Client::Tests::LorenciaCapture, "lor_slots.bin");
@@ -165,11 +194,11 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
 
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
-    ASSERT_EQ(models.TextureSlots().Next(), TextureSlot{0x371});
+    ASSERT_EQ(models.TextureSlots().Next(), TextureSlot{0x3c7});
     std::size_t compared = 0;
-    for (std::uint16_t slot = 0x12e; slot < 0x371; ++slot)
+    for (std::uint16_t slot = 0x12e; slot < 0x3c7; ++slot)
     {
-        if (slot == 0x138 || slot == 0x139)
+        if (slot == 0x138 || slot == 0x139 || (slot >= 0x371 && slot < 0x3b8))
         {
             continue;
         }
@@ -178,6 +207,6 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
         EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{slot}), name) << std::hex << slot;
         compared += name.empty() ? 0u : 1u;
     }
-    EXPECT_EQ(compared, 489u);
+    EXPECT_EQ(compared, 489u + 15u);
 }
 } // namespace

@@ -456,6 +456,27 @@ solo lo lee.
   orden, ninguna traza lo tiene (P-C20). **Falta la prueba a mano en la VM** (el paso 10, con
   cancelar en la cuenta): P-C21 del 08, con los pasos en el README del cliente.
 
+  **La CL6.4** (2026-11-04, resuelta por Claude): el logo y el personaje del login. Antes, una
+  lectura del binario, porque el contrato del plan no alcanzaba: el logo es un objeto del mundo
+  que dibuja `0x6046a0` después de los personajes (un RenderBody, emulado sobre el `main.exe`), y
+  su color y la luz del personaje salen de la luz del terreno del mapa 55, sombreada con sus alturas
+  (`World/TerrainLighting`, que nace acá). El personaje para en la acción de montar del caballo
+  oscuro, que todavía no se dibuja: la revisión adversarial encontró que es el `0xbf`, que va en el
+  PR que sigue. Lo nuevo de los quirks: la ventana de la acción va de 0 a 100 ms por la x87 (Q-C110)
+  y la fase de las rutas no vuelve a 0 (Q-C111). La revisión encontró también que el personaje no
+  volvía a la de parado después de un gesto y que el primer paso no le escribe la luz al logo. 39
+  tests y 72 mutantes. Con los datos del laboratorio, `Main` dibuja el logo y el personaje; falta
+  mirarlo contra el original en la VM (P-C15).
+
+  **La CL6.4 PR B** (2026-11-04, resuelta por Claude): el caballo oscuro, un objeto ayudante que
+  aparece de a poco, sigue la acción del jinete y lleva luz por vértice, que ningún modelo de MuRet
+  usaba (`Render::Models::NormalLight`), un cromo y su sombra (`Scenes/DarkHorse` y
+  `DrawDarkHorse`). Sus texturas caen en los slots del original, verificados en `lor_slots.bin`.
+  Dos quirks (Q-C112 y Q-C113). La revisión contra el binario encontró que la luz por vértice va con
+  L = (1,3; 0; 2), por una bandera que vale 1 desde el `.data` y nadie escribe (Q-C115), y que la
+  normal lleva la escala del objeto. El caballo de la selección espera la acción de parado de
+  `0x4f2250` (P-C14 c). 28 tests y 58 mutantes.
+
   **La CL6.5 PR A** (2026-11-04, resuelta por Claude): crear y borrar personajes, los paquetes
   (`F3 01` y `F3 02`) y la sesión, que espera cada respuesta en un estado propio, con el tope y el
   keepalive. El nuevo entra a la lista sin equipo (Q-C103), y un resultado de crear que el original

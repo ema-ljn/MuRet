@@ -2108,23 +2108,164 @@ inline constexpr Render::TextureSlot LoginLogoFirstSlot{0x455};
 } // namespace Client::Scenes
 ```
 
-- [ ] **Paso 1:** los tests: `LoginModelsTest.TheLogoIsModel0xA2AtItsPlace`,
+- [x] **Paso 1:** los tests: `LoginModelsTest.TheLogoIsModel0xA2AtItsPlace`,
   `TheCharacterIsClassFourWithItsSet` (las cinco partes, el arma, el cuervo, la capa y la mascota,
-  por número), `TheActionOnlyChangesInItsWindow` (fuera de los primeros 100 ms de cada 2.300 del
-  reloj, nunca; adentro, con `FixedSeed`, las dos salen en 100 pasos y en otros se queda la que
-  tenía), `TheLogoTexturesStartWhereTheWorldLeft` (Q-C92), `TheLogoIsScaled2_2WithBlendMesh1`,
+  por número), `TheActionOnlyChangesInItsWindow` (fuera de la ventana de cada 2.300 ms del reloj,
+  nunca; adentro, con `FixedSeed`, las dos salen en 100 pasos y en otros se queda la que tenía),
+  `TheLogoTexturesStartWhereTheWorldLeft` (Q-C92), `TheLogoIsScaled2_2WithBlendMesh1`,
   `TheLogoLightJumpsWhenThePhaseChanges` (Q-C105); `LoginSceneTest.DrawsInTheOrderOfTheOriginal`
   (crece: el pase 3D tiene el logo y el personaje después del `IWorldView`), `LeaveReleasesTheLogo`;
   y el golden `GoldenLoginScene.TheLogoLoads`.
-- [ ] **Paso 2 (Emanuel, `TODO(human)`):** `LoginModels` y lo que suma la escena. Verificar:
+- [x] **Paso 2 (Emanuel, `TODO(human)`):** `LoginModels` y lo que suma la escena. Verificar:
   ```bash
-  ctest --preset linux-x64-debug -R "LoginModels|LoginScene"
-  MURET_CLIENT_GOLDEN_DIR=<Data> ctest --preset linux-x64-debug -R "GoldenLoginScene"
+  ctest --preset linux-x64-debug -R "LoginModels|LoginScene|TerrainLighting"
+  MURET_CLIENT_GOLDEN_DIR=<Data> ctest --preset linux-x64-debug -R "GoldenLoginScene|GoldenTerrainLighting"
   ```
   Los mutantes: el logo en grados por radianes, el personaje sin la escala 1,6, una acción fija, la
   tirada en cada paso sin la ventana del reloj, y los slots del logo desde 0.
-- [ ] **Paso 3 (a mano):** con `--data`, el login con el logo y el personaje sobre los fondos; sin
-  traza del login (P-C13), se mira a ojo contra una captura fuera de Git.
+
+  Hecho así (2026-11-04, resuelto por Claude). Antes, una lectura del binario (CL6.4.R, *estático*,
+  en el 06 § El logo en el binario y § La luz del terreno en un punto), porque el contrato de arriba
+  no alcanzaba:
+  - el logo es un objeto del mundo y lo dibuja `0x6046a0`, después de los personajes, no
+    `0x53c6a0`. Emulado sobre el `main.exe`: `0x6002e0` hace con el `0xa2` un solo RenderBody(2)
+    con el objeto, sin brillo;
+  - el color del logo es 0,1 de la luz del terreno en su lugar más la suya (`0x5ffce0`), y el
+    personaje va con la luz del terreno más 0,3, que le pone `0x517270` (`0x50ba30` fuera de la
+    escena 4). Esa luz no es la del OZJ sola: `0x5f8b10` y `0x5f8d90` la sombrean con las alturas;
+  - el personaje para en la acción `0x4a`, la de montar, que le da `0x4f2250` con el caballo
+    oscuro; el caballo no lo dibuja `0x50ba30` (lo dibuja `0x4453b0`: es el `0xbf`, abajo);
+  - el logo avanza a 0,16 por paso (`+0xd8` de `0x606660`), pero `Logo03.bmd` tiene una acción de
+    una key: no se anima;
+  - la luz del logo corre antes que la cuenta de las rutas, que arranca en −1, y solo con el logo
+    ya dibujado (Q-C105, corregido en la revisión);
+  - la ventana de la acción va de 0 a 100 ms, por la x87 (Q-C110);
+  - la fase de las rutas no vuelve a 0 al volver al login (Q-C111).
+
+  En un PR, con un commit por concepto:
+  - **`World/TerrainLighting`** (8 tests, 1 golden, 16 mutantes): la sombra de cada celda y la luz
+    en un punto, bilineal, y `LoadTerrainLighting` con la carpeta del mapa. `World/` nace acá; era
+    de la CL7.
+  - **`Scenes/LoginModels`** (10 tests, 26 mutantes): el logo, su luz y la cuenta de las rutas, el
+    color de un objeto sin luz por vértice, el personaje, su lugar, su luz y su acción.
+  - **`DrawObject` y la luz por canal de `DrawnCharacter`** (6 tests, 8 mutantes, uno equivalente):
+    el pase base de un objeto del mundo, con el armado de las mallas que comparte con el dibujo del
+    personaje (`MeshDrawsOf`).
+  - **La `LoginScene`** (8 tests con un `Logo03.bmd` y un `World56` sintéticos, el golden
+    `GoldenLoginScene.TheLogoLoads`, 16 mutantes): la carga al entrar, el paso como `0x634c60` y el dibujo, con
+    `Scenes/CharacterAnimation` (el avance del personaje, que ahora comparte con la selección).
+
+  Lo que cambió del contrato de arriba:
+  - `LoginScene` recibe un `IModelLibrary` y no los `GameModels`.
+  - El reloj del paso no sale de `IScene::Step`, que tiene 83 llamadas: las escenas lo ven en el
+    `SceneContext` (el del bucle).
+  - Se nombran también `SingleModelLibrary` (el logo) y `UnlitObjectColor`.
+
+  Decisiones, con lo que cuestan si están mal:
+  - Ruling: el caballo (el `0xbf`) y el cuervo no se dibujan en este PR: el cuervo es de la CL8, y
+    el caballo va en el PR que sigue de la CL6.4 (falta leer su dibujo y su carga). Si está mal, el
+    login se ve distinto hasta ese PR, con el personaje en la pose de montar sin el caballo.
+  - Ruling: la luz del terreno se calcula en todas las celdas, sin la ventana de `0x5fbf60` ni las
+    luces dinámicas. Si está mal, un lugar fuera de la ventana da 0 en el original.
+  - Ruling: el frustum de los objetos no se reproduce: el logo se dibuja siempre y se avanza desde
+    que se dibujó una vez, que es lo que hace el `+0x16c` con la cámara fija. Si está mal: con otra
+    cámara, un objeto fuera de la vista seguiría avanzando.
+  - Ruling: la fase de las rutas vuelve a 0 en cada entrada al login (Q-C111). Si está mal, la
+    segunda vez el logo de MuRet se aclara de a poco y el del original no.
+  - Ruling: el reloj del paso es el del bucle cuando corre el paso, no el del frame. Si está mal, la
+    ventana de la acción se corre menos de un frame.
+
+  Con los datos del laboratorio, `Main` entra al login y dibuja el logo y el personaje: hay una
+  captura en 1024 × 768, fuera de Git. 1888 de 1888 tests con los golden y GL. En CI no hay golden.
+
+  Tras la revisión adversarial (dos revisores, uno del C++ y otro contra el binario, que emuló
+  `0x602e90`, `0x604ab0` y la ventana de `0x5fbf60`, y decodificó el `.att` del mundo 56):
+  - **Del C++ y del binario:** el personaje no volvía a la de parado. `0x4fcd00` le pone la `0x4a`
+    otra vez cuando la `0x54` o la `0x55` terminan; MuRet las repetía para siempre.
+    `StepCharacterAnimation` devuelve ahora si terminó, y el login le vuelve a dar la de parado
+    (`TheCharacterStandsAgainWhenItsGestureEnds`).
+  - **De los dos:** el primer paso no le escribe la luz al logo. `0x606560` solo corre los objetos
+    con `+0x16c`, que prende el dibujo. Ahora el logo cambia desde que se dibujó
+    (`TheLogoDoesNotChangeUntilItIsDrawn`), y el 06, Q-C105 y P-C15 quedaron corregidos.
+  - **Del binario:** el `0xbf` es el caballo (`Skill\DarkHorse.bmd`), un objeto ayudante que sigue
+    al jinete, y no un efecto. Además hay dos cosas que el original hace en la escena 2 y MuRet no:
+    la tela de la clase 4 (`0x50ba30`) y la cabeza que mira al azar (`0x505de0`). Quedaron en el 06
+    y en P-C15 (d, g y h).
+  - **Del binario:** la luz del terreno coincide con un cálculo aparte en Python sobre los mismos
+    archivos, en el lugar del personaje (0,988) y en el del logo (0,698; 0,678; 0,655). Quedó en
+    `GoldenTerrainLighting.TheLightOfTheLoginMatchesAnIndependentComputation`, que mata los dos
+    mutantes que vivían (sin la sombra, y con las alturas por 1,5). Los dos lugares caen en la
+    ventana de `0x5fbf60`.
+  - **Del C++, chicos:**
+    - el paso de la orden de cerrar movía el mundo (`AQuitOrderDoesNotMoveTheLoginWorld`);
+    - las texturas del logo se sueltan antes que sus slots;
+    - un comentario había quedado fuera de lugar.
+  - **Minors para después:**
+    - las mallas que van después de la del blendMesh heredan su color en el original (P-C20 i);
+    - el contorno al volver de la selección (P-C15 i).
+
+  **PR B, el caballo oscuro** (2026-11-04, resuelto por Claude). Antes, otra lectura del binario
+  (*estático*; el dibujo del `0xbf` emulado sobre el `main.exe`; en el 06 § El caballo oscuro):
+  - lo crea `0x6349a0` con `0x443fa0(0xbf, …)` en el lugar del jinete, invisible (el alpha en 0), y
+    `0x444010` lo mueve en cada paso, después del logo y antes de los personajes: el alpha sube un
+    décimo de lo que le falta, y la acción y la velocidad van por la del jinete (la 0 a 0,3 con la
+    `0x4a`; la 5 y la 6 a 1 con los gestos);
+  - lo dibuja `0x4453b0` entre los personajes y los objetos, con la escala 1,6. El caso `0xbf` de
+    `0x6002e0` lo pinta en blanco con la luz por vértice, que ningún modelo de MuRet usaba, le suma
+    el cromo de la malla 12 en (1; 0,8; 0,3) y la sombra de la malla 8, mezclada al 0,7;
+  - sus texturas las pide `0x615700` desde `0x3b8`, después de las de tres modelos más: caen de
+    `0x3bc` a `0x3c6`, y dos se encuentran en `0x26b` y `0x26c`. **Verificado** en `lor_slots.bin`;
+  - la celda del login no es zona segura, que lo apagaría; dos quirks nuevos (Q-C112 y Q-C113).
+
+  En un PR, con un commit por concepto:
+  - **La carga:** `GameModels` lee el caballo y los tres de antes (`SkillModelFiles` y
+    `SkillTextureCalls`). 3 tests, y el golden de los slots compara 15 más.
+  - **El dibujo:** `Render::Models::NormalLight`, el alpha y la luz por vértice de `DrawnObject`, y
+    `ModelBlend::BlendedShadow`. 8 tests.
+  - **El caballo:** `Scenes/DarkHorse` (el paso) y `DrawDarkHorse` (el dibujo). 8 tests.
+  - **La `LoginScene`:** lo crea al entrar, lo mueve con la acción del jinete y lo dibuja entre el
+    personaje y el logo. 5 tests.
+
+  48 mutantes a mano, todos en rojo: dos se reescribieron para compilar, y uno (el culling de la
+  sombra) vivía hasta separar su test. (Abajo, lo que cambió con la revisión.) Con los datos del laboratorio, `Main` dibuja el caballo
+  debajo del jinete (captura fuera de Git).
+
+  Decisiones, con lo que cuestan si están mal:
+  - Ruling: el caballo de la selección no entra. `0x5139f0` se lo crea a un personaje con el bit 0
+    del byte 11, pero sin la acción de parado de `0x4f2250` por la mascota (P-C14 c) el jinete no va
+    montado. Si está mal, un Dark Lord con caballo sale en la selección sin él, como hoy.
+  - Ruling: la zona segura, el polvo (`0x5f2`) y los efectos de sus acciones no se reproducen. La
+    celda del login no es segura, y los efectos son de su ola. Si está mal, el original levanta polvo
+    cada tanto y MuRet no.
+  - Ruling: `+0x68` (la luz del blendMesh, Q-C112) no se lleva: el caballo no tiene blendMesh. Si
+    está mal, no cambia nada.
+
+  Tras la revisión adversarial (dos revisores: uno del C++, sin Critical ni Important; otro contra el
+  binario y las trazas de GL):
+  - **Crítico, del binario:** la luz por vértice va con L = (1,3; 0; 2) y no con (0; −1,5; 0).
+    `DAT_006c8818` vale 1 desde el `.data` y es su única referencia: las otras dos ramas no corren
+    nunca (Q-C115). Las trazas de GL ajustan con (1,3; 0; 2). Con el modelo real, 624 de las 904
+    normales del caballo cambiaban en más de 0,1 (`SkinningTest.TheVertexLightComesFromXAndZ`).
+  - **Importante, del binario:** en un objeto de `0x5ffdf0`, la normal lleva la escala del objeto
+    (1,6 en el login), para la luz y para las UV del cromo (`TheNormalsOfAnObjectCarryItsScale`,
+    `TheHorseChromeTakesTheScaledNormal`).
+  - **Del binario, que se arreglan con el mismo pase:** la sombra va sin alpha test (`0x4eff40` lo
+    apaga, y en el mapa 7 va en 0,2: `TheBlendedShadowHasNoAlphaTest`), y el cromo va en las mallas
+    12 a 15 que existan, cada una por el alpha otra vez (`TheHorseChromeGoesOnMeshesTwelveToFifteen`).
+  - **Del C++:** el test de la luz por vértice no distinguía el índice de la normal del del vértice,
+    y nada miraba las UV del cromo: los dos mutantes vivían, y ahora mueren.
+  - **Docs:** la zona segura mira la celda del jinete y, en ella, el caballo avanza igual; la fila de
+    la `0x4b`; el polvo, para la ola de los efectos; P-C15 (d) (el alpha va por 1 − 0,9ⁿ: el cuerpo
+    se ve desde el paso 3, por el alpha test).
+  - **Minors para después:** la cabeza del jinete en el hueso 7 del caballo (no se ve: es una raíz que
+    ningún vértice usa); una malla del caballo con `H` dibujaría la sombra en el original y no en
+    MuRet (las de serie no tienen script); P-C14 (e) infiere el 1,35 con "el piso 0,2 de la luz por
+    vértice", y la L era otra.
+
+  4 tests y 10 mutantes más, todos en rojo. 1921 de 1921 con GL y los golden.
+- [ ] **Paso 3 (a mano):** con `--data`, el login con el logo y el personaje sobre los fondos,
+  contra el original en la VM (P-C15 y P-C21); sin traza del login (P-C13), se mira a ojo contra
+  una captura fuera de Git.
 
 ## Sub-ola CL6.5: crear y borrar personajes, con la UI de la selección
 
@@ -2226,8 +2367,9 @@ Decisiones, con lo que cuestan si están mal:
   (`0x4c3940`) y el tope de `EnteringWorld`; las velocidades del keepalive
   (`ServerSession::SetKeepaliveSpeeds`) con lo que traiga esa respuesta; los multiplicadores de
   `0x4f9580`; y que la cámara que se mueve (CL7.3) dé un `Render::Camera3D`.
-- [ ] Decidir dónde van los efectos (el `0xbf` del login, la luz de abajo del elegido si no entró en
-  la CL6.3, los de las armas): el roadmap no tiene esa ola.
+- [ ] Decidir dónde van los efectos (el polvo del caballo, `0x5f2`, la luz de abajo del elegido si no
+  entró en la CL6.3, los de las armas): el roadmap no tiene esa ola. El `0xbf` del login resultó ser
+  el caballo, y lo dibuja la CL6.4 PR B.
 - [ ] Sumar al plan de la CL9 los modelos de los monstruos con el research corregido: `Monster50`
   falta en el laboratorio y cerraría el original.
 - [ ] Si la CL6.5 pasó a la CL8, sumarla a su plan.

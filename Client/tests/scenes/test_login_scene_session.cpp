@@ -19,6 +19,7 @@
 #include "Protocol/Connection/ServerList.h"
 #include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
+#include "Render/SpriteVertex.h"
 #include "Scenes/GameData.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
@@ -45,6 +46,9 @@
 #include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
 #include "support/UiInput.h"
+#include "Scenes/LoginModels.h"
+#include "support/FixedRandom.h"
+#include "support/LoginLogoFiles.h"
 
 #include <gtest/gtest.h>
 
@@ -105,6 +109,7 @@ using Client::Tests::AddressReply;
 using Client::Tests::FakeClock;
 using Client::Tests::FakeSocket;
 using Client::Tests::FakeTextureStore;
+using Client::Tests::FixedSeed;
 using Client::Tests::FrameEvent;
 using Client::Tests::GameClientKeys;
 using Client::Tests::GameHello;
@@ -203,7 +208,7 @@ struct Harness
         {
             data = std::move(loaded).Value();
         }
-        scene.emplace(SceneContext{folder.Path(), store, log}, data, &session, "0.0.0");
+        scene.emplace(SceneContext{folder.Path(), store, log}, data, models, &session, "0.0.0", FixedSeed);
     }
 
     // Lo de un frame del GameLoop con un paso: la sesión, el paso de la escena y los flancos.
@@ -389,6 +394,7 @@ struct Harness
     Connection connection;
     ServerSession session;
     GameData data;
+    Client::Scenes::SingleModelLibrary models;
     RecordingFrameTarget target;
     InputState input;
     std::optional<LoginScene> scene;
@@ -415,9 +421,9 @@ TEST(LoginSceneSessionTest, TheListShowsWhenItArrives)
     const auto firstWindowQuad = std::ranges::find_if(
         events, [](const FrameEvent& event) { return event.kind == Kind::Quad && event.texture == FrameSlot; });
     ASSERT_NE(firstWindowQuad, events.end());
-    // Los fondos, el fin del 2D, el mundo, las dos arenas y los tres textos, y después la UI: sin
-    // grupo elegido, la pieza del marco de la izquierda y el botón.
-    EXPECT_EQ(firstWindowQuad - events.begin(), 9);
+    // Los fondos, el fin del 2D, el mundo, los modelos, las dos arenas y los tres textos, y después la
+    // UI: sin grupo elegido, la pieza del marco de la izquierda y el botón.
+    EXPECT_EQ(firstWindowQuad - events.begin(), 10);
     EXPECT_EQ(firstWindowQuad->blend, BlendMode::Alpha);
     const auto button = std::ranges::find_if(std::next(firstWindowQuad), events.end(),
                                              [](const FrameEvent& event) { return event.kind == Kind::Quad; });
@@ -922,6 +928,41 @@ TEST(LoginSceneSessionTest, AQuitOrderLeavesTheLoginAsItWas)
     EXPECT_FALSE(Harness::Drew(events, ConnectFailedText));
     EXPECT_FALSE(tested.scene->WantsToQuit());
     EXPECT_FALSE(tested.Logged(LogLevel::Info, "se cancela la cuenta"));
+}
+
+// El color de la primera malla del logo (la última en el lote, después del personaje), o ninguno.
+std::optional<Client::Render::Color> LogoColorOf(const std::vector<FrameEvent>& events)
+{
+    const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
+    if (models == events.end() || models->modelVertices.size() < 6)
+    {
+        return std::nullopt;
+    }
+    return models->modelVertices[models->modelVertices.size() - 6].color;
+}
+
+// Q-C106: tampoco el mundo del login avanza en el paso de la orden de cerrar: la luz del logo queda
+// como en el paso de antes, que sí la cambió.
+TEST(LoginSceneSessionTest, AQuitOrderDoesNotMoveTheLoginWorld)
+{
+    Harness tested;
+    Client::Tests::WriteLoginLogo(tested.folder.Path());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheLogin());
+    const std::optional<Client::Render::Color> before = LogoColorOf(tested.Frame());
+    tested.Step();
+    const std::optional<Client::Render::Color> lit = LogoColorOf(tested.Frame());
+    ASSERT_TRUE(before.has_value());
+    ASSERT_TRUE(lit.has_value());
+    ASSERT_NE(lit->red, before->red);
+
+    tested.socket.reads = {LogoutResult(0)};
+    tested.socket.peerClosed = true;
+    tested.Tap(Key::Escape);
+
+    ASSERT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    const std::optional<Client::Render::Color> after = LogoColorOf(tested.Frame());
+    ASSERT_TRUE(after.has_value());
+    EXPECT_FLOAT_EQ(after->red, lit->red);
 }
 
 // El OK del 0x70 cierra el juego (Q-C69): la escena lo pide con WantsToQuit, con una línea en el

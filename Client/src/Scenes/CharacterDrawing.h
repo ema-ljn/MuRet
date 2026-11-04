@@ -4,11 +4,13 @@
 #include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
+#include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 
 #include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
 
 #include <cstdint>
 #include <optional>
@@ -46,8 +48,9 @@ struct DrawnCharacter
     // La mascota y las alas avanzan por tiempo (Render/Models/Animation.h).
     Render::Models::AnimationState pet;
     Render::Models::AnimationState wings;
-    // La luz del personaje: la base de 0x50ba30 más +0xf4, 0,4 y 1,4 el elegido en la selección.
-    float light = 0.4f;
+    // La luz del personaje, canal por canal: la base de 0x50ba30 más +0xf4 (0,4 y 1,4 el elegido en la
+    // selección; en el login, la del terreno en su lugar más 0,3).
+    glm::vec3 light{0.4f, 0.4f, 0.4f};
     // El que está bajo el mouse (DAT_006c8e30 en 0x510d00): sus partes llevan el contorno.
     bool outlined = false;
 };
@@ -84,5 +87,40 @@ inline constexpr Render::TextureSlot MetalTextureSlot{0x620};
 // algunos ítems ocultan en sus pases, el cromo de Spear10 antes y el set que se apaga malla a malla.
 // Las saetas de la izquierda o las flechas de la derecha van a la espalda, del hueso de las alas.
 void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
+                   Core::Duration frameClock);
+
+// Un objeto del mundo (0x606660): el modelo, su animación (+0x111 a +0x118), dónde va, lo que le pasa
+// a RenderBody y el color del modelo (+0x48..+0x50, el que le pone 0x5ffce0 antes de posar).
+struct DrawnObject
+{
+    std::uint16_t model = 0;
+    Render::Models::AnimationState animation;
+    Render::Models::ObjectTransform transform;
+    Render::Models::ObjectState state;
+    glm::vec3 color{1.0f, 1.0f, 1.0f};
+    // +0x174, el alpha que se le pasa a RenderBody.
+    float alpha = 1.0f;
+    // +0xe8: la luz por vértice, que 0x5ffce0 copia a +0x44 del modelo.
+    bool vertexLight = false;
+};
+
+// 0x602e90 con un objeto sin casos por tipo: 0x5ffdf0 no lo dibuja con el alpha por debajo de 0,01, y
+// si no lo posa con su escala, sus ángulos y su posición, sin cabeza; 0x6002e0 llama a
+// RenderBody(2): el pase base de cada malla, sin brillo y sin contorno, con el script de su textura y
+// el blendMesh, la luz, la U, la V y la malla oculta del objeto. Con el alpha por debajo de 0,99 cada
+// malla va con la mezcla normal y ese alpha (0x4ecc30); con la luz por vértice, cada esquina va con
+// el color por la luz de su normal (Render::Models::NormalLight), salvo la del blendMesh. Un modelo
+// que la biblioteca no tiene no se dibuja.
+void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                Core::Duration frameClock);
+
+// 0x602e90 con el caso del caballo oscuro (0xbf) de 0x6002e0: el pase base de DrawObject en blanco
+// (pisa el color de 0x5ffce0); después el 0x44 (cromo aditivo, Render::Models::ShinePass::Chrome) de
+// las mallas 12 a 15 que existen (en DarkHorse.bmd, la 12) en (1; 0,8; 0,3), por el alpha si es menor
+// que 0,99; y la sombra de la malla 8 (0x4eff40 entre 8 y 9) en (0, 0, 0, 0,7), mezclada y aplastada
+// sobre el piso desde su lugar. El original no dibuja la sombra en los mapas 10, 24 a 29 y 36, y la
+// pone en 0,2 en el 7, que MuRet todavía no tiene. Las normales llevan la escala del objeto, para la
+// luz y para las UV del cromo.
+void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& horse,
                    Core::Duration frameClock);
 } // namespace Client::Scenes

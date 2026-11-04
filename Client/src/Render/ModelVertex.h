@@ -15,8 +15,9 @@ struct ModelVertex
 {
     glm::vec3 position{}; // en el mundo
     glm::vec2 uv{};
-    // Sin recortar: la luz del original llega a 1,34, y la función fija la recorta a [0, 1] antes de
-    // rasterizar; acá la recorta el shader.
+    // Sin recortar: la luz del original pasa de 1 (1,34 en la selección, hasta 3,45 con la luz por
+    // vértice del caballo), y la función fija la recorta a [0, 1] antes de rasterizar; acá la recorta
+    // el shader.
     Color color{};
 };
 } // namespace Client::Render

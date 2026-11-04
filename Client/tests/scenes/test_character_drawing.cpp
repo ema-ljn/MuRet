@@ -15,6 +15,7 @@
 #include <gtest/gtest.h>
 
 #include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -46,7 +47,10 @@ using Client::Render::Models::BoneKey;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 using Client::Scenes::DrawCharacter;
+using Client::Scenes::DrawDarkHorse;
 using Client::Scenes::DrawnCharacter;
+using Client::Scenes::DrawnObject;
+using Client::Scenes::DrawObject;
 using Client::Scenes::IModelLibrary;
 using Client::Scenes::MeshSlotOf;
 using Client::Scenes::SkinIndexOf;
@@ -1219,5 +1223,331 @@ TEST(CharacterDrawingTest, AModelGoesPassByPass)
     EXPECT_EQ(batch.Commands()[0].state.texture, TextureSlot{0x300});
     EXPECT_EQ(batch.Commands()[1].vertexCount, 2u * 3u);
     EXPECT_NE(batch.Commands()[1].state.texture, TextureSlot{0x300});
+}
+// La luz del personaje va por canal: la del login es la del terreno, que tiene color (0x50ba30 con
+// 0x5f99e0 fuera de la escena 4).
+TEST(CharacterDrawingTest, TheLightOfACharacterGoesByChannel)
+{
+    DrawnCharacter character;
+    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.light = glm::vec3{0.2f, 0.4f, 0.6f};
+    const OneModel models(character.appearance.bodyParts[1].model);
+
+    const ModelBatch batch = Drawn(models, character);
+
+    ASSERT_EQ(batch.Vertices().size(), 3u);
+    ExpectColor(batch.Vertices()[0], 0.2f, 0.4f, 0.6f);
+}
+
+ModelBatch DrawnObjectOf(const OneModel& models, const DrawnObject& object)
+{
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    DrawObject(batch, models, object, std::chrono::milliseconds{0});
+    return batch;
+}
+
+DrawnObject LogoLike()
+{
+    DrawnObject object;
+    object.model = 0xa2;
+    object.transform.position = {10.0f, 20.0f, 30.0f};
+    object.transform.scale = 2.0f;
+    object.state.blendMesh = 1;
+    object.state.light = 0.5f;
+    object.color = {0.3f, 0.4f, 0.5f};
+    return object;
+}
+
+// Un objeto del mundo sin casos por tipo (0x6002e0): RenderBody(2) y nada más. Cada malla con el color
+// del modelo (0x5ffce0), y la del blendMesh aditiva y por la luz del objeto; posado con su escala y su
+// posición (0x5ffdf0).
+TEST(CharacterDrawingTest, AnObjectGoesWithItsBasePassOnly)
+{
+    const OneModel models(0xa2, "logo.jpg", 2);
+
+    const ModelBatch batch = DrawnObjectOf(models, LogoLike());
+
+    ASSERT_EQ(batch.Commands().size(), 2u);
+    EXPECT_EQ(batch.Commands()[0].state, (ModelDrawState{TextureSlot{0x300}, ModelBlend::Opaque, true}));
+    EXPECT_EQ(batch.Commands()[1].state, (ModelDrawState{TextureSlot{0x300}, ModelBlend::Additive, true}));
+    const auto vertices = batch.Vertices();
+    ASSERT_EQ(vertices.size(), 6u);
+    ExpectColor(vertices[0], 0.3f, 0.4f, 0.5f);
+    ExpectColor(vertices[3], 0.3f * 0.5f, 0.4f * 0.5f, 0.5f * 0.5f);
+    EXPECT_FLOAT_EQ(vertices[1].position.x, 12.0f);
+    EXPECT_FLOAT_EQ(vertices[1].position.y, 20.0f);
+    EXPECT_FLOAT_EQ(vertices[1].position.z, 30.0f);
+    EXPECT_FLOAT_EQ(vertices[2].position.y, 22.0f);
+}
+
+// La raíz gira con los ángulos del objeto (0x5ffdf0 → 0x4eb860 con +0x1c): con 90° en z, el vértice
+// (1, 0, 0) va a (0, 2, 0) de su lugar.
+TEST(CharacterDrawingTest, AnObjectTurnsWithItsAngles)
+{
+    const OneModel models(0xa2, "logo.jpg", 1);
+    DrawnObject object = LogoLike();
+    object.transform.angles = {0.0f, 0.0f, 90.0f};
+
+    const ModelBatch batch = DrawnObjectOf(models, object);
+
+    ASSERT_EQ(batch.Vertices().size(), 3u);
+    EXPECT_NEAR(batch.Vertices()[1].position.x, 10.0f, 1e-4f);
+    EXPECT_NEAR(batch.Vertices()[1].position.y, 22.0f, 1e-4f);
+}
+
+// La malla que el objeto oculta (+0x58) no va, y las demás sí.
+TEST(CharacterDrawingTest, AnObjectSkipsItsHiddenMesh)
+{
+    const OneModel models(0xa2, "logo.jpg", 2);
+    DrawnObject object = LogoLike();
+    object.state.hiddenMesh = 0;
+
+    const ModelBatch batch = DrawnObjectOf(models, object);
+
+    ASSERT_EQ(batch.Commands().size(), 1u);
+    EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
+}
+
+// El script de la textura vale también en un objeto (0x4ef0c0): con H, la malla no va.
+TEST(CharacterDrawingTest, AnObjectFollowsTheScriptOfItsTextures)
+{
+    OneModel models(0xa2, "logo.jpg", 2);
+    models.FirstMesh().textureName = "logo_H.jpg";
+
+    const ModelBatch batch = DrawnObjectOf(models, LogoLike());
+
+    ASSERT_EQ(batch.Commands().size(), 1u);
+    EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
+}
+
+// Un objeto con luz por vértice (+0xe8, que 0x5ffce0 copia a +0x44 del modelo): 0x4ecc30 le da a cada
+// esquina el color del modelo por la luz de su normal (0x4ebc80), por el índice de normal de la esquina
+// y no el de su vértice. La de x da 1,44; la de −z, el piso de 0,2; la de y, 0,4.
+DrawnObject LitObject()
+{
+    DrawnObject object = LogoLike();
+    object.model = 0xbf;
+    object.state.blendMesh = -1;
+    object.color = {0.5f, 0.5f, 0.5f};
+    object.vertexLight = true;
+    return object;
+}
+
+TEST(CharacterDrawingTest, AnObjectWithVertexLightLightsEachCornerByItsNormal)
+{
+    OneModel models(0xbf, "dk.jpg", 1);
+    models.FirstMesh().normals = {{0, {1, 0, 0}, 1}, {0, {0, 0, -1}, 2}, {0, {0, 1, 0}, 0}};
+    models.FirstMesh().triangles[0].normals = {2, 0, 1, 0};
+    DrawnObject object = LitObject();
+    object.transform.scale = 1.0f;
+
+    const ModelBatch batch = DrawnObjectOf(models, object);
+
+    ASSERT_EQ(batch.Vertices().size(), 3u);
+    ExpectColor(batch.Vertices()[0], 0.2f, 0.2f, 0.2f);
+    ExpectColor(batch.Vertices()[1], 0.72f, 0.72f, 0.72f);
+    ExpectColor(batch.Vertices()[2], 0.1f, 0.1f, 0.1f);
+    // Sin ella, el color del modelo en las tres.
+    DrawnObject unlit = LitObject();
+    unlit.vertexLight = false;
+    const ModelBatch flat = DrawnObjectOf(models, unlit);
+    ASSERT_EQ(flat.Vertices().size(), 3u);
+    ExpectColor(flat.Vertices()[0], 0.5f, 0.5f, 0.5f);
+}
+
+// Un objeto de 0x5ffdf0 lleva la escala en la raíz (0x4eb860 con Translate), y 0x4ebc80 gira cada
+// normal con esa matriz sin normalizarla: con la escala 2, la normal en z mide 2 y da 0,8 · 2 · 2 + 0,4.
+TEST(CharacterDrawingTest, TheNormalsOfAnObjectCarryItsScale)
+{
+    const OneModel models(0xbf, "dk.jpg", 1);
+    DrawnObject object = LitObject();
+    object.transform.scale = 2.0f;
+
+    const ModelBatch batch = DrawnObjectOf(models, object);
+
+    ASSERT_EQ(batch.Vertices().size(), 3u);
+    ExpectColor(batch.Vertices()[0], 0.5f * 3.6f, 0.5f * 3.6f, 0.5f * 3.6f);
+}
+
+// La malla del blendMesh va por su rama, con glColor3f(color · luz del blendMesh), sin la de la normal.
+TEST(CharacterDrawingTest, TheBlendMeshOfALitObjectGoesWithoutTheVertexLight)
+{
+    OneModel models(0xbf, "dk.jpg", 1);
+    models.FirstMesh().normals = {{0, {0, -1, 0}, 0}};
+    DrawnObject object = LitObject();
+    object.state.blendMesh = 0;
+    object.state.light = 0.5f;
+
+    const ModelBatch batch = DrawnObjectOf(models, object);
+
+    ASSERT_EQ(batch.Commands().size(), 1u);
+    EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
+    ExpectColor(batch.Vertices()[0], 0.25f, 0.25f, 0.25f);
+}
+
+// Con el alpha del objeto (+0x174) por debajo de 0,99, 0x4ecc30 mezcla (0x620a00(1)) y lo manda en el
+// glColor4f; desde 0,99, va opaca y en 1.
+TEST(CharacterDrawingTest, AnObjectFadingInBlendsWithItsAlpha)
+{
+    const OneModel models(0xbf, "dk.jpg", 1);
+    DrawnObject object = LitObject();
+    object.alpha = 0.5f;
+
+    const ModelBatch fading = DrawnObjectOf(models, object);
+    object.alpha = 0.99f;
+    const ModelBatch opaque = DrawnObjectOf(models, object);
+
+    ASSERT_EQ(fading.Commands().size(), 1u);
+    EXPECT_EQ(fading.Commands()[0].state.blend, ModelBlend::Alpha);
+    EXPECT_FLOAT_EQ(fading.Vertices()[0].color.alpha, 0.5f);
+    ASSERT_EQ(opaque.Commands().size(), 1u);
+    EXPECT_EQ(opaque.Commands()[0].state.blend, ModelBlend::Opaque);
+    EXPECT_FLOAT_EQ(opaque.Vertices()[0].color.alpha, 1.0f);
+}
+
+// 0x5ffdf0 no dibuja un objeto con el alpha por debajo de 0,01 (0x6b88d4).
+TEST(CharacterDrawingTest, AnObjectBelowAHundredthOfAlphaIsNotDrawn)
+{
+    const OneModel models(0xbf, "dk.jpg", 1);
+    DrawnObject object = LitObject();
+    object.alpha = 0.0099f;
+    EXPECT_TRUE(DrawnObjectOf(models, object).Commands().empty());
+    object.alpha = 0.01f;
+    EXPECT_FALSE(DrawnObjectOf(models, object).Commands().empty());
+}
+
+// El caballo oscuro (0x6002e0 con el 0xbf), con 13 mallas de un triángulo y la normal en z (la luz
+// por vértice da 0,4): el pase base en blanco por esa luz, después el cromo aditivo de la malla 12 en
+// (1; 0,8; 0,3) y la sombra de la malla 8, mezclada, sin textura, en (0, 0, 0, 0,7) y aplastada sobre
+// el piso.
+ModelBatch DrawnHorseOf(const OneModel& models, const DrawnObject& horse)
+{
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    DrawDarkHorse(batch, models, horse, std::chrono::milliseconds{0});
+    return batch;
+}
+
+DrawnObject HorseLike()
+{
+    DrawnObject horse = LitObject();
+    horse.color = {0.3f, 0.3f, 0.3f};
+    horse.transform.position = {10.0f, 20.0f, 30.0f};
+    horse.transform.scale = 1.0f;
+    return horse;
+}
+
+TEST(CharacterDrawingTest, TheDarkHorseGoesWhiteThenItsChromeThenItsShadow)
+{
+    const OneModel models(0xbf, "dk.jpg", 13);
+
+    const ModelBatch batch = DrawnHorseOf(models, HorseLike());
+
+    ASSERT_EQ(batch.Commands().size(), 3u);
+    EXPECT_EQ(batch.Commands()[0].state, (ModelDrawState{TextureSlot{0x300}, ModelBlend::Opaque, true}));
+    EXPECT_EQ(batch.Commands()[0].vertexCount, 13u * 3u);
+    EXPECT_EQ(batch.Commands()[1].state, (ModelDrawState{TextureSlot{0x5c0}, ModelBlend::Additive, true}));
+    EXPECT_EQ(batch.Commands()[1].vertexCount, 3u);
+    EXPECT_EQ(batch.Commands()[2].state, (ModelDrawState{std::nullopt, ModelBlend::BlendedShadow, true}));
+    EXPECT_EQ(batch.Commands()[2].vertexCount, 3u);
+    const auto vertices = batch.Vertices();
+    ExpectColor(vertices[0], 2.0f, 2.0f, 2.0f);
+    ExpectColor(vertices[13 * 3], 1.0f, 0.8f, 0.3f);
+    const Client::Render::ModelVertex& shadow = vertices[13 * 3 + 3];
+    ExpectColor(shadow, 0.0f, 0.0f, 0.0f);
+    EXPECT_FLOAT_EQ(shadow.color.alpha, 0.7f);
+    EXPECT_FLOAT_EQ(shadow.position.z, 30.0f + 5.0f);
+}
+
+// Mientras aparece, el pase base mezcla con su alpha y el cromo va por él (0x4ecc30 multiplica el
+// color en el lugar); la sombra sigue en 0,7.
+TEST(CharacterDrawingTest, TheChromeOfAFadingHorseGoesByItsAlpha)
+{
+    const OneModel models(0xbf, "dk.jpg", 13);
+    DrawnObject horse = HorseLike();
+    horse.alpha = 0.5f;
+
+    const ModelBatch batch = DrawnHorseOf(models, horse);
+
+    ASSERT_EQ(batch.Commands().size(), 3u);
+    EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Alpha);
+    EXPECT_FLOAT_EQ(batch.Vertices()[0].color.alpha, 0.5f);
+    ExpectColor(batch.Vertices()[13 * 3], 0.5f, 0.4f, 0.15f);
+    EXPECT_FLOAT_EQ(batch.Vertices()[13 * 3 + 3].color.alpha, 0.7f);
+}
+
+// El cromo de 0x4ecc30 con 0x4 (Chrome): u = 0,5 · nz + t y v = 0,5 · ny + 2t, con la normal con la
+// escala del caballo: con 1,6 y el reloj en 0, la normal en z da u = 0,8.
+TEST(CharacterDrawingTest, TheHorseChromeTakesTheScaledNormal)
+{
+    const OneModel models(0xbf, "dk.jpg", 13);
+    DrawnObject horse = HorseLike();
+    horse.transform.scale = 1.6f;
+
+    const ModelBatch batch = DrawnHorseOf(models, horse);
+
+    ASSERT_EQ(batch.Commands().size(), 3u);
+    const Client::Render::ModelVertex& chrome = batch.Vertices()[13 * 3];
+    EXPECT_FLOAT_EQ(chrome.uv.x, 0.8f);
+    EXPECT_FLOAT_EQ(chrome.uv.y, 0.0f);
+}
+
+// 0x6002e0 pide el cromo de las mallas 12 a 15, y cada una que existe multiplica el color en el lugar
+// por el alpha (Q-C95): con 16 mallas y 0,5, van por 0,5, 0,25, 0,125 y 0,0625.
+TEST(CharacterDrawingTest, TheHorseChromeGoesOnMeshesTwelveToFifteen)
+{
+    const OneModel models(0xbf, "dk.jpg", 16);
+    DrawnObject horse = HorseLike();
+    horse.alpha = 0.5f;
+
+    const ModelBatch batch = DrawnHorseOf(models, horse);
+
+    ASSERT_EQ(batch.Commands().size(), 3u);
+    EXPECT_EQ(batch.Commands()[1].state.texture, TextureSlot{0x5c0});
+    ASSERT_EQ(batch.Commands()[1].vertexCount, 4u * 3u);
+    const std::size_t first = batch.Commands()[1].firstVertex;
+    for (std::size_t mesh = 0; mesh < 4; ++mesh)
+    {
+        const float factor = std::pow(0.5f, static_cast<float>(mesh + 1));
+        ExpectColor(batch.Vertices()[first + (mesh * 3)], factor, 0.8f * factor, 0.3f * factor);
+    }
+}
+
+// El cromo va por 0x4ecc30, que no corre los pases de brillo de una malla con N en el script.
+TEST(CharacterDrawingTest, TheHorseChromeSkipsAMeshWithoutShine)
+{
+    OneModel models(0xbf, "dk.jpg", 13);
+    models.MeshAt(12).textureName = "dkneck2_N.jpg";
+
+    const ModelBatch batch = DrawnHorseOf(models, HorseLike());
+
+    ASSERT_EQ(batch.Commands().size(), 2u);
+    EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::BlendedShadow);
+}
+
+// Sin la malla 12 no hay cromo, y sin la 8 no hay sombra; con el alpha por debajo de 0,01, nada.
+TEST(CharacterDrawingTest, TheHorseDrawsOnlyTheMeshesItHas)
+{
+    const OneModel nine(0xbf, "dk.jpg", 9);
+    const ModelBatch withoutChrome = DrawnHorseOf(nine, HorseLike());
+    ASSERT_EQ(withoutChrome.Commands().size(), 2u);
+    EXPECT_EQ(withoutChrome.Commands()[1].state.blend, ModelBlend::BlendedShadow);
+
+    const OneModel eight(0xbf, "dk.jpg", 8);
+    EXPECT_EQ(DrawnHorseOf(eight, HorseLike()).Commands().size(), 1u);
+
+    const OneModel models(0xbf, "dk.jpg", 13);
+    DrawnObject hidden = HorseLike();
+    hidden.alpha = 0.0f;
+    EXPECT_TRUE(DrawnHorseOf(models, hidden).Commands().empty());
+}
+
+// Un objeto cuyo modelo no está no se dibuja.
+TEST(CharacterDrawingTest, AnObjectWithoutItsModelIsNotDrawn)
+{
+    const OneModel models(0xa3, "logo.jpg", 2);
+
+    EXPECT_TRUE(DrawnObjectOf(models, LogoLike()).Commands().empty());
 }
 } // namespace

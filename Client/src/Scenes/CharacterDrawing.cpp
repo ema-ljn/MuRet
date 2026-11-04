@@ -198,6 +198,13 @@ struct MeshDraw
     bool scrolls = false;
     const ObjectState* object = nullptr;
     Core::Duration frameClock{};
+    // El alpha de RenderBody y la luz por vértice (+0x44 del modelo): los de un objeto del mundo; un
+    // personaje va en 1 y sin ella.
+    float alpha = 1.0f;
+    bool vertexLight = false;
+    // El largo de cada normal girada: la escala de un objeto de 0x5ffdf0, que la lleva en la raíz
+    // (0x4eb860 con Translate) y 0x4ebc80 no normaliza; un personaje, 1 (la escala va en cada vértice).
+    float normalScale = 1.0f;
 };
 
 // Las UV de un pase: las de la malla o, con `shine`, las del pase de brillo con la normal en el
@@ -213,15 +220,18 @@ glm::vec2 CornerUv(const MeshDraw& draw, const Data::Models::Triangle& triangle,
     if (uv.shine)
     {
         const auto normal = static_cast<std::size_t>(triangle.normals[corner]);
-        return Render::Models::ShineTexCoords(*uv.shine, draw.skinned->normals[normal], draw.frameClock) + uv.shift;
+        return Render::Models::ShineTexCoords(*uv.shine, draw.skinned->normals[normal] * draw.normalScale,
+                                              draw.frameClock) +
+               uv.shift;
     }
     const Data::Models::TexCoord& texCoord = draw.mesh->texCoords[static_cast<std::size_t>(triangle.texCoords[corner])];
     return glm::vec2{texCoord.u, texCoord.v} + uv.shift;
 }
 
-// Los triángulos de la malla con un estado, un color y sus UV.
+// Los triángulos de la malla con un estado, un color y sus UV; con `normalLight`, el color de cada
+// esquina por la luz de su normal (0x4ecc30 con +0x44, en el pase con textura).
 void Triangles(Render::ModelBatch& batch, const MeshDraw& draw, const Render::ModelDrawState& state,
-               Render::Color color, const PassUv& uv)
+               Render::Color color, const PassUv& uv, bool normalLight = false)
 {
     batch.SetState(state);
     for (const Data::Models::Triangle& triangle : draw.mesh->triangles)
@@ -230,8 +240,15 @@ void Triangles(Render::ModelBatch& batch, const MeshDraw& draw, const Render::Mo
         for (std::size_t corner = 0; corner < corners.size(); ++corner)
         {
             const auto vertex = static_cast<std::size_t>(triangle.vertices[corner]);
+            Render::Color shaded = color;
+            if (normalLight)
+            {
+                const auto normal = static_cast<std::size_t>(triangle.normals[corner]);
+                const float light = Render::Models::NormalLight(draw.skinned->normals[normal] * draw.normalScale);
+                shaded = Render::Color{color.red * light, color.green * light, color.blue * light, color.alpha};
+            }
             corners[corner] =
-                Render::ModelVertex{draw.skinned->positions[vertex], CornerUv(draw, triangle, corner, uv), color};
+                Render::ModelVertex{draw.skinned->positions[vertex], CornerUv(draw, triangle, corner, uv), shaded};
         }
         batch.Triangle(corners);
     }
@@ -249,26 +266,32 @@ bool HasFourComponents(const Data::Models::Mesh& mesh)
     return Data::Models::ModelTextureLoaderOf(mesh.textureName) == Data::Textures::TextureLoader::Ozt;
 }
 
+// 0x6b8d00: con el alpha por debajo, 0x4ecc30 mezcla y lo manda en el color.
+constexpr float OpaqueAlpha = 0.99f;
+
 // El pase base (0x609640 → RenderBody(2) con el objeto), sin la malla que el objeto oculta: la del
-// blendMesh aditiva y por la luz, una de cuatro componentes con la mezcla normal y si no opaca.
+// blendMesh aditiva y por la luz, una de cuatro componentes o con el alpha por debajo de 0,99 con la
+// mezcla normal (y ese alpha), y si no opaca; con la luz por vértice, por la de cada normal, salvo la
+// del blendMesh.
 void DrawBase(Render::ModelBatch& batch, const MeshDraw& draw)
 {
     if (static_cast<std::int16_t>(draw.index) == draw.object->hiddenMesh)
     {
         return;
     }
-    Render::ModelBlend blend = Render::ModelBlend::Opaque;
     if (draw.blends)
     {
-        blend = Render::ModelBlend::Additive;
+        Triangles(batch, draw, {draw.texture, Render::ModelBlend::Additive, true},
+                  Scaled(draw.shade, draw.object->light), PassUv{std::nullopt, TexturedShift(draw)});
+        return;
     }
-    else if (HasFourComponents(*draw.mesh))
-    {
-        blend = Render::ModelBlend::Alpha;
-    }
-    Triangles(batch, draw, {draw.texture, blend, true},
-              draw.blends ? Scaled(draw.shade, draw.object->light) : draw.shade,
-              PassUv{std::nullopt, TexturedShift(draw)});
+    const bool fading = draw.alpha < OpaqueAlpha;
+    const Render::ModelBlend blend =
+        fading || HasFourComponents(*draw.mesh) ? Render::ModelBlend::Alpha : Render::ModelBlend::Opaque;
+    Render::Color color = draw.shade;
+    color.alpha = fading ? draw.alpha : 1.0f;
+    Triangles(batch, draw, {draw.texture, blend, true}, color, PassUv{std::nullopt, TexturedShift(draw)},
+              draw.vertexLight);
 }
 
 // El alpha del pase de set y lo que ya multiplicó: 0x4ecc30 multiplica el color del modelo en el lugar,
@@ -468,6 +491,36 @@ void DrawPasses(const CharacterFrame& frame, std::span<const MeshDraw> draws, co
     }
 }
 
+// Las mallas de `modelId` que se dibujan, pasadas al mundo con `bones` y `object` en `skinned` (una
+// por malla): cada una con su papel, su textura (la piel y el pelo de `characterClass`), `shade` y
+// `state`. Las de H, la oculta (0x12d), las rotas y las que no se pueden pasar al mundo no van.
+std::vector<MeshDraw> MeshDrawsOf(const IModelLibrary& models, std::uint16_t modelId, const Data::Models::Model& model,
+                                  std::span<const BoneTransform> bones, const Render::Models::ObjectTransform& object,
+                                  std::uint8_t characterClass, Render::Color shade, const ObjectState& state,
+                                  Core::Duration clock, std::vector<Render::Models::SkinnedMesh>& skinned)
+{
+    const std::span<const Render::TextureSlot> slots = models.MeshTextures(modelId);
+    skinned.assign(model.meshes.size(), Render::Models::SkinnedMesh{});
+    std::vector<MeshDraw> draws;
+    draws.reserve(model.meshes.size());
+    for (std::size_t index = 0; index < model.meshes.size(); ++index)
+    {
+        const Data::Models::Mesh& mesh = model.meshes[index];
+        const MeshRole role = RoleOf(modelId, mesh, index);
+        const MeshTexture texture = TextureOf(mesh, slots, index, characterClass);
+        if (role.hidden || !texture.drawn || !IndicesInRange(mesh) ||
+            !Render::Models::SkinMesh(mesh, bones, object, skinned[index]))
+        {
+            continue;
+        }
+        const std::int16_t blendMesh = BlendMeshOf(role, index, state);
+        draws.push_back(MeshDraw{modelId, index, &mesh, &skinned[index], role, texture.slot, shade,
+                                 Blends(mesh, blendMesh),
+                                 static_cast<std::int16_t>(index) == blendMesh || role.scrollScript, &state, clock});
+    }
+    return draws;
+}
+
 // Un modelo con las matrices `bones`, cada malla con su textura y el brillo de su nivel; con el
 // contorno, antes el contorno.
 void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<const BoneTransform> bones,
@@ -478,27 +531,11 @@ void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<con
     {
         return;
     }
-    const std::span<const Render::TextureSlot> slots = frame.models.MeshTextures(modelId);
-    const float shade = frame.character.light * use.glow.baseFactor;
-    std::vector<Render::Models::SkinnedMesh> skinned(model->meshes.size());
-    std::vector<MeshDraw> draws;
-    draws.reserve(model->meshes.size());
-    for (std::size_t index = 0; index < model->meshes.size(); ++index)
-    {
-        const Data::Models::Mesh& mesh = model->meshes[index];
-        const MeshRole role = RoleOf(modelId, mesh, index);
-        const MeshTexture texture = TextureOf(mesh, slots, index, frame.character.appearance.characterClass);
-        if (role.hidden || !texture.drawn || !IndicesInRange(mesh) ||
-            !Render::Models::SkinMesh(mesh, bones, frame.character.object, skinned[index]))
-        {
-            continue;
-        }
-        const std::int16_t blendMesh = BlendMeshOf(role, index, use.object);
-        draws.push_back(MeshDraw{modelId, index, &mesh, &skinned[index], role, texture.slot,
-                                 Render::Color{shade, shade, shade, 1.0f}, Blends(mesh, blendMesh),
-                                 static_cast<std::int16_t>(index) == blendMesh || role.scrollScript, &use.object,
-                                 frame.clock});
-    }
+    const glm::vec3 shade = frame.character.light * use.glow.baseFactor;
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    const std::vector<MeshDraw> draws = MeshDrawsOf(
+        frame.models, modelId, *model, bones, frame.character.object, frame.character.appearance.characterClass,
+        Render::Color{shade.x, shade.y, shade.z, 1.0f}, use.object, frame.clock, skinned);
     if (use.outlined)
     {
         ObjectState outlineObject = use.object;
@@ -729,6 +766,10 @@ void DrawHands(const CharacterFrame& frame, std::span<const BoneTransform> body)
     }
 }
 
+// Un objeto del mundo no tiene la piel de una clase: sus mallas no van a los slots de la piel ni del
+// pelo (ninguna se llama así).
+constexpr std::uint8_t ObjectClass = 0;
+
 // La semilla de los rand() de un frame: el reloj en ms. El original usa el rand() de todo el cliente,
 // que no se puede repetir.
 std::uint_fast32_t RandomSeedOf(Core::Duration clock)
@@ -783,5 +824,98 @@ void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const
         DrawHanging(frame, *appearance.pet, AttachmentSlot::Pet, character.pet, body, noGlow);
     }
     DrawHands(frame, body);
+}
+
+namespace
+{
+// Las mallas de un objeto del mundo posado como 0x5ffdf0, con su alpha y su luz por vértice, o
+// ninguna si 0x5ffdf0 no lo dibuja (el alpha por debajo de 0,01, 0x6b88d4) o falta su modelo.
+std::vector<MeshDraw> ObjectMeshDraws(const IModelLibrary& models, const DrawnObject& object, Core::Duration clock,
+                                      std::vector<Render::Models::SkinnedMesh>& skinned)
+{
+    constexpr float VisibleAlpha = 0.01f;
+    const Data::Models::Model* model = models.Find(object.model);
+    const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
+    if (object.alpha < VisibleAlpha || model == nullptr || skeleton == nullptr)
+    {
+        return {};
+    }
+    std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(1.0f));
+    if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
+    {
+        return {};
+    }
+    std::vector<MeshDraw> draws =
+        MeshDrawsOf(models, object.model, *model, bones, object.transform, ObjectClass,
+                    Render::Color{object.color.x, object.color.y, object.color.z, 1.0f}, object.state, clock, skinned);
+    for (MeshDraw& draw : draws)
+    {
+        draw.alpha = object.alpha;
+        draw.vertexLight = object.vertexLight;
+        draw.normalScale = object.transform.scale;
+    }
+    return draws;
+}
+
+// Lo que 0x6002e0 le agrega al caballo después de su RenderBody (0x6002e0, el caso 0xbf).
+constexpr std::size_t DarkHorseFirstChromeMesh = 12;
+constexpr std::size_t DarkHorseLastChromeMesh = 15;
+constexpr Render::Color DarkHorseChromeColor{1.0f, 0.8f, 0.3f, 1.0f};
+constexpr std::size_t DarkHorseShadowMesh = 8;
+constexpr Render::Color DarkHorseShadowColor{0.0f, 0.0f, 0.0f, 0.7f};
+constexpr Render::ModelDrawState BlendedShadowState{std::nullopt, Render::ModelBlend::BlendedShadow, true};
+} // namespace
+
+void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                Core::Duration frameClock)
+{
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    for (const MeshDraw& draw : ObjectMeshDraws(models, object, frameClock, skinned))
+    {
+        DrawBase(batch, draw);
+    }
+}
+
+void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& horse,
+                   Core::Duration frameClock)
+{
+    DrawnObject white = horse;
+    white.color = glm::vec3(1.0f);
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    const std::vector<MeshDraw> draws = ObjectMeshDraws(models, white, frameClock, skinned);
+    for (const MeshDraw& draw : draws)
+    {
+        DrawBase(batch, draw);
+    }
+    // 0x4ecc30(12..15, 0x44, …) directo, sin RenderBody: el cromo aditivo de cada una que existe (las de
+    // serie: solo la 12, Q-C113), sin la U y la V (en 0) y, con el alpha por debajo de 0,99, con el color
+    // que cada una multiplica en el lugar por él (Q-C95). Salvo con N en el script. Las mallas salen de
+    // MeshDrawsOf, que deja afuera las de H y las rotas; las de serie no tienen script.
+    Render::Color chromeColor = DarkHorseChromeColor;
+    for (const MeshDraw& chrome : draws)
+    {
+        if (chrome.index < DarkHorseFirstChromeMesh || chrome.index > DarkHorseLastChromeMesh || !chrome.role.shines)
+        {
+            continue;
+        }
+        if (chrome.alpha < OpaqueAlpha)
+        {
+            chromeColor = Scaled(chromeColor, chrome.alpha);
+        }
+        Triangles(batch, chrome, {PassSlot(Render::Models::ShinePass::Chrome), Render::ModelBlend::Additive, true},
+                  chromeColor, PassUv{Render::Models::ShinePass::Chrome, glm::vec2{}});
+    }
+    // 0x4eff40(−1, −1, 8, 9): la malla 8. Sale de MeshDrawsOf, como el cromo.
+    if (const auto shadow = std::ranges::find(draws, DarkHorseShadowMesh, &MeshDraw::index); shadow != draws.end())
+    {
+        Render::Models::SkinnedMesh flat = *shadow->skinned;
+        for (glm::vec3& position : flat.positions)
+        {
+            position = Render::Models::FlattenOnTheGround(position, horse.transform.position);
+        }
+        MeshDraw draw = *shadow;
+        draw.skinned = &flat;
+        Triangles(batch, draw, BlendedShadowState, DarkHorseShadowColor, PassUv{});
+    }
 }
 } // namespace Client::Scenes

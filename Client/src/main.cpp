@@ -472,7 +472,8 @@ Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const
         case Scenes::SceneId::Loading:
             return std::make_unique<Scenes::LoadingScene>(context, &models);
         case Scenes::SceneId::Login:
-            return std::make_unique<Scenes::LoginScene>(context, data, session, Version);
+            return std::make_unique<Scenes::LoginScene>(context, data, models, session, Version,
+                                                        std::random_device{}());
         case Scenes::SceneId::CharacterSelect:
             return std::make_unique<Scenes::CharacterSelectScene>(context, data, models, session);
         case Scenes::SceneId::WorldLoading:
@@ -583,7 +584,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         online.emplace(*startup.server, startup.config.obfuscation, clock, log);
     }
     App::ServerSession* session = online ? &online->session : nullptr;
-    const Scenes::SceneContext context{.dataRoot = *startup.config.dataPath, .textures = textures, .log = log};
+    const Scenes::SceneContext context{
+        .dataRoot = *startup.config.dataPath, .textures = textures, .log = log, .clock = &clock};
     // Los modelos del personaje y de los ítems: los lee la carga (0x61ccb0) y quedan, como GameData.
     Scenes::GameModels models;
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,

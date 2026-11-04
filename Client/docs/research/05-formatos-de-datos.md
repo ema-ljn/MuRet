@@ -40,9 +40,17 @@ Devias). Todos trabajan sobre buffers: leer el archivo es tarea del que llama.
 | `Item.bmd` | `0x54b9e0` / `0x54b8f0` | 8192 × 0x54 bytes + checksum `0xE2F1` | `*[0x07758550]`, 0xA8000 |
 | `Skill.bmd` | `0x54acf0` / `0x54aa20` | 256 × 0x3C bytes + checksum `0x5A18`; luego un contenedor "guardia" con `rand()` | `*[0x076BD1D8]`, 0x3C00 |
 | `Text.bmd` | `0x5495e0` / `0x549700` | 2048 × 300 bytes | `g_GlobalText` `0x076BD1DC` |
+| `FilterName.bmd` | `0x549fa0` / `0x549ec0` | 1000 × 20 bytes, el XOR3 por registro, hasta el primero vacío, + checksum `0x2BC1` (la paridad de `Item.bmd`) | `0x076BAAC8`, la cuenta en `0x0775855C` |
+| `Filter.bmd` | `0x549c60` / `0x549b80` | igual, con checksum `0x3E7D` | `0x077531DC`, la cuenta en `0x07758558` |
 
 Si falta un archivo, el original muestra un `MessageBox`, manda `WM_DESTROY` y **sigue cargando**
 las demás tablas.
+
+Los dos filtros (CL6.5, **verificado**: las sumas del laboratorio dan) los lee `0x61ccb0` con los
+datos del juego. Como 20 no es múltiplo de 3, el XOR3 empieza en `FC` en cada registro, también en
+los vacíos: un registro vacío está en el archivo como `FC CF AB …`. `FilterName.bmd` trae seis
+palabras (`ADMIN`, `admin`, `GM`, `gm`, `Gm` y `gM`) y `Filter.bmd` ninguna. Los usa el nombre de
+un personaje nuevo (06 § La ventana de crear).
 
 ## Terreno de un mundo (`Data\World<N>\`)
 

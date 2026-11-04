@@ -1571,6 +1571,49 @@ Un personaje que arma `0x511290` sale sin gremio: `0x511ca6` pone su `+0x368` en
 respuesta de crear (`0x4c2290`) no lo toca. El que se crea en la sesión se puede borrar sin otra
 lista.
 
+### La ventana de crear
+
+Leída en la CL6.5 (*estático*; *emulado* el lugar en cuatro pantallas y los chequeos del nombre con
+una tabla de nombres). La ventana `+0x8498` (`0x63d1a0` la arma, `0x63d4e0` la ubica, `0x63d7c0`
+cambia la clase, `0x63d880` la atiende y `0x63e0a0` la dibuja) es modal: su base es un negro de alfa
+`0x80` de toda la pantalla. Con (x, y) = ((W − 454) / 2, (H − 406) / 2), en 640 × 480 (93, 37):
+
+| Pieza | Textura (slot) | Tamaño | Lugar |
+| --- | --- | --- | --- |
+| el fondo del nombre | `cha_id.tga` (`0xc`) | 346 × 38 | (x, y + 317) |
+| los atributos | negra, alfa `0x8f` | 108 × 80, o 96 con el Dark Lord | (x + 346, y + 50) |
+| la franja de abajo | negra, alfa `0x8f` | 454 × 51 | (x, y + 355) |
+| las clases 0 a 2 | `cha_bt.tga` (`0xd`), 4 cuadros | 108 × 26 | (x + 346, y + 157 + 26 i) |
+| las clases 3 y 4 | la misma | 108 × 26 | (x + 346, y + 246 + 26 (i − 3)) |
+| OK y cancelar | `0x724` y `0x725`, los del aviso | 54 × 30 | (x + 346, y + 325) y (x + 400, y + 325) |
+| el campo del nombre | el EDIT de `WinMain` (`DAT_05763504`) | 180 × 14 de 640 × 480 | (x + 78, y + 338), en 640 × 480 |
+
+Las clases van con el cuadro 3 marcadas y el 0 deshabilitadas, y con los textos 20 a 24 de
+rótulo. `pkt[4]` de la lista es la clase más alta que se puede crear: `0x63d7c0` habilita de la 0 a
+ella. Con 5 o más escribe fuera de los cinco botones (Q-C119). El armado marca al Dark Knight
+(`+0x890` en 1): con `pkt[4]` en 0 queda marcado y deshabilitado, y el OK lo crea igual. La clase no
+vuelve a la 1 al cerrar y abrir. El campo, sin `ES_PASSWORD` y con tope de 10 bytes, se vacía al
+abrir y al cerrar. El dibujo, después de la base y de la vista previa (que no se oscurece): el fondo
+del nombre, las dos cajas, los siete botones, los atributos (los valores de `0x6d657c..0x6d659c` en
+`0xff00b4ff` y los rótulos 1701 a 1704 y 1738 en blanco, de a 17 desde ay + 10), la descripción
+(el texto 1705 + clase en dos renglones de menos de 75 bytes, en (x + 10, y + 367 + 19 j)) y el
+campo. Con este `Text.bmd` los textos 1655 a 1799 están vacíos: se ven solo los números.
+
+**El OK, o Enter** (`0x63d990`), después de las clases y antes de cancelar y Esc:
+1. menos de 4 bytes: el aviso `0x79`;
+2. `0x622c70`: alguna palabra de `FilterName.bmd` en el nombre sin espacios; alguna de `Filter.bmd`
+   en el nombre sin espacios si no empieza con `/` (`0x622b40`); o, en el nombre tal cual, el
+   espacio, el punto, `\xa1\xa1`, `\xa1\xa4`, `\xa1\xad`, las cuatro "Webzen" o los textos 457
+   y 458: el `0x72`. La búsqueda (`0x576960`) distingue mayúsculas, y una palabra vacía está en
+   cualquier nombre (Q-C117);
+3. `0x447ca0`, parchado con NOPs en este binario: mira los bytes 0, 2, 4… y uno es malo si es menor
+   que `0x21`, está de `0x7f` a `0xaf` o es mayor que `0xf7` (Q-C118): el `0x7a`;
+4. si pasa: el `F3 01` con el nombre y la clase, cierra la ventana y abre el `0x5d`.
+
+Un aviso del nombre se abre arriba: su OK lo cierra y la ventana queda con el nombre. La respuesta
+(`0x4c2290`): con 1 se cierra el `0x5d` y el nuevo entra a la lista; con 0 o 2, la ventana vuelve a
+abrirse, vacía, con el `0x36` o el `0x37` arriba.
+
 ### Los personajes de la lista
 
 `0x4c20a0` ([04](04-protocolo.md#la-selección-de-personaje-f3)) pone cada personaje en
@@ -1679,7 +1722,8 @@ Ver [08](08-pendientes.md).
 | Cuántos pases de brillo lleva una parte, por su nivel (`0x60b3d0`), con el tope de las opciones | `ItemGlow`: la tabla de arriba, una fila por nivel, y los 14 y 15 sin brillo (Q-C97) | CL6.3 |
 | Los slots de las texturas de los modelos: un próximo que fija cada cargador y la búsqueda por nombre desnudo | `ModelTextureSlots` con el mismo próximo por cargador y la misma búsqueda (Q-C90), y un golden local contra `lor_slots.bin`; el login sigue el próximo del mundo (Q-C92) | CL6.1, CL6.3, CL6.4 |
 | La selección: la lista en cinco lugares fijos, el picking contra una caja corrida, el doble clic por reloj y la luz 0,4 / 1,4 | `CharacterSelectScene` con las tablas de arriba; un lugar de más de 4 se descarta (Q-C101) | CL6.3 |
-| La barra de la selección (crear, el menú, conectar y borrar) y el borrado con dos avisos | `UI::SelectionBar` (con `Button` deshabilitado), `UI::DeleteChecks` (las revisiones de `0x63edf0`), `UI::NoticeWindow` con los tipos 0, 3 y 4 y el campo del código, y la escena, que sigue la lista de la sesión (el que crea entra y el que borra se va) y abre el aviso de cada respuesta. La ventana de crear es de la PR B2; el menú, las opciones, los carteles y el área de mensajes, de la CL8 | CL6.5 |
+| La barra de la selección (crear, el menú, conectar y borrar) y el borrado con dos avisos | `UI::SelectionBar` (con `Button` deshabilitado), `UI::DeleteChecks` (las revisiones de `0x63edf0`), `UI::NoticeWindow` con los tipos 0, 3 y 4 y el campo del código, y la escena, que sigue la lista de la sesión (el que crea entra y el que borra se va) y abre el aviso de cada respuesta. El menú, las opciones, los carteles y el área de mensajes, de la CL8 | CL6.5 |
+| La ventana de crear, con los filtros del nombre de `FilterName.bmd` y `Filter.bmd` | `UI::CreateCharacterWindow` (sin la vista previa, que es de la PR B3), `UI::NameChecks` (los tres chequeos de `0x63d990`) y `Data::Text::LoadFilterWords` en `LoadGameData` | CL6.5 |
 | El caballo oscuro: un ayudante que aparece de a poco y sigue la acción del jinete, con luz por vértice, un cromo y su sombra | `Scenes/DarkHorse` (el paso) y `DrawDarkHorse` (el caso `0xbf` de `0x6002e0`), con `Render::Models::NormalLight` (L = (1,3; 0; 2), la normal con la escala del objeto) y `ModelBlend::BlendedShadow`; en el login, entre el personaje y el logo | CL6.4 |
 
 Tests que fija:

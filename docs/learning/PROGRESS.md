@@ -493,6 +493,12 @@ solo lo lee.
   sale sin gremio, y el contorno se queda en el último con el mouse sobre la barra o con un aviso.
   Falta verlo en pantalla contra el original (P-C16 e).
 
+  **La CL6.5 PR B2** (2026-11-04, resuelta por Claude): la ventana de crear, con las clases que deja
+  la lista, el nombre y sus tres chequeos (corto, filtrado con `FilterName.bmd` y `Filter.bmd`, y
+  con símbolos), el `F3 01` y la respuesta, que vuelve a abrir la ventana con su aviso si el GS no
+  crea. La vista previa en 3D es de la PR que sigue. 32 tests y 32 mutantes. Falta verla en
+  pantalla (P-C16 f).
+
 ## Conceptos
 
 **Niveles:** 1 **usar** (lo escribiste con tests) · 2 **explicar** (lo contás sin mirar) ·

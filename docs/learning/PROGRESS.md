@@ -506,6 +506,20 @@ solo lo lee.
   color en 4,8 y que no tiemble con un aviso arriba. Con esto la CL6.5 queda completa, salvo verla
   en pantalla.
 
+  **El cierre de la CL6** (2026-11-04): en el repo, la ola está terminada. El personaje aparece
+  animado en la selección, con su pose, su brillo y su equipo contra la traza, y se crea y se borra
+  como en el original. Lo que deja para las olas que siguen está en el
+  [roadmap](../superpowers/specs/2026-10-30-cliente-design.md#lo-que-dejó-la-cl6):
+  - a la CL7, los mundos 54 y 55 en el mismo pase y la respuesta del `F3 03`;
+  - a una CL7.6 nueva, los efectos;
+  - a la CL8, el menú de la selección y el área de mensajes;
+  - a la CL9, los monstruos.
+  Falta lo que no se hace en CI:
+  - las pruebas a mano en la VM: P-C21, el paso 3 de la CL6.4, y ver la barra, la ventana de crear
+    y su vista previa en pantalla (P-C16 e y f);
+  - lo tuyo: las preguntas y la sección final de la guía de la CL6.0, y explicar los conceptos de
+    abajo.
+
 ## Conceptos
 
 **Niveles:** 1 **usar** (lo escribiste con tests) · 2 **explicar** (lo contás sin mirar) ·

@@ -2553,16 +2553,23 @@ Decisiones, con lo que cuestan si están mal:
 - [ ] Las pruebas a mano en la VM: P-C21 (el paso 10 de la CL6.3 y cancelar en la cuenta) y el
   paso 3 de la CL6.4, con las trazas y capturas de P-C13 a P-C20 que entren en la misma sesión.
 - [ ] Completar el cierre de la guía de la CL6.0.
-- [ ] Actualizar `docs/learning/PROGRESS.md`.
-- [ ] Sumar al plan de la CL7: el mundo de la selección (el mapa 54, `World55`) y el del login (el
+- [x] Actualizar `docs/learning/PROGRESS.md`.
+- [x] Sumar al plan de la CL7: el mundo de la selección (el mapa 54, `World55`) y el del login (el
   55, `World56`, que ya pedía el cierre de la CL5) en el pase 3D de la CL6.3, antes de los
   personajes y con la misma cámara, como `0x5fc260` antes de `0x510d00`; la respuesta del `F3 03`
   (`0x4c3940`) y el tope de `EnteringWorld`; las velocidades del keepalive
   (`ServerSession::SetKeepaliveSpeeds`) con lo que traiga esa respuesta; los multiplicadores de
-  `0x4f9580`; y que la cámara que se mueve (CL7.3) dé un `Render::Camera3D`.
-- [ ] Decidir dónde van los efectos (el polvo del caballo, `0x5f2`, la luz de abajo del elegido si no
+  `0x4f9580`; y que la cámara que se mueve (CL7.3) dé un `Render::Camera3D`. La CL7 no tiene plan
+  todavía (se escribe al arrancarla): va en el roadmap, en
+  [Lo que dejó la CL6](../specs/2026-10-30-cliente-design.md#lo-que-dejó-la-cl6), con la z del
+  objeto de la vista previa y la zona segura del caballo.
+- [x] Decidir dónde van los efectos (el polvo del caballo, `0x5f2`, la luz de abajo del elegido si no
   entró en la CL6.3, los de las armas): el roadmap no tiene esa ola. El `0xbf` del login resultó ser
-  el caballo, y lo dibuja la CL6.4 PR B.
-- [ ] Sumar al plan de la CL9 los modelos de los monstruos con el research corregido: `Monster50`
-  falta en el laboratorio y cerraría el original.
-- [ ] Si la CL6.5 pasó a la CL8, sumarla a su plan.
+  el caballo, y lo dibuja la CL6.4 PR B. Van en una CL7.6, al final de la CL7, porque se dibujan en
+  el pase 3D del mundo con su cámara; la luz de abajo del elegido no entró en la CL6.3.
+- [x] Sumar al plan de la CL9 los modelos de los monstruos con el research corregido: `Monster50`
+  falta en el laboratorio y cerraría el original. En el roadmap, con la pose de los NPC (Q-C108) y
+  Q-C95.
+- [x] Si la CL6.5 pasó a la CL8, sumarla a su plan. No pasó: entró entera en la CL6 (PR A, B1, B2
+  y B3). A la CL8 van el menú de la selección (`+0x3d0` y `+0x7e8`), el área de mensajes con el
+  texto 1240, el string del `0x0D` en la barra (`+0x511`) y el cuervo del login, en el roadmap.

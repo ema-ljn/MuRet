@@ -1318,22 +1318,67 @@ enum class ShinePass : std::uint8_t { Shiny /*0x8*/, Chrome /*0x4*/, Chrome4 /*0
   (`LandingOnTheKeyCountIsPastTheLastKey`), el + 2 de la selección solo en las que repiten
   (`TheSelectionDoesNotLookAheadWithoutRepeat`) y Q-C87 con `lock_positions`. El comentario de
   `Truncate` decía mal qué da `__ftol` fuera de un int.
-- [ ] **Paso 10 (PR C):** los tests: `ShineTest.TheShinyPassIsHalfTheNormal` (`0x8`;
+- [x] **Paso 10 (PR C):** los tests: `ShineTest.TheShinyPassIsHalfTheNormal` (`0x8`;
   u = 0,5·nz + 0,2, v = 0,5·(ny + 1)), `TheChromePassRunsWithTheClock`,
   `TheChrome4PassUsesSinAndCos`, `TheClockCountsFromTheStart` (con T = 2²⁴ + 1 ms la u cambia lo de
   un ms, que en un `float` no cambiaría: Q-C22); y el golden
   `GoldenShineTrace.MatchesTheThreePassesOfTheSelection` (las UV de los pases 115, 120 y 141 de la
   traza, con las normales del `.bmd` posado: menos de 0,02; T sale del primer vértice del pase 120,
   como en 06).
-- [ ] **Paso 11 (PR C, Emanuel):** `Shine.h/.cpp`. Verificar con `-R "Shine"` y el golden. Los
-  mutantes: la normal sin rotar, T en segundos, y el seno y el coseno cambiados de lugar.
+- [x] **Paso 11 (PR C, Emanuel, resuelto por Claude):** `Shine.h/.cpp`. Verificar con
+  `-R "Shine"` y el golden. Los mutantes: la normal sin rotar, T en segundos, y el seno y el coseno
+  cambiados de lugar.
+
+  Hecho así (PR C, 2026-11-03, resuelto por Claude): `Render/Models/Shine`, con 6 tests: 5 de
+  `ShineTest` (`ANegativeClockCountsZero` de más) y el golden
+  `GoldenShineTrace.MatchesTheThreePassesOfTheSelection`. Las fórmulas y los floats (0,0001, 0,001,
+  0,002, 3, 0,5 y 0,2) salen del pseudo-C de `0x4ecc30` y del binario, y son las del 06. Lo que
+  cambió del contrato de arriba:
+  - **T no sale del primer vértice del pase 120.** El 120 da T módulo 10.000 (t), y el 141 necesita
+    T entero (c = cos(0,001·T), s = sin(0,002·T)). Ajustando c y s sobre el 141 y buscando el T que
+    los da, en la selección T es 26.437.420 ms en el primer swap, y los cinco quedaron en el 06; el
+    golden los usa de ahí.
+  - **Las normales no llevan la escala del objeto**, lo que el PR A dejó para acá: con ellas, las UV
+    de los tres pases caen a 0,00003 de las de la traza, y escaladas por 0,9 el pase 120 queda a
+    0,049. El golden pide menos de 0,001, no 0,02, y que cada malla `Male17` tenga sus tres pases y
+    el pantalón 02 ninguno (06: los de un nivel 13).
+  - El golden va en `test_golden_skinning_trace.cpp` (`GoldenShineTrace` es la misma clase), y no en
+    un `test_golden_shine_trace.cpp` aparte: usa el mismo lector, las mismas partes y la misma pose.
+  - Un reloj negativo cuenta 0.
+
+  Los 10 mutantes a mano (los tres de arriba, la normal con la escala del objeto, el 0,2 del pase
+  `0x8`, la v del `0x4` con t, el reloj en un float, t sin el módulo, la v del `0x1000` sin el 3t y
+  el reloj negativo) los mata al menos un test cada uno.
+
+  Revisión adversarial (2026-11-03, resuelta por Claude): los mismos dos revisores. Las tres
+  fórmulas, sus floats, la precedencia de las banderas y el reloj de la traza quedaron confirmados;
+  el revisor del binario, con su propio skinning, también vio las UV a menos de 0,00005 con las
+  normales sin la escala y a 0,05 con ellas. El golden del brillo se partió en `CompareShine` y usa
+  el esqueleto con la cabeza y las partes del de la pose (regla 1).
+
+  A fondo, después (2026-11-03, resuelto por Claude): las dos escenas de Lorencia, con la cabeza.
+  El personaje de Lorencia seguía con los frames de antes en el 06; con la pose de MuRet son
+  1,801 · 1,401 · 0,721 · 0,041 · 5,361, y su lugar y el del guardia son centros de celda,
+  (14.350, 12.050) y (14.350, 12.850), así que el golden ya no ajusta la posición del guardia. Los
+  cascos caen a 0,0014 con los ángulos del giro de `0x505de0` que leyó la CL6.R (un 20 % por paso
+  hacia un objetivo; el del guardia, (−18, 4)°), lo que verifica ese giro y que corre una vez por
+  paso y no por frame. `MaskHelmMale10` no se dibuja: el 06 lo contaba entre las partes del
+  guardia. Los goldens: `GoldenSkinningTrace.MatchesThePlayerOfLorencia` y
+  `MatchesTheGuardOfLorencia`, ahora con el casco, y en `GoldenShineTrace` uno por personaje:
+  `MatchesThePassesOfTheSelection` (antes `MatchesTheThreePassesOfTheSelection`),
+  `MatchesThePassesOfThePlayerOfLorencia` y `MatchesThePassOfTheGuardOfLorencia`, con el T de
+  Lorencia del 06. Los cinco mutantes de la cabeza (en y en vez de z, el signo, x y z cruzados, sin
+  los ángulos y otro hueso) los matan los de Lorencia; el de la selección, con los ángulos en 0, no
+  ve ninguno.
 
 **Qué queda para después:** cuántos pases lleva cada ítem (P-C01 b: la CL6.R lo leyó, es el nivel de
 `0x60b3d0`, y va en la CL6.3 con `ItemGlow`), la luz por vértice de `0x4ebc80` (con `+0x44` del
-modelo; en la traza el personaje va con un color por malla), los multiplicadores de `0x4f9580` (CL7)
-y los efectos. De la revisión, para la CL6.3: la pose con su séptimo argumento en 1 (la raíz que
-dejó quien llama en `0x68c4a1c`, como cuelgan las armas, la mascota y las alas en `0x509340`), la
-escala de los vértices de `0x6c881c` (1,2 y 1,4 en los modos 2 y 3 del contorno), y el contorno del
+modelo; en la traza el personaje va con un color por malla), los multiplicadores de `0x4f9580`
+(CL7), los efectos, y el giro de la cabeza de `0x505de0` (el objetivo al azar y un 20 % por paso),
+que la traza de Lorencia ya verifica; quién le pone el objetivo al personaje propio, sin leer
+(P-C14). De la revisión, para la CL6.3: la pose con su séptimo argumento en 1 (la raíz que dejó
+quien llama en `0x68c4a1c`, como cuelgan las armas, la mascota y las alas en `0x509340`), la escala
+de los vértices de `0x6c881c` (1,2 y 1,4 en los modos 2 y 3 del contorno), y el contorno del
 personaje bajo el mouse, que para un jugador hace `0x60cf70` por parte con otros valores que los de
 `0x5ffdf0` (Q-C94 y 06 describen los de `0x5ffdf0`: verificar).
 

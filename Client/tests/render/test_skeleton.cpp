@@ -1,6 +1,8 @@
 #include "Render/Models/Skeleton.h"
 
 #include "Data/Models/Model.h"
+#include "Data/Models/PlayerActions.h"
+#include "Data/Models/PlayerModels.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "support/SyntheticModels.h"
 
@@ -16,9 +18,15 @@
 // sintético de support/SyntheticModels.h (una raíz, un hijo y un dummy; dos acciones).
 namespace
 {
+using Client::Data::Models::Action;
+using Client::Data::Models::Bone;
 using Client::Data::Models::Model;
+using Client::Data::Models::PlayerActionSpeed;
+using Client::Data::Models::PlayerActionsWithoutRepeat;
+using Client::Data::Models::PlayerHeadBone;
 using Client::Render::Models::AngleQuaternion;
 using Client::Render::Models::BoneKey;
+using Client::Render::Models::MakePlayerSkeleton;
 using Client::Render::Models::MakeSkeleton;
 using Client::Render::Models::Skeleton;
 using Client::Tests::SampleModel;
@@ -106,5 +114,71 @@ TEST(SkeletonTest, AParentAfterItsChildIsAnError)
         EXPECT_EQ(skeleton.Error().bone, 1u) << parent;
         EXPECT_EQ(skeleton.Error().parent, parent);
     }
+}
+
+// Un modelo con las 205 acciones de Player.bmd, de dos keys cada una, y un hueso.
+Model PlayerLikeModel(std::size_t actions)
+{
+    Model model;
+    model.actions.assign(actions, Action{2, false, {}});
+    Bone bone;
+    bone.name = "Bip01";
+    bone.actions.assign(actions, Client::Tests::SampleKeys(0, 0, 2));
+    model.bones = {bone};
+    return model;
+}
+
+// 0x60dbe0: la velocidad de cada acción, la de la última escritura que la toca; las 57 sin ninguna
+// quedan en 0 (Q-C87). Las cuatro de +0 en 1 no repiten.
+TEST(SkeletonTest, MakePlayerSkeletonSetsTheSpeeds)
+{
+    const auto skeleton = MakePlayerSkeleton(PlayerLikeModel(205));
+
+    ASSERT_TRUE(skeleton.HasValue());
+    const auto& actions = skeleton.Value().actions;
+    ASSERT_EQ(actions.size(), 205u);
+    for (std::size_t action = 0; action < actions.size(); ++action)
+    {
+        EXPECT_EQ(actions[action].speed, PlayerActionSpeed(action).value_or(0.0f)) << action;
+    }
+    EXPECT_EQ(actions[3].speed, 0.26f);
+    EXPECT_EQ(actions[1].speed, 0.28f);
+    EXPECT_EQ(actions[0].speed, 0.0f);
+    for (const std::uint8_t action : PlayerActionsWithoutRepeat)
+    {
+        EXPECT_FALSE(actions[action].repeats) << static_cast<int>(action);
+    }
+    EXPECT_TRUE(actions[67].repeats);
+}
+
+// La cabeza del personaje es el hueso 20 (0x60f301); la de cualquier otro modelo, ninguna.
+TEST(SkeletonTest, ThePlayerHeadIsBoneTwenty)
+{
+    const auto player = MakePlayerSkeleton(PlayerLikeModel(205));
+    const auto other = MakeSkeleton(PlayerLikeModel(205));
+
+    ASSERT_TRUE(player.HasValue() && other.HasValue());
+    EXPECT_EQ(player.Value().headBone, PlayerHeadBone);
+    EXPECT_EQ(player.Value().headBone, 20);
+    EXPECT_EQ(other.Value().headBone, -1);
+}
+
+// Con menos acciones que las de la tabla, pone las que hay.
+TEST(SkeletonTest, MakePlayerSkeletonSetsWhatTheModelHas)
+{
+    const auto skeleton = MakePlayerSkeleton(PlayerLikeModel(4));
+
+    ASSERT_TRUE(skeleton.HasValue());
+    ASSERT_EQ(skeleton.Value().actions.size(), 4u);
+    EXPECT_EQ(skeleton.Value().actions[3].speed, 0.26f);
+}
+
+// Un padre de después también es un error para el personaje.
+TEST(SkeletonTest, MakePlayerSkeletonKeepsTheErrors)
+{
+    Model model = SampleModel();
+    model.bones[1].parent = 2;
+
+    EXPECT_FALSE(MakePlayerSkeleton(model).HasValue());
 }
 } // namespace

@@ -7,6 +7,7 @@
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/Models/ModelTextureSlots.h"
+#include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "support/GoldenDir.h"
 
@@ -43,6 +44,8 @@ using Client::Data::Textures::TextureLoaderOf;
 using Client::Data::Textures::TextureSetEntry;
 using Client::Data::Textures::Wrap;
 using Client::Render::TextureSlot;
+using Client::Render::Models::ActionInfo;
+using Client::Render::Models::MakePlayerSkeleton;
 using Client::Render::Models::ModelTextureSlots;
 
 // Los modelos de la selección que carga 0x61ca30: Logo05 en el 0xa4 y los NewFace en el 0xa8 a 0xac
@@ -162,5 +165,27 @@ TEST_F(GoldenModelFiles, ThePlayerActionsFitTheSkeleton)
     {
         EXPECT_LT(action, actions);
     }
+}
+
+// Las dos acciones de las trazas de GL, como las deja 0x60dbe0 en Player.bmd: la 3 de la selección
+// (siete keys a 0,26) y la 1 de Lorencia (seis a 0,28), las dos repiten y sin lock_positions. Son las
+// de AnimationTest.TheSelectionJumpsAreThoseOfTheTrace y TheLorenciaJumpsAreThoseOfTheTrace.
+TEST_F(GoldenModelFiles, TheActionsOfTheTracesAreThoseOfTheJumpTests)
+{
+    const auto model = LoadModelFile(m_dataRoot, PlayerModelFiles().front());
+    ASSERT_TRUE(model.HasValue());
+    const auto skeleton = MakePlayerSkeleton(model.Value());
+    ASSERT_TRUE(skeleton.HasValue());
+
+    const ActionInfo& selection = skeleton.Value().actions.at(3);
+    EXPECT_EQ(selection.keyCount, 7);
+    EXPECT_EQ(selection.speed, 0.26f);
+    EXPECT_TRUE(selection.repeats);
+    EXPECT_FALSE(selection.lockPositions);
+    const ActionInfo& lorencia = skeleton.Value().actions.at(1);
+    EXPECT_EQ(lorencia.keyCount, 6);
+    EXPECT_EQ(lorencia.speed, 0.28f);
+    EXPECT_TRUE(lorencia.repeats);
+    EXPECT_FALSE(lorencia.lockPositions);
 }
 } // namespace

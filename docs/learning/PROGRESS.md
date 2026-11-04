@@ -456,6 +456,13 @@ solo lo lee.
   orden, ninguna traza lo tiene (P-C20). **Falta la prueba a mano en la VM** (el paso 10, con
   cancelar en la cuenta): P-C21 del 08, con los pasos en el README del cliente.
 
+  **La CL6.5 PR A** (2026-11-04, resuelta por Claude): crear y borrar personajes, los paquetes
+  (`F3 01` y `F3 02`) y la sesión, que espera cada respuesta en un estado propio, con el tope y el
+  keepalive. El nuevo entra a la lista sin equipo (Q-C103), y un resultado de crear que el original
+  no atiende deja la sesión esperando, como al original (Q-C114). Ni el nombre ni el código van al
+  log. La ventana de crear y la de borrar son del PR que sigue. 21 tests y 21 mutantes. Falta verlo
+  contra el GS del laboratorio (P-C16).
+
 ## Conceptos
 
 **Niveles:** 1 **usar** (lo escribiste con tests) · 2 **explicar** (lo contás sin mirar) ·

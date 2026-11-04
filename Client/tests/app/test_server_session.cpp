@@ -2260,8 +2260,9 @@ TEST(ServerSessionTest, DeletingWithoutAChoiceOrOutOfTurnIsIgnored)
     EXPECT_TRUE(logged.Logged(LogLevel::Warning, "se ignora el pedido de borrar un personaje: la sesión no lo espera"));
 }
 
-// Con 1 se saca al que se mandó, aunque se haya elegido otro mientras tanto (el original borra al
-// elegido al llegar: Q-C104), y queda sin elegido.
+// Con 1 se saca al que se mandó, y queda sin elegido: uno nuevo en el mismo lugar no sale elegido. El
+// original borra al elegido al llegar la respuesta (Q-C104); en MuRet no puede cambiar mientras se
+// espera, porque ChooseCharacter es de ChoosingCharacter.
 TEST(ServerSessionTest, DeleteRemovesTheSlotItSent)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -2279,6 +2280,32 @@ TEST(ServerSessionTest, DeleteRemovesTheSlotItSent)
     EXPECT_EQ(characters[0].slot, 0);
     EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "se borró el personaje del lugar 3"));
+    tested.session.CreateCharacter("char0003", 1);
+    tested.socket.reads = {CreatedReply(3)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.Characters()->characters.size(), 2u);
+    EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
+}
+
+// Start olvida los dos resultados, como la lista.
+TEST(ServerSessionTest, StartForgetsTheResults)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.session.CreateCharacter("char0003", 1);
+    tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x01, 0x00})};
+    tested.session.Poll();
+    tested.session.ChooseCharacter(std::uint8_t{0});
+    tested.session.DeleteCharacter(SyntheticDeleteCode());
+    tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x02, 0x00})};
+    tested.session.Poll();
+    ASSERT_TRUE(tested.session.CreateResult().has_value());
+    ASSERT_TRUE(tested.session.DeleteResult().has_value());
+
+    tested.session.Start();
+
+    EXPECT_EQ(tested.session.CreateResult(), std::nullopt);
+    EXPECT_EQ(tested.session.DeleteResult(), std::nullopt);
 }
 
 // Con otro resultado no se saca a nadie, y el elegido sigue: el aviso es de la ventana.

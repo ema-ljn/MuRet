@@ -136,6 +136,16 @@ std::optional<SelectionBarClick> SelectionBar::Step(const Input::InputState& inp
     return std::nullopt;
 }
 
+void SelectionBar::StepWithoutTheMouse(const Input::InputState& input)
+{
+    // Un punto que no está en ningún botón: sin encima ni clic, y la captura se suelta con el botón.
+    constexpr Point Nowhere{-1, -1};
+    for (Button* button : {&m_create, &m_menu, &m_connect, &m_delete})
+    {
+        static_cast<void>(button->Step(input, Nowhere));
+    }
+}
+
 bool SelectionBar::Covers(Point mouse, App::PixelSize screen) const
 {
     return LayoutSelectionBar(screen).bar.Contains(mouse);

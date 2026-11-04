@@ -184,43 +184,43 @@ void CharacterSelectScene::StepCharacters()
 
 // Q-C70: en la selección, un FD_CLOSE abre el aviso 0x70, como en el login, una vez. MuRet lo abre
 // también sin respuesta (NoReply), como el login (Q-C69).
-void CharacterSelectScene::ShowTheFailure()
+bool CharacterSelectScene::ShowTheFailure()
 {
     if (m_failureShown || m_session == nullptr || m_session->State() != App::SessionState::Failed)
     {
-        return;
+        return false;
     }
     m_failureShown = true;
     m_context.log.Info("la sesión falló en la selección: se abre el aviso {:#04x}",
                        static_cast<int>(UI::ConnectFailedNotice));
     m_notice.Open(UI::ConnectFailedNotice);
+    return true;
 }
 
-void CharacterSelectScene::TakeTheDeletionResult()
+bool CharacterSelectScene::TakeTheDeletionResult()
 {
     if (!m_waitingForTheDeletion || m_session == nullptr ||
         m_session->State() == App::SessionState::WaitingDeleteResult)
     {
-        return;
+        return false;
     }
     m_waitingForTheDeletion = false;
-    if (const std::optional<std::uint8_t> result = m_session->DeleteResult())
+    const std::optional<std::uint8_t> result = m_session->DeleteResult();
+    // Con la sesión caída, el 0x70 de la falla queda arriba aunque la respuesta haya llegado antes.
+    if (!result || m_failureShown)
     {
-        m_notice.Open(UI::NoticeOfDeleteResult(*result));
+        return false;
     }
-    else if (m_notice.Notice() == UI::PleaseWaitNotice)
-    {
-        // La sesión dejó de esperar sin respuesta: el 0x5d, que no tiene botón, no se queda.
-        m_notice.Close();
-    }
+    m_notice.Open(UI::NoticeOfDeleteResult(*result));
+    return true;
 }
 
-// El aviso abierto tiene el mouse (Q-C84): nadie está debajo. El OK de uno que cierra el juego (el
-// 0x70, Q-C69) lo dice en WantsToQuit; el de la confirmación del borrado abre el del código, y el del
-// código manda el F3 02. Los demás solo se cierran.
+// El aviso abierto tiene el mouse (Q-C84) y 0x634680 no llama a 0x59ec80 (+0x8de8): el contorno queda
+// en el último que estuvo bajo el mouse. El OK de uno que cierra el juego (el 0x70, Q-C69) lo dice en
+// WantsToQuit; el de la confirmación del borrado abre el del código, y el del código manda el F3 02.
+// Los demás solo se cierran.
 void CharacterSelectScene::StepTheNotice(const Input::InputState& input)
 {
-    m_hovered.reset();
     const std::optional<UI::NoticeId> closed = m_notice.Step(input, m_screen);
     if (!closed)
     {
@@ -305,8 +305,8 @@ void CharacterSelectScene::SendTheDeletion()
     {
         return;
     }
-    // El código, como la clave, no va al log.
-    m_session->DeleteCharacter(Protocol::Character::DeleteCodeFromText(m_notice.Code()));
+    // El código, como la clave, no va al log, y no se queda en la ventana.
+    m_session->DeleteCharacter(Protocol::Character::DeleteCodeFromText(m_notice.TakeCode()));
     if (m_session->State() == App::SessionState::WaitingDeleteResult)
     {
         m_waitingForTheDeletion = true;
@@ -316,10 +316,12 @@ void CharacterSelectScene::SendTheDeletion()
 
 void CharacterSelectScene::Step(const Input::InputState& input)
 {
-    ShowTheFailure();
+    // Un aviso que se abre en este paso se atiende desde el siguiente: lo que se apretó en este no
+    // lo cierra antes de que se vea.
+    const bool failureOpened = ShowTheFailure();
     if (WaitingForTheList())
     {
-        if (m_notice.IsOpen())
+        if (m_notice.IsOpen() && !failureOpened)
         {
             StepTheNotice(input);
         }
@@ -328,11 +330,15 @@ void CharacterSelectScene::Step(const Input::InputState& input)
     ++m_steps;
     SyncTheCharacters();
     StepCharacters();
-    TakeTheDeletionResult();
+    const bool resultOpened = TakeTheDeletionResult();
     EnableTheBar();
     if (m_notice.IsOpen())
     {
-        StepTheNotice(input);
+        m_bar.StepWithoutTheMouse(input);
+        if (!failureOpened && !resultOpened)
+        {
+            StepTheNotice(input);
+        }
         return;
     }
     if (const std::optional<UI::SelectionBarClick> click = m_bar.Step(input, m_screen))
@@ -341,23 +347,26 @@ void CharacterSelectScene::Step(const Input::InputState& input)
         return;
     }
     const auto now = App::LogicStep * static_cast<std::int64_t>(m_steps);
-    // Con el mouse sobre la barra, la UI lo tiene (+0x8de8): la escena no elige ni marca a nadie.
-    const bool overTheBar = m_bar.Covers(UI::MouseInPixels(input, m_screen), m_screen);
-    const std::optional<std::uint8_t> hovered = overTheBar ? std::nullopt : UnderTheMouse(input);
-    m_hovered = hovered;
-    if (m_doubleClick.Step(input, now) && hovered)
+    const bool doubleClick = m_doubleClick.Step(input, now);
+    // Con el mouse sobre la barra, la UI lo tiene (+0x8de8): la escena no elige, no hace el doble clic
+    // y no busca quién está debajo, así que el contorno queda en el último.
+    if (!m_bar.Covers(UI::MouseInPixels(input, m_screen), m_screen))
     {
-        // El doble clic elige y entra como Enter, sin el sonido (0x6342c0).
-        Choose(hovered);
-        TryToEnter();
-        return;
-    }
-    if (!overTheBar && input.WasPressed(Input::MouseButton::Left))
-    {
-        Choose(hovered);
+        m_hovered = UnderTheMouse(input);
+        if (doubleClick && m_hovered)
+        {
+            // El doble clic elige y entra como Enter, sin el sonido (0x6342c0).
+            Choose(m_hovered);
+            TryToEnter();
+            return;
+        }
+        if (input.WasPressed(Input::MouseButton::Left))
+        {
+            Choose(m_hovered);
+        }
     }
     // El original pide GetAsyncKeyState(VK_RETURN) == 0x8001, y pierde un Enter corto entre dos
-    // lecturas; MuRet lo ve, como en el login (Q-C45).
+    // lecturas; MuRet lo ve, como en el login (Q-C45). La barra no lo traba.
     if (input.WasPressed(Input::Key::Enter))
     {
         TryToEnter();

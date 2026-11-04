@@ -66,8 +66,10 @@ public:
     // Lo del aviso abierto, en la pantalla del último paso o dibujo.
     [[nodiscard]] const NoticeControls& Layout() const;
 
-    // Los dígitos del campo del código, hasta que se abre otro aviso: los lee 0x643740 después del OK.
+    // Los dígitos del campo del código, hasta que se cancela o se abre otro aviso.
     [[nodiscard]] std::string_view Code() const;
+    // Los dígitos, y el campo vacío: 0x643740 copia el EDIT después del OK y lo vacía.
+    [[nodiscard]] std::string TakeCode();
 
     // Con el campo del código abierto.
     [[nodiscard]] bool WantsTextInput() const;

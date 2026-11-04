@@ -4,10 +4,12 @@
 #include <cstdint>
 #include <optional>
 
-// Los avisos del login, por su número (CL5.5; 06 § Los avisos). 0x6431b0 elige el texto de cada uno
-// con una tabla de saltos; el resultado del F1 01 elige el aviso en 0x4e5ebc y 0x4e5f04, y el OK de
-// cada uno sigue en 0x643560. Todos los del login son del tipo 2: un OK. Los textos van por índice
-// de Text.bmd: acá no hay ninguno escrito.
+// Los avisos del login y de la selección, por su número (CL5.5 y CL6.5; 06 § Los avisos y "La barra
+// de la selección y el borrado"). 0x6431b0 elige el texto y el tipo de cada uno con una tabla de
+// saltos; el resultado del F1 01 elige el aviso en 0x4e5ebc y 0x4e5f04, los del F3 01 y el F3 02
+// en 0x4c2290 y 0x4e2fe9, y el OK de cada uno sigue en 0x643560. Los del login son del tipo 2, un
+// OK; los de la selección van por KindOf. Los textos van por índice de Text.bmd: acá no hay
+// ninguno escrito.
 namespace Client::UI
 {
 // El número del aviso, el que recibe 0x65ee60.
@@ -64,7 +66,7 @@ struct NoticeTexts
     std::optional<std::size_t> second;
 };
 
-// Los de 0x6431b0 para los avisos del login; los demás, nada.
+// Los de 0x6431b0 para los avisos del login y de la selección; los demás, nada.
 [[nodiscard]] std::optional<NoticeTexts> TextsOf(NoticeId notice);
 
 // El aviso del resultado del F1 01 (0x4e5ebc y 0x4e5f04), o nada con el 1, el aceptado.

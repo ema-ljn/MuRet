@@ -542,6 +542,31 @@ TEST(CharacterSelectSceneTest, AFailedSessionShowsTheConnectNoticeAndItsOkQuits)
     EXPECT_TRUE(tested.scene->WantsToQuit());
 }
 
+// El 0x70 que se abre en un paso se atiende desde el siguiente: un Enter de ese paso no cierra el
+// juego antes de que se vea el aviso; con la lista y antes de ella.
+TEST(CharacterSelectSceneTest, TheFailureNoticeIsSeenEvenWithAnEnterInItsStep)
+{
+    for (const bool withTheList : {true, false})
+    {
+        Harness tested;
+        if (withTheList)
+        {
+            ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+        }
+        else
+        {
+            ASSERT_NO_FATAL_FAILURE(tested.Enter());
+        }
+        tested.online.socket.peerClosed = true;
+        tested.Tap(Key::Enter);
+
+        EXPECT_FALSE(tested.scene->WantsToQuit()) << withTheList;
+        EXPECT_TRUE(ShowsANotice(tested.Frame())) << withTheList;
+        tested.Tap(Key::Enter);
+        EXPECT_TRUE(tested.scene->WantsToQuit()) << withTheList;
+    }
+}
+
 // Esperando la lista, lo mismo: el aviso se dibuja aunque la escena todavía no dibuje nada más.
 TEST(CharacterSelectSceneTest, AFailureBeforeTheListShowsTheNoticeToo)
 {
@@ -595,18 +620,23 @@ TEST(CharacterSelectSceneTest, TheOneUnderTheMouseIsOutlined)
     EXPECT_TRUE(OutlineVertices(tested.Frame()).empty());
 }
 
-// Con el aviso abierto, el mouse es del aviso (Q-C84): nadie lleva el contorno.
-TEST(CharacterSelectSceneTest, WithTheNoticeOpenNobodyIsOutlined)
+// Con el aviso abierto, la UI tiene el mouse (+0x8de8) y 0x634680 no llama a 0x59ec80: el contorno
+// queda en el último que estuvo bajo el mouse, aunque el mouse se vaya.
+TEST(CharacterSelectSceneTest, WithTheNoticeOpenTheOutlineStaysWhereItWas)
 {
     Harness tested;
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice(true));
     const glm::vec2 point = tested.OnScreen(3);
     tested.ClickAt(point);
     tested.PressEnter();
+    ASSERT_TRUE(ShowsANotice(tested.Frame()));
 
+    Client::Tests::MoveMouse(tested.input, 5, 5);
     tested.Step();
 
-    EXPECT_TRUE(OutlineVertices(tested.Frame()).empty());
+    const std::vector<Client::Render::ModelVertex> outline = OutlineVertices(tested.Frame());
+    ASSERT_EQ(outline.size(), 6u * 3u);
+    EXPECT_NEAR(outline[0].position.x, CharacterSlots[3].position.x, 1e-2f);
 }
 
 // 0x50ba30 avanza las alas (0x509340 con +0x308: 0,25 keys por frame del original, 1 en las acciones
@@ -664,6 +694,27 @@ TEST(CharacterSelectSceneTest, WithoutASessionOnlyDraws)
     ExpectTheBar(events, 5);
 }
 
+// La respuesta del F3 01 con 1: char0003 de clase 1 (0x20) y nivel 1, en `slot`.
+std::vector<std::byte> CreatedBytes(std::uint8_t slot)
+{
+    std::vector<std::byte> created = Client::Tests::Bytes({0xC1, 0x13, 0xF3, 0x01, 0x01});
+    const auto name = Client::Tests::NameBytes("char0003");
+    created.insert(created.end(), name.begin(), name.end());
+    for (const std::uint8_t value : {slot, std::uint8_t{1}, std::uint8_t{0}, std::uint8_t{0x20}})
+    {
+        created.push_back(std::byte{value});
+    }
+    return created;
+}
+
+// El quad del botón de conectar (0x11): con uno elegido y sin el mouse, el cuadro normal.
+FrameEvent ConnectQuad(const std::vector<FrameEvent>& events)
+{
+    const auto connect = std::ranges::find(events, std::optional<TextureSlot>{TextureSlot{0x11}}, &FrameEvent::texture);
+    EXPECT_NE(connect, events.end());
+    return connect == events.end() ? FrameEvent{} : *connect;
+}
+
 // Los textos que dibuja el frame, en orden.
 std::vector<std::string> TextsOf(const std::vector<FrameEvent>& events)
 {
@@ -691,7 +742,7 @@ constexpr glm::vec2 ConnectButton{515.0f, 410.0f};
 constexpr glm::vec2 DeleteButton{570.0f, 410.0f};
 
 // La barra no es modal, pero tapa su rectángulo (+0x8de8, 06 § La lógica): un clic encima no elige
-// ni saca la elección, y nadie lleva el contorno.
+// ni saca la elección (el contorno queda en el último, OverTheBarTheOutlineStaysWhereItWas).
 TEST(CharacterSelectSceneTest, TheBarBlocksThePicking)
 {
     Harness tested;
@@ -703,7 +754,6 @@ TEST(CharacterSelectSceneTest, TheBarBlocksThePicking)
 
     ASSERT_NE(tested.online.session.ChosenCharacter(), nullptr);
     EXPECT_EQ(tested.online.session.ChosenCharacter()->slot, 3);
-    EXPECT_TRUE(OutlineVertices(tested.Frame()).empty());
     // Afuera de la barra, el mismo clic sobre nadie saca la elección.
     tested.ClickAt({300.0f, 390.0f});
     EXPECT_EQ(tested.online.session.ChosenCharacter(), nullptr);
@@ -854,9 +904,12 @@ TEST(CharacterSelectSceneTest, ARefusedDeletionShowsItsNotice)
         EXPECT_TRUE(Draws(events, text)) << static_cast<int>(result);
         ASSERT_NE(tested.online.session.ChosenCharacter(), nullptr);
         EXPECT_EQ(tested.online.session.ChosenCharacter()->slot, 3);
+        // Los dos siguen: seis mallas cada uno, con el contorno (dos pases más) en el 3, el último
+        // que estuvo bajo el mouse.
         const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
         ASSERT_NE(models, events.end());
-        EXPECT_EQ(models->modelVertices.size(), 2u * 6u * 3u);
+        EXPECT_EQ(models->modelVertices.size(), 2u * 6u * 3u + 2u * 6u * 3u);
+        EXPECT_EQ(OutlineVertices(events).size(), 6u * 3u);
     }
 }
 
@@ -867,11 +920,14 @@ TEST(CharacterSelectSceneTest, CancellingTheDeletionSendsNothing)
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
     tested.ClickAt(tested.OnScreen(3));
     tested.ClickAt(DeleteButton);
+    ASSERT_TRUE(Draws(tested.Frame(), "borrar char0002"));
     tested.Tap(Key::Escape);
     EXPECT_FALSE(ShowsANotice(tested.Frame()));
 
     tested.ClickAt(DeleteButton);
     tested.Tap(Key::Enter);
+    ASSERT_TRUE(Draws(tested.Frame(), "el codigo"));
+    ASSERT_TRUE(tested.scene->WantsTextInput());
     tested.Tap(Key::Escape);
 
     EXPECT_FALSE(ShowsANotice(tested.Frame()));
@@ -887,15 +943,8 @@ TEST(CharacterSelectSceneTest, ACreatedOneAppearsInItsSlot)
     Harness tested;
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
     tested.online.session.CreateCharacter("char0003", 1);
-    std::vector<std::byte> created = Client::Tests::Bytes({0xC1, 0x13, 0xF3, 0x01, 0x01});
-    const auto name = Client::Tests::NameBytes("char0003");
-    created.insert(created.end(), name.begin(), name.end());
-    for (const std::uint8_t value : {std::uint8_t{1}, std::uint8_t{1}, std::uint8_t{0}, std::uint8_t{0x20}})
-    {
-        created.push_back(std::byte{value});
-    }
 
-    tested.Receive(created);
+    tested.Receive(CreatedBytes(1));
 
     const std::vector<FrameEvent> events = tested.Frame();
     const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
@@ -911,8 +960,148 @@ TEST(CharacterSelectSceneTest, ACreatedOneAppearsInItsSlot)
                                        std::abs(vertex.position.y - CharacterSlots[1].position.y) < 1e-3f;
                             });
     EXPECT_TRUE(inSlotOne);
-    EXPECT_TRUE(
-        std::ranges::any_of(tested.sink.lines, [](const std::string& line)
-                            { return line.find("la selección tiene ahora 3 personajes") != std::string::npos; }));
+    // Una vez: la línea es del cambio, no de cada paso.
+    tested.Step();
+    EXPECT_EQ(std::ranges::count_if(tested.sink.lines, [](const std::string& line)
+                                    { return line.find("la selección tiene ahora") != std::string::npos; }),
+              1);
+    EXPECT_EQ(std::ranges::count_if(tested.sink.lines, [](const std::string& line)
+                                    { return line.find("la selección tiene 2 personajes") != std::string::npos; }),
+              1);
+}
+// La sesión termina con la respuesta del F3 02 y el cierre del GS en la misma lectura: el aviso 0x70
+// de la falla queda arriba y su OK cierra el juego; la respuesta no lo tapa.
+TEST(CharacterSelectSceneTest, AResultThatComesWithTheCloseLeavesTheFailureNotice)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(tested.OnScreen(3));
+    tested.ClickAt(DeleteButton);
+    tested.Tap(Key::Enter);
+    tested.Tap(Key::Enter);
+    ASSERT_EQ(tested.online.session.State(), SessionState::WaitingDeleteResult);
+
+    tested.online.socket.reads = {Client::Tests::Bytes({0xC1, 0x05, 0xF3, 0x02, 0x04})};
+    tested.online.socket.peerClosed = true;
+    tested.Step();
+
+    ASSERT_EQ(tested.online.session.State(), SessionState::Failed);
+    const std::vector<FrameEvent> events = tested.Frame();
+    EXPECT_TRUE(Draws(events, "no conecta"));
+    EXPECT_FALSE(Draws(events, "codigo invalido"));
+    tested.Tap(Key::Enter);
+    EXPECT_TRUE(tested.scene->WantsToQuit());
+}
+
+// Un aviso que se abre en un paso se atiende desde el siguiente: un Enter de ese paso no lo cierra
+// antes de que se vea.
+TEST(CharacterSelectSceneTest, TheResultNoticeIsSeenEvenWithAnEnterInItsStep)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(tested.OnScreen(3));
+    tested.ClickAt(DeleteButton);
+    tested.Tap(Key::Enter);
+    tested.Tap(Key::Enter);
+
+    tested.online.socket.reads = {Client::Tests::Bytes({0xC1, 0x05, 0xF3, 0x02, 0x04})};
+    tested.Tap(Key::Enter);
+
+    EXPECT_TRUE(Draws(tested.Frame(), "codigo invalido"));
+}
+
+// 0x511290 deja a un personaje nuevo sin gremio (+0x368 en 0xff): el que se crea en la sesión se
+// puede borrar, con la confirmación.
+TEST(CharacterSelectSceneTest, ACreatedOneCanBeDeleted)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.online.session.CreateCharacter("char0003", 1);
+    tested.Receive(CreatedBytes(1));
+    tested.ClickAt(tested.OnScreen(1));
+    ASSERT_NE(tested.online.session.ChosenCharacter(), nullptr);
+    ASSERT_EQ(tested.online.session.ChosenCharacter()->slot, 1);
+
+    tested.ClickAt(DeleteButton);
+
+    EXPECT_TRUE(Draws(tested.Frame(), "borrar char0003"));
+}
+
+// Los que siguen en la lista guardan su animación cuando entra otro: las alas del lugar 0 siguen
+// donde iban, como en una selección en la que no pasó nada.
+TEST(CharacterSelectSceneTest, TheOthersKeepTheirAnimation)
+{
+    const auto wingZ = [](Harness& tested)
+    {
+        const std::vector<FrameEvent> events = tested.Frame();
+        const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
+        EXPECT_NE(models, events.end());
+        return models == events.end() ? 0.0f : models->modelVertices[6u * 3u].position.z;
+    };
+    Harness quiet(true, true);
+    ASSERT_NO_FATAL_FAILURE(quiet.ReachTheChoice());
+    Harness busy(true, true);
+    ASSERT_NO_FATAL_FAILURE(busy.ReachTheChoice());
+    for (int step = 0; step < 5; ++step)
+    {
+        quiet.Step();
+        busy.Step();
+    }
+
+    quiet.Step();
+    busy.online.session.CreateCharacter("char0003", 1);
+    busy.Receive(CreatedBytes(1));
+
+    EXPECT_FLOAT_EQ(wingZ(busy), wingZ(quiet));
+}
+
+// El que se crea en un lugar ocupado lo pisa (Q-C103): sale con las partes de su clase, sin equipo.
+TEST(CharacterSelectSceneTest, ACreatedOneReplacesTheOneInItsSlot)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.online.session.CreateCharacter("char0003", 1);
+
+    tested.Receive(CreatedBytes(3));
+
+    const std::vector<FrameEvent> events = tested.Frame();
+    const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
+    ASSERT_NE(models, events.end());
+    EXPECT_EQ(models->modelVertices.size(), 6u * 3u + 5u * 3u);
+}
+
+// Con un aviso abierto, los botones de la barra no tienen el mouse (0x65fc30 se lo da al aviso): el
+// de borrar, que se acaba de apretar, vuelve a su cuadro normal debajo de la confirmación.
+TEST(CharacterSelectSceneTest, TheBarLetsGoOfTheMouseUnderANotice)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(tested.OnScreen(3));
+    tested.ClickAt(DeleteButton);
+    tested.Step();
+
+    const std::vector<FrameEvent> events = tested.Frame();
+    const auto remove = std::ranges::find(events, std::optional<TextureSlot>{TextureSlot{0x12}}, &FrameEvent::texture);
+    ASSERT_NE(remove, events.end());
+    EXPECT_FLOAT_EQ(std::ranges::min(remove->vertices, {}, &Client::Render::SpriteVertex::v).v,
+                    std::ranges::min(ConnectQuad(events).vertices, {}, &Client::Render::SpriteVertex::v).v);
+}
+
+// Con el mouse sobre la barra, el contorno se queda en el último (0x59ec80 no corre).
+TEST(CharacterSelectSceneTest, OverTheBarTheOutlineStaysWhereItWas)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    const glm::vec2 point = tested.OnScreen(3);
+    Client::Tests::MoveMouse(tested.input, static_cast<int>(point.x), static_cast<int>(point.y));
+    tested.Step();
+
+    Client::Tests::MoveMouse(tested.input, 300, 420);
+    tested.Step();
+
+    EXPECT_EQ(OutlineVertices(tested.Frame()).size(), 6u * 3u);
+    Client::Tests::MoveMouse(tested.input, 300, 390);
+    tested.Step();
+    EXPECT_TRUE(OutlineVertices(tested.Frame()).empty());
 }
 } // namespace

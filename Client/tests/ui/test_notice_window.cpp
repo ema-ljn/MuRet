@@ -305,6 +305,28 @@ TEST(NoticeWindowTest, TheConfirmationPlacesTheName)
     EXPECT_EQ(text.texts[0].text, "Delete char0001?");
 }
 
+// El código no se queda en la ventana: cancelar lo borra, y TakeCode lo da y lo borra (0x643740 vacía
+// el EDIT después de copiarlo).
+TEST(NoticeWindowTest, TheCodeIsForgottenAfterCancelOrTake)
+{
+    NoticeWindow window(LabSizes(), nullptr);
+    InputState input;
+    window.Open(0x5f);
+    Client::Tests::TypeText(input, "123");
+    static_cast<void>(StepOnce(window, input));
+    TapKey(input, Key::Escape);
+    static_cast<void>(StepOnce(window, input));
+    EXPECT_EQ(window.Code(), "");
+
+    window.Open(0x5f);
+    Client::Tests::TypeText(input, "456");
+    static_cast<void>(StepOnce(window, input));
+    TapKey(input, Key::Enter);
+    EXPECT_EQ(StepOnce(window, input), Some(0x5f));
+    EXPECT_EQ(window.TakeCode(), "456");
+    EXPECT_EQ(window.Code(), "");
+}
+
 // Solo el 0x5e pasa su texto por sprintf (0x6431b0): en los otros, un "%s" sale tal cual.
 TEST(NoticeWindowTest, OnlyTheConfirmationIsAFormat)
 {

@@ -15,6 +15,8 @@ Qué hace MuRet y en qué orden está en el
 [roadmap del cliente](../docs/superpowers/specs/2026-10-30-cliente-design.md).
 
 MuRet **no incluye assets del juego**: el cliente lee los `Data\` de una instalación existente.
+La que usa el proyecto va en `Client/assets/Data/`, fuera de Git; el repo tiene su manifiesto de
+hashes ([assets](assets/README.md)).
 
 ## Estado
 
@@ -375,7 +377,7 @@ cmake --preset linux-x64-debug -DMURET_CLIENT_GOLDEN_DIR=/ruta/a/Data   # queda 
 ```
 
 Sin la variable, se saltean (`Skipped`). Si apunta a una carpeta que no existe, o le falta el
-archivo que el test pide, fallan.
+archivo que el test pide, fallan. La del proyecto es `Client/assets/Data/` ([assets](assets/README.md)).
 
 Los OZJ, además, se comparan con lo que da la IJG libjpeg 6b del original, que no está en CI: el
 tamaño y un hash de cada uno están en `tests/vectors/jpeg/lab-6b.txt`, y cómo se sacan, en el
@@ -461,6 +463,7 @@ Client/
     UI/           widgets, la lista, la cuenta y los avisos del login (CL5.5); HUD (CL8)
     Audio/        música y efectos                      (CL10)
   tests/          GoogleTest                            (CL0.2+)
+  assets/         la Data\ del original (fuera de Git) y su manifiesto de hashes
   docs/research/  qué hace el original, byte a byte (01..09)
 ```
 

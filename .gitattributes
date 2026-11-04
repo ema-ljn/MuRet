@@ -33,6 +33,8 @@ CMakePresets.json text
 *.[Ww][Aa][Vv]  binary
 *.[Dd][Aa][Tt]  binary
 
-# Lo que corre en Linux (sh, python) va siempre con LF.
+# Lo que corre en Linux (sh, python) va siempre con LF. El manifiesto de Client/assets también:
+# con CRLF, `sha256sum -c` busca nombres que terminan en \r.
 *.sh text eol=lf
 *.py text eol=lf
+*.sha256 text eol=lf

@@ -91,7 +91,7 @@ TEST(SkeletonTest, TheActionsAreThoseOfTheReader)
     EXPECT_EQ(made.headBone, -1);
 }
 
-// Un padre que no es −1 ni un hueso de antes: el mismo hueso, uno de después (Q-C106), uno que no
+// Un padre que no es −1 ni un hueso de antes: el mismo hueso, uno de después (Q-C108), uno que no
 // existe o un negativo. El error dice cuál.
 TEST(SkeletonTest, AParentAfterItsChildIsAnError)
 {

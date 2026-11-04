@@ -51,7 +51,7 @@ struct Skeleton
 };
 
 // Un hueso cuyo padre no va antes que él: la pose lo concatenaría con una matriz que todavía no
-// calculó (Q-C106).
+// calculó (Q-C108).
 struct SkeletonError
 {
     std::size_t bone = 0;
@@ -59,6 +59,6 @@ struct SkeletonError
 };
 
 // Los cuaterniones de cada key, como 0x4f13d0. Un padre que no es −1 ni un hueso de antes es un
-// error: NPC\BloodCastle01.bmd tiene dos (Q-C106), y qué hacer con ellos es de la CL9.
+// error: NPC\BloodCastle01.bmd tiene dos (Q-C108), y qué hacer con ellos es de la CL9.
 [[nodiscard]] Core::Expected<Skeleton, SkeletonError> MakeSkeleton(const Data::Models::Model& model);
 } // namespace Client::Render::Models

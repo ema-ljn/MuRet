@@ -8,7 +8,9 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <cmath>
 #include <cstdint>
+#include <numbers>
 #include <vector>
 
 // Client::Render::Models::Attachment: de qué hueso cuelga cada cosa del personaje y con qué
@@ -25,7 +27,9 @@ using Client::Render::Models::AttachmentSlot;
 using Client::Render::Models::BoneKey;
 using Client::Render::Models::BoneTransform;
 using Client::Render::Models::DrawsThePet;
+using Client::Render::Models::PlacedRoot;
 using Client::Render::Models::PoseAttached;
+using Client::Render::Models::QuiverPlacement;
 using Client::Render::Models::Skeleton;
 using Client::Render::Models::SkeletonBone;
 
@@ -64,6 +68,29 @@ TEST(AttachmentTest, PetIsBone34OnlyFor0x1c13)
     {
         EXPECT_FALSE(DrawsThePet(static_cast<std::uint16_t>(other))) << other;
     }
+}
+
+// 0x509340 con su bandera, en el carcaj (las saetas 0xa19 y las flechas 0xa21): AngleMatrix(70, 0, 90)
+// con la traslación (−10, 5, 10).
+TEST(AttachmentTest, TheQuiverPlacementIsThatOf0x509340)
+{
+    EXPECT_EQ(QuiverPlacement.angles, glm::vec3(70.0f, 0.0f, 90.0f));
+    EXPECT_EQ(QuiverPlacement.translation, glm::vec3(-10.0f, 5.0f, 10.0f));
+}
+
+// La raíz es el hueso por esa matriz (R_ConcatTransforms): con el hueso girado 90° en z y en
+// (1, 2, 3), la traslación gira con él, y los ejes llevan los dos giros.
+TEST(AttachmentTest, ThePlacedRootIsTheBoneByTheAngleMatrix)
+{
+    BoneTransform parent = AngleMatrix({0.0f, 0.0f, 90.0f});
+    parent[3] = glm::vec3(1.0f, 2.0f, 3.0f);
+    const float seventy = 70.0f * std::numbers::pi_v<float> / 180.0f;
+
+    const BoneTransform root = PlacedRoot(parent, QuiverPlacement);
+
+    ExpectNear(root[3], {-4.0f, -8.0f, 13.0f});
+    ExpectNear(root[0], {-1.0f, 0.0f, 0.0f});
+    ExpectNear(root[1], {0.0f, -std::cos(seventy), std::sin(seventy)});
 }
 
 // 0x4ec190: el desplazamiento gira con el hueso y no lleva la escala del personaje, que va en cada

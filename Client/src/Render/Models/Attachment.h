@@ -43,4 +43,21 @@ inline constexpr std::uint16_t DrawnPet = 0x1c13;
 // 0x4ec190: el hueso del que cuelga, con el desplazamiento girado por él y sumado a su traslación.
 // La escala del personaje no: va en cada vértice (verificado: con ella, la mascota cae a 1,8).
 [[nodiscard]] BoneTransform AttachmentRoot(const BoneTransform& parent, const glm::vec3& offset);
+
+// El camino de 0x509340 con su bandera (el byte bajo: un modelo de 0x212 a 0x1011, un arma): un
+// AngleMatrix por modelo, en grados (0x5fc8f0), con su traslación, encadenado al hueso
+// (R_ConcatTransforms, 0x5fca90).
+struct HangingPlacement
+{
+    glm::vec3 angles{};
+    glm::vec3 translation{};
+};
+
+// El del carcaj, las saetas (0xa19) y las flechas (0xa21), que 0x50ba30 cuelga a la espalda del
+// hueso de las alas: (70, 0, 90) y (−10, 5, 10) (0x509535..0x5095bf).
+inline constexpr HangingPlacement QuiverPlacement{{70.0f, 0.0f, 90.0f}, {-10.0f, 5.0f, 10.0f}};
+
+// La raíz de lo que cuelga por ese camino: el hueso por la matriz de su lugar. Como en el otro, la
+// escala del personaje va en cada vértice.
+[[nodiscard]] BoneTransform PlacedRoot(const BoneTransform& parent, const HangingPlacement& placement);
 } // namespace Client::Render::Models

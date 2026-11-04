@@ -1994,11 +1994,54 @@ namespace Client::Input
   - **La luz del lugar 0**, el "héroe" (`DAT_0743a170`), es 0,5 y no 0,4, y **las alas** avanzan
     en la selección.
   - **Las saetas, las flechas y el cuervo** no van en la mano. Que las dos primeras vayan a la
-    espalda (`0x509340` con su bandera y `local_20`) y el cuervo como objeto aparte (`0x420cf0`)
-    va en el PR F.
+    espalda (`0x509340` con su bandera y `local_20`) va en el PR F; el cuervo como objeto aparte
+    (`0x420cf0`) va con los efectos o las mascotas (CL8), como dice su fila de la CL6.4.
   - Quedan para después (minors): el orden de las partes (de las botas a la cabeza), de lo que
     cuelga y de los pases (por pasada y no por malla); la capa (`0x1c30`, una tela); el `F3 03`
     con `strlen` y ceros; y una textura de modelo que falta, que el original no tolera (Q-C23).
+
+  Hecho así (PR F, 2026-11-04, resuelto por Claude): lo que el PR E dejó del dibujo, leído en
+  `0x4ef0c0`, `0x4ecc30`, `0x60cd60`, `0x60b3d0`, `0x60b130`, `0x60b300`, `0x50ba30`, `0x509340`,
+  `0x511290` y `0x60ff50` (06 § El script en un personaje, § Los pases de brillo, § Cuántos pases y
+  § Lo que cuelga del personaje). Todo *estático*: ninguna traza lo tiene (P-C20).
+  - **El script en el dibujo:** la `H` no se dibuja; la `R`, con la textura de su índice, es el
+    `blendMesh`, aditivo con su textura y por la luz del `blendMesh` en el base, el `0x42` y el
+    contorno; con `N`, o en las cinco mallas que marca `0x60ff50` (`MeshesWithoutShine`), sin pases
+    de brillo; la `S` no hace nada en un jugador (U y V en 0). Lo que comparten los modelos de un
+    personaje en el frame va en `CharacterFrame`.
+  - **La clase 4:** la luz del `blendMesh` late (sin(0,001 · T) · 0,1 + 0,7) y los cascos 1, 6, 7,
+    9 y 10 van con su `MaskHelmMale` (`HelmsWithMask`, `MaskHelmOffset`).
+  - **Los casos por modelo de `0x60b3d0`** que alcanza un personaje: la malla que ocultan en sus
+    pases `0xc17`, `0x226`, `0x227` y `0x619` (`PassHiddenMesh`), el cromo de `Spear10` antes de
+    sus pases (por el tipo del objeto: en lo que cuelga, el de su ítem; `ModelUse`) y el set, que
+    va con el alpha sin(0,001 · T) · 0,5 + 0,4 y se apaga malla a malla (Q-C95, `SetAlphaAt`). Esto
+    último corrige el PR E, que dibujaba el set sin ese alpha.
+  - **El carcaj:** las saetas de la izquierda o las flechas de la derecha, a la espalda del hueso de
+    las alas por `AngleMatrix(70, 0, 90)` y (−10, 5, 10) (`PlacedRoot`, `QuiverPlacement`), con el
+    nivel 2L + 1 (`QuiverGlowLevel`), el excelente de la mano y sin el set.
+  - **Tras la revisión adversarial** (dos revisores, el C++ y el binario): lo que cuelga lleva el
+    objeto que `0x509340` le arma con `0x607b60` (`Render/Models/ObjectState`: el `blendMesh`, en −2
+    todas las mallas, la luz que late o de `rand()`, la U y la V y la malla que no dibuja el pase
+    base), con la luz que `0x60b3d0` les escribe a `Wing05`, `Wing06` y `Staff12`; la luz del
+    personaje la escriben también `PantMale25` y `HelmMale25` y la vuelven a 1 las `Test20`, y queda
+    de una parte a la siguiente, con el contorno antes de que `0x60b3d0` escriba la suya; el `0x240`
+    y el `0x1040` de una malla del `blendMesh` no van por su luz; `0x60b130` pasa el `+0x58` del
+    objeto con `0x231`, `0x81c`, `0xe22` y `0x61a` a `0x61f`; el chrome de `Spear10` corre su V, y el
+    `0x1040` lleva la U y la V del objeto; y el orden es el del original: las partes de la 5 a la 0,
+    la espalda, las alas, la mascota y las manos, y cada modelo pase por pase (`RenderBody`), lo que
+    verifica `GoldenCharacterDrawing` contra la traza.
+  - **Decisiones:** el cuervo va en la CL8 (la fila del cuervo de la CL6.4 y P-C15 c); la luz del
+    personaje empieza cada frame en la que dejó el último que la escribe, con el reloj de este (el
+    original la guarda en el objeto: difiere al sacarse la parte y en la diferencia de un frame); los
+    `rand()` de `0x607b60` salen de un `std::minstd_rand` con el reloj de semilla en cada frame; el
+    carcaj se posa con la acción 0 y el frame 0 (sus dos modelos tienen una acción de una key); y
+    `local_20` queda en 0, sin la zona segura (CL7).
+  - **Tests:** 54 nuevos (38 del dibujo, 7 de `ObjectState`, 3 de las tablas de `PlayerModels` y su
+    golden, 3 de `PassColors`, 2 de `Attachment` y 1 de `ItemGlow`); el de las manos, dos del dibujo
+    y uno de `PassColors`, reescritos; y el orden, en `GoldenCharacterDrawing`. 67 mutantes a mano, todos en rojo: 40
+    antes de la revisión y 27 después. Tres vivían hasta sus tests (el contorno del `blendMesh` sin
+    la luz, la máscara en otra parte que el casco y un `rand()` fijo), y doce no compilaban hasta
+    usar el parámetro que dejaban sin uso.
 
 - [ ] **Paso 10 (a mano):** contra el GS del laboratorio, con `--data`: el login aceptado, la
   selección con los personajes de la cuenta de prueba animados en sus lugares, el clic, el doble

@@ -16,8 +16,9 @@ class CrtRandom;
 
 // Las partículas (CL7.6 B2): la tabla de 0x53fe70 (0x743a198, 3.000 lugares de 0x78 bytes), su paso,
 // 0x5446e0, con el viento de 0x7609bb8, y lo que su dibujo, 0x548550(0), le pide a 0x621400. De sus
-// tipos, MuRet solo arma el aliento del caballo del login (0x5f2, Effect\smoke01.jpg, subtipo 0); los
-// demás vienen con los efectos de cada escena. Contrato: 06 § Los efectos del login. Verificado bit a
+// tipos, MuRet arma el aliento del caballo del login (0x5f2, Effect\smoke01.jpg, subtipo 0) y la chispa
+// del cuervo (0x5c6, Effect\Spark03.jpg, subtipo 5, CL7.6 C); los demás vienen con los efectos de cada
+// escena. Contrato: 06 § Los efectos del login. Verificado bit a
 // bit contra el código real emulado (tests/vectors/world55/particles.txt).
 namespace Client::World
 {
@@ -81,7 +82,8 @@ private:
 };
 
 // 0x5446e0: el viento (dos rand(), uno por eje) y cada partícula viva: la vida baja uno y en 0 se apaga
-// (pero el paso de su tipo corre igual), con +0x4c se mueve (0x4e98d0), y el caso de su tipo.
+// (pero el paso de su tipo corre igual), con +0x4c se mueve (0x4e98d0), y el caso de su tipo: el del
+// aliento y el de la chispa del cuervo (0x545209: la escala por 0,9 y la luz por 1/1,03).
 void StepParticles(Particles& particles, Render::Models::CrtRandom& random);
 
 // Lo que 0x548550(0) le pide a 0x621400 por una partícula viva, con el tamaño de su textura (+0x20 y
@@ -100,8 +102,8 @@ struct ParticleDraw
     glm::vec2 uvSize{1.0f, 1.0f};
 };
 
-// La del 0x5f2 con el subtipo 0: el cuadrado de la textura por la escala, girado +0x44, con toda la
-// textura. Las de los tipos que MuRet no arma: nullopt.
+// La del 0x5f2 con el subtipo 0 y la del 0x5c6 con el 5: el cuadrado de la textura por la escala, girado
+// +0x44, con toda la textura. Las de los tipos que MuRet no arma: nullopt.
 [[nodiscard]] std::optional<ParticleDraw> ParticleDrawOf(const Particle& particle, const glm::vec2& textureSize,
                                                          int components);
 } // namespace Client::World

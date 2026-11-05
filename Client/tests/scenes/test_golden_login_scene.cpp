@@ -558,8 +558,8 @@ TEST_F(GoldenLoginWorld, TheDragonDrawsAfterTheObjects)
 // CL7.6 B1: con lo global de la tela (como en main.cpp), el dibujo del personaje pide los sprites del
 // frame, los 30 destellos del casco blanco (0x455930) y después los cinco del cetro (0x509340, caso
 // 0x620), y van aditivos en su pase, el último de los modelos, con la vista en la identidad. Siguen los
-// dos del farol (CL7.6 B4). Después van las partículas (0x548550, CL7.6 B2): los alientos del caballo que
-// haya.
+// dos del farol (CL7.6 B4). Después van las partículas (0x548550, CL7.6 B2): los alientos del caballo y
+// las chispas del cuervo (CL7.6 C2) que haya.
 TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
 {
     Client::Render::Models::ClothWorld cloth;
@@ -593,8 +593,9 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
     ASSERT_GE(runs.size(), expected.size());
     const std::vector<std::pair<int, int>> sprites(runs.begin(), runs.begin() + 5);
     EXPECT_EQ(sprites, expected);
-    EXPECT_TRUE(std::all_of(runs.begin() + 5, runs.end(), [](const auto& run) { return run.first == 0x5f2; }))
-        << "después, solo los alientos";
+    EXPECT_TRUE(std::all_of(runs.begin() + 5, runs.end(),
+                            [](const auto& run) { return run.first == 0x5f2 || run.first == 0x5c6; }))
+        << "después, solo las partículas: los alientos y las chispas del cuervo";
     // 0x549510 los marca vistos antes del pase: 0x549290 los mide con el alpha en 1. El primer destello
     // (la columna 0, escala 0,4, sin giro) va a 0,4 del ancho de flare01, en coordenadas de ojo.
     const auto flareSize = m_models.TextureSize(TextureSlot{0x5ac});
@@ -921,6 +922,63 @@ TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
     const double mean = sum / static_cast<double>(heights);
     EXPECT_GT(mean, 400.0) << "a 350 sobre el dueño en el mapa 55, no a 250";
     EXPECT_LT(mean, 600.0);
+    scene.Leave();
+}
+
+// CL7.6 C2: la chispa del cuervo, una por paso desde un hueso de la pose del último dibujo (Q-C133), nace
+// con vida 10 y el paso de las partículas, al final del mismo paso, ya le baja uno: en cada dibujo hay 9,
+// en el pase de ojo con Effect\Spark03.jpg (0x5c6), aditivas. Pasado el salto rodean al cuervo. La escala
+// y la luz de cada paso las fijan los vectores (ParticlesTest).
+TEST_F(GoldenLoginWorld, TheRavenLeavesSparks)
+{
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    for (int step = 1; step <= 260; ++step)
+    {
+        scene.Step(Client::Input::InputState{});
+        if (step % 10 != 0 && step < 250)
+        {
+            continue;
+        }
+        RecordingFrameTarget target;
+        scene.Render(target.BeginFrame(std::chrono::milliseconds{40 * step}), 0.0f);
+        target.Present();
+        if (step < 250)
+        {
+            continue;
+        }
+        const std::optional<glm::vec3> raven = RavenCenterOf(target);
+        ASSERT_TRUE(raven.has_value());
+        std::vector<FrameEvent> models;
+        std::ranges::copy_if(target.frames.back().events, std::back_inserter(models),
+                             [](const FrameEvent& event) { return event.kind == Kind::Models; });
+        ASSERT_EQ(models.size(), 2u) << "el mundo y el pase de ojo";
+        ASSERT_TRUE(models.front().pass.has_value());
+        const glm::dmat4 toWorld = glm::inverse(glm::dmat4(models.front().pass->view));
+        std::size_t sparks = 0;
+        for (const auto& command : models.back().modelCommands)
+        {
+            if (command.state.texture != TextureSlot{0x5c6})
+            {
+                continue;
+            }
+            EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
+            for (std::size_t quad = 0; quad < command.vertexCount / 6; ++quad)
+            {
+                glm::dvec3 center(0.0);
+                for (std::size_t k = 0; k < 6; ++k)
+                {
+                    center += glm::dvec3(models.back().modelVertices[command.firstVertex + (quad * 6) + k].position);
+                }
+                const glm::dvec3 world = glm::dvec3(toWorld * glm::dvec4(center / 6.0, 1.0));
+                EXPECT_LT(glm::length(world - glm::dvec3(*raven)), 400.0) << "el paso " << step;
+                ++sparks;
+            }
+        }
+        EXPECT_EQ(sparks, 9u) << "el paso " << step << ": una por paso, de 10 pasos de vida";
+    }
     scene.Leave();
 }
 

@@ -323,9 +323,10 @@ TEST_F(ModelTextureSlotsGoldenTest, TheSelectionTexturesEndAt0x716)
     }
 }
 
-// 0x61ccb0 sube las texturas de los sprites del login (0x63b870 con GL_LINEAR y GL_CLAMP) y nadie las
-// suelta: Effect\flare01.jpg en 0x5ac y Effect\Shiny02.jpg en 0x5fd. El sprite mide su tamaño por la
-// escala (0x549290), así que GameModels lo da.
+// 0x61ccb0 sube las texturas de los sprites y las partículas del login (0x63b870 con GL_LINEAR y
+// GL_CLAMP) y nadie las suelta: Effect\flare01.jpg en 0x5ac, Effect\Shiny02.jpg en 0x5fd, Effect\Spark03.jpg
+// en 0x5c6 (32 × 32) y Effect\smoke01.jpg en 0x5f2. El sprite y la partícula miden su tamaño por la escala
+// (0x549290, 0x548550), así que GameModels lo da.
 TEST_F(GoldenGameModels, TheSpriteTexturesStayWithTheirSize)
 {
     FakeTextureStore store;
@@ -333,7 +334,8 @@ TEST_F(GoldenGameModels, TheSpriteTexturesStayWithTheirSize)
     Log log(sink, LogLevel::Debug);
     Client::Scenes::GameModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, store, log).HasValue());
-    for (const std::uint16_t slot : {std::uint16_t{0x5ac}, std::uint16_t{0x5fd}})
+    for (const std::uint16_t slot :
+         {std::uint16_t{0x5ac}, std::uint16_t{0x5fd}, std::uint16_t{0x5c6}, std::uint16_t{0x5f2}})
     {
         const auto texture = store.Find(TextureSlot{slot});
         ASSERT_TRUE(texture.has_value()) << std::hex << slot;
@@ -344,6 +346,11 @@ TEST_F(GoldenGameModels, TheSpriteTexturesStayWithTheirSize)
         EXPECT_EQ(size->x, static_cast<float>(texture->texture.textureWidth));
         EXPECT_EQ(size->y, static_cast<float>(texture->texture.textureHeight));
     }
+    // Spark03.OZJ mide 32 × 32 (otra chispa, como Effect\spark.jpg, mide 112).
+    const auto spark = models.TextureSize(TextureSlot{0x5c6});
+    ASSERT_TRUE(spark.has_value());
+    EXPECT_EQ(spark->x, 32.0f);
+    EXPECT_EQ(spark->y, 32.0f);
     EXPECT_FALSE(models.TextureSize(TextureSlot{0x123}).has_value());
 }
 } // namespace

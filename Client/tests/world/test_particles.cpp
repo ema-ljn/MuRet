@@ -21,9 +21,10 @@
 #include <sstream>
 #include <string>
 
-// Client::World::Particles con el aliento del caballo (0x5f2, subtipo 0) contra el código real del
-// main.exe: 0x53fe70, 0x5446e0 y 0x548550(0) en 20 casos de 20 pasos, con alientos que nacen en pasos al
-// azar (tests/vectors/world55/particles.txt, make_particle_vectors.py), bit a bit.
+// Client::World::Particles con el aliento del caballo (0x5f2, subtipo 0) y la chispa del cuervo (0x5c6,
+// subtipo 5) contra el código real del main.exe: 0x53fe70, 0x5446e0 y 0x548550(0) en 20 casos del aliento
+// y 8 de la chispa, de 20 pasos, con las que nacen en pasos al azar (tests/vectors/world55/particles.txt,
+// make_particle_vectors.py), bit a bit.
 namespace
 {
 using Client::Render::Models::CrtRandom;
@@ -75,13 +76,13 @@ std::array<std::uint32_t, 30> WordsOf(const Particle& particle)
     return words;
 }
 
-TEST(ParticlesTest, TwentyCasesMatchTheBinary)
+TEST(ParticlesTest, TheBreathAndTheSparkMatchTheBinary)
 {
     std::ifstream file(Client::Tests::World55VectorsDir() / "particles.txt");
     ASSERT_TRUE(file);
     std::string line;
     ASSERT_TRUE(std::getline(file, line));
-    ASSERT_EQ(line, "particles 1");
+    ASSERT_EQ(line, "particles 2");
     ASSERT_TRUE(std::getline(file, line));
     std::size_t cases = 0;
     std::size_t creations = 0;
@@ -90,6 +91,10 @@ TEST(ParticlesTest, TwentyCasesMatchTheBinary)
     CrtRandom random;
     glm::vec2 textureSize{};
     int components = 0;
+    std::int32_t particleType = 0;
+    std::int32_t subtype = 0;
+    float scale = 0.0f;
+    std::size_t sparks = 0;
     std::set<std::size_t> listed;
     std::size_t step = 0;
     const auto checkUnlisted = [&]()
@@ -125,7 +130,10 @@ TEST(ParticlesTest, TwentyCasesMatchTheBinary)
             particles.Wind().wind = {next(), next()};
             particles.Wind().change = {next(), next()};
             textureSize = {next(), next()};
-            words >> components;
+            std::string type;
+            words >> components >> type >> subtype;
+            particleType = static_cast<std::int32_t>(Hex(type));
+            scale = next();
         }
         else if (kind == "create")
         {
@@ -133,9 +141,10 @@ TEST(ParticlesTest, TwentyCasesMatchTheBinary)
             const glm::vec3 position{next(), next(), next()};
             const glm::vec3 angles{next(), next(), next()};
             const glm::vec3 light{next(), next(), next()};
-            ASSERT_TRUE(particles.Create(Client::World::BreathParticle, position, angles, light, 0, 1.0f, clock, random)
-                            .has_value())
+            ASSERT_TRUE(
+                particles.Create(particleType, position, angles, light, subtype, scale, clock, random).has_value())
                 << where;
+            sparks += particleType == Client::World::SparkParticle ? 1u : 0u;
             ++creations;
         }
         else if (kind == "step")
@@ -218,8 +227,9 @@ TEST(ParticlesTest, TwentyCasesMatchTheBinary)
             break;
         }
     }
-    EXPECT_EQ(cases, 20u);
+    EXPECT_EQ(cases, 28u);
     EXPECT_GT(creations, 100u);
+    EXPECT_GT(sparks, 40u);
     EXPECT_GT(draws, 500u);
 }
 
@@ -247,8 +257,9 @@ TEST(ParticlesTest, AFullTableCreatesNothingAndTakesNoRand)
               0u);
 }
 
-// De los tipos de 0x53fe70, MuRet solo arma el aliento con el subtipo 0: los demás no se crean.
-TEST(ParticlesTest, OnlyTheBreathIsCreated)
+// De los tipos de 0x53fe70, MuRet arma el aliento con el subtipo 0 y la chispa del cuervo con el 5: los
+// demás no se crean ni sacan rand().
+TEST(ParticlesTest, OnlyTheBreathAndTheSparkAreCreated)
 {
     Particles particles;
     CrtRandom random(5);
@@ -256,6 +267,10 @@ TEST(ParticlesTest, OnlyTheBreathIsCreated)
         particles.Create(0x5f3, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 0, 1.0f, 0.0f, random).has_value());
     EXPECT_FALSE(particles
                      .Create(Client::World::BreathParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 1, 1.0f,
+                             0.0f, random)
+                     .has_value());
+    EXPECT_FALSE(particles
+                     .Create(Client::World::SparkParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 4, 1.0f,
                              0.0f, random)
                      .has_value());
     EXPECT_EQ(random.State(), CrtRandom(5).State());

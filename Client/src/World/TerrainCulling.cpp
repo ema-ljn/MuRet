@@ -188,9 +188,14 @@ void DrawTerrain(Render::ModelBatch& batch, const TerrainView& view, const Terra
     constexpr int Block = 4;
     constexpr double BlockCenter = 2.0;
     constexpr double CellCenter = 0.5;
-    for (int blockY = range.firstY; blockY <= range.lastY; blockY += Block)
+    // TerrainRangeOf ya los deja entre 0 y 0xfb; uno de afuera haría dar la vuelta a las celdas.
+    const int firstY = std::clamp(range.firstY, 0, LastBlock);
+    const int lastY = std::clamp(range.lastY, 0, LastBlock);
+    const int firstX = std::clamp(range.firstX, 0, LastBlock);
+    const int lastX = std::clamp(range.lastX, 0, LastBlock);
+    for (int blockY = firstY; blockY <= lastY; blockY += Block)
     {
-        for (int blockX = range.firstX; blockX <= range.lastX; blockX += Block)
+        for (int blockX = firstX; blockX <= lastX; blockX += Block)
         {
             if (!PolygonContains(polygon, static_cast<double>(static_cast<float>(blockX)) + BlockCenter,
                                  static_cast<double>(static_cast<float>(blockY)) + BlockCenter, BlockMargin))

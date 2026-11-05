@@ -250,8 +250,13 @@ slot de Q-C19; sin diferencias en geometría, UV, textura ni alfa):
   - En Lorencia (cámara (15.057,106; 11.342,894; 1.015), héroe (14.350; 12.050; 165), escena 5) dan las
     329 celdas de la traza en su orden; en la selección (héroe (12.975; 15.423; 333), escena 4), 7.746
     pasan y 5.109 se dibujan, las de su traza en su orden (`GoldenTerrainTrace`). Que el margen o el
-    centro sean otros rompe los dos goldens. Lo único que no sale del binario es la modelview, que arma
-    el driver: la de Mesa da lo mismo en las tres cámaras.
+    centro sean otros rompe los dos goldens, y un test sin traza (`TheGamePolygonCutsByBlockWithItsMarginAndThenByCell`)
+    pide celdas que solo se dibujan por el margen de su bloque. Lo único que no sale del binario es la
+    modelview, que arma el driver. MuRet le pasa la de glm (`Render::MakePass3D`), que difiere de la de
+    Mesa en los últimos bits en el 84 % de las cámaras: en las tres de las trazas y en 18.000 al azar el
+    rango, el trapecio y las celdas dan lo mismo que la referencia, y en 101 de 19.082 cámaras puestas al
+    lado del borde de un bloque el rango se corre un bloque (con la de Mesa, en ninguna). Con la cámara
+    fija del login no cambia nada; con la que se mueve en el juego, P-C24.
 
 ### Modelos y objetos
 
@@ -1400,7 +1405,10 @@ de vuelta. *Estático.*
   la orilla del lago, con alfa de hasta 1 (la cuenta, `terrain_count.py`; que se vea, *inferido*).
 - **Los tiles** (`0x61a560`, *estático*): `World<N>\TileGrass01.jpg` a `TileRock07.jpg` en `0x23..0x30`
   con `GL_NEAREST` y repitiendo; solo el primero lleva el sexto argumento de `0x63b870` en 1, el que
-  avisa "File not exist" si falta: los demás se saltean sin avisar. Después vienen el pasto
+  avisa "File not exist" si falta: los demás se saltean sin avisar, y uno que está pero no se lee
+  devuelve false y sigue (Q-C14). MuRet saltea los que no avisan, falten o no se lean, con un aviso en
+  el log; sin `TileGrass01` o el `0x122` (que también avisa), el login va sin terreno
+  (`GoldenLoadedWorld`). Después vienen el pasto
   (`0x32..0x34`), las hojas (`0x64`, `0x65`) y la lluvia (`0x66..0x68`), que el terreno no usa. Los mapas
   `0x18` a `0x1d` y el `0x24` arman los suyos (`0x4377a0`).
 - **El pase del pasto**, en el 55, no dibuja nada en esta vista: las celdas candidatas piden

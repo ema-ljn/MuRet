@@ -324,11 +324,15 @@ TEST_F(GoldenTerrainTrace, TheSelectionDrawsTheCellsOfItsTrace)
     ASSERT_EQ(traced.size(), 5109u);
     EXPECT_EQ(DrawnCells(batch), traced);
 }
+
+// El login no tiene traza: va con los datos solos (los del repo en CI) y no pide la carpeta de las trazas.
+using GoldenTerrainLogin = Client::Tests::GoldenDataTest;
+
 // Y el login (el mapa 55, World56), que no tiene traza: con LoginCamera y el héroe en (11.679;
 // 14.191; 333), los bloques de x 0..128 e y 120..248 pasan todos y dibujan 3.244 celdas sin el bit
 // 0x08, de la (90; 153) a la (104; 251), en el orden del código real emulado (la suma de control es
 // la de scripts/login: s = s · 31 + x · 256 + y, módulo 2³²).
-TEST_F(GoldenTerrainTrace, TheLoginDrawsTheCellsOfTheEmulatedCode)
+TEST_F(GoldenTerrainLogin, TheLoginDrawsTheCellsOfTheEmulatedCode)
 {
     constexpr std::uint8_t Login = 55;
     auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, Login);

@@ -42,9 +42,10 @@ Core::Expected<void, std::string> LoadedWorld::Load(const std::filesystem::path&
         auto read = Data::Textures::LoadTextureSet(dataRoot, entry);
         if (!read.HasValue())
         {
-            if (read.Error().kind == Data::Textures::TextureSetErrorKind::Missing && !tile.required)
+            // Un tile que no avisa, falte o no se lea, se saltea (Q-C14: 0x63b870 devuelve false y sigue).
+            if (!tile.required)
             {
-                skipped.push_back(tile.path);
+                skipped.push_back(Data::Textures::Describe(read.Error()));
                 continue;
             }
             return Core::Unexpected(Data::Textures::Describe(read.Error()));

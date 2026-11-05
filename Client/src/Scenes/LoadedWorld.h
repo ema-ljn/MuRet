@@ -26,11 +26,17 @@ class LoadedWorld
 public:
     // `store` tiene que vivir más que esto.
     explicit LoadedWorld(Render::ITextureStore& store);
+    // Es dueño de los slots que subió: una copia los soltaría dos veces.
+    LoadedWorld(const LoadedWorld&) = delete;
+    LoadedWorld& operator=(const LoadedWorld&) = delete;
+    LoadedWorld(LoadedWorld&&) = delete;
+    LoadedWorld& operator=(LoadedWorld&&) = delete;
+    ~LoadedWorld() = default;
 
-    // Lee el terreno de `map` y sube sus tiles y el slot 0x122. Un tile que no avisa y falta se
-    // saltea y va a `skipped`, con la ruta como la pide el original; uno que avisa (TileGrass01, el
-    // 0x122) y falta, el terreno que no se lee o la tabla que no sube son un error, y no queda nada
-    // cargado ni subido.
+    // Lee el terreno de `map` y sube sus tiles y el slot 0x122. Un tile que no avisa y falta o no se lee
+    // se saltea y va a `skipped`, con lo que pasó y la ruta como la pide el original; uno que avisa
+    // (TileGrass01, el 0x122) y falta o no se lee, el terreno que no se lee o la tabla que no sube son
+    // un error, y no queda nada cargado ni subido.
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                          std::vector<std::string>& skipped);
 

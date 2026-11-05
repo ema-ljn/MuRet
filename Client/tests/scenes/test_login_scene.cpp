@@ -533,6 +533,23 @@ TEST(LoginSceneTest, WithoutASessionItDrawsAndDoesNotConnect)
     EXPECT_EQ(tested.Frame().size(), 9u);
 }
 
+// 0x6350b0 no dibuja ni presenta mientras 0x7d3a13d esté en 0 (0x6350b6..0x6350c4), y la prende el paso
+// que entra (0x634c87): con conexión o sin ella, el login no se ve antes de su primer paso. Sin sesión, la
+// escena retiene el frame hasta ese paso; así las brasas del primero nacen alrededor de (0, 0, 0) (Q-C137).
+TEST(LoginSceneTest, WithoutASessionItHoldsTheFrameUntilItsFirstStep)
+{
+    Harness tested;
+    LoginScene& scene = tested.Make();
+    ASSERT_TRUE(scene.Enter().HasValue());
+    EXPECT_TRUE(scene.HoldsTheLastFrame());
+
+    scene.Step(tested.input);
+    EXPECT_FALSE(scene.HoldsTheLastFrame());
+
+    ASSERT_TRUE(scene.Enter().HasValue());
+    EXPECT_TRUE(scene.HoldsTheLastFrame());
+}
+
 // La sesión empezada no alcanza: la selección es con el login aceptado (LoggedIn). Lo prueba de
 // punta a punta test_login_scene_loopback.cpp.
 TEST(LoginSceneTest, StaysWhileTheSessionIsNotLoggedIn)

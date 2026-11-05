@@ -434,6 +434,7 @@ void LoginScene::PlaceTheModels()
     m_particles.Clear();
     m_leaves.Clear();
     m_drawnSinceEntering = false;
+    m_steppedSinceEntering = false;
     if (m_world && m_world->map == DragonMap)
     {
         (void)m_effects.Create(World::DragonEffect, DragonOwnerPosition, glm::vec3(0.0f), glm::vec3(1.0f),
@@ -469,6 +470,7 @@ void LoginScene::Step(const Input::InputState& input)
     // para la red y la UI, pero ni la tela ni el mundo avanzan: el primer frame después del connect sigue
     // donde quedó el último.
     const bool connecting = m_session != nullptr && IsConnecting(m_session->State());
+    m_steppedSinceEntering = true;
     if (m_context.cloth != nullptr && !connecting)
     {
         Render::Models::StepTheClothWorld(*m_context.cloth);
@@ -1058,9 +1060,11 @@ bool LoginScene::WantsTextInput() const
 
 bool LoginScene::HoldsTheLastFrame() const
 {
+    // 0x6350b0 no dibuja ni presenta antes del primer paso (0x7d3a13d); con la sesión, lo de abajo lo
+    // incluye: el paso todavía no vio el estado.
     if (m_session == nullptr)
     {
-        return false;
+        return !m_steppedSinceEntering;
     }
     // Conectando, y también con lo que el paso todavía no vio (desde Enter, o un Poll que cambió el
     // estado en un frame sin pasos): un connect que falla enseguida sale en ese Poll, y el frame

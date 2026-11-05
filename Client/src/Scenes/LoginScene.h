@@ -197,6 +197,8 @@ private:
     // Si ya se dibujó un frame desde que se entró: antes, el buffer global de la pose no tiene nada del
     // login (P-C26).
     bool m_drawnSinceEntering = false;
+    // Si ya corrió un paso desde que se entró: antes, 0x6350b0 no dibuja (0x7d3a13d, que prende el paso).
+    bool m_steppedSinceEntering = false;
     // El logo: su modelo, los slots de sus mallas desde donde terminó el mundo y sus texturas.
     SingleModelLibrary m_logo;
     std::optional<Render::Models::ModelTextureSlots> m_logoSlots;

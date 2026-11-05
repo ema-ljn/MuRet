@@ -1436,8 +1436,12 @@ de vuelta. *Estático.*
   (`GoldenLoadedWorld`). Después vienen el pasto
   (`0x32..0x34`), las hojas (`0x64`, `0x65`) y la lluvia (`0x66..0x68`), que el terreno no usa. Los mapas
   `0x18` a `0x1d` y el `0x24` arman los suyos (`0x4377a0`).
-- **El pase del pasto**, en el 55, no dibuja nada en esta vista: las celdas candidatas piden
-  `TileGrass03.tga`, que no está, o slots que no carga nadie (*inferido*).
+- **El pase del pasto**, en el 55, no dibuja nada en esta vista (*estático* desde el cierre): corre
+  (`0x6c9d58` en 1 por `0x5f87b0`, salvo en los mapas `0x12..0x17` y `0x1e`), con la mezcla normal, en las
+  celdas sin el `0x08` y con las cuatro esquinas en alfa 0: 2.402 en la ventana del login, con la capa 1 en
+  5 (2.147), 2 (121), 3 (88), 4 (27), 10 (12) u 8 (7). El slot es `0x32` más la capa 1: el `0x34`
+  (`TileGrass03.tga`, que `World56` no tiene) o del `0x35` al `0x3c`, que `0x61a560` no carga; ninguna tiene
+  la capa 0 o 1, las únicas con textura.
 - **Sin niebla** (`0x6350b0` pone `DAT_07d368a0` en 0 en cada frame) y **sin cielo 3D**: detrás
   quedan los fondos 2D y el negro de `glClearColor`.
 
@@ -1622,7 +1626,7 @@ caballo, `0x530490` (las hojas), `0x508f00` (los personajes y el cuervo), `0x52d
 
 | Función | Qué es | Arreglo | Entradas |
 | --- | --- | --- | --- |
-| `0x53c6a0(0)` | **joints**: cintas con colas, `GL_QUADS` en el mundo; paso `0x53c670` → `0x535840` | `0x74a8d78` | 500 × `0xa10`; ninguno en el login (*inferido*) |
+| `0x53c6a0(0)` | **joints**: cintas con colas, `GL_QUADS` en el mundo; paso `0x53c670` → `0x535840` | `0x74a8d78` | 500 × `0xa10`; ninguno en el login (*inferido*: los creadores alcanzables del paso piden `jinete + 8`, `+0x1a0` o `+0x3e5`, en 0 en la primera entrada; el caballo crea doce `0x60f` con `jinete + 8` en 1 y lo vuelve a 0, y `0x511290` no lo limpia, así que una entrada después de otro uso podría heredarlo; los 13 `0x530860` de `0x505de0` no se leyeron, P-C27) |
 | `0x52d620(0)` | **efectos** con modelo (`CreateEffect`, `0x518cf0`; paso `0x5208a0`) | `0x7491fd8` | 200 × `0x1d4`: el dragón y el `0xc2` |
 | `0x549510` | prende `+0x16c` de los sprites vivos | — | — |
 | `0x5306a0` | **hojas** (lluvia, hojas, nieve, burbujas; en el 55, brasas), quad en el mundo | `0x75e34b8` | 200 × `0x78`; 80 en el mapa 55 |
@@ -1811,25 +1815,45 @@ cuervo (4 a 7 por paso), `0x509340` (uno por cada parte del personaje que dibuja
 (6 más por frame), el gesto del login (`rand() % 6` con `ftol(T) % 2300 < 100`), `0x602ed0` (1 por
 objeto visible por frame, que es también el del farol; 1 más en cada `0x54`, 5 más por nube y 3 más
 cuando dispara el `0x59`), `0x508f00` (8 por personaje vivo por paso), `0x635ae0` (8 por
-frame) y la cabeza (`0x505de0`). Ahora se sabe quién saca cada uno. MuRet lleva, con el de la CRT de la
-tela, los de la tela, el cetro, el aliento, el viento de las partículas, las brasas y, desde la CL7.6
-B4, el de cada objeto de `0x602ed0`; no lleva los demás, así que su `rand()` no sigue al del original
-bit a bit: habría que correrlos todos, en su orden.
+frame) y, por personaje visto y por paso (cierre del login): `0x508ba0` (8, `0x508c75` y `0x508ce9`),
+`0x4fd5f0` (1, `0x4fd7e4`, sin condición), `0x432bd0` (1, `0x432bf1`, desde `0x4fcee0` con el frame en 3 o
+más), las celdas de `0x505de0` (8, `0x506362` y `0x506833`), la cabeza (1, y 2 más cuando sortea) y
+`rand() & 7` (`0x506cac`). También las rutas de la cámara (2 cada 128 pasos de la fase 1, `0x633a21` y
+`0x633a38`) y el contador protegido (8 por paso y 4 más cada 313, Q-C125). Ahora se sabe quién saca cada
+uno. MuRet lleva, con el de la CRT de la tela, los de la tela, el cetro (una vez por frame del original
+desde el cierre), el aliento, el viento de las partículas, las brasas, el cuervo, el gesto, la cabeza, 4
+de los 8 del contador y, desde la CL7.6 B4, el de cada objeto de `0x602ed0`; no lleva los demás, y los
+del contador y el viento los saca al principio del paso y no después de la escena, así que su `rand()` no
+sigue al del original bit a bit: habría que correrlos todos, en su orden.
 
 ### Lo demás del login
 
 El resto de `0x634c60` (por paso) y de `0x6350b0` (por frame), llamada por llamada (*estático*):
 
 - **Lo que falta y se ve o se oye:**
-  - **el cursor** (`0x5ac2d0`): el juego oculta el de Windows y dibuja `Interface\Cursor.tga` (el
-    slot 2), o `CursorPush.tga` (el 3) con el botón apretado, de 24 × 24 en (mouse − 2), con la
-    mezcla normal, al final de la UI;
+  - **el área de mensajes** (`0x5554e0`, abajo): los renglones que deja elegir un servidor (P-C27 a);
+  - **las nubes y el fuego** del mapa (los `0x54` y el `0x59`, P-C23 e);
   - **la música**: la entrada llama a `0x4acfd0("data\music\main_theme.mp3", 0)`, que con la música
     prendida y si no es la que ya suena la toca en bucle (*inferido* el bucle). El archivo está en
     `Client/assets/Data/Music/`;
   - **el clic** `Sound\iButtonClick.wav` (`0x19`) en Esc y en los botones de las ventanas;
   - **Esc**, con la lista y la barra abiertas y lo demás cerrado: el clic y la ventana de `+0x3d0`;
     y la de créditos (`+0x4578`). Las dos, sin leer.
+- **El cursor, desde el cierre** (`0x5ac2d0`): el original esconde el de Windows (`ShowCursor(FALSE)` en
+  WinMain, `0x4ba238`, y en el WndProc, `0x4b3327`) y dibuja el suyo al final de la UI de cada escena (el
+  login, `0x635560`; la selección, `0x634980`, que antes de la lista sale sin llegar ahí; el juego,
+  `0x6376d7`): `0x620a00(1)`, `glColor3f(1, 1, 1)` y `0x621b60(slot, x − 2, y − 2, 24, 24, 0, 0, 1, 1, 1, 1,
+  0)`, escalado desde 640 × 480 y con alfa 0. La x es `0x7d3682c` y la y `0x7d36828`, al revés de lo que
+  sugieren las direcciones: el WndProc (`0x4b358f`) las escribe como `LOWORD · 640 / W` y `HIWORD · 480 / H`,
+  sin signo y sin acotar (Q-C47), así que en 1024 × 768 el cursor salta de a 1,6 píxeles. El slot es el 2
+  (`Interface\Cursor.tga`), o el 3 (`CursorPush.tga`) con el botón izquierdo abajo (`0x7d36874`, que en el
+  login y en la selección solo escriben el `WM_LBUTTONDOWN` y el `WM_LBUTTONUP`: ninguno de los que lo
+  borran se alcanza desde sus pasos ni sus dibujos); los demás (4 a `0xa`, `0x65a`, `0x68d`) los eligen
+  globales del juego (`0x6c8e28` a `0x6c8e34`, `0x78abb0c`, `0x78abb20`, `0x7d3a10c` y `0x77f3b5c`), en −1 o
+  en 0 fuera de él. Los sube `0x61ccb0` en su avance 0 con `GL_LINEAR` y `GL_CLAMP`. Verificado en la traza
+  de la selección: el último quad del frame es el slot 2 en blanco, de 38,4 × 38,4 en 1024 × 768. MuRet:
+  `UI::DrawGameCursor` en el login y la selección, con el input del contexto, y el cursor del sistema
+  escondido (`Platform::Window::HideSystemCursor`). El juego lo dibuja con su UI (CL8).
 - **La cabeza del Dark Lord, desde el cierre:** `0x505de0`, en cada paso de `0x508ea0` (después de `0x4fd5f0`, el cuerpo y
   el cuervo), con el personaje visto (`+0x16c`, que `0x508ea0` escribe al empezar con `0x5fba90` en su lugar por 0,01f y
   −20) y sin las banderas `0x20` ni `0x1000` de `+0x78`. Si no es el héroe (`0x743a170`) ni se está muriendo (`+0x389`), con
@@ -1842,11 +1866,18 @@ El resto de `0x634c60` (por paso) y de `0x6350b0` (por frame), llamada por llama
 - **La cámara, confirmada:** `0x635ae0` es fija en la escena 2. El único corrimiento posible es el
   del bit `0x80` del atributo de la celda del héroe, y no aplica: el héroe tiene las celdas en
   (0, 0), porque en el login solo se le escribe la posición, y esa celda de `EncTerrain56.att` vale
-  `0x0c`. El fundido no dibuja nada (Q-C66, *inferido*).
+  `0x0c`. El fundido no dibuja nada, y su color no le llega a nadie (Q-C66, *estático* desde el cierre).
 - **No muestran nada en el login:** `0x5f7bc0` (el ítem bajo el mouse), `0x554810` (los avisos),
-  `0x5554e0` (el chat: las 120 llamadas a `0x555190` de la entrada lo llenan de renglones vacíos,
-  ahora *estático*), `0x5b0550` (la ayuda), `0x40eca0` (un cartel de diálogo), `0x633110` (modelos 3D
-  de la UI) y `0x5bb8d0` (el ancho del mundo con las ventanas: el entero).
+  `0x5b0550` (la ayuda), `0x40eca0` (un cartel de diálogo), `0x633110` (modelos 3D de la UI) y `0x5bb8d0`
+  (el ancho del mundo con las ventanas: el entero).
+- **El área de mensajes sí** (`0x5554e0`, que `0x6350b0` llama en la escena 2, `0x63552f..0x63553f`; antes
+  este documento decía que no mostraba nada): seis renglones de la tabla de 120 de `0x77d9868`, desde el
+  `0x6c8eb4` (`0x72` en la `.data`, los seis últimos), arriba a la izquierda en y = 0 a 65 de a 13,
+  salteando los vacíos (`0x555541`). Las 120 llamadas de la entrada (`0x634b4a`) la dejan vacía; el clic en
+  un servidor agrega el 470 y el 471 (`0x64630f` y `0x646320`, del tipo 1: el texto `0xffff9664` sobre
+  `0x96000000`), el cancelar de la cuenta el 472 y el 473 (`0x6427d9` y `0x6427ea`) y la respuesta al
+  `F4 03` el 481; `0x5554b0` suma un renglón vacío cada 150 pasos desde el último, así que suben y se van.
+  MuRet no la tiene (*estático*; P-C27).
 
 ### Las ventanas de la UI nueva
 
@@ -2450,7 +2481,7 @@ Ver [08](08-pendientes.md).
 | Texto por GDI → una textura que se sube por string | FreeType en un bit (D-C2), en las mismas cajas de 256 × 32, con una caché propia (`TextCache`) que las guarda en los slots del texto; los píxeles no son los de GDI (Q-C76); los `0x02`, con la tabla de `0x4665d0` (`ParseInlineColors`) | CL5.3 |
 | La carga dibuja sola, con su UI en 800 × 600 y un frame entero por cada uno de los 11 avances | `LoadingScene` con su juego de texturas y la barra, dentro del `SceneManager`, con un avance por paso: MuRet no carga nada en ella (`Text.bmd` lo lee `main.cpp` antes, como WinMain en `0x4b9b9f`) | CL5.4 |
 | El login carga todo otra vez cada vez que se entra (mundo 55, texturas, ventanas, CS) | `LoginScene::Enter` también cada vez: las 18 texturas, las 3 de las ventanas (que el original sube una sola vez, con los datos del juego, en `0x61ccb0`; `WindowTextureSet`, CL5.5) y `ServerSession::Start`; el mundo, como dato de la escena (`SceneWorlds.h`), lo dibuja la CL7 | CL5.4, CL5.5 |
-| El login dibuja en el frame del render loop, con la cámara, el pase 3D y lo común a las escenas | `LoginScene::Render` en un `SceneCanvas` (el lote, el texto, el fin del 2D y el pase 3D), sin el fundido (Q-C66), y al final la UI (CL5.5): la lista, la barra de abajo, la cuenta y el aviso, cada una con la mezcla normal (Q-C80); `Gl::GlFrameTarget` limpia en negro, dibuja el lote y presenta | CL5.4, CL5.5 |
+| El login dibuja en el frame del render loop, con la cámara, el pase 3D y lo común a las escenas | `LoginScene::Render` en un `SceneCanvas` (el lote, el texto, el fin del 2D y el pase 3D), sin el fundido (Q-C66), y al final la UI (CL5.5): la lista, la barra de abajo, la cuenta y el aviso, cada una con la mezcla normal (la que deja `0x554810` antes de la UI), y el cursor del juego (`UI::DrawGameCursor`, desde el cierre); `Gl::GlFrameTarget` limpia en negro, dibuja el lote y presenta | CL5.4, CL5.5, cierre |
 | Siete ventanas de la UI nueva en píxeles, con la imagen de la UI nueva (`0x647650`, la de la carga) en sus fondos; avisos por id con un texto de `Text.bmd` y un botón | `UI::` con la lista, la cuenta, el aviso y la barra de abajo, y sus imágenes con la forma de la carga (UV a medio téxel, la y desde arriba) en píxeles; la lista con 20 botones de servidor (Q-C63); el id del aviso y su texto en una tabla, la de arriba | CL5.5 |
 | Los que leen los paquetes abren las ventanas: `0x4c1860` la lista con el `F4 06`, `0x4c1e20` la cuenta con el `F1 00`, `0x4e5ebc` el aviso del `F1 01` | la `ServerSession` no conoce la UI: dice en qué estado está (`ChoosingServer`, `WaitingCredentials`, `Failed`), y la `LoginScene` abre la ventana que va cuando el estado cambia. El OK de un aviso que cierra el juego lo pide la escena (`IScene::WantsToQuit`) y lo hace `Main` (Q-C69) | CL5.5 |
 | Ventanas como clases con vtable de 22 métodos | `UI::Window` con una interfaz chica (dibujar, evento) y una clase por ventana; el administrador ordena por prioridad | CL8 |

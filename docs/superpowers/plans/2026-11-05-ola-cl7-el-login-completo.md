@@ -336,6 +336,13 @@ chicos que salgan, cada uno con su test).
   evidencia.
 - **Resultado:** lo que se arregla en el PR (con un test que falle antes), lo que queda como pendiente
   en 08 (con la prueba en la VM) y la lista en 06 de lo que el login de MuRet todavía no hace.
+- **Hecho:** cuatro revisores (la entrada y el bucle, el paso, el dibujo 3D, el 2D con la UI y la cámara)
+  y nueve arreglos, cada uno con su test: el cursor del juego (`0x5ac2d0`), el mundo quieto mientras
+  conecta (Q-C85), la selección que retiene el frame hasta la lista, la entrada a una escena que no cuenta
+  en el modo normal (ADR 0005), el login sin sesión que no se dibuja antes de su primer paso, el cetro por
+  frame del original, la cabeza del Dark Lord (bit a bit, `head.txt`), el gesto con el `rand()` de la CRT y
+  el fundido del caballo con un solo redondeo. Lo que queda, en 06 § Lo demás del login y en P-C27 (con
+  P-C23 e para las nubes y el fuego).
 
 Después: la CL7 sigue con Lorencia (CL7.3 del roadmap en adelante, y lo que la CL7.1 y la CL7.2 no
 hayan cubierto de otros mapas), con su propio plan.

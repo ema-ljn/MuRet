@@ -2,10 +2,10 @@
 
 #include <glm/ext/vector_float3.hpp>
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <vector>
 
 // Los sprites de un frame (CL7.6 B1): la tabla de 0x5491e0 (0x760f990, 1.000 lugares de 0x1d4 bytes),
 // que llenan el dibujo de los personajes y de los objetos y que 0x549440(0) dibuja y apaga en el mismo
@@ -46,7 +46,8 @@ public:
     [[nodiscard]] bool Any() const;
 
 private:
-    std::array<Sprite, SpriteCount> m_sprites{};
+    // En el heap: la escena que la lleva tiene que caber en la pila.
+    std::vector<Sprite> m_sprites = std::vector<Sprite>(SpriteCount);
 };
 
 // 0x549290, al dibujar: visto, el alpha sube 0,1 con tope 1; sin ver, baja 0,1 con piso 0,2. En 53 bits y

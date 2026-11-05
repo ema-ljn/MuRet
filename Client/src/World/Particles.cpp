@@ -159,7 +159,6 @@ void Particles::Clear()
     {
         particle.alive = false;
     }
-    m_wind = ParticleWind{};
 }
 
 std::span<Particle> Particles::All()

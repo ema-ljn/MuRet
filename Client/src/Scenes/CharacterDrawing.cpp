@@ -1026,4 +1026,21 @@ std::optional<glm::vec3> PosedBonePoint(const IModelLibrary& models, const Drawn
     }
     return (Render::Models::VectorTransform(offset, bones[bone]) * object.transform.scale) + object.transform.position;
 }
+
+std::optional<glm::vec3> LastPosedBonePoint(std::span<const PosedInTheBuffer> posed, std::size_t bone,
+                                            const glm::vec3& offset)
+{
+    for (auto it = posed.rbegin(); it != posed.rend(); ++it)
+    {
+        if (it->models == nullptr)
+        {
+            continue;
+        }
+        if (const std::optional<glm::vec3> point = PosedBonePoint(*it->models, it->object, bone, offset))
+        {
+            return point;
+        }
+    }
+    return std::nullopt;
+}
 } // namespace Client::Scenes

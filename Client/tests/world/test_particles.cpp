@@ -1,6 +1,7 @@
 #include "World/Particles.h"
 
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalRotation.h"
 
 #include "support/WorldObjectVectors.h"
 
@@ -269,5 +270,44 @@ TEST(ParticlesTest, ANotANumberClockTurnsNothing)
                                         glm::vec3(3.0f), 0, 1.0f, std::numeric_limits<float>::quiet_NaN(), random);
     ASSERT_TRUE(index.has_value());
     EXPECT_EQ(particles.All()[*index].rotation, 0.0f);
+}
+
+// 0x6070a0, al entrar, solo apaga el byte vivo de cada lugar (0x607164..0x607174): el viento (0x7609bb8 y
+// 0x7609bc4, que solo escribe 0x5446e0) sigue como estaba.
+TEST(ParticlesTest, ClearingLeavesTheWind)
+{
+    Particles particles;
+    particles.Wind().wind = {0.5f, -0.3f};
+    particles.Wind().change = {0.1f, 0.2f};
+    particles.Clear();
+    EXPECT_EQ(particles.Wind().wind, glm::vec2(0.5f, -0.3f));
+    EXPECT_EQ(particles.Wind().change, glm::vec2(0.1f, 0.2f));
+}
+
+// Con +0x4c, el paso suma a la posición la velocidad girada por los ángulos (0x4e98d0: AngleMatrix y
+// VectorRotate de la x87, cada suma en 53 bits) antes del caso del tipo. El aliento nace quieto; acá se
+// le da una velocidad.
+TEST(ParticlesTest, AMovingParticleTurnsItsVelocityByItsAngles)
+{
+    Particles particles;
+    CrtRandom random(9);
+    const auto index = particles.Create(Client::World::BreathParticle, {1000.0f, 2000.0f, 300.0f}, {0.0f, 0.0f, 0.0f},
+                                        glm::vec3(3.0f), 0, 1.0f, 0.0f, random);
+    ASSERT_TRUE(index.has_value());
+    Particle& particle = particles.All()[*index];
+    particle.velocity = {3.0f, -2.0f, 0.5f};
+    particle.angles = {10.0f, 20.0f, 30.0f};
+    const glm::vec3 turned = Client::Render::Models::OriginalVectorRotate(
+        particle.velocity, Client::Render::Models::OriginalAngleMatrix(particle.angles));
+    Client::World::StepParticles(particles, random);
+    EXPECT_EQ(Bits(particle.position.x), Bits(static_cast<float>(static_cast<double>(turned.x) + 1000.0)));
+    EXPECT_EQ(Bits(particle.position.y), Bits(static_cast<float>(static_cast<double>(turned.y) + 2000.0)));
+    const auto moved = static_cast<float>(static_cast<double>(turned.z) + 300.0);
+    EXPECT_EQ(Bits(particle.position.z),
+              Bits(static_cast<float>((0.0 + static_cast<double>(0.2f)) + static_cast<double>(moved))));
+    particle.moves = false;
+    const glm::vec3 still = particle.position;
+    Client::World::StepParticles(particles, random);
+    EXPECT_EQ(particle.position.x, still.x) << "sin +0x4c no se mueve";
 }
 } // namespace

@@ -1663,8 +1663,12 @@ Lo que se ve en el video, una fuente por vez:
   (`0x4eb973` saltea los dummy sin escribirlos), y `0x4eb860` lo deja en el mundo (con su octavo
   argumento en 1, la raíz va por la escala del cuerpo y con su origen). El dragón se posa después del
   caballo (`0x52d620` → `0x602e90(e, 0, 0, 0)`), pero en `dragon.bmd` el 27 es uno de sus 14 dummy, y
-  ningún objeto del mapa 55 llega a 28 huesos (el mayor, `Object90`, 6): queda el del caballo,
-  `Bone03` (hijo de `Bip01 Head`). Se ve junto a su cabeza, como en el video del original. Al crearse
+  ningún objeto del mapa 55 llega a 28 huesos (los que más tienen, `Object13` y `Object19`, 8): queda
+  el del caballo, `Bone03` (hijo de `Bip01 Head`), con la pose del dibujo anterior: en `0x444010` el
+  avance de la animación (`0x4ec200`, `0x445039`) corre después del aliento, aunque la acción que mira
+  el aliento es la de este paso (`0x4ea030`). Antes de que el caballo se vea (con el alpha por debajo
+  de 0,01, antes de su primer paso), el hueso no lo escribe nadie del login. Se ve junto a su cabeza,
+  como en el video del original. Al crearse
   (`0x53fe9c..0x53ff37` y el caso `0x54184b`): vida 16, escala `(rand() % 32 + 48) · 0,01`, el ángulo
   x `rand() % 360` (los otros dos, del caballo) y la rotación `ftol(T) % 360`; cada paso
   (`0x545ec4`) la luz es vida · 0,125, la velocidad vertical propia suma 0,2 y la z, esa velocidad
@@ -1672,7 +1676,9 @@ Lo que se ve en el video, una fuente por vez:
   la sube igual. Se dibuja (`0x548550`) del tamaño de la textura por la escala, girada `+0x44`,
   aditiva. Se ve 15 pasos: blanca los 8 primeros, y se apaga en los 7 últimos. **Verificado** en la
   CL7.6 B2 contra el código real emulado: la creación, el paso (con el viento) y el dibujo, en 20
-  casos de 20 pasos (`tests/vectors/world55/particles.txt`); de dónde sale el hueso es *estático*. El
+  casos de 20 pasos (`tests/vectors/world55/particles.txt`), dada la posición. De dónde sale el hueso es
+  *estático*, y la posición sale de la pose de MuRet (por cuaterniones, no por el camino de la x87):
+  igual a nivel de float, no bit a bit. El
   polvo de los cascos solo sale con el jinete en la acción `0x4b`, que el login no usa.
 - **El viento de las partículas** (`0x5446e0`, al empezar cada paso): para x e y, el cambio
   (`0x7609bc4`) suma `(rand() % 2001 − 1000) · 0,0006` con tope ±0,6, y el viento (`0x7609bb8`)

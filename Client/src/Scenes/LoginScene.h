@@ -132,13 +132,15 @@ private:
     void StepTheLogo(World::WorldObject& logo) const;
     void PlaceTheModels();
     void StepTheWorld();
-    // 0x444010 (0x44453f..0x4445d9), después del paso del caballo: el aliento.
-    void BreatheTheHorse();
+    // 0x444010 (0x44453f..0x4445d9), después del paso del caballo: el aliento, con `drawn`, el caballo como
+    // lo dejó el dibujo anterior (antes de este paso).
+    void BreatheTheHorse(const DarkHorse& drawn);
     // Dónde queda `offset` en el hueso `bone` del buffer global de la pose (0x68b181c) al llegar al paso:
     // lo dejó el último modelo posado sin buffer propio en el dibujo anterior que tiene ese hueso y no es
-    // dummy, en el mundo: el dragón (0x52d620) va después del caballo (0x4453b0), pero su hueso 27 es dummy,
-    // y en el 27 queda el del caballo. Antes del primer dibujo, (0, 0, 0).
-    [[nodiscard]] glm::vec3 GlobalPosePoint(std::size_t bone, const glm::vec3& offset) const;
+    // dummy (LastPosedBonePoint), en el mundo: el dragón (0x52d620) va después del caballo (0x4453b0), pero
+    // su hueso 27 es dummy, y en el 27 queda el del caballo. Antes del primer dibujo, (0, 0, 0).
+    [[nodiscard]] glm::vec3 GlobalPosePoint(std::size_t bone, const glm::vec3& offset,
+                                            const DarkHorse& drawnHorse) const;
     void DrawTheModels(SceneCanvas& canvas, float alpha);
     // La luz del terreno en (x, y), o 0 sin la del mundo.
     [[nodiscard]] glm::vec3 TerrainLightAt(const glm::vec3& position) const;

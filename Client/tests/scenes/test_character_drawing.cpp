@@ -11,6 +11,7 @@
 #include "Render/Models/PassColors.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Models/Skinning.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
@@ -23,6 +24,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
@@ -1688,5 +1690,59 @@ TEST(CharacterDrawingTest, ThePointOfABoneGoesToTheWorldLikeTheVertices)
     object.model = 0xa3;
     models.ItemSkeleton().bones[0].dummy = true;
     EXPECT_FALSE(Client::Scenes::PosedBonePoint(models, object, 0, glm::vec3(0.0f)).has_value()) << "dummy";
+}
+
+// Con un hueso que se traslada y gira, y el objeto girado, a escala y en su lugar, el punto de
+// PosedBonePoint es el de un vértice en `offset` colgado de ese hueso, pasado al mundo por SkinMesh: el
+// desplazamiento va por el hueso antes que por la escala.
+TEST(CharacterDrawingTest, ThePointOfABoneIsWhereItsVertexWouldBe)
+{
+    OneModel models(0xa3, "logo.jpg");
+    BoneKey& key = models.ItemSkeleton().bones[0].actions[0][0];
+    key.position = {12.0f, -7.0f, 30.0f};
+    key.rotation = Client::Render::Models::AngleQuaternion({0.2f, -0.4f, 0.9f});
+    DrawnObject object;
+    object.model = 0xa3;
+    object.transform.position = {11000.0f, 14000.0f, 300.0f};
+    object.transform.angles = {0.0f, 0.0f, 120.0f};
+    object.transform.scale = 1.6f;
+    const glm::vec3 offset{50.0f, -4.0f, 0.0f};
+
+    std::vector<Client::Render::Models::BoneTransform> bones(1);
+    ASSERT_TRUE(Client::Render::Models::PoseSkeleton(models.ItemSkeleton(), object.animation, object.transform,
+                                                     glm::vec2(0.0f), bones));
+    Mesh mesh;
+    mesh.vertices = {{0, {offset.x, offset.y, offset.z}}};
+    Client::Render::Models::SkinnedMesh skinned;
+    ASSERT_TRUE(Client::Render::Models::SkinMesh(mesh, bones, object.transform, skinned));
+
+    const auto point = Client::Scenes::PosedBonePoint(models, object, 0, offset);
+    ASSERT_TRUE(point.has_value());
+    EXPECT_EQ(*point, skinned.positions.front());
+}
+
+// El buffer global de la pose lo deja el último modelo posado que tiene el hueso sin ser dummy: con dos,
+// gana el segundo; si el del segundo es dummy, queda el del primero; sin ninguno, nada.
+TEST(CharacterDrawingTest, TheLastPosedWithTheBoneWins)
+{
+    OneModel first(0xa3, "logo.jpg");
+    OneModel second(0xa4, "logo.jpg");
+    DrawnObject a;
+    a.model = 0xa3;
+    a.transform.position = {100.0f, 0.0f, 0.0f};
+    DrawnObject b;
+    b.model = 0xa4;
+    b.transform.position = {200.0f, 0.0f, 0.0f};
+    const std::array<Client::Scenes::PosedInTheBuffer, 2> posed{{{&first, a}, {&second, b}}};
+    const auto point = Client::Scenes::LastPosedBonePoint(posed, 0, glm::vec3(0.0f));
+    ASSERT_TRUE(point.has_value());
+    EXPECT_EQ(point->x, 200.0f);
+    second.ItemSkeleton().bones[0].dummy = true;
+    const auto underneath = Client::Scenes::LastPosedBonePoint(posed, 0, glm::vec3(0.0f));
+    ASSERT_TRUE(underneath.has_value());
+    EXPECT_EQ(underneath->x, 100.0f);
+    first.ItemSkeleton().bones[0].dummy = true;
+    EXPECT_FALSE(Client::Scenes::LastPosedBonePoint(posed, 0, glm::vec3(0.0f)).has_value());
+    EXPECT_FALSE(Client::Scenes::LastPosedBonePoint({}, 0, glm::vec3(0.0f)).has_value());
 }
 } // namespace

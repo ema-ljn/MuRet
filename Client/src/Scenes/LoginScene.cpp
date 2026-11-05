@@ -512,8 +512,11 @@ void LoginScene::StepTheWorld()
     // del gesto que todavía no terminó).
     if (const Render::Models::Skeleton* horse = m_models.SkeletonOf(DarkHorseModel))
     {
+        // El aliento lee la pose del dibujo anterior: el caballo de antes de este paso (en 0x444010, el
+        // avance de 0x4ec200 corre después del aliento; la acción que mira es la de este paso).
+        const DarkHorse drawn = m_horse;
         StepDarkHorse(m_horse, *horse, m_characterAnimation.body.action);
-        BreatheTheHorse();
+        BreatheTheHorse(drawn);
     }
     // 0x508f00 → 0x4fcd00: lo que termina vuelve a la de parado (0x4fcb10 → 0x4f2250).
     if (StepCharacterAnimation(m_characterAnimation, m_character, m_models, Render::Models::AnimationScene::Other) &&
@@ -532,7 +535,7 @@ void LoginScene::StepTheWorld()
     AdvanceRoutes(m_routes);
 }
 
-void LoginScene::BreatheTheHorse()
+void LoginScene::BreatheTheHorse(const DarkHorse& drawn)
 {
     // Con el jinete (+0x108), sin su 0x4000 (+0x78; el del login no lo tiene) y la acción del caballo
     // distinta de 1, rand() % 3 en 0: el 0x5f2 en el hueso 27 del buffer global con (50; −4; 0), con los
@@ -555,44 +558,41 @@ void LoginScene::BreatheTheHorse()
         m_context.clock != nullptr
             ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
             : 0.0f;
-    (void)m_particles.Create(World::BreathParticle, GlobalPosePoint(BreathBone, BreathOffset),
+    (void)m_particles.Create(World::BreathParticle, GlobalPosePoint(BreathBone, BreathOffset, drawn),
                              LoginCharacterTransform().angles, HorseLight, 0, 1.0f, clock, random);
 }
 
-glm::vec3 LoginScene::GlobalPosePoint(std::size_t bone, const glm::vec3& offset) const
+glm::vec3 LoginScene::GlobalPosePoint(std::size_t bone, const glm::vec3& offset, const DarkHorse& drawnHorse) const
 {
     if (!m_drawnSinceEntering)
     {
         return glm::vec3(0.0f);
     }
-    // Lo que se dibujó en el último frame, de atrás para adelante, con el estado de este paso (el original
-    // no interpola): el dragón, si tiene ese hueso y no es dummy, y si no el caballo. Los objetos del mapa 55
-    // tienen menos de 28 huesos, y lo que cuelga del personaje va antes que el caballo.
+    // Lo que el dibujo anterior posó en el buffer global, en su orden y con el estado de este paso (el
+    // original no interpola): el caballo (0x4453b0), si se vio, y después los efectos con modelo
+    // (0x52d620). Los objetos del mapa 55 tienen menos de 28 huesos, y lo que cuelga del personaje va
+    // antes que el caballo.
+    constexpr float Drawn = 0.01f;
+    std::vector<PosedInTheBuffer> posed;
+    if (drawnHorse.alpha >= Drawn)
+    {
+        posed.push_back(
+            PosedInTheBuffer{&m_models, DrawnDarkHorse(drawnHorse, m_models.SkeletonOf(DarkHorseModel),
+                                                       LoginCharacterTransform(), DarkHorseLoginScale, 0.0f)});
+    }
     for (const World::ModelEffect& effect : m_effects.Effects())
     {
-        if (!effect.alive || effect.alpha < 0.01f)
+        if (!effect.alive || effect.alpha < Drawn)
         {
             continue;
         }
-        DrawnObject dragon;
-        dragon.model = static_cast<std::uint16_t>(effect.type);
-        dragon.animation = effect.animation;
-        dragon.transform = effect.transform;
-        if (const std::optional<glm::vec3> point = PosedBonePoint(m_worldModels, dragon, bone, offset))
-        {
-            return *point;
-        }
+        DrawnObject object;
+        object.model = static_cast<std::uint16_t>(effect.type);
+        object.animation = effect.animation;
+        object.transform = effect.transform;
+        posed.push_back(PosedInTheBuffer{&m_worldModels, object});
     }
-    if (m_horse.alpha >= 0.01f)
-    {
-        const DrawnObject horse = DrawnDarkHorse(m_horse, m_models.SkeletonOf(DarkHorseModel),
-                                                 LoginCharacterTransform(), DarkHorseLoginScale, 0.0f);
-        if (const std::optional<glm::vec3> point = PosedBonePoint(m_models, horse, bone, offset))
-        {
-            return *point;
-        }
-    }
-    return glm::vec3(0.0f);
+    return LastPosedBonePoint(posed, bone, offset).value_or(glm::vec3(0.0f));
 }
 
 void LoginScene::FollowSession()

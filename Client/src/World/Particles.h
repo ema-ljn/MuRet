@@ -3,11 +3,11 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <vector>
 
 namespace Client::Render::Models
 {
@@ -61,7 +61,7 @@ public:
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                                       const glm::vec3& light, std::int32_t subtype, float scale, float worldClock,
                                       Render::Models::CrtRandom& random);
-    // Apaga todos (al entrar a la escena) y deja el viento en 0.
+    // 0x6070a0, al entrar a la escena: apaga el byte vivo de cada lugar. El viento sigue como estaba.
     void Clear();
 
     [[nodiscard]] std::span<Particle> All();
@@ -71,7 +71,8 @@ public:
     [[nodiscard]] const ParticleWind& Wind() const;
 
 private:
-    std::array<Particle, ParticleCount> m_particles{};
+    // En el heap: la escena que la lleva tiene que caber en la pila.
+    std::vector<Particle> m_particles = std::vector<Particle>(ParticleCount);
     ParticleWind m_wind;
 };
 

@@ -86,6 +86,10 @@ Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path&
         load(Data::Models::ModelFile{static_cast<std::uint16_t>(k), m_folder, "Object", static_cast<int>(k + 1)});
     }
     log.Debug("los objetos de {}: {} modelos y {} que no están", m_folder, m_models.size(), missing);
+    if (m_models.empty())
+    {
+        log.Warning("no hay ningún modelo de los objetos del mundo en Data\\{}: el mundo va sin ellos", m_folder);
+    }
     // 0x60d530(0x41c) otra vez (0x61a0e8) y las texturas en el orden de k.
     m_slots->SetNext(WorldModelsFirstSlot);
     for (const auto& [model, data] : m_models)

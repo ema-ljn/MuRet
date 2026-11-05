@@ -204,4 +204,60 @@ TEST(WorldObjectsDrawingTest, TheDarkWhirlpoolGoesSubtractive)
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.red, 1.0f);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.green, 1.0f);
 }
+
+// 0x6046a0 guarda en +0x16c el resultado del test de cada objeto, y 0x606560 apaga los de un sector que
+// no pasó: uno que sale de la vista deja de avanzar.
+TEST(WorldObjectsDrawingTest, AnObjectThatLeavesTheViewStopsStepping)
+{
+    const TwoMeshModels models;
+    std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f)};
+    objects[0].alpha = 0.0f;
+    ModelBatch batch;
+    Draw(batch, models, objects);
+    ASSERT_TRUE(objects[0].seen);
+    const auto away =
+        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
+    Draw(batch, models, objects, away);
+    EXPECT_FALSE(objects[0].seen);
+    StepWorldObjects(objects, Login, models);
+    EXPECT_EQ(objects[0].alpha, 0.0f) << "no avanzó";
+}
+
+// 0x606560 recorre los sectores como el dibujo (x afuera, y adentro) y, en cada uno, el orden en que se
+// crearon: el orden importa cuando los pasos sacan rand().
+TEST(WorldObjectsDrawingTest, TheObjectsStepSectorBySector)
+{
+    const TwoMeshModels models;
+    std::vector<WorldObject> objects{ObjectAt(Rock, 8000.0f, 3500.0f), ObjectAt(Rock, 100.0f, 5000.0f),
+                                     ObjectAt(Rock, 200.0f, 5100.0f)};
+    ModelBatch batch;
+    Draw(batch, models, objects);
+    std::vector<float> order;
+    StepWorldObjects(objects, Login, models,
+                     [&order](WorldObject& object)
+                     {
+                         order.push_back(object.transform.position.x);
+                         return false;
+                     });
+    EXPECT_EQ(order, (std::vector<float>{100.0f, 200.0f, 8000.0f}));
+}
+
+// El que se encarga de uno (el logo del login) lo avanza él, y StepWorldObject no lo toca.
+TEST(WorldObjectsDrawingTest, ASpecialObjectIsSteppedByItsOwner)
+{
+    const TwoMeshModels models;
+    std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f)};
+    objects[0].alpha = 0.0f;
+    ModelBatch batch;
+    Draw(batch, models, objects);
+    int calls = 0;
+    StepWorldObjects(objects, Login, models,
+                     [&calls](WorldObject&)
+                     {
+                         ++calls;
+                         return true;
+                     });
+    EXPECT_EQ(calls, 1);
+    EXPECT_EQ(objects[0].alpha, 0.0f);
+}
 } // namespace

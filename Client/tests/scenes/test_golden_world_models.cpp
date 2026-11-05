@@ -12,6 +12,7 @@
 #include "support/GoldenDir.h"
 #include "support/RecordingSink.h"
 #include "support/SyntheticModels.h"
+#include "support/TemporaryFolder.h"
 
 #include <gtest/gtest.h>
 
@@ -178,5 +179,23 @@ TEST_F(GoldenWorldModels, TwoTexturesFromAnotherFolderAreSkippedWithAWarning)
     }
     EXPECT_EQ(warnings, 2u);
     ASSERT_FALSE(models.MeshTextures(89).empty()) << "el fuego, Object90.bmd";
+}
+
+// Sin ningún modelo (sin la carpeta Object56, o vacía) el login va sin objetos, y lo dice en el log.
+TEST(WorldModelsTest, WithoutAnyModelThereIsAWarning)
+{
+    Client::Tests::TemporaryFolder empty{"world-models-empty"};
+    FakeTextureStore store;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    WorldModels models;
+    ASSERT_TRUE(models.Load(empty.Path(), Login, store, log, nullptr).HasValue());
+    EXPECT_EQ(models.Count(), 0u);
+    bool warned = false;
+    for (std::size_t k = 0; k < sink.lines.size(); ++k)
+    {
+        warned = warned || (sink.levels[k] == LogLevel::Warning && sink.lines[k].find("Object56") != std::string::npos);
+    }
+    EXPECT_TRUE(warned);
 }
 } // namespace

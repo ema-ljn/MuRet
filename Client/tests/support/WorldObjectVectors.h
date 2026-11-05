@@ -37,7 +37,7 @@ struct WorldObjectVectorState
 
 // Una llamada del dibujo: RenderBody(modo, alpha, blendMesh, luz, U, V, malla oculta, −1) o
 // RenderMesh(malla, banderas, alpha, blendMesh, luz, U, V, −1), con el color del modelo (+0x48) y su
-// luz por vértice (+0x44).
+// luz por vértice (+0x44; la rama del blendMesh de RenderMesh no la usa).
 struct WorldObjectVectorCall
 {
     std::string name;

@@ -49,13 +49,6 @@ bool HasSceneCases(ObjectScene scene)
     return scene == ObjectScene::Login || scene == ObjectScene::CharacterSelect;
 }
 
-int SectorOf(float coordinate)
-{
-    // ftol trunca hacia el 0: de −1.600 a 0 todavía es el sector 0.
-    const auto sector = static_cast<int>(coordinate * SectorPerUnit);
-    return sector >= 0 && sector < SectorCount ? sector : -1;
-}
-
 // 0x5ffdf0: el alpha por debajo del cual no dibuja (0x3c23d70a).
 constexpr float MinimumAlpha = std::bit_cast<float>(0x3C23D70Au);
 
@@ -75,6 +68,14 @@ std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::Terra
     {
         WorldObject object;
         object.type = record.type;
+        // 0x606660 no crea un objeto fuera de la grilla de sectores; el sector sale de la posición del
+        // archivo, antes de los casos por tipo.
+        object.sectorX = SectorOf(record.position[0]);
+        object.sectorY = SectorOf(record.position[1]);
+        if (object.sectorX < 0 || object.sectorY < 0)
+        {
+            continue;
+        }
         object.transform.position = glm::vec3(record.position[0], record.position[1], record.position[2]);
         object.transform.angles = glm::vec3(record.angle[0], record.angle[1], record.angle[2]);
         object.transform.scale = record.scale;
@@ -97,11 +98,6 @@ std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::Terra
             object.transform.angles = glm::vec3(0.0f);
             object.transform.scale = object.type == RedWhirlpool ? RedWhirlpoolScale : DarkWhirlpoolScale;
         }
-        // 0x606660 no crea un objeto fuera de la grilla de sectores.
-        if (SectorX(object) < 0 || SectorY(object) < 0)
-        {
-            continue;
-        }
         objects.push_back(object);
     }
     return objects;
@@ -115,6 +111,11 @@ void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models
                                        static_cast<double>(AlphaApproach)) +
                                       static_cast<double>(object.alpha));
     object.state.light = std::min(object.state.light, object.alpha);
+    // 0x604ab0 sale acá con el alpha por debajo de 0,01.
+    if (object.alpha < MinimumAlpha)
+    {
+        return;
+    }
     if (skeleton != nullptr && object.animation.action < skeleton->actions.size())
     {
         Render::Models::AdvanceAnimation(object.animation, skeleton->actions[object.animation.action], object.speed,
@@ -151,8 +152,19 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
     draw.state = object.state;
     draw.vertexLight = object.vertexLight;
     // 0x5ffce0: con la luz por vértice, la del terreno más la del objeto; sin ella, la del terreno por
-    // 0,1 (0x6b87b8) más la del objeto.
-    draw.color = object.vertexLight ? terrainLight + object.light : (terrainLight * AlphaApproach) + object.light;
+    // 0,1 (0x6b87b8) más la del objeto: el producto de G y B se guarda en float antes de la suma, y el de
+    // R se suma desde la x87.
+    if (object.vertexLight)
+    {
+        draw.color = terrainLight + object.light;
+    }
+    else
+    {
+        draw.color.x = static_cast<float>((static_cast<double>(terrainLight.x) * static_cast<double>(AlphaApproach)) +
+                                          static_cast<double>(object.light.x));
+        draw.color.y = (terrainLight.y * AlphaApproach) + object.light.y;
+        draw.color.z = (terrainLight.z * AlphaApproach) + object.light.z;
+    }
     // 0x5ffdf0 no dibuja con el alpha por debajo de 0,01, y 0x6002e0 sale con +0x58 = −2.
     if (object.alpha < MinimumAlpha || object.state.hiddenMesh == HiddenObject)
     {
@@ -176,14 +188,26 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
     return draw;
 }
 
+int SectorOf(float coordinate)
+{
+    // 0x60666c: el producto queda en la x87 (exacto) y ftol trunca hacia el 0: de −1.600 a 0 todavía es
+    // el sector 0. Un NaN o algo fuera de los int da 0x80000000, que no es un sector.
+    const double sector = static_cast<double>(coordinate) * static_cast<double>(SectorPerUnit);
+    if (!(sector > -1.0 && sector < static_cast<double>(SectorCount)))
+    {
+        return -1;
+    }
+    return static_cast<int>(sector);
+}
+
 int SectorX(const WorldObject& object)
 {
-    return SectorOf(object.transform.position.x);
+    return object.sectorX;
 }
 
 int SectorY(const WorldObject& object)
 {
-    return SectorOf(object.transform.position.y);
+    return object.sectorY;
 }
 
 std::vector<std::size_t> DrawOrder(std::span<const WorldObject> objects)

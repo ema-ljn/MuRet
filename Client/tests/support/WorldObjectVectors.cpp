@@ -3,6 +3,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <bit>
+#include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <filesystem>
@@ -42,6 +43,16 @@ public:
     float Float()
     {
         return std::bit_cast<float>(static_cast<std::uint32_t>(std::stoul(Word(), nullptr, 16)));
+    }
+
+    // Que no sobren palabras en el renglón.
+    void End()
+    {
+        std::string extra;
+        if (m_stream >> extra)
+        {
+            throw std::runtime_error("sobra " + extra);
+        }
     }
 
     glm::vec3 Vec3()
@@ -151,28 +162,48 @@ std::optional<std::string> ReadTheFile(const std::filesystem::path& path, WorldO
         object.index = head.Integer();
         object.type = static_cast<std::int16_t>(head.Integer());
         object.hasModel = head.Integer() != 0;
+        if (object.index != k)
+        {
+            return "el objeto " + std::to_string(k) + " viene con otro índice: " + text;
+        }
+        head.End();
         next();
         Words created(text);
-        created.Word();
+        if (created.Word() != "created")
+        {
+            return "falta el estado al crearse: " + text;
+        }
         object.created = StateOf(created);
-        for (WorldObjectVectorState& step : object.steps)
+        created.End();
+        for (std::size_t k2 = 0; k2 < object.steps.size(); ++k2)
         {
             next();
             Words words(text);
-            words.Word();
-            words.Integer();
-            step = StateOf(words);
+            if (words.Word() != "step" || words.Integer() != static_cast<std::int32_t>(k2 + 1))
+            {
+                return "falta el paso " + std::to_string(k2 + 1) + ": " + text;
+            }
+            object.steps[k2] = StateOf(words);
+            words.End();
         }
         next();
         Words draw(text);
-        draw.Word();
+        if (draw.Word() != "draw")
+        {
+            return "falta el dibujo: " + text;
+        }
         const std::int32_t calls = draw.Integer();
+        draw.End();
         for (std::int32_t c = 0; c < calls; ++c)
         {
             next();
             Words words(text);
-            words.Word();
+            if (words.Word() != "call")
+            {
+                return "falta una llamada: " + text;
+            }
             object.calls.push_back(CallOf(words));
+            words.End();
         }
         out.objects.push_back(std::move(object));
     }

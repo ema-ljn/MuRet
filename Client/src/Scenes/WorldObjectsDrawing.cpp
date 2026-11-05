@@ -24,7 +24,7 @@ namespace
 // posición a celdas.
 constexpr double SectorMargin = -180.0;
 constexpr double ObjectMargin = -30.0;
-constexpr double CellsPerUnit = 0.01;
+constexpr double CellsPerUnit = static_cast<double>(0.01f);
 constexpr int CellsPerSector = 16;
 constexpr double SectorCenter = 8.0;
 
@@ -34,10 +34,13 @@ bool SectorPasses(const World::TerrainPolygon& polygon, int sectorX, int sectorY
                                   (sectorY * CellsPerSector) + SectorCenter, SectorMargin);
 }
 
+// 0x6046a0 pasa la posición por 0,01f (0x6b88d4) guardada en float.
 bool ObjectPasses(const World::TerrainPolygon& polygon, const World::WorldObject& object)
 {
-    return World::PolygonContains(polygon, static_cast<double>(object.transform.position.x) * CellsPerUnit,
-                                  static_cast<double>(object.transform.position.y) * CellsPerUnit, ObjectMargin);
+    const auto cells = [](float coordinate)
+    { return static_cast<double>(static_cast<float>(static_cast<double>(coordinate) * CellsPerUnit)); };
+    return World::PolygonContains(polygon, cells(object.transform.position.x), cells(object.transform.position.y),
+                                  ObjectMargin);
 }
 
 DrawnObject Drawn(const World::WorldObject& object, const World::ObjectDraw& draw,
@@ -60,14 +63,17 @@ DrawnObject Drawn(const World::WorldObject& object, const World::ObjectDraw& dra
 }
 } // namespace
 
-void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, const IModelLibrary& models)
+void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, const IModelLibrary& models,
+                      const SpecialObjectStep& special)
 {
-    for (World::WorldObject& object : objects)
+    for (const std::size_t index : World::DrawOrder(objects))
     {
-        if (object.seen)
+        World::WorldObject& object = objects[index];
+        if (!object.seen || (special && special(object)))
         {
-            World::StepWorldObject(object, map, models.SkeletonOf(static_cast<std::uint16_t>(object.type)));
+            continue;
         }
+        World::StepWorldObject(object, map, models.SkeletonOf(static_cast<std::uint16_t>(object.type)));
     }
 }
 
@@ -78,11 +84,12 @@ void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, st
     for (const std::size_t index : World::DrawOrder(objects))
     {
         World::WorldObject& object = objects[index];
-        if (!SectorPasses(polygon, World::SectorX(object), World::SectorY(object)) || !ObjectPasses(polygon, object))
+        object.seen =
+            SectorPasses(polygon, World::SectorX(object), World::SectorY(object)) && ObjectPasses(polygon, object);
+        if (!object.seen)
         {
             continue;
         }
-        object.seen = true;
         const glm::vec3 light =
             lighting != nullptr ? World::LightAt(*lighting, object.transform.position.x, object.transform.position.y)
                                 : glm::vec3(0.0f);

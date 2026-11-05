@@ -2194,7 +2194,7 @@ pisa `0x634680` antes del dibujo siguiente.
 
 ### El dibujo
 
-`0x634680` sale con `0x7d3a13f` en 0 o el estado antes de `0x33`. La niebla en 0; los fondos
+`0x634680` sale con `0x7d3a13f` en 0 o el estado antes de `0x33`, con `al` en 0: sin ese verdadero, `0x637700` no presenta el frame (`0x6385e1..0x6385f7`), así que el clear no se ve y en la pantalla queda el último frame del login hasta que llega la lista (MuRet retiene el frame hasta que un paso vio la lista, salvo con un aviso abierto: `HoldsTheLastFrameUntilAStepSawTheList`). La niebla en 0; los fondos
 (`0x621b60(0x717, 0, 25, 320, 320, …)` y el `0x718` en x 320); `0x620db0(0, 25, 640, 430)`; el
 rayo del mouse (`0x620480`); los cinco primeros con z = 163 y `+0xf4` en 0 y, con uno elegido, la
 mezcla aditiva, su `+0xf4` en (1, 1, 1), `0x5f9780(x, y, &(1, 1, 1), 1, 0x7b4ccc4)` (una luz en el

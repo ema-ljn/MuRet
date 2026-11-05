@@ -341,7 +341,7 @@ TEST(CharacterSelectSceneTest, EnterRequestsTheList)
     EXPECT_EQ(tested.online.session.State(), SessionState::WaitingCharacterList);
 }
 
-// 0x6342c0 y 0x634680 salen antes del 0x33: el frame queda con el clear y nada más.
+// 0x6342c0 y 0x634680 salen antes del 0x33: la escena no dibuja nada.
 TEST(CharacterSelectSceneTest, DrawsNothingBeforeTheList)
 {
     Harness tested;
@@ -349,6 +349,40 @@ TEST(CharacterSelectSceneTest, DrawsNothingBeforeTheList)
     tested.Step();
 
     EXPECT_TRUE(tested.Frame().empty());
+}
+
+// Y sin el verdadero de 0x634680, 0x637700 no presenta el frame (0x6385e1..0x6385f7): el clear no se ve y
+// queda el último del login. La escena retiene el frame hasta que un paso vio la lista, como el login con
+// el connect (Q-C85): la lista que llegó en un Poll sin paso todavía no puso a los personajes.
+TEST(CharacterSelectSceneTest, HoldsTheLastFrameUntilAStepSawTheList)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.Enter());
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+    tested.Step();
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+
+    tested.online.ReceiveTheList(TwoCharacters());
+    ASSERT_EQ(tested.online.session.State(), SessionState::ChoosingCharacter);
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+    tested.Step();
+    EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
+}
+
+// Con un aviso abierto antes de la lista, MuRet lo muestra (AFailureBeforeTheListShowsTheNoticeToo): el
+// frame no se retiene. Sin sesión no hay lista que esperar.
+TEST(CharacterSelectSceneTest, ANoticeOrNoSessionDoesNotHoldTheFrame)
+{
+    Harness failed;
+    ASSERT_NO_FATAL_FAILURE(failed.Enter());
+    failed.online.socket.peerClosed = true;
+    failed.Step();
+    ASSERT_EQ(failed.online.session.State(), SessionState::Failed);
+    EXPECT_FALSE(failed.scene->HoldsTheLastFrame());
+
+    Harness offline(false);
+    ASSERT_TRUE(offline.scene->Enter().HasValue());
+    EXPECT_FALSE(offline.scene->HoldsTheLastFrame());
 }
 
 // La barra de la selección (0x63ec00): el adorno, la franja sin textura y los cuatro botones.

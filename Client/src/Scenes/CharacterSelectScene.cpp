@@ -658,6 +658,9 @@ bool CharacterSelectScene::WantsTextInput() const
 
 bool CharacterSelectScene::HoldsTheLastFrame() const
 {
-    return false;
+    // 0x634680 sale con al = 0 mientras 0x7d3a13f está en 0 o el estado está antes de 0x33, y sin ese
+    // verdadero 0x637700 no presenta el frame (0x6385e1..0x6385f7): queda el último del login. Hasta que un
+    // paso vio la lista (y contó el primero de los suyos), salvo con un aviso abierto, que MuRet muestra.
+    return m_session != nullptr && m_steps == 0 && !m_notice.IsOpen();
 }
 } // namespace Client::Scenes

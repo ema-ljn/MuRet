@@ -70,6 +70,17 @@ Los tests son de GoogleTest y los corre CTest. Los golden del cliente leen `MURE
 y se saltean sin ella ([`Client/README.md`](Client/README.md#tests)). El CI
 (`.github/workflows/ci.yml`) compila con warnings como errores y corre los tests en Linux y Windows.
 
+## Cierre de las olas del cliente (pedido de Emanuel, 2026-11-05)
+
+Antes de dar una CL por terminada, hacer un barrido profundo de **todas sus funcionalidades** en
+pasadas complementarias: inventariar el comportamiento del original, contrastar ASM y pseudocódigo
+con la implementación, y revisar de forma independiente qué observan realmente los tests. El ASM
+prevalece sobre el pseudocódigo. Cubrir ramas, estado persistente, efectos secundarios, orden de
+ejecución y transiciones, incluidos los comportamientos raros del original. Si una pasada encuentra
+un hueco, corregirlo con evidencia y volver a revisar el área y sus dependencias. Registrar lo
+cubierto, las discrepancias y lo que sigue sin verificarse; una sub-ola o una suite en verde no
+cierran por sí solas toda la CL. Esto responde a huecos que aparecieron recién en pasadas posteriores.
+
 ## Ramas y PRs
 
 - Los PRs van a `main`.

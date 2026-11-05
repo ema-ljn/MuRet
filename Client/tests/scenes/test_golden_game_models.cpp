@@ -4,7 +4,10 @@
 #include "Core/Log.h"
 #include "Data/Models/ModelTextureCalls.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Textures/Sampling.h"
+#include "Data/Textures/Texture.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/CreatePreview.h"
 #include "Scenes/TextureSets.h"
 
 #include "support/FakeTextureStore.h"
@@ -16,6 +19,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <ios>
 #include <optional>
 #include <set>
@@ -169,6 +173,43 @@ TEST_F(GoldenGameModels, ThePetDrawsWithItsTextures)
     }
 }
 
+// 0x61ca30 lee Logo05 y los cinco NewFace de Data\Logo (en la Data del repo), y les pone 0,3 a las
+// acciones 0 y 1 de los NewFace; sin la tabla de la carga, sus texturas empiezan en 0x6f8.
+TEST_F(GoldenGameModels, TheSelectionModelsLoadWithTheirSpeeds)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    Client::Scenes::SelectionModels selection;
+
+    ASSERT_TRUE(selection.Load(m_dataRoot, textures, log, nullptr).HasValue());
+
+    EXPECT_NE(selection.Find(Client::Scenes::SelectionLogoModel), nullptr);
+    for (std::uint16_t model = 0xa8; model <= 0xac; ++model)
+    {
+        const auto* skeleton = selection.SkeletonOf(model);
+        ASSERT_NE(skeleton, nullptr) << std::hex << model;
+        ASSERT_GE(skeleton->actions.size(), 2u) << std::hex << model;
+        EXPECT_FLOAT_EQ(skeleton->actions[0].speed, 0.3f) << std::hex << model;
+        EXPECT_FLOAT_EQ(skeleton->actions[1].speed, 0.3f) << std::hex << model;
+        EXPECT_FALSE(selection.MeshTextures(model).empty()) << std::hex << model;
+    }
+    ASSERT_NE(selection.TextureSlots(), nullptr);
+    EXPECT_EQ(selection.MeshTextures(Client::Scenes::SelectionLogoModel).front(), TextureSlot{0x6f8});
+    // Las del 0xa4 con GL_LINEAR (0x2601) y las de los NewFace con GL_NEAREST (0x2600), repitiendo.
+    const auto logo = textures.Find(TextureSlot{0x6f8});
+    ASSERT_TRUE(logo.has_value());
+    EXPECT_EQ(logo->sampling.filter, Client::Data::Textures::Filter::Linear);
+    EXPECT_EQ(logo->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
+    const auto face = textures.Find(selection.MeshTextures(0xa8).front());
+    ASSERT_TRUE(face.has_value());
+    if (face->texture.format == Client::Data::Textures::PixelFormat::Rgb)
+    {
+        EXPECT_EQ(face->sampling.filter, Client::Data::Textures::Filter::Nearest);
+    }
+    EXPECT_EQ(face->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
+}
+
 class ModelTextureSlotsGoldenTest : public Client::Tests::MemoryDumpTest
 {
 };
@@ -208,5 +249,51 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
         compared += name.empty() ? 0u : 1u;
     }
     EXPECT_EQ(compared, 489u + 15u);
+}
+// 0x61ca30 con 0x60d530(0x6f8): Logo05 y los cinco NewFace, siguiendo la tabla de la carga, dejan
+// sus 31 texturas de 0x6f8 a 0x716 (Q-C91). En el volcado de Lorencia, 0x61cc50 ya soltó los slots y
+// borró los nombres, pero cada uno guarda el tamaño del buffer (los floats de +0x20 y +0x24) y los
+// componentes (+0x28: 3 o 4) de lo que tuvo: los de lo que sube MuRet en cada slot.
+TEST_F(ModelTextureSlotsGoldenTest, TheSelectionTexturesEndAt0x716)
+{
+    const auto dump = DumpFile(Client::Tests::LorenciaCapture, "lor_slots.bin");
+    ASSERT_TRUE(dump.has_value());
+    const std::optional<std::vector<char>> table = ReadFileBytes(*dump);
+    ASSERT_TRUE(table.has_value());
+    constexpr std::size_t SlotBytes = 0x38;
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+    Client::Scenes::SelectionModels selection;
+
+    ASSERT_TRUE(selection.Load(m_dataRoot, textures, log, &models.TextureSlots()).HasValue());
+
+    ASSERT_NE(selection.TextureSlots(), nullptr);
+    EXPECT_EQ(selection.TextureSlots()->Next(), TextureSlot{0x717});
+    for (std::uint16_t slot = 0x6f8; slot < 0x717; ++slot)
+    {
+        const char* record = table->data() + (slot * SlotBytes);
+        float width = 0.0f;
+        float height = 0.0f;
+        std::uint32_t components = 0;
+        std::memcpy(&width, record + 0x20, sizeof width);
+        std::memcpy(&height, record + 0x24, sizeof height);
+        std::memcpy(&components, record + 0x28, sizeof components);
+        // Los nombres de GL de 0x6f8 a 0x716 van seguidos: los de 0x61ca30, que sube estas 31 después
+        // de sus cuatro del 2D.
+        std::uint32_t glName = 0;
+        std::uint32_t firstGlName = 0;
+        std::memcpy(&glName, record + 0x2c, sizeof glName);
+        std::memcpy(&firstGlName, table->data() + (0x6f8 * SlotBytes) + 0x2c, sizeof firstGlName);
+        EXPECT_EQ(glName, firstGlName + (slot - 0x6f8u)) << std::hex << slot;
+        const auto uploaded = textures.Find(TextureSlot{slot});
+        ASSERT_TRUE(uploaded.has_value()) << std::hex << slot;
+        EXPECT_EQ(static_cast<float>(uploaded->texture.textureWidth), width) << std::hex << slot;
+        EXPECT_EQ(static_cast<float>(uploaded->texture.textureHeight), height) << std::hex << slot;
+        EXPECT_EQ(uploaded->texture.format == Client::Data::Textures::PixelFormat::Rgba ? 4u : 3u, components)
+            << std::hex << slot;
+    }
 }
 } // namespace

@@ -1622,6 +1622,32 @@ aviso del nombre se abre arriba: su OK lo cierra y la ventana queda con el nombr
 (`0x4c2290`): con 1 se cierra el `0x5d` y el nuevo entra a la lista; con 0 o 2, la ventana vuelve a
 abrirse, vacía, con el `0x36` o el `0x37` arriba.
 
+**La vista previa** (`0x63e460`, después de la base de la ventana y antes de lo demás, así que no se
+oscurece). El objeto suelto `0x7437050` lleva el NewFace de la clase:
+- `0x63e3e0` lo arma de nuevo con `0x511290` en (50, 50) y la acción 1. Corre al entrar a la escena
+  (`0x633f20` → `0x65f4b0` → `0x63d1a0` → `0x63d7c0`) y con cada clase que se elige;
+- `0x50ba30` lo dibuja por `0x602e90`, porque no es el `0x20a`, y sin la sombra (los `0xa8` a `0xac`
+  quedan afuera);
+- `0x511290` le prende la luz por vértice (`+0xe8`, `0x511be6`), y `0x6002e0` les pone a los `0xa8`
+  a `0xac` el color en 4,8 antes de `RenderBody(2)` (`0x6007d7`). Cada esquina queda en 4,8 ·
+  max(0,2; 0,8 · L · n + 0,4): 1 al recortarse, salvo de espaldas a la luz.
+
+La cámara (`0x6338a0`) queda en el objeto más (10, −500, 48), mirando con (−90, 0, 0), con el fov en
+10 y el near y el far de la escena 4. El viewport es `0x620db0(ftol(x / rx), ftol(y / ry), ftol(410 /
+rx), ftol(335 / ry))` desde la esquina de la caja, y nadie limpia la profundidad. Por clase, los
+ángulos y la escala son (0, 0, −40) y 5,9; (0, 0, −12) y 6,05; (8, 0, 5) y 9,1, más 4,8 en x; (8, 0,
+−13) y 6, más 1,8 en z; y (8, 0, −18) y 6. El corrimiento se suma en cada frame a la posición del
+objeto después de armar la cámara, y crece sin tope: en pantalla es un corrimiento fijo respecto de
+la cámara.
+
+La animación va a 0,6 keys: la velocidad 0,3 que `0x61ca30` pone en las acciones 0 y 1, por el 2 de
+`0x4f9580` con los NewFace. Al terminar la acción 1, `0x63e430` pone la 0.
+
+Los modelos, `Logo05` en el `0xa4` y `NewFace01` a `05` en `0xa8` a `0xac`, vienen de `Data\Logo`.
+Sus texturas suben desde `0x60d530(0x6f8)` siguiendo la tabla global, y terminan en `0x716`. Las del
+`0xa4` van con GL_LINEAR y las de los NewFace con GL_NEAREST, las dos repitiendo (**verificado**:
+Q-C91).
+
 ### Los personajes de la lista
 
 `0x4c20a0` ([04](04-protocolo.md#la-selección-de-personaje-f3)) pone cada personaje en
@@ -1731,7 +1757,7 @@ Ver [08](08-pendientes.md).
 | Los slots de las texturas de los modelos: un próximo que fija cada cargador y la búsqueda por nombre desnudo | `ModelTextureSlots` con el mismo próximo por cargador y la misma búsqueda (Q-C90), y un golden local contra `lor_slots.bin`; el login sigue el próximo del mundo (Q-C92) | CL6.1, CL6.3, CL6.4 |
 | La selección: la lista en cinco lugares fijos, el picking contra una caja corrida, el doble clic por reloj y la luz 0,4 / 1,4 | `CharacterSelectScene` con las tablas de arriba; un lugar de más de 4 se descarta (Q-C101) | CL6.3 |
 | La barra de la selección (crear, el menú, conectar y borrar) y el borrado con dos avisos | `UI::SelectionBar` (con `Button` deshabilitado), `UI::DeleteChecks` (las revisiones de `0x63edf0`), `UI::NoticeWindow` con los tipos 0, 3 y 4 y el campo del código, y la escena, que sigue la lista de la sesión (el que crea entra y el que borra se va) y abre el aviso de cada respuesta. El menú, las opciones, los carteles y el área de mensajes, de la CL8 | CL6.5 |
-| La ventana de crear, con los filtros del nombre de `FilterName.bmd` y `Filter.bmd` | `UI::CreateCharacterWindow` (sin la vista previa, que es de la PR B3), `UI::NameChecks` (los tres chequeos de `0x63d990`) y `Data::Text::LoadFilterWords` en `LoadGameData` | CL6.5 |
+| La ventana de crear, con los filtros del nombre de `FilterName.bmd` y `Filter.bmd` | `UI::CreateCharacterWindow` (la vista previa, `Scenes/CreatePreview`: `SelectionModels` con sus slots desde `0x6f8` siguiendo `GameModels`, y la cámara, el viewport y la tabla de clases de `0x63e460`), `UI::NameChecks` (los tres chequeos de `0x63d990`) y `Data::Text::LoadFilterWords` en `LoadGameData` | CL6.5 |
 | El caballo oscuro: un ayudante que aparece de a poco y sigue la acción del jinete, con luz por vértice, un cromo y su sombra | `Scenes/DarkHorse` (el paso) y `DrawDarkHorse` (el caso `0xbf` de `0x6002e0`), con `Render::Models::NormalLight` (L = (1,3; 0; 2), la normal con la escala del objeto) y `ModelBlend::BlendedShadow`; en el login, entre el personaje y el logo | CL6.4 |
 
 Tests que fija:

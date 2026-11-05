@@ -8,11 +8,13 @@
 #include "Input/DoubleClick.h"
 #include "Input/InputState.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Pose.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/CreatePreview.h"
 #include "Scenes/GameData.h"
 #include "Scenes/IScene.h"
 #include "Scenes/SceneCanvas.h"
@@ -45,11 +47,14 @@ class CharacterSelectScene final : public IScene
 public:
     // `data`, `models` y `session` tienen que vivir más. `session` es nullptr sin servidor: la escena
     // dibuja los fondos y no pide nada.
+    // `gameSlots` es la tabla de los slots de la carga (GameModels::TextureSlots), que la vista previa
+    // de la ventana de crear sigue desde 0x6f8; nullptr, una tabla vacía. Tiene que vivir más.
     CharacterSelectScene(const SceneContext& context, const GameData& data, const IModelLibrary& models,
-                         App::ServerSession* session);
+                         App::ServerSession* session, const Render::Models::ModelTextureSlots* gameSlots = nullptr);
 
-    // Como 0x633f20: su juego de texturas (0x61ca30) y el de las ventanas, ninguno elegido, y el
-    // F3 00 (ServerSession::RequestCharacterList).
+    // Como 0x633f20: su juego de texturas y sus modelos (0x61ca30: Logo05 y los NewFace de la vista
+    // previa, SelectionModels), el de las ventanas, ninguno elegido, y el F3 00
+    // (ServerSession::RequestCharacterList).
     Core::Expected<void, std::string> Enter() override;
     // 0x6342c0: nada hasta la lista; después, los personajes de la lista y su avance, las respuestas
     // del borrado y de crear, y la UI de arriba hacia abajo: el aviso si está abierto (con la ventana
@@ -59,7 +64,8 @@ public:
     // último; un aviso que se abre en el paso se atiende desde el que sigue.
     void Step(const Input::InputState& input) override;
     // 0x634680 sin el terreno, los objetos ni los efectos: con sesión, nada hasta la lista; el de bajo
-    // el mouse, con el contorno. Después, la UI: la barra, la ventana de crear y el aviso.
+    // el mouse, con el contorno. Después, la UI: la barra, la ventana de crear (su base, la vista
+    // previa en su propio pase 3D, que no se oscurece, y lo demás) y el aviso.
     void Render(SceneCanvas& canvas, float alpha) override;
     // Suelta sus slots.
     void Leave() override;
@@ -96,6 +102,11 @@ private:
     void StepTheCreateWindow(const Input::InputState& input);
     // 0x63d990: los chequeos del nombre, y el F3 01 y el 0x5d, o el aviso del nombre.
     void SubmitTheCreation();
+    // 0x63e430 al final del paso de la ventana, que solo corre con ella arriba: la clase de la ventana
+    // y el avance. Con un aviso arriba la vista previa no avanza (el original la avanza también desde
+    // la lógica de la escena, 0x508ea0: dos veces por paso con la ventana arriba; MuRet, una, D-C4).
+    void StepThePreview();
+    void DrawTheCreateWindow(SceneCanvas& canvas, float alpha);
     // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9), salvo que la sesión haya
     // caído. Si abrió uno en este paso.
     bool TakeTheDeletionResult();
@@ -127,6 +138,11 @@ private:
     // Las palabras de FilterName.bmd y Filter.bmd de `data`, y los textos 457 y 458.
     UI::NameFilters m_nameFilters;
     UI::CreateCharacterWindow m_create;
+    const Render::Models::ModelTextureSlots* m_gameSlots;
+    SelectionModels m_selectionModels;
+    // El objeto de la vista previa (0x7437050), y si avanzó en el último paso.
+    CreatePreview m_preview;
+    bool m_previewAdvanced = false;
     Input::DoubleClick m_doubleClick;
     std::vector<Character> m_characters;
     bool m_tookTheList = false;

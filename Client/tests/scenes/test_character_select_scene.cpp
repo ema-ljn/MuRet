@@ -16,10 +16,12 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/ModelVertex.h"
+#include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterSlots.h"
+#include "Scenes/CreatePreview.h"
 #include "Scenes/GameData.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -35,6 +37,7 @@
 #include "support/SameBytes.h"
 #include "support/ScenePrinters.h"
 #include "support/SessionHarness.h"
+#include "support/SyntheticModels.h"
 #include "support/TestGameServer.h"
 #include "support/TemporaryFolder.h"
 #include "support/UiInput.h"
@@ -43,12 +46,14 @@
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
+#include <glm/geometric.hpp>
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <optional>
 #include <span>
 #include <string>
@@ -275,10 +280,10 @@ struct Harness
         ++steps;
     }
 
-    std::vector<FrameEvent> Frame()
+    std::vector<FrameEvent> Frame(float alpha = 0.0f)
     {
         auto& canvas = target.BeginFrame(std::chrono::milliseconds{40} * steps);
-        scene->Render(canvas, 0.0f);
+        scene->Render(canvas, alpha);
         target.Present();
         return target.frames.back().events;
     }
@@ -1394,5 +1399,169 @@ TEST(CharacterSelectSceneTest, TheNameIsNotLogged)
             EXPECT_EQ(line.find("char0009"), std::string::npos) << line;
         }
     }
+}
+// Un NewFace de la clase `characterClass` en Logo\ (el modelo de los tests, con la textura de
+// chasellight, que el juego de la selección ya escribió) para la vista previa.
+void WriteNewFace(const Harness& tested, int characterClass)
+{
+    Client::Data::Models::Model face = Client::Tests::SampleModel();
+    face.meshes[0].textureName = "chasellight.jpg";
+    // Todos los vértices en la raíz: la malla se mueve entera, y sus aristas solo cambian con la
+    // escala del objeto.
+    for (auto& vertex : face.meshes[0].vertices)
+    {
+        vertex.bone = 0;
+    }
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "Logo/NewFace0" + std::to_string(characterClass + 1) + ".bmd",
+                                  Client::Tests::EncryptedBmd(Client::Tests::BmdContent(face)));
+}
+
+// Los Models del frame, en orden.
+std::vector<FrameEvent> ModelPasses(const std::vector<FrameEvent>& events)
+{
+    std::vector<FrameEvent> passes;
+    std::ranges::copy_if(events, std::back_inserter(passes),
+                         [](const FrameEvent& event) { return event.kind == Kind::Models; });
+    return passes;
+}
+
+// 0x63e460: con la ventana abierta, después de su base, un pase 3D propio con el viewport de 410 ×
+// 335 desde la caja y la cámara de la vista previa, con el NewFace de la clase elegida; después, lo
+// demás de la ventana.
+TEST(CharacterSelectSceneTest, TheWindowDrawsThePreviewInItsOwnPass)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(WriteNewFace(tested, 1));
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    EXPECT_EQ(ModelPasses(tested.Frame()).size(), 1u);
+
+    tested.ClickAt(CreateButton);
+
+    const std::vector<FrameEvent> events = tested.Frame();
+    const std::vector<FrameEvent> passes = ModelPasses(events);
+    ASSERT_EQ(passes.size(), 2u);
+    const Client::Render::Pass3D expected =
+        Client::Render::MakePass3D(PixelSize{640, 480},
+                                   Client::Scenes::PreviewViewport(
+                                       Client::UI::LayoutCreateWindow(PixelSize{640, 480}, 1).box, PixelSize{640, 480}),
+                                   Client::Scenes::PreviewCamera());
+    ASSERT_TRUE(passes[1].pass.has_value());
+    EXPECT_EQ(passes[1].pass->viewport, expected.viewport);
+    EXPECT_EQ(passes[1].pass->view, expected.view);
+    EXPECT_FALSE(passes[1].modelVertices.empty());
+    // La base de la ventana antes del pase, y el fondo del nombre después.
+    const auto preview = std::ranges::find_if(
+        events, [](const FrameEvent& event)
+        { return event.kind == Kind::Models && !event.modelVertices.empty() && event.pass->viewport.z == 410; });
+    const auto back = std::ranges::find(events, std::optional<TextureSlot>{TextureSlot{0xc}}, &FrameEvent::texture);
+    // La base: el negro de toda la pantalla, sin textura (0x669c70(W, H, −1, 0)).
+    const auto base = std::ranges::find_if(
+        events, [](const FrameEvent& event)
+        { return event.kind == Kind::Quad && !event.texture && event.vertices[0].color.alpha == 128.0f / 255.0f; });
+    ASSERT_NE(preview, events.end());
+    ASSERT_NE(base, events.end());
+    EXPECT_LT(base, preview);
+    EXPECT_LT(preview, back);
+}
+
+// La vista previa sigue a la clase de la ventana (0x63d7c0 → 0x63e3e0), con su escala: la del Elf es
+// 9,1 y la del Dark Knight 6,05, en la misma pose (la acción 1 desde el principio).
+TEST(CharacterSelectSceneTest, ThePreviewFollowsTheClass)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(WriteNewFace(tested, 1));
+    ASSERT_NO_FATAL_FAILURE(WriteNewFace(tested, 2));
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWithClasses(2));
+    tested.ClickAt(CreateButton);
+    // El largo de la primera arista: no cambia con el giro, solo con la escala.
+    const auto spread = [](const FrameEvent& pass)
+    { return glm::length(pass.modelVertices[1].position - pass.modelVertices[0].position); };
+    const std::vector<FrameEvent> knight = ModelPasses(tested.Frame());
+    ASSERT_EQ(knight.size(), 2u);
+    ASSERT_FALSE(knight[1].modelVertices.empty());
+    const float knightSpread = spread(knight[1]);
+
+    const Client::UI::CreateWindowLayout layout = Client::UI::LayoutCreateWindow(PixelSize{640, 480}, 2);
+    tested.ClickAt({static_cast<float>(layout.classes[2].x + 5), static_cast<float>(layout.classes[2].y + 5)});
+
+    const std::vector<FrameEvent> elf = ModelPasses(tested.Frame());
+    ASSERT_EQ(elf.size(), 2u);
+    ASSERT_FALSE(elf[1].modelVertices.empty());
+    EXPECT_NEAR(spread(elf[1]) / knightSpread, 9.1f / 6.05f, 1e-3f);
+}
+
+// Leave suelta también los slots de la vista previa (0x61cc50, desde 0x6f8).
+TEST(CharacterSelectSceneTest, LeaveReleasesThePreviewSlots)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(WriteNewFace(tested, 1));
+    ASSERT_NO_FATAL_FAILURE(tested.Enter());
+
+    tested.scene->Leave();
+
+    EXPECT_NE(std::ranges::find(tested.store.released, std::uint16_t{0x6f8}), tested.store.released.end());
+}
+
+// Con un aviso arriba la vista previa no avanza, y se dibuja quieta: sin interpolar un paso que no
+// va a dar, que la haría temblar.
+TEST(CharacterSelectSceneTest, UnderANoticeThePreviewStaysStill)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(WriteNewFace(tested, 1));
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    tested.Step();
+    // Con la ventana arriba, avanza, y el dibujo interpola entre dos pasos.
+    const std::vector<FrameEvent> moving = ModelPasses(tested.Frame(0.0f));
+    const std::vector<FrameEvent> moved = ModelPasses(tested.Frame(0.9f));
+    ASSERT_EQ(moving.size(), 2u);
+    ASSERT_EQ(moved.size(), 2u);
+    ASSERT_FALSE(moving[1].modelVertices.empty());
+    EXPECT_NE(moving[1].modelVertices[0].position, moved[1].modelVertices[0].position);
+    tested.Type("abc");
+    tested.Tap(Key::Enter);
+    ASSERT_TRUE(Draws(tested.Frame(), "corto"));
+    tested.Step();
+
+    const std::vector<FrameEvent> early = ModelPasses(tested.Frame(0.0f));
+    const std::vector<FrameEvent> late = ModelPasses(tested.Frame(0.9f));
+
+    ASSERT_EQ(early.size(), 2u);
+    ASSERT_EQ(late.size(), 2u);
+    ASSERT_EQ(early[1].modelVertices.size(), late[1].modelVertices.size());
+    for (std::size_t i = 0; i < early[1].modelVertices.size(); ++i)
+    {
+        EXPECT_EQ(early[1].modelVertices[i].position, late[1].modelVertices[i].position) << i;
+    }
+}
+
+// La vista previa saluda desde la entrada (0x633f20 → … → 0x63e3e0 con el Dark Knight): un paso
+// después de abrir la ventana, la misma pose que elegir otra clase y volver al Dark Knight, que la
+// arman de nuevo con la acción 1 y la avanzan.
+TEST(CharacterSelectSceneTest, ThePreviewGreetsFromTheStart)
+{
+    const auto firstVertex = [](Harness& tested)
+    {
+        const std::vector<FrameEvent> passes = ModelPasses(tested.Frame());
+        EXPECT_EQ(passes.size(), 2u);
+        return passes.size() == 2 && !passes[1].modelVertices.empty() ? passes[1].modelVertices[0].position
+                                                                      : glm::vec3(0.0f);
+    };
+    const Client::UI::CreateWindowLayout layout = Client::UI::LayoutCreateWindow(PixelSize{640, 480}, 1);
+    Harness opened;
+    ASSERT_NO_FATAL_FAILURE(WriteNewFace(opened, 0));
+    ASSERT_NO_FATAL_FAILURE(WriteNewFace(opened, 1));
+    ASSERT_NO_FATAL_FAILURE(opened.ReachTheChoiceWithClasses(1));
+    opened.ClickAt(CreateButton);
+    opened.Step();
+    Harness rechosen;
+    ASSERT_NO_FATAL_FAILURE(WriteNewFace(rechosen, 0));
+    ASSERT_NO_FATAL_FAILURE(WriteNewFace(rechosen, 1));
+    ASSERT_NO_FATAL_FAILURE(rechosen.ReachTheChoiceWithClasses(1));
+    rechosen.ClickAt(CreateButton);
+    rechosen.ClickAt({static_cast<float>(layout.classes[0].x + 5), static_cast<float>(layout.classes[0].y + 5)});
+    rechosen.ClickAt({static_cast<float>(layout.classes[1].x + 5), static_cast<float>(layout.classes[1].y + 5)});
+
+    EXPECT_EQ(firstVertex(opened), firstVertex(rechosen));
 }
 } // namespace

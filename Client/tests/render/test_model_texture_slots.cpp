@@ -136,6 +136,26 @@ TEST(ModelTextureSlotsTest, TheSearchStartsAtSlotZero)
     EXPECT_EQ(assigned, Slots({0x138, 0x25b}));
 }
 
+// Un cargador que sigue a otro con su tabla (0x61ca30 con 0x60d530(0x6f8)): ve los nombres de antes,
+// empieza en su próximo y no tiene nada que subir de los otros.
+TEST(ModelTextureSlotsTest, AContinuedTableKeepsTheNamesAndNothingToLoad)
+{
+    ModelTextureSlots game(PlayerParts);
+    (void)game.Assign(ModelWith({"armor_a.jpg"}), "Player\\", ModelSampling);
+
+    ModelTextureSlots selection = game.ContinuedAt(TextureSlot{0x6f8});
+    const std::vector<TextureSlot> assigned =
+        selection.Assign(ModelWith({"armor_a.jpg", "face.jpg"}), "Logo\\", ModelSampling);
+
+    EXPECT_EQ(assigned, Slots({0x138, 0x6f8}));
+    EXPECT_EQ(selection.Next(), TextureSlot{0x6f9});
+    ASSERT_EQ(selection.ToLoad().size(), 1u);
+    EXPECT_EQ(selection.ToLoad()[0].slot, 0x6f8);
+    EXPECT_EQ(selection.NameOf(TextureSlot{0x138}), "armor_a.jpg");
+    EXPECT_EQ(game.Next(), TextureSlot{0x139});
+    EXPECT_EQ(game.ToLoad().size(), 1u);
+}
+
 // La búsqueda llega hasta el próximo libre: con él para atrás (0x615700 vuelve al 0x138, Q-C89), un
 // nombre de más arriba ya no se encuentra y se pide otra vez, encima.
 TEST(ModelTextureSlotsTest, TheSearchStopsAtNext)

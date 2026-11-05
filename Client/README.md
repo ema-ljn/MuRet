@@ -111,7 +111,7 @@ Desde la CL6.5, la selección tiene la barra de abajo del original (`UI/Selectio
 entra como Enter, y borrar pide la confirmación y el código y manda el `F3 02`; con la respuesta, el
 personaje se va de la selección o sale el aviso que diga el GameServer. Crear abre su ventana, con
 las clases que deja la cuenta y los chequeos del nombre del original (`FilterName.bmd`), y manda el
-`F3 01`; la vista previa del personaje es de la PR que sigue. El botón del menú no hace nada (CL8).
+`F3 01`, con la vista previa del personaje de cada clase. El botón del menú no hace nada (CL8).
 
 ## Auditoría y mantenimiento
 

@@ -13,6 +13,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterName.h"
 #include "Render/Models/Animation.h"
+#include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/RayPicking.h"
 #include "Render/Models/Skeleton.h"
@@ -24,6 +25,7 @@
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterSlots.h"
+#include "Scenes/CreatePreview.h"
 #include "Scenes/GameData.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneCanvas.h"
@@ -94,7 +96,8 @@ Render::OriginalQuad Background(std::uint16_t slot, float x)
 } // namespace
 
 CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const GameData& data,
-                                           const IModelLibrary& models, App::ServerSession* session)
+                                           const IModelLibrary& models, App::ServerSession* session,
+                                           const Render::Models::ModelTextureSlots* gameSlots)
     : m_context(context), m_texts(data.text ? &*data.text : nullptr), m_models(models), m_session(session),
       m_textures(context.textures, SelectionTextureSet), m_windowTextures(context.textures, WindowTextureSet),
       m_notice([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts),
@@ -103,7 +106,7 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ga
                     .filter = data.filter,
                     .operation = UI::TextAt(m_texts, OperationText).value_or(std::string_view{}),
                     .server = UI::TextAt(m_texts, ServerText).value_or(std::string_view{})},
-      m_create([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts)
+      m_create([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts), m_gameSlots(gameSlots)
 {
 }
 
@@ -124,6 +127,15 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     {
         return loaded;
     }
+    // Una textura de los NewFace que falta cierra el original (0x60d5f0 con su quinto argumento en 1).
+    if (auto loaded = m_selectionModels.Load(m_context.dataRoot, m_context.textures, m_context.log, m_gameSlots);
+        !loaded.HasValue())
+    {
+        return loaded;
+    }
+    // 0x633f20 → 0x65f4b0 → 0x63d1a0 → 0x63d7c0 → 0x63e3e0, al entrar: la vista previa con la clase
+    // de la ventana (el Dark Knight) y la acción 1.
+    ChoosePreviewClass(m_preview, m_create.ChosenClass(), m_selectionModels);
     if (m_session != nullptr)
     {
         m_session->RequestCharacterList();
@@ -254,6 +266,8 @@ void CharacterSelectScene::StepTheCreateWindow(const Input::InputState& input)
     {
         SubmitTheCreation();
     }
+    // Al final de 0x63d880: la vista previa de la clase que quedó, y su avance (0x63e430).
+    StepThePreview();
 }
 
 void CharacterSelectScene::SubmitTheCreation()
@@ -398,6 +412,7 @@ void CharacterSelectScene::SendTheDeletion()
 
 void CharacterSelectScene::Step(const Input::InputState& input)
 {
+    m_previewAdvanced = false;
     // Un aviso que se abre en este paso se atiende desde el siguiente: lo que se apretó en este no
     // lo cierra antes de que se vea.
     const bool failureOpened = ShowTheFailure();
@@ -562,8 +577,7 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     canvas.flushModels();
     // La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el aviso arriba.
     m_bar.Draw(sprites, canvas.text, canvas.screen);
-    m_create.DrawBase(sprites, canvas.screen);
-    m_create.Draw(sprites, canvas.text, canvas.screen);
+    DrawTheCreateWindow(canvas, alpha);
     m_notice.Draw(sprites, canvas.text, canvas.screen);
 }
 
@@ -571,6 +585,46 @@ void CharacterSelectScene::Leave()
 {
     m_textures.Release();
     m_windowTextures.Release();
+    // 0x61cc50 suelta los slots de 0x6f8 a 0x71d.
+    m_selectionModels.Release();
+}
+
+void CharacterSelectScene::StepThePreview()
+{
+    if (!m_create.IsOpen())
+    {
+        return;
+    }
+    m_previewAdvanced = true;
+    // 0x63d880 → 0x63d7c0 → 0x63e3e0: la clase que eligió el clic de este paso arma otra vez la
+    // vista previa, que después avanza.
+    if (m_create.ChosenClass() != m_preview.characterClass)
+    {
+        ChoosePreviewClass(m_preview, m_create.ChosenClass(), m_selectionModels);
+    }
+    StepPreview(m_preview, m_selectionModels);
+}
+
+// 0x66a050: la base de la ventana; 0x63e460: la vista previa en su propio pase, sin limpiar la
+// profundidad (se prueba contra la del pase de la selección, como en el original); y 0x63e0a0: lo
+// demás, encima.
+void CharacterSelectScene::DrawTheCreateWindow(SceneCanvas& canvas, float alpha)
+{
+    if (!m_create.IsOpen())
+    {
+        return;
+    }
+    m_create.DrawBase(canvas.sprites, canvas.screen);
+    canvas.flushSprites();
+    const UI::Rect box = UI::LayoutCreateWindow(canvas.screen, m_create.ChosenClass()).box;
+    const Render::Pass3D pass = Render::MakePass3D(canvas.screen, PreviewViewport(box, canvas.screen), PreviewCamera());
+    canvas.models.Begin(pass);
+    // Sin el avance de este paso (un aviso arriba), la vista previa va quieta: interpolar uno que no
+    // va a dar la haría temblar.
+    DrawObject(canvas.models, m_selectionModels,
+               DrawnPreview(m_preview, m_selectionModels, m_previewAdvanced ? alpha : 0.0f), canvas.frameClock);
+    canvas.flushModels();
+    m_create.Draw(canvas.sprites, canvas.text, canvas.screen);
 }
 
 std::optional<SceneId> CharacterSelectScene::Next() const

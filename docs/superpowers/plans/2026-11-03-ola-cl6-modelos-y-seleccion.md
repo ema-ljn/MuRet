@@ -2491,6 +2491,50 @@ Decisiones, con lo que cuestan si están mal:
   orden de los chequeos ("GM" es corto) y que el nombre no va al log.
 - Menores: `Draw` en tres partes, un `SetBlend` de más, y comentarios.
 
+**B3, la vista previa** (2026-11-04, resuelto por Claude). Con la `Data` en el repo, los `NewFace` y
+sus texturas están en el CI. La lectura que faltaba de `0x50ba30`, para un modelo que no es el del
+personaje, va a `0x602e90`, el mismo camino del caballo de la CL6.4 (`DrawObject`), sin la sombra.
+Lo de la ventana es todo de la CL6.R y del contrato. En un PR:
+- **Los modelos** (`Scenes::SelectionModels`, 2 tests, uno contra el volcado de Lorencia): Logo05 y
+  los cinco NewFace, con sus texturas desde `0x6f8` siguiendo la tabla de `GameModels`
+  (`ModelTextureSlots::ContinuedAt`, 1 test).
+  - Contra el volcado: los 31 slots tienen el tamaño del buffer y los componentes de lo que sube
+    MuRet (Q-C91, verificado).
+  - Cada NewFace lleva la velocidad 0,3 en sus acciones 0 y 1.
+  - El 0xa4 va con GL_LINEAR y los NewFace con GL_NEAREST.
+- **La vista previa** (`Scenes::CreatePreview`, 4 tests):
+  - la cámara, el viewport y la tabla de clases de `0x63e460`;
+  - la acción 1, que se arma con cada clase (`0x63e3e0`), avanza a 0,6 keys y al terminar vuelve a
+    la 0 (`0x63e430`).
+- **La escena** (3 tests): la vista previa en su propio pase 3D, entre la base de la ventana y lo
+  demás, con la clase de la ventana; y `Leave`, que suelta sus slots.
+
+10 tests. La suite, 2.043 en verde. 17 mutantes a mano: 16 en rojo, 2 de ellos reescritos y 3 que
+vivían hasta su test (las velocidades, el filtro del 0xa4 y el de los NewFace), y uno equivalente con
+esta `Data`: seguir la tabla de la carga, porque ningún NewFace comparte nombre de textura con los
+modelos de antes.
+
+Decisiones, con lo que cuestan si están mal:
+- Ruling: la vista previa avanza una vez por paso y solo con la ventana arriba. El original la avanza
+  también desde la lógica de la escena, así que con la ventana arriba va dos veces más rápido, y
+  sigue avanzando bajo un aviso (D-C4). Si está mal, la vista previa saluda a la mitad de velocidad.
+- Ruling: el objeto va en (50, 50, 0), sin la z del terreno del mapa 54, que es de la CL7. La cámara
+  va con el objeto, así que no se ve. Si está mal, nada, hasta que algo del mundo entre en el
+  viewport.
+
+**Tras la revisión adversarial de B3** (un revisor del C++ y del binario, sin críticos):
+- **La vista previa temblaba con un aviso arriba** (Importante): no avanza, pero el dibujo la
+  interpolaba con un paso de más. Ahora va quieta (`UnderANoticeThePreviewStaysStill`).
+- La luz es otra: `0x511290` prende la luz por vértice, y `0x6002e0` les pone el color en 4,8 a los
+  NewFace. MuRet la dibuja así, y el shader la recorta.
+- La vista previa se arma al entrar a la escena, no con la lista (`ThePreviewGreetsFromTheStart`).
+- Tests más fuertes:
+  - la base antes de la vista previa;
+  - una acción 1 que repite, que termina por la regla de la escena 4;
+  - los nombres de GL seguidos del volcado.
+
+20 mutantes más de la pasada y de los tests nuevos, todos en rojo.
+
 ## Qué no se prueba en CI, y cómo se cubre
 
 | Qué | Cómo |

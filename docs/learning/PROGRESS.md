@@ -499,6 +499,13 @@ solo lo lee.
   crea. El nombre toma las letras de Latin-1, como el EDIT del original. La vista previa en 3D es de
   la PR que sigue. 44 tests y 45 mutantes. Falta verla en pantalla (P-C16 f).
 
+  **La CL6.5 PR B3** (2026-11-04, resuelta por Claude): la vista previa de la ventana de crear, el
+  NewFace de cada clase con su cámara y su viewport, saludando con la acción 1. Sus texturas van
+  desde el slot 0x6f8 siguiendo la tabla de la carga, verificadas contra el volcado de Lorencia
+  (Q-C91). 13 tests y 24 mutantes, con lo que encontró la revisión: la luz por vértice con el
+  color en 4,8 y que no tiemble con un aviso arriba. Con esto la CL6.5 queda completa, salvo verla
+  en pantalla.
+
 ## Conceptos
 
 **Niveles:** 1 **usar** (lo escribiste con tests) · 2 **explicar** (lo contás sin mirar) ·

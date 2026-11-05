@@ -51,6 +51,7 @@
 #include "UI/ServerListWindow.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
+#include "World/Leaves.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
@@ -161,6 +162,8 @@ constexpr int NoSlot = -1;
 
 // El dragón: solo en el mapa 55, y su dueño, el 0xb4 que crea 0x616ec0 (0x6188ae).
 constexpr std::uint8_t DragonMap = 0x37;
+// El mapa del login (World56), el de las brasas de 0x530490.
+constexpr std::uint8_t EmberMap = 0x37;
 constexpr glm::vec3 DragonOwnerPosition{5600.0f, 23000.0f, 0.0f};
 
 // Los modelos de los objetos del login: los del mundo y el logo (0xa2), que la tabla del original guarda
@@ -410,6 +413,7 @@ void LoginScene::PlaceTheModels()
     m_effects.Clear();
     m_sprites.Clear();
     m_particles.Clear();
+    m_leaves.Clear();
     m_drawnSinceEntering = false;
     if (m_world && m_world->map == DragonMap)
     {
@@ -517,6 +521,20 @@ void LoginScene::StepTheWorld()
         const DarkHorse drawn = m_horse;
         StepDarkHorse(m_horse, *horse, m_characterAnimation.body.action);
         BreatheTheHorse(drawn);
+    }
+    // 0x530490, después de los ayudantes (0x634d0e): en el mapa 55, las 80 brasas, con el rand() de la CRT.
+    // Nacen alrededor del héroe (el personaje 0), al que 0x6350b0 le escribe la posición recién en el
+    // dibujo: antes del primero, en (0, 0, 0) (Q-C137). La y de la cámara que miran, igual: al entrar,
+    // 0x6349a0 deja la cámara en (0, 0, 0) (0x634b80) y 0x635ae0 le escribe la de LoginCamera en el
+    // dibujo (0x635f7e).
+    if (const World::WorldTerrain* terrain = m_terrain.Terrain();
+        m_context.cloth != nullptr && terrain != nullptr && m_world && m_world->map == EmberMap)
+    {
+        const World::EmberWorld embers{.hero = m_drawnSinceEntering ? LoginHeroPosition : glm::vec3(0.0f),
+                                       .cameraY = m_drawnSinceEntering ? LoginCamera().position.y : 0.0f,
+                                       .heights = terrain->heights.get(),
+                                       .attributes = terrain->attributes.get()};
+        World::StepLoginEmbers(m_leaves, embers, m_context.cloth->random);
     }
     // 0x508f00 → 0x4fcd00: lo que termina vuelve a la de parado (0x4fcb10 → 0x4f2250).
     if (StepCharacterAnimation(m_characterAnimation, m_character, m_models, Render::Models::AnimationScene::Other) &&
@@ -854,6 +872,8 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                      canvas.frameClock, alpha);
     // 0x52d620(0): los efectos con modelo, después de los objetos.
     DrawModelEffects(canvas.models, m_worldModels, m_effects.Effects(), lighting, canvas.frameClock, alpha);
+    // 0x5306a0, después de 0x549510: las brasas, en el mundo.
+    DrawLeaves(canvas.models, m_leaves);
     m_drawnSinceEntering = true;
 }
 

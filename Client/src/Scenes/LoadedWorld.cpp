@@ -102,6 +102,11 @@ const World::TerrainLighting* LoadedWorld::Lighting() const
     return m_terrain ? m_terrain->lighting.get() : nullptr;
 }
 
+const World::WorldTerrain* LoadedWorld::Terrain() const
+{
+    return m_terrain ? &*m_terrain : nullptr;
+}
+
 void LoadedWorld::Step(Core::Duration clock, const World::TerrainRange& range)
 {
     if (m_terrain)

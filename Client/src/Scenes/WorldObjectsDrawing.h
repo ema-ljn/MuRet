@@ -5,6 +5,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "World/TerrainCulling.h"
 #include "World/ModelEffects.h"
+#include "World/Leaves.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Render/Models/OriginalRotation.h"
@@ -65,4 +66,9 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, c
 // Sin el tamaño de la textura no se dibuja.
 void DrawParticles(Render::ModelBatch& batch, const World::Particles& particles, const IModelLibrary& textures,
                    const Render::Models::OriginalMatrix& view);
+
+// 0x5306a0, en el pase del mundo, después de los efectos con modelo: las hojas vivas, aditivas (en el mapa
+// 0x37, 0x620a90) y con el blanco de un solo glColor3f(1, 1, 1), cada una el cuadrado de LeafQuadOf
+// trasladado a su posición, con la textura de su tipo.
+void DrawLeaves(Render::ModelBatch& batch, const World::Leaves& leaves);
 } // namespace Client::Scenes

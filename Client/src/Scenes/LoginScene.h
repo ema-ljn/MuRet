@@ -19,6 +19,7 @@
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
+#include "World/Leaves.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -188,6 +189,8 @@ private:
     World::FrameSprites m_sprites;
     // Las partículas (0x743a198): el aliento del caballo.
     World::Particles m_particles;
+    // Las hojas (0x75e34b8): en el mapa 55, las 80 brasas.
+    World::Leaves m_leaves;
     // Si ya se dibujó un frame desde que se entró: antes, el buffer global de la pose no tiene nada del
     // login (P-C26).
     bool m_drawnSinceEntering = false;

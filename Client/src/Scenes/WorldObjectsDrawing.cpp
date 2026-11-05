@@ -3,10 +3,12 @@
 #include "Core/IClock.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
+#include "Render/SpriteVertex.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "World/Leaves.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -269,6 +271,26 @@ void DrawParticles(Render::ModelBatch& batch, const World::Particles& particles,
             .texture = slot, .blend = drawn->additive ? Render::ModelBlend::Additive : Render::ModelBlend::Alpha});
         const auto vertex = [&billboard](std::size_t k)
         { return Render::ModelVertex{billboard.corners[k].position, billboard.corners[k].uv, billboard.color}; };
+        batch.Triangle({vertex(0), vertex(1), vertex(2)});
+        batch.Triangle({vertex(0), vertex(2), vertex(3)});
+    }
+}
+
+void DrawLeaves(Render::ModelBatch& batch, const World::Leaves& leaves)
+{
+    const Render::Color white{1.0f, 1.0f, 1.0f, 1.0f};
+    for (const World::Leaf& leaf : leaves.All())
+    {
+        if (!leaf.alive)
+        {
+            continue;
+        }
+        const World::LeafQuad quad = World::LeafQuadOf(leaf);
+        batch.SetState(Render::ModelDrawState{.texture = Render::TextureSlot{static_cast<std::uint16_t>(leaf.type)},
+                                              .blend = Render::ModelBlend::Additive});
+        // glTranslatef y el vértice: la suma la hace GL, en float.
+        const auto vertex = [&quad, &white](std::size_t k)
+        { return Render::ModelVertex{quad.translation + quad.corners[k], quad.uv[k], white}; };
         batch.Triangle({vertex(0), vertex(1), vertex(2)});
         batch.Triangle({vertex(0), vertex(2), vertex(3)});
     }

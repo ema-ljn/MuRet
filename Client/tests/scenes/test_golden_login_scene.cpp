@@ -465,6 +465,62 @@ TEST_F(GoldenLoginScene, EnteringAgainLoadsTheTerrainAgain)
     scene.Leave();
 }
 
+// CL7.6 A: el dragón (el efecto 0xb4, con las texturas de Dragon.bmd en 0x69..0x6b) se dibuja después de
+// los objetos del mundo y del logo (0x52d620 después de 0x6046a0), opaco.
+bool IsDragon(const Client::Render::ModelDrawCommand& command)
+{
+    return command.state.texture.has_value() && command.state.texture->value >= 0x69 &&
+           command.state.texture->value <= 0x6b;
+}
+
+TEST_F(GoldenLoginWorld, TheDragonDrawsAfterTheObjects)
+{
+    LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
+                     &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    const FrameEvent frame = Frame(scene, 1);
+    const auto firstDragon = std::ranges::find_if(frame.modelCommands, IsDragon);
+    ASSERT_NE(firstDragon, frame.modelCommands.end());
+    EXPECT_FALSE(std::any_of(firstDragon, frame.modelCommands.end(), IsWorldObject)) << "los objetos van antes";
+    EXPECT_FALSE(std::any_of(firstDragon, frame.modelCommands.end(), IsLogo)) << "el logo va antes";
+    EXPECT_TRUE(std::all_of(firstDragon, frame.modelCommands.end(), [](const auto& command)
+                            { return command.state.blend == Client::Render::ModelBlend::Opaque; }));
+    scene.Leave();
+}
+
+// Cada entrada vacía la tabla de efectos (0x6070a0) y la carga del mapa crea el dragón otra vez
+// (0x606660 → 0x518cf0): el primer frame de la segunda entrada lo tiene donde la primera, aunque en el
+// medio voló.
+TEST_F(GoldenLoginWorld, EnteringAgainStartsTheDragonAgain)
+{
+    LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
+                     &m_models.TextureSlots());
+    const auto dragonVertices = [](const FrameEvent& frame)
+    {
+        std::vector<glm::vec3> positions;
+        for (const auto& command : frame.modelCommands)
+        {
+            if (IsDragon(command))
+            {
+                for (std::size_t k = 0; k < command.vertexCount; ++k)
+                {
+                    positions.push_back(frame.modelVertices[command.firstVertex + k].position);
+                }
+            }
+        }
+        return positions;
+    };
+    ASSERT_TRUE(scene.Enter().HasValue());
+    const auto first = dragonVertices(Frame(scene, 0));
+    ASSERT_FALSE(first.empty());
+    const auto later = dragonVertices(Frame(scene, 30));
+    EXPECT_NE(first, later) << "el dragón vuela";
+    scene.Leave();
+    ASSERT_TRUE(scene.Enter().HasValue());
+    EXPECT_EQ(dragonVertices(Frame(scene, 0)), first);
+    scene.Leave();
+}
+
 // Los textos de los avisos de la selección que vienen vacíos en el Text.bmd del laboratorio.
 constexpr std::array<std::size_t, 6> SelectionEmptyTexts{1711, 1712, 1713, 1714, 1715, 1716};
 

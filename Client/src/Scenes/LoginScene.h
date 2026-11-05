@@ -20,6 +20,7 @@
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
+#include "World/ModelEffects.h"
 #include "World/WorldObjects.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Scenes/LoginModels.h"
@@ -171,6 +172,8 @@ private:
     // carga del mundo).
     std::vector<World::WorldObject> m_objects;
     std::optional<std::size_t> m_logoIndex;
+    // La tabla de efectos con modelo (0x7491fd8): en el login, el dragón.
+    World::ModelEffects m_effects;
     // El logo: su modelo, los slots de sus mallas desde donde terminó el mundo y sus texturas.
     SingleModelLibrary m_logo;
     std::optional<Render::Models::ModelTextureSlots> m_logoSlots;

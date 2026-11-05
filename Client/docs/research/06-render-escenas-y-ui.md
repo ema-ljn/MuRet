@@ -1478,6 +1478,21 @@ de vuelta. *Estático.*
   va arriba, sobre el horizonte: el centro entre x 175 y 518 e y 102 y 184 en 640 × 480, de 50 a 98
   píxeles de ancho y de 33 a 81 de alto, a 11.600–14.400 de la cámara (*inferido*: posado y proyectado
   con `dragon_screen.py` en toda la trayectoria emulada).
+- **El paso, leído en el asm** (CL7.6 A, con capstone): `+0x84` es un solo campo con dos usos. Al
+  empezar cada paso vale la meta del alabeo del estado (30 con el 0, −30 con el 1, 0 con otro), y al
+  alejarse de la partida con `+0xdc` prendido pasa a guardar el yaw, con el que se compara el giro de
+  ±60°. La distancia va en la x87 (53 bits) hasta la comparación con 800, el alabeo y el giro se suman
+  en 53 bits y se guardan en float, y el giro de la velocidad es `0x5fc8f0` (los senos y cosenos de x
+  e y en float, el coseno de z en el registro) y `0x5fcbd0`. La cola común (`0x52cb98`) avanza la
+  animación con `0x4ec200` a `+0xd8`; si devuelve 0 (la acción terminó o dio la vuelta), el frame queda
+  en sus keys y la acción en `0xff`, cosa que al dragón no le pasa: el caso lo vuelve a 0 en el 40.
+- **En MuRet** (CL7.6 A): `World::ModelEffects` (la tabla de 200, solo el `0xb4`) y
+  `Render::Models::OriginalRotation` (`0x5fc8f0` y `0x5fcbd0`). **La creación y 1.500 pasos dan bit a
+  bit lo mismo que el código real emulado** (`DragonTest`, `make_dragon_vectors.py`), y el giro, 400
+  casos al azar (`OriginalRotationTest`, `make_rotation_vectors.py`). El login vacía la tabla y crea el
+  dragón en cada entrada, lo avanza en cada paso y lo dibuja después de los objetos, con el frame
+  entero. Sin la esfera de 400 contra el frustum: en el login siempre está en pantalla. El `rand()`
+  que tira cada paso (una luz que el `0xb4` no usa) no va: es del `rand()` común (P-C22 a, CL7.6 B).
 
 ### El cuervo
 

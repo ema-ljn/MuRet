@@ -2567,8 +2567,8 @@ casos (06 § La tela de la clase 4; los scripts, en `Client/docs/research/script
   y `kaa` (`0x6ea`) como `0x61ccb0`.
 
 Tests: los vectores del oráculo (`tests/vectors/cloth`, los nueve casos): cada paso de cada tela,
-partícula por partícula, cada triángulo del lote, cada sprite y cada `rand()`, bit a bit. 13 tests (17 tras la revisión). 22 mutantes a mano: 20 en rojo (dos con los casos que se sumaron
-para ellos, los ángulos del objeto y el estiramiento bajo 20 veces) y 2 equivalentes:
+partícula por partícula, cada triángulo del lote, cada sprite y cada `rand()`, bit a bit. 12 tests (17 tras la revisión). 22 mutantes a mano: 20 en rojo (dos con
+los casos que se sumaron para ellos, los ángulos del objeto y el estiramiento bajo 20 veces) y 2 equivalentes:
 
 - la posición con la velocidad redondeada: con coordenadas del mundo la diferencia queda debajo del
   ULP de la posición;

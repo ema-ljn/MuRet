@@ -45,7 +45,10 @@ DarkHorseGait DarkHorseGaitOf(std::uint8_t riderAction)
 
 void StepDarkHorse(DarkHorse& horse, const Render::Models::Skeleton& skeleton, std::uint8_t riderAction)
 {
-    horse.alpha = (AlphaGoal - horse.alpha) * AlphaRate + horse.alpha;
+    // En la x87 (0x4e9a0c..0x4e9a1e): un solo redondeo a float, al final.
+    horse.alpha = static_cast<float>(
+        ((static_cast<double>(AlphaGoal) - static_cast<double>(horse.alpha)) * static_cast<double>(AlphaRate)) +
+        static_cast<double>(horse.alpha));
     const DarkHorseGait gait = DarkHorseGaitOf(riderAction);
     Render::Models::SetAction(horse.animation, skeleton, gait.action);
     horse.speed = gait.speed;

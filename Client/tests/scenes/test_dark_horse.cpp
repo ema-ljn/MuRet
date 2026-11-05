@@ -6,8 +6,10 @@
 
 #include <gtest/gtest.h>
 
+#include <bit>
 #include <cstdint>
 #include <ios>
+#include <map>
 #include <vector>
 
 // Client::Scenes::DarkHorse: el caballo oscuro (0xbf) que crea 0x443d70 y mueve 0x444010 en cada paso
@@ -90,6 +92,24 @@ TEST(DarkHorseTest, TheHorseFadesInByATenthOfWhatIsLeft)
     EXPECT_LT(horse.alpha, 0.99f);
     StepDarkHorse(horse, skeleton, 0x4a);
     EXPECT_GE(horse.alpha, 0.99f);
+}
+
+// 0x4e9a0c..0x4e9a1e: la resta, el producto por 0,1f y la suma van en la x87, con un solo redondeo a float
+// al final (fstp). Redondear en cada operación da otro bit desde el paso 5 (0x3ed1ab4c y no 0x3ed1ab4b).
+TEST(DarkHorseTest, TheFadeRoundsOnceLikeTheBinary)
+{
+    const Skeleton skeleton = HorseSkeleton();
+    DarkHorse horse;
+    const std::map<int, std::uint32_t> expected{{1, 0x3dcccccdU},  {2, 0x3e428f5cU},  {5, 0x3ed1ab4bU},
+                                                {10, 0x3f26bd03U}, {44, 0x3f7d8474U}, {60, 0x3f7f8a3dU}};
+    for (int step = 1; step <= 60; ++step)
+    {
+        StepDarkHorse(horse, skeleton, 0x4a);
+        if (const auto bits = expected.find(step); bits != expected.end())
+        {
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(horse.alpha), bits->second) << "paso " << step;
+        }
+    }
 }
 
 // En cada paso, la acción que le da el jinete (0x4ea030: la otra pasa a anterior y el frame a 0) y el

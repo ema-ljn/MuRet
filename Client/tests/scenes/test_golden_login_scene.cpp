@@ -26,6 +26,9 @@
 #include "Render/ModelBatch.h"
 #include "Data/Textures/Sampling.h"
 #include "Input/InputState.h"
+#include "Data/Terrain/TerrainObjects.h"
+#include "World/WorldObjects.h"
+#include "Scenes/WorldModels.h"
 
 #include <glm/ext/matrix_double4x4.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
@@ -48,6 +51,7 @@
 #include <iterator>
 #include <optional>
 #include <set>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -694,25 +698,44 @@ TEST_F(GoldenLoginWorld, TheBreathOfTheHorseComesFromItsHeadAsDrawnBefore)
 
 // CL7.6 B4: el farol del castillo (0x602ed0, caso 0x3c en la escena 2) pide dos sprites de flare01 en
 // las traslaciones de los huesos 8 y 9 del buffer global de la pose, pero Object61.bmd tiene un solo
-// hueso (Q-C140). Ningún objeto del mapa 55 tiene esos huesos y el logo tiene dos: los deja el caballo,
-// que se posa antes de los objetos (0x4453b0), con Object23 y Object24 (padre −1). El brillo sale sobre
-// el caballo, como se dibujó en ese frame, con la luz (L; 0,5 · L; 0,2 · L) y L entre 0,7 y 0,99.
-TEST_F(GoldenLoginWorld, TheLanternGlowsOnTheHorse)
+// hueso (Q-C140). Ningún objeto del .obj llega al hueso 8, pero antes que ellos la carga del mapa 55
+// crea el dueño del dragón (0x6188ae: 0x606660(0xb4, (5.600; 23.000; 0), (0, 0, 0), 1)), en el sector
+// (3, 14), antes que el farol (5, 14): no se dibuja (+0x58 en −2), pero 0x5ffdf0 lo posa con Dragon.bmd,
+// y sus huesos 8 y 9 son Bip01 L Toe0 y Bip01 L Toe01. El brillo sale ahí, no en el caballo, con la luz
+// (L; 0,5 · L; 0,2 · L) y L entre 0,7 y 0,99.
+TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
 {
+    Client::Scenes::WorldModels world;
+    ASSERT_TRUE(world.Load(m_dataRoot, 0x37, m_store, m_log, nullptr).HasValue());
+    const Client::Render::Models::Skeleton* dragon = world.SkeletonOf(Client::Scenes::DragonModel);
+    ASSERT_NE(dragon, nullptr);
+    Client::Data::Terrain::TerrainObject record;
+    record.type = static_cast<std::int16_t>(Client::Scenes::DragonModel);
+    record.position = {5600.0f, 23000.0f, 0.0f};
+    record.scale = 1.0f;
+    Client::World::WorldObject owner =
+        Client::World::CreateWorldObjects(std::span(&record, 1), 0x37, Client::World::ObjectScene::Login).front();
+    const Client::Render::Models::Skeleton* horseSkeleton = m_models.SkeletonOf(Client::Scenes::DarkHorseModel);
+    ASSERT_NE(horseSkeleton, nullptr);
+    Client::Scenes::DarkHorse horse;
+
     Client::Render::Models::ClothWorld cloth;
     LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
                      m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
-    const Client::Render::Models::Skeleton* horseSkeleton = m_models.SkeletonOf(Client::Scenes::DarkHorseModel);
-    ASSERT_NE(horseSkeleton, nullptr);
-    Client::Scenes::DarkHorse horse;
     for (int step = 0; step < 3; ++step)
     {
         scene.Step(Client::Input::InputState{});
+        // 0x606560 avanza solo los que se vieron en el último dibujo.
+        if (owner.seen)
+        {
+            Client::World::StepWorldObject(owner, 0x37, dragon);
+        }
         Client::Scenes::StepDarkHorse(horse, *horseSkeleton, Client::Scenes::LoginCharacterStandingAction);
         RecordingFrameTarget target;
         scene.Render(target.BeginFrame(std::chrono::milliseconds{40 * (step + 1)}), 0.0f);
         target.Present();
+        owner.seen = true;
         std::vector<FrameEvent> models;
         std::ranges::copy_if(target.frames.back().events, std::back_inserter(models),
                              [](const FrameEvent& event) { return event.kind == Kind::Models; });
@@ -746,14 +769,21 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsOnTheHorse)
             }
         }
         ASSERT_EQ(centers.size(), 2u) << "el paso " << step;
-        const Client::Scenes::DrawnObject drawn = Client::Scenes::DrawnDarkHorse(
+        Client::Scenes::DrawnObject drawn;
+        drawn.model = Client::Scenes::DragonModel;
+        drawn.animation = owner.animation;
+        drawn.transform = owner.transform;
+        const Client::Scenes::DrawnObject drawnHorse = Client::Scenes::DrawnDarkHorse(
             horse, horseSkeleton, Client::Scenes::LoginCharacterTransform(), Client::Scenes::DarkHorseLoginScale, 0.0f);
         for (std::size_t bone = 8; bone <= 9; ++bone)
         {
-            const auto expected = Client::Scenes::PosedBonePoint(m_models, drawn, bone, {});
+            const auto expected = Client::Scenes::PosedBonePoint(world, drawn, bone, {});
             ASSERT_TRUE(expected.has_value());
             EXPECT_LT(glm::length(centers[bone - 8] - glm::dvec3(*expected)), 0.05)
                 << "el paso " << step << ", el hueso " << bone;
+            const auto onTheHorse = Client::Scenes::PosedBonePoint(m_models, drawnHorse, bone, {});
+            ASSERT_TRUE(onTheHorse.has_value());
+            EXPECT_GT(glm::length(centers[bone - 8] - glm::dvec3(*onTheHorse)), 1000.0) << "no en el caballo";
         }
         for (const auto& vertex : vertices)
         {
@@ -763,6 +793,37 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsOnTheHorse)
             EXPECT_NEAR(vertex.color.blue, vertex.color.red * 0.2f, 1e-6f);
         }
     }
+    scene.Leave();
+}
+
+// CL7.6 B4: 0x602ed0 saca un rand() de la CRT de la tela por cada objeto visto en el dibujo (0x602ef4):
+// los 276 del .obj, el dueño del dragón y el logo, todos vistos en el login. Con la tela y el cetro, que
+// sacan menos de 100, un dibujo corre el rand() 278 lugares o más.
+TEST_F(GoldenLoginWorld, EverySeenObjectTakesARandInTheDraw)
+{
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    scene.Step(Client::Input::InputState{});
+    {
+        RecordingFrameTarget target;
+        scene.Render(target.BeginFrame(std::chrono::milliseconds{40}), 0.0f);
+        target.Present();
+    }
+    scene.Step(Client::Input::InputState{});
+    Client::Render::Models::CrtRandom walk = cloth.random;
+    RecordingFrameTarget target;
+    scene.Render(target.BeginFrame(std::chrono::milliseconds{80}), 0.0f);
+    target.Present();
+    std::size_t taken = 0;
+    while (walk.State() != cloth.random.State() && taken < 1000)
+    {
+        (void)walk.Next();
+        ++taken;
+    }
+    EXPECT_GE(taken, 278u);
+    EXPECT_LT(taken, 378u);
     scene.Leave();
 }
 

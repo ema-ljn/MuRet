@@ -42,7 +42,7 @@ struct ObjectFrameEffects
     World::FrameSprites* sprites = nullptr;
     // Lo que el frame posó en el buffer global de la pose antes de los objetos, en su orden: el caballo
     // (0x4453b0).
-    std::span<const PosedInTheBuffer> posedBefore;
+    std::span<const PosedInTheBuffer> posedBefore{};
     // El caso del farol es de la escena 2 (0x602f09).
     World::ObjectScene scene = World::ObjectScene::Other;
 };

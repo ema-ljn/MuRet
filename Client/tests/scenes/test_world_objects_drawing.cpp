@@ -186,13 +186,15 @@ TEST(WorldObjectsDrawingTest, AnObjectOutsideThePolygonIsNotSeen)
 }
 
 // 0x602ed0 saca un rand() de la CRT por cada objeto que llega a él (0x602ef4, antes de mirar la escena o el
-// tipo): los que se ven, aunque no se dibujen. El del sector lejano no llega.
+// tipo): los que se ven, aunque no se dibujen (el de alpha 0 y el de +0x58 en −2). El del sector lejano no
+// llega.
 TEST(WorldObjectsDrawingTest, EachSeenObjectTakesARand)
 {
     const TwoMeshModels models;
     std::vector<WorldObject> objects{ObjectAt(Rock, 14400.0f, 12100.0f), ObjectAt(Rock, 100.0f, 100.0f),
-                                     ObjectAt(Rock, 14450.0f, 12150.0f)};
+                                     ObjectAt(Rock, 14450.0f, 12150.0f), ObjectAt(Rock, 14420.0f, 12120.0f)};
     objects[2].alpha = 0.0f;
+    objects[3].state.hiddenMesh = Client::World::HiddenObject;
     const auto polygon =
         Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
     Client::Render::Models::CrtRandom random(7);
@@ -201,8 +203,10 @@ TEST(WorldObjectsDrawingTest, EachSeenObjectTakesARand)
     DrawWorldObjects(batch, models, objects, polygon, nullptr, Login, {}, 0.0f,
                      Client::Scenes::ObjectFrameEffects{.random = &random});
     Client::Render::Models::CrtRandom expected(7);
-    (void)expected.Next();
-    (void)expected.Next();
+    for (int k = 0; k < 3; ++k)
+    {
+        (void)expected.Next();
+    }
     EXPECT_EQ(random.State(), expected.State());
     EXPECT_EQ(batch.Vertices().size(), 6u) << "el de alpha 0 no se dibuja";
 }
@@ -338,7 +342,7 @@ TEST(WorldObjectsDrawingTest, TheLanternGlowsAtTheBonesThatTheHorseLeft)
 
 // Un objeto de diez huesos dibujado antes del farol pisa el 9; su 8 es dummy (0x4eb973 no lo escribe) y
 // queda el del caballo. Con el alpha por debajo de 0,01, 0x5ffdf0 sale antes de posarlo y quedan los dos
-// del caballo. Con +0x58 en −2 lo posa (0x6002e0 es el que no lo dibuja).
+// del caballo; justo en 0,01, lo posa. Con +0x58 en −2 lo posa (0x6002e0 es el que no lo dibuja).
 TEST(WorldObjectsDrawingTest, TheLanternGlowsAtTheBonesOfTheLastPosedModel)
 {
     std::vector<WorldObject> objects{ObjectAt(static_cast<std::int16_t>(TenBoneModels::SecondRock), 100.0f, 100.0f),
@@ -359,6 +363,12 @@ TEST(WorldObjectsDrawingTest, TheLanternGlowsAtTheBonesOfTheLastPosedModel)
     const LanternGlow faded = GlowOf(objects, Client::World::ObjectScene::Login, 3);
     ASSERT_EQ(faded.sprites.size(), 2u);
     EXPECT_EQ(faded.sprites[1].position, *faded.horse9);
+
+    // `fcomp` con 0,01f y `test ah, 1`: con el alpha justo en 0,01 no sale.
+    objects[0].alpha = std::bit_cast<float>(0x3C23D70Au);
+    const LanternGlow edge = GlowOf(objects, Client::World::ObjectScene::Login, 3);
+    ASSERT_EQ(edge.sprites.size(), 2u);
+    EXPECT_EQ(edge.sprites[1].position, *edge.rock9) << "posado con el alpha en 0,01";
 }
 
 // El caso del farol es de la escena 2 (0x602f09): en otra, el rand() se saca igual pero no hay sprites.

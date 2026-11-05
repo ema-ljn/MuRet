@@ -8,6 +8,7 @@
 #include "World/Leaves.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
@@ -31,14 +32,33 @@ using SpecialObjectStep = std::function<bool(World::WorldObject&)>;
 void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, const IModelLibrary& models,
                       const SpecialObjectStep& special = {});
 
+// Lo que 0x602ed0 hace en el frame con cada objeto que llega a él, después de su dibujo (0x604a4d).
+struct ObjectFrameEffects
+{
+    // El rand() de la CRT (el de la tela): 0x602ef4 saca uno por objeto, antes de mirar la escena o el
+    // tipo. Sin él, 0x602ed0 no corre.
+    Render::Models::CrtRandom* random = nullptr;
+    // Donde van los sprites del farol (World::StreetLight); sin ellos no se piden.
+    World::FrameSprites* sprites = nullptr;
+    // Lo que el frame posó en el buffer global de la pose antes de los objetos, en su orden: el caballo
+    // (0x4453b0).
+    std::span<const PosedInTheBuffer> posedBefore;
+    // El caso del farol es de la escena 2 (0x602f09).
+    World::ObjectScene scene = World::ObjectScene::Other;
+};
+
 // 0x6046a0 con `objects`: por sector, en World::DrawOrder; el sector que pasa el trapecio en su centro
 // (x · 16 + 8, y · 16 + 8) con −180, y en él cada objeto que lo pasa en su lugar por 0,01f (en float) con
 // −30 (+0xdc), queda visto (+0x16c guarda el resultado; los de un sector que no pasa quedan sin ver,
 // como los apaga 0x606560) y se dibuja como dice World::DrawOf, con la luz del terreno en su lugar
 // (`lighting`, o 0 sin ella) y su animación `alpha` de un paso más (Render::Models::Interpolated).
+// Después de cada uno visto, `effects` (0x602ed0): su rand() y, con el farol en la escena 2, sus dos
+// sprites en los huesos 8 y 9 del último modelo posado que los tiene (LastPosedBonePoint): los objetos
+// dibujados antes, que 0x5ffdf0 posó (World::ObjectDraw::posed), o lo de `posedBefore`. Si ninguno, en
+// (0, 0, 0).
 void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::WorldObject> objects,
                       const World::TerrainPolygon& polygon, const World::TerrainLighting* lighting, std::uint8_t map,
-                      Core::Duration frameClock, float alpha);
+                      Core::Duration frameClock, float alpha, const ObjectFrameEffects& effects = {});
 
 // 0x52d220: World::StepModelEffect sobre cada efecto vivo, con el esqueleto de su modelo.
 void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary& models);

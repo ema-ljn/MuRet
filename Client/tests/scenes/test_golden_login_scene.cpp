@@ -552,8 +552,9 @@ TEST_F(GoldenLoginWorld, TheDragonDrawsAfterTheObjects)
 
 // CL7.6 B1: con lo global de la tela (como en main.cpp), el dibujo del personaje pide los sprites del
 // frame, los 30 destellos del casco blanco (0x455930) y después los cinco del cetro (0x509340, caso
-// 0x620), y van aditivos en su pase, el último de los modelos, con la vista en la identidad. Después van
-// las partículas (0x548550, CL7.6 B2): los alientos del caballo que haya.
+// 0x620), y van aditivos en su pase, el último de los modelos, con la vista en la identidad. Siguen los
+// dos del farol (CL7.6 B4). Después van las partículas (0x548550, CL7.6 B2): los alientos del caballo que
+// haya.
 TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
 {
     Client::Render::Models::ClothWorld cloth;
@@ -582,11 +583,12 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
         EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
         runs.emplace_back(command.state.texture->value, static_cast<int>(command.vertexCount / PerSprite));
     }
-    const std::vector<std::pair<int, int>> expected{{0x5ac, 30}, {0x5fd, 2}, {0x5ac, 1}, {0x5fd, 2}};
+    // Después de los del personaje, los dos del farol (0x602ed0, CL7.6 B4), en el dibujo de los objetos.
+    const std::vector<std::pair<int, int>> expected{{0x5ac, 30}, {0x5fd, 2}, {0x5ac, 1}, {0x5fd, 2}, {0x5ac, 2}};
     ASSERT_GE(runs.size(), expected.size());
-    const std::vector<std::pair<int, int>> sprites(runs.begin(), runs.begin() + 4);
+    const std::vector<std::pair<int, int>> sprites(runs.begin(), runs.begin() + 5);
     EXPECT_EQ(sprites, expected);
-    EXPECT_TRUE(std::all_of(runs.begin() + 4, runs.end(), [](const auto& run) { return run.first == 0x5f2; }))
+    EXPECT_TRUE(std::all_of(runs.begin() + 5, runs.end(), [](const auto& run) { return run.first == 0x5f2; }))
         << "después, solo los alientos";
     // 0x549510 los marca vistos antes del pase: 0x549290 los mide con el alpha en 1. El primer destello
     // (la columna 0, escala 0,4, sin giro) va a 0,4 del ancho de flare01, en coordenadas de ojo.
@@ -687,6 +689,80 @@ TEST_F(GoldenLoginWorld, TheBreathOfTheHorseComesFromItsHeadAsDrawnBefore)
     }
     ASSERT_GE(breaths, 2u) << "en 15 pasos, rand() % 3 da 0 más de una vez";
     EXPECT_EQ(matched, breaths) << "cada aliento, en la cabeza del caballo del dibujo anterior";
+    scene.Leave();
+}
+
+// CL7.6 B4: el farol del castillo (0x602ed0, caso 0x3c en la escena 2) pide dos sprites de flare01 en
+// las traslaciones de los huesos 8 y 9 del buffer global de la pose, pero Object61.bmd tiene un solo
+// hueso (Q-C140). Ningún objeto del mapa 55 tiene esos huesos y el logo tiene dos: los deja el caballo,
+// que se posa antes de los objetos (0x4453b0), con Object23 y Object24 (padre −1). El brillo sale sobre
+// el caballo, como se dibujó en ese frame, con la luz (L; 0,5 · L; 0,2 · L) y L entre 0,7 y 0,99.
+TEST_F(GoldenLoginWorld, TheLanternGlowsOnTheHorse)
+{
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    const Client::Render::Models::Skeleton* horseSkeleton = m_models.SkeletonOf(Client::Scenes::DarkHorseModel);
+    ASSERT_NE(horseSkeleton, nullptr);
+    Client::Scenes::DarkHorse horse;
+    for (int step = 0; step < 3; ++step)
+    {
+        scene.Step(Client::Input::InputState{});
+        Client::Scenes::StepDarkHorse(horse, *horseSkeleton, Client::Scenes::LoginCharacterStandingAction);
+        RecordingFrameTarget target;
+        scene.Render(target.BeginFrame(std::chrono::milliseconds{40 * (step + 1)}), 0.0f);
+        target.Present();
+        std::vector<FrameEvent> models;
+        std::ranges::copy_if(target.frames.back().events, std::back_inserter(models),
+                             [](const FrameEvent& event) { return event.kind == Kind::Models; });
+        ASSERT_EQ(models.size(), 2u) << "el mundo y los sprites";
+        ASSERT_TRUE(models.front().pass.has_value());
+        const glm::dmat4 toWorld = glm::inverse(glm::dmat4(models.front().pass->view));
+        // Los sprites del farol: los de flare01 que siguen al último del cetro (0x5fd).
+        const auto& commands = models.back().modelCommands;
+        const auto lastOfTheScepter = std::find_if(commands.rbegin(), commands.rend(), [](const auto& command)
+                                                   { return command.state.texture == TextureSlot{0x5fd}; });
+        ASSERT_NE(lastOfTheScepter, commands.rend());
+        std::vector<glm::dvec3> centers;
+        std::vector<Client::Render::ModelVertex> vertices;
+        for (auto it = lastOfTheScepter.base(); it != commands.end(); ++it)
+        {
+            const auto& command = *it;
+            if (command.state.texture != TextureSlot{0x5ac})
+            {
+                continue;
+            }
+            for (std::size_t quad = 0; quad < command.vertexCount / 6; ++quad)
+            {
+                glm::dvec3 center(0.0);
+                for (std::size_t k = 0; k < 6; ++k)
+                {
+                    const auto& vertex = models.back().modelVertices[command.firstVertex + (quad * 6) + k];
+                    center += glm::dvec3(vertex.position);
+                    vertices.push_back(vertex);
+                }
+                centers.push_back(glm::dvec3(toWorld * glm::dvec4(center / 6.0, 1.0)));
+            }
+        }
+        ASSERT_EQ(centers.size(), 2u) << "el paso " << step;
+        const Client::Scenes::DrawnObject drawn = Client::Scenes::DrawnDarkHorse(
+            horse, horseSkeleton, Client::Scenes::LoginCharacterTransform(), Client::Scenes::DarkHorseLoginScale, 0.0f);
+        for (std::size_t bone = 8; bone <= 9; ++bone)
+        {
+            const auto expected = Client::Scenes::PosedBonePoint(m_models, drawn, bone, {});
+            ASSERT_TRUE(expected.has_value());
+            EXPECT_LT(glm::length(centers[bone - 8] - glm::dvec3(*expected)), 0.05)
+                << "el paso " << step << ", el hueso " << bone;
+        }
+        for (const auto& vertex : vertices)
+        {
+            EXPECT_GE(vertex.color.red, 0.7f);
+            EXPECT_LE(vertex.color.red, 0.99f);
+            EXPECT_FLOAT_EQ(vertex.color.green, vertex.color.red * 0.5f);
+            EXPECT_NEAR(vertex.color.blue, vertex.color.red * 0.2f, 1e-6f);
+        }
+    }
     scene.Leave();
 }
 

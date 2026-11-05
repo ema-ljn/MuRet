@@ -860,16 +860,27 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     character.sprites = &m_sprites;
     DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
 
-    DrawDarkHorse(
-        canvas.models, m_models,
-        DrawnDarkHorse(m_horse, m_models.SkeletonOf(DarkHorseModel), character.object, DarkHorseLoginScale, alpha),
-        canvas.frameClock);
+    const DrawnObject horse =
+        DrawnDarkHorse(m_horse, m_models.SkeletonOf(DarkHorseModel), character.object, DarkHorseLoginScale, alpha);
+    DrawDarkHorse(canvas.models, m_models, horse, canvas.frameClock);
 
-    // 0x6046a0: los objetos del mundo y el logo, sector por sector.
+    // 0x6046a0: los objetos del mundo y el logo, sector por sector, con lo de 0x602ed0: un rand() por
+    // objeto y los dos sprites del farol en los huesos 8 y 9 del buffer global de la pose. Lo que cuelga
+    // del personaje lo pisó antes; el caballo, si se dibuja (0x5ffdf0, con el alpha desde 0,01), después.
+    constexpr float Drawn = 0.01f;
+    std::vector<PosedInTheBuffer> posed;
+    if (m_horse.alpha >= Drawn)
+    {
+        posed.push_back(PosedInTheBuffer{&m_models, horse});
+    }
     const LoginObjectModels objects(m_worldModels, m_logo);
     const World::TerrainLighting* lighting = m_terrain.IsLoaded() ? m_terrain.Lighting() : m_lighting.get();
     DrawWorldObjects(canvas.models, objects, m_objects, m_terrainPolygon, lighting, m_world ? m_world->map : 0,
-                     canvas.frameClock, alpha);
+                     canvas.frameClock, alpha,
+                     ObjectFrameEffects{.random = m_context.cloth != nullptr ? &m_context.cloth->random : nullptr,
+                                        .sprites = &m_sprites,
+                                        .posedBefore = posed,
+                                        .scene = World::ObjectScene::Login});
     // 0x52d620(0): los efectos con modelo, después de los objetos.
     DrawModelEffects(canvas.models, m_worldModels, m_effects.Effects(), lighting, canvas.frameClock, alpha);
     // 0x5306a0, después de 0x549510: las brasas, en el mundo.

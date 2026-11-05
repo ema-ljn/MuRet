@@ -1,5 +1,7 @@
 #include "Scenes/LoginModels.h"
 
+#include "Scenes/DarkSpirit.h"
+
 #include "Core/IClock.h"
 #include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
@@ -46,7 +48,6 @@ constexpr std::uint8_t PartLevel = 7;
 constexpr std::uint8_t WeaponLevel = 13;
 constexpr std::array<std::uint16_t, GameLogic::BodyPartCount> SetParts{0x102e, 0x122e, 0x142e, 0x162e, 0x182e};
 constexpr std::uint16_t Mace = 0x620;
-constexpr std::uint16_t Raven = 0x1c17;
 constexpr std::uint16_t Cape = 0x1c30;
 constexpr std::uint16_t DarkHorse = 0x1c16;
 
@@ -140,7 +141,7 @@ GameLogic::CharacterAppearance LoginCharacter()
         character.bodyParts[part] = GameLogic::WornItem{.model = SetParts[part], .level = PartLevel};
     }
     character.rightHand = GameLogic::WornItem{.model = Mace, .level = WeaponLevel};
-    character.leftHand = GameLogic::WornItem{.model = Raven};
+    character.leftHand = GameLogic::WornItem{.model = LoginRavenItem};
     character.wings = Cape;
     character.pet = DarkHorse;
     return character;
@@ -149,6 +150,11 @@ GameLogic::CharacterAppearance LoginCharacter()
 Render::Models::ObjectTransform LoginCharacterTransform()
 {
     return Render::Models::ObjectTransform{{10603.0f, 14112.0f, 580.0f}, {0.0f, 0.0f, 188.0f}, 1.6f, 0.0f};
+}
+
+DarkSpiritOwner LoginRavenOwner()
+{
+    return DarkSpiritOwner{.position = LoginCharacterTransform().position, .flags = 0};
 }
 
 std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, std::mt19937& random)

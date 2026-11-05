@@ -127,17 +127,24 @@ TEST(PlayerModelsTest, EveryRowIsAModelOfTheTable)
     }
 }
 
-// Lo que MuRet carga de 0x615700: el caballo oscuro (0x615f46) y los tres modelos que piden sus
-// texturas antes que él (0x6168f4, 0x61690a y 0x616920), todos de Skill\ y sin número.
-TEST(PlayerModelsTest, FromTheSkillLoaderComeTheDarkHorseAndTheThreeBeforeIt)
+// Lo que MuRet carga de 0x615700: el caballo oscuro (0x615f46), el cuervo (0x616026) y los tres
+// modelos que piden sus texturas antes que ellos (0x6168f4, 0x61690a y 0x616920), todos de Skill\ y
+// sin número.
+TEST(PlayerModelsTest, FromTheSkillLoaderComeTheDarkHorseTheRavenAndTheThreeBeforeThem)
 {
     const std::span<const ModelFile> files = SkillModelFiles();
 
-    ASSERT_EQ(files.size(), 4u);
-    const std::vector<std::uint16_t> models{files[0].model, files[1].model, files[2].model, files[3].model};
-    EXPECT_EQ(models, (std::vector<std::uint16_t>{0xbf, 0x145, 0x146, 0x147}));
-    const std::vector<std::string_view> names{files[0].name, files[1].name, files[2].name, files[3].name};
-    EXPECT_EQ(names, (std::vector<std::string_view>{"DarkHorse", "elf_skill", "WaveForce", "deathsp_eff"}));
+    ASSERT_EQ(files.size(), 5u);
+    std::vector<std::uint16_t> models;
+    std::vector<std::string_view> names;
+    for (const ModelFile& file : files)
+    {
+        models.push_back(file.model);
+        names.push_back(file.name);
+    }
+    EXPECT_EQ(models, (std::vector<std::uint16_t>{0xbf, 0xc0, 0x145, 0x146, 0x147}));
+    EXPECT_EQ(names,
+              (std::vector<std::string_view>{"DarkHorse", "DarkSpirit", "elf_skill", "WaveForce", "deathsp_eff"}));
     for (const ModelFile& file : files)
     {
         EXPECT_EQ(file.folder, "Skill\\") << file.name;

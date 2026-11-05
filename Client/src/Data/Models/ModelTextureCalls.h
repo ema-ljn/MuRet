@@ -35,9 +35,9 @@ inline constexpr Textures::Sampling ModelTextureSampling{Textures::Filter::Neare
 // las dos tablas). 26 modelos se piden dos veces, y la segunda encuentra los nombres de la primera.
 [[nodiscard]] std::span<const ModelTextureCall> ItemTextureCalls();
 
-// Las cuatro primeras de 0x615700 después de su 0x60d530(0x3b8), con Skill\: las de 0x145, 0x146 y
-// 0x147 y las del caballo oscuro (Data::Models::SkillModelFiles). Las otras, que van antes y después,
-// cuando entren las habilidades y los efectos.
+// Las cinco primeras de 0x615700 después de su 0x60d530(0x3b8), con Skill\: las de 0x145, 0x146 y
+// 0x147, las del caballo oscuro y las del cuervo (0xc0, Data::Models::SkillModelFiles). Las otras, que
+// van antes y después, cuando entren las habilidades y los efectos.
 [[nodiscard]] std::span<const ModelTextureCall> SkillTextureCalls();
 
 // Lo que 0x60f7d0 sube a mano con 0x63b870 y 0x63bd00, sin filtro y sin repetir, en slots fijos que

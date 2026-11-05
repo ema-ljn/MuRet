@@ -13,6 +13,7 @@
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/DarkSpirit.h"
 #include "Scenes/GameData.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoadedWorld.h"
@@ -143,6 +144,8 @@ private:
     [[nodiscard]] glm::vec3 GlobalPosePoint(std::size_t bone, const glm::vec3& offset,
                                             const DarkHorse& drawnHorse) const;
     void DrawTheModels(SceneCanvas& canvas, float alpha);
+    // 0x4182f0: el cuervo, si pasa el trapecio (si no, MissTheView), y su pose para la chispa.
+    void DrawTheRaven(SceneCanvas& canvas, float alpha);
     // La luz del terreno en (x, y), o 0 sin la del mundo.
     [[nodiscard]] glm::vec3 TerrainLightAt(const glm::vec3& position) const;
     void DrawTexts(SceneCanvas& canvas) const;
@@ -204,6 +207,8 @@ private:
     CharacterAnimation m_characterAnimation;
     // El caballo que monta (0x443fa0(0xbf, …) de 0x6349a0): sigue al personaje.
     DarkHorse m_horse;
+    // El cuervo del 0x1c17 del personaje (0x420d60 en 0x6349a0, CL7.6 C): con la tela y el terreno.
+    std::optional<DarkSpirit> m_spirit;
     // La tela del Dark Lord (0x50ba30), entre frames.
     CharacterCloth m_characterCloth;
     std::mt19937 m_random;

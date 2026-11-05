@@ -31,6 +31,7 @@
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/DarkSpirit.h"
 #include "Scenes/GameData.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/LoginModels.h"
@@ -51,6 +52,7 @@
 #include "UI/ServerListWindow.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
+#include "World/TerrainHeight.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -440,6 +442,19 @@ void LoginScene::PlaceTheModels()
     m_character = LoginCharacter();
     m_characterAnimation = {};
     m_horse = {};
+    // 0x420d60 (0x634a9d), después del personaje y del caballo, con el 0x1c17 en la mano izquierda: el
+    // cuervo nace en la celda del personaje, que el login deja en (0, 0) (Q-C130), a la altura del terreno
+    // ahí más 300, con 12 rand() de la CRT.
+    m_spirit.reset();
+    if (const World::WorldTerrain* terrain = m_terrain.Terrain(); m_context.cloth != nullptr && terrain != nullptr &&
+                                                                  m_character.leftHand &&
+                                                                  m_character.leftHand->model == LoginRavenItem)
+    {
+        constexpr int LoginCell = 0;
+        constexpr float CellCenter = 50.0f;
+        const double ground = World::TerrainHeightAt(*terrain->heights, *terrain->attributes, CellCenter, CellCenter);
+        m_spirit = CreateDarkSpirit(LoginCell, LoginCell, ground, m_context.cloth->random);
+    }
     if (const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel))
     {
         Render::Models::SetAction(m_characterAnimation.body, *skeleton, LoginCharacterStandingAction);
@@ -557,6 +572,19 @@ void LoginScene::StepTheWorld()
         player != nullptr)
     {
         Render::Models::SetAction(m_characterAnimation.body, *player, LoginCharacterStandingAction);
+    }
+    // 0x416a20 al final de 0x4fd5f0 del dueño, en 0x508f00: el cuervo. El grito lee 0x7d3a0f0 crudo, que
+    // sin un acceso abierto es la basura cifrada del contador (Q-C125): MuRet le pasa los pasos de la
+    // tela, y el grito no suena (no hay sonido).
+    if (const Render::Models::Skeleton* raven = m_models.SkeletonOf(DarkSpiritModel);
+        m_spirit && raven != nullptr && m_context.cloth != nullptr)
+    {
+        const float clock =
+            m_context.clock != nullptr
+                ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
+                : 0.0f;
+        (void)StepDarkSpirit(*m_spirit, *raven, LoginRavenOwner(), m_world ? m_world->map : 0, m_particles, clock,
+                             m_context.cloth->random, m_context.cloth->logicSteps);
     }
     // 0x52d220, después de los objetos (0x606560), el caballo (0x445230) y los personajes (0x508f00): los
     // efectos con modelo, el dragón.
@@ -876,6 +904,12 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     character.map = m_world ? m_world->map : 0;
     character.sprites = &m_sprites;
     DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
+    // 0x4182f0 al final de 0x50ba30: el cuervo, si pasa el trapecio; sus huesos del estado del paso quedan
+    // para la chispa del próximo (Q-C133).
+    if (m_spirit)
+    {
+        DrawTheRaven(canvas, alpha);
+    }
 
     const DrawnObject horse =
         DrawnDarkHorse(m_horse, m_models.SkeletonOf(DarkHorseModel), character.object, DarkHorseLoginScale, alpha);
@@ -903,6 +937,27 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     // 0x5306a0, después de 0x549510: las brasas, en el mundo.
     DrawLeaves(canvas.models, m_leaves);
     m_drawnSinceEntering = true;
+}
+
+void LoginScene::DrawTheRaven(SceneCanvas& canvas, float alpha)
+{
+    DarkSpirit& spirit = *m_spirit;
+    if (!DarkSpiritSeen(spirit, m_terrainPolygon))
+    {
+        MissTheView(spirit);
+        return;
+    }
+    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(DarkSpiritModel);
+    const glm::vec3 light = TerrainLightAt(spirit.position);
+    const World::WorldTerrain* terrain = m_terrain.Terrain();
+    const DrawnObject drawn = DrawnDarkSpirit(spirit, skeleton, light, alpha);
+    const float ground =
+        terrain != nullptr
+            ? static_cast<float>(World::TerrainHeightAt(*terrain->heights, *terrain->attributes,
+                                                        drawn.transform.position.x, drawn.transform.position.y))
+            : 0.0f;
+    DrawDarkSpirit(canvas.models, m_models, drawn, ground, canvas.frameClock);
+    spirit.pose = PosedWorldBones(m_models, DrawnDarkSpirit(spirit, skeleton, light, 0.0f));
 }
 
 // 0x604ab0 con el 0xa2 en la escena 2: la luz de las rutas en el objeto y en el blendMesh, y el avance a

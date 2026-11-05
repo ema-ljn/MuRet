@@ -6,6 +6,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/Texture.h"
+#include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CreatePreview.h"
 #include "Scenes/TextureSets.h"
@@ -216,11 +217,11 @@ class ModelTextureSlotsGoldenTest : public Client::Tests::MemoryDumpTest
 {
 };
 
-// El nombre de cada slot de 0x12e a 0x370, como lo dejan 0x60f7d0 y 0x611850, y de 0x3b8 a 0x3c6, como
-// los deja 0x615700 desde su 0x60d530(0x3b8) hasta el caballo, contra la tabla de 0x7d3a198 volcada
-// en Lorencia (0x38 bytes por slot, el nombre en +0). 0x138 y 0x139 son de LaceArrow, que 0x615700
-// carga encima (Q-C89); de 0x371 a 0x3b7 van las habilidades y los efectos que 0x615700 pide antes,
-// que MuRet todavía no carga.
+// El nombre de cada slot de 0x12e a 0x370, como lo dejan 0x60f7d0 y 0x611850, y de 0x3b8 a 0x3ca, como
+// los deja 0x615700 desde su 0x60d530(0x3b8) hasta el cuervo (0xc0, la quinta llamada, CL7.6 C), contra
+// la tabla de 0x7d3a198 volcada en Lorencia (0x38 bytes por slot, el nombre en +0). 0x138 y 0x139 son de
+// LaceArrow, que 0x615700 carga encima (Q-C89); de 0x371 a 0x3b7 van las habilidades y los efectos que
+// 0x615700 pide antes, que MuRet todavía no carga.
 TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
 {
     const auto dump = DumpFile(Client::Tests::LorenciaCapture, "lor_slots.bin");
@@ -237,9 +238,9 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
 
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
-    ASSERT_EQ(models.TextureSlots().Next(), TextureSlot{0x3c7});
+    ASSERT_EQ(models.TextureSlots().Next(), TextureSlot{0x3cb});
     std::size_t compared = 0;
-    for (std::uint16_t slot = 0x12e; slot < 0x3c7; ++slot)
+    for (std::uint16_t slot = 0x12e; slot < 0x3cb; ++slot)
     {
         if (slot == 0x138 || slot == 0x139 || (slot >= 0x371 && slot < 0x3b8))
         {
@@ -250,7 +251,30 @@ TEST_F(ModelTextureSlotsGoldenTest, StartupMatchesTheDump)
         EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{slot}), name) << std::hex << slot;
         compared += name.empty() ? 0u : 1u;
     }
-    EXPECT_EQ(compared, 489u + 15u);
+    EXPECT_EQ(compared, 489u + 15u + 4u);
+}
+
+// El cuervo (0xc0, Skill\DarkSpirit.bmd): sus mallas con las texturas de la quinta llamada de 0x615700
+// (0x3c7 a 0x3ca) y la malla 3 con dksbody.tga, que encuentra en 0x26f, donde la subió el 0x1c17
+// (06 § El cuervo).
+TEST_F(ModelTextureSlotsGoldenTest, TheRavenFindsItsBodyInTheBillsSlot)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    const auto meshes = models.MeshTextures(0xc0);
+    ASSERT_EQ(meshes.size(), 5u);
+    EXPECT_EQ(meshes[2], TextureSlot{0x3c9});
+    EXPECT_EQ(meshes[3], TextureSlot{0x26f});
+    EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{0x26f}), "dksbody.tga");
+    EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{0x3c9}), "dkonebody.jpg");
+    const auto* skeleton = models.SkeletonOf(0xc0);
+    ASSERT_NE(skeleton, nullptr);
+    EXPECT_EQ(skeleton->bones.size(), 77u);
+    EXPECT_EQ(skeleton->actions.size(), 4u);
 }
 // 0x61ca30 con 0x60d530(0x6f8): Logo05 y los cinco NewFace, siguiendo la tabla de la carga, dejan
 // sus 31 texturas de 0x6f8 a 0x716 (Q-C91). En el volcado de Lorencia, 0x61cc50 ya soltó los slots y

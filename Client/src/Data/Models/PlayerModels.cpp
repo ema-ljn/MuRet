@@ -480,9 +480,10 @@ constexpr std::array<ModelFile, 243> ItemFiles = {{
     {0xc1e, ItemFolder, "HDK_Staff", -1},         // 0x6117f8
 }};
 
-// Las cuatro llamadas a 0x60da30 de 0x615700 que MuRet ya hace, en su orden.
-constexpr std::array<ModelFile, 4> SkillFiles = {{
+// Las cinco llamadas a 0x60da30 de 0x615700 que MuRet ya hace, en su orden.
+constexpr std::array<ModelFile, 5> SkillFiles = {{
     {0xbf, SkillFolder, "DarkHorse", -1},    // 0x615f46
+    {0xc0, SkillFolder, "DarkSpirit", -1},   // 0x616026
     {0x145, SkillFolder, "elf_skill", -1},   // 0x6168f4
     {0x146, SkillFolder, "WaveForce", -1},   // 0x61690a
     {0x147, SkillFolder, "deathsp_eff", -1}, // 0x616920

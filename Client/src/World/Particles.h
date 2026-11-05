@@ -23,6 +23,9 @@ namespace Client::World
 {
 inline constexpr std::size_t ParticleCount = 3000;
 inline constexpr std::uint16_t BreathParticle = 0x5f2;
+// La chispa del cuervo (Effect\Spark03.jpg), con el subtipo 5 (06 § El cuervo).
+inline constexpr std::uint16_t SparkParticle = 0x5c6;
+inline constexpr std::int32_t RavenSparkSubtype = 5;
 
 struct Particle
 {
@@ -57,7 +60,8 @@ class Particles
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). MuRet solo arma el 0x5f2 con el subtipo 0: los demás no se crean.
+    // rand(). MuRet arma el 0x5f2 con el subtipo 0 (el aliento) y el 0x5c6 con el 5 (la chispa del
+    // cuervo, 0x5406e5): los demás no se crean.
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
                                       const glm::vec3& light, std::int32_t subtype, float scale, float worldClock,
                                       Render::Models::CrtRandom& random);

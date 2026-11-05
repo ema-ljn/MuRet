@@ -6,6 +6,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
@@ -18,6 +19,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <vector>
 
 namespace Client::World
 {
@@ -175,4 +177,20 @@ void DrawSubtractiveMesh(Render::ModelBatch& batch, const IModelLibrary& models,
 // luz y para las UV del cromo.
 void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& horse,
                    Core::Duration frameClock);
+
+// 0x602e90 con el caso del cuervo (0xc0) de 0x6002e0, con el nivel de la mascota en 0 (el A9 que lo
+// trae no llega al login): glColor3f(1, 1, 1) y el pase base de la malla 3 (dksbody.tga) y de la 2
+// (dkonebody.jpg, la del nivel por debajo de 20), con el color y la luz por vértice de 0x5ffce0; después
+// la sombra de las cinco mallas (0x4eff40(−1, −1, −1, −1), también las que no se dibujan, Q-C132) en
+// (0, 0, 0, 1), mezclada y aplastada sobre `groundHeight`, la altura del terreno bajo el cuervo
+// (0x600a0b). El original no la dibuja en los mapas 10, 24 a 29 y 36, y la pone en 0,2 en el 7, que
+// MuRet todavía no tiene.
+void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& spirit,
+                    float groundHeight, Core::Duration frameClock);
+
+// Los huesos de `object` posados como los posa DrawObject, en el mundo (la rotación por la escala; la
+// traslación por la escala más la posición, en float, como PosedBonePoint): lo que deja 0x4eb860 con su
+// octavo argumento en 1 en un buffer propio. Sin el modelo, vacío.
+[[nodiscard]] std::vector<Render::Models::OriginalMatrix> PosedWorldBones(const IModelLibrary& models,
+                                                                          const DrawnObject& object);
 } // namespace Client::Scenes

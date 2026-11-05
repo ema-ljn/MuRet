@@ -10,6 +10,9 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import emulate_cloth as ec  # noqa: E402
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import world  # noqa: E402
+
 EXE = os.environ['MURET_MAIN_EXE']
 MOVE_PET = 0x416a20
 SOUND = 0x41ed10
@@ -96,7 +99,9 @@ def main():
     emu.w16(o + 2, 0xc0)
     emu.wf(o + 0xc, 0.7)
     if start == 'cell0':
-        pos = [50.0, 50.0, 0.0 + 300.0]
+        # 0x415be0 + 0x4167b0: la celda (0, 0) del dueño, (50, 50) y la altura del terreno ahí (0x5f93c0)
+        # más 300 (0x6b8900). En el login el mundo ya está cargado: 450 + 300.
+        pos = [50.0, 50.0, struct.unpack('<f', struct.pack('<f', world.height_at(50.0, 50.0) + 300.0))[0]]
     else:
         pos = [10603.0, 14112.0, 580.0 + 250.0]
     emu.wfv(o + 0x10, pos)

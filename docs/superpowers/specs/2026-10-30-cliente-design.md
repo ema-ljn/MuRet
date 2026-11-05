@@ -259,18 +259,16 @@ Cada plan lo suma al escribirse. El detalle está en las sub-olas del
   - **Volver a la selección desde el juego** (el `F1 02` con 1): `SceneTransitions` ya lo deja, pero
     `CharacterSelectScene::Enter` pide la lista solo en `LoggedIn`, y con la sesión en
     `EnteringWorld` la escena quedaría con la lista vieja y sin poder elegir, crear ni borrar.
-- **CL7.6, los efectos.** El roadmap no tenía su ola. Van al final de la CL7 porque se dibujan en el
-  pase 3D del mundo, con su cámara, y para entonces el terreno y los objetos ya están. Entran:
-  - el aliento del caballo (`0x5f2`; antes se lo daba como polvo, que solo sale con el jinete en la
-    `0x4b`) y los efectos de sus acciones;
+- **CL7.6, los efectos.** El roadmap no tenía su ola. La CL7.R la parte en dos. Lo del login va al
+  principio de la CL7, en la CL7.6 A a C ([abajo](#el-login-completo-cl7r)): el dragón, la base de los
+  efectos con las brasas, el aliento del caballo (`0x5f2`; antes se lo daba como polvo, que solo sale
+  con el jinete en la `0x4b`), el brillo del cetro y los 30 destellos de la primera tela del Dark Lord
+  (`0x549440` → `0x549290`, leídos en la CL7.R), y el cuervo. Lo demás queda al final de la CL7, en el
+  pase 3D del mundo con su cámara:
   - la luz de abajo del elegido (`0x53fe70`, la `chasellight`): `0x61ca30` ya carga su textura, la
     `0x729`, y la selección no la dibuja;
-  - los de las armas;
-  - los 30 destellos de la primera tela del Dark Lord, que la CL6.6 arma y no dibuja (`0x549440` →
-    `0x549290`, leídos en la CL7.R).
-
-  Los del login (las brasas, el aliento, el cetro y los destellos) se adelantan: van con el login,
-  al principio de la CL7 (abajo).
+  - los efectos de las acciones del caballo (el polvo de los cascos con el jinete en la `0x4b`);
+  - los de las armas, salvo el cetro del login.
 - **CL8.**
   - **El menú de la selección:** la ventana de `+0x3d0`, que abren Esc y el botón del menú, como el
     menú del login (P-C13); y la de `+0x7e8`. Las dos, sin leer.
@@ -306,8 +304,8 @@ de El mundo del login a Lo demás del login) lo leyó entero, y la CL7 arranca p
    contra el emulado, su dibujo, su sombra y su estela.
 
 Después sigue la CL7 con Lorencia (CL7.3 en adelante). Quedan para sus olas: el cursor del juego
-(CL8), la cabeza que gira al azar (P-C17), la música y el clic (CL10) y las ventanas de Esc y de los
-créditos (CL8).
+(CL8), la cabeza que gira al azar (P-C15 h y P-C17, con Lorencia en la CL7), la música y el clic
+(CL10) y las ventanas de Esc y de los créditos (CL8).
 
 ## Cómo el research se vuelve test
 

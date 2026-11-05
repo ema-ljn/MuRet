@@ -40,3 +40,21 @@ def load_height(world=56,scale=None):
     h=b[0x43C:0x43C+65536]
     s=scale if scale is not None else (3.0 if world==56 else 1.5)
     return [x*s for x in h]
+def height_at(x, y, world=56):
+    # 0x5f93c0 en la escena 2: la altura bilineal de las cuatro celdas alrededor de (x/100, y/100).
+    # Con el bit 0x40 del atributo la celda tiene una altura fija (DAT_006c9d5c), que este lector no
+    # tiene: con esas celdas, error.
+    H = load_height(world)
+    att = load_att(world)
+    fx, fy = x * 0.01, y * 0.01
+    cx, cy = int(fx), int(fy)
+    i = cy * 256 + cx
+    if struct.unpack_from('<H', att, 4 + 2 * i)[0] & 0x40:
+        raise ValueError('celda con altura fija (bit 0x40)')
+    a = H[(cy & 255) * 256 + (cx & 255)]
+    b = H[((cy + 1) & 255) * 256 + (cx & 255)]
+    c = H[(cy & 255) * 256 + ((cx + 1) & 255)]
+    d = H[((cy + 1) & 255) * 256 + ((cx + 1) & 255)]
+    low = (b - a) * (fy - cy) + a
+    high = (d - c) * (fy - cy) + c
+    return (fx - cx) * (high - low) + low

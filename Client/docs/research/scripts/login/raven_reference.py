@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Reimplementación del paso del cuervo (0x416a20) en los estados 0 y 1, escrita desde la lectura del
-ensamblador (C-cuervo-y-resto.md), para compararla con emulate_raven.py. Dueño quieto, sin la
+ensamblador (06 § El cuervo), para compararla con emulate_raven.py. Dueño quieto, sin la
 bandera 0x4000, fuera de zona segura y en el mapa 0x37 (altura 350)."""
 import json
+import os
 import math
 import struct
 import sys
@@ -72,7 +73,13 @@ def turn_angle(a, b, d):  # 0x4e9560 (a, b, d floats; devuelve el valor de st0)
     return hi - 360.0
 
 
-DEG = f32(0.01745329238474369)  # 0x6ba360, a comprobar
+DEG = f32(0.01745329238474369)  # 0x6ba360
+
+# Donde nace en el login: la celda (0, 0) del dueño, (50, 50), y la altura del terreno ahí más 300
+# (0x415be0 + 0x4167b0, con 0x5f93c0 sobre World56).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import world  # noqa: E402
+START_Z = f32(world.height_at(50.0, 50.0) + 300.0)
 
 
 def angle_matrix(ang):  # 0x5fc8f0
@@ -179,7 +186,7 @@ def main():
     emu = json.load(open(sys.argv[4]))
     rand = Rand(seed)
     owner = (10603.0, 14112.0, 580.0)
-    pos = [50.0, 50.0, 300.0] if start == 'cell0' else [10603.0, 14112.0, 830.0]
+    pos = [50.0, 50.0, START_Z] if start == 'cell0' else [10603.0, 14112.0, 830.0]
     o = {'pos': pos, 'ang': [0.0, 0.0, 0.0], 'dir': [0.0, 0.0, 0.0], 'state': 0, 'action': 0, 'frame': 0.0,
          'counter': 0}
     worst = 0.0

@@ -541,8 +541,8 @@ solo lo lee.
   es un efecto que vuela en ocho sin azar, el cuervo es `DarkSpirit.bmd` y nace lejos por un quirk de
   las celdas, y las bocanadas blancas son el aliento del caballo, no polvo. El dragón, el cuervo y los
   objetos están emulados sobre el código real, y el paso del cuervo ya tiene una reimplementación que
-  da bit a bit lo mismo. La CL7 arranca por el login, en cuatro sub-olas (06 § El mundo del login a §
-  Lo demás del login, P-C23).
+  da bit a bit lo mismo. La CL7 arranca por el login, en cinco sub-olas (la CL7.1, la CL7.2 y la CL7.6 A a C; 06 § El
+  mundo del login a § Lo demás del login, P-C23).
 
 ## Conceptos
 

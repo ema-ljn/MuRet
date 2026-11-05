@@ -27,8 +27,7 @@ class DrawEmu(Emu):
                 e.ret(0,n)
             return h
         # RenderBody(flags, alpha, blendMesh, blendLight, U, V, hiddenMesh, forcedTexture)
-        self.at(0x4ef0c0,thiscall_rec('RenderBody',8,'iffffffi'.replace('ffffffi','fiffffi')))
-        self.at(0x4ef0c0,thiscall_rec('RenderBody',8,'ifiiffii'))
+        self.at(0x4ef0c0,thiscall_rec('RenderBody',8,'ififffii'))
         # 0x4ecc30(mesh, flags, alpha, blendMesh, light, U, V, texture)
         self.at(0x4ecc30,thiscall_rec('RenderMesh',8,'iififfii'))
         self.at(0x4eff40,thiscall_rec('Shadow',4,'iiii'))

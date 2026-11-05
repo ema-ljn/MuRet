@@ -88,6 +88,64 @@ TEST(GlTraceTest, ABlockKeepsItsTexture)
     EXPECT_EQ(blocks[1].vertices[0].position, glm::vec3(10.0f, 20.0f, 0.0f));
 }
 
+// Cada bloque con el estado de GL de la mezcla al llamar a glBegin (CL7.1: el pase de alfa del
+// terreno): el de GL al empezar (sin mezcla, ONE / ZERO, sin alpha test, sin culling, sin depth test y
+// escribiendo la profundidad) hasta que una llamada lo cambia. glEnable de otra cosa no cuenta.
+TEST(GlTraceTest, ABlockKeepsTheStateOfGl)
+{
+    const GlTrace trace = Parse("glBegin(GL_TRIANGLE_FAN)\n"
+                                "glEnd()\n"
+                                "glEnable(GL_BLEND)\n"
+                                "glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA)\n"
+                                "glEnable(GL_CULL_FACE)\n"
+                                "glDisable(GL_CULL_FACE)\n"
+                                "glEnable(GL_ALPHA_TEST)\n"
+                                "glEnable(GL_DEPTH_TEST)\n"
+                                "glDepthMask(false)\n"
+                                "glEnable(GL_TEXTURE_2D)\n"
+                                "glBegin(GL_TRIANGLE_FAN)\n"
+                                "glEnd()\n"
+                                "glDisable(GL_BLEND)\n"
+                                "glDepthMask(true)\n"
+                                "glBegin(GL_TRIANGLES)\n"
+                                "glEnd()\n"
+                                "wglSwapBuffers(2C010564)=true \n");
+
+    ASSERT_EQ(trace.frames.size(), 1u);
+    const auto& blocks = trace.frames[0].blocks;
+    ASSERT_EQ(blocks.size(), 3u);
+    EXPECT_EQ(blocks[0].state, Client::Tests::GlTraceState{});
+    EXPECT_FALSE(blocks[0].state.blend);
+    EXPECT_EQ(blocks[0].state.blendSource, "GL_ONE");
+    EXPECT_EQ(blocks[0].state.blendDestination, "GL_ZERO");
+    EXPECT_TRUE(blocks[0].state.depthMask);
+
+    EXPECT_TRUE(blocks[1].state.blend);
+    EXPECT_EQ(blocks[1].state.blendSource, "GL_SRC_ALPHA");
+    EXPECT_EQ(blocks[1].state.blendDestination, "GL_ONE_MINUS_SRC_ALPHA");
+    EXPECT_FALSE(blocks[1].state.cullFace);
+    EXPECT_TRUE(blocks[1].state.alphaTest);
+    EXPECT_TRUE(blocks[1].state.depthTest);
+    EXPECT_FALSE(blocks[1].state.depthMask);
+
+    EXPECT_FALSE(blocks[2].state.blend);
+    EXPECT_EQ(blocks[2].state.blendSource, "GL_SRC_ALPHA");
+    EXPECT_TRUE(blocks[2].state.alphaTest);
+    EXPECT_TRUE(blocks[2].state.depthMask);
+}
+
+// Una llamada del estado con otros argumentos es un error con su línea.
+TEST(GlTraceTest, AMalformedStateCallIsAnError)
+{
+    for (const std::string line : {"glBlendFunc(GL_ONE)", "glDepthMask(maybe)", "glEnable()"})
+    {
+        std::istringstream input(Header + line + "\n");
+        const auto trace = ParseGlTrace(input);
+        ASSERT_FALSE(trace.HasValue()) << line;
+        EXPECT_NE(trace.Error().find("línea 6"), std::string::npos) << trace.Error();
+    }
+}
+
 // Las llamadas de las matrices en el orden de la traza, con sus números, y los viewports.
 TEST(GlTraceTest, ReadsTheMatricesInOrder)
 {

@@ -217,6 +217,15 @@ slot de Q-C19; sin diferencias en geometría, UV, textura ni alfa):
   pueden medir (canal rojo > 8); los otros 123 salen más brillantes, nunca más oscuros (×1,1 a
   ×3,1): luces dinámicas que se suman a la base (fuego, efectos),
   *inferido*, sin identificar quién las suma.
+- **El estado de GL de los dos pases** (*verificado* en la traza, CL7.1): el opaco (`0x5fa260`,
+  `0x620980`) va sin mezcla, con culling y depth test y escribiendo la profundidad, en los 329; el de
+  alfa (`0x5fa350`, `0x620a00(1)`) con `GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA`, el alpha test de la
+  traza (`GL_GREATER`, 0,25), sin culling, con depth test y escribiendo la profundidad, en los 141. Son
+  las mezclas `Opaque` y `Alpha` del `ModelBatch`.
+- **La luz de cada vértice** sale de `0x7b4ccc4` (*estático*, `0x5fa260` y `0x5fa350`): la luz
+  sombreada de `0x5f8d90`, que `0x5fbf60` copia de `0x7c0ccc4` en cada paso y donde se suman las
+  luces dinámicas ([La luz del terreno en un punto](#la-luz-del-terreno-en-un-punto)). En la zona plana
+  de la traza da lo mismo que el píxel del OZJ.
 - **El orden importa** para la mezcla y está verificado: bloques de 4 × 4 por (fila de bloque,
   columna de bloque), dentro del bloque las celdas por (y, x), y el pase de alfa de una celda
   inmediatamente después de su pase opaco (los 28 bloques y las 141 celdas con alfa de la traza).

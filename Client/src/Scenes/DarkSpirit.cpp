@@ -4,7 +4,9 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
+#include "Scenes/CharacterDrawing.h"
 #include "World/Particles.h"
+#include "World/TerrainCulling.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -75,6 +77,12 @@ constexpr double Quarter = 90.0;
 constexpr double HalfTurn = 180.0;
 constexpr double ThreeQuarters = 270.0;
 constexpr double Turn = 360.0;
+// 0x418301: el trapecio con su lugar por 0,01f (0x6b88d4) y −20 (0xc1a00000); sin pasarlo, la velocidad
+// en 3 (0x40400000) salvo en el estado 4.
+constexpr double CellsPerUnit = static_cast<double>(0.01f);
+constexpr double ViewMargin = -20.0;
+constexpr float UnseenSpeed = 3.0f;
+constexpr std::uint8_t LandingState = 4;
 
 float F32(double value)
 {
@@ -181,13 +189,51 @@ DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Render::M
     DarkSpirit spirit;
     spirit.position = glm::vec3(static_cast<float>((cellX * CellSize) + CellCenter),
                                 static_cast<float>((cellY * CellSize) + CellCenter), F32(groundHeight + BirthHeight));
+    spirit.previousPosition = spirit.position;
     return spirit;
+}
+
+bool DarkSpiritSeen(const DarkSpirit& spirit, const World::TerrainPolygon& polygon)
+{
+    const auto cells = [](float coordinate)
+    { return static_cast<double>(F32(static_cast<double>(coordinate) * CellsPerUnit)); };
+    return World::PolygonContains(polygon, cells(spirit.position.x), cells(spirit.position.y), ViewMargin);
+}
+
+void MissTheView(DarkSpirit& spirit)
+{
+    spirit.speed = UnseenSpeed;
+    if (spirit.state != LandingState)
+    {
+        spirit.state = 0;
+    }
+}
+
+DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Render::Models::Skeleton* skeleton,
+                            const glm::vec3& terrainLight, float stepAlpha)
+{
+    DrawnObject drawn;
+    drawn.model = DarkSpiritModel;
+    drawn.animation = spirit.animation;
+    if (skeleton != nullptr && spirit.animation.action < skeleton->actions.size())
+    {
+        drawn.animation = Render::Models::Interpolated(spirit.animation, skeleton->actions[spirit.animation.action],
+                                                       FrameStep, stepAlpha);
+    }
+    drawn.transform.position = spirit.position + ((spirit.position - spirit.previousPosition) * stepAlpha);
+    drawn.transform.angles = spirit.angles;
+    drawn.transform.scale = spirit.scale;
+    drawn.color = terrainLight + spirit.light;
+    drawn.alpha = spirit.alpha;
+    drawn.vertexLight = true;
+    return drawn;
 }
 
 bool StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton, const DarkSpiritOwner& owner,
                     std::uint8_t map, World::Particles& particles, float worldClock, Render::Models::CrtRandom& random,
                     std::int32_t counter)
 {
+    spirit.previousPosition = spirit.position;
     if ((owner.flags & OwnerStops) != 0)
     {
         return false;
@@ -282,6 +328,7 @@ bool StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton
     {
         spirit.position =
             glm::vec3(owner.position.x, owner.position.y, F32(static_cast<double>(owner.position.z) + JumpHeight));
+        spirit.previousPosition = spirit.position;
         spirit.far = 0;
     }
     return shouts;

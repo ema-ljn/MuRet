@@ -2,6 +2,7 @@
 
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
+#include "Scenes/CharacterDrawing.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -17,6 +18,7 @@ struct Skeleton;
 namespace Client::World
 {
 class Particles;
+struct TerrainPolygon;
 } // namespace Client::World
 
 // El cuervo (CL7.6 C): el pájaro del ítem 0x1c17 en la mano del Dark Lord, el modelo 0xc0
@@ -40,6 +42,9 @@ struct DarkSpirit
     std::uint8_t state = 0;                   // +0x110: 0 rápido (dirección y < −12), 1 lento
     Render::Models::AnimationState animation; // +0x111 la acción, +0x114 el frame
     float alpha = 1.0f;                       // +0x174: aparece de golpe
+    // La posición antes del último paso, para dibujarlo entre dos pasos (D-C4); el salto junto al dueño
+    // la pisa con la nueva.
+    glm::vec3 previousPosition{};
     // +0x120: sus huesos como los dejó el último dibujo, en el mundo (0x602e90 con el segundo argumento
     // en 0). Antes del primero, vacío (Q-C133).
     std::vector<Render::Models::OriginalMatrix> pose;
@@ -69,4 +74,16 @@ struct DarkSpiritOwner
 bool StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton, const DarkSpiritOwner& owner,
                     std::uint8_t map, World::Particles& particles, float worldClock, Render::Models::CrtRandom& random,
                     std::int32_t counter);
+
+// 0x4182f0: si el cuervo pasa el trapecio de 0x5fba90 en su (x, y) por 0,01f, con −20. Si no, el dibujo
+// le pone la velocidad en 3 y, salvo en el estado 4 (0x418375), el estado en 0 (MissTheView).
+[[nodiscard]] bool DarkSpiritSeen(const DarkSpirit& spirit, const World::TerrainPolygon& polygon);
+void MissTheView(DarkSpirit& spirit);
+
+// Lo que se dibuja del cuervo (DrawDarkSpirit) entre dos pasos (`stepAlpha` de un paso más, D-C4): el
+// 0xc0 con su escala, sus ángulos y la posición más lo que se movió en el último paso por `stepAlpha`,
+// la animación interpolada, la luz del terreno en su lugar (`terrainLight`) más la suya, la luz por
+// vértice y su alpha. Con `stepAlpha` en 0, el estado del paso: el que posa el original.
+[[nodiscard]] DrawnObject DrawnDarkSpirit(const DarkSpirit& spirit, const Render::Models::Skeleton* skeleton,
+                                          const glm::vec3& terrainLight, float stepAlpha);
 } // namespace Client::Scenes

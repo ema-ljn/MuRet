@@ -933,6 +933,10 @@ constexpr Render::Color DarkHorseChromeColor{1.0f, 0.8f, 0.3f, 1.0f};
 constexpr std::size_t DarkHorseShadowMesh = 8;
 constexpr Render::Color DarkHorseShadowColor{0.0f, 0.0f, 0.0f, 0.7f};
 constexpr Render::ModelDrawState BlendedShadowState{std::nullopt, Render::ModelBlend::BlendedShadow, true};
+// El caso 0xc0: las mallas que dibuja con el nivel de la mascota en 0, en su orden, y su sombra
+// (glColor4f(0, 0, 0, 1), 0x6009eb).
+constexpr std::array<std::size_t, 2> DarkSpiritMeshes{3, 2};
+constexpr Render::Color DarkSpiritShadowColor{0.0f, 0.0f, 0.0f, 1.0f};
 } // namespace
 
 void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
@@ -1008,6 +1012,66 @@ void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const
         draw.skinned = &flat;
         Triangles(batch, draw, BlendedShadowState, DarkHorseShadowColor, PassUv{});
     }
+}
+
+void DrawDarkSpirit(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& spirit,
+                    float groundHeight, Core::Duration frameClock)
+{
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    const std::vector<MeshDraw> draws = ObjectMeshDraws(models, spirit, frameClock, skinned);
+    for (const std::size_t mesh : DarkSpiritMeshes)
+    {
+        if (const auto draw = std::ranges::find(draws, mesh, &MeshDraw::index); draw != draws.end())
+        {
+            DrawBase(batch, *draw);
+        }
+    }
+    // 0x600a0b: 0x4eff40 aplasta desde (x, y, la altura del terreno ahí), que le escribe a +0x6c..+0x74.
+    const glm::vec3 ground(spirit.transform.position.x, spirit.transform.position.y, groundHeight);
+    for (const MeshDraw& draw : draws)
+    {
+        Render::Models::SkinnedMesh flat = *draw.skinned;
+        for (glm::vec3& position : flat.positions)
+        {
+            position = Render::Models::FlattenOnTheGround(position, ground);
+        }
+        MeshDraw shadow = draw;
+        shadow.skinned = &flat;
+        Triangles(batch, shadow, BlendedShadowState, DarkSpiritShadowColor, PassUv{});
+    }
+}
+
+std::vector<Render::Models::OriginalMatrix> PosedWorldBones(const IModelLibrary& models, const DrawnObject& object)
+{
+    const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
+    if (skeleton == nullptr)
+    {
+        return {};
+    }
+    std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(1.0f));
+    if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
+    {
+        return {};
+    }
+    constexpr std::size_t Rows = 3;
+    constexpr std::size_t Columns = 4;
+    std::vector<Render::Models::OriginalMatrix> world;
+    world.reserve(bones.size());
+    for (const BoneTransform& bone : bones)
+    {
+        Render::Models::OriginalMatrix matrix = Render::Models::OriginalMatrixOf(bone);
+        for (std::size_t row = 0; row < Rows; ++row)
+        {
+            for (std::size_t column = 0; column + 1 < Columns; ++column)
+            {
+                matrix[(row * Columns) + column] *= object.transform.scale;
+            }
+            float& translation = matrix[(row * Columns) + Columns - 1];
+            translation = (translation * object.transform.scale) + object.transform.position[static_cast<int>(row)];
+        }
+        world.push_back(matrix);
+    }
+    return world;
 }
 
 std::optional<glm::vec3> PosedBonePoint(const IModelLibrary& models, const DrawnObject& object, std::size_t bone,

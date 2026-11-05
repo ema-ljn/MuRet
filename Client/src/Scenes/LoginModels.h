@@ -41,6 +41,9 @@ struct ModelObject
 // El logo: Logo03.bmd en el 0xa2 (0x61c7c0: 0x60da30(0xa2, "Data\\Logo\\", "Logo", 3)), con sus
 // texturas de Logo\ por 0x60d5f0(0xa2, "Logo\\", 0x2901, 0x2601, 1): repitiendo y con GL_LINEAR.
 inline constexpr std::uint16_t LoginLogoModel = 0xa2;
+// El 0x1c17 (Item\SpiritBill.bmd) que el personaje del login lleva en la mano izquierda: el ítem del
+// cuervo (06 § El cuervo).
+inline constexpr std::uint16_t LoginRavenItem = 0x1c17;
 inline constexpr Data::Models::ModelFile LoginLogoFile{LoginLogoModel, "Logo\\", "Logo", 3};
 inline constexpr Data::Textures::Sampling LoginLogoSampling{Data::Textures::Filter::Linear,
                                                             Data::Textures::Wrap::Repeat};

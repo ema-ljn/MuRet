@@ -1377,10 +1377,18 @@ fuente es *inferido*, por comparación. MuRet, hasta la CL7, no dibuja nada de e
 - **En MuRet** (CL7.2): `Scenes::WorldModels` carga los modelos (el dragón `0xb4` desde `0x69` y el
   lazo genérico desde `0x41c`, con la tabla de la carga), `World::WorldObjects` crea, avanza y prepara
   el dibujo de cada objeto, y `Scenes::WorldObjectsDrawing` los recorre por sector, con el trapecio de
-  la CL7.1: el sector en su centro (x · 16 + 8, y · 16 + 8, *inferido*) con −180 y el objeto en su lugar
-  por 0,01 con −30. El dibujo prende `+0x16c` y no lo apaga (quién lo apaga no está leído). **Los 276
-  objetos dan lo mismo que el código real emulado**, bit a bit, al crearse, en tres pasos y en lo que
-  le pasan a `RenderBody` o a `RenderMesh` (`GoldenWorldObjects`, `tests/vectors/world55`). El remolino
+  la CL7.1: el sector en su centro (x · 16 + 8, y · 16 + 8: `local_18 = 8; += 0x10` en `0x6046a0`) con
+  −180 y el objeto en su lugar por 0,01f, guardado en float, con −30. `0x6046a0` guarda en `+0x16c` el
+  resultado del test de cada objeto, y `0x606560` apaga el de los objetos de un sector que no pasó, sin
+  avanzarlos, y avanza los demás sector por sector, como el dibujo (*estático*, revisión de la CL7.2).
+  El sector de cada objeto sale de la posición del archivo, antes de los casos por tipo, con el
+  producto por 0,000625f en la x87, sin redondear (`0x60666c`): en los múltiplos de 1.600 el float
+  daría el sector siguiente. `0x604ab0` sale después del alpha si quedó por debajo de 0,01, y
+  `0x5ffce0` sin luz por vértice suma al rojo el producto sin guardarlo en float. **Los 276 objetos dan
+  lo mismo que el código real emulado**, bit a bit, al crearse, en tres pasos y en lo que le pasan a
+  `RenderBody` (el modo, el alpha, el blendMesh, su luz, la U, la V, la malla oculta, el color y la
+  luz por vértice) o a `RenderMesh` (la malla, el alpha, el blendMesh, su luz, la U, la V y el color)
+  (`GoldenWorldObjects`, `tests/vectors/world55`). El remolino
   90 va por la mezcla nueva `ModelBlend::Subtractive`. El logo es uno más de la lista, al final (lo
   crea `0x61c7c0` después de la carga), con su paso de la CL6.4. Dos diferencias con el original, por
   la tabla de la carga de MuRet, que todavía no tiene las de `0x615700` más allá de las cuatro

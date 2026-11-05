@@ -337,6 +337,57 @@ TEST_F(GoldenLoginWorld, TheLogoIsAWorldObject)
     }
 }
 
+// 0x606560 solo avanza los objetos que ya se dibujaron: los pasos que corren antes del primer dibujo
+// (el del mismo frame que trae la carga, o los de la espera del connect, Q-C85) no los mueven.
+TEST_F(GoldenLoginWorld, TheObjectsDoNotStepBeforeTheirFirstDraw)
+{
+    const auto objectVertices = [](const FrameEvent& frame)
+    {
+        std::vector<glm::vec3> positions;
+        for (const auto& command : frame.modelCommands)
+        {
+            if (IsWorldObject(command))
+            {
+                for (std::size_t k = 0; k < command.vertexCount; ++k)
+                {
+                    positions.push_back(frame.modelVertices[command.firstVertex + k].position);
+                }
+            }
+        }
+        return positions;
+    };
+    LoginScene first(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
+                     &m_models.TextureSlots());
+    ASSERT_TRUE(first.Enter().HasValue());
+    const auto drawnFirst = objectVertices(Frame(first, 0));
+    first.Leave();
+    LoginScene stepped(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
+                       &m_models.TextureSlots());
+    ASSERT_TRUE(stepped.Enter().HasValue());
+    EXPECT_EQ(objectVertices(Frame(stepped, 5)), drawnFirst);
+    stepped.Leave();
+}
+
+// El original saltea sin avisar un modelo que falta (Q-C23); MuRet lo dice una vez por entrada, con los
+// tipos que pide el .obj y no tienen modelo: en el Data\ del laboratorio, el 82 (Object83.bmd).
+TEST_F(GoldenLoginWorld, TheObjWarnsOfTheModelsThatAreMissing)
+{
+    LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
+                     &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    std::size_t warnings = 0;
+    for (std::size_t k = 0; k < m_sink.lines.size(); ++k)
+    {
+        if (m_sink.levels[k] == LogLevel::Warning && m_sink.lines[k].find("no tienen modelo") != std::string::npos)
+        {
+            ++warnings;
+            EXPECT_NE(m_sink.lines[k].find("82"), std::string::npos) << m_sink.lines[k];
+        }
+    }
+    EXPECT_EQ(warnings, 1u);
+    scene.Leave();
+}
+
 // Cada entrada vuelve a cargar el mundo (0x61a560) y a crear los objetos (0x606660): el primer frame
 // de la segunda es el de la primera, aunque en el medio los remolinos giraron y el 90 se prendió.
 TEST_F(GoldenLoginWorld, EnteringAgainCreatesTheObjectsAgain)

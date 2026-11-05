@@ -7,6 +7,7 @@
 #include "Core/IClock.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
+#include "Data/Terrain/TerrainObjects.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Textures/TextureSet.h"
 #include "GameLogic/CharacterAppearance.h"
@@ -62,6 +63,7 @@
 #include <cstdint>
 #include <optional>
 #include <random>
+#include <set>
 #include <span>
 #include <string>
 #include <string_view>
@@ -194,6 +196,8 @@ World::WorldObject LogoWorldObject()
     object.light = logo.light;
     object.speed = logo.speed;
     object.vertexLight = false;
+    object.sectorX = World::SectorOf(object.transform.position.x);
+    object.sectorY = World::SectorOf(object.transform.position.y);
     return object;
 }
 
@@ -326,6 +330,24 @@ void LoginScene::LoadTheObjects()
         return;
     }
     m_objectRecords = std::move(records).Value();
+    // El original los saltea sin avisar (Q-C23); MuRet lo dice una vez, con los tipos.
+    std::set<std::int16_t> missing;
+    for (const Data::Terrain::TerrainObject& record : m_objectRecords)
+    {
+        if (m_worldModels.Find(static_cast<std::uint16_t>(record.type)) == nullptr)
+        {
+            missing.insert(record.type);
+        }
+    }
+    if (!missing.empty())
+    {
+        std::string types;
+        for (const std::int16_t type : missing)
+        {
+            types += (types.empty() ? "" : ", ") + std::to_string(type);
+        }
+        m_context.log.Warning("el .obj del mundo pide tipos que no tienen modelo y no se dibujan: {}", types);
+    }
 }
 
 Core::Expected<void, std::string> LoginScene::LoadTheLogo()
@@ -457,21 +479,16 @@ void LoginScene::StepTheWorld()
     }
     // 0x606560 → 0x604ab0, solo con los objetos que ya se dibujaron (+0x16c, del frustum de 0x6046a0): los
     // del mundo con los casos del mapa 55, y el logo con los suyos.
-    for (std::size_t k = 0; k < m_objects.size(); ++k)
-    {
-        World::WorldObject& object = m_objects[k];
-        if (!object.seen)
-        {
-            continue;
-        }
-        if (k == m_logoIndex)
-        {
-            StepTheLogo(object);
-            continue;
-        }
-        World::StepWorldObject(object, m_world ? m_world->map : 0,
-                               m_worldModels.SkeletonOf(static_cast<std::uint16_t>(object.type)));
-    }
+    StepWorldObjects(m_objects, m_world ? m_world->map : 0, m_worldModels,
+                     [this](World::WorldObject& object)
+                     {
+                         if (!m_logoIndex || &object != &m_objects[*m_logoIndex])
+                         {
+                             return false;
+                         }
+                         StepTheLogo(object);
+                         return true;
+                     });
     // 0x445230 → 0x444010: el caballo, con la acción que el jinete tiene en este paso (la de arriba, o la
     // del gesto que todavía no terminó).
     if (const Render::Models::Skeleton* horse = m_models.SkeletonOf(DarkHorseModel))

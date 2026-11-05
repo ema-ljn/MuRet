@@ -6,7 +6,6 @@
 #include "Core/Expected.h"
 #include "Data/Text/TextTable.h"
 #include "GameLogic/CharacterAppearance.h"
-#include "Render/Models/Pose.h"
 #include "Input/InputState.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"

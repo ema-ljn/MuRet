@@ -1,13 +1,13 @@
 #pragma once
 
 #include "Data/Terrain/TerrainObjects.h"
-#include "Render/Models/Animation.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <vector>
@@ -40,6 +40,9 @@ struct WorldObject
     Render::Models::AnimationState animation;  // +0x111 la acción, +0x114 el frame
     // +0x16c: se vio en el último dibujo; 0x606560 solo avanza los que tienen esto.
     bool seen = false;
+    // +0x1c8: el sector de 16 × 16 celdas donde lo guardó 0x606660, de la posición del archivo.
+    int sectorX = 0;
+    int sectorY = 0;
 };
 
 // +0x58 = −2: 0x6002e0 no lo dibuja (DAT_077f3b18, el modo editor, nunca está prendido).
@@ -53,7 +56,8 @@ inline constexpr std::int16_t HiddenObject = -2;
 [[nodiscard]] std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records,
                                                           std::uint8_t map, ObjectScene scene);
 
-// 0x604ab0 sobre un objeto que se vio: el alpha hacia su meta (0x4e9980), la animación a su velocidad
+// 0x604ab0 sobre un objeto que se vio: el alpha hacia su meta (0x4e9980) y, si no quedó por debajo de
+// 0,01, la animación a su velocidad
 // (0x4ec200, con la acción de `skeleton`, si tiene) y los casos del mapa: en el 0x37, los marcadores
 // 0x54, 0x55, 0x57 y 0x59 se ocultan, el remolino 0x56 gira −0,6° (alpha 0,2, luz (1, 0, 0) y todas
 // las mallas por el blendMesh) y el 0x5a −0,23° (alpha 1 y luz blanca, también por el blendMesh).
@@ -85,10 +89,14 @@ struct ObjectDraw
 // El dibujo de `object` con `terrainLight`, la del terreno en su lugar (0x5f99e0).
 [[nodiscard]] ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std::uint8_t map);
 
-// El sector de 16 × 16 celdas de un objeto (0x606660: la posición por 0,000625), de 0 a 15, o −1 fuera
-// de la grilla, donde 0x606660 no lo crea.
+// El sector de 16 × 16 celdas de un objeto, de 0 a 15: el que le dio 0x606660 con la posición del
+// archivo por 0,000625f, el producto sin redondear (la x87) y ftol. Fuera de la grilla, o con un NaN,
+// 0x606660 no lo crea.
 [[nodiscard]] int SectorX(const WorldObject& object);
 [[nodiscard]] int SectorY(const WorldObject& object);
+// El sector de una coordenada, como lo saca 0x606660 (de 0 a 15, o −1): para un objeto que no viene de
+// un .obj, como el logo.
+[[nodiscard]] int SectorOf(float coordinate);
 
 // El orden del dibujo de 0x6046a0: los sectores por x y después por y (0x7d325d0 + (x · 16 + y) ·
 // 0x10) y, en cada uno, el orden en que se crearon. Devuelve los índices de `objects`.

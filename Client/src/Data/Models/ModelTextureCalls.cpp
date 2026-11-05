@@ -136,11 +136,12 @@ static_assert(PlayerCalls.count == PlayerCalls.calls.size(), "las llamadas de 0x
 static_assert(ItemCalls.count == ItemCalls.calls.size(), "las llamadas de 0x611850");
 
 // 0x616953, 0x616971, 0x61698c y 0x6169a7.
-constexpr std::array<ModelTextureCall, 4> SkillCalls{{
+constexpr std::array<ModelTextureCall, 5> SkillCalls{{
     {0x145, SkillFolder},
     {0x146, SkillFolder},
     {0x147, SkillFolder},
     {0xbf, SkillFolder},
+    {0xc0, SkillFolder}, // 0x6169c2, el cuervo
 }};
 
 // 0x2600 y 0x2900 en las trece.

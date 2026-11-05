@@ -123,15 +123,16 @@ TEST(ModelTextureCallsTest, EveryModelButTheSkeletonGetsItsTextures)
     }
 }
 
-// Las cuatro primeras de 0x615700 después de su 0x60d530(0x3b8) (0x61692a), en su orden y con
-// Skill\: las de 0x145, 0x146 y 0x147, y después las del caballo (0x6169a7).
-TEST(ModelTextureCallsTest, TheSkillLoaderAsksForTheDarkHorseFourth)
+// Las cinco primeras de 0x615700 después de su 0x60d530(0x3b8) (0x61692a), en su orden y con
+// Skill\: las de 0x145, 0x146 y 0x147, y después las del caballo (0x6169a7) y las del cuervo (0x6169c2).
+TEST(ModelTextureCallsTest, TheSkillLoaderAsksForTheDarkHorseFourthAndTheRavenFifth)
 {
     const std::span<const ModelTextureCall> calls = SkillTextureCalls();
 
-    ASSERT_EQ(calls.size(), 4u);
-    const std::vector<std::uint16_t> models{calls[0].model, calls[1].model, calls[2].model, calls[3].model};
-    EXPECT_EQ(models, (std::vector<std::uint16_t>{0x145, 0x146, 0x147, 0xbf}));
+    ASSERT_EQ(calls.size(), 5u);
+    const std::vector<std::uint16_t> models{calls[0].model, calls[1].model, calls[2].model, calls[3].model,
+                                            calls[4].model};
+    EXPECT_EQ(models, (std::vector<std::uint16_t>{0x145, 0x146, 0x147, 0xbf, 0xc0}));
     for (const ModelTextureCall& call : calls)
     {
         EXPECT_EQ(call.folder, "Skill\\") << std::hex << call.model;

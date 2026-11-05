@@ -1594,8 +1594,12 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
   vértice, y la sombra de las cinco sobre la altura del terreno bajo el cuervo. Entre dos pasos se dibuja
   con la posición de un paso más (D-C4), y la pose que le queda a la chispa es la del estado del paso.
   Las 12 `rand()` del constructor salen de la CRT de la tela al entrar. Antes del primer dibujo la chispa
-  sale de su posición (Q-C133). El grito no suena (MuRet no tiene sonido): el paso lo devuelve. Lo que
-  falta: el paso y el dibujo de las chispas (CL7.6 C2).
+  sale de su posición (Q-C133). El grito lee `0x7d3a0f0` crudo, que sin un acceso abierto es la basura
+  cifrada del contador (Q-C125): MuRet le pasa los pasos de la tela, y no suena (no hay sonido): el paso
+  lo devuelve. Las chispas ya corren el paso genérico de `0x5446e0` (la vida y el movimiento, con el
+  doble giro de Q-C134); falta lo propio del subtipo 5 (`0x545209`: la escala por 0,9 y la luz) y el
+  dibujo, que no sacan `rand()` (CL7.6 C2). La pose de la chispa es la de MuRet, a nivel de float:
+  `0x4eb860` acumula la posición desde la raíz en el mundo, y MuRet la suma al final.
 - **Lo que crea**: una **chispa por paso** (`0x5c6`, `Effect\Spark03.jpg`, subtipo 5), desde un
   hueso al azar de la pose del último dibujo (Q-C133): vida 10 pasos,
   velocidad R(yaw) · (−(`rand() % 2` + 2), 0, 0), color (0,3; 0,4; 0,7) y escala 0,8, que cada paso se

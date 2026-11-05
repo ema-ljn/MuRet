@@ -25,7 +25,7 @@ struct TerrainPolygon;
 // (Skill\DarkSpirit.bmd). Lo crea 0x420d60 con 0x4167b0 (un objeto de 0x460 bytes con un CHARACTER en
 // +0xc), lo mueve 0x416a20 en cada paso de su dueño y lo dibuja 0x4182f0. Contrato: 06 § El cuervo.
 // Verificado bit a bit contra el código real emulado (tests/vectors/world55/raven.txt), en los estados 0
-// y 1: los de fuera de la zona segura, los únicos del login.
+// y 1, los del vuelo libre: los únicos del login (los demás son de la zona segura y de las órdenes A7).
 namespace Client::Scenes
 {
 inline constexpr std::uint16_t DarkSpiritModel = 0xc0;
@@ -59,9 +59,9 @@ struct DarkSpiritOwner
 };
 
 // 0x4167b0 con 0x415be0: los 12 rand() de los cierres de las celdas protegidas del dueño y del contador
-// (Q-C125), y el cuervo en el centro de la celda del dueño, a la altura del terreno ahí (`groundHeight`,
-// la de 0x5f93c0 en (celda · 100 + 50), como la deja la x87) más 300. En el login, la celda (0, 0)
-// (Q-C130).
+// (Q-C125), y el cuervo en el centro de la celda del dueño (con `and 0xff`), a la altura del terreno ahí
+// (`groundHeight`, la de 0x5f93c0 en (celda · 100 + 50), que 0x415ea7 guarda en float) más 300. En el
+// login, la celda (0, 0) (Q-C130).
 [[nodiscard]] DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Render::Models::CrtRandom& random);
 
 // 0x416a20 en los estados 0 y 1, con el esqueleto del cuervo, en el mapa `map`, con el rand() de la CRT

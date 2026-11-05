@@ -49,6 +49,7 @@
 #include <cstdint>
 #include <ios>
 #include <iterator>
+#include <limits>
 #include <optional>
 #include <set>
 #include <span>
@@ -858,8 +859,10 @@ std::optional<glm::vec3> RavenCenterOf(const RecordingFrameTarget& target)
 }
 
 // CL7.6 C1: el cuervo nace en la celda (0, 0) del dueño (Q-C130: 0x6349a0 no le escribe las celdas al
-// personaje del login), viaja lejos y salta junto al jinete cuando el contador de lejanía pasa de 90: como
-// pronto en el paso 91. Después vuela alrededor, a 350 sobre el dueño en el mapa 55 (Q-C131).
+// personaje del login), a la altura del terreno ahí (450) más 300: el centro de su malla 2 queda a unos
+// 35 de (50, 50, 750). Viaja lejos y salta junto al jinete cuando el contador de lejanía pasa de 90:
+// como pronto en el paso 91. Pasada la subida, ronda a 350 sobre el dueño en el mapa 55 (Q-C131): con
+// 250 la altura media daría unos 330; con 350, unos 500.
 TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
 {
     Client::Render::Models::ClothWorld cloth;
@@ -870,14 +873,16 @@ TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
     std::optional<int> jumped;
     std::size_t heights = 0;
     double sum = 0.0;
-    // Se dibuja cada 5 pasos hasta el salto (uno antes del 91 caería en alguno) y cada 4 después: el dibujo
-    // es lo caro del test, y el salto no depende de él.
+    // Se dibuja cada 5 pasos hasta el salto (uno antes del 91 caería en alguno) y, pasados 60 de la
+    // subida, cada 8: el dibujo es lo caro del test. El dibujo saca rand() (0x602ed0, la tela) y corre el
+    // salto de paso, pero no antes del 91.
     constexpr int Earliest = 91;
+    constexpr int Climb = 60;
     constexpr std::size_t Samples = 30;
-    for (int step = 1; step <= 400 && heights < Samples; ++step)
+    for (int step = 1; step <= 600 && heights < Samples; ++step)
     {
         scene.Step(Client::Input::InputState{});
-        const bool look = jumped ? (step % 4 == 0) : (step % 5 == 0);
+        const bool look = step == 1 || (jumped ? (step > *jumped + Climb && step % 8 == 0) : (step % 5 == 0));
         if (!look)
         {
             continue;
@@ -887,6 +892,11 @@ TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
         target.Present();
         const std::optional<glm::vec3> raven = RavenCenterOf(target);
         ASSERT_TRUE(raven.has_value()) << "el paso " << step;
+        if (step == 1)
+        {
+            EXPECT_LT(glm::length(glm::dvec3(*raven) - glm::dvec3(50.0, 50.0, 750.0)), 60.0)
+                << "nace en (50, 50) a la altura del terreno más 300";
+        }
         const double horizontal = glm::length(glm::dvec2(raven->x - rider.x, raven->y - rider.y));
         if (!jumped)
         {
@@ -905,12 +915,12 @@ TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
         sum += static_cast<double>(raven->z - rider.z);
         ++heights;
     }
-    ASSERT_TRUE(jumped.has_value()) << "en 400 pasos tiene que saltar";
+    ASSERT_TRUE(jumped.has_value()) << "en 600 pasos tiene que saltar";
     EXPECT_GE(*jumped, Earliest) << "el contador pasa de 90";
     ASSERT_EQ(heights, Samples);
     const double mean = sum / static_cast<double>(heights);
-    EXPECT_GT(mean, 250.0) << "a 350 sobre el dueño en el mapa 55, no a 250";
-    EXPECT_LT(mean, 500.0);
+    EXPECT_GT(mean, 400.0) << "a 350 sobre el dueño en el mapa 55, no a 250";
+    EXPECT_LT(mean, 600.0);
     scene.Leave();
 }
 
@@ -945,6 +955,32 @@ TEST_F(GoldenLoginWorld, TheRavenDrawsMeshes3And2WithItsShadow)
         }
     }
     EXPECT_GE(shadows, 1u) << "la sombra, mezclada, después de las mallas";
+    // Aplastada sobre la altura del terreno bajo el cuervo (0x600a0b): plana, y unos 300 debajo de él
+    // en el lugar donde nace (450 + 300); la regla del caballo la dejaría a su altura.
+    float lowest = std::numeric_limits<float>::max();
+    for (auto it = body; it != std::next(wing); ++it)
+    {
+        for (std::size_t k = 0; k < it->vertexCount; ++k)
+        {
+            lowest = std::min(lowest, frame.modelVertices[it->firstVertex + k].position.z);
+        }
+    }
+    std::optional<float> flat;
+    for (auto it = std::next(wing);
+         it != commands.end() && it->state.blend == Client::Render::ModelBlend::BlendedShadow; ++it)
+    {
+        for (std::size_t k = 0; k < it->vertexCount; ++k)
+        {
+            const float z = frame.modelVertices[it->firstVertex + k].position.z;
+            if (!flat)
+            {
+                flat = z;
+            }
+            EXPECT_EQ(z, *flat) << "plana";
+        }
+    }
+    ASSERT_TRUE(flat.has_value());
+    EXPECT_LT(*flat, lowest - 200.0f) << "en el suelo, no a la altura del cuervo";
     // Las cinco mallas de DarkSpirit.bmd: 288 + 96 + 111 + 300 + 206 triángulos.
     EXPECT_EQ(shadowVertices, 3u * (288u + 96u + 111u + 300u + 206u));
     scene.Leave();

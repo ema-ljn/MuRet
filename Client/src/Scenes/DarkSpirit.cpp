@@ -25,6 +25,7 @@ namespace
 constexpr int ConstructorRandoms = 12;
 constexpr int CellSize = 100;
 constexpr int CellCenter = 50;
+constexpr int CellMask = 0xff;
 constexpr double BirthHeight = 300.0;
 
 constexpr std::uint32_t OwnerStops = 0x1000;
@@ -187,8 +188,13 @@ DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Render::M
         (void)random.Next();
     }
     DarkSpirit spirit;
-    spirit.position = glm::vec3(static_cast<float>((cellX * CellSize) + CellCenter),
-                                static_cast<float>((cellY * CellSize) + CellCenter), F32(groundHeight + BirthHeight));
+    // 0x415c25: las celdas con `and 0xff`; 0x415ea7 guarda la altura del terreno en float y 0x4169ec le
+    // suma 300 desde ahí.
+    const int x = cellX & CellMask;
+    const int y = cellY & CellMask;
+    spirit.position =
+        glm::vec3(static_cast<float>((x * CellSize) + CellCenter), static_cast<float>((y * CellSize) + CellCenter),
+                  F32(static_cast<double>(F32(groundHeight)) + BirthHeight));
     spirit.previousPosition = spirit.position;
     return spirit;
 }
@@ -240,10 +246,11 @@ bool StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton
     }
     if (spirit.animation.action < skeleton.actions.size() &&
         Render::Models::AdvanceAnimation(spirit.animation, skeleton.actions[spirit.animation.action], FrameStep,
-                                         Render::Models::AnimationScene::Other) &&
-        spirit.state < ActionOfState.size())
+                                         Render::Models::AnimationScene::Other))
     {
-        Render::Models::SetAction(spirit.animation, skeleton, ActionOfState[spirit.state]);
+        // 0x417791: más allá de la tabla, la 0.
+        Render::Models::SetAction(spirit.animation, skeleton,
+                                  spirit.state < ActionOfState.size() ? ActionOfState[spirit.state] : 0);
     }
     const glm::vec3 start = spirit.position;
     const float dx = F32(static_cast<double>(owner.position.x) - static_cast<double>(start.x));

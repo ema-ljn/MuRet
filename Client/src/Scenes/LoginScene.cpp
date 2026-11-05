@@ -573,8 +573,9 @@ void LoginScene::StepTheWorld()
     {
         Render::Models::SetAction(m_characterAnimation.body, *player, LoginCharacterStandingAction);
     }
-    // 0x416a20 al final de 0x4fd5f0 del dueño, en 0x508f00: el cuervo, con el contador de pasos que lee el
-    // grito (no suena: MuRet no tiene sonido).
+    // 0x416a20 al final de 0x4fd5f0 del dueño, en 0x508f00: el cuervo. El grito lee 0x7d3a0f0 crudo, que
+    // sin un acceso abierto es la basura cifrada del contador (Q-C125): MuRet le pasa los pasos de la
+    // tela, y el grito no suena (no hay sonido).
     if (const Render::Models::Skeleton* raven = m_models.SkeletonOf(DarkSpiritModel);
         m_spirit && raven != nullptr && m_context.cloth != nullptr)
     {
@@ -582,9 +583,8 @@ void LoginScene::StepTheWorld()
             m_context.clock != nullptr
                 ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
                 : 0.0f;
-        (void)StepDarkSpirit(
-            *m_spirit, *raven, DarkSpiritOwner{.position = LoginCharacterTransform().position, .flags = 0},
-            m_world ? m_world->map : 0, m_particles, clock, m_context.cloth->random, m_context.cloth->logicSteps);
+        (void)StepDarkSpirit(*m_spirit, *raven, LoginRavenOwner(), m_world ? m_world->map : 0, m_particles, clock,
+                             m_context.cloth->random, m_context.cloth->logicSteps);
     }
     // 0x52d220, después de los objetos (0x606560), el caballo (0x445230) y los personajes (0x508f00): los
     // efectos con modelo, el dragón.

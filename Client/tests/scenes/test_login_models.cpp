@@ -1,5 +1,7 @@
 #include "Scenes/LoginModels.h"
 
+#include "Scenes/DarkSpirit.h"
+
 #include "Data/Textures/Sampling.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/Models/ObjectState.h"
@@ -232,5 +234,14 @@ TEST(LoginModelsTest, TheActionComesFromRandModSix)
         EXPECT_TRUE(random == copy) << seed;
     }
     EXPECT_EQ(remainders.size(), 6U);
+}
+
+// El dueño del cuervo en el login: el personaje en su lugar, sin banderas (+0x78 en 0: ni la 0x1000 que
+// lo para ni la 0x4000 que le saca las chispas).
+TEST(LoginModelsTest, TheRavensOwnerIsTheRiderWithoutFlags)
+{
+    const Client::Scenes::DarkSpiritOwner owner = Client::Scenes::LoginRavenOwner();
+    EXPECT_EQ(owner.position, Client::Scenes::LoginCharacterTransform().position);
+    EXPECT_EQ(owner.flags, 0u);
 }
 } // namespace

@@ -1,5 +1,7 @@
 #include "Scenes/LoginModels.h"
 
+#include "Scenes/DarkSpirit.h"
+
 #include "Core/IClock.h"
 #include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
@@ -148,6 +150,11 @@ GameLogic::CharacterAppearance LoginCharacter()
 Render::Models::ObjectTransform LoginCharacterTransform()
 {
     return Render::Models::ObjectTransform{{10603.0f, 14112.0f, 580.0f}, {0.0f, 0.0f, 188.0f}, 1.6f, 0.0f};
+}
+
+DarkSpiritOwner LoginRavenOwner()
+{
+    return DarkSpiritOwner{.position = LoginCharacterTransform().position, .flags = 0};
 }
 
 std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, std::mt19937& random)

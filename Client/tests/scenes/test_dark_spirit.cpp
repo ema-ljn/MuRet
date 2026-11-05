@@ -6,6 +6,7 @@
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "World/Particles.h"
+#include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
 
 #include "support/WorldObjectVectors.h"
@@ -25,9 +26,10 @@
 #include <vector>
 
 // Client::Scenes::DarkSpirit, el cuervo, contra el código real del main.exe: el constructor 0x4167b0 y el
-// paso 0x416a20 con la chispa de 0x53fe70 (el 0x5c6, subtipo 5) y el grito, en 7 casos (las celdas (0, 0)
+// paso 0x416a20 con la chispa de 0x53fe70 (el 0x5c6, subtipo 5) y el grito, en 8 casos (las celdas (0, 0)
 // y (13, 27), naciendo en la celda o junto al dueño, el dueño con 0x4000 y con 0x1000, el contador del
-// grito múltiplo de 60 y el rumbo justo en 180), bit a bit (tests/vectors/world55/raven.txt, make_raven_vectors.py).
+// grito múltiplo de 60, el rumbo justo en 180 y 300 por debajo del dueño), bit a bit (tests/vectors/world55/raven.txt,
+// make_raven_vectors.py).
 namespace
 {
 using Client::Render::Models::CrtRandom;
@@ -220,6 +222,11 @@ TEST(DarkSpiritTest, TheConstructorAndTheStepMatchTheBinary)
             {
                 spirit.angles.z = 180.0f;
             }
+            if (start == "low")
+            {
+                spirit.position = glm::vec3(OwnerPosition.x, OwnerPosition.y,
+                                            static_cast<float>(static_cast<double>(OwnerPosition.z) - 300.0));
+            }
             spirit.pose = FakePose();
         }
         else if (kind == "step")
@@ -280,9 +287,89 @@ TEST(DarkSpiritTest, TheConstructorAndTheStepMatchTheBinary)
             break;
         }
     }
-    EXPECT_EQ(cases, 7u);
-    EXPECT_EQ(steps, 1680u);
-    EXPECT_EQ(sparks, 1540u);
+    EXPECT_EQ(cases, 8u);
+    EXPECT_EQ(steps, 1740u);
+    EXPECT_EQ(sparks, 1600u);
     EXPECT_GE(shouts, 1u);
+}
+
+// 0x415be0 guarda la altura del terreno en float (0x415ea7) y 0x4169ec le suma 300 desde ahí: f(f(h) +
+// 300), no f(h + 300). Las celdas van con `and 0xff` (0x415c25): la 259 es la 3.
+TEST(DarkSpiritTest, TheBirthRoundsTheGroundFirstAndWrapsTheCells)
+{
+    CrtRandom random(1);
+    const DarkSpirit spirit = Client::Scenes::CreateDarkSpirit(259, 1, 450.00003069877624, random);
+    EXPECT_EQ(spirit.position.x, 350.0f);
+    EXPECT_EQ(spirit.position.y, 150.0f);
+    EXPECT_EQ(spirit.position.z, 750.0f) << "f(f(h) + 300); con f(h + 300) daría 750,00006";
+}
+
+// 0x418365: el cuervo que no pasa el trapecio va a la velocidad 3 y, salvo en el estado 4, al 0.
+TEST(DarkSpiritTest, OutOfTheViewItSlowsDownAndForgetsItsState)
+{
+    DarkSpirit spirit;
+    spirit.position = {50.0f, 50.0f, 750.0f};
+    EXPECT_TRUE(Client::Scenes::DarkSpiritSeen(spirit, Client::World::TerrainPolygon{.everything = true}));
+    const auto far =
+        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
+    EXPECT_FALSE(Client::Scenes::DarkSpiritSeen(spirit, far));
+    spirit.state = 1;
+    Client::Scenes::MissTheView(spirit);
+    EXPECT_EQ(spirit.speed, 3.0f);
+    EXPECT_EQ(spirit.state, 0);
+    spirit.state = 4;
+    Client::Scenes::MissTheView(spirit);
+    EXPECT_EQ(spirit.state, 4);
+}
+
+// 0x417791: con el estado más allá de la tabla de 0x417f0c, la acción al dar la vuelta es la 0.
+TEST(DarkSpiritTest, AStateBeyondTheTableTakesActionZero)
+{
+    const Client::Render::Models::Skeleton skeleton = RavenSkeleton();
+    auto particles = std::make_unique<Client::World::Particles>();
+    DarkSpirit spirit;
+    spirit.position = OwnerPosition + glm::vec3(0.0f, 0.0f, 350.0f);
+    spirit.state = 6;
+    spirit.animation.action = 1;
+    spirit.animation.frame = 3.9f;
+    CrtRandom random(5);
+    (void)Client::Scenes::StepDarkSpirit(spirit, skeleton,
+                                         Client::Scenes::DarkSpiritOwner{.position = OwnerPosition, .flags = 0}, 0x37,
+                                         *particles, 0.0f, random, 1);
+    EXPECT_EQ(spirit.animation.action, 0);
+}
+
+// Q-C131: en el mapa 0x37 ronda a 350 sobre el dueño; en los demás, a 250. La altura media sobre el
+// dueño, desde junto a él y pasada la subida, con la misma semilla.
+TEST(DarkSpiritTest, ItFliesHigherInTheLoginMap)
+{
+    const Client::Render::Models::Skeleton skeleton = RavenSkeleton();
+    const auto meanHeight = [&skeleton](std::uint8_t map)
+    {
+        auto particles = std::make_unique<Client::World::Particles>();
+        DarkSpirit spirit;
+        spirit.position = OwnerPosition + glm::vec3(0.0f, 0.0f, 250.0f);
+        CrtRandom random(77);
+        double sum = 0.0;
+        int count = 0;
+        for (int step = 0; step < 3000; ++step)
+        {
+            particles->Clear();
+            (void)Client::Scenes::StepDarkSpirit(spirit, skeleton,
+                                                 Client::Scenes::DarkSpiritOwner{.position = OwnerPosition, .flags = 0},
+                                                 map, *particles, 0.0f, random, 1);
+            if (step >= 500)
+            {
+                sum += static_cast<double>(spirit.position.z - OwnerPosition.z);
+                ++count;
+            }
+        }
+        return sum / count;
+    };
+    const double login = meanHeight(0x37);
+    const double other = meanHeight(0);
+    EXPECT_GT(login, 350.0);
+    EXPECT_LT(login, 500.0);
+    EXPECT_GT(login - other, 75.0);
 }
 } // namespace

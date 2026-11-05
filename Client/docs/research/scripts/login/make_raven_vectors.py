@@ -29,7 +29,7 @@ OWNER_POSITION = [10603.0, 14112.0, 580.0]
 BONES = 77
 
 # (semilla, celdas del dueño, dónde arranca ('cell': en la celda; 'near': junto al dueño, 250 arriba;
-# 'yaw180': en la celda con el rumbo en 180), banderas del dueño (+0x78), el contador que lee el grito,
+# 'yaw180': en la celda con el rumbo en 180; 'low': junto al dueño, 300 abajo), banderas del dueño (+0x78), el contador que lee el grito,
 # pasos, la fórmula de las alturas (a, b))
 CASES = [
     (0x1234, (0, 0), 'cell', 0, 0x12345677, 400, (3, 5)),
@@ -40,6 +40,8 @@ CASES = [
     (0x42, (0, 0), 'near', 0x1000, 0x12345677, 20, (3, 5)),
     # El rumbo justo en 180 y lejos del dueño: el primer paso gira con TurnAngle desde a = 180.
     (0x180, (0, 0), 'yaw180', 0, 0x12345677, 40, (3, 5)),
+    # 300 por debajo del dueño: el contador de lejanía sube por la altura (dueño.z − 200 > z, 0x417ebe).
+    (0x10a, (0, 0), 'low', 0, 0x12345677, 60, (3, 5)),
 ]
 
 
@@ -120,6 +122,8 @@ def run_case(seed, cells, start, owner_flags, counter, steps, formula, lines):
         emu.wfv(o + 0x10, [OWNER_POSITION[0], OWNER_POSITION[1], f32(OWNER_POSITION[2] + 250.0)])
     if start == 'yaw180':
         emu.wf(o + 0x24, 180.0)
+    if start == 'low':
+        emu.wfv(o + 0x10, [OWNER_POSITION[0], OWNER_POSITION[1], f32(OWNER_POSITION[2] - 300.0)])
     emu.w32(owner + 0x78, owner_flags)
     emu.w32(COUNTER, counter)
     bones = emu.alloc(BONES * 0x30)

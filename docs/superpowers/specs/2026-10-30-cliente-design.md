@@ -290,18 +290,19 @@ Cada plan lo suma al escribirse. El detalle está en las sub-olas del
 
 ### El login completo (CL7.R)
 
+Plan: [`2026-11-05-ola-cl7-el-login-completo.md`](../plans/2026-11-05-ola-cl7-el-login-completo.md).
 Emanuel comparó el login con un video del original: faltaba todo lo que rodea al Dark Lord. El
 barrido de la CL7.R ([06](../../../Client/docs/research/06-render-escenas-y-ui.md#el-mundo-del-login),
 de El mundo del login a Lo demás del login) lo leyó entero, y la CL7 arranca por ahí, en este orden:
 
-1. **El mundo del mapa 55:** el terreno (el lago, el agua animada, las celdas con el bit `0x08` y el
+1. **El mundo del mapa 55** (CL7.1 y CL7.2): el terreno (el lago, el agua animada, las celdas con el bit `0x08` y el
    slot `0x122`) y los 276 objetos del `.obj` con sus casos (los remolinos, el farol, los marcadores
    ocultos, las hojas, los haces de luz y las banderas), en el orden del original.
-2. **El dragón de fondo:** el efecto `0xb4` con `Object56\Dragon.bmd`, que vuela en ocho sin azar,
+2. **El dragón de fondo** (CL7.6 A): el efecto `0xb4` con `Object56\Dragon.bmd`, que vuela en ocho sin azar,
    contra los pasos emulados del código real.
-3. **La base de los efectos y los del login:** el billboard, los sprites de un frame, las partículas
+3. **La base de los efectos y los del login** (CL7.6 B): el billboard, los sprites de un frame, las partículas
    y las hojas; las brasas, el aliento del caballo, el brillo del cetro y los 30 destellos de la capa.
-4. **El cuervo** (`Skill\DarkSpirit.bmd`, que estaba en la CL8 con las mascotas): su paso, bit a bit
+4. **El cuervo** (CL7.6 C; `Skill\DarkSpirit.bmd`, que estaba en la CL8 con las mascotas): su paso, bit a bit
    contra el emulado, su dibujo, su sombra y su estela.
 
 Después sigue la CL7 con Lorencia (CL7.3 en adelante). Quedan para sus olas: el cursor del juego

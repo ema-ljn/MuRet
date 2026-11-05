@@ -1,5 +1,7 @@
 #include "Scenes/LoginModels.h"
 
+#include "Render/Models/Cloth.h"
+
 #include "Scenes/DarkSpirit.h"
 
 #include "Data/Textures/Sampling.h"
@@ -214,6 +216,31 @@ TEST(LoginModelsTest, TheActionOnlyChangesInItsWindow)
     }
     EXPECT_EQ(seen, (std::set<std::optional<std::uint8_t>>{std::nullopt, std::uint8_t{0x54}, std::uint8_t{0x55}}));
     EXPECT_FALSE(random == untouched);
+}
+
+// Con el rand() de la CRT (el de la tela, ClothWorld, que es el del original), lo mismo: fuera de la ventana
+// no lo toca, y adentro saca uno solo, con su % 6.
+TEST(LoginModelsTest, TheActionTakesOneRandOfTheCrtInsideTheWindow)
+{
+    using std::chrono::milliseconds;
+    Client::Render::Models::CrtRandom random(77);
+    const std::uint32_t untouched = random.State();
+    EXPECT_EQ(LoginCharacterActionAt(milliseconds{101}, random), std::nullopt);
+    EXPECT_EQ(random.State(), untouched);
+
+    std::set<int> remainders;
+    for (int k = 0; k < 60; ++k)
+    {
+        Client::Render::Models::CrtRandom copy = random;
+        const int remainder = copy.Next() % 6;
+        remainders.insert(remainder);
+        const std::optional<std::uint8_t> expected =
+            remainder == 1 ? std::optional<std::uint8_t>{std::uint8_t{0x54}}
+                           : (remainder == 2 ? std::optional<std::uint8_t>{std::uint8_t{0x55}} : std::nullopt);
+        EXPECT_EQ(LoginCharacterActionAt(milliseconds{2300 * k}, random), expected) << k;
+        EXPECT_EQ(random.State(), copy.State()) << "un solo rand()";
+    }
+    EXPECT_EQ(remainders.size(), 6u);
 }
 
 // rand() % 6 en 1 es la 0x54 y en 2 la 0x55, con rand() de 0 a 32.767: con 40 semillas salen los seis

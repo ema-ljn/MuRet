@@ -551,7 +551,11 @@ void LoginScene::StepTheWorld()
     const Render::Models::Skeleton* player = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (m_context.clock != nullptr && player != nullptr)
     {
-        if (const std::optional<std::uint8_t> action = LoginCharacterActionAt(m_context.clock->Now(), m_random))
+        // Con el bucle, el rand() de la CRT (0x634cca); sin él (los tests sin ClothWorld), el de la semilla.
+        const std::optional<std::uint8_t> action =
+            m_context.cloth != nullptr ? LoginCharacterActionAt(m_context.clock->Now(), m_context.cloth->random)
+                                       : LoginCharacterActionAt(m_context.clock->Now(), m_random);
+        if (action)
         {
             Render::Models::SetAction(m_characterAnimation.body, *player, *action);
         }

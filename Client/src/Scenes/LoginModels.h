@@ -5,6 +5,7 @@
 #include "Data/Models/ModelFiles.h"
 #include "Data/Textures/Sampling.h"
 #include "GameLogic/CharacterAppearance.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
@@ -127,4 +128,8 @@ inline constexpr std::uint8_t LoginCharacterStandingAction = 0x4a;
 // rand() % 6 en 1 pone la 0x54 y en 2 la 0x55 (0x4ea030); con otro valor, o fuera de esa ventana,
 // ninguna, y fuera de la ventana no se tira. `random` hace de rand(): de 0 a 32.767.
 [[nodiscard]] std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, std::mt19937& random);
+// Con el rand() de la CRT (Render/Models/Cloth.h), el del original (0x634cca): el que usa el login con el
+// bucle.
+[[nodiscard]] std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock,
+                                                                 Render::Models::CrtRandom& random);
 } // namespace Client::Scenes

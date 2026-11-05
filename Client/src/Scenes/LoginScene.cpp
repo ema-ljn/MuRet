@@ -305,7 +305,7 @@ void LoginScene::LoadTheTerrain()
     }
     for (const std::string& tile : skipped)
     {
-        m_context.log.Info("el terreno del login va sin {}, que el original saltea", tile);
+        m_context.log.Warning("el terreno del login va sin un tile, que el original saltea: {}", tile);
     }
 }
 

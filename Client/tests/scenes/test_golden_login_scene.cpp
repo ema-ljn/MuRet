@@ -11,6 +11,7 @@
 #include "Scenes/TextureSets.h"
 #include "UI/Notices.h"
 #include "UI/ServerListModel.h"
+#include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/RecordingFrameTarget.h"
@@ -22,6 +23,7 @@
 #include "Data/Textures/Sampling.h"
 #include "Input/InputState.h"
 
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
@@ -29,6 +31,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <ios>
@@ -179,7 +182,9 @@ TEST_F(GoldenLoginScene, TheTerrainGoesBeforeTheCharacter)
     FakeTextureStore store;
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
-    const SingleModelLibrary models;
+    // Con los modelos de la carga, para que el personaje se dibuje.
+    Client::Scenes::GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, store, log).HasValue());
     LoginScene scene(SceneContext{m_dataRoot, store, log}, data.Value(), models, nullptr, Version, FixedSeed);
     ASSERT_TRUE(scene.Enter().HasValue());
     for (std::uint16_t slot = 0x23; slot <= 0x30; ++slot)
@@ -205,6 +210,16 @@ TEST_F(GoldenLoginScene, TheTerrainGoesBeforeTheCharacter)
     EXPECT_TRUE(std::all_of(firstOther, drawn->modelCommands.end(),
                             [&isTerrain](const auto& command) { return !isTerrain(command); }))
         << "el terreno va todo antes que los modelos";
+    // Y el personaje está, después: sus partes van con las texturas de Player\ (desde 0x138, 0x60f7d0) o
+    // las de la piel (0x12e..0x137).
+    const auto isCharacter = [](const Client::Render::ModelDrawCommand& command)
+    {
+        return command.state.texture.has_value() && command.state.texture->value >= 0x12e &&
+               command.state.texture->value < 0x25a;
+    };
+    EXPECT_NE(firstOther, drawn->modelCommands.end());
+    EXPECT_TRUE(std::any_of(firstOther, drawn->modelCommands.end(), isCharacter)) << "el personaje";
+    EXPECT_FALSE(std::any_of(drawn->modelCommands.begin(), firstOther, isCharacter));
     EXPECT_TRUE(std::ranges::any_of(drawn->modelCommands,
                                     [](const auto& command) { return command.state.texture == TextureSlot{0x28}; }))
         << "el lago";
@@ -350,6 +365,103 @@ TEST_F(GoldenLoginWorld, EnteringAgainCreatesTheObjectsAgain)
     scene.Leave();
     ASSERT_TRUE(scene.Enter().HasValue());
     EXPECT_EQ(objectVertices(Frame(scene, 0)), first);
+    scene.Leave();
+}
+
+// El agua del lago (TileWater01, el 0x28) se mueve: 0x5fc260 le corre la u con el reloj del frame,
+// (ftol(T) % 20000) · 5e-5, y 0x5fbf60 le escribe la ola de la v en cada paso, con el reloj de la lógica
+// (06 § El terreno del login). Un segundo después, cada esquina del agua está 0,05 más allá en u y la ola
+// cambió.
+TEST_F(GoldenLoginScene, TheLakeMovesWithTheClock)
+{
+    auto data = LoadGameData(m_dataRoot);
+    ASSERT_TRUE(data.HasValue()) << data.Error();
+    FakeTextureStore store;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    Client::Tests::FakeClock clock;
+    const SingleModelLibrary models;
+    LoginScene scene(SceneContext{m_dataRoot, store, log, &clock}, data.Value(), models, nullptr, Version, FixedSeed);
+    ASSERT_TRUE(scene.Enter().HasValue());
+    const auto water = [&scene](Client::Core::Duration frameClock)
+    {
+        RecordingFrameTarget target;
+        scene.Render(target.BeginFrame(frameClock), 0.0f);
+        target.Present();
+        std::vector<glm::vec2> uvs;
+        const auto drawn = std::ranges::find(target.frames.back().events, Kind::Models, &FrameEvent::kind);
+        if (drawn == target.frames.back().events.end())
+        {
+            return uvs;
+        }
+        for (const auto& command : drawn->modelCommands)
+        {
+            if (command.state.texture == TextureSlot{0x28})
+            {
+                for (std::size_t k = 0; k < command.vertexCount; ++k)
+                {
+                    uvs.push_back(drawn->modelVertices[command.firstVertex + k].uv);
+                }
+            }
+        }
+        return uvs;
+    };
+    clock.Advance(std::chrono::milliseconds{1000});
+    scene.Step(Client::Input::InputState{});
+    const std::vector<glm::vec2> before = water(std::chrono::milliseconds{1000});
+    clock.Advance(std::chrono::milliseconds{1000});
+    scene.Step(Client::Input::InputState{});
+    const std::vector<glm::vec2> after = water(std::chrono::milliseconds{2000});
+
+    ASSERT_FALSE(before.empty());
+    ASSERT_EQ(before.size(), after.size());
+    std::size_t wavesThatChanged = 0;
+    for (std::size_t k = 0; k < before.size(); ++k)
+    {
+        EXPECT_NEAR(after[k].x - before[k].x, 0.05f, 1e-4f) << k;
+        if (std::abs(after[k].y - before[k].y) > 1e-5f)
+        {
+            ++wavesThatChanged;
+        }
+    }
+    EXPECT_GT(wavesThatChanged, before.size() / 2) << "la ola de la v sigue a los pasos";
+}
+
+// Cada entrada vuelve a leer el terreno (0x6349a0 → 0x61a560): al salir se sueltan sus slots, y al
+// volver a entrar suben de nuevo y el primer frame dibuja lo mismo que el de la primera vez.
+TEST_F(GoldenLoginScene, EnteringAgainLoadsTheTerrainAgain)
+{
+    auto data = LoadGameData(m_dataRoot);
+    ASSERT_TRUE(data.HasValue()) << data.Error();
+    FakeTextureStore store;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    const SingleModelLibrary models;
+    LoginScene scene(SceneContext{m_dataRoot, store, log}, data.Value(), models, nullptr, Version, FixedSeed);
+    const auto terrainVertices = [&scene]()
+    {
+        RecordingFrameTarget target;
+        scene.Render(target.BeginFrame(std::chrono::milliseconds{40}), 0.0f);
+        target.Present();
+        std::vector<glm::vec3> positions;
+        const auto drawn = std::ranges::find(target.frames.back().events, Kind::Models, &FrameEvent::kind);
+        if (drawn != target.frames.back().events.end())
+        {
+            for (const auto& vertex : drawn->modelVertices)
+            {
+                positions.push_back(vertex.position);
+            }
+        }
+        return positions;
+    };
+    ASSERT_TRUE(scene.Enter().HasValue());
+    const auto first = terrainVertices();
+    ASSERT_FALSE(first.empty());
+    scene.Leave();
+    EXPECT_FALSE(store.Find(TextureSlot{0x28}).has_value());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    EXPECT_TRUE(store.Find(TextureSlot{0x28}).has_value());
+    EXPECT_EQ(terrainVertices(), first);
     scene.Leave();
 }
 

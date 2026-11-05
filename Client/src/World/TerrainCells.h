@@ -16,8 +16,8 @@
 // verificada celda por celda contra la traza de Lorencia (06 § Terreno). Cada celda es el fan de
 // cuatro vértices de 0x5fac90 en dos triángulos, con las capas que elige 0x5fa830 por el alfa de sus
 // esquinas, las UV de 0x5fa5c0 y la luz y el alfa de cada esquina de 0x5fa260 y 0x5fa350. No hay pase
-// del pasto (en el mapa 55 no dibuja nada, 06 § El terreno del login) ni el agua de los mapas 7, 0x1e
-// y 0x22.
+// del pasto (en el mapa 55 no dibuja nada, 06 § El terreno del login) ni el agua de los mapas 7
+// (0x5fa4b0, con el 5.º argumento de 0x5fa5c0 en 1) y 0x22; el corrimiento al revés del 0x1e, sí.
 namespace Client::World
 {
 // El tile i es el slot i + 0x23 (0x5fa260 y 0x5fa350).

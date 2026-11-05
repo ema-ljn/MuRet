@@ -83,8 +83,16 @@ std::array<glm::vec2, 4> TileUvs(const TerrainView& view, std::uint8_t tile, std
         return {glm::vec2(u, v), glm::vec2(u1, v), glm::vec2(u1, v1), glm::vec2(u, v1)};
     }
     u = view.map == ReversedWaterMap && tile == WaterTile ? u - water->offset : water->offset + u;
-    const float left = water->waves.empty() ? v : (water->waves[corners[0]] * WaveToV) + v;
-    const float right = water->waves.empty() ? v : (water->waves[corners[1]] * WaveToV) + v;
+    // 0x5fa7ab..0x5fa7c9: la ola de la esquina 1 pasa por un float antes de sumarse; la de la 0 se suma a
+    // la v desde la x87, sin redondear el producto.
+    const bool waves = water->waves.size() == TerrainCellCount;
+    const float left =
+        waves ? static_cast<float>((static_cast<double>(water->waves[corners[0]]) * static_cast<double>(WaveToV)) +
+                                   static_cast<double>(v))
+              : v;
+    const float right =
+        waves ? static_cast<float>(static_cast<double>(water->waves[corners[1]] * WaveToV) + static_cast<double>(v))
+              : v;
     const float u1 = u + du;
     return {glm::vec2(u, left), glm::vec2(u1, right), glm::vec2(u1, right + dv), glm::vec2(u, left + dv)};
 }

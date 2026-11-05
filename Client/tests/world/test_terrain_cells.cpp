@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <memory>
 #include <utility>
+#include <set>
 #include <vector>
 
 // Client::World::DrawTerrainCell con un terreno armado a mano: los vértices de 0x5fac90, las capas
@@ -283,6 +284,24 @@ TEST(TerrainCellsTest, TheWaterCellCarriesTheOffsetAndTheWaves)
     EXPECT_EQ(uv(5), glm::vec2(1.75f + 0.375f, left + 0.5f));
 }
 
+// 0x5fa7ab..0x5fa7c9: la ola de la esquina 1 pasa por un float antes de sumarse a la v, y la de la 0 se
+// suma desde la x87 sin redondear el producto. Con la ola −9,7147… (0xc11b6f81) en la v de 4,5, las dos
+// cuentas difieren en el último bit: la esquina 0 da 0x408f60d5 y la 1, 0x408f60d6.
+TEST(TerrainCellsTest, TheWaveOfTheLeftCornerIsNotRoundedFirst)
+{
+    Terrain terrain;
+    terrain.mapping->layer1[CellIndex(CellX, CellY)] = 5;
+    terrain.SetAlpha(CellX, CellY, {0.0f, 0.0f, 0.0f, 0.0f});
+    TerrainWater water;
+    water.waves.assign(65536, 0.0f);
+    water.waves[CellIndex(CellX, CellY)] = std::bit_cast<float>(0xC11B6F81u);
+    water.waves[CellIndex(CellX + 1, CellY)] = std::bit_cast<float>(0xC11B6F81u);
+    const ModelBatch batch = Draw(terrain, CellX, CellY, water);
+    ASSERT_EQ(batch.Commands().size(), 1u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(batch.Vertices()[0].uv.y), 0x408F60D5u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(batch.Vertices()[1].uv.y), 0x408F60D6u);
+}
+
 // Solo es agua lo que 0x5fa830 marca: la capa 1 en 5 con alguna esquina por debajo de 1. Con las cuatro
 // en 1 la de abajo es la capa 2, quieta aunque sea agua; el pase de alfa va con agua solo si las dos
 // capas son 5.
@@ -357,5 +376,53 @@ TEST(TerrainCellsTest, TheCellsGoByBlockAndThenByRow)
     EXPECT_EQ(cells[16], std::make_pair(8, 12));
     EXPECT_EQ(cells[32], std::make_pair(4, 16));
     EXPECT_EQ(cells[63], std::make_pair(11, 19));
+}
+// El trapecio del juego (0x5fb570 a 45° alrededor del héroe de la traza de Lorencia) recorta por bloque
+// con el margen de −40 en su centro y después por celda con 0 (0x5fc190 y 0x5fc0e0): deja afuera la
+// mayor parte del rango, y hay celdas que se dibujan aunque el centro de su bloque no pase con margen 0.
+TEST(TerrainCellsTest, TheGamePolygonCutsByBlockWithItsMarginAndThenByCell)
+{
+    Terrain terrain;
+    const auto polygon =
+        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
+    const TerrainRange range{.firstX = 120, .lastX = 164, .firstY = 100, .lastY = 140};
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    DrawTerrain(batch, terrain.view, range, polygon, TerrainWater{});
+    std::set<std::pair<int, int>> drawn;
+    for (const ModelDrawCommand& command : batch.Commands())
+    {
+        for (std::size_t first = 0; first < command.vertexCount; first += 6)
+        {
+            const glm::vec3 origin = batch.Vertices()[command.firstVertex + first].position;
+            drawn.emplace(static_cast<int>(origin.x / 100.0f), static_cast<int>(origin.y / 100.0f));
+        }
+    }
+    std::set<std::pair<int, int>> expected;
+    bool savedByTheMargin = false;
+    for (int by = range.firstY; by <= range.lastY; by += 4)
+    {
+        for (int bx = range.firstX; bx <= range.lastX; bx += 4)
+        {
+            const bool block = Client::World::PolygonContains(polygon, bx + 2.0, by + 2.0, -40.0);
+            const bool blockWithoutMargin = Client::World::PolygonContains(polygon, bx + 2.0, by + 2.0, 0.0);
+            for (int y = by; y < by + 4; ++y)
+            {
+                for (int x = bx; x < bx + 4; ++x)
+                {
+                    const bool cell = Client::World::PolygonContains(polygon, x + 0.5, y + 0.5, 0.0);
+                    if (block && cell)
+                    {
+                        expected.emplace(x, y);
+                        savedByTheMargin = savedByTheMargin || !blockWithoutMargin;
+                    }
+                }
+            }
+        }
+    }
+    EXPECT_FALSE(drawn.empty());
+    EXPECT_EQ(drawn, expected);
+    EXPECT_TRUE(savedByTheMargin) << "una celda que se dibuja por el margen de su bloque";
+    EXPECT_LT(drawn.size(), 45u * 41u / 2u) << "el trapecio deja afuera la mayor parte del rango";
 }
 } // namespace

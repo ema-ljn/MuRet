@@ -690,37 +690,38 @@ TEST_F(GoldenLoginWorld, TheBreathOfTheHorseComesFromItsHeadAsDrawnBefore)
     scene.Leave();
 }
 
+// El centro de cada brasa del último frame, en el orden de su dibujo (el de sus lugares): las esquinas
+// 0 y 2 de su cuadrado son opuestas.
+std::vector<glm::vec3> EmberCentersOf(const RecordingFrameTarget& target)
+{
+    std::vector<glm::vec3> centers;
+    const auto world = std::ranges::find(target.frames.back().events, Kind::Models, &FrameEvent::kind);
+    if (world == target.frames.back().events.end())
+    {
+        return centers;
+    }
+    for (const auto& command : world->modelCommands)
+    {
+        if (command.state.texture != TextureSlot{0x635})
+        {
+            continue;
+        }
+        EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
+        for (std::size_t quad = 0; quad < command.vertexCount / 6; ++quad)
+        {
+            const std::size_t first = command.firstVertex + (quad * 6);
+            centers.push_back((world->modelVertices[first].position + world->modelVertices[first + 2].position) / 2.0f);
+        }
+    }
+    return centers;
+}
+
 // CL7.6 B3: las 80 brasas (0x530490 → 0x42b1e0) nacen alrededor del héroe, el personaje 0, al que 0x6350b0
 // le escribe la posición en el dibujo: en el primer paso, antes de dibujar, nacen alrededor de (0, 0, 0)
 // (Q-C137); después de un dibujo, alrededor de (11.679; 14.191; 333), en la caja de 0x42b1e0. Van en el
 // pase del mundo, aditivas, con FireSnuff (0x635), después del dragón.
 TEST_F(GoldenLoginWorld, TheEmbersAreBornAroundTheHero)
 {
-    const auto embersOf = [](const RecordingFrameTarget& target)
-    {
-        std::vector<glm::vec3> centers;
-        const auto world = std::ranges::find(target.frames.back().events, Kind::Models, &FrameEvent::kind);
-        if (world == target.frames.back().events.end())
-        {
-            return centers;
-        }
-        for (const auto& command : world->modelCommands)
-        {
-            if (command.state.texture != TextureSlot{0x635})
-            {
-                continue;
-            }
-            EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
-            for (std::size_t quad = 0; quad < command.vertexCount / 6; ++quad)
-            {
-                const std::size_t first = command.firstVertex + (quad * 6);
-                // Las esquinas 0 y 2 son opuestas: su medio es la traslación.
-                centers.push_back((world->modelVertices[first].position + world->modelVertices[first + 2].position) /
-                                  2.0f);
-            }
-        }
-        return centers;
-    };
     Client::Render::Models::ClothWorld cloth;
     {
         LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth},
@@ -730,7 +731,7 @@ TEST_F(GoldenLoginWorld, TheEmbersAreBornAroundTheHero)
         RecordingFrameTarget target;
         scene.Render(target.BeginFrame(std::chrono::milliseconds{40}), 0.0f);
         target.Present();
-        const std::vector<glm::vec3> first = embersOf(target);
+        const std::vector<glm::vec3> first = EmberCentersOf(target);
         ASSERT_EQ(first.size(), 80u);
         EXPECT_TRUE(std::ranges::all_of(first, [](const glm::vec3& c) { return glm::length(c) < 2000.0f; }))
             << "antes del primer dibujo, el héroe en (0, 0, 0)";
@@ -746,7 +747,7 @@ TEST_F(GoldenLoginWorld, TheEmbersAreBornAroundTheHero)
     RecordingFrameTarget after;
     scene.Render(after.BeginFrame(std::chrono::milliseconds{40}), 0.0f);
     after.Present();
-    const std::vector<glm::vec3> born = embersOf(after);
+    const std::vector<glm::vec3> born = EmberCentersOf(after);
     ASSERT_EQ(born.size(), 80u);
     const glm::vec3 hero = Client::Scenes::LoginHeroPosition;
     for (const glm::vec3& c : born)
@@ -758,6 +759,53 @@ TEST_F(GoldenLoginWorld, TheEmbersAreBornAroundTheHero)
         EXPECT_GE(c.z - hero.z, 49.5f);
         EXPECT_LE(c.z - hero.z, 1049.5f);
     }
+    scene.Leave();
+}
+
+// CL7.6 B3: al entrar, 0x6349a0 deja la cámara en (0, 0, 0) (0x634b80) y 0x635ae0 le escribe 12.678 de y
+// recién en el dibujo (0x635f7e). Las brasas del primer paso nacen con el héroe en (0, 0, 0) y la y de
+// 0x42b1e0 entre −500 y 899: las que quedan debajo de la cámara + 400 van hacia +x (3,2 menos la caída) y
+// las de 400 o más, hacia −x. Con 12.678, irían todas hacia +x. Las que tocan el suelo no se mueven.
+TEST_F(GoldenLoginWorld, TheFirstEmbersSeeTheCameraAtTheOrigin)
+{
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    scene.Step(Client::Input::InputState{});
+    RecordingFrameTarget born;
+    scene.Render(born.BeginFrame(std::chrono::milliseconds{40}), 0.0f);
+    born.Present();
+    scene.Step(Client::Input::InputState{});
+    RecordingFrameTarget moved;
+    scene.Render(moved.BeginFrame(std::chrono::milliseconds{80}), 0.0f);
+    moved.Present();
+    const std::vector<glm::vec3> before = EmberCentersOf(born);
+    const std::vector<glm::vec3> after = EmberCentersOf(moved);
+    ASSERT_EQ(before.size(), 80u);
+    ASSERT_EQ(after.size(), 80u);
+    std::size_t backwards = 0;
+    std::size_t forwards = 0;
+    for (std::size_t k = 0; k < before.size(); ++k)
+    {
+        const float dx = after[k].x - before[k].x;
+        if (dx == 0.0f)
+        {
+            continue;
+        }
+        if (before[k].y >= 399.5f)
+        {
+            EXPECT_LT(dx, 0.0f) << "la brasa " << k << " nació en y " << before[k].y;
+            ++backwards;
+        }
+        else
+        {
+            EXPECT_GT(dx, 0.0f) << "la brasa " << k << " nació en y " << before[k].y;
+            ++forwards;
+        }
+    }
+    EXPECT_GT(backwards, 0u);
+    EXPECT_GT(forwards, 0u);
     scene.Leave();
 }
 

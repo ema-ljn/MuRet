@@ -1654,16 +1654,26 @@ Lo que se ve en el video, una fuente por vez:
   de z antes de guardarla en float); si no, la z queda en la del terreno, la luz baja 0,05 por paso y,
   con el rojo en 0 o menos (`test ah, 0x41`), muere: a los 20. En el aire duran 5 s de mediana
   (*simulado*, `embers_sim.py`, con las alturas de `World56`). En el primer paso el héroe todavía está
-  en (0, 0, 0) (`0x6350b0` le escribe la posición recién en el dibujo) y las primeras 80 nacen lejos,
-  con la y por debajo de la cámara + 400: esas van hacia +x (Q-C137).
+  en (0, 0, 0) (`0x6350b0` le escribe la posición recién en el dibujo), y la cámara también: al entrar,
+  `0x6349a0` la deja en (0, 0, 0) (`0x634b80`) y `0x635ae0` le escribe los 12.678 de y recién en el
+  dibujo (`0x635f7e`). Las primeras 80 nacen lejos: las de y por debajo de 400 van hacia +x y las demás,
+  hacia −x (Q-C137). Si corren dos pasos sin un dibujo en el medio, el segundo lee la cámara que dejó la
+  ruta de `0x633920` en el paso anterior (`0x633b7a`, que corre después de las brasas); MuRet no calcula
+  esa posición y usa la de `LoginCamera` (P-C23 d).
   **Verificado** en la CL7.6 B3 contra el código real emulado (`0x530490`, con `0x42b1e0`, `0x5303a0` y
-  `0x5f93c0` reales, y `0x5306a0`): 3 casos de 150 pasos sobre un mapa de alturas de una fórmula, con el
-  estado del `rand()` y el CRC de la tabla en cada paso, la tabla entera cada 30 y lo que el dibujo le
-  pide a GL, bit a bit (`tests/vectors/world55/leaves.txt`). La altura de `0x5f93c0`: con x o y
-  negativos, 0; la celda de (x · 0,01, y · 0,01) en float y con `ftol`, fuera de la grilla o con el
-  `0x40` de su atributo, 1.200 (`0x6c9d5c`); si no, entre las cuatro esquinas (la fila y la siguiente,
-  con la vuelta de 255 a 0), primero por la fracción de y en cada columna y después por la de x, en 53
-  bits. El paso global de `0x530490` (`0x6c8c5c`, `0x75fdc3c..0x75fdc44`, con el reloj y sin `rand()`)
+  `0x5f93c0` reales, y `0x5306a0`): 3 casos de 150 pasos sobre un mapa de alturas de una fórmula (el
+  primero, el del primer paso: el héroe y la cámara en (0, 0, 0)), con el estado del `rand()` y el CRC de
+  la tabla en cada paso, la tabla entera cada 30 y lo que el dibujo le pide a GL, bit a bit
+  (`tests/vectors/world55/leaves.txt`). La altura de `0x5f93c0`: con x o y negativos, 0. La columna sale
+  de x · 0,01 guardado en float; la fila, de y · 0,01 en 53 bits (`fst` deja el producto en la pila y
+  `ftol` lo trunca: 20.000 · 0,01f es 199,9999955, la fila 199 aunque en float sea 200, y la fracción de
+  y, el float menos la fila, da 1); el índice, fila · 256 + columna en 32 bits con signo. Fuera de la
+  grilla o con el `0x40` de su atributo, 1.200 (`0x6c9d5c`); con el índice negativo (desde la fila
+  2^23), el original lee antes de la tabla de atributos y MuRet da 1.200. Si no, entre las cuatro
+  esquinas (la fila y la siguiente, la columna y la siguiente, con la vuelta de 255 a 0), primero por la
+  fracción de y en cada columna y después por la de x, en 53 bits. Los vectores llevan, además de 40
+  alturas al azar por caso, 15 bordes: x o y en 0, y múltiplos de 100, la fila 255 con la vuelta, la
+  columna 256 que cae en la fila siguiente, el índice 65.536 y la fila 2^24, que da la vuelta en 32 bits. El paso global de `0x530490` (`0x6c8c5c`, `0x75fdc3c..0x75fdc44`, con el reloj y sin `rand()`)
   es de las hojas de otros mapas, y MuRet no lo lleva.
 - **Las bocanadas blancas**: **el aliento del caballo**, no polvo. `0x444010`, en cada paso, con
   el jinete (`+0x108`) sin su `0x4000` (`+0x78`), la acción del caballo distinta de 1 y
@@ -2412,7 +2422,7 @@ Ver [08](08-pendientes.md).
 | El dragón: un efecto con modelo (`0x518cf0`) que vuela en ocho, sin azar | el efecto `0xb4` con su paso por paso de lógica, comparado con los pasos emulados del código real | CL7.6 A |
 | Los sprites de un frame (`0x5491e0`), con el billboard de `0x621400`: el dibujo del personaje pide los 30 destellos de la tela y los cinco del cetro, y `0x549440(0)` los dibuja con la modelview en la identidad y los apaga | `Render::MakeBillboard` (bit a bit contra `0x621400`), `World::FrameSprites` (la tabla, con el alpha de `0x549290`) y `Scenes::DrawFrameSprites` en un pase de ojo, el último del 3D, que se abre solo con alguno vivo; `DrawnCharacter::sprites` recibe los destellos al dibujar la tela y el cetro (`World::CreateScepterGlow`, bit a bit contra el caso `0x620` de `0x509340`) en ese orden, con el `rand()` de la CRT de `ClothWorld` | CL7.6 B1 |
 | Las partículas (`0x53fe70`, `0x5446e0` y `0x548550`), con el aliento del caballo desde el buffer global de la pose | `World::Particles` (la tabla de 3.000, el viento y el aliento, bit a bit contra el código real) y `Scenes::DrawParticles` en el pase de ojo, después de los sprites; el aliento lo pide `LoginScene` después del paso del caballo, en el hueso 27 del último modelo dibujado que lo tiene sin ser dummy (`PosedBonePoint`) | CL7.6 B2 |
-| Las hojas (`0x530490` / `0x5306a0`), con las 80 brasas del mapa 55 y la altura del terreno de `0x5f93c0` | `World::Leaves` (las 80 brasas: nacen y caen, bit a bit contra el código real) y `World::TerrainHeightAt`; `Scenes::DrawLeaves` en el pase del mundo, después de los efectos con modelo; `LoginScene` las avanza después del caballo, con el héroe en (0, 0, 0) hasta el primer dibujo (Q-C137) | CL7.6 B3 |
+| Las hojas (`0x530490` / `0x5306a0`), con las 80 brasas del mapa 55 y la altura del terreno de `0x5f93c0` | `World::Leaves` (las 80 brasas: nacen y caen, bit a bit contra el código real) y `World::TerrainHeightAt`; `Scenes::DrawLeaves` en el pase del mundo, después de los efectos con modelo; `LoginScene` las avanza después del caballo, con el héroe y la cámara en (0, 0, 0) hasta el primer dibujo (Q-C137) | CL7.6 B3 |
 | Los joints (`0x53c6a0`) | un sistema con su tabla, cuando una escena los use (el login no tiene ninguno) | — |
 | El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | un objeto colgado del personaje, con el paso de `0x416a20` comparado bit a bit con `raven_reference.py` | CL7.6 C |
 

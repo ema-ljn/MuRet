@@ -16,10 +16,11 @@ constexpr float CellsPerUnit = 0.01f; // 0x6b86c0
 constexpr std::uint16_t FixedHeightBit = 0x40;
 constexpr int Side = 256;
 
-// 0x69fd3c (_ftol): truncar a 64 bits y quedarse con la parte baja; con un NaN o fuera de rango, 0.
-std::int32_t Ftol(float value)
+// 0x69fd3c (_ftol): truncar a 64 bits y quedarse con la parte baja; con un NaN o fuera de rango, 0. Recibe
+// lo que haya en la pila de la x87 (en 53 bits).
+std::int32_t Ftol(double value)
 {
-    constexpr float Limit = 9.2233720368547758e18f;
+    constexpr double Limit = 9.2233720368547758e18;
     if (std::isnan(value) || value >= Limit || value < -Limit)
     {
         return 0;
@@ -42,21 +43,31 @@ double TerrainHeightAt(const Data::Terrain::TerrainHeights& heights, const Data:
     {
         return 0.0;
     }
+    // 0x5f940f: la x se guarda en float (fstp) y ftol la lee de ahí; la y, con fst, que la deja en la
+    // pila: ftol trunca el producto en 53 bits (20.000 · 0,01f, 199,9999955, en float es 200).
     const auto cellX = static_cast<float>(static_cast<double>(x) * static_cast<double>(CellsPerUnit));
-    const auto cellY = static_cast<float>(static_cast<double>(y) * static_cast<double>(CellsPerUnit));
-    const std::int32_t row = Ftol(cellY);
-    const std::int32_t column = Ftol(cellX);
-    const std::int64_t index = (static_cast<std::int64_t>(row) * Side) + column;
-    if (index >= static_cast<std::int64_t>(Data::Terrain::TerrainCellCount) ||
+    const double productY = static_cast<double>(y) * static_cast<double>(CellsPerUnit);
+    const auto cellY = static_cast<float>(productY);
+    const std::int32_t row = Ftol(productY);
+    const std::int32_t column = Ftol(static_cast<double>(cellX));
+    // 0x5f9436: la fila por 256 más la columna, en 32 bits, y `jl` con signo contra 0x10000. Con un índice
+    // negativo (desde la fila 2^23 puede pasar) el original lee antes de la tabla de atributos: MuRet da
+    // 1.200, como fuera de la grilla.
+    const auto index =
+        static_cast<std::int32_t>((static_cast<std::uint32_t>(row) << 8U) + static_cast<std::uint32_t>(column));
+    if (index < 0 || index >= static_cast<std::int32_t>(Data::Terrain::TerrainCellCount) ||
         (attributes.cells[static_cast<std::size_t>(index)] & FixedHeightBit) == FixedHeightBit)
     {
         return static_cast<double>(FixedTerrainHeight);
     }
     const auto fractionY = static_cast<float>(static_cast<double>(cellY) - static_cast<double>(row));
-    const int r0 = (row & 0xff) * Side;
-    const int r1 = ((row + 1) & 0xff) * Side;
-    const int c0 = column & 0xff;
-    const int c1 = (column + 1) & 0xff;
+    // 0x5f946d: `inc` y `and 0xff`, en 32 bits.
+    const auto low = [](std::int32_t value, std::uint32_t plus)
+    { return static_cast<int>((static_cast<std::uint32_t>(value) + plus) & 0xffU); };
+    const int r0 = low(row, 0U) * Side;
+    const int r1 = low(row, 1U) * Side;
+    const int c0 = low(column, 0U);
+    const int c1 = low(column, 1U);
     const double left =
         ((At(heights, r1 + c0) - At(heights, r0 + c0)) * static_cast<double>(fractionY)) + At(heights, r0 + c0);
     const double right =

@@ -28,6 +28,14 @@ MAP, SCENE, HERO, CAMERA_Y, CLOCK = 0x6c9dd0, 0x6d5dc8, 0x743a170, 0x7d36888, 0x
 HEIGHTS, ATTRIBUTES = 0x7accca4, 0x7d0d348
 TABLE, SIZE, COUNT = 0x75e34b8, 0x78, 80
 STEPS = 150
+# Los bordes de 0x5f93c0: la x o la y en 0; las y múltiplos de 100 (la fila sale del producto en 53 bits:
+# 20.000 · 0,01f es 199,9999955, en float 200); la fila 255 con la vuelta a la 0 (y 25.600); la columna 255
+# con la vuelta (x 25.599) y la 256, que cae en la fila siguiente (x 25.600 y 25.601); el índice justo en
+# 65.536 (x 25.601, y 25.550); la fila 256 (y 25.601); una columna de 10.000 (x 1.000.000); y la fila 2^24
+# (y 1.677.721.728), que en 32 bits da la vuelta a la columna.
+EDGES = [(0.0, 0.0), (0.0, 5000.0), (5000.0, 0.0), (5050.0, 20000.0), (20000.0, 5050.0), (100.0, 25600.0),
+         (12345.0, 25600.0), (25500.0, 25500.0), (25599.0, 100.0), (25600.0, 100.0), (25601.0, 100.0),
+         (25601.0, 25550.0), (100.0, 25601.0), (1000000.0, 50.0), (5050.0, 1677721728.0)]
 
 
 def bits(value):
@@ -81,7 +89,8 @@ def main():
         position = [0.0, 0.0, 0.0] if k == 0 else [f32(11679.0 + rng.uniform(-50, 50)),
                                                     f32(14191.0 + rng.uniform(-50, 50)), f32(333.0)]
         e.wfv(hero + 0x10, position)
-        camera = f32(12678.0) if k != 2 else f32(14400.0)
+        # El caso 0 es el primer paso del login: el héroe y la cámara en (0, 0, 0) (0x6349a0, 0x634b80).
+        camera = f32(0.0) if k == 0 else f32(12678.0) if k == 1 else f32(14400.0)
         e.wf(CAMERA_Y, camera)
         seed = rng.getrandbits(32)
         e.rand_state = seed
@@ -92,6 +101,10 @@ def main():
             x, y = f32(rng.uniform(-300, 25900)), f32(rng.uniform(-300, 25900))
             e.call(height_stub, [e.fbits(x), e.fbits(y)])
             lines.append('height %s %s %016x' % (bits(x), bits(y), struct.unpack('<Q', bytes(e.uc.mem_read(result, 8)))[0]))
+        for x, y in EDGES:
+            e.call(height_stub, [e.fbits(f32(x)), e.fbits(f32(y))])
+            lines.append('height %s %s %016x' % (bits(f32(x)), bits(f32(y)),
+                                                 struct.unpack('<Q', bytes(e.uc.mem_read(result, 8)))[0]))
         for step in range(STEPS):
             e.wf(CLOCK, f32(rng.uniform(0, 3_000_000)))
             e.call(STEP, [])

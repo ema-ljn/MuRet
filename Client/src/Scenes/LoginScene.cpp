@@ -524,12 +524,14 @@ void LoginScene::StepTheWorld()
     }
     // 0x530490, después de los ayudantes (0x634d0e): en el mapa 55, las 80 brasas, con el rand() de la CRT.
     // Nacen alrededor del héroe (el personaje 0), al que 0x6350b0 le escribe la posición recién en el
-    // dibujo: antes del primero, en (0, 0, 0) (Q-C137).
+    // dibujo: antes del primero, en (0, 0, 0) (Q-C137). La y de la cámara que miran, igual: al entrar,
+    // 0x6349a0 deja la cámara en (0, 0, 0) (0x634b80) y 0x635ae0 le escribe la de LoginCamera en el
+    // dibujo (0x635f7e).
     if (const World::WorldTerrain* terrain = m_terrain.Terrain();
         m_context.cloth != nullptr && terrain != nullptr && m_world && m_world->map == EmberMap)
     {
         const World::EmberWorld embers{.hero = m_drawnSinceEntering ? LoginHeroPosition : glm::vec3(0.0f),
-                                       .cameraY = LoginCamera().position.y,
+                                       .cameraY = m_drawnSinceEntering ? LoginCamera().position.y : 0.0f,
                                        .heights = terrain->heights.get(),
                                        .attributes = terrain->attributes.get()};
         World::StepLoginEmbers(m_leaves, embers, m_context.cloth->random);

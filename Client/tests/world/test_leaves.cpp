@@ -265,18 +265,53 @@ TEST(LeavesTest, ThreeCasesMatchTheBinary)
         }
     }
     EXPECT_EQ(cases, 3u);
-    EXPECT_EQ(heights, 120u);
+    EXPECT_EQ(heights, 3u * (40u + 15u));
     EXPECT_GT(quads, 300u);
 }
 
-// 0x5f93c0 con x o y negativos: 0; fuera de la grilla, 1.200.
+// 0x5f93c0 con x o y negativos: 0; fuera de la grilla, 1.200. La fila sale del producto de la y por 0,01
+// en 53 bits: 25.600 · 0,01f es 255,99999 (en float, 256), la fila 255 y la fracción 1, que va hasta la
+// fila 0 (la vuelta): la altura de (100, 0), 100,5. Con 25.601, la fila 256, fuera.
 TEST(TerrainHeightTest, OutsideTheGridIsFixed)
 {
     Terrain terrain;
     terrain.Build(1, 1, 1, 1);
     EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, -1.0f, 100.0f), 0.0);
     EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, 100.0f, -1.0f), 0.0);
-    EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, 100.0f, 25600.0f),
+    EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, 100.0f, 25600.0f), 100.5);
+    EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, 100.0f, 25601.0f),
+              static_cast<double>(Client::World::FixedTerrainHeight));
+}
+
+// 0x5f9424: la y se guarda con fst y ftol trunca lo que queda en la pila. 20.000 · 0,01f es 199,9999955:
+// la fila 199 (en float sería la 200), y el 0x40 de su atributo da 1.200.
+TEST(TerrainHeightTest, TheRowComesFromTheUnroundedProduct)
+{
+    Terrain terrain;
+    terrain.Build(1, 1, 1, 1);
+    for (std::uint16_t& attribute : terrain.attributes->cells)
+    {
+        attribute = 0;
+    }
+    terrain.attributes->cells[(199 * 256) + 50] = 0x40;
+    EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, 5050.0f, 20000.0f),
+              static_cast<double>(Client::World::FixedTerrainHeight));
+}
+
+// 0x5f9436: la fila por 256 más la columna, en 32 bits y con signo. Con la fila 2^24 (y = 1.677.721.728)
+// da la vuelta a la columna (la 50, con x 5.000), dentro de la grilla y en la fila 0; con la fila 2^24 − 1 (y
+// = 1.677.721.600) queda negativo y el original lee antes de la tabla de atributos (0x5f9451): MuRet da 1.200.
+TEST(TerrainHeightTest, TheCellIndexWrapsInThirtyTwoBits)
+{
+    Terrain terrain;
+    terrain.Build(1, 1, 1, 1);
+    for (std::uint16_t& attribute : terrain.attributes->cells)
+    {
+        attribute = 0;
+    }
+    EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, 5000.0f, 1677721728.0f),
+              static_cast<double>(terrain.heights->cells[50]));
+    EXPECT_EQ(Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes, 5000.0f, 1677721600.0f),
               static_cast<double>(Client::World::FixedTerrainHeight));
 }
 

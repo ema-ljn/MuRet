@@ -31,6 +31,7 @@ using Client::Network::Crypto::Xor32Decode;
 using Client::Protocol::ProtocolError;
 using Client::Protocol::Character::CharacterClassOf;
 using Client::Protocol::Character::CharacterCreated;
+using Client::Protocol::Character::NameAsText;
 using Client::Protocol::Character::NameFromText;
 using Client::Protocol::Character::NameUpToItsEnd;
 using Client::Protocol::Character::ReadCharacterCreateResult;
@@ -67,6 +68,18 @@ TEST(CharacterCreateTest, TheNameGoesUpToItsFirstZero)
 }
 
 // Un texto de hasta 10 bytes sin ceros es un nombre; uno de 11, o con un cero, no.
+// El nombre como texto, para el formato del aviso 0x5e (sprintf con %s): hasta su primer cero, o
+// los 10 bytes si lo llena.
+TEST(CharacterCreateTest, TheNameAsTextEndsAtItsFirstZero)
+{
+    EXPECT_EQ(NameAsText(NameBytes("abcd")), "abcd");
+    EXPECT_EQ(NameAsText(NameBytes("abcdefghij")), "abcdefghij");
+    std::array<std::byte, 10> name = NameBytes("ab");
+    name[5] = std::byte{'x'};
+    EXPECT_EQ(NameAsText(name), "ab");
+    EXPECT_EQ(NameAsText(std::array<std::byte, 10>{}), "");
+}
+
 TEST(CharacterCreateTest, ANameHasUpToTenBytes)
 {
     EXPECT_EQ(NameFromText("abcdefghij"), std::optional{NameBytes("abcdefghij")});

@@ -1520,6 +1520,61 @@ del nivel (§ El modelo en el binario).
 mundo la perspectiva de 45° que no dibuja y el pase de la franja de arriba, y los pies del
 personaje a la altura de z = 163.
 
+### La barra de la selección y el borrado
+
+Leída en la CL6.5 (*estático*, y *emulado* el lugar de las ventanas y el armado de los avisos).
+
+**La barra** (`+0x7f50`: `0x63e820` la arma, `0x65f4b0` la ubica, `0x63eb90` la atiende y
+`0x63ec00` la dibuja). Va en x = 22 e y = −ftol(H · −0,945f) − 54, con el producto en la x87 como la
+barra del login pero sin el −11: 399 en 480, 512 en 600, 671 en 768 y 913 en 1024. Mide (W − 44) ×
+54 y no es modal: solo tapa su rectángulo, y con el mouse ahí `+0x8de8` queda en 1 y la escena no
+elige ni hace el doble clic, y `0x634680` no llama a `0x59ec80` (`0x63485b`): `DAT_006c8e30` queda
+con el último que estuvo bajo el mouse, y **el contorno se queda en él**. Lo mismo con un aviso
+abierto, que tiene el mouse; entonces `0x65fc30` le da el mouse solo a la ventana de la cabeza, y
+los botones de la barra siguen con su estado (`0x669f40` corre `0x63c490` en todas), sin el mouse
+encima. Enter no mira `+0x8de8`. Lleva:
+
+| Pieza | Textura (slot) | Tamaño | Lugar |
+| --- | --- | --- | --- |
+| el adorno | `deco.tga` (`0xe`) | 189 × 103 | (W − 189, y − 46) |
+| la franja | ninguna, negra con alfa `0x8f` | (W − 44) × 21 | (22, y + 33) |
+| crear | `b_create.tga` (`0xf`), 4 cuadros | 54 × 30 | (22, y) |
+| el menú | `server_menu_b_all.tga` (`0x10`), 3 cuadros | 54 × 30 | (77, y) |
+| conectar | `b_connect.tga` (`0x11`), 4 cuadros | 54 × 30 | (W − 131, y) |
+| borrar | `b_delete.tga` (`0x12`), 4 cuadros | 54 × 30 | (W − 76, y) |
+
+Los cuadros: 0 normal, 1 con el mouse encima, 2 apretado y 3 deshabilitado (el menú no se
+deshabilita). `0x63eb40` habilita crear si hay un lugar vacío de 0 a 4, y conectar y borrar si hay
+uno elegido. El dibujo: el adorno y la franja, `0x620a00(1)` y `glColor4f(1, 1, 1, 1)` (la franja
+apagó la textura), el string del primer aviso `0x0D` de tipo 1 que llegue en la escena (`+0x511`),
+el texto 1710 en (W − 464, y + 40) en `0xff27d9ff` y, si algún personaje de la lista tiene el bit
+`0x10` de sus banderas (`+0x543`, que calcula el armado una vez), los textos 436 y 437 centrados en
+(320, 330) y (320, 348) de 640 × 480 (`0x623690`: x − (cx · 640 / W) / 2, en enteros sin signo),
+negros sobre `0x8000ffff`; después, los cuatro botones. Un clic por paso, en este orden: conectar
+(lo de Enter, `0x633c10`), el menú (`+0x3d0`), crear (`+0x8498`) y borrar (`0x63edf0`).
+
+**Borrar** (`0x63edf0`), con el elegido: con gremio (`+0x368` distinto de `0xff`), el aviso `0x92`;
+de nivel 80 o más (el byte `0x6d5e24`) y con el nombre del grupo del servidor elegido distinto
+(`strcmp`) del texto 559, el `0x83`; con las banderas `0x12`, el `0x61`; si no, el `0x5e`, con el
+nombre en el `%s` del texto 1712. Su OK o Enter abre el `0x5f`: el texto 1713, la caja
+`delete_secret_number.tga` (`0x728`, 171 × 23) en (+32, +76) y el EDIT de `WinMain` en (+42, +84),
+con `ES_PASSWORD`, solo dígitos y hasta 7, vaciado al abrir (`0x6436c0`). Su OK o Enter
+(`0x643740`) manda el `F3 02` con el nombre del elegido y los 10 bytes del campo (el texto y ceros:
+uno vacío se manda igual) y abre el `0x5d` (471, sin botón). Cancelar o Esc en cualquiera de los
+dos cierra sin mandar. La respuesta cambia el `0x5d` por su aviso: 0 → `0x92`, 1 → `0x60` (que al
+abrirse borra al elegido y deja a ninguno, Q-C104), 3 → `0x62`, otro → `0x89`.
+
+Los avisos parten su texto en dos renglones de menos de 52 bytes (`0x632c90`): uno va al medio en
+y + 38; dos, en (+25, +32) y (+25, +51). Los tipos (`0x642bf0`): 0 sin botón; 2 un OK en (+149,
++72); 3 un OK en (+98, +72) y un cancelar en (+200, +72), con Esc que cancela; 4, la caja del código
+con el OK en (+209, +72) y el cancelar en (+264, +72). Los textos 1711 a 1716 están vacíos en el
+`Text.bmd` del laboratorio (**verificado**): el `0x83`, el `0x5e`, el `0x5f`, el `0x60`, el `0x72` y
+el `0x36` salen sin texto.
+
+Un personaje que arma `0x511290` sale sin gremio: `0x511ca6` pone su `+0x368` en `0xff`, y la
+respuesta de crear (`0x4c2290`) no lo toca. El que se crea en la sesión se puede borrar sin otra
+lista.
+
 ### Los personajes de la lista
 
 `0x4c20a0` ([04](04-protocolo.md#la-selección-de-personaje-f3)) pone cada personaje en
@@ -1628,6 +1683,7 @@ Ver [08](08-pendientes.md).
 | Cuántos pases de brillo lleva una parte, por su nivel (`0x60b3d0`), con el tope de las opciones | `ItemGlow`: la tabla de arriba, una fila por nivel, y los 14 y 15 sin brillo (Q-C97) | CL6.3 |
 | Los slots de las texturas de los modelos: un próximo que fija cada cargador y la búsqueda por nombre desnudo | `ModelTextureSlots` con el mismo próximo por cargador y la misma búsqueda (Q-C90), y un golden local contra `lor_slots.bin`; el login sigue el próximo del mundo (Q-C92) | CL6.1, CL6.3, CL6.4 |
 | La selección: la lista en cinco lugares fijos, el picking contra una caja corrida, el doble clic por reloj y la luz 0,4 / 1,4 | `CharacterSelectScene` con las tablas de arriba; un lugar de más de 4 se descarta (Q-C101) | CL6.3 |
+| La barra de la selección (crear, el menú, conectar y borrar) y el borrado con dos avisos | `UI::SelectionBar` (con `Button` deshabilitado), `UI::DeleteChecks` (las revisiones de `0x63edf0`), `UI::NoticeWindow` con los tipos 0, 3 y 4 y el campo del código, y la escena, que sigue la lista de la sesión (el que crea entra y el que borra se va) y abre el aviso de cada respuesta. La ventana de crear es de la PR B2; el menú, las opciones, los carteles y el área de mensajes, de la CL8 | CL6.5 |
 | El caballo oscuro: un ayudante que aparece de a poco y sigue la acción del jinete, con luz por vértice, un cromo y su sombra | `Scenes/DarkHorse` (el paso) y `DrawDarkHorse` (el caso `0xbf` de `0x6002e0`), con `Render::Models::NormalLight` (L = (1,3; 0; 2), la normal con la escala del objeto) y `ModelBlend::BlendedShadow`; en el login, entre el personaje y el logo | CL6.4 |
 
 Tests que fija:

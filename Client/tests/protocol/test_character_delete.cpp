@@ -26,6 +26,7 @@ using Client::Network::Delivery;
 using Client::Network::Crypto::Xor32Decode;
 using Client::Protocol::ProtocolError;
 using Client::Protocol::Character::CharacterDeleted;
+using Client::Protocol::Character::DeleteCodeFromText;
 using Client::Protocol::Character::DeleteCodeSize;
 using Client::Protocol::Character::ReadCharacterDeleteResult;
 using Client::Protocol::Character::WriteCharacterDelete;
@@ -68,6 +69,19 @@ TEST(CharacterDeleteTest, TheNameGoesUpToItsFirstZero)
 }
 
 // La respuesta es pkt[4], que 0x4e2b10 lee en línea; sin él, TooShort.
+// 0x643740: el texto del campo en un buffer que se vació al abrir, así que lo que no escribió el
+// jugador va en cero; uno vacío se manda igual. Más de 10 bytes no entran (el campo toma 7).
+TEST(CharacterDeleteTest, TheCodeIsItsTextAndZeros)
+{
+    std::array<std::byte, DeleteCodeSize> expected{};
+    expected[0] = std::byte{'4'};
+    expected[1] = std::byte{'2'};
+    EXPECT_EQ(DeleteCodeFromText("42"), expected);
+    EXPECT_EQ(DeleteCodeFromText(""), (std::array<std::byte, DeleteCodeSize>{}));
+    const std::array<std::byte, DeleteCodeSize> full = DeleteCodeFromText("0123456789ab");
+    EXPECT_EQ(full[9], std::byte{'9'});
+}
+
 TEST(CharacterDeleteTest, TheReplyIsItsResult)
 {
     for (const int result : {0, 1, 3, 9})

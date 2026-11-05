@@ -6,7 +6,9 @@
 #include <array>
 #include <cstddef>
 #include <optional>
+#include <ranges>
 #include <span>
+#include <string>
 #include <string_view>
 
 namespace Client::Protocol::Character
@@ -16,6 +18,16 @@ std::array<std::byte, NameSize> NameUpToItsEnd(std::span<const std::byte, NameSi
     std::array<std::byte, NameSize> upToItsEnd{};
     std::copy(name.begin(), std::ranges::find(name, std::byte{0}), upToItsEnd.begin());
     return upToItsEnd;
+}
+
+std::string NameAsText(std::span<const std::byte, NameSize> name)
+{
+    std::string text;
+    for (const std::byte value : std::ranges::subrange(name.begin(), std::ranges::find(name, std::byte{0})))
+    {
+        text.push_back(static_cast<char>(value));
+    }
+    return text;
 }
 
 std::optional<std::array<std::byte, NameSize>> NameFromText(std::string_view text)

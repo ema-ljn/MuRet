@@ -64,13 +64,15 @@ TEST(TextureSetsTest, TheLoginSetIsTheOneOf0x61c7c0)
     EXPECT_EQ(CountWith(LoginTextureSet, {Filter::Nearest, Wrap::Repeat}), 2u);
 }
 
-// Las tres de 0x61ccb0 para las ventanas del login (CL5.5), sin filtro y sin repetir, en slots que
-// el login no usa: la escena sube los dos juegos a la vez.
+// Las cuatro de 0x61ccb0 para las ventanas del login y de la selección (CL5.5 y CL6.5), sin filtro y
+// sin repetir, en slots que el login no usa: la escena sube los dos juegos a la vez. La cuarta es la
+// caja del código del borrado (0x728).
 TEST(TextureSetsTest, TheWindowSetIsTheOneOf0x61ccb0)
 {
     ExpectAValidSet(WindowTextureSet);
-    EXPECT_EQ(WindowTextureSet.size(), 3u);
-    EXPECT_EQ(CountWith(WindowTextureSet, {Filter::Nearest, Wrap::Clamp}), 3u);
+    EXPECT_EQ(WindowTextureSet.size(), 4u);
+    EXPECT_EQ(WindowTextureSet[3].slot, 0x728);
+    EXPECT_EQ(CountWith(WindowTextureSet, {Filter::Nearest, Wrap::Clamp}), 4u);
     for (const TextureSetEntry& window : WindowTextureSet)
     {
         for (const TextureSetEntry& login : LoginTextureSet)

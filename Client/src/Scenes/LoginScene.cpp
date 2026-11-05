@@ -480,6 +480,9 @@ void LoginScene::OnNoticeClosed(UI::NoticeId notice)
     switch (followUp)
     {
     case UI::NoticeFollowUp::Close:
+    // Los del borrado son de la selección: el login no los abre.
+    case UI::NoticeFollowUp::AskForTheCode:
+    case UI::NoticeFollowUp::SendTheDeletion:
         return;
     case UI::NoticeFollowUp::ReopenAtAccount:
     case UI::NoticeFollowUp::ReopenAtPassword:

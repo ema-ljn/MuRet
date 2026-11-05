@@ -22,16 +22,17 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <ios>
 #include <optional>
 #include <set>
 #include <string>
 #include <string_view>
 #include <vector>
-#include <algorithm>
-#include <ios>
 
 // La carga y el login con el Data\ del laboratorio: entran (sus juegos de texturas en sus slots
 // de la tabla falsa, el login con las de las ventanas), y el login dibuja sus tres textos de
@@ -153,6 +154,9 @@ TEST_F(GoldenLoginScene, TheLogoLoads)
     EXPECT_FALSE(store.Find(TextureSlot{0x456}).has_value());
 }
 
+// Los textos de los avisos de la selección que vienen vacíos en el Text.bmd del laboratorio.
+constexpr std::array<std::size_t, 6> SelectionEmptyTexts{1711, 1712, 1713, 1714, 1715, 1716};
+
 // Los textos de las ventanas (CL5.5), por índice: los de cada aviso que abre el login (los del F1
 // 01 de 0x15 a 0x26 y los suyos), los rótulos de la cuenta (450 y 451), los dos títulos, las tres
 // cargas y el nombre de cada grupo con botón. Todos están y no son vacíos; si uno falla, sale su
@@ -183,10 +187,31 @@ TEST_F(GoldenLoginScene, TheTextsOfItsWindowsAreInTheLabTable)
         }
     }
 
+    // Los de los avisos de la selección que este Text.bmd deja vacíos (TheSelectionLeavesSixTextsEmpty).
+    for (const std::size_t empty : SelectionEmptyTexts)
+    {
+        indices.erase(empty);
+    }
+
     for (const std::size_t index : indices)
     {
         const std::optional<std::string_view> text = data.Value().text->Text(index);
         EXPECT_TRUE(text.has_value() && !text->empty()) << "el texto " << index;
+    }
+}
+
+// Los textos 1711 a 1716 de los avisos de la selección (0x83, 0x5e, 0x5f, 0x60, 0x72 y 0x36) están
+// vacíos en el Text.bmd del laboratorio: esas cajas salen sin texto, como en el original.
+TEST_F(GoldenLoginScene, TheSelectionLeavesSixTextsEmpty)
+{
+    auto data = LoadGameData(m_dataRoot);
+    ASSERT_TRUE(data.HasValue()) << data.Error();
+    ASSERT_TRUE(data.Value().text.has_value());
+    for (const std::size_t index : SelectionEmptyTexts)
+    {
+        const std::optional<std::string_view> text = data.Value().text->Text(index);
+        ASSERT_TRUE(text.has_value()) << "el texto " << index;
+        EXPECT_TRUE(text->empty()) << "el texto " << index;
     }
 }
 

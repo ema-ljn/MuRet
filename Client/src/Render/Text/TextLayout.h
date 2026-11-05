@@ -16,6 +16,10 @@ namespace Client::Render::Text
 // cuenta se trunca, y con un cx de 6.710.887 o más el producto da la vuelta.
 [[nodiscard]] int RightAlignedAt(int x, TextExtent extent, App::PixelSize screen);
 
+// 0x623690: el texto centrado en `x`, de 640 × 480: x − (cx · 640 / W) / 2, con la misma división
+// en 32 bits sin signo y el shr de la mitad (los textos 436 y 437 de la selección).
+[[nodiscard]] int CenteredAt(int x, TextExtent extent, App::PixelSize screen);
+
 // Los tres textos del login se apoyan en `y`: y − cy · 480 / H, con la misma división. El original
 // resta cy · 640 / W (0x6353b9), que en una pantalla que no es 4:3 da otra cosa: en 1280 × 1024 el
 // texto queda un punto más arriba (Q-C60). MuRet usa el alto.

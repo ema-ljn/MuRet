@@ -2162,6 +2162,8 @@ TEST(ServerSessionTest, TheNewOneGoesToItsSlotWithoutEquipment)
     EXPECT_EQ(characters[2].classByte, 0x20);
     EXPECT_TRUE(characters[2].withoutEquipment);
     EXPECT_FALSE(characters[0].withoutEquipment);
+    // Sin gremio: 0x511290 pone +0x368 en 0xff (0x511ca6) y la respuesta no lo toca.
+    EXPECT_EQ(characters[2].guildStatus, 0xff);
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "se creó el personaje del lugar 1"));
 }
 

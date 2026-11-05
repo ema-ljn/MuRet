@@ -698,6 +698,7 @@ void ServerSession::OnCreateResult(const Network::Packet& packet)
             entry.level = created.level;
             entry.classByte = created.classByte;
             entry.withoutEquipment = true;
+            entry.guildStatus = Protocol::Character::NoGuildStatus;
             std::vector<Protocol::Character::CharacterEntry>& characters = m_characters->characters;
             const auto same = std::ranges::find(characters, entry.slot, &Protocol::Character::CharacterEntry::slot);
             if (same != characters.end())

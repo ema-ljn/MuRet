@@ -9,10 +9,13 @@
 #include "Protocol/PacketFields.h"
 #include "Protocol/ProtocolError.h"
 
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <string_view>
 
 namespace Client::Protocol::Character
 {
@@ -20,6 +23,14 @@ namespace
 {
 constexpr PacketKind DeleteKind{Network::PacketType::C1, CharacterOpcode, DeleteSubcode};
 } // namespace
+
+std::array<std::byte, DeleteCodeSize> DeleteCodeFromText(std::string_view text)
+{
+    std::array<std::byte, DeleteCodeSize> code{};
+    std::ranges::transform(text.substr(0, DeleteCodeSize), code.begin(),
+                           [](char value) { return static_cast<std::byte>(value); });
+    return code;
+}
 
 Outgoing WriteCharacterDelete(std::span<const std::byte, NameSize> name,
                               std::span<const std::byte, DeleteCodeSize> code)

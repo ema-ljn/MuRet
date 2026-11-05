@@ -47,6 +47,8 @@ public:
 
     // La luz sombreada del terreno (la de 0x5f99e0 para los modelos), si hay terreno.
     [[nodiscard]] const World::TerrainLighting* Lighting() const;
+    // El terreno entero (las alturas y los atributos que pide 0x5f93c0), si hay.
+    [[nodiscard]] const World::WorldTerrain* Terrain() const;
 
     // 0x5fbf60, en cada paso: la ola de las celdas de la ventana del rango, con el reloj del paso.
     void Step(Core::Duration clock, const World::TerrainRange& range);

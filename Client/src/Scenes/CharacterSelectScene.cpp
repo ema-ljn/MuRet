@@ -5,6 +5,7 @@
 #include "App/SessionState.h"
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Textures/TextureSet.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -31,7 +32,10 @@
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/TextureSets.h"
+#include "UI/CreateCharacterWindow.h"
 #include "UI/DeleteChecks.h"
+#include "UI/GameText.h"
+#include "UI/NameChecks.h"
 #include "UI/Notices.h"
 #include "UI/SelectionBar.h"
 #include "UI/Widget.h"
@@ -62,6 +66,10 @@ constexpr float HeroLight = 0.5f;
 constexpr float ChosenExtraLight = 1.0f;
 constexpr std::uint8_t HeroSlot = 0;
 
+// Los textos que 0x622c70 busca en el nombre de uno nuevo.
+constexpr std::size_t OperationText = 457;
+constexpr std::size_t ServerText = 458;
+
 // El bit de las banderas (+0x1d8) con el que el armado de la barra muestra los textos 436 y 437.
 constexpr std::uint8_t BlockedAccountFlag = 0x10;
 
@@ -90,8 +98,20 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ga
     : m_context(context), m_texts(data.text ? &*data.text : nullptr), m_models(models), m_session(session),
       m_textures(context.textures, SelectionTextureSet), m_windowTextures(context.textures, WindowTextureSet),
       m_notice([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts),
-      m_bar([this](Render::TextureSlot slot) { return m_textures.BufferSize(slot); }, m_texts)
+      m_bar([this](Render::TextureSlot slot) { return m_textures.BufferSize(slot); }, m_texts),
+      m_nameFilters{.filterName = data.filterName,
+                    .filter = data.filter,
+                    .operation = UI::TextAt(m_texts, OperationText).value_or(std::string_view{}),
+                    .server = UI::TextAt(m_texts, ServerText).value_or(std::string_view{})},
+      m_create([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts)
 {
+}
+
+Scenes::TextureBufferSize CharacterSelectScene::BufferSize(Render::TextureSlot slot) const
+{
+    const bool inTheWindows = std::ranges::any_of(WindowTextureSet, [slot](const Data::Textures::TextureSetEntry& entry)
+                                                  { return entry.slot == slot.value; });
+    return inTheWindows ? m_windowTextures.BufferSize(slot) : m_textures.BufferSize(slot);
 }
 
 Core::Expected<void, std::string> CharacterSelectScene::Enter()
@@ -162,6 +182,8 @@ void CharacterSelectScene::SyncTheCharacters()
         // 0x63e820, una vez: algún personaje de los cinco lugares con el bit 0x10 de las banderas.
         m_bar.SetBlockedAccount(std::ranges::any_of(entries, [](const Protocol::Character::CharacterEntry& entry)
                                                     { return (entry.flags & BlockedAccountFlag) != 0; }));
+        // 0x4c20a0 → 0x622b20 → 0x63d7c0: las clases de la 0 a pkt[4].
+        m_create.EnableClasses(m_session->Characters()->creatableClasses);
         m_context.log.Info("la selección tiene {} personajes", m_characters.size());
     }
     else if (changed)
@@ -195,6 +217,66 @@ bool CharacterSelectScene::ShowTheFailure()
                        static_cast<int>(UI::ConnectFailedNotice));
     m_notice.Open(UI::ConnectFailedNotice);
     return true;
+}
+
+bool CharacterSelectScene::TakeTheCreationResult()
+{
+    if (!m_waitingForTheCreation || m_session == nullptr ||
+        m_session->State() == App::SessionState::WaitingCreateResult)
+    {
+        return false;
+    }
+    m_waitingForTheCreation = false;
+    const std::optional<std::uint8_t> result = m_session->CreateResult();
+    if (!result || m_failureShown)
+    {
+        return false;
+    }
+    const std::optional<UI::NoticeId> notice = UI::NoticeOfCreateResult(*result);
+    if (!notice)
+    {
+        // Creado: 0x65f6c0(+0x8) cierra el 0x5d; el nuevo ya está en la lista.
+        if (m_notice.Notice() == UI::PleaseWaitNotice)
+        {
+            m_notice.Close();
+        }
+        return false;
+    }
+    // La ventana antes que el aviso, que queda arriba (0x6431b0), con el campo vacío.
+    m_create.Open();
+    m_notice.Open(*notice);
+    return true;
+}
+
+void CharacterSelectScene::StepTheCreateWindow(const Input::InputState& input)
+{
+    if (m_create.Step(input, m_screen) == UI::CreateWindowEvent::Submitted)
+    {
+        SubmitTheCreation();
+    }
+}
+
+void CharacterSelectScene::SubmitTheCreation()
+{
+    if (const std::optional<UI::NoticeId> refused =
+            UI::NoticeOfNewName(m_create.Name(), m_create.Buffer(), m_nameFilters))
+    {
+        // El nombre no va al log: solo el aviso. La ventana queda abajo, con el nombre.
+        m_context.log.Info("el nombre del personaje nuevo no pasa: el aviso {:#04x}", static_cast<int>(*refused));
+        m_notice.Open(*refused);
+        return;
+    }
+    if (m_session == nullptr)
+    {
+        return;
+    }
+    m_session->CreateCharacter(m_create.Name(), m_create.ChosenClass());
+    if (m_session->State() == App::SessionState::WaitingCreateResult)
+    {
+        m_waitingForTheCreation = true;
+        m_create.Close();
+        m_notice.Open(UI::PleaseWaitNotice);
+    }
 }
 
 bool CharacterSelectScene::TakeTheDeletionResult()
@@ -276,7 +358,7 @@ void CharacterSelectScene::OnTheBar(UI::SelectionBarClick click)
         m_context.log.Info("el menú de la selección todavía no está");
         break;
     case UI::SelectionBarClick::Create:
-        m_context.log.Info("la ventana de crear un personaje todavía no está");
+        m_create.Open();
         break;
     case UI::SelectionBarClick::Delete:
         AskToDelete();
@@ -330,15 +412,27 @@ void CharacterSelectScene::Step(const Input::InputState& input)
     ++m_steps;
     SyncTheCharacters();
     StepCharacters();
-    const bool resultOpened = TakeTheDeletionResult();
+    const bool deletionOpened = TakeTheDeletionResult();
+    const bool creationOpened = TakeTheCreationResult();
     EnableTheBar();
     if (m_notice.IsOpen())
     {
         m_bar.StepWithoutTheMouse(input);
-        if (!failureOpened && !resultOpened)
+        if (m_create.IsOpen())
+        {
+            m_create.StepUnderANotice(input);
+        }
+        if (!failureOpened && !deletionOpened && !creationOpened)
         {
             StepTheNotice(input);
         }
+        return;
+    }
+    // La ventana de crear es modal (la base de toda la pantalla): tiene el mouse y el teclado.
+    if (m_create.IsOpen())
+    {
+        m_bar.StepWithoutTheMouse(input);
+        StepTheCreateWindow(input);
         return;
     }
     if (const std::optional<UI::SelectionBarClick> click = m_bar.Step(input, m_screen))
@@ -466,8 +560,10 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
     }
     canvas.flushModels();
-    // La UI del modo 4 (0x65fe00): la barra, y el aviso arriba.
+    // La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el aviso arriba.
     m_bar.Draw(sprites, canvas.text, canvas.screen);
+    m_create.DrawBase(sprites, canvas.screen);
+    m_create.Draw(sprites, canvas.text, canvas.screen);
     m_notice.Draw(sprites, canvas.text, canvas.screen);
 }
 
@@ -489,7 +585,7 @@ bool CharacterSelectScene::WantsToQuit() const
 
 bool CharacterSelectScene::WantsTextInput() const
 {
-    return m_notice.WantsTextInput();
+    return m_notice.WantsTextInput() || m_create.WantsTextInput();
 }
 
 bool CharacterSelectScene::HoldsTheLastFrame() const

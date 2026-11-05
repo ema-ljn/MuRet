@@ -2437,6 +2437,60 @@ Decisiones, con lo que cuestan si están mal:
 12 tests más (50 en la B1). La suite, 1.990 en verde. 12 mutantes de la pasada: 11 en rojo y uno
 equivalente en efecto (comparar el nombre de la entrada: la apariencia sale de la clase y el equipo).
 
+**B2, la ventana de crear** (2026-11-04, resuelto por Claude). La vista previa en 3D quedó para una
+**B3**: cargar los cinco `NewFace` con sus texturas desde `0x6f8`, su cámara y su viewport es un
+concepto entero. En B2, un commit por concepto:
+- **Los filtros del nombre** (`Data::Text::LoadFilterWords`, 7 tests, 2 contra la `Data` del
+  laboratorio; y `LoadGameData`, 3): `FilterName.bmd` y `Filter.bmd`, con el XOR3 por registro y
+  el checksum de las tablas (la paridad de `Item.bmd`, claves `0x2bc1` y `0x3e7d`).
+- **Los chequeos del nombre** (`UI::NameChecks`, 6 tests): los tres de `0x63d990` en su orden, con
+  la tabla de nombres emulada del contrato.
+- **La ventana** (`UI::CreateCharacterWindow`, 9 tests): el lugar de `0x63d4e0`, las clases de la 0
+  a `pkt[4]` con el Dark Knight marcado, el campo de 10 bytes, OK, cancelar, Enter y Esc, y el dibujo
+  de `0x63e0a0` sin la vista previa.
+- **La escena** (7 tests): el botón de crear abre la ventana, modal; el OK pasa por los chequeos, y
+  si van, manda el `F3 01` y abre el `0x5d`; la respuesta cierra el `0x5d` o vuelve a abrir la
+  ventana con el `0x36` o el `0x37`.
+
+32 tests (44 con los de la revisión). La suite, 2.021 en verde antes de la revisión, con GL y los
+golden. 32 mutantes a mano (45 con los 13 de la revisión, todos en rojo):
+- 30 en rojo: 2 reescritos para compilar, y uno vivía hasta su test (los botones de la ventana bajo
+  un aviso);
+- 2 equivalentes: el tope de `pkt[4]` a 4, que sobraba (el lazo solo tiene los cinco) y se fue, y
+  sacar los espacios antes de filtrar, que no se ve porque el espacio ya filtra.
+
+Decisiones, con lo que cuestan si están mal:
+- Ruling: la vista previa va en una B3. Si está mal, nada: es el orden de los PRs; hasta la B3, la
+  ventana se ve sin el personaje.
+- Ruling: sin `FilterName.bmd` o sin `Filter.bmd`, `LoadGameData` sigue con el filtro vacío. El
+  original avisa y se cierra. Si está mal, con una `Data` incompleta se pueden pedir nombres que el
+  original no dejaría; el GS decide igual.
+- Ruling: el campo del nombre se dibuja con el estilo de los del login (la fuente normal, blanco y
+  el `_` de cursor): el dibujo del EDIT (`0x468320`) no se leyó entero (P-C16 f). Si está mal, el
+  campo se ve un poco distinto.
+- Ruling: la búsqueda de las palabras avanza de a un byte, no de a un carácter de la página de
+  códigos (`_mbclen`). Con las letras que toma el campo (ASCII y Latin-1, de un byte cada una) da lo
+  mismo. Si está mal, con una página de códigos de dos bytes por letra MuRet filtraría algo que el
+  original no.
+- Ruling: el campo del nombre toma ASCII y las letras de Latin-1 (U+00A0 a U+00FF, que en esa franja
+  son las de CP1252); las de CP1252 de 0x80 a 0x9f y las de otras páginas, no. Si está mal, un
+  jugador con otra página de códigos no puede escribir su nombre como en el original.
+
+**Tras la revisión adversarial de B2** (los dos revisores, sin críticos):
+- **El campo del nombre solo tomaba ASCII** (Importante, del binario): el EDIT de `0x63d670` no
+  filtra, y el original manda "Peña" con su `0xf1`. `TextField` toma Latin-1 en el campo del nombre
+  (`ALatin1FieldTakesTheLettersOfItsPage`, `TheNameTakesLatin1Letters`).
+- **Ningún test miraba la respuesta del `F3 01` con la sesión caída** (Importante, del C++): la
+  guarda estaba, pero un mutante que la sacaba vivía
+  (`ACreationResultWithTheCloseLeavesTheFailureNotice`).
+- Q-C118 se reproduce: la ventana guarda el buffer de `0x7798bf8`, y el costo que decía la decisión
+  ("con ASCII no cambia nada") estaba mal, porque el espacio se escribe.
+- Con un aviso arriba, lo que se escribe sigue yendo al nombre (el EDIT no pierde el foco).
+- Un filtro con los 1.000 registros llenos no filtra nada (Q-C120).
+- Tests que faltaban: el Enter en el paso de la respuesta, `/GMxx` (las dos listas en su lugar), el
+  orden de los chequeos ("GM" es corto) y que el nombre no va al log.
+- Menores: `Draw` en tres partes, un `SetBlend` de más, y comentarios.
+
 ## Qué no se prueba en CI, y cómo se cubre
 
 | Qué | Cómo |

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <string_view>
 
@@ -18,7 +19,16 @@ namespace Client::UI
 class TextField
 {
 public:
-    TextField(std::size_t maxBytes, bool masked);
+    // Qué letras toma: las de ASCII (la cuenta, la clave y el código), o además las de Latin-1 de
+    // U+00A0 a U+00FF, como su byte (el nombre de un personaje nuevo: el EDIT de 0x63d670 no tiene
+    // filtro, y en esa franja Latin-1 y CP1252 coinciden).
+    enum class Charset : std::uint8_t
+    {
+        Ascii,
+        Latin1,
+    };
+
+    TextField(std::size_t maxBytes, bool masked, Charset charset = Charset::Ascii);
 
     // Suma lo que se puede de `utf8`, en orden, hasta llenar el campo.
     void Type(std::string_view utf8);
@@ -38,6 +48,7 @@ public:
 private:
     std::size_t m_maxBytes;
     bool m_masked;
+    Charset m_charset;
     std::string m_value;
 };
 } // namespace Client::UI

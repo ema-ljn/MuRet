@@ -10,6 +10,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Render/Models/Pose.h"
 #include "Render/Pass3D.h"
+#include "Render/TextureSlot.h"
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/GameData.h"
@@ -18,6 +19,8 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTextures.h"
+#include "UI/CreateCharacterWindow.h"
+#include "UI/NameChecks.h"
 #include "UI/NoticeWindow.h"
 #include "UI/SelectionBar.h"
 
@@ -29,9 +32,10 @@
 // La escena 4, la selección de personaje (0x633f20 al entrar, 0x6342c0 la lógica y 0x634680 el
 // dibujo): los personajes de la lista en sus lugares, animados, el clic que elige el que está bajo el
 // mouse, y Enter o el doble clic que entra al mundo con el elegido. Arriba, la barra de la selección
-// (UI::SelectionBar) con conectar y borrar, y los avisos del borrado. Sin el terreno, los objetos ni
-// los efectos (CL7 y la ola de los efectos), sin la ventana de crear (CL6.5 PR B2), el menú y las
-// opciones (CL8), los carteles de los personajes ni el área de mensajes.
+// (UI::SelectionBar) con conectar, crear y borrar, la ventana de crear (UI::CreateCharacterWindow) y
+// los avisos. Sin el terreno, los objetos ni los efectos (CL7 y la ola de los efectos), sin la vista
+// previa de la ventana de crear (CL6.5 PR B3), el menú y las opciones (CL8), los carteles de los
+// personajes ni el área de mensajes.
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La selección de personaje", y el plan de
 // la CL6 (CL6.3, "Contrato").
 namespace Client::Scenes
@@ -47,14 +51,15 @@ public:
     // Como 0x633f20: su juego de texturas (0x61ca30) y el de las ventanas, ninguno elegido, y el
     // F3 00 (ServerSession::RequestCharacterList).
     Core::Expected<void, std::string> Enter() override;
-    // 0x6342c0: nada hasta la lista; después, los personajes de la lista y su avance, la respuesta del
-    // borrado, el aviso si está abierto, y si no, la barra, el doble clic que entra, el clic que elige
-    // y Enter. Con el mouse sobre la barra o un aviso abierto (+0x8de8), ni el clic ni el doble clic,
-    // y el contorno se queda en el último; un aviso que se abre en el paso se atiende desde el que
-    // sigue.
+    // 0x6342c0: nada hasta la lista; después, los personajes de la lista y su avance, las respuestas
+    // del borrado y de crear, y la UI de arriba hacia abajo: el aviso si está abierto (con la ventana
+    // de crear debajo, que sigue tomando lo que se escribe); si no, la ventana de crear, que es modal;
+    // si no, la barra, el doble clic que entra, el clic que elige y Enter. Con el mouse sobre la
+    // barra o una ventana abierta (+0x8de8), ni el clic ni el doble clic, y el contorno se queda en el
+    // último; un aviso que se abre en el paso se atiende desde el que sigue.
     void Step(const Input::InputState& input) override;
     // 0x634680 sin el terreno, los objetos ni los efectos: con sesión, nada hasta la lista; el de bajo
-    // el mouse, con el contorno. Después, la UI: la barra y el aviso.
+    // el mouse, con el contorno. Después, la UI: la barra, la ventana de crear y el aviso.
     void Render(SceneCanvas& canvas, float alpha) override;
     // Suelta sus slots.
     void Leave() override;
@@ -84,6 +89,13 @@ private:
     void StepCharacters();
     // Si abrió el aviso 0x70 en este paso.
     bool ShowTheFailure();
+    // Con la respuesta del F3 01 (0x4c2290): con 1 se cierra el 0x5d; con 0 o 2, la ventana de crear
+    // vuelve a abrirse con su aviso arriba. Si abrió uno en este paso.
+    bool TakeTheCreationResult();
+    // 0x63d880 con la ventana abierta y sin aviso arriba.
+    void StepTheCreateWindow(const Input::InputState& input);
+    // 0x63d990: los chequeos del nombre, y el F3 01 y el 0x5d, o el aviso del nombre.
+    void SubmitTheCreation();
     // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9), salvo que la sesión haya
     // caído. Si abrió uno en este paso.
     bool TakeTheDeletionResult();
@@ -101,6 +113,8 @@ private:
     // Enter con uno elegido: el aviso 0x84 si está bloqueado, o el mundo.
     void TryToEnter();
     [[nodiscard]] Render::Models::ObjectTransform ObjectOf(const Character& character) const;
+    // El buffer de un slot de las ventanas o de la escena.
+    [[nodiscard]] TextureBufferSize BufferSize(Render::TextureSlot slot) const;
 
     SceneContext m_context;
     const Data::Text::TextTable* m_texts;
@@ -110,11 +124,15 @@ private:
     SceneTextures m_windowTextures;
     UI::NoticeWindow m_notice;
     UI::SelectionBar m_bar;
+    // Las palabras de FilterName.bmd y Filter.bmd de `data`, y los textos 457 y 458.
+    UI::NameFilters m_nameFilters;
+    UI::CreateCharacterWindow m_create;
     Input::DoubleClick m_doubleClick;
     std::vector<Character> m_characters;
     bool m_tookTheList = false;
-    // Desde que se mandó el F3 02 hasta su respuesta.
+    // Desde que se mandó el F3 02 (o el F3 01) hasta su respuesta.
     bool m_waitingForTheDeletion = false;
+    bool m_waitingForTheCreation = false;
     std::optional<Render::Pass3D> m_lastPass;
     // El que estaba bajo el mouse en el último paso, que lleva el contorno: como el DAT_006c8e30
     // que 0x59ec80 deja para el frame siguiente.

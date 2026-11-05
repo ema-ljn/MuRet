@@ -1,14 +1,17 @@
 #include "Scenes/CharacterSelectScene.h"
 
 #include "App/SessionState.h"
+#include "App/WindowState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
+#include "Data/Text/FilterWords.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Network/Crypto/Xor32.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
+#include "Protocol/Character/CharacterCreate.h"
 #include "Protocol/Character/CharacterDelete.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Skeleton.h"
@@ -21,6 +24,7 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TextureSets.h"
+#include "UI/CreateCharacterWindow.h"
 
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
@@ -58,6 +62,7 @@
 // está en GoldenCharacterDrawing.
 namespace
 {
+using Client::App::PixelSize;
 using Client::App::SessionState;
 using Client::Data::Models::Mesh;
 using Client::Data::Models::Model;
@@ -164,21 +169,16 @@ struct Harness
     {
         Client::Tests::WriteTextureSet(folder.Path(), SelectionTextureSet);
         Client::Tests::WriteTextureSet(folder.Path(), WindowTextureSet);
-        Client::Tests::WriteTextTable(folder.Path(), {{402, "no conecta"},
-                                                      {434, "bloqueado"},
-                                                      {401, "codigo invalido"},
-                                                      {417, "cuenta bloqueada"},
-                                                      {439, "char bloqueado"},
-                                                      {436, "cuenta del ADM"},
-                                                      {437, "el sitio"},
-                                                      {471, "espere"},
-                                                      {540, "Synthetic A"},
-                                                      {559, "Synthetic B"},
-                                                      {1654, "del gremio"},
-                                                      {1711, "nivel alto"},
-                                                      {1712, "borrar %s"},
-                                                      {1713, "el codigo"},
-                                                      {1714, "borrado"}});
+        Client::Tests::WriteTextTable(
+            folder.Path(),
+            {{402, "no conecta"},     {434, "bloqueado"},      {401, "codigo invalido"}, {417, "cuenta bloqueada"},
+             {439, "char bloqueado"}, {436, "cuenta del ADM"}, {437, "el sitio"},        {471, "espere"},
+             {540, "Synthetic A"},    {559, "Synthetic B"},    {1654, "del gremio"},     {1711, "nivel alto"},
+             {1712, "borrar %s"},     {1713, "el codigo"},     {1714, "borrado"},        {390, "corto"},
+             {391, "simbolos"},       {457, "Synthetic Op"},   {458, "Synthetic Srv"},   {396, "limite"},
+             {1715, "filtrado"},      {1716, "rechazado"}});
+        Client::Tests::WriteFilterFile(folder.Path(), {"GM"}, Client::Data::Text::FilterNameChecksumKey,
+                                       "Local/FilterName.bmd");
         auto loaded = Client::Scenes::LoadGameData(folder.Path());
         EXPECT_TRUE(loaded.HasValue());
         if (loaded.HasValue())
@@ -225,8 +225,14 @@ struct Harness
     // Los F3 02 que mandó el cliente, sin el XOR32.
     [[nodiscard]] std::vector<Client::Network::Packet> DeletesSent() const
     {
+        return CharacterPacketsSent(0x02);
+    }
+
+    // Los F3 de `subcode` que mandó el cliente, sin el XOR32.
+    [[nodiscard]] std::vector<Client::Network::Packet> CharacterPacketsSent(std::uint8_t subcode) const
+    {
         Client::Network::PacketSerials serials;
-        std::vector<Client::Network::Packet> deletes;
+        std::vector<Client::Network::Packet> found;
         for (const Client::Network::Packet& packet :
              Client::Tests::AsTheGameServerReceives(online.socket.sent, serials).packets)
         {
@@ -235,12 +241,30 @@ struct Harness
                 continue;
             }
             Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(packet);
-            if (clear.Bytes().size() > 3 && clear.Bytes()[3] == std::byte{0x02})
+            if (clear.Bytes().size() > 3 && clear.Bytes()[3] == std::byte{subcode})
             {
-                deletes.push_back(std::move(clear));
+                found.push_back(std::move(clear));
             }
         }
-        return deletes;
+        return found;
+    }
+
+    // La lista con las clases que se pueden crear hasta `creatable` (pkt[4]).
+    void ReachTheChoiceWithClasses(std::uint8_t creatable)
+    {
+        ASSERT_NO_FATAL_FAILURE(Enter());
+        const std::vector<CharacterEntryFields> two = TwoCharacters();
+        online.socket.reads = {
+            Client::Tests::CharacterListBytes(two, static_cast<std::uint8_t>(two.size()), creatable)};
+        online.session.Poll();
+        ASSERT_EQ(online.session.State(), SessionState::ChoosingCharacter);
+        Step();
+    }
+
+    void Type(const std::string& text)
+    {
+        Client::Tests::TypeText(input, text);
+        Step();
     }
 
     void Step()
@@ -736,7 +760,9 @@ bool Draws(const std::vector<FrameEvent>& events, std::string_view text)
     return std::ranges::find(texts, text) != texts.end();
 }
 
-// Los botones de la barra en 640 × 480: conectar en (509, 399) y borrar en (564, 399), de 54 × 30.
+// Los botones de la barra en 640 × 480: crear en (22, 399), conectar en (509, 399) y borrar en
+// (564, 399), de 54 × 30.
+constexpr glm::vec2 CreateButton{30.0f, 410.0f};
 constexpr glm::vec2 ConnectButton{515.0f, 410.0f};
 constexpr glm::vec2 DeleteButton{570.0f, 410.0f};
 
@@ -1102,5 +1128,271 @@ TEST(CharacterSelectSceneTest, OverTheBarTheOutlineStaysWhereItWas)
     Client::Tests::MoveMouse(tested.input, 300, 390);
     tested.Step();
     EXPECT_TRUE(OutlineVertices(tested.Frame()).empty());
+}
+// Si el frame trae la ventana de crear: el fondo del nombre, cha_id (0xc).
+bool ShowsTheCreateWindow(const std::vector<FrameEvent>& events)
+{
+    return std::ranges::any_of(events, [](const FrameEvent& event)
+                               { return event.texture == std::optional<TextureSlot>{TextureSlot{0xc}}; });
+}
+
+// El botón de crear de la barra abre la ventana (0x65f690(+0x8498)), arriba de la barra y con el
+// campo del nombre, que tiene el teclado.
+TEST(CharacterSelectSceneTest, TheCreateButtonOpensTheWindow)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    EXPECT_FALSE(ShowsTheCreateWindow(tested.Frame()));
+
+    tested.ClickAt(CreateButton);
+
+    const std::vector<FrameEvent> events = tested.Frame();
+    EXPECT_TRUE(ShowsTheCreateWindow(events));
+    EXPECT_TRUE(tested.scene->WantsTextInput());
+    const auto bar = std::ranges::find(events, std::optional<TextureSlot>{TextureSlot{0xe}}, &FrameEvent::texture);
+    const auto window = std::ranges::find(events, std::optional<TextureSlot>{TextureSlot{0xc}}, &FrameEvent::texture);
+    EXPECT_LT(bar, window);
+}
+
+// 0x63d990 con un nombre que pasa: el F3 01 con el nombre y la clase (el Dark Knight, marcado
+// aunque pkt[4] en 0 lo deje deshabilitado), la ventana se cierra y se abre el 0x5d. Con 1, el
+// 0x5d se cierra y el nuevo entra.
+TEST(CharacterSelectSceneTest, ACreationSendsF301AndTheNewOneEnters)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    tested.Type("char0003");
+
+    tested.Tap(Key::Enter);
+
+    EXPECT_EQ(tested.online.session.State(), SessionState::WaitingCreateResult);
+    const std::vector<Client::Network::Packet> creates = tested.CharacterPacketsSent(0x01);
+    ASSERT_EQ(creates.size(), 1u);
+    const auto expected = Client::Protocol::Character::WriteCharacterCreate(Client::Tests::NameBytes("char0003"), 1);
+    EXPECT_TRUE(
+        Client::Tests::SameBytes(creates[0].Bytes(), Client::Network::Crypto::Xor32Decode(expected.packet).Bytes()));
+    std::vector<FrameEvent> events = tested.Frame();
+    EXPECT_FALSE(ShowsTheCreateWindow(events));
+    EXPECT_TRUE(Draws(events, "espere"));
+    EXPECT_FALSE(tested.scene->WantsTextInput());
+
+    tested.Receive(CreatedBytes(1));
+
+    events = tested.Frame();
+    EXPECT_FALSE(ShowsANotice(events));
+    const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
+    ASSERT_NE(models, events.end());
+    EXPECT_EQ(models->modelVertices.size(), 2u * 6u * 3u + 5u * 3u);
+}
+
+// Los chequeos del nombre (0x63d990): uno corto da el 0x79 y uno con una palabra de FilterName.bmd
+// el 0x72, arriba de la ventana, que se queda con el nombre; el OK del aviso vuelve a ella, y no
+// sale nada.
+TEST(CharacterSelectSceneTest, ARefusedNameKeepsTheWindow)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    tested.Type("abc");
+    tested.Tap(Key::Enter);
+    std::vector<FrameEvent> events = tested.Frame();
+    EXPECT_TRUE(Draws(events, "corto"));
+    EXPECT_TRUE(ShowsTheCreateWindow(events));
+
+    tested.Tap(Key::Enter);
+    events = tested.Frame();
+    EXPECT_FALSE(ShowsANotice(events));
+    EXPECT_TRUE(Draws(events, "abc"));
+    tested.Type("GMx");
+    tested.Tap(Key::Enter);
+    EXPECT_TRUE(Draws(tested.Frame(), "filtrado"));
+
+    EXPECT_TRUE(tested.CharacterPacketsSent(0x01).empty());
+    EXPECT_EQ(tested.online.session.State(), SessionState::ChoosingCharacter);
+}
+
+// Con 0 o 2, la ventana vuelve a abrirse, vacía, con el 0x36 o el 0x37 arriba (0x4c2290).
+TEST(CharacterSelectSceneTest, ARefusedCreationReopensTheWindow)
+{
+    for (const auto& [result, text] : {std::pair{std::uint8_t{0}, std::string_view{"rechazado"}},
+                                       std::pair{std::uint8_t{2}, std::string_view{"limite"}}})
+    {
+        Harness tested;
+        ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+        tested.ClickAt(CreateButton);
+        tested.Type("char0003");
+        tested.Tap(Key::Enter);
+
+        tested.Receive(Client::Tests::Bytes({0xC1, 0x05, 0xF3, 0x01, result}));
+
+        std::vector<FrameEvent> events = tested.Frame();
+        EXPECT_TRUE(Draws(events, text)) << static_cast<int>(result);
+        EXPECT_TRUE(ShowsTheCreateWindow(events));
+        EXPECT_FALSE(Draws(events, "char0003"));
+        tested.Tap(Key::Enter);
+        events = tested.Frame();
+        EXPECT_FALSE(ShowsANotice(events));
+        EXPECT_TRUE(ShowsTheCreateWindow(events));
+    }
+}
+
+// 0x63d7c0 con pkt[4]: con 2, la clase 2 se elige y la 4 no; el F3 01 lleva la elegida.
+TEST(CharacterSelectSceneTest, TheClassesFollowTheList)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWithClasses(2));
+    tested.ClickAt(CreateButton);
+    const Client::UI::CreateWindowLayout layout = Client::UI::LayoutCreateWindow(PixelSize{640, 480}, 2);
+    tested.ClickAt({static_cast<float>(layout.classes[2].x + 5), static_cast<float>(layout.classes[2].y + 5)});
+    tested.ClickAt({static_cast<float>(layout.classes[4].x + 5), static_cast<float>(layout.classes[4].y + 5)});
+    tested.Type("char0003");
+
+    tested.Tap(Key::Enter);
+
+    const std::vector<Client::Network::Packet> creates = tested.CharacterPacketsSent(0x01);
+    ASSERT_EQ(creates.size(), 1u);
+    EXPECT_EQ(creates[0].Bytes().back(), std::byte{0x20});
+}
+
+// Con un aviso del nombre arriba, los botones de la ventana sueltan el mouse: el OK de la ventana,
+// con el mouse encima cuando se apretó Enter, vuelve a su cuadro normal, como el OK del aviso.
+TEST(CharacterSelectSceneTest, UnderANoticeTheWindowLetsGoOfTheMouse)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    const Client::UI::CreateWindowLayout layout = Client::UI::LayoutCreateWindow(PixelSize{640, 480}, 1);
+    Client::Tests::MoveMouse(tested.input, layout.ok.x + 5, layout.ok.y + 5);
+    tested.Step();
+    tested.Tap(Key::Enter);
+    tested.Step();
+
+    std::vector<float> tops;
+    for (const FrameEvent& event : tested.Frame())
+    {
+        if (event.texture == std::optional<TextureSlot>{TextureSlot{0x724}})
+        {
+            tops.push_back(std::ranges::min(event.vertices, {}, &Client::Render::SpriteVertex::v).v);
+        }
+    }
+    ASSERT_EQ(tops.size(), 2u);
+    EXPECT_FLOAT_EQ(tops[0], tops[1]);
+}
+
+// Con la ventana abierta, Esc la cierra y Enter es de ella: no entra al mundo con el elegido.
+TEST(CharacterSelectSceneTest, TheWindowTakesEnterAndEsc)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(tested.OnScreen(3));
+    tested.ClickAt(CreateButton);
+
+    tested.Tap(Key::Enter);
+    EXPECT_EQ(tested.scene->Next(), std::nullopt);
+    EXPECT_TRUE(Draws(tested.Frame(), "corto"));
+    tested.Tap(Key::Enter);
+    tested.Tap(Key::Escape);
+
+    EXPECT_FALSE(ShowsTheCreateWindow(tested.Frame()));
+    EXPECT_FALSE(tested.scene->WantsTextInput());
+    EXPECT_EQ(tested.scene->Next(), std::nullopt);
+}
+// La respuesta del F3 01 con 0 y el cierre del GS en la misma lectura: queda el 0x70 de la falla, y
+// la ventana no se vuelve a abrir sobre una sesión caída.
+TEST(CharacterSelectSceneTest, ACreationResultWithTheCloseLeavesTheFailureNotice)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    tested.Type("char0003");
+    tested.Tap(Key::Enter);
+    ASSERT_EQ(tested.online.session.State(), SessionState::WaitingCreateResult);
+
+    tested.online.socket.reads = {Client::Tests::Bytes({0xC1, 0x05, 0xF3, 0x01, 0x00})};
+    tested.online.socket.peerClosed = true;
+    tested.Step();
+
+    const std::vector<FrameEvent> events = tested.Frame();
+    EXPECT_TRUE(Draws(events, "no conecta"));
+    EXPECT_FALSE(Draws(events, "rechazado"));
+    EXPECT_FALSE(ShowsTheCreateWindow(events));
+    tested.Tap(Key::Enter);
+    EXPECT_TRUE(tested.scene->WantsToQuit());
+}
+
+// El aviso de la respuesta del F3 01 se atiende desde el paso que sigue: un Enter del paso en que
+// llega no lo cierra antes de que se vea.
+TEST(CharacterSelectSceneTest, TheCreationNoticeIsSeenEvenWithAnEnterInItsStep)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    tested.Type("char0003");
+    tested.Tap(Key::Enter);
+
+    tested.online.socket.reads = {Client::Tests::Bytes({0xC1, 0x05, 0xF3, 0x01, 0x00})};
+    tested.Tap(Key::Enter);
+
+    EXPECT_TRUE(Draws(tested.Frame(), "rechazado"));
+}
+
+// Las dos listas van a su lugar: un nombre que empieza con '/' se saltea Filter.bmd, no FilterName.bmd.
+TEST(CharacterSelectSceneTest, ASlashNameStillMeetsFilterName)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    tested.Type("/GMxx");
+
+    tested.Tap(Key::Enter);
+
+    EXPECT_TRUE(Draws(tested.Frame(), "filtrado"));
+    EXPECT_TRUE(tested.CharacterPacketsSent(0x01).empty());
+}
+
+// Q-C118: con un intento más largo antes, 0x447ca0 ve sus restos en el buffer: "abcde" detrás de
+// "abcdef g" da el 0x7a. Y con un aviso arriba, lo que se escribe sigue yendo al nombre.
+TEST(CharacterSelectSceneTest, TheBufferOfAnEarlierTryCounts)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    tested.Type("abcdef g");
+    tested.Tap(Key::Enter);
+    ASSERT_TRUE(Draws(tested.Frame(), "filtrado"));
+    tested.Type("\b\b\b");
+    tested.Tap(Key::Enter);
+    ASSERT_FALSE(ShowsANotice(tested.Frame()));
+    ASSERT_TRUE(Draws(tested.Frame(), "abcde"));
+
+    tested.Tap(Key::Enter);
+
+    EXPECT_TRUE(Draws(tested.Frame(), "simbolos"));
+    EXPECT_TRUE(tested.CharacterPacketsSent(0x01).empty());
+}
+
+// El nombre que se escribe no va al log, ni el que no pasa ni el que se manda: ni el de la escena
+// ni el de la sesión.
+TEST(CharacterSelectSceneTest, TheNameIsNotLogged)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.ClickAt(CreateButton);
+    tested.Type("xGMx");
+    tested.Tap(Key::Enter);
+    tested.Tap(Key::Enter);
+    tested.Type("\b\b\b\bchar0009");
+    tested.Tap(Key::Enter);
+    ASSERT_EQ(tested.online.session.State(), SessionState::WaitingCreateResult);
+
+    for (const std::vector<std::string>* lines : {&tested.sink.lines, &tested.online.sink.lines})
+    {
+        for (const std::string& line : *lines)
+        {
+            EXPECT_EQ(line.find("xGMx"), std::string::npos) << line;
+            EXPECT_EQ(line.find("char0009"), std::string::npos) << line;
+        }
+    }
 }
 } // namespace

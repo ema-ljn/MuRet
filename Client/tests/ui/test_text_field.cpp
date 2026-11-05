@@ -119,4 +119,28 @@ TEST(TextFieldTest, ClearEmptiesIt)
     EXPECT_EQ(field.Shown(), "");
     EXPECT_EQ(field.Size(), 0u);
 }
+
+// El campo del nombre de un personaje nuevo (Latin1): el EDIT de 0x63d670 no tiene filtro, y en
+// Windows de Occidente lo que se escribe llega en CP1252. MuRet toma, además de ASCII, las letras de
+// U+00A0 a U+00FF como su byte de Latin-1, que en esa franja es el de CP1252; lo demás no entra.
+TEST(TextFieldTest, ALatin1FieldTakesTheLettersOfItsPage)
+{
+    TextField field(10, false, TextField::Charset::Latin1);
+    field.Type("Pe\xc3\xb1"
+               "a");
+    EXPECT_EQ(field.Value(), "Pe\xf1"
+                             "a");
+    field.Type("\xc2\xa0\xc3\xbf");
+    EXPECT_EQ(field.Value(), "Pe\xf1"
+                             "a\xa0\xff");
+    // U+0080 a U+009F, lo de más de dos bytes y lo que no es UTF-8, no.
+    field.Type("\xc2\x80\xe2\x82\xac\xf0\x9f\x98\x80\xc3\xff");
+    EXPECT_EQ(field.Value(), "Pe\xf1"
+                             "a\xa0\xff");
+    // El de ASCII, como siempre.
+    TextField ascii(10, false);
+    ascii.Type("Pe\xc3\xb1"
+               "a");
+    EXPECT_EQ(ascii.Value(), "Pea");
+}
 } // namespace

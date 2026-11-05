@@ -1359,11 +1359,23 @@ de vuelta. *Estático.*
   en alfa 255, la 1 si no) con una orilla rocosa al fondo, en una franja
   de y = 323 a 419 en 640 × 480. La celda del personaje y todo lo cercano a la cámara están en `0x08`: ahí se ven los
   fondos 2D, y lo que hace de piso son las hojas y las rocas de arriba.
-- **El agua**, sin rama del 55: `TileWater01` con u + el corrimiento y v + ola · 0,002, con la ola
-  `sin(x · 5 + (ftol(T) % 720000) · 0,002) · 10` por celda (*estático*).
+- **El agua**, sin rama del 55 (*estático*, CL7.1): `0x5fa830` marca agua (`local_8`) la capa de abajo
+  cuando es la capa 1 en 5, con alguna esquina por debajo de 1, y la de alfa solo si además la capa 2 es
+  5; una celda con las cuatro esquinas en 1 dibuja la capa 2 quieta aunque sea agua. Con agua,
+  `0x5fa5c0` suma a la u el corrimiento (`0x78ecbec`, que `0x5fc260` saca en cada frame del reloj
+  `0x5767b88`: `(ftol(T) % 20000) · 5e-5`; en el mapa 8, `(ftol(T) % 40000) · 2,5e-5`; en el `0x1e` lo
+  resta) y a la v la ola · 0,002: la de la esquina (x, y) en las dos de la izquierda y la de (x + 1, y)
+  en las dos de la derecha. La ola (`0x78acbd8`, por celda) la escribe `0x5fbf60` en cada **paso**, en
+  la ventana del rango con 3 celdas más: `sin(x · 5 + (ftol(T) % 720000) · 0,002) · 10`, con la x de la
+  celda (50 en el mapa 8); las de afuera quedan como estaban.
 - **El slot `0x122`** (Q-C19): es `Interface\accept_box01.jpg`, que carga `0x61ae60` (*estático*: es la
   única carga a ese slot). En el login hay 147 celdas visibles con capa 2 = 255 y alfa, casi todas en
   la orilla del lago, con alfa de hasta 1 (la cuenta, `terrain_count.py`; que se vea, *inferido*).
+- **Los tiles** (`0x61a560`, *estático*): `World<N>\TileGrass01.jpg` a `TileRock07.jpg` en `0x23..0x30`
+  con `GL_NEAREST` y repitiendo; solo el primero lleva el sexto argumento de `0x63b870` en 1, el que
+  avisa "File not exist" si falta: los demás se saltean sin avisar. Después vienen el pasto
+  (`0x32..0x34`), las hojas (`0x64`, `0x65`) y la lluvia (`0x66..0x68`), que el terreno no usa. Los mapas
+  `0x18` a `0x1d` y el `0x24` arman los suyos (`0x4377a0`).
 - **El pase del pasto**, en el 55, no dibuja nada en esta vista: las celdas candidatas piden
   `TileGrass03.tga`, que no está, o slots que no carga nadie (*inferido*).
 - **Sin niebla** (`0x6350b0` pone `DAT_07d368a0` en 0 en cada frame) y **sin cielo 3D**: detrás
@@ -2247,7 +2259,7 @@ Ver [08](08-pendientes.md).
 | Los que leen los paquetes abren las ventanas: `0x4c1860` la lista con el `F4 06`, `0x4c1e20` la cuenta con el `F1 00`, `0x4e5ebc` el aviso del `F1 01` | la `ServerSession` no conoce la UI: dice en qué estado está (`ChoosingServer`, `WaitingCredentials`, `Failed`), y la `LoginScene` abre la ventana que va cuando el estado cambia. El OK de un aviso que cierra el juego lo pide la escena (`IScene::WantsToQuit`) y lo hace `Main` (Q-C69) | CL5.5 |
 | Ventanas como clases con vtable de 22 métodos | `UI::Window` con una interfaz chica (dibujar, evento) y una clase por ventana; el administrador ordena por prioridad | CL8 |
 | Cámara con seis globales, far × 1,4 en el mundo | `Camera` como valor, testeable: matrices de vista y proyección comparadas con las de las trazas | CL7 |
-| Terreno celda por celda, dos pasadas por celda | una malla por bloque de 4 × 4 con las mismas reglas de capa, alfa y luz, y el mismo orden | CL7 |
+| Terreno celda por celda, dos pasadas por celda | los dos triángulos de cada celda en el `ModelBatch` (`World::DrawTerrainCell`), con las mismas reglas de capa, alfa, agua y luz y el mismo orden (`World::DrawTerrain`), celda por celda contra la traza de Lorencia (`GoldenTerrainTrace`) | CL7.1 |
 | Modelos transformados en la CPU, un hueso por vértice, pose de `Player.bmd` | skinning en la CPU primero (se compara vértice a vértice con el original); pasarlo a la GPU queda para después, si hace falta | CL6 |
 | El cuerpo avanza por paso de lógica con la velocidad de su acción | `Data::Model` guarda la velocidad de cada acción (la tabla de `0x60dbe0`) y el frame se avanza en el paso de 40 ms; el dibujo interpola entre el frame del paso anterior y el del actual (D-C4), y el modo fiel dibuja el del paso, sin interpolar | CL6 |
 | Mascota y alas avanzan por frame dibujado (0,5 y 0,25 keys) | avanzan por tiempo: 0,5 keys cada 46,875 ms es la velocidad del original a 21,33 FPS, igual a cualquier FPS (Q-C20) | CL6 |

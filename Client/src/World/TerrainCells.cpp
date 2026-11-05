@@ -189,22 +189,4 @@ void DrawTerrainCell(Render::ModelBatch& batch, const TerrainView& view, const T
     }
 }
 
-void DrawTerrain(Render::ModelBatch& batch, const TerrainView& view, const TerrainRange& range,
-                 const TerrainWater& water)
-{
-    constexpr int Block = 4;
-    for (int blockY = range.firstY; blockY <= range.lastY; blockY += Block)
-    {
-        for (int blockX = range.firstX; blockX <= range.lastX; blockX += Block)
-        {
-            for (int y = blockY; y < blockY + Block; ++y)
-            {
-                for (int x = blockX; x < blockX + Block; ++x)
-                {
-                    DrawTerrainCell(batch, view, water, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y));
-                }
-            }
-        }
-    }
-}
 } // namespace Client::World

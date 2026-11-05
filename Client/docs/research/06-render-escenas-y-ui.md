@@ -230,6 +230,28 @@ slot de Q-C19; sin diferencias en geometría, UV, textura ni alfa):
 - **El orden importa** para la mezcla y está verificado: bloques de 4 × 4 por (fila de bloque,
   columna de bloque), dentro del bloque las celdas por (y, x), y el pase de alfa de una celda
   inmediatamente después de su pase opaco (los 28 bloques y las 141 celdas con alfa de la traza).
+- **Qué bloques y qué celdas** (*verificado* en las dos trazas y *emulado*, CL7.1, `World::TerrainCulling`;
+  la lectura y los scripts, `scripts/login/frustum_reference.py` y `frustum_emu.py`):
+  - **El rango** (`0x5fbb00`, con la modelview de `0x620db0` que lee de GL): D = far · 0,9 en float
+    (el far sin el × 1,4, `DAT_006d5d44`), w = tan(fov · `0x3c0efa33`) · D · k + 100 en el registro
+    (k = ancho de `0x5bb8d0` · 0,0015625, 1 con 640), W = w y H = w · 0,75 en float; los cinco puntos
+    (0, 0, 0) y (∓W, ±H, −D) pasan al mundo con la modelview transpuesta más la cámara; con el mínimo y
+    el máximo de x e y (desde 25.600 y 0, comparando estricto), x0 = (−1 − ftol(min · −0,01f) / 4) · 4 y
+    x1 = 4 − (ftol(max · −0,01f) / 4) · 4, con el producto en 53 bits y la división de C, y cada uno entre 0
+    y `0xfb`. El 251 no es múltiplo de 4: el lazo de a 4 para en el bloque 248, que llega a la fila 251.
+  - **El trapecio** (`0x5fb570`, con el nivel de cámara 0): lo lejos K y el factor de ancho f de cada
+    escena (login, selección y el resto), lo cerca N = K · 0,19 y el objetivo T = K · 0,47; las esquinas
+    (−A · 1.190; K − T), (A · 1.190; K − T), (A · 540; N − T) y (−A · 540; N − T), con A = 640 · f, giradas
+    solo en yaw (−yaw de la cámara en el mapa `0x37`, 45° en los demás), más el héroe y por 0,01 en float.
+  - **El test** (`0x5fba90`): los cuatro lados (3, 0), (0, 1), (1, 2) y (2, 3), con
+    (Y[j] − y)(X[i] − x) − (X[j] − x)(Y[i] − y) en double; pasa si los cuatro dan más que el margen. Cada
+    bloque se prueba en (x + 2, y + 2) con −40 (`DAT_006c9d60`) y cada celda en (x + 0,5, y + 0,5) con 0.
+    En las escenas que no son 2, 4 ni 5 pasa todo.
+  - En Lorencia (cámara (15.057,106; 11.342,894; 1.015), héroe (14.350; 12.050; 165), escena 5) dan las
+    329 celdas de la traza en su orden; en la selección (héroe (12.975; 15.423; 333), escena 4), 7.746
+    pasan y 5.109 se dibujan, las de su traza en su orden (`GoldenTerrainTrace`). Que el margen o el
+    centro sean otros rompe los dos goldens. Lo único que no sale del binario es la modelview, que arma
+    el driver: la de Mesa da lo mismo en las tres cámaras.
 
 ### Modelos y objetos
 
@@ -978,7 +1000,7 @@ la cuenta (abajo).
    `0x16` en x = 320, los dos escalados desde 640 × 480 en posición y tamaño;
 3. `0x621a90` cierra el 2D, y un pase que no dibuja: `0x620db0(0, 0, w, 48)`, con w de `0x5bb8d0`
    (un ancho que depende de banderas de las ventanas del juego: *inferido*, el del mundo cuando
-   una ventana lo achica), `0x5fbb00(w · (1/640), posición)` (el frustum, *inferido*) y
+   una ventana lo achica), `0x5fbb00(w · (1/640), posición)` (el frustum, *verificado* en § Terreno) y
    `0x620fc0`, que hace `glPopMatrix` de la modelview y de la proyección. En la selección, que
    tiene la misma forma, la traza muestra esa perspectiva sin nada adentro (*verificado*, arriba);
 4. `glClearColor(0, 0, 0, 1)` y el pase 3D en `0x620db0(0, 25, 640, 430)`: si la ventana de
@@ -1311,7 +1333,8 @@ fuente es *inferido*, por comparación. MuRet, hasta la CL7, no dibuja nada de e
 
   **En el login no se recorta nada antes de GL:** el polígono 2D de `0x5fb570`, girado 36° en el mapa
   `0x37` (45° en los demás) alrededor del héroe, abarca los 256 sectores, los 276 objetos y todas las
-  celdas del terreno (*inferido*, con las constantes *estáticas*). El héroe es el personaje 0, no el
+  celdas del terreno (*emulado* el polígono en la CL7.1: (−1.627,81; 478,11), (336,16; 1.905,01),
+  (965,29; −88,87) y (74,07; −736,37) en celdas). El héroe es el personaje 0, no el
   Dark Lord: `0x6350b0` le escribe la posición (11.679; 14.191; 333) en cada frame.
 - **Al crearse** (`0x606660`, *estático* y *emulado* con `run_objs.py`): en las escenas 2 y 4 el farol
   (tipo 60) pasa a escala 0,8 y luz 0,2 (el archivo trae 1,10), y en el mapa `0x37` (caso
@@ -1350,9 +1373,13 @@ fuente es *inferido*, por comparación. MuRet, hasta la CL7, no dibuja nada de e
 pase del pasto (prendido en el 55 por `0x5f87b0`), `0x549130` (las marcas del suelo) y el depth test
 de vuelta. *Estático.*
 
-- **Qué bloques** (*inferido* de las constantes de `0x5fbb00`; la CL7.1 lo lee en el asm): con far
-  20.400 · 0,9 = 18.360 y la cámara del login, los bloques de 4 × 4 que empiezan en x 0..128 y en
-  y 120..248, es decir las celdas x 0..131 e y 120..251.
+- **Qué bloques** (*emulado*, CL7.1, [Terreno](#terreno)): con far 20.400 · 0,9 = 18.360 y la cámara
+  del login, el rango da x 0..128 e y 120..251 (de 316, a `0xfb`), y los bloques de 4 × 4 que empiezan en
+  x 0..128 y en y 120..248, 1.089, es decir las celdas x 0..131 e y 120..251; el trapecio las deja pasar
+  todas, y las 3.244 que quedan sin el `0x08` van de la (90; 153) a la (104; 251)
+  (`GoldenTerrainTrace.TheLoginDrawsTheCellsOfTheEmulatedCode`). La x1 da 128 y no 132 porque
+  12.800 · −0,01f es −127,99…: el `ftol` trunca a −127. Un temblor de ±10° (`DAT_07d325c8`) no cambia
+  nada.
 - **Qué se ve** (la cuenta, `terrain_count.py`): en ese rango, **14.180 de las 17.424 celdas tienen el
   bit `0x08` del `.att`** y `0x5fac90` no las dibuja (*estático* el test). Quedan 3.244 (3.242 en el
   viewport): **un lago de `TileWater01`** (2.553 celdas con el agua de base: la capa 2 si las cuatro esquinas van

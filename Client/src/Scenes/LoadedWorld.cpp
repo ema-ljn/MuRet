@@ -7,6 +7,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/TextureSlot.h"
 #include "World/TerrainCells.h"
+#include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldTerrain.h"
 
@@ -108,13 +109,14 @@ void LoadedWorld::Step(Core::Duration clock, const World::TerrainRange& range)
     }
 }
 
-void LoadedWorld::DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClock, const World::TerrainRange& range)
+void LoadedWorld::DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClock, const World::TerrainRange& range,
+                              const World::TerrainPolygon& polygon)
 {
     if (!m_terrain)
     {
         return;
     }
     m_water.offset = World::WaterOffsetAt(frameClock, m_view.map);
-    World::DrawTerrain(batch, m_view, range, m_water);
+    World::DrawTerrain(batch, m_view, range, polygon, m_water);
 }
 } // namespace Client::Scenes

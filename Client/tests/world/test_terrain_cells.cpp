@@ -1,4 +1,5 @@
 #include "World/TerrainCells.h"
+#include "World/TerrainCulling.h"
 
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
@@ -323,7 +324,8 @@ TEST(TerrainCellsTest, TheCellsGoByBlockAndThenByRow)
     terrain.SetAlpha(9, 13, {0.0f, 0.5f, 0.0f, 0.0f});
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    DrawTerrain(batch, terrain.view, TerrainRange{.firstX = 4, .lastX = 8, .firstY = 12, .lastY = 16}, TerrainWater{});
+    DrawTerrain(batch, terrain.view, TerrainRange{.firstX = 4, .lastX = 8, .firstY = 12, .lastY = 16},
+                Client::World::TerrainPolygon{.everything = true}, TerrainWater{});
     // Cuatro bloques (12 y 16 en y, 4 y 8 en x), de 16 celdas. El alfa de la esquina (10, 13) lo
     // comparten las cuatro celdas de alrededor, que llevan pase de alfa. Cada pase son seis vértices, y
     // el lote junta en un tramo los seguidos con el mismo estado.

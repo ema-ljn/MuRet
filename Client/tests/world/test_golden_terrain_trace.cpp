@@ -1,11 +1,15 @@
 #include "World/TerrainCells.h"
+#include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
 
 #include "Data/Textures/TextureSet.h"
+#include "App/WindowState.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
+
+#include "Scenes/SceneCameras.h"
 
 #include "support/GlTrace.h"
 #include "support/GoldenDir.h"
@@ -26,6 +30,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // Client::World::DrawTerrainCell contra el terreno de la traza de Lorencia (MURET_CLIENT_GL_TRACE_DIR,
@@ -91,6 +96,40 @@ std::array<Client::Render::ModelVertex, 4> FanOf(const ModelBatch& batch, const 
 {
     const auto vertices = batch.Vertices().subspan(command.firstVertex, command.vertexCount);
     return {vertices[0], vertices[1], vertices[2], vertices[5]};
+}
+
+// Las celdas opacas de un frame de la traza, en su orden.
+std::vector<std::pair<int, int>> TracedCells(const Client::Tests::GlTraceFrame& frame)
+{
+    std::vector<std::pair<int, int>> cells;
+    for (const GlTraceBlock& block : frame.blocks)
+    {
+        if (IsTerrainFan(block) && !block.state.blend)
+        {
+            cells.emplace_back(static_cast<int>(block.vertices[0].position.x / 100.0f),
+                               static_cast<int>(block.vertices[0].position.y / 100.0f));
+        }
+    }
+    return cells;
+}
+
+// Las celdas que MuRet dibuja, en su orden: el primer pase de cada una.
+std::vector<std::pair<int, int>> DrawnCells(const ModelBatch& batch)
+{
+    std::vector<std::pair<int, int>> cells;
+    for (const ModelDrawCommand& command : batch.Commands())
+    {
+        if (command.state.blend != ModelBlend::Opaque)
+        {
+            continue;
+        }
+        for (std::size_t first = 0; first < command.vertexCount; first += 6)
+        {
+            const glm::vec3 origin = batch.Vertices()[command.firstVertex + first].position;
+            cells.emplace_back(static_cast<int>(origin.x / 100.0f), static_cast<int>(origin.y / 100.0f));
+        }
+    }
+    return cells;
 }
 
 class GoldenTerrainTrace : public Client::Tests::GoldenAndGlTraceTest
@@ -216,5 +255,107 @@ TEST_F(GoldenTerrainTrace, TheCellsOfLorenciaMatchTheTrace)
     EXPECT_EQ(matching, 1746u);
     EXPECT_EQ(brighter, 129u);
     EXPECT_EQ(darker, 0u);
+}
+// El recorte (CL7.1, tarea 3): con la cámara de la traza de Lorencia y el héroe en (14.350; 12.050;
+// 165), el rango de 0x5fbb00, el trapecio de 0x5fb570 y el bit 0x08 dejan las 329 celdas de la traza,
+// en su orden.
+TEST_F(GoldenTerrainTrace, LorenciaDrawsTheCellsOfTheTraceInItsOrder)
+{
+    const auto path = TraceFile(LorenciaTrace);
+    if (!path)
+    {
+        return;
+    }
+    auto trace = Client::Tests::ReadGlTrace(*path);
+    ASSERT_TRUE(trace.HasValue()) << trace.Error();
+    auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, Lorencia);
+    ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
+    Client::Render::Camera3D camera;
+    camera.position = {15057.106445f, 11342.893555f, 1015.0f};
+    camera.angles = {-48.5f, 0.0f, -45.0f};
+    camera.fieldOfView = 35.0f;
+    camera.farPlane = 2000.0f;
+    const auto pass = Client::Render::MakePass3D(Client::App::PixelSize{1024, 768}, {0, 0, 640, 432}, camera);
+    const auto range = Client::World::TerrainRangeOf(pass.view, camera);
+    const auto polygon = Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, Lorencia,
+                                                         {14350.0f, 12050.0f, 165.0f}, camera.angles.z);
+    const TerrainView view{.mapping = terrain.Value().mapping.get(),
+                           .heights = terrain.Value().heights.get(),
+                           .attributes = terrain.Value().attributes.get(),
+                           .lighting = terrain.Value().lighting.get()};
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    Client::World::DrawTerrain(batch, view, range, polygon, TerrainWater{});
+
+    const auto traced = TracedCells(trace.Value().frames[0]);
+    ASSERT_EQ(traced.size(), 329u);
+    EXPECT_EQ(DrawnCells(batch), traced);
+}
+
+// Y la selección (el mapa 54, World55), donde el trapecio sí recorta: con SelectionCamera y el héroe
+// en (12.975; 15.423; 333), las 5.109 celdas de su traza.
+TEST_F(GoldenTerrainTrace, TheSelectionDrawsTheCellsOfItsTrace)
+{
+    const auto path = TraceFile("character-selection-Frame_003207.txt");
+    if (!path)
+    {
+        return;
+    }
+    auto trace = Client::Tests::ReadGlTrace(*path);
+    ASSERT_TRUE(trace.HasValue()) << trace.Error();
+    constexpr std::uint8_t Selection = 54;
+    auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, Selection);
+    ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
+    const auto camera = Client::Scenes::SelectionCamera();
+    const auto pass =
+        Client::Render::MakePass3D(Client::App::PixelSize{1024, 768}, Client::Scenes::WorldViewport, camera);
+    const auto range = Client::World::TerrainRangeOf(pass.view, camera);
+    const auto polygon = Client::World::TerrainPolygonOf(Client::World::CullingScene::CharacterSelect, Selection,
+                                                         {12975.0f, 15423.0f, 333.0f}, camera.angles.z);
+    const TerrainView view{.mapping = terrain.Value().mapping.get(),
+                           .heights = terrain.Value().heights.get(),
+                           .attributes = terrain.Value().attributes.get(),
+                           .lighting = terrain.Value().lighting.get()};
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    Client::World::DrawTerrain(batch, view, range, polygon, TerrainWater{});
+
+    const auto traced = TracedCells(trace.Value().frames[0]);
+    ASSERT_EQ(traced.size(), 5109u);
+    EXPECT_EQ(DrawnCells(batch), traced);
+}
+// Y el login (el mapa 55, World56), que no tiene traza: con LoginCamera y el héroe en (11.679;
+// 14.191; 333), los bloques de x 0..128 e y 120..248 pasan todos y dibujan 3.244 celdas sin el bit
+// 0x08, de la (90; 153) a la (104; 251), en el orden del código real emulado (la suma de control es
+// la de scripts/login: s = s · 31 + x · 256 + y, módulo 2³²).
+TEST_F(GoldenTerrainTrace, TheLoginDrawsTheCellsOfTheEmulatedCode)
+{
+    constexpr std::uint8_t Login = 55;
+    auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, Login);
+    ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
+    const auto camera = Client::Scenes::LoginCamera();
+    const auto pass =
+        Client::Render::MakePass3D(Client::App::PixelSize{640, 480}, Client::Scenes::WorldViewport, camera);
+    const auto range = Client::World::TerrainRangeOf(pass.view, camera);
+    const auto polygon = Client::World::TerrainPolygonOf(Client::World::CullingScene::Login, Login,
+                                                         Client::Scenes::LoginHeroPosition, camera.angles.z);
+    const TerrainView view{.mapping = terrain.Value().mapping.get(),
+                           .heights = terrain.Value().heights.get(),
+                           .attributes = terrain.Value().attributes.get(),
+                           .lighting = terrain.Value().lighting.get()};
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    Client::World::DrawTerrain(batch, view, range, polygon, TerrainWater{});
+
+    const auto cells = DrawnCells(batch);
+    ASSERT_EQ(cells.size(), 3244u);
+    EXPECT_EQ(cells.front(), std::make_pair(90, 153));
+    EXPECT_EQ(cells.back(), std::make_pair(104, 251));
+    std::uint32_t checksum = 0;
+    for (const auto& [x, y] : cells)
+    {
+        checksum = (checksum * 31u) + static_cast<std::uint32_t>((x * 256) + y);
+    }
+    EXPECT_EQ(checksum, 3022140673u);
 }
 } // namespace

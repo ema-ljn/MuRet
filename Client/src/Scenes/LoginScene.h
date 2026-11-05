@@ -17,6 +17,8 @@
 #include "Scenes/GameData.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoadedWorld.h"
+#include "World/TerrainCells.h"
+#include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SceneCanvas.h"
@@ -142,6 +144,10 @@ private:
     // El de SceneWorlds.h: el 55.
     std::optional<SceneWorld> m_world;
     LoadedWorld m_terrain;
+    // El rango de bloques y el trapecio del terreno con la cámara del login (0x5fbb00 y 0x5fb570): la
+    // cámara no se mueve, y se sacan al entrar.
+    World::TerrainRange m_terrainRange;
+    World::TerrainPolygon m_terrainPolygon;
     // La luz sola, si el terreno no se pudo leer y su luz sí (World::LoadTerrainLighting).
     std::unique_ptr<World::TerrainLighting> m_lighting;
     // El logo: su modelo, los slots de sus mallas desde LoginLogoFirstSlot, sus texturas y su objeto.

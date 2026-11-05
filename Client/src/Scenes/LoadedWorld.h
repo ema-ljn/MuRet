@@ -6,6 +6,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/TextureSlot.h"
 #include "World/TerrainCells.h"
+#include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldTerrain.h"
 
@@ -44,9 +45,10 @@ public:
     // 0x5fbf60, en cada paso: la ola de las celdas de la ventana del rango, con el reloj del paso.
     void Step(Core::Duration clock, const World::TerrainRange& range);
 
-    // 0x5fc260(0): el corrimiento del agua con el reloj del frame y el pase del terreno en el rango.
-    // Sin terreno, nada.
-    void DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClock, const World::TerrainRange& range);
+    // 0x5fc260(0): el corrimiento del agua con el reloj del frame y el pase del terreno en el rango,
+    // con el recorte del trapecio. Sin terreno, nada.
+    void DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClock, const World::TerrainRange& range,
+                     const World::TerrainPolygon& polygon);
 
 private:
     Render::ITextureStore& m_store;

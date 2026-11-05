@@ -91,10 +91,4 @@ void UpdateWaves(TerrainWater& water, Core::Duration clock, const TerrainRange& 
 void DrawTerrainCell(Render::ModelBatch& batch, const TerrainView& view, const TerrainWater& water, std::uint8_t x,
                      std::uint8_t y);
 
-// El pase del terreno de 0x5fc190 y 0x5fc0e0 en el rango: los bloques de 4 × 4 por fila de bloques
-// (de firstY a lastY, de a 4) y después por columna (de firstX a lastX), y en cada bloque las 16
-// celdas por fila y después por columna, con DrawTerrainCell. El recorte de cada bloque y de cada
-// celda (0x5fba90) es de la tarea 3.
-void DrawTerrain(Render::ModelBatch& batch, const TerrainView& view, const TerrainRange& range,
-                 const TerrainWater& water);
 } // namespace Client::World

@@ -553,8 +553,8 @@ void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<con
 }
 
 // El lazo de las manos de 0x50ba30 saltea las saetas, las flechas y el cuervo: las dos primeras van
-// a la espalda (DrawQuiver), y el cuervo es un objeto aparte (0x420cf0), que todavía no se dibuja
-// (CL8).
+// a la espalda (DrawQuiver), y el cuervo es un objeto aparte, el 0xc0 (en el login lo crea 0x420d60),
+// que todavía no se dibuja (CL7.6 C).
 constexpr std::uint16_t Bolts = 0xa19;
 constexpr std::uint16_t Arrows = 0xa21;
 constexpr std::uint16_t Raven = 0x1c17;

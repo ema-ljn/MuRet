@@ -217,7 +217,7 @@ Cada sub-ola es un PR chico. "Terminada cuando" es la condición objetiva de cie
 | CL4 | Red del cliente | CL4.0 sockets no bloqueantes · CL4.R la conexión del original (P-C11, Q-C11) · CL4.1 socket no bloqueante portable consultado por el bucle, con la cola de envío · CL4.2 `Dispatcher` y el opcode desconocido · CL4.3 ConnectServer: saludo, lista, IP del GS · CL4.4 GameServer: saludo, versión y login · CL4.5 keepalive y desconexión | E/S no bloqueante, estados de una conexión | 03, 04 |
 | CL5 | Render 2D y la escena de login | CL5.0 el pipeline gráfico (buffers, shaders, matrices, texturas) · CL5.R las escenas de carga y de login en el binario (P-C04, P-C13) · CL5.1 `Renderer` y texturas desde OZT/OZJ · CL5.2 `SpriteBatch` en 640 × 480 escalado · CL5.3 texto con caché y colores `0x02` · CL5.4 `SceneManager`, la escena de carga y la `LoginScene` · CL5.5 UI de login conectada a CL4: lista de servidores, cuenta y clave. El mundo 3D detrás del login (el mapa 55, `World56`), el logo y el personaje llegan con la CL6 y la CL7 | GPU, shaders, coordenadas lógicas | 06, 02 |
 | CL6 | Modelos y selección de personaje | CL6.0 huesos y cuaterniones (rotaciones, slerp, una jerarquía de huesos y el skinning, a mano contra glm) · CL6.R lectura guiada del render de modelos (P-C01, ya reproducido contra las trazas) y flujo `F3` (P-C06) · CL6.1 parseo de modelos · CL6.2 skinning y animación · CL6.3 `CharacterSelectScene` con preview 3D y los paquetes de selección · CL6.4 el logo y el personaje del login · CL6.5 crear y borrar personajes (`F3 01`, `F3 02`) con la barra de la selección, la ventana de crear y su vista previa · CL6.6 la tela de la clase 4 (la capa del Dark Lord), exacta del binario | jerarquías de huesos, interpolación, cuaterniones | 05, 06, 08 |
-| CL7 | Mundo | CL7.R lectura guiada del renderer de terreno (P-C02, ya identificado y verificado), y qué mapas conoce el original y cómo pasa de uno a otro (P-C12) · CL7.1 terreno con capas, alfa y luz · CL7.2 objetos del `.obj` · CL7.3 cámara · CL7.4 picking y movimiento (`0xD3`/`0xD7`): caminar en Lorencia · CL7.5 los otros mapas: cargar cualquier mundo del `Data\`, cambiar de mapa (gates y warps) y lo propio de cada uno · CL7.6 los efectos del mundo y de los personajes (lo que dejó la CL6, abajo) | mallas, frustum culling, rayos | 05, 06 |
+| CL7 | Mundo | CL7.R lectura guiada del renderer de terreno (P-C02, ya identificado y verificado), y qué mapas conoce el original y cómo pasa de uno a otro (P-C12), con el barrido del login (abajo) · **arranca por el login**: el mundo del mapa 55, el dragón, la base de los efectos con los del login y el cuervo, con la cámara fija de la escena 2 · CL7.1 terreno con capas, alfa y luz · CL7.2 objetos del `.obj` · CL7.3 cámara · CL7.4 picking y movimiento (`0xD3`/`0xD7`): caminar en Lorencia · CL7.5 los otros mapas: cargar cualquier mundo del `Data\`, cambiar de mapa (gates y warps) y lo propio de cada uno · CL7.6 los efectos del mundo y de los personajes (lo que dejó la CL6, abajo) | mallas, frustum culling, rayos | 05, 06 |
 | CL8 | HUD y ventanas | CL8.1 barras y minimapa · CL8.2 chat · CL8.3 `UI::Window` y el administrador · CL8.4 inventario | UI retenida vs inmediata, eventos | 06 |
 | CL9 | Gameplay | CL9.R por dominio (P-C09), y los mapas de evento (P-C12) · CL9.1 otros jugadores y monstruos (viewport) · CL9.2 combate y skills · CL9.3 items · CL9.4 party, gremio y comercio · CL9.5 los mapas de evento que conozca el original: entrada, reglas, paquetes y UI | modelado de dominio, consistencia con el servidor | 04 |
 | CL10 | Audio | CL10.R formatos y disparadores (P-C07) · CL10.1 música · CL10.2 efectos | audio digital, mezcla, streaming | 08 |
@@ -259,14 +259,16 @@ Cada plan lo suma al escribirse. El detalle está en las sub-olas del
   - **Volver a la selección desde el juego** (el `F1 02` con 1): `SceneTransitions` ya lo deja, pero
     `CharacterSelectScene::Enter` pide la lista solo en `LoggedIn`, y con la sesión en
     `EnteringWorld` la escena quedaría con la lista vieja y sin poder elegir, crear ni borrar.
-- **CL7.6, los efectos.** El roadmap no tenía su ola. Van al final de la CL7 porque se dibujan en el
-  pase 3D del mundo, con su cámara, y para entonces el terreno y los objetos ya están. Entran:
-  - el polvo del caballo (`0x5f2`) y los efectos de sus acciones;
+- **CL7.6, los efectos.** El roadmap no tenía su ola. La CL7.R la parte en dos. Lo del login va al
+  principio de la CL7, en la CL7.6 A a C ([abajo](#el-login-completo-cl7r)): el dragón, la base de los
+  efectos con las brasas, el aliento del caballo (`0x5f2`; antes se lo daba como polvo, que solo sale
+  con el jinete en la `0x4b`), el brillo del cetro y los 30 destellos de la primera tela del Dark Lord
+  (`0x549440` → `0x549290`, leídos en la CL7.R), y el cuervo. Lo demás queda al final de la CL7, en el
+  pase 3D del mundo con su cámara:
   - la luz de abajo del elegido (`0x53fe70`, la `chasellight`): `0x61ca30` ya carga su textura, la
     `0x729`, y la selección no la dibuja;
-  - los de las armas;
-  - los 30 destellos de la primera tela del Dark Lord, que la CL6.6 arma y no dibuja (`0x549440` →
-    `0x549290`, P-C22 d).
+  - los efectos de las acciones del caballo (el polvo de los cascos con el jinete en la `0x4b`);
+  - los de las armas, salvo el cetro del login.
 - **CL8.**
   - **El menú de la selección:** la ventana de `+0x3d0`, que abren Esc y el botón del menú, como el
     menú del login (P-C13); y la de `+0x7e8`. Las dos, sin leer.
@@ -274,7 +276,6 @@ Cada plan lo suma al escribirse. El detalle está en las sub-olas del
     línea con el texto 1240 como formato y los dos números de `pkt[5]` de la lista.
   - **El `0x0D`:** el string del primer aviso de tipo 1 va a la izquierda de la franja de la barra
     (`+0x511`), cuando MuRet lea ese paquete.
-  - **El cuervo del login** (`0x420d60`, P-C15 c), con las mascotas.
   - La CL6.5 no pasó a la CL8: entró entera en la CL6, salvo lo de esta lista.
 - **CL9.**
   - **Los modelos de los monstruos** (CL9.1), con el research ya corregido. Falta `Monster50` en el
@@ -284,6 +285,27 @@ Cada plan lo suma al escribirse. El detalle está en las sub-olas del
   - **Q-C95,** con el primer modelo que se desvanezca.
   - **La tela sobre la malla de un modelo** (la vtable `0x6b8d04`, de algunos monstruos y tres
     pantalones), y los colores de la tela de los duelos y las guerras de guild (P-C22 e y f).
+
+### El login completo (CL7.R)
+
+Plan: [`2026-11-05-ola-cl7-el-login-completo.md`](../plans/2026-11-05-ola-cl7-el-login-completo.md).
+Emanuel comparó el login con un video del original: faltaba todo lo que rodea al Dark Lord. El
+barrido de la CL7.R ([06](../../../Client/docs/research/06-render-escenas-y-ui.md#el-mundo-del-login),
+de El mundo del login a Lo demás del login) lo leyó entero, y la CL7 arranca por ahí, en este orden:
+
+1. **El mundo del mapa 55** (CL7.1 y CL7.2): el terreno (el lago, el agua animada, las celdas con el bit `0x08` y el
+   slot `0x122`) y los 276 objetos del `.obj` con sus casos (los remolinos, el farol, los marcadores
+   ocultos, las hojas, los haces de luz y las banderas), en el orden del original.
+2. **El dragón de fondo** (CL7.6 A): el efecto `0xb4` con `Object56\Dragon.bmd`, que vuela en ocho sin azar,
+   contra los pasos emulados del código real.
+3. **La base de los efectos y los del login** (CL7.6 B): el billboard, los sprites de un frame, las partículas
+   y las hojas; las brasas, el aliento del caballo, el brillo del cetro y los 30 destellos de la capa.
+4. **El cuervo** (CL7.6 C; `Skill\DarkSpirit.bmd`, que estaba en la CL8 con las mascotas): su paso, bit a bit
+   contra el emulado, su dibujo, su sombra y su estela.
+
+Después sigue la CL7 con Lorencia (CL7.3 en adelante). Quedan para sus olas: el cursor del juego
+(CL8), la cabeza que gira al azar (P-C15 h y P-C17, con Lorencia en la CL7), la música y el clic
+(CL10) y las ventanas de Esc y de los créditos (CL8).
 
 ## Cómo el research se vuelve test
 

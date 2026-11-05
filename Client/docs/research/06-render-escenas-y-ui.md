@@ -902,10 +902,11 @@ en 0. Arranca en 0 (está en la `.bss`), y la vuelta al login de `0x4c2710` la p
    4 corre todo en el primer paso de la escena: hasta que termina, en la pantalla queda la carga con
    la barra llena, y si el connect falla, el primer frame del login ya trae el aviso `0x70` (Q-C85);
 5. el objeto `0xa2` en (10.680, 15.550, 1.710), con ángulos (10, 0, 36) y escala 1, que
-   `0x606660` pisa (abajo), y el personaje de la escena (`0x517270(2, 4, …)`, con el cuervo del
-   `A9`, P-C11) en (10.603, 14.112, 580), girado 188° en z y con escala 1,6; el caballo oscuro en
+   `0x606660` pisa (abajo), y el personaje de la escena (`0x517270(2, 4, …)`, con el cuervo, que crea
+   `0x420d60` por el `0x1c17` de la mano izquierda, [El cuervo](#el-cuervo); el `A9` solo pide su
+   nivel, P-C11) en (10.603, 14.112, 580), girado 188° en z y con escala 1,6; el caballo oscuro en
    que monta, el `0xbf` (`0x443fa0`, abajo; antes este documento lo daba como un efecto); 120 llamadas a `0x555190` con dos
-   cadenas de la `.bss` (*inferido*: vacían el área de mensajes); la música (`0x4acfd0`) y una
+   cadenas de la `.bss`, que llenan el chat de renglones vacíos (CL7.R, *estático*); la música (`0x4acfd0`) y una
    línea en el log.
 
 El logo (CL6.R, *estático*): `0x606660` arma un objeto del mundo de `0x1d4` bytes en la grilla de
@@ -947,8 +948,8 @@ En la escena 2 lleva la ropa fija, el
 casco y lo demás de `0x102e`, `0x122e`, `0x142e`, `0x162e` y `0x182e` (el juego 29), la maza
 `0x620` en la derecha, el cuervo `0x1c17` en la izquierda, la capa `0x1c30` y el caballo oscuro
 `0x1c16`; `0x512930` le deja la cabeza en -1. `0x420d60` le cuelga al cuervo un objeto aparte, de
-`0x460` bytes (`0x4167b0`, en `personaje + 0x430`), con su propio paso: su conducta no se leyó
-(P-C15). La acción la elige `0x634c60` en cada paso: con `ftol(T) % 2300` entre 0 y 99,
+`0x460` bytes (`0x4167b0`, en `personaje + 0x430`), con su propio paso: el pájaro que se ve, el `0xc0`, leído en la CL7.R
+([El cuervo](#el-cuervo)). La acción la elige `0x634c60` en cada paso: con `ftol(T) % 2300` entre 0 y 99,
 `rand() % 6` en 1 pone la `0x54` y en 2 la `0x55` (`0x4ea030`). La condición es `ftol(resto ·
 0,01)` en 0, con el producto en la x87: 100 · 0,01f da 0,99999998, así que la ventana va de 0 a 100
 ms (Q-C110). Las dos acciones van a 1 por paso (`0x60f679` y `0x60f68b`).
@@ -973,10 +974,11 @@ la cuenta (abajo).
 4. `glClearColor(0, 0, 0, 1)` y el pase 3D en `0x620db0(0, 25, 640, 430)`: si la ventana de
    `+0x4578` está cerrada (su bandera de abierta, `+0xc`, es el byte `+0x4584` del administrador),
    el terreno (`0x5fc260(0)`), los personajes (`0x510d00`), `0x4453b0`, los objetos del mundo
-   (`0x6046a0`, abajo: el logo), `0x53c6a0(0)` (una tabla de `0xa10` bytes con su mezcla por
-   entrada: *inferido*, efectos), `0x52d620(0)`, `0x549510` y `0x5306a0`; después `0x6213e0`,
-   `0x549440(0)`, `0x548550(0)` y `glPopMatrix` (CL6.4: antes este documento daba los objetos en
-   `0x53c6a0`);
+   (`0x6046a0`, abajo: el logo), los joints (`0x53c6a0(0)`), los efectos con modelo
+   (`0x52d620(0)`, el dragón), `0x549510` y las hojas (`0x5306a0`, las brasas); después `0x6213e0`,
+   los sprites (`0x549440(0)`), las partículas (`0x548550(0)`) y `glPopMatrix` (CL6.4: antes este
+   documento daba los objetos en `0x53c6a0`; los nombres, de la CL7.R, en
+   [Los efectos del login](#los-efectos-del-login));
 5. 2D otra vez, la mezcla normal (`0x620a00(1)`), `glColor4f(1, 1, 1, 0,5)`, la mezcla aditiva
    (`0x620a90`), `glColor3f(0,25; 0,1; 0,1)` y las dos arenas, `0x622000(slot, x, y, w, h, u, v,
    du, dv)`:
@@ -1084,8 +1086,8 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   | `0x55` | 6 | 1 |
   | otra (la `0x4a` del login) | 0 | 0,3 |
 
-  Después, con `rand() % 3` en 0 y la acción distinta de 1, el polvo (`0x5f2`, o `0x607` en el mapa
-  7), que `0x53fe70` pone en el arreglo de `0x743a198` (de `0x78` bytes; lo mueve `0x5446e0` desde
+  Después, con `rand() % 3` en 0 y la acción distinta de 1, el aliento (`0x5f2`, o `0x607` en el
+  mapa 7; antes este documento lo daba como polvo, [Los efectos del login](#los-efectos-del-login)), que `0x53fe70` pone en el arreglo de `0x743a198` (de `0x78` bytes; lo mueve `0x5446e0` desde
   `0x634c60` y lo dibuja `0x548550` desde `0x6350b0`), desde el hueso 27 (`0x4ec110` con
   `0x68b1d2c`, *inferido*: en el paso, ese buffer tiene la pose del frame anterior); con la 3, otro
   efecto; con `jinete + 8` en 1, doce `0x60f` (`0x530860`), y `+8` vuelve a 0. Y avanza con
@@ -1227,7 +1229,8 @@ frame no se siguió (P-C22).
 `0x2000` aditiva, `0x3000` la que estaba), el color de `0x50ba30` y, con `0x40000000`, el brillo
 t = f(sin(T · 0,001) · 0,1 + 0,4), que pone el color (t, t, t) y la mezcla aditiva y pide 30 sprites
 `Effect\flare01.jpg` (`0x5491e0`, con la escala f(i · 0,2 + 0,4) y la luz f((columnas − i) · t · 0,2)
-que cambian cada `filas` sprites); los dibuja después `0x549440` → `0x549290`, sin leer (P-C22).
+que cambian cada `filas` sprites); los dibuja después `0x549440` → `0x549290`, como billboards
+aditivos de un frame (CL7.R, [Los efectos del login](#los-efectos-del-login)).
 Después `GL_QUADS` en coordenadas del mundo: la cara de adelante (i, j), (i+1, j), (i+1, j+1),
 (i, j+1) y la de atrás al revés, salvo con la aditiva y el brillo; u = f(i / (columnas − 1)) y
 v = j / (filas − 1) hasta 0,99. Sin normales ni luz (`GL_MODULATE`). Sin culling fuera de la opaca:
@@ -1253,6 +1256,379 @@ objetos como el logo (`0x5ffce0`). *Estático*, leído en la CL6.4.
   (`0x7d2d35c`, que pone `0x5f9000` al cargar), la celda es x · 0,01 y y · 0,01 truncados, y entre
   0 y 254 la luz es la bilineal de `0x7b4ccc4` entre las cuatro de alrededor (primero cada columna
   en y). Fuera, (0, 0, 0). Como `ftol` trunca hacia el 0, de −1 a 0 todavía es la celda 0.
+
+### El mundo del login
+
+Leído en la CL7.R, en el barrido del login (*estático* salvo lo que se marca; lo *emulado* corre el
+código real del `main.exe` con los scripts de [`scripts/login/`](scripts/login/README.md)). Lo que el
+jugador ve detrás del Dark Lord es el mapa 55 entero: el terreno, 214 objetos del `.obj`, un dragón
+que vuela y las partículas de las secciones que siguen. Lo que se nombra "del video" es del recorte
+del login del original que mandó Emanuel (314 × 340, 15 s, fuera de Git): qué cosa del video es cada
+fuente es *inferido*, por comparación. MuRet, hasta la CL7, no dibuja nada de eso.
+
+- **La carga** (`0x61a560(0x37)` → `0x616ec0`). `0x6070a0` suelta los modelos 0 a 159, vacía las
+  256 listas de objetos, suelta los slots `0x23` a `0x67` y apaga el byte "vivo" de varias tablas,
+  entre ellas la de efectos (`0x7491fd8`): solo ese byte, lo demás de cada entrada queda del uso
+  anterior (Q-C138). Después `0x616ec0` sube `Object8\drop01.jpg` (`0x607`), el agua de los modelos
+  (`Object8\wt00..wt31.jpg`, `0x41..0x60`), `Object8\light01.jpg` (`0x68`) y, en el caso del mapa
+  `0x37` (`0x6188ae`), el modelo `0xb4` con `0x60da30(0xb4, "Data\Object56\", "Dragon", -1)`, sus
+  texturas (`drr_01..03.jpg`, *inferido* en `0x69..0x6b` por la regla de los slots) y **un objeto
+  del mundo `0xb4` en (5.600; 23.000; 0)**: el dueño del dragón (abajo). El mapa 55 no tiene sonidos
+  de ambiente (el caso no llama a `0x41eac0`). El lazo genérico (`0x61a0c4..0x61a0e1`) carga **el
+  modelo k (0 a 159) de `Data\Object56\Object<k+1>.bmd`** (`"%s0%d.bmd"` hasta el 9), con sus
+  texturas de `Object56\` desde `0x41c`; los archivos que faltan se saltean sin avisar (Q-C23). En
+  el `Data\` faltan los 01, 17, 36, 39, 41, 51, 59, 60, 79, 81 a 83 y del 92 al 160; de los que pide el
+  `.obj`, solo el `Object83.bmd`: el tipo 82 queda sin mallas. `Dragon2.bmd` y `Object28_.bmd` no los carga nadie (Q-C127).
+- **Los archivos del mundo:** `World56\EncTerrain56.map`, `.att` y `.obj`, las alturas de
+  `TerrainHeight` por 3 (`0x6b86b8`, solo en el mapa `0x37`; 1,5 en los demás) y `TerrainLight`, sin
+  rama del 55. Los tiles son los de siempre (`0x4377a0(0x37)` devuelve 0): `TileGrass01..02`
+  `0x23..0x24`, `TileGround01..03` `0x25..0x27`, **`TileWater01` `0x28`**, `TileWood01` `0x29`,
+  `TileRock01..07` `0x2a..0x30`, las TGA del pasto en `0x32..0x34` (`TileGrass03.tga` no está en
+  `World56`), las hojas en `0x64` y `0x65` y la lluvia de `World1` y `World10` en `0x66..0x68`. La de
+  `0x68` pisa el `light01.jpg` de `0x616ec0`, sin que se vea en el login (Q-C136).
+- **Los objetos** (`EncTerrain56.obj`, 276 registros; *inferido* qué se ve, con `objvis.py` y la cámara
+  de `LoginCamera`). Caen en el viewport **217**, y se ven 214: los otros 3 son los marcadores ocultos.
+  De los 59 que no, 9 son del tipo 82 y 50 quedan fuera, en los bordes del mapa. Se ven en tres planos:
+  - **adelante**, a 1.300–2.500 de la cámara: las rocas del acantilado de la izquierda (tipos 1 y 27),
+    **78 matas de hojas animadas** (tipos 83 y 88, `severleaf01/02.tga`, 13 keys) que cubren el borde
+    de abajo y hacen de piso bajo el caballo, la catapulta rota (43, 44), las lanzas (75, 76), una
+    bandera (12) y **tres haces de luz** (65, `sunlights_R.jpg`, 25 keys) que cruzan la pantalla de
+    arriba abajo;
+  - **el castillo**, a 6.400–12.700: postes, muros, la puerta, gárgolas, banderas, cuernos, rocas
+    grandes y el farol (60), sobre el horizonte, con **un dragón de piedra fijo** (`Object34`, tipo
+    33, `floordragon`) en (9.428; 22.658; 2.188), sobre una torre;
+  - **el cielo**: tres remolinos (abajo) y el dragón que vuela.
+
+  **En el login no se recorta nada antes de GL:** el polígono 2D de `0x5fb570`, girado 36° en el mapa
+  `0x37` (45° en los demás) alrededor del héroe, abarca los 256 sectores, los 276 objetos y todas las
+  celdas del terreno (*inferido*, con las constantes *estáticas*). El héroe es el personaje 0, no el
+  Dark Lord: `0x6350b0` le escribe la posición (11.679; 14.191; 333) en cada frame.
+- **Al crearse** (`0x606660`, *estático* y *emulado* con `run_objs.py`): en las escenas 2 y 4 el farol
+  (tipo 60) pasa a escala 0,8 y luz 0,2 (el archivo trae 1,10), y en el mapa `0x37` (caso
+  `0x606d03`) **los remolinos 86 y 90 van a (8.600; 25.000; 5.000), con ángulos 0 y escalas 60 y
+  110**, pisando lo del archivo. Los demás, con lo del archivo y lo de siempre: luz por vértice,
+  velocidad de animación 0,16.
+- **En cada paso** (`0x606560` → `0x604ab0`, solo los objetos dibujados el frame anterior): el alpha
+  va hacia su meta y la animación avanza 0,16 keys, 4 keys por segundo: las banderas (9 y 10 keys,
+  2,25 y 2,5 s por vuelta), las hojas (13 keys, 3,25 s) y los haces (25 keys, 6,25 s). En el mapa
+  `0x37`, los tipos 84, 85, 87 y 89 quedan con `+0x58 = −2` y desde su primer paso no se dibujan
+  (en el primer frame sí, Q-C135; en este `.obj` están dos 84, las cajas `BosBB` de `Object85` a
+  escala 2,86 y 4,56, y el 89, el fuego de `Object90`; el 85 y el 87 no): son marcadores, los emisores de [Los efectos del login](#los-efectos-del-login). El
+  remolino **86** gira −0,6° de yaw por paso (24 s por vuelta), con alpha 0,2, luz (1, 0, 0) y todas
+  las mallas por la rama del blendMesh (`+0x64 = −2`); su `+0x68` queda en 0,28 desde el segundo
+  paso. El **90** gira −0,23° por paso (62,6 s por vuelta), con alpha 1 y luz blanca. El yaw de los
+  dos baja sin acotarse.
+- **Al dibujarse** (`0x6046a0` → `0x602e90` → `0x5ffdf0` + `0x6002e0`; los argumentos de `RenderBody`
+  y de `RenderMesh`, *emulados* para los 31 tipos con modelo, y las mezclas de cada malla, *estáticas*):
+  un solo `RenderBody(2, …)` por objeto, como el logo, con el color de `0x5ffce0` (la luz
+  del terreno en su lugar más `+0xf4`) y la luz de cada normal. Las mallas JPG van opacas; las hojas
+  (TGA de cuatro componentes) con la mezcla normal y el alpha test; los haces de luz, aditivos y sin
+  escribir la profundidad, porque el script `R` hace de la malla su propio blendMesh. El remolino 86
+  sale aditivo, (0,47; 0,18; 0,18) con la luz del terreno sombreada en su lugar, y como **hay dos en
+  el mismo lugar, con el mismo giro, se suma dos veces**. El 90 tiene un caso propio del mapa 55: la malla 0 sin luz, en blanco, con
+  **`glBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_COLOR)`**, sin culling ni escribir la profundidad:
+  oscurece el cielo donde su textura es clara. Los tres están en el sector (5, 15), y el 90 va
+  primero. En el primer frame los remolinos se dibujan sin haber pasado por la lógica (Q-C135).
+- **El orden:** los objetos del mundo van **después de los personajes y del caballo**, sector por
+  sector (x, después y) y en el orden del archivo dentro de cada uno, y antes de los efectos. Con
+  objetos aditivos que no escriben la profundidad, el orden se ve.
+
+### El terreno del login
+
+`0x5fc260(0)`: el 0 es el pase de dibujo (con otro valor, el picking). El corrimiento del agua es
+`(ftol(T) % 20000) · 5e-5`; después la mezcla opaca y el pase de bloques, y con la mezcla normal el
+pase del pasto (prendido en el 55 por `0x5f87b0`), `0x549130` (las marcas del suelo) y el depth test
+de vuelta. *Estático.*
+
+- **Qué bloques** (*inferido* de las constantes de `0x5fbb00`; la CL7.1 lo lee en el asm): con far
+  20.400 · 0,9 = 18.360 y la cámara del login, los bloques de 4 × 4 que empiezan en x 0..128 y en
+  y 120..248, es decir las celdas x 0..131 e y 120..251.
+- **Qué se ve** (la cuenta, `terrain_count.py`): en ese rango, **14.180 de las 17.424 celdas tienen el
+  bit `0x08` del `.att`** y `0x5fac90` no las dibuja (*estático* el test). Quedan 3.244 (3.242 en el
+  viewport): **un lago de `TileWater01`** (2.553 celdas con el agua de base: la capa 2 si las cuatro esquinas van
+  en alfa 255, la 1 si no) con una orilla rocosa al fondo, en una franja
+  de y = 323 a 419 en 640 × 480. La celda del personaje y todo lo cercano a la cámara están en `0x08`: ahí se ven los
+  fondos 2D, y lo que hace de piso son las hojas y las rocas de arriba.
+- **El agua**, sin rama del 55: `TileWater01` con u + el corrimiento y v + ola · 0,002, con la ola
+  `sin(x · 5 + (ftol(T) % 720000) · 0,002) · 10` por celda (*estático*).
+- **El slot `0x122`** (Q-C19): es `Interface\accept_box01.jpg`, que carga `0x61ae60` (*estático*: es la
+  única carga a ese slot). En el login hay 147 celdas visibles con capa 2 = 255 y alfa, casi todas en
+  la orilla del lago, con alfa de hasta 1 (la cuenta, `terrain_count.py`; que se vea, *inferido*).
+- **El pase del pasto**, en el 55, no dibuja nada en esta vista: las celdas candidatas piden
+  `TileGrass03.tga`, que no está, o slots que no carga nadie (*inferido*).
+- **Sin niebla** (`0x6350b0` pone `DAT_07d368a0` en 0 en cada frame) y **sin cielo 3D**: detrás
+  quedan los fondos 2D y el negro de `glClearColor`.
+
+### El dragón de fondo
+
+*Estático* y *emulado* (`dragon_emu.py`: `0x518cf0` y 1.500 pasos de `0x5208a0` reales).
+
+- **Quién lo crea.** No está en el `.obj` ni en el código del login: `0x606660`, en las escenas 2 y 4,
+  con el objeto `0xb4` que crea la carga del mapa, le pone `+0x58 = −2` (el dueño no se dibuja), luz
+  blanca, y llama a `0x518cf0(0xb4, posición, ángulos, luz, 0, objeto, −1, 0, 0, 0, 1,6)`. `0x518cf0`
+  es el creador de **efectos** (la tabla `0x7491fd8`, 200 entradas de `0x1d4`); su caso `0xb4` deja:
+  escala 1,6, posición (5.600; 23.000; **3.400**), ángulos 0, luz por vértice, velocidad de
+  animación 1, **velocidad de vuelo (0, −35, 0)**, vida 1.000, `+0xdc = +0xe4 = +0xec = 1` y el punto
+  de partida en `+0x17c`. Cada vez que se entra al login la tabla se vacía y el dragón vuelve a
+  salir desde el principio. Solo existe en el login: la selección no tiene el tipo 180.
+- **El modelo**: `Data\Object56\Dragon.bmd` (en el `Data\` está en minúscula): 3 mallas
+  (`drr_01..03.jpg`), 93 huesos, **una acción de 41 keys**. Mira hacia −y, hacia donde vuela.
+- **Cómo se mueve** (`0x5208a0`, caso `0x52096c..0x520b72`, por paso de lógica desde `0x52d220`):
+
+  ```text
+  d = |pos − partida|
+  yaw y alabeo: fuera de (−360, 360) vuelven a 0
+  meta del alabeo (+0x84) = 30 con el estado 0, −30 con el 1, 0 con otro
+  alabeo += 0,5 hacia la meta
+  si d ≤ 800: estado = 2; +0xec = 0; +0xdc = 1
+  si no:
+    si +0xdc ≠ 0: +0x84 = yaw; +0xe4 = −(+0xe4); +0xdc = 0
+    si yaw − 60 ≤ +0x84:        yaw += +0xe4 · 1,5; estado = 1
+    si no, si yaw + 60 ≥ +0x84: yaw += +0xe4 · 1,5; estado = 0
+    si no:                      +0xdc = 1; estado = 2
+  si vida ≤ 10: vida = 1000
+  si frame ≥ 40: frame = 0; anterior = 0; acción = 0
+  ```
+
+  Después, la cola común: la animación a velocidad 1, **posición += AngleMatrix(ángulos) ·
+  (0, −35, 0)** (`0x51fc80`) y la vida − 1. El resultado (*emulado*): vuela siempre a z 3.400, a 35
+  por paso, en **un ocho** alrededor de la partida: 23 pasos derecho, 199 girando −1,5° por paso
+  (un círculo de radio ≈ 1.337) por el oeste, 46 derecho cruzando la partida y 199 girando +1,5° por
+  paso por el este; los lazos que siguen al primero duran 198 pasos. **Un ocho cada 489 o 490 pasos,
+  unos 19,6 s**, sin azar (el único `rand()` del paso es una luz que el `0xb4` no usa) y sin morir
+  nunca. El alabeo va a −30° en los dos lazos (Q-C128). La animación avanza una
+  key por paso, del 1 al 40, sin mezcla entre keys: 1,6 s por aleteo.
+- **Cómo se dibuja** (`0x52d620(0)`, después de los objetos del mundo y de los joints): la esfera
+  de 400 contra el frustum, y un solo `RenderBody(2, 1, −1, 1, 0, 0, −1, −1)`, opaco, con el color de
+  la luz del terreno en su lugar más (1, 1, 1) y la luz de cada normal. No tiene sombra. En pantalla
+  va arriba, sobre el horizonte: el centro entre x 175 y 518 e y 102 y 184 en 640 × 480, de 50 a 98
+  píxeles de ancho y de 33 a 81 de alto, a 11.600–14.400 de la cámara (*inferido*: posado y proyectado
+  con `dragon_screen.py` en toda la trayectoria emulada).
+
+### El cuervo
+
+*Estático* y *emulado*: `emulate_raven_ctor.py` corre el constructor real y `emulate_raven.py` el paso
+real, desde el estado inicial de abajo escrito a mano (con la altura del terreno de `World56`, que
+el emulador no tiene); `raven_reference.py`, escrito solo desde esta lectura, da **bit a bit lo
+mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas.
+
+- **Qué es.** `0x1c17` en la mano izquierda es solo el ítem (`Item\SpiritBill.bmd`), y el lazo de las
+  manos de `0x50ba30` lo saltea (`0x50e764`): en la mano no se dibuja nada, y MuRet ya lo saltea.
+  El pájaro que vuela es otro modelo, **el `0xc0`, `Data\Skill\DarkSpirit.bmd`**: 5 mallas, 77 huesos
+  y 4 acciones de 6, 4, 4 (con `lock_positions`) y 4 keys; la 0 aletea y la 1 planea (*inferido* de
+  las keys). `0x420d60(personaje)`, con el `0x1c17` en la mano, crea un objeto de `0x460` bytes
+  (`0x4167b0`, vtable `0x6b8904`: el paso en `+4`, `0x416a20`, y el dibujo en `+0x10`, `0x4182f0`) y
+  lo guarda en `personaje + 0x430`. El objeto del pájaro es `objeto + 0xc`, el principio de un
+  `CHARACTER` entero. La mascota de MuRet (`CharacterAnimation::pet`) es la de `+0x318`: no es el
+  cuervo.
+- **El modelo y sus texturas**: lo carga `0x615700` en el arranque, después del caballo; sus
+  texturas son la **quinta** llamada después del `0x60d530(0x3b8)`, de `Skill\`, repitiendo y sin
+  filtro: `0x3c7` a `0x3ca` (`dkthreebody`, `dkswing`, `dkonebody`, `foot`), y `dksbody.tga` la
+  encuentra en `0x26f`, donde la subió el `0x1c17` (**verificado** en `lor_slots.bin`).
+- **El estado inicial** (*emulado*, salvo la altura): escala **0,7** (ningún camino lo cambia en la escena 2), luz 0,5,
+  luz por vértice, estado y acción 0, dirección (0, 0, 0), alpha 1 (aparece de golpe) y la posición
+  (celda x · 100 + 50, celda y · 100 + 50, altura del terreno + 300). El constructor saca 12
+  `rand()` (los cierres de las celdas protegidas y del contador, Q-C125). **En el login nace en
+  (50, 50, 750)**: el personaje de `0x517270` tiene las celdas en (0, 0), porque `0x6349a0` solo le
+  escribe la posición, y la altura del terreno ahí es 450 (150 · 3; el mundo ya está cargado, porque
+  `0x6349a0` lo carga antes de crear al personaje) (Q-C130).
+- **El paso** (`0x416a20`), una vez por paso de lógica, al final de `0x4fd5f0` del dueño (desde
+  `0x508f00`: después del logo, del caballo y de las brasas, y antes de la cabeza, los efectos y las
+  partículas). Con `f()` el redondeo a float y la x87 en 53 bits:
+
+  ```text
+  si dueño.flags(+0x78) & 0x1000: salir
+  [zona segura del dueño (+0x3e2): en el login, 0; con 1 va a posarse, estados 3 y 4]
+  frame += f(0,4); al pasar la última key, la acción por el estado (tabla 0x417f0c):
+    estado 0 → acción 1 (planea), 1 → 0 (aletea), 2 → 3, 3 → 2, 4 → 1, 5 → 3
+  dx = f(dueño.x − x); dy = f(dueño.y − y)
+  si (dueño.flags & 0x4000) == 0:                               la chispa
+    hueso = rand() % 66; p = la traslación de ese hueso en la pose del último dibujo
+    0x53fe70(0x5c6, p, ángulos, (0,3; 0,4; 0,7), 5, 0,8, 0)      (1 rand() adentro)
+  d2 = dy² + dx² (double); d2f = f(d2)
+  si d2 ≥ 22.500: yaw = f(TurnAngle(yaw, f(CreateAngle(x, y, dueño.x, dueño.y)), f(rand() % 15 + 5)))
+  v = VectorRotate(dirección, AngleMatrix(ángulos)); posición += v (cada una con f)
+  H = dueño.z + 350 en el mapa 0x37 (250 en los demás, Q-C131)
+  div = 28; si z < H: pitch = f(pitch − 2) (≥ −15), div = 10
+            si no, si z > H + 100: pitch = f(pitch + 2) (≤ 15), div = 20
+  si rand() % div == 0:                                         el sorteo
+    cerca (d2f < 22.500): base = f((rand() & 7 + 32) · −0,1); yaw = f(rand() % 60 + yaw)
+    lejos:                base = (rand() & 63 + 128) · −0,1
+    dirección = (0, f((base + dirección.y) · 0,5), f((rand() & 63 − 32) · 0,1))
+  dirección.y < −12 → estado 0; si no → estado 1    (cada cambio pone el contador +0x60 en 0)
+  si rand() % 100 == 0 y [0x7d3a0f0] % 60 == 0: el grito 0x1d1
+  si dueño.z − 200 > z o la distancia horizontal² > 409.600 (640²): contador += 1
+  si contador > 90: posición = (dueño.x, dueño.y, f(dueño.z + 250)); contador = 0
+  ```
+
+  `CreateAngle` (`0x4e93f0`), `TurnAngle` (`0x4e9560`, con ramas que no son simétricas),
+  `AngleMatrix` (`0x5fc8f0`: cos(yaw) queda sin redondear a float) y `VectorRotate` (`0x5fcbd0`)
+  están transcritos del asm en `raven_reference.py`. El orden de los `rand()` de un paso: `% 66`, el
+  de la chispa (`0x540714`), `% 15` (solo a más de 150), `% div` y, si sale 0, `& 7` y `% 60` (cerca)
+  o `& 63` (lejos), `& 63`, y por último `% 100`.
+- **Qué hace en el login** (`raven_stats.py`, 40 semillas × 5.000 pasos): viaja invisible hacia el
+  Dark Lord y **salta a su lado** cuando el contador pasa de 90, a 250 sobre su origen: como pronto en
+  el paso 91, y en las 40 semillas **entre los pasos 94 y 140, de 3,8 a 5,6 s después de entrar**.
+  Después ronda alrededor: la distancia horizontal tiene mediana 119 (p95 166), la altura sobre el
+  origen del jinete va de 318 a 515 (p5 a p95), a unas 4,6 unidades por paso, en el estado lento el
+  92 % del tiempo. Dentro de los 150 no gira hacia él, y los sorteos le suman yaw siempre del mismo
+  lado: describe curvas en un solo sentido. Nunca se posa: eso es solo en zona segura.
+- **El dibujo** (`0x4182f0`, al final de `0x50ba30` del dueño: dentro de los personajes, antes del
+  caballo y del logo). `0x5ffdf0` con la luz del terreno en su (x, y) más 0,5, la escala 0,7 y sus
+  propios huesos; `0x6002e0`, caso `0xc0`: `glColor3f(1, 1, 1)`, la **malla 3** (`dksbody.tga`, mezcla
+  normal con alpha test) y, con el nivel de la mascota por debajo de 20, la **malla 2**
+  (`dkonebody.jpg`, opaca). El nivel lo trae el `A9`, que en el login no llega: es 0. Los vértices,
+  con la luz de cada normal con la escala 0,7, como el caballo (Q-C115). Después, **la sombra**: las
+  cinco mallas, negras y opacas, aplastadas sobre la altura del terreno bajo el cuervo con la regla
+  de siempre (Q-C132). Si el cuervo no pasa el frustum, el dibujo le pone la velocidad en 3 y, salvo en el
+  estado 4 (`0x418375`), el estado en 0, sin poner el contador en 0.
+- **Lo que crea**: una **chispa por paso** (`0x5c6`, `Effect\Spark03.jpg`, subtipo 5), desde un
+  hueso al azar de la pose del último dibujo (Q-C133): vida 10 pasos,
+  velocidad R(yaw) · (−(`rand() % 2` + 2), 0, 0), color (0,3; 0,4; 0,7) y escala 0,8, que cada paso se
+  achica × 0,9 y se apaga × 1/1,03; la velocidad se gira dos veces por el yaw (Q-C134). Son los
+  puntitos azules del video. Y muy de vez en cuando el grito `Sound\DSpirit_Shout.wav` (`0x1d1`).
+
+### Los efectos del login
+
+*Estático* (leído en el asm; no se emuló). El paso del login corre, después de los objetos y del
+caballo, `0x530490` (las hojas), `0x508f00` (los personajes y el cuervo), `0x52d220` (los efectos),
+`0x53c670` (los joints) y `0x5446e0` (las partículas). El dibujo, después de los objetos:
+
+| Función | Qué es | Arreglo | Entradas |
+| --- | --- | --- | --- |
+| `0x53c6a0(0)` | **joints**: cintas con colas, `GL_QUADS` en el mundo; paso `0x53c670` → `0x535840` | `0x74a8d78` | 500 × `0xa10`; ninguno en el login (*inferido*) |
+| `0x52d620(0)` | **efectos** con modelo (`CreateEffect`, `0x518cf0`; paso `0x5208a0`) | `0x7491fd8` | 200 × `0x1d4`: el dragón y el `0xc2` |
+| `0x549510` | prende `+0x16c` de los sprites vivos | — | — |
+| `0x5306a0` | **hojas** (lluvia, hojas, nieve, burbujas; en el 55, brasas), quad en el mundo | `0x75e34b8` | 200 × `0x78`; 80 en el mapa 55 |
+| `0x6213e0` | `glPushMatrix` y `glLoadIdentity`: lo que sigue va en coordenadas de ojo | — | — |
+| `0x549440(0)` → `0x549290` | **sprites** de un frame (los pide el dibujo, `0x5491e0`, y se apagan al dibujarse) | `0x760f990` | 1.000 × `0x1d4` |
+| `0x548550(0)` | **partículas** (`0x53fe70`; paso `0x5446e0`, 25 por segundo) | `0x743a198` | 3.000 × `0x78` |
+
+- **El billboard** (`0x621400(tex, pos, w, h, luz, rot, u, v, du, dv)`), el de los sprites y las
+  partículas: la posición pasa por la vista de la cámara (`0x7d366f0`), se arma un cuadrado en el
+  plano de la pantalla, girado `rot` grados alrededor del eje de la vista, con la fila 0 de la
+  textura arriba, y `GL_QUADS`. Con una textura de 3 componentes, `glColor3fv(luz)`; con 4,
+  `glColor4f(r, g, b, r)` (con alpha 1 en la textura `0x5e4`). Todas las de esta escena son de 3 (**verificado** en `lor_slots.bin`). La
+  mezcla no la elige el billboard: la de cada partícula sale de su textura (3 componentes, aditiva,
+  `0x620a90`; 4, `0x620a00(0)`), con casos por tipo, como las nubes; la de cada sprite, de su `+4`
+  (abajo). Las del login van aditivas, con depth test y sin escribir la profundidad, salvo las nubes.
+- **Las partículas** (`0x53fe70`): `+4` el tipo (= la textura), `+0xc` el subtipo, `+0x10` la escala,
+  `+0x14` la posición, `+0x20` los ángulos, `+0x2c` la luz, `+0x3c` la vida en pasos, `+0x44` la
+  rotación del billboard, `+0x4c` "mover con la velocidad", `+0x50` la velocidad vertical propia y
+  `+0x54` la velocidad. Cada paso: vida − 1, `pos += AngleMatrix(+0x20) · (+0x54)` con `+0x4c`, y el
+  caso de su tipo; al empezar el paso saca 2 `rand()` (un viento global). Se crean en el primer
+  lugar libre; con las 3.000 llenas no se crea.
+- **Los sprites** (`0x5491e0(tex, pos, escala, luz, dueño, rot, mezcla)`): la mezcla va en `+4`: 0
+  aditiva (`0x620a90`), 1 `0x620b10`, 2 normal (`0x620a00(1)`), 3 `0x620b90`, y la textura `0x637`
+  siempre normal. Nacen con el alpha (`+0x114`) en 1. `0x549510` prende `+0x16c` de los vivos antes
+  del pase, y `0x549290` le suma 0,1 al alpha con tope 1 (con `+0x16c` en 0, le resta 0,1 con piso
+  0,2); el tamaño es la textura × la escala × el alpha, y `0x549440(0)` apaga cada uno al
+  dibujarlo. En el login, el cetro y los destellos van siempre con alpha 1 y a tamaño completo.
+- **Las hojas** (`0x530490` / `0x5306a0`): cada paso, cada una de las 80 apagadas renace con el
+  creador del mapa (`0x42b1e0` en el `0x37`) y cada viva se mueve con el suyo (`0x5303a0`). Se
+  dibujan aditivas con un solo `glColor3f(1, 1, 1)`, un `glTranslatef` y `AngleMatrix(+0x20)` por
+  hoja, y `0x621320(a, b, M)`: un quad (−a, −a, −b), (a, a, −b), (a, a, b), (−a, −a, b) girado por
+  M, con a = 2 · escala y b = 4 · escala.
+
+Lo que se ve en el video, una fuente por vez:
+
+- **Las brasas naranjas**: 80 hojas de `Effect\FireSnuff.jpg` (`0x635`, la que sube la entrada del
+  login), siempre en juego: la que pasa 20 pasos en el suelo muere y renace en el paso siguiente.
+  Nacen (`0x42b1e0`, 10 `rand()` cada una) con escala `(rand() % 50) · 0,01 +
+  0,5`, en (`rand() % 1600 − 800`, `rand() % 1400 − 500`, `rand() % 1000 + 50`) más la posición del
+  héroe, con la velocidad x `(rand() % 64 + 64) · −0,1` (con y < cámara.y + 400 sería `3,2 − vx`; en el
+  login nunca pasa, porque nacen con y ≥ 13.691 y cámara.y + 400 = 13.078, así que vx queda negativa
+  y siempre van hacia −x) e y, z `(rand() % 32 − 16) · 0,1`; los
+  ángulos no se escriben y el quad queda vertical, en el plano x = y del mundo (Q-C139). Cada paso
+  (`0x5303a0`), en el aire, cada componente de la velocidad suma `(rand() % 16 − 8) · 0,1` (un sesgo
+  de −0,05) y la posición, la velocidad; al tocar el terreno (`0x5f93c0`) quedan quietas, la luz baja
+  0,05 por paso y a las 20 renacen. En el aire duran 5 s de mediana (*simulado*, `embers_sim.py`, con
+  las alturas de `World56`). En el primer paso el héroe todavía está en (0, 0, 0) y las primeras 80
+  nacen lejos (Q-C137).
+- **Las bocanadas blancas**: **el aliento del caballo**, no polvo. `0x444010`, en cada paso, con
+  `rand() % 3 == 0`, crea la partícula `0x5f2` (`Effect\smoke01.jpg`, subtipo 0) en el **hueso 27**
+  del caballo (`Bone03`, hijo de `Bip01 Head`) con el desplazamiento (50, −4, 0), la pose del último
+  frame dibujado y la luz (3, 3, 3). Nace con vida 16, escala `(rand() % 32 + 48) · 0,01` y la
+  rotación `ftol(T) % 360`; cada paso la luz es vida · 0,125, la velocidad vertical propia suma 0,2
+  y la z, esa velocidad, y la escala suma 0,05. Se ve 15 pasos: blanca los 8 primeros, y se apaga en
+  los 7 últimos. El polvo de los cascos solo sale con el jinete en la acción `0x4b`, que el login no
+  usa.
+- **El brillo del cetro**: `0x509340`, caso `0x620` (tabla `0x50b81c`), pide **5 sprites por frame**,
+  aditivos, con luz **(1; 0,3; 0)**, en `TransformPosition(hueso 0 del cetro, desplazamiento)`:
+
+  | # | Textura | Desplazamiento | Escala | Rotación |
+  | --- | --- | --- | --- | --- |
+  | 1 | `0x5fd` `Shiny02` | (0, p − 100, p), p = `(rand() % 60) · 0,05 − 1,5` | s = `(rand() % 10) · 0,05 + 1,4` | 0 |
+  | 2 | `0x5fd` | el mismo | s − 0,3 | 20° |
+  | 3 | `0x5ac` `flare01` | (0, p − 100, p), p nuevo | `(rand() % 10) · 0,05 + 1` + 0,3 | 0 |
+  | 4 | `0x5fd` | (0, p + 100, p), p = `(rand() % 40) · 0,05 − 1` | s = `(rand() % 8) · 0,05 + 0,4` | 0 |
+  | 5 | `0x5fd` | el mismo | s − 0,2 | 90° |
+
+  Los tres grandes van en el tridente del `HDK_Mace` y los dos chicos en el pomo (*verificado* en el
+  archivo: la y de −130 a −30 es el tridente y la de 70 a 110, el pomo). Parpadean porque la posición
+  y la escala se sortean en cada frame (6 `rand()`, más el `rand() % 30` que `0x509340` saca al
+  empezar con cualquier parte, `0x509a92`).
+- **El blanco del casco**: la tela 0 de la clase 4, aditiva, más sus **30 destellos** (`0x455930`):
+  con t = sin(T · 0,001) · 0,1 + 0,4, para k = 0..29 y p = k div 5, el sprite `0x5ac` (`flare01`) en
+  la partícula k, con la escala p · 0,2 + 0,4 y la luz (6 − p) · t · 0,2, aditivo. Es lo que arma
+  `CharacterCloth::Flares()` ([La tela de la clase 4](#la-tela-de-la-clase-4)); ahora está leído cómo
+  se dibuja.
+- **Las nubes oscuras** (sin confirmar en el video): los dos objetos `0x54` del mapa 55, invisibles,
+  en (10.811; 14.804; 219) y (10.598; 16.408; −95), en cada frame dibujado en que se ven, con
+  `rand() % 5 == 0`, crean la partícula `0x622` (`Effect\clouds.jpg`, subtipo 10): vida 500,
+  posición ± 200, escala la del objeto + `(rand() % 15 + 10) · 0,0667` (900 a 1.600 unidades),
+  velocidad (v, v, 0) con v = `(rand() % 10 + 5) · 0,12`, que se suma **dos veces** por paso
+  (Q-C129). La luz sube 0,01 por paso hasta 0,15 cerca de donde nació y baja más allá de 300; a más
+  de 500 se apaga. Se dibujan con **`GL_ZERO, GL_ONE_MINUS_SRC_COLOR`** y una rotación de ±30° por
+  segundo: oscurecen lo de atrás.
+- **El brillo del farol**: `0x602ed0`, en la escena 2, tiene un caso para el tipo `0x3c` (60, el farol
+  del castillo, que se ve; `0x602f01..0x602fc6`): en cada frame pide **2 sprites** `0x5ac` (`flare01`)
+  de escala 1, con la mezcla 0 (aditiva) y el color (L; 0,5 · L; 0,2 · L), con L = `(rand() % 30 + 70)
+  · 0,01`, en las traslaciones de los huesos 8 y 9 del buffer global de la pose (`0x68b199c` y
+  `0x68b19cc`). `Object61.bmd` tiene un solo hueso: esas matrices son las que dejó el último modelo
+  posado antes (Q-C140).
+- **El fuego del `0x59`** (sin confirmar): el objeto `0x59` en (8.954; 24.178; 492), también
+  invisible, con `ftol(T) % 8000 > 7949` crea el efecto `0xc2` (`Skill\Fire01.bmd`, subtipo 9) a
+  ± 1.024 en x y en y (`rand() & 2047 − 1024`) y a 3.000–3.600 de altura: una bola de fuego que cae, lejos a la derecha. Su paso y su dibujo no se
+  leyeron.
+
+**Lo que no corre en el login:** la `chasellight` (`0x53fe70(0x729)`) es solo de la selección; el
+juego completo pide nivel ≥ 9 en las cinco partes y el juego 29 va a +7; no hay alas; el brillo por
+nivel son pases de malla que MuRet ya tiene; los demás manejadores de `0x602ed0`, fuera del farol, el
+`0x54` y el `0x59`, son de otros mapas.
+
+**Los `rand()` del frame** (P-C22 a), además de los 75 de la tela: las brasas (unos 240 por paso, y
+10 por cada una que renace), el aliento (1 o 3 por paso), el viento de las partículas (2 por paso), el
+cuervo (4 a 7 por paso), `0x509340` (uno por cada parte del personaje que dibuja, por frame), el cetro
+(6 más por frame), el gesto del login (`rand() % 6` con `ftol(T) % 2300 < 100`), `0x602ed0` (1 por
+objeto visible por frame, 1 más en cada `0x54`, 5 más por nube, 3 más cuando dispara el `0x59`, y el
+del farol), `0x508f00` (8 por personaje vivo por paso), `0x635ae0` (8 por
+frame) y la cabeza (`0x505de0`). Ahora se sabe quién saca cada uno, pero MuRet no lleva ninguno: para
+que su `rand()` siga al del original bit a bit habría que correrlos todos, en su orden.
+
+### Lo demás del login
+
+El resto de `0x634c60` (por paso) y de `0x6350b0` (por frame), llamada por llamada (*estático*):
+
+- **Lo que falta y se ve o se oye:**
+  - **el cursor** (`0x5ac2d0`): el juego oculta el de Windows y dibuja `Interface\Cursor.tga` (el
+    slot 2), o `CursorPush.tga` (el 3) con el botón apretado, de 24 × 24 en (mouse − 2), con la
+    mezcla normal, al final de la UI;
+  - **la cabeza del Dark Lord**, que `0x505de0` mueve al azar (P-C15 h);
+  - **la música**: la entrada llama a `0x4acfd0("data\music\main_theme.mp3", 0)`, que con la música
+    prendida y si no es la que ya suena la toca en bucle (*inferido* el bucle). El archivo está en
+    `Client/assets/Data/Music/`;
+  - **el clic** `Sound\iButtonClick.wav` (`0x19`) en Esc y en los botones de las ventanas;
+  - **Esc**, con la lista y la barra abiertas y lo demás cerrado: el clic y la ventana de `+0x3d0`;
+    y la de créditos (`+0x4578`). Las dos, sin leer.
+- **La cámara, confirmada:** `0x635ae0` es fija en la escena 2. El único corrimiento posible es el
+  del bit `0x80` del atributo de la celda del héroe, y no aplica: el héroe tiene las celdas en
+  (0, 0), porque en el login solo se le escribe la posición, y esa celda de `EncTerrain56.att` vale
+  `0x0c`. El fundido no dibuja nada (Q-C66, *inferido*).
+- **No muestran nada en el login:** `0x5f7bc0` (el ítem bajo el mouse), `0x554810` (los avisos),
+  `0x5554e0` (el chat: las 120 llamadas a `0x555190` de la entrada lo llenan de renglones vacíos,
+  ahora *estático*), `0x5b0550` (la ayuda), `0x40eca0` (un cartel de diálogo), `0x633110` (modelos 3D
+  de la UI) y `0x5bb8d0` (el ancho del mundo con las ventanas: el entero).
 
 ### Las ventanas de la UI nueva
 
@@ -1822,23 +2198,25 @@ la escala W / 800 y H / 600 (`0x6ba884`, `0x6ba880`), como la UI de la carga. Di
   cabeza, el dibujo de una malla, los brillos por nivel y los slots de las texturas ya están
   (arriba). Falta (P-C14): si la selección gira la cabeza, la velocidad que queda en las acciones
   sin escritura, la acción de parado sin arma y con una de dos manos, el color del pase base
-  (`0x609640`, P-C14 e: los de los demás pases están desde la CL6.3) y una mano vacía; y
-  `0x53c6a0`, una tabla de 0xA10 bytes con un `switch` de tipo, leída solo en sus dispatchers: los
-  efectos (*inferido*; los objetos del mundo van por `0x6046a0`, desde la CL6.4). Las
+  (`0x609640`, P-C14 e: los de los demás pases están desde la CL6.3) y una mano vacía; .
+  `0x53c6a0`, la tabla de `0xa10` bytes, son los joints (CL7.R, [Los efectos del login](#los-efectos-del-login));
+  su paso (`0x535840`) no se leyó. Las
   100 capturas de pantalla de la selección (`graphics-01/CHARACTER-ANIMATION-NOTES.md`, VMware
   MKS, privadas) muestran que la pose y el arma cambian con la UI quieta; no están sincronizadas
   con la traza.
 - Qué es cada bloque de `GL_QUADS` (efectos) y el resto de los `GL_TRIANGLES` que no son del
   personaje: la búsqueda por UV se hizo solo contra `player\` e `Item\`.
-- Efectos: solo la estela (`0x52e590`).
+- Efectos: la estela (`0x52e590`) y, desde la CL7.R, las siete tablas del pase 3D del login, con las
+  fuentes de esa escena ([Los efectos del login](#los-efectos-del-login)); de cada tabla, los casos de
+  otros mapas y de las habilidades no se leyeron.
 - El dibujo píxel a píxel de cada widget (dentro de `0x62db60`): las trazas no tienen imagen.
 - Para qué usa el juego el caché de `0x466000`, si estas escenas no lo tocan (*inferido*: solo
   con `TextOut` en 1).
 - **La carga y el login, en GL** (P-C13): no hay traza ni captura de estas dos escenas; el orden,
   las posiciones y la mezcla de arriba son del binario. Tampoco se leyeron las ventanas de
   `+0x3d0`, `+0x7e8` y `+0x4578`, las que abren los botones de la barra, ni qué contesta el CS
-  al `F4 06` del botón de los créditos. Del login de la CL6 (P-C15): el slot de `Logo03`, cómo
-  sube la luz del logo y la conducta del cuervo (`0x4167b0`).
+  al `F4 06` del botón de los créditos. Del login de la CL6 (P-C15): el slot de `Logo03` y cómo
+  sube la luz del logo; el cuervo, leído en la CL7.R, falta verlo contra el original (P-C23).
 
 Ver [08](08-pendientes.md).
 
@@ -1870,6 +2248,10 @@ Ver [08](08-pendientes.md).
 | La barra de la selección (crear, el menú, conectar y borrar) y el borrado con dos avisos | `UI::SelectionBar` (con `Button` deshabilitado), `UI::DeleteChecks` (las revisiones de `0x63edf0`), `UI::NoticeWindow` con los tipos 0, 3 y 4 y el campo del código, y la escena, que sigue la lista de la sesión (el que crea entra y el que borra se va) y abre el aviso de cada respuesta. El menú, las opciones, los carteles y el área de mensajes, de la CL8 | CL6.5 |
 | La ventana de crear, con los filtros del nombre de `FilterName.bmd` y `Filter.bmd` | `UI::CreateCharacterWindow` (la vista previa, `Scenes/CreatePreview`: `SelectionModels` con sus slots desde `0x6f8` siguiendo `GameModels`, y la cámara, el viewport y la tabla de clases de `0x63e460`), `UI::NameChecks` (los tres chequeos de `0x63d990`) y `Data::Text::LoadFilterWords` en `LoadGameData` | CL6.5 |
 | El caballo oscuro: un ayudante que aparece de a poco y sigue la acción del jinete, con luz por vértice, un cromo y su sombra | `Scenes/DarkHorse` (el paso) y `DrawDarkHorse` (el caso `0xbf` de `0x6002e0`), con `Render::Models::NormalLight` (L = (1,3; 0; 2), la normal con la escala del objeto) y `ModelBlend::BlendedShadow`; en el login, entre el personaje y el logo | CL6.4 |
+| El mundo del login: el mapa 55 entero, con los objetos después de los personajes y casos por tipo y por mapa (`0x606660`, `0x604ab0`, `0x6002e0`) | el pase 3D del mundo (`IWorldView`) con el terreno y los objetos del `.obj`, los casos del mapa 55 como datos y el orden del original | CL7.1, CL7.2 |
+| El dragón: un efecto con modelo (`0x518cf0`) que vuela en ocho, sin azar | el efecto `0xb4` con su paso por paso de lógica, comparado con los pasos emulados del código real | CL7.6 A |
+| Siete tablas de efectos: joints, efectos con modelo, sprites de un frame, hojas y partículas, con el billboard de `0x621400` | un sistema por tabla, con el paso por paso de lógica (los sprites, por frame) y el billboard en el pase 3D, después de los objetos y en el mismo orden | CL7.6 B |
+| El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | un objeto colgado del personaje, con el paso de `0x416a20` comparado bit a bit con `raven_reference.py` | CL7.6 C |
 
 Tests que fija:
 
@@ -1909,3 +2291,8 @@ Tests que fija:
 - El asignador de slots de `0x466560` no se prueba, porque MuRet no lo reproduce (pregunta 11 del
   plan de la CL5): es interno, en las escenas medidas no corre (`0x466000` no corrió, § Texto), y
   la caché del texto de MuRet es otra, con sus slots después de los 1.845 del original (CL5.3).
+- El login completo (CL7): los objetos del mapa 55, cada tipo como lo deja el código real
+  (`scripts/login/run_objs.py`: la creación, tres pasos y el dibujo); el dragón, paso a paso contra
+  los 1.500 pasos de `dragon_emu.py`; el cuervo, bit a bit contra `raven_reference.py` y
+  `emulate_raven.py` en varias semillas; y las brasas, el aliento, el cetro y los destellos, con las
+  fórmulas de [Los efectos del login](#los-efectos-del-login) y un `rand()` fijo.

@@ -63,6 +63,8 @@ del research del DataServer:
 | **Inferido** | I | *inferido* |
 | **Análisis** | consecuencia que deriva este documento | **Análisis** |
 | **Seam** | estructura conocida sin bytes exactos | *seam* |
+| **Emulado** | C con el código real del `main.exe` corrido en un emulador (unicorn), sin una sesión real | *emulado* |
+| **Simulado** | una cuenta en Python a partir de lo *estático*, sin correr el binario | *simulado* |
 
 El nivel *estático* es propio de este research: en el cliente hay mucho código leído con cuidado
 en el assembly pero nunca contrastado con una sesión real (por ejemplo el login `F1 01` del build

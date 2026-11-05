@@ -533,6 +533,17 @@ solo lo lee.
   frame del original cada 46,875 ms, como la mascota. 17 tests y 24 mutantes. Falta el volcado del
   original en la VM para comparar una corrida entera (P-C22).
 
+  **La CL7.R, el barrido del login** (2026-11-05, resuelta por Claude): con la tela puesta, Emanuel
+  vio que al login le faltaba casi todo lo que rodea al Dark Lord: el piso, el castillo, el dragón de
+  fondo, el cuervo y las partículas. Tres lecturas en paralelo del binario (el mundo del mapa 55 y el
+  dragón, los efectos, y el cuervo con el resto de la escena) encontraron de dónde sale cada cosa:
+  el piso son objetos del `.obj` (rocas y matas de hojas), el terreno es un lago al fondo, el dragón
+  es un efecto que vuela en ocho sin azar, el cuervo es `DarkSpirit.bmd` y nace lejos por un quirk de
+  las celdas, y las bocanadas blancas son el aliento del caballo, no polvo. El dragón, el cuervo y los
+  objetos están emulados sobre el código real, y el paso del cuervo ya tiene una reimplementación que
+  da bit a bit lo mismo. La CL7 arranca por el login, en cinco sub-olas (la CL7.1, la CL7.2 y la CL7.6 A a C; 06 § El
+  mundo del login a § Lo demás del login, P-C23).
+
 ## Conceptos
 
 **Niveles:** 1 **usar** (lo escribiste con tests) · 2 **explicar** (lo contás sin mirar) ·

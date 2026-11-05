@@ -158,6 +158,7 @@ dos clases y la regla cambia según cuál:
 | Q-C137 | las brasas del mapa 55, `0x42b1e0` | nacen alrededor del héroe, y en el primer paso del login el héroe está en (0, 0, 0) (`0x6350b0` le escribe la posición recién en el dibujo): las primeras 80 nacen lejos, caen y renacen en su lugar en unos segundos. *Inferido* del orden | visible | se reproduce | CL7.6 B |
 | Q-C138 | la tabla de efectos, `0x6070a0` | al cambiar de mapa solo apaga el byte "vivo" de cada entrada de `0x7491fd8`: lo demás queda del uso anterior (`+0x78`, por ejemplo, que `0x518cf0` no escribe). En un login recién arrancado no cambia nada. *Estático* | bug | cada efecto se arma entero | CL7.6 A |
 | Q-C139 | las brasas del mapa 55, `0x42b1e0` y `0x5306a0` | los ángulos de la hoja no se escriben (quedan en 0 desde la `.bss`, o lo que dejó otro mapa) y el quad de `0x621320` queda vertical en el plano x = y del mundo, no de cara a la cámara. *Estático* | visible | se reproduce, con los ángulos en 0 | CL7.6 B |
+| Q-C140 | el brillo del farol del mapa 55, `0x602ed0` caso `0x3c` | los dos sprites del farol van en las traslaciones de los huesos 8 y 9 del buffer global de la pose (`0x68b199c`, `0x68b19cc`), pero `Object61.bmd` tiene un solo hueso: esas matrices son las del último modelo posado antes, y el brillo sale donde las haya dejado. *Estático* | bug | a decidir en la CL7.6 B, con la captura de P-C23: dónde se ve el brillo en el original | CL7.6 B |
 
 ## Fuera de alcance
 

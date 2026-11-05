@@ -1311,8 +1311,9 @@ fuente es *inferido*, por comparación. MuRet, hasta la CL7, no dibuja nada de e
 - **En cada paso** (`0x606560` → `0x604ab0`, solo los objetos dibujados el frame anterior): el alpha
   va hacia su meta y la animación avanza 0,16 keys, 4 keys por segundo: las banderas (9 y 10 keys,
   2,25 y 2,5 s por vuelta), las hojas (13 keys, 3,25 s) y los haces (25 keys, 6,25 s). En el mapa
-  `0x37`, los tipos 84, 85, 87 y 89 quedan con `+0x58 = −2` y no se dibujan nunca (en este `.obj`
-  están los 84 y el 89; el 85 y el 87 no): son marcadores, los emisores de [Los efectos del login](#los-efectos-del-login). El
+  `0x37`, los tipos 84, 85, 87 y 89 quedan con `+0x58 = −2` y desde su primer paso no se dibujan
+  (en el primer frame sí, Q-C135; en este `.obj` están dos 84, las cajas `BosBB` de `Object85` a
+  escala 2,86 y 4,56, y el 89, el fuego de `Object90`; el 85 y el 87 no): son marcadores, los emisores de [Los efectos del login](#los-efectos-del-login). El
   remolino **86** gira −0,6° de yaw por paso (24 s por vuelta), con alpha 0,2, luz (1, 0, 0) y todas
   las mallas por la rama del blendMesh (`+0x64 = −2`); su `+0x68` queda en 0,28 desde el segundo
   paso. El **90** gira −0,23° por paso (62,6 s por vuelta), con alpha 1 y luz blanca. El yaw de los
@@ -1344,7 +1345,8 @@ de vuelta. *Estático.*
   y 120..248, es decir las celdas x 0..131 e y 120..251.
 - **Qué se ve** (la cuenta, `terrain_count.py`): en ese rango, **14.180 de las 17.424 celdas tienen el
   bit `0x08` del `.att`** y `0x5fac90` no las dibuja (*estático* el test). Quedan 3.244 (3.242 en el
-  viewport): **un lago de `TileWater01`** (2.553 celdas) con una orilla rocosa al fondo, en una franja
+  viewport): **un lago de `TileWater01`** (2.553 celdas con el agua de base: la capa 2 si las cuatro esquinas van
+  en alfa 255, la 1 si no) con una orilla rocosa al fondo, en una franja
   de y = 323 a 419 en 640 × 480. La celda del personaje y todo lo cercano a la cámara están en `0x08`: ahí se ven los
   fondos 2D, y lo que hace de piso son las hojas y las rocas de arriba.
 - **El agua**, sin rama del 55: `TileWater01` con u + el corrimiento y v + ola · 0,002, con la ola
@@ -1478,8 +1480,8 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
   (`dkonebody.jpg`, opaca). El nivel lo trae el `A9`, que en el login no llega: es 0. Los vértices,
   con la luz de cada normal con la escala 0,7, como el caballo (Q-C115). Después, **la sombra**: las
   cinco mallas, negras y opacas, aplastadas sobre la altura del terreno bajo el cuervo con la regla
-  de siempre (Q-C132). Si el cuervo no pasa el frustum, el dibujo le pone la velocidad en 3 y el
-  estado en 0 sin poner el contador en 0.
+  de siempre (Q-C132). Si el cuervo no pasa el frustum, el dibujo le pone la velocidad en 3 y, salvo en el
+  estado 4 (`0x418375`), el estado en 0, sin poner el contador en 0.
 - **Lo que crea**: una **chispa por paso** (`0x5c6`, `Effect\Spark03.jpg`, subtipo 5), desde un
   hueso al azar de la pose del último dibujo (Q-C133): vida 10 pasos,
   velocidad R(yaw) · (−(`rand() % 2` + 2), 0, 0), color (0,3; 0,4; 0,7) y escala 0,8, que cada paso se
@@ -1506,7 +1508,7 @@ caballo, `0x530490` (las hojas), `0x508f00` (los personajes y el cuervo), `0x52d
   partículas: la posición pasa por la vista de la cámara (`0x7d366f0`), se arma un cuadrado en el
   plano de la pantalla, girado `rot` grados alrededor del eje de la vista, con la fila 0 de la
   textura arriba, y `GL_QUADS`. Con una textura de 3 componentes, `glColor3fv(luz)`; con 4,
-  `glColor4f(r, g, b, r)`. Todas las de esta escena son de 3 (**verificado** en `lor_slots.bin`). La
+  `glColor4f(r, g, b, r)` (con alpha 1 en la textura `0x5e4`). Todas las de esta escena son de 3 (**verificado** en `lor_slots.bin`). La
   mezcla no la elige el billboard: la de cada partícula sale de su textura (3 componentes, aditiva,
   `0x620a90`; 4, `0x620a00(0)`), con casos por tipo, como las nubes; la de cada sprite, de su `+4`
   (abajo). Las del login van aditivas, con depth test y sin escribir la profundidad, salvo las nubes.
@@ -1531,7 +1533,8 @@ caballo, `0x530490` (las hojas), `0x508f00` (los personajes y el cuervo), `0x52d
 Lo que se ve en el video, una fuente por vez:
 
 - **Las brasas naranjas**: 80 hojas de `Effect\FireSnuff.jpg` (`0x635`, la que sube la entrada del
-  login), siempre vivas. Nacen (`0x42b1e0`, 10 `rand()` cada una) con escala `(rand() % 50) · 0,01 +
+  login), siempre en juego: la que pasa 20 pasos en el suelo muere y renace en el paso siguiente.
+  Nacen (`0x42b1e0`, 10 `rand()` cada una) con escala `(rand() % 50) · 0,01 +
   0,5`, en (`rand() % 1600 − 800`, `rand() % 1400 − 500`, `rand() % 1000 + 50`) más la posición del
   héroe, con la velocidad x `(rand() % 64 + 64) · −0,1` (con y < cámara.y + 400 sería `3,2 − vx`; en el
   login nunca pasa, porque nacen con y ≥ 13.691 y cámara.y + 400 = 13.078, así que vx queda negativa
@@ -1561,8 +1564,10 @@ Lo que se ve en el video, una fuente por vez:
   | 4 | `0x5fd` | (0, p + 100, p), p = `(rand() % 40) · 0,05 − 1` | s = `(rand() % 8) · 0,05 + 0,4` | 0 |
   | 5 | `0x5fd` | el mismo | s − 0,2 | 90° |
 
-  Los tres grandes van en el tridente del `HDK_Mace` y los dos chicos en el pomo. Parpadean porque la
-  posición y la escala se sortean en cada frame (7 `rand()`).
+  Los tres grandes van en el tridente del `HDK_Mace` y los dos chicos en el pomo (*verificado* en el
+  archivo: la y de −130 a −30 es el tridente y la de 70 a 110, el pomo). Parpadean porque la posición
+  y la escala se sortean en cada frame (6 `rand()`, más el `rand() % 30` que `0x509340` saca al
+  empezar con cualquier parte, `0x509a92`).
 - **El blanco del casco**: la tela 0 de la clase 4, aditiva, más sus **30 destellos** (`0x455930`):
   con t = sin(T · 0,001) · 0,1 + 0,4, para k = 0..29 y p = k div 5, el sprite `0x5ac` (`flare01`) en
   la partícula k, con la escala p · 0,2 + 0,4 y la luz (6 − p) · t · 0,2, aditivo. Es lo que arma
@@ -1576,19 +1581,28 @@ Lo que se ve en el video, una fuente por vez:
   (Q-C129). La luz sube 0,01 por paso hasta 0,15 cerca de donde nació y baja más allá de 300; a más
   de 500 se apaga. Se dibujan con **`GL_ZERO, GL_ONE_MINUS_SRC_COLOR`** y una rotación de ±30° por
   segundo: oscurecen lo de atrás.
+- **El brillo del farol**: `0x602ed0`, en la escena 2, tiene un caso para el tipo `0x3c` (60, el farol
+  del castillo, que se ve; `0x602f01..0x602fc6`): en cada frame pide **2 sprites** `0x5ac` (`flare01`)
+  de escala 1, con la mezcla 0 (aditiva) y el color (L; 0,5 · L; 0,2 · L), con L = `(rand() % 30 + 70)
+  · 0,01`, en las traslaciones de los huesos 8 y 9 del buffer global de la pose (`0x68b199c` y
+  `0x68b19cc`). `Object61.bmd` tiene un solo hueso: esas matrices son las que dejó el último modelo
+  posado antes (Q-C140).
 - **El fuego del `0x59`** (sin confirmar): el objeto `0x59` en (8.954; 24.178; 492), también
   invisible, con `ftol(T) % 8000 > 7949` crea el efecto `0xc2` (`Skill\Fire01.bmd`, subtipo 9) a
-  3.000–3.600 de altura: una bola de fuego que cae, lejos a la derecha. Su paso y su dibujo no se
+  ± 1.024 en x y en y (`rand() & 2047 − 1024`) y a 3.000–3.600 de altura: una bola de fuego que cae, lejos a la derecha. Su paso y su dibujo no se
   leyeron.
 
 **Lo que no corre en el login:** la `chasellight` (`0x53fe70(0x729)`) es solo de la selección; el
 juego completo pide nivel ≥ 9 en las cinco partes y el juego 29 va a +7; no hay alas; el brillo por
-nivel son pases de malla que MuRet ya tiene; los demás manejadores de `0x602ed0` son de otros mapas.
+nivel son pases de malla que MuRet ya tiene; los demás manejadores de `0x602ed0`, fuera del farol, el
+`0x54` y el `0x59`, son de otros mapas.
 
 **Los `rand()` del frame** (P-C22 a), además de los 75 de la tela: las brasas (unos 240 por paso, y
 10 por cada una que renace), el aliento (1 o 3 por paso), el viento de las partículas (2 por paso), el
-cuervo (4 a 7 por paso), el cetro (7 por frame), `0x602ed0` (1 por objeto visible por frame, 2 más
-en cada `0x54` y 6 más por nube), `0x508f00` (8 por personaje vivo por paso), `0x635ae0` (8 por
+cuervo (4 a 7 por paso), `0x509340` (uno por cada parte del personaje que dibuja, por frame), el cetro
+(6 más por frame), el gesto del login (`rand() % 6` con `ftol(T) % 2300 < 100`), `0x602ed0` (1 por
+objeto visible por frame, 1 más en cada `0x54`, 5 más por nube, 3 más cuando dispara el `0x59`, y el
+del farol), `0x508f00` (8 por personaje vivo por paso), `0x635ae0` (8 por
 frame) y la cabeza (`0x505de0`). Ahora se sabe quién saca cada uno, pero MuRet no lleva ninguno: para
 que su `rand()` siga al del original bit a bit habría que correrlos todos, en su orden.
 

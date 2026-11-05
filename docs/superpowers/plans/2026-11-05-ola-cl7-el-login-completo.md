@@ -300,8 +300,8 @@ más [06 § Terreno](../../../Client/docs/research/06-render-escenas-y-ui.md#ter
   billboard de `0x621400` en `Render/` (el cuadrado en el plano de la pantalla, con la rotación y la
   fila 0 arriba).
 - **Fuentes:** las brasas (`0x42b1e0`, `0x5303a0`), el aliento del caballo (`0x444010`, hueso 27),
-  el cetro (`0x509340` caso `0x620`, cinco sprites) y los 30 destellos de la capa
-  (`CharacterCloth::Flares()`). Las nubes y el fuego del `0x59` esperan la captura (P-C23 e).
+  el cetro (`0x509340` caso `0x620`, cinco sprites), el farol (`0x602ed0` caso `0x3c`, dos
+  sprites, Q-C140) y los 30 destellos de la capa (`CharacterCloth::Flares()`). Las nubes y el fuego del `0x59` esperan la captura (P-C23 e).
 - **Tests:** la caja y la velocidad de nacimiento de las brasas y su caída sobre un terreno plano;
   la vida, la luz y la subida del aliento paso a paso; los cinco sprites del cetro con sus rangos y
   su color (1; 0,3; 0); la escala y la luz de los 30 destellos con un T fijo; el orden: hojas →

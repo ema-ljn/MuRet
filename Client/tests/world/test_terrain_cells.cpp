@@ -18,7 +18,6 @@
 
 #include <array>
 #include <bit>
-#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>

@@ -41,7 +41,7 @@ trazas; el audio, casi nada. Este research lo dice explícitamente en cada tema 
 | 03 | [Red y cifrado](03-red-y-cifrado.md) | recepción, corte de paquetes, XOR32, C3/C4 con `Enc1`/`Dec2`, seriales, FoxAnti | CL2, CL4 |
 | 04 | [Protocolo](04-protocolo.md) | el dispatcher de 3 niveles, los opcodes, el flujo ConnectServer → GameServer → mundo | CL2, CL4, CL6, CL9 |
 | 05 | [Formatos de datos](05-formatos-de-datos.md) | tablas `.bmd`, terreno, texturas OZJ/OZT, `message.wtf`, el pipeline de las DLLs | CL1, CL5, CL7 |
-| 06 | [Render, escenas y UI](06-render-escenas-y-ui.md) | la máquina de escenas, cámara, primitivas 2D, texto, HUD y ventanas | CL5, CL7, CL8 |
+| 06 | [Render, escenas y UI](06-render-escenas-y-ui.md) | la máquina de escenas, cámara, primitivas 2D, texto, HUD y ventanas; la escena del juego, caminar y los cambios de mapa | CL5, CL7, CL8 |
 | 07 | [Quirks y bugs](07-quirks-y-bugs.md) | catálogo numerado de rarezas del original y qué hace MuRet con cada una | todas |
 | 08 | [Lo que falta saber](08-pendientes.md) | huecos de conocimiento, ruta crítica y cómo cerrarlos | todas |
 | 09 | [Datos disponibles](09-datos-disponibles.md) | si alcanza lo que hay: el `Data\` contra lo que pide `main.exe`, el GameServer reconstruido, las texturas de las trazas | todas |

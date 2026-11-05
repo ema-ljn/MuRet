@@ -237,8 +237,10 @@ también en los mapas de evento. CL10 — música y efectos.
 [CL2](../plans/2026-11-02-ola-cl2-protocolo-sin-red.md), la
 [CL3](../plans/2026-11-02-ola-cl3-plataforma-y-bucle.md), la
 [CL4](../plans/2026-11-02-ola-cl4-red-del-cliente.md), la
-[CL5](../plans/2026-11-02-ola-cl5-render-2d-y-login.md) y la
-[CL6](../plans/2026-11-03-ola-cl6-modelos-y-seleccion.md).
+[CL5](../plans/2026-11-02-ola-cl5-render-2d-y-login.md), la
+[CL6](../plans/2026-11-03-ola-cl6-modelos-y-seleccion.md) y los dos de la CL7: el
+[login](../plans/2026-11-05-ola-cl7-el-login-completo.md) y
+[Lorencia](../plans/2026-11-05-ola-cl7-lorencia.md).
 
 ### Lo que dejó la CL6
 
@@ -303,9 +305,27 @@ de El mundo del login a Lo demás del login) lo leyó entero, y la CL7 arranca p
 4. **El cuervo** (CL7.6 C; `Skill\DarkSpirit.bmd`, que estaba en la CL8 con las mascotas): su paso, bit a bit
    contra el emulado, su dibujo, su sombra y su estela.
 
-Después sigue la CL7 con Lorencia (CL7.3 en adelante). Quedan para sus olas: el cursor del juego
-(CL8), la cabeza que gira al azar (P-C15 h y P-C17, con Lorencia en la CL7), la música y el clic
-(CL10) y las ventanas de Esc y de los créditos (CL8).
+Después sigue la CL7 con Lorencia (CL7.3 en adelante). Quedan para sus olas la música y el clic
+(CL10) y las ventanas de Esc y de los créditos (CL8). El cursor del juego y la cabeza que gira al azar
+entraron con el cierre del login.
+
+### Lorencia (CL7.R2)
+
+Plan: [`2026-11-05-ola-cl7-lorencia.md`](../plans/2026-11-05-ola-cl7-lorencia.md). El barrido de Lorencia
+leyó la escena 5 en cuatro partes ([06](../../../Client/docs/research/06-render-escenas-y-ui.md#la-escena-del-juego),
+de La escena del juego a Los cambios de mapa): la entrada al mundo y la escena, la cámara, el caminar, y los
+mapas con los gates. Cambia el orden de las sub-olas que quedaban:
+
+1. **La cámara primero** (CL7.3 A): `0x635ae0`, bit a bit contra el código emulado y la traza. El mouse no
+   la mueve: el roadmap la daba como "la cámara que se mueve", y es la que sigue al héroe.
+2. **Lorencia quieta** (CL7.L1 a L5, nuevas): la entrada al mundo con la respuesta del `F3 03`, los modelos
+   con nombre de `Object1`, el héroe parado con el equipo del `F3 10`, la luz dinámica del terreno, el pasto
+   y lo que vive (hojas, pájaros, peces, fuegos).
+3. **Caminar** (CL7.4 A a E): el camino de `0x4ead70`, el `D3` que sale y los que llegan (el `D7` que llega
+   es el daño, no el movimiento), el paso entre celdas, el picking del terreno y la escena.
+4. **Los otros mapas** (CL7.5 A a E): cada mundo del `Data\`, `Gate.bmd` con la detección del cliente, el
+   `1C`, el `F3 04` y el `F3 12`, el cambio de mapa adentro del paso y los casos de cada mapa como datos.
+5. **Los efectos que dejó la CL6** (CL7.6), y un cierre como el del login.
 
 ## Cómo el research se vuelve test
 

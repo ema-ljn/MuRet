@@ -9,7 +9,7 @@ Todos necesitan `MURET_MAIN_EXE`; `att_survey.py`, solo el `Data\`.
 | --- | --- | --- |
 | `emu_camera.py` | `0x635ae0` y `0x620db0` (el armado del pase 3D: `glViewport`, `gluPerspective`, los giros) con el código real. `CameraEmu` es el arnés: los inicializadores `0x403220` (el `CCameraMove`) y `0x635ad0` (D = 1.000), el héroe en `0x743a170`, el mapa 0, la escena 5 y el yaw −45 del primer paso (`0x636838`) | CL7.3 A, CL7.3 B |
 | `camera_reference.py` | `0x635ae0` reescrita en doubles con un `f32` donde el binario guarda float, con `0x5fc8f0` (la matriz) y `0x5fcc30` (`VectorIRotate`), contra el emulado en casos al azar | CL7.3 A, tareas 1 y 3 |
-| `make_camera_vectors.py` | el borrador de `Client/tests/vectors/game/camera.txt`: 8 casos, 480 frames, cada uno con la entrada y la salida en los bits de cada float | CL7.3 A, tarea 2 |
+| `make_camera_vectors.py` | `Client/tests/vectors/game/camera.txt`: 60 casos, 3.000 frames con cinco semillas, cada uno con la entrada y la salida en los bits de cada float; exige el SHA-256 del build antes de emular | CL7.3 A, tarea 2 |
 | `att_survey.py` | los bits `0x80` (el zoom) y `0x40` (la altura fija de `0x6c9d5c`) del `.att` de cada mundo, y el rectángulo del far (16.100–19.000 × 18.900–21.700) | CL7.3 A (`TheFarIs3000InsideTheRectangleOnAnyMap`), CL7.5 E |
 
 Los casos de `emu_camera.py`:
@@ -32,13 +32,14 @@ Desde la raíz del repo, con la carpeta delante (`Client/docs/research/scripts/g
 ```bash
 python -I emu_camera.py lorencia rect          # sin casos, todos
 python -I camera_reference.py 60 40            # "frames 2400, distintos 0"
-python -I make_camera_vectors.py camera.txt    # el borrador; la tarea 2 lo agranda
+python -I make_camera_vectors.py camera.txt    # 60 casos y 3.000 frames, formato camera 2
 python -I att_survey.py 1 2 3
 ```
 
-`make_camera_vectors.py` es el borrador del barrido: la tarea 2 del plan lo lleva a unos 3.000 frames con
-cinco semillas, "webzen", la D y el zoom de entrada, el nivel y los bordes del rectángulo ±0,01. El plan
-lo nombra `game/make_camera_vectors.py`; está acá, en `game/camera/`.
+`make_camera_vectors.py` genera los vectores de la CL7.3 A: incluye la rama especial del mapa 6, el
+objetivo de los efectos, D y zoom de entrada, nivel, far, meta y los bordes del rectángulo ±0,01. El
+formato y el comando completo están en [`tests/vectors/game/README.md`](../../../../../tests/vectors/game/README.md).
+No usa `camera_reference.py` como expectativa; cada salida viene del código real emulado.
 
 Los `rand()` que gasta `0x635ae0` por frame (8, por la tabla de protección) los cuenta
 `../protection/camera_rand.py`.

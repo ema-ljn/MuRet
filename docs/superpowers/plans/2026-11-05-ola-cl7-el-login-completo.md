@@ -323,5 +323,19 @@ más [06 § Terreno](../../../Client/docs/research/06-render-escenas-y-ui.md#ter
 - **La textura:** los slots `0x3c7..0x3ca` y `dksbody.tga` en `0x26f`, contra `lor_slots.bin`
   (`ModelTextureSlotsGoldenTest`).
 
+## Cierre: el barrido profundo del login
+
+**Contrato:** el login entero contra el binario, después de la CL7.6 C. PR propio (docs y los arreglos
+chicos que salgan, cada uno con su test).
+
+- **Qué:** recorrer de nuevo, llamada por llamada, la entrada (`0x6349a0` y lo que la llama), el paso
+  (`0x634c60`) y el dibujo (`0x6350b0`, con el 2D y la UI), y compararlos con `LoginScene`: lo que
+  MuRet hace distinto, lo que falta y lo que hace de más, con el efecto que tiene en pantalla.
+- **Cómo:** revisores nuevos por partes que no se pisan (la entrada y el bucle de `0x637700`, el paso,
+  el dibujo del mundo, el 2D y la UI), con el asm y el emulador; cada hallazgo con su dirección y su
+  evidencia.
+- **Resultado:** lo que se arregla en el PR (con un test que falle antes), lo que queda como pendiente
+  en 08 (con la prueba en la VM) y la lista en 06 de lo que el login de MuRet todavía no hace.
+
 Después: la CL7 sigue con Lorencia (CL7.3 del roadmap en adelante, y lo que la CL7.1 y la CL7.2 no
 hayan cubierto de otros mapas), con su propio plan.

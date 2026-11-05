@@ -201,28 +201,11 @@ void CharacterCloth::Frame(Render::ModelBatch& batch, const ClothWearer& wearer,
 
 void CharacterCloth::Advance(Render::ModelBatch& batch, const ClothWearer& wearer,
                              const Render::Models::ClothBody& body, Render::Models::ClothWorld& world, std::uint8_t map,
-                             Core::Duration clock, bool wears, const glm::vec3& color)
+                             Core::Duration clock, bool wears, const glm::vec3& color,
+                             Render::Models::OriginalFramePace pace)
 {
     const auto worldTime = static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(clock).count());
-    int frames = 1;
-    if (m_lastClock)
-    {
-        if (clock > *m_lastClock)
-        {
-            m_carry += clock - *m_lastClock;
-        }
-        frames = 0;
-        while (m_carry >= Render::Models::OriginalFrameTime && frames < MaxClothFramesPerAdvance)
-        {
-            m_carry -= Render::Models::OriginalFrameTime;
-            ++frames;
-        }
-        if (frames == MaxClothFramesPerAdvance)
-        {
-            m_carry = Core::Duration::zero();
-        }
-    }
-    m_lastClock = clock;
+    const int frames = m_frames.FramesAt(clock, pace);
     if (frames == 0)
     {
         DrawTheCloths(batch, wearer, worldTime, wears, color);

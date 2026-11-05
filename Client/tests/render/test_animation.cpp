@@ -24,6 +24,9 @@ using Client::Render::Models::AdvanceByTime;
 using Client::Render::Models::AnimationScene;
 using Client::Render::Models::AnimationState;
 using Client::Render::Models::Interpolated;
+using Client::Render::Models::MaxOriginalFramesPerDraw;
+using Client::Render::Models::OriginalFrameCarry;
+using Client::Render::Models::OriginalFramePace;
 using Client::Render::Models::OriginalFrameTime;
 using Client::Render::Models::PetKeysPerOriginalFrame;
 using Client::Render::Models::SetAction;
@@ -382,5 +385,43 @@ TEST(AnimationTest, TheRenderCopyCrossesKeysLikeTheStep)
     EXPECT_EQ(copy.previousKey, 1);
     EXPECT_FLOAT_EQ(half.frame, 2.03f);
     EXPECT_EQ(state.frame, 1.9f);
+}
+
+// Lo que el original corre una vez por frame dibujado (la tela y el cetro), por el reloj (Q-C124 y Q-C20
+// corregidos): el primer dibujo corre uno; después, uno por cada 46,875 ms que pasaron, con lo que sobra
+// para el siguiente. Un reloj que vuelve no cuenta, y un salto de más de 64 corre 64 y descarta el resto.
+TEST(AnimationTest, ByTheClockTheCarryCountsTheOriginalFramesThatPassed)
+{
+    constexpr OriginalFramePace Clock = OriginalFramePace::ByTheClock;
+    OriginalFrameCarry carry;
+    const Duration start = 1s;
+    EXPECT_EQ(carry.FramesAt(start, Clock), 1);
+    EXPECT_EQ(carry.FramesAt(start + OriginalFrameTime, Clock), 1);
+    EXPECT_EQ(carry.FramesAt(start + OriginalFrameTime + 20ms, Clock), 0);
+    EXPECT_EQ(carry.FramesAt(start + OriginalFrameTime + 50ms, Clock), 1); // sobran 3,125 ms
+    EXPECT_EQ(carry.FramesAt(start + OriginalFrameTime + 45ms, Clock), 0); // volvió 5 ms
+    EXPECT_EQ(carry.FramesAt(start + OriginalFrameTime + 89ms, Clock), 1); // 3,125 + 44 ms
+    EXPECT_EQ(carry.FramesAt(100s, Clock), MaxOriginalFramesPerDraw);
+    EXPECT_EQ(carry.FramesAt(100s + 40ms, Clock), 0) << "el salto descarta lo que sobró";
+}
+
+// En el modo fiel, uno por dibujo, como el original en cada frame dibujado. El frame del bucle fiel dura
+// uno del original, pero no justo 46,875 ms: por el reloj, un dibujo que llega antes que el primero
+// correría 0 y el siguiente 2. Tampoco pone al día lo que no se dibujó (el connect que retiene el frame).
+TEST(AnimationTest, InTheFaithfulModeTheCarryIsOnePerDraw)
+{
+    const Duration first = 3 * OriginalFrameTime + 300us;
+    const Duration early = 4 * OriginalFrameTime + 100us;
+    const Duration late = 5 * OriginalFrameTime + 300us;
+    OriginalFrameCarry faithful;
+    EXPECT_EQ(faithful.FramesAt(first, OriginalFramePace::OncePerDraw), 1);
+    EXPECT_EQ(faithful.FramesAt(early, OriginalFramePace::OncePerDraw), 1);
+    EXPECT_EQ(faithful.FramesAt(late, OriginalFramePace::OncePerDraw), 1);
+    EXPECT_EQ(faithful.FramesAt(late + 2s, OriginalFramePace::OncePerDraw), 1);
+
+    OriginalFrameCarry byTheClock;
+    EXPECT_EQ(byTheClock.FramesAt(first, OriginalFramePace::ByTheClock), 1);
+    EXPECT_EQ(byTheClock.FramesAt(early, OriginalFramePace::ByTheClock), 0);
+    EXPECT_EQ(byTheClock.FramesAt(late, OriginalFramePace::ByTheClock), 2);
 }
 } // namespace

@@ -592,6 +592,24 @@ TEST(SceneManagerTest, SaysWhenTheSceneWantsTextInput)
     EXPECT_TRUE(tested.manager.WantsTextInput());
 }
 
+// Un paso que entró a otra escena lo dice una vez, para que el GameLoop no cuente lo que tardó la entrada
+// (GameLoop.h). Un paso sin cambio, o el Start, no.
+TEST(SceneManagerTest, SaysOnceWhenAStepChangedTheScene)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+    EXPECT_FALSE(tested.manager.TakeTheSceneChange());
+    tested.manager.Step(tested.input);
+    EXPECT_FALSE(tested.manager.TakeTheSceneChange());
+
+    tested.stage.next[SceneId::Loading] = SceneId::Login;
+    tested.manager.Step(tested.input);
+
+    ASSERT_EQ(tested.manager.Current(), SceneId::Login);
+    EXPECT_TRUE(tested.manager.TakeTheSceneChange());
+    EXPECT_FALSE(tested.manager.TakeTheSceneChange());
+}
+
 // Una escena que retiene el último frame (el login mientras conecta, Q-C85): el SceneManager lo
 // dice, para que el GameLoop no dibuje y en la pantalla quede el frame anterior. Sin escena, o con
 // una que no lo pide, no.

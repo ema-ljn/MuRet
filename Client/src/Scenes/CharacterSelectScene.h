@@ -110,6 +110,8 @@ private:
     // la lógica de la escena, 0x508ea0: dos veces por paso con la ventana arriba; MuRet, una, D-C4).
     void StepThePreview();
     void DrawTheCreateWindow(SceneCanvas& canvas, float alpha);
+    // El cursor del juego (0x5ac2d0) al final de la UI, con el aviso de antes de la lista también.
+    void DrawTheCursor(SceneCanvas& canvas) const;
     // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9), salvo que la sesión haya
     // caído. Si abrió uno en este paso.
     bool TakeTheDeletionResult();

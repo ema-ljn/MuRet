@@ -12,6 +12,7 @@
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/CharacterHead.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameData.h"
@@ -23,6 +24,7 @@
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/ScepterGlow.h"
 #include "World/Sprites.h"
 #include "World/WorldObjects.h"
 #include "Data/Terrain/TerrainObjects.h"
@@ -78,7 +80,8 @@ public:
     // `data`, `models` y `session` tienen que vivir más que la escena. `session` es nullptr sin servidor
     // (Main sin host): la escena dibuja y no conecta. `version` es la de MuRet (MURET_VERSION).
     // `models` tiene los del personaje (GameModels). `seed` es la de los rand() de la acción del
-    // personaje (0x634c60): los tests la fijan.
+    // personaje (0x634c60) sin el ClothWorld del contexto, que trae el rand() de la CRT y es el que usa
+    // Main: los tests la fijan.
     // `gameSlots`, la tabla de slots de la carga (GameModels::TextureSlots), que el mundo sigue desde
     // 0x41c como la global del original; sin ella, una vacía.
     LoginScene(const SceneContext& context, const GameData& data, const IModelLibrary& models,
@@ -123,6 +126,12 @@ public:
     // Hasta el paso y no solo mientras conecta: un connect que falla enseguida sale en el Poll, que
     // puede venir sin un paso antes del dibujo (después de Enter, o en un frame sin pasos).
     [[nodiscard]] bool HoldsTheLastFrame() const override;
+    // La cabeza del personaje como la dejó el último paso (0x505de0), la que dibuja.
+    [[nodiscard]] const CharacterHead& Head() const;
+    // El personaje que dibuja el frame con `alpha` (0x510d00 → 0x50ba30): el cuerpo entre pasos, la cabeza
+    // del paso, la luz del terreno en su lugar más la suya, y su tela, su cetro y la tabla de los sprites de
+    // la escena, con el ritmo del contexto.
+    [[nodiscard]] DrawnCharacter TheCharacterToDraw(float alpha);
 
 private:
     // 0x60da30 y 0x60d5f0 con el 0xa2 (LoginLogoFile), sin un 0x60d530 antes (Q-C92).
@@ -197,6 +206,10 @@ private:
     // Si ya se dibujó un frame desde que se entró: antes, el buffer global de la pose no tiene nada del
     // login (P-C26).
     bool m_drawnSinceEntering = false;
+    // Si ya corrió un paso desde que se entró: antes, 0x6350b0 no dibuja (0x7d3a13d, que prende el paso).
+    bool m_steppedSinceEntering = false;
+    // El sorteo del brillo del cetro entre frames (World::ScepterGlowCarry): una vez por frame del original.
+    World::ScepterGlowCarry m_scepterGlow;
     // El logo: su modelo, los slots de sus mallas desde donde terminó el mundo y sus texturas.
     SingleModelLibrary m_logo;
     std::optional<Render::Models::ModelTextureSlots> m_logoSlots;
@@ -211,6 +224,8 @@ private:
     std::optional<DarkSpirit> m_spirit;
     // La tela del Dark Lord (0x50ba30), entre frames.
     CharacterCloth m_characterCloth;
+    // La cabeza del personaje (0x505de0): hacia dónde mira, por paso.
+    CharacterHead m_head;
     std::mt19937 m_random;
     // Los tres textos, o vacíos sin Text.bmd. El de la versión, ya armado.
     std::optional<std::string_view> m_left;

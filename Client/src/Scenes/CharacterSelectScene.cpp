@@ -37,6 +37,7 @@
 #include "Scenes/TextureSets.h"
 #include "UI/CreateCharacterWindow.h"
 #include "UI/DeleteChecks.h"
+#include "UI/GameCursor.h"
 #include "UI/GameText.h"
 #include "UI/NameChecks.h"
 #include "UI/Notices.h"
@@ -546,8 +547,13 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     m_screen = canvas.screen;
     if (WaitingForTheList())
     {
-        // Sin la lista, 0x634680 no dibuja; el aviso es de la UI, que sí.
+        // Sin la lista, 0x634680 no dibuja; el aviso es de la UI, que sí, y lleva el cursor encima (el del
+        // sistema está escondido). Sin aviso, el frame queda retenido (HoldsTheLastFrame).
         m_notice.Draw(canvas.sprites, canvas.text, canvas.screen);
+        if (m_notice.IsOpen())
+        {
+            DrawTheCursor(canvas);
+        }
         return;
     }
     Render::SpriteBatch& sprites = canvas.sprites;
@@ -581,13 +587,23 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         drawn.cloth = &character.cloth;
         drawn.clothWorld = m_context.cloth;
         drawn.map = map;
+        drawn.pace = OriginalFramePaceOf(m_context.pacing);
         DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
     }
     canvas.flushModels();
-    // La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el aviso arriba.
+    // La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el aviso arriba. Y el cursor (0x634980).
     m_bar.Draw(sprites, canvas.text, canvas.screen);
     DrawTheCreateWindow(canvas, alpha);
     m_notice.Draw(sprites, canvas.text, canvas.screen);
+    DrawTheCursor(canvas);
+}
+
+void CharacterSelectScene::DrawTheCursor(SceneCanvas& canvas) const
+{
+    if (m_context.input != nullptr)
+    {
+        UI::DrawGameCursor(canvas.sprites, *m_context.input, canvas.screen);
+    }
 }
 
 void CharacterSelectScene::Leave()
@@ -653,6 +669,9 @@ bool CharacterSelectScene::WantsTextInput() const
 
 bool CharacterSelectScene::HoldsTheLastFrame() const
 {
-    return false;
+    // 0x634680 sale con al = 0 mientras 0x7d3a13f está en 0 o el estado está antes de 0x33, y sin ese
+    // verdadero 0x637700 no presenta el frame (0x6385e1..0x6385f7): queda el último del login. Hasta que un
+    // paso vio la lista (y contó el primero de los suyos), salvo con un aviso abierto, que MuRet muestra.
+    return m_session != nullptr && m_steps == 0 && !m_notice.IsOpen();
 }
 } // namespace Client::Scenes

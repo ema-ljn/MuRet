@@ -79,12 +79,15 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 18> LoginTextureSet
     {"Interface\\cr_mu_lo.tga", 0x1a, TextureSetsDetail::LinearClamp},
 }};
 
-// Las cuatro de 0x61ccb0 que usan las ventanas del login y de la selección (CL5.5 y CL6.5): el OK
-// y el cancelar de la cuenta y del aviso, la caja del aviso y la del código del borrado, sin filtro
-// y sin repetir (0x2600 y 0x2900). El original las sube con los datos del juego, en la carga, y no
-// las suelta; acá las sube cada escena con las suyas y las suelta al salir. La otra de 0x61ccb0 (el
-// cerrar, 0x726) no la usa ninguna de las dos.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 4> WindowTextureSet{{
+// Las seis de 0x61ccb0 que usan el login y la selección: los dos cursores (0x61ccf9 y 0x61cd12, con
+// filtro, UI/GameCursor.h), y lo de las ventanas (CL5.5 y CL6.5): el OK y el cancelar de la cuenta y
+// del aviso, la caja del aviso y la del código del borrado, sin filtro y sin repetir (0x2600 y
+// 0x2900). El original las sube con los datos del juego, en la carga, y no las suelta; acá las sube
+// cada escena con las suyas y las suelta al salir. Las demás de 0x61ccb0 (los otros cursores, de 4 a
+// 0xa, y el cerrar, 0x726) no las usa ninguna de las dos.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 6> WindowTextureSet{{
+    {"Interface\\Cursor.tga", 0x02, TextureSetsDetail::LinearClamp},
+    {"Interface\\CursorPush.tga", 0x03, TextureSetsDetail::LinearClamp},
     {"Interface\\message_ok_b_all.tga", 0x724, TextureSetsDetail::NearestClamp},
     {"Interface\\loding_cancel_b_all.tga", 0x725, TextureSetsDetail::NearestClamp},
     {"Interface\\message_back.tga", 0x727, TextureSetsDetail::NearestClamp},

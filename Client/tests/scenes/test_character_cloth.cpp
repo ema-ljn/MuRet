@@ -390,6 +390,33 @@ TEST(CharacterClothTest, AtTheOriginalFrameRateEachFrameRunsTheBlockOnce)
     ExpectTheSameCloths(cloth, reference);
 }
 
+// Y aunque el frame fiel no dure justo 46,875 ms: con OncePerDraw, el primero tarde y los demás antes, cada
+// dibujo corre el bloque una vez (por el reloj correría 0 y después 2).
+TEST(CharacterClothTest, InTheFaithfulModeEachDrawRunsTheBlockOnceWhateverItsClock)
+{
+    using namespace std::chrono_literals;
+    const LoginLord lord = ReadTheLoginLord();
+    ClothWorld world{.random = CrtRandom(3)};
+    ClothWorld referenceWorld{.random = CrtRandom(3)};
+    CharacterCloth cloth;
+    CharacterCloth reference;
+    for (int frame = 0; frame < 30; ++frame)
+    {
+        const Client::Core::Duration late = frame == 0 ? 300us : 100us;
+        ModelBatch ours;
+        ours.Begin(Client::Render::Pass3D{});
+        cloth.Advance(ours, lord.wearer, lord.body, world, lord.map,
+                      Client::Render::Models::OriginalFrameTime * frame + late, true, Client::Scenes::PlainClothColor,
+                      Client::Render::Models::OriginalFramePace::OncePerDraw);
+        ModelBatch theirs;
+        theirs.Begin(Client::Render::Pass3D{});
+        reference.Frame(theirs, lord.wearer, lord.body, referenceWorld, lord.map, 0.0f, true);
+        ASSERT_EQ(world.random.State(), referenceWorld.random.State()) << "frame " << frame;
+        EXPECT_EQ(ours.Vertices().size(), theirs.Vertices().size()) << "frame " << frame;
+    }
+    ExpectTheSameCloths(cloth, reference);
+}
+
 // Un personaje que pasa de la clase 3 a la 4 con la misma tela: el arreglo de una no alcanza para las
 // cuatro del Dark Lord, y la tela se vuelve a armar en vez de leer fuera de él.
 TEST(CharacterClothTest, AClassChangeBuildsTheClothsAgain)

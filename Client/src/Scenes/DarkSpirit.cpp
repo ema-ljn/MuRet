@@ -2,6 +2,7 @@
 
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/CharacterDrawing.h"
@@ -71,13 +72,6 @@ constexpr int ShoutCounter = 60;
 constexpr double Below = 200.0;
 constexpr int FarSteps = 90;
 constexpr double JumpHeight = 250.0;
-// 0x4e93f0.
-constexpr float Tiny = 0.0001f;
-constexpr double Degrees = static_cast<double>(57.2957763671875f);
-constexpr double Quarter = 90.0;
-constexpr double HalfTurn = 180.0;
-constexpr double ThreeQuarters = 270.0;
-constexpr double Turn = 360.0;
 // 0x418301: el trapecio con su lugar por 0,01f (0x6b88d4) y −20 (0xc1a00000); sin pasarlo, la velocidad
 // en 3 (0x40400000) salvo en el estado 4.
 constexpr double CellsPerUnit = static_cast<double>(0.01f);
@@ -88,87 +82,6 @@ constexpr std::uint8_t LandingState = 4;
 float F32(double value)
 {
     return static_cast<float>(value);
-}
-
-// 0x4e93f0: el rumbo de (x1, y1) a (x2, y2), en grados, como lo deja en la pila de la x87.
-double CreateAngle(float x1, float y1, float x2, float y2)
-{
-    const float nx = F32(static_cast<double>(x2) - static_cast<double>(x1));
-    const float ny = F32(static_cast<double>(y2) - static_cast<double>(y1));
-    if (std::fabs(nx) < Tiny)
-    {
-        return ny < 0.0f ? 0.0 : HalfTurn;
-    }
-    if (std::fabs(ny) < Tiny)
-    {
-        return nx < 0.0f ? ThreeQuarters : Quarter;
-    }
-    double angle = (std::atan(static_cast<double>(ny) / static_cast<double>(nx)) * Degrees) + Quarter;
-    if (nx < 0.0f)
-    {
-        angle += HalfTurn;
-    }
-    return angle;
-}
-
-// 0x4e9560: `a` hacia `b` a lo sumo `d` grados, como lo deja en la pila de la x87 (con sus ramas, que no
-// son simétricas).
-double TurnAngle(float from, float to, float step)
-{
-    double a = static_cast<double>(from);
-    double b = static_cast<double>(to);
-    const double d = static_cast<double>(step);
-    if (a < 0.0)
-    {
-        a = static_cast<double>(F32(a + Turn));
-    }
-    if (b < 0.0)
-    {
-        b = static_cast<double>(F32(b + Turn));
-    }
-    if (a < HalfTurn)
-    {
-        const auto low = static_cast<double>(F32(a - d));
-        if (!(b < a + d) && a + HalfTurn > b)
-        {
-            return a + d;
-        }
-        if (!(low < 0.0))
-        {
-            if (a + HalfTurn <= b || b < low)
-            {
-                return low;
-            }
-            return b;
-        }
-        if (a + HalfTurn > b || low + Turn <= b)
-        {
-            return b;
-        }
-        return low + Turn;
-    }
-    const auto high = static_cast<double>(F32(a + d));
-    if (b < a - d && a - HalfTurn <= b)
-    {
-        return a - d;
-    }
-    if (high < Turn)
-    {
-        if (a - HalfTurn > b)
-        {
-            return high;
-        }
-        if (b < high)
-        {
-            return b;
-        }
-        return high;
-    }
-    if (a - HalfTurn <= b || high - Turn > b)
-    {
-        return b;
-    }
-    return high - Turn;
 }
 
 void SetStateOf(DarkSpirit& spirit, std::uint8_t state)
@@ -272,9 +185,10 @@ bool StepDarkSpirit(DarkSpirit& spirit, const Render::Models::Skeleton& skeleton
     const float distanceFloat = F32(distance);
     if (distance >= NearSquared)
     {
-        const float target = F32(CreateAngle(start.x, start.y, owner.position.x, owner.position.y));
+        const float target = F32(Render::Models::CreateAngle(start.x, start.y, owner.position.x, owner.position.y));
         const int turn = random.Next() % TurnSpan;
-        spirit.angles.z = F32(TurnAngle(spirit.angles.z, target, F32(static_cast<double>(turn) + TurnBase)));
+        spirit.angles.z =
+            F32(Render::Models::TurnAngle(spirit.angles.z, target, F32(static_cast<double>(turn) + TurnBase)));
     }
     const glm::vec3 move =
         Render::Models::OriginalVectorRotate(spirit.direction, Render::Models::OriginalAngleMatrix(spirit.angles));

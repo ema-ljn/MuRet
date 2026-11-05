@@ -26,6 +26,7 @@ using Client::Render::OriginalTextureSlotCount;
 using Client::Scenes::GlowTextureSet;
 using Client::Scenes::LoadingTextureSet;
 using Client::Scenes::LoginTextureSet;
+using Client::Scenes::SelectionTextureSet;
 using Client::Scenes::WindowTextureSet;
 
 // Que cada entrada tenga cargador y un slot de la tabla, sin repetir.
@@ -64,20 +65,30 @@ TEST(TextureSetsTest, TheLoginSetIsTheOneOf0x61c7c0)
     EXPECT_EQ(CountWith(LoginTextureSet, {Filter::Nearest, Wrap::Repeat}), 2u);
 }
 
-// Las cuatro de 0x61ccb0 para las ventanas del login y de la selección (CL5.5 y CL6.5), sin filtro y
-// sin repetir, en slots que el login no usa: la escena sube los dos juegos a la vez. La cuarta es la
+// Las seis de 0x61ccb0 que usan el login y la selección: los dos cursores (los slots 2 y 3, con filtro y
+// sin repetir, 0x61ccf9 y 0x61cd12) y las cuatro de las ventanas (CL5.5 y CL6.5), sin filtro y sin
+// repetir. Ninguna en un slot de las dos escenas: cada una sube los dos juegos a la vez. La última es la
 // caja del código del borrado (0x728).
 TEST(TextureSetsTest, TheWindowSetIsTheOneOf0x61ccb0)
 {
     ExpectAValidSet(WindowTextureSet);
-    EXPECT_EQ(WindowTextureSet.size(), 4u);
-    EXPECT_EQ(WindowTextureSet[3].slot, 0x728);
+    ASSERT_EQ(WindowTextureSet.size(), 6u);
+    EXPECT_EQ(WindowTextureSet[0].path, "Interface\\Cursor.tga");
+    EXPECT_EQ(WindowTextureSet[0].slot, 0x02);
+    EXPECT_EQ(WindowTextureSet[1].path, "Interface\\CursorPush.tga");
+    EXPECT_EQ(WindowTextureSet[1].slot, 0x03);
+    EXPECT_EQ(WindowTextureSet[5].slot, 0x728);
+    EXPECT_EQ(CountWith(WindowTextureSet, {Filter::Linear, Wrap::Clamp}), 2u);
     EXPECT_EQ(CountWith(WindowTextureSet, {Filter::Nearest, Wrap::Clamp}), 4u);
     for (const TextureSetEntry& window : WindowTextureSet)
     {
-        for (const TextureSetEntry& login : LoginTextureSet)
+        for (const TextureSetEntry& scene : LoginTextureSet)
         {
-            EXPECT_NE(window.slot, login.slot);
+            EXPECT_NE(window.slot, scene.slot);
+        }
+        for (const TextureSetEntry& scene : SelectionTextureSet)
+        {
+            EXPECT_NE(window.slot, scene.slot);
         }
     }
 }

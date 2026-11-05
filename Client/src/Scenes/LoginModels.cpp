@@ -157,16 +157,20 @@ DarkSpiritOwner LoginRavenOwner()
     return DarkSpiritOwner{.position = LoginCharacterTransform().position, .flags = 0};
 }
 
-std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, std::mt19937& random)
+namespace
+{
+// La ventana: ftol(T % 2300 · 0,01) en 0, con el producto en la x87, sin redondear a float antes del ftol.
+bool InTheActionWindow(Core::Duration frameClock)
 {
     const std::int64_t remainder =
         std::chrono::duration_cast<std::chrono::milliseconds>(frameClock).count() % ActionPeriodMs;
-    // fild del resto y fmul con el float: en la x87, sin redondear a float antes del ftol.
-    if (static_cast<std::int64_t>(static_cast<double>(remainder) * static_cast<double>(WindowScale)) != 0)
-    {
-        return std::nullopt;
-    }
-    const int choice = static_cast<int>(random() % RandRange) % RandChoices;
+    return static_cast<std::int64_t>(static_cast<double>(remainder) * static_cast<double>(WindowScale)) == 0;
+}
+
+// rand() % 6: 1 la 0x54 y 2 la 0x55.
+std::optional<std::uint8_t> ActionOfRand(int rand)
+{
+    const int choice = rand % RandChoices;
     if (choice == FirstChoice)
     {
         return FirstAction;
@@ -176,5 +180,24 @@ std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, st
         return SecondAction;
     }
     return std::nullopt;
+}
+} // namespace
+
+std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, std::mt19937& random)
+{
+    if (!InTheActionWindow(frameClock))
+    {
+        return std::nullopt;
+    }
+    return ActionOfRand(static_cast<int>(random() % RandRange));
+}
+
+std::optional<std::uint8_t> LoginCharacterActionAt(Core::Duration frameClock, Render::Models::CrtRandom& random)
+{
+    if (!InTheActionWindow(frameClock))
+    {
+        return std::nullopt;
+    }
+    return ActionOfRand(random.Next());
 }
 } // namespace Client::Scenes

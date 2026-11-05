@@ -1,11 +1,16 @@
 #include "Scenes/LoginScene.h"
 
+#include "App/PacingMode.h"
+#include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/CharacterHead.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameModels.h"
@@ -612,6 +617,123 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
     scene.Leave();
 }
 
+// 0x505de0 (0x5068eb..0x5069ab) en cada paso de 0x508ea0: el Dark Lord del login se ve, no es el héroe ni se
+// muere, así que sortea hacia dónde mira (rand() % 32 en 0) y la cabeza gira hacia ahí de a 20 %. Al entrar,
+// derecha; en 400 pasos sortea alguna vez, y cada paso queda más cerca de su blanco que el anterior o igual.
+TEST_F(GoldenLoginWorld, TheHeadOfTheDarkLordLooksAround)
+{
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    EXPECT_EQ(scene.Head().angles, glm::vec2(0.0f));
+    EXPECT_EQ(scene.Head().target, glm::vec2(0.0f));
+
+    std::size_t targets = 0;
+    glm::vec2 target = scene.Head().target;
+    for (int step = 0; step < 400; ++step)
+    {
+        const Client::Scenes::CharacterHead before = scene.Head();
+        scene.Step(Client::Input::InputState{});
+        const Client::Scenes::CharacterHead& after = scene.Head();
+        if (after.target != target)
+        {
+            ++targets;
+            target = after.target;
+            continue;
+        }
+        for (int k = 0; k < 2; ++k)
+        {
+            EXPECT_LE(Client::Render::Models::AngleDistance(after.angles[k], after.target[k], true),
+                      Client::Render::Models::AngleDistance(before.angles[k], before.target[k], true))
+                << "paso " << step << ", ángulo " << k;
+        }
+    }
+    EXPECT_GT(targets, 3u);
+    EXPECT_NE(scene.Head().angles, glm::vec2(0.0f));
+    // Y el dibujo la usa: el personaje que dibuja lleva los ángulos del paso, sin interpolar.
+    EXPECT_EQ(scene.TheCharacterToDraw(0.5f).headAngles, scene.Head().angles);
+}
+
+// El cetro sortea una vez por frame del original (World::ScepterGlowCarry): dos frames de MuRet con el
+// mismo reloj dibujan los mismos cinco sprites, en el mismo lugar; uno 47 ms después, otros.
+TEST_F(GoldenLoginWorld, TheScepterGlowChangesOncePerOriginalFrame)
+{
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    scene.Step(Client::Input::InputState{});
+    // Los vértices de los cinco del cetro (después de los 30 destellos del casco) de un frame con `clock`.
+    const auto scepterAt = [&scene](std::chrono::milliseconds clock)
+    {
+        RecordingFrameTarget target;
+        scene.Render(target.BeginFrame(clock), 0.0f);
+        target.Present();
+        std::vector<FrameEvent> models;
+        std::ranges::copy_if(target.frames.back().events, std::back_inserter(models),
+                             [](const FrameEvent& event) { return event.kind == Kind::Models; });
+        constexpr std::size_t PerSprite = 6;
+        std::vector<glm::vec3> positions;
+        if (models.size() == 2 && models.back().modelVertices.size() >= 35 * PerSprite)
+        {
+            for (std::size_t k = 30 * PerSprite; k < 35 * PerSprite; ++k)
+            {
+                positions.push_back(models.back().modelVertices[k].position);
+            }
+        }
+        return positions;
+    };
+
+    const std::vector<glm::vec3> first = scepterAt(std::chrono::milliseconds{40});
+    const std::vector<glm::vec3> again = scepterAt(std::chrono::milliseconds{40});
+    const std::vector<glm::vec3> next = scepterAt(std::chrono::milliseconds{87});
+
+    ASSERT_EQ(first.size(), 30u);
+    EXPECT_EQ(again, first);
+    EXPECT_NE(next, first);
+    scene.Leave();
+}
+
+// En el modo fiel (el ritmo del contexto en Faithful), la tela y el cetro corren uno por frame dibujado
+// aunque el frame no dure justo 46,875 ms: el login fiel, con el primer frame 0,3 ms tarde y los demás
+// 0,1 ms, saca los mismos rand() que uno por el reloj con frames exactos. Por el reloj, el segundo frame
+// del fiel no correría ninguno.
+TEST_F(GoldenLoginWorld, InTheFaithfulModeTheClothAndTheScepterRunOncePerDrawnFrame)
+{
+    using namespace std::chrono_literals;
+    using Client::Render::Models::OriginalFrameTime;
+    Client::Render::Models::ClothWorld faithfulCloth;
+    Client::Render::Models::ClothWorld exactCloth;
+    LoginScene faithful(SceneContext{.dataRoot = m_dataRoot,
+                                     .textures = m_store,
+                                     .log = m_log,
+                                     .cloth = &faithfulCloth,
+                                     .pacing = Client::App::PacingMode::Faithful},
+                        *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    LoginScene exact(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &exactCloth},
+                     *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(faithful.Enter().HasValue());
+    ASSERT_TRUE(exact.Enter().HasValue());
+    faithful.Step(Client::Input::InputState{});
+    exact.Step(Client::Input::InputState{});
+    ASSERT_EQ(faithfulCloth.random.State(), exactCloth.random.State());
+    for (int frame = 0; frame < 6; ++frame)
+    {
+        const Client::Core::Duration exactClock = OriginalFrameTime * (frame + 1);
+        const Client::Core::Duration lateClock = exactClock + (frame == 0 ? 300us : 100us);
+        RecordingFrameTarget faithfulTarget;
+        faithful.Render(faithfulTarget.BeginFrame(lateClock), 0.0f);
+        faithfulTarget.Present();
+        RecordingFrameTarget exactTarget;
+        exact.Render(exactTarget.BeginFrame(exactClock), 0.0f);
+        exactTarget.Present();
+        EXPECT_EQ(faithfulCloth.random.State(), exactCloth.random.State()) << "frame " << frame;
+    }
+    faithful.Leave();
+    exact.Leave();
+}
+
 // CL7.6 B2: el aliento del caballo (0x444010) sale del hueso 27 del buffer global de la pose. Lo escribe
 // el último modelo posado que tiene ese hueso y no es dummy (0x4eb973 saltea los dummy): el dragón se dibuja
 // después del caballo (0x52d620), pero su hueso 27 es dummy, y los objetos del mapa 55 tienen menos de 28.
@@ -879,8 +1001,8 @@ TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
     // salto de paso, pero no antes del 91.
     constexpr int Earliest = 91;
     constexpr int Climb = 60;
-    constexpr std::size_t Samples = 30;
-    for (int step = 1; step <= 600 && heights < Samples; ++step)
+    constexpr std::size_t Samples = 90;
+    for (int step = 1; step <= 1400 && heights < Samples; ++step)
     {
         scene.Step(Client::Input::InputState{});
         const bool look = step == 1 || (jumped ? (step > *jumped + Climb && step % 8 == 0) : (step % 5 == 0));
@@ -920,7 +1042,11 @@ TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
     EXPECT_GE(*jumped, Earliest) << "el contador pasa de 90";
     ASSERT_EQ(heights, Samples);
     const double mean = sum / static_cast<double>(heights);
-    EXPECT_GT(mean, 400.0) << "a 350 sobre el dueño en el mapa 55, no a 250";
+    // Con el rand() de la CRT sembrado igual en cada corrida, la media es la misma siempre: 423 con 350 y 356
+    // con el mutante de 250 (desde la cabeza del personaje, que saca uno por paso). Cada rand() nuevo del paso
+    // la corre: el umbral va en el medio, y el que fija los 350 bit a bit es
+    // DarkSpiritTest.ItFliesHigherInTheLoginMap.
+    EXPECT_GT(mean, 390.0) << "a 350 sobre el dueño en el mapa 55, no a 250";
     EXPECT_LT(mean, 600.0);
     scene.Leave();
 }

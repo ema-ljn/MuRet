@@ -36,6 +36,8 @@ public:
     void Render(float alpha) override;
     // Nunca: no conecta.
     [[nodiscard]] bool HoldsTheLastFrame() const override;
+    // Nunca: es una sola escena.
+    [[nodiscard]] bool TakeTheSceneChange() override;
     // El fondo entre el paso actual y el próximo: `alpha` en [0, 1), como el de Render.
     [[nodiscard]] Color Background(float alpha) const;
 

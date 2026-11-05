@@ -32,7 +32,10 @@ avanza el juego.
   entero, no solo desde el dibujo, y lo recorta a 1 s (`MaxFrameTime`): un frame más largo corre
   25 pasos como mucho, y el resto se pierde con un aviso en el log. Sin tope, 10 s en un debugger
   serían 250 pasos, y una espiral si cada paso tarda más de 40 ms. Con uno menor que 1 s, el test
-  de 1 frame por segundo y 25 pasos que pide el 02 no pasa.
+  de 1 frame por segundo y 25 pasos que pide el 02 no pasa. Lo que no mide es la entrada a una
+  escena, que corre dentro de un paso: el frame siguiente se mide desde después de los pasos, como
+  el original mide todos. Si no, cargar el login (de 76 a 235 ms) corría de 2 a 6 pasos de golpe
+  antes de su segundo dibujo.
 - **El modo fiel es la opción** (`Pacing = faithful`): reproduce la espera del original con un
   reloj de 15,625 ms, sin tope, y mide desde el mismo lugar que el original. Sirve para comparar
   lado a lado con el `main.exe`.
@@ -56,6 +59,8 @@ cámara lenta. MuRet se pone al día, con hasta 25 pasos por frame.
   - `FaithfulPacerTest.HasNoCap`: en el modo fiel, el mismo frame corre 250 pasos.
   - `FaithfulPacerTest.TimeSpentInStepsIsNotAccumulated`: el modo fiel no mide los pasos, como el
     original.
+  - `GameLoopTest.TheTimeOfASceneChangeDoesNotCount`: el modo por defecto no mide la entrada a una
+    escena.
 
 El contrato y los pasos están en las sub-olas CL3.0 y CL3.2 del
 [plan de la CL3](../superpowers/plans/2026-11-02-ola-cl3-plataforma-y-bucle.md).

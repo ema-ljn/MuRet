@@ -30,6 +30,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/CharacterHead.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameData.h"
@@ -44,6 +45,7 @@
 #include "Scenes/TextureSets.h"
 #include "Scenes/WorldModels.h"
 #include "Scenes/WorldObjectsDrawing.h"
+#include "UI/GameCursor.h"
 #include "UI/GameText.h"
 #include "UI/LoginWindow.h"
 #include "UI/MenuBar.h"
@@ -159,6 +161,17 @@ constexpr int NoSlot = -1;
 [[nodiscard]] bool IsConnecting(App::SessionState state)
 {
     return state == App::SessionState::ConnectingConnectServer || state == App::SessionState::ConnectingGameServer;
+}
+
+// 0x5fba90 como lo llama 0x508ea0 (0x508eac..0x508ecb): el lugar del personaje por 0,01f (0x6b88d4), guardado
+// en float, con el margen de −20 (0xc1a00000).
+[[nodiscard]] bool CharacterSeen(const World::TerrainPolygon& polygon, const glm::vec3& position)
+{
+    constexpr double CellsPerUnit = static_cast<double>(0.01f);
+    constexpr double ViewMargin = -20.0;
+    const auto cells = [](float coordinate)
+    { return static_cast<double>(static_cast<float>(static_cast<double>(coordinate) * CellsPerUnit)); };
+    return World::PolygonContains(polygon, cells(position.x), cells(position.y), ViewMargin);
 }
 } // namespace
 
@@ -433,6 +446,8 @@ void LoginScene::PlaceTheModels()
     m_particles.Clear();
     m_leaves.Clear();
     m_drawnSinceEntering = false;
+    m_steppedSinceEntering = false;
+    m_scepterGlow = {};
     if (m_world && m_world->map == DragonMap)
     {
         (void)m_effects.Create(World::DragonEffect, DragonOwnerPosition, glm::vec3(0.0f), glm::vec3(1.0f),
@@ -441,6 +456,7 @@ void LoginScene::PlaceTheModels()
     m_routes = {};
     m_character = LoginCharacter();
     m_characterAnimation = {};
+    m_head = {};
     m_horse = {};
     // 0x420d60 (0x634a9d), después del personaje y del caballo, con el 0x1c17 en la mano izquierda: el
     // cuervo nace en la celda del personaje, que el login deja en (0, 0) (Q-C130), a la altura del terreno
@@ -463,7 +479,13 @@ void LoginScene::PlaceTheModels()
 
 void LoginScene::Step(const Input::InputState& input)
 {
-    if (m_context.cloth != nullptr)
+    // El connect del original bloquea dentro de un paso (Q-C85), y lo que tarda no entra al acumulador, que
+    // mide desde después de los pasos (02): mientras conecta no corre ningún paso. Acá los pasos siguen,
+    // para la red y la UI, pero ni la tela ni el mundo avanzan: el primer frame después del connect sigue
+    // donde quedó el último.
+    const bool connecting = m_session != nullptr && IsConnecting(m_session->State());
+    m_steppedSinceEntering = true;
+    if (m_context.cloth != nullptr && !connecting)
     {
         Render::Models::StepTheClothWorld(*m_context.cloth);
     }
@@ -480,7 +502,10 @@ void LoginScene::Step(const Input::InputState& input)
     {
         return;
     }
-    StepTheWorld();
+    if (!connecting)
+    {
+        StepTheWorld();
+    }
     // Sin aviso, la barra se atiende junto con la cuenta o la lista: sus botones no se pisan con
     // los de ellas (Q-C84).
     if (!m_notice.IsOpen())
@@ -526,7 +551,11 @@ void LoginScene::StepTheWorld()
     const Render::Models::Skeleton* player = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (m_context.clock != nullptr && player != nullptr)
     {
-        if (const std::optional<std::uint8_t> action = LoginCharacterActionAt(m_context.clock->Now(), m_random))
+        // Con el bucle, el rand() de la CRT (0x634cca); sin él (los tests sin ClothWorld), el de la semilla.
+        const std::optional<std::uint8_t> action =
+            m_context.cloth != nullptr ? LoginCharacterActionAt(m_context.clock->Now(), m_context.cloth->random)
+                                       : LoginCharacterActionAt(m_context.clock->Now(), m_random);
+        if (action)
         {
             Render::Models::SetAction(m_characterAnimation.body, *player, *action);
         }
@@ -585,6 +614,14 @@ void LoginScene::StepTheWorld()
                 : 0.0f;
         (void)StepDarkSpirit(*m_spirit, *raven, LoginRavenOwner(), m_world ? m_world->map : 0, m_particles, clock,
                              m_context.cloth->random, m_context.cloth->logicSteps);
+    }
+    // 0x505de0, después de 0x4fd5f0 en 0x508ea0: la cabeza del personaje. Con +0x16c, que 0x508ea0 escribe al
+    // empezar con el trapecio de 0x5fba90 en su lugar por 0,01f y −20 (con el polígono de la cámara fija), y sin
+    // las banderas 0x20 ni 0x1000 de +0x78 (el del login no tiene ninguna). No es el héroe (el personaje 0) ni se
+    // está muriendo: sortea.
+    if (m_context.cloth != nullptr && CharacterSeen(m_terrainPolygon, LoginCharacterTransform().position))
+    {
+        StepCharacterHead(m_head, true, m_context.cloth->random);
     }
     // 0x52d220, después de los objetos (0x606560), el caballo (0x445230) y los personajes (0x508f00): los
     // efectos con modelo, el dragón.
@@ -880,17 +917,19 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     // 6: los textos, con la mezcla aditiva que quedó (0x554000 no la cambia).
     sprites.SetColor(TextColor);
     DrawTexts(canvas);
-    // 7: el fundido no dibuja nada (Q-C66). 8: la UI (CL5.5), cada ventana con la mezcla normal.
+    // 7: el fundido no dibuja nada (Q-C66): 0x554810 pone la mezcla normal y el blanco (0x554819..0x554845)
+    // antes de la UI. 8: la UI (CL5.5), cada ventana con su imagen y su color. 9: el cursor (0x635560).
     m_serverList.Draw(sprites, canvas.text, canvas.screen);
     m_menuBar.Draw(sprites, canvas.screen);
     m_login.Draw(sprites, canvas.text, canvas.screen);
     m_notice.Draw(sprites, canvas.text, canvas.screen);
+    if (m_context.input != nullptr)
+    {
+        UI::DrawGameCursor(sprites, *m_context.input, canvas.screen);
+    }
 }
 
-// El personaje (0x510d00 → 0x50ba30, con la luz del terreno en su lugar más la suya), el caballo
-// (0x4453b0 → 0x445260, con la escala de la escena 2) y después los objetos del mundo con el logo
-// (0x6046a0 → 0x602e90, con el color de 0x5ffce0).
-void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
+DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
 {
     DrawnCharacter character;
     character.appearance = m_character;
@@ -898,11 +937,24 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     character.pet = m_characterAnimation.pet.state;
     character.wings = m_characterAnimation.wings.state;
     character.object = LoginCharacterTransform();
+    // La cabeza del paso: el original no la interpola.
+    character.headAngles = m_head.angles;
     character.light = TerrainLightAt(character.object.position) + glm::vec3(LoginCharacterLight);
     character.cloth = &m_characterCloth;
     character.clothWorld = m_context.cloth;
     character.map = m_world ? m_world->map : 0;
     character.sprites = &m_sprites;
+    character.scepter = &m_scepterGlow;
+    character.pace = OriginalFramePaceOf(m_context.pacing);
+    return character;
+}
+
+// El personaje (0x510d00 → 0x50ba30, con la luz del terreno en su lugar más la suya), el caballo
+// (0x4453b0 → 0x445260, con la escala de la escena 2) y después los objetos del mundo con el logo
+// (0x6046a0 → 0x602e90, con el color de 0x5ffce0).
+void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
+{
+    const DrawnCharacter character = TheCharacterToDraw(alpha);
     DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
     // 0x4182f0 al final de 0x50ba30: el cuervo, si pasa el trapecio; sus huesos del estado del paso quedan
     // para la chispa del próximo (Q-C133).
@@ -1044,14 +1096,21 @@ bool LoginScene::WantsTextInput() const
 
 bool LoginScene::HoldsTheLastFrame() const
 {
+    // 0x6350b0 no dibuja ni presenta antes del primer paso (0x7d3a13d); con la sesión, lo de abajo lo
+    // incluye: el paso todavía no vio el estado.
     if (m_session == nullptr)
     {
-        return false;
+        return !m_steppedSinceEntering;
     }
     // Conectando, y también con lo que el paso todavía no vio (desde Enter, o un Poll que cambió el
     // estado en un frame sin pasos): un connect que falla enseguida sale en ese Poll, y el frame
     // sería el login sin el aviso.
     const App::SessionState state = m_session->State();
     return IsConnecting(state) || m_seen != state;
+}
+
+const CharacterHead& LoginScene::Head() const
+{
+    return m_head;
 }
 } // namespace Client::Scenes

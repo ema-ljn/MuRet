@@ -72,6 +72,9 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> StartTextInput();
     [[nodiscard]] Core::Expected<void, std::string> StopTextInput();
     [[nodiscard]] bool TextInputActive() const;
+    // Esconde el cursor del sistema sobre la ventana: el juego dibuja el suyo (UI/GameCursor.h), como el
+    // ShowCursor(FALSE) del original (0x4ba238 y 0x4b3327). El error trae el SDL_GetError().
+    [[nodiscard]] Core::Expected<void, std::string> HideSystemCursor();
 
 private:
     using WindowPtr = std::unique_ptr<SDL_Window, WindowDeleter>;

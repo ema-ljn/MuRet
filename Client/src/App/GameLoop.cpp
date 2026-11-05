@@ -58,6 +58,12 @@ int GameLoop::RunDecoupled(const WindowState& state, Input::InputState& input)
         ++m_stats.clampedFrames;
     }
     RunSteps(steps, input);
+    // Lo que tardó la entrada a una escena no cuenta (ILoopClient::TakeTheSceneChange): el frame siguiente
+    // se mide desde acá, después de los pasos, como mide el original todos.
+    if (m_client.TakeTheSceneChange())
+    {
+        m_lastNow = m_clock.Now();
+    }
     m_stats.accumulated = m_fixedStep.Accumulated();
     m_lastAlpha = m_fixedStep.Alpha();
 
@@ -115,6 +121,8 @@ int GameLoop::RunFaithful(const WindowState& state, Input::InputState& input)
 {
     const int steps = m_pacer.BeginFrame();
     RunSteps(steps, input);
+    // La medición ya empieza después de los pasos: el cambio de escena no se suma.
+    static_cast<void>(m_client.TakeTheSceneChange());
     // Después de los pasos (0x63852b): lo que tardan no se acumula.
     m_pacer.StartMeasure(m_clock);
     // El original dibuja el estado después de los pasos, sin interpolar. Render también presenta

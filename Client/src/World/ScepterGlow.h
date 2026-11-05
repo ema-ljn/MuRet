@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core/IClock.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/OriginalRotation.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -29,4 +31,40 @@ inline constexpr std::size_t ScepterSpriteCount = 5;
 // crean, pero los rand() salen igual.
 void CreateScepterGlow(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
                        const glm::vec3& bodyOrigin, Render::Models::CrtRandom& random);
+
+// Los seis rand() de un frame, ya con su módulo, en el orden en que salen: el p y la escala del tridente
+// (% 60 y % 10), los del flare01 (% 60 y % 10) y los del pomo (% 40 y % 8).
+struct ScepterGlowRandoms
+{
+    int tridentStep = 0;
+    int tridentScale = 0;
+    int flareStep = 0;
+    int flareScale = 0;
+    int pommelStep = 0;
+    int pommelScale = 0;
+};
+[[nodiscard]] ScepterGlowRandoms DrawScepterGlowRandoms(Render::Models::CrtRandom& random);
+// Los cinco con los rand() ya sacados.
+void CreateScepterGlow(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
+                       const glm::vec3& bodyOrigin, const ScepterGlowRandoms& randoms);
+
+// El brillo del cetro de un personaje a cualquier FPS, corregido como la tela (Q-C124) y la mascota (Q-C20):
+// 0x509340 lo sortea en cada frame dibujado del original, y MuRet saca los seis rand() una vez por cada
+// frame del original (Render::Models::OriginalFrameTime, 46,875 ms) que pasó desde el suyo anterior y, en
+// uno sin ninguno, repite el último sorteo en el hueso de ahora. El primero sortea; un salto de más de
+// MaxScepterFramesPerAdvance frames saca los de esos y descarta el resto. En el modo fiel (`pace`
+// OncePerDraw), uno por dibujo, como el original (Render::Models::OriginalFrameCarry).
+inline constexpr int MaxScepterFramesPerAdvance = Render::Models::MaxOriginalFramesPerDraw;
+
+class ScepterGlowCarry
+{
+public:
+    void Create(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
+                const glm::vec3& bodyOrigin, Render::Models::CrtRandom& random, Core::Duration clock,
+                Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock);
+
+private:
+    Render::Models::OriginalFrameCarry m_frames;
+    ScepterGlowRandoms m_last{};
+};
 } // namespace Client::World

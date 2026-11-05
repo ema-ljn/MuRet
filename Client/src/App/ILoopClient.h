@@ -28,5 +28,9 @@ public:
     // original mientras un connect bloqueante tiene parado el bucle (el del login, Q-C85). GameLoop
     // lo mira después de los pasos, y el frame sigue como minimizada: la red y los pasos corren.
     [[nodiscard]] virtual bool HoldsTheLastFrame() const = 0;
+    // Si un paso cambió de escena desde la última vez que se preguntó (y lo olvida): la entrada a una
+    // escena (cargar sus texturas y sus modelos) corre dentro de un paso, y el original no la mide, porque
+    // mide desde después de los pasos (0x63852b). GameLoop lo mira después de los pasos, en los dos modos.
+    [[nodiscard]] virtual bool TakeTheSceneChange() = 0;
 };
 } // namespace Client::App

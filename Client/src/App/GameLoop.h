@@ -16,7 +16,9 @@
 // con uno falso en los tests.
 //
 // En Decoupled, el frame se mide de un Now() al siguiente, al empezar RunFrame después del Poll,
-// y va a un FixedStep: el dibujo se interpola con su alfa. El primer frame solo fija el inicio.
+// y va a un FixedStep: el dibujo se interpola con su alfa. El primer frame solo fija el inicio, y
+// un frame con un cambio de escena lo vuelve a fijar después de sus pasos: lo que tarda entrar a una
+// escena no es tiempo del juego, como en el original, que no mide los pasos.
 // Con un tope de FPS (maxFps, el FpsCap de MuMain), después de dibujar duerme hasta la meta del
 // frame: 1 s / maxFps después de la del anterior, o de donde terminó el anterior si se pasó
 // (SleepRestOfFrame). Así lo que corre entre dos RunFrame no se suma, y el tope nunca da menos FPS

@@ -17,6 +17,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/ModelVertex.h"
 #include "Render/Pass3D.h"
+#include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
@@ -169,7 +170,7 @@ std::vector<CharacterEntryFields> TwoCharacters(bool locked = false)
 
 struct Harness
 {
-    explicit Harness(bool withSession = true, bool withWings = false)
+    explicit Harness(bool withSession = true, bool withWings = false, bool withTheMouse = false)
         : log(sink, Client::Core::LogLevel::Debug), models(withWings)
     {
         Client::Tests::WriteTextureSet(folder.Path(), SelectionTextureSet);
@@ -190,7 +191,10 @@ struct Harness
         {
             data = std::move(loaded).Value();
         }
-        scene.emplace(SceneContext{folder.Path(), store, log}, data, models, withSession ? &online.session : nullptr);
+        scene.emplace(
+            SceneContext{
+                .dataRoot = folder.Path(), .textures = store, .log = log, .input = withTheMouse ? &input : nullptr},
+            data, models, withSession ? &online.session : nullptr);
     }
 
     // El login aceptado y Enter: la escena pidió la lista.
@@ -337,7 +341,7 @@ TEST(CharacterSelectSceneTest, EnterRequestsTheList)
     EXPECT_EQ(tested.online.session.State(), SessionState::WaitingCharacterList);
 }
 
-// 0x6342c0 y 0x634680 salen antes del 0x33: el frame queda con el clear y nada más.
+// 0x6342c0 y 0x634680 salen antes del 0x33: la escena no dibuja nada.
 TEST(CharacterSelectSceneTest, DrawsNothingBeforeTheList)
 {
     Harness tested;
@@ -345,6 +349,40 @@ TEST(CharacterSelectSceneTest, DrawsNothingBeforeTheList)
     tested.Step();
 
     EXPECT_TRUE(tested.Frame().empty());
+}
+
+// Y sin el verdadero de 0x634680, 0x637700 no presenta el frame (0x6385e1..0x6385f7): el clear no se ve y
+// queda el último del login. La escena retiene el frame hasta que un paso vio la lista, como el login con
+// el connect (Q-C85): la lista que llegó en un Poll sin paso todavía no puso a los personajes.
+TEST(CharacterSelectSceneTest, HoldsTheLastFrameUntilAStepSawTheList)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.Enter());
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+    tested.Step();
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+
+    tested.online.ReceiveTheList(TwoCharacters());
+    ASSERT_EQ(tested.online.session.State(), SessionState::ChoosingCharacter);
+    EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
+    tested.Step();
+    EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
+}
+
+// Con un aviso abierto antes de la lista, MuRet lo muestra (AFailureBeforeTheListShowsTheNoticeToo): el
+// frame no se retiene. Sin sesión no hay lista que esperar.
+TEST(CharacterSelectSceneTest, ANoticeOrNoSessionDoesNotHoldTheFrame)
+{
+    Harness failed;
+    ASSERT_NO_FATAL_FAILURE(failed.Enter());
+    failed.online.socket.peerClosed = true;
+    failed.Step();
+    ASSERT_EQ(failed.online.session.State(), SessionState::Failed);
+    EXPECT_FALSE(failed.scene->HoldsTheLastFrame());
+
+    Harness offline(false);
+    ASSERT_TRUE(offline.scene->Enter().HasValue());
+    EXPECT_FALSE(offline.scene->HoldsTheLastFrame());
 }
 
 // La barra de la selección (0x63ec00): el adorno, la franja sin textura y los cuatro botones.
@@ -378,6 +416,35 @@ TEST(CharacterSelectSceneTest, DrawsInTheOrderOfTheOriginal)
     EXPECT_EQ(events[3].kind, Kind::World);
     EXPECT_EQ(events[4].kind, Kind::Models);
     ExpectTheBar(events, 5);
+}
+
+// 0x634980: después de la UI (0x65fe00), el cursor del juego en el mouse del WndProc, con la mezcla
+// normal y en blanco. Antes de la lista, 0x634680 sale antes de llegar ahí: sin cursor.
+TEST(CharacterSelectSceneTest, DrawsTheGameCursorAfterTheUi)
+{
+    Harness tested(true, false, true);
+    Client::Tests::MoveMouse(tested.input, 100, 200);
+    ASSERT_NO_FATAL_FAILURE(tested.Enter());
+    tested.Step();
+    EXPECT_TRUE(std::ranges::none_of(tested.Frame(), [](const FrameEvent& event)
+                                     { return event.texture == std::optional<TextureSlot>{TextureSlot{2}}; }));
+
+    tested.online.ReceiveTheList(TwoCharacters());
+    tested.Step();
+    const std::vector<FrameEvent> events = tested.Frame();
+
+    ASSERT_EQ(events.size(), 12u);
+    ExpectTheBar(events, 5);
+    const FrameEvent& cursor = events.back();
+    EXPECT_EQ(cursor.texture, std::optional<TextureSlot>{TextureSlot{2}});
+    EXPECT_EQ(cursor.blend, Client::Render::BlendMode::Alpha);
+    EXPECT_TRUE(cursor.alphaTest);
+    for (const auto& vertex : cursor.vertices)
+    {
+        EXPECT_EQ(vertex.color, Client::Render::Color{});
+    }
+    // (100, 200) de 640 × 480 es (100, 200) del WndProc: el quad va de x 98 a 122.
+    EXPECT_EQ(cursor.vertices.front().x, 98.0f);
 }
 
 // Cada personaje en su lugar de 0x4c20a0, a z = 163, con su giro: el triángulo de cada parte empieza
@@ -570,6 +637,26 @@ TEST(CharacterSelectSceneTest, AFailedSessionShowsTheConnectNoticeAndItsOkQuits)
     Client::Tests::TapKey(tested.input, Key::Enter);
     tested.Step();
     EXPECT_TRUE(tested.scene->WantsToQuit());
+}
+
+// Sin la lista y con el aviso abierto (la sesión cayó), el aviso lleva el cursor encima: el del sistema
+// está escondido, y sin este no se vería dónde está el mouse.
+TEST(CharacterSelectSceneTest, TheNoticeBeforeTheListHasTheGameCursor)
+{
+    Harness tested(true, false, true);
+    Client::Tests::MoveMouse(tested.input, 100, 200);
+    ASSERT_NO_FATAL_FAILURE(tested.Enter());
+    tested.online.socket.peerClosed = true;
+    tested.Step();
+    ASSERT_EQ(tested.online.session.State(), SessionState::Failed);
+    ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
+
+    const std::vector<FrameEvent> events = tested.Frame();
+
+    ASSERT_TRUE(ShowsANotice(events));
+    ASSERT_FALSE(events.empty());
+    EXPECT_EQ(events.back().texture, std::optional<TextureSlot>{TextureSlot{2}});
+    EXPECT_EQ(events.back().vertices.front().x, 98.0f);
 }
 
 // El 0x70 que se abre en un paso se atiende desde el siguiente: un Enter de ese paso no cierra el

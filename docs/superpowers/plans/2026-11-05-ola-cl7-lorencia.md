@@ -54,28 +54,32 @@ Git (`scratchpad/lorencia-sweep/`); lo que vale de ellos está en esos docs.
 
 ## Decisiones de este plan
 
-Las toma el plan, y valen hasta que Emanuel diga otra cosa. Cada una va al 07 como D-C cuando entra su
-sub-ola.
+Las tomó Emanuel el 2026-11-05: **fiel al original**. Donde el original tiene un bug, MuRet lo reproduce y
+el 07 lo marca como "se reproduce: comportamiento del original". Lo que solo sumaría fluidez a más FPS entra
+si no choca con eso; si choca, queda para más adelante.
 
-1. **El héroe y la cámara entre pasos.** En Decoupled se dibujan con la posición interpolada entre el paso
-   anterior y el último (el `alpha`, como el cuerpo de la CL6.2); la cámara sigue a ese héroe. En Faithful,
-   el estado del paso, sin interpolar, como el original. Sin esto, a 144 FPS el héroe avanza a saltos de 12
-   unidades cada 40 ms.
+1. **El héroe y la cámara se dibujan en el estado del paso**, sin interpolar, en los dos modos, como el
+   original. Interpolarlos en Decoupled daría fluidez a más de 25 FPS, pero choca con el original: el paso
+   prueba el clic con el rayo del último dibujo (Q-C165), y un héroe o una cámara interpolados mueven ese
+   rayo. Queda para más adelante. El cuerpo sigue interpolando su animación entre pasos (CL6.2), que no
+   toca el rayo.
 2. **La carga del mapa corre adentro del paso**, como en el original (`0x61a560` dentro del handler), con el
-   frame retenido (`HoldsTheLastFrame`) mientras dura y mientras se espera la respuesta. Nada de hilos.
-3. **Las variables protegidas no se portan.** El original guarda la celda del héroe, el contador
-   `0x77f3b04` y otros en una tabla cifrada (`0x57630c8`), y cada acceso gasta 4 `rand()` (como Q-C125).
-   MuRet guarda los valores en claro y no gasta esos `rand()`: el azar de la escena 5 se corre del original
-   en esos puntos (P-C22 a). Los vectores del emulado se arman con la tabla abierta, para que no los
-   cuenten.
-4. **Sin HUD.** El mundo va en (0, 0, 640, 432) como en el original, con el ancho de 640 fijo hasta que la
-   CL8 traiga las ventanas (`0x5bb8d0`: 450 con una, 260 con dos). El 2D de la escena 5 queda en negro.
-5. **El estado de la cámara empieza al entrar.** El original lo tiene global (D, el zoom, el yaw, la altura
-   del `0x40`); MuRet lo arma en cada entrada al juego con los valores del arranque (D 1.000, zoom 0, yaw
-   −45, 1.200). El login fijo no lo lee, así que P-C27 b (el zoom que corre la cámara del login) queda sin
-   reproducir.
+   frame retenido (`HoldsTheLastFrame`) mientras dura y mientras se espera la respuesta. Nada de hilos. No
+   choca con los FPS: mientras carga no se dibuja, igual que en el original.
+3. **Las variables protegidas gastan sus `rand()` como en el original.** El original guarda la celda del
+   héroe, el contador `0x77f3b04`, el contador de frames y otros en una tabla cifrada (`0x57630c8`), y cada
+   acceso que se cierra pisa la variable con 4 `rand()` (Q-C125). MuRet guarda el valor en claro, pero cada
+   acceso que en el original pasa por la tabla gasta lo mismo, en el mismo lugar (CL7.P). Los vectores del
+   emulado se arman con la tabla viva, para que cuenten esos `rand()`.
+4. **Sin HUD hasta la CL8.** El mundo va en (0, 0, 640, 432) como en el original, con el ancho de 640 fijo
+   hasta que la CL8 traiga las ventanas (`0x5bb8d0`: 450 con una, 260 con dos). El 2D de la escena 5 queda
+   en negro.
+5. **El estado de la cámara es global, como en el original:** la D, el zoom, el yaw, el nivel, el far y la
+   altura del `0x40` viven entre escenas, y el login y la selección también pasan por `0x635ae0` (CL7.3 B).
+   Así se reproduce P-C27 b, el zoom que quedó del juego y corre la cámara del login, y la altura de 1.201
+   que queda después del primer `0x40` (Q-C150).
 6. **Lo que el cliente le dice al servidor se copia aunque sea raro:** el camino de 15 celdas sale como 14
-   (`0x56ad8d`), el gate se pide desde el cliente con su `Gate.bmd` aunque difiera del `gate.txt`, y un
+   (Q-C158), el gate se pide desde el cliente con su `Gate.bmd` aunque difiera del `gate.txt` (Q-C182), y un
    rebote del servidor se acepta.
 
 ## Review Focus
@@ -85,8 +89,9 @@ sub-ola.
    donde dice la respuesta nueva; con el mismo mapa, se borran los otros personajes y no se recarga nada.
    Test en cada sub-ola que lo toque.
 2. **Un archivo que falta** (un modelo o una textura de `Object1`, `World6` sin `TerrainHeight`, un mapa sin
-   carpeta como el 35): el original saltea algunos sin avisar (Q-C23) y se cierra con otros; MuRet saltea lo
-   mismo con un aviso en el log y, donde el original se cierra, da un error claro sin cerrarse.
+   carpeta como el 35): el original saltea algunos sin avisar (Q-C23) y se cierra con otros (Q-C180); MuRet
+   saltea lo mismo, con un aviso en el log, y se cierra donde el original se cierra, con el aviso que nombra
+   el archivo.
 3. **FPS altos o un frame largo:** los objetos, las hojas, los pájaros, los peces, los fuegos y el caminar
    avanzan por paso a cualquier FPS; el zoom y la D de la cámara, por frame del original; un frame de 2 s no
    mueve al héroe más de lo que caminaría en 50 pasos, ni le saltea una celda del camino.
@@ -102,6 +107,8 @@ sub-ola.
 | Sub-ola | Qué | Hito |
 | --- | --- | --- |
 | CL7.3 A | la cámara del juego, bit a bit (`0x635ae0`) | |
+| CL7.3 B | la cámara compartida: el login y la selección por `0x635ae0`, y la altura del `0x40` | |
+| CL7.P | las variables protegidas y sus `rand()` (`0x57630c8`), con el contador del login completo | |
 | CL7.L1 | la entrada al mundo y el pase del juego: el terreno de Lorencia desde el héroe | se ve Lorencia |
 | CL7.L2 | los modelos con nombre y los objetos de Lorencia, en el orden de `0x6371a0` | |
 | CL7.L3 | el héroe parado: el equipo del `F3 10`, la acción de parado, la aparición | **Lorencia con el héroe parado** |
@@ -120,7 +127,8 @@ sub-ola.
 | CL7.6 | los efectos del mundo y de los personajes que dejó la CL6 | |
 | Cierre | el barrido profundo de Lorencia | |
 
-La CL7.3 A y las CL7.4 A a C son lógica sin escena y pueden adelantarse. Las L1 a L5 van en orden.
+La CL7.3 A y las CL7.4 A a C son lógica sin escena y pueden adelantarse. La CL7.P va antes de la L1: la
+celda del héroe y el contador de warp son variables protegidas. Las L1 a L5 van en orden.
 
 ---
 
@@ -189,7 +197,9 @@ bit a bit con el héroe en (14.350; 12.050; 165). PR propio.
     con "webzen" y el `0x1e`, y la D suavizada por un tercio hacia la meta.
   - `[[nodiscard]] Render::Camera3D GameCameraOf(const GameCamera& state, const GameCameraInput& input);`: la
     misma cámara sin avanzar el estado, con la D, el zoom y el far del último `StepGameCamera`, para los
-    dibujos de Decoupled sin un frame del original (`OriginalFrameCarry` en 0).
+    dibujos de Decoupled sin un frame del original (`OriginalFrameCarry` en 0), con el héroe del último paso.
+  - El atributo se lee de la celda del servidor del héroe, que pasa por la tabla protegida y gasta sus
+    `rand()` en el dibujo: lo agrega la CL7.P, con la celda del héroe de la L1.
   - El recorrido de `0xBD 00` (`CCameraMove`) no va: el `.h` lo dice, con su dirección.
 
 - [ ] **Paso 1:** los tests:
@@ -220,6 +230,48 @@ bit a bit con el héroe en (14.350; 12.050; 165). PR propio.
 
 ---
 
+## Sub-ola CL7.3 B: la cámara compartida
+
+**Contrato:** 06 § La cámara del juego (las escenas 2 y 4 también pasan por `0x635ae0`, el zoom que queda de
+una escena a otra, la altura del `0x40`), P-C27 b y Q-C150, y la decisión 5. PR propio. Se detalla al
+arrancar; lo que se sabe:
+
+- **Qué:** el `World::GameCamera` vive en el contexto (`SceneContext::camera`, como el `ClothWorld`), lo
+  arma `main.cpp` una vez con los valores del arranque (la D de 1.000 del inicializador estático `0x635ad0`,
+  el zoom en 0), y nadie lo vuelve a armar. La escena 5 escribe el yaw −45 en su primer paso (`0x636838`).
+  El login (`0x6350b0`) y la selección (`0x634680`) sacan su cámara de `StepGameCamera` con las escenas 2 y
+  4, en vez de `LoginCamera()` y `SelectionCamera()`. La altura del `0x40` (1.200, y 1.201 desde el primer
+  `0x40` de la cámara) sale de los `constexpr` de `TerrainHeight.h` y `TerrainCells.h` y pasa al estado
+  compartido.
+- **Tests:** con el zoom en 0, las cámaras del login y de la selección dan los bits de hoy: los vectores de
+  las escenas 2 y 4 de `camera.txt`, y los golden del login y de la selección siguen en verde. Con el zoom de
+  210 que dejó el juego, la del login empieza en (12.636,6; 12.819,4) y vuelve de a 10 por frame (P-C27 b,
+  emulado). `TerrainHeightAt` con una celda `0x40` da 1.200 antes del primer `0x40` de la cámara y 1.201
+  después. Review Focus 1: del juego al login y de vuelta.
+
+## Sub-ola CL7.P: las variables protegidas
+
+**Contrato:** 07 Q-C125, P-C22 a y la decisión 3. PR propio. Empieza con un lector del binario, como el
+barrido, y se detalla con lo que lea. Lo que se sabe:
+
+- **Qué falta leer:**
+  - las funciones de la tabla `0x57630c8`: `0x40b240`, `0x40b2f0`, `0x40b800`, `0x412810` y `0x412890`, y
+    el hash de `0x633f96..0x63417a`;
+  - qué variables guarda: el contador de frames `0x7d3a0f0`, el contador de warp `0x77f3b04`, la celda del
+    servidor de cada personaje (`+0x41c` y `+0x420`), la copia del registro propio `0x7681eb4`, y las que
+    salgan;
+  - cuántos `rand()` gasta cada clase de acceso (abrir, leer, escribir, cerrar, rearmar);
+  - cada acceso en los caminos que MuRet porta: el paso y el dibujo de las escenas 2, 4 y 5.
+- **Qué se escribe:** `GameLogic::ProtectedValue<T>`. Guarda el valor en claro y, en cada acceso que el
+  original cierra, saca del `CrtRandom` que le pasan los `rand()` de ese acceso. Entra primero en el contador
+  de frames del login, donde completa Q-C125 con los 4 del +1 después de la escena y los del rearmado cada
+  313 pasos. Si el orden de P-C22 a sale de lo mismo, también se arregla. Después lo usan la celda del héroe
+  y el contador de warp de la L1.
+- **Tests:**
+  - los vectores del paso real del login con la tabla viva: el estado del `rand()` después de cada uno de
+    1.000 pasos (con tres rearmados), igual en MuRet;
+  - un test por clase de acceso, contra el emulado.
+
 ## Sub-ola CL7.L1: la entrada al mundo y el pase del juego
 
 **Contrato:** 06 § La escena del juego (de la selección al primer frame, la respuesta `0x4c3940`, el pase de
@@ -229,6 +281,8 @@ bit a bit con el héroe en (14.350; 12.050; 165). PR propio.
   de `0x34` bytes con `TooShort`: la celda (`[4]`, `[5]`), el mapa (`[6]`), la dirección (`[7]`) y los stats
   de A § 1.2; lo que cae fuera del paquete (`[0x34..0x37]`) va en 0 con un aviso (el quirk del 07).
 - **La sesión:** `SessionState::InWorld` (el `0x3d`) y `ServerSession::JoinedWorld()`.
+- **Las variables protegidas:** la celda del servidor del héroe y el contador `0x77f3b04` (9.999.999 hasta la
+  respuesta, 30 con ella) son `ProtectedValue` de la CL7.P; sus accesos gastan los `rand()` del original.
 - **La escena:** `GameScene` retiene el frame desde el `F3 03` hasta la respuesta (en pantalla queda el
   mosaico de LSBg, como cuando `0x6371a0` devuelve 0 con el contador en 9.999.999). Con la respuesta carga el
   mundo del mapa (`LoadedWorld` con `WorldFolder`), arma al héroe como `0x511290` (`(celda + 0,5) · 100`, la
@@ -400,7 +454,7 @@ anterior; los cinco planos y la esfera de los efectos). PR propio. Se detalla al
   con el rayo del último dibujo (la escena guarda la cámara, el viewport y el mouse del último `Render`); el
   `D3` del héroe (la dirección, y la celda lógica si está quieto) y el de los otros (su camino, el reintento,
   la llegada con `(dir − 1) · 45`); el `D7` con el bit 15, que para a un jugador; los cinco planos de
-  `0x5fd000` con la esfera de `0x5fbf00`; la decisión 1 (el héroe interpolado en Decoupled).
+  `0x5fd000` con la esfera de `0x5fbf00`; el héroe y la cámara en el estado del paso (la decisión 1).
 - **Tests:** con un GS falso: un clic en el piso manda los bytes de B; apretado cerca del héroe, un `A3` por
   celda y no por paso; un clic dentro de la espera se atiende al vencer (*inferido*, P-C30); con Shift o con
   el mouse en la barra, no camina; un `D3` de otro lo hace caminar; el eco con el héroe quieto le corre la
@@ -417,10 +471,12 @@ anterior; los cinco planos y la esfera de los efectos). PR propio. Se detalla al
 - **Qué:** la tabla de los especiales de `0x616ec0` por mapa como dato (1 y 4, 2, 3, 6, 7, 8, 10, 11 a 17,
   18 a 23, Kalima, 30, 31, 33, 34); las texturas fijas de `0x61a560` (las hojas y las lluvias de `0x64` a
   `0x68`); los mapas 30 y 34 con su `.att` y su luz según el estado del mundo, como "no va" donde el estado es
-  de la CL9; el error del mapa 5 nombrando `World6\TerrainHeight`, sin cerrar MuRet.
+  de la CL9; el mapa 5 sin alturas da el aviso que nombra `World6\TerrainHeight` y cierra, como el original
+  (Q-C180).
 - **Tests:** golden: para cada mapa de `OriginalMaps` menos el 35, el terreno, el `.obj` y los modelos
   cargan, y los tipos del `.obj` sin modelo son los del research (`tests/vectors/worlds/missing-models.txt`);
-  el mapa 5 da el error de las alturas; el registro −515 de `World7` no rompe nada; Review Focus 2.
+  el mapa 5 da el aviso de las alturas y pide cerrar; el registro −515 de `World7` no rompe nada; Review
+  Focus 2.
 
 ## Sub-ola CL7.5 B: `Gate.bmd` y la detección
 

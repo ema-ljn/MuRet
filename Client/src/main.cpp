@@ -43,6 +43,7 @@
 #include "Render/Gl/TextureTable.h"
 #include "Render/Text/FreeTypeRasterizer.h"
 #include "Render/Text/IGlyphRasterizer.h"
+#include "Render/Models/Cloth.h"
 #include "Scenes/CharacterSelectScene.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameModels.h"
@@ -62,6 +63,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -585,8 +587,12 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         online.emplace(*startup.server, startup.config.obfuscation, clock, log);
     }
     App::ServerSession* session = online ? &online->session : nullptr;
+    // Lo global de la tela: el rand() de la CRT sembrado una vez con la hora, como srand(time(NULL)) en
+    // 0x4bad9a, el viento base y el contador de pasos de lógica.
+    Client::Render::Models::ClothWorld clothWorld{
+        .random = Client::Render::Models::CrtRandom(static_cast<std::uint32_t>(std::time(nullptr)))};
     const Scenes::SceneContext context{
-        .dataRoot = *startup.config.dataPath, .textures = textures, .log = log, .clock = &clock};
+        .dataRoot = *startup.config.dataPath, .textures = textures, .log = log, .clock = &clock, .cloth = &clothWorld};
     // Los modelos del personaje y de los ítems: los lee la carga (0x61ccb0) y quedan, como GameData.
     Scenes::GameModels models;
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,

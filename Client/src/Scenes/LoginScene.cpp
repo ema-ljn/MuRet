@@ -10,6 +10,7 @@
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/InputState.h"
 #include "Render/Models/Animation.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
@@ -275,6 +276,10 @@ void LoginScene::PlaceTheModels()
 
 void LoginScene::Step(const Input::InputState& input)
 {
+    if (m_context.cloth != nullptr)
+    {
+        Render::Models::StepTheClothWorld(*m_context.cloth);
+    }
     if (m_session == nullptr)
     {
         StepTheWorld();
@@ -586,7 +591,7 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
 // El personaje (0x510d00 → 0x50ba30, con la luz del terreno en su lugar más la suya), el caballo
 // (0x4453b0 → 0x445260, con la escala de la escena 2) y después el logo (0x6046a0 → 0x602e90, con el
 // color de 0x5ffce0).
-void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha) const
+void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
 {
     DrawnCharacter character;
     character.appearance = m_character;
@@ -595,6 +600,9 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha) const
     character.wings = m_characterAnimation.wings.state;
     character.object = LoginCharacterTransform();
     character.light = TerrainLightAt(character.object.position) + glm::vec3(LoginCharacterLight);
+    character.cloth = &m_characterCloth;
+    character.clothWorld = m_context.cloth;
+    character.map = m_world ? m_world->map : 0;
     DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
 
     DrawDarkHorse(

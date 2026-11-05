@@ -934,8 +934,8 @@ revisión de la CL6.4, *estático*):
 - **La tela de la clase 4:** con la clase 3 o 4, el modelo `0x20a`, `+0x3e3` en 0 y fuera de los
   mapas `0x12` a `0x17`, `0x50ba30` arma tres telas (`0x50d5b9`): dos con la textura `0x256`
   (`Monster\iui06.jpg`) en el hueso 20 y una con la `0x257` (`DarklordRobe`) en el hueso 19, la
-  tercera solo con `+0x2f8` en `0x1c30`; las simula con 5 pasos por frame (`0x455190`) y las dibuja.
-  La capa misma, `0x1c30` (`Item\DarkLordRobe.bmd`, el plano del inventario: un hueso y 15 vértices,
+  tercera solo con `+0x2f8` en `0x1c30`; las simula con 5 pasos por frame (`0x455190`) y las dibuja
+  (abajo, [La tela de la clase 4](#la-tela-de-la-clase-4)). La capa misma, `0x1c30` (`Item\DarkLordRobe.bmd`, el plano del inventario: un hueso y 15 vértices,
   de 168 de alto), no cuelga del hueso 47: `0x509340` sale sin dibujar con ese modelo, desde
   cualquier lugar (`0x509363`: `CMP EDI,0x1c30` y `JZ` al final; *estático*). Lo que se ve es la tela.
   MuRet lo hace así desde la CL6.6 A (`CharacterDrawingTest.TheLordsCapeDoesNotHangAsAModel`).
@@ -1127,6 +1127,111 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   de `lor_slots.bin` (`ModelTextureSlotsGoldenTest.StartupMatchesTheDump`).
 - **`DarkHorse.bmd`**: 13 mallas (`dkfurop.TGA`, de cuatro componentes, y 12 JPG), 60 huesos y siete
   acciones (7, 7, 6, 10, 41, 51 y 31 keys).
+
+### La tela de la clase 4
+
+Todo de la CL6.6, leído en el ensamblador y **verificado** con el código real del `main.exe` emulado
+con unicorn (`scripts/emulate_cloth.py`): una reimplementación escrita solo a partir de esta sección
+(`scripts/cloth_reference.py`) y la de MuRet (`Render/Models/Cloth`, `Scenes/CharacterCloth`) dan lo
+mismo que el binario **bit a bit** en nueve casos que pasan por todas las ramas (los vectores de
+`Client/tests/vectors/cloth`). La cobertura de la emulación: 2.971 de las 3.093 instrucciones de la
+tela, de sus wrappers de GL y del bloque; las que faltan no tocan la física (los `new` que dan NULL,
+la tabla de protección llena, la lista vacía del administrador).
+
+**Dónde corre.** El bloque `0x50d58b..0x50db57` de `0x50ba30`, después del lazo de las partes
+(`0x50d3dc`) y antes de lo que cuelga, en cada frame **dibujado** de un personaje vivo y visible
+(`0x510d00`): cada tela hace 5 pasos de dt = 0,005 (`0x3ba3d70a`, o 0 con `objeto + 0x78 & 0x1000`)
+y se dibuja antes de la siguiente. La tela avanza con los frames, no con el tiempo (Q-C124); MuRet
+corre un frame del bloque cada 46,875 ms de reloj, como la mascota (Q-C20).
+
+**Cuándo hay.** bVar23: la clase 3 o 4, el modelo `0x20a` y `+0x3e3` en 0, o el monstruo `0x37`;
+nunca en los mapas `0x12` a `0x17`, salvo con los nombres de un duelo o de una guerra de guild, que
+la prenden en cualquier clase con el color (1; 0,2; 0) o (0; 0,2; 1) (`0x50c929..0x50cc29`; qué son
+esos nombres, abierto). El color, si no, es (1, 1, 1).
+
+**El armado** (con `objeto + 0x190` en 0). La clase 4: `new` de cuatro telas (`0x6a0210(…, 0x60, 4,
+0x4548b0, 0x454980)`) y `+0x18c` = 3:
+
+| Tela | Hueso, (x, y, z), columnas × filas, ancho × alto, texturas, banderas | Viento (`+0x49`, `+0x48`) | Esferas (x, y, z, radio, hueso) |
+| --- | --- | --- | --- |
+| 0 | 20, (0, 0, 20), 6 × 5, 30 × 70, `0x256`, `0xc0000205` | 10, 50 | (−10, 20, 20, 27, 17) y (10, 20, 20, 27, 17) |
+| 1 | 20, (0, 5, 18), 5 × 5, 30 × 70, `0x256`, `0x80002205` | 8, 40 | las mismas dos |
+| 2 | 19, (0, 8, 10), 10 × 10, 180 × 180, `0x257`, `0x1005` | — | (±10, −10, −10, 25, 17) y (±10, −10, 20, 27, 17) |
+| 3, con `+0x238` = `0x221e` (`ArmorClass05`) | 18, (0, 10, −5), 5 × 5, 50 × 90, `0x6ea`, `0x1406` | — | (0, −15, −20, 30, 2) |
+
+Las demás, una tela y `+0x18c` = 1: el monstruo `0x37`, 19, (0, 10, 0), 10 × 10, 55 × 140, `0x252`,
+`0x1001`, con (±10, −10, −10, 35, 17) y (0, −10, −40, 50, 19); si no, 19, (0, 10, 0), 10 × 10,
+75 × 120, `0x250` y `0x251` (Robe01 y Robe02), `0x405`, con las cuatro de la tela 2. Las texturas:
+`0x256` es `Monster\iui06.jpg` (`GL_NEAREST`, `GL_CLAMP`) y `0x6ea` `Player\kaa.tga` (`GL_LINEAR`,
+`GL_CLAMP`), de `0x61ccb0`; `0x250` a `0x252` y `0x257` (`DarklordRobe`), de las del personaje.
+
+Con el arreglo armado y la clase 4: con `0x221e` y `+0x18c` en 3, la tela 3 se vuelve a armar
+**encima, sin soltarla**, con (0, 8, −5) y `0x1407`, la esfera otra vez y `+0x18c` = 4 (Q-C123); con
+otra armadura y `+0x18c` en 4, se suelta (`0x454f80`) y `+0x18c` = 3. En el lazo, la tela 2 de la
+clase 4 no va sin las alas `0x1c30` y con el color blanco.
+
+**El init** (`0x454a50`, vtable `0x6b8cd8` + 4): las banderas con OR; dx = f(ancho / (columnas − 1)),
+dy = f(alto / (filas − 1)); la matriz M = AngleMatrix de los ángulos del objeto con la traslación del
+hueso (la columna 3), y la grilla provisoria: con `& 0xc` = 4 el ancho de la fila crece,
+W_j = ancho · ((j · 0,4) / (filas − 1) + 0,6) con el 0,4 de `0x6b8cf4`, que es `0x3ecccccc` y no el
+0,4f del compilador; x = f(i · dx_j − f(W_j · 0,5)), z = f(−j · dy), y = 20, o 20 − t² · 10 con
+`& 3` = 1 (t = |i / (columnas − 1) − 0,5| · 2), o 0 con 2; cada punto, TransformPosition(M). Los
+resortes, en este orden para cada k: el vertical (bandera 2 | 4, o 2 con `0x100`), el horizontal (3),
+la diagonal hacia abajo (1, o 0 con `0x100`) y, **solo desde la fila 2**, la diagonal hacia arriba
+(Q-C122); el largo L = f(|p_a − p_b|) en la grilla provisoria y el mínimo f(L · 0,8). Después la fila 0
+se ancla en esa misma M: en el primer paso salta al hueso (Q-C126).
+
+**El anclaje** (`0x455020`): cada partícula de la fila 0 a TransformPosition(m, (z, −y', xᵢ)), con
+xᵢ = f((i · dx − W · 0,5) + x) (W y dx en double con `& 0xc` = 4: 0,6 del ancho) e y' = y, o
+f(y − t² · 10) con el arco: la x del hueso es la z del anclaje, la y es −y' y la z reparte las
+columnas. TransformPosition (`0x4ec110` con su cuarto argumento en 1) es s · VectorTransform + el
+origen, con la escala del modelo **después** de la traslación del hueso y s · tx sin redondear.
+
+**El paso** (`0x4551d0`), en orden:
+
+1. el viento: con `& 0x300` = `0x200`, w = f((rand() % `+0x48` + `+0x49`) · 0,01); si no, en el mapa
+   `0x37`, f((rand() % 40 + 10) · 0,02); si no, el viento base `0x7245f0`. Con a = (ángulo z del
+   objeto + 180) · π/180: `0x7245f4` = f(sin a · w) y `0x7245f8` = f(−(cos a · w)); la z
+   (`0x7245fc`) no la escribe nadie;
+2. las fuerzas (`0x4552a0`): V, el contador protegido de pasos de lógica (`0x7d3a0f0`), cuyo acceso
+   al cerrarse saca 4 `rand()` (Q-C125); el centro c = ((V / 10) · 101) mod N; para cada partícula
+   no anclada, d = la distancia de Manhattan a c en la grilla y el peso P de u = 5 − d sin signo: 6 si
+   u ≥ 4, 0 si u = 0, u + 2 si no (d = 5 da 0 y d ≥ 6, 6: Q-C121); Fₖ = f(P · vientoₖ − velₖ · 0,01),
+   la z más f((w + 0,1) · P) con `0x100` o f(P · w) con `0x200`, y menos 0,0025 · 9,8 · 100 (· 180
+   con `0x400`);
+3. los resortes con la bandera 2 (`0x4555d0`): solo tiran, si ℓ > L + 0,01, con f(e · dₖ / ℓ) (por
+   L / 32 con `0x20000000`, por 3 con `0x100`) a b y su opuesto a a;
+4. el anclaje de la fila 0 con el hueso de la tela;
+5. la integración (`0x454350`): v = (400 · F) · dt + vel, vel = f(v) y pos = f(v · dt + pos) con v
+   sin redondear;
+6. las esferas (`0x455770`): su centro con (z, −y, x) desde su hueso; cada partícula a menos que el
+   radio, la corrección (radio − r) / r · d; el promedio;
+7. la relajación (bandera 1, Jacobi): ((ℓ − L) · 0,5) / ℓ · d repartido, y el promedio;
+8. la restricción (bandera 4, Gauss-Seidel sobre la partícula de abajo): si ℓ > 20 · L, el paso da 0
+   y `0x4fb1a0` suelta todas las telas (el frame siguiente las arma de nuevo desde la pose de ese
+   momento); si ℓ > L o ℓ < f(0,8L), mueve la de abajo a la distancia.
+
+Cada cuenta va en double y se redondea a float donde el original hace `FSTP`; la palabra de control
+de la x87 de 53 bits (`0x27F`) da lo mismo que la de 64 (`0x37F`), y la de 24 cambia 7.736 de 38.854
+valores. Los que no se redondean y es fácil equivocarse: el cos del ángulo 2 de `AngleMatrix`, s · tx
+de TransformPosition, el medio ancho del anclaje, la velocidad de la integración, e · d_z de la
+esfera y Δ_z de la relajación y de la restricción.
+
+**Lo global.** `rand()` es el de la CRT (`0x69fd70`, sembrado una vez con `srand(time(NULL))`). El
+viento base lo pasea `0x456b10` cinco veces por paso de lógica (desde `0x637700`, en las escenas 2,
+4 y 5): b = f(b + (rand() % 200 − 100) · 0,001) entre −0,2 y 1. Por frame, el Dark Lord saca 75
+`rand()` en el login (el mapa `0x37`) y 70 fuera de él; el orden con los demás que lo usan en el
+frame no se siguió (P-C22).
+
+**El dibujo** (`0x455930`): la mezcla por `& 0x3000` (0 opaca, `0x1000` la normal con alpha test,
+`0x2000` aditiva, `0x3000` la que estaba), el color de `0x50ba30` y, con `0x40000000`, el brillo
+t = f(sin(T · 0,001) · 0,1 + 0,4), que pone el color (t, t, t) y la mezcla aditiva y pide 30 sprites
+`Effect\flare01.jpg` (`0x5491e0`, con la escala f(i · 0,2 + 0,4) y la luz f((columnas − i) · t · 0,2)
+que cambian cada `filas` sprites); los dibuja después `0x549440` → `0x549290`, sin leer (P-C22).
+Después `GL_QUADS` en coordenadas del mundo: la cara de adelante (i, j), (i+1, j), (i+1, j+1),
+(i, j+1) y la de atrás al revés, salvo con la aditiva y el brillo; u = f(i / (columnas − 1)) y
+v = j / (filas − 1) hasta 0,99. Sin normales ni luz (`GL_MODULATE`). Sin culling fuera de la opaca:
+con la normal y la aditiva van las dos caras.
 
 ### La luz del terreno en un punto
 

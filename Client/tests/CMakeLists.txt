@@ -14,13 +14,15 @@ list(FILTER support_sources EXCLUDE REGEX "/support/GlTestContext\\.cpp$")
 add_library(ClientTestSupport STATIC ${support_sources})
 target_include_directories(ClientTestSupport PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ClientTestSupport PUBLIC ClientLib GTest::gtest)
-# Los vectores JPEG y los de red (el README.md de vectors/jpeg y de vectors/net) están en el repo:
+# Los vectores JPEG, los de red y los de la tela (el README.md de vectors/jpeg, vectors/net y
+# vectors/cloth) están en el repo:
 # los tests los leen de acá. La Data del original también (Client/assets/Data): es la carpeta
 # golden cuando MURET_CLIENT_GOLDEN_DIR no está.
 cmake_path(SET muret_repo_data_dir NORMALIZE "${CMAKE_CURRENT_SOURCE_DIR}/../assets/Data")
 target_compile_definitions(ClientTestSupport PUBLIC
     MURET_CLIENT_JPEG_VECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/vectors/jpeg"
     MURET_CLIENT_NET_VECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/vectors/net"
+    MURET_CLIENT_CLOTH_VECTORS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/vectors/cloth"
     MURET_CLIENT_REPO_DATA_DIR="${muret_repo_data_dir}")
 muret_set_warnings(ClientTestSupport)
 muret_precompile_headers(ClientTestSupport <gtest/gtest.h>)

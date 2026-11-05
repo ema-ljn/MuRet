@@ -35,6 +35,15 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
     {"Effect\\Chrome02.jpg", 0x620, TextureSetsDetail::NearestClamp},
 }};
 
+// Las dos capas de la tela que sube 0x61ccb0 (0x61d616 y 0x61d64e) y nadie suelta: Monster\iui06.jpg en
+// 0x256, de las dos telas de adelante del Dark Lord (0x63b870 con GL_NEAREST y GL_CLAMP), y
+// Player\kaa.tga en 0x6ea, la de su cuarta (0x63bd00 con GL_LINEAR y GL_CLAMP). Las demás capas
+// (Robe01 a 03 y DarklordRobe) son de las del personaje (PlayerFixedTextures).
+inline constexpr std::array<Data::Textures::TextureSetEntry, 2> ClothTextureSet{{
+    {"Monster\\iui06.jpg", 0x256, TextureSetsDetail::NearestClamp},
+    {"Player\\kaa.tga", 0x6ea, TextureSetsDetail::LinearClamp},
+}};
+
 // Las 18 de 0x61c7c0, la escena de login. El modelo 0xa2 (Logo\Logo03.bmd), que 0x61c7c0 también
 // carga, no es una textura: llega con los modelos (CL6).
 inline constexpr std::array<Data::Textures::TextureSetEntry, 18> LoginTextureSet{{

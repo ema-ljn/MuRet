@@ -3,6 +3,7 @@
 #include "App/ServerSession.h"
 #include "Core/Expected.h"
 #include "Input/InputState.h"
+#include "Render/Models/Cloth.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -24,6 +25,10 @@ Core::Expected<void, std::string> GameScene::Enter()
 // 0x636290: el primer paso de la escena 5 manda el F3 03 con el elegido.
 void GameScene::Step(const Input::InputState& /*input*/)
 {
+    if (m_context.cloth != nullptr)
+    {
+        Render::Models::StepTheClothWorld(*m_context.cloth);
+    }
     if (m_sent || m_session == nullptr)
     {
         return;

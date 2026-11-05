@@ -10,6 +10,7 @@
 #include "Input/InputState.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
@@ -112,7 +113,7 @@ private:
     void LoadTheLight();
     void PlaceTheModels();
     void StepTheWorld();
-    void DrawTheModels(SceneCanvas& canvas, float alpha) const;
+    void DrawTheModels(SceneCanvas& canvas, float alpha);
     // La luz del terreno en (x, y), o 0 sin la del mundo.
     [[nodiscard]] glm::vec3 TerrainLightAt(const glm::vec3& position) const;
     void DrawTexts(SceneCanvas& canvas) const;
@@ -153,6 +154,8 @@ private:
     CharacterAnimation m_characterAnimation;
     // El caballo que monta (0x443fa0(0xbf, …) de 0x6349a0): sigue al personaje.
     DarkHorse m_horse;
+    // La tela del Dark Lord (0x50ba30), entre frames.
+    CharacterCloth m_characterCloth;
     std::mt19937 m_random;
     // Los tres textos, o vacíos sin Text.bmd. El de la versión, ya armado.
     std::optional<std::string_view> m_left;

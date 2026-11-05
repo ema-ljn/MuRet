@@ -4,10 +4,12 @@
 #include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/CharacterCloth.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -53,6 +55,12 @@ struct DrawnCharacter
     glm::vec3 light{0.4f, 0.4f, 0.4f};
     // El que está bajo el mouse (DAT_006c8e30 en 0x510d00): sus partes llevan el contorno.
     bool outlined = false;
+    // La tela de la clase 3 o 4 (0x50d58b..0x50db57): la de este personaje, que vive entre frames, lo
+    // global que lee (el viento, el contador y el rand()) y el mapa de la escena. Sin las dos, va sin
+    // tela.
+    CharacterCloth* cloth = nullptr;
+    Render::Models::ClothWorld* clothWorld = nullptr;
+    std::uint8_t map = 0;
 };
 
 // Los slots de las texturas de los pases de brillo (06): 0x5fc el 0x8, 0x5c0 el 0x4 y 0x620 los

@@ -10,3 +10,6 @@ out/
 
 # Overrides locales de presets (cada uno el suyo)
 CMakeUserPresets.json
+
+# Python
+__pycache__/

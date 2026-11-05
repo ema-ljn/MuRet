@@ -3,6 +3,7 @@
 #include "Core/IClock.h"
 #include "Core/Log.h"
 #include "Render/ITextureStore.h"
+#include "Render/Models/Cloth.h"
 
 #include <filesystem>
 
@@ -22,5 +23,9 @@ struct SceneContext
     // personaje del login (0x634c60). nullptr sin bucle (los tests que no lo miran): la escena hace como
     // si no lo hubiera.
     Core::IClock* clock = nullptr;
+    // Lo global de la tela (Render/Models/Cloth.h): el viento base, el contador de pasos de lógica y el
+    // rand() de la CRT, que las escenas 2, 4 y 5 avanzan en cada paso (0x637700). nullptr sin bucle: los
+    // personajes van sin tela.
+    Render::Models::ClothWorld* cloth = nullptr;
 };
 } // namespace Client::Scenes

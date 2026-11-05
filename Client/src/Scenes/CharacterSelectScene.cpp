@@ -547,8 +547,13 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     m_screen = canvas.screen;
     if (WaitingForTheList())
     {
-        // Sin la lista, 0x634680 no dibuja; el aviso es de la UI, que sí.
+        // Sin la lista, 0x634680 no dibuja; el aviso es de la UI, que sí, y lleva el cursor encima (el del
+        // sistema está escondido). Sin aviso, el frame queda retenido (HoldsTheLastFrame).
         m_notice.Draw(canvas.sprites, canvas.text, canvas.screen);
+        if (m_notice.IsOpen())
+        {
+            DrawTheCursor(canvas);
+        }
         return;
     }
     Render::SpriteBatch& sprites = canvas.sprites;
@@ -589,9 +594,14 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     m_bar.Draw(sprites, canvas.text, canvas.screen);
     DrawTheCreateWindow(canvas, alpha);
     m_notice.Draw(sprites, canvas.text, canvas.screen);
+    DrawTheCursor(canvas);
+}
+
+void CharacterSelectScene::DrawTheCursor(SceneCanvas& canvas) const
+{
     if (m_context.input != nullptr)
     {
-        UI::DrawGameCursor(sprites, *m_context.input, canvas.screen);
+        UI::DrawGameCursor(canvas.sprites, *m_context.input, canvas.screen);
     }
 }
 

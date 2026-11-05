@@ -639,6 +639,26 @@ TEST(CharacterSelectSceneTest, AFailedSessionShowsTheConnectNoticeAndItsOkQuits)
     EXPECT_TRUE(tested.scene->WantsToQuit());
 }
 
+// Sin la lista y con el aviso abierto (la sesión cayó), el aviso lleva el cursor encima: el del sistema
+// está escondido, y sin este no se vería dónde está el mouse.
+TEST(CharacterSelectSceneTest, TheNoticeBeforeTheListHasTheGameCursor)
+{
+    Harness tested(true, false, true);
+    Client::Tests::MoveMouse(tested.input, 100, 200);
+    ASSERT_NO_FATAL_FAILURE(tested.Enter());
+    tested.online.socket.peerClosed = true;
+    tested.Step();
+    ASSERT_EQ(tested.online.session.State(), SessionState::Failed);
+    ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
+
+    const std::vector<FrameEvent> events = tested.Frame();
+
+    ASSERT_TRUE(ShowsANotice(events));
+    ASSERT_FALSE(events.empty());
+    EXPECT_EQ(events.back().texture, std::optional<TextureSlot>{TextureSlot{2}});
+    EXPECT_EQ(events.back().vertices.front().x, 98.0f);
+}
+
 // El 0x70 que se abre en un paso se atiende desde el siguiente: un Enter de ese paso no cierra el
 // juego antes de que se vea el aviso; con la lista y antes de ella.
 TEST(CharacterSelectSceneTest, TheFailureNoticeIsSeenEvenWithAnEnterInItsStep)

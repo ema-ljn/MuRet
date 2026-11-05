@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/IClock.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainMapping.h"
@@ -50,21 +51,43 @@ struct TerrainView
     const Data::Terrain::TerrainAttributes* attributes = nullptr;
     const TerrainLighting* lighting = nullptr;
     std::array<TileSize, 256> tiles{};
+    // El mapa (DAT_006c9dd0): en el 0x1e el agua corre al revés.
+    std::uint8_t map = 0;
 };
 
-// El agua de un frame (CL7.1, tarea 4): el corrimiento de la u y la ola de cada celda. Sin olas, el
-// agua va quieta.
+// Las celdas de los bloques que ve la cámara (0x5fbb00): de firstX a lastX y de firstY a lastY, los
+// comienzos de los bloques de 4 × 4 (DAT_07d2d364, DAT_006c9d68, DAT_07d2d368 y DAT_006c9d6c).
+struct TerrainRange
+{
+    int firstX = 0;
+    int lastX = 0;
+    int firstY = 0;
+    int lastY = 0;
+};
+
+// El agua: el corrimiento de la u de este frame (0x78ecbec) y la ola de cada celda del último paso
+// (0x78acbd8, por índice de la grilla). Sin olas, el agua va quieta.
 struct TerrainWater
 {
     float offset = 0.0f;
     std::vector<float> waves;
 };
 
+// 0x5fc260, en cada frame: (ftol(T) % 20000) · 5e-5, con T el reloj en ms; en el mapa 8,
+// (ftol(T) % 40000) · 2,5e-5.
+[[nodiscard]] float WaterOffsetAt(Core::Duration clock, std::uint8_t map);
+
+// 0x5fbf60, en cada paso: la ola de cada celda de la ventana (de firstX a lastX + 3 y de firstY a
+// lastY + 3) es sin(x · 5 + (ftol(T) % 720000) · 0,002) · 10, con la x de la celda (x · 50 en el mapa
+// 8); las demás quedan como estaban. Las olas nacen en 0.
+void UpdateWaves(TerrainWater& water, Core::Duration clock, const TerrainRange& range, std::uint8_t map);
+
 // La celda (x, y), como 0x5fac90 con 0x5fa830: nada con el bit 0x08; si no, la capa de abajo opaca
 // (la 2 si las cuatro esquinas van en alfa 1, la 1 si no) y, con alguna esquina por debajo de 1 y
-// alguna por encima de 0, enseguida la capa 2 con la mezcla normal y el alfa de cada esquina. Las
-// esquinas van por índice, (x, y), (x + 1, y), (x + 1, y + 1) y (x, y + 1) en la grilla de 256: la
-// última celda de una fila toma las de la fila siguiente, como el original.
+// alguna por encima de 0, enseguida la capa 2 con la mezcla normal y el alfa de cada esquina. Es
+// agua (el corrimiento y la ola) la de abajo cuando es la capa 1 en 5, y la de alfa cuando además la
+// capa 2 es 5. Las esquinas van por índice, (x, y), (x + 1, y), (x + 1, y + 1) y (x, y + 1) en la
+// grilla de 256: la última celda de una fila toma las de la fila siguiente, como el original.
 void DrawTerrainCell(Render::ModelBatch& batch, const TerrainView& view, const TerrainWater& water, std::uint8_t x,
                      std::uint8_t y);
 } // namespace Client::World

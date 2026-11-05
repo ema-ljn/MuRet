@@ -17,6 +17,9 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
+#include <bit>
+#include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -36,8 +39,12 @@ using Client::Render::ModelDrawCommand;
 using Client::Render::TextureSlot;
 using Client::World::DrawTerrainCell;
 using Client::World::TerrainLighting;
+using Client::World::TerrainRange;
 using Client::World::TerrainView;
 using Client::World::TerrainWater;
+using Client::World::UpdateWaves;
+using Client::World::WaterOffsetAt;
+using namespace std::chrono_literals;
 
 constexpr std::uint8_t CellX = 7;
 constexpr std::uint8_t CellY = 9;
@@ -89,11 +96,12 @@ struct Terrain
     }
 };
 
-ModelBatch Draw(const Terrain& terrain, std::uint8_t x = CellX, std::uint8_t y = CellY)
+ModelBatch Draw(const Terrain& terrain, std::uint8_t x = CellX, std::uint8_t y = CellY,
+                const TerrainWater& water = TerrainWater{})
 {
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    DrawTerrainCell(batch, terrain.view, TerrainWater{}, x, y);
+    DrawTerrainCell(batch, terrain.view, water, x, y);
     return batch;
 }
 
@@ -213,5 +221,96 @@ TEST(TerrainCellsTest, TheUvFollowTheSizeOfTheTile)
     ASSERT_EQ(batch.Commands().size(), 1u);
     EXPECT_EQ(batch.Vertices()[0].uv, glm::vec2(7.0f, 18.0f));
     EXPECT_EQ(batch.Vertices()[2].uv, glm::vec2(8.0f, 20.0f));
+}
+// 0x5fc260: el corrimiento de la u del agua es (ftol(T) % 20000) · 5e-5 (0x6b8a28), con T el reloj en
+// ms; en el mapa 8, (ftol(T) % 40000) · 2,5e-5 (0x6ba710).
+TEST(TerrainCellsTest, TheWaterMovesWithTheClock)
+{
+    constexpr float Step = std::bit_cast<float>(0x3851B717u);
+    EXPECT_EQ(WaterOffsetAt(0ms, 55), 0.0f);
+    EXPECT_EQ(WaterOffsetAt(10'000ms, 55), 10000.0f * Step);
+    EXPECT_EQ(WaterOffsetAt(20'000ms, 55), 0.0f);
+    EXPECT_EQ(WaterOffsetAt(20'001ms, 55), Step);
+    EXPECT_EQ(WaterOffsetAt(10'000ms, 8), 10000.0f * std::bit_cast<float>(0x37D1B717u));
+}
+
+// 0x5fbf60: la ola de cada celda de la ventana (el rango y 3 más) es sin(x · 5 + (ftol(T) % 720000) ·
+// 0,002) · 10, con la x de la celda y la cuenta en la x87.
+TEST(TerrainCellsTest, TheWavesFollowTheColumn)
+{
+    TerrainWater water;
+    UpdateWaves(water, 1'234'567ms, TerrainRange{.firstX = 4, .lastX = 8, .firstY = 12, .lastY = 16}, 55);
+    ASSERT_EQ(water.waves.size(), 65536u);
+    const double phase = static_cast<double>(1234567 % 720000) * static_cast<double>(std::bit_cast<float>(0x3B03126Fu));
+    for (const std::uint8_t x : {std::uint8_t{4}, std::uint8_t{9}, std::uint8_t{11}})
+    {
+        const auto expected = static_cast<float>(std::sin((static_cast<double>(x) * 5.0) + phase) * 10.0);
+        EXPECT_EQ(water.waves[CellIndex(x, 13)], expected) << static_cast<int>(x);
+        EXPECT_EQ(water.waves[CellIndex(x, 19)], expected) << static_cast<int>(x);
+    }
+    // Fuera de la ventana no se escribe.
+    EXPECT_EQ(water.waves[CellIndex(3, 13)], 0.0f);
+    EXPECT_EQ(water.waves[CellIndex(12, 13)], 0.0f);
+    EXPECT_EQ(water.waves[CellIndex(5, 20)], 0.0f);
+}
+
+// 0x5fa830 y 0x5fa5c0: con alguna esquina por debajo de 1 y la capa 1 en el agua (5), la de abajo
+// corre la u y lleva la ola en la v: la de la esquina (x, y) en las dos de la izquierda y la de
+// (x + 1, y) en las dos de la derecha, por 0,002.
+TEST(TerrainCellsTest, TheWaterCellCarriesTheOffsetAndTheWaves)
+{
+    Terrain terrain;
+    terrain.mapping->layer1[CellIndex(CellX, CellY)] = 5;
+    terrain.SetAlpha(CellX, CellY, {0.0f, 0.0f, 0.0f, 0.0f});
+    TerrainWater water;
+    water.offset = 0.375f;
+    water.waves.assign(65536, 0.0f);
+    water.waves[CellIndex(CellX, CellY)] = 4.0f;
+    water.waves[CellIndex(CellX + 1, CellY)] = -2.0f;
+    const ModelBatch batch = Draw(terrain, CellX, CellY, water);
+    ASSERT_EQ(batch.Commands().size(), 1u);
+    constexpr float Wave = std::bit_cast<float>(0x3B03126Fu);
+    const float v = 0.5f * static_cast<float>(CellY);
+    const float left = v + (4.0f * Wave);
+    const float right = v + (-2.0f * Wave);
+    const auto uv = [&batch](std::size_t k) { return batch.Vertices()[k].uv; };
+    EXPECT_EQ(uv(0), glm::vec2(1.75f + 0.375f, left));
+    EXPECT_EQ(uv(1), glm::vec2(1.75f + 0.375f + 0.25f, right));
+    EXPECT_EQ(uv(2), glm::vec2(1.75f + 0.375f + 0.25f, right + 0.5f));
+    EXPECT_EQ(uv(5), glm::vec2(1.75f + 0.375f, left + 0.5f));
+}
+
+// Solo es agua lo que 0x5fa830 marca: la capa 1 en 5 con alguna esquina por debajo de 1. Con las cuatro
+// en 1 la de abajo es la capa 2, quieta aunque sea agua; el pase de alfa va con agua solo si las dos
+// capas son 5.
+TEST(TerrainCellsTest, OnlyLayer5BelowIsWater)
+{
+    TerrainWater water;
+    water.offset = 0.375f;
+    water.waves.assign(65536, 1.0f);
+    {
+        Terrain terrain;
+        terrain.mapping->layer2[CellIndex(CellX, CellY)] = 5;
+        terrain.SetAlpha(CellX, CellY, {1.0f, 1.0f, 1.0f, 1.0f});
+        const ModelBatch batch = Draw(terrain, CellX, CellY, water);
+        EXPECT_EQ(batch.Vertices()[0].uv, glm::vec2(1.75f, 4.5f));
+    }
+    {
+        Terrain terrain;
+        terrain.mapping->layer2[CellIndex(CellX, CellY)] = 5;
+        terrain.SetAlpha(CellX, CellY, {0.0f, 0.5f, 0.0f, 0.0f});
+        const ModelBatch batch = Draw(terrain, CellX, CellY, water);
+        ASSERT_EQ(batch.Commands().size(), 2u);
+        EXPECT_EQ(batch.Vertices()[batch.Commands()[1].firstVertex].uv, glm::vec2(1.75f, 4.5f));
+    }
+    {
+        Terrain terrain;
+        terrain.mapping->layer1[CellIndex(CellX, CellY)] = 5;
+        terrain.mapping->layer2[CellIndex(CellX, CellY)] = 5;
+        terrain.SetAlpha(CellX, CellY, {0.0f, 0.5f, 0.0f, 0.0f});
+        const ModelBatch batch = Draw(terrain, CellX, CellY, water);
+        ASSERT_EQ(batch.Commands().size(), 2u);
+        EXPECT_EQ(batch.Vertices()[batch.Commands()[1].firstVertex].uv.x, 1.75f + 0.375f);
+    }
 }
 } // namespace

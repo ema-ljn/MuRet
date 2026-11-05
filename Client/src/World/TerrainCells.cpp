@@ -1,5 +1,6 @@
 #include "World/TerrainCells.h"
 
+#include "Core/IClock.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
@@ -10,6 +11,9 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
+#include <bit>
+#include <chrono>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 
@@ -36,17 +40,53 @@ std::array<std::size_t, 4> CornersOf(std::uint8_t x, std::uint8_t y)
     return {first, Wrapped(first + 1), Wrapped(below + 1), Wrapped(below)};
 }
 
-// Las UV de las cuatro esquinas de un tile en la celda (x, y), como 0x5fa5c0 sin agua: la u avanza
-// 64 / ancho por celda y la v, 64 / alto.
-std::array<glm::vec2, 4> TileUvs(const TileSize& tile, std::uint8_t x, std::uint8_t y)
+// El tile del agua (TileWater01).
+constexpr std::uint8_t WaterTile = 5;
+// El mapa donde el agua corre al revés (0x5fa5c0).
+constexpr std::uint8_t ReversedWaterMap = 0x1e;
+// La ola en la v: por 0,002 (0x6b89bc).
+constexpr float WaveToV = 0.002f;
+static_assert(std::bit_cast<std::uint32_t>(WaveToV) == 0x3B03126F, "la constante de 0x6b89bc");
+// El corrimiento de 0x5fc260: 5e-5 (0x6b8a28) cada 20 s y, en el mapa 8, 2,5e-5 (0x6ba710) cada 40 s.
+constexpr float WaterStep = std::bit_cast<float>(0x3851B717u);
+constexpr float SlowWaterStep = std::bit_cast<float>(0x37D1B717u);
+constexpr std::int64_t WaterPeriodMs = 20000;
+constexpr std::int64_t SlowWaterPeriodMs = 40000;
+constexpr std::uint8_t SlowWaterMap = 8;
+// La ola de 0x5fbf60: sin(x · 5 (0x6b87f8; 50 en el mapa 8, 0x6b86b0) + (ftol(T) % 720000) · 0,002) · 10
+// (0x6b87a8).
+constexpr std::int64_t WavePeriodMs = 720000;
+constexpr double WaveColumn = 5.0;
+constexpr double SlowWaveColumn = 50.0;
+constexpr double WaveHeight = 10.0;
+
+std::int64_t Milliseconds(Core::Duration clock)
 {
-    const float du = TileSpan / tile.width;
-    const float dv = TileSpan / tile.height;
-    const float u = du * static_cast<float>(x);
+    return std::chrono::duration_cast<std::chrono::milliseconds>(clock).count();
+}
+
+// Las UV de las cuatro esquinas de un tile en la celda (x, y), como 0x5fa5c0: la u avanza 64 / ancho
+// por celda y la v, 64 / alto. El agua corre la u y suma en la v la ola de la esquina (x, y) a las dos
+// de la izquierda y la de (x + 1, y) a las dos de la derecha.
+std::array<glm::vec2, 4> TileUvs(const TerrainView& view, std::uint8_t tile, std::uint8_t x, std::uint8_t y,
+                                 const std::array<std::size_t, 4>& corners, const TerrainWater* water)
+{
+    const TileSize& size = view.tiles[tile];
+    const float du = TileSpan / size.width;
+    const float dv = TileSpan / size.height;
+    float u = du * static_cast<float>(x);
     const float v = dv * static_cast<float>(y);
+    if (water == nullptr)
+    {
+        const float u1 = u + du;
+        const float v1 = v + dv;
+        return {glm::vec2(u, v), glm::vec2(u1, v), glm::vec2(u1, v1), glm::vec2(u, v1)};
+    }
+    u = view.map == ReversedWaterMap && tile == WaterTile ? u - water->offset : water->offset + u;
+    const float left = water->waves.empty() ? v : (water->waves[corners[0]] * WaveToV) + v;
+    const float right = water->waves.empty() ? v : (water->waves[corners[1]] * WaveToV) + v;
     const float u1 = u + du;
-    const float v1 = v + dv;
-    return {glm::vec2(u, v), glm::vec2(u1, v), glm::vec2(u1, v1), glm::vec2(u, v1)};
+    return {glm::vec2(u, left), glm::vec2(u1, right), glm::vec2(u1, right + dv), glm::vec2(u, left + dv)};
 }
 
 // Un pase de la celda: el fan de cuatro vértices en dos triángulos, con la textura del tile, la luz de
@@ -70,7 +110,41 @@ void DrawPass(Render::ModelBatch& batch, const TerrainView& view, std::uint8_t t
 }
 } // namespace
 
-void DrawTerrainCell(Render::ModelBatch& batch, const TerrainView& view, const TerrainWater& /*water*/, std::uint8_t x,
+float WaterOffsetAt(Core::Duration clock, std::uint8_t map)
+{
+    const std::int64_t ms = Milliseconds(clock);
+    if (map == SlowWaterMap)
+    {
+        return static_cast<float>(ms % SlowWaterPeriodMs) * SlowWaterStep;
+    }
+    return static_cast<float>(ms % WaterPeriodMs) * WaterStep;
+}
+
+void UpdateWaves(TerrainWater& water, Core::Duration clock, const TerrainRange& range, std::uint8_t map)
+{
+    if (water.waves.size() != TerrainCellCount)
+    {
+        water.waves.assign(TerrainCellCount, 0.0f);
+    }
+    const double phase = static_cast<double>(Milliseconds(clock) % WavePeriodMs) * static_cast<double>(WaveToV);
+    const double column = map == SlowWaterMap ? SlowWaveColumn : WaveColumn;
+    // La ventana de 0x5fbf60: tres celdas más que el rango en x y en y.
+    constexpr int Window = 3;
+    for (int y = range.firstY; y <= range.lastY + Window; ++y)
+    {
+        for (int x = range.firstX; x <= range.lastX + Window; ++x)
+        {
+            const auto cell = static_cast<std::size_t>((y * static_cast<int>(TerrainSide)) + x);
+            if (cell < water.waves.size())
+            {
+                water.waves[cell] =
+                    static_cast<float>(std::sin((static_cast<double>(x) * column) + phase) * WaveHeight);
+            }
+        }
+    }
+}
+
+void DrawTerrainCell(Render::ModelBatch& batch, const TerrainView& view, const TerrainWater& water, std::uint8_t x,
                      std::uint8_t y)
 {
     const std::array<std::size_t, 4> corners = CornersOf(x, y);
@@ -102,11 +176,16 @@ void DrawTerrainCell(Render::ModelBatch& batch, const TerrainView& view, const T
         someAboveZero = someAboveZero || view.mapping->alpha[corner] > 0.0f;
     }
     const std::uint8_t base = someBelowOne ? view.mapping->layer1[corners[0]] : view.mapping->layer2[corners[0]];
-    DrawPass(batch, view, base, Render::ModelBlend::Opaque, positions, corners, TileUvs(view.tiles[base], x, y));
+    // local_8 de 0x5fa830: es agua la de abajo cuando es la capa 1 en 5; la de alfa, si además la 2 es 5.
+    const bool baseIsWater = someBelowOne && base == WaterTile;
+    DrawPass(batch, view, base, Render::ModelBlend::Opaque, positions, corners,
+             TileUvs(view, base, x, y, corners, baseIsWater ? &water : nullptr));
     if (someBelowOne && someAboveZero)
     {
         const std::uint8_t upper = view.mapping->layer2[corners[0]];
-        DrawPass(batch, view, upper, Render::ModelBlend::Alpha, positions, corners, TileUvs(view.tiles[upper], x, y));
+        const bool upperIsWater = baseIsWater && upper == WaterTile;
+        DrawPass(batch, view, upper, Render::ModelBlend::Alpha, positions, corners,
+                 TileUvs(view, upper, x, y, corners, upperIsWater ? &water : nullptr));
     }
 }
 } // namespace Client::World

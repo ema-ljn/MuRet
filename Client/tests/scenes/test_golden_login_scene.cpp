@@ -539,6 +539,47 @@ TEST_F(GoldenLoginWorld, TheDragonDrawsAfterTheObjects)
     scene.Leave();
 }
 
+// El dragón avanza por paso (0x52d220, 25 por segundo), no por frame: varios frames sin pasos no lo
+// mueven, a cualquier FPS.
+TEST_F(GoldenLoginWorld, TheDragonMovesOnlyWithTheSteps)
+{
+    LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
+                     &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    const auto dragon = [&scene](std::chrono::milliseconds clock)
+    {
+        RecordingFrameTarget target;
+        scene.Render(target.BeginFrame(clock), 0.0f);
+        target.Present();
+        std::vector<glm::vec3> positions;
+        const auto drawn = std::ranges::find(target.frames.back().events, Kind::Models, &FrameEvent::kind);
+        if (drawn != target.frames.back().events.end())
+        {
+            for (const auto& command : drawn->modelCommands)
+            {
+                if (IsDragon(command))
+                {
+                    for (std::size_t k = 0; k < command.vertexCount; ++k)
+                    {
+                        positions.push_back(drawn->modelVertices[command.firstVertex + k].position);
+                    }
+                }
+            }
+        }
+        return positions;
+    };
+    scene.Step(Client::Input::InputState{});
+    const auto first = dragon(std::chrono::milliseconds{40});
+    ASSERT_FALSE(first.empty());
+    for (int frame = 1; frame <= 5; ++frame)
+    {
+        EXPECT_EQ(dragon(std::chrono::milliseconds{40 + (7 * frame)}), first) << frame;
+    }
+    scene.Step(Client::Input::InputState{});
+    EXPECT_NE(dragon(std::chrono::milliseconds{80}), first);
+    scene.Leave();
+}
+
 // Cada entrada vacía la tabla de efectos (0x6070a0) y la carga del mapa crea el dragón otra vez
 // (0x606660 → 0x518cf0): el primer frame de la segunda entrada lo tiene donde la primera, aunque en el
 // medio voló.

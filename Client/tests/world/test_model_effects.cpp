@@ -10,8 +10,10 @@
 #include <gtest/gtest.h>
 
 #include <bit>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <string>
 
@@ -160,5 +162,52 @@ TEST_F(DragonTest, TheDragonNeverDies)
         ASSERT_TRUE(effects.Effects()[*index].alive) << step;
         ASSERT_GT(effects.Effects()[*index].life, 0) << step;
     }
+}
+
+// 0x518cf0 con otras entradas que las del login (emuladas en la revisión de la CL7.6 A): la z es la del
+// dueño más 3.400 (0x518fc9), el alabeo va en 0 (0x518fb3), la luz en blanco (la salida 0x51a97b) y una
+// escala de 0 o menos pasa a 0,9 (0x518d3c).
+TEST(ModelEffectsTest, CreateIsTheBinaryWithOtherInputs)
+{
+    ModelEffects effects;
+    const auto index =
+        effects.Create(DragonEffect, {5600.0f, 23000.0f, 100.0f}, {5.0f, 7.0f, 9.0f}, {0.2f, 0.3f, 0.4f}, -1.0f);
+    ASSERT_TRUE(index.has_value());
+    const ModelEffect& dragon = effects.Effects()[*index];
+    EXPECT_EQ(dragon.transform.position.z, 3500.0f);
+    EXPECT_EQ(dragon.transform.angles, glm::vec3(5.0f, 0.0f, 9.0f));
+    EXPECT_EQ(dragon.light, glm::vec3(1.0f));
+    EXPECT_EQ(Bits(dragon.transform.scale), Bits(0.9f));
+    EXPECT_EQ(dragon.start, dragon.transform.position);
+}
+
+// Las comparaciones de 0x5208a0 sin orden, como la x87: con +0xdc en NaN, `test ah, 0x40` (C3 prendido)
+// no da la vuelta, y el dragón gira con +0xe4 en 1 hacia la meta del alabeo de su estado.
+TEST(ModelEffectsTest, ANotANumberTurnIsNotATurn)
+{
+    ModelEffects effects;
+    const auto index = effects.Create(DragonEffect, {5600.0f, 23000.0f, 0.0f}, glm::vec3(0.0f), glm::vec3(1.0f),
+                                      Client::World::DragonScale);
+    ASSERT_TRUE(index.has_value());
+    ModelEffect& dragon = effects.Effects()[*index];
+    dragon.transform.position.y += 2000.0f;
+    dragon.turnPending = std::numeric_limits<float>::quiet_NaN();
+    Client::World::StepModelEffect(dragon, nullptr);
+    EXPECT_EQ(dragon.transform.angles.z, 1.5f);
+    EXPECT_EQ(dragon.turnDirection, 1.0f);
+    EXPECT_EQ(dragon.reference, 30.0f);
+}
+
+// Y con el frame en NaN, `test ah, 1` (C0 prendido) no lo vuelve a 0.
+TEST(ModelEffectsTest, ANotANumberFrameIsNotReset)
+{
+    ModelEffects effects;
+    const auto index = effects.Create(DragonEffect, {5600.0f, 23000.0f, 0.0f}, glm::vec3(0.0f), glm::vec3(1.0f),
+                                      Client::World::DragonScale);
+    ASSERT_TRUE(index.has_value());
+    ModelEffect& dragon = effects.Effects()[*index];
+    dragon.animation.frame = std::numeric_limits<float>::quiet_NaN();
+    Client::World::StepModelEffect(dragon, nullptr);
+    EXPECT_TRUE(std::isnan(dragon.animation.frame));
 }
 } // namespace

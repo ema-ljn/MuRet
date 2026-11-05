@@ -45,15 +45,19 @@ struct ModelEffect
     Render::Models::ObjectState objectState;  // +0x58, +0x64 y +0x68
     bool vertexLight = true;                  // +0xe8
     glm::vec3 start{};                        // +0x17c, la partida
+    // De MuRet: la posición antes del último paso, para dibujar entre dos pasos (D-C4).
+    glm::vec3 previousPosition{};
 };
 
 class ModelEffects
 {
 public:
     // 0x518cf0(type, position, angles, light, 0, dueño, −1, 0, 0, 0, scale) en el primer lugar sin el
-    // byte vivo, o nada si están todos. Del 0xb4: la posición del dueño a z 3.400, ángulos y luz como
-    // vienen, vida 1.000, la velocidad (0, −35, 0), la de la animación en 1, +0xdc, +0xe4 y +0xec en 1, luz
-    // por vértice y la partida en la posición. Los otros tipos no se crean.
+    // byte vivo, o nada si están todos. Una escala de 0 o menos pasa a 0,9 (0x518d3c). Del 0xb4: la
+    // posición del dueño con la z 3.400 más arriba (0x518fc9), los ángulos con el alabeo en 0 (0x518fb3),
+    // la luz en blanco (la salida 0x51a97b pisa `light`), vida 1.000, la velocidad (0, −35, 0), la de la
+    // animación en 1, +0xdc, +0xe4 y +0xec en 1, luz por vértice y la partida en la posición. Los otros
+    // tipos no se crean.
     std::optional<std::size_t> Create(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                       const glm::vec3& light, float scale);
     // 0x6070a0: apaga el byte vivo de cada lugar (Q-C138: el original deja lo demás; acá Create arma el

@@ -122,7 +122,7 @@ void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary
 
 void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models,
                       std::span<const World::ModelEffect> effects, const World::TerrainLighting* lighting,
-                      Core::Duration frameClock)
+                      Core::Duration frameClock, float alpha)
 {
     for (const World::ModelEffect& effect : effects)
     {
@@ -137,6 +137,7 @@ void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models,
         drawn.model = static_cast<std::uint16_t>(effect.type);
         drawn.animation = effect.animation;
         drawn.transform = effect.transform;
+        drawn.transform.position += (effect.transform.position - effect.previousPosition) * alpha;
         drawn.state = effect.objectState;
         drawn.color = terrain + effect.light;
         drawn.alpha = effect.alpha;

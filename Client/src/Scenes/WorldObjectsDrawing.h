@@ -41,9 +41,10 @@ void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary
 
 // 0x52d620(0) con los efectos vivos: un RenderBody(2, 1, −1, 1, 0, 0, −1, −1) por cada uno, opaco, con
 // el color de la luz del terreno en su lugar (`lighting`, o 0 sin ella) más la suya, la luz de cada
-// normal y el frame entero, sin la mezcla entre dos pasos (06 § El dragón de fondo). La esfera de 400
+// normal y el frame entero (06 § El dragón de fondo); la posición, `alpha` de un paso más con lo que se
+// movió en el último (D-C4: el original la dibuja tal cual, a 25 por segundo). La esfera de 400
 // contra el frustum no va: en el login el dragón está siempre en pantalla.
 void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models,
                       std::span<const World::ModelEffect> effects, const World::TerrainLighting* lighting,
-                      Core::Duration frameClock);
+                      Core::Duration frameClock, float alpha);
 } // namespace Client::Scenes

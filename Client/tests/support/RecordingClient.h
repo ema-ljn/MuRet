@@ -35,6 +35,7 @@ public:
     void Step(const Input::InputState& input) override;
     void Render(float alpha) override;
     [[nodiscard]] bool HoldsTheLastFrame() const override;
+    [[nodiscard]] bool TakeTheSceneChange() override;
 
     Core::Duration pollCost{};
     Core::Duration stepCost{};
@@ -50,6 +51,8 @@ public:
     // Si cada paso lo prende, como el que entra al login y conecta: así un test ve que el bucle lo
     // mira después de los pasos.
     bool holdsAfterAStep = false;
+    // Si cada paso cambia de escena, como el último de la carga: TakeTheSceneChange lo dice una vez.
+    bool changesTheSceneInAStep = false;
     // La tecla que mira cada paso; Count, que nunca se aprieta, si el test no mira ninguna.
     Input::Key watchedKey = Input::Key::Count;
     // Uno por paso: si ese paso vio el apretón de watchedKey (WasPressed).
@@ -57,5 +60,6 @@ public:
 
 private:
     FakeClock& m_clock;
+    bool m_sceneChanged = false;
 };
 } // namespace Client::Tests

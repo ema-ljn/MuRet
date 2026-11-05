@@ -67,6 +67,9 @@ public:
     [[nodiscard]] bool WantsTextInput() const;
     // Si la escena de ahora retiene el último frame (IScene::HoldsTheLastFrame); sin escena, false.
     [[nodiscard]] bool HoldsTheLastFrame() const override;
+    // Si un Step entró a otra escena desde la última vez (Request); el Start no cuenta, porque va antes
+    // del bucle.
+    [[nodiscard]] bool TakeTheSceneChange() override;
 
 private:
     // La fábrica y el Enter de `id`; si falla, queda sin escena y con el error.
@@ -82,5 +85,6 @@ private:
     std::optional<std::string> m_failure;
     // El último pedido rechazado, para no repetir el aviso en cada paso mientras se pida seguido.
     std::optional<SceneId> m_rejected;
+    bool m_sceneChanged = false;
 };
 } // namespace Client::Scenes

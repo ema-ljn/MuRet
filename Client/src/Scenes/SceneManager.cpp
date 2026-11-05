@@ -114,8 +114,9 @@ void SceneManager::Request(SceneId next)
     m_scene->Leave();
     m_scene.reset();
     m_current.reset();
-    // El error ya quedó en Failure y en el log.
+    // El error ya quedó en Failure y en el log. Lo que tardó, salga o no, no es tiempo del juego.
     static_cast<void>(Enter(next));
+    m_sceneChanged = true;
 }
 
 std::optional<SceneId> SceneManager::Current() const
@@ -165,5 +166,12 @@ Core::Expected<void, std::string> SceneManager::Enter(SceneId id)
     m_scene = std::move(scene);
     m_current = id;
     return {};
+}
+
+bool SceneManager::TakeTheSceneChange()
+{
+    const bool changed = m_sceneChanged;
+    m_sceneChanged = false;
+    return changed;
 }
 } // namespace Client::Scenes

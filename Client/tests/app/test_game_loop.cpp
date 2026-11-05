@@ -117,6 +117,32 @@ TEST(GameLoopTest, AFrameLongerThanTheCapRunsOnlyTheCap)
     EXPECT_EQ(loop.Stats().clampedFrames, 1u);
 }
 
+// La entrada a una escena corre dentro de un paso (0x6349a0 desde 0x634c8e, la carga fuera del bucle), y el
+// original mide desde después de los pasos (0x63852b): lo que tarda cargar una escena no es tiempo del
+// juego. Un paso que cambia de escena y tarda 2 s deja el frame siguiente en 1 paso; el mismo paso sin el
+// cambio de escena sí cuenta, y el frame siguiente se pone al día hasta el tope.
+TEST(GameLoopTest, TheTimeOfASceneChangeDoesNotCount)
+{
+    for (const bool changesTheScene : {true, false})
+    {
+        SCOPED_TRACE(changesTheScene);
+        FakeClock clock;
+        RecordingClient client{clock};
+        GameLoop loop{clock, client, PacingMode::Decoupled};
+        InputState input;
+        ASSERT_EQ(loop.RunFrame(WindowState{}, input), 0);
+        clock.Advance(40ms);
+        client.stepCost = 2s;
+        client.changesTheSceneInAStep = changesTheScene;
+        ASSERT_EQ(loop.RunFrame(WindowState{}, input), 1);
+        client.stepCost = 0ms;
+        client.changesTheSceneInAStep = false;
+
+        clock.Advance(40ms);
+        EXPECT_EQ(loop.RunFrame(WindowState{}, input), changesTheScene ? 1 : 25);
+    }
+}
+
 TEST(GameLoopTest, AClockThatGoesBackRunsNoSteps)
 {
     FakeClock clock;

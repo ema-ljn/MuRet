@@ -42,6 +42,10 @@ void RecordingClient::Step(const Input::InputState& input)
     {
         holdsTheLastFrame = true;
     }
+    if (changesTheSceneInAStep)
+    {
+        m_sceneChanged = true;
+    }
     m_clock.Advance(stepCost);
 }
 
@@ -55,5 +59,12 @@ void RecordingClient::Render(float alpha)
 bool RecordingClient::HoldsTheLastFrame() const
 {
     return holdsTheLastFrame;
+}
+
+bool RecordingClient::TakeTheSceneChange()
+{
+    const bool changed = m_sceneChanged;
+    m_sceneChanged = false;
+    return changed;
 }
 } // namespace Client::Tests

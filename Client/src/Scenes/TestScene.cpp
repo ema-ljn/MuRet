@@ -38,6 +38,11 @@ bool TestScene::HoldsTheLastFrame() const
     return false;
 }
 
+bool TestScene::TakeTheSceneChange()
+{
+    return false;
+}
+
 TestScene::Color TestScene::Background(float alpha) const
 {
     // La posición en el ciclo, en [0, 1), y una rampa que sube y baja: en 32 vuelve a 0 sin salto,

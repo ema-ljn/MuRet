@@ -474,8 +474,8 @@ Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const
         case Scenes::SceneId::Loading:
             return std::make_unique<Scenes::LoadingScene>(context, &models);
         case Scenes::SceneId::Login:
-            return std::make_unique<Scenes::LoginScene>(context, data, models, session, Version,
-                                                        std::random_device{}());
+            return std::make_unique<Scenes::LoginScene>(context, data, models, session, Version, std::random_device{}(),
+                                                        &models.TextureSlots());
         case Scenes::SceneId::CharacterSelect:
             return std::make_unique<Scenes::CharacterSelectScene>(context, data, models, session,
                                                                   &models.TextureSlots());

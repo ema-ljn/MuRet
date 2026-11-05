@@ -5,7 +5,9 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
+#include "Data/Terrain/TerrainObjects.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Textures/TextureSet.h"
 #include "GameLogic/CharacterAppearance.h"
@@ -38,6 +40,8 @@
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/TextureSets.h"
+#include "Scenes/WorldModels.h"
+#include "Scenes/WorldObjectsDrawing.h"
 #include "UI/GameText.h"
 #include "UI/LoginWindow.h"
 #include "UI/MenuBar.h"
@@ -47,6 +51,8 @@
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
+#include "World/WorldObjects.h"
+#include "World/WorldTerrain.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -57,6 +63,8 @@
 #include <cstdint>
 #include <optional>
 #include <random>
+#include <set>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -147,6 +155,52 @@ constexpr int NoSlot = -1;
 }
 } // namespace
 
+// Los modelos de los objetos del login: los del mundo y el logo (0xa2), que la tabla del original guarda
+// junto con los demás.
+class LoginObjectModels final : public IModelLibrary
+{
+public:
+    LoginObjectModels(const IModelLibrary& world, const IModelLibrary& logo) : m_world(world), m_logo(logo) {}
+
+    [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override
+    {
+        return Of(model).Find(model);
+    }
+    [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        return Of(model).SkeletonOf(model);
+    }
+    [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override
+    {
+        return Of(model).MeshTextures(model);
+    }
+
+private:
+    [[nodiscard]] const IModelLibrary& Of(std::uint16_t model) const
+    {
+        return model == LoginLogoModel ? m_logo : m_world;
+    }
+
+    const IModelLibrary& m_world;
+    const IModelLibrary& m_logo;
+};
+
+// El logo de 0x606660 como uno más de la lista: sin luz por vértice, como lo deja su caso.
+World::WorldObject LogoWorldObject()
+{
+    const ModelObject logo = LoginLogo();
+    World::WorldObject object;
+    object.type = static_cast<std::int16_t>(logo.model);
+    object.transform = logo.transform;
+    object.state = logo.state;
+    object.light = logo.light;
+    object.speed = logo.speed;
+    object.vertexLight = false;
+    object.sectorX = World::SectorOf(object.transform.position.x);
+    object.sectorY = World::SectorOf(object.transform.position.y);
+    return object;
+}
+
 std::string PlaceVersion(std::string_view text, std::string_view version)
 {
     const std::size_t mark = text.find(VersionMark);
@@ -161,10 +215,11 @@ std::string PlaceVersion(std::string_view text, std::string_view version)
 }
 
 LoginScene::LoginScene(const SceneContext& context, const GameData& data, const IModelLibrary& models,
-                       App::ServerSession* session, std::string_view version, std::mt19937::result_type seed)
+                       App::ServerSession* session, std::string_view version, std::mt19937::result_type seed,
+                       const Render::Models::ModelTextureSlots* gameSlots)
     : m_context(context), m_models(models), m_session(session), m_texts(data.text ? &*data.text : nullptr),
       m_textures(context.textures, LoginTextureSet), m_windowTextures(context.textures, WindowTextureSet),
-      m_world(WorldOf(SceneId::Login)), m_terrain(context.textures), m_random(seed),
+      m_world(WorldOf(SceneId::Login)), m_terrain(context.textures), m_gameSlots(gameSlots), m_random(seed),
       m_serverList([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
       m_menuBar([this](Render::TextureSlot slot) { return BufferSize(slot); }),
       m_login([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
@@ -217,6 +272,8 @@ void LoginScene::LoadTheWorld()
 {
     m_terrain.Release();
     m_lighting.reset();
+    m_worldModels.Release();
+    m_objectRecords.clear();
     if (!m_world)
     {
         return;
@@ -229,6 +286,12 @@ void LoginScene::LoadTheWorld()
         World::TerrainRangeOf(Render::MakePass3D(App::PixelSize{640, 480}, WorldViewport, camera).view, camera);
     m_terrainPolygon =
         World::TerrainPolygonOf(World::CullingScene::Login, m_world->map, LoginHeroPosition, camera.angles.z);
+    LoadTheTerrain();
+    LoadTheObjects();
+}
+
+void LoginScene::LoadTheTerrain()
+{
     std::vector<std::string> skipped;
     auto loaded = m_terrain.Load(m_context.dataRoot, m_world->map, skipped);
     if (!loaded.HasValue())
@@ -250,6 +313,43 @@ void LoginScene::LoadTheWorld()
     }
 }
 
+// 0x616ec0 y 0x607370: los modelos de Object56\ con la tabla de la carga, y los registros de
+// EncTerrain56.obj. Sin el .obj, el login va sin los objetos, con el logo.
+void LoginScene::LoadTheObjects()
+{
+    auto models = m_worldModels.Load(m_context.dataRoot, m_world->map, m_context.textures, m_context.log, m_gameSlots);
+    if (!models.HasValue())
+    {
+        m_context.log.Warning("el login va sin los objetos del mundo: {}", models.Error());
+        return;
+    }
+    auto records = World::LoadWorldObjects(m_context.dataRoot, m_world->map);
+    if (!records.HasValue())
+    {
+        m_context.log.Warning("el login va sin los objetos del mundo: {}", records.Error());
+        return;
+    }
+    m_objectRecords = std::move(records).Value();
+    // El original los saltea sin avisar (Q-C23); MuRet lo dice una vez, con los tipos.
+    std::set<std::int16_t> missing;
+    for (const Data::Terrain::TerrainObject& record : m_objectRecords)
+    {
+        if (m_worldModels.Find(static_cast<std::uint16_t>(record.type)) == nullptr)
+        {
+            missing.insert(record.type);
+        }
+    }
+    if (!missing.empty())
+    {
+        std::string types;
+        for (const std::int16_t type : missing)
+        {
+            types += (types.empty() ? "" : ", ") + std::to_string(type);
+        }
+        m_context.log.Warning("el .obj del mundo pide tipos que no tienen modelo y no se dibujan: {}", types);
+    }
+}
+
 Core::Expected<void, std::string> LoginScene::LoadTheLogo()
 {
     m_logo.Clear();
@@ -267,7 +367,15 @@ Core::Expected<void, std::string> LoginScene::LoadTheLogo()
     }
     // Las texturas apuntan a lo que piden los slots: se van antes que ellos.
     m_logoTextures.reset();
-    m_logoSlots.emplace(LoginLogoFirstSlot);
+    // Sin un 0x60d530 antes: donde dejó el próximo el mundo (Q-C92), o LoginLogoFirstSlot sin él.
+    if (const Render::Models::ModelTextureSlots* world = m_worldModels.TextureSlots())
+    {
+        m_logoSlots.emplace(world->ContinuedAt(world->Next()));
+    }
+    else
+    {
+        m_logoSlots.emplace(LoginLogoFirstSlot);
+    }
     std::vector<Render::TextureSlot> meshTextures =
         m_logoSlots->Assign(model.Value(), LoginLogoTextureFolder, LoginLogoSampling);
     // Una textura del logo que falta cierra el original (0x60d5f0 con su quinto argumento en 1).
@@ -281,13 +389,14 @@ Core::Expected<void, std::string> LoginScene::LoadTheLogo()
     return {};
 }
 
-// 0x6349a0 con 0x606660, 0x517270 y el caballo (0x443fa0(0xbf, …), invisible), y la cuenta de las
-// rutas en −1. La fase vuelve a 0 (el original no la vuelve: Q-C111).
+// 0x6349a0 con 0x606660 (los objetos del .obj y después el logo), 0x517270 y el caballo
+// (0x443fa0(0xbf, …), invisible), y la cuenta de las rutas en −1. La fase vuelve a 0 (el original no la
+// vuelve: Q-C111).
 void LoginScene::PlaceTheModels()
 {
-    m_logoObject = LoginLogo();
-    m_logoSeen = false;
-    m_logoAnimation = {};
+    m_objects = World::CreateWorldObjects(m_objectRecords, m_world ? m_world->map : 0, World::ObjectScene::Login);
+    m_logoIndex = m_objects.size();
+    m_objects.push_back(LogoWorldObject());
     m_routes = {};
     m_character = LoginCharacter();
     m_characterAnimation = {};
@@ -368,20 +477,18 @@ void LoginScene::StepTheWorld()
             Render::Models::SetAction(m_characterAnimation.body, *player, *action);
         }
     }
-    // 0x606560 → 0x604ab0, solo con el logo que ya se dibujó (+0x16c, del frustum de 0x6046a0): la luz
-    // del logo, en el objeto y en el blendMesh, y su avance a +0xd8.
-    if (m_logoSeen)
-    {
-        const float light = LoginLogoLight(m_routes);
-        m_logoObject.light = glm::vec3(light);
-        m_logoObject.state.light = light;
-        if (const Render::Models::Skeleton* logo = m_logo.SkeletonOf(LoginLogoModel);
-            logo != nullptr && m_logoAnimation.action < logo->actions.size())
-        {
-            Render::Models::AdvanceAnimation(m_logoAnimation, logo->actions[m_logoAnimation.action], m_logoObject.speed,
-                                             Render::Models::AnimationScene::Other);
-        }
-    }
+    // 0x606560 → 0x604ab0, solo con los objetos que ya se dibujaron (+0x16c, del frustum de 0x6046a0): los
+    // del mundo con los casos del mapa 55, y el logo con los suyos.
+    StepWorldObjects(m_objects, m_world ? m_world->map : 0, m_worldModels,
+                     [this](World::WorldObject& object)
+                     {
+                         if (!m_logoIndex || &object != &m_objects[*m_logoIndex])
+                         {
+                             return false;
+                         }
+                         StepTheLogo(object);
+                         return true;
+                     });
     // 0x445230 → 0x444010: el caballo, con la acción que el jinete tiene en este paso (la de arriba, o la
     // del gesto que todavía no terminó).
     if (const Render::Models::Skeleton* horse = m_models.SkeletonOf(DarkHorseModel))
@@ -596,8 +703,6 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, m_terrainPolygon);
     DrawTheModels(canvas, alpha);
     canvas.flushModels();
-    // El dibujo prende el +0x16c del logo (0x6046a0): sin frustum, siempre se ve.
-    m_logoSeen = true;
     // 5: las dos arenas, aditivas.
     sprites.SetBlend(Render::BlendMode::Alpha);
     sprites.SetColor(HalfWhite);
@@ -616,8 +721,8 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
 }
 
 // El personaje (0x510d00 → 0x50ba30, con la luz del terreno en su lugar más la suya), el caballo
-// (0x4453b0 → 0x445260, con la escala de la escena 2) y después el logo (0x6046a0 → 0x602e90, con el
-// color de 0x5ffce0).
+// (0x4453b0 → 0x445260, con la escala de la escena 2) y después los objetos del mundo con el logo
+// (0x6046a0 → 0x602e90, con el color de 0x5ffce0).
 void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
 {
     DrawnCharacter character;
@@ -637,19 +742,26 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
         DrawnDarkHorse(m_horse, m_models.SkeletonOf(DarkHorseModel), character.object, DarkHorseLoginScale, alpha),
         canvas.frameClock);
 
-    DrawnObject logo;
-    logo.model = m_logoObject.model;
-    logo.animation = m_logoAnimation;
+    // 0x6046a0: los objetos del mundo y el logo, sector por sector.
+    const LoginObjectModels objects(m_worldModels, m_logo);
+    const World::TerrainLighting* lighting = m_terrain.IsLoaded() ? m_terrain.Lighting() : m_lighting.get();
+    DrawWorldObjects(canvas.models, objects, m_objects, m_terrainPolygon, lighting, m_world ? m_world->map : 0,
+                     canvas.frameClock, alpha);
+}
+
+// 0x604ab0 con el 0xa2 en la escena 2: la luz de las rutas en el objeto y en el blendMesh, y el avance a
+// +0xd8 (no a la velocidad de la acción).
+void LoginScene::StepTheLogo(World::WorldObject& logo) const
+{
+    const float light = LoginLogoLight(m_routes);
+    logo.light = glm::vec3(light);
+    logo.state.light = light;
     if (const Render::Models::Skeleton* skeleton = m_logo.SkeletonOf(LoginLogoModel);
-        skeleton != nullptr && m_logoAnimation.action < skeleton->actions.size())
+        skeleton != nullptr && logo.animation.action < skeleton->actions.size())
     {
-        logo.animation = Render::Models::Interpolated(m_logoAnimation, skeleton->actions[m_logoAnimation.action],
-                                                      m_logoObject.speed, alpha);
+        Render::Models::AdvanceAnimation(logo.animation, skeleton->actions[logo.animation.action], logo.speed,
+                                         Render::Models::AnimationScene::Other);
     }
-    logo.transform = m_logoObject.transform;
-    logo.state = m_logoObject.state;
-    logo.color = UnlitObjectColor(TerrainLightAt(m_logoObject.transform.position), m_logoObject.light);
-    DrawObject(canvas.models, m_logo, logo, canvas.frameClock);
 }
 
 glm::vec3 LoginScene::TerrainLightAt(const glm::vec3& position) const
@@ -690,6 +802,9 @@ void LoginScene::Leave()
     m_textures.Release();
     m_windowTextures.Release();
     m_terrain.Release();
+    m_worldModels.Release();
+    m_objects.clear();
+    m_logoIndex.reset();
     if (m_logoTextures)
     {
         m_logoTextures->Release();

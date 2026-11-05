@@ -202,6 +202,10 @@ struct Harness
     InputState input;
 };
 
+// Los dos slots del logo con un mundo sin modelos: los que deja 0x60d530(0x41c) de 0x616ec0.
+const TextureSlot LogoSlot{0x41c};
+const TextureSlot LogoSlot2{0x41d};
+
 // Si alguna línea del log tiene `text`.
 bool Logged(const RecordingSink& sink, std::string_view text)
 {
@@ -230,7 +234,9 @@ glm::vec3 WorldLightAt(const std::filesystem::path& root, const glm::vec3& posit
 }
 
 // 0x6350b0: en el pase 3D, el personaje (0x510d00) y después el logo (0x6046a0), que es el último:
-// un tramo opaco con logo.jpg y el aditivo de su blendMesh con logo2.jpg.
+// un tramo opaco con logo.jpg y el aditivo de su blendMesh con logo2.jpg. El Data del test no tiene
+// Object56: el mundo no carga ningún modelo y deja el próximo slot en 0x41c, donde sigue el logo
+// (Q-C92).
 TEST(LoginSceneModelsTest, TheCharacterGoesBeforeTheLogo)
 {
     Harness tested;
@@ -242,9 +248,9 @@ TEST(LoginSceneModelsTest, TheCharacterGoesBeforeTheLogo)
     ASSERT_GE(models.modelCommands.size(), 3u);
     const std::size_t count = models.modelCommands.size();
     EXPECT_EQ(models.modelCommands[0].state.texture, TextureSlot{0x300});
-    EXPECT_EQ(models.modelCommands[count - 2].state.texture, TextureSlot{0x455});
+    EXPECT_EQ(models.modelCommands[count - 2].state.texture, LogoSlot);
     EXPECT_EQ(models.modelCommands[count - 2].state.blend, ModelBlend::Opaque);
-    EXPECT_EQ(models.modelCommands[count - 1].state.texture, TextureSlot{0x456});
+    EXPECT_EQ(models.modelCommands[count - 1].state.texture, LogoSlot2);
     EXPECT_EQ(models.modelCommands[count - 1].state.blend, ModelBlend::Additive);
 }
 
@@ -333,13 +339,13 @@ TEST(LoginSceneModelsTest, LeaveReleasesTheLogo)
     Harness tested;
     LoginScene& scene = tested.Make();
     ASSERT_TRUE(scene.Enter().HasValue());
-    ASSERT_TRUE(tested.store.Find(TextureSlot{0x455}).has_value());
-    ASSERT_TRUE(tested.store.Find(TextureSlot{0x456}).has_value());
+    ASSERT_TRUE(tested.store.Find(LogoSlot).has_value());
+    ASSERT_TRUE(tested.store.Find(LogoSlot2).has_value());
 
     scene.Leave();
 
-    EXPECT_FALSE(tested.store.Find(TextureSlot{0x455}).has_value());
-    EXPECT_FALSE(tested.store.Find(TextureSlot{0x456}).has_value());
+    EXPECT_FALSE(tested.store.Find(LogoSlot).has_value());
+    EXPECT_FALSE(tested.store.Find(LogoSlot2).has_value());
     EXPECT_EQ(tested.store.Size(), 0u);
 }
 
@@ -355,10 +361,10 @@ TEST(LoginSceneModelsTest, WithoutLogo03TheLoginEntersWithoutIt)
 
     for (const auto& command : models.modelCommands)
     {
-        EXPECT_NE(command.state.texture, TextureSlot{0x455});
+        EXPECT_NE(command.state.texture, LogoSlot);
     }
     EXPECT_TRUE(Logged(tested.sink, "el logo no se puede leer"));
-    EXPECT_FALSE(tested.store.Find(TextureSlot{0x455}).has_value());
+    EXPECT_FALSE(tested.store.Find(LogoSlot).has_value());
 }
 
 // 0x60d5f0 con su quinto argumento en 1: una textura del logo que falta corta la entrada.
@@ -469,7 +475,7 @@ TEST(LoginSceneModelsTest, TheHorseGoesBetweenTheCharacterAndTheLogo)
     ASSERT_GE(count, 4u);
     EXPECT_EQ(HorseCommand(models), count - 3);
     EXPECT_EQ(models.modelCommands[count - 3].state.blend, ModelBlend::Alpha);
-    EXPECT_EQ(models.modelCommands[count - 2].state.texture, TextureSlot{0x455});
+    EXPECT_EQ(models.modelCommands[count - 2].state.texture, LogoSlot);
     EXPECT_EQ(models.modelCommands[0].state.texture, TextureSlot{0x300});
 }
 

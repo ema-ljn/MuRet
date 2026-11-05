@@ -928,8 +928,11 @@ en 0. Arranca en 0 (está en la `.bss`), y la vuelta al login de `0x4c2710` la p
    (`0x60da30` con `Data\Logo\` y `"%s0%d.bmd"`: `Logo03.bmd`, con sus texturas de `Logo\` por
    `0x60d5f0`, sin un `0x60d530` antes: van al próximo slot que dejó el mundo 55, que termina su
    carga con `0x60d530(0x41c)` (`0x61a0e8`) y 57 texturas nuevas de `Object56\`, así que a `0x455`
-   y `0x456`; *inferido*, de la simulación de los slots de arriba y de los archivos, P-C15;
-   Q-C92). El tercer y cuarto argumento van a `glTexParameteri` en `0x63b870` y `0x63bd00`: el
+   y `0x456`. De los 65 nombres de `Object56\`, tres son del dragón, que la carga del mapa ya puso en
+   `0x69..0x6b`, y cinco están en la tabla de las habilidades de `0x615700` (`castlegate02`,
+   `cswalltop` y `castlegatehide` en `0x3e5..0x3e7`, `fire02` y `fire01` en `0x3ef` y `0x3f0`, en
+   `lor_slots.bin`): con esos nombres, la regla da `0x455` (`GoldenWorldModels`). Que el logo quede ahí
+   en una corrida del original sigue *inferido* (P-C15, Q-C92). El tercer y cuarto argumento van a `glTexParameteri` en `0x63b870` y `0x63bd00`: el
    tercero a `GL_TEXTURE_MAG_FILTER` y `GL_TEXTURE_MIN_FILTER` (`0x2800`, `0x2801`), el cuarto a
    `GL_TEXTURE_WRAP_S` y `_T` (`0x2802`, `0x2803`). Los fondos y casi todas las de `Interface\` van
    con `GL_NEAREST`; la arena, `FireSnuff` y `cr_mu_lo` con `GL_LINEAR`, y repiten la arena,
@@ -1309,7 +1312,8 @@ fuente es *inferido*, por comparación. MuRet, hasta la CL7, no dibuja nada de e
   anterior (Q-C138). Después `0x616ec0` sube `Object8\drop01.jpg` (`0x607`), el agua de los modelos
   (`Object8\wt00..wt31.jpg`, `0x41..0x60`), `Object8\light01.jpg` (`0x68`) y, en el caso del mapa
   `0x37` (`0x6188ae`), el modelo `0xb4` con `0x60da30(0xb4, "Data\Object56\", "Dragon", -1)`, sus
-  texturas (`drr_01..03.jpg`, *inferido* en `0x69..0x6b` por la regla de los slots) y **un objeto
+  texturas (`drr_01..03.jpg`, en `0x69..0x6b` por la regla de los slots; `lor_slots.bin`, sacado en
+  Lorencia después del login, todavía tiene `drr_03` en `0x6b`) y **un objeto
   del mundo `0xb4` en (5.600; 23.000; 0)**: el dueño del dragón (abajo). El mapa 55 no tiene sonidos
   de ambiente (el caso no llama a `0x41eac0`). El lazo genérico (`0x61a0c4..0x61a0e1`) carga **el
   modelo k (0 a 159) de `Data\Object56\Object<k+1>.bmd`** (`"%s0%d.bmd"` hasta el 9), con sus
@@ -1370,6 +1374,27 @@ fuente es *inferido*, por comparación. MuRet, hasta la CL7, no dibuja nada de e
 - **El orden:** los objetos del mundo van **después de los personajes y del caballo**, sector por
   sector (x, después y) y en el orden del archivo dentro de cada uno, y antes de los efectos. Con
   objetos aditivos que no escriben la profundidad, el orden se ve.
+- **En MuRet** (CL7.2): `Scenes::WorldModels` carga los modelos (el dragón `0xb4` desde `0x69` y el
+  lazo genérico desde `0x41c`, con la tabla de la carga), `World::WorldObjects` crea, avanza y prepara
+  el dibujo de cada objeto, y `Scenes::WorldObjectsDrawing` los recorre por sector, con el trapecio de
+  la CL7.1: el sector en su centro (x · 16 + 8, y · 16 + 8: `local_18 = 8; += 0x10` en `0x6046a0`) con
+  −180 y el objeto en su lugar por 0,01f, guardado en float, con −30. `0x6046a0` guarda en `+0x16c` el
+  resultado del test de cada objeto, y `0x606560` apaga el de los objetos de un sector que no pasó, sin
+  avanzarlos, y avanza los demás sector por sector, como el dibujo (*estático*, revisión de la CL7.2).
+  El sector de cada objeto sale de la posición del archivo, antes de los casos por tipo, con el
+  producto por 0,000625f en la x87, sin redondear (`0x60666c`): en los múltiplos de 1.600 el float
+  daría el sector siguiente. `0x604ab0` sale después del alpha si quedó por debajo de 0,01, y
+  `0x5ffce0` sin luz por vértice suma al rojo el producto sin guardarlo en float. **Los 276 objetos dan
+  lo mismo que el código real emulado**, bit a bit, al crearse, en tres pasos y en lo que le pasan a
+  `RenderBody` (el modo, el alpha, el blendMesh, su luz, la U, la V, la malla oculta, el color y la
+  luz por vértice) o a `RenderMesh` (la malla, el alpha, el blendMesh, su luz, la U, la V y el color)
+  (`GoldenWorldObjects`, `tests/vectors/world55`). El remolino
+  90 va por la mezcla nueva `ModelBlend::Subtractive`. El logo es uno más de la lista, al final (lo
+  crea `0x61c7c0` después de la carga), con su paso de la CL6.4. Dos diferencias con el original, por
+  la tabla de la carga de MuRet, que todavía no tiene las de `0x615700` más allá de las cuatro
+  primeras: los cinco nombres de las habilidades se piden de `Object56\` (los del castillo están y
+  suben; `fire01` y `fire02` no, y el fuego 89 sale sin textura en su único frame, Q-C135), y el logo
+  queda en `0x45a` en vez de `0x455` (P-C15 j).
 
 ### El terreno del login
 
@@ -2305,7 +2330,7 @@ Ver [08](08-pendientes.md).
 | La barra de la selección (crear, el menú, conectar y borrar) y el borrado con dos avisos | `UI::SelectionBar` (con `Button` deshabilitado), `UI::DeleteChecks` (las revisiones de `0x63edf0`), `UI::NoticeWindow` con los tipos 0, 3 y 4 y el campo del código, y la escena, que sigue la lista de la sesión (el que crea entra y el que borra se va) y abre el aviso de cada respuesta. El menú, las opciones, los carteles y el área de mensajes, de la CL8 | CL6.5 |
 | La ventana de crear, con los filtros del nombre de `FilterName.bmd` y `Filter.bmd` | `UI::CreateCharacterWindow` (la vista previa, `Scenes/CreatePreview`: `SelectionModels` con sus slots desde `0x6f8` siguiendo `GameModels`, y la cámara, el viewport y la tabla de clases de `0x63e460`), `UI::NameChecks` (los tres chequeos de `0x63d990`) y `Data::Text::LoadFilterWords` en `LoadGameData` | CL6.5 |
 | El caballo oscuro: un ayudante que aparece de a poco y sigue la acción del jinete, con luz por vértice, un cromo y su sombra | `Scenes/DarkHorse` (el paso) y `DrawDarkHorse` (el caso `0xbf` de `0x6002e0`), con `Render::Models::NormalLight` (L = (1,3; 0; 2), la normal con la escala del objeto) y `ModelBlend::BlendedShadow`; en el login, entre el personaje y el logo | CL6.4 |
-| El mundo del login: el mapa 55 entero, con los objetos después de los personajes y casos por tipo y por mapa (`0x606660`, `0x604ab0`, `0x6002e0`) | el pase 3D del mundo (`IWorldView`) con el terreno y los objetos del `.obj`, los casos del mapa 55 como datos y el orden del original | CL7.1, CL7.2 |
+| El mundo del login: el mapa 55 entero, con los objetos después de los personajes y casos por tipo y por mapa (`0x606660`, `0x604ab0`, `0x6002e0`) | en el lote del login: el terreno (`LoadedWorld`, CL7.1) y los objetos del `.obj` (`WorldModels`, `WorldObjects` y `WorldObjectsDrawing`, CL7.2), con los casos del mapa 55 como datos y el orden del original | CL7.1, CL7.2 |
 | El dragón: un efecto con modelo (`0x518cf0`) que vuela en ocho, sin azar | el efecto `0xb4` con su paso por paso de lógica, comparado con los pasos emulados del código real | CL7.6 A |
 | Siete tablas de efectos: joints, efectos con modelo, sprites de un frame, hojas y partículas, con el billboard de `0x621400` | un sistema por tabla, con el paso por paso de lógica (los sprites, por frame) y el billboard en el pase 3D, después de los objetos y en el mismo orden | CL7.6 B |
 | El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | un objeto colgado del personaje, con el paso de `0x416a20` comparado bit a bit con `raven_reference.py` | CL7.6 C |

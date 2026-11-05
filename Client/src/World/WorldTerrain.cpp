@@ -7,6 +7,7 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainLight.h"
 #include "Data/Terrain/TerrainMapping.h"
+#include "Data/Terrain/TerrainObjects.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/WorldFolder.h"
 #include "World/TerrainLighting.h"
@@ -104,6 +105,24 @@ Core::Expected<WorldTerrain, std::string> LoadWorldTerrain(const std::filesystem
     terrain.attributes = std::move(attributes).Value();
     terrain.heights = std::move(heights).Value();
     return terrain;
+}
+
+Core::Expected<std::vector<Data::Terrain::TerrainObject>, std::string>
+LoadWorldObjects(const std::filesystem::path& dataRoot, std::uint8_t map)
+{
+    const auto world = static_cast<std::uint8_t>(Data::WorldFolderNumber(map));
+    const std::string relative = Data::WorldFolder(map) + "\\EncTerrain" + std::to_string(world) + ".obj";
+    const Core::Expected<std::vector<char>, std::string> file = ReadWorldFile(dataRoot, relative);
+    if (!file.HasValue())
+    {
+        return Core::Unexpected(file.Error());
+    }
+    auto objects = Data::Terrain::LoadTerrainObjects(std::as_bytes(std::span(file.Value())), world);
+    if (!objects.HasValue())
+    {
+        return Core::Unexpected(FileError(relative, objects.Error()));
+    }
+    return std::move(objects).Value();
 }
 
 std::vector<WorldTileTexture> WorldTileTextures(std::uint8_t map)

@@ -242,6 +242,29 @@ TEST_F(GlModelRendererTest, TheBlendedShadowHasNoAlphaTest)
     ExpectNear(Cell(0), Rgba8{204, 204, 204, 214});
 }
 
+// El remolino 90 del mapa 55 (0x6002e0 con 0x620b10): GL_ZERO, GL_ONE_MINUS_SRC_COLOR. Sobre el blanco,
+// el color (0,25; 0,5; 0,75) deja lo que le falta, (0,75; 0,5; 0,25): oscurece donde la textura es clara.
+TEST_F(GlModelRendererTest, TheSubtractiveDarkensWhereTheColorIsLight)
+{
+    AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 20.0f, Color{1.0f, 1.0f, 1.0f, 1.0f});
+    AddSquare({WhiteSlot, ModelBlend::Subtractive, true}, 5.0f, Color{0.25f, 0.5f, 0.75f, 1.0f});
+
+    DrawBatch();
+
+    ExpectNear(Cell(0), Rgba8{191, 128, 64, 0});
+}
+
+// Y no escribe la profundidad: el verde opaco a 20, dibujado después, la pisa.
+TEST_F(GlModelRendererTest, TheSubtractiveDoesNotWriteTheDepth)
+{
+    AddSquare({WhiteSlot, ModelBlend::Subtractive, true}, 5.0f, Color{0.25f, 0.5f, 0.75f, 1.0f});
+    AddSquare({WhiteSlot, ModelBlend::Opaque, true}, 20.0f, GreenColor);
+
+    DrawBatch();
+
+    ExpectNear(Cell(0), Green);
+}
+
 // Ni recorta las caras de atrás (0x620a00 apaga el culling): una de atrás, roja al 0,7 sobre el vacío,
 // se ve.
 TEST_F(GlModelRendererTest, TheBlendedShadowDoesNotCull)

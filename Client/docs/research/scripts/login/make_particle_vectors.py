@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Los vectores de las partículas del login (CL7.6 B2, Client/tests/vectors/world55/particles.txt): el
 código real de 0x53fe70 (crear), 0x5446e0 (el paso, con el viento de 0x7609bb8..0x7609bc8) y 0x548550(0)
-(el dibujo), con el aliento del caballo (el tipo 0x5f2, subtipo 0) como lo pide 0x444010: en cada paso,
-a veces, un aliento nuevo en el primer lugar libre, y después el paso y el dibujo. De cada uno se guarda
+(el dibujo), con el aliento del caballo (el tipo 0x5f2, subtipo 0) como lo pide 0x444010 y, en los casos
+del final (CL7.6 C2), la chispa del cuervo (el 0x5c6, subtipo 5, escala 0,8) como la pide 0x416a20: en
+cada paso, a veces, una nueva en el primer lugar libre, y después el paso y el dibujo. De cada uno se guarda
 el viento, el estado del rand() de la CRT, los 0x78 bytes de cada lugar usado de la tabla (0x743a198, en hexadecimal sin ceros a la izquierda) y
 lo que el dibujo le pide a 0x621400 (que no corre: se lee y se vuelve) y a las mezclas.
 
@@ -23,7 +24,13 @@ WIND = 0x7609bb8  # bb8, bbc: el viento; bc4, bc8: lo que cambia por paso
 CLOCK = 0x5767b88
 TEXTURES = 0x7d3a198
 BREATH = 0x5f2
+SPARK = 0x5c6
 STEPS = 20
+# Los casos de la chispa del cuervo, después de los del aliento (que no cambian): el tipo, el subtipo, la
+# escala y la luz de 0x417b43 (0,3; 0,4; 0,7).
+SPARK_CASES = 8
+SPARK_SCALE = struct.unpack('<f', struct.pack('<I', 0x3f4ccccd))[0]
+SPARK_LIGHT = [struct.unpack('<f', struct.pack('<I', w))[0] for w in (0x3e99999a, 0x3ecccccd, 0x3f333333)]
 
 
 def bits(value):
@@ -53,8 +60,9 @@ def main():
     for address, name in BLENDS.items():
         e.at(address, lambda name=name: calls.append('blend ' + name))
     pos, ang, light = e.alloc(12), e.alloc(12), e.alloc(12)
-    lines = ['particles 1', 'cases %d' % cases]
-    for k in range(cases):
+    lines = ['particles 2', 'cases %d' % (cases + SPARK_CASES)]
+    for k in range(cases + SPARK_CASES):
+        kind, subtype, scale = (BREATH, 0, 1.0) if k < cases else (SPARK, 5, SPARK_SCALE)
         for slot in range(SLOTS + 1):
             e.uc.mem_write(TABLE + slot * SIZE, b'\0' * SIZE)
         wind = [f32(rng.uniform(-0.3, 0.3)) for _ in range(2)] + [f32(rng.uniform(-0.05, 0.05)) for _ in range(2)]
@@ -65,13 +73,13 @@ def main():
         width = rng.choice([32.0, 64.0, 128.0])
         height = rng.choice([32.0, 64.0, 128.0])
         components = 4 if k % 7 == 3 else 3
-        e.wf(TEXTURES + BREATH * 0x38 + 0x20, width)
-        e.wf(TEXTURES + BREATH * 0x38 + 0x24, height)
-        e.w8(TEXTURES + BREATH * 0x38 + 0x28, components)
+        e.wf(TEXTURES + kind * 0x38 + 0x20, width)
+        e.wf(TEXTURES + kind * 0x38 + 0x24, height)
+        e.w8(TEXTURES + kind * 0x38 + 0x28, components)
         seed = rng.getrandbits(32)
         e.rand_state = seed
-        lines.append('case %08x %s %s %s %d' % (seed, ' '.join(bits(x) for x in wind), bits(width), bits(height),
-                                                 components))
+        lines.append('case %08x %s %s %s %d %x %d %s' % (seed, ' '.join(bits(x) for x in wind), bits(width),
+                                                          bits(height), components, kind, subtype, bits(scale)))
         for step in range(STEPS):
             clock = f32(rng.uniform(0, 2_000_000)) if step % 4 else f32(rng.uniform(0, 400))
             e.wf(CLOCK, clock)
@@ -80,10 +88,12 @@ def main():
                 p = [f32(rng.uniform(0, 25600)), f32(rng.uniform(0, 25600)), f32(rng.uniform(-100, 1500))]
                 a = [f32(rng.uniform(-180, 180)), f32(rng.uniform(-180, 180)), f32(rng.uniform(-360, 360))]
                 lt = [3.0, 3.0, 3.0] if step % 3 else [f32(rng.uniform(0, 3)) for _ in range(3)]
+                if kind == SPARK and step % 3:
+                    lt = SPARK_LIGHT
                 e.wfv(pos, p)
                 e.wfv(ang, a)
                 e.wfv(light, lt)
-                e.call(CREATE, [BREATH, pos, ang, light, 0, e.fbits(1.0), 0])
+                e.call(CREATE, [kind, pos, ang, light, subtype, e.fbits(scale), 0])
                 lines.append('create %s %s %s %s' % (bits(clock), ' '.join(bits(x) for x in p),
                                                      ' '.join(bits(x) for x in a), ' '.join(bits(x) for x in lt)))
             e.call(STEP, [])

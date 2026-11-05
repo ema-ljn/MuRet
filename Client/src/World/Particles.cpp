@@ -6,6 +6,7 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -23,6 +24,8 @@ constexpr std::int32_t BreathLife = 16;
 // 0x5406eb: la de la chispa del cuervo, y lo que suma a su rand() % 2 (0x6b8818).
 constexpr std::int32_t SparkLife = 10;
 constexpr float SparkPush = 2.0f;
+constexpr double SparkShrink = static_cast<double>(std::bit_cast<float>(0x3F666666u));
+constexpr double SparkFade = static_cast<double>(std::bit_cast<float>(0x3F788B30u));
 constexpr double BreathScaleStep = static_cast<double>(0.01f); // 0x6b88d4
 constexpr int BreathScaleBase = 48;
 constexpr int FullTurn = 360;
@@ -111,6 +114,22 @@ void StepTheBreath(Particle& particle)
 bool IsBreath(const Particle& particle)
 {
     return particle.type == BreathParticle && particle.subtype == BreathSubtype;
+}
+
+bool IsSpark(const Particle& particle)
+{
+    return particle.type == SparkParticle && particle.subtype == RavenSparkSubtype;
+}
+
+// 0x545209 → 0x545f9e: la chispa se achica por 0,9 (0x6b8a1c) y se apaga por 1/1,03 (0x6ba3b0), cada
+// producto guardado en float.
+void StepTheSpark(Particle& particle)
+{
+    particle.scale = F32(static_cast<double>(particle.scale) * SparkShrink);
+    for (int k = 0; k < 3; ++k)
+    {
+        particle.light[k] = F32(static_cast<double>(particle.light[k]) * SparkFade);
+    }
 }
 } // namespace
 
@@ -232,12 +251,17 @@ void StepParticles(Particles& particles, Render::Models::CrtRandom& random)
         {
             StepTheBreath(particle);
         }
+        else if (IsSpark(particle))
+        {
+            StepTheSpark(particle);
+        }
     }
 }
 
 std::optional<ParticleDraw> ParticleDrawOf(const Particle& particle, const glm::vec2& textureSize, int components)
 {
-    if (!IsBreath(particle))
+    // El aliento (0x548707) y la chispa (el camino de siempre, 0x54889a) piden lo mismo.
+    if (!IsBreath(particle) && !IsSpark(particle))
     {
         return std::nullopt;
     }

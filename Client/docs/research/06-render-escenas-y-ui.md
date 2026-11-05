@@ -1596,9 +1596,12 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
   Las 12 `rand()` del constructor salen de la CRT de la tela al entrar. Antes del primer dibujo la chispa
   sale de su posición (Q-C133). El grito lee `0x7d3a0f0` crudo, que sin un acceso abierto es la basura
   cifrada del contador (Q-C125): MuRet le pasa los pasos de la tela, y no suena (no hay sonido): el paso
-  lo devuelve. Las chispas ya corren el paso genérico de `0x5446e0` (la vida y el movimiento, con el
-  doble giro de Q-C134); falta lo propio del subtipo 5 (`0x545209`: la escala por 0,9 y la luz) y el
-  dibujo, que no sacan `rand()` (CL7.6 C2). La pose de la chispa es la de MuRet, a nivel de float:
+  lo devuelve. Las chispas, desde la CL7.6 C2, bit a bit contra el código real (`particles.txt`, 8
+  casos de la chispa): el paso genérico de `0x5446e0` (la vida y el movimiento, con el doble giro de
+  Q-C134), lo propio del subtipo 5 (`0x545209` → `0x545f9e`: la escala por 0,9f y la luz por
+  0,9708738f, 1/1,03) y el dibujo, el camino de siempre de `0x548550` (`0x54889a`): el billboard de
+  `0x621400` con `Effect\Spark03.jpg` (`0x5c6`, que sube `0x61d737` con `GL_LINEAR` y `GL_CLAMP`) por
+  la escala, aditivo (3 componentes), sin giro y con toda la textura. Ninguno saca `rand()`. La pose de la chispa es la de MuRet, a nivel de float:
   `0x4eb860` acumula la posición desde la raíz en el mundo, y MuRet la suma al final.
 - **Lo que crea**: una **chispa por paso** (`0x5c6`, `Effect\Spark03.jpg`, subtipo 5), desde un
   hueso al azar de la pose del último dibujo (Q-C133): vida 10 pasos,
@@ -2459,7 +2462,7 @@ Ver [08](08-pendientes.md).
 | Las hojas (`0x530490` / `0x5306a0`), con las 80 brasas del mapa 55 y la altura del terreno de `0x5f93c0` | `World::Leaves` (las 80 brasas: nacen y caen, bit a bit contra el código real) y `World::TerrainHeightAt`; `Scenes::DrawLeaves` en el pase del mundo, después de los efectos con modelo; `LoginScene` las avanza después del caballo, con el héroe y la cámara en (0, 0, 0) hasta el primer dibujo (Q-C137) | CL7.6 B3 |
 | `0x602ed0`, después del dibujo de cada objeto visto: el `rand()` de cada uno y el brillo del farol (`0x3c`) en la escena 2 | `Scenes::ObjectFrameEffects` en `DrawWorldObjects`: un `rand()` de la CRT por objeto visto y los dos sprites de `flare01` en los huesos 8 y 9 del último modelo posado (`LastPosedBonePoint`: el dueño del dragón, Q-C140); `World::StreetLightGlowLight`, la luz; el dueño (`0xb4`) en `m_objects`, antes del `.obj` | CL7.6 B4 |
 | Los joints (`0x53c6a0`) | un sistema con su tabla, cuando una escena los use (el login no tiene ninguno) | — |
-| El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | `Scenes::DarkSpirit`: el constructor (`0x4167b0`) y el paso (`0x416a20`, estados 0 y 1), bit a bit contra el código real (`raven.txt`); `DrawDarkSpirit` (mallas 3 y 2 y la sombra de las cinco); la chispa nace en `World::Particles` (`0x5c6`, subtipo 5); `LoginScene` lo crea al entrar, lo avanza después del personaje y lo dibuja al final de su dibujo | CL7.6 C1 (el paso y el dibujo de las chispas, C2) |
+| El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | `Scenes::DarkSpirit`: el constructor (`0x4167b0`) y el paso (`0x416a20`, estados 0 y 1), bit a bit contra el código real (`raven.txt`); `DrawDarkSpirit` (mallas 3 y 2 y la sombra de las cinco); la chispa nace en `World::Particles` (`0x5c6`, subtipo 5); `LoginScene` lo crea al entrar, lo avanza después del personaje y lo dibuja al final de su dibujo | CL7.6 C1 y C2 (las chispas) |
 
 Tests que fija:
 

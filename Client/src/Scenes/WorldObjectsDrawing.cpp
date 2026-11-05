@@ -2,14 +2,20 @@
 
 #include "Core/IClock.h"
 #include "Render/ModelBatch.h"
+#include "Render/ModelVertex.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "World/ModelEffects.h"
+#include "World/Sprites.h"
+#include "Render/Billboard.h"
+#include "Render/Models/OriginalRotation.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
 
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <cstddef>
@@ -143,6 +149,93 @@ void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models,
         drawn.alpha = effect.alpha;
         drawn.vertexLight = effect.vertexLight;
         DrawObject(batch, models, drawn, frameClock);
+    }
+}
+
+namespace
+{
+// 0x549290 con la textura del atlas: el cuadro por su +4 (0x54941c), de 64 × 64, con un tercio de la
+// textura (0x3ea8f5c3 y 0x3f28f5c3).
+constexpr float AtlasSide = 64.0f;
+constexpr float AtlasThird = 0.33f;
+constexpr float AtlasTwoThirds = 0.66f;
+
+glm::vec2 AtlasCell(std::int32_t cell)
+{
+    switch (cell)
+    {
+    case 1:
+        return {AtlasThird, 0.0f};
+    case 2:
+        return {AtlasTwoThirds, 0.0f};
+    case 3:
+        return {0.0f, AtlasThird};
+    case 4:
+        return {AtlasThird, AtlasThird};
+    case 5:
+        return {AtlasTwoThirds, AtlasThird};
+    case 6:
+        return {0.0f, AtlasTwoThirds};
+    case 7:
+        return {AtlasThird, AtlasTwoThirds};
+    default:
+        return {0.0f, 0.0f};
+    }
+}
+
+Render::ModelBlend SpriteBlend(const World::Sprite& sprite)
+{
+    if (sprite.texture == World::AtlasSprite)
+    {
+        return Render::ModelBlend::Alpha;
+    }
+    switch (sprite.blend)
+    {
+    case 1:
+        return Render::ModelBlend::Subtractive;
+    case 2:
+        return Render::ModelBlend::Alpha;
+    default:
+        return Render::ModelBlend::Additive;
+    }
+}
+} // namespace
+
+void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, const IModelLibrary& textures,
+                      const Render::Models::OriginalMatrix& view)
+{
+    for (World::Sprite& sprite : sprites.Sprites())
+    {
+        if (!sprite.alive)
+        {
+            continue;
+        }
+        World::StepSpriteAlpha(sprite);
+        const Render::TextureSlot slot{sprite.texture};
+        Render::Billboard billboard;
+        // El tamaño: la escala por el alpha en la x87, por el ancho y el alto de la textura.
+        const double size = static_cast<double>(sprite.scale) * static_cast<double>(sprite.alpha);
+        if (sprite.texture == World::AtlasSprite)
+        {
+            billboard =
+                Render::MakeBillboard(view, sprite.position, AtlasSide, AtlasSide, sprite.light, sprite.rotation,
+                                      AtlasCell(sprite.blend), glm::vec2(AtlasThird), sprite.texture, 3);
+        }
+        else
+        {
+            const glm::vec2 texture = textures.TextureSize(slot).value_or(glm::vec2(0.0f));
+            const auto width = static_cast<float>(size * static_cast<double>(texture.x));
+            const auto height = static_cast<float>(size * static_cast<double>(texture.y));
+            billboard = Render::MakeBillboard(view, sprite.position, width, height, sprite.light, sprite.rotation,
+                                              glm::vec2(0.0f), glm::vec2(1.0f), sprite.texture, 3);
+        }
+        batch.SetState(Render::ModelDrawState{.texture = slot, .blend = SpriteBlend(sprite)});
+        const auto vertex = [&billboard](std::size_t k)
+        { return Render::ModelVertex{billboard.corners[k].position, billboard.corners[k].uv, billboard.color}; };
+        batch.Triangle({vertex(0), vertex(1), vertex(2)});
+        batch.Triangle({vertex(0), vertex(2), vertex(3)});
+        // 0x549440(0) lo apaga después de dibujarlo.
+        sprite.alive = false;
     }
 }
 } // namespace Client::Scenes

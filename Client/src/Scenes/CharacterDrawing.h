@@ -39,6 +39,13 @@ public:
     [[nodiscard]] virtual const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const = 0;
     // Uno por malla, en su orden; vacío si no se cargaron sus texturas.
     [[nodiscard]] virtual std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const = 0;
+    // El tamaño de la textura de `slot` (+0x20 y +0x24 de su lugar en la tabla, 0x7d3a1b8), si esta
+    // biblioteca la subió: el de los sprites (0x549290).
+    [[nodiscard]] virtual std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const
+    {
+        (void)slot;
+        return std::nullopt;
+    }
 };
 
 struct DrawnCharacter

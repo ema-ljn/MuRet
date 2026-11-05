@@ -19,6 +19,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/OriginalQuad.h"
 #include "Render/OriginalSkewedQuad.h"
+#include "Render/Billboard.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -155,6 +156,10 @@ constexpr int NoSlot = -1;
     return state == App::SessionState::ConnectingConnectServer || state == App::SessionState::ConnectingGameServer;
 }
 } // namespace
+
+// Los destellos de la tela (0x455930 → 0x5491e0): Effect\flare01.jpg, con la mezcla 0, aditiva.
+constexpr std::uint16_t ClothFlareTexture = 0x5ac;
+constexpr std::int32_t AdditiveSprite = 0;
 
 // El dragón: solo en el mapa 55, y su dueño, el 0xb4 que crea 0x616ec0 (0x6188ae).
 constexpr std::uint8_t DragonMap = 0x37;
@@ -405,6 +410,7 @@ void LoginScene::PlaceTheModels()
     // 0x6070a0 vacía la tabla de efectos, y en el mapa 55 el dueño del dragón (el 0xb4 que la carga del
     // mapa crea en (5.600; 23.000; 0)) lo crea con 0x518cf0 (06 § El dragón de fondo).
     m_effects.Clear();
+    m_sprites.Clear();
     if (m_world && m_world->map == DragonMap)
     {
         (void)m_effects.Create(World::DragonEffect, DragonOwnerPosition, glm::vec3(0.0f), glm::vec3(1.0f),
@@ -719,6 +725,23 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, m_terrainPolygon);
     DrawTheModels(canvas, alpha);
     canvas.flushModels();
+    // Los sprites del frame: los que pidieron el dibujo de los personajes (los 30 destellos de la tela,
+    // 0x455930), 0x549510 y, con la modelview en la identidad (0x6213e0), 0x549440(0).
+    for (const Render::Models::ClothFlare& flare : m_characterCloth.Flares())
+    {
+        (void)m_sprites.Create(ClothFlareTexture, flare.position, flare.scale, glm::vec3(flare.light), 0.0f,
+                               AdditiveSprite);
+    }
+    // Sin ninguno, el pase de ojo no dibuja nada y no se abre.
+    if (m_sprites.Any())
+    {
+        m_sprites.MarkSeen();
+        Render::Pass3D eye = pass;
+        eye.view = glm::mat4(1.0f);
+        canvas.models.Begin(eye);
+        DrawFrameSprites(canvas.models, m_sprites, m_models, Render::ViewRows(pass.view));
+        canvas.flushModels();
+    }
     // 5: las dos arenas, aditivas.
     sprites.SetBlend(Render::BlendMode::Alpha);
     sprites.SetColor(HalfWhite);

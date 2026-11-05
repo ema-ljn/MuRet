@@ -9,15 +9,21 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "World/TerrainCulling.h"
+#include "Render/Billboard.h"
+#include "World/Sprites.h"
 #include "Render/Models/Skinning.h"
 #include "World/TerrainLighting.h"
 #include "World/ModelEffects.h"
 #include "World/WorldObjects.h"
 
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <optional>
 #include <array>
 #include <memory>
 #include <bit>
@@ -323,5 +329,83 @@ TEST(ModelEffectsDrawingTest, TheDragonIsDrawnBetweenTwoSteps)
     ASSERT_FALSE(batch.Vertices().empty());
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.y, 1000.0f - 35.0f);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 1000.0f);
+}
+
+// Una biblioteca con el tamaño de la textura de los sprites (0x5ac de 64 × 32).
+class SpriteTextures final : public Client::Scenes::IModelLibrary
+{
+public:
+    [[nodiscard]] const Model* Find(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return {};
+    }
+    [[nodiscard]] std::optional<glm::vec2> TextureSize(TextureSlot slot) const override
+    {
+        return slot == TextureSlot{0x5ac} ? std::optional<glm::vec2>(glm::vec2(64.0f, 32.0f)) : std::nullopt;
+    }
+};
+
+// 0x549440(0): cada sprite vivo se dibuja una vez, aditivo, como el cuadrado de 0x621400 con la textura
+// por la escala (0x549290), y se apaga.
+TEST(SpritesDrawingTest, ASpriteIsDrawnOnceAndPutOut)
+{
+    const SpriteTextures textures;
+    Client::World::FrameSprites sprites;
+    ASSERT_TRUE(sprites.Create(0x5ac, {10.0f, 20.0f, -300.0f}, 2.0f, {1.0f, 0.3f, 0.0f}, 0.0f, 0));
+    sprites.MarkSeen();
+    const auto identity = Client::Render::ViewRows(glm::mat4(1.0f));
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    Client::Scenes::DrawFrameSprites(batch, sprites, textures, identity);
+    ASSERT_EQ(batch.Commands().size(), 1u);
+    EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
+    EXPECT_EQ(batch.Commands()[0].state.texture, TextureSlot{0x5ac});
+    ASSERT_EQ(batch.Vertices().size(), 6u);
+    // 64 × 2 de ancho y 32 × 2 de alto, centrado en (10, 20).
+    float minX = 1e9f;
+    float maxX = -1e9f;
+    float minY = 1e9f;
+    float maxY = -1e9f;
+    for (const auto& vertex : batch.Vertices())
+    {
+        minX = std::min(minX, vertex.position.x);
+        maxX = std::max(maxX, vertex.position.x);
+        minY = std::min(minY, vertex.position.y);
+        maxY = std::max(maxY, vertex.position.y);
+        EXPECT_EQ(vertex.position.z, -300.0f);
+        EXPECT_FLOAT_EQ(vertex.color.green, 0.3f);
+    }
+    EXPECT_FLOAT_EQ(maxX - minX, 128.0f);
+    EXPECT_FLOAT_EQ(maxY - minY, 64.0f);
+    EXPECT_FLOAT_EQ((minX + maxX) / 2.0f, 10.0f);
+    EXPECT_FALSE(sprites.Sprites()[0].alive);
+    batch.Begin(Client::Render::Pass3D{});
+    Client::Scenes::DrawFrameSprites(batch, sprites, textures, identity);
+    EXPECT_TRUE(batch.Vertices().empty());
+}
+
+// La mezcla de cada sprite sale de su +4 (0x549440): 1 0x620b10, 2 la normal; la textura 0x637 siempre
+// la normal.
+TEST(SpritesDrawingTest, TheBlendComesFromTheSprite)
+{
+    const SpriteTextures textures;
+    Client::World::FrameSprites sprites;
+    ASSERT_TRUE(sprites.Create(0x5ac, glm::vec3(0.0f, 0.0f, -10.0f), 1.0f, glm::vec3(1.0f), 0.0f, 1));
+    ASSERT_TRUE(sprites.Create(0x5ac, glm::vec3(0.0f, 0.0f, -10.0f), 1.0f, glm::vec3(1.0f), 0.0f, 2));
+    sprites.MarkSeen();
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    Client::Scenes::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
+    ASSERT_EQ(batch.Commands().size(), 2u);
+    EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Subtractive);
+    EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::Alpha);
 }
 } // namespace

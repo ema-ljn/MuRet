@@ -2118,12 +2118,12 @@ CL4.R). Si no, el aviso `0x70`. Con la versión distinta, cierra la ventana de l
   blanco y sin fondo, y el título, el texto 460 o 461 (según `0x447c70(grupo, número)`) con el
   nombre del grupo y el número, en (x + 111, y + 80). Las posiciones en píxeles pasan a 640 × 480
   dividiendo por la proporción y truncando (`ftol`), y `0x554000` las vuelve a escalar.
-- **El emisor** (`0x641bf0`): solo con `DAT_057678c0` distinto de 0. Cierra la ventana de
-  arriba, copia los campos a `0x7798bf8` (cuenta) y `0x7798cf8` (clave) con un tope de `0xff`
-  (`0x4693e0`); con la cuenta vacía abre el aviso `0x64` y con la clave vacía el `0x65`; con el
-  estado en 2 copia la cuenta a `DAT_0576792c`, pone `DAT_05767928` en 1 y el estado en `0x13` y
-  arma el `F1 01` (Q-C43). El resto de la función llama a la tabla de hash de `0x40b240`: puede ser
-  el anticheat, y no se siguió.
+- **El emisor** (`0x641bf0`): solo con `DAT_057678c0` distinto de 0. Cierra la ventana de arriba,
+  copia los campos a `0x7798bf8` (cuenta) y `0x7798cf8` (clave) con un tope de `0xff` (`0x4693e0`);
+  con la cuenta vacía abre el aviso `0x64` y con la clave vacía el `0x65`; con el estado en 2 copia
+  la cuenta a `DAT_0576792c`, pone `DAT_05767928` en 1 y el estado en `0x13` y arma el `F1 01`
+  (Q-C43). El resto de la función llama a la tabla de hash de `0x40b240` ([La tabla de
+  protección](#la-tabla-de-protección)): puede ser el anticheat, y no se siguió.
 
 ### Los avisos
 
@@ -2628,8 +2628,8 @@ bloque de la entrada, en orden (*estático*):
 | `0x6370ef` | **`0x447030`** | los peces | no |
 | `0x6370f4` | `0x445230` | el caballo oscuro | sí (`StepDarkHorse`) |
 | `0x6370f9..0x637105` | `0x557650`, `0x451d10`, `0x451c10` | contadores y listas, sin leer | — |
-| `0x63710a` | **`0x59adf0`**, el `MoveHero` | el héroe con el mouse ([Caminar](#caminar)); baja `0x77f3b04` y escribe en `0x77f36d0` la capa 1 de la celda del héroe (`0x59e2ba`) | falta |
-| `0x63710f` | **`0x508f00` → `0x508ea0`** | por personaje: el trapecio en (x, y) · 0,01 con −20 a `+0x16c`, `0x508ba0`, `0x4fd5f0` (la animación y el alpha), `0x505de0` (la cabeza y las luces) y `0x42da90` | la animación, la cabeza, `CharacterSeen` |
+| `0x63710a` | **`0x59adf0`**, el `MoveHero` | el héroe con el mouse ([Caminar](#caminar)); baja `0x77f3b04`, escribe en `0x77f36d0` la capa 1 de la celda del héroe (`0x59e2ba`) y, con `0x57cfc0`, abre y cierra el registro propio: 3.848 `rand()` ([La tabla de protección](#la-tabla-de-protección)) | falta |
+| `0x63710f` | **`0x508f00` → `0x508ea0`** | por personaje: el trapecio en (x, y) · 0,01 con −20 a `+0x16c`, `0x508ba0`, `0x4fd5f0` (la animación y el alpha), `0x505de0` (la cabeza y las luces) y `0x42da90`; antes, el `0x02` del `TerrainWall`, con 8 `rand()` por personaje vivo | la animación, la cabeza, `CharacterSeen` |
 | `0x637114` | `0x548f40` | los números de daño (`0x7609c0c`) | CL9.2 |
 | `0x637119` | `0x53eaf0` | la tabla `0x75fe028` (`0x51fc80`), sin leer | — |
 | `0x63711e` | **`0x52d220`** | los efectos con modelo | sí (`StepModelEffects`) |
@@ -2712,8 +2712,9 @@ frames al azar (cinco semillas: el héroe, el atributo, el temblor, el reloj, el
 
 **La cuenta**, en la escena 5 fuera del mapa 6 (*estático*, *emulado*). H es el héroe (`0x743a170`):
 
-1. **El fov** en 35 (`0x635aeb`) y los ángulos X e Y en 0. La vista de arriba (`0x7d36899`: la z a
-   3.200 sobre el héroe, sin el giro en X) no la escribe nadie: está muerta.
+1. **El fov** en 35 (`0x635aeb`) y los ángulos X e Y en 0. La vista de arriba (`0x7d36899`, sin el
+   giro en X) pondría la cámara en la x y la y del héroe, con la z y el far en 3.200 absolutos, no
+   sobre el héroe (`0x635b12..0x635b32`), pero nadie escribe la bandera: está muerta.
 2. **El atributo** de la celda `[H + 0x420] · 256 + [H + 0x41c]` (la del servidor, por la tabla de
    protección; `0x5f8290`): el byte de abajo del WORD de `0x7d0d348`.
 3. **El far** (`0x6d5d44`): **3.000** si 16.100 ≤ H.x ≤ 19.000 y 18.900 ≤ H.y ≤ 21.700
@@ -2786,12 +2787,17 @@ de la selección (`0x633920`), la vista previa (`0x6338a0`) y la entrada al logi
 Con Ctrl y la rueda, `0x632dd0` cambiaría el nivel de 0 a 4, pero no la llama nadie: no hay un
 `call`, un puntero ni otro `inc` o `dec` de `0x7d3a0ec`.
 
-**El zoom y el `0x40` no se prenden en Lorencia** (*verificado* en los archivos y en el volcado). El
-cargador del `.att` rechaza el archivo si una celda trae `0x80` o más (`0x5f85fd`); ningún `.att`
-del `Data\` tiene una celda con `0x40`; y el volcado vivo de Lorencia (`lor_att.bin`) tampoco tiene
-`0x80` ni `0x40`, con el byte de arriba siempre en 0 (la celda (143, 120) vale `0x01`). Solo los
+**El zoom y el `0x40` no se prenden en Lorencia, pero el `0x40` sí en el mapa 30** (*verificado* en
+los 29 `EncTerrain*.att` del `Data\` y en el volcado). El cargador del `.att` rechaza el archivo si
+una celda trae `0x80` o más (`0x5f85fd`), y ningún `.att` la trae: el `0x80`, el del zoom, solo lo
 podría poner el paquete `0x46` (`0x4e2b10` → `0x4dab90` → `0x5f8750` o `0x5f8710`), con los bits que
-mande el servidor; los usos fijos de `0x5f8750` ponen `0x08` o `0x04` (*estático*; P-C29 g).
+mande el servidor; los usos fijos de `0x5f8750` ponen `0x08` o `0x04` (*estático*; P-C29 g). El
+`0x40` está solo en los cuatro `.att` de `World31` (`EncTerrain31`, `EncTerrain312` y los dos de
+prueba): 835 celdas, de x 160 a 190 e y 190 a 220, sobre el castillo y el rectángulo del far
+(Q-C149). Ahí, con el héroe encima, z0 pasa de 255 a 1.201 y `0x6c9d5c` queda en 1.201 (Q-C150). El
+volcado vivo de Lorencia (`lor_att.bin`) no tiene `0x80` ni `0x40`, con el byte de arriba siempre en
+0 (la celda (143, 120) vale `0x01`). Antes este documento, con el barrido de `World1` a `World12`,
+decía que ningún `.att` tenía el `0x40`.
 
 **El frustum del juego** (*estático*; el trapecio, *verificado* en Lorencia por
 `GoldenTerrainTrace`). Lo de [Terreno](#terreno) vale igual. Lo propio de la escena 5:
@@ -2828,7 +2834,7 @@ aspecto, el rango y el trapecio (*estático*; las ventanas son de la CL8).
 | --- | --- | --- |
 | el mapa 6 con "webzen" | `0x576960` busca un **substring**, con `_mbclen`: la tiene cualquier nombre que contenga "webzen", y la rama de "webzen2" (5.700; 16.300; yaw −140) está muerta, porque "webzen2" contiene "webzen" (Q-C152). La que corre: yaw −40, pitch −70, z 1.000, el punto fijo (5.400; 16.000) más el corrimiento, far 5.000 y D = 3.200 desde el frame siguiente; el objetivo del frustum es (6.400; 15.400; H.z) (`0x6371a0`) y el trapecio, propio (3.995 y 425, girado −yaw). Al salir del mapa 6 el yaw queda en −40 hasta volver a entrar al juego, y D baja de 3.200 a 1.000 en unos 20 frames (2.466,7 en el primero) | *estático*; *emulado* |
 | el mapa 5 (`World6`) | el balanceo del pitch y de Y con el reloj, sin suavizar D | *estático*; *emulado* |
-| el mapa 30 (`World31`, el castillo) | la z base en 255, el far en 2.500 y D en 1.100 de golpe; en el rectángulo, far 3.000 y la niebla lineal de `0x42b0a0` (de 2.000 a 2.700); fuera, `glDisable(GL_FOG)`; el trapecio, propio | *estático* |
+| el mapa 30 (`World31`, el castillo) | la z base en 255 (1.201 sobre las 835 celdas con `0x40` del castillo), el far en 2.500 y D en 1.100 de golpe; en el rectángulo, far 3.000 y la niebla lineal de `0x42b0a0` (de 2.000 a 2.700); fuera, `glDisable(GL_FOG)`; el trapecio, propio | *estático* |
 | el recorrido `CCameraMove` | con el `BD 00`: el objetivo y el nivel son los suyos y H.z = 300 en cada frame; al entrar, D va de 1.100 a 1.166,7 y sigue hacia 1.300, y el far es 2.950 desde el segundo frame | *estático*; *emulado* |
 | los efectos 299 y 300 del héroe | la cámara sigue la x y la y del efecto; la z, la del héroe | *estático* |
 | las cámaras fijas del login y de la selección | las de [Cámara](#cámara). Como `0x635ae0` es la misma, el zoom que quedó del juego corre la cámara del login: con 210, a (12.636,6; 12.819,4), y baja de a 10 por frame (P-C27 b) | *emulado* |
@@ -2921,15 +2927,18 @@ oscurece la luz del terreno alrededor del héroe.
 en el 0, hasta 3 `0xb2` (`Fish01`), a ±512 del héroe y solo en celdas con la capa 1 en 5, el agua
 (`0x5f82a0`; *estático*).
 
-**Las hojas** (`0x530490`; el dibujo, `0x5306a0`): **80 en todos los mapas salvo el 9, que tiene
-200** (`(-(mapa != 9) & −120) + 200`, `0x530497..0x5304a3`; *estático*, y las 80 con la textura
-`0x64`, *verificado* en la traza). En el 0 nacen con `0x52fa60`, el tipo 100 (`leaf01`), alrededor
-del héroe (*estático*), y avanzan con `0x5301a0` y `0x5303a0`: caen y se posan en el terreno
-(`0x5f93c0`). **No corren con el héroe adentro de la taberna** (la capa 1 en 4,
-`0x637082..0x6370e5`). La cuenta de la lluvia, `0x75fdc3c`, se acerca de a 1 por paso a
-`0x75fdc38`, la meta que escribe el `0F` ([04](04-protocolo.md#el-clima-y-crywolf-0f-y-bd)). La
-lluvia (`0x66`) solo nace en Icarus (`0x52fc10`): en Lorencia, el `0F` de lluvia prende el sonido de
-ambiente y nada más (*estático*; P-C31 d).
+**Las hojas** (`0x530490`; el dibujo, `0x5306a0`): **80 en Lorencia** (*estático*, y las 80 con la
+textura `0x64`, *verificado* en la traza). La cuenta de partida es `(-(mapa != 9) & −120) + 200`
+(`0x530497..0x5304a3`): 200 en el mapa 9 y 80 en los demás, y después cambia en algunos
+(*estático*): 40 en el 30 (`0x5304da`); en el 34, 60 o 50 con `0x5763358` en 1 o en 2 (`0x530500`,
+`0x53050c`; *inferido*, el estado de Crywolf); y en el 10 y del 18 al 23, 80, con la meta de la
+lluvia (`0x75fdc38`) en 100 en cada paso. En el 0 nacen con `0x52fa60`, el tipo 100 (`leaf01`),
+alrededor del héroe (*estático*), y avanzan con `0x5301a0` y `0x5303a0`: caen y se posan en el
+terreno (`0x5f93c0`). **No corren con el héroe adentro de la taberna** (la capa 1 en 4,
+`0x637082..0x6370e5`). La cuenta de la lluvia, `0x75fdc3c`, se acerca de a 1 por paso a `0x75fdc38`,
+la meta que escribe el `0F` ([04](04-protocolo.md#el-clima-y-crywolf-0f-y-bd)). La lluvia (`0x66`)
+solo nace en Icarus (`0x52fc10`): en Lorencia, el `0F` de lluvia prende el sonido de ambiente y nada
+más (*estático*; P-C31 d).
 
 **La música y el ambiente** (`0x6387ed..0x639422` y `0x6386a9`, en `0x637700`; *estático*, de la
 CL10): en Lorencia, `main_theme.mp3` con el héroe en la zona segura y `Pub.mp3` con la capa 1 de su
@@ -3085,11 +3094,12 @@ con enteros salvo la rama de `fDistance`, que caminar no usa):
 - **Cada vuelta** saca el mínimo, le recalcula el costo desde los vecinos cerrados (+5 en recta, +7
   en diagonal, 0 al inicio) y lo cierra. Si es la meta, arma el camino hacia atrás (`PathX[499 −
   n]`, con un tope de 500).
-- **Los vecinos**, en este orden (`0x6d5d80`): (−1, −1), (0, −1), (1, −1), (−1, 0), (1, 0), (−1,
-  1), (0, 1), (1, 1). Entra el que no está abierto ni cerrado y tiene `(Map & ~0xe0) < iWall`, con
-  la prioridad **h + el costo del padre**, no el suyo. h = (|dx − dy| · 15 + 3 + min(dx, dy) · 21) /
-  4, salvo con dx = dy = 1, que da 0 (`0x4eb2b9..0x4eb2c2`): **la celda diagonal a la meta vale lo
-  mismo que la meta** (Q-C159).
+- **Los vecinos**, en este orden (`0x6d5d80`): (−1, −1), (0, −1), (1, −1), (−1, 0), (1, 0), (−1, 1),
+  (0, 1), (1, 1). Entra el que no está abierto ni cerrado y tiene `(Map & ~0xe0) < iWall`, con la
+  prioridad **h + el costo del padre**, no el suyo. h = (|dx − dy| · 15 + 3 + min(dx, dy) · 21) / 4,
+  en enteros, salvo con dx = dy = 1: ahí `0x4eb2c2` pone en 0 la dy, no la h, y da (15 + 3) / 4 = 4,
+  lo mismo que la vecina en recta, (1, 0). **La celda diagonal a la meta vale lo mismo que la de al
+  lado** (`0x4eb2b9..0x4eb2c2`, Q-C159; antes este documento decía que daba 0).
 - **Sin `bErrorCheck`** guarda el sacado de menor h y, si se acaban las vueltas, devuelve el camino
   hasta ese: "el más cerca que encontré".
 
@@ -3113,22 +3123,25 @@ Los topes y los bordes (*emulado*, con un mapa vacío y con el `.att` de Lorenci
 | en diagonal | llega a 20 y a las 30 falla |
 | después de fallar | el "más cerca" da caminos de 10 u 11 celdas |
 | un camino de más de 15 | se camina el principio: en Lorencia, de (135, 125) a (120, 110), 14 pasos hasta (123, 112), todavía a 3 celdas |
-| el blanco ocupado (`0x02`) | el exacto falla y el "más cerca" termina en la celda **diagonal** al blanco (h = 0), no en la de al lado |
+| el blanco ocupado (`0x02`) | el exacto falla y el "más cerca" termina en la celda **diagonal** al blanco, no en la de al lado: las dos tienen h = 4, y decide el orden de los empates |
 | un pasillo cortado por personajes | en la zona segura el segundo intento pasa por encima; fuera, se queda antes del corte |
 | un clic sobre una pared | de (130, 130) a la (160, 160), con el atributo 4: camina 10 pasos hacia ahí |
 
-**Contra el cable** (*verificado*): de los 178 `A3` con algún paso (229 en total), 171 tienen el
-blanco en la última celda, y **169 de esos 171 dan el mismo camino** que el A* real emulado sobre el
-`.att` de Lorencia, sin ningún otro personaje. Los 2 distintos (`[7, 6, 7]` contra `[7, 7, 6]` y
-`[3, 2]` contra `[2, 3]`) son lo que da una celda ocupada por otro (`0x02`), que el cable no muestra
-(*inferido*, P-C30 h). Toda la caminata de la captura es en Lorencia.
+**Contra el cable**: de los 178 `A3` con algún paso (229 en total), 171 tienen en el nibble alto de
+`P0` la dirección del último paso, así que el blanco es la última celda (*inferido*: el cable no
+trae el blanco), y **169 de esos 171 dan el mismo camino** que el A* real emulado sobre el `.att` de
+Lorencia, del inicio a esa celda, sin ningún otro personaje (*verificado*). Los 2 distintos (`[7, 6,
+7]` contra `[7, 7, 6]` y `[3, 2]` contra `[2, 3]`) son lo que da una celda ocupada por otro
+(`0x02`), que el cable no muestra (*inferido*, P-C30 h). Toda la caminata de la captura es en
+Lorencia.
 
 **El `TerrainWall` vivo** (`0x508f00`, *estático*): en cada paso, antes del de los personajes, le
 saca el `0x02` a las 65.536 celdas, y después se lo pone a la celda lógica de cada personaje vivo
-(`+0` distinto de 0, `+0x389` en 0 y `+0x88` distinto de 8), **el héroe incluido**. El camino del
-héroe (en `MoveHero`, que corre antes) ve las del paso anterior. El `.att` de Lorencia trae una
-celda con el 2 en el archivo, la (221, 11), que se borra en el primer paso (Q-C170; *verificado* el
-dato).
+(`+0` distinto de 0, `+0x389` en 0 y `+0x88` distinto de 8), **el héroe incluido**, y al cerrar las
+dos celdas cifradas gasta 8 `rand()` por personaje ([La tabla de
+protección](#la-tabla-de-protección)). El camino del héroe (en `MoveHero`, que corre antes) ve las
+del paso anterior. El `.att` de Lorencia trae una celda con el 2 en el archivo, la (221, 11), que se
+borra en el primer paso (Q-C170; *verificado* el dato).
 
 **El paquete, `SendMove` (`0x56acd0`).** Sale una vez por cada `PathFinding2` que sale bien en
 `MoveHero`, al hacer clic o al recalcular apretado: no por paso ni por celda. Con la ventana
@@ -3153,11 +3166,18 @@ pone `Movement` igual (Q-C177; nadie lo llama así).
   `Movement` es el resultado y, si falla, `SetPlayerStop`.
 - **El `D7` del servidor** (`0x4caae0`) **no es movimiento: es el daño**. Dibuja el número
   (`0x548e40`, de 15 de alto) y, si no es el héroe, lo guarda en `+0x384`; al héroe le resta la vida
-  (`0x7681eb0 + 0x22`, con piso en 0). Con el bit 15 del id llama a `SetPlayerShock` (`0x4f53a0`):
-  un jugador (`0x20a`) toma la acción `0xc2` y **`Movement = 0`**, y deja de caminar a mitad de
-  camino con la celda lógica ya en la siguiente (Q-C178); un monstruo toma la acción 5 y sigue. Sin
-  el bit, los otros (salvo el `+0x376 == 0x113`) reciben la sacudida con un `rand() & 1`
-  (`0x4cb3bd..0x4cb3d9`), que gasta el `rand()` (Q-C179); el héroe, no.
+  (`0x7681eb0 + 0x22`, con piso en 0, y cierra el registro propio con 3.848 `rand()`, Q-C183). **Con
+  el bit 15 del id llama siempre a `SetPlayerShock`** (`0x4f53a0`, `0x4cab6b`), también con el
+  héroe. Sin el bit, al héroe nunca, y a los otros, salvo los de `+0x376 == 0x113`, **una vez de
+  cada dos**: si `rand() & 1` da 0 (`0x4cb3bd..0x4cb3e8`).
+- **`SetPlayerShock` (`0x4f53a0`)** no hace nada con el daño en 0 o menos, con `+0x389` (muriendo),
+  montado en `0x1c14`, `0x1c15` o `0x1c16`, o en las acciones `0x3e`, `0x3f` o `0x44`. Si no, un
+  jugador (`0x20a`) toma la acción `0xc2` y **`Movement = 0`** (`0x4f546c`): deja de caminar a mitad
+  de camino, con la celda lógica ya en la siguiente (Q-C178). Con Fenrir (`0x1c37`) llama a
+  `0x4e9cd0` en vez de la acción, pone `Movement = 0` igual (`0x4f5455`) y, si `rand() % 3` da 0
+  (`0x4f5423`), suena el `0x27b` + `rand() & 1` (`0x4f5436`). Un monstruo toma la acción 5, salvo en
+  la 3 o la 4, y sigue. Después, con `+0x114` en 0, suena un golpe que se elige con otro `rand()`
+  según la clase (`0x4f5488..`). Todo esto gasta `rand()` (Q-C179).
 
 **El paso entre celdas** (*emulado* con `0x4f37c0`, `0x4ea270` y `0x508a80` reales).
 
@@ -3381,6 +3401,43 @@ propio del terreno de algunos mapas (*estático*; MuRet ya tiene lo marcado con 
 
 Fuera de Lorencia pero en el mismo lugar del paso: con la capa 1 en 3 o en 10 o más, Devias oculta
 los techos `0x51`, `0x52`, `0x60`, `0x62` y `0x63` y no nieva.
+
+### La tabla de protección
+
+Algunas variables del juego viven cifradas en la tabla de `0x57630c8` y están en claro solo mientras
+alguien las tiene abiertas: el registro propio de `0x7681eb4` (`0xf08` bytes), la celda lógica de
+cada personaje (`+0x41c`, `+0x420`), el contador `0x77f3b04` y el de pasos `0x7d3a0f0` (Q-C125),
+entre otras. Cada entrada guarda la copia cifrada y, en el byte siguiente, cuántos accesos la tienen
+abierta. Abrir la descifra cuando la cuenta pasa de 0 a 1, y cerrar la vuelve a cifrar cuando baja a
+0: **cada cierre que la deja en 0 gasta `rand()`**, 3.848 el registro propio y 4 una variable de 4
+bytes (*estático*; las dos cuentas, *emulado*). Las funciones (*estático*):
+
+| Función | Qué hace |
+| --- | --- |
+| `0x40ad90` | agrega una entrada para una dirección (la primera vez que se abre) |
+| `0x40b240` | busca la entrada de una dirección, con el hash del método `+0xc`; −1 si no está |
+| `0x40b2f0` | da la entrada: la copia y la cuenta de accesos |
+| `0x40b440` | descifra el registro propio al abrir el primer acceso |
+| `0x40b4d0` | lo cifra de nuevo al cerrar el último: **un `rand()` por byte, 3.848** (`call 0x69fd70` en `0x40b52e`, el lazo hasta `0x40b549`), y deja `rand() & 0xff` en cada byte del registro |
+| `0x40b570` y `0x40b800` | abren y cierran una variable de 4 bytes en una sola llamada; el cierre trae en línea los 4 `rand()` |
+| `0x412810` | descifra una variable de 4 bytes |
+| `0x412890` | la cifra de nuevo: 4 `rand()` |
+
+Muchos lugares traen el acceso en línea en vez de llamar (el `D7` del héroe tiene el lazo de
+`0x40b4d0` en `0x4caf64..0x4cafb7`), así que contar las llamadas no alcanza. Los que gastan, por
+paso o por frame (*estático*; el de la cámara, *emulado*):
+
+| Quién | Cuándo | `rand()` |
+| --- | --- | --- |
+| `MoveHero`, que llama a `0x57cfc0` al final de casi todos los pasos (`0x59e255`), y este abre y cierra el registro propio (`0x57d051..0x57d10d`) | cada paso del juego | 3.848 |
+| `0x4c3940`, la respuesta del `F3 03` | al entrar al mundo, que cierra el registro tres veces | 11.544 |
+| el `F3 04` (tres cierres), el `F3 10` (uno) y el `D7` al héroe (uno, en línea) | con cada paquete | 3.848 por cierre |
+| `0x508f00`, las celdas lógicas al marcar el `TerrainWall` | cada paso, por cada personaje vivo | 8 |
+| `0x635ae0`, la celda del héroe para el atributo | cada frame dibujado, también en las escenas 2 y 4 | 8 |
+
+El mismo gasto lo tienen los otros accesos a `+0x41c` y `+0x420` (en `MoveHero`, `MovePath` y el
+`D3`, 4 por cierre) y el contador de pasos (Q-C125). Ese azar no se usa para nada, pero corre la
+serie de la CRT que usan los efectos, la tela y el cuervo: Q-C183 y P-C22 a.
 
 ## Lo que no se sabe
 

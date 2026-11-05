@@ -254,9 +254,11 @@ Cada plan lo suma al escribirse. El detalle está en las sub-olas del
     `0x510d00`.
   - **Lo que pide el terreno:** la z del objeto de la vista previa (hoy en (50, 50, 0)) y la zona
     segura de la celda del jinete, que apaga el caballo.
-  - **El `F3 03`:** su respuesta (`0x4c3940`), el tope de `EnteringWorld` y las velocidades del
-    keepalive (`ServerSession::SetKeepaliveSpeeds`) con lo que traiga esa respuesta.
-  - **El movimiento:** los multiplicadores de `0x4f9580`, y que la cámara que se mueve (CL7.3) dé un
+  - **El `F3 03`:** su respuesta (`0x4c3940`) y el tope de `EnteringWorld` (CL7.L1). Las velocidades del
+    keepalive (`ServerSession::SetKeepaliveSpeeds`) no salen de esa respuesta: `0x4c3940` no escribe `+0x4c`
+    ni `+0x58`, y quién las escribe queda en P-C28.
+  - **El movimiento:** los multiplicadores de `0x4f9580` (son de la velocidad de la animación, no tocan
+    caminar ni correr: 06 § Caminar), y que la cámara del juego (CL7.3) dé un
     `Render::Camera3D`.
   - **Volver a la selección desde el juego** (el `F1 02` con 1): `SceneTransitions` ya lo deja, pero
     `CharacterSelectScene::Enter` pide la lista solo en `LoggedIn`, y con la sesión en

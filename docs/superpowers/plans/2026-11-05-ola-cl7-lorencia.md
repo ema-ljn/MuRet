@@ -49,8 +49,10 @@ Git (`scratchpad/lorencia-sweep/`); lo que vale de ellos está en esos docs.
   Faithful).
 - El `rand()` es el de la CRT compartido (`ClothWorld::random`), en el orden del original; cada sub-ola que
   saque `rand()` lo compara con el estado del emulado.
-- Ningún log ni test lleva un nombre de personaje ni de cuenta. Los vectores del cable se guardan sin los
-  paquetes que traen nombres (el chat, el `F3 03` que sale, la lista).
+- Ningún log ni test lleva un nombre de personaje ni de cuenta. De un cable se guardan solo los paquetes que
+  el test lee y que no traen nombres: la respuesta del `F3 03`, el `F3 10`, `D3`, `D7`, `1C`, `F3 04`,
+  `F3 12`, `0F` y `A3`. Nunca el chat, el `F3 03` que sale, las listas de personajes, el C2 `12`, el `02`, el
+  `F3 01` ni el `F3 02`.
 
 ## Decisiones de este plan
 
@@ -67,13 +69,18 @@ si no choca con eso; si choca, queda para más adelante.
    frame retenido (`HoldsTheLastFrame`) mientras dura y mientras se espera la respuesta. Nada de hilos. No
    choca con los FPS: mientras carga no se dibuja, igual que en el original.
 3. **Las variables protegidas gastan sus `rand()` como en el original.** El original guarda la celda del
-   héroe, el contador `0x77f3b04`, el contador de frames y otros en una tabla cifrada (`0x57630c8`), y cada
-   acceso que se cierra pisa la variable con 4 `rand()` (Q-C125). MuRet guarda el valor en claro, pero cada
-   acceso que en el original pasa por la tabla gasta lo mismo, en el mismo lugar (CL7.P). Los vectores del
-   emulado se arman con la tabla viva, para que cuenten esos `rand()`.
+   héroe, el contador `0x77f3b04`, el contador de frames, el registro propio y otros en una tabla cifrada
+   (`0x57630c8`). Cada acceso que se cierra los vuelve a cifrar con `rand()`: 4 una variable chica
+   (`0x412890`, Q-C125) y **3.848 el registro propio** (`0x7681eb4`, de `0xf08` bytes, en `0x40b4d0`). Gastan
+   en cada paso y en cada frame también funciones que MuRet no porta: `0x57cfc0`, de las habilidades, cierra
+   el registro al final de casi cada paso de `MoveHero` (3.848 `rand()` por paso); `0x508f00` gasta 8 por
+   personaje vivo y por paso; `0x635ae0`, 8 por frame dibujado, también en el login y la selección. MuRet
+   guarda los valores en claro, pero cada acceso que corre en el original gasta lo mismo en el mismo lugar,
+   lo porte MuRet o no (CL7.P). Los vectores del emulado se arman con la tabla viva, para que los cuenten.
 4. **Sin HUD hasta la CL8.** El mundo va en (0, 0, 640, 432) como en el original, con el ancho de 640 fijo
-   hasta que la CL8 traiga las ventanas (`0x5bb8d0`: 450 con una, 260 con dos). El 2D de la escena 5 queda
-   en negro.
+   hasta que la CL8 traiga las ventanas (`0x5bb8d0`: 450 con una, 260 con dos). Del 2D de la escena 5 va
+   solo el cursor del juego (`0x5ac2d0`, en `0x6376d7` y `0x6376e1`), como en el login y la selección: sin
+   él no se vería dónde se hace clic. Lo demás del 2D queda en negro.
 5. **El estado de la cámara es global, como en el original:** la D, el zoom, el yaw, el nivel, el far y la
    altura del `0x40` viven entre escenas, y el login y la selección también pasan por `0x635ae0` (CL7.3 B).
    Así se reproduce P-C27 b, el zoom que quedó del juego y corre la cámara del login, y la altura de 1.201
@@ -96,11 +103,12 @@ si no choca con eso; si choca, queda para más adelante.
    avanzan por paso a cualquier FPS; el zoom y la D de la cámara, por frame del original; un frame de 2 s no
    mueve al héroe más de lo que caminaría en 50 pasos, ni le saltea una celda del camino.
 4. **El orden de los `rand()`:** todo lo vivo de Lorencia saca del mismo `rand()`. Uno de más o de menos corre
-   todo lo que viene después, incluidas la tela y el cetro, que ya son bit a bit. Cada sub-ola compara el
-   estado del `rand()` con el emulado después de cada paso.
+   todo lo que viene después, incluidas la tela y el cetro, que ya son bit a bit. Desde la CL7.P, cada
+   sub-ola compara el estado del `rand()` con el emulado con la tabla protegida viva, después de cada paso y
+   de cada dibujo.
 5. **La resolución** (640 × 480, 1024 × 768 y una ventana ancha): el pase del mundo va en (0, 0, 640, 432)
    escalado y con el aspecto del viewport (1,4819 en 1024 × 768); el rango de bloques sale de la vista de la
-   franja; los bloques y los objetos del borde del trapecio no aparecen y desaparecen al girar ni al caminar.
+   franja; los bloques y los objetos del borde del trapecio no aparecen y desaparecen al caminar.
 
 ## Orden y hitos
 
@@ -166,8 +174,9 @@ bit a bit con el héroe en (14.350; 12.050; 165). PR propio.
 
 - [ ] **Paso 1:** el generador corre `0x635ae0` real, frame por frame, con unos 3.000 frames en casos al
   azar (cinco semillas): el héroe, el byte del atributo de su celda (0, `0x01`, `0x40`, `0x80` y `0xc0`), el
-  temblor, el reloj, el mapa (0, 2, 3, 5 y `0x1e`), la escena (2, 4 y 5), la D y el zoom de entrada, y los
-  bordes del rectángulo del far (16.100, 19.000, 18.900 y 21.700, ±0,01). Cada frame lleva la entrada y la
+  temblor, el reloj, el mapa (0, 2, 3, 5, 6 y `0x1e`), la escena (2, 4 y 5), "webzen" en el 6 (prendido y
+  apagado), la D y el zoom de entrada, y los bordes del rectángulo del far (16.100, 19.000, 18.900 y 21.700,
+  ±0,01). Cada frame lleva la entrada y la
   salida en hexadecimal: posición, ángulos, far, D, meta, zoom, nivel y la altura del `0x40`.
 - [ ] **Paso 2:** correrlo con `MURET_MAIN_EXE` y guardar `camera.txt`, con su README.
 - [ ] **Paso 3:** commit.
@@ -185,10 +194,11 @@ bit a bit con el héroe en (14.350; 12.050; 165). PR propio.
     primer paso de la escena 5), `float distance = 1000` (`0x7d36ba4`), `float zoom = 0` (`0x7d3689c`),
     `int level = 0` (`0x7d3a0ec`), `float farPlane = 2000` (`0x6d5d44`, que se lee con el nivel del frame
     anterior), `float fixedHeight = 1200` (`0x6c9d5c`, 1.201 desde el primer `0x40`).
-  - `struct GameCameraInput { glm::vec3 hero; std::uint8_t cellAttribute; std::uint8_t map; CullingScene scene; float shake; Core::Duration clock; bool webzen; glm::vec3 effectTarget; };`
+  - `struct GameCameraInput { glm::vec3 hero; std::uint8_t cellAttribute; std::uint8_t map; CullingScene scene; float shake; float worldTime; bool webzen; glm::vec3 effectTarget; };`
     con el `World::CullingScene` que ya tiene `TerrainCulling.h` (2, 4 y 5, las escenas del original). El
-    atributo es el byte bajo de la celda del servidor del héroe; `effectTarget` (0, 0, 0) es "sin desvío"
-    (`0x724588`).
+    atributo es el byte bajo de la celda lógica del héroe (`+0x41c`, `+0x420`, la que va una adelante,
+    Q-C173); `worldTime` es el float de `0x5767b88`, en ms, el que lee el balanceo del mapa 5;
+    `effectTarget` (0, 0, 0) es "sin desvío" (`0x724588`).
   - `[[nodiscard]] Render::Camera3D StepGameCamera(GameCamera& state, const GameCameraInput& input);`: una
     vuelta de `0x635ae0`, en el orden del binario (06): fov y ángulos, el far por el rectángulo o el nivel,
     el corrimiento `OriginalVectorIRotate((0, −D, 0), AngleMatrix(0, 0, yaw))` con la D de antes, el
@@ -244,24 +254,31 @@ arrancar; lo que se sabe:
   `0x40` de la cámara) sale de los `constexpr` de `TerrainHeight.h` y `TerrainCells.h` y pasa al estado
   compartido.
 - **Tests:** con el zoom en 0, las cámaras del login y de la selección dan los bits de hoy: los vectores de
-  las escenas 2 y 4 de `camera.txt`, y los golden del login y de la selección siguen en verde. Con el zoom de
+  las escenas 2 y 4 de `camera.txt`, y los golden del login y de la selección siguen en verde (hasta la CL7.P,
+  que suma los 8 `rand()` protegidos de cada frame de `0x635ae0` y cambia el `rand()` del login). Con el zoom de
   210 que dejó el juego, la del login empieza en (12.636,6; 12.819,4) y vuelve de a 10 por frame (P-C27 b,
   emulado). `TerrainHeightAt` con una celda `0x40` da 1.200 antes del primer `0x40` de la cámara y 1.201
   después. Review Focus 1: del juego al login y de vuelta.
 
 ## Sub-ola CL7.P: las variables protegidas
 
-**Contrato:** 07 Q-C125, P-C22 a y la decisión 3. PR propio. Empieza con un lector del binario, como el
+**Contrato:** 06 § La tabla de protección, 07 Q-C125 y Q-C183, P-C22 a y la decisión 3. PR propio. Empieza con un lector del binario, como el
 barrido, y se detalla con lo que lea. Lo que se sabe:
 
 - **Qué falta leer:**
-  - las funciones de la tabla `0x57630c8`: `0x40b240`, `0x40b2f0`, `0x40b800`, `0x412810` y `0x412890`, y
-    el hash de `0x633f96..0x63417a`;
-  - qué variables guarda: el contador de frames `0x7d3a0f0`, el contador de warp `0x77f3b04`, la celda del
-    servidor de cada personaje (`+0x41c` y `+0x420`), la copia del registro propio `0x7681eb4`, y las que
+  - las funciones de la tabla `0x57630c8`: `0x40ad90`, `0x40b240`, `0x40b2f0`, `0x40b440`, `0x40b4d0`,
+    `0x40b570`, `0x40b800`, `0x412810` y `0x412890`, y el hash de `0x633f96..0x63417a`;
+  - qué variables guarda: el contador de frames `0x7d3a0f0`, el contador de warp `0x77f3b04`, la celda
+    lógica de cada personaje (`+0x41c` y `+0x420`), el registro propio `0x7681eb4` (`0xf08` bytes), y las que
     salgan;
-  - cuántos `rand()` gasta cada clase de acceso (abrir, leer, escribir, cerrar, rearmar);
-  - cada acceso en los caminos que MuRet porta: el paso y el dibujo de las escenas 2, 4 y 5.
+  - cuántos `rand()` gasta cada clase de acceso: 4 al cerrar una variable chica (`0x412890`), 3.848 al
+    cerrar el registro propio (`0x40b4d0`, uno por byte), y lo que den abrir, leer, escribir y rearmar;
+  - **cada acceso que corre** en el paso y en el dibujo de las escenas 2, 4 y 5, **lo porte MuRet o no**:
+    como mínimo `0x57cfc0` (las habilidades, al final de casi cada paso de `MoveHero`: 3.848 por paso, y
+    más por los otros caminos de `MoveHero` y los cierres en línea),
+    `0x508f00` (8 por personaje vivo y por paso), `0x635ae0` (8 por frame dibujado), `0x4c3940` (tres cierres
+    del registro al entrar: 11.544), el `F3 10` y el `D7` al héroe. Donde MuRet no tiene la función, deja el
+    gasto en el mismo lugar del paso o del dibujo, con un nombre que diga de qué función es.
 - **Qué se escribe:** `GameLogic::ProtectedValue<T>`. Guarda el valor en claro y, en cada acceso que el
   original cierra, saca del `CrtRandom` que le pasan los `rand()` de ese acceso. Entra primero en el contador
   de frames del login, donde completa Q-C125 con los 4 del +1 después de la escena y los del rearmado cada
@@ -279,10 +296,13 @@ barrido, y se detalla con lo que lea. Lo que se sabe:
 
 - **El protocolo:** `Protocol::Character::ReadCharacterSelectResult` en `CharacterSelect.h`, el C3 rearmado
   de `0x34` bytes con `TooShort`: la celda (`[4]`, `[5]`), el mapa (`[6]`), la dirección (`[7]`) y los stats
-  de A § 1.2; lo que cae fuera del paquete (`[0x34..0x37]`) va en 0 con un aviso (el quirk del 07).
+  de 04 § La entrada al mundo; lo que cae fuera del paquete (`[0x34..0x37]`) va en 0 con un aviso
+  (Q-C144). El tope de `EnteringWorld` que dejó la CL6 se cierra con la respuesta; las velocidades del
+  keepalive no salen de ella (`0x4c3940` no escribe `+0x4c` ni `+0x58`, P-C28 i) y quedan las de hoy.
 - **La sesión:** `SessionState::InWorld` (el `0x3d`) y `ServerSession::JoinedWorld()`.
 - **Las variables protegidas:** la celda del servidor del héroe y el contador `0x77f3b04` (9.999.999 hasta la
   respuesta, 30 con ella) son `ProtectedValue` de la CL7.P; sus accesos gastan los `rand()` del original.
+- **El cursor:** la `GameScene` dibuja el cursor del juego al final, como el login (la decisión 4).
 - **La escena:** `GameScene` retiene el frame desde el `F3 03` hasta la respuesta (en pantalla queda el
   mosaico de LSBg, como cuando `0x6371a0` devuelve 0 con el contador en 9.999.999). Con la respuesta carga el
   mundo del mapa (`LoadedWorld` con `WorldFolder`), arma al héroe como `0x511290` (`(celda + 0,5) · 100`, la
@@ -303,7 +323,7 @@ tabla con nombre de `Object1`). PR propio. Se detalla al arrancar; lo que se sab
 
 - **Los modelos:** `WorldModels` con una tabla por mapa: la del 0 (los 112 con nombre de `0x619a10..0x619edf`, tipo ←
   nombre, como dato), los especiales desde `0x69` (`0xad` `Bird01`, `0xb2` `Fish01`), `Object8\wt00..31` en
-  `0x41..0x60`, `light01` en `0x68` (que pisa `rain03`), `drop01` en `0x607`, y las texturas de los 160 de
+  `0x41..0x60`, `light01` en `0x68` (que después pisa `rain03`, Q-C136), `drop01` en `0x607`, y las texturas de los 160 de
   `Object1\`. El lazo genérico `Object<k+1>.bmd` sigue para los otros mapas.
 - **Los objetos:** los casos del mapa 0 en `CreateWorldObjects` (cajas, velocidades, blendMesh, el
   `PoseBox01` oculto, la lista de poses), `StepWorldObject` (los techos `0x7d`/`0x7e` con el tile del héroe,
@@ -311,8 +331,10 @@ tabla con nombre de `Object1`). PR propio. Se detalla al arrancar; lo que se sab
   titileo de `0x75`/`0x7a`, la V que corre de `0x76`/`0x77`) y el dibujo (`0x69` con cuatro `RenderMesh`).
   Los fuegos y las luces sacan sus `rand()` acá, en el orden del original, y dejan sus pedidos (luz al
   terreno, partícula) en una lista que usan L4 y L5.
-- **El pase:** el orden de `0x6371a0`: terreno → objetos → efectos del suelo → pájaros → personajes → peces
-  → caballo → hojas → efectos con modelo → sprites → `0x549440` → partículas.
+- **El pase:** el orden de `0x6371a0`: terreno → objetos → efectos del suelo → pájaros → personajes → ítems
+  del piso (`0x608a00`) → peces → caballo → hojas → joints (`0x53c6a0`) → efectos con modelo → cintas
+  (`0x52e590`) → sprites → `0x549440` → partículas → números de daño (`0x548eb0`). Los que todavía no tienen
+  contenido (los ítems, los joints, las cintas y los números) quedan en su lugar, vacíos, para sus olas.
 - **Tests:** el golden de los slots contra el volcado (`lor_slots.bin`: `0x41c..0x47e` son las 99 texturas
   de `Object1\` en su orden, y `bird.tga` y `fish.tga` en `0x69` y `0x6a`); los vectores del código real
   (`make_world0_vectors.py`, como `make_world55_vectors.py`): los 2.870 registros al crearse, en tres pasos y
@@ -328,7 +350,8 @@ tabla con nombre de `Object1`). PR propio. Se detalla al arrancar; lo que se sab
 - **El equipo:** `Protocol::Character::ReadInventoryList` del `F3 10` (C4, entradas de 8 bytes: el lugar y
   7 del ítem), los 12 lugares del equipo a la apariencia, como `0x5bc740` → `0x512a30`. La ventana del
   inventario es de la CL8.4.
-- **La acción de parado** (`0x4f2250`, P-C14 c): por el arma, la zona segura, la mascota, las alas y el
+- **La acción de parado** (`0x4f2250`, `SetPlayerStop`, P-C14 c): la escribe esta sub-ola entera, con
+  `Run = 0`, y la CL7.4 C la usa; por el arma, la zona segura, la mascota, las alas y el
   Fenrir; las ramas que mandan un `C1 .. 18` lo mandan.
 - **La aparición:** el alpha de 0 a 1 de a 0,05 por paso; los dos efectos de llegada `0x61f` (20 pasos, el
   calco `0x61e` en el suelo de `0x52dc20` con los dos giros de `0x53d2c0`); el cuervo (`0x420d60`) con el
@@ -381,13 +404,15 @@ la fuente, el `0F`). PR propio. Se detalla al arrancar; lo que se sabe:
   celda lógica de cada personaje vivo, en cada paso; la celda con máscara de `0x5f82a0`);
   `GameLogic::PathFinder` con la lista abierta como un árbol propio que inserta y saca como `0x4eb770` y
   `0x4c0dd0` (los iguales a la derecha, se saca el de más a la izquierda), los ocho vecinos en el orden de
-  `0x6d5d80`, la prioridad h + el costo del padre, la h con la diagonal a la meta en 0, los topes de 500 y 50,
+  `0x6d5d80`, la prioridad h + el costo del padre, la h (que da 4 en la diagonal a la meta, lo mismo que en
+  la de al lado: Q-C159), los topes de 500 y 50,
   y la salida con el inicio en x o y igual a 0; `PathFinding2` con sus dos intentos (en la zona segura el
   segundo pasa por encima de los personajes) y el corte en 15.
 - **Tests:** `PathFinderTest.MatchesTheEmulatedCode` (`make_path_vectors.py`: miles de casos sobre el `.att`
   de Lorencia y sobre mapas sintéticos con `0x01`, `0x02`, `0x04`, `0x20` y `0x22`, y los bordes);
   `TheStartOnRowOrColumnZeroFails`, `TheExactSearchGivesUpAfter500AndTheNearestAfter50`,
-  `OnlyTheFirstFifteenCellsAreKept`, `TheCellDiagonalToTheGoalIsAsGoodAsTheGoal`,
+  `OnlyTheFirstFifteenCellsAreKept`, `TheDiagonalNextToTheGoalCostsLikeTheSide` (h(1, 1) = h(1, 0) = 4),
+  `AnOccupiedGoalEndsOnTheDiagonalByTheTieOrder`,
   `InTheSafeZoneTheSecondTryWalksThroughCharacters`, `TheWallsLoseTheCharacterBitEveryStep` (la celda
   (221, 11) de Lorencia); `TheWireWalksMatch`: los 171 caminos del cable (solo celdas y direcciones), con los
   2 distintos anotados (una celda ocupada que el cable no muestra).
@@ -411,7 +436,7 @@ propio. Se detalla al arrancar; lo que se sabe:
 ## Sub-ola CL7.4 C: el paso entre celdas
 
 **Contrato:** 06 § Caminar (`MovePath` de `0x4ea270`, `MoveCharacterPosition` de `0x508a80`, la velocidad
-de `0x508940`, `SetPlayerWalk` de `0x4f37c0`, `SetPlayerStop` de `0x4f2250`). PR propio. Se detalla al
+de `0x508940`, `SetPlayerWalk` de `0x4f37c0`; `SetPlayerStop` viene de la L3). PR propio. Se detalla al
 arrancar; lo que se sabe:
 
 - **Qué:** en `GameLogic::CharacterMovement`: la celda lógica una adelante; el sub-punto de Catmull-Rom con
@@ -453,12 +478,14 @@ anterior; los cinco planos y la esfera de los efectos). PR propio. Se detalla al
   la barra de abajo, la condición de la acción, "a menos de 2 celdas", la misma celda y la hora; el picking
   con el rayo del último dibujo (la escena guarda la cámara, el viewport y el mouse del último `Render`); el
   `D3` del héroe (la dirección, y la celda lógica si está quieto) y el de los otros (su camino, el reintento,
-  la llegada con `(dir − 1) · 45`); el `D7` con el bit 15, que para a un jugador; los cinco planos de
+  la llegada con `(dir − 1) · 45`); el `D7` que para a un jugador con `0x4f53a0` (siempre con el bit 15, y
+  sin él la mitad de las veces, con `rand() & 1`, si no es el héroe; Q-C178); los cinco planos de
   `0x5fd000` con la esfera de `0x5fbf00`; el héroe y la cámara en el estado del paso (la decisión 1).
 - **Tests:** con un GS falso: un clic en el piso manda los bytes de B; apretado cerca del héroe, un `A3` por
   celda y no por paso; un clic dentro de la espera se atiende al vencer (*inferido*, P-C30); con Shift o con
   el mouse en la barra, no camina; un `D3` de otro lo hace caminar; el eco con el héroe quieto le corre la
-  celda lógica y no la posición; el `D7` con el bit 15 lo para; la repetición de una conexión del cable sin
+  celda lógica y no la posición; el `D7` con el bit 15 lo para, y sin el bit para a otro jugador cuando el
+  `rand() & 1` da 0, gastando ese `rand()`; la repetición de una conexión del cable sin
   los paquetes con nombres (los caminos y las celdas); Review Focus 3 (un frame de 2 s).
 
 ---
@@ -507,12 +534,17 @@ que se sabe:
 **Contrato:** 06 § Los cambios de mapa (el `1C` en `0x4c6e10`, el `F3 04` en `0x4c4b80`, lo que se borra y lo
 que queda, la pantalla congelada). PR propio. Se detalla al arrancar; lo que se sabe:
 
-- **Qué:** la `GameScene` hace el cambio en el paso (la decisión 2): borra lo que se va (los otros, los ítems
+- **Qué:** el pedido: en cada paso, `MoveHero` llama a `0x599ef0` (`0x59b841`) con la `GateCheck` de la
+  5.B; al pisar un gate manda el `1C` en C3, pone el contador en 9.999.999 y retiene el frame hasta el `1C`
+  que vuelve; con el nivel bajo, el aviso 350 y el contador en 50 (20 pasos sin dibujo ni movimiento). La
+  vuelta: la `GameScene` hace el cambio en el paso (la decisión 2), borra lo que se va (los otros, los ítems
   del piso y los elegidos siempre; los objetos, los efectos y las texturas solo con otro mapa), carga el
   mundo nuevo, pone al héroe con la z de las alturas nuevas y el ángulo `(dir − 1) · 45`, manda el `F3 12`
-  después de cargar, pone el contador en 30, crea el `0x61f` y el cuervo otra vez; el `F3 04` igual, sin el
-  `F3 12`; retiene el frame mientras el contador pasa de 30.
-- **Tests:** con un GS falso que manda la secuencia del cable (0 → 0 → 3 → 7 → 0): la carpeta cargada en
+  después de cargar, pone el contador en 30, crea el `0x61f` y el cuervo otra vez. El `F3 04` hace lo mismo
+  con el héroe y el mundo, pero no manda el `F3 12` ni toca el contador: no pone 30 ni retiene el frame.
+- **Tests:** pisar el gate 23 de Lorencia (213..217 × 246..247) manda `C3 [C1 06 1C 17 00 00]` y retiene el
+  frame hasta el `1C`; con el nivel bajo, el aviso y 20 pasos quietos; con un GS falso que manda la
+  secuencia del cable (0 → 0 → 3 → 7 → 0): la carpeta cargada en
   cada paso; un `F3 12` por cada `1C` con gate y ninguno con el gate en 0 ni con el `F3 04`; el mismo mapa no
   recarga pero borra a los otros; los efectos se vacían solo con otro mapa; ningún frame presentado mientras
   espera; Review Focus 1.

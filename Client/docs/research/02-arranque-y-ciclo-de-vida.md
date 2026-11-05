@@ -161,7 +161,7 @@ Quién escribe `DAT_006d5dc8`, leído en la CL5.R en el desensamblado (*estátic
 | 2 | 4 | `0x634c60` | el login aceptado: el `F1 01` deja el estado de la conexión, `DAT_057678c0`, en `0x14`; la escena lo ve en su paso, lo pasa a `0x32` y manda el `F3 00` |
 | 4 | 3 | `0x6342c0` y `0x633c10` | en la lógica de la selección (que corre solo con el estado en `0x33` o más, la lista de personajes): Enter con un personaje elegido (`DAT_006d5edc`, de 0 a 4), o doble clic sobre un personaje (el de `0x6c8e30`, que pasa a ser el elegido) con la ventana de la selección (`+0x7f50`) abierta; o el botón de esa ventana (`0x633c10`, desde `0x63eb9a`, en su `vtable + 0x30`). Si el personaje tiene el bit `0x1` de `+0x1d8`, abre el aviso `0x84` en vez de entrar. Enter pide además `[input + 0x31]` en 0 y cuatro ventanas cerradas, y suena el `0x19`; el doble clic, no. Al entrar copia el nombre, la clase, la piel y el nivel al personaje propio y suelta lo de la selección (`0x61cc50`; CL6.R, [06](06-render-escenas-y-ui.md#la-selección-de-personaje)) |
 | 3 | 5 | `0x6356f0` | al terminar la carga del mundo, que dibuja un solo frame con las cuatro `LSBg` en mosaico y las suelta (CL6.R); el `F3 03` lo manda el primer paso de la 5 (`0x636290`), no la selección ([04](04-protocolo.md#la-selección-de-personaje-f3)) |
-| 5 o 4 | 4 o 2 | `0x4c2710` | la respuesta del `F1 02`: con `pkt[4]` en 1 pasa a la 4, y con 2 a la 2, y en ese caso cierra el GS, pone en 0 la bandera del login (`DAT_07d3a13d`, `0x4c2f24`) y corta: al volver se carga todo otra vez, y vuelve a conectar al CS. Las dos, solo si el paquete llegó cifrado: el cuarto argumento del dispatcher (el "cifrado" de [03](03-red-y-cifrado.md), `[ebp+0xc]` en `0x4c2781` y `0x4c2f5e`); sin cifrar no cambia de escena, y lo que hace llama a la tabla de hash de `0x40b240` (no se siguió). Con `pkt[4]` en 0, `SendMessageA(WM_DESTROY)` (`0x4c391b`): el juego se cierra, sin aviso y sin mirar si llegó cifrado (Q-C106). De la escena solo mira si es la 5, para limpiar el juego (`0x4c275c`), y el dispatcher no la mira: también la cambiaría desde la 1, la 2 o la 3 (Q-C79) |
+| 5 o 4 | 4 o 2 | `0x4c2710` | la respuesta del `F1 02`: con `pkt[4]` en 1 pasa a la 4, y con 2 a la 2, y en ese caso cierra el GS, pone en 0 la bandera del login (`DAT_07d3a13d`, `0x4c2f24`) y corta: al volver se carga todo otra vez, y vuelve a conectar al CS. Las dos, solo si el paquete llegó cifrado: el cuarto argumento del dispatcher (el "cifrado" de [03](03-red-y-cifrado.md), `[ebp+0xc]` en `0x4c2781` y `0x4c2f5e`); sin cifrar no cambia de escena, y lo que hace llama a la tabla de hash de `0x40b240`, la tabla de protección de [06](06-render-escenas-y-ui.md#la-tabla-de-protección) (no se siguió). Con `pkt[4]` en 0, `SendMessageA(WM_DESTROY)` (`0x4c391b`): el juego se cierra, sin aviso y sin mirar si llegó cifrado (Q-C106). De la escena solo mira si es la 5, para limpiar el juego (`0x4c275c`), y el dispatcher no la mira: también la cambiaría desde la 1, la 2 o la 3 (Q-C79) |
 
 Los estados de la conexión que importan acá son 0 (sin GS), 2 (el `F1 00` aceptado), `0x13` (el
 login mandado), `0x14` (aceptado), `0x32` (la lista de personajes pedida) y `0x33` (llegó).
@@ -443,10 +443,10 @@ pasa. Todas la pasan fija, salvo cuatro lazos sobre los dígitos (`0x420e5e`, `0
 función y, entre paréntesis, la dirección de la llamada. De dónde se alcanza cada función sale de
 las llamadas directas (*análisis*): **P** desde el paso, **D** desde el dibujo, **F** por frame
 (`0x637700` y `0x640940`, y las ventanas que llama `0x65fc30` por vtable), **V** sin llamadas
-directas desde el paso ni desde el dibujo (van por vtable) y **N** no la llama nadie (`0x59fe10`).
-Las **P** se alcanzan desde la lógica de la escena 5 (`0x636290`, `0x623e70`), salvo `0x634c60`
-(la 2), `0x6342c0` (la 4) y la de Impr Pant (todas); `0x5588d0` y `0x558eb0`, también desde la 2
-y la 4.
+directas desde el paso ni desde el dibujo (van por vtable) y **N** no la llama nadie (`0x59fe10` y
+`0x632dd0`: ni una llamada ni un puntero en el archivo). Las **P** se alcanzan desde la lógica de la
+escena 5 (`0x636290`, `0x623e70`), salvo `0x634c60` (la 2), `0x6342c0` (la 4) y la de Impr Pant
+(todas); `0x5588d0` y `0x558eb0`, también desde la 2 y la 4.
 
 | Tecla | VK | Bit alto | `== 0x8001` | `0x553520` |
 |---|---|---|---|---|
@@ -454,7 +454,7 @@ y la 4.
 | Tab | `0x09` | | | `0x40f6d0` (`0x40f6ea`) V |
 | Enter | `0x0D` | | `0x6342c0` (`0x634343`) P; `0x63d880` (`0x63d91a`), `0x642e30` (`0x642e4b`), `0x6418b0` (`0x64192d`) F | `0x4a43c0` (`0x4a43ed`), `0x4a4e20` (`0x4a4e34`) V |
 | Shift | `0x10` | `0x420e30` (`0x420e4d`), `0x59adf0` (`0x59ddf1`), `0x652330` (`0x6525f9`) P; `0x637700` (`0x638305`) F | | |
-| Ctrl | `0x11` | `0x5588d0` (`0x558b86`), `0x558eb0` (`0x558fd6`), `0x59ff10` (`0x5a0905`), `0x5c4110` (`0x5c4ac1`) P; `0x558bb0` (`0x558e7f`) P y D; `0x632dd0` (`0x632dd5`) V | | |
+| Ctrl | `0x11` | `0x5588d0` (`0x558b86`), `0x558eb0` (`0x558fd6`), `0x59ff10` (`0x5a0905`), `0x5c4110` (`0x5c4ac1`) P; `0x558bb0` (`0x558e7f`) P y D; `0x632dd0` (`0x632dd5`) N | | |
 | Alt | `0x12` | `0x59ff10` (`0x5a1129`, `0x5a1191`) P; `0x59ec80` (`0x59ef37`), `0x5bbbc0` (`0x5bbd91`) D; `0x59fe10` (`0x59fe4b`) N | | `0x5bbbc0` (`0x5bbd6c`) D |
 | Esc | `0x1B` | | `0x634c60` (`0x634d3a`), `0x6342c0` (`0x634485`) P; `0x63d880` (`0x63d956`), `0x642e30` (`0x642e8d`), `0x6418b0` (`0x641962`), `0x63f630` (`0x63f650`), `0x644730` (`0x644822`), `0x647d40` (`0x647e98`) F | `0x623e70` (`0x623eb5`), `0x490490` (`0x4904bc`) P |
 | Espacio | `0x20` | `0x5ac8d0` (`0x5ac8ea`) P | | |

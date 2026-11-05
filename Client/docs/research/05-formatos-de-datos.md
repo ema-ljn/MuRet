@@ -203,9 +203,11 @@ Lorencia; *estático*, y los valores, *verificado* en los archivos):
 | `0x80` | el zoom de la cámara | `0x635ae0` |
 
 El camino no mira `0x20`, `0x40` ni `0x80` para saber si una celda bloquea (`Map & ~0xe0`,
-[06](06-render-escenas-y-ui.md#caminar)). Ningún `.att` del `Data\` tiene una celda con `0x40`, y
-el volcado vivo de Lorencia (`lor_att.bin`) tampoco tiene `0x40` ni `0x80`. Las celdas de Lorencia
-valen 0, 1, 2, 4 y 5, y la única con el 2 es la (221, 11) (Q-C170).
+[06](06-render-escenas-y-ui.md#caminar)). En los 29 `EncTerrain*.att` del `Data\` (*verificado*),
+ninguna celda trae el `0x80`, y el `0x40` está solo en los cuatro de `World31`, el mapa 30: 835
+celdas, de x 160 a 190 e y 190 a 220, sobre el castillo y el rectángulo del far de la cámara
+(Q-C149, Q-C150). El volcado vivo de Lorencia (`lor_att.bin`) tampoco tiene `0x40` ni `0x80`. Las
+celdas de Lorencia valen 0, 1, 2, 4 y 5, y la única con el 2 es la (221, 11) (Q-C170).
 
 ## Los modelos de cada mundo
 

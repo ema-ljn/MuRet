@@ -418,7 +418,7 @@ cable). Sale una vez por cada camino nuevo que calcula `MoveHero`
 ([06](06-render-escenas-y-ui.md#caminar)), por `send()` directo y sin C3:
 
 ```text
-C1 len D3 X0 Y0 P0 P1 … Pk     con el XOR32 (la tabla de 0x6b85f4)
+C1 len D3 X0 Y0 P0 P1 … Pk     con el XOR32 (la clave se arma en la pila, desde 0x56ae30)
 len     = 6 + (PathNum >> 1)
 X0, Y0  = PathX[0], PathY[0]    la celda lógica del héroe
 P0      = (dir_final << 4) | (PathNum − 1)
@@ -426,16 +426,20 @@ P1..Pk  = los pasos, de a dos nibbles, el alto primero (el 1 en el alto de P1, e
 ```
 
 - **`PathNum` va con un tope de 14** (`0x56ad8d..0x56ad92`: con 15 manda 14), aunque el cliente
-  camine las 15 celdas: dice un paso menos (Q-C158). Con 15 celdas sale `C1 0D D3 64 64 3D 33 33 33
-  33 33 33 30` (*emulado*).
+  camine las 15 celdas: dice un paso menos (Q-C158). Con 15 celdas sale, en claro (antes del
+  XOR32), `C1 0D D3 64 64 3D 33 33 33 33 33 33 30` (*emulado*).
 - **Las direcciones** (`0x6c82a4`, (dx, dy); *verificado* contra el eco del servidor): 0 (−1, −1), 1
   (0, −1), 2 (1, −1), 3 (1, 0), 4 (1, 1), 5 (0, 1), 6 (−1, 1) y 7 (−1, 0). Un paso que no está en la
   tabla da 0.
 - **`dir_final`** (*emulado*): con `PathNum == 1`, `ftol((ángulo + 22,5) · (1/45) + 1) & 7`
   (`0x56b0b7`), así que el ángulo 0 da 1, el 90 da 3, el 180 da 5 y el 270 da 7; si no, la dirección
-  de la última celda del camino al blanco (`TargetX/Y`), y si el blanco no está al lado, la del
-  último paso. En el cable, 171 de 178 van con el último paso, y los 7 que no tienen el blanco al
-  lado del final; `C1 07 D3 A9 7E 21 30` sale igual en la emulación.
+  de la última celda que se manda al blanco (`TargetX/Y`), y si el blanco no está al lado, la del
+  último paso. Con el tope de 14, esa celda es `PathX[13]` y no la última del camino
+  (`0x56b0ed..0x56b13f`, con el `PathNum` ya en 14): si el blanco es la celda 15, da la dirección
+  del paso que no se manda, y si está más lejos, la del último paso. En el cable, en 171 de 178 `P0`
+  lleva la dirección del último paso (que el blanco sea la última celda es *inferido*: el cable no
+  trae el blanco), y en los 7 restantes otra: ahí el blanco está al lado del final, en otra
+  dirección (*inferido* igual). `C1 07 D3 A9 7E 21 30` sale igual en la emulación.
 - **El byte a byte**: el camino (b6, 73) → (b5, 73) → (b4, 74) → (b3, 74) da, en claro, `C1 08 D3
   B6 73 73 76 70`; con el XOR32, `C1 08 D3 EC 23 E2 0B 08`; y FoxAnti (`encode_outbound`) deshace el
   XOR32, cambia `D3` por `A3` y lo vuelve a aplicar: `C1 08 A3 9C 53 92 7B 78`, **igual** al
@@ -455,8 +459,10 @@ encuentran en el cable). Qué hace el cliente con él, en [06](06-render-escenas
 **El `D7` del servidor, el daño** (`0x4caae0`): `C1 08 D7 idH|f idL dañoH dañoL t`. El personaje es
 `id & 0x7fff`, el bit 15 (f) es el "golpe con sacudida", el daño es `pkt[5] · 256 + pkt[6]`, el tipo
 es `t & 0x3f` y `t >> 7` es otra bandera (*estático*; *verificado* en el cable, 614, con el id de un
-monstruo y con el del héroe). El bit 15 para a un jugador que camina (Q-C178). Este documento lo
-daba como posición y dirección: lo de caminar es solo esa parada.
+monstruo y con el del héroe). El bit 15 para a un jugador que camina, el héroe incluido, y sin el
+bit el cliente para a otro jugador una vez de cada dos, con un `rand() & 1` (las condiciones, en
+Q-C178). Este documento lo daba
+como posición y dirección: lo de caminar es solo esa parada.
 
 ### Los cambios de mapa: `1C`, `F3 04` y `F3 12`
 
@@ -520,7 +526,7 @@ Antes de cada `1C` va el `/move` del cliente en el chat, y después el servidor 
 | El dispatcher solo se alcanza por FoxAnti | el dispatcher es parte del cliente; la ofuscación es una capa aparte | CL2 |
 | 104 opcodes al default | el default loguea el opcode desconocido una vez (sirve para descubrir lo que falta) | CL4 |
 | El `A9 00 00 01` al CS sale porque la escena de login arma un personaje con el cuervo (Q-C16) | se manda igual al abrir el CS, como pedido de la información de la mascota; el `A9 01 00 08` del juego va con la UI de las mascotas | CL4, CL8 |
-| El keepalive: un timer desde el arranque que manda con el GS conectado, sin mirar el login (Q-C53), y el primero con el login aceptado; las velocidades en 0 hasta que hay personaje | el primero con el login aceptado y después cada 20 s desde ese, en `LoggedIn` y, desde la CL6.3 y la CL6.5, también en la espera de la lista, la elección, crear, borrar y la entrada al mundo; 0 y 0, sin ajuste, hasta que la CL7 lea las del personaje en la respuesta del `F3 03` | CL4, CL6.3, CL6.5, CL7 |
+| El keepalive: un timer desde el arranque que manda con el GS conectado, sin mirar el login (Q-C53), y el primero con el login aceptado; las velocidades en 0 hasta que hay personaje | el primero con el login aceptado y después cada 20 s desde ese, en `LoggedIn` y, desde la CL6.3 y la CL6.5, también en la espera de la lista, la elección, crear, borrar y la entrada al mundo; 0 y 0, sin ajuste, hasta que la CL7 sepa quién las calcula: la respuesta del `F3 03` no escribe `+0x4c` ni `+0x58` ([La entrada al mundo](#la-entrada-al-mundo-la-respuesta-del-f3-03-y-el-f3-10), P-C28 i) | CL4, CL6.3, CL6.5, CL7 |
 | Los `F3` de la selección: el `F3 00` desde la lógica del login, la lista sin mirar el largo y el `F3 03` desde el primer paso de la escena 5 | `Protocol::Character` (`WriteCharacterListRequest`, `ReadCharacterList` con `TooShort` y el lugar de más de 4 descartado, Q-C101, y `WriteCharacterSelect`) y tres estados más de la `ServerSession`; crear y borrar, con sus avisos, en la CL6.5 | CL6.3, CL6.5 |
 | La respuesta del `F3 03`: un C3 de `0x34` bytes que `0x4c3940` lee hasta el `0x37` (Q-C144), y el `F3 10` con entradas de 8 bytes | un lector de la respuesta con `TooShort`, el estado `0x3d` en la sesión, y un lector del `F3 10` con el lugar y los 7 bytes de cada ítem (propuesta del barrido de Lorencia) | CL7 |
 | Caminar: el `D3` con el tope de 14 y la dirección final por el blanco o por el ángulo; el `D3` y el `D7` del servidor | un escritor del `D3` contra el `SendMove` real emulado y los bytes del cable, y lectores del `D3` y del `D7` (este, al menos, con la sacudida); el `A3` y el `A4` siguen siendo de la capa de FoxAnti (propuesta del barrido) | CL7.4 |

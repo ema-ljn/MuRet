@@ -3,7 +3,9 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/DarkHorse.h"
 #include "Scenes/GameData.h"
+#include "Scenes/GameModels.h"
 #include "Scenes/LoadingScene.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/TextureSets.h"
@@ -20,6 +22,8 @@
 #include "Data/Textures/Sampling.h"
 #include "Input/InputState.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -32,6 +36,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 // La carga y el login con el Data\ del laboratorio: entran (sus juegos de texturas en sus slots
@@ -85,9 +90,10 @@ TEST_F(GoldenLoginScene, EntersWithTheLabData)
     const auto entered = scene.Enter();
 
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
-    // Y las dos del logo (TheLogoLoads) y las 15 del terreno: los 14 tiles de World56 y el 0x122
-    // (TheTerrainGoesBeforeTheCharacter).
-    ASSERT_EQ(store.Size(), LoginTextureSet.size() + WindowTextureSet.size() + 2 + 15);
+    // Y las dos del logo (TheLogoLoads), las 15 del terreno (los 14 tiles de World56 y el 0x122,
+    // TheTerrainGoesBeforeTheCharacter) y las 63 del mundo: las 3 del dragón y 62 de Object56\ que esta
+    // tabla vacía no tiene, menos fire01 y fire02, que no están (GoldenWorldModels).
+    ASSERT_EQ(store.Size(), LoginTextureSet.size() + WindowTextureSet.size() + 2 + 15 + 63);
     for (const auto& entry : LoginTextureSet)
     {
         EXPECT_TRUE(store.Find(TextureSlot{entry.slot}).has_value()) << entry.slot;
@@ -114,8 +120,9 @@ TEST_F(GoldenLoginScene, EntersWithTheLabData)
     EXPECT_EQ(store.Size(), 0u);
 }
 
-// Q-C92: Logo03.bmd tiene dos mallas, logo.jpg y logo2.jpg, que 0x60d5f0 sube al 0x455 y al 0x456
-// con GL_LINEAR; al salir, se sueltan. El logo se dibuja: un tramo opaco y el aditivo de su
+// Q-C92: Logo03.bmd tiene dos mallas, logo.jpg y logo2.jpg, que 0x60d5f0 sube a los dos slots que
+// siguen al mundo (0x455 y 0x456 en el original; acá, sin la tabla de la carga, 0x45a y 0x45b) con
+// GL_LINEAR; al salir, se sueltan. El logo se dibuja: un tramo opaco y el aditivo de su
 // blendMesh, con la luz del primer paso.
 TEST_F(GoldenLoginScene, TheLogoLoads)
 {
@@ -129,14 +136,15 @@ TEST_F(GoldenLoginScene, TheLogoLoads)
 
     ASSERT_TRUE(scene.Enter().HasValue());
 
-    for (const std::uint16_t slot : {std::uint16_t{0x455}, std::uint16_t{0x456}})
+    // Sin la tabla de la carga, el mundo deja el próximo en 0x45a (GoldenWorldModels).
+    for (const std::uint16_t slot : {std::uint16_t{0x45a}, std::uint16_t{0x45b}})
     {
         const auto texture = store.Find(TextureSlot{slot});
         ASSERT_TRUE(texture.has_value()) << std::hex << slot;
         EXPECT_EQ(texture->sampling.filter, Client::Data::Textures::Filter::Linear) << std::hex << slot;
         EXPECT_EQ(texture->sampling.wrap, Client::Data::Textures::Wrap::Repeat) << std::hex << slot;
     }
-    EXPECT_FALSE(store.Find(TextureSlot{0x457}).has_value());
+    EXPECT_FALSE(store.Find(TextureSlot{0x45c}).has_value());
 
     scene.Step(Client::Input::InputState{});
     RecordingFrameTarget target;
@@ -144,17 +152,21 @@ TEST_F(GoldenLoginScene, TheLogoLoads)
     target.Present();
     const auto drawn = std::ranges::find(target.frames.back().events, Kind::Models, &FrameEvent::kind);
     ASSERT_NE(drawn, target.frames.back().events.end());
-    // Los dos últimos tramos: antes va el terreno (TheTerrainGoesBeforeTheCharacter).
+    // Sus dos tramos seguidos, entre los de los objetos del mundo (TheLogoIsAWorldObject): el opaco con
+    // logo.jpg y el aditivo de su blendMesh con logo2.jpg.
     const auto& commands = drawn->modelCommands;
-    ASSERT_GE(commands.size(), 2u);
-    EXPECT_EQ(commands[commands.size() - 2].state.texture, TextureSlot{0x455});
-    EXPECT_EQ(commands[commands.size() - 2].state.blend, Client::Render::ModelBlend::Opaque);
-    EXPECT_EQ(commands.back().state.texture, TextureSlot{0x456});
-    EXPECT_EQ(commands.back().state.blend, Client::Render::ModelBlend::Additive);
+    const auto logo =
+        std::ranges::find(commands, std::optional{TextureSlot{0x45a}},
+                          [](const Client::Render::ModelDrawCommand& command) { return command.state.texture; });
+    ASSERT_NE(logo, commands.end());
+    ASSERT_NE(logo + 1, commands.end());
+    EXPECT_EQ(logo->state.blend, Client::Render::ModelBlend::Opaque);
+    EXPECT_EQ((logo + 1)->state.texture, TextureSlot{0x45b});
+    EXPECT_EQ((logo + 1)->state.blend, Client::Render::ModelBlend::Additive);
 
     scene.Leave();
-    EXPECT_FALSE(store.Find(TextureSlot{0x455}).has_value());
-    EXPECT_FALSE(store.Find(TextureSlot{0x456}).has_value());
+    EXPECT_FALSE(store.Find(TextureSlot{0x45a}).has_value());
+    EXPECT_FALSE(store.Find(TextureSlot{0x45b}).has_value());
 }
 
 // CL7.1: el login carga el terreno de World56 y lo dibuja primero en el pase 3D (0x5fc260(0) antes de
@@ -200,6 +212,145 @@ TEST_F(GoldenLoginScene, TheTerrainGoesBeforeTheCharacter)
     scene.Leave();
     EXPECT_FALSE(store.Find(TextureSlot{0x23}).has_value());
     EXPECT_FALSE(store.Find(TextureSlot{0x122}).has_value());
+}
+
+// CL7.2: con los modelos de la carga (GameModels y su tabla de slots, como en main.cpp), las texturas
+// de los objetos de Object56\ van desde 0x41c y el logo sigue donde termina el mundo: en MuRet, 0x45a
+// (0x455 en el original, que ya tiene cinco de esos nombres en la tabla: GoldenWorldModels).
+constexpr std::uint16_t WorldFirstSlot = 0x41c;
+constexpr std::uint16_t LogoFirstSlot = 0x45a;
+
+bool IsWorldObject(const Client::Render::ModelDrawCommand& command)
+{
+    return command.state.texture.has_value() && command.state.texture->value >= WorldFirstSlot &&
+           command.state.texture->value < LogoFirstSlot;
+}
+
+bool IsLogo(const Client::Render::ModelDrawCommand& command)
+{
+    return command.state.texture.has_value() &&
+           (command.state.texture->value == LogoFirstSlot || command.state.texture->value == LogoFirstSlot + 1);
+}
+
+class GoldenLoginWorld : public Client::Tests::GoldenDataTest
+{
+protected:
+    void SetUp() override
+    {
+        Client::Tests::GoldenDataTest::SetUp();
+        auto data = LoadGameData(m_dataRoot);
+        ASSERT_TRUE(data.HasValue()) << data.Error();
+        m_data.emplace(std::move(data).Value());
+        ASSERT_TRUE(m_models.Load(m_dataRoot, m_store, m_log).HasValue());
+    }
+
+    // Un frame del login después de `steps` pasos: sus tramos y sus vértices.
+    FrameEvent Frame(LoginScene& scene, int steps)
+    {
+        for (int k = 0; k < steps; ++k)
+        {
+            scene.Step(Client::Input::InputState{});
+        }
+        RecordingFrameTarget target;
+        scene.Render(target.BeginFrame(std::chrono::milliseconds{40}), 0.0f);
+        target.Present();
+        const auto drawn = std::ranges::find(target.frames.back().events, Kind::Models, &FrameEvent::kind);
+        return drawn != target.frames.back().events.end() ? *drawn : FrameEvent{};
+    }
+
+    FakeTextureStore m_store;
+    RecordingSink m_sink;
+    Log m_log{m_sink, LogLevel::Debug};
+    std::optional<Client::Scenes::GameData> m_data;
+    Client::Scenes::GameModels m_models;
+};
+
+// 0x6046a0 después de 0x4453b0: los objetos del mundo van después del caballo.
+TEST_F(GoldenLoginWorld, TheObjectsGoAfterTheHorse)
+{
+    LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
+                     &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    const FrameEvent frame = Frame(scene, 3);
+    const auto horse = m_models.MeshTextures(Client::Scenes::DarkHorseModel);
+    ASSERT_FALSE(horse.empty());
+    std::optional<std::size_t> lastHorse;
+    std::optional<std::size_t> firstObject;
+    for (std::size_t k = 0; k < frame.modelCommands.size(); ++k)
+    {
+        const auto& command = frame.modelCommands[k];
+        if (command.state.texture && std::ranges::find(horse, *command.state.texture) != horse.end())
+        {
+            lastHorse = k;
+        }
+        if (!firstObject && IsWorldObject(command))
+        {
+            firstObject = k;
+        }
+    }
+    ASSERT_TRUE(lastHorse.has_value());
+    ASSERT_TRUE(firstObject.has_value());
+    EXPECT_LT(*lastHorse, *firstObject);
+    scene.Leave();
+}
+
+// El logo es uno más de la lista (el 0xa2 en el sector (6, 9)): sus dos texturas, con GL_LINEAR, van al
+// próximo slot que dejó el mundo, y se dibuja entre los objetos de los sectores de antes y de después.
+TEST_F(GoldenLoginWorld, TheLogoIsAWorldObject)
+{
+    LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
+                     &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    for (const std::uint16_t slot : {LogoFirstSlot, static_cast<std::uint16_t>(LogoFirstSlot + 1)})
+    {
+        const auto texture = m_store.Find(TextureSlot{slot});
+        ASSERT_TRUE(texture.has_value()) << std::hex << slot;
+        EXPECT_EQ(texture->sampling.filter, Client::Data::Textures::Filter::Linear) << std::hex << slot;
+    }
+    EXPECT_FALSE(m_store.Find(TextureSlot{static_cast<std::uint16_t>(LogoFirstSlot + 2)}).has_value());
+
+    const FrameEvent frame = Frame(scene, 1);
+    const auto logo = std::ranges::find_if(frame.modelCommands, IsLogo);
+    ASSERT_NE(logo, frame.modelCommands.end());
+    EXPECT_TRUE(std::any_of(frame.modelCommands.begin(), logo, IsWorldObject)) << "los de los sectores de antes";
+    EXPECT_TRUE(std::any_of(logo, frame.modelCommands.end(), IsWorldObject)) << "los de los sectores de después";
+
+    scene.Leave();
+    for (std::uint16_t slot = WorldFirstSlot; slot < LogoFirstSlot + 2; ++slot)
+    {
+        EXPECT_FALSE(m_store.Find(TextureSlot{slot}).has_value()) << std::hex << slot;
+    }
+}
+
+// Cada entrada vuelve a cargar el mundo (0x61a560) y a crear los objetos (0x606660): el primer frame
+// de la segunda es el de la primera, aunque en el medio los remolinos giraron y el 90 se prendió.
+TEST_F(GoldenLoginWorld, EnteringAgainCreatesTheObjectsAgain)
+{
+    LoginScene scene(SceneContext{m_dataRoot, m_store, m_log}, *m_data, m_models, nullptr, Version, FixedSeed,
+                     &m_models.TextureSlots());
+    const auto objectVertices = [](const FrameEvent& frame)
+    {
+        std::vector<glm::vec3> positions;
+        for (const auto& command : frame.modelCommands)
+        {
+            if (IsWorldObject(command))
+            {
+                for (std::size_t k = 0; k < command.vertexCount; ++k)
+                {
+                    positions.push_back(frame.modelVertices[command.firstVertex + k].position);
+                }
+            }
+        }
+        return positions;
+    };
+    ASSERT_TRUE(scene.Enter().HasValue());
+    const auto first = objectVertices(Frame(scene, 0));
+    const auto later = objectVertices(Frame(scene, 20));
+    EXPECT_NE(first, later) << "los remolinos giran";
+    scene.Leave();
+    ASSERT_TRUE(scene.Enter().HasValue());
+    EXPECT_EQ(objectVertices(Frame(scene, 0)), first);
+    scene.Leave();
 }
 
 // Los textos de los avisos de la selección que vienen vacíos en el Text.bmd del laboratorio.

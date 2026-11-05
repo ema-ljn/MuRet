@@ -965,6 +965,63 @@ TEST(LoginSceneSessionTest, AQuitOrderDoesNotMoveTheLoginWorld)
     EXPECT_FLOAT_EQ(after->red, lit->red);
 }
 
+// El connect del original bloquea dentro de un paso (Q-C85), y lo que tarda no entra al acumulador,
+// que mide desde después de los pasos (02): mientras conecta no corre ningún paso, y el mundo del login
+// no avanza. Con el CS de la entrada: la luz del logo, que ya se dibujó, queda como al entrar por más
+// pasos de MuRet que pasen conectando, y sigue cuando el CS abre.
+TEST(LoginSceneSessionTest, TheLoginWorldWaitsForTheConnectServer)
+{
+    Harness tested;
+    Client::Tests::WriteLoginLogo(tested.folder.Path());
+    tested.socket.pollsUntilConnected = 3;
+    ASSERT_TRUE(tested.scene->Enter().HasValue());
+    const std::optional<Client::Render::Color> entered = LogoColorOf(tested.Frame());
+    ASSERT_TRUE(entered.has_value());
+
+    int connecting = 0;
+    for (tested.Step(); tested.session.State() == SessionState::ConnectingConnectServer && connecting < 10;
+         tested.Step())
+    {
+        ++connecting;
+        const std::optional<Client::Render::Color> waiting = LogoColorOf(tested.Frame());
+        ASSERT_TRUE(waiting.has_value());
+        EXPECT_FLOAT_EQ(waiting->red, entered->red) << connecting;
+    }
+    ASSERT_GE(connecting, 2);
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
+    const std::optional<Client::Render::Color> opened = LogoColorOf(tested.Frame());
+    ASSERT_TRUE(opened.has_value());
+    EXPECT_NE(opened->red, entered->red);
+}
+
+// Lo mismo con el GS (0x4e3396): con la dirección, la luz queda como en el último paso antes de ella.
+TEST(LoginSceneSessionTest, TheLoginWorldWaitsForTheGameServer)
+{
+    Harness tested;
+    Client::Tests::WriteLoginLogo(tested.folder.Path());
+    ASSERT_NO_FATAL_FAILURE(tested.ChooseTheLabServer());
+    (void)tested.Frame();
+    tested.Step();
+    const std::optional<Client::Render::Color> before = LogoColorOf(tested.Frame());
+    ASSERT_TRUE(before.has_value());
+    tested.socket.pollsUntilConnected = 3;
+    tested.socket.reads = {AddressReply(GameHost, GamePort)};
+
+    int connecting = 0;
+    for (tested.Step(); tested.session.State() == SessionState::ConnectingGameServer && connecting < 10; tested.Step())
+    {
+        ++connecting;
+        const std::optional<Client::Render::Color> waiting = LogoColorOf(tested.Frame());
+        ASSERT_TRUE(waiting.has_value());
+        EXPECT_FLOAT_EQ(waiting->red, before->red) << connecting;
+    }
+    ASSERT_GE(connecting, 2);
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingGameHello);
+    const std::optional<Client::Render::Color> opened = LogoColorOf(tested.Frame());
+    ASSERT_TRUE(opened.has_value());
+    EXPECT_NE(opened->red, before->red);
+}
+
 // El OK del 0x70 cierra el juego (Q-C69): la escena lo pide con WantsToQuit, con una línea en el
 // log.
 TEST(LoginSceneSessionTest, OkOnTheConnectNoticeQuits)

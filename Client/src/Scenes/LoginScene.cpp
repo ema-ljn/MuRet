@@ -464,7 +464,12 @@ void LoginScene::PlaceTheModels()
 
 void LoginScene::Step(const Input::InputState& input)
 {
-    if (m_context.cloth != nullptr)
+    // El connect del original bloquea dentro de un paso (Q-C85), y lo que tarda no entra al acumulador, que
+    // mide desde después de los pasos (02): mientras conecta no corre ningún paso. Acá los pasos siguen,
+    // para la red y la UI, pero ni la tela ni el mundo avanzan: el primer frame después del connect sigue
+    // donde quedó el último.
+    const bool connecting = m_session != nullptr && IsConnecting(m_session->State());
+    if (m_context.cloth != nullptr && !connecting)
     {
         Render::Models::StepTheClothWorld(*m_context.cloth);
     }
@@ -481,7 +486,10 @@ void LoginScene::Step(const Input::InputState& input)
     {
         return;
     }
-    StepTheWorld();
+    if (!connecting)
+    {
+        StepTheWorld();
+    }
     // Sin aviso, la barra se atiende junto con la cuenta o la lista: sus botones no se pisan con
     // los de ellas (Q-C84).
     if (!m_notice.IsOpen())

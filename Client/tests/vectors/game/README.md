@@ -59,3 +59,36 @@ escena (0 a 11).
 
 Generado y regenerado byte a byte con Python 3.14.4, Unicorn 2.1.4 y pefile 2024.8.26: 3.062 renglones;
 SHA-256 de `camera.txt`: `ae1721522f5a434b9c6a945796ed5204c60a836672105f9e32cddcb545fe95dd`.
+
+## El giro inverso: `inverse_rotation.txt`
+
+Expectativas del **código real** de `0x5fcc30` (`VectorIRotate`), ejecutado con el arnés de
+`login/make_rotation_vectors.py` sobre el mismo exe, con la x87 en 53 bits (`0x027f`). Los primeros
+400 casos reusan el vector y la matriz de cada caso de `world55/rotation.txt`, en su orden. Se
+descartan sus ángulos y su salida de `VectorRotate`: las salidas inversas se calculan ejecutando
+`0x5fcc30`. El SHA-256 de ese archivo fuente es
+`daea6b29aff3cdbfd118b5d7f511396edf76f2a9171909b6edf678c0f1e30452`.
+
+Los últimos tres casos usan matrices sintéticas (no necesariamente giros ortonormales) y vectores
+con 2^70 para aislar la cancelación de cada componente. Hacen distinguible `(2^70 + 1) − 2^70` de
+`(2^70 − 2^70) + 1`, que los vectores de la cámara, con x = z = 0, no pueden distinguir. Sus
+expectativas también salen del binario: no se usa una fórmula Python como oráculo. Los compara
+`tests/render/test_original_rotation.cpp`.
+
+| Renglón | Campos, en orden |
+| --- | --- |
+| `inverse_rotation 1` | versión del formato |
+| `case …` | vector xyz, matriz de 12 floats por filas (3 × 4), salida inversa xyz; todos como ocho dígitos hexadecimales de sus bits |
+| `end` | fin del archivo |
+
+Para regenerarlo, con el mismo entorno y `MURET_MAIN_EXE` que la cámara:
+
+```bash
+python -I Client/docs/research/scripts/game/camera/make_inverse_rotation_vectors.py Client/tests/vectors/game/inverse_rotation.txt
+```
+
+Funciona por ruta absoluta desde fuera del repo, comprueba el SHA-256 del exe antes de emular y
+reemplaza el archivo de salida solo cuando el texto completo está listo. No modifica `rotation.txt`
+ni `camera.txt`. Generado y regenerado byte a byte con Python 3.14.4, Unicorn 2.1.4 y pefile
+2024.8.26: 403 casos, 405 renglones, 67.324 bytes. SHA-256 de `inverse_rotation.txt`:
+`91f093559d176dc353398df9f0c02e7fb2e1a27781c23c7a77af422909c00ad5`.

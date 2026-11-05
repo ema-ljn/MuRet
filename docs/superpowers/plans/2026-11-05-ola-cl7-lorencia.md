@@ -277,7 +277,7 @@ CL7.3 B; los ocho `rand()` protegidos por frame son CL7.P.
 
 Los golden del pase y de las celdas de Lorencia usan la cámara calculada desde el héroe de la traza.
 Build GCC 15.2 con warnings como errores y sin PCH; `misc-include-cleaner` 18 en los ocho `.cpp`/`.h`
-cambiados y `clang-format-18`, limpios. Suite sin GL: 2.164 casos registrados, cero fallos, 30
+cambiados y `clang-format-18`, limpios. Suite sin GL: 2.165 casos registrados, cero fallos, 30
 salteados porque no se configuraron volcados privados ni las fuentes originales; GL: 83/83 en
 Xvfb y Mesa. Los tests de red y GL requirieron salir del sandbox para abrir sockets locales y el
 display. `msvc-conv-check.py` no está versionado ni disponible en este entorno; la compilación de
@@ -289,7 +289,18 @@ fallan los mutantes del signo del zoom, de −150 y de usar D nueva, y el que av
 consultar antes del primer paso. La comparación con x87 nativo del balanceo del mapa 5 encontró
 un ULP de diferencia con relojes largos: Unicorn coincide con MuRet; queda documentado como
 límite del oráculo en 06 y P-C29 a, pendiente de captura del original. Los vectores incluyen
-esos relojes. La segunda revisión es Opus 5.5 con esfuerzo máximo; su resultado se registra al terminar.
+esos relojes. La revisión de Opus 5.5 con esfuerzo máximo no encontró errores de comportamiento; pidió un
+oráculo independiente para el giro inverso y que el golden de cada celda observe su cámara. Se
+agregaron 403 salidas reales de `0x5fcc30` y una comparación de giros/traslación con la traza; los
+mutantes de suma y yaw −44 fallan. Se corrigieron los comentarios que exageraban su cobertura.
+La supuesta falta de variación del nivel y del objetivo era un falso positivo: ambos estaban ya
+en los 3.000 frames, que el paquete entregado a Opus no incluía. Astra contrastó esas conclusiones
+y revisó los arreglos. El chequeo directo de ASM y pseudocódigo de `0x5fcc30` confirma índices,
+agrupación y únicos guardados float; copiar literalmente el pseudocódigo reordenaría las sumas. El contraste de
+`0x635ae0` cotejó 462 instrucciones, constantes y tablas con el PE: sin discrepancias lógicas en
+el alcance incluido; la tabla de correspondencia queda en 06 § La cámara del juego. La CL7
+completa sigue abierta: el cierre exige el barrido de todas sus funcionalidades en pasadas
+complementarias, según el pedido de Emanuel registrado en `AGENTS.md`.
 
 ## Sub-ola CL7.3 B: la cámara compartida
 

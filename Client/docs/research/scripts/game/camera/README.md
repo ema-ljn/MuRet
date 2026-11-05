@@ -9,6 +9,7 @@ Todos necesitan `MURET_MAIN_EXE`; `att_survey.py`, solo el `Data\`.
 | --- | --- | --- |
 | `emu_camera.py` | `0x635ae0` y `0x620db0` (el armado del pase 3D: `glViewport`, `gluPerspective`, los giros) con el código real. `CameraEmu` es el arnés: los inicializadores `0x403220` (el `CCameraMove`) y `0x635ad0` (D = 1.000), el héroe en `0x743a170`, el mapa 0, la escena 5 y el yaw −45 del primer paso (`0x636838`) | CL7.3 A, CL7.3 B |
 | `camera_reference.py` | `0x635ae0` reescrita en doubles con un `f32` donde el binario guarda float, con `0x5fc8f0` (la matriz) y `0x5fcc30` (`VectorIRotate`), contra el emulado en casos al azar | CL7.3 A, tareas 1 y 3 |
+| `make_inverse_rotation_vectors.py` | `0x5fcc30` real: 400 entradas del giro y tres cancelaciones que distinguen el orden de sumas; produce `game/inverse_rotation.txt` | CL7.3 A, tareas 1 y 3 |
 | `make_camera_vectors.py` | `Client/tests/vectors/game/camera.txt`: 60 casos, 3.000 frames con cinco semillas, cada uno con la entrada y la salida en los bits de cada float; exige el SHA-256 del build antes de emular | CL7.3 A, tarea 2 |
 | `att_survey.py` | los bits `0x80` (el zoom) y `0x40` (la altura fija de `0x6c9d5c`) del `.att` de cada mundo, y el rectángulo del far (16.100–19.000 × 18.900–21.700) | CL7.3 A (`TheFarIs3000InsideTheRectangleOnAnyMap`), CL7.5 E |
 

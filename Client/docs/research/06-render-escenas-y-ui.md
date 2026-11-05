@@ -2713,12 +2713,40 @@ frames al azar (cinco semillas: el héroe, el atributo, el temblor, el reloj, el
 **MuRet, CL7.3 A (2026-11-05).** `World::GameCamera` y `StepGameCamera` reproducen esta cuenta,
 incluidas las cámaras de las escenas 2 y 4, el desvío de los efectos y la rama especial del mapa 6.
 Se comparan todos los campos de la cámara y del estado bit a bit con 3.000 frames del código real
-emulado (60 casos, cinco semillas; [`vectores`](../../tests/vectors/game/README.md)). El pase y las
+emulado (60 casos, cinco semillas; [`vectores`](../../tests/vectors/game/README.md)). El giro inverso
+se contrasta además con 403 salidas de `0x5fcc30` real, incluidas tres cancelaciones que observan
+el orden de sumas, sin usar la fórmula C++ como expectativa. El pase y las
 329 celdas recortadas de Lorencia usan ahora la cámara calculada desde el héroe de la traza, sin
 copiar su posición de la expectativa. `GameCameraOf` conserva la D usada antes del suavizado, el
 zoom y el far, y reconstruye el dibujo con el héroe del último paso lógico sin otro avance. La
 integración en las escenas es la CL7.3 B; los ocho `rand()` protegidos por frame, la CL7.P. El
 recorrido `CCameraMove` sigue fuera de este valor de cámara.
+
+**Contraste ASM y pseudocódigo (CL7.3 A).** Para `0x5fcc30`, el orden de las dos sumas
+lo fija el ASM, no la expresión reordenada del pseudocódigo de Ghidra. Cada componente conserva
+sus productos y sumas en x87 hasta el único guardado float: x en `0x5fcc50`, y en `0x5fcc67`,
+z en `0x5fcc7f`. MuRet usa double y convierte a float en esos mismos límites; el arnés fija
+PC53 (`0x027f`), que la función no configura por sí misma. El destino original es un tercer
+puntero; MuRet devuelve un valor y no reproduce un destino superpuesto con las entradas.
+
+Para `0x635ae0`, se cotejaron las 462 instrucciones del export (1.913 bytes), sus constantes y
+sus tablas con el PE del SHA indicado en el research. La lectura del `.c` se contrastó con ese
+ASM. En el alcance de la CL7.3 A no aparecieron discrepancias de lógica ni de constantes:
+
+| ASM | Correspondencia en MuRet |
+| --- | --- |
+| `0x635b3d..0x635c4f` | la rama especial del mapa 6 usa D vieja y omite el far normal, el reset del nivel, el `0x40` y el zoom |
+| `0x635d8f..0x635e59` | el rectángulo inclusivo precede al mapa; far 2.500 solo con mapa 30 y escena 5; nivel leído como word con signo, antes de volverlo a 0 |
+| `0x635e63..0x635efc` | la posición usa D previa; el objetivo de efectos sustituye x/y, y el camino sin recorrido vuelve el nivel a 0 |
+| `0x635f02..0x635feb` | z base 255 en mapa 30 en todas las escenas; `0x40` deja 1.201; las escenas fijas pisan posición/yaw antes del zoom |
+| `0x635fed..0x6360fe` | zoom ±10, hasta 210, con giro fijo −45; también se aplica un zoom negativo distinto de cero |
+| `0x636104..0x63614f` | balanceo del mapa 5, con las tasas float exactas y sin actualizar D ni su meta |
+| `0x636150..0x63624d` | D/meta 3.200 en la rama especial del mapa 6, 1.100 en mapa 30 en cualquier escena, o suavizado de un tercio hacia 1.000 tras el reset |
+| retornos de `0x635ae0` | `AL = 0`; el pseudocódigo no implica que todo EAX valga 0. MuRet devuelve una cámara por su propia interfaz |
+
+El recorrido `CCameraMove`, la vista superior muerta y los accesos protegidos no se incluyeron en
+esta equivalencia; sus exclusiones y la sub-ola que los cubre están arriba. Los valores iniciales
+se toman del contrato de inicialización; este contraste es de la función de cámara.
 
 **Límite de la comparación x87 (revisión cruzada, CL7.3 A).** El balanceo del mapa 5 usa
 `std::sin` en MuRet. Con los relojes float `0x4f0d7740`, `0x4f2f0344` y `0x4f5ac415`, Unicorn y

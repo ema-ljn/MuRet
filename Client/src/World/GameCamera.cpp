@@ -30,7 +30,7 @@ constexpr float ZoomLimit = 200.0f;
 constexpr float ZoomYaw = -45.0f;
 constexpr double Third = std::bit_cast<float>(std::uint32_t{0x3eaaaaab});
 constexpr double RockingPitchRate = std::bit_cast<float>(std::uint32_t{0x3a03126f});
-constexpr double RockingYawRate = std::bit_cast<float>(std::uint32_t{0x3a51b717});
+constexpr double RockingYRate = std::bit_cast<float>(std::uint32_t{0x3a51b717});
 constexpr std::array<float, 5> LevelFar{2000.0f, 2500.0f, 2600.0f, 2950.0f, 3200.0f};
 constexpr float LoginFar = 20400.0f;
 constexpr float SelectionFar = std::bit_cast<float>(std::uint32_t{0x4633ff9a});
@@ -146,7 +146,7 @@ void ApplyRocking(Render::Camera3D& camera, const GameCameraInput& input)
     {
         const double pitchWave = std::sin(static_cast<double>(input.worldTime) * RockingPitchRate);
         camera.angles.x = F32((pitchWave + pitchWave) + static_cast<double>(camera.angles.x));
-        camera.angles.y = F32((std::sin(static_cast<double>(input.worldTime) * RockingYawRate) * 2.5) +
+        camera.angles.y = F32((std::sin(static_cast<double>(input.worldTime) * RockingYRate) * 2.5) +
                               static_cast<double>(camera.angles.y));
     }
 }

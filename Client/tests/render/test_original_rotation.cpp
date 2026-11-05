@@ -11,6 +11,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -73,7 +74,8 @@ TEST(OriginalRotationTest, FourHundredCasesMatchTheBinary)
     EXPECT_EQ(cases, 400u);
 }
 
-// El signo o el orden de las sumas de VectorIRotate cambia los bits de la traza.
+// La transpuesta y el signo fijan los bits de la traza. Los 400 casos prueban la cuenta en double;
+// la sensibilidad al orden de sumas se prueba aparte con cancelaciones.
 TEST(OriginalRotationTest, TheInverseRotateSumsLikeTheBinary)
 {
     using Client::Render::Models::OriginalAngleMatrix;
@@ -86,6 +88,7 @@ TEST(OriginalRotationTest, TheInverseRotateSumsLikeTheBinary)
     ASSERT_TRUE(file);
     std::string line;
     ASSERT_TRUE(std::getline(file, line));
+    ASSERT_EQ(line, "rotation 1");
     ASSERT_TRUE(std::getline(file, line));
     std::size_t cases = 0;
     while (std::getline(file, line) && line != "end")
@@ -125,8 +128,52 @@ TEST(OriginalRotationTest, TheInverseRotateSumsLikeTheBinary)
     EXPECT_EQ(cases, 400u);
 }
 
+// Salidas de 0x5fcc30 real: no comparten la fórmula del test manual ni de la implementación.
+TEST(OriginalRotationTest, FourHundredAndThreeInverseCasesMatchTheBinary)
+{
+    std::ifstream file(Client::Tests::World55VectorsDir().parent_path() / "game" / "inverse_rotation.txt");
+    ASSERT_TRUE(file);
+    std::string line;
+    ASSERT_TRUE(std::getline(file, line));
+    ASSERT_EQ(line, "inverse_rotation 1");
+    std::size_t cases = 0;
+    while (std::getline(file, line) && line != "end")
+    {
+        SCOPED_TRACE(cases);
+        std::istringstream words(line);
+        std::string word;
+        words >> word;
+        ASSERT_EQ(word, "case");
+        const auto next = [&words]()
+        {
+            std::string value;
+            words >> value;
+            return FromBits(value);
+        };
+        glm::vec3 vector{};
+        for (int k = 0; k < 3; ++k)
+        {
+            vector[k] = next();
+        }
+        Client::Render::Models::OriginalMatrix matrix{};
+        for (float& value : matrix)
+        {
+            value = next();
+        }
+        const auto actual = Client::Render::Models::OriginalVectorIRotate(vector, matrix);
+        for (int k = 0; k < 3; ++k)
+        {
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(actual[k]), std::bit_cast<std::uint32_t>(next())) << k;
+        }
+        ASSERT_FALSE(words.fail());
+        ++cases;
+    }
+    EXPECT_EQ(line, "end");
+    EXPECT_EQ(cases, 403u);
+}
+
 // En double, (2^70 + 1) - 2^70 da 0; (2^70 - 2^70) + 1 da 1. Las matrices
-// sintéticas aíslan cada componente: los vectores del giro normal no alcanzan esa cancelación.
+// sintéticas aíslan cada componente: los 400 vectores al azar no alcanzan esa cancelación.
 TEST(OriginalRotationTest, TheInverseRotateKeepsTheBinarySumOrderWhenProductsCancel)
 {
     using Client::Render::Models::OriginalMatrix;

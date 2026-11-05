@@ -133,6 +133,38 @@ std::vector<std::pair<int, int>> DrawnCells(const ModelBatch& batch)
     return cells;
 }
 
+// La primera vista de Lorencia usa esta cámara antes de los pases del terreno.
+// Así el golden de cada celda también observa la cámara calculada.
+void ExpectCameraInTrace(const Client::Tests::GlTraceFrame& frame, const Client::Render::Camera3D& camera)
+{
+    std::array<const Client::Tests::GlTraceMatrixCall*, 4> calls{};
+    std::size_t count = 0;
+    for (const auto& call : frame.matrices)
+    {
+        if (call.name == "glRotatef" || call.name == "glTranslatef")
+        {
+            calls[count++] = &call;
+            if (count == calls.size())
+                break;
+        }
+    }
+    ASSERT_EQ(count, calls.size());
+    const std::array<std::array<float, 4>, 3> rotations{{{camera.angles.y, 0.0f, 1.0f, 0.0f},
+                                                         {camera.angles.x, 1.0f, 0.0f, 0.0f},
+                                                         {camera.angles.z, 0.0f, 0.0f, 1.0f}}};
+    for (std::size_t k = 0; k < rotations.size(); ++k)
+    {
+        ASSERT_EQ(calls[k]->name, "glRotatef");
+        ASSERT_EQ(calls[k]->values.size(), rotations[k].size());
+        for (std::size_t component = 0; component < rotations[k].size(); ++component)
+            EXPECT_NEAR(rotations[k][component], calls[k]->values[component], Tolerance);
+    }
+    ASSERT_EQ(calls.back()->name, "glTranslatef");
+    ASSERT_EQ(calls.back()->values.size(), 3u);
+    for (int k = 0; k < 3; ++k)
+        EXPECT_NEAR(-camera.position[k], calls.back()->values[static_cast<std::size_t>(k)], Tolerance);
+}
+
 class GoldenTerrainTrace : public Client::Tests::GoldenAndGlTraceTest
 {
 };
@@ -153,6 +185,7 @@ TEST_F(GoldenTerrainTrace, TheCellsOfLorenciaMatchTheTrace)
     Client::World::GameCamera cameraState;
     const Client::World::GameCameraInput cameraInput{.hero = {14350.0f, 12050.0f, 165.0f}, .cellAttribute = 0x01};
     const auto camera = Client::World::StepGameCamera(cameraState, cameraInput);
+    ExpectCameraInTrace(trace.Value().frames.front(), camera);
     const auto worldPass = Client::Render::MakePass3D(Client::App::PixelSize{1024, 768}, {0, 0, 640, 432}, camera);
     TerrainView view{.mapping = terrain.Value().mapping.get(),
                      .heights = terrain.Value().heights.get(),
@@ -278,10 +311,12 @@ TEST_F(GoldenTerrainTrace, LorenciaDrawsTheCellsOfTheTraceInItsOrder)
     Client::World::GameCamera cameraState;
     const Client::World::GameCameraInput cameraInput{.hero = {14350.0f, 12050.0f, 165.0f}, .cellAttribute = 0x01};
     const auto camera = Client::World::StepGameCamera(cameraState, cameraInput);
+    ASSERT_FALSE(trace.Value().frames.empty());
+    ExpectCameraInTrace(trace.Value().frames.front(), camera);
     const auto pass = Client::Render::MakePass3D(Client::App::PixelSize{1024, 768}, {0, 0, 640, 432}, camera);
     const auto range = Client::World::TerrainRangeOf(pass.view, camera);
-    const auto polygon = Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, Lorencia,
-                                                         {14350.0f, 12050.0f, 165.0f}, camera.angles.z);
+    const auto polygon =
+        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, Lorencia, cameraInput.hero, camera.angles.z);
     const TerrainView view{.mapping = terrain.Value().mapping.get(),
                            .heights = terrain.Value().heights.get(),
                            .attributes = terrain.Value().attributes.get(),

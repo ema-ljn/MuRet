@@ -232,12 +232,10 @@ TEST_F(GoldenPass3DTrace, TheLorenciaWorldPassMatches)
     {
         const std::vector<TracedPass> passes = PassesOf(trace->frames[f]);
         const Camera3D camera = Client::World::StepGameCamera(state, input);
-        const glm::ivec4 viewport = MakePass3D(TraceWindow, LorenciaWorld, camera).viewport;
-        const TracedPass* traced = FindPass(passes, viewport);
+        const Pass3D pass = MakePass3D(TraceWindow, LorenciaWorld, camera);
+        const TracedPass* traced = FindPass(passes, pass.viewport);
         ASSERT_NE(traced, nullptr) << "frame " << f << ": ningún glViewport es el del mundo";
         ASSERT_GE(traced->view.size(), CameraCalls) << "frame " << f;
-        const Pass3D pass = MakePass3D(TraceWindow, LorenciaWorld, camera);
-
         ExpectTheProjection(pass, *traced, f);
         ExpectTheView(pass, *traced, f);
     }

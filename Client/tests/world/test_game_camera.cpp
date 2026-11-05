@@ -49,7 +49,7 @@ void ExpectSameCamera(const Client::Render::Camera3D& actual, const Client::Rend
     EXPECT_EQ(actual.skipXRotation, expected.skipXRotation);
 }
 
-// Detecta D nueva en la posición, la falta de −150 y el signo del giro.
+// Fija la traza de Lorencia y detecta la falta de −150 o el signo incorrecto del giro.
 TEST(GameCameraTest, TheCameraOfLorenciaIsTheOneInTheTrace)
 {
     GameCamera state;

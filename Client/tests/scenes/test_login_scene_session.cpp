@@ -18,6 +18,7 @@
 #include "Protocol/Connection/Login.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Render/SpriteBatch.h"
+#include "Render/Models/Cloth.h"
 #include "Render/TextureSlot.h"
 #include "Render/SpriteVertex.h"
 #include "Scenes/GameData.h"
@@ -195,7 +196,8 @@ int MiddleY(const Rect& rect)
 
 struct Harness
 {
-    Harness()
+    // Con `withTheCloth`, lo global de la tela en el contexto (el viento, el contador de pasos y el rand()).
+    explicit Harness(bool withTheCloth = false)
         : log(sink, LogLevel::Debug), connection(socket, IdentityObfuscation::Shared(), clock, log, 1),
           session(connection, clock, log, GameClientKeys(), SessionSettings{ServerAddress{"10.0.0.1", 44405}})
     {
@@ -208,7 +210,10 @@ struct Harness
         {
             data = std::move(loaded).Value();
         }
-        scene.emplace(SceneContext{folder.Path(), store, log}, data, models, &session, "0.0.0", FixedSeed);
+        scene.emplace(
+            SceneContext{
+                .dataRoot = folder.Path(), .textures = store, .log = log, .cloth = withTheCloth ? &cloth : nullptr},
+            data, models, &session, "0.0.0", FixedSeed);
     }
 
     // Lo de un frame del GameLoop con un paso: la sesión, el paso de la escena y los flancos.
@@ -397,6 +402,7 @@ struct Harness
     Client::Scenes::SingleModelLibrary models;
     RecordingFrameTarget target;
     InputState input;
+    Client::Render::Models::ClothWorld cloth;
     std::optional<LoginScene> scene;
     std::size_t gameServerStart = 0;
 };
@@ -971,24 +977,32 @@ TEST(LoginSceneSessionTest, AQuitOrderDoesNotMoveTheLoginWorld)
 // pasos de MuRet que pasen conectando, y sigue cuando el CS abre.
 TEST(LoginSceneSessionTest, TheLoginWorldWaitsForTheConnectServer)
 {
-    Harness tested;
+    Harness tested(true);
     Client::Tests::WriteLoginLogo(tested.folder.Path());
     tested.socket.pollsUntilConnected = 3;
     ASSERT_TRUE(tested.scene->Enter().HasValue());
     const std::optional<Client::Render::Color> entered = LogoColorOf(tested.Frame());
     ASSERT_TRUE(entered.has_value());
+    const std::int32_t clothSteps = tested.cloth.logicSteps;
+    // Lo que sacó el último dibujo: el del test, porque en el bucle el frame queda retenido.
+    std::uint32_t random = tested.cloth.random.State();
 
     int connecting = 0;
     for (tested.Step(); tested.session.State() == SessionState::ConnectingConnectServer && connecting < 10;
          tested.Step())
     {
         ++connecting;
+        // Ni la tela: el paso no la corre ni saca un rand() de la CRT.
+        EXPECT_EQ(tested.cloth.logicSteps, clothSteps) << connecting;
+        EXPECT_EQ(tested.cloth.random.State(), random) << connecting;
         const std::optional<Client::Render::Color> waiting = LogoColorOf(tested.Frame());
         ASSERT_TRUE(waiting.has_value());
         EXPECT_FLOAT_EQ(waiting->red, entered->red) << connecting;
+        random = tested.cloth.random.State();
     }
     ASSERT_GE(connecting, 2);
     ASSERT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
+    EXPECT_EQ(tested.cloth.logicSteps, clothSteps + 1) << "el paso en que abrió ya corre";
     const std::optional<Client::Render::Color> opened = LogoColorOf(tested.Frame());
     ASSERT_TRUE(opened.has_value());
     EXPECT_NE(opened->red, entered->red);
@@ -997,7 +1011,7 @@ TEST(LoginSceneSessionTest, TheLoginWorldWaitsForTheConnectServer)
 // Lo mismo con el GS (0x4e3396): con la dirección, la luz queda como en el último paso antes de ella.
 TEST(LoginSceneSessionTest, TheLoginWorldWaitsForTheGameServer)
 {
-    Harness tested;
+    Harness tested(true);
     Client::Tests::WriteLoginLogo(tested.folder.Path());
     ASSERT_NO_FATAL_FAILURE(tested.ChooseTheLabServer());
     (void)tested.Frame();
@@ -1006,17 +1020,26 @@ TEST(LoginSceneSessionTest, TheLoginWorldWaitsForTheGameServer)
     ASSERT_TRUE(before.has_value());
     tested.socket.pollsUntilConnected = 3;
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
+    // El paso que recibe la dirección todavía corre la tela: el connect empieza en él.
+    tested.Step();
+    ASSERT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
+    const std::int32_t clothSteps = tested.cloth.logicSteps;
 
     int connecting = 0;
-    for (tested.Step(); tested.session.State() == SessionState::ConnectingGameServer && connecting < 10; tested.Step())
+    for (std::uint32_t random = tested.cloth.random.State();
+         tested.session.State() == SessionState::ConnectingGameServer && connecting < 10; tested.Step())
     {
         ++connecting;
+        EXPECT_EQ(tested.cloth.logicSteps, clothSteps) << connecting;
+        EXPECT_EQ(tested.cloth.random.State(), random) << connecting;
         const std::optional<Client::Render::Color> waiting = LogoColorOf(tested.Frame());
         ASSERT_TRUE(waiting.has_value());
         EXPECT_FLOAT_EQ(waiting->red, before->red) << connecting;
+        random = tested.cloth.random.State();
     }
     ASSERT_GE(connecting, 2);
     ASSERT_EQ(tested.session.State(), SessionState::WaitingGameHello);
+    EXPECT_EQ(tested.cloth.logicSteps, clothSteps + 1) << "el paso en que abrió ya corre";
     const std::optional<Client::Render::Color> opened = LogoColorOf(tested.Frame());
     ASSERT_TRUE(opened.has_value());
     EXPECT_NE(opened->red, before->red);

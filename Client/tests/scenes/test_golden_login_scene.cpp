@@ -85,8 +85,9 @@ TEST_F(GoldenLoginScene, EntersWithTheLabData)
     const auto entered = scene.Enter();
 
     ASSERT_TRUE(entered.HasValue()) << entered.Error();
-    // Y las dos del logo (TheLogoLoads).
-    ASSERT_EQ(store.Size(), LoginTextureSet.size() + WindowTextureSet.size() + 2);
+    // Y las dos del logo (TheLogoLoads) y las 15 del terreno: los 14 tiles de World56 y el 0x122
+    // (TheTerrainGoesBeforeTheCharacter).
+    ASSERT_EQ(store.Size(), LoginTextureSet.size() + WindowTextureSet.size() + 2 + 15);
     for (const auto& entry : LoginTextureSet)
     {
         EXPECT_TRUE(store.Find(TextureSlot{entry.slot}).has_value()) << entry.slot;
@@ -143,15 +144,62 @@ TEST_F(GoldenLoginScene, TheLogoLoads)
     target.Present();
     const auto drawn = std::ranges::find(target.frames.back().events, Kind::Models, &FrameEvent::kind);
     ASSERT_NE(drawn, target.frames.back().events.end());
-    ASSERT_EQ(drawn->modelCommands.size(), 2u);
-    EXPECT_EQ(drawn->modelCommands[0].state.texture, TextureSlot{0x455});
-    EXPECT_EQ(drawn->modelCommands[0].state.blend, Client::Render::ModelBlend::Opaque);
-    EXPECT_EQ(drawn->modelCommands[1].state.texture, TextureSlot{0x456});
-    EXPECT_EQ(drawn->modelCommands[1].state.blend, Client::Render::ModelBlend::Additive);
+    // Los dos últimos tramos: antes va el terreno (TheTerrainGoesBeforeTheCharacter).
+    const auto& commands = drawn->modelCommands;
+    ASSERT_GE(commands.size(), 2u);
+    EXPECT_EQ(commands[commands.size() - 2].state.texture, TextureSlot{0x455});
+    EXPECT_EQ(commands[commands.size() - 2].state.blend, Client::Render::ModelBlend::Opaque);
+    EXPECT_EQ(commands.back().state.texture, TextureSlot{0x456});
+    EXPECT_EQ(commands.back().state.blend, Client::Render::ModelBlend::Additive);
 
     scene.Leave();
     EXPECT_FALSE(store.Find(TextureSlot{0x455}).has_value());
     EXPECT_FALSE(store.Find(TextureSlot{0x456}).has_value());
+}
+
+// CL7.1: el login carga el terreno de World56 y lo dibuja primero en el pase 3D (0x5fc260(0) antes de
+// 0x510d00): los tramos del principio son de los tiles (0x23..0x30) y del 0x122, y en el login, con el
+// lago al fondo, hay agua (TileWater01, el 0x28). Al salir, sus 15 slots se sueltan.
+TEST_F(GoldenLoginScene, TheTerrainGoesBeforeTheCharacter)
+{
+    auto data = LoadGameData(m_dataRoot);
+    ASSERT_TRUE(data.HasValue()) << data.Error();
+    FakeTextureStore store;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    const SingleModelLibrary models;
+    LoginScene scene(SceneContext{m_dataRoot, store, log}, data.Value(), models, nullptr, Version, FixedSeed);
+    ASSERT_TRUE(scene.Enter().HasValue());
+    for (std::uint16_t slot = 0x23; slot <= 0x30; ++slot)
+    {
+        EXPECT_TRUE(store.Find(TextureSlot{slot}).has_value()) << std::hex << slot;
+    }
+    EXPECT_TRUE(store.Find(TextureSlot{0x122}).has_value());
+
+    RecordingFrameTarget target;
+    scene.Render(target.BeginFrame(std::chrono::milliseconds{40}), 0.0f);
+    target.Present();
+    const auto drawn = std::ranges::find(target.frames.back().events, Kind::Models, &FrameEvent::kind);
+    ASSERT_NE(drawn, target.frames.back().events.end());
+    const auto isTerrain = [](const Client::Render::ModelDrawCommand& command)
+    {
+        return command.state.texture.has_value() &&
+               ((command.state.texture->value >= 0x23 && command.state.texture->value <= 0x30) ||
+                command.state.texture->value == 0x122);
+    };
+    ASSERT_FALSE(drawn->modelCommands.empty());
+    EXPECT_TRUE(isTerrain(drawn->modelCommands.front()));
+    const auto firstOther = std::ranges::find_if_not(drawn->modelCommands, isTerrain);
+    EXPECT_TRUE(std::all_of(firstOther, drawn->modelCommands.end(),
+                            [&isTerrain](const auto& command) { return !isTerrain(command); }))
+        << "el terreno va todo antes que los modelos";
+    EXPECT_TRUE(std::ranges::any_of(drawn->modelCommands,
+                                    [](const auto& command) { return command.state.texture == TextureSlot{0x28}; }))
+        << "el lago";
+
+    scene.Leave();
+    EXPECT_FALSE(store.Find(TextureSlot{0x23}).has_value());
+    EXPECT_FALSE(store.Find(TextureSlot{0x122}).has_value());
 }
 
 // Los textos de los avisos de la selección que vienen vacíos en el Text.bmd del laboratorio.

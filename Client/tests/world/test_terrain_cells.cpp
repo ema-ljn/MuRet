@@ -22,6 +22,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <utility>
+#include <vector>
 
 // Client::World::DrawTerrainCell con un terreno armado a mano: los vértices de 0x5fac90, las capas
 // que elige 0x5fa830 por el alfa de las cuatro esquinas, las UV de 0x5fa5c0 y la luz y el alfa de
@@ -36,6 +38,7 @@ using Client::Render::ModelBatch;
 using Client::Render::ModelBlend;
 using Client::Render::ModelDrawCommand;
 using Client::Render::TextureSlot;
+using Client::World::DrawTerrain;
 using Client::World::DrawTerrainCell;
 using Client::World::TerrainLighting;
 using Client::World::TerrainRange;
@@ -311,5 +314,46 @@ TEST(TerrainCellsTest, OnlyLayer5BelowIsWater)
         ASSERT_EQ(batch.Commands().size(), 2u);
         EXPECT_EQ(batch.Vertices()[batch.Commands()[1].firstVertex].uv.x, 1.75f + 0.375f);
     }
+}
+// 0x5fc190 y 0x5fc0e0: los bloques de 4 × 4 por fila de bloques y después por columna, y en cada uno
+// las 16 celdas por fila y después por columna, cada una con su pase de alfa enseguida.
+TEST(TerrainCellsTest, TheCellsGoByBlockAndThenByRow)
+{
+    Terrain terrain;
+    terrain.SetAlpha(9, 13, {0.0f, 0.5f, 0.0f, 0.0f});
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    DrawTerrain(batch, terrain.view, TerrainRange{.firstX = 4, .lastX = 8, .firstY = 12, .lastY = 16}, TerrainWater{});
+    // Cuatro bloques (12 y 16 en y, 4 y 8 en x), de 16 celdas. El alfa de la esquina (10, 13) lo
+    // comparten las cuatro celdas de alrededor, que llevan pase de alfa. Cada pase son seis vértices, y
+    // el lote junta en un tramo los seguidos con el mismo estado.
+    std::vector<std::pair<int, int>> cells;
+    std::size_t alphaPasses = 0;
+    for (const ModelDrawCommand& command : batch.Commands())
+    {
+        for (std::size_t first = 0; first < command.vertexCount; first += 6)
+        {
+            const glm::vec3 origin = batch.Vertices()[command.firstVertex + first].position;
+            const std::pair<int, int> cell{static_cast<int>(origin.x / 100.0f), static_cast<int>(origin.y / 100.0f)};
+            if (command.state.blend == ModelBlend::Alpha)
+            {
+                ++alphaPasses;
+                EXPECT_TRUE(cell.first == 9 || cell.first == 10) << cell.first;
+                EXPECT_TRUE(cell.second == 12 || cell.second == 13) << cell.second;
+                EXPECT_EQ(cells.back(), cell) << "el pase de alfa va enseguida del opaco de su celda";
+                continue;
+            }
+            cells.push_back(cell);
+        }
+    }
+    EXPECT_EQ(alphaPasses, 4u);
+    ASSERT_EQ(cells.size(), 64u);
+    EXPECT_EQ(cells[0], std::make_pair(4, 12));
+    EXPECT_EQ(cells[1], std::make_pair(5, 12));
+    EXPECT_EQ(cells[4], std::make_pair(4, 13));
+    EXPECT_EQ(cells[15], std::make_pair(7, 15));
+    EXPECT_EQ(cells[16], std::make_pair(8, 12));
+    EXPECT_EQ(cells[32], std::make_pair(4, 16));
+    EXPECT_EQ(cells[63], std::make_pair(11, 19));
 }
 } // namespace

@@ -1009,4 +1009,21 @@ void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const
         Triangles(batch, draw, BlendedShadowState, DarkHorseShadowColor, PassUv{});
     }
 }
+
+std::optional<glm::vec3> PosedBonePoint(const IModelLibrary& models, const DrawnObject& object, std::size_t bone,
+                                        const glm::vec3& offset)
+{
+    const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
+    // 0x4eb973: la pose saltea los dummy sin escribirlos; el buffer global queda con el de antes.
+    if (skeleton == nullptr || bone >= skeleton->bones.size() || skeleton->bones[bone].dummy)
+    {
+        return std::nullopt;
+    }
+    std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(1.0f));
+    if (!Render::Models::PoseSkeleton(*skeleton, object.animation, object.transform, glm::vec2{}, bones))
+    {
+        return std::nullopt;
+    }
+    return (Render::Models::VectorTransform(offset, bones[bone]) * object.transform.scale) + object.transform.position;
+}
 } // namespace Client::Scenes

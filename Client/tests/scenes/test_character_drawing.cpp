@@ -1668,4 +1668,25 @@ TEST(CharacterDrawingTest, OnlyTheScepterWithTheTableAsksForSprites)
         EXPECT_FALSE(sprites.Any()) << "otro ítem";
     }
 }
+
+// El punto de un hueso de un objeto, posado como en DrawObject y pasado al mundo como sus vértices: con
+// el hueso 0 plano, el desplazamiento por la escala más la posición; un hueso que el modelo no tiene, uno
+// dummy (0x4eb973 no lo escribe en el buffer global) o un modelo que no está, nada.
+TEST(CharacterDrawingTest, ThePointOfABoneGoesToTheWorldLikeTheVertices)
+{
+    OneModel models(0xa3, "logo.jpg");
+    DrawnObject object;
+    object.model = 0xa3;
+    object.transform.position = {100.0f, 200.0f, 300.0f};
+    object.transform.scale = 2.0f;
+    const auto point = Client::Scenes::PosedBonePoint(models, object, 0, {50.0f, -4.0f, 0.0f});
+    ASSERT_TRUE(point.has_value());
+    EXPECT_EQ(*point, glm::vec3(200.0f, 192.0f, 300.0f));
+    EXPECT_FALSE(Client::Scenes::PosedBonePoint(models, object, 1, glm::vec3(0.0f)).has_value());
+    object.model = 0xa4;
+    EXPECT_FALSE(Client::Scenes::PosedBonePoint(models, object, 0, glm::vec3(0.0f)).has_value());
+    object.model = 0xa3;
+    models.ItemSkeleton().bones[0].dummy = true;
+    EXPECT_FALSE(Client::Scenes::PosedBonePoint(models, object, 0, glm::vec3(0.0f)).has_value()) << "dummy";
+}
 } // namespace

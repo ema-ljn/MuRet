@@ -52,6 +52,7 @@
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 #include "World/ModelEffects.h"
+#include "World/Particles.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
@@ -64,6 +65,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <ratio>
 #include <random>
 #include <set>
 #include <span>
@@ -407,6 +409,8 @@ void LoginScene::PlaceTheModels()
     // mapa crea en (5.600; 23.000; 0)) lo crea con 0x518cf0 (06 § El dragón de fondo).
     m_effects.Clear();
     m_sprites.Clear();
+    m_particles.Clear();
+    m_drawnSinceEntering = false;
     if (m_world && m_world->map == DragonMap)
     {
         (void)m_effects.Create(World::DragonEffect, DragonOwnerPosition, glm::vec3(0.0f), glm::vec3(1.0f),
@@ -509,6 +513,7 @@ void LoginScene::StepTheWorld()
     if (const Render::Models::Skeleton* horse = m_models.SkeletonOf(DarkHorseModel))
     {
         StepDarkHorse(m_horse, *horse, m_characterAnimation.body.action);
+        BreatheTheHorse();
     }
     // 0x508f00 → 0x4fcd00: lo que termina vuelve a la de parado (0x4fcb10 → 0x4f2250).
     if (StepCharacterAnimation(m_characterAnimation, m_character, m_models, Render::Models::AnimationScene::Other) &&
@@ -519,7 +524,75 @@ void LoginScene::StepTheWorld()
     // 0x52d220, después de los objetos (0x606560), el caballo (0x445230) y los personajes (0x508f00): los
     // efectos con modelo, el dragón.
     StepModelEffects(m_effects.Effects(), m_worldModels);
+    // 0x5446e0, al final (0x634d22): el viento y las partículas, con el rand() de la CRT.
+    if (m_context.cloth != nullptr)
+    {
+        World::StepParticles(m_particles, m_context.cloth->random);
+    }
     AdvanceRoutes(m_routes);
+}
+
+void LoginScene::BreatheTheHorse()
+{
+    // Con el jinete (+0x108), sin su 0x4000 (+0x78; el del login no lo tiene) y la acción del caballo
+    // distinta de 1, rand() % 3 en 0: el 0x5f2 en el hueso 27 del buffer global con (50; −4; 0), con los
+    // ángulos del caballo (los del jinete) y su luz (3, 3, 3, de 0x443d70).
+    constexpr std::uint8_t DustAction = 1;
+    constexpr int OneIn = 3;
+    constexpr std::size_t BreathBone = 27;
+    constexpr glm::vec3 BreathOffset{50.0f, -4.0f, 0.0f};
+    constexpr glm::vec3 HorseLight{3.0f, 3.0f, 3.0f};
+    if (m_context.cloth == nullptr || m_horse.animation.action == DustAction)
+    {
+        return;
+    }
+    Render::Models::CrtRandom& random = m_context.cloth->random;
+    if (random.Next() % OneIn != 0)
+    {
+        return;
+    }
+    const float clock =
+        m_context.clock != nullptr
+            ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
+            : 0.0f;
+    (void)m_particles.Create(World::BreathParticle, GlobalPosePoint(BreathBone, BreathOffset),
+                             LoginCharacterTransform().angles, HorseLight, 0, 1.0f, clock, random);
+}
+
+glm::vec3 LoginScene::GlobalPosePoint(std::size_t bone, const glm::vec3& offset) const
+{
+    if (!m_drawnSinceEntering)
+    {
+        return glm::vec3(0.0f);
+    }
+    // Lo que se dibujó en el último frame, de atrás para adelante, con el estado de este paso (el original
+    // no interpola): el dragón, si tiene ese hueso y no es dummy, y si no el caballo. Los objetos del mapa 55
+    // tienen menos de 28 huesos, y lo que cuelga del personaje va antes que el caballo.
+    for (const World::ModelEffect& effect : m_effects.Effects())
+    {
+        if (!effect.alive || effect.alpha < 0.01f)
+        {
+            continue;
+        }
+        DrawnObject dragon;
+        dragon.model = static_cast<std::uint16_t>(effect.type);
+        dragon.animation = effect.animation;
+        dragon.transform = effect.transform;
+        if (const std::optional<glm::vec3> point = PosedBonePoint(m_worldModels, dragon, bone, offset))
+        {
+            return *point;
+        }
+    }
+    if (m_horse.alpha >= 0.01f)
+    {
+        const DrawnObject horse = DrawnDarkHorse(m_horse, m_models.SkeletonOf(DarkHorseModel),
+                                                 LoginCharacterTransform(), DarkHorseLoginScale, 0.0f);
+        if (const std::optional<glm::vec3> point = PosedBonePoint(m_models, horse, bone, offset))
+        {
+            return *point;
+        }
+    }
+    return glm::vec3(0.0f);
 }
 
 void LoginScene::FollowSession()
@@ -723,14 +796,15 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     canvas.flushModels();
     // Los sprites del frame, los que pidió el dibujo del personaje (los 30 destellos de la tela, 0x455930,
     // y los cinco del cetro, 0x509340): 0x549510 y, con la modelview en la identidad (0x6213e0),
-    // 0x549440(0). Sin ninguno, el pase de ojo no dibuja nada y no se abre.
-    if (m_sprites.Any())
+    // 0x549440(0), y las partículas (0x548550(0)). Sin ninguno, el pase de ojo no dibuja nada y no se abre.
+    if (m_sprites.Any() || m_particles.Any())
     {
         m_sprites.MarkSeen();
         Render::Pass3D eye = pass;
         eye.view = glm::mat4(1.0f);
         canvas.models.Begin(eye);
         DrawFrameSprites(canvas.models, m_sprites, m_models, Render::ViewRows(pass.view));
+        DrawParticles(canvas.models, m_particles, m_models, Render::ViewRows(pass.view));
         canvas.flushModels();
     }
     // 5: las dos arenas, aditivas.
@@ -780,6 +854,7 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                      canvas.frameClock, alpha);
     // 0x52d620(0): los efectos con modelo, después de los objetos.
     DrawModelEffects(canvas.models, m_worldModels, m_effects.Effects(), lighting, canvas.frameClock, alpha);
+    m_drawnSinceEntering = true;
 }
 
 // 0x604ab0 con el 0xa2 en la escena 2: la luz de las rutas en el objeto y en el blendMesh, y el avance a

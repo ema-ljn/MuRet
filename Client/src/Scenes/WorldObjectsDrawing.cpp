@@ -8,6 +8,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "World/ModelEffects.h"
+#include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Render/Billboard.h"
 #include "Render/Models/OriginalRotation.h"
@@ -20,6 +21,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 
 namespace Client::Scenes
@@ -236,6 +238,39 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, c
         batch.Triangle({vertex(0), vertex(2), vertex(3)});
         // 0x549440(0) lo apaga después de dibujarlo.
         sprite.alive = false;
+    }
+}
+
+void DrawParticles(Render::ModelBatch& batch, const World::Particles& particles, const IModelLibrary& textures,
+                   const Render::Models::OriginalMatrix& view)
+{
+    constexpr int JpegComponents = 3;
+    for (const World::Particle& particle : particles.All())
+    {
+        if (!particle.alive)
+        {
+            continue;
+        }
+        const Render::TextureSlot slot{static_cast<std::uint16_t>(particle.texture)};
+        const std::optional<glm::vec2> size = textures.TextureSize(slot);
+        if (!size)
+        {
+            continue;
+        }
+        const std::optional<World::ParticleDraw> drawn = World::ParticleDrawOf(particle, *size, JpegComponents);
+        if (!drawn)
+        {
+            continue;
+        }
+        const Render::Billboard billboard =
+            Render::MakeBillboard(view, drawn->position, drawn->width, drawn->height, drawn->light, drawn->rotation,
+                                  drawn->uv, drawn->uvSize, slot.value, JpegComponents);
+        batch.SetState(Render::ModelDrawState{
+            .texture = slot, .blend = drawn->additive ? Render::ModelBlend::Additive : Render::ModelBlend::Alpha});
+        const auto vertex = [&billboard](std::size_t k)
+        { return Render::ModelVertex{billboard.corners[k].position, billboard.corners[k].uv, billboard.color}; };
+        batch.Triangle({vertex(0), vertex(1), vertex(2)});
+        batch.Triangle({vertex(0), vertex(2), vertex(3)});
     }
 }
 } // namespace Client::Scenes

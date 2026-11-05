@@ -10,6 +10,8 @@
 #include "Scenes/CharacterDrawing.h"
 #include "World/TerrainCulling.h"
 #include "Render/Billboard.h"
+#include "Render/Models/Cloth.h"
+#include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Render/Models/Skinning.h"
 #include "World/TerrainLighting.h"
@@ -349,7 +351,11 @@ public:
     }
     [[nodiscard]] std::optional<glm::vec2> TextureSize(TextureSlot slot) const override
     {
-        return slot == TextureSlot{0x5ac} ? std::optional<glm::vec2>(glm::vec2(64.0f, 32.0f)) : std::nullopt;
+        if (slot == TextureSlot{0x5ac} || slot == TextureSlot{0x5f2})
+        {
+            return glm::vec2(64.0f, 32.0f);
+        }
+        return std::nullopt;
     }
 };
 
@@ -429,5 +435,69 @@ TEST(SpritesDrawingTest, AnUnseenSpriteShrinksWithItsAlpha)
         EXPECT_FLOAT_EQ(vertex.color.red, 1.0f);
     }
     EXPECT_FLOAT_EQ(maxX - minX, 64.0f * 2.0f * 0.9f);
+}
+
+// 0x548550(0): cada aliento vivo, aditivo (smoke01 es de 3 componentes), del tamaño de su textura por la
+// escala, sin el alpha de los sprites y sin apagarlo; el paso lo apaga cuando se le acaba la vida.
+TEST(ParticlesDrawingTest, ABreathIsDrawnWithItsTextureTimesItsScale)
+{
+    const SpriteTextures textures;
+    Client::World::Particles particles;
+    Client::Render::Models::CrtRandom random(1);
+    const auto index = particles.Create(Client::World::BreathParticle, {0.0f, 0.0f, -300.0f}, glm::vec3(0.0f),
+                                        glm::vec3(3.0f), 0, 1.0f, 0.0f, random);
+    ASSERT_TRUE(index.has_value());
+    const float scale = particles.All()[*index].scale;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
+    ASSERT_EQ(batch.Commands().size(), 1u);
+    EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
+    EXPECT_EQ(batch.Commands()[0].state.texture, TextureSlot{0x5f2});
+    ASSERT_EQ(batch.Vertices().size(), 6u);
+    float minY = 1e9f;
+    float maxY = -1e9f;
+    for (const auto& vertex : batch.Vertices())
+    {
+        minY = std::min(minY, vertex.position.y);
+        maxY = std::max(maxY, vertex.position.y);
+    }
+    // Con la rotación del reloj en 0, el alto es el de la textura por la escala.
+    EXPECT_FLOAT_EQ(maxY - minY, 32.0f * scale);
+    EXPECT_TRUE(particles.All()[*index].alive);
+}
+
+// Una biblioteca que no subió ninguna textura de efectos.
+class NoEffectTextures final : public Client::Scenes::IModelLibrary
+{
+public:
+    [[nodiscard]] const Model* Find(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return {};
+    }
+};
+
+// Sin el tamaño de su textura (una biblioteca que no la subió), no se dibuja.
+TEST(ParticlesDrawingTest, ABreathWithoutItsTextureIsNotDrawn)
+{
+    const NoEffectTextures textures;
+    Client::World::Particles particles;
+    Client::Render::Models::CrtRandom random(1);
+    ASSERT_TRUE(particles
+                    .Create(Client::World::BreathParticle, {0.0f, 0.0f, -300.0f}, glm::vec3(0.0f), glm::vec3(3.0f), 0,
+                            1.0f, 0.0f, random)
+                    .has_value());
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
+    EXPECT_TRUE(batch.Commands().empty());
 }
 } // namespace

@@ -25,6 +25,9 @@
 #include "Input/InputState.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float4.hpp>
+#include <glm/geometric.hpp>
+#include <glm/matrix.hpp>
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
@@ -544,7 +547,8 @@ TEST_F(GoldenLoginWorld, TheDragonDrawsAfterTheObjects)
 
 // CL7.6 B1: con lo global de la tela (como en main.cpp), el dibujo del personaje pide los sprites del
 // frame, los 30 destellos del casco blanco (0x455930) y después los cinco del cetro (0x509340, caso
-// 0x620), y van aditivos en su pase, el último de los modelos, con la vista en la identidad.
+// 0x620), y van aditivos en su pase, el último de los modelos, con la vista en la identidad. Después van
+// las partículas (0x548550, CL7.6 B2): los alientos del caballo que haya.
 TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
 {
     Client::Render::Models::ClothWorld cloth;
@@ -574,7 +578,11 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
         runs.emplace_back(command.state.texture->value, static_cast<int>(command.vertexCount / PerSprite));
     }
     const std::vector<std::pair<int, int>> expected{{0x5ac, 30}, {0x5fd, 2}, {0x5ac, 1}, {0x5fd, 2}};
-    EXPECT_EQ(runs, expected);
+    ASSERT_GE(runs.size(), expected.size());
+    const std::vector<std::pair<int, int>> sprites(runs.begin(), runs.begin() + 4);
+    EXPECT_EQ(sprites, expected);
+    EXPECT_TRUE(std::all_of(runs.begin() + 4, runs.end(), [](const auto& run) { return run.first == 0x5f2; }))
+        << "después, solo los alientos";
     // 0x549510 los marca vistos antes del pase: 0x549290 los mide con el alpha en 1. El primer destello
     // (la columna 0, escala 0,4, sin giro) va a 0,4 del ancho de flare01, en coordenadas de ojo.
     const auto flareSize = m_models.TextureSize(TextureSlot{0x5ac});
@@ -588,6 +596,55 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
     EXPECT_NEAR(right->position.x - left->position.x, 0.4f * flareSize->x, 0.01f);
     ASSERT_TRUE(models.back().pass.has_value());
     EXPECT_EQ(models.back().pass->view, glm::mat4(1.0f));
+    scene.Leave();
+}
+
+// CL7.6 B2: el aliento del caballo (0x444010) sale del hueso 27 del buffer global de la pose. Lo escribe
+// el último modelo posado que tiene ese hueso y no es dummy (0x4eb973 saltea los dummy): el dragón se dibuja
+// después del caballo (0x52d620), pero su hueso 27 es dummy, y los objetos del mapa 55 tienen menos de 28.
+// Queda el del caballo, Bone03: nace junto a su cabeza, cerca del jinete, como en el video del original.
+TEST_F(GoldenLoginWorld, TheBreathOfTheHorseComesFromItsHead)
+{
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    std::optional<glm::vec3> breath;
+    for (int frame = 0; frame < 60 && !breath; ++frame)
+    {
+        RecordingFrameTarget target;
+        scene.Render(target.BeginFrame(std::chrono::milliseconds{40 * frame}), 0.0f);
+        target.Present();
+        std::vector<FrameEvent> models;
+        std::ranges::copy_if(target.frames.back().events, std::back_inserter(models),
+                             [](const FrameEvent& event) { return event.kind == Kind::Models; });
+        if (models.size() == 2)
+        {
+            const FrameEvent& eye = models.back();
+            for (const auto& command : eye.modelCommands)
+            {
+                if (command.state.texture != TextureSlot{0x5f2})
+                {
+                    continue;
+                }
+                EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
+                // El centro del primero, de ojo al mundo con la vista del pase del mundo.
+                glm::vec3 center(0.0f);
+                for (std::size_t k = 0; k < 6; ++k)
+                {
+                    center += eye.modelVertices[command.firstVertex + k].position / 6.0f;
+                }
+                ASSERT_TRUE(models.front().pass.has_value());
+                breath = glm::vec3(glm::inverse(models.front().pass->view) * glm::vec4(center, 1.0f));
+                break;
+            }
+        }
+        scene.Step(Client::Input::InputState{});
+    }
+    ASSERT_TRUE(breath.has_value()) << "en 60 pasos, algún rand() % 3 da 0";
+    // A menos de 400 del jinete (la cabeza del caballo, a escala 1,6), y no arriba con el dragón (z 3.400).
+    const glm::vec3 rider = Client::Scenes::LoginCharacterTransform().position;
+    EXPECT_LT(glm::length(*breath - rider), 400.0f) << breath->x << " " << breath->y << " " << breath->z;
     scene.Leave();
 }
 

@@ -13,3 +13,6 @@ CMakeUserPresets.json
 
 # Python
 __pycache__/
+
+# Caché de las herramientas del binario (Client/docs/research/scripts/tools/regen_cache.py)
+.research-cache/

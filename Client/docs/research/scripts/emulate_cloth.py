@@ -14,7 +14,9 @@ Lo único que no es del binario:
   - `_rand` (0x69fd70): devuelve la lista dada o la fórmula de 0x69fd70 desde una semilla dada;
   - `atexit` (0x69f8e4) y el log de error de la tabla llena (0x41fa40): no hacen nada;
   - cada import (opengl32 y los demás): un stub que registra la llamada y vuelve (los de GL son
-    stdcall). Un import que no sea de GL corta la emulación con error;
+    stdcall). Un import que no sea de GL corta la emulación con error, salvo que el que usa el
+    emulador le dé su propio stub en `stub_overrides` (por nombre: `{'send': fn}`; `fn(esp)` lee
+    los argumentos y vuelve con `_return`, como `send` en game/walk/emu_send.py);
   - los huesos, el objeto, el modelo y los globales: los da la entrada.
 
 Uso:
@@ -41,8 +43,9 @@ from unicorn.x86_const import (UC_X86_REG_EAX, UC_X86_REG_EBX, UC_X86_REG_ECX,
                                UC_X86_REG_EIP, UC_X86_REG_FS, UC_X86_REG_GDTR, UC_X86_REG_FPCW,
                                UC_X86_REG_SS, UC_X86_REG_DS, UC_X86_REG_ES)
 
-# El main.exe del laboratorio (analysis/mainexe/originals/main.exe en mu-online-reverse-lab), con --exe o
-# en MURET_MAIN_EXE; Player.bmd, el de la Data del repo.
+# El main.exe c32bbd5f (client-research/mainexe-vmxp-c32bbd5f/original/main.exe en
+# mu-server-repack-research-102i; el de analysis/mainexe/originals/ es el otro build, 2f16a9c6), con --exe
+# o en MURET_MAIN_EXE; Player.bmd, el de la Data del repo.
 DEFAULT_EXE = os.environ.get('MURET_MAIN_EXE', 'main.exe')
 PLAYER_BMD_CANDIDATES = [
     os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'assets', 'Data', 'player',
@@ -157,8 +160,10 @@ class Rand:
 
 
 class ClothEmulator:
-    def __init__(self, exe_path, fpu_control_word=0x27f):
+    def __init__(self, exe_path, fpu_control_word=0x27f, stub_overrides=None):
         self.pe = pefile.PE(exe_path)
+        # Los imports que el que usa el emulador atiende él: nombre → fn(esp), que vuelve con _return.
+        self.stub_overrides = dict(stub_overrides or {})
         self.uc = Uc(UC_ARCH_X86, UC_MODE_32)
         self.heap_next = HEAP_BASE
         self.events = []
@@ -365,6 +370,10 @@ class ClothEmulator:
         def on_stub(_uc, address, _size, _data):
             dll, name = self.stubs.get(address, ('?', '?'))
             esp = uc.reg_read(UC_X86_REG_ESP)
+            override = self.stub_overrides.get(name)
+            if override is not None:
+                override(esp)
+                return
             if not dll.lower().startswith('opengl') or name not in GL_SIGNATURES:
                 self.error = 'import sin stub: %s!%s' % (dll, name)
                 uc.emu_stop()

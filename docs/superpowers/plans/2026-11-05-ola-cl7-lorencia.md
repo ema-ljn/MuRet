@@ -28,8 +28,9 @@ con vectores del código real emulado (`Client/docs/research/scripts/`), como en
 **Spec:** el roadmap de arriba y el research que dejó el barrido: 06 § La escena del juego, § La cámara del
 juego, § Lo propio de Lorencia, § Caminar y § Los cambios de mapa; 04 (el `F3 03` que vuelve, `F3 10`, `D3`,
 `D7`, `1C`, `F3 04`, `F3 12`, `0F`); 05 (`Gate.bmd`, los bits del `.att`, los modelos con nombre de `Object1`);
-los quirks nuevos del 07 y P-C28 a P-C31 del 08. Los informes del barrido, con sus scripts, quedan fuera de
-Git (`scratchpad/lorencia-sweep/`); lo que vale de ellos está en esos docs.
+los quirks nuevos del 07 y P-C28 a P-C31 del 08. Los scripts del barrido (los que emulan el código real, arman los vectores y comparan contra la traza y el
+cable) están en `Client/docs/research/scripts/game/`, y las herramientas para leer el binario en
+`scripts/tools/`. Los informes del barrido quedaron fuera de Git; lo que vale de ellos está en esos docs.
 
 ## Restricciones de todo el plan
 
@@ -53,6 +54,31 @@ Git (`scratchpad/lorencia-sweep/`); lo que vale de ellos está en esos docs.
   el test lee y que no traen nombres: la respuesta del `F3 03`, el `F3 10`, `D3`, `D7`, `1C`, `F3 04`,
   `F3 12`, `0F` y `A3`. Nunca el chat, el `F3 03` que sale, las listas de personajes, el C2 `12`, el `02`, el
   `F3 01` ni el `F3 02`.
+
+## El entorno
+
+Lo que necesita un agente para ejecutar el plan, y de dónde sale cada cosa: el detalle está en
+[`Client/docs/research/scripts/README.md` § El entorno](../../../Client/docs/research/scripts/README.md#el-entorno).
+
+- **El repo alcanza** para compilar, correr los tests y leer el research: el `Data\` del cliente está en
+  `Client/assets/Data`.
+- **El `main.exe` (`c32bbd5f`)** hace falta para armar los vectores (unicorn sobre el código real) y para
+  leer el binario. Sale de `EmaNLJN/mu-server-repack-research-102i`, en
+  `client-research/mainexe-vmxp-c32bbd5f/original/main.exe`, con sus funciones decompiladas al lado. Va en
+  `MURET_MAIN_EXE`.
+- **La traza de GL de Lorencia y el cable** hacen falta para los golden de la traza y los vectores del cable.
+  Salen de `EmaNLJN/mu-online-reverse-lab` (la traza y el PCAP del PR #45 de ese repo; el `muproxy.log` en
+  `analysis/mainexe/evidence/`), y van en `MURET_CLIENT_GL_TRACE_DIR` y `MURET_CLIENT_WIRE_DIR`. El
+  `muproxy.log` lleva el login del jugador: no entra a MuRet.
+- **Python** con `Client/docs/research/scripts/requirements.txt` (capstone, unicorn, pefile, numpy,
+  Pillow). Se corre con `-I` y desde afuera de la carpeta de los scripts.
+- **El desensamblado entero y el grafo de llamadas** se regeneran con `scripts/tools/regen_cache.py` en
+  `MURET_RESEARCH_CACHE` (por defecto `.research-cache/`, fuera de Git). Con eso andan `tools/funcof.py`
+  (la función de una dirección y quién la llama), `tools/reach.py` (si una función alcanza otra),
+  `tools/disas.py`, `tools/rd.py` (las constantes) y `tools/jt.py` (las tablas de saltos).
+- **Los scripts de cada sub-ola** están en `scripts/game/` por tema (`camera/`, `protection/`, `world0/`,
+  `walk/`, `wire/`, `maps/`), cada carpeta con su README: qué dirección reproduce cada uno y qué sub-ola lo
+  usa. Ninguno guarda salidas en Git.
 
 ## Decisiones de este plan
 
@@ -168,9 +194,10 @@ bit a bit con el héroe en (14.350; 12.050; 165). PR propio.
 ### Tarea 2: los vectores de `0x635ae0`
 
 **Archivos:**
-- Crear: `Client/docs/research/scripts/game/make_camera_vectors.py` (del borrador del barrido, sobre
-  `emulate_cloth.py`), `Client/tests/vectors/game/camera.txt` y `Client/tests/vectors/game/README.md` (como el
-  de `world55/`)
+- Modificar: `Client/docs/research/scripts/game/camera/make_camera_vectors.py` (el borrador del barrido, que
+  ya corre `0x635ae0` con `emu_camera.py`; su reimplementación en doubles es `camera_reference.py`)
+- Crear: `Client/tests/vectors/game/camera.txt` y `Client/tests/vectors/game/README.md` (como el de
+  `world55/`)
 
 - [ ] **Paso 1:** el generador corre `0x635ae0` real, frame por frame, con unos 3.000 frames en casos al
   azar (cinco semillas): el héroe, el byte del atributo de su celda (0, `0x01`, `0x40`, `0x80` y `0xc0`), el
@@ -285,7 +312,8 @@ barrido, y se detalla con lo que lea. Lo que se sabe:
   313 pasos. Si el orden de P-C22 a sale de lo mismo, también se arregla. Después lo usan la celda del héroe
   y el contador de warp de la L1.
 - **Tests:**
-  - los vectores del paso real del login con la tabla viva: el estado del `rand()` después de cada uno de
+  - los vectores del paso real del login con la tabla viva (sobre `game/protection/protection_rand.py` y
+    `camera_rand.py`, que ya cuentan los 3.848 y los 4 de cada cierre): el estado del `rand()` después de cada uno de
     1.000 pasos (con tres rearmados), igual en MuRet;
   - un test por clase de acceso, contra el emulado.
 
@@ -310,7 +338,7 @@ barrido, y se detalla con lo que lea. Lo que se sabe:
   −45 (el primer paso, `0x636838`) y dibuja el pase del juego: la franja (0, 0, 640, 48) para el rango, con
   `TerrainRangeOf(vista, cámara, 640 · 0,0015625)`; el trapecio `TerrainPolygonOf(Game, mapa, objetivo,
   yaw, 640)`; y el mundo (0, 0, 640, 432) con el terreno. La cámara, de CL7.3 A, con `OriginalFrameCarry`.
-- **Tests:** el vector del cable (el C3 `F3 03` descifrado, sin nombres: la celda (133, 127), el mapa 0 y la
+- **Tests:** el vector del cable (el C3 `F3 03` descifrado con `game/wire/decode.py`, sin nombres: la celda (133, 127), el mapa 0 y la
   dirección 0 dan (13.350; 12.750; altura) y −45°); `ServerSessionTest`: `EnteringWorld` pasa a `InWorld`;
   `GameSceneTest.HoldsTheFrameUntilTheWorldArrives` y `LoadsTheMapOfTheReply`; el golden
   `GoldenTerrainTrace.TheGameSceneDrawsTheCellsOfLorencia`: la `GameScene` con el héroe de la traza en
@@ -335,9 +363,9 @@ tabla con nombre de `Object1`). PR propio. Se detalla al arrancar; lo que se sab
   del piso (`0x608a00`) → peces → caballo → hojas → joints (`0x53c6a0`) → efectos con modelo → cintas
   (`0x52e590`) → sprites → `0x549440` → partículas → números de daño (`0x548eb0`). Los que todavía no tienen
   contenido (los ítems, los joints, las cintas y los números) quedan en su lugar, vacíos, para sus olas.
-- **Tests:** el golden de los slots contra el volcado (`lor_slots.bin`: `0x41c..0x47e` son las 99 texturas
+- **Tests:** el golden de los slots contra el volcado (`lor_slots.bin`, que lee `game/world0/slots.py`: `0x41c..0x47e` son las 99 texturas
   de `Object1\` en su orden, y `bird.tga` y `fish.tga` en `0x69` y `0x6a`); los vectores del código real
-  (`make_world0_vectors.py`, como `make_world55_vectors.py`): los 2.870 registros al crearse, en tres pasos y
+  (`make_world0_vectors.py`, sobre `game/world0/run_objs0.py` y `lor_objs.py`, como `make_world55_vectors.py`): los 2.870 registros al crearse, en tres pasos y
   en el dibujo, con el estado del `rand()` y los pedidos en orden; la traza: los 120 bloques de objetos de
   Lorencia contra el lote (los vértices con tolerancia, el slot, la mezcla y el orden), sin los personajes ni
   los pájaros; `TheGamePassGoesInTheOrderOf0x6371a0`; Review Focus 2 (un modelo que falta).
@@ -373,7 +401,8 @@ tabla con nombre de `Object1`). PR propio. Se detalla al arrancar; lo que se sab
   alto el doble de la textura, la punta corrida −50 en x y la ola en y, la u con el corrimiento de la fila,
   los 65.536 `(rand() % 4) · 0,25` de `0x5f8300` al cargar el mapa (que gastan sus `rand()` también en el
   login).
-- **Tests:** vectores emulados de `0x5f9780` y `0x52f360` con semilla; la traza: los colores del terreno con
+- **Tests:** vectores emulados de `0x5f9780` y `0x52f360` con semilla; la traza (los vértices más brillantes
+  que el OZJ, con `game/world0/brighter.py`): los colores del terreno con
   el `FireLight01` #1933 (los vértices de su cuadrado suben; con tolerancia, porque el salto y la luz salen
   del `rand()`), y los 4 de la fila 136 anotados como pendientes; los 25 quads del pasto con la geometría
   exacta y la u en uno de {0; 0,25; 0,5; 0,75}; la cuenta de los 65.536 `rand()` contra el emulado.
@@ -408,13 +437,14 @@ la fuente, el `0F`). PR propio. Se detalla al arrancar; lo que se sabe:
   la de al lado: Q-C159), los topes de 500 y 50,
   y la salida con el inicio en x o y igual a 0; `PathFinding2` con sus dos intentos (en la zona segura el
   segundo pasa por encima de los personajes) y el corte en 15.
-- **Tests:** `PathFinderTest.MatchesTheEmulatedCode` (`make_path_vectors.py`: miles de casos sobre el `.att`
+- **Tests:** `PathFinderTest.MatchesTheEmulatedCode` (`make_path_vectors.py`, sobre `game/walk/emu_path.py`,
+  `path_limits.py`, `path_edges.py` y `heuristic.py`: miles de casos sobre el `.att`
   de Lorencia y sobre mapas sintéticos con `0x01`, `0x02`, `0x04`, `0x20` y `0x22`, y los bordes);
   `TheStartOnRowOrColumnZeroFails`, `TheExactSearchGivesUpAfter500AndTheNearestAfter50`,
   `OnlyTheFirstFifteenCellsAreKept`, `TheDiagonalNextToTheGoalCostsLikeTheSide` (h(1, 1) = h(1, 0) = 4),
   `AnOccupiedGoalEndsOnTheDiagonalByTheTieOrder`,
   `InTheSafeZoneTheSecondTryWalksThroughCharacters`, `TheWallsLoseTheCharacterBitEveryStep` (la celda
-  (221, 11) de Lorencia); `TheWireWalksMatch`: los 171 caminos del cable (solo celdas y direcciones), con los
+  (221, 11) de Lorencia); `TheWireWalksMatch`: los 171 caminos del cable (solo celdas y direcciones; `game/walk/wire_vs_path.py`), con los
   2 distintos anotados (una celda ocupada que el cable no muestra).
 
 ## Sub-ola CL7.4 B: el paquete de caminar y lo que llega
@@ -426,8 +456,8 @@ propio. Se detalla al arrancar; lo que se sabe:
   pasos de a dos nibbles, con XOR32 y sin C3; 15 celdas salen como 14; la dirección final por el blanco o, con
   una celda, por el ángulo), `WalkUpdateTimeMax(pathNum)` (0, 5 o 3 · n + 4), `ReadWalk` del `D3` S->C y
   `ReadDamage` del `D7` S->C (el id sin el bit 15, el bit, el daño y el tipo).
-- **Tests:** `MovementTest.MatchesTheEmulatedSendMove` (`make_walk_packet_vectors.py`, con `send`
-  enganchado: `PathNum` de 1 a 15, todas las direcciones y los ángulos cada 0,5); `TheWireBytes`: el camino
+- **Tests:** `MovementTest.MatchesTheEmulatedSendMove` (`make_walk_packet_vectors.py`, sobre
+  `game/walk/emu_send.py`, con `send` enganchado por el `stub_overrides` del emulador: `PathNum` de 1 a 15, todas las direcciones y los ángulos cada 0,5); `TheWireBytes`: el camino
   (b6,73) … (b3,74) da `C1 08 D3 EC 23 E2 0B 08`, y con FoxAnti `C1 08 A3 9C 53 92 7B 78`;
   `FifteenCellsAreSentAsFourteen`, `OneCellTakesTheDirectionFromTheAngle`,
   `TheFinalDirectionPointsToTheTargetWhenItIsNextToTheEnd` (`C1 07 D3 A9 7E 21 30`, del cable),
@@ -446,7 +476,7 @@ arrancar; lo que se sabe:
   siendo MG o DL; en la zona segura no se corre); las velocidades de las acciones de caminar (0,33 y 0,34)
   que `0x4f37c0` pisa en el modelo compartido de los jugadores; el `rand()` de los pasos (1/64 el héroe,
   1/16 los otros); la zona segura por la celda lógica.
-- **Tests:** `CharacterMovementTest.MatchesTheEmulatedStep` (`make_movement_vectors.py`, como `emu_walk.py`:
+- **Tests:** `CharacterMovementTest.MatchesTheEmulatedStep` (`make_movement_vectors.py`, sobre `game/walk/emu_walk.py`:
   rectas, codos, zigzag, caminos de 2 a 15, DK, elfo, MG y DL, con botas +5 y sin, y un no jugador);
   `TheLogicalCellIsOneAhead`, `WalkingIsTwelveAndRunningFifteen`, `WithoutPlusFiveBootsThereIsNoRunning`,
   `TheSafeZoneResetsRun`, `ArrivalSnapsToTheCellCentre`, `TurnsSnapFromFortyFiveAndHalveBelow`,
@@ -514,7 +544,7 @@ que se sabe:
   `GateTable` que ya existe, cargada en `GameData`; `GameLogic::GateCheck`, una función pura: con la celda,
   el mapa, el nivel, la clase, la montura y las alas, el contador de warp y los ms desde el último `1C`,
   devuelve nada, pedir el gate N, o un aviso (el texto y la espera de 50 pasos).
-- **Tests:** los cuatro gates de Lorencia con el `Gate.bmd` real (adentro, en el borde, afuera, el nivel
+- **Tests:** los cuatro gates de Lorencia con el `Gate.bmd` real (descifrado como `game/maps/gate.py`; adentro, en el borde, afuera, el nivel
   justo); los 2/3 de las clases 3 y 4, el 28 en silencio, Atlans montado, Icarus sin alas; los 3 s y los 30
   pasos; uno solo por paso aunque se pisen dos.
 
@@ -525,7 +555,8 @@ que se sabe:
 - **Qué:** `Protocol::World`: `ReadTeleport` (`1C`: gate, mapa, x, y, dirección), `ReadRegen` (`F3 04`),
   `WriteGateRequest` (`C1 06 1C gate 00 00` en C3), `WriteTeleportDone` (`C1 04 F3 12`, C1 con XOR32) y
   `WriteCrywolfState` (`C1 04 BD 00`); la `ServerSession` con la espera del warp.
-- **Tests:** los cuatro `1C` del PCAP de la PR #45 y sus cuatro `F3 12` (`C1 04 F3 68` en el cable), byte a
+- **Tests:** los cuatro `1C` del PCAP del PR #45 de `mu-online-reverse-lab` (con `game/wire/pcap2log.py` y
+  `decode.py`) y sus cuatro `F3 12` (`C1 04 F3 68` en el cable), byte a
   byte; los dos `F3 04` del `muproxy.log`; el `1C` C->S contra el encoder de C3 con serial fijo (sin captura:
   *estático*, P-C31).
 

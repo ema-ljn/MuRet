@@ -1486,6 +1486,28 @@ de vuelta. *Estático.*
   va arriba, sobre el horizonte: el centro entre x 175 y 518 e y 102 y 184 en 640 × 480, de 50 a 98
   píxeles de ancho y de 33 a 81 de alto, a 11.600–14.400 de la cámara (*inferido*: posado y proyectado
   con `dragon_screen.py` en toda la trayectoria emulada).
+- **El paso, leído en el asm** (CL7.6 A, con capstone): `+0x84` es un solo campo con dos usos. Al
+  empezar cada paso vale la meta del alabeo del estado (30 con el 0, −30 con el 1, 0 con otro), y al
+  alejarse de la partida con `+0xdc` prendido pasa a guardar el yaw, con el que se compara el giro de
+  ±60°. La distancia va en la x87 (53 bits) hasta la comparación con 800, el alabeo y el giro se suman
+  en 53 bits y se guardan en float, y el giro de la velocidad es `0x5fc8f0` (los senos y cosenos de x
+  e y y el seno de z en float, el coseno de z en el registro) y `0x5fcbd0`. Las comparaciones sin
+  orden (un NaN) van como la x87: un `+0xdc` en NaN no da la vuelta y un frame en NaN no vuelve a 0.
+  `0x518cf0` pone la escala de 0 o menos en 0,9 (`0x518d3c`) y, en el `0xb4`, la z del dueño más 3.400
+  (`0x518fc9`), el alabeo en 0 (`0x518fb3`) y la luz en blanco (la salida `0x51a97b`); en el login el
+  dueño está en (5.600; 23.000; 0), con ángulos 0, luz blanca y 1,6. El creador escribe todo lo que lee
+  el paso del `0xb4`, así que una entrada que se vuelve a usar (Q-C138) no cambia su vuelo. La cola común (`0x52cb98`) avanza la
+  animación con `0x4ec200` a `+0xd8`; si devuelve 0 (la acción terminó o dio la vuelta), el frame queda
+  en sus keys y la acción en `0xff`, cosa que al dragón no le pasa: el caso lo vuelve a 0 en el 40.
+- **En MuRet** (CL7.6 A): `World::ModelEffects` (la tabla de 200, solo el `0xb4`) y
+  `Render::Models::OriginalRotation` (`0x5fc8f0` y `0x5fcbd0`). **La creación y 1.500 pasos dan bit a
+  bit lo mismo que el código real emulado** (`DragonTest`, `make_dragon_vectors.py`), y el giro, 400
+  casos al azar (`OriginalRotationTest`, `make_rotation_vectors.py`). El login vacía la tabla y crea el
+  dragón en cada entrada, lo avanza en cada paso después de los objetos, el caballo y los personajes
+  (`0x606560` → `0x445230` → `0x508f00` → `0x52d220`) y lo dibuja después de los objetos, con el frame
+  entero y la posición `alpha` de un paso más (D-C4; el original la dibuja tal cual, a 25 por segundo).
+  Sin la esfera de 400 contra el frustum: en el login siempre está en pantalla. El `rand()` que tira
+  cada paso (`0x5208c5`, una luz que el `0xb4` no usa) no va: es del `rand()` común (P-C22 a, CL7.6 B).
 
 ### El cuervo
 
@@ -1680,7 +1702,8 @@ nivel son pases de malla que MuRet ya tiene; los demás manejadores de `0x602ed0
 `0x54` y el `0x59`, son de otros mapas.
 
 **Los `rand()` del frame** (P-C22 a), además de los 75 de la tela: las brasas (unos 240 por paso, y
-10 por cada una que renace), el aliento (1 o 3 por paso), el viento de las partículas (2 por paso), el
+10 por cada una que renace), los efectos con modelo (uno por cada efecto vivo y por paso, `0x5208c5`:
+el dragón), el aliento (1 o 3 por paso), el viento de las partículas (2 por paso), el
 cuervo (4 a 7 por paso), `0x509340` (uno por cada parte del personaje que dibuja, por frame), el cetro
 (6 más por frame), el gesto del login (`rand() % 6` con `ftol(T) % 2300 < 100`), `0x602ed0` (1 por
 objeto visible por frame, 1 más en cada `0x54`, 5 más por nube, 3 más cuando dispara el `0x59`, y el

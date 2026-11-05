@@ -50,6 +50,7 @@
 #include "UI/ServerListWindow.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
+#include "World/ModelEffects.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
@@ -154,6 +155,10 @@ constexpr int NoSlot = -1;
     return state == App::SessionState::ConnectingConnectServer || state == App::SessionState::ConnectingGameServer;
 }
 } // namespace
+
+// El dragón: solo en el mapa 55, y su dueño, el 0xb4 que crea 0x616ec0 (0x6188ae).
+constexpr std::uint8_t DragonMap = 0x37;
+constexpr glm::vec3 DragonOwnerPosition{5600.0f, 23000.0f, 0.0f};
 
 // Los modelos de los objetos del login: los del mundo y el logo (0xa2), que la tabla del original guarda
 // junto con los demás.
@@ -397,6 +402,14 @@ void LoginScene::PlaceTheModels()
     m_objects = World::CreateWorldObjects(m_objectRecords, m_world ? m_world->map : 0, World::ObjectScene::Login);
     m_logoIndex = m_objects.size();
     m_objects.push_back(LogoWorldObject());
+    // 0x6070a0 vacía la tabla de efectos, y en el mapa 55 el dueño del dragón (el 0xb4 que la carga del
+    // mapa crea en (5.600; 23.000; 0)) lo crea con 0x518cf0 (06 § El dragón de fondo).
+    m_effects.Clear();
+    if (m_world && m_world->map == DragonMap)
+    {
+        (void)m_effects.Create(World::DragonEffect, DragonOwnerPosition, glm::vec3(0.0f), glm::vec3(1.0f),
+                               World::DragonScale);
+    }
     m_routes = {};
     m_character = LoginCharacter();
     m_characterAnimation = {};
@@ -501,6 +514,9 @@ void LoginScene::StepTheWorld()
     {
         Render::Models::SetAction(m_characterAnimation.body, *player, LoginCharacterStandingAction);
     }
+    // 0x52d220, después de los objetos (0x606560), el caballo (0x445230) y los personajes (0x508f00): los
+    // efectos con modelo, el dragón.
+    StepModelEffects(m_effects.Effects(), m_worldModels);
     AdvanceRoutes(m_routes);
 }
 
@@ -747,6 +763,8 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     const World::TerrainLighting* lighting = m_terrain.IsLoaded() ? m_terrain.Lighting() : m_lighting.get();
     DrawWorldObjects(canvas.models, objects, m_objects, m_terrainPolygon, lighting, m_world ? m_world->map : 0,
                      canvas.frameClock, alpha);
+    // 0x52d620(0): los efectos con modelo, después de los objetos.
+    DrawModelEffects(canvas.models, m_worldModels, m_effects.Effects(), lighting, canvas.frameClock, alpha);
 }
 
 // 0x604ab0 con el 0xa2 en la escena 2: la luz de las rutas en el objeto y en el blendMesh, y el avance a
@@ -804,6 +822,7 @@ void LoginScene::Leave()
     m_terrain.Release();
     m_worldModels.Release();
     m_objects.clear();
+    m_effects.Clear();
     m_logoIndex.reset();
     if (m_logoTextures)
     {

@@ -5,6 +5,7 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/CharacterDrawing.h"
+#include "World/ModelEffects.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
@@ -105,6 +106,43 @@ void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, st
             DrawSubtractiveMesh(batch, models, Drawn(object, draw, skeleton, alpha), frameClock);
             break;
         }
+    }
+}
+
+void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary& models)
+{
+    for (World::ModelEffect& effect : effects)
+    {
+        if (effect.alive)
+        {
+            World::StepModelEffect(effect, models.SkeletonOf(static_cast<std::uint16_t>(effect.type)));
+        }
+    }
+}
+
+void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models,
+                      std::span<const World::ModelEffect> effects, const World::TerrainLighting* lighting,
+                      Core::Duration frameClock, float alpha)
+{
+    for (const World::ModelEffect& effect : effects)
+    {
+        if (!effect.alive)
+        {
+            continue;
+        }
+        const glm::vec3 terrain =
+            lighting != nullptr ? World::LightAt(*lighting, effect.transform.position.x, effect.transform.position.y)
+                                : glm::vec3(0.0f);
+        DrawnObject drawn;
+        drawn.model = static_cast<std::uint16_t>(effect.type);
+        drawn.animation = effect.animation;
+        drawn.transform = effect.transform;
+        drawn.transform.position += (effect.transform.position - effect.previousPosition) * alpha;
+        drawn.state = effect.objectState;
+        drawn.color = terrain + effect.light;
+        drawn.alpha = effect.alpha;
+        drawn.vertexLight = effect.vertexLight;
+        DrawObject(batch, models, drawn, frameClock);
     }
 }
 } // namespace Client::Scenes

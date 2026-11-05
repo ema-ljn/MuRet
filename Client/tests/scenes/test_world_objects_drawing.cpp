@@ -9,6 +9,9 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
 #include "World/TerrainCulling.h"
+#include "Render/Models/Skinning.h"
+#include "World/TerrainLighting.h"
+#include "World/ModelEffects.h"
 #include "World/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -16,6 +19,7 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <memory>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -259,5 +263,65 @@ TEST(WorldObjectsDrawingTest, ASpecialObjectIsSteppedByItsOwner)
                      });
     EXPECT_EQ(calls, 1);
     EXPECT_EQ(objects[0].alpha, 0.0f);
+}
+
+// Un efecto con modelo vivo, como el dragón, en (1.000; 1.000; 3.400), y su paso anterior 70 más atrás
+// en y.
+Client::World::ModelEffect LiveEffect()
+{
+    Client::World::ModelEffect effect;
+    effect.alive = true;
+    effect.type = Client::World::DragonEffect;
+    effect.transform.position = {1000.0f, 1000.0f, 3400.0f};
+    effect.previousPosition = {1000.0f, 1070.0f, 3400.0f};
+    effect.light = glm::vec3(1.0f);
+    return effect;
+}
+
+// 0x52d620 → 0x5ffce0 con la luz por vértice: el color es la luz del terreno en su lugar más la del
+// efecto, y cada esquina va por la luz de su normal.
+TEST(ModelEffectsDrawingTest, TheDragonTakesTheTerrainLightPlusItsOwn)
+{
+    const TwoMeshModels models;
+    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    lighting->cells.fill({0.25f, 0.5f, 0.75f});
+    const std::array<Client::World::ModelEffect, 1> effects{LiveEffect()};
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    Client::Scenes::DrawModelEffects(batch, models, effects, lighting.get(), {}, 0.0f);
+    ASSERT_EQ(batch.Vertices().size(), 6u);
+    const float light = Client::Render::Models::NormalLight(glm::vec3(0.0f, 0.0f, 1.0f));
+    const auto& color = batch.Vertices()[0].color;
+    EXPECT_FLOAT_EQ(color.red, 1.25f * light);
+    EXPECT_FLOAT_EQ(color.green, 1.5f * light);
+    EXPECT_FLOAT_EQ(color.blue, 1.75f * light);
+    EXPECT_NE(light, 1.0f) << "la normal tiene que cambiar el color para que el test mire la luz por vértice";
+}
+
+// El paso solo corre los efectos vivos.
+TEST(ModelEffectsDrawingTest, OnlyLiveEffectsStep)
+{
+    const TwoMeshModels models;
+    std::array<Client::World::ModelEffect, 2> effects{LiveEffect(), LiveEffect()};
+    effects[1].alive = false;
+    effects[0].life = 100;
+    effects[1].life = 100;
+    Client::Scenes::StepModelEffects(effects, models);
+    EXPECT_EQ(effects[0].life, 99);
+    EXPECT_EQ(effects[1].life, 100);
+}
+
+// Fuera del modo fiel, el dibujo va entre dos pasos (D-C4): la posición, `alpha` de un paso más, con lo
+// que se movió en el último; el frame no, que es entero.
+TEST(ModelEffectsDrawingTest, TheDragonIsDrawnBetweenTwoSteps)
+{
+    const TwoMeshModels models;
+    const std::array<Client::World::ModelEffect, 1> effects{LiveEffect()};
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    Client::Scenes::DrawModelEffects(batch, models, effects, nullptr, {}, 0.5f);
+    ASSERT_FALSE(batch.Vertices().empty());
+    EXPECT_FLOAT_EQ(batch.Vertices()[0].position.y, 1000.0f - 35.0f);
+    EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 1000.0f);
 }
 } // namespace

@@ -23,6 +23,7 @@
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/ScepterGlow.h"
 #include "World/Sprites.h"
 #include "World/WorldObjects.h"
 #include "Data/Terrain/TerrainObjects.h"
@@ -199,6 +200,8 @@ private:
     bool m_drawnSinceEntering = false;
     // Si ya corrió un paso desde que se entró: antes, 0x6350b0 no dibuja (0x7d3a13d, que prende el paso).
     bool m_steppedSinceEntering = false;
+    // El sorteo del brillo del cetro entre frames (World::ScepterGlowCarry): una vez por frame del original.
+    World::ScepterGlowCarry m_scepterGlow;
     // El logo: su modelo, los slots de sus mallas desde donde terminó el mundo y sus texturas.
     SingleModelLibrary m_logo;
     std::optional<Render::Models::ModelTextureSlots> m_logoSlots;

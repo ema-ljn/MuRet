@@ -710,8 +710,17 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
     if (modelId == World::HdkMaceModel && character.sprites != nullptr && character.clothWorld != nullptr &&
         !bones.empty())
     {
-        World::CreateScepterGlow(*character.sprites, Render::Models::OriginalMatrixOf(bones.front()),
-                                 character.object.scale, bodyOrigin, character.clothWorld->random);
+        const Render::Models::OriginalMatrix bone = Render::Models::OriginalMatrixOf(bones.front());
+        if (character.scepter != nullptr)
+        {
+            character.scepter->Create(*character.sprites, bone, character.object.scale, bodyOrigin,
+                                      character.clothWorld->random, frame.clock);
+        }
+        else
+        {
+            World::CreateScepterGlow(*character.sprites, bone, character.object.scale, bodyOrigin,
+                                     character.clothWorld->random);
+        }
     }
 }
 

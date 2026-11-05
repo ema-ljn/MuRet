@@ -1627,6 +1627,36 @@ TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
     EXPECT_EQ(world.random.State(), random.State()) << "seis rand() de la tela";
 }
 
+// Con el sorteo del cetro (World::ScepterGlowCarry), dos frames de MuRet en el mismo frame del original
+// piden los mismos cinco sprites y sacan los seis rand() una sola vez.
+TEST(CharacterDrawingTest, TheScepterDrawsOncePerOriginalFrameWithItsCarry)
+{
+    DrawnCharacter character;
+    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance.rightHand = Client::GameLogic::WornItem{.model = Client::World::HdkMaceModel};
+    Client::Render::Models::ClothWorld world{.random = Client::Render::Models::CrtRandom(7)};
+    Client::World::ScepterGlowCarry carry;
+    character.clothWorld = &world;
+    character.scepter = &carry;
+    const OneModel models(Client::World::HdkMaceModel);
+    Client::World::FrameSprites first;
+    character.sprites = &first;
+    (void)Drawn(models, character);
+    const std::uint32_t afterTheFirst = world.random.State();
+
+    Client::World::FrameSprites second;
+    character.sprites = &second;
+    (void)Drawn(models, character);
+
+    EXPECT_EQ(world.random.State(), afterTheFirst);
+    for (std::size_t k = 0; k < Client::World::ScepterSpriteCount; ++k)
+    {
+        EXPECT_TRUE(second.Sprites()[k].alive) << k;
+        EXPECT_EQ(second.Sprites()[k].scale, first.Sprites()[k].scale) << k;
+        EXPECT_EQ(second.Sprites()[k].position, first.Sprites()[k].position) << k;
+    }
+}
+
 // En la izquierda también (0x509340 no mira la mano); sin la tabla, o sin el rand() de la tela, no pide
 // ninguno ni saca rand(); y otro ítem no tiene ese caso.
 TEST(CharacterDrawingTest, OnlyTheScepterWithTheTableAsksForSprites)

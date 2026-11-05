@@ -1,5 +1,7 @@
 #include "World/ScepterGlow.h"
 
+#include "Core/IClock.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/Sprites.h"
@@ -38,34 +40,81 @@ glm::vec3 OffsetOf(float p, double reach)
 }
 } // namespace
 
+ScepterGlowRandoms DrawScepterGlowRandoms(Render::Models::CrtRandom& random)
+{
+    ScepterGlowRandoms randoms;
+    randoms.tridentStep = random.Next() % 60;
+    randoms.tridentScale = random.Next() % 10;
+    randoms.flareStep = random.Next() % 60;
+    randoms.flareScale = random.Next() % 10;
+    randoms.pommelStep = random.Next() % 40;
+    randoms.pommelScale = random.Next() % 8;
+    return randoms;
+}
+
 void CreateScepterGlow(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
                        const glm::vec3& bodyOrigin, Render::Models::CrtRandom& random)
+{
+    CreateScepterGlow(sprites, bone, bodyScale, bodyOrigin, DrawScepterGlowRandoms(random));
+}
+
+void CreateScepterGlow(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
+                       const glm::vec3& bodyOrigin, const ScepterGlowRandoms& randoms)
 {
     const glm::vec3 light{1.0f, 0.3f, 0.0f};
     const auto at = [&](const glm::vec3& offset)
     { return Render::Models::OriginalTransformPosition(bone, offset, bodyScale, bodyOrigin); };
 
     // El tridente: p = (rand() % 60) · 0,05 − 1,5 y la escala (rand() % 10) · 0,05 + 1,4.
-    float p = Steps(random.Next() % 60, -1.5);
-    float scale = Steps(random.Next() % 10, 1.4f);
+    float p = Steps(randoms.tridentStep, -1.5);
+    float scale = Steps(randoms.tridentScale, 1.4f);
     glm::vec3 position = at(OffsetOf(p, -Reach));
     (void)sprites.Create(Shiny, position, scale, light, 0.0f, Additive);
     (void)sprites.Create(Shiny, position, F32(static_cast<double>(scale) - static_cast<double>(BigShrink)), light,
                          20.0f, Additive);
 
     // El flare01, con otro p y la escala (rand() % 10) · 0,05 + 1, más 0,3 al pedirlo.
-    p = Steps(random.Next() % 60, -1.5);
-    scale = Steps(random.Next() % 10, 1.0);
+    p = Steps(randoms.flareStep, -1.5);
+    scale = Steps(randoms.flareScale, 1.0);
     position = at(OffsetOf(p, -Reach));
     (void)sprites.Create(Flare, position, F32(static_cast<double>(scale) + static_cast<double>(BigShrink)), light, 0.0f,
                          Additive);
 
     // El pomo: p = (rand() % 40) · 0,05 − 1 y la escala (rand() % 8) · 0,05 + 0,4.
-    p = Steps(random.Next() % 40, -1.0);
-    scale = Steps(random.Next() % 8, 0.4f);
+    p = Steps(randoms.pommelStep, -1.0);
+    scale = Steps(randoms.pommelScale, 0.4f);
     position = at(OffsetOf(p, Reach));
     (void)sprites.Create(Shiny, position, scale, light, 0.0f, Additive);
     (void)sprites.Create(Shiny, position, F32(static_cast<double>(scale) - static_cast<double>(SmallShrink)), light,
                          90.0f, Additive);
+}
+
+void ScepterGlowCarry::Create(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
+                              const glm::vec3& bodyOrigin, Render::Models::CrtRandom& random, Core::Duration clock)
+{
+    int frames = 1;
+    if (m_lastClock)
+    {
+        if (clock > *m_lastClock)
+        {
+            m_carry += clock - *m_lastClock;
+        }
+        frames = 0;
+        while (m_carry >= Render::Models::OriginalFrameTime && frames < MaxScepterFramesPerAdvance)
+        {
+            m_carry -= Render::Models::OriginalFrameTime;
+            ++frames;
+        }
+        if (frames == MaxScepterFramesPerAdvance)
+        {
+            m_carry = Core::Duration::zero();
+        }
+    }
+    m_lastClock = clock;
+    for (int frame = 0; frame < frames; ++frame)
+    {
+        m_last = DrawScepterGlowRandoms(random);
+    }
+    CreateScepterGlow(sprites, bone, bodyScale, bodyOrigin, m_last);
 }
 } // namespace Client::World

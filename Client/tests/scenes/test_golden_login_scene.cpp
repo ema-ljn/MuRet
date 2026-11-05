@@ -612,6 +612,46 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
     scene.Leave();
 }
 
+// El cetro sortea una vez por frame del original (World::ScepterGlowCarry): dos frames de MuRet con el
+// mismo reloj dibujan los mismos cinco sprites, en el mismo lugar; uno 47 ms después, otros.
+TEST_F(GoldenLoginWorld, TheScepterGlowChangesOncePerOriginalFrame)
+{
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    scene.Step(Client::Input::InputState{});
+    // Los vértices de los cinco del cetro (después de los 30 destellos del casco) de un frame con `clock`.
+    const auto scepterAt = [&scene](std::chrono::milliseconds clock)
+    {
+        RecordingFrameTarget target;
+        scene.Render(target.BeginFrame(clock), 0.0f);
+        target.Present();
+        std::vector<FrameEvent> models;
+        std::ranges::copy_if(target.frames.back().events, std::back_inserter(models),
+                             [](const FrameEvent& event) { return event.kind == Kind::Models; });
+        constexpr std::size_t PerSprite = 6;
+        std::vector<glm::vec3> positions;
+        if (models.size() == 2 && models.back().modelVertices.size() >= 35 * PerSprite)
+        {
+            for (std::size_t k = 30 * PerSprite; k < 35 * PerSprite; ++k)
+            {
+                positions.push_back(models.back().modelVertices[k].position);
+            }
+        }
+        return positions;
+    };
+
+    const std::vector<glm::vec3> first = scepterAt(std::chrono::milliseconds{40});
+    const std::vector<glm::vec3> again = scepterAt(std::chrono::milliseconds{40});
+    const std::vector<glm::vec3> next = scepterAt(std::chrono::milliseconds{87});
+
+    ASSERT_EQ(first.size(), 30u);
+    EXPECT_EQ(again, first);
+    EXPECT_NE(next, first);
+    scene.Leave();
+}
+
 // CL7.6 B2: el aliento del caballo (0x444010) sale del hueso 27 del buffer global de la pose. Lo escribe
 // el último modelo posado que tiene ese hueso y no es dummy (0x4eb973 saltea los dummy): el dragón se dibuja
 // después del caballo (0x52d620), pero su hueso 27 es dummy, y los objetos del mapa 55 tienen menos de 28.

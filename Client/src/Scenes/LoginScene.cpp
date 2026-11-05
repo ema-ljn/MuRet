@@ -435,6 +435,7 @@ void LoginScene::PlaceTheModels()
     m_leaves.Clear();
     m_drawnSinceEntering = false;
     m_steppedSinceEntering = false;
+    m_scepterGlow = {};
     if (m_world && m_world->map == DragonMap)
     {
         (void)m_effects.Create(World::DragonEffect, DragonOwnerPosition, glm::vec3(0.0f), glm::vec3(1.0f),
@@ -919,6 +920,7 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     character.clothWorld = m_context.cloth;
     character.map = m_world ? m_world->map : 0;
     character.sprites = &m_sprites;
+    character.scepter = &m_scepterGlow;
     DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
     // 0x4182f0 al final de 0x50ba30: el cuervo, si pasa el trapecio; sus huesos del estado del paso quedan
     // para la chispa del próximo (Q-C133).

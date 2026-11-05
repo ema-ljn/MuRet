@@ -24,6 +24,7 @@
 namespace Client::World
 {
 class FrameSprites;
+class ScepterGlowCarry;
 } // namespace Client::World
 
 // El dibujo de un personaje en el ModelBatch, como 0x50ba30 en la selección: el cuerpo de
@@ -80,6 +81,9 @@ struct DrawnCharacter
     // dibujarla, y los cinco del cetro (0x509340, caso 0x620, World/ScepterGlow.h) con el rand() de
     // `clothWorld`, en ese orden. Sin ella, no se piden.
     World::FrameSprites* sprites = nullptr;
+    // El sorteo de los cinco del cetro entre frames de MuRet (World::ScepterGlowCarry): con él, una vez por
+    // frame del original; sin él, en cada DrawCharacter.
+    World::ScepterGlowCarry* scepter = nullptr;
 };
 
 // Los slots de las texturas de los pases de brillo (06): 0x5fc el 0x8, 0x5c0 el 0x4 y 0x620 los

@@ -12,11 +12,13 @@
 #include <gtest/gtest.h>
 
 #include <bit>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 // Client::World::CreateScepterGlow contra el caso 0x620 de 0x509340 del código real del main.exe, en 300
 // casos al azar (tests/vectors/world55/scepter.txt, make_scepter_vectors.py): con 0x4ec110 y 0x5491e0
@@ -138,5 +140,99 @@ TEST(ScepterGlowTest, AFullTableTakesTheRandsAnyway)
         sprites, Client::Render::Models::OriginalMatrixOf(Client::Render::Models::BoneTransform(1.0f)), 1.0f,
         glm::vec3(0.0f), random);
     EXPECT_EQ(random.State(), expected.State());
+}
+// Los seis rand() que pide un frame, después de los de `random`.
+CrtRandom After(std::uint32_t seed, int frames)
+{
+    CrtRandom random(seed);
+    for (int k = 0; k < 6 * frames; ++k)
+    {
+        (void)random.Next();
+    }
+    return random;
+}
+
+// Los cinco sprites que dejó la tabla.
+std::vector<Sprite> GlowOf(FrameSprites& sprites)
+{
+    std::vector<Sprite> glow;
+    for (const Sprite& sprite : sprites.Sprites())
+    {
+        if (sprite.alive)
+        {
+            glow.push_back(sprite);
+        }
+    }
+    return glow;
+}
+
+void ExpectSameGlow(const std::vector<Sprite>& actual, const std::vector<Sprite>& expected)
+{
+    ASSERT_EQ(actual.size(), expected.size());
+    for (std::size_t k = 0; k < actual.size(); ++k)
+    {
+        EXPECT_EQ(actual[k].texture, expected[k].texture) << k;
+        EXPECT_EQ(actual[k].scale, expected[k].scale) << k;
+        EXPECT_EQ(actual[k].position, expected[k].position) << k;
+        EXPECT_EQ(actual[k].rotation, expected[k].rotation) << k;
+    }
+}
+
+// 0x509340 sortea el brillo en cada frame dibujado del original, a 21,33 por segundo (Q-C20 y Q-C124 con la
+// mascota y la tela): MuRet lo sortea una vez por cada frame del original (46,875 ms) que pasó desde el
+// suyo anterior, y en un frame sin ninguno repite el último sorteo, en el hueso de ahora. El primero
+// sortea.
+TEST(ScepterGlowTest, TheGlowIsDrawnOncePerOriginalFrame)
+{
+    const auto bone = Client::Render::Models::OriginalMatrixOf(Client::Render::Models::BoneTransform(1.0f));
+    Client::World::ScepterGlowCarry carry;
+    CrtRandom random(5);
+
+    FrameSprites first;
+    carry.Create(first, bone, 1.0f, glm::vec3(0.0f), random, std::chrono::milliseconds{1000});
+    EXPECT_EQ(random.State(), After(5, 1).State());
+    FrameSprites expected;
+    CrtRandom sorted(5);
+    Client::World::CreateScepterGlow(expected, bone, 1.0f, glm::vec3(0.0f), sorted);
+    ExpectSameGlow(GlowOf(first), GlowOf(expected));
+
+    FrameSprites repeated;
+    carry.Create(repeated, bone, 1.0f, glm::vec3(0.0f), random, std::chrono::milliseconds{1040});
+    EXPECT_EQ(random.State(), After(5, 1).State()) << "sin un frame del original, ningún rand()";
+    ExpectSameGlow(GlowOf(repeated), GlowOf(first));
+
+    // 1046,875 ms: uno.
+    FrameSprites next;
+    carry.Create(next, bone, 1.0f, glm::vec3(0.0f), random, std::chrono::microseconds{1046875});
+    EXPECT_EQ(random.State(), After(5, 2).State());
+    FrameSprites expectedNext;
+    CrtRandom sortedNext = After(5, 1);
+    Client::World::CreateScepterGlow(expectedNext, bone, 1.0f, glm::vec3(0.0f), sortedNext);
+    ExpectSameGlow(GlowOf(next), GlowOf(expectedNext));
+
+    // Tres de golpe: los dos primeros solo sacan sus rand(), y el último se dibuja.
+    FrameSprites late;
+    carry.Create(late, bone, 1.0f, glm::vec3(0.0f), random, std::chrono::microseconds{1046875 + (3 * 46875)});
+    EXPECT_EQ(random.State(), After(5, 5).State());
+    FrameSprites expectedLate;
+    CrtRandom sortedLate = After(5, 4);
+    Client::World::CreateScepterGlow(expectedLate, bone, 1.0f, glm::vec3(0.0f), sortedLate);
+    ExpectSameGlow(GlowOf(late), GlowOf(expectedLate));
+}
+
+// Un reloj que vuelve no corre frames: repite el último sorteo.
+TEST(ScepterGlowTest, AClockThatGoesBackRepeatsTheGlow)
+{
+    const auto bone = Client::Render::Models::OriginalMatrixOf(Client::Render::Models::BoneTransform(1.0f));
+    Client::World::ScepterGlowCarry carry;
+    CrtRandom random(9);
+    FrameSprites first;
+    carry.Create(first, bone, 1.0f, glm::vec3(0.0f), random, std::chrono::milliseconds{500});
+
+    FrameSprites back;
+    carry.Create(back, bone, 1.0f, glm::vec3(0.0f), random, std::chrono::milliseconds{100});
+
+    EXPECT_EQ(random.State(), After(9, 1).State());
+    ExpectSameGlow(GlowOf(back), GlowOf(first));
 }
 } // namespace

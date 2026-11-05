@@ -25,6 +25,9 @@ using OriginalMatrix = std::array<float, 12>;
 // 0x5fcbd0: `v` por el giro de `m`, sin la traslación.
 [[nodiscard]] glm::vec3 OriginalVectorRotate(const glm::vec3& v, const OriginalMatrix& m);
 
+// 0x5fcc30: `v` por la transpuesta del giro de `m`, con el orden de sumas del original.
+[[nodiscard]] glm::vec3 OriginalVectorIRotate(const glm::vec3& v, const OriginalMatrix& m);
+
 // 0x5fccc0: `v` por el giro y la traslación de `m`.
 [[nodiscard]] glm::vec3 OriginalVectorTransform(const glm::vec3& v, const OriginalMatrix& m);
 

@@ -929,10 +929,7 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     }
 }
 
-// El personaje (0x510d00 → 0x50ba30, con la luz del terreno en su lugar más la suya), el caballo
-// (0x4453b0 → 0x445260, con la escala de la escena 2) y después los objetos del mundo con el logo
-// (0x6046a0 → 0x602e90, con el color de 0x5ffce0).
-void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
+DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
 {
     DrawnCharacter character;
     character.appearance = m_character;
@@ -949,6 +946,15 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     character.sprites = &m_sprites;
     character.scepter = &m_scepterGlow;
     character.pace = OriginalFramePaceOf(m_context.pacing);
+    return character;
+}
+
+// El personaje (0x510d00 → 0x50ba30, con la luz del terreno en su lugar más la suya), el caballo
+// (0x4453b0 → 0x445260, con la escala de la escena 2) y después los objetos del mundo con el logo
+// (0x6046a0 → 0x602e90, con el color de 0x5ffce0).
+void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
+{
+    const DrawnCharacter character = TheCharacterToDraw(alpha);
     DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
     // 0x4182f0 al final de 0x50ba30: el cuervo, si pasa el trapecio; sus huesos del estado del paso quedan
     // para la chispa del próximo (Q-C133).

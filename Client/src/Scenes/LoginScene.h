@@ -127,6 +127,10 @@ public:
     [[nodiscard]] bool HoldsTheLastFrame() const override;
     // La cabeza del personaje como la dejó el último paso (0x505de0), la que dibuja.
     [[nodiscard]] const CharacterHead& Head() const;
+    // El personaje que dibuja el frame con `alpha` (0x510d00 → 0x50ba30): el cuerpo entre pasos, la cabeza
+    // del paso, la luz del terreno en su lugar más la suya, y su tela, su cetro y la tabla de los sprites de
+    // la escena, con el ritmo del contexto.
+    [[nodiscard]] DrawnCharacter TheCharacterToDraw(float alpha);
 
 private:
     // 0x60da30 y 0x60d5f0 con el 0xa2 (LoginLogoFile), sin un 0x60d530 antes (Q-C92).

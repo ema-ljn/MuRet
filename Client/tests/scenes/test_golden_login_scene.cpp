@@ -650,6 +650,8 @@ TEST_F(GoldenLoginWorld, TheHeadOfTheDarkLordLooksAround)
     }
     EXPECT_GT(targets, 3u);
     EXPECT_NE(scene.Head().angles, glm::vec2(0.0f));
+    // Y el dibujo la usa: el personaje que dibuja lleva los ángulos del paso, sin interpolar.
+    EXPECT_EQ(scene.TheCharacterToDraw(0.5f).headAngles, scene.Head().angles);
 }
 
 // El cetro sortea una vez por frame del original (World::ScepterGlowCarry): dos frames de MuRet con el

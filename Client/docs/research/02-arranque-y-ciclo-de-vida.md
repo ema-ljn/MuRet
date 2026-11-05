@@ -161,7 +161,7 @@ Quién escribe `DAT_006d5dc8`, leído en la CL5.R en el desensamblado (*estátic
 | 2 | 4 | `0x634c60` | el login aceptado: el `F1 01` deja el estado de la conexión, `DAT_057678c0`, en `0x14`; la escena lo ve en su paso, lo pasa a `0x32` y manda el `F3 00` |
 | 4 | 3 | `0x6342c0` y `0x633c10` | en la lógica de la selección (que corre solo con el estado en `0x33` o más, la lista de personajes): Enter con un personaje elegido (`DAT_006d5edc`, de 0 a 4), o doble clic sobre un personaje (el de `0x6c8e30`, que pasa a ser el elegido) con la ventana de la selección (`+0x7f50`) abierta; o el botón de esa ventana (`0x633c10`, desde `0x63eb9a`, en su `vtable + 0x30`). Si el personaje tiene el bit `0x1` de `+0x1d8`, abre el aviso `0x84` en vez de entrar. Enter pide además `[input + 0x31]` en 0 y cuatro ventanas cerradas, y suena el `0x19`; el doble clic, no. Al entrar copia el nombre, la clase, la piel y el nivel al personaje propio y suelta lo de la selección (`0x61cc50`; CL6.R, [06](06-render-escenas-y-ui.md#la-selección-de-personaje)) |
 | 3 | 5 | `0x6356f0` | al terminar la carga del mundo, que dibuja un solo frame con las cuatro `LSBg` en mosaico y las suelta (CL6.R); el `F3 03` lo manda el primer paso de la 5 (`0x636290`), no la selección ([04](04-protocolo.md#la-selección-de-personaje-f3)) |
-| 5 o 4 | 4 o 2 | `0x4c2710` | la respuesta del `F1 02`: con `pkt[4]` en 1 pasa a la 4, y con 2 a la 2, y en ese caso cierra el GS, pone en 0 la bandera del login (`DAT_07d3a13d`, `0x4c2f24`) y corta: al volver se carga todo otra vez, y vuelve a conectar al CS. Las dos, solo si el paquete llegó cifrado: el cuarto argumento del dispatcher (el "cifrado" de [03](03-red-y-cifrado.md), `[ebp+0xc]` en `0x4c2781` y `0x4c2f5e`); sin cifrar no cambia de escena, y lo que hace llama a la tabla de hash de `0x40b240` (no se siguió). Con `pkt[4]` en 0, `SendMessageA(WM_DESTROY)` (`0x4c391b`): el juego se cierra, sin aviso y sin mirar si llegó cifrado (Q-C106). De la escena solo mira si es la 5, para limpiar el juego (`0x4c275c`), y el dispatcher no la mira: también la cambiaría desde la 1, la 2 o la 3 (Q-C79) |
+| 5 o 4 | 4 o 2 | `0x4c2710` | la respuesta del `F1 02`: con `pkt[4]` en 1 pasa a la 4, y con 2 a la 2, y en ese caso cierra el GS, pone en 0 la bandera del login (`DAT_07d3a13d`, `0x4c2f24`) y corta: al volver se carga todo otra vez, y vuelve a conectar al CS. Las dos, solo si el paquete llegó cifrado: el cuarto argumento del dispatcher (el "cifrado" de [03](03-red-y-cifrado.md), `[ebp+0xc]` en `0x4c2781` y `0x4c2f5e`); sin cifrar no cambia de escena, y lo que hace llama a la tabla de hash de `0x40b240`, la tabla de protección de [06](06-render-escenas-y-ui.md#la-tabla-de-protección) (no se siguió). Con `pkt[4]` en 0, `SendMessageA(WM_DESTROY)` (`0x4c391b`): el juego se cierra, sin aviso y sin mirar si llegó cifrado (Q-C106). De la escena solo mira si es la 5, para limpiar el juego (`0x4c275c`), y el dispatcher no la mira: también la cambiaría desde la 1, la 2 o la 3 (Q-C79) |
 
 Los estados de la conexión que importan acá son 0 (sin GS), 2 (el `F1 00` aceptado), `0x13` (el
 login mandado), `0x14` (aceptado), `0x32` (la lista de personajes pedida) y `0x33` (llegó).
@@ -380,8 +380,11 @@ Cada frame termina con `glFlush` y `wglSwapBuffers` (2.375 de cada uno en la ses
 | `WM_SETCURSOR` (0x20) | `ShowCursor(0)`: el cursor lo dibuja el juego |
 | `WM_MOUSEMOVE` (0x200) | la posición en 640 × 480: `x · 640 / ancho` en `DAT_07d3682c` y `y · 480 / alto` en `DAT_07d36828` (el tamaño, en `0x6d5d60` y `0x6d5d64`) |
 | `WM_LBUTTONDOWN`, `WM_LBUTTONUP` (0x201, 0x202) | `DAT_07d366d4` en 1 al apretar, si no estaba ya abajo (`DAT_07d36874`), y en 0 al soltar, que además guarda dónde (`0x576358c`, `0x5763590`); la lógica lo pone en 0 cuando lo usa (`0x623e70`) |
-| `WM_RBUTTON*`, `WM_MBUTTON*` (0x204 a 0x208) | banderas propias (`DAT_07d3685c`, `DAT_07d36864`), con contadores del hash alrededor; según `paso9-ciclo-vida.md`, cámara y zoom. Qué hace cada bandera, sin leer |
-| `WM_MOUSEWHEEL` (0x20A) | `DAT_07d366d8` = delta / 120, en muescas; lo consume quien lo lee (las listas, `0x479960` y sus vecinas, lo ponen en 0) |
+| `WM_RBUTTONDOWN` (0x204) | `0x4b3d15`: `DAT_07d36840` = 0; si `DAT_07d3685c` no estaba, `DAT_07d36880` = 1 (el flanco); y `DAT_07d3685c` = 1 (abajo). Con la tabla de protección `0x57630c8` alrededor, como los otros tres. El derecho lo leen las habilidades y las mascotas (`0x420f70`, `0x57cfc0`), la UI (`0x45d760`, `0x59ec80`) y el editor (`0x5acbe0`); ninguno toca la cámara. *Estático* (barrido de Lorencia) |
+| `WM_RBUTTONUP` (0x205) | `0x4b40ac`: `DAT_07d36880` = 0; si estaba abajo, `DAT_07d36840` = 1 (soltado); `DAT_07d3685c` = 0 y `DAT_07d36849` = 1. *Estático* |
+| `WM_MBUTTONDOWN` (0x207) | `0x4b47c2`: `DAT_07d36848` = 0; si `DAT_07d36720` estaba en 0, `DAT_07d36864` = 1; y `DAT_07d36720` = 1, que nadie vuelve a 0. *Estático* |
+| `WM_MBUTTONUP` (0x208) | `0x4b4a5e`: `DAT_07d36864` = 0; con `DAT_07d36720`, `DAT_07d36848` = 1; y **`DAT_07d3685c` = 0**: suelta el derecho (Q-C154). Las tres banderas del medio no las lee nadie fuera del WndProc: el botón no hace nada. *Estático* |
+| `WM_MOUSEWHEEL` (0x20A) | `0x4b4c03`: `DAT_07d366d8` = delta / 120 (`idiv`, que trunca hacia 0), en muescas; lo consume quien lo lee: las listas (`0x479960` y sus nueve vecinas, que lo ponen en 0), el volumen de 0 a 9 (`0x623e70`, en `0x625782`, que entra por `0x41eed0`), `0x6529e0` y `0x497950`. Con Ctrl, `0x632dd0` cambiaría el nivel de la cámara de 0 a 4, pero no la llama nadie. **Ningún botón ni la rueda mueve la cámara** ([06](06-render-escenas-y-ui.md#la-cámara-del-juego)); antes esta tabla decía, según `paso9-ciclo-vida.md`, que el derecho y el del medio eran la cámara y el zoom. *Estático* |
 | sin foco | lo que no atiende el primer `switch` (`WM_SYSCOMMAND`, los mensajes de 0x2 a 0x20 de esta tabla, `0x400`, `0x401`, `0x2B11`, `WM_TIMER` y `0x500`..`0x5FF`) pasa por la prueba del foco (`0x4b33fe`..`0x4b3427`) y, sin foco, va a `DefWindowProcA` (`0x4b3439`) sin tocar nada: el segundo `switch` entero, con `WM_CHAR` (0x102), los `WM_IME_*` de 0x10D a 0x10F, el mouse (0x200 a 0x20A) y 0x282. Sin foco se pierden el mouse, el texto del chat y el IME |
 | `WM_CLOSE` (0x10) | no tiene caso: cae a `DefWindowProcA` (sin foco en `0x4b3439`, con foco en `0x4b8c0f`), que destruye la ventana y lleva a `WM_DESTROY` |
 | `WM_SYSCOMMAND` (0x112) | bloquea `SC_KEYMENU` y `SC_MONITORPOWER` |
@@ -440,10 +443,10 @@ pasa. Todas la pasan fija, salvo cuatro lazos sobre los dígitos (`0x420e5e`, `0
 función y, entre paréntesis, la dirección de la llamada. De dónde se alcanza cada función sale de
 las llamadas directas (*análisis*): **P** desde el paso, **D** desde el dibujo, **F** por frame
 (`0x637700` y `0x640940`, y las ventanas que llama `0x65fc30` por vtable), **V** sin llamadas
-directas desde el paso ni desde el dibujo (van por vtable) y **N** no la llama nadie (`0x59fe10`).
-Las **P** se alcanzan desde la lógica de la escena 5 (`0x636290`, `0x623e70`), salvo `0x634c60`
-(la 2), `0x6342c0` (la 4) y la de Impr Pant (todas); `0x5588d0` y `0x558eb0`, también desde la 2
-y la 4.
+directas desde el paso ni desde el dibujo (van por vtable) y **N** no la llama nadie (`0x59fe10` y
+`0x632dd0`: ni una llamada ni un puntero en el archivo). Las **P** se alcanzan desde la lógica de la
+escena 5 (`0x636290`, `0x623e70`), salvo `0x634c60` (la 2), `0x6342c0` (la 4) y la de Impr Pant
+(todas); `0x5588d0` y `0x558eb0`, también desde la 2 y la 4.
 
 | Tecla | VK | Bit alto | `== 0x8001` | `0x553520` |
 |---|---|---|---|---|
@@ -451,7 +454,7 @@ y la 4.
 | Tab | `0x09` | | | `0x40f6d0` (`0x40f6ea`) V |
 | Enter | `0x0D` | | `0x6342c0` (`0x634343`) P; `0x63d880` (`0x63d91a`), `0x642e30` (`0x642e4b`), `0x6418b0` (`0x64192d`) F | `0x4a43c0` (`0x4a43ed`), `0x4a4e20` (`0x4a4e34`) V |
 | Shift | `0x10` | `0x420e30` (`0x420e4d`), `0x59adf0` (`0x59ddf1`), `0x652330` (`0x6525f9`) P; `0x637700` (`0x638305`) F | | |
-| Ctrl | `0x11` | `0x5588d0` (`0x558b86`), `0x558eb0` (`0x558fd6`), `0x59ff10` (`0x5a0905`), `0x5c4110` (`0x5c4ac1`) P; `0x558bb0` (`0x558e7f`) P y D; `0x632dd0` (`0x632dd5`) V | | |
+| Ctrl | `0x11` | `0x5588d0` (`0x558b86`), `0x558eb0` (`0x558fd6`), `0x59ff10` (`0x5a0905`), `0x5c4110` (`0x5c4ac1`) P; `0x558bb0` (`0x558e7f`) P y D; `0x632dd0` (`0x632dd5`) N | | |
 | Alt | `0x12` | `0x59ff10` (`0x5a1129`, `0x5a1191`) P; `0x59ec80` (`0x59ef37`), `0x5bbbc0` (`0x5bbd91`) D; `0x59fe10` (`0x59fe4b`) N | | `0x5bbbc0` (`0x5bbd6c`) D |
 | Esc | `0x1B` | | `0x634c60` (`0x634d3a`), `0x6342c0` (`0x634485`) P; `0x63d880` (`0x63d956`), `0x642e30` (`0x642e8d`), `0x6418b0` (`0x641962`), `0x63f630` (`0x63f650`), `0x644730` (`0x644822`), `0x647d40` (`0x647e98`) F | `0x623e70` (`0x623eb5`), `0x490490` (`0x4904bc`) P |
 | Espacio | `0x20` | `0x5ac8d0` (`0x5ac8ea`) P | | |

@@ -60,6 +60,8 @@ render de la escena
  ├─ cámara       0x635ae0 + 0x44dc60 + 0x620db0 (proyección y modelview)
  ├─ pase 3D      fondo, frustum 0x5fbb00, terreno 0x5fc260, personajes 0x510d00, objetos 0x6046a0
  │               [selección] personajes 0x510d00, el elegido 0x5f9780 y 0x53fe70 (0x4129f0 no dibuja)
+ │               [juego] terreno, objetos 0x6046a0, suelo 0x52dc20, pájaros, personajes 0x510d00,
+ │                       peces, caballo, hojas, efectos (§ La escena del juego)
  ├─ pase 2D      0x6219b0 (ortho) … 0x621a90 (vuelve)
  │    ├─ UI en el juego 0x62db60 (20 KB, 52 llamadas GL)
  │    ├─ texto 0x554180
@@ -90,9 +92,17 @@ Z es el yaw y X el pitch) y la posición (`DAT_07d36884/88/8c`).
 arma la perspectiva con `gluPerspective(FOV, w/h, near, far × 1,4)` (`0x6203c0`; FOV, near y far
 en `DAT_006d5d48/40/44`, el 1,4 en `0x6b8c00`), aplica `glRotatef` ×3 (primero Y, después X si
 `DAT_07d36899` es 0, al final Z) y `glTranslatef(−posición)`, habilita textura, depth test y
-culling, `glAlphaFunc(GL_GREATER, 0.25)` y niebla lineal si está activa. La cámara la mueve el
-mouse (botones derecho y medio, rueda; ver [02](02-arranque-y-ciclo-de-vida.md)). En el mapa 6 con
-los nombres "webzen" y "webzen2" hay una cámara especial.
+culling y `glAlphaFunc(GL_GREATER, 0.25)`. Con `DAT_07d368a0` prendida pondría niebla
+**`GL_EXP2`** (`0x801`), con la densidad 0,0004 de `0x6d5d4c` y el color de `0x6d5d50`
+(`0x620f60..0x620f8d`), pero esa bandera solo se escribe con 0 (`0x622f23`, `0x6346a7`,
+`0x6350cc`, `0x635a33` y `0x63723a`): **la niebla está muerta** (*estático*; la traza tiene un
+`glDisable(GL_FOG)` en cada pase, *verificado*). La única niebla del juego es la del mapa 30,
+lineal de 2.000 a 2.700, que arma aparte `0x42b0a0`. **El mouse no mueve la cámara**: ni el botón
+derecho, ni el del medio, ni la rueda (*estático*, [La cámara del juego](#la-cámara-del-juego)).
+En el mapa 6, un héroe cuyo nombre **contiene** "webzen" tiene una cámara de espectador:
+`0x576960` busca un substring, así que la rama de "webzen2", que también lo contiene, está muerta
+(Q-C152). Antes este documento decía niebla lineal, que el mouse movía la cámara y que había dos
+nombres.
 
 **Verificado** contra las trazas (el `glMultMatrixd` de la perspectiva y las rotaciones):
 
@@ -215,8 +225,9 @@ slot de Q-C19; sin diferencias en geometría, UV, textura ni alfa):
 - La luz por vértice es el píxel de `TerrainLight.OZJ` en `(x, 255 − y)`, dividido 255: la imagen
   está dada vuelta en Y respecto de la grilla. Coincide (±1 %) en 1.746 de los 1.875 vértices que se
   pueden medir (el rojo de la traza por encima de 8 / 255, en los dos pases); los otros 129 salen más
-  brillantes, nunca más oscuros (×1,1 a ×3,1): luces dinámicas que se suman a la base (fuego,
-  efectos), *inferido*, sin identificar quién las suma (CL7.1,
+  brillantes, nunca más oscuros (×1,1 a ×3,1): las luces dinámicas que `0x5f9780` suma a la base.
+  De los 27 vértices distintos, 23 rodean el `FireLight01` del registro 1933 (*verificado* por el
+  lugar) y 4 siguen sin dueño ([Lo propio de Lorencia](#lo-propio-de-lorencia), P-C28 e) (CL7.1,
   `GoldenTerrainTrace.TheCellsOfLorenciaMatchTheTrace`; antes este documento daba 1.869 y 123).
 - **El estado de GL de los dos pases** (*verificado* en la traza, CL7.1): el opaco (`0x5fa260`,
   `0x620980`) va sin mezcla, con culling y depth test y escribiendo la profundidad, en los 329; el de
@@ -1289,9 +1300,10 @@ objetos como el logo (`0x5ffce0`). *Estático*, leído en la CL6.4.
   con n.x · 0,5 − 0,5 · n.y + 0,5 · n.z + 0,5, de 0 a 1 (en el mapa 30, −1 y 1 en vez de −0,5 y
   0,5). En un terreno plano la sombra es 1: la zona de la traza de Lorencia es plana, así que no
   distingue esta luz de la del OZJ (*inferido* qué tabla lee el terreno).
-- **En cada paso** (`0x5fbf60`, desde la lógica del login y de la selección): copia `0x7c0ccc4` a
-  `0x7b4ccc4` en las celdas de la ventana que se ve (`0x7d2d364` a `0x6c9d68` + 3 en x, `0x7d2d368`
-  a `0x6c9d6c` + 3 en y), donde después se suman las luces dinámicas (`0x5f9780`).
+- **En cada paso** (`0x5fbf60`, desde la lógica del login, de la selección y del juego, en
+  `0x636de8`): copia `0x7c0ccc4` a `0x7b4ccc4` en las celdas de la ventana que se ve (`0x7d2d364`
+  a `0x6c9d68` + 3 en x, `0x7d2d368` a `0x6c9d6c` + 3 en y), donde después se suman las luces
+  dinámicas (`0x5f9780`, [Lo propio de Lorencia](#lo-propio-de-lorencia)).
 - **En un punto** (`0x5f99e0`): con la escena distinta de 0, 1 y 3 y el terreno cargado
   (`0x7d2d35c`, que pone `0x5f9000` al cargar), la celda es x · 0,01 y y · 0,01 truncados, y entre
   0 y 254 la luz es la bilineal de `0x7b4ccc4` entre las cuatro de alrededor (primero cada columna
@@ -2106,12 +2118,12 @@ CL4.R). Si no, el aviso `0x70`. Con la versión distinta, cierra la ventana de l
   blanco y sin fondo, y el título, el texto 460 o 461 (según `0x447c70(grupo, número)`) con el
   nombre del grupo y el número, en (x + 111, y + 80). Las posiciones en píxeles pasan a 640 × 480
   dividiendo por la proporción y truncando (`ftol`), y `0x554000` las vuelve a escalar.
-- **El emisor** (`0x641bf0`): solo con `DAT_057678c0` distinto de 0. Cierra la ventana de
-  arriba, copia los campos a `0x7798bf8` (cuenta) y `0x7798cf8` (clave) con un tope de `0xff`
-  (`0x4693e0`); con la cuenta vacía abre el aviso `0x64` y con la clave vacía el `0x65`; con el
-  estado en 2 copia la cuenta a `DAT_0576792c`, pone `DAT_05767928` en 1 y el estado en `0x13` y
-  arma el `F1 01` (Q-C43). El resto de la función llama a la tabla de hash de `0x40b240`: puede ser
-  el anticheat, y no se siguió.
+- **El emisor** (`0x641bf0`): solo con `DAT_057678c0` distinto de 0. Cierra la ventana de arriba,
+  copia los campos a `0x7798bf8` (cuenta) y `0x7798cf8` (clave) con un tope de `0xff` (`0x4693e0`);
+  con la cuenta vacía abre el aviso `0x64` y con la clave vacía el `0x65`; con el estado en 2 copia
+  la cuenta a `DAT_0576792c`, pone `DAT_05767928` en 1 y el estado en `0x13` y arma el `F1 01`
+  (Q-C43). El resto de la función llama a la tabla de hash de `0x40b240` ([La tabla de
+  protección](#la-tabla-de-protección)): puede ser el anticheat, y no se siguió.
 
 ### Los avisos
 
@@ -2443,7 +2455,989 @@ cuatro** en un mosaico de 800 × 600: `LSBg01` arriba a la izquierda (400 × 512
 derecha (en x 400), `03` abajo a la izquierda (400 × 88, en y 512) y `04` abajo a la derecha, con
 la escala W / 800 y H / 600 (`0x6ba884`, `0x6ba880`), como la UI de la carga. Dibuja un frame
 (`0x620db0(0, 0, 640, 480)`, `glClear`, `0x640ea0`, que llama a `0x647650` con cada una,
-`glFlush` y `SwapBuffers`), borra el objeto, pasa a la escena 5 y suelta las cuatro texturas.
+`glFlush` y `SwapBuffers`), borra el objeto, pasa a la escena 5 y suelta las cuatro texturas. Ese
+frame queda en pantalla hasta que llega la respuesta del `F3 03`, porque el dibujo de la escena 5 no
+presenta mientras tanto ([La entrada al mundo](#la-entrada-al-mundo)).
+
+## La escena del juego
+
+Leída en el barrido de Lorencia (2026-11-05): cuatro lecturas del `main.exe` `c32bbd5f`, la entrada
+y el esqueleto de la escena, la cámara, caminar y los cambios de mapa. Se contrastó con la traza de
+Lorencia (`lorencia-Frame_016215.txt`, la de [Modelos y objetos](#modelos-y-objetos)), con el
+`muproxy.log` y la PCAP de [04](04-protocolo.md#una-sesión-real-de-juego-2026-10-30), con
+`lor_slots.bin` y con el código real emulado (unicorn). Cada punto lleva su clase. Los paquetes,
+campo por campo, están en [04](04-protocolo.md#movimiento-y-mundo); los modelos de cada mapa y
+`Gate.bmd`, en [05](05-formatos-de-datos.md#los-modelos-de-cada-mundo); lo que pide una corrida del
+original, en [08](08-pendientes.md) (P-C28 a P-C31). MuRet, hoy, manda el `F3 03` desde
+`GameScene` y no dibuja nada en la escena 5.
+
+### La entrada al mundo
+
+Del Enter de la selección al primer frame de Lorencia, *estático* salvo lo que se marca:
+
+1. **La selección** (`0x6342c0`, `0x633c10`) copia el nombre, la clase, la piel y el nivel al
+   registro propio (`[0x7681eb0]`), suelta lo suyo (`0x61cc50`), baja `0x7d3a13e` y pasa a la
+   escena 3 ([La lógica](#la-lógica)). Deja `0x7d3a101` en 1 (`0x633f30`), y solo lo bajan los dos
+   caminos de `0x4c2710` (`0x4c2f39`, `0x4c38f9`): el paso de la escena 5 corre entero con lo que
+   dejó la selección hasta que la respuesta recarga todo.
+2. **La escena 3** (`0x6356f0`, un solo frame) pone el contador `0x77f3b04` en 9.999.999
+   (`0x98967f`, por la tabla de protección `0x57630c8`), dibuja el mosaico de `LSBg` ([La carga del
+   mundo](#la-carga-del-mundo-escena-3)), presenta, pasa a la 5 (`0x635a91`) y llama a
+   `0x553570(1)`.
+3. **El primer paso de la 5** (`0x636290`, con `0x7d3a140` en 0, que pone en 1 en `0x6362fb`): el
+   log `"> Character selected <%d> %s"`; el `F3 03` y el estado `0x3c` (con `0x7d366bc` en 0, que
+   nadie escribe); la UI en el modo del juego (`0x65ee60`, `0x65f5f0`); **el yaw de la cámara en
+   −45°** (`0x7d36870 = 0xc2340000`, `0x636838`); `0x553570` y las 120 líneas del área de mensajes
+   vacías (`0x555190`); unas siete ventanas, de `0x45db50` a `0x447ae0`; y, si el byte
+   `[0x710148] + 4` vale `0xff`, el `A0` en C3 (`0x63693a`). En el cable el `A0` sale detrás del
+   `F3 03`, antes o después de la respuesta según lo que tarde el servidor (*verificado*,
+   [04](04-protocolo.md#una-sesión-real-de-juego-2026-10-30)).
+4. **Mientras no llega la respuesta**, el dibujo `0x6371a0` lee el contador por la tabla de
+   protección y con más de 30 devuelve 0 (`cmp esi, 0x1e`, `0x63722e`): sin ese verdadero no hay
+   `SwapBuffers` ([02](02-arranque-y-ciclo-de-vida.md#qué-corre-en-cada-paso-y-qué-en-cada-frame)),
+   y **queda en pantalla el mosaico de la escena 3**. Cuántos pasos corren así y cuántos `rand()`
+   gastan, P-C28 b.
+5. **La respuesta** va por el camino de [03](03-red-y-cifrado.md): `FD_READ`, la cola, `0x4e1d50`,
+   `Dec2` y el rearmado a C1, FoxAnti, `0x4e2b10` y el subcódigo 3 de `0x4e2f93` (`0x4e306b`), que
+   la pasa a `0x4c3940(pkt, cifrado)`. En el cable llega en el mismo segmento que `26`, `27`, `0F`,
+   `03`, `F3 10` (C4) y `F3 11` (*verificado*).
+6. **El paso siguiente** corre con el estado `0x3d`; `0x59adf0` (el `MoveHero` de
+   [Caminar](#caminar)) baja el contador de 30 a 29 (`0x59af0a`) y el dibujo ya pasa: es el primer
+   frame de Lorencia.
+
+**La respuesta, `0x4c3940`.** Sin cifrar (`param_2 == 0`, `0x4c396a`) no entra al mundo: arma un
+`C1 .. F1 03 …` y lo manda, sin leer qué lleva. Cifrada lee los campos
+([04](04-protocolo.md#la-entrada-al-mundo-la-respuesta-del-f3-03-y-el-f3-10)) y después hace esto,
+en orden (`0x4c41d4..0x4c4b60`, *estático*):
+
+| # | Qué | Dónde |
+| --- | --- | --- |
+| 1 | el mapa a `0x6c9dd0` y **`0x61a560(mapa)`** (abajo); en el mapa 34, además, el `C1 04 BD 00` | `0x4c41cf`, `0x4c41d4`, `0x4c421a` |
+| 2 | `0x447d70(mapa)`: los objetos de los mapas de evento (9, 11 a 17 y 18 a 23); en el 0 no hace nada | |
+| 3 | **el héroe es `chars[rand() % 400]`** (`idiv 0x190`; el índice en `0x57678b0`), con `0x511290(héroe, 0x20a, X, Y, ángulo)` y `+0x1f4` = la clave `0x57678bc` (Q-C145) | `0x4c44ad`, `0x4c44fc` |
+| 4 | la clase en `+0x1d4`, la piel en 0, el PK (`+0x375`), el CtlCode (`+0x1d8`) y `+0x88 = 1` | |
+| 5 | `0x512a30(héroe)`: los modelos del equipo, desde el registro todavía viejo | |
+| 6 | el puntero del héroe en `0x743a170` y el nombre en `+0x1d9` | |
+| 7 | **vacía los 12 lugares del equipo** del registro (`+0xb68`, de a `0x48`, el tipo en −1): el equipo lo trae el `F3 10` | |
+| 8 | `+0x1e3 = 0` y el primer efecto de llegada, `0x518cf0(0x61f, posición, ángulos, luz, 0, héroe, −1, …)` | |
+| 9 | el estado `0x3d`, `0x77f3b67 = 0` y `0x553780(1, 0)` | `0x4c4854` |
+| 10 | **el contador `0x77f3b04` en 30**: desde acá el dibujo pasa | `0x4c48eb` |
+| 11 | `0x77f3b10 = 0`, `0x6c8dcc = 6` y `0x420d60(héroe)`: el cuervo, si el héroe lleva el `0x1c17` | |
+| 12 | el segundo `0x518cf0(0x61f, …)`, con los mismos argumentos | |
+| 13 | **el alpha del héroe en 0** (`+0x174`): entra transparente | |
+| 14 | `0x657a90` (la UI) y los elegidos en −1: `0x6c8e4d = 0xff` y `0x6c8e28..0x6c8e38` | |
+| 15 | `0x78abb0c`, `0x78abb10` y `+0x378` del héroe (el `Movement`) en 0 | |
+| 16 | `0x4f2250(héroe)`: la acción de parado ([Caminar](#caminar)) | |
+| 17 | los sonidos de los mapas de evento, `0x41ee00(0x8b, 0x99 o 0x9e, 1)`, fuera de sus rangos | |
+| 18 | el chequeo de ResourceGuard (un objeto de `0x2c` bytes, `GetModuleFileNameA`, `0x4292e0` y `0x681ec0`), sin efecto: el `jmp` de `0x4c4ad5` saltea el aviso y el `0x4e8380` (Q-C147) | `0x4c4ad5` |
+| 19 | `0x65dc30` y el renglón `" Bienvenido"` más el nombre del mapa en el área de mensajes: `sprintf("%s%s", texto 484, 0x5f0b40(mapa))` y `0x555190(0x5767978, …, 1)` (el texto, *verificado* en el `s31_text.bin` del volcado de Devias) | |
+
+Las velocidades del keepalive (`+0x4c` y `+0x58` del registro, [04](04-protocolo.md)) no las
+escribe este handler; quién las calcula después, sin leer (P-C28 i).
+
+**El héroe**, *estático* salvo lo que se marca:
+
+- `0x511290(héroe, 0x20a, X, Y, ángulo)` guarda la celda cifrada en `+0x41c`/`+0x420` (la tabla de
+  protección) y en claro en `+0x39a`/`+0x39b`; la posición en el centro de la celda, `+0x10 = X ·
+  100 + 50` y `+0x14 = Y · 100 + 50` (`0x6b86b4`, `0x6b86b0`); la altura del terreno nuevo, `+0x18
+  = 0x5f93c0(x, y)` (algunas alas en los mapas 8 y 10 suman una constante); el ángulo en `+0x24`;
+  **la zona segura en `+0x3e2`, el bit `0x01` del `.att` de la celda**; y el estado de partida:
+  vivo, `+0x16d = 1`, el alpha y su meta en 1, la caja de (−60, −60, 0) a (40, 40, 120), `+0x88 =
+  1`, `+0x371 = 'C'` y `+0x188` con el contador de pasos. El ángulo es (dir − 1) · 45
+  (`0x4c44bc..0x4c44d1`): la dirección 0 da −45° (Q-C175). En la traza, el héroe está en (14.350;
+  12.050; 165), el centro de la celda (143, 120), con z = 110 · 1,5 (*verificado*); la sesión del
+  cable entra en (133, 127) del mapa 0 con la dirección 0.
+- **El equipo viene del `F3 10`** (`0x4e309c` → `0x4c55a0`), no de la lista de la selección: cada
+  entrada va a `0x5bc740`, que la pasa al héroe con `0x512a30`. Si el `F3 10` se despacha en la
+  misma vuelta de `WinMain` que la respuesta, el héroe sale vestido desde el primer frame (P-C28 a).
+- **Entra transparente y aparece en 20 pasos**: `0x4fd5f0` (`0x4fd72e`) → `0x4e9980` sube el alpha
+  0,05 (`0x6b8a48`) por paso hasta la meta, con `+0x16d` en 1. El primer frame va con 0,05 y a los
+  0,8 s es opaco.
+- **El efecto de llegada `0x61f` se crea dos veces** en el mismo lugar. Lo crea el caso
+  `0x61e`/`0x61f` de `0x518cf0`, con 20 pasos de vida y el subtipo 0; su paso (`0x5208a0`) solo
+  cuenta, y su dibujo (`0x52dc20`) es un calco en el suelo con la textura `0x61e` (`0x5fb2f0`) y
+  dos giros de `0x53d2c0(0x61f, …, ±ángulo)` que se apagan con la vida. Al ser dos iguales, se suma
+  dos veces.
+- **La acción de parado** (`0x4f2250`) depende del arma, de la zona segura, de la mascota y del
+  mapa ([Caminar](#caminar), `SetPlayerStop`). Algunas ramas arman un `C1 .. 18`: la tabla del XOR32
+  va en línea (P-C14 c).
+- **La luz del héroe en la escena 5** (`0x50ba30`, desde `0x50cc55`) es la del terreno en su lugar,
+  **del buffer dinámico** `0x7b4ccc4` (`0x5f99e0`), más `+0xf4..+0xfc`, que `0x511290` deja en 0. En
+  la selección es 0,4 fijo, y en el login, 0,3 más el terreno. `0x50ba30` tiene además una rama
+  propia del héroe (`0x50cca9`) que lee el registro propio, sin leer en detalle.
+
+**La carga del mapa** (`0x61a560` → `0x616ec0`, *estático* salvo lo que se marca). La llaman tres
+paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-de-mapa)). En orden:
+
+1. Si el mapa y `0x6c9dd0` valen 32, pasa a 9 (Q-C58).
+2. **Suelta** (`0x6070a0`) los modelos 0 a 159, las 256 listas de objetos (`0x7d325d0`), las
+   texturas `0x23` a `0x67` y el byte "vivo" de cada tabla de efectos: los sprites `0x760f990`
+   (1.000), los efectos con modelo `0x7491fd8` (200), los pájaros `0x7d2dca8` (40), los peces
+   `0x7d35350` (10), las hojas `0x75e34b8` (200), las partículas `0x743a198` (3.000), la de
+   `0x7609bd0` (100), los joints `0x74a8d78` (500) y la de `0x7d34818` (200; *inferido*, los lugares
+   para sentarse). Lo demás de cada entrada queda (Q-C138). Después, `0x612230` y `0x612d50` sueltan
+   los modelos `0x152..0x207` y los sonidos `0xa0..0x1c1` (los de los monstruos, *inferido*).
+3. **Fuera de la selección** (con la escena distinta de 4): `0x607b40`, los ítems del piso (1.000 de
+   `0x220` bytes en `0x77f4714`), y `0x510f70(0x57678bc)`, que mata a todo personaje cuya clave
+   `+0x1f4` no sea la del héroe y suelta lo que le cuelga (`0x421d60`, `0x4fb1a0`, `0x414340`).
+   Después `0x451d10` → `0x451590` borra de la lista `0x7245c8` lo que no es del héroe, y el objeto
+   de `0x6eeda0` queda con `+4 = 1`, `+8 = 0xf3`, `+0xc = 400` y `+0x18 = 0` (sin leer qué es).
+4. **Los modelos del mapa** (`0x616ec0`): `Object8\drop01.jpg` en `0x607`, los especiales del mapa
+   desde `0x60d530(0x69)`, `Object8\wt00..wt31.jpg` en `0x41..0x60`, `Object8\light01.jpg` en `0x68`
+   y los 160 del mundo desde `0x60d530(0x41c)`. **El mapa 0 no usa el lazo genérico
+   `Object<k+1>.bmd`**: carga 112 modelos con nombre de `Data\Object1\`. Las tablas, en
+   [05](05-formatos-de-datos.md#los-modelos-de-cada-mundo). Como `0x6c9e0c` vale 1 en la `.data`, el
+   primer `switch`, el de los `.smd` de `Data2\` (en el 0, `bird.smd`, `fish.smd` y
+   `treesmall.smd`), está muerto.
+5. **El número del mundo** ([05](05-formatos-de-datos.md#terreno-de-un-mundo-dataworldn)), con
+   `0x42a760` antes, que solo actúa en el mapa 30.
+6. **Los archivos**: el `.map` (`0x5f87b0`, cuyo `0x5f8300` limpia las capas y **llena el
+   corrimiento del pasto con 65.536 `rand()`**, Q-C146), el `.att` (`0x5f8390`), el `.obj`
+   (`0x607370`, que crea cada objeto con `0x606660`), las alturas (`0x5f9000`, por 1,5) y la luz
+   (`0x5f8f40`). Las alturas se cargan **después** del `.obj`; en el mapa 0 no importa, porque
+   `0x606660` no mira la altura. Con otro número de mundo en el `.map`, el `.att` o el `.obj`, el
+   `MessageBox` "file corrupted" y `WM_DESTROY`; sin `TerrainHeight`, "%s file not found" y
+   `WM_DESTROY` (`0x5f9167..0x5f91bb`, Q-C180).
+7. **`0x4377a0(mapa)`** arma el mundo especial de `0x723c48` solo en Kalima (los mapas 24 a 29 y
+   36). En Lorencia da 0, así que `0x437850()` da falso y el dibujo hace el terreno y no el segundo
+   pase.
+8. **Los tiles** (`0x23..0x30`), el pasto (`0x32..0x34`), las hojas (`leaf01` en `0x64`, la TGA y
+   después la JPG; `leaf02` en `0x65`) y la lluvia (`World1\rain01.tga` en `0x66`, `rain02` en
+   `0x67` y `World10\rain03.tga` en `0x68`, que pisa el `light01`, Q-C136). En `World1` faltan
+   `TileRock03..07`, que se saltean sin avisar; el pasto trae solo `TileGrass01.OZT` y las hojas
+   solo `leaf01.tga`. *Verificado* contra la traza: el pasto es la textura de GL 1360, la que sigue
+   a los nueve tiles que están (1351 a 1359).
+
+### El paso del juego
+
+El paso de la escena 5 es `0x636290` entero (3.844 bytes), después de `0x623e70`, la UI del juego
+([02](02-arranque-y-ciclo-de-vida.md#qué-corre-en-cada-paso-y-qué-en-cada-frame)). Después del
+bloque de la entrada, en orden (*estático*):
+
+| Dónde | Qué llama | Qué hace | En MuRet |
+| --- | --- | --- | --- |
+| `0x636da3` | el estado `0x3d` pone `0x7d3a101 = 1` | si no, y `0x7d3a101` está en 0, sale | — |
+| `0x636dc2..0x636ddb` | el temblor `0x7d325c8` · 0,2 | [La cámara del juego](#la-cámara-del-juego) | falta |
+| `0x636dd4` | `0x652940`, si el héroe tiene `+0x371 == 'C'` (siempre: lo pone `0x511290`) | lo del asedio y del gremio (`0x4294b0`) | no hace falta |
+| `0x636de8` | **`0x5fbf60`** | copia la luz sombreada `0x7c0ccc4` al buffer dinámico `0x7b4ccc4` en la ventana del rango y escribe las olas | las olas (`LoadedWorld::Step`); la copia de la luz, no |
+| `0x636e11..0x63705b` | con `0x7d36899` en 0: `0x5ecdc0`, `0x46b7b0`, `0x490490`, `0x5ebca0`, `0x435bd0`, `0x5ee140`, `0x59ff10`, `0x5a7cc0`, `0x657930`, `0x659290`, `0x45a9d0` y dos por vtable | la UI, el chat y los paquetes de la interfaz | CL8, CL9 |
+| `0x63706a` | **`0x606560` → `0x604ab0`** | los objetos del mundo ([Lo propio de Lorencia](#lo-propio-de-lorencia)) | sí, con los casos del 55 |
+| `0x637078` | `0x608880` | los ítems del piso que caen | CL9.3 |
+| `0x637082..0x6370e5` | **`0x530490`**, en el mapa 0 si la capa 1 de la celda del héroe (`0x77f36d0`) no es 4 | las 80 hojas | solo las brasas del 55 |
+| `0x6370ea` | **`0x446120`** | los pájaros | no |
+| `0x6370ef` | **`0x447030`** | los peces | no |
+| `0x6370f4` | `0x445230` | el caballo oscuro | sí (`StepDarkHorse`) |
+| `0x6370f9..0x637105` | `0x557650`, `0x451d10`, `0x451c10` | contadores y listas, sin leer | — |
+| `0x63710a` | **`0x59adf0`**, el `MoveHero` | el héroe con el mouse ([Caminar](#caminar)); baja `0x77f3b04`, escribe en `0x77f36d0` la capa 1 de la celda del héroe (`0x59e2ba`) y, con `0x57cfc0`, abre y cierra el registro propio: 3.848 `rand()` ([La tabla de protección](#la-tabla-de-protección)) | falta |
+| `0x63710f` | **`0x508f00` → `0x508ea0`** | por personaje: el trapecio en (x, y) · 0,01 con −20 a `+0x16c`, `0x508ba0`, `0x4fd5f0` (la animación y el alpha), `0x505de0` (la cabeza y las luces) y `0x42da90`; antes, el `0x02` del `TerrainWall`, con 8 `rand()` por personaje vivo | la animación, la cabeza, `CharacterSeen` |
+| `0x637114` | `0x548f40` | los números de daño (`0x7609c0c`) | CL9.2 |
+| `0x637119` | `0x53eaf0` | la tabla `0x75fe028` (`0x51fc80`), sin leer | — |
+| `0x63711e` | **`0x52d220`** | los efectos con modelo | sí (`StepModelEffects`) |
+| `0x637123` | `0x53c670` | los joints | no |
+| `0x637128` | **`0x5446e0`** | el viento y las partículas | sí (`StepParticles`) |
+| `0x63712d` | `0x549090` | los sprites con vida (`0x760cac0`) | sin mirar |
+| `0x637138` | `0x403590` | `0x4033d0` y compañía (el recorrido de la cámara), sin leer | — |
+| `0x637144..0x63717a` | `0x5fc0d0` y `0x5fc0b0`, con `0x7d2d35e` | funciones de un `ret` | nada |
+| `0x63717f` | `0x5ac8d0` | F1 a F4 (CL3.3) | CL8 |
+
+### El dibujo del juego
+
+`0x6371a0`, en el orden de sus llamadas (*estático*; lo que está en la traza, *verificado*). La
+última columna dice qué tiene ya MuRet por el login o la selección:
+
+| Dónde | Qué llama | Qué hace | ¿Como en el login? |
+| --- | --- | --- | --- |
+| `0x6371a6` | con `0x7d3a101` en 0, devuelve 0 | | |
+| `0x6371c1..0x63722e` | el contador por la tabla de protección; **con más de 30, devuelve 0** | no dibuja ni presenta | **no está en MuRet** |
+| `0x63723a` | `0x7d368a0 = 0` | sin niebla | sí |
+| `0x637241` | **`0x635ae0()`** y, fuera del mapa 6, `0x44dc60(&p)` (`0x4034b0` con el recorrido) | la cámara y el punto del recorte | [La cámara del juego](#la-cámara-del-juego) |
+| `0x63734d` | `0x620db0(0, 0, w, 48)` | la franja, que no dibuja | sí (`MakePass3D`) |
+| `0x637366` | **`0x5fbb00(w / 640, &p)`** | el rango de bloques y el trapecio | sí (`TerrainRangeOf`, `TerrainPolygonOf(Game)`) |
+| `0x637391..0x637404` | `glClearColor` por mapa: en el 0, (0,0390625; 0,078125; 0,0546875) | no se usa (Q-C143) | ver abajo |
+| `0x637410` | `0x620db0(0, 0, w, 432)` (480 con `0x7d36899`) | el pase del mundo | sí |
+| `0x63741d` | en el mapa 30, su luz | | — |
+| `0x6374aa` | `0x620480(mouse x, mouse y, &0x7d366c0, 1)` | el rayo del mouse | [Caminar](#caminar) |
+| `0x6374c6` | **`0x5fc260(0)`**, si `0x437850()` es falso y el mapa no es 10 | el terreno: el pase opaco, el de alfa, **el del pasto** y `0x549130` | `LoadedWorld::DrawTerrain`, **sin el pasto** |
+| `0x6374ce` | **`0x6046a0` → `0x602e90` → `0x602ed0`, `0x5ffdf0`, `0x6002e0`** | los objetos del `.obj` por sector | `DrawWorldObjects`, con los casos del 55 |
+| `0x6374d3` | **`0x52dc20`** | los efectos del suelo (`0x61d`, `0x61e`, `0x61f`…), con `0x5fb2f0` | no |
+| `0x6374d8` | **`0x446b60`** | los pájaros, con su sombra | no |
+| `0x6374dd` | **`0x510d00` → `0x50ba30`** | los personajes vistos (`+0x16c`), por índice; `0x42afe0` para los jugadores, solo en el mapa 30 | `DrawCharacter`, con la luz del login |
+| `0x6374ed` | `0x5fc260(1)` con `0x77f3b18` | el picking del terreno con esa bandera (*inferido*: el editor) | — |
+| `0x6374fe` | `0x608a00`, con `0x7d36899` en 0 | los ítems del piso | CL9.3 |
+| `0x637503` | **`0x446f00`** | los peces, con su sombra | no |
+| `0x637508` | `0x4453b0` | el caballo oscuro | `DrawDarkHorse` |
+| `0x63750d` | **`0x5306a0`** | las hojas | `DrawLeaves` |
+| `0x637516` | `0x53c6a0(local_8)`; en el mapa 0, con 0 | los joints | no (el login no tiene) |
+| `0x63751d` | **`0x52d620(0)`** | los efectos con modelo | `DrawModelEffects` |
+| `0x637525` | `0x52e590` | cintas en `GL_TRIANGLE_FAN` (`0x75e987c`, texturas `0x5bb` + n) | no |
+| `0x63752a` | **`0x549510`** | los sprites del frame | `DrawFrameSprites` |
+| `0x63752f` | `0x6213e0` | la modelview en la identidad | sí |
+| `0x63754c` | `0x5306a0` otra vez, solo en el mapa 2 | | — |
+| `0x637552` | **`0x549440(0)`** | | sí |
+| `0x637558` | **`0x548550(0)`** | las partículas | `DrawParticles` |
+| `0x63756a` | `0x548eb0(0)` | los números de daño, sin depth test | CL9.2 |
+| `0x637572` | `0x6213f0` | el `glPopMatrix` | sí |
+| `0x637577..0x6375e5` | si `0x437850()`, un segundo pase | | no en el mapa 0 |
+| `0x637641` | `0x59ec80` | qué personaje está bajo el mouse | [Caminar](#caminar) |
+| `0x637646..0x6376e6` | `0x6219b0`, `0x4383f0`, `0x5bbbc0`, `0x5a7320(1)`, `0x5a7eb0`, `0x490390`, `0x5f37f0`, `0x62db60`, `0x5f7bc0`, `0x554810`, `0x5554e0`, `0x5b0550`, `0x40eca0`, `0x65ee60`/`0x65fe00`, `0x5ac2d0` × 2, `0x633110`, `0x621a90`, `0x620fc0` y uno por vtable | el 2D: el HUD, las ventanas, el texto y el cursor | CL8 |
+
+**El orden del pase 3D no es el del login.** En el juego van el terreno, los objetos, el suelo, los
+pájaros, los personajes, los peces, el caballo, las hojas, los efectos con modelo, los sprites y las
+partículas; en el login (`0x6350b0`, [El mundo del login](#el-mundo-del-login)) los objetos van
+**después** de los personajes y del caballo. Con aditivos que no escriben la profundidad (el
+`light_02` y el `ston02` de la traza van con `GL_ONE, GL_ONE`), el orden se ve. En la traza, en ese
+orden (*verificado*): 470 fans del terreno; 25 quads del pasto; 120 bloques con texturas de
+`0x41c..0x47e` (hasta la línea 59.594); 11 de los pájaros (`0x69`, de la línea 59.888 a la 65.847,
+cinco con `glColor4f(0, 0, 0, 0,2)`: las sombras); 54 de los personajes desde la 66.171 (el
+guardia, la NPC de la tienda, otro personaje, el héroe con el set `_bd` y un Satan); y 105 quads: 80
+hojas (`0x64`), 2 sprites `0x5ac` y 23 partículas `0x5d9` y `0x5f2`.
+
+**El fondo del mapa 0 no se ve** (Q-C143). En cada frame de la traza, `glClearColor(0, 0, 0, 1)` y
+el único `glClear` del frame (`0x6384f5`, `0x638516`, en `0x637700`), y después el `glClearColor`
+de `0x6371a0`, que nadie usa hasta que el frame que viene lo pisa (*verificado*). El color del
+frame lo pone `0x637700` (`0x63835d..0x6384f5`): Icarus (10), (0,0117; 0,0977; 0,1719); Kalima (24
+a 29 y 36), (0,1172; 0,1563; 0,1563); y negro en los demás (*estático*). No hay cielo: Icarus no
+dibuja el terreno y pone las nubes (`0xbb`, `0x622`, `0x623`), y Kalima dibuja su agua en un pase
+aparte (`0x4378a0` → `0x41cca0`, `0x41cf00`).
+
+### La cámara del juego
+
+La cámara del juego es un solo cálculo, `0x635ae0`, que corre **una vez por frame dibujado**, dentro
+del dibujo de la escena (`0x6371a0` → `0x637241`), después de los pasos de ese frame: la llaman
+`0x6371a0`, `0x6350b0` y `0x634680`, y ningún paso (*estático*). Lee el héroe que dejó el último
+paso del frame. Los números de Lorencia salen bit a bit del código real emulado con el héroe de la
+traza, y son los de la traza (*emulado* y *verificado*); la cuenta de abajo, reimplementada en
+doubles con `f32()` donde el binario guarda en float, da lo mismo que el código real en 22.000
+frames al azar (cinco semillas: el héroe, el atributo, el temblor, el reloj, el mapa, D y el zoom).
+
+**La cuenta**, en la escena 5 fuera del mapa 6 (*estático*, *emulado*). H es el héroe (`0x743a170`):
+
+1. **El fov** en 35 (`0x635aeb`) y los ángulos X e Y en 0. La vista de arriba (`0x7d36899`, sin el
+   giro en X) pondría la cámara en la x y la y del héroe, con la z y el far en 3.200 absolutos, no
+   sobre el héroe (`0x635b12..0x635b32`), pero nadie escribe la bandera: está muerta.
+2. **El atributo** de la celda `[H + 0x420] · 256 + [H + 0x41c]` (la del servidor, por la tabla de
+   protección; `0x5f8290`): el byte de abajo del WORD de `0x7d0d348`.
+3. **El far** (`0x6d5d44`): **3.000** si 16.100 ≤ H.x ≤ 19.000 y 18.900 ≤ H.y ≤ 21.700
+   (`0x635d8f..0x635dd0`, inclusivos y **sin mirar el mapa**, Q-C149); si no, 2.500 en el mapa 30;
+   si no, por el nivel `0x7d3a0ec` con el valor del frame anterior (Q-C155): con 0, 20.400 en la
+   escena 2, 11.519,9 en la 4 y **2.000** en las demás; con 1 a 4, 2.500, 2.600, 2.950 y 3.200;
+   fuera de 0 a 4 (el `ja` de `0x635e0a`) queda como estaba.
+4. **El corrimiento**: `out = 0x5fcc30((0, −D, 0), 0x5fc8f0((0, 0, yaw)))`, con D en `0x7d36ba4`,
+   la de antes del suavizado (`0x635e63..0x635e96`). `0x5fc8f0` es la `AngleMatrix` que ya porta
+   MuRet; `0x5fcc30` es un `VectorIRotate` con su orden de sumas, x' = (m8·z + m4·y) + x·m0, y' =
+   (m1·x + m9·z) + m5·y y z' = (m2·x + m10·z) + m6·y, cada una guardada en float
+   (`0x5fcc3c..0x5fcc7f`).
+5. **El objetivo**: `0x44dc60` da `0x724588..0x724590` si alguno no es 0, y si no el héroe (`H +
+   0x10..0x18`). Ese desvío lo escriben en el paso los efectos 299 y 300 del héroe (`0x5208a0`, con
+   la z topeada en 800), y `0x52d220` lo vuelve a 0 al principio de cada paso de los efectos.
+6. **El recorrido** `CCameraMove` (el objeto de `0x6e57a8`, que arma `0x403210` entre los
+   inicializadores estáticos): con su estado `+0x154` en 2 y `+0x6a` y `+0x158` en 0 (`0x4033d0`),
+   escribe **H.z = 300** (`0x635ec0`, Q-C153), el objetivo pasa a ser el suyo (`+4..+0xc`) y el
+   nivel, su `+0x150` (`0x4034b0`); si no, el nivel vuelve a 0 (`0x635eda`). El estado lo pone solo
+   el `BD 00` del servidor ([04](04-protocolo.md#el-clima-y-crywolf-0f-y-bd)).
+7. **La posición**: x e y, f32(out + objetivo) (`0x635ee3..0x635efc`); z, f32((D − 150) + z0)
+   (`0x635f39..0x635f50`, el 150 en `0x6b87ac`), con z0 en 255 en el mapa 30 y si no **H.z**, la
+   del héroe y no la del objetivo. Con el bit `0x40` en la celda, `0x6c9d5c` y z0 pasan a 1.201
+   (`0x635f14..0x635f2f`, Q-C150).
+8. Las escenas 2 y 4 pisan la posición, Y y el yaw con su cámara fija ([Cámara](#cámara)).
+9. **El pitch**: f32(temblor + k), con k en −96,5, −84,5 o **−48,5** (`0x6ba7b8`;
+   `0x635fd3..0x635fe5`). El temblor (`0x7d325c8`) lo escriben los efectos de las habilidades
+   (`0x405630`, `0x43c150`, `0x4453e0`, `0x5208a0`) y el paso de la escena 5 lo achica × 0,2: se
+   achica por paso y se suma por frame (*emulado*: +0,7 da −47,8).
+10. **El zoom** (`0x7d3689c`, `0x635fed..0x6360fe`), por frame: con el bit `0x80` de la celda, +10
+    mientras sea ≤ 200 (hasta 210); sin él, −10 mientras sea > 0. Distinto de 0, la cámara suma
+    `0x5fcc30((0, zoom, 0), 0x5fc8f0((0, 0, −45)))`, (−0,7071 · zoom; +0,7071 · zoom; 0): hacia el
+    héroe, con el −45 fijo y no el yaw. El pitch no cambia, así que la vista se corre hacia adelante
+    (*emulado*: 21 frames hasta 210, de a (−7,07; +7,07), y la vuelta a 0 justa).
+11. **El final** (`0x636104..0x636258`): en el mapa 5, el balanceo `X += 2 · sin(T · 0,0005)` e `Y
+    += 2,5 · sin(T · 0,0008)` (T en `0x5767b88`), sin suavizar D; en el 6 con "webzen", D y su meta
+    en 3.200; en el 30, en 1.100; en los demás, la meta (`0x6d5ee0`) es 1.000, 1.100, 1.200, 1.300 o
+    1.400 según el nivel ya vuelto a 0, y D = f32((meta − D) · 0,33333334 + D), un tercio por frame
+    (Q-C151). Siempre devuelve `al = 0`: en `0x6371a0`, la rama del objetivo en `H + 0x17c` está
+    muerta.
+
+**Lo que queda de una vez a la otra** (*estático*). D arranca en 1.000: lo pone `0x635ad0`, un
+inicializador estático (su puntero está en la tabla de `_initterm`, en `0x6c61bc`). El yaw lo
+escribe **una sola vez** el primer paso de la escena 5 (`0x636838`), y en el juego nada más lo toca:
+las otras escrituras son las de `0x635ae0` (las escenas 2 y 4, y el mapa 6), la entrada al login
+(`0x634c19`), la vista previa de crear (`0x6338ca`) y las rutas (`0x633b45`). El zoom, D, el yaw y
+la altura del `0x40` son globales y pasan de una escena a otra (P-C27 b).
+
+**Los números de Lorencia** (*emulado* y *verificado*): con el héroe en (14.350; 12.050; 165), la
+celda en `0x01`, el mapa 0, la escena 5, D = 1.000 y el yaw −45, el código real da justo las
+llamadas de la traza.
+
+| Valor | Sale de | En la traza |
+| --- | --- | --- |
+| Y 0°, X −48,5°, Z −45° | el balanceo (solo en el mapa 5), `0x6ba7b8` con el temblor en 0, el −45 del primer paso | los `glRotatef` de las líneas 68 a 70 |
+| x 15.057,1064453125 (`466b446d`) | 14.350 + f32(−1.000 · sin(−45°)) | `glTranslatef(-15057.106445, …)`, línea 71 |
+| y 11.342,8935546875 (`46313b93`) | 12.050 + f32(−1.000 · cos(−45°)) | `-11342.893555` |
+| z 1.015 (`447dc000`) | (1.000 − 150) + 165 | `-1015.000000` |
+| fov 35, near 20 | `0x635aeb` y la `.data` de `0x6d5d40`, que nadie escribe | el `glMultMatrixd` del pase `0,77,1024,691` (línea 64) |
+| far 2.800 | 2.000 (`0x635e35`) por el 1,4 de `0x6b8c00` (`0x620e2d`) | −1,014388 y −40,28777 |
+| viewport | `0x620db0(0, 0, 640, 432)`: 432 · 768 / 480 | `glViewport(0, 77, 1024, 691)`, línea 63 |
+| niebla | `0x7d368a0 = 0` (`0x63723a`) | `glDisable(GL_FOG)`, línea 79 |
+
+**El mouse no mueve la cámara** (*estático*). Los botones derecho y del medio y la rueda dejan sus
+banderas en el WndProc ([02](02-arranque-y-ciclo-de-vida.md#el-wndproc-0x4af4e0)), y ninguna llega a
+la cámara. Las escrituras de `0x7d36868..0x7d3688c`, `0x7d3689c`, `0x7d36ba4` y `0x7d3a0ec` son
+estas y no hay otras: en la escena 5, `0x635ae0` y `0x636838`; en las otras, las rutas del login y
+de la selección (`0x633920`), la vista previa (`0x6338a0`) y la entrada al login
+(`0x634b80..0x634c19`); y la vuelta a 0 del nivel al salir del juego (`0x4c250e`, en `0x4c2480`).
+Con Ctrl y la rueda, `0x632dd0` cambiaría el nivel de 0 a 4, pero no la llama nadie: no hay un
+`call`, un puntero ni otro `inc` o `dec` de `0x7d3a0ec`.
+
+**El zoom y el `0x40` no se prenden en Lorencia, pero el `0x40` sí en el mapa 30** (*verificado* en
+los 29 `EncTerrain*.att` del `Data\` y en el volcado). El cargador del `.att` rechaza el archivo si
+una celda trae `0x80` o más (`0x5f85fd`), y ningún `.att` la trae: el `0x80`, el del zoom, solo lo
+podría poner el paquete `0x46` (`0x4e2b10` → `0x4dab90` → `0x5f8750` o `0x5f8710`), con los bits que
+mande el servidor; los usos fijos de `0x5f8750` ponen `0x08` o `0x04` (*estático*; P-C29 g). El
+`0x40` está solo en los cuatro `.att` de `World31` (`EncTerrain31`, `EncTerrain312` y los dos de
+prueba): 835 celdas, de x 160 a 190 e y 190 a 220, sobre el castillo y el rectángulo del far
+(Q-C149). Ahí, con el héroe encima, z0 pasa de 255 a 1.201 y `0x6c9d5c` queda en 1.201 (Q-C150). El
+volcado vivo de Lorencia (`lor_att.bin`) no tiene `0x80` ni `0x40`, con el byte de arriba siempre en
+0 (la celda (143, 120) vale `0x01`). Antes este documento, con el barrido de `World1` a `World12`,
+decía que ningún `.att` tenía el `0x40`.
+
+**El frustum del juego** (*estático*; el trapecio, *verificado* en Lorencia por
+`GoldenTerrainTrace`). Lo de [Terreno](#terreno) vale igual. Lo propio de la escena 5:
+
+- El rango (`0x5fbb00`) lo arma la modelview de la **franja**, que es la misma cámara (la lee
+  `0x620370`), con D = far · 0,9 (1.800 en Lorencia, 2.700 en el rectángulo) y k = w · 0,0015625.
+- El trapecio (`0x5fb570`), con el nivel 0: lo lejos K = 2.400 (`0x6ba6c8`), lo cerca N = 456, el
+  objetivo T = 1.128 y los medios anchos 1.190 · k y 540 · k, centrado en el objetivo de
+  `0x44dc60`, girado 45° fijos (−yaw solo en el mapa 55 y con "webzen") y por 0,01. El nivel del
+  trapecio (`0x7b4ccb8`) toma el de la cámara solo si `ftol(D) ≤ ftol(meta)`
+  (`0x5fb70e..0x5fb738`). En el login K es 244.800 y f 0,159375; en la selección, 13.823,88 y 0,009;
+  en el juego, 2.400 y 1/640.
+- Quién lo usa:
+
+| Qué | Dónde | Prueba | Margen |
+| --- | --- | --- | --- |
+| los bloques y las celdas del terreno | `0x5fc190`, `0x5fc0e0` | el trapecio, en (x + 2, y + 2) y en el centro | −40 y 0 |
+| los sectores y los objetos | `0x6046a0` | el trapecio | −180 y −30 |
+| los pájaros y los peces | `0x446b60`, `0x446f00` | el trapecio | −20 |
+| **los personajes, en el paso** | `0x508f00` (`0x50918c`), a `+0x16c` | el trapecio **del dibujo anterior**, en la posición · 0,01 | −20 |
+| los efectos con modelo y los ítems del piso | `0x52d620`, `0x608a00` | una esfera contra los cinco planos de `0x5fbb00` (`0x5fbf00`; los ítems con radio 400) | — |
+
+`0x508f00` además le prende el `0x02` a la celda de cada personaje (`0x509165`,
+[Caminar](#caminar)). Los cinco planos salen de la cámara y de las cuatro esquinas lejanas, con la
+modelview de GL (`0x5fd000`), que arma el driver, como el rango (P-C24 a).
+
+**El ancho del mundo** (`0x5bb8d0`) es 640 sin ventanas, 450 (`0x1c2`) con una y 260 (`0x104`) con
+dos, según `0x659290`. Achica el viewport (a `0,77,720,691` con una ventana en 1024 × 768), el
+aspecto, el rango y el trapecio (*estático*; las ventanas son de la CL8).
+
+**Las cámaras especiales:**
+
+| Cámara | Qué hace | Clase |
+| --- | --- | --- |
+| el mapa 6 con "webzen" | `0x576960` busca un **substring**, con `_mbclen`: la tiene cualquier nombre que contenga "webzen", y la rama de "webzen2" (5.700; 16.300; yaw −140) está muerta, porque "webzen2" contiene "webzen" (Q-C152). La que corre: yaw −40, pitch −70, z 1.000, el punto fijo (5.400; 16.000) más el corrimiento, far 5.000 y D = 3.200 desde el frame siguiente; el objetivo del frustum es (6.400; 15.400; H.z) (`0x6371a0`) y el trapecio, propio (3.995 y 425, girado −yaw). Al salir del mapa 6 el yaw queda en −40 hasta volver a entrar al juego, y D baja de 3.200 a 1.000 en unos 20 frames (2.466,7 en el primero) | *estático*; *emulado* |
+| el mapa 5 (`World6`) | el balanceo del pitch y de Y con el reloj, sin suavizar D | *estático*; *emulado* |
+| el mapa 30 (`World31`, el castillo) | la z base en 255 (1.201 sobre las 835 celdas con `0x40` del castillo), el far en 2.500 y D en 1.100 de golpe; en el rectángulo, far 3.000 y la niebla lineal de `0x42b0a0` (de 2.000 a 2.700); fuera, `glDisable(GL_FOG)`; el trapecio, propio | *estático* |
+| el recorrido `CCameraMove` | con el `BD 00`: el objetivo y el nivel son los suyos y H.z = 300 en cada frame; al entrar, D va de 1.100 a 1.166,7 y sigue hacia 1.300, y el far es 2.950 desde el segundo frame | *estático*; *emulado* |
+| los efectos 299 y 300 del héroe | la cámara sigue la x y la y del efecto; la z, la del héroe | *estático* |
+| las cámaras fijas del login y de la selección | las de [Cámara](#cámara). Como `0x635ae0` es la misma, el zoom que quedó del juego corre la cámara del login: con 210, a (12.636,6; 12.819,4), y baja de a 10 por frame (P-C27 b) | *emulado* |
+
+**El ritmo** (*análisis*, con
+[02](02-arranque-y-ciclo-de-vida.md#el-ritmo-lógica-a-25-por-segundo-dibujo-a-2133)): como mucho 25
+frames por segundo, y casi siempre un paso por frame, a veces dos. El movimiento corre en el paso
+(`0x636290` → `0x508f00` → `0x508ea0` → `0x4fd5f0` → `0x4fcd00` → `0x4fcbb0`, y `0x4f9580`) y la
+cámara en el dibujo: el zoom, el suavizado de D y la marca del `0x40` van por frame dibujado, y el
+temblor se achica por paso. En MuRet, `Render::MakePass3D` y `World::TerrainCulling` (el trapecio de
+la escena 5 con el nivel 0) ya sirven; faltan la cuenta de `0x635ae0`, con `0x5fcc30`, y los pases
+de `GameScene::Render`.
+
+### Lo propio de Lorencia
+
+Lo que el mapa 0 hace distinto en los ganchos de la escena ([Los cambios de
+mapa](#los-cambios-de-mapa)), y la luz y el pasto que lo acompañan.
+
+**Al crear** (`0x606660`, el `switch` del mapa 0 en `0x6069a3`, con la tabla de `0x606ed4` y
+`0x606ea0`; *estático* y *emulado* con los 109 tipos del `.obj` en la escena 5). En la 5 no corren
+los casos de las escenas 2 y 4 (el farol):
+
+| Tipo | Qué cambia |
+| --- | --- |
+| `0x00`, `0x01` (`Tree01`, `Tree02`) | la caja de (−150, −150, 0) a (150, 150, 500) (`+0x124..+0x138`) y la velocidad 0,4 / escala (`0x6b87b4`) |
+| `0x06`, `0x91`, `0x92` (`Tree07`, `Furniture06`, `Furniture07`) | se anotan en la lista de 200 de `0x7d34818` (`0x606630`; *inferido*: los lugares para sentarse, por el `PoseBox` y el cursor de `0x5ac421`) |
+| `0x85` (`PoseBox01`) | en la misma lista, con la caja hasta (40, 40, 160) y oculto desde que nace (`+0x58 = −2`) |
+| `0x34` (`Bonfire01`) | el blendMesh (`+0x64`) en 1 |
+| `0x3b` (`TreasureChest01`) | la velocidad en 0 |
+| `0x50` (`Bridge01`) | `+0xdc = −50` (*inferido*: un margen del frustum) |
+| `0x5a`, `0x96` (`StreetLight01`, `Candle01`) | el blendMesh en 1 y la velocidad en 0,3 |
+| `0x60`, `0x61` (`Sign01`, `Sign02`) | la velocidad en 0,3 |
+| `0x62`, `0x77` (`Carriage01`, `House05`) | el blendMesh en 2 |
+| `0x69` (`Waterspout01`) | el blendMesh en 3 |
+| `0x75`, `0x7a` (`House03`, `HouseWall02`) | el blendMesh en 4 |
+| `0x76` (`House04`) | el blendMesh en 8 |
+
+Los demás tipos van con lo de siempre (la velocidad 0,16).
+
+**En cada paso** (`0x604ab0`, el `switch` de `0x604d68`; *estático* y *emulado*):
+
+- **Los techos de la taberna**, `0x7d` y `0x7e` (`HouseWall05` y `06`), antes del `switch`
+  (`0x604bc4`): la meta del alpha va a 0 si la capa 1 de la celda del héroe (`0x77f36d0`, que
+  escribe `MoveHero` en `0x59e2ba`) vale 4, y a 1 si no. Con el héroe adentro se apagan (*inferido*:
+  la capa 4 es el piso de la taberna; P-C31 e).
+- **Los fuegos**, `0x52f360(clase, objeto, dx, dy, dz)`. Por llamada, un salto al azar de ±8 en x,
+  y y z (tres `rand()`). Con la clase 0, la luz L = (`rand()` % 6 + 6) · 0,1 · (1; 0,6; 0,4)
+  (`0x6b87b8`, `0x6b8a20`, `0x6b87b4`), con un 50 % la partícula `0x5d9` (el fuego) con el subtipo
+  `rand()` & 3, y `0x5f9780(x, y, L, 4, 0x7b4ccc4)`; la clase 1 tira la `0x5f2` con el subtipo 0 en
+  el 50 %, y la 2, con el subtipo 2. Quién los usa:
+
+  | Tipo | Fuegos | Clase |
+  | --- | --- | --- |
+  | `0x32` (`FireLight01`) | uno en (0, 0, 200) | 0 |
+  | `0x33` (`FireLight02`) | uno en (0, −30, 60) | 0 |
+  | `0x34` (`Bonfire01`) | uno en (0, 0, 60), y la luz del blendMesh (`+0x68`) en (`rand()` % 6 + 4) · 0,1 | 0 |
+  | `0x37` (`DoungeonGate01`) | dos antorchas, en (±150, −150, 140) | 0 |
+  | `0x50` (`Bridge01`) | dos, en (90, ±200, 30) | 0 |
+  | `0x82`, `0x83`, `0x84` (`Light01..03`) | uno cada uno | 0, 1 y 2 |
+
+  Los `Light01..03` además pasan a `+0x58 = −2`: son marcadores, como los del 55, y se ven solo en
+  su primer frame (Q-C148).
+- **Las lámparas `0x5a` y las velas `0x96`**: una luz que parpadea, (`rand()` & 1 + 6) · 0,1 · (1;
+  0,8; 0,6) y (`rand()` % 4 + 3) · 0,1 · (1; 0,6; 0,2) (`0x6b8a38`, `0x6b8a20`, `0x6b8854`), y las
+  dos con `0x5f9780(…, 3, …)`.
+- **`0x75` y `0x7a`**: la luz del blendMesh en (`rand()` % 4 + 4) · 0,1, las ventanas que titilan.
+- **`0x76` y `0x77`**: la V del blendMesh (`+0x70`) corre con el reloj, −(`ftol(T)` % 1000) · 0,001
+  (`0x6b89c8`).
+
+**Antes de dibujar** (`0x602ed0`, `0x602ffb`; además del `rand()` por objeto que ya tiene MuRet,
+*estático*):
+
+- `0x38` (`MerchantAnimal01`): dos sprites `0x5ac` en dos huesos del buffer global de la pose
+  (`0x68b211c` y `0x68b22cc`, `0x603149..0x6031d6`). En la traza, los dos `0x5ac` están en (13.094;
+  12.142; 283), sobre la NPC de la tienda (13.065; 12.151), y no sobre el animal (*verificado* el
+  lugar).
+- `0x69` (`Waterspout01`): la luz del blendMesh en 1, la V con el reloj y, con un 50 %, dos
+  partículas `0x5f2` en los huesos `0x68b184c` y `0x68b18dc`.
+
+**Al dibujar** (`0x6002e0`): el único caso del mapa 0 es el `0x69`, con cuatro `RenderMesh(malla, 2,
+alpha, 3, luz, …)`, la 3 con la U y la V, en vez de un `RenderBody` (*emulado*).
+
+**Los pájaros** (`0x446120`, la tabla `0x7d2dca8`; el dibujo, `0x446b60`, con su sombra): en el 0
+usan el modelo `0xad` (`Bird01`), solo sin tormenta (`0x723c50 == 0`), nacen al azar y se posan
+(*estático*). En la traza hay 5, con sus 5 sombras (*verificado*); el tope, 5 o 6, sin cerrar
+(P-C28 j). La tormenta (`0x723c50`, que el `1C` apaga) tira rayos `0xc2` con el sonido `0x42` y
+oscurece la luz del terreno alrededor del héroe.
+
+**Los peces** (`0x447030`, la tabla `0x7d35350`; el dibujo, `0x446f00`, con su sombra `0x4eff40`):
+en el 0, hasta 3 `0xb2` (`Fish01`), a ±512 del héroe y solo en celdas con la capa 1 en 5, el agua
+(`0x5f82a0`; *estático*).
+
+**Las hojas** (`0x530490`; el dibujo, `0x5306a0`): **80 en Lorencia** (*estático*, y las 80 con la
+textura `0x64`, *verificado* en la traza). La cuenta de partida es `(-(mapa != 9) & −120) + 200`
+(`0x530497..0x5304a3`): 200 en el mapa 9 y 80 en los demás, y después cambia en algunos
+(*estático*): 40 en el 30 (`0x5304da`); en el 34, 60 o 50 con `0x5763358` en 1 o en 2 (`0x530500`,
+`0x53050c`; *inferido*, el estado de Crywolf); y en el 10 y del 18 al 23, 80, con la meta de la
+lluvia (`0x75fdc38`) en 100 en cada paso. En el 0 nacen con `0x52fa60`, el tipo 100 (`leaf01`),
+alrededor del héroe (*estático*), y avanzan con `0x5301a0` y `0x5303a0`: caen y se posan en el
+terreno (`0x5f93c0`). **No corren con el héroe adentro de la taberna** (la capa 1 en 4,
+`0x637082..0x6370e5`). La cuenta de la lluvia, `0x75fdc3c`, se acerca de a 1 por paso a `0x75fdc38`,
+la meta que escribe el `0F` ([04](04-protocolo.md#el-clima-y-crywolf-0f-y-bd)). La lluvia (`0x66`)
+solo nace en Icarus (`0x52fc10`): en Lorencia, el `0F` de lluvia prende el sonido de ambiente y nada
+más (*estático*; P-C31 d).
+
+**La música y el ambiente** (`0x6387ed..0x639422` y `0x6386a9`, en `0x637700`; *estático*, de la
+CL10): en Lorencia, `main_theme.mp3` con el héroe en la zona segura y `Pub.mp3` con la capa 1 de su
+celda en 4; el ambiente 0 afuera de la taberna y el 1 (la lluvia) con `0x75fdc3c` en más de 0.
+
+**La luz dinámica del terreno**, `0x5f9780(x, y, L, r, buffer)` (*estático*). Recorre el cuadrado de
+celdas ±r alrededor de (x, y) · 0,01 y suma L · (r − d) / r a cada canal donde da positivo, con el
+piso en 0, sobre `0x7b4ccc4`. Ese buffer lo rearma `0x5fbf60` en cada paso desde la luz sombreada,
+en la ventana del rango ([La luz del terreno en un punto](#la-luz-del-terreno-en-un-punto)), y lo
+leen el terreno (`0x5fa260`, `0x5fa350`) y `0x5f99e0` (los objetos y los personajes). **Es lo que
+sube los vértices de [Terreno](#terreno)**: de los 27 vértices distintos de la traza más brillantes
+que el OZJ, 23 rodean el `FireLight01` del registro 1933, en (145,5; 112,5), con un factor de 1,1 a
+3,1 que baja con la distancia, dentro del cuadrado ±4 (*verificado* por el lugar; la cuenta,
+*estático*). Los otros 4, en la fila 136 (x de 141 a 144), no caen en el ±3 del `StreetLight01` del
+registro 1744 (143,07; 140,44): sin identificar (P-C28 e).
+
+**El pasto** (*estático*; la traza, *verificado*). Es el segundo `0x5fc190(0)` de `0x5fc260`, con
+`0x7d0d31c = 2`, y lo dibuja `0x5fa830`: un `GL_QUADS` por celda con las cuatro esquinas en alfa ≤
+0, con `0x7b4ccb4` en 0, fuera de los mapas 11 a 17 y con la textura `0x32` + capa 1 cargada. Mide
+de alto el doble que la textura (128); arriba se corre −50 en x y la ola (`0x78acbd8`) en y; la u es
+x · 0,25 más el corrimiento de su fila, `0x7b0cca4[y & 0xff]` (`0x5faabf..0x5faad3`): de los 65.536
+que llena `0x5f8300`, el pasto lee los 256 primeros (Q-C146). El color sale de `0x7b4ccc4`. En la
+traza son 25 quads con `TileGrass01.tga`, de z 165 a 293, con la x de arriba corrida 50 (líneas
+7.882 a 8.218). En el login no dibuja nada ([El terreno del login](#el-terreno-del-login)).
+
+### Caminar
+
+Del clic en el piso al paso entre celdas, y lo que manda y recibe la red. *Estático* salvo lo que se
+marca; lo *emulado* corre el código real sobre el `.att` y las alturas de Lorencia, y el cable es el
+`muproxy.log` (229 `A3`, 1.122 `D3` del servidor y 614 `D7`). Los formatos, en
+[04](04-protocolo.md#caminar-y-pegar-d3-y-d7).
+
+**Dónde corre cada cosa** (*estático*):
+
+- `WinMain` despacha **todos** los paquetes de la cola antes de `0x637700`
+  ([03](03-red-y-cifrado.md#sockets)): un `D3` que llega se aplica antes de los pasos del frame.
+- En cada paso, primero la UI del juego (`0x623e70`, que consume muchos clics: `0x7d366d4` tiene más
+  de 100 escritores) y después `0x636290`, con `0x59adf0` (el `MoveHero` de MuMain: el clic, el
+  camino y el paso del héroe) y `0x508f00` (el `MoveCharactersClient`: las celdas ocupadas y el paso
+  de los 400 personajes), en ese orden.
+- En el dibujo, `0x620480(mouse, &0x7d366c0, 1)` arma el rayo del mouse (`0x6374aa`) y, después del
+  terreno y de los personajes, `0x59ec80` hace el picking de los personajes. **El paso usa el rayo
+  del último dibujo**: la cámara `0x7d36834`, el punto lejano `0x7d366c0` y los rangos del frustum
+  (*inferido* del orden, Q-C165).
+
+**El rayo contra el terreno.** Es el camino del dibujo, en modo picking:
+
+```text
+0x5fc260(1)
+ ├─ 0x7d366d0 = 9.999.999 (0x622430): la distancia de colisión
+ ├─ 0x78acbd4 = 0: SelectFlag
+ └─ 0x5fc190(1)  los bloques de 4 × 4 del frustum, con 0x5fba90
+     └─ 0x5fc0e0  las 16 celdas, con 0x5fba90 y margen 0
+         └─ 0x5fac90(xf, yf, xi, yi, 1,0, 1, 1)   la celda, con Flag
+             ├─ 0x5fd000  la normal de (v0, v1, v2)
+             ├─ 0x622440  la recta contra (v0, v1, v2) y, si falla, contra (v0, v2, v3)
+             └─ si toca: SelectXF/YF (0x7aacc60/64) = la celda, SelectFlag = 1
+```
+
+- Los vértices son los del dibujo, con la altura fija `0x6c9d5c` en una esquina con `0x40` y el
+  índice sin dar la vuelta en la fila (Q-C141).
+- `0x622440` es el `CollisionDetectLineToFace` de MuMain: el t del segmento cámara → punto lejano
+  va de 0 a `0x7d366d0`; la prueba de adentro (`0x622170`) es sobre el eje dominante de la normal
+  (|n| ≥ 0,5: x, después y, si no z); al tocar, guarda t en `0x7d366d0` y el punto en
+  `0x7d366e0..e8`. **Gana la cara más cercana** a la cámara entre todas las celdas visibles.
+- Después `MoveHero` vuelve a llamar a `0x5fac90(SelectXF, SelectYF, …)` (`0x59de39`), con la
+  distancia ya achicada, para el punto de esa celda. Si toca, el blanco es `TargetX = ftol(0x7d366e0
+  · 0,01) & 0xff` y `TargetY = ftol(0x7d366e4 · 0,01) & 0xff` (`0x77e1ba8`, `0x77e1bac`); si no, no
+  camina.
+- Con `Flag` en 1, `0x5fac90` **no saltea las celdas con `0x08`**, las que no se dibujan: se puede
+  caminar clickeando terreno invisible (Q-C163). En Lorencia no hay ninguna (*verificado*: sus
+  valores son 0, 1, 2, 4 y 5).
+- Si el rayo no toca ninguna celda visible, `SelectXF/YF` quedan con la del clic anterior y se
+  prueban igual (Q-C164).
+- `DontMove` (`0x77f3b5c`) se prende con el atributo ≥ 8 sin `0x20` ni `0x40`
+  (`0x59de87..0x59deac`), pero solo lo usa el cursor: no frena el camino (Q-C162).
+
+**El clic, `MoveHero` (`0x59adf0`):**
+
+- **No hace nada** (`0x59ae24..0x59afd6`) si `0x4033d0()` da verdadero (el recorrido de la cámara:
+  lo para con `0x4f2250`), si hay un personaje bajo el mouse y el héroe tiene `+0x7c & 0x200000`, si
+  se está muriendo (`+0x389`) o tiene `+0x78 & 0x1000`, o si el contador `0x77f3b04`, que baja 1 por
+  paso, pasa de 30.
+- **Si el héroe camina** (`+0x378`, `0x59b295..0x59b304`; *verificado* el cuerpo, abajo): con
+  `+0x78 & 0x20`, `SetPlayerStop` (`0x4f2250`); si no, `SetPlayerWalk` (`0x4f37c0`) y
+  `MovePath(héroe, 1)` (`0x4ea270`). Al llegar, `+0x378 = 0`, `SetPlayerStop`, `0x77f3ba8 =
+  ftol(ángulo)`, `0x77f3ba4 = 0` y `0x5650c0(héroe, héroe, 0)`, lo que toque al final del camino
+  (pegar, levantar, hablar); si no llegó, borra el `0x200000` de `+0x7c` y llama a
+  `MoveCharacterPosition` (`0x508a80`).
+- **La cabeza del héroe** mira al mouse (`0x59b1c2..0x59b287`): `+0x34` es el ángulo que da
+  `0x4e93f0` del punto (w / 2, 180) de la pantalla al mouse (w, el ancho del mundo de `0x5bb8d0`),
+  más el yaw del héroe y 315, módulo 360, acotado de 120 a 240, más 180 y módulo 360; `+0x38` es
+  (180 − y del mouse) · 0,05. No corre con `+0x78 & 0x1000`, con la acción `0x3e` ni con el
+  auto-ataque y un blanco elegido, salvo en los mapas 6 y 18 a 23 (P-C17 a).
+- **Los gates**: después de eso, y antes del clic, `0x599ef0` mira si el héroe pisa uno (`0x59b841`,
+  [Los cambios de mapa](#los-cambios-de-mapa)).
+- **El clic** (`0x59b846..0x59b928`): con `0x77f3b18` o `0x775857c` prendidos (`0x636290` prende
+  el segundo con el mouse en la barra de abajo, y > `0x1af`) saltea todo y `MouseUpdateTime`
+  (`0x77f3b10`) no sube (Q-C168). Solo con `MouseUpdateTime ≥ MouseUpdateTimeMax` (`0x6c8dcc`) y
+  `0x77f3bac` en 0 mira el mouse: el flanco `0x7d366d4`, que consume; el botón abajo, `0x7d36874`; o
+  el auto-ataque (`0x6c8e3c`, con `0x6c8e38 == 1` y un personaje bajo el mouse, fuera de los mapas 6
+  y 18 a 23). Un clic dentro de la ventana de `MouseUpdateTimeMax` queda pendiente, porque
+  `MoveHero` no lo borra (Q-C166). Con un botón abajo una hora (`(T − 0x77f3b44) · 0,001 ≥ 3.600`)
+  suelta los dos (`0x59b8e7..0x59b921`, Q-C167).
+- **La acción del héroe** (`0x59babe..0x59bb1f`): sigue si la acción (`+0x111`) no es `0xc2` (el
+  golpe), `+0x80` no es 1 ni 2, el alpha es ≥ 0,7 y la acción es < `0x22` o > `0x97`; o si la acción
+  está en `0x48..0x4b`, `0x6a..0x7d` o `0x8a..0x8c`. Si no, el clic espera: pegando no se camina. El
+  tramo del ítem en el cursor (`0x59bb25..0x59cd28`) puede mandar un `C1 .. 24` (CL8, sin leer a
+  fondo).
+- **Qué hay bajo el mouse**, desde `0x59cd28` (con `MouseUpdateTime = 0`; `+0x379` es el
+  `MovementType`):
+
+  | Bajo el mouse | Dónde | Qué hace |
+  | --- | --- | --- |
+  | un personaje atacable (`0x558bb0`), con el héroe fuera de la zona segura | `0x59d3de` | `+0x379 = 3`, el blanco en `0x6c8ebc` y el camino hasta él, o `0x5650c0` si está cerca; un elfo que camina manda antes un `C1 05 DF X Y` (*verificado* uno en el cable) |
+  | un objeto para usar (`0x6c8e34`, la tabla `0x7d34820`) | `0x59d8c3` | `+0x379 = 4`, si la celda tiene `0x40` o vale menos de 2 y el héroe está quieto |
+  | un NPC (`0x6c8e2c`), con las ventanas `0x10000` y `0x40` cerradas | `0x59da75` | `+0x379 = 2` |
+  | un ítem del piso (`0x6c8e28`) | `0x59dc5e` | `+0x379 = 1`; si el camino falla, `0x5650c0` (levantarlo ahí) |
+  | nada de eso | `0x59ddef` | el terreno, abajo |
+
+  En la zona segura, un clic sobre un monstruo o un jugador no ataca: cae a las filas de abajo y, si
+  no hay otra cosa, al terreno (`0x59cd2e`).
+- **El terreno** (`0x59ddef..0x59e248`): con Shift abajo (`GetAsyncKeyState(VK_SHIFT)`, `0x59ddf1`)
+  no camina (Q-C169). Si el picking toca, saca el blanco. Si el héroe camina y su celda lógica
+  (`+0x41c`, `+0x420`) está a 2 o más de la que se ve (`ftol(posición · 0,01)`), no hace un camino
+  nuevo; si camina y la celda lógica ya es el blanco, `MouseUpdateTime = 0`; si no, si
+  `PathFinding2(celda lógica, blanco, &+0x3e8, 0)` sale bien, `+0x379 = 0` y `SendMove`. Al final,
+  `MouseUpdateTime++` (`0x59e248`), `0x57cfc0`, y la capa 1 de la celda del héroe a `0x77f36d0`
+  (`0x59e2ba`), la que miran los techos de la taberna, las hojas y la música.
+- **Apretado**, el camino se recalcula cada `MouseUpdateTimeMax + 1` pasos; con el mouse cerca del
+  héroe (camino de menos de 3, tope 0), en cada paso, y sale un paquete solo cuando cambia la celda
+  del blanco con el héroe a menos de 2 celdas de la suya: en la práctica, **uno por celda**. En el
+  cable, `A3` de un paso, uno por celda, unos 3 por segundo (*verificado*).
+
+**El camino**, `PathFinding2` (`0x4eac00`) y el A* (`0x4ead70`). El objeto `PATH` lo arma `0x4eaaa0`
+(`new(0x424)`, en `0x5767b74`) y lo inicializa `0x4eaaf0`, desde el cargador del mundo (`0x61bd80`):
+256 × 256 celdas; el mapa `0x7d0d348`, un WORD por celda (el `TerrainWall`); `PathX[500]` y
+`PathY[500]` (`+0x14`, `+0x208`); `NodeFlag` (1 abierto, 2 cerrado, 4 meta); el mínimo y el máximo
+tocados, para limpiar rápido (el centinela es 1.950.000.000); el costo desde el inicio; el padre en
+x y en y; y la lista abierta (la vtable `0x6ba068`, la cantidad y la raíz).
+
+`FindPath(sx, sy, tx, ty, bErrorCheck, iWall, bClearGoal, fDistance)` (`0x4ead70`, `thiscall`, todo
+con enteros salvo la rama de `fDistance`, que caminar no usa):
+
+- **Sale con falso con `sx == 0` o `sy == 0`** (`0x4eadc1..0x4eadce`, Q-C156; *emulado*).
+- **La meta**: con `bClearGoal` pone `Map[meta] = 0`, **escribe el mapa** (solo el asedio,
+  `0x435a00`, en el mapa 34 con un blanco de tipo `0x204..0x208`); con `bErrorCheck`, una meta con
+  `Map ≥ iWall` sin el `0x20` falla; si no, `NodeFlag[meta] = 4`.
+- **El tope de vueltas**: 500 con `bErrorCheck` y 50 sin (`0x4eb0dc`, Q-C157).
+- **La lista abierta** es un árbol binario sin balancear de nodos de `0x14` bytes: inserta
+  (`0x4eb770`) a la izquierda con la clave menor y a la derecha si no (los iguales, a la derecha), y
+  saca el de más a la izquierda (`0x4c0dd0`). **El orden de los empates sale de ahí** (Q-C161).
+- **Cada vuelta** saca el mínimo, le recalcula el costo desde los vecinos cerrados (+5 en recta, +7
+  en diagonal, 0 al inicio) y lo cierra. Si es la meta, arma el camino hacia atrás (`PathX[499 −
+  n]`, con un tope de 500).
+- **Los vecinos**, en este orden (`0x6d5d80`): (−1, −1), (0, −1), (1, −1), (−1, 0), (1, 0), (−1, 1),
+  (0, 1), (1, 1). Entra el que no está abierto ni cerrado y tiene `(Map & ~0xe0) < iWall`, con la
+  prioridad **h + el costo del padre**, no el suyo. h = (|dx − dy| · 15 + 3 + min(dx, dy) · 21) / 4,
+  en enteros, salvo con dx = dy = 1: ahí `0x4eb2c2` pone en 0 la dy, no la h, y da (15 + 3) / 4 = 4,
+  lo mismo que la vecina en recta, (1, 0). **La celda diagonal a la meta vale lo mismo que la de al
+  lado** (`0x4eb2b9..0x4eb2c2`, Q-C159; antes este documento decía que daba 0).
+- **Sin `bErrorCheck`** guarda el sacado de menor h y, si se acaban las vueltas, devuelve el camino
+  hasta ese: "el más cerca que encontré".
+
+`PathFinding2(sx, sy, tx, ty, &path, dist)` (`0x4eac00`, *estático* y *emulado*):
+
+1. Prueba el exacto, `FindPath(…, 1, 2, bClearGoal, dist)`: 500 vueltas, y bloquean las celdas con
+   `(Map & ~0xe0) ≥ 2`, otros personajes (`0x02`) y paredes (`0x04`).
+2. Si falla, el "más cerca", `FindPath(…, 0, iWall, …)`, de 50 vueltas, con `iWall = 4` si el
+   inicio o la meta están en la zona segura y la meta no está ocupada, y 2 si no: **en la zona
+   segura el segundo intento camina a través de los otros personajes** (Q-C160).
+3. Pide `NumPath ≥ 2` (con 1 falla: el clic en la propia celda) y copia **las primeras 15** celdas
+   (`PathNum = min(NumPath, 15)`, `0x4eacef..0x4ead53`) en `path`: `CurrentPath` en `+0`,
+   `CurrentPathFloat` en `+1` (los dos en 0), `PathNum` en `+2`, `PathX[15]` en `+3` y `PathY[15]`
+   en `+0x12`. En el héroe, `path` es `+0x3e8`.
+
+Los topes y los bordes (*emulado*, con un mapa vacío y con el `.att` de Lorencia):
+
+| Caso | Resultado |
+| --- | --- |
+| en recta | el exacto llega hasta 30 celdas (`NumPath` 31) y a las 40 falla por las 500 vueltas |
+| en diagonal | llega a 20 y a las 30 falla |
+| después de fallar | el "más cerca" da caminos de 10 u 11 celdas |
+| un camino de más de 15 | se camina el principio: en Lorencia, de (135, 125) a (120, 110), 14 pasos hasta (123, 112), todavía a 3 celdas |
+| el blanco ocupado (`0x02`) | el exacto falla y el "más cerca" termina en la celda **diagonal** al blanco, no en la de al lado: las dos tienen h = 4, y decide el orden de los empates |
+| un pasillo cortado por personajes | en la zona segura el segundo intento pasa por encima; fuera, se queda antes del corte |
+| un clic sobre una pared | de (130, 130) a la (160, 160), con el atributo 4: camina 10 pasos hacia ahí |
+
+**Contra el cable**: de los 178 `A3` con algún paso (229 en total), 171 tienen en el nibble alto de
+`P0` la dirección del último paso, así que el blanco es la última celda (*inferido*: el cable no
+trae el blanco), y **169 de esos 171 dan el mismo camino** que el A* real emulado sobre el `.att` de
+Lorencia, del inicio a esa celda, sin ningún otro personaje (*verificado*). Los 2 distintos (`[7, 6,
+7]` contra `[7, 7, 6]` y `[3, 2]` contra `[2, 3]`) son lo que da una celda ocupada por otro
+(`0x02`), que el cable no muestra (*inferido*, P-C30 h). Toda la caminata de la captura es en
+Lorencia.
+
+**El `TerrainWall` vivo** (`0x508f00`, *estático*): en cada paso, antes del de los personajes, le
+saca el `0x02` a las 65.536 celdas, y después se lo pone a la celda lógica de cada personaje vivo
+(`+0` distinto de 0, `+0x389` en 0 y `+0x88` distinto de 8), **el héroe incluido**, y al cerrar las
+dos celdas cifradas gasta 8 `rand()` por personaje ([La tabla de
+protección](#la-tabla-de-protección)). El camino del héroe (en `MoveHero`, que corre antes) ve las
+del paso anterior. El `.att` de Lorencia trae una celda con el 2 en el archivo, la (221, 11), que se
+borra en el primer paso (Q-C170; *verificado* el dato).
+
+**El paquete, `SendMove` (`0x56acd0`).** Sale una vez por cada `PathFinding2` que sale bien en
+`MoveHero`, al hacer clic o al recalcular apretado: no por paso ni por celda. Con la ventana
+`0x8000` abierta o con `+0x78 & 0x20` no hace nada. Pone `MouseUpdateTimeMax` según `PathNum`: 0 con
+menos de 3, 5 con 3 y 3 · `PathNum` + 4 con más (49 con 15). El paquete (`D3`, con el tope de 14
+pasos, Q-C158) está en [04](04-protocolo.md#caminar-y-pegar-d3-y-d7). Después pone `+0x378`
+(`Movement`) en 1, salvo con `0x7d3a10c == 0x70`; cierra las ventanas `0x20`, `0x40`, `0x40000`,
+`0x100`, `8`, `0x2000`, `0x10000`, `0x80000` y `0x1000` (`0x65cae0`: caminar cierra ventanas, CL8);
+y con `0x78abb00` manda `C1 03 97` y mueve el cursor (CL8, CL9). Con `PathNum` en 0 no manda, pero
+pone `Movement` igual (Q-C177; nadie lo llama así).
+
+**Lo que llega** (*estático*; los formatos, *verificado* en el cable):
+
+- **El `D3` del servidor** (`0x4c6790`) busca al personaje con `0x5110d0(id)`, que devuelve 400 si
+  no lo encuentra (Q-C174), y pone siempre `+0x388 = pkt[7] >> 4`. Al héroe, si está quieto, le pone
+  la celda lógica en (X, Y), sin tocar la posición que se ve (Q-C176); si camina, solo la dirección.
+  El servidor contesta cada `A3` con un `D3` del héroe con la celda final del camino que le mandaron
+  y la dirección de `P0` (*verificado*: los 212 ecos que se encuentran en el cable). A los otros, el
+  blanco a `+0x39a`/`+0x39b`; el tipo `0x186` salta a la celda sin caminar (el ángulo hacia el
+  centro, `0x4f37c0` y `+0x399 = 1`); los demás, con `+0x3e5` en 0 (un freno de 60 pasos que pone
+  `0x4c9790` y baja `0x505de0`), calculan `PathFinding2(celda, blanco, +0x3e8, 0)` con **su** A*:
+  `Movement` es el resultado y, si falla, `SetPlayerStop`.
+- **El `D7` del servidor** (`0x4caae0`) **no es movimiento: es el daño**. Dibuja el número
+  (`0x548e40`, de 15 de alto) y, si no es el héroe, lo guarda en `+0x384`; al héroe le resta la vida
+  (`0x7681eb0 + 0x22`, con piso en 0, y cierra el registro propio con 3.848 `rand()`, Q-C183). **Con
+  el bit 15 del id llama siempre a `SetPlayerShock`** (`0x4f53a0`, `0x4cab6b`), también con el
+  héroe. Sin el bit, al héroe nunca, y a los otros, salvo los de `+0x376 == 0x113`, **una vez de
+  cada dos**: si `rand() & 1` da 0 (`0x4cb3bd..0x4cb3e8`).
+- **`SetPlayerShock` (`0x4f53a0`)** no hace nada con el daño en 0 o menos, con `+0x389` (muriendo),
+  montado en `0x1c14`, `0x1c15` o `0x1c16`, o en las acciones `0x3e`, `0x3f` o `0x44`. Si no, un
+  jugador (`0x20a`) toma la acción `0xc2` y **`Movement = 0`** (`0x4f546c`): deja de caminar a mitad
+  de camino, con la celda lógica ya en la siguiente (Q-C178). Con Fenrir (`0x1c37`) llama a
+  `0x4e9cd0` en vez de la acción, pone `Movement = 0` igual (`0x4f5455`) y, si `rand() % 3` da 0
+  (`0x4f5423`), suena el `0x27b` + `rand() & 1` (`0x4f5436`). Un monstruo toma la acción 5, salvo en
+  la 3 o la 4, y sigue. Después, con `+0x114` en 0, suena un golpe que se elige con otro `rand()`
+  según la clase (`0x4f5488..`). Todo esto gasta `rand()` (Q-C179).
+
+**El paso entre celdas** (*emulado* con `0x4f37c0`, `0x4ea270` y `0x508a80` reales).
+
+`MovePath(c, giro)` (`0x4ea270`):
+
+- Corre mientras `CurrentPath (+0x3e8) < PathNum (+0x3ea)`. Con `CurrentPathFloat (+0x3e9)` en 0,
+  la celda lógica salta a `path[min(cur + 1, n − 1)]`: **va una adelante** de la que se ve (Q-C173).
+- Arma 4 puntos, `path[cur − 1 .. cur + 2]` acotados a [0, n − 1], en el centro de cada celda
+  ((celda + 0,5) · 100), y el sub-punto de Catmull-Rom según `CurrentPathFloat`. Las constantes
+  están en `0x6ba114..0x6ba124` y `0x6b8850`, y la cuenta va en la x87, `(p1·w1 + (p2·w2 − p3·w3)) −
+  p0·w0`:
+
+  | `CurrentPathFloat` | Pesos | t |
+  | --- | --- | --- |
+  | 0 | (−0,0703125; 0,8671875; 0,2265625; −0,0234375) | 0,25 |
+  | 1 | (−0,0625; 0,5625; 0,5625; −0,0625) | 0,5 |
+  | 2 | (−0,0234375; 0,2265625; 0,8671875; −0,0703125) | 0,75 |
+  | 3 | el punto 2 | 1 |
+
+- Con la distancia en el plano al sub-punto ≤ 20 (`0x6b86d0`), `CurrentPathFloat++`; pasado de 3,
+  vuelve a 0 y `CurrentPath++`.
+- Con `CurrentPath ≥ n − 1` **llegó**: la celda es la última, **la posición pasa al punto** (el
+  último paso puede saltar más que la velocidad: 17 o 10,3 en la emulación) y devuelve 1.
+- **El giro**: el ángulo al sub-punto con `CreateAngle` (`0x4e93f0`); con |Δ| ≥ 45 (`0x4e96f0`)
+  salta, y si no, `TurnAngle(ángulo, nuevo, |Δ| · 0,5)` (`0x4e9560`). En la emulación de un codo:
+  87,86 → 86,13 → 84,15, y el salto a 181,99.
+
+`MoveCharacterPosition` (`0x508a80`) suma a la posición `VectorRotate((0, −v, 0),
+AngleMatrix(o.Angle))` (`0x5fc8f0`, `0x5fcbd0`): **avanza hacia donde mira**, no hacia el punto.
+Después la z es la del terreno (`0x5f93c0`), +90 o +30 con el ítem `0x1c15` fuera de la zona segura,
+y `+0x84` suma 0,15.
+
+**La velocidad v** (`0x508940`, en unidades por paso; *emulado*: 12 y 15):
+
+| Caso | v |
+| --- | --- |
+| no jugador (`+2` distinto de `0x20a` o `+0x88` distinto de 1) | `(float)(u16) +0x386` |
+| Fenrir (`+0x318 == 0x1c37`) fuera de la zona segura | 15; 16 con el contador `0x7d3a0d4` de 10 a 19; desde 20, 19 con `+0x31b` y 17 sin |
+| `+0x318 == 0x1c16` fuera de la zona segura | 17 (y `Run = 40`) |
+| sin alas (`+0x2f8 == −1`) y sin `0x1c14` ni `0x1c15`, o en la zona segura | **12 con `Run (+0x38c)` < 40 y 15 si no** |
+| con alas o con `0x1c14`/`0x1c15`, fuera de la zona segura | 15, o 16 con las alas `0x1a17` (y `Run = 40`) |
+| los mapas 18 a 23 | 15 siempre |
+| con `+0x78 & 2` | la mitad |
+
+A 25 pasos por segundo, caminando son 300 unidades por segundo, 3 celdas; corriendo, 3,75. En la
+emulación, 6 celdas caminando son 49 pasos (1,96 s).
+
+`SetPlayerWalk` (`0x4f37c0`, en cada paso mientras camina):
+
+- **`Run` (`+0x38c`)** vuelve a 0 en la zona segura. Fuera, si es < 40, sube 1 por paso **solo** con
+  la clase 3 o 4 (`+0x1d4 & 7`), con botas +5 (`+0x298` distinto de −1 y `+0x29a` ≥ 5) fuera de
+  Atlans y de los mapas 24 a 29 y 36, o con guantes +5 (`+0x278`, `+0x27a`) en esos mapas: sin eso
+  un DW, un DK o un elfo **nunca corren** (Q-C172; *emulado*: con botas +5 corre desde el paso 40, a
+  15 por paso, con la acción `0x16`). Con Fenrir sube el contador `0x7d3a0d4`.
+- **Las velocidades de las acciones** de `Player.bmd`, solo con el tipo `0x20a`: las pisa **en el
+  modelo compartido**, en cada paso (Q-C171). Las 13 a 20, 73 y 75 van a 0,33 (`0x3ea8f5c3`) y las
+  22 a 33 a 0,34 (`0x3eae147b`); con `+0x78 & 2`, la mitad para todos. La 21 queda en 0,35, la de
+  `0x60dbe0`.
+- **La acción**, con `0x4ea030`, en este orden: Fenrir, `0x4e9f50` o `0x4e9da0`; `0x1c16`, `0x4b`;
+  `0x1c17` en la mano izquierda en la zona segura, `0x49`; `0x1c14`/`0x1c15`, `0x20` sin armas y
+  `0x21` con; con alas fuera de la zona segura, `0x1e`, o `0x1f` con las armas `0xa1a..`; Atlans y
+  parecidos fuera de la zona segura, `0x15` (`Run` < 40) o `0x1d`; sin armas, o en la zona segura
+  (en los mapas de menos de 11 o más de 23), `0xd`, `0xe` el elfo y `0x16` corriendo; con armas,
+  `0xf` a `0x14` u `0x8b` caminando y `0x17` a `0x1c` u `0x8c` corriendo; los que no son jugadores,
+  2.
+- **Los pasos suenan** (`0x41ed10`) con `rand() & 63 == 0` en el héroe y `rand() & 15 == 0` en los
+  otros: gasta `rand()` (Q-C179).
+
+`SetPlayerStop` (`0x4f2250`) pone `Run = 0` y la acción de parado: 1 sin armas o en la zona segura
+(2 el elfo); de 3 a 8, u `0x8a`, con armas; 9 o 10 volando; `0x4a` con `0x1c16`; y de `0x76` a
+`0x79` con Fenrir. Con `+0x7c & 0x200000`, la acción `0xca` y un `C1 .. 18 dir 82` (sentarse, CL9).
+
+`0x4f9580` no toca el movimiento: da la **velocidad de la animación**, la base del `PlaySpeed` de la
+acción (después va `0x4ec200`, salvo con `+0x78 & 0x1000`), con multiplicadores por tipo, acción y
+frame (1,5 con `+0x3e3` en las acciones 3 y 4; 0,5 en la `0x3f` desde el frame 6 y en la `0x44`; 2
+en los tipos `0xa8..0xac`, los `NewFace`; entre otros). A caminar y correr no les toca ninguno: lo
+único de este tema es que `0x4f37c0` les cambia el `PlaySpeed`. Lo llama `0x4fcd00`, desde
+`0x4fd5f0`.
+
+**Los otros personajes** (`0x508ba0`, desde `0x508ea0`; saltea al héroe): si caminan,
+`SetPlayerWalk` y `MovePath(c, 1)`; al llegar, `Movement = 0`, `SetPlayerStop` y **el ángulo en (dir
+− 1) · 45**, con la dirección del último `D3`: la 0 da −45 y no 315 (Q-C175). Siempre
+`MoveCharacterPosition`. Quietos, con `+0x3e5` en 0, un tipo que no es `0x159` y la celda distinta
+del blanco, **reintentan el camino en cada paso**.
+
+**La zona segura** (`+0x3e2`) la escribe `0x505de0` en cada paso (`0x50686e..0x5068b2`), con el bit
+`0x01` del atributo de la **celda lógica**, la que va una adelante.
+
+### Los cambios de mapa
+
+*Estático* salvo lo que se marca. Tres paquetes del servidor llaman a `0x61a560` ([La carga del
+mapa](#la-entrada-al-mundo)): el `F3 03` (la entrada), el **`1C`** y el **`F3 04`**. Ninguno cambia
+de escena: el juego sigue en la 5, porque las ocho escrituras de `0x6d5dc8` (`0x4c2f1a`, `0x4c363f`,
+`0x622f93`, `0x633f05`, `0x634470`, `0x634638`, `0x634dce` y `0x635a91`) no están en esos handlers.
+Los formatos, en [04](04-protocolo.md#los-cambios-de-mapa-1c-f3-04-y-f3-12).
+
+**El warp, `1C` del servidor** (`0x4c6e10`, desde `0x4e3f2a`, que antes lo copia a la cola de
+`0x77f27b4`). Con el cuarto argumento del dispatcher en 0 no hace nada de esto y manda un C3 con `C1
+06 F1 03 00 1C` (*inferido*: el aviso de FoxAnti). Si no:
+
+1. `0x5be150` (algo del ítem en el cursor, sin leer).
+2. La celda del héroe (`+0x41c`, `+0x420`, cifradas) en `pkt[5]`, `pkt[6]`; la posición en `(celda
+   + 0,5) · 100`; la z, la altura del terreno (`0x5f93c0`), más 30 con el `0x1c15` en `+0x318` y
+   `+0x3e2` en 0, o más 90 así en los mapas 8 y 10; y el ángulo, `(pkt[7] − 1) · 45`.
+3. Con `pkt[3] == 0` (la habilidad teleport, en el mismo mapa): `0x53d930` (la acción `0x93`, el
+   efecto `0x5c6` y el sonido `0x76`), `0x576794c = 0` y al final. No manda nada.
+4. Con `pkt[3]` distinto de 0 (un gate o un `/move`): `0x607b40`, `0x510f70` y
+   `0x451d10`/`0x451590` (los ítems del piso, los demás personajes y la lista), **también sin
+   cambiar de mapa**. Si `pkt[4]` es otro mapa: `0x6c9dd0 = pkt[4]` y `0x61a560`; en el 34, el `C1
+   04 BD 00`; los sonidos del Chaos Castle (`0x41ed10(0x9e)`, `0x4906a0`, `0x4914e0`, `0x512a30` y
+   `0x443d40` al entrar a uno, `0x41ee00(0x99)` y `0x41ee00(0x9e)` al salir); `0x447d70`; la z otra
+   vez, con las alturas nuevas; y el renglón con el nombre del mapa y el texto 484 en el área de
+   mensajes (`0x555190(0x5767988, …, 1)`). El nombre sale de `0x5f0b40`: el texto 30 + mapa del 0 al
+   9, el 55 en el 10, el 56 del 11 al 17, el 57 del 18 al 23, el 58 en Kalima, el 669 en el 30, el
+   59 en el 31, el 39 en el 32, el 1.850 en el 33, el 1.851 en el 34 y 30 + mapa en los demás
+   (*emulado* para los 256, y los textos *verificado* en el `Text.bmd` del laboratorio).
+5. Siempre que `pkt[3]` no es 0: **manda `C1 04 F3 12`** (C1 con XOR32, no C3); `0x77f3bb4 =
+   GetTickCount()`, `0x77f3bb0 = 0`, **`0x77f3b04 = 30`**, `0x77f3b10 = 0` y `0x6c8dcc = 6`;
+   `0x657a90`; `0x420d60` (vuelve a crear el cuervo); el efecto `0x61f` en el héroe y `+0x174 = 0`;
+   `0x723c50 = 0` (la tormenta); `0x78abb0c` y `0x78abb10` en 0, `0x6c8e28..0x6c8e38` en −1 (los
+   objetivos elegidos, *inferido*) y `0x6c8e4d = 0xff`.
+6. Al final: `+0x378 = 0`, `0x4f2250(héroe)` y, con `pkt[3]` distinto de 0, `0x65dc30`, el cartel
+   con el nombre del mapa (`Interface\<mapa>.tga` en el slot `0x66a`, si el mapa cambió).
+
+Del lado del servidor (`CGTeleportMagicRecv`, `gObjMoveGate` del GameServer reconstruido;
+*estático*), mover pone `RegenOk = 1` y **el `F3 12` lo pasa a 2** (`Seam_4789b0`); un pedido de
+gate con `RegenOk` prendido rebota. En la PCAP de la sesión real, los cuatro `/move` dan el `1C` y
+el `F3 12` 37 ms después sin cambiar de mapa y de 141 a 299 ms después con carga (*verificado* el
+tiempo; que sea la carga, *inferido*).
+
+**Revivir, `F3 04` del servidor** (`0x4c4b80`): empieza como `0x4c3940`, pone la vida, el maná, el
+BP, la experiencia y el zen, y rearma al héroe con `0x511290(héroe, 0x20a, x, y, (dir − 1) · 45)`,
+conservando `+0x368`, `+0x369`, `+0x370`, `+0x375` y `+0x1f2`. Le pone `+0x3e2 = 1` (la zona segura,
+*inferido*) y el efecto `0x61f`, limpia los ítems y los personajes y, si cambió el mapa, `0x61a560`
+y la z, con dos `0x512a30`. **No manda el `F3 12` ni toca `0x77f3b04`**. En el `muproxy.log` hay
+dos, cinco segundos después del `17` (la muerte) del héroe, y ningún `F3 12` detrás (*verificado*).
+
+**No hay pantalla de carga entre mapas.** La escena 3 solo va de la selección al juego. La carga
+corre adentro del handler del `1C`, en el mismo hilo, y mientras dura no hay frame. Además,
+`0x6371a0` sale sin dibujar con `0x77f3b04 > 30` (`0x637219..0x637239`), y entonces el bucle saltea
+el `glFlush` y el `SwapBuffers` (`0x6385e1..0x6385f7`): **la pantalla queda en el último frame**
+desde que el cliente pide un gate (el contador en 9.999.999) hasta que llega el `1C` (en 30). Cómo
+se ve, P-C31 a.
+
+**Lo que queda y lo que no:**
+
+- Queda el héroe (su lugar de `0x743a16c`, que `0x510f70` saltea por la clave `0x57678bc`), su
+  equipo y sus ventanas. La cámara no se toca (se recalcula en cada frame desde el héroe) y conserva
+  su zoom. La música y los sonidos siguen hasta que el bucle elige los del mapa nuevo.
+- Se rearman el cuervo (`0x420d60`) y, en el `F3 04`, el héroe.
+- Se van, aun en el mismo mapa (`pkt[3]` distinto de 0), los demás personajes, los ítems del piso,
+  la lista de `0x7245c8` y los objetivos elegidos (`0x6c8e28..0x6c8e38`).
+- Se van solo si cambia el mapa los objetos del mundo, los efectos (las nueve tablas de [La carga
+  del mapa](#la-entrada-al-mundo)) y las texturas y los modelos del mundo y de los monstruos.
+
+**Pisar un gate.** El cliente lo detecta y lo pide; el servidor no mira las celdas al caminar.
+`0x599ef0` lo llama `MoveHero` (`0x59b841`) en cada paso, por todos los caminos de su parte de
+movimiento, salvo en los estados del héroe que la frenan (`+0x389`, bits de `+0x78` y `+0x7c`:
+`0x59ae47..0x59ae87`) o con `0x77f3b04 > 30` (`0x59afd6`); antes le resta 1 al contador si es
+positivo (`0x59af01`). Recorre los 256 gates de `Gate.bmd` ([05](05-formatos-de-datos.md#gatebmd))
+y toma el que tenga el flag en 1, el mapa actual y la celda del héroe en su rectángulo, con
+`0x77f3b04 == 0` (`0x59a03d`) y `+0x399` del héroe en 0. Después:
+
+- el gate 28 (de Devias a Lost Tower), con el nivel bajo: nada, sin aviso (`0x59a08b..0x59a16c`);
+- los 45 a 49 y 55 a 56 (Atlans) montado en Uniria o Dinorant (`+0xdac`, o `0x7879f80`): el texto
+  261 y nada más;
+- los 62 a 65 (Icarus) sin alas (`0x1800..0x1806` en `+0xd64`), Dinorant, caballo, capa o Fenrir:
+  el texto 263 (vacío en este `Text.bmd`) y, con el nivel bajo, el 350; con alas pero en Uniria
+  (`0x1a02` en `+0xdac`), el 569;
+- **con el nivel bajo** (`0x7681eb0 + 0xe` menor que el del gate, por 2/3 en las clases 3 y 4):
+  `0x77f3b04 = 50` (`0x59a3a3`) y el texto 350 en el área de mensajes. Como 50 > 30, el juego no
+  dibuja ni mueve al héroe por 20 pasos (0,8 s), y después hay otros 30 pasos (1,2 s) sin gates
+  (P-C31 b);
+- si no, con `0x576794c == 0`, `0x77f3bb0 == 0` y **3 s desde el último `1C`** (`GetTickCount() −
+  0x77f3bb4 ≥ 3000`, `0x59a462..0x59a468`): **manda el `1C` con el gate**, `0x77f3b04 = 9.999.999`
+  (`0x59ac6c`), `0x77f3bb0 = 1` y `0x6c8e28..0x6c8e38` en −1. Si el destino es el mapa 30 o el 31,
+  antes guarda las macros (`0x61c170("Data\\Macro.txt")`) y llama a `0x61c210`.
+
+El servidor (`CGTeleportMagicRecv`), con un gate distinto de 0, mira `IsInGate` (el flag, el mapa,
+el rectángulo **con 5 celdas de margen** y el nivel, por 2/3 solo en la clase 3) y llama a
+`gObjMoveGate`, que elige una celda al azar del rectángulo destino y manda el `1C`; si no, devuelve
+el `1C` con la misma celda y el mismo gate (*estático*, del servidor reconstruido; Q-C182). El cable
+no tiene ningún `1C` del cliente: en la PCAP todos los cambios fueron por `/move` (P-C31 a).
+
+**Los ganchos por mapa** no son un sistema: son `if (mapa == N)` adentro de las funciones generales
+(*estático*; el barrido de las 384 referencias a `0x6c9dd0`, en 173 funciones). Caen en cinco
+puntos, en el orden de la escena 5:
+
+1. **Al cargar** (`0x61a560`): `0x616ec0` (los modelos), `0x42a760` (el 30), el `.att` y la luz
+   según el estado (30 y 34) y `0x4377a0` (Kalima).
+2. **En el paso** (`0x636290`): `0x5fbf60` (las olas), `0x606560` → `0x604ab0`, `0x6063d0` y
+   `0x5ff960` (los objetos; el `switch` de `0x605ae8` atiende del 0 al 8, del 11 al 17 y el 55, y el
+   9 y del 18 al 54 van a los módulos), `0x530490` (las hojas), `0x446120`, `0x447030` y `0x59adf0`
+   (los gates y `0x77f36d0`).
+3. **En el frame** (`0x637700`): el `glClearColor`, la música y el ambiente.
+4. **En el dibujo** (`0x6371a0`): la cámara (el far por mapa y el rectángulo), el terreno (salvo en
+   el 10 y en Kalima), la niebla del 30, el segundo pase de Kalima, la nieve doble de Devias y la
+   bandera de Kalima (`local_8`) para los joints, los sprites y las partículas.
+5. **Por objeto dibujado** (`0x6046a0` → `0x602e90`, `0x5ffdf0` y `0x6002e0` → `0x602ed0`): la
+   creación (`0x606660`, el `switch` de `0x606e68`: 0, 1, 2, 3, 7, 8 y 55), después del dibujo
+   (`0x602ed0`, `0x604580`: 0, 2, 3, 4, 6, 8, 9, 10, 11 a 17 y 55) y el dibujo de los modelos
+   (`0x6002e0`: 7, 9, 10 y Kalima).
+
+Los mapas de evento tienen además sus módulos, con ganchos en los mismos puntos (CL9): el Chaos
+Castle (18 a 23, `0x404e20..0x405e00`), el Blood Castle (11 a 17, `0x40c2d0`), el Castle Siege (30,
+`0x42a760..0x42ea00`), el 35 (`0x42ee20`), Crywolf (34, `0x42fe50` y `0x4303c0`), Kalima (24 a 29 y
+36, `0x4385a0..0x439680` y `0x43c150`), Land of Trial (31, `0x43ff10`) y Aida (33, `0x425070`). Lo
+propio del terreno de algunos mapas (*estático*; MuRet ya tiene lo marcado con ✓):
+
+| Mapa | Qué cambia | Dónde |
+| --- | --- | --- |
+| 7 | el agua con las `wt`, sin segundo pase del terreno y las sombras con alfa 0,2 | `0x5fa973`, `0x5fc33e`, `0x60b41a` |
+| 8 | el agua corre a la mitad (40 s) y la ola por 50 ✓ | `0x5fc26b`, `0x5fbf60` |
+| 10 | sin terreno; los objetos con margen −10 en el frustum | `0x6371a0`, `0x6046a6` |
+| 11 a 17 | el pasto no se dibuja por celda | `0x5faa79` |
+| 18 a 23 | sin pase del pasto (`0x6c9d58` en 0) | `0x5f893b` |
+| 24 a 29 y 36 | sin tiles; un terreno de agua propio de `0x114ad8` bytes en `0x723c48` | `0x4377a0`, `0x41cc70` |
+| 30 | el agua al revés ✓ y la luz con otras constantes ✓; sin pasto; la niebla y el far de arriba | `0x5fa739`, `0x5f8d90`, `0x5f8942` |
+| 34 | el agua suelta partículas | `0x5fa695` |
+| 55 | las alturas por 3 ✓ | `0x5f924d` |
+
+Fuera de Lorencia pero en el mismo lugar del paso: con la capa 1 en 3 o en 10 o más, Devias oculta
+los techos `0x51`, `0x52`, `0x60`, `0x62` y `0x63` y no nieva.
+
+### La tabla de protección
+
+Algunas variables del juego viven cifradas en la tabla de `0x57630c8` y están en claro solo mientras
+alguien las tiene abiertas: el registro propio de `0x7681eb4` (`0xf08` bytes), la celda lógica de
+cada personaje (`+0x41c`, `+0x420`), el contador `0x77f3b04` y el de pasos `0x7d3a0f0` (Q-C125),
+entre otras. Cada entrada guarda la copia cifrada y, en el byte siguiente, cuántos accesos la tienen
+abierta. Abrir la descifra cuando la cuenta pasa de 0 a 1, y cerrar la vuelve a cifrar cuando baja a
+0: **cada cierre que la deja en 0 gasta `rand()`**, 3.848 el registro propio y 4 una variable de 4
+bytes (*estático*; las dos cuentas, *emulado*). Las funciones (*estático*):
+
+| Función | Qué hace |
+| --- | --- |
+| `0x40ad90` | agrega una entrada para una dirección (la primera vez que se abre) |
+| `0x40b240` | busca la entrada de una dirección, con el hash del método `+0xc`; −1 si no está |
+| `0x40b2f0` | da la entrada: la copia y la cuenta de accesos |
+| `0x40b440` | descifra el registro propio al abrir el primer acceso |
+| `0x40b4d0` | lo cifra de nuevo al cerrar el último: **un `rand()` por byte, 3.848** (`call 0x69fd70` en `0x40b52e`, el lazo hasta `0x40b549`), y deja `rand() & 0xff` en cada byte del registro |
+| `0x40b570` y `0x40b800` | abren y cierran una variable de 4 bytes en una sola llamada; el cierre trae en línea los 4 `rand()` |
+| `0x412810` | descifra una variable de 4 bytes |
+| `0x412890` | la cifra de nuevo: 4 `rand()` |
+
+Muchos lugares traen el acceso en línea en vez de llamar (el `D7` del héroe tiene el lazo de
+`0x40b4d0` en `0x4caf64..0x4cafb7`), así que contar las llamadas no alcanza. Los que gastan, por
+paso o por frame (*estático*; el de la cámara, *emulado*):
+
+| Quién | Cuándo | `rand()` |
+| --- | --- | --- |
+| `MoveHero`, que llama a `0x57cfc0` al final de casi todos los pasos (`0x59e255`), y este abre y cierra el registro propio (`0x57d051..0x57d10d`) | cada paso del juego | 3.848 |
+| `0x4c3940`, la respuesta del `F3 03` | al entrar al mundo, que cierra el registro tres veces | 11.544 |
+| el `F3 04` (tres cierres), el `F3 10` (uno) y el `D7` al héroe (uno, en línea) | con cada paquete | 3.848 por cierre |
+| `0x508f00`, las celdas lógicas al marcar el `TerrainWall` | cada paso, por cada personaje vivo | 8 |
+| `0x635ae0`, la celda del héroe para el atributo | cada frame dibujado, también en las escenas 2 y 4 | 8 |
+
+El mismo gasto lo tienen los otros accesos a `+0x41c` y `+0x420` (en `MoveHero`, `MovePath` y el
+`D3`, 4 por cierre) y el contador de pasos (Q-C125). Ese azar no se usa para nada, pero corre la
+serie de la CRT que usan los efectos, la tela y el cuervo: Q-C183 y P-C22 a.
 
 ## Lo que no se sabe
 
@@ -2470,6 +3464,11 @@ la escala W / 800 y H / 600 (`0x6ba884`, `0x6ba880`), como la UI de la carga. Di
   `+0x3d0`, `+0x7e8` y `+0x4578`, las que abren los botones de la barra, ni qué contesta el CS
   al `F4 06` del botón de los créditos. Del login de la CL6 (P-C15): el slot de `Logo03` y cómo
   sube la luz del logo; el cuervo, leído en la CL7.R, falta verlo contra el original (P-C23).
+- **La escena del juego** (el barrido de Lorencia, [arriba](#la-escena-del-juego)): leída en el
+  binario y contrastada con una traza de un frame muy posterior a la entrada. Lo que pide una
+  corrida del original está en P-C28 (la entrada y lo vivo de Lorencia), P-C29 (la cámara), P-C30
+  (caminar) y P-C31 (los mapas y los gates). Tampoco se leyeron `0x53eaf0`, `0x403590`, `0x557650`
+  ni `0x451c10`, del paso, ni el detalle de la rama del héroe de `0x50ba30`.
 
 Ver [08](08-pendientes.md).
 
@@ -2509,6 +3508,10 @@ Ver [08](08-pendientes.md).
 | `0x602ed0`, después del dibujo de cada objeto visto: el `rand()` de cada uno y el brillo del farol (`0x3c`) en la escena 2 | `Scenes::ObjectFrameEffects` en `DrawWorldObjects`: un `rand()` de la CRT por objeto visto y los dos sprites de `flare01` en los huesos 8 y 9 del último modelo posado (`LastPosedBonePoint`: el dueño del dragón, Q-C140); `World::StreetLightGlowLight`, la luz; el dueño (`0xb4`) en `m_objects`, antes del `.obj` | CL7.6 B4 |
 | Los joints (`0x53c6a0`) | un sistema con su tabla, cuando una escena los use (el login no tiene ninguno) | — |
 | El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | `Scenes::DarkSpirit`: el constructor (`0x4167b0`) y el paso (`0x416a20`, estados 0 y 1), bit a bit contra el código real (`raven.txt`); `DrawDarkSpirit` (mallas 3 y 2 y la sombra de las cinco); la chispa nace en `World::Particles` (`0x5c6`, subtipo 5); `LoginScene` lo crea al entrar, lo avanza después del personaje y lo dibuja al final de su dibujo | CL7.6 C1 y C2 (las chispas) |
+| La escena 5 en dos tiempos: el `F3 03` en el primer paso y el mundo con la respuesta, con el mosaico de la escena 3 en pantalla mientras tanto; su paso y su dibujo, con su propio orden del 3D | `GameScene` (hoy manda el `F3 03` y no dibuja) retiene el último frame mientras espera, carga el mapa del paquete, arma al héroe con la cuenta de `0x511290` y dibuja en el orden de `0x6371a0`; los casos del mapa 0 como datos, como los del 55 (propuesta del barrido, P-C28) | CL7 |
+| La cámara del juego: `0x635ae0` por frame dibujado, con el far del rectángulo en todos los mapas y sin el mouse | un valor con su estado (D, la meta, el zoom, el nivel, el yaw y la altura del `0x40`) y `OriginalVectorIRotate` (`0x5fcc30`), bit a bit contra el código real emulado y la traza de Lorencia (propuesta del barrido, P-C29) | CL7.3 |
+| Caminar: el A* de `0x4ead70` con su árbol y sus topes, el `D3` de `0x56acd0` y el paso entre celdas con el spline y la celda lógica adelantada | el camino, el paquete y el paso contra vectores del código real emulado, y el rayo del último dibujo guardado para el paso (propuesta del barrido, P-C30) | CL7.4 |
+| Los cambios de mapa dentro de la escena 5, con los ganchos de cada mapa como `if` sueltos en cinco puntos | una tabla por mapa y una interfaz de ganchos (al cargar, al crear un objeto, en su paso, después de dibujarlo y en el paso de la escena), con Lorencia primero (propuesta del barrido, P-C31) | CL7.5 |
 
 Tests que fija:
 
@@ -2553,3 +3556,10 @@ Tests que fija:
   los 1.500 pasos de `dragon_emu.py`; el cuervo, bit a bit contra `raven_reference.py` y
   `emulate_raven.py` en varias semillas; y las brasas, el aliento, el cetro y los destellos, con las
   fórmulas de [Los efectos del login](#los-efectos-del-login) y un `rand()` fijo.
+- La escena del juego (CL7), con lo que propone el barrido: la respuesta del `F3 03` del cable, sin
+  nombres, da el héroe en (13.350; 12.750) del mapa 0 con −45°, y el frame queda retenido hasta
+  ella; los slots `0x69..0x6b` y `0x41c..0x47e` de Lorencia dan los nombres de `lor_slots.bin`; los
+  objetos del mapa 0, al crearse, en tres pasos y en el dibujo, contra el código real emulado; la
+  cámara de Lorencia da `466b446d`, `46313b93` y `447dc000`, y los vectores de `0x635ae0`, bit a
+  bit; el camino, el `D3` y el paso entre celdas contra el código real emulado, y los 171 caminos
+  del cable, solo con las coordenadas; y los gates de Lorencia con el `Gate.bmd` real.

@@ -36,7 +36,7 @@ Devias). Todos trabajan sobre buffers: leer el archivo es tarea del que llama.
 | --- | --- | --- | --- |
 | XOR3 | `0x5496c0` | XOR con `FC CF AB` (`0x6c8c74`) | — |
 | checksum | dentro de los cargadores | semilla `key << 9`, ADD o XOR según la paridad, mezcla cada 4 dwords | — |
-| `Gate.bmd` | `0x54a360` / `0x54a2e0` | 256 × 9 bytes | `*[0x07688AB8]`, 0x900 |
+| `Gate.bmd` | `0x54a360` / `0x54a2e0` | 256 × 9 bytes ([los campos](#gatebmd)) | `*[0x07688AB8]`, 0x900 |
 | `Item.bmd` | `0x54b9e0` / `0x54b8f0` | 8192 × 0x54 bytes + checksum `0xE2F1` | `*[0x07758550]`, 0xA8000 |
 | `Skill.bmd` | `0x54acf0` / `0x54aa20` | 256 × 0x3C bytes + checksum `0x5A18`; luego un contenedor "guardia" con `rand()` | `*[0x076BD1D8]`, 0x3C00 |
 | `Text.bmd` | `0x5495e0` / `0x549700` | 2048 × 300 bytes | `g_GlobalText` `0x076BD1DC` |
@@ -52,6 +52,44 @@ los vacíos: un registro vacío está en el archivo como `FC CF AB …`. `Filter
 palabras (`ADMIN`, `admin`, `GM`, `gm`, `Gm` y `gM`) y `Filter.bmd` ninguna. Los usa el nombre de
 un personaje nuevo (06 § La ventana de crear).
 
+### `Gate.bmd`
+
+Leído en el barrido de Lorencia (2026-11-05). `0x54a360` (lo llama `0x61ccb0` con `Data\Gate.bmd`,
+`0x6d2aec`) lee 256 registros de 9 bytes con XOR3 a la tabla de `*[0x7688ab8]` (`new(0x900)` en
+`0x4bae26`, a cero en `0x4baf80` y liberada en `0x4aefbc`); `0x54a180` (lee `Data2\Gate.txt`) y
+`0x54a2e0` (escribe el `.bmd`) son del modo de desarrollo, con `0x6c9e0c` en 0. La tabla en memoria
+es el archivo (*verificado*, `GoldenGateTable` contra `s31_gate.bin`). El índice del registro es el
+número del gate, y los nueve campos van en el orden del `gate.txt` del servidor ("Flag, Map number,
+X1, Y1, X2, Y2, Target Gate, Dir, Level"):
+
+| Byte | Campo | Quién lo lee |
+| --- | --- | --- |
+| 0 | el flag: 1 entrada, 2 salida, 0 destino de un `/move` | `0x599f27` (solo el 1) |
+| 1 | el mapa | `0x599f36` (el de la entrada) y `0x59ad30` (el del destino) |
+| 2 a 5 | x1, y1, x2, y2: el rectángulo, inclusivo y sin margen | `0x599f66..0x599ff8` |
+| 6 | el gate destino | `0x59a00b` |
+| 7 | la dirección al llegar | nadie en el cliente: la usa el servidor |
+| 8 | el nivel | `0x59a06c` (el de la entrada; en las clases 3 y 4, `nivel · 2 / 3`) |
+
+El uso es *estático*; los nombres de los campos, *verificado* contra la cabecera del `gate.txt` y el
+servidor reconstruido (`gate.cpp`, `CGateC::GetGate` e `IsInGate`). **El único lector de los campos
+es `0x599ef0`**, la detección de [06](06-render-escenas-y-ui.md#los-cambios-de-mapa): los otros
+`cmp` con `0x7688ab8` (`0x514133`, `0x54ebcb`, `0x5b41f5`, `0x5b8930`, `0x5bb308`) son el final de
+otra tabla (`0x7681eb8`, de paso `0x36`).
+
+El `Gate.bmd` del laboratorio trae 125 gates y el `gate.txt` del servidor en uso 122, y **61
+difieren** (*verificado*, la comparación; Q-C182): los niveles (el 3, de Dungeon a Lorencia, tiene 0
+en el cliente y 20 en el servidor; los de Lost Tower, 80 contra 90 a 120) y los del 109 al 129, que
+en el cliente son de otra versión (el 115 es una entrada del Stadium a Crywolf en el cliente y un
+destino del 32 en el servidor). Los cuatro de Lorencia coinciden:
+
+| Gate | Celdas | Destino | Nivel |
+| --- | --- | --- | --- |
+| 1 | 121..123 × 232..233 | el 2: Dungeon (1), 107..110 × 247 | 20 |
+| 18 | 5..6 × 38..41 | el 19: Devias (2), 242..243 × 34..37 | 15 |
+| 23 | 213..217 × 246..247 | el 24: Noria (3), 148..155 × 5..6 | 10 |
+| 102 | 239..240 × 14..15 | el 103: el mapa 30, 29..30 × 42..37 (en el archivo, la y1 es mayor que la y2) | 10 |
+
 ## Terreno de un mundo (`Data\World<N>\`)
 
 Grilla de 256 × 256 celdas, `idx = y * 256 + x`.
@@ -59,8 +97,8 @@ Grilla de 256 × 256 celdas, `idx = y * 256 + x`.
 | Archivo | Original | Formato |
 | --- | --- | --- |
 | capa K16 | inline en los tres cargadores | XOR de 16 bytes con `prev0 = 0x5E` y paso `0x3D`, un solo flujo |
-| `EncTerrain<N>.map` | `0x5f87b0` | 2 bytes + capa 1 + capa 2 + alfa = 0x30002 bytes |
-| `EncTerrain<N>.att` | `0x5f8390` + XOR3 | 4 bytes + 65.536 celdas de 1 o 2 bytes (atributos: zona segura, no caminable…) |
+| `EncTerrain<N>.map` | `0x5f87b0` | 2 bytes + capa 1 + capa 2 + alfa = 0x30002 bytes; antes de leerlo, `0x5f8300` limpia las capas y llena el corrimiento del pasto (abajo) |
+| `EncTerrain<N>.att` | `0x5f8390` + XOR3 | 4 bytes + 65.536 celdas de 1 o 2 bytes (los atributos, [abajo](#los-bits-del-att)) |
 | `EncTerrain<N>.obj` | `0x607370` | 4 bytes + N × 30 bytes (objetos del mapa), agrupados en 256 bloques |
 | `TerrainHeight.OZB` | `0x5f9020` | 4 bytes + BMP de 0x10438 bytes; las alturas se leen desde BMP + 1080 |
 | `TerrainLight.OZJ` | `0x63b490` | luz base: 256 × 256 × 3 floats |
@@ -100,7 +138,7 @@ siempre eso. Las comparaciones son con signo. Los mapas que llegan:
 
 | Mapa | Carpeta | En el `Data\` del laboratorio |
 | --- | --- | --- |
-| 0 a 10 | `World1` a `World11`, el mapa + 1 | sí; `World6` (el 5) sin alturas, luz ni tiles |
+| 0 a 10 | `World1` a `World11`, el mapa + 1 | sí; `World6` (el 5) sin alturas, luz ni tiles: sin alturas el original se cierra (Q-C180) |
 | 11 a 17 | `World12` | sí |
 | 18 a 23 | `World19` | sí |
 | 24 a 29 y 36 | `World25` | sí |
@@ -109,7 +147,7 @@ siempre eso. Las comparaciones son con signo. Los mapas que llegan:
 | 32 | `World10`, y el mapa pasa a 9 | sí |
 | 33 | `World34` | sí |
 | 34 | `World35`, con su `.att` y su luz según el estado | sí |
-| 35 | `World36` | **no** |
+| 35 | `World36` | **no**: sin el `.att`, el original se cierra (Q-C180) |
 | 54 | `World55` (la selección) | sí |
 | 55 | `World56` (el login) | sí |
 | 37 a 53 y 56 a 255 | el mapa + 1 | no: ningún handler los descarta, y el original pide la carpeta igual |
@@ -139,6 +177,120 @@ que lo traen (World6 no tiene). Se lee un byte por celda desde el byte `0x43C` d
 (Q-C02). Contra la memoria de Devias, desde `0x43C` dan las 65.536 alturas de `s31_height.bin`;
 desde donde dice `bfOffBits` (el byte `0x43A` del archivo, en los 17 de 8 bits), 52.139 de ellas
 salen distintas.
+
+**El corrimiento del pasto** (`0x5f8300`, que llama el cargador del `.map`; *estático*). Antes de
+leer el archivo pone las capas en sus valores por defecto (la capa 1 en 0, la 2 en `0xFF` y el alfa
+en 0, Q-C27) y llena `0x7b0cca4` con 65.536 `(rand() % 4) · 0,25` (`0x5f831e..0x5f8342`): **un
+`rand()` por celda en cada carga de mapa**, también la del login y la de la selección (Q-C146). El
+pase del pasto lee solo los 256 primeros, uno por fila
+([06](06-render-escenas-y-ui.md#lo-propio-de-lorencia)).
+
+### Los bits del `.att`
+
+El cargador (`0x5f8390`) guarda el byte de abajo de cada celda en un WORD de `0x7d0d348`, el
+`TerrainWall`, y rechaza el archivo si una celda trae `0x80` o más (`0x5f85fd`): ese bit solo llega
+por el paquete `0x46` ([04](04-protocolo.md#movimiento-y-mundo)). Qué es cada bit (barrido de
+Lorencia; *estático*, y los valores, *verificado* en los archivos):
+
+| Bit | Qué es | Quién lo usa |
+| --- | --- | --- |
+| `0x01` | la zona segura | `0x511290` y `0x505de0` (`+0x3e2` del personaje), el segundo intento del camino, el clic que no ataca y la música |
+| `0x02` | hay un personaje: lo saca y lo pone `0x508f00` en cada paso, en tiempo de ejecución | el camino, que lo toma como pared |
+| `0x04` | no se camina | el camino |
+| `0x08` | no se dibuja, pero el picking la prueba (Q-C163) | `0x5fac90`; el cursor (`DontMove`, con 8 o más sin `0x20` ni `0x40`) |
+| `0x20` | una meta permitida aunque bloquee | `FindPath` con `bErrorCheck`; `DontMove` |
+| `0x40` | la altura fija de `0x6c9d5c`: 1.200, y 1.201 desde que la cámara pisa una (Q-C150) | `0x5f93c0`, `0x5fac90` y la cámara |
+| `0x80` | el zoom de la cámara | `0x635ae0` |
+
+El camino no mira `0x20`, `0x40` ni `0x80` para saber si una celda bloquea (`Map & ~0xe0`,
+[06](06-render-escenas-y-ui.md#caminar)). En los 29 `EncTerrain*.att` del `Data\` (*verificado*),
+ninguna celda trae el `0x80`, y el `0x40` está solo en los cuatro de `World31`, el mapa 30: 835
+celdas, de x 160 a 190 e y 190 a 220, sobre el castillo y el rectángulo del far de la cámara
+(Q-C149, Q-C150). El volcado vivo de Lorencia (`lor_att.bin`) tampoco tiene `0x40` ni `0x80`. Las
+celdas de Lorencia valen 0, 1, 2, 4 y 5, y la única con el 2 es la (221, 11) (Q-C170).
+
+## Los modelos de cada mundo
+
+`0x616ec0`, desde la carga del mapa (`0x61a560`,
+[06](06-render-escenas-y-ui.md#la-entrada-al-mundo)). Leído en el barrido de Lorencia, *estático*
+salvo lo que se marca. El primer `switch`, el de los `.smd` de `Data2\`, solo corre con `0x6c9e0c`
+en 0, y vale 1: está muerto.
+
+- **En todos los mapas**: `Object8\drop01.jpg` en `0x607` (al empezar), `Object8\wt00..wt31.jpg` en
+  `0x41..0x60` (salvo en el 7, que los carga en su caso), `Object8\light01.jpg` en `0x68` (que
+  `0x61a560` pisa después con `rain03`, Q-C136) y los 160 del mundo, desde `0x60d530(0x41c)`.
+- **Los 160 del mundo**, en todos los mapas menos el 0: el lazo genérico (`0x61a0c4..0x61a124`),
+  `Data\Object<N>\Object<k+1>.bmd` con sus texturas de `Object<N>\`
+  ([06](06-render-escenas-y-ui.md#el-mundo-del-login)).
+- **El mapa 0 no usa ese lazo.** Con el mapa 0 (`0x618e57`) salta a `0x619a10` y carga **112
+  modelos con nombre** de `Data\Object1\`, en 39 llamadas a `0x60da30(k, "Data\Object1\", nombre,
+  n)`, que pide `nombre` + `%02d`; los otros mapas van al lazo (`0x619edf`). *Verificado* en los
+  datos: `Object1` no tiene ningún `ObjectNN.bmd` y los otros `Object<N>` sí, salvo los siete u ocho
+  con nombre de cada uno.
+
+La tabla de Lorencia (tipo, archivo):
+
+| Tipos | Archivos | Tipos | Archivos |
+| --- | --- | --- | --- |
+| 0 a 12 | `Tree01..13` | `0x5a` | `StreetLight01` |
+| `0x14`–`0x1b` | `Grass01..08` | `0x5b`–`0x5d` | `Cannon01..03` |
+| `0x1e`–`0x22` | `Stone01..05` | `0x5f` | `Curtain01` |
+| `0x28`–`0x2a` | `StoneStatue01..03` | `0x60`, `0x61` | `Sign01`, `Sign02` |
+| `0x2b` | `SteelStatue01` | `0x62`–`0x65` | `Carriage01..04` |
+| `0x2c`–`0x2e` | `Tomb01..03` | `0x66`, `0x67` | `Straw01`, `Straw02` |
+| `0x32`, `0x33` | `FireLight01`, `FireLight02` | `0x69` | `Waterspout01` |
+| `0x34` | `Bonfire01` | `0x6a`–`0x6d` | `Well01..04` |
+| `0x37` | `DoungeonGate01` | `0x6e` | `Hanging01` |
+| `0x38`, `0x39` | `MerchantAnimal01`, `MerchantAnimal02` | `0x6f` | `Stair01` |
+| `0x3a` | `TreasureDrum01` | `0x73`–`0x77` | `House01..05` |
+| `0x3b` | `TreasureChest01` | `0x78` | `Tent01` |
+| `0x3c` | `Ship01` | `0x79`–`0x7e` | `HouseWall01..06` |
+| `0x41`–`0x43` | `SteelWall01..03` | `0x7f`–`0x81` | `HouseEtc01..03` |
+| `0x44` | `SteelDoor01` | `0x82`–`0x84` | `Light01..03` |
+| `0x45`–`0x4a` | `StoneWall01..06` | `0x85` | `PoseBox01` |
+| `0x4b`–`0x4e` | `StoneMuWall01..04` | `0x8c`–`0x92` | `Furniture01..07` |
+| `0x50` | `Bridge01` | `0x96` | `Candle01` |
+| `0x51`–`0x54` | `Fence01..04` | `0x97`–`0x99` | `Beer01..03` |
+| `0x55` | `BridgeStone01` | | |
+
+Después, `0x60d5f0(k, "Object1\", 0x2901, 0x2600, 1)` para k de 0 a `0x9f`: las texturas de los 160
+desde `Object1\`. *Verificado* en `lor_slots.bin`: los slots `0x41c..0x47e` son 99 texturas de
+`Object1\` en el orden de k (de `tree.jpg` y `Tree_a.tga` a `plate2.jpg`), todas en el `Data\` del
+laboratorio, y `0x47f` y `0x480` (`w_merchant_b` y `w_merchant_a`) son de la NPC de la tienda, que
+se carga después. El último argumento en 1 es el que avisa y cierra con una textura que falta
+(Q-C23); en Lorencia no pasa. El `.obj` de `World1` pide 109 tipos (2.870 registros) y los 109
+`.bmd` están (*verificado*).
+
+**Los especiales de cada mapa** (el `switch` de `0x617325`, con la tabla en `0x61a23c`), con sus
+texturas desde `0x60d530(0x69)`:
+
+| Mapa | Modelos | Otros |
+| --- | --- | --- |
+| 0 | `0xad` `Bird01` y `0xb2` `Fish01` (`Data\Object1\`) | sus texturas, `bird.tga` y `fish.tga`, en `0x69` y `0x6a`; el `0x6b` sigue con el `drr_03.jpg` del login (*verificado* en `lor_slots.bin`) |
+| 1, 4 | `0xda` `DungeonStone01`, `0xaf` `Bat01` y `0xb0` `Rat01` (`Object2`) | |
+| 2 | `0x201` `obj_donkey` y `0x202` `obj_flag` (`Data\Npc\`) | los crea en (19.100; 1.600; 270) y (19.100; 1.700; 270) |
+| 3 | `0xae` `Butterfly01` (`Object1`) y `0x142..0x144` `warp01..03` (`Npc`) | crea el `0x142` en (22.300; 3.000; 0), con el giro (0, 0, 10) |
+| 5 | `0xe7..0xeb` `Meteo01..05`, `0xef` `BossHead01` y `0xf0` `Princess01` (`Object6`) | no están en el laboratorio |
+| 6 | `0xb1` `Bug01` (`Object7`) | |
+| 7 | `0xb3..0xba` `Fish02..09` (`Object8`) | las `wt00..31` en `0x41..` y sus nombres en `0x7d3afd0` |
+| 8 | `0xb2` `Bug02` (`Object9`) | `sand01` y `sand02` en `0x5c2` y `0x5c3`, `Impack03` en `0x716` |
+| 10 | `0xbb` `cloud01` (`Object11`) | `Effect\clouds` en `0x622` y `cloudLight` en `0x623` |
+| 11 a 17 | `0xbc` `Crow01` (`Object12`), con las texturas de `0x10c` y `0x10d` | `clouds` e `iBloodCastle.wav` |
+| 18 a 23 | `0x1f7` `Angel` (`Player`) | `clouds` e `iChaosCastle.wav` |
+| 24 a 29 y 36 | `0x11d..0x124` `cd71a..h`, `0x125` `dragonhead`, `0x126` `phoenix` y `0x127` `cundun_gone` | `Object25\water1.tga` en `0x23` y `water2.jpg` en `0x24` |
+| 30 | — | el humo en `0x5c2` y `0x5c3`, `World31\Map1` y `Map2` en `0x69d` y `0x69e`, 33 sonidos `BattleCastle` |
+| 31 | `0xae` `Butterfly01` | `clouds`, las texturas del jefe y los sonidos `w31` |
+| 33 | `0xae`, `0x141` `tree_eff` (`Object34`) y `0xb2` `Bug02` (`Object9`) | `clouds` y los sonidos `w34` |
+| 34 | `0x148` `scorpion` (`Object35`) y `0xed`, `0xee` `arrowstusk` | el humo, `mhoujin`, `Impack03`, `chasellight` en `0x729` y los sonidos `w35` |
+| 55 | `0xb4` `Dragon` (`Object56`) | crea al dueño en (5.600; 23.000; 0) ([06](06-render-escenas-y-ui.md#el-mundo-del-login)) |
+
+Después del lazo, en el mapa 1 el `+0x14` de un objeto del modelo 40 va a 0,4, y en el 8 el byte
+`+0xc8` de los modelos 11, 12, 13, 73, 75 y 79 va a 0 (`0x61a126..`): sin leer qué son.
+
+**Los tipos del `.obj` sin modelo** son pocos (*verificado*): `World2` 60, `World4` 43, `World5` 40,
+`World9` 3, 35 y 38, `World12` 37, `World31` 35, `World35` 79 y 80, `World56` 82, y el −515 de
+`World7` (Q-C28: `0x607370` y `0x606660` lo crean igual; que no se alcance desde el piso,
+*inferido*). El original los saltea sin avisar (Q-C23).
 
 ## Texturas
 
@@ -386,6 +538,9 @@ por el protocolo (`divergencias-cliente-servidor.md`).
 | Esqueleto (`Player.bmd`) y partes del equipo en archivos separados | `Data::Model` lee los dos con el mismo parser; la pose se calcula con el esqueleto y cada parte se dibuja con esa pose | CL6 |
 | `0x4f13d0` no mira `"BMD"` ni el tamaño, y lee en claro cualquier versión que no sea `0x0C`; un modelo que falta se saltea salvo `Monster`, `Player` y `PlayerTest` | `LoadBmd` acepta en claro cualquier versión que no sea `0x0C` (como el original) y rechaza un tamaño que no entra (Q-C86); `LoadModelFile` devuelve el error y quien carga decide con la regla de los tres nombres (Q-C23) | CL6.1 |
 | Los assets son del juego | MuRet **no** versiona ningún asset; los tests golden reciben la ruta por `MURET_CLIENT_GOLDEN_DIR` y se saltean si no está | CL1 |
+| `Gate.bmd`: nueve campos que solo lee la detección de `0x599ef0`, y una tabla que no es la del servidor | `GateTable` con los nueve campos (hoy son 9 bytes sin nombre) y la detección como una función pura; el rebote del servidor se acepta (Q-C182; propuesta del barrido de Lorencia) | CL7.5 |
+| Los modelos del mundo: el lazo genérico, los 112 con nombre del mapa 0 y los especiales de cada mapa desde `0x69` | `WorldModels` (hoy, el lazo y el dragón del 55) con una tabla con nombre por mapa y los especiales como datos (propuesta del barrido) | CL7 |
+| Los bits del `.att`, con el `0x02` vivo y el `0x80` rechazado en el archivo | el WORD de cada celda como estado del juego, con el `0x02` que se limpia y se marca en cada paso (propuesta del barrido) | CL7.4 |
 
 Tests que fija:
 
@@ -400,3 +555,8 @@ Tests que fija:
 - Los 1.962 modelos se leen sin bytes de sobra, con las cuentas de versión (816, 1.142 y 4) y de
   script (142 mallas) de arriba (`GoldenBmd`, CL6.1); un `.bmd` sintético con la versión
   `0x00` se lee en claro, y uno con un tamaño que no entra se rechaza (`BmdTest`, CL6.1).
+- Con lo que propone el barrido de Lorencia: los slots `0x69..0x6b` y `0x41c..0x480` de Lorencia
+  dan los nombres de `lor_slots.bin`; la tabla de tipos y archivos del mapa 0, sacada del asm por
+  script, contra la de MuRet; cada mapa de `OriginalMaps` menos el 35 carga su terreno, su `.obj` y
+  sus modelos, con los tipos sin modelo de arriba; y los cuatro gates de Lorencia con el `Gate.bmd`
+  real (adentro, en el borde, afuera y con el nivel justo) (CL7, CL7.5).

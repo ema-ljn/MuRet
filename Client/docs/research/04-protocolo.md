@@ -241,7 +241,7 @@ lee en línea y el 3 va a `0x4c3940`. Los C->S salen con el XOR32 desde el byte 
 | `F3 02` C->S, borrar | `0x643740` | C1, 24: el nombre del elegido (hasta su primer cero y con ceros hasta 10) y los 10 bytes del campo de texto de la ventana (`0x7798bf8`), como vienen | `0x38` | no está |
 | su respuesta | en línea (`0x4e2b10`, el caso del subcódigo 2) | `pkt[4]`: 0, el aviso `0x92`; 1, el `0x60`, que borra el elegido; 3, el `0x62`; otro, el `0x89` | queda en `0x38` | no está |
 | `F3 03` C->S, entrar | `0x636290`, el primer paso de la escena 5 | C1, 14: el nombre en 10 bytes | `0x3c` | coincide |
-| su respuesta | `0x4c3940` (1.289 líneas) | pone el mundo (`0x61a560`), el personaje propio y el estado `0x3d` (`0x4c4854`); la lee la CL7 | `0x3d` | (CL7) |
+| su respuesta | `0x4c3940` (1.289 líneas) | C3 de `0x34` bytes: los campos, en [La entrada al mundo](#la-entrada-al-mundo-la-respuesta-del-f3-03-y-el-f3-10); pone el mundo (`0x61a560`), el personaje propio y el estado `0x3d` (`0x4c4854`) | `0x3d` | coincide (52 bytes, con `ff ff` en `0x32`) |
 
 - **La lista** (`0x4c20a0`): `pkt[4]` va a `0x622b20` (la clase más alta que se puede crear:
   `0x63d7c0` habilita los botones de la ventana de crear de la 0 a ella, *estático*, Q-C119), los
@@ -295,14 +295,15 @@ acciones las anotó el usuario, sin la hora exacta de cada una.
 | S->C | 5.571 | 553 | sin sobrantes, con el XOR `0xAA` deshecho |
 | C->S | 1.297 | 129 | sin sobrantes |
 
-- **S->C**, más frecuentes: `D3` ×229 (movimiento de otros), `18` ×46, `D7` ×46, `27` ×40,
-  `26` ×34, `13` (C2) ×31, `2A` ×24, `14` ×23, `F3` ×19, C3 ×16, `0F` ×11, `20` (C2) ×8,
-  `21` (C2) ×6.
-- **C->S en C1** (sacando solo el XOR32): `A3` ×59 y `A4` ×4 (el `D3`/`D7` de movimiento que
-  FoxAnti remapea), `18` ×17 (acción o dirección), `F3` ×11, `A9` ×10 (`A9 01 00 08` las diez
-  veces: la info del caballo oscuro, *inferido* alto, Q-C16), `00` ×5. **El `00` del cliente es
-  el chat:** `C1 .. 00 <nombre:10> <texto>`, con los comandos del servidor (`/move Lorencia`,
-  `/addstr 10`) como texto.
+- **S->C**, más frecuentes: `D3` ×229 (el movimiento de otros y el eco del propio), `18` ×46,
+  `D7` ×46 (el daño), `27` ×40, `26` ×34, `13` (C2) ×31, `2A` ×24, `14` ×23, `F3` ×19, C3 ×16,
+  `0F` ×11, `20` (C2) ×8, `21` (C2) ×6.
+- **C->S en C1** (sacando solo el XOR32): `A3` ×59 y `A4` ×4 (el `D3` de caminar y el `D7` de
+  pegar, que FoxAnti remapea: [03](03-red-y-cifrado.md#la-capa-de-foxanti) y [Caminar y
+  pegar](#caminar-y-pegar-d3-y-d7)), `18` ×17 (acción o dirección), `F3` ×11, `A9` ×10 (`A9 01
+  00 08` las diez veces: la info del caballo oscuro, *inferido* alto, Q-C16), `00` ×5. **El `00`
+  del cliente es el chat:** `C1 .. 00 <nombre:10> <texto>`, con los comandos del servidor (`/move
+  Lorencia`, `/addstr 10`) como texto.
 - **C->S en C3:** los 23 descifran con el `Dec1.dat` del servidor
   (`mu-server-repack-research-102i/gameserver/evidence/keyfiles/`) con checksum bien y serial
   **0, 1, 2… 22 sin cortes**. Opcodes: `F1` (login), `0E` ×11 (keepalive), `26` ×3, `A6` ×3, `A0`,
@@ -315,6 +316,11 @@ acciones las anotó el usuario, sin la hora exacta de cada una.
   `F3 03` del cliente el servidor responde en 18 ms con `F3 11`, `26`, `27`, `03`, `F3 03` (C3),
   `F3 10` (C4) y `F3 11`; el cliente manda `A0` (C3), el servidor `A0` y `F3 30`, el cliente `03`
   (C3), el servidor `13` (C2) y empieza el movimiento (`D3`, y el primer `A3` del cliente).
+  **El `A0` no es una respuesta**: lo manda el mismo primer paso de la escena 5 que el `F3 03`,
+  después de armar la UI, si el byte `[0x710148] + 4` vale `0xff` (`0x63693a`, *estático*). En la
+  PCAP sale 21 ms después del `F3 03` y 3 ms después de que llegó la respuesta; en el
+  `muproxy.log`, que ordena por llegada al proxy, sale antes de ella (*verificado* los dos). Antes
+  este documento lo daba como algo que el cliente manda después de la respuesta.
 
 ## Cómo se verificó
 
@@ -343,19 +349,172 @@ ningún payload: cuenta, cabeceras y offsets conocidos.
 
 ## Movimiento y mundo
 
-| Opcode | Handler | Qué hace |
-| --- | --- | --- |
-| `0xD3` | `0x4c6790` | posición de un jugador: celda X/Y en `+0x41c`/`+0x420`, dirección en `pkt[7] >> 4` |
-| `0xD7` | `0x4caae0` | posición y dirección de un jugador (bit 15 del id como bandera) |
-| `0x18` | `0x4cb750` | acción o animación de un personaje remoto, según `pkt[6]` |
-| `0x22` / `0x27` | `0x4d0cc0` / `0x4d3820` | crean objetos de 0xF08 bytes desde una plantilla (el 0x27 además con un XOR) |
-| `0x0D` | `0x4c65b0` | avisos del servidor: chat, banner, notificación |
-| `0x02` | `0x4e34ea` | mensaje privado: nombre de 10 bytes en `+3`, texto de 60 en `+0xD` |
+Lo del mundo se leyó en el barrido de Lorencia (2026-11-05), en el desensamblado y contra el
+`muproxy.log` y la PCAP de arriba, sin copiar nombres ni chat. Lo que hace el juego con cada paquete
+está en [06](06-render-escenas-y-ui.md#la-escena-del-juego).
+
+| Opcode | Sentido | Handler o emisor | Qué es |
+| --- | --- | --- | --- |
+| `F3 03` | S->C (C3) | `0x4c3940` | la entrada al mundo (abajo) |
+| `F3 10` | S->C (C4) | `0x4c55a0`, desde `0x4e309c` | el inventario, con entradas de 8 bytes (abajo) |
+| `0xD3` | C->S | `0x56acd0` (`SendMove`) | caminar; FoxAnti lo manda como `A3` (abajo) |
+| `0xD3` | S->C | `0x4c6790` | dónde va un personaje: la celda X/Y y la dirección en `pkt[7] >> 4` (abajo) |
+| `0xD7` | C->S | `0x5650c0` (`0x565a79`) | pegar; FoxAnti lo manda como `A4` (abajo) |
+| `0xD7` | S->C | `0x4caae0` | **el daño** a un personaje, con el bit 15 del id como "golpe con sacudida" (abajo; antes esta tabla decía posición y dirección) |
+| `0x1C` | C->S (C3) | `0x599ef0` | pedir un gate (abajo) |
+| `0x1C` | S->C (C3) | `0x4c6e10`, desde `0x4e3f2a` | el warp: el gate, el mapa, la celda y la dirección (abajo) |
+| `F3 04` | S->C (C3) | `0x4c4b80` | revivir (abajo) |
+| `F3 12` | C->S | `0x4c6e10` | "ya está el mapa", después de un `1C` con gate (abajo) |
+| `0x0F` | S->C | `0x4e36b5` | el clima: la meta de la lluvia (abajo) |
+| `0xBD` | C->S y S->C | `0x4c421a`, `0x4c785d`; `0x4e2b10` → `0x4033b0` | el estado de Crywolf; el recorrido de la cámara (abajo) |
+| `0x46` | S->C | `0x4dab90` → `0x5f8750` o `0x5f8710` | cambia bits del `.att`: el único camino al `0x40` y al `0x80` de la cámara ([06](06-render-escenas-y-ui.md#la-cámara-del-juego)) |
+| `0x18` | S->C | `0x4cb750` | acción o animación de un personaje remoto, según `pkt[6]` |
+| `0x22` / `0x27` | S->C | `0x4d0cc0` / `0x4d3820` | crean objetos de 0xF08 bytes desde una plantilla (el 0x27 además con un XOR) |
+| `0x0D` | S->C | `0x4c65b0` | avisos del servidor: chat, banner, notificación |
+| `0x02` | S->C | `0x4e34ea` | mensaje privado: nombre de 10 bytes en `+3`, texto de 60 en `+0xD` |
 
 Los 140 handlers tocan estas estructuras (`paso5-protocolo-handlers.md`, "Estructuras de datos
 recurrentes"): la tabla de jugadores (400 entradas de 0x438 bytes en `DAT_0743a16c`, id de 16 bits
 big-endian), el personaje propio (0xF08 bytes en `DAT_07681eb4`), la cola circular de 10 paquetes
 de 0x100 bytes, el historial de chat y la máquina de acciones diferidas.
+
+### La entrada al mundo: la respuesta del `F3 03` y el `F3 10`
+
+**La respuesta del `F3 03`** (`0x4c3940`). Llega cifrada, y rearmada ocupa `0x34` bytes: el
+`PMSG_CHARMAPJOINRESULT` del GS 1.02 (`gs_protocol.h`), el mismo largo que en el cable
+(*verificado*). Sin cifrar no entra al mundo: arma un `C1 .. F1 03 …` y lo manda (*estático*, sin
+leer qué lleva). "El registro" es `[0x7681eb0]`, que al loguear apunta al mismo bloque que
+`[0x7681eb4]` (`0x4bafc9`). Todo *estático* salvo lo que dice el cable:
+
+| `pkt` | Qué es | Adónde va | En el cable |
+| --- | --- | --- | --- |
+| `[4]`, `[5]` | la celda X, Y | `0x511290(héroe, 0x20a, X, Y, ángulo)` (`0x4c44fc`) | (133, 127) |
+| `[6]` | el mapa | `0x6c9dd0` y `0x61a560(mapa)` (`0x4c41cf`, `0x4c41d4`) | 0 |
+| `[7]` | la dirección | el ángulo, (dir − 1) · 45 (`0x4c44bc..0x4c44d1`, `0x6b87d4`, `0x6b8848`), a `+0x24` | 0: −45° (Q-C175) |
+| `[8]`, `[0xc]` | la experiencia y la de la próxima | registro `+0x10`, `+0x14` | |
+| `[0x10]` | los puntos | `+0x68` | |
+| `[0x12..0x18]` | la fuerza, la agilidad, la vitalidad y la energía | `+0x18`, `+0x1a`, `+0x1c`, `+0x1e` | |
+| `[0x1a..0x24]` | la vida, la vida máxima, el maná, el maná máximo, el BP y el BP máximo | `+0x22`, `+0x26`, `+0x24`, `+0x28`, `+0x38`, `+0x3a` | |
+| `[0x28]` | el zen | `[0x7681eb4] + 0xecc` | |
+| `[0x2c]`, `[0x2d]` | el PK y el CtlCode | el héroe, `+0x375` y `+0x1d8` | |
+| `[0x2e]`, `[0x30]` | el AddPoint y el MaxAddPoint | `+0x44`, `+0x46` | |
+| **`[0x32]`, `[0x34]`, `[0x36]`** | **fuera de los campos** (Q-C144) | `+0x20` (el Leadership), `+0x48`, `+0x4a` (`0x4c410b`, `0x4c4163`, `0x4c416b`) | `0x32..0x33` es el relleno del struct, `ff ff`; `0x34..0x37` cae fuera del paquete |
+
+Además pone en 0 el byte de `+0x3c` y los WORD de `+0x3e`, `+0x40` y `+0x42`. Las velocidades del
+keepalive (`+0x4c`, `+0x58`) no las escribe. Qué hace con el mundo y el héroe, en
+[06](06-render-escenas-y-ui.md#la-entrada-al-mundo).
+
+**El `F3 10`, el inventario** (C4, `0x4e309c` → `0x4c55a0`): la cantidad y una entrada de **8
+bytes** por ítem (`pbVar11 += 8`), el lugar y 7 bytes del ítem, no los 5 de `PMSG_INVENTORYLIST`
+del GS reconstruido. Cada entrada va a `0x5bc740(…, lugar, bytes)`, que la pasa al héroe con
+`0x512a30`: el equipo del héroe sale de acá, no de la lista de la selección (*estático*). En el
+cable, `F3 10 05` y 40 bytes: cinco entradas, en los lugares 0, `0x0c`, `0x0e`, `0x11` y `0x17`
+(*verificado*). Llega en el mismo segmento que la respuesta del `F3 03` (P-C28 a).
+
+### Caminar y pegar: `D3` y `D7`
+
+**El `D3` del cliente, caminar** (`SendMove`, `0x56acd0`; *estático*; *emulado* y *verificado* en el
+cable). Sale una vez por cada camino nuevo que calcula `MoveHero`
+([06](06-render-escenas-y-ui.md#caminar)), por `send()` directo y sin C3:
+
+```text
+C1 len D3 X0 Y0 P0 P1 … Pk     con el XOR32 (la clave se arma en la pila, desde 0x56ae30)
+len     = 6 + (PathNum >> 1)
+X0, Y0  = PathX[0], PathY[0]    la celda lógica del héroe
+P0      = (dir_final << 4) | (PathNum − 1)
+P1..Pk  = los pasos, de a dos nibbles, el alto primero (el 1 en el alto de P1, el 2 en el bajo…)
+```
+
+- **`PathNum` va con un tope de 14** (`0x56ad8d..0x56ad92`: con 15 manda 14), aunque el cliente
+  camine las 15 celdas: dice un paso menos (Q-C158). Con 15 celdas sale, en claro (antes del
+  XOR32), `C1 0D D3 64 64 3D 33 33 33 33 33 33 30` (*emulado*).
+- **Las direcciones** (`0x6c82a4`, (dx, dy); *verificado* contra el eco del servidor): 0 (−1, −1), 1
+  (0, −1), 2 (1, −1), 3 (1, 0), 4 (1, 1), 5 (0, 1), 6 (−1, 1) y 7 (−1, 0). Un paso que no está en la
+  tabla da 0.
+- **`dir_final`** (*emulado*): con `PathNum == 1`, `ftol((ángulo + 22,5) · (1/45) + 1) & 7`
+  (`0x56b0b7`), así que el ángulo 0 da 1, el 90 da 3, el 180 da 5 y el 270 da 7; si no, la dirección
+  de la última celda que se manda al blanco (`TargetX/Y`), y si el blanco no está al lado, la del
+  último paso. Con el tope de 14, esa celda es `PathX[13]` y no la última del camino
+  (`0x56b0ed..0x56b13f`, con el `PathNum` ya en 14): si el blanco es la celda 15, da la dirección
+  del paso que no se manda, y si está más lejos, la del último paso. En el cable, en 171 de 178 `P0`
+  lleva la dirección del último paso (que el blanco sea la última celda es *inferido*: el cable no
+  trae el blanco), y en los 7 restantes otra: ahí el blanco está al lado del final, en otra
+  dirección (*inferido* igual). `C1 07 D3 A9 7E 21 30` sale igual en la emulación.
+- **El byte a byte**: el camino (b6, 73) → (b5, 73) → (b4, 74) → (b3, 74) da, en claro, `C1 08 D3
+  B6 73 73 76 70`; con el XOR32, `C1 08 D3 EC 23 E2 0B 08`; y FoxAnti (`encode_outbound`) deshace el
+  XOR32, cambia `D3` por `A3` y lo vuelve a aplicar: `C1 08 A3 9C 53 92 7B 78`, **igual** al
+  segmento de las 13:27:37 de la conexión 6 (*verificado*). En el cable hay 229 `A3`, con 0 a 6
+  pasos (51 de 0: los giros antes de pegar).
+
+**El `D7` del cliente, pegar** (`0x5650c0`, el opcode en `0x565a79`; *verificado* en el cable): `C1
+07 D7 idH idL 78 dir`. Antes de pegar, `0x5650c0` manda un `D3` con `PathNum` 1 para girar (`A3 X Y
+d0` en el cable, 51 veces). FoxAnti lo manda como `A4`
+([03](03-red-y-cifrado.md#la-capa-de-foxanti)). Sin la capa, el cable lleva `D3` y `D7`.
+
+**El `D3` del servidor** (`0x4c6790`): `C1 08 D3 idH idL X Y dir<<4` (*verificado*: 1.122 en el
+`muproxy.log`, todos de 8 bytes). El servidor contesta cada `A3` con un `D3` del héroe con la celda
+final del camino que le mandaron y la dirección de `P0` (*verificado*: los 212 ecos que se
+encuentran en el cable). Qué hace el cliente con él, en [06](06-render-escenas-y-ui.md#caminar).
+
+**El `D7` del servidor, el daño** (`0x4caae0`): `C1 08 D7 idH|f idL dañoH dañoL t`. El personaje es
+`id & 0x7fff`, el bit 15 (f) es el "golpe con sacudida", el daño es `pkt[5] · 256 + pkt[6]`, el tipo
+es `t & 0x3f` y `t >> 7` es otra bandera (*estático*; *verificado* en el cable, 614, con el id de un
+monstruo y con el del héroe). El bit 15 para a un jugador que camina, el héroe incluido, y sin el
+bit el cliente para a otro jugador una vez de cada dos, con un `rand() & 1` (las condiciones, en
+Q-C178). Este documento lo daba
+como posición y dirección: lo de caminar es solo esa parada.
+
+### Los cambios de mapa: `1C`, `F3 04` y `F3 12`
+
+*Estático* salvo lo que se marca; qué hace el cliente, en
+[06](06-render-escenas-y-ui.md#los-cambios-de-mapa).
+
+- **El `1C` del servidor, el warp** (`0x4c6e10`): `C3 [C1 08 1C gate mapa x y dir]`, el
+  `PMSG_TELEPORT_RESULT` del servidor (`GCTeleportSend`). `pkt[3]` es el gate (0, la habilidad
+  teleport en el mismo mapa), `pkt[4]` el mapa, `pkt[5..6]` la celda y `pkt[7]` la dirección. Con el
+  cuarto argumento del dispatcher en 0 no lo atiende y manda `C1 06 F1 03 00 1C` en C3 (*inferido*:
+  el aviso de FoxAnti).
+- **El `1C` del cliente, pedir un gate** (`0x599ef0`): `C3 [C1 06 1C gate 00 00]`, con el XOR32
+  adentro y el serial de `0x5767913`. No está en ningún cable: en la PCAP todos los cambios fueron
+  por `/move` (P-C31 a).
+- **El `F3 12` del cliente** (`0x4c6e10`): `C1 04 F3 12`, en C1 con el XOR32 y no en C3, después de
+  cargar el mapa de un `1C` con el gate distinto de 0. En el cable sale como `C1 04 F3 68` (`0x12 ^
+  0x89 ^ 0xF3`; *verificado*). Del lado del servidor pasa `RegenOk` de 1 a 2 (`Seam_4789b0`, del GS
+  reconstruido).
+- **El `F3 04` del servidor, revivir** (`0x4c4b80`): `C3 [C1 18 F3 04 x y mapa dir vida:2 maná:2
+  bp:2 relleno:2 exp:4 zen:4]`, el `PMSG_CHARREGEN`. La vida va a `0x7681eb0 + 0x22`, el maná a
+  `+0x24`, el BP (`pkt[0xc]`) a `+0x38`, la experiencia a `+0x10` y el zen a `0x7681eb4 + 0xecc`.
+  **No manda el `F3 12`.** En el `muproxy.log` hay dos, los dos cinco segundos después del `17` (la
+  muerte) del héroe, y ningún `F3 12` detrás (*verificado*).
+
+En la PCAP, los cuatro `/move` de la sesión (*verificado*; el C3 del servidor, descifrado):
+
+| Hora | `1C` del servidor | Gate → mapa, celda | `F3 12` del cliente |
+| --- | --- | --- | --- |
+| 19:24:34.036 | `C1 08 1C 11 00 8A 79 00` | 17 → 0 (desde el 0), (138; 121) | +37 ms |
+| 19:24:47.872 | `C1 08 1C 1B 03 AB 6C 00` | 27 → 3, (171; 108) | +299 ms |
+| 19:24:50.185 | `C1 08 1C 4B 07 E1 35 00` | 75 → 7, (225; 53) | +227 ms |
+| 19:25:02.856 | `C1 08 1C 11 00 90 81 00` | 17 → 0 (desde el 7), (144; 129) | +141 ms |
+
+Antes de cada `1C` va el `/move` del cliente en el chat, y después el servidor manda `C1 05 B2 19
+00` (del Castle Siege) y un `C3 [22 FE …]` (el zen del `/move`). Los monstruos vuelven a llegar
+(`13`) después del `F3 12`. El tiempo hasta el `F3 12` es la carga: 37 ms sin cambiar de mapa y de
+141 a 299 ms con carga (*inferido* que sea la carga).
+
+### El clima y Crywolf: `0F` y `BD`
+
+- **El `0F` del servidor, el clima** (`0x4e36b5`): `C1 04 0F xy`. Con el nibble alto en 0,
+  `0x75fdc38 = 0`; con 1, `(pkt[3] & 0xf) · 6`; con otra, va al default del dispatcher
+  (`0x4e5b4a`) sin tocar la lluvia (*estático*). `0x75fdc38` es la meta de la cuenta de la lluvia de
+  las hojas ([06](06-render-escenas-y-ui.md#lo-propio-de-lorencia)). En el cable llegan de `0x01` a
+  `0x29` (en el `muproxy.log`, `24`, `21`, `26`, `01`, `17`, `27` y `07`; *verificado* que llegan).
+- **El `BD` del cliente**: `C1 04 BD 00`, en C1 con el XOR32, al entrar al mapa 34 (Crywolf), desde
+  la respuesta del `F3 03` (`0x4c421a`) y desde el `1C` (`0x4c785d`): el byte que sigue es 0 en los
+  dos (`0x4c4269`, `0x4c78ac`; *estático*; *inferido*: el pedido del estado de Crywolf). Hay otros
+  dos emisores de `BD`, con el 3 (`0x435d4c`) y con el 9 (`0x65a986`), sin leer.
+- **El `BD 00` del servidor** (`0x4e2b10` → `0x4033b0`): pone en su estado el recorrido de la
+  cámara `CCameraMove`, el único camino a él ([06](06-render-escenas-y-ui.md#la-cámara-del-juego);
+  *estático*).
 
 ## Qué implica para MuRet
 
@@ -367,8 +526,11 @@ de 0x100 bytes, el historial de chat y la máquina de acciones diferidas.
 | El dispatcher solo se alcanza por FoxAnti | el dispatcher es parte del cliente; la ofuscación es una capa aparte | CL2 |
 | 104 opcodes al default | el default loguea el opcode desconocido una vez (sirve para descubrir lo que falta) | CL4 |
 | El `A9 00 00 01` al CS sale porque la escena de login arma un personaje con el cuervo (Q-C16) | se manda igual al abrir el CS, como pedido de la información de la mascota; el `A9 01 00 08` del juego va con la UI de las mascotas | CL4, CL8 |
-| El keepalive: un timer desde el arranque que manda con el GS conectado, sin mirar el login (Q-C53), y el primero con el login aceptado; las velocidades en 0 hasta que hay personaje | el primero con el login aceptado y después cada 20 s desde ese, en `LoggedIn` y, desde la CL6.3 y la CL6.5, también en la espera de la lista, la elección, crear, borrar y la entrada al mundo; 0 y 0, sin ajuste, hasta que la CL7 lea las del personaje en la respuesta del `F3 03` | CL4, CL6.3, CL6.5, CL7 |
+| El keepalive: un timer desde el arranque que manda con el GS conectado, sin mirar el login (Q-C53), y el primero con el login aceptado; las velocidades en 0 hasta que hay personaje | el primero con el login aceptado y después cada 20 s desde ese, en `LoggedIn` y, desde la CL6.3 y la CL6.5, también en la espera de la lista, la elección, crear, borrar y la entrada al mundo; 0 y 0, sin ajuste, hasta que la CL7 sepa quién las calcula: la respuesta del `F3 03` no escribe `+0x4c` ni `+0x58` ([La entrada al mundo](#la-entrada-al-mundo-la-respuesta-del-f3-03-y-el-f3-10), P-C28 i) | CL4, CL6.3, CL6.5, CL7 |
 | Los `F3` de la selección: el `F3 00` desde la lógica del login, la lista sin mirar el largo y el `F3 03` desde el primer paso de la escena 5 | `Protocol::Character` (`WriteCharacterListRequest`, `ReadCharacterList` con `TooShort` y el lugar de más de 4 descartado, Q-C101, y `WriteCharacterSelect`) y tres estados más de la `ServerSession`; crear y borrar, con sus avisos, en la CL6.5 | CL6.3, CL6.5 |
+| La respuesta del `F3 03`: un C3 de `0x34` bytes que `0x4c3940` lee hasta el `0x37` (Q-C144), y el `F3 10` con entradas de 8 bytes | un lector de la respuesta con `TooShort`, el estado `0x3d` en la sesión, y un lector del `F3 10` con el lugar y los 7 bytes de cada ítem (propuesta del barrido de Lorencia) | CL7 |
+| Caminar: el `D3` con el tope de 14 y la dirección final por el blanco o por el ángulo; el `D3` y el `D7` del servidor | un escritor del `D3` contra el `SendMove` real emulado y los bytes del cable, y lectores del `D3` y del `D7` (este, al menos, con la sacudida); el `A3` y el `A4` siguen siendo de la capa de FoxAnti (propuesta del barrido) | CL7.4 |
+| Los cambios de mapa: el `1C` en los dos sentidos, el `F3 04`, el `F3 12` y el `BD 00` | lectores del `1C` y del `F3 04`, escritores del `1C` (en C3), del `F3 12` y del `BD 00` (en C1 con el XOR32), y la espera del warp en la sesión (propuesta del barrido) | CL7.5 |
 
 Tests que fija:
 
@@ -386,3 +548,10 @@ Tests que fija:
 - La lista con entradas sintéticas (nombres como `"char0001"`), y el `F3 00` y el `F3 03` de MuRet
   contra los del cable por el largo, el tipo y el subcódigo, sin imprimir valores
   (`SameBytesWithoutValues`, CL6.3).
+- Del mundo, con lo que propone el barrido de Lorencia y sin ningún nombre: la respuesta del `F3
+  03` del `muproxy.log` (la celda (133, 127), el mapa 0 y la dirección 0) y el `F3 10` de cinco
+  ítems (CL7); el camino (b6, 73) … (b3, 74) da `C1 08 D3 EC 23 E2 0B 08`, y con FoxAnti `C1 08 A3
+  9C 53 92 7B 78`, 15 celdas salen como 14, y el `D3` y el `D7` del servidor con los formatos del
+  cable, sin ids reales (CL7.4); los cuatro `1C` de la PCAP y los cuatro `F3 12` (`C1 04 F3 68`),
+  los dos `F3 04` del `muproxy.log`, y el `1C` del cliente contra el cifrado C3 con un serial fijo
+  (CL7.5).

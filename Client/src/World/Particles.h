@@ -16,8 +16,9 @@ class CrtRandom;
 
 // Las partículas (CL7.6 B2): la tabla de 0x53fe70 (0x743a198, 3.000 lugares de 0x78 bytes), su paso,
 // 0x5446e0, con el viento de 0x7609bb8, y lo que su dibujo, 0x548550(0), le pide a 0x621400. De sus
-// tipos, MuRet solo arma el aliento del caballo del login (0x5f2, Effect\smoke01.jpg, subtipo 0); los
-// demás vienen con los efectos de cada escena. Contrato: 06 § Los efectos del login. Verificado bit a
+// tipos, MuRet arma el aliento del caballo del login (0x5f2, Effect\smoke01.jpg, subtipo 0) y la chispa
+// del cuervo (0x5c6, Effect\Spark03.jpg, subtipo 5, CL7.6 C); los demás vienen con los efectos de cada
+// escena. Contrato: 06 § Los efectos del login. Verificado bit a
 // bit contra el código real emulado (tests/vectors/world55/particles.txt).
 namespace Client::World
 {

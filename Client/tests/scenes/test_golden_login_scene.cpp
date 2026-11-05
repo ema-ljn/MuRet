@@ -925,9 +925,10 @@ TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
     scene.Leave();
 }
 
-// CL7.6 C2: la chispa del cuervo, una por paso desde un hueso de la pose del último dibujo (Q-C133), vive
-// 10 pasos y va en el pase de ojo con Effect\Spark03.jpg (0x5c6), aditiva, achicándose por 0,9 y
-// apagándose por 1/1,03. Pasado el salto, las de los últimos pasos rodean al cuervo.
+// CL7.6 C2: la chispa del cuervo, una por paso desde un hueso de la pose del último dibujo (Q-C133), nace
+// con vida 10 y el paso de las partículas, al final del mismo paso, ya le baja uno: en cada dibujo hay 9,
+// en el pase de ojo con Effect\Spark03.jpg (0x5c6), aditivas. Pasado el salto rodean al cuervo. La escala
+// y la luz de cada paso las fijan los vectores (ParticlesTest).
 TEST_F(GoldenLoginWorld, TheRavenLeavesSparks)
 {
     Client::Render::Models::ClothWorld cloth;
@@ -976,8 +977,7 @@ TEST_F(GoldenLoginWorld, TheRavenLeavesSparks)
                 ++sparks;
             }
         }
-        EXPECT_GE(sparks, 5u) << "el paso " << step << ": una por paso, de 10 pasos de vida";
-        EXPECT_LE(sparks, 10u) << "el paso " << step;
+        EXPECT_EQ(sparks, 9u) << "el paso " << step << ": una por paso, de 10 pasos de vida";
     }
     scene.Leave();
 }

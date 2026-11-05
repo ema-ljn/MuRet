@@ -7,7 +7,8 @@ cada paso, a veces, una nueva en el primer lugar libre, y después el paso y el 
 el viento, el estado del rand() de la CRT, los 0x78 bytes de cada lugar usado de la tabla (0x743a198, en hexadecimal sin ceros a la izquierda) y
 lo que el dibujo le pide a 0x621400 (que no corre: se lee y se vuelve) y a las mezclas.
 
-Uso: make_particle_vectors.py <salida> [casos, 20 por defecto]  (con MURET_MAIN_EXE, como emu.py)"""
+Uso: make_particle_vectors.py <salida> [casos del aliento, 20 por defecto]  (con MURET_MAIN_EXE, como
+emu.py). Después van los SPARK_CASES de la chispa: el test espera 20 + 8."""
 import os
 import random
 import struct

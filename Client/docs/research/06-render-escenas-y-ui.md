@@ -1598,11 +1598,14 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
   cifrada del contador (Q-C125): MuRet le pasa los pasos de la tela, y no suena (no hay sonido): el paso
   lo devuelve. Las chispas, desde la CL7.6 C2, bit a bit contra el código real (`particles.txt`, 8
   casos de la chispa): el paso genérico de `0x5446e0` (la vida y el movimiento, con el doble giro de
-  Q-C134), lo propio del subtipo 5 (`0x545209` → `0x545f9e`: la escala por 0,9f y la luz por
-  0,9708738f, 1/1,03) y el dibujo, el camino de siempre de `0x548550` (`0x54889a`): el billboard de
-  `0x621400` con `Effect\Spark03.jpg` (`0x5c6`, que sube `0x61d737` con `GL_LINEAR` y `GL_CLAMP`) por
-  la escala, aditivo (3 componentes), sin giro y con toda la textura. Ninguno saca `rand()`. La pose de la chispa es la de MuRet, a nivel de float:
-  `0x4eb860` acumula la posición desde la raíz en el mundo, y MuRet la suma al final.
+  Q-C134), lo propio del subtipo 5 (`0x545209` → `0x545f9e`: la escala por 0,9f, `0x3f666666`, y
+  la luz por 0,97087383f, `0x3f788b30`: el float de 1 / 1,03f, que no es el float de 1 / 1,03) y el
+  dibujo, el camino de siempre de `0x548550` (`0x54889a`): el billboard de `0x621400` con
+  `Effect\Spark03.jpg` (`0x5c6`, 32 × 32, que sube `0x61d737` con `GL_LINEAR` y `GL_CLAMP`) por la
+  escala, aditivo (3 componentes), sin giro y con toda la textura. Ninguno saca `rand()`. Nace con vida
+  10 y el paso de las partículas le baja uno al final del mismo paso: en cada dibujo hay 9. La pose de
+  la chispa es la de MuRet, a nivel de float: `0x4eb860` acumula la posición desde la raíz en el mundo,
+  y MuRet la suma al final.
 - **Lo que crea**: una **chispa por paso** (`0x5c6`, `Effect\Spark03.jpg`, subtipo 5), desde un
   hueso al azar de la pose del último dibujo (Q-C133): vida 10 pasos,
   velocidad R(yaw) · (−(`rand() % 2` + 2), 0, 0), color (0,3; 0,4; 0,7) y escala 0,8, que cada paso se

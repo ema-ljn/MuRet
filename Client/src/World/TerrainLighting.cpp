@@ -2,11 +2,11 @@
 
 #include "Core/Expected.h"
 #include "Data/DataFile.h"
-#include "Data/DataPath.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainLight.h"
 #include "Data/WorldFolder.h"
+#include "World/WorldFiles.h"
 
 #include <glm/ext/vector_float3.hpp>
 #include <glm/geometric.hpp>
@@ -15,11 +15,8 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
-#include <optional>
 #include <span>
 #include <string>
-#include <system_error>
-#include <utility>
 #include <vector>
 
 namespace Client::World
@@ -75,26 +72,6 @@ float ShadeOf(const glm::vec3& normal, const Shading& shading)
         return 0.0f;
     }
     return shade > 1.0f ? 1.0f : shade;
-}
-
-// Más que cualquier TerrainHeight.OZB (1.080 + 65.536 bytes) o TerrainLight.OZJ del laboratorio.
-constexpr std::uintmax_t MaxTerrainFileBytes = std::uintmax_t{16} * 1024 * 1024;
-
-Core::Expected<std::vector<char>, std::string> ReadWorldFile(const std::filesystem::path& dataRoot,
-                                                             const std::string& relative)
-{
-    std::error_code error;
-    const std::optional<std::filesystem::path> path = Data::ResolveDataPath(dataRoot, relative, error);
-    if (!path.has_value())
-    {
-        return Core::Unexpected("Data\\" + relative + (error ? " no se puede buscar: " + error.message() : " no está"));
-    }
-    Core::Expected<std::vector<char>, std::error_code> bytes = Data::ReadDataFile(*path, MaxTerrainFileBytes);
-    if (!bytes.HasValue())
-    {
-        return Core::Unexpected("Data\\" + relative + " no se puede leer: " + bytes.Error().message());
-    }
-    return std::move(bytes).Value();
 }
 
 const Data::Terrain::TerrainLightColor& CellLight(const TerrainLighting& lighting, int x, int y)

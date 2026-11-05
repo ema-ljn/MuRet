@@ -213,10 +213,11 @@ slot de Q-C19; sin diferencias en geometría, UV, textura ni alfa):
   sin culling y `alfa = alfa[vy·256 + vx] / 255` por vértice. Una capa 2 de valor 255 no se trata
   como vacía: se dibuja el slot `0x122`, que no es un tile (Q-C19, 3 celdas de la traza).
 - La luz por vértice es el píxel de `TerrainLight.OZJ` en `(x, 255 − y)`, dividido 255: la imagen
-  está dada vuelta en Y respecto de la grilla. Coincide (±1 %) en 1.746 de los 1.869 vértices que se
-  pueden medir (canal rojo > 8); los otros 123 salen más brillantes, nunca más oscuros (×1,1 a
-  ×3,1): luces dinámicas que se suman a la base (fuego, efectos),
-  *inferido*, sin identificar quién las suma.
+  está dada vuelta en Y respecto de la grilla. Coincide (±1 %) en 1.746 de los 1.875 vértices que se
+  pueden medir (el rojo de la traza por encima de 8 / 255, en los dos pases); los otros 129 salen más
+  brillantes, nunca más oscuros (×1,1 a ×3,1): luces dinámicas que se suman a la base (fuego,
+  efectos), *inferido*, sin identificar quién las suma (CL7.1,
+  `GoldenTerrainTrace.TheCellsOfLorenciaMatchTheTrace`; antes este documento daba 1.869 y 123).
 - **El estado de GL de los dos pases** (*verificado* en la traza, CL7.1): el opaco (`0x5fa260`,
   `0x620980`) va sin mezcla, con culling y depth test y escribiendo la profundidad, en los 329; el de
   alfa (`0x5fa350`, `0x620a00(1)`) con `GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA`, el alpha test de la

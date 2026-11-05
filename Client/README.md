@@ -268,13 +268,13 @@ sesión no se reconecta sola. Con un servidor ocupado, la lista vuelve a pedirse
 CI no tiene la VM del laboratorio, así que el login de punta a punta se prueba a mano. Son el paso
 4 de la CL4.5, en el
 [plan de la CL4](../docs/superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md), y el paso 10
-de la CL6.3, en el
+de la CL6.3 y P-C16 de la CL6.5, en el
 [plan de la CL6](../docs/superpowers/plans/2026-11-03-ola-cl6-modelos-y-seleccion.md). Lo que
-falta correr está en P-C21 del [08](docs/research/08-pendientes.md).
+falta correr está en P-C16 y P-C21 del [08](docs/research/08-pendientes.md).
 
 1. Levantar la VM del laboratorio con el ConnectServer y el GameServer andando. La cuenta de
-   prueba necesita personajes: MuRet todavía no los crea (CL6.5), así que se crean antes con el
-   cliente original, de clases distintas y con algo de equipo.
+   prueba necesita personajes de clases distintas y con algo de equipo: se crean antes con el
+   cliente original, porque los que crea MuRet salen sin equipo, como en el original (Q-C103).
 2. Correr, con la IP del ConnectServer de la VM y la carpeta `Client/assets/Data`, que trae
    `Enc1.dat` y `Dec2.dat`:
 
@@ -296,20 +296,32 @@ falta correr está en P-C21 del [08](docs/research/08-pendientes.md).
 4. En la selección: cada personaje de la cuenta en su lugar, con su clase y su equipo, animado y
    parado; el que está bajo el mouse con el contorno; un clic lo elige (se ve más claro) y un clic
    en el vacío lo suelta.
-5. Con uno elegido, Enter: el log dice "se elige el personaje del lugar X para entrar al mundo" y
+5. Crear y borrar (P-C16, de la CL6.5), con nombres de prueba inventados para la ocasión. El botón
+   de crear de la barra abre la ventana: elegir cada clase (la vista previa cambia y saluda) y
+   anotar cuántos frames tarda el saludo. Un nombre de menos de 4 bytes y OK: sale el aviso del
+   nombre corto, y su OK vuelve a la ventana. Uno que pase y OK: el log dice "se pide crear un
+   personaje de la clase N" y "se creó el personaje del lugar X", o "el GameServer no creó el
+   personaje: R", con su aviso. Repetirlo con un nombre que ya exista y anotar R. Elegir el nuevo y
+   el botón de borrar: el aviso pide el código; con uno malo, anotar el resultado; con el bueno, el
+   log dice "se pide borrar el personaje del lugar X" y "se borró el personaje del lugar X". Con el
+   aviso del borrado abierto, probar un clic sobre otro personaje antes de que llegue la respuesta,
+   y anotar cuál se borra. Capturar la barra, los avisos y la ventana con la vista previa en
+   640 × 480 y en 800 × 600, y hacer lo mismo con el cliente original. El log no trae el nombre ni
+   el código.
+6. Con uno elegido, Enter: el log dice "se elige el personaje del lugar X para entrar al mundo" y
    "se entra al mundo con el personaje del lugar X", se ve un frame de la carga del mundo (las
    cuatro `LSBg`) y después el negro del juego. El log del GameServer muestra que ese personaje
    entró. Cerrar y repetirlo con doble clic en vez de Enter, y con el botón de conectar de la
    barra.
-6. Mirar el log durante dos minutos: desde "el GameServer aceptó el login", seis o siete "se mandó
+7. Mirar el log durante dos minutos: desde "el GameServer aceptó el login", seis o siete "se mandó
    el keepalive al GameServer", uno cada 20 s, sin "se perdió la conexión con el GameServer". Con
    `[Server] Obfuscation = foxanti`, que es el valor por defecto: el GameServer del laboratorio
    usa FoxAnti.
-7. Cancelar: en otra corrida, en la ventana de la cuenta, el botón de cancelar (o Esc). El
+8. Cancelar: en otra corrida, en la ventana de la cuenta, el botón de cancelar (o Esc). El
    original cierra el GameServer, vuelve a conectar al ConnectServer y muestra la lista otra vez
    (06 § La cuenta y la clave). Anotar si MuRet vuelve a la lista o se cierra, y si antes sale un aviso.
    Hacer lo mismo con el cliente original en la VM.
-8. Cerrar la ventana y, si se usó `--auto-login`, borrar la clave del entorno
+9. Cerrar la ventana y, si se usó `--auto-login`, borrar la clave del entorno
    (`unset MURET_CLIENT_PASSWORD`).
 
 El log (`muret-client.log`, junto al ejecutable) no trae la cuenta, la clave ni las direcciones:
@@ -463,6 +475,18 @@ Los del login (`GoldenLogin`, desde la CL2.5) usan solo la carpeta del cable, co
 eligen del cable los login, los keepalive, los saludos y las respuestas, y miran cabeceras,
 tamaños, opcodes y la versión. De la cuenta, la clave y el serial no miran nada.
 
+Los de las trazas de GL (desde la CL6.2: `GoldenSkinningTrace`, `GoldenShineTrace`,
+`GoldenPass3DTrace` y `GoldenCharacterDrawing`) comparan lo que MuRet hace con los modelos con lo
+que el original le mandó a GL. Leen las trazas de GLIntercept de la selección y de Lorencia
+(`character-selection-Frame_003207.txt` y `lorencia-Frame_016215.txt`, de `graphics-01/` en
+`mu-online-reverse-lab`, descomprimidas con `gunzip -k`), que quedan fuera de Git.
+`MURET_CLIENT_GL_TRACE_DIR` apunta a la carpeta que las tiene, solo en el entorno: sin la variable
+se saltean, y si no es una carpeta o le falta una traza, fallan. Necesitan también la carpeta golden:
+
+```bash
+MURET_CLIENT_GL_TRACE_DIR=/ruta/a/trazas ctest --preset linux-x64-debug -R Trace
+```
+
 Los de `tests/render_gl/` (desde la CL5.1) abren una ventana escondida con un contexto 3.3 core
 (`tests/support/GlTestContext.h`), dibujan en un framebuffer de 64 × 64 y leen los píxeles. Llevan
 la etiqueta `gl`. Sin pantalla o sin OpenGL 3.3 se saltean, y con `MURET_CLIENT_REQUIRE_GL=1`
@@ -503,9 +527,10 @@ Client/
                   Models/, y el pase 3D (CL6)
     Scenes/       la escena de prueba (CL3); el SceneManager, la carga, el login (CL5);
                   la selección y el juego (CL6, CL7)
-    World/        mapa, cámara, objetos                 (CL7)
+    World/        la luz del terreno (CL6.4); mapa, cámara, objetos (CL7)
     GameLogic/    la apariencia del personaje (CL6); entidades, items, chat (CL7+)
-    UI/           widgets, la lista, la cuenta y los avisos del login (CL5.5); HUD (CL8)
+    UI/           widgets, la lista, la cuenta y los avisos del login (CL5.5); la barra de la
+                  selección, sus avisos y la ventana de crear (CL6.5); HUD (CL8)
     Audio/        música y efectos                      (CL10)
   tests/          GoogleTest                            (CL0.2+)
   assets/         la Data\ del original, tal cual, y su manifiesto de hashes

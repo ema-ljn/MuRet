@@ -194,9 +194,9 @@ Client/
     Protocol/              opcodes, structs, Dispatcher, handlers por dominio (CL2, CL4, CL9)
     Render/                Renderer, Shader, Texture, SpriteBatch, Text, Terrain, Models (CL5+)
     Scenes/                Login, CharacterSelect, Game                    (CL5, CL6)
-    World/                 Map, Camera, objetos del mapa                   (CL7)
-    GameLogic/             personaje, viewport de entidades, items, chat   (CL7+)
-    UI/                    widgets, ventanas, HUD                          (CL5, CL8)
+    World/                 Map, Camera, objetos del mapa                   (CL6.4, CL7)
+    GameLogic/             personaje, viewport de entidades, items, chat   (CL6, CL7+)
+    UI/                    widgets, ventanas, HUD                          (CL5, CL6.5, CL8)
     Audio/                 música y efectos                                (CL10)
   tests/                   data/ network/ protocol/ app/ … (GoogleTest)
 ```
@@ -216,8 +216,8 @@ Cada sub-ola es un PR chico. "Terminada cuando" es la condición objetiva de cie
 | CL3 | Plataforma y bucle de juego | CL3.0 el bucle de juego (paso fijo, interpolación, VSync) · CL3.R qué depende del paso de 40 ms (P-C03) · CL3.1 ventana y contexto GL con SDL3 · CL3.2 bucle con tick fijo y render desacoplado, con reloj falso en los tests · CL3.3 input (teclado por frame, mouse) · CL3.4 config + línea de comandos + log | game loop, tiempo, eventos del SO | 02, 08 |
 | CL4 | Red del cliente | CL4.0 sockets no bloqueantes · CL4.R la conexión del original (P-C11, Q-C11) · CL4.1 socket no bloqueante portable consultado por el bucle, con la cola de envío · CL4.2 `Dispatcher` y el opcode desconocido · CL4.3 ConnectServer: saludo, lista, IP del GS · CL4.4 GameServer: saludo, versión y login · CL4.5 keepalive y desconexión | E/S no bloqueante, estados de una conexión | 03, 04 |
 | CL5 | Render 2D y la escena de login | CL5.0 el pipeline gráfico (buffers, shaders, matrices, texturas) · CL5.R las escenas de carga y de login en el binario (P-C04, P-C13) · CL5.1 `Renderer` y texturas desde OZT/OZJ · CL5.2 `SpriteBatch` en 640 × 480 escalado · CL5.3 texto con caché y colores `0x02` · CL5.4 `SceneManager`, la escena de carga y la `LoginScene` · CL5.5 UI de login conectada a CL4: lista de servidores, cuenta y clave. El mundo 3D detrás del login (el mapa 55, `World56`), el logo y el personaje llegan con la CL6 y la CL7 | GPU, shaders, coordenadas lógicas | 06, 02 |
-| CL6 | Modelos y selección de personaje | CL6.0 huesos y cuaterniones (rotaciones, slerp, una jerarquía de huesos y el skinning, a mano contra glm) · CL6.R lectura guiada del render de modelos (P-C01, ya reproducido contra las trazas) y flujo `F3` (P-C06) · CL6.1 parseo de modelos · CL6.2 skinning y animación · CL6.3 `CharacterSelectScene` con preview 3D y los paquetes de selección · CL6.4 el logo y el personaje del login · CL6.5 crear y borrar personajes (`F3 01`, `F3 02`) con la UI de la selección, o a la CL8 si la ola se alarga | jerarquías de huesos, interpolación, cuaterniones | 05, 06, 08 |
-| CL7 | Mundo | CL7.R lectura guiada del renderer de terreno (P-C02, ya identificado y verificado), y qué mapas conoce el original y cómo pasa de uno a otro (P-C12) · CL7.1 terreno con capas, alfa y luz · CL7.2 objetos del `.obj` · CL7.3 cámara · CL7.4 picking y movimiento (`0xD3`/`0xD7`): caminar en Lorencia · CL7.5 los otros mapas: cargar cualquier mundo del `Data\`, cambiar de mapa (gates y warps) y lo propio de cada uno | mallas, frustum culling, rayos | 05, 06 |
+| CL6 | Modelos y selección de personaje | CL6.0 huesos y cuaterniones (rotaciones, slerp, una jerarquía de huesos y el skinning, a mano contra glm) · CL6.R lectura guiada del render de modelos (P-C01, ya reproducido contra las trazas) y flujo `F3` (P-C06) · CL6.1 parseo de modelos · CL6.2 skinning y animación · CL6.3 `CharacterSelectScene` con preview 3D y los paquetes de selección · CL6.4 el logo y el personaje del login · CL6.5 crear y borrar personajes (`F3 01`, `F3 02`) con la barra de la selección, la ventana de crear y su vista previa | jerarquías de huesos, interpolación, cuaterniones | 05, 06, 08 |
+| CL7 | Mundo | CL7.R lectura guiada del renderer de terreno (P-C02, ya identificado y verificado), y qué mapas conoce el original y cómo pasa de uno a otro (P-C12) · CL7.1 terreno con capas, alfa y luz · CL7.2 objetos del `.obj` · CL7.3 cámara · CL7.4 picking y movimiento (`0xD3`/`0xD7`): caminar en Lorencia · CL7.5 los otros mapas: cargar cualquier mundo del `Data\`, cambiar de mapa (gates y warps) y lo propio de cada uno · CL7.6 los efectos del mundo y de los personajes (lo que dejó la CL6, abajo) | mallas, frustum culling, rayos | 05, 06 |
 | CL8 | HUD y ventanas | CL8.1 barras y minimapa · CL8.2 chat · CL8.3 `UI::Window` y el administrador · CL8.4 inventario | UI retenida vs inmediata, eventos | 06 |
 | CL9 | Gameplay | CL9.R por dominio (P-C09), y los mapas de evento (P-C12) · CL9.1 otros jugadores y monstruos (viewport) · CL9.2 combate y skills · CL9.3 items · CL9.4 party, gremio y comercio · CL9.5 los mapas de evento que conozca el original: entrada, reglas, paquetes y UI | modelado de dominio, consistencia con el servidor | 04 |
 | CL10 | Audio | CL10.R formatos y disparadores (P-C07) · CL10.1 música · CL10.2 efectos | audio digital, mezcla, streaming | 08 |
@@ -239,6 +239,47 @@ también en los mapas de evento. CL10 — música y efectos.
 [CL4](../plans/2026-11-02-ola-cl4-red-del-cliente.md), la
 [CL5](../plans/2026-11-02-ola-cl5-render-2d-y-login.md) y la
 [CL6](../plans/2026-11-03-ola-cl6-modelos-y-seleccion.md).
+
+### Lo que dejó la CL6
+
+Cada plan lo suma al escribirse. El detalle está en las sub-olas del
+[plan de la CL6](../plans/2026-11-03-ola-cl6-modelos-y-seleccion.md#al-cerrar-la-cl6) y en el
+[08](../../../Client/docs/research/08-pendientes.md).
+
+- **CL7.**
+  - **Los mundos de la selección y del login:** el mapa 54 (`World55`) y el 55 (`World56`) van en el
+    pase 3D de la CL6.3, antes de los personajes y con la misma cámara, como `0x5fc260` antes de
+    `0x510d00`.
+  - **Lo que pide el terreno:** la z del objeto de la vista previa (hoy en (50, 50, 0)) y la zona
+    segura de la celda del jinete, que apaga el caballo.
+  - **El `F3 03`:** su respuesta (`0x4c3940`), el tope de `EnteringWorld` y las velocidades del
+    keepalive (`ServerSession::SetKeepaliveSpeeds`) con lo que traiga esa respuesta.
+  - **El movimiento:** los multiplicadores de `0x4f9580`, y que la cámara que se mueve (CL7.3) dé un
+    `Render::Camera3D`.
+  - **Volver a la selección desde el juego** (el `F1 02` con 1): `SceneTransitions` ya lo deja, pero
+    `CharacterSelectScene::Enter` pide la lista solo en `LoggedIn`, y con la sesión en
+    `EnteringWorld` la escena quedaría con la lista vieja y sin poder elegir, crear ni borrar.
+- **CL7.6, los efectos.** El roadmap no tenía su ola. Van al final de la CL7 porque se dibujan en el
+  pase 3D del mundo, con su cámara, y para entonces el terreno y los objetos ya están. Entran:
+  - el polvo del caballo (`0x5f2`) y los efectos de sus acciones;
+  - la luz de abajo del elegido (`0x53fe70`, la `chasellight`): `0x61ca30` ya carga su textura, la
+    `0x729`, y la selección no la dibuja;
+  - los de las armas.
+- **CL8.**
+  - **El menú de la selección:** la ventana de `+0x3d0`, que abren Esc y el botón del menú, como el
+    menú del login (P-C13); y la de `+0x7e8`. Las dos, sin leer.
+  - **El área de mensajes (CL8.2):** 120 líneas, `0x555190`. La selección la vacía y escribe una
+    línea con el texto 1240 como formato y los dos números de `pkt[5]` de la lista.
+  - **El `0x0D`:** el string del primer aviso de tipo 1 va a la izquierda de la franja de la barra
+    (`+0x511`), cuando MuRet lea ese paquete.
+  - **El cuervo del login** (`0x420d60`, P-C15 c), con las mascotas.
+  - La CL6.5 no pasó a la CL8: entró entera en la CL6, salvo lo de esta lista.
+- **CL9.**
+  - **Los modelos de los monstruos** (CL9.1), con el research ya corregido. Falta `Monster50` en el
+    laboratorio, y el original se cierra cuando aparece el tipo 58
+    ([09](../../../Client/docs/research/09-datos-disponibles.md#el-data-del-cliente-contra-lo-que-pide-mainexe)).
+  - **La pose de los NPC** (Q-C108).
+  - **Q-C95,** con el primer modelo que se desvanezca.
 
 ## Cómo el research se vuelve test
 

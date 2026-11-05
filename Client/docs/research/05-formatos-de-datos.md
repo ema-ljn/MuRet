@@ -348,7 +348,8 @@ por un script que lee como él, sin bytes de sobra en ninguno):
   propia copia de los huesos (125 con 56, 10 dummy; 86 con 51, 6 dummy; todas con una acción de
   una key): el lector la lee y solo sirve para las cajas de `0x4f1f80`. El dibujo de una parte
   (`0x60cf70`) no posa sus huesos: usa las matrices que dejó la pose del cuerpo (*estático*).
-- Sin contrastar contra una traza: las normales (la luz llega a GL como un color por vértice) y
+- Las normales se contrastaron contra las trazas por lo que sale de ellas: las UV del brillo
+  (CL6.2 C) y la luz por vértice (CL6.4 PR B), en [06](06-render-escenas-y-ui.md). Sin contrastar,
   los huesos dummy, que la pose no toca (`0x4eb860`, *estático*).
 
 Cómo se verificó: cada bloque de `GL_TRIANGLES` de las trazas se emparejó con la malla que manda la
@@ -397,5 +398,5 @@ Tests que fija:
 - La carpeta de cada mapa de la tabla, y que los 20 mundos del laboratorio son la de alguno
   (`WorldFolderTest`, `GoldenWorldFolder`, CL5.4).
 - Los 1.962 modelos se leen sin bytes de sobra, con las cuentas de versión (816, 1.142 y 4) y de
-  script (142 mallas) de arriba (`GoldenModelsTest`, CL6.1); un `.bmd` sintético con la versión
+  script (142 mallas) de arriba (`GoldenBmd`, CL6.1); un `.bmd` sintético con la versión
   `0x00` se lee en claro, y uno con un tamaño que no entra se rechaza (`BmdTest`, CL6.1).

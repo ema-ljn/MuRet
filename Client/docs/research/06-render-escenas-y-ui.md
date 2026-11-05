@@ -300,7 +300,7 @@ la traza:
   El giro corre una vez por paso de la animación, como el avance del cuerpo, y no una vez por frame
   dibujado: con un 20 % por frame, en el segundo swap estaría en (−21,52, 0,82)°. El personaje
   propio mira a (0, −0,65)° en los cinco swaps (en el primero le falta 0,0065° en x): quién le pone
-  ese objetivo, que no sale del azar, sin leer (P-C14).
+  ese objetivo, que no sale del azar, sin leer (P-C17 a).
 - **Pases extra de brillo.** Las mallas `Male17` y la espada se dibujan tres veces más, con las
   mismas posiciones y UV que no están en el archivo (texturas GL 141, 115 y 120); las del guardia y
   las pociones, una vez más (la 120). Las UV salen de la normal de cada vértice en el mundo
@@ -1171,7 +1171,8 @@ frame y `+0x34` su dibujo. Todo en **píxeles de la ventana**, como el mouse de 
 | `+0x4578` | `0x6ba848` (`0x63ef00`, arma `0x63f020`) | la de los créditos (*inferido*: la abre el botón de los créditos de la barra); abierta, tapa el mundo (paso 4 del dibujo) y no deja abrir la lista (`0x4c1860`); con su propia fuente (`0x63f2f2` lee el charset) | sin leer |
 
 Además, `+0x7f50` (vtable `0x6ba810`) es la de la selección de personaje, cuyo botón pasa a la
-carga del mundo (`0x633c10`, 02); `+0x8498` (`0x6ba7d4`) la abren los avisos `0x36` y `0x37`.
+carga del mundo (`0x633c10`, 02); `+0x8498` (`0x6ba7d4`) es la ventana de crear: la abre el botón
+de crear de la barra, y los avisos `0x36` y `0x37` la vuelven a abrir (§ La ventana de crear).
 Un botón marca el clic en `+0xaa` (`0x63c490` lo pone en 1, en `0x63c4fc`).
 
 **Cuál va arriba** (*estático*). Las ventanas viven en una lista doble del administrador (la cabeza
@@ -1640,13 +1641,17 @@ rx), ftol(335 / ry))` desde la esquina de la caja, y nadie limpia la profundidad
 objeto después de armar la cámara, y crece sin tope: en pantalla es un corrimiento fijo respecto de
 la cámara.
 
-La animación va a 0,6 keys: la velocidad 0,3 que `0x61ca30` pone en las acciones 0 y 1, por el 2 de
-`0x4f9580` con los NewFace. Al terminar la acción 1, `0x63e430` pone la 0.
+La animación va a 0,6 keys por avance: la velocidad 0,3 que `0x61ca30` pone en las acciones 0 y 1,
+por el 2 de `0x4f9580` con los NewFace. Al terminar la acción 1, `0x63e430` pone la 0. La ventana la
+avanza una vez por paso y la lógica de la escena otra, así que con la ventana arriba va el doble, y
+sigue bajo un aviso. MuRet la avanza una vez por paso, solo con la ventana arriba y quieta bajo un
+aviso (el ruling de la B3, en el plan de la CL6).
 
 Los modelos, `Logo05` en el `0xa4` y `NewFace01` a `05` en `0xa8` a `0xac`, vienen de `Data\Logo`.
-Sus texturas suben desde `0x60d530(0x6f8)` siguiendo la tabla global, y terminan en `0x716`. Las del
-`0xa4` van con GL_LINEAR y las de los NewFace con GL_NEAREST, las dos repitiendo (**verificado**:
-Q-C91).
+Sus texturas suben desde `0x60d530(0x6f8)` siguiendo la tabla global, y terminan en `0x716`
+(**verificado** contra el volcado de Lorencia: los tamaños, los componentes y los nombres de GL,
+Q-C91). Las del `0xa4` van con GL_LINEAR y las de los NewFace con GL_NEAREST, las dos repitiendo
+(*estático*: el volcado no guarda el filtro).
 
 ### Los personajes de la lista
 
@@ -1688,7 +1693,7 @@ un ítem es grupo · `0x200` + índice, y su modelo, `0x212` más el tipo:
 | los guantes | `(((b[8] >> 4) & 1) + (b[14] >> 4) · 2) · 16 + (b[3] & 0xf)` | `0x1612` + índice |
 | las botas | `(((b[8] >> 3) & 1) + (b[14] & 0xf) · 2) · 16 + (b[4] >> 4)` | `0x1812` + índice |
 | las alas | v = `(b[4] >> 2) & 3`; con 3, v = `b[8] & 7` (0, sin alas; 5, `0x1c30`) | `0x1a12` + v, o `0x1a14` + v con 3 |
-| la mascota | v = `b[4] & 3`; con 3, `b[9] & 1` da `0x1c15`, `b[11] & 1` `0x1c16` (con el efecto `0xbf`) y `b[11] & 4` `0x1c37` (con `+0x31b` = `b[15] & 3`) | `0x1c12` + v |
+| la mascota | v = `b[4] & 3`; con 3, `b[9] & 1` da `0x1c15`, `b[11] & 1` `0x1c16` (con el caballo `0xbf`) y `b[11] & 4` `0x1c37` (con `+0x31b` = `b[15] & 3`) | `0x1c12` + v |
 | los niveles | L = `b[5] << 16 \| b[6] << 8 \| b[7]`, 3 bits cada uno, que `0x513340` pasa al nivel del ítem (0 a 7 dan 0, 3, 5, 7, 9, 11, 12 y 13; la tabla de `0x51338c`): la derecha en 0 a 2, la izquierda 3 a 5, el casco 6 a 8, la armadura 9 a 11, el pantalón 12 a 14, los guantes 15 a 17 y las botas 18 a 20 | las alas y la mascota, nivel 0 |
 | excelente | `b[9]` (bits 7 a 3 las cinco partes, el 2 la derecha y el 1 la izquierda) a `parte + 3`; `b[10]` igual a `parte + 4`, con su bit 0 a `+0x358`; `b[11] & 2` a `+0x360` | |
 
@@ -1711,9 +1716,10 @@ la escala W / 800 y H / 600 (`0x6ba884`, `0x6ba880`), como la UI de la carga. Di
 - **Modelos, en el binario** (P-C01, cerrado en la CL6.R): el skinning, la pose, el avance, la
   cabeza, el dibujo de una malla, los brillos por nivel y los slots de las texturas ya están
   (arriba). Falta (P-C14): si la selección gira la cabeza, la velocidad que queda en las acciones
-  sin escritura, la acción de parado sin arma y con una de dos manos, el color de cada pase
-  (`0x609640`) y una mano vacía; y el resto del render de modelos (`0x53c6a0`, tabla de 0xA10
-  bytes con un `switch` de tipo), leído solo en sus dispatchers. Las
+  sin escritura, la acción de parado sin arma y con una de dos manos, el color del pase base
+  (`0x609640`, P-C14 e: los de los demás pases están desde la CL6.3) y una mano vacía; y
+  `0x53c6a0`, una tabla de 0xA10 bytes con un `switch` de tipo, leída solo en sus dispatchers: los
+  efectos (*inferido*; los objetos del mundo van por `0x6046a0`, desde la CL6.4). Las
   100 capturas de pantalla de la selección (`graphics-01/CHARACTER-ANIMATION-NOTES.md`, VMware
   MKS, privadas) muestran que la pose y el arma cambian con la UI quieta; no están sincronizadas
   con la traza.

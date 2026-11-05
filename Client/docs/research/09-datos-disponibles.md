@@ -7,8 +7,10 @@ el decompilado dice qué archivo usa cada cosa, y las trazas y la memoria dicen 
 
 Los que faltan **se dan por faltantes** (decisión de Emanuel, 2026-11-01): ninguna de las dos
 copias del `Data\` los trae, y no impiden un cliente funcional. El original saltea sin avisar los
-modelos y sonidos que no encuentra (*estático*, Q-C23) y MuRet hace lo mismo, con un aviso en el
-log: esos sonidos no suenan, el monstruo de tipo 58 no se dibuja y el mapa 5 queda sin objetos.
+modelos y sonidos que no encuentra, salvo `Monster`, `Player` y `PlayerTest`, que lo cierran
+(*estático*, Q-C23), y MuRet hace lo mismo, con un aviso en el log: esos sonidos no suenan y el
+mapa 5 queda sin objetos. `Monster50`, que falta, se pide con el nombre `Monster`: el original se
+cierra cuando aparece el monstruo de tipo 58 (abajo), y qué hace MuRet lo decide la CL9.
 Los tests golden no los piden.
 
 | Fuente | Qué tiene | Dónde |

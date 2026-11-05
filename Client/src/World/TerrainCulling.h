@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Render/ModelBatch.h"
 #include "Render/Pass3D.h"
 #include "World/TerrainCells.h"
 

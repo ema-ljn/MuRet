@@ -20,6 +20,9 @@ constexpr std::int32_t BreathSubtype = 0;
 // 0x53ff05: la vida de cualquier partícula al crearla; 0x54184b: la del aliento.
 constexpr std::int32_t DefaultLife = 2;
 constexpr std::int32_t BreathLife = 16;
+// 0x5406eb: la de la chispa del cuervo, y lo que suma a su rand() % 2 (0x6b8818).
+constexpr std::int32_t SparkLife = 10;
+constexpr float SparkPush = 2.0f;
 constexpr double BreathScaleStep = static_cast<double>(0.01f); // 0x6b88d4
 constexpr int BreathScaleBase = 48;
 constexpr int FullTurn = 360;
@@ -115,7 +118,9 @@ std::optional<std::size_t> Particles::Create(std::int32_t type, const glm::vec3&
                                              const glm::vec3& light, std::int32_t subtype, float scale,
                                              float worldClock, Render::Models::CrtRandom& random)
 {
-    if (type != BreathParticle || subtype != BreathSubtype)
+    const bool breath = type == BreathParticle && subtype == BreathSubtype;
+    const bool spark = type == SparkParticle && subtype == RavenSparkSubtype;
+    if (!breath && !spark)
     {
         return std::nullopt;
     }
@@ -143,6 +148,18 @@ std::optional<std::size_t> Particles::Create(std::int32_t type, const glm::vec3&
                             .verticalSpeed = 0.0f,
                             .velocity = glm::vec3(0.0f),
                             .start = position};
+        if (spark)
+        {
+            // 0x5406e5: vida 10, los ángulos (0, 0, yaw) y la velocidad, el empujón (−(rand() % 2 + 2), 0, 0)
+            // (el idiom de and 0x80000001, fild, fadd 2 de 0x6b8818 y fchs) girado por AngleMatrix de esos
+            // ángulos.
+            particle.life = SparkLife;
+            particle.angles = glm::vec3(0.0f, 0.0f, angles.z);
+            const glm::vec3 push(-(static_cast<float>(random.Next() % 2) + SparkPush), 0.0f, 0.0f);
+            particle.velocity =
+                Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(particle.angles));
+            return index;
+        }
         // 0x54184b: el aliento. El rand() % 32 va con el idiom de and 0x8000001f.
         particle.life = BreathLife;
         particle.scale = F32(static_cast<double>((random.Next() % 32) + BreathScaleBase) * BreathScaleStep);

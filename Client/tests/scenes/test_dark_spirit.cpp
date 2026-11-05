@@ -1,0 +1,288 @@
+#include "Scenes/DarkSpirit.h"
+
+#include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainHeights.h"
+#include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalRotation.h"
+#include "Render/Models/Skeleton.h"
+#include "World/Particles.h"
+#include "World/TerrainHeight.h"
+
+#include "support/WorldObjectVectors.h"
+
+#include <glm/ext/vector_float3.hpp>
+
+#include <gtest/gtest.h>
+
+#include <array>
+#include <bit>
+#include <cstddef>
+#include <cstdint>
+#include <fstream>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <vector>
+
+// Client::Scenes::DarkSpirit, el cuervo, contra el código real del main.exe: el constructor 0x4167b0 y el
+// paso 0x416a20 con la chispa de 0x53fe70 (el 0x5c6, subtipo 5) y el grito, en 7 casos (las celdas (0, 0)
+// y (13, 27), naciendo en la celda o junto al dueño, el dueño con 0x4000 y con 0x1000, el contador del
+// grito múltiplo de 60 y el rumbo justo en 180), bit a bit (tests/vectors/world55/raven.txt, make_raven_vectors.py).
+namespace
+{
+using Client::Render::Models::CrtRandom;
+using Client::Scenes::DarkSpirit;
+
+constexpr std::size_t Bones = 77;
+const glm::vec3 OwnerPosition{10603.0f, 14112.0f, 580.0f};
+
+std::uint32_t Bits(float value)
+{
+    return std::bit_cast<std::uint32_t>(value);
+}
+
+std::uint32_t Hex(const std::string& word)
+{
+    return static_cast<std::uint32_t>(std::stoul(word, nullptr, 16));
+}
+
+// Las acciones de DarkSpirit.bmd: 6, 4, 4 (con lock_positions) y 4 keys, todas repitiendo.
+Client::Render::Models::Skeleton RavenSkeleton()
+{
+    struct Action
+    {
+        std::int16_t keys = 0;
+        bool lock = false;
+    };
+    Client::Render::Models::Skeleton skeleton;
+    for (const Action& action : std::array<Action, 4>{{{6, false}, {4, false}, {4, true}, {4, false}}})
+    {
+        skeleton.actions.push_back(Client::Render::Models::ActionInfo{
+            .repeats = true, .speed = 0.0f, .keyCount = action.keys, .lockPositions = action.lock});
+    }
+    return skeleton;
+}
+
+// La pose de mentira del último dibujo de make_raven_vectors.py: sin giro, el hueso i en
+// (1.000 + 7i; 2.000 − 3i; 300 + 5i).
+std::vector<Client::Render::Models::OriginalMatrix> FakePose()
+{
+    std::vector<Client::Render::Models::OriginalMatrix> pose(Bones);
+    for (std::size_t i = 0; i < Bones; ++i)
+    {
+        const auto k = static_cast<float>(i);
+        pose[i] = {1.0f, 0.0f, 0.0f, 1000.0f + (7.0f * k), 0.0f, 1.0f, 0.0f, 2000.0f - (3.0f * k),
+                   0.0f, 0.0f, 1.0f, 300.0f + (5.0f * k)};
+    }
+    return pose;
+}
+
+// Los 0x78 bytes de un lugar de 0x743a198.
+std::array<std::uint32_t, 30> WordsOf(const Client::World::Particle& particle)
+{
+    std::array<std::uint32_t, 30> words{};
+    const auto put = [&words](std::size_t at, const glm::vec3& value)
+    {
+        for (int k = 0; k < 3; ++k)
+        {
+            words[at + static_cast<std::size_t>(k)] = Bits(value[k]);
+        }
+    };
+    words[0] = particle.alive ? 1u : 0u;
+    words[1] = static_cast<std::uint32_t>(particle.type);
+    words[2] = static_cast<std::uint32_t>(particle.texture);
+    words[3] = static_cast<std::uint32_t>(particle.subtype);
+    words[4] = Bits(particle.scale);
+    put(5, particle.position);
+    put(8, particle.angles);
+    put(11, particle.light);
+    words[15] = static_cast<std::uint32_t>(particle.life);
+    words[16] = particle.owner;
+    words[17] = Bits(particle.rotation);
+    words[18] = Bits(particle.field48);
+    words[19] = particle.moves ? 1u : 0u;
+    words[20] = Bits(particle.verticalSpeed);
+    put(21, particle.velocity);
+    put(27, particle.start);
+    return words;
+}
+
+// El mapa de alturas de make_raven_vectors.py (el de make_leaf_vectors.py): 100 + ((i·a + j·b + (i·j)
+// % 97) % 512) · 0,5, sin atributos.
+struct Terrain
+{
+    std::unique_ptr<Client::Data::Terrain::TerrainHeights> heights =
+        std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    std::unique_ptr<Client::Data::Terrain::TerrainAttributes> attributes =
+        std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+
+    void Build(int a, int b)
+    {
+        constexpr int Side = 256;
+        for (int i = 0; i < Side; ++i)
+        {
+            for (int j = 0; j < Side; ++j)
+            {
+                const auto index = static_cast<std::size_t>((i * Side) + j);
+                heights->cells[index] = static_cast<float>(100.0 + (((i * a) + (j * b) + ((i * j) % 97)) % 512) * 0.5);
+                attributes->cells[index] = 0;
+            }
+        }
+    }
+};
+
+TEST(DarkSpiritTest, TheConstructorAndTheStepMatchTheBinary)
+{
+    std::ifstream file(Client::Tests::World55VectorsDir() / "raven.txt");
+    ASSERT_TRUE(file);
+    std::string line;
+    ASSERT_TRUE(std::getline(file, line));
+    ASSERT_EQ(line, "raven 1");
+    const Client::Render::Models::Skeleton skeleton = RavenSkeleton();
+    Terrain terrain;
+    CrtRandom random;
+    DarkSpirit spirit;
+    Client::Scenes::DarkSpiritOwner owner;
+    std::int32_t counter = 0;
+    std::string start;
+    auto particles = std::make_unique<Client::World::Particles>();
+    std::size_t cases = 0;
+    std::size_t steps = 0;
+    std::size_t sparks = 0;
+    std::size_t shouts = 0;
+    std::size_t step = 0;
+    bool sparked = false;
+    while (std::getline(file, line) && line != "end")
+    {
+        std::istringstream words(line);
+        std::string kind;
+        words >> kind;
+        const auto next = [&words]()
+        {
+            std::string value;
+            words >> value;
+            return std::bit_cast<float>(Hex(value));
+        };
+        const std::string where = "caso " + std::to_string(cases) + ", paso " + std::to_string(step);
+        if (kind == "case")
+        {
+            ++cases;
+            step = 0;
+            std::string seed;
+            std::string flags;
+            std::string count;
+            int cellX = 0;
+            int cellY = 0;
+            int a = 0;
+            int b = 0;
+            int total = 0;
+            words >> seed >> cellX >> cellY >> start >> flags >> count >> a >> b >> total;
+            terrain.Build(a, b);
+            random = CrtRandom(Hex(seed));
+            const double ground = Client::World::TerrainHeightAt(*terrain.heights, *terrain.attributes,
+                                                                 static_cast<float>((cellX * 100) + 50),
+                                                                 static_cast<float>((cellY * 100) + 50));
+            spirit = Client::Scenes::CreateDarkSpirit(cellX, cellY, ground, random);
+            owner = Client::Scenes::DarkSpiritOwner{.position = OwnerPosition, .flags = Hex(flags)};
+            counter = static_cast<std::int32_t>(Hex(count));
+        }
+        else if (kind == "ctor")
+        {
+            std::string state;
+            words >> state;
+            EXPECT_EQ(random.State(), Hex(state)) << where << ": el rand() del constructor";
+            for (int k = 0; k < 3; ++k)
+            {
+                EXPECT_EQ(Bits(spirit.position[k]), Bits(next())) << where << ": la posición " << k;
+            }
+            EXPECT_EQ(Bits(spirit.scale), Bits(next())) << where;
+            for (int k = 0; k < 3; ++k)
+            {
+                EXPECT_EQ(Bits(spirit.light[k]), Bits(next())) << where << ": la luz";
+            }
+            EXPECT_EQ(Bits(spirit.speed), Bits(next())) << where;
+            EXPECT_EQ(Bits(spirit.alpha), Bits(next())) << where;
+            int state8 = 0;
+            int action = 0;
+            words >> state8 >> action;
+            EXPECT_EQ(spirit.state, state8) << where;
+            EXPECT_EQ(spirit.animation.action, action) << where;
+            EXPECT_EQ(Bits(spirit.animation.frame), Bits(next())) << where;
+            std::string far;
+            words >> far;
+            EXPECT_EQ(spirit.far, static_cast<std::int32_t>(Hex(far))) << where;
+            if (start == "near")
+            {
+                spirit.position = glm::vec3(OwnerPosition.x, OwnerPosition.y,
+                                            static_cast<float>(static_cast<double>(OwnerPosition.z) + 250.0));
+            }
+            if (start == "yaw180")
+            {
+                spirit.angles.z = 180.0f;
+            }
+            spirit.pose = FakePose();
+        }
+        else if (kind == "step")
+        {
+            if (sparked)
+            {
+                EXPECT_FALSE(particles->All()[0].alive) << where << ": nació una chispa que el original no";
+            }
+            ++step;
+            ++steps;
+            particles->Clear();
+            const bool shout =
+                Client::Scenes::StepDarkSpirit(spirit, skeleton, owner, 0x37, *particles, 0.0f, random, counter);
+            sparked = true;
+            std::string state;
+            words >> state;
+            EXPECT_EQ(random.State(), Hex(state)) << where << ": el rand()";
+            for (int k = 0; k < 3; ++k)
+            {
+                EXPECT_EQ(Bits(spirit.position[k]), Bits(next())) << where << ": la posición " << k;
+            }
+            for (int k = 0; k < 3; ++k)
+            {
+                EXPECT_EQ(Bits(spirit.angles[k]), Bits(next())) << where << ": los ángulos " << k;
+            }
+            for (int k = 0; k < 3; ++k)
+            {
+                EXPECT_EQ(Bits(spirit.direction[k]), Bits(next())) << where << ": la dirección " << k;
+            }
+            EXPECT_EQ(Bits(spirit.speed), Bits(next())) << where << ": la velocidad";
+            int state8 = 0;
+            int action = 0;
+            words >> state8 >> action;
+            EXPECT_EQ(spirit.state, state8) << where << ": el estado";
+            EXPECT_EQ(spirit.animation.action, action) << where << ": la acción";
+            EXPECT_EQ(Bits(spirit.animation.frame), Bits(next())) << where << ": el frame";
+            int far = 0;
+            std::string sound;
+            words >> far >> sound;
+            EXPECT_EQ(spirit.far, far) << where << ": el contador";
+            EXPECT_EQ(shout, sound == "1d1") << where << ": el grito";
+            shouts += shout ? 1u : 0u;
+        }
+        else if (kind == "spark")
+        {
+            sparked = false;
+            const std::array<std::uint32_t, 30> got = WordsOf(particles->All()[0]);
+            for (std::size_t k = 0; k < got.size(); ++k)
+            {
+                std::string value;
+                words >> value;
+                EXPECT_EQ(got[k], Hex(value)) << where << ": la chispa, palabra " << k;
+            }
+            ++sparks;
+        }
+        if (HasFailure())
+        {
+            break;
+        }
+    }
+    EXPECT_EQ(cases, 7u);
+    EXPECT_EQ(steps, 1680u);
+    EXPECT_EQ(sparks, 1540u);
+    EXPECT_GE(shouts, 1u);
+}
+} // namespace

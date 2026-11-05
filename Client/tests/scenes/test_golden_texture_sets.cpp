@@ -71,9 +71,11 @@ inline constexpr std::array<ImageSize, 6> LoadingImageSizes{{
 }};
 static_assert(LoadingImageSizes.size() == LoadingTextureSet.size());
 
-// El OK y el cancelar, con sus tres estados uno arriba del otro, la caja del aviso, que mide lo que
-// la ventana (0x6429b0), y la del código del borrado (0x642bf0).
-inline constexpr std::array<ImageSize, 4> WindowImageSizes{{
+// Los dos cursores, el OK y el cancelar, con sus tres estados uno arriba del otro, la caja del aviso, que
+// mide lo que la ventana (0x6429b0), y la del código del borrado (0x642bf0).
+inline constexpr std::array<ImageSize, 6> WindowImageSizes{{
+    {32, 32},
+    {32, 32},
     {54, 90},
     {54, 90},
     {352, 113},
@@ -134,7 +136,7 @@ TEST_F(GoldenTextureSet, TheLoginSetLoads)
     ExpectTheSet(LoginTextureSet, LoginImageSizes, loaded.Value());
 }
 
-// Las tres de 0x61ccb0 que usan las ventanas del login (CL5.5).
+// Las seis de 0x61ccb0 que usan el login y la selección: el cursor y las ventanas.
 TEST_F(GoldenTextureSet, TheWindowSetLoads)
 {
     const auto loaded = LoadTextureSet(m_dataRoot, WindowTextureSet);

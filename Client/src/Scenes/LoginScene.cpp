@@ -45,6 +45,7 @@
 #include "Scenes/WorldModels.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "UI/GameText.h"
+#include "UI/GameCursor.h"
 #include "UI/LoginWindow.h"
 #include "UI/MenuBar.h"
 #include "UI/Notices.h"
@@ -880,11 +881,16 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     // 6: los textos, con la mezcla aditiva que quedó (0x554000 no la cambia).
     sprites.SetColor(TextColor);
     DrawTexts(canvas);
-    // 7: el fundido no dibuja nada (Q-C66). 8: la UI (CL5.5), cada ventana con la mezcla normal.
+    // 7: el fundido no dibuja nada (Q-C66): 0x554810 pone la mezcla normal y el blanco (0x554819..0x554845)
+    // antes de la UI. 8: la UI (CL5.5), cada ventana con su imagen y su color. 9: el cursor (0x635560).
     m_serverList.Draw(sprites, canvas.text, canvas.screen);
     m_menuBar.Draw(sprites, canvas.screen);
     m_login.Draw(sprites, canvas.text, canvas.screen);
     m_notice.Draw(sprites, canvas.text, canvas.screen);
+    if (m_context.input != nullptr)
+    {
+        UI::DrawGameCursor(sprites, *m_context.input, canvas.screen);
+    }
 }
 
 // El personaje (0x510d00 → 0x50ba30, con la luz del terreno en su lugar más la suya), el caballo

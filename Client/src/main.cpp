@@ -402,12 +402,11 @@ void PrintStats(App::FrameRateMeter& meter, Core::Duration now, const App::Frame
 // Fase 4: hasta que se cierre la ventana, se llegue a --frames o `stop` diga que no se sigue.
 // `afterFrame` corre después de cada frame, antes de `stop`.
 App::FrameStats RunLoop(Platform::Window& window, Core::IClock& clock, App::GameLoop& loop,
-                        const App::CommandLine& commandLine, Core::Log& log, const std::function<bool()>& stop = {},
-                        const std::function<void()>& afterFrame = {})
+                        Client::Input::InputState& input, const App::CommandLine& commandLine, Core::Log& log,
+                        const std::function<bool()>& stop = {}, const std::function<void()>& afterFrame = {})
 {
     App::WindowState state;
     state.pixelSize = window.PixelSize();
-    Client::Input::InputState input;
     App::PixelSize viewport = state.pixelSize;
     SetViewport(window.Gl(), viewport);
     std::optional<App::FrameRateMeter> meter;
@@ -591,8 +590,20 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // 0x4bad9a, el viento base y el contador de pasos de lógica.
     Client::Render::Models::ClothWorld clothWorld{
         .random = Client::Render::Models::CrtRandom(static_cast<std::uint32_t>(std::time(nullptr)))};
-    const Scenes::SceneContext context{
-        .dataRoot = *startup.config.dataPath, .textures = textures, .log = log, .clock = &clock, .cloth = &clothWorld};
+    // El teclado y el mouse del bucle: los pasos los reciben, y el dibujo del cursor los lee del contexto.
+    Client::Input::InputState input;
+    const Scenes::SceneContext context{.dataRoot = *startup.config.dataPath,
+                                       .textures = textures,
+                                       .log = log,
+                                       .clock = &clock,
+                                       .cloth = &clothWorld,
+                                       .input = &input};
+    // El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
+    // se ven los dos.
+    if (const auto hidden = window.HideSystemCursor(); !hidden.HasValue())
+    {
+        log.Warning("{}", hidden.Error());
+    }
     // Los modelos del personaje y de los ítems: los lee la carga (0x61ccb0) y quedan, como GameData.
     Scenes::GameModels models;
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,
@@ -606,7 +617,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // Lo que corta el bucle además de la ventana y el --frames.
     const auto stop = [&manager, session]
     { return manager.Failure().has_value() || manager.WantsToQuit() || GameServerOrderedTheQuit(session); };
-    const App::FrameStats stats = RunLoop(window, clock, loop, startup.commandLine, log, stop,
+    const App::FrameStats stats = RunLoop(window, clock, loop, input, startup.commandLine, log, stop,
                                           [&textInput, &manager] { textInput.Follow(manager.WantsTextInput()); });
     // Apagado en todas las salidas del bucle: la ventana, el --frames, la escena que falla, el OK o la
     // orden del GameServer.
@@ -696,6 +707,7 @@ int main(int argc, char* argv[])
     // Sin datos (el CI): la escena de prueba, sin red, porque un host exige la carpeta de datos.
     Scenes::TestScene scene{[&window](const Scenes::TestScene::Color& color) { Present(*window, color); }};
     App::GameLoop loop{clock, scene, startup->config.pacing, LoopMaxFps(startup->config, *window, log)};
-    PrintFrames(RunLoop(*window, clock, loop, startup->commandLine, log));
+    Client::Input::InputState input;
+    PrintFrames(RunLoop(*window, clock, loop, input, startup->commandLine, log));
     return EXIT_SUCCESS;
 }

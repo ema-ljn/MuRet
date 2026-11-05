@@ -2,6 +2,7 @@
 
 #include "Core/IClock.h"
 #include "Core/Log.h"
+#include "Input/InputState.h"
 #include "Render/ITextureStore.h"
 #include "Render/Models/Cloth.h"
 
@@ -27,5 +28,8 @@ struct SceneContext
     // rand() de la CRT, que las escenas 2, 4 y 5 avanzan en cada paso (0x637700). nullptr sin bucle: los
     // personajes van sin tela.
     Render::Models::ClothWorld* cloth = nullptr;
+    // El teclado y el mouse del bucle, los de cada paso: lo que el original lee en el dibujo de los
+    // globales del WndProc, como el cursor (0x5ac2d0, UI/GameCursor.h). nullptr sin bucle: sin cursor.
+    const Input::InputState* input = nullptr;
 };
 } // namespace Client::Scenes

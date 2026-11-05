@@ -39,6 +39,9 @@
 #include "support/ScenePrinters.h"
 #include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"
+#include "support/UiInput.h"
+#include "UI/GameCursor.h"
+#include "UI/Widget.h"
 #include "Scenes/LoginModels.h"
 #include "support/FixedRandom.h"
 
@@ -112,6 +115,8 @@ using Client::Tests::RecordingTextDrawer;
 using Client::Tests::TemporaryFolder;
 using Client::Tests::WriteTextTable;
 using Client::Tests::WriteTextureSet;
+using Client::UI::CursorQuad;
+using Client::UI::Point;
 
 using Kind = FrameEvent::Kind;
 
@@ -233,6 +238,13 @@ struct Harness
         return scene.emplace(SceneContext{folder.Path(), store, log}, data, models, session, Version, FixedSeed);
     }
 
+    // Y con el mouse de `input` en el contexto, que el cursor lee en el dibujo.
+    LoginScene& MakeWithTheMouse()
+    {
+        return scene.emplace(SceneContext{.dataRoot = folder.Path(), .textures = store, .log = log, .input = &input},
+                             data, models, nullptr, Version, FixedSeed);
+    }
+
     // Un frame con el reloj `clock`. Devuelve lo que se dibujó.
     std::vector<FrameEvent> Frame(std::chrono::milliseconds clock = AnyClock, float alpha = 0.0f)
     {
@@ -322,6 +334,33 @@ TEST(LoginSceneTest, DrawsInTheOrderOfTheOriginal)
         EXPECT_EQ(events[7].text.text, RightText);
         EXPECT_EQ(events[8].text.text, VersionPlaced);
     }
+}
+
+// 0x635560: lo último del frame, después de la UI, es el cursor del juego (0x5ac2d0) en el mouse del
+// WndProc, con la mezcla normal y en blanco aunque los textos dejaron la aditiva; con el botón abajo, el
+// CursorPush. Sin el mouse en el contexto (los demás tests), no hay cursor.
+TEST(LoginSceneTest, DrawsTheGameCursorLast)
+{
+    constexpr PixelSize Screen{1024, 768};
+    Harness tested(Screen);
+    ASSERT_TRUE(tested.MakeWithTheMouse().Enter().HasValue());
+    Client::Tests::MoveMouse(tested.input, 512, 384);
+
+    std::vector<FrameEvent> events = tested.Frame();
+
+    ASSERT_EQ(events.size(), 10u);
+    const FrameEvent& cursor = events.back();
+    EXPECT_EQ(cursor.kind, Kind::Quad);
+    EXPECT_EQ(cursor.texture, TextureSlot{2});
+    EXPECT_EQ(cursor.blend, BlendMode::Alpha);
+    EXPECT_TRUE(cursor.alphaTest);
+    ExpectColor(cursor, White);
+    ExpectSameCorners(CornersOf(cursor), FanCorners(CursorQuad(Point{320, 240}, false), Screen));
+
+    Client::Tests::PressLeft(tested.input);
+    events = tested.Frame();
+    ASSERT_FALSE(events.empty());
+    EXPECT_EQ(events.back().texture, TextureSlot{3});
 }
 
 // Los fondos y las arenas con los argumentos de 0x6350b0, en 640 × 480 y en otra pantalla.

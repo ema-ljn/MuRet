@@ -35,6 +35,7 @@
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/TextureSets.h"
+#include "UI/GameCursor.h"
 #include "UI/CreateCharacterWindow.h"
 #include "UI/DeleteChecks.h"
 #include "UI/GameText.h"
@@ -584,10 +585,14 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
     }
     canvas.flushModels();
-    // La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el aviso arriba.
+    // La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el aviso arriba. Y el cursor (0x634980).
     m_bar.Draw(sprites, canvas.text, canvas.screen);
     DrawTheCreateWindow(canvas, alpha);
     m_notice.Draw(sprites, canvas.text, canvas.screen);
+    if (m_context.input != nullptr)
+    {
+        UI::DrawGameCursor(sprites, *m_context.input, canvas.screen);
+    }
 }
 
 void CharacterSelectScene::Leave()

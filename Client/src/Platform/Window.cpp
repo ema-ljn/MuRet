@@ -9,6 +9,7 @@
 
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_mouse.h>
 #include <SDL3/SDL_video.h>
 
 #include <string>
@@ -117,6 +118,16 @@ Core::Expected<void, std::string> Window::StopTextInput()
     if (!SDL_StopTextInput(m_window.get()))
     {
         return Core::Unexpected(std::string("no se pudo apagar el texto tecleado: ") + SDL_GetError());
+    }
+    return {};
+}
+
+Core::Expected<void, std::string> Window::HideSystemCursor()
+{
+    // SDL_HideCursor es de todo SDL, no de una ventana: lo es de la ventana porque la ventana es la única.
+    if (!SDL_HideCursor())
+    {
+        return Core::Unexpected(std::string("no se pudo esconder el cursor del sistema: ") + SDL_GetError());
     }
     return {};
 }

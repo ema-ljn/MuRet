@@ -421,9 +421,9 @@ TEST(LoginSceneSessionTest, TheListShowsWhenItArrives)
     const auto firstWindowQuad = std::ranges::find_if(
         events, [](const FrameEvent& event) { return event.kind == Kind::Quad && event.texture == FrameSlot; });
     ASSERT_NE(firstWindowQuad, events.end());
-    // Los fondos, el fin del 2D, el mundo, los modelos, las dos arenas y los tres textos, y después la
-    // UI: sin grupo elegido, la pieza del marco de la izquierda y el botón.
-    EXPECT_EQ(firstWindowQuad - events.begin(), 10);
+    // Los fondos, el fin del 2D, los modelos (con el terreno), las dos arenas y los tres textos, y
+    // después la UI: sin grupo elegido, la pieza del marco de la izquierda y el botón.
+    EXPECT_EQ(firstWindowQuad - events.begin(), 9);
     EXPECT_EQ(firstWindowQuad->blend, BlendMode::Alpha);
     const auto button = std::ranges::find_if(std::next(firstWindowQuad), events.end(),
                                              [](const FrameEvent& event) { return event.kind == Kind::Quad; });

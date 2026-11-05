@@ -16,6 +16,10 @@
 #include "Scenes/DarkHorse.h"
 #include "Scenes/GameData.h"
 #include "Scenes/IScene.h"
+#include "Scenes/LoadedWorld.h"
+#include "World/TerrainCells.h"
+#include "World/TerrainCulling.h"
+#include "World/TerrainLighting.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
@@ -27,7 +31,6 @@
 #include "UI/NoticeWindow.h"
 #include "UI/Notices.h"
 #include "UI/ServerListWindow.h"
-#include "World/TerrainLighting.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -76,8 +79,9 @@ public:
     LoginScene& operator=(const LoginScene&) = delete;
     ~LoginScene() override = default;
 
-    // Como 0x6349a0, cada vez que se entra: la luz del mundo 55 (0x61a560, World::LoadTerrainLighting;
-    // sin ella, la luz del terreno es 0), LoginTextureSet (0x61c7c0), el logo y sus texturas,
+    // Como 0x6349a0, cada vez que se entra: el terreno del mundo 55 (0x61a560, LoadedWorld: el .map,
+    // el .att, las alturas, la luz y los tiles; sin él, el login va sin terreno y la luz del terreno es
+    // 0), LoginTextureSet (0x61c7c0), el logo y sus texturas,
     // WindowTextureSet (las de las ventanas, de 0x61ccb0), el ConnectServer (0x4c1340,
     // ServerSession::Start), el logo y el personaje en su lugar y la cuenta de las rutas en −1. Una
     // textura que falta corta antes de conectar; un Logo03.bmd que no se lee, no (0x60da30 lo saltea).
@@ -110,7 +114,7 @@ public:
 private:
     // 0x60da30 y 0x60d5f0 con el 0xa2 (LoginLogoFile), sin un 0x60d530 antes (Q-C92).
     [[nodiscard]] Core::Expected<void, std::string> LoadTheLogo();
-    void LoadTheLight();
+    void LoadTheWorld();
     void PlaceTheModels();
     void StepTheWorld();
     void DrawTheModels(SceneCanvas& canvas, float alpha);
@@ -139,6 +143,12 @@ private:
     SceneTextures m_windowTextures;
     // El de SceneWorlds.h: el 55.
     std::optional<SceneWorld> m_world;
+    LoadedWorld m_terrain;
+    // El rango de bloques y el trapecio del terreno con la cámara del login (0x5fbb00 y 0x5fb570): la
+    // cámara no se mueve, y se sacan al entrar.
+    World::TerrainRange m_terrainRange;
+    World::TerrainPolygon m_terrainPolygon;
+    // La luz sola, si el terreno no se pudo leer y su luz sí (World::LoadTerrainLighting).
     std::unique_ptr<World::TerrainLighting> m_lighting;
     // El logo: su modelo, los slots de sus mallas desde LoginLogoFirstSlot, sus texturas y su objeto.
     SingleModelLibrary m_logo;

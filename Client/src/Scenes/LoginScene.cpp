@@ -2,6 +2,7 @@
 
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
+#include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Data/Models/ModelFiles.h"
@@ -43,6 +44,8 @@
 #include "UI/Notices.h"
 #include "UI/ServerListModel.h"
 #include "UI/ServerListWindow.h"
+#include "World/TerrainCells.h"
+#include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -161,7 +164,7 @@ LoginScene::LoginScene(const SceneContext& context, const GameData& data, const 
                        App::ServerSession* session, std::string_view version, std::mt19937::result_type seed)
     : m_context(context), m_models(models), m_session(session), m_texts(data.text ? &*data.text : nullptr),
       m_textures(context.textures, LoginTextureSet), m_windowTextures(context.textures, WindowTextureSet),
-      m_world(WorldOf(SceneId::Login)), m_random(seed),
+      m_world(WorldOf(SceneId::Login)), m_terrain(context.textures), m_random(seed),
       m_serverList([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
       m_menuBar([this](Render::TextureSlot slot) { return BufferSize(slot); }),
       m_login([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
@@ -180,7 +183,7 @@ LoginScene::LoginScene(const SceneContext& context, const GameData& data, const 
 
 Core::Expected<void, std::string> LoginScene::Enter()
 {
-    LoadTheLight();
+    LoadTheWorld();
     auto loaded = m_textures.Load(m_context.dataRoot);
     if (!loaded.HasValue())
     {
@@ -210,20 +213,41 @@ Core::Expected<void, std::string> LoginScene::Enter()
     return {};
 }
 
-void LoginScene::LoadTheLight()
+void LoginScene::LoadTheWorld()
 {
+    m_terrain.Release();
     m_lighting.reset();
     if (!m_world)
     {
         return;
     }
-    auto lighting = World::LoadTerrainLighting(m_context.dataRoot, m_world->map);
-    if (!lighting.HasValue())
+    // 0x5fbb00 y 0x5fb570 con la cámara fija y el héroe del login: el rango de bloques (en el login, los
+    // que empiezan en x 0..128 e y 120..248) y el trapecio, que no recorta ninguna celda (06 § El
+    // terreno del login).
+    const Render::Camera3D camera = LoginCamera();
+    m_terrainRange =
+        World::TerrainRangeOf(Render::MakePass3D(App::PixelSize{640, 480}, WorldViewport, camera).view, camera);
+    m_terrainPolygon =
+        World::TerrainPolygonOf(World::CullingScene::Login, m_world->map, LoginHeroPosition, camera.angles.z);
+    std::vector<std::string> skipped;
+    auto loaded = m_terrain.Load(m_context.dataRoot, m_world->map, skipped);
+    if (!loaded.HasValue())
     {
-        m_context.log.Warning("el login va sin la luz del terreno: {}", lighting.Error());
+        m_context.log.Warning("el login va sin el terreno: {}", loaded.Error());
+        // Sin el terreno, la luz de los modelos puede salir igual de sus dos archivos.
+        auto lighting = World::LoadTerrainLighting(m_context.dataRoot, m_world->map);
+        if (!lighting.HasValue())
+        {
+            m_context.log.Warning("el login va sin la luz del terreno: {}", lighting.Error());
+            return;
+        }
+        m_lighting = std::move(lighting).Value();
         return;
     }
-    m_lighting = std::move(lighting).Value();
+    for (const std::string& tile : skipped)
+    {
+        m_context.log.Warning("el terreno del login va sin un tile, que el original saltea: {}", tile);
+    }
 }
 
 Core::Expected<void, std::string> LoginScene::LoadTheLogo()
@@ -331,6 +355,11 @@ void LoginScene::Step(const Input::InputState& input)
 
 void LoginScene::StepTheWorld()
 {
+    // 0x5fbf60, lo primero del paso del login (0x634c60): la ola del agua.
+    if (m_context.clock != nullptr)
+    {
+        m_terrain.Step(m_context.clock->Now(), m_terrainRange);
+    }
     const Render::Models::Skeleton* player = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (m_context.clock != nullptr && player != nullptr)
     {
@@ -563,10 +592,8 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     // La cámara fija de la escena 2 (0x635ae0), en el viewport de 0x620db0(0, 25, 640, 430).
     const Render::Pass3D pass = Render::MakePass3D(canvas.screen, WorldViewport, LoginCamera());
     canvas.models.Begin(pass);
-    if (m_world)
-    {
-        canvas.world.Draw(*m_world, pass, alpha);
-    }
+    // 0x5fc260(0): el terreno, antes de los personajes.
+    m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, m_terrainPolygon);
     DrawTheModels(canvas, alpha);
     canvas.flushModels();
     // El dibujo prende el +0x16c del logo (0x6046a0): sin frustum, siempre se ve.
@@ -627,7 +654,8 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
 
 glm::vec3 LoginScene::TerrainLightAt(const glm::vec3& position) const
 {
-    return m_lighting ? World::LightAt(*m_lighting, position.x, position.y) : glm::vec3(0.0f);
+    const World::TerrainLighting* lighting = m_terrain.IsLoaded() ? m_terrain.Lighting() : m_lighting.get();
+    return lighting != nullptr ? World::LightAt(*lighting, position.x, position.y) : glm::vec3(0.0f);
 }
 
 void LoginScene::DrawTexts(SceneCanvas& canvas) const
@@ -661,6 +689,7 @@ void LoginScene::Leave()
     m_notice.Close();
     m_textures.Release();
     m_windowTextures.Release();
+    m_terrain.Release();
     if (m_logoTextures)
     {
         m_logoTextures->Release();

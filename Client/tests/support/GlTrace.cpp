@@ -151,6 +151,9 @@ private:
     std::optional<std::string> Color(std::string_view name, std::string_view arguments);
     std::optional<std::string> ByteColor(std::string_view name, std::string_view arguments);
     std::optional<std::string> Vertex(std::string_view name, std::string_view arguments);
+    std::optional<std::string> Enable(std::string_view name, std::string_view arguments);
+    std::optional<std::string> BlendFunc(std::string_view name, std::string_view arguments);
+    std::optional<std::string> DepthMask(std::string_view name, std::string_view arguments);
 
     GlTrace m_trace;
     GlTraceFrame m_frame;
@@ -159,6 +162,7 @@ private:
     std::uint32_t m_texture = 0;
     glm::vec2 m_texCoord{0.0f, 0.0f};
     glm::vec4 m_color{1.0f, 1.0f, 1.0f, 1.0f};
+    GlTraceState m_state;
 };
 
 // El texto del error de una llamada que no lleva `count` números.
@@ -169,7 +173,7 @@ std::string NotNumbers(std::string_view name, std::size_t count)
 
 Reader::Handler Reader::HandlerOf(std::string_view name)
 {
-    constexpr std::array<std::pair<std::string_view, Handler>, 11> Handlers = {{
+    constexpr std::array<std::pair<std::string_view, Handler>, 15> Handlers = {{
         {"wglSwapBuffers", &Reader::Swap},
         {"glViewport", &Reader::Viewport},
         {"glBindTexture", &Reader::BindTexture},
@@ -181,6 +185,10 @@ Reader::Handler Reader::HandlerOf(std::string_view name)
         {"glColor4f", &Reader::Color},
         {"glColor4ub", &Reader::ByteColor},
         {"glVertex3fv", &Reader::Vertex},
+        {"glEnable", &Reader::Enable},
+        {"glDisable", &Reader::Enable},
+        {"glBlendFunc", &Reader::BlendFunc},
+        {"glDepthMask", &Reader::DepthMask},
     }};
     for (const auto& [handled, handler] : Handlers)
     {
@@ -283,13 +291,65 @@ std::optional<std::string> Reader::BindTexture(std::string_view, std::string_vie
     return std::nullopt;
 }
 
+// glEnable y glDisable de lo que decide la mezcla; los de otra cosa (GL_TEXTURE_2D, GL_FOG…) no
+// cambian nada.
+std::optional<std::string> Reader::Enable(std::string_view name, std::string_view arguments)
+{
+    const std::string_view capability = Trim(arguments);
+    if (capability.empty())
+    {
+        return std::string(name) + " sin capacidad";
+    }
+    const bool enabled = name == "glEnable";
+    if (capability == "GL_BLEND")
+    {
+        m_state.blend = enabled;
+    }
+    else if (capability == "GL_ALPHA_TEST")
+    {
+        m_state.alphaTest = enabled;
+    }
+    else if (capability == "GL_CULL_FACE")
+    {
+        m_state.cullFace = enabled;
+    }
+    else if (capability == "GL_DEPTH_TEST")
+    {
+        m_state.depthTest = enabled;
+    }
+    return std::nullopt;
+}
+
+std::optional<std::string> Reader::BlendFunc(std::string_view, std::string_view arguments)
+{
+    const std::vector<std::string_view> parts = SplitArguments(arguments);
+    if (parts.size() != 2 || parts[0].empty() || parts[1].empty())
+    {
+        return "glBlendFunc no lleva dos factores";
+    }
+    m_state.blendSource = parts[0];
+    m_state.blendDestination = parts[1];
+    return std::nullopt;
+}
+
+std::optional<std::string> Reader::DepthMask(std::string_view, std::string_view arguments)
+{
+    const std::string_view value = Trim(arguments);
+    if (value != "true" && value != "false")
+    {
+        return "glDepthMask no lleva true o false";
+    }
+    m_state.depthMask = value == "true";
+    return std::nullopt;
+}
+
 std::optional<std::string> Reader::Begin(std::string_view, std::string_view arguments)
 {
     if (m_block)
     {
         return "un glBegin dentro de otro";
     }
-    m_block = GlTraceBlock{std::string(Trim(arguments)), m_texture, {}, m_line};
+    m_block = GlTraceBlock{std::string(Trim(arguments)), m_texture, {}, m_line, m_state};
     return std::nullopt;
 }
 

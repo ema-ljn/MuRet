@@ -7,12 +7,13 @@ escrita solo desde la lectura del asm y las cuentas sobre el `Data\` del mapa 55
 ## Cómo se corren
 
 - **Las emulaciones** (`emu.py`, `draw_emu.py`, `dragon_emu.py`, `run_objs.py`, `run_draw.py`,
-  `emulate_raven.py`, `emulate_raven_ctor.py`) necesitan `unicorn` y `pefile`, y la ruta del
+  `emulate_raven.py`, `emulate_raven_ctor.py`, `frustum_emu.py`, `check_selection.py`) necesitan `unicorn` y `pefile`, y la ruta del
   `main.exe` (`c32bbd5f`) en `MURET_MAIN_EXE`. Las del cuervo usan el emulador de la tela
   (`../emulate_cloth.py`).
 - **Las cuentas geométricas** (`cam.py`, `pose.py`, `objvis.py`, `terrain_count.py`, `dragon_screen.py`)
   necesitan `numpy`.
-- **El `Data\`** es el del repo (`Client/assets/Data`), o el de `MURET_CLIENT_DATA`.
+- **El `Data\`** es el del repo (`Client/assets/Data`), o el de `MURET_CLIENT_DATA`. Las trazas de GL
+  (`frustum_reference.py`, `check_selection.py`), las de `MURET_CLIENT_GL_TRACE_DIR`.
 - Lo que escriben (`dragon_traj.json`, `objs_draw.json`) va a la carpeta actual y no se guarda acá:
   se vuelve a sacar del binario. Los vectores de los tests (`Client/tests/vectors/`) los arma cada
   sub-ola de la CL7 desde estas salidas, con su conversor, como `make_cloth_vectors.py` en la tela.
@@ -28,6 +29,8 @@ python emulate_raven.py 7 600 cell0 > raven.json
 python raven_reference.py 7 600 cell0 raven.json   # "bit a bit igual en todos los pasos"
 python raven_stats.py 1 40 5000      # el salto y la órbita del cuervo en 40 semillas
 python terrain_count.py              # las celdas del terreno del login
+python frustum_reference.py lorencia  # el recorte del terreno contra la traza ("IGUAL a la traza")
+python frustum_emu.py login emu_login.json && python compare_emu.py login   # "todo igual"
 python dragon_screen.py              # el dragón en la pantalla (con dragon_traj.json)
 ```
 
@@ -46,6 +49,9 @@ python dragon_screen.py              # el dragón en la pantalla (con dragon_tra
 | `emulate_raven.py` | el paso real del cuervo (`0x416a20`) con el dueño quieto del login, y cada `rand()` con su sitio |
 | `raven_reference.py` | el paso del cuervo escrito desde la lectura, comparado bit a bit con la salida de `emulate_raven.py` |
 | `raven_stats.py` | el salto y la órbita del cuervo en muchas semillas, con `raven_reference.py` |
+| `frustum_reference.py` | el recorte del terreno (`0x5fbb00`, `0x5fb570`, `0x5fba90` y los lazos de `0x5fc190`) escrito desde la lectura, para Lorencia, la selección y el login, contra las trazas |
+| `frustum_emu.py`, `compare_emu.py` | el mismo recorte con el código real (las celdas que llegan a `0x5fac90`), y la comparación bit a bit con `frustum_reference.py` |
+| `trace_cells.py`, `check_selection.py` | las celdas opacas de una traza de GL, y la selección contra su traza y el código real |
 | `terrain_count.py` | las celdas del terreno del login: el bit `0x08`, las que se dibujan, el agua y el slot `0x122` |
 | `dragon_screen.py` | dónde y de qué tamaño se ve el dragón en la pantalla del login, en toda su trayectoria |
 | `embers_sim.py` | una simulación en Python (no una emulación) de las brasas, con las alturas de `World56`: cuánto duran en el aire |

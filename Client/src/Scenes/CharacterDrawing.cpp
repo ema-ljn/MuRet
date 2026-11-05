@@ -13,6 +13,7 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/ItemGlow.h"
 #include "Render/Models/ObjectState.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/PassColors.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Shine.h"
@@ -21,6 +22,8 @@
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterCloth.h"
+#include "World/ScepterGlow.h"
+#include "World/Sprites.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -684,9 +687,12 @@ Render::Models::ObjectRandoms RandomsOf(std::minstd_rand& random)
 }
 
 // Lo que cuelga desde la raíz `root`, posado (0x4eb860 con su séptimo argumento en 1) y dibujado con
-// el objeto que 0x509340 le arma con el tipo de su ítem.
+// el objeto que 0x509340 le arma con el tipo de su ítem. Después, el caso de su modelo que pide sprites:
+// el del cetro, con el hueso 0 de esa pose y el cuerpo del ítem, la escala del personaje (0x509397) y
+// `bodyOrigin` (+0x6c del modelo).
 void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const BoneTransform& root,
-                     const Render::Models::AnimationState& state, const Render::Models::ItemGlow& glow)
+                     const glm::vec3& bodyOrigin, const Render::Models::AnimationState& state,
+                     const Render::Models::ItemGlow& glow)
 {
     const Render::Models::Skeleton* skeleton = frame.models.SkeletonOf(modelId);
     if (skeleton == nullptr || !Render::Models::HangsAsAModel(modelId))
@@ -700,6 +706,29 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
     }
     const ObjectState object = Render::Models::HangingObjectState(modelId, frame.clock, RandomsOf(frame.random));
     DrawModel(frame, modelId, bones, ModelUse{glow, false, modelId, object, object.light});
+    const DrawnCharacter& character = frame.character;
+    if (modelId == World::HdkMaceModel && character.sprites != nullptr && character.clothWorld != nullptr &&
+        !bones.empty())
+    {
+        World::CreateScepterGlow(*character.sprites, Render::Models::OriginalMatrixOf(bones.front()),
+                                 character.object.scale, bodyOrigin, character.clothWorld->random);
+    }
+}
+
+// 0x4ec190 y 0x50966b: el origen del cuerpo de lo que cuelga de su lugar, el desplazamiento girado por el
+// hueso y por la escala del personaje, guardado en float, más su posición. Con el de las manos, en 0, es
+// la posición.
+glm::vec3 HangingOrigin(const BoneTransform& parent, const glm::vec3& offset,
+                        const Render::Models::ObjectTransform& object)
+{
+    const glm::vec3 turned = Render::Models::OriginalVectorRotate(offset, Render::Models::OriginalMatrixOf(parent));
+    glm::vec3 origin{};
+    for (int k = 0; k < 3; ++k)
+    {
+        const auto scaled = static_cast<float>(static_cast<double>(object.scale) * static_cast<double>(turned[k]));
+        origin[k] = static_cast<float>(static_cast<double>(scaled) + static_cast<double>(object.position[k]));
+    }
+    return origin;
 }
 
 // Lo que cuelga de su lugar: desde su hueso del cuerpo con el desplazamiento (0x509340 con la bandera
@@ -713,9 +742,9 @@ void DrawHanging(const CharacterFrame& frame, std::uint16_t modelId, Render::Mod
     {
         return;
     }
-    DrawHangingFrom(frame, modelId,
-                    Render::Models::AttachmentRoot(body[static_cast<std::size_t>(attachment.bone)], attachment.offset),
-                    state, glow);
+    const BoneTransform& parent = body[static_cast<std::size_t>(attachment.bone)];
+    DrawHangingFrom(frame, modelId, Render::Models::AttachmentRoot(parent, attachment.offset),
+                    HangingOrigin(parent, attachment.offset, frame.character.object), state, glow);
 }
 
 // El carcaj de 0x50ba30 con las armas en la mano (local_20 en 0): las saetas de la mano izquierda o,
@@ -747,9 +776,14 @@ void DrawQuiver(const CharacterFrame& frame, std::span<const BoneTransform> body
     }
     const Render::Models::ItemGlow glow =
         Render::Models::ItemGlowOf(Render::Models::QuiverGlowLevel(quiver->level), quiver->excellent, false);
+    // Por ese camino, el origen del cuerpo es la posición del personaje (0x509607).
     DrawHangingFrom(frame, quiver->model, Render::Models::PlacedRoot(body[bone], Render::Models::QuiverPlacement),
-                    Render::Models::AnimationState{}, glow);
+                    frame.character.object.position, Render::Models::AnimationState{}, glow);
 }
+
+// flare01 (0x5ac) y la mezcla 0 de 0x5491e0, la aditiva.
+constexpr std::uint16_t ClothFlareTexture = 0x5ac;
+constexpr std::int32_t AdditiveSprite = 0;
 
 // 0x50d58b..0x50db57: las telas, después del lazo de las partes (0x50d3dc) y antes de lo que cuelga,
 // con los huesos del cuerpo de este frame y su reloj: un frame del bloque por cada uno del original que
@@ -772,6 +806,15 @@ void DrawTheCloth(const CharacterFrame& frame, std::span<const BoneTransform> bo
                                               .position = character.object.position};
     character.cloth->Advance(frame.batch, wearer, clothBody, *character.clothWorld, character.map, frame.clock,
                              WearsACloth(appearance.characterClass, character.map));
+    // Los destellos del casco blanco (0x455930), aditivos, en la tabla del frame.
+    if (character.sprites != nullptr)
+    {
+        for (const Render::Models::ClothFlare& flare : character.cloth->Flares())
+        {
+            (void)character.sprites->Create(ClothFlareTexture, flare.position, flare.scale, glm::vec3(flare.light),
+                                            0.0f, AdditiveSprite);
+        }
+    }
 }
 
 // El lazo de las manos de 0x50ba30 (0x50e6af), después de la espalda, las alas y la mascota.

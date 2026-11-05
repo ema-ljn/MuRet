@@ -5,12 +5,16 @@
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
-#include "Render/Models/PassColors.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/OriginalRotation.h"
+#include "Render/Models/PassColors.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
+#include "World/ScepterGlow.h"
+#include "World/Sprites.h"
 
 #include <gtest/gtest.h>
 
@@ -1566,5 +1570,86 @@ TEST(CharacterDrawingTest, AnObjectWithoutItsModelIsNotDrawn)
     const OneModel models(0xa3, "logo.jpg", 2);
 
     EXPECT_TRUE(DrawnObjectOf(models, LogoLike()).Commands().empty());
+}
+
+// 0x509340, caso 0x620: con el HDK_Mace en la mano y la tabla del frame, los cinco sprites del cetro en
+// el hueso 0 de la maza (el del cuerpo girado por el personaje), con su escala y su posición y el rand()
+// de la tela: los mismos que CreateScepterGlow con esa pose.
+TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
+{
+    DrawnCharacter character;
+    character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+    character.appearance.rightHand = Client::GameLogic::WornItem{.model = Client::World::HdkMaceModel};
+    character.object.position = {1000.0f, 2000.0f, 300.0f};
+    character.object.angles = {0.0f, 0.0f, 90.0f};
+    character.object.scale = 1.5f;
+    Client::Render::Models::ClothWorld world{.random = Client::Render::Models::CrtRandom(7)};
+    Client::World::FrameSprites sprites;
+    character.clothWorld = &world;
+    character.sprites = &sprites;
+    const OneModel models(Client::World::HdkMaceModel);
+
+    (void)Drawn(models, character);
+
+    Client::World::FrameSprites expected;
+    Client::Render::Models::CrtRandom random(7);
+    Client::World::CreateScepterGlow(
+        expected, Client::Render::Models::OriginalMatrixOf(Client::Render::Models::AngleMatrix({0.0f, 0.0f, 90.0f})),
+        1.5f, character.object.position, random);
+    for (std::size_t k = 0; k <= Client::World::ScepterSpriteCount; ++k)
+    {
+        const Client::World::Sprite& got = sprites.Sprites()[k];
+        const Client::World::Sprite& want = expected.Sprites()[k];
+        EXPECT_EQ(got.alive, want.alive) << k;
+        EXPECT_EQ(got.texture, want.texture) << k;
+        EXPECT_EQ(got.scale, want.scale) << k;
+        EXPECT_EQ(got.position, want.position) << k;
+        EXPECT_EQ(got.rotation, want.rotation) << k;
+    }
+    EXPECT_EQ(world.random.State(), random.State()) << "seis rand() de la tela";
+}
+
+// En la izquierda también (0x509340 no mira la mano); sin la tabla, o sin el rand() de la tela, no pide
+// ninguno ni saca rand(); y otro ítem no tiene ese caso.
+TEST(CharacterDrawingTest, OnlyTheScepterWithTheTableAsksForSprites)
+{
+    const OneModel mace(Client::World::HdkMaceModel);
+    {
+        DrawnCharacter character;
+        character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+        character.appearance.leftHand = Client::GameLogic::WornItem{.model = Client::World::HdkMaceModel};
+        Client::Render::Models::ClothWorld world;
+        Client::World::FrameSprites sprites;
+        character.clothWorld = &world;
+        character.sprites = &sprites;
+        (void)Drawn(mace, character);
+        EXPECT_TRUE(sprites.Sprites()[Client::World::ScepterSpriteCount - 1].alive) << "la izquierda";
+    }
+    {
+        DrawnCharacter character;
+        character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+        character.appearance.rightHand = Client::GameLogic::WornItem{.model = Client::World::HdkMaceModel};
+        Client::Render::Models::ClothWorld world;
+        character.clothWorld = &world;
+        (void)Drawn(mace, character);
+        EXPECT_EQ(world.random.State(), Client::Render::Models::CrtRandom().State()) << "sin la tabla";
+        Client::World::FrameSprites sprites;
+        character.clothWorld = nullptr;
+        character.sprites = &sprites;
+        (void)Drawn(mace, character);
+        EXPECT_FALSE(sprites.Any()) << "sin el rand()";
+    }
+    {
+        const OneModel sword(0x212);
+        DrawnCharacter character;
+        character.appearance = Client::GameLogic::ClassAppearance(0, 0);
+        character.appearance.rightHand = Client::GameLogic::WornItem{.model = 0x212};
+        Client::Render::Models::ClothWorld world;
+        Client::World::FrameSprites sprites;
+        character.clothWorld = &world;
+        character.sprites = &sprites;
+        (void)Drawn(sword, character);
+        EXPECT_FALSE(sprites.Any()) << "otro ítem";
+    }
 }
 } // namespace

@@ -2,6 +2,7 @@
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Render/Models/Cloth.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/GameData.h"
@@ -23,6 +24,7 @@
 #include "Data/Textures/Sampling.h"
 #include "Input/InputState.h"
 
+#include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
@@ -35,6 +37,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <ios>
+#include <iterator>
 #include <optional>
 #include <set>
 #include <string>
@@ -536,6 +539,42 @@ TEST_F(GoldenLoginWorld, TheDragonDrawsAfterTheObjects)
     EXPECT_FALSE(std::any_of(firstDragon, frame.modelCommands.end(), IsLogo)) << "el logo va antes";
     EXPECT_TRUE(std::all_of(firstDragon, frame.modelCommands.end(), [](const auto& command)
                             { return command.state.blend == Client::Render::ModelBlend::Opaque; }));
+    scene.Leave();
+}
+
+// CL7.6 B1: con lo global de la tela (como en main.cpp), el dibujo del personaje pide los sprites del
+// frame, los 30 destellos del casco blanco (0x455930) y después los cinco del cetro (0x509340, caso
+// 0x620), y van aditivos en su pase, el último de los modelos, con la vista en la identidad.
+TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
+{
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    for (int k = 0; k < 3; ++k)
+    {
+        scene.Step(Client::Input::InputState{});
+    }
+    RecordingFrameTarget target;
+    scene.Render(target.BeginFrame(std::chrono::milliseconds{40}), 0.0f);
+    target.Present();
+    std::vector<FrameEvent> models;
+    std::ranges::copy_if(target.frames.back().events, std::back_inserter(models),
+                         [](const FrameEvent& event) { return event.kind == Kind::Models; });
+    ASSERT_EQ(models.size(), 2u) << "el mundo y los sprites";
+    // Cada sprite, dos triángulos; el lote junta los seguidos con el mismo estado.
+    constexpr std::size_t PerSprite = 6;
+    std::vector<std::pair<std::uint16_t, std::size_t>> runs;
+    for (const auto& command : models.back().modelCommands)
+    {
+        ASSERT_TRUE(command.state.texture.has_value());
+        EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
+        runs.emplace_back(command.state.texture->value, command.vertexCount / PerSprite);
+    }
+    const std::vector<std::pair<std::uint16_t, std::size_t>> expected{{0x5ac, 30}, {0x5fd, 2}, {0x5ac, 1}, {0x5fd, 2}};
+    EXPECT_EQ(runs, expected);
+    ASSERT_TRUE(models.back().pass.has_value());
+    EXPECT_EQ(models.back().pass->view, glm::mat4(1.0f));
     scene.Leave();
 }
 

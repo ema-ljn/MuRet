@@ -75,8 +75,8 @@ public:
     {
         return m_count;
     }
-    // Los sprites del brillo del último frame (Effect\flare01.jpg, 0x5491e0). Los dibuja el
-    // administrador de efectos (0x549440 → 0x549290), que MuRet todavía no tiene.
+    // Los sprites del brillo del último frame (Effect\flare01.jpg, 0x5491e0). DrawCharacter los pide en
+    // la tabla del frame (DrawnCharacter::sprites), que dibuja 0x549440 → 0x549290.
     [[nodiscard]] std::span<const Render::Models::ClothFlare> Flares() const
     {
         return m_flares;

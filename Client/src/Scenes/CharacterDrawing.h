@@ -18,6 +18,11 @@
 #include <optional>
 #include <span>
 
+namespace Client::World
+{
+class FrameSprites;
+} // namespace Client::World
+
 // El dibujo de un personaje en el ModelBatch, como 0x50ba30 en la selección: el cuerpo de
 // Player.bmd posado, las partes con las matrices de esa pose (0x60cf70), lo que cuelga desde su
 // hueso (0x509340, Render/Models/Attachment.h) y los pases de brillo de cada parte por su nivel
@@ -68,6 +73,10 @@ struct DrawnCharacter
     CharacterCloth* cloth = nullptr;
     Render::Models::ClothWorld* clothWorld = nullptr;
     std::uint8_t map = 0;
+    // La tabla de los sprites del frame (0x5491e0, World/Sprites.h): los 30 destellos de la tela, al
+    // dibujarla, y los cinco del cetro (0x509340, caso 0x620, World/ScepterGlow.h) con el rand() de
+    // `clothWorld`, en ese orden. Sin ella, no se piden.
+    World::FrameSprites* sprites = nullptr;
 };
 
 // Los slots de las texturas de los pases de brillo (06): 0x5fc el 0x8, 0x5c0 el 0x4 y 0x620 los

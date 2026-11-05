@@ -157,10 +157,6 @@ constexpr int NoSlot = -1;
 }
 } // namespace
 
-// Los destellos de la tela (0x455930 → 0x5491e0): Effect\flare01.jpg, con la mezcla 0, aditiva.
-constexpr std::uint16_t ClothFlareTexture = 0x5ac;
-constexpr std::int32_t AdditiveSprite = 0;
-
 // El dragón: solo en el mapa 55, y su dueño, el 0xb4 que crea 0x616ec0 (0x6188ae).
 constexpr std::uint8_t DragonMap = 0x37;
 constexpr glm::vec3 DragonOwnerPosition{5600.0f, 23000.0f, 0.0f};
@@ -725,14 +721,9 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, m_terrainPolygon);
     DrawTheModels(canvas, alpha);
     canvas.flushModels();
-    // Los sprites del frame: los que pidieron el dibujo de los personajes (los 30 destellos de la tela,
-    // 0x455930), 0x549510 y, con la modelview en la identidad (0x6213e0), 0x549440(0).
-    for (const Render::Models::ClothFlare& flare : m_characterCloth.Flares())
-    {
-        (void)m_sprites.Create(ClothFlareTexture, flare.position, flare.scale, glm::vec3(flare.light), 0.0f,
-                               AdditiveSprite);
-    }
-    // Sin ninguno, el pase de ojo no dibuja nada y no se abre.
+    // Los sprites del frame, los que pidió el dibujo del personaje (los 30 destellos de la tela, 0x455930,
+    // y los cinco del cetro, 0x509340): 0x549510 y, con la modelview en la identidad (0x6213e0),
+    // 0x549440(0). Sin ninguno, el pase de ojo no dibuja nada y no se abre.
     if (m_sprites.Any())
     {
         m_sprites.MarkSeen();
@@ -774,6 +765,7 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     character.cloth = &m_characterCloth;
     character.clothWorld = m_context.cloth;
     character.map = m_world ? m_world->map : 0;
+    character.sprites = &m_sprites;
     DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
 
     DrawDarkHorse(

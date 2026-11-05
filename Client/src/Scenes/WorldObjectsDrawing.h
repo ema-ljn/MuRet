@@ -5,6 +5,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "World/TerrainCulling.h"
 #include "World/ModelEffects.h"
+#include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/TerrainLighting.h"
@@ -57,4 +58,11 @@ void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models,
 // dibujarlo, se apaga.
 void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, const IModelLibrary& textures,
                       const Render::Models::OriginalMatrix& view);
+
+// 0x548550(0), en el mismo pase de ojo, después de los sprites: cada partícula viva que MuRet arma, con la
+// mezcla de los componentes de su textura y el cuadrado de 0x621400 con el tamaño de su textura por la
+// escala (World::ParticleDrawOf), con la vista `view`. Las del login son JPG, de 3 componentes (aditivas).
+// Sin el tamaño de la textura no se dibuja.
+void DrawParticles(Render::ModelBatch& batch, const World::Particles& particles, const IModelLibrary& textures,
+                   const Render::Models::OriginalMatrix& view);
 } // namespace Client::Scenes

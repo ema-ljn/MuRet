@@ -1652,13 +1652,37 @@ Lo que se ve en el video, una fuente por vez:
   las alturas de `World56`). En el primer paso el héroe todavía está en (0, 0, 0) y las primeras 80
   nacen lejos (Q-C137).
 - **Las bocanadas blancas**: **el aliento del caballo**, no polvo. `0x444010`, en cada paso, con
-  `rand() % 3 == 0`, crea la partícula `0x5f2` (`Effect\smoke01.jpg`, subtipo 0) en el **hueso 27**
-  del caballo (`Bone03`, hijo de `Bip01 Head`) con el desplazamiento (50, −4, 0), la pose del último
-  frame dibujado y la luz (3, 3, 3). Nace con vida 16, escala `(rand() % 32 + 48) · 0,01` y la
-  rotación `ftol(T) % 360`; cada paso la luz es vida · 0,125, la velocidad vertical propia suma 0,2
-  y la z, esa velocidad, y la escala suma 0,05. Se ve 15 pasos: blanca los 8 primeros, y se apaga en
-  los 7 últimos. El polvo de los cascos solo sale con el jinete en la acción `0x4b`, que el login no
-  usa.
+  el jinete (`+0x108`) sin su `0x4000` (`+0x78`), la acción del caballo distinta de 1 y
+  `rand() % 3 == 0` (`0x44453f..0x4445d9`), crea la partícula `0x5f2` (`Effect\smoke01.jpg`, que
+  `0x61ccb0` sube con `GL_LINEAR` y `GL_CLAMP`, `0x61d74f`; subtipo 0) con los ángulos del caballo
+  (`+0x1c`, los del jinete), su luz (3, 3, 3, de `0x443e2f`) y escala 1, en `0x4ec110` **sin
+  trasladar** desde `0x68b1d2c`: el **hueso 27 del buffer global de la pose** (`0x68b181c`) con el
+  desplazamiento (50, −4, 0). En el paso del login, los ayudantes (`0x445230`, desde `0x634d09`)
+  corren antes que cualquier otra pose, así que ese hueso es el que dejó el dibujo anterior: el
+  último modelo posado sin buffer propio (`+0x11c` en 0) que **tiene** el hueso 27 y no es dummy
+  (`0x4eb973` saltea los dummy sin escribirlos), y `0x4eb860` lo deja en el mundo (con su octavo
+  argumento en 1, la raíz va por la escala del cuerpo y con su origen). El dragón se posa después del
+  caballo (`0x52d620` → `0x602e90(e, 0, 0, 0)`), pero en `dragon.bmd` el 27 es uno de sus 14 dummy, y
+  ningún objeto del mapa 55 llega a 28 huesos (los que más tienen, `Object13` y `Object19`, 8): queda
+  el del caballo, `Bone03` (hijo de `Bip01 Head`), con la pose del dibujo anterior: en `0x444010` el
+  avance de la animación (`0x4ec200`, `0x445039`) corre después del aliento, aunque la acción que mira
+  el aliento es la de este paso (`0x4ea030`). Antes de que el caballo se vea (con el alpha por debajo
+  de 0,01, antes de su primer paso), el hueso no lo escribe nadie del login. Se ve junto a su cabeza,
+  como en el video del original. Al crearse
+  (`0x53fe9c..0x53ff37` y el caso `0x54184b`): vida 16, escala `(rand() % 32 + 48) · 0,01`, el ángulo
+  x `rand() % 360` (los otros dos, del caballo) y la rotación `ftol(T) % 360`; cada paso
+  (`0x545ec4`) la luz es vida · 0,125, la velocidad vertical propia suma 0,2 y la z, esa velocidad
+  antes de guardarla en float, y la escala suma 0,05. La que llega a vida 0 se apaga, pero ese paso
+  la sube igual. Se dibuja (`0x548550`) del tamaño de la textura por la escala, girada `+0x44`,
+  aditiva. Se ve 15 pasos: blanca los 8 primeros, y se apaga en los 7 últimos. **Verificado** en la
+  CL7.6 B2 contra el código real emulado: la creación, el paso (con el viento) y el dibujo, en 20
+  casos de 20 pasos (`tests/vectors/world55/particles.txt`), dada la posición. De dónde sale el hueso es
+  *estático*, y la posición sale de la pose de MuRet (por cuaterniones, no por el camino de la x87):
+  igual a nivel de float, no bit a bit. El
+  polvo de los cascos solo sale con el jinete en la acción `0x4b`, que el login no usa.
+- **El viento de las partículas** (`0x5446e0`, al empezar cada paso): para x e y, el cambio
+  (`0x7609bc4`) suma `(rand() % 2001 − 1000) · 0,0006` con tope ±0,6, y el viento (`0x7609bb8`)
+  suma el cambio con tope ±1,7, con las comparaciones de la x87 (un NaN pasa). El aliento no lo usa.
 - **El brillo del cetro**: `0x509340`, caso `0x620` (tabla `0x50b81c`), pide **5 sprites por frame**,
   aditivos, con luz **(1; 0,3; 0)**, en `TransformPosition(hueso 0 del cetro, desplazamiento)`:
 
@@ -1719,7 +1743,8 @@ nivel son pases de malla que MuRet ya tiene; los demás manejadores de `0x602ed0
 
 **Los `rand()` del frame** (P-C22 a), además de los 75 de la tela: las brasas (unos 240 por paso, y
 10 por cada una que renace), los efectos con modelo (uno por cada efecto vivo y por paso, `0x5208c5`:
-el dragón), el aliento (1 o 3 por paso), el viento de las partículas (2 por paso), el
+el dragón), el aliento (1 o 3 por paso), el viento de las partículas (2 por paso), el dibujo de
+cada ayudante (`rand() % 30` en `0x445336`, por frame), el
 cuervo (4 a 7 por paso), `0x509340` (uno por cada parte del personaje que dibuja, por frame), el cetro
 (6 más por frame), el gesto del login (`rand() % 6` con `ftol(T) % 2300 < 100`), `0x602ed0` (1 por
 objeto visible por frame, 1 más en cada `0x54`, 5 más por nube, 3 más cuando dispara el `0x59`, y el
@@ -2372,7 +2397,8 @@ Ver [08](08-pendientes.md).
 | El mundo del login: el mapa 55 entero, con los objetos después de los personajes y casos por tipo y por mapa (`0x606660`, `0x604ab0`, `0x6002e0`) | en el lote del login: el terreno (`LoadedWorld`, CL7.1) y los objetos del `.obj` (`WorldModels`, `WorldObjects` y `WorldObjectsDrawing`, CL7.2), con los casos del mapa 55 como datos y el orden del original | CL7.1, CL7.2 |
 | El dragón: un efecto con modelo (`0x518cf0`) que vuela en ocho, sin azar | el efecto `0xb4` con su paso por paso de lógica, comparado con los pasos emulados del código real | CL7.6 A |
 | Los sprites de un frame (`0x5491e0`), con el billboard de `0x621400`: el dibujo del personaje pide los 30 destellos de la tela y los cinco del cetro, y `0x549440(0)` los dibuja con la modelview en la identidad y los apaga | `Render::MakeBillboard` (bit a bit contra `0x621400`), `World::FrameSprites` (la tabla, con el alpha de `0x549290`) y `Scenes::DrawFrameSprites` en un pase de ojo, el último del 3D, que se abre solo con alguno vivo; `DrawnCharacter::sprites` recibe los destellos al dibujar la tela y el cetro (`World::CreateScepterGlow`, bit a bit contra el caso `0x620` de `0x509340`) en ese orden, con el `rand()` de la CRT de `ClothWorld` | CL7.6 B1 |
-| Las otras tablas de efectos: joints, hojas y partículas | un sistema por tabla, con el paso por paso de lógica y el billboard en el pase 3D, después de los objetos y en el mismo orden | CL7.6 B2 y B3 |
+| Las partículas (`0x53fe70`, `0x5446e0` y `0x548550`), con el aliento del caballo desde el buffer global de la pose | `World::Particles` (la tabla de 3.000, el viento y el aliento, bit a bit contra el código real) y `Scenes::DrawParticles` en el pase de ojo, después de los sprites; el aliento lo pide `LoginScene` después del paso del caballo, en el hueso 27 del último modelo dibujado que lo tiene sin ser dummy (`PosedBonePoint`) | CL7.6 B2 |
+| Las otras tablas de efectos: joints y hojas | un sistema por tabla, con el paso por paso de lógica y el billboard en el pase 3D, después de los objetos y en el mismo orden | CL7.6 B3 |
 | El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | un objeto colgado del personaje, con el paso de `0x416a20` comparado bit a bit con `raven_reference.py` | CL7.6 C |
 
 Tests que fija:

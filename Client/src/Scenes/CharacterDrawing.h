@@ -14,6 +14,7 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -137,6 +138,26 @@ struct DrawnObject
 // que la biblioteca no tiene no se dibuja.
 void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                 Core::Duration frameClock);
+
+// El punto `offset` del hueso `bone` de `object` posado como lo posa DrawObject, en el mundo (por la escala
+// y más la posición del objeto, como los vértices). Es lo que lee del buffer global de la pose
+// (0x68b181c) 0x4ec110 sin trasladar: 0x4eb860 lo deja en el mundo con su octavo argumento en 1. Sin el
+// modelo, con menos huesos o con ese hueso dummy (0x4eb973 no lo escribe), nullopt.
+[[nodiscard]] std::optional<glm::vec3> PosedBonePoint(const IModelLibrary& models, const DrawnObject& object,
+                                                      std::size_t bone, const glm::vec3& offset);
+
+// Un modelo que un dibujo posó en el buffer global de la pose (sin buffer propio, +0x11c en 0), con la
+// biblioteca de la que sale.
+struct PosedInTheBuffer
+{
+    const IModelLibrary* models = nullptr;
+    DrawnObject object;
+};
+
+// El punto `offset` del hueso `bone` como lo dejó en el buffer global un dibujo que posó `posed`, en ese
+// orden: el del último que tiene ese hueso sin ser dummy (los demás no lo escriben). Si ninguno, nullopt.
+[[nodiscard]] std::optional<glm::vec3> LastPosedBonePoint(std::span<const PosedInTheBuffer> posed, std::size_t bone,
+                                                          const glm::vec3& offset);
 
 // 0x602e90 con el caso del remolino 90 del mapa 55 en 0x6002e0: 0x620b10 y 0x4ecc30(0, 0x80, 1, blendMesh,
 // 1, U, V, −1), la malla 0 sola, en blanco y sin luz por vértice, con ModelBlend::Subtractive y la U y

@@ -20,6 +20,7 @@
 #include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
 #include "World/ModelEffects.h"
+#include "World/Particles.h"
 #include "World/Sprites.h"
 #include "World/WorldObjects.h"
 #include "Data/Terrain/TerrainObjects.h"
@@ -131,6 +132,15 @@ private:
     void StepTheLogo(World::WorldObject& logo) const;
     void PlaceTheModels();
     void StepTheWorld();
+    // 0x444010 (0x44453f..0x4445d9), después del paso del caballo: el aliento, con `drawn`, el caballo como
+    // lo dejó el dibujo anterior (antes de este paso).
+    void BreatheTheHorse(const DarkHorse& drawn);
+    // Dónde queda `offset` en el hueso `bone` del buffer global de la pose (0x68b181c) al llegar al paso:
+    // lo dejó el último modelo posado sin buffer propio en el dibujo anterior que tiene ese hueso y no es
+    // dummy (LastPosedBonePoint), en el mundo: el dragón (0x52d620) va después del caballo (0x4453b0), pero
+    // su hueso 27 es dummy, y en el 27 queda el del caballo. Antes del primer dibujo, (0, 0, 0).
+    [[nodiscard]] glm::vec3 GlobalPosePoint(std::size_t bone, const glm::vec3& offset,
+                                            const DarkHorse& drawnHorse) const;
     void DrawTheModels(SceneCanvas& canvas, float alpha);
     // La luz del terreno en (x, y), o 0 sin la del mundo.
     [[nodiscard]] glm::vec3 TerrainLightAt(const glm::vec3& position) const;
@@ -176,6 +186,11 @@ private:
     World::ModelEffects m_effects;
     // Los sprites de un frame (0x760f990): los destellos de la tela y el brillo del cetro.
     World::FrameSprites m_sprites;
+    // Las partículas (0x743a198): el aliento del caballo.
+    World::Particles m_particles;
+    // Si ya se dibujó un frame desde que se entró: antes, el buffer global de la pose no tiene nada del
+    // login (P-C26).
+    bool m_drawnSinceEntering = false;
     // El logo: su modelo, los slots de sus mallas desde donde terminó el mundo y sus texturas.
     SingleModelLibrary m_logo;
     std::optional<Render::Models::ModelTextureSlots> m_logoSlots;

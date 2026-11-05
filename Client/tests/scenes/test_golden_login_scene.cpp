@@ -3,7 +3,9 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameModels.h"
@@ -24,7 +26,12 @@
 #include "Data/Textures/Sampling.h"
 #include "Input/InputState.h"
 
+#include <glm/ext/matrix_double4x4.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_double3.hpp>
+#include <glm/ext/vector_double4.hpp>
+#include <glm/geometric.hpp>
+#include <glm/matrix.hpp>
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
@@ -544,7 +551,8 @@ TEST_F(GoldenLoginWorld, TheDragonDrawsAfterTheObjects)
 
 // CL7.6 B1: con lo global de la tela (como en main.cpp), el dibujo del personaje pide los sprites del
 // frame, los 30 destellos del casco blanco (0x455930) y después los cinco del cetro (0x509340, caso
-// 0x620), y van aditivos en su pase, el último de los modelos, con la vista en la identidad.
+// 0x620), y van aditivos en su pase, el último de los modelos, con la vista en la identidad. Después van
+// las partículas (0x548550, CL7.6 B2): los alientos del caballo que haya.
 TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
 {
     Client::Render::Models::ClothWorld cloth;
@@ -574,7 +582,11 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
         runs.emplace_back(command.state.texture->value, static_cast<int>(command.vertexCount / PerSprite));
     }
     const std::vector<std::pair<int, int>> expected{{0x5ac, 30}, {0x5fd, 2}, {0x5ac, 1}, {0x5fd, 2}};
-    EXPECT_EQ(runs, expected);
+    ASSERT_GE(runs.size(), expected.size());
+    const std::vector<std::pair<int, int>> sprites(runs.begin(), runs.begin() + 4);
+    EXPECT_EQ(sprites, expected);
+    EXPECT_TRUE(std::all_of(runs.begin() + 4, runs.end(), [](const auto& run) { return run.first == 0x5f2; }))
+        << "después, solo los alientos";
     // 0x549510 los marca vistos antes del pase: 0x549290 los mide con el alpha en 1. El primer destello
     // (la columna 0, escala 0,4, sin giro) va a 0,4 del ancho de flare01, en coordenadas de ojo.
     const auto flareSize = m_models.TextureSize(TextureSlot{0x5ac});
@@ -588,6 +600,92 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
     EXPECT_NEAR(right->position.x - left->position.x, 0.4f * flareSize->x, 0.01f);
     ASSERT_TRUE(models.back().pass.has_value());
     EXPECT_EQ(models.back().pass->view, glm::mat4(1.0f));
+    scene.Leave();
+}
+
+// CL7.6 B2: el aliento del caballo (0x444010) sale del hueso 27 del buffer global de la pose. Lo escribe
+// el último modelo posado que tiene ese hueso y no es dummy (0x4eb973 saltea los dummy): el dragón se dibuja
+// después del caballo (0x52d620), pero su hueso 27 es dummy, y los objetos del mapa 55 tienen menos de 28.
+// Queda el del caballo, Bone03, con la pose del dibujo anterior: el avance del caballo (0x4ec200, en
+// 0x445039) corre después del aliento. El test repite los pasos del caballo y espera cada aliento nuevo en
+// (50; −4; 0) del hueso 27 de la pose de antes de su paso, más la subida de su primer paso (0,2); antes
+// de que el caballo se vea, en (0, 0, 0).
+TEST_F(GoldenLoginWorld, TheBreathOfTheHorseComesFromItsHeadAsDrawnBefore)
+{
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    const Client::Render::Models::Skeleton* horseSkeleton = m_models.SkeletonOf(Client::Scenes::DarkHorseModel);
+    ASSERT_NE(horseSkeleton, nullptr);
+    const glm::dvec3 rise{0.0, 0.0, 0.2};
+    Client::Scenes::DarkHorse horse;
+    std::size_t breaths = 0;
+    std::size_t matched = 0;
+    std::size_t previous = 0;
+    for (int step = 0; step < 60; ++step)
+    {
+        RecordingFrameTarget before;
+        scene.Render(before.BeginFrame(std::chrono::milliseconds{40 * step}), 0.0f);
+        before.Present();
+        // Lo que va a leer el aliento de este paso: el caballo como se dibujó recién. Con el alpha por debajo
+        // de 0,01 (antes de su primer paso) no se dibujó ni escribió el hueso: el aliento nace en (0, 0, 0).
+        const bool horseDrawn = horse.alpha >= 0.01f;
+        const auto expected = Client::Scenes::PosedBonePoint(
+            m_models,
+            Client::Scenes::DrawnDarkHorse(horse, horseSkeleton, Client::Scenes::LoginCharacterTransform(),
+                                           Client::Scenes::DarkHorseLoginScale, 0.0f),
+            27, {50.0f, -4.0f, 0.0f});
+        ASSERT_TRUE(expected.has_value());
+        scene.Step(Client::Input::InputState{});
+        Client::Scenes::StepDarkHorse(horse, *horseSkeleton, Client::Scenes::LoginCharacterStandingAction);
+
+        RecordingFrameTarget after;
+        scene.Render(after.BeginFrame(std::chrono::milliseconds{40 * step + 20}), 0.0f);
+        after.Present();
+        std::vector<FrameEvent> models;
+        std::ranges::copy_if(after.frames.back().events, std::back_inserter(models),
+                             [](const FrameEvent& event) { return event.kind == Kind::Models; });
+        std::vector<glm::dvec3> centers;
+        if (models.size() == 2 && models.front().pass.has_value())
+        {
+            const glm::dmat4 toWorld = glm::inverse(glm::dmat4(models.front().pass->view));
+            for (const auto& command : models.back().modelCommands)
+            {
+                if (command.state.texture != TextureSlot{0x5f2})
+                {
+                    continue;
+                }
+                for (std::size_t quad = 0; quad < command.vertexCount / 6; ++quad)
+                {
+                    glm::dvec3 center(0.0);
+                    for (std::size_t k = 0; k < 6; ++k)
+                    {
+                        center +=
+                            glm::dvec3(models.back().modelVertices[command.firstVertex + (quad * 6) + k].position);
+                    }
+                    centers.push_back(glm::dvec3(toWorld * glm::dvec4(center / 6.0, 1.0)));
+                }
+            }
+        }
+        // Uno más que en el paso anterior (y ninguno se apaga antes de 16): nació en este.
+        if (centers.size() > previous)
+        {
+            ++breaths;
+            const glm::dvec3 want = (horseDrawn ? glm::dvec3(*expected) : glm::dvec3(0.0)) + rise;
+            if (std::ranges::any_of(centers, [&want](const glm::dvec3& c) { return glm::length(c - want) < 0.05; }))
+            {
+                ++matched;
+            }
+        }
+        previous = centers.size();
+        if (step >= 14)
+        {
+            break;
+        }
+    }
+    ASSERT_GE(breaths, 2u) << "en 15 pasos, rand() % 3 da 0 más de una vez";
+    EXPECT_EQ(matched, breaths) << "cada aliento, en la cabeza del caballo del dibujo anterior";
     scene.Leave();
 }
 

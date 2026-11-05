@@ -581,4 +581,12 @@ TEST(LoginSceneTest, WithoutTextsItDrawsTheRest)
               (std::vector<Kind>{Kind::Quad, Kind::Quad, Kind::Flush, Kind::Models, Kind::Quad, Kind::Quad}));
     EXPECT_TRUE(tested.target.Texts().empty());
 }
+
+// Los tests arman escenas en la pila, y la de MSVC es de 1 MB: las tablas grandes (los 3.000 lugares de
+// las partículas, los 1.000 de los sprites) van en el heap, y la escena queda chica.
+TEST(LoginSceneTest, FitsOnTheStackOfATest)
+{
+    constexpr std::size_t Limit = 128 * 1024;
+    EXPECT_LT(sizeof(Client::Scenes::LoginScene), Limit);
+}
 } // namespace

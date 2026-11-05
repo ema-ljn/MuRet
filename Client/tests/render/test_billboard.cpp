@@ -16,7 +16,6 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <vector>
 
 // Client::Render::MakeBillboard contra 0x621400 del código real del main.exe, en 300 casos al azar
 // (tests/vectors/world55/billboard.txt, make_billboard_vectors.py): las cuatro esquinas, sus UV y el

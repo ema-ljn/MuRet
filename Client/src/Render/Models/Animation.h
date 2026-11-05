@@ -6,6 +6,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <optional>
 
 // Cuánto avanza la animación de un modelo (Client/docs/research/06-render-escenas-y-ui.md, "Cuánto
 // avanza la animación"): el cuerpo por paso de lógica con la velocidad de su acción, y la mascota y
@@ -33,6 +34,34 @@ void SetAction(AnimationState& state, const Skeleton& skeleton, std::uint8_t act
 
 // 1 / 21,33 FPS: el frame del modo fiel de la CL3 (64 frames cada 3 s).
 inline constexpr Core::Duration OriginalFrameTime = std::chrono::microseconds{46'875};
+
+// Cómo cuenta los frames del original lo que el original corre una vez por cada frame que dibuja (la tela,
+// Q-C124, y el brillo del cetro): por el reloj (Decoupled, Q-C124 y Q-C20 corregidos), o uno por dibujo
+// (Faithful, como el original).
+enum class OriginalFramePace : std::uint8_t
+{
+    ByTheClock,
+    OncePerDraw,
+};
+
+// Lo más que corre un dibujo de una vez: 3 s del original.
+inline constexpr int MaxOriginalFramesPerDraw = 64;
+
+// Los frames del original que corren en cada dibujo de MuRet. Por el reloj: el primero corre uno; después,
+// uno por cada OriginalFrameTime que pasó desde el dibujo anterior, con lo que sobra para el siguiente; un
+// reloj que vuelve no suma; un salto de más de MaxOriginalFramesPerDraw corre esos y descarta lo que
+// sobra. Uno por dibujo en el modo fiel: su frame dura uno del original, pero no justo 46,875 ms (los pasos
+// y la latencia lo corren), y por el reloj el que llega antes que el primero correría 0 y el siguiente 2.
+// Así tampoco pone al día lo que no se dibujó, como el original.
+class OriginalFrameCarry
+{
+public:
+    [[nodiscard]] int FramesAt(Core::Duration clock, OriginalFramePace pace);
+
+private:
+    std::optional<Core::Duration> m_lastClock;
+    Core::Duration m_carry{};
+};
 
 // Lo que avanzan por frame del original la mascota Helper02 (0x1c13, personaje + 0x318) y las alas
 // (personaje + 0x2f8): 0,5, y 0,25 o 1 con el personaje en la acción 0x1e o 0x1f (0x50ba30).

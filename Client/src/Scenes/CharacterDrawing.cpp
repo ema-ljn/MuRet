@@ -714,7 +714,7 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
         if (character.scepter != nullptr)
         {
             character.scepter->Create(*character.sprites, bone, character.object.scale, bodyOrigin,
-                                      character.clothWorld->random, frame.clock);
+                                      character.clothWorld->random, frame.clock, character.pace);
         }
         else
         {
@@ -814,7 +814,7 @@ void DrawTheCloth(const CharacterFrame& frame, std::span<const BoneTransform> bo
                                               .scale = character.object.scale,
                                               .position = character.object.position};
     character.cloth->Advance(frame.batch, wearer, clothBody, *character.clothWorld, character.map, frame.clock,
-                             WearsACloth(appearance.characterClass, character.map));
+                             WearsACloth(appearance.characterClass, character.map), PlainClothColor, character.pace);
     // Los destellos del casco blanco (0x455930), aditivos, en la tabla del frame.
     if (character.sprites != nullptr)
     {

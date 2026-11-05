@@ -1,5 +1,7 @@
 #include "World/ScepterGlow.h"
 
+#include "Core/IClock.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
@@ -11,6 +13,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <bit>
 #include <chrono>
 #include <cstddef>
@@ -141,6 +144,7 @@ TEST(ScepterGlowTest, AFullTableTakesTheRandsAnyway)
         glm::vec3(0.0f), random);
     EXPECT_EQ(random.State(), expected.State());
 }
+
 // Los seis rand() que pide un frame, después de los de `random`.
 CrtRandom After(std::uint32_t seed, int frames)
 {
@@ -234,5 +238,26 @@ TEST(ScepterGlowTest, AClockThatGoesBackRepeatsTheGlow)
 
     EXPECT_EQ(random.State(), After(9, 1).State());
     ExpectSameGlow(GlowOf(back), GlowOf(first));
+}
+
+// En el modo fiel, un sorteo por dibujo, aunque el frame no dure justo 46,875 ms: por el reloj, el segundo
+// de estos repetiría el sorteo y el tercero sacaría dos.
+TEST(ScepterGlowTest, InTheFaithfulModeEachDrawSortsOnce)
+{
+    using namespace std::chrono_literals;
+    using Client::Render::Models::OriginalFrameTime;
+    const auto bone = Client::Render::Models::OriginalMatrixOf(Client::Render::Models::BoneTransform(1.0f));
+    Client::World::ScepterGlowCarry carry;
+    CrtRandom random(5);
+    const std::array<Client::Core::Duration, 4> clocks{(3 * OriginalFrameTime) + 300us, (4 * OriginalFrameTime) + 100us,
+                                                       (5 * OriginalFrameTime) + 300us,
+                                                       (5 * OriginalFrameTime) + 300us + 2s};
+    for (std::size_t k = 0; k < clocks.size(); ++k)
+    {
+        FrameSprites sprites;
+        carry.Create(sprites, bone, 1.0f, glm::vec3(0.0f), random, clocks[k],
+                     Client::Render::Models::OriginalFramePace::OncePerDraw);
+        EXPECT_EQ(random.State(), After(5, static_cast<int>(k) + 1).State()) << k;
+    }
 }
 } // namespace

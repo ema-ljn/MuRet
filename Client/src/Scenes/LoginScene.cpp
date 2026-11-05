@@ -948,6 +948,7 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     character.map = m_world ? m_world->map : 0;
     character.sprites = &m_sprites;
     character.scepter = &m_scepterGlow;
+    character.pace = OriginalFramePaceOf(m_context.pacing);
     DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
     // 0x4182f0 al final de 0x50ba30: el cuervo, si pasa el trapecio; sus huesos del estado del paso quedan
     // para la chispa del próximo (Q-C133).

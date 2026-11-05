@@ -597,7 +597,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                        .log = log,
                                        .clock = &clock,
                                        .cloth = &clothWorld,
-                                       .input = &input};
+                                       .input = &input,
+                                       .pacing = startup.config.pacing};
     // El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
     // se ven los dos.
     if (const auto hidden = window.HideSystemCursor(); !hidden.HasValue())

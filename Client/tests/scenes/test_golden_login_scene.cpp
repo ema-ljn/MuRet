@@ -1,6 +1,8 @@
 #include "Scenes/LoginScene.h"
 #include "Scenes/CharacterHead.h"
 
+#include "App/PacingMode.h"
+#include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Render/Models/Cloth.h"
@@ -688,6 +690,45 @@ TEST_F(GoldenLoginWorld, TheScepterGlowChangesOncePerOriginalFrame)
     EXPECT_EQ(again, first);
     EXPECT_NE(next, first);
     scene.Leave();
+}
+
+// En el modo fiel (el ritmo del contexto en Faithful), la tela y el cetro corren uno por frame dibujado
+// aunque el frame no dure justo 46,875 ms: el login fiel, con el primer frame 0,3 ms tarde y los demás
+// 0,1 ms, saca los mismos rand() que uno por el reloj con frames exactos. Por el reloj, el segundo frame
+// del fiel no correría ninguno.
+TEST_F(GoldenLoginWorld, InTheFaithfulModeTheClothAndTheScepterRunOncePerDrawnFrame)
+{
+    using namespace std::chrono_literals;
+    using Client::Render::Models::OriginalFrameTime;
+    Client::Render::Models::ClothWorld faithfulCloth;
+    Client::Render::Models::ClothWorld exactCloth;
+    LoginScene faithful(SceneContext{.dataRoot = m_dataRoot,
+                                     .textures = m_store,
+                                     .log = m_log,
+                                     .cloth = &faithfulCloth,
+                                     .pacing = Client::App::PacingMode::Faithful},
+                        *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    LoginScene exact(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &exactCloth},
+                     *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(faithful.Enter().HasValue());
+    ASSERT_TRUE(exact.Enter().HasValue());
+    faithful.Step(Client::Input::InputState{});
+    exact.Step(Client::Input::InputState{});
+    ASSERT_EQ(faithfulCloth.random.State(), exactCloth.random.State());
+    for (int frame = 0; frame < 6; ++frame)
+    {
+        const Client::Core::Duration exactClock = OriginalFrameTime * (frame + 1);
+        const Client::Core::Duration lateClock = exactClock + (frame == 0 ? 300us : 100us);
+        RecordingFrameTarget faithfulTarget;
+        faithful.Render(faithfulTarget.BeginFrame(lateClock), 0.0f);
+        faithfulTarget.Present();
+        RecordingFrameTarget exactTarget;
+        exact.Render(exactTarget.BeginFrame(exactClock), 0.0f);
+        exactTarget.Present();
+        EXPECT_EQ(faithfulCloth.random.State(), exactCloth.random.State()) << "frame " << frame;
+    }
+    faithful.Leave();
+    exact.Leave();
 }
 
 // CL7.6 B2: el aliento del caballo (0x444010) sale del hueso 27 del buffer global de la pose. Lo escribe

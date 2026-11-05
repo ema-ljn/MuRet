@@ -108,6 +108,32 @@ void AdvanceByTime(TimedAnimation& animation, const ActionInfo& action, float ke
     }
 }
 
+int OriginalFrameCarry::FramesAt(Core::Duration clock, OriginalFramePace pace)
+{
+    if (!m_lastClock || pace == OriginalFramePace::OncePerDraw)
+    {
+        m_lastClock = clock;
+        m_carry = Core::Duration::zero();
+        return 1;
+    }
+    if (clock > *m_lastClock)
+    {
+        m_carry += clock - *m_lastClock;
+    }
+    m_lastClock = clock;
+    int frames = 0;
+    while (m_carry >= OriginalFrameTime && frames < MaxOriginalFramesPerDraw)
+    {
+        m_carry -= OriginalFrameTime;
+        ++frames;
+    }
+    if (frames == MaxOriginalFramesPerDraw)
+    {
+        m_carry = Core::Duration::zero();
+    }
+    return frames;
+}
+
 AnimationState Interpolated(const AnimationState& state, const ActionInfo& action, float speed, float alpha)
 {
     AnimationState copy = state;

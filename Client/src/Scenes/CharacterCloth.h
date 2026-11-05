@@ -2,6 +2,7 @@
 
 #include "Core/IClock.h"
 #include "Render/ModelBatch.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -41,7 +42,7 @@ struct ClothWearer
 inline constexpr glm::vec3 PlainClothColor{1.0f, 1.0f, 1.0f};
 
 // Lo más que corre Advance de una vez: 3 s del original.
-inline constexpr int MaxClothFramesPerAdvance = 64;
+inline constexpr int MaxClothFramesPerAdvance = Render::Models::MaxOriginalFramesPerDraw;
 
 class CharacterCloth
 {
@@ -58,12 +59,14 @@ public:
     // Lo que corre en un frame de MuRet (DrawCharacter). Q-C124 corregido como Q-C20: el bloque corre una
     // vez por cada frame del original (Render::Models::OriginalFrameTime, 46,875 ms) que pasó desde el
     // frame anterior, el último con su dibujo, y sin ninguno se dibuja el estado de ahora; el primero
-    // corre uno. Así la tela flamea como en el original a cualquier FPS; en el modo fiel, cada frame
-    // dura uno del original y corre uno. Un salto de más de MaxClothFramesPerAdvance frames corre esos
-    // y descarta el resto.
+    // corre uno. Así la tela flamea como en el original a cualquier FPS. En el modo fiel (`pace`
+    // OncePerDraw), uno por dibujo, como el original (Render::Models::OriginalFrameCarry). Un salto de más
+    // de MaxClothFramesPerAdvance frames corre esos y descarta el resto. `clock` es también el WorldTime
+    // del brillo.
     void Advance(Render::ModelBatch& batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
                  Render::Models::ClothWorld& world, std::uint8_t map, Core::Duration clock, bool wears,
-                 const glm::vec3& color = PlainClothColor);
+                 const glm::vec3& color = PlainClothColor,
+                 Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock);
 
     // objeto + 0x190: las telas armadas (cuatro con la clase 4, una con las demás), o ninguna.
     [[nodiscard]] std::span<const Render::Models::Cloth> Cloths() const
@@ -97,7 +100,6 @@ private:
     std::uint8_t m_count = 0;
     std::vector<Render::Models::ClothFlare> m_flares;
     Render::ModelBlend m_lastBlend = Render::ModelBlend::Opaque;
-    std::optional<Core::Duration> m_lastClock;
-    Core::Duration m_carry{};
+    Render::Models::OriginalFrameCarry m_frames;
 };
 } // namespace Client::Scenes

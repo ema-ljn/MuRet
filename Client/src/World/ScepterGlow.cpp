@@ -90,27 +90,10 @@ void CreateScepterGlow(FrameSprites& sprites, const Render::Models::OriginalMatr
 }
 
 void ScepterGlowCarry::Create(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
-                              const glm::vec3& bodyOrigin, Render::Models::CrtRandom& random, Core::Duration clock)
+                              const glm::vec3& bodyOrigin, Render::Models::CrtRandom& random, Core::Duration clock,
+                              Render::Models::OriginalFramePace pace)
 {
-    int frames = 1;
-    if (m_lastClock)
-    {
-        if (clock > *m_lastClock)
-        {
-            m_carry += clock - *m_lastClock;
-        }
-        frames = 0;
-        while (m_carry >= Render::Models::OriginalFrameTime && frames < MaxScepterFramesPerAdvance)
-        {
-            m_carry -= Render::Models::OriginalFrameTime;
-            ++frames;
-        }
-        if (frames == MaxScepterFramesPerAdvance)
-        {
-            m_carry = Core::Duration::zero();
-        }
-    }
-    m_lastClock = clock;
+    const int frames = m_frames.FramesAt(clock, pace);
     for (int frame = 0; frame < frames; ++frame)
     {
         m_last = DrawScepterGlowRandoms(random);

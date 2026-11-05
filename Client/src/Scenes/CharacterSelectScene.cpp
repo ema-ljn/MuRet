@@ -587,6 +587,7 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         drawn.cloth = &character.cloth;
         drawn.clothWorld = m_context.cloth;
         drawn.map = map;
+        drawn.pace = OriginalFramePaceOf(m_context.pacing);
         DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
     }
     canvas.flushModels();

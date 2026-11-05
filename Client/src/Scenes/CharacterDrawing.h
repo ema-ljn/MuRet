@@ -4,6 +4,7 @@
 #include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
@@ -84,6 +85,9 @@ struct DrawnCharacter
     // El sorteo de los cinco del cetro entre frames de MuRet (World::ScepterGlowCarry): con él, una vez por
     // frame del original; sin él, en cada DrawCharacter.
     World::ScepterGlowCarry* scepter = nullptr;
+    // Cómo cuentan los frames del original la tela y el cetro (Render::Models::OriginalFrameCarry): por el
+    // reloj del frame, o uno por dibujo en el modo fiel (SceneContext::pacing).
+    Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock;
 };
 
 // Los slots de las texturas de los pases de brillo (06): 0x5fc el 0x8, 0x5c0 el 0x4 y 0x620 los

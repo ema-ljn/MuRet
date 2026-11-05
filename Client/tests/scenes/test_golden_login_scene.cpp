@@ -1,8 +1,10 @@
 #include "Scenes/LoginScene.h"
+#include "Scenes/CharacterHead.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
@@ -612,6 +614,42 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
     scene.Leave();
 }
 
+// 0x505de0 (0x5068eb..0x5069ab) en cada paso de 0x508ea0: el Dark Lord del login se ve, no es el héroe ni se
+// muere, así que sortea hacia dónde mira (rand() % 32 en 0) y la cabeza gira hacia ahí de a 20 %. Al entrar,
+// derecha; en 400 pasos sortea alguna vez, y cada paso queda más cerca de su blanco que el anterior o igual.
+TEST_F(GoldenLoginWorld, TheHeadOfTheDarkLordLooksAround)
+{
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    EXPECT_EQ(scene.Head().angles, glm::vec2(0.0f));
+    EXPECT_EQ(scene.Head().target, glm::vec2(0.0f));
+
+    std::size_t targets = 0;
+    glm::vec2 target = scene.Head().target;
+    for (int step = 0; step < 400; ++step)
+    {
+        const Client::Scenes::CharacterHead before = scene.Head();
+        scene.Step(Client::Input::InputState{});
+        const Client::Scenes::CharacterHead& after = scene.Head();
+        if (after.target != target)
+        {
+            ++targets;
+            target = after.target;
+            continue;
+        }
+        for (int k = 0; k < 2; ++k)
+        {
+            EXPECT_LE(Client::Render::Models::AngleDistance(after.angles[k], after.target[k], true),
+                      Client::Render::Models::AngleDistance(before.angles[k], before.target[k], true))
+                << "paso " << step << ", ángulo " << k;
+        }
+    }
+    EXPECT_GT(targets, 3u);
+    EXPECT_NE(scene.Head().angles, glm::vec2(0.0f));
+}
+
 // El cetro sortea una vez por frame del original (World::ScepterGlowCarry): dos frames de MuRet con el
 // mismo reloj dibujan los mismos cinco sprites, en el mismo lugar; uno 47 ms después, otros.
 TEST_F(GoldenLoginWorld, TheScepterGlowChangesOncePerOriginalFrame)
@@ -919,8 +957,8 @@ TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
     // salto de paso, pero no antes del 91.
     constexpr int Earliest = 91;
     constexpr int Climb = 60;
-    constexpr std::size_t Samples = 30;
-    for (int step = 1; step <= 600 && heights < Samples; ++step)
+    constexpr std::size_t Samples = 90;
+    for (int step = 1; step <= 1400 && heights < Samples; ++step)
     {
         scene.Step(Client::Input::InputState{});
         const bool look = step == 1 || (jumped ? (step > *jumped + Climb && step % 8 == 0) : (step % 5 == 0));
@@ -960,7 +998,11 @@ TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
     EXPECT_GE(*jumped, Earliest) << "el contador pasa de 90";
     ASSERT_EQ(heights, Samples);
     const double mean = sum / static_cast<double>(heights);
-    EXPECT_GT(mean, 400.0) << "a 350 sobre el dueño en el mapa 55, no a 250";
+    // Con el rand() de la CRT sembrado igual en cada corrida, la media es la misma siempre: 423 con 350 y 356
+    // con el mutante de 250 (desde la cabeza del personaje, que saca uno por paso). Cada rand() nuevo del paso
+    // la corre: el umbral va en el medio, y el que fija los 350 bit a bit es
+    // DarkSpiritTest.ItFliesHigherInTheLoginMap.
+    EXPECT_GT(mean, 390.0) << "a 350 sobre el dueño en el mapa 55, no a 250";
     EXPECT_LT(mean, 600.0);
     scene.Leave();
 }

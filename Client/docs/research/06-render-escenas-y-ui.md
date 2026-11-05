@@ -1824,13 +1824,21 @@ El resto de `0x634c60` (por paso) y de `0x6350b0` (por frame), llamada por llama
   - **el cursor** (`0x5ac2d0`): el juego oculta el de Windows y dibuja `Interface\Cursor.tga` (el
     slot 2), o `CursorPush.tga` (el 3) con el botón apretado, de 24 × 24 en (mouse − 2), con la
     mezcla normal, al final de la UI;
-  - **la cabeza del Dark Lord**, que `0x505de0` mueve al azar (P-C15 h);
   - **la música**: la entrada llama a `0x4acfd0("data\music\main_theme.mp3", 0)`, que con la música
     prendida y si no es la que ya suena la toca en bucle (*inferido* el bucle). El archivo está en
     `Client/assets/Data/Music/`;
   - **el clic** `Sound\iButtonClick.wav` (`0x19`) en Esc y en los botones de las ventanas;
   - **Esc**, con la lista y la barra abiertas y lo demás cerrado: el clic y la ventana de `+0x3d0`;
     y la de créditos (`+0x4578`). Las dos, sin leer.
+- **La cabeza del Dark Lord, desde el cierre:** `0x505de0`, en cada paso de `0x508ea0` (después de `0x4fd5f0`, el cuerpo y
+  el cuervo), con el personaje visto (`+0x16c`, que `0x508ea0` escribe al empezar con `0x5fba90` en su lugar por 0,01f y
+  −20) y sin las banderas `0x20` ni `0x1000` de `+0x78`. Si no es el héroe (`0x743a170`) ni se está muriendo (`+0x389`), con
+  `rand() % 32` en 0 sortea el blanco: `+0x34` = `rand() % 128` − 64 y `+0x38` = `rand() % 32` − 16, con 360 más si da
+  negativo. Después `+0x28` y `+0x2c` giran hacia el blanco con `0x4e9560`, a lo sumo `f(0x4e96f0(cabeza, blanco, 1) · 0,2f)`.
+  La pose (`0x4eb860`) le resta `+0x28` al ángulo x del hueso de la cabeza y `+0x2c` al z. En promedio cada 1,28 s el casco
+  gira hasta ±64° y se inclina entre −16° y 15°, y lo siguen las dos telas del casco y sus 30 destellos. MuRet:
+  `Scenes::StepCharacterHead`, bit a bit contra el código real emulado (`tests/vectors/world55/head.txt`, 3.400 pasos), y la
+  cabeza del paso en el dibujo: el original no la interpola.
 - **La cámara, confirmada:** `0x635ae0` es fija en la escena 2. El único corrimiento posible es el
   del bit `0x80` del atributo de la celda del héroe, y no aplica: el héroe tiene las celdas en
   (0, 0), porque en el login solo se le escribe la posición, y esa celda de `EncTerrain56.att` vale

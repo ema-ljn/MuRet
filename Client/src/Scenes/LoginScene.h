@@ -12,6 +12,7 @@
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/CharacterHead.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameData.h"
@@ -124,6 +125,8 @@ public:
     // Hasta el paso y no solo mientras conecta: un connect que falla enseguida sale en el Poll, que
     // puede venir sin un paso antes del dibujo (después de Enter, o en un frame sin pasos).
     [[nodiscard]] bool HoldsTheLastFrame() const override;
+    // La cabeza del personaje como la dejó el último paso (0x505de0), la que dibuja.
+    [[nodiscard]] const CharacterHead& Head() const;
 
 private:
     // 0x60da30 y 0x60d5f0 con el 0xa2 (LoginLogoFile), sin un 0x60d530 antes (Q-C92).
@@ -216,6 +219,8 @@ private:
     std::optional<DarkSpirit> m_spirit;
     // La tela del Dark Lord (0x50ba30), entre frames.
     CharacterCloth m_characterCloth;
+    // La cabeza del personaje (0x505de0): hacia dónde mira, por paso.
+    CharacterHead m_head;
     std::mt19937 m_random;
     // Los tres textos, o vacíos sin Text.bmd. El de la versión, ya armado.
     std::optional<std::string_view> m_left;

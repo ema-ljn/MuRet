@@ -30,6 +30,7 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/CharacterHead.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameData.h"
@@ -160,6 +161,17 @@ constexpr int NoSlot = -1;
 [[nodiscard]] bool IsConnecting(App::SessionState state)
 {
     return state == App::SessionState::ConnectingConnectServer || state == App::SessionState::ConnectingGameServer;
+}
+
+// 0x5fba90 como lo llama 0x508ea0 (0x508eac..0x508ecb): el lugar del personaje por 0,01f (0x6b88d4), guardado
+// en float, con el margen de −20 (0xc1a00000).
+[[nodiscard]] bool CharacterSeen(const World::TerrainPolygon& polygon, const glm::vec3& position)
+{
+    constexpr double CellsPerUnit = static_cast<double>(0.01f);
+    constexpr double ViewMargin = -20.0;
+    const auto cells = [](float coordinate)
+    { return static_cast<double>(static_cast<float>(static_cast<double>(coordinate) * CellsPerUnit)); };
+    return World::PolygonContains(polygon, cells(position.x), cells(position.y), ViewMargin);
 }
 } // namespace
 
@@ -444,6 +456,7 @@ void LoginScene::PlaceTheModels()
     m_routes = {};
     m_character = LoginCharacter();
     m_characterAnimation = {};
+    m_head = {};
     m_horse = {};
     // 0x420d60 (0x634a9d), después del personaje y del caballo, con el 0x1c17 en la mano izquierda: el
     // cuervo nace en la celda del personaje, que el login deja en (0, 0) (Q-C130), a la altura del terreno
@@ -597,6 +610,14 @@ void LoginScene::StepTheWorld()
                 : 0.0f;
         (void)StepDarkSpirit(*m_spirit, *raven, LoginRavenOwner(), m_world ? m_world->map : 0, m_particles, clock,
                              m_context.cloth->random, m_context.cloth->logicSteps);
+    }
+    // 0x505de0, después de 0x4fd5f0 en 0x508ea0: la cabeza del personaje. Con +0x16c, que 0x508ea0 escribe al
+    // empezar con el trapecio de 0x5fba90 en su lugar por 0,01f y −20 (con el polígono de la cámara fija), y sin
+    // las banderas 0x20 ni 0x1000 de +0x78 (el del login no tiene ninguna). No es el héroe (el personaje 0) ni se
+    // está muriendo: sortea.
+    if (m_context.cloth != nullptr && CharacterSeen(m_terrainPolygon, LoginCharacterTransform().position))
+    {
+        StepCharacterHead(m_head, true, m_context.cloth->random);
     }
     // 0x52d220, después de los objetos (0x606560), el caballo (0x445230) y los personajes (0x508f00): los
     // efectos con modelo, el dragón.
@@ -915,6 +936,8 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     character.pet = m_characterAnimation.pet.state;
     character.wings = m_characterAnimation.wings.state;
     character.object = LoginCharacterTransform();
+    // La cabeza del paso: el original no la interpola.
+    character.headAngles = m_head.angles;
     character.light = TerrainLightAt(character.object.position) + glm::vec3(LoginCharacterLight);
     character.cloth = &m_characterCloth;
     character.clothWorld = m_context.cloth;
@@ -1073,5 +1096,10 @@ bool LoginScene::HoldsTheLastFrame() const
     // sería el login sin el aviso.
     const App::SessionState state = m_session->State();
     return IsConnecting(state) || m_seen != state;
+}
+
+const CharacterHead& LoginScene::Head() const
+{
+    return m_head;
 }
 } // namespace Client::Scenes

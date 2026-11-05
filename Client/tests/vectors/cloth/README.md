@@ -11,6 +11,7 @@ parámetros a elección. Cada float va como los 8 dígitos hexadecimales de sus 
 | `a_login_dark_lord.txt` | el Dark Lord del login: 3 frames, las 3 telas, el mapa `0x37` |
 | `b_fourth_cloth_and_wings.txt` | la cuarta tela (`ArmorClass05`): armada sin usar, rearmada encima, suelta y rearmada; sin las alas `0x1c30`; el color de un duelo |
 | `c_class3_robe.txt` | la clase 3, fuera del `0x37`, con el viento base paseado y otro acceso al contador abierto |
+| `d_monster_0x37.txt` | el monstruo `0x37` (`Robe03`), con `+0x78 & 0x1000` (el dt en 0) y `& 0x4000` (ni paso ni dibujo) |
 | `e_broken.txt` | la rotura (los huesos saltan 4000) y el rearmado del frame siguiente |
 | `f_direct_flags.txt` | las banderas que `0x50ba30` no usa: `0x100`, `0x20000000`, `0x2000`/`0x3000` con brillo, `0x400`/`0x800`, los arcos 2 y 3, sin ancho que crece |
 | `h_direct_angles.txt` | los ángulos x e y del objeto distintos de 0, con la capa del Dark Lord |

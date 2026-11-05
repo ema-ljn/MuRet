@@ -6,6 +6,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <bit>
+#include <exception>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -74,14 +75,34 @@ std::filesystem::path ClothVectorsDir()
     return MURET_CLIENT_CLOTH_VECTORS_DIR;
 }
 
+namespace
+{
+std::optional<std::string> ReadTheFile(const std::filesystem::path& path, ClothVectors& out, std::string& text);
+} // namespace
+
 std::optional<std::string> ReadClothVectors(const std::filesystem::path& path, ClothVectors& out)
+{
+    // Un número que no se entiende o un renglón cortado: stoll y stoul tiran; el error lleva el renglón.
+    std::string text;
+    try
+    {
+        return ReadTheFile(path, out, text);
+    }
+    catch (const std::exception& error)
+    {
+        return std::string("renglón ilegible (") + error.what() + "): " + text;
+    }
+}
+
+namespace
+{
+std::optional<std::string> ReadTheFile(const std::filesystem::path& path, ClothVectors& out, std::string& text)
 {
     std::ifstream file(path);
     if (!file)
     {
         return "no se abre " + path.string();
     }
-    std::string text;
     const auto next = [&file, &text]() -> bool { return static_cast<bool>(std::getline(file, text)); };
     if (!next() || text != "cloth-vectors 1")
     {
@@ -135,7 +156,11 @@ std::optional<std::string> ReadClothVectors(const std::filesystem::path& path, C
     for (std::int64_t f = 0; f < frameCount; ++f)
     {
         ClothVectorFrame frame;
-        next(); // frame N
+        next();
+        if (Line(text).Word() != "frame")
+        {
+            return "se esperaba un frame: " + text;
+        }
         next();
         Line character(text);
         character.Word();
@@ -194,7 +219,11 @@ std::optional<std::string> ReadClothVectors(const std::filesystem::path& path, C
         Line wind(text);
         wind.Word();
         frame.windBaseAfterTheWalks = wind.Bits();
-        next(); // events N
+        next();
+        if (Line(text).Word() != "events")
+        {
+            return "se esperaban los eventos: " + text;
+        }
         while (next())
         {
             Line event(text);
@@ -278,4 +307,5 @@ std::optional<std::string> ReadClothVectors(const std::filesystem::path& path, C
     }
     return std::nullopt;
 }
+} // namespace
 } // namespace Client::Tests

@@ -752,7 +752,8 @@ void DrawQuiver(const CharacterFrame& frame, std::span<const BoneTransform> body
 }
 
 // 0x50d58b..0x50db57: las telas, después del lazo de las partes (0x50d3dc) y antes de lo que cuelga,
-// con los huesos del cuerpo de este frame y el reloj T en ms como el float DAT_05767b88.
+// con los huesos del cuerpo de este frame y su reloj: un frame del bloque por cada uno del original que
+// pasó (CharacterCloth::Advance).
 void DrawTheCloth(const CharacterFrame& frame, std::span<const BoneTransform> body)
 {
     const DrawnCharacter& character = frame.character;
@@ -769,10 +770,8 @@ void DrawTheCloth(const CharacterFrame& frame, std::span<const BoneTransform> bo
                                               .angles = character.object.angles,
                                               .scale = character.object.scale,
                                               .position = character.object.position};
-    const auto worldTime =
-        static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(frame.clock).count());
-    character.cloth->Frame(frame.batch, wearer, clothBody, *character.clothWorld, character.map, worldTime,
-                           WearsACloth(appearance.characterClass, character.map));
+    character.cloth->Advance(frame.batch, wearer, clothBody, *character.clothWorld, character.map, frame.clock,
+                             WearsACloth(appearance.characterClass, character.map));
 }
 
 // El lazo de las manos de 0x50ba30 (0x50e6af), después de la espalda, las alas y la mascota.

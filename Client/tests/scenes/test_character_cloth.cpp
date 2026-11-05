@@ -1,7 +1,9 @@
 #include "Scenes/CharacterCloth.h"
 
+#include "Core/IClock.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
@@ -12,6 +14,7 @@
 #include <gtest/gtest.h>
 
 #include <bit>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <map>
@@ -260,6 +263,13 @@ TEST(CharacterClothTest, TheClassThreeRobeMatchesTheBinary)
     ExpectTheBlockCase("c_class3_robe.txt");
 }
 
+// El monstruo 0x37: su tela de Robe03, y el objeto con 0x1000 (el dt en 0) y con 0x4000 (ni paso ni
+// dibujo).
+TEST(CharacterClothTest, TheMonsterClothMatchesTheBinary)
+{
+    ExpectTheBlockCase("d_monster_0x37.txt");
+}
+
 // La rotura: los huesos saltan, un resorte pasa de 20 veces su largo, se sueltan todas y el frame
 // siguiente se arman de nuevo desde la pose de ese momento.
 TEST(CharacterClothTest, ABrokenClothIsBuiltAgainTheNextFrame)
@@ -278,5 +288,126 @@ TEST(CharacterClothTest, OnlyClassesThreeAndFourWearACloth)
     EXPECT_FALSE(Client::Scenes::WearsACloth(4, 0x12));
     EXPECT_FALSE(Client::Scenes::WearsACloth(4, 0x17));
     EXPECT_TRUE(Client::Scenes::WearsACloth(4, 0x18));
+}
+} // namespace
+
+namespace
+{
+// El Dark Lord del primer frame del login (el caso A), para los tests del ritmo.
+struct LoginLord
+{
+    ClothVectors vectors;
+    ClothBody body;
+    ClothWearer wearer;
+    std::uint8_t map = 0;
+};
+
+LoginLord ReadTheLoginLord()
+{
+    LoginLord lord;
+    const auto error =
+        Client::Tests::ReadClothVectors(Client::Tests::ClothVectorsDir() / "a_login_dark_lord.txt", lord.vectors);
+    EXPECT_FALSE(error.has_value()) << *error;
+    const ClothVectorFrame& frame = lord.vectors.frames.at(0);
+    lord.body = ClothBody{.bones = frame.bones, .angles = frame.angles, .scale = frame.scale, .position = frame.origin};
+    lord.wearer.characterClass = frame.characterClass;
+    lord.wearer.armor = frame.armor;
+    lord.wearer.wings = frame.wings;
+    lord.map = frame.map;
+    return lord;
+}
+
+void ExpectTheSameCloths(const CharacterCloth& ours, const CharacterCloth& reference)
+{
+    ASSERT_EQ(ours.Cloths().size(), reference.Cloths().size());
+    for (std::size_t c = 0; c < ours.Cloths().size(); ++c)
+    {
+        const auto a = ours.Cloths()[c].Particles();
+        const auto b = reference.Cloths()[c].Particles();
+        ASSERT_EQ(a.size(), b.size());
+        for (std::size_t p = 0; p < a.size(); ++p)
+        {
+            ExpectSameBits(a[p].position, b[p].position,
+                           "tela " + std::to_string(c) + " partícula " + std::to_string(p));
+        }
+    }
+}
+
+// Q-C124 corregido como Q-C20: la tela corre un frame del original (5 pasos) cada 46,875 ms de reloj, a
+// cualquier FPS. Un segundo a 60 o a 144 FPS es lo mismo que 1 + ⌊t / 46,875 ms⌋ frames del original,
+// con t el reloj del último: el primero arma la tela.
+TEST(CharacterClothTest, TheClothRunsAtTheFrameRateOfTheOriginal)
+{
+    for (const int fps : {60, 144})
+    {
+        const LoginLord lord = ReadTheLoginLord();
+        ClothWorld world{.random = CrtRandom(7)};
+        ClothWorld referenceWorld{.random = CrtRandom(7)};
+        CharacterCloth cloth;
+        CharacterCloth reference;
+        Client::Core::Duration clock{};
+        for (int frame = 0; frame < fps; ++frame)
+        {
+            ModelBatch batch;
+            batch.Begin(Client::Render::Pass3D{});
+            clock = std::chrono::duration_cast<Client::Core::Duration>(
+                std::chrono::duration<double>(static_cast<double>(frame) / static_cast<double>(fps)));
+            cloth.Advance(batch, lord.wearer, lord.body, world, lord.map, clock, true);
+            EXPECT_FALSE(batch.Vertices().empty()) << fps << " FPS, frame " << frame << ": cada frame dibuja";
+        }
+        const auto originals = 1 + clock / Client::Render::Models::OriginalFrameTime;
+        EXPECT_LT(originals, fps) << "la tela no corre una vez por frame de MuRet";
+        for (std::int64_t original = 0; original < originals; ++original)
+        {
+            ModelBatch batch;
+            batch.Begin(Client::Render::Pass3D{});
+            reference.Frame(batch, lord.wearer, lord.body, referenceWorld, lord.map, 0.0f, true);
+        }
+        EXPECT_EQ(world.random.State(), referenceWorld.random.State()) << fps << " FPS";
+        ExpectTheSameCloths(cloth, reference);
+    }
+}
+
+// En el modo fiel cada frame dura lo de uno del original: un frame del bloque por frame dibujado.
+TEST(CharacterClothTest, AtTheOriginalFrameRateEachFrameRunsTheBlockOnce)
+{
+    const LoginLord lord = ReadTheLoginLord();
+    ClothWorld world{.random = CrtRandom(3)};
+    ClothWorld referenceWorld{.random = CrtRandom(3)};
+    CharacterCloth cloth;
+    CharacterCloth reference;
+    for (int frame = 0; frame < 30; ++frame)
+    {
+        ModelBatch ours;
+        ours.Begin(Client::Render::Pass3D{});
+        cloth.Advance(ours, lord.wearer, lord.body, world, lord.map, Client::Render::Models::OriginalFrameTime * frame,
+                      true);
+        ModelBatch theirs;
+        theirs.Begin(Client::Render::Pass3D{});
+        reference.Frame(theirs, lord.wearer, lord.body, referenceWorld, lord.map, 0.0f, true);
+        ASSERT_EQ(world.random.State(), referenceWorld.random.State()) << "frame " << frame;
+    }
+    ExpectTheSameCloths(cloth, reference);
+}
+
+// Un personaje que pasa de la clase 3 a la 4 con la misma tela: el arreglo de una no alcanza para las
+// cuatro del Dark Lord, y la tela se vuelve a armar en vez de leer fuera de él.
+TEST(CharacterClothTest, AClassChangeBuildsTheClothsAgain)
+{
+    const LoginLord lord = ReadTheLoginLord();
+    ClothWorld world{.random = CrtRandom(5)};
+    CharacterCloth cloth;
+    ClothWearer gladiator = lord.wearer;
+    gladiator.characterClass = 3;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    cloth.Frame(batch, gladiator, lord.body, world, lord.map, 0.0f, true);
+    ASSERT_EQ(cloth.Cloths().size(), 1u);
+
+    ClothWearer lord4 = lord.wearer;
+    lord4.armor = 0x221e;
+    cloth.Frame(batch, lord4, lord.body, world, lord.map, 0.0f, true);
+    EXPECT_EQ(cloth.Cloths().size(), 4u);
+    EXPECT_EQ(cloth.Count(), 3u);
 }
 } // namespace

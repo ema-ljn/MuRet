@@ -529,8 +529,9 @@ solo lo lee.
   resortes, anclaje, integración, esferas, relajación y restricción), el `rand()` de la CRT, el viento
   base y el contador de pasos, y el dibujo. MuRet da lo mismo que el binario bit a bit en cada paso,
   cada partícula y cada triángulo. La primera corrida encontró que un 0,4 del binario no es el 0,4f
-  del compilador. 13 tests y 22 mutantes. Falta el volcado del original en la VM para comparar una
-  corrida entera (P-C22).
+  del compilador. La revisión encontró que la capa flameaba al ritmo de los FPS de MuRet: ahora corre un
+  frame del original cada 46,875 ms, como la mascota. 17 tests y 24 mutantes. Falta el volcado del
+  original en la VM para comparar una corrida entera (P-C22).
 
 ## Conceptos
 

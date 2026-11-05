@@ -2566,9 +2566,8 @@ casos (06 § La tela de la clase 4; los scripts, en `Client/docs/research/script
   tela, y las escenas 2, 4 y 5 avanzan `ClothWorld` en cada paso. `GameModels` sube `iui06` (`0x256`)
   y `kaa` (`0x6ea`) como `0x61ccb0`.
 
-Tests: los vectores del oráculo (`tests/vectors/cloth`, nueve casos menos el del monstruo `0x37`, que
-es de la CL9): cada paso de cada tela, partícula por partícula, cada triángulo del lote, cada sprite y
-cada `rand()`, bit a bit. 13 tests. 22 mutantes a mano: 20 en rojo (dos con los casos que se sumaron
+Tests: los vectores del oráculo (`tests/vectors/cloth`, los nueve casos): cada paso de cada tela,
+partícula por partícula, cada triángulo del lote, cada sprite y cada `rand()`, bit a bit. 13 tests (17 tras la revisión). 22 mutantes a mano: 20 en rojo (dos con los casos que se sumaron
 para ellos, los ángulos del objeto y el estiramiento bajo 20 veces) y 2 equivalentes:
 
 - la posición con la velocidad redondeada: con coordenadas del mundo la diferencia queda debajo del
@@ -2593,8 +2592,32 @@ Decisiones, con lo que cuestan si están mal:
   viento cambia en otro momento (cada 10 pasos) que en el original.
 - Ruling: `+0x3e3` va en 0 y no hay duelos ni guerras de guild: el color de la tela es blanco. Si está
   mal, falta la tela de colores de esos casos (CL9).
-- Ruling: los cuadrados van en dos triángulos (0, 1, 2) y (0, 2, 3), como los arma GL de un
-  `GL_QUADS`. Si está mal, un cuadrado no plano se dobla por la otra diagonal.
+- Ruling: los cuadrados van en dos triángulos (0, 1, 2) y (0, 2, 3). GL deja esa división al driver, y
+  no se sabe con cuál se grabó el original. Si está mal, un cuadrado no plano se dobla por la otra
+  diagonal: apenas se ve.
+
+**Tras la revisión adversarial de B** (un revisor contra el ensamblador, con cinco casos más del
+oráculo que dieron 0 diferencias; ningún cálculo distinto del binario):
+- Importante: la tela corría cinco pasos por frame de MuRet, y con el VSync a 60 Hz flameaba 2,8
+  veces más rápido que en el original (21,33 FPS). Q-C124 pasa a ser un bug corregido como Q-C20:
+  `CharacterCloth::Advance` corre un frame del bloque cada 46,875 ms de reloj
+  (`TheClothRunsAtTheFrameRateOfTheOriginal` a 60 y 144 FPS, `AtTheOriginalFrameRateEachFrameRunsTheBlockOnce`).
+- Que dé lo mismo dependía de que el compilador no contrajera a·b + c en un FMA: ClientLib va con
+  `-ffp-contract=off` (con `-O2 -mfma` daba 5.504 fallas; ahora, ninguna).
+- Una clase que cambia sobre la misma tela leía fuera del arreglo: se suelta y se vuelve a armar
+  (`AClassChangeBuildsTheClothsAgain`).
+- El caso D del oráculo, el monstruo `0x37` con el dt en 0 y oculto, entra a los vectores
+  (`TheMonsterClothMatchesTheBinary`), y el lector de vectores da un error con el renglón en vez de
+  tirar (`ABrokenVectorFileIsAnError`).
+- Los `__pycache__` que se colaron con los scripts, fuera y al `.gitignore`.
+
+17 tests en total y 24 mutantes (los dos nuevos, el ritmo y el cambio de clase, en rojo).
+
+- Ruling: Advance corre a lo más 64 frames del original de una vez (3 s) y descarta el resto. Si
+  está mal, después de una pausa larga la tela no recupera el tiempo perdido.
+- Ruling: el ritmo sale del reloj del frame, con lo que sobra para el siguiente, como la mascota. En
+  el modo fiel cada frame dura uno del original; si el reloj del modo fiel tuviera saltos de ms, un
+  frame correría 0 y el siguiente 2. Si está mal, la capa da un salto de un frame cada tanto.
 
 Falta verlo contra el original en la VM: P-C22, con lo que se capturaría (el volcado del bloque en
 `0x50d58b` y `0x50db57`).

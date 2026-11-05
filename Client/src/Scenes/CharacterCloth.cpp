@@ -1,7 +1,9 @@
 #include "Scenes/CharacterCloth.h"
 
+#include "Core/IClock.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
@@ -9,6 +11,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -193,12 +196,85 @@ void CharacterCloth::Frame(Render::ModelBatch& batch, const ClothWearer& wearer,
                            Render::Models::ClothWorld& world, std::uint8_t map, float worldTime, bool wears,
                            const glm::vec3& color)
 {
+    RunTheBlock(&batch, wearer, body, world, map, worldTime, wears, color);
+}
+
+void CharacterCloth::Advance(Render::ModelBatch& batch, const ClothWearer& wearer,
+                             const Render::Models::ClothBody& body, Render::Models::ClothWorld& world, std::uint8_t map,
+                             Core::Duration clock, bool wears, const glm::vec3& color)
+{
+    const auto worldTime = static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(clock).count());
+    int frames = 1;
+    if (m_lastClock)
+    {
+        if (clock > *m_lastClock)
+        {
+            m_carry += clock - *m_lastClock;
+        }
+        frames = 0;
+        while (m_carry >= Render::Models::OriginalFrameTime && frames < MaxClothFramesPerAdvance)
+        {
+            m_carry -= Render::Models::OriginalFrameTime;
+            ++frames;
+        }
+        if (frames == MaxClothFramesPerAdvance)
+        {
+            m_carry = Core::Duration::zero();
+        }
+    }
+    m_lastClock = clock;
+    if (frames == 0)
+    {
+        DrawTheCloths(batch, wearer, worldTime, wears, color);
+        return;
+    }
+    for (int frame = 0; frame + 1 < frames; ++frame)
+    {
+        RunTheBlock(nullptr, wearer, body, world, map, worldTime, wears, color);
+    }
+    RunTheBlock(&batch, wearer, body, world, map, worldTime, wears, color);
+}
+
+void CharacterCloth::DrawTheCloths(Render::ModelBatch& batch, const ClothWearer& wearer, float worldTime, bool wears,
+                                   const glm::vec3& color)
+{
+    m_flares.clear();
+    if (!wears || (wearer.objectFlags & Hidden) != 0)
+    {
+        return;
+    }
+    const bool darkLord = (wearer.characterClass & ClassMask) == DarkLord;
+    for (std::size_t index = 0; index < m_count && index < m_cloths.size(); ++index)
+    {
+        if (darkLord && index == 2 && wearer.wings != LordsCape && color == PlainClothColor)
+        {
+            continue;
+        }
+        Draw(batch, m_cloths[index], color, worldTime);
+    }
+}
+
+void CharacterCloth::RunTheBlock(Render::ModelBatch* batch, const ClothWearer& wearer,
+                                 const Render::Models::ClothBody& body, Render::Models::ClothWorld& world,
+                                 std::uint8_t map, float worldTime, bool wears, const glm::vec3& color)
+{
     m_flares.clear();
     if (!wears)
     {
         return;
     }
     const bool darkLord = (wearer.characterClass & ClassMask) == DarkLord;
+    // El arreglo es de cuatro con la clase 4 y de una con las demás. Si la clase cambió sobre la misma
+    // tela, el original leería fuera del arreglo: MuRet las suelta y las vuelve a armar.
+    if (!m_cloths.empty() && m_cloths.size() != (darkLord ? 4u : 1u))
+    {
+        for (Cloth& released : m_cloths)
+        {
+            released.Release();
+        }
+        m_cloths.clear();
+        m_count = 0;
+    }
     if (m_cloths.empty())
     {
         Build(wearer, body);
@@ -248,7 +324,10 @@ void CharacterCloth::Frame(Render::ModelBatch& batch, const ClothWearer& wearer,
             m_count = 0;
             break;
         }
-        Draw(batch, cloth, color, worldTime);
+        if (batch != nullptr)
+        {
+            Draw(*batch, cloth, color, worldTime);
+        }
     }
 }
 

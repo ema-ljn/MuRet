@@ -10,6 +10,8 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
+#include <fstream>
 #include <optional>
 #include <string>
 #include <vector>
@@ -288,6 +290,21 @@ TEST(ClothTest, TheObjectAnglesMatchTheBinaryStepByStep)
 TEST(ClothTest, AStretchUnderTwentyTimesIsPulledBack)
 {
     ExpectTheDirectCase("i_direct_stretch.txt");
+}
+
+// Un renglón roto en un archivo de vectores da un error con el renglón, no una excepción.
+TEST(ClothTest, ABrokenVectorFileIsAnError)
+{
+    const std::filesystem::path path = std::filesystem::temp_directory_path() / "muret-cloth-roto.txt";
+    {
+        std::ofstream file(path);
+        file << "cloth-vectors 1\nrand abc\n";
+    }
+    ClothVectors vectors;
+    const std::optional<std::string> error = Client::Tests::ReadClothVectors(path, vectors);
+    std::filesystem::remove(path);
+    ASSERT_TRUE(error.has_value());
+    EXPECT_NE(error->find("rand abc"), std::string::npos) << *error;
 }
 
 // El paseo del viento base (0x456b10): a 0,001 por cada rand() % 200 − 100, entre −0,2 y 1.

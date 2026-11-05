@@ -43,6 +43,13 @@ if(WIN32)
     target_link_libraries(ClientLib PRIVATE ws2_32)
 endif()
 muret_set_warnings(ClientLib)
+# Las cuentas que copian las del original (la pose, el skinning, la tela) van con un redondeo por
+# operación, como la x87: sin contraer a*b + c en un FMA. GCC contrae por defecto (-ffp-contract=fast)
+# y Clang dentro de una expresión (on), y con FMA disponible (-march=native, ARM64) la tela deja de dar
+# lo mismo que el binario. MSVC no contrae salvo con /fp:contract.
+if(NOT MSVC)
+    target_compile_options(ClientLib PRIVATE -ffp-contract=off)
+endif()
 muret_precompile_headers(ClientLib)
 # libjpeg avisa de sus errores con longjmp, y JpegImage.cpp lo recibe con setjmp. MSVC avisa de
 # cualquier setjmp en C++ (C4611: longjmp no corre destructores); el archivo está armado para que

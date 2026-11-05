@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/IClock.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
 
@@ -39,6 +40,9 @@ struct ClothWearer
 // El color de 0x50ba30 sin duelo ni guerra: blanco.
 inline constexpr glm::vec3 PlainClothColor{1.0f, 1.0f, 1.0f};
 
+// Lo más que corre Advance de una vez: 3 s del original.
+inline constexpr int MaxClothFramesPerAdvance = 64;
+
 class CharacterCloth
 {
 public:
@@ -50,6 +54,16 @@ public:
     void Frame(Render::ModelBatch& batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
                Render::Models::ClothWorld& world, std::uint8_t map, float worldTime, bool wears,
                const glm::vec3& color = PlainClothColor);
+
+    // Lo que corre en un frame de MuRet (DrawCharacter). Q-C124 corregido como Q-C20: el bloque corre una
+    // vez por cada frame del original (Render::Models::OriginalFrameTime, 46,875 ms) que pasó desde el
+    // frame anterior, el último con su dibujo, y sin ninguno se dibuja el estado de ahora; el primero
+    // corre uno. Así la tela flamea como en el original a cualquier FPS; en el modo fiel, cada frame
+    // dura uno del original y corre uno. Un salto de más de MaxClothFramesPerAdvance frames corre esos
+    // y descarta el resto.
+    void Advance(Render::ModelBatch& batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
+                 Render::Models::ClothWorld& world, std::uint8_t map, Core::Duration clock, bool wears,
+                 const glm::vec3& color = PlainClothColor);
 
     // objeto + 0x190: las telas armadas (cuatro con la clase 4, una con las demás), o ninguna.
     [[nodiscard]] std::span<const Render::Models::Cloth> Cloths() const
@@ -69,6 +83,13 @@ public:
     }
 
 private:
+    // El bloque, con su dibujo en `batch`, o sin dibujar con nullptr.
+    void RunTheBlock(Render::ModelBatch* batch, const ClothWearer& wearer, const Render::Models::ClothBody& body,
+                     Render::Models::ClothWorld& world, std::uint8_t map, float worldTime, bool wears,
+                     const glm::vec3& color);
+    // Las telas como quedaron, con las reglas del lazo, sin simularlas.
+    void DrawTheCloths(Render::ModelBatch& batch, const ClothWearer& wearer, float worldTime, bool wears,
+                       const glm::vec3& color);
     void Build(const ClothWearer& wearer, const Render::Models::ClothBody& body);
     void Draw(Render::ModelBatch& batch, const Render::Models::Cloth& cloth, const glm::vec3& color, float worldTime);
 
@@ -76,5 +97,7 @@ private:
     std::uint8_t m_count = 0;
     std::vector<Render::Models::ClothFlare> m_flares;
     Render::ModelBlend m_lastBlend = Render::ModelBlend::Opaque;
+    std::optional<Core::Duration> m_lastClock;
+    Core::Duration m_carry{};
 };
 } // namespace Client::Scenes

@@ -101,6 +101,8 @@ TEST(BillboardTest, ThreeHundredCasesMatchTheBinary)
                 EXPECT_EQ(Bits(billboard.color.red), value()) << where;
                 EXPECT_EQ(Bits(billboard.color.green), value()) << where;
                 EXPECT_EQ(Bits(billboard.color.blue), value()) << where;
+                // glColor3fv deja el alpha de GL en 1.
+                EXPECT_EQ(billboard.color.alpha, 1.0f) << where;
             }
             else if (name == "glColor4f")
             {

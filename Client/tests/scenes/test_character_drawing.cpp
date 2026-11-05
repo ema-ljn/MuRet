@@ -9,6 +9,7 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/PassColors.h"
+#include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteVertex.h"
@@ -160,6 +161,12 @@ public:
     void AlsoAs(std::uint16_t model, TextureSlot slot)
     {
         m_others.push_back(Other{model, std::vector<TextureSlot>(m_slots.size(), slot)});
+    }
+
+    // El esqueleto de los ítems, para darle a su hueso 0 una pose propia.
+    Skeleton& ItemSkeleton()
+    {
+        return m_item;
     }
 
     // Para armar una malla rota.
@@ -1573,8 +1580,9 @@ TEST(CharacterDrawingTest, AnObjectWithoutItsModelIsNotDrawn)
 }
 
 // 0x509340, caso 0x620: con el HDK_Mace en la mano y la tabla del frame, los cinco sprites del cetro en
-// el hueso 0 de la maza (el del cuerpo girado por el personaje), con su escala y su posición y el rand()
-// de la tela: los mismos que CreateScepterGlow con esa pose.
+// el hueso 0 de la pose de la maza (con su propia posición y su giro, colgado del cuerpo girado por el
+// personaje), con su escala y su posición y el rand() de la tela: los mismos que CreateScepterGlow con
+// ese hueso, que no es la raíz de la que cuelga.
 TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
 {
     DrawnCharacter character;
@@ -1587,15 +1595,23 @@ TEST(CharacterDrawingTest, TheScepterAsksForItsFiveSprites)
     Client::World::FrameSprites sprites;
     character.clothWorld = &world;
     character.sprites = &sprites;
-    const OneModel models(Client::World::HdkMaceModel);
+    OneModel models(Client::World::HdkMaceModel);
+    BoneKey& key = models.ItemSkeleton().bones[0].actions[0][0];
+    key.position = {5.0f, 10.0f, 20.0f};
+    key.rotation = Client::Render::Models::AngleQuaternion({0.3f, 0.0f, 0.0f});
 
     (void)Drawn(models, character);
 
+    // La raíz es el hueso 33 del cuerpo plano: el giro del personaje, sin traslación.
+    const Client::Render::Models::BoneTransform root = Client::Render::Models::AngleMatrix({0.0f, 0.0f, 90.0f});
+    std::vector<Client::Render::Models::BoneTransform> mace(1);
+    ASSERT_TRUE(Client::Render::Models::PoseAttached(models.ItemSkeleton(), Client::Render::Models::AnimationState{},
+                                                     root, mace));
+    ASSERT_NE(mace.front(), root);
     Client::World::FrameSprites expected;
     Client::Render::Models::CrtRandom random(7);
-    Client::World::CreateScepterGlow(
-        expected, Client::Render::Models::OriginalMatrixOf(Client::Render::Models::AngleMatrix({0.0f, 0.0f, 90.0f})),
-        1.5f, character.object.position, random);
+    Client::World::CreateScepterGlow(expected, Client::Render::Models::OriginalMatrixOf(mace.front()), 1.5f,
+                                     character.object.position, random);
     for (std::size_t k = 0; k <= Client::World::ScepterSpriteCount; ++k)
     {
         const Client::World::Sprite& got = sprites.Sprites()[k];

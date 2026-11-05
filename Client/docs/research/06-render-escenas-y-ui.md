@@ -1674,16 +1674,20 @@ Lo que se ve en el video, una fuente por vez:
   archivo: la y de −130 a −30 es el tridente y la de 70 a 110, el pomo). Parpadean porque la posición
   y la escala se sortean en cada frame (6 `rand()`, más el `rand() % 30` que `0x509340` saca al
   empezar con cualquier parte, `0x509a92`). **Verificado** en la CL7.6 B1 contra el código real
-  emulado (`0x50a169..0x50a398`, con `0x4ec110` y `0x5491e0` reales): `0x4ec110` es el
-  `TransformPosition` del modelo del ítem, VectorTransform (`0x5fccc0`) por la escala del cuerpo
-  (`+0x68`) más su origen (`+0x6c`), que pone `0x509340`: la escala, la del personaje (`0x509397`), y
-  el origen, desde una mano, la posición del personaje más el desplazamiento girado por el hueso y por
-  esa escala (`0x4ec190` y `0x50966b`; el de las manos es 0), y por el camino del carcaj, la posición
-  (`0x509607`). `0x60b3d0` no los toca. Cada cuenta va en 53 bits y se guarda en float donde el
-  binario guarda: p, la escala y la y del desplazamiento; en la posición, el producto de la x por la
-  escala no se guarda antes de sumarle el origen, y los de y y z sí. La escala del segundo y del
-  quinto se resta al pedirlos, y la del tercero suma su 0,3 ahí. El `rand() % 8` del pomo va con el
-  idiom de `and 0x80000007`, que con un `rand()` no negativo es lo mismo.
+  emulado, el caso desde `0x50a169` hasta su `ret` con `0x4ec110` y `0x5491e0` reales, y la escala
+  (`+0x68`) y el origen (`+0x6c`) del cuerpo del modelo del ítem puestos por el generador:
+  `0x4ec110` es el `TransformPosition` de ese modelo, VectorTransform (`0x5fccc0`) por esa escala más
+  ese origen. Cada cuenta va en 53 bits y se guarda en float donde el binario guarda: p, la escala y
+  la y del desplazamiento; en la posición, el producto de la x por la escala no se guarda antes de
+  sumarle el origen, y los de y y z sí. La escala del segundo y del quinto se resta al pedirlos, y la
+  del tercero suma su 0,3 ahí. El `rand() % 8` del pomo va con el idiom de `and 0x80000007`, que con
+  un `rand()` no negativo es lo mismo. *Estático*, lo que pone esos dos campos: la escala es la del
+  personaje (`+0xc` de su objeto, `0x509397`) y el origen, desde una mano, la posición del personaje
+  más el desplazamiento girado por el hueso y por el `+0x68` del modelo **del personaje**
+  (`0x4ec190`, con `Models[objeto + 2]`, y `0x50966b`; el de las manos es 0), y por el camino del
+  carcaj, la posición (`0x509607`); `0x60b3d0`, que dibuja el ítem antes del caso, no los toca.
+  `0x4ec190` copia el hueso sin cambios a la raíz de la pose (`0x68c4a1c`) y deja el desplazamiento
+  solo en el origen: el hueso 0 que lee el caso es el del ítem colgado de ese hueso.
 - **El blanco del casco**: la tela 0 de la clase 4, aditiva, más sus **30 destellos** (`0x455930`):
   con t = sin(T · 0,001) · 0,1 + 0,4, para k = 0..29 y p = k div 5, el sprite `0x5ac` (`flare01`) en
   la partícula k, con la escala p · 0,2 + 0,4 y la luz (6 − p) · t · 0,2, aditivo. Es lo que arma

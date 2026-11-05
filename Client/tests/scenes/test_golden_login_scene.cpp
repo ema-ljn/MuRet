@@ -562,17 +562,30 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
     std::ranges::copy_if(target.frames.back().events, std::back_inserter(models),
                          [](const FrameEvent& event) { return event.kind == Kind::Models; });
     ASSERT_EQ(models.size(), 2u) << "el mundo y los sprites";
-    // Cada sprite, dos triángulos; el lote junta los seguidos con el mismo estado.
+    // Cada sprite, dos triángulos; el lote junta los seguidos con el mismo estado. Los pares van con
+    // int: armarlos desde los literales con std::uint16_t haría la conversión adentro de std::pair, y
+    // MSVC la avisa (C4242).
     constexpr std::size_t PerSprite = 6;
-    std::vector<std::pair<std::uint16_t, std::size_t>> runs;
+    std::vector<std::pair<int, int>> runs;
     for (const auto& command : models.back().modelCommands)
     {
         ASSERT_TRUE(command.state.texture.has_value());
         EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
-        runs.emplace_back(command.state.texture->value, command.vertexCount / PerSprite);
+        runs.emplace_back(command.state.texture->value, static_cast<int>(command.vertexCount / PerSprite));
     }
-    const std::vector<std::pair<std::uint16_t, std::size_t>> expected{{0x5ac, 30}, {0x5fd, 2}, {0x5ac, 1}, {0x5fd, 2}};
+    const std::vector<std::pair<int, int>> expected{{0x5ac, 30}, {0x5fd, 2}, {0x5ac, 1}, {0x5fd, 2}};
     EXPECT_EQ(runs, expected);
+    // 0x549510 los marca vistos antes del pase: 0x549290 los mide con el alpha en 1. El primer destello
+    // (la columna 0, escala 0,4, sin giro) va a 0,4 del ancho de flare01, en coordenadas de ojo.
+    const auto flareSize = m_models.TextureSize(TextureSlot{0x5ac});
+    ASSERT_TRUE(flareSize.has_value());
+    const auto& vertices = models.back().modelVertices;
+    ASSERT_GE(vertices.size(), PerSprite);
+    const auto [left, right] =
+        std::minmax_element(vertices.begin(), vertices.begin() + PerSprite,
+                            [](const auto& a, const auto& b) { return a.position.x < b.position.x; });
+    // Las esquinas van lejos del ojo: la resta pierde los últimos bits (sin 0x549510 daría 0,36).
+    EXPECT_NEAR(right->position.x - left->position.x, 0.4f * flareSize->x, 0.01f);
     ASSERT_TRUE(models.back().pass.has_value());
     EXPECT_EQ(models.back().pass->view, glm::mat4(1.0f));
     scene.Leave();

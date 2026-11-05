@@ -408,4 +408,26 @@ TEST(SpritesDrawingTest, TheBlendComesFromTheSprite)
     EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Subtractive);
     EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::Alpha);
 }
+
+// Sin 0x549510 (+0x16c en 0), 0x549290 le resta 0,1 al alpha antes de medirlo: el cuadrado sale a 0,9
+// de la textura por la escala, y el color del billboard no lleva el alpha.
+TEST(SpritesDrawingTest, AnUnseenSpriteShrinksWithItsAlpha)
+{
+    const SpriteTextures textures;
+    Client::World::FrameSprites sprites;
+    ASSERT_TRUE(sprites.Create(0x5ac, {0.0f, 0.0f, -300.0f}, 2.0f, glm::vec3(1.0f), 0.0f, 0));
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    Client::Scenes::DrawFrameSprites(batch, sprites, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
+    ASSERT_EQ(batch.Vertices().size(), 6u);
+    float minX = 1e9f;
+    float maxX = -1e9f;
+    for (const auto& vertex : batch.Vertices())
+    {
+        minX = std::min(minX, vertex.position.x);
+        maxX = std::max(maxX, vertex.position.x);
+        EXPECT_FLOAT_EQ(vertex.color.red, 1.0f);
+    }
+    EXPECT_FLOAT_EQ(maxX - minX, 64.0f * 2.0f * 0.9f);
+}
 } // namespace

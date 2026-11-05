@@ -4,6 +4,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainMapping.h"
+#include "Data/Terrain/TerrainObjects.h"
 #include "Data/Textures/Sampling.h"
 #include "World/TerrainLighting.h"
 
@@ -30,6 +31,11 @@ struct WorldTerrain
 // error nombra el archivo como lo pide el original. Los mapas 30 y 34, con otro .att, no van.
 [[nodiscard]] Core::Expected<WorldTerrain, std::string> LoadWorldTerrain(const std::filesystem::path& dataRoot,
                                                                          std::uint8_t map);
+
+// Los objetos de EncTerrain<N>.obj del mapa `map` (0x607370), en el orden del archivo (CL7.2). El
+// error nombra el archivo como lo pide el original.
+[[nodiscard]] Core::Expected<std::vector<Data::Terrain::TerrainObject>, std::string>
+LoadWorldObjects(const std::filesystem::path& dataRoot, std::uint8_t map);
 
 // Un tile de 0x61a560: la ruta como la pide el original, el slot, el muestreo y si avisa cuando falta
 // (el sexto argumento de 0x63b870: solo TileGrass01). Los que no avisan se saltean.

@@ -14,7 +14,7 @@ class DrawEmu(Emu):
         self.log=[]
         e=self
         def model_color(ecx):
-            return [round(x,4) for x in e.rfv(ecx+0x48,3)]
+            return list(e.rfv(ecx+0x48,3))
         def thiscall_rec(name,n,fmt):
             def h():
                 esp=e.uc.reg_read(UC_X86_REG_ESP); ecx=e.uc.reg_read(UC_X86_REG_ECX)
@@ -22,7 +22,7 @@ class DrawEmu(Emu):
                 mid=(ecx-MODELS_BASE)//MODEL_SIZE if ecx>=MODELS_BASE else None
                 args=[]
                 for k,c in enumerate(fmt):
-                    args.append(round(f(a[k]),4) if c=='f' else (a[k]-(1<<32) if a[k]>=1<<31 else a[k]))
+                    args.append(f(a[k]) if c=='f' else (a[k]-(1<<32) if a[k]>=1<<31 else a[k]))
                 e.log.append((name,mid,args,model_color(ecx) if mid is not None else None, e.r8(ecx+0x88) if mid is not None else None, e.r8(ecx+0x44) if mid is not None else None))
                 e.ret(0,n)
             return h

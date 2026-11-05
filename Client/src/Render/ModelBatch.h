@@ -33,6 +33,9 @@ enum class ModelBlend : std::uint8_t
     // máscara, la textura y el alpha test), SRC_ALPHA / ONE_MINUS_SRC_ALPHA, sin culling, sin alpha test
     // y sin escribir la profundidad.
     BlendedShadow,
+    // El remolino 90 del mapa 55 (0x6002e0 con 0x620b10): ZERO / ONE_MINUS_SRC_COLOR, sin culling ni
+    // alpha test, y no escribe la profundidad: oscurece lo de atrás donde su color es claro.
+    Subtractive,
 };
 
 struct ModelDrawState

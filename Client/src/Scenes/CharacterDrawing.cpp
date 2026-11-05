@@ -902,6 +902,28 @@ void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const Dr
     }
 }
 
+void DrawSubtractiveMesh(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                         Core::Duration frameClock)
+{
+    if (object.state.blendMesh != Render::Models::EveryMeshBlends)
+    {
+        return;
+    }
+    DrawnObject white = object;
+    white.color = glm::vec3(1.0f);
+    white.alpha = 1.0f;
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    for (const MeshDraw& draw : ObjectMeshDraws(models, white, frameClock, skinned))
+    {
+        if (draw.index != 0)
+        {
+            continue;
+        }
+        Triangles(batch, draw, {draw.texture, Render::ModelBlend::Subtractive, true},
+                  Render::Color{1.0f, 1.0f, 1.0f, 1.0f}, PassUv{std::nullopt, object.state.uv});
+    }
+}
+
 void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& horse,
                    Core::Duration frameClock)
 {

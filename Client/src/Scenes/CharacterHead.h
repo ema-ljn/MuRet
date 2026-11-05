@@ -23,6 +23,9 @@ struct CharacterHead
 // sortea el blanco: x = rand() % 128 − 64 e y = rand() % 32 − 16, con 360 más si da negativo. Después, cada
 // ángulo gira hacia su blanco (0x4e9560) a lo sumo el 20 % de lo que los separa (0x4e96f0 sin signo, por
 // 0,2f y guardado en float). Lo que se saltea antes (las banderas 0x20 y 0x1000 de +0x78, y que se vea,
-// +0x16c) lo mira el que llama.
+// +0x16c) lo mira el que llama. Es el tramo del modelo 0x20a, el de los jugadores: con otro modelo, 0x505de0
+// llama antes a 0x4ea190 (0x5068da..0x5068e8), que según +0x111 sortea otro blanco (con 0: rand() % 32 en 0,
+// x = rand() % 128 − 64 e y = rand() % 48 − 16), mira a otro personaje (con 2 y +0x3a4 distinto de −1,
+// 0x4ea0e0), no hace nada (con 6) o lo pone en 0; un NPC puede sortear dos veces por paso (08, P-C17).
 void StepCharacterHead(CharacterHead& head, bool sorts, Render::Models::CrtRandom& random);
 } // namespace Client::Scenes

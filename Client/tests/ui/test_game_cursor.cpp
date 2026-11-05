@@ -47,8 +47,8 @@ TEST(GameCursorTest, TheMouseOfTheWndProcIsIn640x480)
     EXPECT_EQ(MouseIn640x480(input, Screen1024), (Point{1, 3}));
 }
 
-// Sin acotar (Q-C47): más allá del borde sigue de largo, y un negativo es un LOWORD grande (el lParam
-// del mouse capturado).
+// Sin acotar (Q-C47): más allá del borde sigue de largo, y un negativo es un LOWORD grande. El original no
+// recibe el mouse fuera de la ventana (no lo captura); MuRet sí, con un botón abajo (08, P-C27 g).
 TEST(GameCursorTest, TheMouseOfTheWndProcIsNotClamped)
 {
     InputState input;

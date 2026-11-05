@@ -1850,10 +1850,14 @@ El resto de `0x634c60` (por paso) y de `0x6350b0` (por frame), llamada por llama
   login y en la selección solo escriben el `WM_LBUTTONDOWN` y el `WM_LBUTTONUP`: ninguno de los que lo
   borran se alcanza desde sus pasos ni sus dibujos); los demás (4 a `0xa`, `0x65a`, `0x68d`) los eligen
   globales del juego (`0x6c8e28` a `0x6c8e34`, `0x78abb0c`, `0x78abb20`, `0x7d3a10c` y `0x77f3b5c`), en −1 o
-  en 0 fuera de él. Los sube `0x61ccb0` en su avance 0 con `GL_LINEAR` y `GL_CLAMP`. Verificado en la traza
+  en 0 fuera de él, y con `0x6c8e30` distinto de −1 el `+0x3e2` del héroe, `0x558bb0` y `0x775857c`. Con
+  `0x6c8e2c`, `0x6c8e34` y `0x6c8e30` en −1, como en el login y la selección, `0x5ac61c` pregunta además
+  `0x659290(this = [0x576352c], 0x200)`, que con true elige el `0x65a`: en la traza de la selección da false
+  (el último quad es el slot 2); en el login no está verificado (P-C27 h). Los sube `0x61ccb0` en su avance 0 con `GL_LINEAR` y `GL_CLAMP`. Verificado en la traza
   de la selección: el último quad del frame es el slot 2 en blanco, de 38,4 × 38,4 en 1024 × 768. MuRet:
   `UI::DrawGameCursor` en el login y la selección, con el input del contexto, y el cursor del sistema
-  escondido (`Platform::Window::HideSystemCursor`). El juego lo dibuja con su UI (CL8).
+  escondido (`Platform::Window::HideSystemCursor`); en la selección sin la lista, también encima del aviso
+  que MuRet dibuja ahí (`CharacterSelectSceneTest.TheNoticeBeforeTheListHasTheGameCursor`). El juego lo dibuja con su UI (CL8).
 - **La cabeza del Dark Lord, desde el cierre:** `0x505de0`, en cada paso de `0x508ea0` (después de `0x4fd5f0`, el cuerpo y
   el cuervo), con el personaje visto (`+0x16c`, que `0x508ea0` escribe al empezar con `0x5fba90` en su lugar por 0,01f y
   −20) y sin las banderas `0x20` ni `0x1000` de `+0x78`. Si no es el héroe (`0x743a170`) ni se está muriendo (`+0x389`), con

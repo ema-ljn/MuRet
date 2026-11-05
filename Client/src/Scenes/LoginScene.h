@@ -80,7 +80,8 @@ public:
     // `data`, `models` y `session` tienen que vivir más que la escena. `session` es nullptr sin servidor
     // (Main sin host): la escena dibuja y no conecta. `version` es la de MuRet (MURET_VERSION).
     // `models` tiene los del personaje (GameModels). `seed` es la de los rand() de la acción del
-    // personaje (0x634c60): los tests la fijan.
+    // personaje (0x634c60) sin el ClothWorld del contexto, que trae el rand() de la CRT y es el que usa
+    // Main: los tests la fijan.
     // `gameSlots`, la tabla de slots de la carga (GameModels::TextureSlots), que el mundo sigue desde
     // 0x41c como la global del original; sin ella, una vacía.
     LoginScene(const SceneContext& context, const GameData& data, const IModelLibrary& models,

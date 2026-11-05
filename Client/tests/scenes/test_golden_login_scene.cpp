@@ -1,5 +1,4 @@
 #include "Scenes/LoginScene.h"
-#include "Scenes/CharacterHead.h"
 
 #include "App/PacingMode.h"
 #include "Core/IClock.h"
@@ -10,6 +9,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/CharacterHead.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameModels.h"

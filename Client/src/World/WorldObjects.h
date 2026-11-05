@@ -7,6 +7,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -48,6 +49,19 @@ struct WorldObject
 // +0x58 = −2: 0x6002e0 no lo dibuja (DAT_077f3b18, el modo editor, nunca está prendido).
 inline constexpr std::int16_t HiddenObject = -2;
 
+// El farol del castillo (Object61.bmd, de un hueso) y lo que pide 0x602ed0 en la escena 2 (0x602f21): dos
+// sprites de flare01 (0x5ac), de escala 1, aditivos y sin giro, en las traslaciones de los huesos 8 y 9
+// del buffer global de la pose (0x68b199c y 0x68b19cc), las del último modelo posado que los tiene
+// (Q-C140).
+inline constexpr std::int16_t StreetLight = 0x3c;
+inline constexpr std::uint16_t StreetLightGlowTexture = 0x5ac;
+inline constexpr std::array<std::size_t, 2> StreetLightGlowBones{8, 9};
+
+// La luz de los dos sprites del farol con `random`, el rand() que 0x602ef4 saca por cada objeto: L =
+// (random % 30 + 70) · 0,01f (0x6b88d4) guardado en float, y (L; L · 0,5; L · 0,2f), cada producto
+// guardado en float (0x6b882c y 0x6b8854).
+[[nodiscard]] glm::vec3 StreetLightGlowLight(int random);
+
 // 0x606660 con cada registro de `records`, en su orden: vivo, alpha y meta en 1, luz por vértice, luz
 // en 0, velocidad 0,16, sin malla oculta ni blendMesh, luz del blendMesh en 1 y U y V en 0; en el
 // login y la selección, el farol (0x3c) a escala 0,8 y luz 0,2, y el dueño del dragón (0xb4) oculto y
@@ -79,6 +93,9 @@ enum class ObjectDrawKind : std::uint8_t
 struct ObjectDraw
 {
     ObjectDrawKind kind = ObjectDrawKind::Hidden;
+    // 0x5ffdf0 lo posó en el buffer global de la pose (0x5fff7a): todos menos los de alpha por debajo de
+    // 0,01, que sale antes (0x5ffe3d); también los de +0x58 en −2, que 0x6002e0 no dibuja.
+    bool posed = false;
     float alpha = 1.0f;
     Render::Models::ObjectState state;
     // +0x48..+0x50 del modelo, el que le pone 0x5ffce0.

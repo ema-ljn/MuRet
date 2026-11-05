@@ -5,6 +5,7 @@
 #include "Render/ModelVertex.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Models/Animation.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
@@ -25,6 +26,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <vector>
 
 namespace Client::Scenes
 {
@@ -89,8 +91,17 @@ void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, c
 
 void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::WorldObject> objects,
                       const World::TerrainPolygon& polygon, const World::TerrainLighting* lighting, std::uint8_t map,
-                      Core::Duration frameClock, float alpha)
+                      Core::Duration frameClock, float alpha, const ObjectFrameEffects& effects)
 {
+    // El buffer global de la pose, en el orden en que lo pisan: lo de antes de los objetos y cada objeto
+    // que 0x5ffdf0 posa. Solo hace falta con los sprites del farol.
+    const bool glows =
+        effects.random != nullptr && effects.sprites != nullptr && effects.scene == World::ObjectScene::Login;
+    std::vector<PosedInTheBuffer> posed;
+    if (glows)
+    {
+        posed.assign(effects.posedBefore.begin(), effects.posedBefore.end());
+    }
     for (const std::size_t index : World::DrawOrder(objects))
     {
         World::WorldObject& object = objects[index];
@@ -105,16 +116,37 @@ void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, st
                                 : glm::vec3(0.0f);
         const World::ObjectDraw draw = World::DrawOf(object, light, map);
         const Render::Models::Skeleton* skeleton = models.SkeletonOf(static_cast<std::uint16_t>(object.type));
+        const DrawnObject drawn = Drawn(object, draw, skeleton, alpha);
         switch (draw.kind)
         {
         case World::ObjectDrawKind::Hidden:
             break;
         case World::ObjectDrawKind::Body:
-            DrawObject(batch, models, Drawn(object, draw, skeleton, alpha), frameClock);
+            DrawObject(batch, models, drawn, frameClock);
             break;
         case World::ObjectDrawKind::SubtractiveMesh:
-            DrawSubtractiveMesh(batch, models, Drawn(object, draw, skeleton, alpha), frameClock);
+            DrawSubtractiveMesh(batch, models, drawn, frameClock);
             break;
+        }
+        if (glows && draw.posed)
+        {
+            posed.push_back(PosedInTheBuffer{&models, drawn});
+        }
+        // 0x602ed0: el rand() de cada objeto, y con el farol en la escena 2, sus dos sprites con esa luz.
+        if (effects.random == nullptr)
+        {
+            continue;
+        }
+        const int random = effects.random->Next();
+        if (glows && object.type == World::StreetLight)
+        {
+            const glm::vec3 glow = World::StreetLightGlowLight(random);
+            for (const std::size_t bone : World::StreetLightGlowBones)
+            {
+                (void)effects.sprites->Create(
+                    World::StreetLightGlowTexture,
+                    LastPosedBonePoint(posed, bone, glm::vec3(0.0f)).value_or(glm::vec3(0.0f)), 1.0f, glow, 0.0f, 0);
+            }
         }
     }
 }

@@ -1754,7 +1754,25 @@ Lo que se ve en el video, una fuente por vez:
   de escala 1, con la mezcla 0 (aditiva) y el color (L; 0,5 · L; 0,2 · L), con L = `(rand() % 30 + 70)
   · 0,01`, en las traslaciones de los huesos 8 y 9 del buffer global de la pose (`0x68b199c` y
   `0x68b19cc`). `Object61.bmd` tiene un solo hueso: esas matrices son las que dejó el último modelo
-  posado antes (Q-C140).
+  posado antes (Q-C140). El `rand()` de L (`0x602ef4`) se saca **por cada objeto** que llega a
+  `0x602ed0`, antes de mirar la escena o el tipo: todos los vistos, aunque `0x6002e0` no los dibuje.
+  `0x4ec110` va sin trasladar (el quinto argumento en 0): solo `0x5fccc0` del (0, 0, 0) con la
+  matriz, su traslación, que ya está en el mundo; el modelo del farol en `ecx` no se usa. **Quién deja
+  los huesos 8 y 9** (CL7.6 B4): `0x5ffdf0` posa en el buffer global cada objeto con el alpha desde
+  0,01 (`0x5fff7a`; con menos sale antes, `0x5ffe3d`), también los de `+0x58` en −2, que `0x6002e0`
+  no dibuja. De los 276 objetos del `.obj` (todos dentro de la grilla: los 44 de y entre −324 y 0 caen
+  en el sector 0, porque `ftol` trunca hacia 0) ninguno llega al 8: los que más tienen, los tipos 12 y
+  18, tienen 8; el logo tiene 2. Pero antes que todos ellos, la carga del mapa 55 (`0x61a560` →
+  `0x616ec0`, `0x6188ae..0x61891b`) carga `Data\Object56\Dragon` y crea el **dueño del dragón**,
+  `0x606660(0xb4, (5.600; 23.000; 0), (0, 0, 0), 1)`, en el sector (3, 14), antes que el farol (5, 14):
+  no se dibuja, pero se posa (emulado: llega a `0x4eb860` con el buffer `0x68b181c` y el octavo
+  argumento en 1), con la animación de siempre (0,16 por paso). En `Dragon.bmd` (93 huesos) el 8 y el 9
+  son `Bip01 L Toe0` y `Bip01 L Toe01`: el brillo del farol sale **en los dedos del pie del dragón
+  del dueño, el que no se dibuja**, a unos 120 de altura sobre (5.640; 23.130), donde el terreno está entre 196 y
+  207: queda bajo tierra y no se ve (el caballo, que se posa antes, también tiene el 8 y el 9, pero el
+  dueño los pisa). MuRet crea el dueño en `m_objects` desde la CL7.6 B4, antes de los del `.obj`, y
+  dibuja así el brillo (`ObjectFrameEffects` en `DrawWorldObjects`, con el `rand()` de la CRT de la
+  tela).
 - **El fuego del `0x59`** (sin confirmar): el objeto `0x59` en (8.954; 24.178; 492), también
   invisible, con `ftol(T) % 8000 > 7949` crea el efecto `0xc2` (`Skill\Fire01.bmd`, subtipo 9) a
   ± 1.024 en x y en y (`rand() & 2047 − 1024`) y a 3.000–3.600 de altura: una bola de fuego que cae, lejos a la derecha. Su paso y su dibujo no se
@@ -1771,10 +1789,12 @@ el dragón), el aliento (1 o 3 por paso), el viento de las partículas (2 por pa
 cada ayudante (`rand() % 30` en `0x445336`, por frame), el
 cuervo (4 a 7 por paso), `0x509340` (uno por cada parte del personaje que dibuja, por frame), el cetro
 (6 más por frame), el gesto del login (`rand() % 6` con `ftol(T) % 2300 < 100`), `0x602ed0` (1 por
-objeto visible por frame, 1 más en cada `0x54`, 5 más por nube, 3 más cuando dispara el `0x59`, y el
-del farol), `0x508f00` (8 por personaje vivo por paso), `0x635ae0` (8 por
-frame) y la cabeza (`0x505de0`). Ahora se sabe quién saca cada uno, pero MuRet no lleva ninguno: para
-que su `rand()` siga al del original bit a bit habría que correrlos todos, en su orden.
+objeto visible por frame, que es también el del farol; 1 más en cada `0x54`, 5 más por nube y 3 más
+cuando dispara el `0x59`), `0x508f00` (8 por personaje vivo por paso), `0x635ae0` (8 por
+frame) y la cabeza (`0x505de0`). Ahora se sabe quién saca cada uno. MuRet lleva, con el de la CRT de la
+tela, los de la tela, el cetro, el aliento, el viento de las partículas, las brasas y, desde la CL7.6
+B4, el de cada objeto de `0x602ed0`; no lleva los demás, así que su `rand()` no sigue al del original
+bit a bit: habría que correrlos todos, en su orden.
 
 ### Lo demás del login
 
@@ -2423,6 +2443,7 @@ Ver [08](08-pendientes.md).
 | Los sprites de un frame (`0x5491e0`), con el billboard de `0x621400`: el dibujo del personaje pide los 30 destellos de la tela y los cinco del cetro, y `0x549440(0)` los dibuja con la modelview en la identidad y los apaga | `Render::MakeBillboard` (bit a bit contra `0x621400`), `World::FrameSprites` (la tabla, con el alpha de `0x549290`) y `Scenes::DrawFrameSprites` en un pase de ojo, el último del 3D, que se abre solo con alguno vivo; `DrawnCharacter::sprites` recibe los destellos al dibujar la tela y el cetro (`World::CreateScepterGlow`, bit a bit contra el caso `0x620` de `0x509340`) en ese orden, con el `rand()` de la CRT de `ClothWorld` | CL7.6 B1 |
 | Las partículas (`0x53fe70`, `0x5446e0` y `0x548550`), con el aliento del caballo desde el buffer global de la pose | `World::Particles` (la tabla de 3.000, el viento y el aliento, bit a bit contra el código real) y `Scenes::DrawParticles` en el pase de ojo, después de los sprites; el aliento lo pide `LoginScene` después del paso del caballo, en el hueso 27 del último modelo dibujado que lo tiene sin ser dummy (`PosedBonePoint`) | CL7.6 B2 |
 | Las hojas (`0x530490` / `0x5306a0`), con las 80 brasas del mapa 55 y la altura del terreno de `0x5f93c0` | `World::Leaves` (las 80 brasas: nacen y caen, bit a bit contra el código real) y `World::TerrainHeightAt`; `Scenes::DrawLeaves` en el pase del mundo, después de los efectos con modelo; `LoginScene` las avanza después del caballo, con el héroe y la cámara en (0, 0, 0) hasta el primer dibujo (Q-C137) | CL7.6 B3 |
+| `0x602ed0`, después del dibujo de cada objeto visto: el `rand()` de cada uno y el brillo del farol (`0x3c`) en la escena 2 | `Scenes::ObjectFrameEffects` en `DrawWorldObjects`: un `rand()` de la CRT por objeto visto y los dos sprites de `flare01` en los huesos 8 y 9 del último modelo posado (`LastPosedBonePoint`: el dueño del dragón, Q-C140); `World::StreetLightGlowLight`, la luz; el dueño (`0xb4`) en `m_objects`, antes del `.obj` | CL7.6 B4 |
 | Los joints (`0x53c6a0`) | un sistema con su tabla, cuando una escena los use (el login no tiene ninguno) | — |
 | El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | un objeto colgado del personaje, con el paso de `0x416a20` comparado bit a bit con `raven_reference.py` | CL7.6 C |
 

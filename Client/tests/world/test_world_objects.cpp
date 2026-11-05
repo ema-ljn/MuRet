@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <bit>
 #include <cstdint>
 #include <limits>
@@ -90,5 +91,23 @@ TEST(WorldObjectsTest, TheRedOfAnUnlitObjectIsNotRoundedFirst)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(draw.color.x), 0x3F212877u);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(draw.color.y), 0x3F212876u);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(draw.color.z), 0x3F212876u);
+}
+
+// 0x602ed0: la luz de los dos sprites del farol, L = (rand() % 30 + 70) · 0,01f guardado en float, y
+// (L; L · 0,5; L · 0,2f), cada producto guardado en float.
+TEST(WorldObjectsTest, TheLanternGlowIsOrange)
+{
+    const auto bits = [](const glm::vec3& light)
+    {
+        return std::array<std::uint32_t, 3>{std::bit_cast<std::uint32_t>(light.x),
+                                            std::bit_cast<std::uint32_t>(light.y),
+                                            std::bit_cast<std::uint32_t>(light.z)};
+    };
+    EXPECT_EQ(bits(Client::World::StreetLightGlowLight(0)),
+              (std::array<std::uint32_t, 3>{0x3F333333u, 0x3EB33333u, 0x3E0F5C29u}));
+    EXPECT_EQ(bits(Client::World::StreetLightGlowLight(59)),
+              (std::array<std::uint32_t, 3>{0x3F7D70A3u, 0x3EFD70A3u, 0x3E4AC083u}));
+    EXPECT_EQ(bits(Client::World::StreetLightGlowLight(13)),
+              (std::array<std::uint32_t, 3>{0x3F547AE1u, 0x3ED47AE1u, 0x3E29FBE7u}));
 }
 } // namespace

@@ -22,7 +22,6 @@ namespace
 // 0x606660: la velocidad de la animación (0x3e23d70a), y la escala y la luz del farol en el login y la
 // selección (0x3f4ccccd y 0x3e4ccccd).
 constexpr float ObjectSpeed = std::bit_cast<float>(0x3E23D70Au);
-constexpr std::int16_t StreetLight = 0x3c;
 constexpr std::int16_t DragonOwner = 0xb4;
 constexpr float StreetLightScale = std::bit_cast<float>(0x3F4CCCCDu);
 constexpr float StreetLightLight = std::bit_cast<float>(0x3E4CCCCDu);
@@ -166,7 +165,8 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
         draw.color.z = (terrainLight.z * AlphaApproach) + object.light.z;
     }
     // 0x5ffdf0 no dibuja con el alpha por debajo de 0,01, y 0x6002e0 sale con +0x58 = −2.
-    if (object.alpha < MinimumAlpha || object.state.hiddenMesh == HiddenObject)
+    draw.posed = !(object.alpha < MinimumAlpha);
+    if (!draw.posed || object.state.hiddenMesh == HiddenObject)
     {
         draw.kind = ObjectDrawKind::Hidden;
         return draw;
@@ -198,6 +198,19 @@ int SectorOf(float coordinate)
         return -1;
     }
     return static_cast<int>(sector);
+}
+
+glm::vec3 StreetLightGlowLight(int random)
+{
+    constexpr int Span = 30;
+    constexpr int Base = 70;
+    constexpr double Step = static_cast<double>(0.01f);
+    constexpr double Green = 0.5;
+    constexpr double Blue = static_cast<double>(0.2f);
+    // `cdq` e `idiv`: con un rand() no negativo, el resto.
+    const auto light = static_cast<float>(static_cast<double>((random % Span) + Base) * Step);
+    return {light, static_cast<float>(static_cast<double>(light) * Green),
+            static_cast<float>(static_cast<double>(light) * Blue)};
 }
 
 int SectorX(const WorldObject& object)

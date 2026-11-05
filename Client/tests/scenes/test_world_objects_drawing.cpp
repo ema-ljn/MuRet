@@ -4,6 +4,7 @@
 #include "Data/Terrain/TerrainObjects.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
@@ -182,6 +183,199 @@ TEST(WorldObjectsDrawingTest, AnObjectOutsideThePolygonIsNotSeen)
     EXPECT_EQ(Client::World::SectorY(objects[2]), 7);
     EXPECT_FALSE(objects[2].seen);
     EXPECT_EQ(batch.Vertices().size(), 6u);
+}
+
+// 0x602ed0 saca un rand() de la CRT por cada objeto que llega a él (0x602ef4, antes de mirar la escena o el
+// tipo): los que se ven, aunque no se dibujen (el de alpha 0 y el de +0x58 en −2). El del sector lejano no
+// llega.
+TEST(WorldObjectsDrawingTest, EachSeenObjectTakesARand)
+{
+    const TwoMeshModels models;
+    std::vector<WorldObject> objects{ObjectAt(Rock, 14400.0f, 12100.0f), ObjectAt(Rock, 100.0f, 100.0f),
+                                     ObjectAt(Rock, 14450.0f, 12150.0f), ObjectAt(Rock, 14420.0f, 12120.0f)};
+    objects[2].alpha = 0.0f;
+    objects[3].state.hiddenMesh = Client::World::HiddenObject;
+    const auto polygon =
+        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
+    Client::Render::Models::CrtRandom random(7);
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    DrawWorldObjects(batch, models, objects, polygon, nullptr, Login, {}, 0.0f,
+                     Client::Scenes::ObjectFrameEffects{.random = &random});
+    Client::Render::Models::CrtRandom expected(7);
+    for (int k = 0; k < 3; ++k)
+    {
+        (void)expected.Next();
+    }
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(batch.Vertices().size(), 6u) << "el de alpha 0 no se dibuja";
+}
+
+// Modelos de diez huesos de raíz, sin animación, el k en (100 · k, 10 · k, 0) por la base de su tipo; el
+// del tipo 2 con el 8 dummy. El farol (0x3c), de un hueso, como Object61.bmd.
+class TenBoneModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    TenBoneModels()
+    {
+        const auto skeletonOf = [](std::size_t bones, float base, std::optional<std::size_t> dummy)
+        {
+            Skeleton skeleton;
+            for (std::size_t k = 0; k < bones; ++k)
+            {
+                Client::Render::Models::SkeletonBone bone;
+                bone.parent = -1;
+                if (dummy == k)
+                {
+                    bone.dummy = true;
+                    skeleton.bones.push_back(bone);
+                    continue;
+                }
+                Client::Render::Models::BoneKey key;
+                key.position = {base + (100.0f * static_cast<float>(k)), 10.0f * static_cast<float>(k), 0.0f};
+                key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+                bone.actions = {{key}};
+                skeleton.bones.push_back(bone);
+            }
+            skeleton.actions = {Client::Render::Models::ActionInfo{
+                .repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
+            return skeleton;
+        };
+        m_horse = skeletonOf(10, 0.0f, std::nullopt);
+        m_rock = skeletonOf(10, 5000.0f, 8);
+        m_lantern = skeletonOf(1, 0.0f, std::nullopt);
+    }
+
+    [[nodiscard]] const Model* Find(std::uint16_t) const override
+    {
+        return &m_model;
+    }
+    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        if (model == Lantern)
+        {
+            return &m_lantern;
+        }
+        return model == SecondRock ? &m_rock : &m_horse;
+    }
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return {};
+    }
+
+    static constexpr std::uint16_t Lantern = 0x3c;
+    static constexpr std::uint16_t SecondRock = 2;
+
+private:
+    Model m_model;
+    Skeleton m_horse;
+    Skeleton m_rock;
+    Skeleton m_lantern;
+};
+
+struct LanternGlow
+{
+    std::vector<Client::World::Sprite> sprites;
+    std::optional<glm::vec3> horse8;
+    std::optional<glm::vec3> horse9;
+    std::optional<glm::vec3> rock9;
+};
+
+// El caballo posado antes de los objetos (0x4453b0) en (1.000; 2.000; 300) y `objects` dibujados en su
+// orden, con el farol al final.
+LanternGlow GlowOf(std::vector<WorldObject>& objects, Client::World::ObjectScene scene, std::uint32_t seed)
+{
+    const TenBoneModels models;
+    Client::Scenes::DrawnObject horse;
+    horse.model = 1;
+    horse.transform.position = {1000.0f, 2000.0f, 300.0f};
+    horse.transform.scale = 1.5f;
+    const std::array<Client::Scenes::PosedInTheBuffer, 1> before{{{&models, horse}}};
+    Client::Render::Models::CrtRandom random(seed);
+    Client::World::FrameSprites sprites;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    DrawWorldObjects(batch, models, objects, Everything, nullptr, Login, {}, 0.0f,
+                     Client::Scenes::ObjectFrameEffects{
+                         .random = &random, .sprites = &sprites, .posedBefore = before, .scene = scene});
+    LanternGlow glow;
+    for (const Client::World::Sprite& sprite : sprites.Sprites())
+    {
+        if (sprite.alive)
+        {
+            glow.sprites.push_back(sprite);
+        }
+    }
+    glow.horse8 = Client::Scenes::PosedBonePoint(models, horse, 8, {});
+    glow.horse9 = Client::Scenes::PosedBonePoint(models, horse, 9, {});
+    Client::Scenes::DrawnObject rock;
+    rock.model = TenBoneModels::SecondRock;
+    rock.transform = objects.front().transform;
+    glow.rock9 = Client::Scenes::PosedBonePoint(models, rock, 9, {});
+    return glow;
+}
+
+// 0x602ed0 en la escena 2 con el farol (0x3c, 0x602f21): dos sprites de flare01 (0x5ac), de escala 1,
+// aditivos y sin giro, en las traslaciones de los huesos 8 y 9 del buffer global de la pose (0x68b199c y
+// 0x68b19cc), con la luz del rand() de su objeto. El farol tiene un hueso: los dos son los del último
+// modelo posado que los tiene sin ser dummy. Sin otro objeto antes, los del caballo.
+TEST(WorldObjectsDrawingTest, TheLanternGlowsAtTheBonesThatTheHorseLeft)
+{
+    std::vector<WorldObject> objects{ObjectAt(TenBoneModels::Lantern, 300.0f, 300.0f)};
+    const LanternGlow glow = GlowOf(objects, Client::World::ObjectScene::Login, 11);
+    ASSERT_EQ(glow.sprites.size(), 2u);
+    Client::Render::Models::CrtRandom random(11);
+    const glm::vec3 light = Client::World::StreetLightGlowLight(random.Next());
+    ASSERT_TRUE(glow.horse8.has_value());
+    ASSERT_TRUE(glow.horse9.has_value());
+    EXPECT_EQ(glow.sprites[0].position, *glow.horse8);
+    EXPECT_EQ(glow.sprites[1].position, *glow.horse9);
+    for (const Client::World::Sprite& sprite : glow.sprites)
+    {
+        EXPECT_EQ(sprite.texture, 0x5ac);
+        EXPECT_EQ(sprite.scale, 1.0f);
+        EXPECT_EQ(sprite.blend, 0);
+        EXPECT_EQ(sprite.rotation, 0.0f);
+        EXPECT_EQ(sprite.light, light);
+    }
+}
+
+// Un objeto de diez huesos dibujado antes del farol pisa el 9; su 8 es dummy (0x4eb973 no lo escribe) y
+// queda el del caballo. Con el alpha por debajo de 0,01, 0x5ffdf0 sale antes de posarlo y quedan los dos
+// del caballo; justo en 0,01, lo posa. Con +0x58 en −2 lo posa (0x6002e0 es el que no lo dibuja).
+TEST(WorldObjectsDrawingTest, TheLanternGlowsAtTheBonesOfTheLastPosedModel)
+{
+    std::vector<WorldObject> objects{ObjectAt(static_cast<std::int16_t>(TenBoneModels::SecondRock), 100.0f, 100.0f),
+                                     ObjectAt(TenBoneModels::Lantern, 300.0f, 300.0f)};
+    const LanternGlow posed = GlowOf(objects, Client::World::ObjectScene::Login, 3);
+    ASSERT_EQ(posed.sprites.size(), 2u);
+    EXPECT_EQ(posed.sprites[0].position, *posed.horse8);
+    ASSERT_TRUE(posed.rock9.has_value());
+    EXPECT_EQ(posed.sprites[1].position, *posed.rock9);
+
+    objects[0].state.hiddenMesh = Client::World::HiddenObject;
+    const LanternGlow hidden = GlowOf(objects, Client::World::ObjectScene::Login, 3);
+    ASSERT_EQ(hidden.sprites.size(), 2u);
+    EXPECT_EQ(hidden.sprites[1].position, *hidden.rock9) << "posado aunque no se dibuje";
+
+    objects[0].state.hiddenMesh = Client::Render::Models::NoHiddenMesh;
+    objects[0].alpha = 0.0f;
+    const LanternGlow faded = GlowOf(objects, Client::World::ObjectScene::Login, 3);
+    ASSERT_EQ(faded.sprites.size(), 2u);
+    EXPECT_EQ(faded.sprites[1].position, *faded.horse9);
+
+    // `fcomp` con 0,01f y `test ah, 1`: con el alpha justo en 0,01 no sale.
+    objects[0].alpha = std::bit_cast<float>(0x3C23D70Au);
+    const LanternGlow edge = GlowOf(objects, Client::World::ObjectScene::Login, 3);
+    ASSERT_EQ(edge.sprites.size(), 2u);
+    EXPECT_EQ(edge.sprites[1].position, *edge.rock9) << "posado con el alpha en 0,01";
+}
+
+// El caso del farol es de la escena 2 (0x602f09): en otra, el rand() se saca igual pero no hay sprites.
+TEST(WorldObjectsDrawingTest, TheLanternGlowsOnlyInTheLogin)
+{
+    std::vector<WorldObject> objects{ObjectAt(TenBoneModels::Lantern, 300.0f, 300.0f)};
+    EXPECT_TRUE(GlowOf(objects, Client::World::ObjectScene::CharacterSelect, 11).sprites.empty());
 }
 
 // Los dos remolinos rojos (86) del .obj están en el mismo lugar, con el mismo giro y aditivos desde su

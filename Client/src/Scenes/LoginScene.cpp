@@ -400,12 +400,28 @@ Core::Expected<void, std::string> LoginScene::LoadTheLogo()
     return {};
 }
 
-// 0x6349a0 con 0x606660 (los objetos del .obj y después el logo), 0x517270 y el caballo
-// (0x443fa0(0xbf, …), invisible), y la cuenta de las rutas en −1. La fase vuelve a 0 (el original no la
-// vuelve: Q-C111).
+// 0x6349a0 con 0x606660 (en la carga del mapa, 0x61a560, el dueño del dragón y los objetos del .obj; después,
+// el logo), 0x517270 y el caballo (0x443fa0(0xbf, …), invisible), y la cuenta de las rutas en −1. La fase
+// vuelve a 0 (el original no la vuelve: Q-C111).
 void LoginScene::PlaceTheModels()
 {
-    m_objects = World::CreateWorldObjects(m_objectRecords, m_world ? m_world->map : 0, World::ObjectScene::Login);
+    const std::uint8_t map = m_world ? m_world->map : 0;
+    m_objects.clear();
+    // 0x616ec0 en el mapa 55 (0x6188ae..0x61891b), antes del .obj: 0x606660(0xb4, (5.600; 23.000; 0),
+    // (0, 0, 0), 1), el dueño del dragón. No se dibuja (+0x58 en −2), pero 0x5ffdf0 lo posa en el buffer
+    // global en cada dibujo (sus huesos 8 y 9 son los del brillo del farol, Q-C140) y 0x602ed0 le saca su
+    // rand().
+    if (map == DragonMap)
+    {
+        Data::Terrain::TerrainObject owner;
+        owner.type = World::DragonEffect;
+        owner.position = {DragonOwnerPosition.x, DragonOwnerPosition.y, DragonOwnerPosition.z};
+        owner.scale = 1.0f;
+        m_objects = World::CreateWorldObjects(std::span(&owner, 1), map, World::ObjectScene::Login);
+    }
+    std::vector<World::WorldObject> fromTheFile =
+        World::CreateWorldObjects(m_objectRecords, map, World::ObjectScene::Login);
+    m_objects.insert(m_objects.end(), fromTheFile.begin(), fromTheFile.end());
     m_logoIndex = m_objects.size();
     m_objects.push_back(LogoWorldObject());
     // 0x6070a0 vacía la tabla de efectos, y en el mapa 55 el dueño del dragón (el 0xb4 que la carga del
@@ -588,8 +604,9 @@ glm::vec3 LoginScene::GlobalPosePoint(std::size_t bone, const glm::vec3& offset,
     }
     // Lo que el dibujo anterior posó en el buffer global, en su orden y con el estado de este paso (el
     // original no interpola): el caballo (0x4453b0), si se vio, y después los efectos con modelo
-    // (0x52d620). Los objetos del mapa 55 tienen menos de 28 huesos, y lo que cuelga del personaje va
-    // antes que el caballo.
+    // (0x52d620). Entre los dos van los objetos: los del .obj tienen 8 huesos o menos, y el dueño del
+    // dragón (Dragon.bmd) tiene el 27 dummy, como el dragón; lo que cuelga del personaje va antes que el
+    // caballo.
     constexpr float Drawn = 0.01f;
     std::vector<PosedInTheBuffer> posed;
     if (drawnHorse.alpha >= Drawn)
@@ -860,16 +877,27 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     character.sprites = &m_sprites;
     DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
 
-    DrawDarkHorse(
-        canvas.models, m_models,
-        DrawnDarkHorse(m_horse, m_models.SkeletonOf(DarkHorseModel), character.object, DarkHorseLoginScale, alpha),
-        canvas.frameClock);
+    const DrawnObject horse =
+        DrawnDarkHorse(m_horse, m_models.SkeletonOf(DarkHorseModel), character.object, DarkHorseLoginScale, alpha);
+    DrawDarkHorse(canvas.models, m_models, horse, canvas.frameClock);
 
-    // 0x6046a0: los objetos del mundo y el logo, sector por sector.
+    // 0x6046a0: los objetos del mundo y el logo, sector por sector, con lo de 0x602ed0: un rand() por
+    // objeto y los dos sprites del farol en los huesos 8 y 9 del buffer global de la pose. Lo que cuelga
+    // del personaje lo pisó antes; el caballo, si se dibuja (0x5ffdf0, con el alpha desde 0,01), después.
+    constexpr float Drawn = 0.01f;
+    std::vector<PosedInTheBuffer> posed;
+    if (m_horse.alpha >= Drawn)
+    {
+        posed.push_back(PosedInTheBuffer{&m_models, horse});
+    }
     const LoginObjectModels objects(m_worldModels, m_logo);
     const World::TerrainLighting* lighting = m_terrain.IsLoaded() ? m_terrain.Lighting() : m_lighting.get();
     DrawWorldObjects(canvas.models, objects, m_objects, m_terrainPolygon, lighting, m_world ? m_world->map : 0,
-                     canvas.frameClock, alpha);
+                     canvas.frameClock, alpha,
+                     ObjectFrameEffects{.random = m_context.cloth != nullptr ? &m_context.cloth->random : nullptr,
+                                        .sprites = &m_sprites,
+                                        .posedBefore = posed,
+                                        .scene = World::ObjectScene::Login});
     // 0x52d620(0): los efectos con modelo, después de los objetos.
     DrawModelEffects(canvas.models, m_worldModels, m_effects.Effects(), lighting, canvas.frameClock, alpha);
     // 0x5306a0, después de 0x549510: las brasas, en el mundo.

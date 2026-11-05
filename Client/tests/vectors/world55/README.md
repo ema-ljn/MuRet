@@ -20,3 +20,15 @@ Cómo se sacan, con `main.exe` en `MURET_MAIN_EXE`, unicorn y el `Data\` del lab
 ```bash
 python make_world55_vectors.py Client/tests/vectors/world55/objects.txt
 ```
+
+## Los demás archivos
+
+Cada uno lo saca su script, también con unicorn sobre el código real y `MURET_MAIN_EXE`, y lo lee
+un test, bit a bit:
+
+| Archivo | Qué tiene | Script | Test |
+| --- | --- | --- | --- |
+| `dragon.txt` | el dragón (`0x518cf0` con el `0xb4` y 1.500 pasos de `0x5208a0`) | `make_dragon_vectors.py` | `world/test_model_effects.cpp` |
+| `rotation.txt` | `0x5fc8f0` (AngleMatrix) y `0x5fcbd0` (VectorRotate), 400 casos | `make_rotation_vectors.py` | `render/test_original_rotation.cpp` |
+| `billboard.txt` | `0x621400`, 300 casos: la vista, la textura y lo que manda a GL | `make_billboard_vectors.py` | `render/test_billboard.cpp` |
+| `scepter.txt` | el caso `0x620` de `0x509340`, 300 casos: el hueso 0, la escala y el origen del cuerpo, la semilla del `rand()`, los cinco sprites que deja en `0x760f990` y el `rand()` al final | `make_scepter_vectors.py` | `world/test_scepter_glow.cpp` |

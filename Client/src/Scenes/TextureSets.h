@@ -35,6 +35,14 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
     {"Effect\\Chrome02.jpg", 0x620, TextureSetsDetail::NearestClamp},
 }};
 
+// Las de los sprites del login que sube 0x61ccb0 (0x61d6a5 y 0x61d925, 0x63b870 con GL_LINEAR y
+// GL_CLAMP) y nadie suelta: Effect\flare01.jpg en 0x5ac (los destellos de la capa y el brillo del
+// cetro) y Effect\Shiny02.jpg en 0x5fd (el cetro). Las sube GameModels con los modelos, y quedan.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 2> EffectTextureSet{{
+    {"Effect\\flare01.jpg", 0x5ac, TextureSetsDetail::LinearClamp},
+    {"Effect\\Shiny02.jpg", 0x5fd, TextureSetsDetail::LinearClamp},
+}};
+
 // Las dos capas de la tela que sube 0x61ccb0 (0x61d616 y 0x61d64e) y nadie suelta: Monster\iui06.jpg en
 // 0x256, de las dos telas de adelante del Dark Lord (0x63b870 con GL_NEAREST y GL_CLAMP), y
 // Player\kaa.tga en 0x6ea, la de su cuarta (0x63bd00 con GL_LINEAR y GL_CLAMP). Las demás capas

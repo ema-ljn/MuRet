@@ -1594,7 +1594,9 @@ mismo** en 8 semillas × 5.000 pasos, y `raven_stats.py` lo corre en 40 semillas
 
 ### Los efectos del login
 
-*Estático* (leído en el asm; no se emuló). El paso del login corre, después de los objetos y del
+*Estático* (leído en el asm; no se emuló), salvo el billboard y el brillo del cetro, **verificados**
+en la CL7.6 B1 contra el código real emulado en 300 casos cada uno (`tests/vectors/world55/billboard.txt`
+y `scepter.txt`). El paso del login corre, después de los objetos y del
 caballo, `0x530490` (las hojas), `0x508f00` (los personajes y el cuervo), `0x52d220` (los efectos),
 `0x53c670` (los joints) y `0x5446e0` (las partículas). El dibujo, después de los objetos:
 
@@ -1671,7 +1673,21 @@ Lo que se ve en el video, una fuente por vez:
   Los tres grandes van en el tridente del `HDK_Mace` y los dos chicos en el pomo (*verificado* en el
   archivo: la y de −130 a −30 es el tridente y la de 70 a 110, el pomo). Parpadean porque la posición
   y la escala se sortean en cada frame (6 `rand()`, más el `rand() % 30` que `0x509340` saca al
-  empezar con cualquier parte, `0x509a92`).
+  empezar con cualquier parte, `0x509a92`). **Verificado** en la CL7.6 B1 contra el código real
+  emulado, el caso desde `0x50a169` hasta su `ret` con `0x4ec110` y `0x5491e0` reales, y la escala
+  (`+0x68`) y el origen (`+0x6c`) del cuerpo del modelo del ítem puestos por el generador:
+  `0x4ec110` es el `TransformPosition` de ese modelo, VectorTransform (`0x5fccc0`) por esa escala más
+  ese origen. Cada cuenta va en 53 bits y se guarda en float donde el binario guarda: p, la escala y
+  la y del desplazamiento; en la posición, el producto de la x por la escala no se guarda antes de
+  sumarle el origen, y los de y y z sí. La escala del segundo y del quinto se resta al pedirlos, y la
+  del tercero suma su 0,3 ahí. El `rand() % 8` del pomo va con el idiom de `and 0x80000007`, que con
+  un `rand()` no negativo es lo mismo. *Estático*, lo que pone esos dos campos: la escala es la del
+  personaje (`+0xc` de su objeto, `0x509397`) y el origen, desde una mano, la posición del personaje
+  más el desplazamiento girado por el hueso y por el `+0x68` del modelo **del personaje**
+  (`0x4ec190`, con `Models[objeto + 2]`, y `0x50966b`; el de las manos es 0), y por el camino del
+  carcaj, la posición (`0x509607`); `0x60b3d0`, que dibuja el ítem antes del caso, no los toca.
+  `0x4ec190` copia el hueso sin cambios a la raíz de la pose (`0x68c4a1c`) y deja el desplazamiento
+  solo en el origen: el hueso 0 que lee el caso es el del ítem colgado de ese hueso.
 - **El blanco del casco**: la tela 0 de la clase 4, aditiva, más sus **30 destellos** (`0x455930`):
   con t = sin(T · 0,001) · 0,1 + 0,4, para k = 0..29 y p = k div 5, el sprite `0x5ac` (`flare01`) en
   la partícula k, con la escala p · 0,2 + 0,4 y la luz (6 − p) · t · 0,2, aditivo. Es lo que arma
@@ -2355,7 +2371,8 @@ Ver [08](08-pendientes.md).
 | El caballo oscuro: un ayudante que aparece de a poco y sigue la acción del jinete, con luz por vértice, un cromo y su sombra | `Scenes/DarkHorse` (el paso) y `DrawDarkHorse` (el caso `0xbf` de `0x6002e0`), con `Render::Models::NormalLight` (L = (1,3; 0; 2), la normal con la escala del objeto) y `ModelBlend::BlendedShadow`; en el login, entre el personaje y el logo | CL6.4 |
 | El mundo del login: el mapa 55 entero, con los objetos después de los personajes y casos por tipo y por mapa (`0x606660`, `0x604ab0`, `0x6002e0`) | en el lote del login: el terreno (`LoadedWorld`, CL7.1) y los objetos del `.obj` (`WorldModels`, `WorldObjects` y `WorldObjectsDrawing`, CL7.2), con los casos del mapa 55 como datos y el orden del original | CL7.1, CL7.2 |
 | El dragón: un efecto con modelo (`0x518cf0`) que vuela en ocho, sin azar | el efecto `0xb4` con su paso por paso de lógica, comparado con los pasos emulados del código real | CL7.6 A |
-| Siete tablas de efectos: joints, efectos con modelo, sprites de un frame, hojas y partículas, con el billboard de `0x621400` | un sistema por tabla, con el paso por paso de lógica (los sprites, por frame) y el billboard en el pase 3D, después de los objetos y en el mismo orden | CL7.6 B |
+| Los sprites de un frame (`0x5491e0`), con el billboard de `0x621400`: el dibujo del personaje pide los 30 destellos de la tela y los cinco del cetro, y `0x549440(0)` los dibuja con la modelview en la identidad y los apaga | `Render::MakeBillboard` (bit a bit contra `0x621400`), `World::FrameSprites` (la tabla, con el alpha de `0x549290`) y `Scenes::DrawFrameSprites` en un pase de ojo, el último del 3D, que se abre solo con alguno vivo; `DrawnCharacter::sprites` recibe los destellos al dibujar la tela y el cetro (`World::CreateScepterGlow`, bit a bit contra el caso `0x620` de `0x509340`) en ese orden, con el `rand()` de la CRT de `ClothWorld` | CL7.6 B1 |
+| Las otras tablas de efectos: joints, hojas y partículas | un sistema por tabla, con el paso por paso de lógica y el billboard en el pase 3D, después de los objetos y en el mismo orden | CL7.6 B2 y B3 |
 | El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | un objeto colgado del personaje, con el paso de `0x416a20` comparado bit a bit con `raven_reference.py` | CL7.6 C |
 
 Tests que fija:

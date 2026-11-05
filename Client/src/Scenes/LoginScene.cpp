@@ -19,6 +19,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/OriginalQuad.h"
 #include "Render/OriginalSkewedQuad.h"
+#include "Render/Billboard.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -405,6 +406,7 @@ void LoginScene::PlaceTheModels()
     // 0x6070a0 vacía la tabla de efectos, y en el mapa 55 el dueño del dragón (el 0xb4 que la carga del
     // mapa crea en (5.600; 23.000; 0)) lo crea con 0x518cf0 (06 § El dragón de fondo).
     m_effects.Clear();
+    m_sprites.Clear();
     if (m_world && m_world->map == DragonMap)
     {
         (void)m_effects.Create(World::DragonEffect, DragonOwnerPosition, glm::vec3(0.0f), glm::vec3(1.0f),
@@ -719,6 +721,18 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, m_terrainPolygon);
     DrawTheModels(canvas, alpha);
     canvas.flushModels();
+    // Los sprites del frame, los que pidió el dibujo del personaje (los 30 destellos de la tela, 0x455930,
+    // y los cinco del cetro, 0x509340): 0x549510 y, con la modelview en la identidad (0x6213e0),
+    // 0x549440(0). Sin ninguno, el pase de ojo no dibuja nada y no se abre.
+    if (m_sprites.Any())
+    {
+        m_sprites.MarkSeen();
+        Render::Pass3D eye = pass;
+        eye.view = glm::mat4(1.0f);
+        canvas.models.Begin(eye);
+        DrawFrameSprites(canvas.models, m_sprites, m_models, Render::ViewRows(pass.view));
+        canvas.flushModels();
+    }
     // 5: las dos arenas, aditivas.
     sprites.SetBlend(Render::BlendMode::Alpha);
     sprites.SetColor(HalfWhite);
@@ -751,6 +765,7 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     character.cloth = &m_characterCloth;
     character.clothWorld = m_context.cloth;
     character.map = m_world ? m_world->map : 0;
+    character.sprites = &m_sprites;
     DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
 
     DrawDarkHorse(

@@ -5,6 +5,8 @@
 #include "Scenes/CharacterDrawing.h"
 #include "World/TerrainCulling.h"
 #include "World/ModelEffects.h"
+#include "World/Sprites.h"
+#include "Render/Models/OriginalRotation.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
 
@@ -47,4 +49,12 @@ void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary
 void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models,
                       std::span<const World::ModelEffect> effects, const World::TerrainLighting* lighting,
                       Core::Duration frameClock, float alpha);
+
+// 0x549440(0), en el pase de ojo (después de 0x6213e0, con la modelview en la identidad): cada sprite
+// vivo, con la mezcla de su +4 (0 aditiva, 1 la de 0x620b10, 2 la normal; la 3, 0x620b90, todavía no se
+// leyó y va aditiva; la textura 0x637, la normal), el alpha de 0x549290 y el cuadrado de 0x621400 con el
+// tamaño de su textura (`textures`) por la escala y el alpha, con la vista `view` (0x7d366f0). Después de
+// dibujarlo, se apaga.
+void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, const IModelLibrary& textures,
+                      const Render::Models::OriginalMatrix& view);
 } // namespace Client::Scenes

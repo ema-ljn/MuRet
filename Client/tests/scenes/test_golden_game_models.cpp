@@ -123,7 +123,8 @@ TEST_F(GoldenGameModels, EveryTextureTheLoadersAskForIsThere)
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
     EXPECT_EQ(textures.loaded.size(), models.TextureSlots().ToLoad().size() + PlayerFixedTextures().size() +
-                                          GlowTextureSet.size() + ClothTextureSet.size());
+                                          GlowTextureSet.size() + ClothTextureSet.size() +
+                                          Client::Scenes::EffectTextureSet.size());
     for (const std::string& line : sink.lines)
     {
         EXPECT_EQ(line.find("una textura de un modelo"), std::string::npos) << line;
@@ -296,5 +297,29 @@ TEST_F(ModelTextureSlotsGoldenTest, TheSelectionTexturesEndAt0x716)
         EXPECT_EQ(uploaded->texture.format == Client::Data::Textures::PixelFormat::Rgba ? 4u : 3u, components)
             << std::hex << slot;
     }
+}
+
+// 0x61ccb0 sube las texturas de los sprites del login (0x63b870 con GL_LINEAR y GL_CLAMP) y nadie las
+// suelta: Effect\flare01.jpg en 0x5ac y Effect\Shiny02.jpg en 0x5fd. El sprite mide su tamaño por la
+// escala (0x549290), así que GameModels lo da.
+TEST_F(GoldenGameModels, TheSpriteTexturesStayWithTheirSize)
+{
+    FakeTextureStore store;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    Client::Scenes::GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, store, log).HasValue());
+    for (const std::uint16_t slot : {std::uint16_t{0x5ac}, std::uint16_t{0x5fd}})
+    {
+        const auto texture = store.Find(TextureSlot{slot});
+        ASSERT_TRUE(texture.has_value()) << std::hex << slot;
+        EXPECT_EQ(texture->sampling.filter, Client::Data::Textures::Filter::Linear) << std::hex << slot;
+        EXPECT_EQ(texture->sampling.wrap, Client::Data::Textures::Wrap::Clamp) << std::hex << slot;
+        const auto size = models.TextureSize(TextureSlot{slot});
+        ASSERT_TRUE(size.has_value()) << std::hex << slot;
+        EXPECT_EQ(size->x, static_cast<float>(texture->texture.textureWidth));
+        EXPECT_EQ(size->y, static_cast<float>(texture->texture.textureHeight));
+    }
+    EXPECT_FALSE(models.TextureSize(TextureSlot{0x123}).has_value());
 }
 } // namespace

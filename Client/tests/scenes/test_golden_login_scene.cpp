@@ -4,6 +4,7 @@
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/Skeleton.h"

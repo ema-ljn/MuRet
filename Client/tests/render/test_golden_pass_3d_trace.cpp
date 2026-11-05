@@ -1,6 +1,7 @@
 #include "App/WindowState.h"
 #include "Render/Pass3D.h"
 #include "Scenes/SceneCameras.h"
+#include "World/GameCamera.h"
 
 #include "support/GlTrace.h"
 #include "support/GoldenDir.h"
@@ -27,7 +28,7 @@
 // los glRotatef y el glTranslatef de su vista. En la selección, los dos pases con la cámara de la
 // escena 4 (SelectionCamera): la franja de arriba, 0x620db0(0, 0, 640, 48), y el mundo,
 // 0x620db0(0, 25, 640, 430). En Lorencia la cámara se mueve: el pase del mundo,
-// 0x620db0(0, 0, 640, 432), con los ángulos y la posición que trae la traza, da su perspectiva y su
+// 0x620db0(0, 0, 640, 432), con la cámara calculada desde el héroe de la traza, da su perspectiva y su
 // vista. Antes de esos, cada frame de la selección tiene una perspectiva de 45° que no dibuja nada y
 // la del 2D, que no son de una cámara de MuRet.
 namespace
@@ -54,8 +55,6 @@ constexpr PixelSize TraceWindow{1024, 768};
 // La franja de arriba y el mundo de Lorencia (06 § Cámara).
 constexpr ViewportRect TopStrip{0, 0, 640, 48};
 constexpr ViewportRect LorenciaWorld{0, 0, 640, 432};
-// El far de Lorencia antes del × 1,4 (06 § Cámara).
-constexpr float LorenciaFar = 2000.0f;
 
 // La traza escribe seis decimales: lo que la perspectiva puede diferir, relativo a su valor, y lo
 // que puede diferir la vista, que lleva coordenadas de 15.000.
@@ -220,30 +219,23 @@ TEST_F(GoldenPass3DTrace, TheSelectionCameraPassesMatch)
     }
 }
 
-// En Lorencia, con los ángulos y la posición de cada frame de la traza, el far del 06 y el resto de
-// la cámara de la selección, MakePass3D da la perspectiva y la vista del pase del mundo.
+// CL7.3 A: la cámara se calcula desde el héroe, sin tomar de la propia traza lo que se verifica.
 TEST_F(GoldenPass3DTrace, TheLorenciaWorldPassMatches)
 {
     const std::optional<GlTrace> trace = LoadTrace(LorenciaTrace);
     ASSERT_TRUE(trace.has_value());
     ASSERT_FALSE(trace->frames.empty());
 
+    Client::World::GameCamera state;
+    const Client::World::GameCameraInput input{.hero = {14350.0f, 12050.0f, 165.0f}, .cellAttribute = 0x01};
     for (std::size_t f = 0; f < trace->frames.size(); ++f)
     {
         const std::vector<TracedPass> passes = PassesOf(trace->frames[f]);
-        const glm::ivec4 viewport = MakePass3D(TraceWindow, LorenciaWorld, SelectionCamera()).viewport;
+        const Camera3D camera = Client::World::StepGameCamera(state, input);
+        const glm::ivec4 viewport = MakePass3D(TraceWindow, LorenciaWorld, camera).viewport;
         const TracedPass* traced = FindPass(passes, viewport);
         ASSERT_NE(traced, nullptr) << "frame " << f << ": ningún glViewport es el del mundo";
         ASSERT_GE(traced->view.size(), CameraCalls) << "frame " << f;
-        Camera3D camera = SelectionCamera();
-        camera.farPlane = LorenciaFar;
-        // glRotatef en Y, en X y en Z, y glTranslatef con la posición restada.
-        camera.angles = {static_cast<float>(traced->view[1].values[0]), static_cast<float>(traced->view[0].values[0]),
-                         static_cast<float>(traced->view[2].values[0])};
-        camera.position =
-            -glm::vec3(static_cast<float>(traced->view[3].values[0]), static_cast<float>(traced->view[3].values[1]),
-                       static_cast<float>(traced->view[3].values[2]));
-
         const Pass3D pass = MakePass3D(TraceWindow, LorenciaWorld, camera);
 
         ExpectTheProjection(pass, *traced, f);

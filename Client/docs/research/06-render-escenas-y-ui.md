@@ -2710,6 +2710,25 @@ traza, y son los de la traza (*emulado* y *verificado*); la cuenta de abajo, rei
 doubles con `f32()` donde el binario guarda en float, da lo mismo que el código real en 22.000
 frames al azar (cinco semillas: el héroe, el atributo, el temblor, el reloj, el mapa, D y el zoom).
 
+**MuRet, CL7.3 A (2026-11-05).** `World::GameCamera` y `StepGameCamera` reproducen esta cuenta,
+incluidas las cámaras de las escenas 2 y 4, el desvío de los efectos y la rama especial del mapa 6.
+Se comparan todos los campos de la cámara y del estado bit a bit con 3.000 frames del código real
+emulado (60 casos, cinco semillas; [`vectores`](../../tests/vectors/game/README.md)). El pase y las
+329 celdas recortadas de Lorencia usan ahora la cámara calculada desde el héroe de la traza, sin
+copiar su posición de la expectativa. `GameCameraOf` conserva la D usada antes del suavizado, el
+zoom y el far, y reconstruye el dibujo con el héroe del último paso lógico sin otro avance. La
+integración en las escenas es la CL7.3 B; los ocho `rand()` protegidos por frame, la CL7.P. El
+recorrido `CCameraMove` sigue fuera de este valor de cámara.
+
+**Límite de la comparación x87 (revisión cruzada, CL7.3 A).** El balanceo del mapa 5 usa
+`std::sin` en MuRet. Con los relojes float `0x4f0d7740`, `0x4f2f0344` y `0x4f5ac415`, Unicorn y
+MuRet coinciden en Y (`0x393da1cd`, `0x33b96bb5`, `0x33e7c6a2`), pero una reproducción local de
+`FLD/FMUL/FSIN/FMUL/FADD/FSTP` con PC53 en x87 da un ULP más en los tres. Es evidencia del
+cálculo aislado en el host de revisión, no una captura del cliente original en Windows. Por eso
+los vectores prueban equivalencia al oráculo emulado en esas entradas; no garantizan la misma
+aproximación trascendental en todo hardware. P-C29 a queda abierto para capturar también estos
+relojes y el resultado de `FSIN` en el original, antes de cambiar su aproximación portable.
+
 **La cuenta**, en la escena 5 fuera del mapa 6 (*estático*, *emulado*). H es el héroe (`0x743a170`):
 
 1. **El fov** en 35 (`0x635aeb`) y los ángulos X e Y en 0. La vista de arriba (`0x7d36899`, sin el

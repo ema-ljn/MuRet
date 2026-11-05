@@ -3,6 +3,19 @@
 Lo leen y actualizan el estilo `Tutor MuRet` y el subagente `muret-reviewer`. El comando `/tutor`
 solo lo lee.
 
+## CL7.3 A: la cámara de Lorencia (2026-11-05)
+
+Resuelta por Codex por pedido de Emanuel: `OriginalVectorIRotate`, `GameCamera` y la cámara
+calculada desde el héroe, con 3.000 frames emulados bit a bit y los golden del pase y el recorte.
+Revisión cruzada de Astra 6 Ultra y Opus 5.5; los hallazgos y los límites numéricos quedan en el
+[plan](../superpowers/plans/2026-11-05-ola-cl7-lorencia.md#sub-ola-cl73-a-la-cámara-del-juego).
+La integración compartida en las escenas sigue en CL7.3 B.
+
+Para explicar: por qué el orden de sumas y cada almacenamiento en float afectan los bits; por
+qué la cámara usa la distancia anterior al suavizado; cómo dibujar desde el héroe actual sin
+consumir otro paso de cámara; y qué prueba un oráculo emulado cuando su `FSIN` puede diferir del
+hardware. Pendiente de Emanuel, como los otros ejemplos trabajados.
+
 ## Dónde estamos
 
 - Ola: 0 (Fundaciones)

@@ -38,6 +38,18 @@ constexpr float WebzenFar = 5000.0f;
 constexpr float NormalDistance = 1000.0f;
 constexpr float CastleDistance = 1100.0f;
 constexpr float WebzenDistance = 3200.0f;
+constexpr glm::vec3 LoginPosition{12778.0f, 12678.0f, 579.0f};
+constexpr float LoginYaw = -36.0f;
+constexpr float LoginPitch = -96.5f;
+constexpr glm::vec3 SelectionPosition{13909.0f, 14482.0f, 543.0f};
+constexpr float SelectionYaw = -45.0f;
+constexpr float SelectionPitch = -84.5f;
+constexpr float NormalPitch = -48.5f;
+constexpr glm::vec3 WebzenTarget{5400.0f, 16000.0f, 0.0f};
+constexpr float WebzenHeight = 1000.0f;
+constexpr float WebzenYaw = -40.0f;
+constexpr float WebzenPitch = -70.0f;
+constexpr double RockingYAmplitude = 2.5;
 
 float F32(double value)
 {
@@ -80,18 +92,18 @@ float FarPlaneOf(const GameCamera& state, const GameCameraInput& input)
 
 void SetFixedSceneCamera(Render::Camera3D& camera, const GameCameraInput& input)
 {
-    float pitch = -48.5f;
+    float pitch = NormalPitch;
     if (input.scene == CullingScene::Login)
     {
-        camera.position = {12778.0f, 12678.0f, 579.0f};
-        camera.angles.z = -36.0f;
-        pitch = -96.5f;
+        camera.position = LoginPosition;
+        camera.angles.z = LoginYaw;
+        pitch = LoginPitch;
     }
     else if (input.scene == CullingScene::CharacterSelect)
     {
-        camera.position = {13909.0f, 14482.0f, 543.0f};
-        camera.angles.z = -45.0f;
-        pitch = -84.5f;
+        camera.position = SelectionPosition;
+        camera.angles.z = SelectionYaw;
+        pitch = SelectionPitch;
     }
     camera.angles.x = F32(static_cast<double>(input.shake) + static_cast<double>(pitch));
 }
@@ -107,14 +119,20 @@ void AdvanceZoom(GameCamera& state, std::uint8_t attribute)
         state.zoom = F32(static_cast<double>(state.zoom) - ZoomStep);
 }
 
+bool IsOrderedNonZero(float value)
+{
+    // 06 § La cámara del juego: 0x44dc60 prueba C3, no C2; unordered no elige el objetivo global.
+    return value < 0.0f || value > 0.0f;
+}
+
 Render::Camera3D NormalCamera(float distance, float yaw, float farPlane, float zoom, const GameCameraInput& input)
 {
     Render::Camera3D camera;
     camera.angles.z = yaw;
     camera.farPlane = farPlane;
     const glm::vec3 offset = Offset(-distance, yaw);
-    const bool hasEffectTarget =
-        input.effectTarget.x != 0.0f || input.effectTarget.y != 0.0f || input.effectTarget.z != 0.0f;
+    const bool hasEffectTarget = IsOrderedNonZero(input.effectTarget.x) || IsOrderedNonZero(input.effectTarget.y) ||
+                                 IsOrderedNonZero(input.effectTarget.z);
     camera.position = Add(offset, hasEffectTarget ? input.effectTarget : input.hero);
     float baseHeight = input.map == CastleMap ? CastleHeight : input.hero.z;
     if ((input.cellAttribute & FixedHeightAttribute) != 0)
@@ -131,11 +149,10 @@ Render::Camera3D NormalCamera(float distance, float yaw, float farPlane, float z
 Render::Camera3D WebzenCamera(float distance)
 {
     Render::Camera3D camera;
-    constexpr float WebzenYaw = -40.0f;
     const glm::vec3 offset = Offset(-distance, WebzenYaw);
-    camera.position = Add(offset, {5400.0f, 16000.0f, 0.0f});
-    camera.position.z = 1000.0f;
-    camera.angles = {-70.0f, 0.0f, WebzenYaw};
+    camera.position = Add(offset, WebzenTarget);
+    camera.position.z = WebzenHeight;
+    camera.angles = {WebzenPitch, 0.0f, WebzenYaw};
     camera.farPlane = WebzenFar;
     return camera;
 }
@@ -146,7 +163,7 @@ void ApplyRocking(Render::Camera3D& camera, const GameCameraInput& input)
     {
         const double pitchWave = std::sin(static_cast<double>(input.worldTime) * RockingPitchRate);
         camera.angles.x = F32((pitchWave + pitchWave) + static_cast<double>(camera.angles.x));
-        camera.angles.y = F32((std::sin(static_cast<double>(input.worldTime) * RockingYRate) * 2.5) +
+        camera.angles.y = F32((std::sin(static_cast<double>(input.worldTime) * RockingYRate) * RockingYAmplitude) +
                               static_cast<double>(camera.angles.y));
     }
 }

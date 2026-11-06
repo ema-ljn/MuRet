@@ -313,6 +313,18 @@ el alcance incluido; la tabla de correspondencia queda en 06 § La cámara del j
 completa sigue abierta: el cierre exige el barrido de todas sus funcionalidades en pasadas
 complementarias, según el pedido de Emanuel registrado en `AGENTS.md`.
 
+La auditoría adicional solicitada para el PR 138, con Opus 5.5 xhigh y Astra 6 Ultra, encontró
+que los tres casos de cancelación no detectaban las dos asociaciones alternativas de cada
+componente. Se conservan los 403 fixtures históricos y se agregan tres casos analíticos:
+las seis alternativas mutantes fallan. También se quitó el bucle inverso que repetía la fórmula
+de producción y se endureció la lectura de bits del fixture, sin restringir las matrices 3 × 4.
+El contraste de los 130 bytes de `0x44dc60` descubrió que prueba C3 sin C2: se corrigió la
+selección del objetivo ante NaN con excepciones enmascaradas y se cubrieron Z aislada y −0.
+Las constantes nombradas conservan los tipos, bits, agrupación y límites de redondeo. La fuente
+de Unicorn 2.1.4 confirma que su FSIN/FCOS usa double y `sin`/`cos` de C; esos fixtures siguen
+siendo regresiones históricas, sin nueva ejecución de emulación ni afirmación de equivalencia
+x87 nativa universal. La evidencia y los límites quedan en 06 § La cámara del juego.
+
 ## Sub-ola CL7.3 B: la cámara compartida
 
 **Contrato:** 06 § La cámara del juego (las escenas 2 y 4 también pasan por `0x635ae0`, el zoom que queda de

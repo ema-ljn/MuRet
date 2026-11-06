@@ -109,11 +109,11 @@ MURET_COMPARE_LORENCIA=/ruta/al/compare_lorencia \
   python3 -m unittest discover -s . -p 'test_*.py'
 ```
 
-Incluye 10 tests del analizador y 13 del comparador. Sin `MURET_COMPARE_LORENCIA`, los del
+Incluye 11 tests del analizador y 13 del comparador. Sin `MURET_COMPARE_LORENCIA`, los del
 comparador se omiten explícitamente. Los datos sintéticos caracterizan las herramientas;
 no son evidencia del cliente original.
 
-`test_capture_readers.py` agrega 13 tests con sustitutos controlados de APIs Win32, reloj y
+`test_capture_readers.py` agrega 20 tests con sustitutos controlados de APIs Win32, reloj y
 salida. Requiere Linux con g++/GNU ld y se omite en hosts incompatibles. Comprueba lecturas,
 cierres y recuperación de suspensión; no ejecuta ni emula el cliente ni valida el ABI Win32
 o la compatibilidad de XP.

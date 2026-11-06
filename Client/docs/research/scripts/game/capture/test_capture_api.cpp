@@ -156,6 +156,8 @@ BOOL GetThreadContext(HANDLE, CONTEXT* context)
     Record("context");
     context->Eip = 0x12345678;
     context->FloatSave.ControlWord = 0x27f;
+    if (Scenario("context_printf"))
+        std::printf("io_probe context=%08lx\n", static_cast<unsigned long>(context->Eip));
     s_lastError = 222;
     return !Scenario("context");
 }

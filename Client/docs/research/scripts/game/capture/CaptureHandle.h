@@ -24,7 +24,7 @@ public:
         return m_handle;
     }
 
-    // El cierre normal se comprueba; el destructor solo cubre una salida imprevista.
+    // El cierre normal se comprueba; si falla, conserva el dueño para el intento del destructor.
     [[nodiscard]] std::optional<DWORD> Close() noexcept
     {
         if (m_handle == nullptr)

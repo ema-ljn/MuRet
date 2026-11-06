@@ -325,6 +325,16 @@ de Unicorn 2.1.4 confirma que su FSIN/FCOS usa double y `sin`/`cos` de C; esos f
 siendo regresiones históricas, sin nueva ejecución de emulación ni afirmación de equivalencia
 x87 nativa universal. La evidencia y los límites quedan en 06 § La cámara del juego.
 
+Las revisiones finales de Opus 5.5 xhigh y Astra 6 Ultra no dejaron P1/P2 abiertos. El control
+positivo del detector de salida descubrió que fortify podía eludir `--wrap=printf`; el harness
+ahora lo comprueba y cubre los errores previos a la suspensión. El informe admite una cadencia
+indeterminada sin dejar el Markdown incompleto. Son 44 tests de herramientas, 26 numéricos
+focales y la suite completa de 2.255 casos registrados, cero fallos y 30 omisiones opcionales.
+Los tres lectores migrados a C++20 terminaron con código 0 en XP: cámara coincidente, serie
+de 2.250 muestras completa y un único incremento de suspensión retirado. La recuperación
+conserva la propiedad del handle cuando CloseHandle falla; descartamos la propuesta de
+abandonarlo, porque un fallo no acredita que se haya cerrado. La CL7 completa sigue abierta.
+
 ## Sub-ola CL7.3 B: la cámara compartida
 
 **Contrato:** 06 § La cámara del juego (las escenas 2 y 4 también pasan por `0x635ae0`, el zoom que queda de

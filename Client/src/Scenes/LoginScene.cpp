@@ -43,6 +43,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SceneWorlds.h"
+#include "Scenes/SelectionState.h"
 #include "Scenes/TextureSets.h"
 #include "Scenes/WorldModels.h"
 #include "Scenes/WorldObjectsDrawing.h"
@@ -277,22 +278,33 @@ Core::Expected<void, std::string> LoginScene::Enter()
 {
     m_cameraFrames = {};
     m_drawnCamera = {};
+    World::GameCameraInput& cameraInput = CameraInputState();
+    cameraInput.scene = World::CullingScene::Login;
+    cameraInput.map = m_world ? m_world->map : EmberMap;
+    if (m_context.selection != nullptr)
+    {
+        // 0x6349a0 construye el slot2 visible; Hero sigue siendo el slot0 del pool.
+        m_context.selection->EnterLogin();
+    }
     // 0x634c19 escribe solo el yaw; 0x634b60 no borra al héroe si su puntero es válido.
     CameraState().yaw = 0.0f;
     LoadTheWorld();
     auto loaded = m_textures.Load(m_context.dataRoot);
     if (!loaded.HasValue())
     {
+        RetainTheTerrain();
         return loaded;
     }
     auto logo = LoadTheLogo();
     if (!logo.HasValue())
     {
+        RetainTheTerrain();
         return logo;
     }
     auto windows = m_windowTextures.Load(m_context.dataRoot);
     if (!windows.HasValue())
     {
+        RetainTheTerrain();
         return windows;
     }
     m_serverList.Close();
@@ -311,6 +323,11 @@ Core::Expected<void, std::string> LoginScene::Enter()
 
 void LoginScene::LoadTheWorld()
 {
+    if (m_context.selection != nullptr)
+    {
+        // El préstamo anterior deja de ser válido antes de destruir o reemplazar las tablas.
+        m_context.selection->BorrowTerrain(m_world ? m_world->map : EmberMap, nullptr);
+    }
     m_terrain.Release();
     m_lighting.reset();
     m_worldModels.Release();
@@ -335,9 +352,18 @@ void LoginScene::LoadTheTerrain()
 {
     std::vector<std::string> skipped;
     auto loaded = m_terrain.Load(m_context.dataRoot, m_world->map, skipped);
+    if (m_context.selection != nullptr)
+    {
+        m_context.selection->BorrowTerrain(m_world->map, m_terrain.Terrain());
+        if (loaded.HasValue())
+        {
+            m_context.selection->RefreshCameraAttribute(CameraInputState());
+        }
+    }
     if (!loaded.HasValue())
     {
-        m_context.log.Warning("el login va sin el terreno: {}", loaded.Error());
+        m_context.log.Warning("el login va sin el terreno: {}; la selección necesita esos datos para sus alturas",
+                              loaded.Error());
         // Sin el terreno, la luz de los modelos puede salir igual de sus dos archivos.
         auto lighting = World::LoadTerrainLighting(m_context.dataRoot, m_world->map);
         if (!lighting.HasValue())
@@ -351,6 +377,18 @@ void LoginScene::LoadTheTerrain()
     for (const std::string& tile : skipped)
     {
         m_context.log.Warning("el terreno del login va sin un tile, que el original saltea: {}", tile);
+    }
+}
+
+void LoginScene::RetainTheTerrain()
+{
+    if (m_context.selection == nullptr || !m_world)
+    {
+        return;
+    }
+    if (auto terrain = m_terrain.TakeTerrain())
+    {
+        m_context.selection->RetainTerrain(m_world->map, std::move(*terrain));
     }
 }
 
@@ -1092,6 +1130,7 @@ void LoginScene::Leave()
     m_notice.Close();
     m_textures.Release();
     m_windowTextures.Release();
+    RetainTheTerrain();
     m_terrain.Release();
     m_worldModels.Release();
     m_objects.clear();

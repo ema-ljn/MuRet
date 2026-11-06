@@ -50,6 +50,10 @@ public:
     // El terreno entero (las alturas y los atributos que pide 0x5f93c0), si hay.
     [[nodiscard]] const World::WorldTerrain* Terrain() const;
 
+    // Transfiere sólo CPU al estado que sobrevive a la escena. Invalida las vistas del terreno;
+    // los slots GPU siguen siendo de este objeto y Release los suelta una sola vez.
+    [[nodiscard]] std::optional<World::WorldTerrain> TakeTerrain();
+
     // 0x5fbf60, en cada paso: la ola de las celdas de la ventana del rango, con el reloj del paso.
     void Step(Core::Duration clock, const World::TerrainRange& range);
 

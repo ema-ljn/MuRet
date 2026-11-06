@@ -20,6 +20,7 @@
 #include "Scenes/LoginScene.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneContext.h"
+#include "Scenes/SelectionState.h"
 #include "Scenes/TextureSets.h"
 #include "World/GameCamera.h"
 #include "World/Leaves.h"
@@ -27,9 +28,11 @@
 #include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
 #include "World/TerrainLighting.h"
+#include "World/WorldTerrain.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/FixedRandom.h"
+#include "support/GoldenDir.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
@@ -44,6 +47,7 @@
 #include <chrono> // IWYU pragma: keep — los literales de chrono_literals no los ve include-cleaner.
 #include <initializer_list>
 #include <memory>
+#include <utility>
 
 namespace
 {
@@ -84,6 +88,20 @@ protected:
         if (models == events.end() || !models->pass)
             return {};
         return *models->pass;
+    }
+
+    Client::Scenes::SceneContext SelectionContext(Client::Scenes::SelectionState& state)
+    {
+        auto terrain = Client::World::LoadWorldTerrain(Client::Tests::RepoDataDir(), 55);
+        EXPECT_TRUE(terrain.HasValue());
+        if (terrain.HasValue())
+        {
+            state.RetainTerrain(55, std::move(terrain).Value());
+        }
+        auto context = Context();
+        context.dataRoot = Client::Tests::RepoDataDir();
+        context.selection = &state;
+        return context;
     }
 
     Client::Tests::TemporaryFolder m_folder{"shared-camera"};
@@ -250,9 +268,11 @@ TEST_F(SharedGameCameraTest, ReceivingSlotZeroWritesTheSharedHeroXYBeforeTheCame
     Client::Tests::LoggedInSession online;
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
     m_cameraInput.hero = {17500.0f, 20000.0f, 165.0f};
-    Client::Scenes::CharacterSelectScene selection(Context(), m_data, m_models, &online.session);
+    Client::Scenes::SelectionState state;
+    Client::Scenes::CharacterSelectScene selection(SelectionContext(state), m_data, m_models, &online.session);
     ASSERT_TRUE(selection.Enter().HasValue());
     online.ReceiveTheList({{0, "char0001"}});
+    ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
     selection.Step(Client::Input::InputState{});
     // 0x5172c4/0x5172ca: las escrituras de 0x517270 al slot0, al que apunta Hero.
     EXPECT_EQ(m_cameraInput.hero.x, Client::Scenes::CharacterSlots[0].position.x);
@@ -272,10 +292,14 @@ TEST_F(SharedGameCameraTest, TheSlotZeroSelectionPassDoesNotDependOnInitialHeroZ
         m_cameraInput.hero = {17500.0f, 20000.0f, initialZ};
         Client::Tests::LoggedInSession online;
         ASSERT_NO_FATAL_FAILURE(online.LogIn());
-        Client::Scenes::CharacterSelectScene selection(Context(), m_data, m_models, &online.session);
+        Client::Scenes::SelectionState state;
+        Client::Scenes::CharacterSelectScene selection(SelectionContext(state), m_data, m_models, &online.session);
         ASSERT_TRUE(selection.Enter().HasValue());
         online.ReceiveTheList({{0, "char0001"}});
+        ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
         selection.Step(Client::Input::InputState{});
+        // Se aísla Z después de la construcción real, que ya escribió el XY de selección.
+        m_cameraInput.hero.z = initialZ;
         const auto drawn = Frame(selection, 0ns);
         EXPECT_EQ(drawn.view, expected.view);
         EXPECT_EQ(drawn.projection, expected.projection);
@@ -288,22 +312,31 @@ TEST_F(SharedGameCameraTest, ReenteringWithTheSameSlotZeroRefreshesTheSharedHero
 {
     Client::Tests::LoggedInSession online;
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
-    Client::Scenes::CharacterSelectScene selection(Context(), m_data, m_models, &online.session);
+    Client::Scenes::SelectionState state;
+    const auto context = SelectionContext(state);
+    Client::Scenes::CharacterSelectScene selection(context, m_data, m_models, &online.session);
     ASSERT_TRUE(selection.Enter().HasValue());
     online.ReceiveTheList({{0, "char0001"}});
+    ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
     selection.Step(Client::Input::InputState{});
     static_cast<void>(Frame(selection, 0ns));
     selection.Leave();
 
-    Client::Scenes::LoginScene login(Context(), m_data, m_models, nullptr, "1.0", Client::Tests::FixedSeed);
+    Client::Scenes::LoginScene login(context, m_data, m_models, nullptr, "1.0", Client::Tests::FixedSeed);
     ASSERT_TRUE(login.Enter().HasValue());
     static_cast<void>(Frame(login, 0ns));
     EXPECT_EQ(m_cameraInput.hero, Client::Scenes::LoginHeroPosition);
     login.Leave();
 
-    // La lista autoritativa no cambió; se reutiliza la instancia para cubrir también SameEntry.
+    // La misma lista vuelve a llegar: la igualdad visual no elimina esta construcción real.
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
     ASSERT_TRUE(selection.Enter().HasValue());
+    EXPECT_TRUE(selection.HoldsTheLastFrame());
+    online.ReceiveTheList({{0, "char0001"}});
+    ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
+    EXPECT_TRUE(selection.HoldsTheLastFrame());
     selection.Step(Client::Input::InputState{});
+    EXPECT_FALSE(selection.HoldsTheLastFrame());
     EXPECT_EQ(m_cameraInput.hero.x, Client::Scenes::CharacterSlots[0].position.x);
     EXPECT_EQ(m_cameraInput.hero.y, Client::Scenes::CharacterSlots[0].position.y);
     selection.Leave();

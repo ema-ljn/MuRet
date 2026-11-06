@@ -142,6 +142,7 @@ private:
     [[nodiscard]] Core::Expected<void, std::string> LoadTheLogo();
     void LoadTheWorld();
     void LoadTheTerrain();
+    void RetainTheTerrain();
     void LoadTheObjects();
     // 0x604ab0 con el 0xa2: la luz de las rutas y el avance a +0xd8.
     void StepTheLogo(World::WorldObject& logo) const;

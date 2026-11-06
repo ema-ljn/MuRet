@@ -2434,9 +2434,63 @@ login, al entrar); en las otras, casco, armadura, pantalón, guantes y botas en 
 Contraste estático CL7.3 B: `0x511290` guarda su quinto argumento en `+0x24`
 (`0x512292`, yaw), y calcula Z en `+0x18` (`0x51226d`) **antes** de que `0x517270`
 reemplace X/Y (`0x5172c4/0x5172ca`). La altura usa las coordenadas iniciales (50,50),
-el mapa, seguridad y una condición sobre equipo previo; no la posición final de
-selección ni el valor 100 del ángulo. El estado final de sus constructores/callees
-antes del primer dibujo sigue abierto en el plan; no se sustituye por una Z elegida.
+el mundo vigente, el bit0 del atributo nuevo y el equipo previo; no la posición final de
+selección ni el valor 100 del ángulo.
+
+**Cierre estático de la altura inicial (CL7.3 B).** `0x511b9f..0x511bb9` recalcula
+`+0x3e2` desde el atributo de la celda nueva `(0,0)`; `+0x3e3` recibe 0 en `0x511d68`.
+`0x512208` lee el **word318 anterior**; sólo `0x51245c` lo reemplaza por `ffff`.
+La Z es `float(Height(50,50) + delta)`: delta es 30 si el mundo no es −1, el word
+anterior es `1c15` y el bit0 nuevo no está puesto; es 90 en mundos 8 y 10. Sin ese
+predicado guarda Height directamente, sin sumar cero. La suma precede al único
+guardado float (`0x51226d`), sin redondear Height a float primero. Se conserva el
+contrato numérico PC53/nearest de `TerrainHeightAt`; el constructor no configura
+el control word. Para tipo `020a`, los finalizadores `0x43a250` y `0x42d7f0`
+retornan AL0 sin modificar el actor.
+
+| Frontera del original | Mundo y efecto relevante |
+| --- | --- |
+| `0x6349b2/0x6349bc`, init del login | Escribe 55 y carga sus tablas; construye su avatar visible en **slot2**, no Hero0. |
+| `0x634dce/0x634dd8`, login aceptado | Escena 4, estado 32 y pedido F3/00; todavía no carga 54. |
+| `0x4c20a0`, F3/00 | Construye cada registro con el contexto vigente y termina en estado 33, incluso con lista vacía. `0x622b20` sólo escribe el byte de clases disponibles. |
+| `0x6342de/0x6342e5`, siguiente paso habilitado | Marca inicialización y llama `0x633f20`: escribe 54 y carga sus tablas. El preview `0x7437050` está fuera del pool; en escena 4, `0x61a560` omite su limpieza. |
+| `0x634680`, dibujo habilitado | Exige flag de inicialización distinto de 0 y estado signed ≥33; calcula cámara antes de escribir Z163 a los cinco slots. |
+
+La primera F3/00 anterior al Step de inicialización usa 55 y todavía no habilita el
+dibujo; las creaciones posteriores al init usan 54, incluso sin otro Step.
+Cada F3/00 aceptado y alta F3/01 exitosa reconstruye aunque sea idéntica.
+Si se repite un slot, se ejecutan todas las construcciones y queda el último registro;
+el renderer recorre los cinco slots una sola vez por índice. F3/02 apaga el slot,
+conserva word318 y no construye. Tras Render163, otra creación reemplaza Z antes de
+otro dibujo; un retorno al login puede consumirla en su primer Step.
+
+El historial empieza en cero por `REP STOSD` de WinMain (`0x4bafa6..0x4bafb3`):
+401 registros de `0x438` bytes; Hero apunta al primero (`0x4bafdf`). `0x510f70`
+conserva word318 para cualquier clave preservada: `0x401040` elimina nodos/strings
+propios sin desreferenciar el owner, y `0x4fb1a0` libera cloth, partículas y esferas
+de allocations separadas. Se cotejaron vtables y destructores, sin deducir la
+postcondición sólo de stores locales. Login reemplaza el historial de slot2 por
+`1c16`, que no satisface `==1c15`; los demás slots lo conservan. La composición
+supone objetos válidos y los contratos ordinarios de loader, UI, CRT, socket e
+interfaces de valores lógicos ya investigados; no porta su representación protegida
+ni certifica sus árboles completos.
+
+MuRet mantiene esos cinco historiales y las tablas CPU en `Scenes::SelectionState`,
+propiedad de main. Los eventos poseídos de `ServerSession::TakeCharacterEvents`
+conservan orden y repeticiones; la vista UI conserva sólo la última entrada de cada
+slot. Main aplica eventos después de Poll y antes de Step/Request/Start. Login presta
+CPU mientras vive y la transfiere antes de Release; libera las texturas con la escena.
+Las revisiones reconstruyen también visuales idénticos, incluso con Render sin Step.
+El atributo de cámara usa la celda lógica 0 acreditada en estas fases; la celda y
+reasignación de Hero al entrar al mundo siguen perteneciendo a L1/P. Faltar tablas
+produce un error explícito, sin inventar Z.
+
+Evidencia nueva sólo estática, del PE `c32bbd5f`: constructor completo, 1.537
+instrucciones/5.203 bytes; init login, 168/690; init selección, 259/914; cleanup, 45/125;
+cadena de cola, 107/275; revisión de ownership e historial, 1.135/3.486 en 26 bloques.
+Todos esos cotejos terminaron sin diferencias de bytes. Los tests nuevos usan
+entradas sintéticas y datos del repo, sin nuevas capturas ni ejecución o emulación
+del original.
 
 `0x512930` pone la cabeza (`+0x1f8`) en `0x2212 + (clase >> 3) · 5 + (clase & 7)` solo con los
 cascos `0x1012`, `0x1014` y `0x101c` a `0x101f` (si no, en -1), y la escala (`+0xc`) por clase y

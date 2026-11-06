@@ -26,12 +26,17 @@
 #include "Scenes/GameData.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/SelectionState.h"
 #include "Scenes/TextureSets.h"
 #include "UI/CreateCharacterWindow.h"
+#include "World/GameCamera.h"
+#include "World/WorldTerrain.h"
 
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
+#include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
+#include "support/GoldenDir.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
@@ -168,10 +173,19 @@ std::vector<CharacterEntryFields> TwoCharacters(bool locked = false)
     return {{0, "char0001"}, {3, "char0002", 1, static_cast<std::uint8_t>(locked ? 0x01 : 0x00)}};
 }
 
+void RetainLoginTerrain(Client::Scenes::SelectionState& selection)
+{
+    constexpr std::uint8_t LoginMap = 55;
+    auto terrain = Client::World::LoadWorldTerrain(Client::Tests::RepoDataDir(), LoginMap);
+    ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
+    selection.RetainTerrain(LoginMap, std::move(terrain).Value());
+}
+
 struct Harness
 {
-    explicit Harness(bool withSession = true, bool withWings = false, bool withTheMouse = false)
-        : log(sink, Client::Core::LogLevel::Debug), models(withWings)
+    explicit Harness(bool withSession = true, bool withWings = false, bool withTheMouse = false,
+                     Client::Scenes::SelectionState* selectionState = nullptr)
+        : log(sink, Client::Core::LogLevel::Debug), models(withWings), selection(selectionState)
     {
         Client::Tests::WriteTextureSet(folder.Path(), SelectionTextureSet);
         Client::Tests::WriteTextureSet(folder.Path(), WindowTextureSet);
@@ -191,10 +205,15 @@ struct Harness
         {
             data = std::move(loaded).Value();
         }
-        scene.emplace(
-            SceneContext{
-                .dataRoot = folder.Path(), .textures = store, .log = log, .input = withTheMouse ? &input : nullptr},
-            data, models, withSession ? &online.session : nullptr);
+        scene.emplace(SceneContext{.dataRoot = selection != nullptr ? Client::Tests::RepoDataDir() : folder.Path(),
+                                   .textures = store,
+                                   .log = log,
+                                   .clock = selection != nullptr ? &online.clock : nullptr,
+                                   .input = withTheMouse ? &input : nullptr,
+                                   .camera = selection != nullptr ? &camera : nullptr,
+                                   .cameraInput = selection != nullptr ? &cameraInput : nullptr,
+                                   .selection = selection},
+                      data, models, withSession ? &online.session : nullptr);
     }
 
     // El login aceptado y Enter: la escena pidió la lista.
@@ -278,10 +297,21 @@ struct Harness
 
     void Step()
     {
-        online.session.Poll();
+        ASSERT_NO_FATAL_FAILURE(Poll());
         scene->Step(input);
         input.ConsumeEdges();
         ++steps;
+    }
+
+    // El callback de main aplica los constructores de Poll aun sin lógica ni dibujo.
+    void Poll()
+    {
+        online.session.Poll();
+        if (selection != nullptr)
+        {
+            const auto applied = selection->Apply(online.session.TakeCharacterEvents(), camera, cameraInput);
+            ASSERT_TRUE(applied.HasValue()) << applied.Error();
+        }
     }
 
     std::vector<FrameEvent> Frame(float alpha = 0.0f)
@@ -325,6 +355,9 @@ struct Harness
     GameData data;
     FlatModels models;
     LoggedInSession online;
+    Client::World::GameCamera camera;
+    Client::World::GameCameraInput cameraInput;
+    Client::Scenes::SelectionState* selection;
     RecordingFrameTarget target;
     InputState input;
     std::int64_t steps = 0;
@@ -1001,6 +1034,37 @@ TEST(CharacterSelectSceneTest, ADeletionAsksTheCodeAndSendsIt)
     EXPECT_FALSE(ShowsANotice(tested.Frame()));
 }
 
+// F3 02 desactiva la vista desde Poll: sin otro Step desaparece, pero el registro CPU sigue vivo.
+TEST(CharacterSelectSceneTest, ADeletedOneDisappearsWhenPollIsFollowedByRenderWithoutStep)
+{
+    constexpr std::uint8_t DeletedSlot = 1;
+    Client::Scenes::SelectionState selection;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, true, false, &selection);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({{DeletedSlot, "char0001"}}));
+    const auto before = tested.Frame();
+    const auto visible = std::ranges::find(before, Kind::Models, &FrameEvent::kind);
+    ASSERT_NE(visible, before.end());
+    ASSERT_FALSE(visible->modelVertices.empty());
+    const auto retained = selection.Slots()[DeletedSlot];
+    tested.online.session.ChooseCharacter(DeletedSlot);
+    tested.online.session.DeleteCharacter(Client::Protocol::Character::DeleteCodeFromText("1234"));
+    tested.online.socket.reads = {Client::Tests::Bytes({0xc1, 0x05, 0xf3, 0x02, 0x01})};
+
+    ASSERT_NO_FATAL_FAILURE(tested.Poll());
+
+    ASSERT_EQ(tested.online.session.State(), SessionState::ChoosingCharacter);
+    ASSERT_TRUE(tested.online.session.Characters()->characters.empty());
+    EXPECT_EQ(selection.Slots()[DeletedSlot].revision, retained.revision);
+    EXPECT_EQ(selection.Slots()[DeletedSlot].position, retained.position);
+    const auto after = tested.Frame();
+    const auto hidden = std::ranges::find(after, Kind::Models, &FrameEvent::kind);
+    ASSERT_NE(hidden, after.end());
+    EXPECT_TRUE(hidden->modelVertices.empty());
+    EXPECT_EQ(selection.Slots()[DeletedSlot].revision, retained.revision);
+    EXPECT_EQ(selection.Slots()[DeletedSlot].position, retained.position);
+}
+
 // Las respuestas que no borran: 0 → 0x92, 3 → 0x62 y otra → 0x89 (0x4e2fe9). El personaje queda.
 TEST(CharacterSelectSceneTest, ARefusedDeletionShowsItsNotice)
 {
@@ -1055,6 +1119,98 @@ TEST(CharacterSelectSceneTest, CancellingTheDeletionSendsNothing)
 
 // El que creó la sesión (F3 01 con 1) aparece en su lugar, con las partes de su clase y sin equipo
 // (Q-C103), y los otros siguen con su animación.
+TEST(CharacterSelectSceneTest, ACreatedOneAppearsWhenPollIsFollowedByRenderWithoutStep)
+{
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
+    tested.online.session.CreateCharacter("char0003", 0);
+    tested.online.socket.reads = {CreatedBytes(1)};
+    tested.online.session.Poll();
+    ASSERT_EQ(tested.online.session.State(), SessionState::ChoosingCharacter);
+    const auto events = tested.Frame();
+    const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
+    ASSERT_NE(models, events.end());
+    EXPECT_FALSE(models->modelVertices.empty());
+}
+
+// Dos F3 01 idénticos construyen dos veces: el segundo reinicia la pose aunque SameEntry dé igual.
+// Los vértices del mundo del slot 1 permiten observarlo sin que Hero ni la cámara expliquen el cambio.
+TEST(CharacterSelectSceneTest, AnIdenticalCreationRestartsItsVisualWhenPollIsFollowedByRenderWithoutStep)
+{
+    constexpr int SelectionMap = 54;
+    constexpr std::uint8_t CreatedSlot = 1;
+    constexpr int AnimationSteps = 5;
+    constexpr auto StepTime = std::chrono::milliseconds{40};
+    Client::Scenes::SelectionState selection;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, true, false, &selection);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
+    ASSERT_TRUE(selection.IsInitialized());
+    ASSERT_EQ(selection.Map(), SelectionMap);
+    const auto createWithoutStep = [&tested]
+    {
+        tested.online.session.CreateCharacter("char0003", 1);
+        tested.online.socket.reads = {CreatedBytes(CreatedSlot)};
+        ASSERT_NO_FATAL_FAILURE(tested.Poll());
+        ASSERT_EQ(tested.online.session.State(), SessionState::ChoosingCharacter);
+        ASSERT_TRUE(tested.online.session.Characters().has_value());
+        ASSERT_EQ(tested.online.session.Characters()->characters.size(), 1u);
+        ASSERT_TRUE(tested.online.session.Characters()->characters.front().withoutEquipment);
+    };
+    const auto vertices = [&tested]
+    {
+        const auto events = tested.Frame();
+        const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
+        EXPECT_NE(models, events.end());
+        return models != events.end() ? models->modelVertices : std::vector<Client::Render::ModelVertex>{};
+    };
+    ASSERT_NO_FATAL_FAILURE(createWithoutStep());
+    ASSERT_EQ(selection.Slots()[CreatedSlot].revision, 1u);
+    const auto fresh = vertices();
+    ASSERT_EQ(fresh.size(), 5u * 3u);
+    for (int step = 0; step < AnimationSteps; ++step)
+    {
+        tested.online.clock.Advance(StepTime);
+        tested.Step();
+    }
+    const auto advanced = vertices();
+    ASSERT_EQ(advanced.size(), fresh.size());
+    ASSERT_LT(advanced.front().position.z, fresh.front().position.z);
+
+    ASSERT_NO_FATAL_FAILURE(createWithoutStep());
+    ASSERT_EQ(selection.Slots()[CreatedSlot].revision, 2u);
+    const auto restarted = vertices();
+    ASSERT_EQ(restarted.size(), fresh.size());
+    for (std::size_t vertex = 0; vertex < fresh.size(); ++vertex)
+    {
+        EXPECT_EQ(restarted[vertex].position, fresh[vertex].position) << vertex;
+    }
+}
+
+TEST(CharacterSelectSceneTest, ADuplicatedSlotDrawsOnlyItsLastEntryAcrossRepeatedSyncs)
+{
+    const CharacterEntryFields first{.slot = 0, .name = "char0001"};
+    const CharacterEntryFields last{.slot = 0, .name = "char0002", .classByte = 0x40};
+    Harness duplicated;
+    Harness single;
+    ASSERT_NO_FATAL_FAILURE(duplicated.ReachTheChoiceWith({first, last}));
+    ASSERT_NO_FATAL_FAILURE(single.ReachTheChoiceWith({last}));
+    for (int frame = 0; frame < 2; ++frame)
+    {
+        const auto twice = duplicated.Frame();
+        const auto once = single.Frame();
+        const auto actual = std::ranges::find(twice, Kind::Models, &FrameEvent::kind);
+        const auto expected = std::ranges::find(once, Kind::Models, &FrameEvent::kind);
+        ASSERT_NE(actual, twice.end());
+        ASSERT_NE(expected, once.end());
+        ASSERT_EQ(actual->modelVertices.size(), expected->modelVertices.size());
+        for (std::size_t vertex = 0; vertex < actual->modelVertices.size(); ++vertex)
+        {
+            EXPECT_EQ(actual->modelVertices[vertex].position, expected->modelVertices[vertex].position);
+        }
+    }
+}
+
 TEST(CharacterSelectSceneTest, ACreatedOneAppearsInItsSlot)
 {
     Harness tested;

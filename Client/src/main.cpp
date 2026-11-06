@@ -56,6 +56,7 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
+#include "Scenes/SelectionState.h"
 #include "Scenes/SceneText.h"
 #include "Scenes/SceneTransitions.h"
 #include "Scenes/TestScene.h"
@@ -597,6 +598,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // 0x4bafad..0x4bafdf: el pool empieza en cero y el héroe apunta al personaje 0.
     // La celda lógica y su lectura exacta se integran en CL7.P; no se sustituye por la celda visual.
     Client::World::GameCameraInput cameraInput;
+    Scenes::SelectionState selection;
     const Scenes::SceneContext context{.dataRoot = *startup.config.dataPath,
                                        .textures = textures,
                                        .log = log,
@@ -605,7 +607,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                        .input = &input,
                                        .pacing = startup.config.pacing,
                                        .camera = &camera,
-                                       .cameraInput = &cameraInput};
+                                       .cameraInput = &cameraInput,
+                                       .selection = &selection};
     // El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
     // se ven los dos.
     if (const auto hidden = window.HideSystemCursor(); !hidden.HasValue())
@@ -614,8 +617,18 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     }
     // Los modelos del personaje y de los ítems: los lee la carga (0x61ccb0) y quedan, como GameData.
     Scenes::GameModels models;
+    const std::function<void()> pollNetwork =
+        online ? std::function<void()>(
+                     [&online, &selection, &camera, &cameraInput]
+                     {
+                         online->Poll();
+                         // Los handlers construyen antes del siguiente Step o cambio de escena, aun minimizada.
+                         // Failure queda en el estado; stop la observa también cuando no se dibuja.
+                         static_cast<void>(selection.Apply(online->session.TakeCharacterEvents(), camera, cameraInput));
+                     })
+               : nullptr;
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,
-                                 online ? std::function<void()>([&online] { online->Poll(); }) : nullptr, log);
+                                 pollNetwork, log);
     if (!manager.Start(Scenes::FirstScene).HasValue())
     {
         return EXIT_FAILURE;
@@ -623,14 +636,22 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     App::GameLoop loop{clock, manager, startup.config.pacing, LoopMaxFps(startup.config, window, log)};
     TextInputFollower textInput(window, log);
     // Lo que corta el bucle además de la ventana y el --frames.
-    const auto stop = [&manager, session]
-    { return manager.Failure().has_value() || manager.WantsToQuit() || GameServerOrderedTheQuit(session); };
+    const auto stop = [&manager, &selection, session]
+    {
+        return manager.Failure().has_value() || selection.Failure().has_value() || manager.WantsToQuit() ||
+               GameServerOrderedTheQuit(session);
+    };
     const App::FrameStats stats = RunLoop(window, clock, loop, input, startup.commandLine, log, stop,
                                           [&textInput, &manager] { textInput.Follow(manager.WantsTextInput()); });
     // Apagado en todas las salidas del bucle: la ventana, el --frames, la escena que falla, el OK o la
     // orden del GameServer.
     textInput.Follow(false);
     PrintFrames(stats);
+    if (selection.Failure())
+    {
+        log.Error("no se puede construir la selección: {}", *selection.Failure());
+        return EXIT_FAILURE;
+    }
     if (manager.Failure())
     {
         return EXIT_FAILURE;

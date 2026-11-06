@@ -1,5 +1,6 @@
 #pragma once
 
+#include "App/CharacterEvent.h"
 #include "App/Credentials.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
@@ -195,8 +196,14 @@ public:
     // En otro estado, un aviso y nada.
     void RequestCharacterList();
 
-    // La lista del último F3 00, desde que llega hasta el próximo Start. std::nullopt antes.
+    // La vista del último F3 00, desde que llega hasta Start. Un slot repetido conserva su última
+    // entrada; TakeCharacterEvents conserva cada construcción del paquete, en orden.
+    // std::nullopt antes de recibir la lista.
     [[nodiscard]] const std::optional<Protocol::Character::CharacterList>& Characters() const;
+
+    // Entrega una sola vez las recepciones de personajes aceptadas, en orden. No cambia las vistas
+    // de la UI; Start descarta las pendientes de la conexión anterior, Fail las conserva.
+    [[nodiscard]] std::vector<CharacterEvent> TakeCharacterEvents();
 
     // En ChoosingCharacter, elige al de `slot` si está en la lista; con std::nullopt o un lugar que
     // no está, a ninguno (el -1 de 0x6342c0). No manda nada. En otro estado, un aviso y nada.
@@ -282,6 +289,7 @@ private:
     std::optional<ServerAddress> m_gameServerAddress;
     std::optional<std::uint8_t> m_loginResult;
     std::optional<Protocol::Character::CharacterList> m_characters;
+    std::vector<CharacterEvent> m_characterEvents;
     std::optional<std::uint8_t> m_chosenSlot; // un lugar de m_characters
     std::optional<std::uint8_t> m_createResult;
     std::optional<std::uint8_t> m_deleteResult;

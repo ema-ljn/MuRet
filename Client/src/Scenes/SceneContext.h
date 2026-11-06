@@ -21,6 +21,8 @@ struct GameCameraInput;
 // GameData.h.
 namespace Client::Scenes
 {
+class SelectionState;
+
 // De dónde leen (el Data\ del cliente), adónde suben sus texturas (Render::ITextureStore, CL5.1), el
 // log y el reloj del bucle (CL6.4).
 struct SceneContext
@@ -44,11 +46,13 @@ struct SceneContext
     App::PacingMode pacing = App::PacingMode::Decoupled;
     // Estado global de 0x635ae0: vive en main y sobrevive a los cambios de escena (CL7.3 B).
     World::GameCamera* camera = nullptr;
-    // Entradas de 0x635ae0, no réplica completa del actor Hero. Selección sincroniza XY si la lista
-    // trae slot0; su cámara fija pisa la Z de la posición de cámara. Un dibujo habilitado después
-    // de recibir la lista escribe Hero Z = 163, incluso con lista vacía. El constructor pertenece
-    // a L3; L1 aportará XYZ de la respuesta para el juego.
+    // Entradas de 0x635ae0, no réplica completa del actor Hero. SelectionState publica la posición
+    // construida por cada recepción; el dibujo de selección escribe Hero Z = 163 después de la cámara.
+    // L1 aportará XYZ de la respuesta para el juego.
     World::GameCameraInput* cameraInput = nullptr;
+    // El pool CPU de cinco slots y las tablas del mundo vigentes (CL7.3 B). main es su dueño y vive
+    // más que todas las escenas; conserva las tablas del login después de su Leave.
+    SelectionState* selection = nullptr;
 };
 
 // Cómo cuentan los frames del original la tela y el cetro con el ritmo `pacing`.

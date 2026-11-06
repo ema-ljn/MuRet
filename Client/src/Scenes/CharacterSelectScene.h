@@ -85,6 +85,7 @@ private:
     struct Character
     {
         std::uint8_t slot = 0;
+        std::uint64_t revision = 0;
         Protocol::Character::CharacterEntry entry;
         GameLogic::CharacterAppearance appearance;
         CharacterAnimation animation;
@@ -95,7 +96,7 @@ private:
     // Si la escena todavía espera la lista: con sesión, hasta ChoosingCharacter.
     [[nodiscard]] bool WaitingForTheList() const;
     // La lista de la sesión a los personajes: la primera vez, todos, y el +0x543 de la barra; después,
-    // el que crea la sesión entra y el que borra se va, y los que siguen guardan su animación.
+    // cada construcción recibida recrea su visual, aunque tenga los mismos bytes que el anterior.
     void SyncTheCharacters();
     [[nodiscard]] Character MakeCharacter(const Protocol::Character::CharacterEntry& entry) const;
     void StepCharacters();

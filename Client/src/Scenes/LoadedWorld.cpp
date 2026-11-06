@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -105,6 +106,13 @@ const World::TerrainLighting* LoadedWorld::Lighting() const
 const World::WorldTerrain* LoadedWorld::Terrain() const
 {
     return m_terrain ? &*m_terrain : nullptr;
+}
+
+std::optional<World::WorldTerrain> LoadedWorld::TakeTerrain()
+{
+    m_view = World::TerrainView{};
+    m_water = World::TerrainWater{};
+    return std::exchange(m_terrain, std::nullopt);
 }
 
 void LoadedWorld::Step(Core::Duration clock, const World::TerrainRange& range)

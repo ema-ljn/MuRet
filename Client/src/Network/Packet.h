@@ -62,9 +62,16 @@ class Packet
 public:
     // Valida el tipo, el tamaño mínimo y el máximo, y que el tamaño que declara sea el que mide.
     // Los errores, en ese orden: un vector vacío o con menos bytes que la cabecera es SizeTooSmall.
-    [[nodiscard]] static Core::Expected<Packet, PacketError> FromBytes(std::vector<std::byte> bytes);
+    // `wasDecrypted` conserva la procedencia que acredita DecryptPacket al tener éxito o que
+    // transporta una transformación. Pasarlo no descifra ni valida el payload semánticamente.
+    [[nodiscard]] static Core::Expected<Packet, PacketError> FromBytes(std::vector<std::byte> bytes,
+                                                                       bool wasDecrypted = false);
 
     [[nodiscard]] PacketType Type() const;
+
+    // Si procede de un descifrado exitoso de C3/C4. Type y Bytes describen el contenedor actual;
+    // este dato no autentica al remitente ni depende de la máscara FoxAnti.
+    [[nodiscard]] bool WasDecrypted() const;
 
     // Todo el paquete, con la cabecera.
     [[nodiscard]] std::span<const std::byte> Bytes() const;
@@ -81,9 +88,10 @@ public:
     [[nodiscard]] std::optional<std::uint8_t> Opcode() const;
 
 private:
-    Packet(PacketType type, std::vector<std::byte> bytes);
+    Packet(PacketType type, std::vector<std::byte> bytes, bool wasDecrypted);
 
     PacketType m_type;
     std::vector<std::byte> m_bytes;
+    bool m_wasDecrypted;
 };
 } // namespace Client::Network

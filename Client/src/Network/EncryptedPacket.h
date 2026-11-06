@@ -24,6 +24,7 @@
 namespace Client::Network
 {
 // Cifra un C1/C2 (con el XOR32, si lo lleva) como C3/C4, y gasta un serial de envío solo si sale.
+// El C3/C4 nuevo tiene WasDecrypted() false, incluso si el C1/C2 venía de un descifrado.
 // `padding` es el byte que va detrás de lo útil: el original pone uno de rand(), y los tests lo
 // fijan. WrongPacketType con un C3/C4 o con un Packet al que ya se le sacaron los bytes
 // (TakeBytes), y TooLarge si el C4 pasaría de MaxPacketSize (un C2 de más de 5.954 bytes).
@@ -44,8 +45,9 @@ struct DecryptedPacket
     SerialCheck serial; // cómo vino su serial
 };
 
-// Descifra un C3/C4 y lo rearma como C1/C2. WrongPacketType con un C1/C2 o con un Packet al que ya
-// se le sacaron los bytes, sin tocar los seriales. Con NotWholeBlocks, ChecksumMismatch,
+// Descifra un C3/C4 y lo rearma como C1/C2, con WasDecrypted() true tanto con InOrder como con
+// Resynced. WrongPacketType con un C1/C2 o con un Packet al que ya se le sacaron los bytes, sin
+// tocar los seriales. Con NotWholeBlocks, ChecksumMismatch,
 // InvalidBlock o TooShort, el paquete no se despacha y se espera el serial siguiente
 // (PacketSerials::SkipReceive). Si hay más de un problema gana el primero de esa lista: un checksum
 // malo en cualquier bloque gana sobre un largo útil imposible, porque el original corta en el

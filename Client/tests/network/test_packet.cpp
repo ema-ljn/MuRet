@@ -1,6 +1,8 @@
 #include "Network/Packet.h"
 
 #include "Network/PacketError.h"
+#include "Network/PacketReader.h"
+#include "Network/PacketWriter.h"
 #include "support/Bytes.h"
 #include "support/NetworkPrinters.h"
 #include "support/SameBytes.h"
@@ -205,5 +207,63 @@ TEST(PacketTest, TakeBytesLeavesItEmpty)
     EXPECT_TRUE(packet.Bytes().empty());
     EXPECT_TRUE(packet.MutableBody().empty());
     EXPECT_EQ(packet.Opcode(), std::nullopt);
+}
+
+// Ni los bytes cifrados crudos ni el corte acreditan un descifrado.
+TEST(PacketTest, RawBytesAndReaderDoNotClaimDecryption)
+{
+    for (const auto& bytes : {Bytes({0xC1, 0x04, 0x20, 0xAA}), Bytes({0xC2, 0x00, 0x05, 0x20, 0xAA}),
+                              Bytes({0xC3, 0x04, 0x20, 0xAA}), Bytes({0xC4, 0x00, 0x05, 0x20, 0xAA})})
+    {
+        const auto packet = Packet::FromBytes(bytes);
+        ASSERT_TRUE(packet.HasValue());
+        EXPECT_FALSE(packet.Value().WasDecrypted());
+        Client::Network::PacketReader reader;
+        reader.Feed(bytes);
+        const auto cut = reader.Next();
+        ASSERT_TRUE(cut.HasValue());
+        ASSERT_TRUE(cut.Value().has_value());
+        EXPECT_FALSE(cut.Value()->WasDecrypted());
+        EXPECT_TRUE(SameBytes(cut.Value()->Bytes(), bytes));
+    }
+}
+
+TEST(PacketTest, WriterDoesNotClaimDecryption)
+{
+    for (const auto& writer : {Client::Network::PacketWriter::C1(0x20), Client::Network::PacketWriter::C2(0x20)})
+    {
+        const auto packet = writer.Finish();
+        ASSERT_TRUE(packet.HasValue());
+        EXPECT_FALSE(packet.Value().WasDecrypted());
+    }
+}
+
+// El dato acompaña al objeto, incluso al asignar sobre uno de procedencia distinta.
+// El bool explícito sólo transporta metadata: FromBytes no hace criptografía.
+TEST(PacketTest, CopiesAndMovesPreserveDecryptionProvenance)
+{
+    const auto bytes = Bytes({0xC1, 0x04, 0x20, 0xAA});
+    for (const bool wasDecrypted : {false, true})
+    {
+        auto built = Packet::FromBytes(bytes, wasDecrypted);
+        ASSERT_TRUE(built.HasValue());
+        const Packet original = std::move(built).Value();
+        Packet copied = original;
+        Packet moved = std::move(copied);
+        EXPECT_EQ(original.WasDecrypted(), wasDecrypted);
+        EXPECT_EQ(moved.WasDecrypted(), wasDecrypted);
+        EXPECT_EQ(moved.Type(), PacketType::C1);
+        EXPECT_TRUE(SameBytes(moved.Bytes(), bytes));
+
+        auto opposite = Packet::FromBytes(bytes, !wasDecrypted);
+        ASSERT_TRUE(opposite.HasValue());
+        Packet assigned = std::move(opposite).Value();
+        assigned = original;
+        EXPECT_EQ(assigned.WasDecrypted(), wasDecrypted);
+        Packet moveAssigned = Packet::FromBytes(bytes, !wasDecrypted).Value();
+        moveAssigned = std::move(moved);
+        EXPECT_EQ(moveAssigned.WasDecrypted(), wasDecrypted);
+        EXPECT_TRUE(SameBytes(moveAssigned.Bytes(), bytes));
+    }
 }
 } // namespace

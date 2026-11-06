@@ -106,6 +106,45 @@ def analyze_capture(overrides=None):
 
 
 class SeriesAnalysisTest(unittest.TestCase):
+    def test_cli_reports_an_indeterminate_rate_when_all_ticks_are_equal(self):
+        text = make_capture({
+            sample_id: {
+                'ticksBefore': '00000000',
+                'ticksAfter': '00000000',
+                'ticksEntitiesAfter': '00000000',
+            }
+            for sample_id in range(SAMPLE_COUNT)
+        })
+        _, samples = parse(text, METADATA)
+        self.assertEqual(len(samples), SAMPLE_COUNT)
+        self.assertIsNone(analyze(samples, METADATA)['timing']['observer_rate_hz'])
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            capture = directory / 'capture.txt'
+            metadata = directory / 'metadata.json'
+            output = directory / 'analysis.json'
+            summary = directory / 'report.md'
+            capture.write_text(text, encoding='utf-8')
+            metadata.write_text(json.dumps(METADATA), encoding='utf-8')
+            result = subprocess.run([
+                sys.executable, str(Path(__file__).with_name('analyze_cl7_series.py')),
+                str(capture), '--metadata', str(metadata), '--json', str(output),
+                '--report', str(summary),
+            ], capture_output=True, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stderr, b'')
+            self.assertIsNone(json.loads(result.stdout)['observer_rate_hz'])
+            analysis = json.loads(output.read_text(encoding='utf-8'))
+            self.assertEqual(analysis['timing']['first_to_last_start_ms'], 0)
+            self.assertIsNone(analysis['timing']['observer_rate_hz'])
+            self.assertTrue(all(check['rejected'] for check in analysis['negative_tests'].values()))
+            report_text = summary.read_text(encoding='utf-8')
+            self.assertIn('cadencia observada del lector:indeterminada.', report_text)
+            self.assertIn('Pruebas negativas:', report_text)
+            self.assertTrue(report_text.endswith(
+                '- No se ejecuto emulacion ni se infirio comportamiento no observado.\n'
+            ))
+
     def test_cli_reads_and_writes_utf8_under_an_ascii_locale(self):
         environment = {
             **os.environ,

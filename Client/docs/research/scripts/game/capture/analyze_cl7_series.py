@@ -482,6 +482,8 @@ def report_observations(result):
 
 def report(result):
     timing = result['timing']
+    rate = timing['observer_rate_hz']
+    rate_text = 'indeterminada' if rate is None else f'{rate:.6f}Hz'
     title, description = motion_description(result['hero'])
     return '\n'.join([
         '# Serie CL7: captura completa, ' + title, '',
@@ -490,7 +492,7 @@ def report(result):
         'sin error y metadata program_exit=0.',
         'Intervalo entre primera y ultima lectura:'
         f"{timing['first_to_last_start_ms']}ms; cadencia observada del lector:"
-        f"{timing['observer_rate_hz']:.6f}Hz. No son FPS del cliente.",
+        f'{rate_text}. No son FPS del cliente.',
         f"Intervalo RPM core(ms):{timing['core_read_ms']}. "
         'Muestras con frontera cambiante:'
         f"{result['boundary_unstable']['count']}.", '',

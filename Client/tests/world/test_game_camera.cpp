@@ -194,8 +194,8 @@ TEST(GameCameraTest, ANonZeroEffectZSelectsTheGlobalTarget)
     auto input = Lorencia();
     input.effectTarget = {0.0f, 0.0f, 1.0f};
     const auto camera = StepGameCamera(state, input);
-    EXPECT_FLOAT_EQ(camera.position.x, 707.10675f);
-    EXPECT_FLOAT_EQ(camera.position.y, -707.10675f);
+    ExpectBits(camera.position.x, 0x4430c6d5u);
+    ExpectBits(camera.position.y, 0xc430c6d5u);
     EXPECT_EQ(camera.position.z, 1015.0f);
     ExpectSameCamera(GameCameraOf(state, input), camera);
 }
@@ -236,8 +236,8 @@ TEST(GameCameraTest, AnOrderedNonZeroEffectStillSelectsTheGlobalTargetWithNaNZ)
     auto input = Lorencia();
     input.effectTarget = {0.0f, 125.0f, std::numeric_limits<float>::quiet_NaN()};
     const auto camera = StepGameCamera(state, input);
-    EXPECT_FLOAT_EQ(camera.position.x, 707.10675f);
-    EXPECT_FLOAT_EQ(camera.position.y, -582.10675f);
+    ExpectBits(camera.position.x, 0x4430c6d5u);
+    ExpectBits(camera.position.y, 0xc41186d5u);
     EXPECT_EQ(camera.position.z, 1015.0f);
     ExpectSameCamera(GameCameraOf(state, input), camera);
 }

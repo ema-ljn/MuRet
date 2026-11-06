@@ -40,7 +40,8 @@ protected:
         std::make_unique<Client::Data::Terrain::TerrainHeights>();
     std::unique_ptr<Client::Data::Terrain::TerrainAttributes> m_attributes =
         std::make_unique<Client::Data::Terrain::TerrainAttributes>();
-    Client::World::TerrainView m_view{.heights = m_heights.get(), .attributes = m_attributes.get()};
+    Client::World::TerrainView m_view{
+        .heights = m_heights.get(), .attributes = m_attributes.get(), .fixedHeight = 1200.0f};
     TerrainPickingState m_state{
         .selected = true, .selectedX = 5.0f, .selectedY = 6.0f, .maxT = 0.25f, .hit = {11.0f, 22.0f, 33.0f}};
     TerrainPickingTarget m_target{.x = 91, .y = 92, .dontMove = true};
@@ -67,7 +68,7 @@ protected:
     }
 };
 
-// Rechaza la mutación que omite 023, usa un quad o conserva maxT viejo.
+// Rechaza omitir 023 o conservar maxT viejo.
 TEST_F(TerrainPickingTest, BothTrianglesPublishThePointAndCell)
 {
     for (const glm::vec3& point : std::array<glm::vec3, 2>{{{75.0f, 25.0f, 0.0f}, {25.0f, 75.0f, 0.0f}}})
@@ -136,7 +137,7 @@ TEST_F(TerrainPickingTest, HiddenCellsArePickable)
     EXPECT_EQ(m_state.hit, glm::vec3(75.0f, 25.0f, 0.0f));
 }
 
-TEST_F(TerrainPickingTest, APositiveYNormalUsesTheZXProjectionWithItsWinding)
+TEST_F(TerrainPickingTest, APositiveYNormalKeepsTheInteriorPoint)
 {
     m_heights->cells[0] = 150.0f;
     m_heights->cells[1] = 150.0f;
@@ -145,6 +146,73 @@ TEST_F(TerrainPickingTest, APositiveYNormalUsesTheZXProjectionWithItsWinding)
     ASSERT_TRUE(m_state.selected);
     EXPECT_EQ(m_state.hit, glm::vec3(75.0f, 25.0f, 112.5f));
     EXPECT_EQ(m_state.maxT, 0.3125f);
+}
+
+TEST_F(TerrainPickingTest, ProjectionUsesTheThresholdBeforeTheLargestComponent)
+{
+    // Cruz (-7500,0,10000), longitud 12500: nx≈-0.6 activa yz aunque nz≈0.8 sea mayor.
+    // El rayo artificial enorme redondea x fuera del triángulo xy, pero yz=(25,37.5) es interior.
+    // Es un discriminante PC53 del componente, sin expectativa nativa ni helper expuesto.
+    m_heights->cells[1] = 75.0f;
+    m_heights->cells[257] = 75.0f;
+    const auto result =
+        PickTerrain(m_state, m_view, {}, m_polygon, {{-1.0e35f, 25.0f, 37.5f}, {2.0e35f, 25.0f, 37.5f}});
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_TRUE(m_state.selected);
+    EXPECT_EQ(m_state.selectedX, 0.0f);
+    EXPECT_EQ(m_state.selectedY, 0.0f);
+    EXPECT_EQ(m_state.hit.y, 25.0f);
+    EXPECT_EQ(m_state.hit.z, 37.5f);
+    EXPECT_TRUE(m_state.hit.x <= 0.0f || m_state.hit.x >= 100.0f);
+}
+
+TEST_F(TerrainPickingTest, ProjectionIncludesBothThresholdSignsOnXAndY)
+{
+    // H≈100/√3: el spill de 100H es 5773.5029296875 y la componente normal mide
+    // ≈0.500000015445, que redondea a 0.5f. La componente z≈0.866 es mayor.
+    // Las cuatro pendientes distinguen la proyección inclusiva en ±0.5 de excluir sus extremos,
+    // sin publicar una normal de prueba ni derivar expected del picker.
+    constexpr float Height = 57.735027313232422f;
+    constexpr float Middle = Height * 0.5f;
+    struct Case
+    {
+        std::array<float, 4> heights;
+        TerrainPickingSegment ray;
+        bool variesX;
+    };
+    const std::array<Case, 4> Cases{{
+        {{0.0f, Height, Height, 0.0f}, {{-1.0e35f, 25.0f, Middle}, {2.0e35f, 25.0f, Middle}}, true},
+        {{Height, 0.0f, 0.0f, Height}, {{1.0e35f, 25.0f, Middle}, {-2.0e35f, 25.0f, Middle}}, true},
+        {{0.0f, 0.0f, Height, Height}, {{25.0f, -1.0e35f, Middle}, {25.0f, 2.0e35f, Middle}}, false},
+        {{Height, Height, 0.0f, 0.0f}, {{25.0f, 1.0e35f, Middle}, {25.0f, -2.0e35f, Middle}}, false},
+    }};
+    constexpr std::array<std::size_t, 4> Corners{0, 1, 257, 256};
+    for (std::size_t i = 0; i < Cases.size(); ++i)
+    {
+        SCOPED_TRACE(i);
+        m_heights->cells.fill(0.0f);
+        for (std::size_t corner = 0; corner < Corners.size(); ++corner)
+        {
+            m_heights->cells[Corners[corner]] = Cases[i].heights[corner];
+        }
+        const auto result = PickTerrain(m_state, m_view, {}, m_polygon, Cases[i].ray);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        ASSERT_TRUE(m_state.selected);
+        EXPECT_EQ(m_state.selectedX, 0.0f);
+        EXPECT_EQ(m_state.selectedY, 0.0f);
+        EXPECT_EQ(Cases[i].variesX ? m_state.hit.y : m_state.hit.x, 25.0f);
+        EXPECT_EQ(m_state.hit.z, Middle);
+    }
+}
+
+TEST_F(TerrainPickingTest, NegativeProjectionNormalsAlsoExcludeEdges)
+{
+    // nx<0 elige yz con determinantes estrictamente positivos. y=0 cae en la arista v0→v1.
+    m_heights->cells[1] = 150.0f;
+    m_heights->cells[257] = 150.0f;
+    const auto result = PickTerrain(m_state, m_view, {}, m_polygon, Vertical(75.0f, 0.0f));
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ExpectRetainedMiss();
 }
 
 // Cada vértice pesa 1/4 o 1/2 en estos puntos: distingue override por esquina de altura bilineal.
@@ -243,7 +311,8 @@ TEST_F(TerrainPickingTest, ExplicitOverrideAcceptsRejectedBlocksAndCells)
 
 TEST_F(TerrainPickingTest, NonAlignedBlockStartsAreNotRoundedOrClamped)
 {
-    const auto result = PickTerrain(m_state, m_view, {1, 5, 1, 1}, m_polygon, Vertical(875.0f, 125.0f));
+    const TerrainRange range{.firstX = 1, .lastX = 5, .firstY = 1, .lastY = 1};
+    const auto result = PickTerrain(m_state, m_view, range, m_polygon, Vertical(875.0f, 125.0f));
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(m_state.selected);
     EXPECT_EQ(m_state.selectedX, 8.0f);
@@ -252,7 +321,8 @@ TEST_F(TerrainPickingTest, NonAlignedBlockStartsAreNotRoundedOrClamped)
 
 TEST_F(TerrainPickingTest, ReversedRangesVisitNoBlocks)
 {
-    const auto result = PickTerrain(m_state, m_view, {4, 0, 4, 0}, m_polygon, Vertical(75.0f, 25.0f));
+    const TerrainRange range{.firstX = 4, .lastX = 0, .firstY = 4, .lastY = 0};
+    const auto result = PickTerrain(m_state, m_view, range, m_polygon, Vertical(75.0f, 25.0f));
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ExpectRetainedMiss();
 }
@@ -275,8 +345,15 @@ TEST_F(TerrainPickingTest, CursorUsesTheFullUnsignedAttributeAndBothExceptions)
         std::uint16_t attribute;
         bool dontMove;
     };
-    constexpr std::array<Case, 7> Cases{
-        {{7, false}, {8, true}, {0x10, true}, {0x100, true}, {0x20, false}, {0x40, false}, {0x60, false}}};
+    constexpr std::array<Case, 9> Cases{{{7, false},
+                                         {8, true},
+                                         {0x10, true},
+                                         {0x100, true},
+                                         {0x20, false},
+                                         {0x40, false},
+                                         {0x60, false},
+                                         {0x8000, true},
+                                         {0x8020, false}}};
     for (const auto& test : Cases)
     {
         m_attributes->cells[0] = test.attribute;
@@ -292,7 +369,7 @@ TEST_F(TerrainPickingTest, CursorUsesTheFullUnsignedAttributeAndBothExceptions)
 
 // Estado retenido fraccional explícito, fuera del stock entero pero dentro del dominio geométrico
 // admitido. Permite distinguir el producto retenido 100*0.01f<1 de redondearlo a float o dividir100.
-TEST_F(TerrainPickingTest, TargetTruncatesTheUnroundedProductRatherThanTheSelectedCoordinate)
+TEST_F(TerrainPickingTest, TargetTruncatesTheUnroundedHitProducts)
 {
     m_state.selectedX = 0.5f;
     m_state.selectedY = 1.5f;
@@ -311,6 +388,37 @@ TEST_F(TerrainPickingTest, TargetTruncatesTheUnroundedProductRatherThanTheSelect
     ASSERT_TRUE(otherAxis.Value());
     EXPECT_EQ(m_target.x, 1u);
     EXPECT_EQ(m_target.y, 0u);
+}
+
+TEST_F(TerrainPickingTest, TargetAndCursorUseTheAsymmetricHitCellInsteadOfTheSelection)
+{
+    // Celda retenida (0.5,1.5), hit (100,210): local (50,60) de 023; target (0,2), no trunc (0,1).
+    // Sólo target (0,2) lleva atributo 8. Su transpuesta (2,0) y la selección truncada (0,1) llevan 0.
+    m_attributes->cells[(2 * 256) + 0] = 0x08;
+    m_state.selectedX = 0.5f;
+    m_state.selectedY = 1.5f;
+    const auto result = PickTerrainTarget(m_state, m_target, m_view, {}, {}, Vertical(100.0f, 210.0f));
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_TRUE(result.Value());
+    EXPECT_EQ(m_state.selectedX, 0.5f);
+    EXPECT_EQ(m_state.selectedY, 1.5f);
+    EXPECT_EQ(m_state.hit, glm::vec3(100.0f, 210.0f, 0.0f));
+    EXPECT_EQ(m_target.x, 0u);
+    EXPECT_EQ(m_target.y, 2u);
+    EXPECT_TRUE(m_target.dontMove);
+
+    // El espejo conserva la asimetría: target (2,0) lleva 0; leer su transpuesta daría 8.
+    m_state.selectedX = 1.5f;
+    m_state.selectedY = 0.5f;
+    const auto otherAxis = PickTerrainTarget(m_state, m_target, m_view, {}, {}, Vertical(210.0f, 100.0f));
+    ASSERT_TRUE(otherAxis.HasValue()) << otherAxis.Error();
+    ASSERT_TRUE(otherAxis.Value());
+    EXPECT_EQ(m_state.selectedX, 1.5f);
+    EXPECT_EQ(m_state.selectedY, 0.5f);
+    EXPECT_EQ(m_state.hit, glm::vec3(210.0f, 100.0f, 0.0f));
+    EXPECT_EQ(m_target.x, 2u);
+    EXPECT_EQ(m_target.y, 0u);
+    EXPECT_FALSE(m_target.dontMove);
 }
 
 TEST_F(TerrainPickingTest, ConsumerRetriesTheRetainedCellAfterACulledPass)
@@ -344,7 +452,8 @@ TEST_F(TerrainPickingTest, FailedConsumerRetryDoesNotPublishAnOldTarget)
 TEST_F(TerrainPickingTest, TheLastBlockUsesCorner255WithoutWrapping)
 {
     m_heights->cells[65535] = 120.0f;
-    const auto result = PickTerrain(m_state, m_view, {251, 251, 251, 251}, m_polygon, Vertical(25475.0f, 25425.0f));
+    const TerrainRange range{.firstX = 251, .lastX = 251, .firstY = 251, .lastY = 251};
+    const auto result = PickTerrain(m_state, m_view, range, m_polygon, Vertical(25475.0f, 25425.0f));
     ASSERT_TRUE(result.HasValue()) << result.Error();
     ASSERT_TRUE(m_state.selected);
     EXPECT_EQ(m_state.selectedX, 254.0f);
@@ -359,7 +468,8 @@ TEST_F(TerrainPickingTest, InvalidInputsAreExplicitErrors)
     EXPECT_FALSE(result.HasValue());
     EXPECT_EQ(m_target.x, 91u);
     m_view.heights = m_heights.get();
-    result = PickTerrainTarget(m_state, m_target, m_view, {252, 252, 0, 0}, m_polygon, Vertical(75.0f, 25.0f));
+    const TerrainRange invalidRange{.firstX = 252, .lastX = 252, .firstY = 0, .lastY = 0};
+    result = PickTerrainTarget(m_state, m_target, m_view, invalidRange, m_polygon, Vertical(75.0f, 25.0f));
     EXPECT_FALSE(result.HasValue());
     m_heights->cells[0] = std::numeric_limits<float>::quiet_NaN();
     result = PickTerrainTarget(m_state, m_target, m_view, {}, m_polygon, Vertical(75.0f, 25.0f));
@@ -389,14 +499,43 @@ TEST_F(TerrainPickingTest, ClippedHeightsAreNotReadForValidation)
     ExpectRetainedMiss();
 }
 
+TEST_F(TerrainPickingTest, AnExternalRetryErrorKeepsTheCompleteInputStateAndTarget)
+{
+    m_heights->cells[(6 * 256) + 5] = std::numeric_limits<float>::quiet_NaN();
+    const auto ray = Vertical(575.0f, 625.0f);
+    TerrainPickingState passState = m_state;
+    const auto pass = PickTerrain(passState, m_view, {}, {}, ray);
+    ASSERT_TRUE(pass.HasValue()) << pass.Error();
+    EXPECT_FALSE(passState.selected);
+    EXPECT_EQ(passState.maxT, 9999999.0f);
+
+    const auto result = PickTerrainTarget(m_state, m_target, m_view, {}, {}, ray);
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_TRUE(m_state.selected);
+    EXPECT_EQ(m_state.selectedX, 5.0f);
+    EXPECT_EQ(m_state.selectedY, 6.0f);
+    EXPECT_EQ(m_state.maxT, 0.25f);
+    EXPECT_EQ(m_state.hit, glm::vec3(11.0f, 22.0f, 33.0f));
+    EXPECT_EQ(m_target.x, 91u);
+    EXPECT_EQ(m_target.y, 92u);
+    EXPECT_TRUE(m_target.dontMove);
+}
+
 TEST_F(TerrainPickingTest, AnExtremeRayCannotCauseAnUndefinedIntegerConversion)
 {
     // La proyección yz puede admitir el punto redondeado de un rayo enorme fuera del dominio de
     // cámara stock. El componente lo informa como error si no admite ftol signed64 ordinario.
     m_heights->cells[1] = 150.0f;
     m_heights->cells[257] = 150.0f;
-    const auto result = PickTerrainTarget(m_state, m_target, m_view, {}, m_polygon,
-                                          {{-1.0e35f, 25.0f, 75.0f}, {2.0e35f, 25.0f, 75.0f}});
+    const TerrainPickingSegment ray{{-1.0e35f, 25.0f, 75.0f}, {2.0e35f, 25.0f, 75.0f}};
+    TerrainPickingState passState = m_state;
+    const auto pass = PickTerrain(passState, m_view, {}, m_polygon, ray);
+    ASSERT_TRUE(pass.HasValue()) << pass.Error();
+    ASSERT_TRUE(passState.selected);
+    EXPECT_EQ(passState.selectedX, 0.0f);
+    EXPECT_EQ(passState.selectedY, 0.0f);
+    EXPECT_GT(std::fabs(static_cast<double>(passState.hit.x)) * 0.01, 0x1p63);
+    const auto result = PickTerrainTarget(m_state, m_target, m_view, {}, m_polygon, ray);
     ASSERT_FALSE(result.HasValue());
     EXPECT_EQ(m_state.hit, glm::vec3(11.0f, 22.0f, 33.0f));
     EXPECT_EQ(m_target.x, 91u);

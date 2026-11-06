@@ -43,7 +43,8 @@ TEST_F(GoldenTerrainPicking, RealWorldFamiliesUseThePassRayAndTheirCornerHeights
         const auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, map);
         ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
         const Client::World::TerrainView view{.heights = terrain.Value().heights.get(),
-                                              .attributes = terrain.Value().attributes.get()};
+                                              .attributes = terrain.Value().attributes.get(),
+                                              .fixedHeight = 1200.0f};
         const Client::Render::Camera3D camera{.position = {1375.0f, 1325.0f, 1600.0f}, .farPlane = 2000.0f};
         const auto pass = Client::Render::MakePass3D({640, 480}, {0, 0, 640, 432}, camera);
         const auto [origin, end] = pass.RayThrough(320.0f, 216.0f);
@@ -65,7 +66,9 @@ TEST_F(GoldenTerrainPicking, RealWorldFamiliesUseThePassRayAndTheirCornerHeights
         std::array<double, 3> heights{};
         for (std::size_t i = 0; i < Indices.size(); ++i)
         {
-            heights[i] = (view.attributes->cells[Indices[i]] & 0x40U) != 0 ? 1200.0 : view.heights->cells[Indices[i]];
+            heights[i] = (view.attributes->cells[Indices[i]] & Client::World::FixedHeightBit) != 0
+                             ? view.fixedHeight
+                             : view.heights->cells[Indices[i]];
         }
         const double expectedZ = (heights[0] + (2.0 * heights[1]) + heights[2]) / 4.0;
         EXPECT_NEAR(state.hit.z, expectedZ, 0.0002);

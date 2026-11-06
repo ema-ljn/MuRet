@@ -378,14 +378,28 @@ barrido, y se detalla con lo que lea. Lo que se sabe:
     gasto en el mismo lugar del paso o del dibujo, con un nombre que diga de qué función es.
 - **Qué se escribe:** `GameLogic::ProtectedValue<T>`. Guarda el valor en claro y, en cada acceso que el
   original cierra, saca del `CrtRandom` que le pasan los `rand()` de ese acceso. Entra primero en el contador
-  de frames del login, donde completa Q-C125 con los 4 del +1 después de la escena y los del rearmado cada
-  313 pasos. Si el orden de P-C22 a sale de lo mismo, también se arregla. Después lo usan la celda del héroe
+  de frames del login, donde completa Q-C125 con los 4 del +1 después de la escena y los del rearmado:
+  `0x6378f9` compara el resto firmado del snapshot previo con **57**, al dividir por **313**;
+  no se dispara en los múltiplos de 313. Si el orden de P-C22 a sale de lo mismo, también se arregla. Después lo usan la celda del héroe
   y el contador de warp de la L1.
 - **Tests:**
   - los vectores del paso real del login con la tabla viva (sobre `game/protection/protection_rand.py` y
     `camera_rand.py`, que ya cuentan los 3.848 y los 4 de cada cierre): el estado del `rand()` después de cada uno de
-    1.000 pasos (con tres rearmados), igual en MuRet;
-  - un test por clase de acceso, contra el emulado.
+    1.000 pasos, igual en MuRet; la cantidad de rearmados depende del valor lógico inicial y de otras
+    escrituras. Si empieza en 0, sólo se incrementa una vez por paso y no hay otras escrituras,
+    hay cuatro, en los snapshots
+    57, 370, 683 y 996. Esa condición no demuestra que el inicio nativo sea 0;
+  - un test por clase de acceso. Según la autoridad vigente, no se generan nuevos fixtures emulados:
+    el contrato se contrasta con ASM y evidencia nativa existente, conservando la procedencia de las
+    regresiones históricas.
+
+**Contraste estático del contador:** `0x637700` toma el snapshot antes del cierre de `0x6378e6` y
+después decide la fase 57. El incremento ocurre tras el paso de la escena, sobre el valor reabierto,
+no necesariamente sobre aquel snapshot. Cada refresco completo tiene cuatro llamadas RNG directas;
+los dos cierres y las llamadas transitivas requieren sus propios contratos. La fase y esos sitios
+directos están verificados; no cierran el presupuesto total de RNG ni desbloquean por sí solos L1.
+El incremento envuelve en 32 bits y el predicado interpreta esos bits con signo: C++20 debe conservar
+ambas propiedades sin introducir overflow con signo indefinido.
 
 ## Sub-ola CL7.L1: la entrada al mundo y el pase del juego
 

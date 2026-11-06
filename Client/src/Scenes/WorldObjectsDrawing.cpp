@@ -22,9 +22,12 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <chrono>
 #include <optional>
+#include <ratio>
 #include <span>
 #include <vector>
 
@@ -39,6 +42,9 @@ constexpr double ObjectMargin = -30.0;
 constexpr double CellsPerUnit = static_cast<double>(0.01f);
 constexpr int CellsPerSector = 16;
 constexpr double SectorCenter = 8.0;
+constexpr std::uint8_t LoginCloudMap = 55;
+constexpr std::int16_t LoginCloudMarker = 0x54;
+constexpr int LoginCloudChance = 5;
 
 bool SectorPasses(const World::TerrainPolygon& polygon, int sectorX, int sectorY)
 {
@@ -73,6 +79,71 @@ DrawnObject Drawn(const World::WorldObject& object, const World::ObjectDraw& dra
     drawn.vertexLight = draw.vertexLight;
     return drawn;
 }
+// La pose se toma una vez por dibujo; la emisión sigue el orden frame → objetos.
+struct SeenObjectEffects
+{
+    World::WorldObject* object = nullptr;
+    std::size_t index = 0;
+    std::optional<std::array<glm::vec3, World::StreetLightGlowBones.size()>> glowPositions;
+    std::optional<int> lastRandom;
+};
+
+void CreateObjectCloud(const World::WorldObject& object, std::uint8_t map, float clock,
+                       const ObjectFrameEffects& effects)
+{
+    // 0x6044bc: el marcador oculto del mapa 55, después del rand común, sin guard de escena.
+    if (map != LoginCloudMap || object.type != LoginCloudMarker || effects.random->Next() % LoginCloudChance != 0 ||
+        effects.particles == nullptr)
+    {
+        return;
+    }
+    // El caller original pasa luz indeterminada; el subtipo 10 la sobrescribe con RGB cero.
+    (void)effects.particles->Create(World::CloudParticle, object.transform.position, object.transform.angles,
+                                    glm::vec3(0.0f), World::LoginCloudSubtype, object.transform.scale, clock,
+                                    *effects.random);
+}
+
+void AdvanceObjectEffects(std::span<SeenObjectEffects> seen, std::uint8_t map, Core::Duration frameClock,
+                          const ObjectFrameEffects& effects)
+{
+    const auto clock = static_cast<float>(std::chrono::duration<double, std::milli>(frameClock).count());
+    for (int frame = 0; frame < effects.frames; ++frame)
+    {
+        for (SeenObjectEffects& entry : seen)
+        {
+            entry.lastRandom = effects.random->Next();
+            CreateObjectCloud(*entry.object, map, clock, effects);
+        }
+    }
+}
+
+void DrawObjectGlows(std::span<const SeenObjectEffects> seen, const ObjectFrameEffects& effects)
+{
+    if (effects.frames > 0)
+    {
+        // Solo se puede repetir una muestra del último frame original, no de una aparición anterior.
+        for (std::optional<int>& random : effects.lastRandoms)
+        {
+            random.reset();
+        }
+    }
+    for (const SeenObjectEffects& entry : seen)
+    {
+        if (entry.index < effects.lastRandoms.size())
+        {
+            effects.lastRandoms[entry.index] = entry.lastRandom;
+        }
+        if (!entry.glowPositions || !entry.lastRandom)
+        {
+            continue;
+        }
+        const glm::vec3 glow = World::StreetLightGlowLight(*entry.lastRandom);
+        for (const glm::vec3& position : *entry.glowPositions)
+        {
+            (void)effects.sprites->Create(World::StreetLightGlowTexture, position, 1.0f, glow, 0.0f, 0);
+        }
+    }
+}
 } // namespace
 
 void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, const IModelLibrary& models,
@@ -98,6 +169,7 @@ void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, st
     const bool glows =
         effects.random != nullptr && effects.sprites != nullptr && effects.scene == World::ObjectScene::Login;
     std::vector<PosedInTheBuffer> posed;
+    std::vector<SeenObjectEffects> seen;
     if (glows)
     {
         posed.assign(effects.posedBefore.begin(), effects.posedBefore.end());
@@ -132,23 +204,28 @@ void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, st
         {
             posed.push_back(PosedInTheBuffer{&models, drawn});
         }
-        // 0x602ed0: el rand() de cada objeto, y con el farol en la escena 2, sus dos sprites con esa luz.
         if (effects.random == nullptr)
         {
             continue;
         }
-        const int random = effects.random->Next();
+        SeenObjectEffects entry{.object = &object,
+                                .index = index,
+                                .glowPositions = std::nullopt,
+                                .lastRandom =
+                                    index < effects.lastRandoms.size() ? effects.lastRandoms[index] : std::nullopt};
         if (glows && object.type == World::StreetLight)
         {
-            const glm::vec3 glow = World::StreetLightGlowLight(random);
-            for (const std::size_t bone : World::StreetLightGlowBones)
+            entry.glowPositions.emplace();
+            for (std::size_t k = 0; k < World::StreetLightGlowBones.size(); ++k)
             {
-                (void)effects.sprites->Create(
-                    World::StreetLightGlowTexture,
-                    LastPosedBonePoint(posed, bone, glm::vec3(0.0f)).value_or(glm::vec3(0.0f)), 1.0f, glow, 0.0f, 0);
+                (*entry.glowPositions)[k] = LastPosedBonePoint(posed, World::StreetLightGlowBones[k], glm::vec3(0.0f))
+                                                .value_or(glm::vec3(0.0f));
             }
         }
+        seen.push_back(entry);
     }
+    AdvanceObjectEffects(seen, map, frameClock, effects);
+    DrawObjectGlows(seen, effects);
 }
 
 void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary& models)
@@ -235,6 +312,20 @@ Render::ModelBlend SpriteBlend(const World::Sprite& sprite)
         return Render::ModelBlend::Additive;
     }
 }
+
+Render::ModelBlend ParticleBlend(World::ParticleDraw::Blend blend)
+{
+    switch (blend)
+    {
+    case World::ParticleDraw::Blend::Alpha:
+        return Render::ModelBlend::Alpha;
+    case World::ParticleDraw::Blend::Additive:
+        return Render::ModelBlend::Additive;
+    case World::ParticleDraw::Blend::Subtractive:
+        return Render::ModelBlend::Subtractive;
+    }
+    return Render::ModelBlend::Alpha;
+}
 } // namespace
 
 void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, const IModelLibrary& textures,
@@ -275,12 +366,14 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, c
     }
 }
 
-void DrawParticles(Render::ModelBatch& batch, const World::Particles& particles, const IModelLibrary& textures,
-                   const Render::Models::OriginalMatrix& view)
+void DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const IModelLibrary& textures,
+                   const Render::Models::OriginalMatrix& view, float worldClock)
 {
     constexpr int JpegComponents = 3;
-    for (const World::Particle& particle : particles.All())
+    const std::span<World::Particle> all = particles.All();
+    for (std::size_t index = 0; index < all.size(); ++index)
     {
+        World::Particle& particle = all[index];
         if (!particle.alive)
         {
             continue;
@@ -291,7 +384,8 @@ void DrawParticles(Render::ModelBatch& batch, const World::Particles& particles,
         {
             continue;
         }
-        const std::optional<World::ParticleDraw> drawn = World::ParticleDrawOf(particle, *size, JpegComponents);
+        const std::optional<World::ParticleDraw> drawn =
+            World::ParticleDrawOf(particle, *size, JpegComponents, worldClock, index);
         if (!drawn)
         {
             continue;
@@ -299,8 +393,7 @@ void DrawParticles(Render::ModelBatch& batch, const World::Particles& particles,
         const Render::Billboard billboard =
             Render::MakeBillboard(view, drawn->position, drawn->width, drawn->height, drawn->light, drawn->rotation,
                                   drawn->uv, drawn->uvSize, slot.value, JpegComponents);
-        batch.SetState(Render::ModelDrawState{
-            .texture = slot, .blend = drawn->additive ? Render::ModelBlend::Additive : Render::ModelBlend::Alpha});
+        batch.SetState(Render::ModelDrawState{.texture = slot, .blend = ParticleBlend(drawn->blend)});
         const auto vertex = [&billboard](std::size_t k)
         { return Render::ModelVertex{billboard.corners[k].position, billboard.corners[k].uv, billboard.color}; };
         batch.Triangle({vertex(0), vertex(1), vertex(2)});

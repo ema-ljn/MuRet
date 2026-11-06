@@ -72,6 +72,7 @@ std::array<std::uint32_t, 30> WordsOf(const Particle& particle)
     words[19] = particle.moves ? 1u : 0u;
     words[20] = Bits(particle.verticalSpeed);
     put(21, particle.velocity);
+    words[24] = Bits(particle.rotationFactor);
     put(27, particle.start);
     return words;
 }
@@ -179,7 +180,7 @@ TEST(ParticlesTest, TheBreathAndTheSparkMatchTheBinary)
             std::size_t calls = 0;
             words >> calls;
             std::size_t read = 0;
-            for (const Particle& particle : particles.All())
+            for (Particle& particle : particles.All())
             {
                 if (!particle.alive)
                 {
@@ -187,8 +188,11 @@ TEST(ParticlesTest, TheBreathAndTheSparkMatchTheBinary)
                 }
                 const auto drawn = Client::World::ParticleDrawOf(particle, textureSize, components);
                 ASSERT_TRUE(drawn.has_value()) << where;
+                ASSERT_NE(drawn->blend, Client::World::ParticleDraw::Blend::Subtractive) << where;
                 ASSERT_TRUE(std::getline(file, line));
-                EXPECT_EQ(line, drawn->additive ? "blend additive" : "blend alpha") << where;
+                EXPECT_EQ(line, drawn->blend == Client::World::ParticleDraw::Blend::Additive ? "blend additive"
+                                                                                             : "blend alpha")
+                    << where;
                 ASSERT_TRUE(std::getline(file, line));
                 std::istringstream call(line);
                 std::string label;
@@ -257,9 +261,8 @@ TEST(ParticlesTest, AFullTableCreatesNothingAndTakesNoRand)
               0u);
 }
 
-// De los tipos de 0x53fe70, MuRet arma el aliento con el subtipo 0 y la chispa del cuervo con el 5: los
-// demás no se crean ni sacan rand().
-TEST(ParticlesTest, OnlyTheBreathAndTheSparkAreCreated)
+// Los subtipos vecinos a los tres que arma MuRet no se crean ni sacan rand().
+TEST(ParticlesTest, UnsupportedTypesAndSubtypesAreNotCreated)
 {
     Particles particles;
     CrtRandom random(5);
@@ -271,6 +274,10 @@ TEST(ParticlesTest, OnlyTheBreathAndTheSparkAreCreated)
                      .has_value());
     EXPECT_FALSE(particles
                      .Create(Client::World::SparkParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 4, 1.0f,
+                             0.0f, random)
+                     .has_value());
+    EXPECT_FALSE(particles
+                     .Create(Client::World::CloudParticle, glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(3.0f), 9, 1.0f,
                              0.0f, random)
                      .has_value());
     EXPECT_EQ(random.State(), CrtRandom(5).State());

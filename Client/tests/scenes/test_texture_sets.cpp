@@ -23,6 +23,7 @@ using Client::Data::Textures::TextureLoaderOf;
 using Client::Data::Textures::TextureSetEntry;
 using Client::Data::Textures::Wrap;
 using Client::Render::OriginalTextureSlotCount;
+using Client::Scenes::EffectTextureSet;
 using Client::Scenes::GlowTextureSet;
 using Client::Scenes::LoadingTextureSet;
 using Client::Scenes::LoginTextureSet;
@@ -111,6 +112,24 @@ TEST(TextureSetsTest, TheGlowSetIsTheOneOf0x61ccb0)
     EXPECT_EQ(GlowTextureSet[2].slot, 0x620);
     EXPECT_EQ(GlowTextureSet[2].sampling.filter, Filter::Nearest);
     EXPECT_EQ(GlowTextureSet[2].sampling.wrap, Wrap::Clamp);
+}
+
+// 0x61d801 sube clouds.jpg a 0x622, con GL_LINEAR y GL_CLAMP, para la neblina del login.
+TEST(TextureSetsTest, TheEffectSetLoadsTheCloudsWithLinearClamp)
+{
+    ExpectAValidSet(EffectTextureSet);
+    const TextureSetEntry* cloud = nullptr;
+    for (const TextureSetEntry& entry : EffectTextureSet)
+    {
+        if (entry.slot == 0x622)
+        {
+            cloud = &entry;
+        }
+    }
+    ASSERT_NE(cloud, nullptr);
+    EXPECT_EQ(cloud->path, "Effect\\clouds.jpg");
+    EXPECT_EQ(cloud->sampling.filter, Filter::Linear);
+    EXPECT_EQ(cloud->sampling.wrap, Wrap::Clamp);
 }
 
 // 0x622e40 sube seis, todas con filtro y sin repetir salvo la barra.

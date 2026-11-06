@@ -26,6 +26,24 @@ constexpr std::int32_t SparkLife = 10;
 constexpr float SparkPush = 2.0f;
 constexpr double SparkShrink = static_cast<double>(std::bit_cast<float>(0x3F666666u));
 constexpr double SparkFade = static_cast<double>(std::bit_cast<float>(0x3F788B30u));
+// 0x543407..0x5434d3: neblina del login, cinco rand() y constantes binary32 del PE.
+constexpr std::int32_t CloudLife = 500;
+constexpr int CloudOffsetSpan = 400;
+constexpr int CloudOffsetCenter = 200;
+constexpr int CloudScaleSpan = 15;
+constexpr int CloudScaleBase = 10;
+constexpr int CloudSpeedSpan = 10;
+constexpr int CloudSpeedBase = 5;
+constexpr double CloudScaleStep = static_cast<double>(std::bit_cast<float>(0x3d888889u));
+constexpr double CloudSpeedStep = static_cast<double>(std::bit_cast<float>(0x3df5c28fu));
+// 0x5475b6..0x547699 y 0x548c04..0x548c2f; 06 § Los efectos del login, neblina.
+constexpr float CloudRotationFactor = 1.5f;
+constexpr double CloudRotationStep = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
+constexpr double CloudGrowth = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+constexpr float CloudLightLimit = std::bit_cast<float>(0x3e19999au);
+constexpr double CloudFade = static_cast<double>(std::bit_cast<float>(0x3f73cf3eu));
+constexpr double CloudGrowthRadius = 300.0;
+constexpr double CloudDeathRadius = 500.0;
 constexpr double BreathScaleStep = static_cast<double>(0.01f); // 0x6b88d4
 constexpr int BreathScaleBase = 48;
 constexpr int FullTurn = 360;
@@ -121,6 +139,71 @@ bool IsSpark(const Particle& particle)
     return particle.type == SparkParticle && particle.subtype == RavenSparkSubtype;
 }
 
+bool IsLoginCloud(const Particle& particle)
+{
+    return particle.type == CloudParticle && particle.subtype == LoginCloudSubtype;
+}
+
+void CreateTheCloud(Particle& particle, Render::Models::CrtRandom& random)
+{
+    particle.life = CloudLife;
+    particle.light = glm::vec3(0.0f);
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        const int offset = (random.Next() % CloudOffsetSpan) - CloudOffsetCenter;
+        particle.position[axis] = F32(static_cast<double>(particle.position[axis]) + offset);
+    }
+    particle.start = particle.position;
+    const int scaleSteps = (random.Next() % CloudScaleSpan) + CloudScaleBase;
+    particle.scale = F32(static_cast<double>(scaleSteps) * CloudScaleStep + static_cast<double>(particle.scale));
+    const int speedSteps = (random.Next() % CloudSpeedSpan) + CloudSpeedBase;
+    const float speed = F32(static_cast<double>(speedSteps) * CloudSpeedStep);
+    particle.velocity = glm::vec3(speed, speed, 0.0f);
+}
+
+void GrowTheCloudLight(Particle& particle)
+{
+    const double red = static_cast<double>(particle.light.x) + CloudGrowth;
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        particle.light[axis] = F32(static_cast<double>(particle.light[axis]) + CloudGrowth);
+    }
+    // 0x547639: compara antes de recargar el rojo almacenado; un NaN no alcanza el umbral.
+    if (red >= static_cast<double>(CloudLightLimit))
+    {
+        particle.light = glm::vec3(CloudLightLimit);
+    }
+}
+
+void StepTheCloud(Particle& particle)
+{
+    particle.rotationFactor = CloudRotationFactor;
+    // 0x5475be: X queda sin recargar después del fst; Y y Z se usan ya guardados en float.
+    const double x = static_cast<double>(particle.velocity.x) + static_cast<double>(particle.position.x);
+    particle.position.x = F32(x);
+    particle.position.y = F32(static_cast<double>(particle.velocity.y) + static_cast<double>(particle.position.y));
+    particle.position.z = F32(static_cast<double>(particle.velocity.z) + static_cast<double>(particle.position.z));
+    const double dx = x - static_cast<double>(particle.start.x);
+    const double dy = static_cast<double>(particle.position.y) - static_cast<double>(particle.start.y);
+    const double dz = static_cast<double>(particle.position.z) - static_cast<double>(particle.start.z);
+    const double distance = std::sqrt((dz * dz + dy * dy) + dx * dx);
+    // 0x547602: unordered toma la misma rama que <= 300 por los flags de la x87.
+    if (distance <= CloudGrowthRadius || std::isnan(distance))
+    {
+        GrowTheCloudLight(particle);
+        return;
+    }
+    if (distance > CloudDeathRadius)
+    {
+        particle.alive = false;
+        return;
+    }
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        particle.light[axis] = F32(static_cast<double>(particle.light[axis]) * CloudFade);
+    }
+}
+
 // 0x545209 → 0x545f9e: la chispa se achica por 0,9 (0x6b8a1c) y se apaga por 1/1,03 (0x6ba3b0), cada
 // producto guardado en float.
 void StepTheSpark(Particle& particle)
@@ -139,7 +222,8 @@ std::optional<std::size_t> Particles::Create(std::int32_t type, const glm::vec3&
 {
     const bool breath = type == BreathParticle && subtype == BreathSubtype;
     const bool spark = type == SparkParticle && subtype == RavenSparkSubtype;
-    if (!breath && !spark)
+    const bool cloud = type == CloudParticle && subtype == LoginCloudSubtype;
+    if (!breath && !spark && !cloud)
     {
         return std::nullopt;
     }
@@ -150,7 +234,7 @@ std::optional<std::size_t> Particles::Create(std::int32_t type, const glm::vec3&
         {
             continue;
         }
-        // Lo común de 0x53fe9c..0x53ff37.
+        // Lo común de 0x53fe9c..0x53ff37. +0x60 no se escribe: conserva el uso anterior del lugar.
         particle = Particle{.alive = true,
                             .type = type,
                             .texture = type,
@@ -166,7 +250,13 @@ std::optional<std::size_t> Particles::Create(std::int32_t type, const glm::vec3&
                             .moves = true,
                             .verticalSpeed = 0.0f,
                             .velocity = glm::vec3(0.0f),
+                            .rotationFactor = particle.rotationFactor,
                             .start = position};
+        if (cloud)
+        {
+            CreateTheCloud(particle, random);
+            return index;
+        }
         if (spark)
         {
             // 0x5406e5: vida 10, los ángulos (0, 0, yaw) y la velocidad, el empujón (−(rand() % 2 + 2), 0, 0)
@@ -255,20 +345,34 @@ void StepParticles(Particles& particles, Render::Models::CrtRandom& random)
         {
             StepTheSpark(particle);
         }
+        else if (IsLoginCloud(particle))
+        {
+            StepTheCloud(particle);
+        }
     }
 }
 
-std::optional<ParticleDraw> ParticleDrawOf(const Particle& particle, const glm::vec2& textureSize, int components)
+std::optional<ParticleDraw> ParticleDrawOf(Particle& particle, const glm::vec2& textureSize, int components,
+                                           float worldClock, std::size_t slotIndex)
 {
-    // El aliento (0x548707) y la chispa (el camino de siempre, 0x54889a) piden lo mismo.
-    if (!IsBreath(particle) && !IsSpark(particle))
+    const bool cloud = IsLoginCloud(particle);
+    if (!particle.alive || (!IsBreath(particle) && !IsSpark(particle) && !cloud))
     {
         return std::nullopt;
+    }
+    ParticleDraw::Blend blend = components == 3 ? ParticleDraw::Blend::Additive : ParticleDraw::Blend::Alpha;
+    if (cloud)
+    {
+        blend = ParticleDraw::Blend::Subtractive;
+        const double direction = slotIndex % 2 == 0 ? CloudRotationStep : -CloudRotationStep;
+        particle.rotation =
+            F32(static_cast<double>(worldClock) * static_cast<double>(particle.rotationFactor) * direction +
+                static_cast<double>(particle.start.y));
     }
     // 0x5485a3: el ancho y el alto de la textura por la escala, guardados en float.
     return ParticleDraw{
         .texture = particle.texture,
-        .additive = components == 3,
+        .blend = blend,
         .position = particle.position,
         .width = F32(static_cast<double>(textureSize.x) * static_cast<double>(particle.scale)),
         .height = F32(static_cast<double>(textureSize.y) * static_cast<double>(particle.scale)),

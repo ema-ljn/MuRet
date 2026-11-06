@@ -85,6 +85,7 @@ struct Stage
     std::set<SceneId> typing;
     // Las escenas que retienen el último frame (HoldsTheLastFrame).
     std::set<SceneId> holding;
+    std::map<SceneId, int> heldNotifications;
     // La escena cuyo Enter falla.
     std::optional<SceneId> failingEnter;
     // Los slots que sube cada escena al entrar y suelta al salir, como sus juegos de texturas.
@@ -167,6 +168,11 @@ public:
     [[nodiscard]] bool HoldsTheLastFrame() const override
     {
         return m_stage.holding.contains(m_id);
+    }
+
+    void OnFrameHeld() override
+    {
+        ++m_stage.heldNotifications[m_id];
     }
 
 private:
@@ -623,5 +629,23 @@ TEST(SceneManagerTest, SaysWhenTheSceneHoldsTheLastFrame)
     tested.stage.holding.insert(SceneId::Loading);
 
     EXPECT_TRUE(tested.manager.HoldsTheLastFrame());
+}
+// La consulta que impide el Render también avisa a la escena, incluso sin un Step intermedio.
+TEST(SceneManagerTest, OnlyAHeldFrameNotifiesTheCurrentScene)
+{
+    Harness tested;
+    EXPECT_FALSE(tested.manager.HoldsTheLastFrame());
+    EXPECT_TRUE(tested.stage.heldNotifications.empty());
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+    EXPECT_FALSE(tested.manager.HoldsTheLastFrame());
+    EXPECT_TRUE(tested.stage.heldNotifications.empty());
+    tested.stage.holding.insert(SceneId::Loading);
+    EXPECT_TRUE(tested.manager.HoldsTheLastFrame());
+    EXPECT_EQ(tested.stage.heldNotifications[SceneId::Loading], 1);
+    EXPECT_TRUE(tested.manager.HoldsTheLastFrame());
+    EXPECT_EQ(tested.stage.heldNotifications[SceneId::Loading], 2);
+    tested.stage.holding.clear();
+    EXPECT_FALSE(tested.manager.HoldsTheLastFrame());
+    EXPECT_EQ(tested.stage.heldNotifications[SceneId::Loading], 2);
 }
 } // namespace

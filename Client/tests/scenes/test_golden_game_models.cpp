@@ -111,6 +111,21 @@ TEST_F(GoldenGameModels, TheTexturesGoWhereTheLoadersPutThem)
         EXPECT_EQ(entry.sampling.wrap, ModelTextureSampling.wrap) << entry.path;
     }
 }
+
+// La carga común de GameModels conserva clouds.jpg para las escenas; LoginScene no la sube.
+TEST_F(GoldenGameModels, TheCloudTextureIsLoadedWithTheGameModels)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+    const auto cloud = textures.Find(TextureSlot{0x622});
+    ASSERT_TRUE(cloud.has_value());
+    EXPECT_EQ(cloud->sampling.filter, Client::Data::Textures::Filter::Linear);
+    EXPECT_EQ(cloud->sampling.wrap, Client::Data::Textures::Wrap::Clamp);
+    EXPECT_TRUE(models.TextureSize(TextureSlot{0x622}).has_value());
+}
 // Lo que piden los dos cargadores está en el laboratorio: el original se cierra con una textura de
 // modelo que falta (Q-C23), así que con estas carpetas ninguna falta. Con la carpeta del .bmd
 // faltaban 14, entre ellas las de las mascotas.
@@ -216,6 +231,39 @@ TEST_F(GoldenGameModels, TheSelectionModelsLoadWithTheirSpeeds)
 class ModelTextureSlotsGoldenTest : public Client::Tests::MemoryDumpTest
 {
 };
+
+// Oráculo nativo independiente: metadatos residuales del slot 0x622 en la captura de Lorencia.
+// Su nombre ya está vacío; no demuestra residencia, visibilidad ni movimiento en el login.
+TEST_F(ModelTextureSlotsGoldenTest, TheCloudTextureMatchesTheNativeSlot)
+{
+    const auto dump = DumpFile(Client::Tests::LorenciaCapture, "lor_slots.bin");
+    ASSERT_TRUE(dump.has_value());
+    const auto table = ReadFileBytes(*dump);
+    ASSERT_TRUE(table.has_value());
+    constexpr std::size_t SlotBytes = 0x38;
+    constexpr std::size_t NameBytes = 0x20;
+    constexpr TextureSlot CloudSlot{0x622};
+    ASSERT_EQ(table->size(), Client::Render::OriginalTextureSlotCount * SlotBytes);
+    const char* record = table->data() + (CloudSlot.value * SlotBytes);
+    const std::string_view name(record, NameBytes);
+    EXPECT_TRUE(name.substr(0, name.find('\0')).empty());
+    float width = 0.0f;
+    float height = 0.0f;
+    std::uint32_t components = 0;
+    std::memcpy(&width, record + 0x20, sizeof width);
+    std::memcpy(&height, record + 0x24, sizeof height);
+    std::memcpy(&components, record + 0x28, sizeof components);
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+    const auto uploaded = textures.Find(CloudSlot);
+    ASSERT_TRUE(uploaded.has_value());
+    EXPECT_EQ(static_cast<float>(uploaded->texture.textureWidth), width);
+    EXPECT_EQ(static_cast<float>(uploaded->texture.textureHeight), height);
+    EXPECT_EQ(uploaded->texture.format == Client::Data::Textures::PixelFormat::Rgba ? 4u : 3u, components);
+}
 
 // El nombre de cada slot de 0x12e a 0x370, como lo dejan 0x60f7d0 y 0x611850, y de 0x3b8 a 0x3ca, como
 // los deja 0x615700 desde su 0x60d530(0x3b8) hasta el cuervo (0xc0, la quinta llamada, CL7.6 C), contra

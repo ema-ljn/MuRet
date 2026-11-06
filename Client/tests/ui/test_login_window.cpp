@@ -18,6 +18,7 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // Client::UI::LoginWindow: la ventana de la cuenta (0x6415c0, 0x641700, 0x641990 y 0x6418b0, en el
@@ -42,6 +43,9 @@ using Client::UI::Rect;
 
 constexpr PixelSize Screen640{640, 480};
 constexpr PixelSize Screen1024{1024, 768};
+// Dos ciclos de las 24 llamadas del control original, para rechazar también un glifo intermitente.
+// No verifica el caret rectangular ni un parpadeo basado en tiempo.
+constexpr int RepeatedDrawCount = 48;
 
 Client::UI::TextureSizes LabSizes()
 {
@@ -401,10 +405,11 @@ TEST(LoginWindowTest, AClosedWindowTakesNothing)
     EXPECT_EQ(window.Account().Value(), "");
 }
 
-// 0x641990 y 0x553ae0: la clave se dibuja con asteriscos, nunca con lo tecleado; los rótulos 450 y
+// 0x641990: la clave se dibuja con asteriscos, nunca con lo tecleado; los rótulos 450 y
 // 451 en (+30, +113) y (+30, +139) y el título en (+111, +80), con la fuente DAT_05763560 en
-// blanco; los campos en (+6, +6) con el color 0xffd2e6ff. Todo pasa a 640 × 480 con DesignX y
-// DesignY: en 640 × 480, lo mismo.
+// blanco. El inset (+6, +6) y el color 0xffd2e6ff conservan la presentación previa de MuRet,
+// pendiente de contrastar con la configuración del EDIT activo; este test no prueba igualdad
+// visual. Todo pasa a 640 × 480 con DesignX y DesignY: en 640 × 480, lo mismo.
 TEST(LoginWindowTest, ThePasswordIsDrawnAsStars)
 {
     const auto texts = Client::Tests::MakeTextTable({{450, "Account"}, {451, "Password"}});
@@ -425,21 +430,74 @@ TEST(LoginWindowTest, ThePasswordIsDrawnAsStars)
         drawn.push_back(recorded.text);
         EXPECT_EQ(recorded.text.find("pass0002"), std::string::npos);
     }
-    EXPECT_EQ(drawn, (std::vector<std::string>{"user0001", "********", "_", "Account", "Password", "Title"}));
+    ASSERT_EQ(drawn, (std::vector<std::string>{"user0001", "********", "Account", "Password", "Title"}));
     EXPECT_EQ(text.texts[0].x, 270);
     EXPECT_EQ(text.texts[0].y, 268);
     EXPECT_EQ(text.texts[0].style.colors.text, 0xffd2e6ffu);
     EXPECT_EQ(text.texts[1].y, 293);
-    // El cursor, en el campo con el foco, detrás de lo que tiene: 8 asteriscos de 6 columnas.
-    EXPECT_EQ(text.texts[2].x, 270 + 48);
-    EXPECT_EQ(text.texts[2].y, 293);
-    EXPECT_EQ(text.texts[3].x, 185);
-    EXPECT_EQ(text.texts[3].y, 269);
-    EXPECT_EQ(text.texts[3].style.font, Client::Render::Text::FontKind::OtherFace12);
-    EXPECT_EQ(text.texts[3].style.colors.text, 0xffffffffu);
-    EXPECT_EQ(text.texts[4].y, 295);
-    EXPECT_EQ(text.texts[5].x, 266);
-    EXPECT_EQ(text.texts[5].y, 236);
+    EXPECT_EQ(text.texts[2].x, 185);
+    EXPECT_EQ(text.texts[2].y, 269);
+    EXPECT_EQ(text.texts[2].style.font, Client::Render::Text::FontKind::OtherFace12);
+    EXPECT_EQ(text.texts[2].style.colors.text, 0xffffffffu);
+    EXPECT_EQ(text.texts[3].y, 295);
+    EXPECT_EQ(text.texts[4].x, 266);
+    EXPECT_EQ(text.texts[4].y, 236);
+}
+
+// El selector activo de 0x641990 llama a 0x469350 → 0x468320: su caret es una región
+// rectangular del bitmap, nunca el glifo "_" del camino legacy 0x553ae0.
+TEST(LoginWindowTest, EmptyFieldsDoNotEmitACaretGlyph)
+{
+    for (const auto focus : {LoginFocus::Account, LoginFocus::Password})
+    {
+        LoginWindow window(LabSizes(), nullptr);
+        window.Open(focus);
+        for (int draw = 0; draw < RepeatedDrawCount; ++draw)
+        {
+            Client::Render::SpriteBatch batch;
+            batch.Begin(Screen640);
+            Client::Tests::RecordingTextDrawer text(batch);
+
+            window.Draw(batch, text, Screen640);
+
+            ASSERT_TRUE(text.texts.empty());
+        }
+    }
+}
+
+TEST(LoginWindowTest, EditingPreservesLiteralUnderscoresWithoutAddingACaretGlyph)
+{
+    for (const std::string_view account : {"user_01", "user_", "_"})
+    {
+        LoginWindow window(LabSizes(), nullptr);
+        window.Open(LoginFocus::Account);
+        InputState input;
+        TypeText(input, std::string(account));
+        StepOnce(window, input);
+        TapKey(input, Key::Tab);
+        StepOnce(window, input);
+        TypeText(input, "_");
+        StepOnce(window, input);
+
+        for (const auto focus : {LoginFocus::Password, LoginFocus::Account})
+        {
+            ASSERT_EQ(window.Focus(), focus);
+            for (int draw = 0; draw < RepeatedDrawCount; ++draw)
+            {
+                Client::Render::SpriteBatch batch;
+                batch.Begin(Screen640);
+                Client::Tests::RecordingTextDrawer text(batch);
+
+                window.Draw(batch, text, Screen640);
+
+                ASSERT_EQ(text.texts.size(), 2u);
+                EXPECT_EQ(text.texts[0].text, account);
+                EXPECT_EQ(text.texts[1].text, "*");
+            }
+            TapKey(input, Key::Tab);
+            StepOnce(window, input);
+        }
+    }
 }
 
 // El lote llega con la aditiva (Q-C80): la ventana pone la normal. El fondo, los dos campos y los

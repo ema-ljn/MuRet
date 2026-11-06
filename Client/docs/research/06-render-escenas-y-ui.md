@@ -2118,6 +2118,19 @@ CL4.R). Si no, el aviso `0x70`. Con la versión distinta, cierra la ventana de l
   blanco y sin fondo, y el título, el texto 460 o 461 (según `0x447c70(grupo, número)`) con el
   nombre del grupo y el número, en (x + 111, y + 80). Las posiciones en píxeles pasan a 640 × 480
   dividiendo por la proporción y truncando (`ftol`), y `0x554000` las vuelve a escalar.
+- **El caret del control activo** (barrido estático del PE `c32bbd5f`, 2026-11-06):
+  `0x6419c2` consulta el selector `0x6c7b8c`, inicializado en 1 en este PE. En ese modo llama
+  a `0x469350`, cuyos dos dispatch virtuales llegan a `0x468320`, uno por campo. El literal
+  `_` de `0x553ae0` pertenece al camino legacy del selector 0; no corresponde añadirlo al
+  texto del login activo. Los 1.613 bytes de `0x468320` se cotejaron con el PE sin diferencias.
+  El control activo sí compone un caret rectangular sobre su bitmap: `GetFocus() == hwnd`
+  y el resto **signed** de su contador por 24 menor que 12. El contador avanza por llamada
+  con HWND válido y visible, también sin foco; no usa un temporizador. Con IME desactivado,
+  el ancho es `1,5f`: los límites X estrictos dejan una columna en `caret.x + 1`; Y va desde
+  `caret.y` inclusive hasta `caret.y + altura` exclusivo. La altura se mide con `Q` y queda
+  cacheada. No es un glifo ni forma parte de la cuenta o la clave. Colores y fuentes efectivos,
+  recorte y composición del EDIT requieren sus contratos de configuración; retirar el `_`
+  artificial de MuRet no completa por sí solo la reproducción de ese bitmap.
 - **El emisor** (`0x641bf0`): solo con `DAT_057678c0` distinto de 0. Cierra la ventana de arriba,
   copia los campos a `0x7798bf8` (cuenta) y `0x7798cf8` (clave) con un tope de `0xff` (`0x4693e0`);
   con la cuenta vacía abre el aviso `0x64` y con la clave vacía el `0x65`; con el estado en 2 copia

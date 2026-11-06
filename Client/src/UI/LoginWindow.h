@@ -90,7 +90,9 @@ public:
     // vacía en la ventana; con Cancel, también; con EmptyAccount queda, como el emisor la deja.
     std::optional<LoginRequest> Step(const Input::InputState& input, App::PixelSize screen);
     // Pone la mezcla normal (Q-C80) y dibuja el fondo, los campos, los botones, lo que tiene cada
-    // campo (la clave con asteriscos) con el cursor en el del foco, los rótulos y el título.
+    // campo (la clave con asteriscos), los rótulos y el título. El control activo del original
+    // (0x468320) compone el caret como píxeles; no agrega el glifo "_" del camino legacy.
+    // MuRet todavía no reproduce ese caret rectangular: el foco conserva la edición, sin señal visual.
     void Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, App::PixelSize screen);
 
 private:
@@ -101,8 +103,7 @@ private:
     void Place(App::PixelSize screen);
     LoginRequest Send();
     LoginRequest Cancel();
-    void DrawField(Scenes::ITextDrawer& text, const TextField& field, const Rect& area, bool focused,
-                   App::PixelSize screen) const;
+    void DrawField(Scenes::ITextDrawer& text, const TextField& field, const Rect& area, App::PixelSize screen) const;
 
     TextureSizes m_sizes;
     const Data::Text::TextTable* m_texts;

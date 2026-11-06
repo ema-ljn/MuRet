@@ -2732,7 +2732,9 @@ incluidas las cámaras de las escenas 2 y 4, el desvío de los efectos y la rama
 Se comparan todos los campos de la cámara y del estado bit a bit con 3.000 frames del código real
 emulado (60 casos, cinco semillas; [`vectores`](../../tests/vectors/game/README.md)). El giro inverso
 se contrasta además con 403 salidas de `0x5fcc30` real, incluidas tres cancelaciones que observan
-el orden de sumas, sin usar la fórmula C++ como expectativa. El pase y las
+el orden de sumas, sin usar la fórmula C++ como expectativa. Seis casos analíticos, dos por
+componente, detectan las dos asociaciones alternativas: los tres casos históricos por sí solos
+no detectaban todas. El pase y las
 329 celdas recortadas de Lorencia usan ahora la cámara calculada desde el héroe de la traza, sin
 copiar su posición de la expectativa. `GameCameraOf` conserva la D usada antes del suavizado, el
 zoom y el far, y reconstruye el dibujo con el héroe del último paso lógico sin otro avance. La
@@ -2765,6 +2767,15 @@ El recorrido `CCameraMove`, la vista superior muerta y los accesos protegidos no
 esta equivalencia; sus exclusiones y la sub-ola que los cubre están arriba. Los valores iniciales
 se toman del contrato de inicialización; este contraste es de la función de cámara.
 
+El objetivo de efectos se decide en el callee `0x44dc60`, cuyos 130 bytes se contrastaron con
+el PE. Compara X, Y y Z con `+0` mediante `FCOMP`, y prueba solo C3 (`TEST AH,40`), sin C2.
+Una componente ordenada distinta de cero elige el vector global, incluso si solo Z es distinta
+de cero; los ceros negativos conservan el héroe. Con invalid-operation enmascarada, un NaN
+también deja C3=1: por sí solo no elige el vector global. El predicado portable usa comparaciones
+ordenadas y los tests cubren esos casos en `StepGameCamera` y `GameCameraOf`. Esta equivalencia
+es del valor seleccionado; no acredita las excepciones sin enmascarar ni los payloads de NaN
+que atraviesan `FLD/FSTP`. La función original no configura su CW.
+
 **Límite de la comparación x87 (revisión cruzada, CL7.3 A).** El balanceo del mapa 5 usa
 `std::sin` en MuRet. Con los relojes float `0x4f0d7740`, `0x4f2f0344` y `0x4f5ac415`, Unicorn y
 MuRet coinciden en Y (`0x393da1cd`, `0x33b96bb5`, `0x33e7c6a2`), pero una reproducción local de
@@ -2773,6 +2784,13 @@ cálculo aislado en el host de revisión, no una captura del cliente original en
 los vectores prueban equivalencia al oráculo emulado en esas entradas; no garantizan la misma
 aproximación trascendental en todo hardware. P-C29 a queda abierto para capturar también estos
 relojes y el resultado de `FSIN` en el original, antes de cambiar su aproximación portable.
+
+La fuente oficial de [Unicorn 2.1.4, `fpu_helper.c`](https://github.com/unicorn-engine/unicorn/blob/8028ec436f2d9376525352dd38ed9ed6b9f6be10/qemu/target/i386/fpu_helper.c#L966)
+explica el límite del oráculo: `helper_fsin` y `helper_fcos` convierten el operando x80 a double,
+llaman a `sin`/`cos` de C y convierten el resultado a x80. El pin de versión no fija el hash del
+artefacto instalado ni su libm. No se regeneraron los fixtures durante esta revisión; su
+concordancia sigue siendo una regresión histórica, junto al contraste ASM y a las observaciones
+nativas descritas abajo.
 
 **Observación nativa en XP (2026-11-05).** Se verificó el SHA c32bbd5f del archivo del cliente
 abierto y las firmas de cámara/inversa en su proceso. Tres posiciones estacionarias del héroe,

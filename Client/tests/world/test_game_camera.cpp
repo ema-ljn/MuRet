@@ -2,6 +2,7 @@
 
 #include "Render/Pass3D.h"
 #include "World/TerrainCulling.h"
+#include "support/HexFloatFixture.h"
 #include "support/WorldObjectVectors.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -15,6 +16,8 @@
 #include <filesystem>
 #include <fstream>
 #include <ios>
+#include <istream>
+#include <limits>
 #include <sstream>
 #include <string>
 
@@ -185,6 +188,60 @@ TEST(GameCameraTest, TheEffectTargetMovesOnlyTheHorizontalPosition)
     EXPECT_EQ(camera.position.z, 1015.0f);
 }
 
+TEST(GameCameraTest, ANonZeroEffectZSelectsTheGlobalTarget)
+{
+    GameCamera state;
+    auto input = Lorencia();
+    input.effectTarget = {0.0f, 0.0f, 1.0f};
+    const auto camera = StepGameCamera(state, input);
+    ExpectBits(camera.position.x, 0x4430c6d5u);
+    ExpectBits(camera.position.y, 0xc430c6d5u);
+    EXPECT_EQ(camera.position.z, 1015.0f);
+    ExpectSameCamera(GameCameraOf(state, input), camera);
+}
+
+TEST(GameCameraTest, NegativeZeroInTheEffectKeepsTheHeroTarget)
+{
+    GameCamera referenceState;
+    const auto expected = StepGameCamera(referenceState, Lorencia());
+    GameCamera state;
+    auto input = Lorencia();
+    input.effectTarget = {-0.0f, -0.0f, -0.0f};
+    const auto camera = StepGameCamera(state, input);
+    ExpectSameCamera(camera, expected);
+    ExpectSameCamera(GameCameraOf(state, input), expected);
+}
+
+// 0x44dc60 prueba C3 sin C2: unordered conserva el héroe con invalid enmascarada.
+TEST(GameCameraTest, AnUnorderedEffectComponentAloneKeepsTheHeroTarget)
+{
+    constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
+    constexpr std::array<glm::vec3, 3> Effects{{{NaN, 0.0f, 0.0f}, {0.0f, NaN, 0.0f}, {0.0f, 0.0f, NaN}}};
+    GameCamera referenceState;
+    const auto expected = StepGameCamera(referenceState, Lorencia());
+    for (const auto& effect : Effects)
+    {
+        GameCamera state;
+        auto input = Lorencia();
+        input.effectTarget = effect;
+        const auto camera = StepGameCamera(state, input);
+        ExpectSameCamera(camera, expected);
+        ExpectSameCamera(GameCameraOf(state, input), expected);
+    }
+}
+
+TEST(GameCameraTest, AnOrderedNonZeroEffectStillSelectsTheGlobalTargetWithNaNZ)
+{
+    GameCamera state;
+    auto input = Lorencia();
+    input.effectTarget = {0.0f, 125.0f, std::numeric_limits<float>::quiet_NaN()};
+    const auto camera = StepGameCamera(state, input);
+    ExpectBits(camera.position.x, 0x4430c6d5u);
+    ExpectBits(camera.position.y, 0xc41186d5u);
+    EXPECT_EQ(camera.position.z, 1015.0f);
+    ExpectSameCamera(GameCameraOf(state, input), camera);
+}
+
 TEST(GameCameraTest, GameCameraOfBeforeTheFirstStepKeepsTheInitialState)
 {
     GameCamera state;
@@ -272,9 +329,7 @@ TEST(GameCameraTest, TheRepeatedCameraReadsTheCurrentEffectAndHeight)
 
 float NextFloat(std::istringstream& words)
 {
-    std::string word;
-    words >> word;
-    return std::bit_cast<float>(static_cast<std::uint32_t>(std::stoul(word, nullptr, 16)));
+    return Client::Tests::ReadHexFloat(words);
 }
 
 glm::vec3 NextVector(std::istringstream& words)
@@ -294,7 +349,7 @@ TEST(GameCameraVectorsTest, EachFrameMatchesTheRealCode)
     ASSERT_EQ(line, "camera 2");
     GameCamera state;
     GameCameraInput input{};
-    std::size_t cases = 0, frames = 0;
+    std::size_t cases = 0, frames = 0, caseFrames = 0;
     while (std::getline(file, line) && line != "end")
     {
         SCOPED_TRACE(line);
@@ -303,8 +358,15 @@ TEST(GameCameraVectorsTest, EachFrameMatchesTheRealCode)
         words >> tag;
         if (tag == "case")
         {
+            if (cases != 0)
+            {
+                ASSERT_EQ(caseFrames, 50u);
+            }
             unsigned seed = 0, map = 0, scene = 0;
             words >> seed >> map >> scene;
+            ASSERT_FALSE(words.fail());
+            ASSERT_LE(map, 255u);
+            ASSERT_TRUE(scene == 2 || scene == 4 || scene == 5);
             state = {};
             state.distance = NextFloat(words);
             state.zoom = NextFloat(words);
@@ -313,15 +375,22 @@ TEST(GameCameraVectorsTest, EachFrameMatchesTheRealCode)
             state.farPlane = NextFloat(words);
             state.fixedHeight = NextFloat(words);
             state.targetDistance = NextFloat(words);
+            ASSERT_FALSE(words.fail());
+            ASSERT_TRUE((words >> std::ws).eof());
             input.map = static_cast<std::uint8_t>(map);
             input.scene = static_cast<CullingScene>(scene);
             ++cases;
+            caseFrames = 0;
             continue;
         }
         ASSERT_EQ(tag, "frame");
+        ASSERT_GT(cases, 0u);
+        ASSERT_LT(caseFrames, 50u);
         input.hero = NextVector(words);
         unsigned attr = 0;
         words >> std::hex >> attr >> std::dec;
+        ASSERT_FALSE(words.fail());
+        ASSERT_LE(attr, 255u);
         input.cellAttribute = static_cast<std::uint8_t>(attr);
         input.shake = NextFloat(words);
         input.worldTime = NextFloat(words);
@@ -338,6 +407,7 @@ TEST(GameCameraVectorsTest, EachFrameMatchesTheRealCode)
         expected.fieldOfView = NextFloat(words);
         expected.nearPlane = NextFloat(words);
         ASSERT_FALSE(words.fail());
+        ASSERT_TRUE((words >> std::ws).eof());
         const float frameDistance = state.distance;
         const auto actual = StepGameCamera(state, input);
         ASSERT_TRUE(state.lastFrameDistance);
@@ -352,8 +422,11 @@ TEST(GameCameraVectorsTest, EachFrameMatchesTheRealCode)
         ExpectBits(state.farPlane, std::bit_cast<std::uint32_t>(far));
         ExpectBits(state.fixedHeight, std::bit_cast<std::uint32_t>(height));
         ++frames;
+        ++caseFrames;
     }
     EXPECT_EQ(line, "end");
+    EXPECT_EQ(caseFrames, 50u);
+    EXPECT_TRUE((file >> std::ws).eof());
     EXPECT_EQ(cases, 60u);
     EXPECT_EQ(frames, 3000u);
 }

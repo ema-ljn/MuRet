@@ -446,6 +446,18 @@ P1..Pk  = los pasos, de a dos nibbles, el alto primero (el 1 en el alto de P1, e
   segmento de las 13:27:37 de la conexión 6 (*verificado*). En el cable hay 229 `A3`, con 0 a 6
   pasos (51 de 0: los giros antes de pegar).
 
+**Precisión y conversión del ángulo, contraste CL7.4 B** (*estático*, build `c32bbd5f`):
+`0x56b0b7..0x56b0cc` suma 22,5, multiplica por el float de bits `3cb60b61` y suma 1,
+sin guardar floats intermedios. El helper `0x69fd3c` guarda la CW, fuerza RC=11 en
+`0x69fd4b`, ejecuta **`FISTP m64int`** en `0x69fd55`, restaura la CW y devuelve EDX:EAX.
+Así se confirma truncamiento a entero de 64 bits en la ruta completada, sin atribuir al
+original las validaciones de NaN o fuera de rango de la API de MuRet. El helper conserva PC;
+la precisión de las operaciones anteriores depende de la CW heredada. Una muestra nativa
+del hilo de MU observó `0x027f` (PC53, nearest), con EIP `0x7c90e4f4`, **fuera de SendMove**.
+El cálculo double del port es conforme bajo PC53/nearest; falta comprobar la CW en esa rama
+para cerrar la equivalencia nativa incondicional. Los tests del dominio double están
+identificados como contrato numérico del port, y no como ejecuciones del original.
+
 **El `D7` del cliente, pegar** (`0x5650c0`, el opcode en `0x565a79`; *verificado* en el cable): `C1
 07 D7 idH idL 78 dir`. Antes de pegar, `0x5650c0` manda un `D3` con `PathNum` 1 para girar (`A3 X Y
 d0` en el cable, 51 veces). FoxAnti lo manda como `A4`
@@ -455,6 +467,11 @@ d0` en el cable, 51 veces). FoxAnti lo manda como `A4`
 `muproxy.log`, todos de 8 bytes). El servidor contesta cada `A3` con un `D3` del héroe con la celda
 final del camino que le mandaron y la dirección de `P0` (*verificado*: los 212 ecos que se
 encuentran en el cable). Qué hace el cliente con él, en [06](06-render-escenas-y-ui.md#caminar).
+
+El contraste estático de CL7.4 B confirma que `0x4c6798..0x4c67a9` arma el ID BE
+**completo**, sin `& 0x7fff`, y lo entrega así al lookup `0x5110d0`. La dirección se carga
+en `0x4c67d4` y se desplaza cuatro bits en `0x4c67dc`, sin `& 7`: el nibble `f` conserva
+15. Esto fija el lector puro; no demuestra cómo el lookup resuelve un ID desconocido.
 
 **El `D7` del servidor, el daño** (`0x4caae0`): `C1 08 D7 idH|f idL dañoH dañoL t`. El personaje es
 `id & 0x7fff`, el bit 15 (f) es el "golpe con sacudida", el daño es `pkt[5] · 256 + pkt[6]`, el tipo

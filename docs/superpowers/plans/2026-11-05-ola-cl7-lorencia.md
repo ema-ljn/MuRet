@@ -162,7 +162,7 @@ si no choca con eso; si choca, queda para más adelante.
 | CL7.L4 | la luz dinámica del terreno y el pasto | |
 | CL7.L5 | lo vivo: las hojas, los pájaros, los peces, los fuegos, la fuente | Lorencia viva |
 | CL7.4 A | el mapa de paredes vivo y el camino (el A* de `0x4ead70`) | |
-| CL7.4 B | el paquete de caminar (`D3`) y los `D3`/`D7` que llegan | |
+| CL7.4 B | el paquete de caminar (`D3`) y los `D3`/`D7` que llegan | implementado y revisado; CI pendiente |
 | CL7.4 C | el paso entre celdas (el spline, la velocidad, correr) | |
 | CL7.4 D | el picking del terreno | |
 | CL7.4 E | caminar en la escena, con el recorte de los personajes | **se camina por Lorencia** |
@@ -314,6 +314,28 @@ agrupación y únicos guardados float; copiar literalmente el pseudocódigo reor
 el alcance incluido; la tabla de correspondencia queda en 06 § La cámara del juego. La CL7
 completa sigue abierta: el cierre exige el barrido de todas sus funcionalidades en pasadas
 complementarias, según el pedido de Emanuel registrado en `AGENTS.md`.
+
+La auditoría adicional solicitada para el PR 138, con Opus 5.5 xhigh y Astra 6 Ultra, encontró
+que los tres casos de cancelación no detectaban las dos asociaciones alternativas de cada
+componente. Se conservan los 403 fixtures históricos y se agregan tres casos analíticos:
+las seis alternativas mutantes fallan. También se quitó el bucle inverso que repetía la fórmula
+de producción y se endureció la lectura de bits del fixture, sin restringir las matrices 3 × 4.
+El contraste de los 130 bytes de `0x44dc60` descubrió que prueba C3 sin C2: se corrigió la
+selección del objetivo ante NaN con excepciones enmascaradas y se cubrieron Z aislada y −0.
+Las constantes nombradas conservan los tipos, bits, agrupación y límites de redondeo. La fuente
+de Unicorn 2.1.4 confirma que su FSIN/FCOS usa double y `sin`/`cos` de C; esos fixtures siguen
+siendo regresiones históricas, sin nueva ejecución de emulación ni afirmación de equivalencia
+x87 nativa universal. La evidencia y los límites quedan en 06 § La cámara del juego.
+
+Las revisiones finales de Opus 5.5 xhigh y Astra 6 Ultra no dejaron P1/P2 abiertos. El control
+positivo del detector de salida descubrió que fortify podía eludir `--wrap=printf`; el harness
+ahora lo comprueba y cubre los errores previos a la suspensión. El informe admite una cadencia
+indeterminada sin dejar el Markdown incompleto. Son 44 tests de herramientas, 26 numéricos
+focales y la suite completa de 2.255 casos registrados, cero fallos y 30 omisiones opcionales.
+Los tres lectores migrados a C++20 terminaron con código 0 en XP: cámara coincidente, serie
+de 2.250 muestras completa y un único incremento de suspensión retirado. La recuperación
+conserva la propiedad del handle cuando CloseHandle falla; descartamos la propuesta de
+abandonarlo, porque un fallo no acredita que se haya cerrado. La CL7 completa sigue abierta.
 
 ## Sub-ola CL7.3 B: la cámara compartida
 
@@ -528,18 +550,31 @@ la fuente, el `0F`). PR propio. Se detalla al arrancar; lo que se sabe:
 ## Sub-ola CL7.4 B: el paquete de caminar y lo que llega
 
 **Contrato:** 04 (`D3` C->S y S->C, `D7` S->C es el daño) y 06 § Caminar (`SendMove` de `0x56acd0`). PR
-propio. Se detalla al arrancar; lo que se sabe:
+propio, apilado sobre CL7.3 A. Implementación pura, sin integrar clic, movimiento ni sesión.
 
 - **Qué:** `Protocol::Movement`: `WriteWalk(path, target, angle)` (`C1 len D3 X Y (dir << 4 | n − 1)` y los
   pasos de a dos nibbles, con XOR32 y sin C3; 15 celdas salen como 14; la dirección final por el blanco o, con
   una celda, por el ángulo), `WalkUpdateTimeMax(pathNum)` (0, 5 o 3 · n + 4), `ReadWalk` del `D3` S->C y
   `ReadDamage` del `D7` S->C (el id sin el bit 15, el bit, el daño y el tipo).
-- **Tests:** `MovementTest.MatchesTheEmulatedSendMove` (`make_walk_packet_vectors.py`, sobre
-  `game/walk/emu_send.py`, con `send` enganchado por el `stub_overrides` del emulador: `PathNum` de 1 a 15, todas las direcciones y los ángulos cada 0,5); `TheWireBytes`: el camino
-  (b6,73) … (b3,74) da `C1 08 D3 EC 23 E2 0B 08`, y con FoxAnti `C1 08 A3 9C 53 92 7B 78`;
-  `FifteenCellsAreSentAsFourteen`, `OneCellTakesTheDirectionFromTheAngle`,
-  `TheFinalDirectionPointsToTheTargetWhenItIsNextToTheEnd` (`C1 07 D3 A9 7E 21 30`, del cable),
-  `ReadWalkAndDamage` con los formatos del cable, sin ids reales.
+- [x] `Movement.h/.cpp` y 23 casos de `MovementTest`: cantidad local 1..15, wire limitado a 14,
+  todas las direcciones y nibbles, blanco respecto de la última celda transmitida, fallback al último
+  paso transmitido, restas sin wrap, tiempo sobre la cantidad local, rama exclusiva del ángulo,
+  lectores BE con IDs sintéticos asimétricos y bits independientes, truncados y bytes extra.
+- [x] Contraste estático de `0x56acd0` y constantes del PE `c32bbd5f`; se verificó además el helper
+  `0x69fd3c`: `0x69fd4b` fuerza truncamiento y `0x69fd55` usa `FISTP m64int`, con retorno EDX:EAX.
+  En el lector `0x4c6790`, `0x4c6798..0x4c67a9` mantiene el ID BE completo y `0x4c67dc` conserva
+  cuatro bits de dirección. El ASM prevalece sobre el pseudocódigo.
+- [x] Cable documentado: (b6,73) … (b3,74) da `C1 08 D3 EC 23 E2 0B 08`, y con FoxAnti
+  `C1 08 A3 9C 53 92 7B 78`. El blanco lejano del test es sintético y explícito: el cable no lo lleva.
+  Por el pedido nuevo de Emanuel, no se ejecutó el generador emulado antes propuesto.
+- [x] Revisiones cruzadas de Astra 6 Ultra y Opus 5.5 xhigh, y revisión de los arreglos. Se reforzaron
+  los casos de lectores y de celda/paso transmitidos; nueve mutantes fallan por sus aserciones.
+  La receta double es un contrato numérico declarado: una muestra nativa observó CW `0x027f`
+  fuera de `SendMove`. Falta observarla dentro de su aritmética para afirmar equivalencia nativa
+  incondicional (P-C30). Los casos estáticos no se presentan como ejecuciones nativas.
+- [x] Build sin PCH y con warnings como errores, formato e includes; 2.271 casos registrados en la
+  suite completa con GL/Mesa, trazas y cable: cero fallos y 30 omisiones opcionales.
+- [ ] Windows/MSVC y CI del PR en verde.
 
 ## Sub-ola CL7.4 C: el paso entre celdas
 

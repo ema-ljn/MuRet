@@ -25,6 +25,11 @@ mapa 5 permite observar el límite de equivalencia con `FSIN` x87 nativo: la rep
 sus instrucciones puede diferir un ULP de Unicorn y de `std::sin`. Esto queda abierto para la
 corrida del original en [P-C29](../../../docs/research/08-pendientes.md).
 
+En la fuente de [Unicorn 2.1.4](https://github.com/unicorn-engine/unicorn/blob/8028ec436f2d9376525352dd38ed9ed6b9f6be10/qemu/target/i386/fpu_helper.c#L966),
+FSIN/FCOS convierten x80 a double, usan `sin`/`cos` de C y convierten a x80. Estos fixtures son
+regresiones históricas del emulador; no prueban la aproximación trascendental de una CPU x87.
+La revisión actual no ejecutó los generadores ni cambió sus bits.
+
 ## Formato `camera 2`
 
 Los floats son sus 32 bits como ocho dígitos hexadecimales, incluso ceros con signo. El atributo va
@@ -74,6 +79,11 @@ con 2^70 para aislar la cancelación de cada componente. Hacen distinguible `(2^
 `(2^70 − 2^70) + 1`, que los vectores de la cámara, con x = z = 0, no pueden distinguir. Sus
 expectativas también salen del binario: no se usa una fórmula Python como oráculo. Los compara
 `tests/render/test_original_rotation.cpp`.
+
+El test agrega tres casos analíticos complementarios, sin modificar el archivo: los seis casos
+en conjunto detectan las dos asociaciones alternativas de cada componente. Los tres casos
+guardados por sí solos no las distinguían todas. El lector exige ocho dígitos por float y filas
+completas para impedir truncamientos diferentes entre Linux y Windows.
 
 | Renglón | Campos, en orden |
 | --- | --- |

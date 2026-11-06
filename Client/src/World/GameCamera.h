@@ -32,10 +32,12 @@ struct GameCameraInput
     std::uint8_t cellAttribute = 0;
     std::uint8_t map = 0;
     CullingScene scene = CullingScene::Game;
-    float shake = 0.0f;       // 0x7d325c8, ya reducido por los pasos lógicos.
-    float worldTime = 0.0f;   // 0x5767b88, en milisegundos, para el balanceo del mapa 5.
-    bool webzen = false;      // El nombre contiene "webzen" (0x576960).
-    glm::vec3 effectTarget{}; // 0x724588; (0, 0, 0) significa sin desvío.
+    float shake = 0.0f;     // 0x7d325c8, ya reducido por los pasos lógicos.
+    float worldTime = 0.0f; // 0x5767b88, en milisegundos, para el balanceo del mapa 5.
+    bool webzen = false;    // El nombre contiene "webzen" (0x576960).
+    // 0x724588/0x44dc60: elige el desvío si alguna componente es ordenada y distinta de cero.
+    // Con invalid enmascarada, ceros con signo y NaN por sí solos conservan el héroe.
+    glm::vec3 effectTarget{};
 };
 
 // 0x635ae0: un frame original dibujado, con el héroe del último paso lógico.

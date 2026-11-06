@@ -179,7 +179,7 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 | CL7.4 D | pendiente | rayo contra terreno, orden/caras, nearest y selección retenida en miss |
 | CL7.4 E | pendiente | clic → camino → D3 → movimiento; cooldowns, D3/D7 recibidos y recorte |
 | CL7.5 A | infraestructura genérica parcial | todas las familias de modelos/mapas, estados de carga y errores del Data original |
-| CL7.5 B | parsing/detección en trabajo local sin publicar | recuperar, adaptar a main, revisar y verificar; conectar sesión/RNG/efectos |
+| CL7.5 B | carga/decisión pura en [PR152](https://github.com/ema-ljn/MuRet/pull/152), draft | resolver revisión actual y CI; conectar caller/tiempo lazy/sesión/efectos |
 | CL7.5 C | componente puro integrado por [PR140](https://github.com/ema-ljn/MuRet/pull/140) | espera de warp y aplicación en escena después de L1 |
 | CL7.5 D | pendiente | carga dentro del paso, retención, limpieza selectiva, reconstrucción y vuelta por gates |
 | CL7.5 E | parcial en componentes de cámara/terreno | aplicar y validar las familias de otros mapas en su frame completo |
@@ -194,6 +194,8 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
   Lorencia; continúan los otros estados, poses, paso y dibujo de L2.
 - [PR151](https://github.com/ema-ljn/MuRet/pull/151): incremento modular definido del contador lógico
   con lectura firmada; CL7.P conserva los contratos pendientes de fase/estado inicial/nesting/RNG.
+- [PR152](https://github.com/ema-ljn/MuRet/pull/152), draft: carga obligatoria de `Gate.bmd` y decisión
+  pura de gates; la revisión actual y el CI siguen en curso. Caller y tiempo lazy quedan pendientes.
 
 Los resultados de CI y el estado de revisión se consultan en cada PR. Estas entregas no equivalen
 al cierre de L1, L2 ni P. La corrección documental de fase del PR144 se recupera en este roadmap:

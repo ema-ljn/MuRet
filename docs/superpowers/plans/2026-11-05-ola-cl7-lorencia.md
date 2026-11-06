@@ -157,12 +157,12 @@ si no choca con eso; si choca, queda para más adelante.
 | CL7.3 B | la cámara compartida: el login y la selección por `0x635ae0`, y la altura del `0x40` | |
 | CL7.P | las variables protegidas y sus `rand()` (`0x57630c8`), con el contador del login completo | |
 | CL7.L1 | la entrada al mundo y el pase del juego: el terreno de Lorencia desde el héroe | se ve Lorencia |
-| CL7.L2 | los modelos con nombre y los objetos de Lorencia, en el orden de `0x6371a0` | |
+| CL7.L2 | los modelos con nombre y los objetos de Lorencia, en el orden de `0x6371a0` | tabla de modelos y Bird/Fish implementados; objetos y pase pendientes |
 | CL7.L3 | el héroe parado: el equipo del `F3 10`, la acción de parado, la aparición | **Lorencia con el héroe parado** |
 | CL7.L4 | la luz dinámica del terreno y el pasto | |
 | CL7.L5 | lo vivo: las hojas, los pájaros, los peces, los fuegos, la fuente | Lorencia viva |
 | CL7.4 A | el mapa de paredes vivo y el camino (el A* de `0x4ead70`) | |
-| CL7.4 B | el paquete de caminar (`D3`) y los `D3`/`D7` que llegan | implementado y revisado; CI pendiente |
+| CL7.4 B | el paquete de caminar (`D3`) y los `D3`/`D7` que llegan | integrado en main por PR #139; integración con la escena en CL7.4 E |
 | CL7.4 C | el paso entre celdas (el spline, la velocidad, correr) | |
 | CL7.4 D | el picking del terreno | |
 | CL7.4 E | caminar en la escena, con el recorte de los personajes | **se camina por Lorencia** |
@@ -418,6 +418,16 @@ barrido, y se detalla con lo que lea. Lo que se sabe:
 
 **Contrato:** 06 § Lo propio de Lorencia (la creación, el paso, `0x602ed0` y `0x6002e0` del mapa 0) y 05 (la
 tabla con nombre de `Object1`). PR propio. Se detalla al arrancar; lo que se sabe:
+
+**Entrega acotada de modelos:** `LorenciaModelFiles` conserva las 112 solicitudes de los 39 grupos
+de `0x619a21..0x619ea1`, con su orden, numeración y nombres literales. `WorldModels` carga y asigna
+Bird01 antes de Fish01 desde el slot `0x69`, reinicia el cursor en `0x41c` antes de los modelos con
+nombre y asigna sus texturas por ID ascendente. Con los slots de `GameModels` anteriores reutiliza
+las tres texturas ya cargadas y obtiene las 99 nuevas de `0x41c..0x47e`; el golden compara los 101
+nombres con `lor_slots.bin`. La carga aislada, sin esos slots anteriores, tiene otra asignación y
+se prueba por separado. La tabla se contrasta con el ASM; no se generan expectativas emuladas nuevas.
+Siguen pendientes las texturas comunes (`drop`, `wt`, `light`), la creación, el paso y el dibujo de los
+objetos, sus efectos y el pase completo de la escena. Esta entrega no cierra L2 ni CL7.5 A.
 
 - **Los modelos:** `WorldModels` con una tabla por mapa: la del 0 (los 112 con nombre de `0x619a10..0x619edf`, tipo ←
   nombre, como dato), los especiales desde `0x69` (`0xad` `Bird01`, `0xb2` `Fish01`), `Object8\wt00..31` en

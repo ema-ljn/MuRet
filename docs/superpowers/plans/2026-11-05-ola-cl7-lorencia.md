@@ -55,6 +55,17 @@ cable) están en `Client/docs/research/scripts/game/`, y las herramientas para l
   `F3 12`, `0F` y `A3`. Nunca el chat, el `F3 03` que sale, las listas de personajes, el C2 `12`, el `02`, el
   `F3 01` ni el `F3 02`.
 
+### Autoridad para continuar (pedido de Emanuel, 2026-11-05)
+
+Emanuel autorizó continuar todas las CL7.x mientras está ausente y pidió fidelidad al binario,
+**sin inferencias ni nuevas emulaciones**. Las tareas que proponían generar expectativas con
+Unicorn se ejecutan ahora con el ASM contrastado y evidencia del cliente original. Los fixtures
+emulados ya existentes conservan su procedencia como regresiones; no se presentan como
+capturas nativas. Un contrato todavía inferido se verifica estáticamente de forma concluyente
+o con una observación real antes de implementarlo como hecho. El cliente vivo sigue disponible.
+Cada sub-ola mantiene las revisiones adversariales de Astra 6 Ultra y Claude Opus 5.5 xhigh,
+además de los checks y CI. Esto no da por terminada ninguna funcionalidad pendiente.
+
 ## El entorno
 
 Lo que necesita un agente para ejecutar el plan, y de dónde sale cada cosa: el detalle está en
@@ -183,13 +194,13 @@ bit a bit con el héroe en (14.350; 12.050; 165). PR propio.
   con la transpuesta de la parte de giro, en double y cada componente guardada en float, en el orden de
   sumas del binario: `x' = (m8·z + m4·y) + x·m0`, `y' = (m1·x + m9·z) + m5·y`, `z' = (m2·x + m10·z) + m6·y`.
 
-- [ ] **Paso 1:** test `OriginalRotationTest.TheInverseRotateSumsLikeTheBinary`: con
+- [x] **Paso 1:** test `OriginalRotationTest.TheInverseRotateSumsLikeTheBinary`: con
   `OriginalAngleMatrix({0, 0, -45})` y (0, −1.000, 0), sumado al héroe (14.350; 12.050) y guardado en float,
   da los bits `0x466b446d` y `0x46313b93` (los de la traza); y los casos de `world55/rotation.txt` con la
   transpuesta, contra una cuenta en double hecha a mano en el test.
-- [ ] **Paso 2:** verlo fallar (la función no existe).
-- [ ] **Paso 3:** escribir `OriginalVectorIRotate`.
-- [ ] **Paso 4:** verlo pasar, con `test_original_rotation` entero. Commit.
+- [x] **Paso 2:** verlo fallar (la función no existe).
+- [x] **Paso 3:** escribir `OriginalVectorIRotate`.
+- [x] **Paso 4:** verlo pasar, con `test_original_rotation` entero. Commit.
 
 ### Tarea 2: los vectores de `0x635ae0`
 
@@ -199,14 +210,14 @@ bit a bit con el héroe en (14.350; 12.050; 165). PR propio.
 - Crear: `Client/tests/vectors/game/camera.txt` y `Client/tests/vectors/game/README.md` (como el de
   `world55/`)
 
-- [ ] **Paso 1:** el generador corre `0x635ae0` real, frame por frame, con unos 3.000 frames en casos al
+- [x] **Paso 1:** el generador corre `0x635ae0` real, frame por frame, con unos 3.000 frames en casos al
   azar (cinco semillas): el héroe, el byte del atributo de su celda (0, `0x01`, `0x40`, `0x80` y `0xc0`), el
   temblor, el reloj, el mapa (0, 2, 3, 5, 6 y `0x1e`), la escena (2, 4 y 5), "webzen" en el 6 (prendido y
   apagado), la D y el zoom de entrada, y los bordes del rectángulo del far (16.100, 19.000, 18.900 y 21.700,
   ±0,01). Cada frame lleva la entrada y la
   salida en hexadecimal: posición, ángulos, far, D, meta, zoom, nivel y la altura del `0x40`.
-- [ ] **Paso 2:** correrlo con `MURET_MAIN_EXE` y guardar `camera.txt`, con su README.
-- [ ] **Paso 3:** commit.
+- [x] **Paso 2:** correrlo con `MURET_MAIN_EXE` y guardar `camera.txt`, con su README.
+- [x] **Paso 3:** commit.
 
 ### Tarea 3: `World::GameCamera`
 
@@ -239,7 +250,7 @@ bit a bit con el héroe en (14.350; 12.050; 165). PR propio.
     `rand()` en el dibujo: lo agrega la CL7.P, con la celda del héroe de la L1.
   - El recorrido de `0xBD 00` (`CCameraMove`) no va: el `.h` lo dice, con su dirección.
 
-- [ ] **Paso 1:** los tests:
+- [x] **Paso 1:** los tests:
   - `GameCameraTest.TheCameraOfLorenciaIsTheOneInTheTrace`: el héroe (14.350; 12.050; 165), el atributo
     `0x01`, el mapa 0 y la escena 5 dan la posición con los bits `0x466b446d`, `0x46313b93` y `0x447dc000`,
     los ángulos (−48,5; 0; −45), el far 2.000, el fov 35 y el near 20;
@@ -248,9 +259,9 @@ bit a bit con el héroe en (14.350; 12.050; 165). PR propio.
     `TheFarIs3000InsideTheRectangleOnAnyMap` (los cuatro bordes adentro y ±0,01 afuera, en el mapa 0 y en
     el 3), `TheFarUsesTheLevelOfTheFrameBefore`, `TheDistanceSettlesAt0x447a0001` (desde 1.400),
     `TheShakeAddsToThePitch` y `GameCameraOfRepeatsTheLastStep`.
-- [ ] **Paso 2:** verlos fallar.
-- [ ] **Paso 3:** escribir `GameCamera`.
-- [ ] **Paso 4:** verlos pasar; los mutantes del barrido (el signo del zoom, el −150, el orden de las sumas
+- [x] **Paso 2:** verlos fallar.
+- [x] **Paso 3:** escribir `GameCamera`.
+- [x] **Paso 4:** verlos pasar; los mutantes del barrido (el signo del zoom, el −150, el orden de las sumas
   de `0x5fcc30`, la D vieja contra la nueva) tienen que romper alguno. Commit.
 
 ### Tarea 4: la traza de Lorencia con la cámara calculada
@@ -258,14 +269,71 @@ bit a bit con el héroe en (14.350; 12.050; 165). PR propio.
 **Archivos:**
 - Modificar: `Client/tests/render/test_golden_pass_3d_trace.cpp`, `Client/tests/world/test_golden_terrain_trace.cpp`
 
-- [ ] **Paso 1:** `GoldenPass3DTrace.TheLorenciaWorldPassMatches` y los dos de `GoldenTerrainTrace` de
+- [x] **Paso 1:** `GoldenPass3DTrace.TheLorenciaWorldPassMatches` y los dos de `GoldenTerrainTrace` de
   Lorencia toman la cámara de `StepGameCamera` con el héroe de la traza, no la escrita a mano.
-- [ ] **Paso 2:** verlos pasar (y fallar con el yaw en −44).
-- [ ] **Paso 3:** docs: 06 § La cámara del juego (lo que ya es MuRet), los quirks de la cámara del 07 con
+- [x] **Paso 2:** verlos pasar (y fallar con el yaw en −44).
+- [x] **Paso 3:** docs: 06 § La cámara del juego (lo que ya es MuRet), los quirks de la cámara del 07 con
   su columna de MuRet, P-C29 con lo que sigue abierto. Commit, la suite entera, la revisión adversarial y el
   PR.
 
 ---
+
+**Hecho (2026-11-05, resuelto por Codex).** `OriginalVectorIRotate`, `World::GameCamera`,
+`StepGameCamera` y `GameCameraOf`; 3.000 frames del código real emulado en 60 casos, cinco semillas,
+con todos los campos de cámara y estado comparados por bits. Las cámaras fijas, el mapa 6 con su
+rama especial, el mapa 5, el desvío de efectos, los bordes del far y el estado previo están cubiertos.
+`GameCameraOf` conserva solo la D usada antes del suavizado para los dibujos intermedios, y toma
+el héroe del último paso lógico sin avanzar zoom, D ni far. La integración de las escenas es
+CL7.3 B; los ocho `rand()` protegidos por frame son CL7.P.
+
+Los golden del pase y de las celdas de Lorencia usan la cámara calculada desde el héroe de la traza.
+Build GCC 15.2 con warnings como errores y sin PCH; `misc-include-cleaner` 18 en los ocho `.cpp`/`.h`
+cambiados y `clang-format-18`, limpios. Suite sin GL: 2.165 casos registrados, cero fallos, 30
+salteados porque no se configuraron volcados privados ni las fuentes originales; GL: 83/83 en
+Xvfb y Mesa. Los tests de red y GL requirieron salir del sandbox para abrir sockets locales y el
+display. `msvc-conv-check.py` no está versionado ni disponible en este entorno; la compilación de
+MSVC con warnings como errores queda a cargo del job de Windows del PR.
+
+Astra 6 Ultra encontró que las 400 entradas de giro no observaban una permutación de sumandos.
+Se agregaron tres casos de cancelación: el mutante falla y la implementación pasa. También
+fallan los mutantes del signo del zoom, de −150 y de usar D nueva, y el que avanza la cámara al
+consultar antes del primer paso. La comparación con x87 nativo del balanceo del mapa 5 encontró
+un ULP de diferencia con relojes largos: Unicorn coincide con MuRet; queda documentado como
+límite del oráculo en 06 y P-C29 a, pendiente de captura del original. Los vectores incluyen
+esos relojes. La revisión de Opus 5.5 con esfuerzo máximo no encontró errores de comportamiento; pidió un
+oráculo independiente para el giro inverso y que el golden de cada celda observe su cámara. Se
+agregaron 403 salidas reales de `0x5fcc30` y una comparación de giros/traslación con la traza; los
+mutantes de suma y yaw −44 fallan. Se corrigieron los comentarios que exageraban su cobertura.
+La supuesta falta de variación del nivel y del objetivo era un falso positivo: ambos estaban ya
+en los 3.000 frames, que el paquete entregado a Opus no incluía. Astra contrastó esas conclusiones
+y revisó los arreglos. El chequeo directo de ASM y pseudocódigo de `0x5fcc30` confirma índices,
+agrupación y únicos guardados float; copiar literalmente el pseudocódigo reordenaría las sumas. El contraste de
+`0x635ae0` cotejó 462 instrucciones, constantes y tablas con el PE: sin discrepancias lógicas en
+el alcance incluido; la tabla de correspondencia queda en 06 § La cámara del juego. La CL7
+completa sigue abierta: el cierre exige el barrido de todas sus funcionalidades en pasadas
+complementarias, según el pedido de Emanuel registrado en `AGENTS.md`.
+
+La auditoría adicional solicitada para el PR 138, con Opus 5.5 xhigh y Astra 6 Ultra, encontró
+que los tres casos de cancelación no detectaban las dos asociaciones alternativas de cada
+componente. Se conservan los 403 fixtures históricos y se agregan tres casos analíticos:
+las seis alternativas mutantes fallan. También se quitó el bucle inverso que repetía la fórmula
+de producción y se endureció la lectura de bits del fixture, sin restringir las matrices 3 × 4.
+El contraste de los 130 bytes de `0x44dc60` descubrió que prueba C3 sin C2: se corrigió la
+selección del objetivo ante NaN con excepciones enmascaradas y se cubrieron Z aislada y −0.
+Las constantes nombradas conservan los tipos, bits, agrupación y límites de redondeo. La fuente
+de Unicorn 2.1.4 confirma que su FSIN/FCOS usa double y `sin`/`cos` de C; esos fixtures siguen
+siendo regresiones históricas, sin nueva ejecución de emulación ni afirmación de equivalencia
+x87 nativa universal. La evidencia y los límites quedan en 06 § La cámara del juego.
+
+Las revisiones finales de Opus 5.5 xhigh y Astra 6 Ultra no dejaron P1/P2 abiertos. El control
+positivo del detector de salida descubrió que fortify podía eludir `--wrap=printf`; el harness
+ahora lo comprueba y cubre los errores previos a la suspensión. El informe admite una cadencia
+indeterminada sin dejar el Markdown incompleto. Son 44 tests de herramientas, 26 numéricos
+focales y la suite completa de 2.255 casos registrados, cero fallos y 30 omisiones opcionales.
+Los tres lectores migrados a C++20 terminaron con código 0 en XP: cámara coincidente, serie
+de 2.250 muestras completa y un único incremento de suspensión retirado. La recuperación
+conserva la propiedad del handle cuando CloseHandle falla; descartamos la propuesta de
+abandonarlo, porque un fallo no acredita que se haya cerrado. La CL7 completa sigue abierta.
 
 ## Sub-ola CL7.3 B: la cámara compartida
 

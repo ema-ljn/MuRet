@@ -2710,6 +2710,105 @@ traza, y son los de la traza (*emulado* y *verificado*); la cuenta de abajo, rei
 doubles con `f32()` donde el binario guarda en float, da lo mismo que el código real en 22.000
 frames al azar (cinco semillas: el héroe, el atributo, el temblor, el reloj, el mapa, D y el zoom).
 
+**MuRet, CL7.3 A (2026-11-05).** `World::GameCamera` y `StepGameCamera` reproducen esta cuenta,
+incluidas las cámaras de las escenas 2 y 4, el desvío de los efectos y la rama especial del mapa 6.
+Se comparan todos los campos de la cámara y del estado bit a bit con 3.000 frames del código real
+emulado (60 casos, cinco semillas; [`vectores`](../../tests/vectors/game/README.md)). El giro inverso
+se contrasta además con 403 salidas de `0x5fcc30` real, incluidas tres cancelaciones que observan
+el orden de sumas, sin usar la fórmula C++ como expectativa. Seis casos analíticos, dos por
+componente, detectan las dos asociaciones alternativas: los tres casos históricos por sí solos
+no detectaban todas. El pase y las
+329 celdas recortadas de Lorencia usan ahora la cámara calculada desde el héroe de la traza, sin
+copiar su posición de la expectativa. `GameCameraOf` conserva la D usada antes del suavizado, el
+zoom y el far, y reconstruye el dibujo con el héroe del último paso lógico sin otro avance. La
+integración en las escenas es la CL7.3 B; los ocho `rand()` protegidos por frame, la CL7.P. El
+recorrido `CCameraMove` sigue fuera de este valor de cámara.
+
+**Contraste ASM y pseudocódigo (CL7.3 A).** Para `0x5fcc30`, el orden de las dos sumas
+lo fija el ASM, no la expresión reordenada del pseudocódigo de Ghidra. Cada componente conserva
+sus productos y sumas en x87 hasta el único guardado float: x en `0x5fcc50`, y en `0x5fcc67`,
+z en `0x5fcc7f`. MuRet usa double y convierte a float en esos mismos límites; el arnés fija
+PC53 (`0x027f`), que la función no configura por sí misma. El destino original es un tercer
+puntero; MuRet devuelve un valor y no reproduce un destino superpuesto con las entradas.
+
+Para `0x635ae0`, se cotejaron las 462 instrucciones del export (1.913 bytes), sus constantes y
+sus tablas con el PE del SHA indicado en el research. La lectura del `.c` se contrastó con ese
+ASM. En el alcance de la CL7.3 A no aparecieron discrepancias de lógica ni de constantes:
+
+| ASM | Correspondencia en MuRet |
+| --- | --- |
+| `0x635b3d..0x635c4f` | la rama especial del mapa 6 usa D vieja y omite el far normal, el reset del nivel, el `0x40` y el zoom |
+| `0x635d8f..0x635e59` | el rectángulo inclusivo precede al mapa; far 2.500 solo con mapa 30 y escena 5; nivel leído como word con signo, antes de volverlo a 0 |
+| `0x635e63..0x635efc` | la posición usa D previa; el objetivo de efectos sustituye x/y, y el camino sin recorrido vuelve el nivel a 0 |
+| `0x635f02..0x635feb` | z base 255 en mapa 30 en todas las escenas; `0x40` deja 1.201; las escenas fijas pisan posición/yaw antes del zoom |
+| `0x635fed..0x6360fe` | zoom ±10, hasta 210, con giro fijo −45; también se aplica un zoom negativo distinto de cero |
+| `0x636104..0x63614f` | balanceo del mapa 5, con las tasas float exactas y sin actualizar D ni su meta |
+| `0x636150..0x63624d` | D/meta 3.200 en la rama especial del mapa 6, 1.100 en mapa 30 en cualquier escena, o suavizado de un tercio hacia 1.000 tras el reset |
+| retornos de `0x635ae0` | `AL = 0`; el pseudocódigo no implica que todo EAX valga 0. MuRet devuelve una cámara por su propia interfaz |
+
+El recorrido `CCameraMove`, la vista superior muerta y los accesos protegidos no se incluyeron en
+esta equivalencia; sus exclusiones y la sub-ola que los cubre están arriba. Los valores iniciales
+se toman del contrato de inicialización; este contraste es de la función de cámara.
+
+El objetivo de efectos se decide en el callee `0x44dc60`, cuyos 130 bytes se contrastaron con
+el PE. Compara X, Y y Z con `+0` mediante `FCOMP`, y prueba solo C3 (`TEST AH,40`), sin C2.
+Una componente ordenada distinta de cero elige el vector global, incluso si solo Z es distinta
+de cero; los ceros negativos conservan el héroe. Con invalid-operation enmascarada, un NaN
+también deja C3=1: por sí solo no elige el vector global. El predicado portable usa comparaciones
+ordenadas y los tests cubren esos casos en `StepGameCamera` y `GameCameraOf`. Esta equivalencia
+es del valor seleccionado; no acredita las excepciones sin enmascarar ni los payloads de NaN
+que atraviesan `FLD/FSTP`. La función original no configura su CW.
+
+**Límite de la comparación x87 (revisión cruzada, CL7.3 A).** El balanceo del mapa 5 usa
+`std::sin` en MuRet. Con los relojes float `0x4f0d7740`, `0x4f2f0344` y `0x4f5ac415`, Unicorn y
+MuRet coinciden en Y (`0x393da1cd`, `0x33b96bb5`, `0x33e7c6a2`), pero una reproducción local de
+`FLD/FMUL/FSIN/FMUL/FADD/FSTP` con PC53 en x87 da un ULP más en los tres. Es evidencia del
+cálculo aislado en el host de revisión, no una captura del cliente original en Windows. Por eso
+los vectores prueban equivalencia al oráculo emulado en esas entradas; no garantizan la misma
+aproximación trascendental en todo hardware. P-C29 a queda abierto para capturar también estos
+relojes y el resultado de `FSIN` en el original, antes de cambiar su aproximación portable.
+
+La fuente oficial de [Unicorn 2.1.4, `fpu_helper.c`](https://github.com/unicorn-engine/unicorn/blob/8028ec436f2d9376525352dd38ed9ed6b9f6be10/qemu/target/i386/fpu_helper.c#L966)
+explica el límite del oráculo: `helper_fsin` y `helper_fcos` convierten el operando x80 a double,
+llaman a `sin`/`cos` de C y convierten el resultado a x80. El pin de versión no fija el hash del
+artefacto instalado ni su libm. No se regeneraron los fixtures durante esta revisión; su
+concordancia sigue siendo una regresión histórica, junto al contraste ASM y a las observaciones
+nativas descritas abajo.
+
+**Observación nativa en XP (2026-11-05).** Se verificó el SHA c32bbd5f del archivo del cliente
+abierto y las firmas de cámara/inversa en su proceso. Tres posiciones estacionarias del héroe,
+(14.150; 12.350; 165), (14.050; 12.350; 165) y (14.550; 12.350; 165), coinciden bit a bit en las
+nueve salidas de cámara con `StepGameCamera` enlazada desde MuRet. D/meta son 1.000, zoom/nivel
+0, yaw −45, altura fija 1.200, far 2.000, near 20, fov 35, temblor/desvío 0. El estado se carga
+como entrada estacionaria: sus siete checks adicionales no predicen un historial. Las primeras
+dos lecturas no traían atributo; la tercera lee el de la celda visual, que no acredita la lógica
+cifrada. Después del cierre del servidor se obtuvo la **CW del hilo real de main: `0x027f`**
+(PC53), mediante `GetThreadContext`, con EIP `0x7c90e4f4`, fuera de cámara/SendMove. La
+suspensión previa era 0 y `ResumeThread` devolvió 1: el hilo quedó reanudado. Esto corrobora la
+configuración en ese instante, no la precisión dentro de esas funciones ni de todos los frames.
+La rama FSIN dentro de main sigue sin capturarse.
+
+La primera serie continua, 2.250 muestras durante 89,968 s, quedó estacionaria: no registra la
+vuelta que se había pedido antes de iniciar el lector. Una segunda serie de 89,969 s contiene
+cuatro clics normales enviados después de confirmar muestras activas: 63 posiciones observadas
+en 10 celdas visuales, de (14.550; 12.350; 165) a (15.050; 12.050; 165), con acciones `01` y
+`0d`, y el héroe detenido al final. Son lecturas secuenciales con agenda nominal de 40 ms,
+no pasos ni frames consecutivos. Sus 165 imágenes tienen tiempos propios y tampoco forman una
+traza de llamadas GL. El lector declara sus fronteras y exige código 0, 2.250 bloques completos,
+footer y ausencia de errores. Las herramientas están en
+[`scripts/game/capture/`](scripts/game/capture/README.md); evidencia, imágenes y video sin pérdida
+quedan fuera de Git.
+
+El tamaño interno fue 1.024×768 y el cliente Win32 1.906×1.032. La imagen quedó abajo a la
+izquierda después del resize, como señaló Emanuel. Para los clics de la segunda serie se ajustó
+la ventana temporalmente a 1.024×768 y luego se restauró su tamaño. Esto distingue área visible,
+ventana y resolución interna: **no se consultó GL_VIEWPORT**. No confundir ese anclaje del
+original con un defecto de MuRet, que admite pantallas anchas (D-C11).
+
+El probe x87 propio también se ejecutó en XP: los tres relojes largos dan un ULP más que
+Unicorn/MuRet tanto en PC53 como PC64, restaurando su CW. Esa es evidencia nativa del cálculo
+**aislado**, no de la función ni de la CW del proceso original; P-C29 a sigue abierto.
+
 **La cuenta**, en la escena 5 fuera del mapa 6 (*estático*, *emulado*). H es el héroe (`0x743a170`):
 
 1. **El fov** en 35 (`0x635aeb`) y los ángulos X e Y en 0. La vista de arriba (`0x7d36899`, sin el
@@ -2919,8 +3018,11 @@ alpha, 3, luz, …)`, la 3 con la U y la V, en vez de un `RenderBody` (*emulado*
 
 **Los pájaros** (`0x446120`, la tabla `0x7d2dca8`; el dibujo, `0x446b60`, con su sombra): en el 0
 usan el modelo `0xad` (`Bird01`), solo sin tormenta (`0x723c50 == 0`), nacen al azar y se posan
-(*estático*). En la traza hay 5, con sus 5 sombras (*verificado*); el tope, 5 o 6, sin cerrar
-(P-C28 j). La tormenta (`0x723c50`, que el `1C` apaga) tira rayos `0xc2` con el sonido `0x42` y
+(*estático*). En la traza hay 5, con sus 5 sombras (*verificado*). El ASM fija el tope en **5**:
+`ESI` empieza en `0x7d2de18`, suma `0x1d4` por lugar y sale con `ESI >= 0x7d2e73c`
+(`0x44642a/430`, `0x446a57`): índices 0 a 4 de `0x7d2dca8`. En 90 observaciones nativas de la
+primera serie se vieron 5 vivos 85 veces y 4 las otras 5; el conteo observado no es la prueba
+del límite estático. Queda su evolución temporal, en P-C28 j. La tormenta (`0x723c50`, que el `1C` apaga) tira rayos `0xc2` con el sonido `0x42` y
 oscurece la luz del terreno alrededor del héroe.
 
 **Los peces** (`0x447030`, la tabla `0x7d35350`; el dibujo, `0x446f00`, con su sombra `0x4eff40`):

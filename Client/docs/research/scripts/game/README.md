@@ -11,6 +11,7 @@ Lorencia, § Caminar y § Los cambios de mapa); acá queda cómo volver a sacarl
 
 | Carpeta | Qué hay | Sub-olas |
 | --- | --- | --- |
+| [`capture/`](capture/README.md) | observación nativa de cámara, héroe y entidades en XP, sin modificar el proceso | CL7.3, L3/L5, CL7.4 |
 | [`camera/`](camera/README.md) | `0x635ae0` real, su reimplementación bit a bit y el borrador de `camera.txt` | CL7.3 A, CL7.3 B |
 | [`protection/`](protection/README.md) | los `rand()` de la tabla de protección `0x57630c8` | CL7.P |
 | [`world0/`](world0/README.md) | los objetos de Lorencia (creación, paso, dibujo), sus texturas en el volcado y en la traza, la luz | CL7.L2, CL7.L4, CL7.L5 |

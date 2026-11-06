@@ -1755,7 +1755,7 @@ TEST(ServerSessionTest, AFailedImmediateKeepaliveDoesNotAttemptTheDueTimer)
     EXPECT_EQ(tested.connection.State(), LinkState::Closed);
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
     EXPECT_EQ(tested.socket.sendAttempts, sendAttempts + 1);
-    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 0u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, "keepalive"), 0u);
     EXPECT_FALSE(tested.Logged(LogLevel::Warning, "que iba a salir: la conexión está cerrada"));
     tested.session.Poll();
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
@@ -1773,7 +1773,8 @@ TEST(ServerSessionTest, AClosingLoginBatchDoesNotLogASentKeepalive)
 
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
     EXPECT_EQ(tested.socket.sendAttempts, sendAttempts);
-    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 0u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, "keepalive"), 0u);
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "que iba a salir: la conexión está cerrada"));
     EXPECT_EQ(tested.GameServerReads().packets.size(), 1u);
 }
 
@@ -1797,7 +1798,7 @@ TEST(ServerSessionTest, AFailedPreloginKeepalivePreservesTheCredentialsStateUnti
     EXPECT_EQ(tested.session.LoginResult(), std::optional<std::uint8_t>{std::uint8_t{0}});
     EXPECT_EQ(tested.CountLogged(LogLevel::Info, "se manda el login"), loginMessages);
     EXPECT_EQ(tested.socket.sendAttempts, sendAttempts);
-    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 0u);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, "keepalive"), 0u);
     EXPECT_FALSE(tested.LoggedTheCredentials());
     tested.session.Poll();
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);

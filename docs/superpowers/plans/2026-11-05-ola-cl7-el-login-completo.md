@@ -358,6 +358,9 @@ del login; no cierra CL7.P ni los pendientes visuales.
 - [ ] Al integrar `SetKeepaliveSpeeds` con el personaje, contrastar qué velocidades conserva el
   original al volver del mundo al login/reconectar. Hoy no tiene llamador productivo; no inferir
   un reset a partir del personaje inicial con velocidades 0/0.
+- [ ] Contrastar el orden de estado/cierre de `0x641bf0` si falla el propio envío del login.
+  MuRet ya pasaba a `WaitingLoginResult` hasta despachar `Closed` en el Poll siguiente; es un
+  borde previo al arreglo del timer. La guarda nueva cubre el transporte cerrado antes de enviar.
 
 ## Sub-ola CL7.6 C: el cuervo
 

@@ -344,5 +344,13 @@ chicos que salgan, cada uno con su test).
   el fundido del caballo con un solo redondeo. Lo que queda, en 06 § Lo demás del login y en P-C27 (con
   P-C23 e para las nubes y el fuego).
 
+**Reapertura por fidelidad del formulario (2026-11-06):** el `_` fijo de `LoginWindow`
+provenía de `0x553ae0`, la rama legacy que el selector inicial de este PE no toma. Se retira
+ese glifo con regresiones sobre ambos focos, campos vacíos, clave enmascarada y `_` legítimo
+dentro de la cuenta. El camino activo `0x641990 → 0x469350 → 0x468320` compone un caret
+rectangular con fase de 24 llamadas, no un sufijo de texto. Sigue abierta la equivalencia del
+bitmap del EDIT (fuentes/colores efectivos, inserción y recorte); este arreglo no cierra toda
+la UI ni CL7. Contrato ampliado en 06 § La cuenta y la clave.
+
 Después: la CL7 sigue con Lorencia (CL7.3 del roadmap en adelante, y lo que la CL7.1 y la CL7.2 no
 hayan cubierto de otros mapas), con su propio plan.

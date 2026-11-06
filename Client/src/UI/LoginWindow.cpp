@@ -8,7 +8,6 @@
 #include "Input/Key.h"
 #include "Render/SpriteBatch.h"
 #include "Render/Text/FontSet.h"
-#include "Render/Text/IGlyphRasterizer.h"
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
@@ -56,14 +55,12 @@ constexpr int PasswordLabelTop = 139;
 constexpr int TitleLeft = 111;
 constexpr int TitleTop = 80;
 
-// 0x641a7a..0x641a91: los rótulos con DAT_05763560, en blanco y sin fondo. 0x553ae0: el campo en
-// 0xffd2e6ff, sin fondo, con la fuente que haya: la de los textos de la escena, *inferido*.
+// 0x641a7a..0x641a91: los rótulos con DAT_05763560, en blanco y sin fondo. FieldStyle conserva
+// la presentación previa de MuRet: sus colores y fuente efectivos aún deben contrastarse con la
+// configuración del EDIT activo, 0x468320 (06 § La cuenta y la clave).
 constexpr Render::Text::TextStyle LabelStyle{Render::Text::FontKind::OtherFace12,
                                              Render::Text::TextColors{0xffffffff, 0}};
 constexpr Render::Text::TextStyle FieldStyle{Render::Text::FontKind::Normal, Render::Text::TextColors{0xffd2e6ff, 0}};
-// El cursor de 0x553ae0 (0x6c8f14), detrás de lo que tiene el campo del foco. El original lo
-// prende un frame sí y uno no; MuRet lo deja prendido.
-constexpr std::string_view Caret = "_";
 } // namespace
 
 LoginLayout LayoutLogin(App::PixelSize screen)
@@ -182,8 +179,8 @@ void LoginWindow::Draw(Render::SpriteBatch& sprites, Scenes::ITextDrawer& text, 
     sprites.Image(m_ok.Image(m_sizes));
     sprites.Image(m_cancel.Image(m_sizes));
 
-    DrawField(text, m_account, m_layout.account, m_focus == LoginFocus::Account, screen);
-    DrawField(text, m_password, m_layout.password, m_focus == LoginFocus::Password, screen);
+    DrawField(text, m_account, m_layout.account, screen);
+    DrawField(text, m_password, m_layout.password, screen);
 
     const Rect& window = m_layout.window;
     const int labelX = Render::Text::DesignX(window.x + LabelLeft, screen);
@@ -260,7 +257,7 @@ LoginRequest LoginWindow::Cancel()
     return LoginRequest{.kind = LoginRequest::Kind::Cancel, .credentials = {}};
 }
 
-void LoginWindow::DrawField(Scenes::ITextDrawer& text, const TextField& field, const Rect& area, bool focused,
+void LoginWindow::DrawField(Scenes::ITextDrawer& text, const TextField& field, const Rect& area,
                             App::PixelSize screen) const
 {
     const int x = Render::Text::DesignX(area.x + FieldTextInset, screen);
@@ -269,12 +266,6 @@ void LoginWindow::DrawField(Scenes::ITextDrawer& text, const TextField& field, c
     if (!shown.empty())
     {
         text.Draw(x, y, shown, FieldStyle);
-    }
-    if (focused)
-    {
-        // 0x553ae0 lo pone en la x del campo más el ancho de lo que tiene, en 640 × 480.
-        const int width = shown.empty() ? 0 : text.Measure(FieldStyle.font, shown).width;
-        text.Draw(x + Render::Text::DesignX(width, screen), y, Caret, FieldStyle);
     }
 }
 } // namespace Client::UI

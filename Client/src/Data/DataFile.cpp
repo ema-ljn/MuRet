@@ -10,10 +10,42 @@
 #include <ios>
 #include <string_view>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 namespace Client::Data
 {
+Core::Expected<std::vector<char>, std::error_code> ReadDataFilePrefix(const std::filesystem::path& path,
+                                                                      std::size_t byteCount)
+{
+    if (!std::in_range<std::streamsize>(byteCount) || byteCount > std::vector<char>{}.max_size())
+    {
+        return Core::Unexpected(std::make_error_code(std::errc::value_too_large));
+    }
+    std::error_code error;
+    if (std::filesystem::is_directory(path, error))
+    {
+        return Core::Unexpected(std::make_error_code(std::errc::is_a_directory));
+    }
+    if (error)
+    {
+        return Core::Unexpected(error);
+    }
+    std::ifstream file(path, std::ios::binary);
+    if (!file.is_open())
+    {
+        return Core::Unexpected(std::make_error_code(std::errc::io_error));
+    }
+    std::vector<char> bytes(byteCount);
+    file.read(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+    if (file.bad())
+    {
+        return Core::Unexpected(std::make_error_code(std::errc::io_error));
+    }
+    bytes.resize(static_cast<std::size_t>(file.gcount()));
+    return bytes;
+}
+
 Core::Expected<std::vector<char>, std::error_code> ReadDataFile(const std::filesystem::path& path,
                                                                 std::uintmax_t maxBytes)
 {
@@ -27,15 +59,7 @@ Core::Expected<std::vector<char>, std::error_code> ReadDataFile(const std::files
     {
         return Core::Unexpected(std::make_error_code(std::errc::file_too_large));
     }
-    std::ifstream file(path, std::ios::binary);
-    std::vector<char> bytes(static_cast<std::size_t>(size));
-    file.read(bytes.data(), static_cast<std::streamsize>(bytes.size()));
-    if (!file.is_open() || file.bad())
-    {
-        return Core::Unexpected(std::make_error_code(std::errc::io_error));
-    }
-    bytes.resize(static_cast<std::size_t>(file.gcount()));
-    return bytes;
+    return ReadDataFilePrefix(path, static_cast<std::size_t>(size));
 }
 
 std::string_view DescribeDataError(DataError error)

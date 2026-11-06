@@ -3194,33 +3194,51 @@ marca; lo *emulado* corre el código real sobre el `.att` y las alturas de Loren
 
 ```text
 0x5fc260(1)
- ├─ 0x7d366d0 = 9.999.999 (0x622430): la distancia de colisión
  ├─ 0x78acbd4 = 0: SelectFlag
- └─ 0x5fc190(1)  los bloques de 4 × 4 del frustum, con 0x5fba90
-     └─ 0x5fc0e0  las 16 celdas, con 0x5fba90 y margen 0
-         └─ 0x5fac90(xf, yf, xi, yi, 1,0, 1, 1)   la celda, con Flag
-             ├─ 0x5fd000  la normal de (v0, v1, v2)
-             ├─ 0x622440  la recta contra (v0, v1, v2) y, si falla, contra (v0, v2, v3)
-             └─ si toca: SelectXF/YF (0x7aacc60/64) = la celda, SelectFlag = 1
+ ├─ 0x7d366d0 = 9.999.999f (0x622430): maxT, parámetro del segmento
+ ├─ 0x5fc190(1)  blockY → blockX, de a 4, frustum en centro +2 y margen -40
+ │   └─ 0x5fc0e0  row → col, las 16 celdas, frustum en centro +0,5 y margen 0
+ │       └─ 0x5fac90(xf, yf, xi, yi, 1.0f, 1, 1): siete argumentos
+ │           ├─ 0x5fd000  normal de (v0, v1, v2)
+ │           ├─ 0x622440  cara (v0, v1, v2); sólo si falla, normal/cara (v0, v2, v3)
+ │           └─ si toca: maxT → hit.xyz → SelectFlag=1 → SelectXF/YF
+ └─ si SelectFlag: retry de la celda seleccionada, sin reset; convierte Y antes de X
 ```
 
 - Los vértices son los del dibujo, con la altura fija `0x6c9d5c` en una esquina con `0x40` y el
   índice sin dar la vuelta en la fila (Q-C141).
 - `0x622440` es el `CollisionDetectLineToFace` de MuMain: el t del segmento cámara → punto lejano
-  va de 0 a `0x7d366d0`; la prueba de adentro (`0x622170`) es sobre el eje dominante de la normal
-  (|n| ≥ 0,5: x, después y, si no z); al tocar, guarda t en `0x7d366d0` y el punto en
-  `0x7d366e0..e8`. **Gana la cara más cercana** a la cámara entre todas las celdas visibles.
-- Después `MoveHero` vuelve a llamar a `0x5fac90(SelectXF, SelectYF, …)` (`0x59de39`), con la
-  distancia ya achicada, para el punto de esa celda. Si toca, el blanco es `TargetX = ftol(0x7d366e0
-  · 0,01) & 0xff` y `TargetY = ftol(0x7d366e4 · 0,01) & 0xff` (`0x77e1ba8`, `0x77e1bac`); si no, no
-  camina.
+  va de 0 a `0x7d366d0`, sin límite literal `t<=1`: comprueba bounds inclusivos de dos ejes,
+  omitiendo el de **menor** |delta| (empate x, luego y). Rechaza backface/paralelo. La prueba de
+  adentro (`0x622170`) proyecta por prioridad x, luego y, si no z; ±0,5 seleccionan ese eje, sin
+  buscar el mayor componente. Los bordes, vértices y diagonal son estrictos. Al tocar publica
+  maxT y punto; **gana el menor t entre las caras efectivamente intentadas**, con empate a favor
+  de la posterior. El barrido no se corta tras el primer hit.
+- Después `MoveHero` hace **otro retry incondicional** a `0x5fac90(SelectXF, SelectYF, …)`
+  (`0x59de39`), incluso tras miss del pase, sin reset ni consulta de SelectFlag. Sólo el AL de
+  ese intento habilita publicar `TargetX = ftol(hit.x · 0,01f) & 0xff` y la Y análoga, en DWORD
+  (`0x77e1ba8`, `0x77e1bac`). Convierte X, prepara producto Y, guarda X, convierte/guarda Y.
+  La constante tiene bits `0x3c23d70a`; los productos quedan en 53 bits antes del trunc signed64,
+  sin spill float32. Si falla, conserva TargetX/Y y DontMove.
 - Con `Flag` en 1, `0x5fac90` **no saltea las celdas con `0x08`**, las que no se dibujan: se puede
   caminar clickeando terreno invisible (Q-C163). En Lorencia no hay ninguna (*verificado*: sus
   valores son 0, 1, 2, 4 y 5).
 - Si el rayo no toca ninguna celda visible, `SelectXF/YF` quedan con la del clic anterior y se
-  prueban igual (Q-C164).
+  prueban igual en el consumidor (Q-C164). El pase deja SelectFlag=0 y maxT reiniciado; conserva
+  hit y XY. El retry interno sólo ocurre tras hit. Los fallos de retry no hacen rollback.
 - `DontMove` (`0x77f3b5c`) se prende con el atributo ≥ 8 sin `0x20` ni `0x40`
   (`0x59de87..0x59deac`), pero solo lo usa el cursor: no frena el camino (Q-C162).
+
+CL7.4D implementa esta transición pura en `World/TerrainPicking`: estado explícito, errores de
+recursos/rango/dominio, dos operaciones (pase y consumidor con target/cursor) y frustum existente.
+Los cuerpos citados y sus helpers se cotejaron estáticamente contra PE32 c32bbd5f (1.017
+instrucciones/2.970 bytes; consumidor 80/326; `ftol` contratado aparte), sin nuevas ejecuciones ni
+emulaciones. El contrato C++ es PC53/nearest, stores float32 y sin FMA; no demuestra la CW del
+runtime nativo. Bloques 0..251 generan celdas 0..254 y esquinas 0..255; alturas byte×1,5/3 y
+fixedHeight1200/1201 garantizan normales definidas (nz=10000), sin fallback ni stack residual.
+La API admite además selección retenida fraccional acotada, con anchos positivos; sus defaults
+son de MuRet, sin atribuirlos al startup nativo. Tests analíticos, Data de cuatro familias y cámara
+de Lorencia verifican el componente; `GameScene`, reglas del clic y caminar siguen en CL7.4E.
 
 **El clic, `MoveHero` (`0x59adf0`):**
 

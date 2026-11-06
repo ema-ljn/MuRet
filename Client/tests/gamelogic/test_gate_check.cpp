@@ -154,7 +154,7 @@ TEST(GateCheckTest, LowLevelWarnsAndWaitsFiftySteps)
     state.level = 19;
 
     const auto decision = Check(1, state);
-    ExpectWarning(decision, 350, 50, 20);
+    ExpectWarning(decision, 350, 50, std::uint16_t{20});
     EXPECT_FALSE(decision.clearWarpPending);
 }
 
@@ -167,13 +167,13 @@ TEST(GateCheckTest, OnlyBaseClassesThreeAndFourUseTruncatedTwoThirds)
         state.level = 13;
         EXPECT_EQ(Check(1, state).request, 1);
         state.level = 12;
-        ExpectWarning(Check(1, state), 350, 50, 13);
+        ExpectWarning(Check(1, state), 350, 50, std::uint16_t{13});
     }
     for (const int characterClass : {0, 1, 2, 5, 6, 7})
     {
         state.characterClass = static_cast<std::uint8_t>(characterClass);
         state.level = 19;
-        ExpectWarning(Check(1, state), 350, 50, 20);
+        ExpectWarning(Check(1, state), 350, 50, std::uint16_t{20});
     }
 }
 
@@ -312,7 +312,7 @@ TEST(GateCheckTest, IcarusWithoutFlightWarnsAndDoesNotSetTheWarpCounter)
     EXPECT_EQ(decision.request, std::nullopt);
     ASSERT_EQ(decision.warnings.size(), 2);
     EXPECT_EQ(decision.warnings[0], (GateWarning{263, std::nullopt}));
-    EXPECT_EQ(decision.warnings[1], (GateWarning{350, 20}));
+    EXPECT_EQ(decision.warnings[1], (GateWarning{350, std::uint16_t{20}}));
     EXPECT_EQ(decision.waitSteps, 0);
 }
 
@@ -325,7 +325,7 @@ TEST(GateCheckTest, IcarusWithoutFlightReportsTheReducedLevelForClassesThreeAndF
         state.level = 12;
         const auto decision = Check(62, state);
         EXPECT_EQ(decision.request, std::nullopt);
-        EXPECT_EQ(decision.warnings, (std::vector<GateWarning>{{263, std::nullopt}, {350, 13}}));
+        EXPECT_EQ(decision.warnings, (std::vector<GateWarning>{{263, std::nullopt}, {350, std::uint16_t{13}}}));
         EXPECT_EQ(decision.waitSteps, 0);
         state.level = 13;
         ExpectWarning(Check(62, state), 263);
@@ -367,7 +367,7 @@ TEST(GateCheckTest, IcarusUniriaWarningRequiresFlightAndPrecedesLevel)
     state.level = 0;
     ExpectWarning(Check(62, state), 569);
     state.mount = -1;
-    ExpectWarning(Check(62, state), 350, 50, 20);
+    ExpectWarning(Check(62, state), 350, 50, std::uint16_t{20});
 }
 
 TEST(GateCheckTest, WaitsForThreeSecondsAfterTheLastTeleport)
@@ -412,7 +412,7 @@ TEST(GateCheckTest, ExplicitHeroAndRequestGuardsKeepTheirDifferentPrecedence)
     state.heroGateBlocked = false;
     state.requestBlocked = true;
     const auto lowLevel = Check(1, state);
-    ExpectWarning(lowLevel, 350, 50, 20);
+    ExpectWarning(lowLevel, 350, 50, std::uint16_t{20});
     EXPECT_FALSE(lowLevel.clearWarpPending);
     state.level = 20;
     const auto requestBlocked = Check(1, state);
@@ -433,7 +433,7 @@ TEST(GateCheckTest, OverlapRequestsOnlyTheFirstEligibleGate)
     auto state = Ready();
     state.level = 19;
     const GateTable silentThenEntry(GateTableBytes({{28, Entry}, {29, Entry}}));
-    ExpectWarning(GateCheck(silentThenEntry, state), 350, 50, 20);
+    ExpectWarning(GateCheck(silentThenEntry, state), 350, 50, std::uint16_t{20});
 }
 
 TEST(GateCheckTest, OverlappingEquipmentWarningsPrecedeALaterRequest)
@@ -459,8 +459,11 @@ TEST(GateCheckTest, EveryIcarusWarningIsKeptBeforeALaterLevelWait)
     const auto decision = GateCheck(table, state);
 
     EXPECT_EQ(decision.request, std::nullopt);
-    EXPECT_EQ(decision.warnings,
-              (std::vector<GateWarning>{{263, std::nullopt}, {350, 20}, {263, std::nullopt}, {350, 20}, {350, 20}}));
+    EXPECT_EQ(decision.warnings, (std::vector<GateWarning>{{263, std::nullopt},
+                                                           {350, std::uint16_t{20}},
+                                                           {263, std::nullopt},
+                                                           {350, std::uint16_t{20}},
+                                                           {350, std::uint16_t{20}}}));
     EXPECT_EQ(decision.waitSteps, 50);
 }
 
@@ -500,7 +503,7 @@ TEST(GateCheckTest, ALaterLevelWaitKeepsTheEarlierPendingClear)
 
     const auto decision = GateCheck(table, state);
 
-    ExpectWarning(decision, 350, 50, 20);
+    ExpectWarning(decision, 350, 50, std::uint16_t{20});
     EXPECT_TRUE(decision.clearWarpPending);
 }
 } // namespace

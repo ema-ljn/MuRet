@@ -130,6 +130,8 @@ public:
     // Hasta el paso y no solo mientras conecta: un connect que falla enseguida sale en el Poll, que
     // puede venir sin un paso antes del dibujo (después de Enter, o en un frame sin pasos).
     [[nodiscard]] bool HoldsTheLastFrame() const override;
+    // Descarta el tiempo sin dibujo para los emisores de objetos; mantiene pool, muestras y otros carries.
+    void OnFrameHeld() override;
     // La cabeza del personaje como la dejó el último paso (0x505de0), la que dibuja.
     [[nodiscard]] const CharacterHead& Head() const;
     // El personaje que dibuja el frame con `alpha` (0x510d00 → 0x50ba30): el cuerpo entre pasos, la cabeza
@@ -185,6 +187,9 @@ private:
     World::GameCamera m_localCamera;
     World::GameCameraInput m_localCameraInput;
     Render::Models::OriginalFrameCarry m_cameraFrames;
+    // 0x602ed0: un sorteo por objeto y frame original, con replay de la luz del farol entre ellos.
+    Render::Models::OriginalFrameCarry m_objectEffectFrames;
+    std::vector<std::optional<int>> m_objectEffectRandoms;
     const IModelLibrary& m_models;
     App::ServerSession* m_session;
     const Data::Text::TextTable* m_texts;

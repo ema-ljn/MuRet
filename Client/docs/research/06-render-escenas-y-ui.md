@@ -1780,11 +1780,31 @@ Lo que se ve en el video, una fuente por vez:
 - **Las nubes oscuras** (sin confirmar en el video): los dos objetos `0x54` del mapa 55, invisibles,
   en (10.811; 14.804; 219) y (10.598; 16.408; −95), en cada frame dibujado en que se ven, con
   `rand() % 5 == 0`, crean la partícula `0x622` (`Effect\clouds.jpg`, subtipo 10): vida 500,
-  posición ± 200, escala la del objeto + `(rand() % 15 + 10) · 0,0667` (900 a 1.600 unidades),
+  posición por eje `rand() % 400 − 200`, escala la del objeto más
+  `(rand() % 15 + 10) · float32(0x3d888889)` (aproximación a 1/15; no `0,0667`),
   velocidad (v, v, 0) con v = `(rand() % 10 + 5) · 0,12`, que se suma **dos veces** por paso
   (Q-C129). La luz sube 0,01 por paso hasta 0,15 cerca de donde nació y baja más allá de 300; a más
   de 500 se apaga. Se dibujan con **`GL_ZERO, GL_ONE_MINUS_SRC_COLOR`** y una rotación de ±30° por
   segundo: oscurecen lo de atrás.
+  **Precisión del contrato estático (2026-11-06):** se contrastaron con el PE `c32bbd5f`
+  los caminos de `0x602ed0`, `0x53fe70`, `0x5446e0` y `0x548550`, incluidas sus tablas de saltos.
+  El guard de emisión es **mapa 55 y tipo `0x54`**, no una condición interna de escena 2.
+  Al azar común de cada objeto visto se suma uno para el guard; si pasa y hay lugar libre,
+  el creador consume otros cinco, en orden X, Y, Z, escala, velocidad. Con los 3.000 lugares
+  ocupados conserva el estado de la tabla y no consume esos cinco. La creación copia la
+  posición perturbada como origen y pone RGB en cero. No inicializa `+0x60`; conserva el
+  valor del uso anterior del lugar. El paso escribe `1,5f` en ese campo y suma la velocidad
+  dos veces con ángulos cero: una en el movimiento común y otra en el caso específico.
+  A distancia 3D `≤ 300`, RGB suma `float32(0x3c23d70a)`; cuando el R intermedio alcanza
+  `float32(0x3e19999a)`, los tres canales toman ese mismo valor. Entre 300 y 500 inclusive,
+  cada canal se multiplica por `float32(0x3f73cf3e)`; por encima de 500 se apaga sin ese fade.
+  Vencer la vida apaga la partícula pero no evita el resto del último paso. La rotación se
+  **escribe al dibujar**: `float32(T · campo60 · (índice par ? +0,02f : −0,02f) + origenY)`.
+  El índice es el lugar real del pool, incluidos los inactivos; `origenY` es el mismo campo
+  `+0x70`, no un ángulo independiente. No se acumula ni normaliza. La mezcla sustractiva no
+  lee el alpha `+0x38` en este subtipo. No equivale a activar `GL_FOG`: el login lo apaga.
+  La correspondencia visual con la neblina observada por Emanuel sigue necesitando una
+  captura nativa; esta lectura estática no la sustituye.
 - **El brillo del farol**: `0x602ed0`, en la escena 2, tiene un caso para el tipo `0x3c` (60, el farol
   del castillo, que se ve; `0x602f01..0x602fc6`): en cada frame pide **2 sprites** `0x5ac` (`flare01`)
   de escala 1, con la mezcla 0 (aditiva) y el color (L; 0,5 · L; 0,2 · L), con L = `(rand() % 30 + 70)

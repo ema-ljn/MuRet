@@ -6,6 +6,7 @@
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "App/WindowState.h"
+#include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Input/InputState.h"
@@ -54,6 +55,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
@@ -225,9 +227,9 @@ struct Harness
     }
 
     // Un frame dibujado.
-    std::vector<FrameEvent> Frame()
+    std::vector<FrameEvent> Frame(Client::Core::Duration frameClock = std::chrono::milliseconds{40})
     {
-        Client::Scenes::SceneCanvas& canvas = target.BeginFrame(std::chrono::milliseconds{40});
+        Client::Scenes::SceneCanvas& canvas = target.BeginFrame(frameClock);
         scene->Render(canvas, 0.0f);
         target.Present();
         return target.frames.back().events;
@@ -892,6 +894,107 @@ TEST(LoginSceneSessionTest, TheGameServerConnectHoldsTheFrame)
     tested.Step();
     ASSERT_EQ(tested.session.State(), SessionState::WaitingGameHello);
     EXPECT_FALSE(tested.scene->HoldsTheLastFrame());
+}
+
+// Sin modelos del personaje ni .obj, solo el dueño del dragón y el logo consumen RNG al dibujar:
+// dos rand comunes por frame original. El tiempo conectado no debe producir 64 frames de catch-up.
+TEST(LoginSceneSessionTest, ObjectEffectsResumeWithOneFrameAfterAHeldFrame)
+{
+    Harness tested(true);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheLogin());
+    tested.clock.Advance(std::chrono::milliseconds{40});
+    tested.cloth.random = Client::Render::Models::CrtRandom(4);
+    (void)tested.Frame(tested.clock.Now());
+    ASSERT_EQ(tested.cloth.random.State(), 0xc6192e9eu) << "un frame inicial de dos objetos";
+    tested.socket.pollsUntilConnected = 2;
+    tested.session.Start();
+    tested.scene->Step(tested.input);
+    ASSERT_EQ(tested.session.State(), SessionState::ConnectingConnectServer);
+    ASSERT_TRUE(tested.scene->HoldsTheLastFrame());
+    tested.scene->OnFrameHeld();
+    tested.clock.Advance(std::chrono::seconds{5});
+    tested.Step();
+    tested.Step();
+    tested.Step();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
+    ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
+    tested.cloth.random = Client::Render::Models::CrtRandom(4);
+    (void)tested.Frame(tested.clock.Now());
+    EXPECT_EQ(tested.cloth.random.State(), 0xc6192e9eu) << "solo un frame al volver a dibujar";
+}
+
+TEST(LoginSceneSessionTest, AConnectStartedByTheUiCannotAccumulateObjectFramesBetweenSteps)
+{
+    Harness tested(true);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheLogin());
+    tested.clock.Advance(std::chrono::milliseconds{40});
+    (void)tested.Frame(tested.clock.Now());
+    tested.socket.pollsUntilConnected = 0;
+    tested.Tap(Key::Escape);
+    ASSERT_EQ(tested.session.State(), SessionState::ConnectingConnectServer);
+    ASSERT_TRUE(tested.scene->HoldsTheLastFrame());
+    tested.scene->OnFrameHeld();
+    tested.clock.Advance(std::chrono::seconds{5});
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
+    // El connect ya terminó cuando llega el próximo Step; el evento ya descartó el tiempo retenido.
+    tested.scene->Step(tested.input);
+    ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
+    tested.cloth.random = Client::Render::Models::CrtRandom(4);
+    (void)tested.Frame(tested.clock.Now());
+    EXPECT_EQ(tested.cloth.random.State(), 0xc6192e9eu) << "dos objetos, ningún backlog del connect";
+}
+
+TEST(LoginSceneSessionTest, AHeldFrameNotifiesObjectEffectsWhenTheWholeConnectRunsBetweenSteps)
+{
+    Harness tested(true);
+    ASSERT_NO_FATAL_FAILURE(tested.ChooseTheLabServer());
+    tested.clock.Advance(std::chrono::milliseconds{40});
+    (void)tested.Frame(tested.clock.Now());
+    tested.socket.connectResult = SocketError::Refused;
+    tested.socket.reads = {AddressReply(GameHost, GamePort)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
+    ASSERT_TRUE(tested.scene->HoldsTheLastFrame());
+    tested.scene->OnFrameHeld();
+    tested.scene->OnFrameHeld(); // El aviso repetido conserva el mismo reset, sin RNG ni efectos nuevos.
+    tested.clock.Advance(std::chrono::seconds{5});
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::Failed);
+    tested.scene->Step(tested.input);
+    ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
+    tested.cloth.random = Client::Render::Models::CrtRandom(4);
+    (void)tested.Frame(tested.clock.Now());
+    EXPECT_EQ(tested.cloth.random.State(), 0xc6192e9eu) << "un frame para dueño del dragón y logo";
+}
+
+// Retener el frame hasta que Step abra la lista no representa un connect bloqueante:
+// conserva los 20 ms de fase y completa una sola ronda al llegar a 47 ms desde el último dibujo.
+TEST(LoginSceneSessionTest, HoldingForANormalSessionChangePreservesTheObjectFramePhase)
+{
+    Harness tested(true);
+    ASSERT_TRUE(tested.scene->Enter().HasValue());
+    tested.socket.reads = {Hello()};
+    tested.Step();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingServerList);
+    ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
+    tested.clock.Advance(std::chrono::milliseconds{40});
+    (void)tested.Frame(tested.clock.Now());
+    tested.socket.reads = {ServerList({400})};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::ChoosingServer);
+    ASSERT_TRUE(tested.scene->HoldsTheLastFrame());
+    tested.scene->OnFrameHeld();
+    tested.clock.Advance(std::chrono::milliseconds{20});
+    tested.scene->Step(tested.input);
+    ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
+    tested.cloth.random = Client::Render::Models::CrtRandom(4);
+    (void)tested.Frame(tested.clock.Now());
+    EXPECT_EQ(tested.cloth.random.State(), 4u) << "20 ms no alcanzan para otra ronda";
+    tested.clock.Advance(std::chrono::milliseconds{27});
+    tested.cloth.random = Client::Render::Models::CrtRandom(4);
+    (void)tested.Frame(tested.clock.Now());
+    EXPECT_EQ(tested.cloth.random.State(), 0xc6192e9eu) << "la fase de 20 ms se conserva y completa 47 ms";
 }
 
 // El otro lado que cierra (el FD_CLOSE de 03): con la cuenta abierta, la cuenta se cierra y sale el

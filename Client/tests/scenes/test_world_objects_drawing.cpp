@@ -211,6 +211,20 @@ TEST(WorldObjectsDrawingTest, EachSeenObjectTakesARand)
     EXPECT_EQ(batch.Vertices().size(), 6u) << "el de alpha 0 no se dibuja";
 }
 
+TEST(WorldObjectsDrawingTest, DrawingStillUpdatesGeometryAndSeenWithoutAnOriginalFrame)
+{
+    const TwoMeshModels models;
+    std::array objects{ObjectAt(Rock, 1000.0f, 1000.0f)};
+    Client::Render::Models::CrtRandom random(4);
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    DrawWorldObjects(batch, models, objects, Everything, nullptr, Login, {}, 0.0f,
+                     Client::Scenes::ObjectFrameEffects{.random = &random, .frames = 0});
+    EXPECT_TRUE(objects[0].seen);
+    EXPECT_EQ(batch.Vertices().size(), 6u);
+    EXPECT_EQ(random.State(), 4u);
+}
+
 // Modelos de diez huesos de raíz, sin animación, el k en (100 · k, 10 · k, 0) por la base de su tipo; el
 // del tipo 2 con el 8 dummy. El farol (0x3c), de un hueso, como Object61.bmd.
 class TenBoneModels final : public Client::Scenes::IModelLibrary
@@ -313,6 +327,88 @@ LanternGlow GlowOf(std::vector<WorldObject>& objects, Client::World::ObjectScene
     rock.transform = objects.front().transform;
     glow.rock9 = Client::Scenes::PosedBonePoint(models, rock, 9, {});
     return glow;
+}
+
+TEST(WorldObjectsDrawingTest, AZeroFrameDrawReplaysTheLanternWithoutConsumingRandomness)
+{
+    const TenBoneModels models;
+    std::array objects{ObjectAt(TenBoneModels::Lantern, 300.0f, 300.0f)};
+    Client::World::FrameSprites sprites;
+    Client::Render::Models::CrtRandom random(4);
+    std::array<std::optional<int>, 1> lastRandoms;
+    Client::Scenes::DrawnObject horse;
+    horse.model = 1;
+    horse.transform.position = {1000.0f, 2000.0f, 300.0f};
+    std::array<Client::Scenes::PosedInTheBuffer, 1> before{{{&models, horse}}};
+    ModelBatch batch;
+    const auto draw = [&](int frames)
+    {
+        batch.Begin(Client::Render::Pass3D{});
+        DrawWorldObjects(batch, models, objects, Everything, nullptr, Login, {}, 0.0f,
+                         Client::Scenes::ObjectFrameEffects{.random = &random,
+                                                            .sprites = &sprites,
+                                                            .posedBefore = before,
+                                                            .scene = Client::World::ObjectScene::Login,
+                                                            .frames = frames,
+                                                            .lastRandoms = lastRandoms});
+    };
+    draw(1);
+    ASSERT_TRUE(sprites.Sprites()[0].alive);
+    const glm::vec3 light = sprites.Sprites()[0].light;
+    const std::uint32_t state = random.State();
+    EXPECT_EQ(sprites.Sprites()[0].position, glm::vec3(1800.0f, 2080.0f, 300.0f));
+    before[0].object.transform.position.x += 100.0f;
+    sprites.Clear();
+    draw(0);
+    EXPECT_EQ(random.State(), state);
+    EXPECT_TRUE(sprites.Sprites()[0].alive);
+    EXPECT_TRUE(sprites.Sprites()[1].alive);
+    EXPECT_EQ(sprites.Sprites()[0].light, light);
+    EXPECT_EQ(sprites.Sprites()[0].position, glm::vec3(1900.0f, 2080.0f, 300.0f)) << "la pose del dibujo actual";
+    sprites.Clear();
+    lastRandoms[0].reset();
+    draw(0);
+    EXPECT_FALSE(sprites.Any()) << "recién visible, todavía no tiene un sorteo previo";
+}
+
+TEST(WorldObjectsDrawingTest, ANotSeenLanternLosesItsSampleOnlyAfterAnOriginalFrame)
+{
+    const TenBoneModels models;
+    std::array objects{ObjectAt(TenBoneModels::Lantern, 300.0f, 300.0f)};
+    Client::World::FrameSprites sprites;
+    Client::Render::Models::CrtRandom random(4);
+    std::array<std::optional<int>, 1> lastRandoms;
+    const auto outside =
+        Client::World::TerrainPolygonOf(Client::World::CullingScene::Game, 0, {14350.0f, 12050.0f, 165.0f}, -45.0f);
+    ModelBatch batch;
+    const auto draw = [&](int frames, const Client::World::TerrainPolygon& polygon)
+    {
+        sprites.Clear();
+        batch.Begin(Client::Render::Pass3D{});
+        DrawWorldObjects(batch, models, objects, polygon, nullptr, Login, {}, 0.0f,
+                         Client::Scenes::ObjectFrameEffects{.random = &random,
+                                                            .sprites = &sprites,
+                                                            .scene = Client::World::ObjectScene::Login,
+                                                            .frames = frames,
+                                                            .lastRandoms = lastRandoms});
+    };
+    draw(1, Everything);
+    ASSERT_TRUE(lastRandoms[0].has_value());
+    const glm::vec3 light = sprites.Sprites()[0].light;
+    const std::uint32_t state = random.State();
+    draw(0, outside);
+    EXPECT_FALSE(objects[0].seen);
+    EXPECT_TRUE(lastRandoms[0].has_value());
+    draw(0, Everything);
+    ASSERT_TRUE(sprites.Any());
+    EXPECT_EQ(sprites.Sprites()[0].light, light);
+    draw(1, outside);
+    EXPECT_FALSE(objects[0].seen);
+    EXPECT_FALSE(lastRandoms[0].has_value());
+    draw(0, Everything);
+    EXPECT_TRUE(objects[0].seen);
+    EXPECT_FALSE(sprites.Any());
+    EXPECT_EQ(random.State(), state);
 }
 
 // 0x602ed0 en la escena 2 con el farol (0x3c, 0x602f21): dos sprites de flare01 (0x5ac), de escala 1,

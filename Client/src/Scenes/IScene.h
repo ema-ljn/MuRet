@@ -41,5 +41,8 @@ public:
     // Si el frame de ahora no se dibuja y queda el anterior (ILoopClient::HoldsTheLastFrame): el
     // login mientras conecta, que en el original es un connect bloqueante (Q-C85).
     [[nodiscard]] virtual bool HoldsTheLastFrame() const = 0;
+    // SceneManager avisa cuando su consulta HoldsTheLastFrame devuelve true. El aviso puede repetirse
+    // y debe ser idempotente. Por defecto, nada.
+    virtual void OnFrameHeld() {}
 };
 } // namespace Client::Scenes

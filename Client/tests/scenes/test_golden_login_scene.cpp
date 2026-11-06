@@ -957,13 +957,18 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
 }
 
 // CL7.6 B4: 0x602ed0 saca un rand() de la CRT de la tela por cada objeto visto en el dibujo (0x602ef4):
-// los 276 del .obj, el dueño del dragón y el logo, todos vistos en el login. Con la tela y el cetro, que
-// sacan menos de 100, un dibujo corre el rand() 278 lugares o más.
+// los 276 del .obj, el dueño del dragón y el logo, todos vistos en el login. De ellos, los dos 0x54
+// agregan un guard cada uno y 0, 5 o 10 rand de creación. La tela y el cetro sacan menos de 100 más.
+// El test usa Faithful: cada dibujo representa un frame original aunque entre sus relojes pasen 40 ms.
 TEST_F(GoldenLoginWorld, EverySeenObjectTakesARandInTheDraw)
 {
     Client::Render::Models::ClothWorld cloth;
-    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
-                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot,
+                                  .textures = m_store,
+                                  .log = m_log,
+                                  .cloth = &cloth,
+                                  .pacing = Client::App::PacingMode::Faithful},
+                     *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
     ASSERT_TRUE(scene.Enter().HasValue());
     scene.Step(Client::Input::InputState{});
     {
@@ -982,8 +987,12 @@ TEST_F(GoldenLoginWorld, EverySeenObjectTakesARandInTheDraw)
         (void)walk.Next();
         ++taken;
     }
-    EXPECT_GE(taken, 278u);
-    EXPECT_LT(taken, 378u);
+    constexpr std::size_t SeenObjects = 278;
+    constexpr std::size_t CloudGuards = 2;
+    constexpr std::size_t MaxCreationRandoms = CloudGuards * 5;
+    constexpr std::size_t OtherDrawRandomsLimit = 100;
+    EXPECT_GE(taken, SeenObjects + CloudGuards);
+    EXPECT_LT(taken, SeenObjects + CloudGuards + MaxCreationRandoms + OtherDrawRandomsLimit);
     scene.Leave();
 }
 

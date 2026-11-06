@@ -968,6 +968,35 @@ TEST(LoginSceneSessionTest, AHeldFrameNotifiesObjectEffectsWhenTheWholeConnectRu
     EXPECT_EQ(tested.cloth.random.State(), 0xc6192e9eu) << "un frame para dueño del dragón y logo";
 }
 
+// Retener el frame hasta que Step abra la lista no representa un connect bloqueante:
+// conserva los 20 ms de fase y completa una sola ronda al llegar a 47 ms desde el último dibujo.
+TEST(LoginSceneSessionTest, HoldingForANormalSessionChangePreservesTheObjectFramePhase)
+{
+    Harness tested(true);
+    ASSERT_TRUE(tested.scene->Enter().HasValue());
+    tested.socket.reads = {Hello()};
+    tested.Step();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingServerList);
+    ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
+    tested.clock.Advance(std::chrono::milliseconds{40});
+    (void)tested.Frame(tested.clock.Now());
+    tested.socket.reads = {ServerList({400})};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::ChoosingServer);
+    ASSERT_TRUE(tested.scene->HoldsTheLastFrame());
+    tested.scene->OnFrameHeld();
+    tested.clock.Advance(std::chrono::milliseconds{20});
+    tested.scene->Step(tested.input);
+    ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
+    tested.cloth.random = Client::Render::Models::CrtRandom(4);
+    (void)tested.Frame(tested.clock.Now());
+    EXPECT_EQ(tested.cloth.random.State(), 4u) << "20 ms no alcanzan para otra ronda";
+    tested.clock.Advance(std::chrono::milliseconds{27});
+    tested.cloth.random = Client::Render::Models::CrtRandom(4);
+    (void)tested.Frame(tested.clock.Now());
+    EXPECT_EQ(tested.cloth.random.State(), 0xc6192e9eu) << "la fase de 20 ms se conserva y completa 47 ms";
+}
+
 // El otro lado que cierra (el FD_CLOSE de 03): con la cuenta abierta, la cuenta se cierra y sale el
 // 0x70. El texto 3 que el original pone antes en el área de mensajes (0x555190) es del chat, que
 // llega con la CL8.

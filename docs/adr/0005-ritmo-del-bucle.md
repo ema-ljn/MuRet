@@ -59,8 +59,10 @@ avanza el juego.
   frames contados y avanzan por paso de lógica. Este ritmo local no cierra el orden global de
   RNG entre tela, cetro, objetos y los otros subsistemas; ese contraste sigue en CL7.P.
   Cuando SceneManager observa que la escena retiene el frame, notifica `IScene::OnFrameHeld`.
-  El login reinicia sólo el carry de efectos de objetos, también si la conexión comienza y falla
-  entre dos Steps. El aviso es idempotente y la consulta de retención lo documenta. El primer
+  El login reinicia sólo el carry de efectos de objetos cuando está conectando o el paso todavía
+  conserva ese estado de conexión; una retención por un paquete ordinario conserva la fase.
+  Se cubre también una conexión que comienza y falla entre dos Steps, porque el aviso la observa.
+  El aviso es idempotente y la consulta de retención lo documenta. El primer
   dibujo permitido cuenta un frame; no recupera el tiempo del connect bloqueante original.
   El pool y sus muestras no se vacían por esa pausa. El alcance es ese carry, no la equivalencia
   temporal de todos los demás; consultar `LoginScene::HoldsTheLastFrame` directamente no notifica.

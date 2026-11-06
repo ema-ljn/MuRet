@@ -1185,7 +1185,11 @@ bool LoginScene::HoldsTheLastFrame() const
 
 void LoginScene::OnFrameHeld()
 {
-    m_objectEffectFrames = {};
+    // Esperar al Step para mostrar una lista o un aviso no equivale al connect bloqueante original.
+    if (m_session != nullptr && (IsConnecting(m_session->State()) || (m_seen && IsConnecting(*m_seen))))
+    {
+        m_objectEffectFrames = {};
+    }
 }
 
 const CharacterHead& LoginScene::Head() const

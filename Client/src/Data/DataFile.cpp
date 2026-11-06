@@ -23,13 +23,18 @@ Core::Expected<std::vector<char>, std::error_code> ReadDataFilePrefix(const std:
         return Core::Unexpected(std::make_error_code(std::errc::value_too_large));
     }
     std::error_code error;
-    if (std::filesystem::is_directory(path, error))
-    {
-        return Core::Unexpected(std::make_error_code(std::errc::is_a_directory));
-    }
+    const std::filesystem::file_status status = std::filesystem::status(path, error);
     if (error)
     {
         return Core::Unexpected(error);
+    }
+    if (std::filesystem::is_directory(status))
+    {
+        return Core::Unexpected(std::make_error_code(std::errc::is_a_directory));
+    }
+    if (!std::filesystem::is_regular_file(status))
+    {
+        return Core::Unexpected(std::make_error_code(std::errc::not_supported));
     }
     std::ifstream file(path, std::ios::binary);
     if (!file.is_open())

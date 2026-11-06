@@ -124,6 +124,38 @@ TEST(DataFileTest, AnUnreadablePrefixIsAnError)
     EXPECT_EQ(directory.Error(), std::make_error_code(std::errc::is_a_directory));
 }
 
+#ifndef _WIN32
+TEST(DataFileTest, APrefixFromADeviceSymlinkIsRejected)
+{
+    const TemporaryFolder folder("data-file");
+    const std::filesystem::path path = folder.Path() / "dispositivo.bin";
+    std::error_code error;
+    std::filesystem::create_symlink("/dev/zero", path, error);
+    ASSERT_FALSE(error) << error.message();
+
+    const auto read = ReadDataFilePrefix(path, 4);
+
+    ASSERT_FALSE(read.HasValue());
+    EXPECT_EQ(read.Error(), std::make_error_code(std::errc::not_supported));
+}
+
+TEST(DataFileTest, APrefixFromARegularFileSymlinkIsRead)
+{
+    const TemporaryFolder folder("data-file");
+    const std::filesystem::path target = folder.Path() / "regular.bin";
+    const std::filesystem::path path = folder.Path() / "enlace.bin";
+    WriteBytes(target, "abcdef");
+    std::error_code error;
+    std::filesystem::create_symlink(target, path, error);
+    ASSERT_FALSE(error) << error.message();
+
+    const auto read = ReadDataFilePrefix(path, 3);
+
+    ASSERT_TRUE(read.HasValue()) << read.Error().message();
+    EXPECT_EQ(read.Value(), (std::vector<char>{'a', 'b', 'c'}));
+}
+#endif
+
 TEST(DataFileTest, AnUnrepresentablePrefixLengthIsAnErrorWithoutAllocating)
 {
     const TemporaryFolder folder("data-file");
@@ -145,6 +177,7 @@ TEST(DataFileTest, APrefixBeyondTheContainerLimitIsAnErrorWithoutAllocating)
     const std::size_t containerLimit = std::vector<char>{}.max_size();
     ASSERT_LT(containerLimit, std::numeric_limits<std::size_t>::max());
 
+    // No aísla la guarda de max_size(): streamsize puede rechazar la misma cantidad antes.
     const auto read = ReadDataFilePrefix(path, containerLimit + 1);
 
     ASSERT_FALSE(read.HasValue());

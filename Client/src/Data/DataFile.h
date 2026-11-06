@@ -23,7 +23,8 @@ namespace Client::Data
 // Hasta los primeros byteCount bytes, sin leer ni limitar la cola. Un EOF devuelve los bytes
 // disponibles: el cargador decide si alcanzan para el formato (Gate.bmd pide solo 2.304). Si la
 // cantidad no cabe en std::streamsize o en el contenedor, devuelve std::errc::value_too_large antes
-// de cualquier E/S o reserva. El caller limita byteCount al tamaño de su formato.
+// de cualquier E/S o reserva. El caller limita byteCount al tamaño de su formato. Sigue symlinks
+// a archivos regulares; rechaza directorios con is_a_directory y otros tipos con not_supported.
 [[nodiscard]] Core::Expected<std::vector<char>, std::error_code> ReadDataFilePrefix(const std::filesystem::path& path,
                                                                                     std::size_t byteCount);
 

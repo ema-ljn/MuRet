@@ -2222,8 +2222,8 @@ TEST(ServerSessionTest, CharacterEventsKeepTheirOrderAndOwnTheirPayloads)
     EXPECT_TRUE(created->entry.withoutEquipment);
     EXPECT_EQ(created->entry.guildStatus, 0xff);
     EXPECT_EQ(deleted->slot, 3);
-    EXPECT_EQ(tested.session.CreateResult(), std::optional<std::uint8_t>{1});
-    EXPECT_EQ(tested.session.DeleteResult(), std::optional<std::uint8_t>{1});
+    EXPECT_EQ(tested.session.CreateResult(), std::optional<std::uint8_t>{std::uint8_t{1}});
+    EXPECT_EQ(tested.session.DeleteResult(), std::optional<std::uint8_t>{std::uint8_t{1}});
     ASSERT_NE(tested.session.ChosenCharacter(), nullptr);
     EXPECT_EQ(tested.session.ChosenCharacter()->slot, 0);
     EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());

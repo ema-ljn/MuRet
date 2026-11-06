@@ -168,7 +168,7 @@ si no choca con eso; si choca, queda para más adelante.
 | CL7.4 E | caminar en la escena, con el recorte de los personajes | **se camina por Lorencia** |
 | CL7.5 A | cada mundo del `Data\` carga, con sus modelos y su error | |
 | CL7.5 B | `Gate.bmd` y la detección del gate | |
-| CL7.5 C | el protocolo del cambio de mapa (`1C`, `F3 04`, `F3 12`) | |
+| CL7.5 C | el protocolo del cambio de mapa (`1C`, `F3 04`, `F3 12`) | componente puro implementado; espera de warp pendiente de L1 |
 | CL7.5 D | el cambio de mapa en la escena | **por un gate, a los otros mapas** |
 | CL7.5 E | los casos de los otros mapas, como datos | |
 | CL7.6 | los efectos del mundo y de los personajes que dejó la CL6 | |
@@ -633,7 +633,8 @@ que se sabe:
 
 ## Sub-ola CL7.5 C: el protocolo del cambio de mapa
 
-**Contrato:** 04 (`1C`, `F3 04`, `F3 12`, `BD`). PR propio. Se detalla al arrancar; lo que se sabe:
+**Contrato:** 04 (`1C`, `F3 04`, `F3 12`, `BD`). El componente puro tiene PR propio;
+la espera de warp de `ServerSession` se integra después de L1, cuando exista `InWorld`.
 
 - **Qué:** `Protocol::World`: `ReadTeleport` (`1C`: gate, mapa, x, y, dirección), `ReadRegen` (`F3 04`),
   `WriteGateRequest` (`C1 06 1C gate 00 00` en C3), `WriteTeleportDone` (`C1 04 F3 12`, C1 con XOR32) y
@@ -642,6 +643,25 @@ que se sabe:
   `decode.py`) y sus cuatro `F3 12` (`C1 04 F3 68` en el cable), byte a
   byte; los dos `F3 04` del `muproxy.log`; el `1C` C->S contra el encoder de C3 con serial fijo (sin captura:
   *estático*, P-C31).
+
+- [x] `Protocol::World` puro: cinco operaciones, sin carga de mapas, sockets ni estado de escena.
+  `Regen` usa campos LE y acepta relleno no cero; ambos lectores devuelven dirección cruda,
+  distinguen WrongPacket/TooShort y siguen la convención de aceptar campos sobrantes.
+- [x] Contrastes estáticos independientes de `0x4c4b80` y `0x4c6e10`, y construcción del pedido
+  en `0x599ef0`, contra los bytes del PE `c32bbd5f`. No se generaron expectativas emuladas.
+- [x] Dieciséis tests focales: cuatro teleports nativos documentados, campos asimétricos,
+  truncamientos, tipos/subcódigos, extremos y escritores con XOR32 y Delivery exactos.
+- [x] Dos `F3 04` históricos, con sus rellenos no cero, y cadena del pedido de gate atravesando
+  el encoder C3 con serial 0x42 y clave identidad sintética. El C3 esperado se derivó aparte;
+  no es una captura nativa de gate ni una prueba de las claves del juego. Los tests de Network
+  acreditan su cifrador; este caso fija la conexión del escritor puro con esa cadena.
+- [x] Astra 6 Ultra y Opus 5.5 xhigh revisaron el componente y el refuerzo, sin P1/P2 abiertos.
+  Ambos mutantes de campos/Delivery fallan con tests nuevos y anteriores; no se presentan
+  como huecos que los catorce tests iniciales no detectaban.
+- [x] Suite completa: 2.264 casos registrados con GL/Mesa, trazas y cable, cero fallos y 30
+  omisiones opcionales. Build con warnings como errores y sin PCH, formato e includes limpios.
+- [ ] CI/Windows del PR del componente puro.
+- [ ] Integrar la espera de warp de `ServerSession` después de L1; CL7.5 C todavía no está completa.
 
 ## Sub-ola CL7.5 D: el cambio de mapa en la escena
 

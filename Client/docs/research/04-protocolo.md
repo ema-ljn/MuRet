@@ -504,6 +504,25 @@ como posición y dirección: lo de caminar es solo esa parada.
   **No manda el `F3 12`.** En el `muproxy.log` hay dos, los dos cinco segundos después del `17` (la
   muerte) del héroe, y ningún `F3 12` detrás (*verificado*).
 
+Contraste estático de CL7.5 C, build `c32bbd5f`: las 363 instrucciones y 1.258 bytes
+de `0x4c4b80` coinciden con el PE. Las cargas x86 de `0x4c4c23..0x4c4c4a` fijan
+vida/maná/BP **U16 little-endian**, experiencia y zen **U32 little-endian**. Los bytes
+`+0xe/+0xf` no se leen; no se exige relleno cero. El mayor byte leído es `+0x17`:
+el paquete lógico necesita 24 bytes. La dirección de `+7` se conserva completa;
+convertirla a yaw pertenece al handler, no al lector puro.
+
+Para `0x4c6e10` se contrastaron 1.523 instrucciones y 5.415 bytes con el PE: gate,
+mapa, X, Y y dirección son bytes crudos en `+3..+7`, sin máscaras. Gate cero omite
+el procesamiento del mapa y la confirmación; esa condición pertenece a la escena.
+La confirmación `F3 12` se arma en `0x4c7c63..0x4c7cfe` y se envía como C1 con XOR32
+en `0x4c7e2e`. El lector devuelve los campos sin aplicar la condición del gate.
+
+El pedido de gate se contrastó en `0x599ef0` (1.040 instrucciones y 3.840 bytes del
+export coinciden con el PE): `0x59a524` escribe el gate, `0x59a613` y `0x59a702` los
+ceros, `0x59a7f1..0x59a7f7` fija longitud 6 y `0x59a90e` arma C3. Esto fija
+`C1 06 1C gate 00 00` lógico con XOR32 y entrega cifrada; no aporta una captura nativa
+del pedido. `Protocol::World` reutiliza el serial y el encoder existentes de Network.
+
 En la PCAP, los cuatro `/move` de la sesión (*verificado*; el C3 del servidor, descifrado):
 
 | Hora | `1C` del servidor | Gate → mapa, celda | `F3 12` del cliente |

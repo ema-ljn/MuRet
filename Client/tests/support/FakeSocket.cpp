@@ -97,6 +97,7 @@ Core::Expected<std::size_t, SocketError> FakeSocket::Receive(std::span<std::byte
 
 Core::Expected<std::size_t, SocketError> FakeSocket::Send(std::span<const std::byte> bytes)
 {
+    ++sendAttempts;
     if (m_state != State::Connected)
     {
         return Core::Unexpected(SocketError::Closed);

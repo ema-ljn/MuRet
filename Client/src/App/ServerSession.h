@@ -25,8 +25,7 @@
 
 // La sesión con los servidores del juego: con el ConnectServer, hasta la dirección del GameServer
 // (CL4.3); con el GameServer, hasta el login (CL4.4), y el keepalive mientras esté conectado
-// (CL4.5). Desde la
-// CL5.5 no elige ni manda la cuenta sola: espera a la UI (o al AutoLogin) en ChoosingServer y en
+// (CL4.5). Desde la CL5.5 no elige ni manda la cuenta sola: espera a la UI (o al AutoLogin) en ChoosingServer y en
 // WaitingCredentials. Desde la CL6.3, la lista de personajes y la entrada al mundo, que pide la
 // escena de la selección. Contrato: el plan de la CL4, "Contrato" y el diagrama de estados de la
 // CL4.3, paso 1, y "Contrato" de la CL4.4 y de la CL4.5; el de la CL5.5 en el plan de la CL5; el de
@@ -149,9 +148,9 @@ public:
     // login). Con la orden de cerrar el juego, un aviso y nada: el juego se cierra en ese frame.
     void Start();
 
-    // Una vez por frame, desde ILoopClient::Poll: primero lo que llegó, después el tope del
-    // estado y por último el keepalive, si toca. Así lo que llegó durante un frame largo se lee
-    // antes de mirar el tope.
+    // Una vez por frame, desde ILoopClient::Poll: despacha lo que llegó, consume el vencimiento
+    // del timer aun sin GS, comprueba el tope del estado y manda el keepalive si toca y el GS sigue
+    // abierto. Así lo que llegó durante un frame largo se lee antes de mirar el tope.
     void Poll();
 
     [[nodiscard]] SessionState State() const;
@@ -175,7 +174,8 @@ public:
 
     // En WaitingCredentials, manda el login con `credentials` y el tick del reloj de ahora
     // (0x641bf0). Con unas que no entran, Failed (CredentialsTooLong). En otro estado, un aviso
-    // sin ellas, y nada. No las guarda.
+    // sin ellas, y nada. Si el GS ya cerró y falta despachar Closed, tampoco cambia el estado ni
+    // el resultado anterior. No las guarda.
     void SubmitCredentials(const Credentials& credentials);
 
     // Por qué falló; std::nullopt si no está en Failed.

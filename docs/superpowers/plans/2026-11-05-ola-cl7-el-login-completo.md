@@ -350,11 +350,14 @@ del login; no cierra CL7.P ni los pendientes visuales.
   de envíos al CS/conexión cerrada y coalescencia sin ráfagas. Conservar la política Q-C56 aparte.
 - [x] Prueba roja y verde de espera prolongada con un GS doble que expire por falta de tráfico,
   control sin tráfico, rechazo/reintento y cancelación/reconexión. Revisar también los avisos de UI.
-- [ ] Revisión adversarial Astra 6 Ultra y Opus 5.5 xhigh (solo código/diff), formato, includes,
+- [x] Revisión adversarial Astra 6 Ultra y Opus 5.5 xhigh (solo código/diff), formato, includes,
   build y suite completa con GL/golden. Actualizar ADR 0007, Q-C53 y guía de comprobación.
 - [ ] Corroborar con el cliente corregido frente al mismo GS real: esperar en el formulario,
   observar tráfico de mantenimiento y autenticar después. Un cierre remoto en el log no prueba
   por sí solo que el servidor cerrara por inactividad.
+- [ ] Al integrar `SetKeepaliveSpeeds` con el personaje, contrastar qué velocidades conserva el
+  original al volver del mundo al login/reconectar. Hoy no tiene llamador productivo; no inferir
+  un reset a partir del personaje inicial con velocidades 0/0.
 
 ## Sub-ola CL7.6 C: el cuervo
 

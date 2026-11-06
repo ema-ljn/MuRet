@@ -61,6 +61,10 @@ tiempo, con el mismo reloj, decididas juntas en la CL4.5. Por eso van en un ADR.
   doble, no un plazo medido del original. Queda comprobar el cliente corregido frente al mismo GS
   real, dejándolo en el formulario y autenticando después. Un keepalive tampoco impide un cierre
   remoto, un error de transporte ni una orden `F1 02/0`.
+- **Integración futura del personaje:** `SetKeepaliveSpeeds` aún no tiene llamador productivo y
+  conserva por contrato sus valores al llamar a `Start`. Los ceros del personaje inicial no fijan
+  qué hace el original al volver del mundo al login. Esa transición se debe contrastar cuando se
+  conecten las velocidades del personaje; no se introduce un reset sin evidencia en este arreglo.
 - **Lo fijan:**
   - Los tests de `ServerSession` cubren envíos prelogin, fase independiente de la autenticación y
     reconexión, seriales, exclusión del CS y frames largos; `FakeServers` acepta keepalives antes

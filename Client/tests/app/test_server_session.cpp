@@ -183,7 +183,7 @@ constexpr std::uint32_t PaddingSeed = 1;
 constexpr Duration Frame = milliseconds{40};
 
 // Lo que dice el log de cada keepalive que sale.
-constexpr std::string_view KeepaliveSent = "se mandó el keepalive";
+constexpr std::string_view KeepaliveSent = "se encoló el keepalive";
 
 // Dónde están las velocidades en el keepalive sin el XOR32: después de la cabecera, el opcode, el
 // 00 y el tick (04 § El flujo de conexión).
@@ -1220,6 +1220,9 @@ TEST(ServerSessionTest, ARejectedLoginKeepsItsResult)
     ASSERT_EQ(received.packets.size(), 5u);
     EXPECT_TRUE(
         std::ranges::all_of(received.serials, [](SerialCheck serial) { return serial == SerialCheck::InOrder; }));
+    const auto expected = WriteLoginRequest(LoginRequest{Account, Password, TickCountMs(tested.clock.Now())});
+    ASSERT_TRUE(expected.HasValue());
+    EXPECT_TRUE(SameBytesWithoutValues(received.packets.back().Bytes(), expected.Value().packet.Bytes()));
 }
 
 // Un C3 con el checksum malo: la sesión manda el F1 03, que el GS descifra a C1 06 F1 7B C1 73 con
@@ -1698,7 +1701,11 @@ TEST(ServerSessionTest, ReconnectingDoesNotRestartTheGlobalTimer)
 TEST(ServerSessionTest, TheLoginAndTheDueTimerCanEachSendAKeepalive)
 {
     Harness tested(IdentityObfuscation::Shared());
-    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{20}));
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
+    tested.AdvanceTo(seconds{20});
+    ASSERT_TRUE(tested.Keepalives().empty());
+    tested.socket.reads = {FromTheGameServer(LoginResult(1), tested.gameServerSends)};
+    tested.session.Poll();
     EXPECT_EQ(tested.Keepalives().size(), 2u);
     EXPECT_EQ(tested.GameServerReads().packets.size(), 3u);
     tested.AdvanceTo(milliseconds{39999});
@@ -1742,11 +1749,56 @@ TEST(ServerSessionTest, AFailedImmediateKeepaliveDoesNotAttemptTheDueTimer)
     tested.AdvanceTo(seconds{20});
     tested.socket.sendError = SocketError::Closed;
     tested.socket.reads = {Join({LoginResult(1), LogoutResult(0)})};
+    const std::size_t sendAttempts = tested.socket.sendAttempts;
     tested.session.Poll();
 
     EXPECT_EQ(tested.connection.State(), LinkState::Closed);
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
-    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 1u);
+    EXPECT_EQ(tested.socket.sendAttempts, sendAttempts + 1);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 0u);
+    EXPECT_FALSE(tested.Logged(LogLevel::Warning, "que iba a salir: la conexión está cerrada"));
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
+}
+
+// El peer puede cerrar después de entregar F1 01: no se registra como enviado lo descartado.
+TEST(ServerSessionTest, AClosingLoginBatchDoesNotLogASentKeepalive)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
+    tested.socket.reads = {FromTheGameServer(LoginResult(1), tested.gameServerSends)};
+    tested.socket.peerClosed = true;
+    const std::size_t sendAttempts = tested.socket.sendAttempts;
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
+    EXPECT_EQ(tested.socket.sendAttempts, sendAttempts);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 0u);
+    EXPECT_EQ(tested.GameServerReads().packets.size(), 1u);
+}
+
+// Entre el 0E que cierra el GS y su Closed diferido, la UI no debe borrar el rechazo ni fingir login.
+TEST(ServerSessionTest, AFailedPreloginKeepalivePreservesTheCredentialsStateUntilClosed)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
+    tested.socket.reads = {FromTheGameServer(LoginResult(0), tested.gameServerSends)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.LoginResult(), std::optional<std::uint8_t>{std::uint8_t{0}});
+    tested.AdvanceTo(seconds{20});
+    tested.socket.sendError = SocketError::Closed;
+    tested.session.Poll();
+    ASSERT_EQ(tested.connection.State(), LinkState::Closed);
+    const std::size_t loginMessages = tested.CountLogged(LogLevel::Info, "se manda el login");
+    const std::size_t sendAttempts = tested.socket.sendAttempts;
+    tested.session.SubmitCredentials(TheCredentials());
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_EQ(tested.session.LoginResult(), std::optional<std::uint8_t>{std::uint8_t{0}});
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, "se manda el login"), loginMessages);
+    EXPECT_EQ(tested.socket.sendAttempts, sendAttempts);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 0u);
+    EXPECT_FALSE(tested.LoggedTheCredentials());
     tested.session.Poll();
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
 }
@@ -2003,15 +2055,16 @@ TEST(ServerSessionTest, EachStateChangeIsLogged)
             infos.push_back(tested.sink.lines[index]);
         }
     }
-    EXPECT_EQ(infos, (Lines{"[info] se conecta al ConnectServer", "[info] conectó con el ConnectServer",
-                            "[info] el ConnectServer saludó: se pide la lista de servidores",
-                            "[info] la lista trae 1 servidores: se espera la elección",
-                            "[info] se elige un servidor: se pide su dirección",
-                            "[info] el ConnectServer dio la dirección del GameServer: se cierra y se conecta a ese",
-                            "[info] la conexión se cerró: la cerró el cliente",
-                            "[info] conectó con el GameServer: se espera su saludo",
-                            "[info] el GameServer saludó: se espera la cuenta y la clave", "[info] se manda el login",
-                            "[info] el GameServer aceptó el login", "[info] se mandó el keepalive al GameServer"}));
+    EXPECT_EQ(infos,
+              (Lines{"[info] se conecta al ConnectServer", "[info] conectó con el ConnectServer",
+                     "[info] el ConnectServer saludó: se pide la lista de servidores",
+                     "[info] la lista trae 1 servidores: se espera la elección",
+                     "[info] se elige un servidor: se pide su dirección",
+                     "[info] el ConnectServer dio la dirección del GameServer: se cierra y se conecta a ese",
+                     "[info] la conexión se cerró: la cerró el cliente",
+                     "[info] conectó con el GameServer: se espera su saludo",
+                     "[info] el GameServer saludó: se espera la cuenta y la clave", "[info] se manda el login",
+                     "[info] el GameServer aceptó el login", "[info] se encoló el keepalive para el GameServer"}));
 }
 
 // La lista de personajes y la entrada al mundo (el plan de la CL6, CL6.3, paso 2). Los nombres son

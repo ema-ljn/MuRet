@@ -52,7 +52,9 @@ public:
     // Lo que pasó.
     std::vector<std::byte> sent;              // todo lo que tomó Send, en orden
     std::vector<App::ServerAddress> connects; // el host y el puerto de cada StartConnect
-    int closes = 0;                           // cada Close(), y cada StartConnect con uno abierto
+    // Intentos de Send, incluidos los que fallan o no toman bytes.
+    std::size_t sendAttempts = 0;
+    int closes = 0; // cada Close(), y cada StartConnect con uno abierto
 
     [[nodiscard]] Core::Expected<Network::ConnectProgress, Network::SocketError>
     StartConnect(std::string_view host, std::uint16_t port) override;

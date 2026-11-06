@@ -301,6 +301,13 @@ void ServerSession::SubmitCredentials(const Credentials& credentials)
         m_log.Warning("se ignoran la cuenta y la clave: {}", NotAwaitedPlural);
         return;
     }
+    // Un envío periódico puede haber cerrado el GS en el Poll de este mismo frame.
+    // Su Closed se despacha en el siguiente: hasta entonces se conservan estado y resultado.
+    if (m_connection.State() != Network::LinkState::Open)
+    {
+        m_log.Warning("se ignoran la cuenta y la clave: el GameServer ya no está conectado");
+        return;
+    }
     const Protocol::Connection::LoginRequest request{credentials.account, credentials.password,
                                                      TickCountMs(m_clock.Now())};
     auto login = Protocol::Connection::WriteLoginRequest(request);
@@ -810,7 +817,11 @@ void ServerSession::SendKeepalive(Core::Duration now)
                                                     KeepaliveSpeed(m_speeds.magicSpeed, m_speeds.characterFlags)};
     Protocol::Outgoing outgoing = Protocol::Connection::WriteKeepalive(keepalive);
     m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
-    m_log.Info("se mandó el keepalive al GameServer");
+    if (m_connection.State() == Network::LinkState::Open)
+    {
+        // La Connection pudo encolarlo: no afirma que el GS lo haya recibido.
+        m_log.Info("se encoló el keepalive para el GameServer");
+    }
 }
 
 // El CS va sin claves y el GS con las suyas: cada Open vuelve los seriales a 0.

@@ -117,7 +117,8 @@ struct LoopbackSession
         clock.Advance(std::chrono::milliseconds{123456});
     }
 
-    // Elección manual y ninguna credencial: el jugador deja abierto el formulario del login.
+    // Elección manual sin enviar credenciales: PollUntil no consulta AutoLogin, que solo se usa
+    // en LogIn. El jugador deja abierto el formulario del login.
     [[nodiscard]] bool OpenLoginForm()
     {
         session.Start();
@@ -145,7 +146,7 @@ struct LoopbackSession
             });
     }
 
-    // Los dos lados en el mismo lazo hasta `done` o una queja del servidor.
+    // Los dos lados sin AutoLogin en el mismo lazo hasta `done` o una queja del servidor.
     template <typename Done> [[nodiscard]] bool PollUntil(Done done)
     {
         return RetryUntil(

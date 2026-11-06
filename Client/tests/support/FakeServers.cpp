@@ -258,7 +258,7 @@ void FakeServers::PollGameServer()
 
 void FakeServers::CheckGameServerIdle()
 {
-    if (!m_clock || m_idleTimeout <= Core::Duration::zero() || !m_lastKeepalive ||
+    if (m_gameStep == GameStep::Stopped || !m_clock || m_idleTimeout <= Core::Duration::zero() || !m_lastKeepalive ||
         m_clock->Now() - *m_lastKeepalive < m_idleTimeout)
     {
         return;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/IClock.h"
 #include "Network/Connection.h"
 #include "Network/Packet.h"
 #include "Network/PacketReader.h"
@@ -20,7 +21,8 @@
 // los bytes del cable del laboratorio y su FoxAnti: el CS manda la lista en la forma del
 // laboratorio y espera la elección ya pasada al código 0, y el GS manda todo cifrado y con el
 // 0xAA en cada byte. El F4 03 da 127.0.0.1 y el puerto del GS falso, no la dirección del cable.
-// Después del login, el GS acepta keepalives (CL4.5), y los cuenta; un F3 00, que contesta con una
+// El GS acepta keepalives antes y después del login (04 § El flujo de conexión), y los cuenta;
+// después acepta un F3 00, que contesta con una
 // lista de dos personajes en claro (char0001 en el lugar 0 y char0002 en el 2, CL6.3); y un F3 03,
 // que guarda.
 //
@@ -37,19 +39,26 @@ public:
     // descifra el login y cifra el saludo y el resultado.
     explicit FakeServers(Network::ConnectionKeys serverKeys);
 
+    // Plazo sintético de inactividad para probar la espera humana, sin dormir: un 0E válido lo
+    // renueva. Cero lo desactiva. No representa un plazo medido del GS original. El reloj vive más
+    // que estos servidores y se consulta en el mismo hilo.
+    FakeServers(Network::ConnectionKeys serverKeys, Core::IClock& clock, Core::Duration idleTimeout);
+
     [[nodiscard]] std::uint16_t ConnectServerPort() const;
     [[nodiscard]] std::uint16_t GameServerPort() const;
 
     // Una vuelta de los dos: acepta, lee lo que mandó el cliente y contesta lo que toca.
     void Poll();
 
-    // Si el GS recibió un login que descifra, con el serial 0, y lo aceptó.
+    // Si el GS recibió un login que descifra, con el serial que seguía, y lo aceptó.
     [[nodiscard]] bool SawLogin() const;
     // Ese login, descifrado y todavía con su XOR32, para compararlo con WriteLoginRequest con
     // SameBytesWithoutValues; vacío hasta que llega.
     [[nodiscard]] const std::optional<Network::Packet>& Login() const;
-    // Los keepalives que le llegaron al GS después del login, cifrados y en orden.
+    // Los keepalives que le llegaron al GS, cifrados y en orden, antes o después del login.
     [[nodiscard]] std::size_t Keepalives() const;
+    // Si el plazo sintético cerró el GS por no recibir un 0E válido.
+    [[nodiscard]] bool IdleExpired() const;
     // El F3 03 que le llegó al GS, en claro y sin el XOR32; vacío hasta que llega.
     [[nodiscard]] const std::optional<Network::Packet>& CharacterSelect() const;
     // Si el CS, ya contestada la dirección, vio que el cliente cortó (04: "el cliente corta con el
@@ -79,11 +88,13 @@ private:
 
     void PollConnectServer();
     void PollGameServer();
+    void CheckGameServerIdle();
     void OnConnectServerPacket(const Network::Packet& packet);
     void OnGameServerPacket(const Network::Packet& packet);
     // Después del login: un keepalive cifrado, o un F3 en claro.
     void OnAfterLogin(const Network::Packet& packet);
-    void OnKeepalive(const Network::Packet& packet);
+    // Ya descifrado, con serial validado; antes y después del login usa el mismo contador.
+    void OnKeepalive();
     void OnCharacterPacket(const Network::Packet& packet);
 
     // El próximo paquete de `reader`, o std::nullopt si no hay uno entero o si el corte falló.
@@ -108,6 +119,10 @@ private:
     GameStep m_gameStep = GameStep::WaitingClient;
     std::optional<Network::Packet> m_login;
     std::size_t m_keepalives = 0;
+    Core::IClock* m_clock = nullptr;
+    Core::Duration m_idleTimeout{};
+    std::optional<Core::Duration> m_lastKeepalive;
+    bool m_idleExpired = false;
     bool m_characterListSent = false;
     std::optional<Network::Packet> m_characterSelect;
     std::vector<std::string> m_complaints;

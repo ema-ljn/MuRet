@@ -1,5 +1,6 @@
 #include "support/FakeServers.h"
 
+#include "Core/IClock.h"
 #include "Network/Connection.h"
 #include "Network/Crypto/Xor32.h"
 #include "Network/EncryptedPacket.h"
@@ -128,6 +129,11 @@ bool IsKeepalive(const Network::Packet& plain)
 
 FakeServers::FakeServers(Network::ConnectionKeys serverKeys) : m_keys(serverKeys) {}
 
+FakeServers::FakeServers(Network::ConnectionKeys serverKeys, Core::IClock& clock, Core::Duration idleTimeout)
+    : m_keys(serverKeys), m_clock(&clock), m_idleTimeout(idleTimeout)
+{
+}
+
 std::uint16_t FakeServers::ConnectServerPort() const
 {
     return m_connectServer.Port();
@@ -157,6 +163,11 @@ const std::optional<Network::Packet>& FakeServers::Login() const
 std::size_t FakeServers::Keepalives() const
 {
     return m_keepalives;
+}
+
+bool FakeServers::IdleExpired() const
+{
+    return m_idleExpired;
 }
 
 const std::optional<Network::Packet>& FakeServers::CharacterSelect() const
@@ -217,6 +228,10 @@ void FakeServers::PollGameServer()
             return;
         }
         m_gameStep = GameStep::WaitingLogin;
+        if (m_clock)
+        {
+            m_lastKeepalive = m_clock->Now();
+        }
         SendFromTheGameServer(GameHello());
     }
     if (m_gameStep == GameStep::Stopped || m_gameServer.ClientClosed())
@@ -234,10 +249,23 @@ void FakeServers::PollGameServer()
         }
         if (!packet)
         {
+            CheckGameServerIdle();
             return;
         }
         OnGameServerPacket(*packet);
     }
+}
+
+void FakeServers::CheckGameServerIdle()
+{
+    if (m_gameStep == GameStep::Stopped || !m_clock || m_idleTimeout <= Core::Duration::zero() || !m_lastKeepalive ||
+        m_clock->Now() - *m_lastKeepalive < m_idleTimeout)
+    {
+        return;
+    }
+    m_idleExpired = true;
+    m_gameServer.CloseClient();
+    m_gameStep = GameStep::Stopped;
 }
 
 void FakeServers::OnConnectServerPacket(const Network::Packet& packet)
@@ -274,8 +302,8 @@ void FakeServers::OnConnectServerPacket(const Network::Packet& packet)
     }
 }
 
-// El login llega como C3 y se descifra con la clave del servidor, con el serial 0. Lo que sigue
-// son keepalives.
+// Antes de autenticarse también puede llegar un 0E: el timer original no espera al login.
+// Todos los C3 comparten la secuencia de seriales de esta conexión.
 void FakeServers::OnGameServerPacket(const Network::Packet& packet)
 {
     if (m_gameStep == GameStep::LoggedIn)
@@ -285,7 +313,7 @@ void FakeServers::OnGameServerPacket(const Network::Packet& packet)
     }
     if (!IsEncrypted(packet))
     {
-        StopGameServer("el GameServer esperaba el login cifrado y llegó un paquete en claro");
+        StopGameServer("el GameServer esperaba login o keepalive cifrado y llegó un paquete en claro");
         return;
     }
     auto decrypted = Network::DecryptPacket(packet, m_keys.decryption, m_gameSerials);
@@ -296,12 +324,17 @@ void FakeServers::OnGameServerPacket(const Network::Packet& packet)
     }
     if (decrypted.Value().serial != Network::SerialCheck::InOrder)
     {
-        StopGameServer("el login no trae el serial 0");
+        StopGameServer("el paquete previo al login no trae el serial que seguía");
+        return;
+    }
+    if (IsKeepalive(decrypted.Value().packet))
+    {
+        OnKeepalive();
         return;
     }
     if (!IsLoginRequest(decrypted.Value().packet))
     {
-        StopGameServer("el GameServer esperaba el login (F1 01) y llegó otra cosa");
+        StopGameServer("el GameServer esperaba login (F1 01) o keepalive (0E) y llegó otra cosa");
         return;
     }
     m_login = std::move(decrypted).Value().packet;
@@ -314,27 +347,31 @@ void FakeServers::OnAfterLogin(const Network::Packet& packet)
 {
     if (IsEncrypted(packet))
     {
-        OnKeepalive(packet);
+        const auto decrypted = Network::DecryptPacket(packet, m_keys.decryption, m_gameSerials);
+        if (!decrypted.HasValue() || decrypted.Value().serial != Network::SerialCheck::InOrder)
+        {
+            StopGameServer("el GameServer no descifra en orden lo que llegó después del login");
+            return;
+        }
+        if (!IsKeepalive(decrypted.Value().packet))
+        {
+            StopGameServer("el GameServer recibió después del login algo cifrado que no es un keepalive");
+            return;
+        }
+        OnKeepalive();
         return;
     }
     OnCharacterPacket(packet);
 }
 
-// El keepalive, con el serial que sigue: el primero, el 1.
-void FakeServers::OnKeepalive(const Network::Packet& packet)
+// Solo el 0E ya validado mantiene abierto el GS con plazo sintético.
+void FakeServers::OnKeepalive()
 {
-    const auto decrypted = Network::DecryptPacket(packet, m_keys.decryption, m_gameSerials);
-    if (!decrypted.HasValue() || decrypted.Value().serial != Network::SerialCheck::InOrder)
-    {
-        StopGameServer("el GameServer no descifra en orden lo que llegó después del login");
-        return;
-    }
-    if (!IsKeepalive(decrypted.Value().packet))
-    {
-        StopGameServer("el GameServer recibió después del login algo cifrado que no es un keepalive");
-        return;
-    }
     ++m_keepalives;
+    if (m_clock)
+    {
+        m_lastKeepalive = m_clock->Now();
+    }
 }
 
 // Un F3 00 de 4 bytes, una vez, que contesta con la lista; y un F3 03 con el nombre, después de la

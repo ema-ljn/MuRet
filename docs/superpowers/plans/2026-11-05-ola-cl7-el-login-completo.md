@@ -336,6 +336,32 @@ estático son los dos emisores invisibles `0x54` del mapa 55. El original apaga 
 El fuego del `0x59` continúa abierto. Implementar las nubes no confirma por sí solo que sean toda
 la neblina que ve Emanuel ni cierra los demás arrastres del login, la selección o Lorencia.
 
+### Seguimiento: espera en el formulario de login (2026-11-06)
+
+Emanuel observa cierre de MuRet sin enviar credenciales, mientras el original conserva el
+formulario. La espera humana no tiene deadline local; la divergencia demostrada es Q-C53: MuRet
+omitía los keepalives antes del login, por la decisión inicial de ADR 0007. El contrato del 04
+ya registra el timer global y tráfico prelogin. Es una corrección de CL4 detectada en el barrido
+del login; no cierra CL7.P ni los pendientes visuales.
+
+- [x] Restaurar el timer de 20 s independiente de autenticación y reconexión: enviar con el GS
+  abierto, también antes del saludo, en formulario/avisos, rechazo y espera de resultado.
+- [x] Mantener el inmediato al aceptar login sin reiniciar la fase; verificar seriales C3, ausencia
+  de envíos al CS/conexión cerrada y coalescencia sin ráfagas. Conservar la política Q-C56 aparte.
+- [x] Prueba roja y verde de espera prolongada con un GS doble que expire por falta de tráfico,
+  control sin tráfico, rechazo/reintento y cancelación/reconexión. Revisar también los avisos de UI.
+- [x] Revisión adversarial Astra 6 Ultra y Opus 5.5 xhigh (solo código/diff), formato, includes,
+  build y suite completa con GL/golden. Actualizar ADR 0007, Q-C53 y guía de comprobación.
+- [ ] Corroborar con el cliente corregido frente al mismo GS real: esperar en el formulario,
+  observar tráfico de mantenimiento y autenticar después. Un cierre remoto en el log no prueba
+  por sí solo que el servidor cerrara por inactividad.
+- [ ] Al integrar `SetKeepaliveSpeeds` con el personaje, contrastar qué velocidades conserva el
+  original al volver del mundo al login/reconectar. Hoy no tiene llamador productivo; no inferir
+  un reset a partir del personaje inicial con velocidades 0/0.
+- [ ] Contrastar el orden de estado/cierre de `0x641bf0` si falla el propio envío del login.
+  MuRet ya pasaba a `WaitingLoginResult` hasta despachar `Closed` en el Poll siguiente; es un
+  borde previo al arreglo del timer. La guarda nueva cubre el transporte cerrado antes de enviar.
+
 ## Sub-ola CL7.6 C: el cuervo
 
 **Contrato:** 06 § El cuervo. PR propio. Se detalla al arrancar; lo que se sabe:

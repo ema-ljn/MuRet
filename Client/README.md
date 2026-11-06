@@ -260,7 +260,8 @@ Con eso, `Main` arranca la red del sistema y la sesión, y el log dice cada paso
 ConnectServer", "conectó con el ConnectServer", "la lista trae N servidores: se espera la
 elección", "se elige un servidor: se pide su dirección", la dirección del GameServer (sin
 decirla), "el GameServer saludó: se espera la cuenta y la clave", "se manda el login", "el
-GameServer aceptó el login" y, desde ahí, "se mandó el keepalive al GameServer" cada 20 s. La
+GameServer aceptó el login". "se encoló el keepalive para el GameServer" aparece cada 20 s con el GS
+abierto, también esperando cuenta y clave, y una vez adicional al aceptar el login. La
 lista y la cuenta esperan al jugador sin tope; las respuestas de los servidores, 30 s. Ni la
 cuenta ni la clave ni las direcciones van al log, tampoco lo tecleado. Un login rechazado muestra
 su aviso y, con su OK, la cuenta otra vez, con el foco donde va. Si la conexión falla (un servidor
@@ -319,10 +320,13 @@ falta correr está en P-C16 y P-C21 del [08](docs/research/08-pendientes.md).
    cuatro `LSBg`) y después el negro del juego. El log del GameServer muestra que ese personaje
    entró. Cerrar y repetirlo con doble clic en vez de Enter, y con el botón de conectar de la
    barra.
-7. Mirar el log durante dos minutos: desde "el GameServer aceptó el login", seis o siete "se mandó
-   el keepalive al GameServer", uno cada 20 s, sin "se perdió la conexión con el GameServer". Con
-   `[Server] Obfuscation = foxanti`, que es el valor por defecto: el GameServer del laboratorio
-   usa FoxAnti.
+7. Sin `--auto-login`, dejar la ventana de cuenta y clave abierta durante dos minutos antes de
+   escribir: debe conservarse y el log debe registrar "se encoló el keepalive para el GameServer" cada
+   20 s. Repetir dejando abierto un aviso de cuenta/clave vacía y uno de login rechazado. Después
+   autenticar: sale un keepalive inmediato y continúa el período anterior, por lo que el siguiente
+   puede tardar menos de 20 s. No debe aparecer "se perdió la conexión con el GameServer" durante
+   la espera normal. Usar `[Server] Obfuscation = foxanti`, valor por defecto que espera el GS del
+   laboratorio. Un cierre remoto todavía requiere revisar su causa en el servidor.
 8. Cancelar: en otra corrida, en la ventana de la cuenta, el botón de cancelar (o Esc). El
    original cierra el GameServer, vuelve a conectar al ConnectServer y muestra la lista otra vez
    (06 § La cuenta y la clave). Anotar si MuRet vuelve a la lista o se cierra, y si antes sale un aviso.

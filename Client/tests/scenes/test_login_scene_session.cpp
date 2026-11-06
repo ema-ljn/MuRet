@@ -636,6 +636,15 @@ TEST(LoginSceneSessionTest, AnEmptyAccountShowsItsNotice)
     EXPECT_TRUE(Harness::Drew(events, EmptyAccountText));
     EXPECT_EQ(Harness::QuadsOf(events, LoginBackgroundSlot), 0u);
 
+    for (int interval = 0; interval < 3; ++interval)
+    {
+        tested.clock.Advance(std::chrono::seconds{20});
+        tested.Step();
+    }
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_TRUE(Harness::Drew(tested.Frame(), EmptyAccountText));
+    EXPECT_EQ(tested.GameServerReads().packets.size(), 3u);
+
     tested.Tap(Key::Enter);
 
     events = tested.Frame();
@@ -660,6 +669,15 @@ TEST(LoginSceneSessionTest, AnEmptyPasswordShowsItsNotice)
     EXPECT_EQ(Harness::QuadsOf(events, NoticeBoxSlot), 1u);
     EXPECT_TRUE(Harness::Drew(events, EmptyPasswordText));
 
+    for (int interval = 0; interval < 3; ++interval)
+    {
+        tested.clock.Advance(std::chrono::seconds{20});
+        tested.Step();
+    }
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_TRUE(Harness::Drew(tested.Frame(), EmptyPasswordText));
+    EXPECT_EQ(tested.GameServerReads().packets.size(), 3u);
+
     tested.Tap(Key::Enter);
     tested.Type(Password);
     tested.Tap(Key::Enter);
@@ -682,6 +700,15 @@ TEST(LoginSceneSessionTest, ARejectedLoginShowsItsNotice)
     EXPECT_EQ(Harness::QuadsOf(events, NoticeBoxSlot), 1u);
     EXPECT_TRUE(Harness::Drew(events, WrongPasswordText));
 
+    for (int interval = 0; interval < 3; ++interval)
+    {
+        tested.clock.Advance(std::chrono::seconds{20});
+        tested.Step();
+    }
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_TRUE(Harness::Drew(tested.Frame(), WrongPasswordText));
+    EXPECT_EQ(tested.GameServerReads().packets.size(), 4u);
+
     tested.Tap(Key::Enter);
     events = tested.Frame();
     EXPECT_EQ(Harness::QuadsOf(events, NoticeBoxSlot), 0u);
@@ -692,7 +719,7 @@ TEST(LoginSceneSessionTest, ARejectedLoginShowsItsNotice)
     tested.Type(Password);
     tested.Tap(Key::Enter);
     EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
-    EXPECT_EQ(tested.GameServerReads().packets.size(), 2u);
+    EXPECT_EQ(tested.GameServerReads().packets.size(), 5u);
 }
 
 // El texto tecleado, solo con la cuenta arriba: ni con la lista, ni con un aviso que la tapa, ni

@@ -151,7 +151,7 @@ si no choca con eso; si choca, queda para más adelante.
 
 ## Orden y hitos
 
-Estado contrastado con `main` **`138fe0b`**, los PR abiertos y el código, 2026-11-06.
+Estado contrastado con `main` **`ad331dc`**, los PR abiertos y el código, 2026-11-06.
 «Componente puro» no significa que la funcionalidad esté integrada en la escena.
 
 | Sub-ola | Estado verificable | Qué falta para su alcance |
@@ -164,7 +164,7 @@ Estado contrastado con `main` **`138fe0b`**, los PR abiertos y el código, 2026-
 | CL7.L3 | pendiente | F3 10, equipo del mundo, matriz de parado, aparición y zonas seguras/mascota |
 | CL7.L4 | pendiente | luz dinámica compartida y pasto, incluidos carga/RNG y vértices |
 | CL7.L5 | pendiente | hojas/clima, pájaros, peces, fuegos y fuente |
-| CL7.4 A | [PR143](https://github.com/ema-ljn/MuRet/pull/143) abierto, CI verde | distancia cero implementada; radio y consumidor pendientes; no confundir pruebas dirigidas con los 171 caminos del cable |
+| CL7.4 A | componente puro integrado por [PR143](https://github.com/ema-ljn/MuRet/pull/143) | distancia cero implementada; radio y consumidor pendientes; no confundir pruebas dirigidas con los 171 caminos del cable |
 | CL7.4 B | componente puro integrado por [PR139](https://github.com/ema-ljn/MuRet/pull/139) | consumidor y envío en la escena, CL7.4 E; precisión nativa del emisor pendiente |
 | CL7.4 C | pendiente | spline, celda lógica, velocidad, carrera/giro/altura y acciones según clase/equipo/mapa |
 | CL7.4 D | pendiente | rayo contra terreno, orden/caras, nearest y selección retenida en miss |
@@ -592,8 +592,23 @@ la fuente, el `0F`). PR propio. Se detalla al arrancar; lo que se sabe:
 **Contrato:** 06 § Caminar (el `TerrainWall` vivo de `0x508f00`, `PathFinding2` de `0x4eac00` y el A* de
 `0x4ead70`). PR propio. Se detalla al arrancar; lo que se sabe:
 
+**Entrega pura de caminar:** `TerrainWalls::Rebuild` recibe celdas ya decodificadas: limpia el bit
+`0x02` y marca únicamente actores vivos, con `+0x389 == 0` y tipo distinto de 8. `PathFinder::Find`
+reproduce la rama de distancia cero, su árbol, prioridad, vecinos, padres, topes y corte a 15. El
+parámetro explícito `clearGoal` conserva el borrado de todo el WORD y su efecto sobre el segundo
+intento; el consumidor decidirá cuándo corresponde el caso de asedio. La asignación del mapa vivo
+en cada paso, los cierres de coordenadas y su RNG, el clic, el envío y el avance del personaje quedan
+para CL7.P y CL7.4 C–E. No se afirma portar la rama de búsqueda por radio.
+
+La verificación de esta entrega usa ASM cotejado con el PE y casos literales independientes, incluidos
+los límites 500/501 y 50/51 y el borrado de la zona segura antes del segundo intento. No se encontraron
+fixtures históricos de caminos disponibles y no se ejecutaron los generadores emulados que proponía
+el plan anterior. Por tanto, las comparaciones de miles de vectores y de los 171 caminos del cable
+que figuran abajo siguen pendientes; los tests propios no se presentan como esas comparaciones.
+
 - **Qué:** `World::TerrainWalls` (el WORD vivo por celda: se borra el `0x02` de las 65.536 y se marca la
-  celda lógica de cada personaje vivo, en cada paso; la celda con máscara de `0x5f82a0`);
+  celda lógica de cada personaje vivo, no moribundo y de tipo distinto de 8, en cada paso;
+  la celda con máscara de `0x5f82a0`);
   `GameLogic::PathFinder` con la lista abierta como un árbol propio que inserta y saca como `0x4eb770` y
   `0x4c0dd0` (los iguales a la derecha, se saca el de más a la izquierda), los ocho vecinos en el orden de
   `0x6d5d80`, la prioridad h + el costo del padre, la h (que da 4 en la diagonal a la meta, lo mismo que en

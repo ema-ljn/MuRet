@@ -2,6 +2,8 @@
 
 #include "Data/DataPath.h"
 #include "Render/TextureSlot.h"
+#include "World/TerrainHeight.h"
+#include "World/WorldTerrain.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -15,6 +17,7 @@
 #include <filesystem>
 #include <fstream>
 #include <ios>
+#include <optional>
 #include <string>
 #include <system_error>
 #include <vector>
@@ -120,6 +123,37 @@ TEST_F(GoldenLoadedWorld, LoadsTheFourteenTilesAndTheAcceptBox)
     EXPECT_FALSE(world.IsLoaded());
     EXPECT_EQ(world.Lighting(), nullptr);
     EXPECT_EQ(m_store.Size(), 0u);
+}
+
+// Las tablas siguen vivas entre escenas; los tiles siguen perteneciendo al LoadedWorld.
+TEST_F(GoldenLoadedWorld, TakingTheTerrainKeepsCpuDataAfterTheSceneAndReleasesTilesOnce)
+{
+    std::optional<Client::World::WorldTerrain> retained;
+    double height = 0.0;
+    {
+        LoadedWorld world(m_store);
+        std::vector<std::string> skipped;
+        ASSERT_TRUE(world.Load(m_copy.Path(), Login, skipped).HasValue());
+        const auto* heights = world.Terrain()->heights.get();
+        const auto* attributes = world.Terrain()->attributes.get();
+        height = Client::World::TerrainHeightAt(*heights, *attributes, 50.0f, 50.0f);
+        retained = world.TakeTerrain();
+        ASSERT_TRUE(retained.has_value());
+        EXPECT_EQ(retained->heights.get(), heights);
+        EXPECT_EQ(retained->attributes.get(), attributes);
+        EXPECT_FALSE(world.IsLoaded());
+        EXPECT_EQ(world.Terrain(), nullptr);
+        EXPECT_EQ(world.Lighting(), nullptr);
+        EXPECT_FALSE(world.TakeTerrain().has_value());
+        EXPECT_EQ(m_store.Size(), 15u);
+        world.Release();
+        EXPECT_EQ(m_store.Size(), 0u);
+        EXPECT_EQ(m_store.released.size(), 15u);
+        world.Release();
+        EXPECT_EQ(m_store.released.size(), 15u);
+    }
+    ASSERT_TRUE(retained.has_value());
+    EXPECT_DOUBLE_EQ(Client::World::TerrainHeightAt(*retained->heights, *retained->attributes, 50.0f, 50.0f), height);
 }
 
 // Un tile que no avisa y falta (0x63b870 con el sexto argumento en 0) se saltea, y el resto sube.

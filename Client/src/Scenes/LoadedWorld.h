@@ -50,13 +50,17 @@ public:
     // El terreno entero (las alturas y los atributos que pide 0x5f93c0), si hay.
     [[nodiscard]] const World::WorldTerrain* Terrain() const;
 
+    // Transfiere sólo CPU al estado que sobrevive a la escena. Invalida las vistas del terreno;
+    // los slots GPU siguen siendo de este objeto y Release los suelta una sola vez.
+    [[nodiscard]] std::optional<World::WorldTerrain> TakeTerrain();
+
     // 0x5fbf60, en cada paso: la ola de las celdas de la ventana del rango, con el reloj del paso.
     void Step(Core::Duration clock, const World::TerrainRange& range);
 
     // 0x5fc260(0): el corrimiento del agua con el reloj del frame y el pase del terreno en el rango,
     // con el recorte del trapecio. Sin terreno, nada.
     void DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClock, const World::TerrainRange& range,
-                     const World::TerrainPolygon& polygon);
+                     const World::TerrainPolygon& polygon, float fixedHeight = World::FixedCornerHeight);
 
 private:
     Render::ITextureStore& m_store;

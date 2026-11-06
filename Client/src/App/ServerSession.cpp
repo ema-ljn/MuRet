@@ -1,5 +1,6 @@
 #include "App/ServerSession.h"
 
+#include "App/CharacterEvent.h"
 #include "App/Credentials.h"
 #include "App/FaithfulPacer.h"
 #include "App/ServerAddress.h"
@@ -122,6 +123,23 @@ bool DeservesTheReport(const Network::Undecryptable& undecryptable)
     return undecryptable.error == Network::Crypto::CryptoError::ChecksumMismatch ||
            undecryptable.error == Network::Crypto::CryptoError::NotWholeBlocks;
 }
+
+// 0x4c20a0 construye en orden sobre pool[slot]: la última entrada reemplaza la anterior.
+// La vista UI es única por slot; el evento conserva aparte todas las construcciones recibidas.
+void KeepLastCharacterPerSlot(Protocol::Character::CharacterList& list)
+{
+    std::vector<Protocol::Character::CharacterEntry> unique;
+    unique.reserve(list.characters.size());
+    for (auto entry = list.characters.rbegin(); entry != list.characters.rend(); ++entry)
+    {
+        if (std::ranges::find(unique, entry->slot, &Protocol::Character::CharacterEntry::slot) == unique.end())
+        {
+            unique.push_back(*entry);
+        }
+    }
+    std::ranges::reverse(unique);
+    list.characters = std::move(unique);
+}
 } // namespace
 
 ServerSession::ServerSession(Network::Connection& connection, Core::IClock& clock, Core::Log& log,
@@ -188,6 +206,7 @@ void ServerSession::Start()
     m_gameServerAddress.reset();
     m_loginResult.reset();
     m_characters.reset();
+    m_characterEvents.clear();
     m_createResult.reset();
     m_deleteResult.reset();
     m_deletingSlot.reset();
@@ -341,6 +360,11 @@ void ServerSession::RequestCharacterList()
 const std::optional<Protocol::Character::CharacterList>& ServerSession::Characters() const
 {
     return m_characters;
+}
+
+std::vector<CharacterEvent> ServerSession::TakeCharacterEvents()
+{
+    return std::exchange(m_characterEvents, {});
 }
 
 void ServerSession::ChooseCharacter(std::optional<std::uint8_t> slot)
@@ -651,6 +675,8 @@ void ServerSession::OnCharacterList(const Network::Packet& packet)
         return;
     }
     m_characters = std::move(list).Value();
+    m_characterEvents.emplace_back(CharacterListReceived{*m_characters});
+    KeepLastCharacterPerSlot(*m_characters);
     m_chosenSlot.reset();
     m_log.Info("la lista trae {} personajes: se espera la elección", m_characters->characters.size());
     SetState(SessionState::ChoosingCharacter);
@@ -709,6 +735,7 @@ void ServerSession::OnCreateResult(const Network::Packet& packet)
             {
                 characters.push_back(entry);
             }
+            m_characterEvents.emplace_back(CharacterCreated{entry});
             m_log.Info("se creó el personaje del lugar {}", entry.slot);
         }
     }
@@ -739,6 +766,7 @@ void ServerSession::OnDeleteResult(const Network::Packet& packet)
     {
         std::erase_if(m_characters->characters, [this](const Protocol::Character::CharacterEntry& entry)
                       { return entry.slot == *m_deletingSlot; });
+        m_characterEvents.emplace_back(CharacterDeleted{*m_deletingSlot});
         m_chosenSlot.reset();
         m_log.Info("se borró el personaje del lugar {}", *m_deletingSlot);
     }

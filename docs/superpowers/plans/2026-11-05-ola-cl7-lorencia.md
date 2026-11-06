@@ -154,7 +154,7 @@ si no choca con eso; si choca, queda para más adelante.
 | Sub-ola | Qué | Hito |
 | --- | --- | --- |
 | CL7.3 A | la cámara del juego, bit a bit (`0x635ae0`) | |
-| CL7.3 B | la cámara compartida: el login y la selección por `0x635ae0`, y la altura del `0x40` | |
+| CL7.3 B | la cámara compartida: el login y la selección por `0x635ae0`, y la altura del `0x40` | implementación y revisión completas; compuerta de CI en el PR141 |
 | CL7.P | las variables protegidas y sus `rand()` (`0x57630c8`), con el contador del login completo | |
 | CL7.L1 | la entrada al mundo y el pase del juego: el terreno de Lorencia desde el héroe | se ve Lorencia |
 | CL7.L2 | los modelos con nombre y los objetos de Lorencia, en el orden de `0x6371a0` | |
@@ -356,6 +356,48 @@ arrancar; lo que se sabe:
   210 que dejó el juego, la del login empieza en (12.636,6; 12.819,4) y vuelve de a 10 por frame (P-C27 b,
   emulado). `TerrainHeightAt` con una celda `0x40` da 1.200 antes del primer `0x40` de la cámara y 1.201
   después. Review Focus 1: del juego al login y de vuelta.
+
+**Estado de la implementación: completa (PR141).** Cerrada la construcción inicial que mantenía B parcial.
+La cámara y sus entradas viven una vez en main; el carry es local a cada entrada según ADR0005.
+`SelectionState` conserva cinco historiales y CPU entre escenas. Login fija yaw0 y escribe HeroXYZ
+al dibujar; su avatar visible es slot2, distinto de Hero0. El primer paso de juego sigue fijando
+−45, sin adelantar L1. La altura fija compartida llega a terreno, brasas, nacimiento del cuervo y sombra.
+
+- [x] Constructor contrastado contra ASM/PE: Height(50,50), atributo nuevo, word318 anterior,
+  offset30/90 antes del único guardado float y reset posterior. Sin sumar0 en la otra rama.
+- [x] F3/00 y altas F3/01 aceptadas publican eventos propios y ordenados, también idénticos.
+  Main los aplica tras Poll y antes de Step/Request/Start. Bajas y limpiezas conservan historial;
+  login sólo reemplaza el de slot2. Una recepción anterior al cierre conserva sus efectos.
+- [x] Primera lista construye con55; el siguiente Step habilitado carga54, también con lista vacía.
+  CPU se transfiere al salir del login; GPU se libera una sola vez. Faltar tablas es un error explícito.
+- [x] Cámara antes de Z163 en los cinco slots; una recreación posterior reemplaza esa Z sin
+  esperar otro dibujo. El primer LoginStep consume la Z nueva para sus brasas.
+- [x] Visuales se reconstruyen por revisión, sin espejo XY repetido en cada Step; Render refleja
+  altas/bajas recibidas sin Step. Un slot repetido conserva todas las construcciones en el evento
+  y sólo su última entrada en la vista UI; dibujo por índice de slot.
+- [x] Tests de unidad, transferencia CPU y escenas observan esos efectos, incluyendo SceneManager
+  real, Poll minimizado, destrucción a login, recepciones idénticas, lista vacía y accepted+close.
+  Las regresiones previas de cámara, terreno, cuervo y brasas se conservan.
+- [x] Contraste estático cruzado Astra6Ultra de constructor, fases y ownership/historial documentado
+  en 06 § Los personajes de la lista. Sin nueva ejecución ni emulación del original. Los fixtures
+  históricos permanecen identificados como tales y no acreditan equivalencia x87 universal.
+- [x] Revisión final cruzada por Astra6Ultra y Opus5.5xhigh, sin P1/P2 pendientes tras las
+  correcciones. Se acreditó Enter→pedido→Poll síncrono y el rechazo de F3/00 anterior al pedido;
+  quedaron cubiertos alta idéntica/pose, baja sin Step, reinicio y Enter fallido. La condición
+  final de Opus sobre el test de snapshot único se cumplió conservando el evento crudo.
+- [x] Suite completa: **2.347 tests, 83GL, cero fallos y cero omisiones**; build C++20 sin PCH,
+  warnings como errores, formato18 e include-cleaner limpios. El mutante que vuelve a SameEntry
+  hace fallar la pose de una creación idéntica; restaurado el código, pasa la suite.
+
+**Compuerta de integración:** [checks Linux/Windows del HEAD del PR141](https://github.com/ema-ljn/MuRet/pull/141/checks).
+Su estado se consulta en GitHub; el PR se publica listo para revisión sólo tras comprobar ambos
+jobs en verde. Esta compuerta sigue siendo obligatoria, sin copiar un estado de CI que queda
+obsoleto con el siguiente commit. En el primer envío, MSVC detectó en un test una conversión
+`int`→`optional<uint8_t>`; el slot se tipó explícitamente, conservando el valor y la cobertura.
+
+El contador/RNG protegido de CL7.P, la celda/entrada al mundo de L1, terreno y efectos completos
+propios de selección y las otras sub-olas siguen su propio alcance; no son partes diferidas de
+la integración de cámara de B.
 
 ## Sub-ola CL7.P: las variables protegidas
 

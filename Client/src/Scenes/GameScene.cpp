@@ -7,6 +7,7 @@
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
+#include "World/GameCamera.h"
 
 #include <optional>
 #include <string>
@@ -19,12 +20,20 @@ GameScene::GameScene(const SceneContext& context, App::ServerSession* session) :
 
 Core::Expected<void, std::string> GameScene::Enter()
 {
+    m_firstStep = true;
     return {};
 }
 
 // 0x636290: el primer paso de la escena 5 manda el F3 03 con el elegido.
 void GameScene::Step(const Input::InputState& /*input*/)
 {
+    // 0x636838: solo el primer paso de la escena 5 escribe el yaw, sin reiniciar los otros globales.
+    if (m_firstStep)
+    {
+        if (m_context.camera != nullptr)
+            m_context.camera->yaw = -45.0f;
+        m_firstStep = false;
+    }
     if (m_context.cloth != nullptr)
     {
         Render::Models::StepTheClothWorld(*m_context.cloth);

@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Render/Models/Animation.h"
+#include "World/GameCamera.h"
+
 #include "App/ServerSession.h"
 #include "App/WindowState.h"
 #include "Core/Expected.h"
@@ -82,6 +85,7 @@ private:
     struct Character
     {
         std::uint8_t slot = 0;
+        std::uint64_t revision = 0;
         Protocol::Character::CharacterEntry entry;
         GameLogic::CharacterAppearance appearance;
         CharacterAnimation animation;
@@ -92,7 +96,7 @@ private:
     // Si la escena todavía espera la lista: con sesión, hasta ChoosingCharacter.
     [[nodiscard]] bool WaitingForTheList() const;
     // La lista de la sesión a los personajes: la primera vez, todos, y el +0x543 de la barra; después,
-    // el que crea la sesión entra y el que borra se va, y los que siguen guardan su animación.
+    // cada construcción recibida recrea su visual, aunque tenga los mismos bytes que el anterior.
     void SyncTheCharacters();
     [[nodiscard]] Character MakeCharacter(const Protocol::Character::CharacterEntry& entry) const;
     void StepCharacters();
@@ -132,7 +136,14 @@ private:
     // El buffer de un slot de las ventanas o de la escena.
     [[nodiscard]] TextureBufferSize BufferSize(Render::TextureSlot slot) const;
 
+    [[nodiscard]] World::GameCamera& CameraState();
+    [[nodiscard]] World::GameCameraInput& CameraInputState();
+
     SceneContext m_context;
+    // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
+    World::GameCamera m_localCamera;
+    World::GameCameraInput m_localCameraInput;
+    Render::Models::OriginalFrameCarry m_cameraFrames;
     const Data::Text::TextTable* m_texts;
     const IModelLibrary& m_models;
     App::ServerSession* m_session;

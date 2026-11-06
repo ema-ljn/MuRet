@@ -36,7 +36,7 @@ double At(const Data::Terrain::TerrainHeights& heights, int index)
 } // namespace
 
 double TerrainHeightAt(const Data::Terrain::TerrainHeights& heights, const Data::Terrain::TerrainAttributes& attributes,
-                       float x, float y)
+                       float x, float y, float fixedHeight)
 {
     // `test ah, 1` después de comparar con 0: menor, o sin orden.
     if (x < 0.0f || std::isnan(x) || y < 0.0f || std::isnan(y))
@@ -58,7 +58,7 @@ double TerrainHeightAt(const Data::Terrain::TerrainHeights& heights, const Data:
     if (index < 0 || index >= static_cast<std::int32_t>(Data::Terrain::TerrainCellCount) ||
         (attributes.cells[static_cast<std::size_t>(index)] & FixedHeightBit) == FixedHeightBit)
     {
-        return static_cast<double>(FixedTerrainHeight);
+        return static_cast<double>(fixedHeight);
     }
     const auto fractionY = static_cast<float>(static_cast<double>(cellY) - static_cast<double>(row));
     // 0x5f946d: `inc` y `and 0xff`, en 32 bits.

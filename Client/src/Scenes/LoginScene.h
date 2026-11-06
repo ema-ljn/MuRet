@@ -1,5 +1,9 @@
 #pragma once
 
+#include "Render/Models/Animation.h"
+#include "Render/Pass3D.h"
+#include "World/GameCamera.h"
+
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "App/WindowState.h"
@@ -138,6 +142,7 @@ private:
     [[nodiscard]] Core::Expected<void, std::string> LoadTheLogo();
     void LoadTheWorld();
     void LoadTheTerrain();
+    void RetainTheTerrain();
     void LoadTheObjects();
     // 0x604ab0 con el 0xa2: la luz de las rutas y el avance a +0xd8.
     void StepTheLogo(World::WorldObject& logo) const;
@@ -172,7 +177,14 @@ private:
     [[nodiscard]] std::string LoginTitle() const;
     [[nodiscard]] Scenes::TextureBufferSize BufferSize(Render::TextureSlot slot) const;
 
+    [[nodiscard]] World::GameCamera& CameraState();
+    [[nodiscard]] World::GameCameraInput& CameraInputState();
+
     SceneContext m_context;
+    // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
+    World::GameCamera m_localCamera;
+    World::GameCameraInput m_localCameraInput;
+    Render::Models::OriginalFrameCarry m_cameraFrames;
     const IModelLibrary& m_models;
     App::ServerSession* m_session;
     const Data::Text::TextTable* m_texts;
@@ -182,8 +194,9 @@ private:
     std::optional<SceneWorld> m_world;
     LoadedWorld m_terrain;
     // El rango de bloques y el trapecio del terreno con la cámara del login (0x5fbb00 y 0x5fb570): la
-    // cámara no se mueve, y se sacan al entrar.
+    // carga inicializa el rango; cada dibujo lo actualiza para el paso siguiente.
     World::TerrainRange m_terrainRange;
+    Render::Camera3D m_drawnCamera;
     World::TerrainPolygon m_terrainPolygon{.everything = true};
     // La luz sola, si el terreno no se pudo leer y su luz sí (World::LoadTerrainLighting).
     std::unique_ptr<World::TerrainLighting> m_lighting;

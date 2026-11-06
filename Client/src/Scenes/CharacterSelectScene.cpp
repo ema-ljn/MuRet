@@ -29,11 +29,14 @@
 #include "Scenes/CreatePreview.h"
 #include "Scenes/GameData.h"
 #include "Scenes/SceneCameras.h"
+#include "World/GameCamera.h"
+#include "World/TerrainCulling.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SceneWorlds.h"
+#include "Scenes/SelectionState.h"
 #include "Scenes/TextureSets.h"
 #include "UI/CreateCharacterWindow.h"
 #include "UI/DeleteChecks.h"
@@ -119,8 +122,28 @@ Scenes::TextureBufferSize CharacterSelectScene::BufferSize(Render::TextureSlot s
     return inTheWindows ? m_windowTextures.BufferSize(slot) : m_textures.BufferSize(slot);
 }
 
+World::GameCamera& CharacterSelectScene::CameraState()
+{
+    return m_context.camera != nullptr ? *m_context.camera : m_localCamera;
+}
+
+World::GameCameraInput& CharacterSelectScene::CameraInputState()
+{
+    return m_context.cameraInput != nullptr ? *m_context.cameraInput : m_localCameraInput;
+}
+
 Core::Expected<void, std::string> CharacterSelectScene::Enter()
 {
+    m_cameraFrames = {};
+    m_steps = 0;
+    CameraInputState().scene = World::CullingScene::CharacterSelect;
+    if (m_context.selection != nullptr)
+    {
+        // 0x633f20 carga World54 desde el primer paso habilitado por F3/00. Este reset precede
+        // al único RequestCharacterList, al final de Enter: Poll/Step/Request corren en el mismo
+        // hilo y Request entra de forma síncrona, sin Poll intermedio ni lista válida anterior.
+        m_context.selection->BeginSelection();
+    }
     if (auto loaded = m_textures.Load(m_context.dataRoot); !loaded.HasValue())
     {
         return loaded;
@@ -147,7 +170,12 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
 
 bool CharacterSelectScene::WaitingForTheList() const
 {
-    return m_session != nullptr && !m_session->Characters().has_value();
+    if (m_session == nullptr)
+    {
+        return false;
+    }
+    return !m_session->Characters().has_value() ||
+           (m_context.selection != nullptr && !m_context.selection->HasReceivedList());
 }
 
 CharacterSelectScene::Character
@@ -155,6 +183,10 @@ CharacterSelectScene::MakeCharacter(const Protocol::Character::CharacterEntry& e
 {
     Character character;
     character.slot = entry.slot;
+    if (m_context.selection != nullptr)
+    {
+        character.revision = m_context.selection->Slots()[entry.slot].revision;
+    }
     character.entry = entry;
     const std::uint8_t characterClass = Protocol::Character::CharacterClassOf(entry.classByte);
     // El que armó la respuesta de crear sale sin equipo (0x517270 sin 0x5139f0, Q-C103).
@@ -179,8 +211,16 @@ void CharacterSelectScene::SyncTheCharacters()
     synced.reserve(entries.size());
     for (const Protocol::Character::CharacterEntry& entry : entries)
     {
-        const auto same = std::ranges::find_if(m_characters, [&entry](const Character& character)
-                                               { return SameEntry(character.entry, entry); });
+        const SelectionState* selection = m_context.selection;
+        const auto same =
+            std::ranges::find_if(m_characters,
+                                 [&entry, selection](const Character& character)
+                                 {
+                                     return selection != nullptr
+                                                ? character.slot == entry.slot &&
+                                                      character.revision == selection->Slots()[entry.slot].revision
+                                                : SameEntry(character.entry, entry);
+                                 });
         if (same != m_characters.end())
         {
             synced.push_back(std::move(*same));
@@ -189,6 +229,8 @@ void CharacterSelectScene::SyncTheCharacters()
         synced.push_back(MakeCharacter(entry));
         changed = true;
     }
+    // 0x634680 recorre los cinco registros del pool por índice, no en el orden del paquete.
+    std::ranges::sort(synced, {}, &Character::slot);
     m_characters = std::move(synced);
     if (!m_tookTheList)
     {
@@ -430,6 +472,14 @@ void CharacterSelectScene::Step(const Input::InputState& input)
         }
         return;
     }
+    if (m_context.selection != nullptr && m_session != nullptr && !m_context.selection->IsInitialized())
+    {
+        if (auto initialized = m_context.selection->InitializeSelection(m_context.dataRoot, CameraInputState());
+            !initialized.HasValue())
+        {
+            return;
+        }
+    }
     ++m_steps;
     SyncTheCharacters();
     StepCharacters();
@@ -536,16 +586,17 @@ void CharacterSelectScene::TryToEnter()
 Render::Models::ObjectTransform CharacterSelectScene::ObjectOf(const Character& character) const
 {
     const CharacterSlot& slot = CharacterSlots[character.slot];
-    return Render::Models::ObjectTransform{{slot.position.x, slot.position.y, CharacterSlotHeight},
-                                           {0.0f, 0.0f, slot.angle},
-                                           character.appearance.scale,
-                                           0.0f};
+    const glm::vec3 position = m_context.selection != nullptr
+                                   ? m_context.selection->Slots()[character.slot].position
+                                   : glm::vec3(slot.position.x, slot.position.y, CharacterSlotHeight);
+    return Render::Models::ObjectTransform{position, {0.0f, 0.0f, slot.angle}, character.appearance.scale, 0.0f};
 }
 
 void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
 {
     m_screen = canvas.screen;
-    if (WaitingForTheList())
+    if (WaitingForTheList() ||
+        (m_context.selection != nullptr && m_session != nullptr && !m_context.selection->IsInitialized()))
     {
         // Sin la lista, 0x634680 no dibuja; el aviso es de la UI, que sí, y lleva el cursor encima (el del
         // sistema está escondido). Sin aviso, el frame queda retenido (HoldsTheLastFrame).
@@ -556,6 +607,8 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         }
         return;
     }
+    // Los handlers reconstruyen o desactivan actores aun si este frame no corre un paso lógico.
+    SyncTheCharacters();
     Render::SpriteBatch& sprites = canvas.sprites;
     sprites.SetBlend(Render::BlendMode::Alpha);
     sprites.SetColor(Render::Color{});
@@ -563,15 +616,33 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     sprites.Quad(Background(0x718, 320.0f));
     canvas.flushSprites();
 
-    const Render::Pass3D pass = Render::MakePass3D(canvas.screen, WorldViewport, SelectionCamera());
+    // 0x6346ca calcula la cámara con el héroe compartido vigente antes de dibujar los personajes.
+    World::GameCameraInput& cameraInput = CameraInputState();
+    cameraInput.scene = World::CullingScene::CharacterSelect;
+    const std::optional<SceneWorld> world = WorldOf(SceneId::CharacterSelect);
+    const std::uint8_t map = world ? world->map : 0;
+    cameraInput.map = map;
+    const Render::Camera3D camera = CameraForFrame(CameraState(), cameraInput, m_cameraFrames, canvas.frameClock,
+                                                   OriginalFramePaceOf(m_context.pacing));
+    const Render::Pass3D pass = Render::MakePass3D(canvas.screen, WorldViewport, camera);
     m_lastPass = pass;
     canvas.models.Begin(pass);
-    if (const std::optional<SceneWorld> world = WorldOf(SceneId::CharacterSelect))
+    if (world)
     {
         canvas.world.Draw(*world, pass, alpha);
     }
+    // 0x6347ba..0x6347e2, después de 0x6346ca: Z163 en los cinco primeros registros del pool,
+    // sin comprobar alive ni presencia de slot0, después de la espera de lista de 0x634680.
+    // Hero apunta al registro0 incluso cuando la lista recibida está vacía.
+    if (m_context.selection != nullptr)
+    {
+        m_context.selection->DrawSelection(cameraInput);
+    }
+    else
+    {
+        cameraInput.hero.z = CharacterSlotHeight;
+    }
     const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
-    const std::uint8_t map = WorldOf(SceneId::CharacterSelect) ? WorldOf(SceneId::CharacterSelect)->map : 0;
     for (Character& character : m_characters)
     {
         DrawnCharacter drawn;
@@ -672,6 +743,6 @@ bool CharacterSelectScene::HoldsTheLastFrame() const
     // 0x634680 sale con al = 0 mientras 0x7d3a13f está en 0 o el estado está antes de 0x33, y sin ese
     // verdadero 0x637700 no presenta el frame (0x6385e1..0x6385f7): queda el último del login. Hasta que un
     // paso vio la lista (y contó el primero de los suyos), salvo con un aviso abierto, que MuRet muestra.
-    return m_session != nullptr && m_steps == 0 && !m_notice.IsOpen();
+    return m_session != nullptr && (m_steps == 0 || WaitingForTheList()) && !m_notice.IsOpen();
 }
 } // namespace Client::Scenes

@@ -10,11 +10,19 @@
 
 #include <filesystem>
 
+namespace Client::World
+{
+struct GameCamera;
+struct GameCameraInput;
+} // namespace Client::World
+
 // Lo que comparten las escenas (CL5.4). Lo arma main.cpp y vive más que el SceneManager; los tests,
 // con un FakeTextureStore (support/). Lo que se leyó antes de la primera escena va aparte, en
 // GameData.h.
 namespace Client::Scenes
 {
+class SelectionState;
+
 // De dónde leen (el Data\ del cliente), adónde suben sus texturas (Render::ITextureStore, CL5.1), el
 // log y el reloj del bucle (CL6.4).
 struct SceneContext
@@ -36,6 +44,15 @@ struct SceneContext
     // El ritmo del bucle (App/PacingMode.h): en Faithful, lo que el original corre una vez por frame
     // dibujado (la tela y el brillo del cetro) corre uno por dibujo (OriginalFramePaceOf).
     App::PacingMode pacing = App::PacingMode::Decoupled;
+    // Estado global de 0x635ae0: vive en main y sobrevive a los cambios de escena (CL7.3 B).
+    World::GameCamera* camera = nullptr;
+    // Entradas de 0x635ae0, no réplica completa del actor Hero. SelectionState publica la posición
+    // construida por cada recepción; el dibujo de selección escribe Hero Z = 163 después de la cámara.
+    // L1 aportará XYZ de la respuesta para el juego.
+    World::GameCameraInput* cameraInput = nullptr;
+    // El pool CPU de cinco slots y las tablas del mundo vigentes (CL7.3 B). main es su dueño y vive
+    // más que todas las escenas; conserva las tablas del login después de su Leave.
+    SelectionState* selection = nullptr;
 };
 
 // Cómo cuentan los frames del original la tela y el cetro con el ritmo `pacing`.

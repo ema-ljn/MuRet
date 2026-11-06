@@ -1,4 +1,17 @@
 #include "Scenes/LoginScene.h"
+#include "Scenes/CharacterSelectScene.h"
+#include "Scenes/CharacterSlots.h"
+#include "Scenes/SelectionState.h"
+#include "App/CharacterEvent.h"
+#include "Protocol/Character/CharacterList.h"
+#include "Data/DataPath.h"
+#include "Data/Terrain/TerrainAttributes.h"
+#include "World/GameCamera.h"
+#include "World/TerrainHeight.h"
+#include "support/SceneDataFiles.h"
+#include "support/TerrainFiles.h"
+#include "support/TemporaryFolder.h"
+#include "support/SessionHarness.h"
 
 #include "App/PacingMode.h"
 #include "Core/IClock.h"
@@ -52,6 +65,8 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
+#include <system_error>
 #include <ios>
 #include <iterator>
 #include <limits>
@@ -292,6 +307,27 @@ protected:
         target.Present();
         const auto drawn = std::ranges::find(target.frames.back().events, Kind::Models, &FrameEvent::kind);
         return drawn != target.frames.back().events.end() ? *drawn : FrameEvent{};
+    }
+
+    // Mundo real con atributos sintéticos 0x40; la escena sigue recorriendo sus consumidores reales.
+    void MakeFixedHeightWorld(const std::filesystem::path& copyRoot)
+    {
+        std::error_code error;
+        const auto world = Client::Data::ResolveDataPath(m_dataRoot, "World56", error);
+        ASSERT_TRUE(world.has_value());
+        std::filesystem::copy(*world, copyRoot / "World56", std::filesystem::copy_options::recursive);
+        const auto accept = DataFile("Interface\\accept_box01.OZJ");
+        ASSERT_TRUE(accept.has_value());
+        std::filesystem::create_directories(copyRoot / "Interface");
+        std::filesystem::copy_file(*accept, copyRoot / "Interface" / accept->filename());
+        Client::Tests::WriteTextureSet(copyRoot, Client::Scenes::LoginTextureSet);
+        Client::Tests::WriteTextureSet(copyRoot, Client::Scenes::WindowTextureSet);
+        const auto attributes = Client::Data::ResolveDataPath(copyRoot, "World56\\EncTerrain56.att", error);
+        ASSERT_TRUE(attributes.has_value());
+        auto plain = Client::Tests::PlainTerrainAttributes(56, Client::Tests::AttributeCells::Bytes);
+        std::fill(plain.begin() + Client::Data::Terrain::TerrainAttributesHeaderSize, plain.end(), std::byte{0x40});
+        Client::Tests::WriteSceneFile(copyRoot, std::filesystem::relative(*attributes, copyRoot),
+                                      Client::Tests::EncryptTerrainAttributes(std::move(plain)));
     }
 
     FakeTextureStore m_store;
@@ -1051,6 +1087,64 @@ TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
     scene.Leave();
 }
 
+// La consulta real de nacimiento y la de la sombra deben usar la misma altura global de la cámara.
+TEST_F(GoldenLoginWorld, TheRavenBirthAndShadowUseTheSharedFixedHeight)
+{
+    Client::Tests::TemporaryFolder copy{"raven-shared-height"};
+    ASSERT_NO_FATAL_FAILURE(MakeFixedHeightWorld(copy.Path()));
+    const auto sample = [&](float height) -> std::optional<glm::vec2>
+    {
+        Client::World::GameCamera camera;
+        camera.fixedHeight = height;
+        Client::World::GameCameraInput cameraInput;
+        Client::Render::Models::ClothWorld cloth;
+        LoginScene scene(SceneContext{.dataRoot = copy.Path(),
+                                      .textures = m_store,
+                                      .log = m_log,
+                                      .cloth = &cloth,
+                                      .camera = &camera,
+                                      .cameraInput = &cameraInput},
+                         *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+        const auto entered = scene.Enter();
+        if (!entered.HasValue())
+        {
+            ADD_FAILURE() << entered.Error();
+            return std::nullopt;
+        }
+        RecordingFrameTarget target;
+        scene.Render(target.BeginFrame(std::chrono::milliseconds{0}), 0.0f);
+        target.Present();
+        const auto center = RavenCenterOf(target);
+        const auto& events = target.frames.back().events;
+        const auto frame = std::ranges::find(events, Kind::Models, &FrameEvent::kind);
+        if (!center || frame == events.end())
+        {
+            ADD_FAILURE() << "no se dibujó el cuervo";
+            scene.Leave();
+            return std::nullopt;
+        }
+        const auto body = std::ranges::find_if(frame->modelCommands, [](const auto& command)
+                                               { return command.state.texture == TextureSlot{0x3c9}; });
+        if (body == frame->modelCommands.end() || std::next(body) == frame->modelCommands.end() ||
+            std::next(body)->state.blend != Client::Render::ModelBlend::BlendedShadow)
+        {
+            ADD_FAILURE() << "falta la sombra después del cuervo";
+            scene.Leave();
+            return std::nullopt;
+        }
+        const float shadow = frame->modelVertices[std::next(body)->firstVertex].position.z;
+        scene.Leave();
+        return glm::vec2(center->z, shadow);
+    };
+    const auto before = sample(1200.0f);
+    const auto after = sample(1201.0f);
+    ASSERT_TRUE(before.has_value());
+    ASSERT_TRUE(after.has_value());
+    EXPECT_NEAR(after->x - before->x, 1.0f, 0.001f) << "el cuerpo nace una unidad más alto";
+    EXPECT_EQ(before->y, 1205.0f);
+    EXPECT_EQ(after->y, 1206.0f) << "la sombra queda cinco unidades sobre la altura compartida";
+}
+
 // CL7.6 C2: la chispa del cuervo, una por paso desde un hueso de la pose del último dibujo (Q-C133), nace
 // con vida 10 y el paso de las partículas, al final del mismo paso, ya le baja uno: en cada dibujo hay 9,
 // en el pase de ojo con Effect\Spark03.jpg (0x5c6), aditivas. Pasado el salto rodean al cuervo. La escala
@@ -1194,6 +1288,217 @@ std::vector<glm::vec3> EmberCentersOf(const RecordingFrameTarget& target)
         }
     }
     return centers;
+}
+
+TEST_F(GoldenLoginWorld, TheSceneTerrainUsesTheSharedFixedHeight)
+{
+    Client::Tests::TemporaryFolder copy{"terrain-shared-height"};
+    ASSERT_NO_FATAL_FAILURE(MakeFixedHeightWorld(copy.Path()));
+    Client::World::GameCamera camera;
+    camera.fixedHeight = 1201.0f;
+    Client::World::GameCameraInput cameraInput;
+    LoginScene scene(
+        SceneContext{
+            .dataRoot = copy.Path(), .textures = m_store, .log = m_log, .camera = &camera, .cameraInput = &cameraInput},
+        *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    const FrameEvent frame = Frame(scene, 0);
+    ASSERT_FALSE(frame.modelCommands.empty());
+    const auto& terrain = frame.modelCommands.front();
+    ASSERT_TRUE(terrain.state.texture.has_value());
+    EXPECT_GE(terrain.state.texture->value, 0x23);
+    EXPECT_LE(terrain.state.texture->value, 0x30);
+    ASSERT_GT(terrain.vertexCount, 0u);
+    const auto first = frame.modelVertices.begin() + static_cast<std::ptrdiff_t>(terrain.firstVertex);
+    const auto last = first + static_cast<std::ptrdiff_t>(terrain.vertexCount);
+    EXPECT_TRUE(std::all_of(first, last, [](const auto& vertex) { return vertex.position.z == 1201.0f; }));
+    scene.Leave();
+}
+
+TEST_F(GoldenLoginWorld, TheSceneEmbersReadTheSharedGroundHeight)
+{
+    Client::Tests::TemporaryFolder copy{"embers-shared-height"};
+    ASSERT_NO_FATAL_FAILURE(MakeFixedHeightWorld(copy.Path()));
+    Client::World::GameCamera camera;
+    camera.fixedHeight = 1201.0f;
+    Client::World::GameCameraInput cameraInput;
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = copy.Path(),
+                                  .textures = m_store,
+                                  .log = m_log,
+                                  .cloth = &cloth,
+                                  .camera = &camera,
+                                  .cameraInput = &cameraInput},
+                     *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    // Antes del primer dibujo, el héroe conocido del arranque es 0 y nacen por debajo de 1200.
+    scene.Step(Client::Input::InputState{});
+    scene.Step(Client::Input::InputState{});
+    RecordingFrameTarget target;
+    scene.Render(target.BeginFrame(std::chrono::milliseconds{80}), 0.0f);
+    target.Present();
+    const auto centers = EmberCentersOf(target);
+    ASSERT_FALSE(centers.empty());
+    EXPECT_GT(std::ranges::count_if(centers, [](const glm::vec3& p) { return p.z == 1201.0f; }), 0)
+        << "las brasas con x/y positivos aterrizan en la altura global actual";
+    scene.Leave();
+}
+
+TEST_F(GoldenLoginWorld, ASelectionDrawSetsTheHeroHeightUsedByTheFirstLoginEmbers)
+{
+    Client::Tests::TemporaryFolder copy{"selection-login-ember-height"};
+    ASSERT_NO_FATAL_FAILURE(MakeFixedHeightWorld(copy.Path()));
+    Client::Tests::WriteTextureSet(copy.Path(), Client::Scenes::SelectionTextureSet);
+    Client::World::GameCamera camera;
+    Client::World::GameCameraInput cameraInput;
+    cameraInput.hero = Client::Scenes::LoginHeroPosition;
+    Client::Render::Models::ClothWorld cloth;
+    const SceneContext context{.dataRoot = copy.Path(),
+                               .textures = m_store,
+                               .log = m_log,
+                               .cloth = &cloth,
+                               .camera = &camera,
+                               .cameraInput = &cameraInput};
+    Client::Tests::LoggedInSession online;
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    // Lista F3/00 recibida con 0 registros: la compuerta ya permite dibujar sin slot0.
+    Client::Scenes::CharacterSelectScene selection(context, *m_data, m_models, &online.session,
+                                                   &m_models.TextureSlots());
+    ASSERT_TRUE(selection.Enter().HasValue());
+    online.ReceiveTheList({});
+    selection.Step(Client::Input::InputState{});
+    RecordingFrameTarget selected;
+    selection.Render(selected.BeginFrame(std::chrono::milliseconds{0}), 0.0f);
+    selected.Present();
+    EXPECT_EQ(cameraInput.hero.z, Client::Scenes::CharacterSlotHeight);
+    selection.Leave();
+
+    LoginScene login(context, *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(login.Enter().HasValue());
+    // Nacen con el Hero del último dibujo de selección, antes de que el dibujo del login lo reescriba.
+    login.Step(Client::Input::InputState{});
+    RecordingFrameTarget target;
+    login.Render(target.BeginFrame(std::chrono::milliseconds{40}), 0.0f);
+    target.Present();
+    const auto centers = EmberCentersOf(target);
+    ASSERT_EQ(centers.size(), 80u);
+    EXPECT_TRUE(std::ranges::all_of(centers,
+                                    [](const glm::vec3& center)
+                                    {
+                                        return center.z >= Client::Scenes::CharacterSlotHeight + 49.5f &&
+                                               center.z <= Client::Scenes::CharacterSlotHeight + 1049.5f;
+                                    }));
+    // Con HeroZ333 todos estarían por encima de383; el seed fijo también observa el extremo bajo.
+    EXPECT_TRUE(std::ranges::any_of(centers, [](const glm::vec3& center) { return center.z < 383.0f; }));
+    login.Leave();
+}
+
+TEST_F(GoldenLoginWorld, AFailedLoginEntryRetainsItsTerrainBeforeDestruction)
+{
+    Client::Tests::TemporaryFolder copy{"failed-login-retains-cpu"};
+    ASSERT_NO_FATAL_FAILURE(MakeFixedHeightWorld(copy.Path()));
+    // Falla la primera textura de escena, después de cargar correctamente el mundo.
+    const auto texture = Client::Tests::SceneTextureFile(Client::Scenes::LoginTextureSet.front());
+    ASSERT_TRUE(std::filesystem::remove(copy.Path() / texture));
+    Client::World::GameCamera camera;
+    Client::World::GameCameraInput input;
+    Client::Scenes::SelectionState state;
+    const SceneContext context{.dataRoot = copy.Path(),
+                               .textures = m_store,
+                               .log = m_log,
+                               .camera = &camera,
+                               .cameraInput = &input,
+                               .selection = &state};
+    {
+        LoginScene scene(context, *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+        EXPECT_FALSE(scene.Enter().HasValue());
+        ASSERT_NE(state.Terrain(), nullptr);
+        scene.Leave();
+    }
+    ASSERT_NE(state.Terrain(), nullptr);
+    ASSERT_NE(state.Terrain()->heights, nullptr);
+    ASSERT_NE(state.Terrain()->attributes, nullptr);
+    EXPECT_EQ(state.Map(), 55);
+    EXPECT_EQ(Client::World::TerrainHeightAt(*state.Terrain()->heights, *state.Terrain()->attributes, 50.0f, 50.0f,
+                                             camera.fixedHeight),
+              1200.0);
+}
+
+// Render163 no sobrevive a otra creación de slot0, aunque selección no se dibuje otra vez.
+TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAnotherSelectionDraw)
+{
+    Client::Tests::TemporaryFolder copy{"recreated-selection-login"};
+    ASSERT_NO_FATAL_FAILURE(MakeFixedHeightWorld(copy.Path()));
+    std::error_code error;
+    const auto world = Client::Data::ResolveDataPath(m_dataRoot, "World55", error);
+    ASSERT_TRUE(world.has_value());
+    std::filesystem::copy(*world, copy.Path() / "World55", std::filesystem::copy_options::recursive);
+    const auto attributes = Client::Data::ResolveDataPath(copy.Path(), "World55/EncTerrain55.att", error);
+    ASSERT_TRUE(attributes.has_value());
+    auto plain = Client::Tests::PlainTerrainAttributes(55, Client::Tests::AttributeCells::Bytes);
+    std::fill(plain.begin() + Client::Data::Terrain::TerrainAttributesHeaderSize, plain.end(), std::byte{0x40});
+    Client::Tests::WriteSceneFile(copy.Path(), std::filesystem::relative(*attributes, copy.Path()),
+                                  Client::Tests::EncryptTerrainAttributes(std::move(plain)));
+    Client::Tests::WriteTextureSet(copy.Path(), Client::Scenes::SelectionTextureSet);
+    Client::World::GameCamera camera;
+    Client::World::GameCameraInput cameraInput;
+    Client::Scenes::SelectionState state;
+    Client::Render::Models::ClothWorld cloth;
+    const SceneContext context{.dataRoot = copy.Path(),
+                               .textures = m_store,
+                               .log = m_log,
+                               .cloth = &cloth,
+                               .camera = &camera,
+                               .cameraInput = &cameraInput,
+                               .selection = &state};
+    {
+        LoginScene login(context, *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+        ASSERT_TRUE(login.Enter().HasValue());
+        ASSERT_NE(state.Terrain(), nullptr);
+        login.Leave();
+    }
+    ASSERT_NE(state.Terrain(), nullptr);
+    EXPECT_EQ(state.Map(), 55);
+    Client::Tests::LoggedInSession online;
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    Client::Scenes::CharacterSelectScene selection(context, *m_data, m_models, &online.session,
+                                                   &m_models.TextureSlots());
+    ASSERT_TRUE(selection.Enter().HasValue());
+    online.ReceiveTheList({{0, "char0001"}});
+    ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), camera, cameraInput).HasValue());
+    EXPECT_EQ(cameraInput.hero.z, 1200.0f);
+    EXPECT_EQ(state.Map(), 55);
+    RecordingFrameTarget selected;
+    selection.Render(selected.BeginFrame(std::chrono::milliseconds{0}), 0.0f);
+    selected.Present();
+    EXPECT_EQ(cameraInput.hero.z, 1200.0f);
+    EXPECT_FALSE(state.IsInitialized());
+    selection.Step(Client::Input::InputState{});
+    ASSERT_TRUE(state.IsInitialized());
+    EXPECT_EQ(state.Map(), 54);
+    selection.Render(selected.BeginFrame(std::chrono::milliseconds{40}), 0.0f);
+    selected.Present();
+    EXPECT_EQ(cameraInput.hero.z, Client::Scenes::CharacterSlotHeight);
+    camera.fixedHeight = 2000.0f;
+    Client::Protocol::Character::CharacterEntry recreated;
+    recreated.withoutEquipment = true;
+    const std::array<Client::App::CharacterEvent, 1> events{Client::App::CharacterCreated{recreated}};
+    ASSERT_TRUE(state.Apply(events, camera, cameraInput).HasValue());
+    EXPECT_EQ(cameraInput.hero.z, 2000.0f);
+    selection.Leave();
+    LoginScene login(context, *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(login.Enter().HasValue());
+    EXPECT_EQ(cameraInput.hero.z, 2000.0f);
+    login.Step(Client::Input::InputState{});
+    RecordingFrameTarget target;
+    login.Render(target.BeginFrame(std::chrono::milliseconds{80}), 0.0f);
+    target.Present();
+    const auto centers = EmberCentersOf(target);
+    ASSERT_EQ(centers.size(), 80u);
+    EXPECT_TRUE(std::ranges::all_of(centers, [](const glm::vec3& center)
+                                    { return center.z >= 2049.5f && center.z <= 3049.5f; }));
+    EXPECT_TRUE(std::ranges::any_of(centers, [](const glm::vec3& center) { return center.z < 2383.0f; }));
+    login.Leave();
 }
 
 // CL7.6 B3: las 80 brasas (0x530490 → 0x42b1e0) nacen alrededor del héroe, el personaje 0, al que 0x6350b0

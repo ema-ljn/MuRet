@@ -36,5 +36,6 @@ private:
     SceneContext m_context;
     App::ServerSession* m_session;
     bool m_sent = false;
+    bool m_firstStep = true;
 };
 } // namespace Client::Scenes

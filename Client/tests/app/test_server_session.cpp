@@ -1,5 +1,6 @@
 #include "App/ServerSession.h"
 
+#include "App/CharacterEvent.h"
 #include "App/Credentials.h"
 #include "App/FaithfulPacer.h"
 #include "App/GameLoop.h"
@@ -65,6 +66,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 // Client::App::ServerSession con el ConnectServer, hasta la dirección del GameServer (el plan de
@@ -77,6 +79,10 @@
 // Advance y un Poll.
 namespace
 {
+using Client::App::CharacterCreated;
+using Client::App::CharacterDeleted;
+using Client::App::CharacterEvent;
+using Client::App::CharacterListReceived;
 using Client::App::Credentials;
 using Client::App::GameLoop;
 using Client::App::KeepaliveSpeeds;
@@ -1918,6 +1924,21 @@ TEST(ServerSessionTest, RequestingTheCharacterListOutOfTurnIsIgnored)
 
 // La lista llega en claro (04): la sesión la guarda en el orden del paquete y espera la elección
 // (el 0x33), sin ninguno elegido.
+TEST(ServerSessionTest, ADuplicatedListSlotChoosesTheLastConstructedEntryAndKeepsBothEvents)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter({{0, "char0001"}, {0, "char0002"}}));
+    tested.session.ChooseCharacter(std::uint8_t{0});
+    ASSERT_NE(tested.session.ChosenCharacter(), nullptr);
+    EXPECT_EQ(tested.session.ChosenCharacter()->name, NameBytes("char0002"));
+    const auto events = tested.session.TakeCharacterEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto& list = std::get<CharacterListReceived>(events[0]).list.characters;
+    ASSERT_EQ(list.size(), 2u);
+    EXPECT_EQ(list[0].name, NameBytes("char0001"));
+    EXPECT_EQ(list[1].name, NameBytes("char0002"));
+}
+
 TEST(ServerSessionTest, TheListMovesToChoosingCharacter)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1933,6 +1954,56 @@ TEST(ServerSessionTest, TheListMovesToChoosingCharacter)
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "la lista trae 2 personajes: se espera la elección"));
 }
 
+TEST(ServerSessionTest, CharacterEventsStartEmpty)
+{
+    Harness tested(IdentityObfuscation::Shared());
+
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+}
+
+// El lote posee cada campo, incluido el orden y los slots repetidos que admite el lector.
+TEST(ServerSessionTest, TakingTheListEventPreservesItsPayloadAndConsumesItOnce)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCharacterList());
+    const std::vector<CharacterEntryFields> entries{
+        {3, "char0002", 513, 0x81, 0x21, {0x12, 0x34, 0x56}, 0x72}, {0, "char0001"}, {3, "char0003"}};
+    tested.socket.reads = {CharacterListBytes(entries, 3, 5, 7)};
+
+    tested.session.Poll();
+    const std::vector<CharacterEvent> events = tested.session.TakeCharacterEvents();
+
+    ASSERT_EQ(events.size(), 1u);
+    const auto* received = std::get_if<CharacterListReceived>(&events[0]);
+    ASSERT_NE(received, nullptr);
+    EXPECT_EQ(received->list.creatableClasses, 5);
+    EXPECT_EQ(received->list.notice, 7);
+    ASSERT_EQ(received->list.characters.size(), 3u);
+    const CharacterEntry& entry = received->list.characters[0];
+    EXPECT_EQ(entry.slot, 3);
+    EXPECT_EQ(entry.name, NameBytes("char0002"));
+    EXPECT_EQ(entry.level, 513);
+    EXPECT_EQ(entry.flags, 0x81);
+    EXPECT_EQ(entry.classByte, 0x21);
+    const std::array<std::byte, Client::Protocol::Character::EquipmentSize> equipment{std::byte{0x12}, std::byte{0x34},
+                                                                                      std::byte{0x56}};
+    EXPECT_EQ(entry.equipment, equipment);
+    EXPECT_EQ(entry.guildStatus, 0x72);
+    EXPECT_FALSE(entry.withoutEquipment);
+    EXPECT_EQ(received->list.characters[1].slot, 0);
+    EXPECT_EQ(received->list.characters[2].slot, 3);
+    EXPECT_EQ(received->list.characters[2].name, NameBytes("char0003"));
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    ASSERT_TRUE(tested.session.Characters().has_value());
+    // El evento retiene tres construcciones; la vista UI conserva sólo el último de cada slot.
+    const auto& visible = tested.session.Characters()->characters;
+    ASSERT_EQ(visible.size(), 2u);
+    EXPECT_EQ(visible[0].slot, 0);
+    EXPECT_EQ(visible[0].name, NameBytes("char0001"));
+    EXPECT_EQ(visible[1].slot, 3);
+    EXPECT_EQ(visible[1].name, NameBytes("char0003"));
+}
+
 // Con la cantidad en 0 el original pasa igual al 0x33: la selección, sin nadie para elegir.
 TEST(ServerSessionTest, AnEmptyListAlsoChooses)
 {
@@ -1942,6 +2013,11 @@ TEST(ServerSessionTest, AnEmptyListAlsoChooses)
 
     ASSERT_TRUE(tested.session.Characters().has_value());
     EXPECT_TRUE(tested.session.Characters()->characters.empty());
+    const std::vector<CharacterEvent> events = tested.session.TakeCharacterEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* received = std::get_if<CharacterListReceived>(&events[0]);
+    ASSERT_NE(received, nullptr);
+    EXPECT_TRUE(received->list.characters.empty());
 }
 
 TEST(ServerSessionTest, ACharacterListOutOfTurnIsIgnored)
@@ -1955,6 +2031,7 @@ TEST(ServerSessionTest, ACharacterListOutOfTurnIsIgnored)
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
     EXPECT_FALSE(tested.session.Characters().has_value());
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora la lista de personajes (F3 00): llegó fuera de turno"));
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
 }
 
 TEST(ServerSessionTest, ACharacterListThatDoesNotReadIsIgnored)
@@ -1968,6 +2045,7 @@ TEST(ServerSessionTest, ACharacterListThatDoesNotReadIsIgnored)
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
     EXPECT_FALSE(tested.session.Characters().has_value());
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora la lista de personajes (F3 00): no se puede leer"));
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
 }
 
 // Elegir es del clic (0x6342c0): guarda el elegido y no manda nada.
@@ -2107,6 +2185,133 @@ std::vector<std::byte> CreatedReply(std::uint8_t slot, std::uint8_t classByte = 
     return bytes;
 }
 
+// La fotografía final ya no contiene al borrado; el lote conserva lista, alta normalizada y baja.
+TEST(ServerSessionTest, CharacterEventsKeepTheirOrderAndOwnTheirPayloads)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.session.CreateCharacter("char0003", 1);
+    tested.socket.reads = {CreatedReply(3)};
+    tested.session.Poll();
+    tested.session.ChooseCharacter(std::uint8_t{3});
+    tested.session.DeleteCharacter(SyntheticDeleteCode());
+    tested.session.ChooseCharacter(std::uint8_t{0}); // fuera de turno: no cambia el lugar enviado
+    tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x02, 0x01})};
+    tested.session.Poll();
+    tested.session.ChooseCharacter(std::uint8_t{0});
+
+    const std::vector<CharacterEvent> events = tested.session.TakeCharacterEvents();
+
+    ASSERT_EQ(events.size(), 3u);
+    const auto* received = std::get_if<CharacterListReceived>(&events[0]);
+    const auto* created = std::get_if<CharacterCreated>(&events[1]);
+    const auto* deleted = std::get_if<CharacterDeleted>(&events[2]);
+    ASSERT_NE(received, nullptr);
+    ASSERT_NE(created, nullptr);
+    ASSERT_NE(deleted, nullptr);
+    ASSERT_EQ(received->list.characters.size(), 2u);
+    EXPECT_EQ(received->list.characters[1].slot, 3);
+    EXPECT_EQ(received->list.characters[1].name, NameBytes("char0002"));
+    EXPECT_EQ(created->entry.slot, 3);
+    EXPECT_EQ(created->entry.name, NameBytes("char0003"));
+    EXPECT_EQ(created->entry.level, 1);
+    EXPECT_EQ(created->entry.flags, 0);
+    EXPECT_EQ(created->entry.classByte, 0x20);
+    const std::array<std::byte, Client::Protocol::Character::EquipmentSize> noEquipment{};
+    EXPECT_EQ(created->entry.equipment, noEquipment);
+    EXPECT_TRUE(created->entry.withoutEquipment);
+    EXPECT_EQ(created->entry.guildStatus, 0xff);
+    EXPECT_EQ(deleted->slot, 3);
+    EXPECT_EQ(tested.session.CreateResult(), std::optional<std::uint8_t>{std::uint8_t{1}});
+    EXPECT_EQ(tested.session.DeleteResult(), std::optional<std::uint8_t>{std::uint8_t{1}});
+    ASSERT_NE(tested.session.ChosenCharacter(), nullptr);
+    EXPECT_EQ(tested.session.ChosenCharacter()->slot, 0);
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+
+    tested.session.Start();
+
+    EXPECT_EQ(received->list.characters[1].name, NameBytes("char0002"));
+    EXPECT_EQ(created->entry.name, NameBytes("char0003"));
+    EXPECT_EQ(deleted->slot, 3);
+}
+
+TEST(ServerSessionTest, TwoAcceptedIdenticalCreationsPublishTwoEvents)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    ASSERT_EQ(tested.session.TakeCharacterEvents().size(), 1u);
+
+    for (int attempt = 0; attempt < 2; ++attempt)
+    {
+        tested.session.CreateCharacter("char0003", 1);
+        tested.socket.reads = {CreatedReply(1)};
+        tested.session.Poll();
+        ASSERT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
+    }
+
+    const std::vector<CharacterEvent> events = tested.session.TakeCharacterEvents();
+    ASSERT_EQ(events.size(), 2u);
+    for (const CharacterEvent& event : events)
+    {
+        const auto* created = std::get_if<CharacterCreated>(&event);
+        ASSERT_NE(created, nullptr);
+        EXPECT_EQ(created->entry.slot, 1);
+        EXPECT_EQ(created->entry.name, NameBytes("char0003"));
+        EXPECT_TRUE(created->entry.withoutEquipment);
+    }
+    EXPECT_EQ(tested.session.Characters()->characters.size(), 3u);
+}
+
+TEST(ServerSessionTest, AnAcceptedListSurvivesACloseInTheSamePoll)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCharacterList());
+    tested.socket.reads = {CharacterListBytes(TwoCharacters())};
+    tested.socket.peerClosed = true;
+
+    tested.session.Poll();
+
+    ASSERT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
+    const std::vector<CharacterEvent> events = tested.session.TakeCharacterEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* received = std::get_if<CharacterListReceived>(&events[0]);
+    ASSERT_NE(received, nullptr);
+    EXPECT_EQ(received->list.characters.size(), 2u);
+    ASSERT_TRUE(tested.session.Characters().has_value());
+    EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
+}
+
+// F1/02 con 0 invalida el resto del lote; el alta aceptada antes permanece disponible.
+TEST(ServerSessionTest, AcceptedEventsSurviveQuitAndLaterPacketsStayIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    ASSERT_EQ(tested.session.TakeCharacterEvents().size(), 1u);
+    tested.session.CreateCharacter("char0003", 1);
+    tested.socket.reads = {
+        Join({CreatedReply(1), FromTheGameServer(LogoutResult(0), tested.gameServerSends), CreatedReply(2)})};
+
+    tested.session.Poll();
+
+    ASSERT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    const std::vector<CharacterEvent> events = tested.session.TakeCharacterEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* created = std::get_if<CharacterCreated>(&events[0]);
+    ASSERT_NE(created, nullptr);
+    EXPECT_EQ(created->entry.slot, 1);
+}
+
+TEST(ServerSessionTest, StartDiscardsPendingCharacterEvents)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+
+    tested.session.Start();
+
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_FALSE(tested.session.Characters().has_value());
+}
+
 // En ChoosingCharacter, CreateCharacter manda el F3 01 con el nombre y la clase y espera su respuesta
 // (0x34). El log dice la clase y no el nombre.
 TEST(ServerSessionTest, CreateCharacterSendsF301WithTheNameAndTheClass)
@@ -2178,6 +2383,7 @@ TEST(ServerSessionTest, TheNewOneReplacesItsSlotAndOneBeyondFourIsDropped)
     tested.session.Poll();
     ASSERT_EQ(tested.session.Characters()->characters.size(), 2u);
     EXPECT_EQ(tested.session.Characters()->characters[1].name, NameBytes("char0003"));
+    ASSERT_EQ(tested.session.TakeCharacterEvents().size(), 2u);
 
     tested.session.CreateCharacter("char0003", 1);
     tested.socket.reads = {CreatedReply(5)};
@@ -2185,6 +2391,7 @@ TEST(ServerSessionTest, TheNewOneReplacesItsSlotAndOneBeyondFourIsDropped)
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
     EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el personaje creado no se suma: el lugar 5 no está en la selección"));
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
 }
 
 // Con 0 o 2, solo el resultado, para el aviso de la ventana; con otro, el original no hace nada y se
@@ -2195,21 +2402,25 @@ TEST(ServerSessionTest, ARefusedCreationKeepsItsResult)
     {
         Harness tested(IdentityObfuscation::Shared());
         ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+        static_cast<void>(tested.session.TakeCharacterEvents());
         tested.session.CreateCharacter("char0003", 1);
         tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x01, static_cast<unsigned char>(result)})};
         tested.session.Poll();
         EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter) << result;
         EXPECT_EQ(tested.session.CreateResult(), std::optional<std::uint8_t>{static_cast<std::uint8_t>(result)});
         EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
+        EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
     }
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    static_cast<void>(tested.session.TakeCharacterEvents());
     tested.session.CreateCharacter("char0003", 1);
     tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x01, 0x05})};
     tested.session.Poll();
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCreateResult);
     EXPECT_EQ(tested.session.CreateResult(), std::nullopt);
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el resultado 5 no lo atiende el original"));
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
 }
 
 // La respuesta de crear fuera de turno se ignora.
@@ -2217,6 +2428,7 @@ TEST(ServerSessionTest, ACreateReplyOutOfTurnIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    static_cast<void>(tested.session.TakeCharacterEvents());
 
     tested.socket.reads = {CreatedReply(1)};
     tested.session.Poll();
@@ -2224,6 +2436,37 @@ TEST(ServerSessionTest, ACreateReplyOutOfTurnIsIgnored)
     EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
     EXPECT_TRUE(
         tested.Logged(LogLevel::Warning, "se ignora la respuesta de crear un personaje (F3 01): llegó fuera de turno"));
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+}
+
+TEST(ServerSessionTest, AMalformedCreationPublishesNoCharacterEvent)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    static_cast<void>(tested.session.TakeCharacterEvents());
+    tested.session.CreateCharacter("char0003", 1);
+    tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x01, 0x01})};
+
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCreateResult);
+    EXPECT_EQ(tested.session.CreateResult(), std::nullopt);
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+}
+
+TEST(ServerSessionTest, ASecondCreateReplyWithoutANewRequestPublishesNoEvent)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    static_cast<void>(tested.session.TakeCharacterEvents());
+    tested.session.CreateCharacter("char0003", 1);
+    tested.socket.reads = {Join({CreatedReply(1), CreatedReply(1)})};
+
+    tested.session.Poll();
+
+    const std::vector<CharacterEvent> events = tested.session.TakeCharacterEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<CharacterCreated>(events[0]));
 }
 
 // DeleteCharacter manda el F3 02 con el nombre del elegido y el código, y espera (0x38). El log dice
@@ -2317,6 +2560,7 @@ TEST(ServerSessionTest, ARefusedDeletionKeepsTheCharacter)
     {
         Harness tested(IdentityObfuscation::Shared());
         ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+        static_cast<void>(tested.session.TakeCharacterEvents());
         tested.session.ChooseCharacter(std::uint8_t{3});
         tested.session.DeleteCharacter(SyntheticDeleteCode());
         tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x02, static_cast<unsigned char>(result)})};
@@ -2325,7 +2569,38 @@ TEST(ServerSessionTest, ARefusedDeletionKeepsTheCharacter)
         EXPECT_EQ(tested.session.DeleteResult(), std::optional<std::uint8_t>{static_cast<std::uint8_t>(result)});
         EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
         EXPECT_NE(tested.session.ChosenCharacter(), nullptr);
+        EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
     }
+}
+
+TEST(ServerSessionTest, AMalformedDeletionPublishesNoCharacterEvent)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    static_cast<void>(tested.session.TakeCharacterEvents());
+    tested.session.ChooseCharacter(std::uint8_t{3});
+    tested.session.DeleteCharacter(SyntheticDeleteCode());
+    tested.socket.reads = {Bytes({0xC1, 0x04, 0xF3, 0x02})};
+
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingDeleteResult);
+    EXPECT_EQ(tested.session.DeleteResult(), std::nullopt);
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+}
+
+TEST(ServerSessionTest, ADeleteReplyOutOfTurnPublishesNoCharacterEvent)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    static_cast<void>(tested.session.TakeCharacterEvents());
+    tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x02, 0x01})};
+
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
+    EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
 }
 
 // Las dos respuestas se esperan con el tope de los Waiting*, y el keepalive sigue en los dos estados.

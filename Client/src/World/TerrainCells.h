@@ -53,6 +53,8 @@ struct TerrainView
     std::array<TileSize, 256> tiles{};
     // El mapa (DAT_006c9dd0): en el 0x1e el agua corre al revés.
     std::uint8_t map = 0;
+    // DAT_006c9d5c compartida con la cámara: 1.200, o 1.201 después del primer 0x40.
+    float fixedHeight = FixedCornerHeight;
 };
 
 // Las celdas de los bloques que ve la cámara (0x5fbb00): de firstX a lastX y de firstY a lastY, los

@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Render/Models/Animation.h"
+#include "World/GameCamera.h"
+
 #include "App/ServerSession.h"
 #include "App/WindowState.h"
 #include "Core/Expected.h"
@@ -132,7 +135,14 @@ private:
     // El buffer de un slot de las ventanas o de la escena.
     [[nodiscard]] TextureBufferSize BufferSize(Render::TextureSlot slot) const;
 
+    [[nodiscard]] World::GameCamera& CameraState();
+    [[nodiscard]] World::GameCameraInput& CameraInputState();
+
     SceneContext m_context;
+    // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
+    World::GameCamera m_localCamera;
+    World::GameCameraInput m_localCameraInput;
+    Render::Models::OriginalFrameCarry m_cameraFrames;
     const Data::Text::TextTable* m_texts;
     const IModelLibrary& m_models;
     App::ServerSession* m_session;

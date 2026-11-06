@@ -1,6 +1,9 @@
 #include "Scenes/SceneCameras.h"
 
+#include "Core/IClock.h"
+#include "Render/Models/Animation.h"
 #include "Render/Pass3D.h"
+#include "World/GameCamera.h"
 
 #include <bit>
 #include <cstdint>
@@ -37,6 +40,18 @@ Render::Camera3D LoginCamera()
     camera.fieldOfView = FieldOfView;
     camera.nearPlane = NearPlane;
     camera.farPlane = LoginFar;
+    return camera;
+}
+Render::Camera3D CameraForFrame(World::GameCamera& state, const World::GameCameraInput& input,
+                                Render::Models::OriginalFrameCarry& frames, Core::Duration clock,
+                                Render::Models::OriginalFramePace pace)
+{
+    const int count = frames.FramesAt(clock, pace);
+    if (count == 0)
+        return World::GameCameraOf(state, input);
+    Render::Camera3D camera;
+    for (int frame = 0; frame < count; ++frame)
+        camera = World::StepGameCamera(state, input);
     return camera;
 }
 } // namespace Client::Scenes

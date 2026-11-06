@@ -37,6 +37,7 @@
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SceneCameras.h"
+#include "World/GameCamera.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -262,8 +263,22 @@ LoginScene::LoginScene(const SceneContext& context, const GameData& data, const 
     }
 }
 
+World::GameCamera& LoginScene::CameraState()
+{
+    return m_context.camera != nullptr ? *m_context.camera : m_localCamera;
+}
+
+World::GameCameraInput& LoginScene::CameraInputState()
+{
+    return m_context.cameraInput != nullptr ? *m_context.cameraInput : m_localCameraInput;
+}
+
 Core::Expected<void, std::string> LoginScene::Enter()
 {
+    m_cameraFrames = {};
+    m_drawnCamera = {};
+    // 0x634c19 escribe solo el yaw; 0x634b60 no borra al héroe si su puntero es válido.
+    CameraState().yaw = 0.0f;
     LoadTheWorld();
     auto loaded = m_textures.Load(m_context.dataRoot);
     if (!loaded.HasValue())
@@ -304,7 +319,7 @@ void LoginScene::LoadTheWorld()
     {
         return;
     }
-    // 0x5fbb00 y 0x5fb570 con la cámara fija y el héroe del login: el rango de bloques (en el login, los
+    // Rango inicial de 0x5fbb00 y 0x5fb570 con el pase de entrada y el héroe del login (los
     // que empiezan en x 0..128 e y 120..248) y el trapecio, que no recorta ninguna celda (06 § El
     // terreno del login).
     const Render::Camera3D camera = LoginCamera();
@@ -468,7 +483,8 @@ void LoginScene::PlaceTheModels()
     {
         constexpr int LoginCell = 0;
         constexpr float CellCenter = 50.0f;
-        const double ground = World::TerrainHeightAt(*terrain->heights, *terrain->attributes, CellCenter, CellCenter);
+        const double ground = World::TerrainHeightAt(*terrain->heights, *terrain->attributes, CellCenter, CellCenter,
+                                                     CameraState().fixedHeight);
         m_spirit = CreateDarkSpirit(LoginCell, LoginCell, ground, m_context.cloth->random);
     }
     if (const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel))
@@ -584,16 +600,17 @@ void LoginScene::StepTheWorld()
     }
     // 0x530490, después de los ayudantes (0x634d0e): en el mapa 55, las 80 brasas, con el rand() de la CRT.
     // Nacen alrededor del héroe (el personaje 0), al que 0x6350b0 le escribe la posición recién en el
-    // dibujo: antes del primero, en (0, 0, 0) (Q-C137). La y de la cámara que miran, igual: al entrar,
-    // 0x6349a0 deja la cámara en (0, 0, 0) (0x634b80) y 0x635ae0 le escribe la de LoginCamera en el
+    // dibujo: en el arranque, antes del primero, en (0, 0, 0) (Q-C137). La y de la cámara que miran: al entrar,
+    // 0x6349a0 deja la cámara en (0, 0, 0) (0x634b80) y 0x635ae0 le escribe la cámara compartida en el
     // dibujo (0x635f7e).
     if (const World::WorldTerrain* terrain = m_terrain.Terrain();
         m_context.cloth != nullptr && terrain != nullptr && m_world && m_world->map == EmberMap)
     {
-        const World::EmberWorld embers{.hero = m_drawnSinceEntering ? LoginHeroPosition : glm::vec3(0.0f),
-                                       .cameraY = m_drawnSinceEntering ? LoginCamera().position.y : 0.0f,
+        const World::EmberWorld embers{.hero = CameraInputState().hero,
+                                       .cameraY = m_drawnSinceEntering ? m_drawnCamera.position.y : 0.0f,
                                        .heights = terrain->heights.get(),
-                                       .attributes = terrain->attributes.get()};
+                                       .attributes = terrain->attributes.get(),
+                                       .fixedHeight = CameraState().fixedHeight};
         World::StepLoginEmbers(m_leaves, embers, m_context.cloth->random);
     }
     // 0x508f00 → 0x4fcd00: lo que termina vuelve a la de parado (0x4fcb10 → 0x4f2250).
@@ -616,7 +633,7 @@ void LoginScene::StepTheWorld()
                              m_context.cloth->random, m_context.cloth->logicSteps);
     }
     // 0x505de0, después de 0x4fd5f0 en 0x508ea0: la cabeza del personaje. Con +0x16c, que 0x508ea0 escribe al
-    // empezar con el trapecio de 0x5fba90 en su lugar por 0,01f y −20 (con el polígono de la cámara fija), y sin
+    // empezar con el trapecio de 0x5fba90 en su lugar por 0,01f y −20 (con el trapecio del último dibujo), y sin
     // las banderas 0x20 ni 0x1000 de +0x78 (el del login no tiene ninguna). No es el héroe (el personaje 0) ni se
     // está muriendo: sortea.
     if (m_context.cloth != nullptr && CharacterSeen(m_terrainPolygon, LoginCharacterTransform().position))
@@ -887,11 +904,23 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     // 3 y 4: el fin del 2D (0x621a90) y el pase 3D. El pase que no dibuja, de 0x620db0(0, 0, w,
     // 48), no va.
     canvas.flushSprites();
-    // La cámara fija de la escena 2 (0x635ae0), en el viewport de 0x620db0(0, 25, 640, 430).
-    const Render::Pass3D pass = Render::MakePass3D(canvas.screen, WorldViewport, LoginCamera());
+    // La cámara compartida de la escena 2 (0x635ae0), en el viewport de 0x620db0(0, 25, 640, 430).
+    // 0x6350d3..0x6350e1: el héroe se escribe aquí, no al entrar ni en el paso.
+    World::GameCameraInput& cameraInput = CameraInputState();
+    cameraInput.hero = LoginHeroPosition;
+    cameraInput.scene = World::CullingScene::Login;
+    cameraInput.map = m_world ? m_world->map : EmberMap;
+    const Render::Camera3D camera = CameraForFrame(CameraState(), cameraInput, m_cameraFrames, canvas.frameClock,
+                                                   OriginalFramePaceOf(m_context.pacing));
+    m_drawnCamera = camera;
+    const Render::Pass3D pass = Render::MakePass3D(canvas.screen, WorldViewport, camera);
+    m_terrainRange = World::TerrainRangeOf(pass.view, camera);
+    m_terrainPolygon =
+        World::TerrainPolygonOf(World::CullingScene::Login, cameraInput.map, cameraInput.hero, camera.angles.z);
     canvas.models.Begin(pass);
     // 0x5fc260(0): el terreno, antes de los personajes.
-    m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, m_terrainPolygon);
+    m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, m_terrainPolygon,
+                          CameraState().fixedHeight);
     DrawTheModels(canvas, alpha);
     canvas.flushModels();
     // Los sprites del frame, los que pidió el dibujo del personaje (los 30 destellos de la tela, 0x455930,
@@ -1003,11 +1032,10 @@ void LoginScene::DrawTheRaven(SceneCanvas& canvas, float alpha)
     const glm::vec3 light = TerrainLightAt(spirit.position);
     const World::WorldTerrain* terrain = m_terrain.Terrain();
     const DrawnObject drawn = DrawnDarkSpirit(spirit, skeleton, light, alpha);
-    const float ground =
-        terrain != nullptr
-            ? static_cast<float>(World::TerrainHeightAt(*terrain->heights, *terrain->attributes,
-                                                        drawn.transform.position.x, drawn.transform.position.y))
-            : 0.0f;
+    const float ground = terrain != nullptr ? static_cast<float>(World::TerrainHeightAt(
+                                                  *terrain->heights, *terrain->attributes, drawn.transform.position.x,
+                                                  drawn.transform.position.y, CameraState().fixedHeight))
+                                            : 0.0f;
     DrawDarkSpirit(canvas.models, m_models, drawn, ground, canvas.frameClock);
     spirit.pose = PosedWorldBones(m_models, DrawnDarkSpirit(spirit, skeleton, light, 0.0f));
 }

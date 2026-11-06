@@ -29,6 +29,8 @@
 #include "Scenes/CreatePreview.h"
 #include "Scenes/GameData.h"
 #include "Scenes/SceneCameras.h"
+#include "World/GameCamera.h"
+#include "World/TerrainCulling.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -44,6 +46,7 @@
 #include "UI/SelectionBar.h"
 #include "UI/Widget.h"
 
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
@@ -119,8 +122,19 @@ Scenes::TextureBufferSize CharacterSelectScene::BufferSize(Render::TextureSlot s
     return inTheWindows ? m_windowTextures.BufferSize(slot) : m_textures.BufferSize(slot);
 }
 
+World::GameCamera& CharacterSelectScene::CameraState()
+{
+    return m_context.camera != nullptr ? *m_context.camera : m_localCamera;
+}
+
+World::GameCameraInput& CharacterSelectScene::CameraInputState()
+{
+    return m_context.cameraInput != nullptr ? *m_context.cameraInput : m_localCameraInput;
+}
+
 Core::Expected<void, std::string> CharacterSelectScene::Enter()
 {
+    m_cameraFrames = {};
     if (auto loaded = m_textures.Load(m_context.dataRoot); !loaded.HasValue())
     {
         return loaded;
@@ -190,6 +204,15 @@ void CharacterSelectScene::SyncTheCharacters()
         changed = true;
     }
     m_characters = std::move(synced);
+    // 0x4c20a0 → 0x517270: Hero apunta al slot0; 0x5172c4/ca escriben su X/Y.
+    // Este espejo consulta el personaje vigente; no repite el handler ni sus efectos por paso.
+    // Z se construye en 0x511290 antes de estas XY (L3); el dibujo de selección luego escribe163.
+    if (std::ranges::find(entries, HeroSlot, &Protocol::Character::CharacterEntry::slot) != entries.end())
+    {
+        const glm::vec2& position = CharacterSlots[HeroSlot].position;
+        CameraInputState().hero.x = position.x;
+        CameraInputState().hero.y = position.y;
+    }
     if (!m_tookTheList)
     {
         m_tookTheList = true;
@@ -563,15 +586,26 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     sprites.Quad(Background(0x718, 320.0f));
     canvas.flushSprites();
 
-    const Render::Pass3D pass = Render::MakePass3D(canvas.screen, WorldViewport, SelectionCamera());
+    // 0x6346ca calcula la cámara con el héroe compartido vigente antes de dibujar los personajes.
+    World::GameCameraInput& cameraInput = CameraInputState();
+    cameraInput.scene = World::CullingScene::CharacterSelect;
+    const std::optional<SceneWorld> world = WorldOf(SceneId::CharacterSelect);
+    const std::uint8_t map = world ? world->map : 0;
+    cameraInput.map = map;
+    const Render::Camera3D camera = CameraForFrame(CameraState(), cameraInput, m_cameraFrames, canvas.frameClock,
+                                                   OriginalFramePaceOf(m_context.pacing));
+    const Render::Pass3D pass = Render::MakePass3D(canvas.screen, WorldViewport, camera);
     m_lastPass = pass;
     canvas.models.Begin(pass);
-    if (const std::optional<SceneWorld> world = WorldOf(SceneId::CharacterSelect))
+    if (world)
     {
         canvas.world.Draw(*world, pass, alpha);
     }
+    // 0x6347ba..0x6347e2, después de 0x6346ca: Z163 en los cinco primeros registros del pool,
+    // sin comprobar alive ni presencia de slot0, después de la espera de lista de 0x634680.
+    // Hero apunta al registro0 incluso cuando la lista recibida está vacía.
+    cameraInput.hero.z = CharacterSlotHeight;
     const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
-    const std::uint8_t map = WorldOf(SceneId::CharacterSelect) ? WorldOf(SceneId::CharacterSelect)->map : 0;
     for (Character& character : m_characters)
     {
         DrawnCharacter drawn;

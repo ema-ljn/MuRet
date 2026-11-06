@@ -48,6 +48,7 @@
 #include "Scenes/GameData.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/GameScene.h"
+#include "World/GameCamera.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoadingScene.h"
 #include "Scenes/WorldLoadingScene.h"
@@ -592,13 +593,19 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         .random = Client::Render::Models::CrtRandom(static_cast<std::uint32_t>(std::time(nullptr)))};
     // El teclado y el mouse del bucle: los pasos los reciben, y el dibujo del cursor los lee del contexto.
     Client::Input::InputState input;
+    Client::World::GameCamera camera;
+    // 0x4bafad..0x4bafdf: el pool empieza en cero y el héroe apunta al personaje 0.
+    // La celda lógica y su lectura exacta se integran en CL7.P; no se sustituye por la celda visual.
+    Client::World::GameCameraInput cameraInput;
     const Scenes::SceneContext context{.dataRoot = *startup.config.dataPath,
                                        .textures = textures,
                                        .log = log,
                                        .clock = &clock,
                                        .cloth = &clothWorld,
                                        .input = &input,
-                                       .pacing = startup.config.pacing};
+                                       .pacing = startup.config.pacing,
+                                       .camera = &camera,
+                                       .cameraInput = &cameraInput};
     // El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
     // se ven los dos.
     if (const auto hidden = window.HideSystemCursor(); !hidden.HasValue())

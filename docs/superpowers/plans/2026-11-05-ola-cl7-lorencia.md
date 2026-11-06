@@ -62,7 +62,9 @@ Emanuel autorizó continuar todas las CL7.x mientras está ausente y pidió fide
 Unicorn se ejecutan ahora con el ASM contrastado y evidencia del cliente original. Los fixtures
 emulados ya existentes conservan su procedencia como regresiones; no se presentan como
 capturas nativas. Un contrato todavía inferido se verifica estáticamente de forma concluyente
-o con una observación real antes de implementarlo como hecho. El cliente vivo sigue disponible.
+o con una observación real antes de implementarlo como hecho. Después de las capturas de Lorencia,
+Emanuel avisó que el servidor se cerró y el cliente dejó de responder. Se continúa con el ASM y la
+evidencia guardada; las comprobaciones que necesitan juego activo permanecen pendientes.
 Cada sub-ola mantiene las revisiones adversariales de Astra 6 Ultra y Claude Opus 5.5 xhigh,
 además de los checks y CI. Esto no da por terminada ninguna funcionalidad pendiente.
 
@@ -152,7 +154,7 @@ si no choca con eso; si choca, queda para más adelante.
 | Sub-ola | Qué | Hito |
 | --- | --- | --- |
 | CL7.3 A | la cámara del juego, bit a bit (`0x635ae0`) | |
-| CL7.3 B | la cámara compartida: el login y la selección por `0x635ae0`, y la altura del `0x40` | |
+| CL7.3 B | la cámara compartida: el login y la selección por `0x635ae0`, y la altura del `0x40` | integración parcial revisada; Z anterior al primer dibujo pendiente |
 | CL7.P | las variables protegidas y sus `rand()` (`0x57630c8`), con el contador del login completo | |
 | CL7.L1 | la entrada al mundo y el pase del juego: el terreno de Lorencia desde el héroe | se ve Lorencia |
 | CL7.L2 | los modelos con nombre y los objetos de Lorencia, en el orden de `0x6371a0` | |
@@ -332,6 +334,36 @@ arrancar; lo que se sabe:
   210 que dejó el juego, la del login empieza en (12.636,6; 12.819,4) y vuelve de a 10 por frame (P-C27 b,
   emulado). `TerrainHeightAt` con una celda `0x40` da 1.200 antes del primer `0x40` de la cámara y 1.201
   después. Review Focus 1: del juego al login y de vuelta.
+
+**Estado de la implementación:** la cámara y sus entradas viven una vez en `main`; el carry es local
+a cada entrada de escena según ADR0005. Login preserva los globales, fija yaw 0 al entrar y escribe
+HeroXYZ al dibujar; selección sincroniza XY del slot0 y conserva las otras entradas hasta que una
+escritura documentada las cambia. El primer paso de juego fija yaw −45, sin implementar todavía L1.
+Altura fija compartida llega al terreno, las brasas, el nacimiento del cuervo y su sombra.
+
+- [x] Trece tests compartidos: ambos ritmos, reentrada al mismo reloj, zoom heredado, consulta sin
+  avance, límite de 64 frames, pase real de selección y altura persistente por mapas 0→55→54.
+- [x] Tests de escena observan vértices, brasas y cuervo; quitar los argumentos de altura vuelve
+  rojos los consumidores reales. La lista idéntica al volver de login vuelve a sincronizar XY.
+- [x] Arreglo adversarial de Z: `0x6347c3..0x6347e7` escribe 163 a los cinco slots después de cámara,
+  incluso sin slot0 vivo. Se refleja esa escritura durante Render, sin adelantarla a Enter/Sync.
+  El test selección dibujada con lista vacía→LoginEnter→Step observa las brasas que nacen antes
+  del primer LoginRender; fue rojo al omitir esa escritura y verde con ella.
+- [x] Suite completa de 2.265 casos registrados con GL/Mesa, trazas y cable: cero fallos y 30
+  omisiones opcionales. Build sin PCH, warnings como errores, formato e includes limpios.
+- [ ] Cerrar la Z que deja crear slot0 **antes del primer dibujo de selección**, o demostrar que
+  no puede ser consumida en esa fase. `0x511290` usa la altura de las coordenadas iniciales antes
+  de que `0x517270` escriba XY de selección; su argumento 100 es yaw, no Z. Los contratos transitivos
+  y el equipo previo no se sustituyen por una Z elegida. Esto afecta al primer LoginStep si no
+  hubo un dibujo de selección y mantiene B como integración parcial, aunque su cámara fija no lea Z.
+  También aplica si una lista nueva vuelve a crear slot0 después del último dibujo: Z163 queda
+  acreditada hasta la siguiente creación, no para todo el resto de la sesión.
+- [x] Astra 6 Ultra y Opus 5.5 xhigh revisaron los arreglos: altura de cuervo, terreno y brasas,
+  XY del slot0, Z tras dibujo y distinción de espera activa/lista vacía recibida. La compuerta
+  ya funcionaba; anticipar Z antes de ella hace fallar el test. Ambos mantienen abierta la
+  dependencia de Z del constructor indicada arriba, y B se publica como borrador parcial.
+- [ ] CI/Windows del PR. La captura nativa de A no prueba el historial o las transiciones de B;
+  los fixtures emulados anteriores son solo regresiones.
 
 ## Sub-ola CL7.P: las variables protegidas
 

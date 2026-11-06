@@ -169,7 +169,7 @@ void DrawTerrainCell(Render::ModelBatch& batch, const TerrainView& view, const T
     std::array<float, 4> heights{};
     for (std::size_t k = 0; k < 4; ++k)
     {
-        heights[k] = (view.attributes->cells[corners[k]] & FixedHeightBit) != 0 ? FixedCornerHeight
+        heights[k] = (view.attributes->cells[corners[k]] & FixedHeightBit) != 0 ? view.fixedHeight
                                                                                 : view.heights->cells[corners[k]];
     }
     const std::array<glm::vec3, 4> positions{glm::vec3(left, top, heights[0]), glm::vec3(right, top, heights[1]),

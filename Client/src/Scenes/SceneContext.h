@@ -10,6 +10,12 @@
 
 #include <filesystem>
 
+namespace Client::World
+{
+struct GameCamera;
+struct GameCameraInput;
+} // namespace Client::World
+
 // Lo que comparten las escenas (CL5.4). Lo arma main.cpp y vive más que el SceneManager; los tests,
 // con un FakeTextureStore (support/). Lo que se leyó antes de la primera escena va aparte, en
 // GameData.h.
@@ -36,6 +42,13 @@ struct SceneContext
     // El ritmo del bucle (App/PacingMode.h): en Faithful, lo que el original corre una vez por frame
     // dibujado (la tela y el brillo del cetro) corre uno por dibujo (OriginalFramePaceOf).
     App::PacingMode pacing = App::PacingMode::Decoupled;
+    // Estado global de 0x635ae0: vive en main y sobrevive a los cambios de escena (CL7.3 B).
+    World::GameCamera* camera = nullptr;
+    // Entradas de 0x635ae0, no réplica completa del actor Hero. Selección sincroniza XY si la lista
+    // trae slot0; su cámara fija pisa la Z de la posición de cámara. Un dibujo habilitado después
+    // de recibir la lista escribe Hero Z = 163, incluso con lista vacía. El constructor pertenece
+    // a L3; L1 aportará XYZ de la respuesta para el juego.
+    World::GameCameraInput* cameraInput = nullptr;
 };
 
 // Cómo cuentan los frames del original la tela y el cetro con el ritmo `pacing`.

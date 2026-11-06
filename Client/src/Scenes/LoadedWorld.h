@@ -56,7 +56,7 @@ public:
     // 0x5fc260(0): el corrimiento del agua con el reloj del frame y el pase del terreno en el rango,
     // con el recorte del trapecio. Sin terreno, nada.
     void DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClock, const World::TerrainRange& range,
-                     const World::TerrainPolygon& polygon);
+                     const World::TerrainPolygon& polygon, float fixedHeight = World::FixedCornerHeight);
 
 private:
     Render::ITextureStore& m_store;

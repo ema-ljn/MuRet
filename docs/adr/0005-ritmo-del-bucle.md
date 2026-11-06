@@ -39,6 +39,15 @@ avanza el juego.
 - **El modo fiel es la opción** (`Pacing = faithful`): reproduce la espera del original con un
   reloj de 15,625 ms, sin tope, y mide desde el mismo lugar que el original. Sirve para comparar
   lado a lado con el `main.exe`.
+- **La cámara conserva sus valores entre escenas, y cada entrada comienza su propio ritmo**
+  (CL7.3 B). En `Faithful`, avanza una vez por dibujo. En `Decoupled`, el primer dibujo de cada
+  entrada cuenta exactamente un frame original; después, `OriginalFrameCarry` cuenta por tiempo
+  y los dibujos intermedios consultan la cámara sin avanzarla. No se recuperan frames de escenas
+  que no se dibujaron. D, zoom, altura y objetivo persisten; reiniciar el ritmo no los reinicia.
+  Así el primer pase calcula inmediatamente la cámara y el far de la nueva escena. Dos primeros
+  dibujos de escenas distintas con el mismo reloj pueden avanzar dos veces: es una política de
+  `Decoupled`, no una temporización atribuida al binario. El original llama `0x635ae0` una vez
+  por dibujo, que conserva el modo fiel.
 
 D-C4 nombra el [ADR 0001 de MuMain][mm] por la lógica a 25 por segundo, pero en un frame largo
 MuRet no hace lo mismo: allá, debajo de 25 FPS, el frame avanza un paso como mucho y el juego va en
@@ -61,6 +70,8 @@ cámara lenta. MuRet se pone al día, con hasta 25 pasos por frame.
     original.
   - `GameLoopTest.TheTimeOfASceneChangeDoesNotCount`: el modo por defecto no mide la entrada a una
     escena.
+  - `SharedGameCameraTest`: estado persistente, dibujos intermedios sin otro avance y un primer
+    frame por entrada, incluida la reentrada en `Decoupled`.
 
 El contrato y los pasos están en las sub-olas CL3.0 y CL3.2 del
 [plan de la CL3](../superpowers/plans/2026-11-02-ola-cl3-plataforma-y-bucle.md).

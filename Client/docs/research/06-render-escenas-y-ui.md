@@ -2267,6 +2267,15 @@ del nivel (§ El modelo en el binario).
 mundo la perspectiva de 45° que no dibuja y el pase de la franja de arriba, y los pies del
 personaje a la altura de z = 163.
 
+El contraste CL7.3 B precisa la escritura de Z: después de la cámara (`0x6346ca`),
+`0x6347c3..0x6347e7` escribe los bits `43230000` (163) en `+0x18` de los **cinco
+primeros slots**, sin comprobar vivo ni presencia de slot0. Sí se aplican las salidas
+iniciales del renderer mientras se espera la lista. Hero apunta al slot0 desde
+WinMain (`0x4bafdf`), por lo que esa escritura queda compartida al salir de selección.
+Un LoginStep anterior al primer LoginRender la puede leer al crear brasas: no alcanza
+con aplicar 163 únicamente al transform temporal del personaje dibujado. Esto fija
+el estado después de un dibujo habilitado; no prueba la Z del constructor antes de él.
+
 ### La barra de la selección y el borrado
 
 Leída en la CL6.5 (*estático*, y *emulado* el lugar de las ventanas y el armado de los avisos).
@@ -2416,11 +2425,19 @@ Las mallas del personaje de la traza caen alrededor del lugar 0 (**verificado**)
 más de 4 la posición no se carga (Q-C101).
 
 `0x517270(índice, clase, piel, x, y, ángulo)` llama a `0x511290(chars[índice], 0x20a, 0, 0,
-ángulo)` (la z, de `0x5f93c0`) y pone `+0x1f4` en el índice, la luz `+0xf4` en 0,3, la posición,
+ángulo)` (la z, de `0x5f93c0`) y pone `+0x1f4` en el índice, la luz `+0xf4` en 0,3, X/Y,
 la clase, la piel, y `+0x78` y `+0x7c` en 0. En la escena 2 viste la ropa fija del login (§ El
 login, al entrar); en las otras, casco, armadura, pantalón, guantes y botas en `0x2212`, `0x221a`,
 `0x2222`, `0x222a` y `0x2232` más `clase & 7`, y las manos, las alas y la mascota en -1. Después,
 `0x4e6910(0x1000000, c)`, `+0x1d8` en 0, `0x512930` y `0x4f2250` (la acción de parado).
+
+Contraste estático CL7.3 B: `0x511290` guarda su quinto argumento en `+0x24`
+(`0x512292`, yaw), y calcula Z en `+0x18` (`0x51226d`) **antes** de que `0x517270`
+reemplace X/Y (`0x5172c4/0x5172ca`). La altura usa las coordenadas iniciales (50,50),
+el mapa, seguridad y una condición sobre equipo previo; no la posición final de
+selección ni el valor 100 del ángulo. El estado final de sus constructores/callees
+antes del primer dibujo sigue abierto en el plan; no se sustituye por una Z elegida.
+
 `0x512930` pone la cabeza (`+0x1f8`) en `0x2212 + (clase >> 3) · 5 + (clase & 7)` solo con los
 cascos `0x1012`, `0x1014` y `0x101c` a `0x101f` (si no, en -1), y la escala (`+0xc`) por clase y
 según la piel sea 0 o no: 0,9 o 0,93 en las clases 0 y 1, 0,88 o 0,86 en la 2, 0,95 en la 3 y

@@ -116,12 +116,13 @@ void LoadedWorld::Step(Core::Duration clock, const World::TerrainRange& range)
 }
 
 void LoadedWorld::DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClock, const World::TerrainRange& range,
-                              const World::TerrainPolygon& polygon)
+                              const World::TerrainPolygon& polygon, float fixedHeight)
 {
     if (!m_terrain)
     {
         return;
     }
+    m_view.fixedHeight = fixedHeight;
     m_water.offset = World::WaterOffsetAt(frameClock, m_view.map);
     World::DrawTerrain(batch, m_view, range, polygon, m_water);
 }

@@ -62,7 +62,9 @@ Emanuel autorizó continuar todas las CL7.x mientras está ausente y pidió fide
 Unicorn se ejecutan ahora con el ASM contrastado y evidencia del cliente original. Los fixtures
 emulados ya existentes conservan su procedencia como regresiones; no se presentan como
 capturas nativas. Un contrato todavía inferido se verifica estáticamente de forma concluyente
-o con una observación real antes de implementarlo como hecho. El cliente vivo sigue disponible.
+o con una observación real antes de implementarlo como hecho. Después de las capturas de Lorencia,
+Emanuel avisó que el servidor se cerró y el cliente dejó de responder. Se continúa con el ASM y la
+evidencia guardada; las comprobaciones que necesitan juego activo permanecen pendientes.
 Cada sub-ola mantiene las revisiones adversariales de Astra 6 Ultra y Claude Opus 5.5 xhigh,
 además de los checks y CI. Esto no da por terminada ninguna funcionalidad pendiente.
 
@@ -160,7 +162,7 @@ si no choca con eso; si choca, queda para más adelante.
 | CL7.L4 | la luz dinámica del terreno y el pasto | |
 | CL7.L5 | lo vivo: las hojas, los pájaros, los peces, los fuegos, la fuente | Lorencia viva |
 | CL7.4 A | el mapa de paredes vivo y el camino (el A* de `0x4ead70`) | |
-| CL7.4 B | el paquete de caminar (`D3`) y los `D3`/`D7` que llegan | |
+| CL7.4 B | el paquete de caminar (`D3`) y los `D3`/`D7` que llegan | implementado y revisado; CI pendiente |
 | CL7.4 C | el paso entre celdas (el spline, la velocidad, correr) | |
 | CL7.4 D | el picking del terreno | |
 | CL7.4 E | caminar en la escena, con el recorte de los personajes | **se camina por Lorencia** |
@@ -518,18 +520,31 @@ la fuente, el `0F`). PR propio. Se detalla al arrancar; lo que se sabe:
 ## Sub-ola CL7.4 B: el paquete de caminar y lo que llega
 
 **Contrato:** 04 (`D3` C->S y S->C, `D7` S->C es el daño) y 06 § Caminar (`SendMove` de `0x56acd0`). PR
-propio. Se detalla al arrancar; lo que se sabe:
+propio, apilado sobre CL7.3 A. Implementación pura, sin integrar clic, movimiento ni sesión.
 
 - **Qué:** `Protocol::Movement`: `WriteWalk(path, target, angle)` (`C1 len D3 X Y (dir << 4 | n − 1)` y los
   pasos de a dos nibbles, con XOR32 y sin C3; 15 celdas salen como 14; la dirección final por el blanco o, con
   una celda, por el ángulo), `WalkUpdateTimeMax(pathNum)` (0, 5 o 3 · n + 4), `ReadWalk` del `D3` S->C y
   `ReadDamage` del `D7` S->C (el id sin el bit 15, el bit, el daño y el tipo).
-- **Tests:** `MovementTest.MatchesTheEmulatedSendMove` (`make_walk_packet_vectors.py`, sobre
-  `game/walk/emu_send.py`, con `send` enganchado por el `stub_overrides` del emulador: `PathNum` de 1 a 15, todas las direcciones y los ángulos cada 0,5); `TheWireBytes`: el camino
-  (b6,73) … (b3,74) da `C1 08 D3 EC 23 E2 0B 08`, y con FoxAnti `C1 08 A3 9C 53 92 7B 78`;
-  `FifteenCellsAreSentAsFourteen`, `OneCellTakesTheDirectionFromTheAngle`,
-  `TheFinalDirectionPointsToTheTargetWhenItIsNextToTheEnd` (`C1 07 D3 A9 7E 21 30`, del cable),
-  `ReadWalkAndDamage` con los formatos del cable, sin ids reales.
+- [x] `Movement.h/.cpp` y 23 casos de `MovementTest`: cantidad local 1..15, wire limitado a 14,
+  todas las direcciones y nibbles, blanco respecto de la última celda transmitida, fallback al último
+  paso transmitido, restas sin wrap, tiempo sobre la cantidad local, rama exclusiva del ángulo,
+  lectores BE con IDs sintéticos asimétricos y bits independientes, truncados y bytes extra.
+- [x] Contraste estático de `0x56acd0` y constantes del PE `c32bbd5f`; se verificó además el helper
+  `0x69fd3c`: `0x69fd4b` fuerza truncamiento y `0x69fd55` usa `FISTP m64int`, con retorno EDX:EAX.
+  En el lector `0x4c6790`, `0x4c6798..0x4c67a9` mantiene el ID BE completo y `0x4c67dc` conserva
+  cuatro bits de dirección. El ASM prevalece sobre el pseudocódigo.
+- [x] Cable documentado: (b6,73) … (b3,74) da `C1 08 D3 EC 23 E2 0B 08`, y con FoxAnti
+  `C1 08 A3 9C 53 92 7B 78`. El blanco lejano del test es sintético y explícito: el cable no lo lleva.
+  Por el pedido nuevo de Emanuel, no se ejecutó el generador emulado antes propuesto.
+- [x] Revisiones cruzadas de Astra 6 Ultra y Opus 5.5 xhigh, y revisión de los arreglos. Se reforzaron
+  los casos de lectores y de celda/paso transmitidos; nueve mutantes fallan por sus aserciones.
+  La receta double es un contrato numérico declarado: una muestra nativa observó CW `0x027f`
+  fuera de `SendMove`. Falta observarla dentro de su aritmética para afirmar equivalencia nativa
+  incondicional (P-C30). Los casos estáticos no se presentan como ejecuciones nativas.
+- [x] Build sin PCH y con warnings como errores, formato e includes; 2.271 casos registrados en la
+  suite completa con GL/Mesa, trazas y cable: cero fallos y 30 omisiones opcionales.
+- [ ] Windows/MSVC y CI del PR en verde.
 
 ## Sub-ola CL7.4 C: el paso entre celdas
 

@@ -164,7 +164,7 @@ Estado contrastado con `main` **`ad331dc`**, los PR abiertos y el código, 2026-
 | CL7.L3 | pendiente | F3 10, equipo del mundo, matriz de parado, aparición y zonas seguras/mascota |
 | CL7.L4 | pendiente | luz dinámica compartida y pasto, incluidos carga/RNG y vértices |
 | CL7.L5 | pendiente | hojas/clima, pájaros, peces, fuegos y fuente |
-| CL7.4 A | componente puro integrado por [PR143](https://github.com/ema-ljn/MuRet/pull/143) | distancia cero implementada; radio y consumidor pendientes; no confundir pruebas dirigidas con los 171 caminos del cable |
+| CL7.4 A | componente puro integrado por [PR143](https://github.com/ema-ljn/MuRet/pull/143) | caminar a distancia cero implementado; consumidor/RNG pendientes en4E/P. La búsqueda por radio queda fuera de ese contrato; no confundir pruebas dirigidas con los 171 caminos del cable |
 | CL7.4 B | componente puro integrado por [PR139](https://github.com/ema-ljn/MuRet/pull/139) | consumidor y envío en la escena, CL7.4 E; precisión nativa del emisor pendiente |
 | CL7.4 C | pendiente | spline, celda lógica, velocidad, carrera/giro/altura y acciones según clase/equipo/mapa |
 | CL7.4 D | pendiente | rayo contra terreno, orden/caras, nearest y selección retenida en miss |

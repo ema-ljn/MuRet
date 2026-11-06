@@ -154,6 +154,15 @@ si no choca con eso; si choca, queda para más adelante.
 Estado contrastado con `main` **`6e8622d`**, los PR abiertos y el código, 2026-11-06.
 «Componente puro» no significa que la funcionalidad esté integrada en la escena.
 
+**Criterio de Emanuel, 2026-11-06:** el gameplay de CL7 debe funcionar en todos los mapas de juego
+soportados por el original. Lorencia es el primer escenario de integración, no el criterio de cierre.
+Resolver una carpeta, parsear datos o dibujar un frame no acredita movimiento ni transiciones. La
+verificación por mapa debe cubrir entrada, caminar/picking/colisiones/altura, cámara/recorte,
+objetos y efectos pertinentes, warp/reaparición/reentrada y el estado que se conserva o limpia.
+Las condiciones espaciales y visuales propias de cada mapa pertenecen a CL7; las reglas y los
+paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas de juego nominales
+0 a 36; 54/55 conservan su regresión de selección/login. No se inventan los recursos faltantes de 5/35.
+
 | Sub-ola | Estado verificable | Qué falta para su alcance |
 | --- | --- | --- |
 | CL7.3 A | integrado por [PR138](https://github.com/ema-ljn/MuRet/pull/138) | la integración de la cámara en el mundo jugable pertenece a L1 |
@@ -826,10 +835,18 @@ arrancar; lo que se sabe:
 
 - **Qué:** la tabla por mapa: el color de fondo del frame (`0x637700`: Icarus, Kalima y negro), el far (el 30
   y el rectángulo, de CL7.3 A), la niebla del 30, Icarus sin terreno y con nubes, la sombra y el agua del 7,
-  la nieve y los techos de Devias, la arena del 8, el temblor del 5. Kalima (su agua) y los mapas de evento,
-  a la CL9.
-- **Tests:** la tabla contra un vector sacado del asm por script (los inmediatos de `0x637700`, `0x6371a0` y
-  `0x635ae0`); cargar cada mundo y dibujar un frame sin errores, sin GL real.
+  la nieve y los techos de Devias, la arena del 8 y el temblor del 5. Incluir el terreno de agua propio
+  de Kalima (`0x4377a0`, `0x41cc70`), sin sustituirlo por tiles genéricos, y los ganchos de mapas de
+  evento que condicionan el gameplay espacial o su presentación. Inventariar sus contratos contra
+  ASM antes de implementarlos. Las reglas y paquetes específicos de cada evento siguen en CL9.
+- **Tests:** la tabla contra valores contrastados estáticamente con el ASM/PE (`0x637700`, `0x6371a0`
+  y `0x635ae0`), sin nuevas emulaciones. Por cada mapa nominal, incluidos los que comparten carpeta:
+  entrada, movimiento recto/codo/borde y zona segura, picking y altura, cámara/recorte/objetos,
+  mismo/distinto mapa, warp/reaparición y regreso al anterior, con estado retenido/limpiado correcto.
+  Los casos particulares se derivan del contrato de cada familia; un smoke de carga/frame es sólo
+  una comprobación inicial. Verificar los pases con GL cuando el resultado dependa del dibujo.
+  El mapa 32 carga World10 y pasa al estado9; 5/35 conservan los errores documentados por recursos
+  faltantes. No presentarlos como mapas jugables probados con el Data actual.
 
 ---
 
@@ -840,11 +857,12 @@ de abajo del elegido en la selección (`0x53fe70`, la `chasellight` del slot `0x
 acciones del caballo (el polvo de los cascos con el jinete en la `0x4b`) y los de las armas, salvo el cetro
 del login. Uno o más PRs, según lo que salga al leerlos.
 
-## Cierre: el barrido profundo de Lorencia
+## Cierre: el barrido profundo de CL7 en todos los mapas
 
-**Contrato:** la escena 5 entera contra el binario, después de la CL7.5 D. PR propio, como el del login:
-revisores nuevos por partes (la entrada y el bucle, el paso, el dibujo 3D, el caminar y los mapas) con el asm
-y el emulador; lo que se arregla en el PR (con un test que falle antes), lo que queda en 08 y la lista en 06
+**Contrato:** la escena 5 entera contra el binario, después de la CL7.5 D/E, en cada mapa y familia.
+PR propio, como el del login: revisores nuevos por partes (la entrada y el bucle, el paso, el dibujo
+3D, el caminar y los mapas) con ASM/PE y evidencia nativa existente, sin nuevas emulaciones; lo que
+se arregla en el PR (con un test que falle antes), lo que queda en 08 y la lista en 06
 de lo que la escena 5 de MuRet todavía no hace.
 
 Después: la CL8 (el HUD y las ventanas), con el ancho del mundo de `0x5bb8d0` y el área de mensajes.

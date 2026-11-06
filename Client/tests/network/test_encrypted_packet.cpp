@@ -232,7 +232,7 @@ TEST(EncryptedPacketTest, DecryptsTheMuClientFixturesIntoTheNotice)
         ASSERT_TRUE(decrypted.HasValue()) << fixture.name;
         EXPECT_EQ(decrypted.Value().serial, SerialCheck::InOrder) << fixture.name;
         EXPECT_TRUE(decrypted.Value().packet.WasDecrypted()) << fixture.name;
-        EXPECT_EQ(decrypted.Value().packet.Type(), PacketType::C1);
+        EXPECT_EQ(decrypted.Value().packet.Type(), PacketType::C1) << fixture.name;
         EXPECT_TRUE(SameBytes(decrypted.Value().packet.Bytes(), NoticeBytes())) << fixture.name;
     }
 }
@@ -793,7 +793,9 @@ TEST(EncryptedPacketTest, BeforeEncryptGetsThePaddingAlsoWhenTheBlockIsFull)
 TEST(EncryptedPacketTest, EncryptionDoesNotClaimDecryptionEvenWhenTheInputWasDecrypted)
 {
     const KeyPair identity = IdentityPair();
-    for (const auto& bytes : {NoticeSerial0(), ReadNetVector("c4-serial2.bin")})
+    const ByteVector c4 = ReadNetVector("c4-serial2.bin");
+    ASSERT_FALSE(c4.empty());
+    for (const auto& bytes : {NoticeSerial0(), c4})
     {
         PacketSerials receiver;
         const auto decrypted = DecryptPacket(PacketOf(bytes), identity.decryption, receiver);

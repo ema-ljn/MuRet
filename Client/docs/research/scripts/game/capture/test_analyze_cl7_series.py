@@ -1,5 +1,12 @@
 """Capturas sintéticas unitarias: no son evidencia del cliente original."""
 
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
 import unittest
 
 from analyze_cl7_series import analyze, negatives, parse, report
@@ -99,6 +106,46 @@ def analyze_capture(overrides=None):
 
 
 class SeriesAnalysisTest(unittest.TestCase):
+    def test_cli_reads_and_writes_utf8_under_an_ascii_locale(self):
+        environment = {
+            **os.environ,
+            'LC_ALL': 'C',
+            'LANG': 'C',
+            'PYTHONUTF8': '0',
+            'PYTHONCOERCECLOCALE': '0',
+        }
+        script = Path(__file__).with_name('analyze_cl7_series.py')
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            capture = directory / 'capture.txt'
+            metadata = directory / 'metadata.json'
+            output = directory / 'analysis.json'
+            summary = directory / 'report.md'
+            capture.write_text(make_capture().replace(
+                'sequence=non_atomic', 'sequence=non_atomic\nnote=cámara'
+            ), encoding='utf-8')
+            for note in ('camera', 'cámara'):
+                with self.subTest(metadata_note=note):
+                    metadata.write_text(json.dumps(
+                        {**METADATA, 'note': note}, ensure_ascii=False
+                    ), encoding='utf-8')
+                    result = subprocess.run([
+                        sys.executable, str(script), str(capture),
+                        '--metadata', str(metadata), '--json', str(output),
+                        '--report', str(summary),
+                    ], env=environment, capture_output=True, check=False)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(result.stderr, b'')
+                    self.assertTrue(json.loads(result.stdout)['valid'])
+                    analysis = json.loads(output.read_bytes().decode('utf-8'))
+                    self.assertEqual(analysis['validation']['samples'], SAMPLE_COUNT)
+                    self.assertEqual(analysis['source']['sha256'], hashlib.sha256(
+                        capture.read_bytes()
+                    ).hexdigest())
+                    report_bytes = summary.read_bytes()
+                    self.assertIn('→'.encode('utf-8'), report_bytes)
+                    self.assertIn('Acciones(hex→muestras)', report_bytes.decode('utf-8'))
+
     def test_stationary_capture_does_not_claim_a_walk(self):
         result, text = analyze_capture()
         self.assertEqual(result['hero']['position_changes_observed'], 0)

@@ -505,8 +505,8 @@ def report(result):
 def write_results(result, json_path, report_path):
     json_path.write_text(json.dumps(
         result, indent=2, ensure_ascii=False, allow_nan=False
-    ) + '\n')
-    report_path.write_text(report(result))
+    ) + '\n', encoding='utf-8')
+    report_path.write_text(report(result), encoding='utf-8')
     print(json.dumps({
         'valid': True,
         'samples': result['validation']['samples'],
@@ -529,7 +529,7 @@ def main():
         parser.error('progress.txt is never a final capture')
     raw = args.series.read_bytes()
     text = raw.decode('utf-8')
-    metadata = json.loads(args.metadata.read_text())
+    metadata = json.loads(args.metadata.read_text(encoding='utf-8'))
     try:
         _, samples = parse(text, metadata)
         result = analyze(samples, metadata)

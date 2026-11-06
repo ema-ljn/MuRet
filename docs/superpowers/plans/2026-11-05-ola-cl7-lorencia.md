@@ -176,10 +176,10 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 | CL7.4 A | componente puro integrado por [PR143](https://github.com/ema-ljn/MuRet/pull/143) | caminar a distancia cero implementado; consumidor/RNG pendientes en4E/P. La búsqueda por radio queda fuera de ese contrato; no confundir pruebas dirigidas con los 171 caminos del cable |
 | CL7.4 B | componente puro integrado por [PR139](https://github.com/ema-ljn/MuRet/pull/139) | consumidor y envío en la escena, CL7.4 E; precisión nativa del emisor pendiente |
 | CL7.4 C | pendiente | spline, celda lógica, velocidad, carrera/giro/altura y acciones según clase/equipo/mapa |
-| CL7.4 D | pendiente | rayo contra terreno, orden/caras, nearest y selección retenida en miss |
+| CL7.4 D | implementado en [PR153](https://github.com/ema-ljn/MuRet/pull/153), draft con verificación pendiente | CI verde; cerrar brechas de tests de la revisión cruzada y conectar al rayo/clic en 4E |
 | CL7.4 E | pendiente | clic → camino → D3 → movimiento; cooldowns, D3/D7 recibidos y recorte |
 | CL7.5 A | infraestructura genérica parcial | todas las familias de modelos/mapas, estados de carga y errores del Data original |
-| CL7.5 B | carga/decisión pura en [PR152](https://github.com/ema-ljn/MuRet/pull/152), draft | resolver revisión actual y CI; conectar caller/tiempo lazy/sesión/efectos |
+| CL7.5 B | carga/decisión pura en [PR152](https://github.com/ema-ljn/MuRet/pull/152), listo con CI verde | conectar caller/tiempo lazy/sesión/efectos; no integrado aún |
 | CL7.5 C | componente puro integrado por [PR140](https://github.com/ema-ljn/MuRet/pull/140) | espera de warp y aplicación en escena después de L1 |
 | CL7.5 D | pendiente | carga dentro del paso, retención, limpieza selectiva, reconstrucción y vuelta por gates |
 | CL7.5 E | parcial en componentes de cámara/terreno | aplicar y validar las familias de otros mapas en su frame completo |
@@ -194,8 +194,11 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
   Lorencia; continúan los otros estados, poses, paso y dibujo de L2.
 - [PR151](https://github.com/ema-ljn/MuRet/pull/151): incremento modular definido del contador lógico
   con lectura firmada; CL7.P conserva los contratos pendientes de fase/estado inicial/nesting/RNG.
-- [PR152](https://github.com/ema-ljn/MuRet/pull/152), draft: carga obligatoria de `Gate.bmd` y decisión
-  pura de gates; la revisión actual y el CI siguen en curso. Caller y tiempo lazy quedan pendientes.
+- [PR152](https://github.com/ema-ljn/MuRet/pull/152): carga obligatoria de `Gate.bmd` y decisión pura
+  de gates, listo tras revisión cruzada y CI Linux/Windows/formato verde. Caller y tiempo lazy pendientes.
+- [PR153](https://github.com/ema-ljn/MuRet/pull/153), draft: componente de picking del terreno
+  implementado, con ambos retries, Target y DontMove. CI verde; la revisión cruzada encontró brechas
+  de sensibilidad en los tests que siguen en corrección. No integra la escena 4E.
 
 Los resultados de CI y el estado de revisión se consultan en cada PR. Estas entregas no equivalen
 al cierre de L1, L2 ni P. La corrección documental de fase del PR144 se recupera en este roadmap:
@@ -481,8 +484,10 @@ barrido, y se detalla con lo que lea. Lo que se sabe:
   - **cada acceso que corre** en el paso y en el dibujo de las escenas 2, 4 y 5, **lo porte MuRet o no**:
     como mínimo `0x57cfc0` (las habilidades, al final de casi cada paso de `MoveHero`: 3.848 por paso, y
     más por los otros caminos de `MoveHero` y los cierres en línea),
-    `0x508f00` (8 por personaje vivo y por paso), `0x635ae0` (8 por frame dibujado), `0x4c3940` (tres cierres
-    del registro al entrar: 11.544), el `F3 10` y el `D7` al héroe. Donde MuRet no tiene la función, deja el
+    `0x508f00` (8 por personaje vivo y por paso), `0x635ae0` (8 por frame dibujado), `0x4c3940` (tres sitios
+    de cierre del registro al entrar: subtotal de 11.544 sólo si cada uno completa el último cierre,
+    con identidad y preservación de sus accesos acreditadas; no un total universal), el `F3 10` y el `D7`
+    al héroe. Donde MuRet no tiene la función, deja el
     gasto en el mismo lugar del paso o del dibujo, con un nombre que diga de qué función es.
 - **Qué se escribe:** `GameLogic::ProtectedValue<T>`. Guarda el valor en claro y, en cada acceso que el
   original cierra, saca del `CrtRandom` que le pasan los `rand()` de ese acceso. Entra primero en el contador
@@ -520,11 +525,15 @@ ambas propiedades sin introducir overflow con signo indefinido.
   (Q-C144). El tope de `EnteringWorld` que dejó la CL6 se cierra con la respuesta; las velocidades del
   keepalive no salen de ella (`0x4c3940` no escribe `+0x4c` ni `+0x58`, P-C28 i) y quedan las de hoy.
 - **La sesión:** `SessionState::InWorld` (el `0x3d`) y `ServerSession::JoinedWorld()`.
-- **Las variables protegidas:** la celda del servidor del héroe y el contador `0x77f3b04` (9.999.999 hasta la
-  respuesta, 30 con ella) son `ProtectedValue` de la CL7.P; sus accesos gastan los `rand()` del original.
+- **Las variables protegidas:** la celda del servidor del héroe y el contador `0x77f3b04` son valores
+  lógicos de CL7.P, sin portar las transformaciones de protección. Loading escribe 9.999.999 y la
+  respuesta escribe 30; MoveHero decrementa los valores positivos en la ruta que alcanza ese bloque,
+  también durante la espera normal. No se presupone el valor exacto antes del reply ni un número fijo
+  de pasos. Los accesos conservan nesting y gasto de RNG del último cierre bajo sus condiciones.
 - **El cursor:** la `GameScene` dibuja el cursor del juego al final, como el login (la decisión 4).
-- **La escena:** `GameScene` retiene el frame desde el `F3 03` hasta la respuesta (en pantalla queda el
-  mosaico de LSBg, como cuando `0x6371a0` devuelve 0 con el contador en 9.999.999). Con la respuesta carga el
+- **La escena:** `GameScene` retiene el frame mientras el snapshot firmado del contador sea mayor
+  que 30; su lectura se cierra antes de comparar y antes de llamar a la cámara. En la espera normal
+  queda el mosaico de LSBg. El store inicial no es una constante retenida hasta la respuesta. Con ella carga el
   mundo del mapa (`LoadedWorld` con `WorldFolder`), arma al héroe como `0x511290` (`(celda + 0,5) · 100`, la
   altura de `TerrainHeightAt`, el ángulo `(dir − 1) · 45` y la zona segura del `.att & 1`), pone el yaw en
   −45 (el primer paso, `0x636838`) y dibuja el pase del juego: la franja (0, 0, 640, 48) para el rango, con

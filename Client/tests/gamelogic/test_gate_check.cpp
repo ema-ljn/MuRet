@@ -82,7 +82,9 @@ TEST(GateCheckTest, TheCurrentMapIsComparedWithoutByteTruncation)
     auto state = Ready();
     state.map = 256;
 
-    ExpectNothing(Check(1, state));
+    const auto decision = Check(1, state);
+    ExpectNothing(decision);
+    EXPECT_FALSE(decision.clearWarpPending);
 }
 
 TEST(GateCheckTest, RectangleIsInclusiveAndDoesNotHaveTheServerMargin)
@@ -101,13 +103,17 @@ TEST(GateCheckTest, RectangleIsInclusiveAndDoesNotHaveTheServerMargin)
     {
         auto state = Ready();
         state.x = x;
-        ExpectNothing(Check(1, state));
+        const auto decision = Check(1, state);
+        ExpectNothing(decision);
+        EXPECT_FALSE(decision.clearWarpPending);
     }
     for (const std::int32_t y : {19, 23})
     {
         auto state = Ready();
         state.y = y;
-        ExpectNothing(Check(1, state));
+        const auto decision = Check(1, state);
+        ExpectNothing(decision);
+        EXPECT_FALSE(decision.clearWarpPending);
     }
 }
 
@@ -117,13 +123,19 @@ TEST(GateCheckTest, OnlyFlagOneAndTheCurrentMapQualify)
     {
         auto record = Entry;
         record.flag = static_cast<std::uint8_t>(flag);
-        ExpectNothing(Check(1, Ready(), record));
+        const auto decision = Check(1, Ready(), record);
+        ExpectNothing(decision);
+        EXPECT_FALSE(decision.clearWarpPending);
     }
     auto state = Ready();
     state.map = 1;
-    ExpectNothing(Check(1, state));
+    const auto otherMap = Check(1, state);
+    ExpectNothing(otherMap);
+    EXPECT_FALSE(otherMap.clearWarpPending);
     state.map = -1;
-    ExpectNothing(Check(1, state));
+    const auto negativeMap = Check(1, state);
+    ExpectNothing(negativeMap);
+    EXPECT_FALSE(negativeMap.clearWarpPending);
 }
 
 TEST(GateCheckTest, ReversedRectangleRemainsEmpty)
@@ -131,7 +143,9 @@ TEST(GateCheckTest, ReversedRectangleRemainsEmpty)
     auto record = Entry;
     record.y1 = 22;
     record.y2 = 20;
-    ExpectNothing(Check(1, Ready(), record));
+    const auto decision = Check(1, Ready(), record);
+    ExpectNothing(decision);
+    EXPECT_FALSE(decision.clearWarpPending);
 }
 
 TEST(GateCheckTest, LowLevelWarnsAndWaitsFiftySteps)
@@ -139,7 +153,9 @@ TEST(GateCheckTest, LowLevelWarnsAndWaitsFiftySteps)
     auto state = Ready();
     state.level = 19;
 
-    ExpectWarning(Check(1, state), 350, 50, 20);
+    const auto decision = Check(1, state);
+    ExpectWarning(decision, 350, 50, 20);
+    EXPECT_FALSE(decision.clearWarpPending);
 }
 
 TEST(GateCheckTest, OnlyBaseClassesThreeAndFourUseTruncatedTwoThirds)
@@ -165,7 +181,9 @@ TEST(GateCheckTest, GateTwentyEightIsSilentBelowItsRequiredLevel)
 {
     auto state = Ready();
     state.level = 19;
-    ExpectNothing(Check(28, state));
+    const auto decision = Check(28, state);
+    ExpectNothing(decision);
+    EXPECT_FALSE(decision.clearWarpPending);
     state.level = 20;
     EXPECT_EQ(Check(28, state).request, 28);
 }
@@ -178,7 +196,9 @@ TEST(GateCheckTest, GateTwentyEightKeepsItsReducedLevelRuleWhileRidingUniria)
         state.characterClass = static_cast<std::uint8_t>(characterClass);
         state.mount = 0x1a02;
         state.level = 12;
-        ExpectNothing(Check(28, state));
+        const auto silent = Check(28, state);
+        ExpectNothing(silent);
+        EXPECT_FALSE(silent.clearWarpPending);
         state.level = 13;
         const auto decision = Check(28, state);
         EXPECT_EQ(decision.request, 28);
@@ -195,7 +215,9 @@ TEST(GateCheckTest, AtlansRejectsUniriaAndDinorantBeforeCheckingLevel)
             auto state = Ready();
             state.mount = static_cast<std::int16_t>(mount);
             state.level = 0;
-            ExpectWarning(Check(index, state), 261);
+            const auto decision = Check(index, state);
+            ExpectWarning(decision, 261);
+            EXPECT_FALSE(decision.clearWarpPending);
         }
     }
     for (const std::size_t index : {44u, 50u, 54u, 57u})
@@ -214,7 +236,9 @@ TEST(GateCheckTest, AtlansAlsoChecksTheActiveAlternateMount)
         state.alternateMount = static_cast<std::int16_t>(mount);
         EXPECT_EQ(Check(45, state).request, 45);
         state.alternateMountActive = true;
-        ExpectWarning(Check(45, state), 261);
+        const auto decision = Check(45, state);
+        ExpectWarning(decision, 261);
+        EXPECT_FALSE(decision.clearWarpPending);
     }
     for (const int mount : {-1, 0x1a01, 0x1a04, 32767})
     {
@@ -367,7 +391,9 @@ TEST(GateCheckTest, CounterMustBeZeroIncludingTheThirtyStepMovementBoundary)
     for (const std::int32_t counter : {-1, 1, 29, 30, 31, 50, 9999999})
     {
         state.warpCounter = counter;
-        ExpectNothing(Check(1, state));
+        const auto decision = Check(1, state);
+        ExpectNothing(decision);
+        EXPECT_FALSE(decision.clearWarpPending);
     }
     state.warpCounter = 0;
     EXPECT_EQ(Check(1, state).request, 1);
@@ -378,15 +404,23 @@ TEST(GateCheckTest, ExplicitHeroAndRequestGuardsKeepTheirDifferentPrecedence)
     auto state = Ready();
     state.heroGateBlocked = true;
     state.level = 0;
-    ExpectNothing(Check(1, state));
+    const auto heroBlocked = Check(1, state);
+    ExpectNothing(heroBlocked);
+    EXPECT_FALSE(heroBlocked.clearWarpPending);
     state.heroGateBlocked = false;
     state.requestBlocked = true;
-    ExpectWarning(Check(1, state), 350, 50, 20);
+    const auto lowLevel = Check(1, state);
+    ExpectWarning(lowLevel, 350, 50, 20);
+    EXPECT_FALSE(lowLevel.clearWarpPending);
     state.level = 20;
-    ExpectNothing(Check(1, state));
+    const auto requestBlocked = Check(1, state);
+    ExpectNothing(requestBlocked);
+    EXPECT_TRUE(requestBlocked.clearWarpPending);
     state.requestBlocked = false;
     state.warpPending = true;
-    ExpectNothing(Check(1, state));
+    const auto pending = Check(1, state);
+    ExpectNothing(pending);
+    EXPECT_TRUE(pending.clearWarpPending);
 }
 
 TEST(GateCheckTest, OverlapRequestsOnlyTheFirstEligibleGate)

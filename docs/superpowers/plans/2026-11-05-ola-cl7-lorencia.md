@@ -55,6 +55,17 @@ cable) están en `Client/docs/research/scripts/game/`, y las herramientas para l
   `F3 12`, `0F` y `A3`. Nunca el chat, el `F3 03` que sale, las listas de personajes, el C2 `12`, el `02`, el
   `F3 01` ni el `F3 02`.
 
+### Autoridad para continuar (pedido de Emanuel, 2026-11-05)
+
+Emanuel autorizó continuar todas las CL7.x mientras está ausente y pidió fidelidad al binario,
+**sin inferencias ni nuevas emulaciones**. Las tareas que proponían generar expectativas con
+Unicorn se ejecutan ahora con el ASM contrastado y evidencia del cliente original. Los fixtures
+emulados ya existentes conservan su procedencia como regresiones; no se presentan como
+capturas nativas. Un contrato todavía inferido se verifica estáticamente de forma concluyente
+o con una observación real antes de implementarlo como hecho. El cliente vivo sigue disponible.
+Cada sub-ola mantiene las revisiones adversariales de Astra 6 Ultra y Claude Opus 5.5 xhigh,
+además de los checks y CI. Esto no da por terminada ninguna funcionalidad pendiente.
+
 ## El entorno
 
 Lo que necesita un agente para ejecutar el plan, y de dónde sale cada cosa: el detalle está en

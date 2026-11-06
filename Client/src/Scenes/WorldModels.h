@@ -19,9 +19,10 @@
 #include <vector>
 
 // Los modelos de los objetos de un mundo (CL7.2): lo que 0x616ec0 lee para el mapa. Primero los
-// especiales del mapa, con sus texturas desde 0x60d530(0x69): en el 55, el dragón 0xb4. Después el lazo
-// genérico (0x61a0c4..0x61a0e1): el modelo k, de 0 a 159, es Object<N>\Object<k + 1>.bmd ("%s0%d.bmd"
-// hasta el 9), y sus texturas, de Object<N>\, siguen la tabla desde 0x60d530(0x41c), con GL_NEAREST y
+// especiales del mapa, con sus texturas desde 0x60d530(0x69): en el 55, el dragón 0xb4; en el 0,
+// Bird01/Fish01. Lorencia usa los 112 nombres de 0x619a21..0x619ea1. En los demás sigue el lazo
+// genérico (0x61a0c4..0x61a0e1): k de 0 a 159 es Object<N>\Object<k + 1>.bmd ("%s0%d.bmd" hasta el 9).
+// Sus texturas, de Object<N>\, siguen la tabla desde 0x60d530(0x41c), con GL_NEAREST y
 // repitiendo (0x60d5f0(k, "Object<N>\\", 0x2901, 0x2600, 1)). Contrato: 06 § El mundo del login.
 namespace Client::Scenes
 {

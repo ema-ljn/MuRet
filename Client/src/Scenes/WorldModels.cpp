@@ -11,6 +11,7 @@
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/LorenciaModelFiles.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -30,6 +31,10 @@ constexpr Data::Textures::Sampling WorldModelSampling{Data::Textures::Filter::Ne
 // 0x616ec0, el caso del mapa 0x37 (0x6188ae): el dragón que vuela, 0x60da30(0xb4, "Data\\Object56\\",
 // "Dragon", -1), con sus texturas desde 0x60d530(0x69) (Q-C127: en el Data\ es dragon.bmd).
 constexpr std::uint8_t LoginMap = 0x37;
+constexpr std::uint8_t LorenciaMap = 0;
+// 0x617356/0x617387: Bird01 y Fish01 antes de los nombres de los objetos de Lorencia.
+constexpr std::uint16_t LorenciaBirdModel = 0xad;
+constexpr std::uint16_t LorenciaFishModel = 0xb2;
 constexpr Render::TextureSlot SpecialModelsFirstSlot{0x69};
 
 // "Object56" para el mapa 55: la carpeta Object<N> de su número (Data::WorldFolderNumber).
@@ -73,25 +78,40 @@ Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path&
     // Los modelos especiales del mapa, con sus texturas desde 0x69.
     m_slots.emplace(gameSlots != nullptr ? gameSlots->ContinuedAt(SpecialModelsFirstSlot)
                                          : Render::Models::ModelTextureSlots(SpecialModelsFirstSlot));
-    if (map == LoginMap)
+    const auto loadSpecial = [&](const Data::Models::ModelFile& file)
     {
-        load(Data::Models::ModelFile{DragonModel, m_folder, "Dragon", -1});
-        if (const auto dragon = m_models.find(DragonModel); dragon != m_models.end())
-        {
-            m_meshTextures[DragonModel] = m_slots->Assign(dragon->second, m_folder, WorldModelSampling);
-        }
+        load(file);
+        if (const auto model = m_models.find(file.model); model != m_models.end())
+            m_meshTextures[file.model] = m_slots->Assign(model->second, file.folder, WorldModelSampling);
+    };
+    if (map == LorenciaMap)
+    {
+        loadSpecial({LorenciaBirdModel, m_folder, "Bird", 1});
+        loadSpecial({LorenciaFishModel, m_folder, "Fish", 1});
     }
-    for (std::size_t k = 0; k < WorldModelCount; ++k)
+    else if (map == LoginMap)
+        loadSpecial({DragonModel, m_folder, "Dragon", -1});
+
+    // 0x618e4a: el cursor de los objetos se reinicia antes de cargar sus modelos.
+    m_slots->SetNext(WorldModelsFirstSlot);
+    if (map == LorenciaMap)
     {
-        load(Data::Models::ModelFile{static_cast<std::uint16_t>(k), m_folder, "Object", static_cast<int>(k + 1)});
+        for (const Data::Models::ModelFile& file : LorenciaModelFiles())
+            load(file);
+    }
+    else
+    {
+        for (std::size_t k = 0; k < WorldModelCount; ++k)
+            load(Data::Models::ModelFile{static_cast<std::uint16_t>(k), m_folder, "Object", static_cast<int>(k + 1)});
     }
     log.Debug("los objetos de {}: {} modelos y {} que no están", m_folder, m_models.size(), missing);
     if (m_models.empty())
     {
         log.Warning("no hay ningún modelo de los objetos del mundo en Data\\{}: el mundo va sin ellos", m_folder);
     }
-    // 0x60d530(0x41c) otra vez (0x61a0e8) y las texturas en el orden de k.
-    m_slots->SetNext(WorldModelsFirstSlot);
+    // 0x619eb7..0x619ed8 (Lorencia), 0x61a0e8 en los demás: texturas en el orden de k.
+    if (map != LorenciaMap)
+        m_slots->SetNext(WorldModelsFirstSlot);
     for (const auto& [model, data] : m_models)
     {
         if (model < WorldModelCount)

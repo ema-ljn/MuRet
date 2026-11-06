@@ -18,8 +18,8 @@
 // Client/tests/vectors/world55/objects.txt (scripts/login/make_world55_vectors.py).
 namespace Client::World
 {
-// La escena en que se crea: los casos por tipo de 0x606660 solo corren en el login (2) y la selección
-// (4).
+// La escena en que se crea: los casos del farol y del dueño del dragón de 0x606660 solo corren en el
+// login (2) y la selección (4). Los casos por mapa no dependen de la escena.
 enum class ObjectScene : std::uint8_t
 {
     Login,
@@ -35,6 +35,7 @@ struct WorldObject
     Render::Models::ObjectState state;         // +0x64, +0x68, +0x6c, +0x70 y +0x58
     glm::vec3 light{};                         // +0xf4..+0xfc, la que se suma a la del terreno
     float speed = 0.0f;                        // +0xd8, keys por paso
+    float cullingMargin = -30.0f;              // +0xdc, margen inicial de 0x6067ae
     float alpha = 1.0f;                        // +0x174
     float targetAlpha = 1.0f;                  // +0x170
     bool vertexLight = true;                   // +0xe8
@@ -66,7 +67,8 @@ inline constexpr std::array<std::size_t, 2> StreetLightGlowBones{8, 9};
 // en 0, velocidad 0,16, sin malla oculta ni blendMesh, luz del blendMesh en 1 y U y V en 0; en el
 // login y la selección, el farol (0x3c) a escala 0,8 y luz 0,2, y el dueño del dragón (0xb4) oculto y
 // con luz blanca; en el mapa 0x37, los remolinos 0x56 y 0x5a a (8.600; 25.000; 5.000) con ángulos 0 y
-// escalas 60 y 110. Uno fuera de la grilla de sectores no se crea.
+// escalas 60 y 110. El margen de recorte es −30, salvo el puente 0x50 del mapa 0, que usa −50. Uno
+// fuera de la grilla de sectores no se crea.
 [[nodiscard]] std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records,
                                                           std::uint8_t map, ObjectScene scene);
 

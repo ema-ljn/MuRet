@@ -58,8 +58,8 @@ struct ObjectFrameEffects
 
 // 0x6046a0 con `objects`: por sector, en World::DrawOrder; el sector que pasa el trapecio en su centro
 // (x · 16 + 8, y · 16 + 8) con −180, y en él cada objeto que lo pasa en su lugar por 0,01f (en float) con
-// −30 (+0xdc), queda visto (+0x16c guarda el resultado; los de un sector que no pasa quedan sin ver,
-// como los apaga 0x606560) y se dibuja como dice World::DrawOf, con la luz del terreno en su lugar
+// su margen individual (+0xdc; −30 por defecto), queda visto (+0x16c guarda el resultado; los de un sector que no pasa
+// quedan sin ver, como los apaga 0x606560) y se dibuja como dice World::DrawOf, con la luz del terreno en su lugar
 // (`lighting`, o 0 sin ella) y su animación `alpha` de un paso más (Render::Models::Interpolated).
 // Con las poses capturadas, `effects` avanza en orden frame original → objetos vistos: el rand común y
 // el guard de nube del marcador 0x54 del mapa 55. Al final recrea los dos sprites del farol en la escena

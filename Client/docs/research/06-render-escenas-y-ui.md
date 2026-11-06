@@ -3316,6 +3316,15 @@ protección](#la-tabla-de-protección)). El camino del héroe (en `MoveHero`, qu
 del paso anterior. El `.att` de Lorencia trae una celda con el 2 en el archivo, la (221, 11), que se
 borra en el primer paso (Q-C170; *verificado* el dato).
 
+**Estado del port, CL7.4 A:** `World::TerrainWalls` reproduce la limpieza y el marcado con celdas
+ya decodificadas; `GameLogic::PathFinder` reproduce la búsqueda de caminar con distancia cero y
+el resultado limitado a 15 celdas. El contraste estático incluye los bytes de `0x4eac00`, `0x4ead70`,
+`0x4eb770`, `0x4c0dd0`, `0x508f00` y `0x5f82a0`, además de los vecinos de `0x6d5d80`.
+Los casos literales de los tests distinguen los topes inclusivos, el orden de empates y los efectos
+de `clearGoal`. No se generaron nuevos vectores emulados ni se repitió la comparación histórica de
+los 171 caminos. Faltan la rama por radio, el consumidor de las coordenadas protegidas y su RNG,
+la actualización del mapa vivo en la escena y la integración clic → camino → paquete → paso.
+
 **El paquete, `SendMove` (`0x56acd0`).** Sale una vez por cada `PathFinding2` que sale bien en
 `MoveHero`, al hacer clic o al recalcular apretado: no por paso ni por celda. Con la ventana
 `0x8000` abierta o con `+0x78 & 0x20` no hace nada. Pone `MouseUpdateTimeMax` según `PathNum`: 0 con
@@ -3683,7 +3692,7 @@ Ver [08](08-pendientes.md).
 | El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | `Scenes::DarkSpirit`: el constructor (`0x4167b0`) y el paso (`0x416a20`, estados 0 y 1), bit a bit contra el código real (`raven.txt`); `DrawDarkSpirit` (mallas 3 y 2 y la sombra de las cinco); la chispa nace en `World::Particles` (`0x5c6`, subtipo 5); `LoginScene` lo crea al entrar, lo avanza después del personaje y lo dibuja al final de su dibujo | CL7.6 C1 y C2 (las chispas) |
 | La escena 5 en dos tiempos: el `F3 03` en el primer paso y el mundo con la respuesta, con el mosaico de la escena 3 en pantalla mientras tanto; su paso y su dibujo, con su propio orden del 3D | `GameScene` (hoy manda el `F3 03` y no dibuja) retiene el último frame mientras espera, carga el mapa del paquete, arma al héroe con la cuenta de `0x511290` y dibuja en el orden de `0x6371a0`; los casos del mapa 0 como datos, como los del 55 (propuesta del barrido, P-C28) | CL7 |
 | La cámara del juego: `0x635ae0` por frame dibujado, con el far del rectángulo en todos los mapas y sin el mouse | un valor con su estado (D, la meta, el zoom, el nivel, el yaw y la altura del `0x40`) y `OriginalVectorIRotate` (`0x5fcc30`), bit a bit contra el código real emulado y la traza de Lorencia (propuesta del barrido, P-C29) | CL7.3 |
-| Caminar: el A* de `0x4ead70` con su árbol y sus topes, el `D3` de `0x56acd0` y el paso entre celdas con el spline y la celda lógica adelantada | el camino, el paquete y el paso contra vectores del código real emulado, y el rayo del último dibujo guardado para el paso (propuesta del barrido, P-C30) | CL7.4 |
+| Caminar: el A* de `0x4ead70` con su árbol y sus topes, el `D3` de `0x56acd0` y el paso entre celdas con el spline y la celda lógica adelantada | `TerrainWalls` y `PathFinder` implementan la parte pura de distancia cero contrastada con ASM; `Protocol::Movement` implementa el wire. El paso, el RNG del consumidor, el picking y la integración de la escena siguen pendientes; sin nuevas comparaciones emuladas | CL7.4 A/B; C–E pendientes |
 | Los cambios de mapa dentro de la escena 5, con los ganchos de cada mapa como `if` sueltos en cinco puntos | una tabla por mapa y una interfaz de ganchos (al cargar, al crear un objeto, en su paso, después de dibujarlo y en el paso de la escena), con Lorencia primero (propuesta del barrido, P-C31) | CL7.5 |
 
 Tests que fija:

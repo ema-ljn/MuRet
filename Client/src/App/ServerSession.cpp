@@ -108,14 +108,6 @@ std::string_view Awaited(SessionState state)
     return {};
 }
 
-// Los estados con el login aceptado, en los que corre el keepalive.
-bool IsLoggedIn(SessionState state)
-{
-    return state == SessionState::LoggedIn || state == SessionState::WaitingCharacterList ||
-           state == SessionState::ChoosingCharacter || state == SessionState::WaitingCreateResult ||
-           state == SessionState::WaitingDeleteResult || state == SessionState::EnteringWorld;
-}
-
 // Los errores que se contestan con el F1 03: el checksum malo, como el original, y lo que no mide
 // bloques enteros, como contesta probablemente el original (03, "C3/C4").
 bool DeservesTheReport(const Network::Undecryptable& undecryptable)
@@ -149,6 +141,8 @@ ServerSession::ServerSession(Network::Connection& connection, Core::IClock& cloc
 {
     RegisterConnectServerHandlers();
     RegisterGameServerHandlers();
+    // El timer global no depende de abrir una conexión ni de autenticar (04 § El flujo de conexión).
+    m_keepalive.Start(m_clock.Now());
 }
 
 void ServerSession::RegisterConnectServerHandlers()
@@ -220,6 +214,8 @@ void ServerSession::Poll()
 {
     HandleEvents();
     const Core::Duration now = m_clock.Now();
+    // También consume los vencimientos sin GS: no quedan pendientes para la próxima conexión.
+    const bool keepaliveDue = m_keepalive.Due(now);
     const std::string_view awaited = Awaited(m_state);
     if (!awaited.empty() && now - m_stateSince >= ReplyTimeout)
     {
@@ -228,7 +224,7 @@ void ServerSession::Poll()
         Fail(SessionFailure::NoReply);
         return;
     }
-    if (m_keepalive.Due(now))
+    if (keepaliveDue && m_connection.State() == Network::LinkState::Open && !WithConnectServer())
     {
         SendKeepalive(now);
     }
@@ -653,10 +649,8 @@ void ServerSession::OnLoginResult(const Network::Packet& packet)
     }
     m_log.Info("el GameServer aceptó el login");
     SetState(SessionState::LoggedIn);
-    // El primero sale con el login, como el de 0x4ad100, y los siguientes cuentan desde este.
-    const Core::Duration now = m_clock.Now();
-    SendKeepalive(now);
-    m_keepalive.Start(now);
+    // 0x4ad100 manda uno inmediato, sin reiniciar el timer 1000 (04 § El flujo de conexión).
+    SendKeepalive(m_clock.Now());
 }
 
 // La lista se guarda en el orden en que llega, aunque venga vacía: el original pasa igual al estado
@@ -834,16 +828,10 @@ void ServerSession::Fail(SessionFailure failure)
     SetState(SessionState::Failed);
 }
 
-// El keepalive empieza con el login (OnLoginResult) y sigue con su ritmo en los estados de la
-// selección.
 void ServerSession::SetState(SessionState state)
 {
     m_state = state;
     m_stateSince = m_clock.Now();
-    if (!IsLoggedIn(state))
-    {
-        m_keepalive.Stop();
-    }
 }
 
 std::string_view ServerSession::ServerName() const

@@ -24,7 +24,8 @@
 #include <vector>
 
 // La sesión con los servidores del juego: con el ConnectServer, hasta la dirección del GameServer
-// (CL4.3); con el GameServer, hasta el login (CL4.4); y después, el keepalive (CL4.5). Desde la
+// (CL4.3); con el GameServer, hasta el login (CL4.4), y el keepalive mientras esté conectado
+// (CL4.5). Desde la
 // CL5.5 no elige ni manda la cuenta sola: espera a la UI (o al AutoLogin) en ChoosingServer y en
 // WaitingCredentials. Desde la CL6.3, la lista de personajes y la entrada al mundo, que pide la
 // escena de la selección. Contrato: el plan de la CL4, "Contrato" y el diagrama de estados de la
@@ -52,7 +53,7 @@
 //   WaitingGameHello --F1 00 con otra versión--> Failed (VersionMismatch)
 //   WaitingCredentials --SubmitCredentials: manda el login--> WaitingLoginResult
 //   WaitingCredentials --SubmitCredentials con unas que no entran--> Failed (CredentialsTooLong)
-//   WaitingLoginResult --F1 01 con 1: manda el primer keepalive--> LoggedIn
+//   WaitingLoginResult --F1 01 con 1: manda un keepalive inmediato--> LoggedIn
 //   WaitingLoginResult --F1 01 con otro: guarda el resultado--> WaitingCredentials
 //   LoggedIn --RequestCharacterList: manda F3 00--> WaitingCharacterList
 //   WaitingCharacterList --F3 00: guarda la lista, aunque venga vacía--> ChoosingCharacter
@@ -65,7 +66,7 @@
 //     WaitingDeleteResult
 //   WaitingDeleteResult --F3 02 con 1: saca al que se mandó (Q-C104)--> ChoosingCharacter
 //   WaitingDeleteResult --F3 02 con otro: guarda el resultado--> ChoosingCharacter
-//   LoggedIn y los cinco de después --cada KeepalivePeriod desde el primero: manda el keepalive-->
+//   con el GS abierto --cada KeepalivePeriod del timer global: manda el keepalive-->
 //     el mismo estado
 //   con el GS --F1 02 con 0: cierra, sin aviso--> QuitOrdered (Q-C106)
 //   cualquier Waiting* que espera un servidor --ReplyTimeout sin su respuesta: cierra--> Failed
@@ -81,11 +82,11 @@
 // que al cerrar vacía su cola de paquetes (0x4e8380). QuitOrdered es el final: ni Start la saca. Con
 // 1 o con 2 (la selección o la lista, Q-C79) se ignora con un aviso hasta la CL6 y la CL9.
 //
-// El keepalive corre en LoggedIn y en los cinco estados de la selección, también minimizada, con el
-// ritmo que empezó con el login, y se detiene al salir de ellos: la sesión no se reconecta sola (la
-// escena de login muestra el aviso). El original manda desde el arranque
-// si hay conexión al GS, aunque no haya login (pregunta 6 del plan de la CL4): acá tampoco sale
-// mientras se espera la cuenta y la clave.
+// El timer del keepalive empieza al construir la sesión y conserva su fase al cambiar de estado,
+// aceptar/rechazar el login y reconectar. En cada vencimiento manda solo si el GS está abierto,
+// aunque se espere el saludo, la cuenta o el resultado, también minimizada. El login aceptado manda
+// además uno inmediato sin reiniciar el timer, como el original (04 § El flujo de conexión). La
+// sesión no se reconecta sola: la escena de login muestra el aviso de cierre.
 //
 // Un login rechazado deja el GS abierto, como el original, que con el OK del aviso vuelve al
 // estado 2 y abre otra vez la cuenta (0x643560): el próximo login sale por la misma conexión.
@@ -134,7 +135,7 @@ class ServerSession
 public:
     // La conexión, el reloj y el log son de quien la arma y tienen que vivir más que ella. El reloj
     // da el tick del login; `keys` son las de la conexión con el GameServer (Enc1.dat y Dec2.dat):
-    // el ConnectServer abre sin claves.
+    // el ConnectServer abre sin claves. El timer global de 20 s empieza al construir la sesión.
     ServerSession(Network::Connection& connection, Core::IClock& clock, Core::Log& log, Network::ConnectionKeys keys,
                   SessionSettings settings);
 
@@ -265,7 +266,7 @@ private:
     void Connect(const ServerAddress& address, const std::optional<Network::ConnectionKeys>& keys);
     // Cierra la conexión, si no estaba cerrada, y pasa a Failed.
     void Fail(SessionFailure failure);
-    // Pasa a `state` desde ahora, para el tope de los Waiting*; fuera de LoggedIn, sin keepalive.
+    // Pasa a `state` desde ahora, para el tope de los Waiting*; no reinicia el timer global.
     void SetState(SessionState state);
 
     // Si el estado es de los que hablan con el ConnectServer.

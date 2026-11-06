@@ -5,6 +5,7 @@
 #include "App/FaithfulPacer.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
+#include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Network/Connection.h"
@@ -53,6 +54,7 @@ using Client::App::AutoLogin;
 using Client::App::Credentials;
 using Client::App::ServerAddress;
 using Client::App::ServerSession;
+using Client::App::SessionFailure;
 using Client::App::SessionSettings;
 using Client::App::SessionState;
 using Client::App::TickCountMs;
@@ -81,6 +83,7 @@ using Lines = std::vector<std::string>;
 
 constexpr std::string_view Loopback = "127.0.0.1";
 constexpr std::uint32_t PaddingSeed = 1;
+constexpr std::uint16_t LabServerCode = 400; // El servidor anunciado por FakeServers.
 
 // La cuenta y la clave sintéticas de los fixtures del login (MuClientNetFixtures.h).
 constexpr std::string_view Account = "user0001";
@@ -104,13 +107,28 @@ Lines LinesFrom(const RecordingSink& sink, LogLevel level)
 // elige y manda la cuenta. En este orden: lo que tiene un socket muere antes que el NetworkInit.
 struct LoopbackSession
 {
-    LoopbackSession()
-        : servers(GameServerKeys()), socket(resolver), connection(socket, foxAnti, clock, log, PaddingSeed),
+    explicit LoopbackSession(Client::Core::Duration idleTimeout = Client::Core::Duration::zero())
+        : servers(GameServerKeys(), clock, idleTimeout), socket(resolver),
+          connection(socket, foxAnti, clock, log, PaddingSeed),
           session(connection, clock, log, GameClientKeys(),
                   SessionSettings{ServerAddress{std::string(Loopback), servers.ConnectServerPort()}}),
           autoLogin(session, Credentials{std::string(Account), std::string(Password)}, log)
     {
         clock.Advance(std::chrono::milliseconds{123456});
+    }
+
+    // Elección manual y ninguna credencial: el jugador deja abierto el formulario del login.
+    [[nodiscard]] bool OpenLoginForm()
+    {
+        session.Start();
+        if (!PollUntil([&] { return session.State() == SessionState::ChoosingServer; }) ||
+            session.State() != SessionState::ChoosingServer)
+        {
+            return false;
+        }
+        session.ChooseServer(LabServerCode);
+        return PollUntil([&] { return session.State() == SessionState::WaitingCredentials; }) &&
+               session.State() == SessionState::WaitingCredentials;
     }
 
     // Start, y los dos lados en el mismo lazo hasta LoggedIn o Failed.
@@ -140,10 +158,10 @@ struct LoopbackSession
     }
 
     NetworkInit network;
+    FakeClock clock;
     FakeServers servers;
     SystemResolver resolver;
     SystemSocket socket;
-    FakeClock clock;
     RecordingSink sink;
     Log log{sink, LogLevel::Debug};
     FoxAntiObfuscation foxAnti;
@@ -151,6 +169,61 @@ struct LoopbackSession
     ServerSession session;
     AutoLogin autoLogin;
 };
+
+// Control del doble: un cliente que deja de consultar no manda 0E, y el GS con plazo sintético
+// cierra de verdad el socket. El plazo es del test, no una medición del GS del laboratorio.
+TEST(ServerSessionLoopbackTest, AnIdleGameServerClosesWithoutKeepalives)
+{
+    constexpr std::chrono::seconds IdleTimeout{30};
+    LoopbackSession tested{IdleTimeout};
+    ASSERT_TRUE(tested.network.IsReady());
+    ASSERT_TRUE(tested.OpenLoginForm());
+    ASSERT_FALSE(tested.servers.SawLogin());
+
+    tested.clock.Advance(IdleTimeout);
+    tested.servers.Poll(); // vence antes de que el cliente vuelva a consultar
+
+    EXPECT_TRUE(tested.servers.IdleExpired());
+    EXPECT_EQ(tested.servers.Keepalives(), 0u);
+    ASSERT_TRUE(tested.PollUntil([&] { return tested.session.State() == SessionState::Failed; }));
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
+    EXPECT_EQ(tested.servers.Complaints(), Lines{});
+}
+
+// Dos minutos sin teclear: el mismo GS que vence en el control conserva la conexión gracias a
+// 0E cifrados. El login posterior tiene que continuar sus seriales, y recibe un 0E inmediato.
+TEST(ServerSessionLoopbackTest, KeepalivesPreserveTheLoginFormUntilCredentialsAreSubmitted)
+{
+    constexpr std::chrono::seconds IdleTimeout{30};
+    constexpr std::chrono::seconds TickPeriod{20};
+    constexpr std::size_t IdleTicks = 6;
+    LoopbackSession tested{IdleTimeout};
+    ASSERT_TRUE(tested.network.IsReady());
+    ASSERT_TRUE(tested.OpenLoginForm());
+
+    for (std::size_t tick = 1; tick <= IdleTicks; ++tick)
+    {
+        tested.clock.Advance(TickPeriod);
+        ASSERT_TRUE(tested.PollUntil([&] { return tested.servers.Keepalives() >= tick; }))
+            << "no llegó el keepalive durante la espera humana " << tick;
+        ASSERT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+        ASSERT_FALSE(tested.servers.IdleExpired());
+        ASSERT_FALSE(tested.servers.SawLogin());
+        ASSERT_FALSE(tested.servers.Login().has_value());
+        ASSERT_EQ(tested.servers.Complaints(), Lines{});
+    }
+
+    tested.session.SubmitCredentials(Credentials{std::string(Account), std::string(Password)});
+    ASSERT_TRUE(tested.PollUntil([&] { return tested.session.State() == SessionState::LoggedIn; }));
+    ASSERT_EQ(tested.session.State(), SessionState::LoggedIn);
+    ASSERT_TRUE(tested.servers.SawLogin());
+    ASSERT_TRUE(tested.PollUntil([&] { return tested.servers.Keepalives() > IdleTicks; }));
+    EXPECT_EQ(tested.servers.Keepalives(), IdleTicks + 1);
+    EXPECT_FALSE(tested.servers.IdleExpired());
+    EXPECT_EQ(tested.servers.Complaints(), Lines{});
+    EXPECT_EQ(LinesFrom(tested.sink, LogLevel::Warning), Lines{});
+}
 
 // Del Start a LoggedIn: el CS con el A9, el saludo, la lista del laboratorio que FoxAnti pasa a
 // F4 06, la elección que FoxAnti pasa al código 0 y la dirección del GS falso; el GS con el

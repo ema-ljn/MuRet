@@ -1,9 +1,11 @@
-# 0007. La sesión: el keepalive desde el login aceptado, y las esperas con tope de 30 s
+# 0007. La sesión: keepalive con el GameServer conectado y esperas de respuesta
 
 - **Estado:** aceptado. Las dos son de Claude: la recomendación de la pregunta 6 del plan de la
   CL4, que Emanuel no cambió, y el tope, que resolvió en la CL4.5 (2026-11-02). Los estados que
   esperan al jugador son de la CL5.5 (2026-11-03).
 - **Filas:** Q-C53 y Q-C56 del [07 del cliente](../../Client/docs/research/07-quirks-y-bugs.md).
+- **Revisión del 2026-11-06:** Emanuel pide conservar la espera en el formulario del original.
+  Se sustituye la política de keepalive de CL4.5; el tope independiente de respuestas se conserva.
 - **Código:** `Client::App::ServerSession`, con `KeepalivePeriod` y `ReplyTimeout`
   (`Client/src/App/ServerSession.h`).
 
@@ -25,11 +27,17 @@ tiempo, con el mismo reloj, decididas juntas en la CL4.5. Por eso van en un ADR.
 
 ## Decisión
 
-- **El keepalive sale solo con el login aceptado.** El primero, al aceptarlo, como el original.
-  Los siguientes, cada 20 s contados desde ese, mientras la sesión esté en `LoggedIn`, también con
-  la ventana minimizada. Antes del login no sale ninguno, tampoco mientras se espera la cuenta y
-  la clave. Si un frame tarda más (un breakpoint de 60 s), sale uno solo, y el siguiente a los
-  20 s. Sin personaje, las velocidades van en 0 sin ajuste, como en el original.
+- **El timer periódico empieza al construir la sesión**, antes de abrir conexiones. Se consulta
+  también sin GameServer para consumir los vencimientos. Cada 20 s envía si la conexión al GS está
+  abierta: antes del saludo, en el formulario, durante avisos o rechazos, esperando resultado y
+  después de autenticar. No envía al CS ni por una conexión cerrada o pendiente.
+- **Aceptar el login suma un keepalive inmediato sin reiniciar el timer.** Cambiar de estado,
+  cancelar o reconectar tampoco reinicia su fase. Los envíos previos usan el mismo serial C3 de
+  la conexión que el login. Sin personaje, velocidades 0/0 sin ajuste.
+- **Se conserva `IntervalTimer` y el Poll del bucle**, también minimizado. Un frame largo consume
+  un vencimiento, sin ráfaga. Es la política portable de coalescencia existente: no demuestra
+  igualdad del orden de mensajes o del scheduler de `WM_TIMER`. La fase empieza en la construcción
+  de la sesión, no en un instante absoluto sincronizado con otra ejecución del original.
 - **Cada espera de un servidor tiene un tope de 30 s** (`ReplyTimeout`), contado desde que
   empezó. Si pasa sin la respuesta, la sesión cierra y queda en `Failed` con `NoReply`, y el log
   dice qué servidor y qué se esperaba. Se mira después de leer lo que llegó, así una respuesta que
@@ -42,23 +50,26 @@ tiempo, con el mismo reloj, decididas juntas en la CL4.5. Por eso van en un ADR.
 
 ## Consecuencias
 
-- **Se gana:** un keepalive a un ritmo fijo, que es lo que pide el test del 02 ("cada 20 s de
-  reloj simulado y no antes"), y que no sale antes de que el GameServer acepte el login. Un
-  servidor que no contesta termina en un error con nombre, en lugar de una espera sin fin.
-- **Se pierde:** el GameServer no ve el keepalive temprano que a veces manda el original antes del
-  login, ni el segundo a menos de 20 s del primero. Nada indica que lo necesite: en el
-  `muproxy.log`, solo 2 de los 7 logins salen después de un keepalive (04). Falta probarlo: el
-  login de MuRet contra el GS del laboratorio, el paso 4 de la CL4.5, todavía no se corrió. Y un
-  servidor real que tardara más de 30 s en contestar haría fallar a MuRet donde el original
-  esperaría.
+- **Se recupera:** el tráfico prelogin verificado en el original y el segundo keepalive a menos
+  de 20 s del inmediato de aceptación. La política anterior omitía ese tráfico por decisión de
+  CL4.5. Sus tests usaban un socket que no caducaba por inactividad; no comprobaban una espera
+  humana prolongada contra un servidor que sí cierra por falta de tráfico.
+- **Se conserva una diferencia:** un servidor real que tardara más de 30 s en contestar haría
+  fallar a MuRet donde el original esperaría (Q-C56). Ese plazo no se aplica al formulario.
+- **Límite de la comprobación:** el log de MuRet registra cierre remoto con el formulario abierto,
+  pero no demuestra el motivo del GS. La prueba de integración usa una expiración controlada del
+  doble, no un plazo medido del original. Queda comprobar el cliente corregido frente al mismo GS
+  real, dejándolo en el formulario y autenticando después. Un keepalive tampoco impide un cierre
+  remoto, un error de transporte ni una orden `F1 02/0`.
 - **Lo fijan:**
-  - `ServerSessionTest.NoKeepaliveBeforeTheLogin`, `KeepaliveEveryTwentySecondsAndNotBefore`,
-    `ASixtySecondFrameSendsOneKeepalive` y `KeepsTheKeepaliveWhileMinimized`.
+  - Los tests de `ServerSession` cubren envíos prelogin, fase independiente de la autenticación y
+    reconexión, seriales, exclusión del CS y frames largos; `FakeServers` acepta keepalives antes
+    del login y comprueba una espera prolongada frente a expiración controlada y su caso sin tráfico.
   - `ServerSessionTest.EachWaitCountsFromItsStart`, `AConnectServerThatDoesNotGreetFails`,
     `AConnectServerThatDoesNotGiveTheAddressFails`, `AGameServerThatDoesNotGreetFails`,
     `AGameServerThatDoesNotAnswerTheLoginFails` y `AReplyThatArrivedDuringALongFrameIsRead`.
   - `ServerSessionTest.WaitsForTheChoiceAfterTheList` y `WaitsForTheCredentialsAfterTheGameHello`:
-    60 s esperando al jugador no cierran la sesión ni mandan un keepalive.
+    60 s esperando al jugador no cierran la sesión; con el GS abierto salen keepalives.
 
 El contrato y los pasos están en la sub-ola CL4.5 del
 [plan de la CL4](../superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md), y los estados que

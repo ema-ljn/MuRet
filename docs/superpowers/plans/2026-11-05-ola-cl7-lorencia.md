@@ -151,7 +151,7 @@ si no choca con eso; si choca, queda para más adelante.
 
 ## Orden y hitos
 
-Estado contrastado con `main` **`ad331dc`**, los PR abiertos y el código, 2026-11-06.
+Estado contrastado con `main` **`6e8622d`**, los PR abiertos y el código, 2026-11-06.
 «Componente puro» no significa que la funcionalidad esté integrada en la escena.
 
 | Sub-ola | Estado verificable | Qué falta para su alcance |
@@ -174,8 +174,21 @@ Estado contrastado con `main` **`ad331dc`**, los PR abiertos y el código, 2026-
 | CL7.5 C | componente puro integrado por [PR140](https://github.com/ema-ljn/MuRet/pull/140) | espera de warp y aplicación en escena después de L1 |
 | CL7.5 D | pendiente | carga dentro del paso, retención, limpieza selectiva, reconstrucción y vuelta por gates |
 | CL7.5 E | parcial en componentes de cámara/terreno | aplicar y validar las familias de otros mapas en su frame completo |
-| CL7.6 y arrastres | efectos del login parciales | nubes/fuego, selección, luces, efectos de armas y casco/polvo, según el alcance de cada sub-ola |
+| CL7.6 y arrastres | nubes integradas por PR147; efectos restantes parciales | neblina visual pospuesta; fuego, selección, luces, armas y casco/polvo siguen abiertos |
 | Cierre | abierto | barrido transversal con ramas, estado, orden, transiciones y evidencia nativa pendiente |
+
+### Entregas independientes en revisión (2026-11-06)
+
+- [PR149](https://github.com/ema-ljn/MuRet/pull/149): lector puro completo F3/03, 23 campos;
+  la procedencia C3 y la aplicación a sesión/actor/escena siguen en L1.
+- [PR150](https://github.com/ema-ljn/MuRet/pull/150): margen individual de recorte y Bridge01 de
+  Lorencia; continúan los otros estados, poses, paso y dibujo de L2.
+- [PR151](https://github.com/ema-ljn/MuRet/pull/151): incremento modular definido del contador lógico
+  con lectura firmada; CL7.P conserva los contratos pendientes de fase/estado inicial/nesting/RNG.
+
+Los resultados de CI y el estado de revisión se consultan en cada PR. Estas entregas no equivalen
+al cierre de L1, L2 ni P. La corrección documental de fase del PR144 se recupera en este roadmap:
+resto firmado 57 al dividir por 313, condicionado al snapshot previo y sin inicio nativo supuesto.
 
 ### Lo que todavía impide declarar completa toda CL7
 
@@ -191,10 +204,11 @@ Estado contrastado con `main` **`ad331dc`**, los PR abiertos y el código, 2026-
   de mapa, con reutilización de carpetas: el mapa32 usa World10 y entra con el estado9; World6 está incompleto y el mapa35 no
   tiene su carpeta. Hace falta verificar cargas, modelos/efectos especiales y política de errores
   por familia, además de gates/warp y viajes de ida y vuelta. Una prueba de rutas no verifica dibujo.
-- El login conserva pendientes de efectos y fidelidad de controles: las nubes `0x54` y el fuego
-  `0x59` figuraban en CL7.6 B/P-C23 e. El [PR145](https://github.com/ema-ljn/MuRet/pull/145) retira el
-  glifo `_` legacy; la réplica del caret rectangular y bitmap del EDIT activo sigue abierta.
-  En selección faltan el mundo54 renderizado, la altura del preview de creación y efectos propios.
+- PR147 ya integra las nubes del login. Emanuel pospuso la comparación y el ajuste visual de
+  neblina a seguimiento: no bloquean las otras CL7.x ni acreditan igualdad visual. El fuego `0x59`
+  sigue abierto. PR145 retiró el glifo `_`; el caret rectangular y bitmap del EDIT sigue abierto.
+  PR148 restauró el keepalive esperando credenciales; su comprobación con GS real queda pendiente.
+  En selección faltan el mundo54 renderizado, altura del preview de creación y efectos propios.
 - CL7.P debe cerrar valores/fases lógicos y el consumo/orden de azar comprobable. No es una
   autorización para portar la VM, cifrado de protección, licencias o anticheat. Los contratos
   puros ya comprobados pueden avanzar en paralelo; la equivalencia global de cadencia/RNG no se

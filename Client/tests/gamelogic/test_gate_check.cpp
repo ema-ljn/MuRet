@@ -376,7 +376,9 @@ TEST(GateCheckTest, WaitsForThreeSecondsAfterTheLastTeleport)
     for (const std::uint32_t elapsed : {0u, 2999u})
     {
         state.elapsedMs = elapsed;
-        ExpectNothing(Check(1, state));
+        const auto decision = Check(1, state);
+        ExpectNothing(decision);
+        EXPECT_TRUE(decision.clearWarpPending);
     }
     for (const std::uint32_t elapsed : {3000u, 3001u, 0xffffffffu})
     {

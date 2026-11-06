@@ -3568,8 +3568,9 @@ y toma el que tenga el flag en 1, el mapa actual y la celda del héroe en su rec
   (P-C31 b);
 - si no, con `0x576794c == 0`, `0x77f3bb0 == 0` y **3 s desde el último `1C`** (`GetTickCount() −
   0x77f3bb4 ≥ 3000`, `0x59a462..0x59a468`): **manda el `1C` con el gate**, `0x77f3b04 = 9.999.999`
-  (`0x59ac6c`), `0x77f3bb0 = 1` y `0x6c8e28..0x6c8e38` en −1. Si el destino es el mapa 30 o el 31,
-  antes guarda las macros (`0x61c170("Data\\Macro.txt")`) y llama a `0x61c210`.
+  (`0x59ac6c`); si el destino es el mapa 30 o el 31, llama a `0x61c210` y después guarda las macros
+  (`0x61c170("Data\\Macro.txt")`, `0x59ad2a..0x59ad4a`). Luego pone `0x77f3bb0 = 1`
+  (`0x59ad50`), `0x6c8e28..0x6c8e38` en −1 y `0x77f3ba4 = 0` (`0x59ad50..0x59ad73`).
 
 El servidor (`CGTeleportMagicRecv`), con un gate distinto de 0, mira `IsInGate` (el flag, el mapa,
 el rectángulo **con 5 celdas de margen** y el nivel, por 2/3 solo en la clase 3) y llama a

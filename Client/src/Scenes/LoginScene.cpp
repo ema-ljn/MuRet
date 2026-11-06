@@ -277,6 +277,7 @@ World::GameCameraInput& LoginScene::CameraInputState()
 Core::Expected<void, std::string> LoginScene::Enter()
 {
     m_cameraFrames = {};
+    m_objectEffectFrames = {};
     m_drawnCamera = {};
     World::GameCameraInput& cameraInput = CameraInputState();
     cameraInput.scene = World::CullingScene::Login;
@@ -492,6 +493,7 @@ void LoginScene::PlaceTheModels()
     m_objects.insert(m_objects.end(), fromTheFile.begin(), fromTheFile.end());
     m_logoIndex = m_objects.size();
     m_objects.push_back(LogoWorldObject());
+    m_objectEffectRandoms.assign(m_objects.size(), std::nullopt);
     // 0x6070a0 vacía la tabla de efectos, y en el mapa 55 el dueño del dragón (el 0xb4 que la carga del
     // mapa crea en (5.600; 23.000; 0)) lo crea con 0x518cf0 (06 § El dragón de fondo).
     m_effects.Clear();
@@ -971,7 +973,8 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
         eye.view = glm::mat4(1.0f);
         canvas.models.Begin(eye);
         DrawFrameSprites(canvas.models, m_sprites, m_models, Render::ViewRows(pass.view));
-        DrawParticles(canvas.models, m_particles, m_models, Render::ViewRows(pass.view));
+        const auto clock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
+        DrawParticles(canvas.models, m_particles, m_models, Render::ViewRows(pass.view), clock);
         canvas.flushModels();
     }
     // 5: las dos arenas, aditivas.
@@ -1049,8 +1052,12 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                      canvas.frameClock, alpha,
                      ObjectFrameEffects{.random = m_context.cloth != nullptr ? &m_context.cloth->random : nullptr,
                                         .sprites = &m_sprites,
+                                        .particles = &m_particles,
                                         .posedBefore = posed,
-                                        .scene = World::ObjectScene::Login});
+                                        .scene = World::ObjectScene::Login,
+                                        .frames = m_objectEffectFrames.FramesAt(canvas.frameClock,
+                                                                                OriginalFramePaceOf(m_context.pacing)),
+                                        .lastRandoms = m_objectEffectRandoms});
     // 0x52d620(0): los efectos con modelo, después de los objetos.
     DrawModelEffects(canvas.models, m_worldModels, m_effects.Effects(), lighting, canvas.frameClock, alpha);
     // 0x5306a0, después de 0x549510: las brasas, en el mundo.
@@ -1174,6 +1181,15 @@ bool LoginScene::HoldsTheLastFrame() const
     // sería el login sin el aviso.
     const App::SessionState state = m_session->State();
     return IsConnecting(state) || m_seen != state;
+}
+
+void LoginScene::OnFrameHeld()
+{
+    // Esperar al Step para mostrar una lista o un aviso no equivale al connect bloqueante original.
+    if (m_session != nullptr && (IsConnecting(m_session->State()) || (m_seen && IsConnecting(*m_seen))))
+    {
+        m_objectEffectFrames = {};
+    }
 }
 
 const CharacterHead& LoginScene::Head() const

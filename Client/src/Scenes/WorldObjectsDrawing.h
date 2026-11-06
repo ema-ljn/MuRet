@@ -15,6 +15,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <span>
 
 // Los objetos de un mundo en una escena (CL7.2): su paso (0x606560) y su dibujo (0x6046a0), con los
@@ -35,16 +36,24 @@ void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, c
 // Lo que 0x602ed0 hace en el frame con cada objeto que llega a él, después de su dibujo (0x604a4d).
 struct ObjectFrameEffects
 {
-    // El rand() de la CRT (el de la tela): 0x602ef4 saca uno por objeto, antes de mirar la escena o el
-    // tipo. Sin él, 0x602ed0 no corre.
+    // El rand() de la CRT (el de la tela): 0x602ef4 saca uno por objeto y frame original, antes de mirar
+    // la escena o el tipo. Sin él, 0x602ed0 no corre.
     Render::Models::CrtRandom* random = nullptr;
     // Donde van los sprites del farol (World::StreetLight); sin ellos no se piden.
     World::FrameSprites* sprites = nullptr;
+    // Las nubes de 0x622/10 del marcador 0x54, solo en el mapa 55 (0x6044bc). Sin pool se consume
+    // igualmente el rand de su guard, pero no los de creación.
+    World::Particles* particles = nullptr;
     // Lo que el frame posó en el buffer global de la pose antes de los objetos, en su orden: el caballo
     // (0x4453b0).
     std::span<const PosedInTheBuffer> posedBefore{};
     // El caso del farol es de la escena 2 (0x602f09).
     World::ObjectScene scene = World::ObjectScene::Other;
+    // Los frames originales que pasaron: el dibujo puro corre incluso con cero.
+    int frames = 1;
+    // El rand común del último frame original por índice; los no vistos en él pierden su muestra.
+    // Sin una muestra previa no hay brillo que repetir.
+    std::span<std::optional<int>> lastRandoms{};
 };
 
 // 0x6046a0 con `objects`: por sector, en World::DrawOrder; el sector que pasa el trapecio en su centro
@@ -52,10 +61,11 @@ struct ObjectFrameEffects
 // −30 (+0xdc), queda visto (+0x16c guarda el resultado; los de un sector que no pasa quedan sin ver,
 // como los apaga 0x606560) y se dibuja como dice World::DrawOf, con la luz del terreno en su lugar
 // (`lighting`, o 0 sin ella) y su animación `alpha` de un paso más (Render::Models::Interpolated).
-// Después de cada uno visto, `effects` (0x602ed0): su rand() y, con el farol en la escena 2, sus dos
-// sprites en los huesos 8 y 9 del último modelo posado que los tiene (LastPosedBonePoint): los objetos
-// dibujados antes, que 0x5ffdf0 posó (World::ObjectDraw::posed), o lo de `posedBefore`. Si ninguno, en
-// (0, 0, 0).
+// Con las poses capturadas, `effects` avanza en orden frame original → objetos vistos: el rand común y
+// el guard de nube del marcador 0x54 del mapa 55. Al final recrea los dos sprites del farol en la escena
+// 2, con el último sorteo y los huesos 8 y 9 que tenía el buffer al visitarlo (LastPosedBonePoint): los
+// objetos anteriores posados o `posedBefore`; sin ninguno, (0, 0, 0). Con cero frames se dibuja y se
+// repite la luz de los faroles que tengan muestra del último frame original, sin consumir RNG.
 void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::WorldObject> objects,
                       const World::TerrainPolygon& polygon, const World::TerrainLighting* lighting, std::uint8_t map,
                       Core::Duration frameClock, float alpha, const ObjectFrameEffects& effects = {});
@@ -81,11 +91,12 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, c
                       const Render::Models::OriginalMatrix& view);
 
 // 0x548550(0), en el mismo pase de ojo, después de los sprites: cada partícula viva que MuRet arma, con la
-// mezcla de los componentes de su textura y el cuadrado de 0x621400 con el tamaño de su textura por la
-// escala (World::ParticleDrawOf), con la vista `view`. Las del login son JPG, de 3 componentes (aditivas).
+// mezcla de World::ParticleDrawOf y el cuadrado de 0x621400 con el tamaño de su textura por la escala,
+// con la vista `view`. Los JPG son aditivos, salvo las nubes 0x622/10, sustractivas. Su rotación cambia
+// con `worldClock` en ms y el índice real del pool, incluidos los lugares apagados entre los vivos.
 // Sin el tamaño de la textura no se dibuja.
-void DrawParticles(Render::ModelBatch& batch, const World::Particles& particles, const IModelLibrary& textures,
-                   const Render::Models::OriginalMatrix& view);
+void DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const IModelLibrary& textures,
+                   const Render::Models::OriginalMatrix& view, float worldClock = 0.0f);
 
 // 0x5306a0, en el pase del mundo, después de los efectos con modelo: las hojas vivas, aditivas (en el mapa
 // 0x37, 0x620a90) y con el blanco de un solo glColor3f(1, 1, 1), cada una el cuadrado de LeafQuadOf

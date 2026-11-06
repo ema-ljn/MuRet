@@ -183,7 +183,7 @@ constexpr std::uint32_t PaddingSeed = 1;
 constexpr Duration Frame = milliseconds{40};
 
 // Lo que dice el log de cada keepalive que sale.
-constexpr std::string_view KeepaliveSent = "se mandó el keepalive";
+constexpr std::string_view KeepaliveSent = "se encoló el keepalive";
 
 // Dónde están las velocidades en el keepalive sin el XOR32: después de la cabecera, el opcode, el
 // 00 y el tick (04 § El flujo de conexión).
@@ -419,8 +419,8 @@ struct Harness
     }
 
     // Los keepalives que le llegaron al GS, descifrados y sin el XOR32, en orden. Todo lo que le
-    // llegó tiene que estar en orden: con el login en el serial 0, el keepalive n tiene el
-    // serial n.
+    // llegó tiene que estar en orden, incluidos los keepalives previos al login, que también
+    // consumen un serial de la conexión.
     [[nodiscard]] std::vector<Packet> Keepalives() const
     {
         const GameServerReceived received = GameServerReads();
@@ -1042,9 +1042,9 @@ TEST(ServerSessionTest, ConnectsToTheGameServerItWasGiven)
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "conectó con el GameServer"));
 }
 
-// Con el saludo del GS aceptado y la versión, la sesión espera la cuenta y la clave (CL5.5): no
-// sale nada, ni el login ni el keepalive del timer de la CL4.5, y la espera no tiene tope. Acá, 60
-// s después, sigue igual.
+// Con el saludo del GS aceptado y la versión, la sesión espera la cuenta y la clave (CL5.5):
+// sale el keepalive del timer global, pero no el login, y la espera humana no tiene tope.
+// Después de 60 s sigue esperando credenciales y mandó los tres keepalives del original.
 TEST(ServerSessionTest, WaitsForTheCredentialsAfterTheGameHello)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1057,8 +1057,8 @@ TEST(ServerSessionTest, WaitsForTheCredentialsAfterTheGameHello)
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "el GameServer saludó: se espera la cuenta y la clave"));
     tested.PollEachFrameUntil(seconds{60});
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
-    EXPECT_EQ(tested.socket.sent.size(), tested.gameServerStart);
-    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 0u);
+    EXPECT_EQ(tested.GameServerReads().packets.size(), 3u);
+    EXPECT_EQ(tested.Keepalives().size(), 3u);
 }
 
 // El test del 04: con C1 0C F1 00 01 00 05 "10209" y la cuenta y la clave, el login sale cifrado
@@ -1210,15 +1210,19 @@ TEST(ServerSessionTest, ARejectedLoginKeepsItsResult)
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el GameServer rechazó el login (resultado 0)"));
     tested.PollEachFrameUntil(seconds{60});
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
-    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 0u);
+    EXPECT_EQ(tested.Keepalives().size(), 3u);
 
     tested.session.SubmitCredentials(TheCredentials());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
     EXPECT_EQ(tested.session.LoginResult(), std::nullopt);
     const GameServerReceived received = tested.GameServerReads();
-    ASSERT_EQ(received.packets.size(), 2u);
-    EXPECT_EQ(received.serials, (std::vector<SerialCheck>{SerialCheck::InOrder, SerialCheck::InOrder}));
+    ASSERT_EQ(received.packets.size(), 5u);
+    EXPECT_TRUE(
+        std::ranges::all_of(received.serials, [](SerialCheck serial) { return serial == SerialCheck::InOrder; }));
+    const auto expected = WriteLoginRequest(LoginRequest{Account, Password, TickCountMs(tested.clock.Now())});
+    ASSERT_TRUE(expected.HasValue());
+    EXPECT_TRUE(SameBytesWithoutValues(received.packets.back().Bytes(), expected.Value().packet.Bytes()));
 }
 
 // Un C3 con el checksum malo: la sesión manda el F1 03, que el GS descifra a C1 06 F1 7B C1 73 con
@@ -1555,7 +1559,7 @@ TEST(ServerSessionTest, StartingAgainForgetsTheLogin)
 TEST(ServerSessionTest, SendsTheFirstKeepaliveWithTheLogin)
 {
     Harness tested(IdentityObfuscation::Shared());
-    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(milliseconds{123456}));
+    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(milliseconds{12345}));
 
     const GameServerReceived received = tested.GameServerReads();
     ASSERT_EQ(received.packets.size(), 2u);
@@ -1580,32 +1584,31 @@ TEST(ServerSessionTest, WithoutACharacterTheSpeedsAreZero)
     EXPECT_TRUE(SameBytes(bytes.subspan(KeepaliveSpeedsIndex), Bytes({0x00, 0x00, 0x00, 0x00})));
 }
 
-// El test del 02: con el login en t = 3 s, ninguno nuevo a los 22,999 s; a los 23 s, uno; y hasta
-// t = 103 s, 6 en total (3, 23, 43, 63, 83 y 103), con los seriales 1 a 6. LoggedIn no tiene tope:
+// El login en t = 3 s no reinicia el timer global: ninguno nuevo a los 19,999 s; a los 20 s,
+// uno; hasta t = 100 s, 6 en total (3, 20, 40, 60, 80 y 100), con los seriales 1 a 6. LoggedIn no tiene tope:
 // sin nada del GS en 100 s, la sesión sigue.
 TEST(ServerSessionTest, KeepaliveEveryTwentySecondsAndNotBefore)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{3}));
 
-    tested.AdvanceTo(milliseconds{22999});
+    tested.AdvanceTo(milliseconds{19999});
     tested.session.Poll();
     EXPECT_EQ(tested.Keepalives().size(), 1u);
-    tested.AdvanceTo(seconds{23});
+    tested.AdvanceTo(seconds{20});
     tested.session.Poll();
     EXPECT_EQ(tested.Keepalives().size(), 2u);
-    tested.PollEachFrameUntil(seconds{103});
+    tested.PollEachFrameUntil(seconds{100});
 
     EXPECT_EQ(tested.Keepalives().size(), 6u);
     EXPECT_EQ(tested.GameServerReads().serials.size(), 7u);
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
-// Pregunta 6 del plan: antes del login aceptado no sale ninguno, aunque el GS esté abierto. Acá, 98
-// s con el GS abierto y sin resultado: 29 esperando el saludo, 40 la cuenta y la clave y 29 el
-// resultado, cada espera con tope debajo de ReplyTimeout. El original mandaría cuatro o cinco, con
-// su timer desde el arranque (Q-C53).
-TEST(ServerSessionTest, NoKeepaliveBeforeTheLogin)
+// El timer 1000 del original mira la conexión al GS, no el login (04 § El flujo de conexión).
+// En 98 s salen cuatro keepalives: mientras se espera el saludo, las credenciales y el resultado,
+// sin prolongar los límites de las respuestas del servidor.
+TEST(ServerSessionTest, KeepaliveBeforeTheLogin)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
@@ -1620,12 +1623,189 @@ TEST(ServerSessionTest, NoKeepaliveBeforeTheLogin)
     tested.PollEachFrameUntil(seconds{98});
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
+    EXPECT_EQ(tested.GameServerReads().packets.size(), 5u);
+    EXPECT_EQ(tested.Keepalives().size(), 4u);
+}
+
+// Un keepalive prelogin consume serial 0; el login consume 1 y su respuesta manda el 2.
+// El timer siguiente sigue venciendo a los 40 s, no a los 45 del login aceptado.
+TEST(ServerSessionTest, AcceptingTheLoginDoesNotRestartTheGlobalTimer)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCredentials());
+    tested.PollEachFrameUntil(seconds{25});
+    ASSERT_EQ(tested.Keepalives().size(), 1u);
+
+    tested.session.SubmitCredentials(TheCredentials());
+    tested.socket.reads = {FromTheGameServer(LoginResult(1), tested.gameServerSends)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.Keepalives().size(), 2u);
+    tested.AdvanceTo(milliseconds{39999});
+    tested.session.Poll();
+    EXPECT_EQ(tested.Keepalives().size(), 2u);
+    tested.AdvanceTo(seconds{40});
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.Keepalives().size(), 3u);
+    EXPECT_EQ(tested.GameServerReads().packets.size(), 4u);
+}
+
+// El timer corre sin conexión y con el CS: esos vencimientos no mandan ni quedan pendientes.
+// El GS abierto a los 65 s espera al siguiente vencimiento global, a los 80 s.
+TEST(ServerSessionTest, TheGlobalTimerConsumesTicksWithoutAGameServer)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    tested.PollEachFrameUntil(seconds{20});
+    EXPECT_TRUE(tested.socket.sent.empty());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingServer());
+    const std::size_t sentToConnectServer = tested.socket.sent.size();
+    tested.PollEachFrameUntil(seconds{65});
+    ASSERT_EQ(tested.session.State(), SessionState::ChoosingServer);
+    EXPECT_EQ(tested.socket.sent.size(), sentToConnectServer);
+
+    tested.session.ChooseServer(LabServerCode);
+    tested.socket.reads = {AddressReply(GameHost, GamePort)};
+    tested.session.Poll();
+    tested.gameServerStart = tested.socket.sent.size();
+    tested.session.Poll();
+    tested.socket.reads = {GameHello(1, ClientVersion)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_TRUE(tested.Keepalives().empty());
+    tested.AdvanceTo(milliseconds{79999});
+    tested.session.Poll();
+    EXPECT_TRUE(tested.Keepalives().empty());
+    tested.AdvanceTo(seconds{80});
+    tested.session.Poll();
+    EXPECT_EQ(tested.Keepalives().size(), 1u);
+}
+
+// Cancelar/reconectar mantiene el timer, pero cada conexión vuelve su serial a 0.
+TEST(ServerSessionTest, ReconnectingDoesNotRestartTheGlobalTimer)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCredentials());
+    tested.PollEachFrameUntil(seconds{25});
+    ASSERT_EQ(tested.Keepalives().size(), 1u);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCredentials());
+    tested.AdvanceTo(milliseconds{39999});
+    tested.session.Poll();
+    EXPECT_TRUE(tested.Keepalives().empty());
+    tested.AdvanceTo(seconds{40});
+    tested.session.Poll();
+    EXPECT_EQ(tested.Keepalives().size(), 1u);
+    EXPECT_EQ(tested.GameServerReads().serials, (std::vector<SerialCheck>{SerialCheck::InOrder}));
+}
+
+// El envío inmediato de F1 01 aceptado y el timer vencido son productores independientes.
+TEST(ServerSessionTest, TheLoginAndTheDueTimerCanEachSendAKeepalive)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
+    tested.AdvanceTo(seconds{20});
+    ASSERT_TRUE(tested.Keepalives().empty());
+    tested.socket.reads = {FromTheGameServer(LoginResult(1), tested.gameServerSends)};
+    tested.session.Poll();
+    EXPECT_EQ(tested.Keepalives().size(), 2u);
+    EXPECT_EQ(tested.GameServerReads().packets.size(), 3u);
+    tested.AdvanceTo(milliseconds{39999});
+    tested.session.Poll();
+    EXPECT_EQ(tested.Keepalives().size(), 2u);
+    tested.AdvanceTo(seconds{40});
+    tested.session.Poll();
+    EXPECT_EQ(tested.Keepalives().size(), 3u);
+}
+
+// Un connect no bloqueante aún en curso no consume seriales ni encola el tick de los 20 s.
+TEST(ServerSessionTest, AConnectingGameServerDoesNotQueueTheDueKeepalive)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerAddress());
+    tested.AdvanceTo(seconds{19});
+    tested.socket.pollsUntilConnected = 2;
+    tested.socket.reads = {AddressReply(GameHost, GamePort)};
+    tested.session.Poll();
+    tested.gameServerStart = tested.socket.sent.size();
+    tested.AdvanceTo(seconds{20});
+    tested.session.Poll();
+    ASSERT_EQ(tested.connection.State(), LinkState::Connecting);
+    tested.AdvanceTo(seconds{21});
+    tested.session.Poll();
+    tested.AdvanceTo(seconds{22});
+    tested.socket.reads = {GameHello(1, ClientVersion)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_TRUE(tested.Keepalives().empty());
+    tested.AdvanceTo(seconds{40});
+    tested.session.Poll();
+    EXPECT_EQ(tested.Keepalives().size(), 1u);
+}
+
+// Si el envío inmediato falla, no se intenta el periódico ni se procesa el resto del lote.
+TEST(ServerSessionTest, AFailedImmediateKeepaliveDoesNotAttemptTheDueTimer)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
+    tested.AdvanceTo(seconds{20});
+    tested.socket.sendError = SocketError::Closed;
+    tested.socket.reads = {Join({LoginResult(1), LogoutResult(0)})};
+    const std::size_t sendAttempts = tested.socket.sendAttempts;
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.connection.State(), LinkState::Closed);
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+    EXPECT_EQ(tested.socket.sendAttempts, sendAttempts + 1);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, "keepalive"), 0u);
+    EXPECT_FALSE(tested.Logged(LogLevel::Warning, "que iba a salir: la conexión está cerrada"));
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
+}
+
+// El peer puede cerrar después de entregar F1 01: no se registra como enviado lo descartado.
+TEST(ServerSessionTest, AClosingLoginBatchDoesNotLogASentKeepalive)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
+    tested.socket.reads = {FromTheGameServer(LoginResult(1), tested.gameServerSends)};
+    tested.socket.peerClosed = true;
+    const std::size_t sendAttempts = tested.socket.sendAttempts;
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
+    EXPECT_EQ(tested.socket.sendAttempts, sendAttempts);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, "keepalive"), 0u);
+    EXPECT_TRUE(tested.Logged(LogLevel::Warning, "que iba a salir: la conexión está cerrada"));
     EXPECT_EQ(tested.GameServerReads().packets.size(), 1u);
-    EXPECT_EQ(tested.CountLogged(LogLevel::Info, KeepaliveSent), 0u);
+}
+
+// Entre el 0E que cierra el GS y su Closed diferido, la UI no debe borrar el rechazo ni fingir login.
+TEST(ServerSessionTest, AFailedPreloginKeepalivePreservesTheCredentialsStateUntilClosed)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
+    tested.socket.reads = {FromTheGameServer(LoginResult(0), tested.gameServerSends)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.LoginResult(), std::optional<std::uint8_t>{std::uint8_t{0}});
+    tested.AdvanceTo(seconds{20});
+    tested.socket.sendError = SocketError::Closed;
+    tested.session.Poll();
+    ASSERT_EQ(tested.connection.State(), LinkState::Closed);
+    const std::size_t loginMessages = tested.CountLogged(LogLevel::Info, "se manda el login");
+    const std::size_t sendAttempts = tested.socket.sendAttempts;
+    tested.session.SubmitCredentials(TheCredentials());
+
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
+    EXPECT_EQ(tested.session.LoginResult(), std::optional<std::uint8_t>{std::uint8_t{0}});
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, "se manda el login"), loginMessages);
+    EXPECT_EQ(tested.socket.sendAttempts, sendAttempts);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Info, "keepalive"), 0u);
+    EXPECT_FALSE(tested.LoggedTheCredentials());
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
 }
 
 // Un frame de 60 s (un breakpoint) con el login en t = 3 s: en t = 63 s sale uno solo, con el
-// serial 2, y el siguiente a los 83 s, no en los 43 y 63 que tocaban.
+// serial 2, y el siguiente a los 83 s, sin recuperar los vencimientos de 20, 40 y 60 s.
 TEST(ServerSessionTest, ASixtySecondFrameSendsOneKeepalive)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1687,7 +1867,7 @@ TEST(ServerSessionTest, UsesTheSpeedsItWasGiven)
 }
 
 // Las velocidades que llegan con el login ya aceptado (la CL6 las da al elegir el personaje) van en
-// el keepalive siguiente: el del login sale con 0 y 0, y el de los 23 s con las nuevas.
+// el keepalive siguiente: el del login sale con 0 y 0, y el de los 20 s con las nuevas.
 TEST(ServerSessionTest, SpeedsGivenAfterTheLoginGoInTheNextKeepalive)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1729,7 +1909,7 @@ TEST(ServerSessionTest, LosingTheGameServerStopsTheKeepalive)
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
 }
 
-// Start desde LoggedIn vuelve al CS: el keepalive se detiene, y en 40 s al CS solo le llega el A9.
+// Start desde LoggedIn vuelve al CS: el timer sigue, pero no manda keepalive al CS, solo el A9.
 TEST(ServerSessionTest, StartingAgainStopsTheKeepalive)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -1876,15 +2056,16 @@ TEST(ServerSessionTest, EachStateChangeIsLogged)
             infos.push_back(tested.sink.lines[index]);
         }
     }
-    EXPECT_EQ(infos, (Lines{"[info] se conecta al ConnectServer", "[info] conectó con el ConnectServer",
-                            "[info] el ConnectServer saludó: se pide la lista de servidores",
-                            "[info] la lista trae 1 servidores: se espera la elección",
-                            "[info] se elige un servidor: se pide su dirección",
-                            "[info] el ConnectServer dio la dirección del GameServer: se cierra y se conecta a ese",
-                            "[info] la conexión se cerró: la cerró el cliente",
-                            "[info] conectó con el GameServer: se espera su saludo",
-                            "[info] el GameServer saludó: se espera la cuenta y la clave", "[info] se manda el login",
-                            "[info] el GameServer aceptó el login", "[info] se mandó el keepalive al GameServer"}));
+    EXPECT_EQ(infos,
+              (Lines{"[info] se conecta al ConnectServer", "[info] conectó con el ConnectServer",
+                     "[info] el ConnectServer saludó: se pide la lista de servidores",
+                     "[info] la lista trae 1 servidores: se espera la elección",
+                     "[info] se elige un servidor: se pide su dirección",
+                     "[info] el ConnectServer dio la dirección del GameServer: se cierra y se conecta a ese",
+                     "[info] la conexión se cerró: la cerró el cliente",
+                     "[info] conectó con el GameServer: se espera su saludo",
+                     "[info] el GameServer saludó: se espera la cuenta y la clave", "[info] se manda el login",
+                     "[info] el GameServer aceptó el login", "[info] se encoló el keepalive para el GameServer"}));
 }
 
 // La lista de personajes y la entrada al mundo (el plan de la CL6, CL6.3, paso 2). Los nombres son
@@ -2135,7 +2316,7 @@ TEST(ServerSessionTest, EnteringTheWorldOutOfTurnIsIgnored)
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora la entrada al mundo: la sesión no la espera"));
 }
 
-// El keepalive sigue en los tres estados nuevos con el ritmo del login (a los 1, 21, 41 y 61 s):
+// El keepalive sigue en los tres estados nuevos con el timer global (a los 20, 40 y 60 s):
 // cambiar de estado no lo vuelve a empezar. Si empezara con el pedido, a los 10 s, a los 22 s
 // habría uno solo.
 TEST(ServerSessionTest, TheKeepaliveRunsInTheThreeNewStates)

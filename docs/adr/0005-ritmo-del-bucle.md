@@ -48,6 +48,24 @@ avanza el juego.
   dibujos de escenas distintas con el mismo reloj pueden avanzar dos veces: es una política de
   `Decoupled`, no una temporización atribuida al binario. El original llama `0x635ae0` una vez
   por dibujo, que conserva el modo fiel.
+- **Los efectos del dibujo de los objetos del login siguen el mismo ritmo** (CL7.6 B5).
+  `Faithful` ejecuta un sorteo común por objeto visto y el guard de la nube en cada dibujo;
+  `Decoupled` ejecuta esos efectos solo por los frames que cuenta `OriginalFrameCarry`.
+  En un alcance de varios frames recorre frames y dentro objetos, para conservar su orden local
+  de RNG y de ocupación del pool. La geometría, el recorte y la pose se dibujan también en los
+  frames intermedios. El farol repite la última muestra de azar de su objeto sin otro sorteo;
+  si todavía no tiene muestra, espera al próximo frame original. Es una política de presentación
+  de `Decoupled`, no una rama atribuida al binario. Las nubes persistentes solo nacen en los
+  frames contados y avanzan por paso de lógica. Este ritmo local no cierra el orden global de
+  RNG entre tela, cetro, objetos y los otros subsistemas; ese contraste sigue en CL7.P.
+  Cuando SceneManager observa que la escena retiene el frame, notifica `IScene::OnFrameHeld`.
+  El login reinicia sólo el carry de efectos de objetos cuando está conectando o el paso todavía
+  conserva ese estado de conexión; una retención por un paquete ordinario conserva la fase.
+  Se cubre también una conexión que comienza y falla entre dos Steps, porque el aviso la observa.
+  El aviso es idempotente y la consulta de retención lo documenta. El primer
+  dibujo permitido cuenta un frame; no recupera el tiempo del connect bloqueante original.
+  El pool y sus muestras no se vacían por esa pausa. El alcance es ese carry, no la equivalencia
+  temporal de todos los demás; consultar `LoginScene::HoldsTheLastFrame` directamente no notifica.
 
 D-C4 nombra el [ADR 0001 de MuMain][mm] por la lógica a 25 por segundo, pero en un frame largo
 MuRet no hace lo mismo: allá, debajo de 25 FPS, el frame avanza un paso como mucho y el juego va en
@@ -72,6 +90,8 @@ cámara lenta. MuRet se pone al día, con hasta 25 pasos por frame.
     escena.
   - `SharedGameCameraTest`: estado persistente, dibujos intermedios sin otro avance y un primer
     frame por entrada, incluida la reentrada en `Decoupled`.
+  - Las pruebas de nubes y efectos del login: emisión por frames contados, pool compartido,
+    repetición del farol sin nuevo azar y reinicio del ritmo al entrar.
 
 El contrato y los pasos están en las sub-olas CL3.0 y CL3.2 del
 [plan de la CL3](../superpowers/plans/2026-11-02-ola-cl3-plataforma-y-bucle.md).

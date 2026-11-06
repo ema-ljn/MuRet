@@ -1,5 +1,6 @@
 #include "support/FakeServers.h"
 
+#include "Core/IClock.h"
 #include "Network/ISocket.h"
 #include "Network/SocketApi.h"
 #include "Network/SocketError.h"
@@ -15,6 +16,7 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <chrono>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -37,6 +39,62 @@ using Client::Tests::GameServerKeys;
 using Client::Tests::RetryUntil;
 
 using Lines = std::vector<std::string>;
+
+constexpr std::chrono::seconds SyntheticIdleTimeout{30};
+
+// Hace vencer el plazo entre el error del parser y su postproceso. La entrega del socket puede
+// tardar lo que necesite: el reloj solo avanza cuando el doble ya anotó la queja. Así el test no
+// depende de sleeps ni presenta este plazo sintético como una medición del GS original.
+class DeadlineOnComplaintClock final : public Client::Core::IClock
+{
+public:
+    Client::Core::Duration Now() override
+    {
+        return complaints && !complaints->empty() ? SyntheticIdleTimeout : Client::Core::Duration::zero();
+    }
+
+    void SleepFor(Client::Core::Duration) override
+    {
+        FAIL() << "el reloj de este test no duerme";
+    }
+
+    const Lines* complaints = nullptr;
+};
+
+TEST(FakeServersTest, AFramingFailureDoesNotBecomeAnIdleExpiry)
+{
+    const NetworkInit network;
+    ASSERT_TRUE(network.IsReady()) << "WSAStartup: " << network.SystemError();
+    DeadlineOnComplaintClock clock;
+    FakeServers servers(GameServerKeys(), clock, SyntheticIdleTimeout);
+    clock.complaints = &servers.Complaints();
+    SystemResolver resolver;
+    SystemSocket socket(resolver);
+    const auto started = socket.StartConnect("127.0.0.1", servers.GameServerPort());
+    ASSERT_TRUE(started.HasValue());
+    ASSERT_TRUE(RetryUntil(
+        [&]
+        {
+            const auto progress = socket.PollConnect();
+            return progress.HasValue() && progress.Value() == ConnectProgress::Connected;
+        }));
+
+    const std::vector<std::byte> invalidHeader = Bytes({0x00});
+    const auto sent = socket.Send(invalidHeader);
+    ASSERT_TRUE(sent.HasValue());
+    ASSERT_EQ(sent.Value(), invalidHeader.size());
+    ASSERT_TRUE(RetryUntil(
+        [&]
+        {
+            servers.Poll();
+            return !servers.Complaints().empty();
+        }));
+
+    EXPECT_EQ(servers.Complaints(), Lines{"el GameServer no puede cortar lo que mandó el cliente"});
+    EXPECT_FALSE(servers.IdleExpired());
+    EXPECT_EQ(servers.Keepalives(), 0u);
+    EXPECT_FALSE(servers.SawLogin());
+}
 
 // Lo primero que tiene que mandar el cliente al CS es el A9: un F4 02 antes no se contesta, queda
 // en Complaints() y el CS corta, así el cliente ve el cierre.

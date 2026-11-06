@@ -141,7 +141,13 @@ bool SceneManager::WantsTextInput() const
 
 bool SceneManager::HoldsTheLastFrame() const
 {
-    return m_scene && m_scene->HoldsTheLastFrame();
+    if (!m_scene || !m_scene->HoldsTheLastFrame())
+    {
+        return false;
+    }
+    // Consultar y obtener true también notifica la retención; repetirlo es un aviso idempotente.
+    m_scene->OnFrameHeld();
+    return true;
 }
 
 Core::Expected<void, std::string> SceneManager::Enter(SceneId id)

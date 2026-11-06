@@ -39,12 +39,14 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // 0x61d753, 0x63b870 con GL_LINEAR y GL_CLAMP) y nadie suelta: Effect\flare01.jpg en 0x5ac (los destellos
 // de la capa y el brillo del cetro), Effect\Shiny02.jpg en 0x5fd (el cetro), Effect\Spark03.jpg en 0x5c6
 // (las chispas del cuervo) y Effect\smoke01.jpg en 0x5f2 (el aliento del caballo). Las sube GameModels
-// con los modelos, y quedan.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 4> EffectTextureSet{{
+// con los modelos, y quedan. 0x61d801 sube clouds.jpg a 0x622 con GL_LINEAR y GL_CLAMP: las nubes
+// oscuras del mapa 55.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 5> EffectTextureSet{{
     {"Effect\\flare01.jpg", 0x5ac, TextureSetsDetail::LinearClamp},
     {"Effect\\Shiny02.jpg", 0x5fd, TextureSetsDetail::LinearClamp},
     {"Effect\\Spark03.jpg", 0x5c6, TextureSetsDetail::LinearClamp},
     {"Effect\\smoke01.jpg", 0x5f2, TextureSetsDetail::LinearClamp},
+    {"Effect\\clouds.jpg", 0x622, TextureSetsDetail::LinearClamp},
 }};
 
 // Las dos capas de la tela que sube 0x61ccb0 (0x61d616 y 0x61d64e) y nadie suelta: Monster\iui06.jpg en

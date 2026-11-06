@@ -301,7 +301,7 @@ más [06 § Terreno](../../../Client/docs/research/06-render-escenas-y-ui.md#ter
   fila 0 arriba).
 - **Fuentes:** las brasas (`0x42b1e0`, `0x5303a0`), el aliento del caballo (`0x444010`, hueso 27),
   el cetro (`0x509340` caso `0x620`, cinco sprites), el farol (`0x602ed0` caso `0x3c`, dos
-  sprites, Q-C140) y los 30 destellos de la capa (`CharacterCloth::Flares()`). Las nubes y el fuego del `0x59` esperan la captura (P-C23 e).
+  sprites, Q-C140) y los 30 destellos de la capa (`CharacterCloth::Flares()`). Las nubes se retoman en B5; el fuego del `0x59` sigue pendiente de su contrato y de captura (P-C23 e).
 - **Tests:** la caja y la velocidad de nacimiento de las brasas y su caída sobre un terreno plano;
   la vida, la luz y la subida del aliento paso a paso; los cinco sprites del cetro con sus rangos y
   su color (1; 0,3; 0); la escala y la luz de los 30 destellos con un T fijo; el orden: hojas →
@@ -309,6 +309,58 @@ más [06 § Terreno](../../../Client/docs/research/06-render-escenas-y-ui.md#ter
 - **El `rand()`:** cada sistema saca del mismo generador de la CRT que la tela, en el orden del
   paso del original (06 § Los efectos del login, los `rand()` del frame). Ruling a confirmar al
   arrancar: si se comparte con la tela o va aparte.
+
+### Seguimiento CL7.6 B5: las nubes oscuras del login (2026-11-06)
+
+Reabierto por Emanuel al observar neblina ausente en MuRet. Era un pendiente conocido de P-C23 e;
+no estaba cubierto por una ola posterior ni permite declarar completo el login. El candidato
+estático son los dos emisores invisibles `0x54` del mapa 55. El original apaga `GL_FOG`.
+
+- Contratos cotejados contra el PE `c32bbd5f`: emisor `0x602ed0`, creación `0x53fe70`, paso
+  `0x5446e0` y dibujo `0x548550`, solo la rama `0x622/10` y sus prefijos/salidas comunes.
+  Textura `Effect\clouds.jpg`, slot `0x622`, lineal y clamp, en `0x61d801`.
+- Reusar el pool compartido, el RNG de la CRT y el billboard existentes. La emisión pertenece al
+  dibujo del objeto visto, también si no produce malla, y depende de mapa/tipo/azar. No va en Step.
+  En Decoupled usa los frames del original; los frames intermedios no vuelven a sortear. Con varios
+  originales, recorrer frames y dentro objetos, conservando el último sorteo para dibujar el farol.
+- Preservar `+0x60` al crear/reutilizar, la doble suma de movimiento, vida/fade y límites 300/500,
+  paridad del índice físico del pool y alias `+0x70` como origen Y y base de rotación. Dibujar
+  sustractivo, no aditivo ni fog. Ver 06 § Los efectos del login para fórmulas y constantes exactas.
+- Comprobar creación, pool lleno, costos RNG, primer Draw antes de Step, reutilización, límites,
+  orden/mezcla del pase de ojo, cadencia 0/1/varios y salida/reentrada. Pruebas propias con expectativas
+  derivadas del ASM, sin nuevas emulaciones; los golden anteriores conservan su procedencia.
+- Revisión adversarial de contratos e implementación: Astra 6 Ultra y Opus 5.5 xhigh; este último
+  recibe solo código/diff. Mantener pendientes la comparación visual nativa y el RNG global de CL7.P.
+  Las siete llamadas de handlers al final del emisor no se declaran cubiertas por leer solo esta rama.
+
+El fuego del `0x59` continúa abierto. Implementar las nubes no confirma por sí solo que sean toda
+la neblina que ve Emanuel ni cierra los demás arrastres del login, la selección o Lorencia.
+
+### Seguimiento: espera en el formulario de login (2026-11-06)
+
+Emanuel observa cierre de MuRet sin enviar credenciales, mientras el original conserva el
+formulario. La espera humana no tiene deadline local; la divergencia demostrada es Q-C53: MuRet
+omitía los keepalives antes del login, por la decisión inicial de ADR 0007. El contrato del 04
+ya registra el timer global y tráfico prelogin. Es una corrección de CL4 detectada en el barrido
+del login; no cierra CL7.P ni los pendientes visuales.
+
+- [x] Restaurar el timer de 20 s independiente de autenticación y reconexión: enviar con el GS
+  abierto, también antes del saludo, en formulario/avisos, rechazo y espera de resultado.
+- [x] Mantener el inmediato al aceptar login sin reiniciar la fase; verificar seriales C3, ausencia
+  de envíos al CS/conexión cerrada y coalescencia sin ráfagas. Conservar la política Q-C56 aparte.
+- [x] Prueba roja y verde de espera prolongada con un GS doble que expire por falta de tráfico,
+  control sin tráfico, rechazo/reintento y cancelación/reconexión. Revisar también los avisos de UI.
+- [x] Revisión adversarial Astra 6 Ultra y Opus 5.5 xhigh (solo código/diff), formato, includes,
+  build y suite completa con GL/golden. Actualizar ADR 0007, Q-C53 y guía de comprobación.
+- [ ] Corroborar con el cliente corregido frente al mismo GS real: esperar en el formulario,
+  observar tráfico de mantenimiento y autenticar después. Un cierre remoto en el log no prueba
+  por sí solo que el servidor cerrara por inactividad.
+- [ ] Al integrar `SetKeepaliveSpeeds` con el personaje, contrastar qué velocidades conserva el
+  original al volver del mundo al login/reconectar. Hoy no tiene llamador productivo; no inferir
+  un reset a partir del personaje inicial con velocidades 0/0.
+- [ ] Contrastar el orden de estado/cierre de `0x641bf0` si falla el propio envío del login.
+  MuRet ya pasaba a `WaitingLoginResult` hasta despachar `Closed` en el Poll siguiente; es un
+  borde previo al arreglo del timer. La guarda nueva cubre el transporte cerrado antes de enviar.
 
 ## Sub-ola CL7.6 C: el cuervo
 
@@ -343,6 +395,14 @@ chicos que salgan, cada uno con su test).
   frame del original, la cabeza del Dark Lord (bit a bit, `head.txt`), el gesto con el `rand()` de la CRT y
   el fundido del caballo con un solo redondeo. Lo que queda, en 06 § Lo demás del login y en P-C27 (con
   P-C23 e para las nubes y el fuego).
+
+**Reapertura por fidelidad del formulario (2026-11-06):** el `_` fijo de `LoginWindow`
+provenía de `0x553ae0`, la rama legacy que el selector inicial de este PE no toma. Se retira
+ese glifo con regresiones sobre ambos focos, campos vacíos, clave enmascarada y `_` legítimo
+dentro de la cuenta. El camino activo `0x641990 → 0x469350 → 0x468320` compone un caret
+rectangular con fase de 24 llamadas, no un sufijo de texto. Sigue abierta la equivalencia del
+bitmap del EDIT (fuentes/colores efectivos, inserción y recorte); este arreglo no cierra toda
+la UI ni CL7. Contrato ampliado en 06 § La cuenta y la clave.
 
 Después: la CL7 sigue con Lorencia (CL7.3 del roadmap en adelante, y lo que la CL7.1 y la CL7.2 no
 hayan cubierto de otros mapas), con su propio plan.

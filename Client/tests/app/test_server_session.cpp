@@ -1928,7 +1928,7 @@ TEST(ServerSessionTest, ADuplicatedListSlotChoosesTheLastConstructedEntryAndKeep
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter({{0, "char0001"}, {0, "char0002"}}));
-    tested.session.ChooseCharacter(0);
+    tested.session.ChooseCharacter(std::uint8_t{0});
     ASSERT_NE(tested.session.ChosenCharacter(), nullptr);
     EXPECT_EQ(tested.session.ChosenCharacter()->name, NameBytes("char0002"));
     const auto events = tested.session.TakeCharacterEvents();
@@ -1999,6 +1999,7 @@ TEST(ServerSessionTest, TakingTheListEventPreservesItsPayloadAndConsumesItOnce)
     const auto& visible = tested.session.Characters()->characters;
     ASSERT_EQ(visible.size(), 2u);
     EXPECT_EQ(visible[0].slot, 0);
+    EXPECT_EQ(visible[0].name, NameBytes("char0001"));
     EXPECT_EQ(visible[1].slot, 3);
     EXPECT_EQ(visible[1].name, NameBytes("char0003"));
 }

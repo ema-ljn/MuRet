@@ -151,31 +151,72 @@ si no choca con eso; si choca, queda para más adelante.
 
 ## Orden y hitos
 
-| Sub-ola | Qué | Hito |
-| --- | --- | --- |
-| CL7.3 A | la cámara del juego, bit a bit (`0x635ae0`) | |
-| CL7.3 B | la cámara compartida: el login y la selección por `0x635ae0`, y la altura del `0x40` | implementación y revisión completas; compuerta de CI en el PR141 |
-| CL7.P | las variables protegidas y sus `rand()` (`0x57630c8`), con el contador del login completo | |
-| CL7.L1 | la entrada al mundo y el pase del juego: el terreno de Lorencia desde el héroe | se ve Lorencia |
-| CL7.L2 | los modelos con nombre y los objetos de Lorencia, en el orden de `0x6371a0` | tabla de modelos y Bird/Fish implementados; objetos y pase pendientes |
-| CL7.L3 | el héroe parado: el equipo del `F3 10`, la acción de parado, la aparición | **Lorencia con el héroe parado** |
-| CL7.L4 | la luz dinámica del terreno y el pasto | |
-| CL7.L5 | lo vivo: las hojas, los pájaros, los peces, los fuegos, la fuente | Lorencia viva |
-| CL7.4 A | el mapa de paredes vivo y el camino (el A* de `0x4ead70`) | |
-| CL7.4 B | el paquete de caminar (`D3`) y los `D3`/`D7` que llegan | integrado en main por PR #139; integración con la escena en CL7.4 E |
-| CL7.4 C | el paso entre celdas (el spline, la velocidad, correr) | |
-| CL7.4 D | el picking del terreno | |
-| CL7.4 E | caminar en la escena, con el recorte de los personajes | **se camina por Lorencia** |
-| CL7.5 A | cada mundo del `Data\` carga, con sus modelos y su error | |
-| CL7.5 B | `Gate.bmd` y la detección del gate | |
-| CL7.5 C | el protocolo del cambio de mapa (`1C`, `F3 04`, `F3 12`) | componente puro implementado; espera de warp pendiente de L1 |
-| CL7.5 D | el cambio de mapa en la escena | **por un gate, a los otros mapas** |
-| CL7.5 E | los casos de los otros mapas, como datos | |
-| CL7.6 | los efectos del mundo y de los personajes que dejó la CL6 | |
-| Cierre | el barrido profundo de Lorencia | |
+Estado contrastado con `main` **`138fe0b`**, los PR abiertos y el código, 2026-11-06.
+«Componente puro» no significa que la funcionalidad esté integrada en la escena.
 
-La CL7.3 A y las CL7.4 A a C son lógica sin escena y pueden adelantarse. La CL7.P va antes de la L1: la
-celda del héroe y el contador de warp son variables protegidas. Las L1 a L5 van en orden.
+| Sub-ola | Estado verificable | Qué falta para su alcance |
+| --- | --- | --- |
+| CL7.3 A | integrado por [PR138](https://github.com/ema-ljn/MuRet/pull/138) | la integración de la cámara en el mundo jugable pertenece a L1 |
+| CL7.3 B | integrado por [PR141](https://github.com/ema-ljn/MuRet/pull/141), CI verde | sub-ola completa; no cierra los demás efectos ni las escenas |
+| CL7.P | abierta; [PR144](https://github.com/ema-ljn/MuRet/pull/144) es documentación en draft | estado lógico, inicialización/fase y orden observable de RNG; sin portar protecciones |
+| CL7.L1 | pendiente | respuesta F3 03, espera retenida, InWorld, carga del mapa recibido, héroe y pase 640×432 |
+| CL7.L2 | modelos con nombre integrados por [PR142](https://github.com/ema-ljn/MuRet/pull/142) | creación/paso/dibujo de 2.870 objetos y orden completo del pase |
+| CL7.L3 | pendiente | F3 10, equipo del mundo, matriz de parado, aparición y zonas seguras/mascota |
+| CL7.L4 | pendiente | luz dinámica compartida y pasto, incluidos carga/RNG y vértices |
+| CL7.L5 | pendiente | hojas/clima, pájaros, peces, fuegos y fuente |
+| CL7.4 A | [PR143](https://github.com/ema-ljn/MuRet/pull/143) abierto, CI verde | distancia cero implementada; radio y consumidor pendientes; no confundir pruebas dirigidas con los 171 caminos del cable |
+| CL7.4 B | componente puro integrado por [PR139](https://github.com/ema-ljn/MuRet/pull/139) | consumidor y envío en la escena, CL7.4 E; precisión nativa del emisor pendiente |
+| CL7.4 C | pendiente | spline, celda lógica, velocidad, carrera/giro/altura y acciones según clase/equipo/mapa |
+| CL7.4 D | pendiente | rayo contra terreno, orden/caras, nearest y selección retenida en miss |
+| CL7.4 E | pendiente | clic → camino → D3 → movimiento; cooldowns, D3/D7 recibidos y recorte |
+| CL7.5 A | infraestructura genérica parcial | todas las familias de modelos/mapas, estados de carga y errores del Data original |
+| CL7.5 B | parsing/detección en trabajo local sin publicar | recuperar, adaptar a main, revisar y verificar; conectar sesión/RNG/efectos |
+| CL7.5 C | componente puro integrado por [PR140](https://github.com/ema-ljn/MuRet/pull/140) | espera de warp y aplicación en escena después de L1 |
+| CL7.5 D | pendiente | carga dentro del paso, retención, limpieza selectiva, reconstrucción y vuelta por gates |
+| CL7.5 E | parcial en componentes de cámara/terreno | aplicar y validar las familias de otros mapas en su frame completo |
+| CL7.6 y arrastres | efectos del login parciales | nubes/fuego, selección, luces, efectos de armas y casco/polvo, según el alcance de cada sub-ola |
+| Cierre | abierto | barrido transversal con ramas, estado, orden, transiciones y evidencia nativa pendiente |
+
+### Lo que todavía impide declarar completa toda CL7
+
+- `GameScene::Render` sigue vacío y la sesión termina en `EnteringWorld`. La cámara, los modelos
+  y los paquetes puros ya integrados no equivalen a tener Lorencia jugable. L1 debe unirlos sin
+  adelantar la presentación ni perder el frame retenido durante la espera.
+- L2 debe cubrir todos los objetos y sus casos de material, animación, luz, fuego, casas y fuente;
+  L3 debe usar el equipo del mundo y el parado correcto, incluidos safe zone y ocultación del caballo.
+  L4/L5 llevan la luz compartida, pasto y fauna/partículas, con sus efectos sobre el RNG.
+- El caminar requiere integrar A/B, implementar C/D y cerrar E con entrada, cable y movimiento.
+  No alcanza con que el pathfinder y el serializador pasen sus suites por separado.
+- «Todos los mapas» todavía está abierto. Hay 20 carpetas físicas de mundo y 39 entradas nominales
+  de mapa, con reutilización de carpetas: el mapa32 usa World10 y entra con el estado9; World6 está incompleto y el mapa35 no
+  tiene su carpeta. Hace falta verificar cargas, modelos/efectos especiales y política de errores
+  por familia, además de gates/warp y viajes de ida y vuelta. Una prueba de rutas no verifica dibujo.
+- El login conserva pendientes de efectos y fidelidad de controles: las nubes `0x54` y el fuego
+  `0x59` figuraban en CL7.6 B/P-C23 e. El [PR145](https://github.com/ema-ljn/MuRet/pull/145) retira el
+  glifo `_` legacy; la réplica del caret rectangular y bitmap del EDIT activo sigue abierta.
+  En selección faltan el mundo54 renderizado, la altura del preview de creación y efectos propios.
+- CL7.P debe cerrar valores/fases lógicos y el consumo/orden de azar comprobable. No es una
+  autorización para portar la VM, cifrado de protección, licencias o anticheat. Los contratos
+  puros ya comprobados pueden avanzar en paralelo; la equivalencia global de cadencia/RNG no se
+  declara cerrada mientras falten consumidores y orden.
+- Los 2.250 samples nativos de cámara a 40ms no son una captura de cada LogicStep ni de cada
+  frame; las posiciones nativas guardadas son limitadas. Los vectores emulados históricos sirven
+  como regresión, no como una nueva captura independiente. No se generan nuevas emulaciones.
+
+### Orden para continuar y criterio de cierre
+
+Se pueden paralelizar gates puros, movimiento/picking, contratos de cargas y efectos. La integración
+requiere primero fijar en **P** los valores/fases lógicos que consumirá L1; PR144 por sí solo no
+la desbloquea. Luego sigue **L1 → L2 → L3/L4/L5**, **4C/4D → 4E** y **5A/5B/5C → 5D/5E**. Cada concepto mantiene
+su PR, pruebas discriminantes y revisiones de Astra 6 Ultra y Opus 5.5 xhigh. La revisión de Opus
+incompleta del contador no cuenta como aprobación: P sigue abierta.
+
+El cierre exige inventario de funciones/ramas/llamadas, estado persistente, efectos secundarios y
+orden; contratos pendientes explícitos; expectativas contrastadas con ASM/PE y observación nativa
+cuando corresponda; pruebas de entrada/reentrada, mismo y distinto mapa, frames0/1/varios, ventanas
+640×480/1024×768 y archivos ausentes. Tests verdes o un PR mergeado no sustituyen ese barrido.
+HUD/ventanas del juego son CL8; NPC, otros jugadores y reglas de combate/eventos son CL9; audio es CL10.
+
 
 ---
 

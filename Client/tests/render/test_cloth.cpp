@@ -7,11 +7,13 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <optional>
 #include <string>
 #include <vector>
@@ -339,5 +341,44 @@ TEST(ClothTest, ALogicStepWalksFiveTimesAndCounts)
         static_cast<void>(walked.random.Next());
     }
     EXPECT_EQ(world.random.State(), walked.random.State());
+}
+
+// 0x637f91 suma en 32 bits; el contador se sigue leyendo con signo después del guardado.
+TEST(ClothTest, ALogicStepWrapsTheCounterAt32Bits)
+{
+    struct Transition
+    {
+        std::int32_t before;
+        std::int32_t after;
+    };
+    constexpr auto Minimum = std::numeric_limits<std::int32_t>::min();
+    constexpr auto Maximum = std::numeric_limits<std::int32_t>::max();
+    constexpr std::array Transitions{Transition{Maximum, Minimum}, Transition{-1, 0}, Transition{Minimum, Minimum + 1}};
+    for (const std::int32_t openAccesses : std::array<std::int32_t, 2>{0, 1})
+    {
+        ClothWorld walked{.random = CrtRandom(7)};
+        for (int i = 0; i < 5; ++i)
+        {
+            Client::Render::Models::WalkTheWind(walked);
+        }
+        if (openAccesses == 0)
+        {
+            for (int i = 0; i < 4; ++i)
+            {
+                static_cast<void>(walked.random.Next());
+            }
+        }
+        for (const auto& transition : Transitions)
+        {
+            SCOPED_TRACE(::testing::Message() << transition.before << ", accesos " << openAccesses);
+            ClothWorld world{
+                .random = CrtRandom(7), .logicSteps = transition.before, .openCounterAccesses = openAccesses};
+            Client::Render::Models::StepTheClothWorld(world);
+            EXPECT_EQ(world.logicSteps, transition.after);
+            EXPECT_EQ(Bits(world.windBase), Bits(walked.windBase));
+            EXPECT_EQ(world.random.State(), walked.random.State());
+            EXPECT_EQ(world.openCounterAccesses, openAccesses);
+        }
+    }
 }
 } // namespace

@@ -4,6 +4,7 @@
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
+#include "World/WorldObjectRegistrations.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -27,19 +28,25 @@ enum class ObjectScene : std::uint8_t
     Other,
 };
 
-// Lo que el objeto de 0x1d4 bytes guarda y usa el login.
+// Proyección tipada de los campos usados de 0x1d4 bytes; no reproduce el layout i386.
 struct WorldObject
 {
-    std::int16_t type = 0;                     // +0x2, el modelo
-    Render::Models::ObjectTransform transform; // +0xc la escala, +0x10 la posición, +0x1c los ángulos
-    Render::Models::ObjectState state;         // +0x64, +0x68, +0x6c, +0x70 y +0x58
-    glm::vec3 light{};                         // +0xf4..+0xfc, la que se suma a la del terreno
-    float speed = 0.0f;                        // +0xd8, keys por paso
-    float cullingMargin = -30.0f;              // +0xdc, margen inicial de 0x6067ae
-    float alpha = 1.0f;                        // +0x174
-    float targetAlpha = 1.0f;                  // +0x170
-    bool vertexLight = true;                   // +0xe8
-    Render::Models::AnimationState animation;  // +0x111 la acción, +0x114 el frame
+    WorldObjectIdentity identity = 0;              // ID del caller; 0 en la proyección sin registro
+    std::int16_t type = 0;                         // +0x2, el modelo
+    Render::Models::ObjectTransform transform;     // +0xc la escala, +0x10 la posición, +0x1c los ángulos
+    Render::Models::ObjectState state;             // +0x64, +0x68, +0x6c, +0x70 y +0x58
+    glm::vec3 light{};                             // +0xf4..+0xfc, la que se suma a la del terreno
+    float speed = 0.0f;                            // +0xd8, keys por paso
+    float cullingMargin = -30.0f;                  // +0xdc, margen inicial de 0x6067ae
+    float fieldE0 = 50.0f;                         // +0xe0, significado/consumidor sin modelar
+    glm::vec3 basePosition{};                      // +0x17c, segunda copia inicial de la posición
+    glm::vec3 boundsMinimum{-40.0f, -40.0f, 0.0f}; // +0x124..+0x12c
+    glm::vec3 boundsMaximum{40.0f, 40.0f, 80.0f};  // +0x130..+0x138
+    bool alive = true;                             // +0x0
+    float alpha = 1.0f;                            // +0x174
+    float targetAlpha = 1.0f;                      // +0x170
+    bool vertexLight = true;                       // +0xe8
+    Render::Models::AnimationState animation;      // +0x111 la acción, +0x114 el frame
     // +0x16c: se vio en el último dibujo; 0x606560 solo avanza los que tienen esto.
     bool seen = false;
     // +0x1c8: el sector de 16 × 16 celdas donde lo guardó 0x606660, de la posición del archivo.
@@ -63,14 +70,23 @@ inline constexpr std::array<std::size_t, 2> StreetLightGlowBones{8, 9};
 // guardado en float (0x6b882c y 0x6b8854).
 [[nodiscard]] glm::vec3 StreetLightGlowLight(int random);
 
-// 0x606660 con cada registro de `records`, en su orden: vivo, alpha y meta en 1, luz por vértice, luz
-// en 0, velocidad 0,16, sin malla oculta ni blendMesh, luz del blendMesh en 1 y U y V en 0; en el
-// login y la selección, el farol (0x3c) a escala 0,8 y luz 0,2, y el dueño del dragón (0xb4) oculto y
-// con luz blanca; en el mapa 0x37, los remolinos 0x56 y 0x5a a (8.600; 25.000; 5.000) con ángulos 0 y
-// escalas 60 y 110. El margen de recorte es −30, salvo el puente 0x50 del mapa 0, que usa −50. Uno
-// fuera de la grilla de sectores no se crea.
+// Proyección de creación sin registro auxiliar: conserva el vector usado por escenas existentes,
+// casos directos del mapa 0/55 y de las escenas 2/4. No equivale al handler completo: omite
+// 0x606630 y no crea el efecto transitivo de 180 (integrado por su dueño del login). Cada registro
+// válido crea otro objeto, sin pool ni reutilización. Fuera de la grilla no se crea.
 [[nodiscard]] std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records,
                                                           std::uint8_t map, ObjectScene scene);
+
+// Ruta con el estado auxiliar PREEXISTENTE del caller: cada entidad recibe un ID nuevo de
+// registrations.nextIdentity y los tipos 6/133/145/146 del mapa 0 lo registran. Los records deben ser
+// estables y disjuntos del estado/resultados durante la creación. El dominio de tipo es el int16 del
+// Data reader, extendido con signo al despacho (el callee nativo admite int32). El caller conserva
+// el mismo registro/contador durante la vida del mundo y aporta nextIdentity libre al restaurarlo.
+// Precondición del contador portable: 1 <= nextIdentity y records.size() <= UINT64_MAX-nextIdentity;
+// no reproduce un contador nativo. La tabla no mantiene con vida ni resuelve por sí misma los IDs.
+[[nodiscard]] std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records,
+                                                          std::uint8_t map, ObjectScene scene,
+                                                          WorldObjectRegistrations& registrations);
 
 // 0x604ab0 sobre un objeto que se vio: el alpha hacia su meta (0x4e9980) y, si no quedó por debajo de
 // 0,01, la animación a su velocidad

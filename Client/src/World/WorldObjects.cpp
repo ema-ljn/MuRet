@@ -4,6 +4,7 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
+#include "World/WorldObjectRegistrations.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -44,7 +45,7 @@ constexpr float RedWhirlpoolAlpha = std::bit_cast<float>(0x3E4CCCCDu);
 // 0x4e9980: un décimo de lo que le falta al alpha (0x6b87b8).
 constexpr float AlphaApproach = std::bit_cast<float>(0x3DCCCCCDu);
 // 0x606660: la posición por 0,000625 da el sector (de 16 × 16 celdas).
-constexpr float SectorPerUnit = 0.000625f;
+constexpr float SectorPerUnit = std::bit_cast<float>(0x3A23D70Au);
 constexpr int SectorCount = 16;
 
 bool HasSceneCases(ObjectScene scene)
@@ -60,40 +61,160 @@ bool IsLoginMarker(std::int16_t type)
 {
     return type == 0x54 || type == 0x55 || type == 0x57 || type == 0x59;
 }
-} // namespace
+// 06 § Lo propio de Lorencia: las operaciones permanecen en binary64 (PC53/RN del port)
+// hasta el único store binary32, sin redondear primero 1 / escala.
+void ApplyLorenciaCases(WorldObject& object, WorldObjectRegistrations* registrations)
+{
+    constexpr float TreeSpeedFactor = std::bit_cast<float>(0x3ECCCCCDu);
+    constexpr float FastObjectSpeed = std::bit_cast<float>(0x3E99999Au);
+    switch (object.type)
+    {
+    case 0:
+    case 1:
+    {
+        object.boundsMinimum = glm::vec3(-150.0f, -150.0f, 0.0f);
+        object.boundsMaximum = glm::vec3(150.0f, 150.0f, 500.0f);
+        const double reciprocalScale = 1.0 / static_cast<double>(object.transform.scale);
+        object.speed = static_cast<float>(reciprocalScale * static_cast<double>(TreeSpeedFactor));
+        return;
+    }
+    case 6:
+    case 145:
+    case 146:
+        if (registrations != nullptr)
+        {
+            RegisterWorldObject(*registrations, object.identity);
+        }
+        return;
+    case 52:
+        object.state.blendMesh = 1;
+        return;
+    case 59:
+        object.speed = 0.0f;
+        return;
+    case LorenciaBridge:
+        object.cullingMargin = BridgeCullingMargin;
+        return;
+    case 90:
+    case 150:
+        object.state.blendMesh = 1;
+        object.speed = FastObjectSpeed;
+        return;
+    case 96:
+    case 97:
+        object.speed = FastObjectSpeed;
+        return;
+    case 98:
+    case 119:
+        object.state.blendMesh = 2;
+        return;
+    case 105:
+        object.state.blendMesh = 3;
+        return;
+    case 117:
+    case 122:
+        object.state.blendMesh = 4;
+        return;
+    case 118:
+        object.state.blendMesh = 8;
+        return;
+    case 133:
+        if (registrations != nullptr)
+        {
+            RegisterWorldObject(*registrations, object.identity);
+        }
+        object.boundsMaximum = glm::vec3(40.0f, 40.0f, 160.0f);
+        object.state.hiddenMesh = HiddenObject;
+        return;
+    default:
+        // La tabla nativa termina acá: NO cae al switch del mapa 1.
+        return;
+    }
+}
 
-std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records, std::uint8_t map,
-                                            ObjectScene scene)
+void ApplySceneCases(WorldObject& object)
+{
+    switch (object.type)
+    {
+    case StreetLight:
+        object.transform.scale = StreetLightScale;
+        object.light = glm::vec3(StreetLightLight);
+        return;
+    case 160:
+        object.state.blendMesh = 1;
+        object.transform.scale = std::bit_cast<float>(0x3D343958u);
+        object.light = glm::vec3(1.0f);
+        object.vertexLight = false;
+        return;
+    case 161:
+        object.transform.scale = StreetLightScale;
+        object.state.blendMesh = 0;
+        object.light = glm::vec3(1.0f);
+        return;
+    case 162:
+        object.transform.scale = std::bit_cast<float>(0x400CCCCDu);
+        object.state.blendMesh = 1;
+        object.vertexLight = false;
+        return;
+    case 163:
+        object.transform.scale = 3.0f;
+        object.state.blendMesh = 0;
+        object.light = glm::vec3(0.5f);
+        return;
+    case 164:
+        object.state.blendMesh = 10;
+        object.light = glm::vec3(1.0f);
+        return;
+    case DragonOwner:
+        // El efecto transitivo 0x518cf0 conserva su integración propia del login.
+        object.state.hiddenMesh = HiddenObject;
+        object.light = glm::vec3(1.0f);
+        return;
+    default:
+        return;
+    }
+}
+
+WorldObject ObjectOf(const Data::Terrain::TerrainObject& record, int sectorX, int sectorY)
+{
+    WorldObject object;
+    object.type = record.type;
+    object.sectorX = sectorX;
+    object.sectorY = sectorY;
+    object.transform.position = glm::vec3(record.position[0], record.position[1], record.position[2]);
+    object.basePosition = object.transform.position;
+    object.transform.angles = glm::vec3(record.angle[0], record.angle[1], record.angle[2]);
+    object.transform.scale = record.scale;
+    object.speed = ObjectSpeed;
+    return object;
+}
+
+std::vector<WorldObject> CreateObjects(std::span<const Data::Terrain::TerrainObject> records, std::uint8_t map,
+                                       ObjectScene scene, WorldObjectRegistrations* registrations)
 {
     std::vector<WorldObject> objects;
     objects.reserve(records.size());
     for (const Data::Terrain::TerrainObject& record : records)
     {
-        WorldObject object;
-        object.type = record.type;
-        // 0x606660 no crea un objeto fuera de la grilla de sectores; el sector sale de la posición del
-        // archivo, antes de los casos por tipo.
-        object.sectorX = SectorOf(record.position[0]);
-        object.sectorY = SectorOf(record.position[1]);
-        if (object.sectorX < 0 || object.sectorY < 0)
+        // El sector se calcula antes de leer Z/ángulos/escala y antes de cualquier caso de escena.
+        const int sectorX = SectorOf(record.position[0]);
+        const int sectorY = SectorOf(record.position[1]);
+        if (sectorX < 0 || sectorY < 0)
         {
             continue;
         }
-        object.transform.position = glm::vec3(record.position[0], record.position[1], record.position[2]);
-        object.transform.angles = glm::vec3(record.angle[0], record.angle[1], record.angle[2]);
-        object.transform.scale = record.scale;
-        object.speed = ObjectSpeed;
-        if (HasSceneCases(scene) && object.type == StreetLight)
+        WorldObject& object = objects.emplace_back(ObjectOf(record, sectorX, sectorY));
+        if (registrations != nullptr)
         {
-            object.transform.scale = StreetLightScale;
-            object.light = glm::vec3(StreetLightLight);
+            object.identity = registrations->nextIdentity++;
         }
-        // 0x606660, en las escenas 2 y 4: el 0xb4 es el dueño del dragón (06 § El dragón de fondo), no se
-        // dibuja y va con luz blanca; el dragón es un efecto aparte.
-        if (HasSceneCases(scene) && object.type == DragonOwner)
+        if (HasSceneCases(scene))
         {
-            object.state.hiddenMesh = HiddenObject;
-            object.light = glm::vec3(1.0f);
+            ApplySceneCases(object);
+        }
+        if (map == LorenciaMap)
+        {
+            ApplyLorenciaCases(object, registrations);
         }
         if (map == LoginMap && (object.type == RedWhirlpool || object.type == DarkWhirlpool))
         {
@@ -101,13 +222,21 @@ std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::Terra
             object.transform.angles = glm::vec3(0.0f);
             object.transform.scale = object.type == RedWhirlpool ? RedWhirlpoolScale : DarkWhirlpoolScale;
         }
-        if (map == LorenciaMap && object.type == LorenciaBridge)
-        {
-            object.cullingMargin = BridgeCullingMargin;
-        }
-        objects.push_back(object);
     }
     return objects;
+}
+} // namespace
+
+std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records, std::uint8_t map,
+                                            ObjectScene scene)
+{
+    return CreateObjects(records, map, scene, nullptr);
+}
+
+std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records, std::uint8_t map,
+                                            ObjectScene scene, WorldObjectRegistrations& registrations)
+{
+    return CreateObjects(records, map, scene, &registrations);
 }
 
 void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models::Skeleton* skeleton)
@@ -199,7 +328,7 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
 int SectorOf(float coordinate)
 {
     // 0x60666c: el producto queda en la x87 (exacto) y ftol trunca hacia el 0: de −1.600 a 0 todavía es
-    // el sector 0. Un NaN o algo fuera de los int da 0x80000000, que no es un sector.
+    // el sector 0. El port rechaza NaN/fuera de la grilla antes del cast; no reproduce excepciones x87.
     const double sector = static_cast<double>(coordinate) * static_cast<double>(SectorPerUnit);
     if (!(sector > -1.0 && sector < static_cast<double>(SectorCount)))
     {

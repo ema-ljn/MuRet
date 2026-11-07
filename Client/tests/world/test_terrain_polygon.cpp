@@ -137,11 +137,12 @@ TEST(TerrainPolygonTest, WidthKeepsSignedIntegerAndProductBeforeThePointOneStore
         float nearWidth;
     };
     // Vectores analíticos binary32, obtenidos de las constantes exactas, no del código bajo prueba.
-    constexpr std::array<Row, 10> Rows{{{640, 1650, 638},
+    constexpr std::array<Row, 11> Rows{{{640, 1650, 638},
                                         {641, 1652.34375f, 638.90625f},
                                         {853, 2149.21875f, 831.03131103515625f},
                                         {12, 178.125f, 68.875f},
                                         {0, 150, 58},
+                                        {-64, 0, 0}, // W×g cancela exactamente0,1f; no el double0,1.
                                         {-640, -1350, -522},
                                         {16777217, 39321752, 15204411},
                                         {2147483647, 5033164800.0f, 1946157056.0f},
@@ -167,7 +168,8 @@ TEST(TerrainPolygonTest, SpecialAndLevelZeroWidthsHaveTheirOwnIntermediateStore)
         float normalFar;
         float near;
     };
-    constexpr std::array<Row, 5> Rows{{{641, 3004.6875f, 1191.859375f, 540.84375f},
+    constexpr std::array<Row, 6> Rows{{{642, 3009.375244140625f, 1193.7188720703125f, 541.68756103515625f},
+                                       {641, 3004.6875f, 1191.859375f, 540.84375f},
                                        {853, 3998.437744140625f, 1586.046875f, 719.71875f},
                                        {0, 0, 0, 0},
                                        {-640, -3000, -1190, -540},
@@ -207,12 +209,14 @@ TEST(TerrainPolygonTest, NormalDecisionTruncatesBeforeComparisonAndRetainsEveryL
         float target;
         std::int32_t expected;
     };
-    constexpr std::array<Row, 6> Rows{{{1001, 1000, 3},
+    constexpr std::array<Row, 8> Rows{{{1001, 1000, 3},
                                        {1000, 1000, 1},
                                        {999, 1000, 1},
                                        {1000.9f, 1000.1f, 1},
                                        {-1000.9f, -1000.1f, 1},
-                                       {-999.9f, -1000.1f, 3}}};
+                                       {-999.9f, -1000.1f, 3},
+                                       {-0.5f, -1.0f, 3}, // floor adoptaría1.
+                                       {1.5f, 1.0f, 1}}}; // ceil retendría3.
     const auto input = IdentityInput();
     for (const auto& row : Rows)
     {
@@ -265,7 +269,6 @@ TEST(TerrainPolygonTest, Int64BoundaryIsHalfOpenAndInvalidDistancesPrecedeLevelE
                 {std::numeric_limits<std::int16_t>::min(), invalidTarget ? 0 : invalid, invalidTarget ? invalid : 0});
             ASSERT_FALSE(frame.HasValue());
             EXPECT_EQ(frame.Error(), TerrainPolygonError::InvalidCameraDistance);
-            EXPECT_EQ(previous.effectiveLevel, -123);
         }
     }
     for (const float valid : {-0x1p63f, std::nextafter(0x1p63f, 0.0f)})
@@ -296,7 +299,6 @@ TEST(TerrainPolygonTest, OnlyTheChosenLevelIsValidatedAndAValidRequestCanHealSta
         const auto retained = TerrainPolygonFrameOf(previous, input, {2, 1001, 1000});
         ASSERT_FALSE(retained.HasValue());
         EXPECT_EQ(retained.Error(), TerrainPolygonError::InvalidEffectiveLevel);
-        EXPECT_EQ(previous.effectiveLevel, invalid);
         const auto healed = TerrainPolygonFrameOf(previous, input, {2, 1000, 1000});
         ASSERT_TRUE(healed.HasValue());
         EXPECT_EQ(healed.Value().nextState.effectiveLevel, 2);
@@ -504,7 +506,7 @@ TEST(TerrainPolygonTest, OtherComputesAndUpdatesWhileLegacyKeepsPositiveZeroSent
     ExpectBits(legacy, sentinel);
 }
 
-TEST(TerrainPolygonTest, QueryFreezesLevelWhileGeometryChangesAndFrameFailureLeavesSnapshot)
+TEST(TerrainPolygonTest, QueryFreezesLevelWhileGeometryChangesAndFrameFailureReturnsOnlyError)
 {
     const TerrainPolygonState previous{3};
     auto input = IdentityInput();
@@ -517,7 +519,6 @@ TEST(TerrainPolygonTest, QueryFreezesLevelWhileGeometryChangesAndFrameFailureLea
         const auto frame = TerrainPolygonFrameOf(previous, input, {0, 1001, 1000});
         ASSERT_TRUE(frame.HasValue());
         ExpectBits(query.Value(), frame.Value().polygon);
-        EXPECT_EQ(previous.effectiveLevel, 3);
     }
     const auto adopted = TerrainPolygonFrameOf(previous, input, {2, 0, 0});
     ASSERT_TRUE(adopted.HasValue());
@@ -526,7 +527,42 @@ TEST(TerrainPolygonTest, QueryFreezesLevelWhileGeometryChangesAndFrameFailureLea
     ExpectBits(query.Value(), adopted.Value().polygon);
     const auto failed = TerrainPolygonFrameOf(previous, input, {-1, 0, 0});
     ASSERT_FALSE(failed.HasValue());
-    EXPECT_EQ(previous.effectiveLevel, 3);
+}
+
+// Fórmula legacy (antes de CL7.5E), cálculo analítico independiente: yaw37,25°, W853.
+// π/180=0x3c8efa35; seno almacenado0x3f1af48c, coseno almacenado0x3f4bc6ca.
+// Si radianes se redondea antes a float, coseno queda0x3f4bc6c9 y cambian esquinas.
+TEST(TerrainPolygonTest, GenericYawAndNonDefaultWidthMatchLegacyCornerBits)
+{
+    auto input = IdentityInput();
+    input.cameraYaw = -37.25f;
+    input.worldWidth = 853;
+    input.translation = {123.25f, -987.5f, 333};
+    const auto query = TerrainPolygonOf(input, 0);
+    ASSERT_TRUE(query.HasValue());
+    const auto legacy = TerrainPolygonOf(Client::World::CullingScene::Game, 55, input.translation, -37.25f, 853);
+    constexpr std::array<std::uint32_t, 4> X{0xc198bc04u, 0x40c50f5eu, 0x413076feu, 0xbedb98d2u};
+    constexpr std::array<std::uint32_t, 4> Y{0xc1159a03u, 0x411d9b34u, 0xc12de22eu, 0xc19ca4f6u};
+    EXPECT_FALSE(query.Value().everything);
+    EXPECT_FALSE(legacy.everything);
+    for (std::size_t i = 0; i < X.size(); ++i)
+    {
+        SCOPED_TRACE(i);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(query.Value().x[i]), X[i]);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(query.Value().y[i]), Y[i]);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(legacy.x[i]), X[i]);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(legacy.y[i]), Y[i]);
+    }
+}
+
+TEST(TerrainPolygonTest, LegacyCastleUsesHeroForRegionAndTranslation)
+{
+    const glm::vec3 largeHero{16500, 20000, 333};
+    const glm::vec3 smallHero{17700, 20000, 333};
+    const auto large = TerrainPolygonOf(Client::World::CullingScene::Game, 30, largeHero, -37.25f);
+    const auto small = TerrainPolygonOf(Client::World::CullingScene::Game, 30, smallHero, -37.25f);
+    ExpectBits(large, AnalyticalPolygon(2250, 540, 2703, -1428, largeHero, 1));
+    ExpectBits(small, AnalyticalPolygon(1300, 580, 1749, -924, smallHero, 1));
 }
 
 TEST(TerrainPolygonTest, LegacySelection54KeepsHistoricalCornerBits)

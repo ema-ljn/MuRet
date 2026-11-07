@@ -23,6 +23,7 @@ ni a un informe; tampoco el log que da `pcap2log.py`.
 | `decode.py` | un paquete por línea (conexión, hora, puerto, sentido, frame, serial, en claro y con `--wire` como viajó); `--heads` para elegir opcodes, `--count` para contar sin bytes | CL7.L1 (la respuesta del `F3 03`: celda (133, 127), mapa 0, dirección 0), CL7.L3 (el `F3 10`), CL7.4 B (`D3`, `D7`), CL7.5 C (`1C`, `F3 04`, `F3 12`) |
 | `pcap2log.py` | el PCAP al formato del `muproxy.log`, por conexión y sentido, con `ACC` y `GAP` | CL7.5 C (los cuatro `1C` y sus `F3 12`, `C1 04 F3 68` en el cable) |
 | `walk_stats.py` | los `A3` del cliente (el `D3` de `main.exe` con el opcode de FoxAnti): los largos, la dirección final y los del blanco al lado del final; y el eco de los `D3` del servidor | CL7.4 B, CL7.4 E |
+| `inventory_fixture.py` | genera exclusivamente los siete pares C4/C2 F3/10 con la referencia matemática independiente; comprueba checksum/layout y escribe sidecars privados fuera del repo | CL7.L3 |
 
 Desde la raíz del repo, con la carpeta delante (`Client/docs/research/scripts/game/wire/`):
 
@@ -38,3 +39,21 @@ python -I walk_stats.py
 
 Las conexiones se cuentan con las líneas `ACC` de todos los puertos (la primera es la 1), como en el
 barrido C: en el `muproxy.log`, los caminos de Lorencia son de las conexiones 6, 10, 58, 68 y 70.
+
+Para el golden de inventario, definir las tres variables de arriba y generar los sidecars en la
+carpeta del cable (puede invocarse desde cualquier carpeta, con la ruta del script):
+
+```bash
+python3 -I Client/docs/research/scripts/game/wire/inventory_fixture.py --output-dir "$MURET_CLIENT_WIRE_DIR"
+ctest --preset linux-x64-debug -R '^GoldenEncryptedPacket\.'
+```
+
+`--log` permite elegir otro log; las claves siguen en `MURET_CLIENT_WIRE_DIR`. El generador exige
+los siete casos conocidos: cinco de 5 entradas, uno de 2 y uno de 6. Escribe únicamente
+`inventory-capture-0.c4` a `inventory-capture-6.c4`, `inventory-reference-0.c2` a
+`inventory-reference-6.c2` y `inventory-fixture-manifest.json` con metadatos y SHA-256. El C4 tiene
+retirada la máscara externa; el C2 está normalizado según ADR0003. No ejecuta el EXE: la referencia
+lo lee como datos. Repetirlo con las mismas entradas produce los mismos archivos y hashes; stdout
+solo informa cantidad y hash del manifest. Rechaza salidas dentro del checkout. Los pares, el log
+y las claves quedan fuera de Git; el golden compara todos sus bytes sin imprimir valores. Es una
+captura finita, no una nueva corrida del cliente ni una validación de la aplicación del equipo.

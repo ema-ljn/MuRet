@@ -426,6 +426,16 @@ incluso con cantidad cero, mutaciones por alias/callees, efectos/RNG, decoder y 
 pendientes en L3/P. No se atribuye aquí significado al segundo argumento ni equivalencia frente a
 una cantidad mutable.
 
+El golden `GoldenEncryptedPacket.ReadsAllSevenInventoryCapturesAgainstTheIndependentReference`
+contrasta las siete capturas F3/10 del log del laboratorio (SHA-256
+`f09225602bdd1cb0cf8184eda60639de0871ed59d5d4a6fe9bec14b013f0dfb0`): cantidades 5, 5, 2, 5, 5,
+5 y 6; slots 0/12/14/17/23 para cinco, 0/1 para dos y el slot 28 adicional para seis. Procesa
+primero los 25 C3/C4 S->C con sus seriales por conexión y después compara cada C4 y C2 completo,
+slot y siete bytes opacos contra sidecars de la referencia matemática Python independiente.
+El C2 está normalizado según ADR0003, sin afirmar identidad con la cabecera defectuosa nativa.
+Los pares quedan fuera de Git y las comparaciones no revelan valores. Son siete casos observados,
+no una nueva captura viva ni una certificación universal del handler o la aplicación del equipo.
+
 ### Caminar y pegar: `D3` y `D7`
 
 **El `D3` del cliente, caminar** (`SendMove`, `0x56acd0`; *estático*; *emulado* y *verificado* en el

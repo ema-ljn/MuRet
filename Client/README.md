@@ -486,6 +486,23 @@ MURET_CLIENT_WIRE_DIR=/ruta/a/cable ctest --preset linux-x64-debug
 Los tests que comparan estas claves con las del cliente, `Enc1.dat` y `Dec2.dat`, necesitan
 también la carpeta golden, y no muestran un valor de una clave, ni al fallar.
 
+El golden F3/10 de `GoldenEncryptedPacket` contrasta las siete capturas de inventario con una
+referencia Python independiente, byte a byte y sin imprimir valores. Antes de correrlo, generar
+sus sidecars privados en la carpeta del cable, con el entorno del laboratorio:
+
+```bash
+export MURET_CLIENT_WIRE_DIR=/ruta/a/cable
+export MURET_C3C4_REFERENCE=/ruta/a/c3c4_reference.py
+export MURET_MAIN_EXE=/ruta/a/main.exe
+python3 -I Client/docs/research/scripts/game/wire/inventory_fixture.py --output-dir "$MURET_CLIENT_WIRE_DIR"
+ctest --preset linux-x64-debug -R '^GoldenEncryptedPacket\.'
+```
+
+El [generador](docs/research/scripts/game/wire/README.md) solo lee el EXE como datos y escribe los
+pares `inventory-capture-<index>.c4`/`inventory-reference-<index>.c2` (0 a 6) y un manifest local;
+nunca van a Git. Sin la variable del cable, el test se saltea; con ella definida, un sidecar
+ausente falla. Cubre estos siete paquetes reales, no una sesión viva ni la semántica del equipo.
+
 Los del login (`GoldenLogin`, desde la CL2.5) usan solo la carpeta del cable, con `Dec1.dat`:
 eligen del cable los login, los keepalive, los saludos y las respuestas, y miran cabeceras,
 tamaños, opcodes y la versión. De la cuenta, la clave y el serial no miran nada.

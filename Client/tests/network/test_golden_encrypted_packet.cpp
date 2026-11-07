@@ -6,6 +6,7 @@
 #include "Network/IObfuscation.h"
 #include "Network/Packet.h"
 #include "Network/PacketSerials.h"
+#include "Protocol/Character/InventoryList.h"
 
 #include "support/FileBytes.h"
 #include "support/GoldenDir.h"
@@ -18,6 +19,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -59,6 +61,8 @@ using Client::Network::Crypto::EncryptionKey;
 using Client::Network::Crypto::LoadDecryptionKey;
 using Client::Network::Crypto::LoadEncryptionKey;
 using Client::Network::Crypto::PlainBlockSize;
+using Client::Protocol::Character::InventoryList;
+using Client::Protocol::Character::ReadInventoryList;
 using Client::Tests::CutPackets;
 using Client::Tests::LoadKeyFile;
 using Client::Tests::ParseWireCapture;
@@ -267,6 +271,29 @@ bool ExpectEncryptedAgainLikeTheWire(const WirePacket& packet, const DecryptedBl
     return sameBefore && sameLast;
 }
 
+// El oráculo Python fija un C2 normalizado (ADR0003), count en 5 y entradas desde 6, stride 8.
+// Solo slots y tamaños se imprimen; los siete bytes opacos siempre se comparan sin valores.
+void ExpectInventoryEntries(const InventoryList& list, std::span<const std::byte> reference)
+{
+    constexpr std::size_t EntriesOffset = 6;
+    constexpr std::size_t ReferenceStride = 8;
+    ASSERT_GE(reference.size(), EntriesOffset);
+    const std::uint8_t count = std::to_integer<std::uint8_t>(reference[5]);
+    ASSERT_TRUE(count == 2 || count == 5 || count == 6);
+    ASSERT_EQ(reference.size(), EntriesOffset + ReferenceStride * count);
+    ASSERT_EQ(list.items.size(), count);
+    constexpr std::array<std::uint8_t, 6> ExpectedSlots = {0, 12, 14, 17, 23, 28};
+    for (std::size_t index = 0; index < count; ++index)
+    {
+        SCOPED_TRACE(index);
+        const std::size_t offset = EntriesOffset + ReferenceStride * index;
+        const auto slot = std::to_integer<std::uint8_t>(reference[offset]);
+        EXPECT_EQ(slot, count == 2 ? index : ExpectedSlots[index]);
+        EXPECT_EQ(list.items[index].slot, slot);
+        EXPECT_TRUE(SameBytesWithoutValues(list.items[index].item, reference.subspan(offset + 1, 7)));
+    }
+}
+
 class GoldenEncryptedPacket : public Client::Tests::GoldenAndWireDataTest
 {
 protected:
@@ -323,6 +350,32 @@ protected:
         return packets;
     }
 
+    std::optional<std::vector<char>> LoadWireFile(std::string_view name) const
+    {
+        const auto path = WireFile(name);
+        if (!path)
+        {
+            return std::nullopt;
+        }
+        auto file = ReadFileBytes(*path);
+        EXPECT_TRUE(file.has_value()) << "no se pudo leer " << name;
+        return file;
+    }
+
+    void ExpectInventoryReference(const WirePacket& packet, std::size_t index) const
+    {
+        const std::string suffix = std::to_string(index);
+        const auto capture = LoadWireFile("inventory-capture-" + suffix + ".c4");
+        const auto reference = LoadWireFile("inventory-reference-" + suffix + ".c2");
+        ASSERT_TRUE(capture && reference && packet.plain);
+        const std::span<const std::byte> expected = std::as_bytes(std::span(*reference));
+        EXPECT_TRUE(SameBytesWithoutValues(packet.encrypted.Bytes(), std::as_bytes(std::span(*capture))));
+        EXPECT_TRUE(SameBytesWithoutValues(packet.plain->Bytes(), expected));
+        const auto list = ReadInventoryList(*packet.plain);
+        ASSERT_TRUE(list.HasValue());
+        ExpectInventoryEntries(list.Value(), expected);
+    }
+
     std::vector<WireConnection> m_connections;
     std::optional<EncryptionKey> m_enc1;
     std::optional<DecryptionKey> m_dec1;
@@ -359,6 +412,44 @@ TEST_F(GoldenEncryptedPacket, DecryptsWhatTheGameServerAnswered)
     EXPECT_EQ(counts.c3, 18u);
     EXPECT_EQ(counts.c4, 7u);
     EXPECT_EQ(counts.connections, 7u);
+}
+
+// Siete capturas finitas, contra C4/C2 obtenidos con la referencia matemática Python independiente.
+// DecryptAll procesa primero todos los C3/C4: filtrar antes perdería los seriales previos.
+TEST_F(GoldenEncryptedPacket, ReadsAllSevenInventoryCapturesAgainstTheIndependentReference)
+{
+    const FoxAntiObfuscation foxAnti;
+    const std::vector<WirePacket> answered = DecryptAll(WireDirection::ServerToClient, foxAnti, *m_dec2);
+    ASSERT_EQ(answered.size(), 25u);
+    std::size_t found = 0;
+    std::array<std::size_t, 7> counts{};
+    for (const WirePacket& packet : answered)
+    {
+        ASSERT_TRUE(packet.plain.has_value());
+        if (packet.plain->Type() != PacketType::C2 || packet.plain->Opcode() != 0xF3)
+        {
+            continue;
+        }
+        const std::span<const std::byte> bytes = packet.plain->Bytes();
+        ASSERT_GE(bytes.size(), 5u);
+        if (bytes[4] != std::byte{0x10})
+        {
+            continue;
+        }
+        SCOPED_TRACE(found);
+        ASSERT_LT(found, 7u);
+        ASSERT_EQ(packet.encrypted.Type(), PacketType::C4);
+        ASSERT_GE(bytes.size(), 6u);
+        const auto count = std::to_integer<std::uint8_t>(bytes[5]);
+        ASSERT_LT(count, counts.size());
+        ASSERT_NO_FATAL_FAILURE(ExpectInventoryReference(packet, found));
+        ++counts[count];
+        ++found;
+    }
+    EXPECT_EQ(found, 7u);
+    EXPECT_EQ(counts[2], 1u);
+    EXPECT_EQ(counts[5], 5u);
+    EXPECT_EQ(counts[6], 1u);
 }
 
 // Los 183 C3 del cliente, descifrados con DecryptPacket y cifrados de nuevo con EncryptPacket, con

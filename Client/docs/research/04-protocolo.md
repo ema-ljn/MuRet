@@ -411,6 +411,31 @@ del GS reconstruido. Cada entrada va a `0x5bc740(…, lugar, bytes)`, que la pas
 cable, `F3 10 05` y 40 bytes: cinco entradas, en los lugares 0, `0x0c`, `0x0e`, `0x11` y `0x17`
 (*verificado*). Llega en el mismo segmento que la respuesta del `F3 03` (P-C28 a).
 
+El cotejo completo de `0x4c55a0` (661 instrucciones, 2327 bytes) confirma, en la rama de segundo
+argumento no nulo y después de la inicialización común, cantidad **u8 en `p+5`**, primera entrada
+en `p+6`, stride 8, slot u8 en `entrada+0` y puntero opaco `entrada+1` pasado al callee. Relee la
+cantidad tras cada llamada; no inspecciona `p[0..4]`, no comprueba longitud ni lee directamente los
+siete bytes. El tamaño de esos datos opacos del wire se apoya en el stride y las cinco entradas/40
+bytes de arriba; el C2 reconstruido corresponde al transporte de MuRet y al ADR0003. El lector
+puro `ReadInventoryList` exige bytes vivos y estables durante la llamada y produce una copia
+propia, en orden y con duplicados y todos los slots; ignora trailing no contado, sin exigir
+`WasDecrypted`. Devuelve `TooShort` sin resultado parcial si falta cantidad o una entrada
+([ADR0010](../../../docs/adr/0010-inventario-truncado.md)); la infraestructura rechaza otro
+tipo/opcode/subcódigo. Esta proyección no reproduce el handler: admisión por flag, inicialización
+incluso con cantidad cero, mutaciones por alias/callees, efectos/RNG, decoder y aplicación siguen
+pendientes en L3/P. No se atribuye aquí significado al segundo argumento ni equivalencia frente a
+una cantidad mutable.
+
+El golden `GoldenEncryptedPacket.ReadsAllSevenInventoryCapturesAgainstTheIndependentReference`
+contrasta las siete capturas F3/10 del log del laboratorio (SHA-256
+`f09225602bdd1cb0cf8184eda60639de0871ed59d5d4a6fe9bec14b013f0dfb0`): cantidades 5, 5, 2, 5, 5,
+5 y 6; slots 0/12/14/17/23 para cinco, 0/1 para dos y el slot 28 adicional para seis. Procesa
+primero los 25 C3/C4 S->C con sus seriales por conexión y después compara cada C4 y C2 completo,
+slot y siete bytes opacos contra sidecars de la referencia matemática Python independiente.
+El C2 está normalizado según ADR0003, sin afirmar identidad con la cabecera defectuosa nativa.
+Los pares quedan fuera de Git y las comparaciones no revelan valores. Son siete casos observados,
+no una nueva captura viva ni una certificación universal del handler o la aplicación del equipo.
+
 ### Caminar y pegar: `D3` y `D7`
 
 **El `D3` del cliente, caminar** (`SendMove`, `0x56acd0`; *estático*; *emulado* y *verificado* en el

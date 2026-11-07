@@ -3152,6 +3152,18 @@ los casos de las escenas 2 y 4 (el farol):
 
 Los demás tipos van con lo de siempre (la velocidad 0,16).
 
+El port de creación ofrece una ruta con `WorldObjectRegistrations` **preexistente del caller**:
+200 entradas, primer flag cero, store de activo 1 y luego identidad, preservando metadata; acepta
+null/duplicados y, llena, no escribe ni impide crear objetos. `0x606630` no calcula poses ni consume
+RNG. Los IDs64 son identidad portable no poseedora, con 0 para null: el caller conserva unicidad,
+contador sin overflow y vida de entidades; mover/realocar el vector no cambia IDs, y copiarlo es una
+instantánea, no nuevas entidades. El tipo viene del int16 firmado del Data reader, no de todo el
+dominio int32 nativo; records y estado deben estar estables y disjuntos. Los casos directos map0
+terminan sin caer al mapa1 (el pseudocódigo sugería lo contrario); 133 registra antes de cambiar caja
+y ocultamiento. Se modelan alive, cajas y segunda posición, sin el blob i386 ni bytes todavía sin
+consumidor. La API anterior es una proyección sin registro; el efecto transitivo 180→`0x518cf0` sigue
+siendo una integración aparte. Esta creación no cierra L2 ni el orden/dueño de L1, paso o renderer.
+
 **En cada paso** (`0x604ab0`, el `switch` de `0x604d68`; *estático* y *emulado*):
 
 - **Los techos de la taberna**, `0x7d` y `0x7e` (`HouseWall05` y `06`), antes del `switch`

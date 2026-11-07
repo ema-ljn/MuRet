@@ -724,16 +724,22 @@ arrancar; lo que se sabe:
 ## Sub-ola CL7.4 D: el picking del terreno
 
 **Contrato:** 06 § Caminar (`0x5fc260(1)` → `0x5fc190` → `0x5fc0e0` → `0x5fac90` con `Flag`, `0x622440` y
-`0x622170`). PR propio. Se detalla al arrancar; lo que se sabe:
+`0x622170`), más el consumidor acotado `0x59ddf3..0x59deb3`. PR propio.
 
-- **Qué:** `World::TerrainPicking`: la recta contra las dos caras de cada celda visible, en el orden de los
-  bloques y las celdas del recorte; gana la más cercana a la cámara; las celdas con `0x08` también se
-  clickean; el segundo llamado sobre la última celda elegida (aunque el rayo de ahora no haya tocado nada);
-  `TargetX/Y` con `ftol(punto · 0,01) & 0xff`.
-- **Tests:** `TerrainPickingTest.MatchesTheEmulatedCode` (`make_terrain_pick_vectors.py`: `0x622440` con
-  segmentos y caras al azar y sus bordes, y `0x5fc260(1)` con cámaras y mouse al azar sobre Lorencia);
-  `TheNearestFaceWins`, `CellsThatAreNotDrawnCanBeClicked`, `AMissKeepsTheLastSelection`; un *smoke* con la
-  cámara de la traza: el rayo del centro de la pantalla cae en una celda de las que dibuja.
+- **Qué:** `World::TerrainPicking` puro con estado explícito: clear SelectFlag → reset maxT (conserva
+  hit/XY), blockY→blockX→row→col, frustum en ambos niveles, hidden pickeable y 0x40 por esquina.
+  Primera cara012; sólo al fallar,023. Gana menor t entre intentos reales; igualdad reemplaza.
+  Bordes estrictos, backface, bounds inclusivos y prioridad de proyección x/y por ±0,5 del ASM.
+  Retry interno sólo tras hit; **otro retry externo siempre**, cuyo AL habilita TargetX/Y DWORD y
+  DontMove. Productos por0,01f retenidos antes de trunc signed64 y máscara0xff. Miss/error conserva
+  target. No integra aún escena, cadencia/UI, Shift ni caminar (CL7.4E).
+- **Tests:** `TerrainPickingTest` usa literales/geometría analítica para triángulos, fronteras,
+  nearest, hidden/fixedHeight, frustum/override, rangos, persistencia, igualdad del retry,
+  target/truncamiento/cursor y errores. `GoldenTerrainPicking` usa Data de Lorencia, Devias,
+  World19/56 y el rayo de `GameCamera` de Lorencia con selección retenida. Son pruebas del componente,
+  sin muestra nativa de picking; la secuencia interna sin efecto final distinguible se revisa en
+  fuente. `MatchesTheEmulatedCode`/generador eran propuesta histórica: no se ejecutaron ni crearon
+  nuevos vectores emulados. Contrato PC53/nearest declarado; CW nativa, startup y CL7.4E pendientes.
 
 ## Sub-ola CL7.4 E: caminar en la escena
 

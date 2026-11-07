@@ -170,7 +170,7 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 | CL7.3 A | integrado por [PR138](https://github.com/ema-ljn/MuRet/pull/138) | la integración de la cámara en el mundo jugable pertenece a L1 |
 | CL7.3 B | integrado por [PR141](https://github.com/ema-ljn/MuRet/pull/141), CI verde | sub-ola completa; no cierra los demás efectos ni las escenas |
 | CL7.P | fase documentada en [PR144](https://github.com/ema-ljn/MuRet/pull/144) e incremento modular incorporado por [PR151](https://github.com/ema-ljn/MuRet/pull/151); abierta | estado lógico inicial, fase nativa, nesting y orden observable de RNG; sin portar protecciones |
-| CL7.L1 | lector F3/03 incorporado por [PR149](https://github.com/ema-ljn/MuRet/pull/149) y procedencia del descifrado por [PR154](https://github.com/ema-ljn/MuRet/pull/154) | handler/aplicación, espera retenida, InWorld, carga del mapa recibido, héroe y pase 640×432 |
+| CL7.L1 | lector F3/03 incorporado por [PR149](https://github.com/ema-ljn/MuRet/pull/149) y procedencia del descifrado por [PR154](https://github.com/ema-ljn/MuRet/pull/154); recepción ordenada propuesta en [PR162](https://github.com/ema-ljn/MuRet/pull/162), fuera de main | aplicación con contexto histórico y consumo antes del frame, espera retenida, InWorld, carga del mapa recibido, héroe y pase 640×432 |
 | CL7.L2 | modelos con nombre incorporados por [PR142](https://github.com/ema-ljn/MuRet/pull/142), margen individual/Bridge01 por [PR150](https://github.com/ema-ljn/MuRet/pull/150) | creación/paso/dibujo completos de 2.870 objetos y orden completo del pase |
 | CL7.L3 | lector puro F3/10 incorporado por [PR159](https://github.com/ema-ljn/MuRet/pull/159), contrastado con siete capturas reales | decoder semántico de ítems, inicialización/aplicación, equipo del mundo, matriz de parado, aparición y zonas seguras/mascota |
 | CL7.L4 | pendiente | luz dinámica compartida y pasto, incluidos carga/RNG y vértices |
@@ -180,7 +180,7 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 | CL7.4 C | función completa de velocidad `0x508940` incorporada por [PR155](https://github.com/ema-ljn/MuRet/pull/155) | consumidor de velocidad, spline, celda lógica, giro, posición/altura, acciones y orden exterior; cinco muestras x87 abiertas en P-C32 |
 | CL7.4 D | componente completo incorporado por [PR153](https://github.com/ema-ljn/MuRet/pull/153) | conectar al rayo y clic de la escena en 4E |
 | CL7.4 E | pendiente | clic → camino → D3 → movimiento; cooldowns, D3/D7 recibidos y recorte |
-| CL7.5 A | infraestructura genérica parcial | todas las familias de modelos/mapas, estados de carga y errores del Data original |
+| CL7.5 A | infraestructura genérica parcial; identidad efectiva de carga propuesta en [PR161](https://github.com/ema-ljn/MuRet/pull/161), fuera de main | todas las familias de modelos/mapas, variantes 30/34, estados de carga y errores del Data original |
 | CL7.5 B | carga y decisión pura incorporadas por [PR152](https://github.com/ema-ljn/MuRet/pull/152) | conectar caller/tiempo lazy/sesión/efectos; falta el consumidor en la escena |
 | CL7.5 C | componente puro integrado por [PR140](https://github.com/ema-ljn/MuRet/pull/140) | espera de warp y aplicación en escena después de L1 |
 | CL7.5 D | pendiente | carga dentro del paso, retención, limpieza selectiva, reconstrucción y vuelta por gates |
@@ -234,6 +234,34 @@ fallos ni omisiones; las únicas diferencias son este plan y `08-pendientes.md`.
 conjunta ya registrada, no una nueva ejecución sobre el main posterior a los merges. Estas entregas
 no equivalen al cierre de L1, L2 ni P. PR144 ya incorporó la precisión documental de fase:
 resto firmado 57 al dividir por 313, condicionado al snapshot previo y sin inicio nativo supuesto.
+
+### Entregas propuestas después de ese snapshot
+
+- [PR161](https://github.com/ema-ljn/MuRet/pull/161), `425b633`: dos observaciones de mapa
+  independientes y consumidor local de identidad efectiva en LoadedWorld; 32 se publica como 9.
+  Conserva los 256 resultados de WorldFolderNumber. No completa `0x61a560`, sus modelos o errores.
+- [PR162](https://github.com/ema-ljn/MuRet/pull/162), `06e2258`: una secuencia propietaria F3/03–F3/10
+  conserva orden y multiplicidad sin cambiar estado ni deadline. Sólo recepción; no aplica el mundo.
+  El aplicador deberá resolver contexto histórico, retención y progreso: el estado al drenar no
+  reconstruye necesariamente el estado al recibir dentro de un mismo Poll. Debe distinguir el ID
+  del wire del efectivo de carga, y consumir antes del paso/dibujo, incluso en un frame sin pasos.
+
+Ambos PR tienen revisión cruzada Astra6Ultra/Opus5.5xhigh y sus correcciones obligatorias cerradas.
+El ensamblado local `e988fe3` combina esos dos heads sobre `61c568d`: build con warnings como errores,
+2.648 tests incluidos 83 GL y cero fallos, errores, omisiones, deshabilitados o no ejecutados.
+Se comprobaron los hashes de sus 14 archivos. Es evidencia de esa composición, no de un merge en main
+ni equivalencia completa con el original; los checks de cada head se consultan en sus PR.
+
+Una entrada observada del original en XP registró 4.500 muestras pasivas sin errores: selección,
+carga y mundo en Lorencia, con `0x3c` observado antes de `0x3d`. La primera muestra en `0x3d` ya tenía
+alpha 0,15. La captura es secuencial, no atómica ni sincronizada con pasos/frames; no acredita el primer
+frame, el origen del stamp del constructor, el estado lógico inicial o la fase/nesting/RNG global.
+El archivo crudo queda fuera de Git; SHA-256
+`2bbb9975a9419ccb4602d359953ed2c7853bd46333d9d36f509624266e2fea74`.
+
+L1 necesita efectos concretos de creación y equipo que cruzan L2/L3: el handler original los aplica
+antes de publicar el héroe y `0x3d`. Los contratos de constructor, limpieza y equipo no permiten asumir un actor vacío,
+un slot fijo ni equipo inicial vacío. No reemplazar esos efectos pendientes por no-ops para declarar L1.
 
 ### Lo que todavía impide declarar completa toda CL7
 

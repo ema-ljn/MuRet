@@ -151,7 +151,9 @@ si no choca con eso; si choca, queda para más adelante.
 
 ## Orden y hitos
 
-Estado contrastado con `main` **`6e8622d`**, los PR abiertos y el código, 2026-11-06.
+Estado contrastado con `origin/main` **`767c1da`**, el código y los merges de GitHub, 2026-11-07.
+PR144, PR146 y PR149–155 están mergeados. Los componentes de esas entregas ya están incorporados
+en `main`; sus consumidores pendientes se enumeran por separado.
 «Componente puro» no significa que la funcionalidad esté integrada en la escena.
 
 **Criterio de Emanuel, 2026-11-06:** el gameplay de CL7 debe funcionar en todos los mapas de juego
@@ -167,52 +169,80 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 | --- | --- | --- |
 | CL7.3 A | integrado por [PR138](https://github.com/ema-ljn/MuRet/pull/138) | la integración de la cámara en el mundo jugable pertenece a L1 |
 | CL7.3 B | integrado por [PR141](https://github.com/ema-ljn/MuRet/pull/141), CI verde | sub-ola completa; no cierra los demás efectos ni las escenas |
-| CL7.P | abierta; [PR144](https://github.com/ema-ljn/MuRet/pull/144) es documentación en draft | estado lógico, inicialización/fase y orden observable de RNG; sin portar protecciones |
-| CL7.L1 | pendiente | respuesta F3 03, espera retenida, InWorld, carga del mapa recibido, héroe y pase 640×432 |
-| CL7.L2 | modelos con nombre integrados por [PR142](https://github.com/ema-ljn/MuRet/pull/142) | creación/paso/dibujo de 2.870 objetos y orden completo del pase |
-| CL7.L3 | pendiente | F3 10, equipo del mundo, matriz de parado, aparición y zonas seguras/mascota |
+| CL7.P | fase documentada en [PR144](https://github.com/ema-ljn/MuRet/pull/144) e incremento modular incorporado por [PR151](https://github.com/ema-ljn/MuRet/pull/151); abierta | estado lógico inicial, fase nativa, nesting y orden observable de RNG; sin portar protecciones |
+| CL7.L1 | lector F3/03 incorporado por [PR149](https://github.com/ema-ljn/MuRet/pull/149) y procedencia del descifrado por [PR154](https://github.com/ema-ljn/MuRet/pull/154) | handler/aplicación, espera retenida, InWorld, carga del mapa recibido, héroe y pase 640×432 |
+| CL7.L2 | modelos con nombre incorporados por [PR142](https://github.com/ema-ljn/MuRet/pull/142), margen individual/Bridge01 por [PR150](https://github.com/ema-ljn/MuRet/pull/150) | creación/paso/dibujo completos de 2.870 objetos y orden completo del pase |
+| CL7.L3 | lector puro F3/10 propuesto en [PR159](https://github.com/ema-ljn/MuRet/pull/159), fuera de main | decoder semántico de ítems, inicialización/aplicación, equipo del mundo, matriz de parado, aparición y zonas seguras/mascota |
 | CL7.L4 | pendiente | luz dinámica compartida y pasto, incluidos carga/RNG y vértices |
 | CL7.L5 | pendiente | hojas/clima, pájaros, peces, fuegos y fuente |
 | CL7.4 A | componente puro integrado por [PR143](https://github.com/ema-ljn/MuRet/pull/143) | caminar a distancia cero implementado; consumidor/RNG pendientes en4E/P. La búsqueda por radio queda fuera de ese contrato; no confundir pruebas dirigidas con los 171 caminos del cable |
 | CL7.4 B | componente puro integrado por [PR139](https://github.com/ema-ljn/MuRet/pull/139) | consumidor y envío en la escena, CL7.4 E; precisión nativa del emisor pendiente |
-| CL7.4 C | pendiente | spline, celda lógica, velocidad, carrera/giro/altura y acciones según clase/equipo/mapa |
-| CL7.4 D | implementado en [PR153](https://github.com/ema-ljn/MuRet/pull/153), draft con verificación pendiente | CI verde; cerrar brechas de tests de la revisión cruzada y conectar al rayo/clic en 4E |
+| CL7.4 C | función completa de velocidad `0x508940` incorporada por [PR155](https://github.com/ema-ljn/MuRet/pull/155) | consumidor de velocidad, spline, celda lógica, giro, posición/altura, acciones y orden exterior; cinco muestras x87 abiertas en P-C32 |
+| CL7.4 D | componente completo incorporado por [PR153](https://github.com/ema-ljn/MuRet/pull/153) | conectar al rayo y clic de la escena en 4E |
 | CL7.4 E | pendiente | clic → camino → D3 → movimiento; cooldowns, D3/D7 recibidos y recorte |
 | CL7.5 A | infraestructura genérica parcial | todas las familias de modelos/mapas, estados de carga y errores del Data original |
-| CL7.5 B | carga/decisión pura en [PR152](https://github.com/ema-ljn/MuRet/pull/152), listo con CI verde | conectar caller/tiempo lazy/sesión/efectos; no integrado aún |
+| CL7.5 B | carga y decisión pura incorporadas por [PR152](https://github.com/ema-ljn/MuRet/pull/152) | conectar caller/tiempo lazy/sesión/efectos; falta el consumidor en la escena |
 | CL7.5 C | componente puro integrado por [PR140](https://github.com/ema-ljn/MuRet/pull/140) | espera de warp y aplicación en escena después de L1 |
 | CL7.5 D | pendiente | carga dentro del paso, retención, limpieza selectiva, reconstrucción y vuelta por gates |
-| CL7.5 E | parcial en componentes de cámara/terreno | aplicar y validar las familias de otros mapas en su frame completo |
+| CL7.5 E | componentes de cámara/terreno en main; ondas de Kalima en [PR157](https://github.com/ema-ljn/MuRet/pull/157) y núcleo completo del trapecio en [PR158](https://github.com/ema-ljn/MuRet/pull/158), propuestas fuera de main | integración temporal del trapecio, resto del agua de Kalima, particularidades de otras familias y frame integrado por mapa |
 | CL7.6 y arrastres | nubes integradas por PR147; efectos restantes parciales | neblina visual pospuesta; fuego, selección, luces, armas y casco/polvo siguen abiertos |
 | Cierre | abierto | barrido transversal con ramas, estado, orden, transiciones y evidencia nativa pendiente |
 
-### Entregas independientes en revisión (2026-11-06)
+### Componentes incorporados y propuestas (2026-11-07)
+
+PR149–155 están mergeados; los siguientes alcances ya forman parte del código de `main`:
 
 - [PR149](https://github.com/ema-ljn/MuRet/pull/149): lector puro completo F3/03, 23 campos;
-  la procedencia C3 y la aplicación a sesión/actor/escena siguen en L1.
+  la aplicación a sesión/actor/escena sigue en L1. La procedencia se conserva en PR154.
 - [PR150](https://github.com/ema-ljn/MuRet/pull/150): margen individual de recorte y Bridge01 de
   Lorencia; continúan los otros estados, poses, paso y dibujo de L2.
 - [PR151](https://github.com/ema-ljn/MuRet/pull/151): incremento modular definido del contador lógico
   con lectura firmada; CL7.P conserva los contratos pendientes de fase/estado inicial/nesting/RNG.
 - [PR152](https://github.com/ema-ljn/MuRet/pull/152): carga obligatoria de `Gate.bmd` y decisión pura
-  de gates, listo tras revisión cruzada y CI Linux/Windows/formato verde. Caller y tiempo lazy pendientes.
-- [PR153](https://github.com/ema-ljn/MuRet/pull/153), draft: componente de picking del terreno
-  implementado, con ambos retries, Target y DontMove. CI verde; la revisión cruzada encontró brechas
-  de sensibilidad en los tests que siguen en corrección. No integra la escena 4E.
+  de gates incorporadas. Caller, tiempo lazy y aplicación de las decisiones pendientes.
+- [PR153](https://github.com/ema-ljn/MuRet/pull/153): componente completo de picking del terreno,
+  con ambos retries, Target y DontMove. Las brechas de tests se corrigieron y pasaron la segunda
+  revisión cruzada antes del merge. No integra la escena 4E.
+- [PR154](https://github.com/ema-ljn/MuRet/pull/154): procedencia del descifrado por Packet hasta
+  el handler, incluidas ambas reconstrucciones FoxAnti, fragmentación y resync; incorporada tras
+  revisión cruzada. No implementa todavía la admisión F3/03 ni la entrada al mundo.
+- [PR155](https://github.com/ema-ljn/MuRet/pull/155): función completa de velocidad `0x508940`,
+  con Run por actor y latch/contador compartidos, incorporada tras revisión cruzada. El resto de
+  CL7.4 C sigue abierto.
 
-Los resultados de CI y el estado de revisión se consultan en cada PR. Estas entregas no equivalen
-al cierre de L1, L2 ni P. La corrección documental de fase del PR144 se recupera en este roadmap:
+Propuestas publicadas que todavía no forman parte del snapshot `main 767c1da`:
+
+- [PR157](https://github.com/ema-ljn/MuRet/pull/157): paso entero de ondas de Kalima `0x41dbe0`,
+  dos planos 256×256 dentro del dominio explícito de slots0/1. Faltan perturbación, otros planos,
+  geometría, render y consumidor. El paso completo no cierra el agua de Kalima.
+- [PR158](https://github.com/ema-ljn/MuRet/pull/158): núcleo completo del trapecio `0x5fb570`,
+  diez perfiles, nivel efectivo explícito y consulta congelada; conserva el wrapper de login/selección.
+  ADR0009 documenta los errores portables. Faltan el dueño/inicio real del estado, los pares
+  cámara→trapecio en su cadencia y la integración en escenas. La proyección FP no acredita igualdad
+  universal libm/x87 ni cierra los demás casos de mapa.
+- [PR159](https://github.com/ema-ljn/MuRet/pull/159): lector puro completo F3/10, con slots y siete
+  bytes opacos por entrada del wire, bajo entrada estable. ADR0010 fija el error de truncamiento.
+  El cotejo de `0x4c55a0` no atribuye siete lecturas al callee ni prueba por sí solo C4→C2:
+  el tamaño opaco se apoya en stride y captura; el C2, en el transporte/ADR0003. La inicialización,
+  admisión, potenciales mutaciones, decoder, efectos/RNG y aplicación al héroe siguen en L3/P.
+
+Los resultados de CI y el estado de revisión se consultan en cada PR; las verificaciones de sus
+heads no se presentan como una nueva suite conjunta del main posterior a los merges. Estas entregas
+no equivalen al cierre de L1, L2 ni P. PR144 ya incorporó la precisión documental de fase:
 resto firmado 57 al dividir por 313, condicionado al snapshot previo y sin inicio nativo supuesto.
 
 ### Lo que todavía impide declarar completa toda CL7
 
-- `GameScene::Render` sigue vacío y la sesión termina en `EnteringWorld`. La cámara, los modelos
-  y los paquetes puros ya integrados no equivalen a tener Lorencia jugable. L1 debe unirlos sin
+- `GameScene::Render` sigue vacío, `HoldsTheLastFrame` devuelve false y la sesión no define `InWorld`:
+  llega hasta `EnteringWorld`. El lector F3/03, el picking, `GateCheck` y `UpdateMovementSpeed` están
+  incorporados, pero todavía no tienen sus consumidores de producción en la escena/sesión. La cámara,
+  los modelos y los paquetes puros ya integrados no equivalen a tener Lorencia jugable. L1 debe unirlos sin
   adelantar la presentación ni perder el frame retenido durante la espera.
 - L2 debe cubrir todos los objetos y sus casos de material, animación, luz, fuego, casas y fuente;
   L3 debe usar el equipo del mundo y el parado correcto, incluidos safe zone y ocultación del caballo.
   L4/L5 llevan la luz compartida, pasto y fauna/partículas, con sus efectos sobre el RNG.
-- El caminar requiere integrar A/B, implementar C/D y cerrar E con entrada, cable y movimiento.
+- El caminar requiere integrar A/B/D, completar C y cerrar E con entrada, cable y movimiento.
+  La velocidad ya está implementada; el giro conserva el pendiente nativo P-C32.
   No alcanza con que el pathfinder y el serializador pasen sus suites por separado.
 - «Todos los mapas» todavía está abierto. Hay 20 carpetas físicas de mundo y 39 entradas nominales
   de mapa, con reutilización de carpetas: el mapa32 usa World10 y entra con el estado9; World6 está incompleto y el mapa35 no
@@ -222,11 +252,18 @@ resto firmado 57 al dividir por 313, condicionado al snapshot previo y sin inici
   neblina a seguimiento: no bloquean las otras CL7.x ni acreditan igualdad visual. El fuego `0x59`
   sigue abierto. PR145 retiró el glifo `_`; el caret rectangular y bitmap del EDIT sigue abierto.
   PR148 restauró el keepalive esperando credenciales; su comprobación con GS real queda pendiente.
-  En selección faltan el mundo54 renderizado, altura del preview de creación y efectos propios.
+  En selección faltan el mundo54 renderizado, altura del preview de creación y efectos propios,
+  además del retorno desde el juego por F1/02 con resultado1 y renovación de la lista. El cierre del login
+  conserva los pendientes de mensajes, mouse/cursor, puesta al día tras un frame retenido y tests
+  de estado/cadencia; ver P-C25–27 en 08.
 - CL7.P debe cerrar valores/fases lógicos y el consumo/orden de azar comprobable. No es una
   autorización para portar la VM, cifrado de protección, licencias o anticheat. Los contratos
   puros ya comprobados pueden avanzar en paralelo; la equivalencia global de cadencia/RNG no se
   declara cerrada mientras falten consumidores y orden.
+- P-C32 registra cinco muestras diferidas de C0 en los tres helpers angulares. Intel deja ese bit
+  indefinido tras las instrucciones interpuestas; los bytes están contrastados, pero no permiten
+  elegir el resultado por sí solos. Se requiere observación nativa antes de portar esos helpers
+  como equivalentes; no se reemplazan por una función matemática estándar por semejanza.
 - Los 2.250 samples nativos de cámara a 40ms no son una captura de cada LogicStep ni de cada
   frame; las posiciones nativas guardadas son limitadas. Los vectores emulados históricos sirven
   como regresión, no como una nueva captura independiente. No se generan nuevas emulaciones.
@@ -236,8 +273,9 @@ resto firmado 57 al dividir por 313, condicionado al snapshot previo y sin inici
 Se pueden paralelizar gates puros, movimiento/picking, contratos de cargas y efectos. La integración
 requiere primero fijar en **P** los valores/fases lógicos que consumirá L1; PR144 por sí solo no
 la desbloquea. Luego sigue **L1 → L2 → L3/L4/L5**, **4C/4D → 4E** y **5A/5B/5C → 5D/5E**. Cada concepto mantiene
-su PR, pruebas discriminantes y revisiones de Astra 6 Ultra y Opus 5.5 xhigh. La revisión de Opus
-incompleta del contador no cuenta como aprobación: P sigue abierta.
+su PR, pruebas discriminantes y revisiones de Astra 6 Ultra y Opus 5.5 xhigh. Los dictámenes favorables
+del wrap de PR151 corresponden a esa unidad aritmética. La revisión histórica incompleta de Opus
+sobre el contrato global de P no cuenta como aprobación de ese contrato, que sigue abierto.
 
 El cierre exige inventario de funciones/ramas/llamadas, estado persistente, efectos secundarios y
 orden; contratos pendientes explícitos; expectativas contrastadas con ASM/PE y observación nativa
@@ -708,18 +746,26 @@ propio, apilado sobre CL7.3 A. Implementación pura, sin integrar clic, movimien
 de `0x508940`, `SetPlayerWalk` de `0x4f37c0`; `SetPlayerStop` viene de la L3). PR propio. Se detalla al
 arrancar; lo que se sabe:
 
-- **Qué:** en `GameLogic::CharacterMovement`: la celda lógica una adelante; el sub-punto de Catmull-Rom con
-  los cuatro pesos y el umbral de 20; la llegada que salta al centro; el giro (de golpe desde 45°, a la mitad
-  por debajo, con `OriginalAngles`); el avance hacia donde mira con `OriginalVectorRotate` y la altura del
-  terreno; la velocidad (12 caminando, 15 corriendo; correr solo con botas +5, o guantes +5 en Atlans, o
-  siendo MG o DL; en la zona segura no se corre); las velocidades de las acciones de caminar (0,33 y 0,34)
-  que `0x4f37c0` pisa en el modelo compartido de los jugadores; el `rand()` de los pasos (1/64 el héroe,
-  1/16 los otros); la zona segura por la celda lógica.
-- **Tests:** `CharacterMovementTest.MatchesTheEmulatedStep` (`make_movement_vectors.py`, sobre `game/walk/emu_walk.py`:
-  rectas, codos, zigzag, caminos de 2 a 15, DK, elfo, MG y DL, con botas +5 y sin, y un no jugador);
-  `TheLogicalCellIsOneAhead`, `WalkingIsTwelveAndRunningFifteen`, `WithoutPlusFiveBootsThereIsNoRunning`,
-  `TheSafeZoneResetsRun`, `ArrivalSnapsToTheCellCentre`, `TurnsSnapFromFortyFiveAndHalveBelow`,
-  `WalkSetsTheSharedActionSpeeds`, `TheFootstepsSpendRand`.
+- **Qué:** en `GameLogic::CharacterMovement`: actualizar la celda lógica al empezar cada tramo;
+  cuando q3 avanza el índice sin llegar, la celda coincide con ese índice al retornar y se adelanta
+  en la siguiente llamada. No imponer «una adelante» en todos los retornos. Conservar los pesos
+  Catmull-Rom, umbral20, máximo de un subpunto por llamada y llegada que guarda XY sin ejecutar giro.
+  El giro y su umbral45 mantienen los spills y muestras del original; P-C32 impide cerrar todavía
+  los tres helpers. Position avanza hacia la orientación y aplica altura/correcciones por mapa/equipo.
+- **Velocidad ya implementada:** `GameLogic::UpdateMovementSpeed` (PR155) cubre toda `0x508940`,
+  incluidas las velocidades12/15/16/17/19, las mitades por máscara0x2, Run unsigned8 y los globales
+  compartidos D0/D4. No lee clase/botas/guantes ni resetea Run por segura: esa política pertenece al
+  prefijo de `SetPlayerWalk`. Con ítem1c37, ese prefijo habilitado incrementa D4, no Run.
+- **Acciones y efectos pendientes:** `SetPlayerWalk` reescribe22 velocidades compartidas de acciones
+  y sus mitades; no incluye0x15. Preservar prioridades, helpers y efectos posteriores aunque una rama
+  omita cambiar la acción. Los pasos prueban restos firmados por64/16 del RNG compartido; no sustituir
+  su orden ni su cantidad condicionada por una probabilidad o un gasto fijo agregado al final.
+- **Tests:** usar expectativas analíticas contrastadas con ASM y evidencia nativa existente, sin
+  nuevas emulaciones. Los vectores históricos conservan su procedencia. Cubrir rectas/codos/zigzag,
+  longitudes2..15, clases/equipo/mapas, ambas fronteras del subpunto, llegada, estado lógico y los
+  writes compartidos; observar retorno y estado, no sólo posición final. PR155 ya cubre los anchos,
+  prioridades y efectos completos de velocidad. Giro requiere P-C32; el orden exterior de todos los
+  personajes y los efectos/RNG transitivos siguen abiertos.
 
 ## Sub-ola CL7.4 D: el picking del terreno
 

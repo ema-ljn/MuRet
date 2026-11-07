@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "Render/ModelBatch.h"
 #include "Render/Pass3D.h"
 #include "World/TerrainCells.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
@@ -34,8 +36,7 @@ enum class CullingScene : std::uint8_t
 [[nodiscard]] TerrainRange TerrainRangeOf(const glm::mat4& view, const Render::Camera3D& camera,
                                           float widthFactor = 1.0f);
 
-// El trapecio de 0x5fb570 en celdas, con el nivel de cámara 0 (DAT_07b4ccb8): las cuatro esquinas, de
-// la izquierda lejana a la izquierda cercana.
+// El trapecio de 0x5fb570 en celdas: izquierda lejana, derecha lejana, derecha cercana, izquierda cercana.
 struct TerrainPolygon
 {
     std::array<float, 4> x{};
@@ -44,10 +45,63 @@ struct TerrainPolygon
     bool everything = false;
 };
 
+// Nivel efectivo persistente (0x7b4ccb8), distinto del solicitado de la cámara. El default del DTO
+// no acredita el valor de arranque nativo; su dueño temporal se integra en otra unidad.
+struct TerrainPolygonState
+{
+    std::int32_t effectiveLevel = 0;
+};
+
+// Snapshot sin alias: translation es el argumento3, objectPosition es el selector XY de mapa30.
+// Los booleanos son los resultados completos de dos consultas independientes de nombre en mapa6.
+// Geometría finita representable; yaw usado dentro del dominio de OriginalRotation. El selector30
+// permite quiet NaN/inf y elige el perfil pequeño (06 § El trapecio completo).
+struct TerrainPolygonInput
+{
+    std::int32_t scene = 5;
+    std::int32_t map = 0;
+    glm::vec3 translation{};
+    glm::vec2 objectPosition{};
+    float cameraYaw = 0.0f;
+    std::int32_t worldWidth = 640;
+    bool webzenProfile = false;
+    bool webzenYaw = false;
+};
+
+struct TerrainPolygonCameraInput
+{
+    std::int16_t requestedLevel = 0;
+    float distance = 1000.0f;
+    float targetDistance = 1000.0f;
+};
+
+enum class TerrainPolygonError : std::uint8_t
+{
+    InvalidCameraDistance,
+    InvalidEffectiveLevel,
+};
+
+struct TerrainPolygonFrame
+{
+    TerrainPolygonState nextState;
+    TerrainPolygon polygon;
+};
+
+// Un frame original: especiales6/30 retienen sin consumir cámara. En normal, valida D/meta en
+// [-2^63,2^63), trunca a int64 y compara los bajos32 con signo; luego valida el nivel elegido0..4.
+// Un error no publica estado ni geometría (ADR0009); la función no altera previous.
+[[nodiscard]] Core::Expected<TerrainPolygonFrame, TerrainPolygonError>
+TerrainPolygonFrameOf(const TerrainPolygonState& previous, const TerrainPolygonInput& input,
+                      const TerrainPolygonCameraInput& camera);
+
+// Consulta sin transición. Other calcula arrays y solo desactiva el recorte del consumidor.
+[[nodiscard]] Core::Expected<TerrainPolygon, TerrainPolygonError> TerrainPolygonOf(const TerrainPolygonInput& input,
+                                                                                   std::int32_t effectiveLevel);
+
 // 0x5fb570 alrededor de `hero` (DAT_0743a170: en el login, el (11.679; 14.191; 333) que 0x6350b0 le
 // escribe en cada frame): el trapecio de la escena, girado −yaw de la cámara en el mapa 0x37 y 45° en
-// los demás. `screenWidth` es el de 0x5bb8d0. El mapa 6 con un héroe "webzen" y el 0x1e del juego no
-// van.
+// los demás. `screenWidth` es el de 0x5bb8d0. Wrapper de nivel0 y ambos predicados false: usa
+// hero también como selector30/5. Other conserva el sentinel legacy de arrays+0; sin estado oculto.
 [[nodiscard]] TerrainPolygon TerrainPolygonOf(CullingScene scene, std::uint8_t map, const glm::vec3& hero,
                                               float cameraYaw, int screenWidth = 640);
 

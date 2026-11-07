@@ -157,6 +157,17 @@ nadie pide `World33`. Antes de la carpeta, `0x616ec0` fuerza el mapa 7 si `DAT_0
 prendida (`0x616ee1`), pero esa bandera está en la `.bss` y tiene 9 lecturas y ninguna escritura:
 es código muerto, y queda siempre en 0.
 
+En MuRet, `MapAtWorldLoadStart(argumento, observado)` y `WorldFolderAfterModels(observado)`
+representan por separado la guarda inicial 32/32→9 y la selección posterior signed, para todo
+`int32_t` y con el incremento DWORD modular. El caller debe aportar una observación nueva después
+de modelos: un 32 observado entonces da carpeta 33, aunque la guarda inicial haya devuelto 9;
+un 9 da 10. `WorldFolderNumber(byte)` conserva su proyección previa de argumento=mapa y mapa
+estable. `LoadedWorld::Load(byte)` aplica esa normalización local a terreno (incluida luz), tiles y
+vista, y `LoadedMap()` publica el mapa efectivo sólo mientras posee el terreno: vacío tras fallo,
+`Release` o `TakeTerrain`. Los alias de carpeta conservan su identidad (11 y 17, por ejemplo).
+Esto no implementa el loader nativo completo, sus globals mutables, efectos de modelos, variantes
+30/34, errores/continuación o retención nativa; tampoco cambia el mapa solicitado del wire.
+
 **El `.obj`** (CL1.3): K16 de punta a punta, sin XOR3. Cabecera de 4 bytes (uno que no se lee, el
 mundo y la cantidad de objetos, un int16 con signo) y un objeto cada 30 bytes: tipo (int16),
 posición, ángulo y escala (7 floats). Si la cantidad es cero o negativa no hay objetos, y no se mira

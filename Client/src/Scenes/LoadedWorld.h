@@ -33,8 +33,10 @@ public:
     LoadedWorld& operator=(LoadedWorld&&) = delete;
     ~LoadedWorld() = default;
 
-    // Lee el terreno de `map` y sube sus tiles y el slot 0x122. Un tile que no avisa y falta o no se lee
-    // se saltea y va a `skipped`, con lo que pasó y la ruta como la pide el original; uno que avisa
+    // Normaliza `map` con argumento=observación local (32 → 9) antes de leer terreno y tiles;
+    // no reproduce las lecturas globales mutables ni los modelos de 0x61a560.
+    // Lee el terreno del mapa efectivo y sube sus tiles y el slot 0x122. Un tile que no avisa y falta
+    // o no se lee se saltea y va a `skipped`, con lo que pasó y la ruta como la pide el original; uno que avisa
     // (TileGrass01, el 0x122) y falta o no se lee, el terreno que no se lee o la tabla que no sube son
     // un error, y no queda nada cargado ni subido.
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot, std::uint8_t map,
@@ -45,6 +47,9 @@ public:
 
     [[nodiscard]] bool IsLoaded() const;
 
+    // La identidad efectiva del terreno que posee: vacía sin carga, tras fallo, Release o TakeTerrain.
+    [[nodiscard]] std::optional<std::uint8_t> LoadedMap() const;
+
     // La luz sombreada del terreno (la de 0x5f99e0 para los modelos), si hay terreno.
     [[nodiscard]] const World::TerrainLighting* Lighting() const;
     // El terreno entero (las alturas y los atributos que pide 0x5f93c0), si hay.
@@ -54,6 +59,7 @@ public:
     // los slots GPU siguen siendo de este objeto y Release los suelta una sola vez.
     [[nodiscard]] std::optional<World::WorldTerrain> TakeTerrain();
 
+    // Step y DrawTerrain usan la identidad efectiva de LoadedMap() (32 → 9), no la solicitada.
     // 0x5fbf60, en cada paso: la ola de las celdas de la ventana del rango, con el reloj del paso.
     void Step(Core::Duration clock, const World::TerrainRange& range);
 

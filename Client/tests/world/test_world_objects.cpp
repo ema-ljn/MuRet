@@ -66,6 +66,57 @@ TEST(WorldObjectsTest, TheWhirlpoolsKeepTheSectorOfTheFile)
     EXPECT_EQ(Client::World::SectorY(whirlpool.front()), 0);
 }
 
+// 0x6067ae inicializa +0xdc a c1f00000; solo 0x6069bd (mapa 0, Bridge01) pone c2480000.
+// La rama del mapa corre después de los casos de escena, también fuera del juego.
+TEST(WorldObjectsTest, TheBridgeCullingMarginDependsOnItsMapNotItsScene)
+{
+    const std::array<Client::Data::Terrain::TerrainObject, 2> records{
+        Client::Data::Terrain::TerrainObject{
+            .type = 0x50, .position = {1400.0f, 500.0f, 25.0f}, .angle = {10.0f, 20.0f, 30.0f}, .scale = 2.0f},
+        Client::Data::Terrain::TerrainObject{
+            .type = 0x51, .position = {1400.0f, 500.0f, 25.0f}, .angle = {10.0f, 20.0f, 30.0f}, .scale = 2.0f}};
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint32_t bridgeMargin;
+    };
+    constexpr std::array cases{Case{0, 0xC2480000u}, Case{55, 0xC1F00000u}, Case{0, 0xC2480000u}, Case{54, 0xC1F00000u},
+                               Case{10, 0xC1F00000u}};
+    std::vector<WorldObject> objects;
+    for (const auto scene : {Client::World::ObjectScene::Other, Client::World::ObjectScene::Login,
+                             Client::World::ObjectScene::CharacterSelect})
+    {
+        SCOPED_TRACE(static_cast<int>(scene));
+        for (const Case& test : cases)
+        {
+            SCOPED_TRACE(static_cast<int>(test.map));
+            objects = Client::World::CreateWorldObjects(records, test.map, scene);
+            ASSERT_EQ(objects.size(), 2u);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(objects[0].cullingMargin), test.bridgeMargin);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(objects[1].cullingMargin), 0xC1F00000u);
+            for (const WorldObject& object : objects)
+            {
+                EXPECT_EQ(object.transform.position, glm::vec3(1400.0f, 500.0f, 25.0f));
+                EXPECT_EQ(object.transform.angles, glm::vec3(10.0f, 20.0f, 30.0f));
+                EXPECT_EQ(object.transform.scale, 2.0f);
+                EXPECT_EQ(object.sectorX, 0);
+                EXPECT_EQ(object.sectorY, 0);
+            }
+        }
+    }
+}
+
+TEST(WorldObjectsTest, OtherLorenciaTypesKeepTheDefaultCullingMargin)
+{
+    for (const std::int16_t type : std::array<std::int16_t, 6>{0, 1, 0x4f, 0x51, 0x96, 0x97})
+    {
+        SCOPED_TRACE(type);
+        const auto objects = Created(type, 1400.0f, 500.0f, Lorencia);
+        ASSERT_EQ(objects.size(), 1u);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(objects[0].cullingMargin), 0xC1F00000u);
+    }
+}
+
 // 0x604ab0 sale después del alpha si quedó por debajo de 0,01: no avanza ni corre los casos del mapa.
 TEST(WorldObjectsTest, AnObjectFadedOutDoesNotStep)
 {

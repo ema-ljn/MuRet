@@ -25,6 +25,10 @@ constexpr float ObjectSpeed = std::bit_cast<float>(0x3E23D70Au);
 constexpr std::int16_t DragonOwner = 0xb4;
 constexpr float StreetLightScale = std::bit_cast<float>(0x3F4CCCCDu);
 constexpr float StreetLightLight = std::bit_cast<float>(0x3E4CCCCDu);
+// 0x6069bd: Bridge01 del mapa 0 amplía su margen individual de recorte (+0xdc).
+constexpr std::uint8_t LorenciaMap = 0;
+constexpr std::int16_t LorenciaBridge = 0x50;
+constexpr float BridgeCullingMargin = std::bit_cast<float>(0xC2480000u);
 // Los remolinos del mapa 0x37 (0x606d03): a (8.600; 25.000; 5.000), con escalas 60 y 110.
 constexpr std::uint8_t LoginMap = 0x37;
 constexpr std::int16_t RedWhirlpool = 0x56;
@@ -96,6 +100,10 @@ std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::Terra
             object.transform.position = WhirlpoolPlace;
             object.transform.angles = glm::vec3(0.0f);
             object.transform.scale = object.type == RedWhirlpool ? RedWhirlpoolScale : DarkWhirlpoolScale;
+        }
+        if (map == LorenciaMap && object.type == LorenciaBridge)
+        {
+            object.cullingMargin = BridgeCullingMargin;
         }
         objects.push_back(object);
     }

@@ -50,6 +50,8 @@ using Client::Scenes::StepWorldObjects;
 using Client::World::WorldObject;
 
 constexpr std::uint8_t Login = 55;
+constexpr std::uint8_t Lorencia = 0;
+constexpr std::int16_t Bridge = 0x50;
 constexpr std::int16_t RedWhirlpool = 0x56;
 constexpr std::int16_t DarkWhirlpool = 0x5a;
 constexpr std::int16_t Rock = 1;
@@ -99,14 +101,14 @@ private:
     std::array<TextureSlot, 2> m_textures{TextureSlot{0x41c}, TextureSlot{0x41d}};
 };
 
-WorldObject ObjectAt(std::int16_t type, float x, float y)
+WorldObject ObjectAt(std::int16_t type, float x, float y, std::uint8_t map = Login,
+                     Client::World::ObjectScene scene = Client::World::ObjectScene::Login)
 {
     Client::Data::Terrain::TerrainObject record;
     record.type = type;
     record.position = {x, y, 0.0f};
     record.scale = 1.0f;
-    const auto objects =
-        Client::World::CreateWorldObjects(std::span(&record, 1), Login, Client::World::ObjectScene::Login);
+    const auto objects = Client::World::CreateWorldObjects(std::span(&record, 1), map, scene);
     return objects.front();
 }
 
@@ -126,10 +128,10 @@ std::size_t VerticesWith(const ModelBatch& batch, ModelBlend blend)
 }
 
 void Draw(ModelBatch& batch, const TwoMeshModels& models, std::span<WorldObject> objects,
-          const Client::World::TerrainPolygon& polygon = Everything)
+          const Client::World::TerrainPolygon& polygon = Everything, std::uint8_t map = Login)
 {
     batch.Begin(Client::Render::Pass3D{});
-    DrawWorldObjects(batch, models, objects, polygon, nullptr, Login, {}, 0.0f);
+    DrawWorldObjects(batch, models, objects, polygon, nullptr, map, {}, 0.0f);
 }
 
 // 0x606560 solo avanza los que se vieron en el último dibujo (+0x16c): recién creado, el alpha no se
@@ -182,6 +184,62 @@ TEST(WorldObjectsDrawingTest, AnObjectOutsideThePolygonIsNotSeen)
     EXPECT_EQ(Client::World::SectorX(objects[2]), 9);
     EXPECT_EQ(Client::World::SectorY(objects[2]), 7);
     EXPECT_FALSE(objects[2].seen);
+    EXPECT_EQ(batch.Vertices().size(), 6u);
+}
+
+// 0x6069bd: el puente del mapa 0 usa −50 en +0xdc; 0x604744..0x60476b pasa ese margen a
+// 0x5fba90. El sector (0, 0), centro (8, 8), pasa; (14, 5) da −40 en el lado derecho.
+TEST(WorldObjectsDrawingTest, TheLorenciaBridgeExtendsItsOwnCullingMargin)
+{
+    const TwoMeshModels models;
+    const Client::World::TerrainPolygon polygon{.x = {0.0f, 0.0f, 10.0f, 10.0f}, .y = {0.0f, 10.0f, 10.0f, 0.0f}};
+    for (const auto scene : {Client::World::ObjectScene::Other, Client::World::ObjectScene::Login,
+                             Client::World::ObjectScene::CharacterSelect})
+    {
+        SCOPED_TRACE(static_cast<int>(scene));
+        std::array objects{ObjectAt(Bridge, 1400.0f, 500.0f, Lorencia, scene),
+                           ObjectAt(0x51, 1400.0f, 500.0f, Lorencia, scene)};
+        EXPECT_EQ(objects[0].sectorX, 0);
+        EXPECT_EQ(objects[0].sectorY, 0);
+        ModelBatch batch;
+        Draw(batch, models, objects, polygon, Lorencia);
+        EXPECT_TRUE(objects[0].seen);
+        EXPECT_FALSE(objects[1].seen);
+        ASSERT_EQ(batch.Vertices().size(), 6u);
+        EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 1400.0f);
+    }
+}
+
+// El borde de 0x5fba90 es estricto: (15, 5) da −50. Al salir se borra seen y el lote del frame.
+TEST(WorldObjectsDrawingTest, TheBridgeIsCulledExactlyAtItsMargin)
+{
+    const TwoMeshModels models;
+    const Client::World::TerrainPolygon polygon{.x = {0.0f, 0.0f, 10.0f, 10.0f}, .y = {0.0f, 10.0f, 10.0f, 0.0f}};
+    std::array objects{ObjectAt(Bridge, 1400.0f, 500.0f, Lorencia)};
+    ModelBatch batch;
+    Draw(batch, models, objects, polygon, Lorencia);
+    ASSERT_TRUE(objects[0].seen);
+    ASSERT_EQ(batch.Vertices().size(), 6u);
+
+    objects[0].transform.position.x = 1500.0f;
+    Draw(batch, models, objects, polygon, Lorencia);
+    EXPECT_FALSE(objects[0].seen);
+    EXPECT_TRUE(batch.Vertices().empty());
+}
+
+// El consumidor usa el campo del objeto, sin volver a deducirlo de tipo, mapa o escena. El helper
+// devuelve una copia y el array la copia otra vez, como los contenedores de las escenas.
+TEST(WorldObjectsDrawingTest, CullingUsesTheStoredMarginAfterCopyingAnObject)
+{
+    const TwoMeshModels models;
+    const Client::World::TerrainPolygon polygon{.x = {0.0f, 0.0f, 10.0f, 10.0f}, .y = {0.0f, 10.0f, 10.0f, 0.0f}};
+    WorldObject extended = ObjectAt(Rock, 1400.0f, 500.0f);
+    extended.cullingMargin = -50.0f;
+    std::array objects{extended, ObjectAt(Rock, 1400.0f, 500.0f)};
+    ModelBatch batch;
+    Draw(batch, models, objects, polygon);
+    EXPECT_TRUE(objects[0].seen);
+    EXPECT_FALSE(objects[1].seen);
     EXPECT_EQ(batch.Vertices().size(), 6u);
 }
 

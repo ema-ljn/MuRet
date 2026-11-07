@@ -35,10 +35,8 @@ namespace Client::Scenes
 {
 namespace
 {
-// 0x6046a0: el margen del sector (−180) y el de cada objeto (+0xdc, −30 de 0x606660), y el paso de la
-// posición a celdas.
+// 0x6046a0: el margen del sector (−180) y el paso de la posición a celdas.
 constexpr double SectorMargin = -180.0;
-constexpr double ObjectMargin = -30.0;
 constexpr double CellsPerUnit = static_cast<double>(0.01f);
 constexpr int CellsPerSector = 16;
 constexpr double SectorCenter = 8.0;
@@ -52,13 +50,13 @@ bool SectorPasses(const World::TerrainPolygon& polygon, int sectorX, int sectorY
                                   (sectorY * CellsPerSector) + SectorCenter, SectorMargin);
 }
 
-// 0x6046a0 pasa la posición por 0,01f (0x6b88d4) guardada en float.
+// 0x6046a0 pasa la posición por 0,01f (0x6b88d4) guardada en float y el margen individual (+0xdc).
 bool ObjectPasses(const World::TerrainPolygon& polygon, const World::WorldObject& object)
 {
     const auto cells = [](float coordinate)
     { return static_cast<double>(static_cast<float>(static_cast<double>(coordinate) * CellsPerUnit)); };
     return World::PolygonContains(polygon, cells(object.transform.position.x), cells(object.transform.position.y),
-                                  ObjectMargin);
+                                  object.cullingMargin);
 }
 
 DrawnObject Drawn(const World::WorldObject& object, const World::ObjectDraw& draw,

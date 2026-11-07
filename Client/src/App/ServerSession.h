@@ -4,6 +4,7 @@
 #include "App/Credentials.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
+#include "App/WorldEvent.h"
 #include "Core/IClock.h"
 #include "Core/IntervalTimer.h"
 #include "Core/Log.h"
@@ -35,8 +36,12 @@
 // La consulta el bucle una vez por frame (Poll). Recorre los eventos de la Connection en orden, y
 // despacha cada paquete en el Dispatcher del servidor con el que habla: el opcode 00 es el saludo
 // en el ConnectServer y el chat en el GameServer. Cada estado espera un paquete; uno que llega
-// fuera de turno se ignora con un aviso, y un cierre de la conexión es Failed. Lo mismo con una
-// llamada de la UI fuera de turno: ChooseServer o SubmitCredentials en otro estado.
+// fuera de turno se ignora con un aviso. Una llamada de la UI fuera de turno (ChooseServer o
+// SubmitCredentials en otro estado) también se ignora con un aviso. Un cierre de la conexión es
+// Failed. Hay recepciones que no dependen del estado, como el F1 02 con 0 (abajo) y las de mundo:
+// F3/03 y F3/10 se encolan con el GS en cualquier estado, incluso WaitingGameHello, antes del
+// saludo y del login, si llegaron cifradas (C3/C4) y se leen. En claro o ilegibles se descartan con
+// un aviso. Es recepción filtrada: no aplica los handlers nativos ni cambia estado, selección o tope.
 //
 //   Idle o cualquiera --Start: abre el CS--> ConnectingConnectServer
 //   ConnectingConnectServer --Opened: manda el A9--> WaitingConnectHello
@@ -67,10 +72,11 @@
 //   WaitingDeleteResult --F3 02 con otro: guarda el resultado--> ChoosingCharacter
 //   con el GS abierto --cada KeepalivePeriod del timer global: manda el keepalive-->
 //     el mismo estado
+//   con el GS --F3 03 o F3 10 cifrado y legible: lo encola (TakeWorldEvents)--> el mismo estado
 //   con el GS --F1 02 con 0: cierra, sin aviso--> QuitOrdered (Q-C106)
 //   cualquier Waiting* que espera un servidor --ReplyTimeout sin su respuesta: cierra--> Failed
 //     (NoReply); ChoosingServer, WaitingCredentials y ChoosingCharacter esperan al jugador y no
-//     tienen tope, y EnteringWorld tampoco: su respuesta es de la CL7
+//     tienen tope, y EnteringWorld tampoco: ya recibe su respuesta, pero falta aplicarla en la CL7
 //   con el CS --Closed--> Failed (ConnectServerLost)
 //   con el GS --Closed--> Failed (GameServerLost)
 //
@@ -206,6 +212,14 @@ public:
     // de la UI; Start descarta las pendientes de la conexión anterior, Fail las conserva.
     [[nodiscard]] std::vector<CharacterEvent> TakeCharacterEvents();
 
+    // Entrega una sola vez, en orden de llegada, los F3/03 y F3/10 cifrados (C3/C4) y legibles,
+    // recibidos en cualquier estado con el GS, incluso WaitingGameHello, antes del saludo y del
+    // login. En claro o ilegibles se descartan con un aviso. No aplica mundo ni selección ni cambia
+    // estado o tope. Elección de API MuRet: Start descarta pendientes; Fail y QuitOrdered las
+    // conservan. Un vector entregado es de quien lo recibió. El orden con CharacterEvents queda
+    // fuera de este contrato.
+    [[nodiscard]] std::vector<WorldEvent> TakeWorldEvents();
+
     // En ChoosingCharacter, elige al de `slot` si está en la lista; con std::nullopt o un lugar que
     // no está, a ninguno (el -1 de 0x6342c0). No manda nada. En otro estado, un aviso y nada.
     void ChooseCharacter(std::optional<std::uint8_t> slot);
@@ -258,6 +272,8 @@ private:
     void OnCharacterList(const Network::Packet& packet);
     void OnCreateResult(const Network::Packet& packet);
     void OnDeleteResult(const Network::Packet& packet);
+    void OnWorldEntryReply(const Network::Packet& packet);
+    void OnInventoryReply(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.
     void SendKeepalive(Core::Duration now);
@@ -291,6 +307,7 @@ private:
     std::optional<std::uint8_t> m_loginResult;
     std::optional<Protocol::Character::CharacterList> m_characters;
     std::vector<CharacterEvent> m_characterEvents;
+    std::vector<WorldEvent> m_worldEvents;
     std::optional<std::uint8_t> m_chosenSlot; // un lugar de m_characters
     std::optional<std::uint8_t> m_createResult;
     std::optional<std::uint8_t> m_deleteResult;

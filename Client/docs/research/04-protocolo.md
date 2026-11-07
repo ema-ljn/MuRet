@@ -436,6 +436,18 @@ El C2 está normalizado según ADR0003, sin afirmar identidad con la cabecera de
 Los pares quedan fuera de Git y las comparaciones no revelan valores. Son siete casos observados,
 no una nueva captura viva ni una certificación universal del handler o la aplicación del equipo.
 
+**Lo que ya recibe MuRet:** `ServerSession` admite F3/03 y F3/10 sólo con `Packet::WasDecrypted`
+preservado por el transporte, incluidos Identity y FoxAnti, y con sus lectores existentes. Entrega
+una secuencia propietaria de ambos tipos que conserva orden, multiplicidad, los 23 campos wire de
+F3/03 (mínimo `0x34`), y todos los slots, duplicados y siete bytes opacos de F3/10, también con
+cantidad cero; no normaliza el mapa 32 ni exige `EnteringWorld`. Como elección de API MuRet,
+`Start` descarta pendientes de la conexión anterior, `Fail` conserva lo recibido y cada drenaje
+transfiere propiedad sin afectar los vectores ya entregados; `CharacterEvents` queda separado.
+Esta recepción filtrada no aplica mundo, héroe, equipo, efectos ni estado `0x3d`, ni cambia selección,
+generación o keepalive. No reproduce los handlers completos: quedan fuera la rama de flag cero y
+el envío F1/03 de `0x4c3940`, el prefijo y efectos comunes de `0x4c55a0`, y la resolución de Q-C144;
+no inventa los WORD nativos `+0x34..37` ni aumenta el mínimo wire a `0x38`.
+
 ### Caminar y pegar: `D3` y `D7`
 
 **El `D3` del cliente, caminar** (`SendMove`, `0x56acd0`; *estático*; *emulado* y *verificado* en el

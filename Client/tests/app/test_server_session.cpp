@@ -8,6 +8,7 @@
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
 #include "App/WindowState.h"
+#include "App/WorldEvent.h"
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -28,6 +29,8 @@
 #include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterSelect.h"
+#include "Protocol/Character/CharacterSelectResult.h"
+#include "Protocol/Character/InventoryList.h"
 #include "Protocol/Character/Opcodes.h"
 #include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
@@ -65,6 +68,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -95,6 +99,7 @@ using Client::App::SessionSettings;
 using Client::App::SessionState;
 using Client::App::TickCountMs;
 using Client::App::WindowState;
+using Client::App::WorldEvent;
 using Client::Core::Duration;
 using Client::Core::Log;
 using Client::Core::LogLevel;
@@ -119,9 +124,11 @@ using Client::Network::Crypto::Xor32Decode;
 using Client::Protocol::ClientVersion;
 using Client::Protocol::Character::CharacterEntry;
 using Client::Protocol::Character::CharacterOpcode;
+using Client::Protocol::Character::CharacterSelectResult;
 using Client::Protocol::Character::CreateSubcode;
 using Client::Protocol::Character::DeleteCodeSize;
 using Client::Protocol::Character::DeleteSubcode;
+using Client::Protocol::Character::InventoryList;
 using Client::Protocol::Character::ListSubcode;
 using Client::Protocol::Character::SelectSubcode;
 using Client::Protocol::Character::WriteCharacterCreate;
@@ -477,6 +484,546 @@ struct Harness
     std::size_t gameServerStart = 0; // dónde empieza en `socket.sent` lo que va al GS
     PacketSerials gameServerSends;   // los seriales de lo que cifra el GS
 };
+
+// El esquema de la alternativa real debe poseer entradas y siete bytes opacos, no vistas al Packet.
+// El runtime de abajo comprueba lifecycle y valores; por sí solo no demuestra ausencia de vistas.
+static_assert(std::is_same_v<std::variant_alternative_t<1, WorldEvent>, InventoryList>);
+static_assert(std::is_same_v<decltype(InventoryList::items), std::vector<Client::Protocol::Character::InventoryEntry>>);
+static_assert(std::is_same_v<decltype(Client::Protocol::Character::InventoryEntry::item), std::array<std::byte, 7>>);
+
+// Wire sintético independiente de lectores/writers: mínimo 0x34, padding distinto y 23 campos.
+ByteVector WorldEntryReply()
+{
+    return Bytes({0xC1, 0x34, 0xF3, 0x03, 0x81, 0x2A, 0x20, 0x00, 0xEF, 0xCD, 0xAB, 0x89, 0x76,
+                  0x54, 0x32, 0x10, 0x11, 0x91, 0x22, 0xA2, 0x33, 0xB3, 0x44, 0xC4, 0x55, 0xD5,
+                  0x66, 0xE6, 0x77, 0xF7, 0x88, 0x18, 0x99, 0x29, 0xAA, 0x3A, 0xBB, 0x4B, 0xDE,
+                  0xAD, 0x98, 0xBA, 0xDC, 0xFE, 0x80, 0xFE, 0xCC, 0x5C, 0xDD, 0x6D, 0xFF, 0xFF});
+}
+
+ByteVector OtherWorldEntryReply()
+{
+    ByteVector bytes = WorldEntryReply();
+    bytes[4] = std::byte{0};
+    bytes[5] = std::byte{0xFF};
+    bytes[6] = std::byte{0xFF};
+    bytes[7] = std::byte{0xFF};
+    return bytes;
+}
+
+// C2 se cifra como C4 incluso siendo corto (support/TestGameServer.h); ningún dato es un ítem real.
+ByteVector InventoryReply()
+{
+    return Bytes({0xC2, 0x00, 0x1E, 0xF3, 0x10, 0x03, 0xFF, 0x00, 0x80, 0xFF, 0x01, 0x7F, 0xAA, 0x55, 0x0C,
+                  0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0xFF, 0x81, 0x02, 0x40, 0xF0, 0x0F, 0xCC, 0x33});
+}
+
+ByteVector EmptyInventoryReply()
+{
+    return Bytes({0xC2, 0x00, 0x06, 0xF3, 0x10, 0x00});
+}
+
+void ExpectWorldEntry(const WorldEvent& event)
+{
+    const auto* entry = std::get_if<CharacterSelectResult>(&event);
+    ASSERT_NE(entry, nullptr);
+    EXPECT_EQ(entry->x, 0x81);
+    EXPECT_EQ(entry->y, 0x2A);
+    EXPECT_EQ(entry->map, 32); // La recepción no aplica el remapeo 32 -> 9.
+    EXPECT_EQ(entry->direction, 0);
+    EXPECT_EQ(entry->experience, 0x89ABCDEFu);
+    EXPECT_EQ(entry->nextExperience, 0x10325476u);
+    EXPECT_EQ(entry->levelUpPoints, 0x9111);
+    EXPECT_EQ(entry->strength, 0xA222);
+    EXPECT_EQ(entry->agility, 0xB333);
+    EXPECT_EQ(entry->vitality, 0xC444);
+    EXPECT_EQ(entry->energy, 0xD555);
+    EXPECT_EQ(entry->life, 0xE666);
+    EXPECT_EQ(entry->maxLife, 0xF777);
+    EXPECT_EQ(entry->mana, 0x1888);
+    EXPECT_EQ(entry->maxMana, 0x2999);
+    EXPECT_EQ(entry->bp, 0x3AAA);
+    EXPECT_EQ(entry->maxBp, 0x4BBB);
+    EXPECT_EQ(entry->zen, 0xFEDCBA98u);
+    EXPECT_EQ(entry->pk, 0x80);
+    EXPECT_EQ(entry->controlCode, 0xFE);
+    EXPECT_EQ(entry->addedPoints, 0x5CCC);
+    EXPECT_EQ(entry->maxAddedPoints, 0x6DDD);
+    EXPECT_EQ(entry->leadership, 0xFFFF);
+}
+
+void ExpectInventory(const WorldEvent& event)
+{
+    const auto* inventory = std::get_if<InventoryList>(&event);
+    ASSERT_NE(inventory, nullptr);
+    ASSERT_EQ(inventory->items.size(), 3u);
+    EXPECT_EQ(inventory->items[0].slot, 0xFF);
+    EXPECT_TRUE(SameBytes(inventory->items[0].item, Bytes({0x00, 0x80, 0xFF, 0x01, 0x7F, 0xAA, 0x55})));
+    EXPECT_EQ(inventory->items[1].slot, 0x0C);
+    EXPECT_TRUE(SameBytes(inventory->items[1].item, Bytes({0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32})));
+    EXPECT_EQ(inventory->items[2].slot, 0xFF);
+    EXPECT_TRUE(SameBytes(inventory->items[2].item, Bytes({0x81, 0x02, 0x40, 0xF0, 0x0F, 0xCC, 0x33})));
+}
+
+ByteVector EncryptedWorldSequence(Harness& tested)
+{
+    return Join({FromTheGameServer(WorldEntryReply(), tested.gameServerSends),
+                 FromTheGameServer(InventoryReply(), tested.gameServerSends),
+                 FromTheGameServer(OtherWorldEntryReply(), tested.gameServerSends)});
+}
+
+void ExpectWorldSequence(std::span<const WorldEvent> events)
+{
+    ASSERT_EQ(events.size(), 3u);
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(events[0]));
+    ASSERT_NO_FATAL_FAILURE(ExpectInventory(events[1]));
+    const auto* other = std::get_if<CharacterSelectResult>(&events[2]);
+    ASSERT_NE(other, nullptr);
+    EXPECT_EQ(other->x, 0);
+    EXPECT_EQ(other->y, 0xFF);
+    EXPECT_EQ(other->map, 0xFF);
+    EXPECT_EQ(other->direction, 0xFF);
+    EXPECT_EQ(other->experience, 0x89ABCDEFu);
+    EXPECT_EQ(other->nextExperience, 0x10325476u);
+    EXPECT_EQ(other->levelUpPoints, 0x9111);
+    EXPECT_EQ(other->strength, 0xA222);
+    EXPECT_EQ(other->agility, 0xB333);
+    EXPECT_EQ(other->vitality, 0xC444);
+    EXPECT_EQ(other->energy, 0xD555);
+    EXPECT_EQ(other->life, 0xE666);
+    EXPECT_EQ(other->maxLife, 0xF777);
+    EXPECT_EQ(other->mana, 0x1888);
+    EXPECT_EQ(other->maxMana, 0x2999);
+    EXPECT_EQ(other->bp, 0x3AAA);
+    EXPECT_EQ(other->maxBp, 0x4BBB);
+    EXPECT_EQ(other->zen, 0xFEDCBA98u);
+    EXPECT_EQ(other->pk, 0x80);
+    EXPECT_EQ(other->controlCode, 0xFE);
+    EXPECT_EQ(other->addedPoints, 0x5CCC);
+    EXPECT_EQ(other->maxAddedPoints, 0x6DDD);
+    EXPECT_EQ(other->leadership, 0xFFFF);
+}
+
+// La recepción conserva el wire sin aplicar el mundo ni alterar la elección de la UI.
+TEST(ServerSessionTest, WorldEntryPreservesAllWireFieldsWithoutApplyingSelection)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+    tested.session.ChooseCharacter(std::uint8_t{3});
+    tested.session.EnterWorld();
+    ASSERT_EQ(tested.session.TakeCharacterEvents().size(), 1u);
+    const CharacterEntry* chosen = tested.session.ChosenCharacter();
+    const std::uint32_t starts = tested.session.StartCount();
+    const ByteVector sent = tested.socket.sent;
+    tested.socket.reads = {FromTheGameServer(WorldEntryReply(), tested.gameServerSends)};
+
+    tested.session.Poll();
+
+    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(events[0]));
+    EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
+    EXPECT_EQ(tested.session.ChosenCharacter(), chosen);
+    EXPECT_EQ(tested.session.StartCount(), starts);
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(SameBytes(tested.socket.sent, sent));
+}
+
+// Antes del saludo también conserva slots repetidos y cantidad cero sin filtrar entradas.
+TEST(ServerSessionTest, WorldInventoryPreservesEveryEntryAndPublishesAnEmptyList)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
+    tested.socket.reads = {Join({FromTheGameServer(InventoryReply(), tested.gameServerSends),
+                                 FromTheGameServer(EmptyInventoryReply(), tested.gameServerSends)})};
+
+    tested.session.Poll();
+
+    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 2u);
+    ASSERT_NO_FATAL_FAILURE(ExpectInventory(events[0]));
+    const auto* empty = std::get_if<InventoryList>(&events[1]);
+    ASSERT_NE(empty, nullptr);
+    EXPECT_TRUE(empty->items.empty());
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+}
+
+// Una cola por tipo perdería el orden intercalado aunque cada payload estuviera intacto.
+TEST(ServerSessionTest, WorldEventsPreserveInterleavedOrderInOneBatch)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {EncryptedWorldSequence(tested)};
+
+    tested.session.Poll();
+
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+// Dos recepciones iguales siguen siendo dos eventos; no corresponde deduplicar aquí.
+TEST(ServerSessionTest, WorldEventsKeepIdenticalRepeatedReceptions)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {Join({FromTheGameServer(WorldEntryReply(), tested.gameServerSends),
+                                 FromTheGameServer(WorldEntryReply(), tested.gameServerSends),
+                                 FromTheGameServer(InventoryReply(), tested.gameServerSends),
+                                 FromTheGameServer(InventoryReply(), tested.gameServerSends)})};
+
+    tested.session.Poll();
+
+    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 4u);
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(events[0]));
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(events[1]));
+    ASSERT_NO_FATAL_FAILURE(ExpectInventory(events[2]));
+    ASSERT_NO_FATAL_FAILURE(ExpectInventory(events[3]));
+}
+
+// Cada corte TCP debe producir la misma secuencia, aun con un paquete partido entre Poll.
+TEST(ServerSessionTest, WorldEventsPreserveInterleavedOrderAcrossEveryReadSplit)
+{
+    Harness baseline(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(baseline.ReachLoggedIn());
+    const std::size_t wireSize = EncryptedWorldSequence(baseline).size();
+    for (std::size_t split = 1; split < wireSize; ++split)
+    {
+        SCOPED_TRACE(split);
+        Harness tested(IdentityObfuscation::Shared());
+        ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+        const ByteVector wire = EncryptedWorldSequence(tested);
+        const auto middle = wire.begin() + static_cast<std::ptrdiff_t>(split);
+        tested.socket.reads = {ByteVector(wire.begin(), middle)};
+        tested.session.Poll();
+        tested.socket.reads = {ByteVector(middle, wire.end())};
+        tested.session.Poll();
+        ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+        EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    }
+}
+
+// La cola sigue pendiente mientras otra lectura reutiliza el transporte y el peer cierra.
+// Borrar en Fail o perder/reordenar payloads anteriores debe quedar observable al recién drenar.
+TEST(ServerSessionTest, WorldEventsRemainPendingAcrossAnotherPollAndFailure)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {EncryptedWorldSequence(tested)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::LoggedIn);
+
+    tested.socket.reads = {FromTheGameServer(EmptyInventoryReply(), tested.gameServerSends)};
+    tested.socket.peerClosed = true;
+    tested.session.Poll();
+
+    ASSERT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
+    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 4u);
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(std::span(events).first(3)));
+    const auto* empty = std::get_if<InventoryList>(&events[3]);
+    ASSERT_NE(empty, nullptr);
+    EXPECT_TRUE(empty->items.empty());
+    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+}
+
+// Una vez transferido, Start y Fail no tienen autoridad sobre el vector del consumidor.
+// Esto prueba la transferencia; los static_assert fijan la propiedad de los bytes del payload.
+TEST(ServerSessionTest, WorldEventsTransferredVectorSurvivesFailureAndStart)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {EncryptedWorldSequence(tested)};
+    tested.session.Poll();
+    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(events));
+    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+
+    tested.socket.peerClosed = true;
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(events));
+    tested.session.Start();
+
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(events));
+    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+}
+
+// Un cuerpo válido en claro no acredita la procedencia cifrada que exige esta frontera.
+TEST(ServerSessionTest, WorldEventsRejectClearPacketsAfterTheEncryptedPositive)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {EncryptedWorldSequence(tested)};
+    tested.session.Poll();
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+
+    tested.socket.reads = {Join({WorldEntryReply(), InventoryReply(), EmptyInventoryReply()})};
+    tested.session.Poll();
+
+    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+}
+
+// Un checksum válido no vuelve legible un cuerpo corto o una cantidad imposible.
+TEST(ServerSessionTest, WorldEventsRejectEncryptedTruncationsAfterThePositive)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {EncryptedWorldSequence(tested)};
+    tested.session.Poll();
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+
+    const std::size_t packetsSentBeforeCuts = tested.GameServerReads().packets.size();
+    // Cada corte conserva hasta el subcódigo: llega al handler, falla el cuerpo, no el checksum.
+    std::size_t rejectedEntries = 0;
+    std::size_t rejectedInventories = 0;
+    for (const ByteVector& valid : {WorldEntryReply(), InventoryReply()})
+    {
+        const bool wide = valid[0] == std::byte{0xC2};
+        const std::size_t minimum = wide ? 5u : 4u;
+        for (std::size_t size = minimum; size < valid.size(); ++size)
+        {
+            SCOPED_TRACE(size);
+            ByteVector shortReply(valid.begin(), valid.begin() + static_cast<std::ptrdiff_t>(size));
+            shortReply[wide ? 2u : 1u] = static_cast<std::byte>(size);
+            tested.socket.reads = {FromTheGameServer(shortReply, tested.gameServerSends)};
+            tested.session.Poll();
+            EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+            ++(wide ? rejectedInventories : rejectedEntries);
+        }
+    }
+    ByteVector badCount = InventoryReply();
+    badCount[5] = std::byte{0xFF};
+    tested.socket.reads = {FromTheGameServer(badCount, tested.gameServerSends)};
+    tested.session.Poll();
+    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    ++rejectedInventories;
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "(F3 03): no se puede leer"), rejectedEntries);
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "(F3 10): no se puede leer"), rejectedInventories);
+    // Con checksum correcto no corresponde enviar nada, incluido el F1/03 por descifrado fallido.
+    EXPECT_EQ(tested.GameServerReads().packets.size(), packetsSentBeforeCuts);
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+// Cifrar un tipo u opcode incorrecto no debe convertirlo en una respuesta de mundo.
+TEST(ServerSessionTest, WorldEventsDistinguishPacketKindsAndSubcodes)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {EncryptedWorldSequence(tested)};
+    tested.session.Poll();
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+
+    ByteVector wideEntry = WorldEntryReply();
+    wideEntry.insert(wideEntry.begin() + 1, std::byte{0});
+    wideEntry[0] = std::byte{0xC2};
+    wideEntry[2] = static_cast<std::byte>(wideEntry.size());
+    ByteVector narrowInventory = InventoryReply();
+    narrowInventory.erase(narrowInventory.begin() + 1);
+    narrowInventory[0] = std::byte{0xC1};
+    narrowInventory[1] = static_cast<std::byte>(narrowInventory.size());
+    std::vector<ByteVector> wrongKinds{wideEntry, narrowInventory};
+    for (ByteVector packet : {WorldEntryReply(), InventoryReply()})
+    {
+        const std::size_t opcode = packet[0] == std::byte{0xC1} ? 2u : 3u;
+        ByteVector otherOpcode = packet;
+        otherOpcode[opcode] = std::byte{0xF2};
+        wrongKinds.push_back(std::move(otherOpcode));
+        packet[opcode + 1] = std::byte{0x7F};
+        wrongKinds.push_back(std::move(packet));
+    }
+    for (const ByteVector& packet : wrongKinds)
+    {
+        tested.socket.reads = {FromTheGameServer(packet, tested.gameServerSends)};
+        tested.session.Poll();
+        EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    }
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+}
+
+// El cierre posterior del peer no debe borrar lo recibido antes en el mismo lote.
+TEST(ServerSessionTest, WorldEventsSurviveFailureInTheSamePoll)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {EncryptedWorldSequence(tested)};
+    tested.socket.peerClosed = true;
+
+    tested.session.Poll();
+
+    ASSERT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+}
+
+// Start descarta tanto eventos pendientes como un paquete incompleto de la conexión anterior.
+TEST(ServerSessionTest, WorldEventsStartDiscardsPendingAndPartiallyReceivedPackets)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {EncryptedWorldSequence(tested)};
+    tested.session.Poll();
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+    const ByteVector entry = FromTheGameServer(WorldEntryReply(), tested.gameServerSends);
+    ByteVector partial = FromTheGameServer(InventoryReply(), tested.gameServerSends);
+    partial.resize(partial.size() / 2);
+    tested.socket.reads = {Join({entry, partial})};
+    tested.session.Poll();
+    EXPECT_FALSE(tested.Logged(LogLevel::Warning, "(F3 03)"));
+
+    tested.session.Start();
+
+    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    tested.gameServerSends = PacketSerials{};
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    tested.socket.reads = {FromTheGameServer(EmptyInventoryReply(), tested.gameServerSends)};
+    tested.session.Poll();
+    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    const auto* empty = std::get_if<InventoryList>(&events[0]);
+    ASSERT_NE(empty, nullptr);
+    EXPECT_TRUE(empty->items.empty());
+}
+
+// QuitOrdered conserva lo previo y corta el resto del lote de esa conexión.
+TEST(ServerSessionTest, WorldEventsStopAtTheExistingConnectionBatchBoundary)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.socket.reads = {Join({FromTheGameServer(WorldEntryReply(), tested.gameServerSends),
+                                 FromTheGameServer(LogoutResult(0), tested.gameServerSends),
+                                 FromTheGameServer(InventoryReply(), tested.gameServerSends),
+                                 FromTheGameServer(OtherWorldEntryReply(), tested.gameServerSends)})};
+
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(events[0]));
+    tested.session.Poll();
+    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+}
+
+// Los avisos del handler detectarían un registro accidental en CS, aun rechazando los claros.
+TEST(ServerSessionTest, WorldEventsDoNotDispatchConnectServerPacketsAsGameServerPackets)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachServerAddress());
+    tested.socket.reads = {Join(
+        {WorldEntryReply(), InventoryReply(), AddressReply(GameHost, GamePort), WorldEntryReply(), InventoryReply()})};
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
+    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    EXPECT_FALSE(tested.Logged(LogLevel::Warning, "(F3 03)"));
+    EXPECT_FALSE(tested.Logged(LogLevel::Warning, "(F3 10)"));
+    tested.session.Poll();
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
+    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    EXPECT_FALSE(tested.Logged(LogLevel::Warning, "(F3 03)"));
+    EXPECT_FALSE(tested.Logged(LogLevel::Warning, "(F3 10)"));
+
+    tested.socket.reads = {EncryptedWorldSequence(tested)};
+    tested.session.Poll();
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+}
+
+// SetState(m_state) en el handler F3/03 reiniciaría la espera: debe vencer en el tope original.
+TEST(ServerSessionTest, WorldEntryDoesNotExtendTheOriginalReplyTimeout)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.AdvanceTo(seconds{5});
+    tested.session.RequestCharacterList();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
+    tested.AdvanceTo(seconds{5} + ReplyTimeout - milliseconds{1});
+    tested.socket.reads = {FromTheGameServer(WorldEntryReply(), tested.gameServerSends)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
+    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(events[0]));
+
+    tested.AdvanceTo(seconds{5} + ReplyTimeout);
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
+}
+
+// El F3/10 se ejercita solo: extender el deadline en cualquiera de los dos handlers debe fallar.
+TEST(ServerSessionTest, WorldInventoryDoesNotExtendTheOriginalReplyTimeout)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.AdvanceTo(seconds{5});
+    tested.session.RequestCharacterList();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
+    tested.AdvanceTo(seconds{5} + ReplyTimeout - milliseconds{1});
+    tested.socket.reads = {FromTheGameServer(InventoryReply(), tested.gameServerSends)};
+    tested.session.Poll();
+    ASSERT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
+    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    ASSERT_NO_FATAL_FAILURE(ExpectInventory(events[0]));
+
+    tested.AdvanceTo(seconds{5} + ReplyTimeout);
+    tested.session.Poll();
+
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
+}
+
+// Recibir o drenar no debe reiniciar la fase global ni cambiar velocidades/bytes del keepalive.
+TEST(ServerSessionTest, WorldEventsPreserveTheNextKeepaliveBytesAndTimerPhase)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    tested.session.SetKeepaliveSpeeds(
+        KeepaliveSpeeds{.attackSpeed = 0x033C, .magicSpeed = 0x027C, .characterFlags = KeepaliveAdjust20});
+    ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{3}));
+    ASSERT_EQ(tested.Keepalives().size(), 1u);
+    tested.AdvanceTo(milliseconds{11360});
+    tested.socket.reads = {EncryptedWorldSequence(tested)};
+    tested.session.Poll();
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+    ASSERT_EQ(tested.Keepalives().size(), 1u);
+
+    tested.AdvanceTo(milliseconds{19999});
+    tested.session.Poll();
+    ASSERT_EQ(tested.Keepalives().size(), 1u);
+    tested.AdvanceTo(seconds{20});
+    tested.session.Poll();
+
+    const std::vector<Packet> sent = tested.Keepalives();
+    ASSERT_EQ(sent.size(), 2u);
+    EXPECT_TRUE(
+        SameBytes(sent[1].Bytes(), Bytes({0xC1, 0x0C, 0x0E, 0x00, 0x20, 0x4E, 0x00, 0x00, 0x28, 0x03, 0x68, 0x02})));
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+// La procedencia cifrada debe sobrevivir a la máscara entrante antes de framing y descifrado.
+TEST(ServerSessionTest, WorldEventsSurviveTheRealFoxAntiTransport)
+{
+    const FoxAntiObfuscation obfuscation;
+    Harness tested(obfuscation);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    ByteVector wire = EncryptedWorldSequence(tested);
+    for (std::byte& value : wire)
+    {
+        value ^= std::byte{0xAA}; // Máscara entrante del laboratorio antes del framing/descifrado.
+    }
+    tested.socket.reads = {wire};
+    tested.session.Poll();
+
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+}
 
 TEST(ServerSessionTest, StartsIdle)
 {

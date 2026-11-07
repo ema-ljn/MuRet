@@ -5,6 +5,7 @@
 #include "App/FaithfulPacer.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
+#include "App/WorldEvent.h"
 #include "Core/IClock.h"
 #include "Core/Log.h"
 #include "Network/CloseReason.h"
@@ -18,6 +19,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterName.h"
 #include "Protocol/Character/CharacterSelect.h"
+#include "Protocol/Character/InventoryList.h"
 #include "Protocol/Character/Opcodes.h"
 #include "Protocol/Connection/Hello.h"
 #include "Protocol/Connection/Keepalive.h"
@@ -168,7 +170,9 @@ void ServerSession::RegisterGameServerHandlers()
     using Protocol::Character::CharacterOpcode;
     using Protocol::Character::CreateSubcode;
     using Protocol::Character::DeleteSubcode;
+    using Protocol::Character::InventoryListSubcode;
     using Protocol::Character::ListSubcode;
+    using Protocol::Character::SelectSubcode;
     using Protocol::Connection::HelloSubcode;
     using Protocol::Connection::JoinOpcode;
     using Protocol::Connection::LoginSubcode;
@@ -182,6 +186,10 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnCreateResult(packet); }) &&
         m_gameServer.On(CharacterOpcode, DeleteSubcode,
                         [this](const Network::Packet& packet) { OnDeleteResult(packet); }) &&
+        m_gameServer.On(CharacterOpcode, SelectSubcode,
+                        [this](const Network::Packet& packet) { OnWorldEntryReply(packet); }) &&
+        m_gameServer.On(CharacterOpcode, InventoryListSubcode,
+                        [this](const Network::Packet& packet) { OnInventoryReply(packet); }) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
 }
@@ -201,6 +209,7 @@ void ServerSession::Start()
     m_loginResult.reset();
     m_characters.reset();
     m_characterEvents.clear();
+    m_worldEvents.clear();
     m_createResult.reset();
     m_deleteResult.reset();
     m_deletingSlot.reset();
@@ -368,6 +377,11 @@ const std::optional<Protocol::Character::CharacterList>& ServerSession::Characte
 std::vector<CharacterEvent> ServerSession::TakeCharacterEvents()
 {
     return std::exchange(m_characterEvents, {});
+}
+
+std::vector<WorldEvent> ServerSession::TakeWorldEvents()
+{
+    return std::exchange(m_worldEvents, {});
 }
 
 void ServerSession::ChooseCharacter(std::optional<std::uint8_t> slot)
@@ -777,6 +791,40 @@ void ServerSession::OnDeleteResult(const Network::Packet& packet)
     }
     m_deletingSlot.reset();
     SetState(SessionState::ChoosingCharacter);
+}
+
+// 04 § La entrada al mundo: sólo recepción de los 23 campos wire; no aplica 0x4c3940 ni Q-C144.
+void ServerSession::OnWorldEntryReply(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("se ignora la respuesta de entrada al mundo (F3 03): no llegó cifrada");
+        return;
+    }
+    auto reply = Protocol::Character::ReadCharacterSelectResult(packet);
+    if (!reply.HasValue())
+    {
+        m_log.Warning("se ignora la respuesta de entrada al mundo (F3 03): {}", Unreadable);
+        return;
+    }
+    m_worldEvents.emplace_back(std::move(reply).Value());
+}
+
+// 04 § El F3 10, el inventario: conserva el wire, sin inicializaciones ni efectos de 0x4c55a0.
+void ServerSession::OnInventoryReply(const Network::Packet& packet)
+{
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("se ignora el inventario (F3 10): no llegó cifrado");
+        return;
+    }
+    auto reply = Protocol::Character::ReadInventoryList(packet);
+    if (!reply.HasValue())
+    {
+        m_log.Warning("se ignora el inventario (F3 10): {}", Unreadable);
+        return;
+    }
+    m_worldEvents.emplace_back(std::move(reply).Value());
 }
 
 // 0x4c2710 no mira el estado ni la escena para el 0: SendMessageA(WM_DESTROY) en 0x4c391b, y el

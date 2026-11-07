@@ -3030,6 +3030,64 @@ decía que ningún `.att` tenía el `0x40`.
   trapecio (`0x7b4ccb8`) toma el de la cámara solo si `ftol(D) ≤ ftol(meta)`
   (`0x5fb70e..0x5fb738`). En el login K es 244.800 y f 0,159375; en la selección, 13.823,88 y 0,009;
   en el juego, 2.400 y 1/640.
+
+### El trapecio completo
+
+CL7.5E agrega el núcleo puro de `0x5fb570`, con estado efectivo explícito independiente del
+solicitado signed16 de la cámara. Evidencia estática del mismo PE SHA256
+`c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`: función
+`[0x5fb570,0x5fba77)`, SHA256 `a28528d42a4cbd695d9050a6878a964a3ada556eb6fbc1131d882f1713f4ea10`,
+326 instrucciones/1.287 bytes cotejados sin huecos ni discrepancias. Esto acredita selección,
+constantes y stores; no ejecución nueva ni pureza universal de sus callees.
+
+Prioridad: mapa6 y resultado de nombre para perfil; después mapa30/escena5; resto nivel normal.
+Los especiales retienen exactamente el efectivo sin convertir D/meta ni consumir solicitado.
+El normal trunca primero D y después meta a int64 y compara **sus bajos32 como signed32**;
+adopta el solicitado con signo cuando meta≥D, o retiene. La geometría también se calcula en
+escenas distintas de2/4/5; allí sólo el consumidor `0x5fba90` deja pasar todo. El wrapper legacy
+conserva su sentinel `Other` de arrays+0; no hay estado oculto en él.
+
+Con W int32 exacto, g=`bits32(0x3acccccd)`, a=R32(W×g), q=R32(W×g+`bits32(0x3dcccccd)`):
+
+| Perfil | F / T / N | FW / NW, ambos con store R32 |
+| --- | --- | --- |
+| mapa6 especial | 8500 / 3995 / 425 | a×3000 / a×540 |
+| mapa30/5 grande | 5100 / 2397 / 969 | a×2250 / a×540 |
+| mapa30/5 pequeño | 3300 / 1551 / 627 | a×1300 / a×580 |
+| nivel0 escena2 | 244800 / R32(F×t) / R32(F×n) | b×1190 / b×540 |
+| nivel0 escena4 | 13823,880859375 / R32(F×t) / R32(F×n) | b×1190 / b×540 |
+| nivel0 resto | 2400 / R32(F×t) / R32(F×n) | b×1190 / b×540 |
+| nivel1 | 2700 / 1269 / 513 | q×1200 / q×540 |
+| nivel2 | 3000 / 1410 / 570 | q×1300 / q×540 |
+| nivel3 | 3300 / 1551 / 627 | q×1500 / q×580 |
+| nivel4 | 3400 / 1598 / 646 | q×1600 / q×660 |
+
+Aquí t=`bits32(0x3ef0a3d7)`, n=`bits32(0x3e428f5c)` y b=R32(W×k), con k de escena2
+`0x3e233333`, escena4 `0x3c137469` o g. **q no guarda W×g antes de sumar0,1f**. No fusionar
+pequeño30 y nivel3: sus anchos difieren. Los negativos y todo el ancho de W cuentan.
+
+La región grande30 son las franjas X `[16100,17100)` o `(18300,19000]`, con Y inclusiva
+`[18900,21700]`, usando XY del objeto y no la traslación del argumento. Quiet NaN o infinito
+en una coordenada selectora eligen pequeño en el modelo portable; la continuidad nativa ante
+NaN requiere invalid enmascarada. Z no selecciona. El yaw se elige independientemente: mapa6
+con el **segundo** resultado completo de nombre, o mapa55, usan −cameraYaw; resto45. Los dos
+resultados de nombre no se fusionan por presunta estabilidad ni representan búsquedas individuales
+de «webzen»/«webzen2».
+
+Esquinas locales: `(-FW,R32(F-T),0)`, `(FW,R32(F-T),0)`, `(NW,R32(N-T),0)`,
+`(-NW,R32(N-T),0)`. Rotación mediante `OriginalRotation`, suma de traslación XYZ con store f32
+y después escala XY por `bits32(0x3c23d70a)` con otro store. La proyección de53bits existente
+no acredita libm=x87 para todo float ni ambiente FP arbitrario. Traslación/geometría deben
+permanecer finitas representables y el yaw usado dentro del dominio del helper existente.
+
+La frontera portable de errores normal (`InvalidCameraDistance`, luego `InvalidEffectiveLevel`)
+está en [ADR0009](../../../docs/adr/0009-errores-del-trapecio.md): no imita locales sin inicializar
+ni promete un retorno universal del FISTP excepcional. Snapshot estable y sin alias; defaultsDTO
+sin significado probado de inicio/reset. Los tests unitarios observan perfiles, bordes, stores,
+estado, bajos32 y errores; las regresiones históricas observan login55, selección54 y trazas de
+celdas. La integración temporal (pares cámara→trapecio por frame original, dueño persistente,
+reentrada y faseZ163) queda pendiente; este núcleo no cierra CL7 ni sus callers.
+
 - Quién lo usa:
 
 | Qué | Dónde | Prueba | Margen |

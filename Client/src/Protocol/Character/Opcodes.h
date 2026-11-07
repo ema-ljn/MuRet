@@ -14,6 +14,8 @@ inline constexpr std::uint8_t ListSubcode = 0x00;   // pedir la lista, y la list
 inline constexpr std::uint8_t CreateSubcode = 0x01; // crear, y su respuesta (CL6.5)
 inline constexpr std::uint8_t DeleteSubcode = 0x02; // borrar, y su respuesta (CL6.5)
 inline constexpr std::uint8_t SelectSubcode = 0x03; // entrar al mundo, y su respuesta (0x4c3940, CL7)
+// 04-protocolo, "El F3 10, el inventario": la lista de ítems, no la apariencia de selección.
+inline constexpr std::uint8_t InventoryListSubcode = 0x10;
 
 // El nombre de un personaje: 10 bytes, sin terminador si los llena.
 inline constexpr std::size_t NameSize = 10;

@@ -3443,17 +3443,29 @@ AngleMatrix(o.Angle))` (`0x5fc8f0`, `0x5fcbd0`): **avanza hacia donde mira**, no
 Después la z es la del terreno (`0x5f93c0`), +90 o +30 con el ítem `0x1c15` fuera de la zona segura,
 y `+0x84` suma 0,15.
 
-**La velocidad v** (`0x508940`, en unidades por paso; *emulado*: 12 y 15):
+**La velocidad v** (`0x508940`, en unidades por paso; *emulado* previamente: 12 y 15;
+contrato completo contrastado estáticamente con sus 82 instrucciones / 319 bytes):
 
 | Caso | v |
 | --- | --- |
-| no jugador (`+2` distinto de `0x20a` o `+0x88` distinto de 1) | `(float)(u16) +0x386` |
-| Fenrir (`+0x318 == 0x1c37`) fuera de la zona segura | 15; 16 con el contador `0x7d3a0d4` de 10 a 19; desde 20, 19 con `+0x31b` y 17 sin |
+| sin política especial (`u16 +2` distinto de `0x20a` o `u8 +0x88` distinto de **1 exacto**) | base `u16 +0x386`, extendida con cero (0..65535) |
+| Fenrir (`u16 +0x318 == 0x1c37`) fuera de la zona segura | latch `0x7d3a0d0` cero: escribe 1, luego contador `0x7d3a0d4` = 0 y elige 15; latch no cero: 15 con contador **signed32** < 10, 16 de 10 a 19; desde 20, 17 con `u8 +0x31b` cero y 19 con cualquier no cero |
 | `+0x318 == 0x1c16` fuera de la zona segura | 17 (y `Run = 40`) |
-| sin alas (`+0x2f8 == −1`) y sin `0x1c14` ni `0x1c15`, o en la zona segura | **12 con `Run (+0x38c)` < 40 y 15 si no** |
-| con alas o con `0x1c14`/`0x1c15`, fuera de la zona segura | 15, o 16 con las alas `0x1a17` (y `Run = 40`) |
-| los mapas 18 a 23 | 15 siempre |
-| con `+0x78 & 2` | la mitad |
+| sin alas (`u16 +0x2f8 == 0xffff`) e ítem fuera del rango **signed16 inclusivo** `0x1c14..0x1c15`, o en la zona segura | **12 con `Run (u8 +0x38c)` < 40 y 15 si no**, sin cambiar Run |
+| cualquier alas distintas de `0xffff`, o ítem `0x1c14`/`0x1c15`, fuera de la zona segura | escribe `Run = 40` y elige 16 con alas `0x1a17`, 15 en otro caso |
+| mapa **signed32** de 18 a 23 inclusive, para todos los tipos | después de lo anterior, escribe `Run = 40` y fuerza 15, conservando los efectos previos |
+| al final, flags `u32 +0x78 & 2` | divide solo el retorno por 2; también en mapas 18..23 (7,5) |
+
+La política de ítems requiere ambos discriminadores; los demás tipos/modos también pasan por
+mapa y flags. La zona segura es cualquier byte no cero, incluidos `0x80/0xff`. Fenrir **no escribe
+Run antes del mapa**, tampoco al elegir 17; un latch no cero conserva todos sus bits, y D4 solo se
+reinicia con latch cero. D0/D4 son globales compartidos entre actores, no estado de cada uno.
+Esta función no incrementa D4 ni Run, no resetea Run por zona segura y no consulta clase, botas,
+guantes ni RNG: esos productores siguen en `SetPlayerWalk`. Run admite todo u8, incluidos 128/255;
+los contadores negativos eligen 15. Con memoria estable y distinta, constantes intactas y retorno
+normal, base y mitades son exactas en binary32, incluido +0. La unidad portable `MovementSpeed`
+proyecta valor y esos tres estados; no reproduce el slot de argumento sobrescrito, status/ABI x87,
+fallos o aliases arbitrarios. Sus tests analíticos no acreditan integración ni nueva emulación.
 
 A 25 pasos por segundo, caminando son 300 unidades por segundo, 3 celdas; corriendo, 3,75. En la
 emulación, 6 celdas caminando son 49 pasos (1,96 s).

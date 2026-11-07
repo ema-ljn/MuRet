@@ -17,6 +17,7 @@
 #include "Network/SendQueue.h"
 #include "Network/SocketError.h"
 #include "Protocol/Connection/ServerList.h"
+#include "Protocol/Dispatcher.h"
 #include "Protocol/Outgoing.h"
 
 #include "support/Bytes.h"
@@ -840,7 +841,12 @@ TEST_F(ConnectionTest, ASerialOutOfOrderIsResyncedOnce)
     }
     m_socket.reads = {Join({first, FromTheGameServer(Hello(), server), FromTheGameServer(Hello(), server)})};
 
-    EXPECT_EQ(Describe(m_connection.Poll()), (Lines{"C1 04 00 01", "C1 04 00 01", "C1 04 00 01"}));
+    const auto events = m_connection.Poll();
+    ASSERT_EQ(Describe(events), (Lines{"C1 04 00 01", "C1 04 00 01", "C1 04 00 01"}));
+    for (const Event& event : events)
+    {
+        EXPECT_TRUE(std::get<Packet>(event).WasDecrypted());
+    }
     EXPECT_EQ(Warnings(), Lines{"[warning] un C3 que llegó trae otro serial que el que se esperaba: se "
                                 "sigue desde el suyo"});
 }
@@ -861,7 +867,10 @@ TEST_F(ConnectionTest, WithFoxAntiWhatArrivesEncryptedIsUnmaskedDecryptedAndTran
     }
     m_socket.reads = {masked};
 
-    EXPECT_EQ(Describe(connection.Poll()), (Lines{"C1 04 00 01", "C1 06 F3 11 07 00"}));
+    const auto events = connection.Poll();
+    ASSERT_EQ(Describe(events), (Lines{"C1 04 00 01", "C1 06 F3 11 07 00"}));
+    EXPECT_TRUE(std::get<Packet>(events[0]).WasDecrypted());
+    EXPECT_TRUE(std::get<Packet>(events[1]).WasDecrypted());
     EXPECT_EQ(Warnings(), Lines{});
 }
 
@@ -1215,5 +1224,160 @@ TEST_F(ConnectionTest, AnEncryptedSendWithoutKeysDoesNotLeave)
     EXPECT_TRUE(m_socket.sent.empty());
     EXPECT_EQ(m_connection.State(), LinkState::Open);
     EXPECT_EQ(Warnings(), Lines{"[warning] se descarta un C1 F1 que va cifrado: esta conexión no tiene claves"});
+}
+
+// Todo punto de corte del stream, incluidas cabeceras y bloques cifrados, se prueba en Poll
+// separados. El prefijo puede dar varios eventos completos y dejar una última fracción pendiente.
+TEST_F(ConnectionTest, MixedOriginsSurviveEverySplitAndReachTheHandler)
+{
+    const ByteVector c1 = Bytes({0xC1, 0x05, 0xF3, 0x03, 0x42});
+    const ByteVector c2 = Bytes({0xC2, 0x00, 0x06, 0xF3, 0x03, 0x42});
+    PacketSerials server;
+    const ByteVector c3 = FromTheGameServer(c1, server);
+    const ByteVector c4 = FromTheGameServer(c2, server);
+    const ByteVector stream = Join({c1, c3, c1, c2, c4});
+    const std::vector<ByteVector> expected{c1, c1, c1, c2, c2};
+    const std::vector<bool> origins{false, true, false, false, true};
+    const std::vector<std::size_t> ends{c1.size(), c1.size() + c3.size(), 2 * c1.size() + c3.size(),
+                                        2 * c1.size() + c3.size() + c2.size(), stream.size()};
+
+    for (std::size_t split = 0; split <= stream.size(); ++split)
+    {
+        SCOPED_TRACE(split);
+        OpenTheGameServer();
+        std::vector<ByteVector> handledBytes;
+        std::vector<bool> handledOrigins;
+        Client::Protocol::Dispatcher dispatcher(m_log);
+        // Sólo transporte hasta un handler de la firma existente; no aplica política F3/03.
+        ASSERT_TRUE(dispatcher.On(0xF3, 0x03,
+                                  [&](const Packet& packet)
+                                  {
+                                      handledBytes.emplace_back(packet.Bytes().begin(), packet.Bytes().end());
+                                      handledOrigins.push_back(packet.WasDecrypted());
+                                  }));
+        const auto deliver = [&](const std::vector<Event>& events)
+        {
+            for (const Event& event : events)
+            {
+                const auto* packet = std::get_if<Packet>(&event);
+                ASSERT_NE(packet, nullptr);
+                EXPECT_EQ(dispatcher.Dispatch(*packet), Client::Protocol::DispatchResult::Handled);
+            }
+        };
+        m_socket.reads = {ByteVector(stream.begin(), stream.begin() + static_cast<std::ptrdiff_t>(split))};
+        const auto prefix = m_connection.Poll();
+        const auto completed =
+            static_cast<std::size_t>(std::ranges::count_if(ends, [split](std::size_t end) { return end <= split; }));
+        ASSERT_EQ(prefix.size(), completed);
+        ASSERT_NO_FATAL_FAILURE(deliver(prefix));
+        EXPECT_TRUE(m_connection.Poll().empty());
+        m_socket.reads = {ByteVector(stream.begin() + static_cast<std::ptrdiff_t>(split), stream.end())};
+        const auto suffix = m_connection.Poll();
+        ASSERT_EQ(suffix.size(), expected.size() - completed);
+        ASSERT_NO_FATAL_FAILURE(deliver(suffix));
+        EXPECT_EQ(handledBytes, expected);
+        EXPECT_EQ(handledOrigins, origins);
+        EXPECT_EQ(Warnings(), Lines{});
+    }
+}
+
+// La máscara se decide por paquete. Un claro exento y uno enmascarado pueden tener el mismo
+// payload final sin compartir ni su máscara ni su procedencia de descifrado.
+TEST_F(ConnectionTest, FoxAntiMixedOriginsSurviveEverySplit)
+{
+    const FoxAntiObfuscation foxAnti;
+    Connection connection(m_socket, foxAnti, m_clock, m_log, PaddingSeed);
+    const ByteVector c2 = Bytes({0xC2, 0x00, 0x06, 0xF3, 0x03, 0x42});
+    const ByteVector skillList = Bytes({0xC1, 0x08, 0xF3, 0x11, 0xFE, 0x04, 0x16, 0x68});
+    PacketSerials server;
+    ByteVector c3 = FromTheGameServer(Hello(), server);
+    ByteVector c4 = FromTheGameServer(c2, server);
+    ByteVector encryptedSkills = FromTheGameServer(skillList, server);
+    ByteVector maskedC1 = Hello();
+    for (ByteVector* part : {&c3, &c4, &maskedC1, &encryptedSkills})
+    {
+        for (std::byte& value : *part)
+        {
+            value ^= std::byte{0xAA};
+        }
+    }
+    // Las dos listas llevan los mismos datos; BeforeDispatch inserta el 00 en ambas y sólo
+    // la que llegó cifrada conserva true al alcanzar el handler, después de cualquier split.
+    const ByteVector stream = Join({Hello(), c3, maskedC1, c2, c4, skillList, encryptedSkills});
+    const Lines expected{"C1 04 00 01",
+                         "C1 04 00 01",
+                         "C1 04 00 01",
+                         "C2 00 06 F3 03 42",
+                         "C2 00 06 F3 03 42",
+                         "C1 09 F3 11 FE 00 04 16 68",
+                         "C1 09 F3 11 FE 00 04 16 68"};
+    const std::vector<bool> origins{false, true, false, false, true, false, true};
+    for (std::size_t split = 0; split <= stream.size(); ++split)
+    {
+        SCOPED_TRACE(split);
+        OpenTheGameServer(connection);
+        m_socket.reads = {ByteVector(stream.begin(), stream.begin() + static_cast<std::ptrdiff_t>(split))};
+        std::vector<Event> events = connection.Poll();
+        EXPECT_TRUE(connection.Poll().empty());
+        m_socket.reads = {ByteVector(stream.begin() + static_cast<std::ptrdiff_t>(split), stream.end())};
+        for (Event& event : connection.Poll())
+        {
+            events.push_back(std::move(event));
+        }
+        ASSERT_EQ(Describe(events), expected);
+        Lines handledBytes;
+        std::vector<bool> handledOrigins;
+        Client::Protocol::Dispatcher dispatcher(m_log);
+        const auto record = [&](const Packet& packet)
+        {
+            handledBytes.push_back(HexOf(packet.Bytes()));
+            handledOrigins.push_back(packet.WasDecrypted());
+        };
+        ASSERT_TRUE(dispatcher.On(0x00, record));
+        ASSERT_TRUE(dispatcher.On(0xF3, 0x03, record));
+        ASSERT_TRUE(dispatcher.On(0xF3, 0x11, record));
+        for (const Event& event : events)
+        {
+            EXPECT_EQ(dispatcher.Dispatch(std::get<Packet>(event)), Client::Protocol::DispatchResult::Handled);
+        }
+        EXPECT_EQ(handledBytes, expected);
+        EXPECT_EQ(handledOrigins, origins);
+        EXPECT_EQ(Warnings(), Lines{});
+    }
+}
+
+TEST_F(ConnectionTest, FailedDecryptionDoesNotContaminateTheNextClearPacket)
+{
+    const FoxAntiObfuscation foxAnti;
+    for (const IObfuscation* obfuscation :
+         {static_cast<const IObfuscation*>(&IdentityObfuscation::Shared()), static_cast<const IObfuscation*>(&foxAnti)})
+    {
+        Connection connection(m_socket, *obfuscation, m_clock, m_log, PaddingSeed);
+        OpenTheGameServer(connection);
+        PacketSerials server;
+        ByteVector good = FromTheGameServer(Hello(), server);
+        ByteVector bad = FromTheGameServer(Hello(), server);
+        const std::size_t checksum = HeaderSize(PacketType::C3) + CipherBlockSize - 1;
+        bad[checksum] ^= std::byte{0xFF};
+        if (obfuscation == &foxAnti)
+        {
+            for (ByteVector* part : {&good, &bad})
+            {
+                for (std::byte& value : *part)
+                {
+                    value ^= std::byte{0xAA};
+                }
+            }
+            EXPECT_EQ(foxAnti.InboundMask(good.front()), std::byte{0xAA});
+            EXPECT_EQ(foxAnti.InboundMask(bad.front()), std::byte{0xAA});
+        }
+        // El último Hello queda claro: además de la procedencia, cambia la máscara tras el error.
+        EXPECT_EQ(obfuscation->InboundMask(Hello().front()), std::byte{0});
+        m_socket.reads = {Join({good, bad, Hello()})};
+        const auto events = connection.Poll();
+        ASSERT_EQ(Describe(events), (Lines{"C1 04 00 01", "Undecryptable(ChecksumMismatch)", "C1 04 00 01"}));
+        EXPECT_TRUE(std::get<Packet>(events[0]).WasDecrypted());
+        EXPECT_FALSE(std::get<Packet>(events[2]).WasDecrypted());
+    }
 }
 } // namespace

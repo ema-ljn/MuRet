@@ -231,6 +231,8 @@ TEST(EncryptedPacketTest, DecryptsTheMuClientFixturesIntoTheNotice)
 
         ASSERT_TRUE(decrypted.HasValue()) << fixture.name;
         EXPECT_EQ(decrypted.Value().serial, SerialCheck::InOrder) << fixture.name;
+        EXPECT_TRUE(decrypted.Value().packet.WasDecrypted()) << fixture.name;
+        EXPECT_EQ(decrypted.Value().packet.Type(), PacketType::C1) << fixture.name;
         EXPECT_TRUE(SameBytes(decrypted.Value().packet.Bytes(), NoticeBytes())) << fixture.name;
     }
 }
@@ -268,6 +270,8 @@ TEST(EncryptedPacketTest, DecryptsTheC4IntoTheLongC2)
     ASSERT_TRUE(decrypted.HasValue());
     EXPECT_EQ(decrypted.Value().serial, SerialCheck::InOrder);
     EXPECT_TRUE(SameBytes(decrypted.Value().packet.Bytes(), c2));
+    EXPECT_TRUE(decrypted.Value().packet.WasDecrypted());
+    EXPECT_EQ(decrypted.Value().packet.Type(), PacketType::C2);
 }
 
 // Con un par sintético y tres bloques, lo que da `wrap` de make_vectors.py, que usa el
@@ -454,9 +458,11 @@ TEST(EncryptedPacketTest, AnotherSerialStillDecryptsAndResyncs)
 
     ASSERT_TRUE(first.HasValue());
     EXPECT_EQ(first.Value().serial, SerialCheck::Resynced);
+    EXPECT_TRUE(first.Value().packet.WasDecrypted());
     EXPECT_TRUE(SameBytes(first.Value().packet.Bytes(), NoticeBytes()));
     ASSERT_TRUE(second.HasValue());
     EXPECT_EQ(second.Value().serial, SerialCheck::InOrder);
+    EXPECT_TRUE(second.Value().packet.WasDecrypted());
 }
 
 // Que descifrar falló con `error` y gastó el serial que se esperaba, el 0: el siguiente es el 1,
@@ -780,6 +786,37 @@ TEST(EncryptedPacketTest, BeforeEncryptGetsThePaddingAlsoWhenTheBlockIsFull)
         expected.push_back(std::byte{0xA5});
         EXPECT_TRUE(SameBytes(seen, expected)) << "un C" << (type == PacketType::C1 ? 1 : 2);
         EXPECT_EQ(AfterHeader(encrypted.Value()).size(), Client::Network::Crypto::CipherBlockSize);
+    }
+}
+
+// Recifrar un paquete recibido crea otro contenedor: no hereda la acreditación del decoder.
+TEST(EncryptedPacketTest, EncryptionDoesNotClaimDecryptionEvenWhenTheInputWasDecrypted)
+{
+    const KeyPair identity = IdentityPair();
+    const ByteVector c4 = ReadNetVector("c4-serial2.bin");
+    ASSERT_FALSE(c4.empty());
+    for (const auto& bytes : {NoticeSerial0(), c4})
+    {
+        PacketSerials receiver;
+        const auto decrypted = DecryptPacket(PacketOf(bytes), identity.decryption, receiver);
+        ASSERT_TRUE(decrypted.HasValue());
+        ASSERT_TRUE(decrypted.Value().packet.WasDecrypted());
+        for (const bool wasDecrypted : {false, true})
+        {
+            const auto view = decrypted.Value().packet.Bytes();
+            const Packet clear = PacketOf(ByteVector(view.begin(), view.end()));
+            const Packet& plain = wasDecrypted ? decrypted.Value().packet : clear;
+            PacketSerials sender;
+            const auto encrypted = EncryptPacket(plain, identity.encryption, sender);
+            ASSERT_TRUE(encrypted.HasValue());
+            EXPECT_FALSE(encrypted.Value().WasDecrypted());
+            EXPECT_EQ(encrypted.Value().Type(),
+                      decrypted.Value().packet.Type() == PacketType::C1 ? PacketType::C3 : PacketType::C4);
+            PacketSerials roundtripSerials;
+            const auto roundtrip = DecryptPacket(encrypted.Value(), identity.decryption, roundtripSerials);
+            ASSERT_TRUE(roundtrip.HasValue());
+            EXPECT_TRUE(SameBytes(roundtrip.Value().packet.Bytes(), view));
+        }
     }
 }
 } // namespace

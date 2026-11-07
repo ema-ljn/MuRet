@@ -96,7 +96,7 @@ std::optional<PacketError> CheckDeclaredSize(PacketType type, std::size_t declar
     return std::nullopt;
 }
 
-Core::Expected<Packet, PacketError> Packet::FromBytes(std::vector<std::byte> bytes)
+Core::Expected<Packet, PacketError> Packet::FromBytes(std::vector<std::byte> bytes, bool wasDecrypted)
 {
     if (bytes.empty())
     {
@@ -120,14 +120,22 @@ Core::Expected<Packet, PacketError> Packet::FromBytes(std::vector<std::byte> byt
     {
         return Core::Unexpected(PacketError::SizeMismatch);
     }
-    return Packet(*type, std::move(bytes));
+    return Packet(*type, std::move(bytes), wasDecrypted);
 }
 
-Packet::Packet(PacketType type, std::vector<std::byte> bytes) : m_type(type), m_bytes(std::move(bytes)) {}
+Packet::Packet(PacketType type, std::vector<std::byte> bytes, bool wasDecrypted)
+    : m_type(type), m_bytes(std::move(bytes)), m_wasDecrypted(wasDecrypted)
+{
+}
 
 PacketType Packet::Type() const
 {
     return m_type;
+}
+
+bool Packet::WasDecrypted() const
+{
+    return m_wasDecrypted;
 }
 
 std::span<const std::byte> Packet::Bytes() const

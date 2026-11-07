@@ -20,7 +20,8 @@
 // corta, después AfterCut, el descifrado si es un C3/C4, y BeforeDispatch. Al mandar: Protocol arma
 // el paquete (con el XOR32 si lo lleva); si va cifrado, EncryptPacket llama a BeforeEncrypt antes
 // de cifrar; y todo lo que sale pasa por BeforeSend. AfterCut, BeforeDispatch y BeforeSend los
-// llama la conexión (CL4).
+// llama la conexión (CL4). AfterCut y BeforeDispatch conservan WasDecrypted() al reconstruir un
+// Packet; desenmascarar o traducir no acredita un descifrado.
 namespace Client::Network
 {
 class IObfuscation

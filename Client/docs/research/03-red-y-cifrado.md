@@ -109,6 +109,12 @@ WinMain (cada vuelta) → 0x4e1d50
                                                      (un C1 F3 11 pasa antes por reset_queue)
 ```
 
+En MuRet, `Packet::WasDecrypted()` conserva hasta el handler si el payload proviene de un
+C3/C4 descifrado con éxito, también cuando el serial se resincroniza. El corte, el escritor y
+un cifrado nuevo lo dejan en `false`; las reconstrucciones FoxAnti conservan el dato recibido.
+`Type()` y `Bytes()` siguen describiendo el contenedor actual C1/C2 tras descifrar. Esta
+procedencia no autentica al remitente ni valida semánticamente el payload.
+
 `decode_inbound` corre **antes** del corte, sobre todo lo que devolvió `recv`: decide el `0xAA`
 por el primer paquete de la lectura y lo aplica a la lectura entera (Q-C18).
 

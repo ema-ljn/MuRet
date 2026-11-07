@@ -116,7 +116,7 @@ Packet Rebuilt(PacketType encryptedType, std::span<const std::byte> decrypted)
     bytes.reserve(size);
     AppendHeader(bytes, type, size);
     bytes.insert(bytes.end(), afterSerial.begin(), afterSerial.end());
-    return KnownGood(std::move(bytes));
+    return Packet::FromBytes(std::move(bytes), true).Value();
 }
 } // namespace
 

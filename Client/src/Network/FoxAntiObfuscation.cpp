@@ -207,13 +207,14 @@ Core::Expected<Packet, ObfuscationError> TranslateServerList(const Packet& packe
         }
         out[EntryLoadIndex] = in[EntryLoadIndex];
     }
-    return Packet::FromBytes(std::move(list)).Value();
+    return Packet::FromBytes(std::move(list), packet.WasDecrypted()).Value();
 }
 
 // reset_queue: el mismo paquete con un 00 en pkt[5] y un byte más. Sin pkt[4], o con 255 bytes,
 // que pasaría a 256 y en el original queda con tamaño 0, es InvalidPacket.
 Core::Expected<Packet, ObfuscationError> InsertSkillListByte(Packet packet)
 {
+    const bool wasDecrypted = packet.WasDecrypted();
     std::vector<std::byte> bytes = std::move(packet).TakeBytes();
     if (bytes.size() < InsertedByteIndex || bytes.size() >= MaxC1Size)
     {
@@ -221,7 +222,7 @@ Core::Expected<Packet, ObfuscationError> InsertSkillListByte(Packet packet)
     }
     bytes.insert(bytes.begin() + static_cast<std::ptrdiff_t>(InsertedByteIndex), std::byte{0});
     bytes[1] = static_cast<std::byte>(bytes.size());
-    return Packet::FromBytes(std::move(bytes)).Value();
+    return Packet::FromBytes(std::move(bytes), wasDecrypted).Value();
 }
 } // namespace
 

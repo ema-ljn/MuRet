@@ -932,4 +932,44 @@ TEST(FoxAntiObfuscationTest, BeforeEncryptRemapsAnOpcodeWithNothingAfterIt)
 
     EXPECT_TRUE(SameBytes(serialAndOpcode, Bytes({0x10, 0x1D})));
 }
+
+// Fixture directo de la transformación: AfterCut recibe normalmente una lista clara, antes
+// del decoder. El true acá comprueba que reconstruir no borra metadata ya presente.
+TEST(FoxAntiObfuscationTest, RebuildingTheServerListPreservesDecryptionProvenance)
+{
+    for (const bool wasDecrypted : {false, true})
+    {
+        auto packet = Packet::FromBytes(LabServerList(), wasDecrypted);
+        ASSERT_TRUE(packet.HasValue());
+        const auto translated = FoxAntiObfuscation{}.AfterCut(std::move(packet).Value());
+        ASSERT_TRUE(translated.HasValue());
+        EXPECT_EQ(translated.Value().WasDecrypted(), wasDecrypted);
+        EXPECT_TRUE(SameBytes(translated.Value().Bytes(), MainExeServerList()));
+    }
+}
+
+TEST(FoxAntiObfuscationTest, RebuildingTheSkillListPreservesDecryptionProvenance)
+{
+    const auto identity = IdentityPair();
+    const auto plain = Bytes({0xC1, 0x08, 0xF3, 0x11, 0xFE, 0x04, 0x16, 0x68});
+    for (const bool encrypted : {false, true})
+    {
+        Packet packet = PacketOf(plain);
+        if (encrypted)
+        {
+            PacketSerials sender;
+            const auto cipher = EncryptPacket(packet, identity.encryption, sender);
+            ASSERT_TRUE(cipher.HasValue());
+            PacketSerials receiver;
+            auto decoded = DecryptPacket(cipher.Value(), identity.decryption, receiver);
+            ASSERT_TRUE(decoded.HasValue());
+            packet = std::move(decoded).Value().packet;
+        }
+        const auto translated = FoxAntiObfuscation{}.BeforeDispatch(std::move(packet));
+        ASSERT_TRUE(translated.HasValue());
+        EXPECT_EQ(translated.Value().WasDecrypted(), encrypted);
+        EXPECT_TRUE(
+            SameBytes(translated.Value().Bytes(), Bytes({0xC1, 0x09, 0xF3, 0x11, 0xFE, 0x00, 0x04, 0x16, 0x68})));
+    }
+}
 } // namespace

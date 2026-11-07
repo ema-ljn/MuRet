@@ -2712,6 +2712,23 @@ paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-d
    solo `leaf01.tga`. *Verificado* contra la traza: el pasto es la textura de GL 1360, la que sigue
    a los nueve tiles que están (1351 a 1359).
 
+### El paso de ondas de Kalima
+
+`0x41dbe0` (53 instrucciones, 146 bytes, cotejados con el PE) recorre, por fila y columna, el
+interior 1..254 de un plano 256 × 256 de DWORD. El selector raw elige el destino y su XOR 1 la
+fuente; el método **no cambia el selector**. Para cada celda suma arriba, izquierda, derecha y
+abajo con wrap de 32 bits, hace SAR 1, resta el destino previo con wrap de 32 bits y resta de ese
+resultado su SAR 4. Conserva la fuente completa y las 1.020 celdas del borde destino: no hay wrap
+espacial; las esquinas fuente no alimentan el interior, pero los demás bordes sí. No hay calls,
+FP, RNG, clamp ni restricción de amplitud. `World/KalimaWaves` porta esta transformación aislada
+para los slots 0/1 mediante dos planos de bits u32 y un bool: es una proyección, no el layout de
+la clase ni un adaptador de cualquier raw no cero. Otros valores raw pueden seleccionar otros
+slots o producir aliases nativos; quedan fuera de esa API. Sus defaults cero/false son propios.
+El caller mantiene el estado completo y definido, estable y con un único dueño sin observadores
+concurrentes del barrido; aloja directamente en heap los 512 KiB de planos y evita copias grandes
+en stack. El paso no asigna memoria. No reproduce ABI, faults ni estado residual de CPU, ni cierra
+perturbación, `0x41d880`, `0x41d2d0`, render o integración/lifetime de Kalima.
+
 ### El paso del juego
 
 El paso de la escena 5 es `0x636290` entero (3.844 bytes), después de `0x623e70`, la UI del juego

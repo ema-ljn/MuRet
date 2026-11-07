@@ -776,16 +776,33 @@ anterior; los cinco planos y la esfera de los efectos). PR propio. Se detalla al
 
 ## Sub-ola CL7.5 B: `Gate.bmd` y la detección
 
-**Contrato:** 05 (`Gate.bmd`) y 06 § Los cambios de mapa (`0x599ef0`). PR propio. Se detalla al arrancar; lo
-que se sabe:
+**Contrato:** 05 § `Gate.bmd` y 06 § Los cambios de mapa (`0x599ef0`). PR propio.
 
-- **Qué:** `Data::Tables::GateRecord` (flag, mapa, x1, y1, x2, y2, destino, dirección, nivel) sobre la
-  `GateTable` que ya existe, cargada en `GameData`; `GameLogic::GateCheck`, una función pura: con la celda,
-  el mapa, el nivel, la clase, la montura y las alas, el contador de warp y los ms desde el último `1C`,
-  devuelve nada, pedir el gate N, o un aviso (el texto y la espera de 50 pasos).
-- **Tests:** los cuatro gates de Lorencia con el `Gate.bmd` real (descifrado como `game/maps/gate.py`; adentro, en el borde, afuera, el nivel
-  justo); los 2/3 de las clases 3 y 4, el 28 en silencio, Atlans montado, Icarus sin alas; los 3 s y los 30
-  pasos; uno solo por paso aunque se pisen dos.
+**Estado:** implementadas la carga y la decisión pura. Esto no cierra toda CL7.5 B ni CL7: falta integrar
+el caller, el tiempo de la sesión y los efectos de CL7.5 D.
+
+- **Datos:** `Data::Tables::GateRecord` copia los nueve campos del registro descifrado sobre la
+  `GateTable` existente. `GameData` exige `Data/Gate.bmd` y carga sólo su prefijo de 2.304 bytes, ignorando
+  cualquier cola. Los errores de ruta, lectura y archivo corto siguen Q-C12/Q-C24; no afirman equivalencia
+  con los errores nativos.
+- **Decisión:** `GameLogic::GateCheck` recibe todo el estado del paso: celda, mapa, nivel, clase, equipo
+  actual, montura alternativa activa, contador, guardas, pending y ms transcurridos. Devuelve el índice
+  pedido opcional (incluido 0), los avisos acumulados en orden, la espera y `clearWarpPending`. Conserva el
+  flag exactamente 1, el rectángulo inclusivo sin margen ni normalización, los umbrales signed/unsigned,
+  los 2/3 de las clases base 3/4 y las precedencias de gate 28, Atlans e Icarus. Puede emitir varios avisos
+  y como máximo un pedido por paso. La preview sólo interviene en Atlans.
+- **Tests:** registros sintéticos y fuera de tabla; cuatro gates reales de Lorencia (1, 18, 23 y 102),
+  esquinas, lados externos y nivel justo/bajo, más el rectángulo invertido del 103; límites de clases,
+  ítems, mapas, tiempo y contador; orden de avisos y pending en gates solapados. La carga cubre ausencia,
+  ruta case-insensitive, archivo corto, directorio y cola grande; el lector de prefijos cubre sus límites
+  de representación y errores antes de reservar. Los fixtures de las escenas incluyen la tabla requerida.
+- **Pendiente de integración:** el caller debe poblar todo el estado, decrementar el contador positivo
+  una sola vez antes de la consulta y conservar el umbral 30/31. Los ms son una entrada pura: no equivalen
+  a las lecturas lazy de `GetTickCount` por candidato del original. Si hay limpieza y pedido, aplica
+  primero `clearWarpPending`; gate 0 activa el bloqueo antes del envío. Después del envío vienen el
+  contador 9.999.999, los hooks de destino 30/31 (`0x61c210` y luego `0x61c170("Data\\Macro.txt")`),
+  pending en 1 y los resets de selección, en ese orden. Sesión, transporte, presentación de mensajes,
+  retención de frame, respuestas y efectos siguen en C/D; estado protegido y su RNG, en el carril P.
 
 ## Sub-ola CL7.5 C: el protocolo del cambio de mapa
 

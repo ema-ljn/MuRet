@@ -4,6 +4,7 @@
 #include "Core/PathText.h"
 #include "Data/DataFile.h"
 #include "Data/DataPath.h"
+#include "Data/Tables/GateTable.h"
 #include "Data/Text/FilterWords.h"
 #include "Data/Text/TextTable.h"
 
@@ -25,6 +26,33 @@ namespace
 constexpr std::uintmax_t MaxTextTableFileBytes = 1024u * 1024u;
 // Y más que los 20.004 bytes de un filtro.
 constexpr std::uintmax_t MaxFilterFileBytes = 64u * 1024u;
+
+Core::Expected<Data::Tables::GateTable, std::string> LoadGates(const std::filesystem::path& dataRoot)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, GateTableFile, error);
+    if (error)
+    {
+        return Core::Unexpected(
+            std::format("no se pudo buscar {} en {}: {}", GateTableFile, Core::PathText(dataRoot), error.message()));
+    }
+    if (!path)
+    {
+        return Core::Unexpected(std::format("no está {} en {}", GateTableFile, Core::PathText(dataRoot)));
+    }
+    // 0x54a360 lee solo 256 registros de nueve bytes: el tamaño de la cola no cambia la carga.
+    const auto file = Data::ReadDataFilePrefix(*path, Data::Tables::GateTableSize);
+    if (!file.HasValue())
+    {
+        return Core::Unexpected(std::format("no se pudo leer {}: {}", GateTableFile, file.Error().message()));
+    }
+    auto table = Data::Tables::LoadGateTable(std::as_bytes(std::span(file.Value())));
+    if (!table.HasValue())
+    {
+        return Core::Unexpected(std::format("{}: {}", GateTableFile, Data::DescribeDataError(table.Error())));
+    }
+    return std::move(table).Value();
+}
 
 // Las palabras de `name` en `dataRoot`, o ninguna si no está.
 Core::Expected<std::vector<std::string>, std::string> LoadFilter(const std::filesystem::path& dataRoot,
@@ -92,6 +120,12 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(filterName).Error());
     }
     data.filterName = std::move(filterName).Value();
+    auto gates = LoadGates(dataRoot);
+    if (!gates.HasValue())
+    {
+        return Core::Unexpected(std::move(gates).Error());
+    }
+    data.gates.emplace(std::move(gates).Value());
     return data;
 }
 } // namespace Client::Scenes

@@ -1,8 +1,11 @@
 #include "Scenes/GameData.h"
 
+#include "Data/Tables/GateRecord.h"
+#include "Data/Tables/GateTable.h"
 #include "Data/Text/FilterWords.h"
 #include "Data/Text/TextTable.h"
 #include "support/SceneDataFiles.h"
+#include "support/GateFiles.h"
 #include "support/TemporaryFolder.h"
 
 #include <gtest/gtest.h>
@@ -10,6 +13,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <map>
+#include <span>
 #include <string>
 #include <system_error>
 #include <vector>
@@ -20,14 +24,17 @@
 namespace
 {
 using Client::Scenes::LoadGameData;
+using Client::Tests::GateTableBytes;
 using Client::Tests::TemporaryFolder;
 using Client::Tests::WriteFilterFile;
+using Client::Tests::WriteSceneFile;
 using Client::Tests::WriteTextTable;
 
 TEST(GameDataTest, ReadsTheTextTable)
 {
     const TemporaryFolder folder("game-data");
     WriteTextTable(folder.Path(), {{0, "cara de prueba"}, {456, "versión %s"}});
+    WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
 
     const auto data = LoadGameData(folder.Path());
 
@@ -42,6 +49,7 @@ TEST(GameDataTest, FindsTheFileInAnyCase)
 {
     const TemporaryFolder folder("game-data");
     WriteTextTable(folder.Path(), {{1, "uno"}}, "local/TEXT.BMD");
+    WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
 
     const auto data = LoadGameData(folder.Path());
 
@@ -90,6 +98,7 @@ TEST(GameDataTest, ReadsTheTwoFilters)
 {
     const TemporaryFolder folder("game-data");
     WriteTextTable(folder.Path(), {{1, "uno"}});
+    WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
     WriteFilterFile(folder.Path(), {"Synth", "Other"}, Client::Data::Text::FilterNameChecksumKey,
                     "Local/FilterName.bmd");
     WriteFilterFile(folder.Path(), {"word"}, Client::Data::Text::FilterChecksumKey, "Local/filter.BMD");
@@ -106,6 +115,7 @@ TEST(GameDataTest, WithoutTheFiltersNothingIsFiltered)
 {
     const TemporaryFolder folder("game-data");
     WriteTextTable(folder.Path(), {{1, "uno"}});
+    WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
 
     const auto data = LoadGameData(folder.Path());
 
@@ -126,5 +136,87 @@ TEST(GameDataTest, ACorruptFilterIsNamed)
 
     ASSERT_FALSE(data.HasValue());
     EXPECT_NE(data.Error().find("Local\\FilterName.bmd"), std::string::npos) << data.Error();
+}
+
+TEST(GameDataTest, ReadsTheGateTableFromTheDataRootIgnoringCase)
+{
+    const TemporaryFolder folder("game-data");
+    WriteTextTable(folder.Path(), {});
+    const Client::Data::Tables::GateRecord gate{1, 0, 121, 232, 123, 233, 2, 0, 20};
+    WriteSceneFile(folder.Path(), "gATE.BMD", GateTableBytes({{1, gate}}));
+
+    const auto data = LoadGameData(folder.Path());
+
+    ASSERT_TRUE(data.HasValue()) << data.Error();
+    ASSERT_TRUE(data.Value().gates.has_value());
+    EXPECT_EQ(Client::Data::Tables::ReadGateRecord(*data.Value().gates, 1), gate);
+}
+
+TEST(GameDataTest, AMissingGateTableIsNamed)
+{
+    const TemporaryFolder folder("game-data");
+    WriteTextTable(folder.Path(), {});
+
+    const auto data = LoadGameData(folder.Path());
+
+    ASSERT_FALSE(data.HasValue());
+    EXPECT_NE(data.Error().find("Gate.bmd"), std::string::npos) << data.Error();
+}
+
+TEST(GameDataTest, AGateTableOnlyInLocalDoesNotSatisfyTheRootFile)
+{
+    const TemporaryFolder folder("game-data");
+    WriteTextTable(folder.Path(), {});
+    WriteSceneFile(folder.Path(), "Local/Gate.bmd", GateTableBytes({}));
+
+    const auto data = LoadGameData(folder.Path());
+
+    ASSERT_FALSE(data.HasValue());
+    EXPECT_NE(data.Error().find("no está Gate.bmd"), std::string::npos) << data.Error();
+}
+
+TEST(GameDataTest, AShortGateTableIsNamed)
+{
+    const TemporaryFolder folder("game-data");
+    WriteTextTable(folder.Path(), {});
+    const std::vector<std::byte> shortFile(Client::Data::Tables::GateTableSize - 1);
+    WriteSceneFile(folder.Path(), "Gate.bmd", shortFile);
+
+    const auto data = LoadGameData(folder.Path());
+
+    ASSERT_FALSE(data.HasValue());
+    EXPECT_NE(data.Error().find("Gate.bmd"), std::string::npos) << data.Error();
+    EXPECT_NE(data.Error().find("más corto"), std::string::npos) << data.Error();
+}
+
+TEST(GameDataTest, AnUnreadableGateTableIsNamed)
+{
+    const TemporaryFolder folder("game-data");
+    WriteTextTable(folder.Path(), {});
+    std::filesystem::create_directory(folder.Path() / "Gate.bmd");
+
+    const auto data = LoadGameData(folder.Path());
+
+    ASSERT_FALSE(data.HasValue());
+    EXPECT_NE(data.Error().find("no se pudo leer"), std::string::npos) << data.Error();
+    EXPECT_NE(data.Error().find("Gate.bmd"), std::string::npos) << data.Error();
+}
+
+TEST(GameDataTest, GateTableIgnoresATailLargerThanSixtyFourKiB)
+{
+    const TemporaryFolder folder("game-data");
+    WriteTextTable(folder.Path(), {});
+    const Client::Data::Tables::GateRecord gate{1, 0, 121, 232, 123, 233, 2, 0, 20};
+    std::vector<std::byte> file = GateTableBytes({{1, gate}});
+    constexpr std::size_t TailBytes = 128 * 1024;
+    file.resize(file.size() + TailBytes, std::byte{0xff});
+    WriteSceneFile(folder.Path(), "Gate.bmd", file);
+
+    const auto data = LoadGameData(folder.Path());
+
+    ASSERT_TRUE(data.HasValue()) << data.Error();
+    ASSERT_TRUE(data.Value().gates.has_value());
+    EXPECT_EQ(data.Value().gates->Count(), Client::Data::Tables::GateCount);
+    EXPECT_EQ(Client::Data::Tables::ReadGateRecord(*data.Value().gates, 1), gate);
 }
 } // namespace

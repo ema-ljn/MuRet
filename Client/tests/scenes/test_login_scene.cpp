@@ -32,6 +32,7 @@
 #include "support/FakeClock.h"
 #include "support/FakeSocket.h"
 #include "support/FakeTextureStore.h"
+#include "support/GateFiles.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/RecordingTextDrawer.h"
@@ -224,6 +225,7 @@ struct Harness
         WriteTextureSet(folder.Path(), LoginTextureSet);
         WriteTextureSet(folder.Path(), WindowTextureSet);
         WriteTextTable(folder.Path(), texts);
+        Client::Tests::WriteSceneFile(folder.Path(), "Gate.bmd", Client::Tests::GateTableBytes({}));
         auto loaded = LoadGameData(folder.Path());
         EXPECT_TRUE(loaded.HasValue()) << loaded.Error();
         if (loaded.HasValue())

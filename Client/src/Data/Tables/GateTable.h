@@ -16,8 +16,7 @@ namespace Client::Data::Tables
 // Cuántos gates trae la tabla, uno por registro. Un gate es un punto de paso entre mapas (el
 // servidor tiene los suyos en su gate.txt). El original lee siempre 256.
 inline constexpr std::size_t GateCount = 256;
-// Lo que ocupa cada gate, en el archivo y en la memoria del original. Qué es cada byte se lee en
-// la CL9.
+// Lo que ocupa cada gate, en el archivo y en la memoria del original. GateRecord nombra sus bytes.
 inline constexpr std::size_t GateRecordSize = 9;
 // La tabla entera, que es el archivo entero: no hay cabecera ni checksum.
 inline constexpr std::size_t GateTableSize = GateCount * GateRecordSize;

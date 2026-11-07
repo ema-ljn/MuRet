@@ -44,9 +44,9 @@ TEST_F(GoldenLorenciaWorldObjects, AllFileRecordsKeepTheirOrderAndReceiveTheClos
     const auto objects =
         Client::World::CreateWorldObjects(records.Value(), 0, Client::World::ObjectScene::Other, registry);
     ASSERT_EQ(objects.size(), 2870u);
-    const std::map<std::int16_t, std::int16_t> blendByType{{52, 1},  {90, 1},  {150, 1}, {98, 2}, {119, 2},
-                                                           {105, 3}, {117, 4}, {122, 4}, {118, 8}};
-    const std::map<std::int16_t, std::uint32_t> speedByType{
+    const std::map<int, int> blendByType{{52, 1},  {90, 1},  {150, 1}, {98, 2}, {119, 2},
+                                         {105, 3}, {117, 4}, {122, 4}, {118, 8}};
+    const std::map<int, std::uint32_t> speedByType{
         {59, 0u}, {90, 0x3E99999Au}, {150, 0x3E99999Au}, {96, 0x3E99999Au}, {97, 0x3E99999Au}};
     std::map<std::int16_t, std::size_t> counts;
     std::size_t registered = 0;

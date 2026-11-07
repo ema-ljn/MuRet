@@ -151,7 +151,7 @@ si no choca con eso; si choca, queda para más adelante.
 
 ## Orden y hitos
 
-Estado contrastado con `origin/main` **`767c1da`**, el código y los merges de GitHub, 2026-11-06.
+Estado contrastado con `origin/main` **`767c1da`**, el código y los merges de GitHub, 2026-11-07.
 PR144, PR146 y PR149–155 están mergeados. Los componentes de esas entregas ya están incorporados
 en `main`; sus consumidores pendientes se enumeran por separado.
 «Componente puro» no significa que la funcionalidad esté integrada en la escena.
@@ -172,7 +172,7 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 | CL7.P | fase documentada en [PR144](https://github.com/ema-ljn/MuRet/pull/144) e incremento modular incorporado por [PR151](https://github.com/ema-ljn/MuRet/pull/151); abierta | estado lógico inicial, fase nativa, nesting y orden observable de RNG; sin portar protecciones |
 | CL7.L1 | lector F3/03 incorporado por [PR149](https://github.com/ema-ljn/MuRet/pull/149) y procedencia del descifrado por [PR154](https://github.com/ema-ljn/MuRet/pull/154) | handler/aplicación, espera retenida, InWorld, carga del mapa recibido, héroe y pase 640×432 |
 | CL7.L2 | modelos con nombre incorporados por [PR142](https://github.com/ema-ljn/MuRet/pull/142), margen individual/Bridge01 por [PR150](https://github.com/ema-ljn/MuRet/pull/150) | creación/paso/dibujo completos de 2.870 objetos y orden completo del pase |
-| CL7.L3 | pendiente | F3 10, equipo del mundo, matriz de parado, aparición y zonas seguras/mascota |
+| CL7.L3 | lector puro F3/10 propuesto en [PR159](https://github.com/ema-ljn/MuRet/pull/159), fuera de main | decoder semántico de ítems, inicialización/aplicación, equipo del mundo, matriz de parado, aparición y zonas seguras/mascota |
 | CL7.L4 | pendiente | luz dinámica compartida y pasto, incluidos carga/RNG y vértices |
 | CL7.L5 | pendiente | hojas/clima, pájaros, peces, fuegos y fuente |
 | CL7.4 A | componente puro integrado por [PR143](https://github.com/ema-ljn/MuRet/pull/143) | caminar a distancia cero implementado; consumidor/RNG pendientes en4E/P. La búsqueda por radio queda fuera de ese contrato; no confundir pruebas dirigidas con los 171 caminos del cable |
@@ -184,11 +184,11 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 | CL7.5 B | carga y decisión pura incorporadas por [PR152](https://github.com/ema-ljn/MuRet/pull/152) | conectar caller/tiempo lazy/sesión/efectos; falta el consumidor en la escena |
 | CL7.5 C | componente puro integrado por [PR140](https://github.com/ema-ljn/MuRet/pull/140) | espera de warp y aplicación en escena después de L1 |
 | CL7.5 D | pendiente | carga dentro del paso, retención, limpieza selectiva, reconstrucción y vuelta por gates |
-| CL7.5 E | componentes de cámara/terreno en main; núcleo entero de ondas de Kalima implementado y revisado localmente, fuera de main | trapecio completo, resto del agua de Kalima, particularidades de otras familias y frame integrado por mapa |
+| CL7.5 E | componentes de cámara/terreno en main; ondas de Kalima en [PR157](https://github.com/ema-ljn/MuRet/pull/157) y núcleo completo del trapecio en [PR158](https://github.com/ema-ljn/MuRet/pull/158), propuestas fuera de main | integración temporal del trapecio, resto del agua de Kalima, particularidades de otras familias y frame integrado por mapa |
 | CL7.6 y arrastres | nubes integradas por PR147; efectos restantes parciales | neblina visual pospuesta; fuego, selección, luces, armas y casco/polvo siguen abiertos |
 | Cierre | abierto | barrido transversal con ramas, estado, orden, transiciones y evidencia nativa pendiente |
 
-### Componentes incorporados y trabajo local (2026-11-06)
+### Componentes incorporados y propuestas (2026-11-07)
 
 PR149–155 están mergeados; los siguientes alcances ya forman parte del código de `main`:
 
@@ -209,10 +209,22 @@ PR149–155 están mergeados; los siguientes alcances ya forman parte del códig
 - [PR155](https://github.com/ema-ljn/MuRet/pull/155): función completa de velocidad `0x508940`,
   con Run por actor y latch/contador compartidos, incorporada tras revisión cruzada. El resto de
   CL7.4 C sigue abierto.
-- **Trabajo local fuera de main:** ondas de Kalima `0x41dbe0`, transformación entera de dos planos
-  256×256 dentro del dominio explícito de slots0/1. Astra y Opus completaron sus revisiones sin
-  bloqueantes; publicación y CI pendientes. Faltan perturbación, otros planos, geometría, render y
-  consumidor. Este componente no cierra el agua de Kalima.
+
+Propuestas publicadas que todavía no forman parte del snapshot `main 767c1da`:
+
+- [PR157](https://github.com/ema-ljn/MuRet/pull/157): paso entero de ondas de Kalima `0x41dbe0`,
+  dos planos 256×256 dentro del dominio explícito de slots0/1. Faltan perturbación, otros planos,
+  geometría, render y consumidor. El paso completo no cierra el agua de Kalima.
+- [PR158](https://github.com/ema-ljn/MuRet/pull/158): núcleo completo del trapecio `0x5fb570`,
+  diez perfiles, nivel efectivo explícito y consulta congelada; conserva el wrapper de login/selección.
+  ADR0009 documenta los errores portables. Faltan el dueño/inicio real del estado, los pares
+  cámara→trapecio en su cadencia y la integración en escenas. La proyección FP no acredita igualdad
+  universal libm/x87 ni cierra los demás casos de mapa.
+- [PR159](https://github.com/ema-ljn/MuRet/pull/159): lector puro completo F3/10, con slots y siete
+  bytes opacos por entrada del wire, bajo entrada estable. ADR0010 fija el error de truncamiento.
+  El cotejo de `0x4c55a0` no atribuye siete lecturas al callee ni prueba por sí solo C4→C2:
+  el tamaño opaco se apoya en stride y captura; el C2, en el transporte/ADR0003. La inicialización,
+  admisión, potenciales mutaciones, decoder, efectos/RNG y aplicación al héroe siguen en L3/P.
 
 Los resultados de CI y el estado de revisión se consultan en cada PR; las verificaciones de sus
 heads no se presentan como una nueva suite conjunta del main posterior a los merges. Estas entregas

@@ -13,7 +13,7 @@
 namespace Client::Protocol::Character
 {
 inline constexpr std::size_t InventoryItemDataSize = 7;
-inline constexpr std::size_t InventoryEntrySize = 8;
+inline constexpr std::size_t InventoryEntrySize = InventoryItemDataSize + sizeof(std::uint8_t);
 
 struct InventoryEntry
 {

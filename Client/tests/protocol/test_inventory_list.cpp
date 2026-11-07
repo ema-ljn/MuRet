@@ -148,6 +148,18 @@ TEST(InventoryListTest, EveryIncompleteBodyIsTooShort)
 {
     const auto complete =
         Bytes({0xC2, 0, 0x16, 0xF3, 0x10, 2, 0x0C, 1, 2, 3, 4, 5, 6, 7, 0x17, 8, 9, 10, 11, 12, 13, 14});
+    const auto full = ReadInventoryList(PacketOf(complete));
+    ASSERT_TRUE(full.HasValue());
+    ASSERT_EQ(full.Value().items.size(), 2u);
+    EXPECT_EQ(full.Value().items[0].slot, 0x0C);
+    EXPECT_EQ(full.Value().items[1].slot, 0x17);
+    const std::array first = {std::byte{1}, std::byte{2}, std::byte{3}, std::byte{4},
+                              std::byte{5}, std::byte{6}, std::byte{7}};
+    const std::array second = {std::byte{8},  std::byte{9},  std::byte{10}, std::byte{11},
+                               std::byte{12}, std::byte{13}, std::byte{14}};
+    EXPECT_EQ(full.Value().items[0].item, first);
+    EXPECT_EQ(full.Value().items[1].item, second);
+
     for (std::size_t size = 5; size < complete.size(); ++size)
     {
         SCOPED_TRACE(size);
@@ -162,6 +174,47 @@ TEST(InventoryListTest, ACountAboveTheAvailableEntriesIsTooShort)
     const auto packet = InventoryPacket(Bytes({2, 0x0C, 1, 2, 3, 4, 5, 6, 7}));
 
     EXPECT_EQ(ErrorOf(ReadInventoryList(packet)), ProtocolError::TooShort);
+}
+
+// 0x20 * 8 = 256: truncarlo a u8 admitiría un cuerpo sin ninguna entrada.
+TEST(InventoryListTest, ACountOf32WithoutEntriesIsTooShort)
+{
+    EXPECT_EQ(ErrorOf(ReadInventoryList(InventoryPacket(Bytes({0x20})))), ProtocolError::TooShort);
+}
+
+// 0x21 * 8 = 264: truncarlo a u8 admitiría una sola entrada.
+TEST(InventoryListTest, ACountOf33WithOneEntryIsTooShort)
+{
+    const auto packet = InventoryPacket(Bytes({0x21, 0x00, 1, 2, 3, 4, 5, 6, 7}));
+
+    EXPECT_EQ(ErrorOf(ReadInventoryList(packet)), ProtocolError::TooShort);
+}
+
+TEST(InventoryListTest, TheMaximumCountMissingItsLastEntryIsTooShort)
+{
+    auto fields = Bytes({0xFF});
+    for (unsigned int slot = 0; slot < 254; ++slot)
+    {
+        fields.push_back(static_cast<std::byte>(slot));
+        fields.insert(fields.end(), 7, std::byte{0x5A});
+    }
+
+    EXPECT_EQ(ErrorOf(ReadInventoryList(InventoryPacket(std::move(fields)))), ProtocolError::TooShort);
+}
+
+TEST(InventoryListTest, TheMaximumCountWithItsLastEntryIncompleteIsTooShort)
+{
+    auto fields = Bytes({0xFF});
+    for (unsigned int slot = 0; slot < 254; ++slot)
+    {
+        fields.push_back(static_cast<std::byte>(slot));
+        fields.insert(fields.end(), 7, std::byte{0x5A});
+    }
+    // La entrada 255 tiene slot y seis bytes: falta el séptimo, aun con el resto completo.
+    fields.push_back(std::byte{0xFE});
+    fields.insert(fields.end(), 6, std::byte{0xA7});
+
+    EXPECT_EQ(ErrorOf(ReadInventoryList(InventoryPacket(std::move(fields)))), ProtocolError::TooShort);
 }
 
 // Ni una entrada completa detrás de count=0 forma parte de la lista.
@@ -186,7 +239,9 @@ TEST(InventoryListTest, IgnoresZeroOneOrEightTrailingBytesAfterTheCountedEntry)
         ASSERT_TRUE(list.HasValue());
         ASSERT_EQ(list.Value().items.size(), 1u);
         EXPECT_EQ(list.Value().items[0].slot, 0x17);
-        EXPECT_EQ(list.Value().items[0].item[6], std::byte{7});
+        const std::array expected = {std::byte{1}, std::byte{2}, std::byte{3}, std::byte{4},
+                                     std::byte{5}, std::byte{6}, std::byte{7}};
+        EXPECT_EQ(list.Value().items[0].item, expected);
     }
 }
 

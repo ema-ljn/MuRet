@@ -3654,6 +3654,23 @@ El mismo gasto lo tienen los otros accesos a `+0x41c` y `+0x420` (en `MoveHero`,
 `D3`, 4 por cierre) y el contador de pasos (Q-C125). Ese azar no se usa para nada, pero corre la
 serie de la CRT que usan los efectos, la tela y el cuervo: Q-C183 y P-C22 a.
 
+**La fase del contador, contraste estático CL7.P:** en `0x637700`, el paso lógico se repite mientras
+el acumulador cumple el umbral firmado de 40 ms. El snapshot del contador `0x7d3a0f0` se toma antes
+del cierre de `0x6378e6`; `0x6378f7` divide con signo por 313 y `0x6378f9` compara el resto con **57**.
+El incremento viene después de la escena, sobre el valor actual reabierto. Con inicio lógico 0,
+un solo incremento por paso y sin otras escrituras, 1.000 pasos refrescan con los snapshots
+57, 370, 683 y 996;
+no se ha probado ese inicio lógico para el proceso nativo.
+El `ADD` del incremento guarda 32 bits; después de envolver a valores interpretados como negativos,
+el resto firmado no puede ser 57. No hay periodicidad uniforme durante toda la vida del contador.
+
+El refresco completo llama directamente a `rand()` en `0x63792a`, `0x6379d4`, `0x6379f4` y
+`0x637a52`. Esto fija cuatro consumos directos; el presupuesto transitivo sigue condicionado por
+los contratos de sus llamadas y de los dos cierres del contador. El análisis de 1.790 instrucciones
+exportadas (7.471 bytes) coincide con el PE de hash
+`c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`, sin ejecución ni nueva
+emulación. CL7.P permanece abierta; no se reconstruyen las transformaciones de protección.
+
 ## Lo que no se sabe
 
 - **Modelos, en el binario** (P-C01, cerrado en la CL6.R): el skinning, la pose, el avance, la

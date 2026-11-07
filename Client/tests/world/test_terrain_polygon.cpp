@@ -529,7 +529,7 @@ TEST(TerrainPolygonTest, QueryFreezesLevelWhileGeometryChangesAndFrameFailureRet
     ASSERT_FALSE(failed.HasValue());
 }
 
-// Fórmula legacy (antes de CL7.5E), cálculo analítico independiente: yaw37,25°, W853.
+// Fórmula legacy (antes de CL7.5E): cameraYaw−37,25°, ángulo efectivo+37,25°, W853.
 // π/180=0x3c8efa35; seno almacenado0x3f1af48c, coseno almacenado0x3f4bc6ca.
 // Si radianes se redondea antes a float, coseno queda0x3f4bc6c9 y cambian esquinas.
 TEST(TerrainPolygonTest, GenericYawAndNonDefaultWidthMatchLegacyCornerBits)
@@ -552,6 +552,26 @@ TEST(TerrainPolygonTest, GenericYawAndNonDefaultWidthMatchLegacyCornerBits)
         EXPECT_EQ(std::bit_cast<std::uint32_t>(query.Value().y[i]), Y[i]);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(legacy.x[i]), X[i]);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(legacy.y[i]), Y[i]);
+    }
+}
+
+// W0 expone el coseno pequeño de+90° sin el términoX: conserva π/180 float0x3c8efa35.
+// Con π/180 double, Y lejana sería0x26607edc en vez de0x342630a4 (oráculo legacy independiente).
+TEST(TerrainPolygonTest, QuarterTurnPreservesTheFloatDegreesConstant)
+{
+    auto input = IdentityInput();
+    input.cameraYaw = -90.0f; // El ángulo efectivo del mapa55 es+90°.
+    input.worldWidth = 0;
+    const auto polygon = TerrainPolygonOf(input, 0);
+    ASSERT_TRUE(polygon.HasValue());
+    constexpr std::array<std::uint32_t, 4> X{0xc14b851eu, 0xc14b851eu, 0x40d70a3du, 0x40d70a3du};
+    constexpr std::array<std::uint32_t, 4> Y{0x342630a4u, 0x342630a4u, 0xb3af98d4u, 0xb3af98d4u};
+    EXPECT_FALSE(polygon.Value().everything);
+    for (std::size_t i = 0; i < X.size(); ++i)
+    {
+        SCOPED_TRACE(i);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(polygon.Value().x[i]), X[i]);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(polygon.Value().y[i]), Y[i]);
     }
 }
 

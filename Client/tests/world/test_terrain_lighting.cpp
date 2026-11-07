@@ -9,10 +9,12 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -26,7 +28,9 @@ using Client::Data::Terrain::TerrainHeights;
 using Client::Data::Terrain::TerrainLight;
 using Client::Data::Terrain::TerrainLightColor;
 using Client::Data::Terrain::TerrainSide;
+using Client::World::AddTerrainLight;
 using Client::World::BrightShadingMap;
+using Client::World::CopyTerrainLightWindow;
 using Client::World::LightAt;
 using Client::World::LoadTerrainLighting;
 using Client::World::ShadeTerrainLight;
@@ -180,5 +184,207 @@ TEST(TerrainLightingTest, LoadingAWorldWithoutItsFilesNamesWhatIsMissing)
     const auto loaded = LoadTerrainLighting(folder.Path(), 55);
     ASSERT_FALSE(loaded.HasValue());
     EXPECT_NE(loaded.Error().find("World56\\TerrainHeight.OZB"), std::string::npos) << loaded.Error();
+}
+
+// Detecta perder el +3 inclusivo, recortar al borde o resetear la tabla completa.
+TEST(TerrainLightingTest, CopiesOnlyTheInclusiveWrappedWindow)
+{
+    const auto source = std::make_unique<TerrainLighting>();
+    auto destination = std::make_unique<TerrainLighting>();
+    source->cells.fill({1.0f, 2.0f, 3.0f});
+    destination->cells.fill({7.0f, 8.0f, 9.0f});
+    CopyTerrainLightWindow(*source, *destination, -1, 0, 254, 255);
+    for (const auto x : {255, 0, 1, 2, 3})
+    {
+        for (const auto y : {254, 255, 0, 1, 2})
+        {
+            EXPECT_EQ(destination->cells[CellIndex(static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y))],
+                      (TerrainLightColor{1.0f, 2.0f, 3.0f}));
+        }
+    }
+    EXPECT_EQ(destination->cells[CellIndex(4, 0)], (TerrainLightColor{7.0f, 8.0f, 9.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(0, 3)], (TerrainLightColor{7.0f, 8.0f, 9.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(100, 100)], (TerrainLightColor{7.0f, 8.0f, 9.0f}));
+}
+
+// Observa el wrap y los bits copiados. Recopiar índices ya visitados es idempotente, así que el
+// estado final no distingue recorrer la ventana completa de limitarla a 256 columnas contiguas.
+TEST(TerrainLightingTest, CopiesRepeatedWrapsAndPreservesNanPayloadsAndSignedZero)
+{
+    const auto source = std::make_unique<TerrainLighting>();
+    auto destination = std::make_unique<TerrainLighting>();
+    source->cells.fill({2.0f, 3.0f, 4.0f});
+    source->cells[CellIndex(0, 255)] = {std::bit_cast<float>(std::uint32_t{0x7f812345}), -0.0f, 0.0f};
+    CopyTerrainLightWindow(*source, *destination, -257, 256, -257, -257);
+    const TerrainLightColor& copied = destination->cells[CellIndex(0, 255)];
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(copied[0]), 0x7f812345u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(copied[1]), 0x80000000u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(copied[2]), 0u);
+    EXPECT_EQ(destination->cells[CellIndex(3, 2)], (TerrainLightColor{2.0f, 3.0f, 4.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(3, 3)], TerrainLightColor{});
+    CopyTerrainLightWindow(*destination, *destination, -257, 256, -257, -257);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(copied[0]), 0x7f812345u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(copied[1]), 0x80000000u);
+}
+
+// Una ventana vacía no modifica el destino (el bloque escalar de 0x5fbf60 queda fuera de esta API).
+TEST(TerrainLightingTest, AnEmptyLightWindowPreservesTheDestination)
+{
+    const auto source = std::make_unique<TerrainLighting>();
+    auto destination = std::make_unique<TerrainLighting>();
+    destination->cells.fill({1.0f, 2.0f, 3.0f});
+    CopyTerrainLightWindow(*source, *destination, 5, 1, 0, 0);
+    CopyTerrainLightWindow(*source, *destination, 0, 0, 5, 1);
+    // Normalizar los extremos invertidos también dejaría (0,0) intacta: se observa toda la tabla.
+    for (const TerrainLightColor& cell : destination->cells)
+    {
+        ASSERT_EQ(cell, (TerrainLightColor{1.0f, 2.0f, 3.0f}));
+    }
+}
+
+// Pesos exactos: centro 1, cardinal a distancia 1 de radio 2 = 1/2, borde = 0.
+// Detecta otro radio fijo, techo en 1, falta del piso y suma fuera del círculo.
+TEST(TerrainLightingTest, AddsRadialLightWithoutAnUpperClamp)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    destination->cells.fill({0.25f, 0.25f, 0.25f});
+    AddTerrainLight(*destination, 1000.0f, 1000.0f, {2.0f, -2.0f, 0.5f}, 2);
+    EXPECT_EQ(destination->cells[CellIndex(10, 10)], (TerrainLightColor{2.25f, 0.0f, 0.75f}));
+    EXPECT_EQ(destination->cells[CellIndex(11, 10)], (TerrainLightColor{1.25f, 0.0f, 0.5f}));
+    EXPECT_EQ(destination->cells[CellIndex(10, 9)], (TerrainLightColor{1.25f, 0.0f, 0.5f}));
+    // Diagonal: peso F32((2 - sqrt(2)) / 2) = 0x3e95f61a. Con 2 y base 1/4: 0x3f55f61a.
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(11, 11)][0]), 0x3f55f61au);
+    EXPECT_EQ(destination->cells[CellIndex(12, 10)], (TerrainLightColor{0.25f, 0.25f, 0.25f}));
+    EXPECT_EQ(destination->cells[CellIndex(12, 12)], (TerrainLightColor{0.25f, 0.25f, 0.25f}));
+}
+
+// En el borde exacto el peso ancho es cero y no hay store ni piso: un destino negativo sobrevive.
+// Procesar también ese cero cambiaría el rojo a +0, aunque el aporte de luz fuera cero.
+TEST(TerrainLightingTest, SkipsZeroWeightBoundaryCellsWithoutClampingTheirDestination)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    destination->cells[CellIndex(12, 10)] = {-1.0f, -2.0f, -3.0f};
+    AddTerrainLight(*destination, 1000.0f, 1000.0f, {1.0f, 2.0f, 3.0f}, 2);
+    EXPECT_EQ(destination->cells[CellIndex(12, 10)], (TerrainLightColor{-1.0f, -2.0f, -3.0f}));
+}
+
+// 100 * float(0,01) queda justo en 1 después del store F32: sin él se truncaría a 0.
+TEST(TerrainLightingTest, StoresScaledCoordinatesBeforeTruncation)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    AddTerrainLight(*destination, 100.0f, -100.0f, {1.0f, 2.0f, 3.0f}, 1);
+    EXPECT_EQ(destination->cells[CellIndex(1, 255)], (TerrainLightColor{1.0f, 2.0f, 3.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(0, 0)], TerrainLightColor{});
+    AddTerrainLight(*destination, -50.0f, -50.0f, {4.0f, 5.0f, 6.0f}, 1);
+    EXPECT_EQ(destination->cells[CellIndex(0, 0)], (TerrainLightColor{4.0f, 5.0f, 6.0f}));
+}
+
+// El radio 8 tiene peso 1/4 a distancia 6 y envuelve x e y negativos.
+TEST(TerrainLightingTest, UsesTheSuppliedRadiusAndWrapsBothAxes)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    AddTerrainLight(*destination, 0.0f, 0.0f, {4.0f, 8.0f, 12.0f}, 8);
+    EXPECT_EQ(destination->cells[CellIndex(250, 0)], (TerrainLightColor{1.0f, 2.0f, 3.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(0, 250)], (TerrainLightColor{1.0f, 2.0f, 3.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(248, 0)], TerrainLightColor{});
+}
+
+// sqrt(10) se conserva en double: (4 - sqrt(10))/4 redondea a 0x3e5674f9.
+// Redondear primero la raíz a float daría 0x3e5674f8 (un bit menos).
+TEST(TerrainLightingTest, KeepsTheDistanceWideUntilTheWeightStore)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    AddTerrainLight(*destination, 1000.0f, 1000.0f, {1.0f, 0.0f, 0.0f}, 4);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(13, 11)][0]), 0x3e5674f9u);
+}
+
+// PC53/RN: F32((5 - sqrt(2))/5) = 0x3f37979f. Guardar antes la diferencia en F32 o dividir en
+// float produce 0x3f37979e: el radio no es potencia de dos y la distancia es irracional.
+TEST(TerrainLightingTest, KeepsTheDifferenceAndDivisionWideUntilTheWeightStore)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    AddTerrainLight(*destination, 1000.0f, 1000.0f, {1.0f, 0.0f, 0.0f}, 5);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(11, 11)][0]), 0x3f37979fu);
+}
+
+// El peso guardado de la diagonal es el mismo literal que el rojo inicial: -pesoF32 + pesoF32 = +0.
+// Usar el peso ancho en el producto deja un positivo que el piso no borra.
+TEST(TerrainLightingTest, MultipliesTheColorByTheStoredFloatWeight)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    destination->cells[CellIndex(11, 11)][0] = std::bit_cast<float>(std::uint32_t{0x3e95f61a});
+    AddTerrainLight(*destination, 1000.0f, 1000.0f, {-1.0f, 0.0f, 0.0f}, 2);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(11, 11)][0]), 0u);
+}
+
+// Radio 257 visita (0,0) cinco veces: centro y cuatro cardinales a 256, con peso F32 1/257.
+// La suma secuencial almacenada da bits 0x3f81fe01; no se deduplica ni se capa el radio a 256.
+TEST(TerrainLightingTest, ALongRadiusAccumulatesRepeatedVisitsToTheSameCell)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    AddTerrainLight(*destination, 0.0f, 0.0f, {1.0f, 0.0f, 0.0f}, 257);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(0, 0)][0]), 0x3f81fe01u);
+}
+
+// El piso se aplica después de cada luz: invertirlas cambia el resultado.
+TEST(TerrainLightingTest, SerialLightsPreserveTheirOrderAcrossNegativeClamps)
+{
+    auto forward = std::make_unique<TerrainLighting>();
+    auto reverse = std::make_unique<TerrainLighting>();
+    AddTerrainLight(*forward, 0.0f, 0.0f, {-2.0f, 0.0f, 0.0f}, 1);
+    AddTerrainLight(*forward, 0.0f, 0.0f, {1.0f, 0.0f, 0.0f}, 1);
+    AddTerrainLight(*reverse, 0.0f, 0.0f, {1.0f, 0.0f, 0.0f}, 1);
+    AddTerrainLight(*reverse, 0.0f, 0.0f, {-2.0f, 0.0f, 0.0f}, 1);
+    EXPECT_EQ(forward->cells[CellIndex(0, 0)][0], 1.0f);
+    EXPECT_EQ(reverse->cells[CellIndex(0, 0)][0], 0.0f);
+}
+
+// En fila 9 el color fuente sube de 1 a 1,5; fila 10 debe leer ese 1,5, no una copia inicial.
+TEST(TerrainLightingTest, AnAliasedColorIsReadLiveInRowOrder)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    TerrainLightColor& color = destination->cells[CellIndex(10, 9)];
+    color = {1.0f, 1.0f, 1.0f};
+    AddTerrainLight(*destination, 1000.0f, 1000.0f, color, 2);
+    EXPECT_EQ(color, (TerrainLightColor{1.5f, 1.5f, 1.5f}));
+    EXPECT_EQ(destination->cells[CellIndex(10, 10)], (TerrainLightColor{1.5f, 1.5f, 1.5f}));
+}
+
+// La fuente en columna 9 sube de 1 a 1,5 antes del centro en la misma fila: copiar por fila falla.
+// Recorrer las columnas en orden descendente también dejaría el centro en 1.
+TEST(TerrainLightingTest, AnAliasedColorIsReadLiveWithinTheSameRow)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    TerrainLightColor& color = destination->cells[CellIndex(9, 10)];
+    color = {1.0f, 1.0f, 1.0f};
+    AddTerrainLight(*destination, 1000.0f, 1000.0f, color, 2);
+    EXPECT_EQ(color, (TerrainLightColor{1.5f, 1.5f, 1.5f}));
+    EXPECT_EQ(destination->cells[CellIndex(10, 10)], (TerrainLightColor{1.5f, 1.5f, 1.5f}));
+}
+
+// (13,6) está a distancia 5 del centro y gana peso 1/2. Por filas cambia antes que el centro;
+// por columnas cambia después y el centro recibiría 1 en vez de 1,5.
+TEST(TerrainLightingTest, VisitsRowsBeforeColumnsWhenTheColorAliasesTheDestination)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    TerrainLightColor& color = destination->cells[CellIndex(13, 6)];
+    color = {1.0f, 1.0f, 1.0f};
+    AddTerrainLight(*destination, 1000.0f, 1000.0f, color, 10);
+    EXPECT_EQ(color, (TerrainLightColor{1.5f, 1.5f, 1.5f}));
+    EXPECT_EQ(destination->cells[CellIndex(10, 10)], (TerrainLightColor{1.5f, 1.5f, 1.5f}));
+}
+
+// -denorm_min * 1/4 + -0 es negativo en double pero almacena -0 en float: comparar el store falla.
+// En cambio -0 * 1 + -0 es igual a cero y debe preservar el signo, sin clamp a +0.
+TEST(TerrainLightingTest, ClampsTheWideNegativeSumBeforeReloadingItsNegativeZeroStore)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    destination->cells.fill({-0.0f, -0.0f, -0.0f});
+    AddTerrainLight(*destination, 1000.0f, 1000.0f, {-std::numeric_limits<float>::denorm_min(), -0.0f, 0.0f}, 8);
+    const TerrainLightColor& quarter = destination->cells[CellIndex(16, 10)];
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(quarter[0]), 0u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(quarter[1]), 0x80000000u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(10, 10)][1]), 0x80000000u);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(18, 10)][0]), 0x80000000u);
 }
 } // namespace

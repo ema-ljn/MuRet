@@ -11,9 +11,12 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/geometric.hpp>
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <span>
 #include <string>
@@ -28,6 +31,10 @@ constexpr float CellSize = 100.0f;
 constexpr float CellsPerUnit = 0.01f;
 // La última celda que 0x5f99e0 acepta, en x y en y: la 254, porque toma la de al lado.
 constexpr int LastSampledCell = 254;
+// La ventana RGB de 0x5fbf60 incluye las cuatro celdas del último bloque.
+constexpr std::int32_t LightWindowTail = 3;
+static_assert(std::numeric_limits<float>::is_iec559 && std::numeric_limits<float>::digits == 24);
+static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<double>::digits == 53);
 
 // Los coeficientes de 0x5f8d90: n.x · 0,5 (0x6b882c) + a · n.y + b · n.z + 0,5, de 0 (0x6b86a0) a 1
 // (0x6b87d4).
@@ -77,6 +84,21 @@ float ShadeOf(const glm::vec3& normal, const Shading& shading)
 const Data::Terrain::TerrainLightColor& CellLight(const TerrainLighting& lighting, int x, int y)
 {
     return lighting.cells[Data::Terrain::CellIndex(static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y))];
+}
+// 0x5f9780 almacena cada canal en F32, pero decide el piso usando la suma ancha aún viva.
+void AddWeightedLight(Data::Terrain::TerrainLightColor& destination, const Data::Terrain::TerrainLightColor& color,
+                      float weight)
+{
+    for (std::size_t channel = 0; channel < Data::Terrain::TerrainLightChannels; ++channel)
+    {
+        const double product = static_cast<double>(weight) * static_cast<double>(color[channel]);
+        const double sum = product + static_cast<double>(destination[channel]);
+        destination[channel] = static_cast<float>(sum);
+        if (!(sum >= 0.0))
+        {
+            destination[channel] = 0.0f;
+        }
+    }
 }
 } // namespace
 
@@ -130,6 +152,60 @@ Core::Expected<std::unique_ptr<TerrainLighting>, std::string> LoadTerrainLightin
                                 "TerrainLight.OZJ: " + std::string(Data::DescribeDataError(light.Error())));
     }
     return ShadeTerrainLight(*light.Value(), *heights.Value(), map);
+}
+
+void CopyTerrainLightWindow(const TerrainLighting& source, TerrainLighting& destination, std::int32_t firstX,
+                            std::int32_t lastX, std::int32_t firstY, std::int32_t lastY)
+{
+    if (&source == &destination)
+    {
+        return;
+    }
+    for (std::int32_t row = firstY; row <= lastY + LightWindowTail; ++row)
+    {
+        for (std::int32_t column = firstX; column <= lastX + LightWindowTail; ++column)
+        {
+            const std::size_t index =
+                Data::Terrain::CellIndex(static_cast<std::uint8_t>(column), static_cast<std::uint8_t>(row));
+            for (std::size_t channel = 0; channel < Data::Terrain::TerrainLightChannels; ++channel)
+            {
+                // MOV dword conserva los bits, sin operar en FP ni aquietar un NaN señalizante.
+                std::memcpy(&destination.cells[index][channel], &source.cells[index][channel], sizeof(float));
+            }
+        }
+    }
+}
+
+void AddTerrainLight(TerrainLighting& destination, float worldX, float worldY,
+                     const Data::Terrain::TerrainLightColor& color, std::int32_t radius)
+{
+    const float radiusFloat = static_cast<float>(radius);
+    // Los FSTP preceden a __ftol: 100 * float(0,01) debe redondear a 1 antes de truncarse.
+    const float cellX = static_cast<float>(static_cast<double>(worldX) * static_cast<double>(CellsPerUnit));
+    const float cellY = static_cast<float>(static_cast<double>(worldY) * static_cast<double>(CellsPerUnit));
+    const auto centerX = static_cast<std::int32_t>(cellX);
+    const auto centerY = static_cast<std::int32_t>(cellY);
+    for (std::int32_t row = centerY - radius; row <= centerY + radius; ++row)
+    {
+        const double dy = static_cast<double>(row - centerY);
+        const double dySquared = dy * dy;
+        for (std::int32_t column = centerX - radius; column <= centerX + radius; ++column)
+        {
+            const double dx = static_cast<double>(column - centerX);
+            const double dxSquared = dx * dx;
+            const double distance = std::sqrt(dxSquared + dySquared);
+            const double difference = static_cast<double>(radiusFloat) - distance;
+            const double weightWide = difference / static_cast<double>(radiusFloat);
+            const float weight = static_cast<float>(weightWide);
+            if (!(weightWide > 0.0))
+            {
+                continue;
+            }
+            const std::size_t index =
+                Data::Terrain::CellIndex(static_cast<std::uint8_t>(column), static_cast<std::uint8_t>(row));
+            AddWeightedLight(destination.cells[index], color, weight);
+        }
+    }
 }
 
 glm::vec3 LightAt(const TerrainLighting& lighting, float x, float y)

@@ -151,8 +151,8 @@ si no choca con eso; si choca, queda para más adelante.
 
 ## Orden y hitos
 
-Estado contrastado con `origin/main` **`61c568d`**, el código y los merges de GitHub, 2026-11-07.
-PR144, PR146 y PR149–159 están mergeados. Los componentes de esas entregas ya están incorporados
+Estado contrastado con `origin/main` **`43b2f26`**, el código y los merges de GitHub, 2026-11-07.
+PR144, PR146, PR149–159, PR161 y PR162 están mergeados. Los componentes de esas entregas ya están incorporados
 en `main`; sus consumidores pendientes se enumeran por separado.
 «Componente puro» no significa que la funcionalidad esté integrada en la escena.
 
@@ -170,9 +170,9 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 | CL7.3 A | integrado por [PR138](https://github.com/ema-ljn/MuRet/pull/138) | la integración de la cámara en el mundo jugable pertenece a L1 |
 | CL7.3 B | integrado por [PR141](https://github.com/ema-ljn/MuRet/pull/141), CI verde | sub-ola completa; no cierra los demás efectos ni las escenas |
 | CL7.P | fase documentada en [PR144](https://github.com/ema-ljn/MuRet/pull/144) e incremento modular incorporado por [PR151](https://github.com/ema-ljn/MuRet/pull/151); abierta | estado lógico inicial, fase nativa, nesting y orden observable de RNG; sin portar protecciones |
-| CL7.L1 | lector F3/03 incorporado por [PR149](https://github.com/ema-ljn/MuRet/pull/149) y procedencia del descifrado por [PR154](https://github.com/ema-ljn/MuRet/pull/154); recepción ordenada propuesta en [PR162](https://github.com/ema-ljn/MuRet/pull/162), fuera de main | aplicación con contexto histórico y consumo antes del frame, espera retenida, InWorld, carga del mapa recibido, héroe y pase 640×432 |
+| CL7.L1 | lector F3/03 incorporado por [PR149](https://github.com/ema-ljn/MuRet/pull/149) y procedencia del descifrado por [PR154](https://github.com/ema-ljn/MuRet/pull/154); recepción ordenada F3/03–F3/10 incorporada por [PR162](https://github.com/ema-ljn/MuRet/pull/162) | aplicación con contexto histórico y consumo antes del frame, espera retenida, InWorld, carga del mapa recibido, héroe y pase 640×432 |
 | CL7.L2 | modelos con nombre incorporados por [PR142](https://github.com/ema-ljn/MuRet/pull/142), margen individual/Bridge01 por [PR150](https://github.com/ema-ljn/MuRet/pull/150) | creación/paso/dibujo completos de 2.870 objetos y orden completo del pase |
-| CL7.L3 | lector puro F3/10 incorporado por [PR159](https://github.com/ema-ljn/MuRet/pull/159), contrastado con siete capturas reales | decoder semántico de ítems, inicialización/aplicación, equipo del mundo, matriz de parado, aparición y zonas seguras/mascota |
+| CL7.L3 | lector puro F3/10 incorporado por [PR159](https://github.com/ema-ljn/MuRet/pull/159), contrastado con siete capturas reales; recepción ordenada incorporada por [PR162](https://github.com/ema-ljn/MuRet/pull/162) | decoder semántico de ítems, inicialización/aplicación, equipo del mundo, matriz de parado, aparición y zonas seguras/mascota |
 | CL7.L4 | pendiente | luz dinámica compartida y pasto, incluidos carga/RNG y vértices |
 | CL7.L5 | pendiente | hojas/clima, pájaros, peces, fuegos y fuente |
 | CL7.4 A | componente puro integrado por [PR143](https://github.com/ema-ljn/MuRet/pull/143) | caminar a distancia cero implementado; consumidor/RNG pendientes en4E/P. La búsqueda por radio queda fuera de ese contrato; no confundir pruebas dirigidas con los 171 caminos del cable |
@@ -180,7 +180,7 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 | CL7.4 C | función completa de velocidad `0x508940` incorporada por [PR155](https://github.com/ema-ljn/MuRet/pull/155) | consumidor de velocidad, spline, celda lógica, giro, posición/altura, acciones y orden exterior; cinco muestras x87 abiertas en P-C32 |
 | CL7.4 D | componente completo incorporado por [PR153](https://github.com/ema-ljn/MuRet/pull/153) | conectar al rayo y clic de la escena en 4E |
 | CL7.4 E | pendiente | clic → camino → D3 → movimiento; cooldowns, D3/D7 recibidos y recorte |
-| CL7.5 A | infraestructura genérica parcial; identidad efectiva de carga propuesta en [PR161](https://github.com/ema-ljn/MuRet/pull/161), fuera de main | todas las familias de modelos/mapas, variantes 30/34, estados de carga y errores del Data original |
+| CL7.5 A | infraestructura genérica parcial; identidad efectiva de carga incorporada por [PR161](https://github.com/ema-ljn/MuRet/pull/161) | todas las familias de modelos/mapas, variantes 30/34, estados de carga y errores del Data original |
 | CL7.5 B | carga y decisión pura incorporadas por [PR152](https://github.com/ema-ljn/MuRet/pull/152) | conectar caller/tiempo lazy/sesión/efectos; falta el consumidor en la escena |
 | CL7.5 C | componente puro integrado por [PR140](https://github.com/ema-ljn/MuRet/pull/140) | espera de warp y aplicación en escena después de L1 |
 | CL7.5 D | pendiente | carga dentro del paso, retención, limpieza selectiva, reconstrucción y vuelta por gates |
@@ -190,7 +190,7 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 
 ### Componentes incorporados (2026-11-07)
 
-Los siguientes alcances de PR149–155 y PR157–159 ya forman parte del código de `main`.
+Los siguientes alcances de PR149–155, PR157–159, PR161 y PR162 ya forman parte del código de `main`.
 PR156 incorporó la actualización documental previa del roadmap.
 
 - [PR149](https://github.com/ema-ljn/MuRet/pull/149): lector puro completo F3/03, 23 campos;
@@ -228,29 +228,32 @@ PR156 incorporó la actualización documental previa del roadmap.
   independiente, incluidas las 33 entradas y los 231 bytes opacos de ítems. Es evidencia de una
   captura histórica; no acredita la aplicación al héroe ni una nueva observación viva del original.
 
-Los CI de los heads finales de PR157–159 pasaron en Linux, Windows y formato. El código de este
-snapshot coincide con el ensamblado local `3779e78`, que pasó 2.621 tests, incluidos 83 GL, sin
-fallos ni omisiones; las únicas diferencias son este plan y `08-pendientes.md`. Es la corrida
-conjunta ya registrada, no una nueva ejecución sobre el main posterior a los merges. Estas entregas
-no equivalen al cierre de L1, L2 ni P. PR144 ya incorporó la precisión documental de fase:
-resto firmado 57 al dividir por 313, condicionado al snapshot previo y sin inicio nativo supuesto.
+Los CI de los heads finales de PR157–159, PR161 y PR162 pasaron en Linux, Windows y formato.
+Estas entregas no equivalen al cierre de L1, L2 ni P. PR144 ya incorporó la precisión documental de
+fase: resto firmado 57 al dividir por 313, condicionado al snapshot previo y sin inicio nativo supuesto.
 
-### Entregas propuestas después de ese snapshot
+### Últimas incorporaciones y validación
 
-- [PR161](https://github.com/ema-ljn/MuRet/pull/161), `425b633`: dos observaciones de mapa
-  independientes y consumidor local de identidad efectiva en LoadedWorld; 32 se publica como 9.
+- [PR161](https://github.com/ema-ljn/MuRet/pull/161), merge `740f9cd`: dos observaciones de mapa
+  independientes y consumidor local de identidad efectiva en LoadedWorld; terreno, luz, texturas y
+  vista reciben el mismo mapa efectivo, y 32 se publica como 9.
   Conserva los 256 resultados de WorldFolderNumber. No completa `0x61a560`, sus modelos o errores.
-- [PR162](https://github.com/ema-ljn/MuRet/pull/162), `06e2258`: una secuencia propietaria F3/03–F3/10
+- [PR162](https://github.com/ema-ljn/MuRet/pull/162), merge `43b2f26`: una secuencia propietaria F3/03–F3/10
   conserva orden y multiplicidad sin cambiar estado ni deadline. Sólo recepción; no aplica el mundo.
   El aplicador deberá resolver contexto histórico, retención y progreso: el estado al drenar no
   reconstruye necesariamente el estado al recibir dentro de un mismo Poll. Debe distinguir el ID
   del wire del efectivo de carga, y consumir antes del paso/dibujo, incluso en un frame sin pasos.
 
 Ambos PR tienen revisión cruzada Astra6Ultra/Opus5.5xhigh y sus correcciones obligatorias cerradas.
-El ensamblado local `e988fe3` combina esos dos heads sobre `61c568d`: build con warnings como errores,
+El ensamblado local `e988fe3` combina los heads finales revisados `425b633` y `06e2258` sobre
+`61c568d`: build con warnings como errores,
 2.648 tests incluidos 83 GL y cero fallos, errores, omisiones, deshabilitados o no ejecutados.
-Se comprobaron los hashes de sus 14 archivos. Es evidencia de esa composición, no de un merge en main
-ni equivalencia completa con el original; los checks de cada head se consultan en sus PR.
+Se comprobaron los hashes de sus 14 archivos. Después de los merges, el árbol completo de
+`origin/main` (`43b2f26`) coincide con el de `e988fe3`; por eso la evidencia corresponde también al
+mismo contenido incorporado. No se ejecutó otra fullsuite por esta actualización documental ni se
+acredita equivalencia completa con el original. Los CI de los heads finales son
+[PR161](https://github.com/ema-ljn/MuRet/actions/runs/42343179748) y
+[PR162](https://github.com/ema-ljn/MuRet/actions/runs/42343886929), ambos correctos en los tres jobs.
 
 Una entrada observada del original en XP registró 4.500 muestras pasivas sin errores: selección,
 carga y mundo en Lorencia, con `0x3c` observado antes de `0x3d`. La primera muestra en `0x3d` ya tenía
@@ -263,11 +266,28 @@ L1 necesita efectos concretos de creación y equipo que cruzan L2/L3: el handler
 antes de publicar el héroe y `0x3d`. Los contratos de constructor, limpieza y equipo no permiten asumir un actor vacío,
 un slot fijo ni equipo inicial vacío. No reemplazar esos efectos pendientes por no-ops para declarar L1.
 
+### Siguiente tramo de integración
+
+1. **L1 — aplicar la recepción:** fijar consumo, contexto histórico y tratamiento de fallo/reinicio
+   dentro de cada Poll; conservar el orden de efectos antes de Step/Render, también sin pasos.
+2. **L1 con los efectos concretos de L2/L3:** cargar el mapa recibido con su identidad efectiva,
+   crear y equipar al héroe conservando el orden nativo de las publicaciones del héroe/estado y de
+   los efectos de aparición, antes de presentar el mundo con cámara y pase 640×432. La espera
+   debe retener el frame anterior.
+3. **Completar Lorencia:** objetos/pases de L2, semántica de inventario y equipo de L3, luz/pasto
+   de L4 y ambiente de L5; preservar estado y orden de RNG del original.
+4. **Movimiento y transiciones:** integrar CL7.4 E y lo que falta de 4C; después conectar gates,
+   warp, reconstrucción y regreso de CL7.5 B/C/D.
+5. **Cobertura de todos los mapas y cierre:** completar familias, variantes y errores de 5A/5E,
+   los arrastres de 6 y el barrido transversal. P acompaña estos tramos: siguen abiertos el estado
+   lógico inicial, la fase, el nesting y el orden observable de RNG.
+
 ### Lo que todavía impide declarar completa toda CL7
 
 - `GameScene::Render` sigue vacío, `HoldsTheLastFrame` devuelve false y la sesión no define `InWorld`:
-  llega hasta `EnteringWorld`. Los lectores F3/03 y F3/10, el picking, `GateCheck` y `UpdateMovementSpeed` están
-  incorporados, pero todavía no tienen sus consumidores de producción en la escena/sesión. La cámara,
+  llega hasta `EnteringWorld`. La sesión ya recibe y conserva F3/03 y F3/10 en orden, pero
+  `TakeWorldEvents` aún no tiene consumidor productivo que aplique el mundo. El picking, `GateCheck`
+  y `UpdateMovementSpeed` siguen sin integrarse en la escena. La cámara,
   los modelos y los paquetes puros ya integrados no equivalen a tener Lorencia jugable. L1 debe unirlos sin
   adelantar la presentación ni perder el frame retenido durante la espera.
 - L2 debe cubrir todos los objetos y sus casos de material, animación, luz, fuego, casas y fuente;
@@ -589,15 +609,22 @@ ambas propiedades sin introducir overflow con signo indefinido.
 **Contrato:** 06 § La escena del juego (de la selección al primer frame, la respuesta `0x4c3940`, el pase de
 `0x6371a0`). PR propio. Se detalla al arrancar; lo que se sabe:
 
+**Estado incorporado:** PR149 aporta el lector y PR162 la recepción ordenada junto con F3/10.
+La cola todavía no tiene consumidor productivo. La aplicación de este apartado sigue pendiente;
+el contexto y la vigencia de cada recepción deben resolverse antes de conectar la escena.
+
 - **El protocolo:** `Protocol::Character::ReadCharacterSelectResult` en `CharacterSelect.h`, el C3 rearmado
   de `0x34` bytes con `TooShort`: la celda (`[4]`, `[5]`), el mapa (`[6]`), la dirección (`[7]`) y los stats
   de 04 § La entrada al mundo; lo que cae fuera del paquete (`[0x34..0x37]`) va en 0 con un aviso
-  (Q-C144). El tope de `EnteringWorld` que dejó la CL6 se cierra con la respuesta; las velocidades del
-  keepalive no salen de ella (`0x4c3940` no escribe `+0x4c` ni `+0x58`, P-C28 i) y quedan las de hoy.
+  (Q-C144). La recepción incorporada no cambia estado ni deadline; la transición a InWorld depende
+  de aplicar la respuesta. Las velocidades del keepalive no salen de ella (`0x4c3940` no escribe
+  `+0x4c` ni `+0x58`, P-C28 i) y quedan las de hoy.
 - **La sesión:** `SessionState::InWorld` (el `0x3d`) y `ServerSession::JoinedWorld()`.
 - **Las variables protegidas:** la celda del servidor del héroe y el contador `0x77f3b04` son valores
-  lógicos de CL7.P, sin portar las transformaciones de protección. Loading escribe 9.999.999 y la
-  respuesta escribe 30; MoveHero decrementa los valores positivos en la ruta que alcanza ese bloque,
+  lógicos de CL7.P, sin portar las transformaciones de protección. `0x6356f0` escribe 9.999.999
+  sólo si el byte `0x7d3a13e` era cero, y lo pone en 1 antes de cargar las texturas. Si ya era no cero,
+  no reinicia el contador ni recrea esos recursos. La respuesta escribe 30 después de publicar `0x3d`;
+  MoveHero decrementa los valores positivos en la ruta que alcanza ese bloque,
   también durante la espera normal. No se presupone el valor exacto antes del reply ni un número fijo
   de pasos. Los accesos conservan nesting y gasto de RNG del último cierre bajo sus condiciones.
 - **El cursor:** la `GameScene` dibuja el cursor del juego al final, como el login (la decisión 4).
@@ -605,7 +632,11 @@ ambas propiedades sin introducir overflow con signo indefinido.
   que 30; su lectura se cierra antes de comparar y antes de llamar a la cámara. En la espera normal
   queda el mosaico de LSBg. El store inicial no es una constante retenida hasta la respuesta. Con ella carga el
   mundo del mapa (`LoadedWorld` con `WorldFolder`), arma al héroe como `0x511290` (`(celda + 0,5) · 100`, la
-  altura de `TerrainHeightAt`, el ángulo `(dir − 1) · 45` y la zona segura del `.att & 1`), pone el yaw en
+  altura de `TerrainHeightAt`, el ángulo `(dir − 1) · 45` y la zona segura del `.att & 1`). La altura
+  también depende del campo previo del actor `+0x318`: si era `0x1c15`, la zona segura vale cero y el
+  mapa observado no es −1, agrega 90 en mapas 8/10 o 30 en los restantes. El slot procede del RNG;
+  la limpieza no acredita un actor vacío. El equipo se aplica antes de publicar el héroe y antes de
+  vaciar las fuentes, como `0x4c3940` → `0x511290` → `0x512a30`. Pone el yaw en
   −45 (el primer paso, `0x636838`) y dibuja el pase del juego: la franja (0, 0, 640, 48) para el rango, con
   `TerrainRangeOf(vista, cámara, 640 · 0,0015625)`; el trapecio `TerrainPolygonOf(Game, mapa, objetivo,
   yaw, 640)`; y el mundo (0, 0, 640, 432) con el terreno. La cámara, de CL7.3 A, con `OriginalFrameCarry`.
@@ -655,6 +686,10 @@ objetos, sus efectos y el pase completo de la escena. Esta entrega no cierra L2 
 
 **Contrato:** 06 § La escena del juego (el héroe: `0x511290`, el `F3 10`, `0x4f2250`, la aparición, los dos
 `0x61f`). PR propio. Se detalla al arrancar; lo que se sabe:
+
+**Estado incorporado:** PR159 aporta el lector completo y su golden de siete capturas;
+PR162 conserva la recepción F3/10 en orden con F3/03. La semántica de los siete bytes opacos,
+la aplicación al equipo y los efectos del héroe siguen pendientes.
 
 - **El equipo:** `Protocol::Character::ReadInventoryList` del `F3 10` (C4, entradas de 8 bytes: el lugar y
   7 del ítem), los 12 lugares del equipo a la apariencia, como `0x5bc740` → `0x512a30`. La ventana del
@@ -848,6 +883,12 @@ anterior; los cinco planos y la esfera de los efectos). PR propio. Se detalla al
 
 **Contrato:** 05 (los modelos especiales de cada mapa) y 06 § Los cambios de mapa (lo que carga
 `0x61a560`). PR propio. Se detalla al arrancar; lo que se sabe:
+
+**Estado incorporado:** PR161 conserva dos observaciones independientes del mapa y conecta la
+identidad efectiva dentro de LoadedWorld: terreno, sombreado, tiles y vista usan el mismo ID.
+La proyección local estable normaliza 32 a 9 y conserva los 256 resultados de WorldFolderNumber.
+El getter LoadedMap aún no tiene consumidor productivo; siguen pendientes la integración del mapa
+recibido, las fases de modelos, las variantes 30/34 y los errores del loader completo.
 
 - **Qué:** la tabla de los especiales de `0x616ec0` por mapa como dato (1 y 4, 2, 3, 6, 7, 8, 10, 11 a 17,
   18 a 23, Kalima, 30, 31, 33, 34); las texturas fijas de `0x61a560` (las hojas y las lluvias de `0x64` a

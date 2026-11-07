@@ -208,7 +208,9 @@ void StepTheClothWorld(ClothWorld& world)
     {
         WalkTheWind(world);
     }
-    ++world.logicSteps;
+    // El ADD de 0x637f91 guarda los 32 bits antes de volver a leer el contador con signo.
+    const std::uint32_t nextLogicStepsBits = static_cast<std::uint32_t>(world.logicSteps) + 1u;
+    world.logicSteps = std::bit_cast<std::int32_t>(nextLogicStepsBits);
     if (world.openCounterAccesses == 0)
     {
         for (int i = 0; i < ProtectionRandoms; ++i)

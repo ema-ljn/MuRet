@@ -336,6 +336,10 @@ estático son los dos emisores invisibles `0x54` del mapa 55. El original apaga 
 El fuego del `0x59` continúa abierto. Implementar las nubes no confirma por sí solo que sean toda
 la neblina que ve Emanuel ni cierra los demás arrastres del login, la selección o Lorencia.
 
+**Pedido de Emanuel (2026-11-06):** comparación y ajuste visual de neblina pospuestos a
+seguimiento. PR147 ya integra las nubes; continuar las otras CL7.x sin afirmar igualdad visual.
+CL7.P conserva su alcance propio.
+
 ### Seguimiento: espera en el formulario de login (2026-11-06)
 
 Emanuel observa cierre de MuRet sin enviar credenciales, mientras el original conserva el

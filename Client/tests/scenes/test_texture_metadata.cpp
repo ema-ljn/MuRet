@@ -147,7 +147,7 @@ TEST_F(TextureMetadataTest, LoadedEffectsUseExactRawSelectorsAndShareTheLegacySi
 
 TEST_F(TextureMetadataTest, AnUploadFailureKeepsThePublishedPrefixAndContinuesAfterTheFailedSlot)
 {
-    m_store.blocked = 0x5fd;
+    m_store.blocked = std::uint16_t{0x5fd};
     m_store.failAfterUpload = true;
     Client::Scenes::GameModels models;
     ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());
@@ -172,7 +172,7 @@ TEST_F(TextureMetadataTest, ReloadFailureRetainsTheOldRowAndValueSnapshotsOutliv
         ASSERT_TRUE(snapshot.has_value());
         Client::Tests::WriteSceneFile(m_folder.Path(), "Effect/flare01.OZJ",
                                       Client::Tests::OzjOf(Client::Tests::ReadJpegVector("flat-512x8.jpg")));
-        m_store.blocked = 0x5ac;
+        m_store.blocked = std::uint16_t{0x5ac};
         m_store.failAfterUpload = true;
         ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());
         const auto failedUpload = m_store.stored.Find({0x5ac});

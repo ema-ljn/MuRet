@@ -66,7 +66,7 @@ TEST(Particle622Subtype8DrawTest, UsesImageDimensionsTypeMaterialFlagAndWholeTex
                       .start = {2, std::bit_cast<float>(0x3e570a3du), -16}};
     const glm::vec3 originalLight = particle.light;
 
-    const auto even = Client::World::ParticleDrawChecked(particle, glm::vec2(100, 200), 3, 1.0f, 2);
+    const auto even = Client::World::ParticleDrawChecked(particle, glm::vec2(100, 200), std::uint8_t{3}, 1.0f, 2);
 
     ASSERT_TRUE(even.HasValue());
     ASSERT_TRUE(even.Value().has_value());
@@ -83,7 +83,7 @@ TEST(Particle622Subtype8DrawTest, UsesImageDimensionsTypeMaterialFlagAndWholeTex
     EXPECT_EQ(particle.light, originalLight);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(particle.rotation), 0x3e5fa43fu);
 
-    const auto odd = Client::World::ParticleDrawChecked(particle, glm::vec2(100, 200), 1, 1.0f, 3);
+    const auto odd = Client::World::ParticleDrawChecked(particle, glm::vec2(100, 200), std::uint8_t{1}, 1.0f, 3);
     ASSERT_TRUE(odd.HasValue());
     ASSERT_TRUE(odd.Value().has_value());
     EXPECT_EQ(odd.Value()->blend, Client::World::ParticleDraw::Blend::Alpha);
@@ -109,14 +109,14 @@ TEST(Particle622Subtype8CreateTest, AFullPoolReturnsSuccessWithoutReadsOrRandomD
 TEST(Particle622Subtype8DrawTest, PreservesHeightPassBoundariesAndUnorderedComparison)
 {
     Particle particle{.alive = true, .type = CloudType, .texture = CloudType, .subtype = CloudSubtype};
-    for (const auto [height, mode, expected] :
+    for (const auto& [height, mode, expected] :
          {std::tuple{350.0f, std::uint8_t{1}, true}, std::tuple{351.0f, std::uint8_t{1}, false},
           std::tuple{300.0f, std::uint8_t{2}, false}, std::tuple{301.0f, std::uint8_t{2}, true},
           std::tuple{std::bit_cast<float>(0x7fc12345u), std::uint8_t{1}, true},
           std::tuple{std::bit_cast<float>(0x7fc12345u), std::uint8_t{2}, false}})
     {
         particle.position.z = height;
-        const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(1), 3, 0, 0, mode);
+        const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(1), std::uint8_t{3}, 0, 0, mode);
         ASSERT_TRUE(draw.HasValue()) << height << ", " << static_cast<int>(mode);
         EXPECT_EQ(draw.Value().has_value(), expected) << height << ", " << static_cast<int>(mode);
     }
@@ -132,7 +132,7 @@ TEST(Particle622Subtype8DrawTest, DoesNotClampTheTemporaryRgbProduct)
                       .light = {2.0f, -1.0f, 0.5f},
                       .field38 = std::bit_cast<std::uint32_t>(2.0f)};
 
-    const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(1), 0);
+    const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(1), std::uint8_t{0});
 
     ASSERT_TRUE(draw.HasValue());
     ASSERT_TRUE(draw.Value().has_value());

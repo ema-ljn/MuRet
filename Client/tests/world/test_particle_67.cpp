@@ -172,12 +172,12 @@ TEST(Particle67Test, CheckedDrawKeepsTheHeightOverlapAndReportsMissingMetadataFo
         .alive = true, .type = Type67, .texture = 17, .subtype = 0, .scale = 1, .position = {10, 20, 325}};
     for (const std::uint8_t mode : {std::uint8_t{1}, std::uint8_t{2}})
     {
-        const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(128, 64), 3, 0, 0, mode);
+        const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(128, 64), std::uint8_t{3}, 0, 0, mode);
         ASSERT_TRUE(draw.HasValue());
         ASSERT_TRUE(draw.Value().has_value());
         EXPECT_EQ(draw.Value()->blend, Client::World::ParticleDraw::Blend::Additive);
     }
-    const auto missing = Client::World::ParticleDrawChecked(particle, std::nullopt, 3);
+    const auto missing = Client::World::ParticleDrawChecked(particle, std::nullopt, std::uint8_t{3});
     ASSERT_FALSE(missing.HasValue());
     EXPECT_EQ(missing.Error(), Client::World::ParticleError::MissingTextureSize);
     particle.position.z = 351;

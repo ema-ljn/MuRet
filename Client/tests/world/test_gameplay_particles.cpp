@@ -274,19 +274,19 @@ TEST(GameplayParticlesTest, EmptyStepStillConsumesTheTwoWindDraws)
 TEST(GameplayParticlesTest, CheckedDrawReportsMissingMetadataWithoutPretendingToDraw)
 {
     Particle particle{.alive = true, .type = Fire, .texture = 17, .subtype = 0};
-    const auto size = Client::World::ParticleDrawChecked(particle, std::nullopt, 3);
+    const auto size = Client::World::ParticleDrawChecked(particle, std::nullopt, std::uint8_t{3});
     ASSERT_FALSE(size.HasValue());
     EXPECT_EQ(size.Error(), Client::World::ParticleError::MissingTextureSize);
     const auto material = Client::World::ParticleDrawChecked(particle, glm::vec2(128, 64), std::nullopt);
     ASSERT_FALSE(material.HasValue());
     EXPECT_EQ(material.Error(), Client::World::ParticleError::MissingMaterialFlag);
-    const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(128, 64), 4);
+    const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(128, 64), std::uint8_t{4});
     ASSERT_TRUE(draw.HasValue());
     ASSERT_TRUE(draw.Value().has_value());
     EXPECT_EQ(draw.Value()->texture, 17);
     EXPECT_EQ(draw.Value()->blend, Client::World::ParticleDraw::Blend::Alpha);
     particle.type = std::numeric_limits<std::int32_t>::max();
-    const auto unsupported = Client::World::ParticleDrawChecked(particle, glm::vec2(128, 64), 3);
+    const auto unsupported = Client::World::ParticleDrawChecked(particle, glm::vec2(128, 64), std::uint8_t{3});
     ASSERT_FALSE(unsupported.HasValue());
     EXPECT_EQ(unsupported.Error(), Client::World::ParticleError::UnsupportedType);
 }
@@ -311,7 +311,8 @@ TEST(GameplayParticlesTest, HeightPassesOverlapAndKeepTheNativeUnorderedBehavior
         Particle particle{.alive = true, .type = Fire, .subtype = 0, .position = {0, 0, value.z}};
         for (std::uint8_t mode = 0; mode < 4; ++mode)
         {
-            const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(128, 64), 3, 0, 0, mode);
+            const auto draw =
+                Client::World::ParticleDrawChecked(particle, glm::vec2(128, 64), std::uint8_t{3}, 0, 0, mode);
             ASSERT_TRUE(draw.HasValue());
             const bool visible = mode == 1 ? value.lower : mode == 2 ? value.upper : true;
             EXPECT_EQ(draw.Value().has_value(), visible) << value.z << ": " << static_cast<int>(mode);

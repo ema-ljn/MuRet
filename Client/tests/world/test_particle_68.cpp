@@ -111,7 +111,7 @@ TEST(Particle68DrawTest, UsesTheGenericWholeTexturePathAndDoesNotStoreToTheSlot)
     const auto colorBefore = particle.light;
     const auto startBefore = particle.start;
 
-    const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(64, 32), 3);
+    const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(64, 32), std::uint8_t{3});
 
     ASSERT_TRUE(draw.HasValue());
     ASSERT_TRUE(draw.Value().has_value());

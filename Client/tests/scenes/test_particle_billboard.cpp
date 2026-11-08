@@ -28,7 +28,7 @@ TEST(ParticleBillboardTest, AnUnorderedRotationUsesTheUnrotatedGeometryAndKeepsT
                                      .height = 4,
                                      .light = {0.25f, 0.5f, 0.75f},
                                      .rotation = std::bit_cast<float>(0x7fc12345u)};
-    const auto prepared = Client::Scenes::MakeParticleBillboard(Identity, draw, 4);
+    const auto prepared = Client::Scenes::MakeParticleBillboard(Identity, draw, std::uint8_t{4});
     ASSERT_TRUE(prepared.HasValue());
     constexpr std::array expected{glm::vec3(6, 18, 30), glm::vec3(14, 18, 30), glm::vec3(14, 22, 30),
                                   glm::vec3(6, 22, 30)};
@@ -70,7 +70,7 @@ TEST(ParticleBillboardTest, AColorMetadataBindingIsRequiredInsteadOfAssumingJpeg
 TEST(ParticleBillboardTest, ZeroDimensionsAndAlphaStillPrepareAQuadAndNegativeWidthIsNotClamped)
 {
     Client::World::ParticleDraw draw{.texture = 17, .position = {10, 20, 30}, .light = {0, 0.5f, 0.75f}};
-    const auto zero = Client::Scenes::MakeParticleBillboard(Identity, draw, 4);
+    const auto zero = Client::Scenes::MakeParticleBillboard(Identity, draw, std::uint8_t{4});
     ASSERT_TRUE(zero.HasValue());
     for (const Client::Render::BillboardCorner& corner : zero.Value().corners)
     {
@@ -79,7 +79,7 @@ TEST(ParticleBillboardTest, ZeroDimensionsAndAlphaStillPrepareAQuadAndNegativeWi
     EXPECT_EQ(zero.Value().color.alpha, 0);
     draw.width = -8;
     draw.height = 4;
-    const auto negative = Client::Scenes::MakeParticleBillboard(Identity, draw, 4);
+    const auto negative = Client::Scenes::MakeParticleBillboard(Identity, draw, std::uint8_t{4});
     ASSERT_TRUE(negative.HasValue());
     EXPECT_EQ(negative.Value().corners[0].position, glm::vec3(14, 18, 30));
     EXPECT_EQ(negative.Value().corners[1].position, glm::vec3(6, 18, 30));

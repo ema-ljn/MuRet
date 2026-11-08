@@ -1,5 +1,6 @@
 #include "World/Particles.h"
 
+#include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 
@@ -18,6 +19,75 @@ namespace Client::World
 namespace
 {
 constexpr std::int32_t BreathSubtype = 0;
+// Extensiones 53fe70/5446e0/548550 para 67/0; recursos y backend se validan por separado.
+constexpr std::int32_t Particle67 = 0x67;
+constexpr std::int32_t Particle68 = 0x68;
+constexpr std::int32_t Particle67Life = 20;
+// Extensión 5446e0 de la nube 622/8: +38 usa estos operandos binarios.
+constexpr double Cloud8Rise = std::bit_cast<double>(std::uint64_t{0x3fa47ae147ae147bull});
+constexpr float Cloud8RiseLimit = std::bit_cast<float>(0x3f800000u);
+constexpr float Cloud8FallLimit = std::bit_cast<float>(0x3dcccccdu);
+constexpr float Cloud8Fall = std::bit_cast<float>(0x3ccccccdu);
+constexpr double Cloud8RandomStep = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
+constexpr float Cloud8InitialQ = std::bit_cast<float>(0x3dcccccdu);
+constexpr float Cloud8EvenRotation = std::bit_cast<float>(0x3ca3d70au);
+constexpr float Cloud8OddRotation = std::bit_cast<float>(0xbca3d70au);
+constexpr double Cloud68ScaleStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+// 5446e0_ext_67 y contrato histórico íntegro leaf-4303c0 (predicado raw32 == 34, sin calls).
+constexpr std::int32_t Particle67ColorMap = 34;
+constexpr double Particle67Growth = static_cast<double>(std::bit_cast<float>(0x3cf5c28fu));
+constexpr double Particle67Fade = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
+constexpr float Particle67Blue = std::bit_cast<float>(0x3f333333u);
+constexpr int Particle67ScaleSpan = 6;
+constexpr int Particle67ScaleBase = 8;
+constexpr double Particle67ScaleStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+// 53fe70/5446e0, extensión 5c6/9 (mapa3, objeto322).
+constexpr std::int32_t MapSparkLife = 30;
+constexpr int MapSparkOffsetSpan = 10;
+constexpr double MapSparkOffsetBase = 160.0;
+constexpr float MapSparkForward = 12.0f;
+constexpr float MapSparkDown = -2.0f;
+constexpr double MapSparkBrake = static_cast<double>(std::bit_cast<float>(0x3f99999au));
+constexpr double MapSparkFall = 1.0;
+constexpr double MapSparkShrink = static_cast<double>(std::bit_cast<float>(0x3da3d70au));
+constexpr double MapSparkMinimum = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
+// Extensiones final-runtime 53fe70/5446e0/548550, 607/0 (mapa7, objeto22).
+constexpr int DropLifeSpan = 10;
+constexpr int DropLifeBase = 30;
+constexpr int DropScaleSpan = 6;
+constexpr int DropScaleBase = 4;
+constexpr double DropScaleStep = static_cast<double>(std::bit_cast<float>(0x3cf5c28fu));
+constexpr int DropWalkSpan = 20;
+constexpr int DropWalkCenter = 10;
+constexpr double DropWalkFactor = 2.5;
+constexpr int DropFrames = 9;
+constexpr int DropColumns = 3;
+constexpr double DropAtlasInset = static_cast<double>(std::bit_cast<float>(0x3ba3d70au));
+constexpr float DropAtlasSize = std::bit_cast<float>(0x3e75c28fu);
+// Contratos final-runtime 53fe70/5446e0/548550, casos 5d9/0..3 y 5f2/2.
+constexpr std::int32_t FireLife = 24;
+constexpr std::int32_t WorldSmokeLife = 50;
+constexpr double FireRise = static_cast<double>(std::bit_cast<float>(0x3b83126fu));
+constexpr double FireShrink = static_cast<double>(std::bit_cast<float>(0x3d23d70au));
+constexpr double FireDamping = static_cast<double>(std::bit_cast<float>(0x3f7ae148u));
+constexpr double SmokeFade = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
+constexpr double SmokeSlowdown = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+constexpr double SmokeDrift = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
+constexpr double FireSpeed = static_cast<double>(std::bit_cast<float>(0xbdcccccdu));
+constexpr int FireSpeedSpan = 16;
+constexpr int FireSpeedBase = 32;
+constexpr int FireScaleSpan = 64;
+constexpr int FireScaleBase = 128;
+constexpr int FireSmallScaleSpan = 4;
+constexpr int FireSmallScaleBase = 10;
+constexpr int SmokeScaleBase = 64;
+constexpr int SmokeSpeedBase = 60;
+constexpr int FrameSteps = 6;
+constexpr int AtlasColumns = 4;
+constexpr double AtlasFraction = 0.25;
+constexpr double FireHeightFactor = 10.0;
+constexpr float LowerPassHeight = 350.0f;
+constexpr float UpperPassHeight = 300.0f;
 // 0x53ff05: la vida de cualquier partícula al crearla; 0x54184b: la del aliento.
 constexpr std::int32_t DefaultLife = 2;
 constexpr std::int32_t BreathLife = 16;
@@ -144,6 +214,373 @@ bool IsLoginCloud(const Particle& particle)
     return particle.type == CloudParticle && particle.subtype == LoginCloudSubtype;
 }
 
+bool IsCloud8(const Particle& particle)
+{
+    return particle.type == CloudParticle && particle.subtype == 8;
+}
+
+bool IsParticle68(const Particle& particle)
+{
+    return particle.type == Particle68 && particle.subtype == 0;
+}
+
+void CreateTheCloud8(Particle& particle, float inputScale, Render::Models::CrtRandom& random)
+{
+    particle.life = 300;
+
+    const int r1 = random.Next();
+    particle.field38 = std::bit_cast<std::uint32_t>(Cloud8InitialQ);
+    particle.verticalSpeed = F32(static_cast<double>(r1 % 1000));
+
+    const int r2 = (random.Next() % 500) - 250;
+    particle.position.x = F32(static_cast<double>(r2) + static_cast<double>(particle.position.x));
+    const int r3 = (random.Next() % 500) - 250;
+    particle.position.y = F32(static_cast<double>(r3) + static_cast<double>(particle.position.y));
+    const int r4 = (random.Next() % 20) - 20;
+    particle.position.z = F32(static_cast<double>(r4) + static_cast<double>(particle.position.z));
+
+    const int r5 = random.Next() % 100;
+    particle.start.z = particle.position.z;
+    particle.start.y = F32(static_cast<double>(r5) * Cloud8RandomStep);
+    const int r6 = (random.Next() % 20) + 180;
+    particle.scale = F32(static_cast<double>(r6) * Cloud8RandomStep);
+    const int r7 = random.Next() % 30;
+    particle.rotationFactor = F32(static_cast<double>(r7) * Cloud8RandomStep + static_cast<double>(inputScale));
+
+    // El cuerpo vuelve a poner los tres dwords a cero tras R7.
+    particle.velocity = glm::vec3(0.0f);
+}
+
+void CreateTheParticle68(Particle& particle, Render::Models::CrtRandom& random)
+{
+    particle.life = 20;
+    const int scaleSteps = (random.Next() % 6) + 8;
+    particle.scale = F32(static_cast<double>(scaleSteps) * Cloud68ScaleStep);
+
+    const int offsetX = (random.Next() % 10) - 5;
+    particle.position.x = F32(static_cast<double>(offsetX) + static_cast<double>(particle.position.x));
+    const int offsetY = (random.Next() % 10) - 5;
+    particle.position.y = F32(static_cast<double>(offsetY) + static_cast<double>(particle.position.y));
+    const int offsetZ = (random.Next() % 10) - 5;
+    particle.position.z = F32(static_cast<double>(offsetZ) + static_cast<double>(particle.position.z));
+}
+
+void StepTheCloud8(Particle& particle)
+{
+    const std::int32_t life = particle.life;
+    if (life <= 0)
+    {
+        particle.alive = false;
+        return;
+    }
+
+    const float q = std::bit_cast<float>(particle.field38);
+    if (life > 150)
+    {
+        // FCOMP toma también unordered por la suma, equivalente a q<1 o unordered.
+        if (!(q >= Cloud8RiseLimit))
+        {
+            particle.field38 = std::bit_cast<std::uint32_t>(F32(static_cast<double>(q) + Cloud8Rise));
+        }
+        particle.position.z = F32(static_cast<double>(particle.position.z) + 1.0);
+        return;
+    }
+
+    // La comparación tardía exige estrictamente q>0.1f; unordered conserva +38.
+    if (q > Cloud8FallLimit)
+    {
+        particle.field38 = std::bit_cast<std::uint32_t>(F32(static_cast<double>(q) - Cloud8Fall));
+    }
+    particle.position.z = F32(static_cast<double>(particle.position.z) - 0.5);
+}
+
+bool IsFire(const Particle& particle)
+{
+    return particle.type == FireParticle && particle.subtype >= 0 && particle.subtype <= 3;
+}
+
+bool IsWorldSmoke(const Particle& particle)
+{
+    return particle.type == BreathParticle && particle.subtype == WorldSmokeSubtype;
+}
+
+bool IsMapSpark(const Particle& particle)
+{
+    return particle.type == SparkParticle && particle.subtype == MapSparkSubtype;
+}
+
+bool IsDrop(const Particle& particle)
+{
+    return particle.type == DropParticle && particle.subtype == 0;
+}
+
+std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtype)
+{
+    if (type == Particle67)
+    {
+        return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+    }
+    if (type == DropParticle)
+    {
+        return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+    }
+    if (type == FireParticle)
+    {
+        return subtype >= 0 && subtype <= 3 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+    }
+    if (type == BreathParticle)
+    {
+        return subtype == BreathSubtype || subtype == WorldSmokeSubtype
+                   ? std::nullopt
+                   : std::optional(ParticleError::UnsupportedSubtype);
+    }
+    if (type == SparkParticle)
+    {
+        return subtype == RavenSparkSubtype || subtype == MapSparkSubtype
+                   ? std::nullopt
+                   : std::optional(ParticleError::UnsupportedSubtype);
+    }
+    if (type == CloudParticle)
+    {
+        return subtype == LoginCloudSubtype || subtype == 8 ? std::nullopt
+                                                            : std::optional(ParticleError::UnsupportedSubtype);
+    }
+    return ParticleError::UnsupportedType;
+}
+
+// 53fe9c..53ff37: copias intercaladas y relectura de P, sin snapshot ni reset del slot reutilizado.
+void Initialize(Particle& particle, std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
+                const glm::vec3& light, std::int32_t subtype, float scale, std::uint32_t owner)
+{
+    particle.subtype = subtype;
+    particle.alive = true;
+    particle.type = type;
+    particle.texture = type;
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        particle.position[axis] = position[axis];
+    }
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        particle.start[axis] = position[axis];
+    }
+    particle.light.x = light.x;
+    particle.light.y = light.y;
+    const float blue = light.z;
+    particle.scale = scale;
+    particle.light.z = blue;
+    particle.verticalSpeed = 0.0f;
+    particle.field48 = 0.0f;
+    particle.rotation = 0.0f;
+    particle.life = DefaultLife;
+    particle.owner = owner;
+    particle.moves = true;
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        particle.angles[axis] = angles[axis];
+    }
+    particle.velocity = glm::vec3(0.0f);
+}
+
+void CreateTheFire(Particle& particle, Render::Models::CrtRandom& random)
+{
+    particle.life = FireLife;
+    particle.velocity.x = 0.0f;
+    const int speed = (random.Next() % FireSpeedSpan) + FireSpeedBase;
+    particle.velocity.z = 0.0f;
+    const std::int32_t subtype = particle.subtype; // Relectura posterior a R1 (00541197).
+    particle.velocity.y = F32(static_cast<double>(speed) * FireSpeed);
+    if (subtype == 0)
+    {
+        particle.scale = F32(static_cast<double>((random.Next() % FireScaleSpan) + FireScaleBase) * BreathScaleStep);
+    }
+    if (particle.subtype == 1) // 005413c2 vuelve a leer el subtipo vivo.
+    {
+        particle.scale =
+            F32(static_cast<double>((random.Next() % FireSmallScaleSpan) + FireSmallScaleBase) * BreathScaleStep);
+    }
+    particle.rotation = static_cast<float>(random.Next() % FullTurn);
+}
+
+void CreateTheWorldSmoke(Particle& particle, Render::Models::CrtRandom& random)
+{
+    particle.life = WorldSmokeLife;
+    particle.scale = F32(static_cast<double>((random.Next() % FireScaleSpan) + SmokeScaleBase) * BreathScaleStep);
+    particle.rotation = static_cast<float>(random.Next() % FullTurn);
+    particle.verticalSpeed = F32(static_cast<double>((random.Next() % FireSpeedBase) + SmokeSpeedBase) * SmokeSlowdown);
+}
+
+void CreateTheParticle67(Particle& particle, Render::Models::CrtRandom& random)
+{
+    particle.life = Particle67Life;
+    const int scaleSteps = (random.Next() % Particle67ScaleSpan) + Particle67ScaleBase;
+    particle.scale = F32(static_cast<double>(scaleSteps) * Particle67ScaleStep);
+}
+
+std::optional<ParticleError> StepTheParticle67(Particle& particle, const std::int32_t* map)
+{
+    if (particle.life <= 0)
+    {
+        particle.alive = false;
+    }
+    particle.scale = particle.subtype == 1
+                         ? F32(static_cast<double>(particle.verticalSpeed) + static_cast<double>(particle.scale))
+                         : F32(static_cast<double>(particle.scale) + Particle67Growth);
+    if (map == nullptr)
+    {
+        return ParticleError::MissingMap;
+    }
+    // 4303c0 relee el DWORD del mapa aquí; no es el byte bajo ni un mapa capturado al entrar.
+    if (*map == Particle67ColorMap)
+    {
+        particle.light.z = Particle67Blue;
+        particle.light.x = 1.0f;
+        particle.light.y = 1.0f;
+        return std::nullopt;
+    }
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        particle.light[axis] = F32(static_cast<double>(particle.light[axis]) - Particle67Fade);
+    }
+    return std::nullopt;
+}
+
+std::optional<ParticleError> StepTheParticle68(Particle& particle, const std::int32_t* map)
+{
+    if (particle.life <= 0)
+    {
+        particle.alive = false;
+    }
+    if (particle.subtype == 1)
+    {
+        particle.scale = F32(static_cast<double>(particle.verticalSpeed) + static_cast<double>(particle.scale));
+    }
+    else
+    {
+        particle.scale = F32(static_cast<double>(particle.scale) + Particle67Growth);
+    }
+
+    // 4303c0 fue acreditado por el contrato leaf-4303c0: lee DWORD raw32 y devuelve AL=1 sólo para34.
+    if (map == nullptr)
+    {
+        return ParticleError::MissingMap;
+    }
+    if (*map == Particle67ColorMap)
+    {
+        particle.light.z = Particle67Blue;
+        particle.light.x = 1.0f;
+        particle.light.y = 1.0f;
+        return std::nullopt;
+    }
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        particle.light[axis] = F32(static_cast<double>(particle.light[axis]) - Particle67Fade);
+    }
+    return std::nullopt;
+}
+
+void CreateTheMapSpark(Particle& particle, Render::Models::CrtRandom& random)
+{
+    particle.life = MapSparkLife;
+    particle.angles.x = 0.0f;
+    const int yaw = random.Next() % FullTurn;
+    particle.angles.z = 0.0f;
+    particle.angles.y = static_cast<float>(yaw);
+    const auto matrix = Render::Models::OriginalAngleMatrix(particle.angles);
+    glm::vec3 offset(0.0f);
+    offset.z = F32(static_cast<double>(random.Next() % MapSparkOffsetSpan) + MapSparkOffsetBase);
+    particle.velocity = Render::Models::OriginalVectorRotate(offset, matrix);
+    // 005408c8/d7/e8 sustituyen velocidad después de cargar cada suma, antes de guardar posición.
+    const double x = static_cast<double>(particle.position.x) + static_cast<double>(particle.velocity.x);
+    particle.velocity.x = MapSparkForward;
+    particle.position.x = F32(x);
+    const double y = static_cast<double>(particle.position.y) + static_cast<double>(particle.velocity.y);
+    particle.velocity.y = 0.0f;
+    particle.position.y = F32(y);
+    const double z = static_cast<double>(particle.velocity.z) + static_cast<double>(particle.position.z);
+    particle.velocity.z = MapSparkDown;
+    particle.position.z = F32(z);
+}
+
+void StepTheMapSpark(Particle& particle)
+{
+    const double speed = static_cast<double>(particle.velocity.x) - MapSparkBrake;
+    const std::int32_t life = particle.life;
+    particle.velocity.x = F32(speed);
+    particle.velocity.z = F32(static_cast<double>(particle.velocity.z) - MapSparkFall);
+    const double scale = static_cast<double>(particle.scale) - MapSparkShrink;
+    particle.scale = F32(scale);
+    if (life <= 0)
+    {
+        particle.alive = false;
+    }
+    // TEST AH,1 comprueba C0: menor y unordered apagan, usando ST0 anterior al store32.
+    if (scale < MapSparkMinimum || std::isnan(scale))
+    {
+        particle.alive = false;
+    }
+}
+
+void CreateTheDrop(Particle& particle, Render::Models::CrtRandom& random)
+{
+    particle.life = DropLifeBase + (random.Next() % DropLifeSpan);
+    const int scaleSteps = (random.Next() % DropScaleSpan) + DropScaleBase;
+    particle.light = glm::vec3(1.0f);
+    particle.scale = F32(static_cast<double>(scaleSteps) * DropScaleStep);
+}
+
+void StepTheDrop(Particle& particle, Render::Models::CrtRandom& random)
+{
+    const std::uint32_t frame = std::bit_cast<std::uint32_t>(particle.field48) + 1u;
+    particle.field48 = std::bit_cast<float>(frame);
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        const int direction = axis == 2 ? DropWalkCenter : -DropWalkCenter;
+        const int steps = (random.Next() % DropWalkSpan) + direction;
+        // La escala se relee después de cada RNG; no hay store32 entre los dos productos.
+        particle.position[axis] =
+            F32(static_cast<double>(steps) * static_cast<double>(particle.scale) * DropWalkFactor +
+                static_cast<double>(particle.position[axis]));
+    }
+}
+
+std::int32_t WrapSubtract(std::int32_t left, std::int32_t right)
+{
+    return std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(left) - static_cast<std::uint32_t>(right));
+}
+
+void StepTheFire(Particle& particle)
+{
+    particle.verticalSpeed = F32(static_cast<double>(particle.verticalSpeed) + FireRise);
+    if (particle.subtype == 0)
+    {
+        particle.scale = F32(static_cast<double>(particle.scale) - FireShrink);
+    }
+    else
+    {
+        particle.scale = F32(static_cast<double>(particle.verticalSpeed) + static_cast<double>(particle.scale));
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            particle.velocity[axis] = F32(static_cast<double>(particle.velocity[axis]) * FireDamping);
+        }
+    }
+    const std::int32_t frame = WrapSubtract(FireLife - 1, particle.life) / FrameSteps;
+    particle.position.z =
+        F32(static_cast<double>(particle.verticalSpeed) * FireHeightFactor + static_cast<double>(particle.position.z));
+    particle.field48 = std::bit_cast<float>(frame);
+}
+
+void StepTheWorldSmoke(Particle& particle)
+{
+    particle.light = glm::vec3(F32(static_cast<double>(particle.life) * SmokeFade));
+    // FST +50 no redondea ST0: X y Z usan el acumulador double retenido en este paso.
+    const double speed = static_cast<double>(particle.verticalSpeed) - SmokeSlowdown;
+    particle.verticalSpeed = F32(speed);
+    particle.position.x = F32(static_cast<double>(particle.position.x) - speed * SmokeDrift);
+    particle.position.z = F32(speed + static_cast<double>(particle.position.z));
+    particle.scale = F32(static_cast<double>(particle.scale) - BreathScaleStep);
+}
+
 void CreateTheCloud(Particle& particle, Render::Models::CrtRandom& random)
 {
     particle.life = CloudLife;
@@ -220,13 +657,15 @@ std::optional<std::size_t> Particles::Create(std::int32_t type, const glm::vec3&
                                              const glm::vec3& light, std::int32_t subtype, float scale,
                                              float worldClock, Render::Models::CrtRandom& random)
 {
-    const bool breath = type == BreathParticle && subtype == BreathSubtype;
-    const bool spark = type == SparkParticle && subtype == RavenSparkSubtype;
-    const bool cloud = type == CloudParticle && subtype == LoginCloudSubtype;
-    if (!breath && !spark && !cloud)
-    {
-        return std::nullopt;
-    }
+    auto created = CreateChecked(type, position, angles, light, subtype, scale, worldClock, random);
+    return created.HasValue() ? created.Value() : std::nullopt;
+}
+
+Core::Expected<std::optional<std::size_t>, ParticleError>
+Particles::CreateChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                         std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
+                         std::uint32_t owner)
+{
     for (std::size_t index = 0; index < m_particles.size(); ++index)
     {
         Particle& particle = m_particles[index];
@@ -234,30 +673,59 @@ std::optional<std::size_t> Particles::Create(std::int32_t type, const glm::vec3&
         {
             continue;
         }
-        // Lo común de 0x53fe9c..0x53ff37. +0x60 no se escribe: conserva el uso anterior del lugar.
-        particle = Particle{.alive = true,
-                            .type = type,
-                            .texture = type,
-                            .subtype = subtype,
-                            .scale = scale,
-                            .position = position,
-                            .angles = angles,
-                            .light = light,
-                            .life = DefaultLife,
-                            .owner = 0,
-                            .rotation = 0.0f,
-                            .field48 = 0.0f,
-                            .moves = true,
-                            .verticalSpeed = 0.0f,
-                            .velocity = glm::vec3(0.0f),
-                            .rotationFactor = particle.rotationFactor,
-                            .start = position};
-        if (cloud)
+        if (type == Particle68 && subtype != 0)
+        {
+            return Core::Unexpected(ParticleError::UnsupportedSubtype);
+        }
+        if (type != Particle68)
+        {
+            if (const auto error = BindingError(type, subtype))
+            {
+                return Core::Unexpected(*error);
+            }
+        }
+        Initialize(particle, type, position, angles, light, subtype, scale, owner);
+        if (type == Particle67)
+        {
+            CreateTheParticle67(particle, random);
+            return std::optional(index);
+        }
+        if (type == DropParticle)
+        {
+            CreateTheDrop(particle, random);
+            return std::optional(index);
+        }
+        if (type == FireParticle)
+        {
+            CreateTheFire(particle, random);
+            return std::optional(index);
+        }
+        if (type == BreathParticle && subtype == WorldSmokeSubtype)
+        {
+            CreateTheWorldSmoke(particle, random);
+            return std::optional(index);
+        }
+        if (type == CloudParticle && subtype == 8)
+        {
+            CreateTheCloud8(particle, scale, random);
+            return std::optional(index);
+        }
+        if (type == Particle68)
+        {
+            CreateTheParticle68(particle, random);
+            return std::optional(index);
+        }
+        if (type == CloudParticle)
         {
             CreateTheCloud(particle, random);
-            return index;
+            return std::optional(index);
         }
-        if (spark)
+        if (type == SparkParticle && subtype == MapSparkSubtype)
+        {
+            CreateTheMapSpark(particle, random);
+            return std::optional(index);
+        }
+        if (type == SparkParticle)
         {
             // 0x5406e5: vida 10, los ángulos (0, 0, yaw) y la velocidad, el empujón (−(rand() % 2 + 2), 0, 0)
             // (el idiom de and 0x80000001, fild, fadd 2 de 0x6b8818 y fchs) girado por AngleMatrix de esos
@@ -267,16 +735,16 @@ std::optional<std::size_t> Particles::Create(std::int32_t type, const glm::vec3&
             const glm::vec3 push(-(static_cast<float>(random.Next() % 2) + SparkPush), 0.0f, 0.0f);
             particle.velocity =
                 Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(particle.angles));
-            return index;
+            return std::optional(index);
         }
         // 0x54184b: el aliento. El rand() % 32 va con el idiom de and 0x8000001f.
         particle.life = BreathLife;
         particle.scale = F32(static_cast<double>((random.Next() % 32) + BreathScaleBase) * BreathScaleStep);
         particle.angles.x = static_cast<float>(random.Next() % FullTurn);
         particle.rotation = static_cast<float>(FtolLow(worldClock) % FullTurn);
-        return index;
+        return std::optional(index);
     }
-    return std::nullopt;
+    return std::optional<std::size_t>{};
 }
 
 void Particles::Clear()
@@ -319,7 +787,8 @@ const ParticleWind& Particles::Wind() const
     return m_wind;
 }
 
-void StepParticles(Particles& particles, Render::Models::CrtRandom& random)
+Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
+                                                         const std::int32_t* map)
 {
     StepTheWind(particles.Wind(), random);
     for (Particle& particle : particles.All())
@@ -328,7 +797,7 @@ void StepParticles(Particles& particles, Render::Models::CrtRandom& random)
         {
             continue;
         }
-        --particle.life;
+        particle.life = WrapSubtract(particle.life, 1);
         if (particle.life <= 0)
         {
             particle.alive = false;
@@ -337,9 +806,50 @@ void StepParticles(Particles& particles, Render::Models::CrtRandom& random)
         {
             Move(particle);
         }
-        if (IsBreath(particle))
+        if (particle.type != Particle67 && particle.type != Particle68 && !IsCloud8(particle))
+        {
+            if (const auto error = BindingError(particle.type, particle.subtype))
+            {
+                return Core::Unexpected(*error);
+            }
+        }
+        if (particle.type == Particle67)
+        {
+            if (const auto error = StepTheParticle67(particle, map))
+            {
+                return Core::Unexpected(*error);
+            }
+        }
+        else if (particle.type == Particle68)
+        {
+            if (const auto error = StepTheParticle68(particle, map))
+            {
+                return Core::Unexpected(*error);
+            }
+        }
+        else if (IsCloud8(particle))
+        {
+            StepTheCloud8(particle);
+        }
+        else if (IsDrop(particle))
+        {
+            StepTheDrop(particle, random);
+        }
+        else if (IsFire(particle))
+        {
+            StepTheFire(particle);
+        }
+        else if (IsWorldSmoke(particle))
+        {
+            StepTheWorldSmoke(particle);
+        }
+        else if (IsBreath(particle))
         {
             StepTheBreath(particle);
+        }
+        else if (IsMapSpark(particle))
+        {
+            StepTheMapSpark(particle);
         }
         else if (IsSpark(particle))
         {
@@ -350,17 +860,28 @@ void StepParticles(Particles& particles, Render::Models::CrtRandom& random)
             StepTheCloud(particle);
         }
     }
+    return {};
+}
+
+std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random)
+{
+    const auto stepped = StepParticlesChecked(particles, random);
+    return stepped.HasValue() ? std::nullopt : std::optional(stepped.Error());
 }
 
 std::optional<ParticleDraw> ParticleDrawOf(Particle& particle, const glm::vec2& textureSize, int components,
                                            float worldClock, std::size_t slotIndex)
 {
     const bool cloud = IsLoginCloud(particle);
-    if (!particle.alive || (!IsBreath(particle) && !IsSpark(particle) && !cloud))
+    if (!particle.alive || (!IsParticle68(particle) && BindingError(particle.type, particle.subtype).has_value()))
     {
         return std::nullopt;
     }
     ParticleDraw::Blend blend = components == 3 ? ParticleDraw::Blend::Additive : ParticleDraw::Blend::Alpha;
+    if (IsWorldSmoke(particle))
+    {
+        blend = ParticleDraw::Blend::Subtractive;
+    }
     if (cloud)
     {
         blend = ParticleDraw::Blend::Subtractive;
@@ -369,8 +890,15 @@ std::optional<ParticleDraw> ParticleDrawOf(Particle& particle, const glm::vec2& 
             F32(static_cast<double>(worldClock) * static_cast<double>(particle.rotationFactor) * direction +
                 static_cast<double>(particle.start.y));
     }
+    if (IsCloud8(particle))
+    {
+        const float direction = slotIndex % 2 == 0 ? Cloud8EvenRotation : Cloud8OddRotation;
+        const double global = static_cast<double>(worldClock) * static_cast<double>(particle.rotationFactor);
+        const double signedRotation = global * static_cast<double>(direction);
+        particle.rotation = F32(signedRotation + static_cast<double>(particle.start.y));
+    }
     // 0x5485a3: el ancho y el alto de la textura por la escala, guardados en float.
-    return ParticleDraw{
+    ParticleDraw draw{
         .texture = particle.texture,
         .blend = blend,
         .position = particle.position,
@@ -381,5 +909,59 @@ std::optional<ParticleDraw> ParticleDrawOf(Particle& particle, const glm::vec2& 
         .uv = glm::vec2(0.0f),
         .uvSize = glm::vec2(1.0f),
     };
+    if (IsFire(particle))
+    {
+        draw.width = F32(static_cast<double>(draw.width) * AtlasFraction);
+        draw.rotation = particle.angles.x;
+        draw.uv.x =
+            F32(static_cast<double>(std::bit_cast<std::int32_t>(particle.field48) % AtlasColumns) * AtlasFraction);
+        draw.uvSize.x = static_cast<float>(AtlasFraction);
+    }
+    if (IsDrop(particle))
+    {
+        const std::int32_t frame = std::bit_cast<std::int32_t>(particle.field48) % DropFrames;
+        const std::int32_t row = frame / DropColumns;
+        const std::int32_t column = frame % DropColumns;
+        draw.uv.y = F32(static_cast<double>(row) * AtlasFraction + DropAtlasInset);
+        draw.uv.x = F32(static_cast<double>(column) * AtlasFraction + DropAtlasInset);
+        draw.uvSize = glm::vec2(DropAtlasSize);
+        draw.rotation = 0.0f;
+    }
+    if (IsCloud8(particle))
+    {
+        const float q = std::bit_cast<float>(particle.field38);
+        for (int axis = 0; axis < 3; ++axis)
+        {
+            draw.light[axis] = F32(static_cast<double>(particle.light[axis]) * static_cast<double>(q));
+        }
+    }
+    return draw;
+}
+
+Core::Expected<std::optional<ParticleDraw>, ParticleError>
+ParticleDrawChecked(Particle& particle, std::optional<glm::vec2> textureSize, std::optional<std::uint8_t> materialFlag,
+                    float worldClock, std::size_t slotIndex, std::uint8_t mode)
+{
+    if (!particle.alive || (mode == 1 && particle.position.z > LowerPassHeight) ||
+        (mode == 2 && !(particle.position.z > UpperPassHeight)))
+    {
+        return std::optional<ParticleDraw>{};
+    }
+    if (!IsParticle68(particle))
+    {
+        if (const auto error = BindingError(particle.type, particle.subtype))
+        {
+            return Core::Unexpected(*error);
+        }
+    }
+    if (!textureSize)
+    {
+        return Core::Unexpected(ParticleError::MissingTextureSize);
+    }
+    if (!materialFlag)
+    {
+        return Core::Unexpected(ParticleError::MissingMaterialFlag);
+    }
+    return ParticleDrawOf(particle, *textureSize, *materialFlag, worldClock, slotIndex);
 }
 } // namespace Client::World

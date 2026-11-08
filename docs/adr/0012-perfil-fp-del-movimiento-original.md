@@ -28,7 +28,9 @@ El port elige explícitamente este perfil de compatibilidad:
 
 1. Operaciones de valores con precisión de significando de 53 bits, nearest, excepciones
    enmascaradas y memoria ordinaria estable. La plataforma debe usar binary32 y binary64
-   ordinarios, sin fast-math ni contracción FMA. El port no modifica el entorno FP del caller.
+   ordinarios, sin fast-math ni contracción FMA. El port exige FLT_EVAL_METHOD=0 y comprueba
+   los formatos en compilación; el corpus verifica FE_TONEAREST sin cambiar el entorno FP.
+   Esto describe el host del test, no demuestra el estado de una sesión gráfica/XP.
 2. Conservación del C0 observado en los cinco sitios concretos de run3, incluida la muestra
    de AX anterior a la comparación de dy y las dos muestras distintas de los fallbacks de giro.
    Esta premisa reproduce una observación del procesador del experimento: la ISA no la garantiza.
@@ -88,6 +90,19 @@ Las pruebas de movimiento fijan cuartos, índices, centros limitados, llegada, g
 por eje; las de posición fijan precedencia, Z provisional, altura y seno. No son evidencia
 nativa de la composición completa ni prueban presupuesto RNG transitivo, bootstrap T,
 profundidad P efectiva de gameplay o toda CL7.
+
+La ampliación nativa R5 (`cl7-create-angle-native-nonunit-20261108/runR5`) comparó
+38 entradas finitas binary32 en PC53/RN: 37 retornos binary64 coinciden y los 38 stores
+binary32 coinciden. En `(0,0)→(7,−11)`, el original devuelve
+`0x1.03c5021eae517p+5`; este candidato devuelve `0x1.03c5021eae518p+5`.
+Es una discrepancia confirmada de un ULP, no sólo una precisión todavía no observada.
+FPATAN retiene 64 bits de significando antes del producto; reducir antes phi a binary64
+produce esta diferencia aunque phi redondeado a53 coincida. Ambos retornos se redondean
+al mismo binary32 en esta muestra, pero eso no acredita todos los callers: el rumbo del
+héroe también se consume con yaw antes de una conversión a entero. Las correcciones de
+lifetime y la ampliación de tests de esta entrega no resuelven ese defecto numérico.
+El backend compatible y su contraste independiente siguen abiertos; el PR conserva draft.
+No se incorporaron bytes ejecutables, registros ni volcados para documentar esta diferencia.
 
 P-C32 permanece abierto para la equivalencia de una sesión real: faltan CW, status, TOP/tags,
 constantes runtime y dominio representativo en sus callsites de XP. Los snapshots y registros

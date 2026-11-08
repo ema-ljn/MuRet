@@ -6,6 +6,7 @@
 #include <bit>
 #include <cstdint>
 #include <cmath>
+#include <cfenv>
 
 namespace
 {
@@ -159,19 +160,23 @@ constexpr std::array Cases{
 TEST(OriginalAnglesTest, NativePc53NearestCorpus)
 {
     using namespace Client::Render::Models;
+    ASSERT_EQ(std::fegetround(), FE_TONEAREST);
     for (const auto& sample : Cases)
     {
-        SCOPED_TRACE(&sample - Cases.data());
         const auto& a = sample.arguments;
+        SCOPED_TRACE(::testing::Message() << "case " << (&sample - Cases.data()) << " function " << sample.function
+                                          << " args " << a[0] << ',' << a[1] << ',' << a[2] << ',' << a[3]);
         double result = 0.0;
         if (sample.function == 0x4e93f0u)
             result = CreateAngle(std::bit_cast<float>(a[0]), std::bit_cast<float>(a[1]), std::bit_cast<float>(a[2]),
                                  std::bit_cast<float>(a[3]));
         else if (sample.function == 0x4e9560u)
             result = TurnAngle(std::bit_cast<float>(a[0]), std::bit_cast<float>(a[1]), std::bit_cast<float>(a[2]));
-        else
+        else if (sample.function == 0x4e96f0u)
             result =
                 AngleDistance(std::bit_cast<float>(a[0]), std::bit_cast<float>(a[1]), static_cast<std::uint8_t>(a[2]));
+        else
+            FAIL() << "Id de función angular no reconocido";
         EXPECT_EQ(std::bit_cast<std::uint64_t>(result), std::bit_cast<std::uint64_t>(sample.expected));
         EXPECT_EQ(std::bit_cast<std::uint32_t>(static_cast<float>(result)),
                   std::bit_cast<std::uint32_t>(static_cast<float>(sample.expected)));
@@ -269,5 +274,21 @@ TEST(OriginalAnglesTest, DistanceModeOneFlipsTheSignOfUnordered)
     EXPECT_TRUE(std::isnan(signedResult));
     EXPECT_TRUE(std::isnan(modeOneResult));
     EXPECT_NE(std::signbit(signedResult), std::signbit(modeOneResult));
+}
+TEST(OriginalAnglesTest, NegativeInputsReceiveOnlyOneAdjustment)
+{
+    using Client::Render::Models::AngleDistance;
+    using Client::Render::Models::TurnAngle;
+    EXPECT_EQ(TurnAngle(-720.0f, 20.0f, 1.0f), 20.0);
+    EXPECT_EQ(AngleDistance(-720.0f, 20.0f, 0), -20.0);
+}
+TEST(OriginalAnglesTest, NegativeAdjustmentSpillsToExactlyOneTurn)
+{
+    const double result = Client::Render::Models::AngleDistance(-0x1p-30f, 0.0f, 0);
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(result), 0u);
+}
+TEST(OriginalAnglesTest, HostRoundingMatchesTheDeclaredNearestProfile)
+{
+    EXPECT_EQ(std::fegetround(), FE_TONEAREST);
 }
 } // namespace

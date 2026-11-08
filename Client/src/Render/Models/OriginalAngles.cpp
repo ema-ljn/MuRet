@@ -1,12 +1,21 @@
 #include "Render/Models/OriginalAngles.h"
 
 #include <cmath>
+#include <cfloat>
+#include <limits>
 #include <cstdint>
 
 namespace Client::Render::Models
 {
 namespace
 {
+// ADR0012: evaluación nominal del port; el PC53 original es evidencia, no un modo del compilador.
+static_assert(std::numeric_limits<float>::is_iec559 && std::numeric_limits<float>::digits == 24 &&
+              std::numeric_limits<float>::max_exponent == 128);
+static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<double>::digits == 53 &&
+              std::numeric_limits<double>::max_exponent == 1024);
+static_assert(FLT_EVAL_METHOD == 0);
+
 // 0x4e93f0.
 constexpr float Tiny = 0.0001f;
 constexpr double Degrees = static_cast<double>(57.2957763671875f);

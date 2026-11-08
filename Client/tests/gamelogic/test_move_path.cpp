@@ -3,6 +3,7 @@
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
 #include <array>
+#include <bit>
 #include <cstdint>
 #include <vector>
 namespace
@@ -91,6 +92,7 @@ TEST(MovePathTest, CallsEffectsAroundBothStoresEvenForTheSameCellAndRereadsThePa
     EXPECT_FALSE(MovePath(actor.View(), 0, effects));
     EXPECT_EQ(events, (std::vector<int>{0, 1, 10, 11}));
     EXPECT_EQ(actor.logicalX, 2u);
+    EXPECT_EQ(actor.path.progress, 0);
 }
 TEST(MovePathTest, QuarterTargetsUseClampedEndpointsAndLiteralWeights)
 {
@@ -234,5 +236,110 @@ TEST(MovePathTest, BeginningKeepsItsCapturedNextIndexWhenPreCallbacksChangeCurre
     EXPECT_EQ(actor.path.current, 0);
     EXPECT_EQ(actor.path.progress, 0);
     EXPECT_EQ(actor.position, (glm::vec3{0.0f, 0.0f, 77.0f}));
+}
+TEST(MovePathTest, UnorderedDistanceAdvancesOneQuarter)
+{
+    MovingState actor;
+    actor.position.x = std::bit_cast<float>(0x7fc00001u);
+    EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 0));
+    EXPECT_EQ(actor.path.progress, 1);
+    EXPECT_EQ(actor.path.current, 0);
+}
+TEST(MovePathTest, UnorderedDistanceAtArrivalSnapsThePosition)
+{
+    MovingState actor;
+    actor.position.x = std::bit_cast<float>(0x7fc00001u);
+    actor.path.current = 1;
+    actor.path.progress = 3;
+    actor.yaw = 123.0f;
+    EXPECT_TRUE(Client::GameLogic::MovePath(actor.View(), 0));
+    EXPECT_EQ(actor.position, (glm::vec3{250.0f, 50.0f, 77.0f}));
+    EXPECT_EQ(actor.yaw, 123.0f);
+    EXPECT_EQ(actor.path.current, 2);
+    EXPECT_EQ(actor.path.progress, 0);
+}
+TEST(MovePathTest, TargetRereadsCurrentAfterTheBeginningCallbacks)
+{
+    using namespace Client::GameLogic;
+    MovingState actor;
+    actor.position.x = 157.34375f;
+    const LogicalCellEffects effects{[&](LogicalAxis axis, LogicalStoreStage stage, auto&)
+                                     {
+                                         if (axis == LogicalAxis::X && stage == LogicalStoreStage::BeginningBefore)
+                                         {
+                                             actor.path.current = 1;
+                                         }
+                                     }};
+    // i1 da objetivo177.34375; el k inicial sigue siendo1. Distancia exactamente20.
+    EXPECT_FALSE(MovePath(actor.View(), 0, effects));
+    EXPECT_EQ(actor.path.current, 1);
+    EXPECT_EQ(actor.logicalX, 1u);
+    EXPECT_EQ(actor.path.progress, 1);
+}
+TEST(MovePathTest, QuarterTargetsAlsoUseTheNonDegenerateYAxis)
+{
+    constexpr std::array Targets{67.96875f, 93.75f, 122.65625f, 150.0f};
+    for (std::uint8_t q = 0; q < Targets.size(); ++q)
+    {
+        MovingState actor;
+        actor.path.cells[1] = {0, 1};
+        actor.path.cells[2] = {0, 2};
+        actor.path.progress = q;
+        actor.position.y = Targets[q] - 20.0f;
+        EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 0));
+        EXPECT_EQ(actor.path.progress, q == 3 ? 0 : q + 1);
+        actor.path.progress = q;
+        actor.path.current = 0;
+        actor.position.y = Targets[q] - 20.0001f;
+        EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 0));
+        EXPECT_EQ(actor.path.progress, q);
+    }
+}
+TEST(MovePathTest, BeginningYReadsTheCellAfterItsOwnPreCallback)
+{
+    using namespace Client::GameLogic;
+    MovingState actor;
+    actor.path.cells[1] = {0, 1};
+    actor.path.cells[2] = {0, 2};
+    const LogicalCellEffects effects{[&](LogicalAxis axis, LogicalStoreStage stage, auto&)
+                                     {
+                                         if (axis == LogicalAxis::Y && stage == LogicalStoreStage::BeginningBefore)
+                                         {
+                                             actor.path.cells[1].y = 2;
+                                         }
+                                     }};
+    EXPECT_FALSE(MovePath(actor.View(), 0, effects));
+    EXPECT_EQ(actor.logicalY, 2u);
+    EXPECT_EQ(actor.path.progress, 0);
+}
+TEST(MovePathTest, ZeroCountReturnsBeforeAnyCallback)
+{
+    MovingState actor;
+    actor.path.count = 0;
+    int calls = 0;
+    const Client::GameLogic::LogicalCellEffects effects{[&](auto, auto, auto&) { ++calls; }};
+    EXPECT_FALSE(Client::GameLogic::MovePath(actor.View(), 1, effects));
+    EXPECT_EQ(calls, 0);
+    EXPECT_EQ(actor.path.progress, 0);
+    EXPECT_EQ(actor.logicalX, 0u);
+    EXPECT_EQ(actor.position, (glm::vec3{50.0f, 50.0f, 77.0f}));
+}
+TEST(MovePathTest, TargetRereadsProgressAfterTheBeginningCallbacks)
+{
+    using namespace Client::GameLogic;
+    MovingState actor;
+    actor.position.x = 113.75f;
+    const LogicalCellEffects effects{[&](LogicalAxis axis, LogicalStoreStage stage, auto&)
+                                     {
+                                         if (axis == LogicalAxis::X && stage == LogicalStoreStage::BeginningBefore)
+                                         {
+                                             actor.path.progress = 1;
+                                         }
+                                     }};
+    // §5.2 relee q: q1 da93.75, distancia20, y avanza una sola vez a q2.
+    EXPECT_FALSE(MovePath(actor.View(), 0, effects));
+    EXPECT_EQ(actor.path.current, 0);
+    EXPECT_EQ(actor.logicalX, 1u);
+    EXPECT_EQ(actor.path.progress, 2);
 }
 } // namespace

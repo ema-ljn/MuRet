@@ -33,9 +33,11 @@ struct LogicalCellEffects
     // La frontera preserva pre/store/post de cada eje, incluso si el valor no cambia. El servicio
     // dueño de P conserva sus contadores/aliases; BeginningAfter de Y difiere de ArrivalAfter.
     // Beginning conserva k; Arrival relee path.current tras el pre-callback de cada eje.
+    // Vacío es no-op. Durante una llamada no reasignar el callback que se está ejecutando.
     std::function<void(LogicalAxis, LogicalStoreStage, std::uint32_t&)> onStore;
 };
-// 0x4ea270. Dominio: buffers estables, ruta válida con count<=15 y progress<=3; los callbacks pueden alterar
-// valores vivos manteniendo ese dominio. Retorna llegada; no desplaza XY salvo al llegar.
+// 0x4ea270. Referentes disjuntos y vivos, actor/buffers sin reubicar durante la llamada.
+// Ruta válida: count<=MaxPathCells y progress<=3; los callbacks pueden alterar sus valores vivos
+// manteniendo ese dominio. Retorna llegada; no desplaza XY salvo al llegar.
 [[nodiscard]] bool MovePath(MovePathState state, std::uint8_t rotate, const LogicalCellEffects& effects = {});
 } // namespace Client::GameLogic

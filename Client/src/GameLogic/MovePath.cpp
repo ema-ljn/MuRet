@@ -35,21 +35,35 @@ void Notify(const LogicalCellEffects& effects, LogicalAxis axis, LogicalStoreSta
     }
 }
 
-void StoreLogicalCell(MovePathState state, std::size_t index, bool arrival, const LogicalCellEffects& effects)
+void StoreBeginningCell(MovePathState state, std::size_t index, const LogicalCellEffects& effects)
 {
-    const auto before = arrival ? LogicalStoreStage::ArrivalBefore : LogicalStoreStage::BeginningBefore;
-    const auto after = arrival ? LogicalStoreStage::ArrivalAfter : LogicalStoreStage::BeginningAfter;
-    // §5.1 conserva k al inicio; §6.3 relee current en llegada después de cada prehelper.
-    Notify(effects, LogicalAxis::X, before, state.logicalX);
-    state.logicalX = state.path.cells[arrival ? state.path.current : index].x;
-    Notify(effects, LogicalAxis::X, after, state.logicalX);
-    Notify(effects, LogicalAxis::Y, before, state.logicalY);
-    state.logicalY = state.path.cells[arrival ? state.path.current : index].y;
-    Notify(effects, LogicalAxis::Y, after, state.logicalY);
+    // §5.1: k se captura antes de los helpers; cada componente se lee después de su prehelper.
+    Notify(effects, LogicalAxis::X, LogicalStoreStage::BeginningBefore, state.logicalX);
+    assert(index < MaxPathCells);
+    state.logicalX = state.path.cells[index].x;
+    Notify(effects, LogicalAxis::X, LogicalStoreStage::BeginningAfter, state.logicalX);
+    Notify(effects, LogicalAxis::Y, LogicalStoreStage::BeginningBefore, state.logicalY);
+    assert(index < MaxPathCells);
+    state.logicalY = state.path.cells[index].y;
+    Notify(effects, LogicalAxis::Y, LogicalStoreStage::BeginningAfter, state.logicalY);
+}
+
+void StoreArrivalCell(MovePathState state, const LogicalCellEffects& effects)
+{
+    // §6.3: current se relee por eje, tras su prehelper; el objetivo del snap ya está guardado.
+    Notify(effects, LogicalAxis::X, LogicalStoreStage::ArrivalBefore, state.logicalX);
+    assert(state.path.current < MaxPathCells);
+    state.logicalX = state.path.cells[state.path.current].x;
+    Notify(effects, LogicalAxis::X, LogicalStoreStage::ArrivalAfter, state.logicalX);
+    Notify(effects, LogicalAxis::Y, LogicalStoreStage::ArrivalBefore, state.logicalY);
+    assert(state.path.current < MaxPathCells);
+    state.logicalY = state.path.cells[state.path.current].y;
+    Notify(effects, LogicalAxis::Y, LogicalStoreStage::ArrivalAfter, state.logicalY);
 }
 
 glm::vec2 Target(const Path& path)
 {
+    assert(path.count > 0 && path.count <= MaxPathCells && path.progress <= LastQuarter);
     std::array<glm::vec2, 4> points{};
     const int first = static_cast<int>(path.current) - 1;
     for (int r = 0; r < static_cast<int>(points.size()); ++r)
@@ -88,7 +102,7 @@ bool AdvancePath(MovePathState state, const glm::vec2& target, const LogicalCell
         return false;
     }
     state.path.current = static_cast<std::uint8_t>(state.path.count - 1);
-    StoreLogicalCell(state, state.path.current, true, effects);
+    StoreArrivalCell(state, effects);
     state.position.x = target.x;
     state.position.y = target.y;
     return true;
@@ -122,7 +136,7 @@ bool MovePath(MovePathState state, std::uint8_t rotate, const LogicalCellEffects
     {
         const auto next =
             std::min(static_cast<std::size_t>(state.path.current) + 1, static_cast<std::size_t>(state.path.count) - 1);
-        StoreLogicalCell(state, next, false, effects);
+        StoreBeginningCell(state, next, effects);
     }
     const glm::vec2 target = Target(state.path);
     const double dx = static_cast<double>(state.position.x) - static_cast<double>(target.x);

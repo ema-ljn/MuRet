@@ -9,6 +9,7 @@
 
 #include <bit>
 #include <cstdint>
+#include <optional>
 
 namespace
 {
@@ -84,6 +85,22 @@ TEST(Particle68CreateTest, StepRunsAndUnsupportedCreationSubtypeRemainsAnError)
     ASSERT_FALSE(wrongSubtype.HasValue());
     EXPECT_EQ(wrongSubtype.Error(), Client::World::ParticleError::UnsupportedSubtype);
     EXPECT_EQ(untouched.State(), 7u);
+}
+
+// Es un diagnóstico del binding de MuRet, no un valor del wire original.
+TEST(Particle68DrawTest, ReportsTheSameUnsupportedSubtypeBeforeReadingTextureMetadata)
+{
+    Particles particles;
+    CrtRandom random(7);
+    const auto created = particles.CreateChecked(EffectType, {}, {}, {}, 1, 1.0f, 0, random);
+    ASSERT_FALSE(created.HasValue());
+    EXPECT_EQ(created.Error(), Client::World::ParticleError::UnsupportedSubtype);
+    EXPECT_EQ(random.State(), 7u);
+
+    Particle particle{.alive = true, .type = EffectType, .texture = EffectType, .subtype = 1};
+    const auto drawn = Client::World::ParticleDrawChecked(particle, std::nullopt, std::nullopt);
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_EQ(drawn.Error(), Client::World::ParticleError::UnsupportedSubtype);
 }
 
 TEST(Particle68DrawTest, UsesTheGenericWholeTexturePathAndDoesNotStoreToTheSlot)

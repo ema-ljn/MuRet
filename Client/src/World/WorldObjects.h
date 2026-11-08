@@ -9,10 +9,18 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <optional>
 #include <span>
 #include <vector>
+
+namespace Client::Render::Models
+{
+class CrtRandom;
+} // namespace Client::Render::Models
 
 // Los objetos de un mundo (CL7.2): los del .obj como los arma 0x606660, su paso de 0x604ab0 y lo que
 // 0x6002e0 hace con cada uno. Contrato: 06 § El mundo del login; vectores del código real en
@@ -35,10 +43,15 @@ struct WorldObject
     std::int16_t type = 0;                         // +0x2, el modelo
     Render::Models::ObjectTransform transform;     // +0xc la escala, +0x10 la posición, +0x1c los ángulos
     Render::Models::ObjectState state;             // +0x64, +0x68, +0x6c, +0x70 y +0x58
+    std::uint8_t field08 = 0;                      // +0x8, byte escrito por creación del mapa 30
+    float field84 = 0.0f;                          // +0x84, store FP del mapa 30/tipo 41
+    std::uint8_t field91 = 0;                      // +0x91, byte escrito por creación del mapa 30
     glm::vec3 light{};                             // +0xf4..+0xfc, la que se suma a la del terreno
     float speed = 0.0f;                            // +0xd8, keys por paso
     float cullingMargin = -30.0f;                  // +0xdc, margen inicial de 0x6067ae
     float fieldE0 = 50.0f;                         // +0xe0, significado/consumidor sin modelar
+    glm::vec3 copiedAngles{};                      // +0x28..+0x30, copia del caso del mapa 2
+    glm::vec3 copiedPosition{};                    // +0x34..+0x3c, copia del caso del mapa 2
     glm::vec3 basePosition{};                      // +0x17c, segunda copia inicial de la posición
     glm::vec3 boundsMinimum{-40.0f, -40.0f, 0.0f}; // +0x124..+0x12c
     glm::vec3 boundsMaximum{40.0f, 40.0f, 80.0f};  // +0x130..+0x138
@@ -53,6 +66,67 @@ struct WorldObject
     int sectorX = 0;
     int sectorY = 0;
 };
+
+class IWorldObjectCreationServices;
+
+// Bits de imagen de 0x6b88d4: default del port con almacenamiento estático, no una garantía de
+// inmutabilidad del dato original durante ejecución.
+inline constexpr float InitialWorldObjectRandomFactor = std::bit_cast<float>(0x3C23D70Au);
+
+struct WorldObjectCreationContext
+{
+    // Prestado y leído después del servicio de escena 180, como el global nativo en 0x606985.
+    std::int32_t map;
+    ObjectScene scene;
+    WorldObjectRegistrations& registrations;
+    // El binding y el servicio permanecen vivos y estables durante todo el batch; sus datos
+    // prestados sí pueden cambiar. Se configura entre creaciones, no entre emisiones.
+    IWorldObjectCreationServices* services = nullptr;
+    Render::Models::CrtRandom* random = nullptr; // El mismo estado CRT que usan los efectos y el mundo.
+    // Byte vivo de 0x7239ec, con almacenamiento/valor/sincronización del caller. nullptr no fabrica
+    // un valor inicial: conserva el gate hasta que el productor real preste este estado durable.
+    const std::uint8_t* state7239Ec = nullptr;
+    // Factor vivo de 0x6b88d4, leído después del RNG. El caller conserva este almacenamiento hasta
+    // que termine la creación y sincroniza sus cambios; un alias mutable puede cambiarlo entre
+    // llamadas o desde un emisor anterior. El resultado no retiene la referencia.
+    // Dominio portable: factor finito y producto representable en float; binary64/PC53-RN y un
+    // store binary32. No se acreditan control word, traps o máscaras x87 arbitrarios.
+    // Préstamo no rvalue: no extiende ni administra la vida del almacenamiento del caller.
+    const std::reference_wrapper<const float> randomPhaseFactor = std::cref(InitialWorldObjectRandomFactor);
+};
+
+enum class WorldObjectCreationError : std::uint8_t
+{
+    UnsupportedEffect,
+    UnsupportedMapHandler,
+    InvalidAngle, // El port no acredita ftol fuera de finite[-2^63,2^63); el extremo negativo sí vale.
+};
+
+struct WorldObjectCreationFailure
+{
+    WorldObjectCreationError error;
+    std::size_t recordIndex;
+};
+
+struct WorldObjectCreationResult
+{
+    std::vector<WorldObject> objects;
+    // Al retornar por valor, failure conserva objetos/registro/efectos previos e incluye el objeto
+    // actual parcialmente creado. Sus campos pendientes no son un resultado válido del caso fallido.
+    // Es estado provisional de integración, no un resultado del handler original.
+    std::optional<WorldObjectCreationFailure> failure;
+};
+
+// Árboles0/1: reciprocal binary64, producto y store binary32. El modelo IEEE del port conserva
+// ±0/±infinito; no acredita flags, payloads NaN, traps ni un CW x87 universal. No es un gate de escala.
+// Constructor común con estado durable y servicios prestados. Se detiene en la primera dependencia
+// sin implementar, sin rollback ni fallback silencioso; los records posteriores no se crean.
+// Records estables y disjuntos del estado/resultados. El caller conserva identidad única y contador
+// con 1<=nextIdentity y records.size()<=UINT64_MAX-nextIdentity, también al restaurar el mundo.
+// Garantía de conservación sólo al retornar por valor: reserve puede lanzar antes de consumir IDs;
+// el provider debe retornar normalmente, sin lanzar. No se capturan ni traducen excepciones.
+[[nodiscard]] WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records,
+                                                           WorldObjectCreationContext& context);
 
 // +0x58 = −2: 0x6002e0 no lo dibuja (DAT_077f3b18, el modo editor, nunca está prendido).
 inline constexpr std::int16_t HiddenObject = -2;
@@ -70,23 +144,24 @@ inline constexpr std::array<std::size_t, 2> StreetLightGlowBones{8, 9};
 // guardado en float (0x6b882c y 0x6b8854).
 [[nodiscard]] glm::vec3 StreetLightGlowLight(int random);
 
-// Proyección de creación sin registro auxiliar: conserva el vector usado por escenas existentes,
-// casos directos del mapa 0/55 y de las escenas 2/4. No equivale al handler completo: omite
-// 0x606630 y no crea el efecto transitivo de 180 (integrado por su dueño del login). Cada registro
-// válido crea otro objeto, sin pool ni reutilización. Fuera de la grilla no se crea.
-[[nodiscard]] std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records,
-                                                          std::uint8_t map, ObjectScene scene);
+// Proyección visual sin registro auxiliar: aplica los casos directos 0/1/2/3/7/8/55 y escenas 2/4.
+// Omite 0x606630, las emisiones 180/322 y la cadena default. No equivale al constructor completo.
+// Cada record válido crea otro objeto, sin pool ni reutilización; fuera de la grilla no se crea.
+// Una conversión no acreditada devuelve failure con el índice y el prefijo parcial: hay que
+// comprobarlo antes de consumir objects, también en esta proyección.
+[[nodiscard]] WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records,
+                                                           std::uint8_t map, ObjectScene scene);
 
-// Ruta con el estado auxiliar PREEXISTENTE del caller: cada entidad recibe un ID nuevo de
-// registrations.nextIdentity y los tipos 6/133/145/146 del mapa 0 lo registran. Los records deben ser
-// estables y disjuntos del estado/resultados durante la creación. El dominio de tipo es el int16 del
-// Data reader, extendido con signo al despacho (el callee nativo admite int32). El caller conserva
-// el mismo registro/contador durante la vida del mundo y aporta nextIdentity libre al restaurarlo.
-// Precondición del contador portable: 1 <= nextIdentity y records.size() <= UINT64_MAX-nextIdentity;
-// no reproduce un contador nativo. La tabla no mantiene con vida ni resuelve por sí misma los IDs.
-[[nodiscard]] std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records,
-                                                          std::uint8_t map, ObjectScene scene,
-                                                          WorldObjectRegistrations& registrations);
+// Proyección visual con el registro PREEXISTENTE del caller. Aplica registros y casos directos,
+// pero omite emisiones 180/322 y handlers default: para éstos se usa el contexto con servicios.
+// Los records deben ser estables y disjuntos del estado/resultados durante la creación. El dominio
+// de tipo es el int16 del Data reader extendido con signo (el callee nativo admite int32).
+// El caller conserva registro/contador durante la vida del mundo y aporta nextIdentity libre.
+// Precondición portable: 1<=nextIdentity y records.size()<=UINT64_MAX-nextIdentity; no reproduce un
+// contador nativo. La tabla no mantiene con vida ni resuelve por sí misma los IDs.
+[[nodiscard]] WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records,
+                                                           std::uint8_t map, ObjectScene scene,
+                                                           WorldObjectRegistrations& registrations);
 
 // 0x604ab0 sobre un objeto que se vio: el alpha hacia su meta (0x4e9980) y, si no quedó por debajo de
 // 0,01, la animación a su velocidad

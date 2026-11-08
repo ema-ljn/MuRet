@@ -85,6 +85,24 @@ namespace Client::Scenes
 {
 namespace
 {
+std::string ObjectCreationFailureMessage(const World::WorldObjectCreationFailure& failure)
+{
+    const char* reason = nullptr;
+    switch (failure.error)
+    {
+    case World::WorldObjectCreationError::InvalidAngle:
+        reason = "ángulo fuera del dominio admitido";
+        break;
+    case World::WorldObjectCreationError::UnsupportedEffect:
+        reason = "efecto de creación no disponible";
+        break;
+    case World::WorldObjectCreationError::UnsupportedMapHandler:
+        reason = "handler de creación no disponible";
+        break;
+    }
+    return "Objeto del mundo, registro " + std::to_string(failure.recordIndex) + ": " + reason;
+}
+
 // Lo que deja 0x620a00(1) con el blanco, antes de los fondos.
 constexpr Render::Color White{1.0f, 1.0f, 1.0f, 1.0f};
 // glColor4f(1, 1, 1, 0,5) con la mezcla normal, antes de pasar a la aditiva: nada se dibuja con él.
@@ -318,7 +336,12 @@ Core::Expected<void, std::string> LoginScene::Enter()
     {
         m_session->Start();
     }
-    PlaceTheModels();
+    auto placed = PlaceTheModels();
+    if (!placed.HasValue())
+    {
+        RetainTheTerrain();
+        return placed;
+    }
     return {};
 }
 
@@ -472,7 +495,7 @@ Core::Expected<void, std::string> LoginScene::LoadTheLogo()
 // 0x6349a0 con 0x606660 (en la carga del mapa, 0x61a560, el dueño del dragón y los objetos del .obj; después,
 // el logo), 0x517270 y el caballo (0x443fa0(0xbf, …), invisible), y la cuenta de las rutas en −1. La fase
 // vuelve a 0 (el original no la vuelve: Q-C111).
-void LoginScene::PlaceTheModels()
+Core::Expected<void, std::string> LoginScene::PlaceTheModels()
 {
     const std::uint8_t map = m_world ? m_world->map : 0;
     m_objects.clear();
@@ -486,11 +509,19 @@ void LoginScene::PlaceTheModels()
         owner.type = World::DragonEffect;
         owner.position = {DragonOwnerPosition.x, DragonOwnerPosition.y, DragonOwnerPosition.z};
         owner.scale = 1.0f;
-        m_objects = World::CreateWorldObjects(std::span(&owner, 1), map, World::ObjectScene::Login);
+        auto created = World::CreateWorldObjects(std::span(&owner, 1), map, World::ObjectScene::Login);
+        if (created.failure.has_value())
+        {
+            return Core::Unexpected(ObjectCreationFailureMessage(*created.failure));
+        }
+        m_objects = std::move(created.objects);
     }
-    std::vector<World::WorldObject> fromTheFile =
-        World::CreateWorldObjects(m_objectRecords, map, World::ObjectScene::Login);
-    m_objects.insert(m_objects.end(), fromTheFile.begin(), fromTheFile.end());
+    auto fromTheFile = World::CreateWorldObjects(m_objectRecords, map, World::ObjectScene::Login);
+    if (fromTheFile.failure.has_value())
+    {
+        return Core::Unexpected(ObjectCreationFailureMessage(*fromTheFile.failure));
+    }
+    m_objects.insert(m_objects.end(), fromTheFile.objects.begin(), fromTheFile.objects.end());
     m_logoIndex = m_objects.size();
     m_objects.push_back(LogoWorldObject());
     m_objectEffectRandoms.assign(m_objects.size(), std::nullopt);
@@ -531,6 +562,7 @@ void LoginScene::PlaceTheModels()
     {
         Render::Models::SetAction(m_characterAnimation.body, *skeleton, LoginCharacterStandingAction);
     }
+    return {};
 }
 
 void LoginScene::Step(const Input::InputState& input)

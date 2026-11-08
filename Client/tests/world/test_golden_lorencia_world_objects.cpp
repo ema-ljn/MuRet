@@ -1,3 +1,5 @@
+#include "support/CheckedWorldObjectProjection.h"
+
 #include "World/WorldObjects.h"
 
 #include "Data/Terrain/TerrainObjects.h"
@@ -42,7 +44,7 @@ TEST_F(GoldenLorenciaWorldObjects, AllFileRecordsKeepTheirOrderAndReceiveTheClos
     ASSERT_EQ(records.Value().size(), 2870u);
     Client::World::WorldObjectRegistrations registry;
     const auto objects =
-        Client::World::CreateWorldObjects(records.Value(), 0, Client::World::ObjectScene::Other, registry);
+        Client::Tests::CheckedWorldObjectProjection(records.Value(), 0, Client::World::ObjectScene::Other, &registry);
     ASSERT_EQ(objects.size(), 2870u);
     const std::map<int, int> blendByType{{52, 1},  {90, 1},  {150, 1}, {98, 2}, {119, 2},
                                          {105, 3}, {117, 4}, {122, 4}, {118, 8}};

@@ -1,3 +1,5 @@
+#include "support/CheckedWorldObjectProjection.h"
+
 #include "Scenes/WorldObjectsDrawing.h"
 
 #include "Core/ILogSink.h"
@@ -71,7 +73,8 @@ Client::World::WorldObject Marker(std::int16_t type = CloudMarker)
     record.position = {1000.0f, 2000.0f, 300.0f};
     record.angle = {10.0f, 20.0f, 30.0f};
     record.scale = 2.5f;
-    return Client::World::CreateWorldObjects(std::span(&record, 1), LoginMap, Client::World::ObjectScene::Login)
+    return Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), LoginMap,
+                                                       Client::World::ObjectScene::Login)
         .front();
 }
 void Emit(Client::World::WorldObject& object, Client::World::Particles& particles,

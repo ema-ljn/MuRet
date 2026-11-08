@@ -1,3 +1,5 @@
+#include "support/CheckedWorldObjectProjection.h"
+
 #include "World/WorldObjects.h"
 
 #include "Data/Terrain/TerrainObjects.h"
@@ -32,7 +34,7 @@ std::vector<WorldObject> Created(std::int16_t type, float x, float y, std::uint8
     record.type = type;
     record.position = {x, y, 0.0f};
     record.scale = 1.0f;
-    return Client::World::CreateWorldObjects(std::span(&record, 1), map, Client::World::ObjectScene::Login);
+    return Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), map, Client::World::ObjectScene::Login);
 }
 
 // 0x60666c: la posición por 0,000625f en la x87, sin redondear el producto, y ftol. En los múltiplos de
@@ -93,7 +95,7 @@ TEST(WorldObjectsTest, TheBridgeCullingMarginDependsOnItsMapNotItsScene)
         for (const Case& test : cases)
         {
             SCOPED_TRACE(static_cast<int>(test.map));
-            objects = Client::World::CreateWorldObjects(records, test.map, scene);
+            objects = Client::Tests::CheckedWorldObjectProjection(records, test.map, scene);
             ASSERT_EQ(objects.size(), 2u);
             EXPECT_EQ(std::bit_cast<std::uint32_t>(objects[0].cullingMargin), test.bridgeMargin);
             EXPECT_EQ(std::bit_cast<std::uint32_t>(objects[1].cullingMargin), 0xC1F00000u);
@@ -143,8 +145,8 @@ TEST(WorldObjectsTest, LorenciaCreationCoversEveryDirectType)
                                                     .angle = {10.0f, 20.0f, 30.0f},
                                                     .scale = 2.0f};
         Client::World::WorldObjectRegistrations registry;
-        const auto objects = Client::World::CreateWorldObjects(std::span(&record, 1), Lorencia,
-                                                               Client::World::ObjectScene::Other, registry);
+        const auto objects = Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), Lorencia,
+                                                                         Client::World::ObjectScene::Other, &registry);
         ASSERT_EQ(objects.size(), 1u);
         const WorldObject& object = objects.front();
         std::int16_t blend = -1;
@@ -204,7 +206,8 @@ TEST(WorldObjectsTest, CreationAppliesEverySupportedSceneOverrideBeforeMapCases)
                 Client::Data::Terrain::TerrainObject record{
                     .type = test.type, .position = {1600.0f, 14400.0f, 25.0f}, .scale = 2.0f};
                 Client::World::WorldObjectRegistrations registry;
-                const auto objects = Client::World::CreateWorldObjects(std::span(&record, 1), map, scene, registry);
+                const auto objects =
+                    Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), map, scene, &registry);
                 ASSERT_EQ(objects.size(), 1u);
                 const WorldObject& object = objects.front();
                 const bool special = scene != Client::World::ObjectScene::Other;
@@ -235,7 +238,8 @@ TEST(WorldObjectsTest, LorenciaRegistersOnlyItsFourTypesInTheCallersExistingTabl
         Client::Data::Terrain::TerrainObject{.type = 52, .position = {100.0f, 100.0f, 50.0f}, .scale = 1.0f},
         Client::Data::Terrain::TerrainObject{.type = 6, .position = {25700.0f, 100.0f, 60.0f}, .scale = 1.0f},
         Client::Data::Terrain::TerrainObject{.type = 6, .position = {100.0f, 100.0f, 70.0f}, .scale = 1.0f}};
-    auto first = Client::World::CreateWorldObjects(records, Lorencia, Client::World::ObjectScene::Other, registry);
+    auto first =
+        Client::Tests::CheckedWorldObjectProjection(records, Lorencia, Client::World::ObjectScene::Other, &registry);
     ASSERT_EQ(first.size(), 6u);
     EXPECT_EQ(registry.entries[0].active, 2);
     EXPECT_EQ(registry.entries[0].object, 987u);
@@ -257,8 +261,8 @@ TEST(WorldObjectsTest, LorenciaRegistersOnlyItsFourTypesInTheCallersExistingTabl
     {
         EXPECT_EQ(moved[index].identity, 1000u + index);
     }
-    const auto second = Client::World::CreateWorldObjects(std::span(records).first(1), Lorencia,
-                                                          Client::World::ObjectScene::Other, registry);
+    const auto second = Client::Tests::CheckedWorldObjectProjection(std::span(records).first(1), Lorencia,
+                                                                    Client::World::ObjectScene::Other, &registry);
     ASSERT_EQ(second.size(), 1u);
     EXPECT_EQ(second[0].identity, 1006u);
     EXPECT_EQ(registry.entries[6].object, 1006u);
@@ -282,7 +286,7 @@ TEST(WorldObjectsTest, FullAuxiliaryTableStillCreatesEveryNewObject)
         record = {.type = 133, .position = {100.0f, 100.0f, 0.0f}, .scale = 1.0f};
     }
     const auto objects =
-        Client::World::CreateWorldObjects(records, Lorencia, Client::World::ObjectScene::Other, registry);
+        Client::Tests::CheckedWorldObjectProjection(records, Lorencia, Client::World::ObjectScene::Other, &registry);
     ASSERT_EQ(objects.size(), 401u);
     EXPECT_EQ(registry.entries, previous);
     EXPECT_EQ(registry.nextIdentity, 501u);
@@ -313,7 +317,7 @@ TEST(WorldObjectsTest, RegistrationIsAMapCaseInEverySceneAndNotAnotherMap)
             SCOPED_TRACE(map);
             SCOPED_TRACE(static_cast<int>(scene));
             Client::World::WorldObjectRegistrations registry;
-            const auto objects = Client::World::CreateWorldObjects(records, map, scene, registry);
+            const auto objects = Client::Tests::CheckedWorldObjectProjection(records, map, scene, &registry);
             ASSERT_EQ(objects.size(), 4u);
             EXPECT_EQ(registry.entries[0].active, map == 0 ? 1 : 0);
             EXPECT_EQ(registry.entries[3].active, map == 0 ? 1 : 0);
@@ -342,8 +346,8 @@ TEST(WorldObjectsTest, TreeSpeedRetainsTheWideReciprocalUntilItsOnlyStore)
             SCOPED_TRACE(test.scale);
             SCOPED_TRACE(type);
             Client::Data::Terrain::TerrainObject record{.type = type, .scale = std::bit_cast<float>(test.scale)};
-            const auto objects =
-                Client::World::CreateWorldObjects(std::span(&record, 1), Lorencia, Client::World::ObjectScene::Other);
+            const auto objects = Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), Lorencia,
+                                                                             Client::World::ObjectScene::Other);
             ASSERT_EQ(objects.size(), 1u);
             EXPECT_EQ(std::bit_cast<std::uint32_t>(objects[0].speed), test.speed);
             EXPECT_EQ(objects[0].boundsMinimum, glm::vec3(-150.0f, -150.0f, 0.0f));
@@ -358,15 +362,15 @@ TEST(WorldObjectsTest, NewObjectsHaveFreshConstructorStateAndTheSecondPositionCo
     Client::World::WorldObjectRegistrations registry;
     Client::Data::Terrain::TerrainObject record{
         .type = 6, .position = {1600.0f, 14400.0f, 25.0f}, .angle = {10.0f, 20.0f, 30.0f}, .scale = 2.0f};
-    auto previous =
-        Client::World::CreateWorldObjects(std::span(&record, 1), Lorencia, Client::World::ObjectScene::Other, registry);
+    auto previous = Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), Lorencia,
+                                                                Client::World::ObjectScene::Other, &registry);
     ASSERT_EQ(previous.size(), 1u);
     previous[0].alive = false;
     previous[0].alpha = 0.0f;
     previous[0].seen = true;
     previous[0].boundsMaximum = glm::vec3(900.0f);
-    const auto created =
-        Client::World::CreateWorldObjects(std::span(&record, 1), Lorencia, Client::World::ObjectScene::Other, registry);
+    const auto created = Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), Lorencia,
+                                                                     Client::World::ObjectScene::Other, &registry);
     ASSERT_EQ(created.size(), 1u);
     const WorldObject& object = created[0];
     EXPECT_NE(object.identity, previous[0].identity);
@@ -398,8 +402,8 @@ TEST(WorldObjectsTest, SignedFileTypesOutsideTheMapZeroSelectorKeepDefaults)
     {
         Client::Data::Terrain::TerrainObject record{.type = type, .scale = 7.0f};
         Client::World::WorldObjectRegistrations registry;
-        const auto objects = Client::World::CreateWorldObjects(std::span(&record, 1), Lorencia,
-                                                               Client::World::ObjectScene::Other, registry);
+        const auto objects = Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), Lorencia,
+                                                                         Client::World::ObjectScene::Other, &registry);
         ASSERT_EQ(objects.size(), 1u);
         EXPECT_EQ(objects[0].type, type);
         EXPECT_EQ(objects[0].state.blendMesh, -1);
@@ -421,7 +425,7 @@ TEST(WorldObjectsTest, RegistrationDoesNotChangeSectorAndInsertionDrawOrder)
         Client::Data::Terrain::TerrainObject{.type = 52, .position = {2000.0f, 100.0f, 0.0f}, .scale = 1.0f}};
     Client::World::WorldObjectRegistrations registry;
     const auto objects =
-        Client::World::CreateWorldObjects(records, Lorencia, Client::World::ObjectScene::Other, registry);
+        Client::Tests::CheckedWorldObjectProjection(records, Lorencia, Client::World::ObjectScene::Other, &registry);
     ASSERT_EQ(objects.size(), 5u);
     EXPECT_EQ(Client::World::DrawOrder(objects), (std::vector<std::size_t>{2, 1, 3, 4, 0}));
     for (const WorldObject& object : objects)

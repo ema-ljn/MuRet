@@ -4,15 +4,20 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
+#include "World/IWorldObjectCreationServices.h"
+#include "World/OriginalFtol.h"
+#include "World/WorldObjectMapCreation.h"
 #include "World/WorldObjectRegistrations.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <numeric>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -24,6 +29,7 @@ namespace
 // selección (0x3f4ccccd y 0x3e4ccccd).
 constexpr float ObjectSpeed = std::bit_cast<float>(0x3E23D70Au);
 constexpr std::int16_t DragonOwner = 0xb4;
+constexpr float DragonEffectScale = std::bit_cast<float>(0x3FCCCCCDu);
 constexpr float StreetLightScale = std::bit_cast<float>(0x3F4CCCCDu);
 constexpr float StreetLightLight = std::bit_cast<float>(0x3E4CCCCDu);
 // 0x6069bd: Bridge01 del mapa 0 amplía su margen individual de recorte (+0xdc).
@@ -63,11 +69,11 @@ bool IsLoginMarker(std::int16_t type)
 }
 // 06 § Lo propio de Lorencia: las operaciones permanecen en binary64 (PC53/RN del port)
 // hasta el único store binary32, sin redondear primero 1 / escala.
-void ApplyLorenciaCases(WorldObject& object, WorldObjectRegistrations* registrations)
+void ApplyLorenciaCases(WorldObject& object, std::int16_t type, WorldObjectRegistrations* registrations)
 {
     constexpr float TreeSpeedFactor = std::bit_cast<float>(0x3ECCCCCDu);
     constexpr float FastObjectSpeed = std::bit_cast<float>(0x3E99999Au);
-    switch (object.type)
+    switch (type)
     {
     case 0:
     case 1:
@@ -132,9 +138,209 @@ void ApplyLorenciaCases(WorldObject& object, WorldObjectRegistrations* registrat
     }
 }
 
-void ApplySceneCases(WorldObject& object)
+void RegisterAuxiliaryObject(WorldObject& object, WorldObjectRegistrations* registrations)
 {
-    switch (object.type)
+    if (registrations != nullptr)
+    {
+        RegisterWorldObject(*registrations, object.identity);
+    }
+}
+
+void HideTallMarker(WorldObject& object)
+{
+    object.boundsMaximum = glm::vec3(40.0f, 40.0f, 160.0f);
+    object.state.hiddenMesh = HiddenObject;
+}
+
+void ApplyMapOneCases(WorldObject& object, std::int16_t type, WorldObjectRegistrations* registrations)
+{
+    if (type != 59 && type != 60)
+    {
+        return;
+    }
+    RegisterAuxiliaryObject(object, registrations);
+    if (type == 60)
+    {
+        HideTallMarker(object);
+    }
+}
+
+bool CopyMapTwoTransform(WorldObject& object)
+{
+    const auto signedLow = OriginalFtolLow(static_cast<double>(object.transform.angles.z));
+    if (!signedLow.has_value())
+    {
+        return false;
+    }
+    constexpr std::int32_t FullTurn = 360;
+    const auto remainder = static_cast<float>(*signedLow % FullTurn);
+    object.copiedAngles.y = object.transform.angles.y;
+    object.copiedPosition.z = object.transform.position.z;
+    object.copiedPosition.x = object.transform.position.x;
+    object.copiedAngles.x = object.transform.angles.x;
+    object.copiedPosition.y = object.transform.position.y;
+    object.transform.angles.z = remainder;
+    object.copiedAngles.z = remainder;
+    return true;
+}
+
+bool ApplyMapTwoCases(WorldObject& object, std::int16_t type, WorldObjectRegistrations* registrations)
+{
+    switch (type)
+    {
+    case 19:
+    case 92:
+    case 93:
+        object.state.blendMesh = 0;
+        return true;
+    case 54:
+    case 56:
+        object.state.blendMesh = 1;
+        return true;
+    case 78:
+        object.state.blendMesh = 3;
+        return true;
+    case 22:
+    case 25:
+    case 40:
+    case 45:
+    case 55:
+    case 73:
+        RegisterAuxiliaryObject(object, registrations);
+        return true;
+    case 91:
+        RegisterAuxiliaryObject(object, registrations);
+        HideTallMarker(object);
+        return true;
+    case 100:
+        object.state.hiddenMesh = HiddenObject;
+        return true;
+    case 20:
+    case 65:
+    case 86:
+    case 88:
+        return CopyMapTwoTransform(object);
+    default:
+        return true;
+    }
+}
+
+void ApplyMapThreeCases(WorldObject& object, std::int16_t type, WorldObjectRegistrations* registrations)
+{
+    switch (type)
+    {
+    case 1:
+        object.state.blendMesh = 1;
+        return;
+    case 8:
+        RegisterAuxiliaryObject(object, registrations);
+        return;
+    case 9:
+        object.state.blendMesh = 3;
+        return;
+    case 17:
+    case 19:
+    case 37:
+        object.state.blendMesh = 0;
+        return;
+    case 18:
+        object.state.blendMesh = 2;
+        return;
+    case 38:
+        RegisterAuxiliaryObject(object, registrations);
+        object.state.hiddenMesh = HiddenObject;
+        return;
+    default:
+        return;
+    }
+}
+
+bool EmitModelEffect(WorldObject& object, IWorldObjectCreationServices* services, std::int16_t type,
+                     const glm::vec3& position, float scale, WorldObjectIdentity owner)
+{
+    if (services == nullptr)
+    {
+        return false;
+    }
+    return services->CreateModelEffect({type, position, scale, owner}, object);
+}
+
+bool EmitNoriaTowerEffects(WorldObject& object, IWorldObjectCreationServices* services)
+{
+    // 0x606b9d..0x606cb5: cada callee puede cambiar source; no cachear posición entre llamadas.
+    constexpr std::array<std::int16_t, 5> EffectTypes{322, 323, 322, 323, 324};
+    constexpr std::array<float, 5> OffsetsY{0.0f, 4.0f, 8.0f, 12.0f, 20.0f};
+    constexpr double OffsetZ = 350.0;
+    for (std::size_t index = 0; index < EffectTypes.size(); ++index)
+    {
+        const float y = index == 0 ? object.transform.position.y
+                                   : static_cast<float>(static_cast<double>(object.transform.position.y) +
+                                                        static_cast<double>(OffsetsY[index]));
+        const auto z = static_cast<float>(static_cast<double>(object.transform.position.z) + OffsetZ);
+        const glm::vec3 position(object.transform.position.x, y, z);
+        if (!EmitModelEffect(object, services, EffectTypes[index], position, 0.0f, 0))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::optional<WorldObjectCreationError> ApplyDirectMapCases(WorldObject& object, std::int16_t type, std::int32_t& map,
+                                                            WorldObjectRegistrations* registrations,
+                                                            WorldObjectCreationContext* context)
+{
+    const bool projection = context == nullptr;
+    switch (map)
+    {
+    case LorenciaMap:
+        ApplyLorenciaCases(object, type, registrations);
+        return std::nullopt;
+    case 1:
+        ApplyMapOneCases(object, type, registrations);
+        return std::nullopt;
+    case 2:
+        if (!ApplyMapTwoCases(object, type, registrations))
+        {
+            return WorldObjectCreationError::InvalidAngle;
+        }
+        return std::nullopt;
+    case 3:
+        ApplyMapThreeCases(object, type, registrations);
+        if (!projection && type == 322 && !EmitNoriaTowerEffects(object, context->services))
+        {
+            return WorldObjectCreationError::UnsupportedEffect;
+        }
+        return std::nullopt;
+    case 7:
+        if (type == 39)
+        {
+            RegisterAuxiliaryObject(object, registrations);
+            object.state.hiddenMesh = HiddenObject;
+        }
+        return std::nullopt;
+    case 8:
+        if (type == 78)
+        {
+            RegisterAuxiliaryObject(object, registrations);
+        }
+        return std::nullopt;
+    case LoginMap:
+        if (type == RedWhirlpool || type == DarkWhirlpool)
+        {
+            object.transform.position = WhirlpoolPlace;
+            object.transform.angles = glm::vec3(0.0f);
+            object.transform.scale = type == RedWhirlpool ? RedWhirlpoolScale : DarkWhirlpoolScale;
+        }
+        return std::nullopt;
+    default:
+        return projection ? std::nullopt : ApplyDefaultWorldObjectCreation(object, *context);
+    }
+}
+
+void ApplySceneCases(WorldObject& object, std::int16_t type)
+{
+    switch (type)
     {
     case StreetLight:
         object.transform.scale = StreetLightScale;
@@ -166,13 +372,30 @@ void ApplySceneCases(WorldObject& object)
         object.light = glm::vec3(1.0f);
         return;
     case DragonOwner:
-        // El efecto transitivo 0x518cf0 conserva su integración propia del login.
+        // La emisión síncrona se ejecuta después de estos stores, antes de leer el mapa.
         object.state.hiddenMesh = HiddenObject;
         object.light = glm::vec3(1.0f);
         return;
     default:
         return;
     }
+}
+
+std::optional<WorldObjectCreationError> ApplySceneCreationCases(WorldObject& object, std::int16_t type,
+                                                                ObjectScene scene, WorldObjectCreationContext* context)
+{
+    if (!HasSceneCases(scene))
+    {
+        return std::nullopt;
+    }
+    ApplySceneCases(object, type);
+    if (context != nullptr && type == DragonOwner &&
+        !EmitModelEffect(object, context->services, DragonOwner, object.transform.position, DragonEffectScale,
+                         object.identity))
+    {
+        return WorldObjectCreationError::UnsupportedEffect;
+    }
+    return std::nullopt;
 }
 
 WorldObject ObjectOf(const Data::Terrain::TerrainObject& record, int sectorX, int sectorY)
@@ -189,13 +412,15 @@ WorldObject ObjectOf(const Data::Terrain::TerrainObject& record, int sectorX, in
     return object;
 }
 
-std::vector<WorldObject> CreateObjects(std::span<const Data::Terrain::TerrainObject> records, std::uint8_t map,
-                                       ObjectScene scene, WorldObjectRegistrations* registrations)
+WorldObjectCreationResult CreateObjects(std::span<const Data::Terrain::TerrainObject> records, std::int32_t& map,
+                                        ObjectScene scene, WorldObjectRegistrations* registrations,
+                                        WorldObjectCreationContext* context)
 {
-    std::vector<WorldObject> objects;
-    objects.reserve(records.size());
-    for (const Data::Terrain::TerrainObject& record : records)
+    WorldObjectCreationResult result;
+    result.objects.reserve(records.size());
+    for (std::size_t index = 0; index < records.size(); ++index)
     {
+        const Data::Terrain::TerrainObject& record = records[index];
         // El sector se calcula antes de leer Z/ángulos/escala y antes de cualquier caso de escena.
         const int sectorX = SectorOf(record.position[0]);
         const int sectorY = SectorOf(record.position[1]);
@@ -203,40 +428,43 @@ std::vector<WorldObject> CreateObjects(std::span<const Data::Terrain::TerrainObj
         {
             continue;
         }
-        WorldObject& object = objects.emplace_back(ObjectOf(record, sectorX, sectorY));
+        WorldObject& object = result.objects.emplace_back(ObjectOf(record, sectorX, sectorY));
         if (registrations != nullptr)
         {
             object.identity = registrations->nextIdentity++;
         }
-        if (HasSceneCases(scene))
+        const ObjectScene objectScene = context == nullptr ? scene : context->scene;
+        const auto sceneError = ApplySceneCreationCases(object, record.type, objectScene, context);
+        const auto error =
+            sceneError.has_value() ? sceneError : ApplyDirectMapCases(object, record.type, map, registrations, context);
+        if (error.has_value())
         {
-            ApplySceneCases(object);
-        }
-        if (map == LorenciaMap)
-        {
-            ApplyLorenciaCases(object, registrations);
-        }
-        if (map == LoginMap && (object.type == RedWhirlpool || object.type == DarkWhirlpool))
-        {
-            object.transform.position = WhirlpoolPlace;
-            object.transform.angles = glm::vec3(0.0f);
-            object.transform.scale = object.type == RedWhirlpool ? RedWhirlpoolScale : DarkWhirlpoolScale;
+            result.failure = WorldObjectCreationFailure{*error, index};
+            return result;
         }
     }
-    return objects;
+    return result;
 }
 } // namespace
 
-std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records, std::uint8_t map,
-                                            ObjectScene scene)
+WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records, std::uint8_t map,
+                                             ObjectScene scene)
 {
-    return CreateObjects(records, map, scene, nullptr);
+    std::int32_t mapNumber = map;
+    return CreateObjects(records, mapNumber, scene, nullptr, nullptr);
 }
 
-std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records, std::uint8_t map,
-                                            ObjectScene scene, WorldObjectRegistrations& registrations)
+WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records, std::uint8_t map,
+                                             ObjectScene scene, WorldObjectRegistrations& registrations)
 {
-    return CreateObjects(records, map, scene, &registrations);
+    std::int32_t mapNumber = map;
+    return CreateObjects(records, mapNumber, scene, &registrations, nullptr);
+}
+
+WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::TerrainObject> records,
+                                             WorldObjectCreationContext& context)
+{
+    return CreateObjects(records, context.map, context.scene, &context.registrations, &context);
 }
 
 void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models::Skeleton* skeleton)

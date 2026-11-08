@@ -9,6 +9,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/TextureMetadata.h"
 
 #include <glm/ext/vector_float2.hpp>
 
@@ -47,6 +48,7 @@ public:
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
     [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
+    [[nodiscard]] std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
     // El de las de EffectTextureSet que subió.
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
 
@@ -62,7 +64,7 @@ private:
     std::map<std::uint16_t, Render::Models::Skeleton> m_skeletons;
     std::map<std::uint16_t, std::vector<Render::TextureSlot>> m_meshTextures;
     // El tamaño de las de los sprites (EffectTextureSet) que subió.
-    std::map<std::uint16_t, glm::vec2> m_textureSizes;
+    std::map<std::uint32_t, TextureMetadata> m_textureMetadata;
     // Desde 0x138 (0x60f7d0); Load le corre el próximo a cada cargador.
     Render::Models::ModelTextureSlots m_slots{Render::TextureSlot{0x138}};
 };

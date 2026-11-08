@@ -332,4 +332,40 @@ TEST(GameplayParticlesTest, AtlasWidthRoundsTheTextureProductBeforeDividingByFou
     ASSERT_TRUE(draw.has_value());
     EXPECT_EQ(Bits(draw->width), 0u);
 }
+
+// 5446e0 fire-smoke: el temporal f32 convierte la suma final en empate RN-even.
+TEST(GameplayParticlesTest, FireGrowthDiscriminatesTheStoredAccumulatorFromTheWideSum)
+{
+    Particles particles;
+    Particle& particle = particles.All()[0];
+    particle = Particle{.alive = true,
+                        .type = Fire,
+                        .subtype = 1,
+                        .scale = std::bit_cast<float>(0x3f800001u),
+                        .life = 24,
+                        .verticalSpeed = 0.25f};
+    CrtRandom random(7);
+    const auto stepped = Client::World::StepParticlesChecked(particles, random);
+    ASSERT_TRUE(stepped.HasValue());
+    EXPECT_EQ(Bits(particle.scale), 0x3fa08314u); // Sin store intermedio: 3fa08313.
+}
+
+// 5446e0 fire-smoke: FST +50 conserva el acumulador para el FADD de Z.
+TEST(GameplayParticlesTest, SmokeZDiscriminatesTheRetainedSpeedFromItsFloatReload)
+{
+    Particles particles;
+    Particle& particle = particles.All()[0];
+    particle = Particle{.alive = true,
+                        .type = Smoke,
+                        .subtype = 2,
+                        .position = {0, 0, std::bit_cast<float>(0x3f000003u)},
+                        .life = 2,
+                        .verticalSpeed = 1};
+    CrtRandom random(7);
+    const auto stepped = Client::World::StepParticlesChecked(particles, random);
+    ASSERT_TRUE(stepped.HasValue());
+    EXPECT_EQ(Bits(particle.verticalSpeed), 0x3f666666u);
+    EXPECT_EQ(Bits(particle.position.z), 0x3fb33335u); // Recargar +50: 3fb33334.
+}
+
 } // namespace

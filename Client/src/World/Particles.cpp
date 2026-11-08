@@ -869,7 +869,7 @@ std::optional<ParticleError> StepParticles(Particles& particles, Render::Models:
     return stepped.HasValue() ? std::nullopt : std::optional(stepped.Error());
 }
 
-std::optional<ParticleDraw> ParticleDrawOf(Particle& particle, const glm::vec2& textureSize, int components,
+std::optional<ParticleDraw> ParticleDrawOf(Particle& particle, const glm::vec2& textureSize, int materialFlag,
                                            float worldClock, std::size_t slotIndex)
 {
     const bool cloud = IsLoginCloud(particle);
@@ -877,7 +877,7 @@ std::optional<ParticleDraw> ParticleDrawOf(Particle& particle, const glm::vec2& 
     {
         return std::nullopt;
     }
-    ParticleDraw::Blend blend = components == 3 ? ParticleDraw::Blend::Additive : ParticleDraw::Blend::Alpha;
+    ParticleDraw::Blend blend = materialFlag == 3 ? ParticleDraw::Blend::Additive : ParticleDraw::Blend::Alpha;
     if (IsWorldSmoke(particle))
     {
         blend = ParticleDraw::Blend::Subtractive;

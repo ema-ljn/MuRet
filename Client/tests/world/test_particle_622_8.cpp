@@ -143,4 +143,18 @@ TEST(Particle622Subtype8Test, CreationAndDrawUseTheirNewExplicitBindings)
     ASSERT_TRUE(draw.HasValue());
     EXPECT_TRUE(draw.Value().has_value());
 }
+
+// 5446e0_ext_622_8: q=1/8 separa K04 m64 de double(0.04f), que empata hacia 3e28f5c2.
+TEST(Particle622Subtype8Test, AscendingAtOneEighthDiscriminatesTheBinary64Constant)
+{
+    Particles particles;
+    Particle& particle = particles.All()[0];
+    particle = Particle{.alive = true, .type = CloudType, .subtype = CloudSubtype, .field38 = 0x3e000000u, .life = 152};
+    CrtRandom random(7);
+    const auto stepped = Client::World::StepParticlesChecked(particles, random);
+    ASSERT_TRUE(stepped.HasValue());
+    EXPECT_EQ(particle.life, 151);
+    EXPECT_EQ(particle.field38, 0x3e28f5c3u);
+}
+
 } // namespace

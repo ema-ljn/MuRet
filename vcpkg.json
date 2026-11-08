@@ -6,6 +6,10 @@
   "builtin-baseline": "9a5dfef5d1a0438a7d24856a85bd60f309d355e9",
   "dependencies": [
     {
+      "name": "boost-multiprecision",
+      "default-features": false
+    },
+    {
       "name": "freetype",
       "default-features": false
     },

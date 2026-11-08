@@ -151,6 +151,31 @@ si no choca con eso; si choca, queda para más adelante.
 
 ## Orden y hitos
 
+### Entregas en revisión y trabajo aún sin integrar (2026-11-08 UTC)
+
+El inventario de `main` de la tabla siguiente continúa contrastado con `43b2f26`.
+Los PR de esta sección siguen abiertos: no se cuentan como incorporados ni como cierre de CL7.
+
+| Entrega | Estado observado | Alcance que sigue abierto |
+| --- | --- | --- |
+| [PR163](https://github.com/ema-ljn/MuRet/pull/163), creación de objetos de todos los mapas | borrador; CI Linux/Windows aprobado en `ca99f73`; `126f0f6` añade diagnóstico no nulo | providers productivos, composición con Step/Draw y escenas; límites numéricos |
+| [PR164](https://github.com/ema-ljn/MuRet/pull/164), luz radial y ventana RGB | listo para revisión, CI aprobado | su integración no cierra pasto ni todo L4 |
+| [PR165](https://github.com/ema-ljn/MuRet/pull/165), paso y posición | borrador; correcciones `422b8b4`, 102 tests focales pasan sin saltos | diferencia nativa confirmada de un ULP en CreateAngle R5, revisión complementaria e integración |
+| [PR166](https://github.com/ema-ljn/MuRet/pull/166), ItemState e Item.bmd | listo para revisión, CI aprobado | aplicación completa de equipo, stats e ítems especiales F3/10 |
+| [PR167](https://github.com/ema-ljn/MuRet/pull/167), aplicación ordenada de eventos | borrador apilado sobre PR166; 2702 tests pasan sin saltos, incluidos 83 GL | ApplyWorld conserva error explícito; el aplicador productivo de mundo/perfil va en la entrega siguiente |
+
+La rama de integración ya aplica F3/03, F3/10, 1C y F3/04, conserva recursos y actores
+durables, dibuja y conecta clic, picking, camino y movimiento. Sigue en desarrollo y no
+es una entrega congelada: D3/D7 recibidos, gates y varios efectos/callees todavía tienen
+fronteras explícitas. No acredita gameplay de los 37 mapas nominales ni sus regresiones 54/55.
+
+Los cinco bloques de cierre son entrada/héroe/equipo; movimiento y transiciones;
+creación/paso/dibujo/luz con servicios reales; fauna/clima/partículas por familia; y el
+barrido transversal del conjunto. Hay implementaciones separadas de Step, Draw, efectos
+de llegada y RNG compartido que se están componiendo y revisando. Su existencia y sus
+tests focales no sustituyen la validación conjunta de ramas, estado, orden y recursos de
+cada mapa. La comparación visual de neblina continúa pospuesta por pedido de Emanuel.
+
 Estado contrastado con `origin/main` **`43b2f26`**, el código y los merges de GitHub, 2026-11-07.
 PR144, PR146, PR149–159, PR161 y PR162 están mergeados. Los componentes de esas entregas ya están incorporados
 en `main`; sus consumidores pendientes se enumeran por separado.

@@ -87,7 +87,7 @@ namespace
 {
 std::string ObjectCreationFailureMessage(const World::WorldObjectCreationFailure& failure)
 {
-    const char* reason = nullptr;
+    const char* reason = "error de creación desconocido";
     switch (failure.error)
     {
     case World::WorldObjectCreationError::InvalidAngle:

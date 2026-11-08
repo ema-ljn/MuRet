@@ -39,11 +39,12 @@ void StoreLogicalCell(MovePathState state, std::size_t index, bool arrival, cons
 {
     const auto before = arrival ? LogicalStoreStage::ArrivalBefore : LogicalStoreStage::BeginningBefore;
     const auto after = arrival ? LogicalStoreStage::ArrivalAfter : LogicalStoreStage::BeginningAfter;
+    // §5.1 conserva k al inicio; §6.3 relee current en llegada después de cada prehelper.
     Notify(effects, LogicalAxis::X, before, state.logicalX);
-    state.logicalX = state.path.cells[index].x;
+    state.logicalX = state.path.cells[arrival ? state.path.current : index].x;
     Notify(effects, LogicalAxis::X, after, state.logicalX);
     Notify(effects, LogicalAxis::Y, before, state.logicalY);
-    state.logicalY = state.path.cells[index].y;
+    state.logicalY = state.path.cells[arrival ? state.path.current : index].y;
     Notify(effects, LogicalAxis::Y, after, state.logicalY);
 }
 

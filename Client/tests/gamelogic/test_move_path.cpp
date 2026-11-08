@@ -161,4 +161,78 @@ TEST(MovePathTest, SingleCellRouteClampsAllFourControlPoints)
     EXPECT_EQ(actor.path.progress, 0);
     EXPECT_EQ(actor.position.x, 50.0f);
 }
+TEST(MovePathTest, ArrivalRereadsCurrentAfterEachPreCallbackAndKeepsTheOriginalSnap)
+{
+    using namespace Client::GameLogic;
+    MovingState actor;
+    actor.path.cells[0] = {3, 4};
+    actor.path.cells[1] = {5, 6};
+    actor.path.cells[2] = {7, 8};
+    actor.path.current = 1;
+    actor.path.progress = 3;
+    actor.position = {730.0f, 850.0f, 77.0f};
+    actor.yaw = 123.0f;
+    std::vector<int> events;
+    const LogicalCellEffects effects{[&](LogicalAxis axis, LogicalStoreStage stage, std::uint32_t& cell)
+                                     {
+                                         events.push_back((axis == LogicalAxis::X ? 0 : 10) + static_cast<int>(stage));
+                                         EXPECT_EQ(actor.path.progress, 0);
+                                         EXPECT_EQ(actor.position.x, 730.0f);
+                                         EXPECT_EQ(actor.position.y, 850.0f);
+                                         if (axis == LogicalAxis::X && stage == LogicalStoreStage::ArrivalBefore)
+                                         {
+                                             EXPECT_EQ(actor.path.current, 2);
+                                             actor.path.current = 0;
+                                         }
+                                         if (axis == LogicalAxis::X && stage == LogicalStoreStage::ArrivalAfter)
+                                         {
+                                             EXPECT_EQ(cell, 3u);
+                                             EXPECT_EQ(actor.path.current, 0);
+                                         }
+                                         if (axis == LogicalAxis::Y && stage == LogicalStoreStage::ArrivalBefore)
+                                         {
+                                             EXPECT_EQ(actor.path.current, 0);
+                                             actor.path.current = 1;
+                                         }
+                                         if (axis == LogicalAxis::Y && stage == LogicalStoreStage::ArrivalAfter)
+                                         {
+                                             EXPECT_EQ(cell, 6u);
+                                             EXPECT_EQ(actor.path.current, 1);
+                                         }
+                                     }};
+    EXPECT_TRUE(MovePath(actor.View(), 1, effects));
+    EXPECT_EQ(events, (std::vector<int>{2, 3, 12, 13}));
+    EXPECT_EQ(actor.logicalX, 3u);
+    EXPECT_EQ(actor.logicalY, 6u);
+    EXPECT_EQ(actor.path.current, 1);
+    EXPECT_EQ(actor.path.progress, 0);
+    EXPECT_EQ(actor.position, (glm::vec3{750.0f, 850.0f, 77.0f}));
+    EXPECT_EQ(actor.yaw, 123.0f);
+}
+TEST(MovePathTest, BeginningKeepsItsCapturedNextIndexWhenPreCallbacksChangeCurrent)
+{
+    using namespace Client::GameLogic;
+    MovingState actor;
+    actor.path.cells[0] = {3, 4};
+    actor.path.cells[1] = {5, 6};
+    actor.path.cells[2] = {7, 8};
+    actor.position = {0.0f, 0.0f, 77.0f};
+    const LogicalCellEffects effects{[&](LogicalAxis axis, LogicalStoreStage stage, auto&)
+                                     {
+                                         if (axis == LogicalAxis::X && stage == LogicalStoreStage::BeginningBefore)
+                                         {
+                                             actor.path.current = 2;
+                                         }
+                                         if (axis == LogicalAxis::Y && stage == LogicalStoreStage::BeginningBefore)
+                                         {
+                                             actor.path.current = 0;
+                                         }
+                                     }};
+    EXPECT_FALSE(MovePath(actor.View(), 0, effects));
+    EXPECT_EQ(actor.logicalX, 5u);
+    EXPECT_EQ(actor.logicalY, 6u);
+    EXPECT_EQ(actor.path.current, 0);
+    EXPECT_EQ(actor.path.progress, 0);
+    EXPECT_EQ(actor.position, (glm::vec3{0.0f, 0.0f, 77.0f}));
+}
 } // namespace

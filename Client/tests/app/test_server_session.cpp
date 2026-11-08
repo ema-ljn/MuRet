@@ -3156,8 +3156,10 @@ TEST(ServerSessionTest, SynchronousDeliveryCreateAndDeleteFailuresKeepTheirPrevi
         EXPECT_EQ(tested.session.Failure(), SessionFailure::ApplicationFailed);
         EXPECT_EQ(tested.eventSink.characters.size(), 1u);
         // El error detiene el sufijo; no revierte los stores anteriores al callback.
-        EXPECT_EQ(tested.session.CreateResult(), deleting ? std::nullopt : std::optional<std::uint8_t>{1});
-        EXPECT_EQ(tested.session.DeleteResult(), deleting ? std::optional<std::uint8_t>{1} : std::nullopt);
+        EXPECT_EQ(tested.session.CreateResult(),
+                  deleting ? std::nullopt : std::optional<std::uint8_t>{std::uint8_t{1}});
+        EXPECT_EQ(tested.session.DeleteResult(),
+                  deleting ? std::optional<std::uint8_t>{std::uint8_t{1}} : std::nullopt);
         ASSERT_TRUE(tested.session.Characters().has_value());
         const auto& characters = tested.session.Characters()->characters;
         ASSERT_EQ(characters.size(), deleting ? 1u : 3u);

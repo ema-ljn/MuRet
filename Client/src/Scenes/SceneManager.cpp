@@ -28,7 +28,7 @@ std::string Describe(SceneId scene)
 } // namespace
 
 SceneManager::SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClock& clock,
-                           std::function<void()> pollNetwork, Core::Log& log)
+                           std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log)
     : m_factory(std::move(factory)), m_frame(frame), m_clock(clock), m_pollNetwork(std::move(pollNetwork)), m_log(log)
 {
 }
@@ -44,6 +44,10 @@ SceneManager::~SceneManager()
 
 Core::Expected<void, std::string> SceneManager::Start(SceneId first)
 {
+    if (m_pollFailed)
+    {
+        return Core::Unexpected(*m_failure);
+    }
     if (m_current)
     {
         std::string error = std::format("el SceneManager ya está en la escena {}: Start no entra a la {}",
@@ -58,15 +62,22 @@ Core::Expected<void, std::string> SceneManager::Start(SceneId first)
 
 void SceneManager::Poll()
 {
-    if (m_pollNetwork)
+    if (m_failure || !m_pollNetwork)
     {
-        m_pollNetwork();
+        return;
+    }
+    const auto polled = m_pollNetwork();
+    if (!polled.HasValue())
+    {
+        m_failure = polled.Error();
+        m_pollFailed = true;
+        m_log.Error("no se pudo aplicar la recepción de la sesión: {}", *m_failure);
     }
 }
 
 void SceneManager::Step(const Input::InputState& input)
 {
-    if (!m_scene)
+    if (m_failure || !m_scene)
     {
         return;
     }
@@ -83,7 +94,7 @@ void SceneManager::Step(const Input::InputState& input)
 
 void SceneManager::Render(float alpha)
 {
-    if (!m_scene)
+    if (m_failure || !m_scene)
     {
         return;
     }
@@ -94,7 +105,7 @@ void SceneManager::Render(float alpha)
 
 void SceneManager::Request(SceneId next)
 {
-    if (!m_current)
+    if (m_failure || !m_current)
     {
         return;
     }
@@ -141,6 +152,10 @@ bool SceneManager::WantsTextInput() const
 
 bool SceneManager::HoldsTheLastFrame() const
 {
+    if (m_failure)
+    {
+        return true;
+    }
     if (!m_scene || !m_scene->HoldsTheLastFrame())
     {
         return false;

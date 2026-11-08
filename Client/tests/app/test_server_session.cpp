@@ -9,6 +9,7 @@
 #include "App/SessionState.h"
 #include "App/WindowState.h"
 #include "App/WorldEvent.h"
+#include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -44,11 +45,12 @@
 #include "support/Bytes.h"
 #include "support/CharacterPackets.h"
 #include "support/FakeClock.h"
-#include "support/IdleScene.h"
 #include "support/FakeSocket.h"
+#include "support/IdleScene.h"
 #include "support/MuClientNetFixtures.h"
 #include "support/NetworkPrinters.h"
 #include "support/RecordingFrameTarget.h"
+#include "support/RecordingSessionEventSink.h"
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
 #include "support/SessionPackets.h"
@@ -248,7 +250,7 @@ struct Harness
 {
     explicit Harness(const IObfuscation& obfuscation, SessionSettings settings = Settings())
         : connection(socket, obfuscation, clock, log, PaddingSeed),
-          session(connection, clock, log, GameClientKeys(), std::move(settings))
+          session(connection, clock, log, GameClientKeys(), std::move(settings), eventSink)
     {
     }
 
@@ -302,7 +304,7 @@ struct Harness
     {
         session.Start();
         socket.reads = {Hello()};
-        session.Poll();
+        static_cast<void>(session.Poll());
         ASSERT_EQ(session.State(), SessionState::WaitingServerList);
     }
 
@@ -311,7 +313,7 @@ struct Harness
     {
         ASSERT_NO_FATAL_FAILURE(ReachServerList());
         socket.reads = {ServerList({LabServerCode})};
-        session.Poll();
+        static_cast<void>(session.Poll());
         ASSERT_EQ(session.State(), SessionState::ChoosingServer);
     }
 
@@ -328,7 +330,7 @@ struct Harness
     {
         ASSERT_NO_FATAL_FAILURE(ReachServerAddress());
         socket.reads = {AddressReply(GameHost, GamePort)};
-        session.Poll();
+        static_cast<void>(session.Poll());
         ASSERT_EQ(session.State(), SessionState::ConnectingGameServer);
         gameServerStart = socket.sent.size();
     }
@@ -337,7 +339,7 @@ struct Harness
     void ReachGameHello()
     {
         ASSERT_NO_FATAL_FAILURE(ReachGameServer());
-        session.Poll();
+        static_cast<void>(session.Poll());
         ASSERT_EQ(session.State(), SessionState::WaitingGameHello);
     }
 
@@ -346,7 +348,7 @@ struct Harness
     {
         ASSERT_NO_FATAL_FAILURE(ReachGameHello());
         socket.reads = {FromTheGameServer(GameHello(1, ClientVersion), gameServerSends)};
-        session.Poll();
+        static_cast<void>(session.Poll());
         ASSERT_EQ(session.State(), SessionState::WaitingCredentials);
     }
 
@@ -363,7 +365,7 @@ struct Harness
     {
         ASSERT_NO_FATAL_FAILURE(ReachLoginResult());
         socket.reads = {FromTheGameServer(LoginResult(1), gameServerSends)};
-        session.Poll();
+        static_cast<void>(session.Poll());
         ASSERT_EQ(session.State(), SessionState::LoggedIn);
     }
 
@@ -380,7 +382,7 @@ struct Harness
     {
         ASSERT_NO_FATAL_FAILURE(ReachWaitingCharacterList());
         socket.reads = {CharacterListBytes(characters)};
-        session.Poll();
+        static_cast<void>(session.Poll());
         ASSERT_EQ(session.State(), SessionState::ChoosingCharacter);
     }
 
@@ -406,7 +408,7 @@ struct Harness
         ASSERT_NO_FATAL_FAILURE(ReachLoginResult());
         AdvanceTo(time);
         socket.reads = {FromTheGameServer(LoginResult(1), gameServerSends)};
-        session.Poll();
+        static_cast<void>(session.Poll());
         ASSERT_EQ(session.State(), SessionState::LoggedIn);
     }
 
@@ -421,7 +423,7 @@ struct Harness
         while (clock.Now() + Frame <= time)
         {
             clock.Advance(Frame);
-            session.Poll();
+            static_cast<void>(session.Poll());
         }
     }
 
@@ -480,6 +482,7 @@ struct Harness
     RecordingSink sink;
     Log log{sink, LogLevel::Debug};
     Connection connection;
+    Client::Tests::RecordingSessionEventSink eventSink;
     ServerSession session;
     std::size_t gameServerStart = 0; // dónde empieza en `socket.sent` lo que va al GS
     PacketSerials gameServerSends;   // los seriales de lo que cifra el GS
@@ -603,28 +606,244 @@ void ExpectWorldSequence(std::span<const WorldEvent> events)
     EXPECT_EQ(other->leadership, 0xFFFF);
 }
 
-// La recepción conserva el wire sin aplicar el mundo ni alterar la elección de la UI.
+// El contexto se observa dentro del handler, antes de cualquier transición posterior.
+TEST(ServerSessionTest, SynchronousDeliveryObservesContemporaryStatesAcrossPolls)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
+    tested.socket.reads = {Join({FromTheGameServer(WorldEntryReply(), tested.gameServerSends),
+                                 FromTheGameServer(GameHello(1, ClientVersion), tested.gameServerSends),
+                                 FromTheGameServer(EmptyInventoryReply(), tested.gameServerSends)})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    EXPECT_EQ(tested.eventSink.worldStates,
+              (std::vector<SessionState>{SessionState::WaitingGameHello, SessionState::WaitingCredentials}));
+    tested.session.SubmitCredentials(Credentials{std::string(Account), std::string(Password)});
+    tested.socket.reads = {Join({FromTheGameServer(WorldEntryReply(), tested.gameServerSends),
+                                 FromTheGameServer(LoginResult(1), tested.gameServerSends),
+                                 FromTheGameServer(WorldEntryReply(), tested.gameServerSends)})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    EXPECT_EQ(tested.eventSink.worldStates,
+              (std::vector<SessionState>{SessionState::WaitingGameHello, SessionState::WaitingCredentials,
+                                         SessionState::WaitingLoginResult, SessionState::LoggedIn}));
+    tested.socket.reads = {FromTheGameServer(EmptyInventoryReply(), tested.gameServerSends)};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    ASSERT_EQ(tested.eventSink.worldStates.size(), 5u);
+    EXPECT_EQ(tested.eventSink.worldStates.back(), SessionState::LoggedIn);
+}
+
+TEST(ServerSessionTest, SynchronousDeliveryPreservesMixedOrderAndRawDuplicateSlots)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCharacterList());
+    tested.eventSink.onCharacter = [](const CharacterEvent& event,
+                                      const ServerSession& session) -> Client::Core::Expected<void, std::string>
+    {
+        EXPECT_EQ(session.State(), SessionState::WaitingCharacterList);
+        EXPECT_EQ(std::get<CharacterListReceived>(event).list.characters.size(), 2u);
+        EXPECT_EQ(session.Characters()->characters.size(), 1u);
+        EXPECT_EQ(session.Characters()->characters.back().name, NameBytes("char0002"));
+        return {};
+    };
+    tested.socket.reads = {Join({FromTheGameServer(EmptyInventoryReply(), tested.gameServerSends),
+                                 CharacterListBytes({{0, "char0001"}, {0, "char0002"}}),
+                                 FromTheGameServer(WorldEntryReply(), tested.gameServerSends),
+                                 FromTheGameServer(WorldEntryReply(), tested.gameServerSends)})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    EXPECT_EQ(tested.eventSink.trace, (std::vector<std::string>{"inventory", "list", "entry", "entry"}));
+    ASSERT_EQ(tested.eventSink.world.size(), 3u);
+    EXPECT_TRUE(std::get<InventoryList>(tested.eventSink.world[0]).items.empty());
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(tested.eventSink.world[1]));
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(tested.eventSink.world[2]));
+    EXPECT_EQ(tested.eventSink.worldStates,
+              (std::vector<SessionState>{SessionState::WaitingCharacterList, SessionState::ChoosingCharacter,
+                                         SessionState::ChoosingCharacter}));
+    ASSERT_EQ(tested.session.Characters()->characters.size(), 1u);
+    EXPECT_EQ(tested.session.Characters()->characters[0].name, Client::Tests::NameBytes("char0002"));
+}
+
+// La vista UI mantiene su contrato aunque falle el sink y el transporte ya haya cerrado.
+TEST(ServerSessionTest, CharacterListApplicationFailureKeepsTheNormalizedViewAndPrecedesRemoteClose)
+{
+    for (const bool peerClosed : {false, true})
+    {
+        SCOPED_TRACE(peerClosed);
+        Harness tested(IdentityObfuscation::Shared());
+        ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCharacterList());
+        tested.eventSink.onCharacter =
+            [&tested, peerClosed](const CharacterEvent& event,
+                                  const ServerSession& session) -> Client::Core::Expected<void, std::string>
+        {
+            EXPECT_EQ(session.State(), SessionState::WaitingCharacterList);
+            EXPECT_EQ(tested.connection.State(), peerClosed ? LinkState::Closed : LinkState::Open);
+            const auto& raw = std::get<CharacterListReceived>(event).list.characters;
+            EXPECT_EQ(raw.size(), 2u);
+            EXPECT_EQ(raw.front().name, NameBytes("char0001"));
+            EXPECT_EQ(raw.back().name, NameBytes("char0002"));
+            EXPECT_EQ(session.Characters()->characters.size(), 1u);
+            EXPECT_EQ(session.Characters()->characters.back().name, NameBytes("char0002"));
+            EXPECT_EQ(session.ChosenCharacter(), nullptr);
+            return Client::Core::Unexpected(std::string("falló la lista"));
+        };
+        tested.socket.reads = {CharacterListBytes({{0, "char0001"}, {0, "char0002"}})};
+        tested.socket.peerClosed = peerClosed;
+        const auto polled = tested.session.Poll();
+        ASSERT_FALSE(polled.HasValue());
+        EXPECT_EQ(polled.Error(), "falló la lista");
+        EXPECT_EQ(tested.session.Failure(), SessionFailure::ApplicationFailed);
+        EXPECT_EQ(tested.session.State(), SessionState::Failed);
+        EXPECT_EQ(tested.eventSink.trace, (std::vector<std::string>{"list"}));
+        ASSERT_EQ(tested.session.Characters()->characters.size(), 1u);
+        EXPECT_EQ(tested.session.Characters()->characters.back().name, NameBytes("char0002"));
+        EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
+    }
+}
+
+TEST(ServerSessionTest, SynchronousDeliveryFinishesBeforeRejectionAndRemoteClose)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
+    tested.eventSink.onWorld = [&tested](const WorldEvent&,
+                                         ServerSession& session) -> Client::Core::Expected<void, std::string>
+    {
+        EXPECT_EQ(session.State(), SessionState::WaitingGameHello);
+        EXPECT_EQ(tested.connection.State(), LinkState::Closed);
+        tested.eventSink.trace.push_back("applied");
+        return {};
+    };
+    tested.socket.reads = {Join({FromTheGameServer(WorldEntryReply(), tested.gameServerSends),
+                                 FromTheGameServer(GameHello(0, ClientVersion), tested.gameServerSends),
+                                 FromTheGameServer(InventoryReply(), tested.gameServerSends)})};
+    tested.socket.peerClosed = true;
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    EXPECT_EQ(tested.eventSink.trace, (std::vector<std::string>{"entry", "applied"}));
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::HelloRejected);
+}
+
+TEST(ServerSessionTest, SynchronousDeliveryRejectionBeforeWorldDropsTheSuffix)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
+    tested.socket.reads = {Join({FromTheGameServer(GameHello(0, ClientVersion), tested.gameServerSends),
+                                 FromTheGameServer(WorldEntryReply(), tested.gameServerSends)})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    EXPECT_TRUE(tested.eventSink.trace.empty());
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::HelloRejected);
+}
+
+TEST(ServerSessionTest, SynchronousDeliverySecondErrorStopsBatchAndSuccessStateAndKeepalive)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCharacterList());
+    tested.AdvanceTo(Client::App::KeepalivePeriod);
+    const auto keepalives = tested.Keepalives().size();
+    tested.eventSink.onCharacter = [](const CharacterEvent&,
+                                      const ServerSession&) -> Client::Core::Expected<void, std::string>
+    { return Client::Core::Unexpected(std::string("falla original")); };
+    tested.socket.reads = {
+        Join({FromTheGameServer(EmptyInventoryReply(), tested.gameServerSends), CharacterListBytes({{0, "char0001"}}),
+              FromTheGameServer(WorldEntryReply(), tested.gameServerSends)})};
+    const auto polled = tested.session.Poll();
+    ASSERT_FALSE(polled.HasValue());
+    EXPECT_EQ(polled.Error(), "falla original");
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::ApplicationFailed);
+    EXPECT_EQ(tested.eventSink.trace, (std::vector<std::string>{"inventory", "list"}));
+    EXPECT_EQ(tested.eventSink.characterStates, (std::vector<SessionState>{SessionState::WaitingCharacterList}));
+    // Corrobora que no sale otro envío; el cierre por Fail también basta para impedirlo.
+    EXPECT_EQ(tested.Keepalives().size(), keepalives);
+    const auto again = tested.session.Poll();
+    ASSERT_FALSE(again.HasValue());
+    EXPECT_EQ(again.Error(), "falla original");
+    EXPECT_EQ(tested.eventSink.trace.size(), 2u);
+    tested.session.Start();
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    EXPECT_FALSE(tested.session.Failure().has_value());
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
+}
+
+TEST(ServerSessionTest, SynchronousDeliveryWorldErrorStopsBeforeFollowingHello)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
+    tested.eventSink.onWorld = [](const WorldEvent&, ServerSession&) -> Client::Core::Expected<void, std::string>
+    { return Client::Core::Unexpected(std::string("falta aplicador World")); };
+    tested.socket.reads = {Join({FromTheGameServer(WorldEntryReply(), tested.gameServerSends),
+                                 FromTheGameServer(GameHello(1, ClientVersion), tested.gameServerSends)})};
+    const auto polled = tested.session.Poll();
+    ASSERT_FALSE(polled.HasValue());
+    EXPECT_EQ(polled.Error(), "falta aplicador World");
+    EXPECT_EQ(tested.eventSink.trace, (std::vector<std::string>{"entry"}));
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::ApplicationFailed);
+}
+
+TEST(ServerSessionTest, SynchronousDeliveryQuitBeforeWorldDropsTheSuffixAndRemainsTerminal)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
+    tested.socket.reads = {Join({FromTheGameServer(LogoutResult(0), tested.gameServerSends),
+                                 FromTheGameServer(WorldEntryReply(), tested.gameServerSends)})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    EXPECT_TRUE(tested.eventSink.trace.empty());
+    const auto starts = tested.session.StartCount();
+    tested.session.Start();
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    EXPECT_EQ(tested.session.StartCount(), starts);
+}
+
+TEST(ServerSessionTest, SynchronousDeliveryCompletesTheFakeLoadBeforeTheNextMixedEvent)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCharacterList());
+    int loads = 0;
+    tested.eventSink.onWorld = [&tested, &loads](const WorldEvent&,
+                                                 ServerSession& session) -> Client::Core::Expected<void, std::string>
+    {
+        EXPECT_EQ(session.State(), SessionState::WaitingCharacterList);
+        tested.eventSink.trace.push_back("load-begin");
+        // Doble síncrono: prueba la frontera y el retorno, no equivale al loader nativo.
+        ++loads;
+        tested.eventSink.trace.push_back("load-end");
+        return {};
+    };
+    tested.eventSink.onCharacter = [&loads](const CharacterEvent&,
+                                            const ServerSession&) -> Client::Core::Expected<void, std::string>
+    {
+        EXPECT_EQ(loads, 2);
+        return {};
+    };
+    tested.socket.reads = {
+        Join({FromTheGameServer(WorldEntryReply(), tested.gameServerSends),
+              FromTheGameServer(WorldEntryReply(), tested.gameServerSends), CharacterListBytes({})})};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    EXPECT_EQ(tested.eventSink.trace,
+              (std::vector<std::string>{"entry", "load-begin", "load-end", "entry", "load-begin", "load-end", "list"}));
+}
+
+// Con collector explícito, la recepción conserva el wire sin aplicar el mundo ni alterar la UI.
 TEST(ServerSessionTest, WorldEntryPreservesAllWireFieldsWithoutApplyingSelection)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
     tested.session.ChooseCharacter(std::uint8_t{3});
     tested.session.EnterWorld();
-    ASSERT_EQ(tested.session.TakeCharacterEvents().size(), 1u);
+    ASSERT_EQ(tested.eventSink.TakeCharacterEvents().size(), 1u);
     const CharacterEntry* chosen = tested.session.ChosenCharacter();
     const std::uint32_t starts = tested.session.StartCount();
     const ByteVector sent = tested.socket.sent;
     tested.socket.reads = {FromTheGameServer(WorldEntryReply(), tested.gameServerSends)};
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
-    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 1u);
     ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(events[0]));
     EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
+    EXPECT_EQ(tested.eventSink.worldStates, (std::vector<SessionState>{SessionState::EnteringWorld}));
     EXPECT_EQ(tested.session.ChosenCharacter(), chosen);
     EXPECT_EQ(tested.session.StartCount(), starts);
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
     EXPECT_TRUE(SameBytes(tested.socket.sent, sent));
 }
 
@@ -636,16 +855,16 @@ TEST(ServerSessionTest, WorldInventoryPreservesEveryEntryAndPublishesAnEmptyList
     tested.socket.reads = {Join({FromTheGameServer(InventoryReply(), tested.gameServerSends),
                                  FromTheGameServer(EmptyInventoryReply(), tested.gameServerSends)})};
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
-    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 2u);
     ASSERT_NO_FATAL_FAILURE(ExpectInventory(events[0]));
     const auto* empty = std::get_if<InventoryList>(&events[1]);
     ASSERT_NE(empty, nullptr);
     EXPECT_TRUE(empty->items.empty());
     EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
 // Una cola por tipo perdería el orden intercalado aunque cada payload estuviera intacto.
@@ -655,10 +874,10 @@ TEST(ServerSessionTest, WorldEventsPreserveInterleavedOrderInOneBatch)
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {EncryptedWorldSequence(tested)};
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
-    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
-    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.eventSink.TakeWorldEvents()));
+    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
@@ -672,9 +891,9 @@ TEST(ServerSessionTest, WorldEventsKeepIdenticalRepeatedReceptions)
                                  FromTheGameServer(InventoryReply(), tested.gameServerSends),
                                  FromTheGameServer(InventoryReply(), tested.gameServerSends)})};
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
-    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 4u);
     ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(events[0]));
     ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(events[1]));
@@ -696,58 +915,36 @@ TEST(ServerSessionTest, WorldEventsPreserveInterleavedOrderAcrossEveryReadSplit)
         const ByteVector wire = EncryptedWorldSequence(tested);
         const auto middle = wire.begin() + static_cast<std::ptrdiff_t>(split);
         tested.socket.reads = {ByteVector(wire.begin(), middle)};
-        tested.session.Poll();
+        static_cast<void>(tested.session.Poll());
         tested.socket.reads = {ByteVector(middle, wire.end())};
-        tested.session.Poll();
-        ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
-        EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+        static_cast<void>(tested.session.Poll());
+        ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.eventSink.TakeWorldEvents()));
+        EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
     }
 }
 
-// La cola sigue pendiente mientras otra lectura reutiliza el transporte y el peer cierra.
-// Borrar en Fail o perder/reordenar payloads anteriores debe quedar observable al recién drenar.
-TEST(ServerSessionTest, WorldEventsRemainPendingAcrossAnotherPollAndFailure)
+// Dos Poll entregan en orden, antes de que el Closed final cambie el estado de la sesión.
+TEST(ServerSessionTest, WorldReceptionsAreDeliveredAcrossPollsBeforeTheRemoteClose)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {EncryptedWorldSequence(tested)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::LoggedIn);
 
     tested.socket.reads = {FromTheGameServer(EmptyInventoryReply(), tested.gameServerSends)};
     tested.socket.peerClosed = true;
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     ASSERT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
-    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 4u);
+    EXPECT_EQ(tested.eventSink.worldStates, std::vector<SessionState>(4, SessionState::LoggedIn));
     ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(std::span(events).first(3)));
     const auto* empty = std::get_if<InventoryList>(&events[3]);
     ASSERT_NE(empty, nullptr);
     EXPECT_TRUE(empty->items.empty());
-    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
-}
-
-// Una vez transferido, Start y Fail no tienen autoridad sobre el vector del consumidor.
-// Esto prueba la transferencia; los static_assert fijan la propiedad de los bytes del payload.
-TEST(ServerSessionTest, WorldEventsTransferredVectorSurvivesFailureAndStart)
-{
-    Harness tested(IdentityObfuscation::Shared());
-    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
-    tested.socket.reads = {EncryptedWorldSequence(tested)};
-    tested.session.Poll();
-    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
-    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(events));
-    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
-
-    tested.socket.peerClosed = true;
-    tested.session.Poll();
-    ASSERT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
-    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(events));
-    tested.session.Start();
-
-    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(events));
-    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
 }
 
 // Un cuerpo válido en claro no acredita la procedencia cifrada que exige esta frontera.
@@ -756,15 +953,15 @@ TEST(ServerSessionTest, WorldEventsRejectClearPacketsAfterTheEncryptedPositive)
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {EncryptedWorldSequence(tested)};
-    tested.session.Poll();
-    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+    static_cast<void>(tested.session.Poll());
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.eventSink.TakeWorldEvents()));
 
     tested.socket.reads = {Join({WorldEntryReply(), InventoryReply(), EmptyInventoryReply()})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
-    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
 // Un checksum válido no vuelve legible un cuerpo corto o una cantidad imposible.
@@ -773,8 +970,8 @@ TEST(ServerSessionTest, WorldEventsRejectEncryptedTruncationsAfterThePositive)
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {EncryptedWorldSequence(tested)};
-    tested.session.Poll();
-    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+    static_cast<void>(tested.session.Poll());
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.eventSink.TakeWorldEvents()));
 
     const std::size_t packetsSentBeforeCuts = tested.GameServerReads().packets.size();
     // Cada corte conserva hasta el subcódigo: llega al handler, falla el cuerpo, no el checksum.
@@ -790,16 +987,16 @@ TEST(ServerSessionTest, WorldEventsRejectEncryptedTruncationsAfterThePositive)
             ByteVector shortReply(valid.begin(), valid.begin() + static_cast<std::ptrdiff_t>(size));
             shortReply[wide ? 2u : 1u] = static_cast<std::byte>(size);
             tested.socket.reads = {FromTheGameServer(shortReply, tested.gameServerSends)};
-            tested.session.Poll();
-            EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+            static_cast<void>(tested.session.Poll());
+            EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
             ++(wide ? rejectedInventories : rejectedEntries);
         }
     }
     ByteVector badCount = InventoryReply();
     badCount[5] = std::byte{0xFF};
     tested.socket.reads = {FromTheGameServer(badCount, tested.gameServerSends)};
-    tested.session.Poll();
-    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    static_cast<void>(tested.session.Poll());
+    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
     ++rejectedInventories;
     EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "(F3 03): no se puede leer"), rejectedEntries);
     EXPECT_EQ(tested.CountLogged(LogLevel::Warning, "(F3 10): no se puede leer"), rejectedInventories);
@@ -814,8 +1011,8 @@ TEST(ServerSessionTest, WorldEventsDistinguishPacketKindsAndSubcodes)
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {EncryptedWorldSequence(tested)};
-    tested.session.Poll();
-    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+    static_cast<void>(tested.session.Poll());
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.eventSink.TakeWorldEvents()));
 
     ByteVector wideEntry = WorldEntryReply();
     wideEntry.insert(wideEntry.begin() + 1, std::byte{0});
@@ -838,11 +1035,11 @@ TEST(ServerSessionTest, WorldEventsDistinguishPacketKindsAndSubcodes)
     for (const ByteVector& packet : wrongKinds)
     {
         tested.socket.reads = {FromTheGameServer(packet, tested.gameServerSends)};
-        tested.session.Poll();
-        EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+        static_cast<void>(tested.session.Poll());
+        EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
     }
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
 // El cierre posterior del peer no debe borrar lo recibido antes en el mismo lote.
@@ -850,40 +1047,49 @@ TEST(ServerSessionTest, WorldEventsSurviveFailureInTheSamePoll)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.eventSink.onWorld = [&tested](const WorldEvent&,
+                                         ServerSession& session) -> Client::Core::Expected<void, std::string>
+    {
+        EXPECT_EQ(session.State(), SessionState::LoggedIn);
+        EXPECT_EQ(tested.connection.State(), LinkState::Closed);
+        return {};
+    };
     tested.socket.reads = {EncryptedWorldSequence(tested)};
     tested.socket.peerClosed = true;
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     ASSERT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
-    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
-    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.eventSink.TakeWorldEvents()));
+    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
 }
 
-// Start descarta tanto eventos pendientes como un paquete incompleto de la conexión anterior.
-TEST(ServerSessionTest, WorldEventsStartDiscardsPendingAndPartiallyReceivedPackets)
+// Start descarta el paquete incompleto, pero no las copias ya entregadas al collector.
+TEST(ServerSessionTest, WorldEventsStartPreservesDeliveredCopiesAndDropsPartiallyReceivedPackets)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {EncryptedWorldSequence(tested)};
-    tested.session.Poll();
-    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+    static_cast<void>(tested.session.Poll());
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.eventSink.TakeWorldEvents()));
     const ByteVector entry = FromTheGameServer(WorldEntryReply(), tested.gameServerSends);
     ByteVector partial = FromTheGameServer(InventoryReply(), tested.gameServerSends);
     partial.resize(partial.size() / 2);
     tested.socket.reads = {Join({entry, partial})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_FALSE(tested.Logged(LogLevel::Warning, "(F3 03)"));
 
     tested.session.Start();
 
-    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    const auto deliveredBeforeStart = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(deliveredBeforeStart.size(), 1u);
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(deliveredBeforeStart[0]));
     tested.gameServerSends = PacketSerials{};
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
-    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
     tested.socket.reads = {FromTheGameServer(EmptyInventoryReply(), tested.gameServerSends)};
-    tested.session.Poll();
-    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    static_cast<void>(tested.session.Poll());
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 1u);
     const auto* empty = std::get_if<InventoryList>(&events[0]);
     ASSERT_NE(empty, nullptr);
@@ -900,14 +1106,14 @@ TEST(ServerSessionTest, WorldEventsStopAtTheExistingConnectionBatchBoundary)
                                  FromTheGameServer(InventoryReply(), tested.gameServerSends),
                                  FromTheGameServer(OtherWorldEntryReply(), tested.gameServerSends)})};
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
-    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 1u);
     ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(events[0]));
-    tested.session.Poll();
-    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    static_cast<void>(tested.session.Poll());
+    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
 }
 
 // Los avisos del handler detectarían un registro accidental en CS, aun rechazando los claros.
@@ -917,20 +1123,20 @@ TEST(ServerSessionTest, WorldEventsDoNotDispatchConnectServerPacketsAsGameServer
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerAddress());
     tested.socket.reads = {Join(
         {WorldEntryReply(), InventoryReply(), AddressReply(GameHost, GamePort), WorldEntryReply(), InventoryReply()})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
-    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
     EXPECT_FALSE(tested.Logged(LogLevel::Warning, "(F3 03)"));
     EXPECT_FALSE(tested.Logged(LogLevel::Warning, "(F3 10)"));
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
-    EXPECT_TRUE(tested.session.TakeWorldEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
     EXPECT_FALSE(tested.Logged(LogLevel::Warning, "(F3 03)"));
     EXPECT_FALSE(tested.Logged(LogLevel::Warning, "(F3 10)"));
 
     tested.socket.reads = {EncryptedWorldSequence(tested)};
-    tested.session.Poll();
-    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+    static_cast<void>(tested.session.Poll());
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.eventSink.TakeWorldEvents()));
 }
 
 // SetState(m_state) en el handler F3/03 reiniciaría la espera: debe vencer en el tope original.
@@ -943,14 +1149,14 @@ TEST(ServerSessionTest, WorldEntryDoesNotExtendTheOriginalReplyTimeout)
     ASSERT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
     tested.AdvanceTo(seconds{5} + ReplyTimeout - milliseconds{1});
     tested.socket.reads = {FromTheGameServer(WorldEntryReply(), tested.gameServerSends)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
-    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 1u);
     ASSERT_NO_FATAL_FAILURE(ExpectWorldEntry(events[0]));
 
     tested.AdvanceTo(seconds{5} + ReplyTimeout);
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
@@ -966,14 +1172,14 @@ TEST(ServerSessionTest, WorldInventoryDoesNotExtendTheOriginalReplyTimeout)
     ASSERT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
     tested.AdvanceTo(seconds{5} + ReplyTimeout - milliseconds{1});
     tested.socket.reads = {FromTheGameServer(InventoryReply(), tested.gameServerSends)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
-    const std::vector<WorldEvent> events = tested.session.TakeWorldEvents();
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
     ASSERT_EQ(events.size(), 1u);
     ASSERT_NO_FATAL_FAILURE(ExpectInventory(events[0]));
 
     tested.AdvanceTo(seconds{5} + ReplyTimeout);
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
@@ -989,15 +1195,15 @@ TEST(ServerSessionTest, WorldEventsPreserveTheNextKeepaliveBytesAndTimerPhase)
     ASSERT_EQ(tested.Keepalives().size(), 1u);
     tested.AdvanceTo(milliseconds{11360});
     tested.socket.reads = {EncryptedWorldSequence(tested)};
-    tested.session.Poll();
-    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+    static_cast<void>(tested.session.Poll());
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.eventSink.TakeWorldEvents()));
     ASSERT_EQ(tested.Keepalives().size(), 1u);
 
     tested.AdvanceTo(milliseconds{19999});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.Keepalives().size(), 1u);
     tested.AdvanceTo(seconds{20});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     const std::vector<Packet> sent = tested.Keepalives();
     ASSERT_EQ(sent.size(), 2u);
@@ -1018,18 +1224,18 @@ TEST(ServerSessionTest, WorldEventsSurviveTheRealFoxAntiTransport)
         value ^= std::byte{0xAA}; // Máscara entrante del laboratorio antes del framing/descifrado.
     }
     tested.socket.reads = {wire};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
-    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.session.TakeWorldEvents()));
+    ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.eventSink.TakeWorldEvents()));
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
 TEST(ServerSessionTest, StartsIdle)
 {
     Harness tested(IdentityObfuscation::Shared());
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::Idle);
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
@@ -1047,11 +1253,11 @@ TEST(ServerSessionTest, SendsThePetInfoRequestWhenTheConnectServerOpens)
     ASSERT_EQ(tested.socket.connects.size(), 1u);
     EXPECT_EQ(tested.socket.connects[0].host, ConnectHost);
     EXPECT_EQ(tested.socket.connects[0].port, ConnectPort);
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::ConnectingConnectServer);
     EXPECT_TRUE(tested.socket.sent.empty());
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
     EXPECT_TRUE(SameBytes(tested.socket.sent, PetInfoRequest()));
 }
@@ -1061,11 +1267,11 @@ TEST(ServerSessionTest, AsksForTheListAfterTheHello)
 {
     Harness tested(IdentityObfuscation::Shared());
     tested.session.Start();
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
 
     tested.socket.reads = {Hello()};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
     EXPECT_TRUE(SameBytes(tested.socket.sent, Join({PetInfoRequest(), ListRequest()})));
@@ -1079,7 +1285,7 @@ TEST(ServerSessionTest, ThePetInfoRequestLeavesBeforeAHelloThatArrivesWithTheCon
     tested.session.Start();
     tested.socket.reads = {Hello()};
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
     EXPECT_TRUE(SameBytes(tested.socket.sent, Join({PetInfoRequest(), ListRequest()})));
@@ -1095,7 +1301,7 @@ TEST(ServerSessionTest, WaitsForTheChoiceAfterTheList)
 
     tested.socket.reads = {
         Client::Tests::ServerListWithLoads(std::vector<ServerEntry>{{401, 10}, {400, 20}, {402, 100}})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
     const std::span<const ServerEntry> list = tested.session.ServerList();
@@ -1120,9 +1326,9 @@ TEST(ServerSessionTest, ChoosingSendsTheCode)
     Harness tested(foxAnti);
     tested.session.Start();
     tested.socket.reads = {Hello()};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     tested.socket.reads = {LabServerList()};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::ChoosingServer);
     ASSERT_EQ(tested.session.ServerList().size(), 1u);
     EXPECT_EQ(tested.session.ServerList()[0].code, LabServerCode);
@@ -1141,7 +1347,7 @@ TEST(ServerSessionTest, ChoosingSendsTheCodeItWasGiven)
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
     tested.socket.reads = {ServerList({401, 400, 402})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     tested.session.ChooseServer(402);
 
@@ -1162,7 +1368,7 @@ TEST(ServerSessionTest, ChoosingOutOfTurnIsIgnored)
     EXPECT_TRUE(SameBytes(tested.socket.sent, Join({PetInfoRequest(), ListRequest()})));
 
     tested.socket.reads = {ServerList({LabServerCode, 401})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     tested.session.ChooseServer(LabServerCode);
     const ByteVector sent = tested.socket.sent;
     tested.session.ChooseServer(401);
@@ -1181,7 +1387,7 @@ TEST(ServerSessionTest, ReadsTheGameServerAddress)
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerAddress());
 
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
     ASSERT_TRUE(tested.session.GameServer().has_value());
@@ -1217,10 +1423,10 @@ TEST(ServerSessionTest, WhatFollowsTheAddressIsDropped)
     const ByteVector sentToTheConnectServer = tested.socket.sent;
 
     tested.socket.reads = {Join({AddressReply(GameHost, GamePort), Hello()})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.connection.State(), LinkState::Open);
     EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
     EXPECT_TRUE(SameBytes(tested.socket.sent, sentToTheConnectServer));
@@ -1236,7 +1442,7 @@ TEST(ServerSessionTest, WithTheGameServerThe00IsNotTheConnectHello)
     const ByteVector sentToTheConnectServer = tested.socket.sent;
 
     tested.socket.reads = {Hello()};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
     EXPECT_TRUE(SameBytes(tested.socket.sent, sentToTheConnectServer));
@@ -1251,7 +1457,7 @@ TEST(ServerSessionTest, AnEmptyListFails)
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {Bytes({0xC2, 0x00, 0x07, 0xF4, 0x06, 0x00, 0x00})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_EQ(tested.session.Failure(), SessionFailure::EmptyServerList);
@@ -1260,7 +1466,7 @@ TEST(ServerSessionTest, AnEmptyListFails)
     EXPECT_TRUE(tested.Logged(LogLevel::Error, "la lista de servidores está vacía"));
 
     // El cierre lo pidió la sesión: no vuelve como un ConnectServerLost.
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.Failure(), SessionFailure::EmptyServerList);
 }
 
@@ -1273,7 +1479,7 @@ TEST(ServerSessionTest, AnEmptyListBeforeTheCloseKeepsItsFailure)
 
     tested.socket.reads = {ServerList({})};
     tested.socket.peerClosed = true;
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.Failure(), SessionFailure::EmptyServerList);
 }
@@ -1288,7 +1494,7 @@ TEST(ServerSessionTest, ABusyServerAsksForTheListAgain)
     const ByteVector sent = tested.socket.sent;
 
     tested.socket.reads = {BusyReply()};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
@@ -1300,7 +1506,7 @@ TEST(ServerSessionTest, ABusyServerAsksForTheListAgain)
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el servidor elegido está ocupado: se pide la lista otra vez"));
 
     tested.socket.reads = {ServerList({401})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
     ASSERT_EQ(tested.session.ServerList().size(), 1u);
     EXPECT_EQ(tested.session.ServerList()[0].code, 401);
@@ -1313,7 +1519,7 @@ TEST(ServerSessionTest, ABusyAnswerOutOfTurnIsIgnored)
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {BusyReply()};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
@@ -1328,7 +1534,7 @@ TEST(ServerSessionTest, AnUnexpectedPacketIsIgnored)
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
     EXPECT_EQ(tested.session.GameServer(), std::nullopt);
@@ -1345,7 +1551,7 @@ TEST(ServerSessionTest, ASecondHelloIsIgnored)
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {Hello()};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
     EXPECT_TRUE(SameBytes(tested.socket.sent, Join({PetInfoRequest(), ListRequest()})));
@@ -1360,7 +1566,7 @@ TEST(ServerSessionTest, AListOutOfTurnIsIgnored)
     const ByteVector sent = tested.socket.sent;
 
     tested.socket.reads = {ServerList({401})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
     EXPECT_TRUE(SameBytes(tested.socket.sent, sent));
@@ -1375,7 +1581,7 @@ TEST(ServerSessionTest, AnUndecryptablePacketIsIgnored)
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {Join({Bytes({0xC3, 0x05, 0x11, 0x22, 0x33}), ServerList({LabServerCode})})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
@@ -1391,7 +1597,7 @@ TEST(ServerSessionTest, AListThatDoesNotReadIsIgnored)
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {Bytes({0xC2, 0x00, 0x0B, 0xF4, 0x06, 0x00, 0x02, 0x90, 0x01, 0x00, 0x00})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
     EXPECT_TRUE(SameBytes(tested.socket.sent, Join({PetInfoRequest(), ListRequest()})));
@@ -1405,7 +1611,7 @@ TEST(ServerSessionTest, AnAddressThatDoesNotReadIsIgnored)
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerAddress());
 
     tested.socket.reads = {Bytes({0xC1, 0x06, 0xF4, 0x03, 0x31, 0x00})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
     EXPECT_EQ(tested.session.GameServer(), std::nullopt);
@@ -1421,7 +1627,7 @@ TEST(ServerSessionTest, AMalformedPacketIsLogged)
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {Bytes({0xC1, 0x03, 0xF4})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
     EXPECT_EQ(tested.Warnings(), Lines{"[warning] se descarta un paquete mal formado del ConnectServer"});
@@ -1433,7 +1639,7 @@ TEST(ServerSessionTest, LosingTheConnectServerFails)
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.peerClosed = true;
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_EQ(tested.session.Failure(), SessionFailure::ConnectServerLost);
@@ -1449,7 +1655,7 @@ TEST(ServerSessionTest, LosingTheConnectServerWhileChoosingFails)
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingServer());
 
     tested.socket.peerClosed = true;
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_EQ(tested.session.Failure(), SessionFailure::ConnectServerLost);
@@ -1462,7 +1668,7 @@ TEST(ServerSessionTest, LosingTheGameServerWhileWaitingForTheCredentialsFails)
     ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCredentials());
 
     tested.socket.peerClosed = true;
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
@@ -1475,7 +1681,7 @@ TEST(ServerSessionTest, AConnectServerThatRefusesFails)
     tested.socket.connectResult = SocketError::Refused;
 
     tested.session.Start();
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.Failure(), SessionFailure::ConnectServerLost);
     EXPECT_TRUE(tested.socket.sent.empty());
@@ -1489,9 +1695,9 @@ TEST(ServerSessionTest, LosingTheGameServerFails)
     tested.socket.connectResult = SocketError::Refused;
 
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
@@ -1505,16 +1711,16 @@ TEST(ServerSessionTest, WhatFollowsACloseInAHandlerIsDropped)
 {
     Harness tested(IdentityObfuscation::Shared());
     tested.session.Start();
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
 
     tested.socket.sendError = SocketError::Closed;
     tested.socket.reads = {Join({Hello(), ServerList({LabServerCode})})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
     EXPECT_FALSE(tested.Logged(LogLevel::Warning, "se descarta un C1 F4 que iba a salir"));
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.Failure(), SessionFailure::ConnectServerLost);
 }
 
@@ -1524,12 +1730,12 @@ TEST(ServerSessionTest, WhatArrivesBeforeTheServerClosesIsHandled)
 {
     Harness tested(IdentityObfuscation::Shared());
     tested.session.Start();
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
 
     tested.socket.reads = {Hello()};
     tested.socket.peerClosed = true;
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_EQ(tested.session.Failure(), SessionFailure::ConnectServerLost);
@@ -1541,20 +1747,20 @@ TEST(ServerSessionTest, StartingAgainStartsClean)
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
     tested.socket.reads = {ServerList({})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.Failure(), SessionFailure::EmptyServerList);
 
     tested.session.Start();
     EXPECT_EQ(tested.session.State(), SessionState::ConnectingConnectServer);
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
     tested.socket.reads = {Hello(), ServerList({LabServerCode})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::ChoosingServer);
     tested.session.ChooseServer(LabServerCode);
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
     // El primer Poll lee la dirección y abre el GS; el segundo da su Opened.
-    tested.session.Poll();
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingGameHello);
 
     tested.session.Start();
@@ -1566,7 +1772,7 @@ TEST(ServerSessionTest, StartingAgainStartsClean)
     EXPECT_EQ(tested.socket.connects[3].host, ConnectHost);
     EXPECT_EQ(tested.socket.connects[3].port, ConnectPort);
     const ByteVector before = tested.socket.sent;
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
     EXPECT_TRUE(SameBytes(std::span(tested.socket.sent).subspan(before.size()), PetInfoRequest()));
     EXPECT_EQ(tested.LinesWithAnAddress(), Lines{});
@@ -1582,7 +1788,7 @@ TEST(ServerSessionTest, ConnectsToTheGameServerItWasGiven)
     EXPECT_EQ(tested.socket.connects[1].host, GameHost);
     EXPECT_EQ(tested.socket.connects[1].port, GamePort);
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
     EXPECT_EQ(tested.socket.sent.size(), tested.gameServerStart);
@@ -1598,7 +1804,7 @@ TEST(ServerSessionTest, WaitsForTheCredentialsAfterTheGameHello)
     ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
 
     tested.socket.reads = {GameHello(1, ClientVersion)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "el GameServer saludó: se espera la cuenta y la clave"));
@@ -1642,7 +1848,7 @@ TEST(ServerSessionTest, SubmittingOutOfTurnIsIgnored)
     EXPECT_EQ(tested.socket.sent.size(), tested.gameServerStart);
 
     tested.socket.reads = {GameHello(1, ClientVersion)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     tested.session.SubmitCredentials(TheCredentials());
     tested.session.SubmitCredentials(TheCredentials());
 
@@ -1660,7 +1866,7 @@ TEST(ServerSessionTest, AHelloThatArrivesEncryptedAlsoWaitsForTheCredentials)
     ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
 
     tested.socket.reads = {FromTheGameServer(GameHello(1, ClientVersion), tested.gameServerSends)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
     EXPECT_EQ(tested.Warnings(), Lines{});
@@ -1676,7 +1882,7 @@ TEST(ServerSessionTest, ARejectedHelloFails)
         ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
 
         tested.socket.reads = {GameHello(0, version)};
-        tested.session.Poll();
+        static_cast<void>(tested.session.Poll());
 
         EXPECT_EQ(tested.session.State(), SessionState::Failed) << version;
         EXPECT_EQ(tested.session.Failure(), SessionFailure::HelloRejected) << version;
@@ -1694,7 +1900,7 @@ TEST(ServerSessionTest, AnotherVersionFails)
     ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
 
     tested.socket.reads = {GameHello(1, OtherVersion)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_EQ(tested.session.Failure(), SessionFailure::VersionMismatch);
@@ -1716,7 +1922,7 @@ TEST(ServerSessionTest, AVersionThatDoesNotPrintIsLoggedWithQuestionMarks)
     hello[10] = std::byte{0x7F};
 
     tested.socket.reads = {hello};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.Failure(), SessionFailure::VersionMismatch);
     EXPECT_TRUE(tested.Logged(LogLevel::Error, "la versión 1???9 y este cliente la 10209"));
@@ -1729,7 +1935,7 @@ TEST(ServerSessionTest, AnAcceptedLoginIsLoggedIn)
     EXPECT_EQ(tested.session.LoginResult(), std::nullopt);
 
     tested.socket.reads = {FromTheGameServer(LoginResult(1), tested.gameServerSends)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
@@ -1748,7 +1954,7 @@ TEST(ServerSessionTest, ARejectedLoginKeepsItsResult)
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
 
     tested.socket.reads = {FromTheGameServer(LoginResult(0), tested.gameServerSends)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCredentials);
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
@@ -1785,7 +1991,7 @@ TEST(ServerSessionTest, ABadChecksumSendsTheReport)
     bad[firstChecksum] ^= std::byte{0xFF};
 
     tested.socket.reads = {bad};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
     const GameServerReceived received = tested.GameServerReads();
@@ -1795,7 +2001,7 @@ TEST(ServerSessionTest, ABadChecksumSendsTheReport)
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "se le avisa al GameServer (F1 03)"));
 
     tested.socket.reads = {FromTheGameServer(LoginResult(1), tested.gameServerSends)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
 }
 
@@ -1806,7 +2012,7 @@ TEST(ServerSessionTest, APacketThatIsNotWholeBlocksSendsTheReport)
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
 
     tested.socket.reads = {Bytes({0xC3, 0x05, 0x11, 0x22, 0x33})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     const GameServerReceived received = tested.GameServerReads();
     ASSERT_EQ(received.packets.size(), 2u);
@@ -1822,7 +2028,7 @@ TEST(ServerSessionTest, AnotherUndecryptablePacketSendsNoReport)
     const std::size_t sentBefore = tested.socket.sent.size();
 
     tested.socket.reads = {OnlyTheSerial()};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
     EXPECT_EQ(tested.socket.sent.size(), sentBefore);
@@ -1837,7 +2043,7 @@ TEST(ServerSessionTest, AGameHelloOutOfTurnIsIgnored)
     const std::size_t sentBefore = tested.socket.sent.size();
 
     tested.socket.reads = {GameHello(1, ClientVersion)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
     EXPECT_EQ(tested.socket.sent.size(), sentBefore);
@@ -1851,7 +2057,7 @@ TEST(ServerSessionTest, ALoginResultOutOfTurnIsIgnored)
     ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
 
     tested.socket.reads = {LoginResult(1)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
     EXPECT_EQ(tested.session.LoginResult(), std::nullopt);
@@ -1865,15 +2071,15 @@ TEST(ServerSessionTest, WhatDoesNotReadFromTheGameServerIsIgnored)
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
     tested.socket.reads = {Bytes({0xC1, 0x07, 0xF1, 0x00, 0x01, 0x00, 0x05})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
     EXPECT_EQ(tested.socket.sent.size(), tested.gameServerStart);
 
     tested.socket.reads = {GameHello(1, ClientVersion)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     tested.session.SubmitCredentials(TheCredentials());
     tested.socket.reads = {Bytes({0xC1, 0x04, 0xF1, 0x01})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::WaitingLoginResult);
 
     EXPECT_EQ(tested.Warnings(), (Lines{"[warning] se ignora el saludo del GameServer (F1 00): no se puede leer",
@@ -1905,7 +2111,7 @@ TEST(ServerSessionTest, LosingTheGameServerAfterTheLoginFails)
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
 
     tested.socket.peerClosed = true;
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
@@ -1922,7 +2128,7 @@ TEST(ServerSessionTest, TheGameServersQuitOrderClosesWithoutAFailure)
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
 
     tested.socket.reads = {FromTheGameServer(LogoutResult(0), tested.gameServerSends)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
@@ -1939,7 +2145,7 @@ TEST(ServerSessionTest, TheQuitOrderAlsoClosesInTheSelection)
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
 
     tested.socket.reads = {FromTheGameServer(LogoutResult(0), tested.gameServerSends)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
@@ -1955,7 +2161,7 @@ TEST(ServerSessionTest, TheCloseThatFollowsTheQuitOrderIsNotALoss)
 
     tested.socket.reads = {FromTheGameServer(LogoutResult(0), tested.gameServerSends)};
     tested.socket.peerClosed = true;
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
@@ -1970,7 +2176,7 @@ TEST(ServerSessionTest, AQuitOrderInClearWhileWaitingForTheCredentialsAlsoCloses
     ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCredentials());
 
     tested.socket.reads = {LogoutResult(0)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
     EXPECT_EQ(tested.connection.State(), LinkState::Closed);
@@ -1983,7 +2189,7 @@ TEST(ServerSessionTest, TheQuitOrderStopsTheKeepalive)
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{3}));
     tested.socket.reads = {FromTheGameServer(LogoutResult(0), tested.gameServerSends)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::QuitOrdered);
     const std::size_t sentBefore = tested.socket.sent.size();
     const std::size_t connectsBefore = tested.socket.connects.size();
@@ -2008,7 +2214,7 @@ TEST(ServerSessionTest, TheOtherLogoutResultsAreIgnored)
     tested.socket.reads = {FromTheGameServer(LogoutResult(1), tested.gameServerSends),
                            FromTheGameServer(LogoutResult(2), tested.gameServerSends),
                            FromTheGameServer(LogoutResult(3), tested.gameServerSends), Bytes({0xC1, 0x04, 0xF1, 0x02})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
     EXPECT_EQ(tested.connection.State(), LinkState::Open);
@@ -2031,7 +2237,7 @@ TEST(ServerSessionTest, TheConnectServerCannotOrderTheQuit)
     ASSERT_NO_FATAL_FAILURE(tested.ReachServerList());
 
     tested.socket.reads = {LogoutResult(0)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
     EXPECT_EQ(tested.connection.State(), LinkState::Open);
@@ -2044,7 +2250,7 @@ TEST(ServerSessionTest, TheQuitOrderIsFinal)
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     tested.socket.reads = {FromTheGameServer(LogoutResult(0), tested.gameServerSends)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::QuitOrdered);
     const std::size_t connectsBefore = tested.socket.connects.size();
     const std::uint32_t startsBefore = tested.session.StartCount();
@@ -2067,7 +2273,7 @@ TEST(ServerSessionTest, WhatFollowsTheQuitOrderIsDropped)
     const ByteVector order = FromTheGameServer(LogoutResult(0), tested.gameServerSends);
     const ByteVector hello = FromTheGameServer(GameHello(1, ClientVersion), tested.gameServerSends);
     tested.socket.reads = {Join({order, hello})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
     EXPECT_EQ(tested.Warnings(), Lines{});
@@ -2094,10 +2300,10 @@ TEST(ServerSessionTest, StartingAgainForgetsTheLogin)
     tested.session.Start();
     EXPECT_EQ(tested.session.State(), SessionState::ConnectingConnectServer);
     EXPECT_EQ(tested.session.LoginResult(), std::nullopt);
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     const std::size_t sentBefore = tested.socket.sent.size();
     tested.socket.reads = {Bytes({0xC3, 0x05, 0x11, 0x22, 0x33})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.socket.sent.size(), sentBefore);
 }
 // El primero sale en el mismo Poll que lee el login aceptado, como el de 0x4ad100: un C3 con el
@@ -2140,10 +2346,10 @@ TEST(ServerSessionTest, KeepaliveEveryTwentySecondsAndNotBefore)
     ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{3}));
 
     tested.AdvanceTo(milliseconds{19999});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.Keepalives().size(), 1u);
     tested.AdvanceTo(seconds{20});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.Keepalives().size(), 2u);
     tested.PollEachFrameUntil(seconds{100});
 
@@ -2161,7 +2367,7 @@ TEST(ServerSessionTest, KeepaliveBeforeTheLogin)
     ASSERT_NO_FATAL_FAILURE(tested.ReachGameHello());
     tested.PollEachFrameUntil(seconds{29});
     tested.socket.reads = {GameHello(1, ClientVersion)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingCredentials);
     tested.PollEachFrameUntil(seconds{69});
     tested.session.SubmitCredentials(TheCredentials());
@@ -2185,13 +2391,13 @@ TEST(ServerSessionTest, AcceptingTheLoginDoesNotRestartTheGlobalTimer)
 
     tested.session.SubmitCredentials(TheCredentials());
     tested.socket.reads = {FromTheGameServer(LoginResult(1), tested.gameServerSends)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.Keepalives().size(), 2u);
     tested.AdvanceTo(milliseconds{39999});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.Keepalives().size(), 2u);
     tested.AdvanceTo(seconds{40});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.Keepalives().size(), 3u);
     EXPECT_EQ(tested.GameServerReads().packets.size(), 4u);
@@ -2212,18 +2418,18 @@ TEST(ServerSessionTest, TheGlobalTimerConsumesTicksWithoutAGameServer)
 
     tested.session.ChooseServer(LabServerCode);
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     tested.gameServerStart = tested.socket.sent.size();
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     tested.socket.reads = {GameHello(1, ClientVersion)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingCredentials);
     EXPECT_TRUE(tested.Keepalives().empty());
     tested.AdvanceTo(milliseconds{79999});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_TRUE(tested.Keepalives().empty());
     tested.AdvanceTo(seconds{80});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.Keepalives().size(), 1u);
 }
 
@@ -2236,10 +2442,10 @@ TEST(ServerSessionTest, ReconnectingDoesNotRestartTheGlobalTimer)
     ASSERT_EQ(tested.Keepalives().size(), 1u);
     ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCredentials());
     tested.AdvanceTo(milliseconds{39999});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_TRUE(tested.Keepalives().empty());
     tested.AdvanceTo(seconds{40});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.Keepalives().size(), 1u);
     EXPECT_EQ(tested.GameServerReads().serials, (std::vector<SerialCheck>{SerialCheck::InOrder}));
 }
@@ -2252,14 +2458,14 @@ TEST(ServerSessionTest, TheLoginAndTheDueTimerCanEachSendAKeepalive)
     tested.AdvanceTo(seconds{20});
     ASSERT_TRUE(tested.Keepalives().empty());
     tested.socket.reads = {FromTheGameServer(LoginResult(1), tested.gameServerSends)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.Keepalives().size(), 2u);
     EXPECT_EQ(tested.GameServerReads().packets.size(), 3u);
     tested.AdvanceTo(milliseconds{39999});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.Keepalives().size(), 2u);
     tested.AdvanceTo(seconds{40});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.Keepalives().size(), 3u);
 }
 
@@ -2271,20 +2477,20 @@ TEST(ServerSessionTest, AConnectingGameServerDoesNotQueueTheDueKeepalive)
     tested.AdvanceTo(seconds{19});
     tested.socket.pollsUntilConnected = 2;
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     tested.gameServerStart = tested.socket.sent.size();
     tested.AdvanceTo(seconds{20});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.connection.State(), LinkState::Connecting);
     tested.AdvanceTo(seconds{21});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     tested.AdvanceTo(seconds{22});
     tested.socket.reads = {GameHello(1, ClientVersion)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingCredentials);
     EXPECT_TRUE(tested.Keepalives().empty());
     tested.AdvanceTo(seconds{40});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.Keepalives().size(), 1u);
 }
 
@@ -2297,14 +2503,14 @@ TEST(ServerSessionTest, AFailedImmediateKeepaliveDoesNotAttemptTheDueTimer)
     tested.socket.sendError = SocketError::Closed;
     tested.socket.reads = {Join({LoginResult(1), LogoutResult(0)})};
     const std::size_t sendAttempts = tested.socket.sendAttempts;
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.connection.State(), LinkState::Closed);
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
     EXPECT_EQ(tested.socket.sendAttempts, sendAttempts + 1);
     EXPECT_EQ(tested.CountLogged(LogLevel::Info, "keepalive"), 0u);
     EXPECT_FALSE(tested.Logged(LogLevel::Warning, "que iba a salir: la conexión está cerrada"));
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
 }
 
@@ -2316,7 +2522,7 @@ TEST(ServerSessionTest, AClosingLoginBatchDoesNotLogASentKeepalive)
     tested.socket.reads = {FromTheGameServer(LoginResult(1), tested.gameServerSends)};
     tested.socket.peerClosed = true;
     const std::size_t sendAttempts = tested.socket.sendAttempts;
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
     EXPECT_EQ(tested.socket.sendAttempts, sendAttempts);
@@ -2331,11 +2537,11 @@ TEST(ServerSessionTest, AFailedPreloginKeepalivePreservesTheCredentialsStateUnti
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
     tested.socket.reads = {FromTheGameServer(LoginResult(0), tested.gameServerSends)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.LoginResult(), std::optional<std::uint8_t>{std::uint8_t{0}});
     tested.AdvanceTo(seconds{20});
     tested.socket.sendError = SocketError::Closed;
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.connection.State(), LinkState::Closed);
     const std::size_t loginMessages = tested.CountLogged(LogLevel::Info, "se manda el login");
     const std::size_t sendAttempts = tested.socket.sendAttempts;
@@ -2347,7 +2553,7 @@ TEST(ServerSessionTest, AFailedPreloginKeepalivePreservesTheCredentialsStateUnti
     EXPECT_EQ(tested.socket.sendAttempts, sendAttempts);
     EXPECT_EQ(tested.CountLogged(LogLevel::Info, "keepalive"), 0u);
     EXPECT_FALSE(tested.LoggedTheCredentials());
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
 }
 
@@ -2359,8 +2565,8 @@ TEST(ServerSessionTest, ASixtySecondFrameSendsOneKeepalive)
     ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{3}));
 
     tested.AdvanceTo(seconds{63});
-    tested.session.Poll();
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.Keepalives().size(), 2u);
     tested.PollEachFrameUntil(milliseconds{82960});
     EXPECT_EQ(tested.Keepalives().size(), 2u);
@@ -2377,7 +2583,7 @@ TEST(ServerSessionTest, KeepsTheKeepaliveWhileMinimized)
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
     RecordingFrameTarget frame;
     SceneManager scenes([](SceneId) -> std::unique_ptr<IScene> { return std::make_unique<IdleScene>(); }, frame,
-                        tested.clock, [&tested] { tested.session.Poll(); }, tested.log);
+                        tested.clock, [&tested] { return tested.session.Poll(); }, tested.log);
     ASSERT_TRUE(scenes.Start(SceneId::CharacterSelect).HasValue());
     GameLoop loop{tested.clock, scenes, PacingMode::Decoupled};
     WindowState minimized;
@@ -2424,7 +2630,7 @@ TEST(ServerSessionTest, SpeedsGivenAfterTheLoginGoInTheNextKeepalive)
                                                       .characterFlags = KeepaliveAdjust20});
 
     tested.AdvanceTo(seconds{23});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     const std::vector<Packet> keepalives = tested.Keepalives();
     ASSERT_EQ(keepalives.size(), 2u);
@@ -2441,7 +2647,7 @@ TEST(ServerSessionTest, LosingTheGameServerStopsTheKeepalive)
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.LogInAt(seconds{3}));
     tested.socket.peerClosed = true;
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
     EXPECT_TRUE(tested.Logged(LogLevel::Error, std::format("se perdió la conexión con el GameServer: {}",
                                                            CloseReasonText(CloseReason::PeerClosed))));
@@ -2477,14 +2683,14 @@ TEST(ServerSessionTest, AConnectServerThatDoesNotGreetFails)
 {
     Harness tested(IdentityObfuscation::Shared());
     tested.session.Start();
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
 
     tested.AdvanceTo(ReplyTimeout - milliseconds{1});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
     tested.AdvanceTo(ReplyTimeout);
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
@@ -2497,17 +2703,17 @@ TEST(ServerSessionTest, EachWaitCountsFromItsStart)
 {
     Harness tested(IdentityObfuscation::Shared());
     tested.session.Start();
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     tested.AdvanceTo(seconds{20});
     tested.socket.reads = {Hello()};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingServerList);
 
     tested.AdvanceTo(milliseconds{49999});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerList);
     tested.AdvanceTo(seconds{50});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
     EXPECT_TRUE(
@@ -2521,7 +2727,7 @@ TEST(ServerSessionTest, AGameServerThatDoesNotAnswerTheLoginFails)
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoginResult());
 
     tested.AdvanceTo(ReplyTimeout);
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
     EXPECT_EQ(tested.connection.State(), LinkState::Closed);
@@ -2540,10 +2746,10 @@ TEST(ServerSessionTest, AConnectServerThatDoesNotGiveTheAddressFails)
     ASSERT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
 
     tested.AdvanceTo(seconds{40} - milliseconds{1});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::WaitingServerAddress);
     tested.AdvanceTo(seconds{40});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
     EXPECT_EQ(tested.connection.State(), LinkState::Closed);
@@ -2558,14 +2764,14 @@ TEST(ServerSessionTest, AGameServerThatDoesNotGreetFails)
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachGameServer());
     tested.AdvanceTo(seconds{5});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingGameHello);
 
     tested.AdvanceTo(seconds{35} - milliseconds{1});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::WaitingGameHello);
     tested.AdvanceTo(seconds{35});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
     EXPECT_EQ(tested.connection.State(), LinkState::Closed);
@@ -2581,7 +2787,7 @@ TEST(ServerSessionTest, AReplyThatArrivedDuringALongFrameIsRead)
 
     tested.AdvanceTo(seconds{60});
     tested.socket.reads = {FromTheGameServer(LoginResult(1), tested.gameServerSends)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
@@ -2659,7 +2865,7 @@ TEST(ServerSessionTest, ADuplicatedListSlotChoosesTheLastConstructedEntryAndKeep
     tested.session.ChooseCharacter(std::uint8_t{0});
     ASSERT_NE(tested.session.ChosenCharacter(), nullptr);
     EXPECT_EQ(tested.session.ChosenCharacter()->name, NameBytes("char0002"));
-    const auto events = tested.session.TakeCharacterEvents();
+    const auto events = tested.eventSink.TakeCharacterEvents();
     ASSERT_EQ(events.size(), 1u);
     const auto& list = std::get<CharacterListReceived>(events[0]).list.characters;
     ASSERT_EQ(list.size(), 2u);
@@ -2686,7 +2892,7 @@ TEST(ServerSessionTest, CharacterEventsStartEmpty)
 {
     Harness tested(IdentityObfuscation::Shared());
 
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
 // El lote posee cada campo, incluido el orden y los slots repetidos que admite el lector.
@@ -2698,8 +2904,8 @@ TEST(ServerSessionTest, TakingTheListEventPreservesItsPayloadAndConsumesItOnce)
         {3, "char0002", 513, 0x81, 0x21, {0x12, 0x34, 0x56}, 0x72}, {0, "char0001"}, {3, "char0003"}};
     tested.socket.reads = {CharacterListBytes(entries, 3, 5, 7)};
 
-    tested.session.Poll();
-    const std::vector<CharacterEvent> events = tested.session.TakeCharacterEvents();
+    static_cast<void>(tested.session.Poll());
+    const std::vector<CharacterEvent> events = tested.eventSink.TakeCharacterEvents();
 
     ASSERT_EQ(events.size(), 1u);
     const auto* received = std::get_if<CharacterListReceived>(&events[0]);
@@ -2721,7 +2927,7 @@ TEST(ServerSessionTest, TakingTheListEventPreservesItsPayloadAndConsumesItOnce)
     EXPECT_EQ(received->list.characters[1].slot, 0);
     EXPECT_EQ(received->list.characters[2].slot, 3);
     EXPECT_EQ(received->list.characters[2].name, NameBytes("char0003"));
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
     ASSERT_TRUE(tested.session.Characters().has_value());
     // El evento retiene tres construcciones; la vista UI conserva sólo el último de cada slot.
     const auto& visible = tested.session.Characters()->characters;
@@ -2741,7 +2947,7 @@ TEST(ServerSessionTest, AnEmptyListAlsoChooses)
 
     ASSERT_TRUE(tested.session.Characters().has_value());
     EXPECT_TRUE(tested.session.Characters()->characters.empty());
-    const std::vector<CharacterEvent> events = tested.session.TakeCharacterEvents();
+    const std::vector<CharacterEvent> events = tested.eventSink.TakeCharacterEvents();
     ASSERT_EQ(events.size(), 1u);
     const auto* received = std::get_if<CharacterListReceived>(&events[0]);
     ASSERT_NE(received, nullptr);
@@ -2754,12 +2960,12 @@ TEST(ServerSessionTest, ACharacterListOutOfTurnIsIgnored)
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
 
     tested.socket.reads = {CharacterListBytes(TwoCharacters())};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
     EXPECT_FALSE(tested.session.Characters().has_value());
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora la lista de personajes (F3 00): llegó fuera de turno"));
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
 TEST(ServerSessionTest, ACharacterListThatDoesNotReadIsIgnored)
@@ -2768,12 +2974,12 @@ TEST(ServerSessionTest, ACharacterListThatDoesNotReadIsIgnored)
     ASSERT_NO_FATAL_FAILURE(tested.ReachWaitingCharacterList());
 
     tested.socket.reads = {CharacterListBytes({{}}, 2)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
     EXPECT_FALSE(tested.session.Characters().has_value());
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "se ignora la lista de personajes (F3 00): no se puede leer"));
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
 // Elegir es del clic (0x6342c0): guarda el elegido y no manda nada.
@@ -2913,22 +3119,58 @@ std::vector<std::byte> CreatedReply(std::uint8_t slot, std::uint8_t classByte = 
     return bytes;
 }
 
-// La fotografía final ya no contiene al borrado; el lote conserva lista, alta normalizada y baja.
-TEST(ServerSessionTest, CharacterEventsKeepTheirOrderAndOwnTheirPayloads)
+TEST(ServerSessionTest, SynchronousDeliveryCreateAndDeleteFailuresKeepTheirPreviousEffectsWithoutSuccessTransition)
+{
+    for (const bool deleting : {false, true})
+    {
+        Harness tested(IdentityObfuscation::Shared());
+        ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+        tested.eventSink.characters.clear();
+        tested.eventSink.trace.clear();
+        tested.eventSink.onCharacter =
+            [deleting](const CharacterEvent&, const ServerSession& session) -> Client::Core::Expected<void, std::string>
+        {
+            EXPECT_EQ(session.State(),
+                      deleting ? SessionState::WaitingDeleteResult : SessionState::WaitingCreateResult);
+            EXPECT_EQ(session.Characters()->characters.size(), deleting ? 1u : 3u);
+            return Client::Core::Unexpected(std::string("falló el personaje"));
+        };
+        if (deleting)
+        {
+            tested.session.ChooseCharacter(std::uint8_t{0});
+            tested.session.DeleteCharacter(SyntheticDeleteCode());
+            tested.socket.reads = {Bytes({0xc1, 0x05, 0xf3, 0x02, 0x01})};
+        }
+        else
+        {
+            tested.session.CreateCharacter("char0003", 0);
+            tested.socket.reads = {CreatedReply(1)};
+        }
+        const auto polled = tested.session.Poll();
+        ASSERT_FALSE(polled.HasValue());
+        EXPECT_EQ(polled.Error(), "falló el personaje");
+        EXPECT_EQ(tested.session.State(), SessionState::Failed);
+        EXPECT_EQ(tested.session.Failure(), SessionFailure::ApplicationFailed);
+        EXPECT_EQ(tested.eventSink.characters.size(), 1u);
+    }
+}
+
+// La fotografía final ya no contiene al borrado; el collector conserva lista, alta normalizada y baja.
+TEST(ServerSessionTest, CharacterEventsDeliverListCreationAndDeletionPayloadsInOrder)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
     tested.session.CreateCharacter("char0003", 1);
     tested.socket.reads = {CreatedReply(3)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     tested.session.ChooseCharacter(std::uint8_t{3});
     tested.session.DeleteCharacter(SyntheticDeleteCode());
     tested.session.ChooseCharacter(std::uint8_t{0}); // fuera de turno: no cambia el lugar enviado
     tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x02, 0x01})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     tested.session.ChooseCharacter(std::uint8_t{0});
 
-    const std::vector<CharacterEvent> events = tested.session.TakeCharacterEvents();
+    const std::vector<CharacterEvent> events = tested.eventSink.TakeCharacterEvents();
 
     ASSERT_EQ(events.size(), 3u);
     const auto* received = std::get_if<CharacterListReceived>(&events[0]);
@@ -2954,30 +3196,24 @@ TEST(ServerSessionTest, CharacterEventsKeepTheirOrderAndOwnTheirPayloads)
     EXPECT_EQ(tested.session.DeleteResult(), std::optional<std::uint8_t>{std::uint8_t{1}});
     ASSERT_NE(tested.session.ChosenCharacter(), nullptr);
     EXPECT_EQ(tested.session.ChosenCharacter()->slot, 0);
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
-
-    tested.session.Start();
-
-    EXPECT_EQ(received->list.characters[1].name, NameBytes("char0002"));
-    EXPECT_EQ(created->entry.name, NameBytes("char0003"));
-    EXPECT_EQ(deleted->slot, 3);
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
 TEST(ServerSessionTest, TwoAcceptedIdenticalCreationsPublishTwoEvents)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
-    ASSERT_EQ(tested.session.TakeCharacterEvents().size(), 1u);
+    ASSERT_EQ(tested.eventSink.TakeCharacterEvents().size(), 1u);
 
     for (int attempt = 0; attempt < 2; ++attempt)
     {
         tested.session.CreateCharacter("char0003", 1);
         tested.socket.reads = {CreatedReply(1)};
-        tested.session.Poll();
+        static_cast<void>(tested.session.Poll());
         ASSERT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
     }
 
-    const std::vector<CharacterEvent> events = tested.session.TakeCharacterEvents();
+    const std::vector<CharacterEvent> events = tested.eventSink.TakeCharacterEvents();
     ASSERT_EQ(events.size(), 2u);
     for (const CharacterEvent& event : events)
     {
@@ -2997,10 +3233,10 @@ TEST(ServerSessionTest, AnAcceptedListSurvivesACloseInTheSamePoll)
     tested.socket.reads = {CharacterListBytes(TwoCharacters())};
     tested.socket.peerClosed = true;
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     ASSERT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
-    const std::vector<CharacterEvent> events = tested.session.TakeCharacterEvents();
+    const std::vector<CharacterEvent> events = tested.eventSink.TakeCharacterEvents();
     ASSERT_EQ(events.size(), 1u);
     const auto* received = std::get_if<CharacterListReceived>(&events[0]);
     ASSERT_NE(received, nullptr);
@@ -3014,30 +3250,19 @@ TEST(ServerSessionTest, AcceptedEventsSurviveQuitAndLaterPacketsStayIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
-    ASSERT_EQ(tested.session.TakeCharacterEvents().size(), 1u);
+    ASSERT_EQ(tested.eventSink.TakeCharacterEvents().size(), 1u);
     tested.session.CreateCharacter("char0003", 1);
     tested.socket.reads = {
         Join({CreatedReply(1), FromTheGameServer(LogoutResult(0), tested.gameServerSends), CreatedReply(2)})};
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     ASSERT_EQ(tested.session.State(), SessionState::QuitOrdered);
-    const std::vector<CharacterEvent> events = tested.session.TakeCharacterEvents();
+    const std::vector<CharacterEvent> events = tested.eventSink.TakeCharacterEvents();
     ASSERT_EQ(events.size(), 1u);
     const auto* created = std::get_if<CharacterCreated>(&events[0]);
     ASSERT_NE(created, nullptr);
     EXPECT_EQ(created->entry.slot, 1);
-}
-
-TEST(ServerSessionTest, StartDiscardsPendingCharacterEvents)
-{
-    Harness tested(IdentityObfuscation::Shared());
-    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
-
-    tested.session.Start();
-
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
-    EXPECT_FALSE(tested.session.Characters().has_value());
 }
 
 // En ChoosingCharacter, CreateCharacter manda el F3 01 con el nombre y la clase y espera su respuesta
@@ -3083,7 +3308,7 @@ TEST(ServerSessionTest, TheNewOneGoesToItsSlotWithoutEquipment)
     tested.session.CreateCharacter("char0003", 1);
 
     tested.socket.reads = {CreatedReply(1)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
     EXPECT_EQ(tested.session.CreateResult(), std::optional<std::uint8_t>{std::uint8_t{1}});
@@ -3108,18 +3333,18 @@ TEST(ServerSessionTest, TheNewOneReplacesItsSlotAndOneBeyondFourIsDropped)
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
     tested.session.CreateCharacter("char0003", 1);
     tested.socket.reads = {CreatedReply(3)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.Characters()->characters.size(), 2u);
     EXPECT_EQ(tested.session.Characters()->characters[1].name, NameBytes("char0003"));
-    ASSERT_EQ(tested.session.TakeCharacterEvents().size(), 2u);
+    ASSERT_EQ(tested.eventSink.TakeCharacterEvents().size(), 2u);
 
     tested.session.CreateCharacter("char0003", 1);
     tested.socket.reads = {CreatedReply(5)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
     EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el personaje creado no se suma: el lugar 5 no está en la selección"));
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
 // Con 0 o 2, solo el resultado, para el aviso de la ventana; con otro, el original no hace nada y se
@@ -3130,25 +3355,25 @@ TEST(ServerSessionTest, ARefusedCreationKeepsItsResult)
     {
         Harness tested(IdentityObfuscation::Shared());
         ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
-        static_cast<void>(tested.session.TakeCharacterEvents());
+        static_cast<void>(tested.eventSink.TakeCharacterEvents());
         tested.session.CreateCharacter("char0003", 1);
         tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x01, static_cast<unsigned char>(result)})};
-        tested.session.Poll();
+        static_cast<void>(tested.session.Poll());
         EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter) << result;
         EXPECT_EQ(tested.session.CreateResult(), std::optional<std::uint8_t>{static_cast<std::uint8_t>(result)});
         EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
-        EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+        EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
     }
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
-    static_cast<void>(tested.session.TakeCharacterEvents());
+    static_cast<void>(tested.eventSink.TakeCharacterEvents());
     tested.session.CreateCharacter("char0003", 1);
     tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x01, 0x05})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCreateResult);
     EXPECT_EQ(tested.session.CreateResult(), std::nullopt);
     EXPECT_TRUE(tested.Logged(LogLevel::Warning, "el resultado 5 no lo atiende el original"));
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
 // La respuesta de crear fuera de turno se ignora.
@@ -3156,43 +3381,43 @@ TEST(ServerSessionTest, ACreateReplyOutOfTurnIsIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
-    static_cast<void>(tested.session.TakeCharacterEvents());
+    static_cast<void>(tested.eventSink.TakeCharacterEvents());
 
     tested.socket.reads = {CreatedReply(1)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
     EXPECT_TRUE(
         tested.Logged(LogLevel::Warning, "se ignora la respuesta de crear un personaje (F3 01): llegó fuera de turno"));
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
 TEST(ServerSessionTest, AMalformedCreationPublishesNoCharacterEvent)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
-    static_cast<void>(tested.session.TakeCharacterEvents());
+    static_cast<void>(tested.eventSink.TakeCharacterEvents());
     tested.session.CreateCharacter("char0003", 1);
     tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x01, 0x01})};
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCreateResult);
     EXPECT_EQ(tested.session.CreateResult(), std::nullopt);
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
 TEST(ServerSessionTest, ASecondCreateReplyWithoutANewRequestPublishesNoEvent)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
-    static_cast<void>(tested.session.TakeCharacterEvents());
+    static_cast<void>(tested.eventSink.TakeCharacterEvents());
     tested.session.CreateCharacter("char0003", 1);
     tested.socket.reads = {Join({CreatedReply(1), CreatedReply(1)})};
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
-    const std::vector<CharacterEvent> events = tested.session.TakeCharacterEvents();
+    const std::vector<CharacterEvent> events = tested.eventSink.TakeCharacterEvents();
     ASSERT_EQ(events.size(), 1u);
     EXPECT_TRUE(std::holds_alternative<CharacterCreated>(events[0]));
 }
@@ -3244,7 +3469,7 @@ TEST(ServerSessionTest, DeleteRemovesTheSlotItSent)
     tested.session.DeleteCharacter(SyntheticDeleteCode());
 
     tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x02, 0x01})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
     EXPECT_EQ(tested.session.DeleteResult(), std::optional<std::uint8_t>{std::uint8_t{1}});
@@ -3255,7 +3480,7 @@ TEST(ServerSessionTest, DeleteRemovesTheSlotItSent)
     EXPECT_TRUE(tested.Logged(LogLevel::Info, "se borró el personaje del lugar 3"));
     tested.session.CreateCharacter("char0003", 1);
     tested.socket.reads = {CreatedReply(3)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.Characters()->characters.size(), 2u);
     EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
 }
@@ -3267,11 +3492,11 @@ TEST(ServerSessionTest, StartForgetsTheResults)
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
     tested.session.CreateCharacter("char0003", 1);
     tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x01, 0x00})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     tested.session.ChooseCharacter(std::uint8_t{0});
     tested.session.DeleteCharacter(SyntheticDeleteCode());
     tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x02, 0x00})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_TRUE(tested.session.CreateResult().has_value());
     ASSERT_TRUE(tested.session.DeleteResult().has_value());
 
@@ -3288,16 +3513,16 @@ TEST(ServerSessionTest, ARefusedDeletionKeepsTheCharacter)
     {
         Harness tested(IdentityObfuscation::Shared());
         ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
-        static_cast<void>(tested.session.TakeCharacterEvents());
+        static_cast<void>(tested.eventSink.TakeCharacterEvents());
         tested.session.ChooseCharacter(std::uint8_t{3});
         tested.session.DeleteCharacter(SyntheticDeleteCode());
         tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x02, static_cast<unsigned char>(result)})};
-        tested.session.Poll();
+        static_cast<void>(tested.session.Poll());
         EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter) << result;
         EXPECT_EQ(tested.session.DeleteResult(), std::optional<std::uint8_t>{static_cast<std::uint8_t>(result)});
         EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
         EXPECT_NE(tested.session.ChosenCharacter(), nullptr);
-        EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+        EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
     }
 }
 
@@ -3305,30 +3530,30 @@ TEST(ServerSessionTest, AMalformedDeletionPublishesNoCharacterEvent)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
-    static_cast<void>(tested.session.TakeCharacterEvents());
+    static_cast<void>(tested.eventSink.TakeCharacterEvents());
     tested.session.ChooseCharacter(std::uint8_t{3});
     tested.session.DeleteCharacter(SyntheticDeleteCode());
     tested.socket.reads = {Bytes({0xC1, 0x04, 0xF3, 0x02})};
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::WaitingDeleteResult);
     EXPECT_EQ(tested.session.DeleteResult(), std::nullopt);
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
 TEST(ServerSessionTest, ADeleteReplyOutOfTurnPublishesNoCharacterEvent)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
-    static_cast<void>(tested.session.TakeCharacterEvents());
+    static_cast<void>(tested.eventSink.TakeCharacterEvents());
     tested.socket.reads = {Bytes({0xC1, 0x05, 0xF3, 0x02, 0x01})};
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
     EXPECT_EQ(tested.session.Characters()->characters.size(), 2u);
-    EXPECT_TRUE(tested.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
 // Las dos respuestas se esperan con el tope de los Waiting*, y el keepalive sigue en los dos estados.
@@ -3339,10 +3564,10 @@ TEST(ServerSessionTest, CreatingAndDeletingHaveTheReplyTimeout)
     tested.AdvanceTo(seconds{5});
     tested.session.CreateCharacter("char0003", 1);
     tested.AdvanceTo(seconds{5} + ReplyTimeout - milliseconds{1});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCreateResult);
     tested.AdvanceTo(seconds{5} + ReplyTimeout);
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
     EXPECT_TRUE(tested.Logged(LogLevel::Error,
                               "el GameServer no contestó en 30 s: se esperaba el resultado de crear un personaje"));
@@ -3353,7 +3578,7 @@ TEST(ServerSessionTest, CreatingAndDeletingHaveTheReplyTimeout)
     deleting.AdvanceTo(seconds{5});
     deleting.session.DeleteCharacter(SyntheticDeleteCode());
     deleting.AdvanceTo(seconds{5} + ReplyTimeout);
-    deleting.session.Poll();
+    static_cast<void>(deleting.session.Poll());
     EXPECT_TRUE(deleting.Logged(LogLevel::Error,
                                 "el GameServer no contestó en 30 s: se esperaba el resultado de borrar un personaje"));
 }
@@ -3390,10 +3615,10 @@ TEST(ServerSessionTest, WaitingCharacterListHasTheReplyTimeout)
     tested.session.RequestCharacterList();
 
     tested.AdvanceTo(seconds{5} + ReplyTimeout - milliseconds{1});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     EXPECT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
     tested.AdvanceTo(seconds{5} + ReplyTimeout);
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.Failure(), SessionFailure::NoReply);
     EXPECT_TRUE(
@@ -3443,7 +3668,7 @@ TEST(ServerSessionTest, LosingTheGameServerWhileChoosingACharacterFails)
     ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
 
     tested.socket.peerClosed = true;
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
 
     EXPECT_EQ(tested.session.Failure(), SessionFailure::GameServerLost);
 }

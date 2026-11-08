@@ -42,6 +42,7 @@
 #include "support/GateFiles.h"
 #include "support/ItemFiles.h"
 #include "support/RecordingFrameTarget.h"
+#include "support/RecordingSessionEventSink.h"
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
@@ -203,7 +204,8 @@ struct Harness
     // Con `withTheCloth`, lo global de la tela en el contexto (el viento, el contador de pasos y el rand()).
     explicit Harness(bool withTheCloth = false)
         : log(sink, LogLevel::Debug), connection(socket, IdentityObfuscation::Shared(), clock, log, 1),
-          session(connection, clock, log, GameClientKeys(), SessionSettings{ServerAddress{"10.0.0.1", 44405}})
+          session(connection, clock, log, GameClientKeys(), SessionSettings{ServerAddress{"10.0.0.1", 44405}},
+                  eventSink)
     {
         WriteTextureSet(folder.Path(), LoginTextureSet);
         WriteTextureSet(folder.Path(), WindowTextureSet);
@@ -225,7 +227,7 @@ struct Harness
     // Lo de un frame del GameLoop con un paso: la sesión, el paso de la escena y los flancos.
     void Step()
     {
-        session.Poll();
+        static_cast<void>(session.Poll());
         scene->Step(input);
         input.ConsumeEdges();
     }
@@ -403,6 +405,7 @@ struct Harness
     RecordingSink sink;
     Log log;
     Connection connection;
+    Client::Tests::RecordingSessionEventSink eventSink;
     ServerSession session;
     GameData data;
     Client::Scenes::SingleModelLibrary models;
@@ -837,7 +840,7 @@ TEST(LoginSceneSessionTest, AFailingConnectHoldsTheFrameUntilTheNotice)
     ASSERT_EQ(tested.session.State(), SessionState::ConnectingConnectServer);
     EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
 
@@ -858,7 +861,7 @@ TEST(LoginSceneSessionTest, AConnectThatFailsAtOnceHoldsTheFrameUntilTheNotice)
     tested.socket.connectResult = SocketError::Refused;
     ASSERT_TRUE(tested.scene->Enter().HasValue());
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
 
@@ -876,10 +879,10 @@ TEST(LoginSceneSessionTest, AGameServerConnectThatFailsBetweenStepsHoldsTheFrame
     tested.socket.connectResult = SocketError::Refused;
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
 
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
     EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::Failed);
     EXPECT_TRUE(tested.scene->HoldsTheLastFrame());
 
@@ -966,7 +969,7 @@ TEST(LoginSceneSessionTest, AConnectStartedByTheUiCannotAccumulateObjectFramesBe
     ASSERT_TRUE(tested.scene->HoldsTheLastFrame());
     tested.scene->OnFrameHeld();
     tested.clock.Advance(std::chrono::seconds{5});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::WaitingConnectHello);
     // El connect ya terminó cuando llega el próximo Step; el evento ya descartó el tiempo retenido.
     tested.scene->Step(tested.input);
@@ -984,13 +987,13 @@ TEST(LoginSceneSessionTest, AHeldFrameNotifiesObjectEffectsWhenTheWholeConnectRu
     (void)tested.Frame(tested.clock.Now());
     tested.socket.connectResult = SocketError::Refused;
     tested.socket.reads = {AddressReply(GameHost, GamePort)};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::ConnectingGameServer);
     ASSERT_TRUE(tested.scene->HoldsTheLastFrame());
     tested.scene->OnFrameHeld();
     tested.scene->OnFrameHeld(); // El aviso repetido conserva el mismo reset, sin RNG ni efectos nuevos.
     tested.clock.Advance(std::chrono::seconds{5});
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::Failed);
     tested.scene->Step(tested.input);
     ASSERT_FALSE(tested.scene->HoldsTheLastFrame());
@@ -1012,7 +1015,7 @@ TEST(LoginSceneSessionTest, HoldingForANormalSessionChangePreservesTheObjectFram
     tested.clock.Advance(std::chrono::milliseconds{40});
     (void)tested.Frame(tested.clock.Now());
     tested.socket.reads = {ServerList({400})};
-    tested.session.Poll();
+    static_cast<void>(tested.session.Poll());
     ASSERT_EQ(tested.session.State(), SessionState::ChoosingServer);
     ASSERT_TRUE(tested.scene->HoldsTheLastFrame());
     tested.scene->OnFrameHeld();

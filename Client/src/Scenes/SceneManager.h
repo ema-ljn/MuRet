@@ -21,7 +21,8 @@
 // que suelta lo que alcanzó a subir. Al destruirse, la escena de ahora hace su Leave.
 //
 // La red no es de una escena: la ServerSession sigue viva del login a la selección y al juego. El
-// SceneManager la corre en cada Poll, también minimizada, con `pollNetwork`.
+// SceneManager la corre en cada Poll, también minimizada, con `pollNetwork`. Un error de aplicación
+// conserva el primer diagnóstico y bloquea red, pasos, transiciones y dibujo hasta el cierre normal.
 namespace Client::Scenes
 {
 // Arma la escena de un SceneId: main.cpp con las de verdad, los tests con dobles. nullptr si no
@@ -31,10 +32,11 @@ using SceneFactory = std::function<std::unique_ptr<IScene>(SceneId)>;
 class SceneManager final : public App::ILoopClient
 {
 public:
-    // `pollNetwork` corre en cada Poll: main.cpp pasa ServerSession::Poll; sin servidor, vacía. La
-    // fábrica, el frame, el reloj y el log tienen que vivir más que el SceneManager.
-    SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClock& clock, std::function<void()> pollNetwork,
-                 Core::Log& log);
+    // `pollNetwork` corre en cada Poll: main.cpp propaga Online::Poll y, sin servidor, devuelve
+    // éxito sin red. El callback puede estar vacío. La fábrica, el frame, el reloj y el log viven
+    // más que el SceneManager.
+    SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClock& clock,
+                 std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log);
     ~SceneManager() override;
 
     SceneManager(const SceneManager&) = delete;
@@ -42,9 +44,10 @@ public:
 
     // Entra a `first` (main.cpp pasa FirstScene, la carga). Si su Enter falla, el error, que queda
     // también en Failure. Con una escena ya entrada es un error y la de ahora sigue: para cambiar
-    // está Request.
+    // está Request. Un error anterior de Poll es terminal, incluso antes de la primera escena:
+    // devuelve el primer diagnóstico y no entra. Un Enter fallido sí permite reintentar Start.
     Core::Expected<void, std::string> Start(SceneId first);
-    // La red, también minimizada y antes de Start.
+    // La red, también minimizada y antes de Start; con Failure no vuelve a llamarla.
     void Poll() override;
     // El paso de la escena y, si pide otra (Next), Request. Un paso sin pedido corta la seguidilla
     // de un pedido rechazado: si vuelve, se avisa otra vez.
@@ -59,13 +62,13 @@ public:
 
     // La escena de ahora; vacío antes de Start o después de un Enter que falló.
     [[nodiscard]] std::optional<SceneId> Current() const;
-    // El error del Enter que falló, o vacío.
+    // El primer error de Enter o de aplicación de la sesión, o vacío.
     [[nodiscard]] const std::optional<std::string>& Failure() const;
     // Si la escena de ahora pide cerrar el juego (IScene::WantsToQuit); sin escena, false.
     [[nodiscard]] bool WantsToQuit() const;
     // Si la escena de ahora pide el texto tecleado (IScene::WantsTextInput); sin escena, false.
     [[nodiscard]] bool WantsTextInput() const;
-    // Si la escena de ahora retiene el último frame (IScene::HoldsTheLastFrame); sin escena, false.
+    // Con Failure retiene sin notificar la escena; de otro modo consulta IScene::HoldsTheLastFrame.
     [[nodiscard]] bool HoldsTheLastFrame() const override;
     // Si un Step entró a otra escena desde la última vez (Request); el Start no cuenta, porque va antes
     // del bucle.
@@ -78,11 +81,13 @@ private:
     SceneFactory m_factory;
     IFrameTarget& m_frame;
     Core::IClock& m_clock;
-    std::function<void()> m_pollNetwork;
+    std::function<Core::Expected<void, std::string>()> m_pollNetwork;
     Core::Log& m_log;
     std::unique_ptr<IScene> m_scene;
     std::optional<SceneId> m_current;
     std::optional<std::string> m_failure;
+    // Distingue el aborto fatal de Poll del Enter fallido que Start puede reintentar.
+    bool m_pollFailed = false;
     // El último pedido rechazado, para no repetir el aviso en cada paso mientras se pida seguido.
     std::optional<SceneId> m_rejected;
     bool m_sceneChanged = false;

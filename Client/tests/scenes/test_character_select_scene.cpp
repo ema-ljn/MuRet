@@ -288,7 +288,7 @@ struct Harness
         const std::vector<CharacterEntryFields> two = TwoCharacters();
         online.socket.reads = {
             Client::Tests::CharacterListBytes(two, static_cast<std::uint8_t>(two.size()), creatable)};
-        online.session.Poll();
+        static_cast<void>(online.session.Poll());
         ASSERT_EQ(online.session.State(), SessionState::ChoosingCharacter);
         Step();
     }
@@ -307,13 +307,13 @@ struct Harness
         ++steps;
     }
 
-    // El callback de main aplica los constructores de Poll aun sin lógica ni dibujo.
+    // El fixture de escena aplica las copias del collector; el pipeline síncrono real se prueba aparte.
     void Poll()
     {
-        online.session.Poll();
+        static_cast<void>(online.session.Poll());
         if (selection != nullptr)
         {
-            const auto applied = selection->Apply(online.session.TakeCharacterEvents(), camera, cameraInput);
+            const auto applied = selection->Apply(online.eventSink.TakeCharacterEvents(), camera, cameraInput);
             ASSERT_TRUE(applied.HasValue()) << applied.Error();
         }
     }
@@ -1129,7 +1129,7 @@ TEST(CharacterSelectSceneTest, ACreatedOneAppearsWhenPollIsFollowedByRenderWitho
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
     tested.online.session.CreateCharacter("char0003", 0);
     tested.online.socket.reads = {CreatedBytes(1)};
-    tested.online.session.Poll();
+    static_cast<void>(tested.online.session.Poll());
     ASSERT_EQ(tested.online.session.State(), SessionState::ChoosingCharacter);
     const auto events = tested.Frame();
     const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);

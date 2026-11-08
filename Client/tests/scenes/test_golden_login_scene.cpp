@@ -1474,7 +1474,7 @@ TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAno
                                                    &m_models.TextureSlots());
     ASSERT_TRUE(selection.Enter().HasValue());
     online.ReceiveTheList({{0, "char0001"}});
-    ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), camera, cameraInput).HasValue());
+    ASSERT_TRUE(state.Apply(online.eventSink.TakeCharacterEvents(), camera, cameraInput).HasValue());
     EXPECT_EQ(cameraInput.hero.z, 1200.0f);
     EXPECT_EQ(state.Map(), 55);
     RecordingFrameTarget selected;

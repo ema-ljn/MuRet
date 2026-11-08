@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <bit>
 #include <cstdint>
+#include <functional>
 #include <type_traits>
 namespace
 {
@@ -183,7 +184,8 @@ TEST(CharacterPositionTest, MatchingConstMetadataCanBeBorrowed)
     const std::uint16_t item = 0x1c15;
     const std::uint8_t safeZone = 0;
     const std::int32_t map = 8;
-    const PositionView view{actor.position, actor.angles, actor.phase, type, item, safeZone, map};
+    const PositionView view{actor.position,  actor.angles,        actor.phase,   std::cref(type),
+                            std::cref(item), std::cref(safeZone), std::cref(map)};
     Client::GameLogic::UpdateCharacterPosition(view, [] { return 0.0; }, [](float, float) { return 20.0; });
     EXPECT_EQ(actor.position.z, 180.0f);
 }

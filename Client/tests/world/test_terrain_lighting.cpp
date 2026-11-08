@@ -242,6 +242,39 @@ TEST(TerrainLightingTest, AnEmptyLightWindowPreservesTheDestination)
     }
 }
 
+// first > last todavía copia cuando alcanza la cola +3. Cada celda tiene un color distinto;
+// salir antes por extremos invertidos, normalizarlos o escribir fuera de la ventana debe fallar.
+TEST(TerrainLightingTest, CopiesTheRemainingTailWhenWindowEndpointsAreInverted)
+{
+    const auto source = std::make_unique<TerrainLighting>();
+    auto destination = std::make_unique<TerrainLighting>();
+    for (std::size_t y = 0; y < TerrainSide; ++y)
+    {
+        for (std::size_t x = 0; x < TerrainSide; ++x)
+        {
+            source->cells[(y * TerrainSide) + x] = {static_cast<float>(x), static_cast<float>(y), 0.25f};
+        }
+    }
+    const TerrainLightColor untouched{-1.0f, -2.0f, -3.0f};
+    for (std::int32_t gap = 1; gap <= 3; ++gap)
+    {
+        destination->cells.fill(untouched);
+        CopyTerrainLightWindow(*source, *destination, 5, 5 - gap, 7, 7 - gap);
+        const std::size_t lastX = 8 - static_cast<std::size_t>(gap);
+        const std::size_t lastY = 10 - static_cast<std::size_t>(gap);
+        for (std::size_t y = 0; y < TerrainSide; ++y)
+        {
+            for (std::size_t x = 0; x < TerrainSide; ++x)
+            {
+                const std::size_t index = (y * TerrainSide) + x;
+                const bool copied = x >= 5 && x <= lastX && y >= 7 && y <= lastY;
+                ASSERT_EQ(destination->cells[index], copied ? source->cells[index] : untouched)
+                    << "gap=" << gap << ", x=" << x << ", y=" << y;
+            }
+        }
+    }
+}
+
 // Pesos exactos: centro 1, cardinal a distancia 1 de radio 2 = 1/2, borde = 0.
 // Detecta otro radio fijo, techo en 1, falta del piso y suma fuera del círculo.
 TEST(TerrainLightingTest, AddsRadialLightWithoutAnUpperClamp)
@@ -277,6 +310,18 @@ TEST(TerrainLightingTest, StoresScaledCoordinatesBeforeTruncation)
     EXPECT_EQ(destination->cells[CellIndex(0, 0)], TerrainLightColor{});
     AddTerrainLight(*destination, -50.0f, -50.0f, {4.0f, 5.0f, 6.0f}, 1);
     EXPECT_EQ(destination->cells[CellIndex(0, 0)], (TerrainLightColor{4.0f, 5.0f, 6.0f}));
+}
+
+// Tras el store F32, (10,8; -1,5) trunca a (10; -1), que envuelve a (10; 255).
+// ceil cambia x; floor cambia y; rint/nearbyint/lround cambian al menos un eje.
+TEST(TerrainLightingTest, TruncatesFractionalCentersTowardZero)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    AddTerrainLight(*destination, 1080.0f, -150.0f, {1.0f, 2.0f, 3.0f}, 1);
+    EXPECT_EQ(destination->cells[CellIndex(10, 255)], (TerrainLightColor{1.0f, 2.0f, 3.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(11, 255)], TerrainLightColor{});
+    EXPECT_EQ(destination->cells[CellIndex(10, 254)], TerrainLightColor{});
+    EXPECT_EQ(destination->cells[CellIndex(11, 254)], TerrainLightColor{});
 }
 
 // El radio 8 tiene peso 1/4 a distancia 6 y envuelve x e y negativos.

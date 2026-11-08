@@ -8,7 +8,6 @@
 #include "Protocol/PacketFields.h"
 #include "Protocol/ProtocolError.h"
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -38,8 +37,10 @@ Core::Expected<ServerHello, ProtocolError> ReadServerHello(const Network::Packet
         return Core::Unexpected(ProtocolError::TooShort);
     }
     ServerHello hello{*result, *playerIndex, {}};
-    std::ranges::transform(*version, hello.version.begin(),
-                           [](std::byte value) { return std::to_integer<char>(value); });
+    for (std::size_t index = 0; index < hello.version.size(); ++index)
+    {
+        hello.version[index] = std::to_integer<char>((*version)[index]);
+    }
     return hello;
 }
 } // namespace Client::Protocol::Connection

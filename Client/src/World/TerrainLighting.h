@@ -56,6 +56,8 @@ void CopyTerrainLightWindow(const TerrainLighting& source, TerrainLighting& dest
 
 // 0x5f9780: suma radial en orden filas, columnas, canales, con wrap en ambos ejes y piso en +0;
 // no hay techo en 1. color puede referenciar una celda de destination: se relee en cada canal.
+// El centro truncado sólo delimita el barrido: la distancia conserva las coordenadas escaladas
+// float32 con su fracción. Un peso no positivo no toca la celda; un -0 exacto se conserva.
 // Modelo numérico PC53/RN: operaciones double separadas, stores float y sin contracción FMA;
 // no afirma el CW efectivo de todas las ejecuciones del original. Requiere radio positivo,
 // coordenadas finitas cuyo producto almacenado en float por 0,01 trunque a int32, límites

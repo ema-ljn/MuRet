@@ -187,11 +187,12 @@ void AddTerrainLight(TerrainLighting& destination, float worldX, float worldY,
     const auto centerY = static_cast<std::int32_t>(cellY);
     for (std::int32_t row = centerY - radius; row <= centerY + radius; ++row)
     {
-        const double dy = static_cast<double>(row - centerY);
+        // 005f97ed..005f97f4 conserva el Y escalado float32, no el centro truncado del barrido.
+        const double dy = static_cast<double>(cellY) - static_cast<double>(row);
         const double dySquared = dy * dy;
         for (std::int32_t column = centerX - radius; column <= centerX + radius; ++column)
         {
-            const double dx = static_cast<double>(column - centerX);
+            const double dx = static_cast<double>(cellX) - static_cast<double>(column);
             const double dxSquared = dx * dx;
             const double distance = std::sqrt(dxSquared + dySquared);
             const double difference = static_cast<double>(radiusFloat) - distance;

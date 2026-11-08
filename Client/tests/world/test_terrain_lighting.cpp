@@ -301,27 +301,41 @@ TEST(TerrainLightingTest, SkipsZeroWeightBoundaryCellsWithoutClampingTheirDestin
     EXPECT_EQ(destination->cells[CellIndex(12, 10)], (TerrainLightColor{-1.0f, -2.0f, -3.0f}));
 }
 
-// 100 * float(0,01) queda justo en 1 después del store F32: sin él se truncaría a 0.
-TEST(TerrainLightingTest, StoresScaledCoordinatesBeforeTruncation)
+// 100 * float(0,01) queda justo en 1 después del store F32. La distancia usa ese valor almacenado.
+TEST(TerrainLightingTest, StoresScaledCoordinatesBeforeTheDistanceCalculation)
 {
     auto destination = std::make_unique<TerrainLighting>();
     AddTerrainLight(*destination, 100.0f, -100.0f, {1.0f, 2.0f, 3.0f}, 1);
     EXPECT_EQ(destination->cells[CellIndex(1, 255)], (TerrainLightColor{1.0f, 2.0f, 3.0f}));
     EXPECT_EQ(destination->cells[CellIndex(0, 0)], TerrainLightColor{});
-    AddTerrainLight(*destination, -50.0f, -50.0f, {4.0f, 5.0f, 6.0f}, 1);
-    EXPECT_EQ(destination->cells[CellIndex(0, 0)], (TerrainLightColor{4.0f, 5.0f, 6.0f}));
+    AddTerrainLight(*destination, -50.0f, 0.0f, {4.0f, 5.0f, 6.0f}, 1);
+    EXPECT_EQ(destination->cells[CellIndex(0, 0)], (TerrainLightColor{2.0f, 2.5f, 3.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(255, 0)], (TerrainLightColor{2.0f, 2.5f, 3.0f}));
 }
 
-// Tras el store F32, (10,8; -1,5) trunca a (10; -1), que envuelve a (10; 255).
-// ceil cambia x; floor cambia y; rint/nearbyint/lround cambian al menos un eje.
-TEST(TerrainLightingTest, TruncatesFractionalCentersTowardZero)
+// 005f97f6..005f97ff resta la coordenada de celda al X escalado float32, sin perder su fracción.
+// Centro X=10,5, radio2: distancias0,5 y1,5 dan pesos exactos3/4 y1/4.
+TEST(TerrainLightingTest, MeasuresRadialDistanceFromTheFractionalX)
 {
     auto destination = std::make_unique<TerrainLighting>();
-    AddTerrainLight(*destination, 1080.0f, -150.0f, {1.0f, 2.0f, 3.0f}, 1);
-    EXPECT_EQ(destination->cells[CellIndex(10, 255)], (TerrainLightColor{1.0f, 2.0f, 3.0f}));
-    EXPECT_EQ(destination->cells[CellIndex(11, 255)], TerrainLightColor{});
-    EXPECT_EQ(destination->cells[CellIndex(10, 254)], TerrainLightColor{});
-    EXPECT_EQ(destination->cells[CellIndex(11, 254)], TerrainLightColor{});
+    AddTerrainLight(*destination, 1050.0f, 2000.0f, {4.0f, 8.0f, 12.0f}, 2);
+    EXPECT_EQ(destination->cells[CellIndex(10, 20)], (TerrainLightColor{3.0f, 6.0f, 9.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(11, 20)], (TerrainLightColor{3.0f, 6.0f, 9.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(9, 20)], (TerrainLightColor{1.0f, 2.0f, 3.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(12, 20)], (TerrainLightColor{1.0f, 2.0f, 3.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(8, 20)], TerrainLightColor{});
+}
+
+// 005f97ed..005f97f4 conserva también la fracción Y. El wrap afecta el índice, no la distancia.
+TEST(TerrainLightingTest, MeasuresRadialDistanceFromTheFractionalNegativeY)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    AddTerrainLight(*destination, 1000.0f, -1050.0f, {4.0f, 8.0f, 12.0f}, 2);
+    EXPECT_EQ(destination->cells[CellIndex(10, 245)], (TerrainLightColor{3.0f, 6.0f, 9.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(10, 246)], (TerrainLightColor{3.0f, 6.0f, 9.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(10, 244)], (TerrainLightColor{1.0f, 2.0f, 3.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(10, 247)], (TerrainLightColor{1.0f, 2.0f, 3.0f}));
+    EXPECT_EQ(destination->cells[CellIndex(10, 248)], TerrainLightColor{});
 }
 
 // El radio 8 tiene peso 1/4 a distancia 6 y envuelve x e y negativos.

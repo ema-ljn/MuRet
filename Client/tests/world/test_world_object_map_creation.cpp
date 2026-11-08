@@ -784,7 +784,7 @@ TEST(WorldObjectMapCreationTest, FullApiRoutesTheExistingDirectRuleTableAndPrese
         EXPECT_EQ(object.boundsMaximum, glm::vec3(40, 40, row.maxZ));
         EXPECT_EQ(registrations.entries[0].active, row.registered ? 1 : 0);
         EXPECT_EQ(std::bit_cast<std::uint32_t>(object.speed), 0x3e23d70au);
-        EXPECT_FLOAT_EQ(object.transform.scale, row.map == 55 ? 60 : 2);
+        EXPECT_FLOAT_EQ(object.transform.scale, row.map == 55 ? 60.0f : 2.0f);
         EXPECT_FLOAT_EQ(object.cullingMargin, -30);
         EXPECT_EQ(object.light, glm::vec3(0));
         EXPECT_TRUE(object.vertexLight);

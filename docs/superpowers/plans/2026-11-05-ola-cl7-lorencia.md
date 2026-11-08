@@ -153,32 +153,45 @@ si no choca con eso; si choca, queda para más adelante.
 
 ### Entregas recientes y trabajo aún sin integrar (2026-11-08 UTC)
 
-El inventario de `main` de la tabla siguiente está contrastado con `478d7a6`, tras el merge de PR166.
-PR166 ya está incorporado; los demás PR de esta sección siguen abiertos y no cierran CL7.
+El corte de estado corresponde a `main` **`962747f`**, con PR160 documental y PR166 de ItemState/Item.bmd
+incorporados. Los PR abiertos de la tabla no forman parte de `main`. Implementado, revisado, publicado e
+integrado son estados distintos: una revisión favorable de una unidad no cierra su sub-ola ni CL7.
 
-| Entrega | Estado observado | Alcance que sigue abierto |
+| Entrega | Estado al corte | Alcance que sigue abierto |
 | --- | --- | --- |
-| [PR163](https://github.com/ema-ljn/MuRet/pull/163), creación de objetos de todos los mapas | borrador; CI Linux/Windows aprobado en `ca99f73`; `126f0f6` añade diagnóstico no nulo | providers productivos, composición con Step/Draw y escenas; límites numéricos |
-| [PR164](https://github.com/ema-ljn/MuRet/pull/164), luz radial y ventana RGB | CI aprobado; dictamen final verificable por recuperar o repetir | su integración no cierra pasto ni todo L4 |
-| [PR165](https://github.com/ema-ljn/MuRet/pull/165), paso y posición | borrador; correcciones `422b8b4`, 102 tests focales pasan sin saltos | diferencia nativa confirmada de un ULP en CreateAngle R5, revisión complementaria e integración |
-| [PR166](https://github.com/ema-ljn/MuRet/pull/166), ItemState e Item.bmd | integrado en `main` por PR166 (`478d7a6`) | aplicación completa de equipo, stats e ítems especiales F3/10 |
-| [PR167](https://github.com/ema-ljn/MuRet/pull/167), aplicación ordenada de eventos | borrador contra `main`, tras integrar PR166; verificación previa del mismo árbol: 2702 tests sin saltos, incluidos 83 GL | ApplyWorld conserva error explícito; el aplicador productivo de mundo/perfil va en la entrega siguiente |
+| [PR160](https://github.com/ema-ljn/MuRet/pull/160), actualización documental | mergeado en `main` | documenta progreso; no añade funcionalidad de juego |
+| [PR163](https://github.com/ema-ljn/MuRet/pull/163), creación de objetos por mapa | publicado como borrador, `126f0f6`; revisión acotada de creación y correcciones | providers productivos, composición con Step/Draw y escenas; límites numéricos. La creación estática no acredita gameplay de todos los mapas |
+| [PR164](https://github.com/ema-ljn/MuRet/pull/164), luz radial y copia de ventana RGB | publicado sin marca de borrador, `29e646d`; revisiones acotadas favorables, 29 tests sin saltos; CI Linux/Windows/formato aprobado; rereview final de Opus en adjudicación | merge sujeto a los checks requeridos; integración de luz compartida, ola escalar y pasto fuera de este helper. Perfil numérico declarado, sin equivalencia runtime universal |
+| [PR165](https://github.com/ema-ljn/MuRet/pull/165), paso y posición | publicado como borrador, `31a5d13`; correcciones revisadas dentro de su alcance | diferencia nativa de un ULP en CreateAngle R5, backend matemático productivo aún no entregado e integración de movimiento/acciones |
+| [PR166](https://github.com/ema-ljn/MuRet/pull/166), ItemState e Item.bmd | revisado e integrado en `main` (`478d7a6`) | aplicación completa de equipo, stats e ítems especiales F3/10 |
+| [PR167](https://github.com/ema-ljn/MuRet/pull/167), aplicación ordenada de eventos | publicado como borrador contra `main`, `04e03de`; correcciones de Poll/observabilidad revisadas | `ApplyWorld` conserva error explícito; falta el aplicador productivo de mundo/perfil antes de poder activar L1 |
+| [PR168](https://github.com/ema-ljn/MuRet/pull/168), kernels de partículas y adaptador CPU | publicado como borrador; `50bc83f` pasó CI. Corrección posterior de diagnóstico `5c6d5f8`, 105 tests sin saltos y revisión Astra; CI y seguimiento Opus del nuevo head pendientes | Draw productivo, Main, providers, recursos reales y estado GL; no cubre por sí solo todas las familias ni L5/6 |
+| [PR169](https://github.com/ema-ljn/MuRet/pull/169), metadata CPU de texturas | publicado como borrador; metadata CPU revisada por Astra y Opus contrastado localmente; 317 PASS y 6 golden omitidos por entradas privadas ausentes | MSVC rechazó dos literales del test; tipado corregido en `63ba98e`, seis tests pasan; nuevo CI y seguimiento Opus pendientes; no conecta Draw/GL ni resuelve por sí solo recursos o tiempos de consulta |
 
-La rama de integración ya aplica F3/03, F3/10, 1C y F3/04, conserva recursos y actores
-durables, dibuja y conecta clic, picking, camino y movimiento. Sigue en desarrollo y no
-es una entrega congelada: D3/D7 recibidos, gates y varios efectos/callees todavía tienen
-fronteras explícitas. No acredita gameplay de los 37 mapas nominales ni sus regresiones 54/55.
+Core es una composición privada y parcial: contiene trabajo de aplicación de eventos, recursos/actores,
+Step/Draw y conexiones de input/movimiento. Conserva bindings y efectos pendientes; no sustituye los
+PR públicos ni elimina el error explícito de ApplyWorld en PR167. La corrida focal de composición de
+595 tests sin saltos acredita sus observadores concretos, no una sesión completa ni gameplay de los
+37 mapas nominales y sus regresiones 54/55.
+
+Hay tres fronteras que deben distinguirse del producto integrado:
+
+- **Stats:** once contratos de cuerpos ordinarios y dos stops; siete de esos once conservan callees
+  opacos y hay ocho dependencias transitivas inventariadas cuyo cierre y composición están en curso. No equivalen a stats de ActorEquipment
+  implementados ni autorizan omitir los efectos lógicos de las fronteras.
+- **Matemática retenida:** hay evidencia nativa y preparación auditada de API/ADR y bancos; el backend
+  productivo aún no se entregó. El perfil observado PC53/RN no acredita equivalencia universal x87/XP.
+- **Metadata CPU:** la unidad de cinco archivos tiene implementación y revisión acotada en Core;
+  su paquete público está en el borrador PR169, revisado por Astra. La adjudicación de Opus no confirmó P1/P2; el ajuste de tipos `63ba98e` requiere CI Windows nuevo. Aún no está integrada en `main` y no conecta Draw ni estado GL.
 
 Los cinco bloques de cierre son entrada/héroe/equipo; movimiento y transiciones;
 creación/paso/dibujo/luz con servicios reales; fauna/clima/partículas por familia; y el
-barrido transversal del conjunto. Hay implementaciones separadas de Step, Draw, efectos
-de llegada y RNG compartido que se están componiendo y revisando. Su existencia y sus
-tests focales no sustituyen la validación conjunta de ramas, estado, orden y recursos de
-cada mapa. La comparación visual de neblina continúa pospuesta por pedido de Emanuel.
+barrido transversal del conjunto. Las implementaciones separadas y sus tests focales no sustituyen
+la validación conjunta de ramas, estado, orden y recursos de cada mapa. La comparación visual de
+neblina continúa pospuesta por pedido de Emanuel.
 
-Estado contrastado con `main` **`478d7a6`**, el código y los merges de GitHub, 2026-11-08 UTC.
-PR144, PR146, PR149–159, PR161, PR162 y PR166 están mergeados. Los componentes de esas entregas ya están incorporados
-en `main`; sus consumidores pendientes se enumeran por separado.
+PR144, PR146, PR149–160, PR161, PR162 y PR166 están mergeados. Los componentes de esas entregas ya están
+incorporados en `main`; sus consumidores pendientes se enumeran por separado.
 «Componente puro» no significa que la funcionalidad esté integrada en la escena.
 
 **Criterio de Emanuel, 2026-11-06:** el gameplay de CL7 debe funcionar en todos los mapas de juego
@@ -195,14 +208,14 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 | CL7.3 A | integrado por [PR138](https://github.com/ema-ljn/MuRet/pull/138) | la integración de la cámara en el mundo jugable pertenece a L1 |
 | CL7.3 B | integrado por [PR141](https://github.com/ema-ljn/MuRet/pull/141), CI verde | sub-ola completa; no cierra los demás efectos ni las escenas |
 | CL7.P | fase documentada en [PR144](https://github.com/ema-ljn/MuRet/pull/144) e incremento modular incorporado por [PR151](https://github.com/ema-ljn/MuRet/pull/151); abierta | estado lógico inicial, fase nativa, nesting y orden observable de RNG; sin portar protecciones |
-| CL7.L1 | lector F3/03 incorporado por [PR149](https://github.com/ema-ljn/MuRet/pull/149) y procedencia del descifrado por [PR154](https://github.com/ema-ljn/MuRet/pull/154); recepción ordenada F3/03–F3/10 incorporada por [PR162](https://github.com/ema-ljn/MuRet/pull/162) | aplicación con contexto histórico y consumo antes del frame, espera retenida, InWorld, carga del mapa recibido, héroe y pase 640×432 |
-| CL7.L2 | modelos con nombre incorporados por [PR142](https://github.com/ema-ljn/MuRet/pull/142), margen individual/Bridge01 por [PR150](https://github.com/ema-ljn/MuRet/pull/150) | creación/paso/dibujo completos de 2.870 objetos y orden completo del pase |
-| CL7.L3 | lector puro F3/10 incorporado por [PR159](https://github.com/ema-ljn/MuRet/pull/159), contrastado con siete capturas reales; recepción ordenada incorporada por [PR162](https://github.com/ema-ljn/MuRet/pull/162); ItemState y carga de Item.bmd incorporados por [PR166](https://github.com/ema-ljn/MuRet/pull/166) | decodificación/aplicación completa F3/10, equipo y stats del mundo, matriz de parado, aparición y zonas seguras/mascota |
-| CL7.L4 | pendiente | luz dinámica compartida y pasto, incluidos carga/RNG y vértices |
-| CL7.L5 | pendiente | hojas/clima, pájaros, peces, fuegos y fuente |
+| CL7.L1 | lector/procedencia por PR149/154 y recepción ordenada F3/03–F3/10 por PR162 incorporados; PR167 publica la capa de aplicación ordenada como borrador | conectar el aplicador productivo: ApplyWorld aún devuelve error; espera retenida, InWorld, carga del mapa, héroe y pase 640×432 integrados |
+| CL7.L2 | modelos por PR142 y margen individual/Bridge01 por PR150 incorporados; creación por mapa publicada en el borrador PR163; Step/Draw parciales en Core | composición productiva de creación/paso/dibujo de los 2.870 objetos de Lorencia, servicios y orden completo del pase; cobertura de cada mapa |
+| CL7.L3 | lector puro F3/10 por PR159, recepción por PR162 e ItemState/Item.bmd por PR166 incorporados; once contratos ordinarios de stats documentados, con dos stops y ocho dependencias transitivas inventariadas | aplicación completa F3/10, equipo y stats del mundo, matriz de parado, aparición y zonas seguras/mascota |
+| CL7.L4 | helper de luz radial/copia RGB implementado, revisado y publicado en PR164, aún no mergeado; integración parcial de productores en Core | luz dinámica compartida en su cadencia real, ola escalar y pasto, incluidos carga/RNG y vértices |
+| CL7.L5 | subconjunto de kernels de partículas y adaptador CPU publicado en el borrador PR168; correcciones de cobertura revisadas | Draw/Main/providers/recursos/GL; completar y componer hojas/clima, pájaros, peces, fuegos y fuente |
 | CL7.4 A | componente puro integrado por [PR143](https://github.com/ema-ljn/MuRet/pull/143) | caminar a distancia cero implementado; consumidor/RNG pendientes en4E/P. La búsqueda por radio queda fuera de ese contrato; no confundir pruebas dirigidas con los 171 caminos del cable |
 | CL7.4 B | componente puro integrado por [PR139](https://github.com/ema-ljn/MuRet/pull/139) | consumidor y envío en la escena, CL7.4 E; precisión nativa del emisor pendiente |
-| CL7.4 C | función completa de velocidad `0x508940` incorporada por [PR155](https://github.com/ema-ljn/MuRet/pull/155) | consumidor de velocidad, spline, celda lógica, giro, posición/altura, acciones y orden exterior; cinco muestras x87 abiertas en P-C32 |
+| CL7.4 C | velocidad `0x508940` incorporada por PR155; kernels de paso/posición publicados en el borrador PR165 y revisados con límites explícitos | integrar consumidores/acciones/orden exterior; resolver la diferencia CreateAngle R5 y entregar matemática productiva sin ampliar el perfil observado ni cerrar P-C32 globalmente |
 | CL7.4 D | componente completo incorporado por [PR153](https://github.com/ema-ljn/MuRet/pull/153) | conectar al rayo y clic de la escena en 4E |
 | CL7.4 E | pendiente | clic → camino → D3 → movimiento; cooldowns, D3/D7 recibidos y recorte |
 | CL7.5 A | infraestructura genérica parcial; identidad efectiva de carga incorporada por [PR161](https://github.com/ema-ljn/MuRet/pull/161) | todas las familias de modelos/mapas, variantes 30/34, estados de carga y errores del Data original |
@@ -216,7 +229,7 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 ### Componentes incorporados (2026-11-08)
 
 Los siguientes alcances de PR149–155, PR157–159, PR161, PR162 y PR166 ya forman parte del código de `main`.
-PR156 incorporó la actualización documental previa del roadmap.
+PR156 y PR160 incorporaron actualizaciones documentales previas del roadmap; no añaden funcionalidad de juego.
 
 - [PR149](https://github.com/ema-ljn/MuRet/pull/149): lector puro completo F3/03, 23 campos;
   la aplicación a sesión/actor/escena sigue en L1. La procedencia se conserva en PR154.
@@ -293,8 +306,9 @@ un slot fijo ni equipo inicial vacío. No reemplazar esos efectos pendientes por
 
 ### Siguiente tramo de integración
 
-1. **L1 — aplicar la recepción:** fijar consumo, contexto histórico y tratamiento de fallo/reinicio
-   dentro de cada Poll; conservar el orden de efectos antes de Step/Render, también sin pasos.
+1. **L1 — completar el aplicador productivo:** integrar la capa ordenada publicada en PR167 con
+   los efectos reales de ApplyWorld, que hoy devuelve error. Conservar contexto histórico,
+   fallo/reinicio y orden antes de Step/Render, también sin pasos.
 2. **L1 con los efectos concretos de L2/L3:** cargar el mapa recibido con su identidad efectiva,
    crear y equipar al héroe conservando el orden nativo de las publicaciones del héroe/estado y de
    los efectos de aparición, antes de presentar el mundo con cámara y pase 640×432. La espera
@@ -309,12 +323,12 @@ un slot fijo ni equipo inicial vacío. No reemplazar esos efectos pendientes por
 
 ### Lo que todavía impide declarar completa toda CL7
 
-- `GameScene::Render` sigue vacío, `HoldsTheLastFrame` devuelve false y la sesión no define `InWorld`:
-  llega hasta `EnteringWorld`. La sesión ya recibe y conserva F3/03 y F3/10 en orden, pero
-  `TakeWorldEvents` aún no tiene consumidor productivo que aplique el mundo. El picking, `GateCheck`
-  y `UpdateMovementSpeed` siguen sin integrarse en la escena. La cámara,
-  los modelos y los paquetes puros ya integrados no equivalen a tener Lorencia jugable. L1 debe unirlos sin
-  adelantar la presentación ni perder el frame retenido durante la espera.
+- La entrada completa al mundo no está integrada en `main`. PR167 aporta la capa ordenada, pero
+  ApplyWorld conserva un error explícito. La composición privada de Core contiene avances parciales;
+  no acredita por sí sola creación/equipo/estado completos, el primer frame jugable ni reentrada.
+  L1 debe unir los efectos reales con cámara, mapa, héroe y pase sin adelantar la presentación ni
+  perder el frame retenido durante la espera. Los componentes puros y la existencia de conexiones
+  privadas de input no equivalen a una entrega pública de Lorencia jugable.
 - L2 debe cubrir todos los objetos y sus casos de material, animación, luz, fuego, casas y fuente;
   L3 debe usar el equipo del mundo y el parado correcto, incluidos safe zone y ocultación del caballo.
   L4/L5 llevan la luz compartida, pasto y fauna/partículas, con sus efectos sobre el RNG.
@@ -337,10 +351,12 @@ un slot fijo ni equipo inicial vacío. No reemplazar esos efectos pendientes por
   autorización para portar la VM, cifrado de protección, licencias o anticheat. Los contratos
   puros ya comprobados pueden avanzar en paralelo; la equivalencia global de cadencia/RNG no se
   declara cerrada mientras falten consumidores y orden.
-- P-C32 registra cinco muestras diferidas de C0 en los tres helpers angulares. Intel deja ese bit
-  indefinido tras las instrucciones interpuestas; los bytes están contrastados, pero no permiten
-  elegir el resultado por sí solos. Se requiere observación nativa antes de portar esos helpers
-  como equivalentes; no se reemplazan por una función matemática estándar por semejanza.
+- La evidencia nativa adicional acota los helpers angulares al perfil observado PC53/RN y a las
+  muestras de C0; no vuelve definido universalmente un bit que la ISA deja indefinido. CreateAngle
+  R5 conserva una diferencia de un ULP en binary64 para entradas no unitarias. La preparación de
+  matemática retenida no es todavía un backend productivo ni prueba diferencia de gameplay por sí
+  sola: falta observar la composición pertinente. P-C32 y la equivalencia runtime universal siguen
+  abiertos; no se sustituyen por similitud con una función de la biblioteca matemática.
 - Los 2.250 samples nativos de cámara a 40ms no son una captura de cada LogicStep ni de cada
   frame; las posiciones nativas guardadas son limitadas. Los vectores emulados históricos sirven
   como regresión, no como una nueva captura independiente. No se generan nuevas emulaciones.
@@ -585,8 +601,15 @@ la integración de cámara de B.
 
 ## Sub-ola CL7.P: las variables protegidas
 
-**Contrato:** 06 § La tabla de protección, 07 Q-C125 y Q-C183, P-C22 a y la decisión 3. PR propio. Empieza con un lector del binario, como el
-barrido, y se detalla con lo que lea. Lo que se sabe:
+**Contrato:** 06 § La tabla de protección, 07 Q-C125 y Q-C183, P-C22 a y la decisión 3.
+
+**Alcance vigente:** conservar el estado lógico, la fase, el orden de accesos y los efectos acreditados
+por contratos ordinarios. No portar ni investigar la implementación de la protección para completar
+esta ola. Una frontera sin contrato queda abierta: no se omite su efecto ni se consume RNG en su
+nombre para simular una función ausente. La receta siguiente queda sustituida por este criterio.
+
+<details>
+<summary>Receta histórica sustituida: antecedente, no instrucciones de implementación</summary>
 
 - **Qué falta leer:**
   - las funciones de la tabla `0x57630c8`: `0x40ad90`, `0x40b240`, `0x40b2f0`, `0x40b440`, `0x40b4d0`,
@@ -621,6 +644,8 @@ barrido, y se detalla con lo que lea. Lo que se sabe:
     el contrato se contrasta con ASM y evidencia nativa existente, conservando la procedencia de las
     regresiones históricas.
 
+</details>
+
 **Contraste estático del contador:** `0x637700` toma el snapshot antes del cierre de `0x6378e6` y
 después decide la fase 57. El incremento ocurre tras el paso de la escena, sobre el valor reabierto,
 no necesariamente sobre aquel snapshot. Cada refresco completo tiene cuatro llamadas RNG directas;
@@ -635,8 +660,10 @@ ambas propiedades sin introducir overflow con signo indefinido.
 `0x6371a0`). PR propio. Se detalla al arrancar; lo que se sabe:
 
 **Estado incorporado:** PR149 aporta el lector y PR162 la recepción ordenada junto con F3/10.
-La cola todavía no tiene consumidor productivo. La aplicación de este apartado sigue pendiente;
-el contexto y la vigencia de cada recepción deben resolverse antes de conectar la escena.
+PR167 publica como borrador la capa de aplicación ordenada y sus correcciones revisadas, pero
+ApplyWorld conserva un error explícito. Core tiene composición privada parcial; no se cuenta como
+aplicación pública completa. Siguen pendientes los efectos reales y su validación conjunta con
+contexto histórico, vigencia, espera y presentación de la escena.
 
 - **El protocolo:** `Protocol::Character::ReadCharacterSelectResult` en `CharacterSelect.h`, el C3 rearmado
   de `0x34` bytes con `TooShort`: la celda (`[4]`, `[5]`), el mapa (`[6]`), la dirección (`[7]`) y los stats
@@ -683,8 +710,10 @@ nombre y asigna sus texturas por ID ascendente. Con los slots de `GameModels` an
 las tres texturas ya cargadas y obtiene las 99 nuevas de `0x41c..0x47e`; el golden compara los 101
 nombres con `lor_slots.bin`. La carga aislada, sin esos slots anteriores, tiene otra asignación y
 se prueba por separado. La tabla se contrasta con el ASM; no se generan expectativas emuladas nuevas.
-Siguen pendientes las texturas comunes (`drop`, `wt`, `light`), la creación, el paso y el dibujo de los
-objetos, sus efectos y el pase completo de la escena. Esta entrega no cierra L2 ni CL7.5 A.
+PR163 publica la creación por mapa como borrador con revisión acotada; Core contiene Step/Draw
+parciales. Siguen pendientes la composición con servicios reales, las texturas comunes (`drop`,
+`wt`, `light`), los efectos y el pase completo de la escena. La creación estática no acredita paso,
+dibujo ni gameplay de todos los mapas. Estas entregas no cierran L2 ni CL7.5 A.
 
 - **Los modelos:** `WorldModels` con una tabla por mapa: la del 0 (los 112 con nombre de `0x619a10..0x619edf`, tipo ←
   nombre, como dato), los especiales desde `0x69` (`0xad` `Bird01`, `0xb2` `Fish01`), `Object8\wt00..31` en
@@ -714,8 +743,11 @@ objetos, sus efectos y el pase completo de la escena. Esta entrega no cierra L2 
 
 **Estado incorporado:** PR159 aporta el lector completo y su golden de siete capturas;
 PR162 conserva la recepción F3/10 en orden con F3/03. PR166 incorpora ItemState, su inicializador
-y la carga de Item.bmd; no completa por sí solo el aplicador de inventario. La semántica de los siete bytes opacos,
-la aplicación al equipo y los efectos del héroe siguen pendientes.
+y la carga de Item.bmd; no completa por sí solo el aplicador de inventario. Siguen pendientes la
+semántica y aplicación completas del equipo, los stats y los efectos del héroe. El inventario de
+stats tiene once contratos de cuerpos ordinarios y dos stops; siete de los once conservan callees
+opacos; el cierre y la composición de ocho dependencias transitivas inventariadas siguen en curso. Es evidencia de investigación, no una
+implementación completa ni permiso para omitir efectos lógicos desconocidos.
 
 - **El equipo:** `Protocol::Character::ReadInventoryList` del `F3 10` (C4, entradas de 8 bytes: el lugar y
   7 del ítem), los 12 lugares del equipo a la apariencia, como `0x5bc740` → `0x512a30`. La ventana del
@@ -736,6 +768,11 @@ la aplicación al equipo y los efectos del héroe siguen pendientes.
 **Contrato:** 06 § Lo propio de Lorencia (`0x5fbf60`, `0x5f9780`, `0x5f99e0`, el pase del pasto de
 `0x5fa830`). PR propio. Se detalla al arrancar; lo que se sabe:
 
+**Estado publicado:** PR164 contiene el helper de luz radial y copia de ventana RGB con revisiones
+acotadas favorables, incluidos centros fraccionarios y restas anchas. Su head `29e646d` pasó CI Linux/Windows/formato;
+no está mergeado. No incluye la ola escalar de `0x5fbf60`, el pasto ni toda la cadencia compartida.
+La integración parcial de productores en Core no convierte esos alcances en completos.
+
 - **La luz:** el buffer dinámico (`0x7b4ccc4`), que `0x5fbf60` rearma en cada paso desde la luz sombreada en
   la ventana del rango; `0x5f9780` (el cuadrado ±r, la caída `(r − d) / r` y el piso en 0); `0x5f99e0`, que
   lo leen los objetos y el héroe; las fuentes de L2 (el fuego con r 4, las lámparas y las velas con r 3).
@@ -753,6 +790,12 @@ la aplicación al equipo y los efectos del héroe siguen pendientes.
 
 **Contrato:** 06 § Lo propio de Lorencia (las hojas, los pájaros, los peces, las partículas de los objetos,
 la fuente, el `0F`). PR propio. Se detalla al arrancar; lo que se sabe:
+
+**Estado publicado:** PR168 es un borrador con kernels del subconjunto contratado de partículas y
+adaptador CPU; sus cuatro P2 de cobertura/documentación están corregidos y revisados. No implementa
+Draw productivo, su conexión en Main, los servicios/recursos reales ni estado GL. La metadata CPU
+se publica aparte en PR169, con revisión CPU de Astra; adjudicación Opus sin P1/P2; CI nuevo pendiente tras tipar dos literales de test para MSVC. Hojas/clima, aves, peces y las demás
+familias requieren su propia composición y evidencia; un kernel no cierra L5 ni CL7.6.
 
 - **Qué:** las 80 hojas del mapa 0 (`0x52fa60`, `0x5301a0` y `0x5303a0`, que no corren con el héroe en el
   tile 4) y el `0F` como entrada de la lluvia (en Lorencia solo el sonido); los pájaros (`0x446120` y
@@ -839,6 +882,11 @@ propio, apilado sobre CL7.3 A. Implementación pura, sin integrar clic, movimien
 **Contrato:** 06 § Caminar (`MovePath` de `0x4ea270`, `MoveCharacterPosition` de `0x508a80`, la velocidad
 de `0x508940`, `SetPlayerWalk` de `0x4f37c0`; `SetPlayerStop` viene de la L3). PR propio. Se detalla al
 arrancar; lo que se sabe:
+
+**Estado publicado:** PR165 (`31a5d13`) conserva el estado de borrador. El paso/posición y sus
+correcciones tienen revisiones acotadas; CreateAngle R5 conserva la discrepancia binary64 descrita
+arriba. El backend de matemática retenida sigue en preparación auditada, sin entrega productiva.
+Esto no cierra acciones, consumidores de escena, P-C32 ni el perfil runtime universal.
 
 - **Qué:** en `GameLogic::CharacterMovement`: actualizar la celda lógica al empezar cada tramo;
   cuando q3 avanza el índice sin llegar, la celda coincide con ese índice al retornar y se adelanta

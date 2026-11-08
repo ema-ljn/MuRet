@@ -313,6 +313,15 @@ entraron con el cierre del login.
 
 ### Lorencia (CL7.R2)
 
+**Estado al 2026-11-08:** CL7 sigue abierta. `main` (`962747f`) incorpora la actualización documental
+PR160 e ItemState/Item.bmd de PR166. Los borradores PR163 (creación), PR165 (paso/posición), PR167
+(orden de aplicación, con ApplyWorld todavía en error explícito) y PR168 (kernels de partículas,
+sin Draw/Main productivos), junto al PR169 de metadata CPU, están publicados y no mergeados. El helper de luz de PR164 tiene revisión
+acotada favorable; su head `29e646d` pasó CI Linux/Windows/formato y tampoco está mergeado. Core conserva una
+composición privada parcial: sus 595 tests focales sin saltos no cierran el gameplay ni todos los
+mapas. El [estado por unidad y los hitos abiertos](../plans/2026-11-05-ola-cl7-lorencia.md#entregas-recientes-y-trabajo-aún-sin-integrar-2026-11-08-utc)
+distingue implementación, revisión, publicación e integración. No cambia el criterio funcional de cierre.
+
 Plan: [`2026-11-05-ola-cl7-lorencia.md`](../plans/2026-11-05-ola-cl7-lorencia.md). El barrido de Lorencia
 leyó la escena 5 en cuatro partes ([06](../../../Client/docs/research/06-render-escenas-y-ui.md#la-escena-del-juego),
 de La escena del juego a Los cambios de mapa): la entrada al mundo y la escena, la cámara, el caminar, y los

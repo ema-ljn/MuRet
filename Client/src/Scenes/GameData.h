@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/GateTable.h"
+#include "Data/Tables/ItemTable.h"
 #include "Data/Text/TextTable.h"
 
 #include <filesystem>
@@ -21,6 +22,8 @@ inline constexpr std::string_view FilterNameFile = "Local\\FilterName.bmd";
 inline constexpr std::string_view FilterFile = "Local\\Filter.bmd";
 // La tabla de 0x54a360, pedida por 0x61ccb0 en la carga (05 § Gate.bmd).
 inline constexpr std::string_view GateTableFile = "Gate.bmd";
+// Metadata de ítems que usa 0x54bf40, cargada una vez por 0x54b9e0.
+inline constexpr std::string_view ItemTableFile = "Local\\Item.bmd";
 
 struct GameData
 {
@@ -31,6 +34,8 @@ struct GameData
     std::vector<std::string> filterName;
     std::vector<std::string> filter;
     std::optional<Data::Tables::GateTable> gates;
+    // Q-C01: checksumMatches queda disponible para el aviso del integrador.
+    std::optional<Data::Tables::LoadedItemTable> items;
 };
 
 // Lo de WinMain antes de la escena 1: Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0), antes de las
@@ -40,5 +45,7 @@ struct GameData
 // los dos filtros, que 0x61ccb0 lee en la carga: uno que no está queda vacío (el original no
 // arranca sin él), y uno que no se lee o cuya suma no da es un error que lo nombra. Gate.bmd es
 // obligatorio: se carga con sus 256 registros; un error de ruta, lectura o formato lo nombra.
+// Item.bmd también es obligatorio; lee registros y checksum de un prefijo fijo, permite cola y
+// conserva el checksum no fatal (Q-C01) en items->checksumMatches.
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
 } // namespace Client::Scenes

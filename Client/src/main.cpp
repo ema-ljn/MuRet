@@ -21,6 +21,7 @@
 #include "Core/Log.h"
 #include "Core/StderrSink.h"
 #include "Core/TeeSink.h"
+#include "Data/Tables/ItemTable.h"
 #include "Input/InputState.h"
 #include "Network/Connection.h"
 #include "Network/FoxAntiObfuscation.h"
@@ -509,6 +510,10 @@ std::optional<SceneStartup> ReadSceneStartup(const App::ClientConfig& config, Co
     }
     // La cara es un texto del juego: no va al log (App/FontFiles.h).
     const Scenes::GameData& loaded = data.Value();
+    if (loaded.items && !loaded.items->checksumMatches)
+    {
+        log.Warning("Item.bmd: el checksum no coincide; se continúa con la tabla cargada");
+    }
     const std::string_view face = loaded.text ? loaded.text->Text(0).value_or("") : "";
     // La búsqueda, solo donde hay una lista de fuentes del sistema: en otro, ninguna, y el error de
     // ChooseFontFiles dice que el cliente no busca la cara.

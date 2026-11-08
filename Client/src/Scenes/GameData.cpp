@@ -5,6 +5,7 @@
 #include "Data/DataFile.h"
 #include "Data/DataPath.h"
 #include "Data/Tables/GateTable.h"
+#include "Data/Tables/ItemTable.h"
 #include "Data/Text/FilterWords.h"
 #include "Data/Text/TextTable.h"
 
@@ -50,6 +51,33 @@ Core::Expected<Data::Tables::GateTable, std::string> LoadGates(const std::filesy
     if (!table.HasValue())
     {
         return Core::Unexpected(std::format("{}: {}", GateTableFile, Data::DescribeDataError(table.Error())));
+    }
+    return std::move(table).Value();
+}
+
+// 0x54b9e0 lee un prefijo fijo y permite cualquier cola tras el checksum (Q-C01).
+Core::Expected<Data::Tables::LoadedItemTable, std::string> LoadItems(const std::filesystem::path& dataRoot)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, ItemTableFile, error);
+    if (error)
+    {
+        return Core::Unexpected(
+            std::format("no se pudo buscar {} en {}: {}", ItemTableFile, Core::PathText(dataRoot), error.message()));
+    }
+    if (!path)
+    {
+        return Core::Unexpected(std::format("no está {} en {}", ItemTableFile, Core::PathText(dataRoot)));
+    }
+    const auto file = Data::ReadDataFilePrefix(*path, Data::Tables::ItemTableSize + sizeof(std::uint32_t));
+    if (!file.HasValue())
+    {
+        return Core::Unexpected(std::format("no se pudo leer {}: {}", ItemTableFile, file.Error().message()));
+    }
+    auto table = Data::Tables::LoadItemTable(std::as_bytes(std::span(file.Value())));
+    if (!table.HasValue())
+    {
+        return Core::Unexpected(std::format("{}: {}", ItemTableFile, Data::DescribeDataError(table.Error())));
     }
     return std::move(table).Value();
 }
@@ -126,6 +154,12 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(gates).Error());
     }
     data.gates.emplace(std::move(gates).Value());
+    auto items = LoadItems(dataRoot);
+    if (!items.HasValue())
+    {
+        return Core::Unexpected(std::move(items).Error());
+    }
+    data.items.emplace(std::move(items).Value());
     return data;
 }
 } // namespace Client::Scenes

@@ -151,18 +151,18 @@ si no choca con eso; si choca, queda para más adelante.
 
 ## Orden y hitos
 
-### Entregas en revisión y trabajo aún sin integrar (2026-11-08 UTC)
+### Entregas recientes y trabajo aún sin integrar (2026-11-08 UTC)
 
-El inventario de `main` de la tabla siguiente continúa contrastado con `43b2f26`.
-Los PR de esta sección siguen abiertos: no se cuentan como incorporados ni como cierre de CL7.
+El inventario de `main` de la tabla siguiente está contrastado con `478d7a6`, tras el merge de PR166.
+PR166 ya está incorporado; los demás PR de esta sección siguen abiertos y no cierran CL7.
 
 | Entrega | Estado observado | Alcance que sigue abierto |
 | --- | --- | --- |
 | [PR163](https://github.com/ema-ljn/MuRet/pull/163), creación de objetos de todos los mapas | borrador; CI Linux/Windows aprobado en `ca99f73`; `126f0f6` añade diagnóstico no nulo | providers productivos, composición con Step/Draw y escenas; límites numéricos |
-| [PR164](https://github.com/ema-ljn/MuRet/pull/164), luz radial y ventana RGB | listo para revisión, CI aprobado | su integración no cierra pasto ni todo L4 |
+| [PR164](https://github.com/ema-ljn/MuRet/pull/164), luz radial y ventana RGB | CI aprobado; dictamen final verificable por recuperar o repetir | su integración no cierra pasto ni todo L4 |
 | [PR165](https://github.com/ema-ljn/MuRet/pull/165), paso y posición | borrador; correcciones `422b8b4`, 102 tests focales pasan sin saltos | diferencia nativa confirmada de un ULP en CreateAngle R5, revisión complementaria e integración |
-| [PR166](https://github.com/ema-ljn/MuRet/pull/166), ItemState e Item.bmd | listo para revisión, CI aprobado | aplicación completa de equipo, stats e ítems especiales F3/10 |
-| [PR167](https://github.com/ema-ljn/MuRet/pull/167), aplicación ordenada de eventos | borrador apilado sobre PR166; 2702 tests pasan sin saltos, incluidos 83 GL | ApplyWorld conserva error explícito; el aplicador productivo de mundo/perfil va en la entrega siguiente |
+| [PR166](https://github.com/ema-ljn/MuRet/pull/166), ItemState e Item.bmd | integrado en `main` por PR166 (`478d7a6`) | aplicación completa de equipo, stats e ítems especiales F3/10 |
+| [PR167](https://github.com/ema-ljn/MuRet/pull/167), aplicación ordenada de eventos | borrador contra `main`, tras integrar PR166; verificación previa del mismo árbol: 2702 tests sin saltos, incluidos 83 GL | ApplyWorld conserva error explícito; el aplicador productivo de mundo/perfil va en la entrega siguiente |
 
 La rama de integración ya aplica F3/03, F3/10, 1C y F3/04, conserva recursos y actores
 durables, dibuja y conecta clic, picking, camino y movimiento. Sigue en desarrollo y no
@@ -176,8 +176,8 @@ de llegada y RNG compartido que se están componiendo y revisando. Su existencia
 tests focales no sustituyen la validación conjunta de ramas, estado, orden y recursos de
 cada mapa. La comparación visual de neblina continúa pospuesta por pedido de Emanuel.
 
-Estado contrastado con `origin/main` **`43b2f26`**, el código y los merges de GitHub, 2026-11-07.
-PR144, PR146, PR149–159, PR161 y PR162 están mergeados. Los componentes de esas entregas ya están incorporados
+Estado contrastado con `main` **`478d7a6`**, el código y los merges de GitHub, 2026-11-08 UTC.
+PR144, PR146, PR149–159, PR161, PR162 y PR166 están mergeados. Los componentes de esas entregas ya están incorporados
 en `main`; sus consumidores pendientes se enumeran por separado.
 «Componente puro» no significa que la funcionalidad esté integrada en la escena.
 
@@ -197,7 +197,7 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 | CL7.P | fase documentada en [PR144](https://github.com/ema-ljn/MuRet/pull/144) e incremento modular incorporado por [PR151](https://github.com/ema-ljn/MuRet/pull/151); abierta | estado lógico inicial, fase nativa, nesting y orden observable de RNG; sin portar protecciones |
 | CL7.L1 | lector F3/03 incorporado por [PR149](https://github.com/ema-ljn/MuRet/pull/149) y procedencia del descifrado por [PR154](https://github.com/ema-ljn/MuRet/pull/154); recepción ordenada F3/03–F3/10 incorporada por [PR162](https://github.com/ema-ljn/MuRet/pull/162) | aplicación con contexto histórico y consumo antes del frame, espera retenida, InWorld, carga del mapa recibido, héroe y pase 640×432 |
 | CL7.L2 | modelos con nombre incorporados por [PR142](https://github.com/ema-ljn/MuRet/pull/142), margen individual/Bridge01 por [PR150](https://github.com/ema-ljn/MuRet/pull/150) | creación/paso/dibujo completos de 2.870 objetos y orden completo del pase |
-| CL7.L3 | lector puro F3/10 incorporado por [PR159](https://github.com/ema-ljn/MuRet/pull/159), contrastado con siete capturas reales; recepción ordenada incorporada por [PR162](https://github.com/ema-ljn/MuRet/pull/162) | decoder semántico de ítems, inicialización/aplicación, equipo del mundo, matriz de parado, aparición y zonas seguras/mascota |
+| CL7.L3 | lector puro F3/10 incorporado por [PR159](https://github.com/ema-ljn/MuRet/pull/159), contrastado con siete capturas reales; recepción ordenada incorporada por [PR162](https://github.com/ema-ljn/MuRet/pull/162); ItemState y carga de Item.bmd incorporados por [PR166](https://github.com/ema-ljn/MuRet/pull/166) | decodificación/aplicación completa F3/10, equipo y stats del mundo, matriz de parado, aparición y zonas seguras/mascota |
 | CL7.L4 | pendiente | luz dinámica compartida y pasto, incluidos carga/RNG y vértices |
 | CL7.L5 | pendiente | hojas/clima, pájaros, peces, fuegos y fuente |
 | CL7.4 A | componente puro integrado por [PR143](https://github.com/ema-ljn/MuRet/pull/143) | caminar a distancia cero implementado; consumidor/RNG pendientes en4E/P. La búsqueda por radio queda fuera de ese contrato; no confundir pruebas dirigidas con los 171 caminos del cable |
@@ -213,9 +213,9 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 | CL7.6 y arrastres | nubes integradas por PR147; efectos restantes parciales | neblina visual pospuesta; fuego, selección, luces, armas y casco/polvo siguen abiertos |
 | Cierre | abierto | barrido transversal con ramas, estado, orden, transiciones y evidencia nativa pendiente |
 
-### Componentes incorporados (2026-11-07)
+### Componentes incorporados (2026-11-08)
 
-Los siguientes alcances de PR149–155, PR157–159, PR161 y PR162 ya forman parte del código de `main`.
+Los siguientes alcances de PR149–155, PR157–159, PR161, PR162 y PR166 ya forman parte del código de `main`.
 PR156 incorporó la actualización documental previa del roadmap.
 
 - [PR149](https://github.com/ema-ljn/MuRet/pull/149): lector puro completo F3/03, 23 campos;
@@ -713,7 +713,8 @@ objetos, sus efectos y el pase completo de la escena. Esta entrega no cierra L2 
 `0x61f`). PR propio. Se detalla al arrancar; lo que se sabe:
 
 **Estado incorporado:** PR159 aporta el lector completo y su golden de siete capturas;
-PR162 conserva la recepción F3/10 en orden con F3/03. La semántica de los siete bytes opacos,
+PR162 conserva la recepción F3/10 en orden con F3/03. PR166 incorpora ItemState, su inicializador
+y la carga de Item.bmd; no completa por sí solo el aplicador de inventario. La semántica de los siete bytes opacos,
 la aplicación al equipo y los efectos del héroe siguen pendientes.
 
 - **El equipo:** `Protocol::Character::ReadInventoryList` del `F3 10` (C4, entradas de 8 bytes: el lugar y

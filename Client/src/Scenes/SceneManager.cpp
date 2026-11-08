@@ -62,7 +62,7 @@ Core::Expected<void, std::string> SceneManager::Start(SceneId first)
 
 void SceneManager::Poll()
 {
-    if (m_failure || !m_pollNetwork)
+    if (m_pollFailed || !m_pollNetwork)
     {
         return;
     }

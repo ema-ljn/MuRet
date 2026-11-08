@@ -47,7 +47,8 @@ public:
     // está Request. Un error anterior de Poll es terminal, incluso antes de la primera escena:
     // devuelve el primer diagnóstico y no entra. Un Enter fallido sí permite reintentar Start.
     Core::Expected<void, std::string> Start(SceneId first);
-    // La red, también minimizada y antes de Start; con Failure no vuelve a llamarla.
+    // La red, también minimizada y antes de Start; sólo un fallo de Poll la detiene.
+    // Un Enter fallido no corta la red mientras el host decide reintentar Start.
     void Poll() override;
     // El paso de la escena y, si pide otra (Next), Request. Un paso sin pedido corta la seguidilla
     // de un pedido rechazado: si vuelve, se avisa otra vez.
@@ -62,7 +63,7 @@ public:
 
     // La escena de ahora; vacío antes de Start o después de un Enter que falló.
     [[nodiscard]] std::optional<SceneId> Current() const;
-    // El primer error de Enter o de aplicación de la sesión, o vacío.
+    // El error vigente de Enter o el primer fallo terminal de Poll (que gana al de Enter), o vacío.
     [[nodiscard]] const std::optional<std::string>& Failure() const;
     // Si la escena de ahora pide cerrar el juego (IScene::WantsToQuit); sin escena, false.
     [[nodiscard]] bool WantsToQuit() const;

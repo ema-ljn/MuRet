@@ -3143,6 +3143,9 @@ TEST(ServerSessionTest, SynchronousDeliveryCreateAndDeleteFailuresKeepTheirPrevi
         }
         else
         {
+            tested.session.ChooseCharacter(std::uint8_t{0});
+            ASSERT_NE(tested.session.ChosenCharacter(), nullptr);
+            EXPECT_EQ(tested.session.ChosenCharacter()->name, NameBytes("char0001"));
             tested.session.CreateCharacter("char0003", 0);
             tested.socket.reads = {CreatedReply(1)};
         }
@@ -3152,6 +3155,36 @@ TEST(ServerSessionTest, SynchronousDeliveryCreateAndDeleteFailuresKeepTheirPrevi
         EXPECT_EQ(tested.session.State(), SessionState::Failed);
         EXPECT_EQ(tested.session.Failure(), SessionFailure::ApplicationFailed);
         EXPECT_EQ(tested.eventSink.characters.size(), 1u);
+        // El error detiene el sufijo; no revierte los stores anteriores al callback.
+        EXPECT_EQ(tested.session.CreateResult(), deleting ? std::nullopt : std::optional<std::uint8_t>{1});
+        EXPECT_EQ(tested.session.DeleteResult(), deleting ? std::optional<std::uint8_t>{1} : std::nullopt);
+        ASSERT_TRUE(tested.session.Characters().has_value());
+        const auto& characters = tested.session.Characters()->characters;
+        ASSERT_EQ(characters.size(), deleting ? 1u : 3u);
+        EXPECT_EQ(characters[0].slot, deleting ? 3 : 0);
+        EXPECT_EQ(characters[0].name, NameBytes(deleting ? "char0002" : "char0001"));
+        if (deleting)
+        {
+            EXPECT_EQ(tested.session.ChosenCharacter(), nullptr); // Su entrada ya no existe.
+        }
+        else
+        {
+            EXPECT_EQ(characters[1].slot, 3);
+            EXPECT_EQ(characters[1].name, NameBytes("char0002"));
+            const auto& created = characters[2];
+            EXPECT_EQ(created.slot, 1);
+            EXPECT_EQ(created.name, NameBytes("char0003"));
+            EXPECT_EQ(created.level, 1);
+            EXPECT_EQ(created.flags, 0);
+            EXPECT_EQ(created.classByte, 0x20);
+            EXPECT_EQ(created.guildStatus, 0xff);
+            EXPECT_TRUE(created.withoutEquipment);
+            EXPECT_EQ(created.equipment, (std::array<std::byte, Client::Protocol::Character::EquipmentSize>{}));
+            // Se vuelve a consultar: el alta puede haber realocado el vector.
+            ASSERT_NE(tested.session.ChosenCharacter(), nullptr);
+            EXPECT_EQ(tested.session.ChosenCharacter()->slot, 0);
+            EXPECT_EQ(tested.session.ChosenCharacter()->name, NameBytes("char0001"));
+        }
     }
 }
 

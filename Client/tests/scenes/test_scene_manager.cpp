@@ -547,6 +547,57 @@ TEST(SceneManagerTest, AFailedEnterStopsWithItsError)
     EXPECT_TRUE(tested.stage.target.frames.empty());
 }
 
+// Un error de Enter no corta la sesión independiente mientras el host decide reintentar.
+TEST(SceneManagerTest, PollContinuesAfterFailedEnterAndAnEnterRetryStillSucceeds)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+    tested.stage.failingEnter = SceneId::Login;
+    tested.manager.Request(SceneId::Login);
+    ASSERT_TRUE(tested.manager.Failure().has_value());
+    const auto enterFailure = tested.manager.Failure();
+    tested.manager.Poll();
+    tested.manager.Poll();
+    EXPECT_EQ(tested.polls, 2);
+    EXPECT_EQ(tested.manager.Failure(), enterFailure);
+    tested.stage.failingEnter.reset();
+    ASSERT_TRUE(tested.manager.Start(SceneId::Login).HasValue());
+    EXPECT_EQ(tested.manager.Current(), SceneId::Login);
+    EXPECT_EQ(tested.manager.Failure(), std::nullopt);
+    tested.manager.Poll();
+    EXPECT_EQ(tested.polls, 3);
+}
+
+TEST(SceneManagerTest, PollFailureAfterFailedEnterWinsAndRemainsTerminal)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+    tested.stage.failingEnter = SceneId::Login;
+    tested.manager.Request(SceneId::Login);
+    ASSERT_TRUE(tested.manager.Failure().has_value());
+    const auto events = tested.stage.journal.size();
+    tested.pollFailure = "falló Poll después de Enter";
+    tested.manager.Poll();
+    EXPECT_EQ(tested.polls, 1);
+    EXPECT_EQ(tested.manager.Failure(), "falló Poll después de Enter");
+    tested.stage.failingEnter.reset();
+    const auto retried = tested.manager.Start(SceneId::Login);
+    ASSERT_FALSE(retried.HasValue());
+    EXPECT_EQ(retried.Error(), "falló Poll después de Enter");
+    tested.pollFailure = "otro fallo de Poll";
+    tested.manager.Poll();
+    tested.manager.Step(tested.input);
+    tested.manager.Render(0.5f);
+    tested.manager.Request(SceneId::Loading);
+    EXPECT_TRUE(tested.manager.HoldsTheLastFrame());
+    EXPECT_EQ(tested.manager.Failure(), "falló Poll después de Enter");
+    EXPECT_EQ(tested.polls, 1);
+    EXPECT_EQ(tested.manager.Current(), std::nullopt);
+    EXPECT_EQ(tested.stage.journal.size(), events);
+    EXPECT_EQ(tested.stage.created[SceneId::Login], 1);
+    EXPECT_TRUE(tested.stage.target.frames.empty());
+}
+
 TEST(SceneManagerTest, AFailedFirstEnterFailsTheStart)
 {
     Harness tested;

@@ -314,7 +314,7 @@ TEST(TerrainLightingTest, StoresScaledCoordinatesBeforeTheDistanceCalculation)
 }
 
 // 005f97f6..005f97ff resta la coordenada de celda al X escalado float32, sin perder su fracción.
-// Centro X=10,5, radio2: distancias0,5 y1,5 dan pesos exactos3/4 y1/4.
+// Centro X=10,5, radio 2: distancias 0,5 y 1,5 dan pesos exactos 3/4 y 1/4.
 TEST(TerrainLightingTest, MeasuresRadialDistanceFromTheFractionalX)
 {
     auto destination = std::make_unique<TerrainLighting>();
@@ -336,6 +336,23 @@ TEST(TerrainLightingTest, MeasuresRadialDistanceFromTheFractionalNegativeY)
     EXPECT_EQ(destination->cells[CellIndex(10, 244)], (TerrainLightColor{1.0f, 2.0f, 3.0f}));
     EXPECT_EQ(destination->cells[CellIndex(10, 247)], (TerrainLightColor{1.0f, 2.0f, 3.0f}));
     EXPECT_EQ(destination->cells[CellIndex(10, 248)], TerrainLightColor{});
+}
+
+// sx = 10401874 * 2^-25; hacia x=-1, dx = 43956306 * 2^-25 requiere más de 24 bits.
+// Radio 2: el peso exacto es 11576279 * 2^-25. Una resta F32 daría 0x3eb0a3d8.
+TEST(TerrainLightingTest, KeepsTheFractionalXDifferenceWide)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    AddTerrainLight(*destination, 31.0f, 0.0f, {1.0f, 0.0f, 0.0f}, 2);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(255, 0)][0]), 0x3eb0a3d7u);
+}
+
+// La misma diferencia en Y observa el temporal conservado durante toda la fila.
+TEST(TerrainLightingTest, KeepsTheFractionalYDifferenceWide)
+{
+    auto destination = std::make_unique<TerrainLighting>();
+    AddTerrainLight(*destination, 0.0f, 31.0f, {1.0f, 0.0f, 0.0f}, 2);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(0, 255)][0]), 0x3eb0a3d7u);
 }
 
 // El radio 8 tiene peso 1/4 a distancia 6 y envuelve x e y negativos.
@@ -376,8 +393,9 @@ TEST(TerrainLightingTest, MultipliesTheColorByTheStoredFloatWeight)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(destination->cells[CellIndex(11, 11)][0]), 0u);
 }
 
-// Radio 257 visita (0,0) cinco veces: centro y cuatro cardinales a 256, con peso F32 1/257.
-// La suma secuencial almacenada da bits 0x3f81fe01; no se deduplica ni se capa el radio a 256.
+// El barrido de radio 257 alcanza (0,0) nueve veces; cinco visitas tienen peso positivo:
+// centro y cuatro cardinales a 256, con peso F32 1/257. La suma almacenada da bits 0x3f81fe01;
+// no se deduplica ni se capa el radio a 256.
 TEST(TerrainLightingTest, ALongRadiusAccumulatesRepeatedVisitsToTheSameCell)
 {
     auto destination = std::make_unique<TerrainLighting>();

@@ -180,7 +180,8 @@ void AddTerrainLight(TerrainLighting& destination, float worldX, float worldY,
                      const Data::Terrain::TerrainLightColor& color, std::int32_t radius)
 {
     const float radiusFloat = static_cast<float>(radius);
-    // Los FSTP preceden a __ftol: 100 * float(0,01) debe redondear a 1 antes de truncarse.
+    // Los FSTP materializan cellX/Y antes de __ftol y de la distancia: 100 * float(0,01) redondea a 1.
+    // dx/dy usan esos valores float32 con su fracción, no el producto ancho ni el centro truncado.
     const float cellX = static_cast<float>(static_cast<double>(worldX) * static_cast<double>(CellsPerUnit));
     const float cellY = static_cast<float>(static_cast<double>(worldY) * static_cast<double>(CellsPerUnit));
     const auto centerX = static_cast<std::int32_t>(cellX);

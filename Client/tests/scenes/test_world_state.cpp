@@ -14,6 +14,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <type_traits>
 
 namespace
@@ -130,7 +131,7 @@ TEST(WorldStateTest, PreparingUsesTheActorAndPreservesOwnSuffixAndEquipment)
     actor.level = 0x3456;
     actor.appearance.characterClass = 0x0c;
     actor.appearance.skin = 2;
-    actor.appearance.pet = 0x1c15;
+    actor.appearance.pet = std::uint16_t{0x1c15};
     auto& own = world.OwnCharacter();
     own.equipment[4].id = 0x1234;
     own.equipment[4].byte0a = 0x9a;

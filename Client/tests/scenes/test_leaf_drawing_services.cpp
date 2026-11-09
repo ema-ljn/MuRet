@@ -283,7 +283,7 @@ TEST_F(LeafDrawingServicesTest, AliasedPositionColorAndMetadataAreConsumedAtDiff
     {
         EXPECT_TRUE(m_library.metadataKeys.empty());
         shared = {0.125f, 0.5f, 0.75f};
-        m_library.components = 2; // El fallback no exige RGBA: es cualquier byte distinto de3.
+        m_library.components = std::uint8_t{2}; // El fallback no exige RGBA: es cualquier byte distinto de3.
         m_view[3] = 1000;
     };
     m_backend.afterVertex = [&] { shared = {900, 900, 900}; };
@@ -688,7 +688,7 @@ TEST_F(LeafDrawingServicesTest, ACacheHitStillReadsChangedColorMetadataWithoutAn
 {
     Alive(0);
     ASSERT_TRUE(Draw().HasValue());
-    m_library.components = 4; // Perturbación de metadata CPU, sin carga/liberación física.
+    m_library.components = std::uint8_t{4}; // Perturbación de metadata CPU, sin carga/liberación física.
     ASSERT_TRUE(Draw().HasValue());
     EXPECT_EQ(m_library.bindingKeys, (std::vector<std::int32_t>{100}));
     EXPECT_EQ(m_library.metadataKeys, (std::vector<std::int32_t>{100, 100}));

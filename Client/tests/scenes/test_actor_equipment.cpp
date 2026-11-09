@@ -21,8 +21,9 @@
 #include <optional>
 #include <string>
 
-// Client::Scenes::ApplyActorEquipment: 0x512a30 sin 0x550d10 (06, "El equipo propio en el personaje";
-// 04, "El F3 10"). Los valores salen del ASM cotejado con el PE c32bbd5f; ninguno de una corrida.
+// Client::Scenes::ApplyActorEquipment: 0x512a30, con 0x550d10 hasta su primera llamada, 0x40e1b0 (06, "El
+// equipo propio en el personaje" y "Los stats del registro propio"; 04, "El F3 10"). Los valores salen del
+// ASM cotejado con el PE c32bbd5f; ninguno de una corrida.
 namespace
 {
 using Client::Render::Models::CrtRandom;
@@ -109,7 +110,7 @@ TEST_F(ActorEquipmentTest, ProjectsTheNineSlotsItReads)
     ActorState actor = DressedInUntouched(1);
     const auto applied = Apply(actor);
     ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x550d10"), std::string::npos);
+    EXPECT_NE(applied.Error().find("0x40e1b0"), std::string::npos);
 
     const auto expectedModel = [this](std::size_t slot)
     { return static_cast<std::uint16_t>(m_own.equipment[slot].id + 0x212); };
@@ -270,7 +271,7 @@ TEST_F(ActorEquipmentTest, AStopErrorStopsBeforeTheClothes)
 }
 
 // La ropa sigue con 0x4053f0, 0x512930, 0x505820 con el héroe publicado y 0x550d10: MuRet corta en la
-// primera que no tiene, con lo de antes hecho. 0x4053f0 solo actúa en los mapas 18 a 23.
+// primera que no tiene, con lo de antes hecho. 0x550d10 corta en su primera llamada, 0x40e1b0.
 TEST_F(ActorEquipmentTest, TheClothesReachAnExplicitFrontier)
 {
     // 0x1012 es un casco abierto: 0x512930 pone la cabeza de la clase.
@@ -281,6 +282,7 @@ TEST_F(ActorEquipmentTest, TheClothesReachAnExplicitFrontier)
     const auto stats = Apply(someone);
     ASSERT_FALSE(stats.HasValue());
     EXPECT_NE(stats.Error().find("0x550d10"), std::string::npos);
+    EXPECT_NE(stats.Error().find("0x40e1b0"), std::string::npos);
     EXPECT_EQ(someone.head, 0x2212 + 2);
     EXPECT_EQ(someone.scale, 0.86f);
     EXPECT_EQ(m_accesses, 0);
@@ -293,14 +295,86 @@ TEST_F(ActorEquipmentTest, TheClothesReachAnExplicitFrontier)
     EXPECT_EQ(hero.head, 0x2212 + 5);
     // La clase 5 no tiene caso en las tablas de 0x512930: la escala queda.
     EXPECT_EQ(hero.scale, 7.0f);
+}
 
-    m_runtime.map = 18;
-    ActorState chaos = DressedInUntouched(0);
-    const auto costume = Apply(chaos);
-    ASSERT_FALSE(costume.HasValue());
-    EXPECT_NE(costume.Error().find("0x4053a0"), std::string::npos);
-    EXPECT_EQ(chaos.body[0].model, 0x1012);
-    EXPECT_EQ(chaos.head, UntouchedModel);
+// 0x550d10 (0x512ef5) corre después de la cabeza y antes del cierre, y corta antes de tocar el registro:
+// 0x54ef00 no puso en 0 los WORD de +0x2a, la cola no escribió nada y el único rand() es el del cierre de
+// 0x512a30.
+TEST_F(ActorEquipmentTest, TheStatsCutBeforeTouchingTheOwnRecord)
+{
+    const std::uint32_t seed = QuietSeed();
+    m_own.word2a = 0x2a2a;
+    m_own.word36 = 0x3636;
+    m_own.wordef8 = 0xef8;
+    m_own.bytef03 = 3;
+    ActorState actor = DressedInUntouched(0);
+
+    const auto applied = Apply(actor);
+
+    ASSERT_FALSE(applied.HasValue());
+    EXPECT_NE(applied.Error().find("0x40e1b0"), std::string::npos);
+    EXPECT_EQ(m_own.word2a, 0x2a2a);
+    EXPECT_EQ(m_own.word36, 0x3636);
+    EXPECT_EQ(m_own.wordef8, 0xef8);
+    EXPECT_EQ(m_own.bytef03, 3);
+    EXPECT_EQ(actor.head, NoItemModel);
+    EXPECT_EQ(m_accesses, 0);
+    EXPECT_EQ(m_random.State(), AfterDraws(seed, Client::Render::Models::OwnRecordCloseRandoms).State());
+}
+
+// 0x4053f0 en los mapas 18 a 23, después de la ropa: 0x4053a0 deja sin ítem las manos, las alas y la
+// mascota, con el nivel en 0 y el +0x1b de las manos en 0 (no el de las alas ni el de la mascota), y la
+// clase (+0x1d4 & 7) elige el arma: 0xc17 a la derecha de la 0, 0x222 en las dos manos de la 1, la 3 y
+// la 4, 0xa25 a la derecha de la 2 y nada en la 5 a la 7. Sigue con 0x512930 y 0x550d10.
+TEST_F(ActorEquipmentTest, Maps18To23LeaveOnlyTheWeaponOfTheClass)
+{
+    struct Armed
+    {
+        std::uint16_t right;
+        std::uint16_t left;
+    };
+    const std::array<Armed, 8> byClass = {Armed{0xc17, NoItemModel},
+                                          Armed{0x222, 0x222},
+                                          Armed{0xa25, NoItemModel},
+                                          Armed{0x222, 0x222},
+                                          Armed{0x222, 0x222},
+                                          Armed{NoItemModel, NoItemModel},
+                                          Armed{NoItemModel, NoItemModel},
+                                          Armed{NoItemModel, NoItemModel}};
+    m_own.equipment[8].id = 0x1c15 - 0x212;
+    for (const std::int32_t map : {18, 23})
+    {
+        m_runtime.map = map;
+        for (std::uint8_t characterClass = 0; characterClass < 16; ++characterClass)
+        {
+            SCOPED_TRACE(testing::Message() << "mapa " << map << ", clase " << int{characterClass});
+            ActorState actor = DressedInUntouched(characterClass);
+            actor.previousHad1c15 = true;
+            const auto applied = Apply(actor);
+            ASSERT_FALSE(applied.HasValue());
+            EXPECT_NE(applied.Error().find("0x40e1b0"), std::string::npos);
+
+            const Armed& armed = byClass[static_cast<std::size_t>(characterClass & 7)];
+            EXPECT_EQ(actor.hands[0].model, armed.right);
+            EXPECT_EQ(actor.hands[1].model, armed.left);
+            for (const ActorItemPart& hand : actor.hands)
+            {
+                EXPECT_EQ(hand.level, 0);
+                EXPECT_EQ(hand.flags1b, 0);
+                EXPECT_EQ(hand.flags1c, Untouched);
+            }
+            EXPECT_EQ(actor.wings.model, NoItemModel);
+            EXPECT_EQ(actor.wings.level, 0);
+            EXPECT_EQ(actor.wings.flags1b, Untouched);
+            EXPECT_EQ(actor.pet.model, NoItemModel);
+            EXPECT_EQ(actor.pet.level, 0);
+            EXPECT_EQ(actor.pet.flags1b, Untouched);
+            EXPECT_FALSE(actor.previousHad1c15);
+            // La ropa de antes queda, y 0x512930 corre después.
+            EXPECT_EQ(actor.body[0].model, m_own.equipment[2].id + 0x212);
+            EXPECT_EQ(actor.head, NoItemModel);
+        }
+    }
 }
 
 // 0x512a30 escribe el word318 entero: lo que la selección guarda de él se pone al día.

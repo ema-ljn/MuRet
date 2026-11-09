@@ -105,7 +105,7 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
 
   La respuesta S->C es el handler `A9` (`0x4e4ca1` → `0x421db0`): guarda por `pkt[3]` (el tipo) el
   nivel de `pkt[6]` y un DWORD de `pkt[8]` en la tabla de `0x723960`, y recalcula los atributos
-  (`0x550d10`). Por todo eso es *inferido* (alto) que el `A9` pide la información de la mascota,
+  (`0x550d10`, [06](06-render-escenas-y-ui.md#los-stats-del-registro-propio)). Por todo eso es *inferido* (alto) que el `A9` pide la información de la mascota,
   como la llama OpenMU: el tipo 0 es el cuervo oscuro (`0x1a05`, el ítem 13, 5) y el 1 el caballo
   oscuro (`0x1a04`, el 13, 4); el lugar 0 es el inventario, y las casillas 1 y 8 son la mano
   izquierda, donde va el cuervo, y la de la mascota, donde va el caballo. En el cable, después

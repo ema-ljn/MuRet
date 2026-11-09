@@ -10,6 +10,7 @@ namespace Client::Render
 {
 void ModelBatch::Begin(const Pass3D& pass)
 {
+    ++m_stateSerial;
     m_pass = pass;
     m_state = ModelDrawState{};
     m_vertices.clear();
@@ -18,12 +19,21 @@ void ModelBatch::Begin(const Pass3D& pass)
 
 void ModelBatch::SetState(const ModelDrawState& state)
 {
+    ++m_stateSerial;
     m_state = state;
+}
+
+void ModelBatch::ApplyOperation(const ModelDrawState& state, ModelStateOperation operation)
+{
+    ++m_stateSerial;
+    m_state = state;
+    m_commands.push_back(ModelDrawCommand{state, m_vertices.size(), 0, operation});
 }
 
 void ModelBatch::Triangle(const std::array<ModelVertex, 3>& corners)
 {
-    if (m_commands.empty() || m_commands.back().state != m_state)
+    if (m_commands.empty() || m_commands.back().state != m_state ||
+        m_commands.back().operation != ModelStateOperation::Draw)
     {
         m_commands.push_back(ModelDrawCommand{m_state, m_vertices.size(), 0});
     }

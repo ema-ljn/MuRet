@@ -50,6 +50,9 @@ private:
     void BeginPass(const ModelBatch& batch) const;
     // La mezcla, el culling, la máscara y el depth test de un tramo.
     void SetDrawState(const ModelDrawState& state) const;
+    void SetBlend(ModelBlend blend) const;
+    void SetOperation(const ModelDrawState& state, ModelStateOperation operation) const;
+    void SetViewProjection(const ModelBatch& batch, ModelCoordinateSpace space) const;
 
     const Platform::GlFunctions* m_gl;
     GlShader m_shader;

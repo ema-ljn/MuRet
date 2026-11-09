@@ -89,7 +89,7 @@ protected:
     {
         m_world.Runtime().drawingEnabled = true;
         m_world.Runtime().map = 8; // No ejecuta familias Leaf ajenas a este fixture.
-        m_world.Runtime().worldTime = 0;
+        m_world.Runtime().worldTime = 0.0f;
         m_world.Actors()[0].dying = true;
     }
     Scenes::SceneContext Context()
@@ -184,7 +184,7 @@ TEST_F(ParticleRuntimeIntegrationTest, EachTickReadsPublishedTimeAndConsumesTheC
     m_cloth.openCounterAccesses = 1; // Excluye los cierres CRT de tela; quedan dos draws wind + cinco walks.
     auto& p = m_world.Resources()->particles.All()[17];
     p = {.alive = true, .type = 0x5f2, .subtype = 6, .life = 1, .rotation = 13, .verticalSpeed = 7};
-    m_world.Runtime().worldTime = 1000;
+    m_world.Runtime().worldTime = 1000.0f;
     Scenes::GameScene scene(context, nullptr, &m_models);
     scene.Step(Input::InputState{});
     ASSERT_FALSE(scene.Failure());
@@ -197,7 +197,7 @@ TEST_F(ParticleRuntimeIntegrationTest, EachTickReadsPublishedTimeAndConsumesTheC
         static_cast<void>(expected.Next());
     EXPECT_EQ(m_cloth.random.State(), expected.State());
     p.alive = true;
-    m_world.Runtime().worldTime = 2000;
+    m_world.Runtime().worldTime = 2000.0f;
     scene.Step(Input::InputState{});
     ASSERT_FALSE(scene.Failure());
     ASSERT_EQ(math.arguments.size(), 4u);
@@ -263,7 +263,7 @@ protected:
         m_world = std::make_unique<Scenes::WorldState>(*m_textures);
         m_world->Runtime().map = 2;
         m_world->Runtime().drawingEnabled = true;
-        m_world->Runtime().worldTime = 1234;
+        m_world->Runtime().worldTime = 1234.0f;
         m_world->Actors()[0].dying = true;
         m_world->Actors()[0].position = {13350, 12750, 300};
         std::vector<std::string> skipped;

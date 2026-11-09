@@ -348,7 +348,7 @@ bool Drawing::Map(bool& handled)
     if (map >= 11 && map <= 17 && (type == 0x1c || type == 0x1d))
     {
         if (!Begin(m_object.alpha) || !D(2) || !End() || !m_op.Run(m_context.services.AlphaBlend(1)) ||
-            !m_op.Run(m_context.services.Color(0, 0, 0, 1)) || !Ground())
+            !m_op.Run(m_context.services.Color(0.0f, 0.0f, 0.0f, 1.0f)) || !Ground())
             return false;
         const auto blend = m_object.state.blendMesh;
         m_object.state.hiddenMesh = 2;

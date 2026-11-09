@@ -336,7 +336,7 @@ TEST_F(GlFrameTargetTest, GameSceneDaviasUsesTheDurableTargetAndPublishedViewAcr
     Client::Scenes::WorldState world(*m_textures);
     world.Runtime().map = 2;
     world.Runtime().drawingEnabled = true;
-    world.Runtime().worldTime = 40;
+    world.Runtime().worldTime = 40.0f;
     world.Actors()[0].dying = true;
     world.Actors()[0].position = {13350, 12750, 300};
     std::vector<std::string> skipped;

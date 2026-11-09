@@ -187,8 +187,8 @@ TEST(GameSceneTest, ParticleStepBorrowsTheRawWorldMapAndRunsTheExpirationTailOnc
         Client::Scenes::WorldState world(textures);
         world.Runtime().drawingEnabled = true;
         world.Runtime().map = map;
-        world.Runtime().worldTime = 40; // qT ya publicado, separado del reloj relativo del fixture.
-        world.Actors()[0].dying = true; // MoveHero retorna y todos los actores están inactivos.
+        world.Runtime().worldTime = 40.0f; // qT ya publicado, separado del reloj relativo del fixture.
+        world.Actors()[0].dying = true;    // MoveHero retorna y todos los actores están inactivos.
         auto& particle = world.Resources()->particles.All()[0];
         particle = Client::World::Particle{.alive = true,
                                            .type = 0x68,
@@ -239,7 +239,7 @@ TEST(GameSceneTest, ParticleStepReportsAnUnsupportedSlotAfterItsPrefixAndBeforeT
     FakeTextureStore textures;
     Client::Scenes::WorldState world(textures);
     world.Runtime().drawingEnabled = true;
-    world.Runtime().worldTime = 40;
+    world.Runtime().worldTime = 40.0f;
     world.Actors()[0].dying = true;
     auto slots = world.Resources()->particles.All();
     slots[0] = Client::World::Particle{

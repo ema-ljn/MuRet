@@ -56,11 +56,11 @@ TEST(LeafTimeBindingTest, SamplingFailurePreservesThePublishedTimeAndPropagatesT
     ASSERT_FALSE(result.HasValue());
     EXPECT_EQ(result.Error(), std::make_error_code(std::errc::io_error));
     EXPECT_FALSE(world.Runtime().worldTime);
-    world.Runtime().worldTime = 80;
+    world.Runtime().worldTime = 80.0f;
     result = world.SampleWorldTime(ticks);
     ASSERT_FALSE(result.HasValue());
     EXPECT_EQ(result.Error(), std::make_error_code(std::errc::io_error));
-    EXPECT_EQ(world.Runtime().worldTime, std::optional<float>(80));
+    EXPECT_EQ(world.Runtime().worldTime, std::optional<float>(80.0f));
     EXPECT_EQ(ticks.calls, 2);
 }
 } // namespace

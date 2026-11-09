@@ -389,7 +389,7 @@ TEST_F(GameSceneLeavesTest, FirstUnpublishedFrameKeepsTheImageFirstWaveUntilTheE
 }
 TEST_F(GameSceneLeavesTest, PublishedZeroTimeRemainsAValidSample)
 {
-    m_world.Runtime().worldTime = 0;
+    m_world.Runtime().worldTime = 0.0f;
     Client::World::PortableLeafWaveEvaluator evaluator;
     Client::Scenes::GameScene scene(Context(&evaluator), nullptr);
     scene.Step(Client::Input::InputState{});

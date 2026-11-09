@@ -4,66 +4,106 @@
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "App/WorldEvent.h"
+#include "Core/ILogSink.h"
+#include "Core/Log.h"
+#include "Data/Models/PlayerModels.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Render/Models/Cloth.h"
+#include "Scenes/LoginModels.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/WorldEntry.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+
+#include "support/PlayerActors.h"
+#include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
 
 #include <gtest/gtest.h>
 
-#include <array>
 #include <string>
 
 namespace
 {
-TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
+// El aplicador con lo suyo: sin datos (dataRoot vacío) y con Player.bmd.
+struct Applier
 {
+    Applier()
+    {
+        models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+    }
+
     Client::Scenes::WorldState world;
-    Client::Scenes::SelectionState selection(world);
+    Client::Scenes::SelectionState selection{world};
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
-    Client::Scenes::SessionEventApplier applier(selection, camera, input);
+    Client::Render::Models::ClothWorld cloth;
+    Client::Scenes::SingleModelLibrary models;
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    Client::Scenes::SessionEventApplier applier{Client::Scenes::WorldEntryResources{.world = world,
+                                                                                    .selection = selection,
+                                                                                    .dataRoot = {},
+                                                                                    .cloth = cloth,
+                                                                                    .camera = camera,
+                                                                                    .cameraInput = input,
+                                                                                    .models = models,
+                                                                                    .log = log}};
+};
+
+TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
+{
+    Applier tested;
     Client::Tests::LoggedInSession online;
     const Client::App::CharacterEvent event = Client::App::CharacterListReceived{};
-    ASSERT_TRUE(applier.ApplyCharacter(event, online.session).HasValue());
-    EXPECT_TRUE(selection.HasReceivedList());
+    ASSERT_TRUE(tested.applier.ApplyCharacter(event, online.session).HasValue());
+    EXPECT_TRUE(tested.selection.HasReceivedList());
 }
 
 TEST(SessionEventApplierTest, PropagatesTheActualSelectionConstructionFailure)
 {
-    Client::Scenes::WorldState world;
-    Client::Scenes::SelectionState selection(world);
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
-    Client::Scenes::SessionEventApplier applier(selection, camera, input);
+    Applier tested;
     Client::Tests::LoggedInSession online;
     const Client::App::CharacterEvent event = Client::App::CharacterCreated{};
-    const auto result = applier.ApplyCharacter(event, online.session);
+    const auto result = tested.applier.ApplyCharacter(event, online.session);
     ASSERT_FALSE(result.HasValue());
-    ASSERT_TRUE(selection.Failure().has_value());
-    EXPECT_EQ(result.Error(), *selection.Failure());
-    EXPECT_EQ(selection.Slots()[0].revision, 0u);
+    ASSERT_TRUE(tested.selection.Failure().has_value());
+    EXPECT_EQ(result.Error(), *tested.selection.Failure());
+    EXPECT_EQ(tested.selection.Slots()[0].revision, 0u);
 }
 
-TEST(SessionEventApplierTest, WorldApplicationIsExplicitlyUnavailableForEntryAndEmptyInventory)
+// El F3 10 (0x4c55a0) sigue sin aplicador (T9): error explícito, sin tocar la sesión ni la selección.
+TEST(SessionEventApplierTest, TheInventoryIsStillExplicitlyUnavailable)
 {
-    Client::Scenes::WorldState world;
-    Client::Scenes::SelectionState selection(world);
-    Client::World::GameCamera camera;
-    Client::World::GameCameraInput input;
-    Client::Scenes::SessionEventApplier applier(selection, camera, input);
+    Applier tested;
     Client::Tests::LoggedInSession online;
-    const std::array<Client::App::WorldEvent, 2> events{Client::Protocol::Character::CharacterSelectResult{},
-                                                        Client::Protocol::Character::InventoryList{}};
-    for (const Client::App::WorldEvent& event : events)
-    {
-        const auto result = applier.ApplyWorld(event, online.session);
-        ASSERT_FALSE(result.HasValue());
-        EXPECT_NE(result.Error().find("aplicador de mundo"), std::string::npos);
-        EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
-        EXPECT_FALSE(selection.HasReceivedList());
-    }
+    const Client::App::WorldEvent event = Client::Protocol::Character::InventoryList{};
+
+    const auto result = tested.applier.ApplyWorld(event, online.session);
+
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("F3/10"), std::string::npos);
+    EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
+    EXPECT_FALSE(tested.selection.HasReceivedList());
+}
+
+// El F3 03 va a 0x4c3940: sin la carpeta de datos, la carga del mapa 0 corta nombrando el .map de
+// World1, después de los stats en el registro propio.
+TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
+{
+    Applier tested;
+    Client::Tests::LoggedInSession online;
+    Client::Protocol::Character::CharacterSelectResult reply;
+    reply.zen = 1234;
+    const Client::App::WorldEvent event = reply;
+
+    const auto result = tested.applier.ApplyWorld(event, online.session);
+
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("EncTerrain1.map"), std::string::npos) << result.Error();
+    EXPECT_EQ(tested.world.OwnCharacter().zen, 1234u);
+    EXPECT_EQ(tested.world.Runtime().map, 0);
+    EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
 }
 } // namespace

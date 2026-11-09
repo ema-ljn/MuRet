@@ -23,6 +23,9 @@ constexpr float DragonHeight = 3400.0f;
 constexpr float DefaultScale = 0.9f;
 constexpr std::int32_t DragonLife = 1000;
 constexpr glm::vec3 DragonVelocity{0.0f, -35.0f, 0.0f};
+// 0x518d0a..0x518e3c: la velocidad de la animación que pone lo común; 0x51eebb: la vida del 0x61f.
+constexpr float CommonAnimationSpeed = 0.3f;
+constexpr std::int32_t ArrivalLife = 20;
 
 // 0x52096c..0x520b72: los topes de los ángulos (0x6b869c, 0x6ba2a8), el alabeo por paso (0x6b882c), el
 // radio de la partida (0x6b8ac8, 0x6ba2a4), el giro (0x6b86cc, 0x6b8b94), la vida que se vuelve a
@@ -128,12 +131,56 @@ void StepDragon(ModelEffect& dragon)
         dragon.animation.action = 0;
     }
 }
+
+float CreationScale(float scale)
+{
+    return scale > 0.0f ? scale : DefaultScale;
+}
+
+ModelEffect DragonAt(const glm::vec3& position, const glm::vec3& angles, float scale)
+{
+    ModelEffect effect;
+    effect.alive = true;
+    effect.type = DragonEffect;
+    effect.transform.scale = CreationScale(scale);
+    effect.transform.position = {
+        position.x, position.y,
+        static_cast<float>(static_cast<double>(position.z) + static_cast<double>(DragonHeight))};
+    effect.transform.angles = {angles.x, 0.0f, angles.z};
+    effect.life = DragonLife;
+    effect.velocity = DragonVelocity;
+    effect.speed = 1.0f;
+    effect.turnPending = 1.0f;
+    effect.turnDirection = 1.0f;
+    effect.flagEc = 1.0f;
+    effect.light = glm::vec3(1.0f);
+    effect.start = effect.transform.position;
+    effect.previousPosition = effect.transform.position;
+    return effect;
+}
+
+// Lo común de 0x518d0a..0x518e3c (la escala, la posición, los ángulos, la luz y +0xd8 en 0,3) y el caso
+// 0x61e/0x61f con el subtipo 0 (0x51eebb): 20 pasos de vida y la salida de 0x51db73, sin rand().
+ModelEffect ArrivalAt(const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, float scale)
+{
+    ModelEffect effect;
+    effect.alive = true;
+    effect.type = ArrivalEffect;
+    effect.transform.scale = CreationScale(scale);
+    effect.transform.position = position;
+    effect.transform.angles = angles;
+    effect.light = light;
+    effect.life = ArrivalLife;
+    effect.speed = CommonAnimationSpeed;
+    effect.previousPosition = position;
+    return effect;
+}
 } // namespace
 
 std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
-                                                [[maybe_unused]] const glm::vec3& light, float scale)
+                                                const glm::vec3& light, float scale)
 {
-    if (type != DragonEffect)
+    if (type != DragonEffect && type != ArrivalEffect)
     {
         return std::nullopt;
     }
@@ -143,24 +190,8 @@ std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::ve
         {
             continue;
         }
-        ModelEffect effect;
-        effect.alive = true;
-        effect.type = type;
-        effect.transform.scale = scale > 0.0f ? scale : DefaultScale;
-        effect.transform.position = {
-            position.x, position.y,
-            static_cast<float>(static_cast<double>(position.z) + static_cast<double>(DragonHeight))};
-        effect.transform.angles = {angles.x, 0.0f, angles.z};
-        effect.life = DragonLife;
-        effect.velocity = DragonVelocity;
-        effect.speed = 1.0f;
-        effect.turnPending = 1.0f;
-        effect.turnDirection = 1.0f;
-        effect.flagEc = 1.0f;
-        effect.light = glm::vec3(1.0f);
-        effect.start = effect.transform.position;
-        effect.previousPosition = effect.transform.position;
-        m_effects[k] = effect;
+        m_effects[k] =
+            type == DragonEffect ? DragonAt(position, angles, scale) : ArrivalAt(position, angles, light, scale);
         return k;
     }
     return std::nullopt;

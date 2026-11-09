@@ -61,6 +61,7 @@
 #include "Scenes/SelectionState.h"
 #include "Scenes/SessionEventApplier.h"
 #include "Scenes/TestScene.h"
+#include "Scenes/WorldEntry.h"
 #include "Scenes/WorldLoadingScene.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
@@ -612,7 +613,19 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // La celda lógica y su lectura exacta se integran en CL7.P; no se sustituye por la celda visual.
     Client::World::GameCameraInput cameraInput;
     Scenes::SelectionState selection(world);
-    Scenes::SessionEventApplier eventApplier(selection, camera, cameraInput);
+    // Los modelos del personaje y de los ítems: los lee la carga (0x61ccb0) y quedan, como GameData.
+    // La respuesta del F3 03 toma de acá Player.bmd para la acción de parado.
+    Scenes::GameModels models;
+    Scenes::SessionEventApplier eventApplier(
+        Scenes::WorldEntryResources{.world = world,
+                                    .selection = selection,
+                                    .dataRoot = *startup.config.dataPath,
+                                    .cloth = clothWorld,
+                                    .camera = camera,
+                                    .cameraInput = cameraInput,
+                                    .models = models,
+                                    .items = scenes.data.items ? &scenes.data.items->table : nullptr,
+                                    .log = log});
     std::optional<Online> online;
     if (startup.server)
     {
@@ -636,8 +649,6 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     {
         log.Warning("{}", hidden.Error());
     }
-    // Los modelos del personaje y de los ítems: los lee la carga (0x61ccb0) y quedan, como GameData.
-    Scenes::GameModels models;
     const auto pollNetwork = [&online]() -> Core::Expected<void, std::string>
     { return online ? online->Poll() : Core::Expected<void, std::string>{}; };
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,

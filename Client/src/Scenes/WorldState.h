@@ -3,6 +3,7 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 
 #include <array>
@@ -41,6 +42,9 @@ public:
     [[nodiscard]] const OwnCharacterRecord& OwnCharacter() const;
     [[nodiscard]] WorldRuntime& Runtime();
     [[nodiscard]] const WorldRuntime& Runtime() const;
+    // Lo que la última carga de mapa (0x61a560) dejó en la CPU.
+    [[nodiscard]] WorldMap& Map();
+    [[nodiscard]] const WorldMap& Map() const;
 
     // Lo que hace la selección al pasar a la escena 3 con `chosen`, el elegido (06, "La lógica" y "La
     // entrada al mundo", paso 1; los tres caminos: Enter 0x6343e2..0x634470, doble clic
@@ -54,5 +58,6 @@ private:
     std::array<ActorState, ActorPoolSize> m_actors{};
     OwnCharacterRecord m_own;
     WorldRuntime m_runtime;
+    WorldMap m_map;
 };
 } // namespace Client::Scenes

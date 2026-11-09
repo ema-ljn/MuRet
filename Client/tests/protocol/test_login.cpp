@@ -43,6 +43,7 @@ using Client::Protocol::Connection::CredentialSize;
 using Client::Protocol::Connection::LoginAccepted;
 using Client::Protocol::Connection::LoginRequest;
 using Client::Protocol::Connection::ReadLoginResult;
+using Client::Protocol::Connection::WriteClearWorldEntryReport;
 using Client::Protocol::Connection::WriteDecryptErrorReport;
 using Client::Protocol::Connection::WriteLoginRequest;
 using Client::Tests::Bytes;
@@ -201,5 +202,15 @@ TEST(LoginTest, WritesTheDecryptErrorReport)
     EXPECT_EQ(report.delivery, Delivery::Encrypted);
     EXPECT_TRUE(SameBytes(report.packet.Bytes(), Client::Tests::NoticeBytes()));
     EXPECT_TRUE(SameBytes(EncryptedWithIdentity(report.packet), Client::Tests::NoticeSerial0()));
+}
+
+// 0x4c396a: la respuesta del F3 03 que llega sin cifrar se contesta con el F1 03 00 F3, para cifrar.
+TEST(LoginTest, WritesTheClearWorldEntryReport)
+{
+    const Outgoing report = WriteClearWorldEntryReport();
+
+    EXPECT_EQ(report.delivery, Delivery::Encrypted);
+    const Client::Network::Packet clear = Client::Network::Crypto::Xor32Decode(report.packet);
+    EXPECT_TRUE(SameBytes(clear.Bytes(), Bytes({0xC1, 0x06, 0xF1, 0x03, 0x00, 0xF3})));
 }
 } // namespace

@@ -149,6 +149,13 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   **big-endian**: lo arma como `pkt[5] * 0x100 + pkt[6]` (*estático*), igual que el `NumberH` y el
   `NumberL` de los paquetes del GS. Así, `00 05` es el jugador 5, y no el 1280.
   Verificado: el GS manda `"10209"` al build actual (y `"09908"` al histórico).
+  El índice va al DWORD `0x57678bc` (`0x4c1ec0`), con `0x57678c0 = 2` justo antes (`0x4c1eb6`) y
+  **antes** del lazo de la versión: queda guardado aunque la versión no coincida. Es la clave del
+  héroe: `0x4c3940` la copia a su `+0x1f4` y `0x510f70` la compara al cargar un mapa
+  ([06](06-render-escenas-y-ui.md#la-entrada-al-mundo)). Con `0x5767928` distinto de 0 la escribe
+  sin mirar `pkt[4]` (`0x4c1e3e`), llama a `0x412bb0` y `0x447ae0` y sale sin validar la versión
+  (*estático*, T7). MuRet la guarda en `ServerSession::PlayerIndex` con el `F1 00` aceptado, también
+  antes del chequeo de versión.
 - **`F1 01`, login** (emisor `0x641bf0`): 49 bytes lógicos, `C1 31 F1 01`, cuenta de 10 bytes y
   clave de 10 bytes con XOR `FC CF AB` (se reinicia en cada campo), `tick_count` de 4 bytes
   little-endian, versión `10209` y serial `MULORDSVERSAO102`, todo con XOR32, como C3 de 68
@@ -386,8 +393,10 @@ de 0x100 bytes, el historial de chat y la máquina de acciones diferidas.
 
 **La respuesta del `F3 03`** (`0x4c3940`). Llega cifrada, y rearmada ocupa `0x34` bytes: el
 `PMSG_CHARMAPJOINRESULT` del GS 1.02 (`gs_protocol.h`), el mismo largo que en el cable
-(*verificado*). Sin cifrar no entra al mundo: arma un `C1 .. F1 03 …` y lo manda (*estático*, sin
-leer qué lleva). "El registro" es `[0x7681eb0]`, que al loguear apunta al mismo bloque que
+(*verificado*). Sin cifrar no entra al mundo: arma un `C1 06 F1 03 00 F3` y lo manda en C3
+(`0x4c396a..0x4c404e`, *estático*), sin leer el paquete, como el `C1 06 F1 03 00 1C` del `1C`. El
+GS lo atiende como `CGClientHackLogRecv` (*inferido*, del `gs_protocol.h`); MuRet ya mandaba el
+`F1 03 06 00` y ahora manda también este (T7). "El registro" es `[0x7681eb0]`, que al loguear apunta al mismo bloque que
 `[0x7681eb4]` (`0x4bafc9`). Todo *estático* salvo lo que dice el cable:
 
 | `pkt` | Qué es | Adónde va | En el cable |
@@ -448,9 +457,12 @@ cantidad cero; no normaliza el mapa 32 ni exige `EnteringWorld`. Como elección 
 `Start` descarta pendientes de la conexión anterior, `Fail` conserva lo recibido y cada drenaje
 transfiere propiedad sin afectar los vectores ya entregados; `CharacterEvents` queda separado.
 Esta recepción filtrada no aplica mundo, héroe, equipo, efectos ni estado `0x3d`, ni cambia selección,
-generación o keepalive. No reproduce los handlers completos: quedan fuera la rama de flag cero y
-el envío F1/03 de `0x4c3940`, el prefijo y efectos comunes de `0x4c55a0`, y la resolución de Q-C144;
-no inventa los WORD nativos `+0x34..37` ni aumenta el mínimo wire a `0x38`.
+generación o keepalive. No reproduce los handlers completos: quedan fuera el prefijo y efectos
+comunes de `0x4c55a0` y la resolución de Q-C144; no inventa los WORD nativos `+0x34..37` ni aumenta
+el mínimo wire a `0x38`. Desde la T7 del hito 1, el `F3 03` sin cifrar manda el `C1 06 F1 03 00 F3`
+de `0x4c396a` y el cifrado va al aplicador nativo de `0x4c3940`
+([06](06-render-escenas-y-ui.md#la-entrada-al-mundo)), que hoy corta en `0x512a30`; el `F3 10` sigue
+sin aplicador (T9).
 
 ### Caminar y pegar: `D3` y `D7`
 

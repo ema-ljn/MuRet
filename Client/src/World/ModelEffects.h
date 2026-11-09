@@ -22,6 +22,8 @@ inline constexpr std::size_t ModelEffectCount = 200;
 // El dragón que vuela en el login, con su modelo (Scenes::DragonModel) y la escala que le pasa 0x606660.
 inline constexpr std::int16_t DragonEffect = 0xb4;
 inline constexpr float DragonScale = 1.6f;
+// El efecto de llegada: lo crea dos veces la respuesta del F3 03 sobre el héroe (06, "El héroe").
+inline constexpr std::int16_t ArrivalEffect = 0x61f;
 
 // Lo que el efecto de 0x1d4 bytes guarda y usa el dragón.
 struct ModelEffect
@@ -56,8 +58,9 @@ public:
     // byte vivo, o nada si están todos. Una escala de 0 o menos pasa a 0,9 (0x518d3c). Del 0xb4: la
     // posición del dueño con la z 3.400 más arriba (0x518fc9), los ángulos con el alabeo en 0 (0x518fb3),
     // la luz en blanco (la salida 0x51a97b pisa `light`), vida 1.000, la velocidad (0, −35, 0), la de la
-    // animación en 1, +0xdc, +0xe4 y +0xec en 1, luz por vértice y la partida en la posición. Los otros
-    // tipos no se crean.
+    // animación en 1, +0xdc, +0xe4 y +0xec en 1, luz por vértice y la partida en la posición. Del 0x61f
+    // con el subtipo 0: la posición, los ángulos y la luz tal cual, 20 pasos de vida y la animación a
+    // 0,3, sin rand(). Los otros tipos no se crean.
     std::optional<std::size_t> Create(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                       const glm::vec3& light, float scale);
     // 0x6070a0: apaga el byte vivo de cada lugar (Q-C138: el original deja lo demás; acá Create arma el

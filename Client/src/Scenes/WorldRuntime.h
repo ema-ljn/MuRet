@@ -2,6 +2,7 @@
 
 #include "GameLogic/MovementSpeed.h"
 
+#include <cstddef>
 #include <cstdint>
 
 // Los globales en claro que sobreviven a los cambios de escena: el mundo en curso, el estado compartido
@@ -45,6 +46,12 @@ struct WorldRuntime
     std::uint8_t warpDepth = 0;
     // Cuántos accesos tienen abierto el registro propio ([0x7681eb4], 0xf08 bytes).
     std::uint8_t ownRecordDepth = 0;
+    // DAT_057678b0: el lugar del pool que la respuesta del F3 03 elige para el héroe, rand() % 400
+    // (0x4c44d4; 06, "La entrada al mundo", fila 3).
+    std::int32_t heroSlot = 0;
+    // DAT_0743a170, el héroe publicado, como lugar del pool: WinMain lo deja en el 0 (0x4bafdf) y la
+    // respuesta del F3 03 lo pasa al de heroSlot recién después de vestirlo con 0x512a30 (0x4c4725).
+    std::size_t hero = 0;
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

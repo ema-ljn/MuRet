@@ -1,31 +1,61 @@
 #include "Scenes/SessionEventApplier.h"
 
 #include "App/CharacterEvent.h"
+#include "App/ServerSession.h"
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
+#include "Protocol/Character/CharacterSelectResult.h"
+#include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/WorldEntry.h"
 
 #include <span>
 #include <string>
+#include <variant>
 
 namespace Client::Scenes
 {
-SessionEventApplier::SessionEventApplier(SelectionState& selection, World::GameCamera& camera,
-                                         World::GameCameraInput& input)
-    : m_selection(selection), m_camera(camera), m_input(input)
+namespace
 {
-}
+// El 0x3d de la respuesta va a la sesión que la está aplicando.
+class SessionPublisher final : public IWorldEntryPublisher
+{
+public:
+    explicit SessionPublisher(App::ServerSession& session) : m_session(session) {}
+
+    void PublishWorldEntry() override
+    {
+        m_session.PublishWorldEntry();
+    }
+
+private:
+    App::ServerSession& m_session;
+};
+} // namespace
+
+SessionEventApplier::SessionEventApplier(const WorldEntryResources& resources) : m_resources(resources) {}
 
 Core::Expected<void, std::string> SessionEventApplier::ApplyCharacter(const App::CharacterEvent& event,
                                                                       const App::ServerSession&)
 {
-    return m_selection.Apply(std::span(&event, 1), m_camera, m_input);
+    return m_resources.selection.Apply(std::span(&event, 1), m_resources.camera, m_resources.cameraInput);
 }
 
-Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::WorldEvent&, App::ServerSession&)
+Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::WorldEvent& event,
+                                                                  App::ServerSession& session)
 {
-    // Límite local de C1: la recepción no certifica carga, héroe ni equipo nativos.
-    // Esta rama no se publica hasta integrar el aplicador real y su punto state3d.
-    return Core::Unexpected(std::string("falta integrar el aplicador de mundo nativo (F3/03 y F3/10)"));
+    const auto* reply = std::get_if<Protocol::Character::CharacterSelectResult>(&event);
+    if (reply == nullptr)
+    {
+        return Core::Unexpected(std::string("falta integrar el aplicador de mundo nativo del F3/10 (0x4c55a0, T9)"));
+    }
+    SessionPublisher publisher(session);
+    const auto entered = ApplyWorldEntry(*reply, session.PlayerIndex(), m_resources, publisher);
+    if (!entered.HasValue())
+    {
+        return Core::Unexpected(entered.Error());
+    }
+    // Los sonidos que pidió quedan sin tocar: MuRet no tiene audio hasta la CL10.
+    return {};
 }
 } // namespace Client::Scenes

@@ -5,6 +5,7 @@
 #include "App/SessionState.h"
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
+#include "Core/Log.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Network/PacketSerials.h"
@@ -20,6 +21,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
 #include "Scenes/WorldLoadingScene.h"
+#include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
@@ -32,6 +34,7 @@
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/RecordingFrameTarget.h"
+#include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
 #include "support/SessionPackets.h"
 #include "support/UiInput.h"
@@ -150,7 +153,16 @@ protected:
     Client::Render::Models::ClothWorld m_cloth;
     Client::Scenes::WorldState m_world;
     Client::Scenes::SelectionState m_state{m_world};
-    Client::Scenes::SessionEventApplier m_applier{m_state, m_camera, m_cameraInput};
+    Client::Tests::RecordingSink m_entrySink;
+    Client::Core::Log m_entryLog{m_entrySink, Client::Core::LogLevel::Debug};
+    Client::Scenes::SessionEventApplier m_applier{Client::Scenes::WorldEntryResources{.world = m_world,
+                                                                                      .selection = m_state,
+                                                                                      .dataRoot = {},
+                                                                                      .cloth = m_cloth,
+                                                                                      .camera = m_camera,
+                                                                                      .cameraInput = m_cameraInput,
+                                                                                      .models = m_models,
+                                                                                      .log = m_entryLog}};
     Client::Tests::LoggedInSession m_online{&m_applier};
     float m_loginConstructorHeight = 0.0f;
     // Se destruye primero: Leave conserva las tablas antes de que desaparezcan el estado y el store.

@@ -16,6 +16,35 @@ Referencias públicas de alcance: [plan de Lorencia](2026-11-05-ola-cl7-lorencia
 La neblina visual conserva su seguimiento pospuesto; HUD, reglas de eventos/combate y audio
 siguen en sus olas respectivas.
 
+## Punto de continuidad remoto
+
+Este lote ya tiene los siguientes borradores públicos. Cada PR incluye código/tests y su handoff
+acotado; la publicación permite retomar el trabajo y no significa aprobación ni cierre de CL7.
+
+| PR | Qué puede retomar otro agente | Base / validación local actual |
+| --- | --- | --- |
+| [175](https://github.com/ema-ljn/MuRet/pull/175) | Consulta canónica de atributos y pendiente TQ03 | `main`; 2659 ejecutados PASS, 77 skips, cero fallos |
+| [176](https://github.com/ema-ljn/MuRet/pull/176) | Este mapa de continuidad y dependencias | Sólo documentación, controles documentales |
+| [177](https://github.com/ema-ljn/MuRet/pull/177) | `OwnItemOptions`: helpers ordinarios; no equipo completo | `main`; 2660 ejecutados PASS, 70 skips, cero fallos |
+| [178](https://github.com/ema-ljn/MuRet/pull/178) | `ObjectAlpha` y delegación pública acreditada | `main`; 2680 ejecutados PASS, 70 skips, cero fallos |
+| [179](https://github.com/ema-ljn/MuRet/pull/179) | Kernels Birds/Fish con servicios requeridos | `main`; 2725 ejecutados PASS, 70 skips, cero fallos |
+| [180](https://github.com/ema-ljn/MuRet/pull/180) | CPU partículas y backend portable explícito | Stack sobre PR168; 187 focales + 8 CLI Main, sin skips |
+| [181](https://github.com/ema-ljn/MuRet/pull/181) | Backend material GL y API física raw32 | `main`; 50 focales/Main + 6 metadata, incluidos 27 GL, sin skips |
+
+Los conteos son de árboles diferentes y no se suman. Las omisiones no son golden aprobados.
+Los checks remotos deben consultarse en cada head; estos resultados locales no los sustituyen.
+
+**Todavía pendiente de subir de este lote:** la capa canónica de mundo/escena, Leaf y runtime
+Particle sobre sus padres mínimos, y `FaunaEnvironmentAccess` sobre Query y esa capa. La fuente
+congelada de entorno está preparada, pero su base pública aislada no enlaza por ausencia del
+padre `WorldRuntime`; no se publica como componente standalone exitoso. Un único owner extrae
+la base compartida; sus consumidores no crean otro `WorldState` o DTO paralelo.
+
+Al integrar PR180, reconciliar los cuatro paths matemáticos compartidos con PR172. Al integrar
+PR181 y la base de escena, conservar `TextureMetadataOf(uint32_t)` y `TextureSlotOf(uint32_t)`
+con el registro físico canónico; no reintroducir la API signed de snapshots anteriores. El
+registro positivo real de `GameModels` todavía pertenece a esa capa pendiente, no al backend solo.
+
 ## Base y padres públicos comprobados
 
 Estado consultado con `gh` de sólo lectura el día del corte. Un check correcto acredita el head
@@ -37,8 +66,8 @@ consultado: no convierte un borrador en merge ni prueba el funcionamiento de sus
 PR163/165/167/168/172/174 tenían formato, Linux y Windows correctos en sus heads consultados.
 PR172 está apilado sobre PR165, aunque la integración final se publica hacia `main`.
 Antes de rebasar hay que comprobar el diff del padre y conservar únicamente la dependencia necesaria.
-Las nuevas URLs de stats, Alpha, fauna, CPU, materiales, entorno y runtime quedan **pendientes de
-actualización por el coordinador**. No se asigna un número de PR anticipado.
+Las URLs nuevas de Query, stats, Alpha, fauna, CPU y materiales constan en la tabla remota anterior.
+Entorno y la base/runtime de escena siguen pendientes de publicación; no se les asigna un PR anticipado.
 
 ## Lectura correcta del estado histórico
 

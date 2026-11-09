@@ -66,7 +66,7 @@ TEST(GameSceneTest, AFailedSessionKeepsTheGame)
     scene.Step(input);
 
     online.socket.peerClosed = true;
-    online.session.Poll();
+    static_cast<void>(online.session.Poll());
     scene.Step(input);
 
     EXPECT_EQ(online.session.State(), SessionState::Failed);

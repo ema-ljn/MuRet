@@ -45,6 +45,7 @@ TEST(AppPrintersTest, TheGameServerStatesAndFailuresShowTheirNames)
 TEST(AppPrintersTest, NoReplyShowsItsName)
 {
     EXPECT_EQ(::testing::PrintToString(SessionFailure::NoReply), "NoReply");
+    EXPECT_EQ(::testing::PrintToString(SessionFailure::ApplicationFailed), "ApplicationFailed");
 }
 
 // Los estados que esperan a la UI (CL5.5).

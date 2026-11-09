@@ -17,6 +17,7 @@
 #include "support/Bytes.h"
 #include "support/FakeClock.h"
 #include "support/FakeSocket.h"
+#include "support/RecordingSessionEventSink.h"
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
 #include "support/SessionPackets.h"
@@ -83,7 +84,8 @@ struct Harness
 {
     Harness()
         : connection(socket, IdentityObfuscation::Shared(), clock, log, 1),
-          session(connection, clock, log, GameClientKeys(), SessionSettings{ServerAddress{"10.0.0.1", 44405}}),
+          session(connection, clock, log, GameClientKeys(), SessionSettings{ServerAddress{"10.0.0.1", 44405}},
+                  eventSink),
           autoLogin(session, Credentials{std::string(Account), std::string(Password)}, log)
     {
     }
@@ -91,7 +93,11 @@ struct Harness
     // Lo de main.cpp en cada frame: la sesión y, después, el AutoLogin.
     void Poll()
     {
-        session.Poll();
+        const auto polled = session.Poll();
+        if (!polled.HasValue())
+        {
+            return;
+        }
         autoLogin.Poll();
     }
 
@@ -149,6 +155,7 @@ struct Harness
     RecordingSink sink;
     Log log{sink, LogLevel::Debug};
     Connection connection;
+    Client::Tests::RecordingSessionEventSink eventSink;
     ServerSession session;
     AutoLogin autoLogin;
     std::size_t gameServerStart = 0;

@@ -41,6 +41,7 @@ enum class SessionFailure : std::uint8_t
     HelloRejected,      // el saludo del GS trae otro resultado que HelloAccepted
     VersionMismatch,    // el saludo aceptado trae otra versión que ClientVersion
     CredentialsTooLong, // la cuenta o la clave no entran en el login (WriteLoginRequest)
+    ApplicationFailed,  // el consumidor síncrono no pudo aplicar una recepción
     NoReply,            // un estado Waiting* pasó ReplyTimeout sin su respuesta (CL4.5)
 };
 } // namespace Client::App

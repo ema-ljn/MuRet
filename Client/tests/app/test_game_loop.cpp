@@ -2,12 +2,21 @@
 
 #include "App/PacingMode.h"
 #include "App/WindowState.h"
+#include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Core/ILogSink.h"
+#include "Core/Log.h"
 #include "Input/InputEvent.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
+#include "Scenes/IScene.h"
+#include "Scenes/SceneCanvas.h"
+#include "Scenes/SceneId.h"
+#include "Scenes/SceneManager.h"
 #include "support/FakeClock.h"
 #include "support/RecordingClient.h"
+#include "support/RecordingFrameTarget.h"
+#include "support/RecordingSink.h"
 
 #include <gtest/gtest.h>
 
@@ -16,7 +25,10 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <numeric>
+#include <optional>
+#include <string>
 #include <vector>
 
 // Client::App::GameLoop en el modo normal (Decoupled): el paso fijo con el reloj falso. Y el Poll
@@ -34,6 +46,120 @@ using Client::Input::Key;
 using Client::Tests::FakeClock;
 using Client::Tests::LoopCall;
 using Client::Tests::RecordingClient;
+
+struct AbortedSceneCalls
+{
+    int steps = 0;
+    int renders = 0;
+    int held = 0;
+    int leaves = 0;
+    bool holdFrame = false;
+};
+
+class AbortedFrameScene final : public Client::Scenes::IScene
+{
+public:
+    AbortedFrameScene(AbortedSceneCalls& calls, FakeClock& clock, Duration renderCost)
+        : m_calls(calls), m_clock(clock), m_renderCost(renderCost)
+    {
+    }
+    Client::Core::Expected<void, std::string> Enter() override
+    {
+        return {};
+    }
+    void Step(const InputState&) override
+    {
+        ++m_calls.steps;
+    }
+    void Render(Client::Scenes::SceneCanvas&, float) override
+    {
+        ++m_calls.renders;
+        m_clock.Advance(m_renderCost);
+    }
+    void Leave() override
+    {
+        ++m_calls.leaves;
+    }
+    void OnFrameHeld() override
+    {
+        ++m_calls.held;
+    }
+    std::optional<Client::Scenes::SceneId> Next() const override
+    {
+        return std::nullopt;
+    }
+    bool WantsToQuit() const override
+    {
+        return false;
+    }
+    bool WantsTextInput() const override
+    {
+        return false;
+    }
+    bool HoldsTheLastFrame() const override
+    {
+        return m_calls.holdFrame;
+    }
+
+private:
+    AbortedSceneCalls& m_calls;
+    FakeClock& m_clock;
+    Duration m_renderCost;
+};
+
+// NoStepOnAbort se observa a través del manager real, en ambos modos y con varios pasos pendientes.
+TEST(GameLoopTest, ASessionApplicationFailureStopsTheSceneInTheSameFrame)
+{
+    for (const PacingMode mode : {PacingMode::Decoupled, PacingMode::Faithful})
+    {
+        for (const auto elapsed : {0ms, 16ms, 120ms})
+        {
+            AbortedSceneCalls calls;
+            Client::Tests::RecordingFrameTarget target;
+            Client::Tests::RecordingSink sink;
+            Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+            FakeClock clock;
+            int polls = 0;
+            {
+                Client::Scenes::SceneManager manager(
+                    [&calls, &clock, elapsed](Client::Scenes::SceneId)
+                    { return std::make_unique<AbortedFrameScene>(calls, clock, elapsed); }, target, clock,
+                    [&polls]() -> Client::Core::Expected<void, std::string>
+                    {
+                        ++polls;
+                        if (polls == 1)
+                        {
+                            return {};
+                        }
+                        return Client::Core::Unexpected(std::string("falló la recepción"));
+                    },
+                    log);
+                ASSERT_TRUE(manager.Start(Client::Scenes::SceneId::Loading).HasValue());
+                GameLoop loop(clock, manager, mode);
+                InputState input;
+                loop.RunFrame(WindowState{}, input);
+                calls = {};
+                calls.holdFrame = true;
+                target.frames.clear();
+                const int attemptedSteps = loop.RunFrame(WindowState{}, input);
+                if (elapsed == 120ms)
+                {
+                    EXPECT_GE(attemptedSteps, 2);
+                }
+                manager.Request(Client::Scenes::SceneId::Login);
+                EXPECT_TRUE(manager.Failure().has_value());
+                EXPECT_EQ(calls.steps, 0);
+                EXPECT_EQ(calls.renders, 0);
+                EXPECT_EQ(calls.held, 0);
+                EXPECT_EQ(calls.leaves, 0);
+                EXPECT_TRUE(target.frames.empty());
+                loop.RunFrame(WindowState{}, input);
+                EXPECT_EQ(polls, 2);
+            }
+            EXPECT_EQ(calls.leaves, 1);
+        }
+    }
+}
 
 // La tolerancia de los alfas que fija el plan (1e-6).
 constexpr double AlphaTolerance = 1e-6;

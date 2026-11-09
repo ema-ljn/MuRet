@@ -3,9 +3,10 @@
 #include "App/CharacterEvent.h"
 #include "App/Credentials.h"
 #include "App/FaithfulPacer.h"
+#include "App/ISessionEventSink.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
-#include "App/WorldEvent.h"
+#include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/Log.h"
 #include "Network/CloseReason.h"
@@ -137,9 +138,9 @@ void KeepLastCharacterPerSlot(Protocol::Character::CharacterList& list)
 } // namespace
 
 ServerSession::ServerSession(Network::Connection& connection, Core::IClock& clock, Core::Log& log,
-                             Network::ConnectionKeys keys, SessionSettings settings)
-    : m_connection(connection), m_clock(clock), m_log(log), m_keys(keys), m_settings(std::move(settings)),
-      m_connectServer(log), m_gameServer(log)
+                             Network::ConnectionKeys keys, SessionSettings settings, ISessionEventSink& eventSink)
+    : m_connection(connection), m_clock(clock), m_log(log), m_eventSink(eventSink), m_keys(keys),
+      m_settings(std::move(settings)), m_connectServer(log), m_gameServer(log)
 {
     RegisterConnectServerHandlers();
     RegisterGameServerHandlers();
@@ -208,8 +209,7 @@ void ServerSession::Start()
     m_gameServerAddress.reset();
     m_loginResult.reset();
     m_characters.reset();
-    m_characterEvents.clear();
-    m_worldEvents.clear();
+    m_applicationFailure.reset();
     m_createResult.reset();
     m_deleteResult.reset();
     m_deletingSlot.reset();
@@ -219,9 +219,17 @@ void ServerSession::Start()
     SetState(SessionState::ConnectingConnectServer);
 }
 
-void ServerSession::Poll()
+Core::Expected<void, std::string> ServerSession::Poll()
 {
+    if (m_applicationFailure)
+    {
+        return Core::Unexpected(*m_applicationFailure);
+    }
     HandleEvents();
+    if (m_applicationFailure)
+    {
+        return Core::Unexpected(*m_applicationFailure);
+    }
     const Core::Duration now = m_clock.Now();
     // También consume los vencimientos sin GS: no quedan pendientes para la próxima conexión.
     const bool keepaliveDue = m_keepalive.Due(now);
@@ -231,12 +239,13 @@ void ServerSession::Poll()
         m_log.Error("el {} no contestó en {} s: se esperaba {}", ServerName(),
                     std::chrono::duration_cast<std::chrono::seconds>(ReplyTimeout).count(), awaited);
         Fail(SessionFailure::NoReply);
-        return;
+        return {};
     }
     if (keepaliveDue && m_connection.State() == Network::LinkState::Open && !WithConnectServer())
     {
         SendKeepalive(now);
     }
+    return {};
 }
 
 // Lo que queda del lote después de un Connect o un Fail es de la conexión de antes, y lo que queda
@@ -372,16 +381,6 @@ void ServerSession::RequestCharacterList()
 const std::optional<Protocol::Character::CharacterList>& ServerSession::Characters() const
 {
     return m_characters;
-}
-
-std::vector<CharacterEvent> ServerSession::TakeCharacterEvents()
-{
-    return std::exchange(m_characterEvents, {});
-}
-
-std::vector<WorldEvent> ServerSession::TakeWorldEvents()
-{
-    return std::exchange(m_worldEvents, {});
 }
 
 void ServerSession::ChooseCharacter(std::optional<std::uint8_t> slot)
@@ -689,10 +688,15 @@ void ServerSession::OnCharacterList(const Network::Packet& packet)
         m_log.Warning("se ignora la lista de personajes (F3 00): {}", Unreadable);
         return;
     }
-    m_characters = std::move(list).Value();
-    m_characterEvents.emplace_back(CharacterListReceived{*m_characters});
-    KeepLastCharacterPerSlot(*m_characters);
+    auto received = std::move(list).Value();
+    Protocol::Character::CharacterList view = received;
+    KeepLastCharacterPerSlot(view);
+    m_characters = std::move(view);
     m_chosenSlot.reset();
+    if (!CheckApplication(m_eventSink.ApplyCharacter(CharacterListReceived{std::move(received)}, *this)))
+    {
+        return;
+    }
     m_log.Info("la lista trae {} personajes: se espera la elección", m_characters->characters.size());
     SetState(SessionState::ChoosingCharacter);
 }
@@ -750,7 +754,10 @@ void ServerSession::OnCreateResult(const Network::Packet& packet)
             {
                 characters.push_back(entry);
             }
-            m_characterEvents.emplace_back(CharacterCreated{entry});
+            if (!CheckApplication(m_eventSink.ApplyCharacter(CharacterCreated{entry}, *this)))
+            {
+                return;
+            }
             m_log.Info("se creó el personaje del lugar {}", entry.slot);
         }
     }
@@ -781,7 +788,10 @@ void ServerSession::OnDeleteResult(const Network::Packet& packet)
     {
         std::erase_if(m_characters->characters, [this](const Protocol::Character::CharacterEntry& entry)
                       { return entry.slot == *m_deletingSlot; });
-        m_characterEvents.emplace_back(CharacterDeleted{*m_deletingSlot});
+        if (!CheckApplication(m_eventSink.ApplyCharacter(CharacterDeleted{*m_deletingSlot}, *this)))
+        {
+            return;
+        }
         m_chosenSlot.reset();
         m_log.Info("se borró el personaje del lugar {}", *m_deletingSlot);
     }
@@ -793,7 +803,7 @@ void ServerSession::OnDeleteResult(const Network::Packet& packet)
     SetState(SessionState::ChoosingCharacter);
 }
 
-// 04 § La entrada al mundo: sólo recepción de los 23 campos wire; no aplica 0x4c3940 ni Q-C144.
+// 04 § La entrada al mundo: filtra los 23 campos wire y entrega al aplicador síncrono.
 void ServerSession::OnWorldEntryReply(const Network::Packet& packet)
 {
     if (!packet.WasDecrypted())
@@ -807,10 +817,10 @@ void ServerSession::OnWorldEntryReply(const Network::Packet& packet)
         m_log.Warning("se ignora la respuesta de entrada al mundo (F3 03): {}", Unreadable);
         return;
     }
-    m_worldEvents.emplace_back(std::move(reply).Value());
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
 }
 
-// 04 § El F3 10, el inventario: conserva el wire, sin inicializaciones ni efectos de 0x4c55a0.
+// 04 § El F3 10, el inventario: conserva el wire y entrega incluso la lista vacía al aplicador.
 void ServerSession::OnInventoryReply(const Network::Packet& packet)
 {
     if (!packet.WasDecrypted())
@@ -824,7 +834,7 @@ void ServerSession::OnInventoryReply(const Network::Packet& packet)
         m_log.Warning("se ignora el inventario (F3 10): {}", Unreadable);
         return;
     }
-    m_worldEvents.emplace_back(std::move(reply).Value());
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
 }
 
 // 0x4c2710 no mira el estado ni la escena para el 0: SendMessageA(WM_DESTROY) en 0x4c391b, y el
@@ -877,6 +887,20 @@ void ServerSession::Connect(const ServerAddress& address, const std::optional<Ne
 {
     m_connection.Open(address.host, address.port, keys);
     ++m_generation;
+}
+
+bool ServerSession::CheckApplication(Core::Expected<void, std::string> applied)
+{
+    if (applied.HasValue())
+    {
+        return true;
+    }
+    if (!m_applicationFailure)
+    {
+        m_applicationFailure = applied.Error();
+        Fail(SessionFailure::ApplicationFailed);
+    }
+    return false;
 }
 
 void ServerSession::Fail(SessionFailure failure)

@@ -35,6 +35,7 @@
 #include "support/GateFiles.h"
 #include "support/ItemFiles.h"
 #include "support/RecordingFrameTarget.h"
+#include "support/RecordingSessionEventSink.h"
 #include "support/RecordingSink.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
@@ -274,7 +275,8 @@ struct Session
 {
     Session()
         : connection(socket, IdentityObfuscation::Shared(), clock, log, 1),
-          session(connection, clock, log, GameClientKeys(), SessionSettings{ServerAddress{"10.0.0.1", 44405}})
+          session(connection, clock, log, GameClientKeys(), SessionSettings{ServerAddress{"10.0.0.1", 44405}},
+                  eventSink)
     {
     }
 
@@ -283,6 +285,7 @@ struct Session
     RecordingSink sink;
     Log log{sink, LogLevel::Debug};
     Connection connection;
+    Client::Tests::RecordingSessionEventSink eventSink;
     ServerSession session;
 };
 
@@ -562,7 +565,7 @@ TEST(LoginSceneTest, StaysWhileTheSessionIsNotLoggedIn)
     Session online;
     LoginScene& scene = tested.Make(&online.session);
     ASSERT_TRUE(scene.Enter().HasValue());
-    online.session.Poll();
+    static_cast<void>(online.session.Poll());
 
     scene.Step(tested.input);
 

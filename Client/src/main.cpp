@@ -6,6 +6,7 @@
 #include "App/FontFiles.h"
 #include "App/FrameRateMeter.h"
 #include "App/GameLoop.h"
+#include "App/ISessionEventSink.h"
 #include "App/LoopTiming.h"
 #include "App/ObfuscationMode.h"
 #include "App/Resolution.h"
@@ -42,25 +43,26 @@
 #include "Platform/WindowEvents.h"
 #include "Render/Gl/GlFrameTarget.h"
 #include "Render/Gl/TextureTable.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Text/FreeTypeRasterizer.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/CharacterSelectScene.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/GameScene.h"
-#include "World/GameCamera.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoadingScene.h"
-#include "Scenes/WorldLoadingScene.h"
 #include "Scenes/LoginScene.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
-#include "Scenes/SelectionState.h"
 #include "Scenes/SceneText.h"
 #include "Scenes/SceneTransitions.h"
+#include "Scenes/SelectionState.h"
+#include "Scenes/SessionEventApplier.h"
 #include "Scenes/TestScene.h"
+#include "Scenes/WorldLoadingScene.h"
+#include "World/GameCamera.h"
 
 #include <chrono>
 #include <cstdint>
@@ -316,9 +318,11 @@ const Network::IObfuscation& ChooseObfuscation(App::ObfuscationMode mode, const 
 // corrida a otra (Network/Connection.h), y los tests le dan uno fijo.
 struct Online
 {
-    Online(const ServerStartup& server, App::ObfuscationMode obfuscation, Core::IClock& clock, Core::Log& log)
+    Online(const ServerStartup& server, App::ObfuscationMode obfuscation, Core::IClock& clock, Core::Log& log,
+           App::ISessionEventSink& eventSink)
         : connection(socket, ChooseObfuscation(obfuscation, foxAnti), clock, log, std::random_device{}()),
-          session(connection, clock, log, server.keys, App::SessionSettings{.connectServer = server.connectServer})
+          session(connection, clock, log, server.keys, App::SessionSettings{.connectServer = server.connectServer},
+                  eventSink)
     {
         if (server.credentials)
         {
@@ -327,13 +331,18 @@ struct Online
     }
 
     // El pollNetwork del SceneManager: la sesión y, después, el AutoLogin, que mira lo que llegó.
-    void Poll()
+    Core::Expected<void, std::string> Poll()
     {
-        session.Poll();
+        const auto polled = session.Poll();
+        if (!polled.HasValue())
+        {
+            return polled;
+        }
         if (autoLogin)
         {
             autoLogin->Poll();
         }
+        return {};
     }
 
     Network::SystemResolver resolver;
@@ -587,12 +596,6 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         log.Error("{}", frame.Error());
         return EXIT_FAILURE;
     }
-    std::optional<Online> online;
-    if (startup.server)
-    {
-        online.emplace(*startup.server, startup.config.obfuscation, clock, log);
-    }
-    App::ServerSession* session = online ? &online->session : nullptr;
     // Lo global de la tela: el rand() de la CRT sembrado una vez con la hora, como srand(time(NULL)) en
     // 0x4bad9a, el viento base y el contador de pasos de lógica.
     Client::Render::Models::ClothWorld clothWorld{
@@ -604,6 +607,13 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // La celda lógica y su lectura exacta se integran en CL7.P; no se sustituye por la celda visual.
     Client::World::GameCameraInput cameraInput;
     Scenes::SelectionState selection;
+    Scenes::SessionEventApplier eventApplier(selection, camera, cameraInput);
+    std::optional<Online> online;
+    if (startup.server)
+    {
+        online.emplace(*startup.server, startup.config.obfuscation, clock, log, eventApplier);
+    }
+    App::ServerSession* session = online ? &online->session : nullptr;
     const Scenes::SceneContext context{.dataRoot = *startup.config.dataPath,
                                        .textures = textures,
                                        .log = log,
@@ -622,16 +632,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     }
     // Los modelos del personaje y de los ítems: los lee la carga (0x61ccb0) y quedan, como GameData.
     Scenes::GameModels models;
-    const std::function<void()> pollNetwork =
-        online ? std::function<void()>(
-                     [&online, &selection, &camera, &cameraInput]
-                     {
-                         online->Poll();
-                         // Los handlers construyen antes del siguiente Step o cambio de escena, aun minimizada.
-                         // Failure queda en el estado; stop la observa también cuando no se dibuja.
-                         static_cast<void>(selection.Apply(online->session.TakeCharacterEvents(), camera, cameraInput));
-                     })
-               : nullptr;
+    const auto pollNetwork = [&online]() -> Core::Expected<void, std::string>
+    { return online ? online->Poll() : Core::Expected<void, std::string>{}; };
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,
                                  pollNetwork, log);
     if (!manager.Start(Scenes::FirstScene).HasValue())
@@ -652,13 +654,14 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // orden del GameServer.
     textInput.Follow(false);
     PrintFrames(stats);
+    if (manager.Failure())
+    {
+        // El manager ya registró el diagnóstico de Enter o de aplicación de la sesión.
+        return EXIT_FAILURE;
+    }
     if (selection.Failure())
     {
         log.Error("no se puede construir la selección: {}", *selection.Failure());
-        return EXIT_FAILURE;
-    }
-    if (manager.Failure())
-    {
         return EXIT_FAILURE;
     }
     if (GameServerOrderedTheQuit(session))

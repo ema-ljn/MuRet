@@ -189,7 +189,19 @@ private:
 // guarda. `polls` cuenta las veces que corrió pollNetwork.
 struct Harness
 {
-    Harness() : log(sink, LogLevel::Debug), manager(Factory(), stage.target, clock, [this] { ++polls; }, log) {}
+    Harness()
+        : log(sink, LogLevel::Debug), manager(
+                                          Factory(), stage.target, clock,
+                                          [this]() -> Expected<void, std::string>
+                                          {
+                                              ++polls;
+                                              if (pollFailure)
+                                                  return Unexpected(*pollFailure);
+                                              return {};
+                                          },
+                                          log)
+    {
+    }
 
     SceneFactory Factory()
     {
@@ -223,6 +235,7 @@ struct Harness
     RecordingSink sink;
     Log log;
     int polls = 0;
+    std::optional<std::string> pollFailure;
     SceneManager manager;
     InputState input;
 };
@@ -230,6 +243,107 @@ struct Harness
 bool Contains(const std::string& text, const std::string& part)
 {
     return text.find(part) != std::string::npos;
+}
+
+// Un error de aplicación corta todas las operaciones visibles del mismo frame.
+TEST(SceneManagerTest, PollFailureStopsSceneOperationsAndPreservesTheFirstDiagnostic)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.manager.Start(SceneId::Loading).HasValue());
+    tested.stage.holding.insert(SceneId::Loading);
+    tested.pollFailure = "falló la aplicación";
+    tested.manager.Poll();
+    tested.manager.Step(tested.input);
+    tested.manager.Step(tested.input);
+    tested.manager.Render(0.5f);
+    tested.manager.Request(SceneId::Login);
+    EXPECT_TRUE(tested.manager.HoldsTheLastFrame());
+    EXPECT_EQ(tested.manager.Failure(), tested.pollFailure);
+    EXPECT_EQ(tested.manager.Current(), SceneId::Loading);
+    EXPECT_EQ(tested.stage.journal, (std::vector<std::string>{"enter Loading"}));
+    EXPECT_TRUE(tested.stage.target.frames.empty());
+    EXPECT_EQ(tested.stage.heldNotifications[SceneId::Loading], 0);
+    tested.pollFailure = "otro error";
+    tested.manager.Poll();
+    EXPECT_EQ(tested.polls, 1);
+    EXPECT_EQ(tested.manager.Failure(), "falló la aplicación");
+}
+
+// Poll es válido antes de Start; su error fatal no se confunde con un Enter que se puede reintentar.
+TEST(SceneManagerTest, APollFailureBeforeStartCannotBeClearedByStart)
+{
+    Stage stage;
+    stage.slots[SceneId::Loading] = {0x71e, 0x723};
+    FakeClock clock;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    int polls = 0;
+    {
+        SceneManager manager(
+            [&stage](SceneId id) -> std::unique_ptr<IScene>
+            {
+                ++stage.created[id];
+                return std::make_unique<ProbeScene>(id, stage);
+            },
+            stage.target, clock,
+            [&polls]() -> Expected<void, std::string>
+            {
+                ++polls;
+                return Unexpected(std::string(polls == 1 ? "primero" : "segundo"));
+            },
+            log);
+        manager.Poll();
+        ASSERT_EQ(manager.Failure(), "primero");
+        const auto started = manager.Start(FirstScene);
+        EXPECT_FALSE(started.HasValue());
+        if (!started.HasValue())
+        {
+            EXPECT_EQ(started.Error(), "primero");
+        }
+        manager.Step(InputState{});
+        manager.Render(0.5f);
+        manager.Request(SceneId::Login);
+        EXPECT_TRUE(manager.HoldsTheLastFrame());
+        manager.Poll();
+        EXPECT_EQ(manager.Failure(), "primero");
+        EXPECT_EQ(manager.Current(), std::nullopt);
+        EXPECT_EQ(polls, 1);
+        EXPECT_TRUE(stage.created.empty());
+        EXPECT_TRUE(stage.journal.empty());
+        EXPECT_TRUE(stage.heldNotifications.empty());
+        EXPECT_TRUE(stage.target.frames.empty());
+    }
+    EXPECT_TRUE(stage.textures.loaded.empty());
+    EXPECT_TRUE(stage.textures.released.empty());
+    EXPECT_TRUE(stage.journal.empty());
+}
+
+TEST(SceneManagerTest, PollFailureInGameLoopLeavesExactlyOnceWithoutDrawing)
+{
+    Harness tested;
+    tested.pollFailure = "falló la aplicación";
+    tested.stage.slots[SceneId::Loading] = {0x71e, 0x723};
+    {
+        SceneManager manager(
+            tested.Factory(), tested.stage.target, tested.clock,
+            [&tested]() -> Expected<void, std::string>
+            {
+                ++tested.polls;
+                return Unexpected(*tested.pollFailure);
+            },
+            tested.log);
+        ASSERT_TRUE(manager.Start(SceneId::Loading).HasValue());
+        EXPECT_EQ(tested.stage.textures.loaded, (std::vector<std::uint16_t>{0x71e, 0x723}));
+        GameLoop loop(tested.clock, manager, PacingMode::Decoupled);
+        tested.clock.Advance(milliseconds{100});
+        loop.RunFrame(WindowState{}, tested.input);
+        ASSERT_TRUE(manager.Failure().has_value());
+        EXPECT_EQ(tested.stage.journal, (std::vector<std::string>{"enter Loading"}));
+        EXPECT_TRUE(tested.stage.target.frames.empty());
+    }
+    EXPECT_EQ(tested.stage.journal, (std::vector<std::string>{"enter Loading", "leave Loading"}));
+    EXPECT_EQ(tested.stage.textures.released, (std::vector<std::uint16_t>{0x71e, 0x723}));
+    EXPECT_EQ(tested.stage.textures.Size(), 0u);
 }
 
 TEST(SceneManagerTest, StartsInLoading)
@@ -430,6 +544,57 @@ TEST(SceneManagerTest, AFailedEnterStopsWithItsError)
     tested.manager.Step(tested.input);
     tested.manager.Render(0.0f);
     EXPECT_EQ(tested.stage.journal.size(), events);
+    EXPECT_TRUE(tested.stage.target.frames.empty());
+}
+
+// Un error de Enter no corta la sesión independiente mientras el host decide reintentar.
+TEST(SceneManagerTest, PollContinuesAfterFailedEnterAndAnEnterRetryStillSucceeds)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+    tested.stage.failingEnter = SceneId::Login;
+    tested.manager.Request(SceneId::Login);
+    ASSERT_TRUE(tested.manager.Failure().has_value());
+    const auto enterFailure = tested.manager.Failure();
+    tested.manager.Poll();
+    tested.manager.Poll();
+    EXPECT_EQ(tested.polls, 2);
+    EXPECT_EQ(tested.manager.Failure(), enterFailure);
+    tested.stage.failingEnter.reset();
+    ASSERT_TRUE(tested.manager.Start(SceneId::Login).HasValue());
+    EXPECT_EQ(tested.manager.Current(), SceneId::Login);
+    EXPECT_EQ(tested.manager.Failure(), std::nullopt);
+    tested.manager.Poll();
+    EXPECT_EQ(tested.polls, 3);
+}
+
+TEST(SceneManagerTest, PollFailureAfterFailedEnterWinsAndRemainsTerminal)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+    tested.stage.failingEnter = SceneId::Login;
+    tested.manager.Request(SceneId::Login);
+    ASSERT_TRUE(tested.manager.Failure().has_value());
+    const auto events = tested.stage.journal.size();
+    tested.pollFailure = "falló Poll después de Enter";
+    tested.manager.Poll();
+    EXPECT_EQ(tested.polls, 1);
+    EXPECT_EQ(tested.manager.Failure(), "falló Poll después de Enter");
+    tested.stage.failingEnter.reset();
+    const auto retried = tested.manager.Start(SceneId::Login);
+    ASSERT_FALSE(retried.HasValue());
+    EXPECT_EQ(retried.Error(), "falló Poll después de Enter");
+    tested.pollFailure = "otro fallo de Poll";
+    tested.manager.Poll();
+    tested.manager.Step(tested.input);
+    tested.manager.Render(0.5f);
+    tested.manager.Request(SceneId::Loading);
+    EXPECT_TRUE(tested.manager.HoldsTheLastFrame());
+    EXPECT_EQ(tested.manager.Failure(), "falló Poll después de Enter");
+    EXPECT_EQ(tested.polls, 1);
+    EXPECT_EQ(tested.manager.Current(), std::nullopt);
+    EXPECT_EQ(tested.stage.journal.size(), events);
+    EXPECT_EQ(tested.stage.created[SceneId::Login], 1);
     EXPECT_TRUE(tested.stage.target.frames.empty());
 }
 

@@ -124,6 +124,9 @@ inline void PrintTo(SessionFailure failure, std::ostream* out)
     case SessionFailure::CredentialsTooLong:
         *out << "CredentialsTooLong";
         return;
+    case SessionFailure::ApplicationFailed:
+        *out << "ApplicationFailed";
+        return;
     case SessionFailure::NoReply:
         *out << "NoReply";
         return;

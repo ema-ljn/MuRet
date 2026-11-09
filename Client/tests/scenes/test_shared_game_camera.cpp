@@ -272,7 +272,7 @@ TEST_F(SharedGameCameraTest, ReceivingSlotZeroWritesTheSharedHeroXYBeforeTheCame
     Client::Scenes::CharacterSelectScene selection(SelectionContext(state), m_data, m_models, &online.session);
     ASSERT_TRUE(selection.Enter().HasValue());
     online.ReceiveTheList({{0, "char0001"}});
-    ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
+    ASSERT_TRUE(state.Apply(online.eventSink.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
     selection.Step(Client::Input::InputState{});
     // 0x5172c4/0x5172ca: las escrituras de 0x517270 al slot0, al que apunta Hero.
     EXPECT_EQ(m_cameraInput.hero.x, Client::Scenes::CharacterSlots[0].position.x);
@@ -296,7 +296,7 @@ TEST_F(SharedGameCameraTest, TheSlotZeroSelectionPassDoesNotDependOnInitialHeroZ
         Client::Scenes::CharacterSelectScene selection(SelectionContext(state), m_data, m_models, &online.session);
         ASSERT_TRUE(selection.Enter().HasValue());
         online.ReceiveTheList({{0, "char0001"}});
-        ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
+        ASSERT_TRUE(state.Apply(online.eventSink.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
         selection.Step(Client::Input::InputState{});
         // Se aísla Z después de la construcción real, que ya escribió el XY de selección.
         m_cameraInput.hero.z = initialZ;
@@ -317,7 +317,7 @@ TEST_F(SharedGameCameraTest, ReenteringWithTheSameSlotZeroRefreshesTheSharedHero
     Client::Scenes::CharacterSelectScene selection(context, m_data, m_models, &online.session);
     ASSERT_TRUE(selection.Enter().HasValue());
     online.ReceiveTheList({{0, "char0001"}});
-    ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
+    ASSERT_TRUE(state.Apply(online.eventSink.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
     selection.Step(Client::Input::InputState{});
     static_cast<void>(Frame(selection, 0ns));
     selection.Leave();
@@ -333,7 +333,7 @@ TEST_F(SharedGameCameraTest, ReenteringWithTheSameSlotZeroRefreshesTheSharedHero
     ASSERT_TRUE(selection.Enter().HasValue());
     EXPECT_TRUE(selection.HoldsTheLastFrame());
     online.ReceiveTheList({{0, "char0001"}});
-    ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
+    ASSERT_TRUE(state.Apply(online.eventSink.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
     EXPECT_TRUE(selection.HoldsTheLastFrame());
     selection.Step(Client::Input::InputState{});
     EXPECT_FALSE(selection.HoldsTheLastFrame());

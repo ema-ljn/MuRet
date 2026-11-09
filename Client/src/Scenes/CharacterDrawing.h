@@ -11,8 +11,8 @@
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/TextureMetadata.h"
 #include "Scenes/CharacterCloth.h"
+#include "Scenes/TextureMetadata.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -52,6 +52,13 @@ public:
     [[nodiscard]] virtual std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const = 0;
     // Consulta raw32 de la misma tabla: ausencia explícita, sin truncar al slot16 de los modelos.
     [[nodiscard]] virtual std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const
+    {
+        (void)selector;
+        return std::nullopt;
+    }
+    // Handle físico publicado por una carga exitosa del owner. La ausencia no autoriza truncar
+    // el selector raw32 ni confundirlo con un nombre de GL. Las bibliotecas legacy no lo ofrecen.
+    [[nodiscard]] virtual std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const
     {
         (void)selector;
         return std::nullopt;

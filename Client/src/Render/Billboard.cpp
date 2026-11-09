@@ -50,17 +50,16 @@ Models::OriginalMatrix ViewRows(const glm::mat4& view)
     return rows;
 }
 
-Billboard MakeBillboard(const Models::OriginalMatrix& view, const glm::vec3& position, float width, float height,
-                        const glm::vec3& light, float rotation, glm::vec2 uv, glm::vec2 uvSize, std::uint16_t slot,
-                        int components)
+std::array<BillboardCorner, 4> MakeBillboardGeometry(const Models::OriginalMatrix& view, const glm::vec3& position,
+                                                     float width, float height, float rotation, glm::vec2 uv,
+                                                     glm::vec2 uvSize)
 {
     const glm::vec3 eye = VectorTransform(position, view);
     // El medio ancho queda en la x87 (exacto) y también se guarda en float; el medio alto, en float.
     const double halfWidth = static_cast<double>(width) * Half;
     const float halfWidthFloat = F32(halfWidth);
     const float halfHeight = F32(static_cast<double>(height) * Half);
-    Billboard billboard;
-    auto& corners = billboard.corners;
+    std::array<BillboardCorner, 4> corners{};
     if (rotation == 0.0f)
     {
         const float left = F32(static_cast<double>(eye.x) - halfWidth);
@@ -91,14 +90,25 @@ Billboard MakeBillboard(const Models::OriginalMatrix& view, const glm::vec3& pos
     corners[1].uv = {uRight, vBottom};
     corners[2].uv = {uRight, uv.y};
     corners[3].uv = {uv.x, uv.y};
+    return corners;
+}
+Color MakeBillboardColor(const glm::vec3& light, std::int32_t selector, int components)
+{
     if (components == ThreeComponents)
     {
-        billboard.color = Color{light.x, light.y, light.z, 1.0f};
+        return Color{light.x, light.y, light.z, 1.0f};
     }
     else
     {
-        billboard.color = Color{light.x, light.y, light.z, slot == OpaqueAlphaBillboardSlot ? 1.0f : light.x};
+        return Color{light.x, light.y, light.z, selector == OpaqueAlphaBillboardSlot ? 1.0f : light.x};
     }
-    return billboard;
+}
+Billboard MakeBillboard(const Models::OriginalMatrix& view, const glm::vec3& position, float width, float height,
+                        const glm::vec3& light, float rotation, glm::vec2 uv, glm::vec2 uvSize, std::uint16_t slot,
+                        int components)
+{
+    const auto corners = MakeBillboardGeometry(view, position, width, height, rotation, uv, uvSize);
+    const Color color = MakeBillboardColor(light, slot, components);
+    return Billboard{corners, color};
 }
 } // namespace Client::Render

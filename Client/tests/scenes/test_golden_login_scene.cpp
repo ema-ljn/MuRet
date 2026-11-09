@@ -1,3 +1,5 @@
+#include "support/CheckedWorldObjectProjection.h"
+
 #include "Scenes/LoginScene.h"
 #include "Scenes/CharacterSelectScene.h"
 #include "Scenes/CharacterSlots.h"
@@ -874,7 +876,8 @@ TEST_F(GoldenLoginWorld, TheLanternGlowsAtTheToesOfTheDragonsOwner)
     record.position = {5600.0f, 23000.0f, 0.0f};
     record.scale = 1.0f;
     Client::World::WorldObject owner =
-        Client::World::CreateWorldObjects(std::span(&record, 1), 0x37, Client::World::ObjectScene::Login).front();
+        Client::Tests::CheckedWorldObjectProjection(std::span(&record, 1), 0x37, Client::World::ObjectScene::Login)
+            .front();
     const Client::Render::Models::Skeleton* horseSkeleton = m_models.SkeletonOf(Client::Scenes::DarkHorseModel);
     ASSERT_NE(horseSkeleton, nullptr);
     Client::Scenes::DarkHorse horse;
@@ -1474,7 +1477,7 @@ TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAno
                                                    &m_models.TextureSlots());
     ASSERT_TRUE(selection.Enter().HasValue());
     online.ReceiveTheList({{0, "char0001"}});
-    ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), camera, cameraInput).HasValue());
+    ASSERT_TRUE(state.Apply(online.eventSink.TakeCharacterEvents(), camera, cameraInput).HasValue());
     EXPECT_EQ(cameraInput.hero.z, 1200.0f);
     EXPECT_EQ(state.Map(), 55);
     RecordingFrameTarget selected;

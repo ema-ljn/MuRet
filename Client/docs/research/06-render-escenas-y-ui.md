@@ -2641,7 +2641,7 @@ en orden (`0x4c41d4..0x4c4b60`, *estático*):
 | 4 | la clase en `+0x1d4`, la piel en 0, el PK (`+0x375`), el CtlCode (`+0x1d8`) y `+0x88 = 1` | |
 | 5 | `0x512a30(héroe)`: los modelos del equipo, desde el registro todavía viejo | |
 | 6 | el puntero del héroe en `0x743a170` y el nombre en `+0x1d9` | |
-| 7 | **vacía los 12 lugares del equipo** del registro (`+0xb68`, de a `0x48`, el tipo en −1): el equipo lo trae el `F3 10` | |
+| 7 | **vacía los 12 lugares del equipo** del registro (desde `+0xb6c`, de a `0x48`: el tipo en −1, el dword de `+4` y el byte de `+0x1b` en 0): el equipo lo trae el `F3 10` | `0x4c47c8..0x4c47da` |
 | 8 | `+0x1e3 = 0` y el primer efecto de llegada, `0x518cf0(0x61f, posición, ángulos, luz, 0, héroe, −1, …)` | |
 | 9 | el estado `0x3d`, `0x77f3b67 = 0` y `0x553780(1, 0)` | `0x4c4854` |
 | 10 | **el contador `0x77f3b04` en 30**: desde acá el dibujo pasa | `0x4c48eb` |
@@ -2682,8 +2682,8 @@ escribe este handler; quién las calcula después, sin leer (P-C28 i).
   dos giros de `0x53d2c0(0x61f, …, ±ángulo)` que se apagan con la vida. Al ser dos iguales, se suma
   dos veces.
 - **La acción de parado** (`0x4f2250`) depende del arma, de la zona segura, de la mascota y del
-  mapa ([Caminar](#caminar), `SetPlayerStop`). Algunas ramas arman un `C1 .. 18`: la tabla del XOR32
-  va en línea (P-C14 c).
+  mapa ([Caminar](#caminar), `SetPlayerStop`). Sentado arma un `C1 .. 18`: la tabla del XOR32 va en
+  línea (P-C14 c).
 - **La luz del héroe en la escena 5** (`0x50ba30`, desde `0x50cc55`) es la del terreno en su lugar,
   **del buffer dinámico** `0x7b4ccc4` (`0x5f99e0`), más `+0xf4..+0xfc`, que `0x511290` deja en 0. En
   la selección es 0,4 fijo, y en el login, 0,3 más el terreno. `0x50ba30` tiene además una rama
@@ -2730,6 +2730,45 @@ paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-d
    `TileRock03..07`, que se saltean sin avisar; el pasto trae solo `TileGrass01.OZT` y las hojas
    solo `leaf01.tga`. *Verificado* contra la traza: el pasto es la textura de GL 1360, la que sigue
    a los nueve tiles que están (1351 a 1359).
+
+### El equipo propio en el personaje
+
+`0x512a30(c)` (493 instrucciones, 1.733 bytes, cotejados con el PE `c32bbd5f`; *estático*) pasa el
+equipo del registro propio (`[0x7681eb4]`) a un personaje. La llaman la respuesta del `F3 03` (la
+fila 5 de la tabla de [La entrada al mundo](#la-entrada-al-mundo)), `0x5bc740` con cada entrada del
+`F3 10` y el `1C` ([Los cambios de mapa](#los-cambios-de-mapa)). En orden:
+
+1. Con un tipo (`+2`) que no es `0x20a` vuelve sin abrir ni tocar nada (`0x512a42`).
+2. Abre el registro por la tabla de protección (`0x512a48..0x512aba`, [La tabla de
+   protección](#la-tabla-de-protección)).
+3. Lee los lugares del registro de a `0x48`, con el tipo en `+0xb6c + 0x48 · k`, **solo del 0 al
+   8**: del 9 al 11 no lee nada. El modelo es `0x212` más el tipo, o −1 con el tipo en −1; el nivel,
+   `(B1 >> 3) & 0xf`, con B1 el byte de `+4` del lugar. Las manos (`+0x2b8` y `+0x2d8`, los lugares
+   0 y 1) llevan además el byte `+0x1b` del lugar (a `+0x2bb` y `+0x2db`); las alas (`+0x2f8`, el
+   7) y la mascota (`+0x318`, el 8), solo el modelo y el nivel (`0x512abf..0x512b9b`).
+4. **Llama a `0x4f2250`** ([Caminar](#caminar), `SetPlayerStop`; `0x512bd4`) salvo en los mapas 18
+   a 23 o con la acción (`+0x111`) en `0xc5..0xcc` o en `0x22..0x97` (`0x512ba1..0x512bcd`): la
+   acción de parado se elige con las manos, las alas y la mascota nuevas.
+5. Con `+0x3e3` distinto de 0 (`0x512bdc`) cierra el registro (`0x512bea..0x512cc6`) y vuelve: no
+   toca la ropa.
+6. Si no, las cinco partes del cuerpo (`+0x218`, de a `0x20`; los lugares 2 a 6): el modelo o, con
+   el lugar vacío, la de la clase (`0x2212`, `0x221a`, `0x2222`, `0x222a` y `0x2232` más `(clase >>
+   3) · 5 + (clase & 7)`), el nivel y los bytes `+0x1b` y `+0x1c` (`0x512cc7..0x512ec9`).
+7. `0x4053f0` (`0x512ecf`; 44 instrucciones, 139 bytes): en los mapas 18 a 23 llama a `0x4053a0` y
+   pisa las armas; en los otros no hace nada.
+8. `0x512930` (`0x512ed5`; 56 instrucciones, 205 bytes): la cabeza y la escala, como en la
+   selección ([Los personajes de la lista](#los-personajes-de-la-lista)). Las tablas de saltos de
+   `0x512a00` y `0x512a14` dan la escala por clase; en las clases 5 a 7 no la toca.
+9. Si el personaje es el de `0x743a170` (el héroe publicado; `0x512ee2`), `0x505820` (`0x512ee7`),
+   sin leer en detalle: busca los conjuntos, escribe `0x743a178` y `0x743a17c` y, con la clase 3,
+   abre otra vez el registro.
+10. `0x550d10` (`0x512ef5`, `thiscall` sobre el registro): los stats.
+11. Cierra el registro (en línea, `0x512efa..0x5130cf`).
+
+En la respuesta del `F3 03` el héroe todavía no está en `0x743a170` (lo pone la fila 6), así que esa
+primera llamada no corre `0x505820`. MuRet (`Scenes::ApplyActorEquipment`) llega hasta el paso 8 y
+corta con un error explícito donde falta la lectura: `0x4053a0` (los mapas 18 a 23), `0x505820` y
+`0x550d10`. El cierre del registro gasta los 3.848 `rand()` también cuando corta.
 
 ### El paso de ondas de Kalima
 
@@ -3657,9 +3696,42 @@ emulación, 6 celdas caminando son 49 pasos (1,96 s).
 - **Los pasos suenan** (`0x41ed10`) con `rand() & 63 == 0` en el héroe y `rand() & 15 == 0` en los
   otros: gasta `rand()` (Q-C179).
 
-`SetPlayerStop` (`0x4f2250`) pone `Run = 0` y la acción de parado: 1 sin armas o en la zona segura
-(2 el elfo); de 3 a 8, u `0x8a`, con armas; 9 o 10 volando; `0x4a` con `0x1c16`; y de `0x76` a
-`0x79` con Fenrir. Con `+0x7c & 0x200000`, la acción `0xca` y un `C1 .. 18 dir 82` (sentarse, CL9).
+`SetPlayerStop` (`0x4f2250`; 1.607 instrucciones, 5.481 bytes, cotejados con el PE `c32bbd5f`;
+*estático*) pone `Run = 0` (`0x4f227f`) y la acción de parado con `0x4ea030`. La zona segura es
+`+0x3e2`, la mano derecha `+0x2b8` y la izquierda `+0x2d8`, y los modelos se comparan como WORD con
+signo. En este orden:
+
+1. Un tipo que no es `0x20a` va a su propia rama (`0x4f2d87..0x4f36b5`), que lee sus celdas por la
+   tabla de protección y el `TerrainWall`, sin leer en detalle.
+2. Fenrir (`0x1c37` en `+0x318`) fuera de la zona segura: `0x7d3a0d0 = 0` y `0x76` con las dos manos
+   vacías, `0x77` con las dos, `0x78` solo con la derecha y `0x79` solo con la izquierda
+   (`0x4f228c..0x4f22f6`).
+3. El caballo oscuro (`0x1c16`) fuera de la zona segura: `0x4a`.
+4. En la zona segura, con el cuervo (`0x1c17`) en la izquierda: `0x48`.
+5. `0x1c14` o `0x1c15` fuera de la zona segura: `0xb` con las dos manos vacías y `0xc` si no.
+6. Si no, **vuela** con alas (`+0x2f8` distinto de −1) fuera de la zona segura o con `+0x376` en
+   `0x101`; en la escena 5 y en los mapas 7, 24 a 29 y 36, también con el bit `0x01` del
+   `TerrainWall` (`0x7d0d348`, `0x4f23c1`) apagado en su celda (`ftol(y · 0,01)`, `ftol(x · 0,01)` y
+   `0x5f82a0`, `0x4f2365..0x4f23dd`).
+7. **Sentado** (`+0x7c & 0x200000`), vuele o no: con la acción ya en `0xca` no pone ninguna; si no,
+   la `0xca` y un `C1 .. 18` con el XOR32 en línea (sentarse, CL9). La rama está dos veces, volando
+   (`0x4f23e3`) y en el piso (`0x4f2801`), hasta `0x4f2bea`.
+8. Volando: `0xa` con un arma de la derecha del grupo 4 de abajo, y 9 si no (`0x4f27c6..0x4f27fc`).
+9. En el piso (`0x4f2bf6..0x4f2d82`): 1 (2 el elfo, `clase & 7` en 2) con las dos manos vacías o
+   en la zona segura de los mapas de menos de 11 o más de 23. Si no, por la derecha: los grupos 0
+   a 2 dan 3 sin la marca y, con ella, `0x8a` los modelos `0x227`, `0x229` y `0x231` y 4 los
+   demás; `0x813` y `0x814`, 5; los grupos 3 y 5, 6 con la marca y 3 sin ella. Después, una
+   izquierda en `0xa12..0xa18`, `0xa23`, `0xa26` o `0xa27` da 7, una derecha en `0xa1a..0xa20`,
+   `0xa22` o `0xa24..0xc11` da 8, y lo demás, 1 o 2. **La marca** es el byte `+0x1e` del registro
+   del arma en `Item.bmd` (`[0x7758550]`, de a `0x54`; `0x4f2c4c`).
+
+Con la acción puesta, el sufijo (`0x4f36be..0x4f37a5`): con `rand() % 16` distinto de 0 termina. Si
+no, con el tipo `0x20a` y el subtipo (`+4`) fuera de 209 a 211: sin Fenrir termina; con Fenrir,
+`rand() % 3` distinto de 0 termina y si no suena `0x41ed10(0x279 + (rand() & 1), c, 0)`. Con otro
+tipo o esos subtipos lee la tabla de sonidos de los modelos (`0x5769ad8 + tipo · 0xe0 + 0xaa`), sin
+leer en detalle. Gasta de uno a tres `rand()`. MuRet (`Scenes::SetActorStop`) porta los pasos 2 a 9
+y el sufijo, y corta con un error explícito en la rama de los que no son jugadores, el `TerrainWall`
+de los mapas de vuelo en la escena 5, el `C1 .. 18` de sentarse y la tabla de sonidos.
 
 `0x4f9580` no toca el movimiento: da la **velocidad de la animación**, la base del `PlaySpeed` de la
 acción (después va `0x4ec200`, salvo con `+0x78 & 0x1000`), con multiplicadores por tipo, acción y

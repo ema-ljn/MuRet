@@ -146,33 +146,41 @@ std::optional<std::uint16_t> PetOf(Equipment equipment)
 void FinishAppearance(CharacterAppearance& appearance)
 {
     const std::uint16_t helm = appearance.bodyParts[static_cast<std::size_t>(BodyPart::Helm)].model;
-    appearance.head.reset();
-    if (std::ranges::find(OpenHelmets, helm) != OpenHelmets.end())
+    appearance.head = HeadUnder(helm, appearance.characterClass);
+    if (const std::optional<float> scale = ClassScale(appearance.characterClass, appearance.skin))
     {
-        appearance.head = ClassPartModel(BodyPart::Helm, appearance.characterClass);
-    }
-    const bool withSkin = appearance.skin != 0;
-    switch (appearance.characterClass & 7)
-    {
-    case 0:
-    case 1:
-        appearance.scale = withSkin ? 0.93f : 0.9f;
-        return;
-    case 2:
-        appearance.scale = withSkin ? 0.86f : 0.88f;
-        return;
-    case 3:
-        appearance.scale = 0.95f;
-        return;
-    case 4:
-        appearance.scale = 0.92f;
-        return;
-    default:
-        // Las clases 5 a 7 no las arma el original: queda la escala de antes.
-        return;
+        appearance.scale = *scale;
     }
 }
 } // namespace
+
+std::optional<std::uint16_t> HeadUnder(std::uint16_t helm, std::uint8_t characterClass)
+{
+    if (std::ranges::find(OpenHelmets, helm) == OpenHelmets.end())
+    {
+        return std::nullopt;
+    }
+    return ClassPartModel(BodyPart::Helm, characterClass);
+}
+
+std::optional<float> ClassScale(std::uint8_t characterClass, std::uint8_t skin)
+{
+    const bool withSkin = skin != 0;
+    switch (characterClass & 7)
+    {
+    case 0:
+    case 1:
+        return withSkin ? 0.93f : 0.9f;
+    case 2:
+        return withSkin ? 0.86f : 0.88f;
+    case 3:
+        return 0.95f;
+    case 4:
+        return 0.92f;
+    default:
+        return std::nullopt;
+    }
+}
 
 std::uint16_t ClassPartModel(BodyPart part, std::uint8_t characterClass)
 {

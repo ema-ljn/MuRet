@@ -1,0 +1,165 @@
+#include "Scenes/ActorEquipment.h"
+
+#include "Core/Expected.h"
+#include "Data/Models/PlayerModels.h"
+#include "GameLogic/CharacterAppearance.h"
+#include "Render/Models/LogicalAccess.h"
+#include "Scenes/ActorActions.h"
+#include "Scenes/ActorState.h"
+#include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/WorldRuntime.h"
+#include "World/ItemState.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <string>
+
+// 0x512a30, cotejado con el PE c32bbd5f (493 instrucciones, 1.733 bytes), con 0x4053f0 (44, 139) y
+// 0x512930 (56, 205): 06, "El equipo propio en el personaje".
+namespace Client::Scenes
+{
+namespace
+{
+// Los lugares del registro propio que lee, de a 0x48 desde el tipo en +0xb6c. Del 9 al 11 no lee nada.
+constexpr std::size_t RightHandSlot = 0;
+constexpr std::size_t LeftHandSlot = 1;
+constexpr std::size_t FirstBodySlot = 2;
+constexpr std::size_t WingsSlot = 7;
+constexpr std::size_t PetSlot = 8;
+
+// El nivel de una parte: (B1 >> 3) & 0xf del ítem (0x512b4c..0x512b52).
+constexpr int LevelShift = 3;
+constexpr std::uint32_t LevelMask = 0xf;
+
+// Con estos, 0x512a30 no llama a 0x4f2250 (0x512ba1..0x512bcd): los mapas 18 a 23, las acciones 0xc5 a
+// 0xcc y las de 0x22 a 0x97.
+constexpr std::int32_t FirstNoStopMap = 18;
+constexpr std::int32_t LastNoStopMap = 23;
+constexpr std::uint8_t FirstNoStopAction = 0xc5;
+constexpr std::uint8_t LastNoStopAction = 0xcc;
+constexpr std::uint8_t FirstBusyAction = 0x22;
+constexpr std::uint8_t LastBusyAction = 0x97;
+
+// La mascota que 0x511290 mira en el word318 anterior.
+constexpr std::uint16_t HeightOffsetPet = 0x1c15;
+
+bool InNoStopMaps(std::int32_t map)
+{
+    return map >= FirstNoStopMap && map <= LastNoStopMap;
+}
+
+std::uint16_t ModelOf(const World::ItemState& item, std::uint16_t empty)
+{
+    if (item.id == NoItemModel)
+    {
+        return empty;
+    }
+    return static_cast<std::uint16_t>(item.id + Data::Models::FirstItemModel);
+}
+
+std::uint8_t LevelOf(const World::ItemState& item)
+{
+    return static_cast<std::uint8_t>((item.scalar1Low >> LevelShift) & LevelMask);
+}
+
+// 0x512abf..0x512b9b: las manos con su byte +0x1b; las alas y la mascota, sin bytes.
+void ProjectCarried(ActorState& actor, const OwnCharacterRecord& own)
+{
+    static_assert(LeftHandSlot == RightHandSlot + 1);
+    for (std::size_t side = 0; side < actor.hands.size(); ++side)
+    {
+        const World::ItemState& item = own.equipment[RightHandSlot + side];
+        ActorItemPart& hand = actor.hands[side];
+        hand.model = ModelOf(item, NoItemModel);
+        hand.level = LevelOf(item);
+        hand.flags1b = item.flags1b;
+    }
+    actor.wings.model = ModelOf(own.equipment[WingsSlot], NoItemModel);
+    actor.wings.level = LevelOf(own.equipment[WingsSlot]);
+    actor.pet.model = ModelOf(own.equipment[PetSlot], NoItemModel);
+    actor.pet.level = LevelOf(own.equipment[PetSlot]);
+    actor.previousHad1c15 = actor.pet.model == HeightOffsetPet;
+}
+
+// 0x512bb3..0x512bcd.
+bool CallsStop(const ActorState& actor, std::int32_t map)
+{
+    const std::uint8_t action = actor.animation.action;
+    const bool skipped = action >= FirstNoStopAction && action <= LastNoStopAction;
+    const bool busy = action >= FirstBusyAction && action <= LastBusyAction;
+    return !InNoStopMaps(map) && !skipped && !busy;
+}
+
+// 0x512cc7..0x512ec9: las cinco partes; un lugar vacío deja la de la clase.
+void ProjectBody(ActorState& actor, const OwnCharacterRecord& own)
+{
+    for (std::size_t part = 0; part < actor.body.size(); ++part)
+    {
+        const World::ItemState& item = own.equipment[FirstBodySlot + part];
+        const auto ofClass = GameLogic::ClassPartModel(static_cast<GameLogic::BodyPart>(part), actor.characterClass);
+        ActorItemPart& worn = actor.body[part];
+        worn.model = ModelOf(item, ofClass);
+        worn.level = LevelOf(item);
+        worn.flags1b = item.flags1b;
+        worn.flags1c = item.flags1c;
+    }
+}
+
+// 0x512930, con +0x3e3 en 0 como lo deja la rama que lo llama.
+void ApplyHeadAndScale(ActorState& actor)
+{
+    const auto helm = actor.body[static_cast<std::size_t>(GameLogic::BodyPart::Helm)].model;
+    actor.head = GameLogic::HeadUnder(helm, actor.characterClass).value_or(NoItemModel);
+    if (const std::optional<float> scale = GameLogic::ClassScale(actor.characterClass, actor.skin))
+    {
+        actor.scale = *scale;
+    }
+}
+
+// 0x512cc7..0x512ef5: la ropa y lo que sigue, hasta donde MuRet llega. Devuelve dónde corta.
+std::string DressUntilTheFrontier(ActorState& actor, const ActorEquipmentContext& context)
+{
+    ProjectBody(actor, context.own);
+    if (InNoStopMaps(context.stop.runtime.map))
+    {
+        return "0x512a30: en los mapas 18 a 23, 0x4053f0 llama a 0x4053a0 (0x405407), sin leer";
+    }
+    ApplyHeadAndScale(actor);
+    if (&actor == &context.publishedHero)
+    {
+        return "0x512a30: con el héroe publicado llama a 0x505820 (0x512ee7), sin leer";
+    }
+    return "0x512a30: falta 0x550d10, los stats del registro propio (0x512ef5, T10)";
+}
+} // namespace
+
+Core::Expected<ActorStopResult, std::string> ApplyActorEquipment(ActorState& actor,
+                                                                 const ActorEquipmentContext& context)
+{
+    if (actor.type != Data::Models::PlayerSkeletonModel)
+    {
+        return ActorStopResult{};
+    }
+    // 0x512a48..0x512aba lo abre; el cierre, en 0x512bea..0x512cc6 o en línea en 0x512efa..0x5130cf,
+    // es el de este acceso, también cuando MuRet corta antes.
+    const Render::Models::LogicalAccess ownAccess(context.ownRecordAccesses, context.stop.random,
+                                                  Render::Models::OwnRecordCloseRandoms);
+    ProjectCarried(actor, context.own);
+    ActorStopResult stop;
+    if (CallsStop(actor, context.stop.runtime.map))
+    {
+        auto stopped = SetActorStop(actor, context.stop);
+        if (!stopped.HasValue())
+        {
+            return Core::Unexpected(stopped.Error());
+        }
+        stop = stopped.Value();
+    }
+    if (actor.byte3e3 != 0)
+    {
+        return stop;
+    }
+    return Core::Unexpected(DressUntilTheFrontier(actor, context));
+}
+} // namespace Client::Scenes

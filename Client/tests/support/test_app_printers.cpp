@@ -65,6 +65,12 @@ TEST(AppPrintersTest, TheCharacterStatesShowTheirNames)
     EXPECT_EQ(::testing::PrintToString(SessionState::EnteringWorld), "EnteringWorld");
 }
 
+// El del mundo, el 0x3d (CL7.L1).
+TEST(AppPrintersTest, InWorldShowsItsName)
+{
+    EXPECT_EQ(::testing::PrintToString(SessionState::InWorld), "InWorld");
+}
+
 // El de la orden del GameServer de cerrar el juego (Q-C106).
 TEST(AppPrintersTest, QuitOrderedShowsItsName)
 {

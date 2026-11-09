@@ -843,6 +843,7 @@ void LoginScene::FollowSession()
     case App::SessionState::WaitingCreateResult:
     case App::SessionState::WaitingDeleteResult:
     case App::SessionState::EnteringWorld:
+    case App::SessionState::InWorld:
         m_serverList.Close();
         m_login.Close();
         return;

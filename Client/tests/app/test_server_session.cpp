@@ -386,6 +386,15 @@ struct Harness
         ASSERT_EQ(session.State(), SessionState::ChoosingCharacter);
     }
 
+    // Y la elección del lugar 0 y la entrada: el F3 03 salió (0x3c).
+    void ReachEnteringWorld()
+    {
+        ASSERT_NO_FATAL_FAILURE(ReachChoosingCharacter());
+        session.ChooseCharacter(std::uint8_t{0});
+        session.EnterWorld();
+        ASSERT_EQ(session.State(), SessionState::EnteringWorld);
+    }
+
     // Los F3 de `subcode` que le llegaron al GS, sin el XOR32, en orden.
     [[nodiscard]] std::vector<Packet> CharacterPacketsSent(std::uint8_t subcode) const
     {
@@ -3671,7 +3680,8 @@ TEST(ServerSessionTest, ChoosingCharacterHasNoTimeout)
     EXPECT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
 }
 
-// La respuesta del F3 03 es de la CL7 (0x4c3940): hasta entonces, la entrada no tiene tope.
+// Mientras no llega la respuesta del F3 03, el original deja el mosaico sin tope (06 § La entrada
+// al mundo, paso 4): la entrada tampoco tiene uno.
 TEST(ServerSessionTest, EnteringWorldHasNoTimeout)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -3682,6 +3692,133 @@ TEST(ServerSessionTest, EnteringWorldHasNoTimeout)
     tested.PollEachFrameUntil(ReplyTimeout * 3);
 
     EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
+}
+
+// La entrada al mundo (el plan de la CL7, CL7.L1, "La sesión"): el sink que aplica la respuesta
+// del F3 03 publica el 0x3d en su fila 9 (0x4c4854, 06, tabla de 0x4c3940). Lo que sigue de esa
+// aplicación ya corre en InWorld, y el F3 10 que llega detrás en el mismo lote también lo ve.
+TEST(ServerSessionTest, PublishingTheEntryFromTheSinkMovesToInWorld)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachEnteringWorld());
+    std::optional<SessionState> afterPublishing;
+    tested.eventSink.onWorld = [&afterPublishing](const WorldEvent& event,
+                                                  ServerSession& session) -> Client::Core::Expected<void, std::string>
+    {
+        if (std::holds_alternative<CharacterSelectResult>(event))
+        {
+            EXPECT_FALSE(session.JoinedWorld());
+            session.PublishWorldEntry();
+            afterPublishing = session.State();
+        }
+        return {};
+    };
+    tested.socket.reads = {Join({FromTheGameServer(WorldEntryReply(), tested.gameServerSends),
+                                 FromTheGameServer(InventoryReply(), tested.gameServerSends)})};
+
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+
+    EXPECT_EQ(afterPublishing, SessionState::InWorld);
+    EXPECT_EQ(tested.session.State(), SessionState::InWorld);
+    EXPECT_TRUE(tested.session.JoinedWorld());
+    EXPECT_FALSE(tested.session.Failure().has_value());
+    EXPECT_EQ(tested.connection.State(), LinkState::Open);
+    EXPECT_EQ(tested.eventSink.trace, (std::vector<std::string>{"list", "entry", "inventory"}));
+    EXPECT_EQ(tested.eventSink.worldStates,
+              (std::vector<SessionState>{SessionState::EnteringWorld, SessionState::InWorld}));
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "se aplicó la entrada al mundo: la sesión está en el mundo"));
+}
+
+// En el mundo no se espera una respuesta: no hay tope (ADR 0007), y el keepalive sigue con el timer
+// global, que publicar no reinicia. A los 20 s, con la entrada publicada a los 5, ya salió uno: si
+// la fase empezara al publicar, saldría a los 25.
+TEST(ServerSessionTest, InWorldHasNoReplyTimeoutAndKeepsTheKeepalive)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachEnteringWorld());
+    ASSERT_EQ(tested.Keepalives().size(), 1u); // el inmediato del login
+    tested.eventSink.onWorld = [](const WorldEvent&,
+                                  ServerSession& session) -> Client::Core::Expected<void, std::string>
+    {
+        session.PublishWorldEntry();
+        return {};
+    };
+    tested.AdvanceTo(seconds{5});
+    tested.socket.reads = {FromTheGameServer(WorldEntryReply(), tested.gameServerSends)};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    ASSERT_EQ(tested.session.State(), SessionState::InWorld);
+
+    tested.PollEachFrameUntil(seconds{20});
+    EXPECT_EQ(tested.Keepalives().size(), 2u);
+    tested.PollEachFrameUntil(seconds{5} + ReplyTimeout * 3);
+
+    EXPECT_EQ(tested.session.State(), SessionState::InWorld);
+    EXPECT_FALSE(tested.session.Failure().has_value());
+    EXPECT_EQ(tested.Keepalives().size(), 5u); // y a los 40, 60 y 80 s
+    EXPECT_FALSE(tested.Logged(LogLevel::Error, "no contestó"));
+}
+
+// Lo que sigue al 0x3d en 0x4c3940 (de la fila 10 en adelante) también puede fallar en el
+// aplicador: con InWorld ya publicado, la sesión termina en ApplicationFailed, cierra y corta el
+// lote, y Poll devuelve el error hasta el próximo Start.
+TEST(ServerSessionTest, AFailureAfterPublishingEndsInApplicationFailed)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachEnteringWorld());
+    tested.eventSink.onWorld = [](const WorldEvent&,
+                                  ServerSession& session) -> Client::Core::Expected<void, std::string>
+    {
+        session.PublishWorldEntry();
+        EXPECT_EQ(session.State(), SessionState::InWorld);
+        return Client::Core::Unexpected(std::string("falló lo que sigue al 0x3d"));
+    };
+    tested.socket.reads = {Join({FromTheGameServer(WorldEntryReply(), tested.gameServerSends),
+                                 FromTheGameServer(InventoryReply(), tested.gameServerSends)})};
+
+    const auto polled = tested.session.Poll();
+
+    ASSERT_FALSE(polled.HasValue());
+    EXPECT_EQ(polled.Error(), "falló lo que sigue al 0x3d");
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_FALSE(tested.session.JoinedWorld());
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::ApplicationFailed);
+    EXPECT_EQ(tested.connection.State(), LinkState::Closed);
+    EXPECT_EQ(tested.eventSink.trace, (std::vector<std::string>{"list", "entry"}));
+    const auto again = tested.session.Poll();
+    ASSERT_FALSE(again.HasValue());
+    EXPECT_EQ(again.Error(), "falló lo que sigue al 0x3d");
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+}
+
+// Solo 0x4c3940 escribe el 0x3d: ni el F3 10 (0x4c55a0) ni nadie fuera de esa respuesta. Publicar
+// desde otro lado es un aviso y nada, así tampoco saca a la sesión de QuitOrdered, que es el final.
+TEST(ServerSessionTest, PublishingOutsideTheEntryApplicationIsIgnored)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachEnteringWorld());
+    tested.eventSink.onWorld = [](const WorldEvent&,
+                                  ServerSession& session) -> Client::Core::Expected<void, std::string>
+    {
+        session.PublishWorldEntry();
+        return {};
+    };
+    tested.socket.reads = {FromTheGameServer(InventoryReply(), tested.gameServerSends)};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
+
+    tested.session.PublishWorldEntry();
+    EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
+
+    tested.socket.reads = {FromTheGameServer(LogoutResult(0), tested.gameServerSends)};
+    static_cast<void>(tested.session.Poll());
+    ASSERT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    tested.session.PublishWorldEntry();
+
+    EXPECT_EQ(tested.session.State(), SessionState::QuitOrdered);
+    EXPECT_FALSE(tested.session.JoinedWorld());
+    constexpr std::string_view Ignored = "se ignora la publicación de la entrada al mundo: solo la hace la respuesta "
+                                         "del F3 03";
+    EXPECT_EQ(tested.CountLogged(LogLevel::Warning, Ignored), 3u);
 }
 
 TEST(ServerSessionTest, AStartForgetsTheList)

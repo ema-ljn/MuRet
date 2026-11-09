@@ -104,6 +104,7 @@ std::string_view Awaited(SessionState state)
     case SessionState::LoggedIn:
     case SessionState::ChoosingCharacter:
     case SessionState::EnteringWorld:
+    case SessionState::InWorld:
     case SessionState::QuitOrdered:
     case SessionState::Failed:
         break;
@@ -278,6 +279,24 @@ void ServerSession::HandleEvents()
 SessionState ServerSession::State() const
 {
     return m_state;
+}
+
+// 0x4c4854 escribe el 0x3d sin mirar el estado anterior. Solo lo escribe 0x4c3940: ni 0x4c55a0 (el
+// F3 10) ni los cambios de mapa (06 § Los cambios de mapa).
+void ServerSession::PublishWorldEntry()
+{
+    if (!m_applyingWorldEntry)
+    {
+        m_log.Warning("se ignora la publicación de la entrada al mundo: solo la hace la respuesta del F3 03");
+        return;
+    }
+    m_log.Info("se aplicó la entrada al mundo: la sesión está en el mundo");
+    SetState(SessionState::InWorld);
+}
+
+bool ServerSession::JoinedWorld() const
+{
+    return m_state == SessionState::InWorld;
 }
 
 std::uint32_t ServerSession::StartCount() const
@@ -817,7 +836,12 @@ void ServerSession::OnWorldEntryReply(const Network::Packet& packet)
         m_log.Warning("se ignora la respuesta de entrada al mundo (F3 03): {}", Unreadable);
         return;
     }
-    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
+    // El sink publica el 0x3d desde acá (PublishWorldEntry); un error después de publicarlo
+    // igual termina en ApplicationFailed.
+    m_applyingWorldEntry = true;
+    Core::Expected<void, std::string> applied = m_eventSink.ApplyWorld(std::move(reply).Value(), *this);
+    m_applyingWorldEntry = false;
+    static_cast<void>(CheckApplication(std::move(applied)));
 }
 
 // 04 § El F3 10, el inventario: conserva el wire y entrega incluso la lista vacía al aplicador.
@@ -943,6 +967,7 @@ bool ServerSession::WithConnectServer() const
     case SessionState::WaitingCreateResult:
     case SessionState::WaitingDeleteResult:
     case SessionState::EnteringWorld:
+    case SessionState::InWorld:
     case SessionState::QuitOrdered:
     case SessionState::Failed:
         break;

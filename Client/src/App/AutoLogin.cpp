@@ -42,6 +42,7 @@ void AutoLogin::Poll()
     case SessionState::WaitingCreateResult:
     case SessionState::WaitingDeleteResult:
     case SessionState::EnteringWorld:
+    case SessionState::InWorld:
     case SessionState::QuitOrdered:
     case SessionState::Failed:
         return;

@@ -74,11 +74,14 @@
 //   con el GS abierto --cada KeepalivePeriod del timer global: manda el keepalive-->
 //     el mismo estado
 //   con el GS --F3 03 o F3 10 cifrado y legible: aplica en el sink--> el mismo estado
-//   un error del sink --cierra y corta el lote--> Failed (ApplicationFailed)
+//   aplicando un F3 03 --PublishWorldEntry, en el store del 0x3d (0x4c4854)--> InWorld
+//   un error del sink --cierra y corta el lote--> Failed (ApplicationFailed), también después de
+//     publicar InWorld
 //   con el GS --F1 02 con 0: cierra, sin aviso--> QuitOrdered (Q-C106)
 //   cualquier Waiting* que espera un servidor --ReplyTimeout sin su respuesta: cierra--> Failed
 //     (NoReply); ChoosingServer, WaitingCredentials y ChoosingCharacter esperan al jugador y no
-//     tienen tope, y EnteringWorld tampoco: ya recibe su respuesta, pero falta aplicarla en la CL7
+//     tienen tope; EnteringWorld tampoco, como el mosaico del original mientras no llega la
+//     respuesta (06 § La entrada al mundo, paso 4), e InWorld no espera ninguna respuesta
 //   con el CS --Closed--> Failed (ConnectServerLost)
 //   con el GS --Closed--> Failed (GameServerLost)
 //
@@ -169,6 +172,16 @@ public:
     Core::Expected<void, std::string> Poll();
 
     [[nodiscard]] SessionState State() const;
+
+    // El store del 0x3d de la respuesta del F3 03 (0x4c4854, fila 9 de la tabla de 0x4c3940 en 06):
+    // pasa a InWorld. Lo llama el sink desde el ApplyWorld de un F3 03, después de cargar el mapa y
+    // de armar al héroe (filas 1 a 8), y lo que sigue de la respuesta corre ya en InWorld. No mira
+    // el estado anterior, como 0x4c3940: una respuesta que se vuelve a aplicar lo vuelve a publicar.
+    // Fuera de esa aplicación (otro momento o el F3 10, que no escribe el 0x3d), un aviso y nada.
+    void PublishWorldEntry();
+
+    // Si la sesión está en InWorld: el F3 03 aplicado publicó el 0x3d.
+    [[nodiscard]] bool JoinedWorld() const;
 
     // Cuántas veces se llamó a Start: lo que elige o manda alguien de afuera (el AutoLogin) es de
     // una vuelta, y con un Start empieza otra.
@@ -308,6 +321,8 @@ private:
     std::optional<std::uint8_t> m_loginResult;
     std::optional<Protocol::Character::CharacterList> m_characters;
     std::optional<std::string> m_applicationFailure;
+    // Solo durante el ApplyWorld de un F3 03: ahí vale PublishWorldEntry.
+    bool m_applyingWorldEntry = false;
     std::optional<std::uint8_t> m_chosenSlot; // un lugar de m_characters
     std::optional<std::uint8_t> m_createResult;
     std::optional<std::uint8_t> m_deleteResult;

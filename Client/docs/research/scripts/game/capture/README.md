@@ -12,6 +12,9 @@ Build c32bbd5f del [entorno](../../README.md#el-entorno), SHA-256
 | `fsin_probe.c` | Secuencia x87 aislada del balanceo Y en tres relojes largos, PC53 y PC64 | Programa propio: no lee la CW ni ejecuta la función del proceso original |
 | `read_fpu.cpp` | CW y EIP del hilo que posee la ventana `MU` | Pausa/reanuda un incremento de suspensión; requiere supervisión |
 
+La sesión de capturas de la CL7 en la VM (la CW caminando, los objetos de Devias y la luz sombreada),
+paso a paso y escrita para que la corra un agente: [RUNBOOK-cl7-vm.md](RUNBOOK-cl7-vm.md).
+
 `passive_camera` y `passive_cl7` buscan la ventana de clase `MU` o reciben un PID decimal. Usan
 `PROCESS_QUERY_INFORMATION | PROCESS_VM_READ` y comprueban dos firmas de 16 bytes en
 `0x635ae0` y `0x5fcc30` antes de leer una lista cerrada de campos. Son firmas de compatibilidad,

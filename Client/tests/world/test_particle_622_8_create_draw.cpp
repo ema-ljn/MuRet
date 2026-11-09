@@ -2,6 +2,8 @@
 
 #include "Render/Models/Cloth.h"
 
+#include "support/ParticleDrawRecorder.h"
+
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
@@ -14,6 +16,8 @@
 namespace
 {
 using Client::Render::Models::CrtRandom;
+using Client::Tests::DrawOneParticle;
+using Client::Tests::RecordedParticleDraw;
 using Client::World::Particle;
 using Client::World::Particles;
 constexpr std::int32_t CloudType = 0x622;
@@ -66,12 +70,12 @@ TEST(Particle622Subtype8DrawTest, UsesImageDimensionsTypeMaterialFlagAndWholeTex
                       .start = {2, std::bit_cast<float>(0x3e570a3du), -16}};
     const glm::vec3 originalLight = particle.light;
 
-    const auto even = Client::World::ParticleDrawChecked(particle, glm::vec2(100, 200), std::uint8_t{3}, 1.0f, 2);
+    const auto even = DrawOneParticle(particle, glm::vec2(100, 200), std::uint8_t{3}, 1.0f, 2);
 
     ASSERT_TRUE(even.HasValue());
     ASSERT_TRUE(even.Value().has_value());
     EXPECT_EQ(even.Value()->texture, CloudType);
-    EXPECT_EQ(even.Value()->blend, Client::World::ParticleDraw::Blend::Additive);
+    EXPECT_EQ(even.Value()->blend, RecordedParticleDraw::Blend::Additive);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(even.Value()->width), 0x4343ffffu);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(even.Value()->height), 0x43c3ffffu);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(even.Value()->rotation), 0x3e5fa43fu);
@@ -83,10 +87,10 @@ TEST(Particle622Subtype8DrawTest, UsesImageDimensionsTypeMaterialFlagAndWholeTex
     EXPECT_EQ(particle.light, originalLight);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(particle.rotation), 0x3e5fa43fu);
 
-    const auto odd = Client::World::ParticleDrawChecked(particle, glm::vec2(100, 200), std::uint8_t{1}, 1.0f, 3);
+    const auto odd = DrawOneParticle(particle, glm::vec2(100, 200), std::uint8_t{1}, 1.0f, 3);
     ASSERT_TRUE(odd.HasValue());
     ASSERT_TRUE(odd.Value().has_value());
-    EXPECT_EQ(odd.Value()->blend, Client::World::ParticleDraw::Blend::Alpha);
+    EXPECT_EQ(odd.Value()->blend, RecordedParticleDraw::Blend::Alpha);
     EXPECT_EQ(std::bit_cast<std::uint32_t>(odd.Value()->rotation), 0x3e4e703bu);
 }
 
@@ -116,7 +120,7 @@ TEST(Particle622Subtype8DrawTest, PreservesHeightPassBoundariesAndUnorderedCompa
           std::tuple{std::bit_cast<float>(0x7fc12345u), std::uint8_t{2}, false}})
     {
         particle.position.z = height;
-        const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(1), std::uint8_t{3}, 0, 0, mode);
+        const auto draw = DrawOneParticle(particle, glm::vec2(1), std::uint8_t{3}, 0, 0, mode);
         ASSERT_TRUE(draw.HasValue()) << height << ", " << static_cast<int>(mode);
         EXPECT_EQ(draw.Value().has_value(), expected) << height << ", " << static_cast<int>(mode);
     }
@@ -132,11 +136,11 @@ TEST(Particle622Subtype8DrawTest, DoesNotClampTheTemporaryRgbProduct)
                       .light = {2.0f, -1.0f, 0.5f},
                       .field38 = std::bit_cast<std::uint32_t>(2.0f)};
 
-    const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(1), std::uint8_t{0});
+    const auto draw = DrawOneParticle(particle, glm::vec2(1), std::uint8_t{0});
 
     ASSERT_TRUE(draw.HasValue());
     ASSERT_TRUE(draw.Value().has_value());
-    EXPECT_EQ(draw.Value()->blend, Client::World::ParticleDraw::Blend::Alpha);
+    EXPECT_EQ(draw.Value()->blend, RecordedParticleDraw::Blend::Alpha);
     EXPECT_EQ(draw.Value()->light, glm::vec3(4.0f, -2.0f, 1.0f));
     EXPECT_EQ(particle.light, glm::vec3(2.0f, -1.0f, 0.5f));
 }

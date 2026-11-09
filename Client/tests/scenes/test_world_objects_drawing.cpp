@@ -11,9 +11,12 @@
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/TextureMetadata.h"
+#include "Data/Textures/Texture.h"
 #include "World/TerrainCulling.h"
 #include "Render/Billboard.h"
 #include "Render/Models/Cloth.h"
+#include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Render/Models/Skinning.h"
@@ -49,6 +52,7 @@ using Client::Render::TextureSlot;
 using Client::Render::Models::Skeleton;
 using Client::Scenes::DrawWorldObjects;
 using Client::Scenes::StepWorldObjects;
+using Client::Scenes::TextureMetadata;
 using Client::World::WorldObject;
 
 constexpr std::uint8_t Login = 55;
@@ -683,7 +687,8 @@ TEST(ModelEffectsDrawingTest, TheDragonIsDrawnBetweenTwoSteps)
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 1000.0f);
 }
 
-// Una biblioteca con el tamaño de la textura de los sprites (0x5ac de 64 × 32).
+// Una biblioteca con el tamaño de la textura de los sprites (0x5ac de 64 × 32) y la del aliento (0x5f2): las
+// dos son JPG, de 3 componentes, y ligan el slot de su selector, como las de EffectTextureSet en GameModels.
 class SpriteTextures final : public Client::Scenes::IModelLibrary
 {
 public:
@@ -699,13 +704,26 @@ public:
     {
         return {};
     }
+    [[nodiscard]] std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
+    {
+        if (selector != 0x5ac && selector != 0x5f2)
+        {
+            return std::nullopt;
+        }
+        TextureMetadata metadata(Client::Data::Textures::Texture{});
+        metadata.size = glm::vec2(64.0f, 32.0f);
+        metadata.components = 3;
+        return metadata;
+    }
+    [[nodiscard]] std::optional<TextureSlot> TextureSlotOf(std::uint32_t selector) const override
+    {
+        return TextureMetadataOf(selector) ? std::optional(TextureSlot{static_cast<std::uint16_t>(selector)})
+                                           : std::nullopt;
+    }
     [[nodiscard]] std::optional<glm::vec2> TextureSize(TextureSlot slot) const override
     {
-        if (slot == TextureSlot{0x5ac} || slot == TextureSlot{0x5f2})
-        {
-            return glm::vec2(64.0f, 32.0f);
-        }
-        return std::nullopt;
+        const auto metadata = TextureMetadataOf(slot.value);
+        return metadata ? std::optional(metadata->size) : std::nullopt;
     }
 };
 
@@ -787,8 +805,9 @@ TEST(SpritesDrawingTest, AnUnseenSpriteShrinksWithItsAlpha)
     EXPECT_FLOAT_EQ(maxX - minX, 64.0f * 2.0f * 0.9f);
 }
 
-// 0x548550(0): cada aliento vivo, aditivo (smoke01 es de 3 componentes), del tamaño de su textura por la
-// escala, sin el alpha de los sprites y sin apagarlo; el paso lo apaga cuando se le acaba la vida.
+// 0x548550(0): cada aliento vivo, aditivo (smoke01 es de 3 componentes: 0x620a90), del tamaño de su textura
+// por la escala, sin el alpha de los sprites y sin apagarlo; el paso lo apaga cuando se le acaba la vida. El
+// material y el binder (0x620780) van al lote como efectos sin geometría antes del quad, en coordenadas de ojo.
 TEST(ParticlesDrawingTest, ABreathIsDrawnWithItsTextureTimesItsScale)
 {
     const SpriteTextures textures;
@@ -800,10 +819,23 @@ TEST(ParticlesDrawingTest, ABreathIsDrawnWithItsTextureTimesItsScale)
     const float scale = particles.All()[*index].scale;
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
-    ASSERT_EQ(batch.Commands().size(), 1u);
-    EXPECT_EQ(batch.Commands()[0].state.blend, ModelBlend::Additive);
-    EXPECT_EQ(batch.Commands()[0].state.texture, TextureSlot{0x5f2});
+    ASSERT_TRUE(Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)))
+                    .HasValue());
+    ASSERT_FALSE(batch.Commands().empty());
+    const auto& drawn = batch.Commands().back();
+    EXPECT_EQ(drawn.operation, Client::Render::ModelStateOperation::Draw);
+    EXPECT_EQ(drawn.state.blend, ModelBlend::Additive);
+    EXPECT_EQ(drawn.state.texture, TextureSlot{0x5f2});
+    EXPECT_EQ(drawn.state.space, Client::Render::ModelCoordinateSpace::Eye);
+    EXPECT_EQ(drawn.state.depthWrite, std::optional(false));
+    EXPECT_EQ(drawn.state.cullEnabled, std::optional(false));
+    EXPECT_EQ(drawn.state.alphaTest, std::optional(false));
+    EXPECT_EQ(drawn.state.texture2d, std::optional(true));
+    EXPECT_EQ(drawn.vertexCount, 6u);
+    for (std::size_t k = 0; k + 1 < batch.Commands().size(); ++k)
+    {
+        EXPECT_EQ(batch.Commands()[k].vertexCount, 0u) << "antes del quad, solo los efectos sin geometría";
+    }
     ASSERT_EQ(batch.Vertices().size(), 6u);
     float minY = 1e9f;
     float maxY = -1e9f;
@@ -835,19 +867,24 @@ public:
     }
 };
 
-// Sin el tamaño de su textura (una biblioteca que no la subió), no se dibuja.
-TEST(ParticlesDrawingTest, ABreathWithoutItsTextureIsNotDrawn)
+// Sin el tamaño de su textura (una biblioteca que no la subió), el pase se corta en ese lugar con el error, en
+// la primera frontera (Recurso+20/+24), antes de cualquier servicio: no se saltea en silencio.
+TEST(ParticlesDrawingTest, ABreathWithoutItsTextureCutsThePassWithItsError)
 {
     const NoEffectTextures textures;
     Client::World::Particles particles;
     Client::Render::Models::CrtRandom random(1);
-    ASSERT_TRUE(particles
-                    .Create(Client::World::BreathParticle, {0.0f, 0.0f, -300.0f}, glm::vec3(0.0f), glm::vec3(3.0f), 0,
-                            1.0f, 0.0f, random)
-                    .has_value());
+    const auto index = particles.Create(Client::World::BreathParticle, {0.0f, 0.0f, -300.0f}, glm::vec3(0.0f),
+                                        glm::vec3(3.0f), 0, 1.0f, 0.0f, random);
+    ASSERT_TRUE(index.has_value());
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
+    const auto drawn =
+        Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)));
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_EQ(drawn.Error().slot, *index);
+    EXPECT_EQ(drawn.Error().error.reason, Client::World::ParticleError::MissingTextureSize);
+    EXPECT_EQ(drawn.Error().error.phase, Client::World::ParticleDrawingPhase::Dimensions);
     EXPECT_TRUE(batch.Commands().empty());
 }
 } // namespace

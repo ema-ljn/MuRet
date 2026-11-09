@@ -1,6 +1,9 @@
 #include "World/Particles.h"
 
 #include "Render/Models/Cloth.h"
+#include "World/ParticleDrawing.h"
+
+#include "support/ParticleDrawRecorder.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -19,6 +22,8 @@
 namespace
 {
 using Client::Render::Models::CrtRandom;
+using Client::Tests::DrawOneParticle;
+using Client::Tests::RecordedParticleDraw;
 using Client::World::Particle;
 using Client::World::Particles;
 constexpr std::int32_t Fire = 0x5d9;
@@ -175,15 +180,17 @@ TEST(GameplayParticlesTest, FireDrawUsesSignedIntegerAtlasAndAnglesX)
                       .angles = {17, 22, 33},
                       .rotation = 95,
                       .field48 = std::bit_cast<float>(-5)};
-    const auto draw = Client::World::ParticleDrawOf(particle, {128, 64}, 4);
-    ASSERT_TRUE(draw.has_value());
-    EXPECT_EQ(draw->texture, 17);
-    EXPECT_EQ(draw->width, 48);
-    EXPECT_EQ(draw->height, 96);
-    EXPECT_EQ(draw->rotation, 17);
-    EXPECT_EQ(draw->uv, glm::vec2(-0.25f, 0));
-    EXPECT_EQ(draw->uvSize, glm::vec2(0.25f, 1));
-    EXPECT_EQ(draw->blend, Client::World::ParticleDraw::Blend::Alpha);
+    const auto drawn = DrawOneParticle(particle, glm::vec2(128, 64), std::uint8_t{4});
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_TRUE(drawn.Value().has_value());
+    const RecordedParticleDraw& draw = *drawn.Value();
+    EXPECT_EQ(draw.texture, 17);
+    EXPECT_EQ(draw.width, 48);
+    EXPECT_EQ(draw.height, 96);
+    EXPECT_EQ(draw.rotation, 17);
+    EXPECT_EQ(draw.uv, glm::vec2(-0.25f, 0));
+    EXPECT_EQ(draw.uvSize, glm::vec2(0.25f, 1));
+    EXPECT_EQ(draw.blend, RecordedParticleDraw::Blend::Alpha);
 }
 
 TEST(GameplayParticlesTest, SmokeTwoDrawIsSubtractiveAndUsesTheWholeTexture)
@@ -195,14 +202,16 @@ TEST(GameplayParticlesTest, SmokeTwoDrawIsSubtractiveAndUsesTheWholeTexture)
                       .scale = 1.5f,
                       .angles = {17, 22, 33},
                       .rotation = 95};
-    const auto draw = Client::World::ParticleDrawOf(particle, {128, 64}, 3);
-    ASSERT_TRUE(draw.has_value());
-    EXPECT_EQ(draw->width, 192);
-    EXPECT_EQ(draw->height, 96);
-    EXPECT_EQ(draw->rotation, 95);
-    EXPECT_EQ(draw->uv, glm::vec2(0));
-    EXPECT_EQ(draw->uvSize, glm::vec2(1));
-    EXPECT_EQ(draw->blend, Client::World::ParticleDraw::Blend::Subtractive);
+    const auto drawn = DrawOneParticle(particle, glm::vec2(128, 64), std::uint8_t{3});
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_TRUE(drawn.Value().has_value());
+    const RecordedParticleDraw& draw = *drawn.Value();
+    EXPECT_EQ(draw.width, 192);
+    EXPECT_EQ(draw.height, 96);
+    EXPECT_EQ(draw.rotation, 95);
+    EXPECT_EQ(draw.uv, glm::vec2(0));
+    EXPECT_EQ(draw.uvSize, glm::vec2(1));
+    EXPECT_EQ(draw.blend, RecordedParticleDraw::Blend::Subtractive);
 }
 // Debe fallar si se valida el binding antes de la salida nativa sin slot.
 TEST(GameplayParticlesTest, AFullPoolIsSuccessWithoutEmissionEvenBeforeBindingDispatch)
@@ -274,21 +283,23 @@ TEST(GameplayParticlesTest, EmptyStepStillConsumesTheTwoWindDraws)
 TEST(GameplayParticlesTest, CheckedDrawReportsMissingMetadataWithoutPretendingToDraw)
 {
     Particle particle{.alive = true, .type = Fire, .texture = 17, .subtype = 0};
-    const auto size = Client::World::ParticleDrawChecked(particle, std::nullopt, std::uint8_t{3});
+    const auto size = DrawOneParticle(particle, std::nullopt, std::uint8_t{3});
     ASSERT_FALSE(size.HasValue());
-    EXPECT_EQ(size.Error(), Client::World::ParticleError::MissingTextureSize);
-    const auto material = Client::World::ParticleDrawChecked(particle, glm::vec2(128, 64), std::nullopt);
+    EXPECT_EQ(size.Error().reason, Client::World::ParticleError::MissingTextureSize);
+    const auto material = DrawOneParticle(particle, glm::vec2(128, 64), std::nullopt);
     ASSERT_FALSE(material.HasValue());
-    EXPECT_EQ(material.Error(), Client::World::ParticleError::MissingMaterialFlag);
-    const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(128, 64), std::uint8_t{4});
+    EXPECT_EQ(material.Error().reason, Client::World::ParticleError::MissingMaterialFlag);
+    const auto draw = DrawOneParticle(particle, glm::vec2(128, 64), std::uint8_t{4});
     ASSERT_TRUE(draw.HasValue());
     ASSERT_TRUE(draw.Value().has_value());
     EXPECT_EQ(draw.Value()->texture, 17);
-    EXPECT_EQ(draw.Value()->blend, Client::World::ParticleDraw::Blend::Alpha);
+    EXPECT_EQ(draw.Value()->blend, RecordedParticleDraw::Blend::Alpha);
+    // Un tipo fuera de la tabla de saltos falla en la rama, después del prefijo de dimensiones y material.
     particle.type = std::numeric_limits<std::int32_t>::max();
-    const auto unsupported = Client::World::ParticleDrawChecked(particle, glm::vec2(128, 64), std::uint8_t{3});
+    const auto unsupported = DrawOneParticle(particle, glm::vec2(128, 64), std::uint8_t{3});
     ASSERT_FALSE(unsupported.HasValue());
-    EXPECT_EQ(unsupported.Error(), Client::World::ParticleError::UnsupportedType);
+    EXPECT_EQ(unsupported.Error().reason, Client::World::ParticleError::UnsupportedType);
+    EXPECT_EQ(unsupported.Error().phase, Client::World::ParticleDrawingPhase::Branch);
 }
 
 TEST(GameplayParticlesTest, HeightPassesOverlapAndKeepTheNativeUnorderedBehavior)
@@ -311,15 +322,14 @@ TEST(GameplayParticlesTest, HeightPassesOverlapAndKeepTheNativeUnorderedBehavior
         Particle particle{.alive = true, .type = Fire, .subtype = 0, .position = {0, 0, value.z}};
         for (std::uint8_t mode = 0; mode < 4; ++mode)
         {
-            const auto draw =
-                Client::World::ParticleDrawChecked(particle, glm::vec2(128, 64), std::uint8_t{3}, 0, 0, mode);
+            const auto draw = DrawOneParticle(particle, glm::vec2(128, 64), std::uint8_t{3}, 0, 0, mode);
             ASSERT_TRUE(draw.HasValue());
             const bool visible = mode == 1 ? value.lower : mode == 2 ? value.upper : true;
             EXPECT_EQ(draw.Value().has_value(), visible) << value.z << ": " << static_cast<int>(mode);
         }
     }
     Particle dead;
-    const auto draw = Client::World::ParticleDrawChecked(dead, std::nullopt, std::nullopt);
+    const auto draw = DrawOneParticle(dead, std::nullopt, std::nullopt);
     ASSERT_TRUE(draw.HasValue());
     EXPECT_FALSE(draw.Value().has_value());
 }
@@ -328,9 +338,10 @@ TEST(GameplayParticlesTest, AtlasWidthRoundsTheTextureProductBeforeDividingByFou
     Particle particle{.alive = true, .type = Fire, .subtype = 2, .scale = 0.5f};
     // Cinco unidades subnormales: primer store 2,5 -> 2; segundo store 0,5 -> 0.
     // Fusionar los productos daría 0,625 -> 1 unidad, alterando el ancho.
-    const auto draw = Client::World::ParticleDrawOf(particle, {std::bit_cast<float>(5u), 64}, 3);
-    ASSERT_TRUE(draw.has_value());
-    EXPECT_EQ(Bits(draw->width), 0u);
+    const auto draw = DrawOneParticle(particle, glm::vec2(std::bit_cast<float>(5u), 64), std::uint8_t{3});
+    ASSERT_TRUE(draw.HasValue());
+    ASSERT_TRUE(draw.Value().has_value());
+    EXPECT_EQ(Bits(draw.Value()->width), 0u);
 }
 
 // 5446e0 fire-smoke: el temporal f32 convierte la suma final en empate RN-even.

@@ -25,6 +25,8 @@
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/TextureMetadata.h"
+#include "Data/Textures/Texture.h"
 #include "World/Particles.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldObjects.h"
@@ -61,9 +63,26 @@ public:
     {
         return {};
     }
+    // clouds.jpg: 64 × 32 y 3 componentes, ligada en el slot de su selector, como en GameModels.
+    std::optional<Client::Scenes::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
+    {
+        if (selector != static_cast<std::uint32_t>(CloudType))
+        {
+            return std::nullopt;
+        }
+        Client::Scenes::TextureMetadata metadata(Client::Data::Textures::Texture{});
+        metadata.size = glm::vec2(64.0f, 32.0f);
+        metadata.components = 3;
+        return metadata;
+    }
+    std::optional<Client::Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override
+    {
+        return TextureMetadataOf(selector) ? std::optional(Client::Render::TextureSlot{CloudType}) : std::nullopt;
+    }
     std::optional<glm::vec2> TextureSize(Client::Render::TextureSlot slot) const override
     {
-        return slot == Client::Render::TextureSlot{CloudType} ? std::optional(glm::vec2(64.0f, 32.0f)) : std::nullopt;
+        const auto metadata = TextureMetadataOf(slot.value);
+        return metadata ? std::optional(metadata->size) : std::nullopt;
     }
 };
 Client::World::WorldObject Marker(std::int16_t type = CloudMarker)
@@ -182,7 +201,8 @@ void SetCloud(Client::World::Particle& particle, float baseAngle)
     particle.rotationFactor = 2.0f;
     particle.start.y = baseAngle;
 }
-// Al compactar los vivos, el slot 1 se trataría como par. 0x620b10 reemplaza la mezcla del JPEG.
+// Al compactar los vivos, el slot 1 se trataría como par. 0x620b10 reemplaza la mezcla del JPEG (0x620a90):
+// cada nube publica las dos antes de su quad, así que los tramos que dibujan van de a uno.
 TEST(LoginCloudDrawingTest, DrawingUsesSubtractiveCloudsAndRealPoolIndices)
 {
     const CloudTextures textures;
@@ -192,11 +212,23 @@ TEST(LoginCloudDrawingTest, DrawingUsesSubtractiveCloudsAndRealPoolIndices)
     SetCloud(particles.All()[4], 40.0f);
     Client::Render::ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)), 100.0f);
-    ASSERT_EQ(batch.Commands().size(), 1u);
-    EXPECT_EQ(batch.Commands()[0].state.blend, Client::Render::ModelBlend::Subtractive);
-    EXPECT_EQ(batch.Commands()[0].state.texture, Client::Render::TextureSlot{CloudType});
-    EXPECT_EQ(batch.Commands()[0].vertexCount, 18u);
+    ASSERT_TRUE(
+        Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)), 100.0f)
+            .HasValue());
+    std::size_t draws = 0;
+    for (const auto& command : batch.Commands())
+    {
+        if (command.operation != Client::Render::ModelStateOperation::Draw)
+        {
+            EXPECT_EQ(command.vertexCount, 0u);
+            continue;
+        }
+        ++draws;
+        EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Subtractive);
+        EXPECT_EQ(command.state.texture, Client::Render::TextureSlot{CloudType});
+        EXPECT_EQ(command.vertexCount, 6u);
+    }
+    EXPECT_EQ(draws, 3u);
     EXPECT_FLOAT_EQ(particles.All()[1].rotation, 6.0f);
     EXPECT_FLOAT_EQ(particles.All()[3].rotation, 26.0f);
     EXPECT_FLOAT_EQ(particles.All()[4].rotation, 44.0f);
@@ -207,7 +239,9 @@ TEST(LoginCloudDrawingTest, DrawingUsesSubtractiveCloudsAndRealPoolIndices)
         EXPECT_FLOAT_EQ(vertex.position.z, -300.0f);
     }
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)), 200.0f);
+    ASSERT_TRUE(
+        Client::Scenes::DrawParticles(batch, particles, textures, Client::Render::ViewRows(glm::mat4(1.0f)), 200.0f)
+            .HasValue());
     EXPECT_FLOAT_EQ(particles.All()[1].rotation, 2.0f) << "no acumula el giro anterior";
     EXPECT_FLOAT_EQ(particles.All()[4].rotation, 48.0f);
 }
@@ -241,7 +275,9 @@ std::size_t CloudsIn(const Client::Tests::RecordedFrame& frame)
     {
         for (const auto& command : event.modelCommands)
         {
-            if (command.state.texture == Client::Render::TextureSlot{CloudType})
+            // Solo los tramos que dibujan: los efectos sin geometría de 0x620a90 van con la mezcla aditiva.
+            if (command.state.texture == Client::Render::TextureSlot{CloudType} &&
+                command.operation == Client::Render::ModelStateOperation::Draw)
             {
                 EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Subtractive);
                 EXPECT_TRUE(event.pass.has_value());

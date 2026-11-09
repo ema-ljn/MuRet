@@ -16,10 +16,6 @@ namespace
 {
 using Phase = ParticleDrawingPhase;
 using Result = IParticleDrawingServices::Result;
-constexpr std::int32_t OrbitParticle = 0x60f;
-constexpr std::int32_t OrbitInitialLife = 60;
-constexpr std::int32_t Particle67 = 0x67;
-constexpr std::int32_t Particle68 = 0x68;
 constexpr std::int32_t CullOverrideType = 0x5ac;
 constexpr std::int32_t DepthOverrideType = 0x5ed;
 constexpr float LowerPassHeight = 350.0f;
@@ -133,7 +129,7 @@ Result DrawBranch(Particle& p, glm::vec2 extents, std::size_t index, std::refere
     // 548bcf..be3: el subtipo se relee tras material y antes de consultar vida.
     if (p.type == OrbitParticle)
     {
-        if (p.subtype != 4 && p.life == OrbitInitialLife)
+        if (p.subtype != 4 && p.life == OrbitLife)
             return {};
         const auto shape = ParticleDrawParametersOf(p, extents, ParticleDrawKind::Common);
         const Render::ParticleBillboardRequest request{p.texture,    std::cref(p.position), shape.width,

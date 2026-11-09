@@ -2,12 +2,15 @@
 
 #include "Render/Models/Cloth.h"
 
+#include "support/ParticleDrawRecorder.h"
+
 #include <glm/ext/vector_float2.hpp>
 
 #include <gtest/gtest.h>
 
 #include <bit>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 
 namespace
@@ -138,8 +141,8 @@ TEST(Particle622Subtype8Test, CreationAndDrawUseTheirNewExplicitBindings)
     ASSERT_TRUE(created.Value().has_value());
     EXPECT_EQ(random.State(), 0x75c8bedcu);
 
-    const auto draw =
-        Client::World::ParticleDrawChecked(particles.All()[*created.Value()], glm::vec2(64), std::uint8_t{3});
+    const std::size_t slot = *created.Value();
+    const auto draw = Client::Tests::DrawOneParticle(particles.All()[slot], glm::vec2(64), std::uint8_t{3}, 0.0f, slot);
     ASSERT_TRUE(draw.HasValue());
     EXPECT_TRUE(draw.Value().has_value());
 }

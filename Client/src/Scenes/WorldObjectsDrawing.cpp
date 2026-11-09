@@ -1,7 +1,10 @@
 #include "Scenes/WorldObjectsDrawing.h"
 
+#include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Render/ModelBatch.h"
+#include "Render/ModelBatchParticleBackend.h"
+#include "Render/ModelBatchParticleState.h"
 #include "Render/ModelVertex.h"
 #include "Render/SpriteVertex.h"
 #include "Render/Models/Animation.h"
@@ -9,8 +12,10 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/ParticleDrawServices.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
+#include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Render/Billboard.h"
@@ -26,6 +31,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <chrono>
+#include <functional>
 #include <optional>
 #include <ratio>
 #include <span>
@@ -310,20 +316,6 @@ Render::ModelBlend SpriteBlend(const World::Sprite& sprite)
         return Render::ModelBlend::Additive;
     }
 }
-
-Render::ModelBlend ParticleBlend(World::ParticleDraw::Blend blend)
-{
-    switch (blend)
-    {
-    case World::ParticleDraw::Blend::Alpha:
-        return Render::ModelBlend::Alpha;
-    case World::ParticleDraw::Blend::Additive:
-        return Render::ModelBlend::Additive;
-    case World::ParticleDraw::Blend::Subtractive:
-        return Render::ModelBlend::Subtractive;
-    }
-    return Render::ModelBlend::Alpha;
-}
 } // namespace
 
 void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, const IModelLibrary& textures,
@@ -364,39 +356,17 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, c
     }
 }
 
-void DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const IModelLibrary& textures,
-                   const Render::Models::OriginalMatrix& view, float worldClock)
+Core::Expected<void, World::ParticleDrawingFailure>
+DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const IModelLibrary& textures,
+              const Render::Models::OriginalMatrix& view, float worldClock)
 {
-    constexpr int JpegComponents = 3;
-    const std::span<World::Particle> all = particles.All();
-    for (std::size_t index = 0; index < all.size(); ++index)
-    {
-        World::Particle& particle = all[index];
-        if (!particle.alive)
-        {
-            continue;
-        }
-        const Render::TextureSlot slot{static_cast<std::uint16_t>(particle.texture)};
-        const std::optional<glm::vec2> size = textures.TextureSize(slot);
-        if (!size)
-        {
-            continue;
-        }
-        const std::optional<World::ParticleDraw> drawn =
-            World::ParticleDrawOf(particle, *size, JpegComponents, worldClock, index);
-        if (!drawn)
-        {
-            continue;
-        }
-        const Render::Billboard billboard =
-            Render::MakeBillboard(view, drawn->position, drawn->width, drawn->height, drawn->light, drawn->rotation,
-                                  drawn->uv, drawn->uvSize, slot.value, JpegComponents);
-        batch.SetState(Render::ModelDrawState{.texture = slot, .blend = ParticleBlend(drawn->blend)});
-        const auto vertex = [&billboard](std::size_t k)
-        { return Render::ModelVertex{billboard.corners[k].position, billboard.corners[k].uv, billboard.color}; };
-        batch.Triangle({vertex(0), vertex(1), vertex(2)});
-        batch.Triangle({vertex(0), vertex(2), vertex(3)});
-    }
+    // Un adaptador por pase: su primer servicio importa el estado que dejó el lote (los sprites), sin
+    // suponer el de un frame anterior.
+    Render::ModelBatchParticleBackend backend(std::ref(batch), std::cref(textures),
+                                              Render::ModelBatchParticleState::ForModelPass());
+    ParticleDrawServices services(std::cref(textures), std::ref(backend), std::cref(view));
+    // 0x548550(0): el modo 0 no filtra por altura.
+    return World::DrawParticlesChecked(particles, 0, std::cref(worldClock), services);
 }
 
 void DrawLeaves(Render::ModelBatch& batch, const World::Leaves& leaves)

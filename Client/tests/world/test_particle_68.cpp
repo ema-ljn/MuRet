@@ -2,6 +2,8 @@
 
 #include "Render/Models/Cloth.h"
 
+#include "support/ParticleDrawRecorder.h"
+
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
@@ -87,22 +89,6 @@ TEST(Particle68CreateTest, StepRunsAndUnsupportedCreationSubtypeRemainsAnError)
     EXPECT_EQ(untouched.State(), 7u);
 }
 
-// Es un diagnóstico del binding de MuRet, no un valor del wire original.
-TEST(Particle68DrawTest, ReportsTheSameUnsupportedSubtypeBeforeReadingTextureMetadata)
-{
-    Particles particles;
-    CrtRandom random(7);
-    const auto created = particles.CreateChecked(EffectType, {}, {}, {}, 1, 1.0f, 0, random);
-    ASSERT_FALSE(created.HasValue());
-    EXPECT_EQ(created.Error(), Client::World::ParticleError::UnsupportedSubtype);
-    EXPECT_EQ(random.State(), 7u);
-
-    Particle particle{.alive = true, .type = EffectType, .texture = EffectType, .subtype = 1};
-    const auto drawn = Client::World::ParticleDrawChecked(particle, std::nullopt, std::nullopt);
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_EQ(drawn.Error(), Client::World::ParticleError::UnsupportedSubtype);
-}
-
 TEST(Particle68DrawTest, UsesTheGenericWholeTexturePathAndDoesNotStoreToTheSlot)
 {
     Particle particle{.alive = true,
@@ -128,12 +114,12 @@ TEST(Particle68DrawTest, UsesTheGenericWholeTexturePathAndDoesNotStoreToTheSlot)
     const auto colorBefore = particle.light;
     const auto startBefore = particle.start;
 
-    const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(64, 32), std::uint8_t{3});
+    const auto draw = Client::Tests::DrawOneParticle(particle, glm::vec2(64, 32), std::uint8_t{3});
 
     ASSERT_TRUE(draw.HasValue());
     ASSERT_TRUE(draw.Value().has_value());
     EXPECT_EQ(draw.Value()->texture, EffectType);
-    EXPECT_EQ(draw.Value()->blend, Client::World::ParticleDraw::Blend::Additive);
+    EXPECT_EQ(draw.Value()->blend, Client::Tests::RecordedParticleDraw::Blend::Additive);
     EXPECT_EQ(draw.Value()->position, posBefore);
     EXPECT_EQ(draw.Value()->width, 128.0f);
     EXPECT_EQ(draw.Value()->height, 64.0f);

@@ -150,6 +150,16 @@ std::optional<TextureMetadata> GameModels::TextureMetadataOf(std::uint32_t selec
     return found == m_textureMetadata.end() ? std::nullopt : std::optional(found->second);
 }
 
+std::optional<Render::TextureSlot> GameModels::TextureSlotOf(std::uint32_t selector) const
+{
+    // Solo las que subieron: la clave salió del slot de 16 bits de su entrada, así que no se trunca nada.
+    if (!m_textureMetadata.contains(selector))
+    {
+        return std::nullopt;
+    }
+    return Render::TextureSlot{static_cast<std::uint16_t>(selector)};
+}
+
 std::optional<glm::vec2> GameModels::TextureSize(Render::TextureSlot slot) const
 {
     const auto metadata = TextureMetadataOf(slot.value);

@@ -2,6 +2,8 @@
 
 #include "Render/Models/Cloth.h"
 
+#include "support/ParticleDrawRecorder.h"
+
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
@@ -127,17 +129,19 @@ TEST(MapParticlesTest, DropAtlasKeepsSignedRemaindersAndQuarterStepsWithTheNativ
                           .angles = {17, 22, 33},
                           .rotation = 95,
                           .field48 = std::bit_cast<float>(value.frame)};
-        const auto draw = Client::World::ParticleDrawOf(particle, {64, 32}, 3);
-        ASSERT_TRUE(draw.has_value());
-        EXPECT_EQ(draw->texture, 17);
-        EXPECT_EQ(draw->width, 96);
-        EXPECT_EQ(draw->height, 48);
-        EXPECT_EQ(draw->rotation, 0);
-        EXPECT_EQ(Bits(draw->uv.x), value.u) << value.frame;
-        EXPECT_EQ(Bits(draw->uv.y), value.v) << value.frame;
-        EXPECT_EQ(Bits(draw->uvSize.x), 0x3e75c28fu);
-        EXPECT_EQ(Bits(draw->uvSize.y), 0x3e75c28fu);
-        EXPECT_EQ(draw->blend, Client::World::ParticleDraw::Blend::Additive);
+        const auto drawn = Client::Tests::DrawOneParticle(particle, glm::vec2(64, 32), std::uint8_t{3});
+        ASSERT_TRUE(drawn.HasValue());
+        ASSERT_TRUE(drawn.Value().has_value());
+        const Client::Tests::RecordedParticleDraw& draw = *drawn.Value();
+        EXPECT_EQ(draw.texture, 17);
+        EXPECT_EQ(draw.width, 96);
+        EXPECT_EQ(draw.height, 48);
+        EXPECT_EQ(draw.rotation, 0);
+        EXPECT_EQ(Bits(draw.uv.x), value.u) << value.frame;
+        EXPECT_EQ(Bits(draw.uv.y), value.v) << value.frame;
+        EXPECT_EQ(Bits(draw.uvSize.x), 0x3e75c28fu);
+        EXPECT_EQ(Bits(draw.uvSize.y), 0x3e75c28fu);
+        EXPECT_EQ(draw.blend, Client::Tests::RecordedParticleDraw::Blend::Additive);
     }
 }
 

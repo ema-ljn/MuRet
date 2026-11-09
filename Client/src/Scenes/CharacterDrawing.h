@@ -57,6 +57,13 @@ public:
         (void)selector;
         return std::nullopt;
     }
+    // Handle físico publicado por una carga exitosa del owner. La ausencia no autoriza truncar
+    // el selector raw32 ni confundirlo con un nombre de GL. Las bibliotecas legacy no lo ofrecen.
+    [[nodiscard]] virtual std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const
+    {
+        (void)selector;
+        return std::nullopt;
+    }
     // El tamaño de la textura de `slot` (+0x20 y +0x24 de su lugar en la tabla, 0x7d3a1b8), si esta
     // biblioteca la subió: el de los sprites (0x549290).
     [[nodiscard]] virtual std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const

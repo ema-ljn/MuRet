@@ -354,7 +354,7 @@ TEST(ClothTest, ALogicStepWrapsTheCounterAt32Bits)
     constexpr auto Minimum = std::numeric_limits<std::int32_t>::min();
     constexpr auto Maximum = std::numeric_limits<std::int32_t>::max();
     constexpr std::array Transitions{Transition{Maximum, Minimum}, Transition{-1, 0}, Transition{Minimum, Minimum + 1}};
-    for (const std::int32_t openAccesses : std::array<std::int32_t, 2>{0, 1})
+    for (const std::uint8_t openAccesses : std::array<std::uint8_t, 2>{0, 1})
     {
         ClothWorld walked{.random = CrtRandom(7)};
         for (int i = 0; i < 5; ++i)
@@ -370,7 +370,7 @@ TEST(ClothTest, ALogicStepWrapsTheCounterAt32Bits)
         }
         for (const auto& transition : Transitions)
         {
-            SCOPED_TRACE(::testing::Message() << transition.before << ", accesos " << openAccesses);
+            SCOPED_TRACE(::testing::Message() << transition.before << ", accesos " << static_cast<int>(openAccesses));
             ClothWorld world{
                 .random = CrtRandom(7), .logicSteps = transition.before, .openCounterAccesses = openAccesses};
             Client::Render::Models::StepTheClothWorld(world);

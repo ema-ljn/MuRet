@@ -113,7 +113,7 @@ struct ClothVectorFrame
     float worldTime = 0.0f;
     std::optional<float> windBase;
     std::int32_t counter = 0;
-    std::int32_t openAccesses = 0;
+    std::uint8_t openAccesses = 0;
     std::int32_t windWalks = 0;
     std::optional<glm::vec3> color;
     bool wears = true;

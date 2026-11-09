@@ -202,7 +202,7 @@ std::optional<std::string> ReadTheFile(const std::filesystem::path& path, ClothV
         frame.worldTime = globals.Bits();
         frame.windBase = globals.OptionalBits();
         frame.counter = As<std::int32_t>(globals.Integer());
-        frame.openAccesses = As<std::int32_t>(globals.Integer());
+        frame.openAccesses = As<std::uint8_t>(globals.Integer());
         frame.windWalks = As<std::int32_t>(globals.Integer());
         const std::string first = globals.Word();
         if (first != "none")

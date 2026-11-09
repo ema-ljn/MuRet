@@ -552,13 +552,15 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
 int SectorOf(float coordinate)
 {
     // 0x60666c: el producto queda en la x87 (exacto) y ftol trunca hacia el 0: de −1.600 a 0 todavía es
-    // el sector 0. El port rechaza NaN/fuera de la grilla antes del cast; no reproduce excepciones x87.
-    const double sector = static_cast<double>(coordinate) * static_cast<double>(SectorPerUnit);
-    if (!(sector > -1.0 && sector < static_cast<double>(SectorCount)))
+    // el sector 0. 0x60668d..0x6066ab compara con signo el dword bajo (EAX) con 0 y con 16, así que un
+    // NaN cae en el 0 (Q-C186). Con un infinito o fuera de int64, sin observar, el port no lo crea.
+    const double product = static_cast<double>(coordinate) * static_cast<double>(SectorPerUnit);
+    const std::optional<std::int32_t> sector = OriginalFtolLow(product);
+    if (!sector.has_value() || *sector < 0 || *sector >= SectorCount)
     {
         return -1;
     }
-    return static_cast<int>(sector);
+    return *sector;
 }
 
 glm::vec3 StreetLightGlowLight(int random)

@@ -99,7 +99,7 @@ enum class WorldObjectCreationError : std::uint8_t
 {
     UnsupportedEffect,
     UnsupportedMapHandler,
-    InvalidAngle, // El port no acredita ftol fuera de finite[-2^63,2^63); el extremo negativo sí vale.
+    InvalidAngle, // ftol con ±infinito o fuera de [-2^63,2^63), sin observar; −2^63 y NaN (Q-C186) sí valen.
 };
 
 struct WorldObjectCreationFailure
@@ -200,8 +200,8 @@ struct ObjectDraw
 [[nodiscard]] ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std::uint8_t map);
 
 // El sector de 16 × 16 celdas de un objeto, de 0 a 15: el que le dio 0x606660 con la posición del
-// archivo por 0,000625f, el producto sin redondear (la x87) y ftol. Fuera de la grilla, o con un NaN,
-// 0x606660 no lo crea.
+// archivo por 0,000625f, el producto sin redondear (la x87) y el dword bajo de ftol. Fuera de la grilla,
+// 0x606660 no lo crea; con un NaN, el sector es 0 (Q-C186).
 [[nodiscard]] int SectorX(const WorldObject& object);
 [[nodiscard]] int SectorY(const WorldObject& object);
 // El sector de una coordenada, como lo saca 0x606660 (de 0 a 15, o −1): para un objeto que no viene de

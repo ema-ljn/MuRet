@@ -104,7 +104,8 @@ TEST(WorldObjectMapCreationTest, EverySpecialMapUsesOnlyItsOwnDirectCases)
         }
     }
 }
-// Detecta resto positivo/fmod, uso de int64%360 y pérdida de las copias originales del mapa2.
+// Detecta resto positivo/fmod, uso de int64%360 y pérdida de las copias originales del mapa2. El NaN pasa
+// por el mismo ftol que el sector de Q-C186, en la misma llamada a 0x606660: 0x8000000000000000, resto 0.
 TEST(WorldObjectMapCreationTest, DeviasCopiesTheTransformAndUsesTheSignedLowDwordRemainder)
 {
     struct Angle
@@ -112,7 +113,8 @@ TEST(WorldObjectMapCreationTest, DeviasCopiesTheTransformAndUsesTheSignedLowDwor
         float input;
         float output;
     };
-    constexpr std::array angles{Angle{721.75f, 1.0f},
+    constexpr std::array angles{Angle{std::numeric_limits<float>::quiet_NaN(), 0.0f},
+                                Angle{721.75f, 1.0f},
                                 Angle{-721.75f, -1.0f},
                                 Angle{-0.75f, 0.0f},
                                 Angle{360.0f, 0.0f},
@@ -436,10 +438,10 @@ TEST(WorldObjectMapCreationTest, MissingEmissionServiceIsAnExplicitIntegrationEr
     }
 }
 
+// El infinito y lo que no entra en int64 siguen sin observar (Q-C186); el NaN ya no es frontera.
 TEST(WorldObjectMapCreationTest, FullDeviasCreationRejectsTheUnverifiedFtolDomainExplicitly)
 {
-    for (const float angle : {std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(),
-                              std::numeric_limits<float>::quiet_NaN(), 0x1p63f})
+    for (const float angle : {std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), 0x1p63f})
     {
         const Client::Data::Terrain::TerrainObject record{.type = 20, .angle = {1.0f, 2.0f, angle}};
         Client::World::WorldObjectRegistrations registrations;
@@ -539,7 +541,8 @@ TEST(WorldObjectMapCreationTest, CastleEffectRunsBeforeTheFollowingCreationHandl
     ASSERT_EQ(result.objects.size(), 1u);
     EXPECT_EQ(result.objects[0].transform.position, glm::vec3(110.0f, 120.0f, 130.0f));
 }
-// Detecta gastar IDs/RNG o pedir un servicio antes del prefijo espacial de 0x606660.
+// Detecta gastar IDs/RNG o pedir un servicio antes del prefijo espacial de 0x606660. Un NaN no sirve acá:
+// cae en el sector 0 y se crea (Q-C186).
 TEST(WorldObjectMapCreationTest, InvalidSpatialRecordsNeverReachServicesRegistrationOrRandom)
 {
     struct Scenario
@@ -556,8 +559,7 @@ TEST(WorldObjectMapCreationTest, InvalidSpatialRecordsNeverReachServicesRegistra
         const std::array records{
             Client::Data::Terrain::TerrainObject{.type = scenario.type, .position = {25700.0f, 0.0f, 0.0f}},
             Client::Data::Terrain::TerrainObject{.type = scenario.type, .position = {0.0f, 25700.0f, 0.0f}},
-            Client::Data::Terrain::TerrainObject{.type = scenario.type,
-                                                 .position = {std::numeric_limits<float>::quiet_NaN(), 0.0f, 0.0f}}};
+            Client::Data::Terrain::TerrainObject{.type = scenario.type, .position = {-1601.0f, 0.0f, 0.0f}}};
         Client::World::WorldObjectRegistrations registrations;
         registrations.nextIdentity = 900;
         registrations.entries[0] = {.active = 2, .metadata = {1, 2, 3, 4, 5, 6, 7}, .object = 899};
@@ -625,8 +627,8 @@ TEST(WorldObjectMapCreationTest, BothProjectionsReturnInvalidAngleAndStopBeforeT
 {
     for (const bool withRegistry : {false, true})
         for (const std::int16_t type : std::array<std::int16_t, 4>{20, 65, 86, 88})
-            for (const float angle : {std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(),
-                                      std::numeric_limits<float>::quiet_NaN(), 0x1p63f})
+            for (const float angle :
+                 {std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), 0x1p63f})
             {
                 SCOPED_TRACE(withRegistry);
                 SCOPED_TRACE(type);

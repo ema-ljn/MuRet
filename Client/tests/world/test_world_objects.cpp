@@ -27,6 +27,7 @@ using Client::World::WorldObject;
 
 constexpr std::uint8_t Login = 55;
 constexpr std::uint8_t Lorencia = 0;
+constexpr std::uint8_t Devias = 2;
 
 std::vector<WorldObject> Created(std::int16_t type, float x, float y, std::uint8_t map = Login)
 {
@@ -54,10 +55,34 @@ TEST(WorldObjectsTest, TheSectorIsTheProductWithoutRounding)
     EXPECT_TRUE(Created(1, 25700.0f, 0.0f).empty());
 }
 
-// Un .obj con un NaN (World3, dos registros del tipo 86): ftol da 0x80000000 y 0x606660 no lo crea.
-TEST(WorldObjectsTest, ANotANumberPositionIsNotCreated)
+// Q-C186: los registros 492 y 493 de World3\EncTerrain3.obj (tipo 86, la y en 0xFFFFFFFF) están en la
+// lista 32 del original. Con la operación inválida enmascarada, ftol da 0x8000000000000000 con un NaN,
+// y 0x606660 compara con signo el dword bajo (0x60668d..0x6066ab): el sector 0, y el objeto se crea.
+TEST(WorldObjectsTest, ANotANumberPositionGoesToSectorZeroAndIsCreated)
 {
-    EXPECT_TRUE(Created(0x56, 100.0f, std::numeric_limits<float>::quiet_NaN(), 3).empty());
+    const auto objects = Created(86, 4000.0f, std::bit_cast<float>(0xFFFFFFFFu), Devias);
+    ASSERT_EQ(objects.size(), 1u);
+    EXPECT_EQ(Client::World::SectorX(objects.front()), 2);
+    EXPECT_EQ(Client::World::SectorY(objects.front()), 0);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(objects.front().transform.position.y), 0xFFFFFFFFu);
+}
+
+// 0x60668d..0x6066ab mira EAX, el dword bajo de ftol, y no el producto: 2^65 por 0,000625f da
+// 0x51eb85 · 2^32, exacto y de dword bajo 0, el sector 0. El infinito y lo que no entra en int64 siguen
+// sin observar (Q-C186): son la frontera del port, que no los crea, no un resultado del original.
+TEST(WorldObjectsTest, TheSectorIsTheSignedLowDwordOfFtol)
+{
+    for (const float x : {0x1p65f, -0x1p65f})
+    {
+        const auto objects = Created(1, x, 0.0f);
+        ASSERT_EQ(objects.size(), 1u) << x;
+        EXPECT_EQ(Client::World::SectorX(objects.front()), 0) << x;
+    }
+    for (const float x :
+         {std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), 0x1p74f, -0x1p74f})
+    {
+        EXPECT_TRUE(Created(1, x, 0.0f).empty()) << x;
+    }
 }
 
 // 0x606660 saca el sector de la posición del archivo, antes de su switch: los remolinos del 55, que el

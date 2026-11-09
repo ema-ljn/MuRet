@@ -17,8 +17,6 @@ find_package(glm CONFIG REQUIRED)
 # (pregunta 7 de la CL5). Es el FindFreetype de CMake, que el puerto de vcpkg envuelve, y en Linux
 # sin vcpkg encuentra el del sistema (libfreetype-dev).
 find_package(Freetype REQUIRED)
-# ADR0014: precisión retenida portable; sólo OriginalRetainedMath.cpp ve Boost.
-find_package(boost_multiprecision CONFIG REQUIRED)
 
 # Los fuentes de src/ se juntan solos, como en MuMain: un .cpp nuevo entra al reconfigurar
 # (CONFIGURE_DEPENDS lo mira en cada build). main.cpp es de Main, no de la biblioteca, src/Platform/
@@ -36,7 +34,6 @@ target_link_libraries(ClientLib PRIVATE
     $<IF:$<TARGET_EXISTS:libjpeg-turbo::jpeg>,libjpeg-turbo::jpeg,libjpeg-turbo::jpeg-static>)
 # Sus headers quedan en FreeTypeRasterizer.cpp: nadie más los ve.
 target_link_libraries(ClientLib PRIVATE Freetype::Freetype)
-target_link_libraries(ClientLib PRIVATE Boost::multiprecision)
 # PUBLIC: los headers de Render/Models/ usan sus tipos (pregunta 4 del plan de la CL6). Sin
 # GLM_FORCE_* ni GLM_ENABLE_EXPERIMENTAL, así el precompiled header no cambia.
 target_link_libraries(ClientLib PUBLIC glm::glm-header-only)

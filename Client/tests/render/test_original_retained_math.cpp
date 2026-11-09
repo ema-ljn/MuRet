@@ -10,6 +10,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
+#include <span>
 #include <type_traits>
 
 namespace
@@ -1194,5 +1196,80 @@ TEST(OriginalRetainedMathTest, RepresentsExceptionalAtanInputsNumerically)
     EXPECT_TRUE(std::isfinite(Math::AtanDegreesProductPC53(-std::numeric_limits<double>::infinity())));
     EXPECT_EQ(Math::AtanDegreesProductPC53(-0.0), 0.0);
     EXPECT_TRUE(std::signbit(Math::AtanDegreesProductPC53(-0.0)));
+}
+// Esperados independientes de la implementación, con enteros de Python: pi por Machin a 3064 bits,
+// x - k·pi/2 y Taylor en punto fijo de 3000 bits; después RN64, producto exacto y RN53. También
+// coinciden con el perfil Boost113 al que reemplaza la aritmética propia (ADR0014).
+struct TrigonometricCase
+{
+    double argument;
+    float multiplier;
+    bool cosine;
+    double product;
+};
+void ExpectTrigonometricProducts(std::span<const TrigonometricCase> cases)
+{
+    for (const auto& row : cases)
+    {
+        SCOPED_TRACE(row.argument);
+        const std::optional<double> product = row.cosine ? Math::CosineProductPC53(row.argument, row.multiplier)
+                                                         : Math::SineProductPC53(row.argument, row.multiplier);
+        ASSERT_TRUE(product.has_value());
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(*product), std::bit_cast<std::uint64_t>(row.product));
+    }
+}
+TEST(OriginalRetainedMathTest, ReducesArgumentsNearQuarterTurnMultiples)
+{
+    // Los doubles más cercanos a pi/2, pi y -2pi, y 0x1.6c6cbc45dc8dep+5, el double debajo de 2^63
+    // más cercano a un múltiplo de pi/2 (|x·2/pi - 29| = 2^-61.14, por fracciones continuas).
+    constexpr std::array cases{
+        TrigonometricCase{0x1.921fb54442d18p+0, 40.0f, true, 0x1.60fafbfd97309p-49},
+        TrigonometricCase{0x1.921fb54442d18p+1, 40.0f, false, 0x1.60fafbfd97309p-48},
+        TrigonometricCase{-0x1.921fb54442d18p+2, 20.0f, false, 0x1.60fafbfd97309p-48},
+        TrigonometricCase{0x1.6c6cbc45dc8dep+5, 40.0f, true, -0x1.c8ba22efc0354p-56},
+        TrigonometricCase{0x1.6c6cbc45dc8dep+5, 40.0f, false, 0x1.4p+5},
+        TrigonometricCase{-0x1.6c6cbc45dc8dep+5, 0.5f, true, -0x1.6d61b58c99c43p-62},
+        TrigonometricCase{0x1.b951f1572eba5p+23, 40.0f, false, -0x1.4p+5},
+        TrigonometricCase{0x1.b951f1572eba5p+23, 40.0f, true, -0x1.39519358c7112p-54},
+    };
+    ExpectTrigonometricProducts(cases);
+}
+TEST(OriginalRetainedMathTest, ReducesHugeArgumentsExactly)
+{
+    // Cerca de 2^63 el cuadrante ya pide 64 bits de 2/pi y el retenido, más de 128.
+    constexpr std::array cases{
+        TrigonometricCase{0x1.fffffffffffffp+62, 40.0f, false, 0x1.3c87a00ee9686p+5},
+        TrigonometricCase{0x1.fffffffffffffp+62, 40.0f, true, -0x1.77fdb3d2492fap+2},
+        TrigonometricCase{-0x1p+62, 20.0f, false, 0x1.c1ded02b6c199p+3},
+        TrigonometricCase{0x1.bc16d674ec8p+59, 40.0f, true, 0x1.2f08447b84981p+2}, // 1e18
+    };
+    ExpectTrigonometricProducts(cases);
+    // Las hojas Wave dejan ver los 64 bits del retenido, sin producto.
+    struct LeafCase
+    {
+        float time;
+        bool second;
+        Math::Retained64 expected;
+    };
+    constexpr std::array leaves{
+        LeafCase{0x1.b1ae4ep+69f, false, {0xfbe41672c30f7b9fULL, -64, Math::RetainedClass::Finite, true}},
+        LeafCase{0x1.b1ae4ep+69f, true, {0xe8ff4c03efb60421ULL, -65, Math::RetainedClass::Finite, false}},
+        LeafCase{-0x1.b1ae4ep+68f, false, {0xa4132c2b12f80b81ULL, -64, Math::RetainedClass::Finite, false}},
+        LeafCase{-0x1.b1ae4ep+68f, true, {0xff9d9c50ef35ed2fULL, -64, Math::RetainedClass::Finite, false}},
+        LeafCase{0x1.e7e418p+72f, false, {0xdd48f1f415879967ULL, -72, Math::RetainedClass::Finite, false}},
+        LeafCase{0x1.e7e418p+72f, true, {0xdd49069ef675de67ULL, -73, Math::RetainedClass::Finite, true}},
+        LeafCase{0x1.fffffep+50f, false, {0xb1db4de2b9651e2bULL, -64, Math::RetainedClass::Finite, false}},
+        LeafCase{0x1.fffffep+50f, true, {0xcbdf2a23b164f570ULL, -64, Math::RetainedClass::Finite, false}},
+    };
+    for (const auto& row : leaves)
+    {
+        SCOPED_TRACE(row.time);
+        const Math::LeafSine leaf = row.second ? Math::SecondLeafSine(row.time) : Math::FirstLeafSine(row.time);
+        EXPECT_FALSE(leaf.argumentRetained);
+        EXPECT_EQ(leaf.value.significand, row.expected.significand);
+        EXPECT_EQ(leaf.value.exponent, row.expected.exponent);
+        EXPECT_EQ(leaf.value.classification, row.expected.classification);
+        EXPECT_EQ(leaf.value.negative, row.expected.negative);
+    }
 }
 } // namespace

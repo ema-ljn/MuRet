@@ -354,3 +354,28 @@ TEST(OriginalAnglesTest, RetainsPhiThroughNativeNonunitProducts)
         EXPECT_EQ(std::bit_cast<std::uint32_t>(static_cast<float>(actual)), row.expectedFloat);
     }
 }
+
+// ADR0014: phi64 es el atan64 bien redondeado, no el FPATAN de la x87. Desde (0,0) hasta estos destinos
+// enteros, la x87 medida (un Xeon) deja 1 ULP de double de diferencia; el store f32 es el mismo. Los
+// valores del modelo se verificaron con Boost 1.83 cpp_bin_float<113> y con mpmath a 400 bits.
+TEST(OriginalAnglesTest, KeepsTheRoundedAtanModelWhereFpatanDiffers)
+{
+    struct Case
+    {
+        float x2;
+        float y2;
+        std::uint64_t expectedDouble;
+        std::uint32_t expectedFloat;
+    };
+    constexpr std::array cases{
+        Case{7703.0f, -8981.0f, 0x40444f51b2dfecbdULL, 0x42227a8eU},  // x87: 0x40444f51b2dfecbc
+        Case{8793.0f, 6798.0f, 0x405fed523db8e943ULL, 0x42ff6a92U},   // x87: 0x405fed523db8e944
+        Case{-643.0f, -24380.0f, 0x407667d3da839f3eULL, 0x43b33e9fU}, // x87: 0x407667d3da839f3d
+    };
+    for (const auto& row : cases)
+    {
+        const double actual = Client::Render::Models::CreateAngle(0.0f, 0.0f, row.x2, row.y2);
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(actual), row.expectedDouble);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(static_cast<float>(actual)), row.expectedFloat);
+    }
+}

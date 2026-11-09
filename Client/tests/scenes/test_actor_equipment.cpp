@@ -1,16 +1,19 @@
 #include "Scenes/ActorEquipment.h"
 
 #include "Core/Expected.h"
+#include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "World/ItemState.h"
+#include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
 
 #include <gtest/gtest.h>
@@ -20,8 +23,9 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
-// Client::Scenes::ApplyActorEquipment: 0x512a30, con 0x550d10 hasta su primera llamada, 0x40e1b0 (06, "El
+// Client::Scenes::ApplyActorEquipment: 0x512a30, con 0x550d10 hasta sus ocho helpers (06, "El
 // equipo propio en el personaje" y "Los stats del registro propio"; 04, "El F3 10"). Los valores salen del
 // ASM cotejado con el PE c32bbd5f; ninguno de una corrida.
 namespace
@@ -89,7 +93,9 @@ protected:
                                                                      .scene = Client::Scenes::SceneId::Game,
                                                                      .playerSkeleton = m_skeleton,
                                                                      .items = &m_items,
-                                                                     .random = m_random}};
+                                                                     .random = m_random},
+                                                            .itemSetTables = &m_sets,
+                                                            .itemSets = &m_itemSets};
         return Client::Scenes::ApplyActorEquipment(actor, context);
     }
 
@@ -99,6 +105,11 @@ protected:
     Client::Scenes::WorldRuntime m_runtime{.map = 0, .movementSpeed = {}};
     Client::Render::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
     Client::Data::Tables::ItemTable m_items = Client::Tests::ItemsMarking({});
+    // Las tablas de los conjuntos sin ningún conjunto: 0x40e1b0 recorre el equipo y no aplica nada.
+    Client::Data::Tables::ItemSetTables m_sets =
+        Client::Tests::ItemSetTablesFrom(std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize),
+                                         std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize));
+    Client::Scenes::ItemSetState m_itemSets;
     CrtRandom m_random{QuietSeed()};
 };
 
@@ -110,7 +121,7 @@ TEST_F(ActorEquipmentTest, ProjectsTheNineSlotsItReads)
     ActorState actor = DressedInUntouched(1);
     const auto applied = Apply(actor);
     ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x40e1b0"), std::string::npos);
+    EXPECT_NE(applied.Error().find("0x54efe0"), std::string::npos);
 
     const auto expectedModel = [this](std::size_t slot)
     { return static_cast<std::uint16_t>(m_own.equipment[slot].id + 0x212); };
@@ -271,7 +282,7 @@ TEST_F(ActorEquipmentTest, AStopErrorStopsBeforeTheClothes)
 }
 
 // La ropa sigue con 0x4053f0, 0x512930, 0x505820 con el héroe publicado y 0x550d10: MuRet corta en la
-// primera que no tiene, con lo de antes hecho. 0x550d10 corta en su primera llamada, 0x40e1b0.
+// primera que no tiene, con lo de antes hecho. 0x550d10 corta en sus ocho helpers, desde 0x54efe0.
 TEST_F(ActorEquipmentTest, TheClothesReachAnExplicitFrontier)
 {
     // 0x1012 es un casco abierto: 0x512930 pone la cabeza de la clase.
@@ -282,7 +293,7 @@ TEST_F(ActorEquipmentTest, TheClothesReachAnExplicitFrontier)
     const auto stats = Apply(someone);
     ASSERT_FALSE(stats.HasValue());
     EXPECT_NE(stats.Error().find("0x550d10"), std::string::npos);
-    EXPECT_NE(stats.Error().find("0x40e1b0"), std::string::npos);
+    EXPECT_NE(stats.Error().find("0x54efe0"), std::string::npos);
     EXPECT_EQ(someone.head, 0x2212 + 2);
     EXPECT_EQ(someone.scale, 0.86f);
     EXPECT_EQ(m_accesses, 0);
@@ -297,10 +308,10 @@ TEST_F(ActorEquipmentTest, TheClothesReachAnExplicitFrontier)
     EXPECT_EQ(hero.scale, 7.0f);
 }
 
-// 0x550d10 (0x512ef5) corre después de la cabeza y antes del cierre, y corta antes de tocar el registro:
-// 0x54ef00 no puso en 0 los WORD de +0x2a, la cola no escribió nada y el único rand() es el del cierre de
-// 0x512a30.
-TEST_F(ActorEquipmentTest, TheStatsCutBeforeTouchingTheOwnRecord)
+// 0x550d10 (0x512ef5) corre después de la cabeza y antes del cierre, con el registro abierto por 0x512a30:
+// 0x54ef00 pone en 0 los WORD de +0x2a a +0x36, y corta en los helpers antes de la cola, que no escribió
+// nada. Los 33 accesos de 0x40e1b0 no lo dejan en 0: el único rand() es el del cierre de 0x512a30.
+TEST_F(ActorEquipmentTest, TheStatsCutAtTheHelpersBeforeTheTail)
 {
     const std::uint32_t seed = QuietSeed();
     m_own.word2a = 0x2a2a;
@@ -312,9 +323,9 @@ TEST_F(ActorEquipmentTest, TheStatsCutBeforeTouchingTheOwnRecord)
     const auto applied = Apply(actor);
 
     ASSERT_FALSE(applied.HasValue());
-    EXPECT_NE(applied.Error().find("0x40e1b0"), std::string::npos);
-    EXPECT_EQ(m_own.word2a, 0x2a2a);
-    EXPECT_EQ(m_own.word36, 0x3636);
+    EXPECT_NE(applied.Error().find("0x54efe0"), std::string::npos);
+    EXPECT_EQ(m_own.word2a, 0);
+    EXPECT_EQ(m_own.word36, 0);
     EXPECT_EQ(m_own.wordef8, 0xef8);
     EXPECT_EQ(m_own.bytef03, 3);
     EXPECT_EQ(actor.head, NoItemModel);
@@ -352,7 +363,7 @@ TEST_F(ActorEquipmentTest, Maps18To23LeaveOnlyTheWeaponOfTheClass)
             actor.previousHad1c15 = true;
             const auto applied = Apply(actor);
             ASSERT_FALSE(applied.HasValue());
-            EXPECT_NE(applied.Error().find("0x40e1b0"), std::string::npos);
+            EXPECT_NE(applied.Error().find("0x54efe0"), std::string::npos);
 
             const Armed& armed = byClass[static_cast<std::size_t>(characterClass & 7)];
             EXPECT_EQ(actor.hands[0].model, armed.right);

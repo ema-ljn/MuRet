@@ -6,6 +6,11 @@
 #include <cstdint>
 #include <string>
 
+namespace Client::Data::Tables
+{
+struct ItemSetTables;
+}
+
 namespace Client::Render::Models
 {
 class CrtRandom;
@@ -18,19 +23,46 @@ struct ItemState;
 
 // Los stats del registro propio: 0x550d10, que 0x512a30 llama en 0x512ef5 (thiscall sobre
 // [0x7681eb4]). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los stats del registro
-// propio", y 07, Q-C184 y Q-C185.
+// propio", y 07, Q-C184, Q-C185 y Q-C187.
 //
-// Lo primero que hace es 0x40e1b0, que MuRet no tiene: RecalculateOwnStats corta ahí. Los pasos que
-// siguen y no dependen de lo que falta están portados aparte, cada uno con su dirección, para cuando
-// exista lo de antes; los otros (0x40da20 y los ocho helpers de 0x551287..0x5512ba) siguen sin leer.
+// RecalculateOwnStats corre en orden lo que está leído: 0x40e1b0 (Scenes/OwnItemSets.h), la limpieza
+// de [0x6eed3c] + 0x937c, 0x54ef00, los doce lugares, 0x40da20 cinco veces y la rama de Cape of Lord, y
+// corta en los ocho helpers de 0x551287..0x5512ba, que están portados aparte (Scenes/OwnStatHelpers.h)
+// y todavía no llama. La cola, que viene después, también está portada aparte
+// (UpdateOwnDerivedStatsTail).
 namespace Client::Scenes
 {
+struct ActorState;
+struct ItemSetOptionList;
+struct ItemSetState;
 struct OwnCharacterRecord;
 
-// 0x550d10 sobre `own`. Corta en su primera llamada, 0x40e1b0 (0x550d24): las opciones de los
-// conjuntos de [0x6eed3c], con las tablas de ItemSetType.bmd e ItemSetOption.bmd, que MuRet no carga.
-// No toca el registro ni saca rand(): el original no hace nada antes.
-[[nodiscard]] Core::Expected<void, std::string> RecalculateOwnStats(OwnCharacterRecord& own);
+// Lo que 0x550d10, y 0x40e1b0 desde ella, leen y escriben fuera del registro propio. Quien llama lo
+// presta durante la llamada.
+struct OwnStatsContext
+{
+    // Las tablas de [0x6eed3c] que carga 0x40c600 (ItemSetType.bmd e ItemSetOption.bmd) y lo que
+    // 0x40e1b0, 0x40d010 y 0x40da20 escriben en [0x6eed3c] y dura de una llamada a otra
+    // (WorldState::ItemSets). Con alguno en nullptr, 0x40e1b0 corta con error antes de tocar nada.
+    const Data::Tables::ItemSetTables* itemSetTables = nullptr;
+    ItemSetState* itemSets = nullptr;
+    // *[0x7758550], Item.bmd: 0x40dc50, desde 0x40de10 y desde los doce lugares de 0x550d10. nullptr
+    // si no se cargó: corta con error en el primer lugar que la lee.
+    const Data::Tables::ItemTable* items = nullptr;
+    // DAT_0743a170, el héroe publicado: 0x40d010 lee su clase (+0x1d4) y escribe su +0x358.
+    ActorState& publishedHero;
+    // La cuenta de accesos del registro propio (Render::Models::LogicalAccess): 0x40e1b0 y 0x40de10 lo
+    // abren y lo cierran en cada lugar, y la rama de Cape of Lord una vez. Cada cierre que la deja en
+    // 0 saca 3.848 rand() de `random`.
+    std::uint8_t& ownRecordAccesses;
+    Render::Models::CrtRandom& random;
+};
+
+// 0x550d10 sobre `own`, hasta los ocho helpers de 0x551287..0x5512ba (0x54efe0, 0x54f9b0, 0x54fd40,
+// 0x54fe10, 0x5507e0, 0x550990, 0x550c30 y 0x550c60), donde corta con un error con todo lo de antes
+// hecho. Un error de un paso corta ahí, con lo de los pasos anteriores hecho y los accesos cerrados.
+[[nodiscard]] Core::Expected<void, std::string> RecalculateOwnStats(OwnCharacterRecord& own,
+                                                                    const OwnStatsContext& context);
 
 // 0x54ef00 (0x550d44): los WORD +0x2a, +0x2c, +0x2e, +0x30, +0x36, +0x32 y +0x34 en 0.
 void ClearOwnItemStatWords(OwnCharacterRecord& own);
@@ -54,6 +86,12 @@ struct ItemStatBonus
 // *[0x7758550], nullptr si no se cargó. Si corta en un lugar, lo de los anteriores queda sumado.
 [[nodiscard]] Core::Expected<void, std::string> AddOwnItemStatBonuses(OwnCharacterRecord& own,
                                                                       const Data::Tables::ItemTable* items);
+
+// 0x550dc2..0x550e12: 0x40da20 (el código de 0x40d690) sobre `list` con +0x2a y 0x8c, +0x2c y
+// 0x8d, +0x30 y 0x8e, +0x2e y 0x8f, y +0x36 y 0x90, en ese orden. Si corta en uno, lo de los
+// anteriores queda sumado.
+[[nodiscard]] Core::Expected<void, std::string> AddOwnItemSetOptionValues(OwnCharacterRecord& own,
+                                                                          ItemSetOptionList& list);
 
 // 0x550e17..0x551284: con Cape of Lord (0x1a1e, el 13 30 de Item.bmd) en el lugar de las alas, abre el
 // registro, suma a +0x36 los valores de sus opciones 0x90 (0x54e540, Scenes::AddOwnItemOptionValues) y

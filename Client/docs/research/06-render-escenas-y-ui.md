@@ -2858,8 +2858,9 @@ fila 5 de la tabla de [La entrada al mundo](#la-entrada-al-mundo)), `0x5bc740` c
 
 En la respuesta del `F3 03` el héroe todavía no está en `0x743a170` (lo pone la fila 6), así que esa
 primera llamada no corre `0x505820`. MuRet (`Scenes::ApplyActorEquipment`) hace los pasos 1 a 9 y
-corta con un error explícito donde falta la lectura: `0x505820`, y adentro de `0x550d10`, en su
-primera llamada, `0x40e1b0`. El cierre del registro gasta los 3.848 `rand()` también cuando corta.
+corta con un error explícito donde falta la lectura: `0x505820`, y adentro de `0x550d10`, en sus ocho
+helpers (`0x54efe0` y siguientes). El cierre del registro gasta los 3.848 `rand()` también cuando
+corta.
 
 ### Los stats del registro propio
 
@@ -2904,22 +2905,90 @@ devuelve en `eax` no lo lee nadie: `0x512a30` lo pisa en `0x512efa`. En orden:
    - otro `rand()`: `+0xf02` en 1 si `rand() % 100` es menor que `+0xefe` (`jge`), si no en 0; y
      otro, igual, para `+0xf03` con `+0xf00`.
 
-`0x40e1b0` (1.290 bytes; *estático*, leído solo en su forma) es de la clase de `[0x6eed3c]`, cuyas
-tablas carga `0x40c600` de `Data\Local\ItemSetType.bmd` (`0x40c660`) e `ItemSetOption.bmd`
-(`0x40c850`): 4 bytes por tipo desde `+0`, que `0x40cfa0` indexa con `D+0x1c & 3`, y registros de
-`0x4c` desde `+0x8004`. Recorre dos veces los lugares 0 a 11 salvo el 7 y el 8 (`0x40e1e6..0x40e1f8`
-y `0x40e4cf..0x40e4e1`), y abre y cierra el registro en cada uno (en la segunda pasada, a veces con
-`0x40f370`) y una vez más en el medio, para leer `+0x18`, `+0x1a`, `+0x1c` y `+0x1e` de
-`[0x7681eb0]`: con `0x512a30` afuera, ninguno de esos cierres gasta. Llama además a `0x40cfa0` (100
-bytes), `0x40d010` (1.298; lee la clase del héroe publicado, `[0x743a170] + 0x1d4`, y escribe su
-`+0x358`) y `0x40de10` (898).
+`0x40e1b0` (1.290 bytes; *estático*, cotejado con el PE `c32bbd5f` en la CL7 hito 1, T10b) es un
+`thiscall` sobre `[0x6eed3c]`, el objeto de las [tablas de los
+conjuntos](05-formatos-de-datos.md#las-tablas-de-los-conjuntos) que carga `0x40c600`. Usa una lista
+local de 30 bytes en 0 (`0x40e1bb..0x40e1d4`), de la que `0x40cfa0` y `0x40d010` recorren solo las
+cuatro primeras entradas de 3 bytes: el conjunto, cuántas piezas suyas se contaron y la clase de
+pieza de la última. En orden:
 
-MuRet (`Scenes::RecalculateOwnStats`) corta en el paso 1 con un error, antes de tocar el registro y
-sin `rand()`: no carga las tablas de los conjuntos. Los pasos 3, 4, 6 y 8 están portados aparte
-(`ClearOwnItemStatWords`, `AddOwnItemStatBonuses` con `ItemStatBonusOf`, `AddCapeOfLordOptions` y
-`UpdateOwnDerivedStatsTail`), cada uno con su prueba, para cuando exista lo de antes, y también los
-ocho helpers del paso 7 y `0x40d690`, que es el código de `0x40da20` (abajo); los pasos 1 y 2 son la
-frontera, y `RecalculateOwnStats` todavía no llama a los helpers.
+1. Los 16 bytes de `+0x934c` en 0 (`0x40e1ce..0x40e1e3`): cinco entradas enteras de la lista de
+   opciones y el primer byte de la sexta.
+2. La primera pasada (`0x40e1e6..0x40e3a1`): los lugares 0 a 11 salvo el 7 y el 8, y en cada uno
+   abre y cierra el registro por la tabla de protección (`0x57630c8`; el cierre, `0x40b4d0`). El 1 y
+   el 11 no cuentan si tienen el mismo tipo y el mismo `+0x1c & 3` que el 0 o el 10
+   (`0x40e27a..0x40e2b3`), que se guardan en `-0x7c` y `-0x60` al pasar por el 0 y el 10, cuenten o
+   no; al entrar no tienen valor, pero el 0 siempre los escribe antes de que el 1 los lea. Un tipo
+   negativo (−1, el lugar vacío) no cuenta (`0x40e301`); los demás van a `0x40cfa0(lista, tipo,
+   +0x1c)` (`0x40e31b`).
+3. `0x40d010(lista)` (`0x40e3ae`).
+4. Abre el registro, copia la fuerza, la agilidad, la vitalidad y la energía (`+0x18`, `+0x1a`,
+   `+0x1c` y `+0x1e` de `[0x7681eb0]`, el mismo bloque) y lo cierra (`0x40e3b3..0x40e494`), y llama a
+   `0x40de10` con las cuatro copias (`0x40e4ac`).
+5. La lista local otra vez en 0 y los 16 bytes de `+0x934c` en 0xff (`0x40e4b1..0x40e4cc`).
+6. La segunda pasada (`0x40e4cf..0x40e6a1`), como la primera, pero antes de mirar el par salta los
+   ítems con un requisito mayor que su copia, sin signo: `+0x20` contra la agilidad, `+0x22` contra
+   la energía y `+0x1e` contra la fuerza (`0x40e563..0x40e592`). Un ítem saltado no escribe `-0x7c`
+   ni `-0x60`, que vienen de la primera pasada: si el 0 no da sus requisitos, el 1 se compara con el
+   10. El cierre de los que cuentan es `0x40f370` (`0x40e658`), con lo mismo que los otros.
+7. `0x40d010(lista)` (`0x40e6ae`).
+
+Son 33 cierres: 10, 1, los 12 de `0x40de10` y 10. Con `0x512a30` afuera, ninguno gasta.
+
+`0x40cfa0` (100 bytes) toma el conjunto del byte `(+0x1c & 3) − 1` del registro del tipo en
+`ItemSetType.bmd` (`[0x6eed3c] + 4 + tipo · 4`, sin mirar que el tipo esté en la tabla); con `& 3` en
+0, o con 0 o 0xff, nada. Busca en las cuatro entradas la de ese conjunto o la primera libre
+(`0x40cfd2..0x40cfe3`), le suma una pieza y le pone la clase de pieza `(+0x1c & 3) − 1`; sin lugar,
+nada.
+
+`0x40d010` (1.298 bytes) lee la clase del héroe publicado, `[0x743a170] + 0x1d4` (`& 7` la clase y
+`>> 3` la evolución), y pone en 0 `+0x9307`, los dos nombres (`+0x9308` y `+0x9328`), los conjuntos
+(`+0x934a`, `+0x934b`), las cuentas (`+0x9348`, `+0x9349`) y el `+0x358` del héroe
+(`0x40d01d..0x40d07d`). Por cada entrada con dos piezas o más (`0x40d08e`), con n = piezas − 1:
+
+- la bandera de la entrada (`0x40d0d0..0x40d14d`): 1 en las clases 0 a 2 si su marca
+  (`+0x47 + clase`) es 1, o 2 con evolución; en la 3, solo con 1; en la 4, nunca;
+- el conjunto a `+0x934a + clase de pieza`, y el nombre (`0x40d16d..0x40d233`): con el de su clase
+  vacío o igual (`strcmp`), `strcpy` ahí; si no, al primero vacío de los dos o al segundo, con
+  `+0x9307` en n. `strcpy` copia hasta el 0 y deja lo que sigue;
+- las opciones de los pares y las de `+0x38` ([05](05-formatos-de-datos.md#las-tablas-de-los-conjuntos);
+  `0x40d233..0x40d358`) y, con n ≥ `+0x3c` − 2, las cinco del completo, cada una con `+0x9307` + 1
+  si no era 0, y el `+0x358` del héroe en 1 (`0x40d35e..0x40d457`). Una opción 0xff no entra; una de
+  0x18 en adelante, solo con la marca de la clase distinta de 0 y la evolución ≥ marca − 1
+  (`0x40d29c..0x40d2bd`). Van a tres listas locales de 16 por clase de pieza (la opción, la bandera
+  y el valor), sin mirar si caben.
+
+Al final (`0x40d473..0x40d515`) copia a `+0x934c` (de a 3: la opción, la bandera y un byte que no
+escribe) las de la clase de pieza 0 y detrás las de la 1, cada valor a los dos DWORD de `+0x938c +
+8 · i`, y las cuentas a `+0x9348` y `+0x9349`.
+
+`0x40de10` (898 bytes) recorre los doce lugares, abriendo y cerrando el registro en cada uno; con la
+durabilidad distinta de 0, `0x40dc50` y, por la tabla de saltos de `0x40e194`, suma `5 · v` a la
+copia de la fuerza (1), la agilidad (2), la energía (3) o la vitalidad (4). Después, `0x40da20` con
+`0x8c`, `0x8d`, `0x8e` y `0x8f` sobre esas copias (`0x40e14c..0x40e17c`), que deja marcadas esas
+opciones: por eso el paso 2 de `0x550d10` borra las marcas.
+
+`0x40da20` (151 bytes) es el código de `0x40d690` ([abajo](#los-ocho-helpers-de-los-stats-propios)):
+recorre las `+0x9348 + +0x9349` opciones de la lista; las que valen `selector − 0x8c` y no están
+marcadas en `+0x937c` suman su primer DWORD y quedan marcadas, y con la suma distinta de 0 hace
+`add word` con sus 16 bits de abajo (`0x40daac`).
+
+Con las tablas del repo, ningún conjunto llega a la clase de pieza 1 o 2 ni a una opción de 0x18,
+y lo más que se junta son 16 opciones. Lo que el original lee o escribe fuera de sus tablas y listas
+con otros datos es Q-C187.
+
+MuRet (`Scenes::RecalculateOwnStats`) corre los pasos 1 a 6 en orden: `RecalculateOwnItemSets`
+(`0x40e1b0`, con `AddItemSetPiece`, `ApplyItemSetOptions` y `AddOwnBonusesToStatCopies`; en
+`Scenes/OwnItemSets.h`), `ClearItemSetOptionMarks`, `ClearOwnItemStatWords`, `AddOwnItemStatBonuses`,
+`AddOwnItemSetOptionValues` (`0x40da20` cinco veces, con `Scenes::AddItemSetOptionValues`, el de
+`0x40d690`) y `AddCapeOfLordOptions`, con los accesos al registro donde los abre y los cierra el
+original. Lo de `[0x6eed3c]` que dura de una llamada a otra es `Scenes::ItemSetState` (en
+`WorldState`): `+0x9307` y los nombres, y la lista de `+0x9348..+0x940b` como
+`Scenes::ItemSetOptionList`, la misma que reciben los helpers. El `+0x358` del héroe es
+`ActorState::byte358`. Sin las tablas o sin ese estado corta en el paso 1, antes de tocar nada; si
+no, corta en el paso 7 con un error que nombra los ocho helpers: están portados
+([abajo](#los-ocho-helpers-de-los-stats-propios)), pero `RecalculateOwnStats` todavía no los llama. La cola (paso 8) está portada aparte
+(`UpdateOwnDerivedStatsTail`).
 
 ### Los ocho helpers de los stats propios
 

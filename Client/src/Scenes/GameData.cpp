@@ -5,10 +5,12 @@
 #include "Data/DataFile.h"
 #include "Data/DataPath.h"
 #include "Data/Tables/GateTable.h"
+#include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Data/Text/FilterWords.h"
 #include "Data/Text/TextTable.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <format>
@@ -80,6 +82,54 @@ Core::Expected<Data::Tables::LoadedItemTable, std::string> LoadItems(const std::
         return Core::Unexpected(std::format("{}: {}", ItemTableFile, Data::DescribeDataError(table.Error())));
     }
     return std::move(table).Value();
+}
+
+// Una tabla de los conjuntos: 0x40c660 y 0x40c850 leen un prefijo fijo, los registros y el checksum.
+template <typename Table, typename Loader>
+Core::Expected<Table, std::string> LoadItemSetTable(const std::filesystem::path& dataRoot, std::string_view name,
+                                                    std::size_t recordsSize, Loader load)
+{
+    std::error_code error;
+    const auto path = Data::ResolveDataPath(dataRoot, name, error);
+    if (error)
+    {
+        return Core::Unexpected(
+            std::format("no se pudo buscar {} en {}: {}", name, Core::PathText(dataRoot), error.message()));
+    }
+    if (!path)
+    {
+        return Core::Unexpected(std::format("no está {} en {}", name, Core::PathText(dataRoot)));
+    }
+    const auto file = Data::ReadDataFilePrefix(*path, recordsSize + sizeof(std::uint32_t));
+    if (!file.HasValue())
+    {
+        return Core::Unexpected(std::format("no se pudo leer {}: {}", name, file.Error().message()));
+    }
+    auto table = load(std::as_bytes(std::span(file.Value())));
+    if (!table.HasValue())
+    {
+        return Core::Unexpected(std::format("{}: {}", name, Data::DescribeDataError(table.Error())));
+    }
+    return std::move(table).Value();
+}
+
+// 0x40c600 desde 0x61ccb0 (0x61ecd5), después de Item.bmd (0x61eb37), con su argumento en 0: los tipos y
+// después los conjuntos.
+Core::Expected<Data::Tables::ItemSetTables, std::string> LoadItemSets(const std::filesystem::path& dataRoot)
+{
+    auto types = LoadItemSetTable<Data::Tables::ItemSetTypeTable>(
+        dataRoot, ItemSetTypeFile, Data::Tables::ItemSetTypeTableSize, Data::Tables::LoadItemSetTypeTable);
+    if (!types.HasValue())
+    {
+        return Core::Unexpected(std::move(types).Error());
+    }
+    auto options = LoadItemSetTable<Data::Tables::ItemSetOptionTable>(
+        dataRoot, ItemSetOptionFile, Data::Tables::ItemSetOptionTableSize, Data::Tables::LoadItemSetOptionTable);
+    if (!options.HasValue())
+    {
+        return Core::Unexpected(std::move(options).Error());
+    }
+    return Data::Tables::ItemSetTables{.types = std::move(types).Value(), .options = std::move(options).Value()};
 }
 
 // Las palabras de `name` en `dataRoot`, o ninguna si no está.
@@ -160,6 +210,12 @@ Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& 
         return Core::Unexpected(std::move(items).Error());
     }
     data.items.emplace(std::move(items).Value());
+    auto itemSets = LoadItemSets(dataRoot);
+    if (!itemSets.HasValue())
+    {
+        return Core::Unexpected(std::move(itemSets).Error());
+    }
+    data.itemSets.emplace(std::move(itemSets).Value());
     return data;
 }
 } // namespace Client::Scenes

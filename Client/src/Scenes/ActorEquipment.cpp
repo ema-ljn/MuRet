@@ -186,7 +186,12 @@ Core::Expected<void, std::string> Dress(ActorState& actor, const ActorEquipmentC
     {
         return Core::Unexpected(std::string("0x512a30: con el héroe publicado llama a 0x505820 (0x512ee7), sin leer"));
     }
-    return RecalculateOwnStats(context.own);
+    return RecalculateOwnStats(context.own, {.itemSetTables = context.itemSetTables,
+                                             .itemSets = context.itemSets,
+                                             .items = context.stop.items,
+                                             .publishedHero = context.publishedHero,
+                                             .ownRecordAccesses = context.ownRecordAccesses,
+                                             .random = context.stop.random});
 }
 } // namespace
 

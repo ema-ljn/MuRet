@@ -4,6 +4,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -51,6 +52,16 @@ WorldMap& WorldState::Map()
 const WorldMap& WorldState::Map() const
 {
     return m_map;
+}
+
+ItemSetState& WorldState::ItemSets()
+{
+    return m_itemSets;
+}
+
+const ItemSetState& WorldState::ItemSets() const
+{
+    return m_itemSets;
 }
 
 // El original copia de chars[elegido] lo que 0x4c20a0 le puso con la lista (0x4c21dd..0x4c220c): la

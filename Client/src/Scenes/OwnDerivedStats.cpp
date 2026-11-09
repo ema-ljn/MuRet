@@ -4,8 +4,11 @@
 #include "Data/Tables/ItemTable.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Scenes/ItemSetOptionList.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnItemOptions.h"
+#include "Scenes/OwnItemSets.h"
 #include "World/ItemState.h"
 
 #include <array>
@@ -17,7 +20,7 @@
 #include <string>
 
 // 0x550d10, cotejado con el PE c32bbd5f (1.698 bytes), con 0x54ef00 (31) y 0x40dc50 (66): 06, "Los
-// stats del registro propio".
+// stats del registro propio". 0x40e1b0 y 0x40da20 están en Scenes/OwnItemSets.cpp.
 namespace Client::Scenes
 {
 namespace
@@ -34,6 +37,14 @@ constexpr std::uint8_t KindOfWord2a = 1;
 constexpr std::uint8_t KindOfWord2c = 2;
 constexpr std::uint8_t KindOfWord30 = 3;
 constexpr std::uint8_t KindOfWord2e = 4;
+
+// Los selectores de 0x40da20 para cada WORD (0x550db3..0x550e12): la fuerza, la agilidad, la energía, la
+// vitalidad y +0x36.
+constexpr std::uint32_t SetOptionSelectorOfWord2a = 0x8c;
+constexpr std::uint32_t SetOptionSelectorOfWord2c = 0x8d;
+constexpr std::uint32_t SetOptionSelectorOfWord30 = 0x8e;
+constexpr std::uint32_t SetOptionSelectorOfWord2e = 0x8f;
+constexpr std::uint32_t SetOptionSelectorOfWord36 = 0x90;
 
 // El lugar de las alas, [0x7681eb4] + 0xd64 = +0xb6c + 7 · 0x48, y el tipo que mira (0x550e2a).
 constexpr std::size_t WingsSlot = 7;
@@ -80,10 +91,57 @@ std::uint16_t FromLittleEndian(std::span<const std::byte, 2> bytes)
 }
 } // namespace
 
-Core::Expected<void, std::string> RecalculateOwnStats(OwnCharacterRecord& /*own*/)
+Core::Expected<void, std::string> RecalculateOwnStats(OwnCharacterRecord& own, const OwnStatsContext& context)
 {
-    return Core::Unexpected(std::string("0x550d10: falta 0x40e1b0 (0x550d24), las opciones de los conjuntos de "
-                                        "[0x6eed3c] con ItemSetType.bmd e ItemSetOption.bmd (0x40c600), sin leer"));
+    const auto sets = RecalculateOwnItemSets(own, context);
+    if (!sets.HasValue())
+    {
+        return Core::Unexpected(std::format("0x550d10 (0x550d24): {}", sets.Error()));
+    }
+    ClearItemSetOptionMarks(context.itemSets->list);
+    ClearOwnItemStatWords(own);
+    auto bonuses = AddOwnItemStatBonuses(own, context.items);
+    if (!bonuses.HasValue())
+    {
+        return bonuses;
+    }
+    auto setOptions = AddOwnItemSetOptionValues(own, context.itemSets->list);
+    if (!setOptions.HasValue())
+    {
+        return setOptions;
+    }
+    auto cape = AddCapeOfLordOptions(own, context.ownRecordAccesses, context.random);
+    if (!cape.HasValue())
+    {
+        return cape;
+    }
+    return Core::Unexpected(
+        std::string("0x550d10: los ocho helpers de 0x551287..0x5512ba (0x54efe0, 0x54f9b0, 0x54fd40, "
+                    "0x54fe10, 0x5507e0, 0x550990, 0x550c30 y 0x550c60) están en "
+                    "Scenes/OwnStatHelpers.h y RecalculateOwnStats todavía no los llama"));
+}
+
+Core::Expected<void, std::string> AddOwnItemSetOptionValues(OwnCharacterRecord& own, ItemSetOptionList& list)
+{
+    struct WordAndSelector
+    {
+        std::uint16_t* word;
+        std::uint32_t selector;
+    };
+    const std::array<WordAndSelector, 5> calls = {WordAndSelector{&own.word2a, SetOptionSelectorOfWord2a},
+                                                  WordAndSelector{&own.word2c, SetOptionSelectorOfWord2c},
+                                                  WordAndSelector{&own.word30, SetOptionSelectorOfWord30},
+                                                  WordAndSelector{&own.word2e, SetOptionSelectorOfWord2e},
+                                                  WordAndSelector{&own.word36, SetOptionSelectorOfWord36}};
+    for (const WordAndSelector& call : calls)
+    {
+        auto added = AddItemSetOptionValues(list, *call.word, call.selector);
+        if (!added.HasValue())
+        {
+            return Core::Unexpected(std::format("0x550d10 (0x40da20 con {:#x}): {}", call.selector, added.Error()));
+        }
+    }
+    return {};
 }
 
 void ClearOwnItemStatWords(OwnCharacterRecord& own)

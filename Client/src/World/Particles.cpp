@@ -1,6 +1,5 @@
 #include "World/Particles.h"
 
-#include "World/ParticleDrawParameters.h"
 #include "World/Ftol.h"
 #include "World/IParticleTrigonometry.h"
 
@@ -83,8 +82,6 @@ constexpr int SmokeScaleBase = 64;
 constexpr int SmokeSpeedBase = 60;
 constexpr int FrameSteps = 6;
 constexpr double FireHeightFactor = 10.0;
-constexpr float LowerPassHeight = 350.0f;
-constexpr float UpperPassHeight = 300.0f;
 // 0x53ff05: la vida de cualquier partícula al crearla; 0x54184b: la del aliento.
 constexpr std::int32_t DefaultLife = 2;
 constexpr std::int32_t BreathLife = 16;
@@ -200,11 +197,6 @@ bool IsLoginCloud(const Particle& particle)
 bool IsCloud8(const Particle& particle)
 {
     return particle.type == CloudParticle && particle.subtype == 8;
-}
-
-bool IsParticle68(const Particle& particle)
-{
-    return particle.type == Particle68 && particle.subtype == 0;
 }
 
 void CreateTheCloud8(Particle& particle, float inputScale, Render::Models::CrtRandom& random)
@@ -1209,75 +1201,5 @@ std::optional<ParticleError> StepParticles(Particles& particles, Render::Models:
 {
     const auto stepped = StepParticlesChecked(particles, random);
     return stepped.HasValue() ? std::nullopt : std::optional(stepped.Error());
-}
-
-std::optional<ParticleDraw> ParticleDrawOf(Particle& particle, const glm::vec2& textureSize, int materialFlag,
-                                           float worldClock, std::size_t slotIndex)
-{
-    const bool cloud = IsLoginCloud(particle);
-    if (!particle.alive || (!IsParticle68(particle) && BindingError(particle.type, particle.subtype).has_value()))
-    {
-        return std::nullopt;
-    }
-    ParticleDraw::Blend blend = materialFlag == 3 ? ParticleDraw::Blend::Additive : ParticleDraw::Blend::Alpha;
-    if (IsWorldSmoke(particle))
-    {
-        blend = ParticleDraw::Blend::Subtractive;
-    }
-    if (cloud)
-        blend = ParticleDraw::Blend::Subtractive;
-    if (cloud || IsCloud8(particle))
-        UpdateParticleCloudDrawRotation(particle, worldClock, slotIndex);
-    // 0x5485a3: el ancho y el alto de la textura por la escala, guardados en float.
-    ParticleDraw draw{
-        .texture = particle.texture,
-        .blend = blend,
-        .position = particle.position,
-        .width = F32(static_cast<double>(textureSize.x) * static_cast<double>(particle.scale)),
-        .height = F32(static_cast<double>(textureSize.y) * static_cast<double>(particle.scale)),
-        .light = particle.light,
-        .rotation = particle.rotation,
-        .uv = glm::vec2(0.0f),
-        .uvSize = glm::vec2(1.0f),
-    };
-    const ParticleDrawKind kind = IsFire(particle)   ? ParticleDrawKind::Fire
-                                  : IsDrop(particle) ? ParticleDrawKind::Drop
-                                                     : ParticleDrawKind::Common;
-    const auto shape = ParticleDrawParametersOf(particle, {draw.width, draw.height}, kind);
-    draw.width = shape.width;
-    draw.height = shape.height;
-    draw.rotation = shape.rotation;
-    draw.uv = shape.uv;
-    draw.uvSize = shape.uvSize;
-    if (IsCloud8(particle))
-        draw.light = ScaledParticleDrawLight(particle);
-    return draw;
-}
-
-Core::Expected<std::optional<ParticleDraw>, ParticleError>
-ParticleDrawChecked(Particle& particle, std::optional<glm::vec2> textureSize, std::optional<std::uint8_t> materialFlag,
-                    float worldClock, std::size_t slotIndex, std::uint8_t mode)
-{
-    if (!particle.alive || (mode == 1 && particle.position.z > LowerPassHeight) ||
-        (mode == 2 && !(particle.position.z > UpperPassHeight)))
-    {
-        return std::optional<ParticleDraw>{};
-    }
-    if (!IsParticle68(particle))
-    {
-        if (const auto error = BindingError(particle.type, particle.subtype))
-        {
-            return Core::Unexpected(*error);
-        }
-    }
-    if (!textureSize)
-    {
-        return Core::Unexpected(ParticleError::MissingTextureSize);
-    }
-    if (!materialFlag)
-    {
-        return Core::Unexpected(ParticleError::MissingMaterialFlag);
-    }
-    return ParticleDrawOf(particle, *textureSize, *materialFlag, worldClock, slotIndex);
 }
 } // namespace Client::World

@@ -2,7 +2,9 @@
 
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
+#include "World/ParticleDrawing.h"
 
+#include "support/ParticleDrawRecorder.h"
 #include "support/WorldObjectVectors.h"
 
 #include <glm/ext/vector_float2.hpp>
@@ -15,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
+#include <functional>
 #include <ios>
 #include <limits>
 #include <set>
@@ -179,19 +182,20 @@ TEST(ParticlesTest, TheBreathAndTheSparkMatchTheBinary)
             checkUnlisted();
             std::size_t calls = 0;
             words >> calls;
+            // 0x548550(0) sobre el pool entero: la textura de cada lugar es su tipo (0x53fe70 la copia).
+            Client::Tests::ParticleDrawRecorder recorder;
+            recorder.dimensions.insert_or_assign(particleType, textureSize);
+            recorder.materialFlags.insert_or_assign(particleType, static_cast<std::uint8_t>(components));
+            const float clock = 0.0f;
+            ASSERT_TRUE(Client::World::DrawParticlesChecked(particles, 0, std::cref(clock), recorder).HasValue())
+                << where;
             std::size_t read = 0;
-            for (Particle& particle : particles.All())
+            for (const Client::Tests::RecordedParticleDraw& drawn : recorder.draws)
             {
-                if (!particle.alive)
-                {
-                    continue;
-                }
-                const auto drawn = Client::World::ParticleDrawOf(particle, textureSize, components);
-                ASSERT_TRUE(drawn.has_value()) << where;
-                ASSERT_NE(drawn->blend, Client::World::ParticleDraw::Blend::Subtractive) << where;
+                ASSERT_NE(drawn.blend, Client::Tests::RecordedParticleDraw::Blend::Subtractive) << where;
                 ASSERT_TRUE(std::getline(file, line));
-                EXPECT_EQ(line, drawn->blend == Client::World::ParticleDraw::Blend::Additive ? "blend additive"
-                                                                                             : "blend alpha")
+                EXPECT_EQ(line, drawn.blend == Client::Tests::RecordedParticleDraw::Blend::Additive ? "blend additive"
+                                                                                                    : "blend alpha")
                     << where;
                 ASSERT_TRUE(std::getline(file, line));
                 std::istringstream call(line);
@@ -199,7 +203,7 @@ TEST(ParticlesTest, TheBreathAndTheSparkMatchTheBinary)
                 std::string texture;
                 call >> label >> texture;
                 ASSERT_EQ(label, "billboard") << where;
-                EXPECT_EQ(static_cast<std::uint32_t>(drawn->texture), Hex(texture)) << where;
+                EXPECT_EQ(static_cast<std::uint32_t>(drawn.texture), Hex(texture)) << where;
                 const auto value = [&call]()
                 {
                     std::string bits;
@@ -208,19 +212,19 @@ TEST(ParticlesTest, TheBreathAndTheSparkMatchTheBinary)
                 };
                 for (int k = 0; k < 3; ++k)
                 {
-                    EXPECT_EQ(Bits(drawn->position[k]), value()) << where << ": la posición " << k;
+                    EXPECT_EQ(Bits(drawn.position[k]), value()) << where << ": la posición " << k;
                 }
-                EXPECT_EQ(Bits(drawn->width), value()) << where << ": el ancho";
-                EXPECT_EQ(Bits(drawn->height), value()) << where << ": el alto";
+                EXPECT_EQ(Bits(drawn.width), value()) << where << ": el ancho";
+                EXPECT_EQ(Bits(drawn.height), value()) << where << ": el alto";
                 for (int k = 0; k < 3; ++k)
                 {
-                    EXPECT_EQ(Bits(drawn->light[k]), value()) << where << ": la luz " << k;
+                    EXPECT_EQ(Bits(drawn.light[k]), value()) << where << ": la luz " << k;
                 }
-                EXPECT_EQ(Bits(drawn->rotation), value()) << where << ": la rotación";
-                EXPECT_EQ(Bits(drawn->uv.x), value()) << where;
-                EXPECT_EQ(Bits(drawn->uv.y), value()) << where;
-                EXPECT_EQ(Bits(drawn->uvSize.x), value()) << where;
-                EXPECT_EQ(Bits(drawn->uvSize.y), value()) << where;
+                EXPECT_EQ(Bits(drawn.rotation), value()) << where << ": la rotación";
+                EXPECT_EQ(Bits(drawn.uv.x), value()) << where;
+                EXPECT_EQ(Bits(drawn.uv.y), value()) << where;
+                EXPECT_EQ(Bits(drawn.uvSize.x), value()) << where;
+                EXPECT_EQ(Bits(drawn.uvSize.y), value()) << where;
                 read += 2;
                 ++draws;
             }

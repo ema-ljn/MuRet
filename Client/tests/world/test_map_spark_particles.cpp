@@ -2,6 +2,8 @@
 
 #include "Render/Models/Cloth.h"
 
+#include "support/ParticleDrawRecorder.h"
+
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
@@ -134,14 +136,16 @@ TEST(MapSparkParticlesTest, DrawUsesTheWholeTextureAndRotation44WithoutAtlasOrAd
                       .angles = {17, 22, 33},
                       .rotation = 95,
                       .field48 = std::bit_cast<float>(8)};
-    const auto draw = Client::World::ParticleDrawOf(particle, {64, 32}, 4);
-    ASSERT_TRUE(draw.has_value());
-    EXPECT_EQ(draw->texture, 17);
-    EXPECT_EQ(Bits(draw->width), 0x42b33333u);
-    EXPECT_EQ(Bits(draw->height), 0x42333333u);
-    EXPECT_EQ(draw->rotation, 95);
-    EXPECT_EQ(draw->uv, glm::vec2(0));
-    EXPECT_EQ(draw->uvSize, glm::vec2(1));
-    EXPECT_EQ(draw->blend, Client::World::ParticleDraw::Blend::Alpha);
+    const auto drawn = Client::Tests::DrawOneParticle(particle, glm::vec2(64, 32), std::uint8_t{4});
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_TRUE(drawn.Value().has_value());
+    const Client::Tests::RecordedParticleDraw& draw = *drawn.Value();
+    EXPECT_EQ(draw.texture, 17);
+    EXPECT_EQ(Bits(draw.width), 0x42b33333u);
+    EXPECT_EQ(Bits(draw.height), 0x42333333u);
+    EXPECT_EQ(draw.rotation, 95);
+    EXPECT_EQ(draw.uv, glm::vec2(0));
+    EXPECT_EQ(draw.uvSize, glm::vec2(1));
+    EXPECT_EQ(draw.blend, Client::Tests::RecordedParticleDraw::Blend::Alpha);
 }
 } // namespace

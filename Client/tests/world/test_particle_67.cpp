@@ -2,6 +2,8 @@
 
 #include "Render/Models/Cloth.h"
 
+#include "support/ParticleDrawRecorder.h"
+
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
@@ -16,6 +18,8 @@
 namespace
 {
 using Client::Render::Models::CrtRandom;
+using Client::Tests::DrawOneParticle;
+using Client::Tests::RecordedParticleDraw;
 using Client::World::Particle;
 using Client::World::Particles;
 constexpr std::int32_t Type67 = 0x67;
@@ -153,17 +157,19 @@ TEST(Particle67Test, DrawUsesFullDimensionsRotation44AndWholeTextureWithoutAnAtl
                       .light = {2, 3, 4},
                       .rotation = 95,
                       .field48 = std::bit_cast<float>(-5)};
-    const auto draw = Client::World::ParticleDrawOf(particle, {128, 64}, 4);
-    ASSERT_TRUE(draw.has_value());
-    EXPECT_EQ(draw->texture, 17);
-    EXPECT_EQ(draw->width, 192);
-    EXPECT_EQ(draw->height, 96);
-    EXPECT_EQ(draw->rotation, 95);
-    EXPECT_EQ(draw->uv, glm::vec2(0));
-    EXPECT_EQ(draw->uvSize, glm::vec2(1));
-    EXPECT_EQ(draw->position, glm::vec3(10, 20, 30));
-    EXPECT_EQ(draw->light, glm::vec3(2, 3, 4));
-    EXPECT_EQ(draw->blend, Client::World::ParticleDraw::Blend::Alpha);
+    const auto drawn = DrawOneParticle(particle, glm::vec2(128, 64), std::uint8_t{4});
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_TRUE(drawn.Value().has_value());
+    const RecordedParticleDraw& draw = *drawn.Value();
+    EXPECT_EQ(draw.texture, 17);
+    EXPECT_EQ(draw.width, 192);
+    EXPECT_EQ(draw.height, 96);
+    EXPECT_EQ(draw.rotation, 95);
+    EXPECT_EQ(draw.uv, glm::vec2(0));
+    EXPECT_EQ(draw.uvSize, glm::vec2(1));
+    EXPECT_EQ(draw.position, glm::vec3(10, 20, 30));
+    EXPECT_EQ(draw.light, glm::vec3(2, 3, 4));
+    EXPECT_EQ(draw.blend, RecordedParticleDraw::Blend::Alpha);
 }
 
 TEST(Particle67Test, CheckedDrawKeepsTheHeightOverlapAndReportsMissingMetadataForItsActualBinding)
@@ -172,16 +178,16 @@ TEST(Particle67Test, CheckedDrawKeepsTheHeightOverlapAndReportsMissingMetadataFo
         .alive = true, .type = Type67, .texture = 17, .subtype = 0, .scale = 1, .position = {10, 20, 325}};
     for (const std::uint8_t mode : {std::uint8_t{1}, std::uint8_t{2}})
     {
-        const auto draw = Client::World::ParticleDrawChecked(particle, glm::vec2(128, 64), std::uint8_t{3}, 0, 0, mode);
+        const auto draw = DrawOneParticle(particle, glm::vec2(128, 64), std::uint8_t{3}, 0, 0, mode);
         ASSERT_TRUE(draw.HasValue());
         ASSERT_TRUE(draw.Value().has_value());
-        EXPECT_EQ(draw.Value()->blend, Client::World::ParticleDraw::Blend::Additive);
+        EXPECT_EQ(draw.Value()->blend, RecordedParticleDraw::Blend::Additive);
     }
-    const auto missing = Client::World::ParticleDrawChecked(particle, std::nullopt, std::uint8_t{3});
+    const auto missing = DrawOneParticle(particle, std::nullopt, std::uint8_t{3});
     ASSERT_FALSE(missing.HasValue());
-    EXPECT_EQ(missing.Error(), Client::World::ParticleError::MissingTextureSize);
+    EXPECT_EQ(missing.Error().reason, Client::World::ParticleError::MissingTextureSize);
     particle.position.z = 351;
-    const auto hidden = Client::World::ParticleDrawChecked(particle, std::nullopt, std::nullopt, 0, 0, 1);
+    const auto hidden = DrawOneParticle(particle, std::nullopt, std::nullopt, 0, 0, 1);
     ASSERT_TRUE(hidden.HasValue());
     EXPECT_FALSE(hidden.Value().has_value());
 }

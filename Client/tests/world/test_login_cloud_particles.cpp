@@ -3,6 +3,8 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
 
+#include "support/ParticleDrawRecorder.h"
+
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
@@ -19,6 +21,8 @@
 namespace
 {
 using Client::Render::Models::CrtRandom;
+using Client::Tests::DrawOneParticle;
+using Client::Tests::RecordedParticleDraw;
 using Client::World::Particle;
 using Client::World::Particles;
 constexpr std::int32_t LoginCloudType = 0x622;
@@ -107,16 +111,17 @@ TEST(LoginCloudParticlesTest, DrawUsesTheTextureDimensionsAndPreservesTheOrigina
     particle.scale = 1.75f;
     particle.position = {10.0f, 20.0f, 30.0f};
     particle.light = {0.1f, 0.2f, 0.3f};
-    const auto drawn = Client::World::ParticleDrawOf(particle, {256.0f, 128.0f}, 3);
-    ASSERT_TRUE(drawn.has_value());
-    EXPECT_EQ(drawn->texture, 123);
-    EXPECT_EQ(drawn->position, particle.position);
-    EXPECT_EQ(drawn->width, 448.0f);
-    EXPECT_EQ(drawn->height, 224.0f);
-    EXPECT_EQ(drawn->light, particle.light);
-    EXPECT_EQ(drawn->uv, glm::vec2(0.0f));
-    EXPECT_EQ(drawn->uvSize, glm::vec2(1.0f));
-    EXPECT_EQ(drawn->blend, Client::World::ParticleDraw::Blend::Subtractive);
+    const auto drawn = DrawOneParticle(particle, glm::vec2(256.0f, 128.0f), std::uint8_t{3});
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_TRUE(drawn.Value().has_value());
+    EXPECT_EQ(drawn.Value()->texture, 123);
+    EXPECT_EQ(drawn.Value()->position, particle.position);
+    EXPECT_EQ(drawn.Value()->width, 448.0f);
+    EXPECT_EQ(drawn.Value()->height, 224.0f);
+    EXPECT_EQ(drawn.Value()->light, particle.light);
+    EXPECT_EQ(drawn.Value()->uv, glm::vec2(0.0f));
+    EXPECT_EQ(drawn.Value()->uvSize, glm::vec2(1.0f));
+    EXPECT_EQ(drawn.Value()->blend, RecordedParticleDraw::Blend::Subtractive);
 }
 
 TEST(LoginCloudParticlesTest, CreationPreservesTheRotationFactorUntilTheFirstStep)
@@ -128,10 +133,11 @@ TEST(LoginCloudParticlesTest, CreationPreservesTheRotationFactorUntilTheFirstSte
     ASSERT_EQ(index, 0u);
     Particle& particle = particles.All()[*index];
     EXPECT_EQ(particle.rotationFactor, -7.25f);
-    const auto drawn = Client::World::ParticleDrawOf(particle, {256.0f, 256.0f}, 3, 100.0f, 0);
-    ASSERT_TRUE(drawn.has_value());
+    const auto drawn = DrawOneParticle(particle, glm::vec2(256.0f), std::uint8_t{3}, 100.0f, *index);
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_TRUE(drawn.Value().has_value());
     const auto expected = static_cast<float>(100.0 * -7.25 * static_cast<double>(0.02f) + particle.start.y);
-    EXPECT_EQ(Bits(drawn->rotation), Bits(expected));
+    EXPECT_EQ(Bits(drawn.Value()->rotation), Bits(expected));
     Client::World::StepParticles(particles, random);
     EXPECT_EQ(particle.rotationFactor, 1.5f);
 }
@@ -145,14 +151,17 @@ TEST(LoginCloudParticlesTest, DrawingUsesSlotParityTheRetainedFactorAndTheOrigin
         particle.start.y = 2022.0f;
         particle.rotationFactor = 1.5f;
         particle.rotation = 99.0f;
-        const auto drawn = Client::World::ParticleDrawOf(particle, {256.0f, 256.0f}, 4, 1234.5f, index);
-        ASSERT_TRUE(drawn.has_value());
-        EXPECT_EQ(drawn->blend, Client::World::ParticleDraw::Blend::Subtractive);
-        EXPECT_EQ(Bits(drawn->rotation), index % 2 == 0 ? 0x4500b08fu : 0x44f81ee1u);
-        EXPECT_EQ(Bits(particle.rotation), Bits(drawn->rotation));
-        const auto again = Client::World::ParticleDrawOf(particle, {256.0f, 256.0f}, 3, 1234.5f, index);
-        ASSERT_TRUE(again.has_value());
-        EXPECT_EQ(Bits(again->rotation), Bits(drawn->rotation));
+        // El índice es el lugar real del pool: la paridad sale de ahí, no de un argumento aparte.
+        const auto drawn = DrawOneParticle(particle, glm::vec2(256.0f), std::uint8_t{4}, 1234.5f, index);
+        ASSERT_TRUE(drawn.HasValue());
+        ASSERT_TRUE(drawn.Value().has_value());
+        EXPECT_EQ(drawn.Value()->blend, RecordedParticleDraw::Blend::Subtractive);
+        EXPECT_EQ(Bits(drawn.Value()->rotation), index % 2 == 0 ? 0x4500b08fu : 0x44f81ee1u);
+        EXPECT_EQ(Bits(particle.rotation), Bits(drawn.Value()->rotation));
+        const auto again = DrawOneParticle(particle, glm::vec2(256.0f), std::uint8_t{3}, 1234.5f, index);
+        ASSERT_TRUE(again.HasValue());
+        ASSERT_TRUE(again.Value().has_value());
+        EXPECT_EQ(Bits(again.Value()->rotation), Bits(drawn.Value()->rotation));
     }
 }
 
@@ -163,7 +172,9 @@ TEST(LoginCloudParticlesTest, ADeadCloudIsNotDrawnAndDoesNotChangeItsRotation)
     particle.alive = false;
     particle.rotation = 99.0f;
     particle.rotationFactor = 1.5f;
-    EXPECT_FALSE(Client::World::ParticleDrawOf(particle, {256.0f, 256.0f}, 3, 1234.5f, 0).has_value());
+    const auto drawn = DrawOneParticle(particle, glm::vec2(256.0f), std::uint8_t{3}, 1234.5f, 0);
+    ASSERT_TRUE(drawn.HasValue());
+    EXPECT_FALSE(drawn.Value().has_value());
     EXPECT_EQ(particle.rotation, 99.0f);
 }
 
@@ -173,9 +184,10 @@ TEST(LoginCloudParticlesTest, DrawingRoundsTheRotationOnlyWhenStoringTheResult)
     Particle& particle = Cloud(particles);
     particle.start.y = 12.5f;
     particle.rotationFactor = 1.5f;
-    const auto drawn = Client::World::ParticleDrawOf(particle, {256.0f, 256.0f}, 3, 12345678.0f, 0);
-    ASSERT_TRUE(drawn.has_value());
-    EXPECT_EQ(Bits(drawn->rotation), 0x48b4d9dbu);
+    const auto drawn = DrawOneParticle(particle, glm::vec2(256.0f), std::uint8_t{3}, 12345678.0f, 0);
+    ASSERT_TRUE(drawn.HasValue());
+    ASSERT_TRUE(drawn.Value().has_value());
+    EXPECT_EQ(Bits(drawn.Value()->rotation), 0x48b4d9dbu);
 }
 
 TEST(LoginCloudParticlesTest, UpdateAddsRotatedAndUnrotatedVelocity)

@@ -42,6 +42,12 @@ inline constexpr std::int32_t RavenSparkSubtype = 5;
 inline constexpr std::int32_t MapSparkSubtype = 9;
 inline constexpr std::uint16_t CloudParticle = 0x622;
 inline constexpr std::int32_t LoginCloudSubtype = 10;
+// Los dos tipos que comparten creación y paso; la 68 además corre la posición al nacer.
+inline constexpr std::int32_t Particle67 = 0x67;
+inline constexpr std::int32_t Particle68 = 0x68;
+// La órbita (0x60f/3): nace con 60 de vida, y 548550 no la dibuja mientras la conserve, salvo la /4.
+inline constexpr std::int32_t OrbitParticle = 0x60f;
+inline constexpr std::int32_t OrbitLife = 60;
 
 // Offsets nativos de procedencia; este DTO no promete layout binario de 0x78 bytes.
 struct Particle

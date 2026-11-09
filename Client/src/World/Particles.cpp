@@ -23,9 +23,8 @@ namespace Client::World
 namespace
 {
 constexpr std::int32_t BreathSubtype = 0;
-// Extensiones 53fe70/5446e0/548550 para 67/0; recursos y backend se validan por separado.
-constexpr std::int32_t Particle67 = 0x67;
-constexpr std::int32_t Particle68 = 0x68;
+// Extensiones 53fe70/5446e0/548550 para 67/0 y 68/0 (los tipos, en Particles.h); recursos y backend
+// se validan por separado. La 68 nace como la 67 y después corre la posición.
 constexpr std::int32_t Particle67Life = 20;
 // Extensión 5446e0 de la nube 622/8: +38 usa estos operandos binarios.
 constexpr double Cloud8Rise = std::bit_cast<double>(std::uint64_t{0x3fa47ae147ae147bull});
@@ -34,7 +33,6 @@ constexpr float Cloud8FallLimit = std::bit_cast<float>(0x3dcccccdu);
 constexpr float Cloud8Fall = std::bit_cast<float>(0x3ccccccdu);
 constexpr double Cloud8RandomStep = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
 constexpr float Cloud8InitialQ = std::bit_cast<float>(0x3dcccccdu);
-constexpr double Cloud68ScaleStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
 // 5446e0_ext_67 y contrato histórico íntegro leaf-4303c0 (predicado raw32 == 34, sin calls).
 constexpr std::int32_t Particle67ColorMap = 34;
 constexpr double Particle67Growth = static_cast<double>(std::bit_cast<float>(0x3cf5c28fu));
@@ -43,6 +41,9 @@ constexpr float Particle67Blue = std::bit_cast<float>(0x3f333333u);
 constexpr int Particle67ScaleSpan = 6;
 constexpr int Particle67ScaleBase = 8;
 constexpr double Particle67ScaleStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+// La 68 corre cada eje rand() % 10 − 5, en x, y, z.
+constexpr int Particle68OffsetSpan = 10;
+constexpr int Particle68OffsetCenter = 5;
 // 53fe70/5446e0, extensión 5c6/9 (mapa3, objeto322).
 constexpr std::int32_t MapSparkLife = 30;
 constexpr int MapSparkOffsetSpan = 10;
@@ -224,20 +225,6 @@ void CreateTheCloud8(Particle& particle, float inputScale, Render::Models::CrtRa
 
     // El cuerpo vuelve a poner los tres dwords a cero tras R7.
     particle.velocity = glm::vec3(0.0f);
-}
-
-void CreateTheParticle68(Particle& particle, Render::Models::CrtRandom& random)
-{
-    particle.life = 20;
-    const int scaleSteps = (random.Next() % 6) + 8;
-    particle.scale = F32(static_cast<double>(scaleSteps) * Cloud68ScaleStep);
-
-    const int offsetX = (random.Next() % 10) - 5;
-    particle.position.x = F32(static_cast<double>(offsetX) + static_cast<double>(particle.position.x));
-    const int offsetY = (random.Next() % 10) - 5;
-    particle.position.y = F32(static_cast<double>(offsetY) + static_cast<double>(particle.position.y));
-    const int offsetZ = (random.Next() % 10) - 5;
-    particle.position.z = F32(static_cast<double>(offsetZ) + static_cast<double>(particle.position.z));
 }
 
 void StepTheCloud8(Particle& particle)
@@ -561,7 +548,19 @@ void CreateTheParticle67(Particle& particle, Render::Models::CrtRandom& random)
     particle.scale = F32(static_cast<double>(scaleSteps) * Particle67ScaleStep);
 }
 
-std::optional<ParticleError> StepTheParticle67(Particle& particle, const std::int32_t* map)
+// La vida, el rand() y la escala de la 67, y después un rand() por eje para la posición.
+void CreateTheParticle68(Particle& particle, Render::Models::CrtRandom& random)
+{
+    CreateTheParticle67(particle, random);
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        const int offset = (random.Next() % Particle68OffsetSpan) - Particle68OffsetCenter;
+        particle.position[axis] = F32(static_cast<double>(offset) + static_cast<double>(particle.position[axis]));
+    }
+}
+
+// El paso de la 67 y de la 68, que es el mismo.
+std::optional<ParticleError> StepTheParticle67Or68(Particle& particle, const std::int32_t* map)
 {
     if (particle.life <= 0)
     {
@@ -570,41 +569,8 @@ std::optional<ParticleError> StepTheParticle67(Particle& particle, const std::in
     particle.scale = particle.subtype == 1
                          ? F32(static_cast<double>(particle.verticalSpeed) + static_cast<double>(particle.scale))
                          : F32(static_cast<double>(particle.scale) + Particle67Growth);
-    if (map == nullptr)
-    {
-        return ParticleError::MissingMap;
-    }
-    // 4303c0 relee el DWORD del mapa aquí; no es el byte bajo ni un mapa capturado al entrar.
-    if (*map == Particle67ColorMap)
-    {
-        particle.light.z = Particle67Blue;
-        particle.light.x = 1.0f;
-        particle.light.y = 1.0f;
-        return std::nullopt;
-    }
-    for (int axis = 0; axis < 3; ++axis)
-    {
-        particle.light[axis] = F32(static_cast<double>(particle.light[axis]) - Particle67Fade);
-    }
-    return std::nullopt;
-}
-
-std::optional<ParticleError> StepTheParticle68(Particle& particle, const std::int32_t* map)
-{
-    if (particle.life <= 0)
-    {
-        particle.alive = false;
-    }
-    if (particle.subtype == 1)
-    {
-        particle.scale = F32(static_cast<double>(particle.verticalSpeed) + static_cast<double>(particle.scale));
-    }
-    else
-    {
-        particle.scale = F32(static_cast<double>(particle.scale) + Particle67Growth);
-    }
-
-    // 4303c0 fue acreditado por el contrato leaf-4303c0: lee DWORD raw32 y devuelve AL=1 sólo para34.
+    // 4303c0 (contrato leaf-4303c0) relee aquí el DWORD raw32 del mapa, no el byte bajo ni un mapa
+    // capturado al entrar, y devuelve AL=1 sólo para 34.
     if (map == nullptr)
     {
         return ParticleError::MissingMap;
@@ -795,9 +761,7 @@ void StepTheSpark(Particle& particle)
         particle.light[k] = F32(static_cast<double>(particle.light[k]) * SparkFade);
     }
 }
-constexpr std::int32_t OrbitParticle = 0x60f;
 constexpr std::int32_t OrbitSubtype = 3;
-constexpr std::int32_t OrbitLife = 60;
 constexpr float OrbitPhase = 0.1f; // 006b87b8 bits3dcccccd.
 constexpr float OrbitRadius = 40.0f;
 constexpr float OrbitShrink = 0.002f;            // 006b89bc bits3b03126f.
@@ -935,16 +899,12 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         {
             continue;
         }
-        if (type == Particle68 && subtype != 0)
-        {
-            return Core::Unexpected(ParticleError::UnsupportedSubtype);
-        }
         const bool orbit = trigonometry != nullptr && type == OrbitParticle;
         if (orbit && subtype != OrbitSubtype)
         {
             return Core::Unexpected(ParticleError::UnsupportedSubtype);
         }
-        if (!orbit && type != Particle68 && !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
+        if (!orbit && !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
         {
             if (const auto error = BindingError(type, subtype))
             {
@@ -1132,16 +1092,9 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
                 return Core::Unexpected(*error);
             }
         }
-        if (particle.type == Particle67)
+        if (particle.type == Particle67 || particle.type == Particle68)
         {
-            if (const auto error = StepTheParticle67(particle, map))
-            {
-                return Core::Unexpected(*error);
-            }
-        }
-        else if (particle.type == Particle68)
-        {
-            if (const auto error = StepTheParticle68(particle, map))
+            if (const auto error = StepTheParticle67Or68(particle, map))
             {
                 return Core::Unexpected(*error);
             }

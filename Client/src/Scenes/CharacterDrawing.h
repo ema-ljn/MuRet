@@ -11,7 +11,6 @@
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/TextureMetadata.h"
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/TextureMetadata.h"
 

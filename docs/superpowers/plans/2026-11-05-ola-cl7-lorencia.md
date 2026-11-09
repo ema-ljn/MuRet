@@ -128,6 +128,30 @@ si no choca con eso; si choca, queda para más adelante.
    (Q-C158), el gate se pide desde el cliente con su `Gate.bmd` aunque difiera del `gate.txt` (Q-C182), y un
    rebote del servidor se acepta.
 
+### Decisiones del 2026-11-09
+
+Las tomó Emanuel el 2026-11-09. Las dos primeras entraron a `main` con
+[PR184](https://github.com/ema-ljn/MuRet/pull/184).
+
+1. **Sin Boost.Multiprecision.** El perfil matemático retenido usa una aritmética binaria propia de 256
+   bits, con el mismo modelo 113 → 64 → 53 que daba Boost
+   ([ADR0014](../../adr/0014-perfil-matematico-retenido.md), § La aritmética propia).
+2. **El atan retenido es el modelo portable, no el FPATAN real de la x87.** phi64 es atan(cociente)
+   redondeado una sola vez a 64 bits. Contra la x87 de un Xeon queda 1 ULP del double en unos 13 cocientes
+   por millón después del producto, y ninguna diferencia en el store f32 (ADR0014, § phi64 es el atan64
+   bien redondeado). Un camino con la x87 real en asm queda diferido: se retoma sólo si hace falta.
+3. **Devias (mapa 2, `World3`) es el segundo mapa de referencia.** Cada hito de la CL7 cierra contra
+   Lorencia y contra Devias, no sólo contra Lorencia. De Devias hay volcados de las tablas, el terreno, la
+   luz y los atributos, pero no de sus objetos
+   ([09](../../../Client/docs/research/09-datos-disponibles.md#los-volcados-de-memoria-de-cada-mapa), P-C37).
+4. **El mundo todavía no se puede entrar en `main`.** El hito 1 (la entrada al mundo y el héroe; el 2
+   es caminar y los gates) se parte del checkpoint reconciliado
+   [PR185](https://github.com/ema-ljn/MuRet/pull/185) en PR chicos, uno por concepto: T1 `InWorld`
+   ([PR188](https://github.com/ema-ljn/MuRet/pull/188)), T2 `LogicalAccess`
+   ([PR187](https://github.com/ema-ljn/MuRet/pull/187)), T3 `OwnCharacterRecord`
+   ([PR186](https://github.com/ema-ljn/MuRet/pull/186)) y los que siguen. PR185 sirve de referencia
+   compilada y no se mergea así.
+
 ## Review Focus
 
 1. **Entrar otra vez y cambiar de mapa** (juego → selección → juego, o un gate de ida y vuelta): el mundo se
@@ -151,23 +175,28 @@ si no choca con eso; si choca, queda para más adelante.
 
 ## Orden y hitos
 
-### Entregas recientes y trabajo aún sin integrar (2026-11-08 UTC)
+### Entregas y estado de `main` (actualizado el 2026-11-09)
 
-El inventario de `main` de la tabla siguiente está contrastado con `478d7a6`, tras el merge de PR166.
-PR166 ya está incorporado; los demás PR de esta sección siguen abiertos y no cierran CL7.
+El inventario de `main` de esta sección está contrastado con **`7d21bbc`**, el squash de
+[PR184](https://github.com/ema-ljn/MuRet/pull/184) (2026-11-09). Después de `478d7a6` (PR166) entraron
+PR160 (`962747f`, documental), PR171 (`bcc2e12`), PR169 (`fcf9f56`), PR173 (`503ead1`), PR164
+(`4a4fd49`) y PR184 (`7d21bbc`). PR184 integró en una sola línea doce PR que estaban en borradores
+separados: PR163, PR165, PR167, PR168, PR172, PR174, PR175, PR177, PR178, PR179, PR180 y PR181. Esos
+doce quedaron cerrados sin merge propio: su código está en `main` por PR184. Nada de esto cierra CL7.
 
 | Entrega | Estado observado | Alcance que sigue abierto |
 | --- | --- | --- |
-| [PR163](https://github.com/ema-ljn/MuRet/pull/163), creación de objetos de todos los mapas | borrador; CI Linux/Windows aprobado en `ca99f73`; `126f0f6` añade diagnóstico no nulo | providers productivos, composición con Step/Draw y escenas; límites numéricos |
-| [PR164](https://github.com/ema-ljn/MuRet/pull/164), luz radial y ventana RGB | CI aprobado; dictamen final verificable por recuperar o repetir | su integración no cierra pasto ni todo L4 |
-| [PR165](https://github.com/ema-ljn/MuRet/pull/165), paso y posición | borrador; correcciones `422b8b4`, 102 tests focales pasan sin saltos | diferencia nativa confirmada de un ULP en CreateAngle R5, revisión complementaria e integración |
-| [PR166](https://github.com/ema-ljn/MuRet/pull/166), ItemState e Item.bmd | integrado en `main` por PR166 (`478d7a6`) | aplicación completa de equipo, stats e ítems especiales F3/10 |
-| [PR167](https://github.com/ema-ljn/MuRet/pull/167), aplicación ordenada de eventos | borrador contra `main`, tras integrar PR166; verificación previa del mismo árbol: 2702 tests sin saltos, incluidos 83 GL | ApplyWorld conserva error explícito; el aplicador productivo de mundo/perfil va en la entrega siguiente |
+| [PR163](https://github.com/ema-ljn/MuRet/pull/163), creación de objetos de todos los mapas | en `main` por PR184 (`7d21bbc`) | providers productivos, composición con Step/Draw y escenas; límites numéricos |
+| [PR164](https://github.com/ema-ljn/MuRet/pull/164), luz radial y ventana RGB | mergeado en `main` (`4a4fd49`) | su integración no cierra pasto ni todo L4 |
+| [PR165](https://github.com/ema-ljn/MuRet/pull/165), paso y posición | en `main` por PR184 (`7d21bbc`); el ULP de CreateAngle R5-22 lo corrige el perfil de [ADR0014](../../adr/0014-perfil-matematico-retenido.md) en el corpus acotado | integración en la escena; P-C32 sigue abierto |
+| [PR166](https://github.com/ema-ljn/MuRet/pull/166), ItemState e Item.bmd | integrado en `main` por PR166 (`478d7a6`) | aplicación completa de equipo, stats e ítems especiales F3/10; el contrato de `0x54bf40` no está en el research (P-C36) |
+| [PR167](https://github.com/ema-ljn/MuRet/pull/167), aplicación ordenada de eventos | en `main` por PR184 (`7d21bbc`): la sesión entrega cada evento a `ISessionEventSink`, en orden | `SessionEventApplier::ApplyWorld` devuelve error; el aplicador productivo de mundo va en el hito 1 |
 
-La rama de integración ya aplica F3/03, F3/10, 1C y F3/04, conserva recursos y actores
-durables, dibuja y conecta clic, picking, camino y movimiento. Sigue en desarrollo y no
-es una entrega congelada: D3/D7 recibidos, gates y varios efectos/callees todavía tienen
-fronteras explícitas. No acredita gameplay de los 37 mapas nominales ni sus regresiones 54/55.
+La rama de integración (el checkpoint de PR182/PR183, reconciliado sobre PR184 en PR185) ya
+aplica F3/03, F3/10, 1C y F3/04, conserva recursos y actores durables, dibuja y conecta clic,
+picking, camino y movimiento. Sigue en desarrollo y no es una entrega congelada: D3/D7
+recibidos, gates y varios efectos/callees todavía tienen fronteras explícitas. No acredita
+gameplay de los 37 mapas nominales ni sus regresiones 54/55. No está en `main`.
 
 Los cinco bloques de cierre son entrada/héroe/equipo; movimiento y transiciones;
 creación/paso/dibujo/luz con servicios reales; fauna/clima/partículas por familia; y el
@@ -176,10 +205,17 @@ de llegada y RNG compartido que se están componiendo y revisando. Su existencia
 tests focales no sustituyen la validación conjunta de ramas, estado, orden y recursos de
 cada mapa. La comparación visual de neblina continúa pospuesta por pedido de Emanuel.
 
-Estado contrastado con `main` **`478d7a6`**, el código y los merges de GitHub, 2026-11-08 UTC.
-PR144, PR146, PR149–159, PR161, PR162 y PR166 están mergeados. Los componentes de esas entregas ya están incorporados
-en `main`; sus consumidores pendientes se enumeran por separado.
-«Componente puro» no significa que la funcionalidad esté integrada en la escena.
+Estado contrastado con `main` **`7d21bbc`**, el código y los merges de GitHub, 2026-11-09.
+PR144, PR146, PR149–162, PR164, PR166, PR169, PR171 y PR173 están mergeados, y PR184 trae los doce de
+arriba. Los componentes de esas entregas ya están incorporados en `main`; sus consumidores pendientes se
+enumeran por separado. «Componente puro» no significa que la funcionalidad esté integrada en la escena.
+
+**Qué es «verificado» en este plan.** Sólo lo que corre contra datos nativos: los golden de memoria, de
+cable y de traza de GL. Esos tests se saltean (`GTEST_SKIP`, en `Client/tests/support/GoldenDir.cpp`)
+cuando `MURET_CLIENT_MEMORY_DIR`, `MURET_CLIENT_WIRE_DIR` o `MURET_CLIENT_GL_TRACE_DIR` no están
+definidas, y el CI (`.github/workflows/ci.yml`) sólo define `MURET_CLIENT_FONT_FILE`. Un CI verde no los
+corrió: la entrega que se apoya en ellos dice dónde y con qué carpetas se corrieron. Los golden del
+`Data\` sí corren en CI, con `Client/assets/Data/`.
 
 **Criterio de Emanuel, 2026-11-06:** el gameplay de CL7 debe funcionar en todos los mapas de juego
 soportados por el original. Lorencia es el primer escenario de integración, no el criterio de cierre.
@@ -195,14 +231,14 @@ paquetes específicos de los eventos siguen en CL9. La matriz abarca los mapas d
 | CL7.3 A | integrado por [PR138](https://github.com/ema-ljn/MuRet/pull/138) | la integración de la cámara en el mundo jugable pertenece a L1 |
 | CL7.3 B | integrado por [PR141](https://github.com/ema-ljn/MuRet/pull/141), CI verde | sub-ola completa; no cierra los demás efectos ni las escenas |
 | CL7.P | fase documentada en [PR144](https://github.com/ema-ljn/MuRet/pull/144) e incremento modular incorporado por [PR151](https://github.com/ema-ljn/MuRet/pull/151); abierta | estado lógico inicial, fase nativa, nesting y orden observable de RNG; sin portar protecciones |
-| CL7.L1 | lector F3/03 incorporado por [PR149](https://github.com/ema-ljn/MuRet/pull/149) y procedencia del descifrado por [PR154](https://github.com/ema-ljn/MuRet/pull/154); recepción ordenada F3/03–F3/10 incorporada por [PR162](https://github.com/ema-ljn/MuRet/pull/162) | aplicación con contexto histórico y consumo antes del frame, espera retenida, InWorld, carga del mapa recibido, héroe y pase 640×432 |
-| CL7.L2 | modelos con nombre incorporados por [PR142](https://github.com/ema-ljn/MuRet/pull/142), margen individual/Bridge01 por [PR150](https://github.com/ema-ljn/MuRet/pull/150) | creación/paso/dibujo completos de 2.870 objetos y orden completo del pase |
+| CL7.L1 | lector F3/03 incorporado por [PR149](https://github.com/ema-ljn/MuRet/pull/149) y procedencia del descifrado por [PR154](https://github.com/ema-ljn/MuRet/pull/154); recepción ordenada F3/03–F3/10 incorporada por [PR162](https://github.com/ema-ljn/MuRet/pull/162); entrega síncrona y ordenada a `ISessionEventSink` por PR167, en `main` por PR184 | `ApplyWorld` devuelve error, así que el mundo no se puede entrar; aplicación con contexto histórico y consumo antes del frame, espera retenida, InWorld (llega con [PR188](https://github.com/ema-ljn/MuRet/pull/188), hito 1, T1), carga del mapa recibido, héroe y pase 640×432 |
+| CL7.L2 | modelos con nombre incorporados por [PR142](https://github.com/ema-ljn/MuRet/pull/142), margen individual/Bridge01 por [PR150](https://github.com/ema-ljn/MuRet/pull/150) (fija un dato todavía *inferido*, P-C35); creación de objetos de todos los mapas (PR163) y `StepObjectAlpha` `0x4e9980` (PR178), en `main` por PR184 | paso/dibujo completos de 2.870 objetos, orden completo del pase y consumidores productivos de la creación |
 | CL7.L3 | lector puro F3/10 incorporado por [PR159](https://github.com/ema-ljn/MuRet/pull/159), contrastado con siete capturas reales; recepción ordenada incorporada por [PR162](https://github.com/ema-ljn/MuRet/pull/162); ItemState y carga de Item.bmd incorporados por [PR166](https://github.com/ema-ljn/MuRet/pull/166) | decodificación/aplicación completa F3/10, equipo y stats del mundo, matriz de parado, aparición y zonas seguras/mascota |
-| CL7.L4 | pendiente | luz dinámica compartida y pasto, incluidos carga/RNG y vértices |
-| CL7.L5 | pendiente | hojas/clima, pájaros, peces, fuegos y fuente |
+| CL7.L4 | componentes de la luz dinámica en `main`: luz radial `0x5f9780` y ventana RGB de `0x5fbf60` por [PR164](https://github.com/ema-ljn/MuRet/pull/164) (`4a4fd49`); conversiones FTOL64→low32 y precisión de `LightAt` (`0x5f99e0`) por [PR173](https://github.com/ema-ljn/MuRet/pull/173) (`503ead1`) | conectar la luz a las fuentes de L2 y a la escena; pasto, incluidos carga/RNG y vértices |
+| CL7.L5 | sin entregar. [PR169](https://github.com/ema-ljn/MuRet/pull/169) (`fcf9f56`) lleva el rótulo CL7.L5, pero sólo trae la consulta de metadata de las texturas cargadas: es un prerrequisito de L5, no L5. PR184 trae componentes puros de aves y peces `0x446120`/`0x447030` (PR179), ondas del clima `0x530490` (PR174), precisión de las hojas (PR172) y partículas (PR168, PR180, PR181) | hojas/clima, pájaros, peces, fuegos y fuente en la escena, con su RNG |
 | CL7.4 A | componente puro integrado por [PR143](https://github.com/ema-ljn/MuRet/pull/143) | caminar a distancia cero implementado; consumidor/RNG pendientes en4E/P. La búsqueda por radio queda fuera de ese contrato; no confundir pruebas dirigidas con los 171 caminos del cable |
 | CL7.4 B | componente puro integrado por [PR139](https://github.com/ema-ljn/MuRet/pull/139) | consumidor y envío en la escena, CL7.4 E; precisión nativa del emisor pendiente |
-| CL7.4 C | función completa de velocidad `0x508940` incorporada por [PR155](https://github.com/ema-ljn/MuRet/pull/155) | consumidor de velocidad, spline, celda lógica, giro, posición/altura, acciones y orden exterior; cinco muestras x87 abiertas en P-C32 |
+| CL7.4 C | función completa de velocidad `0x508940` incorporada por [PR155](https://github.com/ema-ljn/MuRet/pull/155); `MovePath` `0x4ea270` y `UpdateCharacterPosition` `0x508a80` como componentes puros (PR165, [ADR0012](../../adr/0012-perfil-fp-del-movimiento-original.md) y [ADR0014](../../adr/0014-perfil-matematico-retenido.md)), en `main` por PR184 | consumidor de velocidad; spline, celda lógica, giro y posición/altura conectados en la escena; acciones y orden exterior; cinco muestras x87 abiertas en P-C32 |
 | CL7.4 D | componente completo incorporado por [PR153](https://github.com/ema-ljn/MuRet/pull/153) | conectar al rayo y clic de la escena en 4E |
 | CL7.4 E | pendiente | clic → camino → D3 → movimiento; cooldowns, D3/D7 recibidos y recorte |
 | CL7.5 A | infraestructura genérica parcial; identidad efectiva de carga incorporada por [PR161](https://github.com/ema-ljn/MuRet/pull/161) | todas las familias de modelos/mapas, variantes 30/34, estados de carga y errores del Data original |
@@ -291,6 +327,25 @@ L1 necesita efectos concretos de creación y equipo que cruzan L2/L3: el handler
 antes de publicar el héroe y `0x3d`. Los contratos de constructor, limpieza y equipo no permiten asumir un actor vacío,
 un slot fijo ni equipo inicial vacío. No reemplazar esos efectos pendientes por no-ops para declarar L1.
 
+### Incorporaciones del 2026-11-09 (`main` `7d21bbc`)
+
+- [PR171](https://github.com/ema-ljn/MuRet/pull/171), `bcc2e12`: acota la copia de versión del saludo
+  (un overflow falso de GCC15 Release). No es una sub-ola de CL7.
+- [PR169](https://github.com/ema-ljn/MuRet/pull/169), `fcf9f56`: consulta de las dimensiones y los
+  componentes de las texturas cargadas (`TextureMetadata.h`). Su rótulo dice CL7.L5, pero es un
+  prerrequisito de L5: no trae hojas, clima, pájaros, peces, fuegos ni fuente.
+- [PR173](https://github.com/ema-ljn/MuRet/pull/173), `503ead1`, y
+  [PR164](https://github.com/ema-ljn/MuRet/pull/164), `4a4fd49`: componentes de la luz dinámica de L4
+  (arriba). No conectan la escena ni el pasto.
+- [PR184](https://github.com/ema-ljn/MuRet/pull/184), `7d21bbc`: integra PR175 (atributos del terreno,
+  `0x5f82c0`), PR177 (opciones de ítems, `0x54e540`/`0x54e590`), PR179 (aves y peces,
+  `0x446120`/`0x447030`), PR174 (ondas del clima, `0x530490`), PR167 (aplicación ordenada de eventos de
+  sesión), PR163 (objetos de todos los mapas), PR178 (`StepObjectAlpha`, `0x4e9980`), PR165 (paso y
+  posición del movimiento), PR172 (precisión de las hojas matemáticas), PR168 (kernels de partículas),
+  PR180 (CPU de partículas y backend portable) y PR181 (backend material de partículas en GL). Suma
+  ADR0012 y ADR0014, sin Boost.Multiprecision. Ninguno se ve todavía en la escena del juego:
+  `GameScene::Render` sigue vacío.
+
 ### Siguiente tramo de integración
 
 1. **L1 — aplicar la recepción:** fijar consumo, contexto histórico y tratamiento de fallo/reinicio
@@ -309,9 +364,13 @@ un slot fijo ni equipo inicial vacío. No reemplazar esos efectos pendientes por
 
 ### Lo que todavía impide declarar completa toda CL7
 
-- `GameScene::Render` sigue vacío, `HoldsTheLastFrame` devuelve false y la sesión no define `InWorld`:
-  llega hasta `EnteringWorld`. La sesión ya recibe y conserva F3/03 y F3/10 en orden, pero
-  `TakeWorldEvents` aún no tiene consumidor productivo que aplique el mundo. El picking, `GateCheck`
+- En `main` (`7d21bbc`) `GameScene::Render` sigue vacío, `HoldsTheLastFrame` devuelve false y la sesión
+  no define `InWorld`: llega hasta `EnteringWorld`. `InWorld` llega con
+  [PR188](https://github.com/ema-ljn/MuRet/pull/188) (hito 1, T1), todavía abierto. Desde PR167 (en
+  `main` por PR184) la sesión entrega F3/03 y F3/10 en orden a `ISessionEventSink`, y ya no hay
+  `TakeWorldEvents`; pero `SessionEventApplier::ApplyWorld` devuelve error, y la respuesta de entrada
+  termina la sesión con `ApplicationFailed` (`ServerSession::CheckApplication`). El mundo todavía no se
+  puede entrar. El picking, `GateCheck`
   y `UpdateMovementSpeed` siguen sin integrarse en la escena. La cámara,
   los modelos y los paquetes puros ya integrados no equivalen a tener Lorencia jugable. L1 debe unirlos sin
   adelantar la presentación ni perder el frame retenido durante la espera.
@@ -635,8 +694,11 @@ ambas propiedades sin introducir overflow con signo indefinido.
 `0x6371a0`). PR propio. Se detalla al arrancar; lo que se sabe:
 
 **Estado incorporado:** PR149 aporta el lector y PR162 la recepción ordenada junto con F3/10.
-La cola todavía no tiene consumidor productivo. La aplicación de este apartado sigue pendiente;
-el contexto y la vigencia de cada recepción deben resolverse antes de conectar la escena.
+PR167 (en `main` por PR184) cambió la cola por una entrega síncrona a `ISessionEventSink`, y
+`SessionEventApplier::ApplyWorld` todavía devuelve error. La aplicación de este apartado sigue
+pendiente; el contexto y la vigencia de cada recepción deben resolverse antes de conectar la escena.
+El hito 1 la trae en PR chicos desde PR185: `InWorld` en PR188 (T1), `LogicalAccess` en PR187 (T2) y
+`OwnCharacterRecord` en PR186 (T3), abiertos el 2026-11-09.
 
 - **El protocolo:** `Protocol::Character::ReadCharacterSelectResult` en `CharacterSelect.h`, el C3 rearmado
   de `0x34` bytes con `TooShort`: la celda (`[4]`, `[5]`), el mapa (`[6]`), la dirección (`[7]`) y los stats
@@ -715,7 +777,8 @@ objetos, sus efectos y el pase completo de la escena. Esta entrega no cierra L2 
 **Estado incorporado:** PR159 aporta el lector completo y su golden de siete capturas;
 PR162 conserva la recepción F3/10 en orden con F3/03. PR166 incorpora ItemState, su inicializador
 y la carga de Item.bmd; no completa por sí solo el aplicador de inventario. La semántica de los siete bytes opacos,
-la aplicación al equipo y los efectos del héroe siguen pendientes.
+la aplicación al equipo y los efectos del héroe siguen pendientes. El código de ItemState cita `0x54bf40` y
+`0x4225d0`, que el research todavía no documenta: falta escribir ese contrato en 05 o 06 (P-C36).
 
 - **El equipo:** `Protocol::Character::ReadInventoryList` del `F3 10` (C4, entradas de 8 bytes: el lugar y
   7 del ítem), los 12 lugares del equipo a la apariencia, como `0x5bc740` → `0x512a30`. La ventana del
@@ -736,6 +799,10 @@ la aplicación al equipo y los efectos del héroe siguen pendientes.
 **Contrato:** 06 § Lo propio de Lorencia (`0x5fbf60`, `0x5f9780`, `0x5f99e0`, el pase del pasto de
 `0x5fa830`). PR propio. Se detalla al arrancar; lo que se sabe:
 
+**Estado incorporado:** PR164 (`4a4fd49`) trae la luz radial `0x5f9780` y la ventana RGB de `0x5fbf60`;
+PR173 (`503ead1`), las conversiones FTOL64→low32 y la precisión de `LightAt` (`0x5f99e0`). No están
+conectados a las fuentes de L2 ni a la escena, y el pasto falta entero.
+
 - **La luz:** el buffer dinámico (`0x7b4ccc4`), que `0x5fbf60` rearma en cada paso desde la luz sombreada en
   la ventana del rango; `0x5f9780` (el cuadrado ±r, la caída `(r − d) / r` y el piso en 0); `0x5f99e0`, que
   lo leen los objetos y el héroe; las fuentes de L2 (el fuego con r 4, las lámparas y las velas con r 3).
@@ -753,6 +820,11 @@ la aplicación al equipo y los efectos del héroe siguen pendientes.
 
 **Contrato:** 06 § Lo propio de Lorencia (las hojas, los pájaros, los peces, las partículas de los objetos,
 la fuente, el `0F`). PR propio. Se detalla al arrancar; lo que se sabe:
+
+**Estado incorporado:** ninguna parte de L5 está en la escena. PR169 (`fcf9f56`) se rotuló CL7.L5, pero
+sólo trae la consulta de metadata de las texturas cargadas: es un prerrequisito de L5, no L5. PR184 trae
+componentes puros de aves y peces (PR179), ondas del clima (PR174), la precisión de las hojas (PR172) y
+partículas (PR168, PR180 y PR181), con sus tests focales.
 
 - **Qué:** las 80 hojas del mapa 0 (`0x52fa60`, `0x5301a0` y `0x5303a0`, que no corren con el héroe en el
   tile 4) y el `0F` como entrada de la lluvia (en Lorencia solo el sonido); los pájaros (`0x446120` y

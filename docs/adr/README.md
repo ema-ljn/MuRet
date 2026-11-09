@@ -8,7 +8,8 @@ quien la decidió.
 Este archivo es el índice. La tabla del cliente es el inventario que pidió AUD-C04 de la
 [auditoría del 2026-11-03](../audits/2026-11-03-cliente-cpp20.md), y sus seis ADR ya están
 escritos, del 0003 al 0008: con ellos, AUD-C04 queda cerrado. Los 0001 y 0002, del servidor, no son
-de la auditoría y siguen pendientes. La evidencia está en el research y en los planes, y cada ADR
+de la auditoría y siguen pendientes. Los que vinieron después, del 0009 en adelante, son de la CL7 y
+están en [su tabla](#los-de-la-cl7). La evidencia está en el research y en los planes, y cada ADR
 la enlaza sin copiarla.
 
 ## Cómo se escribe uno
@@ -47,6 +48,22 @@ tests que las fijan, y la última columna enlaza su ADR.
 
 "Quién" sigue la decisión del 2026-11-02: Claude escribe hasta que Emanuel diga que participa, y
 marca lo que resolvió. Si Emanuel toma uno, lo cambia acá.
+
+## Los de la CL7
+
+Los ADR que siguieron al 0008, todos de la CL7. Título y estado, como los dice cada archivo en `main`
+(`7d21bbc`, 2026-11-09). Los números 0011 y 0013 no tienen archivo.
+
+| ADR | Título | Estado |
+| --- | --- | --- |
+| [0009](0009-errores-del-trapecio.md) | errores explícitos fuera del dominio portable del trapecio | aceptado para CL7.5E (2026-11-06) |
+| [0010](0010-inventario-truncado.md) | Un inventario F3/10 incompleto devuelve TooShort | aceptado en CL7.L3, lector puro del wire (2026-11-06) |
+| [0012](0012-perfil-fp-del-movimiento-original.md) | Perfil FP explícito para el movimiento del cliente original | adoptado para el port de valores; validación de sesión XP pendiente (2026-11-07) |
+| [0014](0014-perfil-matematico-retenido.md) | Perfil matemático retenido de CreateAngle y las hojas Wave | aceptado; lo decidió Emanuel el 2026-11-09: el modelo portable y documentado (phi64 es el atan64 bien redondeado, no FPATAN) y una aritmética propia en lugar de Boost.Multiprecision |
+
+El estado del 0014 dice además que la validación MSVC x64 Release del CI y la revisión del PR siguen
+pendientes antes del merge. Ese texto es de antes de que el ADR entrara a `main` con
+[PR184](https://github.com/ema-ljn/MuRet/pull/184), y el archivo no cambió después.
 
 ## Las otras filas de diseño
 

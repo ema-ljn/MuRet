@@ -79,3 +79,16 @@ El contrato y los pasos están en la sub-ola CL4.5 del
 [plan de la CL4](../superpowers/plans/2026-11-02-ola-cl4-red-del-cliente.md), y los estados que
 esperan al jugador, en la CL5.5 del
 [plan de la CL5](../superpowers/plans/2026-11-02-ola-cl5-render-2d-y-login.md).
+
+## Nota del 2026-11-09: los estados de la sesión en `main`
+
+Este ADR nombra los estados de la CL4.5 y la CL5.5. En `main` (`7d21bbc`),
+`Client/src/App/SessionState.h` tiene 18: `Idle`, `ConnectingConnectServer`, `WaitingConnectHello`,
+`WaitingServerList`, `ChoosingServer`, `WaitingServerAddress`, `ConnectingGameServer`,
+`WaitingGameHello`, `WaitingCredentials`, `WaitingLoginResult`, `LoggedIn`, `WaitingCharacterList`,
+`ChoosingCharacter`, `WaitingCreateResult`, `WaitingDeleteResult`, `EnteringWorld`, `QuitOrdered` y
+`Failed`. Los de la CL6 siguen esta decisión: `WaitingCharacterList`, `WaitingCreateResult` y
+`WaitingDeleteResult` esperan al servidor con el tope de 30 s, y `ChoosingCharacter` espera al jugador
+sin tope (`Awaited`, en `Client/src/App/ServerSession.cpp`). `EnteringWorld` no tiene tope.
+`InWorld` no está en `main`: llega con [PR188](https://github.com/ema-ljn/MuRet/pull/188) (hito 1 de
+la CL7, T1), todavía abierto.

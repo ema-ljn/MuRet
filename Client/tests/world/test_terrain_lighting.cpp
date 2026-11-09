@@ -178,30 +178,49 @@ TEST(TerrainLightingTest, OutsideTheGridThereIsNoLight)
 // con tabla estable: no son capturas nuevas del original ni fijan su CW efectivo.
 TEST(TerrainLightingTest, LargeFiniteCoordinatesUseSigned64Low32OnBothAxes)
 {
-    const auto lighting = LightingOf([](std::size_t, std::size_t) { return 1.0f; });
+    const auto lighting = LightingOf([](std::size_t x, std::size_t y)
+                                     { return 1.0f + static_cast<float>(x) + (2.0f * static_cast<float>(y)); });
     // Tras el store F32, ±100·2^32 pasa a ±2^32: FTOL64 válido, low32=0.
     constexpr float LargeCoordinate = 0x1.9p38f;
-    for (const float coordinate : {LargeCoordinate, -LargeCoordinate})
+    // Con V(x,y)=1+x+2·y, los pesos siguen siendo ±2^32, no su parte fraccionaria.
+    // En PC53 queda ±2^32+1 en X, ±2^33+1 en Y y ±3·2^32+1 en la diagonal;
+    // el store F32 pierde el +1 en los tres casos.
+    for (const float sign : {1.0f, -1.0f})
     {
-        for (const glm::vec3 light : {LightAt(*lighting, coordinate, 0.0f), LightAt(*lighting, 0.0f, coordinate),
-                                      LightAt(*lighting, coordinate, coordinate)})
-        {
-            EXPECT_EQ(std::bit_cast<std::uint32_t>(light.x), 0x3f800000U);
-            EXPECT_EQ(std::bit_cast<std::uint32_t>(light.y), 0x3f000000U);
-            EXPECT_EQ(std::bit_cast<std::uint32_t>(light.z), 0U);
-        }
+        const float coordinate = sign * LargeCoordinate;
+        const glm::vec3 alongX = LightAt(*lighting, coordinate, 0.0f);
+        EXPECT_EQ(alongX, glm::vec3(sign * 0x1p32f, sign * 0x1p31f, 0.0f));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(alongX.z), 0U);
+        const glm::vec3 alongY = LightAt(*lighting, 0.0f, coordinate);
+        EXPECT_EQ(alongY, glm::vec3(sign * 0x1p33f, sign * 0x1p32f, 0.0f));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(alongY.z), 0U);
+        const glm::vec3 diagonal = LightAt(*lighting, coordinate, coordinate);
+        EXPECT_EQ(diagonal, glm::vec3(sign * 0x1.8p33f, sign * 0x1.8p32f, 0.0f));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(diagonal.z), 0U);
     }
 }
 
 TEST(TerrainLightingTest, Signed64BoundaryCoordinatesContinueWithLow32Zero)
 {
-    const auto lighting = LightingOf([](std::size_t, std::size_t) { return 1.0f; });
+    const auto lighting = LightingOf([](std::size_t x, std::size_t y)
+                                     { return 1.0f + static_cast<float>(x) + (2.0f * static_cast<float>(y)); });
     // El store da ±2^63: −2^63 es válido; +2^63 es invalid enmascarada. Ambos low32 son 0.
     constexpr float BoundaryCoordinate = 0x1.9p69f;
-    for (const float coordinate : {BoundaryCoordinate, -BoundaryCoordinate})
+    // Con V(x,y)=1+x+2·y, X solo da ±2^63 y Y solo ±2^64 tras redondear.
+    // En la diagonal PC53 redondea L=±2^64+1 y R=±2^64+2 al mismo ±2^64:
+    // R−L=0, así que el resultado no es ±3·2^63. El verde es la mitad.
+    for (const float sign : {1.0f, -1.0f})
     {
-        EXPECT_EQ(std::bit_cast<std::uint32_t>(LightAt(*lighting, coordinate, 0.0f).x), 0x3f800000U);
-        EXPECT_EQ(std::bit_cast<std::uint32_t>(LightAt(*lighting, 0.0f, coordinate).x), 0x3f800000U);
+        const float coordinate = sign * BoundaryCoordinate;
+        const glm::vec3 alongX = LightAt(*lighting, coordinate, 0.0f);
+        EXPECT_EQ(alongX, glm::vec3(sign * 0x1p63f, sign * 0x1p62f, 0.0f));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(alongX.z), 0U);
+        const glm::vec3 alongY = LightAt(*lighting, 0.0f, coordinate);
+        EXPECT_EQ(alongY, glm::vec3(sign * 0x1p64f, sign * 0x1p63f, 0.0f));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(alongY.z), 0U);
+        const glm::vec3 diagonal = LightAt(*lighting, coordinate, coordinate);
+        EXPECT_EQ(diagonal, glm::vec3(sign * 0x1p64f, sign * 0x1p63f, 0.0f));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(diagonal.z), 0U);
     }
 }
 

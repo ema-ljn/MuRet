@@ -4,8 +4,11 @@
 
 #include <cstdint>
 
-// Los globales en claro que sobreviven a los cambios de escena: el mundo en curso y el estado compartido
-// de la velocidad.
+// Los globales en claro que sobreviven a los cambios de escena: el mundo en curso, el estado compartido
+// de la velocidad y lo que hace falta para la espera de la entrada al mundo (06, "La entrada al mundo",
+// pasos 1 a 4 y 6). Arrancan en 0, como la .bss del original; las cuentas de accesos de la tabla de
+// protección, que el original guarda al lado de cada entrada, las pone MuRet en 0 sin haberlas leído
+// (CL7.P, P-C22 c).
 namespace Client::Scenes
 {
 struct WorldRuntime
@@ -22,5 +25,30 @@ struct WorldRuntime
     // velocidad). 0x4f2250 pone el primero en 0 (0x4f22a4). Los ceros del DTO no afirman el inicial del
     // original.
     GameLogic::MovementSpeedSharedState movementSpeed;
+
+    // DAT_07d3a101, el mundo cargado: en 0, el paso del juego sale en 0x636db5 y su dibujo devuelve
+    // 0 en 0x6371a6, sin leer el contador. Lo ponen en 1 la carga del 54 de la selección (0x633f30,
+    // dentro de 0x633f20) y el paso del juego con el estado 0x3d (0x636dac), y en 0 solo el F1 02
+    // (0x4c2f39, 0x4c38f9). El login también lo pone en 1 al cargar el 55 (0x6349ab); MuRet no lo
+    // escribe ahí porque el juego, su único lector portado, llega siempre después de 0x633f20.
+    bool drawingEnabled = false;
+    // DAT_07d3a13e: si la carga del mundo (0x6356f0) ya armó el contador y subió sus texturas. La
+    // baja la selección justo antes de pasar a la escena 3 (0x633efe, 0x634469, 0x634631) y la sube
+    // 0x6356f0 (0x635980). Nadie más la escribe.
+    std::uint8_t loadingOnceFlag = 0;
+    // DAT_077f3b04, el contador de la espera y de los gates, que vive en la tabla de protección
+    // (06, "La tabla de protección"): 9.999.999 en la escena 3 y en un pedido de gate, 30 en la
+    // respuesta del F3 03, y baja de a 1 en MoveHero (0x59af01). Con más de 30 el dibujo del juego no
+    // presenta (0x63722e).
+    std::int32_t warpCounter = 0;
+    // Cuántos accesos tienen abierto el contador: el byte que sigue a su copia cifrada.
+    std::uint8_t warpDepth = 0;
+    // Cuántos accesos tienen abierto el registro propio ([0x7681eb4], 0xf08 bytes).
+    std::uint8_t ownRecordDepth = 0;
 };
+
+// 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.
+inline constexpr std::int32_t WaitDrawThreshold = 30;
+// 0x6357eb: lo que deja la carga del mundo en el contador, 0x98967f.
+inline constexpr std::int32_t WorldLoadingWait = 9'999'999;
 } // namespace Client::Scenes

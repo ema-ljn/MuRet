@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 #include "Input/InputState.h"
+#include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
@@ -10,6 +12,8 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TextureSets.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
 
 #include <array>
 #include <cstdint>
@@ -47,6 +51,31 @@ WorldLoadingScene::WorldLoadingScene(const SceneContext& context)
 
 Core::Expected<void, std::string> WorldLoadingScene::Enter()
 {
+    if (m_context.world == nullptr || m_context.cloth == nullptr)
+    {
+        return Core::Unexpected(
+            std::string("la carga del mundo no entra sin el WorldState y el rand() de la CRT: el contador de la "
+                        "espera vive ahí y su cierre gasta rand()"));
+    }
+    WorldRuntime& runtime = m_context.world->Runtime();
+    // 0x63571d: con la bandera levantada saltea el contador, la bandera y las texturas, y dibuja con el
+    // objeto del mosaico de la UI, que fuera de esta llamada es nulo (0x65ed2e, 0x635a87): 0x647650 lo
+    // leería en [8 + 0xa0]. La selección la baja siempre antes de pasar a la escena 3 y nadie más la
+    // escribe, así que el original no llega acá; MuRet tampoco debería.
+    if (runtime.loadingOnceFlag != 0)
+    {
+        return Core::Unexpected(
+            std::string("la carga del mundo encontró levantada la bandera 0x7d3a13e: el original no llega a esa "
+                        "rama, que dibuja con el mosaico nulo (0x635a52)"));
+    }
+    {
+        // 0x635723..0x635963: abre el contador, escribe 0x98967f y lo cierra (0x412890).
+        const Render::Models::LogicalAccess access(runtime.warpDepth, m_context.cloth->random,
+                                                   Render::Models::SmallLogicalCloseRandoms);
+        runtime.warpCounter = WorldLoadingWait;
+    }
+    // 0x635980, antes de las texturas.
+    runtime.loadingOnceFlag = 1;
     return m_textures.Load(m_context.dataRoot);
 }
 

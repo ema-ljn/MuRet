@@ -222,7 +222,13 @@ TEST_F(SharedGameCameraTest, TheGameOnlyWritesTheYawInItsFirstLogicStep)
     m_camera.distance = 3200.0f;
     m_camera.zoom = 210.0f;
     m_camera.fixedHeight = 1201.0f;
-    Client::Scenes::GameScene game(Context(), nullptr);
+    // El juego no entra sin la espera (el WorldState) ni el rand() que gastan sus cierres.
+    Client::Render::Models::ClothWorld cloth;
+    Client::Scenes::WorldState world;
+    auto context = Context();
+    context.cloth = &cloth;
+    context.world = &world;
+    Client::Scenes::GameScene game(context, nullptr);
     ASSERT_TRUE(game.Enter().HasValue());
     game.Step(Client::Input::InputState{});
     EXPECT_EQ(m_camera.yaw, -45.0f);

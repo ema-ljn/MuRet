@@ -2582,6 +2582,21 @@ la escala W / 800 y H / 600 (`0x6ba884`, `0x6ba880`), como la UI de la carga. Di
 frame queda en pantalla hasta que llega la respuesta del `F3 03`, porque el dibujo de la escena 5 no
 presenta mientras tanto ([La entrada al mundo](#la-entrada-al-mundo)).
 
+**Las dos ramas** (*estático*, CL7 hito 1, T5). `0x63571d` mira la bandera `0x7d3a13e`. En 0, en
+orden: abre el contador `0x77f3b04` por la tabla de protección, le escribe `0x98967f` (`0x6357eb`)
+y lo cierra con `0x412890` (`0x635963`, 4 `rand()` si deja la cuenta en 0); sube la bandera
+(`0x635980`); sube las cuatro texturas (`0x635987..0x6359e1`) y arma el objeto
+(`0x6359e6..0x635a20`). Las dos ramas siguen por el mismo final (`0x635a25..0x635ab4`): el viewport
+de 640 × 480, `glClear(0x4100)`, `0x6219b0`, `0x640ea0([ui + 0x8dd0])`, `0x621a90`, `0x620fc0`,
+`glFlush`, `SwapBuffers`, borra el objeto (`0x635a87`), la escena 5 (`0x635a91`), suelta `0x71e` a
+`0x721` (`0x63c150`) y `0x553570(1)`, que vacía los campos de texto de la UI (`0x7798bf8`). **Con la
+bandera en 1** saltea el contador, la bandera, las texturas y el objeto, y dibuja con
+`[ui + 0x8dd0]`, que fuera de esta función es nulo (`0x65ed2e`, `0x635a87`): `0x647650` lo leería
+en `[8 + 0xa0]`. Esa rama no se alcanza: la bandera tiene cinco referencias en `.text`, la bajan los
+tres caminos de la selección justo antes de pasar a la escena 3 (`0x633efe`, `0x634469`,
+`0x634631`) y la sube solo `0x635980`, y a `0x6356f0` la llama solo `0x6394f3`. MuRet
+(`WorldLoadingScene::Enter`) da un error con la bandera en 1, en vez de presentar un frame.
+
 ## La escena del juego
 
 Leída en el barrido de Lorencia (2026-11-05): cuatro lecturas del `main.exe` `c32bbd5f`, la entrada
@@ -2592,7 +2607,7 @@ Lorencia (`lorencia-Frame_016215.txt`, la de [Modelos y objetos](#modelos-y-obje
 campo por campo, están en [04](04-protocolo.md#movimiento-y-mundo); los modelos de cada mapa y
 `Gate.bmd`, en [05](05-formatos-de-datos.md#los-modelos-de-cada-mundo); lo que pide una corrida del
 original, en [08](08-pendientes.md) (P-C28 a P-C31). MuRet, hoy, manda el `F3 03` desde
-`GameScene` y no dibuja nada en la escena 5.
+`GameScene`, retiene el frame mientras espera (CL7 hito 1, T5) y no dibuja nada en la escena 5.
 
 ### La entrada al mundo
 
@@ -2600,13 +2615,24 @@ Del Enter de la selección al primer frame de Lorencia, *estático* salvo lo que
 
 1. **La selección** (`0x6342c0`, `0x633c10`) copia el nombre, la clase, la piel y el nivel al
    registro propio (`[0x7681eb0]`), suelta lo suyo (`0x61cc50`), baja `0x7d3a13e` y pasa a la
-   escena 3 ([La lógica](#la-lógica)). Deja `0x7d3a101` en 1 (`0x633f30`), y solo lo bajan los dos
-   caminos de `0x4c2710` (`0x4c2f39`, `0x4c38f9`): el paso de la escena 5 corre entero con lo que
-   dejó la selección hasta que la respuesta recarga todo.
+   escena 3 ([La lógica](#la-lógica)). La copia va entre la apertura y el cierre del registro
+   propio por la tabla de protección, en los tres caminos (*estático*, T5): Enter
+   (`0x6343e2..0x634470`, abre con `0x4e79a0` y cierra con `0x40f370`), el doble clic
+   (`0x634546..0x634638`, abre en línea con `0x40b440` y cierra con `0x40f370`) y el botón
+   (`0x633c10..0x633f05`, en línea y cierra con `0x40b4d0`). `0x40f370` resta 1 a la cuenta
+   (`[entrada + 0xf08]`) y, en 0, llama `0xf08` veces a `rand()` (`0x69fd70`): el cierre gasta
+   3.848. Lo copiado es lo que `0x4c20a0` le puso al personaje con la lista: la clase de `0x517270`,
+   la piel 0 (`0x4c21d9`), el nivel en `+0x1d6`, las banderas en `+0x1d8` y el nombre en
+   `+0x1d9..+0x1e2` con el 0 de `+0x1e3` (`0x4c21dd..0x4c220c`). El nombre va con un `strcpy`
+   (`0x634433..0x63444e`): lo que sigue al cero en el registro queda como estaba. Después de
+   `0x61cc50`, la bandera en 0 y la escena 3. Deja `0x7d3a101` en 1 (`0x633f30`, dentro de
+   `0x633f20`, antes de cargar el 54), y solo lo bajan los dos caminos de `0x4c2710` (`0x4c2f39`,
+   `0x4c38f9`); también lo pone en 1 el login, al cargar el 55 (`0x6349ab`). El paso de la escena 5
+   corre entero con lo que dejó la selección hasta que la respuesta recarga todo.
 2. **La escena 3** (`0x6356f0`, un solo frame) pone el contador `0x77f3b04` en 9.999.999
-   (`0x98967f`, por la tabla de protección `0x57630c8`), dibuja el mosaico de `LSBg` ([La carga del
-   mundo](#la-carga-del-mundo-escena-3)), presenta, pasa a la 5 (`0x635a91`) y llama a
-   `0x553570(1)`.
+   (`0x98967f`, por la tabla de protección `0x57630c8`; el cierre, 4 `rand()`), sube `0x7d3a13e`,
+   dibuja el mosaico de `LSBg` ([La carga del mundo](#la-carga-del-mundo-escena-3)), presenta, pasa
+   a la 5 (`0x635a91`) y llama a `0x553570(1)`.
 3. **El primer paso de la 5** (`0x636290`, con `0x7d3a140` en 0, que pone en 1 en `0x6362fb`): el
    log `"> Character selected <%d> %s"`; el `F3 03` y el estado `0x3c` (con `0x7d366bc` en 0, que
    nadie escribe); la UI en el modo del juego (`0x65ee60`, `0x65f5f0`); **el yaw de la cámara en
@@ -2618,8 +2644,12 @@ Del Enter de la selección al primer frame de Lorencia, *estático* salvo lo que
 4. **Mientras no llega la respuesta**, el dibujo `0x6371a0` lee el contador por la tabla de
    protección y con más de 30 devuelve 0 (`cmp esi, 0x1e`, `0x63722e`): sin ese verdadero no hay
    `SwapBuffers` ([02](02-arranque-y-ciclo-de-vida.md#qué-corre-en-cada-paso-y-qué-en-cada-frame)),
-   y **queda en pantalla el mosaico de la escena 3**. Cuántos pasos corren así y cuántos `rand()`
-   gastan, P-C28 b.
+   y **queda en pantalla el mosaico de la escena 3**. La lectura abre el acceso en
+   `0x6371b7..0x637214`, lee en `0x637219` y cierra con `0x40b800` en `0x637229`, antes de
+   comparar: con la cuenta en 0 gasta 4 `rand()` en cada frame, aunque después no dibuje. Con
+   `0x7d3a101` en 0 sale antes, en `0x6371a6`, sin leerlo. En cada paso, `MoveHero` abre el contador
+   dos veces (8 `rand()`) y sale en `0x59afd6`, antes de `0x57cfc0`: mientras espera no abre el
+   registro propio ([Caminar](#caminar)). Cuántos pasos corren así, P-C28 b.
 5. **La respuesta** va por el camino de [03](03-red-y-cifrado.md): `FD_READ`, la cola, `0x4e1d50`,
    `Dec2` y el rearmado a C1, FoxAnti, `0x4e2b10` y el subcódigo 3 de `0x4e2f93` (`0x4e306b`), que
    la pasa a `0x4c3940(pkt, cifrado)`. En el cable llega en el mismo segmento que `26`, `27`, `0F`,
@@ -2795,7 +2825,7 @@ bloque de la entrada, en orden (*estático*):
 
 | Dónde | Qué llama | Qué hace | En MuRet |
 | --- | --- | --- | --- |
-| `0x636da3` | el estado `0x3d` pone `0x7d3a101 = 1` | si no, y `0x7d3a101` está en 0, sale | — |
+| `0x636da3` | el estado `0x3d` pone `0x7d3a101 = 1` (`0x636dac`) | si no, y `0x7d3a101` está en 0, sale (`0x636dbc`) | sí (`GameScene::StepWorld`) |
 | `0x636dc2..0x636ddb` | el temblor `0x7d325c8` · 0,2 | [La cámara del juego](#la-cámara-del-juego) | falta |
 | `0x636dd4` | `0x652940`, si el héroe tiene `+0x371 == 'C'` (siempre: lo pone `0x511290`) | lo del asedio y del gremio (`0x4294b0`) | no hace falta |
 | `0x636de8` | **`0x5fbf60`** | copia la luz sombreada `0x7c0ccc4` al buffer dinámico `0x7b4ccc4` en la ventana del rango y escribe las olas | las olas (`LoadedWorld::Step`); la copia de la luz, no |
@@ -2807,7 +2837,7 @@ bloque de la entrada, en orden (*estático*):
 | `0x6370ef` | **`0x447030`** | los peces | no |
 | `0x6370f4` | `0x445230` | el caballo oscuro | sí (`StepDarkHorse`) |
 | `0x6370f9..0x637105` | `0x557650`, `0x451d10`, `0x451c10` | contadores y listas, sin leer | — |
-| `0x63710a` | **`0x59adf0`**, el `MoveHero` | el héroe con el mouse ([Caminar](#caminar)); baja `0x77f3b04`, escribe en `0x77f36d0` la capa 1 de la celda del héroe (`0x59e2ba`) y, con `0x57cfc0`, abre y cierra el registro propio: 3.848 `rand()` ([La tabla de protección](#la-tabla-de-protección)) | falta |
+| `0x63710a` | **`0x59adf0`**, el `MoveHero` | el héroe con el mouse ([Caminar](#caminar)); baja `0x77f3b04` y lo vuelve a leer (dos accesos, 8 `rand()`) y, con más de 30, sale; si no, escribe en `0x77f36d0` la capa 1 de la celda del héroe (`0x59e2ba`) y, con `0x57cfc0`, abre y cierra el registro propio: 3.848 `rand()` ([La tabla de protección](#la-tabla-de-protección)) | el contador (`GameScene::StepWaitCounter`), sin los gates de antes (P-C28 b); lo demás falta |
 | `0x63710f` | **`0x508f00` → `0x508ea0`** | por personaje: el trapecio en (x, y) · 0,01 con −20 a `+0x16c`, `0x508ba0`, `0x4fd5f0` (la animación y el alpha), `0x505de0` (la cabeza y las luces) y `0x42da90`; antes, el `0x02` del `TerrainWall`, con 8 `rand()` por personaje vivo | la animación, la cabeza, `CharacterSeen` |
 | `0x637114` | `0x548f40` | los números de daño (`0x7609c0c`) | CL9.2 |
 | `0x637119` | `0x53eaf0` | la tabla `0x75fe028` (`0x51fc80`), sin leer | — |
@@ -2826,8 +2856,8 @@ bloque de la entrada, en orden (*estático*):
 
 | Dónde | Qué llama | Qué hace | ¿Como en el login? |
 | --- | --- | --- | --- |
-| `0x6371a6` | con `0x7d3a101` en 0, devuelve 0 | | |
-| `0x6371c1..0x63722e` | el contador por la tabla de protección; **con más de 30, devuelve 0** | no dibuja ni presenta | **no está en MuRet** |
+| `0x6371a6` | con `0x7d3a101` en 0, devuelve 0 | sin leer el contador | `GameScene::PrepareFrame` |
+| `0x6371b7..0x63722e` | el contador por la tabla de protección, con su cierre (`0x40b800`, `0x637229`); **con más de 30, devuelve 0** (`jle` con signo) | no dibuja ni presenta | `GameScene::PrepareFrame` (T5) |
 | `0x63723a` | `0x7d368a0 = 0` | sin niebla | sí |
 | `0x637241` | **`0x635ae0()`** y, fuera del mapa 6, `0x44dc60(&p)` (`0x4034b0` con el recorrido) | la cámara y el punto del recorte | [La cámara del juego](#la-cámara-del-juego) |
 | `0x63734d` | `0x620db0(0, 0, w, 48)` | la franja, que no dibuja | sí (`MakePass3D`) |
@@ -3450,7 +3480,13 @@ de Lorencia verifican el componente; `GameScene`, reglas del clic y caminar sigu
 - **No hace nada** (`0x59ae24..0x59afd6`) si `0x4033d0()` da verdadero (el recorrido de la cámara:
   lo para con `0x4f2250`), si hay un personaje bajo el mouse y el héroe tiene `+0x7c & 0x200000`, si
   se está muriendo (`+0x389`) o tiene `+0x78 & 0x1000`, o si el contador `0x77f3b04`, que baja 1 por
-  paso, pasa de 30.
+  paso, pasa de 30. `0x4033d0` es verdadero con `[obj + 0x158] == 0`, `[obj + 0x6a] == 0` y
+  `[obj + 0x154] == 2`, con `obj = [0x6e5904]`; `0x511290` escribe `+0x389 = 0` (`0x511c05`) y
+  `+0x78` (`0x511d51`). Esos cuatro salen sin tocar el contador (`0x59ae24..0x59ae87`). El contador
+  va en dos accesos (*estático*, T5): el primero (`0x59ae8d..0x59af5a`) le resta 1 si es positivo
+  (`test`/`jle`, `0x59af01`) y cierra con `0x412890`; el segundo (`0x59af5f..0x59afd1`) lo lee y
+  cierra con `0x40b800`, y `0x59afd6` compara con 30 (`jg` al epílogo, `0x59e2c0`). Cada cierre que
+  deja la cuenta en 0 gasta 4 `rand()`. Con más de 30 sale antes de `0x57cfc0` (`0x59e255`).
 - **Si el héroe camina** (`+0x378`, `0x59b295..0x59b304`; *verificado* el cuerpo, abajo): con
   `+0x78 & 0x20`, `SetPlayerStop` (`0x4f2250`); si no, `SetPlayerWalk` (`0x4f37c0`) y
   `MovePath(héroe, 1)` (`0x4ea270`). Al llegar, `+0x378 = 0`, `SetPlayerStop`, `0x77f3ba8 =
@@ -3913,7 +3949,11 @@ paso o por frame (*estático*; el de la cámara, *emulado*):
 
 | Quién | Cuándo | `rand()` |
 | --- | --- | --- |
-| `MoveHero`, que llama a `0x57cfc0` al final de casi todos los pasos (`0x59e255`), y este abre y cierra el registro propio (`0x57d051..0x57d10d`) | cada paso del juego | 3.848 |
+| `MoveHero`, que llama a `0x57cfc0` al final de casi todos los pasos (`0x59e255`), y este abre y cierra el registro propio (`0x57d051..0x57d10d`) | cada paso del juego con el contador `0x77f3b04` en 30 o menos | 3.848 |
+| `MoveHero`, el contador `0x77f3b04` en dos accesos (`0x59ae8d..0x59afd1`) | cada paso del juego que pasa los gates de `0x59ae24..0x59ae87`, también mientras espera el `F3 03` | 8 |
+| `0x6371a0`, el contador (`0x6371b7..0x637229`) | cada frame dibujado de la escena 5 con `0x7d3a101` en 1, aunque no presente | 4 |
+| `0x6356f0`, el contador (`0x635723..0x635963`) | al entrar a la escena 3 | 4 |
+| la selección, el registro propio (`0x40f370` o `0x40b4d0`) | al pasar a la escena 3 | 3.848 |
 | `0x4c3940`, la respuesta del `F3 03` | al entrar al mundo, que cierra el registro tres veces | 11.544 |
 | el `F3 04` (tres cierres), el `F3 10` (uno) y el `D7` al héroe (uno, en línea) | con cada paquete | 3.848 por cierre |
 | `0x508f00`, las celdas lógicas al marcar el `TerrainWall` | cada paso, por cada personaje vivo | 8 |
@@ -4009,7 +4049,7 @@ Ver [08](08-pendientes.md).
 | `0x602ed0`, después del dibujo de cada objeto visto: el `rand()` de cada uno y el brillo del farol (`0x3c`) en la escena 2 | `Scenes::ObjectFrameEffects` en `DrawWorldObjects`: un `rand()` de la CRT por objeto visto y los dos sprites de `flare01` en los huesos 8 y 9 del último modelo posado (`LastPosedBonePoint`: el dueño del dragón, Q-C140); `World::StreetLightGlowLight`, la luz; el dueño (`0xb4`) en `m_objects`, antes del `.obj` | CL7.6 B4 |
 | Los joints (`0x53c6a0`) | un sistema con su tabla, cuando una escena los use (el login no tiene ninguno) | — |
 | El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | `Scenes::DarkSpirit`: el constructor (`0x4167b0`) y el paso (`0x416a20`, estados 0 y 1), bit a bit contra el código real (`raven.txt`); `DrawDarkSpirit` (mallas 3 y 2 y la sombra de las cinco); la chispa nace en `World::Particles` (`0x5c6`, subtipo 5); `LoginScene` lo crea al entrar, lo avanza después del personaje y lo dibuja al final de su dibujo | CL7.6 C1 y C2 (las chispas) |
-| La escena 5 en dos tiempos: el `F3 03` en el primer paso y el mundo con la respuesta, con el mosaico de la escena 3 en pantalla mientras tanto; su paso y su dibujo, con su propio orden del 3D | `GameScene` (hoy manda el `F3 03` y no dibuja) retiene el último frame mientras espera, carga el mapa del paquete, arma al héroe con la cuenta de `0x511290` y dibuja en el orden de `0x6371a0`; los casos del mapa 0 como datos, como los del 55 (propuesta del barrido, P-C28) | CL7 |
+| La escena 5 en dos tiempos: el `F3 03` en el primer paso y el mundo con la respuesta, con el mosaico de la escena 3 en pantalla mientras tanto; su paso y su dibujo, con su propio orden del 3D | `GameScene` (hoy manda el `F3 03`, retiene el frame con el contador y no dibuja) retiene el último frame mientras espera, carga el mapa del paquete, arma al héroe con la cuenta de `0x511290` y dibuja en el orden de `0x6371a0`; los casos del mapa 0 como datos, como los del 55 (propuesta del barrido, P-C28) | CL7 |
 | La cámara del juego: `0x635ae0` por frame dibujado, con el far del rectángulo en todos los mapas y sin el mouse | un valor con su estado (D, la meta, el zoom, el nivel, el yaw y la altura del `0x40`) y `OriginalVectorIRotate` (`0x5fcc30`), bit a bit contra el código real emulado y la traza de Lorencia (propuesta del barrido, P-C29) | CL7.3 |
 | Caminar: el A* de `0x4ead70` con su árbol y sus topes, el `D3` de `0x56acd0` y el paso entre celdas con el spline y la celda lógica adelantada | `TerrainWalls` y `PathFinder` implementan la parte pura de distancia cero contrastada con ASM; `Protocol::Movement` implementa el wire. El paso, el RNG del consumidor, el picking y la integración de la escena siguen pendientes; sin nuevas comparaciones emuladas | CL7.4 A/B; C–E pendientes |
 | Los cambios de mapa dentro de la escena 5, con los ganchos de cada mapa como `if` sueltos en cinco puntos | una tabla por mapa y una interfaz de ganchos (al cargar, al crear un objeto, en su paso, después de dibujarlo y en el paso de la escena), con Lorencia primero (propuesta del barrido, P-C31) | CL7.5 |

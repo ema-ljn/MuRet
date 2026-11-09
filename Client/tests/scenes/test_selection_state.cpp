@@ -412,6 +412,22 @@ TEST_F(SelectionStateTest, InitializationWaitsForAListAndReturnsLoadFailures)
     EXPECT_EQ(*m_state.Failure(), initialized.Error());
 }
 
+// 0x633f30: el mundo cargado lo marca la carga del 54, antes de cargarlo (0x633f4e), y no la entrada a
+// la escena 4 (BeginSelection, 0x6342cb). Sin la lista no se carga ni se marca.
+TEST_F(SelectionStateTest, TheWorld54LoadMarksTheLoadedWorld)
+{
+    EXPECT_FALSE(m_world.Runtime().drawingEnabled);
+    const Client::Tests::TemporaryFolder empty("selection-state-drawing");
+    ASSERT_TRUE(m_state.InitializeSelection(empty.Path(), m_input).HasValue());
+    EXPECT_FALSE(m_world.Runtime().drawingEnabled);
+    ASSERT_TRUE(Apply({List({})}).HasValue());
+
+    // La carpeta vacía hace fallar la carga, que va después de la marca.
+    EXPECT_FALSE(m_state.InitializeSelection(empty.Path(), m_input).HasValue());
+
+    EXPECT_TRUE(m_world.Runtime().drawingEnabled);
+}
+
 class GoldenSelectionStateTest : public Client::Tests::GoldenDataTest
 {
 };

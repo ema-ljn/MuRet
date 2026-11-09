@@ -10,15 +10,24 @@
 #include "Data/Textures/TextureSet.h"
 #include "Input/InputState.h"
 #include "Render/TextureSlot.h"
+#include "Render/Models/Cloth.h"
+#include "Scenes/GameScene.h"
 #include "Scenes/IScene.h"
 #include "Scenes/SceneCanvas.h"
+#include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTransitions.h"
+#include "Scenes/TextureSets.h"
+#include "Scenes/WorldLoadingScene.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
+#include "support/SceneDataFiles.h"
 #include "support/ScenePrinters.h"
+#include "support/TemporaryFolder.h"
 
 #include <gtest/gtest.h>
 
@@ -86,6 +95,8 @@ struct Stage
     // Las escenas que retienen el último frame (HoldsTheLastFrame).
     std::set<SceneId> holding;
     std::map<SceneId, int> heldNotifications;
+    // Cuántas veces corrió PrepareFrame cada escena.
+    std::map<SceneId, int> prepared;
     // La escena cuyo Enter falla.
     std::optional<SceneId> failingEnter;
     // Los slots que sube cada escena al entrar y suelta al salir, como sus juegos de texturas.
@@ -163,6 +174,11 @@ public:
     [[nodiscard]] bool WantsTextInput() const override
     {
         return m_stage.typing.contains(m_id);
+    }
+
+    void PrepareFrame() override
+    {
+        ++m_stage.prepared[m_id];
     }
 
     [[nodiscard]] bool HoldsTheLastFrame() const override
@@ -812,5 +828,96 @@ TEST(SceneManagerTest, OnlyAHeldFrameNotifiesTheCurrentScene)
     tested.stage.holding.clear();
     EXPECT_FALSE(tested.manager.HoldsTheLastFrame());
     EXPECT_EQ(tested.stage.heldNotifications[SceneId::Loading], 2);
+}
+
+// 0x6371a0 lee lo que decide al empezar cada frame: PrepareFrame corre una vez por frame, la primera
+// vez que se pregunta, y preguntar otra vez o dibujar no lo vuelve a correr. Poll y Step empiezan
+// otro frame, y Render lo termina.
+TEST(SceneManagerTest, PreparesTheFrameOncePerFrame)
+{
+    Harness tested;
+    EXPECT_FALSE(tested.manager.HoldsTheLastFrame());
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+
+    EXPECT_FALSE(tested.manager.HoldsTheLastFrame());
+    EXPECT_FALSE(tested.manager.HoldsTheLastFrame());
+    tested.manager.Render(0.0f);
+    EXPECT_EQ(tested.stage.prepared[SceneId::Loading], 1);
+
+    tested.manager.Render(0.0f);
+    EXPECT_EQ(tested.stage.prepared[SceneId::Loading], 2) << "un Render sin preguntar también lee";
+
+    tested.manager.Poll();
+    EXPECT_FALSE(tested.manager.HoldsTheLastFrame());
+    tested.manager.Step(tested.input);
+    EXPECT_FALSE(tested.manager.HoldsTheLastFrame());
+    EXPECT_FALSE(tested.manager.HoldsTheLastFrame());
+    EXPECT_EQ(tested.stage.prepared[SceneId::Loading], 4);
+}
+
+// 06, "La entrada al mundo", pasos 2 a 6, con las escenas de verdad: la carga del mundo presenta el
+// mosaico y pide el juego, que retiene el frame mientras el contador pase de 30. Con 31 sigue el
+// mosaico; con los 30 de la respuesta del F3 03 (0x4c48eb) el juego presenta. No fija cuántos pasos
+// corren antes (P-C28 b).
+TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
+{
+    Client::Tests::TemporaryFolder folder("scene-manager-world-wait");
+    Client::Tests::WriteTextureSet(folder.Path(), Client::Scenes::WorldLoadingTextureSet);
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    FakeClock clock;
+    Client::Render::Models::ClothWorld cloth;
+    Client::Scenes::WorldState world;
+    // 0x633f30: la selección ya marcó el mundo cargado.
+    world.Runtime().drawingEnabled = true;
+    const Client::Scenes::SceneContext context{
+        .dataRoot = folder.Path(), .textures = textures, .log = log, .cloth = &cloth, .world = &world};
+    RecordingFrameTarget target({800, 600});
+    SceneManager manager(
+        [&context](SceneId id) -> std::unique_ptr<IScene>
+        {
+            if (id == SceneId::WorldLoading)
+            {
+                return std::make_unique<Client::Scenes::WorldLoadingScene>(context);
+            }
+            if (id == SceneId::Game)
+            {
+                return std::make_unique<Client::Scenes::GameScene>(context, nullptr);
+            }
+            return nullptr;
+        },
+        target, clock, nullptr, log);
+    const InputState input;
+    // El dibujo de un frame del GameLoop, que puede no tener pasos: la red y el dibujo, si no retiene.
+    const auto draw = [&]()
+    {
+        manager.Poll();
+        if (!manager.HoldsTheLastFrame())
+        {
+            manager.Render(0.0f);
+        }
+    };
+    ASSERT_TRUE(manager.Start(SceneId::WorldLoading).HasValue());
+    EXPECT_EQ(world.Runtime().warpCounter, Client::Scenes::WorldLoadingWait);
+    draw();
+    ASSERT_EQ(target.frames.size(), 1u);
+    EXPECT_EQ(target.frames[0].events.size(), 4u) << "el mosaico";
+
+    manager.Step(input);
+    ASSERT_EQ(manager.Current(), SceneId::Game);
+    draw();
+    manager.Step(input);
+    draw();
+    EXPECT_EQ(target.frames.size(), 1u) << "con el contador de la carga sigue el mosaico";
+    world.Runtime().warpCounter = 31;
+    draw();
+    EXPECT_EQ(target.frames.size(), 1u) << "con 31 sigue el mosaico";
+
+    world.Runtime().warpCounter = 30;
+    draw();
+
+    ASSERT_EQ(target.frames.size(), 2u);
+    EXPECT_TRUE(target.frames[1].presented);
 }
 } // namespace

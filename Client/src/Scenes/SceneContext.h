@@ -22,6 +22,7 @@ struct GameCameraInput;
 namespace Client::Scenes
 {
 class SelectionState;
+class WorldState;
 
 // De dónde leen (el Data\ del cliente), adónde suben sus texturas (Render::ITextureStore, CL5.1), el
 // log y el reloj del bucle (CL6.4).
@@ -54,6 +55,11 @@ struct SceneContext
     // mundo vigentes (CL7.3 B). main es dueño de los dos y viven más que todas las escenas; conserva
     // las tablas del login después de su Leave.
     SelectionState* selection = nullptr;
+    // Lo que WinMain deja en cero y dura hasta el cierre (WorldState.h): el registro propio y los
+    // globales de la espera de la entrada al mundo (WorldRuntime). Es el mismo que presta `selection`.
+    // nullptr en los tests que no lo miran: la selección entra sin preparar el registro propio, y la
+    // carga del mundo y el juego no entran (su Enter da el error), porque la espera vive ahí.
+    WorldState* world = nullptr;
 };
 
 // Cómo cuentan los frames del original la tela y el cetro con el ritmo `pacing`.

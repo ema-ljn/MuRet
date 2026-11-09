@@ -130,7 +130,9 @@ public:
     // Hasta el paso y no solo mientras conecta: un connect que falla enseguida sale en el Poll, que
     // puede venir sin un paso antes del dibujo (después de Enter, o en un frame sin pasos).
     [[nodiscard]] bool HoldsTheLastFrame() const override;
-    // Descarta el tiempo sin dibujo para los emisores de objetos; mantiene pool, muestras y otros carries.
+    // Durante un connect, descarta el tiempo sin dibujo de los efectos de los objetos, de la tela y del cetro:
+    // el próximo dibujo corre un frame de cada uno. Mantiene el pool, las muestras, las telas y los demás
+    // relojes.
     void OnFrameHeld() override;
     // La cabeza del personaje como la dejó el último paso (0x505de0), la que dibuja.
     [[nodiscard]] const CharacterHead& Head() const;

@@ -68,6 +68,14 @@ public:
                  const glm::vec3& color = PlainClothColor,
                  Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock);
 
+    // Advance vuelve a contar desde cero, como en el primer frame: el próximo corre un frame del bloque y no
+    // pone al día el tiempo que pasó sin dibujo. Las telas quedan como estaban. Es para un frame retenido
+    // (Q-C85): el original no dibuja mientras conecta, y en el frame siguiente corre uno.
+    void RestartTheClock()
+    {
+        m_frames = {};
+    }
+
     // objeto + 0x190: las telas armadas (cuatro con la clase 4, una con las demás), o ninguna.
     [[nodiscard]] std::span<const Render::Models::Cloth> Cloths() const
     {

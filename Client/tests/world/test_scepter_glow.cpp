@@ -260,4 +260,31 @@ TEST(ScepterGlowTest, InTheFaithfulModeEachDrawSortsOnce)
         EXPECT_EQ(random.State(), After(5, static_cast<int>(k) + 1).State()) << k;
     }
 }
+
+// Después de un frame retenido (Q-C85, P-C27 f), RestartTheClock: el próximo dibujo sortea uno, como el primero,
+// aunque pasaron 5 s (por el reloj serían 64), con el hueso de ahora. Después sigue por el reloj.
+TEST(ScepterGlowTest, AfterARestartTheNextDrawSortsOnce)
+{
+    using namespace std::chrono_literals;
+    using Client::Render::Models::OriginalFrameTime;
+    const auto bone = Client::Render::Models::OriginalMatrixOf(Client::Render::Models::BoneTransform(1.0f));
+    Client::World::ScepterGlowCarry carry;
+    CrtRandom random(5);
+    FrameSprites first;
+    carry.Create(first, bone, 1.0f, glm::vec3(0.0f), random, 1s);
+    ASSERT_EQ(random.State(), After(5, 1).State());
+
+    carry.RestartTheClock();
+    FrameSprites held;
+    carry.Create(held, bone, 1.0f, glm::vec3(0.0f), random, 6s);
+    EXPECT_EQ(random.State(), After(5, 2).State()) << "un sorteo, no 64";
+    FrameSprites expected;
+    CrtRandom sorted = After(5, 1);
+    Client::World::CreateScepterGlow(expected, bone, 1.0f, glm::vec3(0.0f), sorted);
+    ExpectSameGlow(GlowOf(held), GlowOf(expected));
+
+    FrameSprites next;
+    carry.Create(next, bone, 1.0f, glm::vec3(0.0f), random, 6s + OriginalFrameTime);
+    EXPECT_EQ(random.State(), After(5, 3).State());
+}
 } // namespace

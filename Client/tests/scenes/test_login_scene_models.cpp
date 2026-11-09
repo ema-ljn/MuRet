@@ -7,6 +7,7 @@
 #include "Input/InputState.h"
 #include "Render/ModelBatch.h"
 #include "Render/ModelVertex.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/ItemGlow.h"
 #include "Render/Models/Skeleton.h"
@@ -166,9 +167,12 @@ struct Harness
         }
     }
 
-    LoginScene& Make(std::mt19937::result_type seed = FixedSeed, FakeClock* sceneClock = nullptr)
+    // Con `cloth`, lo global de la tela del bucle: el rand() de la CRT.
+    LoginScene& Make(std::mt19937::result_type seed = FixedSeed, FakeClock* sceneClock = nullptr,
+                     Client::Render::Models::ClothWorld* cloth = nullptr)
     {
-        return scene.emplace(SceneContext{folder.Path(), store, log, sceneClock}, data, models, nullptr, "0.0.0", seed);
+        return scene.emplace(SceneContext{folder.Path(), store, log, sceneClock, cloth}, data, models, nullptr, "0.0.0",
+                             seed);
     }
 
     // El evento de los modelos del frame, después de un frame.
@@ -432,6 +436,50 @@ TEST(LoginSceneModelsTest, TheCharacterChangesItsActionInItsWindow)
         EXPECT_NEAR(CharacterHeight(tested), standing, Rounding);
     }
 }
+
+// Con el bucle (lo global de la tela en el contexto), el gesto sale del rand() de la CRT, el del original
+// (0x634cca), y no de la semilla de la escena: con la misma CRT, dos semillas cuyo primer rand() % 6 da 1 y 0
+// hacen lo mismo, y según el estado de la CRT el gesto sale o no. Fuera de la ventana, nunca. Dónde cae ese
+// rand() entre los demás del paso no se fija acá: es P-C27 d.
+TEST(LoginSceneModelsTest, WithTheLoopTheGestureTakesTheRandOfTheCrt)
+{
+    const float standing = LoginCharacterTransform().position.z;
+    const float raised = standing + (RaisedHeight * LoginCharacterTransform().scale);
+    const std::chrono::milliseconds inside{(3 * 2300) + 50};
+    const std::chrono::milliseconds outside{(3 * 2300) + 500};
+    // La altura del personaje después de un paso con el reloj en `clock`, la semilla `seed` y la CRT en `crt`.
+    const auto heightAfterAStep = [](std::chrono::milliseconds clock, std::mt19937::result_type seed, std::uint32_t crt)
+    {
+        Harness tested;
+        FakeClock sceneClock;
+        sceneClock.Advance(clock);
+        Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom(crt)};
+        EXPECT_TRUE(tested.Make(seed, &sceneClock, &cloth).Enter().HasValue());
+        tested.Steps(1);
+        return CharacterHeight(tested);
+    };
+    constexpr std::uint32_t CrtStates = 12;
+    std::uint32_t gestures = 0;
+    for (std::uint32_t crt = 0; crt < CrtStates; ++crt)
+    {
+        const float height = heightAfterAStep(inside, SeedWhoseFirstRollIs(1), crt);
+        EXPECT_NEAR(heightAfterAStep(inside, SeedWhoseFirstRollIs(0), crt), height, Rounding)
+            << "la CRT en " << crt << ": la semilla no cuenta";
+        EXPECT_NEAR(heightAfterAStep(outside, SeedWhoseFirstRollIs(1), crt), standing, Rounding) << crt;
+        if (height > standing + Rounding)
+        {
+            EXPECT_NEAR(height, raised, Rounding) << crt;
+            ++gestures;
+        }
+        else
+        {
+            EXPECT_NEAR(height, standing, Rounding) << crt;
+        }
+    }
+    EXPECT_GT(gestures, 0u) << "con algún estado de la CRT, el gesto";
+    EXPECT_LT(gestures, CrtStates) << "y con otro, no";
+}
+
 // 0x4fcd00: cuando la acción termina (0x4ec200 da la vuelta), 0x4fcb10 le pone la de parado otra vez
 // (0x4f2250, la 0x4a con el caballo). La 0x54 de la biblioteca tiene dos keys a una por paso: termina
 // en el segundo, y en el tercero el personaje ya está parado.

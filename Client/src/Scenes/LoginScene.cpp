@@ -1221,7 +1221,11 @@ void LoginScene::OnFrameHeld()
     // Esperar al Step para mostrar una lista o un aviso no equivale al connect bloqueante original.
     if (m_session != nullptr && (IsConnecting(m_session->State()) || (m_seen && IsConnecting(*m_seen))))
     {
+        // Lo que el original corre una vez por frame dibujado corre uno en el primer dibujo después del connect
+        // (Q-C85), no los frames que duró: los efectos de los objetos, la tela y el cetro (08, P-C27 f).
         m_objectEffectFrames = {};
+        m_characterCloth.RestartTheClock();
+        m_scepterGlow.RestartTheClock();
     }
 }
 

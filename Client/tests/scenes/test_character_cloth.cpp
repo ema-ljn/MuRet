@@ -417,6 +417,41 @@ TEST(CharacterClothTest, InTheFaithfulModeEachDrawRunsTheBlockOnceWhateverItsClo
     ExpectTheSameCloths(cloth, reference);
 }
 
+// Después de un frame retenido (Q-C85, P-C27 f), RestartTheClock: el próximo Advance corre el bloque una vez,
+// como el original en el primer frame que dibuja después del connect, aunque pasaron 5 s (por el reloj serían
+// 64). Las telas siguen desde donde estaban.
+TEST(CharacterClothTest, AfterARestartTheNextAdvanceRunsTheBlockOnce)
+{
+    using namespace std::chrono_literals;
+    using Client::Render::Models::OriginalFrameTime;
+    const LoginLord lord = ReadTheLoginLord();
+    ClothWorld world{.random = CrtRandom(3)};
+    ClothWorld referenceWorld{.random = CrtRandom(3)};
+    CharacterCloth cloth;
+    CharacterCloth reference;
+    constexpr int FramesBefore = 3;
+    const auto runOnce = [&](Client::Core::Duration clock)
+    {
+        ModelBatch ours;
+        ours.Begin(Client::Render::Pass3D{});
+        cloth.Advance(ours, lord.wearer, lord.body, world, lord.map, clock, true);
+        ModelBatch theirs;
+        theirs.Begin(Client::Render::Pass3D{});
+        reference.Frame(theirs, lord.wearer, lord.body, referenceWorld, lord.map, 0.0f, true);
+    };
+    for (int frame = 0; frame < FramesBefore; ++frame)
+    {
+        runOnce(OriginalFrameTime * frame);
+    }
+    ASSERT_EQ(world.random.State(), referenceWorld.random.State());
+
+    cloth.RestartTheClock();
+    runOnce((OriginalFrameTime * (FramesBefore - 1)) + 5s);
+
+    EXPECT_EQ(world.random.State(), referenceWorld.random.State()) << "un frame del bloque, no 64";
+    ExpectTheSameCloths(cloth, reference);
+}
+
 // Un personaje que pasa de la clase 3 a la 4 con la misma tela: el arreglo de una no alcanza para las
 // cuatro del Dark Lord, y la tela se vuelve a armar en vez de leer fuera de él.
 TEST(CharacterClothTest, AClassChangeBuildsTheClothsAgain)

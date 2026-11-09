@@ -59,13 +59,15 @@ avanza el juego.
   frames contados y avanzan por paso de lógica. Este ritmo local no cierra el orden global de
   RNG entre tela, cetro, objetos y los otros subsistemas; ese contraste sigue en CL7.P.
   Cuando SceneManager observa que la escena retiene el frame, notifica `IScene::OnFrameHeld`.
-  El login reinicia sólo el carry de efectos de objetos cuando está conectando o el paso todavía
-  conserva ese estado de conexión; una retención por un paquete ordinario conserva la fase.
+  El login reinicia el carry de efectos de objetos y los relojes de la tela y del cetro (P-C27 f)
+  cuando está conectando o el paso todavía conserva ese estado de conexión; una retención por un
+  paquete ordinario conserva la fase.
   Se cubre también una conexión que comienza y falla entre dos Steps, porque el aviso la observa.
   El aviso es idempotente y la consulta de retención lo documenta. El primer
-  dibujo permitido cuenta un frame; no recupera el tiempo del connect bloqueante original.
-  El pool y sus muestras no se vacían por esa pausa. El alcance es ese carry, no la equivalencia
-  temporal de todos los demás; consultar `LoginScene::HoldsTheLastFrame` directamente no notifica.
+  dibujo permitido cuenta un frame de cada uno, como el original y el modo fiel; no recupera el
+  tiempo del connect bloqueante original. El pool, sus muestras y las telas no se vacían por esa
+  pausa. El alcance son esos tres relojes, no la equivalencia temporal de todos los demás;
+  consultar `LoginScene::HoldsTheLastFrame` directamente no notifica.
 
 D-C4 nombra el [ADR 0001 de MuMain][mm] por la lógica a 25 por segundo, pero en un frame largo
 MuRet no hace lo mismo: allá, debajo de 25 FPS, el frame avanza un paso como mucho y el juego va en
@@ -92,6 +94,8 @@ cámara lenta. MuRet se pone al día, con hasta 25 pasos por frame.
     frame por entrada, incluida la reentrada en `Decoupled`.
   - Las pruebas de nubes y efectos del login: emisión por frames contados, pool compartido,
     repetición del farol sin nuevo azar y reinicio del ritmo al entrar.
+  - `GoldenLoginWorld.AfterAHeldFrameTheClothAndTheScepterRunOneFrame`: después del connect, en
+    `Decoupled` la tela y el cetro corren un frame, como en `Faithful`.
 
 El contrato y los pasos están en las sub-olas CL3.0 y CL3.2 del
 [plan de la CL3](../superpowers/plans/2026-11-02-ola-cl3-plataforma-y-bucle.md).

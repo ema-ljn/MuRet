@@ -14,14 +14,20 @@
 #include "support/TerrainFiles.h"
 #include "support/TemporaryFolder.h"
 #include "support/SessionHarness.h"
+#include "support/FakeSocket.h"
+#include "support/SessionPackets.h"
 
 #include "App/PacingMode.h"
+#include "App/ServerSession.h"
+#include "App/SessionState.h"
 #include "Core/IClock.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/OriginalAngles.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
@@ -47,6 +53,8 @@
 #include "Data/Textures/Sampling.h"
 #include "Input/InputState.h"
 #include "Data/Terrain/TerrainObjects.h"
+#include "World/ScepterGlow.h"
+#include "World/Sprites.h"
 #include "World/WorldObjects.h"
 #include "Scenes/WorldModels.h"
 
@@ -338,6 +346,14 @@ protected:
     std::optional<Client::Scenes::GameData> m_data;
     Client::Scenes::GameModels m_models;
 };
+
+// Un frame del login con el reloj `clock`, sin mirar lo que dibujó.
+void DrawAt(LoginScene& scene, Client::Core::Duration clock)
+{
+    RecordingFrameTarget target;
+    scene.Render(target.BeginFrame(clock), 0.0f);
+    target.Present();
+}
 
 // 0x6046a0 después de 0x4453b0: los objetos del mundo van después del caballo.
 TEST_F(GoldenLoginWorld, TheObjectsGoAfterTheHorse)
@@ -693,6 +709,36 @@ TEST_F(GoldenLoginWorld, TheHeadOfTheDarkLordLooksAround)
     EXPECT_EQ(scene.TheCharacterToDraw(0.5f).headAngles, scene.Head().angles);
 }
 
+// 0x505de0 corre con el personaje visto (+0x16c, que 0x508ea0 escribe con 0x5fba90: su lugar por 0,01f, con el
+// margen de −20), y en el login siempre se ve (P-C27 i): con la cámara fija, el trapecio de cada dibujo lo tiene
+// adentro. Después de dibujar, la cabeza sortea un blanco, y en cada paso entre dibujos gira hacia él. Lo que ve
+// el original antes del primer dibujo es P-C27 e, y no se mira acá.
+TEST_F(GoldenLoginWorld, TheHeadSeesTheCharacterAfterEveryDraw)
+{
+    using namespace std::chrono_literals;
+    constexpr int MaxSteps = 400;
+    constexpr int Turns = 10;
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    scene.Step(Client::Input::InputState{});
+    DrawAt(scene, 40ms);
+    for (int step = 0; step < MaxSteps && scene.Head().target == glm::vec2(0.0f); ++step)
+    {
+        scene.Step(Client::Input::InputState{});
+    }
+    ASSERT_NE(scene.Head().target, glm::vec2(0.0f)) << "con el trapecio de un dibujo, la cabeza sortea";
+    for (int turn = 0; turn < Turns; ++turn)
+    {
+        DrawAt(scene, 80ms + (40ms * turn));
+        const glm::vec2 before = scene.Head().angles;
+        scene.Step(Client::Input::InputState{});
+        EXPECT_NE(scene.Head().angles, before) << "el paso " << turn << " después de un dibujo";
+    }
+    scene.Leave();
+}
+
 // El cetro sortea una vez por frame del original (World::ScepterGlowCarry): dos frames de MuRet con el
 // mismo reloj dibujan los mismos cinco sprites, en el mismo lugar; uno 47 ms después, otros.
 TEST_F(GoldenLoginWorld, TheScepterGlowChangesOncePerOriginalFrame)
@@ -733,6 +779,36 @@ TEST_F(GoldenLoginWorld, TheScepterGlowChangesOncePerOriginalFrame)
     scene.Leave();
 }
 
+// Cada entrada empieza el ritmo del cetro (World::ScepterGlowCarry, P-C27 i): el original lo sortea en cada frame
+// que dibuja (0x509340), y entre una entrada y la otra el login no se dibuja. El primer dibujo de la segunda
+// sortea uno, por más que haya pasado desde el último de la primera (por el reloj, 5 s serían 64).
+TEST_F(GoldenLoginWorld, EnteringAgainStartsTheScepterClock)
+{
+    using namespace std::chrono_literals;
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    scene.Step(Client::Input::InputState{});
+    DrawAt(scene, 40ms);
+    scene.Leave();
+
+    ASSERT_TRUE(scene.Enter().HasValue());
+    scene.Step(Client::Input::InputState{});
+    // El cetro que pide el dibujo, con su propio rand() para contar los sorteos.
+    const Client::Scenes::DrawnCharacter character = scene.TheCharacterToDraw(0.0f);
+    ASSERT_NE(character.scepter, nullptr);
+    Client::World::FrameSprites sprites;
+    Client::Render::Models::CrtRandom random(5);
+    character.scepter->Create(sprites,
+                              Client::Render::Models::OriginalMatrixOf(Client::Render::Models::BoneTransform(1.0f)),
+                              1.0f, glm::vec3(0.0f), random, 40ms + 5s, character.pace);
+    Client::Render::Models::CrtRandom once(5);
+    static_cast<void>(Client::World::DrawScepterGlowRandoms(once));
+    EXPECT_EQ(random.State(), once.State()) << "un sorteo, no 64";
+    scene.Leave();
+}
+
 // En el modo fiel (el ritmo del contexto en Faithful), la tela y el cetro corren uno por frame dibujado
 // aunque el frame no dure justo 46,875 ms: el login fiel, con el primer frame 0,3 ms tarde y los demás
 // 0,1 ms, saca los mismos rand() que uno por el reloj con frames exactos. Por el reloj, el segundo frame
@@ -770,6 +846,100 @@ TEST_F(GoldenLoginWorld, InTheFaithfulModeTheClothAndTheScepterRunOncePerDrawnFr
     }
     faithful.Leave();
     exact.Leave();
+}
+
+// Un login con su sesión sobre un FakeSocket y lo global de la tela, para retener el frame con un connect
+// (Q-C85).
+struct LoginWithASession
+{
+    Client::Tests::LoggedInSession online;
+    Client::Render::Models::ClothWorld cloth;
+    std::optional<LoginScene> scene;
+};
+
+// Un frame del GameLoop con un paso: la sesión y el paso de la escena. Si la escena retiene el frame, se
+// lo avisa como SceneManager::HoldsTheLastFrame (IScene::OnFrameHeld).
+void StepWithTheSession(LoginWithASession& login)
+{
+    static_cast<void>(login.online.session.Poll());
+    login.scene->Step(Client::Input::InputState{});
+    if (login.scene->HoldsTheLastFrame())
+    {
+        login.scene->OnFrameHeld();
+    }
+}
+
+// P-C27 f: el connect al GS (0x4e3396) bloquea dentro de un paso, y el original no dibuja mientras tanto
+// (Q-C85). En el primer frame que dibuja después, la tela (0x50ba30) y el cetro (0x509340) corren uno, como en
+// cualquier frame dibujado. MuRet retiene el frame mientras conecta, y en el modo normal los cuenta por el
+// reloj: sin reiniciar sus relojes con el frame retenido, el primero después de 5 s de connect correría 64
+// frames del original de golpe. Los dos logins hacen los mismos pasos y dibujan con los mismos relojes; el
+// fiel corre uno por dibujo, y el normal tiene que sacar los mismos rand() que él.
+TEST_F(GoldenLoginWorld, AfterAHeldFrameTheClothAndTheScepterRunOneFrame)
+{
+    using namespace std::chrono_literals;
+    using Client::App::SessionState;
+    using Client::Render::Models::OriginalFrameTime;
+    constexpr std::uint16_t LabServer = 400;
+    constexpr std::string_view GameHost = "10.0.0.2";
+    constexpr std::uint16_t GamePort = 55901;
+    constexpr int FramesBefore = 3;
+    constexpr int MaxSteps = 10;
+    std::array<LoginWithASession, 2> logins;
+    const std::array<Client::App::PacingMode, 2> pacings{Client::App::PacingMode::Decoupled,
+                                                         Client::App::PacingMode::Faithful};
+    for (std::size_t k = 0; k < logins.size(); ++k)
+    {
+        LoginWithASession& login = logins[k];
+        login.scene.emplace(
+            SceneContext{
+                .dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &login.cloth, .pacing = pacings[k]},
+            *m_data, m_models, &login.online.session, Version, FixedSeed, &m_models.TextureSlots());
+        ASSERT_TRUE(login.scene->Enter().HasValue());
+        // El saludo y la lista del CS, y la elección: la sesión pide la dirección del GS.
+        login.online.socket.reads = {Client::Tests::Hello()};
+        StepWithTheSession(login);
+        login.online.socket.reads = {Client::Tests::ServerList({LabServer})};
+        StepWithTheSession(login);
+        ASSERT_EQ(login.online.session.State(), SessionState::ChoosingServer);
+        login.online.session.ChooseServer(LabServer);
+        StepWithTheSession(login);
+        ASSERT_EQ(login.online.session.State(), SessionState::WaitingServerAddress);
+        ASSERT_FALSE(login.scene->HoldsTheLastFrame());
+        // Unos frames justo de a uno del original: por el reloj también corren uno cada uno.
+        for (int frame = 0; frame < FramesBefore; ++frame)
+        {
+            StepWithTheSession(login);
+            DrawAt(*login.scene, OriginalFrameTime * (frame + 1));
+        }
+    }
+    ASSERT_EQ(logins[0].cloth.random.State(), logins[1].cloth.random.State()) << "antes del connect";
+
+    for (LoginWithASession& login : logins)
+    {
+        // La dirección: el connect al GS tarda dos Poll, y mientras tanto el frame queda retenido.
+        login.online.socket.pollsUntilConnected = 2;
+        login.online.socket.reads = {Client::Tests::AddressReply(GameHost, GamePort)};
+        StepWithTheSession(login);
+        ASSERT_EQ(login.online.session.State(), SessionState::ConnectingGameServer);
+        ASSERT_TRUE(login.scene->HoldsTheLastFrame());
+        for (int step = 0; step < MaxSteps && login.online.session.State() == SessionState::ConnectingGameServer;
+             ++step)
+        {
+            StepWithTheSession(login);
+        }
+        ASSERT_EQ(login.online.session.State(), SessionState::WaitingGameHello);
+        ASSERT_FALSE(login.scene->HoldsTheLastFrame());
+        // El primer frame después del connect, que duró 5 s.
+        DrawAt(*login.scene, (OriginalFrameTime * FramesBefore) + 5s);
+    }
+    EXPECT_EQ(logins[0].cloth.random.State(), logins[1].cloth.random.State())
+        << "la tela (75 rand() por frame) y el cetro (6) corren un frame, no 64";
+
+    for (LoginWithASession& login : logins)
+    {
+        login.scene->Leave();
+    }
 }
 
 // CL7.6 B2: el aliento del caballo (0x444010) sale del hueso 27 del buffer global de la pose. Lo escribe
@@ -1096,6 +1266,51 @@ TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
     // DarkSpiritTest.ItFliesHigherInTheLoginMap.
     EXPECT_GT(mean, 390.0) << "a 350 sobre el dueño en el mapa 55, no a 250";
     EXPECT_LT(mean, 600.0);
+    scene.Leave();
+}
+
+// Cada entrada arma otra vez al personaje y a su cuervo (0x517270 y 0x420d60, desde 0x6349a0), con las celdas del
+// personaje en (0, 0) (Q-C130, P-C27 i): en la segunda entrada el cuervo nace otra vez en (50, 50, 750), aunque en
+// la primera ya se alejó de ahí.
+TEST_F(GoldenLoginWorld, EnteringAgainTheRavenIsBornAtCell0Again)
+{
+    using namespace std::chrono_literals;
+    constexpr int Flight = 40;
+    constexpr double Near = 60.0;
+    const glm::dvec3 birth{50.0, 50.0, 750.0};
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    // Qué tan lejos de donde nace queda el centro de su malla 2 después de `steps` pasos, en un dibujo.
+    const auto distanceAfter = [&scene, &birth](int steps) -> std::optional<double>
+    {
+        for (int step = 0; step < steps; ++step)
+        {
+            scene.Step(Client::Input::InputState{});
+        }
+        RecordingFrameTarget target;
+        scene.Render(target.BeginFrame(40ms * steps), 0.0f);
+        target.Present();
+        const std::optional<glm::vec3> raven = RavenCenterOf(target);
+        if (!raven)
+        {
+            return std::nullopt;
+        }
+        return glm::length(glm::dvec3(*raven) - birth);
+    };
+    ASSERT_TRUE(scene.Enter().HasValue());
+    const std::optional<double> born = distanceAfter(1);
+    ASSERT_TRUE(born.has_value());
+    EXPECT_LT(*born, Near);
+    const std::optional<double> flown = distanceAfter(Flight);
+    ASSERT_TRUE(flown.has_value());
+    ASSERT_GT(*flown, Near) << "en la primera entrada se alejó";
+    scene.Leave();
+
+    ASSERT_TRUE(scene.Enter().HasValue());
+    const std::optional<double> again = distanceAfter(1);
+    ASSERT_TRUE(again.has_value());
+    EXPECT_LT(*again, Near) << "nace otra vez en la celda (0, 0), a la altura del terreno más 300";
     scene.Leave();
 }
 
@@ -1603,6 +1818,51 @@ TEST_F(GoldenLoginWorld, TheFirstEmbersSeeTheCameraAtTheOrigin)
     }
     EXPECT_GT(backwards, 0u);
     EXPECT_GT(forwards, 0u);
+    scene.Leave();
+}
+
+// Cada entrada carga el mapa otra vez (0x61a560), y la carga apaga las hojas (0x6070a0, el byte vivo de cada
+// entrada de 0x75e34b8): las brasas de la entrada anterior no siguen (P-C27 i). En el primer paso nacen las 80
+// otra vez, en la caja de 0x42b1e0 alrededor del héroe, que quedó donde lo dejó el último dibujo (0x6349a0 no le
+// escribe la posición).
+TEST_F(GoldenLoginWorld, EnteringAgainTheEmbersAreBornAgain)
+{
+    using namespace std::chrono_literals;
+    constexpr int Drift = 100;
+    constexpr std::size_t Embers = 80;
+    const glm::vec3 hero = Client::Scenes::LoginHeroPosition;
+    const auto bornAroundTheHero = [&hero](const glm::vec3& center)
+    {
+        const glm::vec3 offset = center - hero;
+        return offset.x >= -800.5f && offset.x <= 799.5f && offset.y >= -500.5f && offset.y <= 899.5f &&
+               offset.z >= 49.5f && offset.z <= 1049.5f;
+    };
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth}, *m_data,
+                     m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    scene.Step(Client::Input::InputState{});
+    DrawAt(scene, 40ms);
+    for (int step = 0; step < Drift; ++step)
+    {
+        scene.Step(Client::Input::InputState{});
+    }
+    RecordingFrameTarget drifted;
+    scene.Render(drifted.BeginFrame(40ms * (Drift + 1)), 0.0f);
+    drifted.Present();
+    const std::vector<glm::vec3> before = EmberCentersOf(drifted);
+    ASSERT_EQ(before.size(), Embers);
+    ASSERT_FALSE(std::ranges::all_of(before, bornAroundTheHero)) << "en la primera entrada se alejaron";
+    scene.Leave();
+
+    ASSERT_TRUE(scene.Enter().HasValue());
+    scene.Step(Client::Input::InputState{});
+    RecordingFrameTarget born;
+    scene.Render(born.BeginFrame(40ms), 0.0f);
+    born.Present();
+    const std::vector<glm::vec3> after = EmberCentersOf(born);
+    ASSERT_EQ(after.size(), Embers);
+    EXPECT_TRUE(std::ranges::all_of(after, bornAroundTheHero)) << "las 80 nacieron en este paso";
     scene.Leave();
 }
 

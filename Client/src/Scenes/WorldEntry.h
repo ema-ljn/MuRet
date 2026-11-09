@@ -13,6 +13,11 @@ namespace Client::Core
 class Log;
 }
 
+namespace Client::Data::Tables
+{
+struct ItemSetTables;
+}
+
 namespace Client::Protocol::Character
 {
 struct CharacterSelectResult;
@@ -55,8 +60,11 @@ struct WorldEntryResources
     World::GameCameraInput& cameraInput;
     // Player.bmd (SkeletonOf(0x20a)), que 0x4f2250 necesita para elegir la acción.
     const IModelLibrary& models;
-    // Item.bmd, para la matriz de armas de 0x4f2250; nullptr si no se cargó.
+    // Item.bmd, para la matriz de armas de 0x4f2250 y para 0x550d10; nullptr si no se cargó.
     const Data::Tables::ItemTable* items = nullptr;
+    // ItemSetType.bmd e ItemSetOption.bmd (0x40c600), para 0x40e1b0 desde 0x550d10; nullptr si no se
+    // cargaron: 0x550d10 corta en 0x40e1b0.
+    const Data::Tables::ItemSetTables* itemSetTables = nullptr;
     // Q-C144 avisa acá.
     Core::Log& log;
 };

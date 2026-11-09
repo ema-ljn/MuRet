@@ -2858,9 +2858,9 @@ fila 5 de la tabla de [La entrada al mundo](#la-entrada-al-mundo)), `0x5bc740` c
 
 En la respuesta del `F3 03` el héroe todavía no está en `0x743a170` (lo pone la fila 6), así que esa
 primera llamada no corre `0x505820`. MuRet (`Scenes::ApplyActorEquipment`) hace los pasos 1 a 9 y
-corta con un error explícito donde falta la lectura: `0x505820`, y adentro de `0x550d10`, en sus ocho
-helpers (`0x54efe0` y siguientes). El cierre del registro gasta los 3.848 `rand()` también cuando
-corta.
+corta con un error explícito donde falta la lectura: `0x505820`, y adentro de `0x550d10`, en
+`0x550990`, que lee lo que deja `0x505820` (abajo). El cierre del registro gasta los 3.848 `rand()`
+también cuando corta.
 
 ### Los stats del registro propio
 
@@ -2985,10 +2985,26 @@ MuRet (`Scenes::RecalculateOwnStats`) corre los pasos 1 a 6 en orden: `Recalcula
 original. Lo de `[0x6eed3c]` que dura de una llamada a otra es `Scenes::ItemSetState` (en
 `WorldState`): `+0x9307` y los nombres, y la lista de `+0x9348..+0x940b` como
 `Scenes::ItemSetOptionList`, la misma que reciben los helpers. El `+0x358` del héroe es
-`ActorState::byte358`. Sin las tablas o sin ese estado corta en el paso 1, antes de tocar nada; si
-no, corta en el paso 7 con un error que nombra los ocho helpers: están portados
-([abajo](#los-ocho-helpers-de-los-stats-propios)), pero `RecalculateOwnStats` todavía no los llama. La cola (paso 8) está portada aparte
-(`UpdateOwnDerivedStatsTail`).
+`ActorState::byte358`. Sin las tablas o sin ese estado corta en el paso 1, antes de tocar nada. Si
+no, sigue con los ocho helpers en su orden ([abajo](#los-ocho-helpers-de-los-stats-propios)) y la cola
+(paso 8, `UpdateOwnDerivedStatsTail`), con lo que `OwnStatsContext` trae para ellos: el ítem de
+`0x7879f80` (`held`, que por defecto no reemplaza nada) y lo de `0x505820` (`scan505820`).
+
+Lo de `0x505820` no se puede suponer al entrar al mundo. `[0x743a178]` y `[0x743a17c]` solo los
+escribe `0x505820` (`0x50584b`, `0x5058db`, `0x5058ea`, `0x5058fb` y `0x505ac3`; *estático*), y a `0x505820` la
+llaman `0x512a30` (`0x512ee7`) y el dibujo de los personajes, `0x50ba30` (`0x50c91e`, con el tipo
+`0x20a` y `+0x3e4` en 0), que llaman `0x4959d5`, `0x510ea1` y `0x63e637`. Si la selección dibuja sus
+personajes por ahí, el `F3 03` encuentra lo que dejó el último. Sin `0x505820` portado,
+`scan505820` queda vacío y `RecalculateOwnStats` corta en `0x550990` (`0x5512ac`), con los cinco
+helpers de antes hechos; con un valor, llega al final de la cola. En la entrada al mundo, con las
+tablas de los conjuntos cargadas, ese es hoy el corte.
+
+`[0x7879fbc]`, que decide si hay ítem en `0x7879f80`, está en la `.bss` (0 al arrancar) y fuera de
+`0x550d10` solo lo escriben `0x4d1c89` y `0x4d29cb` con un valor y varios sitios con 0 (*estático*):
+al entrar al mundo por primera vez vale 0, y `held` por defecto es eso. `+0xee2..+0xef2`, que lee la
+cola, se ponen en 0 en el login con el resto del registro (`0x4baf79..0x4bafc2`: `new(0xf08)` y
+`rep stos` de `0x3c2` DWORD) y nadie más los escribe por desplazamiento (P-C38 e): en MuRet quedan en
+0.
 
 ### Los ocho helpers de los stats propios
 

@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Render/ModelBatch.h"
 #include "Scenes/CharacterDrawing.h"
 #include "World/TerrainCulling.h"
 #include "World/ModelEffects.h"
 #include "World/Leaves.h"
+#include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
 #include "Render/Models/Cloth.h"
@@ -90,13 +92,16 @@ void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models,
 void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, const IModelLibrary& textures,
                       const Render::Models::OriginalMatrix& view);
 
-// 0x548550(0), en el mismo pase de ojo, después de los sprites: cada partícula viva que MuRet arma, con la
-// mezcla de World::ParticleDrawOf y el cuadrado de 0x621400 con el tamaño de su textura por la escala,
-// con la vista `view`. Los JPG son aditivos, salvo las nubes 0x622/10, sustractivas. Su rotación cambia
-// con `worldClock` en ms y el índice real del pool, incluidos los lugares apagados entre los vivos.
-// Sin el tamaño de la textura no se dibuja.
-void DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const IModelLibrary& textures,
-                   const Render::Models::OriginalMatrix& view, float worldClock = 0.0f);
+// 0x548550(0), en el mismo pase de ojo, después de los sprites: el contrato único de World::
+// DrawParticlesChecked, con los servicios de la escena (ParticleDrawServices) sobre el adaptador del lote
+// (Render::ModelBatchParticleBackend). Las dimensiones, el material y el color salen de la metadata de
+// `textures` (Recurso+20/+24/+28) y el binder, de su TextureSlotOf; el cuadrado de 0x621400, de la vista
+// `view`. La rotación de la neblina cambia con `worldClock` en ms y el índice real del pool. Un lugar
+// que falla corta el pase después de su prefijo, sin rollback: los anteriores quedan en el lote y el error
+// dice cuál fue.
+[[nodiscard]] Core::Expected<void, World::ParticleDrawingFailure>
+DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const IModelLibrary& textures,
+              const Render::Models::OriginalMatrix& view, float worldClock = 0.0f);
 
 // 0x5306a0, en el pase del mundo, después de los efectos con modelo: las hojas vivas, aditivas (en el mapa
 // 0x37, 0x620a90) y con el blanco de un solo glColor3f(1, 1, 1), cada una el cuadrado de LeafQuadOf

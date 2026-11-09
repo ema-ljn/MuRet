@@ -162,6 +162,25 @@ TEST_F(TextureMetadataTest, AnUploadFailureKeepsThePublishedPrefixAndContinuesAf
     EXPECT_EQ(m_store.attempted, expected);
 }
 
+// El binder de las partículas (0x620780) liga el slot que publicó la carga: el de la entrada, que es su
+// selector, solo si subió. Un upload que falló no lo publica aunque haya tocado la tabla.
+TEST_F(TextureMetadataTest, OnlyUploadedEffectsPublishTheSlotOfTheirSelector)
+{
+    m_store.blocked = std::uint16_t{0x5fd};
+    m_store.failAfterUpload = true;
+    Client::Scenes::GameModels models;
+    EXPECT_FALSE(models.TextureSlotOf(0x5ac).has_value()) << "antes de cargar";
+    ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());
+    const Client::Scenes::IModelLibrary& library = models;
+    EXPECT_EQ(library.TextureSlotOf(0x5ac), std::optional(Client::Render::TextureSlot{0x5ac}));
+    EXPECT_EQ(library.TextureSlotOf(0x622), std::optional(Client::Render::TextureSlot{0x622}));
+    EXPECT_FALSE(library.TextureSlotOf(0x5fd).has_value());
+    EXPECT_TRUE(m_store.stored.Find({0x5fd}).has_value());
+    EXPECT_FALSE(library.TextureSlotOf(0x100005acu).has_value());
+    EXPECT_FALSE(library.TextureSlotOf(0xffffffffu).has_value());
+    EXPECT_FALSE(library.TextureSlotOf(0x5d9).has_value());
+}
+
 TEST_F(TextureMetadataTest, ReloadFailureRetainsTheOldRowAndValueSnapshotsOutliveTheOwner)
 {
     std::optional<Client::Scenes::TextureMetadata> snapshot;

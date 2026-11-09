@@ -622,11 +622,16 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
     ASSERT_EQ(models.size(), 2u) << "el mundo y los sprites";
     // Cada sprite, dos triángulos; el lote junta los seguidos con el mismo estado. Los pares van con
     // int: armarlos desde los literales con std::uint16_t haría la conversión adentro de std::pair, y
-    // MSVC la avisa (C4242).
+    // MSVC la avisa (C4242). Solo los tramos que dibujan: las partículas publican antes de cada quad los
+    // efectos sin geometría de su material y su binder (0x620a90 y 0x620780), con la textura que estaba.
     constexpr std::size_t PerSprite = 6;
     std::vector<std::pair<int, int>> runs;
     for (const auto& command : models.back().modelCommands)
     {
+        if (command.operation != Client::Render::ModelStateOperation::Draw)
+        {
+            continue;
+        }
         ASSERT_TRUE(command.state.texture.has_value());
         EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
         runs.emplace_back(command.state.texture->value, static_cast<int>(command.vertexCount / PerSprite));
@@ -1192,7 +1197,10 @@ TEST_F(GoldenLoginWorld, TheRavenLeavesSparks)
         std::size_t sparks = 0;
         for (const auto& command : models.back().modelCommands)
         {
-            if (command.state.texture != TextureSlot{0x5c6})
+            // Los efectos sin geometría van con la textura que estaba ligada: una nube que sigue a una
+            // chispa cambia la mezcla (0x620b10) antes de ligar la suya (0x620780).
+            if (command.state.texture != TextureSlot{0x5c6} ||
+                command.operation != Client::Render::ModelStateOperation::Draw)
             {
                 continue;
             }

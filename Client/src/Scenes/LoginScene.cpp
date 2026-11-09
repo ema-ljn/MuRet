@@ -59,6 +59,7 @@
 #include "World/TerrainHeight.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
+#include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
@@ -78,6 +79,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -533,6 +535,7 @@ Core::Expected<void, std::string> LoginScene::PlaceTheModels()
     m_leaves.Clear();
     m_drawnSinceEntering = false;
     m_steppedSinceEntering = false;
+    m_particleFailureReported = false;
     m_scepterGlow = {};
     if (m_world && m_world->map == DragonMap)
     {
@@ -1006,7 +1009,11 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
         canvas.models.Begin(eye);
         DrawFrameSprites(canvas.models, m_sprites, m_models, Render::ViewRows(pass.view));
         const auto clock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
-        DrawParticles(canvas.models, m_particles, m_models, Render::ViewRows(pass.view), clock);
+        const auto particles = DrawParticles(canvas.models, m_particles, m_models, Render::ViewRows(pass.view), clock);
+        if (!particles.HasValue())
+        {
+            ReportParticleFailure(particles.Error());
+        }
         canvas.flushModels();
     }
     // 5: las dos arenas, aditivas.
@@ -1029,6 +1036,21 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     {
         UI::DrawGameCursor(sprites, *m_context.input, canvas.screen);
     }
+}
+
+void LoginScene::ReportParticleFailure(const World::ParticleDrawingFailure& failure)
+{
+    // El pase quedó cortado en ese lugar (sin rollback). Va una vez por entrada: el mismo corte se
+    // repite en cada frame.
+    if (m_particleFailureReported)
+    {
+        return;
+    }
+    m_particleFailureReported = true;
+    const std::error_code& backend = failure.error.backendError;
+    m_context.log.Error("el dibujo de las partículas (0x548550) se corta en el lugar {}: error {}, fase {}{}{}",
+                        failure.slot, static_cast<int>(failure.error.reason), static_cast<int>(failure.error.phase),
+                        backend ? ", " : "", backend ? backend.message() : std::string{});
 }
 
 DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)

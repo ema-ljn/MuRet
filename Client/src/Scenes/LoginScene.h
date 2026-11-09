@@ -27,6 +27,7 @@
 #include "World/TerrainLighting.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
+#include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include "World/ScepterGlow.h"
 #include "World/Sprites.h"
@@ -162,6 +163,8 @@ private:
     void DrawTheModels(SceneCanvas& canvas, float alpha);
     // 0x4182f0: el cuervo, si pasa el trapecio (si no, MissTheView), y su pose para la chispa.
     void DrawTheRaven(SceneCanvas& canvas, float alpha);
+    // El corte del pase de partículas, en el log: una vez por entrada.
+    void ReportParticleFailure(const World::ParticleDrawingFailure& failure);
     // La luz del terreno en (x, y), o 0 sin la del mundo.
     [[nodiscard]] glm::vec3 TerrainLightAt(const glm::vec3& position) const;
     void DrawTexts(SceneCanvas& canvas) const;
@@ -226,6 +229,8 @@ private:
     bool m_drawnSinceEntering = false;
     // Si ya corrió un paso desde que se entró: antes, 0x6350b0 no dibuja (0x7d3a13d, que prende el paso).
     bool m_steppedSinceEntering = false;
+    // Si el pase de partículas ya se cortó (y se dijo en el log) desde que se entró.
+    bool m_particleFailureReported = false;
     // El sorteo del brillo del cetro entre frames (World::ScepterGlowCarry): una vez por frame del original.
     World::ScepterGlowCarry m_scepterGlow;
     // El logo: su modelo, los slots de sus mallas desde donde terminó el mundo y sus texturas.

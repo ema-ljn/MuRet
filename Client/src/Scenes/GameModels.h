@@ -49,6 +49,9 @@ public:
     [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
     [[nodiscard]] std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
+    // El slot de las de EffectTextureSet que subió: cada una va al de su entrada, que es su selector
+    // (0x61ccb0 las sube en esos índices de la tabla). Es lo que 0x620780 liga para las partículas.
+    [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     // El de las de EffectTextureSet que subió.
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
 

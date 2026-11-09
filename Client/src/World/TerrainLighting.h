@@ -45,8 +45,14 @@ struct TerrainLighting
 [[nodiscard]] Core::Expected<std::unique_ptr<TerrainLighting>, std::string>
 LoadTerrainLighting(const std::filesystem::path& dataRoot, std::uint8_t map);
 
-// 0x5f99e0: la luz en (x, y) del mundo, entre las cuatro celdas de alrededor. La celda es x · 0,01
-// truncado (de −1 a 0 todavía es la 0, y sale de la grilla de afuera para adentro); fuera de las
-// celdas 0 a 254 en x o en y, (0, 0, 0).
+// 0x5f99e0, núcleo sobre una tabla explícita y estable: escala x/y por 0,01f y guarda F32;
+// convierte ambos a signed64 truncado y conserva low32 firmado, en orden X/Y. Un low32 fuera
+// de [0,254] provoca rechazo con RGB +0; en la banda ordinaria acepta −1 < coordenada escalada < 255, y también
+// coordenadas grandes cuyo low32 pasa. Invalid enmascarada proyecta 0 y sigue interpolando.
+// Perfil portable elegido: binary32/binary64, PC53/RN, sin FMA; pesos y columnas quedan en double,
+// primero Y y después X, hasta el store F32 por canal. No fija el CW nativo ni reproduce flags,
+// traps o payloads NaN de x87, ni promete equivalencia para otros PC/RC o su stack anidado.
+// Devuelve un valor: no modela out3 aliasando tabla/stack ni interferencias entre canales. Los
+// guards de globals del original pertenecen al binding; esta API no recibe esos globals.
 [[nodiscard]] glm::vec3 LightAt(const TerrainLighting& lighting, float x, float y);
 } // namespace Client::World

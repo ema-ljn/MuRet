@@ -2,6 +2,7 @@
 
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
+#include "World/Ftol.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -63,19 +64,6 @@ constexpr float WindLimit = 1.7f;
 float F32(double value)
 {
     return static_cast<float>(value);
-}
-
-// 0x69fd3c (_ftol): fistp de 64 bits truncando y la parte baja en eax. Con un NaN o fuera de rango, la x87
-// guarda 0x8000000000000000 y eax queda en 0.
-std::int32_t FtolLow(float value)
-{
-    constexpr float Limit = 9.2233720368547758e18f;
-    if (std::isnan(value) || value >= Limit || value < -Limit)
-    {
-        return 0;
-    }
-    const auto whole = static_cast<std::int64_t>(value);
-    return static_cast<std::int32_t>(static_cast<std::uint32_t>(static_cast<std::uint64_t>(whole)));
 }
 
 // El tope de 0x544730..0x544773 (y de 0x54479a..0x5447de), con las comparaciones de la x87: si no es

@@ -30,22 +30,32 @@ Core::Expected<void, std::error_code> StepLeafWeatherWaves(LeafWeather& weather,
                                                            ILeafWaveEvaluator* evaluator)
 {
     if (evaluator == nullptr)
+    {
         return Core::Unexpected(std::make_error_code(std::errc::function_not_supported));
+    }
     const auto firstSine = evaluator->Evaluate(LeafWave::First, time);
     if (!firstSine.HasValue())
+    {
         return Core::Unexpected(firstSine.Error());
+    }
     const auto first = evaluator->Truncate();
     if (!first.HasValue())
+    {
         return Core::Unexpected(first.Error());
+    }
     // T2 se relee después de H1. W debe ser visible en H2, pero todavía no en E2.
     const auto secondSine = evaluator->Evaluate(LeafWave::Second, time);
     if (!secondSine.HasValue())
+    {
         return Core::Unexpected(secondSine.Error());
+    }
     const std::uint32_t firstBits = (static_cast<std::uint32_t>(first.Value()) + FirstWaveOffset) * FirstWaveScale;
     weather.firstWave = std::bit_cast<std::int32_t>(firstBits);
     const auto second = evaluator->Truncate();
     if (!second.HasValue())
+    {
         return Core::Unexpected(second.Error());
+    }
     const std::uint32_t secondBits = static_cast<std::uint32_t>(second.Value()) * SecondWaveScale;
     weather.secondWave = std::bit_cast<std::int32_t>(secondBits);
     AdvancePhase(weather);

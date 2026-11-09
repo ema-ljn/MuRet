@@ -2,7 +2,8 @@
 
 - **Estado:** aceptado. Lo decidió Emanuel el 2026-11-09: el modelo portable y documentado (phi64
   es el atan64 bien redondeado, no FPATAN) y una aritmética propia en lugar de Boost.Multiprecision.
-  La validación MSVC x64 Release del CI y la revisión del PR siguen pendientes antes del merge.
+  Pasó el CI completo (incluido el paso MSVC x64 Release de matemática) y entró a `main` con
+  [PR184](https://github.com/ema-ljn/MuRet/pull/184) (`7d21bbc`).
 - **Fecha:** 2026-11-08; actualizado el 2026-11-09 (sin Boost.Multiprecision).
 - **Alcance:** CL7, producto de `CreateAngle` y preparación numérica privada de dos senos Wave.
 

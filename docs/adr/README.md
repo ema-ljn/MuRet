@@ -61,10 +61,6 @@ Los ADR que siguieron al 0008, todos de la CL7. Título y estado, como los dice 
 | [0012](0012-perfil-fp-del-movimiento-original.md) | Perfil FP explícito para el movimiento del cliente original | adoptado para el port de valores; validación de sesión XP pendiente (2026-11-07) |
 | [0014](0014-perfil-matematico-retenido.md) | Perfil matemático retenido de CreateAngle y las hojas Wave | aceptado; lo decidió Emanuel el 2026-11-09: el modelo portable y documentado (phi64 es el atan64 bien redondeado, no FPATAN) y una aritmética propia en lugar de Boost.Multiprecision |
 
-El estado del 0014 dice además que la validación MSVC x64 Release del CI y la revisión del PR siguen
-pendientes antes del merge. Ese texto es de antes de que el ADR entrara a `main` con
-[PR184](https://github.com/ema-ljn/MuRet/pull/184), y el archivo no cambió después.
-
 ## Las otras filas de diseño
 
 Las otras filas de clase *diseño* del 07 son Q-C13, Q-C34, Q-C46, Q-C47, Q-C49, Q-C50, Q-C54,

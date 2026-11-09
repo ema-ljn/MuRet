@@ -62,6 +62,12 @@ public:
     void Create(FrameSprites& sprites, const Render::Models::OriginalMatrix& bone, float bodyScale,
                 const glm::vec3& bodyOrigin, Render::Models::CrtRandom& random, Core::Duration clock,
                 Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock);
+    // Create vuelve a contar desde cero, como en el primer frame: el próximo sortea un frame y no pone al día el
+    // tiempo que pasó sin dibujo. Es para un frame retenido (Q-C85), como la tela.
+    void RestartTheClock()
+    {
+        m_frames = {};
+    }
 
 private:
     Render::Models::OriginalFrameCarry m_frames;

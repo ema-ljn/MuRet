@@ -43,9 +43,9 @@ struct OwnCharacterRecord
     // bytes del paquete; MuRet los deja en 0 y lo avisa en `log`.
     void ApplyStats(const Protocol::Character::CharacterSelectResult& reply, Core::Log& log);
 
-    // 0x4c3940, fila 7: el tipo de los doce lugares en −1, porque el equipo lo trae el F3 10.
-    // Frontera: 06 da solo el tipo. Si el original escribe algo más en cada lugar no está leído, y
-    // MuRet no lo inventa: el resto de cada ItemState queda como estaba.
+    // 0x4c3940, fila 7 (0x4c47c8..0x4c47da): en los doce lugares, el tipo en −1, el dword de +4
+    // (scalar1Low) y el byte de +0x1b (flags1b) en 0, porque el equipo lo trae el F3 10. El resto de
+    // cada ItemState queda como estaba, como en el original.
     void ClearEquipmentForEntry();
 
     // Frontera explícita del F3 10 (0x4c55a0). 04 ("El F3 10") dice que hace una inicialización

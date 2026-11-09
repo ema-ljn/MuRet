@@ -42,9 +42,13 @@ void OwnCharacterRecord::ApplyStats(const Protocol::Character::CharacterSelectRe
 
 void OwnCharacterRecord::ClearEquipmentForEntry()
 {
+    // 0x4c47c8..0x4c47da, de a 0x48 desde +0xb70: [eax−4] = bx (−1 desde 0x4c47a8), [eax] = 0 y
+    // [eax+0x17] = 0.
     for (World::ItemState& item : equipment)
     {
         item.id = EmptyOwnItemId;
+        item.scalar1Low = 0;
+        item.flags1b = 0;
     }
 }
 

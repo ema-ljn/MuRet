@@ -28,10 +28,14 @@ void DressWithOldTypes(OwnCharacterRecord& own)
     for (std::size_t slot = 0; slot < own.equipment.size(); ++slot)
     {
         own.equipment[slot].id = OldTypeOf(slot);
+        own.equipment[slot].scalar1Low = 0x78;
+        own.equipment[slot].flags1b = 0x5a;
+        own.equipment[slot].flags1c = 0x3c;
+        own.equipment[slot].durability = 0x2d;
     }
 }
 
-TEST(OwnCharacterRecordTest, TheEntryClearPutsTheTypeOfTheTwelveSlotsAtMinusOne)
+TEST(OwnCharacterRecordTest, TheEntryClearEmptiesTypeLevelAndFlags1bOfTheTwelveSlots)
 {
     OwnCharacterRecord own;
     // WinMain llena de ceros el registro (04, 0x4bafbc..0x4bafc2): el tipo arranca en 0, no en −1.
@@ -43,12 +47,16 @@ TEST(OwnCharacterRecordTest, TheEntryClearPutsTheTypeOfTheTwelveSlotsAtMinusOne)
 
     own.ClearEquipmentForEntry();
 
-    // 06, fila 7 de 0x4c3940. Fuera del tipo no se afirma nada: qué más escribe el original en cada
-    // lugar no está en el research.
+    // 06, fila 7 de 0x4c3940 (0x4c47c8..0x4c47da): el tipo en −1, el dword de +4 y el byte de +0x1b
+    // en 0. El loop no toca nada más del lugar.
     ASSERT_EQ(own.equipment.size(), 12u);
     for (const Client::World::ItemState& item : own.equipment)
     {
         EXPECT_EQ(item.id, 0xffff);
+        EXPECT_EQ(item.scalar1Low, 0u);
+        EXPECT_EQ(item.flags1b, 0);
+        EXPECT_EQ(item.flags1c, 0x3c);
+        EXPECT_EQ(item.durability, 0x2d);
     }
 }
 

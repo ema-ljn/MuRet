@@ -18,7 +18,6 @@ namespace Client::Scenes
 {
 namespace
 {
-constexpr std::uint16_t HeightOffsetPet = 0x1c15;
 constexpr std::uint16_t SafeAttribute = 1;
 constexpr double PetHeightOffset = 30.0;      // 0x6b8858
 constexpr double LargePetHeightOffset = 90.0; // 0x6b8948

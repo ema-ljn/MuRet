@@ -8,6 +8,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldMap.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"

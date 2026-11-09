@@ -2,6 +2,7 @@
 
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"

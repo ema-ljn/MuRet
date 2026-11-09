@@ -4,6 +4,7 @@
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "App/WorldEvent.h"
+#include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Character/CharacterSelectResult.h"

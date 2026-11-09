@@ -17,7 +17,8 @@ namespace
 {
 using Metadata = std::span<const std::byte, Data::Tables::ItemRecordSize>;
 
-// Los offsets y literales de estas fases son los del contrato cerrado 0x54bf40 (CL7/L1).
+// Los offsets y literales de estas fases son los de 0x54bf40 (CL7.L3); su contrato todavía no está
+// documentado en el research (P-C36 del 08).
 constexpr std::uint32_t LowLevelMaximum = 9;
 constexpr std::uint32_t FirstTableLevel = 10;
 constexpr std::array<std::uint32_t, 4> LevelBonuses{4, 9, 15, 22};

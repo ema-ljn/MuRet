@@ -3,13 +3,22 @@
 Lo leen y actualizan el estilo `Tutor MuRet` y el subagente `muret-reviewer`. El comando `/tutor`
 solo lo lee.
 
+## La CL7 al 2026-11-09
+
+`main` está en `7d21bbc`, con PR184. Hay muchos componentes puros (movimiento, luz, objetos, ítems,
+aves, peces y partículas), pero el mundo todavía no se puede entrar: `GameScene::Render` está vacío y
+la sesión no tiene `InWorld`. El hito 1 se parte en PR chicos (T1 `InWorld`, T2 `LogicalAccess`, T3
+`OwnCharacterRecord`, ...), y Devias es el segundo mapa de referencia. El detalle está en el
+[plan](../superpowers/plans/2026-11-05-ola-cl7-lorencia.md#orden-y-hitos).
+
 ## CL7.3 A: la cámara de Lorencia (2026-11-05)
 
 Resuelta por Codex por pedido de Emanuel: `OriginalVectorIRotate`, `GameCamera` y la cámara
 calculada desde el héroe, con 3.000 frames emulados bit a bit y los golden del pase y el recorte.
 Revisión cruzada de Astra 6 Ultra y Opus 5.5; los hallazgos y los límites numéricos quedan en el
 [plan](../superpowers/plans/2026-11-05-ola-cl7-lorencia.md#sub-ola-cl73-a-la-cámara-del-juego).
-La integración compartida en las escenas sigue en CL7.3 B.
+La integración compartida en las escenas llegó después, con la CL7.3 B
+([PR141](https://github.com/ema-ljn/MuRet/pull/141), 2026-11-06).
 
 Para explicar: por qué el orden de sumas y cada almacenamiento en float afectan los bits; por
 qué la cámara usa la distancia anterior al suavizado; cómo dibujar desde el héroe actual sin

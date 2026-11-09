@@ -99,6 +99,9 @@ struct Stage
     std::map<SceneId, int> prepared;
     // La escena cuyo Enter falla.
     std::optional<SceneId> failingEnter;
+    // Las escenas que fallan en su paso o en su dibujo (IScene::Failure), con el error.
+    std::map<SceneId, std::string> failingStep;
+    std::map<SceneId, std::string> failingRender;
     // Los slots que sube cada escena al entrar y suelta al salir, como sus juegos de texturas.
     std::map<SceneId, std::vector<std::uint16_t>> slots;
     FakeTextureStore textures;
@@ -138,6 +141,10 @@ public:
     void Step(const InputState&) override
     {
         Note("step");
+        if (const auto found = m_stage.failingStep.find(m_id); found != m_stage.failingStep.end())
+        {
+            m_failure = found->second;
+        }
     }
 
     void Render(SceneCanvas& canvas, float alpha) override
@@ -145,6 +152,15 @@ public:
         Note("render");
         m_stage.draws.push_back(SceneDraw{
             .scene = m_id, .clock = canvas.frameClock, .alpha = alpha, .frameOpen = m_stage.target.FrameOpen()});
+        if (const auto found = m_stage.failingRender.find(m_id); found != m_stage.failingRender.end())
+        {
+            m_failure = found->second;
+        }
+    }
+
+    [[nodiscard]] std::optional<std::string> Failure() const override
+    {
+        return m_failure;
     }
 
     void Leave() override
@@ -199,6 +215,7 @@ private:
 
     SceneId m_id;
     Stage& m_stage;
+    std::optional<std::string> m_failure;
 };
 
 // El SceneManager con las escenas de prueba, el reloj falso, el lienzo que anota y un log que
@@ -563,6 +580,51 @@ TEST(SceneManagerTest, AFailedEnterStopsWithItsError)
     EXPECT_TRUE(tested.stage.target.frames.empty());
 }
 
+// Una escena que corta en su dibujo (el juego en una etapa que MuRet no tiene, IScene::Failure): el
+// error queda en Failure y en el log una vez, el frame cortado no se presenta, retiene y nada vuelve a
+// correr; la escena sigue siendo la de ahora y hace su Leave al cerrar.
+TEST(SceneManagerTest, ARenderFailureStopsTheSceneWithoutPresenting)
+{
+    Harness tested;
+    tested.stage.failingRender[SceneId::Loading] = "0x5fc353: falta el pasto";
+    ASSERT_TRUE(tested.manager.Start(SceneId::Loading).HasValue());
+    tested.stage.next[SceneId::Loading] = SceneId::Login;
+
+    tested.manager.Render(0.0f);
+
+    ASSERT_EQ(tested.manager.Failure(), std::optional<std::string>("0x5fc353: falta el pasto"));
+    EXPECT_EQ(tested.manager.Current(), SceneId::Loading);
+    ASSERT_EQ(tested.stage.target.frames.size(), 1u);
+    EXPECT_FALSE(tested.stage.target.frames[0].presented);
+    const std::vector<std::string> errors = tested.Lines(LogLevel::Error);
+    ASSERT_EQ(errors.size(), 1u);
+    EXPECT_TRUE(Contains(errors[0], "0x5fc353")) << errors[0];
+    EXPECT_TRUE(tested.manager.HoldsTheLastFrame());
+
+    tested.manager.Step(tested.input);
+    tested.manager.Render(0.0f);
+    EXPECT_EQ(tested.stage.journal, (std::vector<std::string>{"enter Loading", "render Loading"}));
+    EXPECT_EQ(tested.stage.target.frames.size(), 1u);
+}
+
+// Lo mismo en el paso: el pedido de otra escena de ese paso no se mira.
+TEST(SceneManagerTest, AStepFailureStopsTheSceneBeforeItsRequest)
+{
+    Harness tested;
+    tested.stage.failingStep[SceneId::Loading] = "0x636290: falta algo";
+    ASSERT_TRUE(tested.manager.Start(SceneId::Loading).HasValue());
+    tested.stage.next[SceneId::Loading] = SceneId::Login;
+
+    tested.manager.Step(tested.input);
+    tested.manager.Render(0.0f);
+
+    ASSERT_EQ(tested.manager.Failure(), std::optional<std::string>("0x636290: falta algo"));
+    EXPECT_EQ(tested.manager.Current(), SceneId::Loading);
+    EXPECT_EQ(tested.stage.journal, (std::vector<std::string>{"enter Loading", "step Loading"}));
+    EXPECT_TRUE(tested.stage.target.frames.empty());
+    EXPECT_FALSE(tested.manager.TakeTheSceneChange());
+}
+
 // Un error de Enter no corta la sesión independiente mientras el host decide reintentar.
 TEST(SceneManagerTest, PollContinuesAfterFailedEnterAndAnEnterRetryStillSucceeds)
 {
@@ -857,8 +919,9 @@ TEST(SceneManagerTest, PreparesTheFrameOncePerFrame)
 
 // 06, "La entrada al mundo", pasos 2 a 6, con las escenas de verdad: la carga del mundo presenta el
 // mosaico y pide el juego, que retiene el frame mientras el contador pase de 30. Con 31 sigue el
-// mosaico; con los 30 de la respuesta del F3 03 (0x4c48eb) el juego presenta. No fija cuántos pasos
-// corren antes (P-C28 b).
+// mosaico; con los 30 de la respuesta del F3 03 (0x4c48eb) el juego empieza su frame, que acá, sin el
+// mapa que carga esa respuesta, corta (0x6371a0) sin presentar. No fija cuántos pasos corren antes
+// (P-C28 b).
 TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
 {
     Client::Tests::TemporaryFolder folder("scene-manager-world-wait");
@@ -918,6 +981,8 @@ TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
     draw();
 
     ASSERT_EQ(target.frames.size(), 2u);
-    EXPECT_TRUE(target.frames[1].presented);
+    EXPECT_FALSE(target.frames[1].presented);
+    ASSERT_TRUE(manager.Failure().has_value());
+    EXPECT_TRUE(Contains(*manager.Failure(), "0x6371a0")) << *manager.Failure();
 }
 } // namespace

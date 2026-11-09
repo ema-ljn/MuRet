@@ -51,5 +51,13 @@ public:
     // SceneManager avisa cuando su consulta HoldsTheLastFrame devuelve true. El aviso puede repetirse
     // y debe ser idempotente. Por defecto, nada.
     virtual void OnFrameHeld() {}
+    // Lo que el original corre en el paso o en el dibujo y la escena no tiene, con la dirección: el
+    // juego que llega a una etapa de su dibujo que MuRet no porta (GameScene). SceneManager lo mira
+    // después de cada Step y de cada Render, lo guarda como su Failure y main.cpp cierra con el error.
+    // Por defecto, ninguno.
+    [[nodiscard]] virtual std::optional<std::string> Failure() const
+    {
+        return std::nullopt;
+    }
 };
 } // namespace Client::Scenes

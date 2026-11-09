@@ -40,6 +40,11 @@ struct GameCameraInput
     glm::vec3 effectTarget{};
 };
 
+// 0x44dc60: el punto que sigue la cámara y que el dibujo del juego pasa a 0x5fbb00 como centro del
+// trapecio (0x637316): el desvío de 0x724588 si alguna componente es ordenada y distinta de cero; si no,
+// el héroe.
+[[nodiscard]] glm::vec3 CameraTargetOf(const GameCameraInput& input);
+
 // 0x635ae0: un frame original dibujado, con el héroe del último paso lógico.
 [[nodiscard]] Render::Camera3D StepGameCamera(GameCamera& state, const GameCameraInput& input);
 

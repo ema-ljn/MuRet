@@ -8,16 +8,23 @@
 #include "Core/Log.h"
 #include "Input/InputState.h"
 #include "Network/PacketSerials.h"
+#include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/MapLoad.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/GameCamera.h"
+#include "World/TerrainCells.h"
 
 #include "support/AppPrinters.h"
 #include "support/Bytes.h"
 #include "support/FakeTextureStore.h"
+#include "support/GoldenDir.h"
+#include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/ScenePrinters.h"
 #include "support/SessionHarness.h"
@@ -26,13 +33,18 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <bit>
+#include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 
-// Client::Scenes::GameScene: la escena 5 mientras espera el mundo. Manda el F3 03 en su primer paso
-// (0x636290), baja el contador de la espera como MoveHero (0x59af01) y retiene el frame mientras pase
-// de 30 (0x6371a0). 06 § La entrada al mundo, § El paso del juego y § El dibujo del juego.
+// Client::Scenes::GameScene: la escena 5 mientras espera el mundo y con el mundo. Manda el F3 03 en su
+// primer paso (0x636290), baja el contador de la espera como MoveHero (0x59af01) y retiene el frame
+// mientras pase de 30 (0x6371a0); después dibuja hasta la primera etapa que MuRet no tiene y corta ahí.
+// 06 § La entrada al mundo, § El paso del juego y § El dibujo del juego.
 // Ningún test fija cuántos pasos corren durante la espera: los gates de MoveHero que MuRet no tiene
 // todavía la cortan antes del contador (P-C28 b).
 namespace
@@ -342,5 +354,218 @@ TEST(GameSceneTest, TheWorldStateTurnsTheDrawingOn)
     EXPECT_TRUE(tested.Runtime().drawingEnabled);
     EXPECT_EQ(tested.Runtime().warpCounter, 30);
     EXPECT_FALSE(tested.scene.HoldsTheLastFrame());
+}
+
+// 0x636dc2..0x636ddb: con el mundo cargado, cada paso deja el temblor de la cámara en su 0,2 (0x6b8854),
+// en float; sin el mundo cargado el paso sale antes y no lo toca.
+TEST(GameSceneTest, AStepWithTheWorldLeavesAFifthOfTheShake)
+{
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+    FakeTextureStore store;
+    ClothWorld cloth{.random = CrtRandom(Seed)};
+    WorldState world;
+    Client::World::GameCameraInput cameraInput;
+    GameScene scene(SceneContext{.dataRoot = {},
+                                 .textures = store,
+                                 .log = log,
+                                 .cloth = &cloth,
+                                 .cameraInput = &cameraInput,
+                                 .world = &world},
+                    nullptr);
+    ASSERT_TRUE(scene.Enter().HasValue());
+    cameraInput.shake = 3.0f;
+    scene.Step(Client::Input::InputState{});
+    EXPECT_EQ(cameraInput.shake, 3.0f) << "sin el mundo cargado, 0x636dbc sale antes";
+
+    world.Runtime().drawingEnabled = true;
+    world.Runtime().warpCounter = WorldLoadingWait;
+    const auto decay = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
+    scene.Step(Client::Input::InputState{});
+    const auto once = static_cast<float>(3.0 * decay);
+    EXPECT_EQ(cameraInput.shake, once);
+    scene.Step(Client::Input::InputState{});
+    EXPECT_EQ(cameraInput.shake, static_cast<float>(static_cast<double>(once) * decay));
+}
+
+// Con el frame retenido el dibujo no dibuja ni corta: solo queda el cierre de 0x637229.
+TEST(GameSceneTest, AHeldFrameDrawsNothing)
+{
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+    Harness tested(log);
+    tested.Runtime().drawingEnabled = true;
+    tested.Runtime().warpCounter = WaitDrawThreshold + 1;
+    ASSERT_TRUE(tested.scene.Enter().HasValue());
+    Client::Tests::RecordingFrameTarget target;
+
+    tested.scene.PrepareFrame();
+    tested.scene.Render(target.BeginFrame(Client::Core::Duration{}), 0.0f);
+    target.Present();
+
+    ASSERT_EQ(target.frames.size(), 1u);
+    EXPECT_TRUE(target.frames[0].events.empty());
+    EXPECT_EQ(tested.scene.Failure(), std::nullopt);
+    EXPECT_FALSE(tested.scene.MouseRay().has_value());
+    EXPECT_EQ(tested.cloth.random.State(), RandomAfter(4).State());
+}
+
+// El dibujo del juego con un mapa cargado de la Data del repo (0x61a560, MapLoad) y el héroe publicado
+// en su celda, sin pasar por el F3 03.
+class GameSceneDrawTest : public Client::Tests::GoldenDataTest
+{
+protected:
+    // El mapa `map` cargado en el juego y el héroe en el lugar HeroSlot, en la celda (x, y), publicado,
+    // con la cámara de arranque y el rand() en la semilla.
+    void Prepare(std::uint8_t map, std::uint8_t x, std::uint8_t y)
+    {
+        world.Runtime().map = map;
+        const auto loaded = Client::Scenes::LoadMap(map, Client::Scenes::MapLoadContext{.dataRoot = m_dataRoot,
+                                                                                        .world = world,
+                                                                                        .scene = SceneId::Game,
+                                                                                        .playerKey = 5,
+                                                                                        .random = cloth.random});
+        ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+        Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
+        hero.alive = true;
+        hero.cellX = x;
+        hero.cellY = y;
+        hero.position = {(static_cast<float>(x) * 100.0f) + 50.0f, (static_cast<float>(y) * 100.0f) + 50.0f, 165.0f};
+        world.Runtime().heroSlot = static_cast<std::int32_t>(HeroSlot);
+        world.Runtime().hero = HeroSlot;
+        world.Runtime().drawingEnabled = true;
+        world.Runtime().warpCounter = WaitDrawThreshold;
+        camera = Client::World::GameCamera{};
+        cameraInput = Client::World::GameCameraInput{};
+        cloth.random = CrtRandom(Seed);
+    }
+
+    [[nodiscard]] GameScene Scene()
+    {
+        return GameScene(SceneContext{.dataRoot = m_dataRoot,
+                                      .textures = store,
+                                      .log = log,
+                                      .cloth = &cloth,
+                                      .camera = &camera,
+                                      .cameraInput = &cameraInput,
+                                      .world = &world},
+                         nullptr);
+    }
+
+    static constexpr std::size_t HeroSlot = 42;
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+    FakeTextureStore store;
+    ClothWorld cloth{.random = CrtRandom(Seed)};
+    WorldState world;
+    Client::World::GameCamera camera;
+    Client::World::GameCameraInput cameraInput;
+};
+
+// El fin del pase de los modelos del frame, si lo hubo (uno solo).
+const Client::Tests::FrameEvent* ModelsOf(const Client::Tests::RecordedFrame& frame)
+{
+    const Client::Tests::FrameEvent* models = nullptr;
+    for (const Client::Tests::FrameEvent& event : frame.events)
+    {
+        if (event.kind == Client::Tests::FrameEvent::Kind::Models)
+        {
+            EXPECT_EQ(models, nullptr) << "un solo pase de modelos";
+            models = &event;
+        }
+    }
+    return models;
+}
+
+// 0x63723a..0x6374c6 en Lorencia (el 0) y Devias (el 2), los mapas de referencia: la cámara con los dos
+// accesos a la celda del héroe (8 rand() después de los 4 de 0x637229), el rayo del mouse, el primer
+// pase del terreno (las celdas, con los tiles de 0x23 a 0x30 y el 0x122) y el corte en el pase del pasto
+// (0x5fc353), que MuRet no tiene. El frame cortado no se presenta y el dibujo no vuelve a correr.
+TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainAndStopAtTheGrass)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint8_t x;
+        std::uint8_t y;
+    };
+    for (const Case& probe : {Case{0, 143, 120}, Case{2, 220, 30}})
+    {
+        SCOPED_TRACE(static_cast<int>(probe.map));
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+        GameScene scene = Scene();
+        ASSERT_TRUE(scene.Enter().HasValue());
+        Client::Tests::RecordingFrameTarget target;
+
+        scene.PrepareFrame();
+        ASSERT_FALSE(scene.HoldsTheLastFrame());
+        scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
+
+        ASSERT_TRUE(scene.Failure().has_value());
+        EXPECT_NE(scene.Failure()->find("0x5fc353"), std::string::npos) << *scene.Failure();
+        ASSERT_EQ(target.frames.size(), 1u);
+        const Client::Tests::FrameEvent* models = ModelsOf(target.frames[0]);
+        ASSERT_NE(models, nullptr);
+        EXPECT_FALSE(models->modelVertices.empty());
+        for (const Client::Render::ModelDrawCommand& command : models->modelCommands)
+        {
+            ASSERT_TRUE(command.state.texture.has_value());
+            const std::uint16_t slot = command.state.texture->value;
+            EXPECT_TRUE((slot >= Client::World::FirstTileSlot && slot < Client::World::FirstTileSlot + 14) ||
+                        slot == 0x122)
+                << slot;
+        }
+        EXPECT_TRUE(scene.MouseRay().has_value());
+        EXPECT_EQ(cameraInput.hero, world.Actors()[HeroSlot].position);
+        EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8).State());
+        EXPECT_NE(std::ranges::find(store.loaded, Client::World::FirstTileSlot), store.loaded.end());
+        EXPECT_NE(std::ranges::find(store.loaded, std::uint16_t{0x122}), store.loaded.end());
+
+        target.Present();
+        scene.Render(target.BeginFrame({}), 0.0f);
+        target.Present();
+        EXPECT_TRUE(target.frames.back().events.empty()) << "cortado, no vuelve a dibujar";
+        EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8).State());
+        scene.Leave();
+        EXPECT_EQ(store.Size(), 0u) << "Leave suelta los tiles";
+    }
+}
+
+// Los otros mapas que carga el juego cortan antes del pasto: el 6 en la cámara (0x576960 con el nombre
+// del héroe), antes de los accesos; el 7 en su agua (0x5fa4b0) y el 10, que no tiene terreno, en los
+// objetos (0x6046a0), los dos ya en el pase del mundo y sin una celda.
+TEST_F(GameSceneDrawTest, TheOtherMapsStopWhereTheyDiffer)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::string_view frontier;
+        int draws;
+        bool worldPass;
+    };
+    for (const Case& probe :
+         {Case{6, "0x635b5c", 4, false}, Case{7, "0x5fa985", 4 + 8, true}, Case{10, "0x6374ce", 4 + 8, true}})
+    {
+        SCOPED_TRACE(static_cast<int>(probe.map));
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, 128, 128));
+        GameScene scene = Scene();
+        ASSERT_TRUE(scene.Enter().HasValue());
+        Client::Tests::RecordingFrameTarget target;
+
+        scene.PrepareFrame();
+        scene.Render(target.BeginFrame({}), 0.0f);
+
+        ASSERT_TRUE(scene.Failure().has_value());
+        EXPECT_NE(scene.Failure()->find(probe.frontier), std::string::npos) << *scene.Failure();
+        const Client::Tests::FrameEvent* models = ModelsOf(target.frames[0]);
+        EXPECT_EQ(models != nullptr, probe.worldPass);
+        if (models != nullptr)
+        {
+            EXPECT_TRUE(models->modelVertices.empty());
+        }
+        EXPECT_EQ(scene.MouseRay().has_value(), probe.worldPass);
+        EXPECT_EQ(cloth.random.State(), RandomAfter(probe.draws).State());
+        scene.Leave();
+    }
 }
 } // namespace

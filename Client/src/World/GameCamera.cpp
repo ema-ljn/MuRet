@@ -131,9 +131,7 @@ Render::Camera3D NormalCamera(float distance, float yaw, float farPlane, float z
     camera.angles.z = yaw;
     camera.farPlane = farPlane;
     const glm::vec3 offset = Offset(-distance, yaw);
-    const bool hasEffectTarget = IsOrderedNonZero(input.effectTarget.x) || IsOrderedNonZero(input.effectTarget.y) ||
-                                 IsOrderedNonZero(input.effectTarget.z);
-    camera.position = Add(offset, hasEffectTarget ? input.effectTarget : input.hero);
+    camera.position = Add(offset, CameraTargetOf(input));
     float baseHeight = input.map == CastleMap ? CastleHeight : input.hero.z;
     if ((input.cellAttribute & FixedHeightAttribute) != 0)
     {
@@ -187,6 +185,13 @@ void FinishFrame(GameCamera& state, const GameCameraInput& input)
                          static_cast<double>(state.distance));
 }
 } // namespace
+
+glm::vec3 CameraTargetOf(const GameCameraInput& input)
+{
+    const bool hasEffectTarget = IsOrderedNonZero(input.effectTarget.x) || IsOrderedNonZero(input.effectTarget.y) ||
+                                 IsOrderedNonZero(input.effectTarget.z);
+    return hasEffectTarget ? input.effectTarget : input.hero;
+}
 
 Render::Camera3D StepGameCamera(GameCamera& state, const GameCameraInput& input)
 {

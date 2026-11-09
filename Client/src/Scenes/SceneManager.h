@@ -18,7 +18,9 @@
 // cambia solo por una transición de la tabla del original (SceneTransitions.h). Cambiar es Leave de
 // la que sale, la fábrica arma la nueva y su Enter; un Enter que falla deja el SceneManager sin
 // escena, con el error en Failure, para que main.cpp cierre, y la escena que falló hace su Leave,
-// que suelta lo que alcanzó a subir. Al destruirse, la escena de ahora hace su Leave.
+// que suelta lo que alcanzó a subir. Una escena que falla en su paso o en su dibujo (IScene::Failure)
+// queda, con el error en Failure, y no vuelve a correr: el frame cortado no se presenta. Al destruirse,
+// la escena de ahora hace su Leave.
 //
 // La red no es de una escena: la ServerSession sigue viva del login a la selección y al juego. El
 // SceneManager la corre en cada Poll, también minimizada, con `pollNetwork`. Un error de aplicación
@@ -51,11 +53,13 @@ public:
     // Un Enter fallido no corta la red mientras el host decide reintentar Start.
     void Poll() override;
     // El paso de la escena y, si pide otra (Next), Request. Un paso sin pedido corta la seguidilla
-    // de un pedido rechazado: si vuelve, se avisa otra vez.
+    // de un pedido rechazado: si vuelve, se avisa otra vez. Si la escena falló (IScene::Failure), su
+    // error queda en Failure y no pide nada.
     void Step(const Input::InputState& input) override;
     // BeginFrame con el reloj, el Render de la escena y Present. Sin escena, nada. Antes, el
     // IScene::PrepareFrame del frame si nadie lo corrió. No mira HoldsTheLastFrame: el GameLoop no lo
-    // llama con el frame retenido.
+    // llama con el frame retenido. Si el dibujo falló (IScene::Failure), su error queda en Failure y
+    // el frame no se presenta.
     void Render(float alpha) override;
 
     // Cambia a `next` si de la escena de ahora se puede ir (IsOriginalTransition): Leave, la
@@ -65,7 +69,8 @@ public:
 
     // La escena de ahora; vacío antes de Start o después de un Enter que falló.
     [[nodiscard]] std::optional<SceneId> Current() const;
-    // El error vigente de Enter o el primer fallo terminal de Poll (que gana al de Enter), o vacío.
+    // El error vigente de Enter, del paso o del dibujo de la escena, o el primer fallo terminal de Poll
+    // (que gana al de Enter), o vacío.
     [[nodiscard]] const std::optional<std::string>& Failure() const;
     // Si la escena de ahora pide cerrar el juego (IScene::WantsToQuit); sin escena, false.
     [[nodiscard]] bool WantsToQuit() const;
@@ -84,6 +89,8 @@ private:
     Core::Expected<void, std::string> Enter(SceneId id);
     // IScene::PrepareFrame, una vez por frame.
     void PrepareFrame() const;
+    // Si la escena falló en `where` (IScene::Failure): guarda el error, lo anota y devuelve true.
+    bool TakeTheSceneFailure(const char* where);
 
     SceneFactory m_factory;
     IFrameTarget& m_frame;

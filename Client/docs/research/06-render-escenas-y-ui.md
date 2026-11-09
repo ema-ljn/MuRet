@@ -2608,8 +2608,8 @@ campo por campo, están en [04](04-protocolo.md#movimiento-y-mundo); los modelos
 `Gate.bmd`, en [05](05-formatos-de-datos.md#los-modelos-de-cada-mundo); lo que pide una corrida del
 original, en [08](08-pendientes.md) (P-C28 a P-C31). MuRet, hoy, manda el `F3 03` desde
 `GameScene`, retiene el frame mientras espera (CL7 hito 1, T5), aplica la respuesta con
-`Scenes::ApplyWorldEntry` (T7, [abajo](#la-entrada-al-mundo)) hasta la frontera de `0x512a30` y no
-dibuja nada en la escena 5.
+`Scenes::ApplyWorldEntry` (T7, [abajo](#la-entrada-al-mundo)) y dibuja la escena 5 hasta el primer
+pase del terreno, donde corta (T8, [El dibujo del juego](#el-dibujo-del-juego)).
 
 ### La entrada al mundo
 
@@ -2768,8 +2768,8 @@ paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-d
    0,99999… y cae en el sector 0), y el total es 2.146 = los 2.144 registros de
    `World3\EncTerrain3.obj` más estos dos. En el 3, el `0x142` en (22.300; 3.000; 10)
    (`0x617520`); en el 55, lo de `0x6188ae`, sin leer. El 0 no tiene (*estático*, T7). `Scenes::LoadMap`
-   crea los dos objetos del 2; la carga de sus dos modelos no está en `LoadMap` (el dibujo es la
-   T8). Los dos registros de `EncTerrain3.obj` con la y en NaN (492 y 493, tipo 86) caen en la
+   crea los dos objetos del 2; la carga de sus dos modelos no está en `LoadMap` (el dibujo de los
+   objetos del juego falta: [08](08-pendientes.md) P-C41). Los dos registros de `EncTerrain3.obj` con la y en NaN (492 y 493, tipo 86) caen en la
    lista 32: `_ftol(NaN)` da ahí 0 en el dword bajo; MuRet todavía los descarta (otro PR).
 5. **El número del mundo** ([05](05-formatos-de-datos.md#terreno-de-un-mundo-dataworldn)), con
    `0x42a760` antes, que solo actúa en el mapa 30.
@@ -3211,11 +3211,11 @@ bloque de la entrada, en orden (*estático*):
 | Dónde | Qué llama | Qué hace | En MuRet |
 | --- | --- | --- | --- |
 | `0x636da3` | el estado `0x3d` pone `0x7d3a101 = 1` (`0x636dac`) | si no, y `0x7d3a101` está en 0, sale (`0x636dbc`) | sí (`GameScene::StepWorld`) |
-| `0x636dc2..0x636ddb` | el temblor `0x7d325c8` · 0,2 | [La cámara del juego](#la-cámara-del-juego) | falta |
-| `0x636dd4` | `0x652940`, si el héroe tiene `+0x371 == 'C'` (siempre: lo pone `0x511290`) | lo del asedio y del gremio (`0x4294b0`) | no hace falta |
-| `0x636de8` | **`0x5fbf60`** | copia la luz sombreada `0x7c0ccc4` al buffer dinámico `0x7b4ccc4` en la ventana del rango y escribe las olas | las olas (`LoadedWorld::Step`); la copia de la luz, no |
+| `0x636dc2..0x636ddb` | el temblor `0x7d325c8` · 0,2 | [La cámara del juego](#la-cámara-del-juego) | sí (`GameScene::StepWorld`) |
+| `0x636dd4` | `0x652940`, si el héroe tiene `+0x371 == 'C'` (siempre: lo pone `0x511290`) | lo del asedio y del gremio (`0x4294b0`) | no hace falta: sin asedio no hace nada ([08](08-pendientes.md) P-C41 c) |
+| `0x636de8` | **`0x5fbf60`** | copia la luz sombreada `0x7c0ccc4` al buffer dinámico `0x7b4ccc4` en la ventana del rango y escribe las olas | las olas (`LoadedWorld::Step` y `GameScene::StepWorld`, con el rango y las olas de la escena: [08](08-pendientes.md) P-C41 b); la copia de la luz, no |
 | `0x636e11..0x63705b` | con `0x7d36899` en 0: `0x5ecdc0`, `0x46b7b0`, `0x490490`, `0x5ebca0`, `0x435bd0`, `0x5ee140`, `0x59ff10`, `0x5a7cc0`, `0x657930`, `0x659290`, `0x45a9d0` y dos por vtable | la UI, el chat y los paquetes de la interfaz | CL8, CL9 |
-| `0x63706a` | **`0x606560` → `0x604ab0`** | los objetos del mundo ([Lo propio de Lorencia](#lo-propio-de-lorencia)) | sí, con los casos del 55 |
+| `0x63706a` | **`0x606560` → `0x604ab0`** | los objetos del mundo ([Lo propio de Lorencia](#lo-propio-de-lorencia)) | en el login, con los casos del 55; en el juego, frontera con lo demás de `0x636ded..0x637105` ([08](08-pendientes.md) P-C41 a) |
 | `0x637078` | `0x608880` | los ítems del piso que caen | CL9.3 |
 | `0x637082..0x6370e5` | **`0x530490`**, en el mapa 0 si la capa 1 de la celda del héroe (`0x77f36d0`) no es 4 | las 80 hojas | solo las brasas del 55 |
 | `0x6370ea` | **`0x446120`** | los pájaros | no |
@@ -3244,15 +3244,15 @@ bloque de la entrada, en orden (*estático*):
 | `0x6371a6` | con `0x7d3a101` en 0, devuelve 0 | sin leer el contador | `GameScene::PrepareFrame` |
 | `0x6371b7..0x63722e` | el contador por la tabla de protección, con su cierre (`0x40b800`, `0x637229`); **con más de 30, devuelve 0** (`jle` con signo) | no dibuja ni presenta | `GameScene::PrepareFrame` (T5) |
 | `0x63723a` | `0x7d368a0 = 0` | sin niebla | sí |
-| `0x637241` | **`0x635ae0()`** y, fuera del mapa 6, `0x44dc60(&p)` (`0x4034b0` con el recorrido) | la cámara y el punto del recorte | [La cámara del juego](#la-cámara-del-juego) |
+| `0x637241` | **`0x635ae0()`** y, fuera del mapa 6, `0x44dc60(&p)` (`0x4034b0` con el recorrido) | la cámara y el punto del recorte; la rama de `0x63724a` no corre nunca (Q-C189) | [La cámara del juego](#la-cámara-del-juego): `GameScene`, con los dos accesos a la celda del héroe (8 `rand()`) y `World::CameraTargetOf`; el mapa 6 corta en `0x635b5c` |
 | `0x63734d` | `0x620db0(0, 0, w, 48)` | la franja, que no dibuja | sí (`MakePass3D`) |
-| `0x637366` | **`0x5fbb00(w / 640, &p)`** | el rango de bloques y el trapecio | sí (`TerrainRangeOf`, `TerrainPolygonOf(Game)`) |
+| `0x637366` | **`0x5fbb00(w / 640, &p)`** | el rango de bloques y el trapecio | sí (`TerrainRangeOf`, `TerrainPolygonOf(Game)`; en el juego, `TerrainPolygonFrameOf` con el nivel efectivo de la escena) |
 | `0x637391..0x637404` | `glClearColor` por mapa: en el 0, (0,0390625; 0,078125; 0,0546875) | no se usa (Q-C143) | ver abajo |
-| `0x637410` | `0x620db0(0, 0, w, 432)` (480 con `0x7d36899`) | el pase del mundo | sí |
-| `0x63741d` | en el mapa 30, su luz | | — |
-| `0x6374aa` | `0x620480(mouse x, mouse y, &0x7d366c0, 1)` | el rayo del mouse | [Caminar](#caminar) |
-| `0x6374c6` | **`0x5fc260(0)`**, si `0x437850()` es falso y el mapa no es 10 | el terreno: el pase opaco, el de alfa, **el del pasto** y `0x549130` | `LoadedWorld::DrawTerrain`, **sin el pasto** |
-| `0x6374ce` | **`0x6046a0` → `0x602e90` → `0x602ed0`, `0x5ffdf0`, `0x6002e0`** | los objetos del `.obj` por sector | `DrawWorldObjects`, con los casos del 55 |
+| `0x637410` | `0x620db0(0, 0, w, 432)` (480 con `0x7d36899`) | el pase del mundo | sí (`GameWorldViewport`) |
+| `0x63741d` | en el mapa 30, su luz | | corta (el 30 no carga) |
+| `0x6374aa` | `0x620480(mouse x, mouse y, &0x7d366c0, 1)` | el rayo del mouse, con el mouse de 640 × 480 vuelto a la pantalla en enteros (`0x620486..0x6204b0`) | `GameScene::MouseRay`, para [Caminar](#caminar) |
+| `0x6374c6` | **`0x5fc260(0)`**, si `0x437850()` es falso y el mapa no es 10 | el terreno: el pase opaco, el de alfa, **el del pasto** y `0x549130` | `LoadedWorld::DrawTerrain`, **sin el pasto**; el juego dibuja el primer pase y **corta** en el del pasto (`0x5fc353`), y en el mapa 7 antes, en su agua (`0x5fa985`, `0x5fa4b0`) |
+| `0x6374ce` | **`0x6046a0` → `0x602e90` → `0x602ed0`, `0x5ffdf0`, `0x6002e0`** | los objetos del `.obj` por sector | `DrawWorldObjects`, con los casos del 55; el juego corta acá en el mapa 10 |
 | `0x6374d3` | **`0x52dc20`** | los efectos del suelo (`0x61d`, `0x61e`, `0x61f`…), con `0x5fb2f0` | no |
 | `0x6374d8` | **`0x446b60`** | los pájaros, con su sombra | no |
 | `0x6374dd` | **`0x510d00` → `0x50ba30`** | los personajes vistos (`+0x16c`), por índice; `0x42afe0` para los jugadores, solo en el mapa 30 | `DrawCharacter`, con la luz del login |
@@ -3274,6 +3274,16 @@ bloque de la entrada, en orden (*estático*):
 | `0x637577..0x6375e5` | si `0x437850()`, un segundo pase | | no en el mapa 0 |
 | `0x637641` | `0x59ec80` | qué personaje está bajo el mouse | [Caminar](#caminar) |
 | `0x637646..0x6376e6` | `0x6219b0`, `0x4383f0`, `0x5bbbc0`, `0x5a7320(1)`, `0x5a7eb0`, `0x490390`, `0x5f37f0`, `0x62db60`, `0x5f7bc0`, `0x554810`, `0x5554e0`, `0x5b0550`, `0x40eca0`, `0x65ee60`/`0x65fe00`, `0x5ac2d0` × 2, `0x633110`, `0x621a90`, `0x620fc0` y uno por vtable | el 2D: el HUD, las ventanas, el texto y el cursor | CL8 |
+
+**Hasta dónde llega MuRet** (T8 del hito 1 de la CL7). `GameScene::Render` corre lo de arriba en
+ese orden hasta el primer pase del terreno y corta con error en la primera etapa que no tiene: el
+pasto (`0x5fc353`, `0x5fc190` con `0x7d0d31c` en 2) en los mapas que carga, salvo el 6 (la cámara,
+`0x635b5c`), el 7 (su agua, `0x5fa985`) y el 10 (los objetos, `0x6374ce`). El pase del pasto lo prende
+`0x6c9d58`, que `0x5f87b0` pone en 1 salvo en los mapas 18 a 23 y 30
+(`0x5f8928..0x5f8947`); sin él, o en el 7, sigue `0x549130` (`0x5fc365`). El corte es terminal
+(`IScene::Failure`): el frame no se presenta y el juego cierra con el error. En Lorencia, con el héroe
+y la cámara de la traza, son las 329 celdas de la traza en su orden
+(`GoldenTerrainTrace.TheGameSceneDrawsTheCellsOfLorencia`). Lo que falta, [08](08-pendientes.md) P-C41.
 
 **El orden del pase 3D no es el del login.** En el juego van el terreno, los objetos, el suelo, los
 pájaros, los personajes, los peces, el caballo, las hojas, los efectos con modelo, los sprites y las
@@ -3595,9 +3605,9 @@ aspecto, el rango y el trapecio (*estático*; las ventanas son de la CL8).
 frames por segundo, y casi siempre un paso por frame, a veces dos. El movimiento corre en el paso
 (`0x636290` → `0x508f00` → `0x508ea0` → `0x4fd5f0` → `0x4fcd00` → `0x4fcbb0`, y `0x4f9580`) y la
 cámara en el dibujo: el zoom, el suavizado de D y la marca del `0x40` van por frame dibujado, y el
-temblor se achica por paso. En MuRet, `Render::MakePass3D` y `World::TerrainCulling` (el trapecio de
-la escena 5 con el nivel 0) ya sirven; faltan la cuenta de `0x635ae0`, con `0x5fcc30`, y los pases
-de `GameScene::Render`.
+temblor se achica por paso. En MuRet, `Render::MakePass3D`, `World::TerrainCulling` y
+`World::StepGameCamera` ya sirven, y `GameScene::Render` los corre hasta el primer pase del terreno
+([El dibujo del juego](#el-dibujo-del-juego)); lo que sigue falta ([08](08-pendientes.md) P-C41).
 
 ### Creación común de los objetos
 
@@ -4438,7 +4448,7 @@ Ver [08](08-pendientes.md).
 | `0x602ed0`, después del dibujo de cada objeto visto: el `rand()` de cada uno y el brillo del farol (`0x3c`) en la escena 2 | `Scenes::ObjectFrameEffects` en `DrawWorldObjects`: un `rand()` de la CRT por objeto visto y los dos sprites de `flare01` en los huesos 8 y 9 del último modelo posado (`LastPosedBonePoint`: el dueño del dragón, Q-C140); `World::StreetLightGlowLight`, la luz; el dueño (`0xb4`) en `m_objects`, antes del `.obj` | CL7.6 B4 |
 | Los joints (`0x53c6a0`) | un sistema con su tabla, cuando una escena los use (el login no tiene ninguno) | — |
 | El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | `Scenes::DarkSpirit`: el constructor (`0x4167b0`) y el paso (`0x416a20`, estados 0 y 1), bit a bit contra el código real (`raven.txt`); `DrawDarkSpirit` (mallas 3 y 2 y la sombra de las cinco); la chispa nace en `World::Particles` (`0x5c6`, subtipo 5); `LoginScene` lo crea al entrar, lo avanza después del personaje y lo dibuja al final de su dibujo | CL7.6 C1 y C2 (las chispas) |
-| La escena 5 en dos tiempos: el `F3 03` en el primer paso y el mundo con la respuesta, con el mosaico de la escena 3 en pantalla mientras tanto; su paso y su dibujo, con su propio orden del 3D | `GameScene` (hoy manda el `F3 03`, retiene el frame con el contador y no dibuja) retiene el último frame mientras espera, carga el mapa del paquete, arma al héroe con la cuenta de `0x511290` y dibuja en el orden de `0x6371a0`; los casos del mapa 0 como datos, como los del 55 (propuesta del barrido, P-C28) | CL7 |
+| La escena 5 en dos tiempos: el `F3 03` en el primer paso y el mundo con la respuesta, con el mosaico de la escena 3 en pantalla mientras tanto; su paso y su dibujo, con su propio orden del 3D | `GameScene` (hoy manda el `F3 03`, retiene el frame con el contador y dibuja hasta el primer pase del terreno) retiene el último frame mientras espera, carga el mapa del paquete, arma al héroe con la cuenta de `0x511290` y dibuja en el orden de `0x6371a0`; los casos del mapa 0 como datos, como los del 55 (propuesta del barrido, P-C28) | CL7 |
 | La cámara del juego: `0x635ae0` por frame dibujado, con el far del rectángulo en todos los mapas y sin el mouse | un valor con su estado (D, la meta, el zoom, el nivel, el yaw y la altura del `0x40`) y `OriginalVectorIRotate` (`0x5fcc30`), bit a bit contra el código real emulado y la traza de Lorencia (propuesta del barrido, P-C29) | CL7.3 |
 | Caminar: el A* de `0x4ead70` con su árbol y sus topes, el `D3` de `0x56acd0` y el paso entre celdas con el spline y la celda lógica adelantada | `TerrainWalls` y `PathFinder` implementan la parte pura de distancia cero contrastada con ASM; `Protocol::Movement` implementa el wire. El paso, el RNG del consumidor, el picking y la integración de la escena siguen pendientes; sin nuevas comparaciones emuladas | CL7.4 A/B; C–E pendientes |
 | Los cambios de mapa dentro de la escena 5, con los ganchos de cada mapa como `if` sueltos en cinco puntos | una tabla por mapa y una interfaz de ganchos (al cargar, al crear un objeto, en su paso, después de dibujarlo y en el paso de la escena), con Lorencia primero (propuesta del barrido, P-C31) | CL7.5 |

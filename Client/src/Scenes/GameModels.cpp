@@ -13,6 +13,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/TextureSets.h"
+#include "Scenes/TextureMetadata.h"
 
 #include <glm/ext/vector_float2.hpp>
 
@@ -37,7 +38,8 @@ constexpr Render::TextureSlot SkillTexturesStart{0x3b8};
 
 // Sube las de `entries` de a una: la que no carga deja su línea en el log, y las demás siguen.
 void UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Textures::TextureSetEntry> entries,
-                Render::ITextureStore& textures, Core::Log& log, std::map<std::uint16_t, glm::vec2>* sizes = nullptr)
+                Render::ITextureStore& textures, Core::Log& log,
+                std::map<std::uint32_t, TextureMetadata>* metadata = nullptr)
 {
     std::size_t skipped = 0;
     for (const Data::Textures::TextureSetEntry& entry : entries)
@@ -56,11 +58,10 @@ void UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Tex
             log.Warning("una textura de un modelo no sube y se saltea: {}", uploaded.Error());
             continue;
         }
-        if (sizes != nullptr)
+        if (metadata != nullptr)
         {
             const Data::Textures::Texture& texture = loaded.Value().front().texture;
-            (*sizes)[entry.slot] =
-                glm::vec2(static_cast<float>(texture.textureWidth), static_cast<float>(texture.textureHeight));
+            metadata->insert_or_assign(static_cast<std::uint32_t>(entry.slot), TextureMetadata(texture));
         }
     }
     log.Info("las texturas de los modelos: {} subidas y {} salteadas", entries.size() - skipped, skipped);
@@ -103,7 +104,7 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
     AssignTextures(Data::Models::SkillTextureCalls());
     UploadEach(dataRoot, GlowTextureSet, textures, log);
     UploadEach(dataRoot, ClothTextureSet, textures, log);
-    UploadEach(dataRoot, EffectTextureSet, textures, log, &m_textureSizes);
+    UploadEach(dataRoot, EffectTextureSet, textures, log, &m_textureMetadata);
     UploadEach(dataRoot, Data::Models::PlayerFixedTextures(), textures, log);
     UploadEach(dataRoot, m_slots.ToLoad(), textures, log);
     log.Info("se leyeron {} modelos del personaje, de los ítems y del caballo", m_models.size());
@@ -143,10 +144,16 @@ std::span<const Render::TextureSlot> GameModels::MeshTextures(std::uint16_t mode
     return found == m_meshTextures.end() ? std::span<const Render::TextureSlot>{} : found->second;
 }
 
+std::optional<TextureMetadata> GameModels::TextureMetadataOf(std::uint32_t selector) const
+{
+    const auto found = m_textureMetadata.find(selector);
+    return found == m_textureMetadata.end() ? std::nullopt : std::optional(found->second);
+}
+
 std::optional<glm::vec2> GameModels::TextureSize(Render::TextureSlot slot) const
 {
-    const auto found = m_textureSizes.find(slot.value);
-    return found == m_textureSizes.end() ? std::nullopt : std::optional<glm::vec2>(found->second);
+    const auto metadata = TextureMetadataOf(slot.value);
+    return metadata ? std::optional(metadata->size) : std::nullopt;
 }
 
 std::size_t GameModels::Count() const

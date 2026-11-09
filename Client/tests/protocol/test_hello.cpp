@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstddef>
 #include <string_view>
 #include <vector>
@@ -93,6 +94,27 @@ TEST(HelloTest, AHelloWithoutItsWholeVersionIsTooShort)
     EXPECT_EQ(ErrorOf(ReadServerHello(PacketOf(hello))), ProtocolError::TooShort);
     EXPECT_EQ(ErrorOf(ReadServerHello(PacketOf(Bytes({0xC1, 0x04, 0xF1, 0x00})))), ProtocolError::TooShort);
     EXPECT_TRUE(ReadServerHello(PacketOf(longer)).HasValue());
+}
+
+// La versión son cinco bytes, incluso NUL o bits altos; no es una cadena ni incluye la cola.
+TEST(HelloTest, PreservesEveryVersionByteAndIgnoresATrailingByte)
+{
+    const auto exact =
+        ReadServerHello(PacketOf(Bytes({0xC1, 0x0C, 0xF1, 0x00, 0x02, 0x34, 0xA0, 0x00, 0x7F, 0x80, 0xFF, 0x39})));
+    const auto withTail = ReadServerHello(
+        PacketOf(Bytes({0xC1, 0x0D, 0xF1, 0x00, 0x02, 0x34, 0xA0, 0x00, 0x7F, 0x80, 0xFF, 0x39, 0xA5})));
+    ASSERT_TRUE(exact.HasValue());
+    ASSERT_TRUE(withTail.HasValue());
+    EXPECT_EQ(exact.Value().result, 2);
+    EXPECT_EQ(withTail.Value().result, 2);
+    EXPECT_EQ(exact.Value().playerIndex, 0x34A0);
+    EXPECT_EQ(withTail.Value().playerIndex, 0x34A0);
+    constexpr std::array<unsigned char, Client::Protocol::VersionSize> expected{0x00, 0x7F, 0x80, 0xFF, 0x39};
+    for (std::size_t index = 0; index < expected.size(); ++index)
+    {
+        EXPECT_EQ(static_cast<unsigned char>(exact.Value().version[index]), expected[index]);
+        EXPECT_EQ(static_cast<unsigned char>(withTail.Value().version[index]), expected[index]);
+    }
 }
 
 // El saludo es un C1 F1 00: la respuesta del login (F1 01) o un F3 00 no lo son.

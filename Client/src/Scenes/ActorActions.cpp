@@ -65,14 +65,15 @@ Core::Expected<void, std::string> SetActorStop(ActorState& actor, WorldState& wo
     if (actor.pet.model == 0x1c37 && !actor.safeZone)
     {
         world.Runtime().movementSpeed.itemLatch = 0;
-        action = right == -1 ? (left == -1 ? 0x76 : 0x79) : (left == -1 ? 0x78 : 0x77);
+        action = right == -1 ? (left == -1 ? std::uint8_t{0x76} : std::uint8_t{0x79})
+                             : (left == -1 ? std::uint8_t{0x78} : std::uint8_t{0x77});
     }
     else if (actor.pet.model == 0x1c16 && !actor.safeZone)
-        action = 0x4a;
+        action = std::uint8_t{0x4a};
     else if (actor.safeZone && left == 0x1c17)
-        action = 0x48;
+        action = std::uint8_t{0x48};
     else if ((actor.pet.model == 0x1c14 || actor.pet.model == 0x1c15) && !actor.safeZone)
-        action = right == -1 && left == -1 ? 0xb : 0xc;
+        action = right == -1 && left == -1 ? std::uint8_t{0xb} : std::uint8_t{0xc};
     else
     {
         bool flying = !actor.safeZone && actor.wings.model != 0xffff;
@@ -87,10 +88,10 @@ Core::Expected<void, std::string> SetActorStop(ActorState& actor, WorldState& wo
         if ((actor.characterFlags & 0x200000u) != 0)
         {
             if (actor.animation.body.action != 0xca)
-                action = 0xca;
+                action = std::uint8_t{0xca};
         }
         else if (flying)
-            action = IsBow(right) ? 0xa : 9;
+            action = IsBow(right) ? std::uint8_t{0xa} : std::uint8_t{9};
         else
         {
             auto chosen = WeaponAction(actor, data, map);
@@ -147,7 +148,7 @@ Core::Expected<void, std::string> SetActorWalk(ActorState& actor, WorldState& wo
     const auto right = std::bit_cast<std::int16_t>(actor.hands[0].model);
     const auto left = std::bit_cast<std::int16_t>(actor.hands[1].model);
     if (actor.type != 0x20a)
-        action = 2;
+        action = std::uint8_t{2};
     else
     {
         const float first = std::bit_cast<float>(0x3ea8f5c3u);
@@ -162,20 +163,21 @@ Core::Expected<void, std::string> SetActorWalk(ActorState& actor, WorldState& wo
         if (actor.pet.model == 0x1c37 && actor.safeZone == 0)
             return Core::Unexpected(std::string("Walk: faltan acciones4e9f50/4e9da0 deFenrir"));
         if (actor.pet.model == 0x1c16 && actor.safeZone == 0)
-            action = 0x4b;
+            action = std::uint8_t{0x4b};
         else if (left == 0x1c17 && actor.safeZone != 0)
-            action = 0x49;
+            action = std::uint8_t{0x49};
         else if ((actor.pet.model == 0x1c14 || actor.pet.model == 0x1c15) && actor.safeZone == 0)
         {
             if (actor.pet.model != 0x1c15 || (map != 8 && map != 10))
-                action = right == -1 && left == -1 ? 0x20 : 0x21;
+                action = right == -1 && left == -1 ? std::uint8_t{0x20} : std::uint8_t{0x21};
         }
         else if (actor.safeZone == 0 && actor.wings.model != 0xffff)
-            action = IsBow(right) ? 0x1f : 0x1e;
+            action = IsBow(right) ? std::uint8_t{0x1f} : std::uint8_t{0x1e};
         else if (actor.safeZone == 0 && flightMap)
-            action = actor.run >= 40 ? 0x1d : 0x15;
+            action = actor.run >= 40 ? std::uint8_t{0x1d} : std::uint8_t{0x15};
         else if ((right == -1 && left == -1) || (actor.safeZone != 0 && (map < 11 || map > 23)))
-            action = actor.run >= 40 ? 0x16 : (characterClass == 2 ? 0xe : 0xd);
+            action =
+                actor.run >= 40 ? std::uint8_t{0x16} : (characterClass == 2 ? std::uint8_t{0xe} : std::uint8_t{0xd});
         else
         {
             const bool high = actor.run >= 40;
@@ -191,18 +193,18 @@ Core::Expected<void, std::string> SetActorWalk(ActorState& actor, WorldState& wo
             if (right >= 0x212 && right < 0x812)
             {
                 if (high && left >= 0x212 && left < 0x812)
-                    action = 0x18;
+                    action = std::uint8_t{0x18};
                 else
                 {
                     const auto flagged = metadataFlag();
                     if (!flagged.HasValue())
                         return Core::Unexpected(flagged.Error());
                     if (!flagged.Value())
-                        action = high ? 0x17 : 0xf;
+                        action = high ? std::uint8_t{0x17} : std::uint8_t{0xf};
                     else if (right == 0x227 || right == 0x231 || right == 0x229)
-                        action = high ? 0x8c : 0x8b;
+                        action = high ? std::uint8_t{0x8c} : std::uint8_t{0x8b};
                     else
-                        action = high ? 0x19 : 0x10;
+                        action = high ? std::uint8_t{0x19} : std::uint8_t{0x10};
                 }
             }
             else if (right >= 0xc12 && right < 0xe12)
@@ -210,18 +212,19 @@ Core::Expected<void, std::string> SetActorWalk(ActorState& actor, WorldState& wo
                 const auto flagged = metadataFlag();
                 if (!flagged.HasValue())
                     return Core::Unexpected(flagged.Error());
-                action = flagged.Value() ? (high ? 0x1a : 0x12) : (high ? 0x17 : 0xf);
+                action = flagged.Value() ? (high ? std::uint8_t{0x1a} : std::uint8_t{0x12})
+                                         : (high ? std::uint8_t{0x17} : std::uint8_t{0xf});
             }
             else if (!high && (right == 0x813 || right == 0xa14))
-                action = 0x11;
+                action = std::uint8_t{0x11};
             else if (right >= 0x812 && right < 0xa12)
-                action = high ? 0x1a : 0x12;
+                action = high ? std::uint8_t{0x1a} : std::uint8_t{0x12};
             else if ((left >= 0xa12 && left < 0xa19) || left == 0xa23 || left == 0xa26 || left == 0xa27)
-                action = high ? 0x1b : 0x13;
+                action = high ? std::uint8_t{0x1b} : std::uint8_t{0x13};
             else if (IsBow(right))
-                action = high ? 0x1c : 0x14;
+                action = high ? std::uint8_t{0x1c} : std::uint8_t{0x14};
             else
-                action = high ? 0x16 : (characterClass == 2 ? 0xe : 0xd);
+                action = high ? std::uint8_t{0x16} : (characterClass == 2 ? std::uint8_t{0xe} : std::uint8_t{0xd});
         }
     }
     if (action)

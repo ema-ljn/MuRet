@@ -49,4 +49,8 @@ inline constexpr std::uint8_t LoginAccepted = 1;
 // F1 03: C1 06 F1 03 06 00, con el XOR32 y para cifrar. Lo manda el original cuando un C3/C4 que
 // llega tiene el checksum malo (03, "C3/C4"; DecryptPacket con ChecksumMismatch o NotWholeBlocks).
 [[nodiscard]] Outgoing WriteDecryptErrorReport();
+
+// F1 03: C1 06 F1 03 00 F3, con el XOR32 y para cifrar. Lo manda la respuesta del F3 03 que llega
+// sin cifrar, en vez de entrar al mundo (0x4c396a; 04, "La entrada al mundo").
+[[nodiscard]] Outgoing WriteClearWorldEntryReport();
 } // namespace Client::Protocol::Connection

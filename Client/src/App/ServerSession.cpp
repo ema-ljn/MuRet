@@ -299,6 +299,11 @@ bool ServerSession::JoinedWorld() const
     return m_state == SessionState::InWorld;
 }
 
+std::uint16_t ServerSession::PlayerIndex() const
+{
+    return m_playerIndex;
+}
+
 std::uint32_t ServerSession::StartCount() const
 {
     return m_starts;
@@ -651,6 +656,8 @@ void ServerSession::OnGameHello(const Network::Packet& packet)
         Fail(SessionFailure::HelloRejected);
         return;
     }
+    // 0x4c1ec0 guarda la clave con el resultado 1, antes de comparar la versión.
+    m_playerIndex = hello.Value().playerIndex;
     const std::string_view version(hello.Value().version.data(), hello.Value().version.size());
     if (version != Protocol::ClientVersion)
     {
@@ -827,7 +834,10 @@ void ServerSession::OnWorldEntryReply(const Network::Packet& packet)
 {
     if (!packet.WasDecrypted())
     {
-        m_log.Warning("se ignora la respuesta de entrada al mundo (F3 03): no llegó cifrada");
+        // 0x4c396a: sin cifrar no entra al mundo y le avisa al GameServer con el F1 03 00 F3.
+        m_log.Warning("la respuesta de entrada al mundo (F3 03) no llegó cifrada: se le avisa al GameServer (F1 03)");
+        Protocol::Outgoing report = Protocol::Connection::WriteClearWorldEntryReport();
+        m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }
     auto reply = Protocol::Character::ReadCharacterSelectResult(packet);

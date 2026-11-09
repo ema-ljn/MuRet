@@ -1,0 +1,50 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Scenes/SceneId.h"
+
+#include <cstdint>
+#include <filesystem>
+#include <string>
+
+namespace Client::Render::Models
+{
+class CrtRandom;
+}
+
+// La carga del mapa en la CPU: 0x61a560 (con 0x510f70, que mata a los personajes de otra clave) y
+// 0x447d70, los objetos de los mapas de evento. Contrato: Client/docs/research/06-render-escenas-y-ui.md,
+// "La carga del mapa" y la tabla de 0x4c3940.
+namespace Client::Scenes
+{
+class WorldState;
+
+// Lo que la carga lee y escribe fuera del mapa. Quien llama lo presta durante la llamada.
+struct MapLoadContext
+{
+    const std::filesystem::path& dataRoot;
+    // El mundo en curso (DAT_006c9dd0), el pool de personajes y el mapa cargado (WorldState::Map).
+    WorldState& world;
+    // DAT_006d5dc8: en la selección (4) no corre 0x510f70.
+    SceneId scene;
+    // DAT_057678bc, la clave del jugador que dio el F1 00.
+    std::uint16_t playerKey;
+    // El rand() de la CRT: el pasto y los objetos que lo piden al crearse.
+    Render::Models::CrtRandom& random;
+};
+
+// 0x61a560(argumento), con el mundo en curso ya escrito por quien llama: la guarda de 32 a 9 (Q-C58);
+// suelta lo del mapa anterior (0x6070a0); fuera de la selección, 0x510f70; los especiales de 0x616ec0
+// (los del 2); el corrimiento del pasto con 65.536 rand() (0x5f8300); el terreno; y los objetos del
+// .obj con 0x606660. Corta con error, con lo que el original hizo antes, en lo que MuRet no tiene: los
+// especiales del 3 (la torre de Noria) y del 55, el mapa 30 (0x42a760 y el .att de 0x4294b0), el 34
+// (el .att según Crywolf, 0x42fe50), el mundo especial de Kalima (0x4377a0) y un objeto que pide un
+// servicio de efectos o del asedio. Un archivo que falta o con otro número de mundo corta con el
+// nombre del archivo: el original muestra el aviso y cierra (Q-C180).
+[[nodiscard]] Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoadContext& context);
+
+// 0x447d70(mundo en curso): arma el objeto de evento de Devil Square (9), Blood Castle (11 a 17) y
+// Chaos Castle (18 a 23); en los demás no hace nada. MuRet no tiene esos objetos: en esos mapas corta
+// con error.
+[[nodiscard]] Core::Expected<void, std::string> CheckEventMap(std::int32_t map);
+} // namespace Client::Scenes

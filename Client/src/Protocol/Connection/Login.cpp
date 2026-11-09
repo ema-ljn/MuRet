@@ -31,6 +31,9 @@ constexpr PacketKind LoginResultKind{Network::PacketType::C1, JoinOpcode, LoginS
 // él está sin leer.
 constexpr std::uint8_t DecryptErrorFirst = 0x06;
 constexpr std::uint8_t DecryptErrorSecond = 0x00;
+// 0x4c396a..0x4c3d14: lo que manda la respuesta del F3 03 que llega sin cifrar.
+constexpr std::uint8_t ClearReplyFirst = 0x00;
+constexpr std::uint8_t ClearWorldEntryHead = 0xF3;
 
 using CredentialField = std::array<std::byte, CredentialSize>;
 
@@ -90,5 +93,13 @@ Outgoing WriteDecryptErrorReport()
                            .PutU8(DecryptErrorSubcode)
                            .PutU8(DecryptErrorFirst)
                            .PutU8(DecryptErrorSecond));
+}
+
+Outgoing WriteClearWorldEntryReport()
+{
+    return EncryptedC1(Network::PacketWriter::C1(JoinOpcode)
+                           .PutU8(DecryptErrorSubcode)
+                           .PutU8(ClearReplyFirst)
+                           .PutU8(ClearWorldEntryHead));
 }
 } // namespace Client::Protocol::Connection

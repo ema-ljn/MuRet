@@ -2607,7 +2607,9 @@ Lorencia (`lorencia-Frame_016215.txt`, la de [Modelos y objetos](#modelos-y-obje
 campo por campo, están en [04](04-protocolo.md#movimiento-y-mundo); los modelos de cada mapa y
 `Gate.bmd`, en [05](05-formatos-de-datos.md#los-modelos-de-cada-mundo); lo que pide una corrida del
 original, en [08](08-pendientes.md) (P-C28 a P-C31). MuRet, hoy, manda el `F3 03` desde
-`GameScene`, retiene el frame mientras espera (CL7 hito 1, T5) y no dibuja nada en la escena 5.
+`GameScene`, retiene el frame mientras espera (CL7 hito 1, T5), aplica la respuesta con
+`Scenes::ApplyWorldEntry` (T7, [abajo](#la-entrada-al-mundo)) hasta la frontera de `0x512a30` y no
+dibuja nada en la escena 5.
 
 ### La entrada al mundo
 
@@ -2665,23 +2667,24 @@ en orden (`0x4c41d4..0x4c4b60`, *estático*):
 
 | # | Qué | Dónde |
 | --- | --- | --- |
+| 0 | `0x7d36874 = 0` y los stats al registro propio, entre su apertura y **el primer cierre en línea** (3.848 `rand()` si lo deja sin accesos) | `0x4c405a`, `0x4c41c4` |
 | 1 | el mapa a `0x6c9dd0` y **`0x61a560(mapa)`** (abajo); en el mapa 34, además, el `C1 04 BD 00` | `0x4c41cf`, `0x4c41d4`, `0x4c421a` |
-| 2 | `0x447d70(mapa)`: los objetos de los mapas de evento (9, 11 a 17 y 18 a 23); en el 0 no hace nada | |
-| 3 | **el héroe es `chars[rand() % 400]`** (`idiv 0x190`; el índice en `0x57678b0`), con `0x511290(héroe, 0x20a, X, Y, ángulo)` y `+0x1f4` = la clave `0x57678bc` (Q-C145) | `0x4c44ad`, `0x4c44fc` |
-| 4 | la clase en `+0x1d4`, la piel en 0, el PK (`+0x375`), el CtlCode (`+0x1d8`) y `+0x88 = 1` | |
-| 5 | `0x512a30(héroe)`: los modelos del equipo, desde el registro todavía viejo | |
-| 6 | el puntero del héroe en `0x743a170` y el nombre en `+0x1d9` | |
-| 7 | **vacía los 12 lugares del equipo** del registro (desde `+0xb6c`, de a `0x48`: el tipo en −1, el dword de `+4` y el byte de `+0x1b` en 0): el equipo lo trae el `F3 10` | `0x4c47c8..0x4c47da` |
+| 2 | `0x447d70(mapa)`: los objetos de los mapas de evento (9 y 11 a 17 por el argumento, 18 a 23 leyendo `0x6c9dd0`); en los demás no hace nada | |
+| 3 | **el héroe es `chars[rand() % 400]`** (`idiv 0x190`; el índice en `0x57678b0`), con `0x511290(héroe, 0x20a, X, Y, ángulo)` y `+0x1f4` = la clave `0x57678bc` (Q-C145) | `0x4c44ad`, `0x4c44fc`, `0x4c4516` |
+| 4 | la clase en `+0x1d4` y la piel en 0 entre la apertura y **el segundo cierre en línea** del registro; el PK (`+0x375` = `pkt[0x2c]`), el CtlCode (`+0x1d8` = `pkt[0x2d]`) y `+0x88 = 1` | `0x4c46f0` |
+| 5 | `0x512a30(héroe)`: los modelos del equipo, desde el registro todavía viejo (abre y cierra el registro por su cuenta) | `0x4c4712` |
+| 6 | el puntero del héroe en `0x743a170`, **después** de `0x512a30`: mientras viste, `0x743a170` sigue en el héroe anterior (o en `chars[0]`, `0x4bafdf`); el nombre en `+0x1d9` | `0x4c4725` |
+| 7 | **vacía los 12 lugares del equipo** del registro (desde `+0xb6c`, de a `0x48`: el tipo en −1, el dword de `+4` y el byte de `+0x1b` en 0), junto con el nombre y antes del **tercer cierre en línea**: el equipo lo trae el `F3 10` | `0x4c47c8..0x4c47da`, `0x4c481e` |
 | 8 | `+0x1e3 = 0` y el primer efecto de llegada, `0x518cf0(0x61f, posición, ángulos, luz, 0, héroe, −1, …)` | |
 | 9 | el estado `0x3d`, `0x77f3b67 = 0` y `0x553780(1, 0)` | `0x4c4854` |
-| 10 | **el contador `0x77f3b04` en 30**: desde acá el dibujo pasa | `0x4c48eb` |
-| 11 | `0x77f3b10 = 0`, `0x6c8dcc = 6` y `0x420d60(héroe)`: el cuervo, si el héroe lleva el `0x1c17` | |
+| 10 | **el contador `0x77f3b04` en 30**: desde acá el dibujo pasa; el cierre es `0x412890` (4 `rand()`) | `0x4c48eb` |
+| 11 | `0x77f3b10 = 0`, `0x6c8dcc = 6` y `0x420d60(héroe)`: el cuervo, si la mano izquierda (`+0x2d8`) lleva el `0x1c17` (`0x421d60`, un `new 0x460` y `0x4167b0`, que saca `rand()`); si no, nada | |
 | 12 | el segundo `0x518cf0(0x61f, …)`, con los mismos argumentos | |
 | 13 | **el alpha del héroe en 0** (`+0x174`): entra transparente | |
-| 14 | `0x657a90` (la UI) y los elegidos en −1: `0x6c8e4d = 0xff` y `0x6c8e28..0x6c8e38` | |
+| 14 | `0x657a90` (la UI) y los elegidos en −1: `0x6c8e4d = 0xff` y `0x6c8e28..0x6c8e38`. Con todas las ventanas cerradas, `0x657a90` → `0x657ab0(−1, 0)` saca **2 `rand()`**: los de `0x659290` con la máscara `0x20` (`0x657fc1`, entrada `0x7d53711`, cierre `0x4c0ec0`) y con `0x10000` (`0x658e0e`, entrada `0x7d53710`, cierre `0x4c1190` en `0x65970d`), un `rand()` por cierre de una entrada de 1 byte; los demás están detrás de ventanas abiertas, y el cierre de `0x65903e` no corre con `ebx = −1` | `0x657fc1`, `0x658e0e` |
 | 15 | `0x78abb0c`, `0x78abb10` y `+0x378` del héroe (el `Movement`) en 0 | |
 | 16 | `0x4f2250(héroe)`: la acción de parado ([Caminar](#caminar)) | |
-| 17 | los sonidos de los mapas de evento, `0x41ee00(0x8b, 0x99 o 0x9e, 1)`, fuera de sus rangos | |
+| 17 | los sonidos de los mapas de evento, `0x41ee00(id, 1)`: el `0x8b` fuera de Blood Castle (mapa menor que 11 o mayor que 17) y el `0x99` y el `0x9e` fuera de Chaos Castle (menor que 18 o mayor que 23) | `0x4c49d6..0x4c4a11` |
 | 18 | el chequeo de ResourceGuard (un objeto de `0x2c` bytes, `GetModuleFileNameA`, `0x4292e0` y `0x681ec0`), sin efecto: el `jmp` de `0x4c4ad5` saltea el aviso y el `0x4e8380` (Q-C147) | `0x4c4ad5` |
 | 19 | `0x65dc30` y el renglón `" Bienvenido"` más el nombre del mapa en el área de mensajes: `sprintf("%s%s", texto 484, 0x5f0b40(mapa))` y `0x555190(0x5767978, …, 1)` (el texto, *verificado* en el `s31_text.bin` del volcado de Devias) | |
 
@@ -2693,13 +2696,22 @@ escribe este handler; quién las calcula después, sin leer (P-C28 i).
 - `0x511290(héroe, 0x20a, X, Y, ángulo)` guarda la celda cifrada en `+0x41c`/`+0x420` (la tabla de
   protección) y en claro en `+0x39a`/`+0x39b`; la posición en el centro de la celda, `+0x10 = X ·
   100 + 50` y `+0x14 = Y · 100 + 50` (`0x6b86b4`, `0x6b86b0`); la altura del terreno nuevo, `+0x18
-  = 0x5f93c0(x, y)` (algunas alas en los mapas 8 y 10 suman una constante); el ángulo en `+0x24`;
+  = 0x5f93c0(x, y)`, más 30 (`0x6b8858`; 90 en los mapas 8 y 10, `0x6b8948`) si el `+0x318` que
+  traía el personaje era el `0x1c15`, la celda no es segura y el mapa no es −1 (el `fstp` a float va
+  después de la suma); el ángulo en `+0x24`;
   **la zona segura en `+0x3e2`, el bit `0x01` del `.att` de la celda**; y el estado de partida:
   vivo, `+0x16d = 1`, el alpha y su meta en 1, la caja de (−60, −60, 0) a (40, 40, 120), `+0x88 =
   1`, `+0x371 = 'C'` y `+0x188` con el contador de pasos. El ángulo es (dir − 1) · 45
   (`0x4c44bc..0x4c44d1`): la dirección 0 da −45° (Q-C175). En la traza, el héroe está en (14.350;
   12.050; 165), el centro de la celda (143, 120), con z = 110 · 1,5 (*verificado*); la sesión del
   cable entra en (133, 127) del mapa 0 con la dirección 0.
+- **`0x511290` gasta 28 `rand()`** con la tabla de protección cerrada (*estático*, T7): siete
+  accesos de 4 bytes, cada uno con su cierre de 4: escribe X, escribe Y, lee Y y X para la zona
+  segura, lee X y Y para la posición y lee el contador de pasos `0x7d3a0f0` para `+0x188` (este
+  último no gasta si el contador ya está abierto). Deja `+0x3e3 = 0`, el PK en 3, la escala en 0,9,
+  las dos acciones en 1 y las partes sin ítem; la clave `+0x1f4` no la toca (la pone quien llama:
+  `0x4c4516` acá, `0x517270` en `0x5172a8` en la selección, con el lugar de la lista). Con otro tipo
+  que el `0x20a`, MuRet corta con error: esos casos del `switch` no están leídos.
 - **El equipo viene del `F3 10`** (`0x4e309c` → `0x4c55a0`), no de la lista de la selección: cada
   entrada va a `0x5bc740`, que la pasa al héroe con `0x512a30`. Si el `F3 10` se despacha en la
   misma vuelta de `WinMain` que la respuesta, el héroe sale vestido desde el primer frame (P-C28 a).
@@ -2707,7 +2719,9 @@ escribe este handler; quién las calcula después, sin leer (P-C28 i).
   0,05 (`0x6b8a48`) por paso hasta la meta, con `+0x16d` en 1. El primer frame va con 0,05 y a los
   0,8 s es opaco.
 - **El efecto de llegada `0x61f` se crea dos veces** en el mismo lugar. Lo crea el caso
-  `0x61e`/`0x61f` de `0x518cf0`, con 20 pasos de vida y el subtipo 0; su paso (`0x5208a0`) solo
+  `0x61e`/`0x61f` de `0x518cf0`, con 20 pasos de vida y el subtipo 0 (`0x51eebb`: `+0x60 = 0x14`
+  y sale por `0x51db73` **sin `rand()`**; la cabecera común deja `+0xd8 = 0,3` y la escala 0,9 si
+  llega en 0 o menos); su paso (`0x5208a0`) solo
   cuenta, y su dibujo (`0x52dc20`) es un calco en el suelo con la textura `0x61e` (`0x5fb2f0`) y
   dos giros de `0x53d2c0(0x61f, …, ±ángulo)` que se apagan con la vida. Al ser dos iguales, se suma
   dos veces.
@@ -2733,6 +2747,9 @@ paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-d
 3. **Fuera de la selección** (con la escena distinta de 4): `0x607b40`, los ítems del piso (1.000 de
    `0x220` bytes en `0x77f4714`), y `0x510f70(0x57678bc)`, que mata a todo personaje cuya clave
    `+0x1f4` no sea la del héroe y suelta lo que le cuelga (`0x421d60`, `0x4fb1a0`, `0x414340`).
+   Recorre hasta `0x69780`, **400 registros de `0x438`**, uno menos que el pool (el 401 no lo
+   mira), y compara la clave **con signo** (`movsx` en `0x510f8a`) contra el DWORD que recibe: una
+   clave de `0x8000` o más nunca coincide, así que mata hasta al dueño de esa clave (*estático*, T7).
    Después `0x451d10` → `0x451590` borra de la lista `0x7245c8` lo que no es del héroe, y el objeto
    de `0x6eeda0` queda con `+4 = 1`, `+8 = 0xf3`, `+0xc = 400` y `+0x18 = 0` (sin leer qué es).
 4. **Los modelos del mapa** (`0x616ec0`): `Object8\drop01.jpg` en `0x607`, los especiales del mapa
@@ -2741,7 +2758,19 @@ paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-d
    `Object<k+1>.bmd`**: carga 112 modelos con nombre de `Data\Object1\`. Las tablas, en
    [05](05-formatos-de-datos.md#los-modelos-de-cada-mundo). Como `0x6c9e0c` vale 1 en la `.data`, el
    primer `switch`, el de los `.smd` de `Data2\` (en el 0, `bird.smd`, `fish.smd` y
-   `treesmall.smd`), está muerto.
+   `treesmall.smd`), está muerto. El segundo `switch` (`0x617325..0x61733e`, índices en
+   `0x61a23c`, saltos en `0x61a1fc`) carga y crea con `0x606660` los especiales de algunos mapas,
+   antes del `.obj`. En el 2 (`0x61744d..0x61751b`) carga `0x201` = `Data\Npc\obj_donkey` y
+   `0x202` = `Data\Npc\obj_flag` (`0x60da30`, las texturas con `0x60d5f0(0x2901, 0x2600, 1)`) y
+   crea el `0x201` en (19.100; 1.600; 270) y el `0x202` en (19.100; 1.700; 270), sin ángulo y con
+   escala 1. *Verificado* en la captura de los objetos de Devias de la VM (2026-11-09): son el
+   primer nodo de las listas 176 y 177 (la y de 1.600 por el float de 1/1.600, `0x3a23d70a`, da
+   0,99999… y cae en el sector 0), y el total es 2.146 = los 2.144 registros de
+   `World3\EncTerrain3.obj` más estos dos. En el 3, el `0x142` en (22.300; 3.000; 10)
+   (`0x617520`); en el 55, lo de `0x6188ae`, sin leer. El 0 no tiene (*estático*, T7). `Scenes::LoadMap`
+   crea los dos objetos del 2; la carga de sus dos modelos no está en `LoadMap` (el dibujo es la
+   T8). Los dos registros de `EncTerrain3.obj` con la y en NaN (492 y 493, tipo 86) caen en la
+   lista 32: `_ftol(NaN)` da ahí 0 en el dword bajo; MuRet todavía los descarta (otro PR).
 5. **El número del mundo** ([05](05-formatos-de-datos.md#terreno-de-un-mundo-dataworldn)), con
    `0x42a760` antes, que solo actúa en el mapa 30.
 6. **Los archivos**: el `.map` (`0x5f87b0`, cuyo `0x5f8300` limpia las capas y **llena el
@@ -2760,6 +2789,33 @@ paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-d
    `TileRock03..07`, que se saltean sin avisar; el pasto trae solo `TileGrass01.OZT` y las hojas
    solo `leaf01.tga`. *Verificado* contra la traza: el pasto es la textura de GL 1360, la que sigue
    a los nueve tiles que están (1351 a 1359).
+
+**Lo que porta MuRet** (CL7 hito 1, T7). `Scenes::LoadMap` sigue los pasos 1 a 7 en ese orden y
+`Scenes::ApplyWorldEntry` la tabla de la respuesta; lo que no está leído o no está portado corta con
+un error que nombra la dirección, nunca en silencio:
+
+- **Los mapas.** Con la `Data` del repo cargan el 0, 1, 2, 4, 6 a 11, 18, 31, 33 y 54. Cortan: el
+  3 en `0x606660` (la torre `0x142` pide efectos que MuRet no crea), el 5 por el archivo que falta
+  en `World6`, del 24 al 29 y el 36 en `0x4377a0`, el 30 en `0x42a760`, el 34 en `0x42fe50` (el
+  `.att` según Crywolf, antes del `BD`, que por eso no sale) y el 55 en `0x6188ae`. Sin
+  `TerrainHeight.OZB`, el error nombra el archivo, con el pasto ya sacado (Q-C180).
+- **Los mapas de evento** (`0x447d70`: 9, 11 a 23) cortan después de la carga: el objeto de evento
+  (`0x447eb0`, `new 0x134`) no está portado.
+- **La respuesta** corta hoy dentro de `0x512a30`: en `0x550d10`, en su primera llamada, `0x40e1b0`
+  ([Los stats del registro propio](#los-stats-del-registro-propio)), o en `0x505820` si el lugar
+  sorteado es el del héroe anterior (`0x512ee7`, con `0x743a170` todavía en él). La sesión
+  queda en `Failed` con el héroe sin publicar (`0x743a170` sin tocar), el contador sin bajar a 30 y
+  los `rand()` gastados hasta ahí: el primer y el segundo cierre del registro, el pasto, el lugar del
+  héroe, los 28 de `0x511290` y lo que `0x512a30` sacó antes de cortar. Lo que sigue a `0x512a30`
+  (filas 6 a 17) está en `Scenes::SettleWorldEntry` y se prueba directo; el cuervo de la fila 11 corta
+  en `0x420d60`. Lo que MuRet no modela no se escribe: `0x7d36874`, `0x77f3b67`, `0x553780`,
+  `0x77f3b10`, `0x6c8dcc`, los elegidos de la fila 14, `0x78abb0c`/`0x78abb10`, ResourceGuard
+  (Q-C147) y la fila 19 (los mensajes, CL9). Los sonidos se calculan y se descartan (sin audio
+  hasta la CL10).
+- **La clave del héroe** (`0x57678bc`) es la del `F1 00`, que la escribe en `0x4c1ec0` antes del
+  chequeo de versión ([04](04-protocolo.md)).
+- **Divergencia previa**: la selección (escena 4) todavía no gasta los 28 de `0x511290` ni los
+  65.536 del pasto al cargar el 54.
 
 ### El equipo propio en el personaje
 
@@ -4025,7 +4081,9 @@ paso o por frame (*estático*; el de la cámara, *emulado*):
 | `0x6371a0`, el contador (`0x6371b7..0x637229`) | cada frame dibujado de la escena 5 con `0x7d3a101` en 1, aunque no presente | 4 |
 | `0x6356f0`, el contador (`0x635723..0x635963`) | al entrar a la escena 3 | 4 |
 | la selección, el registro propio (`0x40f370` o `0x40b4d0`) | al pasar a la escena 3 | 3.848 |
-| `0x4c3940`, la respuesta del `F3 03` | al entrar al mundo, que cierra el registro tres veces | 11.544 |
+| `0x4c3940`, la respuesta del `F3 03` | al entrar al mundo: tres cierres en línea del registro propio (`0x4c41c4`, `0x4c46f0` y `0x4c481e`) y el de `0x512a30`, que lo abre en `0x512a48..0x512aba` para todo `0x20a` (contraste estático T7; antes se contaban tres) | 15.392 |
+| `0x511290`, al armar un `0x20a` | la celda lógica (seis accesos) y el contador de pasos (uno) | 28 |
+| `0x4c3940`, el resto | el contador en 30 (`0x412890`), `0x657a90` con las ventanas cerradas (dos entradas de 1 byte, `0x4c0ec0` y `0x4c1190`) y el lugar del héroe (`rand() % 400`) | 4 + 2 + 1 |
 | el `F3 04` (tres cierres), el `F3 10` (uno) y el `D7` al héroe (uno, en línea) | con cada paquete | 3.848 por cierre |
 | `0x508f00`, las celdas lógicas al marcar el `TerrainWall` | cada paso, por cada personaje vivo | 8 |
 | `0x635ae0`, la celda del héroe para el atributo | cada frame dibujado, también en las escenas 2 y 4 | 8 |

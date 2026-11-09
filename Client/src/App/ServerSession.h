@@ -183,6 +183,10 @@ public:
     // Si la sesión está en InWorld: el F3 03 aplicado publicó el 0x3d.
     [[nodiscard]] bool JoinedWorld() const;
 
+    // DAT_057678bc, la clave del jugador: la que trae el F1 00 aceptado (0x4c1ec0, antes de mirar la
+    // versión) hasta el próximo. 0 antes, como la .bss. La respuesta del F3 03 la pone en el héroe.
+    [[nodiscard]] std::uint16_t PlayerIndex() const;
+
     // Cuántas veces se llamó a Start: lo que elige o manda alguien de afuera (el AutoLogin) es de
     // una vuelta, y con un Start empieza otra.
     [[nodiscard]] std::uint32_t StartCount() const;
@@ -319,6 +323,7 @@ private:
     std::optional<std::uint16_t> m_chosenServer;
     std::optional<ServerAddress> m_gameServerAddress;
     std::optional<std::uint8_t> m_loginResult;
+    std::uint16_t m_playerIndex = 0;
     std::optional<Protocol::Character::CharacterList> m_characters;
     std::optional<std::string> m_applicationFailure;
     // Solo durante el ApplyWorld de un F3 03: ahí vale PublishWorldEntry.

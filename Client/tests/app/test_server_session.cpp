@@ -973,6 +973,34 @@ TEST(ServerSessionTest, WorldEventsRejectClearPacketsAfterTheEncryptedPositive)
     EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
 }
 
+// 0x4c396a: la respuesta del F3 03 sin cifrar no entra al mundo y le avisa al GS con el F1 03 00 F3.
+TEST(ServerSessionTest, AClearWorldEntryReplyIsReportedWithF103)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const std::size_t sentBefore = tested.GameServerReads().packets.size();
+
+    tested.socket.reads = {WorldEntryReply()};
+    static_cast<void>(tested.session.Poll());
+
+    const GameServerReceived received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), sentBefore + 1);
+    EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xC1, 0x06, 0xF1, 0x03, 0x00, 0xF3})));
+    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+// 0x4c1ec0: el F1 00 aceptado deja la clave del jugador (pkt[5..6], big endian) para el F3 03.
+TEST(ServerSessionTest, TheAcceptedGameHelloKeepsThePlayerIndex)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    EXPECT_EQ(tested.session.PlayerIndex(), 0);
+
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+
+    EXPECT_EQ(tested.session.PlayerIndex(), 5);
+}
+
 // Un checksum válido no vuelve legible un cuerpo corto o una cantidad imposible.
 TEST(ServerSessionTest, WorldEventsRejectEncryptedTruncationsAfterThePositive)
 {

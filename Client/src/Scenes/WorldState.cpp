@@ -5,6 +5,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 
 #include <cstddef>
@@ -40,6 +41,16 @@ WorldRuntime& WorldState::Runtime()
 const WorldRuntime& WorldState::Runtime() const
 {
     return m_runtime;
+}
+
+WorldMap& WorldState::Map()
+{
+    return m_map;
+}
+
+const WorldMap& WorldState::Map() const
+{
+    return m_map;
 }
 
 // El original copia de chars[elegido] lo que 0x4c20a0 le puso con la lista (0x4c21dd..0x4c220c): la

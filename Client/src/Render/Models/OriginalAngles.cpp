@@ -1,5 +1,7 @@
 #include "Render/Models/OriginalAngles.h"
 
+#include "Render/Models/OriginalRetainedMath.h"
+
 #include <cmath>
 #include <cfloat>
 #include <limits>
@@ -18,7 +20,6 @@ static_assert(FLT_EVAL_METHOD == 0);
 
 // 0x4e93f0.
 constexpr float Tiny = 0.0001f;
-constexpr double Degrees = static_cast<double>(57.2957763671875f);
 constexpr double Quarter = 90.0;
 constexpr double HalfTurn = 180.0;
 constexpr double ThreeQuarters = 270.0;
@@ -56,7 +57,8 @@ double CreateAngle(float x1, float y1, float x2, float y2)
     {
         return LessOrUnordered(nx, 0.0) ? ThreeQuarters : Quarter;
     }
-    double angle = (std::atan(static_cast<double>(ny) / static_cast<double>(nx)) * Degrees) + Quarter;
+    const double quotient = static_cast<double>(ny) / static_cast<double>(nx);
+    double angle = Detail::AtanDegreesProductPC53(quotient) + Quarter;
     if (LessOrUnordered(nx, 0.0))
     {
         angle += HalfTurn;

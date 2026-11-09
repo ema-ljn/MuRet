@@ -144,6 +144,17 @@ jobs:
       - name: Tests
         run: ctest --preset ${{ matrix.test-preset }}
 
+      # Con el módulo retenido presente, Windows verifica también Main y sus hojas en Release.
+      # Un build fallido corta antes de CTest; cero casos seleccionados también hace fallar el job.
+      - name: Perfil matemático en MSVC Release
+        if: runner.os == 'Windows' && hashFiles('Client/src/Render/Models/OriginalRetainedMath.cpp') != ''
+        shell: pwsh
+        run: |
+          cmake --build build/windows-x64 --config Release --target Main test_original_angles test_original_retained_math
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ctest --test-dir build/windows-x64 -C Release -R '^(OriginalAnglesTest|OriginalRetainedMathTest)\.' --output-on-failure --no-tests=error
+          exit $LASTEXITCODE
+
       # Los tests con la etiqueta gl (desde la CL5.0, los de labs/cl5.0-pipeline/gl/) abren una
       # ventana escondida con OpenGL 3.3 core, dibujan en un framebuffer y leen los píxeles. En el
       # paso de Tests se saltean porque no hay pantalla; acá corren en Xvfb con

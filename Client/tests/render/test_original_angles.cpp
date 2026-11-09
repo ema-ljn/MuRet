@@ -292,3 +292,65 @@ TEST(OriginalAnglesTest, HostRoundingMatchesTheDeclaredNearestProfile)
     EXPECT_EQ(std::fegetround(), FE_TONEAREST);
 }
 } // namespace
+
+// R5: sólo valores numéricos archivados, sin registros ni volcados (ADR0014).
+TEST(OriginalAnglesTest, RetainsPhiThroughNativeNonunitProducts)
+{
+    struct Case
+    {
+        std::array<std::uint32_t, 4> arguments;
+        std::uint64_t expectedDouble;
+        std::uint32_t expectedFloat;
+    };
+    constexpr std::array cases{
+        Case{{0x00000000U, 0x00000000U, 0x3f800000U, 0x40000000U}, 0x40632deb127d540fULL, 0x43196f59U},
+        Case{{0x00000000U, 0x00000000U, 0xbf800000U, 0x40000000U}, 0x4069d214ed82abf1ULL, 0x434e90a7U},
+        Case{{0x00000000U, 0x00000000U, 0x3f800000U, 0xc0000000U}, 0x403a90a76c155f8aULL, 0x41d4853bU},
+        Case{{0x00000000U, 0x00000000U, 0xbf800000U, 0xc0000000U}, 0x4074d6f5893eaa08ULL, 0x43a6b7acU},
+        Case{{0x00000000U, 0x00000000U, 0x40000000U, 0x3f800000U}, 0x405d2429c64b6235ULL, 0x42e9214eU},
+        Case{{0x00000000U, 0x00000000U, 0xc0000000U, 0x3f800000U}, 0x406e6deb1cda4ee6ULL, 0x43736f59U},
+        Case{{0x00000000U, 0x00000000U, 0x40000000U, 0xbf800000U}, 0x404fb7ac73693b96ULL, 0x427dbd64U},
+        Case{{0x00000000U, 0x00000000U, 0xc0000000U, 0xbf800000U}, 0x4072890a7192d88dULL, 0x43944854U},
+        Case{{0x00000000U, 0x00000000U, 0x3f800000U, 0x40400000U}, 0x40643214ddf733afULL, 0x432190a7U},
+        Case{{0x00000000U, 0x00000000U, 0xbf800000U, 0x40400000U}, 0x4068cdeb2208cc51ULL, 0x43466f59U},
+        Case{{0x00000000U, 0x00000000U, 0x3f800000U, 0xc0400000U}, 0x40326f5910466288ULL, 0x41937ac9U},
+        Case{{0x00000000U, 0x00000000U, 0xbf800000U, 0xc0400000U}, 0x4075590a6efb99d8ULL, 0x43aac853U},
+        Case{{0x00000000U, 0x00000000U, 0x40400000U, 0x3f800000U}, 0x405b1bd62f57a2f4ULL, 0x42d8deb1U},
+        Case{{0x00000000U, 0x00000000U, 0xc0400000U, 0x3f800000U}, 0x406f7214e8542e86ULL, 0x437b90a7U},
+        Case{{0x00000000U, 0x00000000U, 0x40400000U, 0xbf800000U}, 0x4051e429d0a85d0cULL, 0x428f214fU},
+        Case{{0x00000000U, 0x00000000U, 0xc0400000U, 0xbf800000U}, 0x407206f58bd5e8bdULL, 0x439037acU},
+        Case{{0x00000000U, 0x00000000U, 0x40000000U, 0x40400000U}, 0x406249eaf1061b49ULL, 0x43124f58U},
+        Case{{0x00000000U, 0x00000000U, 0xc0000000U, 0x40400000U}, 0x406ab6150ef9e4b7ULL, 0x4355b0a8U},
+        Case{{0x00000000U, 0x00000000U, 0x40000000U, 0xc0400000U}, 0x4040d8543be792dbULL, 0x4206c2a2U},
+        Case{{0x00000000U, 0x00000000U, 0xc0000000U, 0xc0400000U}, 0x407464f578830da4ULL, 0x43a327acU},
+        Case{{0x00000000U, 0x00000000U, 0x40e00000U, 0x41300000U}, 0x406270ebf78546baULL, 0x43138760U},
+        Case{{0x00000000U, 0x00000000U, 0xc0e00000U, 0x41300000U}, 0x406a8f14087ab946ULL, 0x435478a0U},
+        Case{{0x00000000U, 0x00000000U, 0x40e00000U, 0xc1300000U}, 0x40403c5021eae517ULL, 0x4201e281U},
+        Case{{0x00000000U, 0x00000000U, 0xc0e00000U, 0xc1300000U}, 0x40747875fbc2a35dULL, 0x43a3c3b0U},
+        Case{{0x41200000U, 0xc1a00000U, 0x41300000U, 0xc1900000U}, 0x40632deb127d540fULL, 0x43196f59U},
+        Case{{0xc1000000U, 0x41800000U, 0xc0c00000U, 0x41880000U}, 0x405d2429c64b6235ULL, 0x42e9214eU},
+        Case{{0x4b800000U, 0x4b000000U, 0x4b800001U, 0x4b000001U}, 0x405d2429c64b6235ULL, 0x42e9214eU},
+        Case{{0x3e800000U, 0xbf000000U, 0x40e80000U, 0x41280000U}, 0x406270ebf78546baULL, 0x43138760U},
+        Case{{0x00000000U, 0x00000000U, 0x38d1b716U, 0x3f800000U}, 0x4066800000000000ULL, 0x43340000U},
+        Case{{0x00000000U, 0x00000000U, 0x38d1b717U, 0x3f800000U}, 0x40667fd105d78974ULL, 0x4333fe88U},
+        Case{{0x00000000U, 0x00000000U, 0x38d1b718U, 0x3f800000U}, 0x40667fd105d75028ULL, 0x4333fe88U},
+        Case{{0x00000000U, 0x00000000U, 0x3f800000U, 0x38d1b716U}, 0x4056800000000000ULL, 0x42b40000U},
+        Case{{0x00000000U, 0x00000000U, 0x3f800000U, 0x38d1b717U}, 0x4056805ddf96f76bULL, 0x42b402efU},
+        Case{{0x00000000U, 0x00000000U, 0x3f800000U, 0x38d1b718U}, 0x4056805ddf976a03ULL, 0x42b402efU},
+        Case{{0x00000000U, 0x00000000U, 0xb8d1b716U, 0x3f800000U}, 0x4066800000000000ULL, 0x43340000U},
+        Case{{0x00000000U, 0x00000000U, 0xb8d1b717U, 0x3f800000U}, 0x4066802efa28768cULL, 0x43340178U},
+        Case{{0x00000000U, 0x00000000U, 0x3f800000U, 0x3f800000U}, 0x4060dffffad18294ULL, 0x43070000U},
+        Case{{0x00000000U, 0x00000000U, 0xbf800000U, 0x3f800000U}, 0x406c2000052e7d6cULL, 0x43610000U},
+    };
+    static_assert(cases.size() == 38);
+    EXPECT_EQ(std::fegetround(), FE_TONEAREST);
+    for (const auto& row : cases)
+    {
+        const auto& p = row.arguments;
+        const double actual =
+            Client::Render::Models::CreateAngle(std::bit_cast<float>(p[0]), std::bit_cast<float>(p[1]),
+                                                std::bit_cast<float>(p[2]), std::bit_cast<float>(p[3]));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(actual), row.expectedDouble);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(static_cast<float>(actual)), row.expectedFloat);
+    }
+}

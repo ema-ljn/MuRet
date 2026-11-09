@@ -72,8 +72,17 @@ struct OwnCharacterRecord
     std::uint16_t mana = 0;           // +0x24
     std::uint16_t maxLife = 0;        // +0x26
     std::uint16_t maxMana = 0;        // +0x28
-    std::uint16_t bp = 0;             // +0x38
-    std::uint16_t maxBp = 0;          // +0x3a
+    // +0x2a a +0x36: 0x550d10 los pone en 0 (0x54ef00) y les suma lo de los ítems (06, "Los stats del
+    // registro propio"); qué son no está acreditado.
+    std::uint16_t word2a = 0;
+    std::uint16_t word2c = 0;
+    std::uint16_t word2e = 0;
+    std::uint16_t word30 = 0;
+    std::uint16_t word32 = 0;
+    std::uint16_t word34 = 0;
+    std::uint16_t word36 = 0;
+    std::uint16_t bp = 0;    // +0x38
+    std::uint16_t maxBp = 0; // +0x3a
     // +0x3c: los bits del ajuste que 0x4bee60 aplica a las velocidades del keepalive (04, el 0E).
     std::uint8_t speedAdjustBits = 0;
     // +0x3e, +0x40 y +0x42: la respuesta los pone en 0; qué son no está acreditado.
@@ -85,11 +94,32 @@ struct OwnCharacterRecord
     // +0x48 y +0x4a: los de Q-C144; qué son no está acreditado.
     std::uint16_t word48 = 0;
     std::uint16_t word4a = 0;
+    // +0x4e, +0x60 y +0x62: los lee la cola de 0x550d10; los escriben sus ocho helpers, sin leer.
+    std::uint16_t word4e = 0;
+    std::uint16_t word60 = 0;
+    std::uint16_t word62 = 0;
     std::uint16_t levelUpPoints = 0; // +0x68
 
     std::array<World::ItemState, OwnEquipmentSlotCount> equipment{}; // +0xb68
 
     // [0x7681eb4] + 0xecc: desde el login, el mismo bloque que [0x7681eb0] (0x4bafc9).
     std::uint32_t zen = 0;
+
+    // +0xee2 a +0xf03, la cola de 0x550d10 (0x5512bf..0x5513b1): lee los primeros siete, que escriben
+    // sus ocho helpers, y escribe los otros. Qué son no está acreditado.
+    std::uint16_t wordee2 = 0;
+    std::uint16_t wordee4 = 0;
+    std::uint16_t wordee6 = 0;
+    std::uint16_t wordeea = 0;
+    std::uint16_t wordeec = 0;
+    std::uint16_t wordef0 = 0;
+    std::uint16_t wordef2 = 0;
+    std::uint16_t wordef8 = 0;
+    std::uint16_t wordefa = 0;
+    std::uint16_t wordefc = 0;
+    std::uint16_t wordefe = 0;
+    std::uint16_t wordf00 = 0;
+    std::uint8_t bytef02 = 0;
+    std::uint8_t bytef03 = 0;
 };
 } // namespace Client::Scenes

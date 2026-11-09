@@ -2784,21 +2784,90 @@ fila 5 de la tabla de [La entrada al mundo](#la-entrada-al-mundo)), `0x5bc740` c
 6. Si no, las cinco partes del cuerpo (`+0x218`, de a `0x20`; los lugares 2 a 6): el modelo o, con
    el lugar vacío, la de la clase (`0x2212`, `0x221a`, `0x2222`, `0x222a` y `0x2232` más `(clase >>
    3) · 5 + (clase & 7)`), el nivel y los bytes `+0x1b` y `+0x1c` (`0x512cc7..0x512ec9`).
-7. `0x4053f0` (`0x512ecf`; 44 instrucciones, 139 bytes): en los mapas 18 a 23 llama a `0x4053a0` y
-   pisa las armas; en los otros no hace nada.
+7. `0x4053f0` (`0x512ecf`; 44 instrucciones, 139 bytes): en los otros mapas no hace nada. En los 18
+   a 23 llama a `0x4053a0` (`0x405407`; 77 bytes), que deja sin ítem (`0xffff`) y con el nivel en 0
+   las manos, las alas y la mascota, y en 0 el byte `+0x1b` de las manos (`+0x2bb` y `+0x2db`; los
+   de las alas y la mascota quedan). Después elige el arma por `+0x1d4 & 7` (`0x40540c..0x405472`),
+   con el nivel en 0: con 1, 3 y 4, `0x222` en las dos manos (el 0 16 de `Item.bmd`, `Sword of
+   Destruction`); con 2, `0xa25` en la derecha (el 4 19, `Great Reign Crossbow`); con 0, `0xc17` en
+   la derecha (el 5 5, `Legendary Staff`); con 5 a 7, nada.
 8. `0x512930` (`0x512ed5`; 56 instrucciones, 205 bytes): la cabeza y la escala, como en la
    selección ([Los personajes de la lista](#los-personajes-de-la-lista)). Las tablas de saltos de
    `0x512a00` y `0x512a14` dan la escala por clase; en las clases 5 a 7 no la toca.
-9. Si el personaje es el de `0x743a170` (el héroe publicado; `0x512ee2`), `0x505820` (`0x512ee7`),
-   sin leer en detalle: busca los conjuntos, escribe `0x743a178` y `0x743a17c` y, con la clase 3,
-   abre otra vez el registro.
-10. `0x550d10` (`0x512ef5`, `thiscall` sobre el registro): los stats.
+9. Si el personaje es el de `0x743a170` (el héroe publicado; `0x512ee2`), `0x505820` (`0x512ee7`;
+   914 bytes), sin leer en detalle: busca los conjuntos, escribe `0x743a178` y `0x743a17c` y, con la
+   clase 3, abre otra vez el registro.
+10. [`0x550d10`](#los-stats-del-registro-propio) (`0x512ef5`, `thiscall` sobre el registro): los stats.
 11. Cierra el registro (en línea, `0x512efa..0x5130cf`).
 
 En la respuesta del `F3 03` el héroe todavía no está en `0x743a170` (lo pone la fila 6), así que esa
-primera llamada no corre `0x505820`. MuRet (`Scenes::ApplyActorEquipment`) llega hasta el paso 8 y
-corta con un error explícito donde falta la lectura: `0x4053a0` (los mapas 18 a 23), `0x505820` y
-`0x550d10`. El cierre del registro gasta los 3.848 `rand()` también cuando corta.
+primera llamada no corre `0x505820`. MuRet (`Scenes::ApplyActorEquipment`) hace los pasos 1 a 9 y
+corta con un error explícito donde falta la lectura: `0x505820`, y adentro de `0x550d10`, en su
+primera llamada, `0x40e1b0`. El cierre del registro gasta los 3.848 `rand()` también cuando corta.
+
+### Los stats del registro propio
+
+`0x550d10` (1.698 bytes, cotejados con el PE `c32bbd5f`; *estático*) es un `thiscall` sobre el
+registro propio (`ecx = [0x7681eb4]`, `0x512eef`), que guarda en `ebx` para todo lo demás. Lo que
+devuelve en `eax` no lo lee nadie: `0x512a30` lo pisa en `0x512efa`. En orden:
+
+1. `0x40e1b0` con `ecx = [0x6eed3c]` (`0x550d24`), las opciones de los conjuntos (abajo).
+2. Los 16 bytes de `[0x6eed3c] + 0x937c` en 0 (`0x550d29..0x550d3f`).
+3. `0x54ef00` (`0x550d44`; 31 bytes): los WORD `+0x2a`, `+0x2c`, `+0x2e`, `+0x30`, `+0x36`, `+0x32`
+   y `+0x34` del registro en 0.
+4. Los doce lugares del equipo (`+0xb6c`, de a `0x48`, también del 9 al 11; `0x550d49..0x550db1`):
+   con la durabilidad (`D+0x1a`) distinta de 0, `0x40dc50(lugar, &v)` (`0x550d6d`; 66 bytes; `ecx =
+   [0x6eed3c]`, que no usa) escribe en `v` el WORD `(D+0x1c >> 2) & 3` y devuelve el byte `+0x44`
+   del registro de `Item.bmd` del tipo, leído con signo (`*[0x7758550] + tipo · 0x54`, `movsx` en
+   `0x40dc77`). Con 1, 2, 3 o 4 suma `5 · v`, en 16 bits, a `+0x2a`, `+0x2c`, `+0x30` o `+0x2e` (la
+   tabla de saltos de `0x5513b4`); con otro valor, nada. En el `Item.bmd` del repo, el `+0x44` vale
+   1 en 57 registros (los grupos 0 a 3, como `Kris`, y 3 del 13), 2 en 20 (el grupo 4 y 3 del 13), 3
+   en 12 (el grupo 5, `Rune Blade` y 2 del 13) y 4 en 161 (los grupos 6 a 11 y 2 del 13); en los
+   demás, 0. Con el tipo en −1 y la durabilidad distinta de 0 lee fuera de la tabla (Q-C184).
+5. `0x40da20` sobre `[0x6eed3c]` cinco veces (`0x550dc2..0x550e12`; 151 bytes): `+0x2a` con `0x8c`,
+   `+0x2c` con `0x8d`, `+0x30` con `0x8e`, `+0x2e` con `0x8f` y `+0x36` con `0x90`. Suma al WORD,
+   una sola vez cada uno, los valores de la lista que dejó `0x40e1b0` (de a 3 bytes desde `+0x934c`,
+   tantos como `+0x9348` más `+0x9349`; los valores de a 8 desde `+0x938c`) cuyo primer byte es el
+   selector menos `0x8c`, y los marca en `+0x937c`, lo que el paso 2 puso en 0.
+6. Si el lugar 7 (`[0x7681eb4] + 0xd64`) tiene el tipo `0x1a1e` (el 13 30, `Cape of Lord`;
+   `0x550e17..0x550e30`), abre el registro (`0x550e36..0x551038`), llama a `0x54e540(+0x36, 0x90,
+   lugar 7)` (`0x551051`; `Scenes::AddOwnItemOptionValues`) y lo cierra (`0x551056..0x551284`, con
+   los 3.848 `rand()` si la cuenta llega a 0). Desde `0x512a30` el registro ya está abierto y ese
+   cierre no gasta.
+7. Ocho helpers con `ecx` en el registro (`0x551287..0x5512ba`), sin leer en detalle: `0x54efe0`
+   (2.304 bytes), `0x54f9b0` (873), `0x54fd40` (193), `0x54fe10` (2.471), `0x5507e0` (425),
+   `0x550990` (653), `0x550c30` (46) y `0x550c60` (63). `0x54fe10` empieza escribiendo `+0x4c` y
+   `+0x58`, las velocidades del keepalive ([04](04-protocolo.md), el `0E`; P-C28 i): `+0x1a` más
+   `+0x2c`, sobre 50 y 50 en la clase 2 (`+0xb & 7`), 15 y 20 en la 1 y la 3, 10 y 10 en la 4, y 20
+   y 10 en las otras (`0x54fe1e..0x54fefb`); después, según `0x7879fbc`, `0x78ab9b8` y `0x78a6758`,
+   lee el ítem de `0x7879f80` en lugar de uno del equipo, y en algunos caminos (con el bit `0x04` de
+   `[0x7681eb0] + 0x3c`) abre otra vez el registro. `0x550c30` y `0x550c60` escriben `+0x64` y
+   `+0x66` con `0x54e6b0` y `0x54e6d0` (los lugares 2 a 7, y el 6 y el 7).
+8. La cola (`0x5512bf..0x5513b1`), con WORD que envuelven:
+   - `+0xef8 = +0xef0 − +0xee6` y `+0xefa = +0xef2 − +0xee6`;
+   - un `rand()` (`0x5512f2`) y `+0xefc = rand() % (+0xee4 − +0xee2 + 1) + +0xee2 − +0x62`: los dos
+     WORD sin signo y el `idiv` de 32 bits con signo. Con `+0xee2 = +0xee4 + 1` divide por 0
+     (Q-C185); con `+0xee2` mayor, el divisor es negativo y el resto es el `rand()` entero;
+   - `+0xefe = +0x4e − +0xeec` y `+0xf00 = +0x60 − +0xeea`, cada uno con tope 100 si pasa de 100 sin
+     signo (`jbe`);
+   - otro `rand()`: `+0xf02` en 1 si `rand() % 100` es menor que `+0xefe` (`jge`), si no en 0; y
+     otro, igual, para `+0xf03` con `+0xf00`.
+
+`0x40e1b0` (1.290 bytes; *estático*, leído solo en su forma) es de la clase de `[0x6eed3c]`, cuyas
+tablas carga `0x40c600` de `Data\Local\ItemSetType.bmd` (`0x40c660`) e `ItemSetOption.bmd`
+(`0x40c850`): 4 bytes por tipo desde `+0`, que `0x40cfa0` indexa con `D+0x1c & 3`, y registros de
+`0x4c` desde `+0x8004`. Recorre dos veces los lugares 0 a 11 salvo el 7 y el 8 (`0x40e1e6..0x40e1f8`
+y `0x40e4cf..0x40e4e1`), y abre y cierra el registro en cada uno (en la segunda pasada, a veces con
+`0x40f370`) y una vez más en el medio, para leer `+0x18`, `+0x1a`, `+0x1c` y `+0x1e` de
+`[0x7681eb0]`: con `0x512a30` afuera, ninguno de esos cierres gasta. Llama además a `0x40cfa0` (100
+bytes), `0x40d010` (1.298; lee la clase del héroe publicado, `[0x743a170] + 0x1d4`, y escribe su
+`+0x358`) y `0x40de10` (898).
+
+MuRet (`Scenes::RecalculateOwnStats`) corta en el paso 1 con un error, antes de tocar el registro y
+sin `rand()`: no carga las tablas de los conjuntos. Los pasos 3, 4, 6 y 8 están portados aparte
+(`ClearOwnItemStatWords`, `AddOwnItemStatBonuses` con `ItemStatBonusOf`, `AddCapeOfLordOptions` y
+`UpdateOwnDerivedStatsTail`), cada uno con su prueba, para cuando exista lo de antes; los pasos 1,
+2, 5 y 7 son la frontera.
 
 ### El paso de ondas de Kalima
 

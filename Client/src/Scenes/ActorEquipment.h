@@ -6,8 +6,9 @@
 #include <cstdint>
 #include <string>
 
-// El equipo propio en el personaje: 0x512a30, sin 0x550d10. Contrato:
-// Client/docs/research/06-render-escenas-y-ui.md, "El equipo propio en el personaje", y 04, "El F3 10".
+// El equipo propio en el personaje: 0x512a30, con 0x550d10 hasta donde llega. Contrato:
+// Client/docs/research/06-render-escenas-y-ui.md, "El equipo propio en el personaje" y "Los stats del
+// registro propio", y 04, "El F3 10".
 namespace Client::Scenes
 {
 struct ActorState;
@@ -16,8 +17,9 @@ struct OwnCharacterRecord;
 // Lo que 0x512a30 lee y escribe fuera del personaje. Quien llama lo presta durante la llamada.
 struct ActorEquipmentContext
 {
-    // [0x7681eb4], el registro propio: los nueve lugares que lee.
-    const OwnCharacterRecord& own;
+    // [0x7681eb4], el registro propio: los nueve lugares que lee, y lo que escribe 0x550d10, un
+    // thiscall sobre él (0x512ef5).
+    OwnCharacterRecord& own;
     // La cuenta de accesos de su entrada en la tabla de protección (Render::Models::LogicalAccess):
     // 0x512a30 lo abre al empezar y lo cierra al terminar, con los 3.848 rand() si lo deja en 0.
     std::uint8_t& ownRecordAccesses;
@@ -28,9 +30,10 @@ struct ActorEquipmentContext
 };
 
 // 0x512a30 sobre `actor`: con el tipo 0x20a, los modelos, los niveles y los bytes del equipo propio, la
-// acción de parado y, con +0x3e3 en 0, la ropa, la cabeza y la escala. Lo que MuRet no tiene corta con
-// error después de lo que el original hace antes, y el acceso al registro se cierra igual: 0x4053a0 en
-// los mapas 18 a 23, 0x505820 con el héroe publicado y 0x550d10, que corre siempre que hay ropa (T10).
+// acción de parado y, con +0x3e3 en 0, la ropa, las armas de los mapas 18 a 23, la cabeza, la escala y
+// los stats del registro (0x550d10). Lo que MuRet no tiene corta con error después de lo que el original
+// hace antes, y el acceso al registro se cierra igual: 0x505820 con el héroe publicado, y 0x550d10, que
+// corre siempre que hay ropa y hoy corta en su primera llamada, 0x40e1b0 (Scenes::RecalculateOwnStats).
 // Devuelve lo que pidió 0x4f2250, si corrió.
 [[nodiscard]] Core::Expected<ActorStopResult, std::string> ApplyActorEquipment(ActorState& actor,
                                                                                const ActorEquipmentContext& context);

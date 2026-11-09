@@ -7,6 +7,7 @@
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/OwnDerivedStats.h"
 #include "Scenes/WorldRuntime.h"
 #include "World/ItemState.h"
 
@@ -15,8 +16,8 @@
 #include <optional>
 #include <string>
 
-// 0x512a30, cotejado con el PE c32bbd5f (493 instrucciones, 1.733 bytes), con 0x4053f0 (44, 139) y
-// 0x512930 (56, 205): 06, "El equipo propio en el personaje".
+// 0x512a30, cotejado con el PE c32bbd5f (493 instrucciones, 1.733 bytes), con 0x4053f0 (44, 139),
+// 0x4053a0 (77 bytes) y 0x512930 (56, 205): 06, "El equipo propio en el personaje".
 namespace Client::Scenes
 {
 namespace
@@ -43,6 +44,20 @@ constexpr std::uint8_t LastBusyAction = 0x97;
 
 // La mascota que 0x511290 mira en el word318 anterior.
 constexpr std::uint16_t HeightOffsetPet = 0x1c15;
+
+// Las armas que 0x4053f0 pone en los mapas 18 a 23 según +0x1d4 & 7 (0x40540c..0x405472), con su
+// nombre en Item.bmd: el 0 16 (Sword of Destruction) en las dos manos de las clases 1, 3 y 4, el 4 19
+// (Great Reign Crossbow) en la derecha de la 2 y el 5 5 (Legendary Staff) en la derecha de la 0.
+constexpr std::uint8_t ClassBits = 7;
+constexpr std::uint8_t DarkWizardClass = 0;
+constexpr std::uint8_t DarkKnightClass = 1;
+constexpr std::uint8_t ElfClass = 2;
+constexpr std::uint8_t MagicGladiatorClass = 3;
+constexpr std::uint8_t DarkLordClass = 4;
+constexpr std::uint16_t EventSwordModel = Data::Models::ItemModel(0, 16);
+constexpr std::uint16_t EventCrossbowModel = Data::Models::ItemModel(4, 19);
+constexpr std::uint16_t EventStaffModel = Data::Models::ItemModel(5, 5);
+static_assert(EventSwordModel == 0x222 && EventCrossbowModel == 0xa25 && EventStaffModel == 0xc17);
 
 bool InNoStopMaps(std::int32_t map)
 {
@@ -106,6 +121,47 @@ void ProjectBody(ActorState& actor, const OwnCharacterRecord& own)
     }
 }
 
+// 0x4053a0: las manos, las alas y la mascota sin ítem y con el nivel en 0, y el byte +0x1b de las manos
+// en 0. Los de las alas y la mascota quedan.
+void ClearCarried(ActorState& actor)
+{
+    for (ActorItemPart& hand : actor.hands)
+    {
+        hand.model = NoItemModel;
+        hand.level = 0;
+        hand.flags1b = 0;
+    }
+    actor.wings.model = NoItemModel;
+    actor.wings.level = 0;
+    actor.pet.model = NoItemModel;
+    actor.pet.level = 0;
+    actor.previousHad1c15 = false;
+}
+
+// 0x4053f0 en los mapas 18 a 23 (en los otros no hace nada): 0x4053a0 y el arma de la clase.
+void ArmForMaps18To23(ActorState& actor)
+{
+    ClearCarried(actor);
+    ActorItemPart& right = actor.hands[0];
+    switch (actor.characterClass & ClassBits)
+    {
+    case DarkWizardClass:
+        right.model = EventStaffModel;
+        break;
+    case ElfClass:
+        right.model = EventCrossbowModel;
+        break;
+    case DarkKnightClass:
+    case MagicGladiatorClass:
+    case DarkLordClass:
+        right.model = EventSwordModel;
+        actor.hands[1].model = EventSwordModel;
+        break;
+    default:
+        break;
+    }
+}
+
 // 0x512930, con +0x3e3 en 0 como lo deja la rama que lo llama.
 void ApplyHeadAndScale(ActorState& actor)
 {
@@ -117,20 +173,20 @@ void ApplyHeadAndScale(ActorState& actor)
     }
 }
 
-// 0x512cc7..0x512ef5: la ropa y lo que sigue, hasta donde MuRet llega. Devuelve dónde corta.
-std::string DressUntilTheFrontier(ActorState& actor, const ActorEquipmentContext& context)
+// 0x512cc7..0x512ef5: la ropa y lo que sigue, hasta donde MuRet llega.
+Core::Expected<void, std::string> Dress(ActorState& actor, const ActorEquipmentContext& context)
 {
     ProjectBody(actor, context.own);
     if (InNoStopMaps(context.stop.runtime.map))
     {
-        return "0x512a30: en los mapas 18 a 23, 0x4053f0 llama a 0x4053a0 (0x405407), sin leer";
+        ArmForMaps18To23(actor);
     }
     ApplyHeadAndScale(actor);
     if (&actor == &context.publishedHero)
     {
-        return "0x512a30: con el héroe publicado llama a 0x505820 (0x512ee7), sin leer";
+        return Core::Unexpected(std::string("0x512a30: con el héroe publicado llama a 0x505820 (0x512ee7), sin leer"));
     }
-    return "0x512a30: falta 0x550d10, los stats del registro propio (0x512ef5, T10)";
+    return RecalculateOwnStats(context.own);
 }
 } // namespace
 
@@ -160,6 +216,11 @@ Core::Expected<ActorStopResult, std::string> ApplyActorEquipment(ActorState& act
     {
         return stop;
     }
-    return Core::Unexpected(DressUntilTheFrontier(actor, context));
+    const auto dressed = Dress(actor, context);
+    if (!dressed.HasValue())
+    {
+        return Core::Unexpected(dressed.Error());
+    }
+    return stop;
 }
 } // namespace Client::Scenes

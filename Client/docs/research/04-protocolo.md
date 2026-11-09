@@ -434,10 +434,15 @@ puro `ReadInventoryList` exige bytes vivos y estables durante la llamada y produ
 propia, en orden y con duplicados y todos los slots; ignora trailing no contado, sin exigir
 `WasDecrypted`. Devuelve `TooShort` sin resultado parcial si falta cantidad o una entrada
 ([ADR0010](../../../docs/adr/0010-inventario-truncado.md)); la infraestructura rechaza otro
-tipo/opcode/subcódigo. Esta proyección no reproduce el handler: admisión por flag, inicialización
-incluso con cantidad cero, mutaciones por alias/callees, efectos/RNG, decoder y aplicación siguen
-pendientes en L3/P. No se atribuye aquí significado al segundo argumento ni equivalencia frente a
-una cantidad mutable.
+tipo/opcode/subcódigo. Esta proyección no reproduce el handler, que está leído en
+[06 § El F3 10, el inventario](06-render-escenas-y-ui.md#el-f3-10-el-inventario) (T9 del hito 1,
+*estático*): el segundo argumento es el flag de cifrado, el mismo del `F3 03`; la inicialización común
+(el equipo del registro propio y las dos grillas, con un cierre del registro) corre antes de mirarlo,
+también sin cifrar y con la cantidad en 0; sin cifrar manda el mismo `C1 06 F1 03 00 F3` que el `F3 03`
+sin leer el paquete; cifrado, cada entrada va a `0x5bc740`, que decodifica el tipo con `0x54b3a0` (el
+byte 0, el bit `0x80` del byte 3 y el nibble alto del byte 5) y pone el ítem en el equipo (del lugar 0
+al 11, con `0x512a30` sobre el héroe publicado) o en una grilla (del 12 en adelante). Ninguna llamada
+escribe el paquete: la cantidad releída es la misma.
 
 El golden `GoldenEncryptedPacket.ReadsAllSevenInventoryCapturesAgainstTheIndependentReference`
 contrasta las siete capturas F3/10 del log del laboratorio (SHA-256
@@ -461,8 +466,10 @@ generación o keepalive. No reproduce los handlers completos: quedan fuera el pr
 comunes de `0x4c55a0` y la resolución de Q-C144; no inventa los WORD nativos `+0x34..37` ni aumenta
 el mínimo wire a `0x38`. Desde la T7 del hito 1, el `F3 03` sin cifrar manda el `C1 06 F1 03 00 F3`
 de `0x4c396a` y el cifrado va al aplicador nativo de `0x4c3940`
-([06](06-render-escenas-y-ui.md#la-entrada-al-mundo)), que hoy corta en `0x512a30`; el `F3 10` sigue
-sin aplicador (T9).
+([06](06-render-escenas-y-ui.md#la-entrada-al-mundo)). Desde la T9, el `F3 10` cifrado va a
+`Scenes::ApplyInventory` y el que llega en claro hace la inicialización común en el aplicador
+(`App::ClearInventoryReceived`) y después manda el mismo `C1 06 F1 03 00 F3`
+([06](06-render-escenas-y-ui.md#el-f3-10-el-inventario)).
 
 ### Caminar y pegar: `D3` y `D7`
 

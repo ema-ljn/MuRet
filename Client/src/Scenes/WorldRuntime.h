@@ -60,6 +60,12 @@ struct WorldRuntime
     // frame del juego que llega a los personajes (0x6374dd → 0x510d00), que MuRet no dibuja: no se sabe qué
     // dejó, y 0x550990 corta con error si lo lee.
     std::optional<Scan505820> fullSetScan = Scan505820{};
+    // [0x78a6758], en la .bss: 0 al arrancar. 0x5bc740, después de poner un ítem en una de las grillas del
+    // inventario, lo compara con signo con 12 (0x5bcd0b y 0x5bd08b) y, con menos, abre el registro propio
+    // para las velocidades (0x54fe10). Lo escriben quince lugares de la interfaz del inventario y del juego
+    // (0x44add8, 0x561b6d, 0x561bf7, 0x59bf3c, 0x5c2d5c, 0x5c5131, 0x5c5154, 0x5c51c3, 0x5c51f8, 0x5c5277,
+    // 0x5c5301, 0x5c5330, 0x5c6c15, 0x5c8edd y 0x5c8f53; estático), y MuRet no tiene ninguno: queda en 0.
+    std::int32_t slot78a6758 = 0;
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

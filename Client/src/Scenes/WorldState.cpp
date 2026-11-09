@@ -6,6 +6,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/OwnInventory.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 
@@ -32,6 +33,16 @@ OwnCharacterRecord& WorldState::OwnCharacter()
 const OwnCharacterRecord& WorldState::OwnCharacter() const
 {
     return m_own;
+}
+
+OwnInventory& WorldState::Inventory()
+{
+    return m_inventory;
+}
+
+const OwnInventory& WorldState::Inventory() const
+{
+    return m_inventory;
 }
 
 WorldRuntime& WorldState::Runtime()

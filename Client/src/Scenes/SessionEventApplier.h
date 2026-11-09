@@ -16,8 +16,8 @@ class ServerSession;
 namespace Client::Scenes
 {
 // Vive durante RunScenes, más que la sesión; aplica con cámara y terreno contemporáneos. Los eventos de
-// personaje van a la selección y la respuesta del F3 03 a ApplyWorldEntry. El F3 10 (0x4c55a0) todavía
-// no tiene aplicador (T9) y vuelve con error.
+// personaje van a la selección, la respuesta del F3 03 a ApplyWorldEntry y el F3 10 a ApplyInventory, o sin
+// cifrar a ClearForInventoryReply.
 class SessionEventApplier final : public App::ISessionEventSink
 {
 public:

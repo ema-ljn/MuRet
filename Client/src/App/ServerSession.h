@@ -40,9 +40,11 @@
 // SubmitCredentials en otro estado) también se ignora con un aviso. Un cierre de la conexión es
 // Failed. Hay recepciones que no dependen del estado, como el F1 02 con 0 (abajo) y las de mundo:
 // F3/03 y F3/10 se entregan al sink con el GS en cualquier estado, incluso WaitingGameHello,
-// antes del saludo y del login, si llegaron cifradas (C3/C4) y se leen. En claro o ilegibles se
-// descartan con un aviso. El sink aplica cada recepción antes del siguiente evento, con el contexto
-// vivo; también recibe en orden las de personajes. La sesión no retiene payloads para otro frame.
+// antes del saludo y del login, si llegaron cifradas (C3/C4) y se leen. Ilegibles se descartan con un
+// aviso; en claro, el F3 03 y el F3 10 le avisan al GameServer con el F1 03 00 F3, y el F3 10 antes le
+// entrega al sink su inicialización común (ClearInventoryReceived). El sink aplica cada recepción antes
+// del siguiente evento, con el contexto vivo; también recibe en orden las de personajes. La sesión no
+// retiene payloads para otro frame.
 //
 //   Idle o cualquiera --Start: abre el CS--> ConnectingConnectServer
 //   ConnectingConnectServer --Opened: manda el A9--> WaitingConnectHello
@@ -74,6 +76,7 @@
 //   con el GS abierto --cada KeepalivePeriod del timer global: manda el keepalive-->
 //     el mismo estado
 //   con el GS --F3 03 o F3 10 cifrado y legible: aplica en el sink--> el mismo estado
+//   con el GS --F3 10 en claro: aplica en el sink el vaciado y manda F1 03--> el mismo estado
 //   aplicando un F3 03 --PublishWorldEntry, en el store del 0x3d (0x4c4854)--> InWorld
 //   un error del sink --cierra y corta el lote--> Failed (ApplicationFailed), también después de
 //     publicar InWorld

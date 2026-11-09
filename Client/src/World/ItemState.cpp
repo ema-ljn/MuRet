@@ -34,12 +34,17 @@ std::uint32_t Word(Metadata metadata, std::size_t offset)
     return Byte(metadata, offset) | (Byte(metadata, offset + 1) << 8);
 }
 
-std::int32_t SignedId(const ItemState& item)
+std::int32_t SignedId(std::uint16_t word)
 {
     constexpr std::int32_t SignBit = 0x8000;
     constexpr std::int32_t WordModulus = 0x10000;
-    const auto id = static_cast<std::int32_t>(item.id);
+    const auto id = static_cast<std::int32_t>(word);
     return id < SignBit ? id : id - WordModulus;
+}
+
+std::int32_t SignedId(const ItemState& item)
+{
+    return SignedId(item.id);
 }
 
 bool InRange(std::int32_t value, std::int32_t first, std::int32_t last)
@@ -471,10 +476,17 @@ void LateArmorOptions(ItemState& item, std::uint8_t b)
     }
 }
 
+bool InLateWeaponFamily(std::int32_t id)
+{
+    return InRange(id, 0, 0xbff) || InRange(id, 0x1a0c, 0x1a0d) || InRange(id, 0x1a19, 0x1a1c);
+}
+
+constexpr std::uint8_t ContextWordBit = 0x10;
+
 void LateWeaponOptions(ItemState& item, std::uint8_t b, const std::uint16_t& contextWord)
 {
     const std::int32_t id = SignedId(item);
-    if (!InRange(id, 0, 0xbff) && !InRange(id, 0x1a0c, 0x1a0d) && !InRange(id, 0x1a19, 0x1a1c))
+    if (!InLateWeaponFamily(id))
     {
         return;
     }
@@ -483,7 +495,7 @@ void LateWeaponOptions(ItemState& item, std::uint8_t b, const std::uint16_t& con
         AppendTag(item, 0x5c);
     }
     const bool alternate = InRange(id, 0xa00, 0xbff) || item.id == 0x1a0c || item.id == 0x1a19 || item.id == 0x1a1b;
-    if ((b & 0x10u) != 0)
+    if ((b & ContextWordBit) != 0)
     {
         AppendOption(item, alternate ? 0x5f : 0x5d, contextWord / 20u);
     }
@@ -589,5 +601,10 @@ void InitializeItemState(ItemState& item, std::span<const std::byte, Data::Table
     LateWeaponOptions(item, b, contextWord);
     FinalOptions(item, calculation.level);
     item.itemClass = Classify(item, calculation.level);
+}
+
+bool ReadsTheContextWord(std::uint16_t id, std::uint32_t b3)
+{
+    return InLateWeaponFamily(SignedId(id)) && (static_cast<std::uint8_t>(b3) & ContextWordBit) != 0;
 }
 } // namespace Client::World

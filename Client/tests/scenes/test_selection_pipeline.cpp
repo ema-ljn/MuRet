@@ -421,13 +421,18 @@ TEST_F(SelectionPipelineTest, TheCallbackAppliesAnAcceptedReceptionEvenWhenTheSa
     EXPECT_EQ(m_state.Slots()[0].revision, 1u);
     EXPECT_EQ(m_state.Slots()[0].position, constructed);
 }
-// F310 vacío sigue siendo trabajo: el aplicador local lo rechaza, sin acumularlo entre frames.
+std::vector<std::byte> UnplaceableInventory()
+{
+    return Client::Tests::Bytes({0xc2, 0x00, 0x0e, 0xf3, 0x10, 0x01, 0x0c, 0x00, 0x00, 0x14, 0x00, 0x00, 0xe0, 0x00});
+}
+
+// Un F3 10 con un ítem en la grilla (el lugar 12, Apple) sigue siendo trabajo: sin Item.bmd el aplicador
+// local corta en 0x5bc740, después de la inicialización común, sin acumularlo entre frames.
 TEST_F(SelectionPipelineTest, MixedCharacterThenWorldAppliesTheCharacterBeforeTheWorldFailure)
 {
     ASSERT_NO_FATAL_FAILURE(StartSelect());
     Client::Network::PacketSerials serials;
-    const auto inventory =
-        Client::Tests::FromTheGameServer(Client::Tests::Bytes({0xc2, 0x00, 0x06, 0xf3, 0x10, 0x00}), serials);
+    const auto inventory = Client::Tests::FromTheGameServer(UnplaceableInventory(), serials);
     m_online.socket.reads = {Client::Tests::Join({Client::Tests::CharacterListBytes({{0, "char0001"}}), inventory})};
     m_manager->Poll();
     EXPECT_EQ(m_online.session.Failure(), SessionFailure::ApplicationFailed);
@@ -444,8 +449,7 @@ TEST_F(SelectionPipelineTest, MixedWorldFailureBeforeCharacterPreventsTheCharact
 {
     ASSERT_NO_FATAL_FAILURE(StartSelect());
     Client::Network::PacketSerials serials;
-    const auto inventory =
-        Client::Tests::FromTheGameServer(Client::Tests::Bytes({0xc2, 0x00, 0x06, 0xf3, 0x10, 0x00}), serials);
+    const auto inventory = Client::Tests::FromTheGameServer(UnplaceableInventory(), serials);
     m_online.socket.reads = {Client::Tests::Join({inventory, Client::Tests::CharacterListBytes({{0, "char0001"}})})};
     m_manager->Poll();
     EXPECT_EQ(m_online.session.Failure(), SessionFailure::ApplicationFailed);

@@ -31,7 +31,8 @@ struct InventoryList
 // conserva orden, duplicados y cualquier slot, e ignora el trailing que no cuenta la cantidad.
 // TooShort si falta la cantidad o una entrada completa, sin resultado parcial (ADR0010);
 // WrongPacket para otro tipo/opcode/subcódigo, según FieldsAfterSubcode.
-// Es una proyección pura del wire, no el handler 0x4c55a0 ni el decoder de los datos opacos:
-// inicialización, flag de admisión, mutaciones de callees y aplicación quedan pendientes en L3/P.
+// Es una proyección pura del wire, no el handler 0x4c55a0 ni el decoder de los datos opacos: la
+// inicialización, el flag de admisión y la aplicación son de Scenes::ApplyInventory y de
+// Scenes::PlaceInventoryItem (06, "El F3 10, el inventario").
 [[nodiscard]] Core::Expected<InventoryList, ProtocolError> ReadInventoryList(const Network::Packet& packet);
 } // namespace Client::Protocol::Character

@@ -1111,7 +1111,9 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   con el jinete del tipo `0x20a` (o el tipo `0x1c12`), busca un lugar libre en los 10 ayudantes de
   `0x7d335d0` (de `0x1d4` bytes) y llama a `0x443d70`. En el login, `0x6349a0` lo crea con el
   personaje de `0x517270` (`0x443fa0(0xbf, +0x880, +0x870)`); en la selección, `0x513430` y
-  `0x5139f0` (el armado desde la lista) lo crean con el bit 0 del byte 11 (`+0x318` en `0x1c16`).
+  `0x5139f0` (el armado desde la lista) lo crean con el bit 0 del byte 11 (`+0x318` en `0x1c16`); en
+  el juego, `0x5bc740` con el Dark Horse (`0x1a04`) en el lugar 8 del `F3 10` (`0x5bc997`; [El F3 10,
+  el inventario](#el-f3-10-el-inventario)).
   `0x443d70` lo deja vivo con el alpha (`+0x174`) en 0 y su meta (`+0x170`) en 1, la luz por vértice
   (`+0xe8`) prendida, el blendMesh y la malla oculta en −1, la luz del blendMesh (`+0x68`) en 1,
   `+0xf4..+0xfc` en 3, la velocidad (`+0xd8`) en 0,5, los ángulos del jinete y, con el `0xbf`, la
@@ -2713,8 +2715,10 @@ escribe este handler; quién las calcula después, sin leer (P-C28 i).
   `0x4c4516` acá, `0x517270` en `0x5172a8` en la selección, con el lugar de la lista). Con otro tipo
   que el `0x20a`, MuRet corta con error: esos casos del `switch` no están leídos.
 - **El equipo viene del `F3 10`** (`0x4e309c` → `0x4c55a0`), no de la lista de la selección: cada
-  entrada va a `0x5bc740`, que la pasa al héroe con `0x512a30`. Si el `F3 10` se despacha en la
-  misma vuelta de `WinMain` que la respuesta, el héroe sale vestido desde el primer frame (P-C28 a).
+  entrada va a `0x5bc740`, que la escribe en el registro propio y llama a `0x512a30` con el héroe
+  publicado (`0x743a170`), el que deja la fila 6 ([El F3 10, el inventario](#el-f3-10-el-inventario),
+  Q-C204). Si el `F3 10` se despacha en la misma vuelta de `WinMain` que la respuesta, el héroe sale
+  vestido desde el primer frame (P-C28 a).
 - **Entra transparente y aparece en 20 pasos**: `0x4fd5f0` (`0x4fd72e`) → `0x4e9980` sube el alpha
   0,05 (`0x6b8a48`) por paso hasta la meta, con `+0x16d` en 1. El primer frame va con 0,05 y a los
   0,8 s es opaco.
@@ -3184,6 +3188,102 @@ nada, y lo de `0x505820`, en `Scan505820` (`Scenes/FullSetScan.h`); el bit `0x04
 Donde el original lee lo que MuRet no tiene devuelven un error, con lo escrito hasta ahí: sin
 `Item.bmd` o con un tipo fuera de la tabla, sin la lista de `0x40e1b0`, con más de nueve opciones en
 un ítem o más de 16 entradas en la lista.
+
+### El F3 10, el inventario
+
+Leído en la T9 del hito 1 de la CL7 (*estático*, cotejado con el PE `c32bbd5f`): `0x4c55a0` (661
+instrucciones), `0x5bc740` (hasta `0x5bd70c`) y `0x54b3a0`. `0x4e309c` llama a `0x4c55a0(pkt, cifrado)`
+con el mismo flag que el `F3 03` en `0x4e306b`; devuelve 1 por la rama cifrada y 0 por la otra.
+
+**La inicialización común** (`0x4c55c4..0x4c56e0`) corre antes de mirar el flag (`0x4c56e2`): también
+sin cifrar y con la cantidad en 0.
+
+1. Abre el registro propio (`0x40b240`; `+0xf08` más 1, y `0x40b440` si pasa a 1; si no está, `new
+   0xf09` con la cuenta en 1 y `0x40ad90`).
+2. En los 12 lugares del equipo (desde `+0xb6c`, de a `0x48`; `0x4c563c..0x4c565f`) pone el tipo en
+   −1, el dword de `+0x3c` y el byte de `+0x1b` en 0. No es el vaciado de la entrada (`0x4c47c8`, que
+   pone en 0 el dword de `+4`): este deja `+4`, y ninguno de los dos toca la durabilidad de `+0x1a`
+   (Q-C203).
+3. Lo cierra (`0x4c5661..0x4c56a3`, `0x40b4d0`): 3.848 `rand()` si lo deja sin accesos.
+4. Ya cerrado, lo mismo en las dos grillas de la `.bss`, que WinMain no toca: las 64 casillas de
+   `0x78a9bb0` (`0x4c56a8..0x4c56c3`, hasta `0x78aadec − 0x3c`) y las 32 de `0x78ab0b8`
+   (`0x4c56c5..0x4c56e0`, hasta `0x78ab9f4 − 0x3c`), de `0x48` bytes. Qué muestra cada una en la
+   interfaz no está leído (CL9); la segunda podría ser la tienda personal (*inferido* del tamaño).
+
+**Sin cifrar** (`0x4c56ed..0x4c5e3c`) arma el `C1 06 F1 03 00 F3` con la tabla XOR32 y lo manda en C3
+con el serial de `0x5767913` (la entrada de un byte de la tabla de protección, `0x40b3b0` y `0x40b3f0`)
+y un `rand()` de relleno (`0x4c5a8e`), sin leer el paquete: el mismo aviso que el `F3 03` sin cifrar
+(`0x4c3d14` es su `rand()`). El inventario queda vacío (Q-C205).
+
+**Cifrado** (`0x4c5e4f..0x4c5eb6`): `0x443d40` con el héroe publicado (`[0x743a170]`) apaga las
+entradas vivas de la tabla de ayudantes de `0x7d335d0` (10 de `0x1d4`) cuyo jinete (`+0x108`) es él, y
+`0x421d60` suelta su cuervo (`+0x430`, con `0x69eff0`). Después, por cada entrada (la cantidad, un u8
+en `p+5`, se relee después de cada llamada; `i` con signo; desde `p+6`, de a 8):
+`0x5bc740(0x78a9bb0, 8, 8, entrada[0], entrada + 1, 1)`. No mira si un lugar se repite.
+
+**El tipo**, `0x54b3a0(d)`: `d[0] + 2 · (((d[5] & 0xf0) << 4) + (d[3] & 0x80))`, es decir el byte 0, el
+bit `0x80` del byte 3 como bit 8 y el nibble alto del byte 5 como bits 9 a 12. Nadie lee `d[6]` ni el
+nibble bajo de `d[5]`.
+
+**`0x5bc740`** con esa grilla y el último argumento en 1. Con el tipo `0x1fff` vuelve sin tocar nada
+(`0x5bc75d`). Con otra grilla toma otro camino, que el `F3 10` no usa. Al final (`0x5bd3f2`), con
+`0x78a5a20` llamaría a `0x5bc470`, y con el último argumento distinto de 0 vuelve.
+
+- **Del lugar 0 al 11, el equipo** (`0x5bc77f..0x5bcc0c`, con signo). Abre el registro propio en línea,
+  y en el ítem de `+0xb6c + lugar · 0x48` escribe `+0x1a` = d[2] (la durabilidad), `+0x1c` = d[4], el
+  tipo, `+0x1b` = d[3] y `+0x3c` = 1. Llama a `0x54bf40(ítem, B1, B3, B4)` con B1 = d[1] y B4 = d[4]
+  sobre los 24 bits de arriba del puntero del registro (`0x54bf40` usa el byte de abajo de B1 y `B4 &
+  3`) y B3 = d[3] sobre los de `lugar · 9` (0 del 0 al 11). Después `0x512a30([0x743a170])`, el héroe
+  publicado, no el de `0x57678b0` (Q-C204), y con el héroe que relee de `0x743a170`:
+  - el **lugar 8** fuera de los mapas 18 a 23 (`0x5bc8a0..0x5bc8ad`): un `switch` sobre el tipo menos
+    `0x1a00` (`0x5bd728`, `0x5bd710`). Con `0x1a00` (Gaurdian Angel en `Item.bmd`),
+    `0x443fa0(0x1c12, héroe + 0x10, héroe, 0, 0)`; con `0x1a02`, `0x1a03` y `0x1a04` (Horn of Unilia,
+    Horn of Dinorant y Dark Horse), lo mismo con `0xc6`, `0x110` y `0xbf`; con `0x1a25` (Horn of Doom,
+    el de Fenrir) copia antes el `+0x1b` del ítem a `+0x31b` del héroe (el de su mascota) y usa `0x14a`
+    con 1, `0x14c` con 2 y `0x14b` con otro. Con esos cuatro, si `+0x3e2` (la zona segura) es 0, además
+    `0x518cf0(0x61e, héroe + 0x10, héroe + 0x1c, héroe + 0xf4, 1, héroe, −1, 0, 0, 0, 0)`. Así se
+    crea el caballo en el juego ([El caballo oscuro](#el-caballo-oscuro)). Con `0x1a01` y los otros,
+    nada;
+  - el **lugar 1** con `0x1a05` (Dark Raven): `0x420cf0(héroe)`, que suelta el cuervo con `0x421d60` y,
+    fuera de los mapas 18 a 23, crea otro con `new 0x460` y `0x4167b0` en `+0x430`;
+  - el **lugar 11**, o el **10** con `+0x360` del héroe fuera de 1 a 3, con `0x1a14` (Wizard's Ring)
+    de nivel 3 (`+4 & ~7 == 0x18`): `0x414340(héroe)` (suelta `+0x364` y pone `+0x364` y `+0x360` en
+    0) y `+0x360` = 4.
+
+  Lo cierra en línea (`0x5bcaae..0x5bcc0c`, el lazo de `0x40b4d0` con su `rand()` en `0x5bcbd5`). Los
+  accesos de `0x512a30` y de `0x550d10` anidan en este.
+- **Del 12 al 75, la grilla de `0x78a9bb0`** (`0x5bcc11..0x5bcd05`), y **del 76 en adelante, la de
+  `0x78ab0b8`** (`0x5bcf99..0x5bd085`, sin tope arriba). El origen es el lugar menos 12 (o menos 76); la
+  columna y la fila, `origen % 8` y `origen / 8` (8 fijo, con signo). El ancho y el alto son los bytes
+  `+0x24` y `+0x25` del registro de `Item.bmd` del tipo (Kris 1 por 2, Small Shield 2 por 2, Wings of
+  Elf 3 por 2; un registro vacío, 0 por 0, no escribe nada). En cada casilla `fila · 8 + origen +
+  columna`, sin tope (Q-C200 y Q-C201), escribe `+0x1c` = d[4], `+0x42` y `+0x43` la columna y la fila
+  del origen, `+0x1a` = d[2], el tipo, `+0x1b` = d[3] y `+0x3c` en 1 solo en la de arriba a la
+  izquierda, y llama a `0x54bf40` con B1 y B3 sobre los 24 bits de arriba de `fila · 8 + origen` y B4
+  sobre los del tipo. Ese `0x54bf40` corre **con el registro cerrado**: si lee el nivel
+  (`[0x7681eb0] + 0xe`, en `0x54cd97` y `0x54cdec`, la familia tardía de las armas con el bit `0x10`
+  de B3) lee lo que dejó el último cierre (Q-C202). Después, con `[0x78a6758]` en menos de 12 (con
+  signo, `0x5bcd0b` y `0x5bd08b`), abre el registro, llama a `0x54fe10` una vez por cada WORD, `+0x3e`
+  y `+0x42`, que no sea 0 (`0x5bcdd9`, `0x5bcdf0`), y lo cierra (`0x5bcf8f`). `[0x78a6758]` está en la
+  `.bss` y lo escriben quince lugares de la interfaz del inventario y del juego (`0x44add8`, `0x561b6d`,
+  `0x561bf7`, `0x59bf3c`, `0x5c2d5c`, `0x5c5131`, `0x5c5154`, `0x5c51c3`, `0x5c51f8`, `0x5c5277`,
+  `0x5c5301`, `0x5c5330`, `0x5c6c15`, `0x5c8edd` y `0x5c8f53`); que ninguno corra antes del primer
+  `F3 10`, *inferido* (P-C42 a).
+
+**El azar.** Con todo cerrado, un `F3 10` gasta 3.848 por el cierre común, 3.848 más lo de adentro de
+`0x512a30` (el sufijo de `0x4f2250`, hasta dos más con Fenrir, y los 3 de la cola de `0x550d10`) por
+cada lugar del equipo, y 3.848 por cada ítem de una grilla con `[0x78a6758]` en menos de 12.
+
+MuRet: `Scenes::ApplyInventory` y `ClearForInventoryReply` (`0x4c55a0`), `Scenes::PlaceInventoryItem` e
+`InventoryItemType` (`0x5bc740` y `0x54b3a0`) y `Scenes::OwnInventory`, las dos grillas, en
+`WorldState::Inventory`; `[0x78a6758]` es `WorldRuntime::slot78a6758`, en 0. El `F3 10` sin cifrar
+llega al aplicador como `App::ClearInventoryReceived`, y la sesión manda el aviso. `0x443d40` y
+`0x421d60` no sueltan nada: MuRet no tiene la tabla de ayudantes ni el cuervo en el mundo, como en
+`0x510f70`. Cortan con error, nombrando la dirección y después de lo que el original hace antes (el
+registro se cierra igual): las mascotas del lugar 8 (`0x443fa0`), el cuervo del lugar 1 (`0x420cf0`),
+el anillo de nivel 3 (`0x414340` y `+0x360`), el Dark Horse en cualquier lugar (`0x4225d0`, desde
+`0x54cc5c`, sin correr `0x54bf40`), la lectura del nivel con el registro cerrado (Q-C202), una casilla
+fuera de su grilla (Q-C200) y `Item.bmd` sin cargar.
 
 ### El paso de ondas de Kalima
 
@@ -4354,7 +4454,7 @@ paso o por frame (*estático*; el de la cámara, *emulado*):
 | `0x4c3940`, la respuesta del `F3 03` | al entrar al mundo: tres cierres en línea del registro propio (`0x4c41c4`, `0x4c46f0` y `0x4c481e`) y el de `0x512a30`, que lo abre en `0x512a48..0x512aba` para todo `0x20a` (contraste estático T7; antes se contaban tres) | 15.392 |
 | `0x511290`, al armar un `0x20a` | la celda lógica (seis accesos) y el contador de pasos (uno) | 28 |
 | `0x4c3940`, el resto | el contador en 30 (`0x412890`), `0x657a90` con las ventanas cerradas (dos entradas de 1 byte, `0x4c0ec0` y `0x4c1190`) y el lugar del héroe (`rand() % 400`) | 4 + 2 + 1 |
-| el `F3 04` (tres cierres), el `F3 10` (uno) y el `D7` al héroe (uno, en línea) | con cada paquete | 3.848 por cierre |
+| el `F3 04` (tres cierres), el `F3 10` (uno común, uno por cada lugar del equipo y uno por cada ítem de una grilla con `[0x78a6758]` en menos de 12; [El F3 10, el inventario](#el-f3-10-el-inventario)) y el `D7` al héroe (uno, en línea) | con cada paquete | 3.848 por cierre |
 | `0x508f00`, las celdas lógicas al marcar el `TerrainWall` | cada paso, por cada personaje vivo | 8 |
 | `0x635ae0`, la celda del héroe para el atributo | cada frame dibujado, también en las escenas 2 y 4 | 8 |
 

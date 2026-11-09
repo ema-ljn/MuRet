@@ -1,11 +1,8 @@
 #include "Scenes/OwnCharacterRecord.h"
 
-#include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "World/ItemState.h"
-
-#include <string>
 
 namespace Client::Scenes
 {
@@ -52,9 +49,15 @@ void OwnCharacterRecord::ClearEquipmentForEntry()
     }
 }
 
-Core::Expected<void, std::string> OwnCharacterRecord::ClearEquipmentForInventory()
+void OwnCharacterRecord::ClearEquipmentForInventory()
 {
-    return Core::Unexpected(std::string("falta leer qué escribe 0x4c55a0 (F3 10) en el equipo del registro propio: "
-                                        "su inicialización común sigue pendiente en L3/P (04, \"El F3 10\")"));
+    // 0x4c564d..0x4c565f, de a 0x48 desde +0xba8: [eax−0x3c] = di (−1 desde 0x4c55d6), [eax] = 0 y
+    // [eax−0x21] = 0.
+    for (World::ItemState& item : equipment)
+    {
+        item.id = EmptyOwnItemId;
+        item.occupied = 0;
+        item.flags1b = 0;
+    }
 }
 } // namespace Client::Scenes

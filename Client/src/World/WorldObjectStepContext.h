@@ -19,7 +19,7 @@ struct TerrainLighting;
 class IWorldObjectStepServices;
 
 // Estado vivo prestado durante 604ab0. Mapa/escena/tiempo se releen en las fases nativas.
-// Reloj de las ramas temporales: finito y en[-2^63,2^63), dominio de OriginalFtolLow.
+// Reloj de las ramas temporales: finito y en [-2^63, 2^63), el dominio de FtolLowChecked.
 // El caller conserva almacenamiento y sincronización, y no realoca objetos/modelos desde servicios.
 struct WorldObjectStepContext
 {

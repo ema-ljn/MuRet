@@ -5,9 +5,9 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
+#include "World/Ftol.h"
 #include "World/IWorldObjectCreationServices.h"
 #include "World/ObjectAlpha.h"
-#include "World/OriginalFtol.h"
 #include "World/WorldObjectMapCreation.h"
 #include "World/WorldObjectMapStep.h"
 #include "World/WorldObjectRegistrations.h"
@@ -173,7 +173,7 @@ void ApplyMapOneCases(WorldObject& object, std::int16_t type, WorldObjectRegistr
 
 bool CopyMapTwoTransform(WorldObject& object)
 {
-    const auto signedLow = OriginalFtolLow(static_cast<double>(object.transform.angles.z));
+    const auto signedLow = FtolLowChecked(static_cast<double>(object.transform.angles.z));
     if (!signedLow.has_value())
     {
         return false;

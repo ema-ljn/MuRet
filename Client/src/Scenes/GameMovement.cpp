@@ -21,7 +21,7 @@
 #include "Scenes/WorldState.h"
 #include "UI/GameCursor.h"
 #include "UI/Widget.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainPicking.h"
@@ -67,10 +67,10 @@ void GameScene::UpdateHeroHeadTarget(const Input::InputState& input)
     const double angle = allow ? Render::Models::CreateAngle(static_cast<float>(WorldWidth / 2), 180.0f,
                                                              static_cast<float>(mouse.x), static_cast<float>(mouse.y))
                                : 0.0;
-    const auto whole = World::OriginalFtolLow(angle + world.Actors()[state.hero].angles.z);
+    const auto whole = World::FtolLowChecked(angle + world.Actors()[state.hero].angles.z);
     if (!whole)
     {
-        m_failure = "cabeza: ángulo fuera del dominio portable de OriginalFtolLow";
+        m_failure = "cabeza: ángulo fuera del dominio portable de FtolLowChecked";
         return;
     }
     const auto wrapped = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(*whole) + 315u);
@@ -233,8 +233,8 @@ void GameScene::UseGroundClick(const Input::InputState& input)
         return;
     auto& actor = world.Actors()[state.hero];
     constexpr float Cells = std::bit_cast<float>(0x3c23d70au);
-    const auto px = World::OriginalFtolLow(static_cast<double>(actor.position.x) * Cells);
-    const auto py = World::OriginalFtolLow(static_cast<double>(actor.position.y) * Cells);
+    const auto px = World::FtolLowChecked(static_cast<double>(actor.position.x) * Cells);
+    const auto py = World::FtolLowChecked(static_cast<double>(actor.position.y) * Cells);
     if (!px || !py)
     {
         m_failure = "posición fuera del dominioftol de MoveHero";
@@ -302,8 +302,8 @@ void GameScene::RefreshHeroTerrainLayer()
     if (resources == nullptr || !resources->terrain.IsLoaded())
         return;
     const auto& hero = world.Actors()[world.Runtime().hero];
-    const auto y = World::OriginalFtolLow(hero.position.y);
-    const auto x = World::OriginalFtolLow(hero.position.x);
+    const auto y = World::FtolLowChecked(hero.position.y);
+    const auto x = World::FtolLowChecked(hero.position.x);
     if (!x || !y)
     {
         m_failure = "epílogo deMoveHero fuera del dominioftol";

@@ -4,6 +4,7 @@
 #include "Render/ModelBatch.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Pass3D.h"
+#include "World/Ftol.h"
 #include "World/TerrainCells.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
@@ -182,22 +183,6 @@ TerrainPolygon PolygonOf(const TerrainPolygonInput& input, const PolygonProfile&
     return polygon;
 }
 
-bool IsCameraDistanceValid(float distance)
-{
-    // +2^63 no cabe: INT64_MAX convertido a float/double redondea a ese mismo límite.
-    constexpr double Int64Limit = 0x1p63;
-    return std::isfinite(distance) && static_cast<double>(distance) >= -Int64Limit &&
-           static_cast<double>(distance) < Int64Limit;
-}
-
-std::int32_t LowDwordOf(float distance)
-{
-    // Precondición: IsCameraDistanceValid. __ftol trunca a int64; CMP consume sólo EAX con signo.
-    const auto converted = static_cast<std::int64_t>(distance);
-    const auto low = static_cast<std::uint32_t>(converted);
-    return std::bit_cast<std::int32_t>(low);
-}
-
 // `cdq; and edx, 3; add eax, edx; sar eax, 2`: la división por 4 de C, que trunca hacia el 0.
 int DivideBy4(int value)
 {
@@ -339,13 +324,14 @@ Core::Expected<TerrainPolygonFrame, TerrainPolygonError> TerrainPolygonFrameOf(c
     TerrainPolygonState next = previous;
     if (special == SpecialProfile::Normal)
     {
-        if (!IsCameraDistanceValid(camera.distance) || !IsCameraDistanceValid(camera.targetDistance))
+        // __ftol trunca a int64 y el CMP consume sólo EAX con signo.
+        const auto distance = FtolLowChecked(static_cast<double>(camera.distance));
+        const auto target = FtolLowChecked(static_cast<double>(camera.targetDistance));
+        if (!distance || !target)
         {
             return Core::Unexpected(TerrainPolygonError::InvalidCameraDistance);
         }
-        const std::int32_t distance = LowDwordOf(camera.distance);
-        const std::int32_t target = LowDwordOf(camera.targetDistance);
-        if (target >= distance)
+        if (*target >= *distance)
         {
             next.effectiveLevel = camera.requestedLevel;
         }

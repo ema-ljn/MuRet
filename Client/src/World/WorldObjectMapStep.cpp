@@ -6,9 +6,9 @@
 #include "Data/Terrain/TerrainLight.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalAngles.h"
+#include "World/Ftol.h"
 #include "World/IWorldObjectCreationServices.h"
 #include "World/IWorldObjectStepServices.h"
-#include "World/OriginalFtol.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjectFire.h"
 #include "World/WorldObjectParticleRequest.h"
@@ -53,7 +53,7 @@ constexpr float SceneFadeFactor = std::bit_cast<float>(0x3ca3d70au);
 
 std::int32_t ClockInteger(float clock)
 {
-    const auto converted = OriginalFtolLow(clock);
+    const auto converted = FtolLowChecked(clock);
     if (!converted)
     {
         std::fputs("WorldObjectStep: reloj fuera del dominio portable de ftol\n", stderr);

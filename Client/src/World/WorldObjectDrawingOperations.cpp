@@ -11,7 +11,7 @@
 #include "World/WorldObjectParticleRequest.h"
 #include "World/WorldObjectRuntimeEffectRequest.h"
 #include "World/WorldObjects.h"
-#include "World/OriginalFtol.h"
+#include "World/Ftol.h"
 #include <cstdint>
 namespace Client::World
 {
@@ -35,7 +35,7 @@ WorldObjectDrawingOperations::Result WorldObjectDrawingOperations::ResultOf() co
 }
 bool WorldObjectDrawingOperations::Ftol(double input, std::int32_t& output)
 {
-    const auto value = OriginalFtolLow(input);
+    const auto value = FtolLowChecked(input);
     if (!value)
         return Run(Core::Unexpected(WorldObjectDrawingError::InvalidTime));
     output = *value;

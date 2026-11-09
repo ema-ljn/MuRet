@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
+#include "World/Ftol.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainPickingSegment.h"
@@ -345,23 +346,18 @@ PickStatus PublishTarget(TerrainPickingTarget& target, const TerrainPickingState
 {
     // Fuera del rayo del terreno cargado, no convertir un NaN/overflow a entero C++ (UB), ni
     // atribuir al original un retorno ordinario de FISTP con excepciones cuyo mask no se comprobó.
-    constexpr double Integer64Limit = 0x1p63;
-    const auto fits = [](double product)
-    { return std::isfinite(product) && product < Integer64Limit && product >= -Integer64Limit; };
-    const double xProduct = static_cast<double>(state.hit.x) * static_cast<double>(CellsPerUnit);
-    if (!fits(xProduct))
+    const auto x = FtolLowChecked(static_cast<double>(state.hit.x) * static_cast<double>(CellsPerUnit));
+    if (!x)
     {
         return Core::Unexpected(std::string("El punto del picking no admite la conversión signed64 del target"));
     }
-    const auto x = static_cast<std::int64_t>(xProduct);
-    const double yProduct = static_cast<double>(state.hit.y) * static_cast<double>(CellsPerUnit);
-    if (!fits(yProduct))
+    const auto y = FtolLowChecked(static_cast<double>(state.hit.y) * static_cast<double>(CellsPerUnit));
+    if (!y)
     {
         return Core::Unexpected(std::string("El punto del picking no admite la conversión signed64 del target"));
     }
-    target.x = static_cast<std::uint32_t>(x) & TargetMask;
-    const auto y = static_cast<std::int64_t>(yProduct);
-    target.y = static_cast<std::uint32_t>(y) & TargetMask;
+    target.x = static_cast<std::uint32_t>(*x) & TargetMask;
+    target.y = static_cast<std::uint32_t>(*y) & TargetMask;
     const std::uint16_t attribute = view.attributes->cells[(static_cast<std::size_t>(target.y) * GridSide) + target.x];
     if (attribute < CursorBlockedThreshold || (attribute & CursorPassableBit) != 0)
     {

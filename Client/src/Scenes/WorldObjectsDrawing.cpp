@@ -14,6 +14,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "World/Ftol.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -31,7 +32,6 @@
 
 #include <array>
 #include <bit>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <chrono>
@@ -514,19 +514,6 @@ void DrawArrivalRing(Render::ModelBatch& batch, const glm::vec3& position, float
     }
 }
 
-// La misma conversión portable ya acreditada para 69fd3c en TerrainHeight/Particles; aquí el
-// argumento es el reloj float32 del caller. No hay dependencia de std::chrono ni módulo positivo.
-std::int32_t ArrivalFtol(float value)
-{
-    constexpr double Int64Limit = 9223372036854775808.0;
-    if (std::isnan(value) || static_cast<double>(value) >= Int64Limit || static_cast<double>(value) < -Int64Limit)
-    {
-        return 0;
-    }
-    const auto whole = static_cast<std::int64_t>(value);
-    return std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(static_cast<std::uint64_t>(whole)));
-}
-
 std::int32_t ArrivalDifference(std::int32_t first, std::int32_t second)
 {
     return std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(first) - std::bit_cast<std::uint32_t>(second));
@@ -550,15 +537,15 @@ ArrivalDecalGrid ArrivalDecalGridOf(float x, float y, float scale, float rotatio
     grid.rotation = Render::Models::OriginalAngleMatrix({0.0f, 0.0f, rotation});
     const auto cellX = static_cast<float>(static_cast<double>(x) * static_cast<double>(CellsPerUnit));
     const auto cellY = static_cast<float>(static_cast<double>(y) * static_cast<double>(CellsPerUnit));
-    const std::int32_t ix = ArrivalFtol(cellX);
-    const std::int32_t iy = ArrivalFtol(cellY);
+    const std::int32_t ix = World::FtolLow(static_cast<double>(cellX));
+    const std::int32_t iy = World::FtolLow(static_cast<double>(cellY));
     grid.origin = {static_cast<float>(ix), static_cast<float>(iy)};
     const double halfScale = static_cast<double>(scale) * Half;
     grid.offset.x = static_cast<float>((static_cast<double>(grid.origin.x) - cellX) + halfScale);
     // IY permanece extendido en el original; IX sí se recarga desde su store float32.
     grid.offset.y = static_cast<float>((static_cast<double>(iy) - cellY) + halfScale);
     grid.reciprocal = static_cast<float>(1.0 / static_cast<double>(scale));
-    grid.radius = static_cast<float>(ArrivalDifference(ArrivalFtol(scale), -1));
+    grid.radius = static_cast<float>(ArrivalDifference(World::FtolLow(static_cast<double>(scale)), -1));
     grid.aspect = static_cast<float>(static_cast<double>(scale) / static_cast<double>(scale));
     return grid;
 }
@@ -586,8 +573,8 @@ void DrawArrivalCell(Render::ModelBatch& batch, const Data::Terrain::TerrainHeig
 {
     constexpr int LastCell = 255;
     constexpr double HeightOffset = 5.0;
-    const std::int32_t ix = ArrivalFtol(x);
-    const std::int32_t iy = ArrivalFtol(y);
+    const std::int32_t ix = World::FtolLow(static_cast<double>(x));
+    const std::int32_t iy = World::FtolLow(static_cast<double>(y));
     if (ix < 0 || iy < 0 || ix >= LastCell || iy >= LastCell)
     {
         return;
@@ -670,7 +657,7 @@ void DrawArrivalGround(Render::ModelBatch& batch, const World::ModelEffect& effe
     constexpr float GreenScale = std::bit_cast<float>(0x3ecccccdu);
     constexpr std::int32_t FadeLife = 5;
     constexpr std::int32_t InitialLife = 20;
-    const auto remainder = ArrivalFtol(worldClock) % AnglePeriod;
+    const auto remainder = World::FtolLow(static_cast<double>(worldClock)) % AnglePeriod;
     const auto theta = static_cast<float>(static_cast<double>(remainder) * static_cast<double>(AngleScale));
     batch.SetState({.texture = ArrivalRingTexture, .blend = Render::ModelBlend::Additive});
     DrawArrivalRing(batch, effect.transform.position, theta);

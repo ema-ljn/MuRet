@@ -141,6 +141,8 @@ public:
     // del paso, la luz del terreno en su lugar más la suya, y su tela, su cetro y la tabla de los sprites de
     // la escena, con el ritmo del contexto.
     [[nodiscard]] DrawnCharacter TheCharacterToDraw(float alpha);
+    // 0x505820 con el personaje que se dibuja, `frames` veces (Scenes/FullSetScan.h), sobre WorldState.
+    void ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames);
 
 private:
     // 0x60da30 y 0x60d5f0 con el 0xa2 (LoginLogoFile), sin un 0x60d530 antes (Q-C92).
@@ -194,6 +196,8 @@ private:
     Render::Models::OriginalFrameCarry m_cameraFrames;
     // 0x602ed0: un sorteo por objeto y frame original, con replay de la luz del farol entre ellos.
     Render::Models::OriginalFrameCarry m_objectEffectFrames;
+    // Los frames del original de 0x505820 desde el dibujo del personaje (0x50c91e).
+    Render::Models::OriginalFrameCarry m_fullSetScanFrames;
     std::vector<std::optional<int>> m_objectEffectRandoms;
     const IModelLibrary& m_models;
     App::ServerSession* m_session;

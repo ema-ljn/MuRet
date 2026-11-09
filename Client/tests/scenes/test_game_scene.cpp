@@ -9,6 +9,7 @@
 #include "Input/InputState.h"
 #include "Network/PacketSerials.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/FullSetScan.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
@@ -191,6 +192,32 @@ TEST(GameSceneTest, HoldsTheFrameUntilTheWorldArrives)
     tested.scene.PrepareFrame();
 
     EXPECT_FALSE(tested.scene.HoldsTheLastFrame());
+}
+
+// 0x6374dd: con el mundo cargado y el contador en 30 o menos, el dibujo del juego llega a los personajes
+// (0x510d00), y 0x50ba30 corre 0x505820 con cada jugador que ve (0x50c91e). MuRet no los dibuja: no sabe
+// qué quedó en [0x743a178] y [0x743a17c]. Retenido, o sin el mundo cargado, no llega y quedan.
+TEST(GameSceneTest, AFrameThatReachesTheCharactersForgetsTheLastScan)
+{
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+    Harness tested(log);
+    tested.Runtime().fullSetScan = Client::Scenes::Scan505820{.dword743a178 = 12, .byte743a17c = 1};
+    ASSERT_TRUE(tested.scene.Enter().HasValue());
+
+    tested.scene.PrepareFrame();
+    EXPECT_TRUE(tested.Runtime().fullSetScan.has_value());
+
+    tested.Runtime().drawingEnabled = true;
+    tested.Runtime().warpCounter = WaitDrawThreshold + 1;
+    tested.scene.PrepareFrame();
+    ASSERT_TRUE(tested.scene.HoldsTheLastFrame());
+    EXPECT_TRUE(tested.Runtime().fullSetScan.has_value());
+
+    tested.Runtime().warpCounter = WaitDrawThreshold;
+    tested.scene.PrepareFrame();
+    ASSERT_FALSE(tested.scene.HoldsTheLastFrame());
+    EXPECT_FALSE(tested.Runtime().fullSetScan.has_value());
 }
 
 // 0x6371b7..0x637229: el dibujo lee el contador con un acceso que cierra (0x40b800) aunque después

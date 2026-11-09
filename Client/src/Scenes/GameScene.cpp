@@ -141,6 +141,13 @@ void GameScene::PrepareFrame()
     }
     // 0x63722e: cmp esi, 0x1e y jle, con signo.
     m_holdFrame = counter > WaitDrawThreshold;
+    if (m_holdFrame)
+    {
+        return;
+    }
+    // Con el contador en 30 o menos el dibujo llega siempre a 0x6374dd (0x510d00): 0x50ba30 corre 0x505820
+    // con cada jugador visto (0x50c91e). MuRet no dibuja los personajes del juego y no sabe qué dejó.
+    runtime.fullSetScan = std::nullopt;
 }
 
 void GameScene::Render(SceneCanvas& /*canvas*/, float /*alpha*/) {}

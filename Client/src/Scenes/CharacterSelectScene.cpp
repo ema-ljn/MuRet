@@ -27,6 +27,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/CreatePreview.h"
+#include "Scenes/FullSetScan.h"
 #include "Scenes/GameData.h"
 #include "Scenes/SceneCameras.h"
 #include "World/GameCamera.h"
@@ -136,6 +137,7 @@ World::GameCameraInput& CharacterSelectScene::CameraInputState()
 Core::Expected<void, std::string> CharacterSelectScene::Enter()
 {
     m_cameraFrames = {};
+    m_fullSetScanFrames = {};
     m_steps = 0;
     CameraInputState().scene = World::CullingScene::CharacterSelect;
     if (m_context.selection != nullptr)
@@ -654,8 +656,10 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         cameraInput.hero.z = CharacterSlotHeight;
     }
     const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
+    const int scanFrames = m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
     for (Character& character : m_characters)
     {
+        ScanTheCharacter(character.appearance, scanFrames);
         DrawnCharacter drawn;
         drawn.appearance = character.appearance;
         drawn.body = BodyBetweenSteps(character.animation, m_models, alpha);
@@ -678,6 +682,19 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     DrawTheCreateWindow(canvas, alpha);
     m_notice.Draw(sprites, canvas.text, canvas.screen);
     DrawTheCursor(canvas);
+}
+
+// 0x50ba30 con cada uno de la lista, en 0x50c91e: son 0x20a con +0x7c y +0x3e4 en 0 (0x517270), y la vista
+// previa de la ventana de crear no lo es. Sin las acciones de Player.bmd sale antes (0x50ba87), como
+// DrawCharacter sin su esqueleto.
+void CharacterSelectScene::ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames)
+{
+    if (m_context.world == nullptr || m_context.cloth == nullptr ||
+        m_models.SkeletonOf(Data::Models::PlayerSkeletonModel) == nullptr)
+    {
+        return;
+    }
+    ScanTheDrawnCharacter(*m_context.world, ScannedCharacterOf(appearance), m_context.cloth->random, frames);
 }
 
 void CharacterSelectScene::DrawTheCursor(SceneCanvas& canvas) const

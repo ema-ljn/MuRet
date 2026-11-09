@@ -33,6 +33,7 @@
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/DarkSpirit.h"
+#include "Scenes/FullSetScan.h"
 #include "Scenes/GameData.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/LoginModels.h"
@@ -298,6 +299,7 @@ Core::Expected<void, std::string> LoginScene::Enter()
 {
     m_cameraFrames = {};
     m_objectEffectFrames = {};
+    m_fullSetScanFrames = {};
     m_drawnCamera = {};
     World::GameCameraInput& cameraInput = CameraInputState();
     cameraInput.scene = World::CullingScene::Login;
@@ -1054,6 +1056,19 @@ void LoginScene::ReportParticleFailure(const World::ParticleDrawingFailure& fail
                         backend ? ", " : "", backend ? backend.message() : std::string{});
 }
 
+// 0x50ba30 con el del login, en 0x50c91e: un 0x20a con +0x7c y +0x3e4 en 0 (0x517270). Con la clase 4 no
+// abre el registro. Sin las acciones de Player.bmd sale antes (0x50ba87), como DrawCharacter sin su
+// esqueleto.
+void LoginScene::ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames)
+{
+    if (m_context.world == nullptr || m_context.cloth == nullptr ||
+        m_models.SkeletonOf(Data::Models::PlayerSkeletonModel) == nullptr)
+    {
+        return;
+    }
+    ScanTheDrawnCharacter(*m_context.world, ScannedCharacterOf(appearance), m_context.cloth->random, frames);
+}
+
 DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
 {
     DrawnCharacter character;
@@ -1080,6 +1095,8 @@ DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
 void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
 {
     const DrawnCharacter character = TheCharacterToDraw(alpha);
+    ScanTheCharacter(character.appearance,
+                     m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing)));
     DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
     // 0x4182f0 al final de 0x50ba30: el cuervo, si pasa el trapecio; sus huesos del estado del paso quedan
     // para la chispa del próximo (Q-C133).
@@ -1244,8 +1261,9 @@ void LoginScene::OnFrameHeld()
     if (m_session != nullptr && (IsConnecting(m_session->State()) || (m_seen && IsConnecting(*m_seen))))
     {
         // Lo que el original corre una vez por frame dibujado corre uno en el primer dibujo después del connect
-        // (Q-C85), no los frames que duró: los efectos de los objetos, la tela y el cetro (08, P-C27 f).
+        // (Q-C85), no los frames que duró: los efectos de los objetos, 0x505820, la tela y el cetro (08, P-C27 f).
         m_objectEffectFrames = {};
+        m_fullSetScanFrames = {};
         m_characterCloth.RestartTheClock();
         m_scepterGlow.RestartTheClock();
     }

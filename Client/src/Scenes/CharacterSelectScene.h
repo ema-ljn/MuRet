@@ -114,6 +114,8 @@ private:
     // la lógica de la escena, 0x508ea0: dos veces por paso con la ventana arriba; MuRet, una, D-C4).
     void StepThePreview();
     void DrawTheCreateWindow(SceneCanvas& canvas, float alpha);
+    // 0x505820 con un personaje que se dibuja, `frames` veces (Scenes/FullSetScan.h), sobre WorldState.
+    void ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames);
     // El cursor del juego (0x5ac2d0) al final de la UI, con el aviso de antes de la lista también.
     void DrawTheCursor(SceneCanvas& canvas) const;
     // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9), salvo que la sesión haya
@@ -144,6 +146,8 @@ private:
     World::GameCamera m_localCamera;
     World::GameCameraInput m_localCameraInput;
     Render::Models::OriginalFrameCarry m_cameraFrames;
+    // Los frames del original de 0x505820 desde el dibujo (0x50c91e), como los de la cámara.
+    Render::Models::OriginalFrameCarry m_fullSetScanFrames;
     const Data::Text::TextTable* m_texts;
     const IModelLibrary& m_models;
     App::ServerSession* m_session;

@@ -129,8 +129,8 @@ TEST_F(OwnStatsFixture, WithoutTheSetTablesTheRecalculationStopsBeforeTouchingAn
 // 0x550d10 en orden hasta 0x550990: 0x40e1b0 (dos piezas del conjunto 1, con las opciones 0 y 4), las
 // marcas de +0x937c en 0, 0x54ef00, los doce lugares (el tipo 1 suma a +0x2c), 0x40da20 con 0x8c a
 // 0x90, Cape of Lord y los cinco primeros helpers. La opción 0 ya la marcó 0x40de10 sobre las copias:
-// si las marcas no volvieran a 0, +0x2a no la sumaría. Sin lo de 0x505820 corta en 0x550990, sin la
-// cola: 33 cierres de 0x40e1b0 y el de la capa, y ningún rand() más.
+// si las marcas no volvieran a 0, +0x2a no la sumaría. Sin saber qué dejó 0x505820 (scan505820 en
+// nullopt) corta en 0x550990, sin la cola: 33 cierres de 0x40e1b0 y el de la capa, y ningún rand() más.
 TEST_F(OwnStatsFixture, TheRecalculationRunsInOrderUntil0x550990)
 {
     std::vector<std::byte> types(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff});

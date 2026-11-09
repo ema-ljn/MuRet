@@ -2801,14 +2801,17 @@ un error que nombra la dirección, nunca en silencio:
   `TerrainHeight.OZB`, el error nombra el archivo, con el pasto ya sacado (Q-C180).
 - **Los mapas de evento** (`0x447d70`: 9, 11 a 23) cortan después de la carga: el objeto de evento
   (`0x447eb0`, `new 0x134`) no está portado.
-- **La respuesta** corta hoy dentro de `0x512a30`: en `0x550d10`, en su primera llamada, `0x40e1b0`
-  ([Los stats del registro propio](#los-stats-del-registro-propio)), o en `0x505820` si el lugar
-  sorteado es el del héroe anterior (`0x512ee7`, con `0x743a170` todavía en él). La sesión
-  queda en `Failed` con el héroe sin publicar (`0x743a170` sin tocar), el contador sin bajar a 30 y
-  los `rand()` gastados hasta ahí: el primer y el segundo cierre del registro, el pasto, el lugar del
-  héroe, los 28 de `0x511290` y lo que `0x512a30` sacó antes de cortar. Lo que sigue a `0x512a30`
-  (filas 6 a 17) está en `Scenes::SettleWorldEntry` y se prueba directo; el cuervo de la fila 11 corta
-  en `0x420d60`. Lo que MuRet no modela no se escribe: `0x7d36874`, `0x77f3b67`, `0x553780`,
+- **La respuesta**, sin las tablas de los conjuntos, corta dentro de `0x512a30`: en `0x550d10`, en su
+  primera llamada, `0x40e1b0` ([Los stats del registro propio](#los-stats-del-registro-propio)). Con
+  ellas (`main.cpp` las carga), `0x512a30` vuelve entero: `0x505820` corre si el lugar sorteado es el
+  del héroe anterior (`0x512ee7`, con `0x743a170` todavía en él) y, si no, `0x550990` lee lo que dejó
+  el último dibujo de los personajes, el de la selección ([El conjunto completo de
+  `0x505820`](#el-conjunto-completo-de-0x505820)); corta ahí solo si MuRet no sabe qué dejó (un frame
+  del juego en el medio). Cuando corta, la sesión queda en `Failed` con el héroe sin publicar
+  (`0x743a170` sin tocar), el contador sin bajar a 30 y los `rand()` gastados hasta ahí: el primer y el
+  segundo cierre del registro, el pasto, el lugar del héroe, los 28 de `0x511290` y lo que `0x512a30`
+  sacó antes de cortar. Lo que sigue a `0x512a30` (filas 6 a 17) es `Scenes::SettleWorldEntry`, que
+  también se prueba directo; el cuervo de la fila 11 corta en `0x420d60`. Lo que MuRet no modela no se escribe: `0x7d36874`, `0x77f3b67`, `0x553780`,
   `0x77f3b10`, `0x6c8dcc`, los elegidos de la fila 14, `0x78abb0c`/`0x78abb10`, ResourceGuard
   (Q-C147) y la fila 19 (los mensajes, CL9). Los sonidos se calculan y se descartan (sin audio
   hasta la CL10).
@@ -2850,17 +2853,81 @@ fila 5 de la tabla de [La entrada al mundo](#la-entrada-al-mundo)), `0x5bc740` c
 8. `0x512930` (`0x512ed5`; 56 instrucciones, 205 bytes): la cabeza y la escala, como en la
    selección ([Los personajes de la lista](#los-personajes-de-la-lista)). Las tablas de saltos de
    `0x512a00` y `0x512a14` dan la escala por clase; en las clases 5 a 7 no la toca.
-9. Si el personaje es el de `0x743a170` (el héroe publicado; `0x512ee2`), `0x505820` (`0x512ee7`;
-   914 bytes), sin leer en detalle: busca los conjuntos, escribe `0x743a178` y `0x743a17c` y, con la
-   clase 3, abre otra vez el registro.
+9. Si el personaje es el de `0x743a170` (el héroe publicado; `0x512ee2`), `0x505820` (`0x512ee7`),
+   que mira si lleva un conjunto completo +9 y escribe `[0x743a178]` y `[0x743a17c]`; con la clase 3 y
+   el conjunto abre otra vez el registro, que sigue abierto: el cierre no saca `rand()` ([El conjunto
+   completo de `0x505820`](#el-conjunto-completo-de-0x505820)). Lo que devuelve no lo lee nadie.
 10. [`0x550d10`](#los-stats-del-registro-propio) (`0x512ef5`, `thiscall` sobre el registro): los stats.
 11. Cierra el registro (en línea, `0x512efa..0x5130cf`).
 
 En la respuesta del `F3 03` el héroe todavía no está en `0x743a170` (lo pone la fila 6), así que esa
-primera llamada no corre `0x505820`. MuRet (`Scenes::ApplyActorEquipment`) hace los pasos 1 a 9 y
-corta con un error explícito donde falta la lectura: `0x505820`, y adentro de `0x550d10`, en
-`0x550990`, que lee lo que deja `0x505820` (abajo). El cierre del registro gasta los 3.848 `rand()`
-también cuando corta.
+primera llamada no corre `0x505820`, salvo que el lugar sorteado sea el del héroe anterior: `0x550990`
+lee lo que dejó el último dibujo de los personajes (Q-C188). MuRet (`Scenes::ApplyActorEquipment`) hace
+los once pasos: el 9 con `Scenes::ScanFullSet` sobre `WorldRuntime::fullSetScan`, que recibe en
+`ActorEquipmentContext::fullSetScan`, y el 10 con `Scenes::RecalculateOwnStats`, que corta con un error
+explícito donde falta lo que lee (abajo), también en `0x550990` si MuRet no sabe qué dejó el último
+`0x505820`. El cierre del registro gasta los 3.848 `rand()` también cuando corta.
+
+### El conjunto completo de `0x505820`
+
+`0x505820(c)` (`cdecl`, 914 bytes, `0x505820..0x505bb1`, cotejados con el PE `c32bbd5f`; *estático*)
+mira si el personaje `c` lleva un conjunto completo de nivel 9 o más y lo deja en dos globales de la
+`.bss` (0 al arrancar) que solo escribe ella: `[0x743a178]` (DWORD) y `[0x743a17c]` (byte). Devuelve
+en `al` si hay conjunto. En orden:
+
+1. Mira las partes del cuerpo de las botas (`+0x298`) al casco (`+0x218`), de a `0x20`; con la clase
+   (`+0x1d4 & 7`) en 3, de las botas a la armadura: el casco no cuenta (`0x50582c..0x505846`). Pone
+   `[0x743a178]` en 0 (`0x50584b`).
+2. Con alguna en `0xffff` (el modelo, `+0`) no hay conjunto (`0x50585f`). `0x512a30` nunca deja ahí
+   `0xffff`: un lugar vacío pone la parte de la clase, cuyo índice no coincide con el de otra parte.
+3. El índice de las botas es `movsx(modelo) − 0x212` con el resto con signo de 512 (`and 0x800001ff`
+   y el ajuste de `jns`, `0x505871..0x505893`): con un modelo menor que `0x212`, negativo. De las botas
+   para arriba, cada parte tiene que tener el nivel (`+2 & 0xf`) en 9 o más (`jl`, `0x5058b4`) y el
+   mismo índice (`0x5058b6..0x5058d1`), de cualquier grupo; si no, `[0x743a178]` vuelve a 0 y no hay
+   conjunto (`0x5058ea`). Cada nivel menor o igual que el más chico hasta ahí lo escribe en
+   `[0x743a178]` (`0x5058d3..0x5058db`): al final, el más chico.
+4. Pone `[0x743a17c]` en 1 (`0x5058fb`). Con la clase 3 y el conjunto abre el registro propio por la
+   tabla de protección (`0x50591f..0x505a96`, [La tabla de protección](#la-tabla-de-protección)),
+   mira el tipo de su armadura (`[0x7681eb4] + 0xc44`, el lugar 3) y, si no es `0x100f`, `0x1014`,
+   `0x1017` ni `0x1020`, pone `[0x743a17c]` en 0 (`0x505aa7..0x505ac3`). Después lo cierra
+   (`0x505aca..0x505ba3`), con los 3.848 `rand()` si deja la cuenta en 0. Con la tabla llena, la
+   apertura avisa `Hash table full!!! - GetIndex` (`0x6c637c`, por `0x41fa40` en `0x5059b3`) y el
+   cierre vuelve sin cerrar (`0x505b55`), como en los otros accesos en línea.
+
+No lee nada más: ni las tablas de los conjuntos (`[0x6eed3c]`) ni `Item.bmd`. La armadura que mira es
+la del registro propio, no la del personaje: dibujar a otro jugador de la clase 3 con un conjunto mira
+la del héroe (Q-C188). En el `Item.bmd` del repo, las cuatro son el 8 15, el 8 20, el 8 23 y el 8 32
+(`Storm Crow`, `Thunder Hawk`, `Hurricane` y `Volcano Armor`), las únicas del grupo 8 con nombre sin
+casco con nombre en el mismo índice del grupo 7 (`GoldenFullSetScan`): que sean los conjuntos de la
+clase 3, que no lleva casco, es *inferido*.
+
+**Quién la llama.** `0x512a30` con el héroe publicado (el paso 9 de [arriba](#el-equipo-propio-en-el-personaje)),
+y `0x50ba30`, el dibujo de un personaje, en `0x50c904..0x50c926`: con el tipo (`+2` del objeto) en
+`0x20a` y `+0x3e4` en 0. Lo que devuelve decide un bloque del mismo dibujo (`0x50fde6..0x510a7a`), que
+también lee `[0x743a178]`, sin leer en detalle ni portar. `0x50ba30` llega a `0x50c904` salvo que salga
+antes: con el bit `0x10000000` de `+0x7c` o sin las acciones del modelo (`+0x26` en 0, `0x50ba87`). La
+llaman `0x510d00` (`0x510ea1`), que recorre el pool del 0 al 399 en orden con los vivos y visibles
+(`+0x16c`), en el login, la selección y el juego; el inventario (`0x4959d5`, con `+0x3e4` en 1 en
+`0x4959a1`) y la vista previa de crear (`0x63e637`, con el `NewFace` de la clase de tipo, `0xa8` a
+`0xac`) no la corren. En el juego, `0x6374dd` llega a `0x510d00` en cada frame con el mundo cargado y el
+contador de la espera en 30 o menos.
+
+Así, lo que lee `0x550990` depende de quién se dibujó último. En la respuesta del `F3 03`, si el lugar
+sorteado es el del héroe publicado (el 0 de WinMain, que es el del primer lugar de la selección, o el
+de la entrada anterior), `0x505820` corre con el héroe recién construido y no importa lo de antes; si
+no, cuenta lo del último personaje de la lista en el último frame que dibujó la selección. Sin ningún
+dibujo, el 0 de la `.bss`.
+
+MuRet (`Scenes/FullSetScan.h`): `ScanFullSet` sobre un `ScannedCharacter` (la clase y las cinco
+partes; `ScannedCharacterOf` de un `ActorState` o de la `CharacterAppearance` de la lista y del
+login), con el acceso al registro como `Render::Models::LogicalAccess` (sin el aviso de la tabla
+llena). Los dos globales son `WorldRuntime::fullSetScan`, que arranca en 0 y 0 y dura entre escenas.
+Lo escriben `ApplyActorEquipment` con el héroe publicado y el dibujo del login y de la selección
+(`ScanTheDrawnCharacter`), con cada personaje en el orden del pool, antes de `DrawCharacter`, una vez
+por frame del original (`OriginalFrameCarry`, como la tela) y solo si están las acciones de
+`Player.bmd`. MuRet no dibuja los personajes del juego: `GameScene::PrepareFrame`, en un frame que
+llega a `0x510d00`, lo deja sin valor (`nullopt`), y `0x550990` corta con un error si lo lee antes de
+otro `0x505820` (P-C40). El bloque del dibujo que decide lo que devuelve no está portado.
 
 ### Los stats del registro propio
 
@@ -2990,14 +3057,14 @@ no, sigue con los ocho helpers en su orden ([abajo](#los-ocho-helpers-de-los-sta
 (paso 8, `UpdateOwnDerivedStatsTail`), con lo que `OwnStatsContext` trae para ellos: el ítem de
 `0x7879f80` (`held`, que por defecto no reemplaza nada) y lo de `0x505820` (`scan505820`).
 
-Lo de `0x505820` no se puede suponer al entrar al mundo. `[0x743a178]` y `[0x743a17c]` solo los
-escribe `0x505820` (`0x50584b`, `0x5058db`, `0x5058ea`, `0x5058fb` y `0x505ac3`; *estático*), y a `0x505820` la
-llaman `0x512a30` (`0x512ee7`) y el dibujo de los personajes, `0x50ba30` (`0x50c91e`, con el tipo
-`0x20a` y `+0x3e4` en 0), que llaman `0x4959d5`, `0x510ea1` y `0x63e637`. Si la selección dibuja sus
-personajes por ahí, el `F3 03` encuentra lo que dejó el último. Sin `0x505820` portado,
-`scan505820` queda vacío y `RecalculateOwnStats` corta en `0x550990` (`0x5512ac`), con los cinco
-helpers de antes hechos; con un valor, llega al final de la cola. En la entrada al mundo, con las
-tablas de los conjuntos cargadas, ese es hoy el corte.
+`[0x743a178]` y `[0x743a17c]` solo los escribe `0x505820` (`0x50584b`, `0x5058db`, `0x5058ea`,
+`0x5058fb` y `0x505ac3`; *estático*), desde `0x512a30` y desde el dibujo de los personajes ([El
+conjunto completo de `0x505820`](#el-conjunto-completo-de-0x505820)): `0x550990` lee lo que dejó la
+última llamada. `ApplyActorEquipment` le pasa `WorldRuntime::fullSetScan`, después de escribirlo si
+viste al héroe publicado. Sin valor (un frame del juego en el medio, que MuRet no dibuja),
+`RecalculateOwnStats` corta en `0x550990` (`0x5512ac`), con los cinco helpers de antes hechos; con un
+valor, llega al final de la cola. En la entrada al mundo, con las tablas de los conjuntos cargadas,
+`0x512a30` vuelve entero.
 
 `[0x7879fbc]`, que decide si hay ítem en `0x7879f80`, está en la `.bss` (0 al arrancar) y fuera de
 `0x550d10` solo lo escriben `0x4d1c89` y `0x4d29cb` con un valor y varios sitios con 0 (*estático*):
@@ -3112,7 +3179,8 @@ MuRet (`Scenes::OwnStatHelpers`) tiene una función por helper (`UpdateOwnWords5
 `UpdateOwnWord62`, `UpdateOwnWord64` y `UpdateOwnWord66`) y `ItemDurabilityFactor`, y
 `Scenes::ItemSetOptionList` las tres de la lista, sobre una proyección tipada de `+0x9348..+0x940b`.
 El ítem de `0x7879f80` y sus condiciones van en `OwnEquipmentOverride`, que por defecto no reemplaza
-nada, y lo de `0x505820`, en `Scan505820`; el bit `0x04`, con un `Render::Models::LogicalAccess`.
+nada, y lo de `0x505820`, en `Scan505820` (`Scenes/FullSetScan.h`); el bit `0x04`, con un
+`Render::Models::LogicalAccess`.
 Donde el original lee lo que MuRet no tiene devuelven un error, con lo escrito hasta ahí: sin
 `Item.bmd` o con un tipo fuera de la tabla, sin la lista de `0x40e1b0`, con más de nueve opciones en
 un ítem o más de 16 entradas en la lista.

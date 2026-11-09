@@ -11,6 +11,7 @@
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/FullSetScan.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -38,6 +39,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -61,6 +63,8 @@ constexpr int GrassRandoms = 65536;
 constexpr int HeroRandom = 1;
 constexpr int ConstructionRandoms = 28;
 constexpr int StopRandom = 1;
+// Los de la cola de 0x550d10, con 0x512a30 entera.
+constexpr int TailRandoms = 3;
 // Después de 0x512a30: el contador (4) y las dos consultas de 0x657a90.
 constexpr int WaitClose = 4;
 constexpr int WindowRandoms = 2;
@@ -248,15 +252,78 @@ TEST_F(WorldEntryTest, AnEquipmentFailureLeavesTheHeroUnpublished)
         AfterDraws(Seed, 3 * OwnRecordClose + GrassRandoms + HeroRandom + ConstructionRandoms + StopRandom).State());
 }
 
-// Con las tablas de los conjuntos, 0x550d10 pasa 0x40e1b0, los doce lugares, Cape of Lord y los cinco
-// primeros helpers, y corta en 0x550990, que lee lo que deja 0x505820. Los accesos de adentro anidan en
-// el de 0x512a30 y no sacan rand(): los mismos que cuando cortaba en 0x40e1b0.
-TEST_F(WorldEntryTest, WithTheSetTablesTheEntryStopsAtTheScanOf0x505820)
+// Las tablas de los conjuntos sin ningún conjunto: 0x40e1b0 recorre el equipo y no aplica nada.
+Client::Data::Tables::ItemSetTables NoSets()
 {
-    Entry tested(m_dataRoot, Seed);
-    const Client::Data::Tables::ItemSetTables sets = Client::Tests::ItemSetTablesFrom(
+    return Client::Tests::ItemSetTablesFrom(
         std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
         std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
+}
+
+// El lugar del héroe con `Seed`, el de la primera prueba.
+std::size_t HeroSlotOfSeed()
+{
+    CrtRandom replay = AfterDraws(Seed, OwnRecordClose + GrassRandoms);
+    return static_cast<std::size_t>(replay.Next() % 400);
+}
+
+// Con las tablas de los conjuntos, 0x550d10 llega al final y la entrada sigue hasta asentarse. El lugar del
+// héroe no es el publicado (el 0 de WinMain): 0x505820 no corre en 0x512a30, y 0x550990 lee el 0 de la
+// .bss, el de un proceso que no dibujó a nadie. Los accesos de adentro anidan en el de 0x512a30: los
+// rand() de más son los tres de la cola, y después los de SettleWorldEntry con su cierre.
+TEST_F(WorldEntryTest, WithTheSetTablesTheEntryRunsTheWholeRecalculation)
+{
+    Entry tested(m_dataRoot, Seed);
+    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    WorldEntryResources resources = tested.Resources();
+    resources.itemSetTables = &sets;
+    RecordingPublisher publisher;
+    ASSERT_NE(HeroSlotOfSeed(), tested.world.Runtime().hero);
+
+    const auto entered = ApplyWorldEntry(CableReply(), PlayerKey, resources, publisher);
+
+    ASSERT_TRUE(entered.HasValue()) << entered.Error();
+    EXPECT_EQ(publisher.calls, 1);
+    EXPECT_EQ(tested.world.Runtime().hero, HeroSlotOfSeed());
+    EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold);
+    EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
+    ASSERT_TRUE(tested.world.Runtime().fullSetScan.has_value());
+    EXPECT_EQ(tested.world.Runtime().fullSetScan->dword743a178, 0);
+    EXPECT_EQ(tested.world.Runtime().fullSetScan->byte743a17c, 0);
+    constexpr int BeforeTheSettling = GrassRandoms + HeroRandom + ConstructionRandoms + StopRandom + TailRandoms;
+    constexpr int TheSettling = OwnRecordClose + WaitClose + WindowRandoms + StopRandom;
+    EXPECT_EQ(tested.cloth.random.State(),
+              AfterDraws(Seed, 3 * OwnRecordClose + BeforeTheSettling + TheSettling).State());
+}
+
+// 0x550990 lee lo que dejó el último 0x505820, acá el de la selección: [0x743a17c] en 1 y [0x743a178] en 12
+// suman _ftol(+0x62 · 0.15f) a +0x62, que con la clase 0 es la agilidad >> 2 (0x550990).
+TEST_F(WorldEntryTest, TheEntryReadsWhatTheSelectionDrawingLeft)
+{
+    Entry tested(m_dataRoot, Seed);
+    tested.world.Runtime().fullSetScan = Client::Scenes::Scan505820{.dword743a178 = 12, .byte743a17c = 1};
+    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    WorldEntryResources resources = tested.Resources();
+    resources.itemSetTables = &sets;
+    Client::Protocol::Character::CharacterSelectResult reply = CableReply();
+    reply.agility = 400;
+    RecordingPublisher publisher;
+
+    const auto entered = ApplyWorldEntry(reply, PlayerKey, resources, publisher);
+
+    ASSERT_TRUE(entered.HasValue()) << entered.Error();
+    EXPECT_EQ(tested.world.OwnCharacter().word62, 100 + 15);
+    ASSERT_TRUE(tested.world.Runtime().fullSetScan.has_value());
+    EXPECT_EQ(tested.world.Runtime().fullSetScan->dword743a178, 12);
+}
+
+// Después de un frame del juego que dibuja los personajes MuRet no sabe qué dejó 0x505820: con otro
+// lugar, la entrada corta en 0x550990 con el héroe sin publicar y los rand() de hasta ahí, sin la cola.
+TEST_F(WorldEntryTest, WithoutKnowingTheLastScanTheEntryStopsAt0x550990)
+{
+    Entry tested(m_dataRoot, Seed);
+    tested.world.Runtime().fullSetScan = std::nullopt;
+    const Client::Data::Tables::ItemSetTables sets = NoSets();
     WorldEntryResources resources = tested.Resources();
     resources.itemSetTables = &sets;
     RecordingPublisher publisher;
@@ -271,6 +338,28 @@ TEST_F(WorldEntryTest, WithTheSetTablesTheEntryStopsAtTheScanOf0x505820)
     EXPECT_EQ(
         tested.cloth.random.State(),
         AfterDraws(Seed, 3 * OwnRecordClose + GrassRandoms + HeroRandom + ConstructionRandoms + StopRandom).State());
+}
+
+// Si rand() % 400 da el lugar del héroe publicado (en una segunda entrada, o el 0 de WinMain), 0x512a30
+// viste a ese mismo y 0x505820 corre con él (0x512ee7): lo de antes no importa. El registro vacío deja
+// las partes de la clase, que no son un conjunto: [0x743a178] en 0 y [0x743a17c] en 1.
+TEST_F(WorldEntryTest, WithThePublishedHeroSlotTheEntryScansTheHero)
+{
+    Entry tested(m_dataRoot, Seed);
+    tested.world.Runtime().hero = HeroSlotOfSeed();
+    tested.world.Runtime().fullSetScan = std::nullopt;
+    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    WorldEntryResources resources = tested.Resources();
+    resources.itemSetTables = &sets;
+    RecordingPublisher publisher;
+
+    const auto entered = ApplyWorldEntry(CableReply(), PlayerKey, resources, publisher);
+
+    ASSERT_TRUE(entered.HasValue()) << entered.Error();
+    EXPECT_EQ(publisher.calls, 1);
+    ASSERT_TRUE(tested.world.Runtime().fullSetScan.has_value());
+    EXPECT_EQ(tested.world.Runtime().fullSetScan->dword743a178, 0);
+    EXPECT_EQ(tested.world.Runtime().fullSetScan->byte743a17c, 1);
 }
 
 // Tres cierres en línea (0x4c41c4, 0x4c46f0 y 0x4c481e) y el de 0x512a30: cada uno saca 3.848 rand()

@@ -161,8 +161,12 @@ done
 
 **Criterio de éxito de los objetos:** `s31mem.txt` termina en `fin`, sin `ERROR`, con `ilegibles=0` en
 cada región y, en la línea de `obj_nodes`, `cortadas=0 nodos_ilegibles=0 ok`. `obj_gworld.bin` da `2`,
-`obj_scene.bin` da `5`, y el `nodos=` de `obj_nodes` es igual al número de `obj_count.bin`. Como referencia,
-la captura de Lorencia (`2026-10-09-lorencia-obj/log-lectura-obj.txt`) dio 2.870.
+`obj_scene.bin` da `5`, y `obj_count.bin` da la cantidad de registros de `World3\EncTerrain3.obj`, 2.144.
+`obj_count` no cuenta nodos vivos: es el int16 del archivo, que `0x6074b0` guarda tal cual. El `nodos=`
+de `obj_nodes` puede ser otro número, porque `0x606660` no crea todos los registros y hay objetos que
+no salen del archivo. Anotar los dos números; que difieran no invalida la lectura. En Lorencia
+(`2026-10-09-lorencia-obj/log-lectura-obj.txt`) los dos dieron 2.870. En la sesión del 2026-11-09,
+Devias dio 2.146 nodos contra 2.144 (P-C37).
 
 **Criterio de éxito de la luz:** el mismo del paso 4, con `mapa.bin` en `2`.
 

@@ -6,6 +6,7 @@
 #include "App/ISessionEventSink.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
+#include "App/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/Log.h"
@@ -859,7 +860,15 @@ void ServerSession::OnInventoryReply(const Network::Packet& packet)
 {
     if (!packet.WasDecrypted())
     {
-        m_log.Warning("se ignora el inventario (F3 10): no llegó cifrado");
+        // 0x4c55a0 vacía el inventario antes de mirar el flag, y sin cifrar le avisa al GameServer con el
+        // mismo F1 03 00 F3 que el F3 03 (0x4c56ed..0x4c5e3c), sin leer el paquete.
+        m_log.Warning("el inventario (F3 10) no llegó cifrado: se vacía y se le avisa al GameServer (F1 03)");
+        if (!CheckApplication(m_eventSink.ApplyWorld(ClearInventoryReceived{}, *this)))
+        {
+            return;
+        }
+        Protocol::Outgoing report = Protocol::Connection::WriteClearWorldEntryReport();
+        m_connection.Send(std::move(report.packet), report.delivery);
         return;
     }
     auto reply = Protocol::Character::ReadInventoryList(packet);

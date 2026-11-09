@@ -956,7 +956,9 @@ TEST(ServerSessionTest, WorldReceptionsAreDeliveredAcrossPollsBeforeTheRemoteClo
     EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
 }
 
-// Un cuerpo válido en claro no acredita la procedencia cifrada que exige esta frontera.
+// Un cuerpo válido en claro no acredita la procedencia cifrada que exige esta frontera: del F3 03 no
+// llega nada al sink, y de cada F3 10 solo la inicialización común de 0x4c55a0, sin el cuerpo. Cada uno le
+// avisa al GS con el F1 03 00 F3, el F3 10 después de vaciar.
 TEST(ServerSessionTest, WorldEventsRejectClearPacketsAfterTheEncryptedPositive)
 {
     Harness tested(IdentityObfuscation::Shared());
@@ -964,13 +966,40 @@ TEST(ServerSessionTest, WorldEventsRejectClearPacketsAfterTheEncryptedPositive)
     tested.socket.reads = {EncryptedWorldSequence(tested)};
     static_cast<void>(tested.session.Poll());
     ASSERT_NO_FATAL_FAILURE(ExpectWorldSequence(tested.eventSink.TakeWorldEvents()));
+    const std::size_t sentBefore = tested.GameServerReads().packets.size();
 
     tested.socket.reads = {Join({WorldEntryReply(), InventoryReply(), EmptyInventoryReply()})};
     static_cast<void>(tested.session.Poll());
 
-    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 2u);
+    EXPECT_TRUE(std::holds_alternative<Client::App::ClearInventoryReceived>(events[0]));
+    EXPECT_TRUE(std::holds_alternative<Client::App::ClearInventoryReceived>(events[1]));
+    const GameServerReceived received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), sentBefore + 3);
+    for (std::size_t report = sentBefore; report < received.packets.size(); ++report)
+    {
+        EXPECT_TRUE(
+            SameBytes(Xor32Decode(received.packets[report]).Bytes(), Bytes({0xC1, 0x06, 0xF1, 0x03, 0x00, 0xF3})));
+    }
     EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
     EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
+}
+
+// 0x4c55a0 sin cifrar: si el sink no puede vaciar, la sesión falla y no manda el aviso.
+TEST(ServerSessionTest, AClearInventoryThatFailsToApplyIsNotReported)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const std::size_t sentBefore = tested.GameServerReads().packets.size();
+    tested.eventSink.onWorld = [](const WorldEvent&, ServerSession&) -> Client::Core::Expected<void, std::string>
+    { return Client::Core::Unexpected(std::string("sin inventario")); };
+
+    tested.socket.reads = {EmptyInventoryReply()};
+    static_cast<void>(tested.session.Poll());
+
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.GameServerReads().packets.size(), sentBefore);
 }
 
 // 0x4c396a: la respuesta del F3 03 sin cifrar no entra al mundo y le avisa al GS con el F1 03 00 F3.

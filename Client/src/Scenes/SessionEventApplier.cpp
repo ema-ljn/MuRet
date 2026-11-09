@@ -5,6 +5,8 @@
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
 #include "Protocol/Character/CharacterSelectResult.h"
+#include "Protocol/Character/InventoryList.h"
+#include "Scenes/InventoryReply.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
@@ -44,13 +46,24 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyCharacter(const App:
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::WorldEvent& event,
                                                                   App::ServerSession& session)
 {
-    const auto* reply = std::get_if<Protocol::Character::CharacterSelectResult>(&event);
-    if (reply == nullptr)
+    if (std::holds_alternative<App::ClearInventoryReceived>(event))
     {
-        return Core::Unexpected(std::string("falta integrar el aplicador de mundo nativo del F3/10 (0x4c55a0, T9)"));
+        ClearForInventoryReply(m_resources);
+        return {};
     }
+    if (const auto* inventory = std::get_if<Protocol::Character::InventoryList>(&event))
+    {
+        const auto applied = ApplyInventory(*inventory, m_resources);
+        if (!applied.HasValue())
+        {
+            return Core::Unexpected(applied.Error());
+        }
+        // Los sonidos que pidió quedan sin tocar: MuRet no tiene audio hasta la CL10.
+        return {};
+    }
+    const auto& reply = std::get<Protocol::Character::CharacterSelectResult>(event);
     SessionPublisher publisher(session);
-    const auto entered = ApplyWorldEntry(*reply, session.PlayerIndex(), m_resources, publisher);
+    const auto entered = ApplyWorldEntry(reply, session.PlayerIndex(), m_resources, publisher);
     if (!entered.HasValue())
     {
         return Core::Unexpected(entered.Error());

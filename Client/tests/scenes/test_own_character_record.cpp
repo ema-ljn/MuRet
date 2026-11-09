@@ -60,19 +60,27 @@ TEST(OwnCharacterRecordTest, TheEntryClearEmptiesTypeLevelAndFlags1bOfTheTwelveS
     }
 }
 
-TEST(OwnCharacterRecordTest, TheInventoryClearIsAnExplicitFrontier)
+TEST(OwnCharacterRecordTest, TheInventoryClearEmptiesTypeOccupiedAndFlags1bOfTheTwelveSlots)
 {
     OwnCharacterRecord own;
     DressWithOldTypes(own);
-
-    const auto cleared = own.ClearEquipmentForInventory();
-
-    // Qué escribe 0x4c55a0 en el equipo no está leído (04, "El F3 10", pendiente en L3/P).
-    ASSERT_FALSE(cleared.HasValue());
-    EXPECT_NE(cleared.Error().find("0x4c55a0"), std::string::npos);
-    for (std::size_t slot = 0; slot < own.equipment.size(); ++slot)
+    for (Client::World::ItemState& item : own.equipment)
     {
-        EXPECT_EQ(own.equipment[slot].id, OldTypeOf(slot));
+        item.occupied = 1;
+    }
+
+    own.ClearEquipmentForInventory();
+
+    // 06, "El F3 10, el inventario" (0x4c564d..0x4c565f): el tipo en −1, el dword de +0x3c y el byte de
+    // +0x1b en 0. A diferencia del de la entrada, deja el dword de +4; la durabilidad queda (Q-C203).
+    for (const Client::World::ItemState& item : own.equipment)
+    {
+        EXPECT_EQ(item.id, 0xffff);
+        EXPECT_EQ(item.occupied, 0u);
+        EXPECT_EQ(item.flags1b, 0);
+        EXPECT_EQ(item.scalar1Low, 0x78u);
+        EXPECT_EQ(item.flags1c, 0x3c);
+        EXPECT_EQ(item.durability, 0x2d);
     }
 }
 

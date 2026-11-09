@@ -4,6 +4,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/OwnInventory.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 
@@ -18,7 +19,8 @@ class CrtRandom;
 
 // Lo que WinMain deja en cero y dura de una escena a otra: el pool de 401 registros de personaje
 // (REP STOSD en 0x4bafa6..0x4bafb3, con el héroe en el primero, 0x4bafdf), el registro propio
-// ([0x7681eb0], 0x4bafbc..0x4bafc2) y los globales en claro (WorldRuntime). Además, lo que 0x550d10
+// ([0x7681eb0], 0x4bafbc..0x4bafc2), las grillas del inventario propio (0x78a9bb0 y 0x78ab0b8, en la
+// .bss) y los globales en claro (WorldRuntime). Además, lo que 0x550d10
 // deja en el objeto de los conjuntos ([0x6eed3c], el estático de 0x6e5930), que arranca en cero y no
 // lo vuelve a vaciar nadie. main es su único dueño y lo presta: no se copia ni se mueve, para que no
 // haya otra copia de la historia.
@@ -43,6 +45,9 @@ public:
     [[nodiscard]] std::span<const ActorState, ActorPoolSize> Actors() const;
     [[nodiscard]] OwnCharacterRecord& OwnCharacter();
     [[nodiscard]] const OwnCharacterRecord& OwnCharacter() const;
+    // Lo que llena el F3 10 fuera del equipo (06, "El F3 10, el inventario").
+    [[nodiscard]] OwnInventory& Inventory();
+    [[nodiscard]] const OwnInventory& Inventory() const;
     [[nodiscard]] WorldRuntime& Runtime();
     [[nodiscard]] const WorldRuntime& Runtime() const;
     // Lo que la última carga de mapa (0x61a560) dejó en la CPU.
@@ -62,6 +67,7 @@ public:
 private:
     std::array<ActorState, ActorPoolSize> m_actors{};
     OwnCharacterRecord m_own;
+    OwnInventory m_inventory;
     WorldRuntime m_runtime;
     WorldMap m_map;
     ItemSetState m_itemSets;

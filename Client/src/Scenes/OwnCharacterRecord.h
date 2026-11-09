@@ -1,13 +1,11 @@
 #pragma once
 
-#include "Core/Expected.h"
 #include "Protocol/Character/Opcodes.h"
 #include "World/ItemState.h"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <string>
 
 namespace Client::Core
 {
@@ -48,11 +46,11 @@ struct OwnCharacterRecord
     // cada ItemState queda como estaba, como en el original.
     void ClearEquipmentForEntry();
 
-    // Frontera explícita del F3 10 (0x4c55a0). 04 ("El F3 10") dice que hace una inicialización
-    // común, también con cantidad 0, y 06 ("La tabla de protección") que cierra este registro una
-    // vez, pero no qué escribe en su equipo: sigue pendiente en L3/P. Devuelve siempre el error y
-    // no toca el registro, para que nadie lo tome por un vaciado hecho.
-    [[nodiscard]] Core::Expected<void, std::string> ClearEquipmentForInventory();
+    // La inicialización común del F3 10 (0x4c563c..0x4c565f, 06 "El F3 10, el inventario"), también
+    // sin cifrar y con cantidad 0: en los doce lugares, el tipo en −1, el dword de +0x3c (occupied) y
+    // el byte de +0x1b (flags1b) en 0. No es el vaciado de la entrada: este deja el dword de +4
+    // (scalar1Low), y ninguno de los dos toca la durabilidad (Q-C203).
+    void ClearEquipmentForInventory();
 
     // 06, "La lógica": lo copia la selección (0x6342c0) y la respuesta no lo cambia.
     std::array<std::byte, Protocol::Character::NameSize + 1> name{}; // +0, hasta la clase

@@ -11,6 +11,8 @@
 #include "Protocol/Character/InventoryList.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/LoginModels.h"
+#include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/OwnInventory.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldState.h"
@@ -73,19 +75,44 @@ TEST(SessionEventApplierTest, PropagatesTheActualSelectionConstructionFailure)
     EXPECT_EQ(tested.selection.Slots()[0].revision, 0u);
 }
 
-// El F3 10 (0x4c55a0) sigue sin aplicador (T9): error explícito, sin tocar la sesión ni la selección.
-TEST(SessionEventApplierTest, TheInventoryIsStillExplicitlyUnavailable)
+// El F3 10 va a 0x4c55a0: con la cantidad en 0, la inicialización común vacía el equipo del registro y las
+// dos grillas y cierra el registro con sus 3.848 rand(), sin tocar la sesión ni la selección.
+TEST(SessionEventApplierTest, AnEmptyInventoryGoesToTheNativeApplier)
 {
     Applier tested;
     Client::Tests::LoggedInSession online;
+    tested.world.OwnCharacter().equipment[3].id = 7;
+    tested.world.Inventory().cells[5].id = 7;
+    tested.world.Inventory().secondCells[2].id = 7;
     const Client::App::WorldEvent event = Client::Protocol::Character::InventoryList{};
 
     const auto result = tested.applier.ApplyWorld(event, online.session);
 
-    ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("F3/10"), std::string::npos);
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(tested.world.OwnCharacter().equipment[3].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(tested.world.Inventory().cells[5].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(tested.world.Inventory().secondCells[2].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
+    EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
     EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
     EXPECT_FALSE(tested.selection.HasReceivedList());
+}
+
+// Sin cifrar, 0x4c55a0 hace lo mismo antes de mirar el flag (0x4c56e2), y nada después en el mundo.
+TEST(SessionEventApplierTest, AClearInventoryRunsOnlyTheCommonInitialization)
+{
+    Applier tested;
+    Client::Tests::LoggedInSession online;
+    tested.world.OwnCharacter().equipment[3].id = 7;
+    tested.world.Inventory().cells[5].id = 7;
+    const Client::App::WorldEvent event = Client::App::ClearInventoryReceived{};
+
+    const auto result = tested.applier.ApplyWorld(event, online.session);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(tested.world.OwnCharacter().equipment[3].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(tested.world.Inventory().cells[5].id, Client::Scenes::EmptyOwnItemId);
+    EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
 }
 
 // El F3 03 va a 0x4c3940: sin la carpeta de datos, la carga del mapa 0 corta nombrando el .map de

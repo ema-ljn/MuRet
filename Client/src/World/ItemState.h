@@ -74,4 +74,10 @@ using Item4225d0 = std::function<void(ItemState&)>;
 void InitializeItemState(ItemState& item, std::span<const std::byte, Data::Tables::ItemRecordSize> metadata,
                          ItemInitializationScalars scalars, const std::uint16_t& contextWord,
                          const Item4225d0& apply4225d0);
+
+// Si InitializeItemState lee contextWord con este ID y este B3: la familia tardía de las armas (de 0 a
+// 0xbff, 0x1a0c, 0x1a0d y 0x1a19 a 0x1a1c, con signo) con el bit 0x10 del byte bajo de B3. En el
+// original es el nivel del registro propio, [0x7681eb0] + 0xe (0x54cd97 y 0x54cdec), y quien llama
+// sabe si lo tiene abierto (06, "El F3 10, el inventario").
+[[nodiscard]] bool ReadsTheContextWord(std::uint16_t id, std::uint32_t b3);
 } // namespace Client::World

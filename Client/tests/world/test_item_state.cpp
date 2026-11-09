@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <initializer_list>
 #include <span>
 
 namespace
@@ -690,6 +691,26 @@ TEST(ItemStateTest, ReadsTheContextWordLateIncludingWhenItAliasesTheDestinationW
     ASSERT_EQ(aliased.optionCount, 1);
     EXPECT_EQ(aliased.OptionTag(0), 0x5d);
     EXPECT_EQ(aliased.OptionValue(0), 4);
+}
+
+// Quién lee el word: la familia tardía de las armas, con signo, y el bit 0x10 del byte bajo de B3. Es lo
+// que 0x5bc740 tiene que saber antes de llamar a 0x54bf40 con el registro propio cerrado (Q-C202).
+TEST(ItemStateTest, OnlyTheLateWeaponFamilyWithBit10ReadsTheContextWord)
+{
+    using Client::World::ReadsTheContextWord;
+    for (const std::uint16_t id : std::initializer_list<std::uint16_t>{0x000, 0xbff, 0x1a0c, 0x1a0d, 0x1a19, 0x1a1c})
+    {
+        SCOPED_TRACE(id);
+        EXPECT_TRUE(ReadsTheContextWord(id, 0x10));
+        EXPECT_TRUE(ReadsTheContextWord(id, 0xffffff10));
+        EXPECT_FALSE(ReadsTheContextWord(id, 0xef));
+        EXPECT_FALSE(ReadsTheContextWord(id, 0x1000));
+    }
+    for (const std::uint16_t id : std::initializer_list<std::uint16_t>{0xc00, 0x1a0b, 0x1a0e, 0x1a18, 0x1a1d, 0xffff})
+    {
+        SCOPED_TRACE(id);
+        EXPECT_FALSE(ReadsTheContextWord(id, 0x10));
+    }
 }
 
 // Si P fuerza Q antes de requisitos, E suma25 incluso con B3 inicialmente cero.

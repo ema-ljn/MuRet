@@ -12,6 +12,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterCloth.h"
+#include "Scenes/TextureMetadata.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -49,6 +50,12 @@ public:
     [[nodiscard]] virtual const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const = 0;
     // Uno por malla, en su orden; vacío si no se cargaron sus texturas.
     [[nodiscard]] virtual std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const = 0;
+    // Consulta raw32 de la misma tabla: ausencia explícita, sin truncar al slot16 de los modelos.
+    [[nodiscard]] virtual std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const
+    {
+        (void)selector;
+        return std::nullopt;
+    }
     // El tamaño de la textura de `slot` (+0x20 y +0x24 de su lugar en la tabla, 0x7d3a1b8), si esta
     // biblioteca la subió: el de los sprites (0x549290).
     [[nodiscard]] virtual std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const

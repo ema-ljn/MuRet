@@ -1,5 +1,9 @@
 #include "World/Particles.h"
 
+#include "World/ParticleDrawParameters.h"
+#include "World/Ftol.h"
+#include "World/IParticleTrigonometry.h"
+
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
@@ -11,6 +15,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <span>
 
@@ -30,8 +35,6 @@ constexpr float Cloud8FallLimit = std::bit_cast<float>(0x3dcccccdu);
 constexpr float Cloud8Fall = std::bit_cast<float>(0x3ccccccdu);
 constexpr double Cloud8RandomStep = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
 constexpr float Cloud8InitialQ = std::bit_cast<float>(0x3dcccccdu);
-constexpr float Cloud8EvenRotation = std::bit_cast<float>(0x3ca3d70au);
-constexpr float Cloud8OddRotation = std::bit_cast<float>(0xbca3d70au);
 constexpr double Cloud68ScaleStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
 // 5446e0_ext_67 y contrato histórico íntegro leaf-4303c0 (predicado raw32 == 34, sin calls).
 constexpr std::int32_t Particle67ColorMap = 34;
@@ -60,10 +63,6 @@ constexpr double DropScaleStep = static_cast<double>(std::bit_cast<float>(0x3cf5
 constexpr int DropWalkSpan = 20;
 constexpr int DropWalkCenter = 10;
 constexpr double DropWalkFactor = 2.5;
-constexpr int DropFrames = 9;
-constexpr int DropColumns = 3;
-constexpr double DropAtlasInset = static_cast<double>(std::bit_cast<float>(0x3ba3d70au));
-constexpr float DropAtlasSize = std::bit_cast<float>(0x3e75c28fu);
 // Contratos final-runtime 53fe70/5446e0/548550, casos 5d9/0..3 y 5f2/2.
 constexpr std::int32_t FireLife = 24;
 constexpr std::int32_t WorldSmokeLife = 50;
@@ -83,8 +82,6 @@ constexpr int FireSmallScaleBase = 10;
 constexpr int SmokeScaleBase = 64;
 constexpr int SmokeSpeedBase = 60;
 constexpr int FrameSteps = 6;
-constexpr int AtlasColumns = 4;
-constexpr double AtlasFraction = 0.25;
 constexpr double FireHeightFactor = 10.0;
 constexpr float LowerPassHeight = 350.0f;
 constexpr float UpperPassHeight = 300.0f;
@@ -108,7 +105,6 @@ constexpr double CloudScaleStep = static_cast<double>(std::bit_cast<float>(0x3d8
 constexpr double CloudSpeedStep = static_cast<double>(std::bit_cast<float>(0x3df5c28fu));
 // 0x5475b6..0x547699 y 0x548c04..0x548c2f; 06 § Los efectos del login, neblina.
 constexpr float CloudRotationFactor = 1.5f;
-constexpr double CloudRotationStep = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
 constexpr double CloudGrowth = static_cast<double>(std::bit_cast<float>(0x3c23d70au));
 constexpr float CloudLightLimit = std::bit_cast<float>(0x3e19999au);
 constexpr double CloudFade = static_cast<double>(std::bit_cast<float>(0x3f73cf3eu));
@@ -137,7 +133,7 @@ float F32(double value)
 
 // 0x69fd3c (_ftol): fistp de 64 bits truncando y la parte baja en eax. Con un NaN o fuera de rango, la x87
 // guarda 0x8000000000000000 y eax queda en 0.
-std::int32_t FtolLow(float value)
+std::int32_t LegacyFtolLow(float value)
 {
     constexpr float Limit = 9.2233720368547758e18f;
     if (std::isnan(value) || value >= Limit || value < -Limit)
@@ -410,6 +406,175 @@ void CreateTheWorldSmoke(Particle& particle, Render::Models::CrtRandom& random)
     particle.verticalSpeed = F32(static_cast<double>((random.Next() % FireSpeedBase) + SmokeSpeedBase) * SmokeSlowdown);
 }
 
+// Contrato53fe70-map-variants §5f2/6..8 y Step5446e0 §5f2/4,6,7,8.
+constexpr std::int32_t Map8SmokeLife = 30;
+constexpr std::int32_t Map8EightLife = 24;
+constexpr int Map8PhaseSpan = 1000;
+constexpr int Map8ScaleSpan = 20;
+constexpr int Map8SixScaleBase = 180;
+constexpr int Map8SevenScaleBase = 120;
+constexpr int Map8OffsetSpan = 200;
+constexpr int Map8OffsetCenter = 100;
+constexpr int Map8HeightBase = 20;
+constexpr int Map8SevenSpeedSpan = 4;
+constexpr int Map8SevenSpeedBase = 6;
+constexpr int Map8EightSpeedSpan = 8;
+constexpr int Map8EightSpeedBase = 32;
+constexpr std::int32_t Map8FadeLife = 5;
+constexpr double Map8RiseFactor = 20.0;
+
+// Contrato53fe70-map-variants §5f2/6..8: cada R precede sus relecturas propias.
+bool IsMap8Smoke(std::int32_t type, std::int32_t subtype)
+{
+    return type == BreathParticle && (subtype == 4 || subtype == 6 || subtype == 7 || subtype == 8);
+}
+
+void CreateTheMap8Smoke(Particle& p, float argumentScale, Render::Models::CrtRandom& random)
+{
+    constexpr int RandomTurn = 360;
+    constexpr double PhaseStep = static_cast<double>(std::bit_cast<float>(0x3ba3d70au));
+    constexpr double EightSpeed = static_cast<double>(std::bit_cast<float>(0xbe99999au));
+    constexpr double EightScale = static_cast<double>(std::bit_cast<float>(0x3f4ccccdu));
+    if (p.subtype == 6)
+    {
+        p.life = Map8SmokeLife;
+        p.verticalSpeed = static_cast<float>(random.Next() % Map8PhaseSpan);
+        p.scale = F32(static_cast<double>(random.Next() % Map8ScaleSpan + Map8SixScaleBase) * BreathScaleStep);
+        const int x = random.Next() % Map8OffsetSpan - Map8OffsetCenter;
+        p.position.x = F32(static_cast<double>(x) * argumentScale + p.position.x);
+        const int y = random.Next() % Map8OffsetSpan - Map8OffsetCenter;
+        p.position.y = F32(static_cast<double>(y) * argumentScale + p.position.y);
+        const int z = random.Next() % Map8ScaleSpan + Map8HeightBase;
+        p.velocity.x = 0;
+        p.velocity.y = 0;
+        p.velocity.z = 0;
+        const double raised = static_cast<double>(z) + p.position.z;
+        p.position.z = F32(raised);
+        p.rotation = F32(raised);
+        return;
+    }
+    const bool seven = p.subtype == 7;
+    p.life = seven ? Map8SmokeLife : Map8EightLife;
+    p.velocity.x = 0;
+    const int speed = random.Next() % (seven ? Map8SevenSpeedSpan : Map8EightSpeedSpan) +
+                      (seven ? Map8SevenSpeedBase : Map8EightSpeedBase);
+    p.velocity.z = 0;
+    p.velocity.y = F32(static_cast<double>(speed) * (seven ? static_cast<double>(p.scale) : EightSpeed));
+    if (seven)
+    {
+        p.verticalSpeed = F32(static_cast<double>(random.Next() % Map8OffsetSpan) * PhaseStep);
+        const int scale = random.Next() % Map8ScaleSpan + Map8SevenScaleBase;
+        p.scale = F32((static_cast<double>(scale) * p.scale) * BreathScaleStep);
+    }
+    else
+    {
+        p.scale = F32(static_cast<double>(p.scale) * EightScale);
+    }
+    p.rotation = static_cast<float>(random.Next() % RandomTurn);
+}
+
+// Contrato5446e0 §5f2/4: Z usa el acumulador ancho, no su store f32.
+void StepTheMap8Four(Particle& p)
+{
+    const double color = static_cast<double>(p.life) * BreathLightPerLife;
+    p.light.x = F32(color * static_cast<double>(std::bit_cast<float>(0x3ef0f0f1u)));
+    p.light.y = F32(color * static_cast<double>(std::bit_cast<float>(0x3eca3097u)));
+    p.light.z = F32(color * static_cast<double>(std::bit_cast<float>(0x3ea0a0a1u)));
+    const double rise = static_cast<double>(p.verticalSpeed) + BreathRise;
+    p.verticalSpeed = F32(rise);
+    p.position.z = F32(rise + p.position.z);
+    p.scale = F32(static_cast<double>(p.scale) + BreathGrowth);
+}
+
+// Contrato5446e0 §5f2/6 y trig-design §Step5f2/6: el evaluador devuelve
+// el producto53 de una salida retenida64. t sigue independiente hasta FTOL.
+Core::Expected<void, ParticleError> StepTheMap8Six(Particle& p, const float& worldClock,
+                                                   IParticleTrigonometry& trigonometry)
+{
+    constexpr std::int32_t SustainedLife = 10;
+    constexpr std::int32_t ScalePeriod = 1800;
+    constexpr double HeightFrequency = static_cast<double>(std::bit_cast<float>(0x3951b717u));
+    constexpr double ScaleFrequency = static_cast<double>(std::bit_cast<float>(0x3ae4c388u));
+    constexpr float HeightMultiplier = 20.0f;
+    constexpr float ScaleMultiplier = 0.5f;
+    constexpr double ScaleBase = static_cast<double>(std::bit_cast<float>(0x3fe66666u));
+    const double clock = static_cast<double>(worldClock);
+    const double t = clock + static_cast<double>(p.verticalSpeed);
+    p.life = SustainedLife;
+    const double heightArgument = t * HeightFrequency;
+    const auto height = trigonometry.SineProductPC53(heightArgument, HeightMultiplier);
+    if (!height.HasValue())
+    {
+        return Core::Unexpected(height.Error());
+    }
+    p.position.z = F32(height.Value() + static_cast<double>(p.rotation));
+    const std::int32_t low = Client::World::FtolLow(t);
+    p.light.x = std::bit_cast<float>(0x3eb851ecu);
+    const std::int32_t remainder = low % ScalePeriod;
+    p.light.y = std::bit_cast<float>(0x3e99999au);
+    p.light.z = std::bit_cast<float>(0x3e75c290u);
+    const double scaleArgument = static_cast<double>(remainder) * ScaleFrequency;
+    const auto scale = trigonometry.SineProductPC53(scaleArgument, ScaleMultiplier);
+    if (!scale.HasValue())
+    {
+        return Core::Unexpected(scale.Error());
+    }
+    p.scale = F32(scale.Value() + ScaleBase);
+    return {};
+}
+
+void StepTheMap8Seven(Particle& p)
+{
+    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3cf5c28fu));
+    constexpr double Fall = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    const double scale = static_cast<double>(p.scale) + Growth;
+    const std::int32_t life = p.life;
+    p.scale = F32(scale);
+    const double fall = static_cast<double>(p.verticalSpeed) + 1.0;
+    p.verticalSpeed = F32(fall);
+    p.velocity.y = F32(static_cast<double>(p.velocity.y) - Fall);
+    p.position.z = F32(static_cast<double>(p.position.z) - fall);
+    double color = 1.0;
+    if (life < Map8FadeLife)
+    {
+        color = static_cast<double>(life) * BreathLightPerLife;
+        p.scale = F32(static_cast<double>(p.scale) - Fall);
+    }
+    p.light.x = F32(color * static_cast<double>(std::bit_cast<float>(0x3f39999au)));
+    p.light.y = F32(color * static_cast<double>(std::bit_cast<float>(0x3f126e98u)));
+    p.light.z = F32(color * static_cast<double>(std::bit_cast<float>(0x3eaa7efau)));
+}
+
+void StepTheMap8Eight(Particle& p)
+{
+    constexpr double Growth = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));
+    constexpr double ColorStep = static_cast<double>(std::bit_cast<float>(0x3d2aaaabu));
+    constexpr double Damping = static_cast<double>(std::bit_cast<float>(0x3ed70a3du));
+    const double growth = static_cast<double>(p.verticalSpeed) + Growth;
+    const std::int32_t life = p.life;
+    p.verticalSpeed = F32(growth);
+    if (life > Map8FadeLife)
+    {
+        p.scale = F32(growth + p.scale);
+        p.position.z = F32(static_cast<double>(p.verticalSpeed) * Map8RiseFactor + p.position.z);
+        const double color = static_cast<double>(life) * ColorStep;
+        p.light.x = F32(color);
+        p.light.y = F32(color);
+        p.light.z = F32(color);
+        p.velocity.x = F32(static_cast<double>(p.velocity.x) * Damping);
+        p.velocity.y = F32(static_cast<double>(p.velocity.y) * Damping);
+        p.velocity.z = F32(static_cast<double>(p.velocity.z) * Damping);
+        return;
+    }
+    const double red = static_cast<double>(p.light.x) * 0.5;
+    p.velocity.x = 0;
+    p.velocity.y = 0;
+    p.velocity.z = 0;
+    p.light.x = F32(red);
+    p.light.y = F32(static_cast<double>(p.light.y) * 0.5);
+    p.light.z = F32(static_cast<double>(p.light.z) * 0.5);
+}
+
 void CreateTheParticle67(Particle& particle, Render::Models::CrtRandom& random)
 {
     particle.life = Particle67Life;
@@ -651,6 +816,107 @@ void StepTheSpark(Particle& particle)
         particle.light[k] = F32(static_cast<double>(particle.light[k]) * SparkFade);
     }
 }
+constexpr std::int32_t OrbitParticle = 0x60f;
+constexpr std::int32_t OrbitSubtype = 3;
+constexpr std::int32_t OrbitLife = 60;
+constexpr float OrbitPhase = 0.1f; // 006b87b8 bits3dcccccd.
+constexpr float OrbitRadius = 40.0f;
+constexpr float OrbitShrink = 0.002f;            // 006b89bc bits3b03126f.
+constexpr float OrbitFade = 0.9090908765792847f; // 006ba26c bits3f68ba2e.
+constexpr std::int32_t OrbitFadeLife = 20;
+constexpr std::int32_t OrbitContinuation = 10;
+constexpr std::int32_t OrbitSpeedSpan = 100;
+constexpr std::int32_t OrbitPhaseSpan = 300;
+constexpr std::int32_t OrbitPhaseBias = 150;
+constexpr std::int32_t OrbitScaleSpan = 6;
+constexpr float OrbitUnit = 0.01f; // 006b86c0/006b88d4 bits3c23d70a.
+constexpr float OrbitRiseRange = 4.0f;
+
+double OrbitArgument(const Particle& particle)
+{
+    const double phase = static_cast<double>(particle.life) + static_cast<double>(particle.velocity.x);
+    return phase * static_cast<double>(OrbitPhase);
+}
+
+Core::Expected<void, ParticleError> ContinueOrbitCreation(Particle& particle, float temporaryX, double retainedY,
+                                                          IParticleTrigonometry& trigonometry)
+{
+    const double argument = OrbitArgument(particle);
+    const auto sine = trigonometry.SineProductPC53(argument, OrbitRadius);
+    if (!sine.HasValue())
+    {
+        return Core::Unexpected(sine.Error());
+    }
+    particle.start.x = F32(sine.Value() + static_cast<double>(temporaryX));
+    const auto cosine = trigonometry.CosineProductPC53(argument, OrbitRadius);
+    if (!cosine.HasValue())
+    {
+        return Core::Unexpected(cosine.Error());
+    }
+    particle.start.y = F32(retainedY - cosine.Value());
+    return {};
+}
+
+// Create53fe70 §60f/3: cuatroR, relecturas después deR4 y continuador tardío10.
+Core::Expected<void, ParticleError> CreateTheOrbit(Particle& particle, float inputScale,
+                                                   Render::Models::CrtRandom& random,
+                                                   IParticleTrigonometry& trigonometry)
+{
+    particle.life = OrbitLife;
+    const int rise = random.Next() % OrbitSpeedSpan;
+    const double riseUnit = static_cast<double>(rise) * static_cast<double>(OrbitUnit);
+    const double riseRange = riseUnit * static_cast<double>(OrbitRiseRange);
+    particle.verticalSpeed = F32(riseRange + 1.0);
+    particle.velocity.x = static_cast<float>((random.Next() % OrbitPhaseSpan) - OrbitPhaseBias);
+    const int scaleStep = random.Next() % OrbitScaleSpan;
+    const double scaleDelta = static_cast<double>(scaleStep) * static_cast<double>(OrbitUnit);
+    particle.scale = F32(scaleDelta + static_cast<double>(inputScale));
+    const int rotation = random.Next() % FullTurn;
+    particle.angles.x = 0.0f;
+    particle.angles.y = 0.0f;
+    particle.angles.z = 0.0f;
+    const bool continuation = particle.subtype == OrbitContinuation;
+    particle.start.z = particle.position.z;
+    particle.rotation = static_cast<float>(rotation);
+    const double retainedX = particle.position.x;
+    const float temporaryX = F32(retainedX);
+    particle.start.x = F32(retainedX);
+    const double retainedY = particle.position.y;
+    particle.start.y = F32(retainedY);
+    if (!continuation)
+    {
+        return {};
+    }
+    return ContinueOrbitCreation(particle, temporaryX, retainedY, trigonometry);
+}
+
+// Step5446e0 §60f/3: leídos los selectores tras el helper; sin cargas de reloj nuevas.
+Core::Expected<void, ParticleError> StepTheOrbit(Particle& particle, IParticleTrigonometry& trigonometry)
+{
+    const double argument = OrbitArgument(particle);
+    const auto sine = trigonometry.SineProductPC53(argument, OrbitRadius);
+    if (!sine.HasValue())
+    {
+        return Core::Unexpected(sine.Error());
+    }
+    particle.position.x = F32(sine.Value() + static_cast<double>(particle.start.x));
+    const auto cosine = trigonometry.CosineProductPC53(argument, OrbitRadius);
+    if (!cosine.HasValue())
+    {
+        return Core::Unexpected(cosine.Error());
+    }
+    particle.position.y = F32(static_cast<double>(particle.start.y) - cosine.Value());
+    const double rise = particle.verticalSpeed;
+    particle.position.z = F32(rise + static_cast<double>(particle.position.z));
+    particle.scale = F32(static_cast<double>(particle.scale) - static_cast<double>(OrbitShrink));
+    if (particle.life <= OrbitFadeLife)
+    {
+        particle.light.x = F32(static_cast<double>(particle.light.x) * static_cast<double>(OrbitFade));
+        particle.light.y = F32(static_cast<double>(particle.light.y) * static_cast<double>(OrbitFade));
+        particle.light.z = F32(static_cast<double>(particle.light.z) * static_cast<double>(OrbitFade));
+    }
+    return {};
+}
 } // namespace
 
 std::optional<std::size_t> Particles::Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
@@ -666,6 +932,23 @@ Particles::CreateChecked(std::int32_t type, const glm::vec3& position, const glm
                          std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
                          std::uint32_t owner)
 {
+    return CreateImpl(type, position, angles, light, subtype, scale, worldClock, nullptr, random, owner, nullptr);
+}
+
+Core::Expected<std::optional<std::size_t>, ParticleError>
+Particles::CreateChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                         std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,
+                         Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry& trigonometry)
+{
+    return CreateImpl(type, position, angles, light, subtype, scale, 0.0f, &worldClock.get(), random, owner,
+                      &trigonometry);
+}
+
+Core::Expected<std::optional<std::size_t>, ParticleError>
+Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                      std::int32_t subtype, float scale, float legacyClock, const float* worldClock,
+                      Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry)
+{
     for (std::size_t index = 0; index < m_particles.size(); ++index)
     {
         Particle& particle = m_particles[index];
@@ -677,7 +960,12 @@ Particles::CreateChecked(std::int32_t type, const glm::vec3& position, const glm
         {
             return Core::Unexpected(ParticleError::UnsupportedSubtype);
         }
-        if (type != Particle68)
+        const bool orbit = trigonometry != nullptr && type == OrbitParticle;
+        if (orbit && subtype != OrbitSubtype)
+        {
+            return Core::Unexpected(ParticleError::UnsupportedSubtype);
+        }
+        if (!orbit && type != Particle68 && !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
         {
             if (const auto error = BindingError(type, subtype))
             {
@@ -685,6 +973,20 @@ Particles::CreateChecked(std::int32_t type, const glm::vec3& position, const glm
             }
         }
         Initialize(particle, type, position, angles, light, subtype, scale, owner);
+        if (orbit)
+        {
+            const auto created = CreateTheOrbit(particle, scale, random, *trigonometry);
+            if (!created.HasValue())
+            {
+                return Core::Unexpected(created.Error());
+            }
+            return std::optional(index);
+        }
+        if (worldClock != nullptr && IsMap8Smoke(type, subtype) && subtype != 4)
+        {
+            CreateTheMap8Smoke(particle, scale, random);
+            return std::optional(index);
+        }
         if (type == Particle67)
         {
             CreateTheParticle67(particle, random);
@@ -741,7 +1043,10 @@ Particles::CreateChecked(std::int32_t type, const glm::vec3& position, const glm
         particle.life = BreathLife;
         particle.scale = F32(static_cast<double>((random.Next() % 32) + BreathScaleBase) * BreathScaleStep);
         particle.angles.x = static_cast<float>(random.Next() % FullTurn);
-        particle.rotation = static_cast<float>(FtolLow(worldClock) % FullTurn);
+        particle.rotation =
+            static_cast<float>((worldClock != nullptr ? Client::World::FtolLow(static_cast<double>(*worldClock))
+                                                      : LegacyFtolLow(legacyClock)) %
+                               FullTurn);
         return std::optional(index);
     }
     return std::optional<std::size_t>{};
@@ -787,9 +1092,14 @@ const ParticleWind& Particles::Wind() const
     return m_wind;
 }
 
-Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
-                                                         const std::int32_t* map)
+namespace
 {
+Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random,
+                                                      const float* worldClock, const std::int32_t* map,
+                                                      IParticleTrigonometry* trigonometry)
+{
+    // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
+    // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
     StepTheWind(particles.Wind(), random);
     for (Particle& particle : particles.All())
     {
@@ -805,6 +1115,38 @@ Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, R
         if (particle.moves)
         {
             Move(particle);
+        }
+        if (trigonometry != nullptr && particle.type == OrbitParticle)
+        {
+            if (particle.subtype != OrbitSubtype)
+            {
+                return Core::Unexpected(ParticleError::UnsupportedSubtype);
+            }
+            const auto stepped = StepTheOrbit(particle, *trigonometry);
+            if (!stepped.HasValue())
+            {
+                return stepped;
+            }
+            continue;
+        }
+        const bool map8 = worldClock != nullptr && IsMap8Smoke(particle.type, particle.subtype);
+        if (map8)
+        {
+            if (particle.subtype == 4)
+                StepTheMap8Four(particle);
+            else if (particle.subtype == 6)
+            {
+                const auto stepped = StepTheMap8Six(particle, *worldClock, *trigonometry);
+                if (!stepped.HasValue())
+                {
+                    return Core::Unexpected(stepped.Error());
+                }
+            }
+            else if (particle.subtype == 7)
+                StepTheMap8Seven(particle);
+            else
+                StepTheMap8Eight(particle);
+            continue;
         }
         if (particle.type != Particle67 && particle.type != Particle68 && !IsCloud8(particle))
         {
@@ -863,6 +1205,21 @@ Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, R
     return {};
 }
 
+} // namespace
+
+Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
+                                                         const std::int32_t* map)
+{
+    return StepParticlesImpl(particles, random, nullptr, map, nullptr);
+}
+
+Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
+                                                         std::reference_wrapper<const float> worldClock,
+                                                         const std::int32_t* map, IParticleTrigonometry& trigonometry)
+{
+    return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry);
+}
+
 std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random)
 {
     const auto stepped = StepParticlesChecked(particles, random);
@@ -883,20 +1240,9 @@ std::optional<ParticleDraw> ParticleDrawOf(Particle& particle, const glm::vec2& 
         blend = ParticleDraw::Blend::Subtractive;
     }
     if (cloud)
-    {
         blend = ParticleDraw::Blend::Subtractive;
-        const double direction = slotIndex % 2 == 0 ? CloudRotationStep : -CloudRotationStep;
-        particle.rotation =
-            F32(static_cast<double>(worldClock) * static_cast<double>(particle.rotationFactor) * direction +
-                static_cast<double>(particle.start.y));
-    }
-    if (IsCloud8(particle))
-    {
-        const float direction = slotIndex % 2 == 0 ? Cloud8EvenRotation : Cloud8OddRotation;
-        const double global = static_cast<double>(worldClock) * static_cast<double>(particle.rotationFactor);
-        const double signedRotation = global * static_cast<double>(direction);
-        particle.rotation = F32(signedRotation + static_cast<double>(particle.start.y));
-    }
+    if (cloud || IsCloud8(particle))
+        UpdateParticleCloudDrawRotation(particle, worldClock, slotIndex);
     // 0x5485a3: el ancho y el alto de la textura por la escala, guardados en float.
     ParticleDraw draw{
         .texture = particle.texture,
@@ -909,32 +1255,17 @@ std::optional<ParticleDraw> ParticleDrawOf(Particle& particle, const glm::vec2& 
         .uv = glm::vec2(0.0f),
         .uvSize = glm::vec2(1.0f),
     };
-    if (IsFire(particle))
-    {
-        draw.width = F32(static_cast<double>(draw.width) * AtlasFraction);
-        draw.rotation = particle.angles.x;
-        draw.uv.x =
-            F32(static_cast<double>(std::bit_cast<std::int32_t>(particle.field48) % AtlasColumns) * AtlasFraction);
-        draw.uvSize.x = static_cast<float>(AtlasFraction);
-    }
-    if (IsDrop(particle))
-    {
-        const std::int32_t frame = std::bit_cast<std::int32_t>(particle.field48) % DropFrames;
-        const std::int32_t row = frame / DropColumns;
-        const std::int32_t column = frame % DropColumns;
-        draw.uv.y = F32(static_cast<double>(row) * AtlasFraction + DropAtlasInset);
-        draw.uv.x = F32(static_cast<double>(column) * AtlasFraction + DropAtlasInset);
-        draw.uvSize = glm::vec2(DropAtlasSize);
-        draw.rotation = 0.0f;
-    }
+    const ParticleDrawKind kind = IsFire(particle)   ? ParticleDrawKind::Fire
+                                  : IsDrop(particle) ? ParticleDrawKind::Drop
+                                                     : ParticleDrawKind::Common;
+    const auto shape = ParticleDrawParametersOf(particle, {draw.width, draw.height}, kind);
+    draw.width = shape.width;
+    draw.height = shape.height;
+    draw.rotation = shape.rotation;
+    draw.uv = shape.uv;
+    draw.uvSize = shape.uvSize;
     if (IsCloud8(particle))
-    {
-        const float q = std::bit_cast<float>(particle.field38);
-        for (int axis = 0; axis < 3; ++axis)
-        {
-            draw.light[axis] = F32(static_cast<double>(particle.light[axis]) * static_cast<double>(q));
-        }
-    }
+        draw.light = ScaledParticleDrawLight(particle);
     return draw;
 }
 

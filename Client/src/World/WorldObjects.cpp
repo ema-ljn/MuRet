@@ -4,6 +4,7 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
+#include "World/ObjectAlpha.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -112,12 +113,7 @@ std::vector<WorldObject> CreateWorldObjects(std::span<const Data::Terrain::Terra
 
 void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models::Skeleton* skeleton)
 {
-    // 0x4e9980, con +0x16d en 0: el alpha un décimo hacia su meta, y la luz del blendMesh no por encima.
-    // En la x87: la resta, el producto y la suma en double, y el resultado guardado en float.
-    object.alpha = static_cast<float>(((static_cast<double>(object.targetAlpha) - static_cast<double>(object.alpha)) *
-                                       static_cast<double>(AlphaApproach)) +
-                                      static_cast<double>(object.alpha));
-    object.state.light = std::min(object.state.light, object.alpha);
+    StepObjectAlpha(object.targetAlpha, object.alpha, object.state.light, 0);
     // 0x604ab0 sale acá con el alpha por debajo de 0,01.
     if (object.alpha < MinimumAlpha)
     {

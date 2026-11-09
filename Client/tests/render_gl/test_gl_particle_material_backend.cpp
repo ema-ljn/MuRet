@@ -56,7 +56,7 @@ public:
 // Spy limitado al sink de depthMask: registra argumentos y sigue al GL real del contexto.
 const Client::Platform::GlFunctions* s_depthForward = nullptr;
 std::vector<GLboolean> s_depthCalls;
-void APIENTRY RecordDepthMask(GLboolean value)
+void GLAPIENTRY RecordDepthMask(GLboolean value)
 {
     s_depthCalls.push_back(value);
     s_depthForward->depthMask(value);
@@ -65,12 +65,12 @@ void APIENTRY RecordDepthMask(GLboolean value)
 const Client::Platform::GlFunctions* s_stateForward = nullptr;
 std::vector<std::pair<GLint, GLint>> s_uniformCalls;
 int s_drawCalls = 0;
-void APIENTRY RecordUniform(GLint location, GLint value)
+void GLAPIENTRY RecordUniform(GLint location, GLint value)
 {
     s_uniformCalls.emplace_back(location, value);
     s_stateForward->uniform1i(location, value);
 }
-void APIENTRY RecordDraw(GLenum mode, GLint first, GLsizei count)
+void GLAPIENTRY RecordDraw(GLenum mode, GLint first, GLsizei count)
 {
     ++s_drawCalls;
     s_stateForward->drawArrays(mode, first, count);

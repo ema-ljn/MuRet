@@ -148,7 +148,7 @@ private:
     void LoadTheObjects();
     // 0x604ab0 con el 0xa2: la luz de las rutas y el avance a +0xd8.
     void StepTheLogo(World::WorldObject& logo) const;
-    void PlaceTheModels();
+    [[nodiscard]] Core::Expected<void, std::string> PlaceTheModels();
     void StepTheWorld();
     // 0x444010 (0x44453f..0x4445d9), después del paso del caballo: el aliento, con `drawn`, el caballo como
     // lo dejó el dibujo anterior (antes de este paso).

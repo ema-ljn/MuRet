@@ -3126,6 +3126,43 @@ temblor se achica por paso. En MuRet, `Render::MakePass3D` y `World::TerrainCull
 la escena 5 con el nivel 0) ya sirven; faltan la cuenta de `0x635ae0`, con `0x5fcc30`, y los pases
 de `GameScene::Render`.
 
+### Creación común de los objetos
+
+`0x606660` calcula el sector con la posición de entrada antes de asignar y enlazar el objeto nuevo;
+los defaults y las copias de posición preceden a la escena y al mapa. Conserva por separado la
+posición activa (`+0x10`), la segunda copia inicial (`+0x17c`) y las copias del mapa 2 (`+0x28` y
+`+0x34`). Los casos de las escenas 2/4 corren primero. El tipo del dispatch sigue siendo el argumento
+original, aunque un efecto cambie el tipo guardado en el objeto; el mapa se lee después del efecto 180.
+
+Los mapas 0/1/2/3/7/8/55 tienen ramas propias y sus tipos sin caso terminan allí. En el 1 se registran
+59/60 y el 60 se oculta con caja alta. En el 2 se registran 22/25/40/45/55/73/91 y el 91 recibe la misma
+caja y ocultamiento; los blends son 0 para 19/92/93, 1 para 54/56 y 3 para 78, y el 100 se oculta. Los
+20/65/86/88 copian posición y ángulos: convierten angleZ con `_ftol` a signed64, toman **el dword bajo
+con signo** y guardan su resto signed por 360 en angleZ y su copia. El port declara el dominio finito
+`[-2^63,2^63)`; fuera de él no inventa el estado de excepción x87.
+
+En el 3 los blends son 1 para el tipo 1, 3 para el 9, 0 para 17/19/37 y 2 para el 18; 8/38 se registran
+y el 38 se oculta. En el 7 se registra y oculta el 39; en el 8 se registra el 78. El mapa 55 conserva
+bucket y segunda posición inicial aunque reubique 86/90. El mapa 3, tipo 322, llama síncronamente a
+`0x518cf0` con tipos 322/323/322/323/324, owner null y escala 0: antes de **cada llamada** relee la
+posición viva, suma Y 0/4/8/12/20 y Z 350, prestando ángulos y luz del objeto. El efecto 180 de las
+escenas 2/4 recibe owner objeto y escala 1,6, después de ocultarlo y poner su luz blanca; también corre
+antes de leer el mapa. Una cola diferida altera el orden y las relecturas de ese contrato.
+
+Los otros mapas llaman `405950`, `438a80`, `42c6b0`, `43ff70`, `42ee30`, `4250e0`, `4303d0`, en ese
+orden. Sólo los primeros dos cortan por **AL exactamente 1**; los retornos restantes no se consultan.
+`405950` acepta 18..23 para cualquier tipo y copia la posición a `+0x17c` y oculta 18..21 y 24..35;
+`438a80` devuelve AL 0 sin accesos. Los demás conservan dependencias transitivas: por ejemplo,
+`42c6b0` siempre llama `42b480` en mapa 30, y los wrappers `43ff70`/`42ee30`/`4250e0`/`4303d0`
+consultan `43ff10`/`42ee20`/`425070`/`4303c0`, respectivamente.
+Un bytecheck del wrapper no acredita esos callees ni autoriza sustituirlos por no-ops.
+
+El constructor con contexto presta registro durable, mapa int32 mutable y servicios síncronos. Sus
+`Unsupported` son límites **provisionales de integración**, con objetos, registro y efectos previos
+conservados y sin procesar records posteriores; no son errores del original ni acreditan gameplay
+39/39. Los overloads visuales anteriores omiten emisiones y cadena default, incluso el que recibe
+registro. Esta unidad de creación no cierra paso, dibujo, carga de mundo ni CL7.
+
 ### Lo propio de Lorencia
 
 Lo que el mapa 0 hace distinto en los ganchos de la escena ([Los cambios de
@@ -3151,6 +3188,33 @@ los casos de las escenas 2 y 4 (el farol):
 | `0x76` (`House04`) | el blendMesh en 8 |
 
 Los demás tipos van con lo de siempre (la velocidad 0,16).
+
+El port de creación ofrece una ruta con `WorldObjectRegistrations` **preexistente del caller**:
+200 entradas, primer flag cero, store de activo 1 y luego identidad, preservando metadata; acepta
+null/duplicados y, llena, no escribe ni impide crear objetos. `0x606630` no calcula poses ni consume
+RNG. Los IDs64 son identidad portable no poseedora, con 0 para null: el caller conserva unicidad,
+contador sin overflow y vida de entidades; mover/realocar el vector no cambia IDs, y copiarlo es una
+instantánea, no nuevas entidades. El tipo viene del int16 firmado del Data reader, no de todo el
+dominio int32 nativo; records y estado deben estar estables y disjuntos. Los casos directos map0
+terminan sin caer al mapa1 (el pseudocódigo sugería lo contrario); 133 registra antes de cambiar caja
+y ocultamiento. Se modelan alive, cajas y segunda posición, sin el blob i386 ni bytes todavía sin
+consumidor. Los overloads visuales son proyecciones; la ruta con contexto presta los servicios de emisión
+síncrona ([Creación común de los objetos](#creación-común-de-los-objetos)).
+
+**API comprobada del port:** los tres overloads devuelven `WorldObjectCreationResult`. El caller
+comprueba `failure` antes de consumir `objects`; también las proyecciones conservan el índice,
+el prefijo y el objeto actual parcial cuando la conversión de ángulo no está acreditada. Sus copias
+pendientes no son una posición válida calculada. `InvalidAngle` expresa ese límite del port, no un
+retorno nativo inventado; −2^63 sigue dentro del dominio. `LoginScene::Enter` propaga el diagnóstico.
+La garantía de conservación se refiere a retornos por valor: `reserve` puede lanzar antes de efectos
+y el provider de emisión exige retorno normal mediante `noexcept`, sin capturar ni traducir excepciones.
+El binding y su servicio permanecen estables y vivos durante el batch; datos prestados se releen entre
+emisiones. El factor usa `const reference_wrapper<const float>` con default de almacenamiento estático:
+rechaza rvalues, no administra lifetime, y su valor se lee después del RNG, no al construir el contexto.
+No se agrega un gate `InvalidScale`: los resultados IEEE de ±0/±infinito de los árboles se conservan,
+sin acreditar por eso máscaras/traps o payloads NaN del original.
+
+Esta creación no cierra L2 ni el orden/dueño de L1, paso o renderer.
 
 **En cada paso** (`0x604ab0`, el `switch` de `0x604d68`; *estático* y *emulado*):
 

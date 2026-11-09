@@ -1,3 +1,5 @@
+#include "support/CheckedWorldObjectProjection.h"
+
 #include "World/WorldObjects.h"
 
 #include "Core/ILogSink.h"
@@ -86,7 +88,7 @@ protected:
     // Los objetos como los crea MuRet en el login, y los tres pasos del binario sobre cada uno.
     std::vector<WorldObject> Created() const
     {
-        return Client::World::CreateWorldObjects(m_records, Login, Client::World::ObjectScene::Login);
+        return Client::Tests::CheckedWorldObjectProjection(m_records, Login, Client::World::ObjectScene::Login);
     }
 
     void StepOnce(WorldObject& object) const

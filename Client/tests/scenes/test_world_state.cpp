@@ -4,6 +4,8 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ItemSetOptionList.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "World/ItemState.h"
 
@@ -77,6 +79,24 @@ TEST(WorldStateTest, TheOwnRecordStartsZeroed)
         EXPECT_EQ(item.byte0a, 0);
         EXPECT_EQ(item.optionCount, 0);
     }
+}
+
+// El objeto de los conjuntos, [0x6eed3c], es un estático: arranca en cero, y lo que escriben 0x40e1b0 y
+// 0x40da20 queda de una llamada a otra (06, "Los stats del registro propio").
+TEST(WorldStateTest, TheItemSetStateStartsZeroedAndStays)
+{
+    WorldState world;
+    const WorldState& shown = world;
+    EXPECT_EQ(shown.ItemSets().byte9307, 0);
+    EXPECT_EQ(shown.ItemSets().list.count9348, 0);
+    EXPECT_EQ(shown.ItemSets().names[0][0], '\0');
+    EXPECT_EQ(shown.ItemSets().list.used, (std::array<std::uint8_t, Client::Scenes::ItemSetOptionCapacity>{}));
+
+    world.ItemSets().list.count9348 = 2;
+    world.ItemSets().list.used[3] = 1;
+
+    EXPECT_EQ(shown.ItemSets().list.count9348, 2);
+    EXPECT_EQ(shown.ItemSets().list.used[3], 1);
 }
 
 // 06, "La entrada al mundo", paso 1: al pasar a la escena 3 la selección abre el registro propio, le

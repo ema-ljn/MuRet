@@ -39,6 +39,7 @@
 #include "support/FakeTextureStore.h"
 #include "support/GateFiles.h"
 #include "support/ItemFiles.h"
+#include "support/ItemSetFiles.h"
 #include "support/GoldenDir.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
@@ -204,6 +205,7 @@ struct Harness
                                        "Local/FilterName.bmd");
         Client::Tests::WriteSceneFile(folder.Path(), "Gate.bmd", Client::Tests::GateTableBytes({}));
         Client::Tests::WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+        Client::Tests::WriteEmptyItemSetFiles(folder.Path());
         auto loaded = Client::Scenes::LoadGameData(folder.Path());
         EXPECT_TRUE(loaded.HasValue());
         if (loaded.HasValue())

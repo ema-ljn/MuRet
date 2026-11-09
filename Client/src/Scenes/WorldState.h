@@ -2,6 +2,7 @@
 
 #include "Protocol/Character/CharacterList.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -17,8 +18,10 @@ class CrtRandom;
 
 // Lo que WinMain deja en cero y dura de una escena a otra: el pool de 401 registros de personaje
 // (REP STOSD en 0x4bafa6..0x4bafb3, con el héroe en el primero, 0x4bafdf), el registro propio
-// ([0x7681eb0], 0x4bafbc..0x4bafc2) y los globales en claro (WorldRuntime). main es su único dueño
-// y lo presta: no se copia ni se mueve, para que no haya otra copia de la historia.
+// ([0x7681eb0], 0x4bafbc..0x4bafc2) y los globales en claro (WorldRuntime). Además, lo que 0x550d10
+// deja en el objeto de los conjuntos ([0x6eed3c], el estático de 0x6e5930), que arranca en cero y no
+// lo vuelve a vaciar nadie. main es su único dueño y lo presta: no se copia ni se mueve, para que no
+// haya otra copia de la historia.
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los personajes de la lista".
 namespace Client::Scenes
 {
@@ -45,6 +48,8 @@ public:
     // Lo que la última carga de mapa (0x61a560) dejó en la CPU.
     [[nodiscard]] WorldMap& Map();
     [[nodiscard]] const WorldMap& Map() const;
+    [[nodiscard]] ItemSetState& ItemSets();
+    [[nodiscard]] const ItemSetState& ItemSets() const;
 
     // Lo que hace la selección al pasar a la escena 3 con `chosen`, el elegido (06, "La lógica" y "La
     // entrada al mundo", paso 1; los tres caminos: Enter 0x6343e2..0x634470, doble clic
@@ -59,5 +64,6 @@ private:
     OwnCharacterRecord m_own;
     WorldRuntime m_runtime;
     WorldMap m_map;
+    ItemSetState m_itemSets;
 };
 } // namespace Client::Scenes

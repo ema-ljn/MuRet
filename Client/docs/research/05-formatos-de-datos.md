@@ -42,6 +42,8 @@ Devias). Todos trabajan sobre buffers: leer el archivo es tarea del que llama.
 | `Text.bmd` | `0x5495e0` / `0x549700` | 2048 × 300 bytes | `g_GlobalText` `0x076BD1DC` |
 | `FilterName.bmd` | `0x549fa0` / `0x549ec0` | 1000 × 20 bytes, el XOR3 por registro, hasta el primero vacío, + checksum `0x2BC1` (la paridad de `Item.bmd`) | `0x076BAAC8`, la cuenta en `0x0775855C` |
 | `Filter.bmd` | `0x549c60` / `0x549b80` | igual, con checksum `0x3E7D` | `0x077531DC`, la cuenta en `0x07758558` |
+| `ItemSetType.bmd` | `0x40c660`, desde `0x40c600` / sin buscar | 8192 × 4 bytes, el XOR3 por registro, + checksum `0xE5F1` (la paridad de `Item.bmd`; [los campos](#las-tablas-de-los-conjuntos)) | `[0x6eed3c] + 4`, 0x8000 |
+| `ItemSetOption.bmd` | `0x40c850`, desde `0x40c600` / sin buscar | 64 × 0x4c bytes, igual, + checksum `0xA2F1` | `[0x6eed3c] + 0x8004`, 0x1300 |
 
 Si falta un archivo, el original muestra un `MessageBox`, manda `WM_DESTROY` y **sigue cargando**
 las demás tablas.
@@ -89,6 +91,66 @@ destino del 32 en el servidor). Los cuatro de Lorencia coinciden:
 | 18 | 5..6 × 38..41 | el 19: Devias (2), 242..243 × 34..37 | 15 |
 | 23 | 213..217 × 246..247 | el 24: Noria (3), 148..155 × 5..6 | 10 |
 | 102 | 239..240 × 14..15 | el 103: el mapa 30, 29..30 × 42..37 (en el archivo, la y1 es mayor que la y2) | 10 |
+
+### Las tablas de los conjuntos
+
+Leído en la CL7 hito 1, T10b (*estático*, cotejado con el PE `c32bbd5f`). `0x40c600(arg)`, un
+`thiscall` sobre `[0x6eed3c]`, lo llama solo `0x61ccb0`, en `0x61ecd5`, con `push 0` y sin mirar lo
+que devuelve, después de `Item.bmd` (`0x61eb37`), `Skill.bmd`, `Gate.bmd` y los dos filtros. Con el
+argumento en 0 lee `Data\Local\ItemSetType.bmd` (`0x6c63e8`) con `0x40c660` y después
+`Data\Local\ItemSetOption.bmd` (`0x6c63c8`) con `0x40c850`; con otro valor, `ItemSetTypeTest.bmd`
+(`0x6c6428`) e `ItemSetOptionTest.bmd` (`0x6c6404`), que el original no usa. Los dos cargadores
+devuelven 1 siempre, así que el segundo corre aunque el primero falle.
+
+Cada uno abre con `"rb"` y hace dos `fread` que no mira: los registros (`0x8000` o `0x1300` bytes, a
+un `new`) y los 4 bytes del checksum, el de [arriba](#tablas-bmd) con la paridad de `Item.bmd` (XOR
+en los dwords impares) y la clave `0xE5F1` (semilla `0x1cbe200`, `0x40c6bb..0x40c6fe`) o `0xA2F1`
+(`0x145e200`, `0x40c8ae..0x40c8f1`). Si no coincide, escribe `"%s - File corrupted."` (`0x6c6460`) en
+el log y en un `MessageBox`, manda `WM_DESTROY` y deja la tabla como estaba; sin el archivo, igual
+con `"%s - File not exist."` (`0x6c6448`). Si coincide, descifra registro por registro con
+`0x40c810` (el XOR3 con `FC CF AB` de `0x6c63c4`, que vuelve a empezar en cada registro) y los copia
+al objeto. Con un archivo corto, lo que falta es heap sin inicializar (Q-C24).
+
+El objeto es el estático de `0x6e5930` (`0x940c` bytes; `[0x6eed3c]` apunta a él). Su constructor,
+`0x40f2a0` desde `0x40c5d0`, pone la vtable en `+0` y en 0 de `+0x9304` a `+0x9347`. Los tipos van
+desde `+4`, los conjuntos desde `+0x8004`, y de `+0x9307` a `+0x940b` está lo que escriben `0x40e1b0`,
+`0x40d010` y `0x40da20` ([06](06-render-escenas-y-ui.md#los-stats-del-registro-propio)).
+
+`ItemSetType.bmd` trae un registro de 4 bytes por tipo de ítem, con el índice de `Item.bmd` (grupo ·
+512 + número). Los bytes 0, 1 y 2 son el conjunto del ítem con su byte `+0x1c & 3` en 1, 2 o 3
+(`0x40cfa0`); 0 o 0xff es ninguno, y el byte 3 no lo lee nadie. `ItemSetOption.bmd` trae 64 conjuntos
+de `0x4c` bytes, que lee `0x40d010` con n = las piezas puestas − 1:
+
+| Bytes | Campo | Dónde |
+| --- | --- | --- |
+| `+0..+0x1f` | el nombre, con su 0 (`strcpy` y `strcmp`) | `0x40d16d..0x40d233` |
+| `+0x20..+0x2b` | seis pares de opciones: el par i entra con i < min(n, 6) | `0x40d25d` |
+| `+0x2c..+0x37` | sus valores | `0x40d262` |
+| `+0x38 + i`, `+0x3a + i` | una opción y su valor más, con 6 ≤ i < n − 6: con las 10 piezas que caben como mucho, ninguna | `0x40d28a`, `0x40d291` |
+| `+0x3c` | las piezas del conjunto completo más 1: completo con n ≥ `+0x3c` − 2 (con signo) | `0x40d363` |
+| `+0x3d..+0x41` | las cinco opciones del completo | `0x40d381` |
+| `+0x42..+0x46` | sus valores | `0x40d376` |
+| `+0x47..+0x4b` | una marca por clase (`+0x1d4 & 7` del héroe publicado, de 0 a 4); las clases 5 a 7 leen los bytes 0 a 2 del conjunto siguiente | `0x40d0d0..0x40d14d`, `0x40d2a7` |
+
+Una opción 0xff no cuenta, y una de 0x18 en adelante pide la marca de la clase distinta de 0 y la
+evolución (`+0x1d4 >> 3`) mayor o igual que la marca − 1.
+
+Los archivos del repo (`Client/assets/Data/Local`; *verificado*, `GoldenItemSetTables`) son
+`itemsettype.bmd`, de 32.772 bytes, e `itemsetoption.bmd`, de 4.868, los dos con su checksum
+(`0x7a5a05a5` y `0xb35d7fa2`). De los 8.192 tipos, 78 tienen conjunto, en el byte 0 (un impar del 1
+al 31) y con los otros tres en 0, y los 8.114 restantes están en 0xff: ningún ítem tiene conjunto
+con `& 3` en 2 o 3. Hay 16 conjuntos con nombre, los impares del 1 al 31, y los otros 48 registros
+están en 0xff. Ninguno tiene una opción de 0x18 en adelante, todas las marcas de clase están en 0, y
+ninguno junta más de 16 opciones. Por ejemplo, `Hyperion` (el 3) es de Bronze Armor, Bronze Pants y
+Bronze Boots (8 0, 9 0 y 11 0), con los pares (2, 15) y (1, 15), `+0x3c` en 4 y el completo con
+(0x13, 20) y (0x0c, 30); `Rapier` (0 2) es del 21 y `Lightning Sword` (0 14) del 11.
+`itemsettypetest.bmd` es igual a `itemsettype.bmd`; `itemsetoptiontest.bmd`, no.
+
+MuRet: `Data::Tables::LoadItemSetTypeTable` y `LoadItemSetOptionTable` dejan la tabla en claro; con
+otro checksum, `DataError::ChecksumMismatch`, y sin todos los registros y el checksum,
+`DataError::FileTooShort`, sin tabla (Q-C24); lo que sobra se ignora. `Scenes::LoadGameData` las
+carga después de `Item.bmd`, y sin ellas, o con un checksum que no da, es un error: el original se
+cierra.
 
 ## Terreno de un mundo (`Data\World<N>\`)
 

@@ -1,9 +1,13 @@
 #include "Scenes/GameData.h"
 
+#include "Data/DataError.h"
+#include "Data/DataFile.h"
 #include "Data/Tables/GateRecord.h"
 #include "Data/Tables/GateTable.h"
+#include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "support/ItemFiles.h"
+#include "support/ItemSetFiles.h"
 #include "Data/Text/FilterWords.h"
 #include "Data/Text/TextTable.h"
 #include "support/SceneDataFiles.h"
@@ -38,6 +42,7 @@ TEST(GameDataTest, ReadsTheTextTable)
     WriteTextTable(folder.Path(), {{0, "cara de prueba"}, {456, "versión %s"}});
     WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
     WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+    Client::Tests::WriteEmptyItemSetFiles(folder.Path());
 
     const auto data = LoadGameData(folder.Path());
 
@@ -54,6 +59,7 @@ TEST(GameDataTest, FindsTheFileInAnyCase)
     WriteTextTable(folder.Path(), {{1, "uno"}}, "local/TEXT.BMD");
     WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
     WriteSceneFile(folder.Path(), "local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+    Client::Tests::WriteEmptyItemSetFiles(folder.Path(), "local");
 
     const auto data = LoadGameData(folder.Path());
 
@@ -104,6 +110,7 @@ TEST(GameDataTest, ReadsTheTwoFilters)
     WriteTextTable(folder.Path(), {{1, "uno"}});
     WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
     WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+    Client::Tests::WriteEmptyItemSetFiles(folder.Path());
     WriteFilterFile(folder.Path(), {"Synth", "Other"}, Client::Data::Text::FilterNameChecksumKey,
                     "Local/FilterName.bmd");
     WriteFilterFile(folder.Path(), {"word"}, Client::Data::Text::FilterChecksumKey, "Local/filter.BMD");
@@ -122,6 +129,7 @@ TEST(GameDataTest, WithoutTheFiltersNothingIsFiltered)
     WriteTextTable(folder.Path(), {{1, "uno"}});
     WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
     WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+    Client::Tests::WriteEmptyItemSetFiles(folder.Path());
 
     const auto data = LoadGameData(folder.Path());
 
@@ -151,6 +159,7 @@ TEST(GameDataTest, ReadsTheGateTableFromTheDataRootIgnoringCase)
     const Client::Data::Tables::GateRecord gate{1, 0, 121, 232, 123, 233, 2, 0, 20};
     WriteSceneFile(folder.Path(), "gATE.BMD", GateTableBytes({{1, gate}}));
     WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+    Client::Tests::WriteEmptyItemSetFiles(folder.Path());
 
     const auto data = LoadGameData(folder.Path());
 
@@ -219,6 +228,7 @@ TEST(GameDataTest, GateTableIgnoresATailLargerThanSixtyFourKiB)
     file.resize(file.size() + TailBytes, std::byte{0xff});
     WriteSceneFile(folder.Path(), "Gate.bmd", file);
     WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+    Client::Tests::WriteEmptyItemSetFiles(folder.Path());
 
     const auto data = LoadGameData(folder.Path());
 
@@ -236,6 +246,7 @@ TEST(GameDataTest, LoadsItemsIgnoringCaseAndAnArbitrarilyLargeTail)
     auto bytes = Client::Tests::EmptyItemTableBytes();
     bytes.resize(bytes.size() + 2 * 1024 * 1024, std::byte{0xff});
     WriteSceneFile(folder.Path(), "local/ITEM.BMD", bytes);
+    Client::Tests::WriteEmptyItemSetFiles(folder.Path(), "local");
     const auto loaded = LoadGameData(folder.Path());
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     ASSERT_TRUE(loaded.Value().items.has_value());
@@ -251,6 +262,7 @@ TEST(GameDataTest, KeepsItemsWithAMissingChecksumAndReportsIt)
     auto bytes = Client::Tests::EmptyItemTableBytes();
     bytes.resize(Client::Data::Tables::ItemTableSize);
     WriteSceneFile(folder.Path(), "Local/Item.bmd", bytes);
+    Client::Tests::WriteEmptyItemSetFiles(folder.Path());
     const auto loaded = LoadGameData(folder.Path());
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     ASSERT_TRUE(loaded.Value().items.has_value());
@@ -270,5 +282,62 @@ TEST(GameDataTest, NamesMissingAndShortItemTables)
     ASSERT_FALSE(loaded.HasValue());
     EXPECT_NE(loaded.Error().find("Item.bmd"), std::string::npos);
     EXPECT_NE(loaded.Error().find("más corto"), std::string::npos);
+}
+
+// 0x40c600 desde 0x61ccb0 (0x61ecd5): ItemSetType.bmd e ItemSetOption.bmd, de Data\Local y sin mirar
+// las mayúsculas del nombre, con sus registros en claro.
+TEST(GameDataTest, LoadsTheItemSetTables)
+{
+    const TemporaryFolder folder("game-data-item-sets");
+    WriteTextTable(folder.Path(), {});
+    WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
+    WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+    std::vector<std::byte> types(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff});
+    types[2 * Client::Data::Tables::ItemSetTypeRecordSize] = std::byte{21};
+    std::vector<std::byte> options(Client::Data::Tables::ItemSetOptionTableSize);
+    options[3 * Client::Data::Tables::ItemSetOptionRecordSize] = std::byte{'H'};
+    WriteSceneFile(folder.Path(), "Local/itemsettype.bmd", Client::Tests::ItemSetTypeFileBytes(types));
+    WriteSceneFile(folder.Path(), "Local/ITEMSETOPTION.BMD", Client::Tests::ItemSetOptionFileBytes(options));
+
+    const auto loaded = LoadGameData(folder.Path());
+
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    ASSERT_TRUE(loaded.Value().itemSets.has_value());
+    EXPECT_EQ((*loaded.Value().itemSets->types.Record(2))[0], std::byte{21});
+    EXPECT_EQ((*loaded.Value().itemSets->types.Record(3))[0], std::byte{0xff});
+    EXPECT_EQ((*loaded.Value().itemSets->options.Record(3))[0], std::byte{'H'});
+}
+
+// Sin uno de los dos, o con uno que no pasa su checksum, el original muestra "File not exist." o "File
+// corrupted." y cierra la ventana (0x40c660 y 0x40c850): un error que lo nombra.
+TEST(GameDataTest, NamesMissingShortAndCorruptItemSetTables)
+{
+    const TemporaryFolder folder("game-data-item-sets");
+    WriteTextTable(folder.Path(), {});
+    WriteSceneFile(folder.Path(), "Gate.bmd", GateTableBytes({}));
+    WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
+    auto loaded = LoadGameData(folder.Path());
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find("no está Local\\ItemSetType.bmd"), std::string::npos) << loaded.Error();
+
+    Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+    std::vector<std::byte> corrupt =
+        Client::Tests::ItemSetOptionFileBytes(std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize));
+    corrupt[Client::Data::Tables::ItemSetOptionTableSize - 1] ^= std::byte{0x01};
+    WriteSceneFile(folder.Path(), "Local/ItemSetOption.bmd", corrupt);
+    loaded = LoadGameData(folder.Path());
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find("Local\\ItemSetOption.bmd"), std::string::npos) << loaded.Error();
+    EXPECT_NE(loaded.Error().find(Client::Data::DescribeDataError(Client::Data::DataError::ChecksumMismatch)),
+              std::string::npos)
+        << loaded.Error();
+
+    corrupt.resize(Client::Data::Tables::ItemSetOptionTableSize + 3);
+    WriteSceneFile(folder.Path(), "Local/ItemSetOption.bmd", corrupt);
+    loaded = LoadGameData(folder.Path());
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find(Client::Data::DescribeDataError(Client::Data::DataError::FileTooShort)),
+              std::string::npos)
+        << loaded.Error();
 }
 } // namespace

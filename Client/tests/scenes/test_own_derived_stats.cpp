@@ -1,11 +1,16 @@
 #include "Scenes/OwnDerivedStats.h"
 
 #include "Core/Expected.h"
+#include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Scenes/ActorState.h"
+#include "Scenes/ItemSetOptionList.h"
+#include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "World/ItemState.h"
+#include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
 #include "support/TableFiles.h"
 
@@ -20,12 +25,16 @@
 #include <vector>
 
 // Client::Scenes::RecalculateOwnStats y los pasos de 0x550d10 que MuRet tiene (06, "Los stats del
-// registro propio"; 07, Q-C184 y Q-C185). Los valores salen del ASM cotejado con el PE c32bbd5f, y los
+// registro propio"; 07, Q-C184, Q-C185 y Q-C187). Los valores salen del ASM cotejado con el PE c32bbd5f, y los
 // rand() del modelo de la CRT; ninguno de una corrida del original.
 namespace
 {
+using Client::Data::Tables::ItemSetTables;
 using Client::Render::Models::CrtRandom;
 using Client::Render::Models::OwnRecordCloseRandoms;
+using Client::Scenes::ActorState;
+using Client::Scenes::ItemSetOptionList;
+using Client::Scenes::ItemSetState;
 using Client::Scenes::OwnCharacterRecord;
 using Client::Tests::AfterDraws;
 using Client::Tests::FirstSeedWhere;
@@ -67,24 +76,145 @@ ItemState Worn(std::uint16_t type, std::uint8_t value, std::uint8_t durability =
     return item;
 }
 
-// 0x550d24: lo primero es 0x40e1b0, que MuRet no tiene. Antes no hay nada: el registro queda y no se
-// saca ningún rand() (no lo recibe).
-TEST(OwnDerivedStatsTest, TheRecalculationStopsAtItsFirstCallBeforeTouchingTheRecord)
+// Lo que 0x550d10 lee y escribe fuera del registro, con la cuenta de accesos en 0: cada cierre saca
+// 3.848 rand().
+class OwnStatsFixture : public ::testing::Test
+{
+protected:
+    Client::Scenes::OwnStatsContext Context(const ItemSetTables* tables, const Client::Data::Tables::ItemTable* items)
+    {
+        return {.itemSetTables = tables,
+                .itemSets = &m_itemSets,
+                .items = items,
+                .publishedHero = m_hero,
+                .ownRecordAccesses = m_accesses,
+                .random = m_random};
+    }
+
+    ItemSetState m_itemSets;
+    ActorState m_hero;
+    std::uint8_t m_accesses = 0;
+    CrtRandom m_random{Seed};
+
+    static constexpr std::uint32_t Seed = 13;
+};
+
+// 0x550d24: lo primero es 0x40e1b0. Sin las tablas de los conjuntos (0x40c600) corta antes de tocar
+// nada: ni el registro, ni [0x6eed3c], ni el héroe, ni un rand().
+TEST_F(OwnStatsFixture, WithoutTheSetTablesTheRecalculationStopsBeforeTouchingAnything)
 {
     OwnCharacterRecord own;
     own.word2a = 0x1234;
     own.word36 = 0x2345;
     own.wordef8 = 0x3456;
     own.bytef02 = 7;
+    m_itemSets.list.used[0] = 1;
+    m_hero.byte358 = 4;
 
-    const auto recalculated = Client::Scenes::RecalculateOwnStats(own);
+    const auto recalculated = Client::Scenes::RecalculateOwnStats(own, Context(nullptr, nullptr));
 
     ASSERT_FALSE(recalculated.HasValue());
     EXPECT_NE(recalculated.Error().find("0x40e1b0"), std::string::npos);
+    EXPECT_NE(recalculated.Error().find("0x40c600"), std::string::npos);
     EXPECT_EQ(own.word2a, 0x1234);
     EXPECT_EQ(own.word36, 0x2345);
     EXPECT_EQ(own.wordef8, 0x3456);
     EXPECT_EQ(own.bytef02, 7);
+    EXPECT_EQ(m_itemSets.list.used[0], 1);
+    EXPECT_EQ(m_hero.byte358, 4);
+    EXPECT_EQ(m_random.State(), CrtRandom(Seed).State());
+}
+
+// 0x550d10 en orden hasta los ocho helpers: 0x40e1b0 (dos piezas del conjunto 1, con las opciones 0 y
+// 4), las marcas de +0x937c en 0, 0x54ef00, los doce lugares (el tipo 1 suma a +0x2c), 0x40da20 con
+// 0x8c a 0x90 y Cape of Lord. La opción 0 ya la marcó 0x40de10 sobre las copias: si las marcas no
+// volvieran a 0, +0x2a no la sumaría. Corta en 0x54efe0 sin la cola: 33 cierres de 0x40e1b0 y el de la
+// capa, y ningún rand() más.
+TEST_F(OwnStatsFixture, TheRecalculationRunsInOrderUntilTheEightHelpers)
+{
+    std::vector<std::byte> types(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff});
+    types[1 * Client::Data::Tables::ItemSetTypeRecordSize] = std::byte{1};
+    std::vector<std::byte> options(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff});
+    const std::span<std::byte> set1 = std::span(options).subspan(Client::Data::Tables::ItemSetOptionRecordSize,
+                                                                 Client::Data::Tables::ItemSetOptionRecordSize);
+    set1[0] = std::byte{'U'};
+    set1[1] = std::byte{0};
+    set1[0x20] = std::byte{0}; // la opción 0 (0x8c, +0x2a) con 7
+    set1[0x21] = std::byte{4}; // la opción 4 (0x90, +0x36) con 9
+    set1[0x2c] = std::byte{7};
+    set1[0x2d] = std::byte{9};
+    const ItemSetTables tables = Client::Tests::ItemSetTablesFrom(std::move(types), std::move(options));
+    const auto items = ItemsWithKinds({{1, 2}});
+    OwnCharacterRecord own;
+    own.equipment.fill(Worn(EmptyType, 0, 0));
+    own.equipment[2] = Worn(1, 1);
+    own.equipment[2].flags1c = 0x05; // el valor 1 en los bits 2 y 3, y el conjunto del byte 0
+    own.equipment[3] = own.equipment[2];
+    ItemState& wings = own.equipment[WingsSlot];
+    wings = Worn(CapeOfLord, 0);
+    wings.optionCount = 1;
+    wings.optionBytes[0] = 0x90;
+    wings.optionBytes[8] = 20;
+    own.word2a = 0x1234;
+    own.word32 = 0x55;
+    own.word36 = 0x2345;
+    own.wordef8 = 0x3456;
+    own.bytef03 = 6;
+    m_hero.byte358 = 4;
+
+    const auto recalculated = Client::Scenes::RecalculateOwnStats(own, Context(&tables, &items));
+
+    ASSERT_FALSE(recalculated.HasValue());
+    EXPECT_NE(recalculated.Error().find("0x54efe0"), std::string::npos);
+    EXPECT_EQ(m_itemSets.list.count9348, 2);
+    EXPECT_EQ(m_itemSets.list.used[0], 1);
+    EXPECT_EQ(m_itemSets.list.used[1], 1);
+    EXPECT_EQ(m_hero.byte358, 0);
+    EXPECT_EQ(own.word2a, 7);
+    EXPECT_EQ(own.word2c, 10);
+    EXPECT_EQ(own.word32, 0);
+    EXPECT_EQ(own.word36, 9 + 20);
+    EXPECT_EQ(own.wordef8, 0x3456);
+    EXPECT_EQ(own.bytef03, 6);
+    EXPECT_EQ(m_accesses, 0);
+    EXPECT_EQ(m_random.State(), AfterDraws(Seed, 34 * OwnRecordCloseRandoms).State());
+}
+
+// 0x550dc2..0x550e12: +0x2a con 0x8c, +0x2c con 0x8d, +0x30 con 0x8e, +0x2e con 0x8f y +0x36 con 0x90;
+// +0x32 y +0x34 no tienen opción de conjunto. Con más de 16 opciones, error en la primera llamada.
+TEST(OwnDerivedStatsTest, EachWordTakesTheSetOptionsOfItsSelector)
+{
+    ItemSetOptionList list;
+    list.count9348 = 4;
+    list.count9349 = 2;
+    for (std::size_t index = 0; index < 6; ++index)
+    {
+        list.entries[index][0] = static_cast<std::uint8_t>(index);
+        list.values[index] = static_cast<std::int32_t>(index + 1);
+    }
+    OwnCharacterRecord own;
+    own.word2a = 0x100;
+    own.word32 = 0x200;
+    own.word34 = 0x300;
+
+    ASSERT_TRUE(Client::Scenes::AddOwnItemSetOptionValues(own, list).HasValue());
+
+    EXPECT_EQ(own.word2a, 0x101);
+    EXPECT_EQ(own.word2c, 2);
+    EXPECT_EQ(own.word30, 3);
+    EXPECT_EQ(own.word2e, 4);
+    EXPECT_EQ(own.word36, 5);
+    EXPECT_EQ(own.word32, 0x200);
+    EXPECT_EQ(own.word34, 0x300);
+    EXPECT_EQ(list.used[4], 1);
+    EXPECT_EQ(list.used[5], 0);
+
+    list.count9348 = 16;
+    list.count9349 = 1;
+    const auto outside = Client::Scenes::AddOwnItemSetOptionValues(own, list);
+    ASSERT_FALSE(outside.HasValue());
+    EXPECT_NE(outside.Error().find("0x40da20 con 0x8c"), std::string::npos);
+    EXPECT_EQ(own.word2a, 0x101);
 }
 
 // 0x54ef00: los siete WORD de +0x2a a +0x36 en 0; +0x28 y +0x38, los de al lado, quedan.

@@ -3,13 +3,11 @@
 #include "App/CharacterEvent.h"
 #include "Core/Expected.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Scenes/ActorState.h"
+#include "Scenes/WorldState.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
 
-#include <glm/ext/vector_float3.hpp>
-
-#include <array>
-#include <cstdint>
 #include <filesystem>
 #include <optional>
 #include <span>
@@ -21,27 +19,27 @@ struct GameCamera;
 struct GameCameraInput;
 } // namespace Client::World
 
-// El pool mínimo que sobrevive a las escenas: 06 § Los personajes de la lista y CL7.3 B.
-// main es su dueño; la vista usa las revisiones, nunca la igualdad de las entradas.
+// La selección sobre el pool durable (06, "Los personajes de la lista", y CL7.3 B): construye en los
+// cinco primeros registros de WorldState y escribe el mundo en curso en su WorldRuntime, sin otra
+// copia. main es dueño de los dos; la vista usa las revisiones, nunca la igualdad de las entradas.
 namespace Client::Scenes
 {
-struct SelectionSlotState
-{
-    glm::vec3 position{};
-    std::uint64_t revision = 0;
-    bool previousHad1c15 = false;
-};
-
 class SelectionState
 {
 public:
-    [[nodiscard]] const std::array<SelectionSlotState, 5>& Slots() const;
+    // `world` tiene que vivir más que este estado.
+    explicit SelectionState(WorldState& world);
+
+    // Los cinco primeros registros del pool, los lugares de la lista.
+    [[nodiscard]] std::span<const ActorState, SelectionActorCount> Slots() const;
     [[nodiscard]] bool HasReceivedList() const;
     [[nodiscard]] bool IsInitialized() const;
     [[nodiscard]] const std::optional<std::string>& Failure() const;
     [[nodiscard]] const World::WorldTerrain* Terrain() const;
+    // El mundo en curso, WorldRuntime::map.
     [[nodiscard]] int Map() const;
     void SetScene(World::CullingScene scene);
+    // Las dos escriben `map` como mundo en curso, como quien llama a 0x61a560.
     // El dueño de `terrain` debe mantenerlo vivo hasta RetainTerrain o el próximo BorrowTerrain.
     // Si ya es el terreno retenido por este estado, conserva su ownership.
     void BorrowTerrain(int map, const World::WorldTerrain* terrain);
@@ -62,10 +60,9 @@ private:
                                                               const World::GameCamera& camera,
                                                               World::GameCameraInput& input);
     [[nodiscard]] Core::Expected<void, std::string> Fail(std::string error);
-    std::array<SelectionSlotState, 5> m_slots{};
+    WorldState& m_world;
     std::optional<World::WorldTerrain> m_ownedTerrain;
     const World::WorldTerrain* m_borrowedTerrain = nullptr;
-    int m_map = -1;
     World::CullingScene m_scene = World::CullingScene::Other;
     bool m_receivedList = false;
     bool m_initialized = false;

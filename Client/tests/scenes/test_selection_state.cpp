@@ -5,6 +5,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
@@ -32,6 +33,7 @@ using Client::App::CharacterEvent;
 using Client::App::CharacterListReceived;
 using Client::Protocol::Character::CharacterEntry;
 using Client::Scenes::SelectionState;
+using Client::Scenes::WorldState;
 using Client::World::CullingScene;
 
 Client::World::WorldTerrain TerrainOf(float height, std::uint16_t attribute = 0)
@@ -76,7 +78,8 @@ protected:
         return m_state.Apply(std::span(events.begin(), events.size()), m_camera, m_input);
     }
 
-    SelectionState m_state;
+    WorldState m_world;
+    SelectionState m_state{m_world};
     Client::World::GameCamera m_camera;
     Client::World::GameCameraInput m_input;
 };
@@ -170,7 +173,8 @@ TEST_F(SelectionStateTest, TheOffsetUsesTheExactWorldGuardAndWorldEightOrTen)
     for (const Case test : {Case{-1, 100.0f}, Case{-2, 130.0f}, Case{8, 190.0f}, Case{10, 190.0f}, Case{55, 130.0f}})
     {
         SCOPED_TRACE(test.map);
-        SelectionState state;
+        WorldState world;
+        SelectionState state(world);
         state.BeginSelection();
         state.RetainTerrain(test.map, TerrainOf(100.0f));
         const std::array<CharacterEvent, 2> events{List({Entry(0, true)}), CharacterCreated{Entry()}};
@@ -290,9 +294,48 @@ TEST_F(SelectionStateTest, EnteringLoginClearsOnlyTheSecondSceneActorPet)
     EXPECT_EQ(m_state.Slots()[2].revision, 1u);
 }
 
+// 0x4c20a0 construye en chars[lugar]: los cinco lugares son los registros 0 a 4 del pool durable, sin
+// otra copia, y los demás registros no se tocan.
+TEST_F(SelectionStateTest, TheFiveSlotsAreTheFirstRecordsOfTheDurablePool)
+{
+    ASSERT_TRUE(Apply({List({Entry(0, true), Entry(4)})}).HasValue());
+    for (std::size_t slot = 0; slot < Client::Scenes::SelectionActorCount; ++slot)
+    {
+        EXPECT_EQ(&m_state.Slots()[slot], &m_world.Actors()[slot]);
+    }
+    EXPECT_TRUE(m_world.Actors()[0].previousHad1c15);
+    EXPECT_EQ(m_world.Actors()[0].revision, 1u);
+    EXPECT_EQ(m_world.Actors()[4].revision, 1u);
+    EXPECT_EQ(m_world.Actors()[4].position.x, 13349.6f);
+    for (const auto& actor : m_world.Actors().subspan<Client::Scenes::SelectionActorCount>())
+    {
+        EXPECT_EQ(actor.revision, 0u);
+        EXPECT_EQ(actor.position.x, 0.0f);
+        EXPECT_EQ(actor.position.z, 0.0f);
+    }
+    // La creación sin equipo (Q-C103) deja en el registro el word318 que leerá el próximo constructor.
+    ASSERT_TRUE(Apply({CharacterCreated{Entry()}}).HasValue());
+    EXPECT_FALSE(m_world.Actors()[0].previousHad1c15);
+    EXPECT_EQ(m_world.Actors()[0].revision, 2u);
+}
+
+// Quien llama a 0x61a560 escribe antes el mundo en curso (DAT_006c9dd0, 05 "La carpeta de cada
+// mapa"): las tablas lo dejan en el WorldRuntime del pool, no en una copia de la selección.
+TEST_F(SelectionStateTest, TheTablesWriteTheLiveMapOfTheWorldState)
+{
+    EXPECT_EQ(m_world.Runtime().map, 55);
+    m_state.BorrowTerrain(8, nullptr);
+    EXPECT_EQ(m_world.Runtime().map, 8);
+    EXPECT_EQ(m_state.Map(), 8);
+    m_state.RetainTerrain(54, TerrainOf(100.0f));
+    EXPECT_EQ(m_world.Runtime().map, 54);
+    EXPECT_EQ(m_state.Map(), 54);
+}
+
 TEST_F(SelectionStateTest, MissingTablesFailExplicitlyEvenWhenTheSceneSkipsHeight)
 {
-    SelectionState state;
+    WorldState world;
+    SelectionState state(world);
     state.SetScene(CullingScene::Other);
     const std::array<CharacterEvent, 1> events{List({Entry()})};
     const auto applied = state.Apply(events, m_camera, m_input);
@@ -375,7 +418,8 @@ class GoldenSelectionStateTest : public Client::Tests::GoldenDataTest
 
 TEST_F(GoldenSelectionStateTest, TheFirstListUsesLoginTablesAndOnlyTheNextConstructionUsesWorld54)
 {
-    SelectionState state;
+    WorldState world;
+    SelectionState state(world);
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
     state.BeginSelection();
@@ -387,6 +431,8 @@ TEST_F(GoldenSelectionStateTest, TheFirstListUsesLoginTablesAndOnlyTheNextConstr
     ASSERT_TRUE(initialized.HasValue()) << initialized.Error();
     ASSERT_TRUE(state.IsInitialized());
     EXPECT_EQ(state.Map(), 54);
+    // 0x633f20 deja el 54 como mundo en curso del WorldState (06, "Al entrar").
+    EXPECT_EQ(world.Runtime().map, 54);
     EXPECT_EQ(input.map, 54u);
     EXPECT_EQ(input.hero.z, 987.0f);
     EXPECT_EQ(state.Slots()[0].revision, 1u);
@@ -398,7 +444,8 @@ TEST_F(GoldenSelectionStateTest, TheFirstListUsesLoginTablesAndOnlyTheNextConstr
 
 TEST_F(GoldenSelectionStateTest, AnEmptyListLoads54WithoutInventingHeroConstruction)
 {
-    SelectionState state;
+    WorldState world;
+    SelectionState state(world);
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
     input.hero = {7.0f, 8.0f, 9.0f};

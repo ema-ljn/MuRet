@@ -4,6 +4,7 @@
 #include "Scenes/CharacterSelectScene.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/WorldState.h"
 #include "App/CharacterEvent.h"
 #include "Protocol/Character/CharacterList.h"
 #include "Data/DataPath.h"
@@ -1414,7 +1415,8 @@ TEST_F(GoldenLoginWorld, AFailedLoginEntryRetainsItsTerrainBeforeDestruction)
     ASSERT_TRUE(std::filesystem::remove(copy.Path() / texture));
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
-    Client::Scenes::SelectionState state;
+    Client::Scenes::WorldState worldState;
+    Client::Scenes::SelectionState state(worldState);
     const SceneContext context{.dataRoot = copy.Path(),
                                .textures = m_store,
                                .log = m_log,
@@ -1454,7 +1456,8 @@ TEST_F(GoldenLoginWorld, ARecreatedSlotZeroSuppliesTheFirstLoginEmbersWithoutAno
     Client::Tests::WriteTextureSet(copy.Path(), Client::Scenes::SelectionTextureSet);
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
-    Client::Scenes::SelectionState state;
+    Client::Scenes::WorldState worldState;
+    Client::Scenes::SelectionState state(worldState);
     Client::Render::Models::ClothWorld cloth;
     const SceneContext context{.dataRoot = copy.Path(),
                                .textures = m_store,

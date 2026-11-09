@@ -62,6 +62,7 @@
 #include "Scenes/SessionEventApplier.h"
 #include "Scenes/TestScene.h"
 #include "Scenes/WorldLoadingScene.h"
+#include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 
 #include <chrono>
@@ -603,10 +604,14 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // El teclado y el mouse del bucle: los pasos los reciben, y el dibujo del cursor los lee del contexto.
     Client::Input::InputState input;
     Client::World::GameCamera camera;
+    // 0x4bafa6..0x4bafc2: WinMain deja en cero el pool de 401 personajes y el registro propio, que
+    // duran hasta el cierre. La selección construye en los cinco primeros registros y escribe el mundo
+    // en curso.
+    Scenes::WorldState world;
     // 0x4bafad..0x4bafdf: el pool empieza en cero y el héroe apunta al personaje 0.
     // La celda lógica y su lectura exacta se integran en CL7.P; no se sustituye por la celda visual.
     Client::World::GameCameraInput cameraInput;
-    Scenes::SelectionState selection;
+    Scenes::SelectionState selection(world);
     Scenes::SessionEventApplier eventApplier(selection, camera, cameraInput);
     std::optional<Online> online;
     if (startup.server)

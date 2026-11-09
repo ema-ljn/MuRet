@@ -7,6 +7,7 @@
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "support/SessionHarness.h"
 
@@ -19,7 +20,8 @@ namespace
 {
 TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
 {
-    Client::Scenes::SelectionState selection;
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
     Client::Scenes::SessionEventApplier applier(selection, camera, input);
@@ -31,7 +33,8 @@ TEST(SessionEventApplierTest, AppliesAnEmptyCharacterListImmediately)
 
 TEST(SessionEventApplierTest, PropagatesTheActualSelectionConstructionFailure)
 {
-    Client::Scenes::SelectionState selection;
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
     Client::Scenes::SessionEventApplier applier(selection, camera, input);
@@ -46,7 +49,8 @@ TEST(SessionEventApplierTest, PropagatesTheActualSelectionConstructionFailure)
 
 TEST(SessionEventApplierTest, WorldApplicationIsExplicitlyUnavailableForEntryAndEmptyInventory)
 {
-    Client::Scenes::SelectionState selection;
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
     Client::World::GameCamera camera;
     Client::World::GameCameraInput input;
     Client::Scenes::SessionEventApplier applier(selection, camera, input);

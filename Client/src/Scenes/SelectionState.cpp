@@ -5,9 +5,11 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneWorlds.h"
+#include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
@@ -15,7 +17,6 @@
 
 #include <glm/ext/vector_float3.hpp>
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -49,9 +50,11 @@ bool SkipsHeight(World::CullingScene scene)
 }
 } // namespace
 
-const std::array<SelectionSlotState, 5>& SelectionState::Slots() const
+SelectionState::SelectionState(WorldState& world) : m_world(world) {}
+
+std::span<const ActorState, SelectionActorCount> SelectionState::Slots() const
 {
-    return m_slots;
+    return m_world.Actors().first<SelectionActorCount>();
 }
 
 bool SelectionState::HasReceivedList() const
@@ -76,7 +79,7 @@ const World::WorldTerrain* SelectionState::Terrain() const
 
 int SelectionState::Map() const
 {
-    return m_map;
+    return m_world.Runtime().map;
 }
 
 void SelectionState::SetScene(World::CullingScene scene)
@@ -86,7 +89,7 @@ void SelectionState::SetScene(World::CullingScene scene)
 
 void SelectionState::BorrowTerrain(int map, const World::WorldTerrain* terrain)
 {
-    m_map = map;
+    m_world.Runtime().map = map;
     if (m_ownedTerrain && terrain == &*m_ownedTerrain)
     {
         return;
@@ -97,7 +100,7 @@ void SelectionState::BorrowTerrain(int map, const World::WorldTerrain* terrain)
 
 void SelectionState::RetainTerrain(int map, World::WorldTerrain terrain)
 {
-    m_map = map;
+    m_world.Runtime().map = map;
     m_ownedTerrain = std::move(terrain);
     m_borrowedTerrain = nullptr;
 }
@@ -113,7 +116,7 @@ void SelectionState::EnterLogin()
 {
     m_scene = World::CullingScene::Login;
     // 0x517270 en escena 2 construye slot 2 con pet 1c16, sin tocar Hero ni el resto del pool.
-    m_slots[LoginActorSlot].previousHad1c15 = false;
+    m_world.Actors()[LoginActorSlot].previousHad1c15 = false;
 }
 
 void SelectionState::RefreshCameraAttribute(World::GameCameraInput& input) const
@@ -133,6 +136,7 @@ Core::Expected<void, std::string> SelectionState::InitializeSelection(const std:
         return {};
     }
     // 0x633f20: cambia a 54 después de los constructores de F300; no reconstruye esos actores.
+    // RetainTerrain deja el 54 como mundo en curso, también para la carga del mundo que sigue.
     constexpr std::uint8_t SelectionMap = WorldOf(SceneId::CharacterSelect)->map;
     auto terrain = World::LoadWorldTerrain(dataRoot, SelectionMap);
     if (!terrain.HasValue())
@@ -150,7 +154,7 @@ Core::Expected<void, std::string> SelectionState::Construct(const Protocol::Char
                                                             const World::GameCamera& camera,
                                                             World::GameCameraInput& input)
 {
-    if (entry.slot >= m_slots.size())
+    if (entry.slot >= SelectionActorCount)
     {
         return Core::Unexpected(std::string("slot de selección fuera del pool"));
     }
@@ -159,17 +163,17 @@ Core::Expected<void, std::string> SelectionState::Construct(const Protocol::Char
     {
         return Core::Unexpected(std::string("faltan las tablas del terreno vigente para construir el personaje"));
     }
-    SelectionSlotState& slot = m_slots[entry.slot];
+    ActorState& slot = m_world.Actors()[entry.slot];
+    const int map = m_world.Runtime().map;
     const bool safe = (terrain->attributes->cells[0] & SafeAttribute) != 0;
     // 0x511290: consulta Height con XY 50/50, antes del XY final y del reset de 318.
     double height = SkipsHeight(m_scene)
                         ? 0.0
                         : World::TerrainHeightAt(*terrain->heights, *terrain->attributes, ConstructorPosition,
                                                  ConstructorPosition, camera.fixedHeight);
-    if (m_map != -1 && slot.previousHad1c15 && !safe)
+    if (map != -1 && slot.previousHad1c15 && !safe)
     {
-        height +=
-            m_map == FirstLargeOffsetMap || m_map == SecondLargeOffsetMap ? LargePetHeightOffset : PetHeightOffset;
+        height += map == FirstLargeOffsetMap || map == SecondLargeOffsetMap ? LargePetHeightOffset : PetHeightOffset;
     }
     // El FSTP a float ocurre después de la suma; la rama sin offset no suma cero.
     slot.position = glm::vec3(CharacterSlots[entry.slot].position, static_cast<float>(height));
@@ -219,7 +223,7 @@ Core::Expected<void, std::string> SelectionState::Apply(std::span<const App::Cha
 
 void SelectionState::DrawSelection(World::GameCameraInput& input)
 {
-    for (SelectionSlotState& slot : m_slots)
+    for (ActorState& slot : m_world.Actors().first<SelectionActorCount>())
     {
         slot.position.z = CharacterSlotHeight;
     }

@@ -21,6 +21,7 @@
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/WorldState.h"
 #include "Scenes/TextureSets.h"
 #include "World/GameCamera.h"
 #include "World/Leaves.h"
@@ -268,7 +269,8 @@ TEST_F(SharedGameCameraTest, ReceivingSlotZeroWritesTheSharedHeroXYBeforeTheCame
     Client::Tests::LoggedInSession online;
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
     m_cameraInput.hero = {17500.0f, 20000.0f, 165.0f};
-    Client::Scenes::SelectionState state;
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState state(world);
     Client::Scenes::CharacterSelectScene selection(SelectionContext(state), m_data, m_models, &online.session);
     ASSERT_TRUE(selection.Enter().HasValue());
     online.ReceiveTheList({{0, "char0001"}});
@@ -292,7 +294,8 @@ TEST_F(SharedGameCameraTest, TheSlotZeroSelectionPassDoesNotDependOnInitialHeroZ
         m_cameraInput.hero = {17500.0f, 20000.0f, initialZ};
         Client::Tests::LoggedInSession online;
         ASSERT_NO_FATAL_FAILURE(online.LogIn());
-        Client::Scenes::SelectionState state;
+        Client::Scenes::WorldState world;
+        Client::Scenes::SelectionState state(world);
         Client::Scenes::CharacterSelectScene selection(SelectionContext(state), m_data, m_models, &online.session);
         ASSERT_TRUE(selection.Enter().HasValue());
         online.ReceiveTheList({{0, "char0001"}});
@@ -312,7 +315,8 @@ TEST_F(SharedGameCameraTest, ReenteringWithTheSameSlotZeroRefreshesTheSharedHero
 {
     Client::Tests::LoggedInSession online;
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
-    Client::Scenes::SelectionState state;
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState state(world);
     const auto context = SelectionContext(state);
     Client::Scenes::CharacterSelectScene selection(context, m_data, m_models, &online.session);
     ASSERT_TRUE(selection.Enter().HasValue());

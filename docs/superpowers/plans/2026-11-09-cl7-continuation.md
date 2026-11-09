@@ -16,6 +16,27 @@ Referencias públicas de alcance: [plan de Lorencia](2026-11-05-ola-cl7-lorencia
 La neblina visual conserva su seguimiento pospuesto; HUD, reglas de eventos/combate y audio
 siguen en sus olas respectivas.
 
+## Corte solicitado y handoff actual
+
+Emanuel pidió detener la ejecución y subir el estado tal como estaba. El último worker fue
+detenido y cerrado de forma confirmada; no se debe relanzar automáticamente.
+
+**El punto de entrada actual es [PR182](https://github.com/ema-ljn/MuRet/pull/182)**, checkpoint
+WIP de mundo/escena/Leaf/runtime, con su [handoff completo](https://github.com/ema-ljn/MuRet/blob/EmaNLJN/cl7-pub-leaf-runtime/docs/superpowers/plans/2026-11-09-cl7-runtime-wip-handoff.md).
+Conserva código/tests al corte y documenta el último fallo de fixture, el hunk ya aplicado sin
+una corrida posterior sellada y los pendientes de formato/includes. No se continuó corrigiendo
+ni se renovó la validación después de detenerlo.
+
+El slice FaunaEnvironmentAccess está en [PR183](https://github.com/ema-ljn/MuRet/pull/183),
+apilado en la rama `EmaNLJN/cl7-fauna-access-wip`, sobre el
+commit `6a4d11739fb01042863914ddb96510f7bf89a337` de182. Su handoff está en
+`docs/superpowers/plans/2026-11-09-cl7-fauna-access-wip-handoff.md` de esa rama.
+La combinación con el padre no fue compilada/probada tras el corte.
+
+Los siguientes PRs por unidad siguen disponibles para review o para partir/reconciliar el
+checkpoint. No fusionarlos todos sin revisar solapamientos; publicar el estado WIP no equivale
+a integración aprobada ni cierre de CL7.
+
 ## Punto de continuidad remoto
 
 Este lote ya tiene los siguientes borradores públicos. Cada PR incluye código/tests y su handoff
@@ -34,11 +55,11 @@ acotado; la publicación permite retomar el trabajo y no significa aprobación n
 Los conteos son de árboles diferentes y no se suman. Las omisiones no son golden aprobados.
 Los checks remotos deben consultarse en cada head; estos resultados locales no los sustituyen.
 
-**Todavía pendiente de subir de este lote:** la capa canónica de mundo/escena, Leaf y runtime
-Particle sobre sus padres mínimos, y `FaunaEnvironmentAccess` sobre Query y esa capa. La fuente
-congelada de entorno está preparada, pero su base pública aislada no enlaza por ausencia del
-padre `WorldRuntime`; no se publica como componente standalone exitoso. Un único owner extrae
-la base compartida; sus consumidores no crean otro `WorldState` o DTO paralelo.
+La capa canónica de mundo/escena, Leaf y runtime Particle quedó publicada como checkpoint
+WIP182 al interrumpir el export, y el acceso de entorno queda apilado sobre ella. Falta terminar
+validación y revisión de capas, no seguir esperando una nueva exportación privada. Su fuente
+congelada aislada no enlazaba por falta de WorldRuntime y la combinación nueva no se validó;
+no se atribuye éxito standalone. Conservar un único WorldState y las APIs canónicas.
 
 Al integrar PR180, reconciliar los cuatro paths matemáticos compartidos con PR172. Al integrar
 PR181 y la base de escena, conservar `TextureMetadataOf(uint32_t)` y `TextureSlotOf(uint32_t)`
@@ -67,7 +88,7 @@ PR163/165/167/168/172/174 tenían formato, Linux y Windows correctos en sus head
 PR172 está apilado sobre PR165, aunque la integración final se publica hacia `main`.
 Antes de rebasar hay que comprobar el diff del padre y conservar únicamente la dependencia necesaria.
 Las URLs nuevas de Query, stats, Alpha, fauna, CPU y materiales constan en la tabla remota anterior.
-Entorno y la base/runtime de escena siguen pendientes de publicación; no se les asigna un PR anticipado.
+Entorno y la base/runtime se conservaron al corte en PR183/182 respectivamente; su revisión y validación siguen pendientes.
 
 ## Lectura correcta del estado histórico
 
@@ -90,7 +111,7 @@ No se publica el inventario de caches, herramientas, contratos, capturas o exper
 pendiente de producto. La base limpia tampoco contiene por ese hecho las implementaciones
 congeladas de otros checkouts.
 
-## Unidades productivas aún por exportar
+## Unidades productivas y fronteras de integración
 
 Cada fila es una unidad revisable. «Lista acotada» describe el paquete fuente congelado;
 el export sobre una base pública necesita su propio manifiesto y validación.
@@ -309,7 +330,7 @@ Checklist común de cada unidad:
 - [ ] El coordinador actualiza URLs/heads/checks nuevos, revisión y estado de integración; el writer no publica.
 - [ ] Actualizar COVERAGE sólo al aportar evidencia del criterio del hito, sin inferir cierre de CI verde.
 
-La siguiente continuidad productiva es publicar estos exports con sus padres mínimos, conectar
-los productores y callers aún abiertos y validar su composición por familia. Si una frontera
+La siguiente continuidad productiva es validar y reconciliar los checkpoints remotos con sus
+padres mínimos, conectar los productores/callers aún abiertos y comprobar la composición por familia. Si una frontera
 requiere una autoridad funcional ausente, devolver el punto exacto al coordinador y conservar el
 slice verificable; no ampliar su semántica ni declararlo completo.

@@ -6,11 +6,11 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainLight.h"
 #include "Data/WorldFolder.h"
+#include "World/FaceNormal.h"
 #include "World/Ftol.h"
 #include "World/WorldFiles.h"
 
 #include <glm/ext/vector_float3.hpp>
-#include <glm/geometric.hpp>
 
 #include <cmath>
 #include <cstddef>
@@ -37,8 +37,8 @@ constexpr std::int32_t LightWindowTail = 3;
 static_assert(std::numeric_limits<float>::is_iec559 && std::numeric_limits<float>::digits == 24);
 static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<double>::digits == 53);
 
-// Los coeficientes de 0x5f8d90: n.x · 0,5 (0x6b882c) + a · n.y + b · n.z + 0,5, de 0 (0x6b86a0) a 1
-// (0x6b87d4).
+// Los coeficientes de n.y y n.z en 0x5f8d90, floats en memoria: −0,5 (0x6ba298) y 0,5 (0x6b882c), o
+// −1 (0x6b8b9c) y 1 (0x6b87d4) en el mapa 30.
 struct Shading
 {
     float y = -0.5f;
@@ -46,6 +46,8 @@ struct Shading
 };
 constexpr Shading NormalShading{};
 constexpr Shading BrightShading{-1.0f, 1.0f};
+// 0x6b882c: el peso de n.x y lo que 0x5f8d90 suma al final.
+constexpr double ShadeHalf = 0.5;
 
 float HeightAt(const Data::Terrain::TerrainHeights& heights, std::size_t x, std::size_t y)
 {
@@ -53,15 +55,8 @@ float HeightAt(const Data::Terrain::TerrainHeights& heights, std::size_t x, std:
     return heights.cells[Data::Terrain::CellIndex(static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y))];
 }
 
-// 0x5fd000(p1, p2, p3): (p2 − p1) × (p3 − p1), normalizada; con largo 0, la normal queda en 0.
-glm::vec3 FaceNormal(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& p3)
-{
-    const glm::vec3 normal = glm::cross(p2 - p1, p3 - p1);
-    const float length = glm::length(normal);
-    return length != 0.0f ? normal / length : glm::vec3(0.0f);
-}
-
-// 0x5f8b10 en la celda (x, y): el triángulo (x + 1, y), (x + 1, y + 1), (x, y + 1).
+// 0x5f8b10 en la celda (x, y): 0x5fd000 con el triángulo (x + 1, y), (x + 1, y + 1), (x, y + 1). Los
+// anchos son 100 en x y en y, así que nz vale 10.000 y el largo nunca es 0.
 glm::vec3 CellNormal(const Data::Terrain::TerrainHeights& heights, std::size_t x, std::size_t y)
 {
     const float left = static_cast<float>(x) * CellSize;
@@ -72,14 +67,19 @@ glm::vec3 CellNormal(const Data::Terrain::TerrainHeights& heights, std::size_t x
                       {left, top, HeightAt(heights, x, y + 1)});
 }
 
-float ShadeOf(const glm::vec3& normal, const Shading& shading)
+// 0x5f8d90 en una celda, en el orden del ASM y en el registro (53 bits): (b · n.z + a · n.y) +
+// n.x · 0,5, y después + 0,5. Menor que 0 o NaN da 0 (FCOM con C0); mayor que 1 da 1. La sombra sigue
+// en el registro para los tres canales.
+double ShadeOf(const glm::vec3& normal, const Shading& shading)
 {
-    const float shade = (normal.x * 0.5f) + (shading.y * normal.y) + (shading.z * normal.z) + 0.5f;
-    if (!(shade >= 0.0f))
+    const double slope = (static_cast<double>(shading.z) * static_cast<double>(normal.z)) +
+                         (static_cast<double>(shading.y) * static_cast<double>(normal.y));
+    const double shade = (slope + (static_cast<double>(normal.x) * ShadeHalf)) + ShadeHalf;
+    if (!(shade >= 0.0))
     {
-        return 0.0f;
+        return 0.0;
     }
-    return shade > 1.0f ? 1.0f : shade;
+    return shade > 1.0 ? 1.0 : shade;
 }
 
 const Data::Terrain::TerrainLightColor& CellLight(const TerrainLighting& lighting, int x, int y)
@@ -112,11 +112,13 @@ std::unique_ptr<TerrainLighting> ShadeTerrainLight(const Data::Terrain::TerrainL
     {
         for (std::size_t x = 0; x < Data::Terrain::TerrainSide; ++x)
         {
-            const float shade = ShadeOf(CellNormal(heights, x, y), shading);
+            const double shade = ShadeOf(CellNormal(heights, x, y), shading);
             const std::size_t cell = (y * Data::Terrain::TerrainSide) + x;
             for (std::size_t channel = 0; channel < Data::Terrain::TerrainLightChannels; ++channel)
             {
-                lighting->cells[cell][channel] = shade * light.cells[cell][channel];
+                // FMUL float y FSTP float: el producto se redondea a 53 bits y después a float.
+                lighting->cells[cell][channel] =
+                    static_cast<float>(shade * static_cast<double>(light.cells[cell][channel]));
             }
         }
     }

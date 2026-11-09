@@ -9,6 +9,7 @@ capstone==5.0.9
 pefile==2024.8.26
 unicorn==2.1.4
 # Las cuentas geométricas del login (login/cam.py, pose.py, objvis.py) y el JPEG del OZJ de
-# game/world0/brighter.py. El venv del laboratorio no las tenía: son las del Python del sistema.
+# game/world0/brighter.py y game/maps/terrain_light.py. El venv del laboratorio no las tenía: son
+# las del Python del sistema.
 numpy==2.5.3
 Pillow==12.3.0

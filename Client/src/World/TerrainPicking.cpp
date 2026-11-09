@@ -3,6 +3,7 @@
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
+#include "World/FaceNormal.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainPickingSegment.h"
@@ -87,24 +88,6 @@ PickStatus Validate(const TerrainPickingState& state, const TerrainView& view, c
     return {};
 }
 
-// 0x5fd000: spills asimétricos; nz y longitud permanecen en 53 bits. En el dominio validado
-// ambos anchos son positivos (~100), nz>0 y la longitud finita no nula: no se consume stack residual.
-glm::vec3 Normal(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c)
-{
-    const double uy = static_cast<double>(b.y) - static_cast<double>(a.y);
-    const double vz = static_cast<double>(c.z) - static_cast<double>(a.z);
-    const double uz = static_cast<double>(b.z) - static_cast<double>(a.z);
-    const float vy = F32(static_cast<double>(c.y) - static_cast<double>(a.y));
-    const float nx = F32((vz * uy) - (static_cast<double>(vy) * uz));
-    const float vx = F32(static_cast<double>(c.x) - static_cast<double>(a.x));
-    const float ux = F32(static_cast<double>(b.x) - static_cast<double>(a.x));
-    const float ny = F32((static_cast<double>(vx) * uz) - (static_cast<double>(ux) * vz));
-    const double nz = (static_cast<double>(ux) * static_cast<double>(vy)) - (static_cast<double>(vx) * uy);
-    const double length = std::sqrt(((nz * nz) + (static_cast<double>(ny) * static_cast<double>(ny))) +
-                                    (static_cast<double>(nx) * static_cast<double>(nx)));
-    return {F32(static_cast<double>(nx) / length), F32(static_cast<double>(ny) / length), F32(nz / length)};
-}
-
 // 0x622110 conserva -0; los min/max 0x622130/150 eligen primero/segundo en empate o unordered.
 double BranchAbs(float value)
 {
@@ -184,7 +167,8 @@ bool Inside(const glm::vec3& point, const std::array<glm::vec3, 3>& triangle, co
 
 bool Face(TerrainPickingState& state, const TerrainPickingSegment& segment, const std::array<glm::vec3, 3>& triangle)
 {
-    const glm::vec3 normal = Normal(triangle[0], triangle[1], triangle[2]);
+    // En el dominio validado los dos anchos son positivos (~100) y nz > 0: FaceNormal tiene su largo.
+    const glm::vec3 normal = FaceNormal(triangle[0], triangle[1], triangle[2]);
     const glm::vec3 delta{F32(static_cast<double>(segment.end.x) - static_cast<double>(segment.origin.x)),
                           F32(static_cast<double>(segment.end.y) - static_cast<double>(segment.origin.y)),
                           F32(static_cast<double>(segment.end.z) - static_cast<double>(segment.origin.z))};

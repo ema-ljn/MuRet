@@ -123,7 +123,7 @@ salidas del barrido de Lorencia, que quedaron fuera de Git (lo que vale de ellos
 | `MURET_CLIENT_DATA` | el `Data\`; sin ella, `Client/assets/Data` | `login/`, `game/` |
 | `MURET_CLIENT_GL_TRACE_DIR` | la carpeta con las dos trazas descomprimidas | `login/frustum_reference.py`, `check_selection.py`, `game/world0/` |
 | `MURET_CLIENT_WIRE_DIR` | la carpeta con `muproxy.log`, `Dec1.dat` y `Enc2.dat` | `game/wire/`, `game/walk/wire_vs_path.py` |
-| `MURET_CLIENT_MEMORY_DIR` | la carpeta `memoria-cliente`, con una carpeta por captura | `game/world0/slots.py`, `trace_tex.py` |
+| `MURET_CLIENT_MEMORY_DIR` | la carpeta `memoria-cliente`, con una carpeta por captura | `game/world0/slots.py`, `trace_tex.py`, `game/maps/terrain_light.py` |
 | `MURET_C3C4_REFERENCE` | la ruta de `c3c4_reference.py` | `game/wire/` (solo los C3 y C4) |
 | `MURET_RESEARCH_CACHE` | la carpeta de la caché del binario; sin ella, `.research-cache/` en la raíz | `tools/`, `game/maps/mapcmp.py`, `map0.py` |
 | `MURET_CLOTH_CASES` | adónde escribe `run_cloth_cases.py` sus casos; sin ella, `cloth-cases/` en la carpeta actual | `run_cloth_cases.py` |

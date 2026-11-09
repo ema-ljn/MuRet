@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <system_error>
 #include <vector>
 
@@ -21,7 +22,9 @@ using Client::World::LeafWave;
 using Client::World::LeafWeather;
 using Client::World::StepLeafWeatherWaves;
 
-// Spy de wave-order-v1: observa lecturas/stores/orden; no acredita FSIN ni el binding x87/69fd3c.
+// Spy de wave-order-v1: observa lecturas/stores/orden en las fronteras de los callbacks.
+// V y Q no tienen observación intermedia; su orden requiere inspección estática.
+// No acredita FSIN ni el binding x87/69fd3c.
 class WaveSpy final : public ILeafWaveEvaluator
 {
 public:
@@ -48,6 +51,8 @@ public:
             return Unexpected(error);
         if (first)
             m_time = 20;
+        else if (phaseAfterSecondTruncation.has_value())
+            m_weather.phase = *phaseAfterSecondTruncation;
         return first ? firstResult : secondResult;
     }
 
@@ -55,6 +60,7 @@ public:
     std::int32_t secondResult = -1;
     std::int32_t expectedFirst = 10;
     std::int32_t expectedPhase = 1990;
+    std::optional<std::int32_t> phaseAfterSecondTruncation;
     std::size_t failAt = 0;
     std::error_code error = std::make_error_code(std::errc::io_error);
     std::vector<int> events;
@@ -83,6 +89,23 @@ TEST(LeafWaveOrderTest, RereadsTimeAndStoresFirstWaveBetweenSecondSineAndSecondT
     EXPECT_EQ(weather.firstWave, 10);
     EXPECT_EQ(weather.secondWave, -20);
     EXPECT_EQ(weather.phase, 10);
+    EXPECT_EQ(weather.target, 101);
+    EXPECT_EQ(weather.current, -5);
+}
+
+TEST(LeafWaveOrderTest, RereadsPhaseChangedBySecondTruncation)
+{
+    LeafWeather weather{101, -5, 71, 72, 1990};
+    float time = 10;
+    WaveSpy spy(weather, time);
+    // H2 cambia la fase viva: Q debe partir de -30, no de la fase de entrada 1990.
+    spy.phaseAfterSecondTruncation = -30;
+    const auto result = StepLeafWeatherWaves(weather, time, &spy);
+    ASSERT_TRUE(result.HasValue());
+    EXPECT_EQ(spy.events, (std::vector<int>{1, 2, 3, 4}));
+    EXPECT_EQ(weather.firstWave, 10);
+    EXPECT_EQ(weather.secondWave, -20);
+    EXPECT_EQ(weather.phase, -10);
     EXPECT_EQ(weather.target, 101);
     EXPECT_EQ(weather.current, -5);
 }

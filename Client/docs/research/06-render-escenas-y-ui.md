@@ -3296,7 +3296,9 @@ Los mapas 0/1/2/3/7/8/55 tienen ramas propias y sus tipos sin caso terminan all�
 caja y ocultamiento; los blends son 0 para 19/92/93, 1 para 54/56 y 3 para 78, y el 100 se oculta. Los
 20/65/86/88 copian posición y ángulos: convierten angleZ con `_ftol` a signed64, toman **el dword bajo
 con signo** y guardan su resto signed por 360 en angleZ y su copia. El port declara el dominio finito
-`[-2^63,2^63)`; fuera de él no inventa el estado de excepción x87.
+`[-2^63,2^63)`; fuera de él no inventa el estado de excepción x87. El sector también es el dword bajo
+con signo de `_ftol`, entre 0 y 15 (`0x60668d..0x6066ab`), y el NaN entra al dominio: da
+`0x8000000000000000`, el sector 0, y el objeto se crea (Q-C186; `OriginalFtolLow` y `SectorOf`).
 
 En el 3 los blends son 1 para el tipo 1, 3 para el 9, 0 para 17/19/37 y 2 para el 18; 8/38 se registran
 y el 38 se oculta. En el 7 se registra y oculta el 39; en el 8 se registra el 78. El mapa 55 conserva

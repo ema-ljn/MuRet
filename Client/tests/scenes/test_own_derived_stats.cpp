@@ -36,8 +36,16 @@ constexpr std::size_t WingsSlot = 7;
 constexpr std::uint16_t CapeOfLord = 0x1a1e;
 constexpr std::uint16_t EmptyType = 0xffff;
 
+// Un tipo de Item.bmd y su byte +0x44. Agregado y no std::pair: el constructor de pair desde int
+// estrecha dentro de <utility> (C4242 en MSVC).
+struct TypeKind
+{
+    std::uint16_t type;
+    std::uint8_t kind;
+};
+
 // Item.bmd sintético: el byte +0x44 de cada tipo de `kinds` y todo lo demás en 0.
-Client::Data::Tables::ItemTable ItemsWithKinds(std::initializer_list<std::pair<std::uint16_t, std::uint8_t>> kinds)
+Client::Data::Tables::ItemTable ItemsWithKinds(std::initializer_list<TypeKind> kinds)
 {
     std::vector<std::byte> plain(Client::Data::Tables::ItemTableSize);
     for (const auto& [type, kind] : kinds)

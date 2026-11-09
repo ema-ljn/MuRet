@@ -85,6 +85,10 @@ void SceneManager::Step(const Input::InputState& input)
     }
     m_framePrepared = false;
     m_scene->Step(input);
+    if (TakeTheSceneFailure("avanzar"))
+    {
+        return;
+    }
     const std::optional<SceneId> next = m_scene->Next();
     if (!next)
     {
@@ -105,6 +109,10 @@ void SceneManager::Render(float alpha)
     PrepareFrame();
     SceneCanvas& canvas = m_frame.BeginFrame(m_clock.Now());
     m_scene->Render(canvas, alpha);
+    if (TakeTheSceneFailure("dibujar"))
+    {
+        return;
+    }
     m_frame.Present();
     // El frame terminó: el próximo vuelve a decidir.
     m_framePrepared = false;
@@ -181,6 +189,18 @@ void SceneManager::PrepareFrame() const
     }
     m_scene->PrepareFrame();
     m_framePrepared = true;
+}
+
+bool SceneManager::TakeTheSceneFailure(const char* where)
+{
+    std::optional<std::string> failure = m_scene->Failure();
+    if (!failure)
+    {
+        return false;
+    }
+    m_failure = std::move(failure);
+    m_log.Error("no se pudo {} la escena {}: {}", where, Describe(*m_current), *m_failure);
+    return true;
 }
 
 Core::Expected<void, std::string> SceneManager::Enter(SceneId id)

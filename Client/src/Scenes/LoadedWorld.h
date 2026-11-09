@@ -4,7 +4,7 @@
 #include "Core/IClock.h"
 #include "Render/ITextureStore.h"
 #include "Render/ModelBatch.h"
-#include "Render/TextureSlot.h"
+#include "Scenes/TerrainTiles.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainLighting.h"
@@ -69,10 +69,9 @@ public:
                      const World::TerrainPolygon& polygon, float fixedHeight = World::FixedCornerHeight);
 
 private:
-    Render::ITextureStore& m_store;
+    TerrainTiles m_tiles;
     std::optional<World::WorldTerrain> m_terrain;
     World::TerrainView m_view;
     World::TerrainWater m_water;
-    std::vector<Render::TextureSlot> m_uploaded;
 };
 } // namespace Client::Scenes

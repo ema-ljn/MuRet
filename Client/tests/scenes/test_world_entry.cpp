@@ -12,9 +12,11 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/GameScene.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SceneContext.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SessionEventApplier.h"
 #include "Scenes/WorldMap.h"
@@ -23,9 +25,11 @@
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
 
+#include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
+#include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
@@ -294,6 +298,56 @@ TEST_F(WorldEntryTest, WithTheSetTablesTheEntryRunsTheWholeRecalculation)
     constexpr int TheSettling = OwnRecordClose + WaitClose + WindowRandoms + StopRandom;
     EXPECT_EQ(tested.cloth.random.State(),
               AfterDraws(Seed, 3 * OwnRecordClose + BeforeTheSettling + TheSettling).State());
+}
+
+// La respuesta aplicada y, sin ningún paso, el primer frame del juego: el contador en 30 no retiene, la
+// cámara mira al héroe publicado y lee su celda (8 rand() después de los 4 de 0x637229), el terreno de
+// Lorencia sale con sus tiles y el dibujo corta en el pase del pasto (0x5fc353), sin presentar.
+TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheGrass)
+{
+    Entry tested(m_dataRoot, Seed);
+    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    WorldEntryResources resources = tested.Resources();
+    resources.itemSetTables = &sets;
+    RecordingPublisher publisher;
+    ASSERT_TRUE(ApplyWorldEntry(CableReply(), PlayerKey, resources, publisher).HasValue());
+    // Lo que dejó la carga del 54 de la selección (0x633f30): el mundo cargado.
+    tested.world.Runtime().drawingEnabled = true;
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::GameScene scene(Client::Scenes::SceneContext{.dataRoot = m_dataRoot,
+                                                                 .textures = store,
+                                                                 .log = tested.log,
+                                                                 .cloth = &tested.cloth,
+                                                                 .camera = &tested.camera,
+                                                                 .cameraInput = &tested.cameraInput,
+                                                                 .world = &tested.world},
+                                    nullptr);
+    ASSERT_TRUE(scene.Enter().HasValue());
+    CrtRandom expected = tested.cloth.random;
+    for (int draw = 0; draw < 4 + 8; ++draw)
+    {
+        static_cast<void>(expected.Next());
+    }
+    Client::Tests::RecordingFrameTarget target;
+
+    scene.PrepareFrame();
+    ASSERT_FALSE(scene.HoldsTheLastFrame());
+    scene.Render(target.BeginFrame({}), 0.0f);
+
+    ASSERT_TRUE(scene.Failure().has_value());
+    EXPECT_NE(scene.Failure()->find("0x5fc353"), std::string::npos) << *scene.Failure();
+    ASSERT_EQ(target.frames.size(), 1u);
+    EXPECT_FALSE(target.frames[0].presented);
+    std::size_t vertices = 0;
+    for (const auto& event : target.frames[0].events)
+    {
+        vertices += event.modelVertices.size();
+    }
+    EXPECT_GT(vertices, 0u);
+    EXPECT_TRUE(scene.MouseRay().has_value());
+    EXPECT_EQ(tested.cameraInput.hero, tested.Hero().position);
+    EXPECT_EQ(tested.cloth.random.State(), expected.State());
+    scene.Leave();
 }
 
 // 0x550990 lee lo que dejó el último 0x505820, acá el de la selección: [0x743a17c] en 1 y [0x743a178] en 12

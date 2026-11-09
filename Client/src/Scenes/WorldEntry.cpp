@@ -272,7 +272,7 @@ Core::Expected<WorldEntryResult, std::string> ApplyWorldEntry(const Protocol::Ch
     {
         return Core::Unexpected(player.Error());
     }
-    // 0x4c405a pone en 0 el botón izquierdo (0x7d36874); MuRet todavía no lee el mouse en el juego (T8).
+    // 0x4c405a pone en 0 el botón izquierdo (0x7d36874); MuRet todavía no lee el botón en el juego (CL7.4).
     ApplyTheStats(reply, resources);
     if (auto loaded = LoadTheWorld(reply.map, playerKey, resources); !loaded.HasValue())
     {

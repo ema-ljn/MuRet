@@ -10,10 +10,21 @@
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 
+#include "Core/ILogSink.h"
+#include "Core/Log.h"
+#include "Render/Models/Cloth.h"
+#include "Scenes/ActorState.h"
+#include "Scenes/GameScene.h"
 #include "Scenes/SceneCameras.h"
+#include "Scenes/SceneContext.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
 
+#include "support/FakeTextureStore.h"
 #include "support/GlTrace.h"
 #include "support/GoldenDir.h"
+#include "support/RecordingFrameTarget.h"
+#include "support/RecordingSink.h"
 
 #include <gtest/gtest.h>
 
@@ -328,6 +339,109 @@ TEST_F(GoldenTerrainTrace, LorenciaDrawsTheCellsOfTheTraceInItsOrder)
     const auto traced = TracedCells(trace.Value().frames[0]);
     ASSERT_EQ(traced.size(), 329u);
     EXPECT_EQ(DrawnCells(batch), traced);
+}
+
+// Una celda del terreno, por su esquina.
+struct TerrainCell
+{
+    int x = 0;
+    int y = 0;
+};
+
+// Las celdas del pase opaco del fin del pase de los modelos de un frame grabado, en su orden.
+std::vector<TerrainCell> OpaqueCellsOf(const Client::Tests::FrameEvent& models)
+{
+    std::vector<TerrainCell> cells;
+    for (const ModelDrawCommand& command : models.modelCommands)
+    {
+        if (command.state.blend != ModelBlend::Opaque)
+        {
+            continue;
+        }
+        for (std::size_t first = 0; first < command.vertexCount; first += 6)
+        {
+            const glm::vec3 origin = models.modelVertices[command.firstVertex + first].position;
+            cells.push_back(TerrainCell{static_cast<int>(origin.x / 100.0f), static_cast<int>(origin.y / 100.0f)});
+        }
+    }
+    return cells;
+}
+
+// Lo mismo desde la escena del juego (T8): Lorencia cargado en el WorldState, el héroe publicado en la
+// celda (143, 120) con la posición de la traza y el contador en 30. Su primer frame lee la celda por la
+// tabla de protección, arma la cámara de la traza y dibuja las 329 celdas en su orden antes de cortar en
+// el pase del pasto (0x5fc353).
+TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
+{
+    const auto path = TraceFile(LorenciaTrace);
+    if (!path)
+    {
+        return;
+    }
+    auto trace = Client::Tests::ReadGlTrace(*path);
+    ASSERT_TRUE(trace.HasValue()) << trace.Error();
+    ASSERT_FALSE(trace.Value().frames.empty());
+    auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, Lorencia);
+    ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
+    Client::Scenes::WorldState world;
+    world.Map().terrain = std::move(terrain).Value();
+    constexpr std::size_t HeroSlot = 7;
+    Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
+    hero.alive = true;
+    hero.cellX = 143;
+    hero.cellY = 120;
+    hero.position = {14350.0f, 12050.0f, 165.0f};
+    world.Runtime().map = Lorencia;
+    world.Runtime().hero = HeroSlot;
+    world.Runtime().drawingEnabled = true;
+    world.Runtime().warpCounter = Client::Scenes::WaitDrawThreshold;
+    Client::Tests::RecordingSink sink;
+    Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+    Client::Tests::FakeTextureStore store;
+    Client::Render::Models::ClothWorld cloth;
+    Client::World::GameCamera cameraState;
+    Client::World::GameCameraInput cameraInput;
+    Client::Scenes::GameScene scene(Client::Scenes::SceneContext{.dataRoot = m_dataRoot,
+                                                                 .textures = store,
+                                                                 .log = log,
+                                                                 .cloth = &cloth,
+                                                                 .camera = &cameraState,
+                                                                 .cameraInput = &cameraInput,
+                                                                 .world = &world},
+                                    nullptr);
+    ASSERT_TRUE(scene.Enter().HasValue());
+    Client::Tests::RecordingFrameTarget target(Client::App::PixelSize{1024, 768});
+
+    scene.PrepareFrame();
+    scene.Render(target.BeginFrame({}), 0.0f);
+
+    ASSERT_TRUE(scene.Failure().has_value());
+    EXPECT_NE(scene.Failure()->find("0x5fc353"), std::string::npos) << *scene.Failure();
+    const Client::Tests::FrameEvent* models = nullptr;
+    for (const Client::Tests::FrameEvent& event : target.frames.at(0).events)
+    {
+        if (event.kind == Client::Tests::FrameEvent::Kind::Models)
+        {
+            models = &event;
+        }
+    }
+    ASSERT_NE(models, nullptr);
+    ASSERT_TRUE(models->pass.has_value());
+    Client::World::GameCamera fresh;
+    const auto camera = Client::World::StepGameCamera(
+        fresh, Client::World::GameCameraInput{.hero = hero.position, .cellAttribute = cameraInput.cellAttribute});
+    ExpectCameraInTrace(trace.Value().frames.front(), camera);
+    EXPECT_EQ(models->pass->view,
+              Client::Render::MakePass3D(Client::App::PixelSize{1024, 768}, {0, 0, 640, 432}, camera).view);
+    const auto traced = TracedCells(trace.Value().frames[0]);
+    const std::vector<TerrainCell> drawn = OpaqueCellsOf(*models);
+    ASSERT_EQ(traced.size(), 329u);
+    ASSERT_EQ(drawn.size(), traced.size());
+    for (std::size_t k = 0; k < drawn.size(); ++k)
+    {
+        EXPECT_EQ(drawn[k].x, traced[k].first) << k;
+        EXPECT_EQ(drawn[k].y, traced[k].second) << k;
+    }
 }
 
 // Y la selección (el mapa 54, World55), donde el trapecio sí recorta: con SelectionCamera y el héroe

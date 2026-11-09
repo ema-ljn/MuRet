@@ -3,19 +3,36 @@
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
+#include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Input/InputState.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Pass3D.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "UI/GameCursor.h"
+#include "UI/Widget.h"
 #include "World/GameCamera.h"
+#include "World/TerrainCells.h"
+#include "World/TerrainCulling.h"
+#include "World/TerrainPickingSegment.h"
+#include "World/WorldTerrain.h"
 
+#include <glm/ext/vector_float2.hpp>
+#include <glm/ext/vector_float3.hpp>
+
+#include <bit>
+#include <chrono>
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace Client::Scenes
 {
@@ -23,9 +40,77 @@ namespace
 {
 // 0x636838: el yaw de la cámara del juego en el primer paso, 0xc2340000.
 constexpr float EntryYaw = -45.0f;
+// 0x636dce: lo que queda del temblor de la cámara (0x7d325c8) en cada paso, el 0,2 de 0x6b8854.
+constexpr float ShakeDecay = std::bit_cast<float>(std::uint32_t{0x3e4ccccd});
+// 0x635b3d y 0x63726f: en el mapa 6 la cámara y el punto del trapecio comparan el nombre del héroe.
+constexpr std::int32_t NamedCameraMap = 6;
+// 0x5fa973: en el mapa 7 el agua de la capa 2 va con 0x5fa4b0.
+constexpr std::int32_t AnimatedWaterMap = 7;
+// 0x6374bb: el mapa 10 no dibuja el terreno.
+constexpr std::int32_t WithoutTerrainMap = 10;
+// 0x5f8928..0x5f8947: 0x6c9d58, el pase del pasto, queda en 0 en los mapas 18 a 23 y en el 30.
+constexpr std::int32_t FirstWithoutGrassMap = 18;
+constexpr std::int32_t LastWithoutGrassMap = 23;
+// 0x63741d: en el mapa 30 el dibujo pone su luz (0x42b0a0).
+constexpr std::int32_t CastleMap = 30;
+// 0x5bb8d0: el ancho del mundo, 640 sin ventanas abiertas (MuRet no tiene las ventanas del juego).
+constexpr std::int32_t WorldWidth = 640;
+// 0x620486..0x6204b0: el mouse de 640 × 480 vuelve a la pantalla con · W / 640 y · H / 480, en enteros.
+constexpr std::int64_t Width640 = 640;
+constexpr std::int64_t Height480 = 480;
+
+float F32(double value)
+{
+    return static_cast<float>(value);
+}
+
+std::string MapText(std::int32_t map)
+{
+    return "mapa " + std::to_string(map);
+}
+
+// 0x5f8928..0x5f8947: 0x6c9d58, que 0x5f87b0 prende fuera de los mapas 18 a 23 y 30.
+bool HasTheGrassPass(std::int32_t map)
+{
+    return !(map >= FirstWithoutGrassMap && map <= LastWithoutGrassMap) && map != CastleMap;
+}
+
+// 0x635c54..0x635d7f: la celda del servidor del héroe por la tabla de protección, la Y (+0x420) y
+// después la X (+0x41c), cada una en un acceso que se cierra (0x412890), y el atributo de 0x5f8290(X, Y).
+std::uint8_t HeroCellAttribute(ActorState& hero, const Data::Terrain::TerrainAttributes& attributes,
+                               Render::Models::CrtRandom& random)
+{
+    std::uint8_t y = 0;
+    {
+        const Render::Models::LogicalAccess access(hero.cellYAccesses, random,
+                                                   Render::Models::SmallLogicalCloseRandoms);
+        y = hero.cellY;
+    }
+    std::uint8_t x = 0;
+    {
+        const Render::Models::LogicalAccess access(hero.cellXAccesses, random,
+                                                   Render::Models::SmallLogicalCloseRandoms);
+        x = hero.cellX;
+    }
+    // 0x635f14..0x635fe3: el word de 0x7d0d348, del que la cámara mira el byte bajo.
+    return static_cast<std::uint8_t>(attributes.cells[Data::Terrain::CellIndex(x, y)]);
+}
+
+std::string DescribePolygonError(World::TerrainPolygonError error)
+{
+    switch (error)
+    {
+    case World::TerrainPolygonError::InvalidCameraDistance:
+        return "0x5fb570: la distancia de la cámara no entra en un int64";
+    case World::TerrainPolygonError::InvalidEffectiveLevel:
+        return "0x5fb570: el nivel del trapecio no es de 0 a 4";
+    }
+    return "0x5fb570: un error desconocido";
+}
 } // namespace
 
-GameScene::GameScene(const SceneContext& context, App::ServerSession* session) : m_context(context), m_session(session)
+GameScene::GameScene(const SceneContext& context, App::ServerSession* session)
+    : m_context(context), m_session(session), m_tiles(context.textures)
 {
 }
 
@@ -88,8 +173,25 @@ void GameScene::StepWorld()
     {
         return;
     }
-    // Frontera (T8): lo que va de 0x636dc2 a 0x637105, antes de MoveHero (el temblor, 0x5fbf60, la UI,
-    // los objetos, las hojas, los pájaros, los peces y el caballo), y lo de 0x63710f en adelante.
+    // 0x636dc2..0x636ddb: el temblor de la cámara se reduce en cada paso; la x87 multiplica y guarda en
+    // float, como el producto exacto en double redondeado una vez.
+    World::GameCameraInput& cameraInput = CameraInputState();
+    cameraInput.shake = F32(static_cast<double>(cameraInput.shake) * static_cast<double>(ShakeDecay));
+    // 0x636dd4: 0x652940, con el héroe en +0x371 == 'C' (siempre, 0x511290), mira el asedio (0x7239ec) y
+    // el gremio con 0x4294b0. El 0x7239ec solo lo escribe 0x4294c0, desde los paquetes de 0x4e0610 y
+    // 0x4e2b10 que MuRet no aplica: sin asedio, no hace nada (*estático*, 08 P-C41).
+    // 0x636de8: 0x5fbf60, la ola de las celdas de la ventana del rango del último dibujo, con el reloj
+    // del paso (la rama de 0x723c50, P-C24 c, no se prende en MuRet). La copia de la luz sombreada al
+    // buffer dinámico deja lo mismo: MuRet no tiene luces dinámicas (06 § Terreno). El rango y las olas
+    // son de la escena: el original los comparte con la selección (08 P-C41).
+    if (m_context.clock != nullptr)
+    {
+        World::UpdateWaves(m_water, m_context.clock->Now(), m_terrainRange, static_cast<std::uint8_t>(runtime.map));
+    }
+    // Frontera (08 P-C41): lo que va de 0x636ded a 0x637105, antes de MoveHero. Los globales de
+    // 0x636df2..0x636e1d y la UI (0x636e11..0x63705b), que corre en cada paso desde el primero; los
+    // objetos (0x606560: con ningún objeto visto, como deja el dibujo que corta antes de 0x6046a0, no
+    // hace nada), los ítems del piso, las hojas, los pájaros, los peces, el caballo y las listas.
     // Frontera (P-C28 b): MoveHero (0x59adf0) sale sin tocar el contador con el recorrido de la cámara
     // (0x4033d0, que además para al héroe con 0x4f2250), con un personaje bajo el mouse y +0x7c &
     // 0x200000 del héroe, con +0x389 o con +0x78 & 0x1000 (0x59ae24..0x59ae87). MuRet no tiene todavía
@@ -98,8 +200,9 @@ void GameScene::StepWorld()
     {
         return;
     }
-    // Frontera (T7, T8 y CL7.4): el resto de MoveHero, desde 0x59afdf (el clic, caminar, los gates,
-    // 0x57cfc0 con el registro propio y la capa 1 de la celda en 0x77f36d0).
+    // Frontera (T7, CL7.4 y 08 P-C41): el resto de MoveHero, desde 0x59afdf (el clic, caminar, los
+    // gates, 0x57cfc0 con el registro propio y la capa 1 de la celda en 0x77f36d0), y lo que sigue a
+    // MoveHero desde 0x63710f (los personajes, los efectos, las partículas).
 }
 
 std::int32_t GameScene::StepWaitCounter()
@@ -145,14 +248,199 @@ void GameScene::PrepareFrame()
     {
         return;
     }
-    // Con el contador en 30 o menos el dibujo llega siempre a 0x6374dd (0x510d00): 0x50ba30 corre 0x505820
-    // con cada jugador visto (0x50c91e). MuRet no dibuja los personajes del juego y no sabe qué dejó.
+    // Con el contador en 30 o menos el dibujo del original llega siempre a 0x6374dd (0x510d00): 0x50ba30
+    // corre 0x505820 con cada jugador visto (0x50c91e). El de MuRet corta antes y no sabe qué dejó.
     runtime.fullSetScan = std::nullopt;
 }
 
-void GameScene::Render(SceneCanvas& /*canvas*/, float /*alpha*/) {}
+void GameScene::Render(SceneCanvas& canvas, float /*alpha*/)
+{
+    if (m_failure || m_holdFrame || m_context.world == nullptr || m_context.cloth == nullptr)
+    {
+        return;
+    }
+    const auto drawn = DrawTheFrame(canvas);
+    if (!drawn.HasValue())
+    {
+        m_failure = drawn.Error();
+    }
+}
 
-void GameScene::Leave() {}
+Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
+{
+    WorldRuntime& runtime = m_context.world->Runtime();
+    const World::WorldTerrain& terrain = m_context.world->Map().terrain;
+    if (!terrain.mapping || !terrain.heights || !terrain.attributes || !terrain.lighting)
+    {
+        return Core::Unexpected("0x6371a0: el " + MapText(runtime.map) + " no está cargado (0x61a560)");
+    }
+    if (auto uploaded = UploadTheTiles(static_cast<std::uint8_t>(runtime.map)); !uploaded.HasValue())
+    {
+        return uploaded;
+    }
+    // 0x63723a: la niebla en 0 (0x7d368a0); MuRet no la tiene.
+    // 0x635b3d y 0x635b5c: en el mapa 6 la cámara compara el nombre del héroe con 0x576960.
+    if (runtime.map == NamedCameraMap)
+    {
+        return Core::Unexpected(std::string("0x635b5c: en el mapa 6 la cámara (0x635ae0) compara el nombre del héroe "
+                                            "con 0x576960, que MuRet no tiene"));
+    }
+    const int frames = m_cameraFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
+    // 0x637241: 0x635ae0.
+    const Render::Camera3D camera = CameraOfTheFrame(canvas, frames);
+    // 0x63726f..0x637337: fuera del mapa 6, el punto de 0x44dc60. El recorrido de 0x4033d0 (el BD 00, que
+    // MuRet no aplica) no está prendido y no lo cambia.
+    const glm::vec3 target = World::CameraTargetOf(CameraInputState());
+    // 0x63734d: el pase de 0x620db0(0, 0, w, 48) no dibuja; su modelview es la del pase del mundo.
+    const Render::Pass3D pass = Render::MakePass3D(canvas.screen, GameWorldViewport, camera);
+    // 0x637366: 0x5fbb00(w · 0,0015625, &p), el rango de bloques y el trapecio; con w en 640, 1.
+    m_terrainRange = World::TerrainRangeOf(pass.view, camera);
+    const auto polygon = PolygonOfTheFrame(camera, target, frames);
+    if (!polygon.HasValue())
+    {
+        return Core::Unexpected(polygon.Error());
+    }
+    // 0x637391..0x637404: el glClearColor del mapa, que nadie usa (Q-C143).
+    // 0x637410: el pase del mundo.
+    canvas.models.Begin(pass);
+    auto drawn = DrawTheWorldPass(canvas, pass, polygon.Value());
+    canvas.flushModels();
+    return drawn;
+}
+
+Core::Expected<void, std::string> GameScene::UploadTheTiles(std::uint8_t map)
+{
+    if (m_tiles.LoadedMap() == map)
+    {
+        return {};
+    }
+    std::vector<std::string> skipped;
+    if (auto loaded = m_tiles.Load(m_context.dataRoot, map, skipped); !loaded.HasValue())
+    {
+        return Core::Unexpected("0x61a560: los tiles del terreno: " + loaded.Error());
+    }
+    for (const std::string& tile : skipped)
+    {
+        m_context.log.Warning("el juego va sin un tile del terreno: {}", tile);
+    }
+    return {};
+}
+
+Render::Camera3D GameScene::CameraOfTheFrame(SceneCanvas& canvas, int frames)
+{
+    WorldState& world = *m_context.world;
+    const WorldRuntime& runtime = world.Runtime();
+    ActorState& hero = world.Actors()[runtime.hero];
+    World::GameCameraInput& input = CameraInputState();
+    // Lo que 0x635ae0 lee de los globales: el héroe publicado (0x743a170), el mundo (0x6c9dd0) y el reloj
+    // del mundo (0x5767b88, en ms, para el mapa 5).
+    input.hero = hero.position;
+    input.map = static_cast<std::uint8_t>(runtime.map);
+    input.scene = World::CullingScene::Game;
+    input.worldTime =
+        static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
+    if (frames == 0)
+    {
+        // Un dibujo intermedio de MuRet: consulta la cámara del último frame original, sin gastar rand().
+        return World::GameCameraOf(CameraState(), input);
+    }
+    // Cada frame original termina en el corte de abajo: de los que cuenta el reloj corre el primero y el
+    // corte no deja correr los demás.
+    input.cellAttribute = HeroCellAttribute(hero, *world.Map().terrain.attributes, m_context.cloth->random);
+    return World::StepGameCamera(CameraState(), input);
+}
+
+Core::Expected<World::TerrainPolygon, std::string> GameScene::PolygonOfTheFrame(const Render::Camera3D& camera,
+                                                                                const glm::vec3& target, int frames)
+{
+    const World::GameCamera& state = CameraState();
+    World::TerrainPolygonInput input;
+    input.scene = static_cast<std::int32_t>(World::CullingScene::Game);
+    input.map = m_context.world->Runtime().map;
+    input.translation = target;
+    // El selector del mapa 30, como TerrainPolygonOf; ese mapa corta abajo (0x63741d).
+    input.objectPosition = glm::vec2(target.x, target.y);
+    input.cameraYaw = camera.angles.z;
+    input.worldWidth = WorldWidth;
+    if (frames == 0)
+    {
+        const auto polygon = World::TerrainPolygonOf(input, m_polygonState.effectiveLevel);
+        if (!polygon.HasValue())
+        {
+            return Core::Unexpected(DescribePolygonError(polygon.Error()));
+        }
+        return polygon.Value();
+    }
+    // El nivel pedido (0x7d3a0ec), la D (0x7d36ba4) y la meta (0x6d5ee0) que dejó la cámara del frame.
+    const World::TerrainPolygonCameraInput cameraInput{.requestedLevel = static_cast<std::int16_t>(state.level),
+                                                       .distance = state.distance,
+                                                       .targetDistance = state.targetDistance};
+    const auto frame = World::TerrainPolygonFrameOf(m_polygonState, input, cameraInput);
+    if (!frame.HasValue())
+    {
+        return Core::Unexpected(DescribePolygonError(frame.Error()));
+    }
+    m_polygonState = frame.Value().nextState;
+    return frame.Value().polygon;
+}
+
+Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canvas, const Render::Pass3D& pass,
+                                                              const World::TerrainPolygon& polygon)
+{
+    const std::int32_t map = m_context.world->Runtime().map;
+    // 0x63741d: la luz y la niebla del mapa 30 (0x42b0a0), que no carga (MapLoad) ni dibuja.
+    if (map == CastleMap)
+    {
+        return Core::Unexpected(std::string("0x63741d: la luz del mapa 30 (0x42b0a0) no está portada"));
+    }
+    // 0x6374aa: 0x620480(x, y, &0x7d366c0, 1) con el mouse en 640 × 480 (0x7d3682c y 0x7d36828), que
+    // vuelve a los píxeles de la pantalla en enteros (0x620486..0x6204b0).
+    const Input::InputState noInput;
+    const UI::Point mouse = UI::MouseIn640x480(m_context.input != nullptr ? *m_context.input : noInput, canvas.screen);
+    const auto pixelX = (static_cast<std::int64_t>(mouse.x) * canvas.screen.width) / Width640;
+    const auto pixelY = (static_cast<std::int64_t>(mouse.y) * canvas.screen.height) / Height480;
+    const auto [origin, end] = pass.RayThrough(static_cast<float>(pixelX), static_cast<float>(pixelY));
+    m_mouseRay = World::TerrainPickingSegment{.origin = origin, .end = end};
+    // 0x6374b2..0x6374c2: 0x437850() mira el mundo de Kalima (0x723c48), que MuRet no crea (MapLoad corta
+    // en esos mapas): es falso. El mapa 10 no dibuja el terreno.
+    if (map != WithoutTerrainMap)
+    {
+        // 0x5fc260(0) → 0x5fac90 → 0x5fa830: en el mapa 7 la capa 2 de agua va con 0x5fa4b0.
+        if (map == AnimatedWaterMap)
+        {
+            return Core::Unexpected(std::string(
+                "0x5fa985: el agua del mapa 7 (0x5fa4b0, con las texturas 0x1e más el cuadro) no está portada"));
+        }
+        const World::WorldTerrain& terrain = m_context.world->Map().terrain;
+        World::TerrainView view;
+        view.mapping = terrain.mapping.get();
+        view.heights = terrain.heights.get();
+        view.attributes = terrain.attributes.get();
+        view.lighting = terrain.lighting.get();
+        view.tiles = m_tiles.Sizes();
+        view.map = static_cast<std::uint8_t>(map);
+        view.fixedHeight = CameraState().fixedHeight;
+        // 0x5fc26b..0x5fc2c0: el corrimiento del agua con el reloj del frame; 0x5fc2de: 0x5fc190(0) con
+        // 0x7d0d31c en 0, las celdas del rango que pasan el trapecio.
+        m_water.offset = World::WaterOffsetAt(canvas.frameClock, view.map);
+        World::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water);
+        // 0x5fc332..0x5fc353: con 0x6c9d58 y fuera del mapa 7, el pase del pasto.
+        if (HasTheGrassPass(map))
+        {
+            return Core::Unexpected("0x5fc353: el pase del pasto del terreno (0x5fc190 con 0x7d0d31c en 2) del " +
+                                    MapText(map) + " no está portado");
+        }
+        return Core::Unexpected("0x5fc365: las marcas del suelo (0x549130) del " + MapText(map) + " no están portadas");
+    }
+    // 0x6374ce: los objetos del .obj por sector.
+    return Core::Unexpected("0x6374ce: los objetos del " + MapText(map) +
+                            " (0x6046a0 → 0x602e90) no están portados, solo los del 55");
+}
+
+void GameScene::Leave()
+{
+    m_tiles.Release();
+}
 
 // Q-C70: sin conexión, el juego sigue; el texto 3 del área de mensajes es de la CL9.
 std::optional<SceneId> GameScene::Next() const
@@ -173,5 +461,25 @@ bool GameScene::WantsTextInput() const
 bool GameScene::HoldsTheLastFrame() const
 {
     return m_holdFrame;
+}
+
+std::optional<std::string> GameScene::Failure() const
+{
+    return m_failure;
+}
+
+const std::optional<World::TerrainPickingSegment>& GameScene::MouseRay() const
+{
+    return m_mouseRay;
+}
+
+World::GameCamera& GameScene::CameraState()
+{
+    return m_context.camera != nullptr ? *m_context.camera : m_localCamera;
+}
+
+World::GameCameraInput& GameScene::CameraInputState()
+{
+    return m_context.cameraInput != nullptr ? *m_context.cameraInput : m_localCameraInput;
 }
 } // namespace Client::Scenes

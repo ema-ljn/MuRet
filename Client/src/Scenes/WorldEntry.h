@@ -92,7 +92,8 @@ ApplyWorldEntry(const Protocol::Character::CharacterSelectResult& reply, std::ui
 // llegada, publica el 0x3d en la sesión, pone el contador en 30 (4 rand() al cerrar), mira el cuervo
 // (0x420d60), crea el segundo efecto, baja el alpha a 0, cierra las ventanas (0x657a90: 2 rand() con
 // todas cerradas), la acción de parado (0x4f2250) y los sonidos de los mapas fuera de evento. Va
-// aparte para probarlo mientras 0x512a30 corta antes (0x550d10 en 0x40e1b0); recibe lo que ya se pidió.
+// aparte para probarlo sin 0x512a30 (que sin las tablas de los conjuntos corta en 0x550d10, en
+// 0x40e1b0); recibe lo que ya se pidió.
 [[nodiscard]] Core::Expected<WorldEntryResult, std::string>
 SettleWorldEntry(WorldEntryResult result, const WorldEntryResources& resources, IWorldEntryPublisher& publisher);
 } // namespace Client::Scenes

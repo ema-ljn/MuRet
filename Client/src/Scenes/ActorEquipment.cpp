@@ -6,6 +6,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/FullSetScan.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnDerivedStats.h"
 #include "Scenes/WorldRuntime.h"
@@ -173,7 +174,7 @@ void ApplyHeadAndScale(ActorState& actor)
     }
 }
 
-// 0x512cc7..0x512ef5: la ropa y lo que sigue, hasta donde MuRet llega.
+// 0x512cc7..0x512ef5: la ropa y lo que sigue.
 Core::Expected<void, std::string> Dress(ActorState& actor, const ActorEquipmentContext& context)
 {
     ProjectBody(actor, context.own);
@@ -182,16 +183,20 @@ Core::Expected<void, std::string> Dress(ActorState& actor, const ActorEquipmentC
         ArmForMaps18To23(actor);
     }
     ApplyHeadAndScale(actor);
+    // 0x512eda..0x512eec: lo que devuelve no lo lee nadie. Con otro personaje, 0x550990 lee lo que dejó la
+    // última llamada.
     if (&actor == &context.publishedHero)
     {
-        return Core::Unexpected(std::string("0x512a30: con el héroe publicado llama a 0x505820 (0x512ee7), sin leer"));
+        context.fullSetScan =
+            ScanFullSet(ScannedCharacterOf(actor), context.own, context.ownRecordAccesses, context.stop.random).globals;
     }
     return RecalculateOwnStats(context.own, {.itemSetTables = context.itemSetTables,
                                              .itemSets = context.itemSets,
                                              .items = context.stop.items,
                                              .publishedHero = context.publishedHero,
                                              .ownRecordAccesses = context.ownRecordAccesses,
-                                             .random = context.stop.random});
+                                             .random = context.stop.random,
+                                             .scan505820 = context.fullSetScan});
 }
 } // namespace
 

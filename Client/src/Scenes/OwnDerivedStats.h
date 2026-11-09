@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Scenes/FullSetScan.h"
 #include "Scenes/OwnStatHelpers.h"
 
 #include <cstdint>
@@ -60,16 +61,16 @@ struct OwnStatsContext
     // reemplaza nada: [0x7879fbc] está en la .bss (0 al arrancar) y solo lo escriben handlers del
     // protocolo que MuRet no tiene (0x4d1c89 y 0x4d29cb; estático).
     OwnEquipmentOverride held{};
-    // [0x743a178] y [0x743a17c], que lee 0x550990 y solo escribe 0x505820. 0x505820 corre también desde
-    // el dibujo de los personajes (0x50ba30, en 0x50c91e), así que su valor al entrar al mundo no se
-    // puede suponer: sin portar 0x505820 queda en nullopt y 0x550990 corta con error.
+    // [0x743a178] y [0x743a17c], que lee 0x550990: lo que dejó el último 0x505820 (WorldRuntime::fullSetScan).
+    // Desde 0x512a30 con el héroe publicado, el de esa misma llamada; si no, el del último dibujo de los
+    // personajes (0x50ba30, en 0x50c91e). nullopt si MuRet no sabe qué dejó: 0x550990 corta con error.
     std::optional<Scan505820> scan505820 = std::nullopt;
 };
 
 // 0x550d10 sobre `own`, entera: 0x40e1b0, la limpieza, 0x54ef00, los doce lugares, 0x40da20 cinco veces,
 // Cape of Lord, los ocho helpers de 0x551287..0x5512ba (Scenes/OwnStatHelpers.h) en su orden y la cola
 // (UpdateOwnDerivedStatsTail). Un error de un paso corta ahí, con lo de los pasos anteriores hecho y los
-// accesos cerrados. Sin `scan505820`, corta en 0x550990 con los cinco helpers de antes hechos.
+// accesos cerrados. Sin `scan505820` corta en 0x550990, con los cinco helpers de antes hechos.
 [[nodiscard]] Core::Expected<void, std::string> RecalculateOwnStats(OwnCharacterRecord& own,
                                                                     const OwnStatsContext& context);
 

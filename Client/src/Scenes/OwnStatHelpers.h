@@ -25,6 +25,7 @@ namespace Client::Scenes
 {
 struct ItemSetOptionList;
 struct OwnCharacterRecord;
+struct Scan505820;
 
 // El ítem de 0x7879f80 y lo que decide si 0x54efe0, 0x54f9b0 y 0x54fe10 lo leen en lugar de un lugar
 // del equipo: con [0x7879fbc] > 0, con signo (jle), y [0x78ab9b8] == 0x78a9bb0, el lugar [0x78a6758],
@@ -36,13 +37,6 @@ struct OwnEquipmentOverride
     bool window78ab9b8Is78a9bb0 = false;
     std::uint32_t slot78a6758 = 0;
     World::ItemState item7879f80{};
-};
-
-// Lo que deja 0x505820 (06, "El equipo propio en el personaje", paso 9; sin portar) y lee 0x550990.
-struct Scan505820
-{
-    std::int32_t dword743a178 = 0;
-    std::uint8_t byte743a17c = 0;
 };
 
 // 0x54ee00 (cdecl, devuelve un float): con max = byte +0x2d de Item.bmd, más 1 por cada uno de los
@@ -90,10 +84,10 @@ struct Scan505820
 [[nodiscard]] Core::Expected<void, std::string> UpdateOwnWord60(OwnCharacterRecord& own,
                                                                 const Data::Tables::ItemTable* items);
 
-// 0x550990 (0x5512ac): +0x62 por la clase y la agilidad, los lugares 1 a 7, lo de 0x505820, la lista
-// (0x40d690, 0x40d7f0 dos veces y, con un tipo de 0xc00 a 0xdff en el lugar 1, 0x40d730) y las opciones
-// 0x96 del lugar 8 y de Cape of Lord. Con un lugar con durabilidad y el tipo −1 lee fuera de Item.bmd,
-// como Q-C184: error.
+// 0x550990 (0x5512ac): +0x62 por la clase y la agilidad, los lugares 1 a 7, lo que dejó 0x505820
+// (Scenes/FullSetScan.h), la lista (0x40d690, 0x40d7f0 dos veces y, con un tipo de 0xc00 a 0xdff en el
+// lugar 1, 0x40d730) y las opciones 0x96 del lugar 8 y de Cape of Lord. Con un lugar con durabilidad y el
+// tipo −1 lee fuera de Item.bmd, como Q-C184: error.
 [[nodiscard]] Core::Expected<void, std::string> UpdateOwnWord62(OwnCharacterRecord& own,
                                                                 const Data::Tables::ItemTable* items,
                                                                 const Scan505820& scan, ItemSetOptionList* setOptions);

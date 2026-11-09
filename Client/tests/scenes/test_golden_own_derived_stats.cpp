@@ -156,8 +156,8 @@ TEST_F(GoldenOwnDerivedStats, TheBonusesOfARealEquipment)
 // pares (2, 15) y (1, 15), y con +0x3c en 4 está completo: (0x13, 20) y (0x0c, 30), y el +0x358 del héroe
 // en 1. 0x40da20 suma 15 a +0x2c (0x8d) y 15 a +0x30 (0x8e); 0x13 y 0x0c no son de ningún WORD de
 // 0x550d10. La armadura con valor 1 suma 5 a +0x2e (el +0x44 de Item.bmd es 4). Sin marcas de clase, da
-// lo mismo en todas las clases, con y sin evolución. Corta en 0x550990, sin lo de 0x505820, con el
-// registro abierto por quien llama: ningún rand().
+// lo mismo en todas las clases, con y sin evolución. Corta en 0x550990, sin saber qué dejó 0x505820
+// (scan505820 en nullopt), con el registro abierto por quien llama: ningún rand().
 TEST_F(GoldenOwnDerivedStats, TheRealHyperionSetUntil0x550990)
 {
     const auto items = LoadItems();

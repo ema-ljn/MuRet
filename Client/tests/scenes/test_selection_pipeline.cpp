@@ -6,13 +6,16 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Data/Models/PlayerModels.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/Character/CharacterDelete.h"
+#include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/CharacterSelectScene.h"
 #include "Scenes/CharacterSlots.h"
+#include "Scenes/FullSetScan.h"
 #include "Scenes/GameData.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoginModels.h"
@@ -33,6 +36,7 @@
 #include "support/CharacterPackets.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
+#include "support/PlayerActors.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
@@ -450,5 +454,28 @@ TEST_F(SelectionPipelineTest, MixedWorldFailureBeforeCharacterPreventsTheCharact
     EXPECT_FALSE(m_state.HasReceivedList());
     EXPECT_FALSE(m_online.session.Characters().has_value());
     EXPECT_TRUE(m_target.frames.empty());
+}
+
+// 0x50ba30 con cada personaje de la lista, en 0x50c91e, una vez por frame del original: el dibujo de la
+// selección deja en WorldRuntime::fullSetScan lo de 0x505820 con el último, aunque MuRet no supiera qué
+// había (06, "El conjunto completo de 0x505820"). Uno sin equipo lleva las partes de la clase, que no son un
+// conjunto: [0x743a178] en 0 y [0x743a17c] en 1. Sin las acciones de Player.bmd sale antes (0x50ba87).
+TEST_F(SelectionPipelineTest, TheSelectionDrawingLeavesTheScanOfTheLastCharacter)
+{
+    m_world.Runtime().fullSetScan = std::nullopt;
+    ASSERT_NO_FATAL_FAILURE(StartSelect());
+    ASSERT_NO_FATAL_FAILURE(ReceiveList({CharacterEntryFields{.slot = 0}}));
+    m_manager->Step(Client::Input::InputState{});
+    m_manager->Render(0.0f);
+    EXPECT_FALSE(m_world.Runtime().fullSetScan.has_value());
+
+    // Un frame del original más: el del dibujo sin el esqueleto se perdió.
+    m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
+    m_online.clock.Advance(Client::Render::Models::OriginalFrameTime);
+    m_manager->Render(0.0f);
+
+    ASSERT_TRUE(m_world.Runtime().fullSetScan.has_value());
+    EXPECT_EQ(m_world.Runtime().fullSetScan->dword743a178, 0);
+    EXPECT_EQ(m_world.Runtime().fullSetScan->byte743a17c, 1);
 }
 } // namespace

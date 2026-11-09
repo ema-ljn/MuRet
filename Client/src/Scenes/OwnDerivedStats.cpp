@@ -4,6 +4,7 @@
 #include "Data/Tables/ItemTable.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Scenes/FullSetScan.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -120,8 +121,9 @@ Core::Expected<void, std::string> RunOwnStatHelpersAndTail(OwnCharacterRecord& o
     if (!context.scan505820)
     {
         return Core::Unexpected(
-            std::string("0x550d10 (0x5512ac): 0x550990 lee [0x743a17c] y [0x743a178], que deja 0x505820 "
-                        "(también desde el dibujo de los personajes, 0x50c91e), sin portar"));
+            std::string("0x550d10 (0x5512ac): 0x550990 lee [0x743a17c] y [0x743a178], y MuRet no sabe qué dejó el "
+                        "último 0x505820: después corrió un dibujo de los personajes que no porta (0x510d00 → "
+                        "0x50ba30, en 0x50c91e)"));
     }
     if (auto done = UpdateOwnWord62(own, context.items, *context.scan505820, &setOptions); !done.HasValue())
     {

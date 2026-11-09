@@ -1,9 +1,11 @@
 #pragma once
 
 #include "GameLogic/MovementSpeed.h"
+#include "Scenes/FullSetScan.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 // Los globales en claro que sobreviven a los cambios de escena: el mundo en curso, el estado compartido
 // de la velocidad y lo que hace falta para la espera de la entrada al mundo (06, "La entrada al mundo",
@@ -52,6 +54,12 @@ struct WorldRuntime
     // DAT_0743a170, el héroe publicado, como lugar del pool: WinMain lo deja en el 0 (0x4bafdf) y la
     // respuesta del F3 03 lo pasa al de heroSlot recién después de vestirlo con 0x512a30 (0x4c4725).
     std::size_t hero = 0;
+    // [0x743a178] y [0x743a17c], lo que dejó el último 0x505820 (06, "El conjunto completo de 0x505820"): en
+    // la .bss, 0 al arrancar. Lo escriben 0x512a30 con el héroe publicado y el dibujo de los personajes
+    // (0x50ba30 en 0x50c91e), el del login y el de la selección (ScanTheDrawnCharacter). nullopt después de un
+    // frame del juego que llega a los personajes (0x6374dd → 0x510d00), que MuRet no dibuja: no se sabe qué
+    // dejó, y 0x550990 corta con error si lo lee.
+    std::optional<Scan505820> fullSetScan = Scan505820{};
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

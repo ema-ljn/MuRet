@@ -140,7 +140,9 @@ void CopyTheIdentity(const Protocol::Character::CharacterSelectResult& reply, co
     hero.byte88 = 1;
 }
 
-// 0x4c4712: 0x512a30 con el héroe publicado de antes (0x743a170 cambia recién en 0x4c4725).
+// 0x4c4712: 0x512a30 con el héroe publicado de antes (0x743a170 cambia recién en 0x4c4725). Si el lugar del
+// héroe es el del publicado, 0x505820 corre ahí; si no, 0x550990 lee lo que dejó el último dibujo de los
+// personajes, el de la selección.
 Core::Expected<void, std::string> DressTheHero(const WorldEntryResources& resources,
                                                const Render::Models::Skeleton& player, WorldEntryResult& result)
 {
@@ -148,6 +150,7 @@ Core::Expected<void, std::string> DressTheHero(const WorldEntryResources& resour
     const ActorEquipmentContext equipment{.own = world.OwnCharacter(),
                                           .ownRecordAccesses = world.Runtime().ownRecordDepth,
                                           .publishedHero = world.Actors()[world.Runtime().hero],
+                                          .fullSetScan = world.Runtime().fullSetScan,
                                           .stop = StopContextOf(resources, player),
                                           .itemSetTables = resources.itemSetTables,
                                           .itemSets = &world.ItemSets()};

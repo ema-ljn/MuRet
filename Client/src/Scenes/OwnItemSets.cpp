@@ -2,7 +2,6 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemSetTables.h"
-#include "Data/Tables/ItemTable.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/ItemSetOptionList.h"

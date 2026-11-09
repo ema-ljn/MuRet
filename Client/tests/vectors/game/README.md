@@ -102,3 +102,21 @@ reemplaza el archivo de salida solo cuando el texto completo está listo. No mod
 ni `camera.txt`. Generado y regenerado byte a byte con Python 3.14.4, Unicorn 2.1.4 y pefile
 2024.8.26: 403 casos, 405 renglones, 67.324 bytes. SHA-256 de `inverse_rotation.txt`:
 `91f093559d176dc353398df9f0c02e7fb2e1a27781c23c7a77af422909c00ad5`.
+
+## Los objetos de Devias en la memoria del original: `devias_object_lists.txt`
+
+No sale de un emulador: es un resumen numérico de la memoria del `main.exe` original, leída dos veces
+(las dos iguales) en la VM del 2026-11-09, con el personaje en Devias (mapa 2) y la escena 5 (P-C37
+de [08](../../../docs/research/08-pendientes.md)). La captura está en la rama
+`research/cl7-capturas-vmxp-20261109` del repo de research, en
+`client-research/analysis/mainexe/evidence/cl7-vmxp-2026-11-09/`; acá va solo el resumen, sin
+volcados. Lo compara `world/test_golden_devias_world_objects.cpp` con lo que MuRet crea de
+`World3\EncTerrain3.obj`.
+
+Los renglones que empiezan con `#` son comentarios. Cada uno de los demás es una de las 256 listas de
+`0x7d325d0` que tiene nodos: el número de la lista (sector x · 16 + sector y) y, en el orden de la
+lista, el índice en el archivo del registro de cada nodo. Los dos nodos que no salen del archivo, el
+primero de las listas 176 y 177, van con su tipo en hexadecimal (`0x201` y `0x202`): los crea
+`0x616ec0` al cargar el mapa 2. El 492 y el 493, con la y en NaN, están en la lista 32 (Q-C186 de
+[07](../../../docs/research/07-quirks-y-bugs.md)). 218 renglones; SHA-256 de `devias_object_lists.txt`:
+`d94f3ea8b57ee2f1e14a5748900be20a3fb4aee29695332619b1ba2c650dc6ac`.

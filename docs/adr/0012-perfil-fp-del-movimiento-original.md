@@ -104,9 +104,10 @@ lifetime y la ampliación de tests de esta entrega no resuelven ese defecto num�
 El backend compatible y su contraste independiente siguen abiertos; el PR conserva draft.
 No se incorporaron bytes ejecutables, registros ni volcados para documentar esta diferencia.
 
-El candidato de [ADR0014](0014-perfil-matematico-retenido.md) conserva phi64 hasta el producto
-R53 y corrige R5-22 en el corpus acotado; documenta dependencia, discrepancias de seno y gates
-pendientes. No amplía las garantías de este perfil ni acredita por sí solo los callers de gameplay.
+[ADR0014](0014-perfil-matematico-retenido.md) conserva phi64 hasta el producto R53 y corrige
+R5-22 en el corpus acotado; documenta su aritmética propia, las discrepancias de seno, la
+divergencia aceptada frente a FPATAN y los gates pendientes. No amplía las garantías de este
+perfil ni acredita por sí solo los callers de gameplay.
 
 P-C32 permanece abierto para la equivalencia de una sesión real: faltan CW, status, TOP/tags,
 constantes runtime y dominio representativo en sus callsites de XP. Los snapshots y registros

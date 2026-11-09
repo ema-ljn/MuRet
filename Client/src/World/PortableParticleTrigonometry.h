@@ -5,7 +5,8 @@
 
 namespace Client::World
 {
-// Perfil fijo limitado: Boost sin/cos113 → retenido64 → producto PC53 exacto en double.
+// Perfil fijo limitado (ADR0014): sin/cos con la aritmética binaria propia de OriginalRetainedMath
+// (error < 2^-250) → retenido64 RN → producto PC53 exacto en double.
 // Admite argumentos finitos |a| < 2^63 y factores f32 finitos positivos.
 // No acredita igualdad FSIN/FCOS y no se instala en gameplay.
 class PortableParticleTrigonometry final : public IParticleTrigonometry

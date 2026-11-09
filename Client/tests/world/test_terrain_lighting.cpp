@@ -9,6 +9,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <array>
 #include <bit>
 #include <cmath>
 #include <cstddef>
@@ -116,6 +117,45 @@ TEST(TerrainLightingTest, MapThirtyShadesBrighter)
     const auto lighting = ShadeTerrainLight(*EvenLight(), *heights, BrightShadingMap);
     const float expected = (-0.5f * std::sqrt(0.5f)) + std::sqrt(0.5f) + 0.5f;
     EXPECT_NEAR(ShadeAt(*lighting, 10, 20), expected, Rounding);
+}
+
+// Un terreno en 0 salvo las tres alturas que usa la celda (10, 20): las de (11, 20), (11, 21) y (10, 21).
+std::unique_ptr<TerrainHeights> CornersOfTenTwenty(float right, float topRight, float top)
+{
+    return HeightsOf(
+        [right, topRight, top](std::size_t x, std::size_t y)
+        {
+            if (x == 11 && y == 20)
+            {
+                return right;
+            }
+            if (x == 11 && y == 21)
+            {
+                return topRight;
+            }
+            return x == 10 && y == 21 ? top : 0.0f;
+        });
+}
+
+std::array<std::uint32_t, 3> BitsOf(const TerrainLightColor& light)
+{
+    return {std::bit_cast<std::uint32_t>(light[0]), std::bit_cast<std::uint32_t>(light[1]),
+            std::bit_cast<std::uint32_t>(light[2])};
+}
+
+// Los bits del perfil del ASM (Client/docs/research/scripts/game/maps/terrain_light.py): la normal de
+// 0x5fd000, la sombra de 0x5f8d90 en su orden y en 53 bits, y cada producto redondeado a 53 bits y
+// después a float. Con la normal en float (glm::cross y glm::length), con la sombra en float, o con la
+// sombra guardada en float antes de los productos, los tres canales darían otros bits; en el mapa 0,
+// 0x3ee01e7a, 0x3ea816dc y 0x3e601e7a.
+TEST(TerrainLightingTest, AShadedCellKeepsTheBitsOfTheAsmProfile)
+{
+    const auto lighting = ShadeTerrainLight(*EvenLight(), *CornersOfTenTwenty(345.0f, 279.0f, 256.5f), Lorencia);
+    EXPECT_EQ(BitsOf(lighting->cells[CellIndex(10, 20)]),
+              (std::array<std::uint32_t, 3>{0x3ee01e79U, 0x3ea816dbU, 0x3e601e79U}));
+    const auto bright = ShadeTerrainLight(*EvenLight(), *CornersOfTenTwenty(381.0f, 247.5f, 219.0f), BrightShadingMap);
+    EXPECT_EQ(BitsOf(bright->cells[CellIndex(10, 20)]),
+              (std::array<std::uint32_t, 3>{0x3e326fd9U, 0x3e05d3e3U, 0x3db26fd9U}));
 }
 
 // La columna 255 busca la altura de la x + 1 en un byte, la 0, pero la posición sigue en 25.600: con

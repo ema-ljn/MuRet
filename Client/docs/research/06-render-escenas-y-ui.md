@@ -1300,6 +1300,23 @@ objetos como el logo (`0x5ffce0`). *Estático*, leído en la CL6.4.
   con n.x · 0,5 − 0,5 · n.y + 0,5 · n.z + 0,5, de 0 a 1 (en el mapa 30, −1 y 1 en vez de −0,5 y
   0,5). En un terreno plano la sombra es 1: la zona de la traza de Lorencia es plana, así que no
   distingue esta luz de la del OZJ (*inferido* qué tabla lee el terreno).
+- **Bit a bit** (*estático*, el ASM de `0x5f8b10`, `0x5fd000` y `0x5f8d90`; `World::FaceNormal` y
+  `World::ShadeTerrainLight` desde la CL7). `0x5fd000` es la misma rutina que la del picking
+  ([Caminar](#caminar), el rayo contra el terreno): uy, uz, vz, nz y el largo quedan en el registro, y
+  vy, nx, vx, ux y ny pasan por un float de la pila. Los anchos son 100, así que nz vale 10.000 y el
+  largo nunca es 0. `0x5f8d90` hace (b · n.z + a · n.y) + n.x · 0,5 y después + 0,5 en el registro,
+  da 0 si queda menor que 0 o NaN (`FCOM`, `C0`) y 1 si pasa de 1, y con la sombra todavía en el
+  registro hace `FMUL` float y `FSTP` float en cada canal. Con PC53 (la CW `0x027f` que se observó en
+  el hilo de main, [La cámara del juego](#la-cámara-del-juego)), cada canal se redondea a 53 bits y
+  después a float, y la sombra nunca pasa por float. MuRet usa ese perfil; no fija la CW dentro de
+  estas funciones. Con la normal y la sombra en float, como hasta la CL7, cambian 5.682 celdas de
+  Lorencia y 14.628 de Devias.
+- **Los volcados** de `0x78ecc10` (`lor_light.bin` y `s31_light.bin`, P-C15 e) son la luz **sin
+  sombrear**, la que `0x5f8d90` lee: dan los bits del OZJ en las 65.536 celdas de los dos mapas, y
+  difieren de la sombreada en 14.736 celdas de Lorencia y 29.446 de Devias, las que tienen pendiente
+  y luz. La sombreada (`0x7c0ccc4`) no se volcó. Los bits de `GoldenTerrainLighting` salen de un cálculo
+  aparte del mismo ASM, [`scripts/game/maps/terrain_light.py`](scripts/game/maps/terrain_light.py), no
+  del original.
 - **En cada paso** (`0x5fbf60`, desde la lógica del login, de la selección y del juego, en
   `0x636de8`): copia `0x7c0ccc4` a `0x7b4ccc4` en las celdas de la ventana que se ve (`0x7d2d364`
   a `0x6c9d68` + 3 en x, `0x7d2d368` a `0x6c9d6c` + 3 en y), donde después se suman las luces

@@ -29,12 +29,14 @@ struct TerrainLighting
 };
 
 // 0x5f8b10 y 0x5f8d90, al cargar un mundo (0x5f8f40):
-//   - la normal de cada celda (x, y) es la del triángulo (x + 1, y), (x + 1, y + 1), (x, y + 1), con
-//     las celdas a 100 unidades y las alturas de `heights`: (p2 − p1) × (p3 − p1), normalizada. Las
+//   - la normal de cada celda (x, y) es la de 0x5fd000 (World::FaceNormal) con el triángulo (x + 1, y),
+//     (x + 1, y + 1), (x, y + 1), con las celdas a 100 unidades y las alturas de `heights`. Las
 //     alturas se buscan con x + 1 e y + 1 en un byte (la columna 255 toma la altura de la 0, y la fila
 //     255 la de la 0), y las posiciones no;
-//   - la sombra es n.x · 0,5 + a · n.y + b · n.z + 0,5, con a = −0,5 y b = 0,5 (−1 y 1 en el mapa 30),
-//     de 0 a 1, y multiplica cada canal de la luz.
+//   - la sombra es (b · n.z + a · n.y) + n.x · 0,5 + 0,5, con a = −0,5 y b = 0,5 (−1 y 1 en el mapa
+//     30), de 0 a 1, y multiplica cada canal de la luz.
+// Perfil PC53/nearest del ASM y sin FMA, como el picking: la sombra queda en 53 bits hasta cada
+// producto, y sólo el producto se guarda en float. No fija la CW del original.
 // `map` es el número del mapa (el de SceneWorld), no el de su carpeta.
 [[nodiscard]] std::unique_ptr<TerrainLighting> ShadeTerrainLight(const Data::Terrain::TerrainLight& light,
                                                                  const Data::Terrain::TerrainHeights& heights,

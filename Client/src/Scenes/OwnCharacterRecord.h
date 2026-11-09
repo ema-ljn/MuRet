@@ -84,6 +84,7 @@ struct OwnCharacterRecord
     std::uint16_t bp = 0;    // +0x38
     std::uint16_t maxBp = 0; // +0x3a
     // +0x3c: los bits del ajuste que 0x4bee60 aplica a las velocidades del keepalive (04, el 0E).
+    // 0x54fe10 suma 20 a las velocidades con el 0x01 o el 0x08, y prende o apaga el 0x04.
     std::uint8_t speedAdjustBits = 0;
     // +0x3e, +0x40 y +0x42: la respuesta los pone en 0; qué son no está acreditado.
     std::uint16_t word3e = 0;
@@ -94,10 +95,22 @@ struct OwnCharacterRecord
     // +0x48 y +0x4a: los de Q-C144; qué son no está acreditado.
     std::uint16_t word48 = 0;
     std::uint16_t word4a = 0;
-    // +0x4e, +0x60 y +0x62: los lee la cola de 0x550d10; los escriben sus ocho helpers, sin leer.
+    // +0x4c a +0x66: los escriben los ocho helpers de 0x550d10 (06, "Los ocho helpers de los stats
+    // propios"). +0x4c y +0x58 son las velocidades que manda el keepalive (04, el 0E); qué son los otros
+    // no está acreditado. La cola de 0x550d10 lee +0x4e, +0x60 y +0x62.
+    std::uint16_t attackSpeed = 0; // +0x4c
     std::uint16_t word4e = 0;
+    std::uint16_t word50 = 0;
+    std::uint16_t word52 = 0;
+    std::uint16_t word54 = 0;
+    std::uint16_t word56 = 0;
+    std::uint16_t magicSpeed = 0; // +0x58
+    std::uint16_t word5a = 0;
+    std::uint16_t word5c = 0;
     std::uint16_t word60 = 0;
     std::uint16_t word62 = 0;
+    std::uint16_t word64 = 0;
+    std::uint16_t word66 = 0;
     std::uint16_t levelUpPoints = 0; // +0x68
 
     std::array<World::ItemState, OwnEquipmentSlotCount> equipment{}; // +0xb68
@@ -105,8 +118,9 @@ struct OwnCharacterRecord
     // [0x7681eb4] + 0xecc: desde el login, el mismo bloque que [0x7681eb0] (0x4bafc9).
     std::uint32_t zen = 0;
 
-    // +0xee2 a +0xf03, la cola de 0x550d10 (0x5512bf..0x5513b1): lee los primeros siete, que escriben
-    // sus ocho helpers, y escribe los otros. Qué son no está acreditado.
+    // +0xee2 a +0xf03, la cola de 0x550d10 (0x5512bf..0x5513b1): lee los primeros siete y escribe los
+    // otros. Los ocho helpers de antes no escriben esos siete; quién, sin leer (08, P-C38). Qué son no
+    // está acreditado.
     std::uint16_t wordee2 = 0;
     std::uint16_t wordee4 = 0;
     std::uint16_t wordee6 = 0;
@@ -114,6 +128,9 @@ struct OwnCharacterRecord
     std::uint16_t wordeec = 0;
     std::uint16_t wordef0 = 0;
     std::uint16_t wordef2 = 0;
+    // +0xef4: 0x54f9b0 le suma 0x40d690 sin ponerlo antes en 0, lo suma a +0x5a y +0x5c, y lo deja con
+    // lo de 0x40d7f0.
+    std::uint16_t wordef4 = 0;
     std::uint16_t wordef8 = 0;
     std::uint16_t wordefa = 0;
     std::uint16_t wordefc = 0;

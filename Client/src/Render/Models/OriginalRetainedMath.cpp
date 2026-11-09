@@ -358,7 +358,7 @@ void NegateInteger(std::span<std::uint32_t> limbs)
     std::uint64_t carry = 1;
     for (std::uint32_t& limb : limbs)
     {
-        const std::uint64_t sum = std::uint64_t{~limb} + carry;
+        const std::uint64_t sum = std::uint64_t{std::numeric_limits<std::uint32_t>::max() - limb} + carry;
         limb = static_cast<std::uint32_t>(sum);
         carry = sum >> LimbBits;
     }

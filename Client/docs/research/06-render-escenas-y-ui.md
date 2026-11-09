@@ -3179,7 +3179,7 @@ los casos de las escenas 2 y 4 (el farol):
 | `0x85` (`PoseBox01`) | en la misma lista, con la caja hasta (40, 40, 160) y oculto desde que nace (`+0x58 = −2`) |
 | `0x34` (`Bonfire01`) | el blendMesh (`+0x64`) en 1 |
 | `0x3b` (`TreasureChest01`) | la velocidad en 0 |
-| `0x50` (`Bridge01`) | `+0xdc = −50` (*inferido*: un margen del frustum) |
+| `0x50` (`Bridge01`) | `+0xdc = −50` (*inferido*: un margen del frustum; abajo, y P-C35) |
 | `0x5a`, `0x96` (`StreetLight01`, `Candle01`) | el blendMesh en 1 y la velocidad en 0,3 |
 | `0x60`, `0x61` (`Sign01`, `Sign02`) | la velocidad en 0,3 |
 | `0x62`, `0x77` (`Carriage01`, `House05`) | el blendMesh en 2 |
@@ -3188,6 +3188,14 @@ los casos de las escenas 2 y 4 (el farol):
 | `0x76` (`House04`) | el blendMesh en 8 |
 
 Los demás tipos van con lo de siempre (la velocidad 0,16).
+
+**Bridge01 sigue *inferido*** (2026-11-09). PR150 lo implementa como margen individual de recorte,
+y `WorldObjectsTest.TheBridgeCullingMarginDependsOnItsMapNotItsScene`
+(`Client/tests/world/test_world_objects.cpp`) lo fija como un hecho: el −50 en `+0xdc` sólo para el
+`0x50` del mapa 0, y `+0xdc` como el margen de cada objeto en el recorte. Ese test fija una
+inferencia, no una lectura. Falta la lectura estática: el store que el test atribuye a `0x6069bd` y
+el uso de `+0xdc` en el recorte de objetos de `0x6046a0` en la escena 5 (P-C35 en
+[08](08-pendientes.md)). Hasta entonces, la fila no se promueve.
 
 El port de creación ofrece una ruta con `WorldObjectRegistrations` **preexistente del caller**:
 200 entradas, primer flag cero, store de activo 1 y luego identidad, preservando metadata; acepta

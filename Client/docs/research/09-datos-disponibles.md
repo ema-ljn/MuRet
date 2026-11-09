@@ -20,7 +20,7 @@ Los tests golden no los piden.
 | Decompilado de `main.exe` | qué archivo carga cada función y en qué slot o índice | `client-research/mainexe-vmxp-c32bbd5f/decompiled/` |
 | GameServer reconstruido | el código fuente del servidor original, en C++ de VC6 | `gameserver/src/reconstructed/win32-vc6/` del repo de research |
 | Datos del servidor en uso | 10 archivos de su `data`: `MonsterSetBase.txt`, `gate.txt`, `item` y `skill`, `commonserver.cfg` | `client-research/mu-golden/servidor-en-uso-vm2003/` |
-| Memoria del cliente vivo | la tabla de 1.845 slots de textura, terreno, luz, atributos y objetos de Lorencia y Devias | `client-research/mu-golden/memoria-cliente/` |
+| Memoria del cliente vivo | de Lorencia, la tabla de 1.845 slots de textura, el terreno, la luz, los atributos y, en otra lectura, los 2.870 objetos; de Devias, las tablas, el terreno, la luz y los atributos, **sin objetos** ([abajo](#los-volcados-de-memoria-de-cada-mapa)) | `client-research/mu-golden/memoria-cliente/` |
 | Trazas de GL y sesión del cable | 5 frames de la selección y 5 de Lorencia; 3,5 minutos de juego ([04](04-protocolo.md), [06](06-render-escenas-y-ui.md)) | PR #45 del laboratorio; las de GL, en la máquina de Emanuel, en `analisis-mu-baires/lab-capture/sessions/graphics-01` (la carpeta de `MURET_CLIENT_GL_TRACE_DIR`) |
 
 ## El `Data\` del cliente, contra lo que pide `main.exe`
@@ -132,6 +132,26 @@ está en estas funciones, con índices literales:
 | Texturas de cada modelo | `0x60d5f0` | la carpeta de donde salen las texturas de sus mallas |
 | Música | `0x4acf60`, `0x4acfd0` | una tabla de punteros a `data\music\*.mp3` |
 
+## Los volcados de memoria de cada mapa
+
+**Verificado el 2026-11-09**, contra los archivos y los `SHA256SUMS` de cada carpeta de
+`client-research/mu-golden/memoria-cliente/` y el README de `mu-golden`. Este documento decía que había
+objetos de Lorencia y de Devias: de Devias no hay.
+
+| Carpeta | Mapa | Qué tiene |
+| --- | --- | --- |
+| `2026-10-09-lorencia/` | 0 (`World1`), en la celda (136, 130) | el terreno, la luz, los atributos, la tabla de slots de textura (`lor_slots.bin`) y buffers de textura (`lor_*`, `lor2_*`) |
+| `2026-10-09-lorencia-obj/` | 0, en la escena 5 y la celda (186, 121) | los objetos: el contador, las 256 cabeceras de bloque, la tabla de `0x606630` y las 256 listas, con 2.870 nodos de `0x1D4` bytes (`obj_*`) |
+| `2026-10-09-devias/` | 2 (`World3`) | sólo `s31_*`: `alpha`, `att`, `bmphdr`, `gate`, `guard`, `height`, `item`, `l2l1`, `light`, `skill_live3` y `text`, más tres logs. **Ningún `obj_*`**, y tampoco los slots de textura |
+
+Los objetos se leyeron con `s31mem.exe` (lectura pasiva, con la directiva `list`) y el
+`spec-lectura-obj.txt` de esa carpeta. Sus direcciones son fijas de `main.exe` (`0x6C9DD0`, `0x6D5DC8`,
+`0x07D36598`, `0x07D325D0` y `0x07D34818`), las mismas que nombra el desensamblado
+([06](06-render-escenas-y-ui.md): las 256 listas en `0x7d325d0`, la tabla de `0x7d34818`), y no dependen
+del mapa: el mismo spec sirve en Devias. Los tests ya lo decían así (`DeviasCapture` y
+`LorenciaObjectsCapture`, en `Client/tests/support/GoldenDir.h`). El volcado de los objetos de Devias es
+una captura nativa pendiente (P-C37 en [08](08-pendientes.md); [abajo](#qué-pedir-en-la-próxima-captura)).
+
 ## Las texturas de las trazas ya tienen archivo
 
 **Verificado.** El volcado `lor_slots.bin` de `mu-golden` (la tabla de texturas en `0x7d3a198`,
@@ -199,6 +219,9 @@ Los archivos que faltan ya no se piden (se dan por faltantes, arriba).
    hora de cada frame.
 2. Una sesión con combate, skills, items y ventanas abiertas, con la hora de cada acción, para
    verificar los handlers de CL9 contra el código del servidor.
+3. Los objetos de Devias: con el personaje en el mapa 2 y en la escena 5, `s31mem.exe` con el mismo
+   `spec-lectura-obj.txt` de `2026-10-09-lorencia-obj/` ([arriba](#los-volcados-de-memoria-de-cada-mapa),
+   P-C37 en [08](08-pendientes.md)). Devias es el segundo mapa de referencia de la CL7.
 
 ## Cómo se verificó
 

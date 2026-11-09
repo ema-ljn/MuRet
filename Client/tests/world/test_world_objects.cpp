@@ -71,6 +71,7 @@ TEST(WorldObjectsTest, TheWhirlpoolsKeepTheSectorOfTheFile)
     EXPECT_EQ(Client::World::SectorY(whirlpool.front()), 0);
 }
 
+// Fija una inferencia: 06 da +0xdc = -50 de Bridge01 como *inferido*; falta su lectura estática (P-C35 del 08).
 // 0x6067ae inicializa +0xdc a c1f00000; solo 0x6069bd (mapa 0, Bridge01) pone c2480000.
 // La rama del mapa corre después de los casos de escena, también fuera del juego.
 TEST(WorldObjectsTest, TheBridgeCullingMarginDependsOnItsMapNotItsScene)

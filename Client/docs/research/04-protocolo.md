@@ -24,6 +24,10 @@ de casos):
   `obj->Method()` (`0x65fe50`). El juego enruta opcodes a sistemas.
 - El cuarto argumento (`flag`) lo pasa FoxAnti; algunos handlers (0x19, 0x29, 0x1E, 0x73, 0x30,
   0x36, 0x1C) solo responden si vale 0 (*inferido*: "no interceptado").
+  **Contradicción abierta para el `0x1C`:** [Los cambios de
+  mapa](#los-cambios-de-mapa-1c-f3-04-y-f3-12) dice lo contrario, que con el argumento en 0 no lo
+  atiende y manda `F1 03`. Las dos son *inferidas* y no se elige ninguna: se resuelve contra el ASM
+  antes de que el hito 2 admita el `1C` (P-C33 en [08](08-pendientes.md)).
 
 Verificado: los 25 opcodes que aparecen en el cable real tienen handler propio en el nivel 1
 (`s35-red/README.md`). La **semántica** de cada handler es *estática* o *inferida*: está en la
@@ -490,10 +494,14 @@ sin guardar floats intermedios. El helper `0x69fd3c` guarda la CW, fuerza RC=11 
 Así se confirma truncamiento a entero de 64 bits en la ruta completada, sin atribuir al
 original las validaciones de NaN o fuera de rango de la API de MuRet. El helper conserva PC;
 la precisión de las operaciones anteriores depende de la CW heredada. Una muestra nativa
-del hilo de MU observó `0x027f` (PC53, nearest), con EIP `0x7c90e4f4`, **fuera de SendMove**.
+del hilo de MU observó `0x027f`: PC53, nearest y las seis excepciones de la x87 enmascaradas
+(bits 0 a 5). Se tomó con EIP `0x7c90e4f4`, en `ntdll` de XP (*inferido* por la dirección): el
+hilo estaba esperando, **fuera de SendMove** y de cualquier cálculo. No dice qué CW hay adentro
+de esta rama.
 El cálculo double del port es conforme bajo PC53/nearest; falta comprobar la CW en esa rama
-para cerrar la equivalencia nativa incondicional. Los tests del dominio double están
-identificados como contrato numérico del port, y no como ejecuciones del original.
+para cerrar la equivalencia nativa incondicional (P-C34 en [08](08-pendientes.md)). Los tests
+del dominio double están identificados como contrato numérico del port, y no como ejecuciones
+del original.
 
 **El `D7` del cliente, pegar** (`0x5650c0`, el opcode en `0x565a79`; *verificado* en el cable): `C1
 07 D7 idH idL 78 dir`. Antes de pegar, `0x5650c0` manda un `D3` con `PathNum` 1 para girar (`A3 X Y
@@ -527,7 +535,9 @@ como posición y dirección: lo de caminar es solo esa parada.
   `PMSG_TELEPORT_RESULT` del servidor (`GCTeleportSend`). `pkt[3]` es el gate (0, la habilidad
   teleport en el mismo mapa), `pkt[4]` el mapa, `pkt[5..6]` la celda y `pkt[7]` la dirección. Con el
   cuarto argumento del dispatcher en 0 no lo atiende y manda `C1 06 F1 03 00 1C` en C3 (*inferido*:
-  el aviso de FoxAnti).
+  el aviso de FoxAnti). **Contradicción abierta:** [el dispatcher](#el-dispatcher-0x4e2b10) dice
+  que el `0x1C` solo responde si ese argumento vale 0. No se elige ninguna de las dos: se resuelve
+  contra el ASM antes de que el hito 2 admita el `1C` (P-C33 en [08](08-pendientes.md)).
 - **El `1C` del cliente, pedir un gate** (`0x599ef0`): `C3 [C1 06 1C gate 00 00]`, con el XOR32
   adentro y el serial de `0x5767913`. No está en ningún cable: en la PCAP todos los cambios fueron
   por `/move` (P-C31 a).

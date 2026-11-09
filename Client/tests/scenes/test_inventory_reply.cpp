@@ -485,7 +485,7 @@ TEST_F(InventoryReplyTest, ALateWeaponReadsTheLevelOnlyWithTheRecordOpen)
             levelOption = top.OptionValue(option);
         }
     }
-    EXPECT_EQ(levelOption, std::optional<std::uint8_t>(200 / 20));
+    EXPECT_EQ(levelOption, std::optional<std::uint8_t>(static_cast<std::uint8_t>(200 / 20)));
     EXPECT_EQ(held.world.Runtime().ownRecordDepth, 1);
 }
 

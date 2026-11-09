@@ -164,8 +164,8 @@ TEST(TerrainLightingTest, TheLightAtAPointIsBetweenItsFourCells)
     EXPECT_NEAR(LightAt(*peak, 125.0f, 175.0f).x, 0.25f * 0.75f, Rounding);
 }
 
-// Fuera de las celdas 0 a 254 no hay luz. x · 0,01 se trunca: de −100 a 0 todavía es la celda 0, y
-// extrapola.
+// En la banda ordinaria, sin reducción low32: −100 exacto se rechaza; entre −100 y 0
+// la celda es 0 y extrapola.
 TEST(TerrainLightingTest, OutsideTheGridThereIsNoLight)
 {
     const auto lighting = LightingOf([](std::size_t x, std::size_t) { return 1.0f + static_cast<float>(x); });
@@ -176,6 +176,115 @@ TEST(TerrainLightingTest, OutsideTheGridThereIsNoLight)
     EXPECT_NEAR(LightAt(*lighting, 25499.0f, 500.0f).x, 255.99f, 1e-3f);
     EXPECT_NEAR(LightAt(*lighting, -50.0f, 500.0f).x, 0.5f, Rounding);
 }
+// Vectores analíticos del contrato 5f99e0 bajo el perfil portable enmascarado/PC53/RN,
+// con tabla estable: no son capturas nuevas del original ni fijan su CW efectivo.
+TEST(TerrainLightingTest, LargeFiniteCoordinatesUseSigned64Low32OnBothAxes)
+{
+    const auto lighting = LightingOf([](std::size_t x, std::size_t y)
+                                     { return 1.0f + static_cast<float>(x) + (2.0f * static_cast<float>(y)); });
+    // Tras el store F32, ±100·2^32 pasa a ±2^32: FTOL64 válido, low32=0.
+    constexpr float LargeCoordinate = 0x1.9p38f;
+    // Con V(x,y)=1+x+2·y, los pesos siguen siendo ±2^32, no su parte fraccionaria.
+    // En PC53 queda ±2^32+1 en X, ±2^33+1 en Y y ±3·2^32+1 en la diagonal;
+    // el store F32 pierde el +1 en los tres casos.
+    for (const float sign : {1.0f, -1.0f})
+    {
+        const float coordinate = sign * LargeCoordinate;
+        const glm::vec3 alongX = LightAt(*lighting, coordinate, 0.0f);
+        EXPECT_EQ(alongX, glm::vec3(sign * 0x1p32f, sign * 0x1p31f, 0.0f));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(alongX.z), 0U);
+        const glm::vec3 alongY = LightAt(*lighting, 0.0f, coordinate);
+        EXPECT_EQ(alongY, glm::vec3(sign * 0x1p33f, sign * 0x1p32f, 0.0f));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(alongY.z), 0U);
+        const glm::vec3 diagonal = LightAt(*lighting, coordinate, coordinate);
+        EXPECT_EQ(diagonal, glm::vec3(sign * 0x1.8p33f, sign * 0x1.8p32f, 0.0f));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(diagonal.z), 0U);
+    }
+}
+
+TEST(TerrainLightingTest, Signed64BoundaryCoordinatesContinueWithLow32Zero)
+{
+    const auto lighting = LightingOf([](std::size_t x, std::size_t y)
+                                     { return 1.0f + static_cast<float>(x) + (2.0f * static_cast<float>(y)); });
+    // El store da ±2^63: −2^63 es válido; +2^63 es invalid enmascarada. Ambos low32 son 0.
+    constexpr float BoundaryCoordinate = 0x1.9p69f;
+    // Con V(x,y)=1+x+2·y, X solo da ±2^63 y Y solo ±2^64 tras redondear.
+    // En la diagonal PC53 redondea L=±2^64+1 y R=±2^64+2 al mismo ±2^64:
+    // R−L=0, así que el resultado no es ±3·2^63. El verde es la mitad.
+    for (const float sign : {1.0f, -1.0f})
+    {
+        const float coordinate = sign * BoundaryCoordinate;
+        const glm::vec3 alongX = LightAt(*lighting, coordinate, 0.0f);
+        EXPECT_EQ(alongX, glm::vec3(sign * 0x1p63f, sign * 0x1p62f, 0.0f));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(alongX.z), 0U);
+        const glm::vec3 alongY = LightAt(*lighting, 0.0f, coordinate);
+        EXPECT_EQ(alongY, glm::vec3(sign * 0x1p64f, sign * 0x1p63f, 0.0f));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(alongY.z), 0U);
+        const glm::vec3 diagonal = LightAt(*lighting, coordinate, coordinate);
+        EXPECT_EQ(diagonal, glm::vec3(sign * 0x1p64f, sign * 0x1p63f, 0.0f));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(diagonal.z), 0U);
+    }
+}
+
+TEST(TerrainLightingTest, SignedLow32ChecksAcceptZeroAnd254AndRejectMinusOneAnd255)
+{
+    const auto lighting = LightingOf([](std::size_t, std::size_t) { return 1.0f; });
+    for (const float coordinate : {0.0f, 25400.0f})
+    {
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(LightAt(*lighting, coordinate, 0.0f).x), 0x3f800000U);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(LightAt(*lighting, 0.0f, coordinate).x), 0x3f800000U);
+    }
+    for (const float coordinate : {-100.0f, 25500.0f})
+    {
+        for (const glm::vec3 light : {LightAt(*lighting, coordinate, 0.0f), LightAt(*lighting, 0.0f, coordinate)})
+        {
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(light.x), 0U);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(light.y), 0U);
+            EXPECT_EQ(std::bit_cast<std::uint32_t>(light.z), 0U);
+        }
+    }
+}
+
+TEST(TerrainLightingTest, MaskedInvalidCoordinatesInterpolateInsteadOfReturningZero)
+{
+    const auto lighting = LightingOf([](std::size_t, std::size_t) { return 1.0f; });
+    for (const float coordinate : {std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity(),
+                                   -std::numeric_limits<float>::infinity()})
+    {
+        for (const glm::vec3 light : {LightAt(*lighting, coordinate, 0.0f), LightAt(*lighting, 0.0f, coordinate)})
+        {
+            // No se fija signo/payload de NaN: 0 por un peso no finito sigue hasta interpolar.
+            EXPECT_TRUE(std::isnan(light.x));
+            EXPECT_TRUE(std::isnan(light.y));
+            EXPECT_TRUE(std::isnan(light.z));
+        }
+        // El otro eje sí rechaza: low32=0 no saltea las cuatro guardas espaciales.
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(LightAt(*lighting, coordinate, -100.0f).x), 0U);
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(LightAt(*lighting, 25500.0f, coordinate).x), 0U);
+    }
+}
+
+TEST(TerrainLightingTest, BothScaledCoordinatesAreStoredAsFloatBeforeConversion)
+{
+    const auto lighting = LightingOf([](std::size_t x, std::size_t y) { return x == 1 && y == 1 ? 0.0f : 1.0f; });
+    // 100·K en double es menor que 1; el store F32 da 1 exacto en ambos ejes.
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(LightAt(*lighting, 100.0f, 100.0f).x), 0U);
+}
+
+TEST(TerrainLightingTest, Pc53ColumnsRetainTheBitUntilTheFinalFloatStore)
+{
+    auto lighting = std::make_unique<TerrainLighting>();
+    lighting->cells.fill({0.0f, 0.0f, 0.0f});
+    lighting->cells[CellIndex(0, 0)].fill(std::bit_cast<float>(0x3f000000U));
+    lighting->cells[CellIndex(0, 1)].fill(std::bit_cast<float>(0x3f000001U));
+    // X=1/4, Y=1/2; L=1/2+2^-25, R=0; store(3/8+3·2^-27) = 0x3ec00001.
+    // Redondear L a F32 antes de interpolar X perdería el bit: 0x3ec00000.
+    const glm::vec3 light = LightAt(*lighting, 25.0f, 50.0f);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(light.x), 0x3ec00001U);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(light.y), 0x3ec00001U);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(light.z), 0x3ec00001U);
+}
+
 // Sin la carpeta del mundo, el error nombra el primer archivo que falta, en la carpeta del mapa (el 55
 // es World56).
 TEST(TerrainLightingTest, LoadingAWorldWithoutItsFilesNamesWhatIsMissing)

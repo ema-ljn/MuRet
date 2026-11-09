@@ -6,6 +6,7 @@
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainLight.h"
 #include "Data/WorldFolder.h"
+#include "World/Ftol.h"
 #include "World/WorldFiles.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -30,7 +31,7 @@ namespace
 constexpr float CellSize = 100.0f;
 constexpr float CellsPerUnit = 0.01f;
 // La última celda que 0x5f99e0 acepta, en x y en y: la 254, porque toma la de al lado.
-constexpr int LastSampledCell = 254;
+constexpr std::int32_t LastSampledCell = 254;
 // La ventana RGB de 0x5fbf60 incluye las cuatro celdas del último bloque.
 constexpr std::int32_t LightWindowTail = 3;
 static_assert(std::numeric_limits<float>::is_iec559 && std::numeric_limits<float>::digits == 24);
@@ -214,15 +215,15 @@ glm::vec3 LightAt(const TerrainLighting& lighting, float x, float y)
 {
     const float cellX = x * CellsPerUnit;
     const float cellY = y * CellsPerUnit;
-    // __ftol trunca hacia el 0.
-    const int left = static_cast<int>(cellX);
-    const int bottom = static_cast<int>(cellY);
+    // Ambos stores F32 y conversiones FTOL64→low32 preceden a las guardas, en orden X/Y.
+    const std::int32_t left = FtolLow(static_cast<double>(cellX));
+    const std::int32_t bottom = FtolLow(static_cast<double>(cellY));
     if (left < 0 || bottom < 0 || left > LastSampledCell || bottom > LastSampledCell)
     {
         return glm::vec3(0.0f);
     }
-    const float alongY = cellY - static_cast<float>(bottom);
-    const float alongX = cellX - static_cast<float>(left);
+    const double alongX = static_cast<double>(cellX) - static_cast<double>(left);
+    const double alongY = static_cast<double>(cellY) - static_cast<double>(bottom);
     const Data::Terrain::TerrainLightColor& bottomLeft = CellLight(lighting, left, bottom);
     const Data::Terrain::TerrainLightColor& bottomRight = CellLight(lighting, left + 1, bottom);
     const Data::Terrain::TerrainLightColor& topLeft = CellLight(lighting, left, bottom + 1);
@@ -230,10 +231,15 @@ glm::vec3 LightAt(const TerrainLighting& lighting, float x, float y)
     Data::Terrain::TerrainLightColor light{};
     for (std::size_t channel = 0; channel < Data::Terrain::TerrainLightChannels; ++channel)
     {
-        // 0x5f99e0 interpola primero en y cada columna, y después entre las dos.
-        const float leftColumn = ((topLeft[channel] - bottomLeft[channel]) * alongY) + bottomLeft[channel];
-        const float rightColumn = ((topRight[channel] - bottomRight[channel]) * alongY) + bottomRight[channel];
-        light[channel] = ((rightColumn - leftColumn) * alongX) + leftColumn;
+        // 0x5f99e0: Y por columna y luego X, reteniendo pesos/columnas en PC53/RN.
+        // ClientLib ya desactiva FMA; sólo el resultado de cada canal vuelve a F32.
+        const double leftColumn =
+            ((static_cast<double>(topLeft[channel]) - static_cast<double>(bottomLeft[channel])) * alongY) +
+            static_cast<double>(bottomLeft[channel]);
+        const double rightColumn =
+            ((static_cast<double>(topRight[channel]) - static_cast<double>(bottomRight[channel])) * alongY) +
+            static_cast<double>(bottomRight[channel]);
+        light[channel] = static_cast<float>(((rightColumn - leftColumn) * alongX) + leftColumn);
     }
     return {light[0], light[1], light[2]};
 }

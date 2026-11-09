@@ -3,6 +3,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
+#include "World/Ftol.h"
 
 #include <cmath>
 #include <cstddef>
@@ -15,19 +16,6 @@ namespace
 constexpr float CellsPerUnit = 0.01f; // 0x6b86c0
 constexpr std::uint16_t FixedHeightBit = 0x40;
 constexpr int Side = 256;
-
-// 0x69fd3c (_ftol): truncar a 64 bits y quedarse con la parte baja; con un NaN o fuera de rango, 0. Recibe
-// lo que haya en la pila de la x87 (en 53 bits).
-std::int32_t Ftol(double value)
-{
-    constexpr double Limit = 9.2233720368547758e18;
-    if (std::isnan(value) || value >= Limit || value < -Limit)
-    {
-        return 0;
-    }
-    return static_cast<std::int32_t>(
-        static_cast<std::uint32_t>(static_cast<std::uint64_t>(static_cast<std::int64_t>(value))));
-}
 
 double At(const Data::Terrain::TerrainHeights& heights, int index)
 {
@@ -48,8 +36,8 @@ double TerrainHeightAt(const Data::Terrain::TerrainHeights& heights, const Data:
     const auto cellX = static_cast<float>(static_cast<double>(x) * static_cast<double>(CellsPerUnit));
     const double productY = static_cast<double>(y) * static_cast<double>(CellsPerUnit);
     const auto cellY = static_cast<float>(productY);
-    const std::int32_t row = Ftol(productY);
-    const std::int32_t column = Ftol(static_cast<double>(cellX));
+    const std::int32_t row = FtolLow(productY);
+    const std::int32_t column = FtolLow(static_cast<double>(cellX));
     // 0x5f9436: la fila por 256 más la columna, en 32 bits, y `jl` con signo contra 0x10000. Con un índice
     // negativo (desde la fila 2^23 puede pasar) el original lee antes de la tabla de atributos: MuRet da
     // 1.200, como fuera de la grilla.

@@ -21,7 +21,8 @@ namespace Client::World
 // El mapa 30 (0x1e) sombrea con −1 y 1 (0x6b8b9c y 0x6b87d4) donde los demás usan −0,5 y 0,5.
 inline constexpr std::uint8_t BrightShadingMap = 30;
 
-// La tabla de 0x7c0ccc4: la luz de cada celda (TerrainLight.OZJ) por la sombra de su normal.
+// Una tabla RGB de 256 × 256: la base sombreada de 0x7c0ccc4 o un destino explícito para la
+// ventana y las sumas de 0x7b4ccc4. El tipo no decide cuándo se inicializa o se actualiza.
 struct TerrainLighting
 {
     Data::Terrain::TerrainLayer<Data::Terrain::TerrainLightColor> cells;
@@ -44,6 +45,25 @@ struct TerrainLighting
 // se lee es un error que lo nombra.
 [[nodiscard]] Core::Expected<std::unique_ptr<TerrainLighting>, std::string>
 LoadTerrainLighting(const std::filesystem::path& dataRoot, std::uint8_t map);
+
+// Primer bloque RGB de 0x5fbf60: copia por bits la ventana inclusiva hasta lastX/lastY + 3,
+// con ambas coordenadas envueltas a un byte. Las demás celdas del destino quedan intactas.
+// Source y destination deben ser tablas disjuntas o la misma tabla (autocopia estable).
+// Los límites + 3 y el incremento posterior al último índice deben caber en int32.
+// No incluye el segundo bloque escalar de olas, ni establece el estado inicial o la cadencia.
+void CopyTerrainLightWindow(const TerrainLighting& source, TerrainLighting& destination, std::int32_t firstX,
+                            std::int32_t lastX, std::int32_t firstY, std::int32_t lastY);
+
+// 0x5f9780: suma radial en orden filas, columnas, canales, con wrap en ambos ejes y piso en +0;
+// no hay techo en 1. color puede referenciar una celda de destination: se relee en cada canal.
+// El centro truncado sólo delimita el barrido: la distancia conserva las coordenadas escaladas
+// float32 con su fracción. Un peso no positivo no toca la celda; un -0 exacto se conserva.
+// Modelo numérico PC53/RN: operaciones double separadas, stores float y sin contracción FMA;
+// no afirma el CW efectivo de todas las ejecuciones del original. Requiere radio positivo,
+// coordenadas finitas cuyo producto almacenado en float por 0,01 trunque a int32, límites
+// centro ± radio e incremento posterior representables en int32, colores y actualizaciones finitos.
+void AddTerrainLight(TerrainLighting& destination, float worldX, float worldY,
+                     const Data::Terrain::TerrainLightColor& color, std::int32_t radius);
 
 // 0x5f99e0, núcleo sobre una tabla explícita y estable: escala x/y por 0,01f y guarda F32;
 // convierte ambos a signed64 truncado y conserva low32 firmado, en orden X/Y. Un low32 fuera

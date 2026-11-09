@@ -2890,15 +2890,10 @@ devuelve en `eax` no lo lee nadie: `0x512a30` lo pisa en `0x512efa`. En orden:
    lugar 7)` (`0x551051`; `Scenes::AddOwnItemOptionValues`) y lo cierra (`0x551056..0x551284`, con
    los 3.848 `rand()` si la cuenta llega a 0). Desde `0x512a30` el registro ya está abierto y ese
    cierre no gasta.
-7. Ocho helpers con `ecx` en el registro (`0x551287..0x5512ba`), sin leer en detalle: `0x54efe0`
-   (2.304 bytes), `0x54f9b0` (873), `0x54fd40` (193), `0x54fe10` (2.471), `0x5507e0` (425),
-   `0x550990` (653), `0x550c30` (46) y `0x550c60` (63). `0x54fe10` empieza escribiendo `+0x4c` y
-   `+0x58`, las velocidades del keepalive ([04](04-protocolo.md), el `0E`; P-C28 i): `+0x1a` más
-   `+0x2c`, sobre 50 y 50 en la clase 2 (`+0xb & 7`), 15 y 20 en la 1 y la 3, 10 y 10 en la 4, y 20
-   y 10 en las otras (`0x54fe1e..0x54fefb`); después, según `0x7879fbc`, `0x78ab9b8` y `0x78a6758`,
-   lee el ítem de `0x7879f80` en lugar de uno del equipo, y en algunos caminos (con el bit `0x04` de
-   `[0x7681eb0] + 0x3c`) abre otra vez el registro. `0x550c30` y `0x550c60` escriben `+0x64` y
-   `+0x66` con `0x54e6b0` y `0x54e6d0` (los lugares 2 a 7, y el 6 y el 7).
+7. Ocho helpers con `ecx` en el registro (`0x551287..0x5512ba`): `0x54efe0`, `0x54f9b0`,
+   `0x54fd40`, `0x54fe10`, `0x5507e0`, `0x550990`, `0x550c30` y `0x550c60` ([Los ocho helpers de
+   los stats propios](#los-ocho-helpers-de-los-stats-propios)). Escriben los WORD `+0x4c` a `+0x66`
+   y `+0xef4`; ninguno escribe `+0xee2..+0xef2`, que lee la cola.
 8. La cola (`0x5512bf..0x5513b1`), con WORD que envuelven:
    - `+0xef8 = +0xef0 − +0xee6` y `+0xefa = +0xef2 − +0xee6`;
    - un `rand()` (`0x5512f2`) y `+0xefc = rand() % (+0xee4 − +0xee2 + 1) + +0xee2 − +0x62`: los dos
@@ -2922,8 +2917,120 @@ bytes), `0x40d010` (1.298; lee la clase del héroe publicado, `[0x743a170] + 0x1
 MuRet (`Scenes::RecalculateOwnStats`) corta en el paso 1 con un error, antes de tocar el registro y
 sin `rand()`: no carga las tablas de los conjuntos. Los pasos 3, 4, 6 y 8 están portados aparte
 (`ClearOwnItemStatWords`, `AddOwnItemStatBonuses` con `ItemStatBonusOf`, `AddCapeOfLordOptions` y
-`UpdateOwnDerivedStatsTail`), cada uno con su prueba, para cuando exista lo de antes; los pasos 1,
-2, 5 y 7 son la frontera.
+`UpdateOwnDerivedStatsTail`), cada uno con su prueba, para cuando exista lo de antes, y también los
+ocho helpers del paso 7 y `0x40d690`, que es el código de `0x40da20` (abajo); los pasos 1 y 2 son la
+frontera, y `RecalculateOwnStats` todavía no llama a los helpers.
+
+### Los ocho helpers de los stats propios
+
+`0x550d10` llama en `0x551287..0x5512ba`, en este orden, a `0x54efe0` (2.304 bytes), `0x54f9b0`
+(873), `0x54fd40` (193), `0x54fe10` (2.471), `0x5507e0` (425), `0x550990` (653), `0x550c30` (46) y
+`0x550c60` (63), todos `thiscall` con `ecx` en el registro propio (cotejados con el PE `c32bbd5f`;
+*estático*). Abajo, S es `+0x2a` más `+0x18` (la fuerza), A `+0x2c` más `+0x1a`, V `+0x2e` más
+`+0x1c`, E `+0x30` más `+0x1e` y L `+0x36` más `+0x20`, sumados en 16 bits; la clase es `+0xb & 7`.
+Las divisiones por constantes son de WORD sin signo (`imul` por el número mágico) y todo lo que
+escriben son WORD que envuelven. Las opciones de un ítem van por `0x54e540(w, tag, ítem)`, que suma
+el valor de cada opción con ese tag si el ítem tiene tipo y durabilidad, y `0x54e590(w, tag, ítem,
+f)`, que suma `w · f / 100` (`imul` de 32 bits con signo) por cada una, si tiene tipo. "Reducido"
+es `v − _ftol(v · x)`, con `x` lo que devuelve `0x54ee00` y el `_ftol` de `0x69fd3c`.
+
+`0x54ee00` (`cdecl`, 187 bytes) recibe la durabilidad, el byte `+0x2d` del registro de `Item.bmd` del
+tipo (`movsx` del tipo, `*[0x7758550] + tipo · 0x54`), `D+4`, `D+0x1b` y `D+0x1c`, y devuelve un
+`float`. El máximo es el `+0x2d` más 1 por cada uno de los primeros 4 niveles (`(D+4 >> 3) & 15`) y
+2 por cada uno de los otros, más 20 con `D+0x1c % 4` en 1 o 2 o, si no, 15 con `D+0x1b & 0x3f`.
+`r = 1 − durabilidad / máximo` (`fild`, `fidiv` y `fsubr`): 0.5 con `r > 0.8f`, 0.3f con `r > 0.7f`,
+0.2f con `r > 0.5f` y 0 si no. Con el perfil PC53 ([ADR 0012](../adr/0012-perfil-fp-del-movimiento-original.md))
+cada paso redondea como en doble: 6 de 20 deja `r = 0.7` en doble, que pasa `0.7f`, y da 0.3f (con
+PC24 daría 0.2f). Con el máximo en 0 la x87, con las excepciones enmascaradas, da infinito o NaN y
+ninguna comparación pasa: 0. Con las alas los que llaman pasan 0 y 0 en lugar de `D+0x1b` y
+`D+0x1c`.
+
+`0x54efe0`, `0x54f9b0` y `0x54fe10` leen el ítem de `0x7879f80` en lugar del de un lugar con
+`[0x7879fbc] > 0` (con signo), `[0x78ab9b8] == 0x78a9bb0` y el lugar en `[0x78a6758]` (sin signo,
+`ja` con 11), si está en su tabla de saltos: los lugares 0, 1, 9, 10 y 11 en `0x54efe0`; 0, 9, 10 y 11
+en `0x54f9b0`; 0, 1, 5, 10 y 11 en `0x54fe10`. Qué son esos globales no está leído (P-C38 d).
+
+1. `0x54efe0`, `+0x50`, `+0x52`, `+0x54` y `+0x56`:
+   - con una ballesta en la derecha (`0x808..0x80e` o `0x810..0x9ff`, con signo) o un arco en la
+     izquierda (`0x800..0x806`, `0x811`, `0x814` o `0x815`), con durabilidad, `S/14 + A/7` y `A/4 +
+     S/8` (`0x54f09b..0x54f108`); si no, por la clase (la tabla de saltos de `0x54f904`): en la 1,
+     `S/6` y `S/4`; en la 2, `(S + A)/7` y `(S + A)/4`; en la 3, `S/6 + E/12` y `S/4 + E/8`; en la 4,
+     `S/7 + E/14` y `S/5 + E/10`; en las otras, `S/8` y `S/4`. `+0x54` y `+0x56` copian a `+0x50` y
+     `+0x52`;
+   - las alas (el lugar 7, sin reemplazo), con tipo y el `+0x2d` distinto de 0 (no mira la
+     durabilidad): sus opciones `0x50`, reducidas, a los cuatro (`0x54f2f8..0x54f3c0`);
+   - la derecha, con tipo y durabilidad: `D+0xc` y `D+0xe` más sus `0x50`, reducidos, a `+0x50` y
+     `+0x52`, o a `+0x54` y `+0x56` con un tipo de `0xa00` a `0xc00`; después sus `0x5d` y sus `0x5e`
+     por 2 a `+0x50` y `+0x52`. La izquierda, igual, a `+0x54` y `+0x56`;
+   - el lugar 9: `0x5d` y `0x5e` por 2 a los dos pares; el 10 y el 11: `0x5e` por 10 a los cuatro;
+   - la lista de los conjuntos (abajo): `0x40d690` con `0x91` a `+0x54` y `+0x50` y con `0x92` a
+     `+0x56` y `+0x52`, y `0x40d7f0` con A (`0xa5`) y con S (`0xa4`) a los cuatro;
+   - con las dos manos de `0x800` a `0x9ff`: Bolt (`0x807`) con nivel en la izquierda deja `w +
+     _ftol(w · (2 · nivel + 1) · 0.01f + 1.0f)` en `+0x50` y `+0x52`; si no, Arrow (`0x80f`) con
+     nivel en la derecha, en `+0x54` y `+0x56` (`0x54f7b0..0x54f8d6`). Con el `float`, 160 con nivel
+     2 da 168 y no 169.
+2. `0x54f9b0`: `+0x5a = E/9` y `+0x5c = E/4`; las alas, con tipo (no mira el `+0x2d` ni la
+   durabilidad), sus `0x51` reducidas; la derecha, con tipo y durabilidad, sus `0x51` (`0x50` con el
+   0 21, el 0 23 y el 0 31) reducidas, y `0x5f` y `0x60` por 2; el lugar 9, `0x5f` y `0x60` por 2, y
+   el 10 y el 11, `0x60` por 10. Al final (`0x54fccf..0x54fd0f`) `0x40d690` con `0x93` sobre `+0xef4`,
+   que no pone en 0 antes (Q-C190), suma `+0xef4` a los dos, lo pone en 0, `0x40d7f0` con E y `0xa8`
+   sobre `+0xef4`, y lo suma otra vez.
+3. `0x54fd40`: `+0x4e` es `S/6 + L/10 + 5 · A/2 + 5 · nivel` en la clase 4 y `3 · A/2 + 5 · nivel +
+   S/4` en las otras (el nivel, `+0xe`, por 5 en 16 bits); después `0x40d690` con `0x95`.
+4. `0x54fe10`: `+0x4c` y `+0x58` (abajo, las dos), las velocidades del keepalive
+   ([04](04-protocolo.md), el `0E`; P-C28 i): A sobre 50 y 50 en la clase 2, 15 y 20 en la 1 y la 3,
+   10 y 10 en la 4, y 20 y 10 en las otras (`0x54fe1e..0x54fefb`). Después:
+   - el `D+0x17` de cada mano, o 0 sin durabilidad, si el tipo es de 0 a `0xbff` (con signo) y no es
+     `0x807` ni `0x80f`; con las dos, el promedio (Q-C193);
+   - Wizard's Ring (`0x1a14`) con durabilidad y `D+4 >> 3` (`sar`, sin la máscara del nivel) en 0 o
+     3, en el lugar 11 o en el 10: 10 a las dos y el bit `0x04` de `+0x3c` prendido, entre una
+     apertura y un cierre del registro en línea (`0x550075..0x5506fb`; el cierre, con los 3.848
+     `rand()` si la cuenta llega a 0). Sin anillo y con el bit prendido, lo apaga igual. El bit se lee
+     antes de abrir;
+   - los guantes (el lugar 5), con durabilidad y tipo, su `D+0x17`; con el bit `0x01` o el `0x08` de
+     `+0x3c`, 20;
+   - las `0x61` de los lugares 0, 1, 9 y 8 del registro, sin reemplazo (`0x55073b..0x5507ad`).
+5. `0x5507e0`: `+0x60` es A/4 en la clase 2, A/7 en la 4 y A/3 en las otras. Con el lugar 1 con tipo
+   y durabilidad suma su `D+0x10` reducido y sus `0x52` reducidas, y `0x5a` por 10; después, `0x5a`
+   por 10 de los lugares 2 a 6, 11 y 10 (sin mirar la durabilidad).
+6. `0x550990`: `+0x62` es A/10 en la clase 2, A/3 en la 1, A/4 en la 0, A/7 en la 4 y A/5 en las
+   otras. Suma, en 32 bits, los lugares 1 a 7 con durabilidad: `0x54e680` (`D+0x12` más sus `0x53`, o
+   0 con el tipo −1) reducido, las alas con 0 y 0; el `+0x2d` lo lee también con el tipo −1
+   (Q-C192). Con `[0x743a17c]` distinto de 0 (lo deja `0x505820`), `w + _ftol(w · f)` con f 0.05f,
+   0.1f, 0.15f o 0.2f para `[0x743a178]` de 10 a 13 y 0 para los otros. Después `0x40d690` con
+   `0x96`, `0x40d7f0` con A (`0xa6`) y con V (`0xa7`) y, con un tipo de `0xc00` a `0xdff` en el lugar
+   1, `0x40d730` con `0xa2`; al final, las `0x96` del lugar 8 y, si el 7 es Cape of Lord, las suyas.
+7. `0x550c30`: `+0x64` es `0x54e6b0` (`D+0x14`, o 0 con el tipo −1) del último de los lugares 2 a 7
+   con durabilidad. Sin ninguno, queda como estaba (Q-C191).
+8. `0x550c60`: `+0x66` es `0x54e6d0` (`D+0x18`) del lugar 6 con durabilidad, más el del 7 con
+   durabilidad. Sin durabilidad en el 6 no lo pone, y el del 7 se suma a lo que había (Q-C191).
+
+La lista de los conjuntos es de `[0x6eed3c]`: `+0x9348` y `+0x9349` dicen cuántas entradas hay (la
+suma), `+0x934c` tiene 16 de 3 bytes (el primero es el selector menos `0x8c` y el segundo lo pide
+`0x40d7f0`), `+0x937c` 16 marcas y `+0x938c` 16 valores de 8 bytes (un DWORD con signo). Las tres
+funciones son `thiscall` sobre `[0x6eed3c]` y toman cada entrada sin marcar del selector una sola
+vez, marcándola:
+
+- `0x40d690` (151 bytes; `0x40da20`, la del paso 5, es el mismo código salvo las direcciones) suma
+  los valores en 32 bits y le suma al WORD los 16 de abajo;
+- `0x40d730` (185) suma los valores en S y hace `w += w · S / 100`, con `imul` e `idiv` de 32 bits
+  con signo;
+- `0x40d7f0` (197) toma solo las que tienen el segundo byte distinto de 0 y hace `w += (base · V /
+  100) · N`, con V el valor de la última y N cuántas fueron.
+
+Con más de 16 entradas las tres leerían las marcas como entradas. Ninguno de los ocho escribe los
+WORD `+0xee2..+0xef2`, que la cola de `0x550d10` lee: en `.text` no hay otra escritura con esos
+desplazamientos, y `0x54efc0`, que copia 7 DWORD a `+0xed4`, no tiene referencias en el PE (P-C38 e).
+
+MuRet (`Scenes::OwnStatHelpers`) tiene una función por helper (`UpdateOwnWords50To56`,
+`UpdateOwnWords5aAnd5c`, `UpdateOwnWord4e`, `UpdateOwnAttackAndMagicSpeeds`, `UpdateOwnWord60`,
+`UpdateOwnWord62`, `UpdateOwnWord64` y `UpdateOwnWord66`) y `ItemDurabilityFactor`, y
+`Scenes::ItemSetOptionList` las tres de la lista, sobre una proyección tipada de `+0x9348..+0x940b`.
+El ítem de `0x7879f80` y sus condiciones van en `OwnEquipmentOverride`, que por defecto no reemplaza
+nada, y lo de `0x505820`, en `Scan505820`; el bit `0x04`, con un `Render::Models::LogicalAccess`.
+Donde el original lee lo que MuRet no tiene devuelven un error, con lo escrito hasta ahí: sin
+`Item.bmd` o con un tipo fuera de la tabla, sin la lista de `0x40e1b0`, con más de nueve opciones en
+un ítem o más de 16 entradas en la lista.
 
 ### El paso de ondas de Kalima
 

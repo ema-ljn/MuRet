@@ -17,6 +17,7 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/LeafDrawingServices.h"
+#include "Scenes/ParticleDrawServices.h"
 #include "Scenes/SessionEventApplier.h"
 #include "Scenes/WorldResources.h"
 #include "Scenes/WorldRuntime.h"
@@ -27,6 +28,7 @@
 #include "Render/Pass3D.h"
 #include "World/ModelEffects.h"
 #include "World/PortableLeafWaveEvaluator.h"
+#include "World/PortableParticleTrigonometry.h"
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -68,6 +70,10 @@ TEST_F(WorldEntryPipelineTest, AppliesTheEncryptedEntryBeforeAZeroStepRenderUsin
     Client::Render::ModelBatchParticleBackend leafBackend{std::ref(target.Models()), std::cref(models),
                                                           Client::Render::ModelBatchParticleState::ForModelPass()};
     Client::Scenes::LeafDrawingServices leafDrawing{std::cref(models), std::ref(leafBackend), std::cref(leafView)};
+    // El perfil matemático y el provider de partículas sobre el mismo backend, lote y vista que Leaf,
+    // como los cablea main.cpp: GameScene corta el Step y el Draw de partículas sin ellos.
+    Client::World::PortableParticleTrigonometry particleTrigonometry;
+    Client::Scenes::ParticleDrawServices particleDrawing{std::cref(models), std::ref(leafBackend), std::cref(leafView)};
     world.Runtime().worldTime = 40.0f; // T explícito del fixture; qD/clock no es su productor.
     const Client::Scenes::SceneContext context{.dataRoot = m_dataRoot,
                                                .textures = textures,
@@ -83,7 +89,9 @@ TEST_F(WorldEntryPipelineTest, AppliesTheEncryptedEntryBeforeAZeroStepRenderUsin
                                                .worldTextureModels = &models,
                                                .modelBatch = &target.Models(),
                                                .leafView = &leafView,
-                                               .leafDrawing = &leafDrawing};
+                                               .leafDrawing = &leafDrawing,
+                                               .particleTrigonometry = &particleTrigonometry,
+                                               .particleDrawing = &particleDrawing};
     const auto data = Client::Scenes::LoadGameData(m_dataRoot);
     ASSERT_TRUE(data.HasValue()) << data.Error();
     const auto loadedModels = models.Load(m_dataRoot, textures, logging.log);

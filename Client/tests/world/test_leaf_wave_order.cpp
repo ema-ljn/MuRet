@@ -24,7 +24,7 @@ using Client::World::StepLeafWeatherWaves;
 
 // Spy de wave-order-v1: observa lecturas/stores/orden en las fronteras de los callbacks.
 // V y Q no tienen observación intermedia; su orden requiere inspección estática.
-// No acredita FSIN ni el binding x87/69fd3c.
+// No acredita el valor del binding (el perfil retenido de ADR0014) ni la conversión de 69fd3c.
 class WaveSpy final : public ILeafWaveEvaluator
 {
 public:

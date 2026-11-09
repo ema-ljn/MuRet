@@ -108,7 +108,7 @@ WorldObject ObjectAt(std::int16_t type, float x, float y, std::uint8_t map = Log
     record.type = type;
     record.position = {x, y, 0.0f};
     record.scale = 1.0f;
-    const auto objects = Client::World::CreateWorldObjects(std::span(&record, 1), map, scene);
+    const auto objects = Client::World::CreateWorldObjects(std::span(&record, 1), map, scene).objects;
     return objects.front();
 }
 

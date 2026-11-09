@@ -1,4 +1,5 @@
 #include "Render/Gl/GlFrameTarget.h"
+#include "Render/ModelBatch.h"
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
@@ -55,6 +56,11 @@ GlFrameTarget::GlFrameTarget(const Platform::GlFunctions& gl, TextureTable& text
 {
 }
 
+ModelBatch& GlFrameTarget::Models() noexcept
+{
+    return m_models;
+}
+
 Scenes::SceneCanvas& GlFrameTarget::BeginFrame(Core::Duration frameClock)
 {
     const App::PixelSize screen = m_screen();
@@ -97,7 +103,7 @@ void GlFrameTarget::FlushSprites()
 
 void GlFrameTarget::FlushModels()
 {
-    if (!m_models.Vertices().empty())
+    if (!m_models.Commands().empty())
     {
         m_modelRenderer.Draw(m_models, m_textures, m_log);
     }

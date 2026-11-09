@@ -64,6 +64,11 @@ Outgoing WriteGateRequest(std::uint8_t gate)
     return EncryptedC1(Network::PacketWriter::C1(TeleportOpcode).PutU8(gate).PutU8(0).PutU8(0));
 }
 
+Outgoing WriteRejectedTeleport()
+{
+    return EncryptedC1(Network::PacketWriter::C1(0xf1).PutU8(3).PutU8(0).PutU8(TeleportOpcode));
+}
+
 Outgoing WriteTeleportDone()
 {
     return Xor32C1(Network::PacketWriter::C1(WorldOpcode).PutU8(TeleportDoneSubcode));

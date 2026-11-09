@@ -29,7 +29,7 @@ std::vector<WorldObject> Created(std::int16_t type, float x, float y, std::uint8
     record.type = type;
     record.position = {x, y, 0.0f};
     record.scale = 1.0f;
-    return Client::World::CreateWorldObjects(std::span(&record, 1), map, Client::World::ObjectScene::Login);
+    return Client::World::CreateWorldObjects(std::span(&record, 1), map, Client::World::ObjectScene::Login).objects;
 }
 
 // 0x60666c: la posición por 0,000625f en la x87, sin redondear el producto, y ftol. En los múltiplos de
@@ -90,7 +90,7 @@ TEST(WorldObjectsTest, TheBridgeCullingMarginDependsOnItsMapNotItsScene)
         for (const Case& test : cases)
         {
             SCOPED_TRACE(static_cast<int>(test.map));
-            objects = Client::World::CreateWorldObjects(records, test.map, scene);
+            objects = Client::World::CreateWorldObjects(records, test.map, scene).objects;
             ASSERT_EQ(objects.size(), 2u);
             EXPECT_EQ(std::bit_cast<std::uint32_t>(objects[0].cullingMargin), test.bridgeMargin);
             EXPECT_EQ(std::bit_cast<std::uint32_t>(objects[1].cullingMargin), 0xC1F00000u);

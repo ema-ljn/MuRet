@@ -92,6 +92,9 @@ inline void PrintTo(SessionState state, std::ostream* out)
     case SessionState::EnteringWorld:
         *out << "EnteringWorld";
         return;
+    case SessionState::InWorld:
+        *out << "InWorld";
+        return;
     case SessionState::QuitOrdered:
         *out << "QuitOrdered";
         return;
@@ -123,6 +126,9 @@ inline void PrintTo(SessionFailure failure, std::ostream* out)
         return;
     case SessionFailure::CredentialsTooLong:
         *out << "CredentialsTooLong";
+        return;
+    case SessionFailure::ApplicationFailed:
+        *out << "ApplicationFailed";
         return;
     case SessionFailure::NoReply:
         *out << "NoReply";

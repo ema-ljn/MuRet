@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "Render/ModelVertex.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
@@ -9,6 +10,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <system_error>
 #include <vector>
 
 // El 3D de un pase como datos, sin GL: el par del SpriteBatch (CL5.2). Los triángulos de los modelos
@@ -38,6 +40,25 @@ enum class ModelBlend : std::uint8_t
     Subtractive,
 };
 
+// 621400 ya entrega coordenadas de ojo; las mallas siguen entregando coordenadas del mundo.
+enum class ModelCoordinateSpace : std::uint8_t
+{
+    World,
+    Eye,
+};
+
+// Efectos parciales acreditados: no ejecutan los otros ejes ni dibujan vértices.
+enum class ModelStateOperation : std::uint8_t
+{
+    Draw,
+    Blend,
+    Cull,
+    DepthWrite,
+    AlphaTest,
+    Texture2d,
+    Binding,
+};
+
 struct ModelDrawState
 {
     // La textura, o ninguna.
@@ -45,6 +66,22 @@ struct ModelDrawState
     ModelBlend blend = ModelBlend::Opaque;
     // false con la bandera 0x2000 de 0x4ecc30 (0x620870 apaga el depth test).
     bool depthTest = true;
+    ModelCoordinateSpace space = ModelCoordinateSpace::World;
+    // Nombre físico de620780(NEG32), distinto del selector lógico. Incluye el nombre0 explícito.
+    // Invariante: texture y rawTextureName son mutuamente excluyentes. El renderer rechaza
+    // explícitamente un comando ambiguo, sin elegir una prioridad entre ambos.
+    std::optional<std::uint32_t> rawTextureName = std::nullopt;
+
+    // Ausencia conserva el perfil legacy de ModelBlend; presencia desacopla cada eje.
+    std::optional<bool> cullEnabled = std::nullopt;
+    std::optional<bool> depthWrite = std::nullopt;
+    std::optional<bool> alphaTest = std::nullopt;
+    std::optional<bool> texture2d = std::nullopt;
+
+    [[nodiscard]] bool HasValidTextureBinding() const
+    {
+        return !texture.has_value() || !rawTextureName.has_value();
+    }
 
     friend bool operator==(const ModelDrawState&, const ModelDrawState&) = default;
 };
@@ -54,6 +91,7 @@ struct ModelDrawCommand
     ModelDrawState state;
     std::size_t firstVertex = 0;
     std::size_t vertexCount = 0; // de a 3
+    ModelStateOperation operation = ModelStateOperation::Draw;
 };
 
 class ModelBatch
@@ -65,6 +103,62 @@ public:
     // El estado de los triángulos que siguen.
     void SetState(const ModelDrawState& state);
 
+    // Estado observable aun sin geometría: material/binder de fauna antes de Begin o de un error.
+    // Un tramo de cero vértices cambia el estado en GlModelRenderer sin publicar un quad parcial.
+    // Triangle puede continuar este mismo tramo cuando su estado coincide.
+    void ApplyState(const ModelDrawState& state)
+    {
+        ++m_stateSerial;
+        m_state = state;
+        if (m_commands.empty() || m_commands.back().state != state ||
+            m_commands.back().operation != ModelStateOperation::Draw)
+            m_commands.push_back(ModelDrawCommand{state, m_vertices.size(), 0});
+    }
+
+    // Publica un único efecto, incluso sin geometría. El serial se escribe antes del sink GL.
+    void ApplyOperation(const ModelDrawState& state, ModelStateOperation operation);
+
+    // Autoridad del perfil diferido: incluso SetState con igual valor es una intervención ajena
+    // al binder. El serial no es una observación ni una restauración de caches GL nativos.
+    [[nodiscard]] const ModelDrawState& State() const
+    {
+        return m_state;
+    }
+    [[nodiscard]] std::uint64_t StateSerial() const
+    {
+        return m_stateSerial;
+    }
+
+    // ANTES de Release/cargas que muten GL fuera del lote. No modifica GL ni asigna un nombre0.
+    // El owner debe enviar/vaciar trabajo pendiente primero y no usar el backend entre efectos.
+    [[nodiscard]] Core::Expected<void, std::error_code> InvalidateTextureKnowledge()
+    {
+        if (!m_commands.empty() || m_primitiveOpen)
+            return Core::Unexpected(std::make_error_code(std::errc::operation_in_progress));
+        ++m_stateSerial;
+        m_state.texture.reset();
+        m_state.rawTextureName.reset();
+        return {};
+    }
+
+    // Marca canónica del único quad sin anidar del backend. Begin(pass) no fabrica su cierre;
+    // una intervención ajena durante el quad se detecta por serial y conserva el prefijo abierto.
+    [[nodiscard]] Core::Expected<void, std::error_code> BeginPrimitive()
+    {
+        if (m_primitiveOpen)
+            return Core::Unexpected(std::make_error_code(std::errc::operation_in_progress));
+        m_primitiveOpen = true;
+        return {};
+    }
+    void EndPrimitive()
+    {
+        m_primitiveOpen = false;
+    }
+    [[nodiscard]] bool HasOpenPrimitive() const
+    {
+        return m_primitiveOpen;
+    }
+
     // Un triángulo con el estado de ahora: va en el último tramo si tiene el mismo, o en uno nuevo.
     void Triangle(const std::array<ModelVertex, 3>& corners);
 
@@ -75,6 +169,8 @@ public:
 private:
     Pass3D m_pass;
     ModelDrawState m_state;
+    std::uint64_t m_stateSerial = 0;
+    bool m_primitiveOpen = false;
     std::vector<ModelVertex> m_vertices;
     std::vector<ModelDrawCommand> m_commands;
 };

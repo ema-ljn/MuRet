@@ -28,7 +28,8 @@ enum class SessionState : std::uint8_t
     ChoosingCharacter,       // la lista llegó (0x33); se espera EnterWorld (CL6.3)
     WaitingCreateResult,     // F3 01 salió (0x34); con su respuesta vuelve a ChoosingCharacter (CL6.5)
     WaitingDeleteResult,     // F3 02 salió (0x38); con su respuesta vuelve a ChoosingCharacter (CL6.5)
-    EnteringWorld,           // F3 03 salió (0x3c); su respuesta es de la CL7: hasta ahí, sin tope
+    EnteringWorld,           // F3 03 salió (0x3c); sin tope hasta que el aplicador publique 0x3d
+    InWorld,                 // el aplicador publicó state3d después de construir/aplicar al héroe
     QuitOrdered,             // el GS ordenó cerrar el juego (F1 02 con 0): la conexión se cerró (Q-C106)
     Failed,
 };
@@ -41,6 +42,7 @@ enum class SessionFailure : std::uint8_t
     HelloRejected,      // el saludo del GS trae otro resultado que HelloAccepted
     VersionMismatch,    // el saludo aceptado trae otra versión que ClientVersion
     CredentialsTooLong, // la cuenta o la clave no entran en el login (WriteLoginRequest)
+    ApplicationFailed,  // el consumidor síncrono no pudo aplicar una recepción
     NoReply,            // un estado Waiting* pasó ReplyTimeout sin su respuesta (CL4.5)
 };
 } // namespace Client::App

@@ -1,3 +1,4 @@
+#include "App/CrtPacketPadding.h"
 #include "App/AutoLogin.h"
 #include "App/CommandLine.h"
 #include "App/Config.h"
@@ -6,6 +7,7 @@
 #include "App/FontFiles.h"
 #include "App/FrameRateMeter.h"
 #include "App/GameLoop.h"
+#include "App/ISessionEventSink.h"
 #include "App/LoopTiming.h"
 #include "App/ObfuscationMode.h"
 #include "App/Resolution.h"
@@ -34,6 +36,7 @@
 #include "Platform/DisplayModes.h"
 #include "Platform/GlLoader.h"
 #include "Platform/SdlClock.h"
+#include "Platform/SystemMillisecondClock32.h"
 #include "Platform/SdlContext.h"
 #include "Platform/SdlLog.h"
 #include "Platform/SwapInterval.h"
@@ -42,25 +45,34 @@
 #include "Platform/WindowEvents.h"
 #include "Render/Gl/GlFrameTarget.h"
 #include "Render/Gl/TextureTable.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Text/FreeTypeRasterizer.h"
 #include "Render/Text/IGlyphRasterizer.h"
-#include "Render/Models/Cloth.h"
 #include "Scenes/CharacterSelectScene.h"
 #include "Scenes/GameData.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/GameScene.h"
-#include "World/GameCamera.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoadingScene.h"
-#include "Scenes/WorldLoadingScene.h"
 #include "Scenes/LoginScene.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
-#include "Scenes/SelectionState.h"
+#include "World/PortableLeafWaveEvaluator.h"
+#include "World/PortableParticleTrigonometry.h"
+#include "Scenes/ParticleDrawServices.h"
+#include "Render/ModelBatchParticleBackend.h"
+#include "Render/ModelBatchParticleState.h"
+#include "Render/Models/OriginalRotation.h"
+#include "Scenes/LeafDrawingServices.h"
 #include "Scenes/SceneText.h"
 #include "Scenes/SceneTransitions.h"
+#include "Scenes/SelectionState.h"
+#include "Scenes/SessionEventApplier.h"
 #include "Scenes/TestScene.h"
+#include "Scenes/WorldLoadingScene.h"
+#include "Scenes/WorldState.h"
+#include "World/GameCamera.h"
 
 #include <chrono>
 #include <cstdint>
@@ -312,13 +324,15 @@ const Network::IObfuscation& ChooseObfuscation(App::ObfuscationMode mode, const 
 // como se declaran (el AutoLogin antes que la sesión que guarda), y todo antes que el NetworkInit,
 // declarado antes en main.
 //
-// El relleno de lo que cifra la conexión sale de std::random_device: solo tiene que cambiar de una
-// corrida a otra (Network/Connection.h), y los tests le dan uno fijo.
+// El padding cifrado comparte el CRT de ClothWorld: el adapter vive antes que Connection y
+// ClothWorld vive antes que Online; el envío conserva su lugar en la secuencia de gráficos.
 struct Online
 {
-    Online(const ServerStartup& server, App::ObfuscationMode obfuscation, Core::IClock& clock, Core::Log& log)
-        : connection(socket, ChooseObfuscation(obfuscation, foxAnti), clock, log, std::random_device{}()),
-          session(connection, clock, log, server.keys, App::SessionSettings{.connectServer = server.connectServer})
+    Online(const ServerStartup& server, App::ObfuscationMode obfuscation, Core::IClock& clock, Core::Log& log,
+           App::ISessionEventSink& eventSink, Client::Render::Models::CrtRandom& random)
+        : padding(random), connection(socket, ChooseObfuscation(obfuscation, foxAnti), clock, log, padding),
+          session(connection, clock, log, server.keys, App::SessionSettings{.connectServer = server.connectServer},
+                  eventSink)
     {
         if (server.credentials)
         {
@@ -327,18 +341,24 @@ struct Online
     }
 
     // El pollNetwork del SceneManager: la sesión y, después, el AutoLogin, que mira lo que llegó.
-    void Poll()
+    Core::Expected<void, std::string> Poll()
     {
-        session.Poll();
+        const auto polled = session.Poll();
+        if (!polled.HasValue())
+        {
+            return polled;
+        }
         if (autoLogin)
         {
             autoLogin->Poll();
         }
+        return {};
     }
 
     Network::SystemResolver resolver;
     Network::SystemSocket socket{resolver};
     const Network::FoxAntiObfuscation foxAnti;
+    App::CrtPacketPadding padding;
     Network::Connection connection;
     App::ServerSession session;
     std::optional<App::AutoLogin> autoLogin;
@@ -484,7 +504,7 @@ Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const
         case Scenes::SceneId::WorldLoading:
             return std::make_unique<Scenes::WorldLoadingScene>(context);
         case Scenes::SceneId::Game:
-            return std::make_unique<Scenes::GameScene>(context, session);
+            return std::make_unique<Scenes::GameScene>(context, session, &models, &data);
         }
         return nullptr;
     };
@@ -587,12 +607,6 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
         log.Error("{}", frame.Error());
         return EXIT_FAILURE;
     }
-    std::optional<Online> online;
-    if (startup.server)
-    {
-        online.emplace(*startup.server, startup.config.obfuscation, clock, log);
-    }
-    App::ServerSession* session = online ? &online->session : nullptr;
     // Lo global de la tela: el rand() de la CRT sembrado una vez con la hora, como srand(time(NULL)) en
     // 0x4bad9a, el viento base y el contador de pasos de lógica.
     Client::Render::Models::ClothWorld clothWorld{
@@ -600,10 +614,24 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // El teclado y el mouse del bucle: los pasos los reciben, y el dibujo del cursor los lee del contexto.
     Client::Input::InputState input;
     Client::World::GameCamera camera;
+    // Proveedores durables: el reloj raw32 publica T; Leaf consume el valor prestado sin muestrear.
+    Platform::SystemMillisecondClock32 millisecondClock;
+    Client::World::PortableLeafWaveEvaluator leafWaveEvaluator;
+    // Perfil aceptado: sin/cos113 → retenido64 → PC53, RN con invalid masked.
+    // Precondición de entorno compatible, como Leaf; no cambia CW ni acredita FSIN/FCOS universal.
+    Client::World::PortableParticleTrigonometry particleTrigonometry;
     // 0x4bafad..0x4bafdf: el pool empieza en cero y el héroe apunta al personaje 0.
     // La celda lógica y su lectura exacta se integran en CL7.P; no se sustituye por la celda visual.
     Client::World::GameCameraInput cameraInput;
-    Scenes::SelectionState selection;
+    Scenes::WorldState world(textures);
+    Scenes::SelectionState selection(world);
+    Scenes::GameModels models;
+    // Almacenamiento durable; GameScene publica ViewRows del pase real antes del primer Draw.
+    Client::Render::Models::OriginalMatrix leafView{};
+    Client::Render::ModelBatchParticleBackend leafBackend{std::ref(frame.Value()->Models()), std::cref(models),
+                                                          Client::Render::ModelBatchParticleState::ForModelPass()};
+    Scenes::LeafDrawingServices leafDrawing{std::cref(models), std::ref(leafBackend), std::cref(leafView)};
+    Scenes::ParticleDrawServices particleDrawing{std::cref(models), std::ref(leafBackend), std::cref(leafView)};
     const Scenes::SceneContext context{.dataRoot = *startup.config.dataPath,
                                        .textures = textures,
                                        .log = log,
@@ -613,25 +641,34 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                        .pacing = startup.config.pacing,
                                        .camera = &camera,
                                        .cameraInput = &cameraInput,
-                                       .selection = &selection};
+                                       .selection = &selection,
+                                       .world = &world,
+                                       .leafWaves = &leafWaveEvaluator,
+                                       .worldTextureModels = &models,
+                                       .modelBatch = &frame.Value()->Models(),
+                                       .leafView = &leafView,
+                                       .leafDrawing = &leafDrawing,
+                                       .particleTrigonometry = &particleTrigonometry,
+                                       .particleDrawing = &particleDrawing};
+    Scenes::SessionEventApplier eventApplier(selection, camera, cameraInput, context, scenes.data, models);
+    std::optional<Online> online;
+    if (startup.server)
+        online.emplace(*startup.server, startup.config.obfuscation, clock, log, eventApplier, clothWorld.random);
+    App::ServerSession* session = online ? &online->session : nullptr;
     // El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
     // se ven los dos.
     if (const auto hidden = window.HideSystemCursor(); !hidden.HasValue())
     {
         log.Warning("{}", hidden.Error());
     }
-    // Los modelos del personaje y de los ítems: los lee la carga (0x61ccb0) y quedan, como GameData.
-    Scenes::GameModels models;
-    const std::function<void()> pollNetwork =
-        online ? std::function<void()>(
-                     [&online, &selection, &camera, &cameraInput]
-                     {
-                         online->Poll();
-                         // Los handlers construyen antes del siguiente Step o cambio de escena, aun minimizada.
-                         // Failure queda en el estado; stop la observa también cuando no se dibuja.
-                         static_cast<void>(selection.Apply(online->session.TakeCharacterEvents(), camera, cameraInput));
-                     })
-               : nullptr;
+    const auto pollNetwork = [&online, &world, &millisecondClock]() -> Core::Expected<void, std::string>
+    {
+        // Poll corre una vez por iteración del bucle, antes de sus pasos lógicos: qT no es qD/SDL.
+        const auto sampled = world.SampleWorldTime(millisecondClock);
+        if (!sampled.HasValue())
+            return Core::Unexpected("no se pudo publicar T desde el reloj raw32: " + sampled.Error().message());
+        return online ? online->Poll() : Core::Expected<void, std::string>{};
+    };
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,
                                  pollNetwork, log);
     if (!manager.Start(Scenes::FirstScene).HasValue())
@@ -652,13 +689,14 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     // orden del GameServer.
     textInput.Follow(false);
     PrintFrames(stats);
+    if (manager.Failure())
+    {
+        // El manager ya registró el diagnóstico de Enter o de aplicación de la sesión.
+        return EXIT_FAILURE;
+    }
     if (selection.Failure())
     {
         log.Error("no se puede construir la selección: {}", *selection.Failure());
-        return EXIT_FAILURE;
-    }
-    if (manager.Failure())
-    {
         return EXIT_FAILURE;
     }
     if (GameServerOrderedTheQuit(session))

@@ -47,6 +47,9 @@ struct Regen
 // 0x599ef0: C1 06 1C gate 00 00, con XOR32 y Delivery::Encrypted (C3).
 [[nodiscard]] Outgoing WriteGateRequest(std::uint8_t gate);
 
+// Rechazoorigin0 de4c6e10: C1 06 F1 03 00 1C, XOR32 y entrega cifrada.
+[[nodiscard]] Outgoing WriteRejectedTeleport();
+
 // 0x4c6e10: C1 04 F3 12, con XOR32 y Delivery::Clear.
 [[nodiscard]] Outgoing WriteTeleportDone();
 

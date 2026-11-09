@@ -49,6 +49,8 @@ public:
 
     Scenes::SceneCanvas& BeginFrame(Core::Duration frameClock) override;
     void Present() override;
+    // Préstamo durable para los adaptadores del pase; no abre ni modifica un frame.
+    [[nodiscard]] ModelBatch& Models() noexcept;
 
 private:
     GlFrameTarget(const Platform::GlFunctions& gl, TextureTable& textures, GlSpriteRenderer renderer,

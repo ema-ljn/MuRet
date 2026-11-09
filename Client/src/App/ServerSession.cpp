@@ -3,9 +3,11 @@
 #include "App/CharacterEvent.h"
 #include "App/Credentials.h"
 #include "App/FaithfulPacer.h"
+#include "App/ISessionEventSink.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
-#include "App/WorldEvent.h"
+#include "App/TeleportHistory.h"
+#include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/Log.h"
 #include "Network/CloseReason.h"
@@ -14,6 +16,8 @@
 #include "Network/LinkState.h"
 #include "Network/Packet.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/Movement.h"
+#include "Protocol/World.h"
 #include "Protocol/Character/CharacterCreate.h"
 #include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"
@@ -103,6 +107,7 @@ std::string_view Awaited(SessionState state)
     case SessionState::LoggedIn:
     case SessionState::ChoosingCharacter:
     case SessionState::EnteringWorld:
+    case SessionState::InWorld:
     case SessionState::QuitOrdered:
     case SessionState::Failed:
         break;
@@ -137,9 +142,9 @@ void KeepLastCharacterPerSlot(Protocol::Character::CharacterList& list)
 } // namespace
 
 ServerSession::ServerSession(Network::Connection& connection, Core::IClock& clock, Core::Log& log,
-                             Network::ConnectionKeys keys, SessionSettings settings)
-    : m_connection(connection), m_clock(clock), m_log(log), m_keys(keys), m_settings(std::move(settings)),
-      m_connectServer(log), m_gameServer(log)
+                             Network::ConnectionKeys keys, SessionSettings settings, ISessionEventSink& eventSink)
+    : m_connection(connection), m_clock(clock), m_log(log), m_eventSink(eventSink), m_keys(keys),
+      m_settings(std::move(settings)), m_connectServer(log), m_gameServer(log)
 {
     RegisterConnectServerHandlers();
     RegisterGameServerHandlers();
@@ -190,7 +195,14 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnWorldEntryReply(packet); }) &&
         m_gameServer.On(CharacterOpcode, InventoryListSubcode,
                         [this](const Network::Packet& packet) { OnInventoryReply(packet); }) &&
-        m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); });
+        m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
+        m_gameServer.On(Protocol::Movement::WalkOpcode, [this](const Network::Packet& packet) { OnWalk(packet); }) &&
+        m_gameServer.On(Protocol::Movement::DamageOpcode,
+                        [this](const Network::Packet& packet) { OnDamage(packet); }) &&
+        m_gameServer.On(Protocol::World::TeleportOpcode,
+                        [this](const Network::Packet& packet) { OnTeleport(packet); }) &&
+        m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
+                        [this](const Network::Packet& packet) { OnRegen(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
 }
 
@@ -208,8 +220,7 @@ void ServerSession::Start()
     m_gameServerAddress.reset();
     m_loginResult.reset();
     m_characters.reset();
-    m_characterEvents.clear();
-    m_worldEvents.clear();
+    m_applicationFailure.reset();
     m_createResult.reset();
     m_deleteResult.reset();
     m_deletingSlot.reset();
@@ -219,9 +230,17 @@ void ServerSession::Start()
     SetState(SessionState::ConnectingConnectServer);
 }
 
-void ServerSession::Poll()
+Core::Expected<void, std::string> ServerSession::Poll()
 {
+    if (m_applicationFailure)
+    {
+        return Core::Unexpected(*m_applicationFailure);
+    }
     HandleEvents();
+    if (m_applicationFailure)
+    {
+        return Core::Unexpected(*m_applicationFailure);
+    }
     const Core::Duration now = m_clock.Now();
     // También consume los vencimientos sin GS: no quedan pendientes para la próxima conexión.
     const bool keepaliveDue = m_keepalive.Due(now);
@@ -231,12 +250,13 @@ void ServerSession::Poll()
         m_log.Error("el {} no contestó en {} s: se esperaba {}", ServerName(),
                     std::chrono::duration_cast<std::chrono::seconds>(ReplyTimeout).count(), awaited);
         Fail(SessionFailure::NoReply);
-        return;
+        return {};
     }
     if (keepaliveDue && m_connection.State() == Network::LinkState::Open && !WithConnectServer())
     {
         SendKeepalive(now);
     }
+    return {};
 }
 
 // Lo que queda del lote después de un Connect o un Fail es de la conexión de antes, y lo que queda
@@ -269,6 +289,21 @@ void ServerSession::HandleEvents()
 SessionState ServerSession::State() const
 {
     return m_state;
+}
+
+void ServerSession::PublishWorldEntry()
+{
+    SetState(SessionState::InWorld);
+}
+
+bool ServerSession::JoinedWorld() const
+{
+    return m_state == SessionState::InWorld;
+}
+
+std::optional<std::uint16_t> ServerSession::PlayerIndex() const
+{
+    return m_playerIndex;
 }
 
 std::uint32_t ServerSession::StartCount() const
@@ -374,16 +409,6 @@ const std::optional<Protocol::Character::CharacterList>& ServerSession::Characte
     return m_characters;
 }
 
-std::vector<CharacterEvent> ServerSession::TakeCharacterEvents()
-{
-    return std::exchange(m_characterEvents, {});
-}
-
-std::vector<WorldEvent> ServerSession::TakeWorldEvents()
-{
-    return std::exchange(m_worldEvents, {});
-}
-
 void ServerSession::ChooseCharacter(std::optional<std::uint8_t> slot)
 {
     if (m_state != SessionState::ChoosingCharacter)
@@ -424,8 +449,18 @@ void ServerSession::EnterWorld()
         m_log.Warning("no se entra al mundo: no hay un personaje elegido");
         return;
     }
-    m_log.Info("se entra al mundo con el personaje del lugar {}", chosen->slot);
-    Protocol::Outgoing select = Protocol::Character::WriteCharacterSelect(chosen->name);
+    EnterWorld(chosen->name, chosen->slot);
+}
+
+void ServerSession::EnterWorld(std::span<const std::byte, Protocol::Character::NameSize> name, std::uint8_t slot)
+{
+    if (m_state != SessionState::ChoosingCharacter)
+    {
+        m_log.Warning("se ignora la entrada al mundo: {}", NotAwaited);
+        return;
+    }
+    m_log.Info("se entra al mundo con el personaje del lugar {}", slot);
+    Protocol::Outgoing select = Protocol::Character::WriteCharacterSelect(name);
     m_connection.Send(std::move(select.packet), select.delivery);
     SetState(SessionState::EnteringWorld);
 }
@@ -633,6 +668,7 @@ void ServerSession::OnGameHello(const Network::Packet& packet)
         Fail(SessionFailure::HelloRejected);
         return;
     }
+    m_playerIndex = hello.Value().playerIndex;
     const std::string_view version(hello.Value().version.data(), hello.Value().version.size());
     if (version != Protocol::ClientVersion)
     {
@@ -689,10 +725,15 @@ void ServerSession::OnCharacterList(const Network::Packet& packet)
         m_log.Warning("se ignora la lista de personajes (F3 00): {}", Unreadable);
         return;
     }
-    m_characters = std::move(list).Value();
-    m_characterEvents.emplace_back(CharacterListReceived{*m_characters});
-    KeepLastCharacterPerSlot(*m_characters);
+    auto received = std::move(list).Value();
+    Protocol::Character::CharacterList view = received;
+    KeepLastCharacterPerSlot(view);
+    m_characters = std::move(view);
     m_chosenSlot.reset();
+    if (!CheckApplication(m_eventSink.ApplyCharacter(CharacterListReceived{std::move(received)}, *this)))
+    {
+        return;
+    }
     m_log.Info("la lista trae {} personajes: se espera la elección", m_characters->characters.size());
     SetState(SessionState::ChoosingCharacter);
 }
@@ -750,7 +791,10 @@ void ServerSession::OnCreateResult(const Network::Packet& packet)
             {
                 characters.push_back(entry);
             }
-            m_characterEvents.emplace_back(CharacterCreated{entry});
+            if (!CheckApplication(m_eventSink.ApplyCharacter(CharacterCreated{entry}, *this)))
+            {
+                return;
+            }
             m_log.Info("se creó el personaje del lugar {}", entry.slot);
         }
     }
@@ -781,7 +825,10 @@ void ServerSession::OnDeleteResult(const Network::Packet& packet)
     {
         std::erase_if(m_characters->characters, [this](const Protocol::Character::CharacterEntry& entry)
                       { return entry.slot == *m_deletingSlot; });
-        m_characterEvents.emplace_back(CharacterDeleted{*m_deletingSlot});
+        if (!CheckApplication(m_eventSink.ApplyCharacter(CharacterDeleted{*m_deletingSlot}, *this)))
+        {
+            return;
+        }
         m_chosenSlot.reset();
         m_log.Info("se borró el personaje del lugar {}", *m_deletingSlot);
     }
@@ -793,7 +840,7 @@ void ServerSession::OnDeleteResult(const Network::Packet& packet)
     SetState(SessionState::ChoosingCharacter);
 }
 
-// 04 § La entrada al mundo: sólo recepción de los 23 campos wire; no aplica 0x4c3940 ni Q-C144.
+// 04 § La entrada al mundo: filtra los 23 campos wire y entrega al aplicador síncrono.
 void ServerSession::OnWorldEntryReply(const Network::Packet& packet)
 {
     if (!packet.WasDecrypted())
@@ -807,10 +854,10 @@ void ServerSession::OnWorldEntryReply(const Network::Packet& packet)
         m_log.Warning("se ignora la respuesta de entrada al mundo (F3 03): {}", Unreadable);
         return;
     }
-    m_worldEvents.emplace_back(std::move(reply).Value());
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
 }
 
-// 04 § El F3 10, el inventario: conserva el wire, sin inicializaciones ni efectos de 0x4c55a0.
+// 04 § El F3 10, el inventario: conserva el wire y entrega incluso la lista vacía al aplicador.
 void ServerSession::OnInventoryReply(const Network::Packet& packet)
 {
     if (!packet.WasDecrypted())
@@ -824,7 +871,96 @@ void ServerSession::OnInventoryReply(const Network::Packet& packet)
         m_log.Warning("se ignora el inventario (F3 10): {}", Unreadable);
         return;
     }
-    m_worldEvents.emplace_back(std::move(reply).Value());
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
+}
+
+// 04 § Caminar y pegar: se aplican antes del siguiente paquete, con el actor contemporáneo.
+void ServerSession::OnWalk(const Network::Packet& packet)
+{
+    auto reply = Protocol::Movement::ReadWalk(packet);
+    if (!reply.HasValue())
+    {
+        m_log.Warning("se ignora caminar (D3): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
+}
+
+void ServerSession::OnDamage(const Network::Packet& packet)
+{
+    auto reply = Protocol::Movement::ReadDamage(packet);
+    if (!reply.HasValue())
+    {
+        m_log.Warning("se ignora el daño (D7): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
+}
+
+// 04 § Los cambios de mapa: 1C y F3/04 llegan como C3, reconstruidos por Network a C1.
+void ServerSession::RequestGate(std::uint8_t gate)
+{
+    auto outgoing = Protocol::World::WriteGateRequest(gate);
+    m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+}
+
+Core::Expected<void, Protocol::Movement::WalkWriteError>
+ServerSession::SendWalk(std::span<const Protocol::Movement::Cell> path, Protocol::Movement::Cell target, float angle)
+{
+    auto outgoing = Protocol::Movement::WriteWalk(path, target, angle);
+    if (!outgoing.HasValue())
+        return Core::Unexpected(outgoing.Error());
+    m_connection.Send(std::move(outgoing.Value().packet), outgoing.Value().delivery);
+    return {};
+}
+
+void ServerSession::ConfirmTeleport()
+{
+    auto outgoing = Protocol::World::WriteTeleportDone();
+    m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+}
+
+void ServerSession::RequestCrywolfState()
+{
+    auto outgoing = Protocol::World::WriteCrywolfState();
+    m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+}
+
+const TeleportHistory& ServerSession::Teleports() const
+{
+    return m_teleports;
+}
+
+void ServerSession::OnTeleport(const Network::Packet& packet)
+{
+    // 4e2b10 ejecuta historial antes de entregar originFlag al sink, también cuando será0.
+    m_teleports.Append(packet.Bytes());
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("se rechaza el warp (1C): originFlag del transporte es0");
+        auto outgoing = Protocol::World::WriteRejectedTeleport();
+        m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+        return;
+    }
+    auto reply = Protocol::World::ReadTeleport(packet);
+    if (!reply.HasValue())
+    {
+        m_log.Warning("se ignora el warp (1C): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
+}
+
+void ServerSession::OnRegen(const Network::Packet& packet)
+{
+    // 4e2b10/sub04 y4c4b80 no consultan ni reciben el DWORD originFlag de1C.
+    auto reply = Protocol::World::ReadRegen(packet);
+    if (!reply.HasValue())
+    {
+        m_log.Warning("se ignora revivir (F3 04): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
 }
 
 // 0x4c2710 no mira el estado ni la escena para el 0: SendMessageA(WM_DESTROY) en 0x4c391b, y el
@@ -879,6 +1015,20 @@ void ServerSession::Connect(const ServerAddress& address, const std::optional<Ne
     ++m_generation;
 }
 
+bool ServerSession::CheckApplication(Core::Expected<void, std::string> applied)
+{
+    if (applied.HasValue())
+    {
+        return true;
+    }
+    if (!m_applicationFailure)
+    {
+        m_applicationFailure = applied.Error();
+        Fail(SessionFailure::ApplicationFailed);
+    }
+    return false;
+}
+
 void ServerSession::Fail(SessionFailure failure)
 {
     m_connection.Close();
@@ -919,6 +1069,7 @@ bool ServerSession::WithConnectServer() const
     case SessionState::WaitingCreateResult:
     case SessionState::WaitingDeleteResult:
     case SessionState::EnteringWorld:
+    case SessionState::InWorld:
     case SessionState::QuitOrdered:
     case SessionState::Failed:
         break;

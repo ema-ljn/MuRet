@@ -72,7 +72,7 @@ Client::World::WorldObject Marker(std::int16_t type = CloudMarker)
     record.angle = {10.0f, 20.0f, 30.0f};
     record.scale = 2.5f;
     return Client::World::CreateWorldObjects(std::span(&record, 1), LoginMap, Client::World::ObjectScene::Login)
-        .front();
+        .objects.front();
 }
 void Emit(Client::World::WorldObject& object, Client::World::Particles& particles,
           Client::Render::Models::CrtRandom& random, std::uint8_t map = LoginMap,

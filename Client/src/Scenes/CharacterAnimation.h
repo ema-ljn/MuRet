@@ -4,6 +4,7 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/Pose.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/PlayerActionSpeeds.h"
 
 // Lo que avanza de un personaje en cada paso de lógica (Client/docs/research/06-render-escenas-y-ui.md,
 // "Cuánto avanza la animación"): el cuerpo con la velocidad de su acción, y la mascota y las alas por
@@ -24,10 +25,12 @@ struct CharacterAnimation
 // la de parado otra vez (0x4fcb10 → 0x4f2250).
 [[nodiscard]] bool StepCharacterAnimation(CharacterAnimation& animation,
                                           const GameLogic::CharacterAppearance& appearance, const IModelLibrary& models,
-                                          Render::Models::AnimationScene scene);
+                                          Render::Models::AnimationScene scene,
+                                          const PlayerActionSpeeds* speeds = nullptr);
 
 // El cuerpo que se posa entre dos pasos: `alpha` de un paso más (Render::Models::Interpolated). Sin la
 // acción en Player.bmd, el del paso.
 [[nodiscard]] Render::Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation,
-                                                              const IModelLibrary& models, float alpha);
+                                                              const IModelLibrary& models, float alpha,
+                                                              const PlayerActionSpeeds* speeds = nullptr);
 } // namespace Client::Scenes

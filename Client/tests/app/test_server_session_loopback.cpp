@@ -23,6 +23,7 @@
 #include "support/FakeClock.h"
 #include "support/FakeServers.h"
 #include "support/LoopbackServer.h"
+#include "support/RecordingSessionEventSink.h"
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
 #include "support/TestGameServer.h"
@@ -111,7 +112,7 @@ struct LoopbackSession
         : servers(GameServerKeys(), clock, idleTimeout), socket(resolver),
           connection(socket, foxAnti, clock, log, PaddingSeed),
           session(connection, clock, log, GameClientKeys(),
-                  SessionSettings{ServerAddress{std::string(Loopback), servers.ConnectServerPort()}}),
+                  SessionSettings{ServerAddress{std::string(Loopback), servers.ConnectServerPort()}}, eventSink),
           autoLogin(session, Credentials{std::string(Account), std::string(Password)}, log)
     {
         clock.Advance(std::chrono::milliseconds{123456});
@@ -140,7 +141,7 @@ struct LoopbackSession
             [&]
             {
                 servers.Poll();
-                session.Poll();
+                static_cast<void>(session.Poll());
                 autoLogin.Poll();
                 return session.State() == SessionState::LoggedIn || session.State() == SessionState::Failed;
             });
@@ -153,7 +154,7 @@ struct LoopbackSession
             [&]
             {
                 servers.Poll();
-                session.Poll();
+                static_cast<void>(session.Poll());
                 return done() || !servers.Complaints().empty() || session.State() == SessionState::Failed;
             });
     }
@@ -167,6 +168,7 @@ struct LoopbackSession
     Log log{sink, LogLevel::Debug};
     FoxAntiObfuscation foxAnti;
     Connection connection;
+    Client::Tests::RecordingSessionEventSink eventSink;
     ServerSession session;
     AutoLogin autoLogin;
 };

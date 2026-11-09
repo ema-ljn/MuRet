@@ -28,7 +28,7 @@ std::string Describe(SceneId scene)
 } // namespace
 
 SceneManager::SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClock& clock,
-                           std::function<void()> pollNetwork, Core::Log& log)
+                           std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log)
     : m_factory(std::move(factory)), m_frame(frame), m_clock(clock), m_pollNetwork(std::move(pollNetwork)), m_log(log)
 {
 }
@@ -44,6 +44,10 @@ SceneManager::~SceneManager()
 
 Core::Expected<void, std::string> SceneManager::Start(SceneId first)
 {
+    if (m_pollFailed)
+    {
+        return Core::Unexpected(*m_failure);
+    }
     if (m_current)
     {
         std::string error = std::format("el SceneManager ya está en la escena {}: Start no entra a la {}",
@@ -58,19 +62,34 @@ Core::Expected<void, std::string> SceneManager::Start(SceneId first)
 
 void SceneManager::Poll()
 {
-    if (m_pollNetwork)
+    m_framePrepared = false;
+    if (m_pollFailed || (m_failure && m_scene) || !m_pollNetwork)
     {
-        m_pollNetwork();
+        return;
+    }
+    const auto polled = m_pollNetwork();
+    if (!polled.HasValue())
+    {
+        m_failure = polled.Error();
+        m_pollFailed = true;
+        m_log.Error("no se pudo aplicar la recepción de la sesión: {}", *m_failure);
     }
 }
 
 void SceneManager::Step(const Input::InputState& input)
 {
-    if (!m_scene)
+    if (m_failure || !m_scene)
     {
         return;
     }
+    m_framePrepared = false;
     m_scene->Step(input);
+    if (const auto failure = m_scene->Failure())
+    {
+        m_failure = *failure;
+        m_log.Error("no se pudo avanzar la escena: {}", *m_failure);
+        return;
+    }
     const std::optional<SceneId> next = m_scene->Next();
     if (!next)
     {
@@ -83,18 +102,26 @@ void SceneManager::Step(const Input::InputState& input)
 
 void SceneManager::Render(float alpha)
 {
-    if (!m_scene)
+    if (m_failure || !m_scene)
     {
         return;
     }
+    if (HoldsTheLastFrame())
+        return;
     SceneCanvas& canvas = m_frame.BeginFrame(m_clock.Now());
     m_scene->Render(canvas, alpha);
+    if (const auto failure = m_scene->Failure())
+    {
+        m_failure = *failure;
+        m_log.Error("no se pudo dibujar la escena: {}", *m_failure);
+        return;
+    }
     m_frame.Present();
 }
 
 void SceneManager::Request(SceneId next)
 {
-    if (!m_current)
+    if (m_failure || !m_current)
     {
         return;
     }
@@ -141,6 +168,11 @@ bool SceneManager::WantsTextInput() const
 
 bool SceneManager::HoldsTheLastFrame() const
 {
+    if (m_failure)
+    {
+        return true;
+    }
+    PrepareFrame();
     if (!m_scene || !m_scene->HoldsTheLastFrame())
     {
         return false;
@@ -148,6 +180,15 @@ bool SceneManager::HoldsTheLastFrame() const
     // Consultar y obtener true también notifica la retención; repetirlo es un aviso idempotente.
     m_scene->OnFrameHeld();
     return true;
+}
+
+void SceneManager::PrepareFrame() const
+{
+    if (!m_framePrepared && m_scene)
+    {
+        m_scene->PrepareFrame();
+        m_framePrepared = true;
+    }
 }
 
 Core::Expected<void, std::string> SceneManager::Enter(SceneId id)
@@ -169,6 +210,7 @@ Core::Expected<void, std::string> SceneManager::Enter(SceneId id)
         m_log.Error("la escena {} no pudo entrar: {}", Describe(id), *m_failure);
         return Core::Unexpected(*m_failure);
     }
+    m_framePrepared = false;
     m_scene = std::move(scene);
     m_current = id;
     return {};

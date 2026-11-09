@@ -36,6 +36,24 @@ enum class CullingScene : std::uint8_t
 [[nodiscard]] TerrainRange TerrainRangeOf(const glm::mat4& view, const Render::Camera3D& camera,
                                           float widthFactor = 1.0f);
 
+// Los 80 B consumidos por 5fbf00: cinco normales F32 y cinco distancias F32.
+// No es una extracción de la matriz de proyección; el productor original es 5fbb00.
+struct ModelEffectPlanes
+{
+    std::array<glm::vec3, 5> normals{};
+    std::array<float, 5> distances{};
+};
+
+// 5fbb00+5fd000: cinco triples orientados, spills F32 asimétricos y D en orden Z+Y+X.
+// Si la longitud es cero o sin orden conserva esa normal de previous, pero recalcula todos los D.
+// El dueño conserva el resultado para el cuadro siguiente; no debe reiniciar los 80 B por cuadro.
+[[nodiscard]] ModelEffectPlanes ModelEffectPlanesOf(const ModelEffectPlanes& previous, const glm::mat4& view,
+                                                    const Render::Camera3D& camera, float widthFactor = 1.0f);
+
+// 5fbf00: X+Z, luego Y y D, sin redondeo F32 intermedio. Igualdad pasa, unordered falla.
+[[nodiscard]] std::uint8_t ModelEffectVisibility(const ModelEffectPlanes& planes, const glm::vec3& position,
+                                                 float margin);
+
 // El trapecio de 0x5fb570 en celdas: izquierda lejana, derecha lejana, derecha cercana, izquierda cercana.
 struct TerrainPolygon
 {

@@ -7,18 +7,22 @@
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/PlayerActionSpeeds.h"
 
 namespace Client::Scenes
 {
 bool StepCharacterAnimation(CharacterAnimation& animation, const GameLogic::CharacterAppearance& appearance,
-                            const IModelLibrary& models, Render::Models::AnimationScene scene)
+                            const IModelLibrary& models, Render::Models::AnimationScene scene,
+                            const PlayerActionSpeeds* speeds)
 {
     bool finished = false;
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (skeleton != nullptr && animation.body.action < skeleton->actions.size())
     {
         const Render::Models::ActionInfo& action = skeleton->actions[animation.body.action];
-        finished = Render::Models::AdvanceAnimation(animation.body, action, action.speed, scene);
+        finished = Render::Models::AdvanceAnimation(
+            animation.body, action,
+            speeds != nullptr ? (*speeds)[animation.body.action].value_or(action.speed) : action.speed, scene);
     }
     if (appearance.pet)
     {
@@ -43,7 +47,7 @@ bool StepCharacterAnimation(CharacterAnimation& animation, const GameLogic::Char
 }
 
 Render::Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation, const IModelLibrary& models,
-                                                float alpha)
+                                                float alpha, const PlayerActionSpeeds* speeds)
 {
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (skeleton == nullptr || animation.body.action >= skeleton->actions.size())
@@ -51,6 +55,8 @@ Render::Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animat
         return animation.body;
     }
     const Render::Models::ActionInfo& action = skeleton->actions[animation.body.action];
-    return Render::Models::Interpolated(animation.body, action, action.speed, alpha);
+    return Render::Models::Interpolated(
+        animation.body, action,
+        speeds != nullptr ? (*speeds)[animation.body.action].value_or(action.speed) : action.speed, alpha);
 }
 } // namespace Client::Scenes

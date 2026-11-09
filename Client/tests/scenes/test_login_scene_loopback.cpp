@@ -1,6 +1,8 @@
 #include "Scenes/LoginScene.h"
 
 #include "App/AutoLogin.h"
+
+#include "Core/Expected.h"
 #include "App/Credentials.h"
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
@@ -26,6 +28,7 @@
 #include "support/FakeTextureStore.h"
 #include "support/LoopbackServer.h"
 #include "support/RecordingFrameTarget.h"
+#include "support/RecordingSessionEventSink.h"
 #include "support/RecordingSink.h"
 #include "support/SceneDataFiles.h"
 #include "support/ScenePrinters.h"
@@ -113,8 +116,10 @@ TEST(LoginSceneLoopbackTest, GoesToTheSelectionWhenTheLoginIsAccepted)
     Log log(sink, LogLevel::Debug);
     const FoxAntiObfuscation foxAnti;
     Connection connection(socket, foxAnti, clock, log, PaddingSeed);
+    Client::Tests::RecordingSessionEventSink eventSink;
     ServerSession session(connection, clock, log, GameClientKeys(),
-                          SessionSettings{ServerAddress{std::string(Loopback), servers.ConnectServerPort()}});
+                          SessionSettings{ServerAddress{std::string(Loopback), servers.ConnectServerPort()}},
+                          eventSink);
     // Como Main con --auto-login: después de la sesión, en el mismo pollNetwork (CL5.5).
     AutoLogin autoLogin(session, Credentials{std::string(Account), std::string(Password)}, log);
     TemporaryFolder folder{"login-scene-loopback"};
@@ -143,8 +148,9 @@ TEST(LoginSceneLoopbackTest, GoesToTheSelectionWhenTheLoginIsAccepted)
         target, clock,
         [&session, &autoLogin]
         {
-            session.Poll();
+            static_cast<void>(session.Poll());
             autoLogin.Poll();
+            return Client::Core::Expected<void, std::string>{};
         },
         log);
     const InputState input;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "App/Credentials.h"
+#include "App/ISessionEventSink.h"
 #include "App/ServerAddress.h"
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
@@ -13,6 +14,7 @@
 #include "support/CharacterPackets.h"
 #include "support/FakeClock.h"
 #include "support/FakeSocket.h"
+#include "support/RecordingSessionEventSink.h"
 #include "support/RecordingSink.h"
 #include "support/SessionPackets.h"
 #include "support/TestGameServer.h"
@@ -28,9 +30,10 @@ namespace Client::Tests
 {
 struct LoggedInSession
 {
-    LoggedInSession()
+    explicit LoggedInSession(App::ISessionEventSink* eventSinkOverride = nullptr)
         : log(sink, Core::LogLevel::Debug), connection(socket, Network::IdentityObfuscation::Shared(), clock, log, 1),
-          session(connection, clock, log, GameClientKeys(), App::SessionSettings{App::ServerAddress{"10.0.0.1", 44405}})
+          session(connection, clock, log, GameClientKeys(), App::SessionSettings{App::ServerAddress{"10.0.0.1", 44405}},
+                  eventSinkOverride != nullptr ? *eventSinkOverride : eventSink)
     {
     }
 
@@ -40,18 +43,18 @@ struct LoggedInSession
     {
         session.Start();
         socket.reads = {Hello()};
-        session.Poll();
+        static_cast<void>(session.Poll());
         socket.reads = {ServerList({400})};
-        session.Poll();
+        static_cast<void>(session.Poll());
         session.ChooseServer(400);
         socket.reads = {AddressReply("10.0.0.2", 55901)};
-        session.Poll();
-        session.Poll();
+        static_cast<void>(session.Poll());
+        static_cast<void>(session.Poll());
         socket.reads = {GameHello(1, Protocol::ClientVersion)};
-        session.Poll();
+        static_cast<void>(session.Poll());
         session.SubmitCredentials(App::Credentials{"user0001", "pass0002"});
         socket.reads = {LoginResult(1)};
-        session.Poll();
+        static_cast<void>(session.Poll());
         ASSERT_EQ(session.State(), App::SessionState::LoggedIn);
     }
 
@@ -59,7 +62,7 @@ struct LoggedInSession
     void ReceiveTheList(const std::vector<CharacterEntryFields>& characters)
     {
         socket.reads = {CharacterListBytes(characters)};
-        session.Poll();
+        static_cast<void>(session.Poll());
     }
 
     FakeSocket socket;
@@ -67,6 +70,7 @@ struct LoggedInSession
     RecordingSink sink;
     Core::Log log;
     Network::Connection connection;
+    RecordingSessionEventSink eventSink;
     App::ServerSession session;
 };
 } // namespace Client::Tests

@@ -1,4 +1,5 @@
 #include "Scenes/SelectionState.h"
+#include "Scenes/SessionEventApplier.h"
 
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
@@ -85,22 +86,7 @@ protected:
         m_cameraInput.map = LoginMap;
         ASSERT_NO_FATAL_FAILURE(m_online.LogIn());
         m_manager.emplace([this](SceneId id) { return MakeScene(id); }, m_target, m_online.clock,
-                          [this]
-                          {
-                              // Mismo orden y único drenado que main: también corre sin lógica ni dibujo.
-                              m_online.session.Poll();
-                              const auto applied =
-                                  m_state.Apply(m_online.session.TakeCharacterEvents(), m_camera, m_cameraInput);
-                              if (m_expectApplyFailure)
-                              {
-                                  EXPECT_FALSE(applied.HasValue());
-                              }
-                              else
-                              {
-                                  EXPECT_TRUE(applied.HasValue()) << applied.Error();
-                              }
-                          },
-                          m_online.log);
+                          [this] { return m_online.session.Poll(); }, m_online.log);
     }
 
     std::unique_ptr<Client::Scenes::IScene> MakeScene(SceneId id)
@@ -142,12 +128,12 @@ protected:
     Client::Tests::RecordingFrameTarget m_target;
     Client::Scenes::GameData m_data;
     Client::Scenes::SingleModelLibrary m_models;
-    Client::Tests::LoggedInSession m_online;
     Client::World::GameCamera m_camera;
     Client::World::GameCameraInput m_cameraInput;
     Client::Scenes::SelectionState m_state;
+    Client::Scenes::SessionEventApplier m_applier{m_state, m_camera, m_cameraInput};
+    Client::Tests::LoggedInSession m_online{&m_applier};
     float m_loginConstructorHeight = 0.0f;
-    bool m_expectApplyFailure = false;
     // Se destruye primero: Leave conserva las tablas antes de que desaparezcan el estado y el store.
     std::optional<Client::Scenes::SceneManager> m_manager;
 };
@@ -190,7 +176,6 @@ TEST_F(SelectionPipelineTest, MissingWorldTablesFailExplicitlyWithoutInventingAH
 {
     ASSERT_NO_FATAL_FAILURE(StartSelect());
     m_state.BorrowTerrain(LoginMap, nullptr);
-    m_expectApplyFailure = true;
     m_cameraInput.hero.z = 777.0f;
     m_online.socket.reads = {Client::Tests::CharacterListBytes({{0, "char0001"}})};
     m_manager->Poll();
@@ -222,8 +207,8 @@ TEST_F(SelectionPipelineTest, PollConstructsBeforeLogicAndTheRenderGuardKeepsThe
 
     m_manager->Render(0.0f);
 
-    ASSERT_EQ(m_target.frames.size(), 1u);
-    EXPECT_TRUE(m_target.frames.back().events.empty());
+    EXPECT_TRUE(m_manager->HoldsTheLastFrame());
+    EXPECT_TRUE(m_target.frames.empty());
     EXPECT_EQ(m_state.Slots()[0].position, constructed);
     EXPECT_EQ(m_cameraInput.hero, constructed);
     EXPECT_EQ(m_state.Map(), LoginMap);
@@ -286,7 +271,7 @@ TEST_F(SelectionPipelineTest, RecreatingAndDeletingBeforeAnotherStepSurvivesTheR
     EXPECT_EQ(m_cameraInput.hero, constructed);
 }
 
-TEST_F(SelectionPipelineTest, ANewLoginDiscardsPendingEventsWithoutErasingTheConstructedPool)
+TEST_F(SelectionPipelineTest, ANewLoginPreservesTheSynchronouslyConstructedPoolWithoutReplay)
 {
     ASSERT_NO_FATAL_FAILURE(StartSelect());
     ASSERT_NO_FATAL_FAILURE(ReceiveList({WithHeightOffsetPet(0)}));
@@ -294,40 +279,40 @@ TEST_F(SelectionPipelineTest, ANewLoginDiscardsPendingEventsWithoutErasingTheCon
     ASSERT_TRUE(m_state.Slots()[0].previousHad1c15);
     m_online.session.CreateCharacter("char0003", 0);
     m_online.socket.reads = {CreatedReply(PendingCreationSlot)};
-    // Recepción aceptada, todavía pendiente del único Take del callback.
-    m_online.session.Poll();
+    // El sink canónico ya construyó el actor dentro de Poll, antes de volver al caller.
+    static_cast<void>(m_online.session.Poll());
     ASSERT_EQ(m_online.session.State(), SessionState::ChoosingCharacter);
     ASSERT_EQ(m_online.session.Characters()->characters.size(), 2u);
-    ASSERT_EQ(m_state.Slots()[PendingCreationSlot].revision, 0u);
+    ASSERT_EQ(m_state.Slots()[PendingCreationSlot].revision, 1u);
 
     m_manager->Request(SceneId::Login);
     ASSERT_EQ(m_manager->Current(), SceneId::Login);
     ASSERT_FALSE(m_manager->Failure().has_value());
     m_manager->Poll();
 
-    EXPECT_EQ(m_state.Slots()[PendingCreationSlot].revision, 0u);
+    EXPECT_EQ(m_state.Slots()[PendingCreationSlot].revision, 1u);
     EXPECT_EQ(m_state.Slots()[0].revision, 1u);
     EXPECT_EQ(m_state.Slots()[0].position, constructed);
     EXPECT_EQ(m_cameraInput.hero, constructed);
     EXPECT_TRUE(m_state.Slots()[0].previousHad1c15);
-    EXPECT_TRUE(m_online.session.TakeCharacterEvents().empty());
+    EXPECT_TRUE(m_online.eventSink.TakeCharacterEvents().empty());
 }
 
-TEST_F(SelectionPipelineTest, OnePollAppliesTwoIdenticalAcceptedCreationsBeforeTheSceneReadsTheSnapshot)
+TEST_F(SelectionPipelineTest, TwoIdenticalAcceptedCreationsApplyBeforeTheSceneReadsTheSnapshot)
 {
     ASSERT_NO_FATAL_FAILURE(StartSelect());
     ASSERT_NO_FATAL_FAILURE(ReceiveList({}));
     for (int reception = 0; reception < 2; ++reception)
     {
-        // Cada respuesta tiene su pedido válido; se acumulan antes de drenar o consumir la vista UI.
+        // Cada respuesta tiene su pedido válido y aplica antes de consumir la vista UI.
         m_online.session.CreateCharacter("char0003", 0);
         ASSERT_EQ(m_online.session.State(), SessionState::WaitingCreateResult);
         m_online.socket.reads = {CreatedReply(0)};
-        m_online.session.Poll();
+        static_cast<void>(m_online.session.Poll());
         ASSERT_EQ(m_online.session.State(), SessionState::ChoosingCharacter);
     }
     ASSERT_EQ(m_online.session.Characters()->characters.size(), 1u);
-    ASSERT_EQ(m_state.Slots()[0].revision, 0u);
+    ASSERT_EQ(m_state.Slots()[0].revision, 2u);
     ASSERT_TRUE(m_target.frames.empty());
 
     m_manager->Poll();

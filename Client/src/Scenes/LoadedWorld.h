@@ -40,7 +40,8 @@ public:
     // (TileGrass01, el 0x122) y falta o no se lee, el terreno que no se lee o la tabla que no sube son
     // un error, y no queda nada cargado ni subido.
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot, std::uint8_t map,
-                                                         std::vector<std::string>& skipped);
+                                                         std::vector<std::string>& skipped,
+                                                         World::WorldTerrainLoad context = {});
 
     // Suelta los slots que subió y el terreno. Sin un Load, o una segunda vez, no hace nada.
     void Release();

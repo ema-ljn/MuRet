@@ -26,6 +26,9 @@ public:
     virtual void Step(const Input::InputState& input) = 0;
     // El dibujo del frame en `canvas`. alpha en [0, 1), como el de ILoopClient::Render.
     virtual void Render(SceneCanvas& canvas, float alpha) = 0;
+    // Una decisión de dibujo por frame, antes de retener o presentar. Holds sólo consulta el
+    // resultado; P puede cerrar aquí su lectura aunque se omita Render.
+    virtual void PrepareFrame() {}
     // Suelta lo que subió en Enter. Corre antes del Enter de la que sigue.
     virtual void Leave() = 0;
     // A qué escena quiere ir; vacío si sigue en esta. El SceneManager lo mira después de cada
@@ -44,5 +47,10 @@ public:
     // SceneManager avisa cuando su consulta HoldsTheLastFrame devuelve true. El aviso puede repetirse
     // y debe ser idempotente. Por defecto, nada.
     virtual void OnFrameHeld() {}
+    // Fallo de una frontera productiva durante Step; el manager lo conserva y main cierra con error.
+    [[nodiscard]] virtual std::optional<std::string> Failure() const
+    {
+        return std::nullopt;
+    }
 };
 } // namespace Client::Scenes

@@ -10,6 +10,10 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TextureSets.h"
+#include "Scenes/WorldState.h"
+#include "Scenes/WorldRuntime.h"
+#include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 
 #include <array>
 #include <cstdint>
@@ -47,6 +51,26 @@ WorldLoadingScene::WorldLoadingScene(const SceneContext& context)
 
 Core::Expected<void, std::string> WorldLoadingScene::Enter()
 {
+    m_done = false;
+    m_drawn = false;
+    m_drawMosaic = true;
+    if (m_context.world != nullptr)
+    {
+        WorldRuntime& runtime = m_context.world->Runtime();
+        if (runtime.loadingOnceFlag != 0)
+        {
+            m_drawMosaic = false;
+            return {};
+        }
+        if (m_context.cloth == nullptr)
+            return Core::Unexpected(std::string("falta el RNG compartido para la carga de mundo"));
+        {
+            const Render::Models::LogicalAccess access(runtime.warpDepth, m_context.cloth->random,
+                                                       Render::Models::SmallLogicalCloseRandoms);
+            runtime.warpCounter = 9'999'999;
+        }
+        runtime.loadingOnceFlag = 1;
+    }
     return m_textures.Load(m_context.dataRoot);
 }
 
@@ -57,6 +81,11 @@ void WorldLoadingScene::Step(const Input::InputState& /*input*/)
 
 void WorldLoadingScene::Render(SceneCanvas& canvas, float /*alpha*/)
 {
+    if (!m_drawMosaic)
+    {
+        m_drawn = true;
+        return;
+    }
     canvas.sprites.SetBlend(Render::BlendMode::Alpha);
     for (const Tile& tile : Tiles)
     {

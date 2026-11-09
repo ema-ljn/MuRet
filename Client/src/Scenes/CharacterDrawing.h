@@ -1,11 +1,15 @@
 #pragma once
 
 #include "Core/IClock.h"
+#include "Core/Expected.h"
+#include "World/WorldObjectDrawingError.h"
 #include "Data/Models/Model.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Render/ModelBatch.h"
+#include "Render/SpriteVertex.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
@@ -27,6 +31,8 @@ namespace Client::World
 {
 class FrameSprites;
 class ScepterGlowCarry;
+struct WorldObjectDrawingPass;
+struct WorldObjectDrawingModel;
 } // namespace Client::World
 
 // El dibujo de un personaje en el ModelBatch, como 0x50ba30 en la selección: el cuerpo de
@@ -52,6 +58,13 @@ public:
     [[nodiscard]] virtual std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const = 0;
     // Consulta raw32 de la misma tabla: ausencia explícita, sin truncar al slot16 de los modelos.
     [[nodiscard]] virtual std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const
+    {
+        (void)selector;
+        return std::nullopt;
+    }
+    // Handle físico publicado por una carga exitosa del owner. La ausencia no autoriza truncar
+    // el selector raw32 ni confundirlo con un nombre de GL. Las bibliotecas legacy no lo ofrecen.
+    [[nodiscard]] virtual std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const
     {
         (void)selector;
         return std::nullopt;
@@ -95,6 +108,8 @@ struct DrawnCharacter
     // Cómo cuentan los frames del original la tela y el cetro (Render::Models::OriginalFrameCarry): por el
     // reloj del frame, o uno por dibujo en el modo fiel (SceneContext::pacing).
     Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock;
+    // +174 del actor: RenderBody lo recibe también durante la llegada.
+    float alpha = 1.0f;
 };
 
 // Los slots de las texturas de los pases de brillo (06): 0x5fc el 0x8, 0x5c0 el 0x4 y 0x620 los
@@ -155,6 +170,22 @@ struct DrawnObject
 // que la biblioteca no tiene no se dibuja.
 void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                 Core::Duration frameClock);
+
+// Pases sobre pose existente: mismo skinning/material/triángulos, sin renderer paralelo.
+// Mask no acreditado -> error. Body respeta H/hiddenMesh; Mesh directo no.
+[[nodiscard]] Core::Expected<void, World::WorldObjectDrawingError>
+DrawPreparedObjectPass(Render::ModelBatch&, const IModelLibrary&, const DrawnObject&,
+                       std::span<const Render::Models::BoneTransform>, std::span<const std::uint8_t> known,
+                       std::optional<std::int32_t> mesh, const World::WorldObjectDrawingPass&, Core::Duration,
+                       World::WorldObjectDrawingModel& metadata);
+
+// 4eff40: posiciones preparadas, filtros signed32 y límites YA resueltos por el servicio.
+// No vuelve a interpretar el sentinel: un end negativo posterior a Begin sigue siendo negativo.
+[[nodiscard]] Core::Expected<void, World::WorldObjectDrawingError>
+DrawPreparedObjectShadow(Render::ModelBatch&, const IModelLibrary&, const DrawnObject&,
+                         std::span<const Render::Models::BoneTransform>, std::span<const std::uint8_t> known,
+                         const glm::vec3& origin, std::int32_t map, std::int32_t excludedTag, std::int32_t excludedMesh,
+                         std::int32_t first, std::int32_t end, Render::Color color, bool blended);
 
 // El punto `offset` del hueso `bone` de `object` posado como lo posa DrawObject, en el mundo (por la escala
 // y más la posición del objeto, como los vértices). Es lo que lee del buffer global de la pose

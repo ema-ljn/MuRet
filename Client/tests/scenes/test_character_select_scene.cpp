@@ -288,7 +288,7 @@ struct Harness
         const std::vector<CharacterEntryFields> two = TwoCharacters();
         online.socket.reads = {
             Client::Tests::CharacterListBytes(two, static_cast<std::uint8_t>(two.size()), creatable)};
-        online.session.Poll();
+        static_cast<void>(online.session.Poll());
         ASSERT_EQ(online.session.State(), SessionState::ChoosingCharacter);
         Step();
     }
@@ -310,10 +310,10 @@ struct Harness
     // El callback de main aplica los constructores de Poll aun sin lógica ni dibujo.
     void Poll()
     {
-        online.session.Poll();
+        static_cast<void>(online.session.Poll());
         if (selection != nullptr)
         {
-            const auto applied = selection->Apply(online.session.TakeCharacterEvents(), camera, cameraInput);
+            const auto applied = selection->Apply(online.eventSink.TakeCharacterEvents(), camera, cameraInput);
             ASSERT_TRUE(applied.HasValue()) << applied.Error();
         }
     }
@@ -1050,7 +1050,8 @@ TEST(CharacterSelectSceneTest, ADeletedOneDisappearsWhenPollIsFollowedByRenderWi
     const auto visible = std::ranges::find(before, Kind::Models, &FrameEvent::kind);
     ASSERT_NE(visible, before.end());
     ASSERT_FALSE(visible->modelVertices.empty());
-    const auto retained = selection.Slots()[DeletedSlot];
+    const auto retainedRevision = selection.Slots()[DeletedSlot].revision;
+    const auto retainedPosition = selection.Slots()[DeletedSlot].position;
     tested.online.session.ChooseCharacter(DeletedSlot);
     tested.online.session.DeleteCharacter(Client::Protocol::Character::DeleteCodeFromText("1234"));
     tested.online.socket.reads = {Client::Tests::Bytes({0xc1, 0x05, 0xf3, 0x02, 0x01})};
@@ -1059,14 +1060,14 @@ TEST(CharacterSelectSceneTest, ADeletedOneDisappearsWhenPollIsFollowedByRenderWi
 
     ASSERT_EQ(tested.online.session.State(), SessionState::ChoosingCharacter);
     ASSERT_TRUE(tested.online.session.Characters()->characters.empty());
-    EXPECT_EQ(selection.Slots()[DeletedSlot].revision, retained.revision);
-    EXPECT_EQ(selection.Slots()[DeletedSlot].position, retained.position);
+    EXPECT_EQ(selection.Slots()[DeletedSlot].revision, retainedRevision);
+    EXPECT_EQ(selection.Slots()[DeletedSlot].position, retainedPosition);
     const auto after = tested.Frame();
     const auto hidden = std::ranges::find(after, Kind::Models, &FrameEvent::kind);
     ASSERT_NE(hidden, after.end());
     EXPECT_TRUE(hidden->modelVertices.empty());
-    EXPECT_EQ(selection.Slots()[DeletedSlot].revision, retained.revision);
-    EXPECT_EQ(selection.Slots()[DeletedSlot].position, retained.position);
+    EXPECT_EQ(selection.Slots()[DeletedSlot].revision, retainedRevision);
+    EXPECT_EQ(selection.Slots()[DeletedSlot].position, retainedPosition);
 }
 
 // Las respuestas que no borran: 0 → 0x92, 3 → 0x62 y otra → 0x89 (0x4e2fe9). El personaje queda.
@@ -1129,7 +1130,7 @@ TEST(CharacterSelectSceneTest, ACreatedOneAppearsWhenPollIsFollowedByRenderWitho
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
     tested.online.session.CreateCharacter("char0003", 0);
     tested.online.socket.reads = {CreatedBytes(1)};
-    tested.online.session.Poll();
+    static_cast<void>(tested.online.session.Poll());
     ASSERT_EQ(tested.online.session.State(), SessionState::ChoosingCharacter);
     const auto events = tested.Frame();
     const auto models = std::ranges::find(events, Kind::Models, &FrameEvent::kind);

@@ -82,6 +82,11 @@ public:
     RecordingFrameTarget(const RecordingFrameTarget&) = delete;
     RecordingFrameTarget& operator=(const RecordingFrameTarget&) = delete;
 
+    [[nodiscard]] Render::ModelBatch& Models() noexcept
+    {
+        return m_models;
+    }
+
     Scenes::SceneCanvas& BeginFrame(Core::Duration frameClock) override
     {
         if (FrameOpen())

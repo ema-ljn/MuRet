@@ -272,7 +272,7 @@ TEST_F(SharedGameCameraTest, ReceivingSlotZeroWritesTheSharedHeroXYBeforeTheCame
     Client::Scenes::CharacterSelectScene selection(SelectionContext(state), m_data, m_models, &online.session);
     ASSERT_TRUE(selection.Enter().HasValue());
     online.ReceiveTheList({{0, "char0001"}});
-    ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
+    ASSERT_TRUE(state.Apply(online.eventSink.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
     selection.Step(Client::Input::InputState{});
     // 0x5172c4/0x5172ca: las escrituras de 0x517270 al slot0, al que apunta Hero.
     EXPECT_EQ(m_cameraInput.hero.x, Client::Scenes::CharacterSlots[0].position.x);
@@ -296,7 +296,7 @@ TEST_F(SharedGameCameraTest, TheSlotZeroSelectionPassDoesNotDependOnInitialHeroZ
         Client::Scenes::CharacterSelectScene selection(SelectionContext(state), m_data, m_models, &online.session);
         ASSERT_TRUE(selection.Enter().HasValue());
         online.ReceiveTheList({{0, "char0001"}});
-        ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
+        ASSERT_TRUE(state.Apply(online.eventSink.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
         selection.Step(Client::Input::InputState{});
         // Se aísla Z después de la construcción real, que ya escribió el XY de selección.
         m_cameraInput.hero.z = initialZ;
@@ -317,7 +317,7 @@ TEST_F(SharedGameCameraTest, ReenteringWithTheSameSlotZeroRefreshesTheSharedHero
     Client::Scenes::CharacterSelectScene selection(context, m_data, m_models, &online.session);
     ASSERT_TRUE(selection.Enter().HasValue());
     online.ReceiveTheList({{0, "char0001"}});
-    ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
+    ASSERT_TRUE(state.Apply(online.eventSink.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
     selection.Step(Client::Input::InputState{});
     static_cast<void>(Frame(selection, 0ns));
     selection.Leave();
@@ -333,7 +333,7 @@ TEST_F(SharedGameCameraTest, ReenteringWithTheSameSlotZeroRefreshesTheSharedHero
     ASSERT_TRUE(selection.Enter().HasValue());
     EXPECT_TRUE(selection.HoldsTheLastFrame());
     online.ReceiveTheList({{0, "char0001"}});
-    ASSERT_TRUE(state.Apply(online.session.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
+    ASSERT_TRUE(state.Apply(online.eventSink.TakeCharacterEvents(), m_camera, m_cameraInput).HasValue());
     EXPECT_TRUE(selection.HoldsTheLastFrame());
     selection.Step(Client::Input::InputState{});
     EXPECT_FALSE(selection.HoldsTheLastFrame());
@@ -416,8 +416,17 @@ TEST_F(SharedGameCameraTest, ALongDrawUsesTheExistingOriginalFrameLimit)
         static_cast<void>(StepGameCamera(expected, input));
     Client::Scenes::LoginScene login(Context(), m_data, m_models, nullptr, "1.0", Client::Tests::FixedSeed);
     ASSERT_TRUE(login.Enter().HasValue());
-    static_cast<void>(Frame(login, 0ns));
-    static_cast<void>(Frame(login, 100s));
+    // La distancia de esta prueba excede el dominio portable del polígono; la cámara avanza antes.
+    const auto draw = [&](Client::Core::Duration clock)
+    {
+        auto& canvas = m_target.BeginFrame(clock);
+        login.Render(canvas, 0.0f);
+        ASSERT_TRUE(login.Failure());
+        EXPECT_EQ(*login.Failure(), "polígono de login: distancia o nivel efectivo fuera del dominio portable");
+        m_target.Present();
+    };
+    draw(0ns);
+    draw(100s);
     EXPECT_EQ(m_camera.distance, expected.distance);
     login.Leave();
 }

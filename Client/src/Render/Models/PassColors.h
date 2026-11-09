@@ -40,5 +40,5 @@ namespace Client::Render::Models
 // pasan a RenderBody como la oculta: la 1 de 0xc17 y 0x226 y la 0 de 0x227 en todos; y en los de
 // 0x60b130, la 2 de 0x619 y la del objeto (`objectHidden`, su +0x58) con 0x231, 0x81c, 0xe22 y
 // 0x61a..0x61f. Las demás, ninguna (−1).
-[[nodiscard]] std::optional<std::size_t> PassHiddenMesh(std::uint16_t model, ShinePass pass, std::int16_t objectHidden);
+[[nodiscard]] std::optional<std::size_t> PassHiddenMesh(std::uint16_t model, ShinePass pass, std::int32_t objectHidden);
 } // namespace Client::Render::Models

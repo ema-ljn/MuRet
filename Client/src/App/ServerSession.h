@@ -1,10 +1,14 @@
 #pragma once
 
-#include "App/CharacterEvent.h"
+#include "App/TeleportHistory.h"
+#include "Protocol/Movement.h"
+
+#include "Protocol/Character/Opcodes.h"
+
 #include "App/Credentials.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
-#include "App/WorldEvent.h"
+#include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/IntervalTimer.h"
 #include "Core/Log.h"
@@ -21,6 +25,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -39,9 +44,10 @@
 // fuera de turno se ignora con un aviso. Una llamada de la UI fuera de turno (ChooseServer o
 // SubmitCredentials en otro estado) también se ignora con un aviso. Un cierre de la conexión es
 // Failed. Hay recepciones que no dependen del estado, como el F1 02 con 0 (abajo) y las de mundo:
-// F3/03 y F3/10 se encolan con el GS en cualquier estado, incluso WaitingGameHello, antes del
-// saludo y del login, si llegaron cifradas (C3/C4) y se leen. En claro o ilegibles se descartan con
-// un aviso. Es recepción filtrada: no aplica los handlers nativos ni cambia estado, selección o tope.
+// F3/03 y F3/10 se entregan al sink con el GS en cualquier estado, incluso WaitingGameHello,
+// antes del saludo y del login, si llegaron cifradas (C3/C4) y se leen. En claro o ilegibles se
+// descartan con un aviso. El sink aplica cada recepción antes del siguiente evento, con el contexto
+// vivo; también recibe en orden las de personajes. La sesión no retiene payloads para otro frame.
 //
 //   Idle o cualquiera --Start: abre el CS--> ConnectingConnectServer
 //   ConnectingConnectServer --Opened: manda el A9--> WaitingConnectHello
@@ -61,7 +67,8 @@
 //   WaitingLoginResult --F1 01 con otro: guarda el resultado--> WaitingCredentials
 //   LoggedIn --RequestCharacterList: manda F3 00--> WaitingCharacterList
 //   WaitingCharacterList --F3 00: guarda la lista, aunque venga vacía--> ChoosingCharacter
-//   ChoosingCharacter --EnterWorld con uno elegido: manda F3 03 con su nombre--> EnteringWorld
+//   ChoosingCharacter --EnterWorld(name, slot): manda F3 03 con el nombre recibido--> EnteringWorld
+//   EnterWorld() resuelve primero ChosenCharacter; la sobrecarga explícita no cambia esa caché.
 //   ChoosingCharacter --CreateCharacter: manda F3 01 con el nombre y la clase--> WaitingCreateResult
 //   WaitingCreateResult --F3 01 con 1: suma al nuevo, sin equipo--> ChoosingCharacter
 //   WaitingCreateResult --F3 01 con 0 o 2: guarda el resultado--> ChoosingCharacter
@@ -72,11 +79,14 @@
 //   WaitingDeleteResult --F3 02 con otro: guarda el resultado--> ChoosingCharacter
 //   con el GS abierto --cada KeepalivePeriod del timer global: manda el keepalive-->
 //     el mismo estado
-//   con el GS --F3 03 o F3 10 cifrado y legible: lo encola (TakeWorldEvents)--> el mismo estado
+//   con el GS --F3 03 o F3 10 cifrado y legible: aplica en el sink--> el mismo estado
+//   el aplicador --PublishWorldEntry en el store state3d de F3/03--> InWorld
+//   con el GS --D3/D7, 1C/F3 04 legibles: aplica en el mismo sink antes del siguiente evento
+//   un error del sink --cierra y corta el lote--> Failed (ApplicationFailed)
 //   con el GS --F1 02 con 0: cierra, sin aviso--> QuitOrdered (Q-C106)
 //   cualquier Waiting* que espera un servidor --ReplyTimeout sin su respuesta: cierra--> Failed
 //     (NoReply); ChoosingServer, WaitingCredentials y ChoosingCharacter esperan al jugador y no
-//     tienen tope, y EnteringWorld tampoco: ya recibe su respuesta, pero falta aplicarla en la CL7
+//     tienen tope; EnteringWorld e InWorld tampoco esperan una respuesta con deadline
 //   con el CS --Closed--> Failed (ConnectServerLost)
 //   con el GS --Closed--> Failed (GameServerLost)
 //
@@ -88,10 +98,14 @@
 // 1 o con 2 (la selección o la lista, Q-C79) se ignora con un aviso hasta la CL6 y la CL9.
 //
 // El timer del keepalive empieza al construir la sesión y conserva su fase al cambiar de estado,
-// aceptar/rechazar el login y reconectar. En cada vencimiento manda solo si el GS está abierto,
-// aunque se espere el saludo, la cuenta o el resultado, también minimizada. El login aceptado manda
+// aceptar/rechazar el login y reconectar, salvo el aborto de aplicación descrito abajo. En cada
+// vencimiento manda solo si el GS está abierto, aunque se espere el saludo, la cuenta o el resultado,
+// también minimizada. El login aceptado manda
 // además uno inmediato sin reiniciar el timer, como el original (04 § El flujo de conexión). La
 // sesión no se reconecta sola: la escena de login muestra el aviso de cierre.
+// ApplicationFailed suspende también el consumo del timer hasta el primer Poll posterior a Start.
+// Ese Poll retoma IntervalTimer::Due: si perdió un periodo o más, el próximo vence desde ahora;
+// no se promete la misma fase que habría tenido al seguir consumiendo durante el fallo.
 //
 // Un login rechazado deja el GS abierto, como el original, que con el OK del aviso vuelve al
 // estado 2 y abre otra vez la cuenta (0x643560): el próximo login sale por la misma conexión.
@@ -135,14 +149,16 @@ struct SessionSettings
     ServerAddress connectServer; // de la config o de /u /p (CL3.4)
 };
 
+class ISessionEventSink;
+
 class ServerSession
 {
 public:
-    // La conexión, el reloj y el log son de quien la arma y tienen que vivir más que ella. El reloj
+    // La conexión, el reloj, el log y el sink son de quien la arma y viven más que ella. El reloj
     // da el tick del login; `keys` son las de la conexión con el GameServer (Enc1.dat y Dec2.dat):
     // el ConnectServer abre sin claves. El timer global de 20 s empieza al construir la sesión.
     ServerSession(Network::Connection& connection, Core::IClock& clock, Core::Log& log, Network::ConnectionKeys keys,
-                  SessionSettings settings);
+                  SessionSettings settings, ISessionEventSink& eventSink);
 
     // Los handlers guardan this: no se copia ni se mueve.
     ServerSession(const ServerSession&) = delete;
@@ -156,10 +172,25 @@ public:
 
     // Una vez por frame, desde ILoopClient::Poll: despacha lo que llegó, consume el vencimiento
     // del timer aun sin GS, comprueba el tope del estado y manda el keepalive si toca y el GS sigue
-    // abierto. Así lo que llegó durante un frame largo se lee antes de mirar el tope.
-    void Poll();
+    // abierto. Así lo que llegó durante un frame largo se lee antes de mirar el tope. El primer error
+    // de aplicación se devuelve también en los Poll siguientes, hasta Start, sin timer ni keepalive.
+    Core::Expected<void, std::string> Poll();
 
     [[nodiscard]] SessionState State() const;
+    // 4c4854: sólo el aplicador lo llama, después de publicar al héroe y la primera llegada.
+    // No exige EnteringWorld: una recepción válida repite el handler con su contexto contemporáneo.
+    void PublishWorldEntry();
+    [[nodiscard]] const TeleportHistory& Teleports() const;
+    // Salidas decididas por el aplicador/MoveHero; no agregan guards de SessionState al caller nativo.
+    void RequestGate(std::uint8_t gate);
+    [[nodiscard]] Core::Expected<void, Protocol::Movement::WalkWriteError>
+    SendWalk(std::span<const Protocol::Movement::Cell> path, Protocol::Movement::Cell target, float angle);
+    void ConfirmTeleport();
+    void RequestCrywolfState();
+    [[nodiscard]] bool JoinedWorld() const;
+    // F1/00 aceptado guarda pkt[5]*256+pkt[6] antes de validar la versión.
+    // Start conserva esa historia; sin un saludo aceptado previo, el origen aún es desconocido.
+    [[nodiscard]] std::optional<std::uint16_t> PlayerIndex() const;
 
     // Cuántas veces se llamó a Start: lo que elige o manda alguien de afuera (el AutoLogin) es de
     // una vuelta, y con un Start empieza otra.
@@ -204,21 +235,10 @@ public:
     void RequestCharacterList();
 
     // La vista del último F3 00, desde que llega hasta Start. Un slot repetido conserva su última
-    // entrada; TakeCharacterEvents conserva cada construcción del paquete, en orden.
+    // entrada, también durante el callback y después de un fallo de aplicación. El sink recibe
+    // cada construcción cruda del paquete, en orden, sin deduplicar el evento.
     // std::nullopt antes de recibir la lista.
     [[nodiscard]] const std::optional<Protocol::Character::CharacterList>& Characters() const;
-
-    // Entrega una sola vez las recepciones de personajes aceptadas, en orden. No cambia las vistas
-    // de la UI; Start descarta las pendientes de la conexión anterior, Fail las conserva.
-    [[nodiscard]] std::vector<CharacterEvent> TakeCharacterEvents();
-
-    // Entrega una sola vez, en orden de llegada, los F3/03 y F3/10 cifrados (C3/C4) y legibles,
-    // recibidos en cualquier estado con el GS, incluso WaitingGameHello, antes del saludo y del
-    // login. En claro o ilegibles se descartan con un aviso. No aplica mundo ni selección ni cambia
-    // estado o tope. Elección de API MuRet: Start descarta pendientes; Fail y QuitOrdered las
-    // conservan. Un vector entregado es de quien lo recibió. El orden con CharacterEvents queda
-    // fuera de este contrato.
-    [[nodiscard]] std::vector<WorldEvent> TakeWorldEvents();
 
     // En ChoosingCharacter, elige al de `slot` si está en la lista; con std::nullopt o un lugar que
     // no está, a ninguno (el -1 de 0x6342c0). No manda nada. En otro estado, un aviso y nada.
@@ -230,6 +250,9 @@ public:
     // En ChoosingCharacter con uno elegido, manda el F3 03 con su nombre (0x636290) y espera la
     // entrada. Sin elegido, o en otro estado, un aviso y nada.
     void EnterWorld();
+    // Nombre del actor seleccionado actual, preparado por el caller con padding cero tras NUL.
+    // No vuelve a consultar ChosenCharacter ni conoce actores o escenas; slot es sólo para el log.
+    void EnterWorld(std::span<const std::byte, Protocol::Character::NameSize> name, std::uint8_t slot);
 
     // En ChoosingCharacter, manda el F3 01 con `name` y la clase `characterClass` (de 0 a 4, la de la
     // vista previa: 0x63d990) y espera la respuesta. El nombre no va al log. Uno de más de 10 bytes o
@@ -275,6 +298,10 @@ private:
     void OnWorldEntryReply(const Network::Packet& packet);
     void OnInventoryReply(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
+    void OnWalk(const Network::Packet& packet);
+    void OnDamage(const Network::Packet& packet);
+    void OnTeleport(const Network::Packet& packet);
+    void OnRegen(const Network::Packet& packet);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.
     void SendKeepalive(Core::Duration now);
 
@@ -282,6 +309,8 @@ private:
     void Connect(const ServerAddress& address, const std::optional<Network::ConnectionKeys>& keys);
     // Cierra la conexión, si no estaba cerrada, y pasa a Failed.
     void Fail(SessionFailure failure);
+    // Conserva el primer diagnóstico y corta el lote con la generación existente.
+    bool CheckApplication(Core::Expected<void, std::string> applied);
     // Pasa a `state` desde ahora, para el tope de los Waiting*; no reinicia el timer global.
     void SetState(SessionState state);
 
@@ -290,15 +319,18 @@ private:
     // "ConnectServer" o "GameServer", para el log, según con cuál habla el estado.
     [[nodiscard]] std::string_view ServerName() const;
 
+    TeleportHistory m_teleports;
     Network::Connection& m_connection;
     Core::IClock& m_clock;
     Core::Log& m_log;
+    ISessionEventSink& m_eventSink;
     Network::ConnectionKeys m_keys;
     SessionSettings m_settings;
     std::uint32_t m_starts = 0;
     Protocol::Dispatcher m_connectServer;
     Protocol::Dispatcher m_gameServer;
     SessionState m_state = SessionState::Idle;
+    std::optional<std::uint16_t> m_playerIndex;
     Core::Duration m_stateSince{}; // desde cuándo está en m_state
     std::optional<SessionFailure> m_failure;
     std::vector<Protocol::Connection::ServerEntry> m_serverList;
@@ -306,8 +338,7 @@ private:
     std::optional<ServerAddress> m_gameServerAddress;
     std::optional<std::uint8_t> m_loginResult;
     std::optional<Protocol::Character::CharacterList> m_characters;
-    std::vector<CharacterEvent> m_characterEvents;
-    std::vector<WorldEvent> m_worldEvents;
+    std::optional<std::string> m_applicationFailure;
     std::optional<std::uint8_t> m_chosenSlot; // un lugar de m_characters
     std::optional<std::uint8_t> m_createResult;
     std::optional<std::uint8_t> m_deleteResult;

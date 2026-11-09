@@ -1,6 +1,11 @@
 #include "Scenes/CharacterDrawing.h"
 
 #include "Core/IClock.h"
+#include "Core/Expected.h"
+#include "World/WorldObjectDrawingError.h"
+#include "World/WorldObjectDrawingPass.h"
+#include "World/WorldObjectDrawingModel.h"
+#include "World/WorldObjectStepModel.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Models/ModelTextures.h"
@@ -31,9 +36,10 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <bit>
+#include <limits>
 #include <optional>
 #include <random>
 #include <span>
@@ -170,14 +176,14 @@ MeshRole RoleOf(std::uint16_t model, const Data::Models::Mesh& mesh, std::size_t
 }
 
 // El blendMesh que 0x4ef0c0 le pasa a 0x4ecc30 con la malla: su índice con R; si no, el del objeto.
-std::int16_t BlendMeshOf(const MeshRole& role, std::size_t index, const ObjectState& object)
+std::int32_t BlendMeshOf(const MeshRole& role, std::size_t index, const ObjectState& object)
 {
-    return role.blendScript ? static_cast<std::int16_t>(index) : object.blendMesh;
+    return role.blendScript ? static_cast<std::int32_t>(index) : object.blendMesh;
 }
 
 // Si 0x4ecc30 pasa la malla por la rama del blendMesh (con su textura, aditiva y por la luz): con un
 // blendMesh menor que −1, o con el de su textura.
-bool Blends(const Data::Models::Mesh& mesh, std::int16_t blendMesh)
+bool Blends(const Data::Models::Mesh& mesh, std::int32_t blendMesh)
 {
     return blendMesh < Render::Models::NoBlendMesh || mesh.texture == blendMesh;
 }
@@ -502,7 +508,9 @@ void DrawPasses(const CharacterFrame& frame, std::span<const MeshDraw> draws, co
 std::vector<MeshDraw> MeshDrawsOf(const IModelLibrary& models, std::uint16_t modelId, const Data::Models::Model& model,
                                   std::span<const BoneTransform> bones, const Render::Models::ObjectTransform& object,
                                   std::uint8_t characterClass, Render::Color shade, const ObjectState& state,
-                                  Core::Duration clock, std::vector<Render::Models::SkinnedMesh>& skinned)
+                                  Core::Duration clock, std::vector<Render::Models::SkinnedMesh>& skinned,
+                                  bool respectHiddenScript = true, std::span<const std::uint8_t> known = {},
+                                  bool* invalidPose = nullptr, std::optional<std::int32_t> selected = {})
 {
     const std::span<const Render::TextureSlot> slots = models.MeshTextures(modelId);
     skinned.assign(model.meshes.size(), Render::Models::SkinnedMesh{});
@@ -510,15 +518,30 @@ std::vector<MeshDraw> MeshDrawsOf(const IModelLibrary& models, std::uint16_t mod
     draws.reserve(model.meshes.size());
     for (std::size_t index = 0; index < model.meshes.size(); ++index)
     {
+        if (selected && static_cast<std::int64_t>(index) != *selected)
+            continue;
         const Data::Models::Mesh& mesh = model.meshes[index];
         const MeshRole role = RoleOf(modelId, mesh, index);
         const MeshTexture texture = TextureOf(mesh, slots, index, characterClass);
-        if (role.hidden || !texture.drawn || !IndicesInRange(mesh) ||
-            !Render::Models::SkinMesh(mesh, bones, object, skinned[index]))
+        if ((respectHiddenScript && role.hidden) || !texture.drawn || !IndicesInRange(mesh) ||
+            (invalidPose != nullptr && respectHiddenScript && static_cast<std::int64_t>(index) == state.hiddenMesh))
         {
             continue;
         }
-        const std::int16_t blendMesh = BlendMeshOf(role, index, state);
+        const auto unknown = [known](const auto& entry)
+        {
+            return entry.bone < 0 || static_cast<std::size_t>(entry.bone) >= known.size() ||
+                   known[static_cast<std::size_t>(entry.bone)] == 0;
+        };
+        if (invalidPose != nullptr &&
+            (std::ranges::any_of(mesh.vertices, unknown) || std::ranges::any_of(mesh.normals, unknown)))
+        {
+            *invalidPose = true;
+            continue;
+        }
+        if (!Render::Models::SkinMesh(mesh, bones, object, skinned[index]))
+            continue;
+        const std::int32_t blendMesh = respectHiddenScript ? BlendMeshOf(role, index, state) : state.blendMesh;
         draws.push_back(MeshDraw{modelId, index, &mesh, &skinned[index], role, texture.slot, shade,
                                  Blends(mesh, blendMesh),
                                  static_cast<std::int16_t>(index) == blendMesh || role.scrollScript, &state, clock});
@@ -538,9 +561,11 @@ void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<con
     }
     const glm::vec3 shade = frame.character.light * use.glow.baseFactor;
     std::vector<Render::Models::SkinnedMesh> skinned;
-    const std::vector<MeshDraw> draws = MeshDrawsOf(
+    std::vector<MeshDraw> draws = MeshDrawsOf(
         frame.models, modelId, *model, bones, frame.character.object, frame.character.appearance.characterClass,
         Render::Color{shade.x, shade.y, shade.z, 1.0f}, use.object, frame.clock, skinned);
+    for (MeshDraw& draw : draws)
+        draw.alpha = frame.character.alpha;
     if (use.outlined)
     {
         ObjectState outlineObject = use.object;
@@ -574,6 +599,11 @@ bool SkippedInTheHand(std::uint16_t model)
 void DrawShadow(const CharacterFrame& frame, std::span<const BoneTransform> body)
 {
     const DrawnCharacter& character = frame.character;
+    if (character.alpha < 0.5f || character.map == 10 || (character.map >= 24 && character.map <= 29) ||
+        character.map == 36)
+    {
+        return;
+    }
     const std::optional<std::uint16_t>& pet = character.appearance.pet;
     if (pet && std::ranges::find(PetsWithoutShadow, *pet) != PetsWithoutShadow.end())
     {
@@ -595,6 +625,10 @@ void DrawShadow(const CharacterFrame& frame, std::span<const BoneTransform> body
         for (glm::vec3& position : skinned.positions)
         {
             position = Render::Models::FlattenOnTheGround(position, character.object.position);
+            constexpr std::uint8_t CastleMap = 30;
+            constexpr float CastleShadowHeight = 2500.0f; // 4eff40/research06: altura absoluta, no pz+5.
+            if (character.map == CastleMap)
+                position.z = CastleShadowHeight;
         }
         MeshDraw draw;
         draw.mesh = &mesh;
@@ -956,6 +990,202 @@ void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const Dr
     {
         DrawBase(batch, draw);
     }
+}
+
+namespace
+{
+Render::Color PreparedColor(World::WorldObjectDrawingModel& model, const World::WorldObjectDrawingPass& pass, bool fade,
+                            float alpha = 1.0f)
+{
+    if (fade)
+    {
+        model.light.x = model.light.x * pass.alpha;
+        model.light.y = model.light.y * pass.alpha;
+        model.light.z = model.light.z * pass.alpha;
+    }
+    return {model.light.x, model.light.y, model.light.z, alpha};
+}
+
+void PreparedShine(Render::ModelBatch& batch, const MeshDraw& draw, const World::WorldObjectDrawingPass& pass,
+                   World::WorldObjectDrawingModel& model)
+{
+    if (!draw.role.shines)
+        return;
+    const auto shine = (pass.mask & 0x4) ? Render::Models::ShinePass::Chrome : Render::Models::ShinePass::Shiny;
+    const auto texture = pass.texture == -1 ? std::optional(PassSlot(shine)) : draw.texture;
+    const bool fading = !(pass.alpha >= OpaqueAlpha);
+    const auto blend = (pass.mask & 0x40)   ? Render::ModelBlend::Additive
+                       : (pass.mask & 0x80) ? Render::ModelBlend::Subtractive
+                       : fading             ? Render::ModelBlend::Alpha
+                                            : Render::ModelBlend::Opaque;
+    const auto color =
+        PreparedColor(model, pass, blend == Render::ModelBlend::Additive && fading, fading ? pass.alpha : 1.0f);
+    Triangles(batch, draw, {texture, blend, (pass.mask & 0x2000) == 0}, color, PassUv{shine, {}});
+}
+
+Core::Expected<void, World::WorldObjectDrawingError> PreparedBase(Render::ModelBatch& batch, MeshDraw draw,
+                                                                  const World::WorldObjectDrawingPass& pass,
+                                                                  World::WorldObjectDrawingModel& model)
+{
+    const bool untextured = (pass.mask & 1) != 0;
+    const bool textured = !untextured && (draw.blends || (pass.mask & 2) != 0);
+    if (!untextured && !textured)
+    {
+        if ((pass.mask & 0x40) && HasFourComponents(*draw.mesh))
+            return {}; // 4ecc30: components==4 retorna antes del setup de esta fila.
+        // Filas con color/material heredados no representados por este prepared pass.
+        return Core::Unexpected(World::WorldObjectDrawingError::MissingBinding);
+    }
+    const bool fading = !(pass.alpha >= OpaqueAlpha);
+    Render::ModelBlend blend = Render::ModelBlend::Opaque;
+    if (untextured)
+        blend = fading               ? Render::ModelBlend::Alpha
+                : (pass.mask & 0x40) ? Render::ModelBlend::Additive
+                : (pass.mask & 0x80) ? Render::ModelBlend::Subtractive
+                                     : Render::ModelBlend::Opaque;
+    else if (draw.blends)
+        blend = (pass.mask & 0x80) ? Render::ModelBlend::Subtractive : Render::ModelBlend::Additive;
+    else if (pass.mask & 0x40)
+        blend = Render::ModelBlend::Additive;
+    else if (pass.mask & 0x80)
+        blend = Render::ModelBlend::Subtractive;
+    else if (fading || HasFourComponents(*draw.mesh))
+        blend = Render::ModelBlend::Alpha;
+    // La rama base no escribe RGB. A decide color4, independiente del selector de mezcla.
+    auto color = PreparedColor(model, pass, false, fading ? (untextured ? pass.alpha : draw.alpha) : 1.0f);
+    if (draw.blends && !untextured)
+    {
+        color.alpha = 1.0f; // Blend emite color3 y desactiva L, aun con A.
+        color = Scaled(color, pass.blendLight);
+    }
+    Triangles(batch, draw, {textured ? draw.texture : std::nullopt, blend, (pass.mask & 0x2000) == 0}, color,
+              PassUv{std::nullopt, textured ? TexturedShift(draw) : glm::vec2{}},
+              draw.vertexLight && !draw.blends && !untextured);
+    return {};
+}
+
+Core::Expected<void, World::WorldObjectDrawingError> PreparedMesh(Render::ModelBatch& batch, MeshDraw draw,
+                                                                  const DrawnObject& object,
+                                                                  const World::WorldObjectDrawingPass& pass,
+                                                                  World::WorldObjectDrawingModel& model)
+{
+    const auto special = static_cast<std::int32_t>(std::bit_cast<std::int8_t>(model.step.flag88));
+    const bool specialMesh = static_cast<std::int64_t>(draw.index) == special;
+    draw.alpha = specialMesh ? 1.0f : pass.alpha;
+    draw.vertexLight = object.vertexLight && !specialMesh;
+    const bool orderedOffset = pass.u < 0 || pass.u > 0 || pass.v < 0 || pass.v > 0;
+    draw.scrolls = (draw.scrolls || specialMesh) && orderedOffset;
+    draw.normalScale = object.transform.scale;
+    if (pass.texture != -1)
+        draw.texture = Render::TextureSlot{static_cast<std::uint16_t>(pass.texture)};
+    if ((pass.mask & (0x4 | 0x8)) != 0)
+    {
+        PreparedShine(batch, draw, pass, model);
+        return {};
+    }
+    return PreparedBase(batch, draw, pass, model);
+}
+} // namespace
+
+Core::Expected<void, World::WorldObjectDrawingError>
+DrawPreparedObjectPass(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                       std::span<const BoneTransform> bones, std::span<const std::uint8_t> known,
+                       std::optional<std::int32_t> mesh, const World::WorldObjectDrawingPass& pass,
+                       Core::Duration clock, World::WorldObjectDrawingModel& metadata)
+{
+    // Research06 acredita los pases comunes; no se inventa prioridad de flags no acreditados.
+    constexpr std::uint32_t SupportedMask = 0x1 | 0x2 | 0x4 | 0x8 | 0x40 | 0x80 | 0x2000;
+    const bool ambiguous =
+        (pass.mask & 0xc) == 0xc || ((pass.mask & 1) && (pass.mask & 0xc)) || (pass.mask & 0xc0) == 0xc0;
+    if ((pass.mask & ~SupportedMask) != 0 || ambiguous || pass.texture < -1 ||
+        pass.texture > std::numeric_limits<std::uint16_t>::max())
+        return Core::Unexpected(World::WorldObjectDrawingError::MissingBinding);
+    const auto* model = models.Find(object.model);
+    if (model == nullptr)
+        return Core::Unexpected(World::WorldObjectDrawingError::MissingModel);
+    // Un shape mutable distinto del recurso requiere4ef0c0 completo; no se dibuja el viejo a ciegas.
+    if (metadata.meshCount < 0 || static_cast<std::size_t>(metadata.meshCount) != model->meshes.size())
+        return Core::Unexpected(World::WorldObjectDrawingError::MissingBinding);
+    const ObjectState state{pass.blendMesh, pass.blendLight, {pass.u, pass.v}, mesh ? -1 : pass.hiddenMesh};
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    bool invalidPose = false;
+    const auto draws = MeshDrawsOf(models, object.model, *model, bones, object.transform, ObjectClass,
+                                   {object.color.x, object.color.y, object.color.z, 1}, state, clock, skinned,
+                                   !mesh.has_value(), known, &invalidPose, mesh);
+    if (invalidPose)
+        return Core::Unexpected(World::WorldObjectDrawingError::IndeterminateInput);
+    for (const auto& draw : draws)
+    {
+        const auto result = PreparedMesh(batch, draw, object, pass, metadata);
+        if (!result.HasValue())
+            return result;
+    }
+    return {};
+}
+
+Core::Expected<void, World::WorldObjectDrawingError>
+DrawPreparedObjectShadow(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                         std::span<const BoneTransform> bones, std::span<const std::uint8_t> known,
+                         const glm::vec3& origin, std::int32_t map, std::int32_t excludedTag, std::int32_t excludedMesh,
+                         std::int32_t first, std::int32_t end, Render::Color color, bool blended)
+{
+    const auto* model = models.Find(object.model);
+    if (model == nullptr)
+        return Core::Unexpected(World::WorldObjectDrawingError::MissingModel);
+    const std::int32_t finish = end;
+    const std::int32_t begin = first;
+    const double projection = map == 30 ? 2500.0 : 2000.0;
+    for (std::int32_t index = begin; index < finish; ++index)
+    {
+        if (index == excludedMesh)
+            continue;
+        if (index < 0 || static_cast<std::size_t>(index) >= model->meshes.size())
+            return Core::Unexpected(World::WorldObjectDrawingError::MissingBinding);
+        const auto& mesh = model->meshes[static_cast<std::size_t>(index)];
+        if (mesh.triangles.empty() || mesh.texture == excludedTag)
+            continue;
+        // La sombra sólo consume posiciones; no agrega lecturas de normales/UV ni scripts H.
+        for (const auto& vertex : mesh.vertices)
+        {
+            if (vertex.bone < 0 || static_cast<std::size_t>(vertex.bone) >= known.size() ||
+                !known[static_cast<std::size_t>(vertex.bone)])
+                return Core::Unexpected(World::WorldObjectDrawingError::IndeterminateInput);
+        }
+        Data::Models::Mesh positions;
+        positions.vertices = mesh.vertices;
+        Render::Models::SkinnedMesh skinned;
+        if (!Render::Models::SkinMesh(positions, bones, object.transform, skinned))
+            return Core::Unexpected(World::WorldObjectDrawingError::MissingBinding);
+        batch.SetState({std::nullopt, blended ? Render::ModelBlend::BlendedShadow : Render::ModelBlend::Shadow, true});
+        std::array<Render::ModelVertex, 3> corners;
+        std::size_t corner = 0;
+        for (const auto& polygon : mesh.triangles)
+        {
+            const auto count = static_cast<std::int32_t>(std::bit_cast<std::int8_t>(polygon.polygon));
+            if (count > static_cast<std::int32_t>(polygon.vertices.size()))
+                return Core::Unexpected(World::WorldObjectDrawingError::MissingBinding);
+            for (std::int32_t point = 0; point < count; ++point)
+            {
+                const auto vertex = polygon.vertices[static_cast<std::size_t>(point)];
+                if (vertex < 0 || static_cast<std::size_t>(vertex) >= skinned.positions.size())
+                    return Core::Unexpected(World::WorldObjectDrawingError::MissingBinding);
+                const auto& world = skinned.positions[static_cast<std::size_t>(vertex)];
+                const double x = static_cast<double>(world.x) - origin.x;
+                const float y = static_cast<float>(static_cast<double>(world.y) - origin.y);
+                const double z = static_cast<double>(world.z) - origin.z;
+                const glm::vec3 projected{static_cast<float>(x + (x + projection) * z / (z - 4000.0) + origin.x),
+                                          static_cast<float>(static_cast<double>(y) + origin.y),
+                                          static_cast<float>(static_cast<double>(origin.z) + 5.0)};
+                corners[corner++] = {projected, {}, color};
+                if (corner == corners.size())
+                {
+                    batch.Triangle(corners);
+                    corner = 0;
+                }
+            }
+        }
+    }
+    return {};
 }
 
 void DrawSubtractiveMesh(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,

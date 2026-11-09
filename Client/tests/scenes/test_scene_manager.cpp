@@ -189,7 +189,17 @@ private:
 // guarda. `polls` cuenta las veces que corrió pollNetwork.
 struct Harness
 {
-    Harness() : log(sink, LogLevel::Debug), manager(Factory(), stage.target, clock, [this] { ++polls; }, log) {}
+    Harness()
+        : log(sink, LogLevel::Debug), manager(
+                                          Factory(), stage.target, clock,
+                                          [this]
+                                          {
+                                              ++polls;
+                                              return Client::Core::Expected<void, std::string>{};
+                                          },
+                                          log)
+    {
+    }
 
     SceneFactory Factory()
     {

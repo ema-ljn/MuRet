@@ -1,4 +1,6 @@
 #include "World/WorldTerrain.h"
+#include "Data/Terrain/TerrainGrid.h"
+#include "Render/Models/Cloth.h"
 
 #include "Core/Expected.h"
 #include "Data/DataError.h"
@@ -66,8 +68,17 @@ Core::Expected<std::unique_ptr<T>, std::string> LoadFile(const std::filesystem::
 }
 } // namespace
 
-Core::Expected<WorldTerrain, std::string> LoadWorldTerrain(const std::filesystem::path& dataRoot, std::uint8_t map)
+Core::Expected<WorldTerrain, std::string> LoadWorldTerrain(const std::filesystem::path& dataRoot, std::uint8_t map,
+                                                           WorldTerrainLoad context)
 {
+    WorldTerrain terrain;
+    // 5f8300, ANTES de abrir .map: 65536 valores conservados, no un burn separado del pasto.
+    if (context.random != nullptr)
+    {
+        terrain.grassOffsets = std::make_unique<Data::Terrain::TerrainLayer<float>>();
+        for (float& value : *terrain.grassOffsets)
+            value = static_cast<float>(context.random->Next() % 4) * 0.25f;
+    }
     const std::string folder = Data::WorldFolder(map) + "\\";
     const auto world = static_cast<std::uint8_t>(Data::WorldFolderNumber(map));
     const std::string number = std::to_string(world);
@@ -85,6 +96,12 @@ Core::Expected<WorldTerrain, std::string> LoadWorldTerrain(const std::filesystem
     {
         return Core::Unexpected(attributes.Error());
     }
+    if (context.objectsBeforeHeights)
+    {
+        const auto objects = context.objectsBeforeHeights();
+        if (!objects.HasValue())
+            return Core::Unexpected(objects.Error());
+    }
     auto heights = LoadFile<Data::Terrain::TerrainHeights>(dataRoot, folder + "TerrainHeight.OZB",
                                                            [world](std::span<const std::byte> bytes)
                                                            { return Data::Terrain::LoadTerrainHeights(bytes, world); });
@@ -99,7 +116,6 @@ Core::Expected<WorldTerrain, std::string> LoadWorldTerrain(const std::filesystem
     {
         return Core::Unexpected(light.Error());
     }
-    WorldTerrain terrain;
     terrain.lighting = ShadeTerrainLight(*light.Value(), *heights.Value(), map);
     terrain.mapping = std::move(mapping).Value();
     terrain.attributes = std::move(attributes).Value();

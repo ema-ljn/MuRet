@@ -23,6 +23,8 @@ struct GameCamera
     float targetDistance = 1000.0f; // 0x6d5ee0, meta del suavizado.
     // D se suaviza después de calcular la posición: los dibujos intermedios usan la D anterior.
     std::optional<float> lastFrameDistance;
+    // G=f32[07d36888]: imagen inicial zero-fill; conserva el último635ae0, no GameCameraOf.
+    float publishedY = 0.0f;
 };
 
 struct GameCameraInput

@@ -1,6 +1,7 @@
 #include "Render/Models/Cloth.h"
 
 #include "Render/Models/HalfLifeMath.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Render/TextureSlot.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -64,7 +65,6 @@ constexpr std::uint32_t SpringScales = 0x20000000;
 constexpr std::uint8_t Relaxes = 1;
 constexpr std::uint8_t Pulls = 2;
 constexpr std::uint8_t Restrains = 4;
-constexpr int ProtectionRandoms = 4;
 constexpr int WindWalks = 5;
 
 constexpr double D(float value)
@@ -202,22 +202,30 @@ void WalkTheWind(ClothWorld& world)
     world.windBase = base;
 }
 
+void BeginTheClothWorldStep(ClothWorld& world)
+{
+    std::int32_t snapshot = 0;
+    {
+        const LogicalAccess access(world.openCounterAccesses, world.random, SmallLogicalCloseRandoms);
+        snapshot = world.logicSteps;
+    }
+    constexpr std::int32_t RefreshPeriod = 313;
+    constexpr std::int32_t RefreshPhase = 57;
+    constexpr int RefreshDirectRandoms = 4;
+    if (snapshot % RefreshPeriod != RefreshPhase)
+        return;
+    for (int i = 0; i < RefreshDirectRandoms; ++i)
+        static_cast<void>(world.random.Next());
+}
+
 void StepTheClothWorld(ClothWorld& world)
 {
     for (int walk = 0; walk < WindWalks; ++walk)
-    {
         WalkTheWind(world);
-    }
-    // El ADD de 0x637f91 guarda los 32 bits antes de volver a leer el contador con signo.
+    const LogicalAccess access(world.openCounterAccesses, world.random, SmallLogicalCloseRandoms);
+    // 637f8c..94: reabre el valor actual después de escena y viento, no el snapshot anterior.
     const std::uint32_t nextLogicStepsBits = static_cast<std::uint32_t>(world.logicSteps) + 1u;
     world.logicSteps = std::bit_cast<std::int32_t>(nextLogicStepsBits);
-    if (world.openCounterAccesses == 0)
-    {
-        for (int i = 0; i < ProtectionRandoms; ++i)
-        {
-            static_cast<void>(world.random.Next());
-        }
-    }
 }
 
 void Cloth::Reset()
@@ -444,13 +452,10 @@ bool Cloth::Step(float dt, const ClothBody& body, ClothWorld& world, std::uint8_
 // 0x4552a0 y 0x454240 por partícula.
 void Cloth::AddForces(ClothWorld& world)
 {
-    // La protección de 0x7d3a0f0: al cerrar el acceso vuelve a cifrar el contador y lo pisa con rand().
-    if (world.openCounterAccesses == 0)
+    std::int32_t counterSnapshot = 0;
     {
-        for (int i = 0; i < ProtectionRandoms; ++i)
-        {
-            static_cast<void>(world.random.Next());
-        }
+        const LogicalAccess access(world.openCounterAccesses, world.random, SmallLogicalCloseRandoms);
+        counterSnapshot = world.logicSteps;
     }
     const auto count = static_cast<std::int32_t>(m_particles.size());
     if (count == 0)
@@ -458,7 +463,7 @@ void Cloth::AddForces(ClothWorld& world)
         return;
     }
     // El centro del viento: ((V / 10) · 101) mod N, con las divisiones de la x86 y el producto en 32 bits.
-    const auto product = static_cast<std::uint32_t>(world.logicSteps / 10) * 101u;
+    const auto product = static_cast<std::uint32_t>(counterSnapshot / 10) * 101u;
     const std::int32_t center = static_cast<std::int32_t>(product) % count;
     const double gravity = D(GravityFactor) * D(Gravity);
     const std::uint32_t windMode = m_flags & WindModeMask;

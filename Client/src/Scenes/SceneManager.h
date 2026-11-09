@@ -47,8 +47,8 @@ public:
     // está Request. Un error anterior de Poll es terminal, incluso antes de la primera escena:
     // devuelve el primer diagnóstico y no entra. Un Enter fallido sí permite reintentar Start.
     Core::Expected<void, std::string> Start(SceneId first);
-    // La red, también minimizada y antes de Start; sólo un fallo de Poll la detiene.
-    // Un Enter fallido no corta la red mientras el host decide reintentar Start.
+    // La red, también minimizada y antes de Start; un fallo de Poll o de la escena activa la detiene.
+    // Un Enter fallido deja la escena vacía y permite Poll mientras el host decide reintentar Start.
     void Poll() override;
     // El paso de la escena y, si pide otra (Next), Request. Un paso sin pedido corta la seguidilla
     // de un pedido rechazado: si vuelve, se avisa otra vez.
@@ -63,7 +63,7 @@ public:
 
     // La escena de ahora; vacío antes de Start o después de un Enter que falló.
     [[nodiscard]] std::optional<SceneId> Current() const;
-    // El error vigente de Enter o el primer fallo terminal de Poll (que gana al de Enter), o vacío.
+    // El error vigente de Enter o el primer fallo terminal de Poll o de la escena activa, o vacío.
     [[nodiscard]] const std::optional<std::string>& Failure() const;
     // Si la escena de ahora pide cerrar el juego (IScene::WantsToQuit); sin escena, false.
     [[nodiscard]] bool WantsToQuit() const;
@@ -78,6 +78,7 @@ public:
 private:
     // La fábrica y el Enter de `id`; si falla, queda sin escena y con el error.
     Core::Expected<void, std::string> Enter(SceneId id);
+    void PrepareFrame() const;
 
     SceneFactory m_factory;
     IFrameTarget& m_frame;
@@ -92,5 +93,6 @@ private:
     // El último pedido rechazado, para no repetir el aviso en cada paso mientras se pida seguido.
     std::optional<SceneId> m_rejected;
     bool m_sceneChanged = false;
+    mutable bool m_framePrepared = false;
 };
 } // namespace Client::Scenes

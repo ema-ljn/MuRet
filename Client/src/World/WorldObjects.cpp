@@ -1,5 +1,6 @@
 #include "World/WorldObjects.h"
 
+#include "Core/Expected.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/ObjectState.h"
@@ -8,7 +9,11 @@
 #include "World/ObjectAlpha.h"
 #include "World/OriginalFtol.h"
 #include "World/WorldObjectMapCreation.h"
+#include "World/WorldObjectMapStep.h"
 #include "World/WorldObjectRegistrations.h"
+#include "World/WorldObjectStepContext.h"
+#include "World/WorldObjectStepError.h"
+#include "World/WorldObjectStepModel.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -468,41 +473,91 @@ WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::Terr
     return CreateObjects(records, context.map, context.scene, &context.registrations, &context);
 }
 
-void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models::Skeleton* skeleton)
+namespace
+{
+bool ApproachWorldObjectAlpha(WorldObject& object)
 {
     StepObjectAlpha(object.targetAlpha, object.alpha, object.state.light, 0);
     // 0x604ab0 sale acá con el alpha por debajo de 0,01.
-    if (object.alpha < MinimumAlpha)
+    if (!(object.alpha >= MinimumAlpha))
     {
-        return;
+        return false;
     }
+    return true;
+}
+
+void AdvanceWorldObjectAnimation(WorldObject& object, const Render::Models::Skeleton* skeleton, float speed)
+{
     if (skeleton != nullptr && object.animation.action < skeleton->actions.size())
     {
-        Render::Models::AdvanceAnimation(object.animation, skeleton->actions[object.animation.action], object.speed,
+        Render::Models::AdvanceAnimation(object.animation, skeleton->actions[object.animation.action], speed,
                                          Render::Models::AnimationScene::Other);
     }
-    if (map != LoginMap)
-    {
-        return;
-    }
+}
+
+void StepLoginWorldObject(WorldObject& object)
+{
     if (IsLoginMarker(object.type))
     {
         object.state.hiddenMesh = HiddenObject;
     }
     else if (object.type == RedWhirlpool)
     {
-        object.transform.angles.z -= RedWhirlpoolTurn;
+        const double angle = static_cast<double>(object.transform.angles.z) - RedWhirlpoolTurn;
         object.alpha = RedWhirlpoolAlpha;
         object.light = glm::vec3(1.0f, 0.0f, 0.0f);
         object.state.blendMesh = Render::Models::EveryMeshBlends;
+        object.transform.angles.z = static_cast<float>(angle);
     }
     else if (object.type == DarkWhirlpool)
     {
-        object.transform.angles.z -= DarkWhirlpoolTurn;
+        const double angle = static_cast<double>(object.transform.angles.z) - DarkWhirlpoolTurn;
         object.state.blendMesh = Render::Models::EveryMeshBlends;
         object.alpha = 1.0f;
         object.light = glm::vec3(1.0f);
+        object.transform.angles.z = static_cast<float>(angle);
     }
+}
+} // namespace
+
+void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models::Skeleton* skeleton)
+{
+    StepObjectAlpha(object.targetAlpha, object.alpha, object.state.light, 0);
+    if (object.alpha < MinimumAlpha)
+    {
+        return;
+    }
+    AdvanceWorldObjectAnimation(object, skeleton, object.speed);
+    if (map == LoginMap)
+    {
+        StepLoginWorldObject(object);
+    }
+}
+
+Core::Expected<void, WorldObjectStepError> StepWorldObject(WorldObject& object, WorldObjectStepContext& context)
+{
+    const auto prepared = PrepareWorldObjectStep(object, context);
+    if (!prepared.HasValue())
+    {
+        return Core::Unexpected(prepared.Error());
+    }
+    if (!ApproachWorldObjectAlpha(object))
+    {
+        return {};
+    }
+    WorldObjectStepModel& model = context.models.get().Step(object.type);
+    model.action = object.animation.action;
+    const float speed = context.map == 8 && object.type == 8
+                            ? static_cast<float>(static_cast<double>(object.speed) * 4.0)
+                            : object.speed;
+    AdvanceWorldObjectAnimation(object, model.skeleton, speed);
+    StepWorldObjectSceneCases(object, context);
+    if (context.map == LoginMap)
+    {
+        StepLoginWorldObject(object);
+        return {};
+    }
+    return StepWorldObjectMapCases(object, context);
 }
 
 ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std::uint8_t map)

@@ -8,13 +8,12 @@
 #include "App/SessionState.h"
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Data/Terrain/TerrainObjects.h"
 #include "Data/Text/TextTable.h"
-#include "GameLogic/CharacterAppearance.h"
 #include "Input/InputState.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterCloth.h"
-#include "Scenes/CharacterAnimation.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkHorse.h"
@@ -22,16 +21,6 @@
 #include "Scenes/GameData.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoadedWorld.h"
-#include "World/TerrainCells.h"
-#include "World/TerrainCulling.h"
-#include "World/TerrainLighting.h"
-#include "World/Leaves.h"
-#include "World/ModelEffects.h"
-#include "World/Particles.h"
-#include "World/ScepterGlow.h"
-#include "World/Sprites.h"
-#include "World/WorldObjects.h"
-#include "Data/Terrain/TerrainObjects.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
@@ -39,11 +28,21 @@
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/WorldModels.h"
+#include "Scenes/WorldResources.h"
 #include "UI/LoginWindow.h"
 #include "UI/MenuBar.h"
 #include "UI/NoticeWindow.h"
 #include "UI/Notices.h"
 #include "UI/ServerListWindow.h"
+#include "World/Leaves.h"
+#include "World/ModelEffects.h"
+#include "World/Particles.h"
+#include "World/ScepterGlow.h"
+#include "World/Sprites.h"
+#include "World/TerrainCells.h"
+#include "World/TerrainCulling.h"
+#include "World/TerrainLighting.h"
+#include "World/WorldObjects.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -112,6 +111,10 @@ public:
     // 0x6350b0 sin el fundido (Q-C66) ni lo común a las escenas: en el pase 3D, el terreno, el
     // personaje (0x510d00), el caballo y los objetos con el logo (0x6046a0); al final la UI: la lista, la barra de
     // abajo, la cuenta y el aviso, cada uno con la mezcla normal.
+    [[nodiscard]] std::optional<std::string> Failure() const override
+    {
+        return m_renderFailure;
+    }
     void Render(SceneCanvas& canvas, float alpha) override;
     // Cierra las ventanas (la de la cuenta vacía la clave) y suelta sus 21 slots, los del mundo y los del
     // logo.
@@ -183,6 +186,8 @@ private:
     [[nodiscard]] World::GameCameraInput& CameraInputState();
 
     SceneContext m_context;
+    std::unique_ptr<WorldResources> m_ownedResources;
+    WorldResources& m_resources;
     // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
     World::GameCamera m_localCamera;
     World::GameCameraInput m_localCameraInput;
@@ -197,7 +202,7 @@ private:
     SceneTextures m_windowTextures;
     // El de SceneWorlds.h: el 55.
     std::optional<SceneWorld> m_world;
-    LoadedWorld m_terrain;
+    LoadedWorld& m_terrain = m_resources.terrain;
     // El rango de bloques y el trapecio del terreno con la cámara del login (0x5fbb00 y 0x5fb570): la
     // carga inicializa el rango; cada dibujo lo actualiza para el paso siguiente.
     World::TerrainRange m_terrainRange;
@@ -207,20 +212,20 @@ private:
     std::unique_ptr<World::TerrainLighting> m_lighting;
     const Render::Models::ModelTextureSlots* m_gameSlots;
     // Los modelos de Object56\ y los registros de EncTerrain56.obj, de cada entrada.
-    WorldModels m_worldModels;
-    std::vector<Data::Terrain::TerrainObject> m_objectRecords;
+    WorldModels& m_worldModels = m_resources.models;
+    std::vector<Data::Terrain::TerrainObject>& m_objectRecords = m_resources.objectRecords;
     // Los objetos del mundo como los crea 0x606660, y el logo al final (0x61c7c0 lo crea después de la
     // carga del mundo).
-    std::vector<World::WorldObject> m_objects;
+    std::vector<World::WorldObject>& m_objects = m_resources.objects;
     std::optional<std::size_t> m_logoIndex;
     // La tabla de efectos con modelo (0x7491fd8): en el login, el dragón.
-    World::ModelEffects m_effects;
+    World::ModelEffects& m_effects = m_resources.effects;
     // Los sprites de un frame (0x760f990): los destellos de la tela y el brillo del cetro.
-    World::FrameSprites m_sprites;
+    World::FrameSprites& m_sprites = m_resources.sprites;
     // Las partículas (0x743a198): el aliento del caballo.
-    World::Particles m_particles;
+    World::Particles& m_particles = m_resources.particles;
     // Las hojas (0x75e34b8): en el mapa 55, las 80 brasas.
-    World::Leaves m_leaves;
+    World::Leaves& m_leaves = m_resources.leaves;
     // Si ya se dibujó un frame desde que se entró: antes, el buffer global de la pose no tiene nada del
     // login (P-C26).
     bool m_drawnSinceEntering = false;
@@ -229,19 +234,18 @@ private:
     // El sorteo del brillo del cetro entre frames (World::ScepterGlowCarry): una vez por frame del original.
     World::ScepterGlowCarry m_scepterGlow;
     // El logo: su modelo, los slots de sus mallas desde donde terminó el mundo y sus texturas.
-    SingleModelLibrary m_logo;
-    std::optional<Render::Models::ModelTextureSlots> m_logoSlots;
-    std::optional<SceneTextures> m_logoTextures;
+    SingleModelLibrary& m_logo = m_resources.loginLogo;
+    std::optional<Render::Models::ModelTextureSlots>& m_logoSlots = m_resources.loginLogoSlots;
+    std::optional<SceneTextures>& m_logoTextures = m_resources.loginLogoTextures;
     LoginRoutes m_routes;
     // El personaje de 0x517270(2, 4, …).
-    GameLogic::CharacterAppearance m_character;
-    CharacterAnimation m_characterAnimation;
+    // Escena aislada sin WorldState: posee sólo su actor, nunca otra copia del pool compartido.
+    std::unique_ptr<ActorState> m_localActor;
+    [[nodiscard]] ActorState& LoginActor();
     // El caballo que monta (0x443fa0(0xbf, …) de 0x6349a0): sigue al personaje.
     DarkHorse m_horse;
     // El cuervo del 0x1c17 del personaje (0x420d60 en 0x6349a0, CL7.6 C): con la tela y el terreno.
     std::optional<DarkSpirit> m_spirit;
-    // La tela del Dark Lord (0x50ba30), entre frames.
-    CharacterCloth m_characterCloth;
     // La cabeza del personaje (0x505de0): hacia dónde mira, por paso.
     CharacterHead m_head;
     std::mt19937 m_random;
@@ -261,5 +265,6 @@ private:
     // primero, la de referencia.
     App::PixelSize m_screen{640, 480};
     bool m_quit = false;
+    std::optional<std::string> m_renderFailure;
 };
 } // namespace Client::Scenes

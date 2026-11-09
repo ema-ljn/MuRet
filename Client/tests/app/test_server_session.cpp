@@ -3300,6 +3300,20 @@ TEST(ServerSessionTest, AcceptedEventsSurviveQuitAndLaterPacketsStayIgnored)
     EXPECT_EQ(created->entry.slot, 1);
 }
 
+TEST(ServerSessionTest, StartPreservesDeliveredCharacterHistoryAndClearsItsSnapshot)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingCharacter());
+
+    tested.session.Start();
+
+    const auto delivered = tested.eventSink.TakeCharacterEvents();
+    ASSERT_EQ(delivered.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<CharacterListReceived>(delivered[0]));
+    EXPECT_TRUE(tested.eventSink.TakeCharacterEvents().empty());
+    EXPECT_FALSE(tested.session.Characters().has_value());
+}
+
 // En ChoosingCharacter, CreateCharacter manda el F3 01 con el nombre y la clase y espera su respuesta
 // (0x34). El log dice la clase y no el nombre.
 TEST(ServerSessionTest, CreateCharacterSendsF301WithTheNameAndTheClass)

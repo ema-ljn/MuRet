@@ -174,6 +174,11 @@ void FinishAppearance(CharacterAppearance& appearance)
 }
 } // namespace
 
+void RefreshAppearanceHeadAndScale(CharacterAppearance& appearance)
+{
+    FinishAppearance(appearance);
+}
+
 std::uint16_t ClassPartModel(BodyPart part, std::uint8_t characterClass)
 {
     return static_cast<std::uint16_t>(ClassPartBase[static_cast<std::size_t>(part)] + (characterClass >> 3) * 5 +

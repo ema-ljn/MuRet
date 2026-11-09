@@ -1,5 +1,26 @@
 #include "Render/Gl/GlFrameTarget.h"
 #include "Render/ModelBatch.h"
+#include "Render/Billboard.h"
+#include "Render/ModelBatchParticleBackend.h"
+#include "Render/ModelBatchParticleState.h"
+#include "Scenes/GameModels.h"
+#include "Scenes/GameScene.h"
+#include "Scenes/SceneContext.h"
+#include "Scenes/WorldState.h"
+#include "Scenes/WorldResources.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/LoadedWorld.h"
+#include "Scenes/DaviasLeafTextureSet.h"
+#include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalRotation.h"
+#include "World/GameCamera.h"
+#include "World/PortableLeafWaveEvaluator.h"
+#include "World/PortableParticleTrigonometry.h"
+#include "support/GoldenDir.h"
+#include "Input/InputState.h"
+#include "Scenes/LeafDrawingServices.h"
+#include "Scenes/WorldFaunaDrawing.h"
+#include "World/Leaves.h"
 
 #include "App/WindowState.h"
 #include "Core/Expected.h"
@@ -27,6 +48,9 @@
 
 #include <array>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -208,7 +232,7 @@ TEST_F(GlFrameTargetTest, EachFrameClearsTheDepth)
     first.flushModels();
     m_target->Present();
 
-    SceneCanvas& second = m_target->BeginFrame(std::chrono::milliseconds{80});
+    SceneCanvas& second = m_target->BeginFrame(std::chrono::milliseconds{40});
     second.models.Begin(Client::Tests::TestPass(m_screen));
     Client::Tests::AddSquare(second.models, ModelDrawState{WhiteSlot, ModelBlend::Opaque, true}, 20.0f, Color{});
     second.flushModels();
@@ -252,10 +276,129 @@ TEST_F(GlFrameTargetTest, TheFontsFollowTheScreenWidth)
     m_target->Present();
     m_screen = PixelSize{FramebufferSide / 2, FramebufferSide};
 
-    const SceneCanvas& second = m_target->BeginFrame(std::chrono::milliseconds{80});
+    const SceneCanvas& second = m_target->BeginFrame(std::chrono::milliseconds{40});
 
     EXPECT_EQ(second.text.Measure(FontKind::Normal, "ab").width, 2 * (FramebufferSide / 16));
     EXPECT_EQ(m_fontWidths, (std::vector<int>{FramebufferSide, FramebufferSide / 2}));
     m_target->Present();
+}
+// Mata el consumidor que descarta comandos de estado por no tener vértices.
+TEST_F(GlFrameTargetTest, FlushModelsAppliesAnEmptyLeafPoolMaterialWithoutInventingGeometry)
+{
+    auto& canvas = m_target->BeginFrame(std::chrono::milliseconds{40});
+    Gl().disable(GL_BLEND);
+    Gl().enable(GL_CULL_FACE);
+    Gl().depthMask(GL_TRUE);
+    Client::Scenes::GameModels models;
+    const auto view = Client::Render::ViewRows(canvas.models.Pass().view);
+    Client::Render::ModelBatchParticleBackend backend{std::ref(canvas.models), std::cref(models),
+                                                      Client::Render::ModelBatchParticleState::ForModelPass()};
+    Client::Scenes::LeafDrawingServices provider{std::cref(models), std::ref(backend), std::cref(view)};
+    Client::World::Leaves leaves;
+    const std::int32_t map = 2;
+    const std::int32_t selector = 0;
+    ASSERT_TRUE(Client::Scenes::DrawWorldLeaves(canvas.models, leaves, map, selector, &provider).HasValue());
+    ASSERT_TRUE(canvas.models.Vertices().empty());
+    ASSERT_FALSE(canvas.models.Commands().empty());
+    canvas.flushModels();
+    GLint value = -1;
+    Gl().getIntegerv(GL_BLEND, &value);
+    EXPECT_EQ(value, GL_TRUE);
+    Gl().getIntegerv(GL_BLEND_SRC_RGB, &value);
+    EXPECT_EQ(value, GL_ONE);
+    Gl().getIntegerv(GL_BLEND_DST_RGB, &value);
+    EXPECT_EQ(value, GL_ONE);
+    Gl().getIntegerv(GL_DEPTH_WRITEMASK, &value);
+    EXPECT_EQ(value, GL_FALSE);
+    Gl().getIntegerv(GL_CULL_FACE, &value);
+    EXPECT_EQ(value, GL_FALSE);
+    EXPECT_TRUE(canvas.models.Vertices().empty());
+    EXPECT_TRUE(canvas.models.Commands().empty());
+    EXPECT_EQ(Cells(1, 1)[0], Black);
+    m_target->Present();
+}
+
+TEST_F(GlFrameTargetTest, PresentAppliesAStateOnlyBindingThroughTheRealConsumer)
+{
+    auto& canvas = m_target->BeginFrame(std::chrono::milliseconds{40});
+    Gl().bindTexture(GL_TEXTURE_2D, 0);
+    canvas.models.ApplyState(ModelDrawState{.texture = WhiteSlot, .blend = ModelBlend::Additive});
+    ASSERT_TRUE(canvas.models.Vertices().empty());
+    m_target->Present();
+    GLint actual = 0;
+    Gl().getIntegerv(GL_TEXTURE_BINDING_2D, &actual);
+    EXPECT_NE(actual, 0);
+    EXPECT_EQ(m_presents, 1);
+    EXPECT_EQ(Cells(1, 1)[0], Black);
+}
+TEST_F(GlFrameTargetTest, GameSceneDaviasUsesTheDurableTargetAndPublishedViewAcrossRealFrames)
+{
+    Client::Scenes::WorldState world(*m_textures);
+    world.Runtime().map = 2;
+    world.Runtime().drawingEnabled = true;
+    world.Runtime().worldTime = 40;
+    world.Actors()[0].dying = true;
+    world.Actors()[0].position = {13350, 12750, 300};
+    std::vector<std::string> skipped;
+    ASSERT_TRUE(world.Resources()->terrain.Load(Client::Tests::RepoDataDir(), 2, skipped).HasValue());
+    Client::Scenes::GameModels models;
+    ASSERT_EQ(
+        models.LoadTextures(Client::Tests::RepoDataDir(), Client::Scenes::DaviasLeafTextureSet, *m_textures, m_log)
+            .uploaded,
+        3u);
+    Client::Render::Models::ClothWorld cloth;
+    cloth.openCounterAccesses = 1;
+    Client::World::GameCamera camera;
+    Client::World::GameCameraInput cameraInput;
+    Client::World::PortableLeafWaveEvaluator evaluator;
+    Client::World::PortableParticleTrigonometry particleMath;
+    Client::Render::Models::OriginalMatrix view{};
+    auto& batch = m_target->Models();
+    Client::Render::ModelBatchParticleBackend backend{std::ref(batch), std::cref(models),
+                                                      Client::Render::ModelBatchParticleState::ForModelPass()};
+    Client::Scenes::LeafDrawingServices provider{std::cref(models), std::ref(backend), std::cref(view)};
+    const Client::Scenes::SceneContext context{.dataRoot = Client::Tests::RepoDataDir(),
+                                               .textures = *m_textures,
+                                               .log = m_log,
+                                               .cloth = &cloth,
+                                               .camera = &camera,
+                                               .cameraInput = &cameraInput,
+                                               .world = &world,
+                                               .leafWaves = &evaluator,
+                                               .worldTextureModels = &models,
+                                               .modelBatch = &batch,
+                                               .leafView = &view,
+                                               .leafDrawing = &provider,
+                                               .particleTrigonometry = &particleMath};
+    Client::Scenes::GameScene scene(context, nullptr, &models);
+    scene.PrepareFrame();
+    scene.Render(m_target->BeginFrame(std::chrono::milliseconds{40}), 0);
+    ASSERT_FALSE(scene.Failure()) << scene.Failure().value_or("");
+    m_target->Present();
+    const auto withoutLeaves = Cells(FramebufferSide, FramebufferSide);
+    scene.Step(Client::Input::InputState{});
+    ASSERT_FALSE(scene.Failure()) << scene.Failure().value_or("");
+    // Entrada sintética grande para observar píxeles inequívocos, además de los80 slots C5 reales.
+    world.Resources()->leaves.All()[0].position = world.Actors()[0].position;
+    world.Resources()->leaves.All()[0].scale = 100;
+    scene.PrepareFrame();
+    auto& canvas = m_target->BeginFrame(std::chrono::milliseconds{40});
+    std::size_t eyeVertices = 0;
+    const auto realFlush = canvas.flushModels;
+    canvas.flushModels = [&]
+    {
+        for (const auto& command : canvas.models.Commands())
+            if (command.state.space == Client::Render::ModelCoordinateSpace::Eye && command.state.texture &&
+                (command.state.texture->value == 100 || command.state.texture->value == 101))
+                eyeVertices += command.vertexCount;
+        realFlush();
+    };
+    scene.Render(canvas, 0);
+    ASSERT_FALSE(scene.Failure()) << scene.Failure().value_or("");
+    EXPECT_EQ(view, Client::Render::ViewRows(batch.Pass().view));
+    m_target->Present();
+    EXPECT_EQ(eyeVertices, 480u); // 80 slots, dos triángulos; no doble aplicación de la vista en el renderer.
+    EXPECT_NE(Cells(FramebufferSide, FramebufferSide), withoutLeaves);
+    EXPECT_EQ(m_presents, 2);
 }
 } // namespace

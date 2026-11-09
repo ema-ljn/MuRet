@@ -24,10 +24,10 @@ inline constexpr std::int16_t NoHiddenMesh = -1;
 // dibuja) del objeto. Los de un jugador, los de siempre (0x511290).
 struct ObjectState
 {
-    std::int16_t blendMesh = NoBlendMesh;
+    std::int32_t blendMesh = NoBlendMesh;
     float light = 1.0f;
     glm::vec2 uv{};
-    std::int16_t hiddenMesh = NoHiddenMesh;
+    std::int32_t hiddenMesh = NoHiddenMesh;
 
     friend bool operator==(const ObjectState&, const ObjectState&) = default;
 };

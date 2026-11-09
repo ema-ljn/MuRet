@@ -70,6 +70,8 @@ target_link_libraries(ClientPlatform PUBLIC ClientLib SDL3::SDL3)
 # defecto; va explícito, como ws2_32.
 if(WIN32)
     target_link_libraries(ClientPlatform PRIVATE advapi32)
+    # SystemMillisecondClock32 publica el contador nativo con timeGetTime, de WinMM.
+    target_link_libraries(ClientPlatform PRIVATE winmm)
 endif()
 # Los typedef PFNGL…PROC de las funciones de GL 1.x (glClear, glViewport); los de la 3.3 vienen
 # siempre. Con ellos se tipan los punteros que da SDL_GL_GetProcAddress, y GlLoader.h los expone:

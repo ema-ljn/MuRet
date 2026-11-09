@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Data/Terrain/TerrainMapping.h"
 #include "Data/Terrain/TerrainObjects.h"
@@ -10,6 +11,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -17,20 +19,34 @@
 // Lo que 0x61a560 lee de un mundo para el terreno (CL7.1): el mapeo, los atributos y las alturas de
 // World<N>\ (EncTerrain<N>.map y .att, TerrainHeight.OZB), la luz sombreada (TerrainLighting) y la
 // tabla de sus tiles. Contrato: 06 § Terreno y § El terreno del login.
+namespace Client::Render::Models
+{
+class CrtRandom;
+}
+
 namespace Client::World
 {
 struct WorldTerrain
 {
     std::unique_ptr<Data::Terrain::TerrainMapping> mapping;
+    std::unique_ptr<Data::Terrain::TerrainLayer<float>> grassOffsets;
     std::unique_ptr<Data::Terrain::TerrainAttributes> attributes;
     std::unique_ptr<Data::Terrain::TerrainHeights> heights;
     std::unique_ptr<TerrainLighting> lighting;
 };
 
+// Hook síncrono concreto del orden61a560: crear objetos después de .att y antes de alturas.
+// Un error conserva los efectos ya aplicados y aborta la carga, sin presentar otro frame.
+struct WorldTerrainLoad
+{
+    Render::Models::CrtRandom* random = nullptr;
+    std::function<Core::Expected<void, std::string>()> objectsBeforeHeights;
+};
+
 // Los tres archivos y la luz del mapa `map` (el número de la carpeta, Data::WorldFolderNumber). El
 // error nombra el archivo como lo pide el original. Los mapas 30 y 34, con otro .att, no van.
-[[nodiscard]] Core::Expected<WorldTerrain, std::string> LoadWorldTerrain(const std::filesystem::path& dataRoot,
-                                                                         std::uint8_t map);
+[[nodiscard]] Core::Expected<WorldTerrain, std::string>
+LoadWorldTerrain(const std::filesystem::path& dataRoot, std::uint8_t map, WorldTerrainLoad context = {});
 
 // Los objetos de EncTerrain<N>.obj del mapa `map` (0x607370), en el orden del archivo (CL7.2). El
 // error nombra el archivo como lo pide el original.

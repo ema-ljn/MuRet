@@ -45,13 +45,18 @@ struct ClothWorld
     std::int32_t logicSteps = 0;
     // Cuántos accesos al contador están abiertos (la tabla de 0x57630c8): con 0, cada paso de una tela
     // lo vuelve a cifrar y saca 4 rand() que no usa. En el dibujo no hay otro abierto.
-    std::int32_t openCounterAccesses = 0;
+    // Parámetro persistente del port, no evidencia de profundidad nativa inicial cero.
+    std::uint8_t openCounterAccesses = 0;
 };
 
 // 0x456b10: el paseo del viento base, b = f(b + (rand() % 200 − 100) · 0,001), entre −0,2 y 1.
 void WalkTheWind(ClothWorld& world);
 
-// Lo que hace 0x637700 en cada paso de lógica de las escenas 2, 4 y 5 para la tela: el paseo del
+// 637878..637c47: snapshot/cierre antes de escena; cuatro RNG directos sólo si el resto
+// signed del snapshot /313 es57. No inicializa contador, semilla ni profundidad.
+void BeginTheClothWorldStep(ClothWorld& world);
+
+// Fase posterior de 0x637700 en cada paso de lógica de las escenas 2, 4 y 5 para la tela: el paseo del
 // viento cinco veces (0x637cec) y el contador más 1 (0x637f8c), que al cerrar su acceso saca otros
 // 4 rand(). Los demás rand() de 0x637700 son de otras cosas y MuRet no los saca de acá.
 void StepTheClothWorld(ClothWorld& world);

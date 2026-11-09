@@ -34,7 +34,12 @@ public:
     {
         world.push_back(event);
         worldStates.push_back(session.State());
-        trace.push_back(event.index() == 0 ? "entry" : "inventory");
+        trace.push_back(event.index() == 0   ? "entry"
+                        : event.index() == 1 ? "inventory"
+                        : event.index() == 2 ? "walk"
+                        : event.index() == 3 ? "damage"
+                        : event.index() == 4 ? "teleport"
+                                             : "regen");
         return onWorld ? onWorld(event, session) : Core::Expected<void, std::string>{};
     }
 

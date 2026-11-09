@@ -275,7 +275,7 @@ float SetAlphaAt(Core::Duration clock)
     return static_cast<float>(std::sin(milliseconds * static_cast<double>(0.001f)) * 0.5 + static_cast<double>(0.4f));
 }
 
-std::optional<std::size_t> PassHiddenMesh(std::uint16_t model, ShinePass pass, std::int16_t objectHidden)
+std::optional<std::size_t> PassHiddenMesh(std::uint16_t model, ShinePass pass, std::int32_t objectHidden)
 {
     const bool shines = pass == ShinePass::Chrome || pass == ShinePass::Shiny;
     switch (model)

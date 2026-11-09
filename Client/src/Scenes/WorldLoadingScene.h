@@ -39,5 +39,6 @@ private:
     SceneTextures m_textures;
     bool m_drawn = false;
     bool m_done = false;
+    bool m_drawMosaic = true;
 };
 } // namespace Client::Scenes

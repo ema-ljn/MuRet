@@ -416,8 +416,17 @@ TEST_F(SharedGameCameraTest, ALongDrawUsesTheExistingOriginalFrameLimit)
         static_cast<void>(StepGameCamera(expected, input));
     Client::Scenes::LoginScene login(Context(), m_data, m_models, nullptr, "1.0", Client::Tests::FixedSeed);
     ASSERT_TRUE(login.Enter().HasValue());
-    static_cast<void>(Frame(login, 0ns));
-    static_cast<void>(Frame(login, 100s));
+    // La distancia de esta prueba excede el dominio portable del polígono; la cámara avanza antes.
+    const auto draw = [&](Client::Core::Duration clock)
+    {
+        auto& canvas = m_target.BeginFrame(clock);
+        login.Render(canvas, 0.0f);
+        ASSERT_TRUE(login.Failure());
+        EXPECT_EQ(*login.Failure(), "polígono de login: distancia o nivel efectivo fuera del dominio portable");
+        m_target.Present();
+    };
+    draw(0ns);
+    draw(100s);
     EXPECT_EQ(m_camera.distance, expected.distance);
     login.Leave();
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Core/IClock.h"
+#include "Core/Expected.h"
+#include "World/WorldObjectDrawingError.h"
 #include "Render/ModelBatch.h"
 #include "Scenes/CharacterDrawing.h"
 #include "World/TerrainCulling.h"
@@ -21,8 +23,27 @@
 // Los objetos de un mundo en una escena (CL7.2): su paso (0x606560) y su dibujo (0x6046a0), con los
 // modelos de la escena. La lógica de cada uno es de World::WorldObjects. Contrato: 06 § El mundo del
 // login.
+namespace Client::Data::Terrain
+{
+struct TerrainHeights;
+}
+
+namespace Client::World
+{
+struct WorldObjectDrawingContext;
+}
+
 namespace Client::Scenes
 {
+// 602e90: el servicio5ffdf0 es obligatorio y puede mutar el slot objeto. Los otros tres slots
+// se capturan por valor. No sustituye la preparación/pose por un bool sin efectos.
+using WorldObjectBodyGate = std::function<Core::Expected<std::uint32_t, World::WorldObjectDrawingError>(
+    World::WorldObject*&, std::uint32_t, std::uint32_t, std::uint32_t)>;
+[[nodiscard]] Core::Expected<void, World::WorldObjectDrawingError>
+DrawBoundWorldObject(World::WorldObject*& object, World::WorldObjectDrawingContext& context,
+                     const WorldObjectBodyGate& gate, std::uint32_t argument2, std::uint32_t argument3,
+                     std::uint32_t mode);
+
 // El paso de un objeto que tiene el suyo (el logo del login): devuelve true si lo avanzó, y entonces
 // StepWorldObject no lo toca.
 using SpecialObjectStep = std::function<bool(World::WorldObject&)>;
@@ -72,6 +93,20 @@ void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, st
 
 // 0x52d220: World::StepModelEffect sobre cada efecto vivo, con el esqueleto de su modelo.
 void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary& models);
+// 52d220: los vivos avanzan aunque visible sea0. 61f/0 recibe el RNG del caller y no consulta BMD;
+// el overload sin RNG conserva el paso histórico del dragón y omite llegadas.
+void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary& models,
+                      Render::Models::CrtRandom& random);
+
+// Variante all-maps con las fronteras vivas de metadata/reloj de 5208a0.
+Core::Expected<void, World::ModelEffectStepError> StepModelEffects(std::span<World::ModelEffect> effects,
+                                                                   const IModelLibrary& models,
+                                                                   Render::Models::CrtRandom& random,
+                                                                   const World::ModelEffectStepBindings& bindings);
+
+// El destino 602e90 se ejecuta sobre el registro vivo: 135 llama dos veces y persiste Z entre llamadas.
+using ModelEffectBodyDraw = std::function<void(World::ModelEffect&)>;
+void DrawModelEffectBody(World::ModelEffect& effect, const ModelEffectBodyDraw& drawBody);
 
 // 0x52d620(0) con los efectos vivos: un RenderBody(2, 1, −1, 1, 0, 0, −1, −1) por cada uno, opaco, con
 // el color de la luz del terreno en su lugar (`lighting`, o 0 sin ella) más la suya, la luz de cada
@@ -81,6 +116,52 @@ void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary
 void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models,
                       std::span<const World::ModelEffect> effects, const World::TerrainLighting* lighting,
                       Core::Duration frameClock, float alpha);
+
+// La frontera de despacho de 52d620: false retorna del pase entero, conservando los bytes
+// de los slots posteriores (p.ej. la salida de 5e8..5ea). Se llama sólo tras guardar AL no cero.
+using ModelEffectVisitor = std::function<bool(World::ModelEffect&)>;
+void VisitVisibleModelEffects(std::span<World::ModelEffect> effects, const World::ModelEffectPlanes& planes,
+                              const ModelEffectVisitor& visitor);
+
+// Pase con culling real: escribe +16c por slot activo alcanzado y dibuja sólo los que pasan.
+// Debe correr DESPUÉS del ground, que lee la historia anterior. 61f no consulta BMD ni subtipo.
+void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,
+                      const World::ModelEffectPlanes& planes, const World::TerrainLighting* lighting,
+                      Core::Duration frameClock, float alpha);
+
+enum class ModelEffectDrawErrorKind : std::uint8_t
+{
+    MissingModel,
+    MissingSkeleton,
+    MissingTextures,
+};
+
+struct ModelEffectDrawError
+{
+    ModelEffectDrawErrorKind kind;
+    std::uint16_t model;
+};
+
+// Entrada all-maps: un binding ausente es un error observable, nunca un modelo ficticio o silencio.
+Core::Expected<void, ModelEffectDrawError> DrawBoundModelEffects(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                                 std::span<World::ModelEffect> effects,
+                                                                 const World::ModelEffectPlanes& planes,
+                                                                 const World::TerrainLighting* lighting,
+                                                                 Core::Duration frameClock, float alpha);
+
+// 52dc20, antes de los personajes: un rand por registro alive+visible, y para 61f/0 dos
+// superficies 53d2c0 en ±theta, seguidas del calco 5fb2f0 sobre las alturas directas del terreno.
+// No consulta modelos BMD ni interpola posición; worldClock es el reloj float32 del original.
+void DrawGroundModelEffects(Render::ModelBatch& batch, std::span<const World::ModelEffect> effects,
+                            const Data::Terrain::TerrainHeights& heights, float worldClock,
+                            Render::Models::CrtRandom& random);
+
+// 620a90 es una frontera obligatoria: después de Next y antes de muestrear tipo, sin releer guardas.
+using GroundModelEffectService = std::function<void()>;
+Core::Expected<void, World::ModelEffectStepError>
+DrawGroundModelEffects(Render::ModelBatch& batch, std::span<World::ModelEffect> effects,
+                       const Data::Terrain::TerrainHeights& heights, float worldClock,
+                       Render::Models::CrtRandom& random, const GroundModelEffectService& service);
 
 // 0x549440(0), en el pase de ojo (después de 0x6213e0, con la modelview en la identidad): cada sprite
 // vivo, con la mezcla de su +4 (0 aditiva, 1 la de 0x620b10, 2 la normal; la 3, 0x620b90, todavía no se

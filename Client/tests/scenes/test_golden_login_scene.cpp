@@ -9,6 +9,7 @@
 #include "Data/DataPath.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "World/GameCamera.h"
+#include "World/Particles.h"
 #include "World/TerrainHeight.h"
 #include "support/SceneDataFiles.h"
 #include "support/TerrainFiles.h"
@@ -628,7 +629,32 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
     for (const auto& command : models.back().modelCommands)
     {
         ASSERT_TRUE(command.state.texture.has_value());
-        EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
+        if (runs.size() < 5)
+            EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
+        else
+        {
+            // Emisores cerrados: LoginScene::BreatheTheHorse (5f2/0),
+            // StepDarkSpirit (5c6/5) y CreateObjectCloud, mapa55/tipo54 (622/10).
+            // ParticleDrawOf conserva aditiva para los dos primeros y resta para622/10.
+            switch (command.state.texture->value)
+            {
+            case Client::World::BreathParticle:
+            case Client::World::SparkParticle:
+                EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
+                break;
+            case Client::World::CloudParticle:
+                EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Subtractive);
+                break;
+            default:
+                ADD_FAILURE() << "partícula sin emisor acreditado en este fixture: " << command.state.texture->value;
+            }
+            EXPECT_TRUE(command.state.depthTest);
+            EXPECT_EQ(command.state.space, Client::Render::ModelCoordinateSpace::World);
+            EXPECT_FALSE(command.state.cullEnabled.has_value());
+            EXPECT_FALSE(command.state.depthWrite.has_value());
+            EXPECT_FALSE(command.state.alphaTest.has_value());
+            EXPECT_FALSE(command.state.texture2d.has_value());
+        }
         runs.emplace_back(command.state.texture->value, static_cast<int>(command.vertexCount / PerSprite));
     }
     // Después de los del personaje, los dos del farol (0x602ed0, CL7.6 B4), en el dibujo de los objetos.
@@ -636,9 +662,6 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
     ASSERT_GE(runs.size(), expected.size());
     const std::vector<std::pair<int, int>> sprites(runs.begin(), runs.begin() + 5);
     EXPECT_EQ(sprites, expected);
-    EXPECT_TRUE(std::all_of(runs.begin() + 5, runs.end(),
-                            [](const auto& run) { return run.first == 0x5f2 || run.first == 0x5c6; }))
-        << "después, solo las partículas: los alientos y las chispas del cuervo";
     // 0x549510 los marca vistos antes del pase: 0x549290 los mide con el alpha en 1. El primer destello
     // (la columna 0, escala 0,4, sin giro) va a 0,4 del ancho de flare01, en coordenadas de ojo.
     const auto flareSize = m_models.TextureSize(TextureSlot{0x5ac});

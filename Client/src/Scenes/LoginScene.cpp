@@ -7,19 +7,20 @@
 #include "Core/IClock.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelFiles.h"
-#include "Data/Terrain/TerrainObjects.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Terrain/TerrainObjects.h"
 #include "Data/Textures/TextureSet.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/InputState.h"
+#include "Render/Billboard.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/ClothWorldStep.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/OriginalQuad.h"
 #include "Render/OriginalSkewedQuad.h"
-#include "Render/Billboard.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
@@ -28,6 +29,7 @@
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterHead.h"
@@ -37,7 +39,6 @@
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SceneCameras.h"
-#include "World/GameCamera.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -47,6 +48,8 @@
 #include "Scenes/TextureSets.h"
 #include "Scenes/WorldModels.h"
 #include "Scenes/WorldObjectsDrawing.h"
+#include "Scenes/WorldState.h"
+#include "Scenes/WorldResources.h"
 #include "UI/GameCursor.h"
 #include "UI/GameText.h"
 #include "UI/LoginWindow.h"
@@ -54,12 +57,13 @@
 #include "UI/Notices.h"
 #include "UI/ServerListModel.h"
 #include "UI/ServerListWindow.h"
-#include "World/TerrainCells.h"
-#include "World/TerrainCulling.h"
-#include "World/TerrainHeight.h"
+#include "World/GameCamera.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/TerrainCells.h"
+#include "World/TerrainCulling.h"
+#include "World/TerrainHeight.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
@@ -71,9 +75,10 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
-#include <ratio>
 #include <random>
+#include <ratio>
 #include <set>
 #include <span>
 #include <string>
@@ -260,13 +265,26 @@ std::string PlaceVersion(std::string_view text, std::string_view version)
     return placed;
 }
 
+namespace
+{
+WorldResources* SharedResources(const SceneContext& context)
+{
+    if (context.world != nullptr)
+        return context.world->Resources();
+    return context.selection != nullptr ? context.selection->World().Resources() : nullptr;
+}
+} // namespace
+
 LoginScene::LoginScene(const SceneContext& context, const GameData& data, const IModelLibrary& models,
                        App::ServerSession* session, std::string_view version, std::mt19937::result_type seed,
                        const Render::Models::ModelTextureSlots* gameSlots)
-    : m_context(context), m_models(models), m_session(session), m_texts(data.text ? &*data.text : nullptr),
-      m_textures(context.textures, LoginTextureSet), m_windowTextures(context.textures, WindowTextureSet),
-      m_world(WorldOf(SceneId::Login)), m_terrain(context.textures), m_gameSlots(gameSlots), m_random(seed),
-      m_serverList([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
+    : m_context(context),
+      m_ownedResources(SharedResources(context) == nullptr ? std::make_unique<WorldResources>(context.textures)
+                                                           : nullptr),
+      m_resources(m_ownedResources ? *m_ownedResources : *SharedResources(context)), m_models(models),
+      m_session(session), m_texts(data.text ? &*data.text : nullptr), m_textures(context.textures, LoginTextureSet),
+      m_windowTextures(context.textures, WindowTextureSet), m_world(WorldOf(SceneId::Login)), m_gameSlots(gameSlots),
+      m_random(seed), m_serverList([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
       m_menuBar([this](Render::TextureSlot slot) { return BufferSize(slot); }),
       m_login([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
       m_notice([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts)
@@ -280,6 +298,23 @@ LoginScene::LoginScene(const SceneContext& context, const GameData& data, const 
             m_version = PlaceVersion(*format, version);
         }
     }
+}
+
+ActorState& LoginScene::LoginActor()
+{
+    if (m_context.world != nullptr)
+    {
+        return m_context.world->Actors()[LoginActorSlot];
+    }
+    if (m_context.selection != nullptr)
+    {
+        return m_context.selection->World().Actors()[LoginActorSlot];
+    }
+    if (!m_localActor)
+    {
+        m_localActor = std::make_unique<ActorState>();
+    }
+    return *m_localActor;
 }
 
 World::GameCamera& LoginScene::CameraState()
@@ -347,15 +382,21 @@ Core::Expected<void, std::string> LoginScene::Enter()
 
 void LoginScene::LoadTheWorld()
 {
+    if (m_context.world != nullptr)
+    {
+        m_context.world->ReleaseActorResources();
+    }
+    else if (m_context.selection != nullptr)
+    {
+        m_context.selection->World().ReleaseActorResources();
+    }
     if (m_context.selection != nullptr)
     {
         // El préstamo anterior deja de ser válido antes de destruir o reemplazar las tablas.
         m_context.selection->BorrowTerrain(m_world ? m_world->map : EmberMap, nullptr);
     }
-    m_terrain.Release();
+    m_resources.Release();
     m_lighting.reset();
-    m_worldModels.Release();
-    m_objectRecords.clear();
     if (!m_world)
     {
         return;
@@ -408,6 +449,11 @@ void LoginScene::RetainTheTerrain()
 {
     if (m_context.selection == nullptr || !m_world)
     {
+        return;
+    }
+    if (!m_ownedResources)
+    {
+        m_context.selection->BorrowTerrain(m_terrain.LoadedMap().value_or(m_world->map), m_terrain.Terrain());
         return;
     }
     if (auto terrain = m_terrain.TakeTerrain())
@@ -510,18 +556,19 @@ Core::Expected<void, std::string> LoginScene::PlaceTheModels()
         owner.position = {DragonOwnerPosition.x, DragonOwnerPosition.y, DragonOwnerPosition.z};
         owner.scale = 1.0f;
         auto created = World::CreateWorldObjects(std::span(&owner, 1), map, World::ObjectScene::Login);
+        // Publica el prefijo aunque haya error; Enter no permite presentarlo como carga completa.
+        m_objects = std::move(created.objects);
         if (created.failure.has_value())
         {
             return Core::Unexpected(ObjectCreationFailureMessage(*created.failure));
         }
-        m_objects = std::move(created.objects);
     }
     auto fromTheFile = World::CreateWorldObjects(m_objectRecords, map, World::ObjectScene::Login);
+    m_objects.insert(m_objects.end(), fromTheFile.objects.begin(), fromTheFile.objects.end());
     if (fromTheFile.failure.has_value())
     {
         return Core::Unexpected(ObjectCreationFailureMessage(*fromTheFile.failure));
     }
-    m_objects.insert(m_objects.end(), fromTheFile.objects.begin(), fromTheFile.objects.end());
     m_logoIndex = m_objects.size();
     m_objects.push_back(LogoWorldObject());
     m_objectEffectRandoms.assign(m_objects.size(), std::nullopt);
@@ -540,17 +587,22 @@ Core::Expected<void, std::string> LoginScene::PlaceTheModels()
                                World::DragonScale);
     }
     m_routes = {};
-    m_character = LoginCharacter();
-    m_characterAnimation = {};
+    LoginActor().appearance = LoginCharacter();
+    LoginActor().pet.model = LoginActor().appearance.pet.value_or(0xffff);
+    LoginActor().animation = {};
+    LoginActor().cloth = {};
+    LoginActor().previousHad1c15 = false;
+    LoginActor().active = true;
+    LoginActor().position = LoginCharacterTransform().position;
     m_head = {};
     m_horse = {};
     // 0x420d60 (0x634a9d), después del personaje y del caballo, con el 0x1c17 en la mano izquierda: el
     // cuervo nace en la celda del personaje, que el login deja en (0, 0) (Q-C130), a la altura del terreno
     // ahí más 300, con 12 rand() de la CRT.
     m_spirit.reset();
-    if (const World::WorldTerrain* terrain = m_terrain.Terrain(); m_context.cloth != nullptr && terrain != nullptr &&
-                                                                  m_character.leftHand &&
-                                                                  m_character.leftHand->model == LoginRavenItem)
+    if (const World::WorldTerrain* terrain = m_terrain.Terrain();
+        m_context.cloth != nullptr && terrain != nullptr && LoginActor().appearance.leftHand &&
+        LoginActor().appearance.leftHand->model == LoginRavenItem)
     {
         constexpr int LoginCell = 0;
         constexpr float CellCenter = 50.0f;
@@ -560,7 +612,7 @@ Core::Expected<void, std::string> LoginScene::PlaceTheModels()
     }
     if (const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel))
     {
-        Render::Models::SetAction(m_characterAnimation.body, *skeleton, LoginCharacterStandingAction);
+        Render::Models::SetAction(LoginActor().animation.body, *skeleton, LoginCharacterStandingAction);
     }
     return {};
 }
@@ -573,10 +625,7 @@ void LoginScene::Step(const Input::InputState& input)
     // donde quedó el último.
     const bool connecting = m_session != nullptr && IsConnecting(m_session->State());
     m_steppedSinceEntering = true;
-    if (m_context.cloth != nullptr && !connecting)
-    {
-        Render::Models::StepTheClothWorld(*m_context.cloth);
-    }
+    const Render::Models::ClothWorldStep logicStep(connecting ? nullptr : m_context.cloth);
     if (m_session == nullptr)
     {
         StepTheWorld();
@@ -645,7 +694,7 @@ void LoginScene::StepTheWorld()
                                        : LoginCharacterActionAt(m_context.clock->Now(), m_random);
         if (action)
         {
-            Render::Models::SetAction(m_characterAnimation.body, *player, *action);
+            Render::Models::SetAction(LoginActor().animation.body, *player, *action);
         }
     }
     // 0x606560 → 0x604ab0, solo con los objetos que ya se dibujaron (+0x16c, del frustum de 0x6046a0): los
@@ -667,7 +716,7 @@ void LoginScene::StepTheWorld()
         // El aliento lee la pose del dibujo anterior: el caballo de antes de este paso (en 0x444010, el
         // avance de 0x4ec200 corre después del aliento; la acción que mira es la de este paso).
         const DarkHorse drawn = m_horse;
-        StepDarkHorse(m_horse, *horse, m_characterAnimation.body.action);
+        StepDarkHorse(m_horse, *horse, LoginActor().animation.body.action);
         BreatheTheHorse(drawn);
     }
     // 0x530490, después de los ayudantes (0x634d0e): en el mapa 55, las 80 brasas, con el rand() de la CRT.
@@ -686,10 +735,12 @@ void LoginScene::StepTheWorld()
         World::StepLoginEmbers(m_leaves, embers, m_context.cloth->random);
     }
     // 0x508f00 → 0x4fcd00: lo que termina vuelve a la de parado (0x4fcb10 → 0x4f2250).
-    if (StepCharacterAnimation(m_characterAnimation, m_character, m_models, Render::Models::AnimationScene::Other) &&
+    if (StepCharacterAnimation(LoginActor().animation, LoginActor().appearance, m_models,
+                               Render::Models::AnimationScene::Other,
+                               m_context.world != nullptr ? &m_context.world->Runtime().playerActionSpeeds : nullptr) &&
         player != nullptr)
     {
-        Render::Models::SetAction(m_characterAnimation.body, *player, LoginCharacterStandingAction);
+        Render::Models::SetAction(LoginActor().animation.body, *player, LoginCharacterStandingAction);
     }
     // 0x416a20 al final de 0x4fd5f0 del dueño, en 0x508f00: el cuervo. El grito lee 0x7d3a0f0 crudo, que
     // sin un acceso abierto es la basura cifrada del contador (Q-C125): MuRet le pasa los pasos de la
@@ -843,6 +894,7 @@ void LoginScene::FollowSession()
     case App::SessionState::WaitingCreateResult:
     case App::SessionState::WaitingDeleteResult:
     case App::SessionState::EnteringWorld:
+    case App::SessionState::InWorld:
         m_serverList.Close();
         m_login.Close();
         return;
@@ -987,8 +1039,24 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     m_drawnCamera = camera;
     const Render::Pass3D pass = Render::MakePass3D(canvas.screen, WorldViewport, camera);
     m_terrainRange = World::TerrainRangeOf(pass.view, camera);
-    m_terrainPolygon =
-        World::TerrainPolygonOf(World::CullingScene::Login, cameraInput.map, cameraInput.hero, camera.angles.z);
+    m_resources.modelEffectPlanes = World::ModelEffectPlanesOf(m_resources.modelEffectPlanes, pass.view, camera);
+    const auto polygon = m_resources.UpdateTerrainPolygon({.scene = 2,
+                                                           .map = cameraInput.map,
+                                                           .translation = cameraInput.hero,
+                                                           .objectPosition = {cameraInput.hero.x, cameraInput.hero.y},
+                                                           .cameraYaw = camera.angles.z,
+                                                           .worldWidth = 640,
+                                                           .webzenProfile = cameraInput.webzen,
+                                                           .webzenYaw = cameraInput.webzen},
+                                                          CameraState());
+    if (!polygon.HasValue())
+    {
+        m_renderFailure = "polígono de login: distancia o nivel efectivo fuera del dominio portable";
+        return;
+    }
+    m_terrainPolygon = m_resources.terrainPolygon;
+    m_resources.terrainRange = m_terrainRange;
+    m_resources.terrainPolygon = m_terrainPolygon;
     canvas.models.Begin(pass);
     // 0x5fc260(0): el terreno, antes de los personajes.
     m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, m_terrainPolygon,
@@ -1034,15 +1102,18 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
 DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
 {
     DrawnCharacter character;
-    character.appearance = m_character;
-    character.body = BodyBetweenSteps(m_characterAnimation, m_models, alpha);
-    character.pet = m_characterAnimation.pet.state;
-    character.wings = m_characterAnimation.wings.state;
+    character.appearance = LoginActor().appearance;
+    character.body =
+        BodyBetweenSteps(LoginActor().animation, m_models, alpha,
+                         m_context.world != nullptr ? &m_context.world->Runtime().playerActionSpeeds : nullptr);
+    character.pet = LoginActor().animation.pet.state;
+    character.wings = LoginActor().animation.wings.state;
     character.object = LoginCharacterTransform();
+    character.object.position = LoginActor().position;
     // La cabeza del paso: el original no la interpola.
     character.headAngles = m_head.angles;
     character.light = TerrainLightAt(character.object.position) + glm::vec3(LoginCharacterLight);
-    character.cloth = &m_characterCloth;
+    character.cloth = &LoginActor().cloth;
     character.clothWorld = m_context.cloth;
     character.map = m_world ? m_world->map : 0;
     character.sprites = &m_sprites;
@@ -1091,7 +1162,8 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                                                                                 OriginalFramePaceOf(m_context.pacing)),
                                         .lastRandoms = m_objectEffectRandoms});
     // 0x52d620(0): los efectos con modelo, después de los objetos.
-    DrawModelEffects(canvas.models, m_worldModels, m_effects.Effects(), lighting, canvas.frameClock, alpha);
+    DrawModelEffects(canvas.models, m_worldModels, m_effects.Effects(), m_resources.modelEffectPlanes, lighting,
+                     canvas.frameClock, alpha);
     // 0x5306a0, después de 0x549510: las brasas, en el mundo.
     DrawLeaves(canvas.models, m_leaves);
     m_drawnSinceEntering = true;
@@ -1170,15 +1242,9 @@ void LoginScene::Leave()
     m_textures.Release();
     m_windowTextures.Release();
     RetainTheTerrain();
-    m_terrain.Release();
-    m_worldModels.Release();
-    m_objects.clear();
-    m_effects.Clear();
+    if (m_ownedResources)
+        m_resources.Release();
     m_logoIndex.reset();
-    if (m_logoTextures)
-    {
-        m_logoTextures->Release();
-    }
 }
 
 std::optional<SceneId> LoginScene::Next() const

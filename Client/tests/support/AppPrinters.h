@@ -92,6 +92,9 @@ inline void PrintTo(SessionState state, std::ostream* out)
     case SessionState::EnteringWorld:
         *out << "EnteringWorld";
         return;
+    case SessionState::InWorld:
+        *out << "InWorld";
+        return;
     case SessionState::QuitOrdered:
         *out << "QuitOrdered";
         return;

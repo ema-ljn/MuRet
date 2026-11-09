@@ -6,6 +6,7 @@
 #include "App/ISessionEventSink.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
+#include "App/TeleportHistory.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/Log.h"
@@ -29,8 +30,10 @@
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
+#include "Protocol/Movement.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
+#include "Protocol/World.h"
 
 #include <algorithm>
 #include <array>
@@ -104,6 +107,7 @@ std::string_view Awaited(SessionState state)
     case SessionState::LoggedIn:
     case SessionState::ChoosingCharacter:
     case SessionState::EnteringWorld:
+    case SessionState::InWorld:
     case SessionState::QuitOrdered:
     case SessionState::Failed:
         break;
@@ -191,7 +195,14 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnWorldEntryReply(packet); }) &&
         m_gameServer.On(CharacterOpcode, InventoryListSubcode,
                         [this](const Network::Packet& packet) { OnInventoryReply(packet); }) &&
-        m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); });
+        m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
+        m_gameServer.On(Protocol::Movement::WalkOpcode, [this](const Network::Packet& packet) { OnWalk(packet); }) &&
+        m_gameServer.On(Protocol::Movement::DamageOpcode,
+                        [this](const Network::Packet& packet) { OnDamage(packet); }) &&
+        m_gameServer.On(Protocol::World::TeleportOpcode,
+                        [this](const Network::Packet& packet) { OnTeleport(packet); }) &&
+        m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
+                        [this](const Network::Packet& packet) { OnRegen(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
 }
 
@@ -278,6 +289,21 @@ void ServerSession::HandleEvents()
 SessionState ServerSession::State() const
 {
     return m_state;
+}
+
+void ServerSession::PublishWorldEntry()
+{
+    SetState(SessionState::InWorld);
+}
+
+bool ServerSession::JoinedWorld() const
+{
+    return m_state == SessionState::InWorld;
+}
+
+std::optional<std::uint16_t> ServerSession::PlayerIndex() const
+{
+    return m_playerIndex;
 }
 
 std::uint32_t ServerSession::StartCount() const
@@ -423,8 +449,18 @@ void ServerSession::EnterWorld()
         m_log.Warning("no se entra al mundo: no hay un personaje elegido");
         return;
     }
-    m_log.Info("se entra al mundo con el personaje del lugar {}", chosen->slot);
-    Protocol::Outgoing select = Protocol::Character::WriteCharacterSelect(chosen->name);
+    EnterWorld(chosen->name, chosen->slot);
+}
+
+void ServerSession::EnterWorld(std::span<const std::byte, Protocol::Character::NameSize> name, std::uint8_t slot)
+{
+    if (m_state != SessionState::ChoosingCharacter)
+    {
+        m_log.Warning("se ignora la entrada al mundo: {}", NotAwaited);
+        return;
+    }
+    m_log.Info("se entra al mundo con el personaje del lugar {}", slot);
+    Protocol::Outgoing select = Protocol::Character::WriteCharacterSelect(name);
     m_connection.Send(std::move(select.packet), select.delivery);
     SetState(SessionState::EnteringWorld);
 }
@@ -632,6 +668,7 @@ void ServerSession::OnGameHello(const Network::Packet& packet)
         Fail(SessionFailure::HelloRejected);
         return;
     }
+    m_playerIndex = hello.Value().playerIndex;
     const std::string_view version(hello.Value().version.data(), hello.Value().version.size());
     if (version != Protocol::ClientVersion)
     {
@@ -837,6 +874,95 @@ void ServerSession::OnInventoryReply(const Network::Packet& packet)
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
 }
 
+// 04 § Caminar y pegar: se aplican antes del siguiente paquete, con el actor contemporáneo.
+void ServerSession::OnWalk(const Network::Packet& packet)
+{
+    auto reply = Protocol::Movement::ReadWalk(packet);
+    if (!reply.HasValue())
+    {
+        m_log.Warning("se ignora caminar (D3): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
+}
+
+void ServerSession::OnDamage(const Network::Packet& packet)
+{
+    auto reply = Protocol::Movement::ReadDamage(packet);
+    if (!reply.HasValue())
+    {
+        m_log.Warning("se ignora el daño (D7): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
+}
+
+// 04 § Los cambios de mapa: 1C y F3/04 llegan como C3, reconstruidos por Network a C1.
+void ServerSession::RequestGate(std::uint8_t gate)
+{
+    auto outgoing = Protocol::World::WriteGateRequest(gate);
+    m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+}
+
+Core::Expected<void, Protocol::Movement::WalkWriteError>
+ServerSession::SendWalk(std::span<const Protocol::Movement::Cell> path, Protocol::Movement::Cell target, float angle)
+{
+    auto outgoing = Protocol::Movement::WriteWalk(path, target, angle);
+    if (!outgoing.HasValue())
+        return Core::Unexpected(outgoing.Error());
+    m_connection.Send(std::move(outgoing.Value().packet), outgoing.Value().delivery);
+    return {};
+}
+
+void ServerSession::ConfirmTeleport()
+{
+    auto outgoing = Protocol::World::WriteTeleportDone();
+    m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+}
+
+void ServerSession::RequestCrywolfState()
+{
+    auto outgoing = Protocol::World::WriteCrywolfState();
+    m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+}
+
+const TeleportHistory& ServerSession::Teleports() const
+{
+    return m_teleports;
+}
+
+void ServerSession::OnTeleport(const Network::Packet& packet)
+{
+    // 4e2b10 ejecuta historial antes de entregar originFlag al sink, también cuando será0.
+    m_teleports.Append(packet.Bytes());
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("se rechaza el warp (1C): originFlag del transporte es0");
+        auto outgoing = Protocol::World::WriteRejectedTeleport();
+        m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+        return;
+    }
+    auto reply = Protocol::World::ReadTeleport(packet);
+    if (!reply.HasValue())
+    {
+        m_log.Warning("se ignora el warp (1C): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
+}
+
+void ServerSession::OnRegen(const Network::Packet& packet)
+{
+    // 4e2b10/sub04 y4c4b80 no consultan ni reciben el DWORD originFlag de1C.
+    auto reply = Protocol::World::ReadRegen(packet);
+    if (!reply.HasValue())
+    {
+        m_log.Warning("se ignora revivir (F3 04): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
+}
+
 // 0x4c2710 no mira el estado ni la escena para el 0: SendMessageA(WM_DESTROY) en 0x4c391b, y el
 // WM_DESTROY cierra el socket con un RST y vacía la cola de paquetes (0x4e8380), y hace
 // PostQuitMessage. Acá se acepta en cualquier estado con el GS, como el original, aunque el GS
@@ -943,6 +1069,7 @@ bool ServerSession::WithConnectServer() const
     case SessionState::WaitingCreateResult:
     case SessionState::WaitingDeleteResult:
     case SessionState::EnteringWorld:
+    case SessionState::InWorld:
     case SessionState::QuitOrdered:
     case SessionState::Failed:
         break;

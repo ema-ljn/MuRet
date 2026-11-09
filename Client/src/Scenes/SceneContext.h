@@ -7,6 +7,7 @@
 #include "Render/ITextureStore.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalRotation.h"
 
 #include <filesystem>
 
@@ -14,7 +15,15 @@ namespace Client::World
 {
 struct GameCamera;
 struct GameCameraInput;
+class ILeafWaveEvaluator;
+class IParticleTrigonometry;
+class IParticleDrawingServices;
 } // namespace Client::World
+
+namespace Client::Render
+{
+class ModelBatch;
+}
 
 // Lo que comparten las escenas (CL5.4). Lo arma main.cpp y vive más que el SceneManager; los tests,
 // con un FakeTextureStore (support/). Lo que se leyó antes de la primera escena va aparte, en
@@ -22,6 +31,9 @@ struct GameCameraInput;
 namespace Client::Scenes
 {
 class SelectionState;
+class WorldState;
+class GameModels;
+class ILeafDrawingServices;
 
 // De dónde leen (el Data\ del cliente), adónde suben sus texturas (Render::ITextureStore, CL5.1), el
 // log y el reloj del bucle (CL6.4).
@@ -50,9 +62,24 @@ struct SceneContext
     // construida por cada recepción; el dibujo de selección escribe Hero Z = 163 después de la cámara.
     // L1 aportará XYZ de la respuesta para el juego.
     World::GameCameraInput* cameraInput = nullptr;
-    // El pool CPU de cinco slots y las tablas del mundo vigentes (CL7.3 B). main es su dueño y vive
-    // más que todas las escenas; conserva las tablas del login después de su Leave.
+    // Fachada de selección de los cinco primeros actores y tablas vigentes (CL7.3 B).
+    // Conserva el terreno del login tras Leave; la historia y los recursos de actores son de world.
     SelectionState* selection = nullptr;
+    // Dueño durable de 401 registros, historia y registro propio; vive más que todas las escenas.
+    // Si también hay selection, ambos apuntan al mismo dueño: world == &selection->World().
+    WorldState* world = nullptr;
+    // Main posee el evaluador durante toda la sesión;530490 consume sus dos fases en cada paso.
+    World::ILeafWaveEvaluator* leafWaves = nullptr;
+    // Préstamo al mismo dueño durable que lee WorldEntry: sólo la carga de mapa publica texturas.
+    GameModels* worldTextureModels = nullptr;
+    // El lote de GlFrameTarget y el provider durables de Main; el canvas debe prestar el mismo lote.
+    Render::ModelBatch* modelBatch = nullptr;
+    Render::Models::OriginalMatrix* leafView = nullptr;
+    ILeafDrawingServices* leafDrawing = nullptr;
+    // Perfil matemático explícito de Main; no posee RNG, reloj ni pool alternativos.
+    World::IParticleTrigonometry* particleTrigonometry = nullptr;
+    // Provider durable sobre el MISMO backend/lote/vista que Leaf; préstamos hasta finalizar Draw.
+    World::IParticleDrawingServices* particleDrawing = nullptr;
 };
 
 // Cómo cuentan los frames del original la tela y el cetro con el ritmo `pacing`.

@@ -8,6 +8,7 @@
 #include "Network/Delivery.h"
 #include "Network/EncryptedPacket.h"
 #include "Network/IObfuscation.h"
+#include "Network/IPacketPaddingSource.h"
 #include "Network/ISocket.h"
 #include "Network/LinkState.h"
 #include "Network/ObfuscationError.h"
@@ -20,6 +21,9 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <random>
+#include <variant>
 #include <format>
 #include <optional>
 #include <span>
@@ -79,7 +83,14 @@ std::string KindOf(const Packet& packet)
 Connection::Connection(ISocket& socket, const IObfuscation& obfuscation, Core::IClock& clock, Core::Log& log,
                        std::uint32_t paddingSeed)
     : m_socket(socket), m_obfuscation(obfuscation), m_clock(clock), m_log(log), m_reader(obfuscation),
-      m_padding(paddingSeed)
+      m_padding(std::in_place_type<std::mt19937>, paddingSeed)
+{
+}
+
+Connection::Connection(ISocket& socket, const IObfuscation& obfuscation, Core::IClock& clock, Core::Log& log,
+                       IPacketPaddingSource& padding)
+    : m_socket(socket), m_obfuscation(obfuscation), m_clock(clock), m_log(log), m_reader(obfuscation),
+      m_padding(std::ref(padding))
 {
 }
 
@@ -327,11 +338,15 @@ Core::Expected<Packet, Undecryptable> Connection::Decrypt(const Packet& encrypte
     return std::move(result.packet);
 }
 
-// El byte de abajo de cada número: así la serie es la misma con cualquier biblioteca estándar,
-// porque std::mt19937 está fijado por el estándar (std::uniform_int_distribution, no).
+// La fuente prestada avanza en este mismo sitio del envío. La alternativa legacy conserva el byte
+// bajo del mt19937, cuya serie fija el estándar (uniform_int_distribution no).
 std::byte Connection::NextPadding()
 {
-    return static_cast<std::byte>(m_padding() & 0xFFu);
+    if (auto* source = std::get_if<std::reference_wrapper<IPacketPaddingSource>>(&m_padding))
+    {
+        return source->get().NextPadding();
+    }
+    return static_cast<std::byte>(std::get<std::mt19937>(m_padding)() & 0xFFu);
 }
 
 // Solo la conexión ve el socket, así que el error del sistema de un SocketFailed lo anota ella,

@@ -214,9 +214,8 @@ int ClampBlock(int value)
 {
     return std::clamp(value, 0, LastBlock);
 }
-} // namespace
-
-TerrainRange TerrainRangeOf(const glm::mat4& view, const Render::Camera3D& camera, float widthFactor)
+// 5fbb00: la misma geometría de TerrainRangeOf, ahora conserva también Z para los cinco planos.
+std::array<glm::vec3, 5> ModelEffectPointsOf(const glm::mat4& view, const Render::Camera3D& camera, float widthFactor)
 {
     const float depth = F32(static_cast<double>(camera.farPlane) * static_cast<double>(FarFactor));
     const double halfWidth = (std::tan(static_cast<double>(camera.fieldOfView) * static_cast<double>(HalfFieldOfView)) *
@@ -226,26 +225,105 @@ TerrainRange TerrainRangeOf(const glm::mat4& view, const Render::Camera3D& camer
     const float h = F32(halfWidth * static_cast<double>(HeightFactor));
     const std::array<glm::vec3, 5> local{glm::vec3(0.0f), glm::vec3(-w, h, -depth), glm::vec3(w, h, -depth),
                                          glm::vec3(w, -h, -depth), glm::vec3(-w, -h, -depth)};
-    // 0x620370 da la modelview por filas (m[i · 4 + j] = M[i][j]; glm la guarda por columnas) y 0x5fcc30
-    // la aplica transpuesta: el punto de la vista en el mundo, sin la traslación, más la cámara.
-    const auto m = [&view](int row, int column) { return static_cast<double>(view[column][row]); };
+    Render::Models::OriginalMatrix matrix{};
+    for (int row = 0; row < 3; ++row)
+    {
+        for (int column = 0; column < 4; ++column)
+        {
+            matrix[static_cast<std::size_t>((row * 4) + column)] = view[column][row];
+        }
+    }
+    std::array<glm::vec3, 5> points{};
+    for (std::size_t i = 0; i < points.size(); ++i)
+    {
+        const glm::vec3 offset = Render::Models::OriginalVectorIRotate(local[i], matrix);
+        points[i].x = F32(static_cast<double>(camera.position.x) + offset.x);
+        points[i].y = F32(static_cast<double>(camera.position.y) + offset.y);
+        points[i].z = F32(static_cast<double>(camera.position.z) + offset.z);
+    }
+    return points;
+}
+// 5fd000: Uy/Vz/Uz y Nz permanecen en 53 bits; Vy/Vx/Ux/Nx/Ny tienen store F32.
+void UpdateModelEffectNormal(const glm::vec3& a, const glm::vec3& b, const glm::vec3& c, glm::vec3& normal)
+{
+    const double uy = static_cast<double>(b.y) - a.y;
+    const double vz = static_cast<double>(c.z) - a.z;
+    const double uz = static_cast<double>(b.z) - a.z;
+    const float vy = F32(static_cast<double>(c.y) - a.y);
+    const float nx = F32((vz * uy) - (static_cast<double>(vy) * uz));
+    const float vx = F32(static_cast<double>(c.x) - a.x);
+    const float ux = F32(static_cast<double>(b.x) - a.x);
+    const float ny = F32((static_cast<double>(vx) * uz) - (static_cast<double>(ux) * vz));
+    const double nz = (static_cast<double>(ux) * vy) - (static_cast<double>(vx) * uy);
+    const double z2 = nz * nz;
+    const double y2 = static_cast<double>(ny) * ny;
+    const double x2 = static_cast<double>(nx) * nx;
+    const double length = std::sqrt((z2 + y2) + x2);
+    // C3: igualdad y unordered no escriben los 12 B; no inventar normal cero ni epsilon.
+    if (length == 0.0 || std::isnan(length))
+    {
+        return;
+    }
+    normal.x = F32(static_cast<double>(nx) / length);
+    normal.y = F32(static_cast<double>(ny) / length);
+    normal.z = F32(nz / length);
+}
+} // namespace
+
+std::uint8_t ModelEffectVisibility(const ModelEffectPlanes& planes, const glm::vec3& position, float margin)
+{
+    const float threshold = -margin;
+    for (std::size_t i = 0; i < planes.normals.size(); ++i)
+    {
+        const glm::vec3& normal = planes.normals[i];
+        const double x = static_cast<double>(normal.x) * position.x;
+        const double z = static_cast<double>(normal.z) * position.z;
+        const double xz = x + z;
+        const double y = static_cast<double>(normal.y) * position.y;
+        const double distance = (xz + y) + planes.distances[i];
+        if (!(distance >= threshold))
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+ModelEffectPlanes ModelEffectPlanesOf(const ModelEffectPlanes& previous, const glm::mat4& view,
+                                      const Render::Camera3D& camera, float widthFactor)
+{
+    const auto points = ModelEffectPointsOf(view, camera, widthFactor);
+    ModelEffectPlanes planes = previous;
+    UpdateModelEffectNormal(points[0], points[1], points[2], planes.normals[0]);
+    UpdateModelEffectNormal(points[0], points[2], points[3], planes.normals[1]);
+    UpdateModelEffectNormal(points[0], points[3], points[4], planes.normals[2]);
+    UpdateModelEffectNormal(points[0], points[4], points[1], planes.normals[3]);
+    UpdateModelEffectNormal(points[3], points[2], points[1], planes.normals[4]);
+    for (std::size_t i = 0; i < planes.normals.size(); ++i)
+    {
+        const glm::vec3& anchor = points[i < 4 ? 0 : 1];
+        const glm::vec3& normal = planes.normals[i];
+        const double z = static_cast<double>(normal.z) * anchor.z;
+        const double y = static_cast<double>(normal.y) * anchor.y;
+        const double x = static_cast<double>(normal.x) * anchor.x;
+        planes.distances[i] = F32(-((z + y) + x));
+    }
+    return planes;
+}
+
+TerrainRange TerrainRangeOf(const glm::mat4& view, const Render::Camera3D& camera, float widthFactor)
+{
+    const auto points = ModelEffectPointsOf(view, camera, widthFactor);
     float minX = 25600.0f;
     float minY = 25600.0f;
     float maxX = 0.0f;
     float maxY = 0.0f;
-    for (const glm::vec3& p : local)
+    for (const glm::vec3& point : points)
     {
-        const double vx = p.x;
-        const double vy = p.y;
-        const double vz = p.z;
-        const float ox = F32(((m(2, 0) * vz) + (m(1, 0) * vy)) + (vx * m(0, 0)));
-        const float oy = F32(((m(0, 1) * vx) + (m(2, 1) * vz)) + (m(1, 1) * vy));
-        const float x = F32(static_cast<double>(camera.position.x) + static_cast<double>(ox));
-        const float y = F32(static_cast<double>(camera.position.y) + static_cast<double>(oy));
-        minX = minX > x ? x : minX;
-        minY = minY > y ? y : minY;
-        maxX = maxX < x ? x : maxX;
-        maxY = maxY < y ? y : maxY;
+        minX = minX > point.x ? point.x : minX;
+        minY = minY > point.y ? point.y : minY;
+        maxX = maxX < point.x ? point.x : maxX;
+        maxY = maxY < point.y ? point.y : maxY;
     }
     return TerrainRange{.firstX = ClampBlock((-1 - DivideBy4(CellsOf(minX))) * 4),
                         .lastX = ClampBlock(4 - (DivideBy4(CellsOf(maxX)) * 4)),

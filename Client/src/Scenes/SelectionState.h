@@ -3,14 +3,13 @@
 #include "App/CharacterEvent.h"
 #include "Core/Expected.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Scenes/ActorState.h"
+#include "Scenes/WorldState.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
 
-#include <glm/ext/vector_float3.hpp>
-
-#include <array>
-#include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -21,27 +20,25 @@ struct GameCamera;
 struct GameCameraInput;
 } // namespace Client::World
 
-// El pool mínimo que sobrevive a las escenas: 06 § Los personajes de la lista y CL7.3 B.
-// main es su dueño; la vista usa las revisiones, nunca la igualdad de las entradas.
+// Fachada de los cinco actores de selección del WorldState durable; sin otra copia de historia.
+// El constructor sin dueño explícito posee su único WorldState para usar la fachada aisladamente.
 namespace Client::Scenes
 {
-struct SelectionSlotState
-{
-    glm::vec3 position{};
-    std::uint64_t revision = 0;
-    bool previousHad1c15 = false;
-};
-
 class SelectionState
 {
 public:
-    [[nodiscard]] const std::array<SelectionSlotState, 5>& Slots() const;
+    SelectionState();
+    explicit SelectionState(WorldState& world);
+    [[nodiscard]] WorldState& World();
+    [[nodiscard]] const WorldState& World() const;
+    [[nodiscard]] std::span<const ActorState, SelectionActorCount> Slots() const;
     [[nodiscard]] bool HasReceivedList() const;
     [[nodiscard]] bool IsInitialized() const;
     [[nodiscard]] const std::optional<std::string>& Failure() const;
     [[nodiscard]] const World::WorldTerrain* Terrain() const;
     [[nodiscard]] int Map() const;
     void SetScene(World::CullingScene scene);
+    [[nodiscard]] World::CullingScene Scene() const;
     // El dueño de `terrain` debe mantenerlo vivo hasta RetainTerrain o el próximo BorrowTerrain.
     // Si ya es el terreno retenido por este estado, conserva su ownership.
     void BorrowTerrain(int map, const World::WorldTerrain* terrain);
@@ -62,7 +59,8 @@ private:
                                                               const World::GameCamera& camera,
                                                               World::GameCameraInput& input);
     [[nodiscard]] Core::Expected<void, std::string> Fail(std::string error);
-    std::array<SelectionSlotState, 5> m_slots{};
+    std::unique_ptr<WorldState> m_ownedWorld;
+    WorldState& m_world;
     std::optional<World::WorldTerrain> m_ownedTerrain;
     const World::WorldTerrain* m_borrowedTerrain = nullptr;
     int m_map = -1;

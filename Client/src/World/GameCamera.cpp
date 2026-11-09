@@ -206,6 +206,7 @@ Render::Camera3D StepGameCamera(GameCamera& state, const GameCameraInput& input)
     FinishFrame(state, input);
     state.yaw = camera.angles.z;
     state.farPlane = camera.farPlane;
+    state.publishedY = camera.position.y;
     return camera;
 }
 

@@ -3,6 +3,7 @@
 #include "App/Credentials.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
+#include "App/TeleportHistory.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/IntervalTimer.h"
@@ -12,8 +13,10 @@
 #include "Network/Packet.h"
 #include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Protocol/Character/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
+#include "Protocol/Movement.h"
 
 #include <chrono>
 #include <cstddef>
@@ -62,7 +65,8 @@
 //   WaitingLoginResult --F1 01 con otro: guarda el resultado--> WaitingCredentials
 //   LoggedIn --RequestCharacterList: manda F3 00--> WaitingCharacterList
 //   WaitingCharacterList --F3 00: guarda la lista, aunque venga vacía--> ChoosingCharacter
-//   ChoosingCharacter --EnterWorld con uno elegido: manda F3 03 con su nombre--> EnteringWorld
+//   ChoosingCharacter --EnterWorld(name, slot): manda F3 03 con el nombre recibido--> EnteringWorld
+//   EnterWorld() resuelve primero ChosenCharacter; la sobrecarga explícita no cambia esa caché.
 //   ChoosingCharacter --CreateCharacter: manda F3 01 con el nombre y la clase--> WaitingCreateResult
 //   WaitingCreateResult --F3 01 con 1: suma al nuevo, sin equipo--> ChoosingCharacter
 //   WaitingCreateResult --F3 01 con 0 o 2: guarda el resultado--> ChoosingCharacter
@@ -74,11 +78,13 @@
 //   con el GS abierto --cada KeepalivePeriod del timer global: manda el keepalive-->
 //     el mismo estado
 //   con el GS --F3 03 o F3 10 cifrado y legible: aplica en el sink--> el mismo estado
+//   el aplicador --PublishWorldEntry en el store state3d de F3/03--> InWorld
+//   con el GS --D3/D7, 1C/F3 04 legibles: aplica en el mismo sink antes del siguiente evento
 //   un error del sink --cierra y corta el lote--> Failed (ApplicationFailed)
 //   con el GS --F1 02 con 0: cierra, sin aviso--> QuitOrdered (Q-C106)
 //   cualquier Waiting* que espera un servidor --ReplyTimeout sin su respuesta: cierra--> Failed
 //     (NoReply); ChoosingServer, WaitingCredentials y ChoosingCharacter esperan al jugador y no
-//     tienen tope, y EnteringWorld tampoco: ya recibe su respuesta, pero falta aplicarla en la CL7
+//     tienen tope; EnteringWorld e InWorld tampoco esperan una respuesta con deadline
 //   con el CS --Closed--> Failed (ConnectServerLost)
 //   con el GS --Closed--> Failed (GameServerLost)
 //
@@ -169,6 +175,20 @@ public:
     Core::Expected<void, std::string> Poll();
 
     [[nodiscard]] SessionState State() const;
+    // 4c4854: sólo el aplicador lo llama, después de publicar al héroe y la primera llegada.
+    // No exige EnteringWorld: una recepción válida repite el handler con su contexto contemporáneo.
+    void PublishWorldEntry();
+    [[nodiscard]] const TeleportHistory& Teleports() const;
+    // Salidas decididas por el aplicador/MoveHero; no agregan guards de SessionState al caller nativo.
+    void RequestGate(std::uint8_t gate);
+    [[nodiscard]] Core::Expected<void, Protocol::Movement::WalkWriteError>
+    SendWalk(std::span<const Protocol::Movement::Cell> path, Protocol::Movement::Cell target, float angle);
+    void ConfirmTeleport();
+    void RequestCrywolfState();
+    [[nodiscard]] bool JoinedWorld() const;
+    // F1/00 aceptado guarda pkt[5]*256+pkt[6] antes de validar la versión.
+    // Start conserva esa historia; sin un saludo aceptado previo, el origen aún es desconocido.
+    [[nodiscard]] std::optional<std::uint16_t> PlayerIndex() const;
 
     // Cuántas veces se llamó a Start: lo que elige o manda alguien de afuera (el AutoLogin) es de
     // una vuelta, y con un Start empieza otra.
@@ -228,6 +248,9 @@ public:
     // En ChoosingCharacter con uno elegido, manda el F3 03 con su nombre (0x636290) y espera la
     // entrada. Sin elegido, o en otro estado, un aviso y nada.
     void EnterWorld();
+    // Nombre del actor seleccionado actual, preparado por el caller con padding cero tras NUL.
+    // No vuelve a consultar ChosenCharacter ni conoce actores o escenas; slot es sólo para el log.
+    void EnterWorld(std::span<const std::byte, Protocol::Character::NameSize> name, std::uint8_t slot);
 
     // En ChoosingCharacter, manda el F3 01 con `name` y la clase `characterClass` (de 0 a 4, la de la
     // vista previa: 0x63d990) y espera la respuesta. El nombre no va al log. Uno de más de 10 bytes o
@@ -273,6 +296,10 @@ private:
     void OnWorldEntryReply(const Network::Packet& packet);
     void OnInventoryReply(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
+    void OnWalk(const Network::Packet& packet);
+    void OnDamage(const Network::Packet& packet);
+    void OnTeleport(const Network::Packet& packet);
+    void OnRegen(const Network::Packet& packet);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.
     void SendKeepalive(Core::Duration now);
 
@@ -290,6 +317,7 @@ private:
     // "ConnectServer" o "GameServer", para el log, según con cuál habla el estado.
     [[nodiscard]] std::string_view ServerName() const;
 
+    TeleportHistory m_teleports;
     Network::Connection& m_connection;
     Core::IClock& m_clock;
     Core::Log& m_log;
@@ -300,6 +328,7 @@ private:
     Protocol::Dispatcher m_connectServer;
     Protocol::Dispatcher m_gameServer;
     SessionState m_state = SessionState::Idle;
+    std::optional<std::uint16_t> m_playerIndex;
     Core::Duration m_stateSince{}; // desde cuándo está en m_state
     std::optional<SessionFailure> m_failure;
     std::vector<Protocol::Connection::ServerEntry> m_serverList;

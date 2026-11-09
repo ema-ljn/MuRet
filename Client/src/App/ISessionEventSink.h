@@ -16,8 +16,8 @@ class ServerSession;
 // remoto mientras los paquetes anteriores aún se despachan en orden.
 // Apply no llama Poll, Start, ChooseServer, SubmitCredentials, ChooseCharacter, EnterWorld,
 // CreateCharacter, DeleteCharacter ni SetKeepaliveSpeeds, y no cambia escena. La referencia World
-// mutable se reserva exclusivamente al futuro PublishWorldEntry en el punto nativo state3d;
-// mientras ese comando no esté integrado, no habilita otros mutadores ni reentrada.
+// mutable se reserva exclusivamente a PublishWorldEntry en el punto nativo state3d;
+// no habilita otros mutadores ni reentrada.
 class ISessionEventSink
 {
 public:

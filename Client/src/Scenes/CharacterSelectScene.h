@@ -7,16 +7,13 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Data/Text/TextTable.h"
-#include "GameLogic/CharacterAppearance.h"
 #include "Input/DoubleClick.h"
 #include "Input/InputState.h"
-#include "Protocol/Character/CharacterList.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Pose.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterCloth.h"
-#include "Scenes/CharacterAnimation.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CreatePreview.h"
 #include "Scenes/GameData.h"
@@ -25,12 +22,14 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTextures.h"
+#include "Scenes/WorldState.h"
 #include "UI/CreateCharacterWindow.h"
 #include "UI/NameChecks.h"
 #include "UI/NoticeWindow.h"
 #include "UI/SelectionBar.h"
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -70,6 +69,10 @@ public:
     // 0x634680 sin el terreno, los objetos ni los efectos: con sesión, nada hasta la lista; el de bajo
     // el mouse, con el contorno. Después, la UI: la barra, la ventana de crear (su base, la vista
     // previa en su propio pase 3D, que no se oscurece, y lo demás) y el aviso.
+    [[nodiscard]] std::optional<std::string> Failure() const override
+    {
+        return m_renderFailure;
+    }
     void Render(SceneCanvas& canvas, float alpha) override;
     // Suelta sus slots.
     void Leave() override;
@@ -81,24 +84,11 @@ public:
     [[nodiscard]] bool HoldsTheLastFrame() const override;
 
 private:
-    // Un personaje de la lista en su lugar, con la entrada de la que salió.
-    struct Character
-    {
-        std::uint8_t slot = 0;
-        std::uint64_t revision = 0;
-        Protocol::Character::CharacterEntry entry;
-        GameLogic::CharacterAppearance appearance;
-        CharacterAnimation animation;
-        // Su tela (0x50ba30 la arma desde el primer frame en que se dibuja).
-        CharacterCloth cloth;
-    };
-
     // Si la escena todavía espera la lista: con sesión, hasta ChoosingCharacter.
     [[nodiscard]] bool WaitingForTheList() const;
     // La lista de la sesión a los personajes: la primera vez, todos, y el +0x543 de la barra; después,
     // cada construcción recibida recrea su visual, aunque tenga los mismos bytes que el anterior.
     void SyncTheCharacters();
-    [[nodiscard]] Character MakeCharacter(const Protocol::Character::CharacterEntry& entry) const;
     void StepCharacters();
     // Si abrió el aviso 0x70 en este paso.
     bool ShowTheFailure();
@@ -132,7 +122,7 @@ private:
     void Choose(std::optional<std::uint8_t> slot);
     // Enter con uno elegido: el aviso 0x84 si está bloqueado, o el mundo.
     void TryToEnter();
-    [[nodiscard]] Render::Models::ObjectTransform ObjectOf(const Character& character) const;
+    [[nodiscard]] Render::Models::ObjectTransform ObjectOf(const ActorState& character) const;
     // El buffer de un slot de las ventanas o de la escena.
     [[nodiscard]] TextureBufferSize BufferSize(Render::TextureSlot slot) const;
 
@@ -140,6 +130,9 @@ private:
     [[nodiscard]] World::GameCameraInput& CameraInputState();
 
     SceneContext m_context;
+    // Sólo para usar una escena aislada sin globals; RunScenes siempre aporta el dueño durable.
+    std::unique_ptr<WorldState> m_ownedWorld;
+    WorldState& m_world;
     // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
     World::GameCamera m_localCamera;
     World::GameCameraInput m_localCameraInput;
@@ -155,12 +148,13 @@ private:
     UI::NameFilters m_nameFilters;
     UI::CreateCharacterWindow m_create;
     const Render::Models::ModelTextureSlots* m_gameSlots;
-    SelectionModels m_selectionModels;
+    std::unique_ptr<SelectionModels> m_ownedSelectionModels;
+    SelectionModels& m_selectionModels;
     // El objeto de la vista previa (0x7437050), y si avanzó en el último paso.
     CreatePreview m_preview;
     bool m_previewAdvanced = false;
     Input::DoubleClick m_doubleClick;
-    std::vector<Character> m_characters;
+    std::vector<ActorState*> m_characters;
     bool m_tookTheList = false;
     // Desde que se mandó el F3 02 (o el F3 01) hasta su respuesta.
     bool m_waitingForTheDeletion = false;
@@ -175,5 +169,6 @@ private:
     std::optional<SceneId> m_next;
     bool m_failureShown = false;
     bool m_quit = false;
+    std::optional<std::string> m_renderFailure;
 };
 } // namespace Client::Scenes

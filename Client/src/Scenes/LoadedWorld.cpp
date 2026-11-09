@@ -26,12 +26,12 @@ namespace Client::Scenes
 LoadedWorld::LoadedWorld(Render::ITextureStore& store) : m_store(store) {}
 
 Core::Expected<void, std::string> LoadedWorld::Load(const std::filesystem::path& dataRoot, std::uint8_t map,
-                                                    std::vector<std::string>& skipped)
+                                                    std::vector<std::string>& skipped, World::WorldTerrainLoad context)
 {
     Release();
     // Proyección local byte estable; las lecturas globales y los modelos de 0x61a560 no van acá.
     const auto effectiveMap = static_cast<std::uint8_t>(Data::MapAtWorldLoadStart(map, map));
-    auto terrain = World::LoadWorldTerrain(dataRoot, effectiveMap);
+    auto terrain = World::LoadWorldTerrain(dataRoot, effectiveMap, std::move(context));
     if (!terrain.HasValue())
     {
         return Core::Unexpected(terrain.Error());

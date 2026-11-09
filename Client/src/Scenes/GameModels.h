@@ -4,6 +4,7 @@
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/ModelTextureCalls.h"
+#include "Data/Textures/TextureSet.h"
 #include "Render/ITextureStore.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Skeleton.h"
@@ -30,6 +31,12 @@
 // y el plan de la CL6 (pregunta 4, CL6.3 y CL6.4).
 namespace Client::Scenes
 {
+struct TextureLoadReport
+{
+    std::size_t uploaded = 0;
+    std::size_t skipped = 0;
+};
+
 class GameModels final : public IModelLibrary
 {
 public:
@@ -45,10 +52,17 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot,
                                                          Render::ITextureStore& textures, Core::Log& log);
 
+    // 61a560: cada entrada se intenta en orden, aun si otra falla; publica metadata y handle
+    // juntos sólo tras upload exitoso. Se llama en cargaWorld, nunca en Draw/por frame.
+    [[nodiscard]] TextureLoadReport LoadTextures(const std::filesystem::path& dataRoot,
+                                                 std::span<const Data::Textures::TextureSetEntry> entries,
+                                                 Render::ITextureStore& textures, Core::Log& log);
+
     [[nodiscard]] const Data::Models::Model* Find(std::uint16_t model) const override;
     [[nodiscard]] const Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override;
     [[nodiscard]] std::span<const Render::TextureSlot> MeshTextures(std::uint16_t model) const override;
     [[nodiscard]] std::optional<TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override;
+    [[nodiscard]] std::optional<Render::TextureSlot> TextureSlotOf(std::uint32_t selector) const override;
     // El de las de EffectTextureSet que subió.
     [[nodiscard]] std::optional<glm::vec2> TextureSize(Render::TextureSlot slot) const override;
 
@@ -58,13 +72,23 @@ public:
     [[nodiscard]] const Render::Models::ModelTextureSlots& TextureSlots() const;
 
 private:
+    struct TextureRecord
+    {
+        TextureMetadata metadata;
+        Render::TextureSlot slot;
+    };
+
+    TextureLoadReport UploadEach(const std::filesystem::path& dataRoot,
+                                 std::span<const Data::Textures::TextureSetEntry> entries,
+                                 Render::ITextureStore& textures, Core::Log& log, bool publish = false);
     void AssignTextures(std::span<const Data::Models::ModelTextureCall> calls);
 
     std::map<std::uint16_t, Data::Models::Model> m_models;
     std::map<std::uint16_t, Render::Models::Skeleton> m_skeletons;
     std::map<std::uint16_t, std::vector<Render::TextureSlot>> m_meshTextures;
-    // El tamaño de las de los sprites (EffectTextureSet) que subió.
-    std::map<std::uint32_t, TextureMetadata> m_textureMetadata;
+    // Registro canónico de cargas publicadas; reload fallido conserva la fila anterior.
+    // Release externo no notifica al owner, como en la política previa de metadata.
+    std::map<std::uint32_t, TextureRecord> m_textureMetadata;
     // Desde 0x138 (0x60f7d0); Load le corre el próximo a cada cargador.
     Render::Models::ModelTextureSlots m_slots{Render::TextureSlot{0x138}};
 };

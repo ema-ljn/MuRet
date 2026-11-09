@@ -1,4 +1,5 @@
 #include "Scenes/CharacterSelectScene.h"
+#include "Scenes/WorldResources.h"
 
 #include "App/LoopTiming.h"
 #include "App/ServerSession.h"
@@ -13,24 +14,22 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Character/CharacterName.h"
 #include "Render/Models/Animation.h"
-#include "Render/Models/Cloth.h"
+#include "Render/Models/ClothWorldStep.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/RayPicking.h"
-#include "Render/Models/Skeleton.h"
 #include "Render/OriginalQuad.h"
 #include "Render/Pass3D.h"
 #include "Render/SpriteBatch.h"
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/CreatePreview.h"
 #include "Scenes/GameData.h"
 #include "Scenes/SceneCameras.h"
-#include "World/GameCamera.h"
-#include "World/TerrainCulling.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -38,6 +37,8 @@
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/TextureSets.h"
+#include "Scenes/WorldState.h"
+#include "Scenes/WorldResources.h"
 #include "UI/CreateCharacterWindow.h"
 #include "UI/DeleteChecks.h"
 #include "UI/GameCursor.h"
@@ -46,12 +47,15 @@
 #include "UI/Notices.h"
 #include "UI/SelectionBar.h"
 #include "UI/Widget.h"
+#include "World/GameCamera.h"
+#include "World/TerrainCulling.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -103,7 +107,12 @@ Render::OriginalQuad Background(std::uint16_t slot, float x)
 CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const GameData& data,
                                            const IModelLibrary& models, App::ServerSession* session,
                                            const Render::Models::ModelTextureSlots* gameSlots)
-    : m_context(context), m_texts(data.text ? &*data.text : nullptr), m_models(models), m_session(session),
+    : m_context(context),
+      m_ownedWorld(context.world == nullptr && context.selection == nullptr ? std::make_unique<WorldState>() : nullptr),
+      m_world(context.world != nullptr       ? *context.world
+              : context.selection != nullptr ? context.selection->World()
+                                             : *m_ownedWorld),
+      m_texts(data.text ? &*data.text : nullptr), m_models(models), m_session(session),
       m_textures(context.textures, SelectionTextureSet), m_windowTextures(context.textures, WindowTextureSet),
       m_notice([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts),
       m_bar([this](Render::TextureSlot slot) { return m_textures.BufferSize(slot); }, m_texts),
@@ -111,7 +120,9 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ga
                     .filter = data.filter,
                     .operation = UI::TextAt(m_texts, OperationText).value_or(std::string_view{}),
                     .server = UI::TextAt(m_texts, ServerText).value_or(std::string_view{})},
-      m_create([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts), m_gameSlots(gameSlots)
+      m_create([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts), m_gameSlots(gameSlots),
+      m_ownedSelectionModels(m_world.Resources() == nullptr ? std::make_unique<SelectionModels>() : nullptr),
+      m_selectionModels(m_ownedSelectionModels ? *m_ownedSelectionModels : m_world.Resources()->selectionModels)
 {
 }
 
@@ -178,27 +189,6 @@ bool CharacterSelectScene::WaitingForTheList() const
            (m_context.selection != nullptr && !m_context.selection->HasReceivedList());
 }
 
-CharacterSelectScene::Character
-CharacterSelectScene::MakeCharacter(const Protocol::Character::CharacterEntry& entry) const
-{
-    Character character;
-    character.slot = entry.slot;
-    if (m_context.selection != nullptr)
-    {
-        character.revision = m_context.selection->Slots()[entry.slot].revision;
-    }
-    character.entry = entry;
-    const std::uint8_t characterClass = Protocol::Character::CharacterClassOf(entry.classByte);
-    // El que armó la respuesta de crear sale sin equipo (0x517270 sin 0x5139f0, Q-C103).
-    character.appearance = entry.withoutEquipment ? GameLogic::ClassAppearance(characterClass, 0)
-                                                  : GameLogic::AppearanceOf(characterClass, 0, entry.equipment);
-    if (const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel))
-    {
-        Render::Models::SetAction(character.animation.body, *skeleton, StandingAction);
-    }
-    return character;
-}
-
 void CharacterSelectScene::SyncTheCharacters()
 {
     if (m_session == nullptr || !m_session->Characters())
@@ -207,30 +197,29 @@ void CharacterSelectScene::SyncTheCharacters()
     }
     const std::vector<Protocol::Character::CharacterEntry>& entries = m_session->Characters()->characters;
     bool changed = !m_tookTheList || entries.size() != m_characters.size();
-    std::vector<Character> synced;
+    std::vector<ActorState*> synced;
     synced.reserve(entries.size());
     for (const Protocol::Character::CharacterEntry& entry : entries)
     {
-        const SelectionState* selection = m_context.selection;
-        const auto same =
-            std::ranges::find_if(m_characters,
-                                 [&entry, selection](const Character& character)
-                                 {
-                                     return selection != nullptr
-                                                ? character.slot == entry.slot &&
-                                                      character.revision == selection->Slots()[entry.slot].revision
-                                                : SameEntry(character.entry, entry);
-                                 });
-        if (same != m_characters.end())
+        ActorState& actor = m_world.Actors()[entry.slot];
+        // Compatibilidad de escena aislada sin SelectionState: su único dueño sigue siendo WorldState.
+        if (m_context.selection == nullptr && (!actor.active || !SameEntry(actor.entry, entry)))
         {
-            synced.push_back(std::move(*same));
-            continue;
+            m_world.ReconstructSelectionActor(entry,
+                                              glm::vec3(CharacterSlots[entry.slot].position, CharacterSlotHeight));
         }
-        synced.push_back(MakeCharacter(entry));
-        changed = true;
+        if (actor.visualRevision != actor.revision)
+        {
+            if (const auto* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel))
+            {
+                Render::Models::SetAction(actor.animation.body, *skeleton, StandingAction);
+            }
+            actor.visualRevision = actor.revision;
+            changed = true;
+        }
+        synced.push_back(&actor);
     }
-    // 0x634680 recorre los cinco registros del pool por índice, no en el orden del paquete.
-    std::ranges::sort(synced, {}, &Character::slot);
+    std::ranges::sort(synced, {}, [](const ActorState* actor) { return actor->entry.slot; });
     m_characters = std::move(synced);
     if (!m_tookTheList)
     {
@@ -251,12 +240,14 @@ void CharacterSelectScene::SyncTheCharacters()
 // El cuerpo, la mascota y las alas de cada uno (StepCharacterAnimation), con la regla de la escena 4.
 void CharacterSelectScene::StepCharacters()
 {
-    for (Character& character : m_characters)
+    for (ActorState* actor : m_characters)
     {
+        ActorState& character = *actor;
         // Lo que termina vuelve a la de parado (0x4fcb10), que en la selección es la 3: como la 3 repite,
         // es la de ahora, y SetAction no cambia nada.
-        static_cast<void>(StepCharacterAnimation(character.animation, character.appearance, m_models,
-                                                 Render::Models::AnimationScene::CharacterSelect));
+        static_cast<void>(StepCharacterAnimation(
+            character.animation, character.appearance, m_models, Render::Models::AnimationScene::CharacterSelect,
+            m_context.world != nullptr ? &m_context.world->Runtime().playerActionSpeeds : nullptr));
     }
 }
 
@@ -456,10 +447,7 @@ void CharacterSelectScene::SendTheDeletion()
 
 void CharacterSelectScene::Step(const Input::InputState& input)
 {
-    if (m_context.cloth != nullptr)
-    {
-        Render::Models::StepTheClothWorld(*m_context.cloth);
-    }
+    const Render::Models::ClothWorldStep logicStep(m_context.cloth);
     m_previewAdvanced = false;
     // Un aviso que se abre en este paso se atiende desde el siguiente: lo que se apretó en este no
     // lo cierra antes de que se vea.
@@ -511,6 +499,14 @@ void CharacterSelectScene::Step(const Input::InputState& input)
         OnTheBar(*click);
         return;
     }
+    // El original pide GetAsyncKeyState(VK_RETURN) == 0x8001, y pierde un Enter corto entre dos
+    // lecturas; MuRet lo ve, como en el login (Q-C45). La barra no lo traba.
+    if (input.WasPressed(Input::Key::Enter))
+    {
+        TryToEnter();
+    }
+    // 0x6342c0 prepara el perfil antes del tail 0x6344d3, aun si ya pidió escena3: el clic
+    // posterior todavía puede cambiar la selección que 0x636290 usará para pedir la entrada.
     const auto now = App::LogicStep * static_cast<std::int64_t>(m_steps);
     const bool doubleClick = m_doubleClick.Step(input, now);
     // Con el mouse sobre la barra, la UI lo tiene (+0x8de8): la escena no elige, no hace el doble clic
@@ -530,12 +526,6 @@ void CharacterSelectScene::Step(const Input::InputState& input)
             Choose(m_hovered);
         }
     }
-    // El original pide GetAsyncKeyState(VK_RETURN) == 0x8001, y pierde un Enter corto entre dos
-    // lecturas; MuRet lo ve, como en el login (Q-C45). La barra no lo traba.
-    if (input.WasPressed(Input::Key::Enter))
-    {
-        TryToEnter();
-    }
 }
 
 std::optional<std::uint8_t> CharacterSelectScene::UnderTheMouse(const Input::InputState& input) const
@@ -547,12 +537,13 @@ std::optional<std::uint8_t> CharacterSelectScene::UnderTheMouse(const Input::Inp
     const auto [origin, end] = m_lastPass->RayThrough(input.MouseX(), input.MouseY());
     std::vector<glm::vec3> positions;
     positions.reserve(m_characters.size());
-    for (const Character& character : m_characters)
+    for (const ActorState* actor : m_characters)
     {
+        const ActorState& character = *actor;
         positions.push_back(ObjectOf(character).position);
     }
     const std::optional<std::size_t> nearest = Render::Models::NearestHit(origin, end, positions);
-    return nearest ? std::optional<std::uint8_t>{m_characters[*nearest].slot} : std::nullopt;
+    return nearest ? std::optional<std::uint8_t>{m_characters[*nearest]->entry.slot} : std::nullopt;
 }
 
 void CharacterSelectScene::Choose(std::optional<std::uint8_t> slot)
@@ -560,6 +551,8 @@ void CharacterSelectScene::Choose(std::optional<std::uint8_t> slot)
     if (m_session != nullptr)
     {
         m_session->ChooseCharacter(slot);
+        const auto* chosen = m_session->ChosenCharacter();
+        m_world.SelectActor(chosen != nullptr ? std::optional<std::size_t>{chosen->slot} : std::nullopt);
     }
 }
 
@@ -579,16 +572,20 @@ void CharacterSelectScene::TryToEnter()
         m_notice.Open(UI::LockedCharacterNotice);
         return;
     }
+    m_world.SelectActor(chosen->slot);
+    if (!m_world.PrepareSelectedActor())
+    {
+        m_context.log.Error("no se prepara la entrada: falta el actor elegido vigente");
+        return;
+    }
     m_context.log.Info("se elige el personaje del lugar {} para entrar al mundo", chosen->slot);
     m_next = SceneId::WorldLoading;
 }
 
-Render::Models::ObjectTransform CharacterSelectScene::ObjectOf(const Character& character) const
+Render::Models::ObjectTransform CharacterSelectScene::ObjectOf(const ActorState& character) const
 {
-    const CharacterSlot& slot = CharacterSlots[character.slot];
-    const glm::vec3 position = m_context.selection != nullptr
-                                   ? m_context.selection->Slots()[character.slot].position
-                                   : glm::vec3(slot.position.x, slot.position.y, CharacterSlotHeight);
+    const CharacterSlot& slot = CharacterSlots[character.entry.slot];
+    const glm::vec3 position = character.position;
     return Render::Models::ObjectTransform{position, {0.0f, 0.0f, slot.angle}, character.appearance.scale, 0.0f};
 }
 
@@ -626,6 +623,30 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
                                                    OriginalFramePaceOf(m_context.pacing));
     const Render::Pass3D pass = Render::MakePass3D(canvas.screen, WorldViewport, camera);
     m_lastPass = pass;
+    WorldState* stateOwner = m_context.world != nullptr
+                                 ? m_context.world
+                                 : (m_context.selection != nullptr ? &m_context.selection->World() : nullptr);
+    if (stateOwner != nullptr && stateOwner->Resources() != nullptr)
+    {
+        auto& planes = stateOwner->Resources()->modelEffectPlanes;
+        planes = World::ModelEffectPlanesOf(planes, pass.view, camera);
+        stateOwner->Resources()->terrainRange = World::TerrainRangeOf(pass.view, camera);
+        const auto polygon =
+            stateOwner->Resources()->UpdateTerrainPolygon({.scene = 4,
+                                                           .map = map,
+                                                           .translation = cameraInput.hero,
+                                                           .objectPosition = {cameraInput.hero.x, cameraInput.hero.y},
+                                                           .cameraYaw = camera.angles.z,
+                                                           .worldWidth = 640,
+                                                           .webzenProfile = cameraInput.webzen,
+                                                           .webzenYaw = cameraInput.webzen},
+                                                          CameraState());
+        if (!polygon.HasValue())
+        {
+            m_renderFailure = "polígono de selección: distancia o nivel efectivo fuera del dominio portable";
+            return;
+        }
+    }
     canvas.models.Begin(pass);
     if (world)
     {
@@ -643,18 +664,21 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         cameraInput.hero.z = CharacterSlotHeight;
     }
     const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
-    for (Character& character : m_characters)
+    for (ActorState* actor : m_characters)
     {
+        ActorState& character = *actor;
         DrawnCharacter drawn;
         drawn.appearance = character.appearance;
-        drawn.body = BodyBetweenSteps(character.animation, m_models, alpha);
+        drawn.body =
+            BodyBetweenSteps(character.animation, m_models, alpha,
+                             m_context.world != nullptr ? &m_context.world->Runtime().playerActionSpeeds : nullptr);
         drawn.pet = character.animation.pet.state;
         drawn.wings = character.animation.wings.state;
         drawn.object = ObjectOf(character);
-        const bool isChosen = chosen != nullptr && chosen->slot == character.slot;
-        drawn.light =
-            glm::vec3((character.slot == HeroSlot ? HeroLight : CharacterLight) + (isChosen ? ChosenExtraLight : 0.0f));
-        drawn.outlined = m_hovered == character.slot;
+        const bool isChosen = chosen != nullptr && chosen->slot == character.entry.slot;
+        drawn.light = glm::vec3((character.entry.slot == HeroSlot ? HeroLight : CharacterLight) +
+                                (isChosen ? ChosenExtraLight : 0.0f));
+        drawn.outlined = m_hovered == character.entry.slot;
         drawn.cloth = &character.cloth;
         drawn.clothWorld = m_context.cloth;
         drawn.map = map;
@@ -682,7 +706,8 @@ void CharacterSelectScene::Leave()
     m_textures.Release();
     m_windowTextures.Release();
     // 0x61cc50 suelta los slots de 0x6f8 a 0x71d.
-    m_selectionModels.Release();
+    if (m_ownedSelectionModels)
+        m_selectionModels.Release();
 }
 
 void CharacterSelectScene::StepThePreview()

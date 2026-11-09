@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "World/WorldObjectRegistrations.h"
+#include "World/WorldObjectStepError.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -39,20 +41,31 @@ enum class ObjectScene : std::uint8_t
 // Proyección tipada de los campos usados de 0x1d4 bytes; no reproduce el layout i386.
 struct WorldObject
 {
-    WorldObjectIdentity identity = 0;              // ID del caller; 0 en la proyección sin registro
-    std::int16_t type = 0;                         // +0x2, el modelo
-    Render::Models::ObjectTransform transform;     // +0xc la escala, +0x10 la posición, +0x1c los ángulos
-    Render::Models::ObjectState state;             // +0x64, +0x68, +0x6c, +0x70 y +0x58
-    std::uint8_t field08 = 0;                      // +0x8, byte escrito por creación del mapa 30
-    float field84 = 0.0f;                          // +0x84, store FP del mapa 30/tipo 41
-    std::uint8_t field91 = 0;                      // +0x91, byte escrito por creación del mapa 30
-    glm::vec3 light{};                             // +0xf4..+0xfc, la que se suma a la del terreno
-    float speed = 0.0f;                            // +0xd8, keys por paso
-    float cullingMargin = -30.0f;                  // +0xdc, margen inicial de 0x6067ae
-    float fieldE0 = 50.0f;                         // +0xe0, significado/consumidor sin modelar
-    glm::vec3 copiedAngles{};                      // +0x28..+0x30, copia del caso del mapa 2
-    glm::vec3 copiedPosition{};                    // +0x34..+0x3c, copia del caso del mapa 2
-    glm::vec3 basePosition{};                      // +0x17c, segunda copia inicial de la posición
+    WorldObjectIdentity identity = 0;          // ID del caller; 0 en la proyección sin registro
+    std::int16_t type = 0;                     // +0x2, el modelo
+    Render::Models::ObjectTransform transform; // +0xc la escala, +0x10 la posición, +0x1c los ángulos
+    Render::Models::ObjectState state;         // +0x64, +0x68, +0x6c, +0x70 y +0x58
+    // Entradas persistentes de6002e0: los defaults del DTO no acreditan bootstrap nativo.
+    std::int32_t state4 = 0;
+    glm::vec3 output40{};
+    glm::vec3 output4c{};
+    std::uint32_t renderMask = 0;
+    std::uint32_t renderFlags = 0;
+    std::uint8_t level8e = 0;
+    WorldObjectIdentity owner = 0;
+    std::int32_t reference188 = 0;
+    std::uint8_t field08 = 0; // +0x8, byte escrito por creación del mapa 30
+    float field84 = 0.0f;     // +0x84, store FP del mapa 30/tipo 41
+    std::int16_t field8a = 0; // Entrada persistente para mapas11..17; default del DTO, no bootstrap nativo probado.
+    std::uint8_t field91 = 0; // +0x91, byte escrito por creación del mapa 30
+    glm::vec3 light{};        // +0xf4..+0xfc, la que se suma a la del terreno
+    glm::vec3 positionIncrement{}; // +0xcc..+0xd4, entrada persistente de52f550; default DTO no acredita bootstrap.
+    float speed = 0.0f;            // +0xd8, keys por paso
+    float cullingMargin = -30.0f;  // +0xdc, margen inicial de 0x6067ae
+    float fieldE0 = 50.0f;         // +0xe0, significado/consumidor sin modelar
+    glm::vec3 copiedAngles{};      // +0x28..+0x30, copia del caso del mapa 2
+    glm::vec3 copiedPosition{};    // +0x34..+0x3c, copia del caso del mapa 2
+    glm::vec3 basePosition{};      // +0x17c, segunda copia inicial de la posición
     glm::vec3 boundsMinimum{-40.0f, -40.0f, 0.0f}; // +0x124..+0x12c
     glm::vec3 boundsMaximum{40.0f, 40.0f, 80.0f};  // +0x130..+0x138
     bool alive = true;                             // +0x0
@@ -68,6 +81,7 @@ struct WorldObject
 };
 
 class IWorldObjectCreationServices;
+struct WorldObjectStepContext;
 
 // Bits de imagen de 0x6b88d4: default del port con almacenamiento estático, no una garantía de
 // inmutabilidad del dato original durante ejecución.
@@ -169,6 +183,10 @@ inline constexpr std::array<std::size_t, 2> StreetLightGlowBones{8, 9};
 // 0x54, 0x55, 0x57 y 0x59 se ocultan, el remolino 0x56 gira −0,6° (alpha 0,2, luz (1, 0, 0) y todas
 // las mallas por el blendMesh) y el 0x5a −0,23° (alpha 1 y luz blanca, también por el blendMesh).
 void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models::Skeleton* skeleton);
+
+// Paso completo con estado compartido vivo. seen pertenece al recorrido606560, no a604ab0.
+[[nodiscard]] Core::Expected<void, WorldObjectStepError> StepWorldObject(WorldObject& object,
+                                                                         WorldObjectStepContext& context);
 
 // Lo que 0x5ffdf0 y 0x6002e0 hacen con un objeto en el dibujo.
 enum class ObjectDrawKind : std::uint8_t

@@ -61,6 +61,9 @@ using Equipment = std::span<const std::byte, Protocol::Character::EquipmentSize>
 // más (clase >> 3) · 5 + (clase & 7).
 [[nodiscard]] std::uint16_t ClassPartModel(BodyPart part, std::uint8_t characterClass);
 
+// 512930: reaplica cabeza/escala desde la apariencia viva, también para equipo de mundo.
+void RefreshAppearanceHeadAndScale(CharacterAppearance& appearance);
+
 // 0x513340: los 3 bits de una parte, de 0 a 7, al nivel del ítem (la tabla de 0x51338c).
 [[nodiscard]] std::uint8_t ItemLevelOf(std::uint8_t bits);
 

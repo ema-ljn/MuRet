@@ -19,6 +19,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <random>
 #include <string_view>
@@ -45,6 +46,8 @@
 // sigue, porque el largo lo dio la cabecera.
 namespace Client::Network
 {
+class IPacketPaddingSource;
+
 // Pregunta 5: lo que se espera a que termine un connect. El original no tiene uno propio: su
 // connect es bloqueante (0x4e8570).
 inline constexpr Core::Duration ConnectTimeout = std::chrono::seconds{10};
@@ -87,14 +90,23 @@ class Connection
 {
 public:
     // El socket, la ofuscación, el reloj y el log son de quien la arma y tienen que vivir más que
-    // ella. Una ofuscación temporal no compila, porque moriría antes. `paddingSeed` siembra el
-    // std::mt19937 del byte de relleno de lo que se cifra, que en el original sale de rand(): los
-    // tests le dan uno fijo, y main.cpp le va a dar uno de std::random_device cuando arme la
-    // conexión (la CL4.5 pone la sesión en el bucle).
+    // ella. Una ofuscación temporal no compila, porque moriría antes. El overload con paddingSeed
+    // conserva la serie mt19937 de tests/uso standalone. La integración del cliente presta la
+    // fuente del RNG CRT compartido por medio del overload siguiente.
     Connection(ISocket& socket, const IObfuscation& obfuscation, Core::IClock& clock, Core::Log& log,
                std::uint32_t paddingSeed);
     Connection(ISocket& socket, const IObfuscation&& obfuscation, Core::IClock& clock, Core::Log& log,
                std::uint32_t paddingSeed) = delete;
+
+    // padding es una fuente viva no nula y vive más que la Connection. Se consulta una sola vez
+    // por Send Encrypted que supera Closed/NoKeys, en el sitio previo al cifrado. Open/reconnect
+    // no la reinicia ni reemplaza. No acepta una fuente temporal ni depende de Render.
+    Connection(ISocket& socket, const IObfuscation& obfuscation, Core::IClock& clock, Core::Log& log,
+               IPacketPaddingSource& padding);
+    Connection(ISocket& socket, const IObfuscation&& obfuscation, Core::IClock& clock, Core::Log& log,
+               IPacketPaddingSource& padding) = delete;
+    Connection(ISocket& socket, const IObfuscation& obfuscation, Core::IClock& clock, Core::Log& log,
+               IPacketPaddingSource&& padding) = delete;
 
     // Guarda referencias: no se copia ni se mueve.
     Connection(const Connection&) = delete;
@@ -118,7 +130,7 @@ public:
     [[nodiscard]] std::vector<Event> Poll();
 
     // El XOR32 ya viene aplicado si lo lleva (Protocol). Lo que va Encrypted se cifra como C3/C4
-    // con el serial que sigue y un byte de relleno del std::mt19937; si EncryptPacket falla, no
+    // con el serial que sigue y un byte de su fuente de relleno; si EncryptPacket falla, no
     // sale, con un aviso que dice el tipo, el opcode y el error, y la conexión sigue. Después pasa
     // por BeforeSend, se encola y, con la conexión abierta, sale lo que el socket tome: con algo
     // pendiente, lo nuevo va detrás, nunca directo. Mientras conecta espera en la cola hasta el
@@ -174,7 +186,7 @@ private:
     SendQueue m_queue;
     std::optional<ConnectionKeys> m_keys;
     PacketSerials m_serials;
-    std::mt19937 m_padding;
+    std::variant<std::mt19937, std::reference_wrapper<IPacketPaddingSource>> m_padding;
     std::array<std::byte, ReceiveChunkSize> m_receiveBuffer{};
 };
 } // namespace Client::Network

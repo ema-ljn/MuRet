@@ -215,8 +215,8 @@ TEST_F(SelectionPipelineTest, PollConstructsBeforeLogicAndTheRenderGuardKeepsThe
 
     m_manager->Render(0.0f);
 
-    ASSERT_EQ(m_target.frames.size(), 1u);
-    EXPECT_TRUE(m_target.frames.back().events.empty());
+    EXPECT_TRUE(m_manager->HoldsTheLastFrame());
+    EXPECT_TRUE(m_target.frames.empty());
     EXPECT_EQ(m_state.Slots()[0].position, constructed);
     EXPECT_EQ(m_cameraInput.hero, constructed);
     EXPECT_EQ(m_state.Map(), LoginMap);

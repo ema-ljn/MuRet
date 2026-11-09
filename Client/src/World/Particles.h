@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <span>
 #include <vector>
@@ -27,6 +28,8 @@ class CrtRandom;
 // prometen equivalencia para cualquier control word o plataforma XP.
 namespace Client::World
 {
+class IParticleTrigonometry;
+
 inline constexpr std::size_t ParticleCount = 3000;
 inline constexpr std::int32_t FireParticle = 0x5d9;
 inline constexpr std::int32_t DropParticle = 0x607;
@@ -79,6 +82,8 @@ enum class ParticleError : std::uint8_t
     MissingMaterialFlag,
     MissingMap,
     MissingColorFlag,
+    MissingDrawingService,
+    UnrepresentableTrigonometry,
 };
 
 class Particles
@@ -97,6 +102,11 @@ public:
     CreateChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                   std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
                   std::uint32_t owner = 0);
+    // Reloj prestado: 5f2/4 lo carga después de R2; 6/7/8 no lo leen al crear.
+    [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
+    CreateChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                  std::int32_t subtype, float scale, std::reference_wrapper<const float> worldClock,
+                  Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry& trigonometry);
     // 0x6070a0, al entrar a la escena: apaga el byte vivo de cada lugar. El viento sigue como estaba.
     void Clear();
 
@@ -107,6 +117,10 @@ public:
     [[nodiscard]] const ParticleWind& Wind() const;
 
 private:
+    [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
+    CreateImpl(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+               std::int32_t subtype, float scale, float legacyClock, const float* worldClock,
+               Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry);
     // En el heap: la escena que la lleva tiene que caber en la pila.
     std::vector<Particle> m_particles = std::vector<Particle>(ParticleCount);
     ParticleWind m_wind;
@@ -120,13 +134,19 @@ private:
 // El caller de mundo usa StepParticlesChecked y examina su resultado.
 std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random);
 // Para 67 y 68, 4303c0 consulta el mapa raw32 al tratar cada slot. Step conserva sus continuaciones
-// subtype1 (+50 a escala) y !=1 aunque Create/Draw sólo admitan /0; no agregar una guarda común /0.
+// subtype1 (campo +0x50 a escala) y !=1 aunque Create/Draw sólo admitan /0; no agregar una guarda común /0.
 // Un binding no admitido falla después de viento y vida/movimiento del slot actual. Sin mapa, 67/68
 // fallan además después de cambiar escala y antes de RGB. El error conserva todos los efectos del
 // prefijo y slots anteriores, y deja los posteriores sin visitar: no es transaccional. Repetir el tick
 // consume viento y avanza otra vez los slots anteriores. No copia ni posee WorldState.
 [[nodiscard]] Core::Expected<void, ParticleError>
 StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random, const std::int32_t* map = nullptr);
+// Carga el reloj por slot6 después del movimiento común, sin snapshot de la pasada.
+[[nodiscard]] Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles,
+                                                                       Render::Models::CrtRandom& random,
+                                                                       std::reference_wrapper<const float> worldClock,
+                                                                       const std::int32_t* map,
+                                                                       IParticleTrigonometry& trigonometry);
 
 // DTO geométrico/material de 548550(0), sin lookup ni servicios GL. Slot+08 contiene el índice de
 // imagen I0; Slot+04, el tipo T0. El registro de recurso (stride nativo56) aporta dimensiones f32 en

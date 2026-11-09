@@ -5,8 +5,11 @@
 #include <boost/multiprecision/fwd.hpp>
 
 #include <bit>
+#include <cmath>
 #include <cstdint>
 #include <limits>
+#include <optional>
+#include <stdexcept>
 
 namespace Client::Render::Models::Detail
 {
@@ -123,5 +126,82 @@ double AtanDegreesProductPC53(double quotient)
     const Wide phiWide = Mp::atan(Wide(quotient));
     const Retained phi(phiWide);
     return DegreesProduct(phi).convert_to<double>();
+}
+namespace
+{
+bool ValidParticleInputs(double argument, float multiplier)
+{
+    constexpr double ArgumentLimit = 0x1p63;
+    return std::isfinite(argument) && std::abs(argument) < ArgumentLimit && std::isfinite(multiplier) &&
+           multiplier > 0.0f;
+}
+
+std::optional<double> TrigonometricProduct(double argument, float multiplier, bool cosine)
+{
+    if (!ValidParticleInputs(argument, multiplier))
+    {
+        return std::nullopt;
+    }
+    if (argument == 0.0)
+    {
+        const Retained64 identity = cosine ? StoreRetained(Retained(1)) : StoreRetained(Retained(argument));
+        return RetainedProductPC53(identity, multiplier);
+    }
+    Wide result;
+    try
+    {
+        // Boost 1.92: sin/cos usan H0F1, que documenta runtime_error por no converger.
+        // El catch sólo abarca la evaluación; bad_alloc y errores ajenos se propagan.
+        result = cosine ? Mp::cos(Wide(argument)) : Mp::sin(Wide(argument));
+    }
+    catch (const std::runtime_error&)
+    {
+        return std::nullopt;
+    }
+    if (!Mp::isfinite(result) || Mp::abs(result) > 1)
+    {
+        return std::nullopt;
+    }
+    return RetainedProductPC53(StoreRetained(Retained(result)), multiplier);
+}
+} // namespace
+
+std::optional<double> RetainedProductPC53(const Retained64& value, float multiplier)
+{
+    if (!std::isfinite(multiplier) || multiplier <= 0.0f)
+    {
+        return std::nullopt;
+    }
+    if (value.classification != RetainedClass::Finite)
+    {
+        return LoadRetained(value).convert_to<double>();
+    }
+    // Fuera de este margen ni un factor f32 (2^-149 .. <2^128) puede dar double exacto.
+    // Evita además pasar exponentes extremos del agregado a ldexp de la biblioteca.
+    constexpr int ExponentMargin = 2 * std::numeric_limits<double>::max_exponent;
+    if (value.significand != 0 && (value.exponent < -ExponentMargin || value.exponent > ExponentMargin))
+    {
+        return std::nullopt;
+    }
+    const Wide product = Wide(LoadRetained(value)) * Wide(multiplier);
+    const Rounded rounded(product);
+    const double result = rounded.convert_to<double>();
+    // Finitud sola no detecta underflow ni el segundo redondeo de un subnormal double.
+    if (!std::isfinite(result) || Rounded(result) != rounded ||
+        (result == 0.0 && std::signbit(result) != Mp::signbit(rounded)))
+    {
+        return std::nullopt;
+    }
+    return result;
+}
+
+std::optional<double> SineProductPC53(double argument, float multiplier)
+{
+    return TrigonometricProduct(argument, multiplier, false);
+}
+
+std::optional<double> CosineProductPC53(double argument, float multiplier)
+{
+    return TrigonometricProduct(argument, multiplier, true);
 }
 } // namespace Client::Render::Models::Detail

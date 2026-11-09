@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 
 // Detalle privado de las hojas aceptadas en ADR0014. Valor matemático, sin layout ni estado
 // de CPU: (-1)^negative · significand · 2^exponent. No hay conversión implícita a double.
@@ -37,4 +38,10 @@ struct SignedConversion
 
 // Cociente ya R53; atan113 → phi64 → producto R53 directo por K24, sin phi → double.
 [[nodiscard]] double AtanDegreesProductPC53(double quotient);
+// Perfil matemático limitado: sin/cos113 → retenido64 → producto exacto → R53.
+// Argumento finito con |a| < 2^63; factor f32 finito positivo. No acredita FSIN/FCOS.
+[[nodiscard]] std::optional<double> SineProductPC53(double argument, float multiplier);
+[[nodiscard]] std::optional<double> CosineProductPC53(double argument, float multiplier);
+// Valor canónico retenido; conserva clases y signo de cero. Error si no cabe exactamente en double.
+[[nodiscard]] std::optional<double> RetainedProductPC53(const Retained64& value, float multiplier);
 } // namespace Client::Render::Models::Detail

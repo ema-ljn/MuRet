@@ -64,6 +64,14 @@ using Equipment = std::span<const std::byte, Protocol::Character::EquipmentSize>
 // 0x513340: los 3 bits de una parte, de 0 a 7, al nivel del ítem (la tabla de 0x51338c).
 [[nodiscard]] std::uint8_t ItemLevelOf(std::uint8_t bits);
 
+// 0x512930: la cabeza de la clase (la parte del casco de la clase) debajo de un casco abierto, 0x1012,
+// 0x1014 o 0x101c a 0x101f; con cualquier otro, std::nullopt (el original deja −1 en +0x1f8).
+[[nodiscard]] std::optional<std::uint16_t> HeadUnder(std::uint16_t helm, std::uint8_t characterClass);
+
+// 0x512930: la escala por clase y según la piel sea 0 o no. Las clases 5 a 7 no tienen caso en sus dos
+// tablas de saltos (0x512a00 y 0x512a14) y no la tocan: std::nullopt.
+[[nodiscard]] std::optional<float> ClassScale(std::uint8_t characterClass, std::uint8_t skin);
+
 // 0x517270 fuera de la escena 2: las cinco partes de la clase y nada en las manos, las alas ni la
 // mascota; la cabeza y la escala de 0x512930.
 [[nodiscard]] CharacterAppearance ClassAppearance(std::uint8_t characterClass, std::uint8_t skin);

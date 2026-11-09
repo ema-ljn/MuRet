@@ -1,8 +1,11 @@
 #pragma once
 
+#include "GameLogic/MovementSpeed.h"
+
 #include <cstdint>
 
-// Los globales en claro que sobreviven a los cambios de escena. Hoy solo el mundo en curso.
+// Los globales en claro que sobreviven a los cambios de escena: el mundo en curso y el estado compartido
+// de la velocidad.
 namespace Client::Scenes
 {
 struct WorldRuntime
@@ -15,5 +18,9 @@ struct WorldRuntime
     // El −1 de antes de la primera escritura es el que MuRet ya usaba; el inicial del original no
     // está leído. Con −1, 0x511290 no suma el corrimiento de la mascota (06, CL7.3 B).
     std::int32_t map = -1;
+    // 0x7d3a0d0 y 0x7d3a0d4, los de Fenrir: uno solo para todos los personajes (06, "Caminar", la
+    // velocidad). 0x4f2250 pone el primero en 0 (0x4f22a4). Los ceros del DTO no afirman el inicial del
+    // original.
+    GameLogic::MovementSpeedSharedState movementSpeed;
 };
 } // namespace Client::Scenes

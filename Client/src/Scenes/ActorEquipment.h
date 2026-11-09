@@ -1,0 +1,37 @@
+#pragma once
+
+#include "Core/Expected.h"
+#include "Scenes/ActorActions.h"
+
+#include <cstdint>
+#include <string>
+
+// El equipo propio en el personaje: 0x512a30, sin 0x550d10. Contrato:
+// Client/docs/research/06-render-escenas-y-ui.md, "El equipo propio en el personaje", y 04, "El F3 10".
+namespace Client::Scenes
+{
+struct ActorState;
+struct OwnCharacterRecord;
+
+// Lo que 0x512a30 lee y escribe fuera del personaje. Quien llama lo presta durante la llamada.
+struct ActorEquipmentContext
+{
+    // [0x7681eb4], el registro propio: los nueve lugares que lee.
+    const OwnCharacterRecord& own;
+    // La cuenta de accesos de su entrada en la tabla de protección (Render::Models::LogicalAccess):
+    // 0x512a30 lo abre al empezar y lo cierra al terminar, con los 3.848 rand() si lo deja en 0.
+    std::uint8_t& ownRecordAccesses;
+    // DAT_0743a170, el héroe publicado en ese momento: con él, 0x505820 (0x512ee2).
+    const ActorState& publishedHero;
+    // Lo de 0x4f2250, que 0x512a30 llama en el medio (0x512bd4). Su random es el de la tabla.
+    ActorStopContext stop;
+};
+
+// 0x512a30 sobre `actor`: con el tipo 0x20a, los modelos, los niveles y los bytes del equipo propio, la
+// acción de parado y, con +0x3e3 en 0, la ropa, la cabeza y la escala. Lo que MuRet no tiene corta con
+// error después de lo que el original hace antes, y el acceso al registro se cierra igual: 0x4053a0 en
+// los mapas 18 a 23, 0x505820 con el héroe publicado y 0x550d10, que corre siempre que hay ropa (T10).
+// Devuelve lo que pidió 0x4f2250, si corrió.
+[[nodiscard]] Core::Expected<ActorStopResult, std::string> ApplyActorEquipment(ActorState& actor,
+                                                                               const ActorEquipmentContext& context);
+} // namespace Client::Scenes

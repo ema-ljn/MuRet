@@ -2525,8 +2525,10 @@ supone objetos válidos y los contratos ordinarios de loader, UI, CRT, socket e
 interfaces de valores lógicos ya investigados; no porta su representación protegida
 ni certifica sus árboles completos.
 
-MuRet mantiene esos cinco historiales y las tablas CPU en `Scenes::SelectionState`,
-propiedad de main. Los eventos poseídos de `ServerSession::TakeCharacterEvents`
+MuRet mantiene esos cinco historiales en los cinco primeros registros del pool de 401 de
+`Scenes::WorldState`, que guarda también el mundo en curso (`DAT_006c9dd0`, el 54 que deja
+`0x633f20`), y las tablas CPU en `Scenes::SelectionState`, que construye sobre ese pool; main
+es dueño de los dos. Los eventos poseídos de `ServerSession::TakeCharacterEvents`
 conservan orden y repeticiones; la vista UI conserva sólo la última entrada de cada
 slot. Main aplica eventos después de Poll y antes de Step/Request/Start. Login presta
 CPU mientras vive y la transfiere antes de Release; libera las texturas con la escena.

@@ -27,6 +27,7 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/WorldState.h"
 #include "Scenes/TextureSets.h"
 #include "UI/CreateCharacterWindow.h"
 #include "World/GameCamera.h"
@@ -1042,7 +1043,8 @@ TEST(CharacterSelectSceneTest, ADeletionAsksTheCodeAndSendsIt)
 TEST(CharacterSelectSceneTest, ADeletedOneDisappearsWhenPollIsFollowedByRenderWithoutStep)
 {
     constexpr std::uint8_t DeletedSlot = 1;
-    Client::Scenes::SelectionState selection;
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({{DeletedSlot, "char0001"}}));
@@ -1145,7 +1147,8 @@ TEST(CharacterSelectSceneTest, AnIdenticalCreationRestartsItsVisualWhenPollIsFol
     constexpr std::uint8_t CreatedSlot = 1;
     constexpr int AnimationSteps = 5;
     constexpr auto StepTime = std::chrono::milliseconds{40};
-    Client::Scenes::SelectionState selection;
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
     Harness tested(true, true, false, &selection);
     ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));

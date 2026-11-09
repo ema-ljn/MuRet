@@ -50,8 +50,9 @@ struct SceneContext
     // construida por cada recepción; el dibujo de selección escribe Hero Z = 163 después de la cámara.
     // L1 aportará XYZ de la respuesta para el juego.
     World::GameCameraInput* cameraInput = nullptr;
-    // El pool CPU de cinco slots y las tablas del mundo vigentes (CL7.3 B). main es su dueño y vive
-    // más que todas las escenas; conserva las tablas del login después de su Leave.
+    // La selección sobre los cinco primeros registros del pool durable (WorldState) y las tablas del
+    // mundo vigentes (CL7.3 B). main es dueño de los dos y viven más que todas las escenas; conserva
+    // las tablas del login después de su Leave.
     SelectionState* selection = nullptr;
 };
 

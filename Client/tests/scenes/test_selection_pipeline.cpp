@@ -6,6 +6,7 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Input/InputState.h"
+#include "Input/Key.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/Character/CharacterDelete.h"
 #include "Scenes/CharacterSelectScene.h"
@@ -17,6 +18,8 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
+#include "Scenes/WorldLoadingScene.h"
+#include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/TerrainHeight.h"
 #include "World/WorldTerrain.h"
@@ -29,6 +32,7 @@
 #include "support/RecordingFrameTarget.h"
 #include "support/SessionHarness.h"
 #include "support/SessionPackets.h"
+#include "support/UiInput.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -111,6 +115,10 @@ protected:
         {
             return std::make_unique<Client::Scenes::LoginScene>(context, m_data, m_models, &m_online.session, "1.0", 1);
         }
+        if (id == SceneId::WorldLoading)
+        {
+            return std::make_unique<Client::Scenes::WorldLoadingScene>(context);
+        }
         return nullptr;
     }
 
@@ -135,7 +143,8 @@ protected:
     Client::Scenes::SingleModelLibrary m_models;
     Client::World::GameCamera m_camera;
     Client::World::GameCameraInput m_cameraInput;
-    Client::Scenes::SelectionState m_state;
+    Client::Scenes::WorldState m_world;
+    Client::Scenes::SelectionState m_state{m_world};
     Client::Scenes::SessionEventApplier m_applier{m_state, m_camera, m_cameraInput};
     Client::Tests::LoggedInSession m_online{&m_applier};
     float m_loginConstructorHeight = 0.0f;
@@ -334,6 +343,32 @@ TEST_F(SelectionPipelineTest, TwoIdenticalAcceptedCreationsApplyBeforeTheSceneRe
     EXPECT_EQ(m_state.Slots()[0].revision, 2u);
     m_manager->Step(Client::Input::InputState{});
     EXPECT_EQ(m_state.Slots()[0].revision, 2u);
+}
+
+// 0x633f20 deja el 54 como mundo en curso (06, "Al entrar"), en el WorldRuntime del pool durable. La
+// escena 3 corre con él: entrar al mundo no lo vuelve a −1 ni toca los registros de la selección.
+TEST_F(SelectionPipelineTest, TheLiveMapIsFiftyFourOnTheSelectionAndStaysForTheWorldLoading)
+{
+    ASSERT_NO_FATAL_FAILURE(StartSelect());
+    ASSERT_NO_FATAL_FAILURE(ReceiveList({{0, "char0001"}}));
+    EXPECT_EQ(m_world.Runtime().map, LoginMap);
+
+    m_manager->Step(Client::Input::InputState{});
+
+    ASSERT_TRUE(m_state.IsInitialized());
+    EXPECT_EQ(m_world.Runtime().map, SelectionMap);
+    const glm::vec3 constructed = m_world.Actors()[0].position;
+    m_online.session.ChooseCharacter(std::uint8_t{0});
+    Client::Input::InputState enter;
+    Client::Tests::TapKey(enter, Client::Input::Key::Enter);
+
+    m_manager->Step(enter);
+
+    ASSERT_EQ(m_manager->Current(), SceneId::WorldLoading);
+    ASSERT_FALSE(m_manager->Failure().has_value());
+    EXPECT_EQ(m_world.Runtime().map, SelectionMap);
+    EXPECT_EQ(m_world.Actors()[0].revision, 1u);
+    EXPECT_EQ(m_world.Actors()[0].position, constructed);
 }
 
 TEST_F(SelectionPipelineTest, TheCallbackAppliesAnAcceptedReceptionEvenWhenTheSamePollClosesTheSession)

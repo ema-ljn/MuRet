@@ -5,6 +5,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/Character/CharacterSelectResult.h"
@@ -22,6 +23,7 @@
 #include "World/ModelEffects.h"
 
 #include "support/GoldenDir.h"
+#include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
 #include "support/SessionHarness.h"
@@ -240,6 +242,31 @@ TEST_F(WorldEntryTest, AnEquipmentFailureLeavesTheHeroUnpublished)
     EXPECT_EQ(tested.AliveArrivals(), 0u);
     EXPECT_EQ(tested.Hero().key, PlayerKey);
     EXPECT_EQ(tested.Hero().name, ActorState{}.name);
+    EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
+    EXPECT_EQ(
+        tested.cloth.random.State(),
+        AfterDraws(Seed, 3 * OwnRecordClose + GrassRandoms + HeroRandom + ConstructionRandoms + StopRandom).State());
+}
+
+// Con las tablas de los conjuntos, 0x550d10 pasa 0x40e1b0, los doce lugares, Cape of Lord y los cinco
+// primeros helpers, y corta en 0x550990, que lee lo que deja 0x505820. Los accesos de adentro anidan en
+// el de 0x512a30 y no sacan rand(): los mismos que cuando cortaba en 0x40e1b0.
+TEST_F(WorldEntryTest, WithTheSetTablesTheEntryStopsAtTheScanOf0x505820)
+{
+    Entry tested(m_dataRoot, Seed);
+    const Client::Data::Tables::ItemSetTables sets = Client::Tests::ItemSetTablesFrom(
+        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
+        std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
+    WorldEntryResources resources = tested.Resources();
+    resources.itemSetTables = &sets;
+    RecordingPublisher publisher;
+
+    const auto entered = ApplyWorldEntry(CableReply(), PlayerKey, resources, publisher);
+
+    ASSERT_FALSE(entered.HasValue());
+    EXPECT_NE(entered.Error().find("0x550990"), std::string::npos) << entered.Error();
+    EXPECT_EQ(publisher.calls, 0);
+    EXPECT_EQ(tested.world.Runtime().hero, 0u);
     EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
     EXPECT_EQ(
         tested.cloth.random.State(),

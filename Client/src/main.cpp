@@ -625,6 +625,7 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                     .cameraInput = cameraInput,
                                     .models = models,
                                     .items = scenes.data.items ? &scenes.data.items->table : nullptr,
+                                    .itemSetTables = scenes.data.itemSets ? &*scenes.data.itemSets : nullptr,
                                     .log = log});
     std::optional<Online> online;
     if (startup.server)

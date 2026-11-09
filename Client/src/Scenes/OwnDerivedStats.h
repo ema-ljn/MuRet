@@ -2,8 +2,10 @@
 
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
+#include "Scenes/OwnStatHelpers.h"
 
 #include <cstdint>
+#include <optional>
 #include <string>
 
 namespace Client::Data::Tables
@@ -25,11 +27,9 @@ struct ItemState;
 // [0x7681eb4]). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "Los stats del registro
 // propio", y 07, Q-C184, Q-C185 y Q-C187.
 //
-// RecalculateOwnStats corre en orden lo que está leído: 0x40e1b0 (Scenes/OwnItemSets.h), la limpieza
-// de [0x6eed3c] + 0x937c, 0x54ef00, los doce lugares, 0x40da20 cinco veces y la rama de Cape of Lord, y
-// corta en los ocho helpers de 0x551287..0x5512ba, que están portados aparte (Scenes/OwnStatHelpers.h)
-// y todavía no llama. La cola, que viene después, también está portada aparte
-// (UpdateOwnDerivedStatsTail).
+// RecalculateOwnStats corre en orden todo lo leído: 0x40e1b0 (Scenes/OwnItemSets.h), la limpieza de
+// [0x6eed3c] + 0x937c, 0x54ef00, los doce lugares, 0x40da20 cinco veces, la rama de Cape of Lord, los
+// ocho helpers de 0x551287..0x5512ba (Scenes/OwnStatHelpers.h) y la cola (UpdateOwnDerivedStatsTail).
 namespace Client::Scenes
 {
 struct ActorState;
@@ -56,11 +56,20 @@ struct OwnStatsContext
     // 0 saca 3.848 rand() de `random`.
     std::uint8_t& ownRecordAccesses;
     Render::Models::CrtRandom& random;
+    // El ítem de 0x7879f80 y sus condiciones, para 0x54efe0, 0x54f9b0 y 0x54fe10. Por defecto no
+    // reemplaza nada: [0x7879fbc] está en la .bss (0 al arrancar) y solo lo escriben handlers del
+    // protocolo que MuRet no tiene (0x4d1c89 y 0x4d29cb; estático).
+    OwnEquipmentOverride held{};
+    // [0x743a178] y [0x743a17c], que lee 0x550990 y solo escribe 0x505820. 0x505820 corre también desde
+    // el dibujo de los personajes (0x50ba30, en 0x50c91e), así que su valor al entrar al mundo no se
+    // puede suponer: sin portar 0x505820 queda en nullopt y 0x550990 corta con error.
+    std::optional<Scan505820> scan505820 = std::nullopt;
 };
 
-// 0x550d10 sobre `own`, hasta los ocho helpers de 0x551287..0x5512ba (0x54efe0, 0x54f9b0, 0x54fd40,
-// 0x54fe10, 0x5507e0, 0x550990, 0x550c30 y 0x550c60), donde corta con un error con todo lo de antes
-// hecho. Un error de un paso corta ahí, con lo de los pasos anteriores hecho y los accesos cerrados.
+// 0x550d10 sobre `own`, entera: 0x40e1b0, la limpieza, 0x54ef00, los doce lugares, 0x40da20 cinco veces,
+// Cape of Lord, los ocho helpers de 0x551287..0x5512ba (Scenes/OwnStatHelpers.h) en su orden y la cola
+// (UpdateOwnDerivedStatsTail). Un error de un paso corta ahí, con lo de los pasos anteriores hecho y los
+// accesos cerrados. Sin `scan505820`, corta en 0x550990 con los cinco helpers de antes hechos.
 [[nodiscard]] Core::Expected<void, std::string> RecalculateOwnStats(OwnCharacterRecord& own,
                                                                     const OwnStatsContext& context);
 

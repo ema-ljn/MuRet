@@ -9,6 +9,7 @@
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnItemOptions.h"
 #include "Scenes/OwnItemSets.h"
+#include "Scenes/OwnStatHelpers.h"
 #include "World/ItemState.h"
 
 #include <array>
@@ -89,6 +90,47 @@ std::uint16_t FromLittleEndian(std::span<const std::byte, 2> bytes)
 {
     return static_cast<std::uint16_t>(std::to_integer<unsigned>(bytes[0]) | (std::to_integer<unsigned>(bytes[1]) << 8));
 }
+
+// 0x551287..0x5512ba, los ocho helpers en su orden (thiscall sobre el registro, sin argumentos), y la
+// cola 0x5512bf..0x5513b1.
+Core::Expected<void, std::string> RunOwnStatHelpersAndTail(OwnCharacterRecord& own, const OwnStatsContext& context)
+{
+    ItemSetOptionList& setOptions = context.itemSets->list;
+    if (auto done = UpdateOwnWords50To56(own, context.held, context.items, &setOptions); !done.HasValue())
+    {
+        return done;
+    }
+    if (auto done = UpdateOwnWords5aAnd5c(own, context.held, context.items, &setOptions); !done.HasValue())
+    {
+        return done;
+    }
+    if (auto done = UpdateOwnWord4e(own, &setOptions); !done.HasValue())
+    {
+        return done;
+    }
+    if (auto done = UpdateOwnAttackAndMagicSpeeds(own, context.held, context.ownRecordAccesses, context.random);
+        !done.HasValue())
+    {
+        return done;
+    }
+    if (auto done = UpdateOwnWord60(own, context.items); !done.HasValue())
+    {
+        return done;
+    }
+    if (!context.scan505820)
+    {
+        return Core::Unexpected(
+            std::string("0x550d10 (0x5512ac): 0x550990 lee [0x743a17c] y [0x743a178], que deja 0x505820 "
+                        "(también desde el dibujo de los personajes, 0x50c91e), sin portar"));
+    }
+    if (auto done = UpdateOwnWord62(own, context.items, *context.scan505820, &setOptions); !done.HasValue())
+    {
+        return done;
+    }
+    UpdateOwnWord64(own);
+    UpdateOwnWord66(own);
+    return UpdateOwnDerivedStatsTail(own, context.random);
+}
 } // namespace
 
 Core::Expected<void, std::string> RecalculateOwnStats(OwnCharacterRecord& own, const OwnStatsContext& context)
@@ -115,10 +157,7 @@ Core::Expected<void, std::string> RecalculateOwnStats(OwnCharacterRecord& own, c
     {
         return cape;
     }
-    return Core::Unexpected(
-        std::string("0x550d10: los ocho helpers de 0x551287..0x5512ba (0x54efe0, 0x54f9b0, 0x54fd40, "
-                    "0x54fe10, 0x5507e0, 0x550990, 0x550c30 y 0x550c60) están en "
-                    "Scenes/OwnStatHelpers.h y RecalculateOwnStats todavía no los llama"));
+    return RunOwnStatHelpersAndTail(own, context);
 }
 
 Core::Expected<void, std::string> AddOwnItemSetOptionValues(OwnCharacterRecord& own, ItemSetOptionList& list)

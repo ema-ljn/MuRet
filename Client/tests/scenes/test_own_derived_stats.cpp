@@ -9,6 +9,7 @@
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/OwnStatHelpers.h"
 #include "World/ItemState.h"
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
@@ -125,12 +126,12 @@ TEST_F(OwnStatsFixture, WithoutTheSetTablesTheRecalculationStopsBeforeTouchingAn
     EXPECT_EQ(m_random.State(), CrtRandom(Seed).State());
 }
 
-// 0x550d10 en orden hasta los ocho helpers: 0x40e1b0 (dos piezas del conjunto 1, con las opciones 0 y
-// 4), las marcas de +0x937c en 0, 0x54ef00, los doce lugares (el tipo 1 suma a +0x2c), 0x40da20 con
-// 0x8c a 0x90 y Cape of Lord. La opción 0 ya la marcó 0x40de10 sobre las copias: si las marcas no
-// volvieran a 0, +0x2a no la sumaría. Corta en 0x54efe0 sin la cola: 33 cierres de 0x40e1b0 y el de la
-// capa, y ningún rand() más.
-TEST_F(OwnStatsFixture, TheRecalculationRunsInOrderUntilTheEightHelpers)
+// 0x550d10 en orden hasta 0x550990: 0x40e1b0 (dos piezas del conjunto 1, con las opciones 0 y 4), las
+// marcas de +0x937c en 0, 0x54ef00, los doce lugares (el tipo 1 suma a +0x2c), 0x40da20 con 0x8c a
+// 0x90, Cape of Lord y los cinco primeros helpers. La opción 0 ya la marcó 0x40de10 sobre las copias:
+// si las marcas no volvieran a 0, +0x2a no la sumaría. Sin lo de 0x505820 corta en 0x550990, sin la
+// cola: 33 cierres de 0x40e1b0 y el de la capa, y ningún rand() más.
+TEST_F(OwnStatsFixture, TheRecalculationRunsInOrderUntil0x550990)
 {
     std::vector<std::byte> types(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff});
     types[1 * Client::Data::Tables::ItemSetTypeRecordSize] = std::byte{1};
@@ -165,7 +166,7 @@ TEST_F(OwnStatsFixture, TheRecalculationRunsInOrderUntilTheEightHelpers)
     const auto recalculated = Client::Scenes::RecalculateOwnStats(own, Context(&tables, &items));
 
     ASSERT_FALSE(recalculated.HasValue());
-    EXPECT_NE(recalculated.Error().find("0x54efe0"), std::string::npos);
+    EXPECT_NE(recalculated.Error().find("0x550990"), std::string::npos);
     EXPECT_EQ(m_itemSets.list.count9348, 2);
     EXPECT_EQ(m_itemSets.list.used[0], 1);
     EXPECT_EQ(m_itemSets.list.used[1], 1);
@@ -178,6 +179,33 @@ TEST_F(OwnStatsFixture, TheRecalculationRunsInOrderUntilTheEightHelpers)
     EXPECT_EQ(own.bytef03, 6);
     EXPECT_EQ(m_accesses, 0);
     EXPECT_EQ(m_random.State(), AfterDraws(Seed, 34 * OwnRecordCloseRandoms).State());
+}
+
+// Con lo de 0x505820 (acá, [0x743a17c] en 0), 0x550d10 llega al final: los ocho helpers en su orden y la
+// cola. Sin equipo ni conjuntos, 0x40e1b0 cierra 33 veces el registro; la cola saca sus tres rand(): el
+// del IDIV con +0xee2 = +0xee4 = 0 (divide por 1) y los dos % 100. +0xef8 y +0xefa son restas de
+// WORD en 0, y +0xefc es 0 − +0x62.
+TEST_F(OwnStatsFixture, WithTheScanOf0x505820TheRecalculationRunsTheHelpersAndTheTail)
+{
+    const ItemSetTables tables = Client::Tests::ItemSetTablesFrom(
+        std::vector<std::byte>(Client::Data::Tables::ItemSetTypeTableSize, std::byte{0xff}),
+        std::vector<std::byte>(Client::Data::Tables::ItemSetOptionTableSize, std::byte{0xff}));
+    const auto items = ItemsWithKinds({});
+    OwnCharacterRecord own;
+    own.equipment.fill(Worn(EmptyType, 0, 0));
+    own.wordef8 = 0x3456;
+    own.wordefa = 0x4567;
+    Client::Scenes::OwnStatsContext context = Context(&tables, &items);
+    context.scan505820 = Client::Scenes::Scan505820{};
+
+    const auto recalculated = Client::Scenes::RecalculateOwnStats(own, context);
+
+    ASSERT_TRUE(recalculated.HasValue()) << recalculated.Error();
+    EXPECT_EQ(own.wordef8, 0);
+    EXPECT_EQ(own.wordefa, 0);
+    EXPECT_EQ(own.wordefc, static_cast<std::uint16_t>(0u - own.word62));
+    EXPECT_EQ(m_accesses, 0);
+    EXPECT_EQ(m_random.State(), AfterDraws(Seed, 33 * OwnRecordCloseRandoms + 3).State());
 }
 
 // 0x550dc2..0x550e12: +0x2a con 0x8c, +0x2c con 0x8d, +0x30 con 0x8e, +0x2e con 0x8f y +0x36 con 0x90;

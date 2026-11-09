@@ -9,6 +9,7 @@
 #include "Input/Key.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/Character/CharacterDelete.h"
+#include "Render/Models/Cloth.h"
 #include "Scenes/CharacterSelectScene.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/GameData.h"
@@ -19,6 +20,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneManager.h"
 #include "Scenes/WorldLoadingScene.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/TerrainHeight.h"
@@ -104,9 +106,11 @@ protected:
                                                    .textures = m_textures,
                                                    .log = m_online.log,
                                                    .clock = &m_online.clock,
+                                                   .cloth = &m_cloth,
                                                    .camera = &m_camera,
                                                    .cameraInput = &m_cameraInput,
-                                                   .selection = &m_state};
+                                                   .selection = &m_state,
+                                                   .world = &m_world};
         if (id == SceneId::CharacterSelect)
         {
             return std::make_unique<Client::Scenes::CharacterSelectScene>(context, m_data, m_models, &m_online.session);
@@ -143,6 +147,7 @@ protected:
     Client::Scenes::SingleModelLibrary m_models;
     Client::World::GameCamera m_camera;
     Client::World::GameCameraInput m_cameraInput;
+    Client::Render::Models::ClothWorld m_cloth;
     Client::Scenes::WorldState m_world;
     Client::Scenes::SelectionState m_state{m_world};
     Client::Scenes::SessionEventApplier m_applier{m_state, m_camera, m_cameraInput};
@@ -346,7 +351,9 @@ TEST_F(SelectionPipelineTest, TwoIdenticalAcceptedCreationsApplyBeforeTheSceneRe
 }
 
 // 0x633f20 deja el 54 como mundo en curso (06, "Al entrar"), en el WorldRuntime del pool durable. La
-// escena 3 corre con él: entrar al mundo no lo vuelve a −1 ni toca los registros de la selección.
+// escena 3 corre con él: entrar al mundo no lo vuelve a −1 ni toca los registros de la selección. Y
+// deja armada la espera (06, "La entrada al mundo", pasos 1 y 2): el mundo cargado (0x633f30), el
+// nivel del elegido en el registro propio, el contador en 9.999.999 y la bandera de la escena 3.
 TEST_F(SelectionPipelineTest, TheLiveMapIsFiftyFourOnTheSelectionAndStaysForTheWorldLoading)
 {
     ASSERT_NO_FATAL_FAILURE(StartSelect());
@@ -369,6 +376,10 @@ TEST_F(SelectionPipelineTest, TheLiveMapIsFiftyFourOnTheSelectionAndStaysForTheW
     EXPECT_EQ(m_world.Runtime().map, SelectionMap);
     EXPECT_EQ(m_world.Actors()[0].revision, 1u);
     EXPECT_EQ(m_world.Actors()[0].position, constructed);
+    EXPECT_TRUE(m_world.Runtime().drawingEnabled);
+    EXPECT_EQ(m_world.Runtime().warpCounter, Client::Scenes::WorldLoadingWait);
+    EXPECT_EQ(m_world.Runtime().loadingOnceFlag, 1);
+    EXPECT_EQ(m_world.OwnCharacter().level, m_online.session.ChosenCharacter()->level);
 }
 
 TEST_F(SelectionPipelineTest, TheCallbackAppliesAnAcceptedReceptionEvenWhenTheSamePollClosesTheSession)

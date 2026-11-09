@@ -628,7 +628,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                        .pacing = startup.config.pacing,
                                        .camera = &camera,
                                        .cameraInput = &cameraInput,
-                                       .selection = &selection};
+                                       .selection = &selection,
+                                       .world = &world};
     // El cursor lo dibuja el juego: el del sistema no se ve sobre la ventana (0x4ba238). Si SDL no puede,
     // se ven los dos.
     if (const auto hidden = window.HideSystemCursor(); !hidden.HasValue())

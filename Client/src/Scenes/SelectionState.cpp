@@ -137,6 +137,10 @@ Core::Expected<void, std::string> SelectionState::InitializeSelection(const std:
     }
     // 0x633f20: cambia a 54 después de los constructores de F300; no reconstruye esos actores.
     // RetainTerrain deja el 54 como mundo en curso, también para la carga del mundo que sigue.
+    // Antes de cargarlo marca el mundo cargado (0x633f30): con eso corre y dibuja el juego que sigue
+    // (06, "La entrada al mundo", paso 1). Es esta carga y no la entrada a la escena 4, que la
+    // selección hace antes de tener la lista (0x6342cb).
+    m_world.Runtime().drawingEnabled = true;
     constexpr std::uint8_t SelectionMap = WorldOf(SceneId::CharacterSelect)->map;
     auto terrain = World::LoadWorldTerrain(dataRoot, SelectionMap);
     if (!terrain.HasValue())

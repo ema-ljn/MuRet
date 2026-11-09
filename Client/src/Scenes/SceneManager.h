@@ -53,7 +53,9 @@ public:
     // El paso de la escena y, si pide otra (Next), Request. Un paso sin pedido corta la seguidilla
     // de un pedido rechazado: si vuelve, se avisa otra vez.
     void Step(const Input::InputState& input) override;
-    // BeginFrame con el reloj, el Render de la escena y Present. Sin escena, nada.
+    // BeginFrame con el reloj, el Render de la escena y Present. Sin escena, nada. Antes, el
+    // IScene::PrepareFrame del frame si nadie lo corrió. No mira HoldsTheLastFrame: el GameLoop no lo
+    // llama con el frame retenido.
     void Render(float alpha) override;
 
     // Cambia a `next` si de la escena de ahora se puede ir (IsOriginalTransition): Leave, la
@@ -69,7 +71,9 @@ public:
     [[nodiscard]] bool WantsToQuit() const;
     // Si la escena de ahora pide el texto tecleado (IScene::WantsTextInput); sin escena, false.
     [[nodiscard]] bool WantsTextInput() const;
-    // Con Failure retiene sin notificar la escena; de otro modo consulta IScene::HoldsTheLastFrame.
+    // Con Failure retiene sin notificar la escena; de otro modo consulta IScene::HoldsTheLastFrame,
+    // después de IScene::PrepareFrame si este frame todavía no la corrió. Un frame termina con Render,
+    // y Poll y Step empiezan otro: preguntar dos veces en el mismo frame no lee dos veces.
     [[nodiscard]] bool HoldsTheLastFrame() const override;
     // Si un Step entró a otra escena desde la última vez (Request); el Start no cuenta, porque va antes
     // del bucle.
@@ -78,6 +82,8 @@ public:
 private:
     // La fábrica y el Enter de `id`; si falla, queda sin escena y con el error.
     Core::Expected<void, std::string> Enter(SceneId id);
+    // IScene::PrepareFrame, una vez por frame.
+    void PrepareFrame() const;
 
     SceneFactory m_factory;
     IFrameTarget& m_frame;
@@ -92,5 +98,8 @@ private:
     // El último pedido rechazado, para no repetir el aviso en cada paso mientras se pida seguido.
     std::optional<SceneId> m_rejected;
     bool m_sceneChanged = false;
+    // Si la escena de ahora ya corrió PrepareFrame en este frame. Es mutable porque la decide la
+    // consulta const HoldsTheLastFrame, como el aviso OnFrameHeld.
+    mutable bool m_framePrepared = false;
 };
 } // namespace Client::Scenes

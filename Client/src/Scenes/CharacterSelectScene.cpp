@@ -38,6 +38,7 @@
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/TextureSets.h"
+#include "Scenes/WorldState.h"
 #include "UI/CreateCharacterWindow.h"
 #include "UI/DeleteChecks.h"
 #include "UI/GameCursor.h"
@@ -578,6 +579,16 @@ void CharacterSelectScene::TryToEnter()
     {
         m_notice.Open(UI::LockedCharacterNotice);
         return;
+    }
+    if (m_context.world != nullptr)
+    {
+        if (m_context.cloth == nullptr)
+        {
+            m_context.log.Error("no se entra al mundo: falta el rand() de la CRT para cerrar el registro propio");
+            return;
+        }
+        // 06, "La entrada al mundo", paso 1: el registro propio y la bandera de la escena 3.
+        m_context.world->PrepareSelectedActor(*chosen, m_context.cloth->random);
     }
     m_context.log.Info("se elige el personaje del lugar {} para entrar al mundo", chosen->slot);
     m_next = SceneId::WorldLoading;

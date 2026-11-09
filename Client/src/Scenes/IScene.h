@@ -26,6 +26,12 @@ public:
     virtual void Step(const Input::InputState& input) = 0;
     // El dibujo del frame en `canvas`. alpha en [0, 1), como el de ILoopClient::Render.
     virtual void Render(SceneCanvas& canvas, float alpha) = 0;
+    // Lo que el dibujo del original lee al empezar para decidir si dibuja y presenta, aunque después
+    // no lo haga: el juego lee el contador de la espera por la tabla de protección (0x6371b7..
+    // 0x637229) y con más de 30 devuelve 0. SceneManager la llama una vez por frame: en la primera
+    // consulta de HoldsTheLastFrame, que solo mira lo decidido, o en el Render si nadie preguntó.
+    // Minimizada no hay frame y no la llama. Por defecto, nada.
+    virtual void PrepareFrame() {}
     // Suelta lo que subió en Enter. Corre antes del Enter de la que sigue.
     virtual void Leave() = 0;
     // A qué escena quiere ir; vacío si sigue en esta. El SceneManager lo mira después de cada
@@ -39,7 +45,8 @@ public:
     // (SDL_StartTextInput) y lo apaga cuando deja de pedirlo, después de cada frame.
     [[nodiscard]] virtual bool WantsTextInput() const = 0;
     // Si el frame de ahora no se dibuja y queda el anterior (ILoopClient::HoldsTheLastFrame): el
-    // login mientras conecta, que en el original es un connect bloqueante (Q-C85).
+    // login mientras conecta, que en el original es un connect bloqueante (Q-C85), o el juego
+    // mientras espera el mundo (lo que decidió PrepareFrame).
     [[nodiscard]] virtual bool HoldsTheLastFrame() const = 0;
     // SceneManager avisa cuando su consulta HoldsTheLastFrame devuelve true. El aviso puede repetirse
     // y debe ser idempotente. Por defecto, nada.

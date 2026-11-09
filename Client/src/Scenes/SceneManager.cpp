@@ -62,6 +62,8 @@ Core::Expected<void, std::string> SceneManager::Start(SceneId first)
 
 void SceneManager::Poll()
 {
+    // El GameLoop empieza cada frame con Poll: lo que trae la red puede cambiar lo que lee el dibujo.
+    m_framePrepared = false;
     if (m_pollFailed || !m_pollNetwork)
     {
         return;
@@ -81,6 +83,7 @@ void SceneManager::Step(const Input::InputState& input)
     {
         return;
     }
+    m_framePrepared = false;
     m_scene->Step(input);
     const std::optional<SceneId> next = m_scene->Next();
     if (!next)
@@ -98,9 +101,13 @@ void SceneManager::Render(float alpha)
     {
         return;
     }
+    // Lo que el dibujo lee al empezar (IScene::PrepareFrame), si nadie preguntó antes en este frame.
+    PrepareFrame();
     SceneCanvas& canvas = m_frame.BeginFrame(m_clock.Now());
     m_scene->Render(canvas, alpha);
     m_frame.Present();
+    // El frame terminó: el próximo vuelve a decidir.
+    m_framePrepared = false;
 }
 
 void SceneManager::Request(SceneId next)
@@ -156,6 +163,7 @@ bool SceneManager::HoldsTheLastFrame() const
     {
         return true;
     }
+    PrepareFrame();
     if (!m_scene || !m_scene->HoldsTheLastFrame())
     {
         return false;
@@ -163,6 +171,16 @@ bool SceneManager::HoldsTheLastFrame() const
     // Consultar y obtener true también notifica la retención; repetirlo es un aviso idempotente.
     m_scene->OnFrameHeld();
     return true;
+}
+
+void SceneManager::PrepareFrame() const
+{
+    if (m_framePrepared || !m_scene)
+    {
+        return;
+    }
+    m_scene->PrepareFrame();
+    m_framePrepared = true;
 }
 
 Core::Expected<void, std::string> SceneManager::Enter(SceneId id)
@@ -186,6 +204,7 @@ Core::Expected<void, std::string> SceneManager::Enter(SceneId id)
     }
     m_scene = std::move(scene);
     m_current = id;
+    m_framePrepared = false;
     return {};
 }
 

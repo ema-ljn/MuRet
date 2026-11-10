@@ -29,7 +29,9 @@ inline constexpr std::int16_t ArrivalEffect = 0x61f;
 struct ModelEffect
 {
     bool alive = false;                        // +0x0
+    bool seen = false;                         // +0x16c, del último dibujo de este lugar
     std::int16_t type = 0;                     // +0x2, el modelo
+    std::int32_t subtype = 0;                  // +0x4, la rama del efecto
     Render::Models::ObjectTransform transform; // +0xc la escala, +0x10 la posición, +0x1c los ángulos
     std::int32_t life = 0;                     // +0x60, pasos que le quedan
     glm::vec3 velocity{};                      // +0xcc, por paso, girada por los ángulos

@@ -2,7 +2,7 @@
 
 > **Documento de trabajo, 2026-10-30.** Es el plan para reescribir el cliente de MU Online 1.02
 > (`main.exe`) en MuRet: el objetivo, las decisiones de diseño, la estructura de `Client/` y las
-> olas CL0 a CL10 con sus sub-olas. Queda vivo mientras haya olas abiertas.
+> olas CL0 a CL11 con sus sub-olas. Queda vivo mientras haya olas abiertas.
 >
 > **Qué hace el original** no está acá: está en el research del cliente, un archivo por tema, en
 > [`Client/docs/research/`](../../../Client/docs/research/README.md). Este roadmap decide qué hace
@@ -64,7 +64,7 @@ explicación → mini-spec → Emanuel lo escribe → revisión con preguntas �
 
 Lo propio del cliente:
 
-- **Las olas se llaman CL0 a CL10** para no chocar con las del servidor (0 a 14) ni con los
+- **Las olas se llaman CL0 a CL11** para no chocar con las del servidor (0 a 14) ni con los
   paquetes C1/C2.
 - **De lo puro a lo visual.** Primero bytes sin ventana (formatos y protocolo, todo testeable con
   arrays), después la ventana, después la red, y recién al final el 3D. Una sub-ola visual se
@@ -224,6 +224,7 @@ Cada sub-ola es un PR chico. "Terminada cuando" es la condición objetiva de cie
 | CL8 | HUD y ventanas | CL8.1 barras y minimapa · CL8.2 chat · CL8.3 `UI::Window` y el administrador · CL8.4 inventario | UI retenida vs inmediata, eventos | 06 |
 | CL9 | Gameplay | CL9.R por dominio (P-C09), y los mapas de evento (P-C12) · CL9.1 otros jugadores y monstruos (viewport) · CL9.2 combate y skills · CL9.3 items · CL9.4 party, gremio y comercio · CL9.5 los mapas de evento que conozca el original: entrada, reglas, paquetes y UI | modelado de dominio, consistencia con el servidor | 04 |
 | CL10 | Audio | CL10.R formatos y disparadores (P-C07) · CL10.1 música · CL10.2 efectos | audio digital, mezcla, streaming | 08 |
+| CL11 | Efectos visuales completos | CL11.R inventario de familias, casos y consumidores que no cubran ya CL7.6, CL8 o CL9 · CL11.1 joints y estelas · CL11.2 cintas · CL11.3 casos restantes de efectos con modelo, sprites y partículas · CL11.4 efectos visuales de combate, skills y eventos, conectados a sus disparadores de CL9 | ciclos de vida, pools, orden de pases y estado de GL | 06, 08 |
 
 **"Terminada cuando", por ola:** CL0 — `Main` compila y corre en los dos sistemas, en CI. CL1 — cada
 formato pasa su round-trip y, con `mu-golden`, su comparación byte a byte. CL2 — pasan los vectores
@@ -232,7 +233,63 @@ una ventana a la tasa del monitor con la lógica a tick fijo, verificado con un 
 cliente pasa el login contra el GS del laboratorio. CL5 — la pantalla de login se ve y se usa. CL6 —
 el personaje aparece animado en la selección. CL7 — se camina por Lorencia y, por un gate, por los
 otros mapas que trae el `Data\`. CL8 — chat e inventario usables. CL9 — una sesión de juego estable,
-también en los mapas de evento. CL10 — música y efectos.
+también en los mapas de evento. CL10 — música y efectos de audio. CL11 — cada familia y caso visual
+en alcance tiene creación, paso, dibujo y limpieza documentados y contrastados con el ASM; sus
+consumidores en escenas, personajes y skills están conectados, y se registra por separado lo que
+solo comprobó el análisis estático y lo observado en la VM. Una familia o un caso pendiente impide
+dar por completa la ola.
+
+### La ola de efectos visuales (CL11)
+
+Agregada por el pedido de Emanuel del 2026-11-10 ([traspaso, tarea 9](../plans/2026-11-10-cl7-traspaso.md#qué-falta-en-orden)).
+**Se conserva la numeración de CL0 a CL10.** CL11 identifica el trabajo de efectos que faltaba
+nombrar; su número no obliga a esperar al audio. Cada consumidor necesita sus efectos antes de
+cerrar su propia ola, en el orden de llamadas del original.
+
+La base está en [Los efectos del login](../../../Client/docs/research/06-render-escenas-y-ui.md#los-efectos-del-login)
+y [El dibujo del juego](../../../Client/docs/research/06-render-escenas-y-ui.md#el-dibujo-del-juego):
+efectos con modelo (`0x518cf0`, `0x5208a0`, `0x52d620`), joints (`0x530860`, `0x535840`,
+`0x53c6a0`), cintas (`0x52e590`), sprites (`0x5491e0`, `0x549510`, `0x549440`) y partículas
+(`0x53fe70`, `0x5446e0`, `0x548550`). Son raíces de lectura, no un inventario exhaustivo de
+casos ni una afirmación de que esas funciones estén completas en MuRet.
+
+**Las obligaciones ya asignadas se mantienen:** CL7.6 conserva el login, el mundo, la luz de
+selección, las acciones del caballo y las armas que describe [Lo que dejó la CL6](#lo-que-dejó-la-cl6),
+además de las partículas, el clima y los pases del mundo de sus hitos 3 y 4. En particular P-C53,
+P-C54 y P-C55 de [08](../../../Client/docs/research/08-pendientes.md) y el frame de cero pasos de
+entrada siguen siendo trabajo de CL7. Los números de daño (`0x548eb0`) conservan CL9.2; los ítems
+del piso (`0x608a00`), CL9.3; las ventanas y el HUD, CL8; los sonidos, CL10.
+
+CL11 completa las familias y los casos restantes e integra los efectos de combate, skills y
+eventos con CL9, que conserva sus reglas, estado y paquetes. CL11.R debe enumerar qué casos
+pertenecen ya a otra ola y cuáles le quedan, con los campos persistentes, el RNG compartido, los
+límites de los pools y el orden de creación, paso, dibujo y limpieza. Una función compartida se
+registra una sola vez, con sus consumidores y el detalle de casos por ola: no se vuelve a portar
+la base ni se traslada a CL11 un bloqueo del cierre de CL7. El QA y las observaciones nativas se
+estiman aparte; una suite en verde no acredita equivalencia visual completa.
+
+### Mapeo completo del decompilado a las olas
+
+**Tarea pendiente CL.M:** ejecutar el [plan de cobertura](../plans/2026-11-10-cobertura-roadmap-cliente.md)
+antes de afirmar que el roadmap cubre todo el `main.exe`. El resultado será una fila por VA del
+inventario, una ola responsable para cada función de juego en alcance —incluidas todas las que
+todavía se llaman `FUN_*`— y una justificación para cada biblioteca, thunk o exclusión existente.
+Las funciones compartidas tendrán una sola ola responsable y sus otras olas consumidoras; los
+casos repartidos entre olas quedarán identificados en la evidencia de esa fila.
+
+El [inventario fuente](https://github.com/EmaNLJN/mu-server-repack-research-102i/blob/91359b2ceffa4ce085ea19bc7bf11762fc2034a5/client-research/mainexe-vmxp-c32bbd5f/decompiled/inventory.tsv)
+contiene **5.648 funciones internas, incluidas 4.403 con nombre `FUN_*` y 38 thunks**. Los
+`FUN_*` de este inventario no son thunks. La suma
+de `size_bytes` es 2.494.367 bytes; 2.477.342 corresponden a `FUN_*`. Esto cuenta registros y
+tamaños del inventario, no funciones de juego pendientes de portar. El TSV no distingue juego de
+CRT/bibliotecas ni trae olas. Los unos 821 KB y el 36 % del traspaso son una estimación de huecos,
+pendiente de reproducir con esa clasificación y su denominador.
+
+CL.M cierra cuando las 5.648 VAs estén reconciliadas, no quede ninguna clasificación o asignación
+pendiente y el informe reproduzca los conteos y tamaños por ola, bibliotecas y exclusiones. Asignar
+una función no significa haberla leído entera, implementado ni verificado: esos estados se
+registran aparte. CL.M no agrega funcionalidades fuera del 1.02 ni cambia las exclusiones de
+[Fuera de alcance](#fuera-de-alcance).
 
 **Planes detallados:** se escriben al arrancar cada ola, como pide el camino de aprendizaje
 (L-10). Ya están los de la [CL0](../plans/2026-10-30-ola-cl0-fundaciones-cliente.md), la
@@ -266,7 +323,8 @@ Cada plan lo suma al escribirse. El detalle está en las sub-olas del
   - **Volver a la selección desde el juego** (el `F1 02` con 1): `SceneTransitions` ya lo deja, pero
     `CharacterSelectScene::Enter` pide la lista solo en `LoggedIn`, y con la sesión en
     `EnteringWorld` la escena quedaría con la lista vieja y sin poder elegir, crear ni borrar.
-- **CL7.6, los efectos.** El roadmap no tenía su ola. La CL7.R la parte en dos. Lo del login va al
+- **CL7.6, los efectos.** La CL7.R la parte en dos; la nueva [CL11](#la-ola-de-efectos-visuales-cl11)
+  conserva esta parte de CL7. Lo del login va al
   principio de la CL7, en la CL7.6 A a C ([abajo](#el-login-completo-cl7r)): el dragón, la base de los
   efectos con las brasas, el aliento del caballo (`0x5f2`; antes se lo daba como polvo, que solo sale
   con el jinete en la `0x4b`), el brillo del cetro y los 30 destellos de la primera tela del Dark Lord
@@ -343,6 +401,7 @@ mapas con los gates. Cambia el orden de las sub-olas que quedaban:
 | Ritmo del frame ([02](../../../Client/docs/research/02-arranque-y-ciclo-de-vida.md)) | CL3 | reloj falso: ticks por segundo fijos a cualquier FPS; en modo fiel, 64 frames cada 3 s y, desde el segundo frame, 75 pasos cada 64 frames, 11 de ellos con 2 (7 u 8 cada 6) |
 | Escenas, texto, cámara, terreno ([06](../../../Client/docs/research/06-render-escenas-y-ui.md)) | CL5, CL7 | máquina de escenas, colores `0x02`; matrices de cámara y terreno de Lorencia contra las trazas de GL del original |
 | Modelos y animación ([05](../../../Client/docs/research/05-formatos-de-datos.md), [06](../../../Client/docs/research/06-render-escenas-y-ui.md)) | CL6 | skinning del personaje de la selección contra la traza (golden); avance de la animación por paso con la velocidad de cada acción y reloj falso; mascota por tiempo (Q-C20); UV de brillo contra la traza |
+| Efectos visuales ([06](../../../Client/docs/research/06-render-escenas-y-ui.md#los-efectos-del-login), [08](../../../Client/docs/research/08-pendientes.md)) | CL7.6, CL9.2, CL11 | casos por familia: alta, paso, dibujo y limpieza, campos persistentes y RNG en orden; trazas disponibles y observación nativa registradas con su nivel de evidencia |
 | Quirks ([07](../../../Client/docs/research/07-quirks-y-bugs.md)) | donde toque | test viejo vs nuevo, o reproducción del contrato |
 
 ## Cambios al repo de este PR

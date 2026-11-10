@@ -38,7 +38,8 @@ public:
     // ItemTextureCalls y SkillTextureCalls: cada llamada con su carpeta, desde 0x138, 0x25a y 0x3b8,
     // con ModelTextureSlots), Gate02 desde Monster en 0x69 antes del bloque 0x3b8, y las sube con las fijas de
     // PlayerFixedTextures, las de los pases de brillo (GlowTextureSet, del avance 0 de 0x61ccb0) y las de
-    // los sprites (EffectTextureSet). Un
+    // los sprites (EffectTextureSet), el atlas de daño (DamageTextureSet, de 0x61bd80) y los joints
+    // emitidos por fauna (FaunaJointTextureSet). Un
     // modelo que el original exige (Player, PlayerTest) y falta corta, con un
     // error que lo nombra (Q-C23); otro que falta, o una textura que no carga, se saltea con una
     // línea en el log (el original, con una textura que falta, se cierra).

@@ -49,14 +49,18 @@ struct WorldTileTexture
 
 // Los 14 tiles del terreno de `map`, de World<N>\, en 0x23..0x30, con GL_NEAREST y repitiendo, en el
 // orden de 0x61a560. Los mapas 24 a 29 y 36, que arman los suyos (0x4377a0), no tienen. El pasto
-// (0x32..0x34) va en WorldGrassTextures; las hojas (0x64, 0x65) y la lluvia (0x66..0x68) que carga
-// después quedan para lo que las dibuje.
+// (0x32..0x34) va en WorldGrassTextures; las hojas (0x64, 0x65) y la lluvia (0x66..0x68),
+// en WorldWeatherTextures.
 [[nodiscard]] std::vector<WorldTileTexture> WorldTileTextures(std::uint8_t map);
 
 // Las tres texturas del pasto de `map` que sube 0x61a560 después de los tiles (0x61abb4..0x61ac36):
 // World<N>\TileGrass01..03.tga en 0x32..0x34 (World/TerrainCells.h), con 0x63bd00, GL_NEAREST y
 // repitiendo, sin avisar si faltan. Los mapas que arman sus tiles en 0x4377a0 no las cargan.
 [[nodiscard]] std::vector<WorldTileTexture> WorldGrassTextures(std::uint8_t map);
+
+// 61ac3e..61ad7a: alternativas de hojas/nieve64/65 y lluvia/salpicaduras66..68,
+// GL_NEAREST/GL_CLAMP, todas opcionales; la JPG64 posterior reemplaza a la TGA64 si existe.
+[[nodiscard]] std::vector<WorldTileTexture> WorldWeatherTextures(std::uint8_t map);
 
 // El slot 0x122 que pide una capa 2 de 255 (Q-C19): Interface\accept_box01.jpg, que el original sube
 // en la carga (0x61ae60) y queda para siempre; MuRet lo sube con el mundo.

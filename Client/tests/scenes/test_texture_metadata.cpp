@@ -23,6 +23,7 @@
 
 #include <glm/ext/vector_float2.hpp>
 #include <gtest/gtest.h>
+#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -32,6 +33,9 @@
 
 namespace
 {
+// Los nuevos productores usan estos selectores físicos: Fire01, Shiny01, Spark02, lightning2, Spark01 y flareBlue.
+constexpr std::array<std::uint16_t, 6> RuntimeEffectSelectors{0x5d9, 0x5fc, 0x5c5, 0x5d5, 0x617, 0x62b};
+
 class MetadataStore final : public Client::Render::ITextureStore
 {
 public:
@@ -74,6 +78,7 @@ protected:
         model.version = 0x0a;
         Client::Tests::WriteSceneFile(m_folder.Path(), "Player/Player.bmd",
                                       Client::Tests::PlainBmd(Client::Tests::BmdContent(model), model.version));
+        Client::Tests::WriteTextureSet(m_folder.Path(), Client::Scenes::GlowTextureSet);
         Client::Tests::WriteTextureSet(m_folder.Path(), Client::Scenes::EffectTextureSet);
     }
     Client::Tests::TemporaryFolder m_folder{"texture-metadata"};
@@ -142,7 +147,21 @@ TEST_F(TextureMetadataTest, LoadedEffectsUseExactRawSelectorsAndShareTheLegacySi
     EXPECT_FALSE(library.TextureMetadataOf(0x100005acu).has_value());
     EXPECT_FALSE(library.TextureMetadataOf(0xffff05acu).has_value());
     EXPECT_FALSE(library.TextureMetadataOf(0xffffffffu).has_value());
-    EXPECT_FALSE(library.TextureMetadataOf(0x5d9).has_value()); // No se agregó una carga a EffectTextureSet.
+    for (const std::uint16_t selector : RuntimeEffectSelectors)
+    {
+        SCOPED_TRACE(selector);
+        const auto effect = library.TextureMetadataOf(selector);
+        ASSERT_TRUE(effect.has_value());
+        EXPECT_EQ(effect->size, (glm::vec2{16, 16}));
+        EXPECT_EQ(effect->components, 3);
+        EXPECT_EQ(library.TextureSize({selector}), std::optional(glm::vec2{16, 16}));
+        const auto physical = m_store.stored.Find({selector});
+        ASSERT_TRUE(physical.has_value());
+        EXPECT_EQ(physical->texture.textureWidth, 16);
+        EXPECT_EQ(physical->texture.textureHeight, 16);
+        EXPECT_FALSE(library.TextureMetadataOf(0x10000000u | selector).has_value());
+    }
+    EXPECT_FALSE(library.TextureMetadataOf(0x5d8).has_value()); // Fuera de las cargas de esta fixture.
 }
 
 TEST_F(TextureMetadataTest, AnUploadFailureKeepsThePublishedPrefixAndContinuesAfterTheFailedSlot)
@@ -157,6 +176,8 @@ TEST_F(TextureMetadataTest, AnUploadFailureKeepsThePublishedPrefixAndContinuesAf
     EXPECT_TRUE(m_store.stored.Find({0x5fd}).has_value()); // El upload pudo mutar antes de devolver error.
     EXPECT_TRUE(models.TextureMetadataOf(0x5c6).has_value());
     std::vector<std::uint16_t> expected;
+    for (const auto& entry : Client::Scenes::GlowTextureSet)
+        expected.push_back(entry.slot);
     for (const auto& entry : Client::Scenes::EffectTextureSet)
         expected.push_back(entry.slot);
     EXPECT_EQ(m_store.attempted, expected);
@@ -178,7 +199,32 @@ TEST_F(TextureMetadataTest, OnlyUploadedEffectsPublishTheSlotOfTheirSelector)
     EXPECT_TRUE(m_store.stored.Find({0x5fd}).has_value());
     EXPECT_FALSE(library.TextureSlotOf(0x100005acu).has_value());
     EXPECT_FALSE(library.TextureSlotOf(0xffffffffu).has_value());
-    EXPECT_FALSE(library.TextureSlotOf(0x5d9).has_value());
+    for (const std::uint16_t selector : RuntimeEffectSelectors)
+    {
+        SCOPED_TRACE(selector);
+        EXPECT_EQ(library.TextureSlotOf(selector), std::optional(Client::Render::TextureSlot{selector}));
+        EXPECT_TRUE(library.TextureMetadataOf(selector).has_value());
+        EXPECT_TRUE(m_store.stored.Find({selector}).has_value());
+        EXPECT_FALSE(library.TextureSlotOf(0x10000000u | selector).has_value());
+    }
+    EXPECT_FALSE(library.TextureSlotOf(0x5d8).has_value());
+}
+
+TEST_F(TextureMetadataTest, MissingRuntimeImagesPublishNeitherMetadataNorPhysicalHandles)
+{
+    ASSERT_TRUE(std::filesystem::remove(m_folder.Path() / "Effect/Fire01.OZJ"));
+    ASSERT_TRUE(std::filesystem::remove(m_folder.Path() / "Effect/Shiny01.OZJ"));
+    Client::Scenes::GameModels models;
+    ASSERT_TRUE(models.Load(m_folder.Path(), m_store, m_log).HasValue());
+    for (const std::uint16_t selector : {std::uint16_t{0x5d9}, std::uint16_t{0x5fc}})
+    {
+        EXPECT_FALSE(models.TextureMetadataOf(selector).has_value());
+        EXPECT_FALSE(models.TextureSlotOf(selector).has_value());
+        EXPECT_FALSE(models.TextureSize({selector}).has_value());
+        EXPECT_FALSE(m_store.stored.Find({selector}).has_value());
+    }
+    EXPECT_TRUE(models.TextureMetadataOf(0x5c5).has_value());
+    EXPECT_TRUE(models.TextureSlotOf(0x617).has_value());
 }
 
 TEST_F(TextureMetadataTest, ReloadFailureRetainsTheOldRowAndValueSnapshotsOutliveTheOwner)

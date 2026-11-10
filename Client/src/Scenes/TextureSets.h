@@ -26,6 +26,12 @@ inline constexpr Sampling LinearRepeat{Filter::Linear, Wrap::Repeat};
 inline constexpr Sampling NearestRepeat{Filter::Nearest, Wrap::Repeat};
 } // namespace TextureSetsDetail
 
+// 0x61bd9f..0x61bdb4: FontTest en el slot1 con NEAREST/CLAMP, antes de la carga común.
+// Es el atlas que 0x621710 usa para las cifras y "miss" de 0x548efd, no la fuente dinámica del slot0.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet{{
+    {"Interface\\FontTest.tga", 0x01, TextureSetsDetail::NearestClamp},
+}};
+
 // Las de los pases de brillo, que 0x61ccb0 sube en su avance 0 y nadie suelta: Shiny01 para el 0x8,
 // Chrome01 para el 0x4 y Chrome02 para el 0x200, el 0x800 y el 0x1000 (06 § Los pases de brillo).
 // No son de una escena: las sube GameModels con los modelos, y quedan.
@@ -42,14 +48,31 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // con los modelos, y quedan. 0x61d801 sube clouds.jpg a 0x622 con GL_LINEAR y GL_CLAMP: las nubes
 // oscuras del mapa 55. 0x61d6e0 y 0x61d6fc suben Magic_Ground2 y Magic_Circle1 con el mismo sampling:
 // el calco y los dos anillos del efecto de llegada 0x61f (06 § Después de los objetos).
-inline constexpr std::array<Data::Textures::TextureSetEntry, 7> EffectTextureSet{{
+// 0x61d4db sube Fire01 a 0x5d9, GL_LINEAR/GL_CLAMP, para las llamas de los objetos.
+// Noria agrega Spark02/5c5 (61d711), lightning2/5d5 (61da3c), Spark01/617 (61da77) y
+// flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 12> EffectTextureSet{{
+    {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
     {"Effect\\flare01.jpg", 0x5ac, TextureSetsDetail::LinearClamp},
     {"Effect\\Magic_Ground2.jpg", 0x61e, TextureSetsDetail::LinearClamp},
     {"Effect\\Magic_Circle1.jpg", 0x61f, TextureSetsDetail::LinearClamp},
+    {"Effect\\Spark02.jpg", 0x5c5, TextureSetsDetail::LinearClamp},
     {"Effect\\Shiny02.jpg", 0x5fd, TextureSetsDetail::LinearClamp},
     {"Effect\\Spark03.jpg", 0x5c6, TextureSetsDetail::LinearClamp},
     {"Effect\\smoke01.jpg", 0x5f2, TextureSetsDetail::LinearClamp},
     {"Effect\\clouds.jpg", 0x622, TextureSetsDetail::LinearClamp},
+    {"Effect\\lightning2.jpg", 0x5d5, TextureSetsDetail::LinearClamp},
+    {"Effect\\Spark01.jpg", 0x617, TextureSetsDetail::LinearClamp},
+    {"Effect\\flareBlue.jpg", 0x62b, TextureSetsDetail::LinearClamp},
+}};
+
+// Recursos de los joints que ya crean los peces y pájaros: 61d858/61dab9/61dad8/61dce2.
+// Spark01 (0x617) ya está en EffectTextureSet. Las cintas sin creador portado no se cargan acá.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 4> FaunaJointTextureSet{{
+    {"Effect\\ScolTail.jpg", 0x697, TextureSetsDetail::LinearClamp},
+    {"Effect\\JointSpirit01.jpg", 0x613, TextureSetsDetail::LinearClamp},
+    {"Effect\\JointLaser01.jpg", 0x618, TextureSetsDetail::LinearClamp},
+    {"Effect\\Flare02.jpg", 0x610, TextureSetsDetail::LinearRepeat},
 }};
 
 // Las dos capas de la tela que sube 0x61ccb0 (0x61d616 y 0x61d64e) y nadie suelta: Monster\iui06.jpg en

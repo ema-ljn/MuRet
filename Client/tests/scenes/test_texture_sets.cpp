@@ -162,6 +162,37 @@ TEST(TextureSetsTest, TheArrivalGroundAndRingTexturesUploadAtTheirOriginalSlots)
     }
 }
 
+// 0x61d4db: la llama que emiten los objetos usa Fire01, también en la carga durable.
+TEST(TextureSetsTest, TheObjectFireTextureUploadsAtItsOriginalSlot)
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    const auto loaded = textures.Load(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR});
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    const auto texture = store.Find(Client::Render::TextureSlot{0x5d9});
+    ASSERT_TRUE(texture.has_value());
+    EXPECT_EQ(texture->sampling.filter, Filter::Linear);
+    EXPECT_EQ(texture->sampling.wrap, Wrap::Clamp);
+    EXPECT_GT(texture->texture.width, 0);
+    EXPECT_GT(texture->texture.height, 0);
+}
+
+TEST(TextureSetsTest, TheNoriaSparkAndLightningTexturesUploadAtTheirOriginalSlots)
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    const auto loaded = textures.Load(std::filesystem::path{MURET_CLIENT_REPO_DATA_DIR});
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    for (const std::uint16_t slot : {std::uint16_t{0x5c5}, std::uint16_t{0x5d5}})
+    {
+        const auto texture = store.Find(Client::Render::TextureSlot{slot});
+        ASSERT_TRUE(texture.has_value()) << slot;
+        EXPECT_EQ(texture->sampling.filter, Filter::Linear);
+        EXPECT_EQ(texture->sampling.wrap, Wrap::Clamp);
+        EXPECT_GT(texture->texture.width, 0);
+    }
+}
+
 // 0x622e40 sube seis, todas con filtro y sin repetir salvo la barra.
 TEST(TextureSetsTest, TheLoadingSetIsTheOneOf0x622e40)
 {

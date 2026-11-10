@@ -19,9 +19,9 @@ Hoy `LoginScene::Step` corre solo tres piezas, en su propio orden:
 
 Así, el login saca solo una parte de los `rand()` que saca el original en cada paso.
 
-## Lo que ya está en main o en camino
+## Lo que ya está en main
 
-- `0x508ba0`, el cuerpo `0x4fd5f0` (`StepTheBody`) y, con #219, `0x505de0` entero para todos los `0x20a` quietos. En 06 están las secciones "Los efectos de los personajes (`0x505de0`)", "El paso de los personajes en la selección y el login" y "Lo demás del login". En 08, P-C50 y P-C54 (a).
+- `0x508ba0`, el cuerpo `0x4fd5f0` (`StepTheBody`) y `0x505de0` entero (#219) para todos los `0x20a` quietos. En 06 están las secciones "Los efectos de los personajes (`0x505de0`)", "El paso de los personajes en la selección y el login" y "Lo demás del login". En 08, P-C50 y P-C54 (a).
 
 ## Lo que bloquea el cableado (P-C54 a)
 
@@ -72,7 +72,7 @@ Todo esto es *estático* y está **sin verificar**: no llegó a escribirlo en 06
    - P-C56 en 08;
    - poner al día P-C50 y P-C54 (a).
 
-Rama: `claude/project-thread-02udvb-m1-login-step`, desde main (o desde #219 si todavía no entró). PR: `CL7: el paso de los personajes en el login (0x634d13)`. Reglas comunes y formato del PR: las de [el traspaso](../2026-11-10-cl7-traspaso.md#cómo-se-trabajó).
+Rama: `claude/project-thread-02udvb-m1-login-step`, desde main. PR: `CL7: el paso de los personajes en el login (0x634d13)`. Reglas comunes y formato del PR: las de [el traspaso](../2026-11-10-cl7-traspaso.md#cómo-se-trabajó).
 
 ## Después
 

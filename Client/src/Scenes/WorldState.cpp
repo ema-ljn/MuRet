@@ -12,6 +12,7 @@
 #include "Scenes/FaunaModels.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameDrawTail.h"
+#include "World/Leaves.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldMap.h"
@@ -153,6 +154,15 @@ const GameDrawTailState& WorldState::DrawTail() const
 {
     return *m_drawTail;
 }
+World::Leaves& WorldState::Leaves()
+{
+    return *m_leaves;
+}
+const World::Leaves& WorldState::Leaves() const
+{
+    return *m_leaves;
+}
+
 // El original copia de chars[elegido] lo que 0x4c20a0 le puso con la lista (0x4c21dd..0x4c220c): la
 // clase de 0x517270, la piel 0 (0x4c21d9; la de crear es la de la vista previa, que nadie escribe),
 // el nivel de [0xc] y los diez bytes del nombre con el cero de +0x1e3. MuRet los toma de la entrada.

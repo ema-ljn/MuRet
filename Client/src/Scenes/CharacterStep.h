@@ -19,10 +19,11 @@ struct Skeleton;
 
 // El paso de los personajes (0x508f00, desde el juego en 0x63710f, la selección en 0x6342f9 y el login en
 // 0x634d13): el TerrainWall, si cada uno se ve y, por cada uno, 0x508ea0: 0x508ba0 con los que no son el
-// héroe, el cuerpo (0x4fd5f0) por el camino del 0x20a quieto y 0x505de0 hasta su final con el héroe, y hasta
-// la cabeza con los demás. Corta con error donde el original lee algo que MuRet no tiene. Contrato:
+// héroe, el cuerpo (0x4fd5f0) por el camino del 0x20a quieto y 0x505de0 hasta su final, con la cabeza que
+// sortea en los que no son el héroe. Corta con error donde el original lee algo que MuRet no tiene. Contrato:
 // Client/docs/research/06-render-escenas-y-ui.md, "El paso de los personajes", "El paso de los personajes en
-// la selección y el login" y "El cuerpo de los personajes (0x4fd5f0)".
+// la selección y el login", "El cuerpo de los personajes (0x4fd5f0)" y "Los efectos de los personajes
+// (0x505de0)".
 namespace Client::Scenes
 {
 class WorldState;
@@ -61,7 +62,7 @@ struct CharacterStepContext
 
 // 0x508f00. Corta con error, en el orden del original, en el mapa 30 (0x412140), sin el mapa cargado
 // (0x508f14), en las ramas de 0x508ba0 que MuRet no tiene, en las de 0x4fd5f0 fuera del 0x20a quieto (06, su
-// tabla de cortes), en la cabeza de 0x505de0 de un vivo visto que no es el héroe (0x5068eb) y en las ramas de
-// 0x505de0 que el héroe todavía no tiene. Lo que hizo antes del corte queda, con los rand() que sacó.
+// tabla de cortes) y en las de 0x505de0 que crean luces, efectos o partículas que MuRet no tiene (06, "Los
+// efectos de los personajes (0x505de0)"). Lo que hizo antes del corte queda, con los rand() que sacó.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context);
 } // namespace Client::Scenes

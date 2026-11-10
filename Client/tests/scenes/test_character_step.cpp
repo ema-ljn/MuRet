@@ -10,7 +10,9 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterHead.h"
 #include "Scenes/CharacterSlots.h"
+#include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneId.h"
@@ -41,18 +43,20 @@
 #include <vector>
 
 // Client::Scenes::StepCharacters: 0x508f00. El TerrainWall, si cada personaje se ve, el 0x508ba0 de los que no
-// son el héroe, el cuerpo (0x4fd5f0) por el camino del 0x20a quieto y 0x505de0: entero con el héroe, hasta la
-// cabeza con los demás. 06 § El paso de los personajes, § El paso de los personajes en la selección y el login,
-// § El cuerpo de los personajes (0x4fd5f0) y § Caminar.
+// son el héroe, el cuerpo (0x4fd5f0) por el camino del 0x20a quieto y 0x505de0 entero, con la cabeza que sortea en
+// los que no son el héroe. 06 § El paso de los personajes, § El paso de los personajes en la selección y el login,
+// § El cuerpo de los personajes (0x4fd5f0), § Los efectos de los personajes (0x505de0) y § Caminar.
 namespace
 {
 using Client::Render::Models::ActionInfo;
 using Client::Render::Models::CrtRandom;
 using Client::Render::Models::Skeleton;
 using Client::Scenes::ActorState;
+using Client::Scenes::CharacterHead;
 using Client::Scenes::CharacterSeen;
 using Client::Scenes::CharacterStepContext;
 using Client::Scenes::SceneId;
+using Client::Scenes::StepCharacterHead;
 using Client::Scenes::StepCharacters;
 using Client::Scenes::WorldState;
 using Client::World::TerrainPolygon;
@@ -73,11 +77,17 @@ constexpr int TrailDraws = 1;
 constexpr int StopDraws = 1;
 // Los dos accesos de 0x508ba0 con otro que el héroe, la X (0x412890) y la Y (0x40b800).
 constexpr int OtherCellDraws = 8;
-// Los dos accesos de 0x505de0 con otro visto, antes de cortar en su cabeza (0x5068b9).
+// Los dos accesos de 0x505de0 con otro visto (0x506362 y 0x506833).
 constexpr int OtherSeenCellDraws = 8;
+// El rand() & 7 de 0x506cac, después de la cabeza.
+constexpr int EffectsRandomDraws = 1;
+// 0x5068fd: la cabeza de otro que el héroe sortea con rand() % 32 en 0.
+constexpr int HeadOneIn = 32;
 // La selección (0x633f20, World55) y el login (0x6349a0, World56).
 constexpr std::uint8_t SelectionMap = 54;
 constexpr std::uint8_t LoginMap = 55;
+// El cetro del personaje del login en la mano derecha (LoginModels.cpp; el caso 0x620 de 0x509340).
+constexpr std::uint16_t LoginScepter = 0x620;
 
 CrtRandom RandomAfter(int draws)
 {
@@ -87,6 +97,33 @@ CrtRandom RandomAfter(int draws)
         static_cast<void>(random.Next());
     }
     return random;
+}
+
+void Skip(CrtRandom& random, int draws)
+{
+    for (int i = 0; i < draws; ++i)
+    {
+        static_cast<void>(random.Next());
+    }
+}
+
+// Lo que saca otro que el héroe, visto, quieto y sin terminar la acción, después de su TerrainWall: su
+// 0x508ba0, su cuerpo (el rand() % 6), la celda de su 0x505de0, su cabeza (0x5068fd: rand() % 32 y, si da 0,
+// dos más) y el rand() & 7. La cabeza va a `head` como la mueve StepCharacterHead. Devuelve si sorteó.
+bool DrawASeenOther(CrtRandom& random, CharacterHead& head)
+{
+    Skip(random, OtherCellDraws + BodyDraws + OtherSeenCellDraws);
+    CrtRandom probe = random;
+    const bool sorts = probe.Next() % HeadOneIn == 0;
+    StepCharacterHead(head, true, random);
+    Skip(random, EffectsRandomDraws);
+    return sorts;
+}
+
+bool DrawASeenOther(CrtRandom& random)
+{
+    CharacterHead head;
+    return DrawASeenOther(random, head);
 }
 
 glm::vec3 CellCentre(std::uint8_t x, std::uint8_t y)
@@ -139,6 +176,20 @@ struct GameWorld
     ActorState& Hero()
     {
         return world.Actors()[HeroSlot];
+    }
+
+    // Otro jugador vivo y de pie en `slot`, con la celda lógica en (x, y), +0x88 en 1 y el PK de 0x511290.
+    ActorState& Other(std::size_t slot, std::uint8_t x = 3, std::uint8_t y = 4)
+    {
+        ActorState& other = world.Actors()[slot];
+        other = Client::Tests::UnarmedPlayer(2);
+        other.alive = true;
+        other.byte88 = 1;
+        other.pk = 3;
+        other.animation.action = 1;
+        other.cellX = x;
+        other.cellY = y;
+        return other;
     }
 
     std::uint16_t& Cell(std::uint8_t x, std::uint8_t y)
@@ -882,38 +933,244 @@ TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
 
 // 0x508ba0 con otro que el héroe, quieto: la X lógica y la Y en dos accesos que se cierran (8 rand()), iguales a
 // la copia en claro (0x511290 escribe las dos), así que no busca camino (Q-C236). Su cuerpo (0x4fd5f0) saca el
-// rand() % 6, sin el registro propio, y su 0x505de0, visto, la celda (8 más) y corta en la cabeza (0x5068b9),
-// antes del héroe del lugar 42. En Lorencia y en Devias.
-TEST(CharacterStepTest, AnotherCharacterSpendsItsCellsAndItsBodyAndStopsAtItsHead)
+// rand() % 6, sin el registro propio, y su 0x505de0, visto, la celda (8 más), la cabeza que sortea (0x5068fd) y el
+// rand() & 7. Después, el héroe del lugar 42 hace su paso entero. En Lorencia y en Devias.
+TEST(CharacterStepTest, AnotherCharacterRunsItsWholeStepBeforeTheHero)
 {
     for (const std::int32_t map : {0, 2})
     {
         SCOPED_TRACE(::testing::Message() << "mapa " << map);
         GameWorld tested(map);
-        ActorState& other = tested.world.Actors()[3];
-        other = Client::Tests::UnarmedPlayer(2);
-        other.alive = true;
-        other.byte88 = 1;
-        other.cellX = 3;
-        other.cellY = 4;
+        ActorState& other = tested.Other(3);
+        CrtRandom expected(Seed);
+        Skip(expected, 2 * WallDraws);
+        CharacterHead head;
+        static_cast<void>(DrawASeenOther(expected, head));
+        Skip(expected, OwnRecordDraws + BodyDraws + SeenEffectsDraws);
 
         const auto stepped = tested.Step(Everything);
 
-        ASSERT_TRUE(HasError(stepped, "0x5068b9")) << ErrorOf(stepped);
-        EXPECT_NE(stepped.Error().find("lugar 3 "), std::string::npos) << stepped.Error();
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
         EXPECT_TRUE(other.seen);
         EXPECT_EQ(other.cellXAccesses, 0);
         EXPECT_EQ(other.cellYAccesses, 0);
         EXPECT_EQ(tested.Cell(3, 4), Client::World::CharacterWallBit);
-        EXPECT_EQ(tested.random.State(),
-                  RandomAfter((2 * WallDraws) + OtherCellDraws + BodyDraws + OtherSeenCellDraws).State());
+        EXPECT_EQ(other.headTurn.angles, head.angles);
+        EXPECT_EQ(other.headTurn.target, head.target);
+        EXPECT_EQ(tested.random.State(), expected.State());
     }
+}
+
+// 0x5068eb..0x5069ab con otro que el héroe, paso a paso: rand() % 32 en 0 sortea el blanco con dos rand() más
+// (+0x34 y +0x38), y los dos ángulos giran hacia él (+0x28 y +0x2c), como en el login. Con el héroe muerto, cada
+// paso saca el TerrainWall del otro y lo suyo, con 1 o 3 en la cabeza. En Lorencia y en Devias.
+TEST(CharacterStepTest, TheHeadOfAnotherCharacterSortsOneStepInThirtyTwo)
+{
+    constexpr int Steps = 200;
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(::testing::Message() << "mapa " << map);
+        GameWorld tested(map);
+        tested.Hero().alive = false;
+        ActorState& other = tested.Other(3);
+        CrtRandom expected(Seed);
+        CharacterHead head;
+        int sorted = 0;
+        for (int step = 1; step <= Steps; ++step)
+        {
+            SCOPED_TRACE(::testing::Message() << "paso " << step);
+            Skip(expected, WallDraws);
+            sorted += DrawASeenOther(expected, head) ? 1 : 0;
+
+            const auto stepped = tested.Step(Everything);
+
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            ASSERT_EQ(tested.random.State(), expected.State());
+            ASSERT_EQ(other.headTurn.angles, head.angles);
+            ASSERT_EQ(other.headTurn.target, head.target);
+        }
+        EXPECT_GT(sorted, 0) << "la cabeza tiene que sortear al menos una vez";
+        EXPECT_NE(other.headTurn.angles, glm::vec2(0.0f));
+    }
+}
+
+// Con el héroe la cabeza no sortea ni gasta: gira hacia el blanco (+0x34 y +0x38), que MoveHero escribe con el
+// mouse (CL7.4), a lo sumo el 20 % de lo que falta por paso. En Lorencia y en Devias.
+TEST(CharacterStepTest, TheHeroTurnsItsHeadWithoutRandoms)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(::testing::Message() << "mapa " << map);
+        GameWorld tested(map);
+        ActorState& hero = tested.Hero();
+        hero.headTurn.target = glm::vec2(40.0f, 350.0f);
+        CharacterHead head = hero.headTurn;
+        CrtRandom untouched(Seed);
+        StepCharacterHead(head, false, untouched);
+        ASSERT_EQ(untouched.State(), RandomAfter(0).State());
+        ASSERT_NE(head.angles, glm::vec2(0.0f));
+
+        const auto stepped = tested.Step(Everything);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(hero.headTurn.angles, head.angles);
+        EXPECT_EQ(hero.headTurn.target, glm::vec2(40.0f, 350.0f));
+        EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws).State());
+    }
+}
+
+// 0x5068be..0x5068d4: con +0x78 & 0x20 o & 0x1000 la cabeza no se mueve ni sortea, y el paso sigue con el
+// rand() & 7. Con 0x1000 la acción además termina sin avanzar y vuelve a la de parado (0x4f2250, con el rand() de
+// su sufijo). En Lorencia y en Devias.
+TEST(CharacterStepTest, TheFlagsOf78KeepTheHeadStill)
+{
+    struct Case
+    {
+        std::int32_t map;
+        std::uint32_t flags;
+        int stopDraws;
+    };
+    for (const Case& probe :
+         {Case{0, 0x20, 0}, Case{2, 0x1000, StopDraws}, Case{0, 0x1020, StopDraws}, Case{2, 0x20, 0}})
+    {
+        SCOPED_TRACE(::testing::Message() << "mapa " << probe.map << ", +0x78 = " << probe.flags);
+        GameWorld tested(probe.map);
+        tested.Hero().alive = false;
+        ActorState& other = tested.Other(3);
+        other.flags78 = probe.flags;
+        other.headTurn.target = glm::vec2(30.0f, 10.0f);
+
+        const auto stepped = tested.Step(Everything);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(other.headTurn.angles, glm::vec2(0.0f));
+        EXPECT_EQ(other.headTurn.target, glm::vec2(30.0f, 10.0f));
+        EXPECT_EQ(tested.random.State(), RandomAfter(WallDraws + OtherCellDraws + BodyDraws + probe.stopDraws +
+                                                     OtherSeenCellDraws + EffectsRandomDraws)
+                                             .State());
+    }
+}
+
+// 0x50862f..0x508641: los pasos (0x505770) son solo del héroe publicado. Otro en las acciones de los pasos no
+// corta y sigue hasta el final. En Lorencia y en Devias.
+TEST(CharacterStepTest, TheStepSoundsAreOnlyTheHeros)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const std::uint8_t action : std::array<std::uint8_t, 6>{0x0d, 0x15, 0x21, 0x8b, 0x8c, 0x4b})
+        {
+            SCOPED_TRACE(::testing::Message() << "mapa " << map << ", acción " << static_cast<int>(action));
+            GameWorld tested(map);
+            tested.Hero().alive = false;
+            tested.Other(3).animation.action = action;
+            CrtRandom expected(Seed);
+            Skip(expected, WallDraws);
+            static_cast<void>(DrawASeenOther(expected));
+
+            const auto stepped = tested.Step(Everything);
+
+            ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(tested.random.State(), expected.State());
+        }
+    }
+}
+
+// 0x5086cf..0x5087fc: en Kalima (los mapas 24 a 29 y el 36), el 0x20a en las acciones 0x15, 0x1d a 0x21 y 0x4b
+// saca dos rand() % 64 y el 0x6f4, que corta. En los mapas de al lado, o con otra acción, sigue. El héroe, en esas
+// acciones, corta antes en sus pasos (0x508668).
+TEST(CharacterStepTest, KalimaParticleCutsAfterItsTwoRandoms)
+{
+    struct Case
+    {
+        std::int32_t map;
+        std::uint8_t action;
+        bool cuts;
+    };
+    for (const Case& probe :
+         {Case{24, 0x15, true}, Case{25, 0x1d, true}, Case{26, 0x1e, true}, Case{27, 0x1f, true}, Case{28, 0x20, true},
+          Case{29, 0x21, true}, Case{36, 0x4b, true}, Case{35, 0x15, false}, Case{37, 0x4b, false},
+          Case{24, 0x16, false}, Case{29, 0x1c, false}, Case{36, 0x0d, false}})
+    {
+        SCOPED_TRACE(::testing::Message() << "mapa " << probe.map << ", acción " << static_cast<int>(probe.action));
+        GameWorld tested(probe.map);
+        tested.Hero().alive = false;
+        tested.Other(3).animation.action = probe.action;
+        CrtRandom expected(Seed);
+        Skip(expected, WallDraws);
+        static_cast<void>(DrawASeenOther(expected));
+        Skip(expected, probe.cuts ? 2 : 0);
+
+        const auto stepped = tested.Step(Everything);
+
+        if (probe.cuts)
+        {
+            EXPECT_TRUE(HasError(stepped, "0x5087fc")) << ErrorOf(stepped);
+            EXPECT_NE(stepped.Error().find("lugar 3 "), std::string::npos) << stepped.Error();
+        }
+        else
+        {
+            EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
+        }
+        EXPECT_EQ(tested.random.State(), expected.State());
+    }
+    GameWorld hero(24);
+    hero.Hero().animation.action = 0x15;
+    EXPECT_TRUE(HasError(hero.Step(Everything), "0x508668"));
+    EXPECT_EQ(hero.random.State(), RandomAfter(SeenHeroDraws).State());
+}
+
+// Después de la cabeza, otro que el héroe sigue el camino del 0x20a del héroe: la luz de una mano corta antes del
+// rand() & 7; los mapas 7 (solo en el juego) y 9 y las acciones 0x44, 0x45 y 0x96 cortan después.
+TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
+{
+    struct Case
+    {
+        std::string_view name;
+        std::int32_t map;
+        std::uint8_t action;
+        std::uint16_t rightHand;
+        std::string_view cut;
+        bool drawsTheRandom;
+    };
+    constexpr std::uint16_t NoItem = Client::Scenes::NoItemModel;
+    for (const Case& probe :
+         {Case{"la luz", 0, 1, 0x21e, "0x5f9780", false}, Case{"el mapa 7", 7, 1, NoItem, "0x506d01", true},
+          Case{"el mapa 9", 9, 1, NoItem, "0x506d8b", true}, Case{"la 0x44", 2, 0x44, NoItem, "0x506e5d", true},
+          Case{"la 0x45", 0, 0x45, NoItem, "0x506e5d", true}, Case{"la 0x96", 2, 0x96, NoItem, "0x506f62", true}})
+    {
+        SCOPED_TRACE(probe.name);
+        GameWorld tested(probe.map);
+        tested.Hero().alive = false;
+        ActorState& other = tested.Other(3);
+        other.animation.action = probe.action;
+        other.hands[0].model = probe.rightHand;
+        CrtRandom expected(Seed);
+        Skip(expected, WallDraws);
+        static_cast<void>(DrawASeenOther(expected));
+        CrtRandom withoutTheRandom(Seed);
+        Skip(withoutTheRandom, WallDraws + OtherCellDraws + BodyDraws + OtherSeenCellDraws);
+        CharacterHead head;
+        StepCharacterHead(head, true, withoutTheRandom);
+
+        const auto stepped = tested.Step(Everything);
+
+        EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
+        EXPECT_EQ(tested.random.State(), (probe.drawsTheRandom ? expected : withoutTheRandom).State());
+    }
+    GameWorld selection(7);
+    selection.Hero().alive = false;
+    static_cast<void>(selection.Other(3));
+    CrtRandom expected(Seed);
+    Skip(expected, WallDraws);
+    static_cast<void>(DrawASeenOther(expected));
+    const auto stepped = selection.Step(Everything, SceneId::CharacterSelect);
+    EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(selection.random.State(), expected.State());
 }
 
 // Las salidas de 0x508ba0 antes de la celda: el que se muere sale (0x508bb6) y corta en su cuerpo (0x4fb9e0),
 // salvo el 0x154, que toma la altura del terreno (0x508e89); el que camina sigue su camino (0x508e27); el 0x159
-// sale sin leer la celda y corta en su modelo (0x4f9580). Una cuenta abierta no se vuelve a cifrar al cerrar: ni
-// en 0x508ba0 ni en 0x505de0, que corta en la cabeza. Cada uno, con el héroe vivo en el lugar 42, después del
+// sale sin leer la celda y corta en su modelo (0x4f9580). Cada uno, con el héroe vivo en el lugar 42, después del
 // TerrainWall.
 TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
 {
@@ -923,16 +1180,14 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
         std::uint16_t type;
         std::uint8_t dying;
         std::uint8_t movement;
-        std::uint8_t accesses;
         std::string_view cut;
         int draws;
     };
     constexpr std::uint16_t Player = Client::Data::Models::PlayerSkeletonModel;
-    for (const Case& probe : {Case{"se muere", Player, 1, 0, 0, "0x4fb9e0", WallDraws},
-                              Case{"se muere el 0x154", 0x154, 1, 0, 0, "0x508e89", WallDraws},
-                              Case{"camina", Player, 0, 1, 0, "0x508e27", 2 * WallDraws},
-                              Case{"el 0x159", 0x159, 0, 0, 0, "0x4f9580", 2 * WallDraws},
-                              Case{"con las cuentas abiertas", Player, 0, 0, 1, "0x5068b9", WallDraws + BodyDraws}})
+    for (const Case& probe : {Case{"se muere", Player, 1, 0, "0x4fb9e0", WallDraws},
+                              Case{"se muere el 0x154", 0x154, 1, 0, "0x508e89", WallDraws},
+                              Case{"camina", Player, 0, 1, "0x508e27", 2 * WallDraws},
+                              Case{"el 0x159", 0x159, 0, 0, "0x4f9580", 2 * WallDraws}})
     {
         SCOPED_TRACE(probe.name);
         GameWorld tested;
@@ -942,15 +1197,38 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
         other.type = probe.type;
         other.dying = probe.dying;
         other.movement = probe.movement;
-        other.cellXAccesses = probe.accesses;
-        other.cellYAccesses = probe.accesses;
 
         const auto stepped = tested.Step(Everything);
 
         EXPECT_TRUE(HasError(stepped, probe.cut)) << ErrorOf(stepped);
-        EXPECT_EQ(other.cellXAccesses, probe.accesses);
-        EXPECT_EQ(other.cellYAccesses, probe.accesses);
         EXPECT_EQ(tested.random.State(), RandomAfter(probe.draws).State());
+    }
+}
+
+// Una cuenta abierta no se vuelve a cifrar al cerrar: ni en el TerrainWall, ni en 0x508ba0, ni en la celda de
+// 0x505de0. Al otro le quedan el rand() % 6, la cabeza y el rand() & 7, y después el héroe hace su paso. En
+// Lorencia y en Devias.
+TEST(CharacterStepTest, AnotherCharacterWithOpenCellAccessesSpendsNothingOnThem)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(::testing::Message() << "mapa " << map);
+        GameWorld tested(map);
+        ActorState& other = tested.Other(3);
+        other.cellXAccesses = 1;
+        other.cellYAccesses = 1;
+        CrtRandom expected(Seed);
+        Skip(expected, WallDraws + BodyDraws);
+        CharacterHead head;
+        StepCharacterHead(head, true, expected);
+        Skip(expected, EffectsRandomDraws + OwnRecordDraws + BodyDraws + SeenEffectsDraws);
+
+        const auto stepped = tested.Step(Everything);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(other.cellXAccesses, 1);
+        EXPECT_EQ(other.cellYAccesses, 1);
+        EXPECT_EQ(tested.random.State(), expected.State());
     }
 }
 
@@ -1015,32 +1293,46 @@ TerrainPolygon SelectionPolygon()
                                            Client::Scenes::SelectionCamera().angles.z);
 }
 
-// La selección con los cinco lugares y el héroe en el 0, con el trapecio de su dibujo: los cinco se ven (P-C46 b,
-// con la cuenta de MuRet) y marcan su celda lógica, la (0, 0), con 8 rand() cada uno. El héroe sale de 0x508ba0
-// sin gastar (0x508bad) y hace el camino del juego: su cuerpo con el registro propio y su 0x505de0 entero. El
-// lugar 1 gasta su 0x508ba0, su cuerpo y su celda, y corta en su cabeza (0x5068b9).
-TEST_F(GoldenCharacterStep, TheSelectionStopsAtTheHeadOfTheSecondSlot)
+// La selección con los cinco lugares y el héroe en el 0, con el trapecio de su dibujo, paso a paso: los cinco se
+// ven (P-C46 b, con la cuenta de MuRet) y marcan su celda lógica, la (0, 0), con 8 rand() cada uno. El héroe sale de
+// 0x508ba0 sin gastar (0x508bad) y hace el camino del juego: su cuerpo con el registro propio y su 0x505de0 entero.
+// Los lugares 1 a 4 gastan su 0x508ba0, su cuerpo, su celda, su cabeza (1 o 3) y el rand() & 7. Por paso, 40 +
+// 3.858 + 4 · 19 = 3.974, más 2 por cada cabeza que sortea (*simulado*). El esqueleto de prueba no tiene velocidad:
+// la animación no avanza, sin el rand() de 0x432bf1 desde el frame 3 ni el del sufijo al terminar la acción.
+TEST_F(GoldenCharacterStep, TheSelectionStepsItsFiveSlots)
 {
+    constexpr int Steps = 64;
     const auto items = LoadItems();
     ASSERT_TRUE(items.has_value());
     SceneCharacters tested(m_dataRoot, SelectionMap, 0);
     tested.items = &items->table;
     tested.PlaceTheFiveSlots();
     tested.world.Runtime().terrainPolygon = SelectionPolygon();
-
-    const auto stepped = tested.Step(SceneId::CharacterSelect);
-
-    ASSERT_TRUE(HasError(stepped, "0x5068b9")) << ErrorOf(stepped);
-    EXPECT_NE(stepped.Error().find("lugar 1 "), std::string::npos) << stepped.Error();
-    for (std::size_t slot = 0; slot < Client::Scenes::CharacterSlots.size(); ++slot)
+    CrtRandom expected(Seed);
+    std::array<CharacterHead, Client::Scenes::CharacterSlots.size()> heads{};
+    int sorted = 0;
+    for (int step = 1; step <= Steps; ++step)
     {
-        EXPECT_TRUE(tested.world.Actors()[slot].seen) << "lugar " << slot;
+        SCOPED_TRACE(::testing::Message() << "paso " << step);
+        Skip(expected, (5 * WallDraws) + OwnRecordDraws + BodyDraws + SeenEffectsDraws);
+        for (std::size_t slot = 1; slot < heads.size(); ++slot)
+        {
+            sorted += DrawASeenOther(expected, heads[slot]) ? 1 : 0;
+        }
+
+        const auto stepped = tested.Step(SceneId::CharacterSelect);
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        ASSERT_EQ(tested.random.State(), expected.State());
+        for (std::size_t slot = 0; slot < heads.size(); ++slot)
+        {
+            ASSERT_TRUE(tested.world.Actors()[slot].seen) << "lugar " << slot;
+            ASSERT_EQ(tested.world.Actors()[slot].headTurn.target, heads[slot].target) << "lugar " << slot;
+        }
     }
+    EXPECT_GT(sorted, 0);
     const std::uint16_t origin = tested.world.Map().terrain.attributes->cells[0];
     EXPECT_EQ(origin & Client::World::CharacterWallBit, Client::World::CharacterWallBit);
-    const int hero = OwnRecordDraws + BodyDraws + SeenEffectsDraws;
-    const int second = OtherCellDraws + BodyDraws + OtherSeenCellDraws;
-    EXPECT_EQ(tested.random.State(), RandomAfter((5 * WallDraws) + hero + second).State());
 }
 
 // Sin Item.bmd, el héroe de la selección corta en las alas del tipo 0 de su registro en cero (0x54efe0, desde
@@ -1058,37 +1350,72 @@ TEST_F(GoldenCharacterStep, WithoutItemBmdTheSelectionHeroStopsAtItsWings)
 }
 
 // Después de la vuelta, el héroe publicado sigue en el lugar del juego (Q-C213), que 0x510f70(−1) mató: los cinco
-// son otros, y el lugar 0 gasta su 0x508ba0, su cuerpo sin el registro propio y su celda antes de cortar en su
-// cabeza.
-TEST_F(GoldenCharacterStep, AfterTheReturnTheFirstSlotStopsAtItsHead)
+// son otros, sin el registro propio, y cada uno saca su TerrainWall, su 0x508ba0, su cuerpo, su celda, su cabeza y
+// el rand() & 7: 40 + 5 · 19 = 135 por paso, más 2 por cada cabeza que sortea (*simulado*), con la animación
+// quieta.
+TEST_F(GoldenCharacterStep, AfterTheReturnTheFiveSlotsAreOthers)
 {
+    constexpr int Steps = 64;
     SceneCharacters tested(m_dataRoot, SelectionMap, 42);
     tested.PlaceTheFiveSlots();
     tested.world.Runtime().terrainPolygon = SelectionPolygon();
+    CrtRandom expected(Seed);
+    std::array<CharacterHead, Client::Scenes::CharacterSlots.size()> heads{};
+    int sorted = 0;
+    for (int step = 1; step <= Steps; ++step)
+    {
+        SCOPED_TRACE(::testing::Message() << "paso " << step);
+        Skip(expected, 5 * WallDraws);
+        for (CharacterHead& head : heads)
+        {
+            sorted += DrawASeenOther(expected, head) ? 1 : 0;
+        }
 
-    const auto stepped = tested.Step(SceneId::CharacterSelect);
+        const auto stepped = tested.Step(SceneId::CharacterSelect);
 
-    ASSERT_TRUE(HasError(stepped, "0x5068b9")) << ErrorOf(stepped);
-    EXPECT_NE(stepped.Error().find("lugar 0 "), std::string::npos) << stepped.Error();
-    EXPECT_EQ(tested.random.State(),
-              RandomAfter((5 * WallDraws) + OtherCellDraws + BodyDraws + OtherSeenCellDraws).State());
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        ASSERT_EQ(tested.random.State(), expected.State());
+        for (std::size_t slot = 0; slot < heads.size(); ++slot)
+        {
+            ASSERT_EQ(tested.world.Actors()[slot].headTurn.angles, heads[slot].angles) << "lugar " << slot;
+        }
+    }
+    EXPECT_GT(sorted, 0);
 }
 
-// El login con el personaje del lugar 2 en su lugar (0x6349a0, LoginCharacterTransform) y el héroe del lugar 0 sin
-// construir, con el trapecio de la .bss del primer paso (Q-C217): 8 rand() del TerrainWall, 8 de su 0x508ba0, el
-// de su cuerpo y 8 de su celda, y corta en su cabeza.
-TEST_F(GoldenCharacterStep, TheLoginStopsAtTheHeadOfItsCharacter)
+// El login con el personaje del lugar 2 en su lugar (0x6349a0, LoginCharacterTransform), con el cetro y el cuervo en
+// las manos (sin luz) y en su acción de parado, y el héroe del lugar 0 sin construir, desde el trapecio de la .bss
+// del primer paso (Q-C217): por paso, 8 rand() del TerrainWall, 8 de su 0x508ba0, el de su cuerpo, 8 de su celda, su
+// cabeza y el rand() & 7: 27, y 29 cuando la cabeza sortea (*simulado*), con la animación quieta (sin el rand() de
+// 0x432bf1 desde el frame 3). La cabeza es la que el login corre por su cuenta (LoginScene, 06 § Lo demás del
+// login).
+TEST_F(GoldenCharacterStep, TheLoginStepsItsCharacter)
 {
+    constexpr int Steps = 200;
     SceneCharacters tested(m_dataRoot, LoginMap, 0);
-    ActorState& login = tested.Place(2, glm::vec3(10603.0f, 14112.0f, 580.0f));
+    ActorState& login = tested.Place(2, Client::Scenes::LoginCharacterTransform().position);
+    login.hands[0].model = LoginScepter;
+    login.hands[1].model = Client::Scenes::LoginRavenItem;
+    login.animation.action = Client::Scenes::LoginCharacterStandingAction;
+    CrtRandom expected(Seed);
+    CharacterHead head;
+    int sorted = 0;
+    for (int step = 1; step <= Steps; ++step)
+    {
+        SCOPED_TRACE(::testing::Message() << "paso " << step);
+        Skip(expected, WallDraws);
+        sorted += DrawASeenOther(expected, head) ? 1 : 0;
 
-    const auto stepped = tested.Step(SceneId::Login);
+        const auto stepped = tested.Step(SceneId::Login);
 
-    ASSERT_TRUE(HasError(stepped, "0x5068b9")) << ErrorOf(stepped);
-    EXPECT_NE(stepped.Error().find("lugar 2 "), std::string::npos) << stepped.Error();
-    EXPECT_TRUE(login.seen);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        ASSERT_TRUE(login.seen);
+        ASSERT_EQ(tested.random.State(), expected.State());
+        ASSERT_EQ(login.headTurn.angles, head.angles);
+        ASSERT_EQ(login.headTurn.target, head.target);
+    }
+    EXPECT_GT(sorted, 0);
     EXPECT_FALSE(tested.world.Actors()[0].alive);
-    EXPECT_EQ(tested.random.State(), RandomAfter(WallDraws + OtherCellDraws + BodyDraws + OtherSeenCellDraws).State());
 }
 
 // Fuera del juego el héroe hace el mismo camino: con el héroe solo, en un mapa del juego (el 0 y el 2) y con la

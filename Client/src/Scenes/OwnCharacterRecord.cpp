@@ -4,8 +4,21 @@
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "World/ItemState.h"
 
+#include <cstddef>
+
 namespace Client::Scenes
 {
+void OwnCharacterRecord::ResetForSelection()
+{
+    byte6a = 0;
+    words6c.fill(0);
+    constexpr std::size_t ResetItems = 8;
+    for (std::size_t slot = 0; slot < ResetItems; ++slot)
+    {
+        equipment[slot].scalar1Low = 0;
+    }
+}
+
 void OwnCharacterRecord::ApplyStats(const Protocol::Character::CharacterSelectResult& reply, Core::Log& log)
 {
     experience = reply.experience;

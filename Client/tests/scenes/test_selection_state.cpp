@@ -5,12 +5,15 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
 #include "support/GoldenDir.h"
 #include "support/TemporaryFolder.h"
+
+#include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
 
@@ -257,6 +260,26 @@ TEST_F(SelectionStateTest, DrawingWritesAllFiveHeightsAndLeavesTheirPositionsAnd
     EXPECT_EQ(m_input.hero.x, 7.0f);
     EXPECT_EQ(m_input.hero.y, 8.0f);
     EXPECT_EQ(m_input.hero.z, 163.0f);
+}
+
+// Q-C213: después de un F1 02 con 1 el héroe publicado es el lugar que sorteó el juego. Uno de los cinco
+// lleva la cámara; fuera de ellos, la construcción no la mueve y el dibujo no le pone la Z de la selección.
+TEST_F(SelectionStateTest, TheCameraFollowsAHeroPublishedByTheGame)
+{
+    m_world.Runtime().hero = 4;
+    m_input.hero = {7.0f, 8.0f, 9.0f};
+    ASSERT_TRUE(Apply({List({Entry(0), Entry(4)})}).HasValue());
+    EXPECT_EQ(m_input.hero, m_state.Slots()[4].position);
+    m_state.DrawSelection(m_input);
+    EXPECT_EQ(m_input.hero.z, 163.0f);
+
+    m_world.Runtime().hero = 237;
+    m_input.hero = {7.0f, 8.0f, 9.0f};
+    ASSERT_TRUE(Apply({List({Entry(0), Entry(4)})}).HasValue());
+    EXPECT_EQ(m_input.hero, (glm::vec3{7.0f, 8.0f, 9.0f}));
+    m_state.DrawSelection(m_input);
+    EXPECT_EQ(m_input.hero.z, 9.0f);
+    EXPECT_EQ(m_state.Slots()[0].position.z, 163.0f);
 }
 
 TEST_F(SelectionStateTest, ReconstructingAfterDrawingReplacesTheRenderedHeight)

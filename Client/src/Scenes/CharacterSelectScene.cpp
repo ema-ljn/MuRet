@@ -70,12 +70,12 @@ namespace
 // la traza es la 3, con un arma de una mano. Las otras, sin leer (P-C14 c): hasta entonces, la 3.
 constexpr std::uint8_t StandingAction = 3;
 
-// La luz de 0x50ba30 en la escena 4: 0,4, y 0,5 para el "héroe" (DAT_0743a170, el objeto 0, que es
-// el del lugar 0: 0x50d219), más el +0xf4 que pone 0x634680, 1 para el elegido.
+// La luz de 0x50ba30 en la escena 4: 0,4, y 0,5 para el "héroe" (DAT_0743a170: 0x50d219), más el +0xf4
+// que pone 0x634680, 1 para el elegido. El héroe es el objeto 0, el del lugar 0, hasta la primera entrada
+// al mundo; después de un F1 02 con 1, el lugar que sorteó el juego (Q-C213).
 constexpr float CharacterLight = 0.4f;
 constexpr float HeroLight = 0.5f;
 constexpr float ChosenExtraLight = 1.0f;
-constexpr std::uint8_t HeroSlot = 0;
 
 // Los textos que 0x622c70 busca en el nombre de uno nuevo.
 constexpr std::size_t OperationText = 457;
@@ -185,7 +185,9 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     // 0x633f20 → 0x65f4b0 → 0x63d1a0 → 0x63d7c0 → 0x63e3e0, al entrar: la vista previa con la clase
     // de la ventana (el Dark Knight) y la acción 1.
     ChoosePreviewClass(m_preview, m_create.ChosenClass(), m_selectionModels);
-    if (m_session != nullptr)
+    // El F3 00 de la entrada desde el login (0x634dce). Después de un F1 02 con 1 ya lo mandó la sesión
+    // (0x4c3653) y espera la lista: no se pide otra.
+    if (m_session != nullptr && m_session->State() == App::SessionState::LoggedIn)
     {
         m_session->RequestCharacterList();
     }
@@ -718,6 +720,7 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         cameraInput.hero.z = CharacterSlotHeight;
     }
     const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
+    const std::size_t hero = m_context.world != nullptr ? m_context.world->Runtime().hero : 0;
     const int scanFrames = m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
     for (Character& character : m_characters)
     {
@@ -729,8 +732,8 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         drawn.wings = character.animation.wings.state;
         drawn.object = ObjectOf(character);
         const bool isChosen = chosen != nullptr && chosen->slot == character.slot;
-        drawn.light =
-            glm::vec3((character.slot == HeroSlot ? HeroLight : CharacterLight) + (isChosen ? ChosenExtraLight : 0.0f));
+        drawn.light = glm::vec3((static_cast<std::size_t>(character.slot) == hero ? HeroLight : CharacterLight) +
+                                (isChosen ? ChosenExtraLight : 0.0f));
         drawn.outlined = m_hovered == character.slot;
         drawn.cloth = &character.cloth;
         drawn.clothWorld = m_context.cloth;

@@ -46,7 +46,10 @@ public:
     void RetainTerrain(int map, World::WorldTerrain terrain);
     void BeginSelection();
     void EnterLogin();
-    // CL7.3 B: Hero conserva celda lógica 0; copia su atributo vivo sin escribir XYZ.
+    // CL7.3 B: Hero conserva celda lógica 0; copia su atributo vivo sin escribir XYZ. Después de un F1 02
+    // con 1 el héroe es el del juego, en su celda, pero la cámara de la selección solo mira el 0x40 y el
+    // 0x80, y fuera del mapa 30, que MuRet no carga, ningún .att los tiene (05): con el terreno del juego
+    // o con el del 54, da lo mismo (Q-C213).
     void RefreshCameraAttribute(World::GameCameraInput& input) const;
     [[nodiscard]] Core::Expected<void, std::string> InitializeSelection(const std::filesystem::path& dataRoot,
                                                                         World::GameCameraInput& input);

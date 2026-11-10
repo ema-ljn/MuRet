@@ -63,6 +63,7 @@
 #include "Scenes/TestScene.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldLoadingScene.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 
@@ -652,8 +653,11 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
     }
     const auto pollNetwork = [&online]() -> Core::Expected<void, std::string>
     { return online ? online->Poll() : Core::Expected<void, std::string>{}; };
+    // La escena que dejó la red (el F1 02 con 1, 0x4c363f), una vez.
+    const auto takeSceneOrder = [&world]() -> std::optional<Scenes::SceneId>
+    { return std::exchange(world.Runtime().orderedScene, std::nullopt); };
     Scenes::SceneManager manager(MakeSceneFactory(context, scenes.data, models, session), *frame.Value(), clock,
-                                 pollNetwork, log);
+                                 pollNetwork, log, takeSceneOrder);
     if (!manager.Start(Scenes::FirstScene).HasValue())
     {
         return EXIT_FAILURE;

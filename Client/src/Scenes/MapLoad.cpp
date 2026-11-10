@@ -44,34 +44,6 @@ constexpr std::int32_t SeventhKalimaMap = 36;
 constexpr int GrassSteps = 4;
 constexpr float GrassStep = 0.25f;
 
-// 0x510f70(clave): mata al vivo cuya clave, con signo (movsx en 0x510f8a), no es la del DWORD que
-// recibe: +0 en 0, 0x401040 y el caballo de la tabla 0x7d335d0 que lo lleva (+0x108). El muerto y el de
-// la misma clave saltan los dos a 0x510fc2: con los 400, también con el héroe que sobrevive, suelta el
-// cuervo (0x421d60, +0x430), las telas (0x4fb1a0) y +0x364 (0x414340) (Q-C194). MuRet no tiene nada de
-// eso en el mundo: ni caballos, ni cuervos, ni telas de los personajes del juego.
-void KillOtherActors(std::span<ActorState, ActorPoolSize> actors, std::uint16_t key)
-{
-    for (ActorState& actor : actors.first<KilledActorCount>())
-    {
-        const auto actorKey = static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key));
-        if (actor.alive && actorKey != static_cast<std::int32_t>(key))
-        {
-            actor.alive = false;
-        }
-    }
-}
-
-// 0x6070a0: el byte vivo de los efectos y los objetos del mapa anterior. El registro de objetos queda:
-// su limpieza no está leída.
-void ReleaseThePreviousMap(WorldMap& loaded)
-{
-    loaded.effects.Clear();
-    loaded.objects.clear();
-    loaded.objectRecords.clear();
-    loaded.grassOffsets.clear();
-    loaded.terrain = World::WorldTerrain{};
-}
-
 // Los especiales de 0x616ec0 (el segundo switch, 0x61733e) que crea con 0x606660. El 0 no tiene.
 std::vector<Data::Terrain::TerrainObject> SpecialObjectsOf(std::int32_t map)
 {
@@ -88,6 +60,14 @@ std::vector<Data::Terrain::TerrainObject> SpecialObjectsOf(std::int32_t map)
         return {Data::Terrain::TerrainObject{0x142, {22300.0f, 3000.0f, 10.0f}, NoAngle, 1.0f}};
     }
     return {};
+}
+
+// Lo que la carga vuelve a llenar: el original lo pisa al cargar, y MuRet lo vacía antes para que una
+// carga que corta no deje el del mapa anterior.
+void ForgetThePreviousTerrain(WorldMap& loaded)
+{
+    loaded.grassOffsets.clear();
+    loaded.terrain = World::WorldTerrain{};
 }
 
 std::string DescribeCreationError(World::WorldObjectCreationError error)
@@ -160,16 +140,37 @@ Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, Wo
 }
 } // namespace
 
+void KillOtherActors(std::span<ActorState, ActorPoolSize> actors, std::int32_t key)
+{
+    for (ActorState& actor : actors.first<KilledActorCount>())
+    {
+        const auto actorKey = static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key));
+        if (actor.alive && actorKey != key)
+        {
+            actor.alive = false;
+        }
+    }
+}
+
+void ReleaseTheMapObjects(WorldMap& loaded)
+{
+    loaded.effects.Clear();
+    loaded.objects.clear();
+    loaded.objectRecords.clear();
+}
+
 Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoadContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
     runtime.map = Data::MapAtWorldLoadStart(argumentMap, runtime.map);
     const std::int32_t map = runtime.map;
     WorldMap& loaded = context.world.Map();
-    ReleaseThePreviousMap(loaded);
+    ReleaseTheMapObjects(loaded);
+    ForgetThePreviousTerrain(loaded);
     if (context.scene != SceneId::CharacterSelect)
     {
-        KillOtherActors(context.world.Actors(), context.playerKey);
+        // El DWORD 0x57678bc lleva la clave sin signo.
+        KillOtherActors(context.world.Actors(), static_cast<std::int32_t>(context.playerKey));
     }
     if (map == LoginMap)
     {

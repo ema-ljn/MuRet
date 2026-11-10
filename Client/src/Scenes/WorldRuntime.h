@@ -2,6 +2,7 @@
 
 #include "GameLogic/MovementSpeed.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/SceneId.h"
 #include "World/TerrainCulling.h"
 
 #include <cstddef>
@@ -33,9 +34,14 @@ struct WorldRuntime
     // DAT_07d3a101, el mundo cargado: en 0, el paso del juego sale en 0x636db5 y su dibujo devuelve
     // 0 en 0x6371a6, sin leer el contador. Lo ponen en 1 la carga del 54 de la selección (0x633f30,
     // dentro de 0x633f20) y el paso del juego con el estado 0x3d (0x636dac), y en 0 solo el F1 02
-    // (0x4c2f39, 0x4c38f9). El login también lo pone en 1 al cargar el 55 (0x6349ab); MuRet no lo
-    // escribe ahí porque el juego, su único lector portado, llega siempre después de 0x633f20.
+    // (0x4c2f39 con 2 y 0x4c38f9 con 1, que MuRet sigue: ApplyReturnToSelection). El login también lo
+    // pone en 1 al cargar el 55 (0x6349ab); MuRet no lo escribe ahí porque el juego, su único lector
+    // portado, llega siempre después de 0x633f20.
     bool drawingEnabled = false;
+    // DAT_006d5dc8 escrito por un paquete: el F1 02 con 1 pone la 4 (0x4c363f) mientras se lee la red, y
+    // el próximo paso del original ya es el de la selección. MuRet la deja acá y el SceneManager la toma
+    // después del Poll (main.cpp) y entra en su próximo paso. Vacía, nadie la pidió.
+    std::optional<SceneId> orderedScene{};
     // DAT_07d3a13e: si la carga del mundo (0x6356f0) ya armó el contador y subió sus texturas. La
     // baja la selección justo antes de pasar a la escena 3 (0x633efe, 0x634469, 0x634631) y la sube
     // 0x6356f0 (0x635980). Nadie más la escribe.
@@ -55,7 +61,8 @@ struct WorldRuntime
     std::int32_t heroSlot = 0;
     // DAT_0743a170, el héroe publicado, como lugar del pool: WinMain lo deja en el 0 (0x4bafdf) y la
     // respuesta del F3 03 lo pasa al de heroSlot recién después de vestirlo con 0x512a30 (0x4c4725). No
-    // lo escribe nadie más: en una segunda respuesta, hasta ahí es el héroe anterior.
+    // lo escribe nadie más: en una segunda respuesta, hasta ahí es el héroe anterior, y después de la vuelta
+    // a la selección sigue en el lugar del juego (Q-C213).
     std::size_t hero = 0;
     // [0x743a178] y [0x743a17c], lo que dejó el último 0x505820 (06, "El conjunto completo de 0x505820"): en
     // la .bss, 0 al arrancar. Lo escriben 0x512a30 con el héroe publicado y el dibujo de los personajes

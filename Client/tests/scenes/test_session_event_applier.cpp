@@ -13,8 +13,10 @@
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
+#include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 
@@ -132,5 +134,26 @@ TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
     EXPECT_EQ(tested.world.OwnCharacter().zen, 1234u);
     EXPECT_EQ(tested.world.Runtime().map, 0);
     EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
+}
+
+// El F1 02 con 1 cifrado va a la vuelta de 0x4c2710: deja la orden de la escena 4 y el mundo en −1, y
+// cierra el registro propio con sus 3.848 rand(), sin tocar la sesión ni la selección.
+TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
+{
+    Applier tested;
+    Client::Tests::LoggedInSession online;
+    tested.world.Runtime().map = 0;
+    tested.world.Runtime().drawingEnabled = true;
+    const Client::App::WorldEvent event = Client::App::ReturnToSelectionReceived{};
+
+    const auto result = tested.applier.ApplyWorld(event, online.session);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Scenes::SceneId::CharacterSelect);
+    EXPECT_EQ(tested.world.Runtime().map, -1);
+    EXPECT_FALSE(tested.world.Runtime().drawingEnabled);
+    EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
+    EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
+    EXPECT_FALSE(tested.selection.HasReceivedList());
 }
 } // namespace

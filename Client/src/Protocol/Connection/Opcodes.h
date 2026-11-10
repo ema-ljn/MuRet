@@ -28,4 +28,7 @@ inline constexpr std::uint8_t DecryptErrorSubcode = 0x03; // el aviso de un C3/C
 
 // 0E: el keepalive, sin subcódigo.
 inline constexpr std::uint8_t KeepaliveOpcode = 0x0E;
+
+// 31: el C1 03 31 de 0x419900 y 0x4499b0, sin subcódigo. El nombre es inferido (Logout.h).
+inline constexpr std::uint8_t WindowCloseOpcode = 0x31;
 } // namespace Client::Protocol::Connection

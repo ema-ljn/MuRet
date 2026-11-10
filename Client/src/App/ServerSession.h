@@ -81,6 +81,9 @@
 //   un error del sink --cierra y corta el lote--> Failed (ApplicationFailed), también después de
 //     publicar InWorld
 //   con el GS --F1 02 con 0: cierra, sin aviso--> QuitOrdered (Q-C106)
+//   con el GS --F1 02 con 1 cifrado: aplica en el sink la vuelta a la selección y manda F3 00 y dos
+//     C1 03 31--> WaitingCharacterList (Q-C211 a Q-C215)
+//   con el GS --F1 02 con 1 en claro: manda F1 03 00 F1--> el mismo estado (Q-C211)
 //   cualquier Waiting* que espera un servidor --ReplyTimeout sin su respuesta: cierra--> Failed
 //     (NoReply); ChoosingServer, WaitingCredentials y ChoosingCharacter esperan al jugador y no
 //     tienen tope; EnteringWorld tampoco, como el mosaico del original mientras no llega la
@@ -93,7 +96,14 @@
 // manda al final de su cuenta de 5 s (gObjCloseSet) y justo después cierra la conexión: ese cierre
 // ya no es GameServerLost, porque la sesión cerró antes y deja el resto del lote, como el original,
 // que al cerrar vacía su cola de paquetes (0x4e8380). QuitOrdered es el final: ni Start la saca. Con
-// 1 o con 2 (la selección o la lista, Q-C79) se ignora con un aviso hasta la CL6 y la CL9.
+// 2 (la lista, Q-C79) se ignora con un aviso hasta la CL9.
+//
+// El F1 02 con 1 vuelve a la selección, también en cualquier estado con el GS y sin mirar la escena
+// (0x4c2710). Cifrado, el sink limpia el juego y deja la orden de la escena 4 (Scenes::ApplyReturnToSelection),
+// la sesión olvida la lista y la elección, pide la lista nueva (el F3 00 de 0x4c3653) y manda el C1 03 31
+// de 0x419900 y el de 0x4499b0, en ese orden, como el original; la selección espera la lista
+// (WaitingCharacterList, con su ReplyTimeout) y no la vuelve a pedir. Sin cifrar no cambia de escena:
+// solo el F1 03 00 F1 (06, "La vuelta a la selección").
 //
 // El timer del keepalive empieza al construir la sesión y conserva su fase al cambiar de estado,
 // aceptar/rechazar el login y reconectar, salvo el aborto de aplicación descrito abajo. En cada
@@ -293,6 +303,8 @@ private:
     void OnWorldEntryReply(const Network::Packet& packet);
     void OnInventoryReply(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
+    // El F1 02 con 1, con `encrypted` en el flag del paquete.
+    void ReturnToSelection(bool encrypted);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.
     void SendKeepalive(Core::Duration now);
 

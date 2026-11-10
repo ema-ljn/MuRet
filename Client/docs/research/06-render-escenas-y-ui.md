@@ -2251,6 +2251,9 @@ Leída en la CL6.R en el desensamblado de `c32bbd5f`: todo *estático* salvo lo 
   de la lista (`0x5767958`, `0x576795c`) no es 0, escribe una línea con `sprintf` y el texto 1240
   **como formato** (`0x63420a`).
 
+"La primera vez" es la bandera `0x7d3a13f`, que la vuelta desde el juego (el `F1 02` con 1) pone en
+0: `0x633f20` corre otra vez, con la lista nueva ([La vuelta a la selección](#la-vuelta-a-la-selección)).
+
 ### La lógica
 
 Cada paso, `0x6342c0` anima (`0x508ea0`, la vista previa entre otros) y corre las rutas de la
@@ -4588,6 +4591,72 @@ propio del terreno de algunos mapas (*estático*; MuRet ya tiene lo marcado con 
 Fuera de Lorencia pero en el mismo lugar del paso: con la capa 1 en 3 o en 10 o más, Devias oculta
 los techos `0x51`, `0x52`, `0x60`, `0x62` y `0x63` y no nieva.
 
+### La vuelta a la selección
+
+El `F1 02` con `pkt[4]` en 1 (`0x4c2710` salta a `0x4c2f5b` en `0x4c274f`; *estático*, CL7 hito 1,
+T14). No mira la escena ni el estado: lo primero que mira es el cuarto argumento del dispatcher, el
+del paquete cifrado (`0x4c2f5b..0x4c2f5e`). La mirada a la escena 5 de `0x4c275c` es solo del 2:
+con 2, en la escena 5 limpia el juego (`0x42fdc0`, `0x622b00`, `0x41ee50`, `0x5be150` y `0x61eef0`,
+`0x4c2765..0x4c2779`) **antes** de mirar si llegó cifrado, así que también lo limpia en claro, y
+recién después elige entre volver al login (`0x4c2ef3`) y el aviso (`0x4c2787..0x4c2ef2`). El 2
+llega con la CL9.
+
+- **Sin cifrar** (`0x4c2f64..0x4c35dd`): arma `C1 06 F1 03 00 F1` y lo manda por el C3, como el
+  aviso del `F3 03` en claro (`0x4c396a`) y el del `F3 10` (Q-C205), y sale por `0x4c3921`. No
+  limpia nada ni cambia la escena (Q-C211).
+- **Cifrado** (`0x4c3626..0x4c390f`), en este orden:
+
+| Dónde | Qué hace | MuRet |
+| --- | --- | --- |
+| `0x4c3626`, `0x4c362b` | `0x622b00` y `0x41ee50`: paran sonidos | sin audio hasta la CL10 |
+| `0x4c3630` | `0x5be150`: sale en `0x5be160` sin un ítem en `[0x7879fbc]`, que solo escriben con un valor `0x4d1c89` y `0x4d29cb`, handlers que MuRet no tiene; con uno, saca `rand()` y toca la caja de `0x723c80` | queda en 0 ([Los stats del registro propio](#los-stats-del-registro-propio)): nada |
+| `0x4c3635` | `0x61eef0`: `0x6070a0` (los efectos y los objetos del mapa; no toca el terreno ni el pasto), `0x612230` y `0x612d50` (sueltan los modelos `0x152..0x207` y los sonidos `0xa0..0x1c1`), `0x607b40` (los ítems del piso) y `0x510f70(−1)` (`0x61ef04`) | `ReleaseTheMapObjects` y `KillOtherActors(−1)`: de los 400, sobrevive solo el de la clave `0xffff`, y el 401 no se recorre (Q-C212); los modelos sueltos y los ítems del piso no los tiene |
+| `0x4c363a` | `0x42fdc0`: globales de la interfaz a su valor inicial | no los tiene |
+| `0x4c363f` | la escena 4 | `WorldRuntime::orderedScene`: el `SceneManager` la toma después del `Poll` y entra en su próximo paso, antes del paso de la escena (`SceneManager::Step`) |
+| `0x4c3649..0x4c38e4` | el estado `0x32` y el `F3 00` | la sesión: `WriteCharacterListRequest` |
+| `0x4c38eb`, `0x4c38f2` | `0x7d3a13f` y `0x7d3a140` en 0: la primera vez de la selección (`0x633f20` corre otra vez) y del juego (`0x636290`, otro `F3 03`) | cada escena es nueva: `SelectionState::BeginSelection` y `GameScene::Enter` |
+| `0x4c38f9` | `0x7d3a101` en 0: el mundo sin cargar | `drawingEnabled` en `false`: el juego no avanza ni dibuja hasta que la selección cargue el 54 |
+| `0x4c3900` | el estado en 0: la lógica de la selección (`0x6342c4`) y su dibujo (`0x634695`) esperan la lista, que lo pasa a `0x33` (`0x4c224f`, `0x4c225f`) | `WaitingCharacterList`, con su `ReplyTimeout`; la selección no pide otra lista |
+| `0x4c390a` | `0x4c2480`, abajo | |
+
+`0x4c2480` (`0x4c2480..0x4c2702`), lo que MuRet tiene:
+
+| Dónde | Qué hace | MuRet |
+| --- | --- | --- |
+| `0x4c250e` | el nivel de la cámara (el WORD `0x7d3a0ec`) en 0 | `GameCamera::level` en 0 |
+| `0x4c2540` | el mundo en curso (`0x6c9dd0`) en −1 | `WorldRuntime::map` en −1 |
+| `0x4c2546` | `0x419900`, con `[0x710148]`: pone en 0 su `+0x21383` y manda `C1 03 31` (`0x419a0e`), en claro y sin XOR32 | la sesión: `WriteWindowClose` |
+| `0x4c2575..0x4c264b` | abre el registro propio por la tabla de protección (o lo da de alta con la cuenta en 1, `0x4c25cf..0x4c25ea`), pone en 0 `+0x3c` (byte), `+0x3e`, `+0x40` y `+0x42` (`0x4c2600..0x4c260b`) y lo cierra: si queda en 0, `0x40b4d0` y sus 3.848 `rand()` | `LogicalAccess` con `OwnRecordCloseRandoms` |
+| `0x4c269d` | `[0x710148] + 4` en `0xff`: la próxima entrada al mundo vuelve a mandar el `A0` | MuRet no manda el `A0` (Q-C215) |
+| `0x4c26da..0x4c26e7` | con `[0x576352c]` (el objeto que crea WinMain en `0x4bb993` y suelta al cerrar, `0x4af319`), `0x657670`, cuyo `0x4499b0`, si la caja de `0x723c80` está vacía (`0x449c10`: los 32 lugares de `0x48` bytes con el WORD en `0xffff`), pone en 0 `0x724580` y `0x724584` y manda otro `C1 03 31` (`0x449ad1`) | la sesión: el segundo `WriteWindowClose` (Q-C214) |
+
+Lo demás que escriben `0x4c2480` y `0x4c2710` son globales de la interfaz, del chat, del gremio y
+del juego que MuRet no tiene (`0x57678ed..0x5767960`, `0x6c82e8`, `0x6c8e28..0x6c8e50`,
+`0x78abaa8`, `0x77f3b67`, `0x78abb04..0x78abb10`, `0x6c9320..0x6c932c`, `0x77f3b78`, `0x77f3b08`,
+`+0x2134c..+0x21385` de `[0x710148]`), y las llamadas `0x5545f0`, `0x555030`, `0x40ba20` (con
+`[0x723c60]`), `0x5e3c70`, `0x5ecda0`, `0x403300` y `0x403d60`. Ninguna de esas llamadas, ni
+`0x622b00`, `0x41ee50`, `0x61eef0`, `0x42fdc0`, `0x419900` y `0x657670`, llega a `rand()` por
+llamadas directas; `0x5be150` sí, y no lo saca sin el ítem. Así, la vuelta saca solo los 3.848 del
+cierre del registro (`ReturnToSelectionTest`). Lo que **queda**: el terreno y el pasto del juego
+(la selección los usa para construir los personajes de la lista hasta que `0x633f20` cargue el 54),
+el héroe publicado (`0x743a170`, que solo escriben WinMain y `0x4c4725`) en su lugar del juego,
+aunque esté muerto, y lo que la cámara lee de él (Q-C213).
+
+Los paquetes salen en este orden: el `F3 00` (cifrado, `0x4c3653`), el `C1 03 31` de `0x419900` y el
+de `0x4499b0`. Qué hace el GS con el `C1 03 31` no está leído: el nombre de MuRet (`WindowClose`)
+sale de lo que hace el cliente al mandarlo (*inferido*).
+
+MuRet (`Scenes::ApplyReturnToSelection`, desde el `SessionEventApplier`, y
+`ServerSession::ReturnToSelection`) lo sigue en ese orden. El 1 llega en cualquier escena con el GS,
+y la orden pasa por la tabla de transiciones: desde el juego, la selección o el login cambia; desde
+la carga o la carga del mundo, es un error en el log (Q-C79). La selección que sigue espera la
+lista que pidió la sesión, la construye en el terreno del juego con el mundo en −1, la ilumina y le
+pone la cámara al héroe publicado si cae entre los cinco, y al elegir vuelve a pasar por la carga
+del mundo, con el mosaico y el contador en 9.999.999, como la primera vez
+(`SceneManagerTest.GameSelectionGameHoldsAndReloadsAgain`). La respuesta del `F3 03` que sigue corre
+como una segunda ([La entrada al mundo](#la-entrada-al-mundo)), con el mapa en 54 otra vez y el
+publicado, muerto, en su lugar del juego hasta `0x4c4725`. Lo que pide la VM, P-C45.
+
 ### La tabla de protección
 
 Algunas variables del juego viven cifradas en la tabla de `0x57630c8` y están en claro solo mientras
@@ -4626,6 +4695,7 @@ paso o por frame (*estático*; el de la cámara, *emulado*):
 | el `F3 04` (tres cierres), el `F3 10` (uno común, uno por cada lugar del equipo y uno por cada ítem de una grilla con `[0x78a6758]` en menos de 12; [El F3 10, el inventario](#el-f3-10-el-inventario)) y el `D7` al héroe (uno, en línea) | con cada paquete | 3.848 por cierre |
 | `0x508f00`, las celdas lógicas al marcar el `TerrainWall` | cada paso, por cada personaje vivo | 8 |
 | `0x635ae0`, la celda del héroe para el atributo | cada frame dibujado, también en las escenas 2 y 4 | 8 |
+| `0x4c2480`, la vuelta a la selección (el `F1 02` con 1 cifrado) | un cierre en línea del registro propio (`0x4c260f..0x4c264b`; [La vuelta a la selección](#la-vuelta-a-la-selección)) | 3.848 |
 
 El mismo gasto lo tienen los otros accesos a `+0x41c` y `+0x420` (en `MoveHero`, `MovePath` y el
 `D3`, 4 por cierre) y el contador de pasos (Q-C125). Ese azar no se usa para nada, pero corre la

@@ -28,8 +28,10 @@ std::string Describe(SceneId scene)
 } // namespace
 
 SceneManager::SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClock& clock,
-                           std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log)
-    : m_factory(std::move(factory)), m_frame(frame), m_clock(clock), m_pollNetwork(std::move(pollNetwork)), m_log(log)
+                           std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log,
+                           std::function<std::optional<SceneId>()> takeSceneOrder)
+    : m_factory(std::move(factory)), m_frame(frame), m_clock(clock), m_pollNetwork(std::move(pollNetwork)), m_log(log),
+      m_takeSceneOrder(std::move(takeSceneOrder))
 {
 }
 
@@ -74,6 +76,16 @@ void SceneManager::Poll()
         m_failure = polled.Error();
         m_pollFailed = true;
         m_log.Error("no se pudo aplicar la recepción de la sesión: {}", *m_failure);
+        return;
+    }
+    if (!m_takeSceneOrder)
+    {
+        return;
+    }
+    if (const std::optional<SceneId> order = m_takeSceneOrder())
+    {
+        // Dos órdenes antes de un paso: el original solo ve la última escritura.
+        m_networkOrder = order;
     }
 }
 
@@ -84,6 +96,15 @@ void SceneManager::Step(const Input::InputState& input)
         return;
     }
     m_framePrepared = false;
+    // El original escribió la escena mientras leía la red: este paso ya es el de la nueva.
+    if (const std::optional<SceneId> order = std::exchange(m_networkOrder, std::nullopt))
+    {
+        Request(*order);
+        if (m_failure || !m_scene)
+        {
+            return;
+        }
+    }
     m_scene->Step(input);
     if (TakeTheSceneFailure("avanzar"))
     {

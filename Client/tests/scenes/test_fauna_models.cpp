@@ -23,10 +23,14 @@ namespace
 void WriteMonster(const std::filesystem::path& root, int number)
 {
     auto model = Client::Tests::SampleModel();
-    model.actions.assign(8, model.actions.front());
+    const auto action = model.actions.front();
+    model.actions.assign(8, action);
     for (auto& bone : model.bones)
         if (!bone.dummy)
-            bone.actions.assign(8, bone.actions.front());
+        {
+            const auto frames = bone.actions.front();
+            bone.actions.assign(8, frames);
+        }
     model.meshes.front().textureName = "fauna.tga";
     Client::Tests::WriteSceneFile(root, "Monster/Monster" + std::to_string(number) + ".bmd",
                                   Client::Tests::PlainBmd(Client::Tests::BmdContent(model), 0x0a));

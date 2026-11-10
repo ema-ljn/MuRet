@@ -26,6 +26,7 @@
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/WorldModels.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
@@ -33,6 +34,7 @@
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainWalls.h"
+#include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
 
 #include "support/AppPrinters.h"
@@ -63,6 +65,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 // Client::Scenes::GameScene: la escena 5 mientras espera el mundo y con el mundo. Manda el F3 03 en su
 // primer paso (0x636290), baja el contador de la espera como MoveHero (0x59af01) y retiene el frame
@@ -689,13 +692,50 @@ GrassHeights GrassHeightsOf(const Client::Tests::FrameEvent& models, std::uint16
     return heights;
 }
 
-// 0x63723a..0x6374c6 en Lorencia (el 0) y Devias (el 2), los mapas de referencia: la cámara con los dos
+// Los objetos que vio el dibujo (+0x16c), en el orden de 0x6046a0 (World::DrawOrder).
+std::vector<std::size_t> SeenObjects(const WorldState& world)
+{
+    std::vector<std::size_t> seen;
+    for (const std::size_t index : Client::World::DrawOrder(world.Map().objects))
+    {
+        if (world.Map().objects[index].seen)
+        {
+            seen.push_back(index);
+        }
+    }
+    return seen;
+}
+
+// Lo que ve el dibujo de Lorencia con el héroe en (143, 120), la celda de la traza, hasta el 0x69
+// (Waterspout01, 1720), donde corta: 39 objetos de los sectores (7, 7), (8, 7) y (8, 8) (*simulado*, con
+// el trapecio de MuRet).
+constexpr std::array<std::size_t, 39> LorenciaSeen{1366, 1372, 1373, 1374, 1378, 1400, 1432, 1686, 1687, 1688,
+                                                   1689, 1690, 1691, 1693, 1694, 1695, 1696, 1697, 1698, 1699,
+                                                   1700, 1701, 1702, 1703, 1704, 1705, 1706, 1707, 1709, 1710,
+                                                   1711, 1712, 1713, 1714, 1715, 1717, 1718, 1719, 1720};
+// Y el de Devias con el héroe en (220, 30): 54 objetos de los sectores (12, 1) a (14, 2), ninguno con un
+// caso de 0x602ed0 (*simulado*).
+constexpr std::array<std::size_t, 54> DeviasSeen{
+    1262, 1263, 1264, 1265, 1273, 1276, 1277, 1278, 1282, 1457, 1462, 1463, 1464, 1465, 1466, 1468, 1469, 1470,
+    1471, 1472, 1473, 1478, 1480, 1481, 1482, 1483, 1485, 1486, 1713, 1715, 1716, 1717, 1722, 1723, 1724, 1729,
+    1733, 1738, 1746, 1747, 1752, 1753, 1754, 1756, 1757, 1759, 1770, 1774, 1777, 1778, 1779, 1788, 1789, 1790};
+
+// Si `slot` es una textura del terreno del juego: los tiles de 0x23 a 0x30 y el 0x122.
+bool IsTerrainTile(std::uint16_t slot)
+{
+    return (slot >= Client::World::FirstTileSlot && slot < Client::World::FirstTileSlot + 14) || slot == 0x122;
+}
+
+// 0x63723a..0x6374d3 en Lorencia (el 0) y Devias (el 2), los mapas de referencia: la cámara con los dos
 // accesos a la celda del héroe (8 rand() después de los 4 de 0x637229), el rayo del mouse, el primer
 // pase del terreno (las celdas, con los tiles de 0x23 a 0x30 y el 0x122), el del pasto (0x5fc353, sin
 // rand()) con la única textura del pasto que tiene cada mundo, las marcas del suelo (0x5fc365), que con la
-// tabla de la .bss no dibujan ninguna ni sacan rand(), y el corte en los objetos (0x6374ce), que MuRet no
-// tiene. El frame cortado no se presenta y el dibujo no vuelve a correr.
-TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainTheGrassAndTheGroundMarksAndStopAtTheObjects)
+// tabla de la .bss no dibujan ninguna ni sacan rand(), y los objetos (0x6374ce, 0x6046a0): los que ve el
+// trapecio, sector por sector, cada uno con su rand() de 0x602ef4 y con las texturas de su modelo
+// (Object1\ y Object3\, desde 0x41c), después del terreno. Lorencia corta en el dibujo del 0x69
+// (0x600a4a), antes de su rand(); Devias dibuja sus 54 y corta en los efectos del suelo (0x6374d3). El
+// frame cortado no se presenta y el dibujo no vuelve a correr.
+TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainTheGrassTheGroundMarksAndTheObjects)
 {
     struct Case
     {
@@ -704,8 +744,13 @@ TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainTheGrassAndTheGroundMark
         std::uint8_t y;
         // World1 solo tiene TileGrass01.OZT y World3 solo TileGrass02.OZT: las otras dos se saltean.
         std::uint16_t grass;
+        std::string_view cut;
+        std::span<const std::size_t> seen;
+        // Los rand() de 0x602ef4: uno por objeto visto que llega a 0x602ed0.
+        int objectDraws;
     };
-    for (const Case& probe : {Case{0, 143, 120, 0x32}, Case{2, 220, 30, 0x33}})
+    for (const Case& probe :
+         {Case{0, 143, 120, 0x32, "0x600a4a", LorenciaSeen, 38}, Case{2, 220, 30, 0x33, "0x6374d3", DeviasSeen, 54}})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
@@ -718,17 +763,26 @@ TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainTheGrassAndTheGroundMark
         scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
 
         ASSERT_TRUE(scene.Failure().has_value());
-        EXPECT_NE(scene.Failure()->find("0x6374ce"), std::string::npos) << *scene.Failure();
+        EXPECT_NE(scene.Failure()->find(probe.cut), std::string::npos) << *scene.Failure();
+        EXPECT_NE(scene.Failure()->find("mapa " + std::to_string(probe.map)), std::string::npos) << *scene.Failure();
         ASSERT_EQ(target.frames.size(), 1u);
         const Client::Tests::FrameEvent* models = ModelsOf(target.frames[0]);
         ASSERT_NE(models, nullptr);
         EXPECT_FALSE(models->modelVertices.empty());
-        // Primero las celdas del terreno y después los quads del pasto, todos con su textura y la mezcla.
+        // Primero las celdas del terreno, después los quads del pasto y al final los objetos, todos con su
+        // textura y la mezcla.
         std::size_t grassVertices = 0;
+        std::size_t objectVertices = 0;
         for (const Client::Render::ModelDrawCommand& command : models->modelCommands)
         {
             ASSERT_TRUE(command.state.texture.has_value());
             const std::uint16_t slot = command.state.texture->value;
+            if (slot >= Client::Scenes::WorldModelsFirstSlot.value)
+            {
+                objectVertices += command.vertexCount;
+                continue;
+            }
+            EXPECT_EQ(objectVertices, 0u) << "los objetos van después del terreno y del pasto: " << slot;
             if (slot == probe.grass)
             {
                 EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Alpha);
@@ -736,17 +790,20 @@ TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainTheGrassAndTheGroundMark
                 continue;
             }
             EXPECT_EQ(grassVertices, 0u) << "el pasto va después de todo el terreno";
-            EXPECT_TRUE((slot >= Client::World::FirstTileSlot && slot < Client::World::FirstTileSlot + 14) ||
-                        slot == 0x122)
-                << slot;
+            EXPECT_TRUE(IsTerrainTile(slot)) << slot;
         }
         EXPECT_GT(grassVertices, 0u);
         EXPECT_EQ(grassVertices % 6, 0u);
+        EXPECT_GT(objectVertices, 0u);
+        EXPECT_EQ(objectVertices % 3, 0u);
+        const std::vector<std::size_t> seen = SeenObjects(world);
+        EXPECT_TRUE(std::ranges::equal(seen, probe.seen));
         EXPECT_TRUE(scene.MouseRay().has_value());
         EXPECT_EQ(cameraInput.hero, world.Actors()[HeroSlot].position);
-        EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8).State());
+        EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8 + probe.objectDraws).State());
         EXPECT_NE(std::ranges::find(store.loaded, Client::World::FirstTileSlot), store.loaded.end());
         EXPECT_NE(std::ranges::find(store.loaded, std::uint16_t{0x122}), store.loaded.end());
+        EXPECT_NE(std::ranges::find(store.loaded, Client::Scenes::WorldModelsFirstSlot.value), store.loaded.end());
         for (std::uint16_t slot = 0x32; slot <= 0x34; ++slot)
         {
             EXPECT_EQ(store.Find(Client::Render::TextureSlot{slot}).has_value(), slot == probe.grass) << slot;
@@ -765,10 +822,115 @@ TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainTheGrassAndTheGroundMark
         scene.Render(target.BeginFrame({}), 0.0f);
         target.Present();
         EXPECT_TRUE(target.frames.back().events.empty()) << "cortado, no vuelve a dibujar";
-        EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8).State());
+        EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8 + probe.objectDraws).State());
         scene.Leave();
-        EXPECT_EQ(store.Size(), 0u) << "Leave suelta los tiles";
+        EXPECT_EQ(store.Size(), 0u) << "Leave suelta los tiles y las texturas de los objetos";
     }
+}
+
+// 0x63706a: el paso que sigue a un dibujo corre 0x606560 con los objetos que vio, antes de MoveHero. En un
+// GameScene nuevo con el mismo WorldState (el del dibujo quedó en Failure). En Lorencia, con la capa del
+// héroe en 4 (*inferido*: el piso de la taberna), el techo 1400 (0x7d) va hacia el alpha 0, y los tres 0x7a
+// (HouseWall02) sacan la luz del blendMesh con su rand(): (rand() & 3 + 4) · 0,1; los demás no tienen caso,
+// y después corre lo de siempre (MoveHero, el TerrainWall, el cuerpo del héroe y el héroe visto) y la tela. En Devias,
+// con la capa en 3, los cuatro techos van hacia 0, los tres 0x4e sacan su luz y la primera puerta (0x41, 1481) corta,
+// con los rand() de antes y sin la tela.
+TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint8_t x;
+        std::uint8_t y;
+        std::int32_t layer;
+        int drawDraws;
+        std::vector<std::size_t> roofs;
+        std::vector<std::size_t> flickers;
+        std::optional<std::string_view> cut;
+        int stepDraws;
+    };
+    for (const Case& probe :
+         {Case{0, 143, 120, 4, 4 + 8 + 38, {1400}, {1366, 1372, 1690}, std::nullopt, 3 + 8 + 8 + HeroBodyDraws + 8 + 1},
+          Case{2, 220, 30, 3, 4 + 8 + 54, {1282, 1471, 1472, 1473}, {1262, 1462, 1464}, "0x6050d4", 3}})
+    {
+        SCOPED_TRACE(static_cast<int>(probe.map));
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+        MakeTheHeroAPlayer(probe.x, probe.y);
+        {
+            GameScene draw = Scene();
+            ASSERT_TRUE(draw.Enter().HasValue());
+            Client::Tests::RecordingFrameTarget target;
+            draw.PrepareFrame();
+            draw.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
+            ASSERT_TRUE(draw.Failure().has_value());
+            draw.Leave();
+        }
+        ASSERT_EQ(cloth.random.State(), RandomAfter(probe.drawDraws).State());
+        world.Runtime().heroCellLayer = probe.layer;
+        std::vector<Client::World::WorldObject>& objects = world.Map().objects;
+        for (const std::size_t roof : probe.roofs)
+        {
+            ASSERT_TRUE(objects[roof].seen) << roof;
+            ASSERT_EQ(objects[roof].targetAlpha, 1.0f) << roof;
+        }
+        // Lo que saca cada uno: los rand() del paso, en el orden de los objetos.
+        CrtRandom flicker = RandomAfter(probe.drawDraws);
+        std::vector<float> lights;
+        for (std::size_t k = 0; k < probe.flickers.size(); ++k)
+        {
+            lights.push_back(
+                static_cast<float>(static_cast<double>((flicker.Next() & 3) + 4) * static_cast<double>(0.1f)));
+        }
+        GameScene scene = Scene();
+        ASSERT_TRUE(scene.Enter().HasValue());
+
+        scene.Step(Client::Input::InputState{});
+
+        for (const std::size_t roof : probe.roofs)
+        {
+            EXPECT_EQ(objects[roof].targetAlpha, 0.0f) << roof;
+            EXPECT_LT(objects[roof].alpha, 1.0f) << roof;
+        }
+        for (std::size_t k = 0; k < probe.flickers.size(); ++k)
+        {
+            EXPECT_EQ(objects[probe.flickers[k]].state.light, lights[k]) << probe.flickers[k];
+        }
+        if (probe.cut)
+        {
+            ASSERT_TRUE(scene.Failure().has_value());
+            EXPECT_NE(scene.Failure()->find(*probe.cut), std::string::npos) << *scene.Failure();
+            EXPECT_EQ(cloth.random.State(), RandomAfter(probe.drawDraws + probe.stepDraws).State());
+            EXPECT_EQ(world.Runtime().warpCounter, WaitDrawThreshold) << "corta antes de MoveHero";
+        }
+        else
+        {
+            EXPECT_EQ(scene.Failure(), std::nullopt);
+            EXPECT_EQ(cloth.random.State(), StateAfterAStep(probe.drawDraws + probe.stepDraws));
+        }
+        scene.Leave();
+        EXPECT_EQ(store.Size(), 0u);
+        world.Runtime().heroCellLayer = 0;
+    }
+}
+
+// 0x606560 en un mapa sin los casos de 0x604ab0 portados: con un objeto visto (el dibujo de esos mapas corta
+// antes, en 0x6374ce; acá se lo marca a mano), el paso corta antes de tocarlo y sin rand().
+TEST_F(GameSceneDrawTest, TheStepStopsAtTheSeenObjectsOfTheOtherMaps)
+{
+    ASSERT_NO_FATAL_FAILURE(Prepare(10, 128, 128));
+    ASSERT_FALSE(world.Map().objects.empty());
+    world.Map().objects.front().seen = true;
+    const Client::World::WorldObject before = world.Map().objects.front();
+    GameScene scene = Scene();
+    ASSERT_TRUE(scene.Enter().HasValue());
+
+    scene.Step(Client::Input::InputState{});
+
+    ASSERT_TRUE(scene.Failure().has_value());
+    EXPECT_NE(scene.Failure()->find("0x606560"), std::string::npos) << *scene.Failure();
+    EXPECT_EQ(world.Map().objects.front().alpha, before.alpha);
+    EXPECT_EQ(cloth.random.State(), CrtRandom(Seed).State());
+    scene.Leave();
 }
 
 // Los otros mapas que carga el juego cortan antes del pasto: el 6 en la cámara (0x576960 con el nombre
@@ -899,8 +1061,9 @@ TEST_F(GameSceneDrawTest, AMapWithoutGrassStopsBeforeItsFirstCell)
 // a (95, 126), cae adentro: con la celda lógica queda fuera de la zona segura. En Devias el que sale por el norte,
 // de (220, 76) a (220, 77), cae afuera y +0x3e2 queda como estaba. Los rand(): los 8 de MoveHero, los 8 del
 // TerrainWall, los del cuerpo (0x4fd5f0: el registro propio y el rand() % 6) y, con el héroe visto, los 8 de la
-// celda y el rand() & 7; después, la tela. El dibujo que sigue pasa las marcas del suelo (0x5fc365) y llega a los
-// objetos (0x6374ce) con sus 4 + 8, y deja su propio trapecio.
+// celda y el rand() & 7; después, la tela. El dibujo que sigue pasa las marcas del suelo (0x5fc365) y los objetos
+// (0x6374ce) con sus 4 + 8 y uno por objeto visto (20 en Lorencia, 44 en Devias, ninguno con un caso), corta en los
+// efectos del suelo (0x6374d3) y deja su propio trapecio.
 TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection)
 {
     struct Case
@@ -913,9 +1076,10 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         bool seen;
         std::uint8_t safeZone;
         int draws;
+        int objectDraws;
     };
-    for (const Case& probe : {Case{0, 96, 126, 95, 126, true, 0, 8 + 8 + HeroBodyDraws + 8 + 1},
-                              Case{2, 220, 76, 220, 77, false, 1, 8 + 8 + HeroBodyDraws}})
+    for (const Case& probe : {Case{0, 96, 126, 95, 126, true, 0, 8 + 8 + HeroBodyDraws + 8 + 1, 20},
+                              Case{2, 220, 76, 220, 77, false, 1, 8 + 8 + HeroBodyDraws, 44}})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.drawnX, probe.drawnY));
@@ -951,9 +1115,9 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
 
         ASSERT_TRUE(scene.Failure().has_value());
-        EXPECT_NE(scene.Failure()->find("0x6374ce"), std::string::npos) << *scene.Failure();
+        EXPECT_NE(scene.Failure()->find("0x6374d3"), std::string::npos) << *scene.Failure();
         CrtRandom expected = RandomAfterAStep(probe.draws);
-        for (int i = 0; i < 4 + 8; ++i)
+        for (int i = 0; i < 4 + 8 + probe.objectDraws; ++i)
         {
             static_cast<void>(expected.Next());
         }

@@ -19,6 +19,7 @@
 #include <functional>
 #include <optional>
 #include <span>
+#include <string>
 
 // Los objetos de un mundo en una escena (CL7.2): su paso (0x606560) y su dibujo (0x6046a0), con los
 // modelos de la escena. La lógica de cada uno es de World::WorldObjects. Contrato: 06 § El mundo del
@@ -34,6 +35,16 @@ using SpecialObjectStep = std::function<bool(World::WorldObject&)>;
 // quedan como están (Q-C135). `special`, si está, va primero con cada uno.
 void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, const IModelLibrary& models,
                       const SpecialObjectStep& special = {});
+
+// 0x606560 en el juego (0x63706a): World::StepWorldObjectChecked sobre los vivos que se vieron en el último
+// dibujo, en World::DrawOrder, con el esqueleto de su tipo y el rand() de la CRT. 0x6061c0 al empezar,
+// 0x6063d0 y 0x5ff960 con cada uno y el 0x6c9ddc-- del final no hacen nada en los mapas 0 y 2 (*estático*,
+// 06 § Los objetos del juego). Corta en el primer objeto cuyo caso MuRet no tiene, con los anteriores ya
+// avanzados.
+[[nodiscard]] Core::Expected<void, std::string> StepGameWorldObjects(std::span<World::WorldObject> objects,
+                                                                     std::uint8_t map, const IModelLibrary& models,
+                                                                     Render::Models::CrtRandom& random,
+                                                                     const World::ObjectStepGlobals& globals);
 
 // Lo que 0x602ed0 hace en el frame con cada objeto que llega a él, después de su dibujo (0x604a4d).
 struct ObjectFrameEffects
@@ -71,6 +82,35 @@ struct ObjectFrameEffects
 void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::WorldObject> objects,
                       const World::TerrainPolygon& polygon, const World::TerrainLighting* lighting, std::uint8_t map,
                       Core::Duration frameClock, float alpha, const ObjectFrameEffects& effects = {});
+
+// Lo que 0x6046a0 lee afuera de los objetos en el juego.
+struct GameObjectPass
+{
+    // DAT_006c9dd0.
+    std::uint8_t map = 0;
+    // Si el dibujo es de un frame del original: 0x602ed0 saca su rand() (0x602ef4) por cada objeto que
+    // llega y el 0x64 de Devias abre el registro propio. Un dibujo intermedio de MuRet solo dibuja.
+    bool originalFrame = true;
+    Render::Models::CrtRandom* random = nullptr;
+    // Lo que mira el 0x64 de Devias: la clase del héroe (+0x1d4), el nivel del registro propio (+0xe) y la
+    // cuenta de los accesos abiertos de ese registro (WorldRuntime::ownRecordDepth).
+    std::uint8_t heroClass = 0;
+    std::uint16_t ownLevel = 0;
+    std::uint8_t* ownRecordDepth = nullptr;
+};
+
+// 0x6046a0 en el juego (0x6374ce), en los mapas 0 y 2 (06 § Los objetos del juego): sector por sector, en
+// World::DrawOrder, cada objeto vivo que pasa el trapecio como en DrawWorldObjects queda visto. El 0x64 de
+// Devias sigue solo con el nivel del registro propio desde 0x50 (0x35 con la clase 3 o 4), con su acceso.
+// Después, 0x602e90: el dibujo de World::DrawOf, sin interpolar la animación; y, con un frame del original,
+// 0x602ed0: un rand() y el caso de su tipo. Corta con la dirección en lo primero que MuRet no tiene: el
+// dibujo del 0x69 de Lorencia (0x600a4a), antes de su rand(), y los casos de 0x602ed0 (el 0x38 y el 0x69 del
+// 0; el 0x64 y el 0x67 del 2), después. Los objetos de antes quedan dibujados. Los demás mapas cortan
+// antes de mirar un objeto.
+[[nodiscard]] Core::Expected<void, std::string>
+DrawGameWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::WorldObject> objects,
+                     const World::TerrainPolygon& polygon, const World::TerrainLighting* lighting,
+                     Core::Duration frameClock, const GameObjectPass& pass);
 
 // 0x52d220: World::StepModelEffect sobre cada efecto vivo, con el esqueleto de su modelo.
 void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary& models);

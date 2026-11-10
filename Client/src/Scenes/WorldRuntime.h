@@ -95,6 +95,10 @@ struct WorldRuntime
     // cuerpo (0x4fd5f0 → 0x4fcd00), y MuRet no corre ninguno de los dos: corta antes, en 0x505e0b y 0x4fcb87
     // (08 P-C49).
     World::GroundMarkTable groundMarks{};
+    // 0x77f36d0, la capa 1 de la celda del héroe, en la .bss: 0 al arrancar. La escribe MoveHero (0x59e2ba),
+    // después del contador, y MuRet no corre esa parte (08 P-C41): queda en 0. La leen el paso de los objetos
+    // (los techos de 0x604ab0, 0x604bc4 y 0x604c06) y el de las hojas (0x637082..0x6370e5), entre otros.
+    std::int32_t heroCellLayer = 0;
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

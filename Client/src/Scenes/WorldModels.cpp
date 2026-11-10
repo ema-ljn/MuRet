@@ -18,6 +18,7 @@
 #include <filesystem>
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -35,6 +36,13 @@ constexpr std::uint8_t LorenciaMap = 0;
 // 0x617356/0x617387: Bird01 y Fish01 antes de los nombres de los objetos de Lorencia.
 constexpr std::uint16_t LorenciaBirdModel = 0xad;
 constexpr std::uint16_t LorenciaFishModel = 0xb2;
+// 0x61744d..0x6174d9: en el 2, 0x60da30(0x201, "Data\\Npc\\", "obj_donkey", -1) y 0x60da30(0x202, …,
+// "obj_flag", -1), cada uno con sus texturas de Npc\ (0x60d5f0(k, "Npc\\", 0x2901, 0x2600, 1)). Los
+// crea la carga del mapa (MapLoad, 0x606660).
+constexpr std::uint8_t DeviasMap = 2;
+constexpr std::uint16_t DeviasDonkeyModel = 0x201;
+constexpr std::uint16_t DeviasFlagModel = 0x202;
+constexpr std::string_view NpcFolder = "Npc\\";
 constexpr Render::TextureSlot SpecialModelsFirstSlot{0x69};
 
 // "Object56" para el mapa 55: la carpeta Object<N> de su número (Data::WorldFolderNumber).
@@ -88,6 +96,11 @@ Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path&
     {
         loadSpecial({LorenciaBirdModel, m_folder, "Bird", 1});
         loadSpecial({LorenciaFishModel, m_folder, "Fish", 1});
+    }
+    else if (map == DeviasMap)
+    {
+        loadSpecial({DeviasDonkeyModel, NpcFolder, "obj_donkey", -1});
+        loadSpecial({DeviasFlagModel, NpcFolder, "obj_flag", -1});
     }
     else if (map == LoginMap)
         loadSpecial({DragonModel, m_folder, "Dragon", -1});

@@ -2,6 +2,7 @@
 
 #include "Scenes/WorldObjectsDrawing.h"
 
+#include "Core/Expected.h"
 #include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "Render/ModelBatch.h"
@@ -33,6 +34,8 @@
 #include <algorithm>
 #include <optional>
 #include <array>
+#include <string>
+#include <string_view>
 #include <memory>
 #include <bit>
 #include <cstddef>
@@ -41,7 +44,8 @@
 #include <vector>
 
 // Client::Scenes::StepWorldObjects y DrawWorldObjects (06 § El mundo del login): qué objetos avanzan,
-// en qué orden se dibujan y cómo van los remolinos del mapa 55, con modelos de mentira.
+// en qué orden se dibujan y cómo van los remolinos del mapa 55, con modelos de mentira; y los del juego,
+// DrawGameWorldObjects y StepGameWorldObjects (06 § Los objetos del juego).
 namespace
 {
 using Client::Data::Models::Mesh;
@@ -287,6 +291,203 @@ TEST(WorldObjectsDrawingTest, DrawingStillUpdatesGeometryAndSeenWithoutAnOrigina
     EXPECT_TRUE(objects[0].seen);
     EXPECT_EQ(batch.Vertices().size(), 6u);
     EXPECT_EQ(random.State(), 4u);
+}
+
+// El pase de los objetos del juego (0x6046a0 en 0x6374ce) con los modelos de mentira, todo visto y la
+// semilla 7.
+Client::Core::Expected<void, std::string> DrawGame(ModelBatch& batch, const TwoMeshModels& models,
+                                                   std::span<WorldObject> objects,
+                                                   const Client::Scenes::GameObjectPass& pass)
+{
+    batch.Begin(Client::Render::Pass3D{});
+    return Client::Scenes::DrawGameWorldObjects(batch, models, objects, Everything, nullptr, {}, pass);
+}
+
+Client::Render::Models::CrtRandom SevenAfter(int draws)
+{
+    Client::Render::Models::CrtRandom random(7);
+    for (int k = 0; k < draws; ++k)
+    {
+        static_cast<void>(random.Next());
+    }
+    return random;
+}
+
+// 0x6046a0 en el juego: cada objeto vivo que pasa el trapecio se dibuja (0x602e90) y saca el rand() de
+// 0x602ed0 (0x602ef4), aunque no se dibuje (el de +0x58 en −2). El que no está vivo no se mira (0x60473b): no
+// queda visto ni saca rand().
+TEST(WorldObjectsDrawingTest, TheGamePassDrawsTheLiveObjectsWithARandEach)
+{
+    const TwoMeshModels models;
+    for (const std::uint8_t map : {Lorencia, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(static_cast<int>(map));
+        std::vector<WorldObject> objects{ObjectAt(Rock, 8000.0f, 3500.0f, map, Client::World::ObjectScene::Other),
+                                         ObjectAt(Rock, 100.0f, 5000.0f, map, Client::World::ObjectScene::Other),
+                                         ObjectAt(Rock, 200.0f, 5100.0f, map, Client::World::ObjectScene::Other)};
+        objects[1].alive = false;
+        objects[2].state.hiddenMesh = Client::World::HiddenObject;
+        Client::Render::Models::CrtRandom random(7);
+        ModelBatch batch;
+        const auto drawn = DrawGame(batch, models, objects, {.map = map, .random = &random});
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_TRUE(objects[0].seen);
+        EXPECT_FALSE(objects[1].seen);
+        EXPECT_TRUE(objects[2].seen);
+        ASSERT_EQ(batch.Vertices().size(), 6u);
+        EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 8000.0f);
+        EXPECT_EQ(random.State(), SevenAfter(2).State());
+    }
+}
+
+// 0x600a4a: el 0x69 de Lorencia (Waterspout01) va con cuatro 0x4ecc30 en vez de RenderBody, que MuRet no
+// tiene: corta ahí, antes de su rand(), con los de antes dibujados y los de después sin mirar. Oculto, no
+// llega a 0x6002e0 y corta después del rand(), en su caso de 0x602ed0 (0x603011). El 0x38 se dibuja y corta
+// después de su rand() (0x603149).
+TEST(WorldObjectsDrawingTest, TheGamePassStopsAtTheCasesOfLorencia)
+{
+    const TwoMeshModels models;
+    struct Case
+    {
+        std::int16_t type;
+        bool hidden;
+        std::string_view cut;
+        int draws;
+        std::size_t vertices;
+    };
+    for (const Case& probe : {Case{0x69, false, "0x600a4a", 1, 6}, Case{0x69, true, "0x603011", 2, 6},
+                              Case{0x38, false, "0x603149", 2, 12}})
+    {
+        SCOPED_TRACE(std::string(probe.cut));
+        std::vector<WorldObject> objects{
+            ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
+            ObjectAt(probe.type, 200.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
+            ObjectAt(Rock, 300.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+        if (probe.hidden)
+        {
+            objects[1].state.hiddenMesh = Client::World::HiddenObject;
+        }
+        Client::Render::Models::CrtRandom random(7);
+        ModelBatch batch;
+        const auto drawn = DrawGame(batch, models, objects, {.map = Lorencia, .random = &random});
+        ASSERT_FALSE(drawn.HasValue());
+        EXPECT_NE(drawn.Error().find(probe.cut), std::string::npos) << drawn.Error();
+        EXPECT_TRUE(objects[1].seen);
+        EXPECT_FALSE(objects[2].seen) << "el de después no se mira";
+        EXPECT_EQ(batch.Vertices().size(), probe.vertices);
+        EXPECT_EQ(random.State(), SevenAfter(probe.draws).State());
+    }
+}
+
+// 0x60479c..0x604a36: el 0x64 de Devias solo sigue con el nivel del registro propio desde 0x50, o desde 0x35
+// con la clase del héroe en 3 o 4 (+0x1d4 & 7), con el registro abierto y cerrado: con la cuenta en 0, el
+// cierre saca los 3.848 rand() de 0x40b4d0; con otro acceso abierto, ninguno. Si sigue, su caso de 0x602ed0
+// (0x603251) corta después del rand(). El 0x67 corta en el suyo (0x6031f7).
+TEST(WorldObjectsDrawingTest, TheLeveledObjectOfDeviasReadsTheOwnRecord)
+{
+    const TwoMeshModels models;
+    constexpr int OwnRecordClose = 0xf08;
+    struct Case
+    {
+        std::int16_t type;
+        std::uint8_t heroClass;
+        std::uint16_t level;
+        std::uint8_t depth;
+        std::optional<std::string_view> cut;
+        int draws;
+    };
+    for (const Case& probe :
+         {Case{0x64, 0, 0x4f, 0, std::nullopt, OwnRecordClose}, Case{0x64, 0, 0x50, 0, "0x603251", OwnRecordClose + 1},
+          Case{0x64, 0x13, 0x35, 0, "0x603251", OwnRecordClose + 1},
+          Case{0x64, 4, 0x34, 0, std::nullopt, OwnRecordClose}, Case{0x64, 2, 0x35, 0, std::nullopt, OwnRecordClose},
+          Case{0x64, 0, 0x50, 1, "0x603251", 1}, Case{0x67, 0, 0, 0, "0x6031f7", 1}})
+    {
+        SCOPED_TRACE(std::to_string(probe.type) + " " + std::to_string(probe.heroClass) + " " +
+                     std::to_string(probe.level));
+        std::vector<WorldObject> objects{ObjectAt(probe.type, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
+        Client::Render::Models::CrtRandom random(7);
+        std::uint8_t depth = probe.depth;
+        ModelBatch batch;
+        const auto drawn = DrawGame(batch, models, objects,
+                                    {.map = 2,
+                                     .random = &random,
+                                     .heroClass = probe.heroClass,
+                                     .ownLevel = probe.level,
+                                     .ownRecordDepth = &depth});
+        EXPECT_EQ(drawn.HasValue(), !probe.cut.has_value());
+        if (probe.cut)
+        {
+            ASSERT_FALSE(drawn.HasValue());
+            EXPECT_NE(drawn.Error().find(*probe.cut), std::string::npos) << drawn.Error();
+        }
+        EXPECT_TRUE(objects[0].seen);
+        EXPECT_EQ(depth, probe.depth);
+        EXPECT_EQ(random.State(), SevenAfter(probe.draws).State());
+    }
+}
+
+// Un dibujo intermedio de MuRet (sin frame del original): dibuja y marca los vistos, sin el rand() de
+// 0x602ed0 ni sus casos, y el 0x64 de Devias lee el nivel sin abrir el registro.
+TEST(WorldObjectsDrawingTest, AnIntermediateGameDrawTakesNoRandomness)
+{
+    const TwoMeshModels models;
+    std::vector<WorldObject> lorencia{ObjectAt(0x38, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+    Client::Render::Models::CrtRandom random(7);
+    ModelBatch batch;
+    ASSERT_TRUE(
+        DrawGame(batch, models, lorencia, {.map = Lorencia, .originalFrame = false, .random = &random}).HasValue());
+    EXPECT_TRUE(lorencia[0].seen);
+    EXPECT_EQ(batch.Vertices().size(), 6u);
+
+    std::vector<WorldObject> devias{ObjectAt(0x64, 100.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
+    std::uint8_t depth = 0;
+    ASSERT_TRUE(
+        DrawGame(batch, models, devias,
+                 {.map = 2, .originalFrame = false, .random = &random, .ownLevel = 0x50, .ownRecordDepth = &depth})
+            .HasValue());
+    EXPECT_EQ(random.State(), 7u);
+}
+
+// Los demás mapas cortan antes de mirar un objeto: sus casos de 0x6002e0 y 0x602ed0 no están leídos.
+TEST(WorldObjectsDrawingTest, TheGamePassKnowsOnlyTheReferenceMaps)
+{
+    const TwoMeshModels models;
+    std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, 3, Client::World::ObjectScene::Other)};
+    Client::Render::Models::CrtRandom random(7);
+    ModelBatch batch;
+    const auto drawn = DrawGame(batch, models, objects, {.map = 3, .random = &random});
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("0x6046a0"), std::string::npos) << drawn.Error();
+    EXPECT_FALSE(objects[0].seen);
+    EXPECT_TRUE(batch.Vertices().empty());
+    EXPECT_EQ(random.State(), 7u);
+}
+
+// 0x606560 en el juego: solo los vivos que se vieron, en el orden del dibujo, hasta el primero que corta (la
+// lámpara del 0, después del rand() de su luz); el de después no avanza.
+TEST(WorldObjectsDrawingTest, TheGameStepStopsAtTheFirstCaseMuRetDoesNotHave)
+{
+    const TwoMeshModels models;
+    std::vector<WorldObject> objects{ObjectAt(0x7a, 300.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
+                                     ObjectAt(0x5a, 200.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
+                                     ObjectAt(0x7a, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
+                                     ObjectAt(0x7a, 150.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+    for (WorldObject& object : objects)
+    {
+        object.seen = true;
+        object.alpha = 0.5f;
+    }
+    objects[2].alive = false;
+    Client::Render::Models::CrtRandom random(7);
+    const auto stepped =
+        Client::Scenes::StepGameWorldObjects(objects, Lorencia, models, random, Client::World::ObjectStepGlobals{});
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x605718"), std::string::npos) << stepped.Error();
+    EXPECT_GT(objects[0].alpha, 0.5f);
+    EXPECT_GT(objects[1].alpha, 0.5f);
+    EXPECT_EQ(objects[2].alpha, 0.5f) << "no está vivo";
+    EXPECT_EQ(objects[3].alpha, 0.5f) << "después del corte";
+    EXPECT_EQ(random.State(), SevenAfter(2).State());
 }
 
 // Modelos de diez huesos de raíz, sin animación, el k en (100 · k, 10 · k, 0) por la base de su tipo; el

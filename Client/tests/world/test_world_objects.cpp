@@ -3,6 +3,7 @@
 #include "World/WorldObjects.h"
 
 #include "Data/Terrain/TerrainObjects.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
 #include "World/WorldObjectRegistrations.h"
 
@@ -16,11 +17,14 @@
 #include <cstddef>
 #include <limits>
 #include <span>
+#include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 // Client::World::CreateWorldObjects, StepWorldObject y DrawOf en los casos que los 276 vectores del
-// mapa 55 no tocan (06 § El mundo del login, la revisión de la CL7.2).
+// mapa 55 no tocan (06 § El mundo del login, la revisión de la CL7.2), y StepWorldObjectChecked con los
+// casos de los mapas 0 y 2 (06 § Los objetos del juego).
 namespace
 {
 using Client::World::WorldObject;
@@ -471,6 +475,181 @@ TEST(WorldObjectsTest, AnObjectFadedOutDoesNotStep)
     EXPECT_LT(whirlpool.alpha, 0.01f);
     EXPECT_EQ(whirlpool.transform.angles.z, yaw) << "el giro del caso 0x56 no corre";
     EXPECT_EQ(whirlpool.state.blendMesh, Client::Render::Models::NoBlendMesh);
+}
+
+// El rand() de la CRT con la semilla 7 después de `draws` llamadas.
+Client::Render::Models::CrtRandom SevenAfter(int draws)
+{
+    Client::Render::Models::CrtRandom random(7);
+    for (int k = 0; k < draws; ++k)
+    {
+        static_cast<void>(random.Next());
+    }
+    return random;
+}
+
+// 0x604bc4 y 0x604c06: antes del alpha, los techos de la taberna del 0 (0x7d y 0x7e) van a la meta 0 con la
+// capa del héroe en 4, y los del 2 (0x51, 0x52, 0x60, 0x62 y 0x63) con la capa en 3 o desde 10; a 1 si no.
+// Los mismos tipos en el otro mapa no se tocan, y nadie saca rand().
+TEST(WorldObjectsTest, TheRoofsFollowTheLayerOfTheHero)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::int16_t type;
+        std::int32_t layer;
+        float target;
+    };
+    for (const Case& probe : {Case{Lorencia, 0x7d, 4, 0.0f}, Case{Lorencia, 0x7e, 4, 0.0f},
+                              Case{Lorencia, 0x7d, 3, 1.0f}, Case{Lorencia, 0x7e, 0, 1.0f}, Case{Devias, 0x51, 3, 0.0f},
+                              Case{Devias, 0x52, 10, 0.0f}, Case{Devias, 0x60, 12, 0.0f}, Case{Devias, 0x62, 9, 1.0f},
+                              Case{Devias, 0x63, 4, 1.0f}, Case{Lorencia, 0x51, 3, 0.5f}, Case{Devias, 0x7d, 4, 0.5f}})
+    {
+        SCOPED_TRACE(std::to_string(probe.map) + " " + std::to_string(probe.type) + " " + std::to_string(probe.layer));
+        WorldObject roof = Created(probe.type, 100.0f, 100.0f, probe.map).front();
+        roof.targetAlpha = 0.5f;
+        Client::Render::Models::CrtRandom random(7);
+        const auto stepped = Client::World::StepWorldObjectChecked(
+            roof, probe.map, nullptr, random, Client::World::ObjectStepGlobals{.heroCellLayer = probe.layer});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(roof.targetAlpha, probe.target);
+        EXPECT_EQ(random.State(), 7u);
+    }
+}
+
+// 0x604db9 y 0x60508f: las ventanas del 0 (0x75 y 0x7a) y el 0x4e del 2 sacan la luz del blendMesh con un
+// rand(), (rand() & 3 + 4) · 0,1f guardado en float. El 0x75 del 2 no tiene caso.
+TEST(WorldObjectsTest, TheWindowsFlickerWithARand)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::int16_t type;
+        int draws;
+    };
+    for (const Case& probe :
+         {Case{Lorencia, 0x75, 1}, Case{Lorencia, 0x7a, 1}, Case{Devias, 0x4e, 1}, Case{Devias, 0x75, 0}})
+    {
+        SCOPED_TRACE(std::to_string(probe.map) + " " + std::to_string(probe.type));
+        WorldObject window = Created(probe.type, 100.0f, 100.0f, probe.map).front();
+        const float before = window.state.light;
+        Client::Render::Models::CrtRandom random(7);
+        const auto stepped = Client::World::StepWorldObjectChecked(window, probe.map, nullptr, random,
+                                                                   Client::World::ObjectStepGlobals{});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(random.State(), SevenAfter(probe.draws).State());
+        Client::Render::Models::CrtRandom expected(7);
+        const float light =
+            probe.draws == 0
+                ? before
+                : static_cast<float>(static_cast<double>((expected.Next() & 3) + 4) * static_cast<double>(0.1f));
+        EXPECT_EQ(std::bit_cast<std::uint32_t>(window.state.light), std::bit_cast<std::uint32_t>(light));
+    }
+}
+
+// 0x604d8e: el 0x76 y el 0x77 del 0 corren la V del blendMesh con el reloj del mundo: (−ftol(T) % 1000) ·
+// 0,001f, con el resto con signo de idiv.
+TEST(WorldObjectsTest, TheBlendMeshOfTheHousesScrollsWithTheClock)
+{
+    struct Case
+    {
+        std::int16_t type;
+        float clock;
+        int scroll;
+    };
+    for (const Case& probe : {Case{0x76, 1234.0f, -234}, Case{0x77, 999.9f, -999}, Case{0x76, 2000.5f, 0}})
+    {
+        SCOPED_TRACE(probe.clock);
+        WorldObject house = Created(probe.type, 100.0f, 100.0f, Lorencia).front();
+        Client::Render::Models::CrtRandom random(7);
+        const auto stepped = Client::World::StepWorldObjectChecked(
+            house, Lorencia, nullptr, random, Client::World::ObjectStepGlobals{.worldClock = probe.clock});
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(house.state.uv.y,
+                  static_cast<float>(static_cast<double>(probe.scroll) * static_cast<double>(0.001f)));
+        EXPECT_EQ(house.state.uv.x, 0.0f);
+        EXPECT_EQ(random.State(), 7u);
+    }
+}
+
+// Lo que MuRet no tiene corta con la dirección del caso: los fuegos de 0x52f360 (antes de sus rand()), la luz
+// de la lámpara y de la vela (0x5f9780, después del rand() de su luz) y las puertas del 2. El alpha y la
+// animación ya corrieron.
+TEST(WorldObjectsTest, TheCasesMuRetDoesNotHaveStopWithTheirAddress)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::int16_t type;
+        std::string_view address;
+        int draws;
+    };
+    for (const Case& probe :
+         {Case{Lorencia, 0x32, "0x604eb0", 0}, Case{Lorencia, 0x33, "0x604ecb", 0}, Case{Lorencia, 0x34, "0x604f22", 0},
+          Case{Lorencia, 0x37, "0x604e78", 0}, Case{Lorencia, 0x50, "0x604e40", 0}, Case{Lorencia, 0x82, "0x604de3", 0},
+          Case{Lorencia, 0x83, "0x604e02", 0}, Case{Lorencia, 0x84, "0x604e21", 0}, Case{Lorencia, 0x5a, "0x605718", 1},
+          Case{Lorencia, 0x96, "0x605718", 1}, Case{Devias, 0x1e, "0x6050b9", 0}, Case{Devias, 0x42, "0x6050b9", 0},
+          Case{Devias, 0x14, "0x6050d4", 0}, Case{Devias, 0x41, "0x6050d4", 0}, Case{Devias, 0x56, "0x6050d4", 0},
+          Case{Devias, 0x58, "0x6050d4", 0}})
+    {
+        SCOPED_TRACE(std::to_string(probe.map) + " " + std::to_string(probe.type));
+        WorldObject object = Created(probe.type, 100.0f, 100.0f, probe.map).front();
+        object.alpha = 0.5f;
+        Client::Render::Models::CrtRandom random(7);
+        const auto stepped = Client::World::StepWorldObjectChecked(object, probe.map, nullptr, random,
+                                                                   Client::World::ObjectStepGlobals{});
+        ASSERT_FALSE(stepped.HasValue());
+        EXPECT_NE(stepped.Error().find(probe.address), std::string::npos) << stepped.Error();
+        EXPECT_GT(object.alpha, 0.5f) << "el alpha ya fue hacia su meta";
+        EXPECT_EQ(random.State(), SevenAfter(probe.draws).State());
+    }
+}
+
+// Con el alpha por debajo de 0,01, 0x604ab0 sale antes del caso: la ventana no saca su rand(). El techo, que va
+// antes del alpha, sí cambia su meta.
+TEST(WorldObjectsTest, AFadedOutObjectSkipsItsCaseButNotItsRoof)
+{
+    WorldObject window = Created(0x7a, 100.0f, 100.0f, Lorencia).front();
+    window.alpha = 0.005f;
+    window.targetAlpha = 0.0f;
+    Client::Render::Models::CrtRandom random(7);
+    ASSERT_TRUE(
+        Client::World::StepWorldObjectChecked(window, Lorencia, nullptr, random, Client::World::ObjectStepGlobals{})
+            .HasValue());
+    EXPECT_EQ(random.State(), 7u);
+
+    WorldObject roof = Created(0x7d, 100.0f, 100.0f, Lorencia).front();
+    roof.alpha = 0.005f;
+    roof.targetAlpha = 0.0f;
+    ASSERT_TRUE(
+        Client::World::StepWorldObjectChecked(roof, Lorencia, nullptr, random, Client::World::ObjectStepGlobals{})
+            .HasValue());
+    EXPECT_EQ(roof.targetAlpha, 1.0f);
+}
+
+// El paso del juego conoce el 0, el 2 y el 55 (con lo mismo que StepWorldObject); en otro mapa corta antes de
+// tocar el objeto.
+TEST(WorldObjectsTest, TheCheckedStepKnowsTheReferenceMapsAndTheLogin)
+{
+    WorldObject other = Created(1, 100.0f, 100.0f, 3).front();
+    other.alpha = 0.5f;
+    Client::Render::Models::CrtRandom random(7);
+    const auto stepped =
+        Client::World::StepWorldObjectChecked(other, 3, nullptr, random, Client::World::ObjectStepGlobals{});
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x604ab0"), std::string::npos) << stepped.Error();
+    EXPECT_EQ(other.alpha, 0.5f);
+
+    WorldObject whirlpool = Created(0x56, 100.0f, 100.0f).front();
+    WorldObject login = whirlpool;
+    ASSERT_TRUE(
+        Client::World::StepWorldObjectChecked(whirlpool, Login, nullptr, random, Client::World::ObjectStepGlobals{})
+            .HasValue());
+    Client::World::StepWorldObject(login, Login, nullptr);
+    EXPECT_EQ(whirlpool.transform.angles.z, login.transform.angles.z);
+    EXPECT_EQ(whirlpool.alpha, login.alpha);
+    EXPECT_EQ(whirlpool.state.blendMesh, login.state.blendMesh);
+    EXPECT_EQ(random.State(), 7u);
 }
 
 // 0x5ffce0 sin luz por vértice: la luz del terreno por 0,1 de G y B se guarda en float antes de sumarle

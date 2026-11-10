@@ -11,6 +11,7 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/Models/ModelTextureSlots.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
@@ -25,6 +26,7 @@
 #include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/TerrainTiles.h"
 #include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldObjectsDrawing.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameCursor.h"
 #include "UI/Widget.h"
@@ -33,15 +35,18 @@
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainPickingSegment.h"
+#include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
+#include <algorithm>
 #include <bit>
 #include <chrono>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -67,6 +72,9 @@ constexpr std::int32_t FirstChaosCastleMap = 18;
 constexpr std::int32_t LastChaosCastleMap = 23;
 // 0x63741d: en el mapa 30 el dibujo pone su luz (0x42b0a0).
 constexpr std::int32_t CastleMap = 30;
+// Los mapas de referencia, los únicos con los casos de los objetos en el juego (0x6046a0 y 0x604ab0).
+constexpr std::int32_t LorenciaMap = 0;
+constexpr std::int32_t DeviasMap = 2;
 // 0x5bb8d0: el ancho del mundo, 640 sin ventanas abiertas (MuRet no tiene las ventanas del juego).
 constexpr std::int32_t WorldWidth = 640;
 // 0x620486..0x6204b0: el mouse de 640 × 480 vuelve a la pantalla con · W / 640 y · H / 480, en enteros.
@@ -107,8 +115,9 @@ std::uint8_t HeroCellAttribute(ActorState& hero, const Data::Terrain::TerrainAtt
 } // namespace
 
 GameScene::GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models,
-                     const Data::Tables::ItemTable* items)
-    : m_context(context), m_session(session), m_models(models), m_items(items), m_tiles(context.textures)
+                     const Data::Tables::ItemTable* items, const Render::Models::ModelTextureSlots* gameSlots)
+    : m_context(context), m_session(session), m_models(models), m_items(items), m_gameSlots(gameSlots),
+      m_tiles(context.textures)
 {
 }
 
@@ -195,10 +204,14 @@ Core::Expected<void, std::string> GameScene::StepWorld()
     {
         World::UpdateWaves(m_water, m_context.clock->Now(), m_terrainRange, static_cast<std::uint8_t>(runtime.map));
     }
-    // Frontera (08 P-C41): lo que va de 0x636ded a 0x6370ef, antes del caballo. Los globales de
-    // 0x636df2..0x636e1d y la UI (0x636e11..0x63705b), que corre en cada paso desde el primero; los
-    // objetos (0x606560: con ningún objeto visto, como deja el dibujo que corta antes de 0x6046a0, no
-    // hace nada), los ítems del piso, las hojas, los pájaros y los peces.
+    // Frontera (08 P-C41): los globales de 0x636df2..0x636e1d y la UI (0x636e11..0x63705b), que corre en
+    // cada paso desde el primero.
+    // 0x63706a: 0x606560, los objetos que vio el último dibujo (0x6046a0), también en la espera.
+    if (auto objects = StepTheObjects(); !objects.HasValue())
+    {
+        return objects;
+    }
+    // Frontera (08 P-C41): 0x63706f..0x6370ef, los ítems del piso, las hojas, los pájaros y los peces.
     // 0x6370f4: 0x445230, los ayudantes, también en la espera. MuRet no crea ninguno (P-C47): la tabla
     // vacía no hace nada.
     if (auto helpers = StepHelpers(
@@ -241,6 +254,40 @@ Core::Expected<void, std::string> GameScene::StepWorld()
     // sigue vacía mientras MuRet no tenga quién la llene (08 P-C49).
     World::StepGroundMarks(runtime.groundMarks);
     // Frontera (08 P-C41 a): lo que sigue desde 0x637138.
+    return {};
+}
+
+Core::Expected<void, std::string> GameScene::StepTheObjects()
+{
+    WorldState& world = *m_context.world;
+    const std::int32_t map = world.Runtime().map;
+    std::span<World::WorldObject> objects = world.Map().objects;
+    // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no toca ninguno.
+    if (std::ranges::none_of(objects, [](const World::WorldObject& object) { return object.alive && object.seen; }))
+    {
+        return {};
+    }
+    if (map != LorenciaMap && map != DeviasMap)
+    {
+        return Core::Unexpected("0x606560: los objetos vistos del " + MapText(map) + " (0x604ab0) no están portados");
+    }
+    if (auto loaded = LoadTheObjectModels(map); !loaded.HasValue())
+    {
+        return loaded;
+    }
+    // 0x604ab0 lee la capa de la celda del héroe y el reloj del mundo (0x5767b88), el del paso.
+    const World::ObjectStepGlobals globals{
+        .heroCellLayer = world.Runtime().heroCellLayer,
+        .worldClock = m_context.clock != nullptr
+                          ? static_cast<float>(
+                                std::chrono::duration_cast<std::chrono::milliseconds>(m_context.clock->Now()).count())
+                          : 0.0f};
+    if (auto stepped = StepGameWorldObjects(objects, static_cast<std::uint8_t>(map), m_worldModels,
+                                            m_context.cloth->random, globals);
+        !stepped.HasValue())
+    {
+        return Core::Unexpected(stepped.Error() + ", en el " + MapText(map));
+    }
     return {};
 }
 
@@ -343,7 +390,7 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     // 0x637391..0x637404: el glClearColor del mapa, que nadie usa (Q-C143).
     // 0x637410: el pase del mundo.
     canvas.models.Begin(pass);
-    auto drawn = DrawTheWorldPass(canvas, pass, polygon.Value());
+    auto drawn = DrawTheWorldPass(canvas, pass, polygon.Value(), frames);
     canvas.flushModels();
     return drawn;
 }
@@ -363,6 +410,24 @@ Core::Expected<void, std::string> GameScene::UploadTheTiles(std::uint8_t map)
     {
         m_context.log.Warning("el juego va sin una textura del terreno, que el original saltea: {}", tile);
     }
+    return {};
+}
+
+Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t map)
+{
+    if (m_worldModelsMap == map)
+    {
+        return {};
+    }
+    m_worldModels.Release();
+    m_worldModelsMap.reset();
+    if (auto loaded = m_worldModels.Load(m_context.dataRoot, static_cast<std::uint8_t>(map), m_context.textures,
+                                         m_context.log, m_gameSlots);
+        !loaded.HasValue())
+    {
+        return Core::Unexpected("0x616ec0: los modelos de los objetos del " + MapText(map) + ": " + loaded.Error());
+    }
+    m_worldModelsMap = map;
     return {};
 }
 
@@ -411,7 +476,7 @@ Core::Expected<World::TerrainPolygon, std::string> GameScene::PolygonOfTheFrame(
 }
 
 Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canvas, const Render::Pass3D& pass,
-                                                              const World::TerrainPolygon& polygon)
+                                                              const World::TerrainPolygon& polygon, int frames)
 {
     const std::int32_t map = m_context.world->Runtime().map;
     // 0x63741d: la luz y la niebla del mapa 30 (0x42b0a0), que no carga (MapLoad) ni dibuja.
@@ -490,14 +555,41 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         afterMarks.depthTest = true;
         canvas.models.SetState(afterMarks);
     }
-    // 0x6374ce: los objetos del .obj por sector.
-    return Core::Unexpected("0x6374ce: los objetos del " + MapText(map) +
-                            " (0x6046a0 → 0x602e90) no están portados, solo los del 55");
+    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 y 2.
+    if (map != LorenciaMap && map != DeviasMap)
+    {
+        return Core::Unexpected("0x6374ce: los objetos del " + MapText(map) +
+                                " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 y el 2");
+    }
+    if (auto loaded = LoadTheObjectModels(map); !loaded.HasValue())
+    {
+        return loaded;
+    }
+    WorldState& world = *m_context.world;
+    const ActorState& hero = world.Actors()[world.Runtime().hero];
+    // La luz del terreno en un punto (0x5f99e0) lee el buffer dinámico 0x7b4ccc4: MuRet no tiene luces
+    // dinámicas (los fuegos y las lámparas del paso cortan antes de sumarlas) y lee la sombreada.
+    if (auto objects = DrawGameWorldObjects(canvas.models, m_worldModels, world.Map().objects, polygon,
+                                            world.Map().terrain.lighting.get(), canvas.frameClock,
+                                            GameObjectPass{.map = static_cast<std::uint8_t>(map),
+                                                           .originalFrame = frames > 0,
+                                                           .random = &m_context.cloth->random,
+                                                           .heroClass = hero.characterClass,
+                                                           .ownLevel = world.OwnCharacter().level,
+                                                           .ownRecordDepth = &world.Runtime().ownRecordDepth});
+        !objects.HasValue())
+    {
+        return Core::Unexpected(objects.Error() + ", en el " + MapText(map));
+    }
+    // 0x6374d3: 0x52dc20, los efectos del suelo.
+    return Core::Unexpected("0x6374d3: los efectos del suelo del " + MapText(map) + " (0x52dc20) no están portados");
 }
 
 void GameScene::Leave()
 {
     m_tiles.Release();
+    m_worldModels.Release();
+    m_worldModelsMap.reset();
 }
 
 // Q-C70: sin conexión, el juego sigue; el texto 3 del área de mensajes es de la CL9.

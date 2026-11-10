@@ -27,7 +27,6 @@
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
 #include "Protocol/Movement.h"
-#include "Protocol/World.h"
 #include "Protocol/Character/CharacterCreate.h"
 #include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"

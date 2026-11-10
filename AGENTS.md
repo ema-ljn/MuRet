@@ -46,6 +46,7 @@ seguí el estilo del código que está alrededor.
 | qué hace el cliente MuRet y en qué orden (decisiones D-C, olas CL0 a CL10) | [roadmap del cliente](docs/superpowers/specs/2026-10-30-cliente-design.md) |
 | qué hace el `main.exe` original (red, formatos, escenas) | [research del cliente](Client/docs/research/README.md) |
 | qué hay que hacer en cada ola, paso por paso | [planes](docs/superpowers/plans/) |
+| el estado de la CL7 y lo que falta, en orden (traspaso del 2026-11-10) | [traspaso de la CL7](docs/superpowers/plans/2026-11-10-cl7-traspaso.md) |
 | qué se estudia en cada ola, y en qué va Emanuel | [guías y progreso](docs/learning/README.md) |
 | decisiones globales | `docs/adr/` |
 

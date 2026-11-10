@@ -17,6 +17,7 @@
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameData.h"
+#include "Scenes/HelperTable.h"
 #include "Scenes/IScene.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/LoginScene.h"
@@ -52,6 +53,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -70,6 +72,14 @@ constexpr std::uint8_t LoginMap = 55;
 constexpr int SelectionMap = 54;
 constexpr std::uint8_t PreservedPetSlot = 4;
 constexpr std::uint8_t PendingCreationSlot = 3;
+
+CharacterEntryFields WithoutPet(std::uint8_t slot)
+{
+    CharacterEntryFields entry{.slot = slot};
+    // 04 § La selección de personaje: b4 & 3 == 3, con b9 & 1 == 0, es petNONE.
+    entry.equipment[4] = 3;
+    return entry;
+}
 
 CharacterEntryFields WithHeightOffsetPet(std::uint8_t slot)
 {
@@ -186,7 +196,7 @@ TEST_F(SelectionPipelineTest, AListBeforeSelectionEnterIsOutOfTurnAndTheRequeste
     EXPECT_FALSE(m_state.HasReceivedList());
     EXPECT_EQ(m_state.Slots()[0].revision, 0u);
     ASSERT_NO_FATAL_FAILURE(StartSelect());
-    ASSERT_NO_FATAL_FAILURE(ReceiveList({{0, "char0001"}}));
+    ASSERT_NO_FATAL_FAILURE(ReceiveList({WithoutPet(0)}));
     EXPECT_EQ(m_state.Slots()[0].revision, 1u);
     EXPECT_EQ(m_state.Map(), LoginMap);
     EXPECT_FALSE(m_state.IsInitialized());
@@ -198,7 +208,7 @@ TEST_F(SelectionPipelineTest, AListBeforeSelectionEnterIsOutOfTurnAndTheRequeste
 TEST_F(SelectionPipelineTest, RestartingTheSessionHoldsSelectionUntilAnotherListExists)
 {
     ASSERT_NO_FATAL_FAILURE(StartSelect());
-    m_online.socket.reads = {Client::Tests::CharacterListBytes({{0, "char0001"}})};
+    m_online.socket.reads = {Client::Tests::CharacterListBytes({WithoutPet(0)})};
     m_manager->Poll();
     m_manager->Step(Client::Input::InputState{});
     ASSERT_TRUE(m_state.IsInitialized());
@@ -235,7 +245,7 @@ TEST_F(SelectionPipelineTest, PollConstructsBeforeLogicAndTheRenderGuardKeepsThe
     ASSERT_NO_FATAL_FAILURE(StartSelect());
     m_cameraInput.hero = {-1.0f, -2.0f, -3.0f};
 
-    ASSERT_NO_FATAL_FAILURE(ReceiveList({{0, "char0001"}}));
+    ASSERT_NO_FATAL_FAILURE(ReceiveList({WithoutPet(0)}));
 
     EXPECT_TRUE(m_target.frames.empty());
     EXPECT_EQ(m_state.Map(), LoginMap);
@@ -267,13 +277,13 @@ TEST_F(SelectionPipelineTest, PollConstructsBeforeLogicAndTheRenderGuardKeepsThe
     EXPECT_EQ(m_state.Slots()[0].position.z, CharacterSlotHeight);
 }
 
-TEST_F(SelectionPipelineTest, RecreatingAndDeletingBeforeAnotherStepSurvivesTheRealLoginTransition)
+TEST_F(SelectionPipelineTest, RecreatingAndDeletingBeforeAStepSurvivesTheRealLoginTransition)
 {
     ASSERT_NO_FATAL_FAILURE(StartSelect());
     ASSERT_NO_FATAL_FAILURE(ReceiveList({WithHeightOffsetPet(0), WithHeightOffsetPet(PreservedPetSlot)}));
-    m_manager->Step(Client::Input::InputState{});
-    ASSERT_TRUE(m_state.IsInitialized());
-    m_manager->Render(0.0f);
+    // El historial observado por el dibujo precede a estos callbacks. No se finge haber pasado el
+    // cuerpo de helpers de la escena 4, todavía no portado: su corte se prueba por el manager abajo.
+    m_state.DrawSelection(m_cameraInput);
     ASSERT_EQ(m_cameraInput.hero.z, CharacterSlotHeight);
     ASSERT_TRUE(m_state.Slots()[PreservedPetSlot].previousHad1c15);
 
@@ -311,6 +321,40 @@ TEST_F(SelectionPipelineTest, RecreatingAndDeletingBeforeAnotherStepSurvivesTheR
     m_manager->Poll();
     EXPECT_EQ(m_state.Slots()[0].revision, 2u);
     EXPECT_EQ(m_cameraInput.hero, constructed);
+}
+
+TEST_F(SelectionPipelineTest, AListPetReachesTheHelperBoundaryBeforeActorsParticlesAndCloth)
+{
+    ASSERT_NO_FATAL_FAILURE(StartSelect());
+    ASSERT_NO_FATAL_FAILURE(ReceiveList({WithHeightOffsetPet(0), WithHeightOffsetPet(PreservedPetSlot)}));
+    auto& helpers = m_world.Helpers();
+    ASSERT_TRUE(helpers[0].alive);
+    ASSERT_TRUE(helpers[1].alive);
+    ASSERT_EQ(helpers[0].type, 0x110);
+    ASSERT_EQ(helpers[0].horse.alpha, 0.0f);
+    constexpr std::uint32_t Seed = 16;
+    constexpr int Counter = 41;
+    m_cloth.random = Client::Render::Models::CrtRandom(Seed);
+    m_cloth.logicSteps = Counter;
+    const auto wind = m_cloth.wind;
+    const auto animation = m_world.Actors()[0].animation;
+
+    m_manager->Step(Client::Input::InputState{});
+
+    ASSERT_TRUE(m_manager->Failure().has_value());
+    EXPECT_NE(m_manager->Failure()->find("0x6342f4"), std::string::npos);
+    EXPECT_TRUE(m_manager->HoldsTheLastFrame());
+    EXPECT_TRUE(m_state.IsInitialized());
+    EXPECT_FLOAT_EQ(helpers[0].horse.alpha, 0.1f);
+    EXPECT_FLOAT_EQ(helpers[1].horse.alpha, 0.0f);
+    EXPECT_EQ(m_world.Actors()[0].animation.frame, animation.frame);
+    EXPECT_EQ(m_cloth.random.State(), Client::Tests::AfterDraws(Seed, 3904).State());
+    EXPECT_EQ(m_cloth.logicSteps, Counter);
+    EXPECT_EQ(m_cloth.wind, wind);
+
+    m_manager->Step(Client::Input::InputState{});
+    EXPECT_FLOAT_EQ(helpers[0].horse.alpha, 0.1f);
+    EXPECT_EQ(m_cloth.random.State(), Client::Tests::AfterDraws(Seed, 3904).State());
 }
 
 TEST_F(SelectionPipelineTest, ANewLoginPreservesAlreadyAppliedEventsAndTheConstructedPool)
@@ -377,7 +421,7 @@ TEST_F(SelectionPipelineTest, TwoIdenticalAcceptedCreationsApplyBeforeTheSceneRe
 TEST_F(SelectionPipelineTest, TheLiveMapIsFiftyFourOnTheSelectionAndStaysForTheWorldLoading)
 {
     ASSERT_NO_FATAL_FAILURE(StartSelect());
-    ASSERT_NO_FATAL_FAILURE(ReceiveList({{0, "char0001"}}));
+    ASSERT_NO_FATAL_FAILURE(ReceiveList({WithoutPet(0)}));
     EXPECT_EQ(m_world.Runtime().map, LoginMap);
 
     m_manager->Step(Client::Input::InputState{});
@@ -472,7 +516,7 @@ TEST_F(SelectionPipelineTest, TheSelectionDrawingLeavesTheScanOfTheLastCharacter
 {
     m_world.Runtime().fullSetScan = std::nullopt;
     ASSERT_NO_FATAL_FAILURE(StartSelect());
-    ASSERT_NO_FATAL_FAILURE(ReceiveList({CharacterEntryFields{.slot = 0}}));
+    ASSERT_NO_FATAL_FAILURE(ReceiveList({WithoutPet(0)}));
     m_manager->Step(Client::Input::InputState{});
     // El paso común ya necesitó el esqueleto: se retira solo para observar la guarda del dibujo.
     m_models.Clear();

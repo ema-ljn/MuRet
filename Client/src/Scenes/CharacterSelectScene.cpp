@@ -14,6 +14,7 @@
 #include "Protocol/Character/CharacterName.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/RayPicking.h"
@@ -24,6 +25,14 @@
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterAnimation.h"
+#include "Scenes/ActorAppearance.h"
+#include "Scenes/ActorConstruction.h"
+#include "Scenes/ActorState.h"
+#include "Scenes/CharacterStep.h"
+#include "Scenes/DarkSpirit.h"
+#include "Scenes/DarkHorse.h"
+#include "Scenes/HelperTable.h"
+#include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/CreatePreview.h"
@@ -41,6 +50,11 @@
 #include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/TextureSets.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/DynamicWorldLight.h"
+#include "Scenes/WorldMap.h"
+#include "World/WorldTerrain.h"
+#include "World/Particles.h"
+#include "World/WorldTerrain.h"
 #include "UI/CreateCharacterWindow.h"
 #include "UI/DeleteChecks.h"
 #include "UI/GameCursor.h"
@@ -54,8 +68,10 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <ratio>
 #include <optional>
 #include <string>
 #include <utility>
@@ -86,6 +102,22 @@ constexpr std::uint8_t BlockedAccountFlag = 0x10;
 
 // 0x5bb8d0 en la selección: 640, sin las ventanas del juego (06 § El trapecio completo).
 constexpr std::int32_t SelectionWorldWidth = 640;
+
+Core::Expected<void, std::string> StepSelectionHelpers(WorldState& world)
+{
+    for (HelperState& helper : world.Helpers())
+    {
+        if (!helper.alive)
+        {
+            continue;
+        }
+        // 0x44402a: el guard del jinete muerto es solo de escena5. En la4 llega al alpha
+        // (0x444053) antes del modelo y del cuerpo que todavía no están portados.
+        FadeInDarkHorse(helper.horse);
+        return Core::Unexpected(std::string("0x6342f4 → 0x444059: falta el cuerpo del ayudante de selección"));
+    }
+    return {};
+}
 
 // Si la entrada es la misma que dio el personaje: un crear en un lugar ocupado lo pisa.
 bool SameEntry(const Protocol::Character::CharacterEntry& one, const Protocol::Character::CharacterEntry& other)
@@ -126,7 +158,8 @@ Render::OriginalQuad Background(std::uint16_t slot, float x)
 CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const GameData& data,
                                            const IModelLibrary& models, App::ServerSession* session,
                                            const Render::Models::ModelTextureSlots* gameSlots)
-    : m_context(context), m_texts(data.text ? &*data.text : nullptr), m_models(models), m_session(session),
+    : m_context(context), m_texts(data.text ? &*data.text : nullptr),
+      m_items(data.items ? &data.items->table : nullptr), m_models(models), m_session(session),
       m_textures(context.textures, SelectionTextureSet), m_windowTextures(context.textures, WindowTextureSet),
       m_notice([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts),
       m_bar([this](Render::TextureSlot slot) { return m_textures.BufferSize(slot); }, m_texts),
@@ -155,11 +188,24 @@ World::GameCameraInput& CharacterSelectScene::CameraInputState()
     return m_context.cameraInput != nullptr ? *m_context.cameraInput : m_localCameraInput;
 }
 
+CreatePreview& CharacterSelectScene::Preview()
+{
+    return m_context.selection != nullptr ? m_context.selection->PreviewActor() : m_preview;
+}
+
+const CreatePreview& CharacterSelectScene::Preview() const
+{
+    return m_context.selection != nullptr ? m_context.selection->PreviewActor() : m_preview;
+}
+
 Core::Expected<void, std::string> CharacterSelectScene::Enter()
 {
     m_cameraFrames = {};
     m_fullSetScanFrames = {};
+    m_previewDrawFrames = {};
+    m_previewCamera = PreviewCamera();
     m_steps = 0;
+    m_charactersPrepared = false;
     CameraInputState().scene = World::CullingScene::CharacterSelect;
     if (m_context.selection != nullptr)
     {
@@ -184,7 +230,10 @@ Core::Expected<void, std::string> CharacterSelectScene::Enter()
     }
     // 0x633f20 → 0x65f4b0 → 0x63d1a0 → 0x63d7c0 → 0x63e3e0, al entrar: la vista previa con la clase
     // de la ventana (el Dark Knight) y la acción 1.
-    ChoosePreviewClass(m_preview, m_create.ChosenClass(), m_selectionModels);
+    if (m_context.world == nullptr || m_context.cloth == nullptr || m_context.selection == nullptr)
+    {
+        ChoosePreviewClass(Preview(), m_create.ChosenClass(), m_selectionModels);
+    }
     // El F3 00 de la entrada desde el login (0x634dce). Después de un F1 02 con 1 ya lo mandó la sesión
     // (0x4c3653) y espera la lista: no se pide otra.
     if (m_session != nullptr && m_session->State() == App::SessionState::LoggedIn)
@@ -274,9 +323,110 @@ void CharacterSelectScene::SyncTheCharacters()
     }
 }
 
-// El cuerpo, la mascota y las alas de cada uno (StepCharacterAnimation), con la regla de la escena 4.
+bool CharacterSelectScene::PrepareTheCharacters()
+{
+    if (m_charactersPrepared)
+    {
+        return true;
+    }
+    if (m_context.world == nullptr || m_context.cloth == nullptr || m_context.selection == nullptr)
+    {
+        m_charactersPrepared = true;
+        return true;
+    }
+    const auto* terrain = m_context.selection->Terrain();
+    if (terrain == nullptr)
+    {
+        m_failure = "0x633f65: falta el terreno 54 del constructor de la vista previa";
+        return false;
+    }
+    const ActorConstructionContext construction{.terrain = *terrain,
+                                                .map = m_context.world->Runtime().map,
+                                                .scene = World::CullingScene::CharacterSelect,
+                                                .fixedHeight = CameraState().fixedHeight};
+    constexpr std::uint8_t DefaultPreviewClass = 1;
+    constexpr std::uint16_t DefaultPreviewModel = FirstNewFaceModel + DefaultPreviewClass;
+    auto first = ConstructActor(Preview(), DefaultPreviewModel, {}, construction, *m_context.cloth);
+    if (!first.HasValue())
+    {
+        m_failure = first.Error();
+        return false;
+    }
+    Preview().characterClass = DefaultPreviewClass;
+    Preview().byte88 = 0;
+    auto window = RebuildPreview(Preview(), m_create.ChosenClass(), m_selectionModels, construction, *m_context.cloth);
+    if (!window.HasValue())
+    {
+        m_failure = window.Error();
+        return false;
+    }
+    // 0x634049..0x634177: el reset parcial, con el cierre del mismo registro de 0x4fc450.
+    const Render::Models::LogicalAccess access(m_context.world->Runtime().ownRecordDepth, m_context.cloth->random,
+                                               Render::Models::OwnRecordCloseRandoms);
+    m_context.world->OwnCharacter().ResetForSelection();
+    m_charactersPrepared = true;
+    return true;
+}
+
+CharacterStepContext CharacterSelectScene::CharacterContext()
+{
+    const float clock =
+        m_context.clock != nullptr
+            ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
+            : 0.0f;
+    return {.world = *m_context.world,
+            .random = m_context.cloth->random,
+            .scene = SceneId::CharacterSelect,
+            .playerSkeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel),
+            .items = m_items,
+            .terrain = m_context.selection->Terrain(),
+            .darkSpiritSkeleton = m_models.SkeletonOf(DarkSpiritModel),
+            .particles = &m_context.world->Particles(),
+            .worldClock = clock,
+            .counter = m_context.cloth->logicSteps,
+            .newFaceSkeleton = m_selectionModels.SkeletonOf(Preview().type)};
+}
+
+// 0x6342f9, después 0x634303: los 400 registros y el objeto NewFace, antes de la UI.
 void CharacterSelectScene::StepCharacters()
 {
+    if (m_context.world != nullptr && m_context.cloth != nullptr && m_context.selection != nullptr)
+    {
+        if (auto helpers = StepSelectionHelpers(*m_context.world); !helpers.HasValue())
+        {
+            m_failure = helpers.Error();
+            return;
+        }
+        const CharacterStepContext context = CharacterContext();
+        if (auto stepped = Scenes::StepCharacters(context); !stepped.HasValue())
+        {
+            m_failure = stepped.Error();
+            return;
+        }
+        if (auto preview = StepCharacter(Preview(), context); !preview.HasValue())
+        {
+            m_failure = preview.Error();
+            return;
+        }
+        // 0x634315, después del preview: también sortea el viento con la tabla vacía.
+        const auto particles =
+            World::StepParticlesChecked(m_context.world->Particles(), context.random, &m_context.world->Runtime().map);
+        if (!particles.HasValue())
+        {
+            m_failure = "0x634315 → 0x5446e0: el paso de las partículas falla con error " +
+                        std::to_string(static_cast<unsigned>(particles.Error()));
+            return;
+        }
+        m_previewAdvanced = true;
+        for (Character& character : m_characters)
+        {
+            const ActorState& actor = m_context.world->Actors()[character.slot];
+            character.animation.body = actor.animation;
+            StepCharacterAttachments(character.animation, AppearanceOfActor(actor), m_models);
+        }
+        return;
+    }
+    // Los tests de UI sin WorldState ni terreno conservan la animación de presentación.
     for (Character& character : m_characters)
     {
         // Lo que termina vuelve a la de parado (0x4fcb10), que en la selección es la 3: como la 3 repite,
@@ -326,6 +476,7 @@ bool CharacterSelectScene::TakeTheCreationResult()
     }
     // La ventana antes que el aviso, que queda arriba (0x6431b0), con el campo vacío.
     m_create.Open();
+    m_previewDrawFrames = {};
     m_notice.Open(*notice);
     return true;
 }
@@ -443,6 +594,7 @@ void CharacterSelectScene::OnTheBar(UI::SelectionBarClick click)
         break;
     case UI::SelectionBarClick::Create:
         m_create.Open();
+        m_previewDrawFrames = {};
         break;
     case UI::SelectionBarClick::Delete:
         AskToDelete();
@@ -482,10 +634,20 @@ void CharacterSelectScene::SendTheDeletion()
 
 void CharacterSelectScene::Step(const Input::InputState& input)
 {
-    if (m_context.cloth != nullptr)
+    if (m_failure)
     {
+        return;
+    }
+    StepTheScene(input);
+    if (!m_failure && m_context.cloth != nullptr)
+    {
+        // 0x637cb2 → 0x6342c0 precede el viento y el contador de 0x637cec/0x637f91.
         Render::Models::StepTheClothWorld(*m_context.cloth);
     }
+}
+
+void CharacterSelectScene::StepTheScene(const Input::InputState& input)
+{
     m_previewAdvanced = false;
     // Un aviso que se abre en este paso se atiende desde el siguiente: lo que se apretó en este no
     // lo cierra antes de que se vea.
@@ -503,12 +665,30 @@ void CharacterSelectScene::Step(const Input::InputState& input)
         if (auto initialized = m_context.selection->InitializeSelection(m_context.dataRoot, CameraInputState());
             !initialized.HasValue())
         {
+            m_failure = initialized.Error();
             return;
+        }
+    }
+    if (m_context.world != nullptr)
+    {
+        const World::WorldTerrain* terrain =
+            m_context.selection != nullptr ? m_context.selection->Terrain() : &m_context.world->Map().terrain;
+        if (terrain != nullptr && terrain->lighting != nullptr)
+        {
+            m_context.world->DynamicLighting().Update(*terrain->lighting);
         }
     }
     ++m_steps;
     SyncTheCharacters();
+    if (!PrepareTheCharacters())
+    {
+        return;
+    }
     StepCharacters();
+    if (m_failure)
+    {
+        return;
+    }
     const bool deletionOpened = TakeTheDeletionResult();
     const bool creationOpened = TakeTheCreationResult();
     EnableTheBar();
@@ -702,6 +882,10 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         return;
     }
     const Render::Pass3D pass = Render::MakePass3D(canvas.screen, WorldViewport, camera);
+    if (m_context.world != nullptr)
+    {
+        m_context.world->DynamicLighting().PublishRange(World::TerrainRangeOf(pass.view, camera));
+    }
     m_lastPass = pass;
     canvas.models.Begin(pass);
     if (world)
@@ -724,16 +908,42 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     const int scanFrames = m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
     for (Character& character : m_characters)
     {
-        ScanTheCharacter(character.appearance, scanFrames);
+        ActorState* actor = m_context.world != nullptr && m_context.selection != nullptr && m_context.cloth != nullptr
+                                ? &m_context.world->Actors()[character.slot]
+                                : nullptr;
+        if (actor != nullptr && (!actor->alive || !actor->seen))
+        {
+            continue;
+        }
+        const GameLogic::CharacterAppearance appearance =
+            actor != nullptr ? AppearanceOfActor(*actor) : character.appearance;
+        ScanTheCharacter(appearance, scanFrames);
         DrawnCharacter drawn;
-        drawn.appearance = character.appearance;
+        drawn.appearance = appearance;
+        if (actor != nullptr)
+        {
+            character.animation.body = actor->animation;
+            drawn.headAngles = actor->headTurn.angles;
+        }
         drawn.body = BodyBetweenSteps(character.animation, m_models, alpha);
         drawn.pet = character.animation.pet.state;
         drawn.wings = character.animation.wings.state;
         drawn.object = ObjectOf(character);
+        if (actor != nullptr)
+        {
+            drawn.object.angles = actor->angles;
+            drawn.object.scale = actor->scale;
+            drawn.alpha = actor->alpha;
+            drawn.safeZone = actor->safeZone != 0;
+        }
         const bool isChosen = chosen != nullptr && chosen->slot == character.slot;
         drawn.light = glm::vec3((static_cast<std::size_t>(character.slot) == hero ? HeroLight : CharacterLight) +
                                 (isChosen ? ChosenExtraLight : 0.0f));
+        if (actor != nullptr)
+        {
+            actor->light = glm::vec3(isChosen ? ChosenExtraLight : 0.0f);
+            actor->drawnLight = drawn.light;
+        }
         drawn.outlined = m_hovered == character.slot;
         drawn.cloth = &character.cloth;
         drawn.clothWorld = m_context.cloth;
@@ -787,11 +997,28 @@ void CharacterSelectScene::StepThePreview()
     m_previewAdvanced = true;
     // 0x63d880 → 0x63d7c0 → 0x63e3e0: la clase que eligió el clic de este paso arma otra vez la
     // vista previa, que después avanza.
-    if (m_create.ChosenClass() != m_preview.characterClass)
+    if (m_create.ChosenClass() != Preview().characterClass)
     {
-        ChoosePreviewClass(m_preview, m_create.ChosenClass(), m_selectionModels);
+        if (m_context.world != nullptr && m_context.cloth != nullptr && m_context.selection != nullptr)
+        {
+            const ActorConstructionContext construction{.terrain = *m_context.selection->Terrain(),
+                                                        .map = m_context.world->Runtime().map,
+                                                        .scene = World::CullingScene::CharacterSelect,
+                                                        .fixedHeight = CameraState().fixedHeight};
+            if (auto rebuilt = RebuildPreview(Preview(), m_create.ChosenClass(), m_selectionModels, construction,
+                                              *m_context.cloth);
+                !rebuilt.HasValue())
+            {
+                m_failure = rebuilt.Error();
+                return;
+            }
+        }
+        else
+        {
+            ChoosePreviewClass(Preview(), m_create.ChosenClass(), m_selectionModels);
+        }
     }
-    StepPreview(m_preview, m_selectionModels);
+    StepPreview(Preview(), m_selectionModels);
 }
 
 // 0x66a050: la base de la ventana; 0x63e460: la vista previa en su propio pase, sin limpiar la
@@ -801,17 +1028,30 @@ void CharacterSelectScene::DrawTheCreateWindow(SceneCanvas& canvas, float alpha)
 {
     if (!m_create.IsOpen())
     {
+        // 0x63e460 solo corre con la ventana dibujada: al reabrir no recupera el tiempo cerrada.
+        m_previewDrawFrames = {};
         return;
     }
     m_create.DrawBase(canvas.sprites, canvas.screen);
     canvas.flushSprites();
     const UI::Rect box = UI::LayoutCreateWindow(canvas.screen, m_create.ChosenClass()).box;
-    const Render::Pass3D pass = Render::MakePass3D(canvas.screen, PreviewViewport(box, canvas.screen), PreviewCamera());
+    const int frames = m_previewDrawFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
+    const float stepAlpha = m_previewAdvanced ? alpha : 0.0f;
+    DrawnObject drawn;
+    for (int frame = 0; frame < frames; ++frame)
+    {
+        m_previewCamera = PreviewCamera(Preview());
+        drawn = DrawnPreview(Preview(), m_selectionModels, stepAlpha);
+    }
+    if (frames == 0)
+    {
+        drawn = DrawnPreview(Preview(), m_selectionModels, stepAlpha, 0);
+    }
+    const Render::Pass3D pass = Render::MakePass3D(canvas.screen, PreviewViewport(box, canvas.screen), m_previewCamera);
     canvas.models.Begin(pass);
     // Sin el avance de este paso (un aviso arriba), la vista previa va quieta: interpolar uno que no
     // va a dar la haría temblar.
-    DrawObject(canvas.models, m_selectionModels,
-               DrawnPreview(m_preview, m_selectionModels, m_previewAdvanced ? alpha : 0.0f), canvas.frameClock);
+    DrawObject(canvas.models, m_selectionModels, drawn, canvas.frameClock);
     canvas.flushModels();
     m_create.Draw(canvas.sprites, canvas.text, canvas.screen);
 }
@@ -834,6 +1074,11 @@ bool CharacterSelectScene::WantsTextInput() const
 std::optional<std::string> CharacterSelectScene::Failure() const
 {
     return m_failure;
+}
+
+const ActorState& CharacterSelectScene::PreviewActor() const
+{
+    return Preview();
 }
 
 bool CharacterSelectScene::HoldsTheLastFrame() const

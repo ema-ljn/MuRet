@@ -15,6 +15,8 @@
 #include "Render/Text/TextLayout.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/ActorConstruction.h"
+#include "Render/Models/Cloth.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneTextures.h"
 #include "UI/Widget.h"
@@ -171,11 +173,33 @@ const Render::Models::ModelTextureSlots* SelectionModels::TextureSlots() const
 void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass, const IModelLibrary& models)
 {
     preview.characterClass = characterClass;
+    preview.type = NewFaceOf(characterClass);
+    preview.alive = true;
+    preview.position = PreviewPosition;
     preview.animation = {};
     if (const Render::Models::Skeleton* skeleton = models.SkeletonOf(NewFaceOf(characterClass)))
     {
         Render::Models::SetAction(preview.animation, *skeleton, GreetingAction);
     }
+}
+
+Core::Expected<void, std::string> RebuildPreview(CreatePreview& preview, std::uint8_t characterClass,
+                                                 const IModelLibrary& models,
+                                                 const ActorConstructionContext& construction,
+                                                 Render::Models::ClothWorld& cloth)
+{
+    preview.characterClass = characterClass;
+    const auto built = ConstructActor(preview, NewFaceOf(characterClass), {}, construction, cloth);
+    if (!built.HasValue())
+    {
+        return built;
+    }
+    preview.byte88 = 0;
+    if (const auto* skeleton = models.SkeletonOf(preview.type))
+    {
+        Render::Models::SetAction(preview.animation, *skeleton, GreetingAction);
+    }
+    return {};
 }
 
 void StepPreview(CreatePreview& preview, const IModelLibrary& models)
@@ -193,9 +217,16 @@ void StepPreview(CreatePreview& preview, const IModelLibrary& models)
     }
 }
 
-DrawnObject DrawnPreview(const CreatePreview& preview, const IModelLibrary& models, float stepAlpha)
+DrawnObject DrawnPreview(CreatePreview& preview, const IModelLibrary& models, float stepAlpha, int originalFrames)
 {
     const ClassPose& pose = ClassPoses[preview.characterClass < NewFaceCount ? preview.characterClass : 1];
+    preview.angles = pose.angles;
+    preview.scale = pose.scale;
+    preview.light = glm::vec3(1.0f);
+    for (int frame = 0; frame < originalFrames; ++frame)
+    {
+        preview.position += pose.offset;
+    }
     DrawnObject drawn;
     drawn.model = NewFaceOf(preview.characterClass);
     drawn.animation = preview.animation;
@@ -206,9 +237,9 @@ DrawnObject DrawnPreview(const CreatePreview& preview, const IModelLibrary& mode
         drawn.animation =
             Render::Models::Interpolated(preview.animation, action, action.speed * NewFaceSpeedFactor, stepAlpha);
     }
-    drawn.transform.position = PreviewPosition + pose.offset;
-    drawn.transform.angles = pose.angles;
-    drawn.transform.scale = pose.scale;
+    drawn.transform.position = preview.position;
+    drawn.transform.angles = preview.angles;
+    drawn.transform.scale = preview.scale;
     drawn.color = glm::vec3(PreviewColor);
     drawn.vertexLight = true;
     return drawn;
@@ -221,6 +252,13 @@ Render::Camera3D PreviewCamera()
     camera.angles = CameraAngles;
     camera.skipXRotation = false;
     camera.fieldOfView = PreviewFieldOfView;
+    return camera;
+}
+
+Render::Camera3D PreviewCamera(const CreatePreview& preview)
+{
+    Render::Camera3D camera = PreviewCamera();
+    camera.position = preview.position + CameraOffset;
     return camera;
 }
 

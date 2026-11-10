@@ -11,6 +11,7 @@
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/Particles.h"
 #include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
 
@@ -153,6 +154,8 @@ void KillOtherActors(WorldState& world, std::int32_t key)
             actor.alive = false;
             TurnOffHelpersOf(world.Helpers(), slot);
         }
+        // 0x510fc2..0x510fc3: 0x421d60 también con los muertos y los que conservan su clave.
+        actor.darkSpirit.reset();
     }
 }
 
@@ -170,6 +173,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     const std::int32_t map = runtime.map;
     WorldMap& loaded = context.world.Map();
     ReleaseTheMapObjects(loaded);
+    context.world.Particles().Clear();
     ForgetThePreviousTerrain(loaded);
     if (context.scene != SceneId::CharacterSelect)
     {

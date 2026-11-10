@@ -96,6 +96,10 @@ protected:
     void SetUp() override
     {
         ASSERT_NO_FATAL_FAILURE(Client::Tests::GoldenDataTest::SetUp());
+        auto data = Client::Scenes::LoadGameData(m_dataRoot);
+        ASSERT_TRUE(data.HasValue()) << data.Error();
+        m_data = std::move(data).Value();
+        m_models.Set(Client::Data::Models::PlayerSkeletonModel, {}, Client::Tests::PlayerActionsSkeleton(), {});
         auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, LoginMap);
         ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
         m_loginConstructorHeight = static_cast<float>(Client::World::TerrainHeightAt(
@@ -470,6 +474,8 @@ TEST_F(SelectionPipelineTest, TheSelectionDrawingLeavesTheScanOfTheLastCharacter
     ASSERT_NO_FATAL_FAILURE(StartSelect());
     ASSERT_NO_FATAL_FAILURE(ReceiveList({CharacterEntryFields{.slot = 0}}));
     m_manager->Step(Client::Input::InputState{});
+    // El paso común ya necesitó el esqueleto: se retira solo para observar la guarda del dibujo.
+    m_models.Clear();
     m_manager->Render(0.0f);
     EXPECT_FALSE(m_world.Runtime().fullSetScan.has_value());
 

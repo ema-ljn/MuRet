@@ -9,6 +9,7 @@
 #include "World/TerrainCulling.h"
 
 #include <cstddef>
+#include <array>
 #include <cstdint>
 #include <optional>
 
@@ -24,6 +25,9 @@ inline constexpr std::int32_t InitialLeafCount = 30;
 
 struct WorldRuntime
 {
+    // Los cinco selectores del mouse arrancan en -1 en la .data.
+    std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};
+    std::int32_t cursorItemCount = 0;
     std::int32_t storm = 0;
     std::int32_t field78abb0c = 0;
     std::int32_t field78abb10 = 0;

@@ -4,6 +4,7 @@
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Tables/SkillTable.h"
 #include "Data/Text/TextTable.h"
 
 #include <filesystem>
@@ -25,6 +26,8 @@ inline constexpr std::string_view FilterFile = "Local\\Filter.bmd";
 inline constexpr std::string_view GateTableFile = "Gate.bmd";
 // Metadata de ítems que usa 0x54bf40, cargada una vez por 0x54b9e0.
 inline constexpr std::string_view ItemTableFile = "Local\\Item.bmd";
+// 0x54acf0: 256 registros de 0x3c y checksum obligatorio (05 § Tablas .bmd).
+inline constexpr std::string_view SkillTableFile = "Local\\Skill.bmd";
 // Las tablas de los conjuntos, como las pide 0x40c600 desde 0x61ccb0 (0x6c63e8 y 0x6c63c8).
 inline constexpr std::string_view ItemSetTypeFile = "Local\\ItemSetType.bmd";
 inline constexpr std::string_view ItemSetOptionFile = "Local\\ItemSetOption.bmd";
@@ -42,6 +45,8 @@ struct GameData
     std::optional<Data::Tables::LoadedItemTable> items;
     // ItemSetType.bmd e ItemSetOption.bmd, las tablas de [0x6eed3c] (05, "Las tablas de los conjuntos").
     std::optional<Data::Tables::ItemSetTables> itemSets;
+    // Skill.bmd: la tabla en claro, sin el contenedor guardia del original (Q-C08).
+    std::optional<Data::Tables::SkillTable> skills;
 };
 
 // Lo de WinMain antes de la escena 1: Text.bmd en 0x4b9b9f (0x61ee30 y 0x5495e0), antes de las
@@ -54,6 +59,8 @@ struct GameData
 // Item.bmd también es obligatorio; lee registros y checksum de un prefijo fijo, permite cola y
 // conserva el checksum no fatal (Q-C01) en items->checksumMatches. Las dos tablas de los conjuntos
 // también: sin ellas, o con un checksum que no da, el original muestra su aviso y cierra la ventana
-// (0x40c660 y 0x40c850); un error de ruta, lectura o formato las nombra.
+// (0x40c660 y 0x40c850); un error de ruta, lectura o formato las nombra. Skill.bmd también es
+// obligatorio: lee registros y checksum de un prefijo fijo, permite cola y rechaza un checksum
+// distinto (0x54acf0). La tabla queda en claro, sin el contenedor guardia del original (Q-C08).
 [[nodiscard]] Core::Expected<GameData, std::string> LoadGameData(const std::filesystem::path& dataRoot);
 } // namespace Client::Scenes

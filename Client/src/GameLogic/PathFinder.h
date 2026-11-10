@@ -1,8 +1,10 @@
 #pragma once
 
 #include "GameLogic/Path.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "GameLogic/PathCell.h"
 
+#include <cstdint>
 #include <optional>
 
 namespace Client::World
@@ -18,6 +20,7 @@ class PathFinder
 {
 public:
     explicit PathFinder(World::TerrainWalls& walls);
+    explicit PathFinder(Data::Terrain::TerrainLayer<std::uint16_t>& walls);
 
     // Exacto (500 extracciones), luego el más cercano (50). Cero en x/y del inicio falla
     // (Q-C156), igual que el clic en la propia celda. Con x/y del inicio distintos de 0,
@@ -28,6 +31,6 @@ public:
 private:
     class SearchState;
 
-    World::TerrainWalls& m_walls;
+    Data::Terrain::TerrainLayer<std::uint16_t>& m_walls;
 };
 } // namespace Client::GameLogic

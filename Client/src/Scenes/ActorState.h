@@ -1,15 +1,18 @@
 #pragma once
 
 #include "GameLogic/CharacterAppearance.h"
+#include "GameLogic/Path.h"
 #include "Protocol/Character/Opcodes.h"
 #include "Render/Models/Pose.h"
 #include "Scenes/CharacterHead.h"
+#include "Scenes/DarkSpirit.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 // Un registro del pool durable de personajes, de 0x438 bytes en el original (06, "Los personajes de
 // la lista"). Es una proyección con lo que MuRet lee hoy, no el layout. Arranca en cero, como lo deja
@@ -63,6 +66,8 @@ struct ActorState
     Render::Models::AnimationState animation;
     std::uint8_t characterClass = 0;                            // +0x1d4
     std::uint8_t skin = 0;                                      // +0x1d5
+    std::uint16_t level = 0;                                    // +0x1d6, nivel de la lista o del F3 03
+    std::uint8_t guildStatus = 0;                               // +0x368, 0xff desde 0x511290
     std::uint16_t head = 0;                                     // +0x1f8, de 0x512930: 0xffff sin cabeza
     std::array<ActorItemPart, GameLogic::BodyPartCount> body{}; // +0x218, en el orden de GameLogic::BodyPart
     std::array<ActorItemPart, 2> hands{};                       // +0x2b8 la derecha y +0x2d8 la izquierda
@@ -83,8 +88,12 @@ struct ActorState
     // quedan los de WinMain o los del uso anterior del registro. Del héroe, el blanco lo escribe MoveHero con
     // el mouse (0x59b1c2..0x59b287, CL7.4), sin portar.
     CharacterHead headTurn{};
+    // +0x430: el cuervo que 0x420d60 crea y 0x420dd0 mueve dentro del cuerpo de este dueño.
+    std::optional<DarkSpirit> darkSpirit;
     // +0xf4, +0xf8 y +0xfc, la luz propia: 0x511290 la deja en 0. La lee el efecto de llegada (0x518cf0).
     glm::vec3 light{};
+    // +0x3b4..+0x3bc: la luz del dibujo de 0x50ba30, distinta de la luz propia de +0xf4.
+    glm::vec3 drawnLight{};
     // +0x170 y +0x174: la meta del alpha y el alpha. 0x511290 los pone en 1 y la respuesta del F3 03
     // baja el alpha del héroe a 0 (0x4c4981): entra transparente.
     float alphaTarget = 0.0f;
@@ -119,10 +128,21 @@ struct ActorState
     // +0x1f4: la clave del personaje. 0x517270 pone el lugar de la selección (0x5172a8) y la respuesta del
     // F3 03 la del jugador (0x57678bc, 0x4c4516). 0x510f70 mata a los que no tienen la del héroe.
     std::uint16_t key = 0;
-    std::uint8_t pk = 0;       // +0x375: 3 desde 0x511290, después el de la respuesta del F3 03
-    std::uint8_t movement = 0; // +0x378, el Movement de Caminar
-    // La celda del servidor: cifrada en +0x41c y +0x420 (la tabla de protección) y en claro en +0x39a y
-    // +0x39b. 0x511290 escribe las dos copias con el mismo valor.
+    std::uint8_t pk = 0; // +0x375: 3 desde 0x511290, después el de la respuesta del F3 03
+    // Caminar: +0x3e8.., +0x39a/+0x39b (blanco, separado de la celda adelantada), +0x388 y +0x3e5.
+    GameLogic::Path path;
+    std::uint8_t targetX = 0;
+    std::uint8_t targetY = 0;
+    std::uint8_t direction = 0;
+    std::uint8_t firstFootstepSound = 0;  // +0x3e0, retenidos hasta terminar la animación
+    std::uint8_t secondFootstepSound = 0; // +0x3e1
+    std::uint8_t movementCooldown = 0;
+    std::uint8_t movementType = 0;       // +0x379
+    float movementPhase = 0.0f;          // +0x84
+    std::uint16_t baseMovementSpeed = 0; // +0x386, 10 desde 0x511290
+    std::uint8_t movement = 0;           // +0x378, el Movement de Caminar
+    // La celda lógica protegida (+0x41c/+0x420), que MovePath adelanta. El blanco del servidor es
+    // targetX/Y (+0x39a/b); 0x511290 inicializa las dos parejas con el mismo valor.
     std::uint8_t cellX = 0;
     std::uint8_t cellY = 0;
     // Cuántos accesos tienen abiertas las entradas de +0x41c y +0x420 (Render::Models::LogicalAccess).

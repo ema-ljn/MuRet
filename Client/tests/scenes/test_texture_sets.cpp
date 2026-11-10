@@ -3,11 +3,14 @@
 #include "Data/Textures/Sampling.h"
 #include "Data/Textures/TextureSet.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/SceneTextures.h"
+#include "support/FakeTextureStore.h"
 
 #include <gtest/gtest.h>
 
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <optional>
 #include <set>
 #include <span>
@@ -130,6 +133,33 @@ TEST(TextureSetsTest, TheEffectSetLoadsTheCloudsWithLinearClamp)
     EXPECT_EQ(cloud->path, "Effect\\clouds.jpg");
     EXPECT_EQ(cloud->sampling.filter, Filter::Linear);
     EXPECT_EQ(cloud->sampling.wrap, Wrap::Clamp);
+}
+
+// 0x61d6e0 y 0x61d6fc: el calco y los anillos de 0x61f deben subir a los slots originales.
+// Lee los OZJ versionados del repo: también fija el nombre real, no solo dos filas de la tabla.
+TEST(TextureSetsTest, TheArrivalGroundAndRingTexturesUploadAtTheirOriginalSlots)
+{
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::SceneTextures textures(store, EffectTextureSet);
+    const std::filesystem::path dataRoot{MURET_CLIENT_REPO_DATA_DIR};
+    const auto loaded = textures.Load(dataRoot);
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    for (const std::uint16_t slot : {std::uint16_t{0x61e}, std::uint16_t{0x61f}})
+    {
+        for (const TextureSetEntry& entry : EffectTextureSet)
+        {
+            if (entry.slot == slot)
+            {
+                EXPECT_EQ(entry.path, slot == 0x61e ? "Effect\\Magic_Ground2.jpg" : "Effect\\Magic_Circle1.jpg");
+            }
+        }
+        const auto texture = store.Find(Client::Render::TextureSlot{slot});
+        ASSERT_TRUE(texture.has_value()) << slot;
+        EXPECT_EQ(texture->sampling.filter, Filter::Linear);
+        EXPECT_EQ(texture->sampling.wrap, Wrap::Clamp);
+        EXPECT_GT(texture->texture.width, 0);
+        EXPECT_GT(texture->texture.height, 0);
+    }
 }
 
 // 0x622e40 sube seis, todas con filtro y sin repetir salvo la barra.

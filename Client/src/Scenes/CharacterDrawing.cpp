@@ -443,6 +443,7 @@ struct ModelUse
     std::uint16_t objectType = Data::Models::PlayerSkeletonModel;
     ObjectState object;
     float outlineLight = 1.0f;
+    bool hanging = false;
 };
 
 // 0x60b3d0 con el objeto de Spear10: antes de los pases, RenderBody(2) con el 0x5c0 forzado, el color
@@ -536,11 +537,17 @@ void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<con
     {
         return;
     }
-    const glm::vec3 shade = frame.character.light * use.glow.baseFactor;
+    const glm::vec3 light =
+        use.hanging ? frame.character.hangingLight.value_or(frame.character.light) : frame.character.light;
+    const glm::vec3 shade = light * use.glow.baseFactor;
     std::vector<Render::Models::SkinnedMesh> skinned;
-    const std::vector<MeshDraw> draws = MeshDrawsOf(
+    std::vector<MeshDraw> draws = MeshDrawsOf(
         frame.models, modelId, *model, bones, frame.character.object, frame.character.appearance.characterClass,
         Render::Color{shade.x, shade.y, shade.z, 1.0f}, use.object, frame.clock, skinned);
+    for (MeshDraw& draw : draws)
+    {
+        draw.alpha = frame.character.alpha;
+    }
     if (use.outlined)
     {
         ObjectState outlineObject = use.object;
@@ -574,8 +581,12 @@ bool SkippedInTheHand(std::uint16_t model)
 void DrawShadow(const CharacterFrame& frame, std::span<const BoneTransform> body)
 {
     const DrawnCharacter& character = frame.character;
+    if (!character.castsShadow)
+    {
+        return;
+    }
     const std::optional<std::uint16_t>& pet = character.appearance.pet;
-    if (pet && std::ranges::find(PetsWithoutShadow, *pet) != PetsWithoutShadow.end())
+    if (!character.safeZone && pet && std::ranges::find(PetsWithoutShadow, *pet) != PetsWithoutShadow.end())
     {
         return;
     }
@@ -686,6 +697,35 @@ Render::Models::ObjectRandoms RandomsOf(std::minstd_rand& random)
     return {first, second};
 }
 
+// 0x607b60 no saca rand fuera de estos cuatro casos: uno para Sword15 y Staff08,
+// dos para Staff06 y Shield15. El sorteo local legacy no pertenece al flujo global.
+std::size_t HangingRandomCount(std::uint16_t model)
+{
+    constexpr std::uint16_t Sword15 = 0x220;
+    constexpr std::uint16_t Staff08 = 0xc19;
+    constexpr std::uint16_t Staff06 = 0xc17;
+    constexpr std::uint16_t Shield15 = 0xe20;
+    if (model == Sword15 || model == Staff08)
+        return 1;
+    if (model == Staff06 || model == Shield15)
+        return 2;
+    return 0;
+}
+
+Render::Models::ObjectRandoms RandomsOf(const CharacterFrame& frame, std::uint16_t model)
+{
+    if (frame.character.originalRandom == nullptr)
+    {
+        return RandomsOf(frame.random);
+    }
+    Render::Models::ObjectRandoms randoms{};
+    for (std::size_t index = 0; index < HangingRandomCount(model); ++index)
+    {
+        randoms[index] = frame.character.originalRandom->Next();
+    }
+    return randoms;
+}
+
 // Lo que cuelga desde la raíz `root`, posado (0x4eb860 con su séptimo argumento en 1) y dibujado con
 // el objeto que 0x509340 le arma con el tipo de su ítem. Después, el caso de su modelo que pide sprites:
 // el del cetro, con el hueso 0 de esa pose y el cuerpo del ítem, la escala del personaje (0x509397) y
@@ -694,8 +734,16 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
                      const glm::vec3& bodyOrigin, const Render::Models::AnimationState& state,
                      const Render::Models::ItemGlow& glow)
 {
+    constexpr std::uint32_t HiddenAttachmentFlag = 0x4000;
+    if (!Render::Models::HangsAsAModel(modelId) || (frame.character.objectFlags & HiddenAttachmentFlag) != 0)
+    {
+        return;
+    }
+    // 0x5093bb inicializa el objeto antes de intentar la pose del ítem.
+    const std::optional<Render::Models::ObjectRandoms> originalRandoms =
+        frame.character.originalRandom != nullptr ? std::optional{RandomsOf(frame, modelId)} : std::nullopt;
     const Render::Models::Skeleton* skeleton = frame.models.SkeletonOf(modelId);
-    if (skeleton == nullptr || !Render::Models::HangsAsAModel(modelId))
+    if (skeleton == nullptr)
     {
         return;
     }
@@ -704,8 +752,9 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
     {
         return;
     }
-    const ObjectState object = Render::Models::HangingObjectState(modelId, frame.clock, RandomsOf(frame.random));
-    DrawModel(frame, modelId, bones, ModelUse{glow, false, modelId, object, object.light});
+    const ObjectState object = Render::Models::HangingObjectState(
+        modelId, frame.clock, originalRandoms.has_value() ? *originalRandoms : RandomsOf(frame, modelId));
+    DrawModel(frame, modelId, bones, ModelUse{glow, false, modelId, object, object.light, true});
     const DrawnCharacter& character = frame.character;
     if (modelId == World::HdkMaceModel && character.sprites != nullptr && character.clothWorld != nullptr &&
         !bones.empty())
@@ -809,12 +858,21 @@ void DrawTheCloth(const CharacterFrame& frame, std::span<const BoneTransform> bo
     wearer.characterClass = appearance.characterClass;
     wearer.armor = appearance.bodyParts[static_cast<std::size_t>(GameLogic::BodyPart::Armor)].model;
     wearer.wings = appearance.wings;
+    wearer.objectFlags = character.objectFlags;
     const Render::Models::ClothBody clothBody{.bones = body,
                                               .angles = character.object.angles,
                                               .scale = character.object.scale,
                                               .position = character.object.position};
-    character.cloth->Advance(frame.batch, wearer, clothBody, *character.clothWorld, character.map, frame.clock,
-                             WearsACloth(appearance.characterClass, character.map), PlainClothColor, character.pace);
+    const bool wears = WearsACloth(appearance.characterClass, character.map);
+    if (character.advanceCloth)
+    {
+        character.cloth->Advance(frame.batch, wearer, clothBody, *character.clothWorld, character.map, frame.clock,
+                                 wears, PlainClothColor, character.pace);
+    }
+    else
+    {
+        character.cloth->DrawCurrent(frame.batch, wearer, frame.clock, wears);
+    }
     // Los destellos del casco blanco (0x455930), aditivos, en la tabla del frame.
     if (character.sprites != nullptr)
     {
@@ -824,6 +882,20 @@ void DrawTheCloth(const CharacterFrame& frame, std::span<const BoneTransform> bo
                                             0.0f, AdditiveSprite);
         }
     }
+}
+
+// Las fronteras del original permiten conservar lo ya dibujado si falta lo que sigue:
+// sombra (0x50bcec), partes (0x50d4e0) y tela (0x50d58b).
+bool DrawTheBodyPass(const CharacterFrame& frame, std::span<const BoneTransform> body, CharacterDrawPass pass)
+{
+    const bool fullBody = pass == CharacterDrawPass::All || pass == CharacterDrawPass::Body;
+    if (fullBody || pass == CharacterDrawPass::Shadow)
+        DrawShadow(frame, body);
+    if (fullBody || pass == CharacterDrawPass::Parts)
+        DrawParts(frame, body);
+    if (fullBody || pass == CharacterDrawPass::Cloth)
+        DrawTheCloth(frame, body);
+    return pass == CharacterDrawPass::All || pass == CharacterDrawPass::Hanging;
 }
 
 // El lazo de las manos de 0x50ba30 (0x50e6af), después de la espalda, las alas y la mascota.
@@ -872,7 +944,7 @@ std::optional<Render::TextureSlot> MeshSlotOf(Render::TextureSlot assigned, std:
 }
 
 void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
-                   Core::Duration frameClock)
+                   Core::Duration frameClock, CharacterDrawPass pass)
 {
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (skeleton == nullptr)
@@ -887,9 +959,10 @@ void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const
     const GameLogic::CharacterAppearance& appearance = character.appearance;
     std::minstd_rand random(RandomSeedOf(frameClock));
     const CharacterFrame frame{batch, models, character, frameClock, random};
-    DrawShadow(frame, body);
-    DrawParts(frame, body);
-    DrawTheCloth(frame, body);
+    if (!DrawTheBodyPass(frame, body, pass))
+    {
+        return;
+    }
     DrawQuiver(frame, body);
     const Render::Models::ItemGlow noGlow{};
     using Render::Models::AttachmentSlot;

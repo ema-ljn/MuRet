@@ -84,6 +84,17 @@ struct DrawnCharacter
     // La luz del personaje, canal por canal: la base de 0x50ba30 más +0xf4 (0,4 y 1,4 el elegido en la
     // selección; en el login, la del terreno en su lugar más 0,3).
     glm::vec3 light{0.4f, 0.4f, 0.4f};
+    // 0x50db94 repone el RGB antes de las armas, las alas y la mascota: el héroe no conserva ahí
+    // el color de los bits del registro propio que usó para sus partes.
+    std::optional<glm::vec3> hangingLight{};
+    // +0x174 y las guardas de la sombra de 0x50bc05..0x50bc71.
+    float alpha = 1.0f;
+    bool castsShadow = true;
+    bool safeZone = false;
+    // +0x78: la tela no se simula ni se dibuja con 0x4000; con 0x1000 el dt es 0.
+    std::uint32_t objectFlags = 0;
+    // En el juego, los rand que pide el caso de 0x607b60 pertenecen al flujo global del cliente.
+    Render::Models::CrtRandom* originalRandom = nullptr;
     // El que está bajo el mouse (DAT_006c8e30 en 0x510d00): sus partes llevan el contorno.
     bool outlined = false;
     // La tela de la clase 3 o 4 (0x50d58b..0x50db57): la de este personaje, que vive entre frames, lo
@@ -91,6 +102,8 @@ struct DrawnCharacter
     // tela.
     CharacterCloth* cloth = nullptr;
     Render::Models::ClothWorld* clothWorld = nullptr;
+    // false entre frames del original: dibuja la tela actual sin crearla ni simularla.
+    bool advanceCloth = true;
     std::uint8_t map = 0;
     // La tabla de los sprites del frame (0x5491e0, World/Sprites.h): los 30 destellos de la tela, al
     // dibujarla, y los cinco del cetro (0x509340, caso 0x620, World/ScepterGlow.h) con el rand() de
@@ -102,6 +115,18 @@ struct DrawnCharacter
     // Cómo cuentan los frames del original la tela y el cetro (Render::Models::OriginalFrameCarry): por el
     // reloj del frame, o uno por dibujo en el modo fiel (SceneContext::pacing).
     Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock;
+};
+
+// 0x50db57 separa las partes y la tela de lo que cuelga con un rand y una nueva luz. Ambos
+// caminos reutilizan el mismo render de modelos; All conserva el contrato del login y la selección.
+enum class CharacterDrawPass : std::uint8_t
+{
+    All,
+    Body,
+    Hanging,
+    Shadow,
+    Parts,
+    Cloth,
 };
 
 // Los slots de las texturas de los pases de brillo (06): 0x5fc el 0x8, 0x5c0 el 0x4 y 0x620 los
@@ -136,7 +161,7 @@ inline constexpr Render::TextureSlot MetalTextureSlot{0x620};
 // algunos ítems ocultan en sus pases, el cromo de Spear10 antes y el set que se apaga malla a malla.
 // Las saetas de la izquierda o las flechas de la derecha van a la espalda, del hueso de las alas.
 void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnCharacter& character,
-                   Core::Duration frameClock);
+                   Core::Duration frameClock, CharacterDrawPass pass = CharacterDrawPass::All);
 
 // Un objeto del mundo (0x606660): el modelo, su animación (+0x111 a +0x118), dónde va, lo que le pasa
 // a RenderBody y el color del modelo (+0x48..+0x50, el que le pone 0x5ffce0 antes de posar).

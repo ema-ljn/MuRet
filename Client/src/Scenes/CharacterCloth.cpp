@@ -218,6 +218,13 @@ void CharacterCloth::Advance(Render::ModelBatch& batch, const ClothWearer& weare
     RunTheBlock(&batch, wearer, body, world, map, worldTime, wears, color);
 }
 
+void CharacterCloth::DrawCurrent(Render::ModelBatch& batch, const ClothWearer& wearer, Core::Duration clock, bool wears,
+                                 const glm::vec3& color)
+{
+    const auto worldTime = static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(clock).count());
+    DrawTheCloths(batch, wearer, worldTime, wears, color);
+}
+
 void CharacterCloth::DrawTheCloths(Render::ModelBatch& batch, const ClothWearer& wearer, float worldTime, bool wears,
                                    const glm::vec3& color)
 {

@@ -24,4 +24,8 @@ struct CharacterPositionState
 // Perfil numérico y límite std::sin/FSIN: ADR0012.
 void UpdateCharacterPosition(CharacterPositionState state, const std::function<double()>& speed,
                              const std::function<double(float, float)>& height);
+// Variante del adapter: sin altura conserva el prefijo XYZ/velocidad y devuelve false antes
+// del store de altura y del avance de fase. El callback de velocidad sigue siendo obligatorio.
+[[nodiscard]] bool TryUpdateCharacterPosition(CharacterPositionState state, const std::function<double()>& speed,
+                                              const std::function<double(float, float)>& height);
 } // namespace Client::GameLogic

@@ -1,4 +1,5 @@
 #include "Scenes/WorldObjectsDrawing.h"
+#include "Scenes/GameParticles.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -312,8 +313,9 @@ bool OwnLevelAllows(const GameObjectPass& pass)
 }
 
 // 0x602ed0 después del rand() común (0x602ef4): los casos por tipo de los mapas 0 (0x602ffb) y 2
-// (0x6031e5). MuRet tiene el del 0x69 hasta sus gotas; los demás cortan con su dirección.
-Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const GameObjectPass& pass)
+// (0x6031e5). El 0x69 crea las gotas con el pool compartido; los demás cortan con su dirección.
+Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const GameObjectPass& pass,
+                                              const IModelLibrary& models, const DrawnObject& drawn)
 {
     const std::uint8_t map = pass.map;
     if (map == LorenciaMap && object.type == 0x38)
@@ -324,6 +326,10 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
     }
     if (map == LorenciaMap && object.type == World::Waterspout)
     {
+        if (pass.particles != nullptr)
+        {
+            return StepGameWaterspoutFrame(object, *pass.particles, *pass.random, pass.worldClock, models, drawn);
+        }
         return World::StepTheWaterspoutFrame(object, *pass.random, pass.worldClock);
     }
     if (map == DeviasMap && object.type == DeviasLeveledObject)
@@ -375,14 +381,14 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         }
         // 0x602e90: 0x5ffdf0 y, si lo posó, 0x6002e0 (en el 0, el 0x69 con sus cuatro 0x4ecc30).
         const World::ObjectDraw draw = ObjectDrawAt(object, lighting, pass.map);
-        static_cast<void>(DrawTheObject(batch, models, object, draw, frameClock, 0.0f));
+        const DrawnObject drawn = DrawTheObject(batch, models, object, draw, frameClock, 0.0f);
         // 0x604a4d: 0x602ed0, una vez por frame del original.
         if (!pass.originalFrame)
         {
             continue;
         }
         static_cast<void>(pass.random->Next());
-        if (auto frameCase = FrameCaseOf(object, pass); !frameCase.HasValue())
+        if (auto frameCase = FrameCaseOf(object, pass, models, drawn); !frameCase.HasValue())
         {
             return frameCase;
         }

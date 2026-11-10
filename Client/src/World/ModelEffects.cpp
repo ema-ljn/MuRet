@@ -190,8 +190,11 @@ std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::ve
         {
             continue;
         }
+        const bool seen = m_effects[k].seen;
         m_effects[k] =
             type == DragonEffect ? DragonAt(position, angles, scale) : ArrivalAt(position, angles, light, scale);
+        // 0x518cf0 no escribe +0x16c: el consumidor del suelo lee el último dibujo de este lugar.
+        m_effects[k].seen = seen;
         return k;
     }
     return std::nullopt;

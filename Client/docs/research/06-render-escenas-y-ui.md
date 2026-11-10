@@ -1367,6 +1367,24 @@ objetos como el logo (`0x5ffce0`). *Estático*, leído en la CL6.4.
   0 y 254 la luz es la bilineal de `0x7b4ccc4` entre las cuatro de alrededor (primero cada columna
   en y). Fuera, (0, 0, 0). Como `ftol` trunca hacia el 0, de −1 a 0 todavía es la celda 0.
 
+### El buffer compartido de luz dinámica
+
+**Estático**, `0x5fbf60` y sus datos: `0x7b4ccc4` nace en cero en la cola virtual de `.data`.
+El rango no nace vacío: firstX/Y están en `.bss`, pero lastX/Y (`0x6c9d68/0x6c9d6c`) contienen255.
+La primera copia cubre la grilla; las siguientes copian la ventana publicada por el dibujo
+anterior, ampliada3 y envuelta en256. Fuera de esa ventana se conserva el buffer anterior. Dibujar
+solo publica el rango; no hace una copia implícita de la base.
+
+`DynamicWorldLight` pertenece a `WorldState`, junto con el pool durable de partículas y su viento.
+`Update` conserva la historia fuera de la ventana y `PublishRange` recibe el rango del dibujo; el owner
+no se reconstruye al cambiar de escena. Este PR aporta el estado y sus operaciones. Las conexiones
+que copian la base sombreada y prestan la luz a login, selección y juego se integran en sus PRs de
+escena; los productores de fuegos y otros casos del mundo también quedan separados. No cierra
+H3.4 ni la comparación nativa de luces. `DynamicWorldLightTest` fija el primer estado, la ventana,
+el envolvimiento y que publicar otro rango no copie ni borre implícitamente la base.
+
+
+
 ### El mundo del login
 
 Leído en la CL7.R, en el barrido del login (*estático* salvo lo que se marca; lo *emulado* corre el
@@ -3478,6 +3496,27 @@ bloque de la entrada, en orden (*estático*):
 | `0x637138` | `0x403590` | `0x4033d0` y compañía (el recorrido de la cámara), sin leer | — |
 | `0x637144..0x63717a` | `0x5fc0d0` y `0x5fc0b0`, con `0x7d2d35e` | funciones de un `ret` | nada |
 | `0x63717f` | `0x5ac8d0` | F1 a F4 (CL3.3) | CL8 |
+**Carga diferida `0x612d90`.** Los índices `0x1f/0x21` cargan `Monster\Monster32.bmd` y
+`Monster\Monster34.bmd`, modelos `0x171/0x173`. Con `[0x6c9e0c]=1`, acciones o mallas ya
+presentes hacen retornar antes de recargar (`0x612dbc/0x612dc7`). Texturas de `Monster\`,
+Repeat/Nearest y cursor actual, sin otro `0x60d530`. Los stores comunes `0x612e5a..0x612e9f`
+ponen velocidades 0..6 = 0,25/0,2/0,34/0,33/0,33/0,5/0,55 y acción 6 no repetible. Monster32
+además deja acción 1 no repetible; después de registrar sus sonidos, `0x6140ac..0x6140c9` pone
+3=0,5, 4=0,7, 1=0,8 y 7=0,8. Registra `0x14d/0x14e/0x14f` con mYeti1/mBullAttack1/mYetiDie;
+Monster34, `0x154/0x155` con mBahamut1/mYeti1. Las tablas de diez WORD de `0x612c80` son
+`{7b,7b,7c,7c,7d,−1,…}` y `{82,82,83,83,82,−1,…}` (valores hex). MuRet conserva pedidos
+y tablas lógicos de audio; esto no añade reproducción WAV.
+
+`FaunaModels` conserva CPU entre mapas, pero no inventa slots privados de textura. `0x6070a3`
+destruye BMD 0..159 y `0x61cc50` no libera `0x171/0x173`. El destructor BMD libera **por malla**
+(`0x4f07b0..0x4f07c3`, salvo slot `0x12e`); una coincidencia por nombre suma el refcount byte
+(`0x60d645`). `0x63c18d..0x63c1b3` borra nombre/GL/datos sólo al bajar a cero. Una nueva subida
+suelta una referencia y luego **reemplaza el registro aun con referencias restantes** (`0x63bfcf`):
+un BMD cacheado puede observar otra imagen. `ModelTextureTable`, compartida por WorldModels y
+FaunaModels, conserva nombres/refcounts/metadata física mientras el cursor se reinicia. La búsqueda
+`0x60d550` excluye next; un nombre justo allí se vuelve a subir. Persistir sólo el BMD o liberar una
+vez por upload no reproduce este contrato.
+
 
 ### El paso de los personajes
 
@@ -4208,6 +4247,48 @@ frame lo pone `0x637700` (`0x63835d..0x6384f5`): Icarus (10), (0,0117; 0,0977; 0
 a 29 y 36), (0,1172; 0,1563; 0,1563); y negro en los demás (*estático*). No hay cielo: Icarus no
 dibuja el terreno y pone las nubes (`0xbb`, `0x622`, `0x623`), y Kalima dibuja su agua en un pase
 aparte (`0x4378a0` → `0x41cca0`, `0x41cf00`).
+### Las partículas de la fuente en el juego
+
+**Estático**, `0x603011..0x60313f`: después del rand común del objeto, luz1 y V calculada con NEG
+envolvente del low32 de ftol(reloj), resto firmado1000, por `0x3a83126f`; U queda igual. El guard
+`rand()%2` impar termina. Par: X/Z = `rand()%32−16`, Y=−20, hueso1, alta `0x5f2/0`; después nuevos
+X/Z, Y=−80, hueso4 y otra alta. Cada alta con lugar libre toma dos rand más. Son9 sorteos con dos
+altas,7 con una y5 con pool lleno, además del común del objeto. Los sorteos de la segunda gota van
+después del alta de la primera. Cada punto usa `0x4ec110` con Translate=0: la matriz ya está en
+coordenadas del mundo y no recibe otra escala/origen.
+
+`StepGameWaterspoutFrame` conserva ese orden y cualquier primera gota si falla la segunda,
+sobre el pool y el servicio de huesos que presta el caller. El adaptador de modelos sólo acredita
+los huesos escritos de la pose vigente: con alpha<0,01 o hueso dummy devuelve su frontera después
+de los X/Z de esa gota, porque este PR todavía no conserva la pose del modelo anterior. La API
+`WaterspoutBonePoint` admite un préstamo explícito; el carry durable entre escenas y el binding de
+`GameScene` con `WorldState::Particles` se integran por separado. Un préstamo ausente no se cambia
+por una identidad. El contraste con una captura nativa sigue pendiente.
+
+`StepGameParticles` reutiliza `StepParticlesChecked` desde `0x637128`, después de personajes y antes
+de las marcas del suelo; consume los dos rand del viento incluso con la tabla vacía.
+`DrawGameParticles` reutiliza `DrawParticles` para `0x637558` en espacio de ojo. Su módulo está
+probado, pero la escena todavía no lo alcanza por `0x6374fe`. `GameParticlesTest` y los tests de
+entrada cubren los presupuestos, nacimientos, pool lleno y prefijos; no son observaciones nativas.
+
+### El jugador visto en el dibujo del juego
+
+**Estático**, `0x50ba30`: `DrawGameCharacters` conserva el filtro del héroe, el orden de400 lugares
+y las puertas finales. Para un jugador `0x20a` con esqueleto/acciones: verifica las ramas anteriores,
+dibuja la sombra (`0x50bcec`), publica `0x505820` (`0x50c91e`), toma la luz dinámica (`0x50cc55`) y
+el color del héroe. Ese color abre/cierra una vez el registro propio:3.848 rand cuando queda cerrado,
+aun con sus bits de ajuste apagados. Cada máscara de color multiplica con stores f32; el bit0 usa
+el literal0,9f del binario. Reutiliza `DrawCharacter` por fases Parts y Cloth, conserva el rand de
+`0x50db57` aun sin ítems y aplica después el color para los colgantes.
+
+Los índices de resaltado `0x6c8e30/0x6c8e2c` nacen en−1. Los monstruos, ropa especial, alas,
+Helper02, armas a espalda/mano y efectos pendientes cortan donde corresponde; fuera de zona
+segura el jugador ordinario llega a `0x50e298`. Una tela ausente conserva sombra/scan/luz/partes
+anteriores, sin gastar todavía `0x50db57`. Un dibujo entre frames usa `DrawCurrent` sin crear ni
+simular telas ni consumir RNG; al recuperar varios frames se conserva la simulación y se descartan
+los destellos de los frames intermedios. El mapa30 conserva su frontera `0x510eb3`.
+`GameCharacterRenderTest` y `CharacterDrawingTest` cubren estas ramas y los prefijos hallados en la
+revisión adversarial. Quedan abiertas la pose nativa, las ramas pendientes y las trazas GL originales.
 
 ### Los objetos del juego
 
@@ -4310,6 +4391,39 @@ pájaros ([El dibujo del juego](#el-dibujo-del-juego)); MuRet todavía no los co
 `TheStepAfterADrawStepsTheSeenObjects`, `TheStepStopsAtTheSeenObjectsOfTheOtherMaps` y
 `TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection`) y
 `GoldenWorldModels.DeviasLoadsTheDonkeyAndTheFlagBeforeItsObjects`.
+
+### Los casos del suelo y los dos anillos de llegada
+
+Lectura **estática** de `0x52dc20`, `0x53d2c0` y `0x5fc9c0`, build `c32bbd5f…a26a`, sin nuevas
+emulaciones. El caller original filtra vivo y seen antes de consumir `0x52dc46` y emitir la
+mezcla aditiva. `World::DrawGroundEffectCase` porta los casos desde ese punto; conserva las
+operaciones de estado aunque no produzca vértices o corte después. Los tipos sin caso no dibujan.
+El consumidor de escena y la publicación de seen se integran en sus PRs; este PR aporta el kernel,
+el campo retenido y las texturas de los dos anillos.
+
+| Tipo | Contrato estático y límite de MuRet |
+| --- | --- |
+| `0x61d` | Solo /1: calco con scale, luz propia, giro −z y lift5; después luz por `0x3f68ba2e` y scale+0,05f. |
+| `0x5de` | Salvo /3: otro rand; gris `R32((r%4+8)*0,1f)`, lado2, giro −z. No se sustituye por un literal0,9f. |
+| `0x5d5` | scale+0,2f antes del calco; gris `R32(life*0,1f)`. |
+| `0x61e` | Brillo1 o `1−(5−life)*0,2f` con life<5; lado `(20−life)*0,15f`, salvo /4,/9,/10 que usan scale. Colores por la tabla original. /7 corta en `0x52ded0` por dueño ausente; los nacimientos de /6 y /8, en `0x52e04c` y `0x52e0a2`; subtipo fuera de tabla, en `0x52dfdc` por scratch retenido sin representar. |
+| `0x61f` | Repite aditiva. Ángulo = low32 firmado de ftol(reloj), resto3600, por0,1f. /0: anillos ±ángulo y calco `0x61e` naranja. /2 no tiene anillos; con life≤10 corta en `0x52e312` por lado local no escrito; con life>10, lado `(20−life)*0,55f`. |
+| `0x636` | Mezcla alfa; ancho/alto de `+0x17c/+0x180`, luz propia, sin giro. |
+| `0x6eb` | Calco con scale y luz propia; en24..29/36, salvo /6, conserva depthWrite=false y corta en `0x52e12f` antes de `0x437940`. |
+
+Cada anillo de llegada tiene doce quads: radio90 y blanco en z0; radio130 y negro en z200; alpha1.
+El giro usa la matriz **transpuesta** de `0x5fc9c0`, con sus stores f32. No se atenúa con life; el
+calco sí. Con life20, su lado0 aún produce las UV no finitas del original; con life0 el brillo
+resulta levemente negativo por el literal float0,2. No se recortan esas rarezas. Se cargan las OZJ
+reales `Magic_Ground2` y `Magic_Circle1`, slots `0x61e/0x61f`, LINEAR/CLAMP (`0x61d6e0/0x61d6fc`).
+Las texturas de los demás tipos todavía no se suman a la carga de efectos del juego.
+
+`GroundEffectDrawingTest` y `ModelEffectsTest` cubren los casos, orden, RNG y prefijos de error
+de este concepto. El snapshot y replay de `GroundEffectFrame`, y sus conexiones al dibujo de
+objetos y escenas, se incorporan en el PR de integración; no están acreditados por este kernel.
+Estas pruebas del port no sustituyen una captura nativa.
+
+
 
 ### Las marcas del suelo
 
@@ -4760,6 +4874,32 @@ olas y los planos de `0x5fbb00` siguen siendo de la escena (P-C46).
 `0x508f00` además le prende el `0x02` a la celda de cada personaje (`0x509165`,
 [Caminar](#caminar)). Los cinco planos salen de la cámara y de las cuatro esquinas lejanas, con la
 modelview de GL (`0x5fd000`), que arma el driver, como el rango (P-C24 a).
+### La esfera de visibilidad de los efectos
+
+Lectura **estática** del build `c32bbd5f…a26a`, sin ejecución ni emulación nuevas. Los cinco planos
+que usa `0x5fbf00` son distintos del trapecio XY. `0x5fbb00` transforma la cámara y las cuatro
+esquinas lejanas por la transpuesta de la modelview (`0x5fcc30`), guarda cada componente en f32 y
+suma después la posición de cámara, con otro store f32. Con puntos 0=cámara y 1..4=esquinas en
+orden, `0x5fbd7b..0x5fbdf6` llama a `0x5fd000` con `(0,1,2)`, `(0,2,3)`, `(0,3,4)`, `(0,4,1)` y
+`(3,2,1)`: cuatro lados y el plano lejano, sin near. Los primeros cuatro offsets toman el punto0;
+el quinto, el punto1 (0x5fbebb..0x5fbee5), aunque la normal tomó el3 como base. Cada offset es `R32(-((nz*pz + ny*py) + nx*px))`, con el perfil de53bits del
+helper existente; no es el orden del consumidor.
+
+`0x5fbf00` recorre los cinco planos en orden. Compara `((nx*x + nz*z) + ny*y) + offset` con
+`-radius`, sin stores f32 intermedios. Rechaza si es menor o sin orden (`test ah,1`, C0); la igualdad
+pasa. No consulta la escena ni el trapecio, y no agrega un sexto plano. `0x52d63c..0x52d655` lo llama
+con radio400 y la posición lógica del efecto: escribe `+0x16c` **antes** de consultar el tipo, el
+modelo o su alpha. Un lugar muerto no se consulta ni modifica su marca. La extrapolación entre
+pasos de MuRet ocurre después de este recorte.
+
+MuRet comparte los cinco puntos entre `TerrainRangeOf` y `SphereFrustumOf`; `SphereVisible` porta
+la comparación. La publicación de la marca en el consumidor de efectos se integra por separado.
+El constructor de planos reutiliza
+`FaceNormal`: su contrato exige triángulos finitos y no degenerados de una cámara válida, como
+las cámaras portadas. No reproduce la retención de normales del original ante un triángulo
+inválido ni fija la CW x87. `SphereFrustumTest` cubre igualdad y los cinco rechazos, NaN, orden y
+precisión de sumas, trasposiciónXYZ, traslación, ancho reducido y cámara del login. Son pruebas de
+la reimplementación contra casos derivados del ASM, **no** observaciones nativas del original.
 
 **El ancho del mundo** (`0x5bb8d0`) es 640 sin ventanas, 450 (`0x1c2`) con una y 260 (`0x104`) con
 dos, según `0x659290`. Achica el viewport (a `0,77,720,691` con una ventana en 1024 × 768), el

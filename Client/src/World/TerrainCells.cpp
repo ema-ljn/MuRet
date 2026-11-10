@@ -1,5 +1,6 @@
 #include "World/TerrainCells.h"
 
+#include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/ModelBatch.h"
@@ -16,6 +17,9 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <format>
+#include <optional>
+#include <string>
 
 namespace Client::World
 {
@@ -60,9 +64,40 @@ constexpr double WaveColumn = 5.0;
 constexpr double SlowWaveColumn = 50.0;
 constexpr double WaveHeight = 10.0;
 
+// El pase del pasto (0x5fa9f6..0x5fac7b): la u de 0,25 por celda (0x6b89e0), la x de arriba 50 menos
+// (0x6b86b0) y la v de 0 arriba y 1 abajo; los mapas del Blood Castle no lo dibujan (0x5faa79).
+constexpr float GrassStep = 0.25f;
+static_assert(std::bit_cast<std::uint32_t>(GrassStep) == 0x3E800000, "la constante de 0x6b89e0");
+constexpr float GrassLean = 50.0f;
+static_assert(std::bit_cast<std::uint32_t>(GrassLean) == 0x42480000, "la constante de 0x6b86b0");
+constexpr float GrassTop = 0.0f;
+constexpr float GrassBottom = 1.0f;
+constexpr std::uint8_t FirstWithoutGrassCellsMap = 11;
+constexpr std::uint8_t LastWithoutGrassCellsMap = 17;
+// El primer slot que 0x61a560 no deja vacío después del pasto: las wt00..31 de 0x616ec0 (0x41..0x60).
+constexpr std::uint16_t FirstUnknownGrassSlot = 0x41;
+
 std::int64_t Milliseconds(Core::Duration clock)
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(clock).count();
+}
+
+// La altura de una esquina (0x5fac90): la fija con el bit 0x40, la del .OZB si no.
+float CornerHeight(const TerrainView& view, std::size_t corner)
+{
+    return (view.attributes->cells[corner] & FixedHeightBit) != 0 ? view.fixedHeight : view.heights->cells[corner];
+}
+
+// La ola de una esquina (0x78acbd8): sin olas, 0, como la .bss.
+float WaveAt(const TerrainWater& water, std::size_t corner)
+{
+    return water.waves.size() == TerrainCellCount ? water.waves[corner] : 0.0f;
+}
+
+// Un fld de un float, un fadd de otro y el fstp a un float: la suma en double, redondeada una vez.
+float StoredSum(float first, float second)
+{
+    return static_cast<float>(static_cast<double>(first) + static_cast<double>(second));
 }
 
 // Las UV de las cuatro esquinas de un tile en la celda (x, y), como 0x5fa5c0: la u avanza 64 / ancho
@@ -112,6 +147,75 @@ void DrawPass(Render::ModelBatch& batch, const TerrainView& view, std::uint8_t t
         const float alpha = blend == Render::ModelBlend::Alpha ? view.mapping->alpha[corners[k]] : 1.0f;
         vertices[k] = Render::ModelVertex{
             .position = positions[k], .uv = uvs[k], .color = Render::Color{light[0], light[1], light[2], alpha}};
+    }
+    batch.Triangle({vertices[0], vertices[1], vertices[2]});
+    batch.Triangle({vertices[0], vertices[2], vertices[3]});
+}
+
+// 0x5fa9f6..0x5faa73: el pasto va en las celdas con las cuatro esquinas en alfa 0 o menos (fcomp con 0 y
+// test ah, 0x41) y con 0x7b4ccb4 en 0, que nadie escribe (Q-C226); 0x5faa79, fuera de los mapas 11 a 17.
+bool CellTakesGrass(const TerrainView& view, const std::array<std::size_t, 4>& corners)
+{
+    for (const std::size_t corner : corners)
+    {
+        if (view.mapping->alpha[corner] > 0.0f)
+        {
+            return false;
+        }
+    }
+    return view.map < FirstWithoutGrassCellsMap || view.map > LastWithoutGrassCellsMap;
+}
+
+// 0x5faa8c..0x5faaab: el slot 0x32 + capa 1 y su textura, si está (+0x34 distinto de 0). Del 0x35 al 0x40
+// no los sube nadie y 0x6070a0 los suelta en cada carga (Q-C230); del 0x41 en adelante MuRet no sabe.
+Core::Expected<std::optional<float>, std::string> GrassTextureHeight(const TerrainGrass& grass, std::uint16_t slot)
+{
+    if (slot >= FirstUnknownGrassSlot)
+    {
+        return Core::Unexpected(
+            std::format("0x5faaa3: el pasto lee el slot {:#x} (0x32 + la capa 1), que MuRet no sube", slot));
+    }
+    const std::size_t grassTexture = slot - FirstGrassSlot;
+    if (grassTexture >= grass.heights.size())
+    {
+        return std::optional<float>{};
+    }
+    return grass.heights[grassTexture];
+}
+
+// 0x5faab1..0x5fac7b: el quad de la celda (x, y) con la textura de `slot` y el alto `height` de su
+// buffer, en el orden de los cuatro glVertex3fv: arriba sobre (x, y), arriba sobre (x + 1, y + 1), abajo
+// en (x + 1, y + 1) y abajo en (x, y), cada uno con la luz de la esquina 0, 1, 2 y 3 (Q-C227).
+void DrawGrassQuad(Render::ModelBatch& batch, const TerrainView& view, const TerrainWater& water,
+                   const TerrainGrass& grass, std::uint16_t slot, float height, std::uint8_t x, std::uint8_t y,
+                   const std::array<std::size_t, 4>& corners)
+{
+    // 0x5faab7..0x5faac7: el doble del alto, guardado en un float.
+    const float stem = StoredSum(height, height);
+    // 0x5faaca..0x5faada: x · 0,25 desde la x87 más el corrimiento de la fila, guardado en un float.
+    const auto u = static_cast<float>((static_cast<double>(x) * static_cast<double>(GrassStep)) +
+                                      static_cast<double>(grass.offsets[y]));
+    const float u1 = StoredSum(u, GrassStep);
+    // 0x5fac90 deja las esquinas en 0x79ecc30..0x79ecc5c; 0x5fab27..0x5fabbc sube las de arriba.
+    const float left = static_cast<float>(x) * TerrainCellSize;
+    const float top = static_cast<float>(y) * TerrainCellSize;
+    const float right = left + TerrainCellSize;
+    const float bottom = top + TerrainCellSize;
+    const float below = CornerHeight(view, corners[0]);
+    const float across = CornerHeight(view, corners[2]);
+    const std::array<glm::vec3, 4> positions{
+        glm::vec3(left - GrassLean, StoredSum(top, WaveAt(water, corners[0])), StoredSum(below, stem)),
+        glm::vec3(right - GrassLean, StoredSum(bottom, WaveAt(water, corners[1])), StoredSum(across, stem)),
+        glm::vec3(right, bottom, across), glm::vec3(left, top, below)};
+    const std::array<glm::vec2, 4> uvs{glm::vec2(u, GrassTop), glm::vec2(u1, GrassTop), glm::vec2(u1, GrassBottom),
+                                       glm::vec2(u, GrassBottom)};
+    batch.SetState(Render::ModelDrawState{.texture = Render::TextureSlot{slot}, .blend = Render::ModelBlend::Alpha});
+    std::array<Render::ModelVertex, 4> vertices{};
+    for (std::size_t k = 0; k < vertices.size(); ++k)
+    {
+        const auto& light = view.lighting->cells[corners[k]];
+        vertices[k] = Render::ModelVertex{
+            .position = positions[k], .uv = uvs[k], .color = Render::Color{light[0], light[1], light[2], 1.0f}};
     }
     batch.Triangle({vertices[0], vertices[1], vertices[2]});
     batch.Triangle({vertices[0], vertices[2], vertices[3]});
@@ -169,8 +273,7 @@ void DrawTerrainCell(Render::ModelBatch& batch, const TerrainView& view, const T
     std::array<float, 4> heights{};
     for (std::size_t k = 0; k < 4; ++k)
     {
-        heights[k] = (view.attributes->cells[corners[k]] & FixedHeightBit) != 0 ? view.fixedHeight
-                                                                                : view.heights->cells[corners[k]];
+        heights[k] = CornerHeight(view, corners[k]);
     }
     const std::array<glm::vec3, 4> positions{glm::vec3(left, top, heights[0]), glm::vec3(right, top, heights[1]),
                                              glm::vec3(right, bottom, heights[2]), glm::vec3(left, bottom, heights[3])};
@@ -195,6 +298,34 @@ void DrawTerrainCell(Render::ModelBatch& batch, const TerrainView& view, const T
         DrawPass(batch, view, upper, Render::ModelBlend::Alpha, positions, corners,
                  TileUvs(view, upper, x, y, corners, upperIsWater ? &water : nullptr));
     }
+}
+
+Core::Expected<void, std::string> DrawGrassCell(Render::ModelBatch& batch, const TerrainView& view,
+                                                const TerrainWater& water, const TerrainGrass& grass, std::uint8_t x,
+                                                std::uint8_t y)
+{
+    if (grass.offsets.size() < GrassOffsetRows)
+    {
+        return Core::Unexpected(std::string("0x5faad3: el corrimiento del pasto (0x7b0cca4, de 0x5f8300) no está"));
+    }
+    const std::array<std::size_t, 4> corners = CornersOf(x, y);
+    // 0x5facb6..0x5facce, en 0x5fac90 antes de 0x5fa830 (que llama a 0x405e00, sin rand() fuera de los
+    // mapas 18 a 23, que no tienen este pase).
+    if ((view.attributes->cells[corners[0]] & HiddenCellBit) != 0 || !CellTakesGrass(view, corners))
+    {
+        return {};
+    }
+    const auto slot = static_cast<std::uint16_t>(FirstGrassSlot + view.mapping->layer1[corners[0]]);
+    const auto height = GrassTextureHeight(grass, slot);
+    if (!height.HasValue())
+    {
+        return Core::Unexpected(height.Error());
+    }
+    if (height.Value().has_value())
+    {
+        DrawGrassQuad(batch, view, water, grass, slot, *height.Value(), x, y, corners);
+    }
+    return {};
 }
 
 } // namespace Client::World

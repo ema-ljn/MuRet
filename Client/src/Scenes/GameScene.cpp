@@ -16,6 +16,7 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TerrainPolygonFrame.h"
+#include "Scenes/TerrainTiles.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameCursor.h"
@@ -53,6 +54,9 @@ constexpr std::int32_t WithoutTerrainMap = 10;
 // 0x5f8928..0x5f8947: 0x6c9d58, el pase del pasto, queda en 0 en los mapas 18 a 23 y en el 30.
 constexpr std::int32_t FirstWithoutGrassMap = 18;
 constexpr std::int32_t LastWithoutGrassMap = 23;
+// 0x405e0c..0x405e18: 0x405e00, que 0x5fa830 llama con cada celda, saca rand() en los mapas 18 a 23.
+constexpr std::int32_t FirstChaosCastleMap = 18;
+constexpr std::int32_t LastChaosCastleMap = 23;
 // 0x63741d: en el mapa 30 el dibujo pone su luz (0x42b0a0).
 constexpr std::int32_t CastleMap = 30;
 // 0x5bb8d0: el ancho del mundo, 640 sin ventanas abiertas (MuRet no tiene las ventanas del juego).
@@ -316,13 +320,13 @@ Core::Expected<void, std::string> GameScene::UploadTheTiles(std::uint8_t map)
         return {};
     }
     std::vector<std::string> skipped;
-    if (auto loaded = m_tiles.Load(m_context.dataRoot, map, skipped); !loaded.HasValue())
+    if (auto loaded = m_tiles.Load(m_context.dataRoot, map, skipped, GrassTextures::Upload); !loaded.HasValue())
     {
         return Core::Unexpected("0x61a560: los tiles del terreno: " + loaded.Error());
     }
     for (const std::string& tile : skipped)
     {
-        m_context.log.Warning("el juego va sin un tile del terreno: {}", tile);
+        m_context.log.Warning("el juego va sin una textura del terreno, que el original saltea: {}", tile);
     }
     return {};
 }
@@ -398,6 +402,14 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
             return Core::Unexpected(std::string(
                 "0x5fa985: el agua del mapa 7 (0x5fa4b0, con las texturas 0x1e más el cuadro) no está portada"));
         }
+        // 0x5fa83f: 0x5fa830 llama a 0x405e00(x, y) con cada celda que dibuja, en los dos pases, y en los
+        // mapas 18 a 23 saca rand() (y, con rand() % 8 en 0 y la celda en uno de sus rectángulos, más rand()
+        // y un efecto de 0x53fe70, Q-C229). MuRet no lo tiene: LoadMap ya corta esos mapas en 0x447d70.
+        if (map >= FirstChaosCastleMap && map <= LastChaosCastleMap)
+        {
+            return Core::Unexpected("0x5fa83f: en el " + MapText(map) +
+                                    " 0x405e00 saca rand() con cada celda del terreno, y no está portado");
+        }
         const World::WorldTerrain& terrain = m_context.world->Map().terrain;
         World::TerrainView view;
         view.mapping = terrain.mapping.get();
@@ -411,13 +423,25 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         // 0x7d0d31c en 0, las celdas del rango que pasan el trapecio.
         m_water.offset = World::WaterOffsetAt(canvas.frameClock, view.map);
         World::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water);
-        // 0x5fc332..0x5fc353: con 0x6c9d58 y fuera del mapa 7, el pase del pasto.
+        // 0x5fc32b..0x5fc353: con la mezcla de 0x620a00(1), 0x6c9d58 y fuera del mapa 7 (que ya cortó), el
+        // pase del pasto (0x5fc190 con 0x7d0d31c en 2) en las mismas celdas. No saca rand(): 0x405e00 solo
+        // lo hace en los mapas 18 a 23, que no tienen este pase.
         if (HasTheGrassPass(map))
         {
-            return Core::Unexpected("0x5fc353: el pase del pasto del terreno (0x5fc190 con 0x7d0d31c en 2) del " +
-                                    MapText(map) + " no está portado");
+            const World::TerrainGrass grass{.heights = m_tiles.GrassHeights(),
+                                            .offsets = m_context.world->Map().grassOffsets};
+            if (auto grown = World::DrawGrass(canvas.models, view, m_terrainRange, polygon, m_water, grass);
+                !grown.HasValue())
+            {
+                return Core::Unexpected(grown.Error() + ", en el pase del pasto del " + MapText(map));
+            }
         }
-        return Core::Unexpected("0x5fc365: las marcas del suelo (0x549130) del " + MapText(map) + " no están portadas");
+        // 0x5fc35b..0x5fc36a: sin depth test (0x620870) y con culling (0x6208d0), las marcas del suelo y el
+        // depth test de vuelta (0x620850). La tabla de 0x549130 (0x760cab0) no la vacía la carga del mapa
+        // (0x6070a0, Q-C228) y la llena 0x548fe0 desde 0x505de0 y 0x52e810 (06 § El dibujo del juego):
+        // MuRet no la tiene y no puede probar que esté vacía (08 P-C48 c).
+        return Core::Unexpected("0x5fc365: las marcas del suelo (0x549130, la lista 0x760cab0) del " + MapText(map) +
+                                " no están portadas");
     }
     // 0x6374ce: los objetos del .obj por sector.
     return Core::Unexpected("0x6374ce: los objetos del " + MapText(map) +

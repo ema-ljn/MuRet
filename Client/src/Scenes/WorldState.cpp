@@ -4,12 +4,14 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/DynamicWorldLight.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
+#include "World/Particles.h"
 
 #include <cstddef>
 #include <span>
@@ -84,6 +86,26 @@ HelperTable& WorldState::Helpers()
 const HelperTable& WorldState::Helpers() const
 {
     return m_helpers;
+}
+
+World::Particles& WorldState::Particles()
+{
+    return *m_particles;
+}
+
+const World::Particles& WorldState::Particles() const
+{
+    return *m_particles;
+}
+
+DynamicWorldLight& WorldState::DynamicLighting()
+{
+    return m_dynamicLighting;
+}
+
+const DynamicWorldLight& WorldState::DynamicLighting() const
+{
+    return m_dynamicLighting;
 }
 
 // El original copia de chars[elegido] lo que 0x4c20a0 le puso con la lista (0x4c21dd..0x4c220c): la

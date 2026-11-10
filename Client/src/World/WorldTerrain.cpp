@@ -165,6 +165,23 @@ std::vector<WorldTileTexture> WorldGrassTextures(std::uint8_t map)
     return grass;
 }
 
+std::vector<WorldTileTexture> WorldWeatherTextures(std::uint8_t map)
+{
+    if (HasOwnTiles(map))
+        return {};
+    // 61ac64/61ac92 cargan primero la TGA y después la JPG sobre el MISMO slot64.
+    // Todos llevan sexto argumento0: faltar o fallar al leer no elimina la alternativa anterior.
+    constexpr Data::Textures::Sampling sampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Clamp};
+    constexpr std::uint8_t CrywolfMap = 34;
+    const std::string folder = Data::WorldFolder(map) + "\\";
+    return {{folder + "leaf01.tga", 0x64, sampling, false},
+            {folder + "leaf01.jpg", 0x64, sampling, false},
+            {folder + "leaf02.jpg", 0x65, sampling, false},
+            {map == CrywolfMap ? "World1\\rain011.tga" : "World1\\rain01.tga", 0x66, sampling, false},
+            {"World1\\rain02.tga", 0x67, sampling, false},
+            {"World10\\rain03.tga", 0x68, sampling, false}};
+}
+
 WorldTileTexture AcceptBoxTexture()
 {
     // 0x61ae60: 0x63b870("Interface\\accept_box01.jpg", 0x122, 0x2600, 0x2900, 0, 1).

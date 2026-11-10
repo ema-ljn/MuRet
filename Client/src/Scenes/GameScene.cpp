@@ -33,6 +33,7 @@
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/GameCharacters.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/ModelTextureTable.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -153,6 +154,13 @@ Core::Expected<void, std::string> GameScene::Enter()
     m_firstStep = true;
     m_holdFrame = true;
     m_groundEffects.Reset();
+    auto& textureTable = m_context.world->FaunaResources().TextureTable();
+    textureTable.Bind(m_context.textures);
+    if (m_gameSlots != nullptr)
+    {
+        textureTable.Seed(*m_gameSlots, m_models);
+    }
+    m_tiles.BindTextureTable(textureTable);
     m_characterCloths.resize(ActorPoolSize);
     m_scepters.resize(ActorPoolSize);
     return {};

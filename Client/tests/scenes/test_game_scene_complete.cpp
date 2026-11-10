@@ -123,6 +123,10 @@ TEST_F(CompleteGameFrameTest, EmptyTailPoolsAllowTheWholeWorldPassInBothReferenc
             target.Present();
             if (frame == 0)
             {
+                if (map == 0)
+                {
+                    ASSERT_TRUE(world.FaunaResources().TextureTable().Metadata(0x64).has_value());
+                }
                 ASSERT_FALSE(world.PoseCarry().bones.empty());
                 const auto bones = world.PoseCarry().bones;
                 ASSERT_TRUE(mirror.seen);

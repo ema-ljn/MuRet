@@ -26,6 +26,7 @@
 #include <array>
 #include <cctype>
 #include <cstdint>
+#include <cstddef>
 #include <filesystem>
 #include <fstream>
 #include <ios>
@@ -47,6 +48,9 @@ constexpr std::uint8_t Login = 55;
 constexpr std::uint16_t FirstTile = 0x23;
 constexpr std::uint16_t LastTile = 0x30;
 constexpr std::uint16_t AcceptBox = 0x122;
+// 61ac3e..61ad7a: 64/65 del World56 y66/67/68 de World1/World10; falta sólo la alternativa JPG64.
+constexpr std::size_t LoadedLoginTextureCount = 20;
+constexpr std::size_t OptionalLoginWeatherSkips = 1;
 
 std::string Lower(std::string text)
 {
@@ -74,6 +78,14 @@ protected:
                 std::filesystem::copy(entry.path(), m_copy.Path() / "Interface" / entry.path().filename());
             }
         }
+        for (const char* relative : {"World1/rain01.OZT", "World1/rain02.OZT", "World10/rain03.OZT"})
+        {
+            const auto weather = Client::Data::ResolveDataPath(m_dataRoot, relative, error);
+            ASSERT_TRUE(weather.has_value()) << relative;
+            const auto destination = m_copy.Path() / relative;
+            std::filesystem::create_directories(destination.parent_path());
+            std::filesystem::copy_file(*weather, destination);
+        }
     }
 
     void CopyWorld(const std::string& folder) const
@@ -81,7 +93,10 @@ protected:
         std::error_code error;
         const auto world = Client::Data::ResolveDataPath(m_dataRoot, folder, error);
         ASSERT_TRUE(world.has_value()) << folder;
-        std::filesystem::copy(*world, m_copy.Path() / folder, std::filesystem::copy_options::recursive);
+        // World10 ya contiene rain03 global desde SetUp; la copia completa conserva el mismo recurso.
+        std::filesystem::copy(*world, m_copy.Path() / folder,
+                              std::filesystem::copy_options::recursive |
+                                  std::filesystem::copy_options::overwrite_existing);
     }
 
     // Los archivos de la copia cuyo nombre sin extensión es `stem`, sin mirar mayúsculas.
@@ -133,13 +148,14 @@ TEST_F(GoldenLoadedWorld, LoadsTheFourteenTilesAndTheAcceptBox)
     EXPECT_TRUE(world.IsLoaded());
     EXPECT_EQ(world.LoadedMap(), Login);
     EXPECT_NE(world.Lighting(), nullptr);
-    EXPECT_TRUE(skipped.empty());
+    ASSERT_EQ(skipped.size(), OptionalLoginWeatherSkips);
+    EXPECT_NE(skipped.front().find("leaf01.jpg"), std::string::npos);
     for (std::uint16_t slot = FirstTile; slot <= LastTile; ++slot)
     {
         EXPECT_TRUE(m_store.Find(TextureSlot{slot}).has_value()) << std::hex << slot;
     }
     EXPECT_TRUE(m_store.Find(TextureSlot{AcceptBox}).has_value());
-    EXPECT_EQ(m_store.Size(), 15u);
+    EXPECT_EQ(m_store.Size(), LoadedLoginTextureCount);
 
     world.Release();
     EXPECT_FALSE(world.IsLoaded());
@@ -189,12 +205,12 @@ TEST_F(GoldenLoadedWorld, TakingTheTerrainKeepsCpuDataAfterTheSceneAndReleasesTi
         EXPECT_EQ(world.Terrain(), nullptr);
         EXPECT_EQ(world.Lighting(), nullptr);
         EXPECT_FALSE(world.TakeTerrain().has_value());
-        EXPECT_EQ(m_store.Size(), 15u);
+        EXPECT_EQ(m_store.Size(), LoadedLoginTextureCount);
         world.Release();
         EXPECT_EQ(m_store.Size(), 0u);
-        EXPECT_EQ(m_store.released.size(), 15u);
+        EXPECT_EQ(m_store.released.size(), LoadedLoginTextureCount);
         world.Release();
-        EXPECT_EQ(m_store.released.size(), 15u);
+        EXPECT_EQ(m_store.released.size(), LoadedLoginTextureCount);
     }
     ASSERT_TRUE(retained.has_value());
     EXPECT_DOUBLE_EQ(Client::World::TerrainHeightAt(*retained->heights, *retained->attributes, 50.0f, 50.0f), height);
@@ -207,10 +223,10 @@ TEST_F(GoldenLoadedWorld, AMissingTileIsSkipped)
     LoadedWorld world(m_store);
     std::vector<std::string> skipped;
     ASSERT_TRUE(world.Load(m_copy.Path(), Login, skipped).HasValue());
-    ASSERT_EQ(skipped.size(), 1u);
+    ASSERT_EQ(skipped.size(), OptionalLoginWeatherSkips + 1);
     EXPECT_NE(skipped.front().find("TileRock07"), std::string::npos) << skipped.front();
     EXPECT_FALSE(m_store.Find(TextureSlot{LastTile}).has_value());
-    EXPECT_EQ(m_store.Size(), 14u);
+    EXPECT_EQ(m_store.Size(), LoadedLoginTextureCount - 1);
 }
 
 // Y uno que está pero no se lee, también (Q-C14: el original devuelve false sin avisar y sigue): no se
@@ -222,11 +238,11 @@ TEST_F(GoldenLoadedWorld, ABrokenTileIsSkippedToo)
     std::vector<std::string> skipped;
     const auto loaded = world.Load(m_copy.Path(), Login, skipped);
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    ASSERT_EQ(skipped.size(), 1u);
+    ASSERT_EQ(skipped.size(), OptionalLoginWeatherSkips + 1);
     EXPECT_NE(skipped.front().find("TileRock07"), std::string::npos) << skipped.front();
     EXPECT_TRUE(world.IsLoaded());
     EXPECT_EQ(world.LoadedMap(), Login);
-    EXPECT_EQ(m_store.Size(), 14u);
+    EXPECT_EQ(m_store.Size(), LoadedLoginTextureCount - 1);
 }
 
 // TileGrass01 avisa (el sexto argumento en 1): sin él no hay terreno, el error lo nombra y no queda
@@ -289,8 +305,8 @@ TEST_F(GoldenLoadedWorld, LoadingAgainReleasesTheFirst)
     std::vector<std::string> skipped;
     ASSERT_TRUE(world.Load(m_copy.Path(), Login, skipped).HasValue());
     ASSERT_TRUE(world.Load(m_copy.Path(), Login, skipped).HasValue());
-    EXPECT_EQ(m_store.Size(), 15u);
-    EXPECT_EQ(m_store.released.size(), 15u);
+    EXPECT_EQ(m_store.Size(), LoadedLoginTextureCount);
+    EXPECT_EQ(m_store.released.size(), LoadedLoginTextureCount);
     world.Release();
     EXPECT_EQ(m_store.Size(), 0u);
 }

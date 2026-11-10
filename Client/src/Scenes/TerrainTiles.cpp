@@ -5,14 +5,17 @@
 #include "Data/Textures/TextureSet.h"
 #include "Render/ITextureStore.h"
 #include "Render/TextureSlot.h"
+#include "Scenes/ModelTextureTable.h"
 #include "World/TerrainCells.h"
 #include "World/WorldTerrain.h"
 
 #include <array>
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -21,7 +24,7 @@ namespace Client::Scenes
 {
 namespace
 {
-// Lo que sube Load, en el orden de 0x61a560: los tiles, el pasto (0x61abb4..0x61ac36) y el 0x122.
+// Lo que sube Load: tiles, pasto (61abb4..61ac36), meteorología (61ac3e..61ad7a) y el122.
 std::vector<World::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTextures grass)
 {
     std::vector<World::WorldTileTexture> wanted = World::WorldTileTextures(map);
@@ -30,6 +33,8 @@ std::vector<World::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTextu
         const std::vector<World::WorldTileTexture> grassTextures = World::WorldGrassTextures(map);
         wanted.insert(wanted.end(), grassTextures.begin(), grassTextures.end());
     }
+    const auto weather = World::WorldWeatherTextures(map);
+    wanted.insert(wanted.end(), weather.begin(), weather.end());
     wanted.push_back(World::AcceptBoxTexture());
     return wanted;
 }
@@ -52,6 +57,40 @@ void RecordTheBuffer(std::uint16_t slot, const Data::Textures::Texture& texture,
 } // namespace
 
 TerrainTiles::TerrainTiles(Render::ITextureStore& store) : m_store(store) {}
+
+void TerrainTiles::BindTextureTable(ModelTextureTable& table)
+{
+    if (m_sharedTextures == &table)
+        return;
+    Release();
+    table.Bind(m_store);
+    m_sharedTextures = &table;
+}
+
+void TerrainTiles::RememberSlot(Render::TextureSlot slot)
+{
+    if (std::ranges::find(m_uploaded, slot) == m_uploaded.end())
+        m_uploaded.push_back(slot);
+}
+
+Core::Expected<void, std::string> TerrainTiles::UploadTextures(std::span<const Data::Textures::LoadedTexture> textures)
+{
+    if (m_sharedTextures == nullptr)
+    {
+        // El backend puede haber subido un prefijo antes de fallar: Release limpia sus candidatos.
+        for (const auto& texture : textures)
+            RememberSlot(Render::TextureSlot{texture.slot});
+        return m_store.Load(textures);
+    }
+    for (const auto& texture : textures)
+    {
+        const auto uploaded = m_sharedTextures->Upload(texture);
+        if (!uploaded.HasValue())
+            return uploaded;
+        RememberSlot(Render::TextureSlot{texture.slot});
+    }
+    return {};
+}
 
 Core::Expected<void, std::string> TerrainTiles::Load(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                      std::vector<std::string>& skipped, GrassTextures grass)
@@ -78,18 +117,11 @@ Core::Expected<void, std::string> TerrainTiles::Load(const std::filesystem::path
         RecordTheBuffer(tile.slot, texture.texture, sizes, grassHeights);
         textures.push_back(std::move(texture));
     }
-    auto uploaded = m_store.Load(textures);
+    auto uploaded = UploadTextures(textures);
     if (!uploaded.HasValue())
     {
-        for (const Data::Textures::LoadedTexture& texture : textures)
-        {
-            m_store.Release(Render::TextureSlot{texture.slot});
-        }
+        Release();
         return Core::Unexpected(uploaded.Error());
-    }
-    for (const Data::Textures::LoadedTexture& texture : textures)
-    {
-        m_uploaded.push_back(Render::TextureSlot{texture.slot});
     }
     m_sizes = sizes;
     m_grass = grassHeights;
@@ -101,7 +133,10 @@ void TerrainTiles::Release()
 {
     for (const Render::TextureSlot slot : m_uploaded)
     {
-        m_store.Release(slot);
+        if (m_sharedTextures != nullptr)
+            m_sharedTextures->Release(slot);
+        else
+            m_store.Release(slot);
     }
     m_uploaded.clear();
     m_sizes = {};

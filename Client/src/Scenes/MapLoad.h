@@ -57,6 +57,8 @@ void KillOtherActors(WorldState& world, std::int32_t key);
 // el terreno ni el pasto, que la carga pisa después. El registro de los objetos (registrations) queda: su
 // limpieza no está leída.
 void ReleaseTheMapObjects(WorldMap& loaded);
+// Los otros pools de 0x6070a0: sólo apaga los vivos, sin reconstruir los registros.
+void ClearWorldTransientPools(WorldState& world);
 
 // 0x447d70(mundo en curso): arma el objeto de evento de Devil Square (9), Blood Castle (11 a 17) y
 // Chaos Castle (18 a 23); en los demás no hace nada. MuRet no tiene esos objetos: en esos mapas corta

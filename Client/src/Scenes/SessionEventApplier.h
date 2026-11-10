@@ -18,7 +18,8 @@ namespace Client::Scenes
 // Vive durante RunScenes, más que la sesión; aplica con cámara y terreno contemporáneos. Los eventos de
 // personaje van a la selección, la respuesta del F3 03 a ApplyWorldEntry, el F3 10 a ApplyInventory, o sin
 // cifrar a ClearForInventoryReply, el F1 02 con 1 a ApplyReturnToSelection y el 0F sólo a la meta
-// durable del clima (sin avanzar su cuenta actual ni crear lluvia).
+// durable del clima (sin avanzar su cuenta actual ni crear lluvia). D3/D7 van a los aplicadores de
+// movimiento y daño; 1C y F3 04 a las transiciones síncronas antes del próximo evento del cable.
 class SessionEventApplier final : public App::ISessionEventSink
 {
 public:
@@ -29,6 +30,7 @@ public:
     Core::Expected<void, std::string> ApplyWorld(const App::WorldEvent& event, App::ServerSession& session) override;
 
 private:
+    Core::Expected<void, std::string> ApplyWorldContent(const App::WorldEvent& event, App::ServerSession& session);
     WorldEntryResources m_resources;
 };
 } // namespace Client::Scenes

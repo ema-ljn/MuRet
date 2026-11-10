@@ -3,8 +3,11 @@
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/ILogSink.h"
+#include "Core/Expected.h"
 #include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
+#include "Data/Tables/GateRecord.h"
+#include "Data/Tables/GateTable.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
 #include "Input/InputState.h"
@@ -16,7 +19,11 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterSelectScene.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/FaunaStep.h"
+#include "Scenes/FaunaState.h"
+#include "Scenes/GameLeaves.h"
 #include "Scenes/GameData.h"
+#include "Scenes/GameModels.h"
 #include "Scenes/GameScene.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/LoginModels.h"
@@ -30,6 +37,8 @@
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
+#include "World/Leaves.h"
+#include "World/LeafWeather.h"
 #include "World/Particles.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
@@ -54,7 +63,6 @@
 #include <functional>
 #include <optional>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -71,6 +79,68 @@ using Client::Tests::AfterDraws;
 constexpr std::uint32_t Seed = 0x1234;
 constexpr std::uint16_t PlayerKey = 5;
 constexpr std::uint16_t Player = Client::Data::Models::PlayerSkeletonModel;
+// 599f41..599ffd: Gate.bmd real, una lectura lógica (4 rand) por comparación
+// alcanzada, con cortocircuito X>=x1, Y>=y1, X<=x2, Y<=y2. Al entrar al rectángulo
+// se consulta además la espera: estos fixtures conservan el contador positivo.
+int GateProbeRandoms(const Client::Data::Tables::GateTable& gates, std::int32_t map,
+                     const Client::Scenes::ActorState& hero)
+{
+    int draws = 0;
+    for (std::size_t slot = 0; slot < gates.Count(); ++slot)
+    {
+        const auto gate = Client::Data::Tables::ReadGateRecord(gates, slot);
+        if (!gate || gate->flag != 1 || gate->map != map)
+            continue;
+        draws += 4;
+        if (hero.cellX < gate->x1)
+            continue;
+        draws += 4;
+        if (hero.cellY < gate->y1)
+            continue;
+        draws += 4;
+        if (hero.cellX > gate->x2)
+            continue;
+        draws += 4;
+        if (hero.cellY > gate->y2)
+            continue;
+        draws += 4; // 59a018: ReadWait; con espera positiva no abre el registro propio.
+    }
+    return draws;
+}
+
+// Oráculo de composición: ejecuta los kernels ya contrastados de 637082/6370ea/6370ef en
+// dueños nuevos, con el héroe y clima anteriores al paso. No toma el estado de la CRT observado.
+// Las familias 0/2 no necesitan creadores externos; la biblioteca ya cargada sólo presta BMD.
+Client::Core::Expected<void, std::string> AdvanceEnvironmentPrefix(Client::Scenes::WorldState& world,
+                                                                   const Client::Scenes::ActorState& hero,
+                                                                   Client::World::LeafWeather weather,
+                                                                   std::int32_t heroCellLayer,
+                                                                   Client::Render::Models::ClothWorld& reference)
+{
+    Client::World::Leaves leaves;
+    Client::Scenes::FaunaState fauna;
+    const float cameraY = 0.0f; // La escena aún no hizo su primer dibujo de juego.
+    const float worldClock = 0.0f;
+    const auto& terrain = world.Map().terrain;
+    Client::Scenes::GameLeafContext leafContext{leaves,           weather,   *terrain.heights,    *terrain.attributes,
+                                                hero.position,    cameraY,   world.Runtime().map, heroCellLayer,
+                                                reference.random, worldClock};
+    if (auto stepped = Client::Scenes::StepGameLeaves(leafContext); !stepped.HasValue())
+        return stepped;
+    Client::Scenes::FaunaStepContext faunaContext{fauna,
+                                                  world.Runtime().map,
+                                                  world.Runtime().storm,
+                                                  hero.position,
+                                                  hero.animation.action,
+                                                  hero.safeZone,
+                                                  terrain,
+                                                  world.DynamicLighting().Lighting(),
+                                                  world.FaunaResources(),
+                                                  reference,
+                                                  worldClock};
+    return Client::Scenes::StepGameFauna(faunaContext);
+}
+
 // Los cierres del registro propio, el pasto, el lugar del héroe, 0x511290 y el sufijo de 0x4f2250.
 constexpr int OwnRecordClose = 0xf08;
 constexpr int GrassRandoms = 65536;
@@ -87,18 +157,17 @@ constexpr std::size_t PublishedSlot = 42;
 // 0x602ed0, con el héroe en la primera celda de cada mapa de referencia (*simulado*, con el port y la Data del
 // repo). En Lorencia, en (133, 127): 84 antes del 0x69 (1720) y el suyo; después, su rand() % 2 (0x60303c). Par,
 // los ocho de las dos gotas; después siguen los 18 objetos restantes. Los efectos de llegada aún no tienen
-// su seen publicado por 0x52d620: el pase del suelo los omite y llega a los ítems del piso (0x6374fe).
-// En Devias, en (220, 30), los 54 del pase entero llegan al mismo corte.
+// su seen publicado por 0x52d620: el pase del suelo los omite.
+// En Devias, en (220, 30), el pase entero consume 54. Los dos frames completan su cola.
 constexpr int LorenciaRandomsUpToTheFountain = 84 + 1;
 constexpr int DropRandoms = 8;
 constexpr int LorenciaObjectsAfterTheFountain = 18;
 constexpr int DeviasObjectRandoms = 54;
 
-// El pase de los objetos de un primer frame del juego: sus rand() y dónde corta el dibujo.
+// El pase de los objetos de un primer frame del juego: sus rand() y las gotas creadas.
 struct FirstObjectPass
 {
     int randoms = 0;
-    std::string_view cut;
     int drops = 0;
 };
 
@@ -112,10 +181,9 @@ FirstObjectPass LorenciaObjectPass(CrtRandom random)
     if (random.Next() % 2 == 0)
     {
         return {.randoms = LorenciaRandomsUpToTheFountain + 1 + DropRandoms + LorenciaObjectsAfterTheFountain,
-                .cut = "0x6374fe",
                 .drops = 2};
     }
-    return {.randoms = LorenciaRandomsUpToTheFountain + 1 + LorenciaObjectsAfterTheFountain, .cut = "0x6374fe"};
+    return {.randoms = LorenciaRandomsUpToTheFountain + 1 + LorenciaObjectsAfterTheFountain};
 }
 
 class RecordingPublisher final : public Client::Scenes::IWorldEntryPublisher
@@ -191,6 +259,25 @@ struct Entry
     Client::Data::Tables::ItemTable items = Client::Tests::ItemsMarking({});
     Client::Tests::RecordingSink sink;
     Client::Core::Log log{sink, Client::Core::LogLevel::Debug};
+};
+
+// Recursos productivos para los tests que ahora atraviesan toda la cola del frame.
+// Los tests unitarios de ApplyWorldEntry conservan su biblioteca mínima y sus fronteras deliberadas.
+struct CompleteFrameResources
+{
+    Client::Core::Expected<void, std::string> Load(const std::filesystem::path& root, Client::Core::Log& log)
+    {
+        auto loadedData = Client::Scenes::LoadGameData(root);
+        if (!loadedData.HasValue())
+        {
+            return Client::Core::Unexpected(loadedData.Error());
+        }
+        data = std::move(loadedData).Value();
+        return models.Load(root, textures, log);
+    }
+    Client::Tests::FakeTextureStore textures;
+    Client::Scenes::GameModels models;
+    Client::Scenes::GameData data;
 };
 
 // La respuesta del cable: la celda (133, 127) del mapa 0 con la dirección 0, el PK 4 y el CtlCode 0x20.
@@ -359,7 +446,7 @@ TEST_F(WorldEntryTest, WithTheSetTablesTheEntryRunsTheWholeRecalculation)
 // cámara mira al héroe publicado y lee su celda (8 rand() después de los 4 de 0x637229), el terreno de
 // Lorencia sale con sus tiles y su pasto (0x5fc353, sin rand()), las marcas del suelo no dibujan ninguna
 // (0x5fc365: la tabla de la .bss, vacía) y los objetos sacan su rand() hasta el 0x69; con la semilla, su rand() %
-// 2 es par y crea las dos gotas. Los efectos aún no vistos se omiten: corta en los ítems del piso, sin presentar.
+// 2 es par y crea las dos gotas. Los efectos aún no vistos se omiten y la cola completa presenta el frame.
 TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
 {
     Entry tested(m_dataRoot, Seed);
@@ -370,15 +457,19 @@ TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
     ASSERT_TRUE(ApplyWorldEntry(CableReply(), PlayerKey, resources, publisher).HasValue());
     // Lo que dejó la carga del 54 de la selección (0x633f30): el mundo cargado.
     tested.world.Runtime().drawingEnabled = true;
-    Client::Tests::FakeTextureStore store;
+    CompleteFrameResources frameResources;
+    const auto loadedFrame = frameResources.Load(m_dataRoot, tested.log);
+    ASSERT_TRUE(loadedFrame.HasValue()) << loadedFrame.Error();
     Client::Scenes::GameScene scene(Client::Scenes::SceneContext{.dataRoot = m_dataRoot,
-                                                                 .textures = store,
+                                                                 .textures = frameResources.textures,
                                                                  .log = tested.log,
                                                                  .cloth = &tested.cloth,
                                                                  .camera = &tested.camera,
                                                                  .cameraInput = &tested.cameraInput,
                                                                  .world = &tested.world},
-                                    nullptr);
+                                    nullptr, &frameResources.models, &frameResources.data.items->table,
+                                    &frameResources.models.TextureSlots(), &*frameResources.data.gates,
+                                    &*frameResources.data.skills);
     ASSERT_TRUE(scene.Enter().HasValue());
     CrtRandom expected = tested.cloth.random;
     for (int draw = 0; draw < 4 + 8; ++draw)
@@ -397,10 +488,10 @@ TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
     ASSERT_FALSE(scene.HoldsTheLastFrame());
     scene.Render(target.BeginFrame({}), 0.0f);
 
-    ASSERT_TRUE(scene.Failure().has_value());
-    EXPECT_NE(scene.Failure()->find(objects.cut), std::string::npos) << *scene.Failure();
+    ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
+    target.Present();
     ASSERT_EQ(target.frames.size(), 1u);
-    EXPECT_FALSE(target.frames[0].presented);
+    EXPECT_TRUE(target.frames[0].presented);
     std::size_t vertices = 0;
     std::size_t grass = 0;
     for (const auto& event : target.frames[0].events)
@@ -654,7 +745,7 @@ FirstObjectPass FirstObjectPassOf(const ReferenceMap& map, const CrtRandom& rand
     {
         return LorenciaObjectPass(random);
     }
-    return {.randoms = DeviasObjectRandoms, .cut = "0x6374fe"};
+    return {.randoms = DeviasObjectRandoms};
 }
 
 // La respuesta del cable en la celda (x, y) de `map`, con `direction`.
@@ -706,21 +797,24 @@ std::size_t AliveActors(const Entry& tested)
         std::ranges::count_if(tested.world.Actors(), [](const ActorState& actor) { return actor.alive; }));
 }
 
-// Un frame del juego sin pasos, como AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects: en el
-// original llega a los personajes (0x6374dd → 0x510d00), y MuRet, que corta antes (en las gotas del 0x69 de
-// los ítems del piso, 0x6374fe), ya no sabe qué dejó 0x505820.
+// Un frame completo sin pasos, como AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects:
+// llega a 0x510d00 sin un actor visto que publique 0x505820; conserva el scan desconocido.
 void DrawAGameFrame(Entry& tested)
 {
     tested.world.Runtime().drawingEnabled = true;
-    Client::Tests::FakeTextureStore store;
+    CompleteFrameResources frameResources;
+    const auto loadedFrame = frameResources.Load(tested.dataRoot, tested.log);
+    ASSERT_TRUE(loadedFrame.HasValue()) << loadedFrame.Error();
     Client::Scenes::GameScene scene(Client::Scenes::SceneContext{.dataRoot = tested.dataRoot,
-                                                                 .textures = store,
+                                                                 .textures = frameResources.textures,
                                                                  .log = tested.log,
                                                                  .cloth = &tested.cloth,
                                                                  .camera = &tested.camera,
                                                                  .cameraInput = &tested.cameraInput,
                                                                  .world = &tested.world},
-                                    nullptr);
+                                    nullptr, &frameResources.models, &frameResources.data.items->table,
+                                    &frameResources.models.TextureSlots(), &*frameResources.data.gates,
+                                    &*frameResources.data.skills);
     ASSERT_TRUE(scene.Enter().HasValue());
     Client::Tests::RecordingFrameTarget target;
     const CrtRandom before = tested.cloth.random;
@@ -730,8 +824,9 @@ void DrawAGameFrame(Entry& tested)
     ASSERT_FALSE(scene.HoldsTheLastFrame());
     scene.Render(target.BeginFrame({}), 0.0f);
 
-    ASSERT_TRUE(scene.Failure().has_value());
-    ASSERT_NE(scene.Failure()->find(objects.cut), std::string::npos) << *scene.Failure();
+    ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
+    target.Present();
+    ASSERT_TRUE(target.frames.back().presented);
     ASSERT_FALSE(tested.world.Runtime().fullSetScan.has_value());
     ASSERT_EQ(tested.cloth.random.State(), Advanced(before, FrameRandoms + objects.randoms).State());
     scene.Leave();
@@ -977,8 +1072,8 @@ TEST_F(WorldEntryTest, AnEntryInTheWorldIsAppliedAgainByTheSession)
 // cierre del registro propio en 0x4fc450 y el rand() % 6 de 0x4fd7e4) y, con el héroe visto, los 8 de su celda
 // lógica y el rand() & 7; después, los dos del viento de las partículas y la tela. El frame que sigue pasa las marcas
 // del suelo (0x5fc365), que no sacan rand(), y los objetos, con sus 4 + 8 y uno por objeto visto; Lorencia, con el
-// rand() % 2 del 0x69 impar, sigue. Los dos omiten los efectos de llegada aún no vistos y cortan en los ítems del piso
-// (0x6374fe).
+// rand() % 2 del 0x69 impar, sigue. Los dos omiten los efectos de llegada aún no vistos y presentan
+// el frame completo. El prefijo nuevo incluye hojas/fauna, Gate.bmd, own/Skill y dos Arrival vivos.
 TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
 {
     const Client::World::TerrainPolygon selected = Client::World::TerrainPolygonOf(
@@ -1018,16 +1113,36 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         EXPECT_EQ(tested.world.Runtime().terrainPolygon.y, selected.y);
         // Lo que dejó la carga del 54 de la selección (0x633f30): el mundo cargado.
         tested.world.Runtime().drawingEnabled = true;
-        Client::Scenes::GameScene game(context, nullptr, &tested.models);
+        CompleteFrameResources frameResources;
+        const auto loadedFrame = frameResources.Load(m_dataRoot, tested.log);
+        ASSERT_TRUE(loadedFrame.HasValue()) << loadedFrame.Error();
+        const Client::Scenes::SceneContext gameContext{.dataRoot = m_dataRoot,
+                                                       .textures = frameResources.textures,
+                                                       .log = tested.log,
+                                                       .cloth = &tested.cloth,
+                                                       .camera = &tested.camera,
+                                                       .cameraInput = &tested.cameraInput,
+                                                       .world = &tested.world};
+        Client::Scenes::GameScene game(gameContext, nullptr, &frameResources.models, &frameResources.data.items->table,
+                                       &frameResources.models.TextureSlots(), &*frameResources.data.gates,
+                                       &*frameResources.data.skills);
         ASSERT_TRUE(game.Enter().HasValue());
         Client::Render::Models::ClothWorld reference = tested.cloth;
-        const int body = OwnRecordClose + 1;
-        reference.random = Advanced(tested.cloth.random, (seen ? 8 + 8 + body + 8 + 1 : 8 + 8 + body) + 2);
-        Client::Render::Models::StepTheClothWorld(reference);
+        const auto heroBefore = tested.Hero();
+        const auto weatherBefore = tested.world.Runtime().leafWeather;
+        const auto layerBefore = tested.world.Runtime().heroCellLayer;
 
         game.Step(Client::Input::InputState{});
 
         ASSERT_EQ(game.Failure(), std::nullopt);
+        ASSERT_TRUE(
+            AdvanceEnvironmentPrefix(tested.world, heroBefore, weatherBefore, layerBefore, reference).HasValue());
+        const int body = OwnRecordClose + 1;
+        // 57cfc0 cierra own (3.848) y Skill.bmd (60); los dos Arrival vivos aportan uno cada uno.
+        reference.random = Advanced(
+            reference.random, (seen ? 8 + 8 + body + 8 + 1 : 8 + 8 + body) + OwnRecordClose + 60 + 2 + 2 +
+                                  GateProbeRandoms(*frameResources.data.gates, tested.world.Runtime().map, heroBefore));
+        Client::Render::Models::StepTheClothWorld(reference);
         EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold - 1);
         EXPECT_EQ(tested.Hero().seen, seen);
         EXPECT_EQ(tested.cloth.random.State(), reference.random.State());
@@ -1037,9 +1152,9 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         game.Render(target.BeginFrame({}), 0.0f);
 
         const FirstObjectPass objects = FirstObjectPassOf(probe, Advanced(reference.random, FrameRandoms));
-        EXPECT_EQ(objects.cut, "0x6374fe");
-        ASSERT_TRUE(game.Failure().has_value());
-        EXPECT_NE(game.Failure()->find(objects.cut), std::string::npos) << *game.Failure();
+        ASSERT_FALSE(game.Failure().has_value()) << *game.Failure();
+        target.Present();
+        EXPECT_TRUE(target.frames.back().presented);
         // El héroe visto llega a su color propio (cierre de 3.848) y al rand() común de 0x50db57.
         const int characterDraws = seen ? OwnRecordClose + 1 : 0;
         EXPECT_EQ(tested.cloth.random.State(),

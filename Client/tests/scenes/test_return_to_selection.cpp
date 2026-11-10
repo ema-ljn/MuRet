@@ -9,6 +9,8 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/FaunaState.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/LoginModels.h"
@@ -20,6 +22,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+#include "World/Leaves.h"
 #include "World/ModelEffects.h"
 #include "World/WorldTerrain.h"
 
@@ -267,5 +270,26 @@ TEST(ReturnToSelectionWithoutDataTest, OnlyTheKeyFFFFSurvives)
     EXPECT_FALSE(actors[3].alive);
     EXPECT_FALSE(helpers[0].alive);
     EXPECT_TRUE(helpers[1].alive);
+}
+TEST(ReturnToSelectionPoolsTest, ReleasesTheLiveFlagsWithoutReplacingRetainedRecords)
+{
+    Returning tested({}, Seed);
+    tested.world.Fauna().Birds()[0].active = true;
+    tested.world.Leaves().All()[0].alive = true;
+    tested.world.Leaves().All()[0].type = 123;
+    tested.world.DrawTail().damage[2].alive = true;
+    tested.world.DrawTail().damage[2].number = 567;
+    tested.world.DrawTail().floorItems[3].alive = true;
+    tested.world.DrawTail().joints[4].alive = true;
+    tested.world.DrawTail().ribbons[5].alive = true;
+    ApplyReturnToSelection(tested.Resources());
+    EXPECT_FALSE(tested.world.Fauna().Birds()[0].active);
+    EXPECT_FALSE(tested.world.Leaves().All()[0].alive);
+    EXPECT_EQ(tested.world.Leaves().All()[0].type, 123);
+    EXPECT_FALSE(tested.world.DrawTail().damage[2].alive);
+    EXPECT_EQ(tested.world.DrawTail().damage[2].number, 567);
+    EXPECT_FALSE(tested.world.DrawTail().floorItems[3].alive);
+    EXPECT_FALSE(tested.world.DrawTail().joints[4].alive);
+    EXPECT_FALSE(tested.world.DrawTail().ribbons[5].alive);
 }
 } // namespace

@@ -68,7 +68,6 @@
 #include "World/TerrainHeight.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
-#include "World/SphereFrustum.h"
 #include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
@@ -564,7 +563,7 @@ Core::Expected<void, std::string> LoginScene::PlaceTheCharacter()
     WorldState& world = CharacterWorld();
     world.Runtime().map = m_world ? m_world->map : EmberMap;
     World::WorldTerrain missingTerrain;
-    World::WorldTerrain* terrain = m_terrain.Terrain();
+    const World::WorldTerrain* terrain = m_terrain.Terrain();
     if (terrain == nullptr)
     {
         // Los tests de UI sin WorldState pueden dibujar sus fondos sin cargar un mundo.
@@ -1062,8 +1061,7 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     polygon = World::TerrainPolygonOf(World::CullingScene::Login, cameraInput.map, cameraInput.hero, camera.angles.z);
     canvas.models.Begin(pass);
     // 0x5fc260(0): el terreno, antes de los personajes.
-    m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, polygon, CameraState().fixedHeight,
-                          &CharacterWorld().DynamicLighting().Lighting());
+    m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, polygon, CameraState().fixedHeight);
     DrawTheModels(canvas, alpha);
     canvas.flushModels();
     // Los sprites del frame, los que pidió el dibujo del personaje (los 30 destellos de la tela, 0x455930,
@@ -1207,9 +1205,8 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                                                                                 OriginalFramePaceOf(m_context.pacing)),
                                         .lastRandoms = m_objectEffectRandoms});
     // 0x52d620(0): los efectos con modelo, después de los objetos.
-    DrawModelEffects(canvas.models, m_worldModels, CharacterWorld().Map().effects.Effects(),
-                     World::SphereFrustumOf(canvas.models.Pass().view, m_drawnCamera), lighting, canvas.frameClock,
-                     alpha);
+    DrawModelEffects(canvas.models, m_worldModels, CharacterWorld().Map().effects.Effects(), lighting,
+                     canvas.frameClock, alpha);
     // 0x5306a0, después de 0x549510: las brasas, en el mundo.
     DrawLeaves(canvas.models, m_leaves);
     m_drawnSinceEntering = true;

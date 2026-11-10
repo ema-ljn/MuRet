@@ -32,6 +32,7 @@
 #include "Protocol/Dispatcher.h"
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
+#include "Protocol/World.h"
 
 #include <algorithm>
 #include <array>
@@ -193,6 +194,7 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnWorldEntryReply(packet); }) &&
         m_gameServer.On(CharacterOpcode, InventoryListSubcode,
                         [this](const Network::Packet& packet) { OnInventoryReply(packet); }) &&
+        m_gameServer.On(Protocol::World::WeatherOpcode, [this](const Network::Packet& packet) { OnWeather(packet); }) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
 }
@@ -878,6 +880,18 @@ void ServerSession::OnInventoryReply(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(std::move(reply).Value(), *this)));
+}
+
+// 0x4e36b5: sin guarda de escena, estado de login ni procedencia cifrada. La Connection ya normalizó C3.
+void ServerSession::OnWeather(const Network::Packet& packet)
+{
+    auto weather = Protocol::World::ReadWeather(packet);
+    if (!weather.HasValue())
+    {
+        m_log.Warning("se ignora el clima (0F): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(weather.Value(), *this)));
 }
 
 // 0x4c2710 no mira el estado ni la escena para el 0: SendMessageA(WM_DESTROY) en 0x4c391b, y el

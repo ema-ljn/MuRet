@@ -45,6 +45,8 @@
 // entrega al sink su inicialización común (ClearInventoryReceived). El sink aplica cada recepción antes
 // del siguiente evento, con el contexto vivo; también recibe en orden las de personajes. La sesión no
 // retiene payloads para otro frame.
+// El clima 0F legible también va al sink sin guarda de estado ni de cifrado; no escribe la cuenta
+// actual ni cambia el estado de sesión. Un 0F corto o con otro contenedor se descarta con aviso.
 //
 //   Idle o cualquiera --Start: abre el CS--> ConnectingConnectServer
 //   ConnectingConnectServer --Opened: manda el A9--> WaitingConnectHello
@@ -302,6 +304,7 @@ private:
     void OnDeleteResult(const Network::Packet& packet);
     void OnWorldEntryReply(const Network::Packet& packet);
     void OnInventoryReply(const Network::Packet& packet);
+    void OnWeather(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.
     void ReturnToSelection(bool encrypted);

@@ -4602,20 +4602,24 @@ registro propio con `LogicalAccess` en el `0x64`; en un dibujo intermedio, ningu
 `Scenes::StepGameWorldObjects` → `World::StepWorldObjectChecked`, desde `GameScene::StepTheObjects`, con
 la capa del héroe de `WorldRuntime::heroCellLayer` y el reloj del mundo. Los dos cortan con la dirección
 en lo primero que MuRet no tiene, con lo de antes ya hecho: en el dibujo, los casos de `0x602ed0` que no
-tiene, después de su `rand()` (el `0x38` del 0, y el `0x64` y el `0x67` del 2), y las gotas del `0x69` de
-Lorencia (`0x6030c7`), después de los dos `rand()` de la primera; el dibujo del `0x69`
-(`Scenes::DrawWaterspout`) y su caso hasta las gotas (`World::StepTheWaterspoutFrame`) sí están; en el
-paso, los fuegos, las
-luces que van al buffer dinámico (la lámpara y la vela, después de su `rand()`) y las puertas del 2. Los
-modelos los carga `Scenes::WorldModels` la primera vez que el dibujo o el paso los piden, con el burro y la
-bandera del 2 (`Npc\obj_donkey` y `Npc\obj_flag`) antes de los del `.obj`. Lo que queda, en
+tiene, después de su `rand()` (el `0x38` del 0, y el `0x64` y el `0x67` del 2). El `0x69` se dibuja con
+`Scenes::DrawWaterspout` y crea las dos gotas con `Scenes::StepGameWaterspoutFrame` sobre
+`WorldState::Particles`; si el modelo actual no escribió un hueso, conserva el corte de la lectura de
+pose anterior (`0x6030a5/0x603121`), con los sorteos y las gotas previos ya hechos
+([Las partículas de la fuente en el juego](#las-partículas-de-la-fuente-en-el-juego)). Los objetos ya
+reciben `WorldState::DynamicLighting().Lighting()`, no la tabla de base; siguen pendientes en el paso
+los fuegos, las luces que van a ese buffer (la lámpara y la vela, después de su `rand()`) y las puertas
+del 2. Los modelos los carga `Scenes::WorldModels` la primera vez que el dibujo o el paso los piden:
+ya incluye los modelos con nombre de Lorencia y las familias de `WorldSpecialModels`, con sus archivos,
+carpetas de texturas y stores concretos de acciones. Ese catálogo no cambia la carga a demanda ni
+porta los casos del mundo; el original los carga en `0x61a560`. Lo que queda, en
 [08](08-pendientes.md) P-C53. Con la Data del repo (*simulado*):
 
 | Mapa, héroe | Vistos | Hasta | `rand()` del pase | Corte del dibujo | El paso que sigue |
 | --- | --- | --- | --- | --- | --- |
 | 0, (143, 120), el de la traza | 83, de los sectores (7, 7), (8, 7), (8, 8), (9, 6), (9, 7) y (9, 8), con el `0x69` (1720) | todos | 84: los 83 y el `rand() % 2` del `0x69`, impar con la semilla del test | `0x6374fe` | con la capa en 4, el techo 1400 (`0x7d`) va a 0 y los tres `0x7a` (1366, 1372 y 1690) sacan su luz; corta en el primer fuego visto, el `0x32` 1933 (`0x604eb0`), antes de MoveHero |
 | 2, (220, 30) | 54, de (12, 1) a (14, 2), sin el `0x64` ni casos | todos | 54 | `0x6374fe` | con la capa en 3, los techos 1282, 1471, 1472 y 1473 van a 0 y los tres `0x4e` (1262, 1462 y 1464) sacan su luz; corta en la puerta 1481 (`0x41`, `0x6050d4`), antes de MoveHero |
-| 0, (96, 126) | 20, sin casos | todos | 20 | `0x510ea1`, con el héroe visto | — |
+| 0, (96, 126) | 20, sin casos | todos | 20 | el jugador visto ya tiene un pase parcial; la frontera depende de su rama pendiente (P-C55 d) | — |
 | 2, (220, 76) | 44, sin casos | todos | 44 | `0x6374fe`, con el héroe sin ver | — |
 
 En la traza de Lorencia, los objetos son 120 bloques con texturas de `0x41c..0x47e`, entre el pasto y los

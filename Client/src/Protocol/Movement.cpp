@@ -40,6 +40,7 @@ constexpr std::uint16_t CharacterIdMask = 0x7fff;
 constexpr std::uint16_t ShockMask = 0x8000;
 constexpr std::uint8_t DamageTypeMask = 0x3f;
 constexpr std::uint8_t DamageFlagMask = 0x80;
+constexpr std::uint8_t DamageDoubleHitMask = 0x40;
 // 0x56ad1d..0x56ad4f: MouseUpdateTimeMax antes de limitar el wire.
 constexpr std::size_t ShortPathCells = 3;
 constexpr std::uint32_t ShortPathWait = 5;
@@ -134,7 +135,17 @@ Core::Expected<Damage, ProtocolError> ReadDamage(const Network::Packet& packet)
     const auto type = reader.ReadU8();
     if (!id || !amount || !type)
         return Core::Unexpected(ProtocolError::TooShort);
-    return Damage{static_cast<std::uint16_t>(*id & CharacterIdMask), (*id & ShockMask) != 0, *amount,
-                  static_cast<std::uint8_t>(*type & DamageTypeMask), (*type & DamageFlagMask) != 0};
+    return Damage{static_cast<std::uint16_t>(*id & CharacterIdMask),
+                  (*id & ShockMask) != 0,
+                  *amount,
+                  static_cast<std::uint8_t>(*type & DamageTypeMask),
+                  (*type & DamageFlagMask) != 0,
+                  (*type & DamageDoubleHitMask) != 0};
+}
+Outgoing WriteFacing(std::uint8_t direction)
+{
+    constexpr std::uint8_t FacingOpcode = 0x18;
+    constexpr std::uint8_t FacingTail = 0x7a;
+    return Xor32C1(Network::PacketWriter::C1(FacingOpcode).PutU8(direction).PutU8(FacingTail));
 }
 } // namespace Client::Protocol::Movement

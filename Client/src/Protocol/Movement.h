@@ -17,6 +17,8 @@ inline constexpr std::size_t MaxWalkCells = 15;
 inline constexpr std::size_t MaxWireWalkCells = 14; // 0x56ad8d..0x56ad96: no recorta el camino local.
 inline constexpr std::uint8_t WalkOpcode = 0xd3;
 inline constexpr std::uint8_t DamageOpcode = 0xd7;
+// 59b333..59b83a: rumbo del héroe quieto, C1 05 18 direction 7A, XOR32.
+[[nodiscard]] Outgoing WriteFacing(std::uint8_t direction);
 
 struct Cell
 {
@@ -44,6 +46,7 @@ struct Damage
     std::uint16_t amount;
     std::uint8_t type;
     bool flag;
+    bool doubleHit = false; // pkt[7] & 0x40, 0x4cab40 y 0x4cb61c.
 };
 
 // Camino de 1..15 celdas, incluido el inicio. Sale C1 con XOR32 y Delivery::Clear.

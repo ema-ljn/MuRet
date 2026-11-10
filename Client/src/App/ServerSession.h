@@ -3,6 +3,7 @@
 #include "App/Credentials.h"
 #include "App/ServerAddress.h"
 #include "App/SessionState.h"
+#include "App/TeleportHistory.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Core/IntervalTimer.h"
@@ -14,6 +15,8 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
+#include "Protocol/Movement.h"
+#include "Protocol/Outgoing.h"
 
 #include <chrono>
 #include <cstddef>
@@ -202,6 +205,19 @@ public:
     // versión) hasta el próximo. 0 antes, como la .bss. La respuesta del F3 03 la pone en el héroe.
     [[nodiscard]] std::uint16_t PlayerIndex() const;
 
+    // 04 § Caminar y pegar y § Los cambios de mapa. El caller decide cuándo corresponde;
+    // la sesión sólo exige un GameServer abierto, nunca manda estos paquetes al ConnectServer.
+    [[nodiscard]] Core::Expected<void, std::string> SendWalk(std::span<const Protocol::Movement::Cell> path,
+                                                             Protocol::Movement::Cell target, float angle);
+    [[nodiscard]] Core::Expected<void, std::string> SendFacing(std::uint8_t direction);
+    void RequestGate(std::uint8_t gate);
+    void ConfirmTeleport();
+    void RequestCrywolfState();
+
+    // 0x4e3e98: las diez últimas recepciones 1C crudas, antes de admisión y aplicación.
+    // Proyección de MuRet para los 1C: pertenece a la sesión y sobrevive Start.
+    [[nodiscard]] std::span<const std::vector<std::byte>> Teleports() const;
+
     // Cuántas veces se llamó a Start: lo que elige o manda alguien de afuera (el AutoLogin) es de
     // una vuelta, y con un Start empieza otra.
     [[nodiscard]] std::uint32_t StartCount() const;
@@ -317,6 +333,8 @@ private:
     void Fail(SessionFailure failure);
     // Conserva el primer diagnóstico y corta el lote con la generación existente.
     bool CheckApplication(Core::Expected<void, std::string> applied);
+    // No encola mensajes de juego en el socket del ConnectServer ni en una conexión cerrada.
+    [[nodiscard]] Core::Expected<void, std::string> SendWorldPacket(Protocol::Outgoing outgoing);
     // Pasa a `state` desde ahora, para el tope de los Waiting*; no reinicia el timer global.
     void SetState(SessionState state);
 
@@ -325,6 +343,7 @@ private:
     // "ConnectServer" o "GameServer", para el log, según con cuál habla el estado.
     [[nodiscard]] std::string_view ServerName() const;
 
+    TeleportHistory m_teleports;
     Network::Connection& m_connection;
     Core::IClock& m_clock;
     Core::Log& m_log;

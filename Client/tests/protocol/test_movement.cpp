@@ -363,4 +363,26 @@ TEST(MovementTest, TheReadersRejectOtherPacketKindsAndIgnoreExtraFields)
     EXPECT_TRUE(ReadWalk(PacketOf(Bytes({0xc1, 9, 0xd3, 0, 1, 2, 3, 0x40, 0xaa}))).HasValue());
     EXPECT_TRUE(ReadDamage(PacketOf(Bytes({0xc1, 9, 0xd7, 0, 1, 2, 3, 0x40, 0xaa}))).HasValue());
 }
+// 0x4cab40 y 0x4cb61c: el bit 6 del wire conserva un segundo número de daño.
+TEST(MovementTest, DamagePreservesTheSecondNumberBitIndependentlyOfTheHighFlag)
+{
+    for (const int value : {0, 0x40, 0x80, 0xc0, 0xff})
+    {
+        const auto damage = ReadDamage(PacketOf(Bytes({0xc1, 8, 0xd7, 0, 1, 0, 2, value})));
+        ASSERT_TRUE(damage.HasValue());
+        EXPECT_EQ(damage.Value().doubleHit, (value & 0x40) != 0);
+        EXPECT_EQ(damage.Value().flag, (value & 0x80) != 0);
+        EXPECT_EQ(damage.Value().type, value & 0x3f);
+    }
+}
+
+TEST(MovementTest, FacingKeepsTheRawDirectionAndTheOriginalTail)
+{
+    for (const std::uint8_t direction : {std::uint8_t{0}, std::uint8_t{7}, std::uint8_t{0xff}})
+    {
+        const auto sent = Client::Protocol::Movement::WriteFacing(direction);
+        EXPECT_EQ(sent.delivery, Client::Network::Delivery::Clear);
+        EXPECT_TRUE(SameBytes(Xor32Decode(sent.packet).Bytes(), Bytes({0xc1, 5, 0x18, direction, 0x7a})));
+    }
+}
 } // namespace

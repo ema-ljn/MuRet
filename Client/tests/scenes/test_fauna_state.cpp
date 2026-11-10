@@ -1,3 +1,4 @@
+#include "Render/Models/HalfLifeMath.h"
 #include "Scenes/FaunaState.h"
 
 #include <gtest/gtest.h>
@@ -42,5 +43,20 @@ TEST(FaunaStateTest, ViewsBorrowCanonicalStorageAndKeepEffectIdentity)
     EXPECT_FLOAT_EQ(fauna.Fish()[1].position.x, 12);
     fish[1].speed = 2;
     EXPECT_FLOAT_EQ(fauna.Fish()[1].scale, 2);
+}
+} // namespace
+
+#include "Scenes/WorldState.h"
+namespace
+{
+TEST(FaunaStateTest, PoseScratchBelongsToTheDurableWorldAndSurvivesFaunaClear)
+{
+    Client::Scenes::WorldState world;
+    auto& pose = world.PoseCarry();
+    pose.bones.resize(3, Client::Render::Models::BoneTransform(0));
+    pose.bones[2][3] = {7, 8, 9};
+    world.Fauna().Clear();
+    EXPECT_EQ(&world.PoseCarry(), &pose);
+    EXPECT_EQ(world.PoseCarry().bones[2][3], glm::vec3(7, 8, 9));
 }
 } // namespace

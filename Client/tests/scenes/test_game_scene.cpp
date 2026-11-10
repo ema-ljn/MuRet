@@ -15,26 +15,33 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/MapLoad.h"
+#include "Scenes/SceneCameras.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCells.h"
+#include "World/TerrainCulling.h"
+#include "World/TerrainWalls.h"
 
 #include "support/AppPrinters.h"
 #include "support/Bytes.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
+#include "support/PlayerActors.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/ScenePrinters.h"
 #include "support/SessionHarness.h"
 #include "support/TestGameServer.h"
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <chrono>
 #include <cstddef>
@@ -77,12 +84,17 @@ CrtRandom RandomAfter(int draws)
     return random;
 }
 
-// Lo que deja un paso en el rand(): `draws` de la escena y, detrás, la tela (0x637700).
-std::uint32_t StateAfterAStep(int draws)
+// El rand() después de un paso: `draws` de la escena y, detrás, la tela (0x637700).
+CrtRandom RandomAfterAStep(int draws)
 {
     ClothWorld reference{.random = RandomAfter(draws)};
     Client::Render::Models::StepTheClothWorld(reference);
-    return reference.random.State();
+    return reference.random;
+}
+
+std::uint32_t StateAfterAStep(int draws)
+{
+    return RandomAfterAStep(draws).State();
 }
 
 // Con el login, la lista y el lugar 3 elegido: la sesión espera la entrada.
@@ -456,6 +468,37 @@ protected:
         cloth.random = CrtRandom(Seed);
     }
 
+    // El héroe como lo deja 0x511290: un jugador de pie (la acción 1) con el PK 3 y la zona segura en 1, en la
+    // celda dibujada de Prepare y con la celda lógica en (x, y), la que va una adelante (06 § Caminar).
+    void MakeTheHeroAPlayer(std::uint8_t x, std::uint8_t y)
+    {
+        Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
+        const glm::vec3 position = hero.position;
+        hero = Client::Tests::UnarmedPlayer(1);
+        hero.alive = true;
+        hero.byte88 = 1;
+        hero.pk = 3;
+        hero.animation.action = 1;
+        hero.position = position;
+        hero.cellX = x;
+        hero.cellY = y;
+        hero.safeZone = 1;
+    }
+
+    // El word del TerrainWall (0x7d0d348) en la celda (x, y) del mapa cargado.
+    [[nodiscard]] std::uint16_t Cell(std::uint8_t x, std::uint8_t y)
+    {
+        return world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(x, y)];
+    }
+
+    // El trapecio que deja el dibujo de la selección (0x63475c): el de su punto fijo, con su cámara.
+    [[nodiscard]] static Client::World::TerrainPolygon SelectionPolygon()
+    {
+        return Client::World::TerrainPolygonOf(Client::World::CullingScene::CharacterSelect, 54,
+                                               Client::Scenes::SelectionCullingPoint,
+                                               Client::Scenes::SelectionCamera().angles.z);
+    }
+
     [[nodiscard]] GameScene Scene()
     {
         return GameScene(SceneContext{.dataRoot = m_dataRoot,
@@ -585,44 +628,96 @@ TEST_F(GameSceneDrawTest, TheOtherMapsStopWhereTheyDiffer)
     }
 }
 
-// 0x63710f: el primer paso después de la espera llega a los personajes (0x508f00) antes del primer dibujo del
-// juego. El TerrainWall pierde el 0x02 (el de (221, 11) en Lorencia, Q-C170) y 0x5fba90 lee el trapecio que
-// dejó el último dibujo de la selección, que MuRet no calcula: corta en el lugar 0, muerto, sin gastar más que
-// los 8 rand() de MoveHero y sin la tela. Después del corte, el paso no vuelve a correr.
-TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitStopsAtTheSelectionTrapezoid)
+// 0x63710f y 0x63475c: el primer paso después de la espera llega a los personajes (0x508f00) antes del primer
+// dibujo del juego, con el trapecio que dejó el último dibujo de la selección: el de su punto fijo
+// (SelectionCullingPoint), que no sigue al héroe (Q-C216). El TerrainWall pierde el 0x02 (el de (221, 11) en
+// Lorencia, Q-C170) y marca la celda lógica. En Lorencia el héroe que sale del pueblo por el oeste, de (96, 126)
+// a (95, 126), cae adentro: con la celda lógica queda fuera de la zona segura. En Devias el que sale por el norte,
+// de (220, 76) a (220, 77), cae afuera y +0x3e2 queda como estaba. Los rand(): los 8 de MoveHero, los 8 del
+// TerrainWall y, con el héroe visto, los 8 de la celda y el rand() & 7; después, la tela. El dibujo que sigue llega
+// al pasto (0x5fc353) con sus 4 + 8 y deja su propio trapecio.
+TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection)
 {
     struct Case
     {
         std::uint8_t map;
-        std::uint8_t x;
-        std::uint8_t y;
+        std::uint8_t drawnX;
+        std::uint8_t drawnY;
+        std::uint8_t logicalX;
+        std::uint8_t logicalY;
+        bool seen;
+        std::uint8_t safeZone;
+        int draws;
     };
-    for (const Case& probe : {Case{0, 143, 120}, Case{2, 220, 30}})
+    for (const Case& probe :
+         {Case{0, 96, 126, 95, 126, true, 0, 8 + 8 + 8 + 1}, Case{2, 220, 76, 220, 77, false, 1, 8 + 8}})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
-        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.drawnX, probe.drawnY));
+        MakeTheHeroAPlayer(probe.logicalX, probe.logicalY);
+        const Client::World::TerrainPolygon selection = SelectionPolygon();
+        world.Runtime().terrainPolygon = selection;
         GameScene scene = Scene();
         ASSERT_TRUE(scene.Enter().HasValue());
-        const std::size_t wall = Client::Data::Terrain::CellIndex(221, 11);
-        const std::uint16_t before = world.Map().terrain.attributes->cells[wall];
+        const std::uint16_t before = Cell(221, 11);
+        const Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
+        ASSERT_EQ(Cell(probe.drawnX, probe.drawnY) & 1, 1);
+        ASSERT_EQ(Cell(probe.logicalX, probe.logicalY) & 1, 0);
 
         scene.Step(Client::Input::InputState{});
 
-        ASSERT_TRUE(scene.Failure().has_value());
-        EXPECT_NE(scene.Failure()->find("0x5fba90"), std::string::npos) << *scene.Failure();
+        ASSERT_EQ(scene.Failure(), std::nullopt);
         EXPECT_EQ(world.Runtime().warpCounter, WaitDrawThreshold - 1);
-        EXPECT_EQ(world.Map().terrain.attributes->cells[wall], before & ~0x02);
+        EXPECT_EQ(Cell(221, 11), before & ~0x02);
         if (probe.map == 0)
         {
             EXPECT_EQ(before, 2);
         }
-        EXPECT_EQ(cloth.random.State(), RandomAfter(8).State());
+        EXPECT_EQ(Cell(probe.logicalX, probe.logicalY) & Client::World::CharacterWallBit,
+                  Client::World::CharacterWallBit);
+        EXPECT_EQ(hero.seen, probe.seen);
+        EXPECT_EQ(hero.safeZone, probe.safeZone);
+        EXPECT_EQ(world.Runtime().terrainPolygon.x, selection.x) << "el paso no escribe el trapecio";
+        EXPECT_EQ(cloth.random.State(), StateAfterAStep(probe.draws));
 
-        scene.Step(Client::Input::InputState{});
-        EXPECT_EQ(world.Runtime().warpCounter, WaitDrawThreshold - 1) << "cortado, el paso no vuelve a correr";
-        EXPECT_EQ(cloth.random.State(), RandomAfter(8).State());
+        Client::Tests::RecordingFrameTarget target;
+        scene.PrepareFrame();
+        ASSERT_FALSE(scene.HoldsTheLastFrame());
+        scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
+
+        ASSERT_TRUE(scene.Failure().has_value());
+        EXPECT_NE(scene.Failure()->find("0x5fc353"), std::string::npos) << *scene.Failure();
+        CrtRandom expected = RandomAfterAStep(probe.draws);
+        for (int i = 0; i < 4 + 8; ++i)
+        {
+            static_cast<void>(expected.Next());
+        }
+        EXPECT_EQ(cloth.random.State(), expected.State());
+        EXPECT_NE(world.Runtime().terrainPolygon.x, selection.x) << "el dibujo deja el trapecio del juego";
         scene.Leave();
     }
+}
+
+// Q-C217: sin un dibujo antes (un WorldState recién hecho), el trapecio es el de la .bss, todo en cero, y 0x5fba90
+// ve a todos con el margen −20. El héroe de Devias que no se ve con el de la selección se ve con este y toma la
+// zona segura de la celda lógica.
+TEST_F(GameSceneDrawTest, WithoutAPreviousDrawTheFirstStepSeesWithTheTrapezoidOfTheBss)
+{
+    ASSERT_NO_FATAL_FAILURE(Prepare(2, 220, 76));
+    MakeTheHeroAPlayer(220, 77);
+    ASSERT_EQ(world.Runtime().terrainPolygon.x, (std::array<float, 4>{}));
+    ASSERT_EQ(world.Runtime().terrainPolygon.y, (std::array<float, 4>{}));
+    GameScene scene = Scene();
+    ASSERT_TRUE(scene.Enter().HasValue());
+
+    scene.Step(Client::Input::InputState{});
+
+    ASSERT_EQ(scene.Failure(), std::nullopt);
+    const Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
+    EXPECT_TRUE(hero.seen);
+    EXPECT_EQ(hero.safeZone, 0);
+    EXPECT_EQ(cloth.random.State(), StateAfterAStep(8 + 8 + 8 + 1));
+    scene.Leave();
 }
 
 // Un dibujo cortado deja la escena en Failure: el paso que sigue no corre, aunque el dibujo haya dejado su

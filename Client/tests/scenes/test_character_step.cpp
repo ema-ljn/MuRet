@@ -21,7 +21,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -95,9 +94,17 @@ struct GameWorld
         return world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(x, y)];
     }
 
-    Client::Core::Expected<void, std::string> Step(const std::optional<TerrainPolygon>& polygon)
+    // Con `polygon` en el global que deja el último 0x5fb570 (WorldRuntime::terrainPolygon).
+    Client::Core::Expected<void, std::string> Step(const TerrainPolygon& polygon)
     {
-        return StepCharacters(CharacterStepContext{.world = world, .polygon = polygon, .random = random});
+        world.Runtime().terrainPolygon = polygon;
+        return Step();
+    }
+
+    // Con el global como esté.
+    Client::Core::Expected<void, std::string> Step()
+    {
+        return StepCharacters(CharacterStepContext{.world = world, .random = random});
     }
 
     static constexpr std::size_t HeroSlot = 42;
@@ -105,8 +112,7 @@ struct GameWorld
     CrtRandom random{Seed};
 };
 
-const std::optional<TerrainPolygon> Everything = TerrainPolygon{.everything = true};
-const std::optional<TerrainPolygon> Nothing = std::nullopt;
+const TerrainPolygon Everything{.everything = true};
 
 using GoldenCharacterStep = Client::Tests::GoldenDataTest;
 
@@ -152,8 +158,8 @@ TEST_F(GoldenCharacterStep, TheSafeZoneFollowsTheLogicalCellAhead)
             hero.cellY = walk.logicalY;
             // Lo que dejó 0x511290 con la celda dibujada.
             hero.safeZone = static_cast<std::uint8_t>(1 - walk.safeZone);
-            const std::optional<TerrainPolygon> polygon = GamePolygon(border.map, hero.position);
-            ASSERT_TRUE(CharacterSeen(*polygon, hero.position));
+            const TerrainPolygon polygon = GamePolygon(border.map, hero.position);
+            ASSERT_TRUE(CharacterSeen(polygon, hero.position));
 
             const auto stepped = tested.Step(polygon);
 
@@ -179,8 +185,8 @@ TEST(CharacterStepTest, AnUnseenHeroKeepsItsSafeZone)
     hero.safeZone = 1;
     hero.seen = true;
     tested.Cell(100, 100) = 0;
-    const std::optional<TerrainPolygon> polygon = GamePolygon(0, CellCentre(200, 200));
-    ASSERT_FALSE(CharacterSeen(*polygon, hero.position));
+    const TerrainPolygon polygon = GamePolygon(0, CellCentre(200, 200));
+    ASSERT_FALSE(CharacterSeen(polygon, hero.position));
 
     const auto stepped = tested.Step(polygon);
 
@@ -284,26 +290,24 @@ TEST(CharacterStepTest, WithoutLiveCharactersOnlyTheWallsAndTheViewChange)
     EXPECT_EQ(tested.random.State(), RandomAfter(0).State());
 }
 
-// 0x5fba90 lee el trapecio del último dibujo; antes del primero del juego es el de la selección, que MuRet
-// no tiene. Corta en el primer lugar, después de sus accesos si está vivo.
-TEST(CharacterStepTest, WithoutTheTrapezoidTheStepStopsAtTheFirstSlot)
+// Q-C217: antes de cualquier 0x5fb570 el global tiene los ceros de la .bss, un trapecio sin área en (0, 0): los
+// cuatro lados dan 0, que pasa el margen de −20, y se ven todos, en cualquier lugar, también el muerto del lugar
+// 0. Con un WorldState nuevo (lo que deja WinMain) el paso sigue entero.
+TEST(CharacterStepTest, WithTheTrapezoidOfTheBssEveryoneIsSeen)
 {
-    for (const std::size_t heroSlot : {std::size_t{0}, GameWorld::HeroSlot})
-    {
-        SCOPED_TRACE(heroSlot);
-        GameWorld tested;
-        ActorState hero = tested.Hero();
-        tested.Hero() = ActorState{};
-        tested.world.Runtime().hero = heroSlot;
-        tested.world.Actors()[heroSlot] = hero;
-        tested.Cell(9, 9) = Client::World::CharacterWallBit;
+    GameWorld tested;
+    ASSERT_EQ(tested.world.Runtime().terrainPolygon.x, (std::array<float, 4>{}));
+    ASSERT_EQ(tested.world.Runtime().terrainPolygon.y, (std::array<float, 4>{}));
+    ASSERT_FALSE(tested.world.Runtime().terrainPolygon.everything);
+    tested.Hero().position = CellCentre(250, 3);
+    tested.world.Actors()[0].position = CellCentre(7, 200);
 
-        const auto stepped = tested.Step(Nothing);
+    const auto stepped = tested.Step();
 
-        EXPECT_TRUE(HasError(stepped, "0x5fba90")) << (stepped.HasValue() ? "" : stepped.Error());
-        EXPECT_EQ(tested.Cell(9, 9), 0);
-        EXPECT_EQ(tested.random.State(), RandomAfter(heroSlot == 0 ? WallDraws : 0).State());
-    }
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_TRUE(tested.Hero().seen);
+    EXPECT_TRUE(tested.world.Actors()[0].seen);
+    EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws).State());
 }
 
 // 0x412140 arma los objetos del asedio en el mapa 30, y sin el mapa cargado no hay TerrainWall: corta antes de

@@ -27,7 +27,9 @@
 // baja el contador (0x59af01). La respuesta del F3 03 lo pone en 30 (T7). Con el contador en 30 o
 // menos, el dibujo del juego hace la cámara, el rango y el trapecio, el pase del mundo, el rayo del
 // mouse y el primer pase del terreno, y corta con error en la primera etapa que MuRet no tiene (T8);
-// el paso, los personajes con la zona segura del héroe (0x508f00, T11), y corta igual.
+// el paso, los personajes con la zona segura del héroe (0x508f00, T11), y corta igual. El trapecio que
+// leen los personajes es el global de WorldRuntime: en el primer paso después de la espera, el que dejó
+// el último dibujo de la selección (T11b).
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La entrada al mundo", pasos 3, 4 y 6, "El
 // paso del juego" y "El dibujo del juego".
 namespace Client::Scenes
@@ -84,7 +86,8 @@ private:
     [[nodiscard]] Core::Expected<void, std::string> UploadTheTiles(std::uint8_t map);
     // 0x635ae0, una vez por frame original, y la consulta de los dibujos intermedios.
     [[nodiscard]] Render::Camera3D CameraOfTheFrame(SceneCanvas& canvas, int frames);
-    // 0x5fbb00 → 0x5fb570: el trapecio alrededor de `target`, con su transición si corre un frame.
+    // 0x5fbb00 → 0x5fb570: el trapecio alrededor de `target`, con su transición si corre un frame. Con un
+    // frame los dos quedan en WorldRuntime (TerrainPolygonFrame.h); en un dibujo intermedio, nada.
     [[nodiscard]] Core::Expected<World::TerrainPolygon, std::string>
     PolygonOfTheFrame(const Render::Camera3D& camera, const glm::vec3& target, int frames);
     // 0x637410..0x6374ce, dentro del pase del mundo: el rayo del mouse, el terreno y el corte.
@@ -104,15 +107,11 @@ private:
     World::GameCameraInput m_localCameraInput;
     Render::Models::OriginalFrameCarry m_cameraFrames;
     TerrainTiles m_tiles;
-    // 0x7b4ccb8, el nivel efectivo del trapecio, de un frame al otro.
-    World::TerrainPolygonState m_polygonState;
     // El rango de bloques del último 0x5fbb00 de la escena, el que lee 0x5fbf60 en el paso.
     World::TerrainRange m_terrainRange;
     // El corrimiento del agua (0x78ecbec) y las olas (0x78acbd8) del juego.
     World::TerrainWater m_water;
     std::optional<World::TerrainPickingSegment> m_mouseRay;
-    // El trapecio del último frame del juego que dibujó (0x5fb570), el que lee 0x5fba90 en el paso.
-    std::optional<World::TerrainPolygon> m_lastPolygon;
     std::optional<std::string> m_failure;
 };
 } // namespace Client::Scenes

@@ -24,13 +24,16 @@
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/CreatePreview.h"
 #include "Scenes/GameData.h"
+#include "Scenes/SceneCameras.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "Scenes/TextureSets.h"
 #include "UI/CreateCharacterWindow.h"
 #include "World/GameCamera.h"
+#include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
 
 #include "support/Bytes.h"
@@ -59,11 +62,13 @@
 #include <glm/geometric.hpp>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include <limits>
 #include <optional>
 #include <span>
 #include <string>
@@ -188,7 +193,8 @@ void RetainLoginTerrain(Client::Scenes::SelectionState& selection)
 struct Harness
 {
     explicit Harness(bool withSession = true, bool withWings = false, bool withTheMouse = false,
-                     Client::Scenes::SelectionState* selectionState = nullptr)
+                     Client::Scenes::SelectionState* selectionState = nullptr,
+                     Client::Scenes::WorldState* worldState = nullptr)
         : log(sink, Client::Core::LogLevel::Debug), models(withWings), selection(selectionState)
     {
         Client::Tests::WriteTextureSet(folder.Path(), SelectionTextureSet);
@@ -212,15 +218,17 @@ struct Harness
         {
             data = std::move(loaded).Value();
         }
-        scene.emplace(SceneContext{.dataRoot = selection != nullptr ? Client::Tests::RepoDataDir() : folder.Path(),
-                                   .textures = store,
-                                   .log = log,
-                                   .clock = selection != nullptr ? &online.clock : nullptr,
-                                   .input = withTheMouse ? &input : nullptr,
-                                   .camera = selection != nullptr ? &camera : nullptr,
-                                   .cameraInput = selection != nullptr ? &cameraInput : nullptr,
-                                   .selection = selection},
-                      data, models, withSession ? &online.session : nullptr);
+        scene.emplace(
+            SceneContext{.dataRoot = selection != nullptr ? Client::Tests::RepoDataDir() : folder.Path(),
+                         .textures = store,
+                         .log = log,
+                         .clock = selection != nullptr ? &online.clock : nullptr,
+                         .input = withTheMouse ? &input : nullptr,
+                         .camera = selection != nullptr || worldState != nullptr ? &camera : nullptr,
+                         .cameraInput = selection != nullptr || worldState != nullptr ? &cameraInput : nullptr,
+                         .selection = selection,
+                         .world = worldState},
+            data, models, withSession ? &online.session : nullptr);
     }
 
     // El login aceptado y Enter: la escena pidió la lista.
@@ -1039,6 +1047,64 @@ TEST(CharacterSelectSceneTest, ADeletionAsksTheCodeAndSendsIt)
     EXPECT_NEAR(models->modelVertices[0].position.x, CharacterSlots[0].position.x, 1e-3f);
     tested.Tap(Key::Enter);
     EXPECT_FALSE(ShowsANotice(tested.Frame()));
+}
+
+// El trapecio que deja el dibujo de la selección: el de su punto fijo en el 54, con su cámara.
+Client::World::TerrainPolygon SelectionPolygon()
+{
+    return Client::World::TerrainPolygonOf(Client::World::CullingScene::CharacterSelect, 54,
+                                           Client::Scenes::SelectionCullingPoint,
+                                           Client::Scenes::SelectionCamera().angles.z);
+}
+
+// 0x63475c: cada frame del original, después de la cámara (0x6346ca), 0x5fbb00 deja en los globales el trapecio
+// del punto fijo de la selección (0x6346b5..0x6346c3), que no es ningún personaje, y la transición del nivel
+// efectivo (0x5fb731) con el nivel que pidió la cámara, en 0. Un dibujo intermedio, al mismo reloj, no escribe.
+TEST(CharacterSelectSceneTest, EachFrameLeavesTheTrapezoidOfItsFixedPoint)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    world.Runtime().terrainPolygonState.effectiveLevel = 3;
+
+    static_cast<void>(tested.Frame());
+
+    const Client::World::TerrainPolygon expected = SelectionPolygon();
+    EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 0);
+    EXPECT_EQ(world.Runtime().terrainPolygon.x, expected.x);
+    EXPECT_EQ(world.Runtime().terrainPolygon.y, expected.y);
+    EXPECT_FALSE(world.Runtime().terrainPolygon.everything);
+
+    world.Runtime().terrainPolygon = {};
+    world.Runtime().terrainPolygonState.effectiveLevel = 3;
+    static_cast<void>(tested.Frame());
+    EXPECT_EQ(world.Runtime().terrainPolygon.x, (std::array<float, 4>{})) << "un dibujo intermedio no escribe";
+    EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 3);
+    EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+}
+
+// ADR 0009: si 0x5fb570 no puede con la D de la cámara (no entra en un int64), el frame se corta antes del pase
+// del mundo, la escena queda en Failure con la dirección y los globales quedan como estaban.
+TEST(CharacterSelectSceneTest, ATrapezoidErrorCutsTheFrame)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    tested.camera.distance = std::numeric_limits<float>::quiet_NaN();
+    world.Runtime().terrainPolygonState.effectiveLevel = 3;
+
+    const std::vector<FrameEvent> events = tested.Frame();
+
+    ASSERT_TRUE(tested.scene->Failure().has_value());
+    EXPECT_NE(tested.scene->Failure()->find("0x5fb570"), std::string::npos) << *tested.scene->Failure();
+    EXPECT_EQ(std::ranges::find(events, Kind::Models, &FrameEvent::kind), events.end());
+    EXPECT_EQ(world.Runtime().terrainPolygon.x, (std::array<float, 4>{}));
+    EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 3);
+    EXPECT_TRUE(tested.Frame().empty()) << "cortada, no vuelve a dibujar";
 }
 
 // F3 02 desactiva la vista desde Poll: sin otro Step desaparece, pero el registro CPU sigue vivo.

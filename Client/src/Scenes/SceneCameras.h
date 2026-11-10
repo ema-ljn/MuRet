@@ -33,4 +33,8 @@ inline constexpr Render::ViewportRect WorldViewport{0, 25, 640, 430};
 // El héroe del login (DAT_0743a170, el personaje 0): 0x6350b0 le escribe esta posición en cada frame
 // (0x6350d3..0x6350e1). Es el centro del trapecio del terreno (0x5fb570) y de las brasas (CL7.6 B).
 inline constexpr glm::vec3 LoginHeroPosition{11679.0f, 14191.0f, 333.0f};
+
+// El punto que 0x634680 le pasa a 0x5fbb00 (0x63475c), un local fijo (0x6346b5..0x6346c3): el centro del
+// trapecio de la selección, que no es ningún personaje. Es el que lee el primer paso del juego (Q-C216).
+inline constexpr glm::vec3 SelectionCullingPoint{12975.0f, 15423.0f, 333.0f};
 } // namespace Client::Scenes

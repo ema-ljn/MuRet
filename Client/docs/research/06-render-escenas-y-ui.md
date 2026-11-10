@@ -2328,6 +2328,22 @@ Un LoginStep anterior al primer LoginRender la puede leer al crear brasas: no al
 con aplicar 163 únicamente al transform temporal del personaje dibujado. Esto fija
 el estado después de un dibujo habilitado; no prueba la Z del constructor antes de él.
 
+**El trapecio** (T11b del hito 1; *estático*). Antes de la cámara, `0x6346b5..0x6346c3` deja en un local el
+punto (12.975; 15.423; 333), fijo, que no es ningún personaje. Después de los fondos, `0x634736..0x634743`
+arma el pase de la franja (`0x620db0(0, 0, w, 48)` con el ancho de `0x5bb8d0`, que no dibuja) y `0x63475c`
+llama a `0x5fbb00(w · [0x6ba070], &punto)`: el rango de bloques y, por `0x5fbeef`, el trapecio y el nivel
+efectivo globales de `0x5fb570` ([El trapecio completo](#el-trapecio-completo)). Nada de
+`0x634736..0x634769` saca `rand()`. La selección no dibuja el terreno: el trapecio lo leen el paso de sus
+personajes (`0x508f00` en `0x6342f9`, que MuRet no tiene: P-C46) y, después de la entrada al mundo, el
+primer paso del juego (Q-C216). Con la cámara de § Cámara, en el mapa 54, sus esquinas en celdas son (29,5;
+157,6), (126,4; 254,5), (179,1; 148,9) y (135,1; 104,9): con el margen −20 de los personajes pasan los
+centros de 11.281 celdas, que en Lorencia tienen 2.014 de la zona segura (el oeste del pueblo, con (133, 127)
+y (143, 120), no el borde del este en (172, 128)) y en Devias ninguna. MuRet lo calcula en cada frame del
+original detrás de la cámara (`CharacterSelectScene::StepTheCameraAndTheTrapezoid`, con el punto en
+`Scenes::SelectionCullingPoint`); un error de `0x5fb570` corta el frame y deja la escena en `Failure`
+([ADR0009](../../../docs/adr/0009-errores-del-trapecio.md)). Tests:
+`CharacterSelectSceneTest.EachFrameLeavesTheTrapezoidOfItsFixedPoint` y `ATrapezoidErrorCutsTheFrame`.
+
 ### La barra de la selección y el borrado
 
 Leída en la CL6.5 (*estático*, y *emulado* el lugar de las ventanas y el armado de los avisos).
@@ -3389,7 +3405,7 @@ bloque de la entrada, en orden (*estático*):
 | `0x6370f4` | `0x445230` | el caballo oscuro | sí (`StepDarkHorse`) |
 | `0x6370f9..0x637105` | `0x557650`, `0x451d10`, `0x451c10` | contadores y listas, sin leer | — |
 | `0x63710a` | **`0x59adf0`**, el `MoveHero` | el héroe con el mouse ([Caminar](#caminar)); baja `0x77f3b04` y lo vuelve a leer (dos accesos, 8 `rand()`) y, con más de 30, sale; si no, escribe en `0x77f36d0` la capa 1 de la celda del héroe (`0x59e2ba`) y, con `0x57cfc0`, abre y cierra el registro propio: 3.848 `rand()` ([La tabla de protección](#la-tabla-de-protección)) | el contador (`GameScene::StepWaitCounter`), sin los gates de antes (P-C28 b); lo demás falta |
-| `0x63710f` | **`0x508f00` → `0x508ea0`** | por personaje: el trapecio en (x, y) · 0,01 con −20 a `+0x16c`, `0x508ba0`, `0x4fd5f0` (la animación y el alpha), `0x505de0` (la zona segura, la cabeza y las luces) y `0x42da90`; antes, el `0x02` del `TerrainWall`, con 8 `rand()` por personaje vivo. Corre también en la espera ([El paso de los personajes](#el-paso-de-los-personajes)) | después de la espera, `Scenes::StepCharacters`: el `TerrainWall`, `+0x16c` y, del héroe, `0x505de0` con la zona segura (T11); en la espera, frontera ([08](08-pendientes.md) P-C41 a) |
+| `0x63710f` | **`0x508f00` → `0x508ea0`** | por personaje: el trapecio en (x, y) · 0,01 con −20 a `+0x16c`, `0x508ba0`, `0x4fd5f0` (la animación y el alpha), `0x505de0` (la zona segura, la cabeza y las luces) y `0x42da90`; antes, el `0x02` del `TerrainWall`, con 8 `rand()` por personaje vivo. Corre también en la espera ([El paso de los personajes](#el-paso-de-los-personajes)) | después de la espera, `Scenes::StepCharacters`: el `TerrainWall`, `+0x16c` con el trapecio global (T11b) y, del héroe, `0x505de0` con la zona segura (T11); en la espera, frontera ([08](08-pendientes.md) P-C41 a) |
 | `0x637114` | `0x548f40` | los números de daño (`0x7609c0c`) | CL9.2 |
 | `0x637119` | `0x53eaf0` | la tabla `0x75fe028` (`0x51fc80`), sin leer | — |
 | `0x63711e` | **`0x52d220`** | los efectos con modelo | sí (`StepModelEffects`) |
@@ -3413,7 +3429,8 @@ con el contador en más de 30, MoveHero sale en `0x59afd6`, pero el paso sigue (
    la Y (`+0x420`) y la X (`+0x41c`), cada una en un acceso que se cierra (8 `rand()` si quedan en 0), y le
    pone el `0x02` a la celda de `0x5f82a0(X, Y)` (`0x509165`). Después, vivo o no, `+0x16c` =
    `0x5fba90(f(x · 0,01f), f(y · 0,01f), −20)` (`0x50916d..0x5091a0`), con el trapecio global del último
-   `0x5fb570`: entre la selección y el primer frame del juego, el del último dibujo de la selección.
+   `0x5fb570`: entre la selección y el primer frame del juego, el del último dibujo de la selección, el de su
+   punto fijo y no el del héroe (Q-C216; [El dibujo](#el-dibujo) de la selección).
 4. El segundo lazo, por los mismos 400 (`0x5091af..0x5091ce`): `0x508ea0`, que sin vivir no hace nada; si
    no, vuelve a escribir `+0x16c` igual (`0x508eac..0x508ed2`) y llama a `0x508ba0` (los otros personajes:
    con el héroe sale en `0x508bad`), `0x4fd5f0` (el cuerpo, la animación y el alpha, con un `rand() % 6`
@@ -3451,18 +3468,20 @@ Con el héroe visto, de pie y sin nada de eso, el paso de los personajes saca 8 
 `0x4fd5f0`; sin verse, 8 más los de `0x4fd5f0` (*estático*).
 
 **En MuRet** (`Scenes::StepCharacters`, T11 del hito 1): después de la espera, desde `GameScene::StepWorld`,
-con el trapecio del último frame del juego que dibujó. Porta el `TerrainWall`, `+0x16c` de los 400, la celda
-lógica y, del héroe, `0x505de0` hasta su final, con su `rand() & 7`. Corta con error, en el orden del
-original: en el mapa 30 (`0x412140`), sin el mapa cargado (`0x508f14`), sin el trapecio (`0x5fba90`: antes
-del primer dibujo del juego es el de la selección, que MuRet no calcula, así que el primer paso después de
-la espera corta ahí, [08](08-pendientes.md) P-C44), con otro personaje vivo (`0x508ea0`), con otro modelo
+con el trapecio global de `WorldRuntime` (T11b): en el primer paso después de la espera, el del último dibujo
+de la selección (Q-C216), y sin ningún dibujo antes, los ceros de la .bss (Q-C217). Porta el `TerrainWall`,
+`+0x16c` de los 400, la celda lógica y, del héroe, `0x505de0` hasta su final, con su `rand() & 7`. Corta con
+error, en el orden del original: en el mapa 30 (`0x412140`), sin el mapa cargado (`0x508f14`), con otro
+personaje vivo (`0x508ea0`), con otro modelo
 que el `0x20a` (`0x505e0b`), con la luz de una mano (`0x5f9780`), en los mapas 7 (`0x506d01`) y 9
 (`0x506d8b`), en las acciones `0x44` y `0x45` (`0x506e5d`) y `0x96` (`0x506f62`) y en las de los pasos
 (`0x508668`); el `0x6f4` de los mapas 24 a 29 y 36 no se alcanza sin cortar antes en los pasos. Son
 frontera, como las de T8, porque corren también en la espera: `0x4fd5f0` (con su `rand()` de `0x4fd7e4`,
 por lo menos), la cabeza del héroe y `0x52e500` (P-C44). En la espera, `0x508f00` entero sigue siendo
-frontera (P-C41 a). Tests: `CharacterStepTest`, `GoldenCharacterStep.TheSafeZoneFollowsTheLogicalCellAhead`
-y `GameSceneDrawTest.TheFirstStepAfterTheWaitStopsAtTheSelectionTrapezoid`.
+frontera (P-C41 a). Tests: `CharacterStepTest`, `GoldenCharacterStep.TheSafeZoneFollowsTheLogicalCellAhead`,
+`GameSceneDrawTest.TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection` y
+`WithoutAPreviousDrawTheFirstStepSeesWithTheTrapezoidOfTheBss`, y, de la selección al primer frame del juego,
+`WorldEntryTest.TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw`.
 
 ### El dibujo del juego
 
@@ -3476,7 +3495,7 @@ y `GameSceneDrawTest.TheFirstStepAfterTheWaitStopsAtTheSelectionTrapezoid`.
 | `0x63723a` | `0x7d368a0 = 0` | sin niebla | sí |
 | `0x637241` | **`0x635ae0()`** y, fuera del mapa 6, `0x44dc60(&p)` (`0x4034b0` con el recorrido) | la cámara y el punto del recorte; la rama de `0x63724a` no corre nunca (Q-C189) | [La cámara del juego](#la-cámara-del-juego): `GameScene`, con los dos accesos a la celda del héroe (8 `rand()`) y `World::CameraTargetOf`; el mapa 6 corta en `0x635b5c` |
 | `0x63734d` | `0x620db0(0, 0, w, 48)` | la franja, que no dibuja | sí (`MakePass3D`) |
-| `0x637366` | **`0x5fbb00(w / 640, &p)`** | el rango de bloques y el trapecio | sí (`TerrainRangeOf`, `TerrainPolygonOf(Game)`; en el juego, `TerrainPolygonFrameOf` con el nivel efectivo de la escena) |
+| `0x637366` | **`0x5fbb00(w / 640, &p)`** | el rango de bloques y el trapecio | sí (`TerrainRangeOf`, `TerrainPolygonOf(Game)`; en el juego, `StepTheTerrainPolygon` con el trapecio y el nivel efectivo globales de `WorldRuntime`, T11b) |
 | `0x637391..0x637404` | `glClearColor` por mapa: en el 0, (0,0390625; 0,078125; 0,0546875) | no se usa (Q-C143) | ver abajo |
 | `0x637410` | `0x620db0(0, 0, w, 432)` (480 con `0x7d36899`) | el pase del mundo | sí (`GameWorldViewport`) |
 | `0x63741d` | en el mapa 30, su luz | | corta (el 30 no carga) |
@@ -3798,8 +3817,23 @@ está en [ADR0009](../../../docs/adr/0009-errores-del-trapecio.md): no imita loc
 ni promete un retorno universal del FISTP excepcional. Snapshot estable y sin alias; defaultsDTO
 sin significado probado de inicio/reset. Los tests unitarios observan perfiles, bordes, stores,
 estado, bajos32 y errores; las regresiones históricas observan login55, selección54 y trazas de
-celdas. La integración temporal (pares cámara→trapecio por frame original, dueño persistente,
-reentrada y faseZ163) queda pendiente; este núcleo no cierra CL7 ni sus callers.
+celdas.
+
+**Los globales y su dueño** (T11b del hito 1; *estático*). El trapecio (las Y en `0x78ecbf0` y las X en
+`0x78ecc00`) y el nivel efectivo (`0x7b4ccb8`) son uno para todas las escenas. Solo los escribe `0x5fb570`
+(`0x5fba55` y `0x5fba68`, el trapecio; `0x5fb731`, el nivel); a `0x5fb570` lo llama solo `0x5fbb00`
+(`0x5fbeef`), y a `0x5fbb00`, los dibujos del login (`0x6351b7`), de la selección (`0x63475c`) y del juego
+(`0x637366`). Solo los lee `0x5fba90`, que mira la escena del momento (`0x6d5dc8`) y no la del que los
+escribió: en las escenas 2, 4 y 5, que son las que los escriben, prueba el trapecio. Están en la .bss (la
+.data del archivo, desde `0x6c6000`, trae `0x20000` bytes): arrancan en cero, un trapecio sin área en (0, 0)
+que deja pasar todo con margen negativo (Q-C217). Así, el paso de los personajes de cada escena lee el del
+último dibujo de cualquiera: el primero del login, los ceros o el de la escena de antes; el primero del
+juego después de la espera, el de la selección (Q-C216). En MuRet son `Scenes::WorldRuntime::terrainPolygon`
+y `terrainPolygonState`. Cada frame del original corre la cámara (`0x635ae0`) y detrás `0x5fbb00`, en par
+(`Scenes::StepTheTerrainPolygon`, en la selección y el juego); un dibujo intermedio de MuRet solo calcula con
+el nivel que hay, sin escribir (`TerrainPolygonBetweenFrames`). El login escribe el trapecio del nivel 0 sin
+la transición: con el nivel pedido siempre en 0, da lo mismo ([08](08-pendientes.md) P-C41 d). El rango, las
+olas y los planos de `0x5fbb00` siguen siendo de la escena (P-C46).
 
 - Quién lo usa:
 
@@ -3808,7 +3842,7 @@ reentrada y faseZ163) queda pendiente; este núcleo no cierra CL7 ni sus callers
 | los bloques y las celdas del terreno | `0x5fc190`, `0x5fc0e0` | el trapecio, en (x + 2, y + 2) y en el centro | −40 y 0 |
 | los sectores y los objetos | `0x6046a0` | el trapecio | −180 y −30 |
 | los pájaros y los peces | `0x446b60`, `0x446f00` | el trapecio | −20 |
-| **los personajes, en el paso** | `0x508f00` (`0x50918c`), a `+0x16c` | el trapecio **del dibujo anterior**, en la posición · 0,01 | −20 |
+| **los personajes, en el paso** | `0x508f00` (`0x50918c`), a `+0x16c` | el trapecio **del dibujo anterior**, de cualquier escena, en la posición · 0,01 | −20 |
 | los efectos con modelo y los ítems del piso | `0x52d620`, `0x608a00` | una esfera contra los cinco planos de `0x5fbb00` (`0x5fbf00`; los ítems con radio 400) | — |
 
 `0x508f00` además le prende el `0x02` a la celda de cada personaje (`0x509165`,

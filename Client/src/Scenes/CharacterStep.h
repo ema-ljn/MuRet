@@ -7,7 +7,6 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <cstdint>
-#include <optional>
 #include <string>
 
 namespace Client::Render::Models
@@ -40,15 +39,14 @@ struct LogicalCell
 
 struct CharacterStepContext
 {
+    // Con el trapecio global que dejó el último 0x5fb570 (WorldRuntime::terrainPolygon): antes del primer
+    // dibujo del juego, el del último dibujo de la selección (Q-C216).
     WorldState& world;
-    // El trapecio global que dejó el último 0x5fb570, el del último frame del juego que dibujó. Vacío
-    // antes del primero: ahí el del original es el de la selección, que MuRet no calcula.
-    const std::optional<World::TerrainPolygon>& polygon;
     Render::Models::CrtRandom& random;
 };
 
 // 0x508f00 en el juego, después de la espera. Corta con error, en el orden del original, en el mapa 30
-// (0x412140), sin el mapa cargado (0x508f14), sin el trapecio (0x5fba90), con otro personaje vivo
-// (0x508ea0) y en las ramas de 0x505de0 que el héroe todavía no tiene. Lo que hizo antes del corte queda.
+// (0x412140), sin el mapa cargado (0x508f14), con otro personaje vivo (0x508ea0) y en las ramas de 0x505de0
+// que el héroe todavía no tiene. Lo que hizo antes del corte queda.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context);
 } // namespace Client::Scenes

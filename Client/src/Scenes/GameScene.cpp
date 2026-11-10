@@ -15,6 +15,7 @@
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
+#include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameCursor.h"
@@ -85,18 +86,6 @@ std::uint8_t HeroCellAttribute(ActorState& hero, const Data::Terrain::TerrainAtt
     // 0x635f14..0x635fe3: el word de 0x7d0d348, del que la cámara mira el byte bajo.
     return static_cast<std::uint8_t>(attributes.cells[Data::Terrain::CellIndex(cell.x, cell.y)]);
 }
-
-std::string DescribePolygonError(World::TerrainPolygonError error)
-{
-    switch (error)
-    {
-    case World::TerrainPolygonError::InvalidCameraDistance:
-        return "0x5fb570: la distancia de la cámara no entra en un int64";
-    case World::TerrainPolygonError::InvalidEffectiveLevel:
-        return "0x5fb570: el nivel del trapecio no es de 0 a 4";
-    }
-    return "0x5fb570: un error desconocido";
-}
 } // namespace
 
 GameScene::GameScene(const SceneContext& context, App::ServerSession* session)
@@ -113,7 +102,6 @@ Core::Expected<void, std::string> GameScene::Enter()
     }
     m_firstStep = true;
     m_holdFrame = true;
-    m_lastPolygon = std::nullopt;
     return {};
 }
 
@@ -204,9 +192,10 @@ Core::Expected<void, std::string> GameScene::StepWorld()
     }
     // Frontera (T7, CL7.4 y 08 P-C41): el resto de MoveHero, desde 0x59afdf (el clic, caminar, los
     // gates, 0x57cfc0 con el registro propio y la capa 1 de la celda en 0x77f36d0).
-    // 0x63710f: 0x508f00, los personajes, con el trapecio del último dibujo.
-    if (auto stepped = StepCharacters(CharacterStepContext{
-            .world = *m_context.world, .polygon = m_lastPolygon, .random = m_context.cloth->random});
+    // 0x63710f: 0x508f00, los personajes, con el trapecio del último 0x5fb570 (WorldRuntime): en el primer
+    // paso después de la espera, el del último dibujo de la selección (Q-C216).
+    if (auto stepped =
+            StepCharacters(CharacterStepContext{.world = *m_context.world, .random = m_context.cloth->random});
         !stepped.HasValue())
     {
         return stepped;
@@ -304,17 +293,13 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     const glm::vec3 target = World::CameraTargetOf(CameraInputState());
     // 0x63734d: el pase de 0x620db0(0, 0, w, 48) no dibuja; su modelview es la del pase del mundo.
     const Render::Pass3D pass = Render::MakePass3D(canvas.screen, GameWorldViewport, camera);
-    // 0x637366: 0x5fbb00(w · 0,0015625, &p), el rango de bloques y el trapecio; con w en 640, 1.
+    // 0x637366: 0x5fbb00(w · 0,0015625, &p), el rango de bloques y el trapecio; con w en 640, 1. El trapecio y
+    // su nivel quedan en los globales de WorldRuntime, que lee 0x5fba90 en el paso que sigue.
     m_terrainRange = World::TerrainRangeOf(pass.view, camera);
     const auto polygon = PolygonOfTheFrame(camera, target, frames);
     if (!polygon.HasValue())
     {
         return Core::Unexpected(polygon.Error());
-    }
-    // El trapecio global de 0x5fb570, el que lee 0x5fba90 en el paso: solo lo escribe un frame del original.
-    if (frames > 0)
-    {
-        m_lastPolygon = polygon.Value();
     }
     // 0x637391..0x637404: el glClearColor del mapa, que nadie usa (Q-C143).
     // 0x637410: el pase del mundo.
@@ -369,10 +354,10 @@ Render::Camera3D GameScene::CameraOfTheFrame(SceneCanvas& canvas, int frames)
 Core::Expected<World::TerrainPolygon, std::string> GameScene::PolygonOfTheFrame(const Render::Camera3D& camera,
                                                                                 const glm::vec3& target, int frames)
 {
-    const World::GameCamera& state = CameraState();
+    WorldRuntime& runtime = m_context.world->Runtime();
     World::TerrainPolygonInput input;
     input.scene = static_cast<std::int32_t>(World::CullingScene::Game);
-    input.map = m_context.world->Runtime().map;
+    input.map = runtime.map;
     input.translation = target;
     // El selector del mapa 30, como TerrainPolygonOf; ese mapa corta abajo (0x63741d).
     input.objectPosition = glm::vec2(target.x, target.y);
@@ -380,24 +365,10 @@ Core::Expected<World::TerrainPolygon, std::string> GameScene::PolygonOfTheFrame(
     input.worldWidth = WorldWidth;
     if (frames == 0)
     {
-        const auto polygon = World::TerrainPolygonOf(input, m_polygonState.effectiveLevel);
-        if (!polygon.HasValue())
-        {
-            return Core::Unexpected(DescribePolygonError(polygon.Error()));
-        }
-        return polygon.Value();
+        return TerrainPolygonBetweenFrames(runtime, input);
     }
     // El nivel pedido (0x7d3a0ec), la D (0x7d36ba4) y la meta (0x6d5ee0) que dejó la cámara del frame.
-    const World::TerrainPolygonCameraInput cameraInput{.requestedLevel = static_cast<std::int16_t>(state.level),
-                                                       .distance = state.distance,
-                                                       .targetDistance = state.targetDistance};
-    const auto frame = World::TerrainPolygonFrameOf(m_polygonState, input, cameraInput);
-    if (!frame.HasValue())
-    {
-        return Core::Unexpected(DescribePolygonError(frame.Error()));
-    }
-    m_polygonState = frame.Value().nextState;
-    return frame.Value().polygon;
+    return StepTheTerrainPolygon(runtime, input, CameraState());
 }
 
 Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canvas, const Render::Pass3D& pass,

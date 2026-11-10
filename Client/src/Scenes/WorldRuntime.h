@@ -2,6 +2,7 @@
 
 #include "GameLogic/MovementSpeed.h"
 #include "Scenes/FullSetScan.h"
+#include "World/TerrainCulling.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -68,6 +69,18 @@ struct WorldRuntime
     // (0x44add8, 0x561b6d, 0x561bf7, 0x59bf3c, 0x5c2d5c, 0x5c5131, 0x5c5154, 0x5c51c3, 0x5c51f8, 0x5c5277,
     // 0x5c5301, 0x5c5330, 0x5c6c15, 0x5c8edd y 0x5c8f53; estático), y MuRet no tiene ninguno: queda en 0.
     std::int32_t slot78a6758 = 0;
+    // El trapecio del último 0x5fb570, en celdas: las Y en 0x78ecbf0 y las X en 0x78ecc00, que solo escriben
+    // 0x5fba55 y 0x5fba68 (por su dirección, en .text). A 0x5fb570 lo llama solo 0x5fbb00 (0x5fbeef), y a
+    // 0x5fbb00 los dibujos del login (0x6351b7), de la selección (0x63475c) y del juego (0x637366): es uno
+    // para las tres escenas. Lo lee solo 0x5fba90, con la escena de ese momento (0x6d5dc8): el primer paso del
+    // juego después de la espera (0x508f00) lee el del último dibujo de la selección, y el primer paso del
+    // login, el que haya. En la .bss (más allá de los 0x20000 bytes de la .data del archivo, desde 0x6c6000):
+    // ceros, un trapecio sin área en (0, 0) con el que 0x5fba90 da 0 en los cuatro lados (*estático*, 06 § El
+    // paso de los personajes y Q-C217).
+    World::TerrainPolygon terrainPolygon;
+    // 0x7b4ccb8, el nivel efectivo del trapecio de un 0x5fb570 al siguiente, en las tres escenas: solo lo
+    // escribe 0x5fb570 (0x5fb731). En la .bss: 0.
+    World::TerrainPolygonState terrainPolygonState;
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

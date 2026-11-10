@@ -37,6 +37,8 @@ enum class CullingScene : std::uint8_t
                                           float widthFactor = 1.0f);
 
 // El trapecio de 0x5fb570 en celdas: izquierda lejana, derecha lejana, derecha cercana, izquierda cercana.
+// El global del original (0x78ecbf0 y 0x78ecc00) es Scenes::WorldRuntime::terrainPolygon; el valor por
+// defecto, los ceros de la .bss.
 struct TerrainPolygon
 {
     std::array<float, 4> x{};
@@ -45,8 +47,8 @@ struct TerrainPolygon
     bool everything = false;
 };
 
-// Nivel efectivo persistente (0x7b4ccb8), distinto del solicitado de la cámara. El default del DTO
-// no acredita el valor de arranque nativo; su dueño temporal se integra en otra unidad.
+// Nivel efectivo persistente (0x7b4ccb8), distinto del solicitado de la cámara. Su dueño es
+// Scenes::WorldRuntime, uno para todas las escenas; el 0 del DTO es el de la .bss (*estático*).
 struct TerrainPolygonState
 {
     std::int32_t effectiveLevel = 0;

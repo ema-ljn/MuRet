@@ -6,6 +6,7 @@
 #include "App/ServerSession.h"
 #include "App/WindowState.h"
 #include "Core/Expected.h"
+#include "Core/IClock.h"
 #include "Data/Text/TextTable.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/DoubleClick.h"
@@ -69,7 +70,9 @@ public:
     void Step(const Input::InputState& input) override;
     // 0x634680 sin el terreno, los objetos ni los efectos: con sesión, nada hasta la lista; el de bajo
     // el mouse, con el contorno. Después, la UI: la barra, la ventana de crear (su base, la vista
-    // previa en su propio pase 3D, que no se oscurece, y lo demás) y el aviso.
+    // previa en su propio pase 3D, que no se oscurece, y lo demás) y el aviso. En cada frame del original,
+    // la cámara y el trapecio de 0x5fbb00 (0x63475c), que deja en WorldRuntime para el primer paso del
+    // juego; si el trapecio da error, el frame se corta y la escena queda en Failure.
     void Render(SceneCanvas& canvas, float alpha) override;
     // Suelta sus slots.
     void Leave() override;
@@ -79,6 +82,8 @@ public:
     [[nodiscard]] bool WantsToQuit() const override;
     [[nodiscard]] bool WantsTextInput() const override;
     [[nodiscard]] bool HoldsTheLastFrame() const override;
+    // El error de 0x5fb570 en el dibujo (ADR 0009), con la dirección; vacío mientras no corte.
+    [[nodiscard]] std::optional<std::string> Failure() const override;
 
 private:
     // Un personaje de la lista en su lugar, con la entrada de la que salió.
@@ -116,6 +121,10 @@ private:
     void DrawTheCreateWindow(SceneCanvas& canvas, float alpha);
     // 0x505820 con un personaje que se dibuja, `frames` veces (Scenes/FullSetScan.h), sobre WorldState.
     void ScanTheCharacter(const GameLogic::CharacterAppearance& appearance, int frames);
+    // 0x635ae0 (0x6346ca) y 0x5fbb00 (0x63475c) en cada frame del original que cuenta el reloj, uno detrás
+    // del otro; un dibujo intermedio solo consulta la cámara. Con un error del trapecio deja m_failure.
+    [[nodiscard]] Render::Camera3D StepTheCameraAndTheTrapezoid(const World::GameCameraInput& input,
+                                                                Core::Duration clock);
     // El cursor del juego (0x5ac2d0) al final de la UI, con el aviso de antes de la lista también.
     void DrawTheCursor(SceneCanvas& canvas) const;
     // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9), salvo que la sesión haya
@@ -179,5 +188,6 @@ private:
     std::optional<SceneId> m_next;
     bool m_failureShown = false;
     bool m_quit = false;
+    std::optional<std::string> m_failure;
 };
 } // namespace Client::Scenes

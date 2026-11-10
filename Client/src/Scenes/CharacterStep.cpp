@@ -182,6 +182,8 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
     }
     Data::Terrain::TerrainLayer<std::uint16_t>& walls = world.Map().terrain.attributes->cells;
     World::ClearCharacterWalls(walls);
+    // 0x5fba90 lee los globales de 0x78ecbf0 y 0x78ecc00: el trapecio del último dibujo de cualquier escena.
+    const World::TerrainPolygon& polygon = runtime.terrainPolygon;
     const auto actors = world.Actors();
     for (std::size_t slot = 0; slot < SteppedCharacters; ++slot)
     {
@@ -192,14 +194,8 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
             const LogicalCell cell = ReadLogicalCell(actor, context.random);
             World::MarkCharacterWall(walls, cell.x, cell.y);
         }
-        // 0x50916d..0x5091a0: vivo o no, si se ve.
-        if (!context.polygon)
-        {
-            return Core::Unexpected(std::string("0x5fba90: el trapecio del paso de los personajes es el del último "
-                                                "dibujo (0x5fb570); antes del primero del juego es el de la selección, "
-                                                "que MuRet no calcula (08 P-C44)"));
-        }
-        actor.seen = CharacterSeen(*context.polygon, actor.position);
+        // 0x50916d..0x5091a0: vivo o no, si se ve, con el trapecio del último 0x5fb570.
+        actor.seen = CharacterSeen(polygon, actor.position);
     }
     for (std::size_t slot = 0; slot < SteppedCharacters; ++slot)
     {
@@ -216,7 +212,7 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
                                                 slot));
         }
         // 0x508eac..0x508ed2: otra vez, con el mismo trapecio.
-        actor.seen = CharacterSeen(*context.polygon, actor.position);
+        actor.seen = CharacterSeen(polygon, actor.position);
         // 0x508ed8: 0x508ba0 sale con el héroe (0x508bad).
         // Frontera (08 P-C44): 0x4fd5f0 (0x508edf), el cuerpo, la animación y el alpha, con al menos un
         // rand() % 6 sin condición (0x4fd7e4). Corre también en la espera, con el 54 de la selección: es la

@@ -38,6 +38,7 @@
 #include "Scenes/SceneTextures.h"
 #include "Scenes/SceneWorlds.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/TerrainPolygonFrame.h"
 #include "Scenes/TextureSets.h"
 #include "Scenes/WorldState.h"
 #include "UI/CreateCharacterWindow.h"
@@ -49,6 +50,7 @@
 #include "UI/SelectionBar.h"
 #include "UI/Widget.h"
 
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
@@ -82,11 +84,30 @@ constexpr std::size_t ServerText = 458;
 // El bit de las banderas (+0x1d8) con el que el armado de la barra muestra los textos 436 y 437.
 constexpr std::uint8_t BlockedAccountFlag = 0x10;
 
+// 0x5bb8d0 en la selección: 640, sin las ventanas del juego (06 § El trapecio completo).
+constexpr std::int32_t SelectionWorldWidth = 640;
+
 // Si la entrada es la misma que dio el personaje: un crear en un lugar ocupado lo pisa.
 bool SameEntry(const Protocol::Character::CharacterEntry& one, const Protocol::Character::CharacterEntry& other)
 {
     return one.slot == other.slot && one.name == other.name && one.classByte == other.classByte &&
            one.equipment == other.equipment && one.withoutEquipment == other.withoutEquipment;
+}
+
+// Lo que 0x634680 le pasa a 0x5fbb00 (0x634736..0x63475c) y lo que 0x5fb570 lee de los globales: la escena 4,
+// el mundo en curso (0x6c9dd0, el 54), el punto fijo de la selección, el yaw de la cámara (que en el 54 no se
+// usa: gira 45°), el héroe publicado como selector del mapa 30 (solo en la escena 5) y el ancho de 0x5bb8d0,
+// 640 sin las ventanas del juego (08 P-C41 e). El mapa 6 no llega a la selección.
+World::TerrainPolygonInput SelectionPolygonInput(const World::GameCameraInput& input, const Render::Camera3D& camera)
+{
+    World::TerrainPolygonInput polygon;
+    polygon.scene = static_cast<std::int32_t>(World::CullingScene::CharacterSelect);
+    polygon.map = input.map;
+    polygon.translation = SelectionCullingPoint;
+    polygon.objectPosition = glm::vec2(input.hero.x, input.hero.y);
+    polygon.cameraYaw = camera.angles.z;
+    polygon.worldWidth = SelectionWorldWidth;
+    return polygon;
 }
 
 // Los dos fondos, 0x621b60(0x717, 0, 25, 320, 320, …) y el 0x718 en x 320, escalados desde 640 × 480.
@@ -605,8 +626,45 @@ Render::Models::ObjectTransform CharacterSelectScene::ObjectOf(const Character& 
     return Render::Models::ObjectTransform{position, {0.0f, 0.0f, slot.angle}, character.appearance.scale, 0.0f};
 }
 
+Render::Camera3D CharacterSelectScene::StepTheCameraAndTheTrapezoid(const World::GameCameraInput& input,
+                                                                    Core::Duration clock)
+{
+    // Como CameraForFrame: un dibujo intermedio solo consulta la cámara del último frame.
+    const int frames = m_cameraFrames.FramesAt(clock, OriginalFramePaceOf(m_context.pacing));
+    if (frames == 0)
+    {
+        return World::GameCameraOf(CameraState(), input);
+    }
+    Render::Camera3D camera;
+    for (int frame = 0; frame < frames; ++frame)
+    {
+        // 0x6346ca: 0x635ae0.
+        camera = World::StepGameCamera(CameraState(), input);
+        // 0x634736..0x63475c, después de los fondos: 0x5fbb00(w · 0,0015625, &p) con 0x620db0(0, 0, w, 48), el
+        // pase que no dibuja. El rango de bloques no lo lee nadie de MuRet en la selección (08 P-C41 b); el
+        // trapecio y su nivel van a los globales (0x5fbeef → 0x5fb570). Nada de 0x634736..0x634769 llama a
+        // rand() (*estático*). Sin WorldState no hay dónde dejarlos: son los tests que no lo miran.
+        if (m_context.world == nullptr)
+        {
+            continue;
+        }
+        auto polygon =
+            StepTheTerrainPolygon(m_context.world->Runtime(), SelectionPolygonInput(input, camera), CameraState());
+        if (!polygon.HasValue())
+        {
+            m_failure = polygon.Error();
+            return camera;
+        }
+    }
+    return camera;
+}
+
 void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
 {
+    if (m_failure)
+    {
+        return;
+    }
     m_screen = canvas.screen;
     if (WaitingForTheList() ||
         (m_context.selection != nullptr && m_session != nullptr && !m_context.selection->IsInitialized()))
@@ -629,14 +687,18 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     sprites.Quad(Background(0x718, 320.0f));
     canvas.flushSprites();
 
-    // 0x6346ca calcula la cámara con el héroe compartido vigente antes de dibujar los personajes.
+    // 0x6346ca calcula la cámara con el héroe compartido vigente antes de dibujar los personajes, y 0x63475c el
+    // trapecio del terreno.
     World::GameCameraInput& cameraInput = CameraInputState();
     cameraInput.scene = World::CullingScene::CharacterSelect;
     const std::optional<SceneWorld> world = WorldOf(SceneId::CharacterSelect);
     const std::uint8_t map = world ? world->map : 0;
     cameraInput.map = map;
-    const Render::Camera3D camera = CameraForFrame(CameraState(), cameraInput, m_cameraFrames, canvas.frameClock,
-                                                   OriginalFramePaceOf(m_context.pacing));
+    const Render::Camera3D camera = StepTheCameraAndTheTrapezoid(cameraInput, canvas.frameClock);
+    if (m_failure)
+    {
+        return;
+    }
     const Render::Pass3D pass = Render::MakePass3D(canvas.screen, WorldViewport, camera);
     m_lastPass = pass;
     canvas.models.Begin(pass);
@@ -764,6 +826,11 @@ bool CharacterSelectScene::WantsToQuit() const
 bool CharacterSelectScene::WantsTextInput() const
 {
     return m_notice.WantsTextInput() || m_create.WantsTextInput();
+}
+
+std::optional<std::string> CharacterSelectScene::Failure() const
+{
+    return m_failure;
 }
 
 bool CharacterSelectScene::HoldsTheLastFrame() const

@@ -188,6 +188,8 @@ private:
 
     [[nodiscard]] World::GameCamera& CameraState();
     [[nodiscard]] World::GameCameraInput& CameraInputState();
+    // El trapecio global del último 0x5fb570 (WorldRuntime::terrainPolygon), el de cualquier escena.
+    [[nodiscard]] World::TerrainPolygon& SharedTerrainPolygon();
 
     SceneContext m_context;
     // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
@@ -207,11 +209,12 @@ private:
     // El de SceneWorlds.h: el 55.
     std::optional<SceneWorld> m_world;
     LoadedWorld m_terrain;
-    // El rango de bloques y el trapecio del terreno con la cámara del login (0x5fbb00 y 0x5fb570): la
-    // carga inicializa el rango; cada dibujo lo actualiza para el paso siguiente.
+    // El rango de bloques del terreno con la cámara del login (0x5fbb00): la carga lo inicializa; cada dibujo
+    // lo actualiza para el paso siguiente. El trapecio (0x5fb570) es el global de WorldRuntime.
     World::TerrainRange m_terrainRange;
     Render::Camera3D m_drawnCamera;
-    World::TerrainPolygon m_terrainPolygon{.everything = true};
+    // El trapecio de los tests sin WorldState; main siempre aporta el global. Arranca como la .bss.
+    World::TerrainPolygon m_localTerrainPolygon;
     // La luz sola, si el terreno no se pudo leer y su luz sí (World::LoadTerrainLighting).
     std::unique_ptr<World::TerrainLighting> m_lighting;
     const Render::Models::ModelTextureSlots* m_gameSlots;

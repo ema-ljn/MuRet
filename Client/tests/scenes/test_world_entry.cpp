@@ -7,15 +7,19 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemSetTables.h"
 #include "Data/Tables/ItemTable.h"
+#include "Input/InputState.h"
 #include "Network/PacketSerials.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterSelectScene.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/GameData.h"
 #include "Scenes/GameScene.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/SceneCameras.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/SessionEventApplier.h"
@@ -24,6 +28,7 @@
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
+#include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
 
 #include "support/FakeTextureStore.h"
@@ -895,5 +900,73 @@ TEST_F(WorldEntryTest, AnEntryInTheWorldIsAppliedAgainByTheSession)
     EXPECT_EQ(tested.Hero().cellX, 143);
     EXPECT_TRUE(tested.world.Actors()[firstSlot].alive);
     EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold);
+}
+
+// T11b, de punta a punta: el dibujo de la selección (0x63475c) deja en los globales el trapecio de su punto fijo;
+// la entrada al mundo (F3 03) no lo toca, y el primer paso del juego después de la espera lo lee en 0x508f00
+// (0x63710f). En Lorencia el héroe de (133, 127) cae adentro y se ve; en Devias el de (220, 30) cae afuera
+// (Q-C216). Los rand() del paso: los 8 de MoveHero, los 8 del TerrainWall y, con el héroe visto, los 8 de su
+// celda lógica y el rand() & 7; después, la tela. El frame que sigue llega al pasto (0x5fc353) con sus 4 + 8.
+TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
+{
+    const Client::World::TerrainPolygon selected = Client::World::TerrainPolygonOf(
+        Client::World::CullingScene::CharacterSelect, 54, Client::Scenes::SelectionCullingPoint,
+        Client::Scenes::SelectionCamera().angles.z);
+    for (const ReferenceMap& probe : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(static_cast<int>(probe.map));
+        const bool seen = probe.map == Lorencia.map;
+        Entry tested(m_dataRoot, Seed);
+        Client::Tests::FakeTextureStore store;
+        const Client::Scenes::SceneContext context{.dataRoot = m_dataRoot,
+                                                   .textures = store,
+                                                   .log = tested.log,
+                                                   .cloth = &tested.cloth,
+                                                   .camera = &tested.camera,
+                                                   .cameraInput = &tested.cameraInput,
+                                                   .world = &tested.world};
+        const Client::Scenes::GameData data;
+        Client::Scenes::CharacterSelectScene selection(context, data, tested.models, nullptr);
+        ASSERT_TRUE(selection.Enter().HasValue());
+        Client::Tests::RecordingFrameTarget target;
+        selection.Render(target.BeginFrame({}), 0.0f);
+        target.Present();
+        ASSERT_EQ(selection.Failure(), std::nullopt);
+        selection.Leave();
+        ASSERT_EQ(tested.world.Runtime().terrainPolygon.x, selected.x);
+        ASSERT_EQ(tested.world.Runtime().terrainPolygon.y, selected.y);
+        const Client::Data::Tables::ItemSetTables sets = NoSets();
+        WorldEntryResources resources = tested.Resources();
+        resources.itemSetTables = &sets;
+        RecordingPublisher publisher;
+        const auto entered =
+            ApplyWorldEntry(ReplyAt(probe.map, probe.firstX, probe.firstY, 0), PlayerKey, resources, publisher);
+        ASSERT_TRUE(entered.HasValue()) << entered.Error();
+        EXPECT_EQ(tested.world.Runtime().terrainPolygon.x, selected.x) << "la entrada no toca el trapecio";
+        EXPECT_EQ(tested.world.Runtime().terrainPolygon.y, selected.y);
+        // Lo que dejó la carga del 54 de la selección (0x633f30): el mundo cargado.
+        tested.world.Runtime().drawingEnabled = true;
+        Client::Scenes::GameScene game(context, nullptr);
+        ASSERT_TRUE(game.Enter().HasValue());
+        Client::Render::Models::ClothWorld reference = tested.cloth;
+        reference.random = Advanced(tested.cloth.random, seen ? 8 + 8 + 8 + 1 : 8 + 8);
+        Client::Render::Models::StepTheClothWorld(reference);
+
+        game.Step(Client::Input::InputState{});
+
+        ASSERT_EQ(game.Failure(), std::nullopt);
+        EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold - 1);
+        EXPECT_EQ(tested.Hero().seen, seen);
+        EXPECT_EQ(tested.cloth.random.State(), reference.random.State());
+
+        game.PrepareFrame();
+        ASSERT_FALSE(game.HoldsTheLastFrame());
+        game.Render(target.BeginFrame({}), 0.0f);
+
+        ASSERT_TRUE(game.Failure().has_value());
+        EXPECT_NE(game.Failure()->find("0x5fc353"), std::string::npos) << *game.Failure();
+        EXPECT_EQ(tested.cloth.random.State(), Advanced(reference.random, FrameRandoms).State());
+        game.Leave();
+    }
 }
 } // namespace

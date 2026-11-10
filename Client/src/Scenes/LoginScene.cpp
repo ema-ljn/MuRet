@@ -49,6 +49,8 @@
 #include "Scenes/TextureSets.h"
 #include "Scenes/WorldModels.h"
 #include "Scenes/WorldObjectsDrawing.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
 #include "UI/GameCursor.h"
 #include "UI/GameText.h"
 #include "UI/LoginWindow.h"
@@ -285,6 +287,11 @@ World::GameCameraInput& LoginScene::CameraInputState()
     return m_context.cameraInput != nullptr ? *m_context.cameraInput : m_localCameraInput;
 }
 
+World::TerrainPolygon& LoginScene::SharedTerrainPolygon()
+{
+    return m_context.world != nullptr ? m_context.world->Runtime().terrainPolygon : m_localTerrainPolygon;
+}
+
 Core::Expected<void, std::string> LoginScene::Enter()
 {
     m_cameraFrames = {};
@@ -354,14 +361,12 @@ void LoginScene::LoadTheWorld()
     {
         return;
     }
-    // Rango inicial de 0x5fbb00 y 0x5fb570 con el pase de entrada y el héroe del login (los
-    // que empiezan en x 0..128 e y 120..248) y el trapecio, que no recorta ninguna celda (06 § El
-    // terreno del login).
+    // Rango inicial de 0x5fbb00 con el pase de entrada (los bloques que empiezan en x 0..128 e y 120..248, 06 §
+    // El terreno del login). El trapecio no: es el global, que antes del primer dibujo del login tiene los
+    // ceros de la .bss o el que dejó la escena de antes (Q-C217).
     const Render::Camera3D camera = LoginCamera();
     m_terrainRange =
         World::TerrainRangeOf(Render::MakePass3D(App::PixelSize{640, 480}, WorldViewport, camera).view, camera);
-    m_terrainPolygon =
-        World::TerrainPolygonOf(World::CullingScene::Login, m_world->map, LoginHeroPosition, camera.angles.z);
     LoadTheTerrain();
     LoadTheObjects();
 }
@@ -703,7 +708,7 @@ void LoginScene::StepTheWorld()
     // empezar con el trapecio de 0x5fba90 en su lugar por 0,01f y −20 (con el trapecio del último dibujo), y sin
     // las banderas 0x20 ni 0x1000 de +0x78 (el del login no tiene ninguna). No es el héroe (el personaje 0) ni se
     // está muriendo: sortea.
-    if (m_context.cloth != nullptr && CharacterSeen(m_terrainPolygon, LoginCharacterTransform().position))
+    if (m_context.cloth != nullptr && CharacterSeen(SharedTerrainPolygon(), LoginCharacterTransform().position))
     {
         StepCharacterHead(m_head, true, m_context.cloth->random);
     }
@@ -982,13 +987,16 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
                                                    OriginalFramePaceOf(m_context.pacing));
     m_drawnCamera = camera;
     const Render::Pass3D pass = Render::MakePass3D(canvas.screen, WorldViewport, camera);
+    // 0x6351b7: 0x5fbb00(w · 0,0015625, &héroe), el rango y el trapecio, que va al global (0x5fbeef → 0x5fb570).
+    // Con el nivel 0: la transición del nivel efectivo (0x5fb70e..0x5fb73d) no corre acá; con el nivel pedido
+    // en 0 después de 0x635ae0 y el efectivo en 0 desde la .bss, da lo mismo (08 P-C41 d). El héroe, el mapa
+    // y el yaw del login son fijos: un dibujo intermedio escribe el mismo trapecio que el último frame.
     m_terrainRange = World::TerrainRangeOf(pass.view, camera);
-    m_terrainPolygon =
-        World::TerrainPolygonOf(World::CullingScene::Login, cameraInput.map, cameraInput.hero, camera.angles.z);
+    World::TerrainPolygon& polygon = SharedTerrainPolygon();
+    polygon = World::TerrainPolygonOf(World::CullingScene::Login, cameraInput.map, cameraInput.hero, camera.angles.z);
     canvas.models.Begin(pass);
     // 0x5fc260(0): el terreno, antes de los personajes.
-    m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, m_terrainPolygon,
-                          CameraState().fixedHeight);
+    m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, polygon, CameraState().fixedHeight);
     DrawTheModels(canvas, alpha);
     canvas.flushModels();
     // Los sprites del frame, los que pidió el dibujo del personaje (los 30 destellos de la tela, 0x455930,
@@ -1110,7 +1118,7 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
     }
     const LoginObjectModels objects(m_worldModels, m_logo);
     const World::TerrainLighting* lighting = m_terrain.IsLoaded() ? m_terrain.Lighting() : m_lighting.get();
-    DrawWorldObjects(canvas.models, objects, m_objects, m_terrainPolygon, lighting, m_world ? m_world->map : 0,
+    DrawWorldObjects(canvas.models, objects, m_objects, SharedTerrainPolygon(), lighting, m_world ? m_world->map : 0,
                      canvas.frameClock, alpha,
                      ObjectFrameEffects{.random = m_context.cloth != nullptr ? &m_context.cloth->random : nullptr,
                                         .sprites = &m_sprites,
@@ -1130,7 +1138,7 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
 void LoginScene::DrawTheRaven(SceneCanvas& canvas, float alpha)
 {
     DarkSpirit& spirit = *m_spirit;
-    if (!DarkSpiritSeen(spirit, m_terrainPolygon))
+    if (!DarkSpiritSeen(spirit, SharedTerrainPolygon()))
     {
         MissTheView(spirit);
         return;

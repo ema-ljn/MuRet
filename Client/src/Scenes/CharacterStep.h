@@ -17,6 +17,12 @@ class CrtRandom;
 struct Skeleton;
 } // namespace Client::Render::Models
 
+namespace Client::World
+{
+class Particles;
+struct WorldTerrain;
+} // namespace Client::World
+
 // El paso de los personajes (0x508f00, desde el juego en 0x63710f, la selección en 0x6342f9 y el login en
 // 0x634d13): el TerrainWall, si cada uno se ve y, por cada uno, 0x508ea0: 0x508ba0 con los que no son el
 // héroe, el cuerpo (0x4fd5f0) por el camino del 0x20a quieto y 0x505de0 hasta su final, con la cabeza que
@@ -58,6 +64,14 @@ struct CharacterStepContext
     // *[0x7758550], Item.bmd en memoria: lo leen los helpers de 0x4fc450 y la acción de parado (0x4f2250)
     // con un arma o un ítem puesto. nullptr si no se cargó: cortan donde lo leen.
     const Data::Tables::ItemTable* items = nullptr;
+    // La carga de la escena 2 o 4; vacío, el mapa del juego. El TerrainWall se escribe ahí mismo.
+    const World::WorldTerrain* terrain = nullptr;
+    const Render::Models::Skeleton* darkSpiritSkeleton = nullptr;
+    World::Particles* particles = nullptr;
+    float worldClock = 0.0f;
+    std::int32_t counter = 0;
+    // El objeto suelto de 0x7437050 (NewFace 0xa8..0xac), fuera de los 400 del pool.
+    const Render::Models::Skeleton* newFaceSkeleton = nullptr;
 };
 
 // 0x508f00. Corta con error, en el orden del original, en el mapa 30 (0x412140), sin el mapa cargado
@@ -65,4 +79,7 @@ struct CharacterStepContext
 // tabla de cortes) y en las de 0x505de0 que crean luces, efectos o partículas que MuRet no tiene (06, "Los
 // efectos de los personajes (0x505de0)"). Lo que hizo antes del corte queda, con los rand() que sacó.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context);
+
+// 0x508ea0 para un objeto fuera del pool: no borra ni marca TerrainWall y nunca es el héroe publicado.
+[[nodiscard]] Core::Expected<void, std::string> StepCharacter(ActorState& actor, const CharacterStepContext& context);
 } // namespace Client::Scenes

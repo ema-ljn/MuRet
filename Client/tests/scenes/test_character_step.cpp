@@ -11,6 +11,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterHead.h"
+#include "Scenes/DarkSpirit.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -18,6 +19,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldState.h"
 #include "World/TerrainCulling.h"
+#include "World/Particles.h"
 #include "World/TerrainWalls.h"
 #include "World/WorldTerrain.h"
 
@@ -56,6 +58,7 @@ using Client::Scenes::CharacterHead;
 using Client::Scenes::CharacterSeen;
 using Client::Scenes::CharacterStepContext;
 using Client::Scenes::SceneId;
+using Client::Scenes::StepCharacter;
 using Client::Scenes::StepCharacterHead;
 using Client::Scenes::StepCharacters;
 using Client::Scenes::WorldState;
@@ -88,6 +91,64 @@ constexpr std::uint8_t SelectionMap = 54;
 constexpr std::uint8_t LoginMap = 55;
 // El cetro del personaje del login en la mano derecha (LoginModels.cpp; el caso 0x620 de 0x509340).
 constexpr std::uint16_t LoginScepter = 0x620;
+
+// 0x634303 pasa el objeto suelto después de los 400 registros: también avanza con la ventana cerrada.
+TEST(CharacterStepTest, TheSelectionPreviewRunsTheCommonBodyOutsideThePool)
+{
+    WorldState world;
+    world.Runtime().map = 54;
+    auto& terrain = world.Map().terrain;
+    terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    ActorState preview;
+    preview.alive = true;
+    preview.type = 0xa9;
+    preview.byte88 = 0;
+    preview.animation.action = 1;
+    preview.animation.previousAction = 1;
+    preview.hands[0].model = Client::Scenes::NoItemModel;
+    preview.hands[1].model = Client::Scenes::NoItemModel;
+    Skeleton face;
+    face.actions.assign(2, ActionInfo{.repeats = true, .speed = 0.3f, .keyCount = 12});
+    CrtRandom random(Seed);
+
+    const auto stepped = StepCharacter(
+        preview, {.world = world, .random = random, .scene = SceneId::CharacterSelect, .newFaceSkeleton = &face});
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_FLOAT_EQ(preview.animation.frame, 0.6f);
+    EXPECT_EQ(preview.headTurn.target, (glm::vec2{0.0f, 0.0f}));
+    // X/Y de 0x508ba0, el rand del cuerpo, Y/X de efectos, cabeza común, rand de efectos.
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, 19).State());
+    EXPECT_EQ(terrain.attributes->cells[0] & Client::World::CharacterWallBit, 0u);
+    EXPECT_FALSE(world.Actors()[0].alive);
+}
+
+TEST(CharacterStepTest, TheNewFaceHeadHasItsOwnDrawBeforeTheCommonHeadAndUsesModuloFortyEight)
+{
+    WorldState world;
+    world.Runtime().map = 54;
+    world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    ActorState actor;
+    actor.alive = true;
+    actor.type = 0xa8;
+    actor.animation.frame = 4.0f;
+    actor.hands[0].model = Client::Scenes::NoItemModel;
+    actor.hands[1].model = Client::Scenes::NoItemModel;
+    Skeleton face;
+    face.actions.assign(1, ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 100});
+    constexpr std::uint32_t HeadSeed = 35;
+    CrtRandom random(HeadSeed);
+
+    const auto stepped = StepCharacter(
+        actor, {.world = world, .random = random, .scene = SceneId::CharacterSelect, .newFaceSkeleton = &face});
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    // Rand 19..22: 1536, 18843, 27303 y 16668; %48 da Y23, mientras que %32 daría Y351.
+    EXPECT_EQ(actor.headTurn.target, (glm::vec2{323.0f, 23.0f}));
+    EXPECT_FLOAT_EQ(actor.headTurn.angles.x, 352.6f);
+    EXPECT_FLOAT_EQ(actor.headTurn.angles.y, 4.6f);
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(HeadSeed, 23).State());
+}
 
 CrtRandom RandomAfter(int draws)
 {
@@ -219,6 +280,70 @@ struct GameWorld
 };
 
 const TerrainPolygon Everything{.everything = true};
+
+TEST(CharacterStepTest, TheSceneTerrainSuppliesItsWallsAndSafeZone)
+{
+    GameWorld tested;
+    tested.Hero().alive = false;
+    ActorState& actor = tested.Other(2);
+    tested.world.Runtime().terrainPolygon = Everything;
+    tested.world.Map().terrain.attributes.reset();
+    Client::World::WorldTerrain sceneTerrain;
+    sceneTerrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+    const auto cell = Client::Data::Terrain::CellIndex(3, 4);
+    sceneTerrain.attributes->cells[cell] = 1;
+
+    const auto stepped = StepCharacters({.world = tested.world,
+                                         .random = tested.random,
+                                         .scene = SceneId::Login,
+                                         .playerSkeleton = tested.player,
+                                         .terrain = &sceneTerrain});
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(actor.safeZone, 1);
+    EXPECT_NE(sceneTerrain.attributes->cells[cell] & Client::World::CharacterWallBit, 0);
+    EXPECT_FALSE(tested.world.Map().terrain.attributes);
+}
+
+TEST(CharacterStepTest, TheRavenRunsInsideTheBodyBeforeTheCellAndHead)
+{
+    GameWorld tested(LoginMap);
+    tested.Hero().alive = false;
+    ActorState& actor = tested.Other(2, 0, 0);
+    actor.position = {10603.0f, 14112.0f, 580.0f};
+    actor.darkSpirit.emplace();
+    actor.darkSpirit->position = {50.0f, 50.0f, 300.0f};
+    tested.world.Runtime().terrainPolygon = Everything;
+    Skeleton raven;
+    raven.actions.resize(4);
+    Client::World::Particles particles;
+
+    const auto stepped = StepCharacters({.world = tested.world,
+                                         .random = tested.random,
+                                         .scene = SceneId::Login,
+                                         .playerSkeleton = tested.player,
+                                         .darkSpiritSkeleton = &raven,
+                                         .particles = &particles});
+
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    // 8 paredes + 8 del otro + 1 cuerpo + 7 cuervo + 8 celda + 1 cabeza + 1 sufijo.
+    EXPECT_EQ(tested.random.State(), RandomAfter(34).State());
+    EXPECT_FLOAT_EQ(actor.darkSpirit->direction.y, -7.55f);
+    EXPECT_FLOAT_EQ(actor.darkSpirit->direction.z, 2.9f);
+    EXPECT_EQ(actor.headTurn.target, glm::vec2(0.0f));
+}
+
+TEST(CharacterStepTest, AMissingRavenResourceCutsAfterTheBodyRandoms)
+{
+    GameWorld tested(LoginMap);
+    tested.Hero().alive = false;
+    ActorState& actor = tested.Other(2, 0, 0);
+    actor.darkSpirit.emplace();
+    const auto stepped = tested.Step(Everything, SceneId::Login);
+    EXPECT_TRUE(HasError(stepped, "0x416a20"));
+    EXPECT_EQ(tested.random.State(), RandomAfter(17).State());
+    EXPECT_EQ(actor.headTurn.target, glm::vec2(0.0f));
+}
 
 class GoldenCharacterStep : public Client::Tests::GoldenDataTest
 {

@@ -23,6 +23,9 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterSlots.h"
 #include "Scenes/CreatePreview.h"
+#include "Scenes/DarkSpirit.h"
+#include "Scenes/HelperTable.h"
+#include "World/Particles.h"
 #include "Scenes/GameData.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneContext.h"
@@ -46,6 +49,7 @@
 #include "support/GoldenDir.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
+#include "support/PlayerActors.h"
 #include "support/SceneDataFiles.h"
 #include "support/SameBytes.h"
 #include "support/ScenePrinters.h"
@@ -162,6 +166,10 @@ public:
         {
             return &m_body;
         }
+        if (m_withRaven && model == Client::Scenes::DarkSpiritModel)
+        {
+            return &m_body;
+        }
         return m_withWings && model == 0x1a12 ? &m_wings : nullptr;
     }
     [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
@@ -169,8 +177,15 @@ public:
         return {};
     }
 
+public:
+    void EnableRaven()
+    {
+        m_withRaven = true;
+    }
+
 private:
     bool m_withWings;
+    bool m_withRaven = false;
     Skeleton m_body;
     Skeleton m_wings;
     Model m_part;
@@ -194,8 +209,10 @@ struct Harness
 {
     explicit Harness(bool withSession = true, bool withWings = false, bool withTheMouse = false,
                      Client::Scenes::SelectionState* selectionState = nullptr,
-                     Client::Scenes::WorldState* worldState = nullptr)
-        : log(sink, Client::Core::LogLevel::Debug), models(withWings), selection(selectionState)
+                     Client::Scenes::WorldState* worldState = nullptr,
+                     Client::Render::Models::ClothWorld* sharedCloth = nullptr, bool withItemTable = true)
+        : log(sink, Client::Core::LogLevel::Debug), models(withWings), selection(selectionState),
+          sharedRandom(sharedCloth)
     {
         Client::Tests::WriteTextureSet(folder.Path(), SelectionTextureSet);
         Client::Tests::WriteTextureSet(folder.Path(), WindowTextureSet);
@@ -218,11 +235,16 @@ struct Harness
         {
             data = std::move(loaded).Value();
         }
+        if (!withItemTable)
+        {
+            data.items.reset();
+        }
         scene.emplace(
             SceneContext{.dataRoot = selection != nullptr ? Client::Tests::RepoDataDir() : folder.Path(),
                          .textures = store,
                          .log = log,
                          .clock = selection != nullptr ? &online.clock : nullptr,
+                         .cloth = sharedCloth,
                          .input = withTheMouse ? &input : nullptr,
                          .camera = selection != nullptr || worldState != nullptr ? &camera : nullptr,
                          .cameraInput = selection != nullptr || worldState != nullptr ? &cameraInput : nullptr,
@@ -324,7 +346,8 @@ struct Harness
         static_cast<void>(online.session.Poll());
         if (selection != nullptr)
         {
-            const auto applied = selection->Apply(online.eventSink.TakeCharacterEvents(), camera, cameraInput);
+            const auto applied = selection->Apply(online.eventSink.TakeCharacterEvents(), camera, cameraInput,
+                                                  sharedRandom, models.SkeletonOf(0x20a));
             ASSERT_TRUE(applied.HasValue()) << applied.Error();
         }
     }
@@ -373,6 +396,7 @@ struct Harness
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
     Client::Scenes::SelectionState* selection;
+    Client::Render::Models::ClothWorld* sharedRandom;
     RecordingFrameTarget target;
     InputState input;
     std::int64_t steps = 0;
@@ -1083,6 +1107,294 @@ TEST(CharacterSelectSceneTest, EachFrameLeavesTheTrapezoidOfItsFixedPoint)
     EXPECT_EQ(world.Runtime().terrainPolygon.x, (std::array<float, 4>{})) << "un dibujo intermedio no escribe";
     EXPECT_EQ(world.Runtime().terrainPolygonState.effectiveLevel, 3);
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+}
+
+// 0x6342f9 recorre los 400 lugares, también un vivo que no vino en la lista de cinco.
+TEST(CharacterSelectSceneTest, TheCommonStepVisitsLivingActorsOutsideTheListAndStopsAtTheirNativeCut)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
+    ASSERT_FALSE(tested.scene->Failure().has_value());
+    auto& other = world.Actors()[7];
+    other.alive = true;
+    other.type = 0xf1;
+    constexpr std::uint32_t Seed = 16;
+    cloth.random = Client::Render::Models::CrtRandom(Seed);
+    cloth.logicSteps = 77;
+    const auto wind = cloth.wind;
+    const float windBase = cloth.windBase;
+
+    tested.Step();
+
+    ASSERT_TRUE(tested.scene->Failure().has_value());
+    EXPECT_NE(tested.scene->Failure()->find("0x4fb910"), std::string::npos) << *tested.scene->Failure();
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 16).State());
+    EXPECT_EQ(cloth.logicSteps, 77);
+    EXPECT_EQ(cloth.wind, wind);
+    EXPECT_FLOAT_EQ(cloth.windBase, windBase);
+    const auto stopped = cloth.random.State();
+    tested.Step();
+    EXPECT_EQ(cloth.random.State(), stopped);
+    EXPECT_TRUE(tested.Frame().empty());
+}
+
+TEST(CharacterSelectSceneTest, TheFirstNativeStepConstructsBothPreviewsAndResetsOnlyEightOwnLevels)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    auto& own = world.OwnCharacter();
+    own.byte6a = 3;
+    own.words6c.fill(7);
+    for (auto& item : own.equipment)
+    {
+        item.id = 9;
+        item.scalar1Low = 31;
+        item.flags1b = 17;
+    }
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
+
+    ASSERT_FALSE(tested.scene->Failure().has_value());
+    const auto& preview = tested.scene->PreviewActor();
+    EXPECT_TRUE(preview.alive);
+    EXPECT_EQ(preview.type, 0xa9u);
+    EXPECT_EQ(preview.byte88, 0u);
+    EXPECT_EQ(preview.revision, 2u);
+    EXPECT_EQ(preview.stepStamp, 0) << "637f91 incrementa después del constructor";
+    EXPECT_EQ(preview.animation.action, 1u);
+    EXPECT_FLOAT_EQ(preview.animation.frame, 0.6f);
+    EXPECT_EQ(own.byte6a, 0u);
+    EXPECT_EQ(own.words6c, (std::array<std::uint32_t, 16>{}));
+    for (std::size_t slot = 0; slot < own.equipment.size(); ++slot)
+    {
+        EXPECT_EQ(own.equipment[slot].id, 9u);
+        EXPECT_EQ(own.equipment[slot].scalar1Low, slot < 8 ? 0u : 31u);
+        EXPECT_EQ(own.equipment[slot].flags1b, 17u);
+    }
+    // Constructores56, propio3848, preview19, partículas2 y finalmente tela9.
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(1, 3934).State());
+}
+
+TEST(CharacterSelectSceneTest, TheFirstSelectionHeroNeedsItemBmdBeforeAnyWorldEntry)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth, false);
+
+    CharacterEntryFields hero;
+    hero.equipment[4] = 3; // petNONE: esta prueba llega a las tablas del actor, no al helper6342f4.
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({hero}));
+
+    ASSERT_TRUE(tested.scene->Failure().has_value());
+    EXPECT_NE(tested.scene->Failure()->find("0x54efe0"), std::string::npos) << *tested.scene->Failure();
+    EXPECT_EQ(world.OwnCharacter().equipment[7].id, 0u);
+    EXPECT_FLOAT_EQ(tested.scene->PreviewActor().animation.frame, 0.0f) << "el corte precede 0x634303";
+}
+
+TEST(CharacterSelectSceneTest, TheLoadedItemTableLetsTheFirstHeroReachThePreviewStep)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+
+    CharacterEntryFields hero;
+    hero.equipment[4] = 3;
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({hero}));
+
+    ASSERT_FALSE(tested.scene->Failure().has_value());
+    EXPECT_FLOAT_EQ(tested.scene->PreviewActor().animation.frame, 0.6f);
+    EXPECT_EQ(world.OwnCharacter().equipment[7].id, 0u);
+    EXPECT_TRUE(world.Actors()[0].seen);
+}
+
+TEST(CharacterSelectSceneTest, ThePreviewAdvancesClosedTwiceUnderItsWindowAndOnceUnderANotice)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, true, false, &selection, &world, &cloth);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
+    EXPECT_FLOAT_EQ(tested.scene->PreviewActor().animation.frame, 0.6f);
+    tested.Step();
+    EXPECT_FLOAT_EQ(tested.scene->PreviewActor().animation.frame, 1.2f);
+    tested.ClickAt(CreateButton);
+    const float opened = tested.scene->PreviewActor().animation.frame;
+    tested.Step();
+    EXPECT_FLOAT_EQ(tested.scene->PreviewActor().animation.frame, opened + 1.2f);
+    tested.Type("abc");
+    tested.Tap(Key::Enter);
+    ASSERT_TRUE(Draws(tested.Frame(), "corto"));
+    const float notice = tested.scene->PreviewActor().animation.frame;
+
+    tested.Step();
+
+    ASSERT_FALSE(tested.scene->Failure().has_value());
+    EXPECT_FLOAT_EQ(tested.scene->PreviewActor().animation.frame, notice + 0.6f);
+}
+
+TEST(CharacterSelectSceneTest, ThePreviewHeadBelongsToTheDurableSelectionBeforeTheNextList)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    selection.PreviewActor().headTurn.angles = {17.0f, 23.0f};
+    selection.PreviewActor().headTurn.target = {61.0f, 83.0f};
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+
+    ASSERT_NO_FATAL_FAILURE(tested.Enter());
+
+    EXPECT_EQ(&tested.scene->PreviewActor(), &selection.PreviewActor());
+    EXPECT_EQ(tested.scene->PreviewActor().headTurn.angles, (glm::vec2{17.0f, 23.0f}));
+    EXPECT_EQ(tested.scene->PreviewActor().headTurn.target, (glm::vec2{61.0f, 83.0f}));
+}
+
+TEST(CharacterSelectSceneTest, ThePreviewSortsBeforeBothGlobalWindsAndTheStepCounter)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
+    constexpr std::uint32_t Seed = 16;
+    cloth.random = Client::Render::Models::CrtRandom(Seed);
+    cloth.logicSteps = 41;
+    auto& preview = selection.PreviewActor();
+    preview.animation.action = 1;
+    preview.animation.frame = 0;
+    preview.headTurn = {};
+
+    tested.Step();
+
+    ASSERT_FALSE(tested.scene->Failure());
+    // Rand18..20:26176,32288,30626. La cabeza sortea antes de ambos vientos.
+    EXPECT_EQ(preview.headTurn.target, (glm::vec2{328.0f, 346.0f}));
+    EXPECT_FLOAT_EQ(preview.headTurn.angles.x, 353.6f);
+    EXPECT_FLOAT_EQ(preview.headTurn.angles.y, 357.2f);
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 32).State());
+    EXPECT_EQ(cloth.logicSteps, 42);
+    EXPECT_NE(world.Particles().Wind().wind, glm::vec2(0.0f));
+}
+
+TEST(CharacterSelectSceneTest, RavenSparksAgeAfterThePreviewAndTheirSlotsAreReused)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+    tested.models.EnableRaven();
+    CharacterEntryFields lord{.slot = 4, .classByte = 0x80};
+    lord.equipment[1] = 5;
+    lord.equipment[12] = 0xa0;
+    lord.equipment[4] = 3;
+
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({lord}));
+
+    ASSERT_FALSE(tested.scene->Failure());
+    const auto particles = world.Particles().All();
+    ASSERT_TRUE(particles[0].alive);
+    EXPECT_EQ(particles[0].type, Client::World::SparkParticle);
+    EXPECT_EQ(particles[0].life, 9) << "nace con10 y634315 la mueve en el mismo paso";
+    world.Actors()[4].flags78 |= 0x1000;
+    for (int step = 0; step < 12; ++step)
+    {
+        tested.Step();
+        ASSERT_FALSE(tested.scene->Failure());
+    }
+    EXPECT_FALSE(world.Particles().Any());
+    const auto reused = world.Particles().Create(Client::World::SparkParticle, {}, {}, {},
+                                                 Client::World::RavenSparkSubtype, 1.0f, 0.0f, cloth.random);
+    ASSERT_TRUE(reused.has_value());
+    EXPECT_EQ(*reused, 0u);
+}
+
+TEST(CharacterSelectSceneTest, ASelectionHelperKeepsTheSceneFourAlphaPrefixBeforeTheMissingBody)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
+    auto& helpers = world.Helpers();
+    helpers[0].horse.alpha = 0.5f;
+    helpers[1].alive = true;
+    helpers[1].type = 0xc6;
+    helpers[1].rider = 0; // muerto: 44402a solo aplica ese guard en escena5.
+    helpers[2].alive = true;
+    helpers[2].horse.alpha = 0.25f;
+    auto& spark = world.Particles().All()[0];
+    spark.alive = true;
+    spark.type = Client::World::SparkParticle;
+    spark.subtype = Client::World::RavenSparkSubtype;
+    spark.life = 7;
+    constexpr std::uint32_t Seed = 16;
+    cloth.random = Client::Render::Models::CrtRandom(Seed);
+    cloth.logicSteps = 41;
+
+    tested.Step();
+
+    EXPECT_EQ(cloth.random.State(), Seed);
+    EXPECT_EQ(cloth.logicSteps, 41);
+    EXPECT_EQ(spark.life, 7);
+    EXPECT_FLOAT_EQ(helpers[0].horse.alpha, 0.5f);
+    EXPECT_FLOAT_EQ(helpers[1].horse.alpha, 0.1f);
+    EXPECT_TRUE(helpers[1].alive);
+    EXPECT_FLOAT_EQ(helpers[2].horse.alpha, 0.25f);
+    ASSERT_TRUE(tested.scene->Failure());
+    EXPECT_NE(tested.scene->Failure()->find("0x6342f4"), std::string::npos);
+}
+
+TEST(CharacterSelectSceneTest, AParticleBindingFailureKeepsItsPrefixAndSkipsClothAndLaterSlots)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
+    auto particles = world.Particles().All();
+    for (std::size_t slot = 0; slot < 3; ++slot)
+    {
+        particles[slot].alive = true;
+        particles[slot].type = Client::World::SparkParticle;
+        particles[slot].subtype = Client::World::RavenSparkSubtype;
+        particles[slot].life = 5;
+    }
+    particles[1].type = 0xbeef;
+    particles[1].moves = true;
+    particles[1].position = {1.0f, 2.0f, 3.0f};
+    particles[1].velocity = {4.0f, 0.0f, 0.0f};
+    selection.PreviewActor().animation.frame = 0;
+    selection.PreviewActor().headTurn = {};
+    constexpr std::uint32_t Seed = 16;
+    cloth.random = Client::Render::Models::CrtRandom(Seed);
+    cloth.logicSteps = 41;
+
+    tested.Step();
+
+    EXPECT_EQ(particles[0].life, 4);
+    EXPECT_EQ(particles[1].life, 4);
+    EXPECT_EQ(particles[1].position, (glm::vec3{5.0f, 2.0f, 3.0f}));
+    EXPECT_EQ(particles[2].life, 5);
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 23).State());
+    EXPECT_EQ(cloth.logicSteps, 41);
+    ASSERT_TRUE(tested.scene->Failure());
+    EXPECT_NE(tested.scene->Failure()->find("0x634315"), std::string::npos);
 }
 
 // ADR 0009: si 0x5fb570 no puede con la D de la cámara (no entra en un int64), el frame se corta antes del pase

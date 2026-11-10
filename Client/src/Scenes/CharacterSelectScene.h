@@ -7,6 +7,8 @@
 #include "App/WindowState.h"
 #include "Core/Expected.h"
 #include "Core/IClock.h"
+#include "Data/Tables/ItemTable.h"
+#include "Scenes/CharacterStep.h"
 #include "Data/Text/TextTable.h"
 #include "GameLogic/CharacterAppearance.h"
 #include "Input/DoubleClick.h"
@@ -40,13 +42,15 @@
 // dibujo): los personajes de la lista en sus lugares, animados, el clic que elige el que está bajo el
 // mouse, y Enter o el doble clic que entra al mundo con el elegido. Arriba, la barra de la selección
 // (UI::SelectionBar) con conectar, crear y borrar, la ventana de crear (UI::CreateCharacterWindow) y
-// los avisos. Sin el terreno, los objetos ni los efectos (CL7 y la ola de los efectos), sin la vista
-// previa de la ventana de crear (CL6.5 PR B3), el menú y las opciones (CL8), los carteles de los
+// los avisos. Con el paso común del pool y del NewFace; sin los objetos ni los efectos de la selección
+// (P-C50), el menú y las opciones (CL8), los carteles de los
 // personajes ni el área de mensajes.
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La selección de personaje", y el plan de
 // la CL6 (CL6.3, "Contrato").
 namespace Client::Scenes
 {
+struct ActorState;
+
 class CharacterSelectScene final : public IScene
 {
 public:
@@ -84,6 +88,7 @@ public:
     [[nodiscard]] bool HoldsTheLastFrame() const override;
     // El error de 0x5fb570 en el dibujo (ADR 0009), con la dirección; vacío mientras no corte.
     [[nodiscard]] std::optional<std::string> Failure() const override;
+    [[nodiscard]] const ActorState& PreviewActor() const;
 
 private:
     // Un personaje de la lista en su lugar, con la entrada de la que salió.
@@ -104,7 +109,10 @@ private:
     // cada construcción recibida recrea su visual, aunque tenga los mismos bytes que el anterior.
     void SyncTheCharacters();
     [[nodiscard]] Character MakeCharacter(const Protocol::Character::CharacterEntry& entry) const;
+    [[nodiscard]] bool PrepareTheCharacters();
+    [[nodiscard]] CharacterStepContext CharacterContext();
     void StepCharacters();
+    void StepTheScene(const Input::InputState& input);
     // Si abrió el aviso 0x70 en este paso.
     bool ShowTheFailure();
     // Con la respuesta del F3 01 (0x4c2290): con 1 se cierra el 0x5d; con 0 o 2, la ventana de crear
@@ -115,8 +123,7 @@ private:
     // 0x63d990: los chequeos del nombre, y el F3 01 y el 0x5d, o el aviso del nombre.
     void SubmitTheCreation();
     // 0x63e430 al final del paso de la ventana, que solo corre con ella arriba: la clase de la ventana
-    // y el avance. Con un aviso arriba la vista previa no avanza (el original la avanza también desde
-    // la lógica de la escena, 0x508ea0: dos veces por paso con la ventana arriba; MuRet, una, D-C4).
+    // y el avance adicional: con un aviso arriba solo avanza desde 0x508ea0.
     void StepThePreview();
     void DrawTheCreateWindow(SceneCanvas& canvas, float alpha);
     // 0x505820 con un personaje que se dibuja, `frames` veces (Scenes/FullSetScan.h), sobre WorldState.
@@ -149,6 +156,8 @@ private:
 
     [[nodiscard]] World::GameCamera& CameraState();
     [[nodiscard]] World::GameCameraInput& CameraInputState();
+    [[nodiscard]] CreatePreview& Preview();
+    [[nodiscard]] const CreatePreview& Preview() const;
 
     SceneContext m_context;
     // Fallback explícito para tests sin contexto completo; main siempre aporta ambos globales.
@@ -157,7 +166,10 @@ private:
     Render::Models::OriginalFrameCarry m_cameraFrames;
     // Los frames del original de 0x505820 desde el dibujo (0x50c91e), como los de la cámara.
     Render::Models::OriginalFrameCarry m_fullSetScanFrames;
+    Render::Models::OriginalFrameCarry m_previewDrawFrames;
+    Render::Camera3D m_previewCamera;
     const Data::Text::TextTable* m_texts;
+    const Data::Tables::ItemTable* m_items;
     const IModelLibrary& m_models;
     App::ServerSession* m_session;
     SceneTextures m_textures;
@@ -169,9 +181,10 @@ private:
     UI::CreateCharacterWindow m_create;
     const Render::Models::ModelTextureSlots* m_gameSlots;
     SelectionModels m_selectionModels;
-    // El objeto de la vista previa (0x7437050), y si avanzó en el último paso.
+    // Adaptador sin SelectionState: main conserva el NewFace en el estado durable de selección.
     CreatePreview m_preview;
     bool m_previewAdvanced = false;
+    bool m_charactersPrepared = false;
     Input::DoubleClick m_doubleClick;
     std::vector<Character> m_characters;
     bool m_tookTheList = false;

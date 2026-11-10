@@ -157,4 +157,19 @@ TEST(CreatePreviewTest, ActionOneThenZero)
     EXPECT_EQ(preview.animation.action, 1u);
     EXPECT_FLOAT_EQ(preview.animation.frame, 0.0f);
 }
+
+TEST(CreatePreviewTest, DrawingKeepsTheClassOffsetForTheFollowingCommonStep)
+{
+    const FaceModels models;
+    CreatePreview preview;
+    ChoosePreviewClass(preview, 2, models);
+
+    const auto first = DrawnPreview(preview, models, 0.0f);
+    EXPECT_FLOAT_EQ(preview.position.x, 54.8f);
+    EXPECT_FLOAT_EQ(first.transform.position.x, 54.8f);
+    const auto second = DrawnPreview(preview, models, 0.0f);
+
+    EXPECT_FLOAT_EQ(preview.position.x, 59.6f);
+    EXPECT_FLOAT_EQ(second.transform.position.x, 59.6f);
+}
 } // namespace

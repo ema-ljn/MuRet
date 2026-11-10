@@ -10,6 +10,7 @@
 // tiempo (Q-C20). Lo comparten la selección y el login.
 namespace Client::Scenes
 {
+class PlayerActionSpeeds;
 struct CharacterAnimation
 {
     Render::Models::AnimationState body;
@@ -33,5 +34,6 @@ void StepCharacterAttachments(CharacterAnimation& animation, const GameLogic::Ch
 // El cuerpo que se posa entre dos pasos: `alpha` de un paso más (Render::Models::Interpolated). Sin la
 // acción en Player.bmd, el del paso.
 [[nodiscard]] Render::Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation,
-                                                              const IModelLibrary& models, float alpha);
+                                                              const IModelLibrary& models, float alpha,
+                                                              const PlayerActionSpeeds* speeds = nullptr);
 } // namespace Client::Scenes

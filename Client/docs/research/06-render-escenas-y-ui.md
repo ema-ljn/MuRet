@@ -4065,7 +4065,7 @@ columnas son la dirección, los bytes, qué es y qué tiene MuRet.
 | `0x511070` | 84 | con `+0x428` entre −127 y 0, sin leer | no se llega |
 | `0x42a2b0` | 542 | el `0x1a8` | con el `0x20a` no hace nada |
 | `0x4fcee0` | 1.806 | la estela del arma | `StepTheWeaponTrail`: sin estela; corta en `0x4fd236` |
-| `0x420dd0` | 23 | la virtual de `+0x430`, el cuervo del login (`0x416a20`) | `+0x430` en 0: no hace nada; el login corre su cuervo por su cuenta |
+| `0x420dd0` | 23 | la virtual de `+0x430`, el cuervo del login (`0x416a20`) | `ActorState::darkSpirit`, dentro del cuerpo en 0x50544b; los estados 0/1 del login; sin recursos o fuera de ese alcance, error explícito |
 
 **Los globales.**
 

@@ -9,6 +9,9 @@
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
+#include "Scenes/ActorMotion.h"
+#include "Scenes/ActorWalk.h"
+#include "Scenes/PlayerActionSpeeds.h"
 #include "Scenes/ActorConstruction.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterHead.h"
@@ -21,6 +24,7 @@
 #include "Scenes/WorldState.h"
 #include "World/ObjectAlpha.h"
 #include "World/TerrainCulling.h"
+#include "World/TerrainHeight.h"
 #include "World/TerrainWalls.h"
 #include "World/WorldTerrain.h"
 
@@ -128,19 +132,11 @@ constexpr std::int32_t RandomEffectMap = 9;
 constexpr std::uint8_t FirstEffectAction = 0x44;
 constexpr std::uint8_t SecondEffectAction = 0x45;
 constexpr std::uint8_t BoneEffectAction = 0x96;
-// 0x508654..0x508666: las acciones con los pasos del héroe.
-constexpr std::uint8_t FirstStepAction = 0x0d;
-constexpr std::uint8_t LastStepAction = 0x21;
-constexpr std::array<std::uint8_t, 3> OtherStepActions{0x8b, 0x8c, 0x4b};
 // 0x5086d6..0x508712: en Kalima (los mapas 24 a 29 y el 36), las acciones del 0x20a que sacan el 0x6f4.
 constexpr std::array<std::uint8_t, 7> KalimaParticleActions{0x20, 0x21, 0x1d, 0x15, 0x1e, 0x1f, 0x4b};
 constexpr std::int32_t FirstKalimaMap = 24;
 constexpr std::int32_t LastKalimaMap = 29;
 constexpr std::int32_t SeventhKalimaMap = 36;
-// 0x508e79: el tipo que, muriéndose, 0x508ba0 baja a la altura del terreno.
-constexpr std::uint16_t SinkingDeadType = 0x154;
-// 0x508be3: el tipo con el que 0x508ba0 no busca camino.
-constexpr std::uint16_t PathlessType = 0x159;
 
 std::string MapText(std::int32_t map)
 {
@@ -152,11 +148,6 @@ template <std::size_t N> bool IsOneOf(const std::array<std::uint8_t, N>& actions
     return std::ranges::find(actions, action) != actions.end();
 }
 
-bool HasStepSounds(std::uint8_t action)
-{
-    return (action >= FirstStepAction && action <= LastStepAction) || IsOneOf(OtherStepActions, action);
-}
-
 void ClearBit(std::uint8_t& bits, std::uint8_t bit)
 {
     bits = static_cast<std::uint8_t>(bits & ~bit);
@@ -164,46 +155,32 @@ void ClearBit(std::uint8_t& bits, std::uint8_t bit)
 
 // 0x508ba0(c, c) desde 0x508ed8 con otro que el héroe publicado ([0x743a170]; con él sale en 0x508bad).
 Core::Expected<void, std::string> StepOtherCharacter(ActorState& actor, std::size_t slot,
-                                                     Render::Models::CrtRandom& random)
+                                                     const CharacterStepContext& context)
 {
-    // 0x508bb6: muriéndose (+0x389), sale; el 0x154 antes toma la altura del terreno (0x508e76..0x508e8e).
-    if (actor.dying != 0)
+    if (actor.movement != 0 && (IsNewFace(actor.type) ? context.newFaceSkeleton : context.playerSkeleton) == nullptr)
     {
-        if (actor.type == SinkingDeadType)
-        {
-            return Core::Unexpected(std::format("0x508e89: el {:#x} del lugar {} se muere y toma la altura "
-                                                "de 0x5f93c0, que no está portada",
-                                                actor.type, slot));
-        }
-        return {};
+        return Core::Unexpected(std::format("0x4f37c0: falta el esqueleto del personaje del lugar {}", slot));
     }
-    // 0x508bc4: caminando (+0x378), 0x508e26..0x508e6e sigue el camino (0x4f37c0, 0x4ea270, 0x4f2250 y 0x508a80).
-    if (actor.movement != 0)
+    const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+    if (!terrain.attributes)
     {
-        return Core::Unexpected(std::format("0x508e27: el personaje del lugar {} camina (+0x378); 0x4f37c0 y 0x508a80 "
-                                            "no están portados",
-                                            slot));
+        return Core::Unexpected(std::string("0x508ba0: falta el TerrainWall para reintentar el camino"));
     }
-    // 0x508bd2: +0x3e5 en 0, sin salir: solo lo sube 0x4c9790 (0x4c982b), un paquete que MuRet no aplica
-    // (*estático*). 0x508be3: el 0x159 sale sin leer la celda.
-    if (actor.type == PathlessType)
+    const Render::Models::Skeleton empty;
+    const Render::Models::Skeleton& skeleton = context.playerSkeleton != nullptr ? *context.playerSkeleton : empty;
+    PlayerActionSpeeds& speeds = context.actionSpeeds != nullptr ? *context.actionSpeeds : context.world.ActionSpeeds();
+    const ActorWalkContext walk{
+        {context.world.Runtime(), context.scene, skeleton, context.items, context.random, &terrain.attributes->cells},
+        speeds,
+        false,
+        IsNewFace(actor.type) ? context.newFaceSkeleton : nullptr};
+    ActorMotionContext motion{context.world.Runtime(), context.random, {}};
+    if (terrain.heights)
     {
-        return {};
+        motion.height = [&](float x, float y)
+        { return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, context.fixedHeight); };
     }
-    // 0x508bef..0x508c75: la X lógica (+0x41c) en un acceso que se cierra con 0x412890, contra la copia en
-    // claro (+0x39a); 0x508c86..0x508ce9: la Y (+0x420), con 0x40b800, contra +0x39b. Con las dos iguales sale
-    // en 0x508cfb, con 8 rand() si los dos cierres dejan su cuenta en 0 (Q-C236). MuRet guarda una sola copia de
-    // cada una (0x511290 las escribe iguales): siempre coinciden, y el camino de 0x508d01..0x508e1a (0x4eac00 y
-    // +0x378 en 1) no se alcanza.
-    {
-        const Render::Models::LogicalAccess access(actor.cellXAccesses, random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
-    }
-    {
-        const Render::Models::LogicalAccess access(actor.cellYAccesses, random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
-    }
-    return {};
+    return StepOtherActorMotion(actor, walk, motion, terrain.attributes->cells);
 }
 
 // 0x4fc450(c) desde 0x4fd6fe, con el héroe publicado ([0x743a170]; con otro sale en 0x4fc464): los tres WORD
@@ -319,7 +296,10 @@ Core::Expected<bool, std::string> AdvanceTheBody(ActorState& actor, std::size_t 
     }
     const Render::Models::ActionInfo& info = skeleton->actions[action];
     // 0x4f95c0..0x4f95d4: una velocidad negativa o NaN cuenta 0.
-    float speed = info.speed >= 0.0f ? info.speed : 0.0f;
+    const PlayerActionSpeeds& speeds =
+        context.actionSpeeds != nullptr ? *context.actionSpeeds : context.world.ActionSpeeds();
+    const float sharedSpeed = newFace ? info.speed : speeds.Speed(action, info.speed);
+    float speed = sharedSpeed >= 0.0f ? sharedSpeed : 0.0f;
     if (newFace)
     {
         constexpr float NewFaceSpeedFactor = 2.0f; // 0x4f971a
@@ -443,8 +423,9 @@ Core::Expected<void, std::string> StepTheAnimation(ActorState& actor, std::size_
     {
         return {};
     }
-    // 0x4fce29..0x4fce39: +0x3c4 en −1 y +0x3e0 y +0x3e1 en 0, que MuRet no tiene: +0x3e0 y +0x3e1 los leen los
-    // pasos del héroe (0x505770), que cortan.
+    // 0x4fce33/39: los dos sonidos se habilitan otra vez al terminar la animación.
+    actor.firstFootstepSound = 0;
+    actor.secondFootstepSound = 0;
     // 0x4fce3f..0x4fce57: el 0x20a sin el giro de +0x88 va a 0x4fcb10. 0x4fce68 y 0x4fce7a: el 0xc5 y el 0x1f5.
     if (IsNewFace(actor.type))
     {
@@ -695,8 +676,10 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
         }
         StepCharacterHead(actor.headTurn, !hero && actor.dying == 0, context.random);
     }
-    // 0x5069ae: +0x3e5 en 0, sin los veinte efectos: solo lo sube 0x4c9790 (0x4c982b), un paquete que
-    // MuRet no aplica (*estático*).
+    if (auto cooldown = StepActorCooldown(actor, context.random, context.cooldown); !cooldown.HasValue())
+    {
+        return cooldown;
+    }
     // 0x506acf..0x506b62: con +0x375 debajo de 6, la luz de cada mano, la derecha y la izquierda.
     if (actor.pk < FirstPkWithoutLights)
     {
@@ -760,14 +743,18 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     // 0x506fc1..0x507001: 0x4ec110 con el hueso de +0x2bd a un local que nadie lee, y a 0x50862f.
     // 0x50862f..0x5086ca: solo con el héroe publicado (0x508641), los pasos: el sonido de 0x505770 con +0x3e0 y
     // +0x3e1.
-    if (hero && HasStepSounds(action))
+    if (hero)
     {
-        return Core::Unexpected(std::format("0x508668: los pasos del héroe en la acción {:#x} (0x505770, con +0x3e0 y "
-                                            "+0x3e1) no están portados",
-                                            action));
+        for (const auto sound : TakeActorFootstepSounds(actor, map, context.world.Runtime().heroCellLayer))
+        {
+            if (sound && context.soundRequest)
+            {
+                context.soundRequest(*sound);
+            }
+        }
     }
     // 0x5086cf..0x508801: en Kalima, el 0x20a en las acciones 0x15, 0x1d a 0x21 y 0x4b (con el héroe, todas de los
-    // pasos, que ya cortaron) saca el 0x6f4 en (0, −40, 0) girado por +0x1c (0x5fc8f0 y 0x5fcbd0), con rand() % 64
+    // pasos) saca el 0x6f4 en (0, −40, 0) girado por +0x1c (0x5fc8f0 y 0x5fcbd0), con rand() % 64
     // en la x (0x508793) y en la y (0x5087b6).
     if (IsKalima(map) && IsOneOf(KalimaParticleActions, action))
     {
@@ -790,7 +777,7 @@ Core::Expected<void, std::string> StepACharacter(ActorState& actor, std::size_t 
     actor.seen = CharacterSeen(context.world.Runtime().terrainPolygon, actor.position);
     if (!hero)
     {
-        if (auto other = StepOtherCharacter(actor, slot, context.random); !other.HasValue())
+        if (auto other = StepOtherCharacter(actor, slot, context); !other.HasValue())
         {
             return other;
         }

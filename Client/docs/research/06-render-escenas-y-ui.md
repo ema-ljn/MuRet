@@ -3526,6 +3526,13 @@ La validación nativa/VM sigue separada del port; no se declara cerrada la CL7.
 
 ### La pose compartida entre escenas
 
+El piso tiene otro gate: `0x608b0a..0x608b20` posa sin traslación aun con alpha0; `0x60cf70` sólo
+publica el skin/cuerpo con alpha>0,01. `PublishFaunaFloorPose` conserva esa diferencia. Los objetos,
+piso, personajes, helpers y efectos comparten el mismo carry en orden. En frames de proyección de
+MuRet se usa **una copia temporal para todo el frame**: cada escritor actualiza ese scratch y el
+siguiente lo lee, sin cambiar la historia durable ni repetir RNG/seen/yaw nativos. Copiar y descartar
+el carry en cada pase o saltar el publisher mezclaría meshes de otro modelo.
+
 
 ### El paso de los personajes
 
@@ -4329,6 +4336,45 @@ frame lo pone `0x637700` (`0x63835d..0x6384f5`): Icarus (10), (0,0117; 0,0977; 0
 a 29 y 36), (0,1172; 0,1563; 0,1563); y negro en los demás (*estático*). No hay cielo: Icarus no
 dibuja el terreno y pone las nubes (`0xbb`, `0x622`, `0x623`), y Kalima dibuja su agua en un pase
 aparte (`0x4378a0` → `0x41cca0`, `0x41cf00`).
+### La cola y sus cambios de pase
+
+Lectura **estática** de `0x63750d..0x6375e5`, `0x620db0` y `0x6213e0` del build
+`c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`.
+El byte por mapa vale 1 en 24..29/36 y 0 en los demás; no reemplaza a `0x437850`, que consulta
+si `0x723c48` es distinto de null. La primera consulta omite daño cuando hay mundo Kalima; la
+segunda, posterior al primer `0x6213f0`, decide repetir la cámara, dibujar agua y recorrer la
+segunda capa. No hay reflexión de cámara en este caller. `0x4378a0` llama actualización
+`0x41cca0` y dibujo `0x41cf00` antes de joints 2, efectos modelados 1, cintas, MarkSeen, ojo y
+sprites/partículas/daño 2.
+
+**`0x620db0` y `0x6213e0` tienen efectos distintos.** `0x6213e0` sólo hace push y loadIdentity
+de modelview. `0x620db0` reconstruye la cámara y en `0x620eea..0x620f4c` apaga alpha test,
+activa textura/depth/culling y escritura de profundidad, usa LEQUAL y fija alpha GREATER 0.25.
+Esos resets no cambian por analogía blend ni binding. Un vaciado del lote diferido tampoco
+representa otra llamada a `0x620db0`.
+
+MuRet distingue ese inicio en `ModelBatch::InitializesMaterial`. `GlFrameTarget::FlushModels`
+ejecuta comandos aunque no haya vértices, conserva el material del lote y deja la continuación
+sin otro reset nativo. `BeginGameTailPass` captura antes del flush; el ojo conserva material y
+el regreso al mundo publica sólo los resets acreditados. `GlModelRenderer` sube matrices/VBO
+por lote y aplica la inicialización sólo cuando está solicitada. Las regresiones observan GL
+real entre lotes parciales y también un inicio World sin geometría:
+[test_gl_frame_target](../../tests/render_gl/test_gl_frame_target.cpp) y
+[test_game_scene_kalima_tail](../../tests/scenes/test_game_scene_kalima_tail.cpp), **simulado**.
+
+La carga meteorológica `0x61ac3e..0x61ad7a` publica 64/65 del mundo y 66/67/68 de lluvia,
+respetando la alternativa TGA→JPG del 64, opcionalidad y sampling. El atlas de daño no era otro
+selector: `0x621799/0x621889` pasan 1 al binder; `0x61bdb4` carga `Interface\FontTest.tga` con
+NEAREST/CLAMP. Los joints emitidos por fauna usan 610 Flare02 (LINEAR/REPEAT), 613 JointSpirit01,
+618 JointLaser01 y 697 ScolTail (LINEAR/CLAMP); 617 Spark01 ya estaba cargado.
+[Texturas meteorológicas](../../tests/scenes/test_weather_textures.cpp),
+[handles GL](../../tests/render_gl/test_weather_texture_handles.cpp) y
+[atlas/joints](../../tests/scenes/test_game_tail_textures.cpp) contrastan archivos reales y píxeles.
+
+El orquestador no crea el estado `0x723c48` ni el backend `0x4378a0`: LoadMap conserva la frontera
+`0x4377a0`. Tampoco porta productores de cintas ni todas las familias de piso/joints/efectos
+CL9–CL11. No se ejecutó ni emuló el original, y el contraste de VM sigue pendiente.
+
 ### El paso de los efectos con modelo
 
 **Ampliación estática del hito 2 (2026-11-10).** `World::StepGameModelEffect` envuelve los casos

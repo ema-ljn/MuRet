@@ -8,6 +8,7 @@
 #include "Render/Models/Skeleton.h"
 #include "World/IWorldObjectCreationServices.h"
 #include "World/ObjectAlpha.h"
+#include "World/NoriaObjectStep.h"
 #include "World/OriginalFtol.h"
 #include "World/WorldObjectMapCreation.h"
 #include "World/WorldObjectRegistrations.h"
@@ -520,6 +521,7 @@ void ApplyLoginStepCases(WorldObject& object)
 // 0x604bb4..0x604c1d: los techos, antes del alpha. En el 0, los de la taberna (HouseWall05 y 06) se apagan
 // con la capa 4; en el 2, los suyos con la capa 3 o desde la 10 (*inferido*: el héroe bajo techo).
 constexpr std::uint8_t DeviasMap = 2;
+constexpr std::uint8_t NoriaMap = 3;
 constexpr std::int32_t LorenciaRoofLayer = 4;
 constexpr std::int32_t DeviasRoofLayer = 3;
 constexpr std::int32_t DeviasHighRoofLayers = 10;
@@ -742,7 +744,7 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
                                                          Render::Models::CrtRandom& random,
                                                          const ObjectStepGlobals& globals)
 {
-    if (map != LorenciaMap && map != DeviasMap && map != LoginMap)
+    if (map != LorenciaMap && map != DeviasMap && map != NoriaMap && map != LoginMap)
     {
         // 0x604ac0..0x604ba0: el 9 saca rand() antes de todo, y cada mapa tiene sus casos.
         return Core::Unexpected(
@@ -762,6 +764,8 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
         return StepLorenciaCases(object, random, globals);
     case DeviasMap:
         return StepDeviasCases(object, random, globals);
+    case NoriaMap:
+        return StepNoriaObject(object, random, globals);
     default:
         ApplyLoginStepCases(object);
         return {};

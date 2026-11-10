@@ -2898,8 +2898,9 @@ paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-d
 `Scenes::ApplyWorldEntry` la tabla de la respuesta; lo que no está leído o no está portado corta con
 un error que nombra la dirección, nunca en silencio:
 
-- **Los mapas.** Con la `Data` del repo cargan el 0, 1, 2, 4, 6 a 11, 18, 31, 33 y 54. Cortan: el
-  3 en `0x606660` (la torre `0x142` pide efectos que MuRet no crea), el 5 por el archivo que falta
+- **Los mapas.** Con la `Data` del repo cargan el 0, 1, 2, 3, 4, 6 a 11, 18, 31, 33 y 54.
+  El 3 incorpora en hito 2 el binder síncrono de la torre `0x142` y sus cinco efectos, antes del
+  pasto ([Creación de objetos](#los-objetos-del-juego)). Cortan: el 5 por el archivo que falta
   en `World6`, del 24 al 29 y el 36 en `0x4377a0`, el 30 en `0x42a760`, el 34 en `0x42fe50` (el
   `.att` según Crywolf, antes del `BD`, que por eso no sale) y el 55 en `0x6188ae`. Sin
   `TerrainHeight.OZB`, el error nombra el archivo, con el pasto ya sacado (Q-C180).
@@ -5194,8 +5195,16 @@ En el 3 los blends son 1 para el tipo 1, 3 para el 9, 0 para 17/19/37 y 2 para e
 y el 38 se oculta. En el 7 se registra y oculta el 39; en el 8 se registra el 78. El mapa 55 conserva
 bucket y segunda posición inicial aunque reubique 86/90. El mapa 3, tipo 322, llama síncronamente a
 `0x518cf0` con tipos 322/323/322/323/324, owner null y escala 0: antes de **cada llamada** relee la
-posición viva, suma Y 0/4/8/12/20 y Z 350, prestando ángulos y luz del objeto. El efecto 180 de las
-escenas 2/4 recibe owner objeto y escala 1,6, después de ocultarlo y poner su luz blanca; también corre
+posición viva, suma Y 0/4/8/12/20 y Z 350, prestando ángulos y luz del objeto. Hito 2 conecta
+`MapModelEffectServices` a `LoadMap(3)` con el pool durable. Cada 322/323 copia la luz **antes** de
+poner la luz del objeto en cero: tres sorteos, `%50` para escala `1,3f+0,01f*n`, `%80` para
+`+0xe4=0,1f*n`, `%100` para velocidad `0,01f+0,001f*n`. El 324 usa escala 0,6 y ningún sorteo.
+Quedan vida `0xffffff` y blendMesh−2; el resto no escrito del slot se conserva. Pool lleno cuenta
+como binding ejecutado y no consume RNG ni muta la luz. Las cinco altas, con lugar, gastan 12 CRT
+**antes** de los 65.536 del pasto; `MapLoadTest` contrasta ese orden con Data real. Esto resuelve la
+frontera histórica de carga de Noria, sin acreditar todos sus pasos/dibujos.
+
+El efecto 180 de las escenas 2/4 recibe owner objeto y escala 1,6, después de ocultarlo y poner su luz blanca; también corre
 antes de leer el mapa. Una cola diferida altera el orden y las relecturas de ese contrato.
 
 Los otros mapas llaman `405950`, `438a80`, `42c6b0`, `43ff70`, `42ee30`, `4250e0`, `4303d0`, en ese
@@ -5318,9 +5327,14 @@ mapa, en `0x602ffb`, después del `rand()` de `0x602ef4`; *estático*):
   con el reloj del mundo, −(`ftol(T)` % 1000) · 0,001f, como el `0x76` del paso; y un `rand() % 2`:
   impar, nada más; par, dos partículas `0x5f2` (`0x53fe70(0x5f2, …, 0, 1, 0)`, `0x6030c7` y `0x60313a`)
   en los huesos 1 y 4 (`0x68b184c` y `0x68b18dc`, con `0x4ec110`), a (`rand()` % 32 − 16, −20,
-  `rand()` % 32 − 16) y (…, −80, …) de cada uno. MuRet lo corre hasta las gotas
-  (`World::StepTheWaterspoutFrame`) y corta en la primera (`0x6030c7`), después de sus dos `rand()`:
-  no tiene las partículas del juego (`0x743a198`, P-C55 a).
+  `rand()` % 32 − 16) y (…, −80, …) de cada uno. MuRet ya las crea con
+  `Scenes::StepGameWaterspoutFrame`, el pool compartido de `WorldState::Particles` y los huesos de la
+  pose global prestada por `GameObjectPass.retainedPose`, aun con alpha bajo o huesos dummy:
+  `0x4ec110` recibe Translate=0 y lee la matriz exacta anterior sin aplicar el transform actual.
+  [GameParticlesTest](../../tests/scenes/test_game_particles.cpp) cubre altas, matrices retenidas,
+  RNG, pool lleno y el prefijo si falta el segundo hueso. Un préstamo vacío corta tras los dos
+  sorteos de la primera gota; no inventa historia fría. El contraste nativo de sus puntos sigue
+  pendiente (P-C55 a).
 
 **Al dibujar** (`0x6002e0`): el único caso del mapa 0 es el `0x69`, con cuatro `RenderMesh(malla, 2,
 alpha, 3, luz, …)`, la 3 con la U y la V, en vez de un `RenderBody` (*emulado*). Por dentro
@@ -5338,12 +5352,15 @@ usan el modelo `0xad` (`Bird01`), solo sin tormenta (`0x723c50 == 0`), nacen al 
 `ESI` empieza en `0x7d2de18`, suma `0x1d4` por lugar y sale con `ESI >= 0x7d2e73c`
 (`0x44642a/430`, `0x446a57`): índices 0 a 4 de `0x7d2dca8`. En 90 observaciones nativas de la
 primera serie se vieron 5 vivos 85 veces y 4 las otras 5; el conteo observado no es la prueba
-del límite estático. Queda su evolución temporal, en P-C28 j. La tormenta (`0x723c50`, que el `1C` apaga) tira rayos `0xc2` con el sonido `0x42` y
-oscurece la luz del terreno alrededor del héroe.
+del límite estático. MuRet ya porta nacimiento, evolución, servicios y dibujo de esas familias
+([La fauna y sus recursos](#la-fauna-y-sus-recursos)); los tests del port no sustituyen el contraste
+temporal nativo de P-C28 j. La tormenta (`0x723c50`, que el `1C` apaga) tira rayos `0xc2` con el
+sonido `0x42` y oscurece la luz del terreno alrededor del héroe.
 
 **Los peces** (`0x447030`, la tabla `0x7d35350`; el dibujo, `0x446f00`, con su sombra `0x4eff40`):
 en el 0, hasta 3 `0xb2` (`Fish01`), a ±512 del héroe y solo en celdas con la capa 1 en 5, el agua
-(`0x5f82a0`; *estático*).
+(`0x5f82a0`; *estático*). MuRet usa el pool durable y los servicios productivos de
+[fauna](#la-fauna-y-sus-recursos), con el sorteo del candidato incluso si esa celda lo rechaza.
 
 **Las hojas** (`0x530490`; el dibujo, `0x5306a0`): **80 en Lorencia** (*estático*, y las 80 con la
 textura `0x64`, *verificado* en la traza). La cuenta de partida es `(-(mapa != 9) & −120) + 200`

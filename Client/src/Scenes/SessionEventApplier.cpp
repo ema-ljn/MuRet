@@ -8,6 +8,7 @@
 #include "Protocol/Character/InventoryList.h"
 #include "Scenes/InventoryReply.h"
 #include "Scenes/IWorldEntryPublisher.h"
+#include "Scenes/ReturnToSelection.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
 
@@ -49,6 +50,11 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::Wor
     if (std::holds_alternative<App::ClearInventoryReceived>(event))
     {
         ClearForInventoryReply(m_resources);
+        return {};
+    }
+    if (std::holds_alternative<App::ReturnToSelectionReceived>(event))
+    {
+        ApplyReturnToSelection(m_resources);
         return {};
     }
     if (const auto* inventory = std::get_if<Protocol::Character::InventoryList>(&event))

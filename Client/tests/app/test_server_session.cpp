@@ -2269,16 +2269,15 @@ TEST(ServerSessionTest, TheQuitOrderStopsTheKeepalive)
     EXPECT_EQ(tested.session.Failure(), std::nullopt);
 }
 
-// Con 1 (la selección) y con 2 (la lista), el original cambia de escena (Q-C79): hasta la CL6 y la
-// CL9, la sesión los ignora con un aviso y sigue con el login. Con otro, el original no hace nada,
-// y acá, lo mismo con su aviso. Sin el resultado, no se puede leer.
+// Con 2 (la lista), el original cambia de escena (Q-C79): hasta la CL9, la sesión lo ignora con un aviso
+// y sigue. Con otro que 0, 1 o 2, el original no hace nada, y acá, lo mismo con su aviso. Sin el
+// resultado, no se puede leer.
 TEST(ServerSessionTest, TheOtherLogoutResultsAreIgnored)
 {
     Harness tested(IdentityObfuscation::Shared());
     ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
 
-    tested.socket.reads = {FromTheGameServer(LogoutResult(1), tested.gameServerSends),
-                           FromTheGameServer(LogoutResult(2), tested.gameServerSends),
+    tested.socket.reads = {FromTheGameServer(LogoutResult(2), tested.gameServerSends),
                            FromTheGameServer(LogoutResult(3), tested.gameServerSends), Bytes({0xC1, 0x04, 0xF1, 0x02})};
     static_cast<void>(tested.session.Poll());
 
@@ -2286,13 +2285,135 @@ TEST(ServerSessionTest, TheOtherLogoutResultsAreIgnored)
     EXPECT_EQ(tested.connection.State(), LinkState::Open);
     const auto ignored = [](int result)
     {
-        return std::format("[warning] se ignora la orden de salida del GameServer (F1 02 con {}): MuRet solo sigue la "
-                           "de cerrar el juego, con 0",
+        return std::format("[warning] se ignora la orden de salida del GameServer (F1 02 con {}): MuRet sigue la de "
+                           "cerrar el juego, con 0, y la de volver a la selección, con 1",
                            result);
     };
     EXPECT_EQ(tested.Warnings(),
-              (Lines{ignored(1), ignored(2), ignored(3),
+              (Lines{ignored(2), ignored(3),
                      "[warning] se ignora la orden de salida del GameServer (F1 02): no se puede leer"}));
+    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
+}
+
+// Lo que le llegó al GS desde `from`, sin el XOR32.
+std::vector<Packet> GameServerPacketsFrom(const Harness& tested, std::size_t from)
+{
+    const GameServerReceived received = tested.GameServerReads();
+    std::vector<Packet> packets;
+    for (std::size_t index = from; index < received.packets.size(); ++index)
+    {
+        packets.push_back(Xor32Decode(received.packets[index]));
+    }
+    return packets;
+}
+
+// En el mundo, con el F3 03 publicado por el sink.
+void ReachInWorld(Harness& tested)
+{
+    ASSERT_NO_FATAL_FAILURE(tested.ReachEnteringWorld());
+    tested.eventSink.onWorld = [](const WorldEvent& event,
+                                  ServerSession& session) -> Client::Core::Expected<void, std::string>
+    {
+        if (std::holds_alternative<CharacterSelectResult>(event))
+        {
+            session.PublishWorldEntry();
+        }
+        return {};
+    };
+    tested.socket.reads = {FromTheGameServer(WorldEntryReply(), tested.gameServerSends)};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+    ASSERT_EQ(tested.session.State(), SessionState::InWorld);
+    static_cast<void>(tested.eventSink.TakeWorldEvents());
+}
+
+// 0x4c3626..0x4c390f: el F1 02 con 1 cifrado le da al sink la vuelta a la selección, con la sesión todavía
+// en el mundo, y después salen el F3 00 (0x4c3653) y los dos C1 03 31 (0x419900 y 0x4499b0), en ese orden;
+// la lista vieja y la elección se olvidan y la sesión espera la nueva. Con ella, se elige y se entra otra
+// vez como la primera.
+TEST(ServerSessionTest, AnEncryptedLogoutWithOneGoesToTheSelection)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(ReachInWorld(tested));
+    const std::size_t sentBefore = tested.GameServerReads().packets.size();
+
+    tested.socket.reads = {FromTheGameServer(LogoutResult(1), tested.gameServerSends)};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+
+    const std::vector<WorldEvent> events = tested.eventSink.TakeWorldEvents();
+    ASSERT_EQ(events.size(), 1u);
+    EXPECT_TRUE(std::holds_alternative<Client::App::ReturnToSelectionReceived>(events[0]));
+    EXPECT_EQ(tested.eventSink.worldStates.back(), SessionState::InWorld);
+    EXPECT_EQ(tested.session.State(), SessionState::WaitingCharacterList);
+    EXPECT_FALSE(tested.session.JoinedWorld());
+    EXPECT_FALSE(tested.session.Characters().has_value());
+    EXPECT_EQ(tested.session.ChosenCharacter(), nullptr);
+    EXPECT_EQ(tested.connection.State(), LinkState::Open);
+    const std::vector<Packet> sent = GameServerPacketsFrom(tested, sentBefore);
+    ASSERT_EQ(sent.size(), 3u);
+    EXPECT_TRUE(SameBytes(sent[0].Bytes(), Bytes({0xC1, 0x04, 0xF3, 0x00})));
+    EXPECT_TRUE(SameBytes(sent[1].Bytes(), Bytes({0xC1, 0x03, 0x31})));
+    EXPECT_TRUE(SameBytes(sent[2].Bytes(), Bytes({0xC1, 0x03, 0x31})));
+    EXPECT_TRUE(tested.Logged(LogLevel::Info, "el GameServer ordenó volver a la selección (F1 02 con 1)"));
+
+    // La selección nueva no vuelve a pedir la lista: la sesión no lo espera.
+    tested.session.RequestCharacterList();
+    EXPECT_EQ(GameServerPacketsFrom(tested, sentBefore).size(), 3u);
+    tested.socket.reads = {CharacterListBytes(TwoCharacters())};
+    static_cast<void>(tested.session.Poll());
+    ASSERT_EQ(tested.session.State(), SessionState::ChoosingCharacter);
+    tested.session.ChooseCharacter(std::uint8_t{3});
+    tested.session.EnterWorld();
+
+    EXPECT_EQ(tested.session.State(), SessionState::EnteringWorld);
+    EXPECT_EQ(tested.CharacterPacketsSent(SelectSubcode).size(), 2u);
+}
+
+// 0x4c2f5b: sin cifrar, el 1 no limpia ni cambia de escena: solo le avisa al GS con el F1 03 00 F1, para
+// cifrar (Q-C211). La sesión sigue en el mundo y el sink no recibe nada.
+TEST(ServerSessionTest, AClearOneChangesNothing)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(ReachInWorld(tested));
+    const std::size_t sentBefore = tested.GameServerReads().packets.size();
+    const std::size_t encryptedBefore = tested.GameServerReads().serials.size();
+
+    tested.socket.reads = {LogoutResult(1)};
+    ASSERT_TRUE(tested.session.Poll().HasValue());
+
+    EXPECT_TRUE(tested.eventSink.TakeWorldEvents().empty());
+    EXPECT_EQ(tested.session.State(), SessionState::InWorld);
+    EXPECT_TRUE(tested.session.Characters().has_value());
+    const GameServerReceived received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), sentBefore + 1);
+    EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xC1, 0x06, 0xF1, 0x03, 0x00, 0xF1})));
+    EXPECT_EQ(received.serials.size(), encryptedBefore + 1);
+    EXPECT_EQ(tested.Warnings(),
+              (Lines{"[warning] la orden de volver a la selección (F1 02 con 1) no llegó cifrada: se le avisa al "
+                     "GameServer (F1 03) y se sigue igual"}));
+}
+
+// El 1 no mira el estado: también con el login recién aceptado, como el original, que no mira la escena.
+// Si el sink no puede limpiar, la sesión falla y no manda nada.
+TEST(ServerSessionTest, ALogoutWithOneThatFailsToApplyIsNotFollowed)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const std::size_t sentBefore = tested.GameServerReads().packets.size();
+    tested.eventSink.onWorld = [](const WorldEvent&,
+                                  ServerSession& session) -> Client::Core::Expected<void, std::string>
+    {
+        EXPECT_EQ(session.State(), SessionState::LoggedIn);
+        return Client::Core::Unexpected(std::string("sin el mundo"));
+    };
+
+    tested.socket.reads = {FromTheGameServer(LogoutResult(1), tested.gameServerSends)};
+    const auto polled = tested.session.Poll();
+
+    ASSERT_FALSE(polled.HasValue());
+    EXPECT_EQ(polled.Error(), "sin el mundo");
+    EXPECT_EQ(tested.session.State(), SessionState::Failed);
+    EXPECT_EQ(tested.session.Failure(), SessionFailure::ApplicationFailed);
+    EXPECT_EQ(tested.GameServerReads().packets.size(), sentBefore);
 }
 
 // El ConnectServer no tiene F1: su dispatcher no tiene la orden (CL4.3), y un F1 02 con 0 de él no

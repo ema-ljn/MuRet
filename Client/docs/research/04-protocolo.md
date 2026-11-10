@@ -224,6 +224,18 @@ mínima (`analysis/foxanti/minimal/src/packet.c`):
   (`DGMoveOtherServer`). Un GS que se apaga o se cae no la manda: solo cierra cada socket
   (`gObjAllDisconnect`; el cierre programado avisa antes con mensajes del servidor), y el cliente
   ve el `FD_CLOSE` ([03](03-red-y-cifrado.md#sockets)). *Estático*.
+  **Con 1** (CL7 hito 1, T14; *estático*): cifrado, limpia el juego, pasa a la escena 4 y manda, en
+  este orden, el `F3 00` (`C1 04 F3 00`, cifrado, `0x4c3653`), un `C1 03 31` (`0x419900`, desde
+  `0x4c2480`) y otro `C1 03 31` (`0x4499b0`, desde `0x657670`, si la caja de `0x723c80` está vacía;
+  Q-C214). Sin cifrar no limpia ni cambia la escena: solo manda `C1 06 F1 03 00 F1` en C3, como el
+  `F3 03` y el `F3 10` en claro (Q-C211). Los pasos, en
+  [06](06-render-escenas-y-ui.md#la-vuelta-a-la-selección).
+- **`C1 03 31`, C->S** (`0x419900` en `0x419a0e`, `0x4499b0` en `0x449ad1`): tres bytes, sin
+  cuerpo, en claro y sin el XOR32. `0x419900` pone en 0 `+0x21383` de `[0x710148]` antes de
+  mandarlo, y `0x4499b0` sale sin mandar si la caja de `0x723c80` tiene algo (`0x449c10`) y, si no,
+  pone en 0 `0x724580` y `0x724584`. Qué hace el GS con él no está leído: MuRet lo llama
+  `WindowClose` por eso, *inferido*. Los llaman también otros lugares de la interfaz (`0x44b5da`,
+  `0x44b9ce`, `0x44c62e` y `0x658dfd` a `0x4499b0`), que MuRet no tiene.
 - **Selección de personaje (`F3`)**: `0x4e2f93` es un sub-dispatcher de hasta 0x40 casos. En el
   cable: `F3 00` (pedir lista, sin cuerpo), `F3 03` con el nombre de 10 bytes (elegir), `F3 06`,
   `F3 12`. Los subcódigos 0 a 3, campo por campo, están abajo, en

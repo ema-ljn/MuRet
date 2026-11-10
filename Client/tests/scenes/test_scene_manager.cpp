@@ -10,17 +10,23 @@
 #include "Data/Textures/TextureSet.h"
 #include "Input/InputState.h"
 #include "Render/TextureSlot.h"
+#include "Protocol/Character/CharacterList.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/GameScene.h"
 #include "Scenes/IScene.h"
+#include "Scenes/LoginModels.h"
+#include "Scenes/ReturnToSelection.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTransitions.h"
+#include "Scenes/SelectionState.h"
 #include "Scenes/TextureSets.h"
+#include "Scenes/WorldEntry.h"
 #include "Scenes/WorldLoadingScene.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/GameCamera.h"
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/RecordingFrameTarget.h"
@@ -232,7 +238,7 @@ struct Harness
                                                   return Unexpected(*pollFailure);
                                               return {};
                                           },
-                                          log)
+                                          log, [this]() { return std::exchange(order, std::nullopt); })
     {
     }
 
@@ -269,6 +275,8 @@ struct Harness
     Log log;
     int polls = 0;
     std::optional<std::string> pollFailure;
+    // La escena que ordena la red en el próximo Poll (WorldRuntime::orderedScene en main.cpp).
+    std::optional<SceneId> order;
     SceneManager manager;
     InputState input;
 };
@@ -984,5 +992,248 @@ TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
     EXPECT_FALSE(target.frames[1].presented);
     ASSERT_TRUE(manager.Failure().has_value());
     EXPECT_TRUE(Contains(*manager.Failure(), "0x6371a0")) << *manager.Failure();
+}
+
+// El F1 02 con 1 escribe la escena 4 mientras se lee la red (0x4c363f): el Poll toma la orden y el paso que
+// sigue ya es el de la selección, que entra antes de su paso. La orden se toma una vez.
+TEST(SceneManagerTest, ANetworkOrderEntersBeforeTheNextStep)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.manager.Start(SceneId::Game).HasValue());
+    tested.order = SceneId::CharacterSelect;
+
+    tested.manager.Poll();
+
+    EXPECT_FALSE(tested.order.has_value());
+    EXPECT_EQ(tested.manager.Current(), SceneId::Game);
+    EXPECT_EQ(tested.stage.journal, (std::vector<std::string>{"enter Game"}));
+
+    tested.manager.Step(tested.input);
+
+    EXPECT_EQ(tested.manager.Current(), SceneId::CharacterSelect);
+    EXPECT_EQ(tested.stage.journal,
+              (std::vector<std::string>{"enter Game", "leave Game", "enter CharacterSelect", "step CharacterSelect"}));
+    EXPECT_TRUE(tested.manager.TakeTheSceneChange());
+
+    tested.manager.Poll();
+    tested.manager.Step(tested.input);
+    EXPECT_EQ(tested.stage.journal.back(), "step CharacterSelect");
+    EXPECT_EQ(tested.stage.created[SceneId::CharacterSelect], 1);
+}
+
+// Q-C79: el original cambiaría de escena también en la carga; MuRet sigue la tabla, y la orden desde ahí es
+// un error en el log y la escena da su paso.
+TEST(SceneManagerTest, ANetworkOrderOutsideTheTableIsRejected)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.manager.Start(FirstScene).HasValue());
+    tested.order = SceneId::CharacterSelect;
+
+    tested.manager.Poll();
+    tested.manager.Step(tested.input);
+
+    EXPECT_EQ(tested.manager.Current(), SceneId::Loading);
+    EXPECT_EQ(tested.stage.journal, (std::vector<std::string>{"enter Loading", "step Loading"}));
+    const std::vector<std::string> errors = tested.Lines(LogLevel::Error);
+    ASSERT_EQ(errors.size(), 1u);
+    EXPECT_TRUE(Contains(errors[0], "Loading (1)")) << errors[0];
+    EXPECT_TRUE(Contains(errors[0], "CharacterSelect (4)")) << errors[0];
+    EXPECT_EQ(tested.manager.Failure(), std::nullopt);
+}
+
+// Un Poll que falla no toma la orden: el error es terminal y no hay otro paso.
+TEST(SceneManagerTest, AFailedPollDoesNotTakeTheOrder)
+{
+    Harness tested;
+    ASSERT_TRUE(tested.manager.Start(SceneId::Game).HasValue());
+    tested.order = SceneId::CharacterSelect;
+    tested.pollFailure = "falló la aplicación";
+
+    tested.manager.Poll();
+    tested.manager.Step(tested.input);
+
+    EXPECT_TRUE(tested.order.has_value());
+    EXPECT_EQ(tested.manager.Current(), SceneId::Game);
+    EXPECT_EQ(tested.stage.journal, (std::vector<std::string>{"enter Game"}));
+}
+
+// La selección de la vuelta, sin la lista ni el 54: al entrar marca el mundo cargado (lo que hace 0x633f30 con
+// la lista) y, cuando el test elige, pasa a la escena 3 con PrepareSelectedActor, que baja la bandera de la
+// carga del mundo (0x633efe).
+class ChoosingSelection final : public IScene
+{
+public:
+    ChoosingSelection(Client::Scenes::WorldState& world, Client::Render::Models::CrtRandom& random, const bool& choose)
+        : m_world(world), m_random(random), m_choose(choose)
+    {
+    }
+
+    Expected<void, std::string> Enter() override
+    {
+        m_world.Runtime().drawingEnabled = true;
+        return {};
+    }
+
+    void Step(const InputState& /*input*/) override
+    {
+        if (m_choose && !m_chosen)
+        {
+            m_world.PrepareSelectedActor(Client::Protocol::Character::CharacterEntry{}, m_random);
+            m_chosen = true;
+        }
+    }
+
+    void Render(SceneCanvas& /*canvas*/, float /*alpha*/) override {}
+
+    void Leave() override {}
+
+    [[nodiscard]] std::optional<SceneId> Next() const override
+    {
+        return m_chosen ? std::optional<SceneId>{SceneId::WorldLoading} : std::nullopt;
+    }
+
+    [[nodiscard]] bool WantsToQuit() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool WantsTextInput() const override
+    {
+        return false;
+    }
+
+    [[nodiscard]] bool HoldsTheLastFrame() const override
+    {
+        return false;
+    }
+
+private:
+    Client::Scenes::WorldState& m_world;
+    Client::Render::Models::CrtRandom& m_random;
+    const bool& m_choose;
+    bool m_chosen = false;
+};
+
+// 06, "La vuelta a la selección", con la carga del mundo y el juego de verdad: mientras el juego retiene, la
+// red aplica el F1 02 con 1 y deja la orden; el juego, sin el mundo cargado, sigue sin dibujar, y el paso que
+// sigue ya es el de la selección. Elegir vuelve a cargar el mundo con el mosaico, y el juego nuevo retiene
+// mientras el contador pase de 30; con 30 corta (0x6371a0), sin el mapa que carga la respuesta del F3 03.
+TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
+{
+    Client::Tests::TemporaryFolder folder("scene-manager-return-to-selection");
+    Client::Tests::WriteTextureSet(folder.Path(), Client::Scenes::WorldLoadingTextureSet);
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    FakeClock clock;
+    Client::Render::Models::ClothWorld cloth;
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::World::GameCamera camera;
+    Client::World::GameCameraInput cameraInput;
+    const Client::Scenes::SingleModelLibrary models;
+    // 0x633f30: la selección ya marcó el mundo cargado.
+    world.Runtime().drawingEnabled = true;
+    const Client::Scenes::SceneContext context{
+        .dataRoot = folder.Path(), .textures = textures, .log = log, .cloth = &cloth, .world = &world};
+    const Client::Scenes::WorldEntryResources resources{.world = world,
+                                                        .selection = selection,
+                                                        .dataRoot = folder.Path(),
+                                                        .cloth = cloth,
+                                                        .camera = camera,
+                                                        .cameraInput = cameraInput,
+                                                        .models = models,
+                                                        .log = log};
+    RecordingFrameTarget target({800, 600});
+    bool returning = false;
+    bool choose = false;
+    std::map<SceneId, int> created;
+    SceneManager manager(
+        [&](SceneId id) -> std::unique_ptr<IScene>
+        {
+            ++created[id];
+            if (id == SceneId::WorldLoading)
+            {
+                return std::make_unique<Client::Scenes::WorldLoadingScene>(context);
+            }
+            if (id == SceneId::Game)
+            {
+                return std::make_unique<Client::Scenes::GameScene>(context, nullptr);
+            }
+            if (id == SceneId::CharacterSelect)
+            {
+                return std::make_unique<ChoosingSelection>(world, cloth.random, choose);
+            }
+            return nullptr;
+        },
+        target, clock,
+        [&]() -> Expected<void, std::string>
+        {
+            if (std::exchange(returning, false))
+            {
+                Client::Scenes::ApplyReturnToSelection(resources);
+            }
+            return {};
+        },
+        log, [&world]() { return std::exchange(world.Runtime().orderedScene, std::nullopt); });
+    const InputState input;
+    const auto draw = [&]()
+    {
+        manager.Poll();
+        if (!manager.HoldsTheLastFrame())
+        {
+            manager.Render(0.0f);
+        }
+    };
+    ASSERT_TRUE(manager.Start(SceneId::WorldLoading).HasValue());
+    draw();
+    manager.Step(input);
+    ASSERT_EQ(manager.Current(), SceneId::Game);
+    draw();
+    ASSERT_EQ(target.frames.size(), 1u) << "el juego retiene con el contador de la carga";
+
+    returning = true;
+    draw();
+
+    EXPECT_EQ(manager.Current(), SceneId::Game) << "la orden entra en el próximo paso";
+    EXPECT_FALSE(world.Runtime().drawingEnabled);
+    EXPECT_EQ(world.Runtime().map, -1);
+    EXPECT_EQ(target.frames.size(), 1u) << "sin el mundo cargado, el juego no dibuja";
+
+    manager.Step(input);
+    ASSERT_EQ(manager.Current(), SceneId::CharacterSelect);
+    EXPECT_TRUE(manager.TakeTheSceneChange());
+    draw();
+    ASSERT_EQ(target.frames.size(), 2u);
+    EXPECT_TRUE(target.frames[1].presented);
+
+    choose = true;
+    manager.Step(input);
+    ASSERT_EQ(manager.Current(), SceneId::WorldLoading);
+    EXPECT_EQ(world.Runtime().warpCounter, Client::Scenes::WorldLoadingWait);
+    draw();
+    ASSERT_EQ(target.frames.size(), 3u);
+    EXPECT_EQ(target.frames[2].events.size(), 4u) << "el mosaico, otra vez";
+
+    manager.Step(input);
+    ASSERT_EQ(manager.Current(), SceneId::Game);
+    draw();
+    manager.Step(input);
+    draw();
+    EXPECT_EQ(target.frames.size(), 3u) << "el juego nuevo retiene con el contador de la carga";
+    world.Runtime().warpCounter = 31;
+    draw();
+    EXPECT_EQ(target.frames.size(), 3u) << "con 31 sigue el mosaico";
+
+    world.Runtime().warpCounter = 30;
+    draw();
+
+    ASSERT_EQ(target.frames.size(), 4u);
+    EXPECT_FALSE(target.frames[3].presented);
+    ASSERT_TRUE(manager.Failure().has_value());
+    EXPECT_TRUE(Contains(*manager.Failure(), "0x6371a0")) << *manager.Failure();
+    EXPECT_EQ(created[SceneId::WorldLoading], 2);
+    EXPECT_EQ(created[SceneId::Game], 2);
+    EXPECT_EQ(created[SceneId::CharacterSelect], 1);
 }
 } // namespace

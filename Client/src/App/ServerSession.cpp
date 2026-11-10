@@ -885,7 +885,7 @@ void ServerSession::OnInventoryReply(const Network::Packet& packet)
 // PostQuitMessage. Acá se acepta en cualquier estado con el GS, como el original, aunque el GS
 // solo la manda con el login aceptado (su cuenta corre con Connected >= 2). La conexión se cierra
 // sin el Closed, y lo que quede del lote (otro paquete, o el cierre del GS si llegó en la misma
-// lectura) no se recorre (Q-C106).
+// lectura) no se recorre (Q-C106). El 1 tampoco mira el estado ni la escena (ReturnToSelection).
 void ServerSession::OnLogoutResult(const Network::Packet& packet)
 {
     const auto result = Protocol::Connection::ReadLogoutResult(packet);
@@ -894,12 +894,16 @@ void ServerSession::OnLogoutResult(const Network::Packet& packet)
         m_log.Warning("se ignora la orden de salida del GameServer (F1 02): {}", Unreadable);
         return;
     }
+    if (result.Value() == Protocol::Connection::LogoutReturnsToSelection)
+    {
+        ReturnToSelection(packet.WasDecrypted());
+        return;
+    }
     if (result.Value() != Protocol::Connection::LogoutQuitsTheGame)
     {
-        // 1 es la selección y 2 la lista, que cambian de escena (Q-C79): la CL6 y la CL9. Con otro,
-        // el original no hace nada.
-        m_log.Warning("se ignora la orden de salida del GameServer (F1 02 con {}): MuRet solo sigue la de "
-                      "cerrar el juego, con 0",
+        // 2 es la lista, que cambia de escena (Q-C79): la CL9. Con otro, el original no hace nada.
+        m_log.Warning("se ignora la orden de salida del GameServer (F1 02 con {}): MuRet sigue la de "
+                      "cerrar el juego, con 0, y la de volver a la selección, con 1",
                       result.Value());
         return;
     }
@@ -907,6 +911,38 @@ void ServerSession::OnLogoutResult(const Network::Packet& packet)
     m_connection.Close();
     ++m_generation;
     SetState(SessionState::QuitOrdered);
+}
+
+// 0x4c2f5b: sin cifrar, el F1 03 00 F1 y nada más (Q-C211). Cifrado, 0x4c3626..0x4c390f: el sink limpia el
+// juego y deja la escena 4; el F3 00 sale en 0x4c3653..0x4c38e4 con el estado 0x32, que 0x4c3900 baja
+// a 0 (la escena espera la lista mientras esté antes de 0x33: 06, "La vuelta a la selección"); y 0x4c2480
+// manda el C1 03 31 de 0x419900 y, con la caja de 0x723c80 vacía, el de 0x4499b0 (Q-C214). El orden en el
+// cable es ese; lo del mundo no gasta nada que dependa de los paquetes. La lista vieja y la elección se
+// olvidan: la nueva las reemplaza (0x4c20a0), y hasta que llegue no hay qué elegir.
+void ServerSession::ReturnToSelection(bool encrypted)
+{
+    if (!encrypted)
+    {
+        m_log.Warning("la orden de volver a la selección (F1 02 con 1) no llegó cifrada: se le avisa al GameServer "
+                      "(F1 03) y se sigue igual");
+        Protocol::Outgoing report = Protocol::Connection::WriteClearLogoutReport();
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    if (!CheckApplication(m_eventSink.ApplyWorld(ReturnToSelectionReceived{}, *this)))
+    {
+        return;
+    }
+    m_log.Info("el GameServer ordenó volver a la selección (F1 02 con 1): se pide la lista de personajes");
+    m_characters.reset();
+    m_chosenSlot.reset();
+    Protocol::Outgoing request = Protocol::Character::WriteCharacterListRequest();
+    m_connection.Send(std::move(request.packet), request.delivery);
+    Protocol::Outgoing firstClose = Protocol::Connection::WriteWindowClose();
+    m_connection.Send(std::move(firstClose.packet), firstClose.delivery);
+    Protocol::Outgoing secondClose = Protocol::Connection::WriteWindowClose();
+    m_connection.Send(std::move(secondClose.packet), secondClose.delivery);
+    SetState(SessionState::WaitingCharacterList);
 }
 
 // El tick es el de GetTickCount en el original (0x4bee60), y las velocidades van con su ajuste.

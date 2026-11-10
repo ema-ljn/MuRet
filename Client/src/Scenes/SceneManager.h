@@ -25,6 +25,9 @@
 // La red no es de una escena: la ServerSession sigue viva del login a la selección y al juego. El
 // SceneManager la corre en cada Poll, también minimizada, con `pollNetwork`. Un error de aplicación
 // conserva el primer diagnóstico y bloquea red, pasos, transiciones y dibujo hasta el cierre normal.
+// Lo que la red ordena de la escena (el F1 02 con 1, que el original escribe en DAT_006d5dc8 mientras la
+// lee) lo toma `takeSceneOrder` después de cada Poll, y el próximo Step entra antes del paso, por la
+// misma tabla que un pedido de la escena.
 namespace Client::Scenes
 {
 // Arma la escena de un SceneId: main.cpp con las de verdad, los tests con dobles. nullptr si no
@@ -35,10 +38,12 @@ class SceneManager final : public App::ILoopClient
 {
 public:
     // `pollNetwork` corre en cada Poll: main.cpp propaga Online::Poll y, sin servidor, devuelve
-    // éxito sin red. El callback puede estar vacío. La fábrica, el frame, el reloj y el log viven
-    // más que el SceneManager.
+    // éxito sin red. `takeSceneOrder` corre después de un pollNetwork que salió bien y devuelve la
+    // escena que ordenó la red, una vez (main.cpp: WorldRuntime::orderedScene). Los dos pueden estar
+    // vacíos. La fábrica, el frame, el reloj y el log viven más que el SceneManager.
     SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClock& clock,
-                 std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log);
+                 std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log,
+                 std::function<std::optional<SceneId>()> takeSceneOrder = {});
     ~SceneManager() override;
 
     SceneManager(const SceneManager&) = delete;
@@ -52,7 +57,8 @@ public:
     // La red, también minimizada y antes de Start; sólo un fallo de Poll la detiene.
     // Un Enter fallido no corta la red mientras el host decide reintentar Start.
     void Poll() override;
-    // El paso de la escena y, si pide otra (Next), Request. Un paso sin pedido corta la seguidilla
+    // Si la red ordenó una escena, primero Request a esa, y el paso ya es de la nueva. Después, el paso
+    // de la escena y, si pide otra (Next), Request. Un paso sin pedido corta la seguidilla
     // de un pedido rechazado: si vuelve, se avisa otra vez. Si la escena falló (IScene::Failure), su
     // error queda en Failure y no pide nada.
     void Step(const Input::InputState& input) override;
@@ -97,6 +103,9 @@ private:
     Core::IClock& m_clock;
     std::function<Core::Expected<void, std::string>()> m_pollNetwork;
     Core::Log& m_log;
+    std::function<std::optional<SceneId>()> m_takeSceneOrder;
+    // La escena que ordenó la red y todavía no entró: la toma el próximo Step.
+    std::optional<SceneId> m_networkOrder;
     std::unique_ptr<IScene> m_scene;
     std::optional<SceneId> m_current;
     std::optional<std::string> m_failure;

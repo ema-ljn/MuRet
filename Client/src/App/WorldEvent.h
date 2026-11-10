@@ -14,6 +14,13 @@ struct ClearInventoryReceived
 {
 };
 
+// El F1 02 con 1 que llegó cifrado: lo que 0x4c2710 limpia del juego (0x4c3626..0x4c363a) y lo que hace
+// 0x4c2480 (0x4c390a), sin los paquetes, que manda la sesión (06, "La vuelta a la selección"). Corre en
+// cualquier escena: el 1 no mira cuál es.
+struct ReturnToSelectionReceived
+{
+};
+
 using WorldEvent = std::variant<Protocol::Character::CharacterSelectResult, Protocol::Character::InventoryList,
-                                ClearInventoryReceived>;
+                                ClearInventoryReceived, ReturnToSelectionReceived>;
 } // namespace Client::App

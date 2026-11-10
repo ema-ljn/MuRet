@@ -15,7 +15,8 @@ class ServerSession;
 // contemporáneo, pero el enlace puede estar Closed: Connection::Poll ya pudo observar el cierre
 // remoto mientras los paquetes anteriores aún se despachan en orden.
 // Apply no llama Poll, Start, ChooseServer, SubmitCredentials, ChooseCharacter, EnterWorld,
-// CreateCharacter, DeleteCharacter ni SetKeepaliveSpeeds, y no cambia escena. La referencia World
+// CreateCharacter, DeleteCharacter ni SetKeepaliveSpeeds, y no cambia escena: el F1 02 con 1 deja la
+// orden, que el SceneManager sigue en su próximo paso (Scenes::WorldRuntime::orderedScene). La referencia World
 // mutable se reserva a dos cosas: mandar el C1 04 BD 00 que pide la carga del mapa 34 (en la
 // respuesta del F3 03, fila 1 de la tabla de 0x4c3940 en 06, 0x4c421a), cuyo comando todavía no
 // está en la sesión, y PublishWorldEntry en el store del 0x3d de esa respuesta (fila 9,

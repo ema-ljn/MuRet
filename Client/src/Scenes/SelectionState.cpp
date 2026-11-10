@@ -175,7 +175,10 @@ Core::Expected<void, std::string> SelectionState::Construct(const Protocol::Char
                                                           : GameLogic::AppearanceOf(characterClass, 0, entry.equipment);
     slot.previousHad1c15 = appearance.pet == HeightOffsetPet;
     ++slot.revision;
-    if (entry.slot == 0)
+    // La cámara lee el héroe publicado (DAT_0743a170): el lugar 0 de WinMain hasta la primera entrada al
+    // mundo, y después de un F1 02 con 1, el lugar del juego, que la lista solo construye si cae entre los
+    // cinco (Q-C213).
+    if (static_cast<std::size_t>(entry.slot) == m_world.Runtime().hero)
     {
         input.hero = slot.position;
     }
@@ -219,7 +222,11 @@ void SelectionState::DrawSelection(World::GameCameraInput& input)
     {
         slot.position.z = CharacterSlotHeight;
     }
-    input.hero.z = CharacterSlotHeight;
+    // Fuera de los cinco (un héroe del juego, Q-C213), su Z queda.
+    if (m_world.Runtime().hero < SelectionActorCount)
+    {
+        input.hero.z = CharacterSlotHeight;
+    }
 }
 
 Core::Expected<void, std::string> SelectionState::Fail(std::string error)

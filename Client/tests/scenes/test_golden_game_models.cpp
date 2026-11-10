@@ -204,9 +204,10 @@ TEST_F(GoldenGameModels, EveryTextureTheLoadersAskForIsThere)
 
     ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
 
-    EXPECT_EQ(textures.loaded.size(), models.TextureSlots().ToLoad().size() + PlayerFixedTextures().size() +
-                                          GlowTextureSet.size() + ClothTextureSet.size() +
-                                          Client::Scenes::EffectTextureSet.size());
+    EXPECT_EQ(textures.loaded.size(),
+              models.TextureSlots().ToLoad().size() + PlayerFixedTextures().size() + GlowTextureSet.size() +
+                  ClothTextureSet.size() + Client::Scenes::EffectTextureSet.size() +
+                  Client::Scenes::DamageTextureSet.size() + Client::Scenes::FaunaJointTextureSet.size());
     for (const std::string& line : sink.lines)
     {
         EXPECT_EQ(line.find("una textura de un modelo"), std::string::npos) << line;

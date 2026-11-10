@@ -26,6 +26,12 @@ inline constexpr Sampling LinearRepeat{Filter::Linear, Wrap::Repeat};
 inline constexpr Sampling NearestRepeat{Filter::Nearest, Wrap::Repeat};
 } // namespace TextureSetsDetail
 
+// 0x61bd9f..0x61bdb4: FontTest en el slot1 con NEAREST/CLAMP, antes de la carga común.
+// Es el atlas que 0x621710 usa para las cifras y "miss" de 0x548efd, no la fuente dinámica del slot0.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 1> DamageTextureSet{{
+    {"Interface\\FontTest.tga", 0x01, TextureSetsDetail::NearestClamp},
+}};
+
 // Las de los pases de brillo, que 0x61ccb0 sube en su avance 0 y nadie suelta: Shiny01 para el 0x8,
 // Chrome01 para el 0x4 y Chrome02 para el 0x200, el 0x800 y el 0x1000 (06 § Los pases de brillo).
 // No son de una escena: las sube GameModels con los modelos, y quedan.
@@ -58,6 +64,15 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 12> EffectTextureSe
     {"Effect\\lightning2.jpg", 0x5d5, TextureSetsDetail::LinearClamp},
     {"Effect\\Spark01.jpg", 0x617, TextureSetsDetail::LinearClamp},
     {"Effect\\flareBlue.jpg", 0x62b, TextureSetsDetail::LinearClamp},
+}};
+
+// Recursos de los joints que ya crean los peces y pájaros: 61d858/61dab9/61dad8/61dce2.
+// Spark01 (0x617) ya está en EffectTextureSet. Las cintas sin creador portado no se cargan acá.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 4> FaunaJointTextureSet{{
+    {"Effect\\ScolTail.jpg", 0x697, TextureSetsDetail::LinearClamp},
+    {"Effect\\JointSpirit01.jpg", 0x613, TextureSetsDetail::LinearClamp},
+    {"Effect\\JointLaser01.jpg", 0x618, TextureSetsDetail::LinearClamp},
+    {"Effect\\Flare02.jpg", 0x610, TextureSetsDetail::LinearRepeat},
 }};
 
 // Las dos capas de la tela que sube 0x61ccb0 (0x61d616 y 0x61d64e) y nadie suelta: Monster\iui06.jpg en

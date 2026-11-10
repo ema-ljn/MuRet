@@ -1,10 +1,14 @@
 #include "Scenes/CharacterStep.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterSlots.h"
+#include "Scenes/SceneCameras.h"
+#include "Scenes/SceneId.h"
 #include "Scenes/WorldState.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainWalls.h"
@@ -13,6 +17,7 @@
 #include "support/GoldenDir.h"
 #include "support/PlayerActors.h"
 
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
@@ -20,20 +25,23 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
 
-// Client::Scenes::StepCharacters: 0x508f00 en el juego, después de la espera, con el héroe. El
-// TerrainWall, si cada personaje se ve y, del héroe, la zona segura de 0x505de0 con la celda lógica.
-// 06 § El paso de los personajes y § Caminar.
+// Client::Scenes::StepCharacters: 0x508f00. El TerrainWall, si cada personaje se ve, el 0x508ba0 de los que no
+// son el héroe y, del héroe del juego, la zona segura de 0x505de0 con la celda lógica; con la selección y el
+// login, hasta el cuerpo (0x4fd5f0) del primer vivo. 06 § El paso de los personajes, § El paso de los
+// personajes en la selección y el login y § Caminar.
 namespace
 {
 using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::CharacterSeen;
 using Client::Scenes::CharacterStepContext;
+using Client::Scenes::SceneId;
 using Client::Scenes::StepCharacters;
 using Client::Scenes::WorldState;
 using Client::World::TerrainPolygon;
@@ -42,6 +50,11 @@ constexpr std::uint32_t Seed = 0x2468ace1u;
 // Los dos accesos de 0x508f00 y los dos de 0x505de0 (4 rand() por cierre) y el rand() & 7 de 0x506cac.
 constexpr int WallDraws = 8;
 constexpr int SeenHeroDraws = WallDraws + 8 + 1;
+// Los dos accesos de 0x508ba0 con otro que el héroe, la X (0x412890) y la Y (0x40b800).
+constexpr int OtherCellDraws = 8;
+// La selección (0x633f20, World55) y el login (0x6349a0, World56).
+constexpr std::uint8_t SelectionMap = 54;
+constexpr std::uint8_t LoginMap = 55;
 
 CrtRandom RandomAfter(int draws)
 {
@@ -223,7 +236,8 @@ TEST(CharacterStepTest, TheSafeZoneIsTheLowBitOfTheCell)
 
 // 0x508f14..0x5091a0: el 0x02 sale de toda la grilla y vuelve en la celda lógica (los ocho bits bajos) de
 // cada personaje vivo, sin morirse (+0x389) y sin el 8 de +0x88, con sus dos accesos; si se ve, de los 400
-// primeros, vivos o no; el 401 no. Después, 0x508ea0 corta en el primer vivo que no es el héroe.
+// primeros, vivos o no; el 401 no. Después, el primer vivo que no es el héroe, el que se muere, sale de 0x508ba0
+// sin leer su celda (0x508bb6) y el paso corta en su cuerpo (0x4fd5f0).
 TEST(CharacterStepTest, TheWallsAndTheViewCoverTheFirstFourHundred)
 {
     GameWorld tested;
@@ -248,7 +262,7 @@ TEST(CharacterStepTest, TheWallsAndTheViewCoverTheFirstFourHundred)
 
     const auto stepped = tested.Step(Everything);
 
-    ASSERT_TRUE(HasError(stepped, "0x508ea0")) << (stepped.HasValue() ? "" : stepped.Error());
+    ASSERT_TRUE(HasError(stepped, "0x4fd5f0")) << (stepped.HasValue() ? "" : stepped.Error());
     EXPECT_NE(stepped.Error().find("lugar 1 "), std::string::npos) << stepped.Error();
     EXPECT_EQ(tested.Cell(200, 201), 0x0104);
     EXPECT_EQ(tested.Cell(1, 1), 0);
@@ -398,6 +412,209 @@ TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
             EXPECT_TRUE(HasError(stepped, probe.cut)) << (stepped.HasValue() ? "" : stepped.Error());
         }
         EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws).State());
+    }
+}
+// 0x508ba0 con otro que el héroe, quieto: la X lógica y la Y en dos accesos que se cierran (8 rand()), iguales a
+// la copia en claro (0x511290 escribe las dos), así que no busca camino (Q-C236). Después corta en su cuerpo
+// (0x4fd5f0), antes del héroe del lugar 42. En Lorencia y en Devias.
+TEST(CharacterStepTest, AnotherCharacterSpendsItsTwoCellAccessesAndStopsAtItsBody)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        SCOPED_TRACE(::testing::Message() << "mapa " << map);
+        GameWorld tested(map);
+        ActorState& other = tested.world.Actors()[3];
+        other = Client::Tests::UnarmedPlayer(2);
+        other.alive = true;
+        other.byte88 = 1;
+        other.cellX = 3;
+        other.cellY = 4;
+
+        const auto stepped = tested.Step(Everything);
+
+        ASSERT_TRUE(HasError(stepped, "0x4fd5f0")) << (stepped.HasValue() ? "" : stepped.Error());
+        EXPECT_NE(stepped.Error().find("lugar 3 "), std::string::npos) << stepped.Error();
+        EXPECT_TRUE(other.seen);
+        EXPECT_EQ(other.cellXAccesses, 0);
+        EXPECT_EQ(other.cellYAccesses, 0);
+        EXPECT_EQ(tested.Cell(3, 4), Client::World::CharacterWallBit);
+        EXPECT_EQ(tested.random.State(), RandomAfter((2 * WallDraws) + OtherCellDraws).State());
+    }
+}
+
+// Las salidas de 0x508ba0 antes de la celda: el que se muere sale (0x508bb6), salvo el 0x154, que toma la altura
+// del terreno (0x508e89); el que camina sigue su camino (0x508e27); el 0x159 sale sin leer la celda (0x508be3).
+// Una cuenta abierta no se vuelve a cifrar al cerrar. Cada uno, con el héroe vivo en el lugar 42, después del
+// TerrainWall.
+TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
+{
+    struct Case
+    {
+        std::string_view name;
+        std::uint16_t type;
+        std::uint8_t dying;
+        std::uint8_t movement;
+        std::uint8_t accesses;
+        std::string_view cut;
+        int draws;
+    };
+    constexpr std::uint16_t Player = Client::Data::Models::PlayerSkeletonModel;
+    for (const Case& probe : {Case{"se muere", Player, 1, 0, 0, "0x4fd5f0", WallDraws},
+                              Case{"se muere el 0x154", 0x154, 1, 0, 0, "0x508e89", WallDraws},
+                              Case{"camina", Player, 0, 1, 0, "0x508e27", 2 * WallDraws},
+                              Case{"el 0x159", 0x159, 0, 0, 0, "0x4fd5f0", 2 * WallDraws},
+                              Case{"con las cuentas abiertas", Player, 0, 0, 1, "0x4fd5f0", WallDraws}})
+    {
+        SCOPED_TRACE(probe.name);
+        GameWorld tested;
+        ActorState& other = tested.world.Actors()[3];
+        other.alive = true;
+        other.byte88 = 1;
+        other.type = probe.type;
+        other.dying = probe.dying;
+        other.movement = probe.movement;
+        other.cellXAccesses = probe.accesses;
+        other.cellYAccesses = probe.accesses;
+
+        const auto stepped = tested.Step(Everything);
+
+        EXPECT_TRUE(HasError(stepped, probe.cut)) << (stepped.HasValue() ? "" : stepped.Error());
+        EXPECT_EQ(other.cellXAccesses, probe.accesses);
+        EXPECT_EQ(other.cellYAccesses, probe.accesses);
+        EXPECT_EQ(tested.random.State(), RandomAfter(probe.draws).State());
+    }
+}
+
+// La selección (0x6342f9) y el login (0x634d13) sobre su mapa del repo, con el .att del mapa en el global del
+// TerrainWall (0x7d0d348, que 0x61a560 pisa), el mundo en curso y el héroe publicado en `hero`. Los vivos son
+// jugadores de pie en sus lugares, con las dos copias de la celda en (0, 0), como los deja 0x511290 desde
+// 0x517270 o 0x6349a0, y +0x88 en 1.
+struct SceneCharacters
+{
+    SceneCharacters(const std::filesystem::path& dataRoot, std::uint8_t map, std::size_t hero)
+    {
+        auto loaded = Client::World::LoadWorldTerrain(dataRoot, map);
+        if (!loaded.HasValue())
+        {
+            ADD_FAILURE() << loaded.Error();
+            return;
+        }
+        world.Map().terrain = std::move(loaded).Value();
+        world.Runtime().map = map;
+        world.Runtime().hero = hero;
+    }
+
+    ActorState& Place(std::size_t slot, const glm::vec3& position)
+    {
+        ActorState& actor = world.Actors()[slot];
+        actor = Client::Tests::UnarmedPlayer(1);
+        actor.alive = true;
+        actor.byte88 = 1;
+        actor.pk = 3;
+        actor.position = position;
+        return actor;
+    }
+
+    // Los cinco lugares de 0x4c20a0, con la z de 0x634680.
+    void PlaceTheFiveSlots()
+    {
+        for (std::size_t slot = 0; slot < Client::Scenes::CharacterSlots.size(); ++slot)
+        {
+            const glm::vec2 xy = Client::Scenes::CharacterSlots[slot].position;
+            Place(slot, glm::vec3(xy.x, xy.y, Client::Scenes::CharacterSlotHeight));
+        }
+    }
+
+    Client::Core::Expected<void, std::string> Step(SceneId scene)
+    {
+        return StepCharacters(CharacterStepContext{.world = world, .random = random, .scene = scene});
+    }
+
+    WorldState world;
+    CrtRandom random{Seed};
+};
+
+// El trapecio que deja el dibujo de la selección (0x63475c), el de su punto fijo.
+TerrainPolygon SelectionPolygon()
+{
+    return Client::World::TerrainPolygonOf(Client::World::CullingScene::CharacterSelect, SelectionMap,
+                                           Client::Scenes::SelectionCullingPoint,
+                                           Client::Scenes::SelectionCamera().angles.z);
+}
+
+// La selección con los cinco lugares y el héroe en el 0, con el trapecio de su dibujo: los cinco se ven (P-C46 b,
+// con la cuenta de MuRet) y marcan su celda lógica, la (0, 0), con 8 rand() cada uno. El 0x508ba0 del héroe sale
+// sin gastar (0x508bad) y el paso corta en su cuerpo (0x4fd5f0): 40 rand() hasta el corte.
+TEST_F(GoldenCharacterStep, TheSelectionStopsAtTheBodyOfTheHero)
+{
+    SceneCharacters tested(m_dataRoot, SelectionMap, 0);
+    tested.PlaceTheFiveSlots();
+    tested.world.Runtime().terrainPolygon = SelectionPolygon();
+
+    const auto stepped = tested.Step(SceneId::CharacterSelect);
+
+    ASSERT_TRUE(HasError(stepped, "0x4fd5f0")) << (stepped.HasValue() ? "" : stepped.Error());
+    EXPECT_NE(stepped.Error().find("lugar 0 "), std::string::npos) << stepped.Error();
+    for (std::size_t slot = 0; slot < Client::Scenes::CharacterSlots.size(); ++slot)
+    {
+        EXPECT_TRUE(tested.world.Actors()[slot].seen) << "lugar " << slot;
+    }
+    const std::uint16_t origin = tested.world.Map().terrain.attributes->cells[0];
+    EXPECT_EQ(origin & Client::World::CharacterWallBit, Client::World::CharacterWallBit);
+    EXPECT_EQ(tested.random.State(), RandomAfter(5 * WallDraws).State());
+}
+
+// Después de la vuelta, el héroe publicado sigue en el lugar del juego (Q-C213), que 0x510f70(−1) mató: los cinco
+// son otros, y el lugar 0 gasta además los 8 rand() de su 0x508ba0 antes de cortar en su cuerpo.
+TEST_F(GoldenCharacterStep, AfterTheReturnTheFirstSlotSpendsItsCellsBeforeItsBody)
+{
+    SceneCharacters tested(m_dataRoot, SelectionMap, 42);
+    tested.PlaceTheFiveSlots();
+    tested.world.Runtime().terrainPolygon = SelectionPolygon();
+
+    const auto stepped = tested.Step(SceneId::CharacterSelect);
+
+    ASSERT_TRUE(HasError(stepped, "0x4fd5f0")) << (stepped.HasValue() ? "" : stepped.Error());
+    EXPECT_NE(stepped.Error().find("lugar 0 "), std::string::npos) << stepped.Error();
+    EXPECT_EQ(tested.random.State(), RandomAfter((5 * WallDraws) + OtherCellDraws).State());
+}
+
+// El login con el personaje del lugar 2 en su lugar (0x6349a0, LoginCharacterTransform) y el héroe del lugar 0 sin
+// construir, con el trapecio de la .bss del primer paso (Q-C217): 8 rand() del TerrainWall, 8 de su 0x508ba0 y
+// corta en su cuerpo.
+TEST_F(GoldenCharacterStep, TheLoginStopsAtTheBodyOfItsCharacter)
+{
+    SceneCharacters tested(m_dataRoot, LoginMap, 0);
+    ActorState& login = tested.Place(2, glm::vec3(10603.0f, 14112.0f, 580.0f));
+
+    const auto stepped = tested.Step(SceneId::Login);
+
+    ASSERT_TRUE(HasError(stepped, "0x4fd5f0")) << (stepped.HasValue() ? "" : stepped.Error());
+    EXPECT_NE(stepped.Error().find("lugar 2 "), std::string::npos) << stepped.Error();
+    EXPECT_TRUE(login.seen);
+    EXPECT_FALSE(tested.world.Actors()[0].alive);
+    EXPECT_EQ(tested.random.State(), RandomAfter(WallDraws + OtherCellDraws).State());
+}
+
+// Fuera del juego el cuerpo del héroe no es frontera: con el héroe solo, en un mapa del juego (el 0 y el 2) y con
+// la selección o el login de escena, el paso corta en 0x4fd5f0 sin llegar a 0x505de0.
+TEST(CharacterStepTest, OutsideTheGameTheHeroStopsAtItsBody)
+{
+    for (const std::int32_t map : {0, 2})
+    {
+        for (const SceneId scene : {SceneId::CharacterSelect, SceneId::Login})
+        {
+            SCOPED_TRACE(::testing::Message() << "mapa " << map << ", " << Client::Scenes::SceneName(scene));
+            GameWorld tested(map);
+            tested.Hero().safeZone = 1;
+
+            const auto stepped =
+                StepCharacters(CharacterStepContext{.world = tested.world, .random = tested.random, .scene = scene});
+
+            EXPECT_TRUE(HasError(stepped, "0x4fd5f0")) << (stepped.HasValue() ? "" : stepped.Error());
+            EXPECT_EQ(tested.Hero().safeZone, 1);
+            EXPECT_EQ(tested.random.State(), RandomAfter(WallDraws).State());
+        }
     }
 }
 } // namespace

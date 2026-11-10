@@ -2287,7 +2287,10 @@ Leída en la CL6.R en el desensamblado de `c32bbd5f`: todo *estático* salvo lo 
 - ninguno elegido (`DAT_006d5edc` en -1) y la UI en el modo 4 (`0x65f4b0`): el aviso de `+0x8`
   (352 × 113, al centro), las ventanas de `+0x3d0` y `+0x7e8`, la de la selección (`+0x7f50`, en x
   22, abierta) y la de `+0x8498` (454 × 406, al centro); los botones, con `0x63eb40`;
-- `0x633f96`..`0x63417a`, la tabla de hash de `0x57630c8`: no se leyó;
+- `0x633f96`..`0x63417a`: abre el registro propio (`[0x7681eb4]`, por la tabla de hash de `0x57630c8`), pone en
+  0 `+0x6a` y `+0x6c..+0xab` de `[0x7681eb0]` y ocho dwords de `[0x7681eb4]` (`+0xb70`, de a `0x48`) y lo
+  cierra: con la cuenta en 0, `0x40b4d0` y sus 3.848 `rand()` (Q-C238; [El paso de los personajes en la
+  selección y el login](#el-paso-de-los-personajes-en-la-selección-y-el-login));
 - vacía el área de mensajes (120 líneas, `0x555190`) y, si alguno de los dos números de `pkt[5]`
   de la lista (`0x5767958`, `0x576795c`) no es 0, escribe una línea con `sprintf` y el texto 1240
   **como formato** (`0x63420a`).
@@ -2297,8 +2300,11 @@ Leída en la CL6.R en el desensamblado de `c32bbd5f`: todo *estático* salvo lo 
 
 ### La lógica
 
-Cada paso, `0x6342c0` anima (`0x508ea0`, la vista previa entre otros) y corre las rutas de la
-cámara (`0x633920`). Después:
+Cada paso, `0x6342c0` corre las olas (`0x5fbf60`), los objetos (`0x606560`), el caballo (`0x445230`), los
+personajes (`0x508f00`, `0x6342f9`), la vista previa (`0x508ea0(0x7437050)`, `0x634303`), los efectos
+(`0x52d220`), los joints (`0x53c670`), las partículas (`0x5446e0`) y las rutas de la cámara (`0x633920`), en
+ese orden ([El paso de los personajes en la selección y el
+login](#el-paso-de-los-personajes-en-la-selección-y-el-login)). Después:
 
 - **Enter:** con `[input + 0x31]` en 0, `GetAsyncKeyState(VK_RETURN) == 0x8001`, las ventanas de
   `+0x14`, `+0x84a4`, `+0x3dc` y `+0x7f4` cerradas y uno elegido de 0 a 4: el sonido `0x19`
@@ -2377,8 +2383,10 @@ punto (12.975; 15.423; 333), fijo, que no es ningún personaje. Después de los 
 arma el pase de la franja (`0x620db0(0, 0, w, 48)` con el ancho de `0x5bb8d0`, que no dibuja) y `0x63475c`
 llama a `0x5fbb00(w · [0x6ba070], &punto)`: el rango de bloques y, por `0x5fbeef`, el trapecio y el nivel
 efectivo globales de `0x5fb570` ([El trapecio completo](#el-trapecio-completo)). Nada de
-`0x634736..0x634769` saca `rand()`. La selección no dibuja el terreno: el trapecio lo leen el paso de sus
-personajes (`0x508f00` en `0x6342f9`, que MuRet no tiene: P-C46) y, después de la entrada al mundo, el
+`0x634736..0x634769` saca `rand()`. El trapecio lo leen el pase del terreno de la selección (`0x5fc260(0)` en
+`0x634844`: antes este documento decía que la selección no dibuja el terreno, y lo llama; [El paso de los
+personajes en la selección y el login](#el-paso-de-los-personajes-en-la-selección-y-el-login)), el paso de sus
+personajes (`0x508f00` en `0x6342f9`, que MuRet no corre: P-C50) y, después de la entrada al mundo, el
 primer paso del juego (Q-C216). Con la cámara de § Cámara, en el mapa 54, sus esquinas en celdas son (29,5;
 157,6), (126,4; 254,5), (179,1; 148,9) y (135,1; 104,9): con el margen −20 de los personajes pasan los
 centros de 11.281 celdas, que en Lorencia tienen 2.014 de la zona segura (el oeste del pueblo, con (133, 127)
@@ -3454,7 +3462,7 @@ bloque de la entrada, en orden (*estático*):
 | `0x6370f4` | `0x445230` | el caballo oscuro ([El caballo oscuro](#el-caballo-oscuro)), también en la espera | `Scenes::StepHelpers`, con la tabla de `WorldState::Helpers`, que en el juego queda vacía ([08](08-pendientes.md) P-C47) |
 | `0x6370f9..0x637105` | `0x557650`, `0x451d10`, `0x451c10` | contadores y listas, sin leer | — |
 | `0x63710a` | **`0x59adf0`**, el `MoveHero` | el héroe con el mouse ([Caminar](#caminar)); baja `0x77f3b04` y lo vuelve a leer (dos accesos, 8 `rand()`) y, con más de 30, sale; si no, escribe en `0x77f36d0` la capa 1 de la celda del héroe (`0x59e2ba`) y, con `0x57cfc0`, abre y cierra el registro propio: 3.848 `rand()` ([La tabla de protección](#la-tabla-de-protección)) | el contador (`GameScene::StepWaitCounter`), sin los gates de antes (P-C28 b); lo demás falta |
-| `0x63710f` | **`0x508f00` → `0x508ea0`** | por personaje: el trapecio en (x, y) · 0,01 con −20 a `+0x16c`, `0x508ba0`, `0x4fd5f0` (la animación y el alpha), `0x505de0` (la zona segura, la cabeza y las luces) y `0x42da90`; antes, el `0x02` del `TerrainWall`, con 8 `rand()` por personaje vivo. Corre también en la espera ([El paso de los personajes](#el-paso-de-los-personajes)) | después de la espera, `Scenes::StepCharacters`: el `TerrainWall`, `+0x16c` con el trapecio global (T11b) y, del héroe, `0x505de0` con la zona segura (T11); en la espera, frontera ([08](08-pendientes.md) P-C41 a) |
+| `0x63710f` | **`0x508f00` → `0x508ea0`** | por personaje: el trapecio en (x, y) · 0,01 con −20 a `+0x16c`, `0x508ba0`, `0x4fd5f0` (la animación y el alpha), `0x505de0` (la zona segura, la cabeza y las luces) y `0x42da90`; antes, el `0x02` del `TerrainWall`, con 8 `rand()` por personaje vivo. Corre también en la espera ([El paso de los personajes](#el-paso-de-los-personajes)) | después de la espera, `Scenes::StepCharacters`: el `TerrainWall`, `+0x16c` con el trapecio global (T11b) y, del héroe, `0x505de0` con la zona segura (T11), y de los demás, `0x508ba0` hasta el corte en su `0x4fd5f0` (CL7, hito 1); en la espera, frontera ([08](08-pendientes.md) P-C41 a) |
 | `0x637114` | `0x548f40` | los números de daño (`0x7609c0c`) | CL9.2 |
 | `0x637119` | `0x53eaf0` | la tabla `0x75fe028` (`0x51fc80`), sin leer | — |
 | `0x63711e` | **`0x52d220`** | los efectos con modelo | sí (`StepModelEffects`) |
@@ -3520,17 +3528,109 @@ Con el héroe visto, de pie y sin nada de eso, el paso de los personajes saca 8 
 con el trapecio global de `WorldRuntime` (T11b): en el primer paso después de la espera, el del último dibujo
 de la selección (Q-C216), y sin ningún dibujo antes, los ceros de la .bss (Q-C217). Porta el `TerrainWall`,
 `+0x16c` de los 400, la celda lógica y, del héroe, `0x505de0` hasta su final, con su `rand() & 7`. Corta con
-error, en el orden del original: en el mapa 30 (`0x412140`), sin el mapa cargado (`0x508f14`), con otro
-personaje vivo (`0x508ea0`), con otro modelo
+error, en el orden del original: en el mapa 30 (`0x412140`), sin el mapa cargado (`0x508f14`), en el
+`0x508ba0` de otro personaje vivo (el `0x154` que se muere, `0x508e89`, y el que camina, `0x508e27`), en el
+cuerpo (`0x4fd5f0`) de otro vivo, después de los 8 `rand()` de su `0x508ba0` (Q-C236), con otro modelo
 que el `0x20a` (`0x505e0b`), con la luz de una mano (`0x5f9780`), en los mapas 7 (`0x506d01`) y 9
 (`0x506d8b`), en las acciones `0x44` y `0x45` (`0x506e5d`) y `0x96` (`0x506f62`) y en las de los pasos
 (`0x508668`); el `0x6f4` de los mapas 24 a 29 y 36 no se alcanza sin cortar antes en los pasos. Son
-frontera, como las de T8, porque corren también en la espera: `0x4fd5f0` (con su `rand()` de `0x4fd7e4`,
-por lo menos), la cabeza del héroe y `0x52e500` (P-C44). En la espera, `0x508f00` entero sigue siendo
+frontera, como las de T8, porque corren también en la espera: el `0x4fd5f0` del héroe (con su `rand()` de
+`0x4fd7e4`, por lo menos), la cabeza del héroe y `0x52e500` (P-C44); en las otras escenas
+(`CharacterStepContext::scene`), el `0x4fd5f0` del héroe también corta. En la espera, `0x508f00` entero sigue siendo
 frontera (P-C41 a). Tests: `CharacterStepTest`, `GoldenCharacterStep.TheSafeZoneFollowsTheLogicalCellAhead`,
 `GameSceneDrawTest.TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection` y
 `WithoutAPreviousDrawTheFirstStepSeesWithTheTrapezoidOfTheBss`, y, de la selección al primer frame del juego,
 `WorldEntryTest.TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw`.
+
+### El paso de los personajes en la selección y el login
+
+`0x508f00` corre también desde la lógica de la selección y la del login, con el trapecio global del último
+`0x5fb570` (Q-C216), el que dejó el dibujo anterior de la escena. Leído en el desensamblado de `c32bbd5f`
+(CL7, hito 1): todo *estático*, salvo lo que se marca.
+
+**Dónde.** La selección (`0x6342c0`), con el estado en `0x33` o más (`0x6342cb`) y, la primera vez, después de
+`0x633f20` (`0x6342de..0x6342e5`), en este orden: `0x5fbf60` (las olas), `0x606560` (los objetos), `0x445230`
+(el caballo), **`0x508f00`** (`0x6342f9`), **`0x508ea0(0x7437050)`** (`0x634303`, la vista previa de la ventana
+de crear, fuera de los 400), `0x52d220`, `0x53c670`, `0x5446e0` y `0x633920` (las rutas de la cámara); después,
+el input (`0x640850`). El login (`0x634c60`): `0x6349a0` la primera vez (`0x7d3a13d`), el gesto del personaje
+del lugar 2 (`0x634c99..0x634ced`, el `rand() % 6` de § Lo demás del login) y, con la ventana de `+0x4578`
+cerrada (su byte `+0x4584`, `0x634cf0..0x634cfd`; la de créditos, según § Lo demás del login), `0x5fbf60`,
+`0x606560`, `0x445230`, `0x530490` (las brasas), **`0x508f00`** (`0x634d13`), `0x52d220`, `0x53c670`,
+`0x5446e0` y `0x633920`. Con esa ventana abierta no corre nada de eso, tampoco los personajes (Q-C237).
+
+**Quiénes.** Los dos lazos de `0x508f00` recorren los 400 (Q-C208). En la selección están vivos los lugares de
+la lista (`0x4c20a0` → `0x517270` → `0x511290`, que les deja `+0x88` en 1 y las dos copias de la celda en
+(0, 0): la cifrada, `+0x41c` y `+0x420`, y la de `+0x39a` y `+0x39b`). El héroe publicado es el lugar 0 hasta la
+primera entrada al mundo; después de una vuelta, el lugar del juego (Q-C213), que `0x510f70(−1)` mató salvo
+que su clave sea `0xffff` (Q-C212): ahí los cinco son otros. En el login, el lugar 2 (`0x6349a0`); el lugar 0
+está vivo solo si alguna lista lo construyó antes.
+
+**`0x508ea0` con cada vivo** hace lo mismo que en el juego (§ El paso de los personajes): `+0x16c` otra vez,
+`0x508ba0`, `0x4fd5f0`, `0x505de0` y `0x42da90`.
+
+- **`0x508ba0`** (`0x508ba0..0x508e98`). Con el héroe publicado sale (`0x508bad`). Con otro: muriéndose
+  (`+0x389`) sale, y el `0x154` antes toma la altura de `0x5f93c0` (`0x508e76..0x508e8e`); caminando (`+0x378`)
+  sigue su camino (`0x508e26..0x508e6e`: `0x4f37c0`, `0x4ea270(c, 1)` y, si terminó, `+0x378` en 0, `0x4f2250`
+  y el ángulo z desde `+0x388`; después, `0x508a80`); con `+0x3e5` sale; el `0x159` sale. Si no, lee la X
+  lógica (`+0x41c`) en un acceso que se cierra con `0x412890` y la compara con `+0x39a`, y la Y (`+0x420`) en
+  otro que se cierra con `0x40b800`, contra `+0x39b`: con las dos iguales sale en `0x508cfb`, con 8 `rand()` si
+  las dos cuentas quedan en 0. Con la X distinta no lee la Y; con una distinta, lee otra vez la Y y la X (8
+  más) y busca el camino con `0x4eac00`, que con éxito pone `+0x378` en 1 (Q-C236). Los de la lista y el del login tienen las dos copias
+  iguales: gastan 8 por paso.
+- **`0x4fd5f0`** (`0x4fd5f0..0x5054b3`, 32 KB y un solo `ret`). Antes de su primer `rand()`: con el tipo
+  `0xc5`, el nombre y `+0x1d6` a `0x4381f0`; el modelo compartido (posición, escala y acción, `0x4fd69b..0x4fd6ef`), `0x4fbe10`, `0x4fc450`,
+  `0x4fb380`, `0x4fb9e0`, el alpha (`0x4e9980`, `0x4fd72e`), `+0x3d8` (`0x4fd736..0x4fd75e`), la animación
+  (`0x4fcd00`, `0x4fd770`) y, muriéndose, `+0x389` + 1 y `0x4f5660` desde 15 o en los mapas 11 a 17 con
+  `+0x1a1`. Después, el `rand() % 6` sin condición de `0x4fd7e4`, y en el resto 27 llamadas directas más a
+  `rand()` y 54 a `0x518cf0` (los efectos), según el tipo, la clase, el equipo y el mapa. Del personaje del login
+  se leyó lo que saca (§ Los efectos del login: el de `0x4fd7e4`, el de `0x432bd0` desde `0x4fcee0` y el
+  cuervo, `0x416a20`); con el equipo de cada personaje de la lista y con el `0xa9` de la vista previa, no.
+- **`0x505de0`**, como con el héroe del juego, con dos diferencias: con otro que el héroe la cabeza sortea
+  (`0x5068eb`, `rand() % 32` y dos más si da 0; § Lo demás del login), y el `0x607` del mapa 7 es solo de la
+  escena 5 (`0x506cf8`). Visto, saca los 8 de la celda lógica y el `rand() & 7` (Q-C207).
+- `0x42da90`, fuera del mapa 30, devuelve 0.
+
+**La vista previa** (`0x7437050`). `0x633f20` la arma con `0x511290(…, 0xa9, 0, 0, 0)`: viva, con las dos
+copias de la celda en (0, 0). `0x508ea0` la pasa en cada paso de la selección después de los 400, también con
+la ventana de crear cerrada: su `+0x16c` con el trapecio, los 8 `rand()` de su `0x508ba0` y lo que hagan
+`0x4fd5f0` y `0x505de0` con el `0xa9`. Con la ventana abierta la avanza además `0x63e430` (D-C4).
+
+**Lo que saca por paso**, hasta donde está leído. La selección con N personajes de la lista, el héroe entre
+ellos: 8·N del `TerrainWall`; 8·(N − 1) de los `0x508ba0`; por cada uno, lo de su `0x4fd5f0` (al menos 1) y,
+visto, lo de su `0x505de0` (8 de la celda, la cabeza de los que no son el héroe, 1 o 3, y el `rand() & 7`); y la
+vista previa, 8 más lo de su `0x4fd5f0` y su `0x505de0`. Después de una vuelta, con el héroe fuera de los cinco,
+8·N de los `0x508ba0`. El login con su personaje: 8 + 8, lo de `0x4fd5f0` y lo de `0x505de0`.
+
+**El dibujo de la selección llama al terreno.** `0x634844` llama a `0x5fc260(0)` (`edi` en 0 desde `0x6346e2`),
+después de la luz del elegido y antes de los objetos (`0x6046a0`) y de los personajes (`0x510d00`): el
+corrimiento del agua, el pase del terreno (`0x5fc190` con `0x7d0d31c` en 0) en el rango y el trapecio que dejó
+`0x63475c`, el del pasto (con `0x6c9d58`, que `0x5f87b0` pone en 1 en el 54, `0x5fc332..0x5fc353`) y las
+marcas del suelo (`0x549130`, `0x5fc365`). Cuántas celdas salen y si se ven, sin cotejar con la traza de la
+selección (P-C50). MuRet no dibuja el mundo en la selección (`EmptyWorldView`).
+
+**Lo que saca la entrada** (`0x633f20`), antes del primer paso, sin mirar lo que saquen `0x61ca30`, `0x65f4b0`
+y `0x5bbe10`. `0x61a560(0x36)`: en el 54 no hay especiales
+(`0x61a23c[0x36]` es el caso 15, el salto por defecto a `0x618923`); los 65.536 del corrimiento del pasto
+(`0x5f8300`, Q-C146) y lo que saque `0x606660` con los objetos de `EncTerrain55.obj` (sin leer). Después,
+`0x511290` con la vista previa (sus `rand()` de `0x511541` y `0x511824` y sus cierres de `0x412890`, los que
+`Scenes::ConstructActor` porta para el juego) y `0x633f96..0x63417a`, el registro propio: 3.848 si su cuenta
+queda en 0 (Q-C238). Antes, cada `0x517270` de la lista corre su `0x511290`, con sus `rand()`.
+
+**En MuRet** (CL7, hito 1). `Scenes::StepCharacters` recibe la escena (`CharacterStepContext::scene`) y porta
+`0x508ba0` con los que no son el héroe: las salidas de antes de la celda y los dos accesos, con sus 8 `rand()`.
+Guarda una sola copia de la celda, así que las dos siempre coinciden y el camino no se alcanza. Corta con error
+en `0x508e89` (el `0x154` que se muere), en `0x508e27` (el que camina) y en el cuerpo (`0x4fd5f0`) del primer
+vivo, salvo el héroe del juego, que sigue siendo frontera (P-C44 a). **La selección y el login no lo llaman:**
+todos sus vivos llegan a `0x4fd5f0`, que no está portado, y el corte sería terminal (`IScene::Failure`) en el
+primer paso con la lista; su `rand()` sigue corrido (P-C50). Las dos escenas corren por su cuenta, en ese
+lugar del paso, piezas de `0x4fd5f0` y `0x505de0`: la animación (`0x4fcd00`) y, en el login, el cuervo
+(`0x416a20`) y la cabeza (§ Los efectos del login). Hasta ese corte, la selección con los cinco y el
+héroe en el lugar 0 saca 40 `rand()` (el `0x508ba0` del héroe sale sin gastar), después de una vuelta 48 y el
+login 16; con el trapecio de su dibujo, los cinco lugares se ven (*simulado*, con el port:
+`GoldenCharacterStep.TheSelectionStopsAtTheBodyOfTheHero`, `AfterTheReturnTheFirstSlotSpendsItsCellsBeforeItsBody`
+y `TheLoginStopsAtTheBodyOfItsCharacter`). Las salidas de `0x508ba0`, en
+`CharacterStepTest.AnotherCharacterSpendsItsTwoCellAccessesAndStopsAtItsBody` (Lorencia y Devias),
+`TheExitsOf508ba0BeforeTheCell` y `OutsideTheGameTheHeroStopsAtItsBody`.
 
 ### El dibujo del juego
 

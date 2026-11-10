@@ -207,6 +207,10 @@ enum class ObjectDrawKind : std::uint8_t
     // El remolino 0x5a del mapa 0x37: 0x4ecc30(0, 0x80, 1, blendMesh, 1, U, V, −1), la malla 0 sola,
     // con GL_ZERO, GL_ONE_MINUS_SRC_COLOR, en blanco y sin luz.
     SubtractiveMesh,
+    // El 0x69 del mapa 0 (Waterspout, 0x600a4a): cuatro 0x4ecc30 sueltos en vez de RenderBody, las mallas
+    // 0 a 2 con el blendMesh y la luz del objeto y U = V = 0, y la 3 con el blendMesh 3, la luz y la U y
+    // la V del objeto.
+    Waterspout,
 };
 
 struct ObjectDraw
@@ -224,6 +228,20 @@ struct ObjectDraw
 
 // El dibujo de `object` con `terrainLight`, la del terreno en su lugar (0x5f99e0).
 [[nodiscard]] ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std::uint8_t map);
+
+// La fuente de Lorencia (Waterspout01): el único caso del mapa 0 en 0x6002e0 (0x600a4a) y uno de los dos
+// de 0x602ed0 (0x603011). Su alta le pone el blendMesh en 3 (06 § Lo propio de Lorencia).
+inline constexpr std::int16_t Waterspout = 0x69;
+
+// 0x603011, el caso del 0x69 en 0x602ed0, después del rand() común de 0x602ef4 (*estático*): la luz del
+// blendMesh (+0x68) en 1, la V (+0x70) con el reloj del mundo `worldClock` (0x5767b88), −(ftol(T) % 1000) ·
+// 0,001f como el 0x76 del paso, y un rand(): impar, nada más. Par, dos gotas 0x5f2 (0x53fe70) en los
+// huesos 1 y 4 (0x68b184c y 0x68b18dc), cada una a (rand() % 32 − 16, −20 u −80, rand() % 32 − 16) del
+// hueso. MuRet no tiene las partículas del juego (0x743a198): corta en la primera (0x6030c7) después de
+// sus dos rand(). Sin un ftol acreditado del reloj, corta en 0x60301e con la luz ya en 1, sin tocar la V
+// ni sacar rand().
+[[nodiscard]] Core::Expected<void, std::string>
+StepTheWaterspoutFrame(WorldObject& object, Render::Models::CrtRandom& random, float worldClock);
 
 // El sector de 16 × 16 celdas de un objeto, de 0 a 15: el que le dio 0x606660 con la posición del
 // archivo por 0,000625f, el producto sin redondear (la x87) y el dword bajo de ftol. Fuera de la grilla,

@@ -935,6 +935,9 @@ std::vector<MeshDraw> ObjectMeshDraws(const IModelLibrary& models, const DrawnOb
     return draws;
 }
 
+// La última de las cuatro mallas de la fuente de Lorencia (0x600ad6), que también es su blendMesh.
+constexpr std::int16_t WaterspoutLastMesh = 3;
+
 // Lo que 0x6002e0 le agrega al caballo después de su RenderBody (0x6002e0, el caso 0xbf).
 constexpr std::size_t DarkHorseFirstChromeMesh = 12;
 constexpr std::size_t DarkHorseLastChromeMesh = 15;
@@ -984,6 +987,32 @@ void DrawSubtractiveMesh(Render::ModelBatch& batch, const IModelLibrary& models,
         }
         Triangles(batch, draw, {draw.texture, Render::ModelBlend::Subtractive, true},
                   Render::Color{1.0f, 1.0f, 1.0f, 1.0f}, PassUv{std::nullopt, object.state.uv});
+    }
+}
+
+void DrawWaterspout(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                    Core::Duration frameClock)
+{
+    // 0x600a62..0x600abd: las mallas 0 a 2, con +0x64, +0x68 y U = V = 0.
+    ObjectState plain = object.state;
+    plain.uv = glm::vec2{};
+    plain.hiddenMesh = Render::Models::NoHiddenMesh;
+    // 0x600ac2..0x600adf: la 3, con el blendMesh 3 fijo, +0x68, +0x6c y +0x70.
+    ObjectState last = object.state;
+    last.blendMesh = WaterspoutLastMesh;
+    last.hiddenMesh = Render::Models::NoHiddenMesh;
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    for (MeshDraw draw : ObjectMeshDraws(models, object, frameClock, skinned))
+    {
+        const auto index = static_cast<std::int16_t>(draw.index);
+        if (index > WaterspoutLastMesh)
+        {
+            continue;
+        }
+        draw.object = index == WaterspoutLastMesh ? &last : &plain;
+        draw.blends = Blends(*draw.mesh, draw.object->blendMesh);
+        draw.scrolls = index == draw.object->blendMesh || draw.role.scrollScript;
+        DrawBase(batch, draw);
     }
 }
 

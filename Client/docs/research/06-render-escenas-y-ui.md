@@ -1219,8 +1219,8 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   el polvo (en el mapa 10, antes de su primer `rand()`), el aliento, la acción 3, el `+8` del jinete,
   el dibujo con `+0x78 & 0x4000` y los mapas `0x12` a `0x17` del dibujo. En el juego no se crea
   ninguno: `0x5bc740` corta antes con el `0x1a04` (`0x4225d0`, P-C36) y los demás que lo crean no están
-  portados; la tabla vacía no hace nada. `DrawHelpers` no corre: el dibujo del juego corta antes, en los
-  objetos o en los efectos del suelo (`0x6374d3`). La tabla no lleva los caballos del login ni de la selección (P-C47).
+  portados; la tabla vacía no hace nada. `DrawHelpers` no corre: el dibujo del juego corta antes, a más
+  tardar en los ítems del piso (`0x6374fe`). La tabla no lleva los caballos del login ni de la selección (P-C47).
 
 ### La tela de la clase 4
 
@@ -2961,8 +2961,9 @@ al mismo lugar, `0x505820` vuelve a correr con el héroe reconstruido y la entra
 cuervos ni telas que soltar, ni la lista `0x7245c8`. Los tiles los sube el dibujo del juego por número
 de mapa (`TerrainTiles`, con el pasto), y los modelos de los objetos, `WorldModels`: con el mismo mapa
 conserva los que ya subió, que salen de los mismos archivos; hoy el primer frame del juego corta en los
-objetos o justo después (`0x6374ce`, `0x6374d3`) y la escena no vuelve a dibujar (T8). Lo que pide la
-VM, P-C43.
+objetos (`0x6374ce`) o, en el 0 y el 2, en los efectos del suelo, con los dos `0x61f` de llegada
+(`0x52dc3b`, Q-C278), o antes, en las gotas del `0x69` de Lorencia (`0x6030c7`), y la escena no vuelve a
+dibujar (T8). Lo que pide la VM, P-C43.
 
 ### El equipo propio en el personaje
 
@@ -3069,9 +3070,10 @@ llena). Los dos globales son `WorldRuntime::fullSetScan`, que arranca en 0 y 0 y
 Lo escriben `ApplyActorEquipment` con el héroe publicado y el dibujo del login y de la selección
 (`ScanTheDrawnCharacter`), con cada personaje en el orden del pool, antes de `DrawCharacter`, una vez
 por frame del original (`OriginalFrameCarry`, como la tela) y solo si están las acciones de
-`Player.bmd`. MuRet no dibuja los personajes del juego: `GameScene::PrepareFrame`, en un frame que
-llega a `0x510d00`, lo deja sin valor (`nullopt`), y `0x550990` corta con un error si lo lee antes de
-otro `0x505820` (P-C40). El bloque del dibujo que decide lo que devuelve no está portado.
+`Player.bmd`. MuRet no dibuja los personajes del juego (corta en el primero visto, `0x510ea1`):
+`GameScene::PrepareFrame`, en un frame que llega a `0x510d00`, lo deja sin valor (`nullopt`), y
+`0x550990` corta con un error si lo lee antes de otro `0x505820` (P-C40). El bloque del dibujo que decide
+lo que devuelve no está portado.
 
 ### Los stats del registro propio
 
@@ -4086,14 +4088,14 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 | `0x63741d` | en el mapa 30, su luz | | corta (el 30 no carga) |
 | `0x6374aa` | `0x620480(mouse x, mouse y, &0x7d366c0, 1)` | el rayo del mouse, con el mouse de 640 × 480 vuelto a la pantalla en enteros (`0x620486..0x6204b0`) | `GameScene::MouseRay`, para [Caminar](#caminar) |
 | `0x6374c6` | **`0x5fc260(0)`**, si `0x437850()` es falso y el mapa no es 10 | el terreno: el pase opaco, el de alfa, **el del pasto** y `0x549130` | `LoadedWorld::DrawTerrain`, **sin el pasto ni las marcas** (P-C48 b, P-C49); el juego dibuja el primer pase, el del pasto y las marcas del suelo (`0x5fc365`); en el mapa 7 corta antes, en su agua (`0x5fa985`, `0x5fa4b0`), y en los 18 a 23 antes de la primera celda (`0x5fa83f`, Q-C229). Abajo, por dentro |
-| `0x6374ce` | **`0x6046a0` → `0x602e90` (`0x5ffdf0`, `0x6002e0`) y `0x602ed0`** | los objetos del `.obj` por sector ([Los objetos del juego](#los-objetos-del-juego)) | `DrawWorldObjects`, con los casos del 55; en el juego, `DrawGameWorldObjects` en el 0 y el 2, hasta el primer caso que no tiene (el `0x69` del 0 corta en `0x600a4a`); los demás mapas que llegan, el 10 incluido, **cortan** acá |
-| `0x6374d3` | **`0x52dc20`** | los efectos del suelo (`0x61d`, `0x61e`, `0x61f`…), con `0x5fb2f0` | no: el 0 y el 2 **cortan** acá si pasan los objetos |
-| `0x6374d8` | **`0x446b60`** | los pájaros, con su sombra | no |
-| `0x6374dd` | **`0x510d00` → `0x50ba30`** | los personajes vistos (`+0x16c`), por índice; `0x42afe0` para los jugadores, solo en el mapa 30 | `DrawCharacter`, con la luz del login |
+| `0x6374ce` | **`0x6046a0` → `0x602e90` (`0x5ffdf0`, `0x6002e0`) y `0x602ed0`** | los objetos del `.obj` por sector ([Los objetos del juego](#los-objetos-del-juego)) | `DrawWorldObjects`, con los casos del 55; en el juego, `DrawGameWorldObjects` en el 0 y el 2, con el `0x69` del 0 (`DrawWaterspout`) hasta sus gotas (`0x6030c7`) y hasta el primer caso que no tiene; los demás mapas que llegan, el 10 incluido, **cortan** acá |
+| `0x6374d3` | **`0x52dc20`** | los efectos del suelo (`0x61d`, `0x61e`, `0x61f`…), con `0x5fb2f0` ([Después de los objetos](#el-dibujo-del-juego)) | `Scenes::DrawGroundEffects`: con la tabla vacía no hace nada; con un efecto vivo **corta** en `0x52dc3b` (Q-C278) |
+| `0x6374d8` | **`0x446b60`** | los pájaros, con su sombra | no: MuRet no tiene la tabla (`0x7d2dca8`) ni quien la llena, y el pase no hace nada (Q-C277) |
+| `0x6374dd` | **`0x510d00` → `0x50ba30`** | los personajes vistos (`+0x16c`), por índice; `0x42afe0` para los jugadores, solo en el mapa 30; al final, las puertas (`0x42da60`, Q-C276) | `DrawCharacter`, con la luz del login; en el juego, `Scenes::DrawGameCharacters`: el héroe con `+0x1d8` & 4 y las puertas, y **corta** en el primero vivo y visto (`0x510ea1`) |
 | `0x6374ed` | `0x5fc260(1)` con `0x77f3b18` | el picking del terreno con esa bandera (*inferido*: el editor) | — |
-| `0x6374fe` | `0x608a00`, con `0x7d36899` en 0 | los ítems del piso | CL9.3 |
+| `0x6374fe` | `0x608a00`, con `0x7d36899` en 0 | los ítems del piso | CL9.3: el 0 y el 2 **cortan** acá si pasan los personajes |
 | `0x637503` | **`0x446f00`** | los peces, con su sombra | no |
-| `0x637508` | `0x4453b0` | el caballo oscuro, con el `rand() % 30` de `0x445336` por cada uno visto | `Scenes::DrawHelpers` (con `DrawDarkHorse`), sin llamar: el juego corta antes, en los objetos o en `0x6374d3` |
+| `0x637508` | `0x4453b0` | el caballo oscuro, con el `rand() % 30` de `0x445336` por cada uno visto | `Scenes::DrawHelpers` (con `DrawDarkHorse`), sin llamar: el juego corta antes, a más tardar en los ítems del piso (`0x6374fe`) |
 | `0x63750d` | **`0x5306a0`** | las hojas | `DrawLeaves` |
 | `0x637516` | `0x53c6a0(local_8)`; en el mapa 0, con 0 | los joints | no (el login no tiene) |
 | `0x63751d` | **`0x52d620(0)`** | los efectos con modelo | `DrawModelEffects` |
@@ -4123,12 +4125,15 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 | `0x5fc36a` | el depth test de vuelta (`0x620850`) | sí |
 
 **Hasta dónde llega MuRet** (T8 del hito 1 de la CL7, el pase del pasto, las marcas del suelo y, en
-el hito 3, los objetos del 0 y del 2). `GameScene::Render` corre lo de arriba en ese orden y corta con
-error en la primera etapa que no tiene: en el 0 y el 2, adentro de los objetos (el `0x69` de Lorencia
-en `0x600a4a` y los casos de `0x602ed0`, [Los objetos del juego](#los-objetos-del-juego)) o, si los
-pasa, en los efectos del suelo (`0x6374d3`); en los demás mapas que carga, en los objetos (`0x6374ce`),
-salvo el 6 (la cámara, `0x635b5c`) y el 7 (su agua, `0x5fa985`). Antes dibuja el pase del pasto y las
-marcas del suelo, que no gastan `rand()`; los objetos, uno por objeto visto que llega a `0x602ed0`.
+el hito 3, los objetos del 0 y del 2 y lo que les sigue hasta los ítems del piso). `GameScene::Render`
+corre lo de arriba en ese orden y corta con error en la primera etapa que no tiene: en el 0 y el 2,
+adentro de los objetos (los casos de `0x602ed0` que no tiene y las gotas del `0x69` de Lorencia,
+`0x6030c7`, [Los objetos del juego](#los-objetos-del-juego)), en un efecto del suelo vivo (`0x52dc3b`),
+en un personaje vivo y visto (`0x510ea1`) o, si pasa todo eso, en los ítems del piso (`0x6374fe`); en
+los demás mapas que carga, en los objetos (`0x6374ce`), salvo el 6 (la cámara, `0x635b5c`) y el 7 (su
+agua, `0x5fa985`). Antes dibuja el pase del pasto y las marcas del suelo, que no gastan `rand()`; los
+objetos, uno por objeto visto que llega a `0x602ed0` y el `rand() % 2` del `0x69`; los efectos del suelo,
+los pájaros y los personajes, ninguno mientras no corta (abajo).
 Con la tabla de la .bss las marcas no dibujan nada, y una marca prendida, que MuRet no sabe crear,
 corta en `0x549152` (P-C49). Los mapas 18 a 23, que
 `LoadMap` ya corta en `0x447d70`, cortan antes de la primera celda (`0x5fa83f`, Q-C229) si llegan con el
@@ -4138,10 +4143,52 @@ Lorencia, con el héroe y la cámara de la traza, son las 329 celdas de la traza
 (`GoldenTerrainTrace.TheGameSceneDrawsTheCellsOfLorencia`) y 25 quads de `TileGrass01` de z 165 a 293,
 como en la traza (`GameSceneDrawTest.TheReferenceMapsDrawTheTerrainTheGrassTheGroundMarksAndTheObjects`;
 la cuenta y las alturas, *verificado* contra lo que dice [El pasto](#lo-propio-de-lorencia) de la traza;
-cada vértice, sin comparar, P-C48 a). Lo que falta, [08](08-pendientes.md) P-C41, P-C48, P-C49 y P-C53.
+cada vértice, sin comparar, P-C48 a). Lo que falta, [08](08-pendientes.md) P-C41, P-C48, P-C49, P-C53 y
+P-C55.
 
 **Las marcas del suelo** (`0x549130`): la tabla de `0x760cab0`, quién la llena, cómo envejece y cómo se
 dibuja, en [Las marcas del suelo](#las-marcas-del-suelo).
+
+**Después de los objetos** (`0x6374d3..0x6374fe`; *estático*, leído en el hito 3 de la CL7; las cuentas
+de MuRet, *simulado*):
+
+- **Los efectos del suelo** (`0x52dc20`). Recorre los 200 lugares de los efectos con modelo
+  (`0x7491fd8`) y solo mira los vivos con `+0x16c`: con cada uno, un `rand()` (`0x52dc46`), `0x620a90` y
+  el caso de su tipo (`0x61d`, `0x5de`, `0x5d5`, `0x61e`, `0x61f`, `0x636` y `0x6eb`), con los calcos de
+  `0x5fb2f0`. `+0x16c` lo escriben `0x52d620` (`0x52d64d`: la esfera de 400 contra el frustum, con
+  `0x5fbf00`), el dibujo de los efectos con modelo, que en el juego va después (`0x63751d`), y `0x52b634`,
+  que lo pone en 0 en un caso del paso; ni el alta (`0x518cf0`) ni la carga del mapa (`0x6070a0`, que solo
+  apaga el byte vivo) lo tocan (Q-C278). Sin efectos vivos no saca `rand()`. MuRet
+  (`Scenes::DrawGroundEffects`) no lleva `+0x16c`: con la tabla vacía no hace nada, y con el primer lugar
+  vivo corta en `0x52dc3b`, sin el `rand()`. Después de la entrada están los dos `0x61f` de llegada, y el
+  frame de cero pasos corta ahí (P-C55 b).
+- **Los pájaros** (`0x446b60`). Con cada uno de los 40 lugares de `0x7d2dca8` que no es un `0x10f`, vivo
+  o no, suma 90 a `+0x24` y se lo resta al final (Q-C277); los vivos van con su sombra (`0x602e90`,
+  `0x60b130`, `0x5491e0` y `0x4eff40`). Sin pájaros vivos no dibuja ni saca `rand()`. Los crea `0x446120`,
+  desde el paso (`0x6370ea`), y los apagan `0x6070a0` y `0x4455c0` (desde `0x4d4ab2` y `0x4e363e`). En el
+  frame de cero pasos de la entrada la tabla está vacía; desde el primer paso, el original los crea y
+  MuRet, que no tiene la tabla, no (P-C55 c).
+- **Los personajes** (`0x510d00`). Los 400 lugares en orden. Fuera del héroe, la rama del asedio
+  (`0x510d25`, con `0x4294b0`) pide `0x7239ec`, que solo escribe `0x4294c0` desde paquetes que MuRet no
+  aplica. El héroe con `+0x1d8` & 4, en la escena 5, no se dibuja: `0x510e57` le pone 1000 en `+0x13c` y 1
+  en `+0x148`, `+0x158` y `+0x168` (sin leer quién los lee, P-C55 e) y sigue. Los vivos con `+0x16c` van a
+  `0x50ba30(c, c, bandera)` (`0x510ea1`) y, los jugadores, a `0x42afe0`, que solo corre en el mapa 30. Al
+  final, `0x42da60`: `0x7239dc` y `0x7239e0` en 0, las puertas de `0x6c72bc` con `0x7239d9` en 0
+  (`0x42da40` → `0x42a110(0, 0, 0, 1)`, Q-C276) y `0x7239d9` en 0. Las puertas no miran el mapa: en
+  Lorencia y en Devias abren las paredes de (118..121, 115) y, en Devias, las de (92..95, 205), desde el
+  primer frame que llega acá. MuRet (`Scenes::DrawGameCharacters`) hace lo del héroe con el bit 4 y las
+  puertas sobre el `.att` del mapa (`World::OpenTheGates`), y con el primero vivo y visto corta en
+  `0x510ea1`, antes de las puertas.
+- `0x6374e2..0x6374f5`: el picking del modo editor (`0x77f3b18`) y la vista de arriba (`0x7d36899`) no
+  corren. Sigue `0x608a00`, los ítems del piso (`0x6374fe`), donde MuRet corta.
+
+Con el héroe de la traza en Lorencia (143, 120), MuRet saca en el frame 4 + 8 + 84 `rand()` (el contador,
+la cámara, los 83 objetos vistos y el `rand() % 2` del `0x69`, impar con la semilla del test) y corta en
+`0x6374fe`; en Devias (220, 30), con 4 + 8 + 54, también. Tests: `WorldObjectsDrawingTest`
+(`TheLorenciaWaterspoutDrawsFourLooseMeshes`, `TheLorenciaWaterspoutRunsItsFrameCase` y
+`TheGroundEffectsStopAtTheFirstLiveEffect`), `GameCharactersTest`, `TerrainWallsTest` y
+`GoldenTerrainWalls.TheGatesOpenInLorenciaAndDevias`, y
+`GameSceneDrawTest.TheReferenceMapsDrawTheTerrainTheGrassTheGroundMarksAndTheObjects`.
 
 **El orden del pase 3D no es el del login.** En el juego van el terreno, los objetos, el suelo, los
 pájaros, los personajes, los peces, el caballo, las hojas, los efectos con modelo, los sprites y las
@@ -4217,8 +4264,10 @@ orden:
 
 **Los `rand()`.** En un frame del original con el 0 o el 2: los 4 del contador y los 8 de la cámara;
 después, uno por objeto visto que llega a `0x602ed0`, con los 3.848 de cada `0x64` de Devias antes del
-suyo. En el paso, antes de MoveHero, los de los casos de cada objeto visto, en el orden de los sectores:
-uno por luz que titila (`0x75`, `0x7a`, `0x4e`, y la lámpara y la vela) y varios por fuego.
+suyo y, en el `0x69` de Lorencia, el `rand() % 2` de sus gotas y, si es par, los de cada una
+([Lo propio de Lorencia](#lo-propio-de-lorencia)). En el paso, antes de MoveHero, los de los casos de cada
+objeto visto, en el orden de los sectores: uno por luz que titila (`0x75`, `0x7a`, `0x4e`, y la lámpara y
+la vela) y varios por fuego.
 
 **En MuRet** (CL7, hito 3). El dibujo es `Scenes::DrawGameWorldObjects`, desde
 `GameScene::DrawTheWorldPass`, con el recorrido de `DrawWorldObjects` del login (el sector, el objeto,
@@ -4227,8 +4276,11 @@ uno por luz que titila (`0x75`, `0x7a`, `0x4e`, y la lámpara y la vela) y vario
 registro propio con `LogicalAccess` en el `0x64`; en un dibujo intermedio, ninguno de los dos. El paso es
 `Scenes::StepGameWorldObjects` → `World::StepWorldObjectChecked`, desde `GameScene::StepTheObjects`, con
 la capa del héroe de `WorldRuntime::heroCellLayer` y el reloj del mundo. Los dos cortan con la dirección
-en lo primero que MuRet no tiene, con lo de antes ya hecho: en el dibujo, el `0x69` de Lorencia
-(`0x600a4a`, antes de su `rand()`) y los cuatro casos de `0x602ed0` (después); en el paso, los fuegos, las
+en lo primero que MuRet no tiene, con lo de antes ya hecho: en el dibujo, los casos de `0x602ed0` que no
+tiene, después de su `rand()` (el `0x38` del 0, y el `0x64` y el `0x67` del 2), y las gotas del `0x69` de
+Lorencia (`0x6030c7`), después de los dos `rand()` de la primera; el dibujo del `0x69`
+(`Scenes::DrawWaterspout`) y su caso hasta las gotas (`World::StepTheWaterspoutFrame`) sí están; en el
+paso, los fuegos, las
 luces que van al buffer dinámico (la lámpara y la vela, después de su `rand()`) y las puertas del 2. Los
 modelos los carga `Scenes::WorldModels` la primera vez que el dibujo o el paso los piden, con el burro y la
 bandera del 2 (`Npc\obj_donkey` y `Npc\obj_flag`) antes de los del `.obj`. Lo que queda, en
@@ -4236,17 +4288,21 @@ bandera del 2 (`Npc\obj_donkey` y `Npc\obj_flag`) antes de los del `.obj`. Lo qu
 
 | Mapa, héroe | Vistos | Hasta | `rand()` del pase | Corte del dibujo | El paso que sigue |
 | --- | --- | --- | --- | --- | --- |
-| 0, (143, 120), el de la traza | 39, de los sectores (7, 7), (8, 7) y (8, 8) | el `0x69` (1720) | 38 | `0x600a4a` | con la capa en 4, el techo 1400 (`0x7d`) va a 0 y los tres `0x7a` (1366, 1372 y 1690) sacan su luz; después, MoveHero, el `TerrainWall`, el héroe y la tela |
-| 2, (220, 30) | 54, de (12, 1) a (14, 2), sin el `0x64` ni casos | todos | 54 | `0x6374d3` | con la capa en 3, los techos 1282, 1471, 1472 y 1473 van a 0 y los tres `0x4e` (1262, 1462 y 1464) sacan su luz; corta en la puerta 1481 (`0x41`, `0x6050d4`), antes de MoveHero |
-| 0, (96, 126) | 20, sin casos | todos | 20 | `0x6374d3` | — |
-| 2, (220, 76) | 44, sin casos | todos | 44 | `0x6374d3` | — |
+| 0, (143, 120), el de la traza | 83, de los sectores (7, 7), (8, 7), (8, 8), (9, 6), (9, 7) y (9, 8), con el `0x69` (1720) | todos | 84: los 83 y el `rand() % 2` del `0x69`, impar con la semilla del test | `0x6374fe` | con la capa en 4, el techo 1400 (`0x7d`) va a 0 y los tres `0x7a` (1366, 1372 y 1690) sacan su luz; corta en el primer fuego visto, el `0x32` 1933 (`0x604eb0`), antes de MoveHero |
+| 2, (220, 30) | 54, de (12, 1) a (14, 2), sin el `0x64` ni casos | todos | 54 | `0x6374fe` | con la capa en 3, los techos 1282, 1471, 1472 y 1473 van a 0 y los tres `0x4e` (1262, 1462 y 1464) sacan su luz; corta en la puerta 1481 (`0x41`, `0x6050d4`), antes de MoveHero |
+| 0, (96, 126) | 20, sin casos | todos | 20 | `0x510ea1`, con el héroe visto | — |
+| 2, (220, 76) | 44, sin casos | todos | 44 | `0x6374fe`, con el héroe sin ver | — |
 
 En la traza de Lorencia, los objetos son 120 bloques con texturas de `0x41c..0x47e`, entre el pasto y los
 pájaros ([El dibujo del juego](#el-dibujo-del-juego)); MuRet todavía no los compara (P-C53 h). Tests:
 `WorldObjectsDrawingTest` (`TheGamePassDrawsTheLiveObjectsWithARandEach`,
-`TheGamePassStopsAtTheCasesOfLorencia`, `TheLeveledObjectOfDeviasReadsTheOwnRecord`,
+`TheGamePassStopsAtTheCasesOfLorencia`, `TheLorenciaWaterspoutDrawsFourLooseMeshes`,
+`TheLorenciaWaterspoutRunsItsFrameCase`, `TheLeveledObjectOfDeviasReadsTheOwnRecord`,
 `AnIntermediateGameDrawTakesNoRandomness`, `TheGamePassKnowsOnlyTheReferenceMaps` y
-`TheGameStepStopsAtTheFirstCaseMuRetDoesNotHave`), `WorldObjectsTest` (`TheRoofsFollowTheLayerOfTheHero`,
+`TheGameStepStopsAtTheFirstCaseMuRetDoesNotHave`), `WorldObjectsTest`
+(`TheLorenciaWaterspoutDrawsItsOwnMeshes`, `TheWaterspoutFrameScrollsItsVAndDropsHalfTheTime`,
+`TheWaterspoutFrameNeedsACreditedClock`,
+`TheRoofsFollowTheLayerOfTheHero`,
 `TheWindowsFlickerWithARand`, `TheBlendMeshOfTheHousesScrollsWithTheClock`,
 `TheCasesMuRetDoesNotHaveStopWithTheirAddress`, `AFadedOutObjectSkipsItsCaseButNotItsRoof` y
 `TheCheckedStepKnowsTheReferenceMapsAndTheLogin`), `GameSceneDrawTest`
@@ -4870,14 +4926,23 @@ mapa, en `0x602ffb`, después del `rand()` de `0x602ef4`; *estático*):
   (143, 120), MuRet no ve ningún `0x38`: los dos del `.obj` (los índices 195 y 2.236)
   están en (400; 14.700) y (18.300; 13.900), fuera del trapecio (*simulado*). Los dos `0x5ac` de la
   traza no se explican con este caso (P-C53 g).
-- `0x69` (`Waterspout01`): la luz del blendMesh en 1, la V con el reloj y, con un 50 %, dos
-  partículas `0x5f2` en los huesos `0x68b184c` y `0x68b18dc`.
+- `0x69` (`Waterspout01`, `0x603011`, *estático*): la luz del blendMesh (`+0x68`) en 1; la V (`+0x70`)
+  con el reloj del mundo, −(`ftol(T)` % 1000) · 0,001f, como el `0x76` del paso; y un `rand() % 2`:
+  impar, nada más; par, dos partículas `0x5f2` (`0x53fe70(0x5f2, …, 0, 1, 0)`, `0x6030c7` y `0x60313a`)
+  en los huesos 1 y 4 (`0x68b184c` y `0x68b18dc`, con `0x4ec110`), a (`rand()` % 32 − 16, −20,
+  `rand()` % 32 − 16) y (…, −80, …) de cada uno. MuRet lo corre hasta las gotas
+  (`World::StepTheWaterspoutFrame`) y corta en la primera (`0x6030c7`), después de sus dos `rand()`:
+  no tiene las partículas del juego (`0x743a198`, P-C55 a).
 
 **Al dibujar** (`0x6002e0`): el único caso del mapa 0 es el `0x69`, con cuatro `RenderMesh(malla, 2,
 alpha, 3, luz, …)`, la 3 con la U y la V, en vez de un `RenderBody` (*emulado*). Por dentro
 (`0x600a4a..0x600ae6`, *estático*): `0x4ecc10(alpha)`; las mallas 0 a 2 con el blendMesh y la luz del
 objeto (`+0x64`, que el alta pone en 3, y `+0x68`) y U = V = 0; la 3 con el blendMesh 3 fijo, la luz y
-la U y la V del objeto (`+0x6c`, `+0x70`); y `0x4ecc20`. MuRet corta ahí (P-C53 a).
+la U y la V del objeto (`+0x6c`, `+0x70`); y `0x4ecc20`. MuRet lo dibuja así
+(`Scenes::DrawWaterspout`): cada malla con el pase base de `DrawObject`, sin el `glColor`, la malla oculta
+(`+0x58`) ni los scripts R y H, que mira `RenderBody` y no `0x4ecc30` (`Waterspout01` no tiene ninguno).
+La malla 3 (`ston02`) va aditiva, como en la traza ([El dibujo del juego](#el-dibujo-del-juego)); los
+demás bloques de la traza no se cotejan (P-C53 h).
 
 **Los pájaros** (`0x446120`, la tabla `0x7d2dca8`; el dibujo, `0x446b60`, con su sombra): en el 0
 usan el modelo `0xad` (`Bird01`), solo sin tormenta (`0x723c50 == 0`), nacen al azar y se posan

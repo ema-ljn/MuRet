@@ -19,6 +19,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
 #include "Scenes/DarkHorse.h"
+#include "Scenes/GameCharacters.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
@@ -335,7 +336,8 @@ void GameScene::PrepareFrame()
         return;
     }
     // Con el contador en 30 o menos el dibujo del original llega siempre a 0x6374dd (0x510d00): 0x50ba30
-    // corre 0x505820 con cada jugador visto (0x50c91e). El de MuRet corta antes y no sabe qué dejó.
+    // corre 0x505820 con cada jugador visto (0x50c91e). El de MuRet corta antes (en los objetos o en los
+    // efectos del suelo) o en el primer personaje visto (0x510ea1), y no sabe qué dejó.
     runtime.fullSetScan = std::nullopt;
 }
 
@@ -568,21 +570,43 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     WorldState& world = *m_context.world;
     const ActorState& hero = world.Actors()[world.Runtime().hero];
     // La luz del terreno en un punto (0x5f99e0) lee el buffer dinámico 0x7b4ccc4: MuRet no tiene luces
-    // dinámicas (los fuegos y las lámparas del paso cortan antes de sumarlas) y lee la sombreada.
-    if (auto objects = DrawGameWorldObjects(canvas.models, m_worldModels, world.Map().objects, polygon,
-                                            world.Map().terrain.lighting.get(), canvas.frameClock,
-                                            GameObjectPass{.map = static_cast<std::uint8_t>(map),
-                                                           .originalFrame = frames > 0,
-                                                           .random = &m_context.cloth->random,
-                                                           .heroClass = hero.characterClass,
-                                                           .ownLevel = world.OwnCharacter().level,
-                                                           .ownRecordDepth = &world.Runtime().ownRecordDepth});
+    // dinámicas (los fuegos y las lámparas del paso cortan antes de sumarlas) y lee la sombreada. El reloj
+    // del mundo (0x5767b88), el del frame, como el de la cámara.
+    if (auto objects = DrawGameWorldObjects(
+            canvas.models, m_worldModels, world.Map().objects, polygon, world.Map().terrain.lighting.get(),
+            canvas.frameClock,
+            GameObjectPass{.map = static_cast<std::uint8_t>(map),
+                           .originalFrame = frames > 0,
+                           .random = &m_context.cloth->random,
+                           .heroClass = hero.characterClass,
+                           .ownLevel = world.OwnCharacter().level,
+                           .ownRecordDepth = &world.Runtime().ownRecordDepth,
+                           .worldClock = static_cast<float>(
+                               std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())});
         !objects.HasValue())
     {
         return Core::Unexpected(objects.Error() + ", en el " + MapText(map));
     }
-    // 0x6374d3: 0x52dc20, los efectos del suelo.
-    return Core::Unexpected("0x6374d3: los efectos del suelo del " + MapText(map) + " (0x52dc20) no están portados");
+    // 0x6374d3: 0x52dc20, los efectos del suelo, sobre la tabla de 0x518cf0 (la de WorldMap).
+    if (auto ground = DrawGroundEffects(world.Map().effects.Effects()); !ground.HasValue())
+    {
+        return Core::Unexpected(ground.Error() + ", en el " + MapText(map));
+    }
+    // 0x6374d8: 0x446b60, los pájaros (0x7d2dca8, 40 lugares). Los crea y los mueve 0x446120 desde el paso
+    // (0x6370ea), que MuRet no corre (la frontera de StepWorld), y los apagan 0x6070a0 al cargar el mapa y
+    // 0x4455c0. MuRet no tiene la tabla: sin pájaros vivos, 0x446b60 no dibuja ni saca rand(), y solo suma y
+    // resta 90 al +0x24 de cada lugar que no es un 0x10f (Q-C277), que nadie ve (08 P-C55).
+    // 0x6374dd: 0x510d00, los personajes, y al final 0x42da60 con el TerrainWall.
+    if (auto characters =
+            DrawGameCharacters(world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells);
+        !characters.HasValue())
+    {
+        return Core::Unexpected(characters.Error() + ", en el " + MapText(map));
+    }
+    // 0x6374e2..0x6374ed: 0x5fc260(1) solo con 0x77f3b18, el modo editor, que nadie prende. 0x6374f5: con
+    // 0x7d36899 en 0 (nadie lo escribe), 0x608a00, los ítems del piso.
+    return Core::Unexpected("0x6374fe: los ítems del piso del " + MapText(map) +
+                            " (0x608a00) no están portados (CL9.3)");
 }
 
 void GameScene::Leave()

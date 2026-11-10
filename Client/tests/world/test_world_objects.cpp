@@ -666,6 +666,98 @@ TEST(WorldObjectsTest, TheRedOfAnUnlitObjectIsNotRoundedFirst)
     EXPECT_EQ(std::bit_cast<std::uint32_t>(draw.color.z), 0x3F212876u);
 }
 
+// 0x600a4a: el 0x69 del 0 (Waterspout01) va con sus cuatro 0x4ecc30, con el blendMesh 3 de su alta y el
+// color de 0x5ffce0. Oculto (+0x58 en −2) o con el alpha por debajo de 0,01, nada; en el 2 no es un caso, y
+// va por el RenderBody común.
+TEST(WorldObjectsTest, TheLorenciaWaterspoutDrawsItsOwnMeshes)
+{
+    WorldObject fountain = Created(Client::World::Waterspout, 100.0f, 100.0f, Lorencia).front();
+    fountain.light = glm::vec3(0.25f);
+    const glm::vec3 terrain(0.5f);
+    const auto draw = Client::World::DrawOf(fountain, terrain, Lorencia);
+    EXPECT_EQ(draw.kind, Client::World::ObjectDrawKind::Waterspout);
+    EXPECT_TRUE(draw.posed);
+    EXPECT_EQ(draw.state.blendMesh, 3);
+    EXPECT_EQ(draw.color, glm::vec3(0.75f));
+    EXPECT_TRUE(draw.vertexLight);
+
+    WorldObject hidden = fountain;
+    hidden.state.hiddenMesh = Client::World::HiddenObject;
+    EXPECT_EQ(Client::World::DrawOf(hidden, terrain, Lorencia).kind, Client::World::ObjectDrawKind::Hidden);
+    WorldObject faded = fountain;
+    faded.alpha = 0.005f;
+    EXPECT_EQ(Client::World::DrawOf(faded, terrain, Lorencia).kind, Client::World::ObjectDrawKind::Hidden);
+
+    const WorldObject devias = Created(Client::World::Waterspout, 100.0f, 100.0f, Devias).front();
+    EXPECT_EQ(Client::World::DrawOf(devias, terrain, Devias).kind, Client::World::ObjectDrawKind::Body);
+}
+
+// La primera semilla desde 1 cuyo primer rand() es impar (`odd`) o par.
+std::uint32_t SeedWithFirstRand(bool odd)
+{
+    for (std::uint32_t seed = 1;; ++seed)
+    {
+        Client::Render::Models::CrtRandom random(seed);
+        if (((random.Next() % 2) != 0) == odd)
+        {
+            return seed;
+        }
+    }
+}
+
+// 0x603011, el caso del 0x69 en 0x602ed0: la luz del blendMesh en 1, la V con el reloj como la del 0x76
+// (−ftol(T) % 1000) · 0,001f, y rand() % 2. Impar, nada más; par, los dos rand() de la primera gota (x y z)
+// y el corte en 0x53fe70 (0x6030c7), que lleva a las partículas del juego.
+TEST(WorldObjectsTest, TheWaterspoutFrameScrollsItsVAndDropsHalfTheTime)
+{
+    for (const bool odd : {true, false})
+    {
+        SCOPED_TRACE(odd);
+        WorldObject fountain = Created(Client::World::Waterspout, 100.0f, 100.0f, Lorencia).front();
+        fountain.state.light = 0.25f;
+        fountain.state.uv.x = 0.5f;
+        const std::uint32_t seed = SeedWithFirstRand(odd);
+        Client::Render::Models::CrtRandom random(seed);
+        const auto stepped = Client::World::StepTheWaterspoutFrame(fountain, random, 1234.0f);
+        EXPECT_EQ(fountain.state.light, 1.0f);
+        EXPECT_EQ(fountain.state.uv.y, static_cast<float>(-234.0 * static_cast<double>(0.001f)));
+        EXPECT_EQ(fountain.state.uv.x, 0.5f);
+        Client::Render::Models::CrtRandom expected(seed);
+        static_cast<void>(expected.Next());
+        if (odd)
+        {
+            EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
+            EXPECT_EQ(random.State(), expected.State());
+            continue;
+        }
+        const int x = (expected.Next() % 32) - 16;
+        const int z = (expected.Next() % 32) - 16;
+        ASSERT_FALSE(stepped.HasValue());
+        EXPECT_NE(stepped.Error().find("0x6030c7"), std::string::npos) << stepped.Error();
+        EXPECT_NE(stepped.Error().find("(" + std::to_string(x) + ", −20, " + std::to_string(z) + ")"),
+                  std::string::npos)
+            << stepped.Error();
+        EXPECT_EQ(random.State(), expected.State());
+    }
+}
+
+// Sin un ftol acreditado del reloj, 0x603011 corta en 0x60301e con la luz ya en 1, la V como estaba y sin
+// rand().
+TEST(WorldObjectsTest, TheWaterspoutFrameNeedsACreditedClock)
+{
+    WorldObject fountain = Created(Client::World::Waterspout, 100.0f, 100.0f, Lorencia).front();
+    fountain.state.light = 0.25f;
+    fountain.state.uv.y = 0.5f;
+    Client::Render::Models::CrtRandom random(7);
+    const auto stepped =
+        Client::World::StepTheWaterspoutFrame(fountain, random, std::numeric_limits<float>::infinity());
+    ASSERT_FALSE(stepped.HasValue());
+    EXPECT_NE(stepped.Error().find("0x60301e"), std::string::npos) << stepped.Error();
+    EXPECT_EQ(fountain.state.light, 1.0f);
+    EXPECT_EQ(fountain.state.uv.y, 0.5f);
+    EXPECT_EQ(random.State(), 7u);
+}
+
 // 0x602ed0: la luz de los dos sprites del farol, L = (rand() % 30 + 70) · 0,01f guardado en float, y
 // (L; L · 0,5; L · 0,2f), cada producto guardado en float.
 TEST(WorldObjectsTest, TheLanternGlowIsOrange)

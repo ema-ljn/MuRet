@@ -654,7 +654,36 @@ Core::Expected<void, std::string> StepDeviasCases(WorldObject& object, Render::M
         return {};
     }
 }
+// 0x603053..0x603088: la gota de 0x603011 sale a ±16 del hueso en x y en z, con rand() % 32 − 16
+// (and con 0x8000001f y la corrección del signo, que con rand() no corre).
+constexpr int DropSpread = 32;
+constexpr int DropCenter = 16;
 } // namespace
+
+Core::Expected<void, std::string> StepTheWaterspoutFrame(WorldObject& object, Render::Models::CrtRandom& random,
+                                                         float worldClock)
+{
+    // 0x603011: la luz del blendMesh en 1,0 (0x3f800000), antes del ftol.
+    object.state.light = 1.0f;
+    const std::optional<float> v = ScrolledV(worldClock);
+    if (!v)
+    {
+        return Core::Unexpected(std::string("0x60301e: ftol del reloj del mundo fuera de lo acreditado"));
+    }
+    object.state.uv.y = *v;
+    // 0x60303c: rand() % 2; con 1 no hay gotas.
+    if ((random.Next() % 2) != 0)
+    {
+        return {};
+    }
+    // 0x603053 y 0x603077: la x y la z de la primera gota, en ese orden; la y, −20 (0xc1a00000).
+    const int x = (random.Next() % DropSpread) - DropCenter;
+    const int z = (random.Next() % DropSpread) - DropCenter;
+    return Core::Unexpected(std::format("0x6030c7: la gota 0x5f2 del 0x69 (Waterspout01), a ({}, −20, {}) del "
+                                        "hueso 1, va a las partículas del juego (0x53fe70, la tabla 0x743a198), "
+                                        "que MuRet no tiene",
+                                        x, z));
+}
 
 void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models::Skeleton* skeleton)
 {
@@ -720,6 +749,13 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
     if (!draw.posed || object.state.hiddenMesh == HiddenObject)
     {
         draw.kind = ObjectDrawKind::Hidden;
+        return draw;
+    }
+    if (map == LorenciaMap && object.type == Waterspout)
+    {
+        // 0x600a4a: sin el glColor de RenderBody; el 0x69 va con la luz por vértice (+0xe8), que pisa el
+        // color de cada esquina.
+        draw.kind = ObjectDrawKind::Waterspout;
         return draw;
     }
     if (map == LoginMap && object.type == DarkWhirlpool)

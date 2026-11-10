@@ -120,6 +120,9 @@ DrawnObject DrawTheObject(Render::ModelBatch& batch, const IModelLibrary& models
     case World::ObjectDrawKind::SubtractiveMesh:
         DrawSubtractiveMesh(batch, models, drawn, frameClock);
         break;
+    case World::ObjectDrawKind::Waterspout:
+        DrawWaterspout(batch, models, drawn, frameClock);
+        break;
     }
     return drawn;
 }
@@ -290,8 +293,6 @@ constexpr std::uint8_t FirstLowLevelClass = 3;
 constexpr std::uint8_t SecondLowLevelClass = 4;
 constexpr int LowLevelThreshold = 0x35;
 constexpr int LevelThreshold = 0x50;
-// 0x600a4a: el único caso del mapa 0 en 0x6002e0.
-constexpr std::int16_t LorenciaWaterspout = 0x69;
 
 // 0x6047a7..0x604a36: la clase del héroe, antes del acceso; el nivel, con el registro propio abierto
 // (0x6047cb) y cerrado (0x604a1a: con la cuenta en 0, 0x40b4d0 lo vuelve a cifrar con sus 3.848 rand()).
@@ -311,19 +312,19 @@ bool OwnLevelAllows(const GameObjectPass& pass)
 }
 
 // 0x602ed0 después del rand() común (0x602ef4): los casos por tipo de los mapas 0 (0x602ffb) y 2
-// (0x6031e5). MuRet no tiene ninguno: corta con su dirección.
-Core::Expected<void, std::string> FrameCaseOf(const World::WorldObject& object, std::uint8_t map)
+// (0x6031e5). MuRet tiene el del 0x69 hasta sus gotas; los demás cortan con su dirección.
+Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const GameObjectPass& pass)
 {
+    const std::uint8_t map = pass.map;
     if (map == LorenciaMap && object.type == 0x38)
     {
         return Core::Unexpected(std::string(
             "0x603149: los dos sprites 0x5ac del 0x38 (MerchantAnimal01) salen de 0x4ec110 con un vector de la "
             "pila sin inicializar (Q-C256), y no están portados"));
     }
-    if (map == LorenciaMap && object.type == LorenciaWaterspout)
+    if (map == LorenciaMap && object.type == World::Waterspout)
     {
-        return Core::Unexpected(std::string("0x603011: la V con el reloj y las gotas 0x5f2 del 0x69 (Waterspout01) "
-                                            "no están portadas"));
+        return World::StepTheWaterspoutFrame(object, *pass.random, pass.worldClock);
     }
     if (map == DeviasMap && object.type == DeviasLeveledObject)
     {
@@ -372,13 +373,8 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         {
             continue;
         }
-        // 0x602e90: 0x5ffdf0 y, si lo posó, 0x6002e0.
+        // 0x602e90: 0x5ffdf0 y, si lo posó, 0x6002e0 (en el 0, el 0x69 con sus cuatro 0x4ecc30).
         const World::ObjectDraw draw = ObjectDrawAt(object, lighting, pass.map);
-        if (pass.map == LorenciaMap && object.type == LorenciaWaterspout && draw.kind != World::ObjectDrawKind::Hidden)
-        {
-            return Core::Unexpected(std::string("0x600a4a: el 0x69 (Waterspout01) va con cuatro 0x4ecc30 en vez de "
-                                                "RenderBody, y no está portado"));
-        }
         static_cast<void>(DrawTheObject(batch, models, object, draw, frameClock, 0.0f));
         // 0x604a4d: 0x602ed0, una vez por frame del original.
         if (!pass.originalFrame)
@@ -386,10 +382,30 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
             continue;
         }
         static_cast<void>(pass.random->Next());
-        if (auto frameCase = FrameCaseOf(object, pass.map); !frameCase.HasValue())
+        if (auto frameCase = FrameCaseOf(object, pass); !frameCase.HasValue())
         {
             return frameCase;
         }
+    }
+    return {};
+}
+
+Core::Expected<void, std::string> DrawGroundEffects(std::span<const World::ModelEffect> effects)
+{
+    for (std::size_t slot = 0; slot < effects.size(); ++slot)
+    {
+        const World::ModelEffect& effect = effects[slot];
+        // 0x52dc2d: el que no está vivo no se mira.
+        if (!effect.alive)
+        {
+            continue;
+        }
+        // 0x52dc3b: +0x16c, que escribe 0x52d620 (0x52d64d) con la esfera de 400 contra el frustum de su
+        // último dibujo; 0x518cf0 no lo toca al crear. MuRet no lo lleva.
+        return Core::Unexpected(std::format("0x52dc3b: el efecto {} (el {:#x}) está vivo, y su +0x16c es el que dejó "
+                                            "el último 0x52d620 que lo vio vivo o el del que ocupó el lugar antes "
+                                            "(0x518cf0 no lo toca), que MuRet no lleva",
+                                            slot, effect.type));
     }
     return {};
 }

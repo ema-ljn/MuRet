@@ -23,6 +23,25 @@ void MarkCharacterWall(Data::Terrain::TerrainLayer<std::uint16_t>& cells, int lo
     cells[Data::Terrain::CellIndex(x, y)] |= CharacterWallBit;
 }
 
+void OpenTheGates(Data::Terrain::TerrainLayer<std::uint16_t>& cells)
+{
+    // 0x42a136: el byte bajo del WORD de 0x7d0d548, una fila después de 0x7d0d348.
+    constexpr int GateWidth = 4;
+    for (const GateCell& gate : GateCells)
+    {
+        const auto below = static_cast<std::uint8_t>(gate.y + 1);
+        if ((cells[Data::Terrain::CellIndex(gate.x, below)] & BlockedWallBit) == 0)
+        {
+            continue;
+        }
+        for (int dx = -1; dx < GateWidth - 1; ++dx)
+        {
+            std::uint16_t& cell = cells[Data::Terrain::CellIndex(static_cast<std::uint8_t>(gate.x + dx), below)];
+            cell = static_cast<std::uint16_t>(cell & ~BlockedWallBit);
+        }
+    }
+}
+
 void TerrainWalls::Rebuild(std::span<const TerrainOccupant> occupants)
 {
     ClearCharacterWalls(cells);

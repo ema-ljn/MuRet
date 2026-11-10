@@ -9,6 +9,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <span>
 
 namespace Client::World
@@ -40,13 +41,18 @@ int Around(Render::Models::CrtRandom& random, int span, int shift)
     return (random.Next() % span) + shift;
 }
 
-void Born(Leaf& leaf, const EmberWorld& world, Render::Models::CrtRandom& random)
+void Born(Leaf& leaf, const EmberWorld& world, Render::Models::CrtRandom& random, bool ember)
 {
-    leaf.type = EmberTexture;
-    leaf.scale = F32((static_cast<double>(random.Next() % 50) * ScaleStep) + ScaleBase);
+    constexpr std::int32_t DriftingLeafTexture = 100;
+    leaf.type = ember ? EmberTexture : DriftingLeafTexture;
+    if (ember)
+        leaf.scale = F32((static_cast<double>(random.Next() % 50) * ScaleStep) + ScaleBase);
     const auto x = F32(static_cast<double>(Around(random, 1600, -800)) + static_cast<double>(world.hero.x));
     const auto y = F32(static_cast<double>(Around(random, 1400, -500)) + static_cast<double>(world.hero.y));
-    const auto z = F32(static_cast<double>(Around(random, 1000, 50)) + static_cast<double>(world.hero.z));
+    constexpr int EmberHeightSpan = 1000;
+    constexpr int DriftingHeightSpan = 300;
+    const auto z = F32(static_cast<double>(Around(random, ember ? EmberHeightSpan : DriftingHeightSpan, 50)) +
+                       static_cast<double>(world.hero.z));
     leaf.position = {x, y, z};
     leaf.start = leaf.position;
     const double fall = static_cast<double>(Around(random, 64, 64)) * FallSpeed;
@@ -62,7 +68,8 @@ void Born(Leaf& leaf, const EmberWorld& world, Render::Models::CrtRandom& random
     leaf.spin.x = F32(static_cast<double>(Around(random, 16, -8)) * Tenth);
     leaf.spin.y = F32(static_cast<double>(Around(random, 64, -32)) * Tenth);
     leaf.spin.z = F32(static_cast<double>(Around(random, 16, -8)) * Tenth);
-    leaf.light = {1.0f, 0.0f, 0.0f};
+    if (ember)
+        leaf.light = {1.0f, 0.0f, 0.0f};
 }
 
 // 0x5303a0: con el terreno por debajo (o un NaN), en el aire: cada componente de la velocidad suma
@@ -145,13 +152,23 @@ void StepLoginEmbers(Leaves& leaves, const EmberWorld& world, Render::Models::Cr
             // 0x5305a0: la luz en 1 y el byte vivo, y después el creador del mapa.
             leaf.light = glm::vec3(1.0f);
             leaf.alive = true;
-            Born(leaf, world, random);
+            Born(leaf, world, random, true);
         }
         else
         {
             Fall(leaf, world, random);
         }
     }
+}
+
+void SpawnDriftingLeaf(Leaf& leaf, const EmberWorld& world, Render::Models::CrtRandom& random)
+{
+    Born(leaf, world, random, false);
+}
+
+void StepFallingLeaf(Leaf& leaf, const EmberWorld& world, Render::Models::CrtRandom& random)
+{
+    Fall(leaf, world, random);
 }
 
 LeafQuad LeafQuadOf(const Leaf& leaf)

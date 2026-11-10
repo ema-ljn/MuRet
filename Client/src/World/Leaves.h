@@ -77,6 +77,11 @@ struct EmberWorld
 // distintos. Sin el terreno no corre.
 void StepLoginEmbers(Leaves& leaves, const EmberWorld& world, Render::Models::CrtRandom& random);
 
+// Los creadores gemelos 52fa60 (mapa 0) y 52fe30 (3/7): nueve rand(), sin escribir escala ni ángulos.
+void SpawnDriftingLeaf(Leaf& leaf, const EmberWorld& world, Render::Models::CrtRandom& random);
+// 5303a0: el fallback compartido del juego y de las brasas; requiere terreno válido.
+void StepFallingLeaf(Leaf& leaf, const EmberWorld& world, Render::Models::CrtRandom& random);
+
 // Lo que 0x5306a0 le pide a GL por una brasa viva: glTranslatef a su posición y el cuadrado de 0x621320
 // con a = 2 · escala y b = 4 · escala, sus cuatro esquinas por AngleMatrix de los ángulos (0x5fccc0), con
 // las UV (0, 1), (1, 1), (1, 0) y (0, 0).

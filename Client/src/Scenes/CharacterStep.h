@@ -3,12 +3,14 @@
 #include "Core/Expected.h"
 #include "Data/Tables/ItemTable.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/ActorCooldownServices.h"
 #include "Scenes/SceneId.h"
 #include "World/TerrainCulling.h"
 
 #include <glm/ext/vector_float3.hpp>
 
 #include <cstdint>
+#include <functional>
 #include <string>
 
 namespace Client::Render::Models
@@ -33,6 +35,7 @@ struct WorldTerrain;
 namespace Client::Scenes
 {
 class WorldState;
+class PlayerActionSpeeds;
 
 // 0x5fba90 como lo llaman 0x508f00 (0x50916d..0x50918c) y 0x508ea0 (0x508eac..0x508ecb): el lugar del
 // personaje por 0,01f (0x6b88d4), guardado en float, con el margen de −20 (0xc1a00000).
@@ -72,6 +75,12 @@ struct CharacterStepContext
     std::int32_t counter = 0;
     // El objeto suelto de 0x7437050 (NewFace 0xa8..0xac), fuera de los 400 del pool.
     const Render::Models::Skeleton* newFaceSkeleton = nullptr;
+    // Si está vacío, el overlay durable de world. Lo escribe cada Walk antes de animar ese actor.
+    PlayerActionSpeeds* actionSpeeds = nullptr;
+    float fixedHeight = 1200.0f;
+    ActorCooldownServices cooldown{};
+    // Solicitudes de sonido: el consumidor CL10 decide cómo reproducirlas.
+    std::function<void(std::int32_t)> soundRequest{};
 };
 
 // 0x508f00. Corta con error, en el orden del original, en el mapa 30 (0x412140), sin el mapa cargado

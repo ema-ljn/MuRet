@@ -172,6 +172,10 @@ inline constexpr std::array<std::size_t, 2> StreetLightGlowBones{8, 9};
 // las mallas por el blendMesh) y el 0x5a −0,23° (alpha 1 y luz blanca, también por el blendMesh).
 void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models::Skeleton* skeleton);
 
+struct TerrainLighting;
+struct ObjectModelStepState;
+class Particles;
+
 // Lo que 0x604ab0 lee afuera del objeto en el juego (CL7, hito 3).
 struct ObjectStepGlobals
 {
@@ -179,18 +183,25 @@ struct ObjectStepGlobals
     std::int32_t heroCellLayer = 0;
     // 0x5767b88: el reloj del mundo, en ms.
     float worldClock = 0.0f;
+    // 0x7b4ccc4 y 0x743a198: los destinos durables del paso; no se fabrican buffers locales.
+    TerrainLighting* dynamicLighting = nullptr;
+    Particles* particles = nullptr;
+    // Las puertas consultan al héroe publicado y el modo editor, antes de mover o sonar.
+    const glm::vec3* heroPosition = nullptr;
+    bool editorMode = false;
+    // 0x41ed10(id, 0, 0): el caller conserva o emite la petición, aun en pasos consecutivos.
+    std::function<void(std::int32_t)> sound{};
+    ObjectModelStepState* modelState = nullptr;
 };
 
 // 0x604ab0 con un objeto visto en el juego, en los mapas 0 y 2 (*estático*, 06 § Los objetos del juego).
 // Antes del alpha, los techos: el 0x7d y el 0x7e del 0 llevan la meta del alpha (+0x170) a 0 con la capa
 // del héroe en 4 (0x604bc4), y el 0x51, el 0x52, el 0x60, el 0x62 y el 0x63 del 2 con la capa en 3 o
-// desde 10 (0x604c06); a 1 si no. Después, lo de StepWorldObject y los casos del mapa que MuRet tiene: en
-// el 0, el 0x76 y el 0x77 corren la V del blendMesh con el reloj (0x604d8e) y el 0x75 y el 0x7a sortean la
-// luz del blendMesh, (rand() & 3 + 4) · 0,1 (0x604db9); en el 2, el 0x4e, la misma luz (0x60508f). Lo que
-// MuRet no tiene corta con su dirección, después de los rand() que el caso saca antes: los fuegos de
-// 0x52f360, las luces de 0x5f9780 al buffer dinámico 0x7b4ccc4 (la lámpara y la vela del 0, con su rand())
-// y las puertas del 2 (0x6050d4). En el 0x37 corre lo de StepWorldObject; los demás mapas cortan antes de
-// tocar el objeto.
+// desde 10 (0x604c06); a 1 si no. Después del alpha/animación, los casos del mapa: UV y flicker,
+// lámparas 0x5a/0x96 al destino dinámico, fuegos de 0x52f360 al pool durable y puertas del mapa 2
+// con posición del héroe/editor/sonido prestados. Un binding ausente corta donde lo pide el ASM,
+// conservando RNG, partículas y stores anteriores. En el 0x37 corre lo de StepWorldObject; los demás
+// mapas cortan antes de tocar el objeto.
 [[nodiscard]] Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, std::uint8_t map,
                                                                        const Render::Models::Skeleton* skeleton,
                                                                        Render::Models::CrtRandom& random,

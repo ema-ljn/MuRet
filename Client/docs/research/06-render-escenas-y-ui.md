@@ -2898,8 +2898,9 @@ paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-d
 `Scenes::ApplyWorldEntry` la tabla de la respuesta; lo que no está leído o no está portado corta con
 un error que nombra la dirección, nunca en silencio:
 
-- **Los mapas.** Con la `Data` del repo cargan el 0, 1, 2, 4, 6 a 11, 18, 31, 33 y 54. Cortan: el
-  3 en `0x606660` (la torre `0x142` pide efectos que MuRet no crea), el 5 por el archivo que falta
+- **Los mapas.** Con la `Data` del repo cargan el 0, 1, 2, 3, 4, 6 a 11, 18, 31, 33 y 54.
+  El 3 incorpora en hito 2 el binder síncrono de la torre `0x142` y sus cinco efectos, antes del
+  pasto ([Creación de objetos](#los-objetos-del-juego)). Cortan: el 5 por el archivo que falta
   en `World6`, del 24 al 29 y el 36 en `0x4377a0`, el 30 en `0x42a760`, el 34 en `0x42fe50` (el
   `.att` según Crywolf, antes del `BD`, que por eso no sale) y el 55 en `0x6188ae`. Sin
   `TerrainHeight.OZB`, el error nombra el archivo, con el pasto ya sacado (Q-C180).
@@ -3496,6 +3497,62 @@ bloque de la entrada, en orden (*estático*):
 | `0x637138` | `0x403590` | `0x4033d0` y compañía (el recorrido de la cámara), sin leer | — |
 | `0x637144..0x63717a` | `0x5fc0d0` y `0x5fc0b0`, con `0x7d2d35e` | funciones de un `ret` | nada |
 | `0x63717f` | `0x5ac8d0` | F1 a F4 (CL3.3) | CL8 |
+### La fauna y sus recursos
+
+**Estático, ampliación de 2026-11-10:** cuerpos funcionales del `main.exe` SHA-256
+`c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`, imagen mapeada con
+base `0x400000`, leídos con desensamblado i386. Esta ampliación no ejecuta ni emula el original.
+Las cuentas del port se comprueban con los tests citados; no son una nueva captura nativa.
+
+`0x446120` usa 40 registros de `0x1d4` en `0x7d2dca8`; `0x447030`, 10 en `0x7d35350`.
+`0x60712a..0x607150` sólo apaga su byte vivo, y `0x4455c0` sólo el de las aves: no reconstruyen
+registros ni borran ángulos, seen o campos retenidos. `WorldState::Fauna()` posee esos mismos
+slots entre pasos y escenas; las vistas de aves/peces y los dueños de los joints apuntan al slot
+físico, no a una copia temporal. El prefijo que avanza el paso depende del mapa; el dibujo recorre
+siempre los 40 o los 10:
+
+| Paso | Mapas | Lugares procesados |
+| --- | --- | --- |
+| aves, `0x446120` | ordinarios / Atlans 7 / Icarus 10 / Kalima 24..29 y 36 | 5 / 40 / 13 / 2 |
+| peces, `0x447043..0x447064` | Atlans 7, Tarkan 8, Kalima y Crywolf 34 / demás | 10 / 3 |
+
+El 33 comparte ramas de nacimiento del 8, pero **no** su prefijo de 10. El paso productivo conserva
+el orden hojas → aves → peces → helpers de `0x637082..0x6370f4`, con la CRT común. Los handlers
+usan la altura real de `0x5f93c0`, incluido el `fixedHeight` durable de la cámara para el atributo
+`0x40`; no fijan de nuevo 1200 si la cámara ya escribió 1201. `0x4ea030` selecciona la acción,
+`0x4ec200` avanza la animación y `0x4e9980` conserva el final de alpha incluso tras apagar el slot.
+El campo `+0xc` es la escala física; `+0xd8` es velocidad de movimiento de aves/peces. No se usa
+la escala física como velocidad de animación de las aves.
+
+- `0x445b90` conserva los `if` sucesivos: el ave AD/BC puede pasar 0 → 1 → 3 en un paso y tomar
+  dos sorteos de altura. Posada (`+0x110 == 2`) evita el movimiento común y sus sorteos.
+- `0x445ec0` llama al flock `0x4e9a40` con el pool físico completo, incluidos vecinos vivos fuera
+  del prefijo procesado. Las distancias 80/400, la X retenida y la Y guardada no se reemplazan por
+  una suma vectorial reordenada. El rumbo `0x4e97a0` y el giro **entero** `0x4e94c0` son distintos
+  de CreateAngle/TurnAngle: igualdad 90 → 90 devuelve 180; 359 → 0 con paso 13 termina en 12.
+- `0x4455e0`, Icarus: índices 0..2 preparan Monster32 y gastan seis sorteos del nacimiento; los
+  restantes crean el `0x10f` y su joint con el dueño durable. `0x445d60` usa yaw en radianes y el
+  producto sin×cos de dos fases derivadas del contador, antes del sorteo de muerte `%5120`.
+- `0x445890`, Atlans: `heroY*0,01f` conserva el producto sin spill antes de compararlo con 128.
+  Por ello 12800 todavía toma la rama baja; 12801 toma la alta. Nacimiento admitido: seis sorteos.
+- `0x439680`, Kalima: lee y cierra el acceso lógico al contador antes del gate `%100`; el cierre
+  exterior cuesta cuatro CRT. En el gate admitido, otros seis sorteos; X=`heroX−1000−rand()%200`,
+  Y=`heroY−500+rand()%200`, Z=`heroZ−800`. `0x439aa0` gira, sortea `%5` y, con timer<20,
+  cambia alpha/velocidad/pitch; el decremento de timer pertenece a la cola del caller.
+- Peces: los dos sorteos del candidato X/Y se conservan aun al rechazarlo. En Lorencia sólo admite
+  capa 1 igual a 5; Crywolf lee el flag del héroe. Move selecciona acción; FullMovement hace flock,
+  matriz, sorteo de longitud y altura que pisa Z. Los efectos `0x618/4`, `0x697/0` y `0x610/8`
+  reciben el dueño del mismo slot. Los sorteos condicionales de sonido/timer permanecen en orden.
+
+En tormenta, el prefijo de aves conserva `%40`, posición, efecto `0xc2/3`, sonido lógico `0x42`
+y luz dinámica negativa alrededor del héroe. Su creador `0x518cf0 → 0x51ae9b → 0x51a9b1` no
+sortea: vida 80, escala 0,3 y velocidad (0,−12,0). `0x5208c5..0x525148` añade el sorteo común,
+la luz, la dirección `0x53d1a0` por índice físico, fuego `0x5d9/8` y sprite `0x5fd`, antes de la
+cola de animación/movimiento/vida. Un lugar libre usa ocho CRT con el contador cerrado; pool de
+partículas lleno, seis; un acceso exterior abierto evita los cuatro del cierre. Fuego 8 nace con
+dos sorteos (`0x541172..0x54140a`), escala por 0,95 y rotación+5 (`0x54585f`), y usa el atlas
+4×1 girado por `+0x44` (`0x548850`), distinto del ángulo X de la rama default.
+
 **Carga diferida `0x612d90`.** Los índices `0x1f/0x21` cargan `Monster\Monster32.bmd` y
 `Monster\Monster34.bmd`, modelos `0x171/0x173`. Con `[0x6c9e0c]=1`, acciones o mallas ya
 presentes hacen retornar antes de recargar (`0x612dbc/0x612dc7`). Texturas de `Monster\`,
@@ -3517,6 +3574,15 @@ FaunaModels, conserva nombres/refcounts/metadata física mientras el cursor se r
 `0x60d550` excluye next; un nombre justo allí se vuelve a subir. Persistir sólo el BMD o liberar una
 vez por upload no reproduce este contrato.
 
+**Límite del pez Kalima −1.** El caller omite LookupModel/AdvanceModel, pero alcanza SetAction
+`0x4ea030` con índice firmado −1. `0x60dbe0` construye 18.589 BMD de `0xe0` y publica la base
+con desplazamiento `rand()&1023` (`0x60dc4c..0x60dc7a`). El constructor `0x6154ab..0x6154b3`
+deja los contadores en cero. Con desplazamiento>0, BMD[-1] es un objeto construido, sin acciones;
+con desplazamiento=0 la lectura sale antes del primer objeto. `FaunaStepContext::prefixModel`
+permite un préstamo explícito sólo para esa selección de acción. El binding productivo no presta
+un esqueleto vacío ni afirma la precondición por defecto. Esta evidencia funcional no reconstruye
+la ubicación/protección de la tabla, ni cierra por sí sola el caller y el mundo de Kalima.
+
 **Perfil numérico.** Sin/cos de fauna usan `OriginalRetainedMath`: mantienen el resultado con
 64 bits de significando antes del primer producto PC53 y de los spills f32. `0x445d60` multiplica ambos retenidos
 antes de redondear a 53; `0x53d1a0` conserva sus productos y spills separados. No equivale a dos
@@ -3524,7 +3590,31 @@ sin/cos double ya redondeados, ni a std::sin del host. El perfil portable PC53/R
 explícitos no acreditan universalmente FSIN/FCOS, CW, NaN, traps o todo el stack x87 del proceso.
 La validación nativa/VM sigue separada del port; no se declara cerrada la CL7.
 
+Oráculos rastreados:
+[estado](../../tests/scenes/test_fauna_state.cpp),
+[paso](../../tests/scenes/test_fauna_step.cpp),
+[recursos](../../tests/scenes/test_fauna_models.cpp),
+[tabla física](../../tests/scenes/test_model_texture_table.cpp),
+[efectos](../../tests/scenes/test_fauna_effects.cpp) y
+[matemática retenida](../../tests/render/test_fauna_retained_math.cpp).
+Entre los casos: `CommonMovementSeesLivingNeighborsOutsideTheStepPrefix`,
+`LandingAndTakingOffRunTheirNewStatesInTheSameStep`, `IcarusSpawnHasSixDrawsAndWritesTheNativeFlightFields`,
+`KalimaBirthClosesCounterBeforeSixSpawnDraws`, `KalimaSetActionNeedsTheExplicitSignedPrefixModelLoan`,
+`BothRealMonsterResourcesPrepareTheirMeshesTexturesAndActionTables` (Data real),
+`AMapTransitionSharesMonsterReferencesAndACachedMonsterSeesAReusedSlot` y
+`MultipliesBothRetainedResultsBeforeTheFirstBinary53Round`. Prueban servicios productivos y sus
+prefijos; un kernel aislado o un pool vacío no acredita el recorrido completo de escena.
+
 ### La pose compartida entre escenas
+
+Las aves dibujan con el flag de pose 1 y los peces con 0 (`0x446b60/0x446f00`). El recorrido
+suma/resta yaw90 aritméticamente incluso en muertos (aves `0x10f`, excepción), publica seen por
+el trapecio con margen −20 y conserva los glows AE/BC. La sombra usa su propia geometría y alpha
+0,2; falta en mapa 10 y en peces b9/ba. Antes de mirar las mallas, `0x446e9d..0x446eb3` escribe
+XYZ del origen del modelo a (x,y,Height), conservando escala. El siguiente BC transparente, que no
+volvió a posar, usa ese origen del suelo y los huesos retenidos. Los dos pases puros 48→44 de
+171/counter1 (`0x446c35..0x446c80`) siguen visibles en frames intermedios; los creadores de
+tormenta y sus sorteos sólo corren en frames nativos.
 
 El piso tiene otro gate: `0x608b0a..0x608b20` posa sin traslación aun con alpha0; `0x60cf70` sólo
 publica el skin/cuerpo con alpha>0,01. `PublishFaunaFloorPose` conserva esa diferencia. Los objetos,
@@ -3976,7 +4066,7 @@ columnas son la dirección, los bytes, qué es y qué tiene MuRet.
 | `0x511070` | 84 | con `+0x428` entre −127 y 0, sin leer | no se llega |
 | `0x42a2b0` | 542 | el `0x1a8` | con el `0x20a` no hace nada |
 | `0x4fcee0` | 1.806 | la estela del arma | `StepTheWeaponTrail`: sin estela; corta en `0x4fd236` |
-| `0x420dd0` | 23 | la virtual de `+0x430`, el cuervo del login (`0x416a20`) | `+0x430` en 0: no hace nada; el login corre su cuervo por su cuenta |
+| `0x420dd0` | 23 | la virtual de `+0x430`, el cuervo del login (`0x416a20`) | `ActorState::darkSpirit`, dentro del cuerpo en 0x50544b; los estados 0/1 del login; sin recursos o fuera de ese alcance, error explícito |
 
 **Los globales.**
 
@@ -4513,20 +4603,24 @@ registro propio con `LogicalAccess` en el `0x64`; en un dibujo intermedio, ningu
 `Scenes::StepGameWorldObjects` → `World::StepWorldObjectChecked`, desde `GameScene::StepTheObjects`, con
 la capa del héroe de `WorldRuntime::heroCellLayer` y el reloj del mundo. Los dos cortan con la dirección
 en lo primero que MuRet no tiene, con lo de antes ya hecho: en el dibujo, los casos de `0x602ed0` que no
-tiene, después de su `rand()` (el `0x38` del 0, y el `0x64` y el `0x67` del 2), y las gotas del `0x69` de
-Lorencia (`0x6030c7`), después de los dos `rand()` de la primera; el dibujo del `0x69`
-(`Scenes::DrawWaterspout`) y su caso hasta las gotas (`World::StepTheWaterspoutFrame`) sí están; en el
-paso, los fuegos, las
-luces que van al buffer dinámico (la lámpara y la vela, después de su `rand()`) y las puertas del 2. Los
-modelos los carga `Scenes::WorldModels` la primera vez que el dibujo o el paso los piden, con el burro y la
-bandera del 2 (`Npc\obj_donkey` y `Npc\obj_flag`) antes de los del `.obj`. Lo que queda, en
+tiene, después de su `rand()` (el `0x38` del 0, y el `0x64` y el `0x67` del 2). El `0x69` se dibuja con
+`Scenes::DrawWaterspout` y crea las dos gotas con `Scenes::StepGameWaterspoutFrame` sobre
+`WorldState::Particles`; si el modelo actual no escribió un hueso, conserva el corte de la lectura de
+pose anterior (`0x6030a5/0x603121`), con los sorteos y las gotas previos ya hechos
+([Las partículas de la fuente en el juego](#las-partículas-de-la-fuente-en-el-juego)). Los objetos ya
+reciben `WorldState::DynamicLighting().Lighting()`, no la tabla de base; siguen pendientes en el paso
+los fuegos, las luces que van a ese buffer (la lámpara y la vela, después de su `rand()`) y las puertas
+del 2. Los modelos los carga `Scenes::WorldModels` la primera vez que el dibujo o el paso los piden:
+ya incluye los modelos con nombre de Lorencia y las familias de `WorldSpecialModels`, con sus archivos,
+carpetas de texturas y stores concretos de acciones. Ese catálogo no cambia la carga a demanda ni
+porta los casos del mundo; el original los carga en `0x61a560`. Lo que queda, en
 [08](08-pendientes.md) P-C53. Con la Data del repo (*simulado*):
 
 | Mapa, héroe | Vistos | Hasta | `rand()` del pase | Corte del dibujo | El paso que sigue |
 | --- | --- | --- | --- | --- | --- |
 | 0, (143, 120), el de la traza | 83, de los sectores (7, 7), (8, 7), (8, 8), (9, 6), (9, 7) y (9, 8), con el `0x69` (1720) | todos | 84: los 83 y el `rand() % 2` del `0x69`, impar con la semilla del test | `0x6374fe` | con la capa en 4, el techo 1400 (`0x7d`) va a 0 y los tres `0x7a` (1366, 1372 y 1690) sacan su luz; corta en el primer fuego visto, el `0x32` 1933 (`0x604eb0`), antes de MoveHero |
 | 2, (220, 30) | 54, de (12, 1) a (14, 2), sin el `0x64` ni casos | todos | 54 | `0x6374fe` | con la capa en 3, los techos 1282, 1471, 1472 y 1473 van a 0 y los tres `0x4e` (1262, 1462 y 1464) sacan su luz; corta en la puerta 1481 (`0x41`, `0x6050d4`), antes de MoveHero |
-| 0, (96, 126) | 20, sin casos | todos | 20 | `0x510ea1`, con el héroe visto | — |
+| 0, (96, 126) | 20, sin casos | todos | 20 | el jugador visto ya tiene un pase parcial; la frontera depende de su rama pendiente (P-C55 d) | — |
 | 2, (220, 76) | 44, sin casos | todos | 44 | `0x6374fe`, con el héroe sin ver | — |
 
 En la traza de Lorencia, los objetos son 120 bloques con texturas de `0x41c..0x47e`, entre el pasto y los
@@ -5101,8 +5195,16 @@ En el 3 los blends son 1 para el tipo 1, 3 para el 9, 0 para 17/19/37 y 2 para e
 y el 38 se oculta. En el 7 se registra y oculta el 39; en el 8 se registra el 78. El mapa 55 conserva
 bucket y segunda posición inicial aunque reubique 86/90. El mapa 3, tipo 322, llama síncronamente a
 `0x518cf0` con tipos 322/323/322/323/324, owner null y escala 0: antes de **cada llamada** relee la
-posición viva, suma Y 0/4/8/12/20 y Z 350, prestando ángulos y luz del objeto. El efecto 180 de las
-escenas 2/4 recibe owner objeto y escala 1,6, después de ocultarlo y poner su luz blanca; también corre
+posición viva, suma Y 0/4/8/12/20 y Z 350, prestando ángulos y luz del objeto. Hito 2 conecta
+`MapModelEffectServices` a `LoadMap(3)` con el pool durable. Cada 322/323 copia la luz **antes** de
+poner la luz del objeto en cero: tres sorteos, `%50` para escala `1,3f+0,01f*n`, `%80` para
+`+0xe4=0,1f*n`, `%100` para velocidad `0,01f+0,001f*n`. El 324 usa escala 0,6 y ningún sorteo.
+Quedan vida `0xffffff` y blendMesh−2; el resto no escrito del slot se conserva. Pool lleno cuenta
+como binding ejecutado y no consume RNG ni muta la luz. Las cinco altas, con lugar, gastan 12 CRT
+**antes** de los 65.536 del pasto; `MapLoadTest` contrasta ese orden con Data real. Esto resuelve la
+frontera histórica de carga de Noria, sin acreditar todos sus pasos/dibujos.
+
+El efecto 180 de las escenas 2/4 recibe owner objeto y escala 1,6, después de ocultarlo y poner su luz blanca; también corre
 antes de leer el mapa. Una cola diferida altera el orden y las relecturas de ese contrato.
 
 Los otros mapas llaman `405950`, `438a80`, `42c6b0`, `43ff70`, `42ee30`, `4250e0`, `4303d0`, en ese
@@ -5225,9 +5327,14 @@ mapa, en `0x602ffb`, después del `rand()` de `0x602ef4`; *estático*):
   con el reloj del mundo, −(`ftol(T)` % 1000) · 0,001f, como el `0x76` del paso; y un `rand() % 2`:
   impar, nada más; par, dos partículas `0x5f2` (`0x53fe70(0x5f2, …, 0, 1, 0)`, `0x6030c7` y `0x60313a`)
   en los huesos 1 y 4 (`0x68b184c` y `0x68b18dc`, con `0x4ec110`), a (`rand()` % 32 − 16, −20,
-  `rand()` % 32 − 16) y (…, −80, …) de cada uno. MuRet lo corre hasta las gotas
-  (`World::StepTheWaterspoutFrame`) y corta en la primera (`0x6030c7`), después de sus dos `rand()`:
-  no tiene las partículas del juego (`0x743a198`, P-C55 a).
+  `rand()` % 32 − 16) y (…, −80, …) de cada uno. MuRet ya las crea con
+  `Scenes::StepGameWaterspoutFrame`, el pool compartido de `WorldState::Particles` y los huesos de la
+  pose global prestada por `GameObjectPass.retainedPose`, aun con alpha bajo o huesos dummy:
+  `0x4ec110` recibe Translate=0 y lee la matriz exacta anterior sin aplicar el transform actual.
+  [GameParticlesTest](../../tests/scenes/test_game_particles.cpp) cubre altas, matrices retenidas,
+  RNG, pool lleno y el prefijo si falta el segundo hueso. Un préstamo vacío corta tras los dos
+  sorteos de la primera gota; no inventa historia fría. El contraste nativo de sus puntos sigue
+  pendiente (P-C55 a).
 
 **Al dibujar** (`0x6002e0`): el único caso del mapa 0 es el `0x69`, con cuatro `RenderMesh(malla, 2,
 alpha, 3, luz, …)`, la 3 con la U y la V, en vez de un `RenderBody` (*emulado*). Por dentro
@@ -5245,12 +5352,15 @@ usan el modelo `0xad` (`Bird01`), solo sin tormenta (`0x723c50 == 0`), nacen al 
 `ESI` empieza en `0x7d2de18`, suma `0x1d4` por lugar y sale con `ESI >= 0x7d2e73c`
 (`0x44642a/430`, `0x446a57`): índices 0 a 4 de `0x7d2dca8`. En 90 observaciones nativas de la
 primera serie se vieron 5 vivos 85 veces y 4 las otras 5; el conteo observado no es la prueba
-del límite estático. Queda su evolución temporal, en P-C28 j. La tormenta (`0x723c50`, que el `1C` apaga) tira rayos `0xc2` con el sonido `0x42` y
-oscurece la luz del terreno alrededor del héroe.
+del límite estático. MuRet ya porta nacimiento, evolución, servicios y dibujo de esas familias
+([La fauna y sus recursos](#la-fauna-y-sus-recursos)); los tests del port no sustituyen el contraste
+temporal nativo de P-C28 j. La tormenta (`0x723c50`, que el `1C` apaga) tira rayos `0xc2` con el
+sonido `0x42` y oscurece la luz del terreno alrededor del héroe.
 
 **Los peces** (`0x447030`, la tabla `0x7d35350`; el dibujo, `0x446f00`, con su sombra `0x4eff40`):
 en el 0, hasta 3 `0xb2` (`Fish01`), a ±512 del héroe y solo en celdas con la capa 1 en 5, el agua
-(`0x5f82a0`; *estático*).
+(`0x5f82a0`; *estático*). MuRet usa el pool durable y los servicios productivos de
+[fauna](#la-fauna-y-sus-recursos), con el sorteo del candidato incluso si esa celda lo rechaza.
 
 **Las hojas** (`0x530490`; el dibujo, `0x5306a0`): **80 en Lorencia** (*estático*, y las 80 con la
 textura `0x64`, *verificado* en la traza). La cuenta de partida es `(-(mapa != 9) & −120) + 200`

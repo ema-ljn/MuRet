@@ -4311,6 +4311,39 @@ pájaros ([El dibujo del juego](#el-dibujo-del-juego)); MuRet todavía no los co
 `TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection`) y
 `GoldenWorldModels.DeviasLoadsTheDonkeyAndTheFlagBeforeItsObjects`.
 
+### Los casos del suelo y los dos anillos de llegada
+
+Lectura **estática** de `0x52dc20`, `0x53d2c0` y `0x5fc9c0`, build `c32bbd5f…a26a`, sin nuevas
+emulaciones. El caller original filtra vivo y seen antes de consumir `0x52dc46` y emitir la
+mezcla aditiva. `World::DrawGroundEffectCase` porta los casos desde ese punto; conserva las
+operaciones de estado aunque no produzca vértices o corte después. Los tipos sin caso no dibujan.
+El consumidor de escena y la publicación de seen se integran en sus PRs; este PR aporta el kernel,
+el campo retenido y las texturas de los dos anillos.
+
+| Tipo | Contrato estático y límite de MuRet |
+| --- | --- |
+| `0x61d` | Solo /1: calco con scale, luz propia, giro −z y lift5; después luz por `0x3f68ba2e` y scale+0,05f. |
+| `0x5de` | Salvo /3: otro rand; gris `R32((r%4+8)*0,1f)`, lado2, giro −z. No se sustituye por un literal0,9f. |
+| `0x5d5` | scale+0,2f antes del calco; gris `R32(life*0,1f)`. |
+| `0x61e` | Brillo1 o `1−(5−life)*0,2f` con life<5; lado `(20−life)*0,15f`, salvo /4,/9,/10 que usan scale. Colores por la tabla original. /7 corta en `0x52ded0` por dueño ausente; los nacimientos de /6 y /8, en `0x52e04c` y `0x52e0a2`; subtipo fuera de tabla, en `0x52dfdc` por scratch retenido sin representar. |
+| `0x61f` | Repite aditiva. Ángulo = low32 firmado de ftol(reloj), resto3600, por0,1f. /0: anillos ±ángulo y calco `0x61e` naranja. /2 no tiene anillos; con life≤10 corta en `0x52e312` por lado local no escrito; con life>10, lado `(20−life)*0,55f`. |
+| `0x636` | Mezcla alfa; ancho/alto de `+0x17c/+0x180`, luz propia, sin giro. |
+| `0x6eb` | Calco con scale y luz propia; en24..29/36, salvo /6, conserva depthWrite=false y corta en `0x52e12f` antes de `0x437940`. |
+
+Cada anillo de llegada tiene doce quads: radio90 y blanco en z0; radio130 y negro en z200; alpha1.
+El giro usa la matriz **transpuesta** de `0x5fc9c0`, con sus stores f32. No se atenúa con life; el
+calco sí. Con life20, su lado0 aún produce las UV no finitas del original; con life0 el brillo
+resulta levemente negativo por el literal float0,2. No se recortan esas rarezas. Se cargan las OZJ
+reales `Magic_Ground2` y `Magic_Circle1`, slots `0x61e/0x61f`, LINEAR/CLAMP (`0x61d6e0/0x61d6fc`).
+Las texturas de los demás tipos todavía no se suman a la carga de efectos del juego.
+
+`GroundEffectDrawingTest` y `ModelEffectsTest` cubren los casos, orden, RNG y prefijos de error
+de este concepto. El snapshot y replay de `GroundEffectFrame`, y sus conexiones al dibujo de
+objetos y escenas, se incorporan en el PR de integración; no están acreditados por este kernel.
+Estas pruebas del port no sustituyen una captura nativa.
+
+
+
 ### Las marcas del suelo
 
 `0x549130`, desde `0x5fc365` (*estático*, salvo donde se dice). Son 100 lugares de `0x78` bytes en

@@ -158,8 +158,13 @@ private:
 
 // Un mundo con el héroe vivo en HeroSlot, como lo deja 0x511290 (+0x88 en 1), en la celda (100, 100) sin
 // atributos, y la tabla de los ayudantes vacía.
-struct HelperWorld
+class HelperWorld
 {
+private:
+    // Varios escenarios conviven en un test: el pool durable no debe agotar la pila de Windows.
+    std::unique_ptr<WorldState> m_world = std::make_unique<WorldState>();
+
+public:
     explicit HelperWorld(std::int32_t map = 0, std::uint32_t seed = QuietSeed) : random(seed)
     {
         world.Runtime().map = map;
@@ -172,6 +177,11 @@ struct HelperWorld
         Rider().angles = {0.0f, 0.0f, 45.0f};
         Rider().animation.action = StandingRider;
     }
+
+    HelperWorld(const HelperWorld&) = delete;
+    HelperWorld& operator=(const HelperWorld&) = delete;
+    HelperWorld(HelperWorld&&) = delete;
+    HelperWorld& operator=(HelperWorld&&) = delete;
 
     ActorState& Rider()
     {
@@ -215,7 +225,7 @@ struct HelperWorld
                                              .originalFrame = originalFrame});
     }
 
-    WorldState world;
+    WorldState& world = *m_world;
     CrtRandom random;
     Skeleton skeleton = HorseSkeleton();
     HorseModels models;

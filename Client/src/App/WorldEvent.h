@@ -2,10 +2,11 @@
 
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/World.h"
 
 #include <variant>
 
-// Recepciones propietarias del wire de mundo, antes de aplicar héroe, equipo o mapa.
+// Recepciones propietarias del wire de mundo, antes de aplicar héroe, equipo, mapa o clima.
 namespace Client::App
 {
 // Un F3 10 que no llegó cifrado: 0x4c55a0 hace igual su inicialización común (0x4c55c4..0x4c56e0), antes de
@@ -22,5 +23,5 @@ struct ReturnToSelectionReceived
 };
 
 using WorldEvent = std::variant<Protocol::Character::CharacterSelectResult, Protocol::Character::InventoryList,
-                                ClearInventoryReceived, ReturnToSelectionReceived>;
+                                ClearInventoryReceived, ReturnToSelectionReceived, Protocol::World::Weather>;
 } // namespace Client::App

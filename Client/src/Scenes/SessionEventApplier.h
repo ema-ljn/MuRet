@@ -17,7 +17,8 @@ namespace Client::Scenes
 {
 // Vive durante RunScenes, más que la sesión; aplica con cámara y terreno contemporáneos. Los eventos de
 // personaje van a la selección, la respuesta del F3 03 a ApplyWorldEntry, el F3 10 a ApplyInventory, o sin
-// cifrar a ClearForInventoryReply, y el F1 02 con 1 a ApplyReturnToSelection.
+// cifrar a ClearForInventoryReply, el F1 02 con 1 a ApplyReturnToSelection y el 0F sólo a la meta
+// durable del clima (sin avanzar su cuenta actual ni crear lluvia).
 class SessionEventApplier final : public App::ISessionEventSink
 {
 public:

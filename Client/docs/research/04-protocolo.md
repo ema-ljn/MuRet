@@ -622,6 +622,20 @@ Antes de cada `1C` va el `/move` del cliente en el chat, y después el servidor 
   (`0x4e5b4a`) sin tocar la lluvia (*estático*). `0x75fdc38` es la meta de la cuenta de la lluvia de
   las hojas ([06](06-render-escenas-y-ui.md#lo-propio-de-lorencia)). En el cable llegan de `0x01` a
   `0x29` (en el `muproxy.log`, `24`, `21`, `26`, `01`, `17`, `27` y `07`; *verificado* que llegan).
+  Contraste ASM `0x4e36b5..0x4e36f9` (2026-11-10): `mov al,[pkt+3]` después de `xor eax,eax`,
+  `shr ecx,4`; `0x4e36c4` escribe el DWORD cero, y `0x4e36e3..0x4e36ed` toma el nibble bajo y
+  lo multiplica por seis con `lea` y `shl`. Los otros 224 bytes van por `0x4e36dd` a
+  `0x4e5b4a`, que retorna 1 sin escrituras. No hay guarda de escena, mapa, login ni flag C3;
+  no se lee ni escribe la cuenta actual `0x75fdc3c`, no hay llamadas ni `rand()` y no se modifica
+  la tormenta `0x723c50`. La meta y la cuenta están en `.bss`, inicialmente cero; el valor de
+  hojas de `.data[0x6c8c5c]` es 30 (`1e 00 00 00`).
+  **MuRet, H4.11:** lector puro de C1, con `TooShort` sin `xy`, `WrongPacket` para otro tipo/opcode
+  y bytes sobrantes ignorados. Conserva el byte entero en el evento; el aplicador síncrono sólo
+  escribe `WorldRuntime.leafWeather.target` en las ramas 0/1. El estado sobrevive a la sesión y
+  no requiere terreno/modelos. La sesión entrega en orden antes del siguiente paquete, sin ACK;
+  un error del consumidor conserva lo aplicado y corta el lote. Tests de los 256 bytes y de una
+  Connection real con socket/GS de prueba, en claro y normalizada desde C3; no son observación
+  nativa. No hay consumidor productivo de esa meta para hojas/lluvia o audio en este slice ([P-C57](08-pendientes.md)).
 - **El `BD` del cliente**: `C1 04 BD 00`, en C1 con el XOR32, al entrar al mapa 34 (Crywolf), desde
   la respuesta del `F3 03` (`0x4c421a`) y desde el `1C` (`0x4c785d`): el byte que sigue es 0 en los
   dos (`0x4c4269`, `0x4c78ac`; *estático*; *inferido*: el pedido del estado de Crywolf). Hay otros

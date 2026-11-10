@@ -25,6 +25,7 @@
 #include "World/TerrainLighting.h"
 #include "World/ModelEffects.h"
 #include "World/GroundEffectDrawing.h"
+#include "World/KalimaWorld.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "World/SphereFrustum.h"
 #include "World/WorldObjects.h"
@@ -41,6 +42,7 @@
 #include <string>
 #include <string_view>
 #include <memory>
+#include <limits>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -595,7 +597,7 @@ TEST(WorldObjectsDrawingTest, ANoopGroundCasePublishesItsStateWithoutBindingATex
     EXPECT_TRUE(batch.Vertices().empty());
 }
 
-TEST(WorldObjectsDrawingTest, AFailedGroundCaseKeepsTheCommonStateOperationsBeforeItsPrefix)
+TEST(WorldObjectsDrawingTest, AbsentKalimaWaterKeepsTheCommonStateAndRestoresDepthWrite)
 {
     std::array<Client::World::ModelEffect, 1> effects{};
     effects[0].alive = true;
@@ -607,17 +609,44 @@ TEST(WorldObjectsDrawingTest, AFailedGroundCaseKeepsTheCommonStateOperationsBefo
     batch.Begin(Client::Render::Pass3D{});
     const auto drawn = Client::Scenes::DrawGroundEffects(
         batch, effects, {.heights = *heights, .random = random, .worldClock = 0.0f, .map = 24});
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x52e12f"), std::string::npos);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
     using Operation = Client::Render::ModelStateOperation;
-    const std::array wanted{Operation::Blend,     Operation::Cull,      Operation::DepthWrite,
-                            Operation::AlphaTest, Operation::Texture2d, Operation::DepthWrite};
+    const std::array wanted{Operation::Blend,     Operation::Cull,       Operation::DepthWrite, Operation::AlphaTest,
+                            Operation::Texture2d, Operation::DepthWrite, Operation::DepthWrite};
     ASSERT_EQ(batch.Commands().size(), wanted.size());
     for (std::size_t index = 0; index < wanted.size(); ++index)
     {
         EXPECT_EQ(batch.Commands()[index].operation, wanted[index]);
     }
     EXPECT_TRUE(batch.Vertices().empty());
+    EXPECT_EQ(batch.State().depthWrite, true);
+}
+
+TEST(WorldObjectsDrawingTest, RejectedKalimaDecalKeepsTheCommonPrefixAndDisabledDepthWrite)
+{
+    std::array<Client::World::ModelEffect, 1> effects{};
+    effects[0].alive = true;
+    effects[0].seen = true;
+    effects[0].type = 0x6eb;
+    effects[0].transform.scale = 1;
+    effects[0].transform.position.x = std::numeric_limits<float>::infinity();
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Client::World::KalimaWorld water(24);
+    Client::Render::Models::CrtRandom random;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    const auto drawn = Client::Scenes::DrawGroundEffects(
+        batch, effects, {.heights = *heights, .random = random, .worldClock = 0.0f, .map = 24, .kalima = &water});
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("0x41dd90"), std::string::npos);
+    using Operation = Client::Render::ModelStateOperation;
+    const std::array wanted{Operation::Blend,     Operation::Cull,       Operation::DepthWrite, Operation::AlphaTest,
+                            Operation::Texture2d, Operation::DepthWrite, Operation::Binding};
+    ASSERT_EQ(batch.Commands().size(), wanted.size());
+    for (std::size_t index = 0; index < wanted.size(); ++index)
+        EXPECT_EQ(batch.Commands()[index].operation, wanted[index]);
+    EXPECT_TRUE(batch.Vertices().empty());
+    EXPECT_EQ(batch.State().depthWrite, false);
 }
 
 // 0x60479c..0x604a36: el 0x64 de Devias solo sigue con el nivel del registro propio desde 0x50, o desde 0x35

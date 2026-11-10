@@ -172,6 +172,11 @@ std::optional<float> TypeLightOf(std::uint16_t type, Core::Duration clock)
 }
 } // namespace
 
+ObjectState NativeItemObjectState(std::uint16_t type, Core::Duration clock, ObjectRandoms randoms)
+{
+    return InitialObjectState(type, clock, randoms);
+}
+
 ObjectState HangingObjectState(std::uint16_t type, Core::Duration clock, ObjectRandoms randoms)
 {
     ObjectState state = InitialObjectState(type, clock, randoms);

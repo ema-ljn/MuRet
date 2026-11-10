@@ -56,7 +56,9 @@ struct ModelEffect
     glm::vec3 start{};                        // +0x17c, la partida
     // De MuRet: la posición antes del último paso, para dibujar entre dos pasos (D-C4).
     glm::vec3 previousPosition{};
-    std::int32_t textureFrame = 0; // +0x1c4: selector firmado del calco 0x14e en52d8f2.
+    std::int32_t textureFrame = 0;           // +0x1c4: selector firmado del calco 0x14e en52d8f2.
+    const std::int16_t* itemType = nullptr;  // +108 del efecto→+8c del dueño durable, paraf4/fa.
+    const std::uint8_t* itemLevel = nullptr; // +108→+8e; no inferir desde ActorState.
 };
 
 class ModelEffects

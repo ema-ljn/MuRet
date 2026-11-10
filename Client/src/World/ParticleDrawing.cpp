@@ -118,6 +118,7 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         return DrawSelection{ParticleDrawKind::Common, false};
     case DropParticle:
         return DrawSelection{ParticleDrawKind::Drop, false};
+    case ThunderParticle: // 548ca1→54889a: billboard común sin lectura del subtipo.
     case SparkParticle:
     case Particle67:
     case Particle68:

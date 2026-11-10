@@ -32,8 +32,10 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
+#include <span>
 #include <vector>
 
 // Escena5: entrada F303, espera de gates y ciclos de lógica/dibujo sobre WorldState.
@@ -41,9 +43,21 @@
 // Las poses son globales entre escenas; los cuadros intermedios usan scratch y sprites proyectados.
 // Los servicios o familias aún no portados devuelven su frontera después de conservar el prefijo.
 // Contrato: research06, «La entrada al mundo», «El paso del juego» y «El dibujo del juego».
+namespace Client::World
+{
+class KalimaWorld;
+class Particles;
+struct TerrainLighting;
+struct ObjectModelStepState;
+struct WorldObject;
+} // namespace Client::World
+
 namespace Client::Scenes
 {
 class IModelLibrary;
+struct GameSceneFrameProjection;
+struct GameDrawTailState;
+struct GameItemRenderState;
 
 // 0x620db0(0, 0, w, 432), el pase del mundo del juego (0x637410): 480 con la vista de arriba
 // (0x7d36899), que no se prende nunca.
@@ -61,6 +75,8 @@ public:
               const Data::Tables::ItemTable* items = nullptr,
               const Render::Models::ModelTextureSlots* gameSlots = nullptr,
               const Data::Tables::GateTable* gates = nullptr, const Data::Tables::SkillTable* skills = nullptr);
+
+    ~GameScene() override;
 
     // Sin `context.world` o `context.cloth`, el error: la espera vive en el primero y sus cierres
     // gastan el rand() del segundo.
@@ -131,6 +147,19 @@ private:
                                                                 const World::TerrainPolygon& polygon, int frames);
     [[nodiscard]] FaunaDrawCarry& FramePoseCarry();
     [[nodiscard]] World::FrameSprites& FrameSpritesForDraw();
+    void PrepareDrawProjection(int frames);
+    void ObserveMapLoad();
+    [[nodiscard]] GameDrawTailState& FrameTail();
+    [[nodiscard]] World::TerrainLighting& FrameLighting();
+    [[nodiscard]] Render::Models::ClothWorld& FrameCloth();
+    [[nodiscard]] World::ObjectModelStepState& FrameModelState();
+    [[nodiscard]] GameItemRenderState& FrameItemRender();
+    [[nodiscard]] World::ModelEffects& FrameEffects();
+    [[nodiscard]] World::Particles& FrameParticles();
+    [[nodiscard]] std::span<World::WorldObject> FrameObjects();
+    [[nodiscard]] World::KalimaWorld* FrameKalima();
+    [[nodiscard]] std::uint8_t ReadFrameHeroCell(bool x);
+    [[nodiscard]] Core::Expected<void, std::string> DrawKalimaWater(SceneCanvas& canvas);
 
     World::GameCamera& CameraState();
     World::GameCameraInput& CameraInputState();
@@ -154,9 +183,11 @@ private:
     std::vector<World::ScepterGlowCarry> m_scepters;
     World::FrameSprites m_sprites;
     World::FrameSprites m_spriteReplay;
+    bool m_spriteReplayValid = false;
     World::FrameSprites m_projectedSprites;
     World::FrameSprites* m_frameSprites = nullptr;
-    World::ModelEffects m_projectedEffects;
+    std::unique_ptr<GameSceneFrameProjection> m_projection;
+    bool m_projectingFrame = false;
     FaunaDrawCarry m_projectedPoseCarry;
     FaunaDrawCarry* m_framePoseCarry = nullptr;
     World::SphereFrustum m_frustum;
@@ -167,6 +198,7 @@ private:
     // Los modelos de los objetos del mapa que los cargó, si alguno.
     WorldModels m_worldModels;
     std::optional<std::int32_t> m_worldModelsMap;
+    std::optional<std::uint64_t> m_loadedRevision;
     // El rango de bloques del último 0x5fbb00 de la escena, el que lee 0x5fbf60 en el paso.
     World::TerrainRange m_terrainRange;
     // El corrimiento del agua (0x78ecbec) y las olas (0x78acbd8) del juego.

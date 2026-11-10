@@ -358,7 +358,7 @@ TEST(GroundEffectDrawingTest, Type636UsesTheStoredSidesAndNormalAlphaBlending)
     EXPECT_EQ(drawn.batch.Vertices()[0].uv, glm::vec2(-2.5f, -1.0f));
 }
 
-TEST(GroundEffectDrawingTest, Type6ebStopsOnSpecialMapsExceptWithSubtypeSix)
+TEST(GroundEffectDrawingTest, Type6ebSkipsTheMissingSpecialOwnerAndKeepsTheSubtypeSixTerrainPath)
 {
     const auto heights = std::make_unique<TerrainHeights>();
     for (const std::uint8_t map :
@@ -375,10 +375,9 @@ TEST(GroundEffectDrawingTest, Type6ebStopsOnSpecialMapsExceptWithSubtypeSix)
         }
         else
         {
-            ASSERT_TRUE(drawn.error.has_value());
-            EXPECT_NE(drawn.error->find("0x52e12f"), std::string::npos);
+            ASSERT_FALSE(drawn.error.has_value());
             EXPECT_TRUE(drawn.batch.Vertices().empty());
-            EXPECT_EQ(drawn.batch.State().depthWrite, false);
+            EXPECT_EQ(drawn.batch.State().depthWrite, true);
             ASSERT_FALSE(drawn.batch.Commands().empty());
             EXPECT_EQ(drawn.batch.Commands()[0].operation, ModelStateOperation::DepthWrite);
         }

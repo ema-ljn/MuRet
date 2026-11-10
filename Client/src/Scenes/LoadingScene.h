@@ -48,6 +48,7 @@ public:
     [[nodiscard]] int Progress() const;
 
 private:
+    [[nodiscard]] Core::Expected<void, std::string> LoadModels();
     SceneContext m_context;
     GameModels* m_models;
     SceneTextures m_textures;

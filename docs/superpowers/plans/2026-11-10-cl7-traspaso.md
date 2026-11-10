@@ -1,12 +1,49 @@
 # CL7: traspaso de las tareas que quedan (2026-11-10)
 
-> Actualizado con el WIP de hito 2 + P-C55(c)/(f), desde `2110806`, en
-> `codex/cl7-resto-traspaso`. La [continuación previa](2026-11-10-cl7-continuacion-codex.md)
-> documenta la tanda anterior; sus totales no verifican esta tanda.
+> La actualización CL7b de abajo fija el estado más reciente. La fotografía de la tanda
+> `codex/cl7-resto-traspaso`, desde `2110806`, se conserva como antecedente.
+> La [continuación previa](2026-11-10-cl7-continuacion-codex.md) documenta una tanda anterior.
 
 El 2026-11-10 Emanuel pidió cerrar lo que estaba en curso y que **Codex siga las tareas que quedan de la CL7**. Este documento distingue la base histórica recibida, el trabajo local en curso y lo que falta, en orden. Los informes de cada hito están en [`2026-11-09-cl7/`](2026-11-09-cl7/).
 
 > **El modo tutor está apagado por ahora** (Emanuel, 2026-11-10; ver [`AGENTS.md`](../../../AGENTS.md)): el agente escribe el código, sin pedir el consentimiento del tutor. Así se hizo la CL7 desde el 2026-11-02.
+
+## Continuación CL7b y publicación consolidada
+
+El [plan CL7b](2026-11-10-cl7b-t16-kalima-p55.md) continúa Windows, T16, Kalima y P-C55.
+Por pedido de Emanuel se reemplaza la fragmentación de los PRs #222–#287 por seis bloques:
+[#288, bases y recursos](https://github.com/ema-ljn/MuRet/pull/288),
+[#289, actores y acceso](https://github.com/ema-ljn/MuRet/pull/289),
+[#290, pose y efectos](https://github.com/ema-ljn/MuRet/pull/290),
+[#291, fauna y objetos](https://github.com/ema-ljn/MuRet/pull/291),
+[#292, movimiento y transiciones](https://github.com/ema-ljn/MuRet/pull/292) y
+[#293, ciclo de escenas](https://github.com/ema-ljn/MuRet/pull/293).
+La pila parte de `main` y cada bloque usa como base su predecesor real, excepción autorizada.
+Los anteriores se cierran como reemplazados sólo después del CI propio de los reemplazos,
+preservando referencias y conversaciones. No se mergea automáticamente `main`.
+
+Esos seis PRs recomponen exactamente el tree portátil `a622e314`, que ya tenía Linux/Windows
+verdes, y conservan los cinco fixes de portabilidad. La revisión de Astra aprueba los seis
+cortes; cada head remoto tiene además su corrida propia. Las ampliaciones funcionales siguientes
+son otra captura: no se atribuyen al CI del tree anterior.
+
+El avance funcional nuevo quedó guardado en el commit local `8b6868c`: **4.851 casos registrados,
+4.792 pasan, 59 omiten evidencia externa y cero fallos**, incluidos **99 GL** bajo Xvfb obligatorio.
+También pasan tres arranques, formato18 y los121 checks de includes del delta. Astra revisó los
+kernels y corrigió tres P2 de adapters: materiales durables tras recarga/frame0, pulso global
+antes de la espera y sprites nuevos tras invalidar el replay. Windows de esta captura y la
+observación nativa siguen pendientes.
+
+| Dominio | Avance comprobado en CL7b | Pendiente |
+| --- | --- | --- |
+| T16 | 198/198: matriz0..36, terreno/alias, D3 real del GS falso, gates y ciclo real de selección/reentrada. Las filas con fronteras comprueban el corte. | Escenas/caminata completas de todas las familias; las filas negativas no las sustituyen. |
+| Kalima | Loader, agua, dos planos, cáusticas32, modelo firmado−1 desde el initializer real, cuerpo/sombra/sprite y prefijo global de objetos. Se conservan los2.266 objetos reales. | Movimiento438ad0, partículas438f81/4389ca y las demás familias alcanzables, efecto9; cuadro poblado y24→0→24 completos. |
+| P-C55(f) | Familias/opciones/agua del piso,51IDs de609640, stores antes del error, efectosf4/fa, cintas y Helper07→joints614/14→Thunder5ca/0 con recursos físicos. | Productores y ramas restantes de equipo, armas, alas y CL9–CL11. |
+| Q-C180 | MAP/ATT→OBJ→alturas/luz; primer aviso fatal durable, propagación por sesión y modal SDL solicitado con la ventana viva. | Observación del modal y del cierre en Windows/VM. |
+
+**CL7, Kalima y T16 universal siguen abiertas.** También quedan CL.M y el contraste nativo.
+La VM permanece al final por pedido de Emanuel; los cuerpos públicos pendientes se pueden
+continuar mediante lectura estática sin esperar esa VM.
 
 ## Base histórica recibida
 
@@ -34,7 +71,7 @@ Además, después del informe:
 - el dibujo del juego después de los objetos: el `0x69` de Lorencia, los efectos del suelo, los pájaros y los personajes `0x510d00` (#221);
 - el manejador de caídas `MuError.dmp`, de la CL3 (#216).
 
-## Estado actual de la integración
+## Estado de integración de la tanda anterior
 
 El [plan de esta tanda](2026-11-10-cl7-resto-traspaso.md) avanza hito 2 y P-C55(c)/(f), con
 `WorldState` dueño de la historia durable y errores después del prefijo nativo. La base es

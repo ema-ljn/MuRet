@@ -33,6 +33,7 @@ class IParticleTrigonometry;
 
 inline constexpr std::size_t ParticleCount = 3000;
 inline constexpr std::int32_t ShinyParticle = 0x5fc;
+inline constexpr std::int32_t ThunderParticle = 0x5ca;
 inline constexpr std::int32_t FairySparkParticle = 0x5c5;
 inline constexpr std::int32_t FireParticle = 0x5d9;
 inline constexpr std::int32_t DropParticle = 0x607;
@@ -105,7 +106,7 @@ class Particles
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). Se aceptan 5f2/0,2, 5c6/1,5,9, 622/8,10, 5d9/0..3, 607/0, 67/0 y 68/0.
+    // rand(). Se aceptan5ca/0, 5f2/0,2, 5c6/1,5,9, 622/8,10, 5d9/0..3, 607/0, 67/0 y 68/0.
     // Create es la compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina
     // consume cinco rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,

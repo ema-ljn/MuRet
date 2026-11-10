@@ -1,4 +1,5 @@
 #include "Scenes/GameScene.h"
+#include "Scenes/GameSceneFrameProjection.h"
 #include "Data/Tables/GateTable.h"
 #include "Data/Tables/SkillTable.h"
 #include "Render/Models/HalfLifeMath.h"
@@ -11,6 +12,8 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaEffects.h"
 #include "Scenes/GameFloorItems.h"
+#include "Scenes/GameItemRenderState.h"
+#include "Scenes/KalimaObjectStep.h"
 #include "World/GameModelEffects.h"
 
 #include "App/ServerSession.h"
@@ -47,6 +50,7 @@
 #include "UI/Widget.h"
 #include "World/GameCamera.h"
 #include "World/GroundMarks.h"
+#include "World/KalimaWorld.h"
 #include "World/SphereFrustum.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
@@ -144,6 +148,8 @@ GameScene::GameScene(const SceneContext& context, App::ServerSession* session, c
 {
 }
 
+GameScene::~GameScene() = default;
+
 Core::Expected<void, std::string> GameScene::Enter()
 {
     if (m_context.world == nullptr || m_context.cloth == nullptr)
@@ -171,6 +177,7 @@ Core::Expected<void, std::string> GameScene::Enter()
 // deja la escena en Failure sin la tela; después de un corte, del paso o del dibujo, nada.
 void GameScene::Step(const Input::InputState& input)
 {
+    m_projectingFrame = false;
     if (m_failure)
     {
         return;
@@ -211,6 +218,7 @@ Core::Expected<void, std::string> GameScene::StepWorld(const Input::InputState& 
     {
         return {};
     }
+    ObserveMapLoad();
     WorldRuntime& runtime = m_context.world->Runtime();
     // 0x636da3: el estado 0x3d marca el mundo cargado; sin él y con el mundo sin cargar, el paso
     // termina acá (0x636dbc).
@@ -287,12 +295,21 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     WorldState& world = *m_context.world;
     const std::int32_t map = world.Runtime().map;
     std::span<World::WorldObject> objects = world.Map().objects;
+    if (World::IsKalimaMap(map))
+    {
+        // 606572 antes del early-return y del reset60657a, incluso sin un objeto visto.
+        const auto selector = StepKalimaObjectPrelude(world, *m_context.cloth);
+        if (!selector.HasValue())
+            return Core::Unexpected(selector.Error());
+        world.Runtime().objectSelectionCount = 0;
+        // 6063d0: no esIcarus;4055b0 y42c500 retornanAL0 paraKalima, sin usar selector.
+    }
     // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no toca ninguno.
     if (std::ranges::none_of(objects, [](const World::WorldObject& object) { return object.alive && object.seen; }))
     {
         return {};
     }
-    if (map != LorenciaMap && map != DeviasMap && map != NoriaMap)
+    if (map != LorenciaMap && map != DeviasMap && map != NoriaMap && !World::IsKalimaMap(map))
     {
         return Core::Unexpected("0x606560: los objetos vistos del " + MapText(map) + " (0x604ab0) no están portados");
     }
@@ -328,6 +345,7 @@ void GameScene::PrepareFrame()
     {
         return;
     }
+    ObserveMapLoad();
     WorldRuntime& runtime = m_context.world->Runtime();
     // 0x6371a6: sin el mundo cargado devuelve 0 sin leer el contador.
     if (!runtime.drawingEnabled)
@@ -370,6 +388,25 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
 {
     WorldRuntime& runtime = m_context.world->Runtime();
     const World::WorldTerrain& terrain = m_context.world->Map().terrain;
+    const int frames = m_cameraFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
+    m_framePoseCarry = &m_context.world->PoseCarry();
+    m_frameSprites = &m_sprites;
+    PrepareDrawProjection(frames);
+    if (frames == 0)
+    {
+        m_projectedPoseCarry = m_context.world->PoseCarry();
+        m_framePoseCarry = &m_projectedPoseCarry;
+        m_projectedSprites.Clear();
+        m_frameSprites = &m_projectedSprites;
+    }
+    if (frames == 0)
+    {
+        // El original publica 639482 en el orquestador, antes del despacho de escena.
+        // Un frame intermedio sólo consulta el valor de su reloj sobre la copia proyectada.
+        const float worldClock =
+            static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
+        UpdateGameItemGlowPulse(FrameItemRender(), worldClock);
+    }
     if (!terrain.mapping || !terrain.heights || !terrain.attributes || !terrain.lighting)
     {
         return Core::Unexpected("0x6371a0: el " + MapText(runtime.map) + " no está cargado (0x61a560)");
@@ -385,17 +422,6 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
         return Core::Unexpected(std::string("0x635b5c: en el mapa 6 la cámara (0x635ae0) compara el nombre del héroe "
                                             "con 0x576960, que MuRet no tiene"));
     }
-    const int frames = m_cameraFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
-    m_framePoseCarry = &m_context.world->PoseCarry();
-    m_frameSprites = &m_sprites;
-    if (frames == 0)
-    {
-        m_projectedPoseCarry = m_context.world->PoseCarry();
-        m_framePoseCarry = &m_projectedPoseCarry;
-        m_projectedSprites.Clear();
-        m_frameSprites = &m_projectedSprites;
-        m_projectedEffects = m_context.world->Map().effects;
-    }
     // 0x637241: 0x635ae0.
     const Render::Camera3D camera = CameraOfTheFrame(canvas, frames);
     m_drawnCamera = camera;
@@ -409,7 +435,8 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     // 0x637366: 0x5fbb00(w · 0,0015625, &p), el rango de bloques y el trapecio; con w en 640, 1. El trapecio y
     // su nivel quedan en los globales de WorldRuntime, que lee 0x5fba90 en el paso que sigue.
     m_terrainRange = World::TerrainRangeOf(pass.view, camera);
-    m_context.world->DynamicLighting().PublishRange(m_terrainRange);
+    if (frames > 0)
+        m_context.world->DynamicLighting().PublishRange(m_terrainRange);
     const auto polygon = PolygonOfTheFrame(camera, target, frames);
     if (!polygon.HasValue())
     {
@@ -421,6 +448,27 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     auto drawn = DrawTheWorldPass(canvas, pass, polygon.Value(), frames);
     canvas.flushModels();
     return drawn;
+}
+
+void GameScene::ObserveMapLoad()
+{
+    const auto revision = m_context.world->Map().loadRevision;
+    if (m_loadedRevision == revision)
+        return;
+    // Un mismo número de mapa también puede tener otra carga, incluso después de un fallo.
+    // Estos owners son cachés de MuRet: no son escrituras ni contadores del original.
+    m_groundEffects.Reset();
+    m_tiles.Release();
+    m_worldModels.Release();
+    m_worldModelsMap.reset();
+    m_context.world->Runtime().objectModelState.unlitMeshes.clear();
+    m_projection.reset();
+    m_projectingFrame = false;
+    m_framePoseCarry = nullptr;
+    m_frameSprites = nullptr;
+    m_spriteReplay.Clear();
+    m_spriteReplayValid = false;
+    m_loadedRevision = revision;
 }
 
 Core::Expected<void, std::string> GameScene::UploadTheTiles(std::uint8_t map)
@@ -449,7 +497,10 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
     }
     m_worldModels.Release();
     m_worldModelsMap.reset();
+    // La carga recrea BMD durables, aun si la pidió un dibujo proyectado.
     m_context.world->Runtime().objectModelState.unlitMeshes.clear();
+    if (m_projectingFrame)
+        FrameModelState().unlitMeshes.clear();
     if (auto loaded =
             m_worldModels.Load(m_context.dataRoot, static_cast<std::uint8_t>(map), m_context.textures, m_context.log,
                                m_gameSlots, m_models, &m_context.world->FaunaResources().TextureTable());
@@ -525,7 +576,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     m_mouseRay = World::TerrainPickingSegment{.origin = origin, .end = end};
     // 0x6374b2..0x6374c2: 0x437850() mira el mundo de Kalima (0x723c48), que MuRet no crea (MapLoad corta
     // en esos mapas): es falso. El mapa 10 no dibuja el terreno.
-    if (map != WithoutTerrainMap)
+    if (FrameKalima() == nullptr && map != WithoutTerrainMap)
     {
         // 0x5fc260(0) → 0x5fac90 → 0x5fa830: en el mapa 7 la capa 2 de agua va con 0x5fa4b0.
         if (map == AnimatedWaterMap)
@@ -546,7 +597,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         view.mapping = terrain.mapping.get();
         view.heights = terrain.heights.get();
         view.attributes = terrain.attributes.get();
-        view.lighting = &m_context.world->DynamicLighting().Lighting();
+        view.lighting = &FrameLighting();
         view.tiles = m_tiles.Sizes();
         view.map = static_cast<std::uint8_t>(map);
         view.fixedHeight = CameraState().fixedHeight;
@@ -587,7 +638,9 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         canvas.models.SetState(afterMarks);
     }
     // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0, 2 y 3.
-    if (map != LorenciaMap && map != DeviasMap && map != NoriaMap)
+    const bool knownObjects = map == LorenciaMap || map == DeviasMap || map == NoriaMap || World::IsKalimaMap(map);
+    if (!knownObjects &&
+        std::ranges::any_of(FrameObjects(), [](const World::WorldObject& object) { return object.alive; }))
     {
         return Core::Unexpected(
             "0x6374ce: los objetos del " + MapText(map) +
@@ -602,45 +655,50 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     // La luz del terreno en un punto (0x5f99e0) lee el buffer dinámico 0x7b4ccc4: el paso suma las luces
     // de los fuegos, las lámparas y la fauna al buffer dinámico. El reloj
     // del mundo (0x5767b88), el del frame, como el de la cámara.
-    if (auto objects = DrawGameWorldObjects(
-            canvas.models, m_worldModels, world.Map().objects, polygon, &world.DynamicLighting().Lighting(),
-            canvas.frameClock,
-            GameObjectPass{
-                .map = static_cast<std::uint8_t>(map),
-                .originalFrame = frames > 0,
-                .random = &m_context.cloth->random,
-                .heroClass = hero.characterClass,
-                .ownLevel = world.OwnCharacter().level,
-                .ownRecordDepth = &world.Runtime().ownRecordDepth,
-                .worldClock = static_cast<float>(
-                    std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count()),
-                .particles = &world.Particles(),
-                .onPose = [&](const DrawnObject& drawn)
-                { return PublishFaunaPose(FramePoseCarry(), m_worldModels, drawn, true); },
-                .sprites = &FrameSpritesForDraw(),
-                .retainedPose = &FramePoseCarry(),
-                .createJoint = [&](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
-                {
-                    const auto created = CreateFaunaJoint(world.DrawTail().joints, request, m_context.cloth->random);
-                    if (!created.HasValue())
-                        return Core::Unexpected(created.Error());
-                    return {};
-                },
-                .modelState = &world.Runtime().objectModelState,
-                .publishProjectedPose = true});
-        !objects.HasValue())
+    if (knownObjects)
     {
-        return Core::Unexpected(objects.Error() + ", en el " + MapText(map));
+        if (auto objects = DrawGameWorldObjects(
+                canvas.models, m_worldModels, FrameObjects(), polygon, &FrameLighting(), canvas.frameClock,
+                GameObjectPass{
+                    .map = static_cast<std::uint8_t>(map),
+                    .originalFrame = frames > 0,
+                    .random = &FrameCloth().random,
+                    .heroClass = hero.characterClass,
+                    .ownLevel = world.OwnCharacter().level,
+                    .ownRecordDepth =
+                        m_projectingFrame ? &m_projection->ownRecordDepth : &world.Runtime().ownRecordDepth,
+                    .worldClock = static_cast<float>(
+                        std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count()),
+                    .particles = &FrameParticles(),
+                    .onPose = [&](const DrawnObject& drawn)
+                    { return PublishFaunaPose(FramePoseCarry(), m_worldModels, drawn, true); },
+                    .sprites = &FrameSpritesForDraw(),
+                    .retainedPose = &FramePoseCarry(),
+                    .createJoint = [&](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+                    {
+                        const auto created = CreateFaunaJoint(FrameTail().joints, request, FrameCloth().random);
+                        if (!created.HasValue())
+                            return Core::Unexpected(created.Error());
+                        return {};
+                    },
+                    .modelState = &FrameModelState(),
+                    .publishProjectedPose = true,
+                    .waterTextureFrame = FrameCloth().waterTextureFrame});
+            !objects.HasValue())
+        {
+            return Core::Unexpected(objects.Error() + ", en el " + MapText(map));
+        }
     }
     // 0x6374d3: 0x52dc20, los efectos del suelo, sobre la tabla de 0x518cf0 (la de WorldMap).
     if (auto ground = m_groundEffects.Draw(
-            canvas.models, world.Map().effects.Effects(),
+            canvas.models, FrameEffects().Effects(),
             World::GroundEffectResources{
                 .heights = *world.Map().terrain.heights,
-                .random = m_context.cloth->random,
+                .random = FrameCloth().random,
                 .worldClock = static_cast<float>(
                     std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count()),
-                .map = static_cast<std::uint8_t>(map)},
+                .map = static_cast<std::uint8_t>(map),
+                .kalima = FrameKalima()},
             frames > 0);
         !ground.HasValue())
     {
@@ -672,8 +730,8 @@ Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canv
     std::optional<std::string> poseFailure;
     const auto drawn = DrawGameCharacters(
         canvas.models, *m_models, world,
-        GameCharacterPass{.dynamicLighting = &world.DynamicLighting().Lighting(),
-                          .clothWorld = m_context.cloth,
+        GameCharacterPass{.dynamicLighting = &FrameLighting(),
+                          .clothWorld = &FrameCloth(),
                           .frameClock = canvas.frameClock,
                           .originalFrames = frames,
                           .cloths = m_characterCloths,

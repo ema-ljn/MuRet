@@ -38,6 +38,9 @@ using ObjectRandoms = std::array<int, 2>;
 // El objeto que 0x509340 le arma, en cada frame, a lo que cuelga: 0x607b60 con el tipo `type` (el
 // modelo del ítem) y lo que 0x60b3d0 le escribe por su tipo antes de dibujarlo (la luz de Wing05,
 // Wing06 y Staff12).
+// 607b60 sin las luces posteriores de60b3d0.
+[[nodiscard]] ObjectState NativeItemObjectState(std::uint16_t type, Core::Duration clock, ObjectRandoms randoms);
+
 [[nodiscard]] ObjectState HangingObjectState(std::uint16_t type, Core::Duration clock, ObjectRandoms randoms);
 
 // La luz que 0x60b3d0 le escribe al objeto que dibuja, por el modelo: la de los FShoots_R de

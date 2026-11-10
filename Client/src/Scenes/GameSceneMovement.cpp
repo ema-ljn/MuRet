@@ -99,6 +99,7 @@ Core::Expected<void, std::string> GameScene::StepTheFauna()
                              *m_context.cloth,
                              time};
     context.fixedHeight = CameraState().fixedHeight;
+    context.prefixModel = world.FaunaResources().PrefixModel();
     auto* slots = m_worldModels.TextureSlots();
     if (!slots)
         return Core::Unexpected(std::string("612d90: falta la tabla de texturas del mundo"));

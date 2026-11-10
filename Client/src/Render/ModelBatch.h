@@ -40,6 +40,8 @@ enum class ModelBlend : std::uint8_t
     Subtractive,
     // 0x620b90: ONE_MINUS_SRC_COLOR / ONE, sin culling, alpha test ni escritura de profundidad.
     InverseColorAdditive,
+    // 620c90: ZERO / SRC_COLOR, sin culling, alpha test ni escritura de profundidad.
+    Multiplicative,
 };
 
 // 621400 ya entrega coordenadas de ojo; las mallas siguen entregando coordenadas del mundo.

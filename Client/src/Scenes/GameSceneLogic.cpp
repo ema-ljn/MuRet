@@ -3,6 +3,7 @@
 #include "Scenes/SelectionState.h"
 #include "Scenes/GameParticles.h"
 #include "Scenes/GameDrawTail.h"
+#include "Scenes/GameRibbonCreation.h"
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaEffects.h"
 #include "Scenes/GameFloorItems.h"
@@ -78,7 +79,8 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock)
     {
         return stepped;
     }
-    return {};
+    // 5091d0, inmediatamente después del último508ea0 y antes de63711e.
+    return StepRibbons(m_context.world->DrawTail().ribbons);
 }
 
 Core::Expected<void, std::string> GameScene::StepTheModelEffects(float worldClock)
@@ -111,7 +113,9 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
     StepDamage(m_context.world->DrawTail().damage);
     if (auto stepped = StepTheModelEffects(worldClock); !stepped.HasValue())
         return stepped;
-    if (auto stepped = StepJoints(m_context.world->DrawTail().joints, m_context.cloth->random); !stepped.HasValue())
+    if (auto stepped = StepJoints(m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth,
+                                  &m_context.world->Particles(), worldClock);
+        !stepped.HasValue())
         return stepped;
     // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla
     // sigue vacía mientras MuRet no tenga quién la llene (08 P-C49).

@@ -87,13 +87,13 @@ TEST(WorldTerrainTest, TheSlot0x122IsTheAcceptBox)
     EXPECT_TRUE(box.required);
 }
 
-// Sin la carpeta del mundo, el error nombra el primer archivo que pide, como lo pide el original.
-TEST(WorldTerrainTest, AMissingWorldNamesTheMap)
+// Q-C27: el MAP ausente no avisa; sin carpeta se alcanza el ATT fatal.
+TEST(WorldTerrainTest, AMissingWorldNamesTheFatalAttributes)
 {
     const Client::Tests::TemporaryFolder empty("world-terrain");
     const auto terrain = LoadWorldTerrain(empty.Path(), Login);
     ASSERT_FALSE(terrain.HasValue());
-    EXPECT_NE(terrain.Error().find("World56\\EncTerrain56.map"), std::string::npos) << terrain.Error();
+    EXPECT_NE(terrain.Error().find("World56\\EncTerrain56.att"), std::string::npos) << terrain.Error();
 }
 
 class GoldenWorldTerrain : public Client::Tests::GoldenDataTest

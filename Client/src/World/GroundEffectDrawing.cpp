@@ -8,6 +8,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "World/ModelEffects.h"
+#include "World/KalimaSurfaceDecal.h"
 #include "World/OriginalFtol.h"
 #include "World/TerrainDecal.h"
 
@@ -317,11 +318,29 @@ Core::Expected<void, std::string> DrawMapDecal(Render::ModelBatch& batch, const 
         (resources.map >= FirstSpecialMap && resources.map <= LastSpecialMap) || resources.map == LastMap;
     if (specialMap && effect.subtype != 6)
     {
-        // 0x52e0f0: 0x6208b0 apaga la escritura de profundidad antes de la primitiva no portada.
+        // 0x52e0f0: 0x6208b0 apaga la escritura de profundidad antes del wrapper437940.
         Render::ModelDrawState state = batch.State();
         state.depthWrite = false;
         batch.ApplyOperation(state, Render::ModelStateOperation::DepthWrite);
-        return Core::Unexpected(std::string("0x52e12f: falta el calco de 0x437940 del 0x6eb en este mapa"));
+        if (resources.kalima)
+        {
+            const TerrainDecal decal{.slot = effect.type,
+                                     .x = effect.transform.position.x,
+                                     .y = effect.transform.position.y,
+                                     .width = effect.transform.scale,
+                                     .height = effect.transform.scale,
+                                     .color = effect.light,
+                                     .angle = -effect.transform.angles.z,
+                                     .alpha = 1,
+                                     .lift = 0};
+            if (const auto drawn = DrawKalimaSurfaceDecal(batch, *resources.kalima, decal); !drawn.HasValue())
+                return drawn;
+        }
+        // 52e137→620890: lo escribe en1 aun cuando437940 no encontró dueño.
+        state = batch.State();
+        state.depthWrite = true;
+        batch.ApplyOperation(state, Render::ModelStateOperation::DepthWrite);
+        return {};
     }
     return DrawDecal(batch, effect, resources, effect.type, effect.transform.scale, effect.transform.scale,
                      effect.light, -effect.transform.angles.z);

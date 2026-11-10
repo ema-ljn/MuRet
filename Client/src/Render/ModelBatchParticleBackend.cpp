@@ -23,6 +23,7 @@ namespace Client::Render
 {
 namespace
 {
+constexpr std::int32_t MultiplicativeMode = 1;       // 620c90: ZERO / SRC_COLOR.
 constexpr std::int32_t AlphaMode = 2;                // 620a00: modo raw32, distinto de ModelBlend.
 constexpr std::int32_t AdditiveMode = 3;             // 620a90.
 constexpr std::int32_t SubtractiveMode = 4;          // 620b10: ZERO / ONE_MINUS_SRC_COLOR.
@@ -56,6 +57,8 @@ Core::Expected<RasterState, std::error_code> RasterOf(ModelBlend blend)
         return RasterState{0, 1, 1, 0};
     case ModelBlend::Alpha:
         return RasterState{AlphaMode, 0, 1, 1};
+    case ModelBlend::Multiplicative:
+        return RasterState{MultiplicativeMode, 0, 0, 0};
     case ModelBlend::Additive:
         return RasterState{AdditiveMode, 0, 0, 0};
     case ModelBlend::Shadow:
@@ -76,6 +79,8 @@ Core::Expected<ModelBlend, std::error_code> BlendOf(const ModelBatchParticleStat
     {
     case 0:
         return ModelBlend::Opaque;
+    case MultiplicativeMode:
+        return ModelBlend::Multiplicative;
     case AlphaMode:
         return ModelBlend::Alpha;
     case AdditiveMode:

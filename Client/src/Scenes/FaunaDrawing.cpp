@@ -310,6 +310,11 @@ Core::Expected<void, std::string> PublishFaunaFloorPose(FaunaDrawCarry& carry, c
     return PublishFaunaPoseRaw(carry, models, object.model, bones, object.transform, false,
                                object.alpha > VisibleAlpha);
 }
+Core::Expected<void, std::string> TransformFaunaPose(FaunaDrawCarry& carry, const IModelLibrary& models,
+                                                     const DrawnObject& object)
+{
+    return PublishFaunaPoseRaw(carry, models, object.model, carry.bones, object.transform, false);
+}
 Core::Expected<void, std::string> PublishFaunaPoseRaw(FaunaDrawCarry& carry, const IModelLibrary& models,
                                                       std::uint16_t modelId,
                                                       std::span<const Render::Models::BoneTransform> bones,

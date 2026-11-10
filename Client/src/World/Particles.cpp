@@ -278,6 +278,8 @@ bool IsDrop(const Particle& particle)
 
 std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtype)
 {
+    if (type == ThunderParticle)
+        return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == ShinyParticle || type == FairySparkParticle)
         return IsNoriaParticle(type, subtype) ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == Particle67 || type == Particle68)
@@ -932,6 +934,19 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             }
         }
         Initialize(particle, type, position, angles, light, subtype, scale, owner);
+        if (type == ThunderParticle)
+        {
+            // 54109f: /0 conserva vida2, RGB y ángulos del prefijo; dos CRT y dos stores.
+            constexpr int ScaleSpan = 8;
+            constexpr int ScaleBase = 6;
+            constexpr float ScaleStep = 0.1f;
+            constexpr float RotationStep = 20;
+            particle.scale = F32((static_cast<double>(random.Next() % ScaleSpan + ScaleBase) * scale) * ScaleStep);
+            const int rotation = random.Next() % FullTurn;
+            particle.verticalSpeed = RotationStep;
+            particle.rotation = static_cast<float>(rotation);
+            return std::optional(index);
+        }
         if (orbit)
         {
             const auto created = CreateTheOrbit(particle, scale, random, *trigonometry);
@@ -1123,7 +1138,12 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
                 return Core::Unexpected(*error);
             }
         }
-        if (IsNoriaParticle(particle.type, particle.subtype))
+        if (particle.type == ThunderParticle)
+        {
+            // 54573f: se ejecuta incluso después del último movimiento común con alive=0.
+            particle.rotation = F32(static_cast<double>(particle.verticalSpeed) + particle.rotation);
+        }
+        else if (IsNoriaParticle(particle.type, particle.subtype))
         {
             const auto stepped = StepNoriaParticle(particle, terrainHeight);
             if (!stepped.HasValue())

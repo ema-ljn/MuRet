@@ -119,8 +119,8 @@ TEST(SessionEventApplierTest, AClearInventoryRunsOnlyTheCommonInitialization)
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
 }
 
-// El F3 03 va a 0x4c3940: sin la carpeta de datos, la carga del mapa 0 corta nombrando el .map de
-// World1, después de los stats en el registro propio.
+// El F3 03 va a 0x4c3940: sin datos, el MAP no abre y la carga alcanza el ATT de World1
+// (Q-C180), después de los stats en el registro propio.
 TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
 {
     Applier tested;
@@ -132,7 +132,7 @@ TEST(SessionEventApplierTest, TheWorldEntryGoesToTheNativeApplier)
     const auto result = tested.applier.ApplyWorld(event, online.session);
 
     ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("EncTerrain1.map"), std::string::npos) << result.Error();
+    EXPECT_NE(result.Error().find("EncTerrain1.att"), std::string::npos) << result.Error();
     EXPECT_EQ(tested.world.OwnCharacter().zen, 1234u);
     EXPECT_EQ(tested.world.Runtime().map, 0);
     EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);

@@ -1,5 +1,8 @@
 #include "Scenes/GameDrawTail.h"
 
+#include "Core/IClock.h"
+#include "Render/Models/ObjectState.h"
+
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
 #include "Render/Billboard.h"
@@ -10,6 +13,9 @@
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/GameFloorItemDrawing.h"
+#include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/GameTailDrawingPrimitives.h"
 #include "Scenes/ModelPoseCallbacks.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
@@ -17,6 +23,8 @@
 #include "World/SphereFrustum.h"
 #include "World/TerrainLighting.h"
 #include "World/TerrainDecal.h"
+#include "World/TerrainAttributeQuery.h"
+#include "Data/Terrain/TerrainLight.h"
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <array>
@@ -32,29 +40,9 @@ namespace Client::Scenes
 {
 namespace
 {
-void Blend(Render::ModelBatch& batch, Render::ModelBlend blend)
-{
-    auto state = batch.State();
-    state.blend = blend;
-    state.cullEnabled = false;
-    state.depthWrite = blend == Render::ModelBlend::Alpha;
-    state.alphaTest = blend == Render::ModelBlend::Alpha;
-    state.texture2d = true;
-    constexpr std::array operations{Render::ModelStateOperation::Blend, Render::ModelStateOperation::Cull,
-                                    Render::ModelStateOperation::DepthWrite, Render::ModelStateOperation::AlphaTest,
-                                    Render::ModelStateOperation::Texture2d};
-    for (const auto operation : operations)
-        batch.ApplyOperation(state, operation);
-}
-void Quad(Render::ModelBatch& batch, const std::array<Render::ModelVertex, 4>& vertices)
-{
-    batch.Triangle({vertices[0], vertices[1], vertices[2]});
-    batch.Triangle({vertices[0], vertices[2], vertices[3]});
-}
-float F32(double value)
-{
-    return static_cast<float>(value);
-}
+using TailDrawing::Blend;
+using TailDrawing::F32;
+using TailDrawing::Quad;
 bool AdditiveLeaves(std::int32_t map)
 {
     return map == 2 || map == 7 || map == 10 || map == 30 || map == 55;
@@ -129,227 +117,7 @@ Core::Expected<void, std::string> DrawFloorItems(std::span<FloorItemState> items
 
 Core::Expected<void, std::string> DrawFloorItems(std::span<FloorItemState> items, const FloorItemDrawContext& context)
 {
-    for (std::size_t i = 0; i < items.size(); ++i)
-    {
-        auto& item = items[i];
-        if (!item.alive)
-            continue;
-        item.seen = World::SphereVisible(context.frustum, item.position, 400);
-        if (!item.seen)
-            continue;
-        // Primera familia sin remapeo, color especial de609640 ni ajuste de nivel de60b3d0:
-        // Sword01..Sword19. Los casos225 y siguientes tienen sus propios pases.
-        constexpr std::int16_t FirstPlainSword = 0x212;
-        constexpr std::int16_t LastPlainSword = 0x224;
-        if (item.type < FirstPlainSword || item.type > LastPlainSword)
-            return Core::Unexpected(
-                std::format("0x608a53: la familia del ítem de piso {} ({:#x}) no está portada", i, item.type));
-        const auto modelId = static_cast<std::uint16_t>(item.type);
-        if (context.models.Find(modelId) == nullptr || context.models.SkeletonOf(modelId) == nullptr)
-            return Core::Unexpected(std::format("0x608a98: faltan el modelo o la pose del ítem de piso {}", i));
-        const glm::vec3 terrain = context.lighting != nullptr
-                                      ? World::LightAt(*context.lighting, item.position.x, item.position.y)
-                                      : glm::vec3(0);
-        const glm::vec3 light = terrain + item.light;
-        DrawnObject object;
-        object.model = modelId;
-        object.transform = {.position = item.position, .angles = item.angles, .scale = item.scale};
-        object.animation = item.animation;
-        object.state = item.objectState;
-        object.color = light;
-        object.alpha = item.alpha;
-        object.vertexLight = item.vertexLight;
-        // 608b20 posa incluso si 60cf70 luego omite el cuerpo por alpha.
-        if (context.onPose)
-            if (auto published = context.onPose(object); !published.HasValue())
-                return published;
-        if (context.map == 10 || (context.map >= 24 && context.map <= 29) || context.map == 36)
-            return Core::Unexpected(
-                std::string("0x608cf4: el desplazamiento acuático del ítem de piso no está portado"));
-        // 60cf70 sólo entra con alpha>.01; la proyección posterior corre igualmente.
-        if (item.alpha > 0.01f)
-        {
-            if (((item.value >> 3) & 15) != 0 || item.excellent != 0 || item.ancient != 0)
-                return Core::Unexpected(std::string("0x60b3d0: el brillo del ítem de piso no está portado"));
-            if (context.onPose)
-            {
-                if (auto drawn = DrawPublishedObject(context.batch, context.models, object, context.frameClock,
-                                                     context.posedMeshes);
-                    !drawn.HasValue())
-                    return drawn;
-            }
-            else
-                DrawObject(context.batch, context.models, object, context.frameClock);
-        }
-        if (!context.project)
-            return Core::Unexpected(std::string("0x608da5: falta la proyección 0x6205b0 del ítem de piso"));
-        glm::vec3 point = item.position;
-        constexpr float NameHeight = 30.0f; // 608d84:6b8858=00 00 f0 41.
-        point.z = F32(static_cast<double>(point.z) + NameHeight);
-        const auto projected = context.project(point);
-        if (!projected.HasValue())
-            return Core::Unexpected(projected.Error());
-        item.screenX = std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(projected.Value().x));
-        item.screenY = std::bit_cast<std::int16_t>(static_cast<std::uint16_t>(projected.Value().y));
-    }
-    return {};
-}
-namespace
-{
-void JointFace(Render::ModelBatch& batch, const JointState& joint, std::size_t segment, std::size_t first,
-               std::size_t second, float u, float nextU, float v, float otherV)
-{
-    double factor = 1;
-    if (joint.type == 0x10f && (joint.subtype == 1 || joint.subtype == 2))
-    {
-        const auto life = joint.life < 20 ? joint.life : 20;
-        factor = static_cast<double>(life) * static_cast<double>(0.05f);
-    }
-    const Render::Color color{F32(factor * joint.light.x), F32(factor * joint.light.y), F32(factor * joint.light.z), 1};
-    Quad(batch, {{{joint.points[segment][first], {u, v}, color},
-                  {joint.points[segment][second], {u, otherV}, color},
-                  {joint.points[segment + 1][second], {nextU, otherV}, color},
-                  {joint.points[segment + 1][first], {nextU, v}, color}}});
-}
-
-void IcarusSprites(JointState& joint, const JointDrawResources& resources)
-{
-    if (!resources.originalFrame && !joint.icarusRotations.has_value())
-        return; // Sin muestra original previa no inventar giros para los dibujos intermedios.
-    if (resources.originalFrame)
-        joint.icarusRotations = std::array<float, 2>{};
-    glm::vec3 center{};
-    for (int component = 0; component < 3; ++component)
-    {
-        double sum = 0;
-        for (const auto& point : joint.points[0])
-            sum += point[component];
-        center[component] = F32(sum * 0.25);
-    }
-    const float firstScale = joint.subtype == 6 ? 0.5f : 0.3f;
-    const float secondScale = joint.subtype == 6 ? 1.5f : 1.0f;
-    const auto first =
-        resources.originalFrame ? static_cast<float>(resources.random.Next() % 360) : (*joint.icarusRotations)[0];
-    (*joint.icarusRotations)[0] = first;
-    static_cast<void>(resources.sprites.Create(0x62b, center, firstScale, joint.light, first, 3));
-    const auto second =
-        resources.originalFrame ? static_cast<float>(resources.random.Next() % 360) : (*joint.icarusRotations)[1];
-    (*joint.icarusRotations)[1] = second;
-    static_cast<void>(resources.sprites.Create(0x5fd, center, secondScale, joint.light, second, 3));
-}
-
-Core::Expected<void, std::string> CommonJoint(Render::ModelBatch& batch, JointState& joint,
-                                              const JointDrawResources* resources)
-{
-    const bool commonBloodCastle =
-        joint.subtype == 1 || joint.subtype == 2 || joint.subtype == 3 || (joint.subtype >= 5 && joint.subtype <= 8);
-    if ((joint.type == 0x10f && !commonBloodCastle) || (joint.type == 0x62b && joint.subtype == 20) ||
-        (joint.type == 0x5f2 && joint.subtype == 0))
-        return Core::Unexpected(std::string("0x53c74c: el color especial del joint no está portado"));
-    auto state = batch.State();
-    state.texture = Render::TextureSlot{joint.texture};
-    state.rawTextureName.reset();
-    state.space = Render::ModelCoordinateSpace::World;
-    batch.ApplyOperation(state, Render::ModelStateOperation::Binding);
-    if (joint.count >= static_cast<std::int32_t>(joint.points.size()))
-        return Core::Unexpected(std::string("0x53c82b: el joint excede sus puntos canónicos"));
-    for (std::int32_t segment = 0; segment < joint.count; ++segment)
-    {
-        if (joint.type == 0x619 && (joint.subtype == 9 || joint.subtype == 10) && segment == joint.count - 1)
-            continue;
-        if (joint.repeatedTexture || joint.type == 0x614 || joint.type == 0x615 ||
-            (joint.type == 0x62c && joint.subtype >= 0 && joint.subtype <= 4) ||
-            (joint.subtype >= 11 && joint.subtype <= 13))
-            return Core::Unexpected(std::string("0x53c8ee: las UV animadas del joint no están portadas"));
-        const double divisor = static_cast<double>(joint.maximumCount) - 1;
-        float u = F32(static_cast<double>(joint.count - segment) / divisor);
-        float nextU = F32(static_cast<double>(joint.count - segment - 1) / divisor);
-        if (joint.orientation == 3)
-        {
-            u = F32(1 - static_cast<double>(segment) / divisor);
-            nextU = F32(1 - static_cast<double>(segment + 1) / divisor);
-        }
-        if (joint.type == 0x61c)
-            return Core::Unexpected(std::string("0x53c9b8: el color/sprite del joint no está portado"));
-        if (joint.type == 0x610 && (joint.subtype == 6 || joint.subtype == 8) && segment == 0)
-        {
-            if (resources == nullptr)
-                return Core::Unexpected(std::string("0x53cd83: faltan el RNG y los sprites del joint 0x610"));
-            IcarusSprites(joint, *resources);
-        }
-        const float v = joint.orientation == 1 ? 1.0f : 0.0f;
-        const float otherV = 1 - v;
-        if (joint.orientation == 2)
-        {
-            u = F32(1 - static_cast<double>(u));
-            nextU = F32(1 - static_cast<double>(nextU));
-        }
-        const auto at = static_cast<std::size_t>(segment);
-        if ((joint.drawEnabled & 1u) != 0)
-            JointFace(batch, joint, at, 2, 3, u, nextU, otherV, v);
-        if ((joint.drawEnabled & 2u) != 0)
-            JointFace(batch, joint, at, 0, 1, u, nextU, v, otherV);
-    }
-    return {};
-}
-} // namespace
-
-namespace
-{
-Core::Expected<void, std::string> DrawJointsChecked(Render::ModelBatch& batch, std::span<JointState> joints,
-                                                    std::uint8_t mode, const JointDrawResources* resources)
-{
-    for (std::size_t i = 0; i < joints.size(); ++i)
-    {
-        auto& joint = joints[i];
-        if (!joint.alive || joint.count <= 0 || !joint.drawEnabled)
-            continue;
-        if ((mode == 1 && joint.category == 2) || (mode == 2 && joint.category == 1))
-            continue;
-        switch (joint.blend)
-        {
-        case 1:
-            Blend(batch, Render::ModelBlend::Additive);
-            break;
-        case 2:
-            Blend(batch, Render::ModelBlend::Alpha);
-            break;
-        case 3:
-            Blend(batch, Render::ModelBlend::Subtractive);
-            break;
-        case 4:
-            Blend(batch, Render::ModelBlend::InverseColorAdditive);
-            break;
-        default:
-            break;
-        }
-        if (joint.type == 0x619 && joint.subtype == 8)
-        {
-            auto state = batch.State();
-            state.depthTest = false;
-            batch.ApplyState(state);
-        }
-        if (auto drawn = CommonJoint(batch, joint, resources); !drawn.HasValue())
-            return drawn;
-        if (joint.type == 0x619 && joint.subtype == 8)
-        {
-            auto state = batch.State();
-            state.depthTest = true;
-            batch.ApplyState(state);
-        }
-    }
-    return {};
-}
-} // namespace
-
-Core::Expected<void, std::string> DrawJoints(Render::ModelBatch& batch, std::span<JointState> joints, std::uint8_t mode)
-{
-    return DrawJointsChecked(batch, joints, mode, nullptr);
-}
-Core::Expected<void, std::string> DrawJoints(Render::ModelBatch& batch, std::span<JointState> joints, std::uint8_t mode,
-                                             const JointDrawResources& resources)
-{
-    return DrawJointsChecked(batch, joints, mode, &resources);
+    return DrawFloorItemDrawing(items, context);
 }
 Core::Expected<void, std::string> DrawRibbons(Render::ModelBatch& batch, std::span<const RibbonState> ribbons)
 {
@@ -560,6 +328,233 @@ Core::Expected<void, std::string> DrawModelDecal(Render::ModelBatch& batch, cons
     return {};
 }
 
+// 52d941: el guard de asedio devuelve toda la pasada, después del sprite y antes de sumar luz.
+Core::Expected<bool, std::string> DrawMovingLightEffect(Render::ModelBatch& batch, World::ModelEffect& effect,
+                                                        const ModelEffectDrawResources* resources)
+{
+    glm::vec3 point = effect.transform.position;
+    constexpr int SampleCount = 20;
+    for (int sample = 0; sample < SampleCount; ++sample)
+    {
+        if (effect.subtype == 1)
+        {
+            effect.transform.angles.z = F32(static_cast<double>(effect.transform.angles.z) - 0.1f);
+            effect.light = glm::vec3(1);
+            if (resources == nullptr || resources->sprites == nullptr)
+                return Core::Unexpected(std::string("0x52d99e: faltan los sprites del efecto5e8..5ea/1"));
+            static_cast<void>(resources->sprites->Create(0x5da, point, effect.transform.scale, effect.light,
+                                                         effect.transform.angles.z, 0));
+            Blend(batch, Render::ModelBlend::Additive);
+            effect.light = {0.2f, 0, 0};
+            const World::TerrainDecal decal{.slot = 0x5f2,
+                                            .x = point.x,
+                                            .y = point.y,
+                                            .width = 4,
+                                            .height = 4,
+                                            .color = effect.light,
+                                            .angle = -effect.transform.angles.z,
+                                            .alpha = 1,
+                                            .lift = 5};
+            if (auto drawn = World::DrawTerrainDecal(batch, resources->heights, decal); !drawn.HasValue())
+                return Core::Unexpected(drawn.Error());
+            Opaque(batch);
+        }
+        else
+        {
+            if (resources == nullptr || resources->sprites == nullptr)
+                return Core::Unexpected(std::string("0x52da12: faltan los sprites del efecto5e8..5ea"));
+            static_cast<void>(resources->sprites->Create(0x5c6, point, effect.transform.scale, effect.light, 0, 0));
+        }
+        point = {F32(static_cast<double>(point.x) + effect.velocity.x),
+                 F32(static_cast<double>(point.y) + effect.velocity.y),
+                 F32(static_cast<double>(point.z) + effect.velocity.z)};
+        if (resources->siegeActive)
+        {
+            if (resources->attributes == nullptr)
+                return Core::Unexpected(std::string("0x52da46: falta la consulta de atributos de asedio"));
+            const auto attribute = World::TerrainAttributeQueryAt(*resources->attributes, point.x, point.y);
+            if (!attribute.HasValue())
+                return Core::Unexpected(std::string("0x52da46: el atributo de asedio queda fuera de la tabla"));
+            constexpr std::uint32_t SiegeBarrier = 0x100;
+            if ((attribute.Value() & SiegeBarrier) != 0)
+                return true;
+        }
+        if (resources->dynamicLighting == nullptr)
+            return Core::Unexpected(std::string("0x52da6a: falta la luz dinámica del efecto5e8..5ea"));
+        World::AddTerrainLight(*resources->dynamicLighting, point.x, point.y,
+                               Data::Terrain::TerrainLightColor{effect.light.x, effect.light.y, effect.light.z}, 2);
+    }
+    return false;
+}
+
+Core::Expected<void, std::string> PublishEffectItem(const IModelLibrary& models, const DrawnObject& object,
+                                                    const ModelEffectDrawResources* resources)
+{
+    if (models.Find(object.model) == nullptr || models.SkeletonOf(object.model) == nullptr)
+        return Core::Unexpected(std::string("0x4eb860: faltan modelo o esqueleto del efecto con ítem"));
+    if (resources == nullptr || !resources->onPose)
+        return Core::Unexpected(std::string("0x4eb860: falta la pose compartida del efecto con ítem"));
+    auto posed = object;
+    posed.alpha = 1; // 52d35b/52d52b/52d7f8 posan antes de cualquier guarda de alpha.
+    return resources->onPose(posed);
+}
+Core::Expected<std::span<const Render::Models::SkinnedMesh>, std::string>
+EffectItemMeshes(const IModelLibrary& models, const DrawnObject& object, const ModelEffectDrawResources* resources)
+{
+    if (resources == nullptr || !resources->posedMeshes)
+        return Core::Unexpected(std::string("0x4ebc80: falta el scratch retenido del efecto con ítem"));
+    const auto meshes = resources->posedMeshes();
+    const auto* model = models.Find(object.model);
+    if (model == nullptr || meshes.size() < model->meshes.size())
+        return Core::Unexpected(std::string("0x4ebc80: el scratch no cubre las mallas del efecto con ítem"));
+    return meshes;
+}
+Core::Expected<void, std::string> DrawBloodCastleModelEffect(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                             World::ModelEffect& effect, Core::Duration frameClock,
+                                                             const ModelEffectDrawResources* resources)
+{
+    DrawnObject object;
+    object.model = 0x10f;
+    object.animation = effect.animation;
+    object.transform = effect.transform;
+    object.state = effect.objectState;
+    object.vertexLight = effect.vertexLight;
+    if (auto posed = PublishEffectItem(models, object, resources); !posed.HasValue())
+        return posed;
+    effect.objectState.light = 1;
+    object.state.light = 1;
+    for (int axis = 0; axis < 3; ++axis)
+        object.color[axis] = F32(static_cast<double>(effect.life) * effect.light[axis] * 0.05f);
+    const auto meshes = EffectItemMeshes(models, object, resources);
+    if (!meshes.HasValue())
+        return Core::Unexpected(meshes.Error());
+    return DrawItemMeshPass(batch, models, object, frameClock, meshes.Value(), -1, 0x42);
+}
+float EffectItemScale(std::int16_t type)
+{
+    // 607beb..607bfd y las excepciones de607f14..607f52.
+    if (type == 0x1a15 || type == 0x1e27)
+        return 0.5f;
+    if (type == 0x1e13)
+        return 1;
+    if ((type >= 0x812 && type < 0xe12) || type == 0x2012)
+        return 0.7f;
+    return 0.8f;
+}
+void InitializeEffectItemPrefix(World::ModelEffect& effect)
+{
+    // 607b74..607bfd: stores durables anteriores a cualquier CRT específico del tipo.
+    effect.light = glm::vec3(0.3f);
+    effect.objectState.blendMesh = Render::Models::NoBlendMesh;
+    effect.objectState.hiddenMesh = Render::Models::NoHiddenMesh;
+    effect.vertexLight = true;
+    effect.speed = 0;
+    effect.turnPending = 50;
+    effect.animation = {};
+    effect.turnDirection = 0;
+    effect.alpha = 1;
+    effect.objectState.light = 1;
+    effect.objectState.uv = {};
+    effect.transform.scale = EffectItemScale(effect.type);
+}
+Core::Expected<void, std::string> InitializeEffectItem(World::ModelEffect& effect, Core::Duration clock,
+                                                       const ModelEffectDrawResources* resources)
+{
+    InitializeEffectItemPrefix(effect);
+    Render::Models::ObjectRandoms randoms{};
+    const int count = effect.type == 0xe20 || effect.type == 0xc17   ? 2
+                      : effect.type == 0x220 || effect.type == 0xc19 ? 1
+                                                                     : 0;
+    if (count != 0)
+        effect.objectState.blendMesh = effect.type == 0xc17 ? 2 : 1;
+    if (count != 0 && (resources == nullptr || resources->random == nullptr))
+        return Core::Unexpected(std::string("0x607b60: falta el CRT del estado del efecto con ítem"));
+    for (int index = 0; index < count; ++index)
+        randoms[static_cast<std::size_t>(index)] = resources->random->Next();
+    effect.objectState = Render::Models::NativeItemObjectState(static_cast<std::uint16_t>(effect.type), clock, randoms);
+    return {};
+}
+Core::Expected<void, std::string> DrawItemModelEffect(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                      World::ModelEffect& effect,
+                                                      const World::TerrainLighting* lighting, Core::Duration clock,
+                                                      const ModelEffectDrawResources* resources)
+{
+    const bool spinning = effect.type == 0xf4;
+    if (!spinning && (effect.life <= 10 || effect.state != 0))
+        return {};
+    if (effect.itemType == nullptr)
+        return Core::Unexpected(std::string(spinning ? "0x52d294: falta el ítem del dueño del efecto f4"
+                                                     : "0x52d43a: falta el ítem del dueño del efecto fa"));
+    const auto originalType = effect.type;
+    const auto originalPosition = effect.transform.position;
+    const auto originalAngles = effect.transform.angles;
+    const float originalAlpha = effect.alpha;
+    const float originalTurnDirection = effect.turnDirection;
+    const auto model = static_cast<std::uint16_t>(static_cast<std::int32_t>(*effect.itemType) + 0x212);
+    if (spinning)
+    {
+        const double angularVelocity = static_cast<double>(effect.velocity.z) - 30;
+        effect.velocity.z = F32(angularVelocity);
+        effect.transform.angles.z = F32(angularVelocity + effect.transform.angles.z);
+        effect.transform.angles.y = 90;
+        effect.transform.position.z = F32(static_cast<double>(effect.transform.position.z) + 100);
+    }
+    effect.type = std::bit_cast<std::int16_t>(model);
+    if (auto initialized = InitializeEffectItem(effect, clock, resources); !initialized.HasValue())
+        return initialized;
+    if (!spinning)
+        effect.turnDirection = originalTurnDirection; // 52d4b9 después de volver de607b60.
+    DrawnObject object;
+    object.model = model;
+    object.animation = effect.animation;
+    object.transform = effect.transform;
+    object.state = effect.objectState;
+    object.alpha = originalAlpha;
+    object.vertexLight = effect.vertexLight;
+    const auto setColor = [&]
+    {
+        const auto terrain =
+            lighting != nullptr ? World::LightAt(*lighting, originalPosition.x, originalPosition.y) : glm::vec3(0);
+        for (int axis = 0; axis < 3; ++axis)
+            object.color[axis] = F32(static_cast<double>(terrain[axis]) + effect.light[axis]);
+    };
+    if (!spinning)
+        setColor(); // fa:52d4c5 precede a la pose52d52b.
+    if (auto posed = PublishEffectItem(models, object, resources); !posed.HasValue())
+        return posed;
+    if (spinning)
+        setColor(); // f4:52d36c sigue a la pose52d35b.
+    if (effect.itemLevel == nullptr)
+        return Core::Unexpected(std::string(spinning ? "0x52d3a6: falta el nivel del ítem del dueño de f4"
+                                                     : "0x52d549: falta el nivel del ítem del dueño de fa"));
+    const auto meshes = EffectItemMeshes(models, object, resources);
+    if (!meshes.HasValue())
+        return Core::Unexpected(meshes.Error());
+    if (originalAlpha > 0.01f)
+    {
+        auto itemContext =
+            resources != nullptr && resources->itemContext != nullptr ? *resources->itemContext : ItemDrawContext{};
+        auto special = itemContext.special ? *itemContext.special : ItemSpecialDrawContext{};
+        special.objectLight = &effect.light;
+        special.publishedObject = &object;
+        itemContext.special = &special;
+        itemContext.ownerContext = &effect; // Dueño opaco real; no reinterpretar como FaunaObject.
+        itemContext.storedAlpha = &effect.alpha;
+        const auto drawn =
+            DrawItemFromMeshes(batch, models, object, clock, meshes.Value(), *effect.itemLevel, 0, 0, 4, itemContext);
+        effect.objectState = object.state;
+        if (!drawn.HasValue())
+            return drawn;
+    }
+    effect.type = originalType;
+    if (spinning)
+    {
+        effect.transform.position = originalPosition;
+        effect.transform.angles = originalAngles;
+    }
+    return {};
+}
+
 Core::Expected<void, std::string> DrawPlainModelEffect(Render::ModelBatch& batch, const World::ModelEffect& effect,
                                                        const IModelLibrary& models,
                                                        const World::TerrainLighting* lighting,
@@ -633,6 +628,29 @@ DrawGameModelEffectsChecked(Render::ModelBatch& batch, const IModelLibrary& mode
             const double distance = static_cast<double>(effect.transform.position.z) - effect.start.z;
             effect.transform.position.z = F32(plane - distance);
             if (auto drawn = DrawPlainModelEffect(batch, effect, models, lighting, frameClock, alpha, resources);
+                !drawn.HasValue())
+                return drawn;
+            continue;
+        }
+        if (effect.type >= 0x5e8 && effect.type <= 0x5ea)
+        {
+            const auto drawn = DrawMovingLightEffect(batch, effect, resources);
+            if (!drawn.HasValue())
+                return Core::Unexpected(drawn.Error());
+            if (drawn.Value())
+                return {};
+            continue;
+        }
+        if (effect.type == 0xf4 || effect.type == 0xfa)
+        {
+            if (auto drawn = DrawItemModelEffect(batch, models, effect, lighting, frameClock, resources);
+                !drawn.HasValue())
+                return drawn;
+            continue;
+        }
+        if (effect.type == 0x10f)
+        {
+            if (auto drawn = DrawBloodCastleModelEffect(batch, models, effect, frameClock, resources);
                 !drawn.HasValue())
                 return drawn;
             continue;

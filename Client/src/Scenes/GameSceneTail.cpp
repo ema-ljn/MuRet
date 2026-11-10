@@ -1,9 +1,20 @@
 #include "Scenes/GameScene.h"
+#include "Scenes/GameItemRenderState.h"
+#include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/FaunaJointCreation.h"
+#include "Scenes/FaunaEffects.h"
+#include "World/ITerrainAttributeQuerySource.h"
+#include "Data/Terrain/TerrainAttributes.h"
+#include "Render/Models/OriginalRotation.h"
+#include "World/KalimaWorld.h"
+#include "World/IFishStepServices.h"
 
 #include "Core/Expected.h"
 #include "Render/Billboard.h"
 #include "Render/Pass3D.h"
 #include "Render/Models/Skinning.h"
+#include "Render/Models/HalfLifeMath.h"
+#include "World/ModelEffects.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameDrawTail.h"
 #include "Scenes/GameParticles.h"
@@ -19,6 +30,8 @@
 #include "World/Sprites.h"
 
 #include <chrono>
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <glm/ext/vector_float3.hpp>
 #include <ratio>
@@ -27,6 +40,26 @@
 
 namespace Client::Scenes
 {
+namespace
+{
+class TailAttributeQuery final : public World::ITerrainAttributeQuerySource
+{
+public:
+    explicit TailAttributeQuery(const Data::Terrain::TerrainAttributes& attributes) : m_attributes(attributes) {}
+    float ReadScale() override
+    {
+        return 0.01f;
+    }
+    const Data::Terrain::TerrainAttributes& Attributes() override
+    {
+        return m_attributes;
+    }
+
+private:
+    const Data::Terrain::TerrainAttributes& m_attributes;
+};
+} // namespace
+
 Core::Expected<void, std::string> GameScene::DrawTheBirds(SceneCanvas& canvas, const World::TerrainPolygon& polygon,
                                                           int frames)
 {
@@ -34,15 +67,15 @@ Core::Expected<void, std::string> GameScene::DrawTheBirds(SceneCanvas& canvas, c
     FaunaDrawContext context{world.Fauna(),
                              world.FaunaResources(),
                              world.Map().terrain,
-                             world.DynamicLighting().Lighting(),
+                             FrameLighting(),
                              polygon,
-                             *m_context.cloth,
+                             FrameCloth(),
                              FrameSpritesForDraw(),
                              FramePoseCarry(),
                              world.Runtime().map,
                              world.Runtime().storm,
                              canvas.frameClock,
-                             &world.Particles(),
+                             &FrameParticles(),
                              frames > 0,
                              CameraState().fixedHeight,
                              true};
@@ -54,55 +87,125 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
 {
     WorldState& world = *m_context.world;
     WorldRuntime& runtime = world.Runtime();
-    GameDrawTailState& tail = world.DrawTail();
+    GameDrawTailState& tail = FrameTail();
+    auto& itemState = FrameItemRender();
+    const float clock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
     const auto projection = MakeGameProjection(pass, m_drawnCamera.fieldOfView);
     if (!projection.HasValue())
         return Core::Unexpected(projection.Error());
-    const FloorItemDrawContext floor{
-        canvas.models,
-        m_worldModels,
-        m_frustum,
-        &world.DynamicLighting().Lighting(),
-        canvas.frameClock,
-        runtime.map,
-        [&](const glm::vec3& point) { return ProjectGamePoint(projection.Value(), point); },
-        [&](const DrawnObject& object) { return PublishFaunaFloorPose(FramePoseCarry(), m_worldModels, object); },
-        [&]() { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); }};
-    if (auto result = DrawFloorItems(tail.floorItems, floor); !result.HasValue())
-        return result;
+    ItemSpecialDrawContext special;
+    special.worldClock = clock;
+    special.random = &FrameCloth().random;
+    special.pulse = &itemState.specialPulse;
+    special.sprites = &FrameSpritesForDraw();
+    special.bonePoint = [&](std::size_t bone) -> Core::Expected<glm::vec3, std::string>
+    {
+        const auto& bones = FramePoseCarry().bones;
+        if (bone >= bones.size())
+            return Core::Unexpected(std::string("0x4ec110: el hueso del ítem excede la pose compartida"));
+        return Render::Models::OriginalVectorTransform({}, Render::Models::OriginalMatrixOf(bones[bone]));
+    };
+    // privateBoneOrigin sigue ausente: object+120 no está representado por el scratch global.
+    ItemDrawContext itemContext;
+    itemContext.special = &special;
+    itemContext.glowPulse = itemState.glowPulse;
+    itemContext.selections = &itemState.selections;
+    itemContext.originalFrame = frames > 0;
+    itemContext.modelState = &FrameModelState();
+    itemContext.map = runtime.map;
+    itemContext.poseBones = [&]() { return std::span<const Render::Models::BoneTransform>(FramePoseCarry().bones); };
+    itemContext.createJoint = [&](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+    {
+        // Productores de Helper07, dueño FloorItemState opaco: nunca interpretarlo como FaunaObject.
+        if (!((request.type == 0x613 && request.subtype == 4) || (request.type == 0x614 && request.subtype == 14)))
+            return Core::Unexpected(std::string("0x530860: creador del joint de ítem fuera del contrato de dueño"));
+        const auto created = CreateFaunaJoint(tail.joints, request, FrameCloth().random);
+        return created.HasValue() ? Core::Expected<void, std::string>{} : Core::Unexpected(created.Error());
+    };
+    itemContext.createEffect = [&](std::uint16_t type, std::int32_t subtype,
+                                   const DrawnObject& object) -> Core::Expected<void, std::string>
+    {
+        if (type == 0xc2 && subtype == 3)
+        {
+            static_cast<void>(CreateFaunaLightning(FrameEffects(), object.transform.position));
+            return {};
+        }
+        if (subtype != 0 ||
+            (type != World::DragonEffect && type != World::ArrivalEffect && type != World::TeleportEffect))
+            return Core::Unexpected(std::string("0x518cf0: creador del efecto de ítem fuera del contrato portable"));
+        static_cast<void>(FrameEffects().Create(static_cast<std::int16_t>(type), object.transform.position,
+                                                object.transform.angles, object.color, object.transform.scale));
+        return {};
+    };
+    if (std::ranges::any_of(tail.floorItems, [](const FloorItemState& item) { return item.alive; }))
+    {
+        if (m_models == nullptr)
+            return Core::Unexpected(std::string("0x608a98: faltan los modelos globales del piso"));
+        FloorItemDrawContext floor{canvas.models, *m_models, m_frustum};
+        floor.lighting = &FrameLighting();
+        floor.frameClock = canvas.frameClock;
+        floor.map = runtime.map;
+        floor.project = [&](const glm::vec3& point) { return ProjectGamePoint(projection.Value(), point); };
+        floor.onPose = [&](const DrawnObject& object)
+        { return PublishFaunaFloorPose(FramePoseCarry(), *m_models, object); };
+        floor.posedMeshes = [&]() { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); };
+        floor.onSkin = [&](const DrawnObject& object)
+        { return TransformFaunaPose(FramePoseCarry(), *m_models, object); };
+        if (itemState.initialized)
+            floor.randomTable = itemState.floorAngles;
+        floor.worldClock = clock;
+        floor.waterHeight = [&](float x, float y) -> Core::Expected<float, std::string>
+        {
+            const auto* kalima = FrameKalima();
+            if (kalima == nullptr)
+                return Core::Unexpected(std::string("0x4378e0: falta el dueño del agua del piso"));
+            const auto height = kalima->Height(x, y);
+            if (!height)
+                return Core::Unexpected(std::string("0x4378e0: la posición del piso excede la altura Kalima"));
+            return *height;
+        };
+        floor.itemContext = &itemContext;
+        if (auto result = DrawFloorItems(tail.floorItems, floor); !result.HasValue())
+            return result;
+    }
     FaunaDrawContext fauna{world.Fauna(),
                            world.FaunaResources(),
                            world.Map().terrain,
-                           world.DynamicLighting().Lighting(),
+                           FrameLighting(),
                            polygon,
-                           *m_context.cloth,
+                           FrameCloth(),
                            FrameSpritesForDraw(),
                            FramePoseCarry(),
                            runtime.map,
                            runtime.storm,
                            canvas.frameClock,
-                           &world.Particles(),
+                           &FrameParticles(),
                            frames > 0,
                            CameraState().fixedHeight,
                            true};
     if (auto result = DrawGameFish(canvas.models, fauna); !result.HasValue())
         return result;
     if (auto result = DrawHelpers(
-            {canvas.models, m_worldModels, world, m_context.cloth->random, canvas.frameClock, 0, frames > 0,
+            {canvas.models, m_worldModels, world, FrameCloth().random, canvas.frameClock, 0, frames > 0,
              [&](const DrawnObject& object) { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); },
              true, [&]() { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); }});
         !result.HasValue())
         return result;
     const auto view = Render::ViewRows(pass.view);
-    Render::Models::CrtRandom projectedRandom = m_context.cloth->random;
-    const JointDrawResources jointResources{frames > 0 ? m_context.cloth->random : projectedRandom,
-                                            FrameSpritesForDraw(), frames > 0};
-    const float clock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
-    const ModelEffectDrawResources effectResources{
-        *world.Map().terrain.heights, clock,
-        [&](const DrawnObject& object) { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); },
-        [&]() { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); }};
-    const auto effects = frames > 0 ? world.Map().effects.Effects() : m_projectedEffects.Effects();
+    const JointDrawResources jointResources{FrameCloth().random, FrameSpritesForDraw(), frames > 0, clock};
+    TailAttributeQuery attributes(*world.Map().terrain.attributes);
+    ModelEffectDrawResources effectResources{*world.Map().terrain.heights, clock};
+    effectResources.onPose = [&](const DrawnObject& object)
+    { return PublishFaunaPose(FramePoseCarry(), m_worldModels, object, true); };
+    effectResources.posedMeshes = [&]()
+    { return std::span<const Render::Models::SkinnedMesh>(FramePoseCarry().meshes); };
+    effectResources.sprites = &FrameSpritesForDraw();
+    effectResources.dynamicLighting = &FrameLighting();
+    effectResources.attributes = &attributes;
+    effectResources.siegeActive = runtime.siegeActive;
+    effectResources.random = &FrameCloth().random;
+    effectResources.itemContext = &itemContext;
+    const auto effects = FrameEffects().Effects();
     const GameTailPassCallbacks callbacks{
         [&](GameTailStage stage, std::uint8_t mode) -> Core::Expected<void, std::string>
         {
@@ -114,9 +217,8 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
             case GameTailStage::Joints:
                 return DrawJoints(canvas.models, tail.joints, mode, jointResources);
             case GameTailStage::ModelEffects:
-                return DrawGameModelEffects(canvas.models, m_worldModels, effects, m_frustum,
-                                            &world.DynamicLighting().Lighting(), canvas.frameClock, 0, effectResources,
-                                            mode);
+                return DrawGameModelEffects(canvas.models, m_worldModels, effects, m_frustum, &FrameLighting(),
+                                            canvas.frameClock, 0, effectResources, mode);
             case GameTailStage::Ribbons:
                 return DrawRibbons(canvas.models, tail.ribbons);
             case GameTailStage::MarkSpritesSeen:
@@ -125,9 +227,14 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
                 if (mode != 2)
                 {
                     if (frames > 0)
+                    {
                         m_spriteReplay = FrameSpritesForDraw();
-                    else
+                        m_spriteReplayValid = true;
+                    }
+                    else if (m_spriteReplayValid)
+                    {
                         FrameSpritesForDraw() = m_spriteReplay;
+                    }
                 }
                 FrameSpritesForDraw().MarkSeen();
                 return {};
@@ -139,24 +246,31 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
                 DrawFrameSprites(canvas.models, FrameSpritesForDraw(), m_worldModels, view, mode);
                 return {};
             case GameTailStage::Particles:
-                return DrawGameParticles(canvas.models, world.Particles(), m_worldModels, view, clock, mode);
+                return DrawGameParticles(canvas.models, FrameParticles(), m_worldModels, view, clock, mode);
             case GameTailStage::Damage:
                 return DrawDamage(canvas.models, tail.damage, mode, view);
             case GameTailStage::KalimaWater:
-                return Core::Unexpected(
-                    std::string("0x4378a0: falta la actualización y el dibujo del mundo Kalima (0x41cca0/0x41cf00)"));
+                return DrawKalimaWater(canvas);
             }
             return Core::Unexpected(std::string("0x63750d: etapa de cola desconocida"));
         },
-        [&]() -> Core::Expected<bool, std::string>
-        {
-            // 437850 lee723c48, no local_8. Fuera de Kalima, LoadMap deja ese mundo ausente.
-            // En Kalima el loader corta4377a0: no inventar un puntero válido por el byte del mapa.
-            if (GameTailFirstMode(runtime.map) != 0)
-                return Core::Unexpected(
-                    std::string("0x437850: falta el estado Kalima 0x723c48 (LoadMap corta en 0x4377a0)"));
-            return false;
-        }};
+        [&]() -> Core::Expected<bool, std::string> { return FrameKalima() != nullptr; }};
     return RunGameTailPasses(runtime.map, runtime.heroCellLayer, callbacks);
+}
+Core::Expected<void, std::string> GameScene::DrawKalimaWater(SceneCanvas& canvas)
+{
+    auto* kalima = FrameKalima();
+    if (kalima == nullptr)
+        return {}; // 4378a0, dueño ausente: el wrapper no entra en41cca0/41cf00.
+    const float time = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
+    World::KalimaFrameContext context{FrameCloth().logicSteps, time, 0, 0, FrameCloth().random};
+    context.readHeroX = [&]() -> Core::Expected<std::int32_t, std::string> { return ReadFrameHeroCell(true); };
+    context.readHeroY = [&]() -> Core::Expected<std::int32_t, std::string> { return ReadFrameHeroCell(false); };
+    if (auto updated = kalima->Update(context); !updated.HasValue())
+        return updated;
+    // 41cf00 caller: argumentos apilados Y y después X, cada uno en su acceso lógico.
+    const auto y = ReadFrameHeroCell(false);
+    const auto x = ReadFrameHeroCell(true);
+    return kalima->Draw(canvas.models, x, y);
 }
 } // namespace Client::Scenes

@@ -1,0 +1,105 @@
+#include "Scenes/KalimaObjectStep.h"
+
+#include "Core/Expected.h"
+#include "Render/Models/Cloth.h"
+#include "Scenes/ActorState.h"
+#include "Scenes/FaunaState.h"
+#include "Scenes/OwnCharacterRecord.h"
+#include "Scenes/WorldRuntime.h"
+#include "Scenes/WorldState.h"
+
+#include <gtest/gtest.h>
+
+#include <array>
+#include <cstdint>
+#include <memory>
+#include <string>
+
+TEST(KalimaObjectStepTest, TheNativeOverlappingLevelTableKeepsItsFirstMatchAndUnmatchedSeven)
+{
+    EXPECT_EQ(Client::Scenes::KalimaLevelOf(0, 39), 7);
+    EXPECT_EQ(Client::Scenes::KalimaLevelOf(0, 40), 1);
+    EXPECT_EQ(Client::Scenes::KalimaLevelOf(0, 350), 1);
+    EXPECT_EQ(Client::Scenes::KalimaLevelOf(0, 999), 1);
+    EXPECT_EQ(Client::Scenes::KalimaLevelOf(0, 1000), 7);
+    for (const std::uint8_t characterClass : std::array<std::uint8_t, 4>{3, 4, 11, 12})
+    {
+        EXPECT_EQ(Client::Scenes::KalimaLevelOf(characterClass, 19), 7);
+        EXPECT_EQ(Client::Scenes::KalimaLevelOf(characterClass, 20), 1);
+    }
+}
+
+TEST(KalimaObjectStepTest, OwnRecordAndSeparateCellsCloseBeforeTheSelectorAndPreserveTheCountOnAnError)
+{
+    bool reachedParticle = false;
+    bool returned = false;
+    for (std::uint32_t seed = 1; seed < 20; ++seed)
+    {
+        auto world = std::make_unique<Client::Scenes::WorldState>();
+        auto& hero = world->Actors()[0];
+        hero.cellX = 40;
+        hero.cellY = 64;
+        world->OwnCharacter().level = 0;
+        Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom{seed}};
+        auto expected = cloth.random;
+        const int ambient = 0x1d4 + expected.Next() % 2;
+        for (int cellCloses = 0; cellCloses < 8; ++cellCloses)
+            static_cast<void>(expected.Next());
+        const int region = 0x1d9 + expected.Next() % 2;
+        for (int close = 0; close < 3848; ++close)
+            static_cast<void>(expected.Next());
+        static_cast<void>(expected.Next()); // gate de selección; count0 no consume otro.
+        const bool particle = expected.Next() % 5 == 0;
+        if (particle)
+        {
+            static_cast<void>(expected.Next());
+            static_cast<void>(expected.Next());
+        }
+        const auto result = Client::Scenes::StepKalimaObjectPrelude(*world, cloth);
+        EXPECT_EQ(cloth.random.State(), expected.State());
+        EXPECT_EQ(result.HasValue(), !particle);
+        EXPECT_EQ(world->Runtime().ownRecordDepth, 0);
+        EXPECT_EQ(hero.cellXAccesses, 0);
+        EXPECT_EQ(hero.cellYAccesses, 0);
+        EXPECT_EQ(world->Runtime().objectSelectionCount, 0);
+        ASSERT_EQ(world->Fauna().Sounds().size(), 3u);
+        EXPECT_EQ(world->Fauna().Sounds()[0].id, 0x1d3);
+        EXPECT_EQ(world->Fauna().Sounds()[1].id, ambient);
+        EXPECT_EQ(world->Fauna().Sounds()[2].id, region);
+        EXPECT_EQ(world->Fauna().Sounds()[0].owner, nullptr);
+        if (particle)
+        {
+            EXPECT_NE(result.Error().find("0x4389ca"), std::string::npos);
+            reachedParticle = true;
+        }
+        else
+            returned = true;
+    }
+    EXPECT_TRUE(reachedParticle);
+    EXPECT_TRUE(returned);
+}
+
+TEST(KalimaObjectStepTest, ASelectedRetainedCountReturnsBeforeTheSpawnGuardAndDoesNotResetItsOwner)
+{
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    world->OwnCharacter().level = 40;
+    world->Runtime().ownRecordDepth = 1;
+    world->Runtime().objectSelectionCount = 3;
+    bool selected = false;
+    for (std::uint32_t seed = 1; seed < 200 && !selected; ++seed)
+    {
+        Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom{seed}, .logicSteps = 1};
+        auto expected = cloth.random;
+        if (expected.Next() % 10 != 0)
+            continue;
+        const int selector = expected.Next() % 3;
+        const auto result = Client::Scenes::StepKalimaObjectPrelude(*world, cloth);
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        EXPECT_EQ(result.Value(), selector);
+        EXPECT_EQ(cloth.random.State(), expected.State());
+        EXPECT_EQ(world->Runtime().objectSelectionCount, 3);
+        EXPECT_EQ(world->Runtime().ownRecordDepth, 1);
+        selected = true;
+    }
+    EXPECT_TRUE(selected);
+}

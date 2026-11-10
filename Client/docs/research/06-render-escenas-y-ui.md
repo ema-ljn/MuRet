@@ -532,7 +532,10 @@ archivo y su lector están en [05](05-formatos-de-datos.md#modelos-bmd); acá, l
   `SRC_ALPHA/ONE_MINUS_SRC_ALPHA` sin culling, con alpha test y la máscara si b, `0x620a90`
   `ONE/ONE` sin culling, máscara ni niebla, `0x620b10` `ZERO/ONE_MINUS_SRC_COLOR`, `0x620b90`
   `ONE_MINUS_SRC_COLOR/ONE`, `0x620c10` la normal sin máscara ni alpha test y `0x620c90`
-  `ZERO/SRC_COLOR`.
+  `ZERO/SRC_COLOR`. `ModelBlend::Multiplicative` reproduce este último: también llega por
+  el modo raw1 del backend, sin culling, alpha test ni escritura de profundidad. Tres pruebas
+  con GL real observan el producto de color, la profundidad y la cara posterior; no se deduce
+  el resultado de comparar sólo el enum o las llamadas del backend.
 - **El script en un personaje** (CL6.3 PR F, *estático*). `RenderBody` recibe de su objeto cinco
   valores: `+0x58` (la malla que no dibuja), `+0x64` (el `blendMesh`), `+0x68` (su luz) y `+0x6c` y
   `+0x70` (U y V). `0x511290` arma el del jugador con −1, −1, 1, 0 y 0, y `0x60b3d0`, `0x60b130`,
@@ -2883,12 +2886,23 @@ paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-d
 `Scenes::ApplyWorldEntry` la tabla de la respuesta; lo que no está leído o no está portado corta con
 un error que nombra la dirección, nunca en silencio:
 
-- **Los mapas.** Con la `Data` del repo cargan el 0, 1, 2, 3, 4, 6 a 11, 18, 31, 33 y 54.
+- **Los mapas.** Con la `Data` del repo cargan el 0, 1, 2, 3, 4, 6 a 11, 18, 24 a 29, 31, 33,
+  36 y 54. Cargar los aliases de Kalima no completa sus ramas de paso/dibujo.
   El 3 incorpora en hito 2 el binder síncrono de la torre `0x142` y sus cinco efectos, antes del
   pasto ([Creación de objetos](#los-objetos-del-juego)). Cortan: el 5 por el archivo que falta
-  en `World6`, del 24 al 29 y el 36 en `0x4377a0`, el 30 en `0x42a760`, el 34 en `0x42fe50` (el
+  en `World6`, el 35 por el ATT ausente de `World36`, el 30 en `0x42a760`, el 34 en `0x42fe50` (el
   `.att` según Crywolf, antes del `BD`, que por eso no sale) y el 55 en `0x6188ae`. Sin
   `TerrainHeight.OZB`, el error nombra el archivo, con el pasto ya sacado (Q-C180).
+- **Aviso y cierre por datos fatales (CL7b, Q-C180).** MAP/ATT y OBJ se procesan antes de
+  alturas/luz, conservando los owners publicados antes del fallo. Un MAP que no abre permite
+  consultar el ATT para alcanzar su aviso nativo; si el ATT existe, el MAP sigue siendo error,
+  sin terreno sustituto. World6 pide `Data\World6\TerrainHeight.OZB file not found.`;
+  World36 pide `Data\World36\EncTerrain36.att file not found.`. El primer mensaje queda en
+  `WorldRuntime::fatalDataMessage`, separado del diagnóstico del parser o de Poll. Los archivos
+  cortos rechazados de forma segura y las fronteras30/34 no inventan un pedido de cierre nativo.
+  `main` detiene el bucle y pide `Window::ShowErrorMessage` con la ventana viva, usando SDL3;
+  al volver sale con fallo. Tests de datos/sesión observan ese pedido durable y su orden,
+  no un modal visible. La confirmación del modal y el cierre en Windows/VM siguen pendientes.
 - **Los mapas de evento** (`0x447d70`: 9, 11 a 23) cortan después de la carga: el objeto de evento
   (`0x447eb0`, `new 0x134`) no está portado.
 - **La respuesta**, sin las tablas de los conjuntos, corta dentro de `0x512a30`: en `0x550d10`, en su
@@ -2963,9 +2977,10 @@ una segunda respuesta a otro lugar corta en `0x550990`, con el anterior todavía
 construido y el contador como estaba (`AfterAGameFrameASecondEntryElsewhereStopsAt0x550990`, P-C40 c);
 al mismo lugar, `0x505820` vuelve a correr con el héroe reconstruido y la entrada sigue
 (`AfterAGameFrameASecondEntryOnTheSameSlotScansTheRebuiltHero`). MuRet no tiene en el mundo ni
-cuervos ni telas que soltar, ni la lista `0x7245c8`. Los tiles los sube el dibujo del juego por número
-de mapa (`TerrainTiles`, con el pasto), y los modelos de los objetos, `WorldModels`: con el mismo mapa
-conserva los que ya subió, que salen de los mismos archivos. Los dos `0x61f/0` de llegada ya no imponen
+cuervos ni telas que soltar, ni la lista `0x7245c8`. Los tiles los sube el dibujo del juego
+(`TerrainTiles`, con el pasto), y los modelos de los objetos, `WorldModels`. CL7b invalida esos
+caches por revisión de carga, incluso al recargar el mismo mapa; la identidad del archivo no
+conserva por sí sola el estado mutable de sus modelos. Los dos `0x61f/0` de llegada ya no imponen
 el antiguo corte incondicional del suelo y la fuente ya puede crear sus gotas desde la pose vigente;
 los casos de suelo pendientes, la pose global retenida, las ramas incompletas del jugador y los ítems
 del piso conservan sus fronteras (T8 y [08](08-pendientes.md) P-C55). Un error sigue siendo terminal y
@@ -3453,6 +3468,35 @@ concurrentes del barrido; aloja directamente en heap los 512 KiB de planos y evi
 en stack. El paso no asigna memoria. No reproduce ABI, faults ni estado residual de CPU, ni cierra
 perturbación, `0x41d880`, `0x41d2d0`, render o integración/lifetime de Kalima.
 
+### El mundo y las dos capas de agua de Kalima
+
+`World/KalimaWorld` conserva el estado de `0x41cca0`, los planos periódicos de
+`0x41d880` y la malla de `0x41d2d0` que consume `0x41cf00`. El dueño es independiente
+del byte de mapa: los mapas nominales 24 a 29 y 36 pertenecen a Kalima, pero esa pertenencia
+no construye por sí sola el objeto de `0x723c48`. La conexión del cargador y la escena se
+verifica aparte del kernel.
+
+`0x41cca0` perturba cada cuarenta pasos: cierra la lectura X del héroe, sortea el centro,
+cierra Y y aplica el disco antes de alternar el selector y ejecutar `0x41dbe0`. Después lee
+X e Y para las ondas periódicas. Los callbacks del port conservan ese orden y el prefijo
+alcanzado si falla una lectura; no sustituyen el contador lógico por un contador de dibujos.
+La perturbación conserva el SAR19 y los límites estrictos del disco.
+
+Las alturas tienen consumidores distintos: la malla inicial queda a350, mientras la consulta
+`0x4378e0` devuelve175. El calco tiene su propio plano y escala; no se deduce de esos175.
+El dibujo emite las diagonales alternadas de la grilla42×42, suma las normales en el orden
+nativo y no adelanta ondas ni CRT. La capa base usa alpha y la segunda aditiva. En el brillo,
+`0x41d257` guarda una copia float de la luz sin sacar ST0: rojo y verde usan esa copia; azul
+multiplica el valor retenido por3 antes del store. El vector no plano de T1000 distingue
+el azul `0xbe7aa15f` del spill anticipado `0xbe7aa160`.
+
+Los recursos físicos son `Object25\water1.tga`, slot35 LINEAR/REPEAT, y
+`Object25\water2.jpg`, slot36 NEAREST/CLAMP. El catálogo no inventa tiles ordinarios deWorld25.
+Las pruebas usan esos archivos reales con transporte GPU falso declarado; no acreditan por
+sí solas la presentación de toda la escena, los objetos vivos deWorld25 ni identidad universal
+con FSIN/FCOS del original. `CloneForFrame` copia el estado computacional para dibujos
+intermedios sin modificar el dueño ni el CRT durables.
+
 ### El paso del juego
 
 El paso de la escena 5 es `0x636290` entero (3.844 bytes), después de `0x623e70`, la UI del juego
@@ -3567,9 +3611,13 @@ vez por upload no reproduce este contrato.
 con desplazamiento `rand()&1023` (`0x60dc4c..0x60dc7a`). El constructor `0x6154ab..0x6154b3`
 deja los contadores en cero. Con desplazamiento>0, BMD[-1] es un objeto construido, sin acciones;
 con desplazamiento=0 la lectura sale antes del primer objeto. `FaunaStepContext::prefixModel`
-permite un préstamo explícito sólo para esa selección de acción. El binding productivo no presta
-un esqueleto vacío ni afirma la precondición por defecto. Esta evidencia funcional no reconstruye
-la ubicación/protección de la tabla, ni cierra por sí sola el caller y el mundo de Kalima.
+permite un préstamo explícito sólo para esa selección de acción. `ConstructedBmdPrefix` presta
+el guard sin acciones únicamente para los offsets1..1023. En offset0 conserva la ausencia: la
+lectura allocation−182 queda fuera de los objetos construidos y sus bytes no se inventan.
+La carga elige el offset una sola vez, antes del primer archivo BMD, con la CRT global; un fallo
+de archivo, Bind o Release no vuelve a sortearlo. `GameScene` presta ese guard al paso de fauna.
+Esta evidencia funcional no reconstruye la ubicación/protección de la tabla ni cierra por sí
+sola todo el mundo de Kalima.
 
 **Perfil numérico.** Sin/cos de fauna usan `OriginalRetainedMath`: mantienen el resultado con
 64 bits de significando antes del primer producto PC53 y de los spills f32. `0x445d60` multiplica ambos retenidos
@@ -4451,6 +4499,91 @@ frame lo pone `0x637700` (`0x63835d..0x6384f5`): Icarus (10), (0,0117; 0,0977; 0
 a 29 y 36), (0,1172; 0,1563; 0,1563); y negro en los demás (*estático*). No hay cielo: Icarus no
 dibuja el terreno y pone las nubes (`0xbb`, `0x622`, `0x623`), y Kalima dibuja su agua en un pase
 aparte (`0x4378a0` → `0x41cca0`, `0x41cf00`).
+
+### Los globales del dibujo de ítems
+
+WinMain genera una tabla de cien ángulos con cien llamadas `rand()%360`
+(`0x4bada2..0x4bade0`), después de sembrar la CRT y antes de construir los actores.
+La tabla de monedas de `0x608a00` la presta; dibujar no la regenera ni consume otros sorteos.
+`GameItemRenderState` conserva esa tabla al cambiar de mapa y hace idempotente su inicialización.
+
+El writer `0x639482..0x6394ab` pertenece al orquestador `0x63945d`, antes del despacho
+de escena: publica `float(sin(T*0.004f)*0.15f+0.6f)` en `0x7d36ba8`. Los FST intermedios
+no sacan ST0 ni obligan a recargar el float. No es un writer tardío del HUD. Este pulso es
+distinto del par de datos `0x6c9de4/0x6c9de8`, iniciales0.5/0.01, que muta `0x609640`.
+Las selecciones antiguas de brillo se conservan por BMD, no por instancia del ítem.
+Las pruebas separan los tres owners y comprueban la CRT después de los cien sorteos;
+los vectores de seno del host no acreditan identidad universal con la CRT original.
+
+### Ampliación CL7b del piso y de sus efectos
+
+Lectura **estática** del mismo PE `c32bbd5f…a26a`, sin nueva ejecución del original. El dispatcher
+`0x608a00` ya no queda limitado a Sword01..19 de nivel cero: `GameFloorItemDrawing` conserva la
+pose antes del filtro de alpha, los remapeos de las cinco familias de armadura al modelo `0x20a`,
+las alturas de raíz, los casos `0x1e1e`, monedas, niveles, excellent/ancient y los offsets de agua
+de mapa 10 y Kalima. Las monedas prestan la tabla de cien ángulos; no sortean otra. El offset
+acuático se aplica después de la pose y antes del skin; un error conserva el prefijo y la
+posición temporal. Al completar se restaura la posición y se proyecta su Z original más 30.
+
+`GameItemSpecialDrawing` cubre los 51 IDs comparados por `0x609640`, además de su default;
+`GameItemGlowSpecialDrawing` conserva los retornos tempranos de `0x60b3d0`, y
+`GameItemGlowEffects` los stores y emisiones de `0x60be05..0x60c5c3`. El casco `0x121b` exige
+su préstamo privado `object+0x120`: no sustituye una matriz ausente por un hueso global. La
+validación ocurre al usar cada recurso, para preservar geometría y stores previos a un error.
+Color RGB, selección por BMD y alpha durable se publican sólo donde el ASM escribe; el alpha
+temporal de un pase no se copia de vuelta al efecto. El reloj de los módulos usa el low32
+firmado del FTOL64; las fases de seno/coseno conservan el float completo y su fracción.
+
+Los efectos `0xf4/0xfa` reproducen el inicializador `0x607b60`. `0xfa` toma luz antes de publicar
+pose; `0xf4`, después. Las cintas permiten count negativo sin desplazar historia y luego
+reemplazan ambas cabezas. Helper07 publica joints `0x614/14` y `0x613/4` sobre el owner durable
+del ítem; el siguiente tick de `0x614/14` y el creador/paso/dibujo de Thunder `0x5ca/0` ya están
+portados con su recurso físico. Las pruebas angulares usan un generador independiente con el
+literal binary32 `0x42652ee0` y atan retenido a 64 bits antes del producto a 53.
+
+Pruebas: [piso](../../tests/scenes/test_game_floor_item_drawing.cpp),
+[casos especiales](../../tests/scenes/test_game_item_special_drawing.cpp),
+[efectos](../../tests/scenes/test_game_special_model_effects.cpp),
+[cintas](../../tests/scenes/test_game_ribbon_creation.cpp),
+[siguiente tick](../../tests/scenes/test_game_joint_step.cpp) y
+[generador](scripts/make_helper_joint_vectors.py).
+Tres pruebas de GL real observan ZERO/SRC_COLOR, profundidad y culling del modo multiplicativo.
+Esto no completa los productores de equipo/armas/alas ni acredita todo P-C55; el gate integrado,
+Windows de la fuente nueva y la observación nativa siguen separados.
+
+### Ampliación CL7b de Kalima: recursos y objetos vivos
+
+`KalimaWorld` porta la carga y los dos planos de 65.536 celdas de `0x4377a0`, la actualización
+`0x41cca0` y la geometría de `0x41cf00`. Su existencia sigue siendo distinta del byte que
+clasifica el mapa. `CloneForFrame` conserva los owners para un cuadro intermedio sin avanzar
+la CRT durable. El prefijo BMD firmado−1 proviene del initializer real de carga: no se inventa
+un modelo sustituto cuando faltan los bytes acreditados.
+
+La escena conserva los 2.266 objetos reales de World25 para los siete aliases 24..29/36. El
+dispatcher agrega cuerpo, cáusticas, sombra `0x22`, sprite del tipo12 y hide 37..40. Las 32
+texturas `Object8/wt00.jpg` a `wt31.jpg` ocupan slots 65..96 **decimales**, LINEAR/REPEAT.
+El contador `0x7d2d360` pertenece al paso común de tela (`0x637d63/0x637d7c`), parte de cero y
+avanza módulo32; no se deriva del reloj ni se incrementa por objeto.
+
+El prefijo global `0x4385a0` corre antes del early-return por ausencia de objetos vistos y
+antes de resetear el contador de selección. Preserva sonidos, apertura/cierre lógico del
+registro propio, tabla de clase/nivel `0x4379a0`, lecturas XY separadas y orden de los sorteos.
+Un error anterior al reset conserva el contador. Los sonidos son solicitudes lógicas, sin
+atribuir reproducción de CL10.
+
+**Kalima sigue abierta.** Con entrada poblada 64,64, el primer Step de la matriz T16 completa
+el prefijo y Draw llega a `0x438f81`, creador `0x6f1/0` del marcador 40. Con escena 0 activa,
+`1C` y dibujo antes del siguiente Step, corta en `0x438ad0` después de emitir cáusticas reales.
+Otra CRT puede aceptar el spawn ambiental y cortar en `0x4389ca`, partícula del héroe `0x5ac/7`.
+También quedan otras familias de partículas y el efecto9. No se sustituyen por éxito, ni se
+atribuye un cuadro poblado completo, caminata Kalima o ciclo 24→0→24 a estos prefijos.
+
+Pruebas: [recursos](../../tests/scenes/test_kalima_object_resources.cpp),
+[servicios](../../tests/scenes/test_kalima_object_services.cpp),
+[paso global](../../tests/scenes/test_kalima_object_step.cpp),
+[objetos vivos](../../tests/scenes/test_kalima_live_objects.cpp) y
+[matriz T16](../../tests/scenes/test_game_t16_matrix.cpp). Son evidencia estática y simulada;
+los recursos y la geometría son reales, mientras GPU/transporte se declaran falsos en esos fixtures.
 
 ### La cola y sus cambios de pase
 

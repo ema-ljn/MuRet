@@ -51,7 +51,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // 0x61d4db sube Fire01 a 0x5d9, GL_LINEAR/GL_CLAMP, para las llamas de los objetos.
 // Noria agrega Spark02/5c5 (61d711), lightning2/5d5 (61da3c), Spark01/617 (61da77) y
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 12> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 13> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
     {"Effect\\flare01.jpg", 0x5ac, TextureSetsDetail::LinearClamp},
     {"Effect\\Magic_Ground2.jpg", 0x61e, TextureSetsDetail::LinearClamp},
@@ -59,6 +59,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 12> EffectTextureSe
     {"Effect\\Spark02.jpg", 0x5c5, TextureSetsDetail::LinearClamp},
     {"Effect\\Shiny02.jpg", 0x5fd, TextureSetsDetail::LinearClamp},
     {"Effect\\Spark03.jpg", 0x5c6, TextureSetsDetail::LinearClamp},
+    {"Effect\\Thunder01.jpg", 0x5ca, TextureSetsDetail::LinearRepeat}, // 61da58/61da62.
     {"Effect\\smoke01.jpg", 0x5f2, TextureSetsDetail::LinearClamp},
     {"Effect\\clouds.jpg", 0x622, TextureSetsDetail::LinearClamp},
     {"Effect\\lightning2.jpg", 0x5d5, TextureSetsDetail::LinearClamp},
@@ -73,6 +74,19 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 4> FaunaJointTextur
     {"Effect\\JointSpirit01.jpg", 0x613, TextureSetsDetail::LinearClamp},
     {"Effect\\JointLaser01.jpg", 0x618, TextureSetsDetail::LinearClamp},
     {"Effect\\Flare02.jpg", 0x610, TextureSetsDetail::LinearRepeat},
+}};
+
+// Cola P-C55:61d511/61d9b4/61d9ef/61da0b/61da2a/61da9d/61dba2/61dcc3.
+// 615 no tiene upload propio:5319ea remapea su textura a614.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 8> GameTailTextureSet{{
+    {"Effect\\Fire02.jpg", 0x5da, TextureSetsDetail::LinearClamp},
+    {"Effect\\blur01.jpg", 0x5bb, TextureSetsDetail::NearestClamp},
+    {"Effect\\motion_blur.jpg", 0x5bc, TextureSetsDetail::NearestClamp},
+    {"Effect\\motion_blur_r.jpg", 0x5bd, TextureSetsDetail::NearestClamp},
+    {"Effect\\blur02.jpg", 0x639, TextureSetsDetail::NearestClamp},
+    {"Effect\\JointThunder01.jpg", 0x614, TextureSetsDetail::LinearRepeat},
+    {"Effect\\motion_blur_r2.jpg", 0x61c, TextureSetsDetail::LinearRepeat},
+    {"Effect\\NSkill.jpg", 0x62c, TextureSetsDetail::LinearClamp},
 }};
 
 // Las dos capas de la tela que sube 0x61ccb0 (0x61d616 y 0x61d64e) y nadie suelta: Monster\iui06.jpg en

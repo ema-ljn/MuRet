@@ -4329,6 +4329,33 @@ frame lo pone `0x637700` (`0x63835d..0x6384f5`): Icarus (10), (0,0117; 0,0977; 0
 a 29 y 36), (0,1172; 0,1563; 0,1563); y negro en los demás (*estático*). No hay cielo: Icarus no
 dibuja el terreno y pone las nubes (`0xbb`, `0x622`, `0x623`), y Kalima dibuja su agua en un pase
 aparte (`0x4378a0` → `0x41cca0`, `0x41cf00`).
+### El paso de los efectos con modelo
+
+**Ampliación estática del hito 2 (2026-11-10).** `World::StepGameModelEffect` envuelve los casos
+nuevos de `0x5208a0` en la pasada `0x63711e`, después del daño y antes de joints/partículas. Usa
+los pools durables, el reloj y CRT de la escena; no guarda referencias a recursos temporales.
+El caller carga los modelos antes de fauna/personajes/efectos. Esto amplía los kernels previos,
+sin afirmar todos los casos del switch ni precisión nativa CW/FSIN.
+
+- Cada efecto vivo toma un CRT común en `0x5208c5`, incluso si no usa esa luz local. Tipo no
+  soportado conserva ese prefijo y devuelve error. Sólo anima el rango **`0xad<=tipo<0x151`**
+  (`0x52cbf4..0x52cc04`): Noria 322..324 sí; 5c6/61f no, aunque se preste Skeleton. Después
+  vienen movimiento común y vida−1. Dar un esqueleto no habilita animación fuera del rango.
+- Noria (`0x525e9d..0x525f15`): RGB=`sin(T*f)*0,2f+0,01f`, con factores f32
+  R 0,0011/G 0,0017/B 0,0013. B guarda el argumento en float antes del seno; R/G retienen PC53.
+  Ángulo Y=`F32(turnDirection+ánguloY+4)`. Reutiliza `SineProductPC53`; no ejecuta FSIN nativo.
+- 5c6 (`0x52ab04..0x52ab7b`), nacido en gate 0 con vida 10: emite 18 partículas 5c6/subtipo 1,
+  Z acumulada+24, escala 12 primera/6 restantes, luz `F32(life*0,1f)`. Cada alta con lugar toma
+  tres CRT para ángulos `%360` y `VectorRotate(0,−50,0)` (`0x54059f..0x54061c`), vida 2.
+  Pool lleno no toma los sorteos del alta: con 0/2/18 huecos, la pasada usa 1/7/55 CRT incluido
+  el efecto. Se retienen `+0x38/+0x60` de la partícula anterior. El paso de Spark1 resta 2 a
+  escala y apaga bajo 0,2 o unordered (`0x5450a9`), sin fade RGB. Las partículas recién nacidas
+  avanzan después, en este mismo tick; no se difieren al siguiente.
+
+`GameModelEffectsTest`, `MapModelEffectServicesTest`, `MapLoadTest` y los tests de partículas
+comprueban creación, retención, orden/pool lleno y presupuestos CRT. No son una captura nativa
+ni una validación visual de la torre o del teleport.
+
 ### Las partículas de la fuente en el juego
 
 **Estático**, `0x603011..0x60313f`: después del rand común del objeto, luz1 y V calculada con NEG

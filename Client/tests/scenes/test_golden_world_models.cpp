@@ -48,6 +48,7 @@ using Client::Tests::RecordingSink;
 
 constexpr std::uint8_t Login = 55;
 constexpr std::uint8_t Lorencia = 0;
+constexpr std::uint8_t Devias = 2;
 
 using GoldenWorldModels = Client::Tests::GoldenDataTest;
 
@@ -151,6 +152,38 @@ TEST_F(GoldenWorldModels, LorenciaAssignsTheBirdAndFishBeforeTheObjectTextures)
     constexpr std::array<TextureSlot, 3> Shared{TextureSlot{0x30f}, TextureSlot{0x2b3}, TextureSlot{0x2b4}};
     for (const TextureSlot slot : Shared)
         EXPECT_TRUE(store.Find(slot).has_value());
+}
+
+// 0x61744d..0x6174d9: en Devias, el burro (0x201, obj_donkey) y la bandera (0x202, obj_flag) de Npc\, con sus
+// texturas desde 0x69 (0x60d530) y de Npc\, antes de los objetos de Object3\, que van desde 0x41c.
+TEST_F(GoldenWorldModels, DeviasLoadsTheDonkeyAndTheFlagBeforeItsObjects)
+{
+    FakeTextureStore store;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    WorldModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, Devias, store, log, nullptr).HasValue());
+
+    for (const std::uint16_t special : {std::uint16_t{0x201}, std::uint16_t{0x202}})
+    {
+        SCOPED_TRACE(special);
+        ASSERT_NE(models.Find(special), nullptr);
+        ASSERT_NE(models.SkeletonOf(special), nullptr);
+        const auto textures = models.MeshTextures(special);
+        ASSERT_FALSE(textures.empty());
+        for (const TextureSlot slot : textures)
+        {
+            EXPECT_GE(slot.value, 0x69);
+            EXPECT_LT(slot.value, 0x41c);
+        }
+    }
+    EXPECT_EQ(models.MeshTextures(0x201).front(), TextureSlot{0x69});
+    EXPECT_NE(models.Find(0), nullptr);
+    ASSERT_FALSE(models.MeshTextures(0).empty());
+    EXPECT_EQ(models.MeshTextures(0).front(), TextureSlot{0x41c});
+    EXPECT_EQ(models.Find(0xad), nullptr);
+    models.Release();
+    EXPECT_EQ(store.Size(), 0u);
 }
 
 // El mapa de selección 54 conserva el lazo genérico: los 77 ObjectNN de Object55.

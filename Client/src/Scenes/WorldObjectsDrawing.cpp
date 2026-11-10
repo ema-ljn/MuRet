@@ -9,6 +9,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
@@ -31,10 +32,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <chrono>
+#include <format>
 #include <functional>
 #include <optional>
 #include <ratio>
 #include <span>
+#include <string>
 #include <vector>
 
 namespace Client::Scenes
@@ -83,6 +86,44 @@ DrawnObject Drawn(const World::WorldObject& object, const World::ObjectDraw& dra
     drawn.vertexLight = draw.vertexLight;
     return drawn;
 }
+// 0x6046a0 con un objeto: su sector pasa el trapecio y él también (+0x16c, que guarda el resultado; los de
+// un sector que no pasa quedan sin ver, como los apaga 0x606560).
+bool SeenInTheDraw(const World::TerrainPolygon& polygon, const World::WorldObject& object)
+{
+    return SectorPasses(polygon, World::SectorX(object), World::SectorY(object)) && ObjectPasses(polygon, object);
+}
+
+// 0x5ffce0 con la luz del terreno en su lugar (0x5f99e0), o 0 sin ella, y lo que decide World::DrawOf.
+World::ObjectDraw ObjectDrawAt(const World::WorldObject& object, const World::TerrainLighting* lighting,
+                               std::uint8_t map)
+{
+    const glm::vec3 light = lighting != nullptr
+                                ? World::LightAt(*lighting, object.transform.position.x, object.transform.position.y)
+                                : glm::vec3(0.0f);
+    return World::DrawOf(object, light, map);
+}
+
+// 0x602e90 con `draw`: el modelo posado como 0x5ffdf0 y dibujado como 0x6002e0 sin casos por tipo, con su
+// animación `alpha` de un paso más. Devuelve lo que se posó.
+DrawnObject DrawTheObject(Render::ModelBatch& batch, const IModelLibrary& models, const World::WorldObject& object,
+                          const World::ObjectDraw& draw, Core::Duration frameClock, float alpha)
+{
+    const Render::Models::Skeleton* skeleton = models.SkeletonOf(static_cast<std::uint16_t>(object.type));
+    const DrawnObject drawn = Drawn(object, draw, skeleton, alpha);
+    switch (draw.kind)
+    {
+    case World::ObjectDrawKind::Hidden:
+        break;
+    case World::ObjectDrawKind::Body:
+        DrawObject(batch, models, drawn, frameClock);
+        break;
+    case World::ObjectDrawKind::SubtractiveMesh:
+        DrawSubtractiveMesh(batch, models, drawn, frameClock);
+        break;
+    }
+    return drawn;
+}
+
 // La pose se toma una vez por dibujo; la emisión sigue el orden frame → objetos.
 struct SeenObjectEffects
 {
@@ -150,6 +191,27 @@ void DrawObjectGlows(std::span<const SeenObjectEffects> seen, const ObjectFrameE
 }
 } // namespace
 
+Core::Expected<void, std::string> StepGameWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map,
+                                                       const IModelLibrary& models, Render::Models::CrtRandom& random,
+                                                       const World::ObjectStepGlobals& globals)
+{
+    for (const std::size_t index : World::DrawOrder(objects))
+    {
+        World::WorldObject& object = objects[index];
+        if (!object.alive || !object.seen)
+        {
+            continue;
+        }
+        if (auto stepped = World::StepWorldObjectChecked(
+                object, map, models.SkeletonOf(static_cast<std::uint16_t>(object.type)), random, globals);
+            !stepped.HasValue())
+        {
+            return stepped;
+        }
+    }
+    return {};
+}
+
 void StepWorldObjects(std::span<World::WorldObject> objects, std::uint8_t map, const IModelLibrary& models,
                       const SpecialObjectStep& special)
 {
@@ -181,29 +243,13 @@ void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, st
     for (const std::size_t index : World::DrawOrder(objects))
     {
         World::WorldObject& object = objects[index];
-        object.seen =
-            SectorPasses(polygon, World::SectorX(object), World::SectorY(object)) && ObjectPasses(polygon, object);
+        object.seen = SeenInTheDraw(polygon, object);
         if (!object.seen)
         {
             continue;
         }
-        const glm::vec3 light =
-            lighting != nullptr ? World::LightAt(*lighting, object.transform.position.x, object.transform.position.y)
-                                : glm::vec3(0.0f);
-        const World::ObjectDraw draw = World::DrawOf(object, light, map);
-        const Render::Models::Skeleton* skeleton = models.SkeletonOf(static_cast<std::uint16_t>(object.type));
-        const DrawnObject drawn = Drawn(object, draw, skeleton, alpha);
-        switch (draw.kind)
-        {
-        case World::ObjectDrawKind::Hidden:
-            break;
-        case World::ObjectDrawKind::Body:
-            DrawObject(batch, models, drawn, frameClock);
-            break;
-        case World::ObjectDrawKind::SubtractiveMesh:
-            DrawSubtractiveMesh(batch, models, drawn, frameClock);
-            break;
-        }
+        const World::ObjectDraw draw = ObjectDrawAt(object, lighting, map);
+        const DrawnObject drawn = DrawTheObject(batch, models, object, draw, frameClock, alpha);
         if (glows && draw.posed)
         {
             posed.push_back(PosedInTheBuffer{&models, drawn});
@@ -230,6 +276,122 @@ void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, st
     }
     AdvanceObjectEffects(seen, map, frameClock, effects);
     DrawObjectGlows(seen, effects);
+}
+
+namespace
+{
+constexpr std::uint8_t LorenciaMap = 0;
+constexpr std::uint8_t DeviasMap = 2;
+// 0x60479c: el 0x64 de Devias se dibuja según el nivel del registro propio (0x604944..0x604957, jl con
+// signo): desde 0x35 con la clase del héroe (+0x1d4 & 7) en 3 o 4, y desde 0x50 con las demás.
+constexpr std::int16_t DeviasLeveledObject = 0x64;
+constexpr std::uint8_t ClassMask = 7;
+constexpr std::uint8_t FirstLowLevelClass = 3;
+constexpr std::uint8_t SecondLowLevelClass = 4;
+constexpr int LowLevelThreshold = 0x35;
+constexpr int LevelThreshold = 0x50;
+// 0x600a4a: el único caso del mapa 0 en 0x6002e0.
+constexpr std::int16_t LorenciaWaterspout = 0x69;
+
+// 0x6047a7..0x604a36: la clase del héroe, antes del acceso; el nivel, con el registro propio abierto
+// (0x6047cb) y cerrado (0x604a1a: con la cuenta en 0, 0x40b4d0 lo vuelve a cifrar con sus 3.848 rand()).
+// En un dibujo intermedio de MuRet no hay frame del original y no se abre.
+bool OwnLevelAllows(const GameObjectPass& pass)
+{
+    const std::uint8_t heroClass = pass.heroClass & ClassMask;
+    const int threshold =
+        heroClass == FirstLowLevelClass || heroClass == SecondLowLevelClass ? LowLevelThreshold : LevelThreshold;
+    if (pass.originalFrame && pass.random != nullptr && pass.ownRecordDepth != nullptr)
+    {
+        const Render::Models::LogicalAccess access(*pass.ownRecordDepth, *pass.random,
+                                                   Render::Models::OwnRecordCloseRandoms);
+        return static_cast<int>(pass.ownLevel) >= threshold;
+    }
+    return static_cast<int>(pass.ownLevel) >= threshold;
+}
+
+// 0x602ed0 después del rand() común (0x602ef4): los casos por tipo de los mapas 0 (0x602ffb) y 2
+// (0x6031e5). MuRet no tiene ninguno: corta con su dirección.
+Core::Expected<void, std::string> FrameCaseOf(const World::WorldObject& object, std::uint8_t map)
+{
+    if (map == LorenciaMap && object.type == 0x38)
+    {
+        return Core::Unexpected(std::string(
+            "0x603149: los dos sprites 0x5ac del 0x38 (MerchantAnimal01) salen de 0x4ec110 con un vector de la "
+            "pila sin inicializar (Q-C256), y no están portados"));
+    }
+    if (map == LorenciaMap && object.type == LorenciaWaterspout)
+    {
+        return Core::Unexpected(std::string("0x603011: la V con el reloj y las gotas 0x5f2 del 0x69 (Waterspout01) "
+                                            "no están portadas"));
+    }
+    if (map == DeviasMap && object.type == DeviasLeveledObject)
+    {
+        return Core::Unexpected(std::string("0x603251: los dos sprites 0x5d5 del 0x64 no están portados"));
+    }
+    if (map == DeviasMap && object.type == 0x67)
+    {
+        return Core::Unexpected(
+            std::string("0x6031f7: el 0x67 cambia de acción (0x4ea030) con rand() & 31 en el último "
+                        "cuadro, y no está portado"));
+    }
+    return {};
+}
+} // namespace
+
+Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                       std::span<World::WorldObject> objects,
+                                                       const World::TerrainPolygon& polygon,
+                                                       const World::TerrainLighting* lighting,
+                                                       Core::Duration frameClock, const GameObjectPass& pass)
+{
+    if (pass.map != LorenciaMap && pass.map != DeviasMap)
+    {
+        return Core::Unexpected(std::format("0x6046a0: los casos por tipo del mapa {} (0x6002e0 y 0x602ed0) no están "
+                                            "leídos",
+                                            static_cast<int>(pass.map)));
+    }
+    if (pass.originalFrame && pass.random == nullptr)
+    {
+        return Core::Unexpected(std::string("0x602ef4: el frame del original saca rand() por objeto, y no lo tiene"));
+    }
+    for (const std::size_t index : World::DrawOrder(objects))
+    {
+        World::WorldObject& object = objects[index];
+        // 0x60473b: el que no está vivo no se mira.
+        if (!object.alive)
+        {
+            continue;
+        }
+        object.seen = SeenInTheDraw(polygon, object);
+        if (!object.seen)
+        {
+            continue;
+        }
+        if (pass.map == DeviasMap && object.type == DeviasLeveledObject && !OwnLevelAllows(pass))
+        {
+            continue;
+        }
+        // 0x602e90: 0x5ffdf0 y, si lo posó, 0x6002e0.
+        const World::ObjectDraw draw = ObjectDrawAt(object, lighting, pass.map);
+        if (pass.map == LorenciaMap && object.type == LorenciaWaterspout && draw.kind != World::ObjectDrawKind::Hidden)
+        {
+            return Core::Unexpected(std::string("0x600a4a: el 0x69 (Waterspout01) va con cuatro 0x4ecc30 en vez de "
+                                                "RenderBody, y no está portado"));
+        }
+        static_cast<void>(DrawTheObject(batch, models, object, draw, frameClock, 0.0f));
+        // 0x604a4d: 0x602ed0, una vez por frame del original.
+        if (!pass.originalFrame)
+        {
+            continue;
+        }
+        static_cast<void>(pass.random->Next());
+        if (auto frameCase = FrameCaseOf(object, pass.map); !frameCase.HasValue())
+        {
+            return frameCase;
+        }
+    }
+    return {};
 }
 
 void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary& models)

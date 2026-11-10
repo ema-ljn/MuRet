@@ -53,6 +53,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -81,6 +82,12 @@ constexpr int TailRandoms = 3;
 constexpr int WaitClose = 4;
 constexpr int WindowRandoms = 2;
 constexpr std::size_t PublishedSlot = 42;
+// Los rand() del pase de los objetos del primer frame del juego (0x602ef4), uno por objeto visto que llega a
+// 0x602ed0, con el héroe en la primera celda de cada mapa de referencia (*simulado*, con el port y la Data del
+// repo): en Lorencia, en (133, 127), 84 hasta el 0x69 (1720), que corta en 0x600a4a antes del suyo; en Devias,
+// en (220, 30), los 54 del pase entero, y el dibujo corta en los efectos del suelo (0x6374d3).
+constexpr int LorenciaObjectRandoms = 84;
+constexpr int DeviasObjectRandoms = 54;
 
 class RecordingPublisher final : public Client::Scenes::IWorldEntryPublisher
 {
@@ -322,7 +329,8 @@ TEST_F(WorldEntryTest, WithTheSetTablesTheEntryRunsTheWholeRecalculation)
 // La respuesta aplicada y, sin ningún paso, el primer frame del juego: el contador en 30 no retiene, la
 // cámara mira al héroe publicado y lee su celda (8 rand() después de los 4 de 0x637229), el terreno de
 // Lorencia sale con sus tiles y su pasto (0x5fc353, sin rand()), las marcas del suelo no dibujan ninguna
-// (0x5fc365: la tabla de la .bss, vacía) y el dibujo corta en los objetos (0x6374ce), sin presentar.
+// (0x5fc365: la tabla de la .bss, vacía) y los objetos sacan su rand() hasta el 0x69, donde el dibujo corta
+// (0x600a4a), sin presentar.
 TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
 {
     Entry tested(m_dataRoot, Seed);
@@ -344,7 +352,7 @@ TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
                                     nullptr);
     ASSERT_TRUE(scene.Enter().HasValue());
     CrtRandom expected = tested.cloth.random;
-    for (int draw = 0; draw < 4 + 8; ++draw)
+    for (int draw = 0; draw < 4 + 8 + LorenciaObjectRandoms; ++draw)
     {
         static_cast<void>(expected.Next());
     }
@@ -355,7 +363,7 @@ TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
     scene.Render(target.BeginFrame({}), 0.0f);
 
     ASSERT_TRUE(scene.Failure().has_value());
-    EXPECT_NE(scene.Failure()->find("0x6374ce"), std::string::npos) << *scene.Failure();
+    EXPECT_NE(scene.Failure()->find("0x600a4a"), std::string::npos) << *scene.Failure();
     ASSERT_EQ(target.frames.size(), 1u);
     EXPECT_FALSE(target.frames[0].presented);
     std::size_t vertices = 0;
@@ -585,9 +593,9 @@ constexpr int WholeEntryRandoms = (4 * OwnRecordClose) + GrassRandoms + HeroRand
 constexpr int EntryUpTo550990 = (3 * OwnRecordClose) + GrassRandoms + HeroRandom + ConstructionRandoms + StopRandom;
 // Un frame del juego sin pasos: el contador (0x637229) y los dos accesos a la celda del héroe (0x635ae0).
 constexpr int FrameRandoms = 4 + 8;
-// Del lugar de una entrada al de la siguiente, con un frame del juego en el medio.
-constexpr int BetweenTheSlotsWithAFrame =
-    WholeEntryRandoms - (OwnRecordClose + GrassRandoms + HeroRandom) + FrameRandoms + OwnRecordClose + GrassRandoms;
+// Del lugar de una entrada al de la siguiente, con un frame del juego de Lorencia en el medio.
+constexpr int BetweenTheSlotsWithAFrame = WholeEntryRandoms - (OwnRecordClose + GrassRandoms + HeroRandom) +
+                                          FrameRandoms + LorenciaObjectRandoms + OwnRecordClose + GrassRandoms;
 
 // Los mapas de referencia, cada uno con dos celdas.
 struct ReferenceMap
@@ -597,9 +605,24 @@ struct ReferenceMap
     std::uint8_t firstY = 0;
     std::uint8_t secondX = 0;
     std::uint8_t secondY = 0;
+    // El primer frame del juego con el héroe en la primera celda: los rand() de los objetos y dónde corta.
+    int firstObjectRandoms = 0;
+    std::string_view firstCut;
 };
-constexpr ReferenceMap Lorencia{.map = 0, .firstX = 133, .firstY = 127, .secondX = 143, .secondY = 120};
-constexpr ReferenceMap Devias{.map = 2, .firstX = 220, .firstY = 30, .secondX = 210, .secondY = 40};
+constexpr ReferenceMap Lorencia{.map = 0,
+                                .firstX = 133,
+                                .firstY = 127,
+                                .secondX = 143,
+                                .secondY = 120,
+                                .firstObjectRandoms = LorenciaObjectRandoms,
+                                .firstCut = "0x600a4a"};
+constexpr ReferenceMap Devias{.map = 2,
+                              .firstX = 220,
+                              .firstY = 30,
+                              .secondX = 210,
+                              .secondY = 40,
+                              .firstObjectRandoms = DeviasObjectRandoms,
+                              .firstCut = "0x6374d3"};
 
 // La respuesta del cable en la celda (x, y) de `map`, con `direction`.
 Client::Protocol::Character::CharacterSelectResult ReplyAt(std::uint8_t map, std::uint8_t x, std::uint8_t y,
@@ -650,8 +673,8 @@ std::size_t AliveActors(const Entry& tested)
 }
 
 // Un frame del juego sin pasos, como AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects: en el
-// original llega a los personajes (0x6374dd → 0x510d00), y MuRet, que corta en los objetos (0x6374ce), ya no
-// sabe qué dejó 0x505820.
+// original llega a los personajes (0x6374dd → 0x510d00), y MuRet, que corta en los objetos (el 0x69 de
+// Lorencia, 0x600a4a), ya no sabe qué dejó 0x505820.
 void DrawAGameFrame(Entry& tested)
 {
     tested.world.Runtime().drawingEnabled = true;
@@ -673,9 +696,9 @@ void DrawAGameFrame(Entry& tested)
     scene.Render(target.BeginFrame({}), 0.0f);
 
     ASSERT_TRUE(scene.Failure().has_value());
-    ASSERT_NE(scene.Failure()->find("0x6374ce"), std::string::npos) << *scene.Failure();
+    ASSERT_NE(scene.Failure()->find(Lorencia.firstCut), std::string::npos) << *scene.Failure();
     ASSERT_FALSE(tested.world.Runtime().fullSetScan.has_value());
-    ASSERT_EQ(tested.cloth.random.State(), Advanced(before, FrameRandoms).State());
+    ASSERT_EQ(tested.cloth.random.State(), Advanced(before, FrameRandoms + LorenciaObjectRandoms).State());
     scene.Leave();
 }
 
@@ -918,7 +941,8 @@ TEST_F(WorldEntryTest, AnEntryInTheWorldIsAppliedAgainByTheSession)
 // (Q-C216). Los rand() del paso: los 8 de MoveHero, los 8 del TerrainWall, el cuerpo del héroe (0x4fd5f0: el
 // cierre del registro propio en 0x4fc450 y el rand() % 6 de 0x4fd7e4) y, con el héroe visto, los 8 de su celda
 // lógica y el rand() & 7; después, la tela. El frame que sigue pasa las marcas del suelo (0x5fc365), que no sacan
-// rand(), y llega a los objetos (0x6374ce) con sus 4 + 8.
+// rand(), y los objetos, con sus 4 + 8 y uno por objeto visto: Lorencia corta en el 0x69 (0x600a4a) y Devias en
+// los efectos del suelo (0x6374d3).
 TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
 {
     const Client::World::TerrainPolygon selected = Client::World::TerrainPolygonOf(
@@ -977,8 +1001,9 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         game.Render(target.BeginFrame({}), 0.0f);
 
         ASSERT_TRUE(game.Failure().has_value());
-        EXPECT_NE(game.Failure()->find("0x6374ce"), std::string::npos) << *game.Failure();
-        EXPECT_EQ(tested.cloth.random.State(), Advanced(reference.random, FrameRandoms).State());
+        EXPECT_NE(game.Failure()->find(probe.firstCut), std::string::npos) << *game.Failure();
+        EXPECT_EQ(tested.cloth.random.State(),
+                  Advanced(reference.random, FrameRandoms + probe.firstObjectRandoms).State());
         game.Leave();
     }
 }

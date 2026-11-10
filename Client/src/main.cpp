@@ -501,8 +501,8 @@ Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const
         case Scenes::SceneId::WorldLoading:
             return std::make_unique<Scenes::WorldLoadingScene>(context);
         case Scenes::SceneId::Game:
-            return std::make_unique<Scenes::GameScene>(context, session, &models,
-                                                       data.items ? &data.items->table : nullptr);
+            return std::make_unique<Scenes::GameScene>(
+                context, session, &models, data.items ? &data.items->table : nullptr, &models.TextureSlots());
         }
         return nullptr;
     };

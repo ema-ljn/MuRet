@@ -5,12 +5,14 @@
 #include "Data/Tables/ItemTable.h"
 #include "Input/InputState.h"
 #include "Render/Models/Animation.h"
+#include "Render/Models/ModelTextureSlots.h"
 #include "Render/Pass3D.h"
 #include "Scenes/IScene.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/TerrainTiles.h"
+#include "Scenes/WorldModels.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
@@ -27,14 +29,15 @@
 // queda en pantalla el mosaico de la escena 3; el paso corre con lo que dejó la selección y MoveHero
 // baja el contador (0x59af01). La respuesta del F3 03 lo pone en 30 (T7). Con el contador en 30 o
 // menos, el dibujo del juego hace la cámara, el rango y el trapecio, el pase del mundo, el rayo del
-// mouse y el primer pase del terreno, y corta con error en la primera etapa que MuRet no tiene (T8);
-// el paso, el caballo oscuro (0x445230, también en la espera) y los personajes con su cuerpo (0x4fd5f0) y la
-// zona segura del héroe (0x508f00, T11), y corta igual. El dibujo del caballo (0x637508) está portado (HelperTable.h,
-// DrawHelpers) y queda detrás del corte del pasto (0x5fc353). El trapecio que leen los personajes es el
-// global de WorldRuntime: en el primer paso después de la espera, el que dejó el último dibujo de la
-// selección (T11b).
+// mouse, el terreno y, en el 0 y el 2, los objetos (0x6374ce, CL7 hito 3), y corta con error en la
+// primera etapa que MuRet no tiene (T8); el paso, los objetos que vio el dibujo (0x606560), el caballo
+// oscuro (0x445230, también en la espera) y los personajes con su cuerpo (0x4fd5f0) y la zona segura del
+// héroe (0x508f00, T11), y corta igual. El dibujo del caballo (0x637508) está portado (HelperTable.h,
+// DrawHelpers) y queda detrás del corte de los objetos (0x6374ce, 0x6374d3). El trapecio que leen los
+// personajes es el global de WorldRuntime: en el primer paso después de la espera, el que dejó el último
+// dibujo de la selección (T11b).
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La entrada al mundo", pasos 3, 4 y 6, "El
-// paso del juego" y "El dibujo del juego".
+// paso del juego", "El dibujo del juego" y "Los objetos del juego".
 namespace Client::Scenes
 {
 class IModelLibrary;
@@ -46,11 +49,14 @@ inline constexpr Render::ViewportRect GameWorldViewport{0, 0, 640, 432};
 class GameScene final : public IScene
 {
 public:
-    // `session`, `models` e `items` tienen que vivir más; nullptr sin servidor, sin los modelos (el caballo
-    // oscuro corta con error si hay uno vivo, y el cuerpo de los personajes sin Player.bmd, en 0x4f9580) o sin
-    // Item.bmd (*[0x7758550]: lo que lo lee corta con error).
+    // `session`, `models`, `items` y `gameSlots` tienen que vivir más; nullptr sin servidor, sin los modelos
+    // (el caballo oscuro corta con error si hay uno vivo, y el cuerpo de los personajes sin Player.bmd, en
+    // 0x4f9580) o sin Item.bmd (*[0x7758550]: lo que lo lee corta con error). `gameSlots` es la tabla de los
+    // slots de la carga (GameModels::TextureSlots), que siguen los modelos especiales del mapa (WorldModels);
+    // sin ella, desde 0x69.
     GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models = nullptr,
-              const Data::Tables::ItemTable* items = nullptr);
+              const Data::Tables::ItemTable* items = nullptr,
+              const Render::Models::ModelTextureSlots* gameSlots = nullptr);
 
     // Sin `context.world` o `context.cloth`, el error: la espera vive en el primero y sus cierres
     // gastan el rand() del segundo.
@@ -65,7 +71,7 @@ public:
     // 0x6371a6..0x63722e: sin el mundo cargado retiene sin leer; con él, lee el contador y retiene
     // con más de 30.
     void PrepareFrame() override;
-    // Suelta los tiles del terreno que subió el dibujo.
+    // Suelta los tiles del terreno y los modelos de los objetos que subieron el dibujo y el paso.
     void Leave() override;
     // Ninguna: sin conexión, el juego sigue (Q-C70).
     [[nodiscard]] std::optional<SceneId> Next() const override;
@@ -85,11 +91,16 @@ private:
     void StepEntry();
     // 0x636da3..0x63717f: el paso con el mundo cargado, hasta su primer corte.
     [[nodiscard]] Core::Expected<void, std::string> StepWorld();
+    // 0x63706a: 0x606560 con los objetos vistos (StepGameWorldObjects); los demás mapas cortan si hay alguno.
+    [[nodiscard]] Core::Expected<void, std::string> StepTheObjects();
     // 0x59ae8d..0x59afd6, lo de MoveHero con el contador: lo baja y lo vuelve a leer.
     [[nodiscard]] std::int32_t StepWaitCounter();
 
-    // 0x63723a..0x6374ce: el dibujo hasta el corte. Devuelve siempre el error del corte.
+    // 0x63723a..0x6374d3: el dibujo hasta el corte. Devuelve siempre el error del corte.
     [[nodiscard]] Core::Expected<void, std::string> DrawTheFrame(SceneCanvas& canvas);
+    // Los modelos de los objetos de `map` (0x616ec0, WorldModels) y sus texturas, que el original lee en
+    // 0x61a560, al cargar; MuRet, la primera vez que el dibujo o el paso los piden.
+    [[nodiscard]] Core::Expected<void, std::string> LoadTheObjectModels(std::int32_t map);
     // Los tiles y el pasto de `map` en la GPU, que el original sube en 0x61a560, al cargar.
     [[nodiscard]] Core::Expected<void, std::string> UploadTheTiles(std::uint8_t map);
     // 0x635ae0, una vez por frame original, y la consulta de los dibujos intermedios.
@@ -98,9 +109,10 @@ private:
     // frame los dos quedan en WorldRuntime (TerrainPolygonFrame.h); en un dibujo intermedio, nada.
     [[nodiscard]] Core::Expected<World::TerrainPolygon, std::string>
     PolygonOfTheFrame(const Render::Camera3D& camera, const glm::vec3& target, int frames);
-    // 0x637410..0x6374ce, dentro del pase del mundo: el rayo del mouse, el terreno y el corte.
+    // 0x637410..0x6374d3, dentro del pase del mundo: el rayo del mouse, el terreno, los objetos y el corte.
+    // `frames` son los frames del original del reloj: con 0, los objetos no sacan rand().
     [[nodiscard]] Core::Expected<void, std::string> DrawTheWorldPass(SceneCanvas& canvas, const Render::Pass3D& pass,
-                                                                     const World::TerrainPolygon& polygon);
+                                                                     const World::TerrainPolygon& polygon, int frames);
 
     World::GameCamera& CameraState();
     World::GameCameraInput& CameraInputState();
@@ -109,6 +121,7 @@ private:
     App::ServerSession* m_session;
     const IModelLibrary* m_models;
     const Data::Tables::ItemTable* m_items;
+    const Render::Models::ModelTextureSlots* m_gameSlots;
     bool m_sent = false;
     bool m_firstStep = true;
     bool m_holdFrame = true;
@@ -117,6 +130,9 @@ private:
     World::GameCameraInput m_localCameraInput;
     Render::Models::OriginalFrameCarry m_cameraFrames;
     TerrainTiles m_tiles;
+    // Los modelos de los objetos del mapa que los cargó, si alguno.
+    WorldModels m_worldModels;
+    std::optional<std::int32_t> m_worldModelsMap;
     // El rango de bloques del último 0x5fbb00 de la escena, el que lee 0x5fbf60 en el paso.
     World::TerrainRange m_terrainRange;
     // El corrimiento del agua (0x78ecbec) y las olas (0x78acbd8) del juego.

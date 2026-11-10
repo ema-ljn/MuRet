@@ -1,6 +1,8 @@
 #include "World/WorldObjects.h"
 
+#include "Core/Expected.h"
 #include "Data/Terrain/TerrainObjects.h"
+#include "Render/Models/Cloth.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
@@ -17,9 +19,12 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <numeric>
 #include <optional>
 #include <span>
+#include <string>
+#include <string_view>
 #include <vector>
 
 namespace Client::World
@@ -468,23 +473,29 @@ WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::Terr
     return CreateObjects(records, context.map, context.scene, &context.registrations, &context);
 }
 
-void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models::Skeleton* skeleton)
+namespace
+{
+// 0x4e9980 y 0x4ec200, lo común de 0x604ab0: el alpha hacia su meta y, si no quedó por debajo de 0,01
+// (0x604c3d, que sale), la animación a su velocidad con la acción de `skeleton`, si tiene. Devuelve si
+// sigue.
+bool AdvanceTheObject(WorldObject& object, const Render::Models::Skeleton* skeleton)
 {
     StepObjectAlpha(object.targetAlpha, object.alpha, object.state.light, 0);
-    // 0x604ab0 sale acá con el alpha por debajo de 0,01.
     if (object.alpha < MinimumAlpha)
     {
-        return;
+        return false;
     }
     if (skeleton != nullptr && object.animation.action < skeleton->actions.size())
     {
         Render::Models::AdvanceAnimation(object.animation, skeleton->actions[object.animation.action], object.speed,
                                          Render::Models::AnimationScene::Other);
     }
-    if (map != LoginMap)
-    {
-        return;
-    }
+    return true;
+}
+
+// Los casos del mapa 0x37 de 0x604ab0: los marcadores se ocultan y los remolinos giran.
+void ApplyLoginStepCases(WorldObject& object)
+{
     if (IsLoginMarker(object.type))
     {
         object.state.hiddenMesh = HiddenObject;
@@ -502,6 +513,185 @@ void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models
         object.state.blendMesh = Render::Models::EveryMeshBlends;
         object.alpha = 1.0f;
         object.light = glm::vec3(1.0f);
+    }
+}
+
+// 0x604bb4..0x604c1d: los techos, antes del alpha. En el 0, los de la taberna (HouseWall05 y 06) se apagan
+// con la capa 4; en el 2, los suyos con la capa 3 o desde la 10 (*inferido*: el héroe bajo techo).
+constexpr std::uint8_t DeviasMap = 2;
+constexpr std::int32_t LorenciaRoofLayer = 4;
+constexpr std::int32_t DeviasRoofLayer = 3;
+constexpr std::int32_t DeviasHighRoofLayers = 10;
+
+std::optional<float> RoofTargetAlpha(std::int16_t type, std::uint8_t map, std::int32_t layer)
+{
+    if (map == LorenciaMap && (type == 0x7d || type == 0x7e))
+    {
+        return layer == LorenciaRoofLayer ? 0.0f : 1.0f;
+    }
+    if (map == DeviasMap && (type == 0x51 || type == 0x52 || type == 0x60 || type == 0x62 || type == 0x63))
+    {
+        return layer == DeviasRoofLayer || layer >= DeviasHighRoofLayers ? 0.0f : 1.0f;
+    }
+    return std::nullopt;
+}
+
+// 0x604db9 y 0x60508f: la luz del blendMesh (+0x68), (rand() & 3 + 4) · 0,1f (0x6b87b8), el producto de
+// fild y fmul guardado en float.
+constexpr int FlickerBase = 4;
+constexpr float Tenth = std::bit_cast<float>(0x3DCCCCCDu);
+
+float FlickeringLight(Render::Models::CrtRandom& random)
+{
+    const int step = (random.Next() & 3) + FlickerBase;
+    return static_cast<float>(static_cast<double>(step) * static_cast<double>(Tenth));
+}
+
+// 0x604d8e: la V del blendMesh (+0x70) con el reloj, (−ftol(T) % 1000) · 0,001f (0x6b89c8): neg sobre el
+// dword bajo, cdq e idiv con signo. Sin un ftol acreditado (un reloj infinito), nullopt.
+constexpr std::int32_t ScrollPeriod = 1000;
+constexpr float Thousandth = std::bit_cast<float>(0x3A83126Fu);
+
+std::optional<float> ScrolledV(float worldClock)
+{
+    const std::optional<std::int32_t> low = OriginalFtolLow(static_cast<double>(worldClock));
+    if (!low)
+    {
+        return std::nullopt;
+    }
+    // neg en 32 bits: envuelve en −2^31, como el registro.
+    const auto negated = static_cast<std::int32_t>(0u - static_cast<std::uint32_t>(*low));
+    const std::int32_t scroll = negated % ScrollPeriod;
+    return static_cast<float>(static_cast<double>(scroll) * static_cast<double>(Thousandth));
+}
+
+// Dónde empieza el caso de un tipo del mapa 0 que llama a 0x52f360: el fuego de FireLight01 y 02, de
+// Bonfire01, las antorchas de DoungeonGate01 y de Bridge01, y los marcadores Light01..03 (con las clases 0 a
+// 2, que después se ocultan).
+std::string_view LorenciaFireCase(std::int16_t type)
+{
+    switch (type)
+    {
+    case 0x32:
+        return "0x604eb0";
+    case 0x33:
+        return "0x604ecb";
+    case 0x34:
+        return "0x604f22";
+    case 0x37:
+        return "0x604e78";
+    case 0x50:
+        return "0x604e40";
+    case 0x82:
+        return "0x604de3";
+    case 0x83:
+        return "0x604e02";
+    default:
+        return "0x604e21";
+    }
+}
+
+// 0x604d6f: los casos del mapa 0, por el tipo − 0x32 (la tabla de 0x605b58).
+Core::Expected<void, std::string> StepLorenciaCases(WorldObject& object, Render::Models::CrtRandom& random,
+                                                    const ObjectStepGlobals& globals)
+{
+    switch (object.type)
+    {
+    case 0x76:
+    case 0x77:
+        if (const std::optional<float> v = ScrolledV(globals.worldClock))
+        {
+            object.state.uv.y = *v;
+            return {};
+        }
+        return Core::Unexpected(std::string("0x604d94: ftol del reloj del mundo fuera de lo acreditado"));
+    case 0x75:
+    case 0x7a:
+        object.state.light = FlickeringLight(random);
+        return {};
+    case 0x32:
+    case 0x33:
+    case 0x34:
+    case 0x37:
+    case 0x50:
+    case 0x82:
+    case 0x83:
+    case 0x84:
+        return Core::Unexpected(std::format("{}: el {:#x} prende sus fuegos con 0x52f360, que MuRet no tiene",
+                                            LorenciaFireCase(object.type), object.type));
+    case 0x5a:
+    case 0x96:
+        // 0x604ee9 y 0x604f5c: el rand() de su luz, que va al buffer dinámico.
+        static_cast<void>(random.Next());
+        return Core::Unexpected(std::format("0x605718: la luz del {:#x} (0x5f9780) va al buffer dinámico 0x7b4ccc4, "
+                                            "que MuRet no tiene",
+                                            object.type));
+    default:
+        return {};
+    }
+}
+
+// 0x60506d: los casos del mapa 2, por el tipo − 0x14 (la tabla de 0x605c08).
+Core::Expected<void, std::string> StepDeviasCases(WorldObject& object, Render::Models::CrtRandom& random)
+{
+    switch (object.type)
+    {
+    case 0x4e:
+        object.state.light = FlickeringLight(random);
+        return {};
+    case 0x1e:
+    case 0x42:
+        return Core::Unexpected(
+            std::format("0x6050b9: el {:#x} prende su fuego con 0x52f360, que MuRet no tiene", object.type));
+    case 0x14:
+    case 0x41:
+    case 0x56:
+    case 0x58:
+        // Sin el modo editor (0x77f3b18 en 0): la distancia al héroe decide si se abre, con el sonido 0x11 o
+        // 0x12 (0x41ed10), o si vuelve con 0x4e9560.
+        return Core::Unexpected(std::format("0x6050d4: la puerta {:#x} del mapa 2 no está portada", object.type));
+    default:
+        return {};
+    }
+}
+} // namespace
+
+void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models::Skeleton* skeleton)
+{
+    if (AdvanceTheObject(object, skeleton) && map == LoginMap)
+    {
+        ApplyLoginStepCases(object);
+    }
+}
+
+Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, std::uint8_t map,
+                                                         const Render::Models::Skeleton* skeleton,
+                                                         Render::Models::CrtRandom& random,
+                                                         const ObjectStepGlobals& globals)
+{
+    if (map != LorenciaMap && map != DeviasMap && map != LoginMap)
+    {
+        // 0x604ac0..0x604ba0: el 9 saca rand() antes de todo, y cada mapa tiene sus casos.
+        return Core::Unexpected(
+            std::format("0x604ab0: el paso de los objetos del mapa {} no está leído", static_cast<int>(map)));
+    }
+    if (const std::optional<float> target = RoofTargetAlpha(object.type, map, globals.heroCellLayer))
+    {
+        object.targetAlpha = *target;
+    }
+    if (!AdvanceTheObject(object, skeleton))
+    {
+        return {};
+    }
+    switch (map)
+    {
+    case LorenciaMap:
+        return StepLorenciaCases(object, random, globals);
+    case DeviasMap:
+        return StepDeviasCases(object, random);
+    default:
+        ApplyLoginStepCases(object);
+        return {};
     }
 }
 

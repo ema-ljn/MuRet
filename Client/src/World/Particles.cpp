@@ -298,7 +298,7 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     }
     if (type == SparkParticle)
     {
-        return subtype == RavenSparkSubtype || subtype == MapSparkSubtype
+        return subtype == TeleportSparkSubtype || subtype == RavenSparkSubtype || subtype == MapSparkSubtype
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
@@ -342,6 +342,17 @@ void Initialize(Particle& particle, std::int32_t type, const glm::vec3& position
         particle.angles[axis] = angles[axis];
     }
     particle.velocity = glm::vec3(0.0f);
+}
+
+// 0x54059f..0x54061c: tres ángulos de 0..359 y VectorRotate(0,-50,0); conserva la vida común (2).
+void CreateTheTeleportSpark(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr int FullCircle = 360;
+    constexpr float Speed = -50.0f;
+    for (int axis = 0; axis < 3; ++axis)
+        particle.angles[axis] = static_cast<float>(random.Next() % FullCircle);
+    particle.velocity = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, Speed, 0.0f),
+                                                             Render::Models::OriginalAngleMatrix(particle.angles));
 }
 
 void CreateTheFire(Particle& particle, Render::Models::CrtRandom& random)
@@ -967,6 +978,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheCloud(particle, random);
             return std::optional(index);
         }
+        if (type == SparkParticle && subtype == TeleportSparkSubtype)
+        {
+            CreateTheTeleportSpark(particle, random);
+            return std::optional(index);
+        }
         if (type == SparkParticle && subtype == MapSparkSubtype)
         {
             CreateTheMapSpark(particle, random);
@@ -1128,6 +1144,16 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
         else if (IsMapSpark(particle))
         {
             StepTheMapSpark(particle);
+        }
+        else if (particle.type == SparkParticle && particle.subtype == TeleportSparkSubtype)
+        {
+            // 0x5450a9: resta 2 y muere bajo 0,2 (también unordered); no cambia la luz.
+            constexpr double Shrink = 2.0;
+            constexpr double Minimum = static_cast<double>(0.2f);
+            const double changed = static_cast<double>(particle.scale) - Shrink;
+            particle.scale = F32(changed);
+            if (!(changed >= Minimum))
+                particle.alive = false;
         }
         else if (IsSpark(particle))
         {

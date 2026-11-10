@@ -1,6 +1,8 @@
 #include "World/ModelEffects.h"
 
 #include "Render/Models/Animation.h"
+#include "Render/Models/Cloth.h"
+#include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 
@@ -159,6 +161,29 @@ ModelEffect DragonAt(const glm::vec3& position, const glm::vec3& angles, float s
     return effect;
 }
 
+// 0x518d28..0x518e36: lo que realmente escribe el prefijo; los demás campos del slot sobreviven.
+void InitializeCommonEffect(ModelEffect& effect, std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
+                            const glm::vec3& light, float scale)
+{
+    effect.alive = true;
+    effect.type = type;
+    effect.subtype = 0;
+    effect.transform.scale = CreationScale(scale);
+    effect.transform.position = position;
+    effect.transform.angles = angles;
+    effect.vertexLight = true;
+    effect.objectState = Render::Models::ObjectState{};
+    effect.animation.action = 0;
+    effect.animation.frame = 0.0f;
+    effect.animation.previousKey = 0;
+    effect.alpha = 1.0f;
+    effect.speed = CommonAnimationSpeed;
+    effect.state = 0;
+    effect.light = light;
+    effect.velocity = glm::vec3(0.0f);
+    effect.previousPosition = position;
+}
+
 // Lo común de 0x518d0a..0x518e3c (la escala, la posición, los ángulos, la luz y +0xd8 en 0,3) y el caso
 // 0x61e/0x61f con el subtipo 0 (0x51eebb): 20 pasos de vida y la salida de 0x51db73, sin rand().
 ModelEffect ArrivalAt(const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light, float scale)
@@ -180,7 +205,7 @@ ModelEffect ArrivalAt(const glm::vec3& position, const glm::vec3& angles, const 
 std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                 const glm::vec3& light, float scale)
 {
-    if (type != DragonEffect && type != ArrivalEffect)
+    if (type != DragonEffect && type != ArrivalEffect && type != TeleportEffect)
     {
         return std::nullopt;
     }
@@ -190,12 +215,51 @@ std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::ve
         {
             continue;
         }
+        if (type == TeleportEffect)
+        {
+            InitializeCommonEffect(m_effects[k], type, position, angles, light, scale);
+            m_effects[k].life = 10; // 0x51e4f6; sin rand().
+            return k;
+        }
         const bool seen = m_effects[k].seen;
         m_effects[k] =
             type == DragonEffect ? DragonAt(position, angles, scale) : ArrivalAt(position, angles, light, scale);
         // 0x518cf0 no escribe +0x16c: el consumidor del suelo lee el último dibujo de este lugar.
         m_effects[k].seen = seen;
         return k;
+    }
+    return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateNoriaEffect(std::int16_t type, const glm::vec3& position,
+                                                           const glm::vec3& angles, glm::vec3& sourceLight,
+                                                           Render::Models::CrtRandom& random)
+{
+    constexpr std::int16_t FirstTowerEffect = 322;
+    constexpr std::int16_t LastTowerEffect = 324;
+    if (type < FirstTowerEffect || type > LastTowerEffect)
+        return std::nullopt;
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        if (m_effects[slot].alive)
+            continue;
+        ModelEffect& effect = m_effects[slot];
+        InitializeCommonEffect(effect, type, position, angles, sourceLight, 0.0f);
+        effect.life = 0xffffff;
+        effect.objectState.blendMesh = Render::Models::EveryMeshBlends;
+        if (type == LastTowerEffect)
+        {
+            effect.transform.scale = 0.6f;
+            return slot;
+        }
+        // La copia al efecto precede la mutación de la luz prestada (0x51c39b).
+        sourceLight = glm::vec3(0.0f);
+        effect.transform.scale =
+            F32(static_cast<double>(random.Next() % 50) * static_cast<double>(0.01f) + static_cast<double>(1.3f));
+        effect.turnDirection = F32(static_cast<double>(random.Next() % 80) * static_cast<double>(0.1f));
+        effect.speed =
+            F32(static_cast<double>(random.Next() % 100) * static_cast<double>(0.001f) + static_cast<double>(0.01f));
+        return slot;
     }
     return std::nullopt;
 }

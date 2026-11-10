@@ -7,6 +7,7 @@
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/MapModelEffectServices.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -92,8 +93,12 @@ Core::Expected<void, std::string> CreateTheObjects(std::span<const Data::Terrain
                                                    const char* source, WorldMap& loaded, std::int32_t map,
                                                    Render::Models::CrtRandom& random)
 {
-    World::WorldObjectCreationContext creation{
-        .map = map, .scene = World::ObjectScene::Other, .registrations = loaded.registrations, .random = &random};
+    MapModelEffectServices services(loaded.effects, random);
+    World::WorldObjectCreationContext creation{.map = map,
+                                               .scene = World::ObjectScene::Other,
+                                               .registrations = loaded.registrations,
+                                               .services = &services,
+                                               .random = &random};
     World::WorldObjectCreationResult created = World::CreateWorldObjects(records, creation);
     for (World::WorldObject& object : created.objects)
     {

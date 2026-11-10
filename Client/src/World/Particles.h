@@ -38,6 +38,7 @@ inline constexpr std::int32_t WorldSmokeSubtype = 2;
 inline constexpr std::uint16_t BreathParticle = 0x5f2;
 // La chispa del cuervo (Effect\Spark03.jpg), con el subtipo 5 (06 § El cuervo).
 inline constexpr std::uint16_t SparkParticle = 0x5c6;
+inline constexpr std::int32_t TeleportSparkSubtype = 1;
 inline constexpr std::int32_t RavenSparkSubtype = 5;
 inline constexpr std::int32_t MapSparkSubtype = 9;
 inline constexpr std::uint16_t CloudParticle = 0x622;

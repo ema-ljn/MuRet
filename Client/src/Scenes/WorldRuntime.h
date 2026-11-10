@@ -3,6 +3,7 @@
 #include "GameLogic/MovementSpeed.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/SceneId.h"
+#include "World/GroundMarks.h"
 #include "World/TerrainCulling.h"
 
 #include <cstddef>
@@ -88,6 +89,11 @@ struct WorldRuntime
     // 0x7b4ccb8, el nivel efectivo del trapecio de un 0x5fb570 al siguiente, en las tres escenas: solo lo
     // escribe 0x5fb570 (0x5fb731). En la .bss: 0.
     World::TerrainPolygonState terrainPolygonState{};
+    // Las marcas del suelo, 0x760cab0..0x760f990, en la .bss: todas apagadas al arrancar. Solo las tocan
+    // 0x548fe0, 0x549090 y 0x549130, y ninguna carga las vacía: 0x6070a0 apaga las tablas de al lado y no esta
+    // (Q-C228). Las llenan 0x505de0 con el modelo 0x182 (0x507486) y 0x52e810 (0x52e96c), desde el paso del
+    // cuerpo (0x4fd5f0 → 0x4fcd00), y MuRet no corre ninguno de los dos (08 P-C49).
+    World::GroundMarkTable groundMarks{};
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

@@ -321,9 +321,9 @@ TEST_F(WorldEntryTest, WithTheSetTablesTheEntryRunsTheWholeRecalculation)
 
 // La respuesta aplicada y, sin ningún paso, el primer frame del juego: el contador en 30 no retiene, la
 // cámara mira al héroe publicado y lee su celda (8 rand() después de los 4 de 0x637229), el terreno de
-// Lorencia sale con sus tiles y su pasto (0x5fc353, sin rand()) y el dibujo corta en las marcas del suelo
-// (0x5fc365), sin presentar.
-TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheGroundMarks)
+// Lorencia sale con sus tiles y su pasto (0x5fc353, sin rand()), las marcas del suelo no dibujan ninguna
+// (0x5fc365: la tabla de la .bss, vacía) y el dibujo corta en los objetos (0x6374ce), sin presentar.
+TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects)
 {
     Entry tested(m_dataRoot, Seed);
     const Client::Data::Tables::ItemSetTables sets = NoSets();
@@ -355,7 +355,7 @@ TEST_F(WorldEntryTest, AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheGroundMa
     scene.Render(target.BeginFrame({}), 0.0f);
 
     ASSERT_TRUE(scene.Failure().has_value());
-    EXPECT_NE(scene.Failure()->find("0x5fc365"), std::string::npos) << *scene.Failure();
+    EXPECT_NE(scene.Failure()->find("0x6374ce"), std::string::npos) << *scene.Failure();
     ASSERT_EQ(target.frames.size(), 1u);
     EXPECT_FALSE(target.frames[0].presented);
     std::size_t vertices = 0;
@@ -649,8 +649,8 @@ std::size_t AliveActors(const Entry& tested)
         std::ranges::count_if(tested.world.Actors(), [](const ActorState& actor) { return actor.alive; }));
 }
 
-// Un frame del juego sin pasos, como AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheGroundMarks: en el
-// original llega a los personajes (0x6374dd → 0x510d00), y MuRet, que corta en las marcas del suelo, ya no
+// Un frame del juego sin pasos, como AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheObjects: en el
+// original llega a los personajes (0x6374dd → 0x510d00), y MuRet, que corta en los objetos (0x6374ce), ya no
 // sabe qué dejó 0x505820.
 void DrawAGameFrame(Entry& tested)
 {
@@ -673,7 +673,7 @@ void DrawAGameFrame(Entry& tested)
     scene.Render(target.BeginFrame({}), 0.0f);
 
     ASSERT_TRUE(scene.Failure().has_value());
-    ASSERT_NE(scene.Failure()->find("0x5fc365"), std::string::npos) << *scene.Failure();
+    ASSERT_NE(scene.Failure()->find("0x6374ce"), std::string::npos) << *scene.Failure();
     ASSERT_FALSE(tested.world.Runtime().fullSetScan.has_value());
     ASSERT_EQ(tested.cloth.random.State(), Advanced(before, FrameRandoms).State());
     scene.Leave();
@@ -916,8 +916,8 @@ TEST_F(WorldEntryTest, AnEntryInTheWorldIsAppliedAgainByTheSession)
 // la entrada al mundo (F3 03) no lo toca, y el primer paso del juego después de la espera lo lee en 0x508f00
 // (0x63710f). En Lorencia el héroe de (133, 127) cae adentro y se ve; en Devias el de (220, 30) cae afuera
 // (Q-C216). Los rand() del paso: los 8 de MoveHero, los 8 del TerrainWall y, con el héroe visto, los 8 de su
-// celda lógica y el rand() & 7; después, la tela. El frame que sigue llega a las marcas del suelo (0x5fc365) con
-// sus 4 + 8.
+// celda lógica y el rand() & 7; después, la tela. El frame que sigue pasa las marcas del suelo (0x5fc365), que no
+// sacan rand(), y llega a los objetos (0x6374ce) con sus 4 + 8.
 TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
 {
     const Client::World::TerrainPolygon selected = Client::World::TerrainPolygonOf(
@@ -975,7 +975,7 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         game.Render(target.BeginFrame({}), 0.0f);
 
         ASSERT_TRUE(game.Failure().has_value());
-        EXPECT_NE(game.Failure()->find("0x5fc365"), std::string::npos) << *game.Failure();
+        EXPECT_NE(game.Failure()->find("0x6374ce"), std::string::npos) << *game.Failure();
         EXPECT_EQ(tested.cloth.random.State(), Advanced(reference.random, FrameRandoms).State());
         game.Leave();
     }

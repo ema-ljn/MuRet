@@ -27,6 +27,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
+#include "World/GroundMarks.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainWalls.h"
@@ -662,9 +663,10 @@ GrassHeights GrassHeightsOf(const Client::Tests::FrameEvent& models, std::uint16
 // 0x63723a..0x6374c6 en Lorencia (el 0) y Devias (el 2), los mapas de referencia: la cámara con los dos
 // accesos a la celda del héroe (8 rand() después de los 4 de 0x637229), el rayo del mouse, el primer
 // pase del terreno (las celdas, con los tiles de 0x23 a 0x30 y el 0x122), el del pasto (0x5fc353, sin
-// rand()) con la única textura del pasto que tiene cada mundo, y el corte en las marcas del suelo
-// (0x5fc365), que MuRet no tiene. El frame cortado no se presenta y el dibujo no vuelve a correr.
-TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainAndTheGrassAndStopAtTheGroundMarks)
+// rand()) con la única textura del pasto que tiene cada mundo, las marcas del suelo (0x5fc365), que con la
+// tabla de la .bss no dibujan ninguna ni sacan rand(), y el corte en los objetos (0x6374ce), que MuRet no
+// tiene. El frame cortado no se presenta y el dibujo no vuelve a correr.
+TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainTheGrassAndTheGroundMarksAndStopAtTheObjects)
 {
     struct Case
     {
@@ -687,7 +689,7 @@ TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainAndTheGrassAndStopAtTheG
         scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
 
         ASSERT_TRUE(scene.Failure().has_value());
-        EXPECT_NE(scene.Failure()->find("0x5fc365"), std::string::npos) << *scene.Failure();
+        EXPECT_NE(scene.Failure()->find("0x6374ce"), std::string::npos) << *scene.Failure();
         ASSERT_EQ(target.frames.size(), 1u);
         const Client::Tests::FrameEvent* models = ModelsOf(target.frames[0]);
         ASSERT_NE(models, nullptr);
@@ -778,6 +780,52 @@ TEST_F(GameSceneDrawTest, TheOtherMapsStopWhereTheyDiffer)
     }
 }
 
+// 0x5fc365 con una marca prendida (como la dejarían 0x505de0 o 0x52e810, que MuRet no corre): 0x549130 lee el
+// byte +0x28 del slot 0x5e3, Effect\blood01.tga, que el juego de MuRet no sube (0x61d7aa). Corta ahí, con el
+// terreno y el pasto dibujados, los 4 + 8 rand() de siempre y sin un vértice del calco (08 P-C49).
+TEST_F(GameSceneDrawTest, ALiveGroundMarkStopsWhereMuRetDoesNotKnowItsTexture)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint8_t x;
+        std::uint8_t y;
+    };
+    for (const Case& probe : {Case{0, 143, 120}, Case{2, 220, 30}})
+    {
+        SCOPED_TRACE(static_cast<int>(probe.map));
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+        world.Runtime().groundMarks = {};
+        world.Runtime().groundMarks[17] = Client::World::GroundMark{.live = true,
+                                                                    .type = 0x5e3,
+                                                                    .size = 0.65f,
+                                                                    .position = world.Actors()[HeroSlot].position,
+                                                                    .color = glm::vec3(0.1f, 0.0f, 0.0f),
+                                                                    .alpha = 1.0f,
+                                                                    .life = 60};
+        GameScene scene = Scene();
+        ASSERT_TRUE(scene.Enter().HasValue());
+        Client::Tests::RecordingFrameTarget target;
+
+        scene.PrepareFrame();
+        scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
+
+        ASSERT_TRUE(scene.Failure().has_value());
+        EXPECT_NE(scene.Failure()->find("0x549152"), std::string::npos) << *scene.Failure();
+        EXPECT_NE(scene.Failure()->find("mapa " + std::to_string(probe.map)), std::string::npos) << *scene.Failure();
+        const Client::Tests::FrameEvent* models = ModelsOf(target.frames.at(0));
+        ASSERT_NE(models, nullptr);
+        EXPECT_FALSE(models->modelVertices.empty());
+        for (const Client::Render::ModelDrawCommand& command : models->modelCommands)
+        {
+            EXPECT_NE(command.state.texture, Client::Render::TextureSlot{0x5e3});
+        }
+        EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8).State());
+        scene.Leave();
+    }
+    world.Runtime().groundMarks = {};
+}
+
 // Los mapas 18 a 23 no tienen pase del pasto (0x6c9d58 en 0), pero no llegan a esa decisión: 0x5fa830
 // llama a 0x405e00 con cada celda del primer pase, y en esos mapas saca rand() (0x405e0c..0x405e18). Sin
 // LoadMap (que los corta en 0x447d70), con el terreno de World19 puesto a mano, el dibujo corta antes de
@@ -821,8 +869,8 @@ TEST_F(GameSceneDrawTest, AMapWithoutGrassStopsBeforeItsFirstCell)
 // Lorencia, Q-C170) y marca la celda lógica. En Lorencia el héroe que sale del pueblo por el oeste, de (96, 126)
 // a (95, 126), cae adentro: con la celda lógica queda fuera de la zona segura. En Devias el que sale por el norte,
 // de (220, 76) a (220, 77), cae afuera y +0x3e2 queda como estaba. Los rand(): los 8 de MoveHero, los 8 del
-// TerrainWall y, con el héroe visto, los 8 de la celda y el rand() & 7; después, la tela. El dibujo que sigue llega
-// a las marcas del suelo (0x5fc365) con sus 4 + 8 y deja su propio trapecio.
+// TerrainWall y, con el héroe visto, los 8 de la celda y el rand() & 7; después, la tela. El dibujo que sigue pasa
+// las marcas del suelo (0x5fc365) y llega a los objetos (0x6374ce) con sus 4 + 8, y deja su propio trapecio.
 TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection)
 {
     struct Case
@@ -873,7 +921,7 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
 
         ASSERT_TRUE(scene.Failure().has_value());
-        EXPECT_NE(scene.Failure()->find("0x5fc365"), std::string::npos) << *scene.Failure();
+        EXPECT_NE(scene.Failure()->find("0x6374ce"), std::string::npos) << *scene.Failure();
         CrtRandom expected = RandomAfterAStep(probe.draws);
         for (int i = 0; i < 4 + 8; ++i)
         {
@@ -883,6 +931,58 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         EXPECT_NE(world.Runtime().terrainPolygon.x, selection.x) << "el dibujo deja el trapecio del juego";
         scene.Leave();
     }
+}
+
+// 0x63712d: después de los personajes, el paso del juego envejece las marcas del suelo (0x549090), sin rand(): la
+// prendida pierde un paso de vida, crece 0,004 y se pone roja (0,1; 0; 0); la apagada no cambia. Con el héroe de
+// TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection, en Lorencia y en Devias.
+TEST_F(GameSceneDrawTest, TheStepAgesTheGroundMarksAfterTheCharacters)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint8_t drawnX;
+        std::uint8_t drawnY;
+        std::uint8_t logicalX;
+        std::uint8_t logicalY;
+        int draws;
+    };
+    for (const Case& probe : {Case{0, 96, 126, 95, 126, 8 + 8 + 8 + 1}, Case{2, 220, 76, 220, 77, 8 + 8}})
+    {
+        SCOPED_TRACE(static_cast<int>(probe.map));
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.drawnX, probe.drawnY));
+        MakeTheHeroAPlayer(probe.logicalX, probe.logicalY);
+        world.Runtime().terrainPolygon = SelectionPolygon();
+        Client::World::GroundMarkTable& marks = world.Runtime().groundMarks;
+        marks = {};
+        const Client::World::GroundMark blood{.live = true,
+                                              .type = 0x5e3,
+                                              .size = 0.65f,
+                                              .position = glm::vec3(1000.0f, 2000.0f, 0.0f),
+                                              .color = glm::vec3(1.0f, 1.0f, 1.0f),
+                                              .alpha = 1.0f,
+                                              .life = 60};
+        marks[17] = blood;
+        marks[18] = blood;
+        marks[18].live = false;
+        GameScene scene = Scene();
+        ASSERT_TRUE(scene.Enter().HasValue());
+
+        scene.Step(Client::Input::InputState{});
+
+        ASSERT_EQ(scene.Failure(), std::nullopt);
+        EXPECT_TRUE(marks[17].live);
+        EXPECT_EQ(marks[17].life, 59);
+        EXPECT_EQ(marks[17].size, static_cast<float>(static_cast<double>(0.65f) + static_cast<double>(0.004f)));
+        EXPECT_EQ(marks[17].color, glm::vec3(0.1f, 0.0f, 0.0f));
+        EXPECT_EQ(marks[17].alpha, 1.0f);
+        Client::World::GroundMark off = blood;
+        off.live = false;
+        EXPECT_EQ(marks[18], off);
+        EXPECT_EQ(cloth.random.State(), StateAfterAStep(probe.draws));
+        scene.Leave();
+    }
+    world.Runtime().groundMarks = {};
 }
 
 // Q-C217: sin un dibujo antes (un WorldState recién hecho), el trapecio es el de la .bss, todo en cero, y 0x5fba90

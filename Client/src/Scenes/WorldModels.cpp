@@ -1,4 +1,5 @@
 #include "Scenes/WorldModels.h"
+#include "Scenes/ModelTextureTable.h"
 
 #include "Core/Expected.h"
 #include "Core/Log.h"
@@ -16,6 +17,7 @@
 #include "Scenes/TextureMetadata.h"
 #include "Scenes/WorldSpecialModels.h"
 
+#include <algorithm>
 #include <glm/ext/vector_float2.hpp>
 
 #include <array>
@@ -48,7 +50,8 @@ std::string ObjectFolder(std::uint8_t map)
 Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                     Render::ITextureStore& textures, Core::Log& log,
                                                     const Render::Models::ModelTextureSlots* gameSlots,
-                                                    const IModelLibrary* globalModels)
+                                                    const IModelLibrary* globalModels,
+                                                    ModelTextureTable* sharedTextures)
 {
     Release();
     const WorldSpecialModelSet specials = SpecialWorldModelsOf(map);
@@ -59,9 +62,18 @@ Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path&
         return Core::Unexpected(std::string("0x6179f0: falta la biblioteca global de Gate01/02 (0x616304/0x61631a)"));
     }
     m_globalModels = globalModels;
+    m_sharedTextures = sharedTextures;
+    if (m_sharedTextures != nullptr)
+    {
+        m_sharedTextures->Bind(textures);
+        if (gameSlots != nullptr)
+            m_sharedTextures->Seed(*gameSlots, globalModels);
+    }
     m_folder = ObjectFolder(map);
     m_slots.emplace(gameSlots != nullptr ? gameSlots->ContinuedAt(SpecialModelsFirstSlot)
                                          : Render::Models::ModelTextureSlots(SpecialModelsFirstSlot));
+    TextureSlots()->SetNext(SpecialModelsFirstSlot);
+    m_requestStart = TextureSlots()->ToLoad().size();
     std::size_t missing = 0;
     if (auto loaded = LoadSpecials(dataRoot, specials, log, missing); !loaded.HasValue())
         return loaded;
@@ -72,6 +84,19 @@ Core::Expected<void, std::string> WorldModels::Load(const std::filesystem::path&
     if (m_models.empty())
         log.Warning("no hay ningún modelo de los objetos del mundo en Data\\{}: el mundo va sin ellos", m_folder);
     UploadTextures(dataRoot, textures, log);
+    if (m_sharedTextures != nullptr)
+    {
+        auto firstReferences = m_uploaded;
+        for (const auto& [model, bindings] : m_meshTextures)
+            for (const auto slot : bindings)
+            {
+                const auto uploaded = std::find(firstReferences.begin(), firstReferences.end(), slot);
+                if (uploaded != firstReferences.end())
+                    firstReferences.erase(uploaded);
+                else
+                    m_sharedTextures->Acquire(slot);
+            }
+    }
     return {};
 }
 
@@ -103,7 +128,7 @@ void WorldModels::AssignSpecialTexture(const Data::Models::ModelFile& file, cons
     if (model == m_models.end())
         return;
     const auto folder = specials.textureFolder.empty() ? file.folder : specials.textureFolder;
-    m_meshTextures[file.model] = m_slots->Assign(model->second, folder, WorldModelSampling);
+    m_meshTextures[file.model] = TextureSlots()->Assign(model->second, folder, WorldModelSampling);
 }
 
 Core::Expected<void, std::string> WorldModels::LoadSpecials(const std::filesystem::path& dataRoot,
@@ -147,7 +172,7 @@ Core::Expected<void, std::string> WorldModels::LoadSpecials(const std::filesyste
         {
             // 0x60d617..0x60d61b: un Gate sin mallas no pide textura ni adelanta el cursor.
             if (const Data::Models::Model* model = m_globalModels->Find(gate); model != nullptr)
-                m_meshTextures[gate] = m_slots->Assign(*model, "Monster\\", WorldModelSampling);
+                m_meshTextures[gate] = TextureSlots()->Assign(*model, "Monster\\", WorldModelSampling);
         }
     }
     return {};
@@ -156,7 +181,7 @@ Core::Expected<void, std::string> WorldModels::LoadSpecials(const std::filesyste
 void WorldModels::LoadObjects(const std::filesystem::path& dataRoot, std::uint8_t map, Core::Log& log,
                               std::size_t& missing)
 {
-    m_slots->SetNext(WorldModelsFirstSlot);
+    TextureSlots()->SetNext(WorldModelsFirstSlot);
     if (map == LorenciaMap)
     {
         for (const Data::Models::ModelFile& file : LorenciaModelFiles())
@@ -168,11 +193,11 @@ void WorldModels::LoadObjects(const std::filesystem::path& dataRoot, std::uint8_
             LoadFile(dataRoot, {static_cast<std::uint16_t>(model), m_folder, "Object", static_cast<int>(model + 1)},
                      log, missing);
     }
-    m_slots->SetNext(WorldModelsFirstSlot);
+    TextureSlots()->SetNext(WorldModelsFirstSlot);
     for (const auto& [model, data] : m_models)
     {
         if (model < WorldModelCount)
-            m_meshTextures[model] = m_slots->Assign(data, m_folder, WorldModelSampling);
+            m_meshTextures[model] = TextureSlots()->Assign(data, m_folder, WorldModelSampling);
     }
 }
 
@@ -220,7 +245,7 @@ void WorldModels::UploadTextures(const std::filesystem::path& dataRoot, Render::
 {
     m_store = &textures;
     std::size_t skipped = 0;
-    for (const Data::Textures::TextureSetEntry& entry : m_slots->ToLoad())
+    for (const Data::Textures::TextureSetEntry& entry : TextureSlots()->ToLoad().subspan(m_requestStart))
     {
         auto loaded = Data::Textures::LoadTextureSet(dataRoot, std::span(&entry, 1));
         if (!loaded.HasValue())
@@ -230,7 +255,9 @@ void WorldModels::UploadTextures(const std::filesystem::path& dataRoot, Render::
                         Data::Textures::Describe(loaded.Error()));
             continue;
         }
-        if (const auto uploaded = textures.Load(loaded.Value()); !uploaded.HasValue())
+        if (const auto uploaded = m_sharedTextures != nullptr ? m_sharedTextures->Upload(loaded.Value().front())
+                                                              : textures.Load(loaded.Value());
+            !uploaded.HasValue())
         {
             ++skipped;
             log.Warning("una textura de un objeto del mundo no sube y se saltea: {}", uploaded.Error());
@@ -244,7 +271,14 @@ void WorldModels::UploadTextures(const std::filesystem::path& dataRoot, Render::
 
 void WorldModels::Release()
 {
-    if (m_store != nullptr)
+    if (m_sharedTextures != nullptr)
+    {
+        for (const auto& [model, bindings] : m_meshTextures)
+            for (const auto slot : bindings)
+                if (slot.value != 0x12e)
+                    m_sharedTextures->Release(slot);
+    }
+    else if (m_store != nullptr)
     {
         for (const Render::TextureSlot slot : m_uploaded)
         {
@@ -253,6 +287,7 @@ void WorldModels::Release()
     }
     m_uploaded.clear();
     m_store = nullptr;
+    m_sharedTextures = nullptr;
     m_slots.reset();
     m_models.clear();
     m_skeletons.clear();
@@ -285,6 +320,8 @@ std::span<const Render::TextureSlot> WorldModels::MeshTextures(std::uint16_t mod
 
 std::optional<TextureMetadata> WorldModels::TextureMetadataOf(std::uint32_t selector) const
 {
+    if (m_sharedTextures != nullptr)
+        return m_sharedTextures->Metadata(selector);
     const auto found = m_textureMetadata.find(selector);
     if (found != m_textureMetadata.end())
         return found->second;
@@ -293,6 +330,10 @@ std::optional<TextureMetadata> WorldModels::TextureMetadataOf(std::uint32_t sele
 
 std::optional<Render::TextureSlot> WorldModels::TextureSlotOf(std::uint32_t selector) const
 {
+    if (m_sharedTextures != nullptr)
+        return m_sharedTextures->Metadata(selector)
+                   ? std::optional(Render::TextureSlot{static_cast<std::uint16_t>(selector)})
+                   : std::nullopt;
     for (const Render::TextureSlot slot : m_uploaded)
     {
         if (slot.value == selector)
@@ -312,8 +353,13 @@ std::size_t WorldModels::Count() const
     return m_models.size();
 }
 
+Render::Models::ModelTextureSlots* WorldModels::TextureSlots()
+{
+    return m_sharedTextures != nullptr ? &m_sharedTextures->Slots() : m_slots ? &*m_slots : nullptr;
+}
+
 const Render::Models::ModelTextureSlots* WorldModels::TextureSlots() const
 {
-    return m_slots ? &*m_slots : nullptr;
+    return m_sharedTextures != nullptr ? &m_sharedTextures->Slots() : m_slots ? &*m_slots : nullptr;
 }
 } // namespace Client::Scenes

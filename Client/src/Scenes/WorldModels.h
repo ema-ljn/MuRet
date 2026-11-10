@@ -32,6 +32,7 @@
 namespace Client::Scenes
 {
 struct WorldSpecialModelSet;
+class ModelTextureTable;
 inline constexpr std::size_t WorldModelCount = 160;
 // El dragón que vuela en el login (06 § El dragón de fondo): solo en el mapa 55.
 inline constexpr std::uint16_t DragonModel = 0xb4;
@@ -54,7 +55,8 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot, std::uint8_t map,
                                                          Render::ITextureStore& textures, Core::Log& log,
                                                          const Render::Models::ModelTextureSlots* gameSlots,
-                                                         const IModelLibrary* globalModels = nullptr);
+                                                         const IModelLibrary* globalModels = nullptr,
+                                                         ModelTextureTable* sharedTextures = nullptr);
     // Suelta las texturas y los modelos.
     void Release();
 
@@ -69,6 +71,8 @@ public:
     [[nodiscard]] std::size_t Count() const;
     // Los slots que repartió Load, si cargó: el próximo es donde sigue el logo (0x61c7c0).
     [[nodiscard]] const Render::Models::ModelTextureSlots* TextureSlots() const;
+    // 612d90 continúa el cursor global con las texturas de Monster32/34.
+    [[nodiscard]] Render::Models::ModelTextureSlots* TextureSlots();
 
 private:
     void LoadFile(const std::filesystem::path& dataRoot, const Data::Models::ModelFile& file, Core::Log& log,
@@ -88,6 +92,8 @@ private:
     std::map<std::uint16_t, std::vector<Render::TextureSlot>> m_meshTextures;
     std::optional<Render::Models::ModelTextureSlots> m_slots;
     Render::ITextureStore* m_store = nullptr;
+    ModelTextureTable* m_sharedTextures = nullptr;
+    std::size_t m_requestStart = 0;
     // Los que subió Load, para soltarlos.
     std::vector<Render::TextureSlot> m_uploaded;
     std::map<std::uint32_t, TextureMetadata> m_textureMetadata;

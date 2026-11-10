@@ -3496,6 +3496,27 @@ bloque de la entrada, en orden (*estático*):
 | `0x637138` | `0x403590` | `0x4033d0` y compañía (el recorrido de la cámara), sin leer | — |
 | `0x637144..0x63717a` | `0x5fc0d0` y `0x5fc0b0`, con `0x7d2d35e` | funciones de un `ret` | nada |
 | `0x63717f` | `0x5ac8d0` | F1 a F4 (CL3.3) | CL8 |
+**Carga diferida `0x612d90`.** Los índices `0x1f/0x21` cargan `Monster\Monster32.bmd` y
+`Monster\Monster34.bmd`, modelos `0x171/0x173`. Con `[0x6c9e0c]=1`, acciones o mallas ya
+presentes hacen retornar antes de recargar (`0x612dbc/0x612dc7`). Texturas de `Monster\`,
+Repeat/Nearest y cursor actual, sin otro `0x60d530`. Los stores comunes `0x612e5a..0x612e9f`
+ponen velocidades 0..6 = 0,25/0,2/0,34/0,33/0,33/0,5/0,55 y acción 6 no repetible. Monster32
+además deja acción 1 no repetible; después de registrar sus sonidos, `0x6140ac..0x6140c9` pone
+3=0,5, 4=0,7, 1=0,8 y 7=0,8. Registra `0x14d/0x14e/0x14f` con mYeti1/mBullAttack1/mYetiDie;
+Monster34, `0x154/0x155` con mBahamut1/mYeti1. Las tablas de diez WORD de `0x612c80` son
+`{7b,7b,7c,7c,7d,−1,…}` y `{82,82,83,83,82,−1,…}` (valores hex). MuRet conserva pedidos
+y tablas lógicos de audio; esto no añade reproducción WAV.
+
+`FaunaModels` conserva CPU entre mapas, pero no inventa slots privados de textura. `0x6070a3`
+destruye BMD 0..159 y `0x61cc50` no libera `0x171/0x173`. El destructor BMD libera **por malla**
+(`0x4f07b0..0x4f07c3`, salvo slot `0x12e`); una coincidencia por nombre suma el refcount byte
+(`0x60d645`). `0x63c18d..0x63c1b3` borra nombre/GL/datos sólo al bajar a cero. Una nueva subida
+suelta una referencia y luego **reemplaza el registro aun con referencias restantes** (`0x63bfcf`):
+un BMD cacheado puede observar otra imagen. `ModelTextureTable`, compartida por WorldModels y
+FaunaModels, conserva nombres/refcounts/metadata física mientras el cursor se reinicia. La búsqueda
+`0x60d550` excluye next; un nombre justo allí se vuelve a subir. Persistir sólo el BMD o liberar una
+vez por upload no reproduce este contrato.
+
 
 ### El paso de los personajes
 

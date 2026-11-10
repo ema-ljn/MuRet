@@ -4208,6 +4208,22 @@ frame lo pone `0x637700` (`0x63835d..0x6384f5`): Icarus (10), (0,0117; 0,0977; 0
 a 29 y 36), (0,1172; 0,1563; 0,1563); y negro en los demás (*estático*). No hay cielo: Icarus no
 dibuja el terreno y pone las nubes (`0xbb`, `0x622`, `0x623`), y Kalima dibuja su agua en un pase
 aparte (`0x4378a0` → `0x41cca0`, `0x41cf00`).
+### El buffer compartido de luz dinámica
+
+**Estático**, `0x5fbf60` y sus datos: `0x7b4ccc4` nace en cero en la cola virtual de `.data`.
+El rango no nace vacío: firstX/Y están en `.bss`, pero lastX/Y (`0x6c9d68/0x6c9d6c`) contienen255.
+La primera copia cubre la grilla; las siguientes copian la ventana publicada por el dibujo
+anterior, ampliada3 y envuelta en256. Fuera de esa ventana se conserva el buffer anterior. Dibujar
+solo publica el rango; no hace una copia implícita de la base.
+
+`DynamicWorldLight` pertenece a `WorldState`, junto con el pool durable de partículas y su viento.
+`Update` conserva la historia fuera de la ventana y `PublishRange` recibe el rango del dibujo; el owner
+no se reconstruye al cambiar de escena. Este PR aporta el estado y sus operaciones. Las conexiones
+que copian la base sombreada y prestan la luz a login, selección y juego se integran en sus PRs de
+escena; los productores de fuegos y otros casos del mundo también quedan separados. No cierra
+H3.4 ni la comparación nativa de luces. `DynamicWorldLightTest` fija el primer estado, la ventana,
+el envolvimiento y que publicar otro rango no copie ni borre implícitamente la base.
+
 
 ### Los objetos del juego
 

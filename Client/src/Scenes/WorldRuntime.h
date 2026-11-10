@@ -77,10 +77,10 @@ struct WorldRuntime
     // login, el que haya. En la .bss (más allá de los 0x20000 bytes de la .data del archivo, desde 0x6c6000):
     // ceros, un trapecio sin área en (0, 0) con el que 0x5fba90 da 0 en los cuatro lados (*estático*, 06 § El
     // paso de los personajes y Q-C217).
-    World::TerrainPolygon terrainPolygon;
+    World::TerrainPolygon terrainPolygon{};
     // 0x7b4ccb8, el nivel efectivo del trapecio de un 0x5fb570 al siguiente, en las tres escenas: solo lo
     // escribe 0x5fb570 (0x5fb731). En la .bss: 0.
-    World::TerrainPolygonState terrainPolygonState;
+    World::TerrainPolygonState terrainPolygonState{};
 };
 
 // 0x63722e y 0x59afd6: con el contador en más de esto, el juego no dibuja ni mueve al héroe.

@@ -424,6 +424,17 @@ Lo que conviene buscar ahí: el aviso de un frame de más de 1 s, que cuenta 1 s
 una ventana arrastrada en Windows, Q-C44), y que empieza con `[warning] un frame pasó de 1000 ms`;
 y los errores del arranque.
 
+### Si se cae
+
+Como el original, `Main` instala antes que nada un manejador de caídas: si el cliente se cae (un
+acceso inválido, una instrucción inválida, una división por cero), escribe `MuError.dmp` en la
+carpeta actual, con el formato del original (la tabla de
+[02](docs/research/02-arranque-y-ciclo-de-vida.md#el-manejador-de-caídas)), y deja en el log
+`[error] Save DumpFile complete - MuError.dmp`. El archivo es binario: el sistema, el procesador,
+la memoria, el ejecutable, los módulos cargados, los registros, la excepción y la cadena de frames.
+Cada caída lo pisa. En Windows el proceso termina sin el diálogo del sistema, como el original; en
+Linux muere por la señal, como sin manejador.
+
 ## Tests
 
 ```bash

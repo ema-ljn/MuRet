@@ -8,9 +8,7 @@
 
 namespace Client::Core
 {
-namespace
-{
-std::string_view PrefixOf(LogLevel level)
+std::string_view LevelPrefix(LogLevel level)
 {
     switch (level)
     {
@@ -27,7 +25,6 @@ std::string_view PrefixOf(LogLevel level)
     // error, que es lo que más se ve.
     return "[error] ";
 }
-} // namespace
 
 Log::Log(ILogSink& sink, LogLevel minimum) : m_sink(sink), m_minimum(minimum) {}
 
@@ -37,7 +34,7 @@ void Log::Write(LogLevel level, std::string_view message)
     {
         return;
     }
-    std::string line(PrefixOf(level));
+    std::string line(LevelPrefix(level));
     line += message;
     m_sink.Write(level, line);
 }
@@ -60,7 +57,7 @@ void Log::WriteFormatted(LogLevel level, std::string_view format, std::format_ar
         Write(LogLevel::Error, std::string("formato de log inválido: ").append(format));
         return;
     }
-    std::string line(PrefixOf(level));
+    std::string line(LevelPrefix(level));
     line += text;
     m_sink.Write(level, line);
 }

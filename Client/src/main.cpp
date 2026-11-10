@@ -15,6 +15,7 @@
 #include "App/SessionState.h"
 #include "App/VSyncMode.h"
 #include "App/WindowState.h"
+#include "Core/Crash/CrashHandler.h"
 #include "Core/Expected.h"
 #include "Core/FileSink.h"
 #include "Core/IClock.h"
@@ -89,6 +90,9 @@
 // El punto de entrada del cliente: arma las capas y arranca, sin lógica propia. main va por fases,
 // como los pasos de WinMain en MuMain (InitializeWorkingDirectoryAndLog, MainLoop, ShutdownRuntime
 // en App/Platform/Windows/Winmain.cpp), y las de más de un paso tienen su función:
+//   0. El manejador de caídas, antes que nada, como la primera llamada de WinMain (0x4b9b97): si
+//      el cliente se cae, escribe MuError.dmp en la carpeta actual y, con el log ya abierto, su
+//      línea (Core/Crash/CrashHandler.h). Si no se puede instalar, un aviso y se sigue sin él.
 //   1. ReadStartup, antes de SDL_Init: la carpeta del ejecutable, los argumentos y la config, y,
 //      con un host (de la config o de /u /p), las claves de la conexión y, con --auto-login, antes
 //      la cuenta y la clave del entorno (ReadServerStartup). Un error corta acá, sin abrir la
@@ -107,8 +111,8 @@
 //      el OK de un aviso cierre el juego (Q-C69).
 // El cierre es el orden de las declaraciones al revés: el bucle, el SceneManager (la escena de
 // ahora suelta sus texturas), la sesión y su socket, el frame (con la caché del texto), la tabla de
-// texturas, la ventana, el SdlLog, SDL_Quit (SdlContext), la red, el Log y al final sus salidas,
-// para que lo que se cierra antes pueda escribir.
+// texturas, la ventana, el SdlLog, SDL_Quit (SdlContext), la red, el Log y sus salidas, para que
+// lo que se cierra antes pueda escribir, y al final el manejador de caídas.
 //
 // Con un host, la LoginScene empieza la sesión al entrar y muestra su UI (CL5.5): la lista cuando
 // llega, la cuenta con el saludo del GameServer y los avisos. El SceneManager consulta la sesión en
@@ -705,8 +709,14 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
 // cambia nada.
 int main(int argc, char* argv[])
 {
+    // Fase 0. Se declara primero para morir último: cubre también el cierre.
+    const auto crashHandler = Core::Crash::CrashHandler::Install(Core::Crash::CrashDumpFileName);
     Core::StderrSink errorOutput;
     Core::Log startupLog(errorOutput, Core::LogLevel::Info);
+    if (!crashHandler.HasValue())
+    {
+        startupLog.Warning("{}: el cliente sigue sin manejador de caídas", crashHandler.Error());
+    }
     const std::optional<Startup> startup = ReadStartup(argc, argv, startupLog);
     if (!startup)
     {
@@ -715,7 +725,8 @@ int main(int argc, char* argv[])
 
     // Fase 2: stderr y el archivo de [Log] Path (Resolve ya lo tomó desde la carpeta del
     // ejecutable), o muret-client.log junto al ejecutable. Si no abre, solo stderr.
-    const auto logFile = Core::FileSink::Open(startup->config.logPath.value_or(startup->folder / LogFileName));
+    const std::filesystem::path logPath = startup->config.logPath.value_or(startup->folder / LogFileName);
+    const auto logFile = Core::FileSink::Open(logPath);
     std::optional<Core::TeeSink> tee;
     if (logFile.HasValue())
     {
@@ -725,6 +736,11 @@ int main(int argc, char* argv[])
     if (!logFile.HasValue())
     {
         log.Warning("{}: el log sigue solo en stderr", logFile.Error());
+    }
+    // La línea de una caída va al mismo archivo, como la de 0x4b9b3e al MuError.log del original.
+    if (logFile.HasValue() && crashHandler.HasValue() && !crashHandler.Value()->SetLogFile(logPath))
+    {
+        log.Warning("la ruta del log es demasiado larga para el manejador de caídas");
     }
     log.Info("MuRet Client arranca");
     std::optional<SceneStartup> scenes;

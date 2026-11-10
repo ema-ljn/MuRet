@@ -102,7 +102,8 @@ entry 0x6a2444 (arranque del CRT)
 ```
 
 *Estático*: la cadena se resolvió por referencias de bytes (`call 0x637700` en `0x639501`,
-`call 0x63945d` en `0x4be04a`).
+`call 0x63945d` en `0x4be04a`). El primer paso, el manejador de caídas, está leído entero en
+[§ El manejador de caídas](#el-manejador-de-caídas).
 
 ### Resolución, fuentes y texto
 
@@ -138,6 +139,128 @@ Leído en la CL5.R; todo *estático*.
 - **La cuenta guardada:** `ID` se lee a `DAT_057630a0` con un tope de 11 bytes, y nadie en
   `main.exe` lo escribe (*inferido*: lo deja el launcher). La ventana de la cuenta la pone en su
   campo ([06](06-render-escenas-y-ui.md#la-cuenta-y-la-clave)).
+
+## El manejador de caídas
+
+Leído el 2026-11-10, para la CL3. Todo *estático*, salvo donde dice otra cosa.
+
+**La instalación.** Lo primero de `WinMain` es `0x67f4f0(0x4b9a70, 0)` (`0x4b9b90`..`0x4b9b97`).
+`0x67f4f0` toma el objeto único de la biblioteca (`0x680130`: un estático en `0x7d5c670`, armado
+una sola vez por `0x67f550` y destruido con `atexit`, `0x680170`) y llama a `0x67f710`: si todavía
+no instaló (`+0x00` en 0), llama a `SetUnhandledExceptionFilter(0x680180)` (`0x67f71d`) y guarda el
+filtro anterior en `+0x00`, el callback en `+0x04` y la bandera en `+0x18`; si ya había instalado,
+no hace nada y devuelve 0. `0x67f740` lo desinstala (vuelve a poner el anterior), pero nadie la
+llama desde `WinMain`.
+
+**El filtro, `0x680180`.** Con el `EXCEPTION_POINTERS`, arma la lista de frames (`0x682950`) y la
+llena desde el `Ebp` del `CONTEXT` (`+0xb4`, `0x6829f0`). Con un callback (`0x680100`), lo llama con
+los punteros y la lista (`0x680110`); sin él, escribe con el nombre por defecto del objeto
+(`0x67f830` y `0x67f530`). Si eso devuelve 1 y la bandera vale 0 (`0x67f820`), devuelve
+`EXCEPTION_EXECUTE_HANDLER` (1, `0x680220`); si no, `EXCEPTION_CONTINUE_SEARCH` (0, `0x68024b`).
+`WinMain` pasa la bandera en 0 y el callback devuelve siempre 1 (abajo), así que el filtro devuelve
+siempre 1: el sistema termina el proceso sin su diálogo de error (*inferido*, por lo que hace
+`UnhandledExceptionFilter` con ese valor; P-C51).
+
+**La cadena de frames, `0x6829f0` y `0x682890`.** Desde `Ebp`: si el frame se puede leer
+(`IsBadReadPtr`, `0x68289b`), guarda su dirección, la de vuelta (`[ebp+4]`, leída sin mirar,
+`0x6828af`) y hasta 16 dwords desde `ebp+8`, de a uno mientras se puedan leer (`0x6828c2`;
+`cmp edi,0x10` en `0x6828d7`); los que faltan quedan en 0. Sigue con el frame anterior guardado,
+`[ebp]`, si se puede leer (`0x682bc8`..`0x682bd5`), hasta 64 (`cmp eax,0x40` en `0x682be2`). Cada
+frame es un objeto de `0x4c` bytes pedido con `new` (`0x682a20`): el original pide memoria después
+de la caída.
+
+**El callback, `0x4b9a70`.** Arma un `std::string` con `MuError.dmp` (`0x6c80dc`) y llama a
+`0x67f530(nombre, punteros, frames)`, que va a `0x67f840`. Si devuelve 1, escribe en el log
+(`0x57630f0`) con `0x41fa40` la línea `Save DumpFile complete - MuError.dmp\r\n` (`0x6c80b4`).
+Después, siempre, `ChangeDisplaySettingsA(NULL, 0)` (`0x4b9b66`): vuelve el escritorio al modo del
+registro, el que `WinMain` cambió para su pantalla completa (el paso "modo de video" del árbol de
+arriba). Devuelve 1 (`0x4b9b71`). En el medio, `0x4b9b4e` es un `jmp` sin condición que salta un
+bloque que liberaría `0x5763540` (`0x6867b0` y `0x69eff0`): ese bloque no corre nunca.
+
+**La línea del log.** `0x41fa40` es un `wvsprintfA` a un buffer de `0x400` bytes en la pila
+(`0x41fa58`) y `0x41f9e0`, que la escribe en `MuError.log` (`0x41f9a0`, con el XOR de Q-C48) solo
+si el archivo está abierto (el handle no es -1, `0x41f9ec`). Sin hora ni prefijo: la línea es el
+texto tal cual, con su `\r\n`.
+
+**El archivo, `0x67f840`.** Devuelve 0 sin escribir nada si los punteros o la lista son nulos
+(`0x67f86d`, `0x67f875`) o si `fopen(nombre, "wb")` falla (`0x67f89b`, el modo en `0x6c8828`): el
+nombre es relativo a la carpeta actual, y un archivo que ya está se vacía. Si abre, arma en la pila
+una cabecera de `0x516` bytes en 0 (`rep stos` de `0x145` dwords y un word, `0x67f8c0`) y la llena
+así, con cada campo pegado al anterior, sin relleno (los dwords de `0x005` y `0x009` quedan en
+offsets impares):
+
+| Offset | Bytes | Campo | Dónde |
+| --- | --- | --- | --- |
+| `0x000` | 4 | `WDMP` | `0x67f8c9`..`0x67f8e1` |
+| `0x004` | 1 | la versión, 2 | `0x67f8e9` |
+| `0x005` | 4 | lo que mide la cabecera, `0x516` | `0x67f8f1` |
+| `0x009` | 4 | `time()` | `0x67f8fc`, `0x67f909` |
+| `0x00d` | 128 | el sistema, texto | `0x683ed0`, `0x67f955` |
+| `0x08d` | 128 | el procesador, texto | `0x684730`, `0x67f99b` |
+| `0x10d` | 32 | el `MEMORYSTATUS` de `GlobalMemoryStatus`, con su `dwLength` de `0x20` | `0x67f9a4`, `0x67f9b0` |
+| `0x12d` | 4 | el id del proceso | `0x67fa44` o `0x67fba7` |
+| `0x131` | 128 | el ejecutable, texto | `0x67fa60` o `0x67fc6b` |
+| `0x1b1` | 4 | el CRC-32 del ejecutable | `0x683bd0`, `0x67faf0` |
+| `0x1b5` | 4 | los hilos del proceso | `0x67fb07` |
+| `0x1b9` | 1 | 1 si hay versión | `0x67fb55` |
+| `0x1ba` | 4 | cuántos módulos | `0x67feb8` |
+| `0x1be` | `0x2cc` | el `CONTEXT` de x86, entero | `0x67fedb` (`0xb3` dwords) |
+| `0x48a` | 4 | `ExceptionCode` | `0x67fee5` |
+| `0x48e` | 4 | `ExceptionAddress` | `0x67fef3` |
+| `0x492` | 128 | la excepción, texto | `0x680260`, `0x67ff3c` |
+| `0x512` | 4 | cuántos frames | `0x682cd0`, `0x67ff50` |
+
+Cada texto es un `lstrcpynA` con `0x80` (127 bytes y el 0) sobre el buffer en 0, así que el resto
+del campo queda en 0. Después escribe, cada parte con un `fwrite` (`0x6a1799`): la cabecera
+(`0x67ff67`); si hay versión, los 13 dwords del `VS_FIXEDFILEINFO`, `0x34` bytes (`0x67ff87`); cada
+módulo, `0x188` bytes (`0x67ffa8`): el `szModule` en 128 (`lstrcpynA` con `0x80`), el `szExePath` en
+256 (con `0x100`, `0x67fe1c`), `modBaseAddr` y `modBaseSize`; y cada frame, `0x48` bytes
+(`0x680027`): la dirección del frame, la de vuelta y los 16 dwords. Cierra (`fclose`, `0x680040`) y
+devuelve 1 sin haber mirado lo que devolvió ningún `fwrite` (Q-C245). Todo en little-endian.
+
+**De dónde sale cada campo.**
+
+- **El proceso:** una foto de toolhelp (`CreateToolhelp32Snapshot` con `TH32CS_SNAPPROCESS`,
+  `0x67f9c9`) y `Process32First`/`Next` hasta el de `GetCurrentProcessId` (`0x67fa14`..`0x67fa42`):
+  su id, su `szExeFile` y su `cntThreads`. Con ese nombre, el CRC (`0x683bd0`: `CreateFileA`,
+  `CreateFileMappingA` y `MapViewOfFile` del archivo, y el CRC-32 de polinomio reflejado
+  `0xEDB88320`, `0x683e21`, que arranca en `0xFFFFFFFF` y se niega al final) y la versión
+  (`GetFileVersionInfoSizeA`, `GetFileVersionInfoA` y `VerQueryValueA` con `\`,
+  `0x67fb0e`..`0x67fb4e`). Si no lo encuentra, las mismas cuentas con `GetModuleFileNameA`
+  (`0x67fbae`), sin los hilos. En NT, `szExeFile` es solo el nombre, así que el CRC abre `main.exe`
+  en la carpeta actual (*inferido*; Q-C243).
+- **Los módulos:** otra foto, con `TH32CS_SNAPMODULE` y el id (`0x67fdb9`), y `Module32First`/`Next`
+  hasta 48 (`cmp ebp,0x30` en `0x67feae`).
+- **El sistema (`0x683ed0`):** `GetVersionExA` y un nombre por versión: `Windows NT 3.51`
+  (`0x6c6ce0`), `Windows 95` (` OSR2` con `B` o `C` en `szCSDVersion[1]`), `Windows NT 4.0`,
+  `Windows 98` (` SE` con `A`), `Windows Me`, `Windows 2000` (más ` Professional`, ` Server` o
+  ` Advanced Server` según el `ProductType` del registro, comparado con `_stricmp` contra `WINNT`,
+  `LANMANNT` y `SERVERNT`), `Windows XP`, `Windows 2003 family`, y para lo demás `Unknown %d.%d`
+  (`0x6d8434`). Sigue el build, ` Build %d.%d.%d ` partido en 95, 98 y Me (`0x6d8420`) y
+  ` Build %d` en los otros (`0x6d8414`), y el service pack entre paréntesis si hay (`(%s)`,
+  `0x6c6cbc`): `Windows XP Build 2600(Service Pack 3)`. Vista y 7 dan `Unknown 6.0` y
+  `Unknown 6.1`, y de 8.1 en adelante `GetVersionExA` contesta 6.2 a un ejecutable sin un
+  manifiesto que diga otra cosa: `Unknown 6.2 Build 9200`.
+- **El procesador (`0x684730`):** el fabricante de `cpuid` 0, ` - ` (`0x6c6f08`), el modelo de su
+  tabla por familia y modelo de `cpuid` 1 (Intel en `0x684840`, AMD en `0x684930`; otro fabricante
+  pasa a ser `Unknown` entero) y la velocidad: ` CPU %.2fGHz` con más de 1000 MHz (`0x6d84ec`) y
+  ` CPU %dMHz` si no (`0x6d84e0`). La mide `0x684ed0`: con TSC (bit 4 de EDX, `0x684ee1`), sube la
+  prioridad al máximo y fija el proceso al procesador 0, cuenta ciclos y `QueryPerformanceCounter`
+  alrededor de un `Sleep(50)` (`0x684d40`), y vuelve todo como estaba; los MHz son los ciclos sobre
+  los segundos, truncados a Hz y divididos por un millón.
+- **La excepción (`0x680260`):** el nombre del código por un `switch` con dos tablas (`0x6807b4` y
+  `0x680834`), `Unknown exception` para lo demás (`0x6d7ce8`), y en un acceso inválido
+  (`0xC0000005`) ` : reading inaccessible 0x%08X` (`0x6d7e4c`) si `ExceptionInformation[0]` es 0 o
+  ` : writing inaccessible 0x%08X` (`0x6d7e2c`) si no, con `ExceptionInformation[1]`.
+
+**MuRet** lo porta en `Core/Crash/` y `main` lo instala antes que nada
+(`Core::Crash::CrashHandler`): el mismo archivo, con la misma tabla (`WriteCrashDump`), y en
+Windows el mismo filtro, que devuelve `EXCEPTION_EXECUTE_HANDLER`. Lo que cambia, uno por uno:
+MuRet es de 64 bits (Q-C241), la memoria no entra en 32 bits (Q-C242), en Linux los datos del
+proceso salen de `/proc` y la caída es una señal (Q-C243), no hay modo de video que restaurar
+(Q-C244) y la línea sale solo si el archivo se escribió entero (Q-C245). La línea va a
+`muret-client.log`, en claro y con el prefijo del `Log` (Q-C48): `[error] Save DumpFile complete -
+MuError.dmp`.
 
 ## El frame
 
@@ -584,6 +707,7 @@ arranque hasta el cierre, también antes de conectar. Los otros: el 1001 en `0x4
 | Red por mensajes de ventana | un socket no bloqueante que el bucle consulta en cada frame; mismo modelo de un solo hilo | CL4 |
 | Keepalive por `WM_TIMER` cada 20 s | temporizador del bucle, testeable con un reloj falso | CL4 |
 | Fin del auto-update del launcher (`0x4b96b0`: copia `mu._xe`, `mumsg._ll`, `wz_zp._ll` y `message._tf` sobre sus nombres) | no se porta: es del launcher ([05](05-formatos-de-datos.md#el-pipeline-de-las-dlls)) | — |
+| El manejador de caídas, lo primero de `WinMain` (`0x67f4f0(0x4b9a70)`): un filtro de excepciones que escribe `MuError.dmp` en la carpeta actual, deja su línea en `MuError.log`, vuelve el escritorio a su modo y termina el proceso sin el diálogo del sistema | `Core::Crash::CrashHandler`, lo primero de `main`: el mismo `MuError.dmp` en la carpeta actual, con la tabla de [§ El manejador de caídas](#el-manejador-de-caídas) (`WriteCrashDump`); en Windows con `SetUnhandledExceptionFilter` y `EXCEPTION_EXECUTE_HANDLER`, en Linux con `sigaction` y la señal otra vez al final; la línea en `muret-client.log`, con el prefijo del `Log`; sin modo de video que restaurar (Q-C241 a Q-C245) | CL3 |
 | Anticheat (hash, timer 1001, `0x2B11`) | **fuera de alcance** | — |
 
 Tests que fija:
@@ -601,3 +725,7 @@ Tests que fija:
   con `/u` sin `/p` se decide en la CL3 (CL3).
 - Sin la carpeta de datos, el arranque termina con un error que la nombra (CL3; un archivo que
   falta adentro es Q-C12).
+- `MuError.dmp` byte a byte contra la tabla de [§ El manejador de caídas](#el-manejador-de-caídas)
+  (`CrashDumpTest.WritesTheHeaderModulesAndFramesByteForByte`), sus textos
+  (`CrashTextsTest`) y, en Linux, una caída de verdad en un proceso hijo, que muere por la señal y
+  deja el archivo y la línea del log (`CrashHandlerDeathTest`) (CL3).

@@ -26,7 +26,8 @@
 // queda en pantalla el mosaico de la escena 3; el paso corre con lo que dejó la selección y MoveHero
 // baja el contador (0x59af01). La respuesta del F3 03 lo pone en 30 (T7). Con el contador en 30 o
 // menos, el dibujo del juego hace la cámara, el rango y el trapecio, el pase del mundo, el rayo del
-// mouse y el primer pase del terreno, y corta con error en la primera etapa que MuRet no tiene (T8).
+// mouse y el primer pase del terreno, y corta con error en la primera etapa que MuRet no tiene (T8);
+// el paso, los personajes con la zona segura del héroe (0x508f00, T11), y corta igual.
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La entrada al mundo", pasos 3, 4 y 6, "El
 // paso del juego" y "El dibujo del juego".
 namespace Client::Scenes
@@ -44,6 +45,8 @@ public:
     // Sin `context.world` o `context.cloth`, el error: la espera vive en el primero y sus cierres
     // gastan el rand() del segundo.
     Core::Expected<void, std::string> Enter() override;
+    // 0x636290 y la tela. Después de la espera corre los personajes (0x508f00) y corta con error en la
+    // primera etapa que MuRet no tiene; ahí la escena queda en Failure. Después de un corte, nada.
     void Step(const Input::InputState& input) override;
     // 0x63723a en adelante, con el frame no retenido: lo que MuRet tiene, en el orden del original,
     // hasta la primera etapa que no tiene. Ahí el frame se corta y la escena queda en Failure. Retenido,
@@ -70,8 +73,8 @@ public:
 private:
     // 0x6362b2..0x63693a: solo el primer paso de la escena.
     void StepEntry();
-    // 0x636da3..0x63717f: el paso con el mundo cargado.
-    void StepWorld();
+    // 0x636da3..0x63717f: el paso con el mundo cargado, hasta su primer corte.
+    [[nodiscard]] Core::Expected<void, std::string> StepWorld();
     // 0x59ae8d..0x59afd6, lo de MoveHero con el contador: lo baja y lo vuelve a leer.
     [[nodiscard]] std::int32_t StepWaitCounter();
 
@@ -108,6 +111,8 @@ private:
     // El corrimiento del agua (0x78ecbec) y las olas (0x78acbd8) del juego.
     World::TerrainWater m_water;
     std::optional<World::TerrainPickingSegment> m_mouseRay;
+    // El trapecio del último frame del juego que dibujó (0x5fb570), el que lee 0x5fba90 en el paso.
+    std::optional<World::TerrainPolygon> m_lastPolygon;
     std::optional<std::string> m_failure;
 };
 } // namespace Client::Scenes

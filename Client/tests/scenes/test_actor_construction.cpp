@@ -175,6 +175,20 @@ TEST_F(ActorConstructionTest, LeavesThePlayerReadyToDress)
     EXPECT_EQ(actor.word376, 0xffff);
 }
 
+// Lo que lee el paso de los personajes (0x508f00): sin verse (+0x16c, 0x511bd8) y sin morirse (+0x389,
+// 0x511c05), aunque el lugar los tuviera de antes.
+TEST_F(ActorConstructionTest, LeavesThePlayerUnseenAndNotDying)
+{
+    ActorState actor = Client::Tests::UnarmedPlayer(3);
+    actor.seen = true;
+    actor.dying = 1;
+
+    ASSERT_TRUE(ConstructActor(actor, Player, ActorPlacement{133, 127, 0.0f}, Context(), cloth).HasValue());
+
+    EXPECT_FALSE(actor.seen);
+    EXPECT_EQ(actor.dying, 0);
+}
+
 // Los casos de los otros tipos no están leídos: corta sin tocar al personaje ni gastar rand().
 TEST_F(ActorConstructionTest, OnlyThePlayerTypeIsConstructed)
 {

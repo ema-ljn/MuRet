@@ -6,6 +6,8 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Data/Terrain/TerrainAttributes.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Input/InputState.h"
 #include "Network/PacketSerials.h"
 #include "Render/ModelBatch.h"
@@ -270,7 +272,8 @@ TEST(GameSceneTest, WarpGateReadsAndClosesOnceEvenWhenItRetainsTheFrame)
 
 // 0x59ae8d..0x59afd1: MoveHero baja el contador si es positivo en un acceso y lo vuelve a leer en
 // otro; con los dos cerrando en 0 son 8 rand(), antes de los de la tela (0x637700). Los gates de
-// antes (0x59ae24..0x59ae87) son frontera (P-C28 b).
+// antes (0x59ae24..0x59ae87) son frontera (P-C28 b). Con 30 o menos después de bajarlo, el paso sigue
+// en los personajes (0x508f00), que sin el mapa cargado cortan en 0x508f14, sin la tela.
 TEST(GameSceneTest, AStepLowersTheCounterWithTwoAccesses)
 {
     struct Case
@@ -279,9 +282,10 @@ TEST(GameSceneTest, AStepLowersTheCounterWithTwoAccesses)
         std::uint8_t depth;
         std::int32_t after;
         int draws;
+        bool cuts;
     };
-    for (const Case& probe : {Case{WorldLoadingWait, 0, WorldLoadingWait - 1, 8}, Case{31, 1, 30, 0},
-                              Case{1, 255, 0, 0}, Case{0, 0, 0, 8}, Case{-5, 0, -5, 8}})
+    for (const Case& probe : {Case{WorldLoadingWait, 0, WorldLoadingWait - 1, 8, false}, Case{31, 1, 30, 0, true},
+                              Case{1, 255, 0, 0, true}, Case{0, 0, 0, 8, true}, Case{-5, 0, -5, 8, true}})
     {
         SCOPED_TRACE(::testing::Message() << probe.counter << " con " << static_cast<int>(probe.depth));
         Client::Tests::RecordingSink sink;
@@ -296,7 +300,17 @@ TEST(GameSceneTest, AStepLowersTheCounterWithTwoAccesses)
 
         EXPECT_EQ(tested.Runtime().warpCounter, probe.after);
         EXPECT_EQ(tested.Runtime().warpDepth, probe.depth);
-        EXPECT_EQ(tested.cloth.random.State(), StateAfterAStep(probe.draws));
+        if (probe.cuts)
+        {
+            ASSERT_TRUE(tested.scene.Failure().has_value());
+            EXPECT_NE(tested.scene.Failure()->find("0x508f14"), std::string::npos) << *tested.scene.Failure();
+            EXPECT_EQ(tested.cloth.random.State(), RandomAfter(probe.draws).State());
+        }
+        else
+        {
+            EXPECT_EQ(tested.scene.Failure(), std::nullopt);
+            EXPECT_EQ(tested.cloth.random.State(), StateAfterAStep(probe.draws));
+        }
     }
 }
 
@@ -354,6 +368,8 @@ TEST(GameSceneTest, TheWorldStateTurnsTheDrawingOn)
     EXPECT_TRUE(tested.Runtime().drawingEnabled);
     EXPECT_EQ(tested.Runtime().warpCounter, 30);
     EXPECT_FALSE(tested.scene.HoldsTheLastFrame());
+    ASSERT_TRUE(tested.scene.Failure().has_value()) << "sin el mapa cargado, los personajes cortan";
+    EXPECT_NE(tested.scene.Failure()->find("0x508f14"), std::string::npos) << *tested.scene.Failure();
 }
 
 // 0x636dc2..0x636ddb: con el mundo cargado, cada paso deja el temblor de la cámara en su 0,2 (0x6b8854),
@@ -567,5 +583,67 @@ TEST_F(GameSceneDrawTest, TheOtherMapsStopWhereTheyDiffer)
         EXPECT_EQ(cloth.random.State(), RandomAfter(probe.draws).State());
         scene.Leave();
     }
+}
+
+// 0x63710f: el primer paso después de la espera llega a los personajes (0x508f00) antes del primer dibujo del
+// juego. El TerrainWall pierde el 0x02 (el de (221, 11) en Lorencia, Q-C170) y 0x5fba90 lee el trapecio que
+// dejó el último dibujo de la selección, que MuRet no calcula: corta en el lugar 0, muerto, sin gastar más que
+// los 8 rand() de MoveHero y sin la tela. Después del corte, el paso no vuelve a correr.
+TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitStopsAtTheSelectionTrapezoid)
+{
+    struct Case
+    {
+        std::uint8_t map;
+        std::uint8_t x;
+        std::uint8_t y;
+    };
+    for (const Case& probe : {Case{0, 143, 120}, Case{2, 220, 30}})
+    {
+        SCOPED_TRACE(static_cast<int>(probe.map));
+        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
+        GameScene scene = Scene();
+        ASSERT_TRUE(scene.Enter().HasValue());
+        const std::size_t wall = Client::Data::Terrain::CellIndex(221, 11);
+        const std::uint16_t before = world.Map().terrain.attributes->cells[wall];
+
+        scene.Step(Client::Input::InputState{});
+
+        ASSERT_TRUE(scene.Failure().has_value());
+        EXPECT_NE(scene.Failure()->find("0x5fba90"), std::string::npos) << *scene.Failure();
+        EXPECT_EQ(world.Runtime().warpCounter, WaitDrawThreshold - 1);
+        EXPECT_EQ(world.Map().terrain.attributes->cells[wall], before & ~0x02);
+        if (probe.map == 0)
+        {
+            EXPECT_EQ(before, 2);
+        }
+        EXPECT_EQ(cloth.random.State(), RandomAfter(8).State());
+
+        scene.Step(Client::Input::InputState{});
+        EXPECT_EQ(world.Runtime().warpCounter, WaitDrawThreshold - 1) << "cortado, el paso no vuelve a correr";
+        EXPECT_EQ(cloth.random.State(), RandomAfter(8).State());
+        scene.Leave();
+    }
+}
+
+// Un dibujo cortado deja la escena en Failure: el paso que sigue no corre, aunque el dibujo haya dejado su
+// trapecio.
+TEST_F(GameSceneDrawTest, AStepAfterACutDrawDoesNothing)
+{
+    ASSERT_NO_FATAL_FAILURE(Prepare(0, 143, 120));
+    GameScene scene = Scene();
+    ASSERT_TRUE(scene.Enter().HasValue());
+    Client::Tests::RecordingFrameTarget target;
+    scene.PrepareFrame();
+    scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
+    ASSERT_TRUE(scene.Failure().has_value());
+    const std::string cut = *scene.Failure();
+    const std::uint32_t random = cloth.random.State();
+
+    scene.Step(Client::Input::InputState{});
+
+    EXPECT_EQ(scene.Failure(), cut);
+    EXPECT_EQ(world.Runtime().warpCounter, WaitDrawThreshold);
+    EXPECT_EQ(cloth.random.State(), random);
+    scene.Leave();
 }
 } // namespace

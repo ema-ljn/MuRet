@@ -3389,7 +3389,7 @@ bloque de la entrada, en orden (*estático*):
 | `0x6370f4` | `0x445230` | el caballo oscuro | sí (`StepDarkHorse`) |
 | `0x6370f9..0x637105` | `0x557650`, `0x451d10`, `0x451c10` | contadores y listas, sin leer | — |
 | `0x63710a` | **`0x59adf0`**, el `MoveHero` | el héroe con el mouse ([Caminar](#caminar)); baja `0x77f3b04` y lo vuelve a leer (dos accesos, 8 `rand()`) y, con más de 30, sale; si no, escribe en `0x77f36d0` la capa 1 de la celda del héroe (`0x59e2ba`) y, con `0x57cfc0`, abre y cierra el registro propio: 3.848 `rand()` ([La tabla de protección](#la-tabla-de-protección)) | el contador (`GameScene::StepWaitCounter`), sin los gates de antes (P-C28 b); lo demás falta |
-| `0x63710f` | **`0x508f00` → `0x508ea0`** | por personaje: el trapecio en (x, y) · 0,01 con −20 a `+0x16c`, `0x508ba0`, `0x4fd5f0` (la animación y el alpha), `0x505de0` (la cabeza y las luces) y `0x42da90`; antes, el `0x02` del `TerrainWall`, con 8 `rand()` por personaje vivo | la animación, la cabeza, `CharacterSeen` |
+| `0x63710f` | **`0x508f00` → `0x508ea0`** | por personaje: el trapecio en (x, y) · 0,01 con −20 a `+0x16c`, `0x508ba0`, `0x4fd5f0` (la animación y el alpha), `0x505de0` (la zona segura, la cabeza y las luces) y `0x42da90`; antes, el `0x02` del `TerrainWall`, con 8 `rand()` por personaje vivo. Corre también en la espera ([El paso de los personajes](#el-paso-de-los-personajes)) | después de la espera, `Scenes::StepCharacters`: el `TerrainWall`, `+0x16c` y, del héroe, `0x505de0` con la zona segura (T11); en la espera, frontera ([08](08-pendientes.md) P-C41 a) |
 | `0x637114` | `0x548f40` | los números de daño (`0x7609c0c`) | CL9.2 |
 | `0x637119` | `0x53eaf0` | la tabla `0x75fe028` (`0x51fc80`), sin leer | — |
 | `0x63711e` | **`0x52d220`** | los efectos con modelo | sí (`StepModelEffects`) |
@@ -3399,6 +3399,70 @@ bloque de la entrada, en orden (*estático*):
 | `0x637138` | `0x403590` | `0x4033d0` y compañía (el recorrido de la cámara), sin leer | — |
 | `0x637144..0x63717a` | `0x5fc0d0` y `0x5fc0b0`, con `0x7d2d35e` | funciones de un `ret` | nada |
 | `0x63717f` | `0x5ac8d0` | F1 a F4 (CL3.3) | CL8 |
+
+### El paso de los personajes
+
+`0x508f00`, desde `0x63710f`, en cada paso de la escena 5 con el mundo cargado, **también en la espera**:
+con el contador en más de 30, MoveHero sale en `0x59afd6`, pero el paso sigue (*estático*). En orden:
+
+1. `0x412140(héroe)` (`0x508f0c`): fuera del mapa 30 llama a `0x412560`, que solo suelta el objeto de
+   `0x5763530` si existe, y ese objeto lo crea `0x412140` en el mapa 30 (lo del asedio).
+2. El `TerrainWall` (`0x508f14..0x508f34`): el `0x02` sale de los 65.536 WORD de `0x7d0d348`.
+3. El primer lazo, por los 400 primeros registros (`0x508f3e..0x5091a9`; el 401 no, Q-C208): vivo (`+0`),
+   sin morirse (`+0x389` en 0) y con `+0x88` distinto de 8, lee la celda lógica por la tabla de protección,
+   la Y (`+0x420`) y la X (`+0x41c`), cada una en un acceso que se cierra (8 `rand()` si quedan en 0), y le
+   pone el `0x02` a la celda de `0x5f82a0(X, Y)` (`0x509165`). Después, vivo o no, `+0x16c` =
+   `0x5fba90(f(x · 0,01f), f(y · 0,01f), −20)` (`0x50916d..0x5091a0`), con el trapecio global del último
+   `0x5fb570`: entre la selección y el primer frame del juego, el del último dibujo de la selección.
+4. El segundo lazo, por los mismos 400 (`0x5091af..0x5091ce`): `0x508ea0`, que sin vivir no hace nada; si
+   no, vuelve a escribir `+0x16c` igual (`0x508eac..0x508ed2`) y llama a `0x508ba0` (los otros personajes:
+   con el héroe sale en `0x508bad`), `0x4fd5f0` (el cuerpo, la animación y el alpha, con un `rand() % 6`
+   sin condición en `0x4fd7e4`), `0x505de0` y `0x42da90` (fuera del mapa 30 devuelve 0 en `0x42da9a`).
+5. `0x52e500` (`0x5091d0`): el paso de las estelas de `0x75e9870` (100 de `0x2f4`), sin `rand()`. Las crea
+   `0x52e470`, desde habilidades, efectos y la acción 3 del caballo (`0x444671`).
+
+**`0x505de0` con un jugador.** El `0x20a` tiene acciones; un modelo sin acciones (`+0x26` de `0x5769ad8 +
+tipo · 0xe0` en 0) va a la caja de `0x505e15` y sale. Copia la posición, la escala y la acción al modelo
+compartido (`0x505ec6..0x505ee4`) y, sin verse (`+0x16c` en 0), sale (`0x505ef2`). Visto:
+
+- **la zona segura** (`0x505ef8..0x5068b2`): la celda lógica otra vez, la Y y la X con sus cierres (8
+  `rand()`), y `+0x3e2` en 1 si el bit `0x01` del byte bajo de `0x7d0d348[0x5f82a0(X, Y)]` está, y en 0 si
+  no (Q-C206; [Caminar](#caminar));
+- la cabeza (`0x5068b9..0x5069ab`, [Lo demás del login](#lo-demás-del-login)): con el héroe no sortea ni
+  gasta `rand()`; gira hacia `+0x34` y `+0x38`, que MoveHero escribe con el mouse (`0x59b1c2..0x59b287`);
+- con `+0x3e5` positivo, veinte efectos con `rand()` (`0x5069ae`): solo lo sube `0x4c9790` (`0x4c982b`);
+- con `+0x375` debajo de 6, sin signo (`0x506acf`), la luz de cada mano, la derecha y la izquierda: `0x21e`
+  con un 3 y `0x225`, `0xa24`, `0xc1c` y `0x61f` con un 2, por `0x5f9780` al buffer dinámico `0x7b4ccc4`;
+- con `+0x3d8` positivo (`0x506b64`), los efectos de `+0x3d4` (`0x611` y `0x612`): en los personajes,
+  `+0x3d8` solo lo baja `0x4fd5f0` (`0x4fd75e`); los demás que escriben `+0x3d4` y `+0x3d8` son de la UI
+  (*estático*);
+- **`rand() & 7` sin condición** (`0x506cac`), que el camino del `0x20a` no lee (Q-C207);
+- el caso del tipo (`0x506ccc..0x506cf1`; el `0x20a` cae en `0x506cf8`): en la escena 5 y el mapa 7, un
+  `0x607` con `ftol(0x5767b88) % 10000` debajo de 1000; en el mapa 9, dos `rand() & 3` que pueden sacar un
+  `0x68` cada uno; en las acciones `0x44` y `0x45`, efectos `0x5ac` y `0x5189f0`; en la `0x96`, diez `0x5d9`
+  en huesos de `rand()`; y un `0x4ec110` a un local que nadie lee (`0x506fc1..0x507001`);
+- los pasos del héroe (`0x50862f..0x5086ca`): con las acciones `0x0d` a `0x21`, `0x8b`, `0x8c` y `0x4b`, el
+  sonido de `0x505770` según el frame (`+0x114` contra `0x6b8b94` y `0x6b8ae0`) con `+0x3e0` y `+0x3e1`, sin
+  `rand()`;
+- en los mapas 24 a 29 y 36, con las acciones `0x15`, `0x1d` a `0x21` y `0x4b`, un `0x6f4` con dos `rand()`
+  (`0x5086cf..0x508801`).
+
+Con el héroe visto, de pie y sin nada de eso, el paso de los personajes saca 8 + 8 + 1 `rand()` más los de
+`0x4fd5f0`; sin verse, 8 más los de `0x4fd5f0` (*estático*).
+
+**En MuRet** (`Scenes::StepCharacters`, T11 del hito 1): después de la espera, desde `GameScene::StepWorld`,
+con el trapecio del último frame del juego que dibujó. Porta el `TerrainWall`, `+0x16c` de los 400, la celda
+lógica y, del héroe, `0x505de0` hasta su final, con su `rand() & 7`. Corta con error, en el orden del
+original: en el mapa 30 (`0x412140`), sin el mapa cargado (`0x508f14`), sin el trapecio (`0x5fba90`: antes
+del primer dibujo del juego es el de la selección, que MuRet no calcula, así que el primer paso después de
+la espera corta ahí, [08](08-pendientes.md) P-C44), con otro personaje vivo (`0x508ea0`), con otro modelo
+que el `0x20a` (`0x505e0b`), con la luz de una mano (`0x5f9780`), en los mapas 7 (`0x506d01`) y 9
+(`0x506d8b`), en las acciones `0x44` y `0x45` (`0x506e5d`) y `0x96` (`0x506f62`) y en las de los pasos
+(`0x508668`); el `0x6f4` de los mapas 24 a 29 y 36 no se alcanza sin cortar antes en los pasos. Son
+frontera, como las de T8, porque corren también en la espera: `0x4fd5f0` (con su `rand()` de `0x4fd7e4`,
+por lo menos), la cabeza del héroe y `0x52e500` (P-C44). En la espera, `0x508f00` entero sigue siendo
+frontera (P-C41 a). Tests: `CharacterStepTest`, `GoldenCharacterStep.TheSafeZoneFollowsTheLogicalCellAhead`
+y `GameSceneDrawTest.TheFirstStepAfterTheWaitStopsAtTheSelectionTrapezoid`.
 
 ### El dibujo del juego
 
@@ -4346,7 +4410,12 @@ en los tipos `0xa8..0xac`, los `NewFace`; entre otros). A caminar y correr no le
 del blanco, **reintentan el camino en cada paso**.
 
 **La zona segura** (`+0x3e2`) la escribe `0x505de0` en cada paso (`0x50686e..0x5068b2`), con el bit
-`0x01` del atributo de la **celda lógica**, la que va una adelante.
+`0x01` del atributo de la **celda lógica**, la que va una adelante, y solo con el personaje visto
+(`+0x16c`, `0x505ef2`; [El paso de los personajes](#el-paso-de-los-personajes), Q-C206). *Estático*; la
+observación nativa en el borde del pueblo está pendiente ([08](08-pendientes.md) P-C44). MuRet:
+`Scenes::StepCharacters`, con el héroe, contra el `.att` de Lorencia (el borde del este, (172, 128) y
+(173, 128)) y de Devias (el del norte, (220, 76) y (220, 77)) en
+`GoldenCharacterStep.TheSafeZoneFollowsTheLogicalCellAhead`.
 
 ### Los cambios de mapa
 

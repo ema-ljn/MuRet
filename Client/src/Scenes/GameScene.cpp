@@ -11,6 +11,7 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterStep.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -80,20 +81,9 @@ bool HasTheGrassPass(std::int32_t map)
 std::uint8_t HeroCellAttribute(ActorState& hero, const Data::Terrain::TerrainAttributes& attributes,
                                Render::Models::CrtRandom& random)
 {
-    std::uint8_t y = 0;
-    {
-        const Render::Models::LogicalAccess access(hero.cellYAccesses, random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
-        y = hero.cellY;
-    }
-    std::uint8_t x = 0;
-    {
-        const Render::Models::LogicalAccess access(hero.cellXAccesses, random,
-                                                   Render::Models::SmallLogicalCloseRandoms);
-        x = hero.cellX;
-    }
+    const LogicalCell cell = ReadLogicalCell(hero, random);
     // 0x635f14..0x635fe3: el word de 0x7d0d348, del que la cámara mira el byte bajo.
-    return static_cast<std::uint8_t>(attributes.cells[Data::Terrain::CellIndex(x, y)]);
+    return static_cast<std::uint8_t>(attributes.cells[Data::Terrain::CellIndex(cell.x, cell.y)]);
 }
 
 std::string DescribePolygonError(World::TerrainPolygonError error)
@@ -123,15 +113,25 @@ Core::Expected<void, std::string> GameScene::Enter()
     }
     m_firstStep = true;
     m_holdFrame = true;
+    m_lastPolygon = std::nullopt;
     return {};
 }
 
 // 0x636290 y, después, lo de 0x637700 para la tela: el viento (0x637cec) y el contador de pasos
-// (0x637f8c) van detrás de la lógica de la escena (02, "Qué corre en cada paso").
+// (0x637f8c) van detrás de la lógica de la escena (02, "Qué corre en cada paso"). Un corte del paso
+// deja la escena en Failure sin la tela; después de un corte, del paso o del dibujo, nada.
 void GameScene::Step(const Input::InputState& /*input*/)
 {
+    if (m_failure)
+    {
+        return;
+    }
     StepEntry();
-    StepWorld();
+    if (auto stepped = StepWorld(); !stepped.HasValue())
+    {
+        m_failure = stepped.Error();
+        return;
+    }
     if (m_context.cloth != nullptr)
     {
         Render::Models::StepTheClothWorld(*m_context.cloth);
@@ -155,12 +155,12 @@ void GameScene::StepEntry()
     m_session->EnterWorld();
 }
 
-void GameScene::StepWorld()
+Core::Expected<void, std::string> GameScene::StepWorld()
 {
     // Enter no deja entrar sin los dos.
     if (m_context.world == nullptr || m_context.cloth == nullptr)
     {
-        return;
+        return {};
     }
     WorldRuntime& runtime = m_context.world->Runtime();
     // 0x636da3: el estado 0x3d marca el mundo cargado; sin él y con el mundo sin cargar, el paso
@@ -171,7 +171,7 @@ void GameScene::StepWorld()
     }
     else if (!runtime.drawingEnabled)
     {
-        return;
+        return {};
     }
     // 0x636dc2..0x636ddb: el temblor de la cámara se reduce en cada paso; la x87 multiplica y guarda en
     // float, como el producto exacto en double redondeado una vez.
@@ -196,13 +196,24 @@ void GameScene::StepWorld()
     // (0x4033d0, que además para al héroe con 0x4f2250), con un personaje bajo el mouse y +0x7c &
     // 0x200000 del héroe, con +0x389 o con +0x78 & 0x1000 (0x59ae24..0x59ae87). MuRet no tiene todavía
     // esos campos del héroe ni el recorrido, y baja el contador en cada paso.
+    // Frontera (08 P-C41 a): con más de 30, MoveHero sale en 0x59afd6 y el paso sigue en 0x63710f con los
+    // personajes de la selección en el 54; cortar ahí cortaría la espera.
     if (StepWaitCounter() > WaitDrawThreshold)
     {
-        return;
+        return {};
     }
     // Frontera (T7, CL7.4 y 08 P-C41): el resto de MoveHero, desde 0x59afdf (el clic, caminar, los
-    // gates, 0x57cfc0 con el registro propio y la capa 1 de la celda en 0x77f36d0), y lo que sigue a
-    // MoveHero desde 0x63710f (los personajes, los efectos, las partículas).
+    // gates, 0x57cfc0 con el registro propio y la capa 1 de la celda en 0x77f36d0).
+    // 0x63710f: 0x508f00, los personajes, con el trapecio del último dibujo.
+    if (auto stepped = StepCharacters(CharacterStepContext{
+            .world = *m_context.world, .polygon = m_lastPolygon, .random = m_context.cloth->random});
+        !stepped.HasValue())
+    {
+        return stepped;
+    }
+    // Frontera (08 P-C41 a): lo que sigue desde 0x637114 (los números de daño, los efectos, las
+    // partículas).
+    return {};
 }
 
 std::int32_t GameScene::StepWaitCounter()
@@ -299,6 +310,11 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     if (!polygon.HasValue())
     {
         return Core::Unexpected(polygon.Error());
+    }
+    // El trapecio global de 0x5fb570, el que lee 0x5fba90 en el paso: solo lo escribe un frame del original.
+    if (frames > 0)
+    {
+        m_lastPolygon = polygon.Value();
     }
     // 0x637391..0x637404: el glClearColor del mapa, que nadie usa (Q-C143).
     // 0x637410: el pase del mundo.

@@ -47,6 +47,7 @@
 #include "support/RecordingSink.h"
 #include "support/SameBytes.h"
 #include "support/SceneDataFiles.h"
+#include "support/SkillFiles.h"
 #include "support/ScenePrinters.h"
 #include "support/SessionPackets.h"
 #include "support/TemporaryFolder.h"

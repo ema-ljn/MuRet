@@ -51,6 +51,7 @@
 #include "support/RecordingSink.h"
 #include "support/PlayerActors.h"
 #include "support/SceneDataFiles.h"
+#include "support/SkillFiles.h"
 #include "support/SameBytes.h"
 #include "support/ScenePrinters.h"
 #include "support/SessionHarness.h"

@@ -40,6 +40,7 @@
 #include "support/RecordingSink.h"
 #include "support/RecordingTextDrawer.h"
 #include "support/SceneDataFiles.h"
+#include "support/SkillFiles.h"
 #include "support/ScenePrinters.h"
 #include "support/TemporaryFolder.h"
 #include "support/TestGameServer.h"

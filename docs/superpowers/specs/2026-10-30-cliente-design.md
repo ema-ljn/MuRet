@@ -48,6 +48,9 @@ Es un **proyecto de aprendizaje**, igual que el servidor: Emanuel escribe la ló
 sub-ola por sub-ola y Claude hace de tutor. Claude escribe el andamiaje (CMake, dependencias, CI,
 plantillas de docs) cuando se lo piden y los pasos marcados `(Claude)` en los planes.
 
+> Por ahora el modo tutor está apagado (Emanuel, 2026-11-10): los agentes escriben el código del cliente,
+> sin el consentimiento del tutor. Ver [`AGENTS.md`](../../../AGENTS.md).
+
 **Qué NO es el objetivo:** un cliente de Season 6 (eso es MuMain), ni portar el anticheat, ni
 distribuir un cliente para jugar. La `Data\` del original está en `Client/assets/Data/`, tal cual,
 porque es el original que MuRet reimagina y la base de sus tests (decidido por Emanuel el

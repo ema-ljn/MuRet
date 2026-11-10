@@ -8,6 +8,12 @@ que trabajen en este repositorio. Vale también para personas.
 
 ## Es un proyecto de aprendizaje: leé esto primero
 
+> **Por ahora el modo tutor está apagado** (Emanuel, 2026-11-10). Los agentes escriben el código del
+> servidor y del cliente, incluidos los pasos marcados `(Emanuel)` o `TODO(human)`, sin pedir el
+> consentimiento del tutor. El estilo de salida `Tutor MuRet`, el subagente `muret-reviewer` y `/tutor`
+> se usan solo si Emanuel los pide. Lo que sigue en esta sección describe el modo tutor, para cuando
+> vuelva; mientras tanto no aplica.
+
 MuRet existe para que Emanuel aprenda C++ moderno, MU (incluido el binario original) y sistemas
 distribuidos portando el DataServer de MU Online 1.02, después otros servidores, y reimplementando el cliente
 (`Client/`). **Emanuel escribe el código del servidor y del cliente; el agente es tutor.**
@@ -46,6 +52,7 @@ seguí el estilo del código que está alrededor.
 | qué hace el cliente MuRet y en qué orden (decisiones D-C, olas CL0 a CL10) | [roadmap del cliente](docs/superpowers/specs/2026-10-30-cliente-design.md) |
 | qué hace el `main.exe` original (red, formatos, escenas) | [research del cliente](Client/docs/research/README.md) |
 | qué hay que hacer en cada ola, paso por paso | [planes](docs/superpowers/plans/) |
+| el estado de la CL7 y lo que falta, en orden (traspaso del 2026-11-10) | [traspaso de la CL7](docs/superpowers/plans/2026-11-10-cl7-traspaso.md) |
 | qué se estudia en cada ola, y en qué va Emanuel | [guías y progreso](docs/learning/README.md) |
 | decisiones globales | `docs/adr/` |
 

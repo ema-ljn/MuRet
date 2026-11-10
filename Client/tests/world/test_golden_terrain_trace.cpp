@@ -371,7 +371,8 @@ std::vector<TerrainCell> OpaqueCellsOf(const Client::Tests::FrameEvent& models)
 // Lo mismo desde la escena del juego (T8): Lorencia cargado en el WorldState, el héroe publicado en la
 // celda (143, 120) con la posición de la traza y el contador en 30. Su primer frame lee la celda por la
 // tabla de protección, arma la cámara de la traza y dibuja las 329 celdas en su orden y los 25 quads del
-// pasto de la traza (06 § El pasto) antes de cortar en las marcas del suelo (0x5fc365).
+// pasto de la traza (06 § El pasto); las marcas del suelo (0x5fc365) no dibujan ninguna y corta en los objetos
+// (0x6374ce).
 TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
 {
     const auto path = TraceFile(LorenciaTrace);
@@ -419,7 +420,7 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     scene.Render(target.BeginFrame({}), 0.0f);
 
     ASSERT_TRUE(scene.Failure().has_value());
-    EXPECT_NE(scene.Failure()->find("0x5fc365"), std::string::npos) << *scene.Failure();
+    EXPECT_NE(scene.Failure()->find("0x6374ce"), std::string::npos) << *scene.Failure();
     const Client::Tests::FrameEvent* models = nullptr;
     for (const Client::Tests::FrameEvent& event : target.frames.at(0).events)
     {

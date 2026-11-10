@@ -2957,8 +2957,8 @@ al mismo lugar, `0x505820` vuelve a correr con el héroe reconstruido y la entra
 (`AfterAGameFrameASecondEntryOnTheSameSlotScansTheRebuiltHero`). MuRet no tiene en el mundo ni
 cuervos ni telas que soltar, ni la lista `0x7245c8`. Los tiles los sube el dibujo del juego por número
 de mapa (`TerrainTiles`, con el pasto): con el mismo mapa conserva los que ya subió, que salen de los
-mismos archivos; hoy el primer frame del juego corta en las marcas del suelo (`0x5fc365`) y la escena no
-vuelve a dibujar (T8). Lo que pide la VM, P-C43.
+mismos archivos; hoy el primer frame del juego corta en los objetos (`0x6374ce`) y la escena no vuelve a
+dibujar (T8). Lo que pide la VM, P-C43.
 
 ### El equipo propio en el personaje
 
@@ -3468,7 +3468,7 @@ bloque de la entrada, en orden (*estático*):
 | `0x63711e` | **`0x52d220`** | los efectos con modelo | sí (`StepModelEffects`) |
 | `0x637123` | `0x53c670` | los joints | no |
 | `0x637128` | **`0x5446e0`** | el viento y las partículas | sí (`StepParticles`) |
-| `0x63712d` | `0x549090` | las marcas del suelo (`0x760cab0`, [El dibujo del juego](#el-dibujo-del-juego)): les baja la vida | no |
+| `0x63712d` | `0x549090` | las marcas del suelo (`0x760cab0`, [Las marcas del suelo](#las-marcas-del-suelo)): les baja la vida | después de la espera, `World::StepGroundMarks` (CL7, hito 1); en la espera, frontera (P-C49 c) |
 | `0x637138` | `0x403590` | `0x4033d0` y compañía (el recorrido de la cámara), sin leer | — |
 | `0x637144..0x63717a` | `0x5fc0d0` y `0x5fc0b0`, con `0x7d2d35e` | funciones de un `ret` | nada |
 | `0x63717f` | `0x5ac8d0` | F1 a F4 (CL3.3) | CL8 |
@@ -3649,8 +3649,8 @@ y `TheLoginStopsAtTheBodyOfItsCharacter`). Las salidas de `0x508ba0`, en
 | `0x637410` | `0x620db0(0, 0, w, 432)` (480 con `0x7d36899`) | el pase del mundo | sí (`GameWorldViewport`) |
 | `0x63741d` | en el mapa 30, su luz | | corta (el 30 no carga) |
 | `0x6374aa` | `0x620480(mouse x, mouse y, &0x7d366c0, 1)` | el rayo del mouse, con el mouse de 640 × 480 vuelto a la pantalla en enteros (`0x620486..0x6204b0`) | `GameScene::MouseRay`, para [Caminar](#caminar) |
-| `0x6374c6` | **`0x5fc260(0)`**, si `0x437850()` es falso y el mapa no es 10 | el terreno: el pase opaco, el de alfa, **el del pasto** y `0x549130` | `LoadedWorld::DrawTerrain`, **sin el pasto** (P-C48 b); el juego dibuja el primer pase y el del pasto y **corta** en las marcas del suelo (`0x5fc365`); en el mapa 7 antes, en su agua (`0x5fa985`, `0x5fa4b0`), y en los 18 a 23 antes de la primera celda (`0x5fa83f`, Q-C229). Abajo, por dentro |
-| `0x6374ce` | **`0x6046a0` → `0x602e90` → `0x602ed0`, `0x5ffdf0`, `0x6002e0`** | los objetos del `.obj` por sector | `DrawWorldObjects`, con los casos del 55; el juego corta acá en el mapa 10 |
+| `0x6374c6` | **`0x5fc260(0)`**, si `0x437850()` es falso y el mapa no es 10 | el terreno: el pase opaco, el de alfa, **el del pasto** y `0x549130` | `LoadedWorld::DrawTerrain`, **sin el pasto ni las marcas** (P-C48 b, P-C49); el juego dibuja el primer pase, el del pasto y las marcas del suelo (`0x5fc365`); en el mapa 7 corta antes, en su agua (`0x5fa985`, `0x5fa4b0`), y en los 18 a 23 antes de la primera celda (`0x5fa83f`, Q-C229). Abajo, por dentro |
+| `0x6374ce` | **`0x6046a0` → `0x602e90` → `0x602ed0`, `0x5ffdf0`, `0x6002e0`** | los objetos del `.obj` por sector | `DrawWorldObjects`, con los casos del 55; el juego **corta** acá en los mapas que llegan, el 10 incluido |
 | `0x6374d3` | **`0x52dc20`** | los efectos del suelo (`0x61d`, `0x61e`, `0x61f`…), con `0x5fb2f0` | no |
 | `0x6374d8` | **`0x446b60`** | los pájaros, con su sombra | no |
 | `0x6374dd` | **`0x510d00` → `0x50ba30`** | los personajes vistos (`+0x16c`), por índice; `0x42afe0` para los jugadores, solo en el mapa 30 | `DrawCharacter`, con la luz del login |
@@ -3682,33 +3682,27 @@ y `TheLoginStopsAtTheBodyOfItsCharacter`). Las salidas de `0x508ba0`, en
 | `0x5fc32b` | `0x620a00(1)`: `SRC_ALPHA / ONE_MINUS_SRC_ALPHA`, sin culling y con alpha test | la mezcla de cada quad del pasto (`ModelBlend::Alpha`) |
 | `0x5fc332..0x5fc345` | sigue con `0x6c9d58` (`0x5f87b0` lo pone en 1 salvo en los mapas 18 a 23 y 30, `0x5f8928..0x5f8947`) y fuera del mapa 7 | `HasTheGrassPass`; el 7, el 30 y los 18 a 23 ya cortaron antes |
 | `0x5fc349..0x5fc353` | `0x7d0d31c = 2` y `0x5fc190(0)`: **el pase del pasto**, en los mismos bloques y celdas ([El pasto](#lo-propio-de-lorencia)). No saca `rand()` fuera de los mapas 18 a 23 (Q-C229) | `World::DrawGrass` (CL7, hito 1) |
-| `0x5fc35b..0x5fc360` | sin depth test (`0x620870`) y con culling (`0x6208d0`) | — |
-| `0x5fc365` | **`0x549130`**: las marcas del suelo (abajo) | **corta** |
-| `0x5fc36a` | el depth test de vuelta (`0x620850`) | — |
+| `0x5fc35b..0x5fc360` | sin depth test (`0x620870`) y con culling (`0x6208d0`), que la mezcla de `0x549130` vuelve a apagar | el estado del lote (`GameScene`) |
+| `0x5fc365` | **`0x549130`**: las marcas del suelo ([Las marcas del suelo](#las-marcas-del-suelo)) | `World::DrawGroundMarks` (CL7, hito 1): con la tabla vacía no dibuja nada; con una marca prendida corta en `0x549152` (P-C49) |
+| `0x5fc36a` | el depth test de vuelta (`0x620850`) | sí |
 
-**Hasta dónde llega MuRet** (T8 del hito 1 de la CL7 y el pase del pasto). `GameScene::Render` corre
-lo de arriba en ese orden hasta el terreno y corta con error en la primera etapa que no tiene: las
-marcas del suelo (`0x5fc365`) en los mapas que carga, salvo el 6 (la cámara, `0x635b5c`), el 7 (su
-agua, `0x5fa985`) y el 10 (los objetos, `0x6374ce`). Antes dibuja el pase del pasto, que no gasta
-`rand()`: los 4 + 8 del frame quedan como estaban. Los mapas 18 a 23, que `LoadMap` ya corta en
-`0x447d70`, cortan antes de la primera celda (`0x5fa83f`, Q-C229) si llegan con el mundo puesto a mano.
+**Hasta dónde llega MuRet** (T8 del hito 1 de la CL7, el pase del pasto y las marcas del suelo).
+`GameScene::Render` corre lo de arriba en ese orden hasta el terreno y corta con error en la primera
+etapa que no tiene: los objetos (`0x6374ce`) en los mapas que carga, salvo el 6 (la cámara, `0x635b5c`)
+y el 7 (su agua, `0x5fa985`). Antes dibuja el pase del pasto y las marcas del suelo, que no gastan
+`rand()`: los 4 + 8 del frame quedan como estaban. Con la tabla de la .bss las marcas no dibujan nada, y
+una marca prendida, que MuRet no sabe crear, corta en `0x549152` (P-C49). Los mapas 18 a 23, que
+`LoadMap` ya corta en `0x447d70`, cortan antes de la primera celda (`0x5fa83f`, Q-C229) si llegan con el
+mundo puesto a mano.
 El corte es terminal (`IScene::Failure`): el frame no se presenta y el juego cierra con el error. En
 Lorencia, con el héroe y la cámara de la traza, son las 329 celdas de la traza en su orden
 (`GoldenTerrainTrace.TheGameSceneDrawsTheCellsOfLorencia`) y 25 quads de `TileGrass01` de z 165 a 293,
-como en la traza (`GameSceneDrawTest.TheReferenceMapsDrawTheTerrainAndTheGrassAndStopAtTheGroundMarks`;
+como en la traza (`GameSceneDrawTest.TheReferenceMapsDrawTheTerrainTheGrassAndTheGroundMarksAndStopAtTheObjects`;
 la cuenta y las alturas, *verificado* contra lo que dice [El pasto](#lo-propio-de-lorencia) de la traza;
-cada vértice, sin comparar, P-C48 a). Lo que falta, [08](08-pendientes.md) P-C41 y P-C48.
+cada vértice, sin comparar, P-C48 a). Lo que falta, [08](08-pendientes.md) P-C41, P-C48 y P-C49.
 
-**Las marcas del suelo** (`0x549130`, *estático*). Es una tabla de 100 lugares de `0x78` bytes en
-`0x760cab0..0x760f990`: `0x549130` pone la mezcla aditiva (`0x620a90`) y dibuja cada lugar con el byte
-`+0` prendido con `0x5fb2f0`, aditivo o con `0x620a00(1)` según el slot de la textura de su tipo (`+4`,
-el byte `+0x28` del slot en 3). La llena `0x548fe0`, siempre con el tipo `0x5e3`, desde `0x505de0`
-(`0x507486`, en un caso de su `switch`, con `rand() % 5` en 0) y desde `0x52e810` (`0x52e96c`); sin
-lugar libre, apaga el de menos vida (`+0x3c`) y no pone la nueva. En cada paso del juego, `0x549090`
-(`0x63712d`) les baja la vida y apaga las que llegan a 0. **La carga del mapa no la vacía**: `0x6070a0`
-apaga las tablas de al lado (`0x7609bd0..0x760cab0` termina donde empieza esta) pero no esta (Q-C228).
-Que esté vacía en el primer frame depende de que nadie haya llamado a `0x548fe0` antes, en la selección
-o en una entrada anterior al juego, y eso MuRet no lo modela: corta ahí con error (P-C48 c).
+**Las marcas del suelo** (`0x549130`): la tabla de `0x760cab0`, quién la llena, cómo envejece y cómo se
+dibuja, en [Las marcas del suelo](#las-marcas-del-suelo).
 
 **El orden del pase 3D no es el del login.** En el juego van el terreno, los objetos, el suelo, los
 pájaros, los personajes, los peces, el caballo, las hojas, los efectos con modelo, los sprites y las
@@ -3728,6 +3722,160 @@ frame lo pone `0x637700` (`0x63835d..0x6384f5`): Icarus (10), (0,0117; 0,0977; 0
 a 29 y 36), (0,1172; 0,1563; 0,1563); y negro en los demás (*estático*). No hay cielo: Icarus no
 dibuja el terreno y pone las nubes (`0xbb`, `0x622`, `0x623`), y Kalima dibuja su agua en un pase
 aparte (`0x4378a0` → `0x41cca0`, `0x41cf00`).
+
+### Las marcas del suelo
+
+`0x549130`, desde `0x5fc365` (*estático*, salvo donde se dice). Son 100 lugares de `0x78` bytes en
+`0x760cab0..0x760f990`, en la .bss: (`0x760f990` − `0x760cab0`) / `0x78`. En todo el binario la nombran
+solo tres funciones, con un puntero a `+0`, `+0x10` o `+0x28` del primer lugar y su final en el
+`0x760f990` correspondiente: `0x548fe0`, que la llena; `0x549090`, que la envejece; y `0x549130`, que la
+dibuja. La tabla de antes (`0x7609bd0`) termina en `0x760cab0` (`0x548e50`, `0x548f25`, `0x548fa0`) y la
+de después empieza en `0x760f990` (`0x5491e5`, `0x549449`, `0x549510`). La carga del mapa (`0x6070a0`)
+apaga esas dos (`0x607115` y `0x607181`) y no esta (Q-C228).
+
+| Campo | Qué es | Quién lo escribe |
+| --- | --- | --- |
+| `+0` (byte) | prendida | `0x548fe0` (1, y 0 al lugar que apaga); `0x549090` (0) |
+| `+4` | el tipo, que es también el slot de la textura | `0x548fe0` |
+| `+0x10` | el lado del calco, en celdas | `0x548fe0`; `0x549090` (el `0x5e3` crece, el 7 achica) |
+| `+0x14..+0x1c` | la posición; la z se copia y no la lee nadie | `0x548fe0` |
+| `+0x28` | el giro, en grados | `0x548fe0` |
+| `+0x2c..+0x34` | el color | `0x548fe0`; `0x549090` (0,1; 0; 0) |
+| `+0x38` | el alfa | `0x548fe0` (1); `0x549090` |
+| `+0x3c` | la vida, en pasos del juego | `0x548fe0` (con los tipos que se borran); `0x549090` (−1) |
+
+Los otros bytes de cada lugar no los nombra ninguna de las tres.
+
+**`0x548fe0(tipo, &posición, giro, &color, lado)`.** Recorre la tabla buscando el primer lugar apagado.
+En el camino guarda el de menos vida, con signo y el primero si empatan (`cmp`, `jle`; `0x548ff6..0x548fff`),
+partiendo de `0x270f`. En el primero apagado (`0x549012..0x549059`):
+
+- lo prende y copia el tipo, la posición, el giro, el color y el lado;
+- pone el alfa en 1;
+- con el tipo `0x5e3`, `0x5e4` o `0x606` saca un `rand()` y pone la vida en `rand() % 32 + 50`
+  (`0x54906e..0x549082`, el `%` de C con signo). Con otro tipo no saca nada y deja la vida que tenía el lugar.
+
+Sin lugar apagado apaga el de menos vida y no pone la nueva (`0x54900c`), sin `rand()`. Si además ninguna
+vida baja de 9.999, `edx` es todavía el tipo, y el `mov byte [edx], 0` escribe un 0 en la dirección que vale
+el tipo (Q-C231).
+
+**Quién la llama.** Dos lugares, los dos con el tipo `0x5e3`, que es la sangre: el slot que sube
+`0x63bd00` con `Effect\blood01.tga` desde `0x61d7aa`.
+
+- **`0x505de0` con el modelo `0x182`** (`0x507414..0x507486`), en el caso del tipo del paso de cada
+  personaje visto ([El paso de los personajes](#el-paso-de-los-personajes)). Sigue solo con
+  `rand() % 5` en 0. Entonces saca `rand() % 21 − 10` para la x y otro para la y, cada uno por la constante
+  de `0x6ba1a8` (`0x406a0ea1`, 3,657…) y sumado a `+0x10` y `+0x14` del personaje. Llama con el giro `+0x1c`, el
+  color `+0xf4` y el lado 0,65 (`0x3f266666`); la z del local no se escribe en ese camino. Son 1 `rand()`, o
+  3 más el de la vida.
+- **`0x52e810(objeto)`** (`0x52e96c`), desde `0x4fcb10` (`0x4fcb9c`, con la acción `+0x111` en `0xc3` o
+  `0xc4`) y `0x4fcbb0` (`0x4fcc3c`, con un modelo de `0x152` a `0x1c9` en la acción 6). A esos dos los llama
+  `0x4fcd00`, desde el paso del cuerpo (`0x4fd5f0`). Los dos lo llaman solo con el byte `+0x38a` del
+  personaje (su primer argumento) en 0, y lo ponen en 1 antes. `0x52e810` sale si el modelo
+  (`0x5769ad8 + tipo · 0xe0`) tiene −1 en `+0x54`, el hueso. Con el `0x161` lanza diez `0x518cf0` con
+  `0xca` y sale; con el `0x159`, el `0x160` y el `0x164` sale. Si no, dos veces:
+  - `rand() % 100 − 50` para la x y otro para la y del corrimiento (z = 0);
+  - `0x4ec110` lleva el corrimiento al hueso, sin `rand()`;
+  - `rand() % 4 + 8`, por 0,1, da el lado (0,8 a 1,1);
+  - `rand() % 360` da el giro, y el color es `+0xf4`.
+
+  Con lugar, son 5 `rand()` por vuelta. Que sea la sangre de un personaje que muere es *inferido*: el tipo
+  y las acciones `0xc3`, `0xc4` y 6.
+
+**`0x549090`**, desde el paso del juego (`0x63712d`). Para cada marca prendida, en el orden de la tabla:
+
+- baja la vida, un `dec` de 32 bits;
+- con el tipo 7 (`0x5490c3..0x5490da`): resta 0,05 al lado (`0x6b8a48`), lo guarda y lo compara
+  **desde el registro**, en 53 bits, con 0,1 (`0x6b87b8`); debajo, o con NaN, la apaga. La vida no la mira;
+- con el `0x5e3` suma 0,004 al lado (`0x6b89e8`);
+- con el `0x5e3`, el `0x5e4` y el `0x606`: el color pasa a (0,1; 0; 0). Con la vida en 0 o menos la
+  apaga, y con menos de 50 el alfa es vida · 0,02 (`0x6b8b90`, de un `fild`);
+- con cualquier otro tipo solo baja la vida: la marca no se apaga sola.
+
+No saca `rand()`. El paso de los personajes (`0x63710f`) va antes que `0x63712d`: una marca nacida en un
+paso ya tiene el color (0,1; 0; 0) en su primer dibujo, y el color con que la crearon no se ve nunca.
+
+**`0x549130`**, sin argumentos.
+
+1. Pone la mezcla aditiva (`0x620a90`) aunque no haya ninguna marca.
+2. Para cada marca prendida, en el orden de la tabla, mira los componentes del slot de su tipo: el byte
+   `+0x28` del lugar de `0x7d3a198`, en `0x549152`.
+   - Con 3, la mezcla aditiva (`0x620a90`).
+   - Con otro valor, la normal (`0x620a00(1)`, `SRC_ALPHA / ONE_MINUS_SRC_ALPHA` con alpha test).
+3. Llama a `0x5fb2f0(tipo, x, y, lado, lado, &color, −giro, alfa, 5)`. El giro va cambiado de signo
+   (`fchs`, `0x54917f`) y el 5 es `0x40a00000`.
+
+`blood01` es una TGA de 64 × 64 a 32 bits (*verificado* en el `.ozt` del `Data\`). Que el slot quede
+con 4 componentes y vaya con la mezcla normal es *inferido*, como las demás TGA de 32 bits.
+
+A `0x549130` lo llama solo `0x5fc365`, dentro de `0x5fc260` con 0. A `0x5fc260(0)` lo llaman:
+
+- el juego (`0x6374c6`);
+- la selección (`0x634844`, con `edi` en 0 desde `0x6346e2`);
+- el login (`0x635201`).
+
+Con 1, el picking, `0x5fc260` sale antes de las marcas (`0x5fc2e8`).
+
+**El calco, `0x5fb2f0(slot, x, y, ancho, alto, &color, giro, alfa, lift)`.** Tiene quince llamadas:
+`0x549198` y catorce de efectos, ninguna portada. Entre las de efectos están las de `0x52dc20`
+(`0x6374d3`).
+
+1. **El color y el slot.** Con el alfa en 1, `glColor3fv`; si no, `glColor4f`. Las dos dejan el mismo
+   color (`0x5fb2f9..0x5fb32d`). Arma la matriz de `0x5fc8f0((0, 0, giro))` y liga el slot con
+   `0x620780` (`0x5fb351`), sin tocar la mezcla ni la profundidad.
+2. **El centro.** (x, y) · 0,01 (`0x6b86c0`), guardado en float, y su celda c con `ftol`
+   (`0x5fb35a..0x5fb383`).
+3. **Las cuentas del calco.**
+   - El lado es el mayor de ancho y alto; con NaN, el alto (`0x5fb388..0x5fb39d`).
+   - El comienzo de las UV es la celda menos el centro, más medio lado. La u parte de la celda guardada
+     en float, y la v del entero en el registro (`0x5fb3a0..0x5fb3c4`).
+   - 1 / lado, guardado (`0x5fb3c9..0x5fb3d4`).
+   - n = `ftol(lado) + 1`, con un `inc` de 32 bits.
+   - El estiramiento es ancho / alto (`0x5fb3dc..0x5fb3fa`).
+4. **Las celdas.** Con j e i de −n a n en float (de a 1, `0x6b87d4`), saca las UV de la celda en el calco:
+   de ((i + comienzo u) · (1 / lado), (j + comienzo v) · (1 / lado)) a las de la celda siguiente, con el
+   1 sumado antes de multiplicar (`0x5fb42b..0x5fb4a0`). A cada UV le resta 0,5, la gira con `0x5fcbd0`, multiplica la u por el
+   estiramiento y le suma 0,5 (`0x5fb4a3..0x5fb4fe`). Después llama a `0x5faec0(cx + i, cy + j, 1, 1, uvs,
+   0, alfa, lift)` (`0x5fb500..0x5fb529`). Son (2n + 1)² celdas, con la del centro en el medio. Con
+   n < −n no dibuja nada, y eso pasa solo cuando `ftol(lado)` es negativo o da la vuelta.
+
+`0x5faec0` dibuja una celda:
+
+1. Hace el `ftol` de x y de y. Con alguno negativo o de 255 en adelante, con signo, no dibuja nada
+   (`0x5faedb..0x5faefa`).
+2. Arma las esquinas (x, y), (x + 1, y), (x + 1, y + 1) y (x, y + 1) por 100. Cada una tiene su UV y
+   z = lift + la altura de `0x7accca4` de la misma esquina.
+3. Las manda en un `GL_TRIANGLE_FAN` (`0x5fb05e..0x5fb0d9`). Con el sexto argumento en 0 no hay color ni
+   luz por vértice.
+
+Deja las esquinas en `0x78acbc4..0x78acbd0` y los vértices en `0x79ecc30..0x79ecc5c`, que el terreno pisa
+antes de leerlos. No mira el atributo de la celda: dibuja sobre las que el terreno saltea por el bit
+`0x08`, y con el `0x40` usa la altura del `.OZB` y no la fija (Q-C232).
+
+**Entre mapas y escenas.** La tabla dura toda la sesión: ni la carga del mapa (Q-C228) ni la vuelta a la
+selección la tocan. La selección corre `0x5fc260(0)` y, con eso, `0x549130`. Su paso no corre `0x549090`,
+que solo llama el del juego. Las marcas que quedan prendidas al volver se dibujan en la selección con el
+lado, el color y el alfa del último paso del juego, quietas (Q-C233).
+
+**MuRet** (CL7, hito 1):
+
+- **La tabla.** `WorldRuntime::groundMarks` (`World::GroundMarkTable`): 100 `GroundMark` apagadas al
+  arrancar, como la .bss, que `LoadMap` no toca.
+- **`0x548fe0`.** `World::AddGroundMark`, con el `rand()` de `CrtRandom`. Si la tabla está llena y
+  ninguna vida baja de 9.999, corta con error en `0x54900c`. No lo llama nadie: los dos creadores están en
+  ramas que MuRet no corre. El modelo `0x182` corta antes en `0x505e0b`, y `0x52e810`, desde `0x4fd5f0`,
+  es frontera (P-C44, P-C49 b).
+- **`0x549090`.** `World::StepGroundMarks`, desde `GameScene::StepWorld` después de la espera, en
+  `0x63712d`.
+- **`0x549130` y `0x5fb2f0`.** `World::DrawGroundMarks` y `World::DrawTerrainDecal`, en `0x5fc365`, entre
+  el estado de `0x5fc35b..0x5fc360` y el depth test de `0x5fc36a`. El juego de MuRet no sube `blood01` ni
+  sabe los componentes de su slot: con la tabla vacía no dibuja nada, y con una marca prendida corta en
+  `0x549152` (P-C49 b). La selección y el login no dibujan las marcas (P-C49 c).
+
+Tests: `GroundMarksTest` y `TerrainDecalTest`;
+`GameSceneDrawTest.TheReferenceMapsDrawTheTerrainTheGrassAndTheGroundMarksAndStopAtTheObjects`,
+`ALiveGroundMarkStopsWhereMuRetDoesNotKnowItsTexture` y `TheStepAgesTheGroundMarksAfterTheCharacters`,
+en Lorencia y Devias; y `MapLoadTest.TheGroundMarksSurviveTheMapLoad`.
 
 ### La cámara del juego
 
@@ -4270,7 +4418,7 @@ juego y el corrimiento de `WorldMap::grassOffsets`. Sin la textura o con la capa
 no lleva pasto, como en el original; con la capa 1 en 15 o más corta con error (`0x5faaa3`), y sin las
 256 filas del corrimiento (`0x5faad3`). Tests: `TerrainGrassTest` (el quad, la luz, la ola, cada
 condición y el recorrido), `WorldTerrainTest.TheGrassComesAfterTheTiles` y, en Lorencia y Devias,
-`GameSceneDrawTest.TheReferenceMapsDrawTheTerrainAndTheGrassAndStopAtTheGroundMarks`: en Lorencia, con el
+`GameSceneDrawTest.TheReferenceMapsDrawTheTerrainTheGrassAndTheGroundMarksAndStopAtTheObjects`: en Lorencia, con el
 héroe y la cámara de la traza, los 25 quads de z 165 a 293. Con la Data del repo, la capa 1 de las
 celdas que pasan las condiciones del alfa y el `0x08` va de 0 a 13 en los mapas que carga el juego
 (*simulado*, la cuenta): ninguno llega al corte del `0x5faaa3`.

@@ -8,6 +8,7 @@
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
+#include "World/GroundMarks.h"
 #include "World/WorldTerrain.h"
 
 #include "support/GoldenDir.h"
@@ -99,6 +100,30 @@ TEST(MapLoadEventTest, AnEventMapStopsAt447d70)
         {
             EXPECT_NE(checked.Error().find("0x447d70"), std::string::npos);
         }
+    }
+}
+
+// Q-C228: la carga del mapa no vacía las marcas del suelo (0x6070a0 apaga las tablas de al lado y no esta): la
+// marca que había en Lorencia sigue igual en Devias, y de vuelta en Lorencia.
+TEST_F(MapLoadTest, TheGroundMarksSurviveTheMapLoad)
+{
+    ASSERT_TRUE(Load(0).HasValue());
+    const Client::World::GroundMark mark{.live = true,
+                                         .type = 0x5e3,
+                                         .size = 0.65f,
+                                         .position = glm::vec3(12850.0f, 12850.0f, 170.0f),
+                                         .angle = 45.0f,
+                                         .color = glm::vec3(0.1f, 0.0f, 0.0f),
+                                         .alpha = 0.5f,
+                                         .life = 25};
+    world.Runtime().groundMarks[63] = mark;
+
+    for (const std::uint8_t map : {std::uint8_t{2}, std::uint8_t{0}})
+    {
+        SCOPED_TRACE(static_cast<int>(map));
+        ASSERT_TRUE(Load(map).HasValue());
+        EXPECT_EQ(world.Runtime().groundMarks[63], mark);
+        EXPECT_FALSE(world.Runtime().groundMarks[62].live);
     }
 }
 

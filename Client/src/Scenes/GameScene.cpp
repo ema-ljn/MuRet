@@ -9,6 +9,7 @@
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Render/ModelBatch.h"
 #include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
@@ -25,6 +26,7 @@
 #include "UI/GameCursor.h"
 #include "UI/Widget.h"
 #include "World/GameCamera.h"
+#include "World/GroundMarks.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainPickingSegment.h"
@@ -76,6 +78,12 @@ float F32(double value)
 std::string MapText(std::int32_t map)
 {
     return "mapa " + std::to_string(map);
+}
+
+// Los componentes de un slot en el juego de MuRet: no sube las texturas de 0x61ccb0 que no son de los sprites.
+std::optional<std::uint8_t> NoSlotComponents(std::int32_t /*slot*/)
+{
+    return std::nullopt;
 }
 
 // 0x5f8928..0x5f8947: 0x6c9d58, que 0x5f87b0 prende fuera de los mapas 18 a 23 y 30.
@@ -218,8 +226,12 @@ Core::Expected<void, std::string> GameScene::StepWorld()
     {
         return stepped;
     }
-    // Frontera (08 P-C41 a): lo que sigue desde 0x637114 (los números de daño, los efectos, las
-    // partículas).
+    // Frontera (08 P-C41 a): 0x637114..0x637128 (los números de daño, la tabla 0x75fe028, los efectos con modelo,
+    // los joints, el viento y las partículas).
+    // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla
+    // sigue vacía mientras MuRet no tenga quién la llene (08 P-C49).
+    World::StepGroundMarks(runtime.groundMarks);
+    // Frontera (08 P-C41 a): lo que sigue desde 0x637138.
     return {};
 }
 
@@ -450,12 +462,24 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
                 return Core::Unexpected(grown.Error() + ", en el pase del pasto del " + MapText(map));
             }
         }
-        // 0x5fc35b..0x5fc36a: sin depth test (0x620870) y con culling (0x6208d0), las marcas del suelo y el
-        // depth test de vuelta (0x620850). La tabla de 0x549130 (0x760cab0) no la vacía la carga del mapa
-        // (0x6070a0, Q-C228) y la llena 0x548fe0 desde 0x505de0 y 0x52e810 (06 § El dibujo del juego):
-        // MuRet no la tiene y no puede probar que esté vacía (08 P-C48 c).
-        return Core::Unexpected("0x5fc365: las marcas del suelo (0x549130, la lista 0x760cab0) del " + MapText(map) +
-                                " no están portadas");
+        // 0x5fc35b..0x5fc360: sin depth test (0x620870) y con culling (0x6208d0), que la mezcla de 0x549130 apaga.
+        Render::ModelDrawState marksState = canvas.models.State();
+        marksState.depthTest = false;
+        marksState.cullEnabled = true;
+        canvas.models.SetState(marksState);
+        // 0x5fc365: 0x549130, las marcas del suelo de WorldRuntime, que la carga del mapa no vacía (Q-C228). MuRet
+        // no sube Effect\blood01.tga (0x61d7aa), la del 0x5e3 de sus dos creadores, y no sabe sus componentes:
+        // con una marca prendida, corta (08 P-C49).
+        if (auto marked = World::DrawGroundMarks(canvas.models, m_context.world->Runtime().groundMarks,
+                                                 *terrain.heights, NoSlotComponents);
+            !marked.HasValue())
+        {
+            return Core::Unexpected(marked.Error() + ", en el " + MapText(map));
+        }
+        // 0x5fc36a: el depth test de vuelta (0x620850).
+        Render::ModelDrawState afterMarks = canvas.models.State();
+        afterMarks.depthTest = true;
+        canvas.models.SetState(afterMarks);
     }
     // 0x6374ce: los objetos del .obj por sector.
     return Core::Unexpected("0x6374ce: los objetos del " + MapText(map) +

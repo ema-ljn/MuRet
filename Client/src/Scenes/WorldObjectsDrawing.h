@@ -6,6 +6,8 @@
 #include "Scenes/CharacterDrawing.h"
 #include "World/TerrainCulling.h"
 #include "World/ModelEffects.h"
+#include "World/GroundEffectDrawing.h"
+#include "World/SphereFrustum.h"
 #include "World/Leaves.h"
 #include "World/ParticleDrawing.h"
 #include "World/Particles.h"
@@ -99,6 +101,8 @@ struct GameObjectPass
     std::uint8_t* ownRecordDepth = nullptr;
     // 0x5767b88: el reloj del mundo en ms, del que el 0x69 de Lorencia saca su V (0x603018).
     float worldClock = 0.0f;
+    // La tabla global compartida de 0x743a198. Sin ella queda el corte histórico de la primera gota.
+    World::Particles* particles = nullptr;
 };
 
 // 0x6046a0 en el juego (0x6374ce), en los mapas 0 y 2 (06 § Los objetos del juego): sector por sector, en
@@ -106,21 +110,22 @@ struct GameObjectPass
 // Devias sigue solo con el nivel del registro propio desde 0x50 (0x35 con la clase 3 o 4), con su acceso.
 // Después, 0x602e90: el dibujo de World::DrawOf, sin interpolar la animación (el 0x69 de Lorencia, con
 // DrawWaterspout); y, con un frame del original, 0x602ed0: un rand() y el caso de su tipo. El del 0x69 es
-// World::StepTheWaterspoutFrame, con `pass.worldClock`. Corta con la dirección en lo primero que MuRet no
-// tiene, después del rand() común: las gotas del 0x69 (0x6030c7, con sus rand()) y los otros casos de
-// 0x602ed0 (el 0x38 del 0; el 0x64 y el 0x67 del 2). Los objetos de antes quedan dibujados. Los demás
-// mapas cortan antes de mirar un objeto.
+// StepGameWaterspoutFrame, con el pool compartido de `pass.particles`: los dos 5f2/0 sobre los huesos
+// recién posados, con sus rand() intercalados. Un hueso no escrito necesita la pose global anterior y
+// corta después de sus sorteos; sin pool conserva el corte histórico en 0x6030c7. Los otros casos de
+// 0x602ed0 (el 0x38 del 0; el 0x64 y el 0x67 del 2) cortan con su dirección. Los objetos de antes quedan
+// dibujados. Los demás mapas cortan antes de mirar un objeto.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::WorldObject> objects,
                      const World::TerrainPolygon& polygon, const World::TerrainLighting* lighting,
                      Core::Duration frameClock, const GameObjectPass& pass);
 
-// 0x52dc20 (0x6374d3), los efectos del suelo, sobre la tabla de 0x518cf0 (*estático*): con cada lugar vivo
-// y con +0x16c, un rand() (0x52dc46), la mezcla aditiva y el caso de su tipo (0x61d, 0x5de, 0x5d5, 0x61e,
-// 0x61f, 0x636 y 0x6eb, con 0x5fb2f0). El +0x16c lo escribe 0x52d620 (0x52d64d) en su dibujo y 0x518cf0 no
-// lo toca: el de un efecto recién creado es el del último que ocupó el lugar y se vio. ModelEffect no lo
-// lleva: con la tabla vacía no hace nada, y en el primer lugar vivo corta (0x52dc3b), sin rand().
-[[nodiscard]] Core::Expected<void, std::string> DrawGroundEffects(std::span<const World::ModelEffect> effects);
+// 0x52dc20 (0x6374d3): por cada lugar vivo y con el +0x16c retenido, un rand() común, la mezcla
+// aditiva y el caso del tipo. Conserva los efectos de los lugares anteriores si uno corta. Un pase del
+// original; GroundEffectFrame conserva la geometría entre frames de MuRet (D-C4).
+[[nodiscard]] Core::Expected<void, std::string> DrawGroundEffects(Render::ModelBatch& batch,
+                                                                  std::span<World::ModelEffect> effects,
+                                                                  const World::GroundEffectResources& resources);
 
 // 0x52d220: World::StepModelEffect sobre cada efecto vivo, con el esqueleto de su modelo.
 void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary& models);
@@ -128,10 +133,11 @@ void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary
 // 0x52d620(0) con los efectos vivos: un RenderBody(2, 1, −1, 1, 0, 0, −1, −1) por cada uno, opaco, con
 // el color de la luz del terreno en su lugar (`lighting`, o 0 sin ella) más la suya, la luz de cada
 // normal y el frame entero (06 § El dragón de fondo); la posición, `alpha` de un paso más con lo que se
-// movió en el último (D-C4: el original la dibuja tal cual, a 25 por segundo). La esfera de 400
-// contra el frustum no va: en el login el dragón está siempre en pantalla.
-void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models,
-                      std::span<const World::ModelEffect> effects, const World::TerrainLighting* lighting,
+// movió en el último (D-C4: el original la dibuja tal cual, a 25 por segundo). Primero publica +0x16c
+// con la esfera de 400, sobre la posición lógica, aun si el modelo no se encuentra. Un lugar muerto
+// conserva su marca; uno vivo fuera de la esfera no consulta el modelo.
+void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,
+                      const World::SphereFrustum& frustum, const World::TerrainLighting* lighting,
                       Core::Duration frameClock, float alpha);
 
 // 0x549440(0), en el pase de ojo (después de 0x6213e0, con la modelview en la identidad): cada sprite

@@ -77,6 +77,11 @@ const World::WorldTerrain* LoadedWorld::Terrain() const
     return m_terrain ? &*m_terrain : nullptr;
 }
 
+World::WorldTerrain* LoadedWorld::Terrain()
+{
+    return m_terrain ? &*m_terrain : nullptr;
+}
+
 std::optional<World::WorldTerrain> LoadedWorld::TakeTerrain()
 {
     m_view = World::TerrainView{};
@@ -93,14 +98,20 @@ void LoadedWorld::Step(Core::Duration clock, const World::TerrainRange& range)
 }
 
 void LoadedWorld::DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClock, const World::TerrainRange& range,
-                              const World::TerrainPolygon& polygon, float fixedHeight)
+                              const World::TerrainPolygon& polygon, float fixedHeight,
+                              const World::TerrainLighting* dynamicLighting)
 {
     if (!m_terrain)
     {
         return;
     }
-    m_view.fixedHeight = fixedHeight;
+    World::TerrainView view = m_view;
+    view.fixedHeight = fixedHeight;
+    if (dynamicLighting != nullptr)
+    {
+        view.lighting = dynamicLighting;
+    }
     m_water.offset = World::WaterOffsetAt(frameClock, m_view.map);
-    World::DrawTerrain(batch, m_view, range, polygon, m_water);
+    World::DrawTerrain(batch, view, range, polygon, m_water);
 }
 } // namespace Client::Scenes

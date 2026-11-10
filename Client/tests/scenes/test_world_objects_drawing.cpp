@@ -23,6 +23,9 @@
 #include "Render/Models/Skinning.h"
 #include "World/TerrainLighting.h"
 #include "World/ModelEffects.h"
+#include "World/GroundEffectDrawing.h"
+#include "Data/Terrain/TerrainHeights.h"
+#include "World/SphereFrustum.h"
 #include "World/WorldObjects.h"
 
 #include <glm/ext/matrix_float4x4.hpp>
@@ -517,18 +520,103 @@ TEST(WorldObjectsDrawingTest, TheLorenciaWaterspoutRunsItsFrameCase)
     }
 }
 
-// 0x52dc20 (0x6374d3): con la tabla vacía, nada; con un lugar vivo, corta en 0x52dc3b sin rand(), con su
-// lugar y su tipo: su +0x16c es el que dejó otro (0x518cf0 no lo toca), y ModelEffect no lo lleva.
-TEST(WorldObjectsDrawingTest, TheGroundEffectsStopAtTheFirstLiveEffect)
+// 0x52dc2d..0x52dc50: el +0x16c retenido decide el rand común y el cambio de mezcla, aun en un tipo
+// que no tiene caso de suelo (el dragón). No se recalcula la esfera en este pase.
+TEST(WorldObjectsDrawingTest, GroundEffectsUseOnlyTheRetainedVisibilityOfLiveSlots)
 {
     std::array<Client::World::ModelEffect, 3> effects{};
-    EXPECT_TRUE(Client::Scenes::DrawGroundEffects(effects).HasValue());
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Client::Render::Models::CrtRandom random(1234);
+    Client::Render::Models::CrtRandom expected(1234);
+    const Client::World::GroundEffectResources resources{.heights = *heights, .random = random};
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    const auto initial = batch.State();
+    EXPECT_TRUE(Client::Scenes::DrawGroundEffects(batch, effects, resources).HasValue());
+    effects[1].alive = true;
+    effects[1].type = Client::World::ArrivalEffect;
+    EXPECT_TRUE(Client::Scenes::DrawGroundEffects(batch, effects, resources).HasValue());
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(batch.State(), initial);
+    effects[0].seen = true; // muerto: tampoco participa.
     effects[2].alive = true;
-    effects[2].type = Client::World::ArrivalEffect;
-    const auto drawn = Client::Scenes::DrawGroundEffects(effects);
+    effects[2].seen = true;
+    effects[2].type = Client::World::DragonEffect;
+    EXPECT_TRUE(Client::Scenes::DrawGroundEffects(batch, effects, resources).HasValue());
+    static_cast<void>(expected.Next());
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Additive);
+    EXPECT_EQ(batch.State().depthWrite, false);
+    EXPECT_EQ(batch.State().cullEnabled, false);
+    EXPECT_TRUE(batch.Vertices().empty());
+}
+
+TEST(WorldObjectsDrawingTest, AVisibleArrivalConsumesTheCommonRandomBeforeDrawing)
+{
+    std::array<Client::World::ModelEffect, 1> effects{};
+    effects[0].alive = true;
+    effects[0].seen = true;
+    effects[0].type = Client::World::ArrivalEffect;
+    effects[0].life = 20;
+    effects[0].transform.position = {1000.0f, 1000.0f, 0.0f};
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Client::Render::Models::CrtRandom random(1234);
+    Client::Render::Models::CrtRandom expected(1234);
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    const auto drawn = Client::Scenes::DrawGroundEffects(batch, effects, {.heights = *heights, .random = random});
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    static_cast<void>(expected.Next());
+    EXPECT_EQ(random.State(), expected.State());
+    EXPECT_FALSE(batch.Vertices().empty());
+}
+
+TEST(WorldObjectsDrawingTest, ANoopGroundCasePublishesItsStateWithoutBindingATexture)
+{
+    std::array<Client::World::ModelEffect, 1> effects{};
+    effects[0].alive = true;
+    effects[0].seen = true;
+    effects[0].type = Client::World::DragonEffect;
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Client::Render::Models::CrtRandom random;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    ASSERT_TRUE(Client::Scenes::DrawGroundEffects(batch, effects, {.heights = *heights, .random = random}).HasValue());
+    using Operation = Client::Render::ModelStateOperation;
+    const std::array wanted{Operation::Blend, Operation::Cull, Operation::DepthWrite, Operation::AlphaTest,
+                            Operation::Texture2d};
+    ASSERT_EQ(batch.Commands().size(), wanted.size());
+    for (std::size_t index = 0; index < wanted.size(); ++index)
+    {
+        EXPECT_EQ(batch.Commands()[index].operation, wanted[index]);
+        EXPECT_EQ(batch.Commands()[index].vertexCount, 0u);
+    }
+    EXPECT_TRUE(batch.Vertices().empty());
+}
+
+TEST(WorldObjectsDrawingTest, AFailedGroundCaseKeepsTheCommonStateOperationsBeforeItsPrefix)
+{
+    std::array<Client::World::ModelEffect, 1> effects{};
+    effects[0].alive = true;
+    effects[0].seen = true;
+    effects[0].type = 0x6eb;
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Client::Render::Models::CrtRandom random;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    const auto drawn = Client::Scenes::DrawGroundEffects(
+        batch, effects, {.heights = *heights, .random = random, .worldClock = 0.0f, .map = 24});
     ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x52dc3b"), std::string::npos) << drawn.Error();
-    EXPECT_NE(drawn.Error().find("efecto 2 (el 0x61f)"), std::string::npos) << drawn.Error();
+    EXPECT_NE(drawn.Error().find("0x52e12f"), std::string::npos);
+    using Operation = Client::Render::ModelStateOperation;
+    const std::array wanted{Operation::Blend,     Operation::Cull,      Operation::DepthWrite,
+                            Operation::AlphaTest, Operation::Texture2d, Operation::DepthWrite};
+    ASSERT_EQ(batch.Commands().size(), wanted.size());
+    for (std::size_t index = 0; index < wanted.size(); ++index)
+    {
+        EXPECT_EQ(batch.Commands()[index].operation, wanted[index]);
+    }
+    EXPECT_TRUE(batch.Vertices().empty());
 }
 
 // 0x60479c..0x604a36: el 0x64 de Devias solo sigue con el nivel del registro propio desde 0x50, o desde 0x35
@@ -1000,10 +1088,10 @@ TEST(ModelEffectsDrawingTest, TheDragonTakesTheTerrainLightPlusItsOwn)
     const TwoMeshModels models;
     auto lighting = std::make_unique<Client::World::TerrainLighting>();
     lighting->cells.fill({0.25f, 0.5f, 0.75f});
-    const std::array<Client::World::ModelEffect, 1> effects{LiveEffect()};
+    std::array<Client::World::ModelEffect, 1> effects{LiveEffect()};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawModelEffects(batch, models, effects, lighting.get(), {}, 0.0f);
+    Client::Scenes::DrawModelEffects(batch, models, effects, Client::World::SphereFrustum{}, lighting.get(), {}, 0.0f);
     ASSERT_EQ(batch.Vertices().size(), 6u);
     const float light = Client::Render::Models::NormalLight(glm::vec3(0.0f, 0.0f, 1.0f));
     const auto& color = batch.Vertices()[0].color;
@@ -1011,6 +1099,71 @@ TEST(ModelEffectsDrawingTest, TheDragonTakesTheTerrainLightPlusItsOwn)
     EXPECT_FLOAT_EQ(color.green, 1.5f * light);
     EXPECT_FLOAT_EQ(color.blue, 1.75f * light);
     EXPECT_NE(light, 1.0f) << "la normal tiene que cambiar el color para que el test mire la luz por vértice";
+}
+
+TEST(ModelEffectsDrawingTest, CullingUsesTheLogicalPositionAndRetainsDeadSlotHistory)
+{
+    const TwoMeshModels models;
+    std::array<Client::World::ModelEffect, 3> effects{LiveEffect(), LiveEffect(), LiveEffect()};
+    Client::World::SphereFrustum frustum;
+    frustum.normals[0] = {1.0f, 0.0f, 0.0f};
+    effects[0].seen = true;
+    effects[0].transform.position.x = -401.0f;
+    effects[0].previousPosition.x = -1000.0f;
+    // La extrapolación entraría en pantalla; el recorte usa +0x10, no esa posición dibujada.
+    effects[1].seen = false;
+    effects[1].transform.position.x = 0.0f;
+    effects[1].previousPosition.x = 1000.0f;
+    effects[2].alive = false;
+    effects[2].seen = true;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    Client::Scenes::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 1.0f);
+    EXPECT_FALSE(effects[0].seen);
+    EXPECT_TRUE(effects[1].seen);
+    EXPECT_TRUE(effects[2].seen);
+    ASSERT_EQ(batch.Vertices().size(), 6u);
+    EXPECT_EQ(batch.Vertices()[0].position.x, -1000.0f);
+}
+
+struct MissingEffectModels final : Client::Scenes::IModelLibrary
+{
+    mutable int lookups = 0;
+    const Model* Find(std::uint16_t) const override
+    {
+        ++lookups;
+        return nullptr;
+    }
+    const Skeleton* SkeletonOf(std::uint16_t) const override
+    {
+        ++lookups;
+        return nullptr;
+    }
+    std::span<const TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        ++lookups;
+        return {};
+    }
+};
+
+TEST(ModelEffectsDrawingTest, VisibilityIsPublishedBeforeLookingForTheModel)
+{
+    const MissingEffectModels models;
+    std::array<Client::World::ModelEffect, 1> effects{LiveEffect()};
+    Client::World::SphereFrustum frustum;
+    frustum.normals[0] = {1.0f, 0.0f, 0.0f};
+    effects[0].seen = true;
+    effects[0].transform.position.x = -401.0f;
+    ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    Client::Scenes::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0.0f);
+    EXPECT_FALSE(effects[0].seen);
+    EXPECT_EQ(models.lookups, 0);
+    effects[0].transform.position.x = 0.0f;
+    Client::Scenes::DrawModelEffects(batch, models, effects, frustum, nullptr, {}, 0.0f);
+    EXPECT_TRUE(effects[0].seen);
+    EXPECT_GT(models.lookups, 0);
+    EXPECT_TRUE(batch.Vertices().empty());
 }
 
 // El paso solo corre los efectos vivos.
@@ -1031,10 +1184,10 @@ TEST(ModelEffectsDrawingTest, OnlyLiveEffectsStep)
 TEST(ModelEffectsDrawingTest, TheDragonIsDrawnBetweenTwoSteps)
 {
     const TwoMeshModels models;
-    const std::array<Client::World::ModelEffect, 1> effects{LiveEffect()};
+    std::array<Client::World::ModelEffect, 1> effects{LiveEffect()};
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    Client::Scenes::DrawModelEffects(batch, models, effects, nullptr, {}, 0.5f);
+    Client::Scenes::DrawModelEffects(batch, models, effects, Client::World::SphereFrustum{}, nullptr, {}, 0.5f);
     ASSERT_FALSE(batch.Vertices().empty());
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.y, 1000.0f - 35.0f);
     EXPECT_FLOAT_EQ(batch.Vertices()[0].position.x, 1000.0f);

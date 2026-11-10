@@ -60,6 +60,7 @@
 #include "UI/ServerListWindow.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
+#include "World/SphereFrustum.h"
 #include "World/TerrainHeight.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
@@ -1129,7 +1130,9 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
                                                                                 OriginalFramePaceOf(m_context.pacing)),
                                         .lastRandoms = m_objectEffectRandoms});
     // 0x52d620(0): los efectos con modelo, después de los objetos.
-    DrawModelEffects(canvas.models, m_worldModels, m_effects.Effects(), lighting, canvas.frameClock, alpha);
+    DrawModelEffects(canvas.models, m_worldModels, m_effects.Effects(),
+                     World::SphereFrustumOf(canvas.models.Pass().view, m_drawnCamera), lighting, canvas.frameClock,
+                     alpha);
     // 0x5306a0, después de 0x549510: las brasas, en el mundo.
     DrawLeaves(canvas.models, m_leaves);
     m_drawnSinceEntering = true;

@@ -9,6 +9,12 @@
 #include "World/TerrainHeight.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldTerrain.h"
+#include "World/TerrainCells.h"
+#include "World/TerrainCulling.h"
+#include "Render/ModelBatch.h"
+#include "Render/ModelVertex.h"
+#include "Render/Pass3D.h"
+#include <memory>
 
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -140,6 +146,26 @@ TEST_F(GoldenLoadedWorld, LoadsTheFourteenTilesAndTheAcceptBox)
     EXPECT_EQ(world.LoadedMap(), std::nullopt);
     EXPECT_EQ(world.Lighting(), nullptr);
     EXPECT_EQ(m_store.Size(), 0u);
+}
+
+TEST_F(GoldenLoadedWorld, DrawingUsesTheDynamicLightWithoutReplacingItsBase)
+{
+    LoadedWorld world(m_store);
+    std::vector<std::string> skipped;
+    ASSERT_TRUE(world.Load(m_copy.Path(), Login, skipped).HasValue());
+    const float base = world.Lighting()->cells[1000][0];
+    auto dynamic = std::make_unique<Client::World::TerrainLighting>();
+    dynamic->cells.fill({1.0f, 0.0f, 0.0f});
+    Client::Render::ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    const Client::World::TerrainRange range{.firstX = 0, .lastX = 128, .firstY = 120, .lastY = 251};
+    Client::World::TerrainPolygon polygon;
+    polygon.everything = true;
+    world.DrawTerrain(batch, {}, range, polygon, Client::World::FixedCornerHeight, dynamic.get());
+    ASSERT_FALSE(batch.Vertices().empty());
+    EXPECT_TRUE(std::ranges::all_of(batch.Vertices(), [](const Client::Render::ModelVertex& vertex)
+                                    { return vertex.color.green == 0.0f && vertex.color.blue == 0.0f; }));
+    EXPECT_EQ(world.Lighting()->cells[1000][0], base);
 }
 
 // Las tablas siguen vivas entre escenas; los tiles siguen perteneciendo al LoadedWorld.

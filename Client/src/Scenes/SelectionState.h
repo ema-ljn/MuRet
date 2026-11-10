@@ -3,6 +3,7 @@
 #include "App/CharacterEvent.h"
 #include "Core/Expected.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/WorldState.h"
 #include "World/TerrainCulling.h"
@@ -19,6 +20,11 @@ struct GameCamera;
 struct GameCameraInput;
 } // namespace Client::World
 
+namespace Client::Render::Models
+{
+struct Skeleton;
+}
+
 // La selección sobre el pool durable (06, "Los personajes de la lista", y CL7.3 B): construye en los
 // cinco primeros registros de WorldState y escribe el mundo en curso en su WorldRuntime, sin otra
 // copia. main es dueño de los dos; la vista usa las revisiones, nunca la igualdad de las entradas.
@@ -32,6 +38,9 @@ public:
 
     // Los cinco primeros registros del pool, los lugares de la lista.
     [[nodiscard]] std::span<const ActorState, SelectionActorCount> Slots() const;
+    // 0x7437050 vive fuera del pool y sobrevive al objeto visual de la escena, igual que las tablas.
+    [[nodiscard]] ActorState& PreviewActor();
+    [[nodiscard]] const ActorState& PreviewActor() const;
     [[nodiscard]] bool HasReceivedList() const;
     [[nodiscard]] bool IsInitialized() const;
     [[nodiscard]] const std::optional<std::string>& Failure() const;
@@ -54,16 +63,23 @@ public:
     [[nodiscard]] Core::Expected<void, std::string> InitializeSelection(const std::filesystem::path& dataRoot,
                                                                         World::GameCameraInput& input);
     [[nodiscard]] Core::Expected<void, std::string> Apply(std::span<const App::CharacterEvent> events,
-                                                          World::GameCamera& camera, World::GameCameraInput& input);
+                                                          World::GameCamera& camera, World::GameCameraInput& input,
+                                                          Render::Models::ClothWorld* cloth = nullptr,
+                                                          const Render::Models::Skeleton* playerSkeleton = nullptr);
     // Se llama después de la cámara de selección: 0x634680 escribe Z a los cinco slots.
     void DrawSelection(World::GameCameraInput& input);
 
 private:
     [[nodiscard]] Core::Expected<void, std::string> Construct(const Protocol::Character::CharacterEntry& entry,
                                                               const World::GameCamera& camera,
-                                                              World::GameCameraInput& input);
+                                                              World::GameCameraInput& input,
+                                                              Render::Models::ClothWorld& cloth,
+                                                              const Render::Models::Skeleton& playerSkeleton);
     [[nodiscard]] Core::Expected<void, std::string> Fail(std::string error);
     WorldState& m_world;
+    ActorState m_preview;
+    // Solo quien prueba el estado sin el bucle usa este rand(); main aporta el de toda la sesión.
+    Render::Models::ClothWorld m_localCloth;
     std::optional<World::WorldTerrain> m_ownedTerrain;
     const World::WorldTerrain* m_borrowedTerrain = nullptr;
     World::CullingScene m_scene = World::CullingScene::Other;

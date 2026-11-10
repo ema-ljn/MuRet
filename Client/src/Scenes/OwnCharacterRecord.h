@@ -52,6 +52,9 @@ struct OwnCharacterRecord
     // (scalar1Low), y ninguno de los dos toca la durabilidad (Q-C203).
     void ClearEquipmentForInventory();
 
+    // 0x633f20: +0x6a y +0x6c..+0xab en 0; solo D+4 de los ocho primeros ítems en 0.
+    void ResetForSelection();
+
     // 06, "La lógica": lo copia la selección (0x6342c0) y la respuesta no lo cambia.
     std::array<std::byte, Protocol::Character::NameSize + 1> name{}; // +0, hasta la clase
     std::uint8_t characterClass = 0;                                 // +0xb
@@ -110,6 +113,8 @@ struct OwnCharacterRecord
     std::uint16_t word64 = 0;
     std::uint16_t word66 = 0;
     std::uint16_t levelUpPoints = 0; // +0x68
+    std::uint8_t byte6a = 0;
+    std::array<std::uint32_t, 16> words6c{};
 
     std::array<World::ItemState, OwnEquipmentSlotCount> equipment{}; // +0xb68
 

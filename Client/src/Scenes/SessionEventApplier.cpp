@@ -7,6 +7,8 @@
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
 #include "Protocol/World.h"
+#include "Data/Models/PlayerModels.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/InventoryReply.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/ReturnToSelection.h"
@@ -59,7 +61,9 @@ SessionEventApplier::SessionEventApplier(const WorldEntryResources& resources) :
 Core::Expected<void, std::string> SessionEventApplier::ApplyCharacter(const App::CharacterEvent& event,
                                                                       const App::ServerSession&)
 {
-    return m_resources.selection.Apply(std::span(&event, 1), m_resources.camera, m_resources.cameraInput);
+    return m_resources.selection.Apply(std::span(&event, 1), m_resources.camera, m_resources.cameraInput,
+                                       &m_resources.cloth,
+                                       m_resources.models.SkeletonOf(Data::Models::PlayerSkeletonModel));
 }
 
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::WorldEvent& event,

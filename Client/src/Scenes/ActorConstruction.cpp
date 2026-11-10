@@ -35,8 +35,9 @@ constexpr std::uint8_t PlayerStartAction = 1;
 // 0x4ec200 no corre acá: 0x511290 deja las dos acciones en 1 y el frame en 0.
 void ResetTheAnimation(ActorState& actor)
 {
-    actor.animation.action = PlayerStartAction;
-    actor.animation.previousAction = PlayerStartAction;
+    const std::uint8_t action = actor.type == Data::Models::PlayerSkeletonModel ? PlayerStartAction : 0;
+    actor.animation.action = action;
+    actor.animation.previousAction = action;
     actor.animation.frame = 0.0f;
     actor.animation.previousKey = 0;
 }
@@ -108,7 +109,10 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     // 0x511bdf y 0x512499: el alpha de a 0,05 (0x4e9980) y la luz del blendMesh en 1,0.
     actor.alphaMode = 1;
     actor.blendMeshLight = 1.0f;
-    actor.characterClass = 0;
+    if (!IsNewFace(type))
+    {
+        actor.characterClass = 0;
+    }
     ResetTheAnimation(actor);
     actor.seen = false;
     actor.dying = 0;
@@ -124,9 +128,21 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     // 0x511c99, en el mismo bloque que el PK y la escala: el +0x358 que después escribe 0x40d010 en el
     // héroe publicado.
     actor.byte358 = 0;
+    actor.level = 0;
+    actor.guildStatus = 0xff;
     actor.light = {};
+    actor.drawnLight = {};
+    // 0x511878: reconstruir el dueño borra el cuervo anterior.
+    actor.darkSpirit.reset();
 }
 } // namespace
+
+bool IsNewFace(std::uint16_t type)
+{
+    constexpr std::uint16_t FirstNewFace = 0xa8;
+    constexpr std::uint16_t LastNewFace = 0xac;
+    return type >= FirstNewFace && type <= LastNewFace;
+}
 
 bool HeightSkippedIn(World::CullingScene scene)
 {
@@ -155,19 +171,19 @@ Core::Expected<void, std::string> ConstructActor(ActorState& actor, std::uint16_
                                                  const ActorConstructionContext& context,
                                                  Render::Models::ClothWorld& cloth)
 {
-    if (type != Data::Models::PlayerSkeletonModel)
+    if (type != Data::Models::PlayerSkeletonModel && !IsNewFace(type))
     {
-        return Core::Unexpected("0x511290: el tipo " + std::to_string(type) + " no está leído, solo el 0x20a");
-    }
-    if (!context.terrain.attributes || !context.terrain.heights)
-    {
-        return Core::Unexpected(std::string("0x511290: faltan los atributos o las alturas del mundo cargado"));
+        return Core::Unexpected("0x511290: el tipo " + std::to_string(type) + " no está leído (0x20a y 0xa8..0xac)");
     }
     const bool previousHad1c15 = actor.previousHad1c15;
     SetTheStartingState(actor, type);
     WriteTheCell(actor, placement, cloth.random);
     ReadTheCell(actor.cellYAccesses, cloth.random);
     ReadTheCell(actor.cellXAccesses, cloth.random);
+    if (!context.terrain.attributes)
+    {
+        return Core::Unexpected(std::string("0x511b9f: faltan los atributos del mundo cargado"));
+    }
     const std::size_t cell = Data::Terrain::CellIndex(placement.x, placement.y);
     const bool safe = (context.terrain.attributes->cells[cell] & SafeAttribute) != 0;
     actor.safeZone = static_cast<std::uint8_t>(safe ? 1 : 0);
@@ -176,6 +192,10 @@ Core::Expected<void, std::string> ConstructActor(ActorState& actor, std::uint16_
     const float x = static_cast<float>(placement.x) * CellSize + CellCenter;
     const float y = static_cast<float>(placement.y) * CellSize + CellCenter;
     actor.stepStamp = ReadTheStepCounter(cloth);
+    if (!HeightSkippedIn(context.scene) && !context.terrain.heights)
+    {
+        return Core::Unexpected(std::string("0x51225f: faltan las alturas del mundo cargado"));
+    }
     // El FSTP a float va después de la suma del corrimiento.
     actor.position = {x, y, static_cast<float>(ConstructionHeight(context, x, y, previousHad1c15, safe))};
     actor.angles = {0.0f, 0.0f, placement.angle};

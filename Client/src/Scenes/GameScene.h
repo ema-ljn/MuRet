@@ -8,6 +8,10 @@
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/Pass3D.h"
 #include "Scenes/IScene.h"
+#include "Scenes/GroundEffectFrame.h"
+#include "Scenes/CharacterCloth.h"
+#include "World/ScepterGlow.h"
+#include "World/Sprites.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -23,6 +27,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
 // La escena 5: en su primer paso manda el F3 03 (0x636290, ServerSession::EnterWorld) y después espera
 // el mundo. Mientras el contador de la espera pasa de 30, el dibujo (0x6371a0) no dibuja ni presenta y
@@ -116,6 +121,8 @@ private:
     [[nodiscard]] Core::Expected<void, std::string> DrawTheWorldPass(SceneCanvas& canvas, const Render::Pass3D& pass,
                                                                      const World::TerrainPolygon& polygon, int frames);
 
+    [[nodiscard]] Core::Expected<void, std::string> DrawTheCharacters(SceneCanvas& canvas, int frames);
+
     World::GameCamera& CameraState();
     World::GameCameraInput& CameraInputState();
 
@@ -131,6 +138,10 @@ private:
     World::GameCamera m_localCamera;
     World::GameCameraInput m_localCameraInput;
     Render::Models::OriginalFrameCarry m_cameraFrames;
+    GroundEffectFrame m_groundEffects;
+    std::vector<CharacterCloth> m_characterCloths;
+    std::vector<World::ScepterGlowCarry> m_scepters;
+    World::FrameSprites m_sprites;
     TerrainTiles m_tiles;
     // Los modelos de los objetos del mapa que los cargó, si alguno.
     WorldModels m_worldModels;

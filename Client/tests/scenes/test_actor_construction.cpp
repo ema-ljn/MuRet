@@ -114,6 +114,28 @@ TEST_F(ActorConstructionTest, SpendsTwentyEightRandomsFromZero)
     EXPECT_EQ(other.stepStamp, 77);
 }
 
+TEST_F(ActorConstructionTest, NewFacesKeepTheirClassAndHeadButStartAtActionZero)
+{
+    ActorState actor;
+    actor.characterClass = 4;
+    actor.headTurn.angles = {12.0f, 34.0f};
+    actor.headTurn.target = {56.0f, 78.0f};
+
+    const auto built = ConstructActor(actor, 0xa9, {}, Context(54), cloth);
+
+    ASSERT_TRUE(built.HasValue()) << built.Error();
+    EXPECT_TRUE(actor.alive);
+    EXPECT_EQ(actor.type, 0xa9u);
+    EXPECT_EQ(actor.characterClass, 4u);
+    EXPECT_EQ(actor.animation.action, 0u);
+    EXPECT_EQ(actor.animation.previousAction, 0u);
+    EXPECT_EQ(actor.position.x, 50.0f);
+    EXPECT_EQ(actor.position.y, 50.0f);
+    EXPECT_EQ(actor.headTurn.angles, (glm::vec2{12.0f, 34.0f}));
+    EXPECT_EQ(actor.headTurn.target, (glm::vec2{56.0f, 78.0f}));
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 28).State());
+}
+
 // El word318 de antes en 0x1c15 suma 30 (90 en los mapas 8 y 10) fuera de la zona segura y con un
 // mundo; después la mascota queda sin ítem.
 TEST_F(ActorConstructionTest, TheOld1c15AddsThePetOffsetOutsideTheSafeZone)
@@ -194,12 +216,12 @@ TEST_F(ActorConstructionTest, LeavesThePlayerUnseenAndNotDying)
     EXPECT_EQ(actor.blendMeshLight, 1.0f);
 }
 
-// Los casos de los otros tipos no están leídos: corta sin tocar al personaje ni gastar rand().
-TEST_F(ActorConstructionTest, OnlyThePlayerTypeIsConstructed)
+// Fuera del jugador y los NewFace, corta sin tocar el personaje ni gastar rand().
+TEST_F(ActorConstructionTest, UnknownTypesFailBeforeChangingTheRecord)
 {
     ActorState actor;
 
-    const auto built = ConstructActor(actor, 0xa9, ActorPlacement{133, 127, 0.0f}, Context(), cloth);
+    const auto built = ConstructActor(actor, 0xad, ActorPlacement{133, 127, 0.0f}, Context(), cloth);
 
     ASSERT_FALSE(built.HasValue());
     EXPECT_NE(built.Error().find("0x511290"), std::string::npos);

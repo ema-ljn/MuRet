@@ -26,6 +26,7 @@
 #include "Network/PacketSerials.h"
 #include "Network/SocketError.h"
 #include "Protocol/BuildConstants.h"
+#include "Protocol/Movement.h"
 #include "Protocol/Character/CharacterCreate.h"
 #include "Protocol/Character/CharacterDelete.h"
 #include "Protocol/Character/CharacterList.h"
@@ -4035,4 +4036,94 @@ TEST(ServerSessionTest, TheLogDoesNotHaveTheCharacterNames)
                                      { return line.find("char000") != std::string::npos; }));
 }
 
+// 04 § Caminar y pegar y cambios de mapa: el reparto nuevo no pierde los mensajes de un lote.
+
+// P-C33: incluso un 1C sin campos pasa por el rechazo antes del lector semántico.
+
+// La conexión cifra sólo el gate: los tres C1 de mundo restantes salen con XOR32 sin C3.
+TEST(ServerSessionTest, GateRequestAndTeleportDoneUseTheirDelivery)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto before = tested.GameServerReads().packets.size();
+    constexpr std::array<Client::Protocol::Movement::Cell, 4> Path{
+        {{0xb6, 0x73}, {0xb5, 0x73}, {0xb4, 0x74}, {0xb3, 0x74}}};
+    ASSERT_TRUE(tested.session.SendWalk(Path, {0, 0}, 0.0f).HasValue());
+    tested.session.RequestGate(23);
+    tested.session.ConfirmTeleport();
+    tested.session.RequestCrywolfState();
+    const auto received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 4);
+    EXPECT_TRUE(
+        SameBytes(Xor32Decode(received.packets[before]).Bytes(), Bytes({0xc1, 8, 0xd3, 0xb6, 0x73, 0x73, 0x76, 0x70})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(received.packets[before + 1]).Bytes(), Bytes({0xc1, 6, 0x1c, 23, 0, 0})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(received.packets[before + 2]).Bytes(), Bytes({0xc1, 4, 0xf3, 0x12})));
+    EXPECT_TRUE(SameBytes(Xor32Decode(received.packets[before + 3]).Bytes(), Bytes({0xc1, 4, 0xbd, 0})));
+    EXPECT_FALSE(received.packets[before].WasDecrypted());
+    EXPECT_TRUE(received.packets[before + 1].WasDecrypted());
+    EXPECT_FALSE(received.packets[before + 2].WasDecrypted());
+    EXPECT_FALSE(received.packets[before + 3].WasDecrypted());
+}
+
+TEST(ServerSessionTest, InvalidWalkDoesNotSendOrDisturbTheSession)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto before = tested.socket.sent.size();
+    EXPECT_FALSE(tested.session.SendWalk({}, {1, 2}, 0.0f).HasValue());
+    EXPECT_EQ(tested.socket.sent.size(), before);
+    EXPECT_EQ(tested.session.State(), SessionState::LoggedIn);
+}
+
+TEST(ServerSessionTest, WorldRequestsNeverGoToTheConnectServer)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingServer());
+    const auto before = tested.socket.sent.size();
+    tested.session.RequestGate(23);
+    tested.session.ConfirmTeleport();
+    tested.session.RequestCrywolfState();
+    constexpr std::array<Client::Protocol::Movement::Cell, 1> Path{{{1, 2}}};
+    EXPECT_FALSE(tested.session.SendWalk(Path, {1, 2}, 0.0f).HasValue());
+    EXPECT_EQ(tested.socket.sent.size(), before);
+    EXPECT_EQ(tested.session.State(), SessionState::ChoosingServer);
+}
+
+// CheckApplication también corta el lote para las alternativas nuevas.
+
+TEST(ServerSessionTest, AClosedGameServerDoesNotQueueWorldRequests)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    tested.connection.Close();
+    const auto before = tested.socket.sent.size();
+    tested.session.RequestGate(23);
+    tested.session.ConfirmTeleport();
+    tested.session.RequestCrywolfState();
+    constexpr std::array<Client::Protocol::Movement::Cell, 1> Path{{{1, 2}}};
+    EXPECT_FALSE(tested.session.SendWalk(Path, {1, 2}, 0.0f).HasValue());
+    EXPECT_EQ(tested.socket.sent.size(), before);
+}
+
+TEST(ServerSessionTest, FacingUsesTheWorldConnectionAndXorDelivery)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachLoggedIn());
+    const auto before = tested.GameServerReads().packets.size();
+    ASSERT_TRUE(tested.session.SendFacing(0xf7).HasValue());
+    const auto received = tested.GameServerReads();
+    ASSERT_EQ(received.packets.size(), before + 1);
+    EXPECT_TRUE(SameBytes(Xor32Decode(received.packets.back()).Bytes(), Bytes({0xc1, 5, 0x18, 0xf7, 0x7a})));
+    EXPECT_FALSE(received.packets.back().WasDecrypted());
+}
+
+TEST(ServerSessionTest, FacingCannotGoToTheConnectServerOrAClosedConnection)
+{
+    Harness tested(IdentityObfuscation::Shared());
+    EXPECT_FALSE(tested.session.SendFacing(3).HasValue());
+    ASSERT_NO_FATAL_FAILURE(tested.ReachChoosingServer());
+    const auto before = tested.socket.sent.size();
+    EXPECT_FALSE(tested.session.SendFacing(3).HasValue());
+    EXPECT_EQ(tested.socket.sent.size(), before);
+}
 } // namespace

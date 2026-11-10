@@ -307,7 +307,7 @@ void CommonMotion(FaunaStepContext& c, FaunaObject& b, std::int32_t index)
     b.aheadY = F32(static_cast<double>(delta.y) * 3 + b.position.y);
     const double dx = newX - c.heroPosition.x, dy = static_cast<double>(b.position.y) - c.heroPosition.y;
     const float distance = F32(std::sqrt(dx * dx + dy * dy));
-    const float limit = b.type == IcarusBird ? 4000 : b.type == KalimaBird ? 3000 : 1500;
+    const float limit = b.type == IcarusBird ? 4000.0f : b.type == KalimaBird ? 3000.0f : 1500.0f;
     if (b.type != IcarusBird && b.type != KalimaBird && Random(c) % 512 == 0)
         b.active = 0;
     if (distance >= limit)

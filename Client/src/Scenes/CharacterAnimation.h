@@ -26,6 +26,10 @@ struct CharacterAnimation
                                           const GameLogic::CharacterAppearance& appearance, const IModelLibrary& models,
                                           Render::Models::AnimationScene scene);
 
+// Solo las dos animaciones colgantes: el cuerpo ya vino del ActorState que avanzó 0x508f00.
+void StepCharacterAttachments(CharacterAnimation& animation, const GameLogic::CharacterAppearance& appearance,
+                              const IModelLibrary& models);
+
 // El cuerpo que se posa entre dos pasos: `alpha` de un paso más (Render::Models::Interpolated). Sin la
 // acción en Player.bmd, el del paso.
 [[nodiscard]] Render::Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation,

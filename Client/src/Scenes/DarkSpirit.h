@@ -58,11 +58,19 @@ struct DarkSpiritOwner
     std::uint32_t flags = 0;
 };
 
-// 0x4167b0 con 0x415be0: los 12 rand() de los cierres de las celdas protegidas del dueño y del contador
+struct DarkSpiritBirthAccesses
+{
+    std::uint8_t cellX = 0;
+    std::uint8_t cellY = 0;
+    std::int32_t counter = 0;
+};
+
+// 0x4167b0 con 0x415be0: los 12 rand() con las cuentas cerradas, de los cierres de las celdas del dueño y del contador
 // (Q-C125), y el cuervo en el centro de la celda del dueño (con `and 0xff`), a la altura del terreno ahí
 // (`groundHeight`, la de 0x5f93c0 en (celda · 100 + 50), que 0x415ea7 guarda en float) más 300. En el
 // login, la celda (0, 0) (Q-C130).
-[[nodiscard]] DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Render::Models::CrtRandom& random);
+[[nodiscard]] DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Render::Models::CrtRandom& random,
+                                          DarkSpiritBirthAccesses accesses = {});
 
 // 0x416a20 en los estados 0 y 1, con el esqueleto del cuervo, en el mapa `map`, con el rand() de la CRT
 // y el valor que el grito lee de 0x7d3a0f0 (`counter`): la animación de a 0,4 y la acción por el estado

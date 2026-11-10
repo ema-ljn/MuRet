@@ -20,6 +20,13 @@ bool StepCharacterAnimation(CharacterAnimation& animation, const GameLogic::Char
         const Render::Models::ActionInfo& action = skeleton->actions[animation.body.action];
         finished = Render::Models::AdvanceAnimation(animation.body, action, action.speed, scene);
     }
+    StepCharacterAttachments(animation, appearance, models);
+    return finished;
+}
+
+void StepCharacterAttachments(CharacterAnimation& animation, const GameLogic::CharacterAppearance& appearance,
+                              const IModelLibrary& models)
+{
     if (appearance.pet)
     {
         const Render::Models::Skeleton* pet = models.SkeletonOf(*appearance.pet);
@@ -39,7 +46,6 @@ bool StepCharacterAnimation(CharacterAnimation& animation, const GameLogic::Char
                                           App::LogicStep);
         }
     }
-    return finished;
 }
 
 Render::Models::AnimationState BodyBetweenSteps(const CharacterAnimation& animation, const IModelLibrary& models,

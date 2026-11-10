@@ -329,11 +329,10 @@ TEST(HelperTableTest, NothingIsCreatedInChaosCastleWithoutAPlayerOrWithAFullTabl
     }
 }
 
-// Los otros ayudantes de las mascotas (el 0x1c12 del Guardian Angel, el 0xc6 de Unilia, el 0x110 de
-// Dinorant y los de Fenrir) cortan en 0x443d70 donde el original los crearía; donde no, nada.
-TEST(HelperTableTest, OnlyTheDarkHorseIsCreated)
+// Un tipo sin constructor portado corta donde el original lo crearía; en Chaos Castle, nada.
+TEST(HelperTableTest, UnknownHelpersFailBeforeConstruction)
 {
-    for (const std::uint16_t type : std::array<std::uint16_t, 6>{0x1c12, 0xc6, 0x110, 0x14a, 0x14b, 0x14c})
+    for (const std::uint16_t type : std::array<std::uint16_t, 2>{0xbe, 0x14d})
     {
         SCOPED_TRACE(type);
         HelperWorld tested;
@@ -346,6 +345,33 @@ TEST(HelperTableTest, OnlyTheDarkHorseIsCreated)
         const auto inChaos = CreateHelper(chaos.world, type, chaos.Rider().position, HeroSlot);
         ASSERT_TRUE(inChaos.HasValue()) << inChaos.Error();
         EXPECT_EQ(inChaos.Value(), std::nullopt);
+    }
+}
+
+TEST(HelperTableTest, TheSelectionRidingHelpersUseTheSharedFactoryAndKeepTheirActions)
+{
+    for (const std::uint16_t type : std::array<std::uint16_t, 5>{0xc6, 0x110, 0x14a, 0x14b, 0x14c})
+    {
+        WorldState world;
+        auto& rider = world.Actors()[HeroSlot];
+        rider.type = 0x20a;
+        rider.angles = {0.0f, 0.0f, 75.0f};
+        auto& helper = world.Helpers()[0];
+        helper.horse.animation.action = 3;
+        helper.horse.animation.previousAction = 2;
+
+        const auto built = CreateHelper(world, type, {3.0f, 4.0f, 5.0f}, HeroSlot);
+
+        ASSERT_TRUE(built.HasValue()) << built.Error();
+        ASSERT_TRUE(built.Value().has_value());
+        EXPECT_EQ(*built.Value(), 0u);
+        EXPECT_TRUE(helper.alive);
+        EXPECT_EQ(helper.type, type);
+        EXPECT_FLOAT_EQ(helper.scale, 0.9f);
+        EXPECT_EQ(helper.position, (glm::vec3{3.0f, 4.0f, 5.0f}));
+        EXPECT_EQ(helper.angles, rider.angles);
+        EXPECT_EQ(helper.horse.animation.action, 3u);
+        EXPECT_EQ(helper.horse.animation.previousAction, 2u);
     }
 }
 

@@ -560,7 +560,7 @@ TEST_F(InventoryReplyTest, TheReplyTurnsOffTheHorseOfThePublishedHero)
     EXPECT_TRUE(helpers[1].alive);
 }
 
-// 0x5bc9d6..0x5bc9db: con Horn of Doom, el byte +0x1b del ítem va a +0x31b del héroe antes de 0x443fa0.
+// 0x5bc9d6..0x5bc9db: Horn of Doom copia +0x1b a +0x31b antes de crear el ayudante.
 TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bToThePetBeforeStopping)
 {
     Stage tested = Fresh();
@@ -569,8 +569,10 @@ TEST_F(InventoryReplyTest, HornOfDoomCopiesItsFlags1bToThePetBeforeStopping)
     const auto placed = Client::Scenes::PlaceInventoryItem(8, ItemBytes(HornOfDoom, 0, 20, 0x02), tested.Resources());
 
     ASSERT_FALSE(placed.HasValue());
-    EXPECT_NE(placed.Error().find("0x443fa0"), std::string::npos) << placed.Error();
+    EXPECT_NE(placed.Error().find("0x5bca46"), std::string::npos) << placed.Error();
     EXPECT_EQ(hero.pet.flags1b, 0x02);
+    EXPECT_TRUE(tested.world.Helpers()[0].alive);
+    EXPECT_EQ(tested.world.Helpers()[0].type, 0x14cu);
 }
 
 // 0x5bca62: el Dark Raven del lugar 1 llama a 0x420cf0, que fuera de los mapas 18 a 23 crea el cuervo.

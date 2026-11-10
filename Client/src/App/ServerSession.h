@@ -321,6 +321,10 @@ private:
     void OnWorldEntryReply(const Network::Packet& packet);
     void OnInventoryReply(const Network::Packet& packet);
     void OnWeather(const Network::Packet& packet);
+    void OnWalk(const Network::Packet& packet);
+    void OnDamage(const Network::Packet& packet);
+    void OnTeleport(const Network::Packet& packet);
+    void OnRegen(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.
     void ReturnToSelection(bool encrypted);

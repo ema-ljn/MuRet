@@ -4,18 +4,22 @@
 #include "App/ServerSession.h"
 #include "App/WorldEvent.h"
 #include "Core/Expected.h"
+#include "Data/Models/PlayerModels.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Movement.h"
 #include "Protocol/World.h"
-#include "Data/Models/PlayerModels.h"
 #include "Scenes/CharacterDrawing.h"
-#include "Scenes/InventoryReply.h"
 #include "Scenes/IWorldEntryPublisher.h"
+#include "Scenes/IWorldTransitionPublisher.h"
+#include "Scenes/InventoryReply.h"
+#include "Scenes/MovementReplies.h"
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SelectionState.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/WorldTransitions.h"
 #include "World/LeafWeather.h"
 
 #include <cstdint>
@@ -41,7 +45,7 @@ void ApplyWeather(const Protocol::World::Weather& received, World::LeafWeather& 
 }
 
 // El 0x3d de la respuesta va a la sesión que la está aplicando.
-class SessionPublisher final : public IWorldEntryPublisher
+class SessionPublisher final : public IWorldEntryPublisher, public IWorldTransitionPublisher
 {
 public:
     explicit SessionPublisher(App::ServerSession& session) : m_session(session) {}
@@ -49,6 +53,15 @@ public:
     void PublishWorldEntry() override
     {
         m_session.PublishWorldEntry();
+    }
+
+    void ConfirmTeleport() override
+    {
+        m_session.ConfirmTeleport();
+    }
+    void RequestCrywolfState() override
+    {
+        m_session.RequestCrywolfState();
     }
 
 private:
@@ -68,6 +81,23 @@ Core::Expected<void, std::string> SessionEventApplier::ApplyCharacter(const App:
 
 Core::Expected<void, std::string> SessionEventApplier::ApplyWorld(const App::WorldEvent& event,
                                                                   App::ServerSession& session)
+{
+    if (const auto* walk = std::get_if<Protocol::Movement::Walk>(&event))
+        return ApplyWalkReply(*walk, session.PlayerIndex(), m_resources);
+    if (const auto* damage = std::get_if<Protocol::Movement::Damage>(&event))
+        return ApplyDamageReply(*damage, session.PlayerIndex(), m_resources);
+    if (const auto* teleport = std::get_if<Protocol::World::Teleport>(&event))
+    {
+        SessionPublisher publisher(session);
+        return ApplyTeleport(*teleport, session.PlayerIndex(), m_resources, publisher);
+    }
+    if (const auto* regen = std::get_if<Protocol::World::Regen>(&event))
+        return ApplyRegen(*regen, session.PlayerIndex(), m_resources);
+    return ApplyWorldContent(event, session);
+}
+
+Core::Expected<void, std::string> SessionEventApplier::ApplyWorldContent(const App::WorldEvent& event,
+                                                                         App::ServerSession& session)
 {
     if (const auto* weather = std::get_if<Protocol::World::Weather>(&event))
     {

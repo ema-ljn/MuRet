@@ -4250,6 +4250,24 @@ de las marcas del suelo; consume los dos rand del viento incluso con la tabla va
 probado, pero la escena todavía no lo alcanza por `0x6374fe`. `GameParticlesTest` y los tests de
 entrada cubren los presupuestos, nacimientos, pool lleno y prefijos; no son observaciones nativas.
 
+### El jugador visto en el dibujo del juego
+
+**Estático**, `0x50ba30`: `DrawGameCharacters` conserva el filtro del héroe, el orden de400 lugares
+y las puertas finales. Para un jugador `0x20a` con esqueleto/acciones: verifica las ramas anteriores,
+dibuja la sombra (`0x50bcec`), publica `0x505820` (`0x50c91e`), toma la luz dinámica (`0x50cc55`) y
+el color del héroe. Ese color abre/cierra una vez el registro propio:3.848 rand cuando queda cerrado,
+aun con sus bits de ajuste apagados. Cada máscara de color multiplica con stores f32; el bit0 usa
+el literal0,9f del binario. Reutiliza `DrawCharacter` por fases Parts y Cloth, conserva el rand de
+`0x50db57` aun sin ítems y aplica después el color para los colgantes.
+
+Los índices de resaltado `0x6c8e30/0x6c8e2c` nacen en−1. Los monstruos, ropa especial, alas,
+Helper02, armas a espalda/mano y efectos pendientes cortan donde corresponde; fuera de zona
+segura el jugador ordinario llega a `0x50e298`. Una tela ausente conserva sombra/scan/luz/partes
+anteriores, sin gastar todavía `0x50db57`. Un dibujo entre frames usa `DrawCurrent` sin crear ni
+simular telas ni consumir RNG; al recuperar varios frames se conserva la simulación y se descartan
+los destellos de los frames intermedios. El mapa30 conserva su frontera `0x510eb3`.
+`GameCharacterRenderTest` y `CharacterDrawingTest` cubren estas ramas y los prefijos hallados en la
+revisión adversarial. Quedan abiertas la pose nativa, las ramas pendientes y las trazas GL originales.
 
 ### Los objetos del juego
 

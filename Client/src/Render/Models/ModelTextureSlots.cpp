@@ -81,6 +81,12 @@ std::string_view ModelTextureSlots::NameOf(TextureSlot slot) const
     return slot.value < m_names.size() ? std::string_view(m_names[slot.value]) : std::string_view{};
 }
 
+void ModelTextureSlots::SetName(TextureSlot slot, std::string_view name)
+{
+    if (slot.value < m_names.size())
+        m_names[slot.value] = name;
+}
+
 // 0x60d550: del slot 0 al próximo libre, sin contar este.
 std::optional<TextureSlot> ModelTextureSlots::Find(std::string_view name) const
 {

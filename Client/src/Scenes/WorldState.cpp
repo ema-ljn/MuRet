@@ -8,6 +8,10 @@
 #include "Scenes/HelperTable.h"
 #include "Scenes/ItemSetState.h"
 #include "Scenes/PlayerActionSpeeds.h"
+#include "Scenes/FaunaState.h"
+#include "Scenes/FaunaModels.h"
+#include "Scenes/FaunaDrawing.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldMap.h"
@@ -116,6 +120,38 @@ PlayerActionSpeeds& WorldState::ActionSpeeds()
 const PlayerActionSpeeds& WorldState::ActionSpeeds() const
 {
     return m_actionSpeeds;
+}
+FaunaState& WorldState::Fauna()
+{
+    return m_fauna;
+}
+const FaunaState& WorldState::Fauna() const
+{
+    return m_fauna;
+}
+FaunaModels& WorldState::FaunaResources()
+{
+    return m_faunaResources;
+}
+const FaunaModels& WorldState::FaunaResources() const
+{
+    return m_faunaResources;
+}
+FaunaDrawCarry& WorldState::PoseCarry()
+{
+    return m_poseCarry;
+}
+const FaunaDrawCarry& WorldState::PoseCarry() const
+{
+    return m_poseCarry;
+}
+GameDrawTailState& WorldState::DrawTail()
+{
+    return *m_drawTail;
+}
+const GameDrawTailState& WorldState::DrawTail() const
+{
+    return *m_drawTail;
 }
 // El original copia de chars[elegido] lo que 0x4c20a0 le puso con la lista (0x4c21dd..0x4c220c): la
 // clase de 0x517270, la piel 0 (0x4c21d9; la de crear es la de la vista previa, que nadie escribe),

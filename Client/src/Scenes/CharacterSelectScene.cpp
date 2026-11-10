@@ -1,4 +1,7 @@
 #include "Scenes/CharacterSelectScene.h"
+#include "Scenes/FaunaDrawing.h"
+#include "Render/Models/HalfLifeMath.h"
+#include <span>
 
 #include "App/LoopTiming.h"
 #include "App/ServerSession.h"
@@ -906,6 +909,12 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
     const std::size_t hero = m_context.world != nullptr ? m_context.world->Runtime().hero : 0;
     const int scanFrames = m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
+    FaunaDrawCarry projection;
+    if (scanFrames == 0 && m_context.world != nullptr)
+        projection = m_context.world->PoseCarry();
+    auto* poseCarry = m_context.world == nullptr ? nullptr
+                      : scanFrames > 0           ? &m_context.world->PoseCarry()
+                                                 : &projection;
     for (Character& character : m_characters)
     {
         ActorState* actor = m_context.world != nullptr && m_context.selection != nullptr && m_context.cloth != nullptr
@@ -950,12 +959,23 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         drawn.clothWorld = m_context.cloth;
         drawn.map = map;
         drawn.pace = OriginalFramePaceOf(m_context.pacing);
+        if (poseCarry != nullptr)
+            drawn.poseBones = [&](std::uint16_t)
+            { return std::span<const Render::Models::BoneTransform>(poseCarry->bones); };
+        if (poseCarry != nullptr)
+            drawn.onPose = [&](std::uint16_t model, std::span<const Render::Models::BoneTransform> bones,
+                               const Render::Models::ObjectTransform& transform, bool translated)
+            {
+                if (auto result = PublishFaunaPoseRaw(*poseCarry, m_models, model, bones, transform, translated);
+                    !result.HasValue())
+                    m_failure = result.Error();
+            };
         DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
     }
     canvas.flushModels();
     // La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el aviso arriba. Y el cursor (0x634980).
     m_bar.Draw(sprites, canvas.text, canvas.screen);
-    DrawTheCreateWindow(canvas, alpha);
+    DrawTheCreateWindow(canvas, alpha, poseCarry);
     m_notice.Draw(sprites, canvas.text, canvas.screen);
     DrawTheCursor(canvas);
 }
@@ -1025,7 +1045,7 @@ void CharacterSelectScene::StepThePreview()
 // 0x66a050: la base de la ventana; 0x63e460: la vista previa en su propio pase, sin limpiar la
 // profundidad (se prueba contra la del pase de la selección, como en el original); y 0x63e0a0: lo
 // demás, encima.
-void CharacterSelectScene::DrawTheCreateWindow(SceneCanvas& canvas, float alpha)
+void CharacterSelectScene::DrawTheCreateWindow(SceneCanvas& canvas, float alpha, FaunaDrawCarry* poseCarry)
 {
     if (!m_create.IsOpen())
     {
@@ -1052,7 +1072,21 @@ void CharacterSelectScene::DrawTheCreateWindow(SceneCanvas& canvas, float alpha)
     canvas.models.Begin(pass);
     // Sin el avance de este paso (un aviso arriba), la vista previa va quieta: interpolar uno que no
     // va a dar la haría temblar.
-    DrawObject(canvas.models, m_selectionModels, drawn, canvas.frameClock);
+    FaunaDrawCarry projection;
+    if (m_context.world != nullptr)
+    {
+        if (poseCarry == nullptr && frames == 0)
+            projection = m_context.world->PoseCarry();
+        auto& carry = poseCarry != nullptr ? *poseCarry : frames > 0 ? m_context.world->PoseCarry() : projection;
+        if (auto result = PublishFaunaPose(carry, m_selectionModels, drawn, true); !result.HasValue())
+        {
+            m_failure = result.Error();
+            return;
+        }
+        DrawObjectFromMeshes(canvas.models, m_selectionModels, drawn, canvas.frameClock, carry.meshes);
+    }
+    else
+        DrawObject(canvas.models, m_selectionModels, drawn, canvas.frameClock);
     canvas.flushModels();
     m_create.Draw(canvas.sprites, canvas.text, canvas.screen);
 }

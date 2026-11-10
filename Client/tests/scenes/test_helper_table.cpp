@@ -201,7 +201,8 @@ struct HelperWorld
         return StepHelpers(HelperStepContext{.world = world, .horseSkeleton = &skeleton, .random = random});
     }
 
-    Client::Core::Expected<void, std::string> Draw(ModelBatch& batch, const TerrainPolygon& polygon)
+    Client::Core::Expected<void, std::string> Draw(ModelBatch& batch, const TerrainPolygon& polygon,
+                                                   bool originalFrame = true)
     {
         world.Runtime().terrainPolygon = polygon;
         batch.Begin(Client::Render::Pass3D{});
@@ -210,7 +211,8 @@ struct HelperWorld
                                              .world = world,
                                              .random = random,
                                              .frameClock = std::chrono::milliseconds{0},
-                                             .stepAlpha = 0.0f});
+                                             .stepAlpha = 0.0f,
+                                             .originalFrame = originalFrame});
     }
 
     WorldState world;
@@ -693,6 +695,47 @@ TEST(HelperTableTest, ASeenHorseIsDrawnAndSpendsOneRandom)
     EXPECT_FLOAT_EQ(tested.Horse().scale, 1.0f);
     EXPECT_FALSE(batch.Commands().empty());
     EXPECT_EQ(tested.random.State(), RandomAfter(QuietSeed, 1).State());
+}
+
+TEST(HelperTableTest, AnIntermediateDrawProjectsTheHorseWithoutPublishingItsStateOrRandom)
+{
+    HelperWorld tested;
+    ASSERT_NO_FATAL_FAILURE(tested.Mount());
+    tested.Horse().scale = 0.5f;
+    tested.Horse().horse.alpha = 1.0f;
+    tested.Horse().horse.animation.frame = 3.5f;
+    tested.Rider().flags78 = 0x1000;
+    const auto before = tested.random.State();
+    ModelBatch batch;
+    ASSERT_TRUE(tested.Draw(batch, Everything, false).HasValue());
+    EXPECT_FALSE(batch.Commands().empty());
+    EXPECT_EQ(tested.random.State(), before);
+    EXPECT_FALSE(tested.Horse().seen);
+    EXPECT_FLOAT_EQ(tested.Horse().scale, 0.5f);
+    EXPECT_FLOAT_EQ(tested.Horse().horse.animation.frame, 3.5f);
+}
+
+TEST(HelperTableTest, OnlyTheOriginalHorseDrawPublishesItsPoseToTheNextFrame)
+{
+    HelperWorld tested;
+    ASSERT_NO_FATAL_FAILURE(tested.Mount());
+    tested.Horse().horse.alpha = 1.0f;
+    tested.world.Runtime().terrainPolygon = Everything;
+    ModelBatch batch;
+    int publications = 0;
+    HelperDrawContext context{.batch = batch, .models = tested.models, .world = tested.world, .random = tested.random};
+    context.onPose = [&](const Client::Scenes::DrawnObject& object) -> Client::Core::Expected<void, std::string>
+    {
+        ++publications;
+        EXPECT_EQ(object.model, DarkHorseModel);
+        EXPECT_EQ(object.transform.position, tested.Horse().position);
+        return {};
+    };
+    ASSERT_TRUE(DrawHelpers(context).HasValue());
+    EXPECT_EQ(publications, 1);
+    context.originalFrame = false;
+    ASSERT_TRUE(DrawHelpers(context).HasValue());
+    EXPECT_EQ(publications, 1);
 }
 
 // Sin verse no se dibuja ni saca rand(); con un jinete que no es un jugador, tampoco, aunque se vea.

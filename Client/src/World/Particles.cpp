@@ -1,11 +1,10 @@
 #include "World/Particles.h"
 
-#include "World/Ftol.h"
-#include "World/IParticleTrigonometry.h"
-
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
+#include "World/Ftol.h"
+#include "World/IParticleTrigonometry.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -258,7 +257,7 @@ void StepTheCloud8(Particle& particle)
 
 bool IsFire(const Particle& particle)
 {
-    return particle.type == FireParticle && particle.subtype >= 0 && particle.subtype <= 3;
+    return particle.type == FireParticle && ((particle.subtype >= 0 && particle.subtype <= 3) || particle.subtype == 8);
 }
 
 bool IsWorldSmoke(const Particle& particle)
@@ -288,7 +287,8 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     }
     if (type == FireParticle)
     {
-        return subtype >= 0 && subtype <= 3 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+        return ((subtype >= 0 && subtype <= 3) || subtype == 8) ? std::nullopt
+                                                                : std::optional(ParticleError::UnsupportedSubtype);
     }
     if (type == BreathParticle)
     {
@@ -665,6 +665,12 @@ void StepTheFire(Particle& particle)
     if (particle.subtype == 0)
     {
         particle.scale = F32(static_cast<double>(particle.scale) - FireShrink);
+    }
+    else if (particle.subtype == 8)
+    {
+        // 548270[8]→54585f: no amortigua velocidad ni agrega verticalSpeed a escala.
+        particle.scale = F32(static_cast<double>(particle.scale) * .95f);
+        particle.rotation = F32(static_cast<double>(particle.rotation) + 5);
     }
     else
     {

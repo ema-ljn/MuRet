@@ -9,6 +9,7 @@ enum class ParticleDrawKind
 {
     Common,
     Fire,
+    RotatedFire,
     Drop,
     Unrotated
 };

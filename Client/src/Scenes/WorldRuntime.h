@@ -23,6 +23,7 @@ inline constexpr std::int32_t InitialLeafCount = 30;
 
 struct WorldRuntime
 {
+    std::int32_t storm = 0;
     std::optional<std::int32_t> lastSoundId{};
     // DAT_006c9dd0, el mundo en curso. Quien llama a 0x61a560 lo escribe justo antes (05, "La carpeta
     // de cada mapa"): el login con 55 (06, "El login, al entrar") y la selección con 54 en 0x633f20

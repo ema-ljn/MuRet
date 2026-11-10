@@ -91,6 +91,7 @@ enum class ParticleError : std::uint8_t
     MissingColorFlag,
     MissingDrawingService,
     UnrepresentableTrigonometry,
+    MissingTerrainHeight,
 };
 
 class Particles
@@ -98,7 +99,7 @@ class Particles
 public:
     // 0x53fe70(tipo, posición, ángulos, luz, subtipo, escala, dueño) en el primer lugar libre, con el reloj
     // del mundo (DAT_05767b88, en ms) y el rand() de la CRT. Con los 3.000 llenos no se crea ni saca
-    // rand(). Se aceptan 5f2/0,2, 5c6/5,9, 622/8,10, 5d9/0..3, 607/0, 67/0 y 68/0.
+    // rand(). Se aceptan 5f2/0,2, 5c6/1,5,9, 622/8,10, 5d9/0..3, 607/0, 67/0 y 68/0.
     // Create es la compatibilidad login; Core usa CreateChecked para distinguir errores de pool lleno. La neblina
     // consume cinco rand() y conserva +0x60 del uso anterior del lugar. 622/8 consume siete rand().
     std::optional<std::size_t> Create(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
@@ -146,9 +147,6 @@ std::optional<ParticleError> StepParticles(Particles& particles, Render::Models:
 // fallan además después de cambiar escala y antes de RGB. El error conserva todos los efectos del
 // prefijo y slots anteriores, y deja los posteriores sin visitar: no es transaccional. Repetir el tick
 // consume viento y avanza otra vez los slots anteriores. No copia ni posee WorldState.
-[[nodiscard]] Core::Expected<void, ParticleError>
-StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random, const std::int32_t* map = nullptr);
-// Carga el reloj por slot6 después del movimiento común, sin snapshot de la pasada.
 [[nodiscard]] Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles,
                                                                        Render::Models::CrtRandom& random,
                                                                        std::reference_wrapper<const float> worldClock,

@@ -34,38 +34,45 @@ Además, después del informe:
 - el dibujo del juego después de los objetos: el `0x69` de Lorencia, los efectos del suelo, los pájaros y los personajes `0x510d00` (#221);
 - el manejador de caídas `MuError.dmp`, de la CL3 (#216).
 
-## Estado actual de la rama WIP
+## Estado actual de la integración
 
-El [plan de esta tanda](2026-11-10-cl7-resto-traspaso.md) cubre hito 2 y P-C55(c)/(f), con
-`WorldState` dueño de la historia durable y errores explícitos después del prefijo nativo.
-La base es `2110806`; las implementaciones e integración siguientes están en
-`codex/cl7-resto-traspaso` con cambios WIP. **No hay PR nuevos publicados para esta tanda.**
-Los PR #222–#237 corresponden a la continuación previa y siguen sin merge; tampoco se presume
-que este árbol local esté en `main`. La publicación por concepto sigue pendiente.
+El [plan de esta tanda](2026-11-10-cl7-resto-traspaso.md) avanza hito 2 y P-C55(c)/(f), con
+`WorldState` dueño de la historia durable y errores después del prefijo nativo. La base es
+`2110806`. El conjunto se conserva en commits por concepto; no está integrado en `main`.
 
-| Dominio | Alcance implementado y comprobado | Lo que no acredita |
+Ya están publicados [#238, Skill.bmd](https://github.com/ema-ljn/MuRet/pull/238) y
+[#239, caminar del actor](https://github.com/ema-ljn/MuRet/pull/239). Se actualizaron por
+fast-forward [#230, eventos y envíos](https://github.com/ema-ljn/MuRet/pull/230) y
+[#229, recursos durables](https://github.com/ema-ljn/MuRet/pull/229). Sus comprobaciones aisladas
+son 180, 61, 219 y 33 pasados respectivamente; #229 omite un golden externo. Los PR #222–#237
+anteriores siguen sin merge. La [rama del conjunto](https://github.com/ema-ljn/MuRet/tree/codex/cl7b-integracion-validada)
+y el [índice #237](https://github.com/ema-ljn/MuRet/pull/237) registran los bloques que
+aún necesitan publicación individual; no deben confundirse con cuatro PR que incluyan toda la tanda.
+
+| Dominio | Alcance implementado y comprobado | Lo que sigue abierto |
 | --- | --- | --- |
-| Wire/sesión | Eventos D3/D7/1C/F3 04 síncronos, historial 1C, envíos Walk/gate/F3 12/BD00/rumbo y rechazos/orden con GS falso; módulos focales verdes. [Informe](../../../.superpowers/sdd/cl7-resto-traspaso/hito2-session-report.md). | Servidor externo ni toda la secuencia de escena/mapas. |
-| Actores | Walk/Run/acciones y overlay durable de velocidades compartidas sin mutar Skeleton; MovePath, celda adelantada, llegada/Stop/yaw, otros actores, reintento/cooldown y pasos; módulos focales verdes. [Informe](../../../.superpowers/sdd/cl7-resto-traspaso/actor-motion-report.md). | Creadores/acciones y tipos que conservan frontera; sonido real de CL10 ni captura nativa. |
-| Héroe/gates | StepHeroMovement con cabeza, movimiento, gates, clic y cierre propio/Skill/capa; orientación quieta/paquete 18; Skill.bmd obligatorio real. GameGates preserva lecturas/RNG y recorre la tabla real; módulos focales verdes. [Gates](../../../.superpowers/sdd/cl7-resto-traspaso/game-gates-report.md), [rumbo](../../../.superpowers/sdd/cl7-resto-traspaso/hero-facing-report.md), [Skill](../../../.superpowers/sdd/cl7-resto-traspaso/skill-loading-report.md). | UI pendiente, macros de destino 30/31, todos los gates caminando ni toda la integración del input. |
-| Aplicadores/transiciones | D3/D7/shock, 1C mismo/distinto mapa y gate 0, F3 04 con campos retenidos, limpieza/reentrada/retorno; pruebas focales verdes con Data/GS falso. [Informe](../../../.superpowers/sdd/cl7-resto-traspaso/transitions-report.md). | UI Chaos/ventanas/cursor, eventos/LoadMap especiales ni todas las familias en GameScene. |
-| GameScene | Entrada real y lógica entre frames completos en mapa 0 verdes. Frame con recursos reales, dibujo intermedio, viewport/rayo y regresiones antiguas comprobados en su alcance. [Tests antiguos](../../../.superpowers/sdd/cl7-resto-traspaso/legacy-scene-tests-report.md). | Mapa 2 sin armas y mapa 3 siguen integrándose. Un frame sin productores vivos no prueba todas sus ramas ni equipo completo. |
-| Mundo 0/2 y hojas | Fuegos/lámparas/puertas conectados a luz/partículas/sonidos lógicos; binder de hojas/clima con guardas por mapa/capa y creadores reales de lluvia/salpicaduras/nubes. [Objetos](../../../.superpowers/sdd/cl7-resto-traspaso/h3-object-services-report.md), [hojas](../../../.superpowers/sdd/cl7-resto-traspaso/game-leaves-report.md). | Otros mapas/productores, audio real y contraste nativo. |
-| P-C55(c)/(f) | Pools durables, recursos/servicios de fauna y orden de cola conectados; piso, hojas, joints, cintas, efectos, sprites, partículas y daño tienen implementaciones acotadas y fronteras por rama. [Fauna](../../../.superpowers/sdd/cl7-resto-traspaso/fauna-implementation-report.md), [cola](../../../.superpowers/sdd/cl7-resto-traspaso/p55-tail-implementation-report.md). | Important de Astra en corrección/verificación; no están cerradas fauna, cola ni revisión final. |
-| Matriz de movimiento | Consumidor aislado en 0..36 con terreno contractual explícito, Skill real, callbacks de envío y estado durable; recta/codo/borde/zona segura. [Alcance y fronteras](../../../.superpowers/sdd/cl7-resto-traspaso/movement-map-matrix-report.md). | No es caminar de escena de extremo a extremo en todos esos mapas; 54/55 sólo cubren lo aplicable al terreno. H2 T16 permanece abierto. |
+| Wire/sesión | D3/D7/1C/F3 04 síncronos, historial 1C y envíos Walk/gate/F3 12/BD00/rumbo, con GS falso. [Tests](../../../Client/tests/app/test_server_session.cpp). | Contraste con servidor externo y casos UI de CL8. |
+| Actores | Walk/Run, velocidades compartidas sin mutar Skeleton, MovePath/celda adelantada, Stop/yaw, cooldown/reintentos y pasos lógicos. [Tests](../../../Client/tests/scenes/test_actor_motion.cpp). | Acciones que conservan una frontera y audio real de CL10. |
+| Héroe/gates | Cabeza→movimiento→gates→clic→cierre→capa, Skill real, paquete18, clic pendiente y espera. [Tests](../../../Client/tests/scenes/test_game_movement.cpp). | Macros30/31, UI y barrido integrado de todos los gates. |
+| Aplicadores/transiciones | D3/D7/shock, teleport mismo/distinto mapa y gate0, F3 04, campos retenidos, limpieza y retorno a selección. [Tests](../../../Client/tests/scenes/test_world_transitions.cpp). | LoadMap especiales/eventos y todas las familias en GameScene. |
+| GameScene | F303 y lógica entre cuadros completos de0/2/3, cuadros intermedios, espera con lógica activa, viewport/rayo y1C0→3→0. [Tests](../../../Client/tests/scenes/test_game_scene_complete.cpp). | Equipo completo/armas/alas y escenas de extremo a extremo en los otros mapas. |
+| Objetos y clima | Fuegos/lámparas/puertas0/2; objetos, UV, partículas y luz de Noria; hojas/lluvia/nieve y texturas físicas64..68. [Recursos meteorológicos](../../../Client/tests/scenes/test_weather_textures.cpp). | Otros productores/mapas, audio real y observación nativa. |
+| P-C55(c)/(f) | Aves/peces durables, pasos/dibujos, modelos y poses retenidas; piso, helpers, joints, efectos, cintas, sprites, partículas y daño conectados. Atlas1 y texturas de los joints emitidos tienen recursos reales. [Cola](../../../Client/tests/scenes/test_game_draw_tail.cpp), [recursos](../../../Client/tests/scenes/test_game_tail_textures.cpp). | Modelo firmado−1/backend Kalima, familias/opciones del piso y productores/ramas CL9–CL11. |
+| Matriz de movimiento | Kernels0..36: recta/codo/borde/zona segura, Skill real, estado durable y fronteras declaradas. | No acredita LoadMap/escena de esos mapas ni cierra H2 T16.54/55 sólo cubren terreno aplicable. |
 
-`0x6374fe` ya no es el corte universal del dibujo. Se exige presentación cuando el camino completo
-está implementado y se conserva el error en la primera rama realmente ausente: por ejemplo,
-el jugador fuera de zona segura aún puede alcanzar `0x50e298`, una marca sin metadata
-`0x549152`, y los otros mapas sus fronteras propias. No se omiten etapas para presentar.
-Login y selección ya ejecutan el paso de actores; sus helpers, mundo y ramas restantes conservan
-los límites de P-C50/P-C54/P-C56.
+`0x6374fe` ya no es el corte universal. Las escenas de referencia presentan el camino completo
+portado; una rama ausente sigue devolviendo su dirección, por ejemplo `0x50e298` del jugador
+fuera de zona segura. Login y selección ejecutan el paso común de actores; sus límites restantes
+son P-C50/P-C54/P-C56.
 
-**La verificación integrada de esta tanda sigue abierta:** build/CTest global, GL, smoke y revisión
-final. Los conteos cambian mientras se integra; los informes enlazados dan comandos y alcance de
-cada verde focal. Root incorporará los totales finales después de verificarlos. No se reutilizan
-como cierre de este WIP los totales globales/GL/smoke de la continuación previa. **CL7, hito 2 y
-T16 para todos los mapas no se declaran cerrados.** La VM queda al final por pedido de Emanuel.
+La revisión Astra6 high corrigió los Important de wire, movimiento, fauna, poses y cola.
+La última pasada añadió pruebas de GL real: los comandos sin vértices se ejecutan; un flush y
+`6213e0` conservan material; `620db0` reinicia sólo sus ejes acreditados. El backend/loader Kalima
+no se reemplazó por un éxito vacío. La verificación final registra 4.451 casos: 4.380 pasados, 71 omitidos por evidencia externa y
+cero fallos; 96/96 GL y cuatro arranques correctos. Formato 18 e include-cleaner 18 limpios
+en su alcance. Estas comprobaciones no sustituyen el contraste con el original.
+
+**CL7, hito2 y T16 de todos los mapas siguen abiertos.** La VM queda al final por pedido de Emanuel.
 
 ## Cómo se trabajó
 
@@ -94,14 +101,12 @@ T16 para todos los mapas no se declaran cerrados.** La VM queda al final por ped
 
 ## Qué falta, en orden
 
-1. **Cerrar las correcciones de la revisión Astra de fauna/cola.** Mantener RED→GREEN y el orden
-   de escrituras/RNG: pose/sombra retenida, creadores frente a dibujos intermedios, altura fija y
-   demás hallazgos de los informes. No dar por cerrada la revisión por un verde anterior al fix.
-2. **Terminar la integración real de GameScene.** Conservar el verde de entrada real con lógica
-   en 0, completar 2 sin armas y 3, y probar los productores vivos que cada caso alcance. Piso,
-   fauna, helpers y partículas deben recibir terreno, modelos, reloj y destinos durables reales;
-   los tests parciales no sustituyen ese camino. Después ampliar equipo/armas/alas y demás ramas
-   de P-C55(d), conservando sus errores hasta portarlas.
+1. **Completar la publicación individual del conjunto.** Los cuatro conceptos publicados arriba
+   tienen comprobaciones aisladas. El resto de commits de integración conserva sus dependencias;
+   extraer cada PR sobre main y repetir sus checks antes de declararlo listo.
+2. **Ampliar la integración real más allá de las referencias0/2/3.** Conservar sus frames completos,
+   probar clic→D3→gate de extremo a extremo y ampliar equipo/armas/alas. Piso, fauna, helpers y
+   partículas ya reciben terreno/modelos/reloj y pools durables reales en las referencias.
 3. **Completar hito 2 y su barrido T16.** Los módulos wire/aplicadores/actores/gates ya existen;
    quedan la validación integrada de clic→D3→movimiento→gate/1C/regen→vuelta, familias, solapes,
    campos retenidos y prefijos de error. La matriz del consumidor 0..36 usa fixtures declarados:

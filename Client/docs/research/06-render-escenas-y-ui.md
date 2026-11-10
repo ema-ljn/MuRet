@@ -3469,8 +3469,8 @@ bloque de la entrada, en orden (*estático*):
 | `0x63706a` | **`0x606560` → `0x604ab0`** | los objetos del mundo que vio el último dibujo ([Los objetos del juego](#los-objetos-del-juego)) | en el login, con los casos del 55; en el juego, `GameScene::StepTheObjects` con los techos y los casos que MuRet tiene del 0 y del 2, y corta en el primero que no tiene; en los demás mapas, con un objeto visto, corta en `0x606560` ([08](08-pendientes.md) P-C53) |
 | `0x637078` | `0x608880` | los ítems del piso que caen | CL9.3 |
 | `0x637082..0x6370e5` | **`0x530490`**, en el mapa 0 si la capa 1 de la celda del héroe (`0x77f36d0`) no es 4 | las 80 hojas | solo las brasas del 55 |
-| `0x6370ea` | **`0x446120`** | los pájaros | no |
-| `0x6370ef` | **`0x447030`** | los peces | no |
+| `0x6370ea` | **`0x446120`** | los pájaros | `Scenes::StepGameBirds`, pool durable y servicios reales; [familias y límites](#la-fauna-y-sus-recursos) |
+| `0x6370ef` | **`0x447030`** | los peces | `Scenes::StepGameFish`, después de aves con la misma CRT; [familias y límites](#la-fauna-y-sus-recursos) |
 | `0x6370f4` | `0x445230` | el caballo oscuro ([El caballo oscuro](#el-caballo-oscuro)), también en la espera | `Scenes::StepHelpers`, con la tabla de `WorldState::Helpers`, que en el juego queda vacía ([08](08-pendientes.md) P-C47) |
 | `0x6370f9..0x637105` | `0x557650`, `0x451d10`, `0x451c10` | contadores y listas, sin leer | — |
 | `0x63710a` | **`0x59adf0`**, el `MoveHero` | el héroe con el mouse ([Caminar](#caminar)); baja `0x77f3b04` y lo vuelve a leer (dos accesos, 8 `rand()`) y, con más de 30, sale; si no, escribe en `0x77f36d0` la capa 1 de la celda del héroe (`0x59e2ba`) y, con `0x57cfc0`, abre y cierra el registro propio: 3.848 `rand()` ([La tabla de protección](#la-tabla-de-protección)) | el contador (`GameScene::StepWaitCounter`), sin los gates de antes (P-C28 b); lo demás falta |
@@ -3484,6 +3484,163 @@ bloque de la entrada, en orden (*estático*):
 | `0x637138` | `0x403590` | `0x4033d0` y compañía (el recorrido de la cámara), sin leer | — |
 | `0x637144..0x63717a` | `0x5fc0d0` y `0x5fc0b0`, con `0x7d2d35e` | funciones de un `ret` | nada |
 | `0x63717f` | `0x5ac8d0` | F1 a F4 (CL3.3) | CL8 |
+
+### La fauna y sus recursos
+
+**Estático, ampliación de 2026-11-10:** cuerpos funcionales del `main.exe` SHA-256
+`c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`, imagen mapeada con
+base `0x400000`, leídos con desensamblado i386. Esta ampliación no ejecuta ni emula el original.
+Las cuentas del port se comprueban con los tests citados; no son una nueva captura nativa.
+
+`0x446120` usa 40 registros de `0x1d4` en `0x7d2dca8`; `0x447030`, 10 en `0x7d35350`.
+`0x60712a..0x607150` sólo apaga su byte vivo, y `0x4455c0` sólo el de las aves: no reconstruyen
+registros ni borran ángulos, seen o campos retenidos. `WorldState::Fauna()` posee esos mismos
+slots entre pasos y escenas; las vistas de aves/peces y los dueños de los joints apuntan al slot
+físico, no a una copia temporal. El prefijo que avanza el paso depende del mapa; el dibujo recorre
+siempre los 40 o los 10:
+
+| Paso | Mapas | Lugares procesados |
+| --- | --- | --- |
+| aves, `0x446120` | ordinarios / Atlans 7 / Icarus 10 / Kalima 24..29 y 36 | 5 / 40 / 13 / 2 |
+| peces, `0x447043..0x447064` | Atlans 7, Tarkan 8, Kalima y Crywolf 34 / demás | 10 / 3 |
+
+El 33 comparte ramas de nacimiento del 8, pero **no** su prefijo de 10. El paso productivo conserva
+el orden hojas → aves → peces → helpers de `0x637082..0x6370f4`, con la CRT común. Los handlers
+usan la altura real de `0x5f93c0`, incluido el `fixedHeight` durable de la cámara para el atributo
+`0x40`; no fijan de nuevo 1200 si la cámara ya escribió 1201. `0x4ea030` selecciona la acción,
+`0x4ec200` avanza la animación y `0x4e9980` conserva el final de alpha incluso tras apagar el slot.
+El campo `+0xc` es la escala física; `+0xd8` es velocidad de movimiento de aves/peces. No se usa
+la escala física como velocidad de animación de las aves.
+
+- `0x445b90` conserva los `if` sucesivos: el ave AD/BC puede pasar 0 → 1 → 3 en un paso y tomar
+  dos sorteos de altura. Posada (`+0x110 == 2`) evita el movimiento común y sus sorteos.
+- `0x445ec0` llama al flock `0x4e9a40` con el pool físico completo, incluidos vecinos vivos fuera
+  del prefijo procesado. Las distancias 80/400, la X retenida y la Y guardada no se reemplazan por
+  una suma vectorial reordenada. El rumbo `0x4e97a0` y el giro **entero** `0x4e94c0` son distintos
+  de CreateAngle/TurnAngle: igualdad 90 → 90 devuelve 180; 359 → 0 con paso 13 termina en 12.
+- `0x4455e0`, Icarus: índices 0..2 preparan Monster32 y gastan seis sorteos del nacimiento; los
+  restantes crean el `0x10f` y su joint con el dueño durable. `0x445d60` usa yaw en radianes y el
+  producto sin×cos de dos fases derivadas del contador, antes del sorteo de muerte `%5120`.
+- `0x445890`, Atlans: `heroY*0,01f` conserva el producto sin spill antes de compararlo con 128.
+  Por ello 12800 todavía toma la rama baja; 12801 toma la alta. Nacimiento admitido: seis sorteos.
+- `0x439680`, Kalima: lee y cierra el acceso lógico al contador antes del gate `%100`; el cierre
+  exterior cuesta cuatro CRT. En el gate admitido, otros seis sorteos; X=`heroX−1000−rand()%200`,
+  Y=`heroY−500+rand()%200`, Z=`heroZ−800`. `0x439aa0` gira, sortea `%5` y, con timer<20,
+  cambia alpha/velocidad/pitch; el decremento de timer pertenece a la cola del caller.
+- Peces: los dos sorteos del candidato X/Y se conservan aun al rechazarlo. En Lorencia sólo admite
+  capa 1 igual a 5; Crywolf lee el flag del héroe. Move selecciona acción; FullMovement hace flock,
+  matriz, sorteo de longitud y altura que pisa Z. Los efectos `0x618/4`, `0x697/0` y `0x610/8`
+  reciben el dueño del mismo slot. Los sorteos condicionales de sonido/timer permanecen en orden.
+
+En tormenta, el prefijo de aves conserva `%40`, posición, efecto `0xc2/3`, sonido lógico `0x42`
+y luz dinámica negativa alrededor del héroe. Su creador `0x518cf0 → 0x51ae9b → 0x51a9b1` no
+sortea: vida 80, escala 0,3 y velocidad (0,−12,0). `0x5208c5..0x525148` añade el sorteo común,
+la luz, la dirección `0x53d1a0` por índice físico, fuego `0x5d9/8` y sprite `0x5fd`, antes de la
+cola de animación/movimiento/vida. Un lugar libre usa ocho CRT con el contador cerrado; pool de
+partículas lleno, seis; un acceso exterior abierto evita los cuatro del cierre. Fuego 8 nace con
+dos sorteos (`0x541172..0x54140a`), escala por 0,95 y rotación+5 (`0x54585f`), y usa el atlas
+4×1 girado por `+0x44` (`0x548850`), distinto del ángulo X de la rama default.
+
+**Carga diferida `0x612d90`.** Los índices `0x1f/0x21` cargan `Monster\Monster32.bmd` y
+`Monster\Monster34.bmd`, modelos `0x171/0x173`. Con `[0x6c9e0c]=1`, acciones o mallas ya
+presentes hacen retornar antes de recargar (`0x612dbc/0x612dc7`). Texturas de `Monster\`,
+Repeat/Nearest y cursor actual, sin otro `0x60d530`. Los stores comunes `0x612e5a..0x612e9f`
+ponen velocidades 0..6 = 0,25/0,2/0,34/0,33/0,33/0,5/0,55 y acción 6 no repetible. Monster32
+además deja acción 1 no repetible; después de registrar sus sonidos, `0x6140ac..0x6140c9` pone
+3=0,5, 4=0,7, 1=0,8 y 7=0,8. Registra `0x14d/0x14e/0x14f` con mYeti1/mBullAttack1/mYetiDie;
+Monster34, `0x154/0x155` con mBahamut1/mYeti1. Las tablas de diez WORD de `0x612c80` son
+`{7b,7b,7c,7c,7d,−1,…}` y `{82,82,83,83,82,−1,…}` (valores hex). MuRet conserva pedidos
+y tablas lógicos de audio; esto no añade reproducción WAV.
+
+`FaunaModels` conserva CPU entre mapas, pero no inventa slots privados de textura. `0x6070a3`
+destruye BMD 0..159 y `0x61cc50` no libera `0x171/0x173`. El destructor BMD libera **por malla**
+(`0x4f07b0..0x4f07c3`, salvo slot `0x12e`); una coincidencia por nombre suma el refcount byte
+(`0x60d645`). `0x63c18d..0x63c1b3` borra nombre/GL/datos sólo al bajar a cero. Una nueva subida
+suelta una referencia y luego **reemplaza el registro aun con referencias restantes** (`0x63bfcf`):
+un BMD cacheado puede observar otra imagen. `ModelTextureTable`, compartida por WorldModels y
+FaunaModels, conserva nombres/refcounts/metadata física mientras el cursor se reinicia. La búsqueda
+`0x60d550` excluye next; un nombre justo allí se vuelve a subir. Persistir sólo el BMD o liberar una
+vez por upload no reproduce este contrato.
+
+**Límite del pez Kalima −1.** El caller omite LookupModel/AdvanceModel, pero alcanza SetAction
+`0x4ea030` con índice firmado −1. `0x60dbe0` construye 18.589 BMD de `0xe0` y publica la base
+con desplazamiento `rand()&1023` (`0x60dc4c..0x60dc7a`). El constructor `0x6154ab..0x6154b3`
+deja los contadores en cero. Con desplazamiento>0, BMD[-1] es un objeto construido, sin acciones;
+con desplazamiento=0 la lectura sale antes del primer objeto. `FaunaStepContext::prefixModel`
+permite un préstamo explícito sólo para esa selección de acción. El binding productivo no presta
+un esqueleto vacío ni afirma la precondición por defecto. Esta evidencia funcional no reconstruye
+la ubicación/protección de la tabla, ni cierra por sí sola el caller y el mundo de Kalima.
+
+**Perfil numérico.** Sin/cos de fauna usan `OriginalRetainedMath`: mantienen el resultado con
+64 bits de significando antes del primer producto PC53 y de los spills f32. `0x445d60` multiplica ambos retenidos
+antes de redondear a 53; `0x53d1a0` conserva sus productos y spills separados. No equivale a dos
+sin/cos double ya redondeados, ni a std::sin del host. El perfil portable PC53/RN y sus dominios
+explícitos no acreditan universalmente FSIN/FCOS, CW, NaN, traps o todo el stack x87 del proceso.
+La validación nativa/VM sigue separada del port; no se declara cerrada la CL7.
+
+Oráculos rastreados:
+[estado](../../tests/scenes/test_fauna_state.cpp),
+[paso](../../tests/scenes/test_fauna_step.cpp),
+[recursos](../../tests/scenes/test_fauna_models.cpp),
+[tabla física](../../tests/scenes/test_model_texture_table.cpp),
+[efectos](../../tests/scenes/test_fauna_effects.cpp) y
+[matemática retenida](../../tests/render/test_fauna_retained_math.cpp).
+Entre los casos: `CommonMovementSeesLivingNeighborsOutsideTheStepPrefix`,
+`LandingAndTakingOffRunTheirNewStatesInTheSameStep`, `IcarusSpawnHasSixDrawsAndWritesTheNativeFlightFields`,
+`KalimaBirthClosesCounterBeforeSixSpawnDraws`, `KalimaSetActionNeedsTheExplicitSignedPrefixModelLoan`,
+`BothRealMonsterResourcesPrepareTheirMeshesTexturesAndActionTables` (Data real),
+`AMapTransitionSharesMonsterReferencesAndACachedMonsterSeesAReusedSlot` y
+`MultipliesBothRetainedResultsBeforeTheFirstBinary53Round`. Prueban servicios productivos y sus
+prefijos; un kernel aislado o un pool vacío no acredita el recorrido completo de escena.
+
+### La pose compartida entre escenas
+
+**Estático, mismo hash anterior.** `0x4eb860` no escribe los huesos dummy: permanecen en el
+buffer global `0x68b181c`, junto con las colas no escritas de vértices/normales. Importan tanto la
+última pose como los campos por modelo de escala/origen. No se reconstruyen identidades por objeto.
+`WorldState::PoseCarry()` posee esa historia entre login, selección y juego. `DrawnCharacter.poseBones`
+presta el scratch antes de PoseSkeleton/PoseAttached; onPose publica las matrices ya calculadas,
+incluida la cabeza y la raíz attached. Los cuerpos especializados consumen los meshes publicados,
+sin volver a posar. Los objetos de malla oculta −2 también publican si pasaron el gate de pose.
+
+Las aves dibujan con el flag de pose 1 y los peces con 0 (`0x446b60/0x446f00`). El recorrido
+suma/resta yaw90 aritméticamente incluso en muertos (aves `0x10f`, excepción), publica seen por
+el trapecio con margen −20 y conserva los glows AE/BC. La sombra usa su propia geometría y alpha
+0,2; falta en mapa 10 y en peces b9/ba. Antes de mirar las mallas, `0x446e9d..0x446eb3` escribe
+XYZ del origen del modelo a (x,y,Height), conservando escala. El siguiente BC transparente, que no
+volvió a posar, usa ese origen del suelo y los huesos retenidos. Los dos pases puros 48→44 de
+171/counter1 (`0x446c35..0x446c80`) siguen visibles en frames intermedios; los creadores de
+tormenta y sus sorteos sólo corren en frames nativos.
+
+El piso tiene otro gate: `0x608b0a..0x608b20` posa sin traslación aun con alpha0; `0x60cf70` sólo
+publica el skin/cuerpo con alpha>0,01. `PublishFaunaFloorPose` conserva esa diferencia. Los objetos,
+piso, personajes, helpers y efectos comparten el mismo carry en orden. En frames de proyección de
+MuRet se usa **una copia temporal para todo el frame**: cada escritor actualiza ese scratch y el
+siguiente lo lee, sin cambiar la historia durable ni repetir RNG/seen/yaw nativos. Copiar y descartar
+el carry en cada pase o saltar el publisher mezclaría meshes de otro modelo.
+
+Regresiones en [dibujo de fauna](../../tests/scenes/test_fauna_drawing.cpp):
+`AShadowPublishesTheRetainedOriginUsedByTheNextTransparentBcGlow`,
+`AShadowPublishesItsOriginEvenWhenTheModelHasNoMeshes`,
+`AProjectedStormBirdKeepsBothPureShinePassesWithoutCreatingEffects`,
+`DurableFixedHeightFeedsBirdAndFishShadowsAndTheirModelOrigin`,
+`TransparentFloorItemsPublishBonesWithoutReplacingTheMeshScratch`,
+`AProjectedFrameKeepsItsPosesInTheBorrowedFrameScratch` y
+`CharacterBodiesInitializeDummyMatricesFromTheSharedScratchBeforePosing`.
+[Login](../../tests/scenes/test_login_scene_models.cpp) y
+[selección](../../tests/scenes/test_character_select_scene.cpp) comprueban publicación nativa y
+retención entre frames/Leave; [GameCharacters](../../tests/scenes/test_game_characters.cpp),
+`BodyGeometryAndPublishedPoseUseTheSameRetainedDummyMatrices`, comprueba geometría y publicación
+con el mismo dummy, también en proyección. Los tests de
+[WorldObjectsDrawing](../../tests/scenes/test_world_objects_drawing.cpp) cubren marcadores ocultos
+con pose nativa/proyectada. Son regresiones del contrato portable, no una nueva comparación de
+poses o píxeles con la VM. El lector de las gotas de la fuente también consume ese carry
+([Las partículas de la fuente](#las-partículas-de-la-fuente-en-el-juego)); los casos
+`TheFountainReadsThePreviousWorldMatricesForDummyAndTransparentBones`,
+`AFullFountainPoolStillReadsTheRetainedBonesAtTheirNativeRandomPrefix` y
+`AnEmptyRetainedFountainLoanStopsAfterTheFirstOffsetInsteadOfReposing`, en
+[GameParticlesTest](../../tests/scenes/test_game_particles.cpp), comprueban la lectura sin volver a
+posar y los prefijos del fallo, incluso con el pool de partículas lleno.
 
 ### El paso de los personajes
 
@@ -4152,7 +4309,7 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 ### El dibujo del juego
 
 `0x6371a0`, en el orden de sus llamadas (*estático*; lo que está en la traza, *verificado*). La
-última columna dice qué tiene ya MuRet por el login o la selección:
+última columna indica qué está conectado actualmente en MuRet:
 
 | Dónde | Qué llama | Qué hace | ¿Como en el login? |
 | --- | --- | --- | --- |
@@ -4167,26 +4324,26 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 | `0x63741d` | en el mapa 30, su luz | | corta (el 30 no carga) |
 | `0x6374aa` | `0x620480(mouse x, mouse y, &0x7d366c0, 1)` | el rayo del mouse, con el mouse de 640 × 480 vuelto a la pantalla en enteros (`0x620486..0x6204b0`) | `GameScene::MouseRay`, para [Caminar](#caminar) |
 | `0x6374c6` | **`0x5fc260(0)`**, si `0x437850()` es falso y el mapa no es 10 | el terreno: el pase opaco, el de alfa, **el del pasto** y `0x549130` | `LoadedWorld::DrawTerrain`, **sin el pasto ni las marcas** (P-C48 b, P-C49); el juego dibuja el primer pase, el del pasto y las marcas del suelo (`0x5fc365`); en el mapa 7 corta antes, en su agua (`0x5fa985`, `0x5fa4b0`), y en los 18 a 23 antes de la primera celda (`0x5fa83f`, Q-C229). Abajo, por dentro |
-| `0x6374ce` | **`0x6046a0` → `0x602e90` (`0x5ffdf0`, `0x6002e0`) y `0x602ed0`** | los objetos del `.obj` por sector ([Los objetos del juego](#los-objetos-del-juego)) | `DrawGameWorldObjects` en el 0 y el 2, con el `0x69` y sus dos gotas mediante `StepGameWaterspoutFrame`; corta en los casos o poses globales retenidas que faltan. Los demás mapas que llegan, el 10 incluido, **cortan** acá |
+| `0x6374ce` | **`0x6046a0` → `0x602e90` y `0x602ed0`** | objetos por sector | `DrawGameWorldObjects` en0/2/3, con la fuente69 que lee matrices retenidas y los servicios de Noria; otros mapas/casos conservan fronteras |
 | `0x6374d3` | **`0x52dc20`** | los efectos del suelo (`0x61d`, `0x61e`, `0x61f`…), con `0x5fb2f0` ([Después de los objetos](#el-dibujo-del-juego)) | `Scenes::DrawGroundEffects`: filtra vivos y vistos, consume el rand común y dibuja los casos acreditados; `GroundEffectFrame` evita repetir sus mutaciones entre frames originales (Q-C278) |
-| `0x6374d8` | **`0x446b60`** | los pájaros, con su sombra | no: MuRet no tiene la tabla (`0x7d2dca8`) ni quien la llena, y el pase no hace nada (Q-C277) |
+| `0x6374d8` | **`0x446b60`** | los pájaros, con su sombra | `Scenes::DrawGameBirds`, los 40 lugares durables, cuerpo/glows/sombra y [pose compartida](#la-pose-compartida-entre-escenas) |
 | `0x6374dd` | **`0x510d00` → `0x50ba30`** | los personajes vistos (`+0x16c`), por índice; `0x42afe0` para los jugadores, solo en el mapa 30; al final, las puertas (`0x42da60`, Q-C276) | `Scenes::DrawGameCharacters`: jugador, sombra, scan, luz dinámica, color del héroe y partes/tela reutilizando `DrawCharacter`; cortes explícitos en monstruos, armas, alas y efectos pendientes; abre puertas al completar el recorrido |
 | `0x6374ed` | `0x5fc260(1)` con `0x77f3b18` | el picking del terreno con esa bandera (*inferido*: el editor) | — |
-| `0x6374fe` | `0x608a00`, con `0x7d36899` en 0 | los ítems del piso | CL9.3: el 0 y el 2 **cortan** acá si pasan los personajes |
-| `0x637503` | **`0x446f00`** | los peces, con su sombra | no |
-| `0x637508` | `0x4453b0` | el caballo oscuro, con el `rand() % 30` de `0x445336` por cada uno visto | `Scenes::DrawHelpers` (con `DrawDarkHorse`), sin llamar: el juego corta antes, a más tardar en los ítems del piso (`0x6374fe`) |
-| `0x63750d` | **`0x5306a0`** | las hojas | `DrawLeaves` |
-| `0x637516` | `0x53c6a0(local_8)`; en el mapa 0, con 0 | los joints | no (el login no tiene) |
-| `0x63751d` | **`0x52d620(0)`** | los efectos con modelo | `DrawModelEffects` |
-| `0x637525` | `0x52e590` | cintas en `GL_TRIANGLE_FAN` (`0x75e987c`, texturas `0x5bb` + n) | no |
-| `0x63752a` | **`0x549510`** | los sprites del frame | `DrawFrameSprites` |
+| `0x6374fe` | `0x608a00`, con `0x7d36899` en0 | ítems del piso | `DrawFloorItems`: ramaSword01..19 nivel0 y pose global; las opciones/familias CL9.3 restantes conservan error, ya no corta universalmente |
+| `0x637503` | **`0x446f00`** | los peces, con su sombra | `Scenes::DrawGameFish`, los 10 lugares durables y sus excepciones de sombra; [fauna](#la-fauna-y-sus-recursos) |
+| `0x637508` | `0x4453b0` | helpers/caballo oscuro | `DrawHelpers` con recursos, reloj, RNG y pose retenida del mismo pase; caller conectado después de peces |
+| `0x63750d` | **`0x5306a0`** | hojas del mundo | `DrawGameLeaves`, con texturas físicas64..68 cargadas porTerrainTiles; paso/productores por mapa |
+| `0x637516` | `0x53c6a0(local_8)` | joints, modo0/1 | `DrawJoints`, familias portadas y errores de UV/colores especiales; recursos610/613/617/618/697 cargados |
+| `0x63751d` | **`0x52d620(0)`** | efectos modelados | `DrawGameModelEffects`, con scratch publicado/consumido y copia para cuadros intermedios; familias ausentes conservan error |
+| `0x637525` | `0x52e590` | cintas en `GL_TRIANGLE_FAN` | `DrawRibbons` consume el pool durable; sus productores/recursos5bb..bd/639 siguen enCL9–CL11 |
+| `0x63752a` | **`0x549510`** | marca los sprites del frame | `MarkSeen`, muestra previa al primer ojo para replay y buffer proyectado de cuadros intermedios |
 | `0x63752f` | `0x6213e0` | la modelview en la identidad | sí |
-| `0x63754c` | `0x5306a0` otra vez, solo en el mapa 2 | | — |
-| `0x637552` | **`0x549440(0)`** | | sí |
-| `0x637558` | **`0x548550(0)`** | las partículas | `DrawGameParticles` reutiliza `DrawParticles`, todavía detrás del corte de los ítems del piso |
-| `0x63756a` | `0x548eb0(0)` | los números de daño, sin depth test | CL9.2 |
+| `0x63754c` | `0x5306a0`, mapa2 y capa signed distinta de3 y menor que10 | hojas de ojo | `GameTailPasses` aplica la guarda en ambos ojos |
+| `0x637552` | **`0x549440(local_8)`** | sprites, modo0/1 | `DrawFrameSprites`; modo1 conserva vivos y modo2 filtra/consume la banda correspondiente |
+| `0x637558` | **`0x548550(local_8)`** | partículas | `DrawGameParticles`, pool durable y filtros350/300; conserva cortes por familia |
+| `0x63756a` | `0x548eb0(local_8)`, sólo si437850 esfalse | números de daño | `DrawDamage`, atlas1FontTest real; paso548f40 sin apagar los slots en dibujo |
 | `0x637572` | `0x6213f0` | el `glPopMatrix` | sí |
-| `0x637577..0x6375e5` | si `0x437850()`, un segundo pase | | no en el mapa 0 |
+| `0x637577..0x6375e5` | segunda consulta437850;620db0,4378a0 y cola | segunda capa | orquestador y modos portados; backend/loader Kalima permanecen explícitos437850/4378a0/4377a0 |
 | `0x637641` | `0x59ec80` | qué personaje está bajo el mouse | [Caminar](#caminar) |
 | `0x637646..0x6376e6` | `0x6219b0`, `0x4383f0`, `0x5bbbc0`, `0x5a7320(1)`, `0x5a7eb0`, `0x490390`, `0x5f37f0`, `0x62db60`, `0x5f7bc0`, `0x554810`, `0x5554e0`, `0x5b0550`, `0x40eca0`, `0x65ee60`/`0x65fe00`, `0x5ac2d0` × 2, `0x633110`, `0x621a90`, `0x620fc0` y uno por vtable | el 2D: el HUD, las ventanas, el texto y el cursor | CL8 |
 
@@ -4213,7 +4370,8 @@ los demás mapas que carga, en los objetos (`0x6374ce`), salvo el 6 (la cámara,
 agua, `0x5fa985`). Antes dibuja el pase del pasto y las marcas del suelo, que no gastan `rand()`; los
 objetos, uno por objeto visto que llega a `0x602ed0` y el guard de la fuente, más sus ocho sorteos
 cuando crea dos gotas. Los efectos vivos y vistos consumen el común de `0x52dc46` y los casos propios;
-los personajes, sus accesos al registro y el de `0x50db57`. Las aves siguen sin pool productivo (abajo).
+los personajes, sus accesos al registro y el de `0x50db57`. Las aves y los peces ya tienen pool y
+servicios productivos ([La fauna y sus recursos](#la-fauna-y-sus-recursos)).
 Con la tabla de la .bss las marcas no dibujan nada, y una marca prendida, que MuRet no sabe crear,
 corta en `0x549152` (P-C49). Los mapas 18 a 23, que
 `LoadMap` ya corta en `0x447d70`, cortan antes de la primera celda (`0x5fa83f`, Q-C229) si llegan con el
@@ -4248,8 +4406,9 @@ de MuRet, *simulado*):
   o no, suma 90 a `+0x24` y se lo resta al final (Q-C277); los vivos van con su sombra (`0x602e90`,
   `0x60b130`, `0x5491e0` y `0x4eff40`). Sin pájaros vivos no dibuja ni saca `rand()`. Los crea `0x446120`,
   desde el paso (`0x6370ea`), y los apagan `0x6070a0` y `0x4455c0` (desde `0x4d4ab2` y `0x4e363e`). En el
-  frame de cero pasos de la entrada la tabla está vacía; desde el primer paso, el original los crea y
-  MuRet, que no tiene la tabla, no (P-C55 c).
+  frame de cero pasos de una entrada recién limpiada no hay vivos. MuRet conserva los 40 registros y
+  sus campos anteriores, apaga sólo active al limpiar y los llena desde `StepGameBirds`; no trata el
+  kernel puro como integración final ([La fauna y sus recursos](#la-fauna-y-sus-recursos)).
 - **Los personajes** (`0x510d00`). Los 400 lugares en orden. Fuera del héroe, la rama del asedio
   (`0x510d25`, con `0x4294b0`) pide `0x7239ec`, que solo escribe `0x4294c0` desde paquetes que MuRet no
   aplica. El héroe con `+0x1d8` & 4, en la escena 5, no se dibuja: `0x510e57` le pone 1000 en `+0x13c` y 1
@@ -4292,6 +4451,45 @@ frame lo pone `0x637700` (`0x63835d..0x6384f5`): Icarus (10), (0,0117; 0,0977; 0
 a 29 y 36), (0,1172; 0,1563; 0,1563); y negro en los demás (*estático*). No hay cielo: Icarus no
 dibuja el terreno y pone las nubes (`0xbb`, `0x622`, `0x623`), y Kalima dibuja su agua en un pase
 aparte (`0x4378a0` → `0x41cca0`, `0x41cf00`).
+
+### La cola y sus cambios de pase
+
+Lectura **estática** de `0x63750d..0x6375e5`, `0x620db0` y `0x6213e0` del build
+`c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`.
+El byte por mapa vale 1 en 24..29/36 y 0 en los demás; no reemplaza a `0x437850`, que consulta
+si `0x723c48` es distinto de null. La primera consulta omite daño cuando hay mundo Kalima; la
+segunda, posterior al primer `0x6213f0`, decide repetir la cámara, dibujar agua y recorrer la
+segunda capa. No hay reflexión de cámara en este caller. `0x4378a0` llama actualización
+`0x41cca0` y dibujo `0x41cf00` antes de joints 2, efectos modelados 1, cintas, MarkSeen, ojo y
+sprites/partículas/daño 2.
+
+**`0x620db0` y `0x6213e0` tienen efectos distintos.** `0x6213e0` sólo hace push y loadIdentity
+de modelview. `0x620db0` reconstruye la cámara y en `0x620eea..0x620f4c` apaga alpha test,
+activa textura/depth/culling y escritura de profundidad, usa LEQUAL y fija alpha GREATER 0.25.
+Esos resets no cambian por analogía blend ni binding. Un vaciado del lote diferido tampoco
+representa otra llamada a `0x620db0`.
+
+MuRet distingue ese inicio en `ModelBatch::InitializesMaterial`. `GlFrameTarget::FlushModels`
+ejecuta comandos aunque no haya vértices, conserva el material del lote y deja la continuación
+sin otro reset nativo. `BeginGameTailPass` captura antes del flush; el ojo conserva material y
+el regreso al mundo publica sólo los resets acreditados. `GlModelRenderer` sube matrices/VBO
+por lote y aplica la inicialización sólo cuando está solicitada. Las regresiones observan GL
+real entre lotes parciales y también un inicio World sin geometría:
+[test_gl_frame_target](../../tests/render_gl/test_gl_frame_target.cpp) y
+[test_game_scene_kalima_tail](../../tests/scenes/test_game_scene_kalima_tail.cpp), **simulado**.
+
+La carga meteorológica `0x61ac3e..0x61ad7a` publica 64/65 del mundo y 66/67/68 de lluvia,
+respetando la alternativa TGA→JPG del 64, opcionalidad y sampling. El atlas de daño no era otro
+selector: `0x621799/0x621889` pasan 1 al binder; `0x61bdb4` carga `Interface\FontTest.tga` con
+NEAREST/CLAMP. Los joints emitidos por fauna usan 610 Flare02 (LINEAR/REPEAT), 613 JointSpirit01,
+618 JointLaser01 y 697 ScolTail (LINEAR/CLAMP); 617 Spark01 ya estaba cargado.
+[Texturas meteorológicas](../../tests/scenes/test_weather_textures.cpp),
+[handles GL](../../tests/render_gl/test_weather_texture_handles.cpp) y
+[atlas/joints](../../tests/scenes/test_game_tail_textures.cpp) contrastan archivos reales y píxeles.
+
+El orquestador no crea el estado `0x723c48` ni el backend `0x4378a0`: LoadMap conserva la frontera
+`0x4377a0`. Tampoco porta productores de cintas ni todas las familias de piso/joints/efectos
+CL9–CL11. No se ejecutó ni emuló el original, y el contraste de VM sigue pendiente.
 
 ### Los casos del suelo y los dos anillos de llegada
 
@@ -4362,10 +4560,14 @@ coordenadas del mundo y no recibe otra escala/origen.
 
 `StepGameWaterspoutFrame` conserva ese orden y cualquier primera gota si falla la segunda.
 `GameScene` presta `WorldState::Particles`, el mismo pool y viento del login y la selección; las
-cargas apagan alive sin resetear el viento. Con el modelo recién posado reconstruye sus huesos
-vigentes; alpha<0,01, dummy o pose ausente necesitan un buffer global anterior aún no representado:
-error `0x6030a5/0x603121` después de sus X/Z. El pipeline de pose sigue siendo el de MuRet por
-cuaterniones; no se afirma igualdad de sus puntos con la pose nativa.
+cargas apagan alive sin resetear el viento. `GameObjectPass.retainedPose` presta el
+[carry global](#la-pose-compartida-entre-escenas) a este lector. `0x6030a5/0x603121` pasan Translate=0:
+`0x4ec16d..0x4ec17e` aplica directamente la matriz retenida de los huesos 1 y 4, sin consultar
+escala/origen del modelo actual. Con alpha<0,01 o hueso dummy lee lo dejado por el modelo anterior,
+sin volver a posar. Si el préstamo no contiene ese hueso corta después de los X/Z de esa gota;
+un préstamo vacío no se reemplaza por identidad ni por una pose reconstruida. Sin préstamo se
+conserva la API compatible para huesos escritos y su error explícito en los demás. El contraste de
+los puntos y de la pose portable con la ejecución nativa sigue pendiente.
 
 `StepGameParticles` reutiliza `StepParticlesChecked` desde `0x637128`, después de personajes y antes
 de las marcas del suelo; consume los dos rand del viento incluso con la tabla vacía.
@@ -5171,10 +5373,12 @@ mapa, en `0x602ffb`, después del `rand()` de `0x602ef4`; *estático*):
   en los huesos 1 y 4 (`0x68b184c` y `0x68b18dc`, con `0x4ec110`), a (`rand()` % 32 − 16, −20,
   `rand()` % 32 − 16) y (…, −80, …) de cada uno. MuRet ya las crea con
   `Scenes::StepGameWaterspoutFrame`, el pool compartido de `WorldState::Particles` y los huesos de la
-  pose vigente. Si ese modelo no escribió el hueso (alpha bajo, dummy o pose ausente), corta en
-  `0x6030a5/0x603121` después de los X/Z de esa gota; no reemplaza la pose global anterior por una
-  posición inventada. `GameParticlesTest` cubre altas, RNG, pool lleno y el prefijo si falla la segunda;
-  la pose retenida y su contraste nativo siguen pendientes (P-C55 a).
+  pose global prestada por `GameObjectPass.retainedPose`, aun con alpha bajo o huesos dummy:
+  `0x4ec110` recibe Translate=0 y lee la matriz exacta anterior sin aplicar el transform actual.
+  [GameParticlesTest](../../tests/scenes/test_game_particles.cpp) cubre altas, matrices retenidas,
+  RNG, pool lleno y el prefijo si falta el segundo hueso. Un préstamo vacío corta tras los dos
+  sorteos de la primera gota; no inventa historia fría. El contraste nativo de sus puntos sigue
+  pendiente (P-C55 a).
 
 **Al dibujar** (`0x6002e0`): el único caso del mapa 0 es el `0x69`, con cuatro `RenderMesh(malla, 2,
 alpha, 3, luz, …)`, la 3 con la U y la V, en vez de un `RenderBody` (*emulado*). Por dentro
@@ -5192,12 +5396,15 @@ usan el modelo `0xad` (`Bird01`), solo sin tormenta (`0x723c50 == 0`), nacen al 
 `ESI` empieza en `0x7d2de18`, suma `0x1d4` por lugar y sale con `ESI >= 0x7d2e73c`
 (`0x44642a/430`, `0x446a57`): índices 0 a 4 de `0x7d2dca8`. En 90 observaciones nativas de la
 primera serie se vieron 5 vivos 85 veces y 4 las otras 5; el conteo observado no es la prueba
-del límite estático. Queda su evolución temporal, en P-C28 j. La tormenta (`0x723c50`, que el `1C` apaga) tira rayos `0xc2` con el sonido `0x42` y
-oscurece la luz del terreno alrededor del héroe.
+del límite estático. MuRet ya porta nacimiento, evolución, servicios y dibujo de esas familias
+([La fauna y sus recursos](#la-fauna-y-sus-recursos)); los tests del port no sustituyen el contraste
+temporal nativo de P-C28 j. La tormenta (`0x723c50`, que el `1C` apaga) tira rayos `0xc2` con el
+sonido `0x42` y oscurece la luz del terreno alrededor del héroe.
 
 **Los peces** (`0x447030`, la tabla `0x7d35350`; el dibujo, `0x446f00`, con su sombra `0x4eff40`):
 en el 0, hasta 3 `0xb2` (`Fish01`), a ±512 del héroe y solo en celdas con la capa 1 en 5, el agua
-(`0x5f82a0`; *estático*).
+(`0x5f82a0`; *estático*). MuRet usa el pool durable y los servicios productivos de
+[fauna](#la-fauna-y-sus-recursos), con el sorteo del candidato incluso si esa celda lo rechaza.
 
 **Las hojas** (`0x530490`; el dibujo, `0x5306a0`): **80 en Lorencia** (*estático*, y las 80 con la
 textura `0x64`, *verificado* en la traza). La cuenta de partida es `(-(mapa != 9) & −120) + 200`

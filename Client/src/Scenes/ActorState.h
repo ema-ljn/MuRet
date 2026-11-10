@@ -78,7 +78,15 @@ struct ActorState
     float alpha = 0.0f;
     // +0x188: el contador de pasos de lógica (0x7d3a0f0) cuando lo construyó 0x511290.
     std::int32_t stepStamp = 0;
-    std::uint8_t byte88 = 0;      // +0x88: 0x511290 y la respuesta del F3 03 lo ponen en 1; qué es, sin leer
+    // +0x16c: si se ve. 0x508f00 lo escribe en cada paso con el trapecio del último dibujo (0x5fba90) y,
+    // vivo, otra vez 0x508ea0. 0x511290 lo pone en 0 (0x511bd8).
+    bool seen = false;
+    // +0x389: distinto de 0, se está muriendo y 0x508f00 no lo pone en el TerrainWall. 0x511290 lo pone
+    // en 0 (0x511c05); quién más lo escribe, sin leer.
+    std::uint8_t dying = 0;
+    // +0x88: 0x511290 y la respuesta del F3 03 lo ponen en 1; con 8, 0x508f00 no lo pone en el
+    // TerrainWall (0x508f60). Qué es, sin leer.
+    std::uint8_t byte88 = 0;
     std::uint8_t controlCode = 0; // +0x1d8, el CtlCode de la respuesta del F3 03
     // +0x1d9: el nombre. La respuesta del F3 03 copia ahí los diez bytes del registro propio (0x4c47a2).
     std::array<std::byte, Protocol::Character::NameSize> name{};

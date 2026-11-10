@@ -10,6 +10,8 @@ namespace Client::World
 {
 inline constexpr std::uint16_t CharacterWallBit = 0x02;
 inline constexpr std::uint16_t SafeZoneWallBit = 0x01;
+// 0x508f60: un personaje con +0x88 en 8 no ocupa su celda.
+inline constexpr std::uint8_t NonBlockingKind = 8;
 
 // Coordenadas lógicas ya decodificadas (+0x41c/+0x420), no la posición dibujada. Las condiciones
 // son las de 0x508f49..0x508f67; también se incluye al héroe.
@@ -21,6 +23,12 @@ struct TerrainOccupant
     bool dying = false;
     std::uint8_t kind = 0;
 };
+
+// 0x508f14..0x508f34: el 0x02 fuera de los 65.536 WORD, al principio de cada paso de los personajes.
+void ClearCharacterWalls(Data::Terrain::TerrainLayer<std::uint16_t>& cells);
+// 0x509165: el 0x02 en la celda lógica de un personaje, por 0x5f82a0, que se queda con los ocho bits
+// bajos de cada coordenada.
+void MarkCharacterWall(Data::Terrain::TerrainLayer<std::uint16_t>& cells, int logicalX, int logicalY);
 
 struct TerrainWalls
 {

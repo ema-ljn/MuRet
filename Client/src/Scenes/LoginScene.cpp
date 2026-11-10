@@ -31,6 +31,7 @@
 #include "Scenes/CharacterAnimation.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterHead.h"
+#include "Scenes/CharacterStep.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/DarkSpirit.h"
 #include "Scenes/FullSetScan.h"
@@ -184,17 +185,6 @@ constexpr int NoSlot = -1;
 [[nodiscard]] bool IsConnecting(App::SessionState state)
 {
     return state == App::SessionState::ConnectingConnectServer || state == App::SessionState::ConnectingGameServer;
-}
-
-// 0x5fba90 como lo llama 0x508ea0 (0x508eac..0x508ecb): el lugar del personaje por 0,01f (0x6b88d4), guardado
-// en float, con el margen de −20 (0xc1a00000).
-[[nodiscard]] bool CharacterSeen(const World::TerrainPolygon& polygon, const glm::vec3& position)
-{
-    constexpr double CellsPerUnit = static_cast<double>(0.01f);
-    constexpr double ViewMargin = -20.0;
-    const auto cells = [](float coordinate)
-    { return static_cast<double>(static_cast<float>(static_cast<double>(coordinate) * CellsPerUnit)); };
-    return World::PolygonContains(polygon, cells(position.x), cells(position.y), ViewMargin);
 }
 } // namespace
 

@@ -107,6 +107,8 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.alpha = 1.0f;
     actor.characterClass = 0;
     ResetTheAnimation(actor);
+    actor.seen = false;
+    actor.dying = 0;
     actor.byte88 = 1;
     actor.byte3e3 = 0;
     actor.word376 = NoWord376;

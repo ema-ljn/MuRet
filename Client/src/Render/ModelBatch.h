@@ -38,6 +38,8 @@ enum class ModelBlend : std::uint8_t
     // El remolino 90 del mapa 55 (0x6002e0 con 0x620b10): ZERO / ONE_MINUS_SRC_COLOR, sin culling ni
     // alpha test, y no escribe la profundidad: oscurece lo de atrás donde su color es claro.
     Subtractive,
+    // 0x620b90: ONE_MINUS_SRC_COLOR / ONE, sin culling, alpha test ni escritura de profundidad.
+    InverseColorAdditive,
 };
 
 // 621400 ya entrega coordenadas de ojo; las mallas siguen entregando coordenadas del mundo.

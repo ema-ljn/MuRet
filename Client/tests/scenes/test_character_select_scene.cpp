@@ -230,6 +230,7 @@ struct Harness
         Client::Tests::WriteSceneFile(folder.Path(), "Gate.bmd", Client::Tests::GateTableBytes({}));
         Client::Tests::WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
         Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+        Client::Tests::WriteEmptySkillFile(folder.Path());
         auto loaded = Client::Scenes::LoadGameData(folder.Path());
         EXPECT_TRUE(loaded.HasValue());
         if (loaded.HasValue())
@@ -2194,5 +2195,23 @@ TEST(CharacterSelectSceneTest, ThePreviewGreetsFromTheStart)
     rechosen.ClickAt({static_cast<float>(layout.classes[1].x + 5), static_cast<float>(layout.classes[1].y + 5)});
 
     EXPECT_EQ(firstVertex(opened), firstVertex(rechosen));
+}
+} // namespace
+
+namespace
+{
+TEST(CharacterSelectSceneTest, SelectionPosesUseTheSharedWorldCarryOnlyOnNativeFrames)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    static_cast<void>(tested.Frame());
+    ASSERT_FALSE(world.PoseCarry().bones.empty());
+    world.PoseCarry().bones[0][3] = {7, 8, 9};
+    static_cast<void>(tested.Frame());
+    EXPECT_EQ(world.PoseCarry().bones[0][3], glm::vec3(7, 8, 9));
+    EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 } // namespace

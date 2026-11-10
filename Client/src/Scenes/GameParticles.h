@@ -50,11 +50,12 @@ StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
 
 // 0x637128 → 0x5446e0: también con el pool vacío consume los dos rand() del viento.
 [[nodiscard]] Core::Expected<void, std::string>
-StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map);
+StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
+                  const std::function<double(float, float)>& terrainHeight = {});
 
 // 0x637558 → 0x548550(0), en el pase de ojo después de los sprites. Conserva la geometría y
 // las operaciones anteriores a un fallo y devuelve la dirección y el lugar que falló.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameParticles(Render::ModelBatch& batch, World::Particles& particles, const IModelLibrary& textures,
-                  const Render::Models::OriginalMatrix& view, float worldClock);
+                  const Render::Models::OriginalMatrix& view, float worldClock, std::uint8_t mode = 0);
 } // namespace Client::Scenes

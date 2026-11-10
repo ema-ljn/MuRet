@@ -215,6 +215,7 @@ struct Harness
         Client::Tests::WriteSceneFile(folder.Path(), "Gate.bmd", Client::Tests::GateTableBytes({}));
         Client::Tests::WriteSceneFile(folder.Path(), "Local/Item.bmd", Client::Tests::EmptyItemTableBytes());
         Client::Tests::WriteEmptyItemSetFiles(folder.Path());
+        Client::Tests::WriteEmptySkillFile(folder.Path());
         auto loaded = LoadGameData(folder.Path());
         EXPECT_TRUE(loaded.HasValue()) << loaded.Error();
         if (loaded.HasValue())

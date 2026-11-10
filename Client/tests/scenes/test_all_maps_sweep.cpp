@@ -90,8 +90,6 @@ std::string_view ExpectedError(MapSweepCut cut)
     {
     case MapSweepCut::None:
         return {};
-    case MapSweepCut::NoriaEffects:
-        return "0x606660: el objeto 0 de los especiales de 0x616ec0 (tipo 322) pide un efecto que MuRet no crea";
     case MapSweepCut::MissingHeight:
         return "Data\\World6\\TerrainHeight.OZB no está";
     case MapSweepCut::CastleState:
@@ -204,7 +202,7 @@ void ExpectPublishedFiles(const Client::Scenes::WorldMap& loaded, const MapSweep
     ASSERT_FALSE(loaded.objectRecords.empty());
     EXPECT_EQ(loaded.objectRecords.front().type, expected.firstType);
     EXPECT_EQ(loaded.objectRecords.back().type, expected.lastType);
-    const std::size_t specialCount = probe.nominal == 2 ? 2 : 0;
+    const std::size_t specialCount = probe.nominal == 2 ? 2 : (probe.nominal == 3 ? 1 : 0);
     ASSERT_EQ(loaded.objects.size(), specialCount + loaded.objectRecords.size());
     for (std::size_t record = 0; record < loaded.objectRecords.size(); ++record)
     {
@@ -256,16 +254,29 @@ void ExpectGrassAndRandom(const Client::Scenes::WorldMap& loaded, const MapSweep
         quarters.push_back(static_cast<std::uint8_t>(offset * 4.0f));
     }
     // CRC de la secuencia literal de la CRT, calculada fuera de MuRet desde seed=5eed.
-    EXPECT_EQ(CrcOf(quarters), 0xc78fa93bu);
+    // Noria antepone12 sorteos de sus cuatro efectos322/323; CRC calculado con la LCG literal.
+    EXPECT_EQ(CrcOf(quarters), probe.nominal == 3 ? 0x7c9c1daau : 0xc78fa93bu);
 }
 
-void ExpectEffectCleanup(const WorldState& world)
+void ExpectEffectCleanup(const WorldState& world, const MapSweepCase& probe)
 {
-    for (const Client::World::ModelEffect& effect : world.Map().effects.Effects())
+    constexpr std::array<std::int16_t, 5> NoriaEffects{322, 323, 322, 323, 324};
+    const auto effects = world.Map().effects.Effects();
+    for (std::size_t slot = 0; slot < effects.size(); ++slot)
     {
-        ASSERT_FALSE(effect.alive);
-        ASSERT_TRUE(effect.seen);
-        ASSERT_EQ(effect.life, EffectLife);
+        const auto& effect = effects[slot];
+        ASSERT_TRUE(effect.seen); // El creador retiene seen incluso al reutilizar estos primeros slots.
+        if (probe.nominal == 3 && slot < NoriaEffects.size())
+        {
+            ASSERT_TRUE(effect.alive);
+            ASSERT_EQ(effect.type, NoriaEffects[slot]);
+            ASSERT_EQ(effect.life, 0xffffff);
+        }
+        else
+        {
+            ASSERT_FALSE(effect.alive);
+            ASSERT_EQ(effect.life, EffectLife);
+        }
     }
     for (const Client::World::Particle& particle : world.Particles().All())
     {
@@ -401,7 +412,7 @@ TEST_P(MapSweep, LoadsTheNominalIdentityOrStopsAtTheDeclaredBoundary)
     ExpectPublishedFiles(m_world.Map(), probe, *expected);
     ExpectObjectIdentities(m_world.Map(), probe);
     ExpectGrassAndRandom(m_world.Map(), probe, m_random);
-    ExpectEffectCleanup(m_world);
+    ExpectEffectCleanup(m_world, probe);
     ExpectActorCleanup(m_world, scene);
     if (loaded.HasValue())
     {

@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -135,9 +136,10 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& ob
 }
 
 Core::Expected<void, std::string> StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random,
-                                                    const std::int32_t& map)
+                                                    const std::int32_t& map,
+                                                    const std::function<double(float, float)>& terrainHeight)
 {
-    const auto stepped = World::StepParticlesChecked(particles, random, &map);
+    const auto stepped = World::StepParticlesChecked(particles, random, &map, terrainHeight);
     if (!stepped.HasValue())
     {
         return Core::Unexpected(std::format("0x637128 → 0x5446e0: el paso de las partículas falla con error {}",
@@ -148,9 +150,10 @@ Core::Expected<void, std::string> StepGameParticles(World::Particles& particles,
 
 Core::Expected<void, std::string> DrawGameParticles(Render::ModelBatch& batch, World::Particles& particles,
                                                     const IModelLibrary& textures,
-                                                    const Render::Models::OriginalMatrix& view, float worldClock)
+                                                    const Render::Models::OriginalMatrix& view, float worldClock,
+                                                    std::uint8_t mode)
 {
-    const auto drawn = DrawParticles(batch, particles, textures, view, worldClock);
+    const auto drawn = DrawParticles(batch, particles, textures, view, worldClock, mode);
     if (!drawn.HasValue())
     {
         const World::ParticleDrawingFailure& failure = drawn.Error();

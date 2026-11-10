@@ -11,7 +11,6 @@ namespace Client::Tests
 enum class MapSweepCut : std::uint8_t
 {
     None,
-    NoriaEffects,
     MissingHeight,
     CastleState,
     CrywolfState,
@@ -60,6 +59,7 @@ inline constexpr std::array<MapSweepWorldCase, 21> MapSweepWorlds{{
 inline constexpr std::uint32_t MapSweepSeed = 0x5eed;
 // CRT original: seed*0x343fd+0x269ec3, módulo 2^32, sin ejecutar CrtRandom del port.
 inline constexpr std::uint32_t MapSweepAfterGrass = 0xad6d5eed;  // 65.536 sorteos.
+inline constexpr std::uint32_t MapSweepAfterNoria = 0xb58b8a29;  // 12 de torre + 65.536 de pasto.
 inline constexpr std::uint32_t MapSweepAfterTrials = 0xe254a308; // 65.536 + 205 tipos 27/54 de World32.
 
 struct MapSweepCase
@@ -78,12 +78,14 @@ struct MapSweepCase
 
 // Los alias conservan su mapa efectivo salvo la guarda explícita 32 -> 9 de 0x61a560.
 // Todos los registros de estos .obj pasan el sector nativo, incluidos los NaN de Devias (Q-C186).
-// Los dos especiales de Devias preceden al archivo; Noria corta en su primer especial.
+// Los especiales preceden al archivo: dos en Devias y una torre en Noria.
+// Noria crea cinco efectos: cuatro 322/323 toman tres rand cada uno; 324 no toma ninguno.
+// World4 contiene 16 registros de tipo 8 y 53 de 38: 69 entradas auxiliares, contadas desde K16 aparte.
 inline constexpr std::array<MapSweepCase, 39> MapSweepCases{{
     {0, 0, 1, MapSweepCut::None, 2870, 110, MapSweepAfterGrass, {1, 4, 4}, false},
     {1, 1, 2, MapSweepCut::None, 4488, 39, MapSweepAfterGrass, {0, 7, 7}, false},
     {2, 2, 3, MapSweepCut::None, 2146, 154, MapSweepAfterGrass, {4, 2, 2}, false},
-    {3, 3, 4, MapSweepCut::NoriaEffects, 1, 0, MapSweepSeed, {1, 3, 3}, false},
+    {3, 3, 4, MapSweepCut::None, 9400, 69, MapSweepAfterNoria, {1, 3, 3}, false},
     {4, 4, 5, MapSweepCut::None, 5380, 0, MapSweepAfterGrass, {1, 8, 8}, false},
     {5, 5, 6, MapSweepCut::MissingHeight, 0, 0, MapSweepAfterGrass, {0, 0, 0}, false},
     {6, 6, 7, MapSweepCut::None, 1489, 0, MapSweepAfterGrass, {3, 1, 0}, false},

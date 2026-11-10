@@ -108,7 +108,7 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
     AssignTextures(InitialGateTextures);
     m_slots.SetNext(SkillTexturesStart);
     AssignTextures(Data::Models::SkillTextureCalls());
-    UploadEach(dataRoot, GlowTextureSet, textures, log);
+    UploadEach(dataRoot, GlowTextureSet, textures, log, &m_textureMetadata);
     UploadEach(dataRoot, ClothTextureSet, textures, log);
     UploadEach(dataRoot, EffectTextureSet, textures, log, &m_textureMetadata);
     UploadEach(dataRoot, Data::Models::PlayerFixedTextures(), textures, log);

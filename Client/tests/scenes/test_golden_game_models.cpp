@@ -1,4 +1,5 @@
 #include "Scenes/GameModels.h"
+#include "Scenes/TextureMetadata.h"
 
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
@@ -162,6 +163,35 @@ TEST_F(GoldenGameModels, TheCloudTextureIsLoadedWithTheGameModels)
     EXPECT_EQ(cloud->sampling.wrap, Client::Data::Textures::Wrap::Clamp);
     EXPECT_TRUE(models.TextureSize(TextureSlot{0x622}).has_value());
 }
+TEST_F(GoldenGameModels, JointAndPortalResourcesPublishTheirRealPhysicalTextures)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+    const auto loaded = models.Load(m_dataRoot, textures, log);
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    for (const std::uint32_t selector :
+         {std::uint32_t{0x5c5}, std::uint32_t{0x5d5}, std::uint32_t{0x5fc}, std::uint32_t{0x617}, std::uint32_t{0x62b}})
+    {
+        SCOPED_TRACE(selector);
+        const auto metadata = models.TextureMetadataOf(selector);
+        ASSERT_TRUE(metadata.has_value());
+        const auto handle = models.TextureSlotOf(selector);
+        ASSERT_TRUE(handle.has_value());
+        EXPECT_EQ(handle->value, selector);
+        const auto physical = textures.Find(*handle);
+        ASSERT_TRUE(physical.has_value());
+        EXPECT_EQ(physical->sampling.filter, Client::Data::Textures::Filter::Linear);
+        EXPECT_EQ(physical->sampling.wrap, Client::Data::Textures::Wrap::Clamp);
+        EXPECT_GT(metadata->size.x, 0.0f);
+        EXPECT_GT(metadata->size.y, 0.0f);
+        EXPECT_EQ(metadata->size.x, static_cast<float>(physical->texture.textureWidth));
+        EXPECT_EQ(metadata->size.y, static_cast<float>(physical->texture.textureHeight));
+        EXPECT_EQ(metadata->components, 3);
+    }
+}
+
 // Lo que piden los dos cargadores está en el laboratorio: el original se cierra con una textura de
 // modelo que falta (Q-C23), así que con estas carpetas ninguna falta. Con la carpeta del .bmd
 // faltaban 14, entre ellas las de las mascotas.

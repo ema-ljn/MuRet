@@ -136,7 +136,7 @@ TEST(GameGatesTest, ALevelFailureSetsFiftyAndKeepsScanningWithNoSecondOwnAccess)
     const auto result = CheckGameGates(tested.context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
     EXPECT_TRUE(tested.sent.empty());
-    EXPECT_EQ(result.Value().warnings, (std::vector<GateWarning>{{350, 10}}));
+    EXPECT_EQ(result.Value().warnings, (std::vector<GateWarning>{{350, std::uint16_t{10}}}));
     EXPECT_EQ(result.Value().waitSteps, 50);
     EXPECT_EQ(tested.world->Runtime().warpCounter, 50);
     EXPECT_EQ(tested.random.State(), AfterDraws(1, 3892).State());
@@ -213,7 +213,7 @@ TEST(GameGatesTest, EquipmentWarningsUseOwnItemTypesAndDoNotSetTheWait)
     icarus.world->OwnCharacter().level = 9;
     const auto grounded = CheckGameGates(icarus.context);
     ASSERT_TRUE(grounded.HasValue());
-    EXPECT_EQ(grounded.Value().warnings, (std::vector<GateWarning>{{263, std::nullopt}, {350, 10}}));
+    EXPECT_EQ(grounded.Value().warnings, (std::vector<GateWarning>{{263, std::nullopt}, {350, std::uint16_t{10}}}));
     EXPECT_EQ(icarus.world->Runtime().warpCounter, 0);
 }
 
@@ -314,7 +314,7 @@ TEST_F(GoldenGameGates, GateTwentyThreeUsesTheRealLorenciaRectangleAndLevel)
         if (level == 9)
         {
             EXPECT_TRUE(tested.sent.empty());
-            EXPECT_EQ(result.Value().warnings, (std::vector<GateWarning>{{350, 10}}));
+            EXPECT_EQ(result.Value().warnings, (std::vector<GateWarning>{{350, std::uint16_t{10}}}));
             EXPECT_EQ(tested.world->Runtime().warpCounter, 50);
         }
         else

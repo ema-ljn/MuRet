@@ -1395,7 +1395,7 @@ TEST(CharacterDrawingTest, TheSelectedUnlitModelMeshScrollsWithoutChangingOtherM
     object.transform.scale = 1.0f;
     object.state.uv = {0.25f, -0.5f};
     const ModelBatch plain = DrawnObjectOf(models, object);
-    object.unlitMesh = 0;
+    object.unlitMesh = std::int16_t{0};
     const ModelBatch selected = DrawnObjectOf(models, object);
     ASSERT_EQ(selected.Vertices().size(), 6u);
     ExpectColor(selected.Vertices()[0], 0.5f, 0.5f, 0.5f);

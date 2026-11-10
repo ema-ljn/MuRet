@@ -805,4 +805,74 @@ std::optional<double> CosineProductPC53(double argument, float multiplier)
 {
     return TrigonometricProduct(argument, multiplier, true);
 }
+
+namespace
+{
+std::optional<double> PairProduct(double sineArgument, bool firstCosine, double cosineArgument, bool secondCosine)
+{
+    if (!ValidParticleInputs(sineArgument, 1) || !ValidParticleInputs(cosineArgument, 1))
+        return std::nullopt;
+    constexpr Retained64 RetainedOne{std::uint64_t{1} << (RetainedDigits - 1), 1 - RetainedDigits,
+                                     RetainedClass::Finite, false};
+    const Retained64 sine =
+        sineArgument == 0
+            ? (firstCosine ? RetainedOne : Retained64{0, 0, RetainedClass::Finite, std::signbit(sineArgument)})
+            : RetainedSineOrCosine(sineArgument, firstCosine);
+    const Retained64 cosine =
+        cosineArgument == 0
+            ? (secondCosine ? RetainedOne : Retained64{0, 0, RetainedClass::Finite, std::signbit(cosineArgument)})
+            : RetainedSineOrCosine(cosineArgument, secondCosine);
+    const bool negative = sine.negative != cosine.negative;
+    if (sine.significand == 0 || cosine.significand == 0)
+        return NearestDouble(0, 0, negative);
+    // 128 bits exactos caben en Wide; no hay R64 intermedio del producto.
+    const Wide product = Multiply(FromInteger(SplitLimbs(sine.significand), sine.exponent, sine.negative),
+                                  FromInteger(SplitLimbs(cosine.significand), cosine.exponent, cosine.negative));
+    const std::uint64_t high =
+        (std::uint64_t{product.mantissa[LimbCount - 1]} << LimbBits) | product.mantissa[LimbCount - 2];
+    constexpr int Drop = RetainedDigits - DoubleDigits;
+    constexpr std::uint64_t Half = std::uint64_t{1} << (Drop - 1);
+    std::uint64_t mantissa = high >> Drop;
+    bool sticky = (high & (Half - 1)) != 0;
+    for (std::size_t i = 0; i + 2 < LimbCount; ++i)
+        sticky = sticky || product.mantissa[i] != 0;
+    if ((high & Half) != 0 && (sticky || (mantissa & 1) != 0))
+        ++mantissa;
+    return ExactDouble({mantissa, product.exponent - DoubleDigits, negative});
+}
+} // namespace
+std::optional<double> SineCosineProductPC53(double sineArgument, double cosineArgument)
+{
+    return PairProduct(sineArgument, false, cosineArgument, true);
+}
+std::optional<std::array<float, 3>> FaunaDirectionPC53(std::int32_t phase)
+{
+    const auto wrapped = [](std::int32_t value, std::uint32_t add)
+    { return std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(value) + add); };
+    const double x = static_cast<double>(.048f) * wrapped(phase, 55555U);
+    const double y = static_cast<double>(.0613f) * phase;
+    const double z = static_cast<double>(.1113f) * wrapped(phase, 11111U);
+    const auto a = PairProduct(x, false, y, true);
+    const auto b = PairProduct(x, false, y, false);
+    const auto c = PairProduct(x, true, z, true);
+    const auto sine = SineProductPC53(z, 1);
+    if (!a || !b || !c || !sine)
+        return std::nullopt;
+    const float spillB = static_cast<float>(*b), spillSine = static_cast<float>(*sine);
+    const auto signedCos = [](double argument, float factor) -> std::optional<double>
+    {
+        if (factor == 0)
+            return static_cast<double>(factor);
+        const auto value = CosineProductPC53(argument, std::abs(factor));
+        if (!value)
+            return std::nullopt;
+        return factor < 0 ? -*value : *value;
+    };
+    const auto first = signedCos(z, spillB), second = signedCos(x, spillSine);
+    if (!first || !second)
+        return std::nullopt;
+    return std::array<float, 3>{static_cast<float>(*first - *second),
+                                static_cast<float>(*c + static_cast<double>(spillSine) * spillB),
+                                static_cast<float>(*a)};
+}
 } // namespace Client::Render::Models::Detail

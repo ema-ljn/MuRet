@@ -537,6 +537,8 @@ void DrawModel(const CharacterFrame& frame, std::uint16_t modelId, std::span<con
     {
         return;
     }
+    if (frame.character.onPose)
+        frame.character.onPose(modelId, bones, frame.character.object, false);
     const glm::vec3 light =
         use.hanging ? frame.character.hangingLight.value_or(frame.character.light) : frame.character.light;
     const glm::vec3 shade = light * use.glow.baseFactor;
@@ -747,11 +749,18 @@ void DrawHangingFrom(const CharacterFrame& frame, std::uint16_t modelId, const B
     {
         return;
     }
-    std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(1.0f));
+    std::vector<BoneTransform> bones(skeleton->bones.size(), BoneTransform(frame.character.poseBones ? 0.0f : 1.0f));
+    if (frame.character.poseBones)
+    {
+        const auto retained = frame.character.poseBones(modelId);
+        std::copy_n(retained.begin(), std::min(retained.size(), bones.size()), bones.begin());
+    }
     if (!Render::Models::PoseAttached(*skeleton, state, root, bones))
     {
         return;
     }
+    if (frame.character.onPose)
+        frame.character.onPose(modelId, bones, frame.character.object, false);
     const ObjectState object = Render::Models::HangingObjectState(
         modelId, frame.clock, originalRandoms.has_value() ? *originalRandoms : RandomsOf(frame, modelId));
     DrawModel(frame, modelId, bones, ModelUse{glow, false, modelId, object, object.light, true});
@@ -951,11 +960,18 @@ void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const
     {
         return;
     }
-    std::vector<BoneTransform> body(skeleton->bones.size(), BoneTransform(1.0f));
+    std::vector<BoneTransform> body(skeleton->bones.size(), BoneTransform(character.poseBones ? 0.0f : 1.0f));
+    if (character.poseBones)
+    {
+        const auto retained = character.poseBones(Data::Models::PlayerSkeletonModel);
+        std::copy_n(retained.begin(), std::min(retained.size(), body.size()), body.begin());
+    }
     if (!Render::Models::PoseSkeleton(*skeleton, character.body, character.object, character.headAngles, body))
     {
         return;
     }
+    if (character.onPose)
+        character.onPose(Data::Models::PlayerSkeletonModel, body, character.object, false);
     const GameLogic::CharacterAppearance& appearance = character.appearance;
     std::minstd_rand random(RandomSeedOf(frameClock));
     const CharacterFrame frame{batch, models, character, frameClock, random};
@@ -979,11 +995,52 @@ void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const
 
 namespace
 {
+std::vector<MeshDraw> RetainedObjectMeshDraws(const IModelLibrary& models, const DrawnObject& object,
+                                              Core::Duration frameClock,
+                                              std::span<const Render::Models::SkinnedMesh> meshes,
+                                              bool forceVisible = false)
+{
+    const auto* model = models.Find(object.model);
+    if (model == nullptr || (!forceVisible && object.alpha < 0.01f))
+        return {};
+    const auto slots = models.MeshTextures(object.model);
+    std::vector<MeshDraw> draws;
+    for (std::size_t index = 0; index < model->meshes.size() && index < meshes.size(); ++index)
+    {
+        const auto& mesh = model->meshes[index];
+        const auto role = RoleOf(object.model, mesh, index);
+        const auto texture = TextureOf(mesh, slots, index, ObjectClass);
+        if (role.hidden || !texture.drawn || !IndicesInRange(mesh) ||
+            meshes[index].positions.size() < mesh.vertices.size() || meshes[index].normals.size() < mesh.normals.size())
+            continue;
+        const auto blendMesh = BlendMeshOf(role, index, object.state);
+        MeshDraw draw{object.model,
+                      index,
+                      &mesh,
+                      &meshes[index],
+                      role,
+                      texture.slot,
+                      Render::Color{object.color.x, object.color.y, object.color.z, 1},
+                      Blends(mesh, blendMesh),
+                      static_cast<std::int16_t>(index) == blendMesh || role.scrollScript,
+                      &object.state,
+                      frameClock};
+        draw.alpha = object.alpha;
+        const bool unlit = object.unlitMesh && static_cast<std::int16_t>(index) == *object.unlitMesh;
+        draw.vertexLight = object.vertexLight && !unlit;
+        draw.scrolls = draw.scrolls || unlit;
+        draw.normalScale = object.transform.scale;
+        draws.push_back(draw);
+    }
+    return draws;
+}
 // Las mallas de un objeto del mundo posado como 0x5ffdf0, con su alpha y su luz por vértice, o
 // ninguna si 0x5ffdf0 no lo dibuja (el alpha por debajo de 0,01, 0x6b88d4) o falta su modelo.
 std::vector<MeshDraw> ObjectMeshDraws(const IModelLibrary& models, const DrawnObject& object, Core::Duration clock,
                                       std::vector<Render::Models::SkinnedMesh>& skinned)
 {
+    if (!object.retainedMeshes.empty())
+        return RetainedObjectMeshDraws(models, object, clock, object.retainedMeshes);
     constexpr float VisibleAlpha = 0.01f;
     const Data::Models::Model* model = models.Find(object.model);
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(object.model);
@@ -1002,7 +1059,9 @@ std::vector<MeshDraw> ObjectMeshDraws(const IModelLibrary& models, const DrawnOb
     for (MeshDraw& draw : draws)
     {
         draw.alpha = object.alpha;
-        draw.vertexLight = object.vertexLight;
+        const bool unlit = object.unlitMesh && static_cast<std::int16_t>(draw.index) == *object.unlitMesh;
+        draw.vertexLight = object.vertexLight && !unlit;
+        draw.scrolls = draw.scrolls || unlit;
         draw.normalScale = object.transform.scale;
     }
     return draws;
@@ -1038,6 +1097,32 @@ void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const Dr
     for (const MeshDraw& draw : ObjectMeshDraws(models, object, frameClock, skinned))
     {
         DrawBase(batch, draw);
+    }
+}
+
+void DrawObjectFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                          Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes,
+                          std::optional<Render::Models::ShinePass> shine)
+{
+    SetFade fade{object.alpha, 1.0f};
+    for (const auto& draw : RetainedObjectMeshDraws(models, object, frameClock, meshes, shine.has_value()))
+    {
+        if (!shine)
+        {
+            DrawBase(batch, draw);
+            continue;
+        }
+        if (!draw.role.shines ||
+            Render::Models::PassHiddenMesh(draw.model, *shine, draw.object->hiddenMesh) == draw.index)
+            continue;
+        if (*shine == Render::Models::ShinePass::Chrome || *shine == Render::Models::ShinePass::Shiny)
+        {
+            // 60b130→608e00 recibe alpha y escala antes de RenderBody; el color incluye ese producto.
+            const auto color = Scaled(Render::Models::ShineColorOf(object.model), object.alpha);
+            Triangles(batch, draw, {PassSlot(*shine), Render::ModelBlend::Additive, true}, color, PassUv{*shine, {}});
+        }
+        else
+            DrawShinePass(batch, draw, *shine, fade);
     }
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <optional>
 
@@ -42,6 +43,11 @@ struct SignedConversion
 // Argumento finito con |a| < 2^63; factor f32 finito positivo. No acredita FSIN/FCOS.
 [[nodiscard]] std::optional<double> SineProductPC53(double argument, float multiplier);
 [[nodiscard]] std::optional<double> CosineProductPC53(double argument, float multiplier);
+// 445e33: sin/cos113 → dos retenidos64 → producto exacto → un único R53.
+// Mismo dominio finito; evita redondear cada trascendente a double antes del producto.
+[[nodiscard]] std::optional<double> SineCosineProductPC53(double sineArgument, double cosineArgument);
+// 53d1a0 con escala1: tres direcciones PC53 y spills F32, sin acceso al contador.
+[[nodiscard]] std::optional<std::array<float, 3>> FaunaDirectionPC53(std::int32_t phase);
 // Valor canónico retenido; conserva clases y signo de cero. Error si no cabe exactamente en double.
 [[nodiscard]] std::optional<double> RetainedProductPC53(const Retained64& value, float multiplier);
 } // namespace Client::Render::Models::Detail

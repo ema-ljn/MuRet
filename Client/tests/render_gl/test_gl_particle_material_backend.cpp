@@ -420,7 +420,9 @@ TEST_F(GlParticleMaterialBackendTest, SubtractiveFogErrorStillExecutesReachedSta
     Gl().getIntegerv(GL_CURRENT_PROGRAM, &program);
     const GLint alphaLocation = Gl().getUniformLocation(static_cast<GLuint>(program), "alphaTest");
     const GLint textureLocation = Gl().getUniformLocation(static_cast<GLuint>(program), "textured");
-    const std::vector<std::pair<GLint, GLint>> expected{{alphaLocation, 0}, {textureLocation, 1}};
+    // El inicio620db0 ahora publica alpha/textura antes de los dos helpers de la cola.
+    const std::vector<std::pair<GLint, GLint>> expected{
+        {alphaLocation, 0}, {textureLocation, 1}, {alphaLocation, 0}, {textureLocation, 1}};
     EXPECT_EQ(s_uniformCalls, expected);
     EXPECT_EQ(s_drawCalls, 0);
     EXPECT_EQ(ReadUniform("alphaTest"), 0);

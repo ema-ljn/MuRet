@@ -12,10 +12,14 @@
 #include <optional>
 #include <span>
 
-// Los efectos con modelo (CL7.6 A): la tabla de 0x518cf0 (0x7491fd8, 200 lugares de 0x1d4 bytes) y su
-// paso, 0x5208a0. De sus tipos, MuRet solo arma el dragón del login (0xb4, 06 § El dragón de fondo);
-// los demás vienen con los efectos de cada escena. Verificado bit a bit contra el código real emulado
-// en 1.500 pasos (tests/vectors/world55/dragon.txt).
+namespace Client::Render::Models
+{
+class CrtRandom;
+}
+
+// Los efectos con modelo (CL7.6 A): la tabla de 0x518cf0 (200 lugares de 0x1d4 bytes).
+// El dragón conserva los vectores históricos; llegada, teleport y torre de Noria se contrastaron
+// estáticamente con ASM. Para el paso del juego y su CRT, usar World/GameModelEffects.h.
 namespace Client::World
 {
 inline constexpr std::size_t ModelEffectCount = 200;
@@ -24,8 +28,9 @@ inline constexpr std::int16_t DragonEffect = 0xb4;
 inline constexpr float DragonScale = 1.6f;
 // El efecto de llegada: lo crea dos veces la respuesta del F3 03 sobre el héroe (06, "El héroe").
 inline constexpr std::int16_t ArrivalEffect = 0x61f;
+inline constexpr std::int16_t TeleportEffect = 0x5c6;
 
-// Lo que el efecto de 0x1d4 bytes guarda y usa el dragón.
+// Proyección de los campos compartidos por los efectos de 0x1d4 bytes.
 struct ModelEffect
 {
     bool alive = false;                        // +0x0
@@ -51,6 +56,7 @@ struct ModelEffect
     glm::vec3 start{};                        // +0x17c, la partida
     // De MuRet: la posición antes del último paso, para dibujar entre dos pasos (D-C4).
     glm::vec3 previousPosition{};
+    std::int32_t textureFrame = 0; // +0x1c4: selector firmado del calco 0x14e en52d8f2.
 };
 
 class ModelEffects
@@ -62,11 +68,14 @@ public:
     // la luz en blanco (la salida 0x51a97b pisa `light`), vida 1.000, la velocidad (0, −35, 0), la de la
     // animación en 1, +0xdc, +0xe4 y +0xec en 1, luz por vértice y la partida en la posición. Del 0x61f
     // con el subtipo 0: la posición, los ángulos y la luz tal cual, 20 pasos de vida y la animación a
-    // 0,3, sin rand(). Los otros tipos no se crean.
+    // 0,3, sin rand(). El 0x5c6 conserva ese prefijo con vida 10 (0x51e4f6), también sin rand().
+    // Noria tiene su creador separado con CRT; los demás tipos no se crean.
     std::optional<std::size_t> Create(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                       const glm::vec3& light, float scale);
-    // 0x6070a0: apaga el byte vivo de cada lugar (Q-C138: el original deja lo demás; acá Create arma el
-    // lugar entero).
+    // 0x51c36e/0x51c38a: los efectos 322..324 de la torre de Noria; 322/323 ponen sourceLight en cero.
+    std::optional<std::size_t> CreateNoriaEffect(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
+                                                 glm::vec3& sourceLight, Render::Models::CrtRandom& random);
+    // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
     void Clear();
 
     [[nodiscard]] std::span<ModelEffect> Effects();

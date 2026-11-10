@@ -22,10 +22,10 @@ ParticleDrawParameters ParticleDrawParametersOf(const Particle& particle, glm::v
     ParticleDrawParameters result{extents.x, extents.y, 0, {0, 0}, {1, 1}};
     if (kind == ParticleDrawKind::Common)
         result.rotation = particle.rotation;
-    if (kind == ParticleDrawKind::Fire)
+    if (kind == ParticleDrawKind::Fire || kind == ParticleDrawKind::RotatedFire)
     {
         result.width = static_cast<float>(static_cast<double>(result.width) * Quarter);
-        result.rotation = particle.angles.x;
+        result.rotation = kind == ParticleDrawKind::RotatedFire ? particle.rotation : particle.angles.x;
         const std::int32_t frame = std::bit_cast<std::int32_t>(particle.field48);
         result.uv.x = static_cast<float>(static_cast<double>(frame % AtlasColumns) * Quarter);
         result.uvSize.x = static_cast<float>(Quarter);

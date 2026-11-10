@@ -4760,6 +4760,32 @@ olas y los planos de `0x5fbb00` siguen siendo de la escena (P-C46).
 `0x508f00` además le prende el `0x02` a la celda de cada personaje (`0x509165`,
 [Caminar](#caminar)). Los cinco planos salen de la cámara y de las cuatro esquinas lejanas, con la
 modelview de GL (`0x5fd000`), que arma el driver, como el rango (P-C24 a).
+### La esfera de visibilidad de los efectos
+
+Lectura **estática** del build `c32bbd5f…a26a`, sin ejecución ni emulación nuevas. Los cinco planos
+que usa `0x5fbf00` son distintos del trapecio XY. `0x5fbb00` transforma la cámara y las cuatro
+esquinas lejanas por la transpuesta de la modelview (`0x5fcc30`), guarda cada componente en f32 y
+suma después la posición de cámara, con otro store f32. Con puntos 0=cámara y 1..4=esquinas en
+orden, `0x5fbd7b..0x5fbdf6` llama a `0x5fd000` con `(0,1,2)`, `(0,2,3)`, `(0,3,4)`, `(0,4,1)` y
+`(3,2,1)`: cuatro lados y el plano lejano, sin near. Los primeros cuatro offsets toman el punto0;
+el quinto, el punto1 (0x5fbebb..0x5fbee5), aunque la normal tomó el3 como base. Cada offset es `R32(-((nz*pz + ny*py) + nx*px))`, con el perfil de53bits del
+helper existente; no es el orden del consumidor.
+
+`0x5fbf00` recorre los cinco planos en orden. Compara `((nx*x + nz*z) + ny*y) + offset` con
+`-radius`, sin stores f32 intermedios. Rechaza si es menor o sin orden (`test ah,1`, C0); la igualdad
+pasa. No consulta la escena ni el trapecio, y no agrega un sexto plano. `0x52d63c..0x52d655` lo llama
+con radio400 y la posición lógica del efecto: escribe `+0x16c` **antes** de consultar el tipo, el
+modelo o su alpha. Un lugar muerto no se consulta ni modifica su marca. La extrapolación entre
+pasos de MuRet ocurre después de este recorte.
+
+MuRet comparte los cinco puntos entre `TerrainRangeOf` y `SphereFrustumOf`; `SphereVisible` porta
+la comparación. La publicación de la marca en el consumidor de efectos se integra por separado.
+El constructor de planos reutiliza
+`FaceNormal`: su contrato exige triángulos finitos y no degenerados de una cámara válida, como
+las cámaras portadas. No reproduce la retención de normales del original ante un triángulo
+inválido ni fija la CW x87. `SphereFrustumTest` cubre igualdad y los cinco rechazos, NaN, orden y
+precisión de sumas, trasposiciónXYZ, traslación, ancho reducido y cámara del login. Son pruebas de
+la reimplementación contra casos derivados del ASM, **no** observaciones nativas del original.
 
 **El ancho del mundo** (`0x5bb8d0`) es 640 sin ventanas, 450 (`0x1c2`) con una y 260 (`0x104`) con
 dos, según `0x659290`. Achica el viewport (a `0,77,720,691` con una ventana en 1024 × 768), el

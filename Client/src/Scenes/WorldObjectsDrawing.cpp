@@ -361,7 +361,8 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
     {
         if (pass.particles != nullptr)
         {
-            return StepGameWaterspoutFrame(object, *pass.particles, *pass.random, pass.worldClock, models, drawn);
+            return StepGameWaterspoutFrame(object, *pass.particles, *pass.random, pass.worldClock, models, drawn,
+                                           pass.retainedPose);
         }
         return World::StepTheWaterspoutFrame(object, *pass.random, pass.worldClock);
     }

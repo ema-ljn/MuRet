@@ -30,6 +30,7 @@ namespace Client::Scenes
 {
 class IModelLibrary;
 struct DrawnObject;
+struct FaunaDrawCarry;
 
 // 0x4ec110 con Translate=0, después de los dos sorteos del desplazamiento de cada gota.
 // El caller presta el buffer global de la pose vigente y conserva sus huesos anteriores/dummy.
@@ -42,11 +43,12 @@ using WaterspoutBonePoint =
 StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles, Render::Models::CrtRandom& random,
                         const float& worldClock, const WaterspoutBonePoint& bonePoint);
 
-// Con el modelo que acaba de posarse. Un hueso que no escribió ese modelo necesita la pose global
-// retenida, todavía sin representar: devuelve el error después de sus sorteos de X y Z.
+// Con préstamo, 4ec110(Translate=0) lee la matriz global exacta, incluso dummy/alpha bajo.
+// Sin él sólo se acredita el hueso escrito por este modelo; falta de matriz corta tras X/Z.
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles, Render::Models::CrtRandom& random,
-                        const float& worldClock, const IModelLibrary& models, const DrawnObject& drawn);
+                        const float& worldClock, const IModelLibrary& models, const DrawnObject& drawn,
+                        const FaunaDrawCarry* retainedPose = nullptr);
 
 // 0x637128 → 0x5446e0: también con el pool vacío consume los dos rand() del viento.
 [[nodiscard]] Core::Expected<void, std::string>

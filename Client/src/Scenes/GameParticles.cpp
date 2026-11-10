@@ -6,6 +6,7 @@
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaDrawing.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/OriginalFtol.h"
 #include "World/ParticleDrawing.h"
@@ -78,8 +79,17 @@ Core::Expected<void, std::string> EmitDrop(const WaterspoutDrop& drop, const Wor
 }
 
 Core::Expected<glm::vec3, std::string> PosedDropPoint(const IModelLibrary& models, const DrawnObject& drawn,
-                                                      std::size_t bone, const glm::vec3& offset)
+                                                      std::size_t bone, const glm::vec3& offset,
+                                                      const FaunaDrawCarry* retainedPose)
 {
+    if (retainedPose != nullptr)
+    {
+        if (bone >= retainedPose->bones.size())
+            return Core::Unexpected(std::format("falta el hueso {} del buffer global prestado", bone));
+        // 6030a5/603121 pasan Translate=0: 4ec16d..17e no consulta escala/origen del modelo.
+        return Render::Models::OriginalVectorTransform(offset,
+                                                       Render::Models::OriginalMatrixOf(retainedPose->bones[bone]));
+    }
     // 0x5ffdf0 sale antes de posar con alpha<0,01; los dummy tampoco escriben el buffer global.
     constexpr float VisibleAlpha = 0.01f;
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(drawn.model);
@@ -128,10 +138,11 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& ob
 
 Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
                                                           Render::Models::CrtRandom& random, const float& worldClock,
-                                                          const IModelLibrary& models, const DrawnObject& drawn)
+                                                          const IModelLibrary& models, const DrawnObject& drawn,
+                                                          const FaunaDrawCarry* retainedPose)
 {
-    const auto point = [&models, &drawn](std::size_t bone, const glm::vec3& offset)
-    { return PosedDropPoint(models, drawn, bone, offset); };
+    const auto point = [&models, &drawn, retainedPose](std::size_t bone, const glm::vec3& offset)
+    { return PosedDropPoint(models, drawn, bone, offset, retainedPose); };
     return StepGameWaterspoutFrame(object, particles, random, worldClock, point);
 }
 

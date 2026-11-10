@@ -91,20 +91,20 @@ Result Fenrir(EarlyItemRenderer& draw, int level)
 {
     draw.Color(glm::vec3(1));
     draw.Unlit(0);
-    if (auto result = draw.Pass(0, 2, {}, {}, -1); !result.HasValue())
+    if (auto result = draw.Pass(0, 2, {}, {}, std::int16_t{-1}); !result.HasValue())
         return result;
     if (level == 2 || level == 3)
     {
-        if (auto result = draw.Pass(1, 2, {}, {}, -1); !result.HasValue())
+        if (auto result = draw.Pass(1, 2, {}, {}, std::int16_t{-1}); !result.HasValue())
             return result;
         if (level == 3)
-            if (auto result = draw.Pass(2, 2, {}, {}, -1); !result.HasValue())
+            if (auto result = draw.Pass(2, 2, {}, {}, std::int16_t{-1}); !result.HasValue())
                 return result;
         draw.Color({0.75f, 0.65f, 0.5f});
-        if (auto result = draw.Pass(1, 0x44, ChromeTextureSlot, {}, -1); !result.HasValue())
+        if (auto result = draw.Pass(1, 0x44, ChromeTextureSlot, {}, std::int16_t{-1}); !result.HasValue())
             return result;
         if (level == 3)
-            if (auto result = draw.Pass(2, 0x44, ChromeTextureSlot, {}, -1); !result.HasValue())
+            if (auto result = draw.Pass(2, 0x44, ChromeTextureSlot, {}, std::int16_t{-1}); !result.HasValue())
                 return result;
     }
     draw.Unlit(-1);
@@ -116,7 +116,7 @@ Result Scroll(EarlyItemRenderer& draw)
     draw.Store();
     const auto color = draw.object.color;
     draw.object.color = draw.object.vertexLight ? color : glm::vec3(1);
-    if (auto result = draw.Pass(0, 2, {}, {}, -1); !result.HasValue())
+    if (auto result = draw.Pass(0, 2, {}, {}, std::int16_t{-1}); !result.HasValue())
         return result;
     draw.object.color = color;
     const auto wave = draw.Wave(0.001f, 0.5f, 0.5f);
@@ -124,9 +124,9 @@ Result Scroll(EarlyItemRenderer& draw)
         return Core::Unexpected(wave.Error());
     draw.object.state.light = F32(wave.Value());
     draw.Store();
-    if (auto result = draw.Pass(1, 0x42, {}, {}, 1); !result.HasValue())
+    if (auto result = draw.Pass(1, 0x42, {}, {}, std::int16_t{1}); !result.HasValue())
         return result;
-    const auto result = draw.Pass(2, 0x42, {}, {}, 2, F32(1.0 - draw.object.state.light));
+    const auto result = draw.Pass(2, 0x42, {}, {}, std::int16_t{2}, F32(1.0 - draw.object.state.light));
     draw.object.color = color;
     return result;
 }
@@ -189,15 +189,15 @@ Result EarlyCase(EarlyItemRenderer& draw, int level, std::uint8_t packedLevel)
         return draw.Pass(-1, 0x44, ArmorChrome, 0.5f);
     case 0x2248:
         draw.Color({0.3f, 0.8f, 1});
-        if (auto result = draw.Pass(-1, 2, {}, {}, -1); !result.HasValue())
+        if (auto result = draw.Pass(-1, 2, {}, {}, std::int16_t{-1}); !result.HasValue())
             return result;
         draw.Color({1, 0.8f, 0.3f});
-        return draw.Pass(-1, 0x44, ArmorChrome, {}, -1);
+        return draw.Pass(-1, 0x44, ArmorChrome, {}, std::int16_t{-1});
     case 0x2240:
         draw.Color({0.4f, 0.6f, 1});
-        if (auto result = draw.Pass(-1, 1, {}, 1, 0, 1); !result.HasValue())
+        if (auto result = draw.Pass(-1, 1, {}, 1.0f, std::int16_t{0}, 1.0f); !result.HasValue())
             return result;
-        return draw.Pass(-1, 0x44, {}, 1, 0, 1);
+        return draw.Pass(-1, 0x44, {}, 1.0f, std::int16_t{0}, 1.0f);
     case 0x223f:
         return EventItem(draw, packedLevel);
     case 0x1c23:
@@ -208,7 +208,7 @@ Result EarlyCase(EarlyItemRenderer& draw, int level, std::uint8_t packedLevel)
         const auto wave = draw.Wave(0.002f, 0.3f, 0.7f);
         if (!wave.HasValue())
             return Core::Unexpected(wave.Error());
-        return draw.Pass(-1, 0x42, {}, 1, 0, F32(wave.Value()));
+        return draw.Pass(-1, 0x42, {}, 1.0f, std::int16_t{0}, F32(wave.Value()));
     }
     case 0x1c31:
         if (auto result = draw.Pass(-1, 2); !result.HasValue())
@@ -217,7 +217,7 @@ Result EarlyCase(EarlyItemRenderer& draw, int level, std::uint8_t packedLevel)
         {
             if (level == 1)
                 draw.Color({0.3f, 0.8f, 1});
-            return draw.Pass(0, 0x42, {}, {}, 0);
+            return draw.Pass(0, 0x42, {}, {}, std::int16_t{0});
         }
         return {};
     default:

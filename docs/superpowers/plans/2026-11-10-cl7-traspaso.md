@@ -19,13 +19,22 @@ Por pedido de Emanuel se reemplaza la fragmentación de los PRs #222–#287 por 
 [#292, movimiento y transiciones](https://github.com/ema-ljn/MuRet/pull/292) y
 [#293, ciclo de escenas](https://github.com/ema-ljn/MuRet/pull/293).
 La pila parte de `main` y cada bloque usa como base su predecesor real, excepción autorizada.
-Los anteriores se cierran como reemplazados sólo después del CI propio de los reemplazos,
-preservando referencias y conversaciones. No se mergea automáticamente `main`.
+Los 66 anteriores #222–#287 se cerraron como reemplazados tras auditar su cobertura y publicar
+la pila. Las correcciones de CI continúan en los mismos seis PRs; se conservan las ramas y
+conversaciones. El checkpoint #185 se mantiene abierto como borrador hasta acreditar su
+cobertura. No se mergea automáticamente `main`.
 
 Esos seis PRs recomponen exactamente el tree portátil `a622e314`, que ya tenía Linux/Windows
 verdes, y conservan los cinco fixes de portabilidad. La revisión de Astra aprueba los seis
 cortes; cada head remoto tiene además su corrida propia. Las ampliaciones funcionales siguientes
-son otra captura: no se atribuyen al CI del tree anterior.
+son otra captura y se incorporan al último bloque tras verificar Windows, sin sumar otro PR.
+Su validación no se atribuye al CI del tree anterior.
+
+La auditoría independiente de los cierres contrastó los 66 originales, los 48 parches corregidos
+y973 hunks. No identificó otro PR que deba reabrirse por contenido sin representar. Los nueve
+blobs documentales de #237 se conservan; las resoluciones de solapamientos están documentadas.
+La comprobación remota confirmó las 67 ramas originales con sus SHAs intactos y `main` sin cambios.
+No se eliminaron archivos en las comparaciones `main`→captura portátil→avance nuevo.
 
 El avance funcional nuevo quedó guardado en el commit local `8b6868c`: **4.851 casos registrados,
 4.792 pasan, 59 omiten evidencia externa y cero fallos**, incluidos **99 GL** bajo Xvfb obligatorio.

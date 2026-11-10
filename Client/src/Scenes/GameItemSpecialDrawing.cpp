@@ -114,7 +114,7 @@ public:
         // El primer rand es V: los pushes del original van de derecha a izquierda.
         const auto v = F32(static_cast<double>(m_context.random->Next() % 10) * 0.1f);
         const auto u = F32(static_cast<double>(m_context.random->Next() % 10) * 0.1f);
-        return Layer(mesh, Textured, mesh, object.state.light, {u, v}, {}, 1);
+        return Layer(mesh, Textured, mesh, object.state.light, {u, v}, {}, 1.0f);
     }
     DrawnObject object;
     float time = 0;
@@ -218,7 +218,7 @@ Result Sword(ItemRenderer& draw)
         // glColor3f no escribe model+48; RenderMesh conserva su autoridad de color.
         return draw.Layer(3, 0x44, 3, draw.object.state.light, {draw.Product(Slow), draw.Product(Scroll)});
     }
-    if (auto result = draw.Layer(0, Textured, 0, draw.object.state.light, glm::vec2(draw.Product(Scroll)), {}, 1);
+    if (auto result = draw.Layer(0, Textured, 0, draw.object.state.light, glm::vec2(draw.Product(Scroll)), {}, 1.0f);
         !result.HasValue())
         return result;
     draw.object.state.hiddenMesh = 0;
@@ -263,35 +263,35 @@ Result Bow(ItemRenderer& draw)
     {
         const auto color = draw.object.color;
         draw.Color({F32(static_cast<double>(color.r) * 0.8f), 0, F32(static_cast<double>(color.b) * 0.8f)});
-        if (auto result = draw.Layer(0, 0x12, 0, light, {draw.Product(-0.0002f), uv.y}, ChromeTextureSlot, 1);
+        if (auto result = draw.Layer(0, 0x12, 0, light, {draw.Product(-0.0002f), uv.y}, ChromeTextureSlot, 1.0f);
             !result.HasValue())
             return result;
         draw.Color(color);
-        if (auto result = draw.Layer(0, 0x44, 0, ArmorChrome, 1); !result.HasValue())
+        if (auto result = draw.Layer(0, 0x44, 0, ArmorChrome, 1.0f); !result.HasValue())
             return result;
         draw.Color(color);
         return draw.Pass(Body, Textured);
     }
     const auto pulse = draw.Wave(0.002f, 0.3f, 0.5f);
     for (const auto mesh : {std::int16_t{0}, std::int16_t{1}, std::int16_t{2}, std::int16_t{6}})
-        if (auto result = draw.Layer(mesh, Textured, -1, {}, 1); !result.HasValue())
+        if (auto result = draw.Layer(mesh, Textured, -1, {}, 1.0f); !result.HasValue())
             return result;
-    if (auto result = draw.Layer(3, Textured, 3, pulse, uv, {}, 1); !result.HasValue())
+    if (auto result = draw.Layer(3, Textured, 3, pulse, uv, {}, 1.0f); !result.HasValue())
         return result;
-    if (auto result = draw.Layer(4, Textured, 4, pulse, uv, {}, 1); !result.HasValue())
+    if (auto result = draw.Layer(4, Textured, 4, pulse, uv, {}, 1.0f); !result.HasValue())
         return result;
-    return draw.Layer(5, Textured, -1, {}, 1);
+    return draw.Layer(5, Textured, -1, {}, 1.0f);
 }
 Result Orb(ItemRenderer& draw, const ItemSpecialDrawContext& context)
 {
     const auto uv = draw.object.state.uv;
     draw.Unlit(1);
-    if (auto result = draw.Layer(1, Textured, -1, draw.object.state.light, {uv.x, draw.Product(Scroll)}, {}, 1);
+    if (auto result = draw.Layer(1, Textured, -1, draw.object.state.light, {uv.x, draw.Product(Scroll)}, {}, 1.0f);
         !result.HasValue())
         return result;
     draw.Unlit(-1);
     if (draw.object.model == 0x1e2e)
-        return draw.Layer(0, Textured, -1, {}, 1);
+        return draw.Layer(0, Textured, -1, {}, 1.0f);
     draw.Color({1, 0.5f, 0});
     if (!context.pulse)
         return Core::Unexpected(std::string("60a444: falta el pulso global 6c9de4/6c9de8"));
@@ -300,11 +300,11 @@ Result Orb(ItemRenderer& draw, const ItemSpecialDrawContext& context)
         pulse = {1, -0.01f};
     else if (!(pulse.x >= 0.01f))
         pulse = {0.01f, 0.01f};
-    if (auto result = draw.Layer(2, Textured, 2, pulse.x, uv, {}, 1); !result.HasValue())
+    if (auto result = draw.Layer(2, Textured, 2, pulse.x, uv, {}, 1.0f); !result.HasValue())
         return result;
     pulse.x = F32(static_cast<double>(pulse.x) + pulse.y);
     draw.Color(glm::vec3(1));
-    if (auto result = draw.Layer(0, Textured, -1, {}, 1); !result.HasValue())
+    if (auto result = draw.Layer(0, Textured, -1, {}, 1.0f); !result.HasValue())
         return result;
     return draw.Layer(0, 0x44, -1, {}, 0.3f);
 }
@@ -332,26 +332,26 @@ Result Wing(ItemRenderer& draw)
     if (draw.object.model == 0xe21)
     {
         draw.Color(color * 0.3f);
-        if (auto result = draw.Layer(2, 1, -1, {}, 1); !result.HasValue())
+        if (auto result = draw.Layer(2, 1, -1, {}, 1.0f); !result.HasValue())
             return result;
         draw.Color(color);
-        if (auto result = draw.Layer(2, 0x44, 2, light, {uv.x, draw.Product(0.01f)}, ChromeTextureSlot, 1);
+        if (auto result = draw.Layer(2, 0x44, 2, light, {uv.x, draw.Product(0.01f)}, ChromeTextureSlot, 1.0f);
             !result.HasValue())
             return result;
-        if (auto result = draw.Layer(0, Textured, -1, {}, 1); !result.HasValue())
+        if (auto result = draw.Layer(0, Textured, -1, {}, 1.0f); !result.HasValue())
             return result;
         if (auto result = draw.RandomMesh(1); !result.HasValue())
             return result;
         draw.Color(glm::vec3(F32(draw.WaveValue(PulseFrequency, 0.4f, 0.6f) * color.r)));
-        return draw.Layer(2, 0x42, 2, light, {draw.Product(Slow), draw.Product(Scroll)}, {}, 1);
+        return draw.Layer(2, 0x42, 2, light, {draw.Product(Slow), draw.Product(Scroll)}, {}, 1.0f);
     }
     if (auto result = draw.Layer(1, Textured, -1, {}, 0.8f); !result.HasValue())
         return result;
     if (auto result = draw.Layer(3, Textured, -1, {}, 0.5f); !result.HasValue())
         return result;
-    if (auto result = draw.Layer(0, Textured, -1, {}, 1); !result.HasValue())
+    if (auto result = draw.Layer(0, Textured, -1, {}, 1.0f); !result.HasValue())
         return result;
-    if (auto result = draw.Layer(2, Textured, 2, light, {draw.Product(Scroll), uv.y}, {}, 1); !result.HasValue())
+    if (auto result = draw.Layer(2, Textured, 2, light, {draw.Product(Scroll), uv.y}, {}, 1.0f); !result.HasValue())
         return result;
     return draw.RandomMesh(3);
 }
@@ -397,27 +397,27 @@ Result PurpleHelper(ItemRenderer& draw)
 
 Result PulsingSword(ItemRenderer& draw)
 {
-    if (auto result = draw.Layer(3, Textured, -1, {}, 1); !result.HasValue())
+    if (auto result = draw.Layer(3, Textured, -1, {}, 1.0f); !result.HasValue())
         return result;
-    if (auto result = draw.Layer(1, Textured, -1, {}, 1); !result.HasValue())
+    if (auto result = draw.Layer(1, Textured, -1, {}, 1.0f); !result.HasValue())
         return result;
     if (auto result =
             draw.Layer(1, Textured, 1, draw.object.state.light, draw.object.state.uv, {}, draw.Wave(0.01f, 1));
         !result.HasValue())
         return result;
     if (auto result = draw.Layer(0, 6, 0, draw.object.state.light,
-                                 {draw.object.state.uv.x, draw.Product(PulseFrequency)}, ChromeTextureSlot, 1);
+                                 {draw.object.state.uv.x, draw.Product(PulseFrequency)}, ChromeTextureSlot, 1.0f);
         !result.HasValue())
         return result;
     draw.Color(glm::vec3(F32(draw.WaveValue(PulseFrequency, 1, 1) * 0.5f * draw.object.color.r)));
-    return draw.Layer(2, 0x42, 2, draw.object.state.light, {draw.Product(Slow), draw.Product(-Scroll)}, {}, 1);
+    return draw.Layer(2, 0x42, 2, draw.object.state.light, {draw.Product(Slow), draw.Product(-Scroll)}, {}, 1.0f);
 }
 
 Result ScrollingSpear(ItemRenderer& draw, std::uint32_t flags)
 {
     if (auto result = draw.Pass(Body, flags); !result.HasValue())
         return result;
-    return draw.Layer(1, Textured, 1, draw.object.state.light, {draw.Product(Slow), draw.Product(Scroll)}, {}, 1);
+    return draw.Layer(1, Textured, 1, draw.object.state.light, {draw.Product(Slow), draw.Product(Scroll)}, {}, 1.0f);
 }
 
 Result PulsingStaff(ItemRenderer& draw, std::uint32_t flags)
@@ -428,7 +428,7 @@ Result PulsingStaff(ItemRenderer& draw, std::uint32_t flags)
             return result;
         draw.Color(glm::vec3(F32(draw.WaveValue(PulseFrequency, 0.5f, 0.3f) * red)));
         return draw.Layer(2, Textured, 2, draw.object.state.light,
-                          {draw.Product(PulseFrequency), draw.Product(-Scroll)}, {}, 1);
+                          {draw.Product(PulseFrequency), draw.Product(-Scroll)}, {}, 1.0f);
     }
 }
 
@@ -487,24 +487,24 @@ Result SelectedHelper(ItemRenderer& draw)
             return {};
         const std::int16_t mesh = hidden == 1 ? 0 : 1;
         draw.Color(glm::vec3(1));
-        if (auto result = draw.Layer(mesh, Textured, draw.object.state.blendMesh, {}, 1); !result.HasValue())
+        if (auto result = draw.Layer(mesh, Textured, draw.object.state.blendMesh, {}, 1.0f); !result.HasValue())
             return result;
         if (type == 0x1c19)
             return {};
         draw.Color({0.1f, 0.5f, 1});
-        if (auto result = draw.Layer(mesh, 0x48, draw.object.state.blendMesh, {}, 1); !result.HasValue())
+        if (auto result = draw.Layer(mesh, 0x48, draw.object.state.blendMesh, {}, 1.0f); !result.HasValue())
             return result;
-        return draw.Layer(mesh, 0x44, draw.object.state.blendMesh, {}, 1);
+        return draw.Layer(mesh, 0x44, draw.object.state.blendMesh, {}, 1.0f);
     }
 }
 
 Result BlueHelper(ItemRenderer& draw)
 {
     draw.Color(glm::vec3(1));
-    if (auto result = draw.Layer(0, Textured, draw.object.state.blendMesh, {}, 1); !result.HasValue())
+    if (auto result = draw.Layer(0, Textured, draw.object.state.blendMesh, {}, 1.0f); !result.HasValue())
         return result;
     draw.Color({0, 0.5f, 1});
-    return draw.Layer(1, 0x44, draw.object.state.blendMesh, {}, 1);
+    return draw.Layer(1, 0x44, draw.object.state.blendMesh, {}, 1.0f);
 }
 Result Dispatch(ItemRenderer& draw, const ItemSpecialDrawContext& context)
 {

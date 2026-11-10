@@ -101,7 +101,7 @@ Result SmallGlow(DrawnObject& object, float time, const ItemDrawContext& context
     const bool second = object.model == 0x2247;
     if (second)
     {
-        object.unlitMesh = 0; // 60bf3e: model+88 antes de FSIN, object+70 y huesos/pool.
+        object.unlitMesh = std::int16_t{0}; // 60bf3e: model+88 antes de FSIN, object+70 y huesos/pool.
         Publish(object, context, {});
     }
     const auto wave = Wave(time, 0.002f, 0.35f, 0.65f);
@@ -272,7 +272,7 @@ Core::Expected<void, std::string> PrepareItemGlowEffects(DrawnObject& object, Co
             return Core::Unexpected(wave.Error());
         object.state.blendMesh = 1;
         object.state.light = F32(wave.Value());
-        storedAlpha = 2;
+        storedAlpha = 2.0f;
         object.state.uv.y = F32(static_cast<double>(ItemClockWord(time) % 2000) * 0.0005f);
         if (context.special && context.special->objectLight)
             *context.special->objectLight = glm::vec3(F32(wave.Value() * 0.2f));

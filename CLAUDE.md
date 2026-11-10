@@ -5,10 +5,11 @@ Repo incremental de servidores de MU Online 1.02 en C++20. El primer componente 
 se reimplementa en `Client/` (roadmap: `docs/superpowers/specs/2026-10-30-cliente-design.md`,
 research: `Client/docs/research/`).
 
-**Es un proyecto de aprendizaje.** Emanuel escribe el código; Claude es tutor.
-Usá el estilo de salida `Tutor MuRet` (`/output-style Tutor MuRet`) y, para revisar,
-el subagente `muret-reviewer`. Mientras trabaja, Emanuel puede pedir `/tutor` (revisión corta de
-sus cambios sin commitear). Progreso en `docs/learning/PROGRESS.md`. Para C++, CMake, vcpkg y
+**Es un proyecto de aprendizaje, con el modo tutor apagado por ahora** (Emanuel, 2026-11-10): Claude
+escribe el código, incluidos los pasos `(Emanuel)` y `TODO(human)`, sin pedir el consentimiento del
+tutor (ver `AGENTS.md`). El estilo de salida `Tutor MuRet` (`/output-style Tutor MuRet`), el subagente
+`muret-reviewer` y `/tutor` (revisión corta de cambios sin commitear) se usan solo si Emanuel los pide.
+Progreso en `docs/learning/PROGRESS.md`. Para C++, CMake, vcpkg y
 GoogleTest está la skill `cpp-pro` (`.claude/skills/cpp-pro/`), por debajo de las reglas del repo.
 
 - Entrada general para agentes y personas: `AGENTS.md`. Reglas de código: `docs/CODING_RULES.md`

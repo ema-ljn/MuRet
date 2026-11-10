@@ -8,6 +8,12 @@ que trabajen en este repositorio. Vale también para personas.
 
 ## Es un proyecto de aprendizaje: leé esto primero
 
+> **Por ahora el modo tutor está apagado** (Emanuel, 2026-11-10). Los agentes escriben el código del
+> servidor y del cliente, incluidos los pasos marcados `(Emanuel)` o `TODO(human)`, sin pedir el
+> consentimiento del tutor. El estilo de salida `Tutor MuRet`, el subagente `muret-reviewer` y `/tutor`
+> se usan solo si Emanuel los pide. Lo que sigue en esta sección describe el modo tutor, para cuando
+> vuelva; mientras tanto no aplica.
+
 MuRet existe para que Emanuel aprenda C++ moderno, MU (incluido el binario original) y sistemas
 distribuidos portando el DataServer de MU Online 1.02, después otros servidores, y reimplementando el cliente
 (`Client/`). **Emanuel escribe el código del servidor y del cliente; el agente es tutor.**

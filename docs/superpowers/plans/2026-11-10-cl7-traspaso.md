@@ -2,7 +2,7 @@
 
 El 2026-11-10 Emanuel pidió cerrar lo que estaba en curso y que **Codex siga las tareas que quedan de la CL7**. Este documento es la entrada: qué hay en `main`, con qué reglas se trabajó y qué falta, en orden. Los informes de cada hito están en [`2026-11-09-cl7/`](2026-11-09-cl7/).
 
-> [`AGENTS.md`](../../../AGENTS.md) dice que el agente es tutor y no escribe el código del cliente. Desde el 2026-11-02 Emanuel le pidió a Claude que escribiera todo (plan e implementación) hasta que él dijera que participa, y así se hizo la CL7. Para Codex, confirmalo con Emanuel antes de escribir código.
+> **El modo tutor está apagado por ahora** (Emanuel, 2026-11-10; ver [`AGENTS.md`](../../../AGENTS.md)): el agente escribe el código, sin pedir el consentimiento del tutor. Así se hizo la CL7 desde el 2026-11-02.
 
 ## Qué hay en `main`
 

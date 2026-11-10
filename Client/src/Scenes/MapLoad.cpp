@@ -58,8 +58,8 @@ std::vector<Data::Terrain::TerrainObject> SpecialObjectsOf(std::int32_t map)
     }
     if (map == NoriaMap)
     {
-        // 0x617520: la torre 0x142, que pide sus efectos a un servicio que MuRet no tiene.
-        return {Data::Terrain::TerrainObject{0x142, {22300.0f, 3000.0f, 10.0f}, NoAngle, 1.0f}};
+        // 0x6175ea..0x617626: z en 0 y el tercer ángulo en 10; después pide sus cinco efectos.
+        return {Data::Terrain::TerrainObject{0x142, {22300.0f, 3000.0f, 0.0f}, {0.0f, 0.0f, 10.0f}, 1.0f}};
     }
     return {};
 }

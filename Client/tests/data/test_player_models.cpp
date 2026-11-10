@@ -127,14 +127,13 @@ TEST(PlayerModelsTest, EveryRowIsAModelOfTheTable)
     }
 }
 
-// Lo que MuRet carga de 0x615700: el caballo oscuro (0x615f46), el cuervo (0x616026) y los tres
-// modelos que piden sus texturas antes que ellos (0x6168f4, 0x61690a y 0x616920), todos de Skill\ y
-// sin número.
-TEST(PlayerModelsTest, FromTheSkillLoaderComeTheDarkHorseTheRavenAndTheThreeBeforeThem)
+// 0x615700: caballo/cuervo, Gate01/02 de Object12 (0x616304/0x61631a) y los tres de Skill que
+// piden texturas antes del caballo. El orden de los archivos y el de sus texturas son distintos.
+TEST(PlayerModelsTest, TheSkillLoaderKeepsItsNativeOrderAndTheWorldGates)
 {
     const std::span<const ModelFile> files = SkillModelFiles();
 
-    ASSERT_EQ(files.size(), 5u);
+    ASSERT_EQ(files.size(), 7u);
     std::vector<std::uint16_t> models;
     std::vector<std::string_view> names;
     for (const ModelFile& file : files)
@@ -142,13 +141,14 @@ TEST(PlayerModelsTest, FromTheSkillLoaderComeTheDarkHorseTheRavenAndTheThreeBefo
         models.push_back(file.model);
         names.push_back(file.name);
     }
-    EXPECT_EQ(models, (std::vector<std::uint16_t>{0xbf, 0xc0, 0x145, 0x146, 0x147}));
-    EXPECT_EQ(names,
-              (std::vector<std::string_view>{"DarkHorse", "DarkSpirit", "elf_skill", "WaveForce", "deathsp_eff"}));
+    EXPECT_EQ(models, (std::vector<std::uint16_t>{0xbf, 0xc0, 0x10c, 0x10d, 0x145, 0x146, 0x147}));
+    EXPECT_EQ(names, (std::vector<std::string_view>{"DarkHorse", "DarkSpirit", "Gate", "Gate", "elf_skill", "WaveForce",
+                                                    "deathsp_eff"}));
     for (const ModelFile& file : files)
     {
-        EXPECT_EQ(file.folder, "Skill\\") << file.name;
-        EXPECT_EQ(file.number, -1) << file.name;
+        const bool gate = file.model == 0x10c || file.model == 0x10d;
+        EXPECT_EQ(file.folder, gate ? "Object12\\" : "Skill\\") << file.name;
+        EXPECT_EQ(file.number, gate ? static_cast<int>(file.model - 0x10b) : -1) << file.name;
     }
 }
 

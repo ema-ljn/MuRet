@@ -1,5 +1,8 @@
 # CL7: traspaso de las tareas que quedan (2026-11-10)
 
+> Estado posterior: [continuación de Codex](2026-11-10-cl7-continuacion-codex.md), con el resultado
+> de cada tarea y sus límites. Este traspaso conserva el estado original para referencia.
+
 El 2026-11-10 Emanuel pidió cerrar lo que estaba en curso y que **Codex siga las tareas que quedan de la CL7**. Este documento es la entrada: qué hay en `main`, con qué reglas se trabajó y qué falta, en orden. Los informes de cada hito están en [`2026-11-09-cl7/`](2026-11-09-cl7/).
 
 > **El modo tutor está apagado por ahora** (Emanuel, 2026-11-10; ver [`AGENTS.md`](../../../AGENTS.md)): el agente escribe el código, sin pedir el consentimiento del tutor. Así se hizo la CL7 desde el 2026-11-02.

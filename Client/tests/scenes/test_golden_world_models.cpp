@@ -117,9 +117,9 @@ TEST_F(GoldenWorldModels, LorenciaAssignsTheBirdAndFishBeforeTheObjectTextures)
     ASSERT_EQ(game.TextureSlots().NameOf(TextureSlot{0x30f}), "bottle.tga");
     ASSERT_EQ(game.TextureSlots().NameOf(TextureSlot{0x2b3}), "pot3.tga");
     ASSERT_EQ(game.TextureSlots().NameOf(TextureSlot{0x2b4}), "apple.jpg");
-    ASSERT_TRUE(game.TextureSlots().NameOf(TextureSlot{0x69}).empty());
+    ASSERT_EQ(game.TextureSlots().NameOf(TextureSlot{0x69}), "doorc01.jpg");
     ASSERT_TRUE(game.TextureSlots().NameOf(TextureSlot{0x6a}).empty());
-    ASSERT_FALSE(store.Find(TextureSlot{0x69}).has_value());
+    ASSERT_TRUE(store.Find(TextureSlot{0x69}).has_value());
     ASSERT_FALSE(store.Find(TextureSlot{0x6a}).has_value());
     WorldModels models;
     ASSERT_TRUE(models.Load(m_dataRoot, Lorencia, store, log, &game.TextureSlots()).HasValue());

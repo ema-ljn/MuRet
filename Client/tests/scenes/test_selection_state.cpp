@@ -5,15 +5,19 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Protocol/Character/CharacterList.h"
+#include "Render/Models/Cloth.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/Particles.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
 #include "support/GoldenDir.h"
 #include "support/TemporaryFolder.h"
+#include "support/PlayerActors.h"
 
 #include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float2.hpp>
 
 #include <gtest/gtest.h>
 
@@ -104,6 +108,104 @@ TEST_F(SelectionStateTest, ConstructionReadsTheInitialCellBeforePlacingTheSlot)
     EXPECT_EQ(m_input.hero.y, 15046.0f);
     EXPECT_EQ(m_input.hero.z, 100.0f);
     EXPECT_EQ(m_state.Slots()[0].revision, 1u);
+}
+
+// 0x4c20a0 → 0x517270: el mismo registro 0x20a que avanza 0x508f00; el constructor
+// conserva los cuatro campos de cabeza que no escribe 0x511290.
+TEST_F(SelectionStateTest, TheListConstructsTheCompletePlayerAndKeepsItsHead)
+{
+    auto& actor = m_world.Actors()[3];
+    actor.headTurn.angles = {17.0f, 23.0f};
+    actor.headTurn.target = {31.0f, 47.0f};
+    CharacterEntry entry = Entry(3);
+    entry.classByte = 0x40; // Elf: 0x4f2250 elige la acción 2 sin armas.
+    entry.flags = 0x11;
+
+    ASSERT_TRUE(Apply({List({entry})}).HasValue());
+
+    EXPECT_TRUE(actor.alive);
+    EXPECT_EQ(actor.type, 0x20au);
+    EXPECT_EQ(actor.key, 3u);
+    EXPECT_EQ(actor.characterClass, 2u);
+    EXPECT_EQ(actor.skin, 0u);
+    EXPECT_EQ(actor.body[0].model, 0x2214u);
+    EXPECT_EQ(actor.hands[0].model, 0xffffu);
+    EXPECT_EQ(actor.hands[1].model, 0xffffu);
+    EXPECT_EQ(actor.wings.model, 0xffffu);
+    EXPECT_EQ(actor.pet.model, 0xffffu);
+    EXPECT_FLOAT_EQ(actor.angles.z, 25.0f);
+    EXPECT_FLOAT_EQ(actor.alpha, 1.0f);
+    EXPECT_EQ(actor.pk, 3u);
+    EXPECT_EQ(actor.byte88, 1u);
+    EXPECT_EQ(actor.controlCode, 0x11u);
+    EXPECT_EQ(actor.headTurn.angles, (glm::vec2{17.0f, 23.0f}));
+    EXPECT_EQ(actor.headTurn.target, (glm::vec2{31.0f, 47.0f}));
+}
+
+TEST_F(SelectionStateTest, TheNativeListConstructorUsesTheSharedRandomBeforeApplyingEquipment)
+{
+    constexpr std::uint32_t Seed = 0x12345678;
+    Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom(Seed)};
+    const auto skeleton = Client::Tests::PlayerActionsSkeleton();
+    CharacterEntry entry = Entry(3);
+    entry.classByte = 0x40;
+    entry.level = 123;
+    const std::array<CharacterEvent, 1> events{List({entry})};
+
+    ASSERT_TRUE(m_state.Apply(events, m_camera, m_input, &cloth, &skeleton).HasValue());
+
+    EXPECT_EQ(m_world.Actors()[3].animation.action, 2u);
+    EXPECT_EQ(m_world.Actors()[3].level, 123u);
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 29).State());
+}
+
+TEST_F(SelectionStateTest, TheRavenConstructorPrecedesTheGuardianAndKeepsTheListIdentity)
+{
+    constexpr std::uint32_t Seed = 0x12345678;
+    Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom(Seed)};
+    const auto skeleton = Client::Tests::PlayerActionsSkeleton();
+    CharacterEntry entry;
+    entry.slot = 4;
+    entry.classByte = 0x80;
+    entry.flags = 0x11;
+    entry.name[0] = std::byte{'X'};
+    entry.level = 321;
+    entry.guildStatus = 7;
+    entry.equipment[1] = std::byte{0x05};
+    entry.equipment[12] = std::byte{0xa0};
+    const std::array<CharacterEvent, 1> events{List({entry})};
+
+    ASSERT_TRUE(m_state.Apply(events, m_camera, m_input, &cloth, &skeleton).HasValue());
+
+    const auto& actor = m_world.Actors()[4];
+    ASSERT_TRUE(actor.darkSpirit.has_value());
+    EXPECT_EQ(actor.hands[1].model, 0x1c17u);
+    EXPECT_EQ(actor.name, entry.name);
+    EXPECT_EQ(actor.level, 321u);
+    EXPECT_EQ(actor.guildStatus, 7u);
+    EXPECT_EQ(actor.controlCode, 0x11u);
+    EXPECT_EQ(actor.animation.action, 1u);
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 44).State());
+    EXPECT_EQ(m_world.Helpers()[0].type, 0x1c12u);
+}
+
+TEST_F(SelectionStateTest, ALaterPetOverrideKeepsTheHelperCreatedByTheEarlierPacketBits)
+{
+    constexpr std::uint32_t Seed = 0x12345678;
+    Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom(Seed)};
+    const auto skeleton = Client::Tests::PlayerActionsSkeleton();
+    CharacterEntry entry;
+    entry.equipment[11] = std::byte{1};
+    const std::array<CharacterEvent, 1> events{List({entry})};
+
+    ASSERT_TRUE(m_state.Apply(events, m_camera, m_input, &cloth, &skeleton).HasValue());
+
+    EXPECT_EQ(m_world.Actors()[0].pet.model, 0x1c16u);
+    EXPECT_TRUE(m_world.Helpers()[0].alive);
+    EXPECT_EQ(m_world.Helpers()[0].type, 0x1c12u);
+    EXPECT_TRUE(m_world.Helpers()[1].alive);
+    EXPECT_EQ(m_world.Helpers()[1].type, 0xbfu);
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 32).State());
 }
 
 TEST_F(SelectionStateTest, BssSlotsAndAnEmptyPollPreserveTheCurrentHero)
@@ -251,6 +353,7 @@ TEST_F(SelectionStateTest, DrawingWritesAllFiveHeightsAndLeavesTheirPositionsAnd
     for (const auto& slot : m_state.Slots())
     {
         EXPECT_EQ(slot.position.z, 163.0f);
+        EXPECT_EQ(slot.light, glm::vec3(0.0f));
     }
     EXPECT_EQ(m_state.Slots()[0].position.x, 0.0f);
     EXPECT_EQ(m_state.Slots()[1].position.x, 12863.0f);
@@ -370,6 +473,23 @@ TEST_F(SelectionStateTest, MissingTablesFailExplicitlyEvenWhenTheSceneSkipsHeigh
     EXPECT_TRUE(state.Failure().has_value());
 }
 
+TEST_F(SelectionStateTest, MissingTablesKeepTheNativeConstructorRandomsAndPartialRecord)
+{
+    constexpr std::uint32_t Seed = 0x12345678;
+    Client::Render::Models::ClothWorld cloth{.random = Client::Render::Models::CrtRandom(Seed)};
+    m_state.BorrowTerrain(55, nullptr);
+    const std::array<CharacterEvent, 1> events{List({Entry(3)})};
+
+    const auto applied = m_state.Apply(events, m_camera, m_input, &cloth);
+
+    ASSERT_FALSE(applied.HasValue());
+    EXPECT_NE(applied.Error().find("0x511b9f"), std::string::npos);
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 16).State());
+    EXPECT_TRUE(m_world.Actors()[3].alive);
+    EXPECT_EQ(m_world.Actors()[3].type, 0x20au);
+    EXPECT_EQ(m_world.Actors()[3].revision, 0u);
+}
+
 TEST_F(SelectionStateTest, BorrowingTheOwnedTerrainDoesNotDestroyItsTables)
 {
     const auto* terrain = m_state.Terrain();
@@ -449,6 +569,34 @@ TEST_F(SelectionStateTest, TheWorld54LoadMarksTheLoadedWorld)
     EXPECT_FALSE(m_state.InitializeSelection(empty.Path(), m_input).HasValue());
 
     EXPECT_TRUE(m_world.Runtime().drawingEnabled);
+}
+
+TEST_F(SelectionStateTest, TheWorld54LoadClearsLiveEffectsBeforeAFileFailure)
+{
+    auto effects = m_world.Map().effects.Effects();
+    effects[0].alive = true;
+    effects[0].seen = true;
+    const Client::Tests::TemporaryFolder empty("selection-effects-history");
+    ASSERT_TRUE(m_state.InitializeSelection(empty.Path(), m_input).HasValue());
+    EXPECT_TRUE(effects[0].alive);
+    ASSERT_TRUE(Apply({List({})}).HasValue());
+    EXPECT_FALSE(m_state.InitializeSelection(empty.Path(), m_input).HasValue());
+    EXPECT_FALSE(effects[0].alive);
+    EXPECT_TRUE(effects[0].seen);
+}
+
+TEST_F(SelectionStateTest, TheWorld54LoadClearsParticlesBeforeAFileFailureAndRetainsWind)
+{
+    auto& particles = m_world.Particles();
+    particles.All()[0].alive = true;
+    particles.Wind().wind = {3.0f, 4.0f};
+    const Client::Tests::TemporaryFolder empty("selection-particle-history");
+    ASSERT_TRUE(m_state.InitializeSelection(empty.Path(), m_input).HasValue());
+    EXPECT_TRUE(particles.Any());
+    ASSERT_TRUE(Apply({List({})}).HasValue());
+    EXPECT_FALSE(m_state.InitializeSelection(empty.Path(), m_input).HasValue());
+    EXPECT_FALSE(particles.Any());
+    EXPECT_EQ(particles.Wind().wind, glm::vec2(3.0f, 4.0f));
 }
 
 class GoldenSelectionStateTest : public Client::Tests::GoldenDataTest

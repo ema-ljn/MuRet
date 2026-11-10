@@ -2,7 +2,10 @@
 
 > Copia en el repo de la nota del 2026-11-10, para que la tome otro agente. Índice: [el traspaso](../2026-11-10-cl7-traspaso.md).
 
-Estado al 2026-11-10 05:40Z: **en pausa**. Nada en el repo, ninguna rama pushada, ningún PR.
+Estado al 2026-11-10: **implementado en el árbol de trabajo**, con research estático y pruebas del pool,
+del orden y presupuesto de `rand()`, de los cortes y del dibujo. La observación nativa sigue en P-C56.
+No se hicieron nuevas emulaciones. Los tests de UI sin mundo conservan su contexto parcial; main usa el
+pool compartido y los recursos cargados.
 
 ## Qué pasó
 

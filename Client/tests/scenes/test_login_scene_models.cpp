@@ -388,8 +388,8 @@ std::mt19937::result_type SeedWhoseFirstRollIs(int remainder)
 {
     for (std::mt19937::result_type seed = 0;; ++seed)
     {
-        std::mt19937 random(seed);
-        if (static_cast<int>(random() % 32768) % 6 == remainder)
+        Client::Render::Models::CrtRandom random(static_cast<std::uint32_t>(seed));
+        if (random.Next() % 6 == remainder)
         {
             return seed;
         }

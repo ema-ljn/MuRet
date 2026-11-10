@@ -45,6 +45,7 @@
 #include "support/FakeClock.h"
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
+#include "support/PlayerActors.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
 #include "support/RecordingTextDrawer.h"
@@ -55,6 +56,11 @@
 #include "Input/InputState.h"
 #include "Data/Terrain/TerrainObjects.h"
 #include "World/ScepterGlow.h"
+#include "World/ModelEffects.h"
+#include "World/Particles.h"
+#include "World/TerrainLighting.h"
+#include "Scenes/DynamicWorldLight.h"
+#include <memory>
 #include "World/Sprites.h"
 #include "World/WorldObjects.h"
 #include "Scenes/WorldModels.h"
@@ -240,6 +246,9 @@ TEST_F(GoldenLoginScene, TheTerrainGoesBeforeTheCharacter)
     }
     EXPECT_TRUE(store.Find(TextureSlot{0x122}).has_value());
 
+    // 0x508f00 escribe +0x16c antes del primer frame que el original permite dibujar.
+    scene.Step(Client::Input::InputState{});
+    ASSERT_FALSE(scene.Failure().has_value());
     RecordingFrameTarget target;
     scene.Render(target.BeginFrame(std::chrono::milliseconds{40}), 0.0f);
     target.Present();
@@ -507,7 +516,8 @@ TEST_F(GoldenLoginScene, TheLakeMovesWithTheClock)
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
     Client::Tests::FakeClock clock;
-    const SingleModelLibrary models;
+    Client::Scenes::GameModels models;
+    ASSERT_TRUE(models.Load(m_dataRoot, store, log).HasValue());
     LoginScene scene(SceneContext{m_dataRoot, store, log, &clock}, data.Value(), models, nullptr, Version, FixedSeed);
     ASSERT_TRUE(scene.Enter().HasValue());
     const auto water = [&scene](Client::Core::Duration frameClock)
@@ -615,6 +625,88 @@ TEST_F(GoldenLoginWorld, TheDragonDrawsAfterTheObjects)
     scene.Leave();
 }
 
+// Q-C278: una sola tabla sobrevive login → espera de lista → carga54 → llegada al juego.
+TEST_F(GoldenLoginWorld, LoginUpdatesTheSharedLightBeforeItsDrawPublishesANewRange)
+{
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    Client::Tests::FakeClock clock;
+    clock.Advance(std::chrono::milliseconds{40});
+    const auto base = Client::World::LoadTerrainLighting(m_dataRoot, 55);
+    ASSERT_TRUE(base.HasValue()) << base.Error();
+    world->DynamicLighting().Lighting().cells[1000][0] = -77.0f;
+    LoginScene scene(
+        SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .clock = &clock, .world = world.get()},
+        *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    EXPECT_EQ(world->DynamicLighting().Range().lastX, 255) << "cargar no ejecuta 0x5fbb00";
+    scene.Step(Client::Input::InputState{});
+    ASSERT_FALSE(scene.Failure().has_value());
+    EXPECT_EQ(world->DynamicLighting().Lighting().cells[1000][0], base.Value()->cells[1000][0]);
+    RecordingFrameTarget target;
+    scene.Render(target.BeginFrame(clock.Now()), 0.0f);
+    const auto& range = world->DynamicLighting().Range();
+    EXPECT_EQ(range.firstX, 0);
+    EXPECT_EQ(range.lastX, 128);
+    EXPECT_EQ(range.firstY, 120);
+    EXPECT_EQ(range.lastY, 251);
+    scene.Leave();
+}
+
+TEST_F(GoldenLoginWorld, LoginClearsTheSharedParticlePoolWithoutResettingWind)
+{
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    auto& particles = world->Particles();
+    particles.All()[0].alive = true;
+    particles.Wind().wind = {3.0f, 4.0f};
+    particles.Wind().change = {1.0f, 2.0f};
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .world = world.get()},
+                     *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    EXPECT_FALSE(particles.Any());
+    EXPECT_EQ(particles.Wind().wind, glm::vec2(3.0f, 4.0f));
+    EXPECT_EQ(particles.Wind().change, glm::vec2(1.0f, 2.0f));
+    particles.All()[0].alive = true;
+    scene.Leave();
+    EXPECT_TRUE(particles.Any());
+}
+
+TEST_F(GoldenLoginWorld, ArrivalReusesTheVisibilityLeftByTheLoginDragon)
+{
+    auto world = std::make_unique<Client::Scenes::WorldState>();
+    Client::Scenes::SelectionState selection(*world);
+    Client::World::GameCamera camera;
+    Client::World::GameCameraInput input;
+    LoginScene scene(SceneContext{.dataRoot = m_dataRoot,
+                                  .textures = m_store,
+                                  .log = m_log,
+                                  .camera = &camera,
+                                  .cameraInput = &input,
+                                  .selection = &selection,
+                                  .world = world.get()},
+                     *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    auto effects = world->Map().effects.Effects();
+    ASSERT_TRUE(effects[0].alive);
+    EXPECT_FALSE(effects[0].seen);
+    static_cast<void>(Frame(scene, 1));
+    EXPECT_TRUE(effects[0].seen);
+    scene.Leave();
+    EXPECT_TRUE(effects[0].alive);
+    selection.BeginSelection();
+    ASSERT_TRUE(selection.InitializeSelection(m_dataRoot, input).HasValue());
+    EXPECT_TRUE(effects[0].alive) << "sin lista no corre la carga del mapa54";
+    const std::array<Client::App::CharacterEvent, 1> list{
+        Client::App::CharacterListReceived{.list = {.characters = {}}}};
+    ASSERT_TRUE(selection.Apply(list, camera, input).HasValue());
+    ASSERT_TRUE(selection.InitializeSelection(m_dataRoot, input).HasValue());
+    EXPECT_FALSE(effects[0].alive);
+    EXPECT_TRUE(effects[0].seen);
+    ASSERT_EQ(world->Map().effects.Create(Client::World::ArrivalEffect, {}, {}, {}, 0.0f), 0u);
+    ASSERT_EQ(world->Map().effects.Create(Client::World::ArrivalEffect, {}, {}, {}, 0.0f), 1u);
+    EXPECT_TRUE(effects[0].seen);
+    EXPECT_FALSE(effects[1].seen);
+}
+
 // CL7.6 B1: con lo global de la tela (como en main.cpp), el dibujo del personaje pide los sprites del
 // frame, los 30 destellos del casco blanco (0x455930) y después los cinco del cetro (0x509340, caso
 // 0x620), y van aditivos en su pase, el último de los modelos, con la vista en la identidad. Siguen los
@@ -680,6 +772,105 @@ TEST_F(GoldenLoginWorld, TheSpritesOfTheCharacterGoInTheirPass)
 // 0x505de0 (0x5068eb..0x5069ab) en cada paso de 0x508ea0: el Dark Lord del login se ve, no es el héroe ni se
 // muere, así que sortea hacia dónde mira (rand() % 32 en 0) y la cabeza gira hacia ahí de a 20 %. Al entrar,
 // derecha; en 400 pasos sortea alguna vez, y cada paso queda más cerca de su blanco que el anterior o igual.
+TEST_F(GoldenLoginWorld, TheLoginConstructsItsCharacterInThePool)
+{
+    Client::Scenes::WorldState world;
+    Client::Render::Models::ClothWorld cloth;
+    const auto before = cloth.random;
+    LoginScene scene(
+        SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
+        *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+
+    ASSERT_TRUE(scene.Enter().HasValue());
+
+    const auto& actor = world.Actors()[2];
+    EXPECT_TRUE(actor.alive);
+    EXPECT_EQ(actor.type, 0x20a);
+    EXPECT_EQ(actor.key, 2);
+    EXPECT_EQ(actor.characterClass, 4);
+    EXPECT_EQ(actor.cellX, 0);
+    EXPECT_EQ(actor.cellY, 0);
+    EXPECT_EQ(actor.position, glm::vec3(10603.0f, 14112.0f, 580.0f));
+    EXPECT_EQ(actor.angles, glm::vec3(0.0f, 0.0f, 188.0f));
+    EXPECT_FLOAT_EQ(actor.scale, 1.6f);
+    EXPECT_EQ(actor.animation.action, 0x4a);
+    EXPECT_EQ(actor.hands[0].model, 0x620);
+    EXPECT_EQ(actor.hands[1].model, 0x1c17);
+    EXPECT_EQ(actor.pet.model, 0x1c16);
+    EXPECT_FALSE(world.Actors()[0].alive);
+    auto expected = before;
+    // Los 28 de 0x511290, el sufijo de 0x4f2250 y los 12 de 0x420d60.
+    for (int draw = 0; draw < 41; ++draw)
+    {
+        static_cast<void>(expected.Next());
+    }
+    EXPECT_EQ(cloth.random.State(), expected.State());
+    scene.Step(Client::Input::InputState{});
+    EXPECT_FALSE(scene.Failure().has_value());
+    EXPECT_TRUE(actor.seen);
+    EXPECT_GT(actor.animation.frame, 0.0f);
+    EXPECT_FALSE(world.Map().terrain.attributes) << "las paredes son del LoadedWorld de la escena";
+}
+
+TEST_F(GoldenLoginWorld, TheDrawingAndTheNextEntryUseThePoolCharacter)
+{
+    Client::Scenes::WorldState world;
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(
+        SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
+        *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    auto& actor = world.Actors()[2];
+    actor.animation.action = 0x54;
+    actor.animation.frame = 3.0f;
+    actor.headTurn.angles = {17.0f, 23.0f};
+    actor.position.x = 10700.0f;
+    actor.hands[0].model = 0x222;
+    const auto drawn = scene.TheCharacterToDraw(0.0f);
+    EXPECT_EQ(drawn.body.action, 0x54);
+    EXPECT_FLOAT_EQ(drawn.body.frame, 3.0f);
+    EXPECT_EQ(drawn.headAngles, glm::vec2(17.0f, 23.0f));
+    EXPECT_FLOAT_EQ(drawn.object.position.x, 10700.0f);
+    ASSERT_TRUE(drawn.appearance.rightHand);
+    EXPECT_EQ(drawn.appearance.rightHand->model, 0x222);
+
+    scene.Leave();
+    ASSERT_TRUE(scene.Enter().HasValue());
+    EXPECT_EQ(actor.headTurn.angles, glm::vec2(17.0f, 23.0f)) << "0x511290 no escribe la cabeza";
+    EXPECT_EQ(actor.animation.action, 0x4a);
+    EXPECT_EQ(actor.hands[0].model, 0x620);
+    ASSERT_TRUE(actor.darkSpirit);
+    EXPECT_EQ(actor.darkSpirit->position, glm::vec3(50.0f, 50.0f, 750.0f));
+}
+
+TEST_F(GoldenLoginWorld, TheLoginPublishesTheCharacterCutAndKeepsItsRandomState)
+{
+    Client::Scenes::WorldState world;
+    Client::Render::Models::ClothWorld cloth;
+    LoginScene scene(
+        SceneContext{.dataRoot = m_dataRoot, .textures = m_store, .log = m_log, .cloth = &cloth, .world = &world},
+        *m_data, m_models, nullptr, Version, FixedSeed, &m_models.TextureSlots());
+    ASSERT_TRUE(scene.Enter().HasValue());
+    world.Actors()[2].movement = 1;
+    world.Actors()[2].animation.action = 0x4b;
+    constexpr std::uint32_t Seed = 1;
+    cloth.random = Client::Render::Models::CrtRandom(Seed);
+    cloth.logicSteps = 77;
+    const auto wind = cloth.wind;
+    const float windBase = cloth.windBase;
+    scene.Step(Client::Input::InputState{});
+    ASSERT_TRUE(scene.Failure());
+    EXPECT_NE(scene.Failure()->find("0x508e27"), std::string::npos);
+    // Ochenta brasas con10 rand cada una; siguen8 de TerrainWall y el corte, antes de la tela.
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 808).State());
+    EXPECT_EQ(cloth.logicSteps, 77);
+    EXPECT_EQ(cloth.wind, wind);
+    EXPECT_FLOAT_EQ(cloth.windBase, windBase);
+    const auto stopped = cloth.random.State();
+    scene.Step(Client::Input::InputState{});
+    EXPECT_EQ(cloth.random.State(), stopped);
+}
+
 TEST_F(GoldenLoginWorld, TheHeadOfTheDarkLordLooksAround)
 {
     Client::Render::Models::ClothWorld cloth;
@@ -1266,9 +1457,8 @@ TEST_F(GoldenLoginWorld, TheRavenIsBornAtCell0AndJumpsToTheRider)
     EXPECT_GE(*jumped, Earliest) << "el contador pasa de 90";
     ASSERT_EQ(heights, Samples);
     const double mean = sum / static_cast<double>(heights);
-    // Con el rand() de la CRT sembrado igual en cada corrida, la media es la misma siempre: 423 con 350 y 356
-    // con el mutante de 250 (desde la cabeza del personaje, que saca uno por paso). Cada rand() nuevo del paso
-    // la corre: el umbral va en el medio, y el que fija los 350 bit a bit es
+    // La media depende de los 41 rand() de entrada y del paso completo (paredes, cuerpo, cuervo y cabeza).
+    // El umbral separa las dos alturas; el que fija los 350 bit a bit es
     // DarkSpiritTest.ItFliesHigherInTheLoginMap.
     EXPECT_GT(mean, 390.0) << "a 350 sobre el dueño en el mapa 55, no a 250";
     EXPECT_LT(mean, 600.0);
@@ -1342,6 +1532,13 @@ TEST_F(GoldenLoginWorld, TheRavenBirthAndShadowUseTheSharedFixedHeight)
         if (!entered.HasValue())
         {
             ADD_FAILURE() << entered.Error();
+            return std::nullopt;
+        }
+        // El primer paso común publica la visibilidad del dueño y mueve su cuervo antes del dibujo.
+        scene.Step(Client::Input::InputState{});
+        if (scene.Failure())
+        {
+            ADD_FAILURE() << *scene.Failure();
             return std::nullopt;
         }
         RecordingFrameTarget target;

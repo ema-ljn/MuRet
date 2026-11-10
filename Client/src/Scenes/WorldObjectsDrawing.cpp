@@ -1,4 +1,5 @@
 #include "Scenes/WorldObjectsDrawing.h"
+#include "Scenes/GameParticles.h"
 
 #include "Core/Expected.h"
 #include "Core/IClock.h"
@@ -16,6 +17,8 @@
 #include "Scenes/ParticleDrawServices.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
+#include "World/GroundEffectDrawing.h"
+#include "World/SphereFrustum.h"
 #include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include "World/Sprites.h"
@@ -312,8 +315,9 @@ bool OwnLevelAllows(const GameObjectPass& pass)
 }
 
 // 0x602ed0 después del rand() común (0x602ef4): los casos por tipo de los mapas 0 (0x602ffb) y 2
-// (0x6031e5). MuRet tiene el del 0x69 hasta sus gotas; los demás cortan con su dirección.
-Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const GameObjectPass& pass)
+// (0x6031e5). El 0x69 crea las gotas con el pool compartido; los demás cortan con su dirección.
+Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const GameObjectPass& pass,
+                                              const IModelLibrary& models, const DrawnObject& drawn)
 {
     const std::uint8_t map = pass.map;
     if (map == LorenciaMap && object.type == 0x38)
@@ -324,6 +328,10 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
     }
     if (map == LorenciaMap && object.type == World::Waterspout)
     {
+        if (pass.particles != nullptr)
+        {
+            return StepGameWaterspoutFrame(object, *pass.particles, *pass.random, pass.worldClock, models, drawn);
+        }
         return World::StepTheWaterspoutFrame(object, *pass.random, pass.worldClock);
     }
     if (map == DeviasMap && object.type == DeviasLeveledObject)
@@ -375,14 +383,14 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         }
         // 0x602e90: 0x5ffdf0 y, si lo posó, 0x6002e0 (en el 0, el 0x69 con sus cuatro 0x4ecc30).
         const World::ObjectDraw draw = ObjectDrawAt(object, lighting, pass.map);
-        static_cast<void>(DrawTheObject(batch, models, object, draw, frameClock, 0.0f));
+        const DrawnObject drawn = DrawTheObject(batch, models, object, draw, frameClock, 0.0f);
         // 0x604a4d: 0x602ed0, una vez por frame del original.
         if (!pass.originalFrame)
         {
             continue;
         }
         static_cast<void>(pass.random->Next());
-        if (auto frameCase = FrameCaseOf(object, pass); !frameCase.HasValue())
+        if (auto frameCase = FrameCaseOf(object, pass, models, drawn); !frameCase.HasValue())
         {
             return frameCase;
         }
@@ -390,22 +398,23 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
     return {};
 }
 
-Core::Expected<void, std::string> DrawGroundEffects(std::span<const World::ModelEffect> effects)
+Core::Expected<void, std::string> DrawGroundEffects(Render::ModelBatch& batch, std::span<World::ModelEffect> effects,
+                                                    const World::GroundEffectResources& resources)
 {
     for (std::size_t slot = 0; slot < effects.size(); ++slot)
     {
-        const World::ModelEffect& effect = effects[slot];
-        // 0x52dc2d: el que no está vivo no se mira.
-        if (!effect.alive)
+        World::ModelEffect& effect = effects[slot];
+        // 0x52dc2d..0x52dc40: no recalcula la esfera, lee la historia de este lugar.
+        if (!effect.alive || !effect.seen)
         {
             continue;
         }
-        // 0x52dc3b: +0x16c, que escribe 0x52d620 (0x52d64d) con la esfera de 400 contra el frustum de su
-        // último dibujo; 0x518cf0 no lo toca al crear. MuRet no lo lleva.
-        return Core::Unexpected(std::format("0x52dc3b: el efecto {} (el {:#x}) está vivo, y su +0x16c es el que dejó "
-                                            "el último 0x52d620 que lo vio vivo o el del que ocupó el lugar antes "
-                                            "(0x518cf0 no lo toca), que MuRet no lleva",
-                                            slot, effect.type));
+        static_cast<void>(resources.random.Next()); // 0x52dc46, aun sin un caso de suelo.
+        World::ApplyGroundEffectAdditive(batch);    // 0x620a90, antes de despachar por tipo.
+        if (auto drawn = World::DrawGroundEffectCase(batch, effect, resources); !drawn.HasValue())
+        {
+            return Core::Unexpected(drawn.Error() + std::format(", en el efecto {} (el {:#x})", slot, effect.type));
+        }
     }
     return {};
 }
@@ -421,13 +430,21 @@ void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary
     }
 }
 
-void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models,
-                      std::span<const World::ModelEffect> effects, const World::TerrainLighting* lighting,
+void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,
+                      const World::SphereFrustum& frustum, const World::TerrainLighting* lighting,
                       Core::Duration frameClock, float alpha)
 {
-    for (const World::ModelEffect& effect : effects)
+    for (World::ModelEffect& effect : effects)
     {
         if (!effect.alive)
+        {
+            continue;
+        }
+        // 0x52d63c..0x52d655: publica +0x16c antes del tipo, el modelo o el alpha. El pase del suelo
+        // del próximo frame lo lee tal cual. La esfera usa +0x10 sin la extrapolación de MuRet.
+        constexpr float Radius = 400.0f;
+        effect.seen = World::SphereVisible(frustum, effect.transform.position, Radius);
+        if (!effect.seen)
         {
             continue;
         }

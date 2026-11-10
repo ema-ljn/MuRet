@@ -17,6 +17,7 @@
 
 #include <glm/ext/vector_float2.hpp>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -35,6 +36,9 @@ constexpr Render::TextureSlot PlayerTexturesStart{0x138};
 constexpr Render::TextureSlot ItemTexturesStart{0x25a};
 // 0x615700 (0x61692a), antes de las del caballo.
 constexpr Render::TextureSlot SkillTexturesStart{0x3b8};
+// 0x61634e..0x616370: Gate02 antes del bloque 0x3b8; Blood Castle reasigna ambos Gate en el mapa.
+constexpr Render::TextureSlot GateTexturesStart{0x69};
+constexpr std::array<Data::Models::ModelTextureCall, 1> InitialGateTextures{{{0x10d, "Monster\\"}}};
 
 // Sube las de `entries` de a una: la que no carga deja su línea en el log, y las demás siguen.
 void UploadEach(const std::filesystem::path& dataRoot, std::span<const Data::Textures::TextureSetEntry> entries,
@@ -100,13 +104,15 @@ Core::Expected<void, std::string> GameModels::Load(const std::filesystem::path& 
     AssignTextures(Data::Models::PlayerTextureCalls());
     m_slots.SetNext(ItemTexturesStart);
     AssignTextures(Data::Models::ItemTextureCalls());
+    m_slots.SetNext(GateTexturesStart);
+    AssignTextures(InitialGateTextures);
     m_slots.SetNext(SkillTexturesStart);
     AssignTextures(Data::Models::SkillTextureCalls());
     UploadEach(dataRoot, GlowTextureSet, textures, log);
     UploadEach(dataRoot, ClothTextureSet, textures, log);
     UploadEach(dataRoot, EffectTextureSet, textures, log, &m_textureMetadata);
     UploadEach(dataRoot, Data::Models::PlayerFixedTextures(), textures, log);
-    UploadEach(dataRoot, m_slots.ToLoad(), textures, log);
+    UploadEach(dataRoot, m_slots.ToLoad(), textures, log, &m_textureMetadata);
     log.Info("se leyeron {} modelos del personaje, de los ítems y del caballo", m_models.size());
     return {};
 }

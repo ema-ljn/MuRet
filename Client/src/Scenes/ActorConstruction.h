@@ -46,6 +46,9 @@ struct ActorPlacement
 // 0x5f93c0 sale con 0 antes de leer las tablas con estos valores nativos de escena.
 [[nodiscard]] bool HeightSkippedIn(World::CullingScene scene);
 
+// 0xa8..0xac: los cinco NewFace de 0x61ca30, con el camino genérico leído de 0x511290.
+[[nodiscard]] bool IsNewFace(std::uint16_t type);
+
 // La Z de 0x511290 en (x, y): la altura del terreno (0x5f93c0) y, con el word318 de antes en 0x1c15
 // (`previousHad1c15`), un mundo y fuera de la zona segura, el corrimiento de la mascota: 90 en los
 // mapas 8 y 10 y 30 en los demás. La suma queda en la pila: quien la guarda la pasa a float.
@@ -56,8 +59,8 @@ struct ActorPlacement
 // de la celda, la posición en el centro de la celda con la Z de ConstructionHeight, el ángulo, el
 // estado de partida (con +0x358 en 0) y las partes del equipo sin ítem. Cada acceso de la tabla de protección (las dos
 // escrituras de la celda, sus cuatro lecturas y la del contador de pasos) se abre y se cierra, y gasta
-// 4 rand() de `cloth` si queda sin accesos: 28 desde cero. No toca la clave (+0x1f4). Otro tipo que el
-// 0x20a corta con error sin tocar al personaje: sus casos no están leídos.
+// 4 rand() de `cloth` si queda sin accesos: 28 desde cero. No toca la clave (+0x1f4). También admite
+// los NewFace: conservan la clase y arrancan en la acción 0. Otro tipo corta sin tocar el personaje.
 [[nodiscard]] Core::Expected<void, std::string> ConstructActor(ActorState& actor, std::uint16_t type,
                                                                const ActorPlacement& placement,
                                                                const ActorConstructionContext& context,

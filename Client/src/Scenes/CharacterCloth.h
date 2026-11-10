@@ -68,6 +68,11 @@ public:
                  const glm::vec3& color = PlainClothColor,
                  Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock);
 
+    // Un dibujo entre frames del original: solo las telas que ya existen y sus destellos, sin
+    // armarlas, simularlas ni avanzar su reloj. También vale antes del primer Advance.
+    void DrawCurrent(Render::ModelBatch& batch, const ClothWearer& wearer, Core::Duration clock, bool wears,
+                     const glm::vec3& color = PlainClothColor);
+
     // Advance vuelve a contar desde cero, como en el primer frame: el próximo corre un frame del bloque y no
     // pone al día el tiempo que pasó sin dibujo. Las telas quedan como estaban. Es para un frame retenido
     // (Q-C85): el original no dibuja mientras conecta, y en el frame siguiente corre uno.

@@ -7,6 +7,7 @@
 #include <glm/ext/matrix_float4x4.hpp>
 
 #include <cstdint>
+#include <functional>
 #include <string>
 
 namespace Client::Scenes
@@ -91,15 +92,26 @@ Core::Expected<void, std::string> RunGameTailPasses(std::int32_t map, std::int32
     return Draw(callbacks, GameTailStage::Damage, 2);
 }
 
-void BeginGameTailPass(Render::ModelBatch& batch, const Render::Pass3D& world, bool eye)
+void BeginGameTailPass(Render::ModelBatch& batch, const Render::Pass3D& world, bool eye,
+                       const std::function<void()>& flushModels)
 {
+    auto state = batch.State();
+    flushModels();
     auto pass = world;
     if (eye)
         pass.view = glm::mat4(1.0f);
-    auto state = batch.State();
+    else
+    {
+        // 620eea..620f4c:620db0 conserva blend y binding, pero reinicia estos ejes.
+        state.alphaTest = false;
+        state.texture2d = true;
+        state.depthTest = true;
+        state.cullEnabled = true;
+        state.depthWrite = true;
+    }
     // space describe las coordenadas del emisor, no un eje del material GL que persista entre matrices.
     state.space = Render::ModelCoordinateSpace::World;
-    batch.Begin(pass);
+    batch.Begin(pass, !eye);
     batch.SetState(state);
 }
 } // namespace Client::Scenes

@@ -2,7 +2,6 @@
 
 #include "Core/Expected.h"
 #include "Render/Billboard.h"
-#include "Render/ModelBatch.h"
 #include "Render/Pass3D.h"
 #include "Render/Models/Skinning.h"
 #include "Scenes/FaunaDrawing.h"
@@ -134,8 +133,7 @@ Core::Expected<void, std::string> GameScene::DrawTheTail(SceneCanvas& canvas, co
                 return {};
             case GameTailStage::BeginEye:
             case GameTailStage::BeginWorld:
-                canvas.flushModels();
-                BeginGameTailPass(canvas.models, pass, stage == GameTailStage::BeginEye);
+                BeginGameTailPass(canvas.models, pass, stage == GameTailStage::BeginEye, canvas.flushModels);
                 return {};
             case GameTailStage::Sprites:
                 DrawFrameSprites(canvas.models, FrameSpritesForDraw(), m_worldModels, view, mode);

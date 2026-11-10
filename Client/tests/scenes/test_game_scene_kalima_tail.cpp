@@ -1,8 +1,19 @@
 #include "Scenes/GameTailPasses.h"
 
 #include "Core/Expected.h"
+#include "Core/IClock.h"
+#include "Data/Models/Model.h"
 #include "Render/ModelBatch.h"
 #include "Render/Pass3D.h"
+#include "Render/Models/Skeleton.h"
+#include "Render/Billboard.h"
+#include "Render/TextureSlot.h"
+#include "Scenes/CharacterDrawing.h"
+#include "Scenes/GameDrawTail.h"
+#include "Scenes/SceneCanvas.h"
+#include "Scenes/WorldObjectsDrawing.h"
+#include "World/Sprites.h"
+#include "support/RecordingFrameTarget.h"
 
 #include <gtest/gtest.h>
 
@@ -10,9 +21,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 #include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float2.hpp>
 
 namespace
 {
@@ -50,6 +63,26 @@ public:
     std::size_t failingRead = 3;
     GameTailStage failingStage = GameTailStage::KalimaWater;
     std::uint8_t failingMode = 255;
+};
+class SpriteTextures final : public Client::Scenes::IModelLibrary
+{
+public:
+    const Client::Data::Models::Model* Find(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t) const override
+    {
+        return nullptr;
+    }
+    std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return {};
+    }
+    std::optional<glm::vec2> TextureSize(Client::Render::TextureSlot) const override
+    {
+        return glm::vec2(2);
+    }
 };
 constexpr Call Query{std::nullopt, 0};
 } // namespace
@@ -178,29 +211,99 @@ TEST(GameSceneKalimaTailTest, TheSecondNativeWorldQueryIsReadAgainAfterDamage)
     EXPECT_EQ(recorder.calls.back(), (Call{GameTailStage::Damage, 2}));
 }
 
-TEST(GameSceneKalimaTailTest, PassChangesKeepTheMaterialAndRestoreTheSameCameraWithoutReflection)
+TEST(GameSceneKalimaTailTest, EyeKeepsMaterialAndWorldRestoresItsNativeAxesWithTheSameCamera)
 {
     Client::Render::Pass3D world;
     world.view[3][0] = 20;
     world.view[2][2] = 2;
-    Client::Render::ModelBatch batch;
+    Client::Tests::RecordingFrameTarget target;
+    auto& canvas = target.BeginFrame(Client::Core::Duration{});
+    auto& batch = canvas.models;
     batch.Begin(world);
     auto state = batch.State();
     state.blend = Client::Render::ModelBlend::Subtractive;
     state.depthTest = false;
     state.depthWrite = false;
     state.cullEnabled = false;
+    state.alphaTest = true;
+    state.texture2d = false;
+    state.texture = Client::Render::TextureSlot{0x610};
     state.space = Client::Render::ModelCoordinateSpace::Eye;
     batch.SetState(state);
-    Client::Scenes::BeginGameTailPass(batch, world, true);
+    Client::Scenes::BeginGameTailPass(batch, world, true, canvas.flushModels);
     EXPECT_EQ(batch.Pass().view, glm::mat4(1));
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Subtractive);
     EXPECT_FALSE(batch.State().depthTest);
     EXPECT_EQ(batch.State().depthWrite, false);
     EXPECT_EQ(batch.State().cullEnabled, false);
     EXPECT_EQ(batch.State().space, Client::Render::ModelCoordinateSpace::World);
-    Client::Scenes::BeginGameTailPass(batch, world, false);
+    state.space = Client::Render::ModelCoordinateSpace::World;
+    EXPECT_EQ(batch.State(), state);
+    Client::Scenes::BeginGameTailPass(batch, world, false, canvas.flushModels);
     EXPECT_EQ(batch.Pass().view, world.view);
-    EXPECT_FALSE(batch.State().depthTest);
+    EXPECT_TRUE(batch.State().depthTest);
     EXPECT_EQ(batch.State().blend, Client::Render::ModelBlend::Subtractive);
+    state.depthTest = true;
+    state.depthWrite = true;
+    state.cullEnabled = true;
+    state.alphaTest = false;
+    state.texture2d = true;
+    EXPECT_EQ(batch.State(), state);
+    target.Present();
+}
+
+TEST(GameSceneKalimaTailTest, RealSpritesOverlapBothBandsWhileDamageOnlyUsesTheSecondBand)
+{
+    Client::World::FrameSprites sprites;
+    std::array<Client::Scenes::DamageNumberState, 3> damage{};
+    constexpr std::array heights{300.0f, 325.0f, 351.0f};
+    for (std::size_t i = 0; i < heights.size(); ++i)
+    {
+        ASSERT_TRUE(sprites.Create(0x5ac, {0, 0, heights[i]}, 1, {1, 1, 1}, 0, 0));
+        damage[i].alive = true;
+        damage[i].number = 1;
+        damage[i].scale = 10;
+        damage[i].speed = 1;
+        damage[i].position.z = heights[i];
+    }
+    SpriteTextures textures;
+    Client::Render::ModelBatch batch;
+    const Client::Render::Pass3D pass;
+    const auto view = Client::Render::ViewRows(pass.view);
+    std::array<std::size_t, 2> spriteVertices{};
+    std::array<std::uint8_t, 2> spriteModes{};
+    std::size_t spritePass = 0;
+    std::size_t damagePasses = 0;
+    std::size_t damageVertices = 0;
+    const Client::Scenes::GameTailPassCallbacks callbacks{
+        [&](GameTailStage stage, std::uint8_t mode) -> Client::Core::Expected<void, std::string>
+        {
+            if (stage == GameTailStage::MarkSpritesSeen)
+                sprites.MarkSeen();
+            if (stage == GameTailStage::Sprites)
+            {
+                batch.Begin(pass);
+                Client::Scenes::DrawFrameSprites(batch, sprites, textures, view, mode);
+                spriteModes.at(spritePass) = mode;
+                spriteVertices.at(spritePass++) = batch.Vertices().size();
+            }
+            if (stage == GameTailStage::Damage)
+            {
+                batch.Begin(pass);
+                ++damagePasses;
+                EXPECT_EQ(mode, 2);
+                auto drawn = Client::Scenes::DrawDamage(batch, damage, mode, view);
+                damageVertices = batch.Vertices().size();
+                return drawn;
+            }
+            return {};
+        },
+        []() -> Client::Core::Expected<bool, std::string> { return true; }};
+    ASSERT_TRUE(Client::Scenes::RunGameTailPasses(24, 0, callbacks).HasValue());
+    EXPECT_EQ(spriteModes, (std::array<std::uint8_t, 2>{1, 2}));
+    EXPECT_EQ(spriteVertices, (std::array<std::size_t, 2>{12, 12}));
+    EXPECT_FALSE(sprites.Any());
+    EXPECT_EQ(damagePasses, 1u);
+    EXPECT_EQ(damageVertices, 12u);
+    EXPECT_TRUE(damage[0].alive);
 }

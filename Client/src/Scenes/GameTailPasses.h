@@ -38,6 +38,7 @@ struct GameTailPassCallbacks
 [[nodiscard]] std::uint8_t GameTailFirstMode(std::int32_t map);
 [[nodiscard]] Core::Expected<void, std::string> RunGameTailPasses(std::int32_t map, std::int32_t heroCellLayer,
                                                                   const GameTailPassCallbacks& callbacks);
-// Después de flushModels:6213e0 sólo cambia la matriz,620db0 restaura la cámara sin tocar material.
-void BeginGameTailPass(Render::ModelBatch& batch, const Render::Pass3D& world, bool eye);
+// Captura antes del flush:6213e0 conserva material;620db0 reinicia sus ejes acreditados.
+void BeginGameTailPass(Render::ModelBatch& batch, const Render::Pass3D& world, bool eye,
+                       const std::function<void()>& flushModels);
 } // namespace Client::Scenes

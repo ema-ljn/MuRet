@@ -99,8 +99,13 @@ struct ModelDrawCommand
 class ModelBatch
 {
 public:
-    // Empieza un pase: vacía los triángulos y los tramos, y el estado vuelve al de ModelDrawState{}.
-    void Begin(const Pass3D& pass);
+    // Empieza un pase: vacía triángulos/tramos y vuelve a ModelDrawState{}. Sólo620db0
+    // inicializa material; un flush de continuación o6213e0 conserva los ejes GL vigentes.
+    void Begin(const Pass3D& pass, bool initializeMaterial = true);
+    [[nodiscard]] bool InitializesMaterial() const
+    {
+        return m_initializeMaterial;
+    }
 
     // El estado de los triángulos que siguen.
     void SetState(const ModelDrawState& state);
@@ -173,6 +178,7 @@ private:
     ModelDrawState m_state;
     std::uint64_t m_stateSerial = 0;
     bool m_primitiveOpen = false;
+    bool m_initializeMaterial = false;
     std::vector<ModelVertex> m_vertices;
     std::vector<ModelDrawCommand> m_commands;
 };

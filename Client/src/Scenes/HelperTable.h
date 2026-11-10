@@ -22,8 +22,8 @@ class CrtRandom;
 // La tabla de los ayudantes del juego: los 10 lugares de 0x1d4 bytes de 0x7d335d0, en la .bss, que crea
 // 0x443fa0 → 0x443d70, apaga 0x443d40, mueve 0x445230 → 0x444010 y dibuja 0x4453b0 → 0x445260. Es una sola
 // para las escenas 2, 4 y 5; MuRet la tiene en el mundo (WorldState::Helpers) y la usa en la 5: el caballo
-// del login sigue en LoginScene, y el de la selección, en su escena (P-C47). Solo el caballo oscuro (0xbf):
-// los otros tipos cortan con error. Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El caballo
+// del login sigue en LoginScene. El constructor también admite los ayudantes de la lista; su paso y
+// dibujo solo portan el caballo oscuro (0xbf). Contrato: Client/docs/research/06-render-escenas-y-ui.md, "El caballo
 // oscuro".
 namespace Client::Scenes
 {
@@ -56,10 +56,12 @@ using HelperTable = std::array<HelperState, HelperCount>;
 // 0x443d70 en el primer lugar sin el byte vivo: vivo, el tipo, el jinete, la posición que recibe, los
 // ángulos del jinete, el frame y la key anterior en 0, la velocidad en 0,5, el alpha en 0, sin verse y,
 // con el 0xbf, la escala en 1. La acción y la anterior quedan las del uso anterior del lugar (Q-C221).
-// Con los 10 vivos no crea nada. Devuelve el lugar, o nullopt si no creó. Otro tipo que el 0xbf corta con
-// error antes de 0x443d70.
+// Con los 10 vivos no crea nada. También construye 0xc6, 0x110 y 0x14a..0x14c con escala 0,9, y
+// 0x1c12 con escala 0,7 y sus tres rand() de posición. Este último requiere `random`.
+// Devuelve el lugar, o nullopt si no creó. Los otros tipos cortan antes de 0x443d70.
 [[nodiscard]] Core::Expected<std::optional<std::size_t>, std::string>
-CreateHelper(WorldState& world, std::uint16_t type, const glm::vec3& position, std::size_t rider);
+CreateHelper(WorldState& world, std::uint16_t type, const glm::vec3& position, std::size_t rider,
+             Render::Models::CrtRandom* random = nullptr);
 
 // 0x443d40(jinete): apaga el byte vivo de los lugares vivos de ese jinete. Lo demás queda.
 void TurnOffHelpersOf(HelperTable& helpers, std::size_t rider);

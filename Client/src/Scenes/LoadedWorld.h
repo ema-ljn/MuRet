@@ -50,10 +50,11 @@ public:
     // La identidad efectiva del terreno que posee: vacía sin carga, tras fallo, Release o TakeTerrain.
     [[nodiscard]] std::optional<std::uint8_t> LoadedMap() const;
 
-    // La luz sombreada del terreno (la de 0x5f99e0 para los modelos), si hay terreno.
+    // La base sombreada, si hay terreno. Los lectores de escena usan la copia dinámica de WorldState.
     [[nodiscard]] const World::TerrainLighting* Lighting() const;
     // El terreno entero (las alturas y los atributos que pide 0x5f93c0), si hay.
     [[nodiscard]] const World::WorldTerrain* Terrain() const;
+    [[nodiscard]] World::WorldTerrain* Terrain();
 
     // Transfiere sólo CPU al estado que sobrevive a la escena. Invalida las vistas del terreno;
     // los slots GPU siguen siendo de este objeto y Release los suelta una sola vez.
@@ -64,9 +65,10 @@ public:
     void Step(Core::Duration clock, const World::TerrainRange& range);
 
     // 0x5fc260(0): el corrimiento del agua con el reloj del frame y el pase del terreno en el rango,
-    // con el recorte del trapecio. Sin terreno, nada.
+    // con el recorte del trapecio y, si se presta, la luz dinámica. Sin terreno, nada.
     void DrawTerrain(Render::ModelBatch& batch, Core::Duration frameClock, const World::TerrainRange& range,
-                     const World::TerrainPolygon& polygon, float fixedHeight = World::FixedCornerHeight);
+                     const World::TerrainPolygon& polygon, float fixedHeight = World::FixedCornerHeight,
+                     const World::TerrainLighting* dynamicLighting = nullptr);
 
 private:
     TerrainTiles m_tiles;

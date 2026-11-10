@@ -7,11 +7,11 @@
 #include "Data/Models/ModelFiles.h"
 #include "Render/ITextureStore.h"
 #include "Render/Models/ModelTextureSlots.h"
-#include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/SceneTextures.h"
 #include "UI/Widget.h"
 
@@ -24,6 +24,11 @@
 #include <span>
 #include <string>
 #include <vector>
+
+namespace Client::Render::Models
+{
+struct ClothWorld;
+}
 
 // La vista previa de la ventana de crear (CL6.5; 06 § La ventana de crear y "La vista previa"): los
 // modelos que sube la selección (0x61ca30) y el objeto suelto 0x7437050, que 0x63e3e0 arma con el
@@ -72,30 +77,33 @@ private:
 };
 
 // El objeto de la vista previa: la clase (+0x1d4, la de la ventana) y su animación.
-struct CreatePreview
-{
-    std::uint8_t characterClass = 1;
-    Render::Models::AnimationState animation;
-};
+using CreatePreview = ActorState;
 
-// 0x63e3e0 con la clase: 0x511290 lo arma de nuevo con el NewFace de la clase (la animación de cero)
-// y 0x4ea030 le pone la acción 1.
+struct ActorConstructionContext;
+// 0x63e3e0: el constructor completo, incluido el terreno y el rand() compartido.
+[[nodiscard]] Core::Expected<void, std::string> RebuildPreview(CreatePreview& preview, std::uint8_t characterClass,
+                                                               const IModelLibrary& models,
+                                                               const ActorConstructionContext& construction,
+                                                               Render::Models::ClothWorld& cloth);
+
+// Adaptador de presentación sin terreno; main usa RebuildPreview con el constructor completo.
 void ChoosePreviewClass(CreatePreview& preview, std::uint8_t characterClass, const IModelLibrary& models);
 
 // Un paso de 0x63e430: 0x4f9580 lo avanza (la velocidad de la acción por 2 con los NewFace) y, si la
-// acción terminó, la 0. El original también lo avanza por paso desde la lógica de la escena
-// (0x508ea0), y con la ventana abierta avanza dos veces: MuRet, una (D-C4).
+// acción terminó, la 0. Corre además de 0x508ea0 desde la lógica de la escena: con la ventana arriba
+// avanza dos veces, y con un aviso, solo desde la escena.
 void StepPreview(CreatePreview& preview, const IModelLibrary& models);
 
-// Lo que dibuja 0x63e460 entre dos pasos (`stepAlpha` de un paso más): el NewFace en (50, 50, 0)
-// (0x511290 con x = y = 0 · 100 + 50; la z del terreno, que MuRet no tiene, no se ve porque la
-// cámara va con el objeto), con los ángulos, la escala y el corrimiento de su clase, con la luz por
-// vértice (+0xe8, de 0x511290) y el color en 4,8 que le pone 0x6002e0.
-[[nodiscard]] DrawnObject DrawnPreview(const CreatePreview& preview, const IModelLibrary& models, float stepAlpha);
+// 0x63e460: el corrimiento de la clase queda en el actor por cada frame original. La cámara lee
+// la posición anterior a ese corrimiento; los dibujos intermedios conservan la del último frame.
+// El color es 4,8 por vértice (0x6002e0).
+[[nodiscard]] DrawnObject DrawnPreview(CreatePreview& preview, const IModelLibrary& models, float stepAlpha,
+                                       int originalFrames = 1);
 
 // 0x6338a0(objeto, (10, −500, 48), (−90, 0, 0)) con el fov en 10 (0x63e460) y el near y el far de la
 // escena 4. La posición, la del objeto de antes del corrimiento de su clase.
 [[nodiscard]] Render::Camera3D PreviewCamera();
+[[nodiscard]] Render::Camera3D PreviewCamera(const CreatePreview& preview);
 
 // 0x620db0(ftol(x / rx), ftol(y / ry), ftol(410 / rx), ftol(335 / ry)), con (x, y) la esquina de la
 // caja de la ventana en píxeles.

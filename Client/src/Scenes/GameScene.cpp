@@ -1,4 +1,7 @@
 #include "Scenes/GameScene.h"
+#include "Scenes/DynamicWorldLight.h"
+#include "Scenes/SelectionState.h"
+#include "Scenes/GameParticles.h"
 
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
@@ -28,6 +31,7 @@
 #include "Scenes/TerrainTiles.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldObjectsDrawing.h"
+#include "World/GroundEffectDrawing.h"
 #include "Scenes/WorldState.h"
 #include "UI/GameCursor.h"
 #include "UI/Widget.h"
@@ -73,6 +77,8 @@ constexpr std::int32_t FirstChaosCastleMap = 18;
 constexpr std::int32_t LastChaosCastleMap = 23;
 // 0x63741d: en el mapa 30 el dibujo pone su luz (0x42b0a0).
 constexpr std::int32_t CastleMap = 30;
+// 0x633f20: mapa conservado durante la espera de entrada.
+constexpr std::int32_t SelectionMap = 54;
 // Los mapas de referencia, los únicos con los casos de los objetos en el juego (0x6046a0 y 0x604ab0).
 constexpr std::int32_t LorenciaMap = 0;
 constexpr std::int32_t DeviasMap = 2;
@@ -131,6 +137,9 @@ Core::Expected<void, std::string> GameScene::Enter()
     }
     m_firstStep = true;
     m_holdFrame = true;
+    m_groundEffects.Reset();
+    m_characterCloths.resize(ActorPoolSize);
+    m_scepters.resize(ActorPoolSize);
     return {};
 }
 
@@ -201,9 +210,19 @@ Core::Expected<void, std::string> GameScene::StepWorld()
     // del paso (la rama de 0x723c50, P-C24 c, no se prende en MuRet). La copia de la luz sombreada al
     // buffer dinámico deja lo mismo: MuRet no tiene luces dinámicas (06 § Terreno). El rango y las olas
     // son de la escena: el original los comparte con la selección (08 P-C41).
+    const World::WorldTerrain* stepTerrain = &m_context.world->Map().terrain;
+    if (runtime.map == SelectionMap && m_context.selection != nullptr && m_context.selection->Terrain() != nullptr)
+    {
+        stepTerrain = m_context.selection->Terrain();
+    }
+    if (stepTerrain->lighting != nullptr)
+    {
+        m_context.world->DynamicLighting().Update(*stepTerrain->lighting);
+    }
     if (m_context.clock != nullptr)
     {
-        World::UpdateWaves(m_water, m_context.clock->Now(), m_terrainRange, static_cast<std::uint8_t>(runtime.map));
+        World::UpdateWaves(m_water, m_context.clock->Now(), m_context.world->DynamicLighting().Range(),
+                           static_cast<std::uint8_t>(runtime.map));
     }
     // Frontera (08 P-C41): los globales de 0x636df2..0x636e1d y la UI (0x636e11..0x63705b), que corre en
     // cada paso desde el primero.
@@ -253,6 +272,11 @@ Core::Expected<void, std::string> GameScene::StepWorld()
     // los joints, el viento y las partículas).
     // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla
     // sigue vacía mientras MuRet no tenga quién la llene (08 P-C49).
+    if (auto particles = StepGameParticles(m_context.world->Particles(), m_context.cloth->random, runtime.map);
+        !particles.HasValue())
+    {
+        return particles;
+    }
     World::StepGroundMarks(runtime.groundMarks);
     // Frontera (08 P-C41 a): lo que sigue desde 0x637138.
     return {};
@@ -335,9 +359,9 @@ void GameScene::PrepareFrame()
     {
         return;
     }
-    // Con el contador en 30 o menos el dibujo del original llega siempre a 0x6374dd (0x510d00): 0x50ba30
-    // corre 0x505820 con cada jugador visto (0x50c91e). El de MuRet corta antes (en los objetos o en los
-    // efectos del suelo) o en el primer personaje visto (0x510ea1), y no sabe qué dejó.
+    // P-C40: se conserva la invalidación preventiva mientras el frame original tiene etapas y ramas
+    // sin portar. El jugador que alcanza 0x50c91e publica después su scan real; si el dibujo corta
+    // antes, el valor queda desconocido. No representa una escritura del original en PrepareFrame.
     runtime.fullSetScan = std::nullopt;
 }
 
@@ -384,6 +408,7 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
     // 0x637366: 0x5fbb00(w · 0,0015625, &p), el rango de bloques y el trapecio; con w en 640, 1. El trapecio y
     // su nivel quedan en los globales de WorldRuntime, que lee 0x5fba90 en el paso que sigue.
     m_terrainRange = World::TerrainRangeOf(pass.view, camera);
+    m_context.world->DynamicLighting().PublishRange(m_terrainRange);
     const auto polygon = PolygonOfTheFrame(camera, target, frames);
     if (!polygon.HasValue())
     {
@@ -424,7 +449,7 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
     m_worldModels.Release();
     m_worldModelsMap.reset();
     if (auto loaded = m_worldModels.Load(m_context.dataRoot, static_cast<std::uint8_t>(map), m_context.textures,
-                                         m_context.log, m_gameSlots);
+                                         m_context.log, m_gameSlots, m_models);
         !loaded.HasValue())
     {
         return Core::Unexpected("0x616ec0: los modelos de los objetos del " + MapText(map) + ": " + loaded.Error());
@@ -517,7 +542,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         view.mapping = terrain.mapping.get();
         view.heights = terrain.heights.get();
         view.attributes = terrain.attributes.get();
-        view.lighting = terrain.lighting.get();
+        view.lighting = &m_context.world->DynamicLighting().Lighting();
         view.tiles = m_tiles.Sizes();
         view.map = static_cast<std::uint8_t>(map);
         view.fixedHeight = CameraState().fixedHeight;
@@ -573,7 +598,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     // dinámicas (los fuegos y las lámparas del paso cortan antes de sumarlas) y lee la sombreada. El reloj
     // del mundo (0x5767b88), el del frame, como el de la cámara.
     if (auto objects = DrawGameWorldObjects(
-            canvas.models, m_worldModels, world.Map().objects, polygon, world.Map().terrain.lighting.get(),
+            canvas.models, m_worldModels, world.Map().objects, polygon, &world.DynamicLighting().Lighting(),
             canvas.frameClock,
             GameObjectPass{.map = static_cast<std::uint8_t>(map),
                            .originalFrame = frames > 0,
@@ -582,13 +607,23 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
                            .ownLevel = world.OwnCharacter().level,
                            .ownRecordDepth = &world.Runtime().ownRecordDepth,
                            .worldClock = static_cast<float>(
-                               std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())});
+                               std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count()),
+                           .particles = &world.Particles()});
         !objects.HasValue())
     {
         return Core::Unexpected(objects.Error() + ", en el " + MapText(map));
     }
     // 0x6374d3: 0x52dc20, los efectos del suelo, sobre la tabla de 0x518cf0 (la de WorldMap).
-    if (auto ground = DrawGroundEffects(world.Map().effects.Effects()); !ground.HasValue())
+    if (auto ground = m_groundEffects.Draw(
+            canvas.models, world.Map().effects.Effects(),
+            World::GroundEffectResources{
+                .heights = *world.Map().terrain.heights,
+                .random = m_context.cloth->random,
+                .worldClock = static_cast<float>(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count()),
+                .map = static_cast<std::uint8_t>(map)},
+            frames > 0);
+        !ground.HasValue())
     {
         return Core::Unexpected(ground.Error() + ", en el " + MapText(map));
     }
@@ -597,9 +632,7 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     // 0x4455c0. MuRet no tiene la tabla: sin pájaros vivos, 0x446b60 no dibuja ni saca rand(), y solo suma y
     // resta 90 al +0x24 de cada lugar que no es un 0x10f (Q-C277), que nadie ve (08 P-C55).
     // 0x6374dd: 0x510d00, los personajes, y al final 0x42da60 con el TerrainWall.
-    if (auto characters =
-            DrawGameCharacters(world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells);
-        !characters.HasValue())
+    if (auto characters = DrawTheCharacters(canvas, frames); !characters.HasValue())
     {
         return Core::Unexpected(characters.Error() + ", en el " + MapText(map));
     }
@@ -607,6 +640,24 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     // 0x7d36899 en 0 (nadie lo escribe), 0x608a00, los ítems del piso.
     return Core::Unexpected("0x6374fe: los ítems del piso del " + MapText(map) +
                             " (0x608a00) no están portados (CL9.3)");
+}
+
+Core::Expected<void, std::string> GameScene::DrawTheCharacters(SceneCanvas& canvas, int frames)
+{
+    WorldState& world = *m_context.world;
+    if (m_models == nullptr)
+    {
+        return DrawGameCharacters(world.Actors(), world.Runtime().hero, world.Map().terrain.attributes->cells);
+    }
+    return DrawGameCharacters(canvas.models, *m_models, world,
+                              GameCharacterPass{.dynamicLighting = &world.DynamicLighting().Lighting(),
+                                                .clothWorld = m_context.cloth,
+                                                .frameClock = canvas.frameClock,
+                                                .originalFrames = frames,
+                                                .cloths = m_characterCloths,
+                                                .sprites = &m_sprites,
+                                                .scepters = m_scepters,
+                                                .pace = OriginalFramePaceOf(m_context.pacing)});
 }
 
 void GameScene::Leave()

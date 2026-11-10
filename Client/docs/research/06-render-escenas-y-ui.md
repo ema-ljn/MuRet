@@ -3611,7 +3611,7 @@ selección al primer frame del juego, `WorldEntryTest.TheFirstGameStepReadsTheTr
 
 **Dónde.** La selección (`0x6342c0`), con el estado en `0x33` o más (`0x6342cb`) y, la primera vez, después de
 `0x633f20` (`0x6342de..0x6342e5`), en este orden: `0x5fbf60` (las olas), `0x606560` (los objetos), `0x445230`
-(el caballo), **`0x508f00`** (`0x6342f9`), **`0x508ea0(0x7437050)`** (`0x634303`, la vista previa de la ventana
+(los ayudantes), **`0x508f00`** (`0x6342f9`), **`0x508ea0(0x7437050)`** (`0x634303`, la vista previa de la ventana
 de crear, fuera de los 400), `0x52d220`, `0x53c670`, `0x5446e0` y `0x633920` (las rutas de la cámara); después,
 el input (`0x640850`). El login (`0x634c60`): `0x6349a0` la primera vez (`0x7d3a13d`), el gesto del personaje
 del lugar 2 (`0x634c99..0x634ced`, el `rand() % 6` de § Lo demás del login) y, con la ventana de `+0x4578`
@@ -3647,7 +3647,7 @@ está vivo solo si alguna lista lo construyó antes.
   `rand()` y 54 a `0x518cf0` (los efectos), según el tipo, la clase, el equipo y el mapa. Del personaje del login
   se leyó lo que saca (§ Los efectos del login: el de `0x4fd7e4`, el de `0x432bd0` desde `0x4fcee0` y el
   cuervo, `0x416a20`). Los de la lista, quietos, van por el mismo camino del `0x20a`, con su equipo: de pie
-  no piden estela. El `0xa9` de la vista previa sigue sin leer.
+  no piden estela. El `0xa9` está leído y portado por el camino genérico descrito abajo.
 - **`0x505de0`** ([§ Los efectos de los personajes](#los-efectos-de-los-personajes-0x505de0)), como con el
   héroe del juego, salvo que con otro que el héroe la cabeza sortea (`0x5068eb`, `rand() % 32` y dos más si da
   0; § Lo demás del login) y no hay pasos (`0x508641`), y que el `0x607` del mapa 7 es solo de la escena 5
@@ -3659,7 +3659,14 @@ copias de la celda en (0, 0). `0x508ea0` la pasa en cada paso de la selección d
 la ventana de crear cerrada: su `+0x16c` con el trapecio, los 8 `rand()` de su `0x508ba0` y lo que hagan
 `0x4fd5f0` y `0x505de0` con el `0xa9`. En `0x505de0` el `0xa9` no es el `0x20a`: su cabeza pasa por `0x4ea190`
 (`0x5068e3`, hasta tres `rand()` según la acción) y, debajo de `0x152`, su caso es el de `0x5085db`, con las seis
-funciones de los tipos sin caso propio, sin leer. Con la ventana abierta la avanza además `0x63e430` (D-C4).
+funciones de los tipos sin caso propio: `0x43bdd0`, `0x42de90`, `0x441210`, `0x42f550`,
+`0x431470` y `0x426ce0` salen para `0xa8..0xac` en el mapa 54 sin más `rand()`.
+`0x4f9580` multiplica por 2 la velocidad; al terminar, `0x4fcbb0` no cambia la acción del
+NewFace. La estela no se crea, pero desde el frame 3 corre el `rand()` incondicional de
+`0x432bf1`. Con acción 0, `0x4ea190` sortea primero con `%32`; si gana, X `%128−64` e Y
+`%48−16`. Después corre también el sorteo común de `0x5068fd`, con Y `%32−16`: puede
+sortear dos blancos en un paso. Con acción 1, el primer helper pone el blanco en 0.
+Con la ventana abierta la avanza además `0x63e430`; con un aviso solo corre `0x634303`.
 
 **Lo que saca por paso**, hasta donde está leído. La selección con N personajes de la lista, el héroe entre
 ellos: 8·N del `TerrainWall`; 8·(N − 1) de los `0x508ba0`; por cada uno, lo de su `0x4fd5f0` (al menos 1) y,
@@ -3694,26 +3701,91 @@ queda en 0 (Q-C238). Antes, cada `0x517270` de la lista corre su `0x511290`, con
   `0x607` del mapa 7 solo en la 5.
 - También corta en `0x508e89` (el `0x154` que se muere) y en `0x508e27` (el que camina).
 
-**La selección y el login todavía no lo llaman** (P-C54). Con la cabeza portada, `StepCharacters` ya no corta
-con los de la lista ni con el del login quietos (abajo), pero llamarlo desde `0x6342f9` y `0x634d13` pide más
-piezas, y un corte en el primer paso sería terminal (`IScene::Failure`):
+**Login y selección cableados (2026-11-10).** El login llama al paso común en `0x634d13` (P-C56).
+La selección llama a `StepCharacters` en `0x6342f9` con el terreno vivo de `SelectionState`,
+Player.bmd e Item.bmd de la carga, y después a `StepCharacter` con el NewFace suelto en
+`0x634303`. El registro propio anterior a la primera entrada conserva sus tipos 0: el helper
+`0x54efe0` necesita Item.bmd incluso en esta escena (Q-C246). Un corte publica `IScene::Failure`,
+conserva el estado y los rand anteriores y congela los pasos siguientes.
 
-- **la selección**: `SelectionState::Construct` no arma los lugares de la lista como `0x20a`: les pone la
-  posición, la clave y vivo, sin el tipo, el equipo ni los `rand()` de su `0x511290` (P-C50 e); la vista previa
-  (`0x508ea0(0x7437050)`, `0x634303`) es el `0xa9`, que en el cuerpo pide la rama de los otros tipos de
-  `0x4f9580` (`0x4f96d4..0x4f9737`), la cola de `0x4fcd00` y `0x4fcee0` con otros tipos (`0x441260`, `0x42fa40`,
-  `0x432bd0` y `0x426d90`), y en `0x505de0`, `0x4ea190` y el caso de `0x5085db`: no es una pieza chica; y antes
-  de la primera entrada, el registro propio en ceros pide Item.bmd en su `0x54efe0` (Q-C246);
-- **el login**: el lugar 2 no está en los 400 como `0x20a` (`0x6349a0` → `0x517270` → `0x511290`, con su equipo
-  y sus `rand()`; `SelectionState::EnterLogin` solo lo pone vivo con su clave); el cuervo de `+0x430` lo llama el
-  cuerpo (`0x50544b`, `0x420dd0`) y hoy lo corre `LoginScene` por su cuenta; al terminar el gesto, `0x4f2250` lee
-  el arma en Item.bmd; y el dibujo lee la animación y la cabeza de la escena, no las del registro;
-- **las dos**: `StepCharacters` marca el `TerrainWall` de `WorldState::Map()`, y el 54 de la selección vive en
-  `SelectionState` y el 55 del login en su `LoadedWorld` (P-C50 c).
+Antes del pool, `0x6342f4` pasa los diez ayudantes por `0x445230` → `0x444010`.
+En la escena 4 no corre la guarda del dueño muerto o con `+0x88` distinto de 1:
+`0x44402a` solo la aplica en la escena 5. El primer ayudante vivo llega al alpha
+de `0x4e9980` (`0x444053`) aunque su dueño esté muerto. MuRet conserva ese prefijo
+y corta en `0x444059`, antes del cuerpo todavía no portado. Los lugares muertos no
+cambian; los posteriores al corte tampoco. Con la tabla vacía el tramo no hace nada.
+El paso de la selección sigue parcial por este límite; no reutiliza el de la escena 5.
 
-Las dos escenas siguen corriendo por su cuenta, en ese lugar del paso, piezas de `0x4fd5f0` y `0x505de0`: la
-animación (`0x4fcd00`) en las dos y, en el login, el cuervo (`0x416a20`) y la cabeza (§ Los efectos del login).
-Su `rand()` sigue corrido (P-C50).
+Después del preview, `0x634315` ejecuta `0x5446e0` sobre las partículas durables del
+mundo. Sus dos rand del viento corren también con el pool vacío; las chispas del
+cuervo nacidas en este paso bajan de vida 10 a 9 en ese mismo paso. Un tipo o binding
+no portado publica el error después de su prefijo de vida/movimiento, conserva los
+lugares anteriores y no toca los posteriores.
+
+El wrapper de ambas escenas deja el viento de tela y el incremento del contador
+después de la lógica normal: `0x637cab` / `0x637cb2` llaman al login / selección;
+`0x637cec` hace los cinco paseos del viento y `0x637f8c..0x637f91` incrementa el
+contador. Por eso el constructor, el cuervo y las cabezas leen el contador anterior
+y sortean antes de esos cinco rand y los cuatro del cierre con el contador cerrado. Si la
+escena corta con error, no consume ese sufijo ni incrementa el contador.
+
+`ConstructSelectionActor` reproduce el `0x517270` de la lista: `0x511290` (28 rand desde
+cuentas cerradas), la clase, las partes base, el lugar, su clave, luz y banderas, y parado sin
+armas (un rand). Solo después aplica el equipo de `0x5139f0`, el nombre, nivel, control y gremio.
+La aparición conserva Q-C102/Q-C103. Los helpers de mascota se crean en el orden de los bits,
+aunque otro bit posterior sobrescriba `+0x318`: pueden quedar varios del mismo dueño. El cuervo
+se crea antes de los helpers de mascota. Los cuatro campos de cabeza no se reinician.
+
+La inicialización hace los dos constructores del NewFace: `0x633f65`, y el de `0x63e3e0`
+durante la creación de ventanas (56 rand). Después limpia `+0x6a`, `+0x6c..+0xab` y solo D+4
+de los ocho primeros ítems propios (`0x634049..0x634077`), con 3.848 rand al cerrar. El NewFace
+vive en `SelectionState`, fuera de los 400; la cabeza persiste aun al recrear el objeto de escena.
+El dibujo deja los corrimientos acumulados de `0x63e460` en ese mismo actor y toma la cámara
+antes de sumarlos. En modo desacoplado solo acumula los frames originales del carry (D-C4).
+
+Las escenas completas dibujan el cuerpo y la cabeza del pool. Los tests de UI sin WorldState ni
+terreno usan un adaptador de presentación explícito: no simula un constructor nativo ni inventa
+tablas. No sustituye los cortes del camino real. Siguen pendientes en P-C50 el cuerpo contextual
+de los ayudantes, el pasto y los objetos de la entrada, el terreno dibujado de selección y los
+créditos; no se declara cerrado el presupuesto
+global de la escena ni su observación nativa. Evidencia estática: ASM c32bbd5f, sin nuevas emulaciones.
+
+Regresiones del orden: `CharacterSelectSceneTest.ThePreviewSortsBeforeBothGlobalWindsAndTheStepCounter`,
+`RavenSparksAgeAfterThePreviewAndTheirSlotsAreReused`,
+`ASelectionHelperKeepsTheSceneFourAlphaPrefixBeforeTheMissingBody` y
+`AParticleBindingFailureKeepsItsPrefixAndSkipsClothAndLaterSlots`;
+`GoldenLoginWorld.TheLoginPublishesTheCharacterCutAndKeepsItsRandomState` conserva los
+808 rand anteriores al corte, el contador y el viento. El pipeline prueba el pet nativo en
+`AListPetReachesTheHelperBoundaryBeforeActorsParticlesAndCloth`.
+
+**El lugar 2 del login, verificado estáticamente (2026-11-10).** `0x634a43` llama a
+`0x517270(2, 4, 0, 0, 0, 0)`: construye el `0x20a` con `0x511290`, con X e Y lógicas en 0. Los siete cierres
+de cuatro bytes (escribir X/Y, leer Y/X para el atributo, leer X/Y para la posición y leer el contador)
+consumen 28 `rand()` con las cuentas en cero. Luego la clave 2, la luz propia `(0,3; 0,3; 0,3)`, la clase 4,
+piel 0 y `+0x78/+0x7c` en 0. El equipo de `0x5172f5..0x51736d`: las partes `0x102e`, `0x122e`, `0x142e`,
+`0x162e`, `0x182e`, todas de nivel 7; `0x620` de nivel 13 a la derecha, `0x1c17` a la izquierda, capa `0x1c30`
+y mascota `0x1c16`. `0x512930` deja la cabeza en `0xffff`; después corre `0x4f2250`.
+
+El caballo fuera de zona segura elige **`0x4a` antes de Item.bmd** (`0x4f22fb..0x4f230f`), y el sufijo
+`0x4f36be` consume uno. El bloqueo de Item.bmd atribuido al final del gesto no aplica al lugar 2 mientras
+`+0x3e2` siga en 0. `0x634a5a..0x634a81` pisa escala 1,6, ángulos `(0; 0; 188)` y posición
+`(10.603; 14.112; 580)`. Crea el caballo y luego el cuervo (`0x634a9d`, `0x420d60`): sus 12 `rand()` son de
+las celdas y el contador; nace en `(50; 50; altura(50,50) + 300)`, porque la celda lógica no cambió. Total
+después del logo: **41**, con las cuentas cerradas. `ConstructLoginActor` reutiliza `ConstructActor` y
+`SetActorStop`, conserva la cabeza anterior (ninguna escritura de `0x511290` la reinicia), y guarda el
+cuervo en `ActorState::darkSpirit`. Con las dos celdas y el contador ya abiertos, sus cierres no gastan:
+queda solo el `rand()` del sufijo (`LoginActorTest.OpenCellAndCounterAccessesKeepTheirBirthRandoms`).
+
+El héroe sigue publicado en el lugar 0 al arrancar, pero **no está vivo**: es el cero de WinMain y
+`0x6349a0` no lo construye. Puede quedar vivo al reentrar tras una lista: la carga (`0x61a5a4..0x61a5aa`)
+pasa la clave del jugador a `0x510f70`, que solo mata otras claves. El paso no fuerza su estado ni su lugar;
+un superviviente que necesite el registro propio puede cortar en Item.bmd.
+
+El cuerpo mueve el cuervo en **`0x50544b`**, después de `0x4fcee0` y antes de `0x505de0`, también con su dueño
+fuera del trapecio. La interfaz del paso recibe el `LoadedWorld` 55 y escribe sus paredes y su celda; no
+exige una segunda copia en `WorldState::Map()`. El dibujo lee posición, partes, animación y cabeza del pool.
+El cuervo conserva su pose para la chispa del paso siguiente. Los estados distintos de 0/1 o la zona segura
+del cuervo, todavía sin portar, cortan con su dirección y los `rand()` anteriores.
 
 Con el port, por paso, con la animación quieta (sin el `rand()` de `0x432bf1` desde el frame 3 ni el del sufijo
 al terminar la acción) y los cinco lugares vistos con el trapecio de su dibujo (*simulado*):
@@ -3722,7 +3794,8 @@ al terminar la acción) y los cinco lugares vistos con el trapecio de su dibujo 
 | --- | --- |
 | la selección con los cinco y el héroe en el lugar 0, sin la vista previa | 40 del `TerrainWall`, 3.848 + 1 + 9 del héroe (su registro propio, su cuerpo y su `0x505de0`) y 8 + 1 + 8 + 1 + 1 de cada uno de los otros cuatro (su `0x508ba0`, su cuerpo, su celda, su cabeza y el `rand() & 7`): 3.974, y 2 más por cada cabeza que sortea |
 | la selección después de una vuelta, sin la vista previa | 40 + 5 · 19 = 135, y 2 más por cada cabeza que sortea |
-| el login con su personaje, con el cetro y el cuervo en las manos | 8 + 8 + 1 + 8 + 1 + 1 = 27, y 29 cuando la cabeza sortea |
+| el login con su personaje, con el cetro y el cuervo en las manos, sin crear el cuervo | 8 + 8 + 1 + 8 + 1 + 1 = 27, y 29 cuando la cabeza sortea |
+| el lugar 2 construido, con su cuervo vivo en los estados 0/1 | 27 más los 4 a 7 del cuervo; 2 más cuando sortea la cabeza, 1 desde el frame 3 de `0x4fcee0` y 1 del sufijo de `0x4f2250` al terminar la acción; fuera de esta cuenta, el gesto de `0x634cca`, el viento, los ayudantes, las brasas y los demás efectos |
 
 Tests: `GoldenCharacterStep.TheSelectionStepsItsFiveSlots`, `AfterTheReturnTheFiveSlotsAreOthers`,
 `TheLoginStepsItsCharacter` (64, 64 y 200 pasos, con la cabeza de cada uno contra `Scenes::StepCharacterHead`) y

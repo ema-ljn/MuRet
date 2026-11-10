@@ -2,6 +2,7 @@
 
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalAngles.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
@@ -23,7 +24,6 @@ namespace
 {
 // 0x4167b0: los rand() de los cierres de las celdas protegidas (0x4128e7, ocho) y del contador (0x40b9a1,
 // cuatro), y la altura sobre el terreno (0x6b8900).
-constexpr int ConstructorRandoms = 12;
 constexpr int CellSize = 100;
 constexpr int CellCenter = 50;
 constexpr int CellMask = 0xff;
@@ -94,11 +94,21 @@ void SetStateOf(DarkSpirit& spirit, std::uint8_t state)
 }
 } // namespace
 
-DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Render::Models::CrtRandom& random)
+DarkSpirit CreateDarkSpirit(int cellX, int cellY, double groundHeight, Render::Models::CrtRandom& random,
+                            DarkSpiritBirthAccesses accesses)
 {
-    for (int k = 0; k < ConstructorRandoms; ++k)
+    // 0x4167b0 lee Y y X del dueño, y 0x415be0 el contador: solo gastan si cierran en cero.
+    const std::array closes{accesses.cellY == 0, accesses.cellX == 0, accesses.counter == 0};
+    for (const bool closesInZero : closes)
     {
-        (void)random.Next();
+        if (!closesInZero)
+        {
+            continue;
+        }
+        for (std::uint16_t k = 0; k < Render::Models::SmallLogicalCloseRandoms; ++k)
+        {
+            static_cast<void>(random.Next());
+        }
     }
     DarkSpirit spirit;
     // 0x415c25: las celdas con `and 0xff`; 0x415ea7 guarda la altura del terreno en float y 0x4169ec le

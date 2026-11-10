@@ -3,6 +3,8 @@
 #include "Core/Expected.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Cloth.h"
+#include "Scenes/DarkHorse.h"
+#include "Scenes/HelperTable.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
@@ -16,6 +18,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -126,7 +129,8 @@ TEST_F(MapLoadTest, AMissingTerrainHeightNamesTheFile)
 }
 
 // 0x510f70: fuera de la selección mata a los vivos de otra clave, comparada con signo (movsx), entre
-// los 400 primeros.
+// los 400 primeros, y apaga los ayudantes de cada uno que mata (0x510fa1..0x510fc0). Los del que sobrevive,
+// los de uno que ya estaba muerto y los del 401 quedan.
 TEST_F(MapLoadTest, KillsTheActorsOfAnotherKeyOutsideTheSelection)
 {
     auto actors = world.Actors();
@@ -139,6 +143,13 @@ TEST_F(MapLoadTest, KillsTheActorsOfAnotherKeyOutsideTheSelection)
     actors[7].key = PlayerKey;
     actors[400].alive = true;
     actors[400].key = 9;
+    auto& helpers = world.Helpers();
+    const std::array<std::size_t, 4> riders{2, 7, 9, 400};
+    for (std::size_t index = 0; index < riders.size(); ++index)
+    {
+        helpers[index] =
+            Client::Scenes::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = riders[index]};
+    }
 
     ASSERT_TRUE(Load(0).HasValue());
 
@@ -148,6 +159,10 @@ TEST_F(MapLoadTest, KillsTheActorsOfAnotherKeyOutsideTheSelection)
     }
     EXPECT_TRUE(actors[7].alive);
     EXPECT_TRUE(actors[400].alive);
+    EXPECT_FALSE(helpers[0].alive);
+    EXPECT_TRUE(helpers[1].alive);
+    EXPECT_TRUE(helpers[2].alive);
+    EXPECT_TRUE(helpers[3].alive);
 }
 
 TEST_F(MapLoadTest, AKeyAbove7fffKillsEvenItsOwnerAndTheSelectionKillsNobody)

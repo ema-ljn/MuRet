@@ -9,6 +9,8 @@
 #include "Scenes/ActorEquipment.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/DarkHorse.h"
+#include "Scenes/HelperTable.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/OwnStatHelpers.h"
@@ -60,6 +62,16 @@ constexpr std::uint16_t DarkHorse = 0x1a04;
 constexpr std::uint16_t DarkRaven = 0x1a05;
 constexpr std::uint16_t WizardsRing = 0x1a14;
 constexpr std::uint16_t HornOfDoom = 0x1a25;
+// Los ayudantes que crea 0x443fa0 con cada una (0x5bc8dc, 0x5bc94a, 0x5bc95d, 0x5bc9a0 y 0x5bc9ec..0x5bca07):
+// el de Fenrir, el 0x14a con el +0x1b del ítem en 1, el 0x14c con 2 y el 0x14b con otro.
+constexpr std::uint16_t GuardianAngelHelper = 0x1c12;
+constexpr std::uint16_t UniliaHelper = 0xc6;
+constexpr std::uint16_t DinorantHelper = 0x110;
+constexpr std::uint16_t FenrirFirstHelper = 0x14a;
+constexpr std::uint16_t FenrirSecondHelper = 0x14c;
+constexpr std::uint16_t FenrirOtherHelper = 0x14b;
+constexpr std::uint8_t FenrirFirstKind = 1;
+constexpr std::uint8_t FenrirSecondKind = 2;
 // 0x5bca8d..0x5bca93: D+4 & ~7 en 0x18, el nivel 3.
 constexpr std::uint32_t LevelBitsMask = ~std::uint32_t{7};
 constexpr std::uint32_t LevelThreeBits = 0x18;
@@ -132,10 +144,37 @@ void WriteEquipmentFields(ItemState& item, std::uint16_t type, InventoryItemByte
     item.occupied = 1;
 }
 
-// 0x5bc88b..0x5bcaa7, con el héroe que relee de 0x743a170: lo que crea o suelta después de vestirlo.
-Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const ItemState& item, ActorState& hero,
-                                                   std::int32_t map)
+// 0x5bc8b3..0x5bca0c: el ayudante de cada mascota del lugar 8; el Horn of Doom elige el de Fenrir por el
+// +0x1b del ítem (0x5bc9d6..0x5bca07). Las demás no crean nada.
+std::optional<std::uint16_t> HelperOfThePet(const ItemState& item)
 {
+    switch (item.id)
+    {
+    case GuardianAngel:
+        return GuardianAngelHelper;
+    case HornOfUnilia:
+        return UniliaHelper;
+    case HornOfDinorant:
+        return DinorantHelper;
+    case DarkHorse:
+        return DarkHorseModel;
+    case HornOfDoom:
+        if (item.flags1b == FenrirFirstKind)
+        {
+            return FenrirFirstHelper;
+        }
+        return item.flags1b == FenrirSecondKind ? FenrirSecondHelper : FenrirOtherHelper;
+    default:
+        return std::nullopt;
+    }
+}
+
+// 0x5bc88b..0x5bcaa7, con el héroe que relee de 0x743a170: lo que crea o suelta después de vestirlo.
+Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const ItemState& item, WorldState& world)
+{
+    const WorldRuntime& runtime = world.Runtime();
+    ActorState& hero = world.Actors()[runtime.hero];
+    const std::int32_t map = runtime.map;
     const std::uint16_t type = item.id;
     if (slot == PetSlot && !InChaosCastle(map))
     {
@@ -144,13 +183,22 @@ Core::Expected<void, std::string> AfterTheDressing(std::uint8_t slot, const Item
             // 0x5bc9d6..0x5bc9db: el byte +0x1b del ítem a +0x31b, el de la mascota, antes de crearla.
             hero.pet.flags1b = item.flags1b;
         }
-        if (type == GuardianAngel || type == HornOfUnilia || type == HornOfDinorant || type == DarkHorse ||
-            type == HornOfDoom)
+        const std::optional<std::uint16_t> helper = HelperOfThePet(item);
+        if (!helper)
         {
-            return Core::Unexpected(
-                std::format("0x5bc740 (0x5bc8cc): la mascota {:#x} del lugar 8 se crea con 0x443fa0 "
-                            "en la tabla de 0x7d335d0, que MuRet no tiene en el mundo",
-                            type));
+            return {};
+        }
+        // 0x443fa0(ayudante, héroe + 0x10, héroe, 0, 0).
+        if (auto created = CreateHelper(world, *helper, hero.position, runtime.hero); !created.HasValue())
+        {
+            return Core::Unexpected(std::format("0x5bc740 (0x5bc8cc), 0x443fa0: {}", created.Error()));
+        }
+        // 0x5bc967..0x5bca46: fuera del 0x1c12, con +0x3e2 del héroe publicado en 0, 0x518cf0 crea el
+        // efecto 0x61e en el héroe, aunque 0x443fa0 no haya creado nada.
+        if (type != GuardianAngel && hero.safeZone == 0)
+        {
+            return Core::Unexpected(std::string("0x5bca46: fuera de la zona segura, 0x518cf0 crea el efecto 0x61e "
+                                                "sobre el héroe, que World::ModelEffects no tiene"));
         }
         return {};
     }
@@ -218,7 +266,7 @@ PlaceInEquipment(std::uint8_t slot, std::uint16_t type, InventoryItemBytes bytes
     {
         return Core::Unexpected(dressed.Error());
     }
-    if (auto after = AfterTheDressing(slot, item, world.Actors()[runtime.hero], runtime.map); !after.HasValue())
+    if (auto after = AfterTheDressing(slot, item, world); !after.HasValue())
     {
         return Core::Unexpected(after.Error());
     }

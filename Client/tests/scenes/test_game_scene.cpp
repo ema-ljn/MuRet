@@ -6,15 +6,20 @@
 #include "Core/Expected.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
+#include "Data/Models/Model.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Input/InputState.h"
 #include "Network/PacketSerials.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
+#include "Scenes/DarkHorse.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/HelperTable.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/SceneCameras.h"
 #include "Scenes/SceneContext.h"
@@ -49,7 +54,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -326,6 +333,92 @@ TEST(GameSceneTest, AStepLowersTheCounterWithTwoAccesses)
         {
             EXPECT_EQ(tested.scene.Failure(), std::nullopt);
             EXPECT_EQ(tested.cloth.random.State(), StateAfterAStep(probe.draws));
+        }
+    }
+}
+
+// Solo el esqueleto del caballo oscuro (0xbf), con una acción de una key en un hueso.
+class HorseSkeletonOnly final : public Client::Scenes::IModelLibrary
+{
+public:
+    HorseSkeletonOnly()
+    {
+        Client::Render::Models::SkeletonBone bone;
+        bone.parent = -1;
+        bone.actions = {{Client::Render::Models::BoneKey{}}};
+        m_skeleton.bones = {bone};
+        m_skeleton.actions = {
+            Client::Render::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
+    }
+
+    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
+    {
+        return nullptr;
+    }
+    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        return model == Client::Scenes::DarkHorseModel ? &m_skeleton : nullptr;
+    }
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    {
+        return {};
+    }
+
+private:
+    Client::Render::Models::Skeleton m_skeleton;
+};
+
+// 0x6370f4: 0x445230, los ayudantes, antes de MoveHero (0x63710a) y también en la espera. Con el jinete
+// muerto, el paso de la escena 5 apaga su caballo y la espera sigue, con los 8 rand() de MoveHero. Con el
+// jinete vivo fuera de una celda segura, el aliento saca el primer rand() del paso (con Seed, % 3 da 0) y
+// corta antes de que MoveHero toque el contador. Va en lugar del GameSceneTest.TheHorseGoesAfterFishBeforeLeaves
+// del plan: el dibujo corta en el pasto (0x5fc353), antes del caballo (0x637508).
+TEST(GameSceneTest, TheHorseStepsBeforeMoveHeroAlsoInTheWait)
+{
+    constexpr std::size_t RiderSlot = 5;
+    CrtRandom first(Seed);
+    ASSERT_EQ(first.Next() % 3, 0);
+    for (const bool riderAlive : {false, true})
+    {
+        SCOPED_TRACE(riderAlive ? "con el jinete vivo" : "con el jinete muerto");
+        Client::Tests::RecordingSink sink;
+        Client::Core::Log log(sink, Client::Core::LogLevel::Debug);
+        FakeTextureStore store;
+        ClothWorld cloth{.random = CrtRandom(Seed)};
+        WorldState world;
+        const HorseSkeletonOnly models;
+        GameScene scene(SceneContext{.dataRoot = {}, .textures = store, .log = log, .cloth = &cloth, .world = &world},
+                        nullptr, &models);
+        world.Runtime().drawingEnabled = true;
+        world.Runtime().warpCounter = WorldLoadingWait;
+        world.Map().terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
+        Client::Scenes::ActorState& rider = world.Actors()[RiderSlot];
+        rider = Client::Tests::UnarmedPlayer(1);
+        rider.alive = true;
+        rider.byte88 = 1;
+        rider.position = {10050.0f, 10050.0f, 170.0f};
+        const auto created =
+            Client::Scenes::CreateHelper(world, Client::Scenes::DarkHorseModel, rider.position, RiderSlot);
+        ASSERT_TRUE(created.HasValue()) << created.Error();
+        ASSERT_EQ(created.Value(), std::optional<std::size_t>{0});
+        rider.alive = riderAlive;
+        ASSERT_TRUE(scene.Enter().HasValue());
+
+        scene.Step(Client::Input::InputState{});
+
+        if (riderAlive)
+        {
+            ASSERT_TRUE(scene.Failure().has_value());
+            EXPECT_NE(scene.Failure()->find("0x44459d"), std::string::npos) << *scene.Failure();
+            EXPECT_EQ(world.Runtime().warpCounter, WorldLoadingWait);
+            EXPECT_EQ(cloth.random.State(), RandomAfter(1).State());
+        }
+        else
+        {
+            EXPECT_EQ(scene.Failure(), std::nullopt);
+            EXPECT_FALSE(world.Helpers()[0].alive);
+            EXPECT_EQ(world.Runtime().warpCounter, WorldLoadingWait - 1);
+            EXPECT_EQ(cloth.random.State(), StateAfterAStep(8));
         }
     }
 }

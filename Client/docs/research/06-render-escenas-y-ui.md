@@ -1108,23 +1108,42 @@ Leído en la CL6.4 PR B (*estático*; el dibujo del `0xbf`, emulado sobre el `ma
 de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_slots.bin`).
 
 - **Quién lo crea.** `0x443fa0(tipo, posición, jinete, …)`, fuera de los mapas `0x12` a `0x17` y
-  con el jinete del tipo `0x20a` (o el tipo `0x1c12`), busca un lugar libre en los 10 ayudantes de
-  `0x7d335d0` (de `0x1d4` bytes) y llama a `0x443d70`. En el login, `0x6349a0` lo crea con el
-  personaje de `0x517270` (`0x443fa0(0xbf, +0x880, +0x870)`); en la selección, `0x513430` y
-  `0x5139f0` (el armado desde la lista) lo crean con el bit 0 del byte 11 (`+0x318` en `0x1c16`); en
-  el juego, `0x5bc740` con el Dark Horse (`0x1a04`) en el lugar 8 del `F3 10` (`0x5bc997`; [El F3 10,
-  el inventario](#el-f3-10-el-inventario)).
+  con el jinete del tipo `0x20a` (o el tipo `0x1c12`), llama a `0x443d70` con cada uno de los 10
+  ayudantes de `0x7d335d0` (de `0x1d4` bytes, en la .bss) hasta que uno devuelva 0: `0x443d70`
+  devuelve 1 con el lugar vivo y 0 después de crearlo (o en los mapas `0x12` a `0x17`, que vuelve a
+  mirar). Con los 10 vivos no crea nada. La tabla es una para las escenas 2, 4 y 5. En el login,
+  `0x6349a0` lo crea con el personaje de `0x517270` (`0x443fa0(0xbf, +0x880, +0x870)`, `0x634a88`); en
+  la selección, `0x5139f0` (el armado desde la lista, desde `0x4c20a0`) con el bit 0 del byte 11
+  (`+0x318` en `0x1c16`). `0x513430`, que también llama a `0x443fa0` (`0x51359e..0x513654`), no tiene
+  referencias: ni una llamada ni su dirección en el archivo (*estático*); antes este documento la
+  daba como de la selección. En el juego lo crean (*estático*, por las llamadas a `0x443fa0`):
+  `0x5bc740` con el Dark Horse (`0x1a04`) en el lugar 8 (`0x5bc997`), desde el `F3 10` ([El F3 10, el
+  inventario](#el-f3-10-el-inventario)); a `0x5bc740` la llaman además otros 18 lugares, sin leer;
+  `0x5be150` (el ítem del
+  cursor, `0x5be530..0x5be5ea`); `0x4c8380` (el `0x25`, `0x4c87cf`); y `0x5139f0` desde el `0x12`
+  (`0x4c8860`), el `0x68` (`0x4e0980`), un subcódigo del `F3` (`0x4e316e`), `0x4c8340` y `0x497810`.
   `0x443d70` lo deja vivo con el alpha (`+0x174`) en 0 y su meta (`+0x170`) en 1, la luz por vértice
   (`+0xe8`) prendida, el blendMesh y la malla oculta en −1, la luz del blendMesh (`+0x68`) en 1,
-  `+0xf4..+0xfc` en 3, la velocidad (`+0xd8`) en 0,5, los ángulos del jinete y, con el `0xbf`, la
-  escala en 1.
-- **Su paso** (`0x445230` → `0x444010`, en el login desde `0x634c60`, después de `0x606560` (el logo)
-  y antes de `0x508f00` (los personajes): ve la acción que el jinete tiene en ese paso).
-  `0x4e9980` lleva el alpha hacia su meta un décimo (`0x6b87b8`) de lo que falta con `+0x16d` en 0, y
+  `+0xf4..+0xfc` en 3, la velocidad (`+0xd8`) en 0,5, el frame (`+0x114`) y la key anterior (`+0x118`)
+  en 0, sin verse (`+0x16c`), los ángulos del jinete y, con el `0xbf`, la escala en 1. **No escribe la
+  acción (`+0x111`) ni la anterior (`+0x112`)**: el lugar que se vuelve a usar se queda con las del
+  ayudante de antes (Q-C221).
+- **Quién lo apaga.** `0x443d40(jinete)` pone en 0 el byte vivo de los lugares vivos de ese jinete y no
+  toca lo demás. La llaman el `F3 10` (`0x4c5e56`), `0x4c7523` (`0x4c7b68`), el `0x25` (`0x4c8722`), el
+  `0x23` (`0x4d10d0`, `0x4d120e`), `0x513430` y `0x5139f0` antes de crear (`0x513561`, `0x513b2f`),
+  `0x5bc740` (`0x5bd4e3`), `0x5bdbae` (`0x5bde46`), `0x5bec50` (`0x5c2d9c`) y `0x6431b0` (`0x643390`);
+  `0x510f70` hace lo mismo en línea con cada personaje que mata (`0x510fa1..0x510fc0`).
+- **Su paso** (`0x445230` → `0x444010(lugar, 0)` en los 10, en el login desde `0x634c60`, después de
+  `0x606560` (el logo) y antes de `0x508f00` (los personajes): ve la acción que el jinete tiene en ese
+  paso; en el juego desde `0x6370f4`, después de los peces y antes de `MoveHero`, también en la
+  espera). **En la escena 5**, con el jinete muerto o con su `+0x88` distinto de 1, lo apaga y no hace
+  más (`0x44402a..0x444047`, Q-C225). `0x4e9980` lleva el alpha hacia su meta un décimo (`0x6b87b8`) de lo que falta con `+0x16d` en 0, y
   baja `+0x68` al alpha si es mayor: como el alpha sube, `+0x68` queda en el del primer paso, 0,1
   (Q-C112). En una celda de zona segura (el bit 0 del atributo en `0x7d0d348`, la del **jinete** por
-  0,01: `0x4440b8` lee `[EDI + 0x14]` con `EDI = [ESI + 0x108]`) el alpha va a 0 y salta al avance,
-  con la `+0xd8` de antes, sin copiar nada del jinete: la celda (106, 141) del mundo 56 tiene
+  0,01, truncada, con el byte bajo de cada coordenada (`0x5f82a0`): `0x4440b8` lee `[EDI + 0x14]` con
+  `EDI = [ESI + 0x108]`; la de su posición, no la lógica de `+0x41c` que lee `0x505de0` para `+0x3e2`,
+  Q-C222) el alpha va a 0 y salta al avance, con la acción y la `+0xd8` de antes, sin copiar nada del
+  jinete: la celda (106, 141) del mundo 56 tiene
   `0x08`, y el mundo 56 no tiene ninguna con el bit 0. Si no, copia del jinete la posición, los
   ángulos y `+0x28..+0x30` (la cabeza), pone el hueso de la cabeza del modelo (`+0x54`) en 7 (en
   `DarkHorse.bmd` es una raíz sin hijos que ningún vértice usa: no se ve) y elige su acción por la
@@ -1133,23 +1152,31 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   | La del jinete | La del caballo | `+0xd8` |
   | --- | --- | --- |
   | `0x53` | 3 | 0,34 |
-  | `0x4b` | 1 (y su polvo: en el mapa 10, siempre; en los demás, con `rand() % 2`, el `0x5f2` en el 2 y el `0x5f3` en los otros) | 0,34 |
+  | `0x4b` | 1 (y su polvo: en el mapa 10, siempre, con `rand() & 63` primero, la pose del dibujo anterior (`0x4ec110`), `0x518cf0(0x6eb)` y `0x53fe70(0x5f2)`; en los demás, con `rand() % 2` en 0, fuera de Kalima (24 a 29 y 36) y sin `+0x78 & 0x4000` del jinete, tres `rand()` para el lugar (de −32 a 31 en x y en y, y de −16 a 15 en z, alrededor del caballo) y el `0x5f2` en el 2 y el `0x5f3` en los otros, con la luz (1, 1, 1)) | 0,34 |
   | `0x4e` a `0x52` | 2 | 0,34 |
   | `0x54` | 5 | 1 |
   | `0x55` | 6 | 1 |
-  | otra (la `0x4a` del login) | 0 | 0,3 |
+  | otra (la `0x4a` del login) | 0 (y `+0x8e` en 0) | 0,3 |
 
-  Después, con `rand() % 3` en 0 y la acción distinta de 1, el aliento (`0x5f2`, o `0x607` en el
-  mapa 7; antes este documento lo daba como polvo, [Los efectos del login](#los-efectos-del-login)), que `0x53fe70` pone en el arreglo de `0x743a198` (de `0x78` bytes; lo mueve `0x5446e0` desde
+  Después, con la acción distinta de 1 y sin `+0x78 & 0x4000` del jinete, `rand() % 3`, y con 0 el
+  aliento (`0x5f2`, o `0x607` en el mapa 7; antes este documento lo daba como polvo, [Los efectos del login](#los-efectos-del-login)), que `0x53fe70` pone en el arreglo de `0x743a198` (de `0x78` bytes; lo mueve `0x5446e0` desde
   `0x634c60` y lo dibuja `0x548550` desde `0x6350b0`), desde el hueso 27 (`0x4ec110` con
-  `0x68b1d2c`, *inferido*: en el paso, ese buffer tiene la pose del frame anterior); con la 3, otro
-  efecto; con `jinete + 8` en 1, doce `0x60f` (`0x530860`), y `+8` vuelve a 0. Y avanza con
-  `0x4ec200` a `+0xd8`.
+  `0x68b1d2c`, *inferido*: en el paso, ese buffer tiene la pose del frame anterior); con la 3,
+  `0x52e470` con el héroe publicado y `0x4453e0` (que sube `+0x8e` y, con el contador de pasos
+  `0x7d3a0f0` múltiplo de 10, crea un `0x6eb`); con `jinete + 8` en 1, doce `0x60f` (`0x530860`, de a
+  tres en cuatro giros), y `+8` vuelve a 0; el byte vivo pasa a ser el del jinete
+  (`0x44475c..0x444764`). Y avanza con `0x4ec200` a `+0xd8`, con la acción en `+0xa0` del modelo.
 - **Su dibujo** (`0x6350b0`: `0x510d00`, los personajes; `0x4453b0`, los ayudantes; `0x6046a0`, los
-  objetos). `0x445260` prende `+0x16c` con el frustum (`0x5fba90`, en su lugar por 0,01, −20) y, con
-  el jinete `0x20a`, le pone la escala 1,6 en la escena 2 (1 en la 4) y llama a `0x602e90(caballo, 0,
-  0, 0)` (10 con `+0x78 & 0x4000` del jinete). `0x5ffdf0` no lo dibuja con el alpha por debajo de
-  0,01; si no, el color de `0x5ffce0` con luz por vértice (la del terreno más 3), que `0x6002e0`
+  objetos; en el juego, desde `0x637508`, después de los peces y antes de las hojas).
+  `0x4453b0` llama a `0x445260(lugar, 0)` con los 10. `0x445260` prende `+0x16c` con el frustum
+  (`0x5fba90`, en su lugar por 0,01, −20) y, visto y con el jinete `0x20a` (o el tipo `0x1c12`), le
+  pone la escala 1,6 en la escena 2, 1 en la 4 y, en las demás, 1 salvo a los de Fenrir (`0x14a` a
+  `0x14c`), y llama a `0x602e90(caballo, 0, 0, 0)` (10 con `+0x78 & 0x4000` del jinete, que
+  `0x6002e0` lleva por otro camino desde `0x60033c`). Después saca `rand() % 30 + 70` (`0x445336`),
+  una luz que solo usa el `0x1c12` (con `0x5491e0`), aunque `0x5ffdf0` no lo haya dibujado (Q-C223).
+  `0x5ffdf0`, en los mapas `0x12` a `0x17`, le baja el alpha con `+0x1a1` del héroe publicado
+  (`0x5ffe09`); no lo dibuja con el alpha por debajo de 0,01; si no, con `+0x78 & 0x1000` del jinete
+  le pone el frame en 0 (`0x5fff0d`, Q-C224), y el color de `0x5ffce0` con luz por vértice (la del terreno más 3), que `0x6002e0`
   pisa: el caso `0xbf` pone el color en (1, 1, 1) y hace `RenderBody(2, +0x174, +0x64, +0x68, +0x6c,
   +0x70, +0x58, −1)`; después el color en (1; 0,8; 0,3) y `0x4ecc30(12..15, 0x44, …)` directo, el
   cromo aditivo de la malla 12 (`dkneck2`; las 13 a 15 no existen y `0x4ecc30` sale, Q-C113); y,
@@ -1182,6 +1209,18 @@ de `0x443d70` en el mapa 55 y la escena 2; los slots, **verificados** en `lor_sl
   de `lor_slots.bin` (`ModelTextureSlotsGoldenTest.StartupMatchesTheDump`).
 - **`DarkHorse.bmd`**: 13 mallas (`dkfurop.TGA`, de cuatro componentes, y 12 JPG), 60 huesos y siete
   acciones (7, 7, 6, 10, 41, 51 y 31 keys).
+- **En MuRet.** El del login es `Scenes::DarkHorse` en `LoginScene`, con su paso (`StepDarkHorse`, sin
+  celda segura: el mundo 56 no tiene ninguna) y su dibujo (`DrawDarkHorse`, con la sombra por mapa). El
+  del juego (CL7, hito 1, T12) es `Scenes::HelperTable`, la tabla de `0x7d335d0` en
+  `WorldState::Helpers`: `CreateHelper` (`0x443fa0` → `0x443d70`, solo el `0xbf`: los otros tipos
+  cortan), `TurnOffHelpersOf` (`0x443d40`, desde el `F3 10`; `0x510f70` en `KillOtherActors`),
+  `StepHelpers` (`0x445230` en la escena 5, en `GameScene::StepWorld`, en `0x6370f4`) y `DrawHelpers`
+  (`0x4453b0` en la escena 5). Cortan con error, después de los `rand()` que el original saca antes,
+  el polvo (en el mapa 10, antes de su primer `rand()`), el aliento, la acción 3, el `+8` del jinete,
+  el dibujo con `+0x78 & 0x4000` y los mapas `0x12` a `0x17` del dibujo. En el juego no se crea
+  ninguno: `0x5bc740` corta antes con el `0x1a04` (`0x4225d0`, P-C36) y los demás que lo crean no están
+  portados; la tabla vacía no hace nada. `DrawHelpers` no corre: el dibujo del juego corta antes, en el
+  pasto (`0x5fc353`). La tabla no lleva los caballos del login ni de la selección (P-C47).
 
 ### La tela de la clase 4
 
@@ -2871,7 +2910,9 @@ que dejó la primera:
   `0x57678b0` solo lo escribe `0x4c44d4`.
 - **El héroe anterior sobrevive** si el sorteo no cae en su lugar (Q-C196): tiene la clave del
   jugador, y `0x510f70` (desde `0x61a5aa`) solo mata a los de otra clave. Queda vivo en su registro,
-  con su celda, su posición, su equipo y su nombre; pierde su cuervo y sus telas (Q-C194). Si el
+  con su celda, su posición, su equipo y su nombre; pierde su cuervo y sus telas (Q-C194), pero no su
+  caballo: `0x510f70` solo apaga los de los que mata, y `0x443d40` en un `F3 10` (`0x4c5e56`), los del
+  publicado, que desde `0x4c4725` es el nuevo (*estático*). Si el
   sorteo cae en su lugar (1 en 400), `0x511290` lo reconstruye en el mismo registro, con su `+0x318`
   para el corrimiento de la altura.
 - **Mientras viste al nuevo, el publicado es el anterior**: `0x743a170` solo lo escriben WinMain
@@ -3364,10 +3405,13 @@ cada lugar del equipo, y 3.848 por cada ítem de una grilla con `[0x78a6758]` en
 MuRet: `Scenes::ApplyInventory` y `ClearForInventoryReply` (`0x4c55a0`), `Scenes::PlaceInventoryItem` e
 `InventoryItemType` (`0x5bc740` y `0x54b3a0`) y `Scenes::OwnInventory`, las dos grillas, en
 `WorldState::Inventory`; `[0x78a6758]` es `WorldRuntime::slot78a6758`, en 0. El `F3 10` sin cifrar
-llega al aplicador como `App::ClearInventoryReceived`, y la sesión manda el aviso. `0x443d40` y
-`0x421d60` no sueltan nada: MuRet no tiene la tabla de ayudantes ni el cuervo en el mundo, como en
-`0x510f70`. Cortan con error, nombrando la dirección y después de lo que el original hace antes (el
-registro se cierra igual): las mascotas del lugar 8 (`0x443fa0`), el cuervo del lugar 1 (`0x420cf0`),
+llega al aplicador como `App::ClearInventoryReceived`, y la sesión manda el aviso. `0x443d40` apaga los
+ayudantes del héroe publicado (`Scenes::TurnOffHelpersOf`); `0x421d60` no suelta nada: MuRet no tiene
+el cuervo en el mundo, como en `0x510f70`. Las mascotas del lugar 8 van a `Scenes::CreateHelper`, que
+crea el `0xbf` y corta con los otros (`0x443d70`); el `0xbf` no llega: corta antes, en `0x4225d0`.
+Fuera de la zona segura, el `0x61e` de `0x518cf0` corta. Cortan con error, nombrando la dirección y
+después de lo que el original hace antes (el registro se cierra igual): las mascotas del lugar 8 que
+no son el caballo (`0x443fa0` → `0x443d70`), el cuervo del lugar 1 (`0x420cf0`),
 el anillo de nivel 3 (`0x414340` y `+0x360`), el Dark Horse en cualquier lugar (`0x4225d0`, desde
 `0x54cc5c`, sin correr `0x54bf40`), la lectura del nivel con el registro cerrado (Q-C202), una casilla
 fuera de su grilla (Q-C200) y `Item.bmd` sin cargar.
@@ -3407,7 +3451,7 @@ bloque de la entrada, en orden (*estático*):
 | `0x637082..0x6370e5` | **`0x530490`**, en el mapa 0 si la capa 1 de la celda del héroe (`0x77f36d0`) no es 4 | las 80 hojas | solo las brasas del 55 |
 | `0x6370ea` | **`0x446120`** | los pájaros | no |
 | `0x6370ef` | **`0x447030`** | los peces | no |
-| `0x6370f4` | `0x445230` | el caballo oscuro | sí (`StepDarkHorse`) |
+| `0x6370f4` | `0x445230` | el caballo oscuro ([El caballo oscuro](#el-caballo-oscuro)), también en la espera | `Scenes::StepHelpers`, con la tabla de `WorldState::Helpers`, que en el juego queda vacía ([08](08-pendientes.md) P-C47) |
 | `0x6370f9..0x637105` | `0x557650`, `0x451d10`, `0x451c10` | contadores y listas, sin leer | — |
 | `0x63710a` | **`0x59adf0`**, el `MoveHero` | el héroe con el mouse ([Caminar](#caminar)); baja `0x77f3b04` y lo vuelve a leer (dos accesos, 8 `rand()`) y, con más de 30, sale; si no, escribe en `0x77f36d0` la capa 1 de la celda del héroe (`0x59e2ba`) y, con `0x57cfc0`, abre y cierra el registro propio: 3.848 `rand()` ([La tabla de protección](#la-tabla-de-protección)) | el contador (`GameScene::StepWaitCounter`), sin los gates de antes (P-C28 b); lo demás falta |
 | `0x63710f` | **`0x508f00` → `0x508ea0`** | por personaje: el trapecio en (x, y) · 0,01 con −20 a `+0x16c`, `0x508ba0`, `0x4fd5f0` (la animación y el alpha), `0x505de0` (la zona segura, la cabeza y las luces) y `0x42da90`; antes, el `0x02` del `TerrainWall`, con 8 `rand()` por personaje vivo. Corre también en la espera ([El paso de los personajes](#el-paso-de-los-personajes)) | después de la espera, `Scenes::StepCharacters`: el `TerrainWall`, `+0x16c` con el trapecio global (T11b) y, del héroe, `0x505de0` con la zona segura (T11); en la espera, frontera ([08](08-pendientes.md) P-C41 a) |
@@ -3513,7 +3557,7 @@ frontera (P-C41 a). Tests: `CharacterStepTest`, `GoldenCharacterStep.TheSafeZone
 | `0x6374ed` | `0x5fc260(1)` con `0x77f3b18` | el picking del terreno con esa bandera (*inferido*: el editor) | — |
 | `0x6374fe` | `0x608a00`, con `0x7d36899` en 0 | los ítems del piso | CL9.3 |
 | `0x637503` | **`0x446f00`** | los peces, con su sombra | no |
-| `0x637508` | `0x4453b0` | el caballo oscuro | `DrawDarkHorse` |
+| `0x637508` | `0x4453b0` | el caballo oscuro, con el `rand() % 30` de `0x445336` por cada uno visto | `Scenes::DrawHelpers` (con `DrawDarkHorse`), sin llamar: el juego corta antes, en el pasto |
 | `0x63750d` | **`0x5306a0`** | las hojas | `DrawLeaves` |
 | `0x637516` | `0x53c6a0(local_8)`; en el mapa 0, con 0 | los joints | no (el login no tiene) |
 | `0x63751d` | **`0x52d620(0)`** | los efectos con modelo | `DrawModelEffects` |
@@ -4841,6 +4885,7 @@ Ver [08](08-pendientes.md).
 | La barra de la selección (crear, el menú, conectar y borrar) y el borrado con dos avisos | `UI::SelectionBar` (con `Button` deshabilitado), `UI::DeleteChecks` (las revisiones de `0x63edf0`), `UI::NoticeWindow` con los tipos 0, 3 y 4 y el campo del código, y la escena, que sigue la lista de la sesión (el que crea entra y el que borra se va) y abre el aviso de cada respuesta. El menú, las opciones, los carteles y el área de mensajes, de la CL8 | CL6.5 |
 | La ventana de crear, con los filtros del nombre de `FilterName.bmd` y `Filter.bmd` | `UI::CreateCharacterWindow` (la vista previa, `Scenes/CreatePreview`: `SelectionModels` con sus slots desde `0x6f8` siguiendo `GameModels`, y la cámara, el viewport y la tabla de clases de `0x63e460`), `UI::NameChecks` (los tres chequeos de `0x63d990`) y `Data::Text::LoadFilterWords` en `LoadGameData` | CL6.5 |
 | El caballo oscuro: un ayudante que aparece de a poco y sigue la acción del jinete, con luz por vértice, un cromo y su sombra | `Scenes/DarkHorse` (el paso) y `DrawDarkHorse` (el caso `0xbf` de `0x6002e0`), con `Render::Models::NormalLight` (L = (1,3; 0; 2), la normal con la escala del objeto) y `ModelBlend::BlendedShadow`; en el login, entre el personaje y el logo | CL6.4 |
+| El caballo del juego: la tabla de 10 ayudantes (`0x7d335d0`), el que se apaga sin su jinete y el que se oculta en la celda segura de su jinete | `Scenes/HelperTable` en `WorldState::Helpers`: crear, apagar, el paso de la escena 5 y su dibujo, con errores donde el original crea efectos o partículas que el juego todavía no tiene | CL7 (hito 1, T12) |
 | El mundo del login: el mapa 55 entero, con los objetos después de los personajes y casos por tipo y por mapa (`0x606660`, `0x604ab0`, `0x6002e0`) | en el lote del login: el terreno (`LoadedWorld`, CL7.1) y los objetos del `.obj` (`WorldModels`, `WorldObjects` y `WorldObjectsDrawing`, CL7.2), con los casos del mapa 55 como datos y el orden del original | CL7.1, CL7.2 |
 | El dragón: un efecto con modelo (`0x518cf0`) que vuela en ocho, sin azar | el efecto `0xb4` con su paso por paso de lógica, comparado con los pasos emulados del código real | CL7.6 A |
 | Los sprites de un frame (`0x5491e0`), con el billboard de `0x621400`: el dibujo del personaje pide los 30 destellos de la tela y los cinco del cetro, y `0x549440(0)` los dibuja con la modelview en la identidad y los apaga | `Render::MakeBillboard` (bit a bit contra `0x621400`), `World::FrameSprites` (la tabla, con el alpha de `0x549290`) y `Scenes::DrawFrameSprites` en un pase de ojo, el último del 3D, que se abre solo con alguno vivo; `DrawnCharacter::sprites` recibe los destellos al dibujar la tela y el cetro (`World::CreateScepterGlow`, bit a bit contra el caso `0x620` de `0x509340`) en ese orden, con el `rand()` de la CRT de `ClothWorld`. El original sortea el cetro en cada frame dibujado, a 21,33 por segundo; MuRet lo sortea una vez por frame del original (46,875 ms) que pasó y, entre medio, repite el último sorteo en el hueso de ahora (`World::ScepterGlowCarry`, como la tela, Q-C124): a 60 FPS el tridente cambia al ritmo del original (`TheGlowIsDrawnOncePerOriginalFrame`, `TheScepterGlowChangesOncePerOriginalFrame`). Con varios frames del original de golpe, los de la tela y los del cetro salen agrupados y no intercalados (P-C22 a) | CL7.6 B1, cierre |

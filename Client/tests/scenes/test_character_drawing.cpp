@@ -1451,11 +1451,11 @@ TEST(CharacterDrawingTest, AnObjectBelowAHundredthOfAlphaIsNotDrawn)
 // por vértice da 0,4): el pase base en blanco por esa luz, después el cromo aditivo de la malla 12 en
 // (1; 0,8; 0,3) y la sombra de la malla 8, mezclada, sin textura, en (0, 0, 0, 0,7) y aplastada sobre
 // el piso.
-ModelBatch DrawnHorseOf(const OneModel& models, const DrawnObject& horse)
+ModelBatch DrawnHorseOf(const OneModel& models, const DrawnObject& horse, std::int32_t map = 0)
 {
     ModelBatch batch;
     batch.Begin(Client::Render::Pass3D{});
-    DrawDarkHorse(batch, models, horse, std::chrono::milliseconds{0});
+    DrawDarkHorse(batch, models, horse, map, std::chrono::milliseconds{0});
     return batch;
 }
 
@@ -1505,6 +1505,35 @@ TEST(CharacterDrawingTest, TheChromeOfAFadingHorseGoesByItsAlpha)
     EXPECT_FLOAT_EQ(batch.Vertices()[0].color.alpha, 0.5f);
     ExpectColor(batch.Vertices()[13 * 3], 0.5f, 0.4f, 0.15f);
     EXPECT_FLOAT_EQ(batch.Vertices()[13 * 3 + 3].color.alpha, 0.7f);
+}
+
+// 0x60073c..0x600787: la sombra depende del mundo en curso. En Lorencia (0) y Devias (2), y en el login
+// (55), en 0,7; en el 7, en 0,2; en el 10, en Kalima (24 a 29) y en el 36, no hay. El cuerpo y el cromo
+// van en todos.
+TEST(CharacterDrawingTest, TheHorseShadowGoesByTheMap)
+{
+    const OneModel models(0xbf, "dk.jpg", 13);
+    struct Case
+    {
+        std::int32_t map;
+        std::optional<float> shadowAlpha;
+    };
+    for (const Case& probe :
+         {Case{0, 0.7f}, Case{2, 0.7f}, Case{55, 0.7f}, Case{7, 0.2f}, Case{10, std::nullopt}, Case{24, std::nullopt},
+          Case{29, std::nullopt}, Case{36, std::nullopt}, Case{23, 0.7f}, Case{30, 0.7f}})
+    {
+        SCOPED_TRACE(probe.map);
+
+        const ModelBatch batch = DrawnHorseOf(models, HorseLike(), probe.map);
+
+        ASSERT_EQ(batch.Commands().size(), probe.shadowAlpha ? 3u : 2u);
+        EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::Additive);
+        if (probe.shadowAlpha)
+        {
+            EXPECT_EQ(batch.Commands()[2].state.blend, ModelBlend::BlendedShadow);
+            EXPECT_FLOAT_EQ(batch.Vertices()[13 * 3 + 3].color.alpha, *probe.shadowAlpha);
+        }
+    }
 }
 
 // El cromo de 0x4ecc30 con 0x4 (Chrome): u = 0,5 · nz + t y v = 0,5 · ny + 2t, con la normal con la

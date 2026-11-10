@@ -50,6 +50,13 @@ struct ActorState
     float scale = 0.0f;       // +0xc, de 0x512930
     // +0x7c: con 0x200000, 0x4f2250 sienta al personaje (la acción 0xca). Quién lo escribe, sin leer.
     std::uint32_t flags7c = 0;
+    // +0x78: 0x511290 lo pone en 0 (0x511d51). Del jinete lo leen el paso del caballo (con 0x4000, sin
+    // polvo ni aliento: 0x444414 y 0x44455a), su dibujo (con 0x4000, 0x602e90 con 10: 0x445310) y 0x5ffdf0
+    // (con 0x1000, el frame del caballo en 0: 0x5ffefc). Quién más lo escribe en el personaje, sin leer.
+    std::uint32_t flags78 = 0;
+    // +8: con 1, el paso del caballo de este jinete saca doce 0x60f (0x44468d) y lo vuelve a 0 (0x444758).
+    // 0x511290 no lo escribe; quién lo pone en 1, sin leer.
+    std::uint8_t byte8 = 0;
     // La acción en +0x111, la anterior en +0x112, el frame en +0x114 y la key anterior en +0x118: lo que
     // pone 0x4ea030.
     Render::Models::AnimationState animation;

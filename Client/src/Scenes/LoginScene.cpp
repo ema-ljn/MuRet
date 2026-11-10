@@ -1105,7 +1105,7 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
 
     const DrawnObject horse =
         DrawnDarkHorse(m_horse, m_models.SkeletonOf(DarkHorseModel), character.object, DarkHorseLoginScale, alpha);
-    DrawDarkHorse(canvas.models, m_models, horse, canvas.frameClock);
+    DrawDarkHorse(canvas.models, m_models, horse, m_world ? m_world->map : EmberMap, canvas.frameClock);
 
     // 0x6046a0: los objetos del mundo y el logo, sector por sector, con lo de 0x602ed0: un rand() por
     // objeto y los dos sprites del farol en los huesos 8 y 9 del buffer global de la pose. Lo que cuelga

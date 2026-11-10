@@ -11,7 +11,10 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/DarkHorse.h"
+#include "Scenes/HelperTable.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
@@ -92,8 +95,8 @@ std::uint8_t HeroCellAttribute(ActorState& hero, const Data::Terrain::TerrainAtt
 }
 } // namespace
 
-GameScene::GameScene(const SceneContext& context, App::ServerSession* session)
-    : m_context(context), m_session(session), m_tiles(context.textures)
+GameScene::GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models)
+    : m_context(context), m_session(session), m_models(models), m_tiles(context.textures)
 {
 }
 
@@ -180,10 +183,21 @@ Core::Expected<void, std::string> GameScene::StepWorld()
     {
         World::UpdateWaves(m_water, m_context.clock->Now(), m_terrainRange, static_cast<std::uint8_t>(runtime.map));
     }
-    // Frontera (08 P-C41): lo que va de 0x636ded a 0x637105, antes de MoveHero. Los globales de
+    // Frontera (08 P-C41): lo que va de 0x636ded a 0x6370ef, antes del caballo. Los globales de
     // 0x636df2..0x636e1d y la UI (0x636e11..0x63705b), que corre en cada paso desde el primero; los
     // objetos (0x606560: con ningún objeto visto, como deja el dibujo que corta antes de 0x6046a0, no
-    // hace nada), los ítems del piso, las hojas, los pájaros, los peces, el caballo y las listas.
+    // hace nada), los ítems del piso, las hojas, los pájaros y los peces.
+    // 0x6370f4: 0x445230, los ayudantes, también en la espera. MuRet no crea ninguno (P-C47): la tabla
+    // vacía no hace nada.
+    if (auto helpers = StepHelpers(
+            HelperStepContext{.world = *m_context.world,
+                              .horseSkeleton = m_models != nullptr ? m_models->SkeletonOf(DarkHorseModel) : nullptr,
+                              .random = m_context.cloth->random});
+        !helpers.HasValue())
+    {
+        return helpers;
+    }
+    // Frontera (08 P-C41): 0x6370f9..0x637105, las listas.
     // Frontera (P-C28 b): MoveHero (0x59adf0) sale sin tocar el contador con el recorrido de la cámara
     // (0x4033d0, que además para al héroe con 0x4f2250), con un personaje bajo el mouse y +0x7c &
     // 0x200000 del héroe, con +0x389 o con +0x78 & 0x1000 (0x59ae24..0x59ae87). MuRet no tiene todavía

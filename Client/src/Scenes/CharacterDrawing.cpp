@@ -941,6 +941,13 @@ constexpr std::size_t DarkHorseLastChromeMesh = 15;
 constexpr Render::Color DarkHorseChromeColor{1.0f, 0.8f, 0.3f, 1.0f};
 constexpr std::size_t DarkHorseShadowMesh = 8;
 constexpr Render::Color DarkHorseShadowColor{0.0f, 0.0f, 0.0f, 0.7f};
+// 0x60073c..0x600787: sin sombra en los mapas 10, 24 a 29 y 36; en el 7, glColor4f(0, 0, 0, 0,2).
+constexpr float DarkHorseShadowAlphaOfMapSeven = 0.2f;
+constexpr std::int32_t DarkHorseFaintShadowMap = 7;
+constexpr std::int32_t DarkHorseNoShadowMap = 10;
+constexpr std::int32_t DarkHorseFirstKalimaMap = 24;
+constexpr std::int32_t DarkHorseLastKalimaMap = 29;
+constexpr std::int32_t DarkHorseSeventhKalimaMap = 36;
 constexpr Render::ModelDrawState BlendedShadowState{std::nullopt, Render::ModelBlend::BlendedShadow, true};
 // El caso 0xc0: las mallas que dibuja con el nivel de la mascota en 0, en su orden, y su sombra
 // (glColor4f(0, 0, 0, 1), 0x6009eb).
@@ -980,7 +987,7 @@ void DrawSubtractiveMesh(Render::ModelBatch& batch, const IModelLibrary& models,
     }
 }
 
-void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& horse,
+void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& horse, std::int32_t map,
                    Core::Duration frameClock)
 {
     DrawnObject white = horse;
@@ -1009,6 +1016,18 @@ void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const
         Triangles(batch, chrome, {PassSlot(Render::Models::ShinePass::Chrome), Render::ModelBlend::Additive, true},
                   chromeColor, PassUv{Render::Models::ShinePass::Chrome, glm::vec2{}});
     }
+    // 0x60073c..0x60075b: en los mapas 10, 24 a 29 y 36 no hay sombra.
+    const bool kalima =
+        (map >= DarkHorseFirstKalimaMap && map <= DarkHorseLastKalimaMap) || map == DarkHorseSeventhKalimaMap;
+    if (map == DarkHorseNoShadowMap || kalima)
+    {
+        return;
+    }
+    Render::Color shadowColor = DarkHorseShadowColor;
+    if (map == DarkHorseFaintShadowMap)
+    {
+        shadowColor.alpha = DarkHorseShadowAlphaOfMapSeven;
+    }
     // 0x4eff40(−1, −1, 8, 9): la malla 8. Sale de MeshDrawsOf, como el cromo.
     if (const auto shadow = std::ranges::find(draws, DarkHorseShadowMesh, &MeshDraw::index); shadow != draws.end())
     {
@@ -1019,7 +1038,7 @@ void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const
         }
         MeshDraw draw = *shadow;
         draw.skinned = &flat;
-        Triangles(batch, draw, BlendedShadowState, DarkHorseShadowColor, PassUv{});
+        Triangles(batch, draw, BlendedShadowState, shadowColor, PassUv{});
     }
 }
 

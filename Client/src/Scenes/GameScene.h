@@ -27,13 +27,17 @@
 // baja el contador (0x59af01). La respuesta del F3 03 lo pone en 30 (T7). Con el contador en 30 o
 // menos, el dibujo del juego hace la cámara, el rango y el trapecio, el pase del mundo, el rayo del
 // mouse y el primer pase del terreno, y corta con error en la primera etapa que MuRet no tiene (T8);
-// el paso, los personajes con la zona segura del héroe (0x508f00, T11), y corta igual. El trapecio que
-// leen los personajes es el global de WorldRuntime: en el primer paso después de la espera, el que dejó
-// el último dibujo de la selección (T11b).
+// el paso, el caballo oscuro (0x445230, también en la espera) y los personajes con la zona segura del
+// héroe (0x508f00, T11), y corta igual. El dibujo del caballo (0x637508) está portado (HelperTable.h,
+// DrawHelpers) y queda detrás del corte del pasto (0x5fc353). El trapecio que leen los personajes es el
+// global de WorldRuntime: en el primer paso después de la espera, el que dejó el último dibujo de la
+// selección (T11b).
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La entrada al mundo", pasos 3, 4 y 6, "El
 // paso del juego" y "El dibujo del juego".
 namespace Client::Scenes
 {
+class IModelLibrary;
+
 // 0x620db0(0, 0, w, 432), el pase del mundo del juego (0x637410): 480 con la vista de arriba
 // (0x7d36899), que no se prende nunca.
 inline constexpr Render::ViewportRect GameWorldViewport{0, 0, 640, 432};
@@ -41,8 +45,9 @@ inline constexpr Render::ViewportRect GameWorldViewport{0, 0, 640, 432};
 class GameScene final : public IScene
 {
 public:
-    // `session` tiene que vivir más; nullptr sin servidor.
-    GameScene(const SceneContext& context, App::ServerSession* session);
+    // `session` y `models` tienen que vivir más; nullptr sin servidor o sin los modelos (el caballo oscuro
+    // corta con error si hay uno vivo).
+    GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models = nullptr);
 
     // Sin `context.world` o `context.cloth`, el error: la espera vive en el primero y sus cierres
     // gastan el rand() del segundo.
@@ -99,6 +104,7 @@ private:
 
     SceneContext m_context;
     App::ServerSession* m_session;
+    const IModelLibrary* m_models;
     bool m_sent = false;
     bool m_firstStep = true;
     bool m_holdFrame = true;

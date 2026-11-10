@@ -3608,6 +3608,14 @@ prefijos; un kernel aislado o un pool vacío no acredita el recorrido completo d
 
 ### La pose compartida entre escenas
 
+**Estático, mismo hash anterior.** `0x4eb860` no escribe los huesos dummy: permanecen en el
+buffer global `0x68b181c`, junto con las colas no escritas de vértices/normales. Importan tanto la
+última pose como los campos por modelo de escala/origen. No se reconstruyen identidades por objeto.
+`WorldState::PoseCarry()` posee esa historia entre login, selección y juego. `DrawnCharacter.poseBones`
+presta el scratch antes de PoseSkeleton/PoseAttached; onPose publica las matrices ya calculadas,
+incluida la cabeza y la raíz attached. Los cuerpos especializados consumen los meshes publicados,
+sin volver a posar. Los objetos de malla oculta −2 también publican si pasaron el gate de pose.
+
 Las aves dibujan con el flag de pose 1 y los peces con 0 (`0x446b60/0x446f00`). El recorrido
 suma/resta yaw90 aritméticamente incluso en muertos (aves `0x10f`, excepción), publica seen por
 el trapecio con margen −20 y conserva los glows AE/BC. La sombra usa su propia geometría y alpha
@@ -3624,6 +3632,28 @@ MuRet se usa **una copia temporal para todo el frame**: cada escritor actualiza 
 siguiente lo lee, sin cambiar la historia durable ni repetir RNG/seen/yaw nativos. Copiar y descartar
 el carry en cada pase o saltar el publisher mezclaría meshes de otro modelo.
 
+Regresiones en [dibujo de fauna](../../tests/scenes/test_fauna_drawing.cpp):
+`AShadowPublishesTheRetainedOriginUsedByTheNextTransparentBcGlow`,
+`AShadowPublishesItsOriginEvenWhenTheModelHasNoMeshes`,
+`AProjectedStormBirdKeepsBothPureShinePassesWithoutCreatingEffects`,
+`DurableFixedHeightFeedsBirdAndFishShadowsAndTheirModelOrigin`,
+`TransparentFloorItemsPublishBonesWithoutReplacingTheMeshScratch`,
+`AProjectedFrameKeepsItsPosesInTheBorrowedFrameScratch` y
+`CharacterBodiesInitializeDummyMatricesFromTheSharedScratchBeforePosing`.
+[Login](../../tests/scenes/test_login_scene_models.cpp) y
+[selección](../../tests/scenes/test_character_select_scene.cpp) comprueban publicación nativa y
+retención entre frames/Leave; [GameCharacters](../../tests/scenes/test_game_characters.cpp),
+`BodyGeometryAndPublishedPoseUseTheSameRetainedDummyMatrices`, comprueba geometría y publicación
+con el mismo dummy, también en proyección. Los tests de
+[WorldObjectsDrawing](../../tests/scenes/test_world_objects_drawing.cpp) cubren marcadores ocultos
+con pose nativa/proyectada. Son regresiones del contrato portable, no una nueva comparación de
+poses o píxeles con la VM. El lector de las gotas de la fuente también consume ese carry
+([Las partículas de la fuente](#las-partículas-de-la-fuente-en-el-juego)); los casos
+`TheFountainReadsThePreviousWorldMatricesForDummyAndTransparentBones`,
+`AFullFountainPoolStillReadsTheRetainedBonesAtTheirNativeRandomPrefix` y
+`AnEmptyRetainedFountainLoanStopsAfterTheFirstOffsetInsteadOfReposing`, en
+[GameParticlesTest](../../tests/scenes/test_game_particles.cpp), comprueban la lectura sin volver a
+posar y los prefijos del fallo, incluso con el pool de partículas lleno.
 
 ### El paso de los personajes
 

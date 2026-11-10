@@ -100,7 +100,9 @@ Core::Expected<void, std::string> LoadTheWorld(std::uint8_t map, std::uint16_t p
     return CheckEventMap(world.Runtime().map);
 }
 
-// 0x4c44ad..0x4c4516: el lugar del héroe, su construcción y la clave del jugador.
+// 0x4c44ad..0x4c4516: el lugar del héroe, su construcción y la clave del jugador. Una segunda respuesta
+// sortea otro lugar sin mirar el del héroe anterior, que tiene la misma clave y sobrevive a 0x510f70 en
+// el suyo (Q-C196); si cae en el mismo, 0x511290 lo reconstruye ahí.
 Core::Expected<void, std::string> BuildTheHero(const Protocol::Character::CharacterSelectResult& reply,
                                                std::uint16_t playerKey, const WorldEntryResources& resources)
 {
@@ -140,9 +142,11 @@ void CopyTheIdentity(const Protocol::Character::CharacterSelectResult& reply, co
     hero.byte88 = 1;
 }
 
-// 0x4c4712: 0x512a30 con el héroe publicado de antes (0x743a170 cambia recién en 0x4c4725). Si el lugar del
-// héroe es el del publicado, 0x505820 corre ahí; si no, 0x550990 lee lo que dejó el último dibujo de los
-// personajes, el de la selección.
+// 0x4c4712: 0x512a30 con el héroe publicado de antes (0x743a170 cambia recién en 0x4c4725): el lugar 0 de
+// WinMain en la primera respuesta y el héroe anterior en una segunda. 0x550d10 le pone a ese el +0x358
+// (0x40d010, Q-C197). Si el lugar del héroe es el del publicado, 0x505820 corre ahí; si no, 0x550990 lee
+// lo que dejó el último dibujo de los personajes: el de la selección o, después de un frame del juego, uno
+// que MuRet no tiene (corta en 0x550990, P-C40).
 Core::Expected<void, std::string> DressTheHero(const WorldEntryResources& resources,
                                                const Render::Models::Skeleton& player, WorldEntryResult& result)
 {

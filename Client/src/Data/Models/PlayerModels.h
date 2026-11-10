@@ -49,8 +49,8 @@ inline constexpr std::array<std::uint16_t, 5> HelmsWithMask{0x1012, 0x1017, 0x10
 
 // Lo que MuRet carga de 0x615700, el cargador de las habilidades y los efectos, que va después de
 // 0x60ff50 en el mismo avance de la carga: el caballo oscuro (0xbf, Skill\DarkHorse.bmd), el cuervo
-// (0xc0, Skill\DarkSpirit.bmd) y los tres modelos que piden sus texturas antes que ellos (0x145, 0x146
-// y 0x147), para que las del caballo y las del cuervo caigan en los slots del original. Los otros,
+// (0xc0, Skill\DarkSpirit.bmd), los dos Gate de Object12 (0x10c/0x10d) y los tres modelos que piden
+// sus texturas antes del caballo (0x145, 0x146 y 0x147), para conservar los slots del original. Los otros,
 // cuando entren las habilidades y los efectos.
 [[nodiscard]] std::span<const ModelFile> SkillModelFiles();
 

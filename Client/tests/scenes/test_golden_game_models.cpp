@@ -79,6 +79,42 @@ TEST_F(GoldenGameModels, LoadsEveryModelOfThePlayerLoader)
     }
 }
 
+// 0x616304/0x61631a cargan Gate01/02 de Object12; 0x61634e..0x616370 asigna solo Gate02 desde
+// Monster, en 0x69, antes de volver a 0x3b8. Los dos BMD reales usan doorc01.jpg.
+TEST_F(GoldenGameModels, TheWorldGatesAreGlobalAndTheSecondAssignsItsInitialTexture)
+{
+    FakeTextureStore textures;
+    RecordingSink sink;
+    Log log(sink, LogLevel::Debug);
+    GameModels models;
+
+    ASSERT_TRUE(models.Load(m_dataRoot, textures, log).HasValue());
+
+    for (const std::uint16_t gate : {std::uint16_t{0x10c}, std::uint16_t{0x10d}})
+    {
+        SCOPED_TRACE(gate);
+        ASSERT_NE(models.Find(gate), nullptr);
+        EXPECT_EQ(models.Find(gate)->meshes.size(), 1u);
+        ASSERT_NE(models.SkeletonOf(gate), nullptr);
+        EXPECT_EQ(models.SkeletonOf(gate)->bones.size(), 1u);
+    }
+    EXPECT_TRUE(models.MeshTextures(0x10c).empty());
+    ASSERT_EQ(models.MeshTextures(0x10d).size(), 1u);
+    EXPECT_EQ(models.MeshTextures(0x10d).front(), TextureSlot{0x69});
+    EXPECT_EQ(models.TextureSlots().NameOf(TextureSlot{0x69}), "doorc01.jpg");
+    const auto texture = textures.Find(TextureSlot{0x69});
+    ASSERT_TRUE(texture.has_value());
+    EXPECT_EQ(texture->sampling.filter, Client::Data::Textures::Filter::Nearest);
+    EXPECT_EQ(texture->sampling.wrap, Client::Data::Textures::Wrap::Repeat);
+    EXPECT_EQ(models.TextureSlotOf(0x69), TextureSlot{0x69});
+    EXPECT_FALSE(models.TextureSlotOf(0x10069).has_value());
+    const auto metadata = models.TextureMetadataOf(0x69);
+    ASSERT_TRUE(metadata.has_value());
+    EXPECT_EQ(metadata->size.x, static_cast<float>(texture->texture.textureWidth));
+    EXPECT_EQ(metadata->size.y, static_cast<float>(texture->texture.textureHeight));
+    EXPECT_EQ(metadata->components, 3);
+}
+
 // La piel y el pelo de 0x60f7d0 quedan en sus nueve slots fijos, y las texturas del personaje
 // empiezan en 0x138 y las de los ítems en 0x25a.
 TEST_F(GoldenGameModels, TheTexturesGoWhereTheLoadersPutThem)

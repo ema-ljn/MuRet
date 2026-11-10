@@ -239,6 +239,24 @@ TEST_F(MapLoadTest, DeviasCreatesItsTwoSpecialsBeforeTheObjFile)
     EXPECT_EQ(objects[1].sectorY, 1);
 }
 
+// 0x6175ea..0x617626: el especial de Noria nace en z=0 y con yaw=10, antes de pedir sus cinco
+// efectos. Sin ese servicio, la carga conserva el prefijo creado y corta, sin consumir el pasto.
+TEST_F(MapLoadTest, NoriaCreatesItsSpecialWithTheHeightAndYawInTheNativeArguments)
+{
+    const auto loaded = Load(3);
+
+    ASSERT_FALSE(loaded.HasValue());
+    EXPECT_NE(loaded.Error().find("0x606660"), std::string::npos) << loaded.Error();
+    ASSERT_EQ(world.Map().objects.size(), 1u);
+    const auto& special = world.Map().objects.front();
+    EXPECT_EQ(special.type, 0x142);
+    EXPECT_EQ(special.transform.position, glm::vec3(22300.0f, 3000.0f, 0.0f));
+    EXPECT_EQ(special.transform.angles, glm::vec3(0.0f, 0.0f, 10.0f));
+    EXPECT_EQ(special.transform.scale, 1.0f);
+    EXPECT_EQ(random.State(), CrtRandom(Seed).State());
+    EXPECT_TRUE(world.Map().grassOffsets.empty());
+}
+
 // Los mapas con datos en la Data del repo: los que carga y, en los demás, dónde corta.
 TEST_F(MapLoadTest, ConstructsRealMapsAndNamesTheirFrontiers)
 {

@@ -113,6 +113,9 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
             return Core::Unexpected(cloud.Error());
         return DrawSelection{ParticleDrawKind::Common, true};
     }
+    case ShinyParticle:
+    case FairySparkParticle:
+        return DrawSelection{ParticleDrawKind::Common, false};
     case DropParticle:
         return DrawSelection{ParticleDrawKind::Drop, false};
     case SparkParticle:

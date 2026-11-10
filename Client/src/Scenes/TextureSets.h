@@ -50,10 +50,14 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 12> EffectTextureSe
     {"Effect\\flare01.jpg", 0x5ac, TextureSetsDetail::LinearClamp},
     {"Effect\\Magic_Ground2.jpg", 0x61e, TextureSetsDetail::LinearClamp},
     {"Effect\\Magic_Circle1.jpg", 0x61f, TextureSetsDetail::LinearClamp},
+    {"Effect\\Spark02.jpg", 0x5c5, TextureSetsDetail::LinearClamp},
     {"Effect\\Shiny02.jpg", 0x5fd, TextureSetsDetail::LinearClamp},
     {"Effect\\Spark03.jpg", 0x5c6, TextureSetsDetail::LinearClamp},
     {"Effect\\smoke01.jpg", 0x5f2, TextureSetsDetail::LinearClamp},
     {"Effect\\clouds.jpg", 0x622, TextureSetsDetail::LinearClamp},
+    {"Effect\\lightning2.jpg", 0x5d5, TextureSetsDetail::LinearClamp},
+    {"Effect\\Spark01.jpg", 0x617, TextureSetsDetail::LinearClamp},
+    {"Effect\\flareBlue.jpg", 0x62b, TextureSetsDetail::LinearClamp},
 }};
 
 // Las dos capas de la tela que sube 0x61ccb0 (0x61d616 y 0x61d64e) y nadie suelta: Monster\iui06.jpg en

@@ -172,6 +172,10 @@ inline constexpr std::array<std::size_t, 2> StreetLightGlowBones{8, 9};
 // las mallas por el blendMesh) y el 0x5a −0,23° (alpha 1 y luz blanca, también por el blendMesh).
 void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models::Skeleton* skeleton);
 
+struct TerrainLighting;
+struct ObjectModelStepState;
+class Particles;
+
 // Lo que 0x604ab0 lee afuera del objeto en el juego (CL7, hito 3).
 struct ObjectStepGlobals
 {
@@ -179,6 +183,15 @@ struct ObjectStepGlobals
     std::int32_t heroCellLayer = 0;
     // 0x5767b88: el reloj del mundo, en ms.
     float worldClock = 0.0f;
+    // 0x7b4ccc4 y 0x743a198: los destinos durables del paso; no se fabrican buffers locales.
+    TerrainLighting* dynamicLighting = nullptr;
+    Particles* particles = nullptr;
+    // Las puertas consultan al héroe publicado y el modo editor, antes de mover o sonar.
+    const glm::vec3* heroPosition = nullptr;
+    bool editorMode = false;
+    // 0x41ed10(id, 0, 0): el caller conserva o emite la petición, aun en pasos consecutivos.
+    std::function<void(std::int32_t)> sound{};
+    ObjectModelStepState* modelState = nullptr;
 };
 
 // 0x604ab0 con un objeto visto en el juego, en los mapas 0 y 2 (*estático*, 06 § Los objetos del juego).

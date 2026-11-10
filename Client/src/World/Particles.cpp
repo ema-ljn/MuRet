@@ -5,6 +5,7 @@
 #include "Render/Models/OriginalRotation.h"
 #include "World/Ftol.h"
 #include "World/IParticleTrigonometry.h"
+#include "World/NoriaParticleKernels.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -277,6 +278,8 @@ bool IsDrop(const Particle& particle)
 
 std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtype)
 {
+    if (type == ShinyParticle || type == FairySparkParticle)
+        return IsNoriaParticle(type, subtype) ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == Particle67 || type == Particle68)
     {
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
@@ -943,6 +946,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheMap8Smoke(particle, scale, random);
             return std::optional(index);
         }
+        if (IsNoriaParticle(type, subtype))
+        {
+            CreateNoriaParticle(particle, random);
+            return std::optional(index);
+        }
         if (type == Particle67)
         {
             CreateTheParticle67(particle, random);
@@ -1055,7 +1063,8 @@ namespace
 {
 Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random,
                                                       const float* worldClock, const std::int32_t* map,
-                                                      IParticleTrigonometry* trigonometry)
+                                                      IParticleTrigonometry* trigonometry,
+                                                      const ParticleTerrainHeight& terrainHeight)
 {
     // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
     // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
@@ -1114,7 +1123,13 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
                 return Core::Unexpected(*error);
             }
         }
-        if (particle.type == Particle67 || particle.type == Particle68)
+        if (IsNoriaParticle(particle.type, particle.subtype))
+        {
+            const auto stepped = StepNoriaParticle(particle, terrainHeight);
+            if (!stepped.HasValue())
+                return stepped;
+        }
+        else if (particle.type == Particle67 || particle.type == Particle68)
         {
             if (const auto error = StepTheParticle67Or68(particle, map))
             {
@@ -1170,16 +1185,18 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
 } // namespace
 
 Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
-                                                         const std::int32_t* map)
+                                                         const std::int32_t* map,
+                                                         const ParticleTerrainHeight& terrainHeight)
 {
-    return StepParticlesImpl(particles, random, nullptr, map, nullptr);
+    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight);
 }
 
 Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                                                          std::reference_wrapper<const float> worldClock,
-                                                         const std::int32_t* map, IParticleTrigonometry& trigonometry)
+                                                         const std::int32_t* map, IParticleTrigonometry& trigonometry,
+                                                         const ParticleTerrainHeight& terrainHeight)
 {
-    return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry);
+    return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight);
 }
 
 std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random)

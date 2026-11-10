@@ -1,5 +1,6 @@
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Scenes/FaunaDrawing.h"
+#include "Scenes/NoriaObjectServices.h"
 #include "World/ObjectModelStepState.h"
 #include "Scenes/GameParticles.h"
 
@@ -315,6 +316,7 @@ namespace
 {
 constexpr std::uint8_t LorenciaMap = 0;
 constexpr std::uint8_t DeviasMap = 2;
+constexpr std::uint8_t NoriaMap = 3;
 // 0x60479c: el 0x64 de Devias se dibuja según el nivel del registro propio (0x604944..0x604957, jl con
 // signo): desde 0x35 con la clase del héroe (+0x1d4 & 7) en 3 o 4, y desde 0x50 con las demás.
 constexpr std::int16_t DeviasLeveledObject = 0x64;
@@ -344,9 +346,11 @@ bool OwnLevelAllows(const GameObjectPass& pass)
 // 0x602ed0 después del rand() común (0x602ef4): los casos por tipo de los mapas 0 (0x602ffb) y 2
 // (0x6031e5). El 0x69 crea las gotas con el pool compartido; los demás cortan con su dirección.
 Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const GameObjectPass& pass,
-                                              const IModelLibrary& models, const DrawnObject& drawn)
+                                              const IModelLibrary& models, const DrawnObject& drawn, int commonRandom)
 {
     const std::uint8_t map = pass.map;
+    if (map == NoriaMap)
+        return StepNoriaObjectFrame(object, commonRandom, pass);
     if (map == LorenciaMap && object.type == 0x38)
     {
         return Core::Unexpected(std::string(
@@ -381,7 +385,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                                                        const World::TerrainLighting* lighting,
                                                        Core::Duration frameClock, const GameObjectPass& pass)
 {
-    if (pass.map != LorenciaMap && pass.map != DeviasMap)
+    if (pass.map != LorenciaMap && pass.map != DeviasMap && pass.map != NoriaMap)
     {
         return Core::Unexpected(std::format("0x6046a0: los casos por tipo del mapa {} (0x6002e0 y 0x602ed0) no están "
                                             "leídos",
@@ -427,8 +431,8 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         {
             continue;
         }
-        static_cast<void>(pass.random->Next());
-        if (auto frameCase = FrameCaseOf(object, pass, models, drawn); !frameCase.HasValue())
+        const int commonRandom = pass.random->Next();
+        if (auto frameCase = FrameCaseOf(object, pass, models, drawn, commonRandom); !frameCase.HasValue())
         {
             return frameCase;
         }

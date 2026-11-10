@@ -32,6 +32,8 @@ namespace Client::World
 class IParticleTrigonometry;
 
 inline constexpr std::size_t ParticleCount = 3000;
+inline constexpr std::int32_t ShinyParticle = 0x5fc;
+inline constexpr std::int32_t FairySparkParticle = 0x5c5;
 inline constexpr std::int32_t FireParticle = 0x5d9;
 inline constexpr std::int32_t DropParticle = 0x607;
 inline constexpr std::int32_t WorldSmokeSubtype = 2;
@@ -95,6 +97,9 @@ enum class ParticleError : std::uint8_t
     MissingTerrainHeight,
 };
 
+// 5f93c0: retorno retenido, consultado después del prefijo del slot5c5.
+using ParticleTerrainHeight = std::function<double(float, float)>;
+
 class Particles
 {
 public:
@@ -150,7 +155,11 @@ std::optional<ParticleError> StepParticles(Particles& particles, Render::Models:
 // consume viento y avanza otra vez los slots anteriores. No copia ni posee WorldState.
 [[nodiscard]] Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles,
                                                                        Render::Models::CrtRandom& random,
-                                                                       std::reference_wrapper<const float> worldClock,
-                                                                       const std::int32_t* map,
-                                                                       IParticleTrigonometry& trigonometry);
+                                                                       const std::int32_t* map = nullptr,
+                                                                       const ParticleTerrainHeight& terrainHeight = {});
+// Carga el reloj por slot6 después del movimiento común, sin snapshot de la pasada.
+[[nodiscard]] Core::Expected<void, ParticleError>
+StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
+                     std::reference_wrapper<const float> worldClock, const std::int32_t* map,
+                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight = {});
 } // namespace Client::World

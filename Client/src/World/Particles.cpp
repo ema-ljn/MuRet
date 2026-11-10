@@ -1,11 +1,11 @@
 #include "World/Particles.h"
 
-#include "World/Ftol.h"
-#include "World/IParticleTrigonometry.h"
-
 #include "Core/Expected.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalRotation.h"
+#include "World/Ftol.h"
+#include "World/IParticleTrigonometry.h"
+#include "World/NoriaParticleKernels.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -258,7 +258,7 @@ void StepTheCloud8(Particle& particle)
 
 bool IsFire(const Particle& particle)
 {
-    return particle.type == FireParticle && particle.subtype >= 0 && particle.subtype <= 3;
+    return particle.type == FireParticle && ((particle.subtype >= 0 && particle.subtype <= 3) || particle.subtype == 8);
 }
 
 bool IsWorldSmoke(const Particle& particle)
@@ -278,6 +278,8 @@ bool IsDrop(const Particle& particle)
 
 std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtype)
 {
+    if (type == ShinyParticle || type == FairySparkParticle)
+        return IsNoriaParticle(type, subtype) ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == Particle67 || type == Particle68)
     {
         return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
@@ -288,7 +290,8 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     }
     if (type == FireParticle)
     {
-        return subtype >= 0 && subtype <= 3 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
+        return ((subtype >= 0 && subtype <= 3) || subtype == 8) ? std::nullopt
+                                                                : std::optional(ParticleError::UnsupportedSubtype);
     }
     if (type == BreathParticle)
     {
@@ -298,7 +301,7 @@ std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtyp
     }
     if (type == SparkParticle)
     {
-        return subtype == RavenSparkSubtype || subtype == MapSparkSubtype
+        return subtype == TeleportSparkSubtype || subtype == RavenSparkSubtype || subtype == MapSparkSubtype
                    ? std::nullopt
                    : std::optional(ParticleError::UnsupportedSubtype);
     }
@@ -342,6 +345,17 @@ void Initialize(Particle& particle, std::int32_t type, const glm::vec3& position
         particle.angles[axis] = angles[axis];
     }
     particle.velocity = glm::vec3(0.0f);
+}
+
+// 0x54059f..0x54061c: tres ángulos de 0..359 y VectorRotate(0,-50,0); conserva la vida común (2).
+void CreateTheTeleportSpark(Particle& particle, Render::Models::CrtRandom& random)
+{
+    constexpr int FullCircle = 360;
+    constexpr float Speed = -50.0f;
+    for (int axis = 0; axis < 3; ++axis)
+        particle.angles[axis] = static_cast<float>(random.Next() % FullCircle);
+    particle.velocity = Render::Models::OriginalVectorRotate(glm::vec3(0.0f, Speed, 0.0f),
+                                                             Render::Models::OriginalAngleMatrix(particle.angles));
 }
 
 void CreateTheFire(Particle& particle, Render::Models::CrtRandom& random)
@@ -666,6 +680,12 @@ void StepTheFire(Particle& particle)
     {
         particle.scale = F32(static_cast<double>(particle.scale) - FireShrink);
     }
+    else if (particle.subtype == 8)
+    {
+        // 548270[8]→54585f: no amortigua velocidad ni agrega verticalSpeed a escala.
+        particle.scale = F32(static_cast<double>(particle.scale) * .95f);
+        particle.rotation = F32(static_cast<double>(particle.rotation) + 5);
+    }
     else
     {
         particle.scale = F32(static_cast<double>(particle.verticalSpeed) + static_cast<double>(particle.scale));
@@ -926,6 +946,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             CreateTheMap8Smoke(particle, scale, random);
             return std::optional(index);
         }
+        if (IsNoriaParticle(type, subtype))
+        {
+            CreateNoriaParticle(particle, random);
+            return std::optional(index);
+        }
         if (type == Particle67)
         {
             CreateTheParticle67(particle, random);
@@ -959,6 +984,11 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         if (type == CloudParticle)
         {
             CreateTheCloud(particle, random);
+            return std::optional(index);
+        }
+        if (type == SparkParticle && subtype == TeleportSparkSubtype)
+        {
+            CreateTheTeleportSpark(particle, random);
             return std::optional(index);
         }
         if (type == SparkParticle && subtype == MapSparkSubtype)
@@ -1033,7 +1063,8 @@ namespace
 {
 Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random,
                                                       const float* worldClock, const std::int32_t* map,
-                                                      IParticleTrigonometry* trigonometry)
+                                                      IParticleTrigonometry* trigonometry,
+                                                      const ParticleTerrainHeight& terrainHeight)
 {
     // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
     // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
@@ -1092,7 +1123,13 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
                 return Core::Unexpected(*error);
             }
         }
-        if (particle.type == Particle67 || particle.type == Particle68)
+        if (IsNoriaParticle(particle.type, particle.subtype))
+        {
+            const auto stepped = StepNoriaParticle(particle, terrainHeight);
+            if (!stepped.HasValue())
+                return stepped;
+        }
+        else if (particle.type == Particle67 || particle.type == Particle68)
         {
             if (const auto error = StepTheParticle67Or68(particle, map))
             {
@@ -1123,6 +1160,16 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
         {
             StepTheMapSpark(particle);
         }
+        else if (particle.type == SparkParticle && particle.subtype == TeleportSparkSubtype)
+        {
+            // 0x5450a9: resta 2 y muere bajo 0,2 (también unordered); no cambia la luz.
+            constexpr double Shrink = 2.0;
+            constexpr double Minimum = static_cast<double>(0.2f);
+            const double changed = static_cast<double>(particle.scale) - Shrink;
+            particle.scale = F32(changed);
+            if (!(changed >= Minimum))
+                particle.alive = false;
+        }
         else if (IsSpark(particle))
         {
             StepTheSpark(particle);
@@ -1138,16 +1185,18 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
 } // namespace
 
 Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
-                                                         const std::int32_t* map)
+                                                         const std::int32_t* map,
+                                                         const ParticleTerrainHeight& terrainHeight)
 {
-    return StepParticlesImpl(particles, random, nullptr, map, nullptr);
+    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight);
 }
 
 Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                                                          std::reference_wrapper<const float> worldClock,
-                                                         const std::int32_t* map, IParticleTrigonometry& trigonometry)
+                                                         const std::int32_t* map, IParticleTrigonometry& trigonometry,
+                                                         const ParticleTerrainHeight& terrainHeight)
 {
-    return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry);
+    return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight);
 }
 
 std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random)

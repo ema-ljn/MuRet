@@ -3517,6 +3517,22 @@ FaunaModels, conserva nombres/refcounts/metadata física mientras el cursor se r
 `0x60d550` excluye next; un nombre justo allí se vuelve a subir. Persistir sólo el BMD o liberar una
 vez por upload no reproduce este contrato.
 
+**Perfil numérico.** Sin/cos de fauna usan `OriginalRetainedMath`: mantienen el resultado con
+64 bits de significando antes del primer producto PC53 y de los spills f32. `0x445d60` multiplica ambos retenidos
+antes de redondear a 53; `0x53d1a0` conserva sus productos y spills separados. No equivale a dos
+sin/cos double ya redondeados, ni a std::sin del host. El perfil portable PC53/RN y sus dominios
+explícitos no acreditan universalmente FSIN/FCOS, CW, NaN, traps o todo el stack x87 del proceso.
+La validación nativa/VM sigue separada del port; no se declara cerrada la CL7.
+
+### La pose compartida entre escenas
+
+El piso tiene otro gate: `0x608b0a..0x608b20` posa sin traslación aun con alpha0; `0x60cf70` sólo
+publica el skin/cuerpo con alpha>0,01. `PublishFaunaFloorPose` conserva esa diferencia. Los objetos,
+piso, personajes, helpers y efectos comparten el mismo carry en orden. En frames de proyección de
+MuRet se usa **una copia temporal para todo el frame**: cada escritor actualiza ese scratch y el
+siguiente lo lee, sin cambiar la historia durable ni repetir RNG/seen/yaw nativos. Copiar y descartar
+el carry en cada pase o saltar el publisher mezclaría meshes de otro modelo.
+
 
 ### El paso de los personajes
 
@@ -4320,6 +4336,72 @@ frame lo pone `0x637700` (`0x63835d..0x6384f5`): Icarus (10), (0,0117; 0,0977; 0
 a 29 y 36), (0,1172; 0,1563; 0,1563); y negro en los demás (*estático*). No hay cielo: Icarus no
 dibuja el terreno y pone las nubes (`0xbb`, `0x622`, `0x623`), y Kalima dibuja su agua en un pase
 aparte (`0x4378a0` → `0x41cca0`, `0x41cf00`).
+### La cola y sus cambios de pase
+
+Lectura **estática** de `0x63750d..0x6375e5`, `0x620db0` y `0x6213e0` del build
+`c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`.
+El byte por mapa vale 1 en 24..29/36 y 0 en los demás; no reemplaza a `0x437850`, que consulta
+si `0x723c48` es distinto de null. La primera consulta omite daño cuando hay mundo Kalima; la
+segunda, posterior al primer `0x6213f0`, decide repetir la cámara, dibujar agua y recorrer la
+segunda capa. No hay reflexión de cámara en este caller. `0x4378a0` llama actualización
+`0x41cca0` y dibujo `0x41cf00` antes de joints 2, efectos modelados 1, cintas, MarkSeen, ojo y
+sprites/partículas/daño 2.
+
+**`0x620db0` y `0x6213e0` tienen efectos distintos.** `0x6213e0` sólo hace push y loadIdentity
+de modelview. `0x620db0` reconstruye la cámara y en `0x620eea..0x620f4c` apaga alpha test,
+activa textura/depth/culling y escritura de profundidad, usa LEQUAL y fija alpha GREATER 0.25.
+Esos resets no cambian por analogía blend ni binding. Un vaciado del lote diferido tampoco
+representa otra llamada a `0x620db0`.
+
+MuRet distingue ese inicio en `ModelBatch::InitializesMaterial`. `GlFrameTarget::FlushModels`
+ejecuta comandos aunque no haya vértices, conserva el material del lote y deja la continuación
+sin otro reset nativo. `BeginGameTailPass` captura antes del flush; el ojo conserva material y
+el regreso al mundo publica sólo los resets acreditados. `GlModelRenderer` sube matrices/VBO
+por lote y aplica la inicialización sólo cuando está solicitada. Las regresiones observan GL
+real entre lotes parciales y también un inicio World sin geometría:
+[test_gl_frame_target](../../tests/render_gl/test_gl_frame_target.cpp) y
+[test_game_scene_kalima_tail](../../tests/scenes/test_game_scene_kalima_tail.cpp), **simulado**.
+
+La carga meteorológica `0x61ac3e..0x61ad7a` publica 64/65 del mundo y 66/67/68 de lluvia,
+respetando la alternativa TGA→JPG del 64, opcionalidad y sampling. El atlas de daño no era otro
+selector: `0x621799/0x621889` pasan 1 al binder; `0x61bdb4` carga `Interface\FontTest.tga` con
+NEAREST/CLAMP. Los joints emitidos por fauna usan 610 Flare02 (LINEAR/REPEAT), 613 JointSpirit01,
+618 JointLaser01 y 697 ScolTail (LINEAR/CLAMP); 617 Spark01 ya estaba cargado.
+[Texturas meteorológicas](../../tests/scenes/test_weather_textures.cpp),
+[handles GL](../../tests/render_gl/test_weather_texture_handles.cpp) y
+[atlas/joints](../../tests/scenes/test_game_tail_textures.cpp) contrastan archivos reales y píxeles.
+
+El orquestador no crea el estado `0x723c48` ni el backend `0x4378a0`: LoadMap conserva la frontera
+`0x4377a0`. Tampoco porta productores de cintas ni todas las familias de piso/joints/efectos
+CL9–CL11. No se ejecutó ni emuló el original, y el contraste de VM sigue pendiente.
+
+### El paso de los efectos con modelo
+
+**Ampliación estática del hito 2 (2026-11-10).** `World::StepGameModelEffect` envuelve los casos
+nuevos de `0x5208a0` en la pasada `0x63711e`, después del daño y antes de joints/partículas. Usa
+los pools durables, el reloj y CRT de la escena; no guarda referencias a recursos temporales.
+El caller carga los modelos antes de fauna/personajes/efectos. Esto amplía los kernels previos,
+sin afirmar todos los casos del switch ni precisión nativa CW/FSIN.
+
+- Cada efecto vivo toma un CRT común en `0x5208c5`, incluso si no usa esa luz local. Tipo no
+  soportado conserva ese prefijo y devuelve error. Sólo anima el rango **`0xad<=tipo<0x151`**
+  (`0x52cbf4..0x52cc04`): Noria 322..324 sí; 5c6/61f no, aunque se preste Skeleton. Después
+  vienen movimiento común y vida−1. Dar un esqueleto no habilita animación fuera del rango.
+- Noria (`0x525e9d..0x525f15`): RGB=`sin(T*f)*0,2f+0,01f`, con factores f32
+  R 0,0011/G 0,0017/B 0,0013. B guarda el argumento en float antes del seno; R/G retienen PC53.
+  Ángulo Y=`F32(turnDirection+ánguloY+4)`. Reutiliza `SineProductPC53`; no ejecuta FSIN nativo.
+- 5c6 (`0x52ab04..0x52ab7b`), nacido en gate 0 con vida 10: emite 18 partículas 5c6/subtipo 1,
+  Z acumulada+24, escala 12 primera/6 restantes, luz `F32(life*0,1f)`. Cada alta con lugar toma
+  tres CRT para ángulos `%360` y `VectorRotate(0,−50,0)` (`0x54059f..0x54061c`), vida 2.
+  Pool lleno no toma los sorteos del alta: con 0/2/18 huecos, la pasada usa 1/7/55 CRT incluido
+  el efecto. Se retienen `+0x38/+0x60` de la partícula anterior. El paso de Spark1 resta 2 a
+  escala y apaga bajo 0,2 o unordered (`0x5450a9`), sin fade RGB. Las partículas recién nacidas
+  avanzan después, en este mismo tick; no se difieren al siguiente.
+
+`GameModelEffectsTest`, `MapModelEffectServicesTest`, `MapLoadTest` y los tests de partículas
+comprueban creación, retención, orden/pool lleno y presupuestos CRT. No son una captura nativa
+ni una validación visual de la torre o del teleport.
+
 ### Las partículas de la fuente en el juego
 
 **Estático**, `0x603011..0x60313f`: después del rand común del objeto, luz1 y V calculada con NEG

@@ -8,10 +8,11 @@
 
 namespace Client::Render
 {
-void ModelBatch::Begin(const Pass3D& pass)
+void ModelBatch::Begin(const Pass3D& pass, bool initializeMaterial)
 {
     ++m_stateSerial;
     m_pass = pass;
+    m_initializeMaterial = initializeMaterial;
     m_state = ModelDrawState{};
     m_vertices.clear();
     m_commands.clear();

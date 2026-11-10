@@ -6,10 +6,13 @@
 #include "Render/ModelBatch.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
+#include "Render/Models/Skinning.h"
+#include "Render/Models/Shine.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterCloth.h"
 #include "Scenes/TextureMetadata.h"
@@ -19,6 +22,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <span>
 #include <vector>
@@ -115,6 +119,11 @@ struct DrawnCharacter
     // Cómo cuentan los frames del original la tela y el cetro (Render::Models::OriginalFrameCarry): por el
     // reloj del frame, o uno por dibujo en el modo fiel (SceneContext::pacing).
     Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock;
+    // Publica matrices ya calculadas: cuerpo con cabeza, partes y attachments con su raíz real.
+    std::function<void(std::uint16_t, std::span<const Render::Models::BoneTransform>,
+                       const Render::Models::ObjectTransform&, bool)>
+        onPose{};
+    std::function<std::span<const Render::Models::BoneTransform>(std::uint16_t)> poseBones{};
 };
 
 // 0x50db57 separa las partes y la tela de lo que cuelga con un rand y una nueva luz. Ambos
@@ -176,6 +185,10 @@ struct DrawnObject
     float alpha = 1.0f;
     // +0xe8: la luz por vértice, que 0x5ffce0 copia a +0x44 del modelo.
     bool vertexLight = false;
+    // model+88: selección compartida publicada por el paso de objetos, sin luz y con UV corridas.
+    std::optional<std::int16_t> unlitMesh{};
+    // Scratch publicado por la pose del caller; los renderers especializados tampoco vuelven a posar.
+    std::span<const Render::Models::SkinnedMesh> retainedMeshes{};
 };
 
 // 0x602e90 con un objeto sin casos por tipo: 0x5ffdf0 no lo dibuja con el alpha por debajo de 0,01, y
@@ -187,6 +200,12 @@ struct DrawnObject
 // que la biblioteca no tiene no se dibuja.
 void DrawObject(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                 Core::Duration frameClock);
+
+// RenderBody sobre el scratch ya transformado de 4ebc80: conserva los dummy y los vértices
+// retenidos cuando otra familia no vuelve a posar. shine elige un pase adicional de 60b130.
+void DrawObjectFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                          Core::Duration frameClock, std::span<const Render::Models::SkinnedMesh> meshes,
+                          std::optional<Render::Models::ShinePass> shine = std::nullopt);
 
 // El punto `offset` del hueso `bone` de `object` posado como lo posa DrawObject, en el mundo (por la escala
 // y más la posición del objeto, como los vértices). Es lo que lee del buffer global de la pose

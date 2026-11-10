@@ -136,7 +136,7 @@ void GlModelRenderer::Draw(const ModelBatch& batch, const TextureTable& textures
     }
 }
 
-// 0x620db0: el viewport, las matrices, el depth test con GL_LEQUAL, el culling y la máscara.
+// Matrices/VBO de cada lote. Sólo el pase620db0 reinicia material;6213e0 y los flush no.
 void GlModelRenderer::BeginPass(const ModelBatch& batch) const
 {
     const Pass3D& pass = batch.Pass();
@@ -148,10 +148,16 @@ void GlModelRenderer::BeginPass(const ModelBatch& batch) const
     m_gl->bufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(batch.Vertices().size_bytes()), batch.Vertices().data(),
                      GL_STREAM_DRAW);
     SetViewProjection(batch, ModelCoordinateSpace::World);
-    m_gl->enable(GL_DEPTH_TEST);
-    m_gl->depthFunc(GL_LEQUAL);
-    m_gl->enable(GL_CULL_FACE);
-    m_gl->depthMask(GL_TRUE);
+    if (batch.InitializesMaterial())
+    {
+        // 620eea..620f4c: alpha off; textura/depth/cull on; escritura y LEQUAL.
+        m_gl->uniform1i(m_uniforms.alphaTest, 0);
+        m_gl->uniform1i(m_uniforms.textured, 1);
+        m_gl->enable(GL_DEPTH_TEST);
+        m_gl->depthFunc(GL_LEQUAL);
+        m_gl->enable(GL_CULL_FACE);
+        m_gl->depthMask(GL_TRUE);
+    }
 }
 
 void GlModelRenderer::SetViewProjection(const ModelBatch& batch, ModelCoordinateSpace space) const
@@ -197,6 +203,10 @@ void GlModelRenderer::SetBlend(ModelBlend blend) const
     case ModelBlend::Additive:
         m_gl->enable(GL_BLEND);
         m_gl->blendFunc(GL_ONE, GL_ONE);
+        break;
+    case ModelBlend::InverseColorAdditive:
+        m_gl->enable(GL_BLEND);
+        m_gl->blendFunc(GL_ONE_MINUS_SRC_COLOR, GL_ONE);
         break;
     case ModelBlend::Alpha:
     case ModelBlend::BlendedShadow:

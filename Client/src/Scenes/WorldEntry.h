@@ -83,6 +83,9 @@ struct WorldEntryResult
 // Lo que MuRet no tiene corta con error y deja lo que el original hizo antes: el héroe sin publicar,
 // el contador sin tocar. Los tres cierres del registro propio en línea (0x4c41c4, 0x4c46f0 y
 // 0x4c481e) gastan sus 3.848 rand() si lo dejan sin accesos, como el de adentro de 0x512a30.
+// Una segunda respuesta, con el héroe ya en el mundo, no es otro camino: nada la frena (0x4e306b) y
+// corre todo de nuevo sobre lo que dejó la primera, con la carga del mapa siempre, otro lugar para el
+// héroe y el anterior vivo si no cae en el suyo (06, "Una segunda respuesta").
 [[nodiscard]] Core::Expected<WorldEntryResult, std::string>
 ApplyWorldEntry(const Protocol::Character::CharacterSelectResult& reply, std::uint16_t playerKey,
                 const WorldEntryResources& resources, IWorldEntryPublisher& publisher);

@@ -54,7 +54,7 @@ struct ActorPlacement
 
 // 0x511290(personaje, 0x20a, X, Y, ángulo): vivo, la celda en sus dos copias, la zona segura del .att
 // de la celda, la posición en el centro de la celda con la Z de ConstructionHeight, el ángulo, el
-// estado de partida y las partes del equipo sin ítem. Cada acceso de la tabla de protección (las dos
+// estado de partida (con +0x358 en 0) y las partes del equipo sin ítem. Cada acceso de la tabla de protección (las dos
 // escrituras de la celda, sus cuatro lecturas y la del contador de pasos) se abre y se cierra, y gasta
 // 4 rand() de `cloth` si queda sin accesos: 28 desde cero. No toca la clave (+0x1f4). Otro tipo que el
 // 0x20a corta con error sin tocar al personaje: sus casos no están leídos.

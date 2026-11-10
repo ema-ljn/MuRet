@@ -60,8 +60,10 @@ struct ActorState
     std::array<ActorItemPart, 2> hands{};                       // +0x2b8 la derecha y +0x2d8 la izquierda
     ActorItemPart wings;                                        // +0x2f8
     ActorItemPart pet;                                          // +0x318
-    // +0x358: en el héroe publicado, 0x40d010 lo pone en 0 y en 1 si hay un conjunto completo (06, "Los
-    // stats del registro propio"). La lista de la selección le copia el bit 0 de b[10], sin portar.
+    // +0x358: 0x511290 lo pone en 0 (0x511c99). En el héroe publicado, 0x40d010 lo pone en 0 y en 1 si
+    // hay un conjunto completo (06, "Los stats del registro propio"); en la respuesta del F3 03 ese
+    // publicado todavía es el anterior (Q-C197). La lista de la selección le copia el bit 0 de b[10],
+    // sin portar.
     std::uint8_t byte358 = 0;
     // +0x376: con 0x101, 0x4f2250 elige la acción de volar. Quién lo escribe, sin leer.
     std::uint16_t word376 = 0;

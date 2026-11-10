@@ -114,6 +114,9 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.run = 0;
     actor.controlCode = 0;
     actor.pk = ConstructedPk;
+    // 0x511c99, en el mismo bloque que el PK y la escala: el +0x358 que después escribe 0x40d010 en el
+    // héroe publicado.
+    actor.byte358 = 0;
     actor.light = {};
 }
 } // namespace

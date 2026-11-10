@@ -2610,8 +2610,9 @@ campo por campo, están en [04](04-protocolo.md#movimiento-y-mundo); los modelos
 `Gate.bmd`, en [05](05-formatos-de-datos.md#los-modelos-de-cada-mundo); lo que pide una corrida del
 original, en [08](08-pendientes.md) (P-C28 a P-C31). MuRet, hoy, manda el `F3 03` desde
 `GameScene`, retiene el frame mientras espera (CL7 hito 1, T5), aplica la respuesta con
-`Scenes::ApplyWorldEntry` (T7, [abajo](#la-entrada-al-mundo)) y dibuja la escena 5 hasta el primer
-pase del terreno, donde corta (T8, [El dibujo del juego](#el-dibujo-del-juego)).
+`Scenes::ApplyWorldEntry` (T7, [abajo](#la-entrada-al-mundo)), también una segunda con el héroe ya en
+el mundo (T13), y dibuja la escena 5 hasta el primer pase del terreno, donde corta (T8, [El dibujo
+del juego](#el-dibujo-del-juego)).
 
 ### La entrada al mundo
 
@@ -2703,7 +2704,9 @@ escribe este handler; quién las calcula después, sin leer (P-C28 i).
   después de la suma); el ángulo en `+0x24`;
   **la zona segura en `+0x3e2`, el bit `0x01` del `.att` de la celda**; y el estado de partida:
   vivo, `+0x16d = 1`, el alpha y su meta en 1, la caja de (−60, −60, 0) a (40, 40, 120), `+0x88 =
-  1`, `+0x371 = 'C'` y `+0x188` con el contador de pasos. El ángulo es (dir − 1) · 45
+  1`, `+0x371 = 'C'` y `+0x188` con el contador de pasos. En el mismo bloque de stores, sin rama por
+  el tipo, deja en 0 `+0x16c` (el personaje visto, `0x511bd8`) y `+0x358` (`0x511c99`, el que
+  después escribe `0x40d010` en el héroe publicado; T13). El ángulo es (dir − 1) · 45
   (`0x4c44bc..0x4c44d1`): la dirección 0 da −45° (Q-C175). En la traza, el héroe está en (14.350;
   12.050; 165), el centro de la celda (143, 120), con z = 110 · 1,5 (*verificado*); la sesión del
   cable entra en (133, 127) del mapa 0 con la dirección 0.
@@ -2749,13 +2752,21 @@ paquetes, el `F3 03`, el `1C` y el `F3 04` ([Los cambios de mapa](#los-cambios-d
    para sentarse). Lo demás de cada entrada queda (Q-C138). Después, `0x612230` y `0x612d50` sueltan
    los modelos `0x152..0x207` y los sonidos `0xa0..0x1c1` (los de los monstruos, *inferido*).
 3. **Fuera de la selección** (con la escena distinta de 4): `0x607b40`, los ítems del piso (1.000 de
-   `0x220` bytes en `0x77f4714`), y `0x510f70(0x57678bc)`, que mata a todo personaje cuya clave
-   `+0x1f4` no sea la del héroe y suelta lo que le cuelga (`0x421d60`, `0x4fb1a0`, `0x414340`).
+   `0x220` bytes en `0x77f4714`), y `0x510f70(0x57678bc)`, que mata a todo vivo cuya clave
+   `+0x1f4` no sea la del héroe: `+0` en 0, `0x401040` y el caballo de la tabla `0x7d335d0` (10 de
+   `0x1d4`) cuyo `+0x108` es ese personaje. Lo que le cuelga lo suelta **con los 400**: el muerto,
+   el vivo de la misma clave y el que ya estaba muerto saltan los tres a `0x510fc2`, que llama a
+   `0x421d60` (borra el cuervo de `+0x430`), `0x4fb1a0(c, c, 0)` (las telas de `+0x190`, con la
+   cuenta en `+0x18c`, y las de la cabeza y las cinco partes, `+0x210 + 0x20 · k`) y `0x414340`
+   (borra `+0x364` y, si había algo, pone `+0x360` en 0): el héroe que sobrevive pierde también su
+   cuervo y sus telas (Q-C194, *estático*, T13).
    Recorre hasta `0x69780`, **400 registros de `0x438`**, uno menos que el pool (el 401 no lo
    mira), y compara la clave **con signo** (`movsx` en `0x510f8a`) contra el DWORD que recibe: una
    clave de `0x8000` o más nunca coincide, así que mata hasta al dueño de esa clave (*estático*, T7).
-   Después `0x451d10` → `0x451590` borra de la lista `0x7245c8` lo que no es del héroe, y el objeto
-   de `0x6eeda0` queda con `+4 = 1`, `+8 = 0xf3`, `+0xc = 400` y `+0x18 = 0` (sin leer qué es).
+   Después, también en la selección (`0x61a5b2`, el destino del salto de la escena 4), `0x451d10` →
+   `0x451590` borra de la lista `0x7245c8` lo que no tiene la clave del héroe publicado
+   (`[0x743a170] + 0x1f4`, `0x4515ae`), y el objeto de `0x6eeda0` queda con `+4 = 1`, `+8 = 0xf3`,
+   `+0xc = 400` y `+0x18 = 0` (sin leer qué son la lista ni el objeto).
 4. **Los modelos del mapa** (`0x616ec0`): `Object8\drop01.jpg` en `0x607`, los especiales del mapa
    desde `0x60d530(0x69)`, `Object8\wt00..wt31.jpg` en `0x41..0x60`, `Object8\light01.jpg` en `0x68`
    y los 160 del mundo desde `0x60d530(0x41c)`. **El mapa 0 no usa el lazo genérico
@@ -2823,6 +2834,61 @@ un error que nombra la dirección, nunca en silencio:
   chequeo de versión ([04](04-protocolo.md)).
 - **Divergencia previa**: la selección (escena 4) todavía no gasta los 28 de `0x511290` ni los
   65.536 del pasto al cargar el 54.
+
+**Una segunda respuesta** (*estático*, CL7 hito 1, T13). Nada la frena: `0x4e2f93` pasa el
+subcódigo 3 a `0x4c3940` sin mirar el estado ni la escena (`0x4e306b`), y la rama cifrada de
+`0x4c3940` no tiene otra salida que su final (`0x4c4b65`): la única temprana es la del paquete en
+claro (`0x4c396a`). Con el héroe ya en el mundo corre entera otra vez, en el mismo orden, sobre lo
+que dejó la primera:
+
+- **El mapa se carga siempre**, sea el mismo o no: `0x61a560` no compara el mapa con el cargado
+  (`0x61a569..0x61a5df` solo mira el 32 y la escena). Suelta lo del anterior, así que de los dos
+  efectos de llegada de la primera no queda ninguno y la segunda crea otros dos; vuelve a crear los
+  objetos, a sacar los 65.536 `rand()` del pasto y a leer los tiles. El `1C`, en cambio, carga solo
+  si cambia el mapa ([Los cambios de mapa](#los-cambios-de-mapa)).
+- **El lugar del héroe se sortea de nuevo** (`0x4c44ad`), sin mirar dónde está el anterior:
+  `0x57678b0` solo lo escribe `0x4c44d4`.
+- **El héroe anterior sobrevive** si el sorteo no cae en su lugar (Q-C196): tiene la clave del
+  jugador, y `0x510f70` (desde `0x61a5aa`) solo mata a los de otra clave. Queda vivo en su registro,
+  con su celda, su posición, su equipo y su nombre; pierde su cuervo y sus telas (Q-C194). Si el
+  sorteo cae en su lugar (1 en 400), `0x511290` lo reconstruye en el mismo registro, con su `+0x318`
+  para el corrimiento de la altura.
+- **Mientras viste al nuevo, el publicado es el anterior**: `0x743a170` solo lo escriben WinMain
+  (`0x4bafdf`) y `0x4c4725`. Lo leen, antes de `0x4c4725`, `0x451590` (la clave con la que limpia la
+  lista `0x7245c8`, la misma del jugador), `0x512a30` en `0x512ee2` y `0x40d010`, desde `0x550d10`
+  (Q-C197). Así, `0x505820` corre solo si el lugar sorteado es el del anterior; si no, `0x550990` lee
+  lo que dejó el último `0x505820`, que después de un frame del juego es el del último personaje que
+  dibujó `0x510d00` (Q-C188), y `0x40d010` toma la clase del anterior y le escribe a él el `+0x358`.
+- Lo demás, como en la primera: los stats y los tres cierres del registro propio, que vacía el equipo
+  que trajo el `F3 10`; el `0x3d` otra vez; el contador en 30; los efectos; el alpha del nuevo en 0;
+  y la acción de parado. Lo que no toca: el yaw de la cámara (`0x636838` corre solo en el primer paso
+  de la escena 5, con `0x7d3a140`) y `0x7d3a101`. Ninguna de las 365 funciones que se alcanzan por
+  llamadas directas desde `0x4c3940` (sin la CRT) escribe por su dirección el nivel del trapecio
+  (`0x7b4ccb8`), las olas (`0x78acbd8`), el corrimiento del agua (`0x78ecbec`), el yaw (`0x7d36870`),
+  el zoom (`0x7d3689c`), el temblor (`0x7d325c8`), la escena (`0x6d5dc8`), `0x7d3a101`, `0x7d3a13e` ni
+  `0x7d3a140`; de lo del dibujo, la carga escribe solo `0x6c9d58`, el pase del pasto (`0x5f87b0`).
+
+Con todo cerrado, la segunda saca los mismos `rand()` que una primera con el mismo registro y el
+mismo mapa (P-C39). Lo que `0x61a560` suelta antes del pasto no llama a `rand()` directamente
+(`0x6070a0`, `0x612230`, `0x612d50`, `0x607b40`, `0x510f70` con `0x401040`, `0x421d60`, `0x4fb1a0` y
+`0x414340`, y `0x451d10`/`0x451590`; sin seguir las llamadas virtuales de las telas en `0x4fb1a0`), y
+los objetos del 0 y del 2 no lo piden al crearse.
+
+MuRet (`Scenes::ApplyWorldEntry`) no la distingue: corre todo de nuevo sobre el `WorldState` que dura
+la sesión, con `LoadMap` siempre y el héroe publicado en `WorldRuntime::hero`, que cambia recién en
+`SettleWorldEntry`. Lo reproduce el comportamiento del original, con el anterior vivo y el `+0x358`
+en él (`WorldEntryTest.ASecondEntryReloadsAndRedrawsTheHeroSlot`,
+`ASecondEntryToTheOtherReferenceMapLoadsItAndKeepsThePreviousHero`,
+`TheSecondEntryRecalculatesThe358OfThePreviousHero` y `AnEntryInTheWorldIsAppliedAgainByTheSession`).
+Después de un frame del juego, `GameScene::PrepareFrame` deja `WorldRuntime::fullSetScan` sin valor:
+una segunda respuesta a otro lugar corta en `0x550990`, con el anterior todavía publicado, el nuevo
+construido y el contador como estaba (`AfterAGameFrameASecondEntryElsewhereStopsAt0x550990`, P-C40 c);
+al mismo lugar, `0x505820` vuelve a correr con el héroe reconstruido y la entrada sigue
+(`AfterAGameFrameASecondEntryOnTheSameSlotScansTheRebuiltHero`). MuRet no tiene en el mundo ni
+cuervos ni telas que soltar, ni la lista `0x7245c8`. Los tiles los sube el dibujo del juego por número
+de mapa (`TerrainTiles`): con el mismo mapa conserva los que ya subió, que salen de los mismos archivos;
+hoy el primer frame del juego corta en el pasto y la escena no vuelve a dibujar (T8). Lo que pide la
+VM, P-C43.
 
 ### El equipo propio en el personaje
 

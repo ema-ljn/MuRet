@@ -24,6 +24,7 @@
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "World/ModelEffects.h"
+#include "World/WorldTerrain.h"
 
 #include "support/FakeTextureStore.h"
 #include "support/GoldenDir.h"
@@ -224,6 +225,23 @@ TEST_F(WorldEntryTest, TheOldRecordDressesTheHeroBeforeItIsEmptied)
     }
 }
 
+// La respuesta del F3 03 del GS, cifrada: C1 de 0x34 bytes con la celda (x, y) del mapa 0, la dirección 0,
+// el PK 4 (pkt[0x2c]) y el CtlCode 0x20 (pkt[0x2d]).
+std::vector<std::byte> EntryPacket(std::uint8_t x, std::uint8_t y, Client::Network::PacketSerials& serials)
+{
+    constexpr std::size_t Size = 0x34;
+    std::vector<std::byte> reply(Size);
+    reply[0] = std::byte{0xC1};
+    reply[1] = std::byte{Size};
+    reply[2] = std::byte{0xF3};
+    reply[3] = std::byte{0x03};
+    reply[4] = std::byte{x};
+    reply[5] = std::byte{y};
+    reply[0x2c] = std::byte{4};
+    reply[0x2d] = std::byte{0x20};
+    return Client::Tests::FromTheGameServer(reply, serials);
+}
+
 // Por la sesión: 0x512a30 corta (hoy en 0x550d10, en su primera llamada, 0x40e1b0) y la sesión falla con el
 // héroe sin publicar, el contador sin tocar y los rand() que el original sacó hasta ahí.
 TEST_F(WorldEntryTest, AnEquipmentFailureLeavesTheHeroUnpublished)
@@ -233,14 +251,8 @@ TEST_F(WorldEntryTest, AnEquipmentFailureLeavesTheHeroUnpublished)
     Client::Tests::LoggedInSession online(&applier);
     ASSERT_NO_FATAL_FAILURE(online.LogIn());
     tested.world.Runtime().warpCounter = Client::Scenes::WorldLoadingWait;
-    std::vector<std::byte> reply(0x34);
-    for (const auto& [at, value] : {std::pair{0, 0xC1}, std::pair{1, 0x34}, std::pair{2, 0xF3}, std::pair{3, 0x03},
-                                    std::pair{4, 133}, std::pair{5, 127}, std::pair{0x2c, 4}, std::pair{0x2d, 0x20}})
-    {
-        reply[static_cast<std::size_t>(at)] = static_cast<std::byte>(value);
-    }
     Client::Network::PacketSerials serials;
-    online.socket.reads = {Client::Tests::FromTheGameServer(reply, serials)};
+    online.socket.reads = {EntryPacket(133, 127, serials)};
 
     static_cast<void>(online.session.Poll());
 
@@ -545,5 +557,343 @@ TEST_F(WorldEntryTest, ARavenStopsAt420d60AfterTheWait)
     EXPECT_NE(settled.Error().find("0x420d60"), std::string::npos);
     EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold);
     EXPECT_EQ(tested.AliveArrivals(), 1u);
+}
+
+// ---- Una segunda respuesta (T13; 06, "La entrada al mundo", "Una segunda respuesta") ----
+
+// Una entrada entera con las tablas de los conjuntos y el registro vacío, en el 0 o en el 2: los cuatro
+// cierres del registro, el pasto, el lugar, 0x511290, los dos sufijos de 0x4f2250, la cola de 0x550d10, el
+// contador y las ventanas.
+constexpr int WholeEntryRandoms = (4 * OwnRecordClose) + GrassRandoms + HeroRandom + ConstructionRandoms +
+                                  (2 * StopRandom) + TailRandoms + WaitClose + WindowRandoms;
+// Lo que corta 0x550990 sin saber qué dejó 0x505820: el primer y el segundo cierre en línea, el pasto, el
+// lugar, 0x511290, el sufijo de 0x4f2250 y el cierre de 0x512a30, sin la cola.
+constexpr int EntryUpTo550990 = (3 * OwnRecordClose) + GrassRandoms + HeroRandom + ConstructionRandoms + StopRandom;
+// Un frame del juego sin pasos: el contador (0x637229) y los dos accesos a la celda del héroe (0x635ae0).
+constexpr int FrameRandoms = 4 + 8;
+// Del lugar de una entrada al de la siguiente, con un frame del juego en el medio.
+constexpr int BetweenTheSlotsWithAFrame =
+    WholeEntryRandoms - (OwnRecordClose + GrassRandoms + HeroRandom) + FrameRandoms + OwnRecordClose + GrassRandoms;
+
+// Los mapas de referencia, cada uno con dos celdas.
+struct ReferenceMap
+{
+    std::uint8_t map = 0;
+    std::uint8_t firstX = 0;
+    std::uint8_t firstY = 0;
+    std::uint8_t secondX = 0;
+    std::uint8_t secondY = 0;
+};
+constexpr ReferenceMap Lorencia{.map = 0, .firstX = 133, .firstY = 127, .secondX = 143, .secondY = 120};
+constexpr ReferenceMap Devias{.map = 2, .firstX = 220, .firstY = 30, .secondX = 210, .secondY = 40};
+
+// La respuesta del cable en la celda (x, y) de `map`, con `direction`.
+Client::Protocol::Character::CharacterSelectResult ReplyAt(std::uint8_t map, std::uint8_t x, std::uint8_t y,
+                                                           std::uint8_t direction)
+{
+    Client::Protocol::Character::CharacterSelectResult reply = CableReply();
+    reply.map = map;
+    reply.x = x;
+    reply.y = y;
+    reply.direction = direction;
+    return reply;
+}
+
+CrtRandom Advanced(CrtRandom random, int draws)
+{
+    for (int draw = 0; draw < draws; ++draw)
+    {
+        static_cast<void>(random.Next());
+    }
+    return random;
+}
+
+// El lugar que sortea la próxima respuesta desde `random`: el rand() después del primer cierre y el pasto.
+std::size_t NextHeroSlot(const CrtRandom& random)
+{
+    CrtRandom replay = Advanced(random, OwnRecordClose + GrassRandoms);
+    return static_cast<std::size_t>(replay.Next() % 400);
+}
+
+// La primera semilla con la que las dos entradas de Lorencia, con un frame del juego en el medio, sortean el
+// mismo lugar.
+std::uint32_t SeedOfTheSameSlotAfterAFrame()
+{
+    return Client::Tests::FirstSeedWhere(
+        [](CrtRandom& random)
+        {
+            random = Advanced(random, OwnRecordClose + GrassRandoms);
+            const int first = random.Next() % 400;
+            random = Advanced(random, BetweenTheSlotsWithAFrame);
+            return random.Next() % 400 == first;
+        });
+}
+
+std::size_t AliveActors(const Entry& tested)
+{
+    return static_cast<std::size_t>(
+        std::ranges::count_if(tested.world.Actors(), [](const ActorState& actor) { return actor.alive; }));
+}
+
+// Un frame del juego sin pasos, como AZeroStepFrameAfterTheEntryDrawsTheTerrainUpToTheGrass: en el original
+// llega a los personajes (0x6374dd → 0x510d00), y MuRet, que corta en el pasto, ya no sabe qué dejó 0x505820.
+void DrawAGameFrame(Entry& tested)
+{
+    tested.world.Runtime().drawingEnabled = true;
+    Client::Tests::FakeTextureStore store;
+    Client::Scenes::GameScene scene(Client::Scenes::SceneContext{.dataRoot = tested.dataRoot,
+                                                                 .textures = store,
+                                                                 .log = tested.log,
+                                                                 .cloth = &tested.cloth,
+                                                                 .camera = &tested.camera,
+                                                                 .cameraInput = &tested.cameraInput,
+                                                                 .world = &tested.world},
+                                    nullptr);
+    ASSERT_TRUE(scene.Enter().HasValue());
+    Client::Tests::RecordingFrameTarget target;
+    const CrtRandom before = tested.cloth.random;
+
+    scene.PrepareFrame();
+    ASSERT_FALSE(scene.HoldsTheLastFrame());
+    scene.Render(target.BeginFrame({}), 0.0f);
+
+    ASSERT_TRUE(scene.Failure().has_value());
+    ASSERT_NE(scene.Failure()->find("0x5fc353"), std::string::npos) << *scene.Failure();
+    ASSERT_FALSE(tested.world.Runtime().fullSetScan.has_value());
+    ASSERT_EQ(tested.cloth.random.State(), Advanced(before, FrameRandoms).State());
+    scene.Leave();
+}
+
+// Con el héroe en el mundo, otro F3 03 al mismo mapa, en Lorencia y en Devias: 0x61a560 lo vuelve a cargar
+// sin compararlo con el cargado (los objetos otra vez, no además; el pasto con 65.536 rand() nuevos; de los
+// efectos de llegada, solo los dos de esta), el lugar se sortea de nuevo después del pasto y el héroe nuevo
+// se construye y se publica ahí. El anterior tiene la clave del jugador: 0x510f70 no lo mata y queda como
+// estaba, vivo en su lugar (Q-C196). Los rand() son los de la primera.
+TEST_F(WorldEntryTest, ASecondEntryReloadsAndRedrawsTheHeroSlot)
+{
+    for (const ReferenceMap& probe : {Lorencia, Devias})
+    {
+        SCOPED_TRACE(static_cast<int>(probe.map));
+        Entry tested(m_dataRoot, Seed);
+        const Client::Data::Tables::ItemSetTables sets = NoSets();
+        WorldEntryResources resources = tested.Resources();
+        resources.itemSetTables = &sets;
+        RecordingPublisher publisher;
+        const auto first =
+            ApplyWorldEntry(ReplyAt(probe.map, probe.firstX, probe.firstY, 0), PlayerKey, resources, publisher);
+        ASSERT_TRUE(first.HasValue()) << first.Error();
+        const std::size_t firstSlot = tested.world.Runtime().hero;
+        const ActorState previousBefore = tested.world.Actors()[firstSlot];
+        const std::size_t objects = tested.world.Map().objects.size();
+        const CrtRandom afterFirst = tested.cloth.random;
+        const std::size_t secondSlot = NextHeroSlot(afterFirst);
+        ASSERT_NE(secondSlot, firstSlot);
+
+        const auto second =
+            ApplyWorldEntry(ReplyAt(probe.map, probe.secondX, probe.secondY, 3), PlayerKey, resources, publisher);
+
+        ASSERT_TRUE(second.HasValue()) << second.Error();
+        EXPECT_EQ(publisher.calls, 2);
+        EXPECT_EQ(tested.world.Runtime().map, probe.map);
+        EXPECT_EQ(tested.world.Runtime().heroSlot, static_cast<std::int32_t>(secondSlot));
+        EXPECT_EQ(tested.world.Runtime().hero, secondSlot);
+        const ActorState& hero = tested.world.Actors()[secondSlot];
+        EXPECT_TRUE(hero.alive);
+        EXPECT_EQ(hero.key, PlayerKey);
+        EXPECT_EQ(hero.position.x, (static_cast<float>(probe.secondX) * 100.0f) + 50.0f);
+        EXPECT_EQ(hero.position.y, (static_cast<float>(probe.secondY) * 100.0f) + 50.0f);
+        EXPECT_EQ(hero.angles.z, 90.0f);
+        EXPECT_EQ(hero.alpha, 0.0f);
+        EXPECT_EQ(hero.revision, 1u);
+        EXPECT_EQ(tested.cameraInput.hero, hero.position);
+        const ActorState& previous = tested.world.Actors()[firstSlot];
+        EXPECT_TRUE(previous.alive);
+        EXPECT_EQ(previous.key, PlayerKey);
+        EXPECT_EQ(previous.cellX, probe.firstX);
+        EXPECT_EQ(previous.cellY, probe.firstY);
+        EXPECT_EQ(previous.position, previousBefore.position);
+        EXPECT_EQ(previous.revision, previousBefore.revision);
+        EXPECT_EQ(AliveActors(tested), 2u);
+        EXPECT_EQ(tested.world.Map().objects.size(), objects);
+        EXPECT_EQ(tested.AliveArrivals(), 2u);
+        CrtRandom grass = Advanced(afterFirst, OwnRecordClose);
+        EXPECT_EQ(tested.world.Map().grassOffsets.front(), static_cast<float>(grass.Next() % 4) * 0.25f);
+        EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold);
+        EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
+        EXPECT_EQ(tested.cloth.random.State(), Advanced(afterFirst, WholeEntryRandoms).State());
+    }
+}
+
+// La segunda respuesta en el otro mapa de referencia, de Lorencia a Devias y al revés: el terreno, los
+// objetos (en Devias, los especiales 0x201 y 0x202 primero) y la cámara son los del mapa nuevo, y el héroe
+// anterior sigue vivo con la posición del de antes. Los objetos del 0 y del 2 no sacan rand(): la cuenta es
+// la de una entrada al mismo mapa.
+TEST_F(WorldEntryTest, ASecondEntryToTheOtherReferenceMapLoadsItAndKeepsThePreviousHero)
+{
+    struct MapChange
+    {
+        ReferenceMap from;
+        ReferenceMap to;
+    };
+    for (const MapChange& change : {MapChange{Lorencia, Devias}, MapChange{Devias, Lorencia}})
+    {
+        const ReferenceMap& from = change.from;
+        const ReferenceMap& to = change.to;
+        SCOPED_TRACE(static_cast<int>(to.map));
+        Entry tested(m_dataRoot, Seed);
+        const Client::Data::Tables::ItemSetTables sets = NoSets();
+        WorldEntryResources resources = tested.Resources();
+        resources.itemSetTables = &sets;
+        RecordingPublisher publisher;
+        ASSERT_TRUE(ApplyWorldEntry(ReplyAt(from.map, from.firstX, from.firstY, 0), PlayerKey, resources, publisher)
+                        .HasValue());
+        const std::size_t firstSlot = tested.world.Runtime().hero;
+        const ActorState previousBefore = tested.world.Actors()[firstSlot];
+        const CrtRandom afterFirst = tested.cloth.random;
+        const std::size_t secondSlot = NextHeroSlot(afterFirst);
+        ASSERT_NE(secondSlot, firstSlot);
+
+        const auto second = ApplyWorldEntry(ReplyAt(to.map, to.firstX, to.firstY, 0), PlayerKey, resources, publisher);
+
+        ASSERT_TRUE(second.HasValue()) << second.Error();
+        EXPECT_EQ(tested.world.Runtime().map, to.map);
+        EXPECT_EQ(tested.cameraInput.map, to.map);
+        const auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, to.map);
+        ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
+        ASSERT_TRUE(tested.world.Map().terrain.attributes);
+        EXPECT_EQ(tested.world.Map().terrain.attributes->cells, terrain.Value().attributes->cells);
+        ASSERT_FALSE(tested.world.Map().objects.empty());
+        EXPECT_EQ(tested.world.Map().objects.front().type == 0x201, to.map == Devias.map);
+        EXPECT_EQ(tested.world.Runtime().hero, secondSlot);
+        const ActorState& hero = tested.world.Actors()[secondSlot];
+        EXPECT_EQ(hero.position.x, (static_cast<float>(to.firstX) * 100.0f) + 50.0f);
+        EXPECT_EQ(hero.position.y, (static_cast<float>(to.firstY) * 100.0f) + 50.0f);
+        const ActorState& previous = tested.world.Actors()[firstSlot];
+        EXPECT_TRUE(previous.alive);
+        EXPECT_EQ(previous.position, previousBefore.position);
+        EXPECT_EQ(tested.AliveArrivals(), 2u);
+        EXPECT_EQ(tested.cloth.random.State(), Advanced(afterFirst, WholeEntryRandoms).State());
+    }
+}
+
+// Q-C197: mientras 0x512a30 viste al héroe nuevo, el publicado (0x743a170) es el anterior, y 0x40d010 le
+// pone a él el +0x358 en 0 (0x40d07d). El nuevo lo tiene en 0 desde 0x511290 (0x511c99).
+TEST_F(WorldEntryTest, TheSecondEntryRecalculatesThe358OfThePreviousHero)
+{
+    Entry tested(m_dataRoot, Seed);
+    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    WorldEntryResources resources = tested.Resources();
+    resources.itemSetTables = &sets;
+    RecordingPublisher publisher;
+    ASSERT_TRUE(ApplyWorldEntry(CableReply(), PlayerKey, resources, publisher).HasValue());
+    ActorState& previous = tested.world.Actors()[tested.world.Runtime().hero];
+    previous.byte358 = 1;
+    const std::size_t secondSlot = NextHeroSlot(tested.cloth.random);
+    ASSERT_NE(secondSlot, tested.world.Runtime().hero);
+    tested.world.Actors()[secondSlot].byte358 = 1;
+
+    ASSERT_TRUE(ApplyWorldEntry(CableReply(), PlayerKey, resources, publisher).HasValue());
+
+    EXPECT_EQ(previous.byte358, 0);
+    EXPECT_EQ(tested.world.Actors()[secondSlot].byte358, 0);
+}
+
+// Después de un frame del juego, una segunda respuesta en otro lugar viste al nuevo con el anterior
+// publicado: 0x505820 no corre y 0x550990 lee lo que dejó el dibujo de los personajes del frame, que MuRet
+// no tiene. Corta ahí (P-C40) con el anterior todavía publicado y el nuevo construido, los dos vivos, y el
+// contador como estaba.
+TEST_F(WorldEntryTest, AfterAGameFrameASecondEntryElsewhereStopsAt0x550990)
+{
+    Entry tested(m_dataRoot, Seed);
+    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    WorldEntryResources resources = tested.Resources();
+    resources.itemSetTables = &sets;
+    RecordingPublisher publisher;
+    ASSERT_TRUE(ApplyWorldEntry(CableReply(), PlayerKey, resources, publisher).HasValue());
+    const std::size_t firstSlot = tested.world.Runtime().hero;
+    ASSERT_NO_FATAL_FAILURE(DrawAGameFrame(tested));
+    // Como si hubieran corrido pasos (0x59af01).
+    tested.world.Runtime().warpCounter = 7;
+    const CrtRandom afterTheFrame = tested.cloth.random;
+    const std::size_t secondSlot = NextHeroSlot(afterTheFrame);
+    ASSERT_NE(secondSlot, firstSlot);
+
+    const auto second = ApplyWorldEntry(ReplyAt(0, 143, 120, 3), PlayerKey, resources, publisher);
+
+    ASSERT_FALSE(second.HasValue());
+    EXPECT_NE(second.Error().find("0x550990"), std::string::npos) << second.Error();
+    EXPECT_EQ(publisher.calls, 1);
+    EXPECT_EQ(tested.world.Runtime().hero, firstSlot);
+    EXPECT_EQ(tested.world.Runtime().heroSlot, static_cast<std::int32_t>(secondSlot));
+    EXPECT_TRUE(tested.world.Actors()[firstSlot].alive);
+    EXPECT_TRUE(tested.world.Actors()[secondSlot].alive);
+    EXPECT_EQ(tested.world.Actors()[secondSlot].key, PlayerKey);
+    EXPECT_EQ(tested.world.Runtime().warpCounter, 7);
+    EXPECT_FALSE(tested.world.Runtime().fullSetScan.has_value());
+    EXPECT_EQ(tested.world.Runtime().ownRecordDepth, 0);
+    EXPECT_EQ(tested.cloth.random.State(), Advanced(afterTheFrame, EntryUpTo550990).State());
+}
+
+// Con la semilla que sortea dos veces el mismo lugar, la segunda respuesta reconstruye al héroe publicado en
+// su registro: 0x512a30 viste al publicado, 0x505820 corre con él (0x512ee7) y deja lo suyo, y 0x550990 lo
+// lee aunque un frame del juego haya borrado lo de antes. Las partes de la clase no son un conjunto:
+// [0x743a178] en 0 y [0x743a17c] en 1.
+TEST_F(WorldEntryTest, AfterAGameFrameASecondEntryOnTheSameSlotScansTheRebuiltHero)
+{
+    const std::uint32_t seed = SeedOfTheSameSlotAfterAFrame();
+    Entry tested(m_dataRoot, seed);
+    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    WorldEntryResources resources = tested.Resources();
+    resources.itemSetTables = &sets;
+    RecordingPublisher publisher;
+    ASSERT_TRUE(ApplyWorldEntry(CableReply(), PlayerKey, resources, publisher).HasValue());
+    const std::size_t slot = tested.world.Runtime().hero;
+    ASSERT_NO_FATAL_FAILURE(DrawAGameFrame(tested));
+    const CrtRandom afterTheFrame = tested.cloth.random;
+    ASSERT_EQ(NextHeroSlot(afterTheFrame), slot);
+
+    const auto second = ApplyWorldEntry(ReplyAt(0, 143, 120, 3), PlayerKey, resources, publisher);
+
+    ASSERT_TRUE(second.HasValue()) << second.Error();
+    EXPECT_EQ(publisher.calls, 2);
+    EXPECT_EQ(tested.world.Runtime().hero, slot);
+    const ActorState& hero = tested.world.Actors()[slot];
+    EXPECT_EQ(hero.revision, 2u);
+    EXPECT_EQ(hero.cellX, 143);
+    EXPECT_EQ(hero.cellY, 120);
+    EXPECT_EQ(AliveActors(tested), 1u);
+    ASSERT_TRUE(tested.world.Runtime().fullSetScan.has_value());
+    EXPECT_EQ(tested.world.Runtime().fullSetScan->dword743a178, 0);
+    EXPECT_EQ(tested.world.Runtime().fullSetScan->byte743a17c, 1);
+    EXPECT_EQ(tested.cloth.random.State(), Advanced(afterTheFrame, WholeEntryRandoms).State());
+}
+
+// Por la sesión: con el 0x3d ya publicado, otro F3 03 cifrado va igual a 0x4c3940 (0x4e306b no mira el
+// estado ni la escena) y vuelve a publicar el 0x3d, con el héroe nuevo.
+TEST_F(WorldEntryTest, AnEntryInTheWorldIsAppliedAgainByTheSession)
+{
+    Entry tested(m_dataRoot, Seed);
+    const Client::Data::Tables::ItemSetTables sets = NoSets();
+    WorldEntryResources resources = tested.Resources();
+    resources.itemSetTables = &sets;
+    Client::Scenes::SessionEventApplier applier(resources);
+    Client::Tests::LoggedInSession online(&applier);
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    Client::Network::PacketSerials serials;
+    online.socket.reads = {EntryPacket(133, 127, serials)};
+    static_cast<void>(online.session.Poll());
+    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    const std::size_t firstSlot = tested.world.Runtime().hero;
+    const std::size_t secondSlot = NextHeroSlot(tested.cloth.random);
+    ASSERT_NE(secondSlot, firstSlot);
+
+    online.socket.reads = {EntryPacket(143, 120, serials)};
+    static_cast<void>(online.session.Poll());
+
+    EXPECT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    EXPECT_EQ(tested.world.Runtime().hero, secondSlot);
+    EXPECT_EQ(tested.Hero().cellX, 143);
+    EXPECT_TRUE(tested.world.Actors()[firstSlot].alive);
+    EXPECT_EQ(tested.world.Runtime().warpCounter, Client::Scenes::WaitDrawThreshold);
 }
 } // namespace

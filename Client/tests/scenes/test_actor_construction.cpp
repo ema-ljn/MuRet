@@ -138,12 +138,14 @@ TEST_F(ActorConstructionTest, TheOld1c15AddsThePetOffsetOutsideTheSafeZone)
     EXPECT_EQ(safe.safeZone, 1);
 }
 
-// El estado de partida que lee 0x512a30 después: el equipo sin ítem, las acciones en 1 y +0x3e3 en 0.
+// El estado de partida que lee 0x512a30 después: el equipo sin ítem, las acciones en 1, +0x3e3 en 0 y
+// +0x358 en 0 (0x511c99).
 TEST_F(ActorConstructionTest, LeavesThePlayerReadyToDress)
 {
     ActorState actor = Client::Tests::UnarmedPlayer(3);
     actor.hands[0] = {.model = 0x300, .level = 7, .flags1b = 1, .flags1c = 2};
     actor.byte3e3 = 1;
+    actor.byte358 = 1;
     actor.animation.action = 40;
     actor.alpha = 0.0f;
 
@@ -161,6 +163,7 @@ TEST_F(ActorConstructionTest, LeavesThePlayerReadyToDress)
     EXPECT_EQ(actor.wings.model, NoItemModel);
     EXPECT_EQ(actor.pet.model, NoItemModel);
     EXPECT_EQ(actor.byte3e3, 0);
+    EXPECT_EQ(actor.byte358, 0);
     EXPECT_EQ(actor.characterClass, 0);
     EXPECT_EQ(actor.animation.action, 1);
     EXPECT_EQ(actor.animation.previousAction, 1);

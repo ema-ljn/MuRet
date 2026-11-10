@@ -45,8 +45,10 @@ constexpr int GrassSteps = 4;
 constexpr float GrassStep = 0.25f;
 
 // 0x510f70(clave): mata al vivo cuya clave, con signo (movsx en 0x510f8a), no es la del DWORD que
-// recibe. Lo que suelta de cada uno (0x401040, la tabla de caballos de 0x7d335d0, 0x421d60, 0x4fb1a0 y
-// 0x414340) no lo tiene MuRet en el mundo.
+// recibe: +0 en 0, 0x401040 y el caballo de la tabla 0x7d335d0 que lo lleva (+0x108). El muerto y el de
+// la misma clave saltan los dos a 0x510fc2: con los 400, también con el héroe que sobrevive, suelta el
+// cuervo (0x421d60, +0x430), las telas (0x4fb1a0) y +0x364 (0x414340) (Q-C194). MuRet no tiene nada de
+// eso en el mundo: ni caballos, ni cuervos, ni telas de los personajes del juego.
 void KillOtherActors(std::span<ActorState, ActorPoolSize> actors, std::uint16_t key)
 {
     for (ActorState& actor : actors.first<KilledActorCount>())

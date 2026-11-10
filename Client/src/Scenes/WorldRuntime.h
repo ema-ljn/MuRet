@@ -49,10 +49,12 @@ struct WorldRuntime
     // Cuántos accesos tienen abierto el registro propio ([0x7681eb4], 0xf08 bytes).
     std::uint8_t ownRecordDepth = 0;
     // DAT_057678b0: el lugar del pool que la respuesta del F3 03 elige para el héroe, rand() % 400
-    // (0x4c44d4; 06, "La entrada al mundo", fila 3).
+    // (0x4c44d4, la única escritura; 06, "La entrada al mundo", fila 3). Cada respuesta lo vuelve a
+    // sortear.
     std::int32_t heroSlot = 0;
     // DAT_0743a170, el héroe publicado, como lugar del pool: WinMain lo deja en el 0 (0x4bafdf) y la
-    // respuesta del F3 03 lo pasa al de heroSlot recién después de vestirlo con 0x512a30 (0x4c4725).
+    // respuesta del F3 03 lo pasa al de heroSlot recién después de vestirlo con 0x512a30 (0x4c4725). No
+    // lo escribe nadie más: en una segunda respuesta, hasta ahí es el héroe anterior.
     std::size_t hero = 0;
     // [0x743a178] y [0x743a17c], lo que dejó el último 0x505820 (06, "El conjunto completo de 0x505820"): en
     // la .bss, 0 al arrancar. Lo escriben 0x512a30 con el héroe publicado y el dibujo de los personajes

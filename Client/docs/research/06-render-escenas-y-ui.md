@@ -3555,6 +3555,15 @@ La validación nativa/VM sigue separada del port; no se declara cerrada la CL7.
 
 ### La pose compartida entre escenas
 
+Las aves dibujan con el flag de pose 1 y los peces con 0 (`0x446b60/0x446f00`). El recorrido
+suma/resta yaw90 aritméticamente incluso en muertos (aves `0x10f`, excepción), publica seen por
+el trapecio con margen −20 y conserva los glows AE/BC. La sombra usa su propia geometría y alpha
+0,2; falta en mapa 10 y en peces b9/ba. Antes de mirar las mallas, `0x446e9d..0x446eb3` escribe
+XYZ del origen del modelo a (x,y,Height), conservando escala. El siguiente BC transparente, que no
+volvió a posar, usa ese origen del suelo y los huesos retenidos. Los dos pases puros 48→44 de
+171/counter1 (`0x446c35..0x446c80`) siguen visibles en frames intermedios; los creadores de
+tormenta y sus sorteos sólo corren en frames nativos.
+
 El piso tiene otro gate: `0x608b0a..0x608b20` posa sin traslación aun con alpha0; `0x60cf70` sólo
 publica el skin/cuerpo con alpha>0,01. `PublishFaunaFloorPose` conserva esa diferencia. Los objetos,
 piso, personajes, helpers y efectos comparten el mismo carry en orden. En frames de proyección de

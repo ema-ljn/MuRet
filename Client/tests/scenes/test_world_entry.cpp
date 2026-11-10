@@ -915,9 +915,10 @@ TEST_F(WorldEntryTest, AnEntryInTheWorldIsAppliedAgainByTheSession)
 // T11b, de punta a punta: el dibujo de la selección (0x63475c) deja en los globales el trapecio de su punto fijo;
 // la entrada al mundo (F3 03) no lo toca, y el primer paso del juego después de la espera lo lee en 0x508f00
 // (0x63710f). En Lorencia el héroe de (133, 127) cae adentro y se ve; en Devias el de (220, 30) cae afuera
-// (Q-C216). Los rand() del paso: los 8 de MoveHero, los 8 del TerrainWall y, con el héroe visto, los 8 de su
-// celda lógica y el rand() & 7; después, la tela. El frame que sigue pasa las marcas del suelo (0x5fc365), que no
-// sacan rand(), y llega a los objetos (0x6374ce) con sus 4 + 8.
+// (Q-C216). Los rand() del paso: los 8 de MoveHero, los 8 del TerrainWall, el cuerpo del héroe (0x4fd5f0: el
+// cierre del registro propio en 0x4fc450 y el rand() % 6 de 0x4fd7e4) y, con el héroe visto, los 8 de su celda
+// lógica y el rand() & 7; después, la tela. El frame que sigue pasa las marcas del suelo (0x5fc365), que no sacan
+// rand(), y llega a los objetos (0x6374ce) con sus 4 + 8.
 TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
 {
     const Client::World::TerrainPolygon selected = Client::World::TerrainPolygonOf(
@@ -957,10 +958,11 @@ TEST_F(WorldEntryTest, TheFirstGameStepReadsTheTrapezoidOfTheLastSelectionDraw)
         EXPECT_EQ(tested.world.Runtime().terrainPolygon.y, selected.y);
         // Lo que dejó la carga del 54 de la selección (0x633f30): el mundo cargado.
         tested.world.Runtime().drawingEnabled = true;
-        Client::Scenes::GameScene game(context, nullptr);
+        Client::Scenes::GameScene game(context, nullptr, &tested.models);
         ASSERT_TRUE(game.Enter().HasValue());
         Client::Render::Models::ClothWorld reference = tested.cloth;
-        reference.random = Advanced(tested.cloth.random, seen ? 8 + 8 + 8 + 1 : 8 + 8);
+        const int body = OwnRecordClose + 1;
+        reference.random = Advanced(tested.cloth.random, seen ? 8 + 8 + body + 8 + 1 : 8 + 8 + body);
         Client::Render::Models::StepTheClothWorld(reference);
 
         game.Step(Client::Input::InputState{});

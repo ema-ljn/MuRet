@@ -176,17 +176,22 @@ TEST_F(ActorConstructionTest, LeavesThePlayerReadyToDress)
 }
 
 // Lo que lee el paso de los personajes (0x508f00): sin verse (+0x16c, 0x511bd8) y sin morirse (+0x389,
-// 0x511c05), aunque el lugar los tuviera de antes.
+// 0x511c05), aunque el lugar los tuviera de antes. Y lo que lee 0x4e9980 desde su cuerpo (0x4fd5f0): el alpha de a
+// 0,05 (+0x16d, 0x511bdf) y la luz del blendMesh en 1,0 (+0x68, 0x512499).
 TEST_F(ActorConstructionTest, LeavesThePlayerUnseenAndNotDying)
 {
     ActorState actor = Client::Tests::UnarmedPlayer(3);
     actor.seen = true;
     actor.dying = 1;
+    actor.alphaMode = 0;
+    actor.blendMeshLight = 0.25f;
 
     ASSERT_TRUE(ConstructActor(actor, Player, ActorPlacement{133, 127, 0.0f}, Context(), cloth).HasValue());
 
     EXPECT_FALSE(actor.seen);
     EXPECT_EQ(actor.dying, 0);
+    EXPECT_EQ(actor.alphaMode, 1);
+    EXPECT_EQ(actor.blendMeshLight, 1.0f);
 }
 
 // Los casos de los otros tipos no están leídos: corta sin tocar al personaje ni gastar rand().

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Expected.h"
+#include "Data/Tables/ItemTable.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/SceneId.h"
 #include "World/TerrainCulling.h"
@@ -13,14 +14,15 @@
 namespace Client::Render::Models
 {
 class CrtRandom;
+struct Skeleton;
 } // namespace Client::Render::Models
 
 // El paso de los personajes (0x508f00, desde el juego en 0x63710f, la selección en 0x6342f9 y el login en
-// 0x634d13): el TerrainWall, si cada uno se ve y, por cada uno, 0x508ea0. MuRet lo corre en el juego con el
-// héroe, hasta la zona segura de 0x505de0 y lo que sigue hasta su final, y con los demás hasta 0x508ba0; corta
-// con error donde el original lee algo que MuRet no tiene. Contrato:
-// Client/docs/research/06-render-escenas-y-ui.md, "El paso de los personajes" y "El paso de los personajes en
-// la selección y el login".
+// 0x634d13): el TerrainWall, si cada uno se ve y, por cada uno, 0x508ea0: 0x508ba0 con los que no son el
+// héroe, el cuerpo (0x4fd5f0) por el camino del 0x20a quieto y 0x505de0 hasta su final con el héroe, y hasta
+// la cabeza con los demás. Corta con error donde el original lee algo que MuRet no tiene. Contrato:
+// Client/docs/research/06-render-escenas-y-ui.md, "El paso de los personajes", "El paso de los personajes en
+// la selección y el login" y "El cuerpo de los personajes (0x4fd5f0)".
 namespace Client::Scenes
 {
 class WorldState;
@@ -46,14 +48,20 @@ struct CharacterStepContext
     // dibujo del juego, el del último dibujo de la selección (Q-C216).
     WorldState& world;
     Render::Models::CrtRandom& random;
-    // DAT_006d5dc8. Solo en el juego el cuerpo del héroe (0x4fd5f0) es frontera (08 P-C44 a); en las demás
-    // escenas corta ahí, como con cualquier otro personaje.
+    // DAT_006d5dc8: la selección (4) decide el final de la animación con el frame + 2 (Q-C21), y el 0x607
+    // del mapa 7 de 0x505de0 es solo de la 5 (0x506cf8).
     SceneId scene = SceneId::Game;
+    // Player.bmd, el modelo 0x5769ad8 + 0x20a · 0xe0 de las acciones que leen 0x4f9580 y 0x4ec200. Sin él,
+    // el cuerpo corta en 0x4f9580.
+    const Render::Models::Skeleton* playerSkeleton = nullptr;
+    // *[0x7758550], Item.bmd en memoria: lo leen los helpers de 0x4fc450 y la acción de parado (0x4f2250)
+    // con un arma o un ítem puesto. nullptr si no se cargó: cortan donde lo leen.
+    const Data::Tables::ItemTable* items = nullptr;
 };
 
 // 0x508f00. Corta con error, en el orden del original, en el mapa 30 (0x412140), sin el mapa cargado
-// (0x508f14), en las ramas de 0x508ba0 que MuRet no tiene, en el cuerpo (0x4fd5f0) del primer vivo que no es
-// el héroe del juego y en las ramas de 0x505de0 que el héroe todavía no tiene. Lo que hizo antes del corte
-// queda, con los rand() que sacó.
+// (0x508f14), en las ramas de 0x508ba0 que MuRet no tiene, en las de 0x4fd5f0 fuera del 0x20a quieto (06, su
+// tabla de cortes), en la cabeza de 0x505de0 de un vivo visto que no es el héroe (0x5068eb) y en las ramas de
+// 0x505de0 que el héroe todavía no tiene. Lo que hizo antes del corte queda, con los rand() que sacó.
 [[nodiscard]] Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context);
 } // namespace Client::Scenes

@@ -2520,9 +2520,10 @@ esta `Data`: seguir la tabla de la carga, porque ningún NewFace comparte nombre
 modelos de antes.
 
 Decisiones, con lo que cuestan si están mal:
-- Ruling: la vista previa avanza una vez por paso y solo con la ventana arriba. El original la avanza
-  también desde la lógica de la escena, así que con la ventana arriba va dos veces más rápido, y
-  sigue avanzando bajo un aviso (D-C4). Si está mal, la vista previa saluda a la mitad de velocidad.
+- Ruling provisional de B3, reemplazado por la tarea 3 de CL7 (2026-11-10): la vista previa
+  avanzaba una vez por paso y solo con la ventana arriba. CL7 conecta `0x634303` sobre el actor
+  persistente: avanza también cerrada y bajo un aviso, y con la ventana arriba suma `0x63e430`,
+  como el original. D-C4 conserva la interpolación del dibujo.
 - Ruling: el objeto va en (50, 50, 0), sin la z del terreno del mapa 54, que es de la CL7. La cámara
   va con el objeto, así que no se ve. Si está mal, nada, hasta que algo del mundo entre en el
   viewport.

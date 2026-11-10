@@ -1361,29 +1361,13 @@ objetos como el logo (`0x5ffce0`). *Estático*, leído en la CL6.4.
 - **En cada paso** (`0x5fbf60`, desde la lógica del login, de la selección y del juego, en
   `0x636de8`): copia `0x7c0ccc4` a `0x7b4ccc4` en las celdas de la ventana que se ve (`0x7d2d364`
   a `0x6c9d68` + 3 en x, `0x7d2d368` a `0x6c9d6c` + 3 en y), donde después se suman las luces
-  dinámicas (`0x5f9780`, [Lo propio de Lorencia](#lo-propio-de-lorencia)).
+  dinámicas (`0x5f9780`, [Lo propio de Lorencia](#lo-propio-de-lorencia)). MuRet ya comparte el
+  rango y la tabla RGB entre escenas ([El buffer compartido de luz dinámica](#el-buffer-compartido-de-luz-dinámica));
+  eso no completa los productores de luz ni comparte los buffers de olas.
 - **En un punto** (`0x5f99e0`): con la escena distinta de 0, 1 y 3 y el terreno cargado
   (`0x7d2d35c`, que pone `0x5f9000` al cargar), la celda es x · 0,01 y y · 0,01 truncados, y entre
   0 y 254 la luz es la bilineal de `0x7b4ccc4` entre las cuatro de alrededor (primero cada columna
   en y). Fuera, (0, 0, 0). Como `ftol` trunca hacia el 0, de −1 a 0 todavía es la celda 0.
-
-### El buffer compartido de luz dinámica
-
-**Estático**, `0x5fbf60` y sus datos: `0x7b4ccc4` nace en cero en la cola virtual de `.data`.
-El rango no nace vacío: firstX/Y están en `.bss`, pero lastX/Y (`0x6c9d68/0x6c9d6c`) contienen255.
-La primera copia cubre la grilla; las siguientes copian la ventana publicada por el dibujo
-anterior, ampliada3 y envuelta en256. Fuera de esa ventana se conserva el buffer anterior. Dibujar
-solo publica el rango; no hace una copia implícita de la base.
-
-`DynamicWorldLight` pertenece a `WorldState`, junto con el pool durable de partículas y su viento.
-`Update` conserva la historia fuera de la ventana y `PublishRange` recibe el rango del dibujo; el owner
-no se reconstruye al cambiar de escena. Este PR aporta el estado y sus operaciones. Las conexiones
-que copian la base sombreada y prestan la luz a login, selección y juego se integran en sus PRs de
-escena; los productores de fuegos y otros casos del mundo también quedan separados. No cierra
-H3.4 ni la comparación nativa de luces. `DynamicWorldLightTest` fija el primer estado, la ventana,
-el envolvimiento y que publicar otro rango no copie ni borre implícitamente la base.
-
-
 
 ### El mundo del login
 
@@ -1977,7 +1961,7 @@ El resto de `0x634c60` (por paso) y de `0x6350b0` (por frame), llamada por llama
   gira hasta ±64° y se inclina entre −16° y 15°, y lo siguen las dos telas del casco y sus 30 destellos. MuRet:
   `Scenes::StepCharacterHead`, bit a bit contra el código real emulado (`tests/vectors/world55/head.txt`, 3.400 pasos), y la
   cabeza del paso en el dibujo: el original no la interpola. Desde CL7 hito 1 la corre también `Scenes::StepCharacters`
-  con cada `0x20a` (`ActorState::headTurn`), en el juego; el login sigue con la suya hasta llamarlo (P-C54,
+  con cada `0x20a` (`ActorState::headTurn`), en el juego y en el login, que lo llama en `0x634d13` (P-C56,
   [§ Los efectos de los personajes](#los-efectos-de-los-personajes-0x505de0)).
 - **La cámara, confirmada:** `0x635ae0` es fija en la escena 2. El único corrimiento posible es el
   del bit `0x80` del atributo de la celda del héroe, y no aplica: el héroe tiene las celdas en
@@ -2539,8 +2523,9 @@ la cámara.
 La animación va a 0,6 keys por avance: la velocidad 0,3 que `0x61ca30` pone en las acciones 0 y 1,
 por el 2 de `0x4f9580` con los NewFace. Al terminar la acción 1, `0x63e430` pone la 0. La ventana la
 avanza una vez por paso y la lógica de la escena otra, así que con la ventana arriba va el doble, y
-sigue bajo un aviso. MuRet la avanza una vez por paso, solo con la ventana arriba y quieta bajo un
-aviso (el ruling de la B3, en el plan de la CL6).
+sigue bajo un aviso. Desde la tarea 3 de CL7, MuRet reproduce esos dos avances sobre el mismo
+ActorState: uno siempre desde 0x634303 y otro solo cuando la ventana tiene la UI. El ruling provisional
+de B3 queda reemplazado; D-C4 conserva la interpolación del dibujo.
 
 Los modelos, `Logo05` en el `0xa4` y `NewFace01` a `05` en `0xa8` a `0xac`, vienen de `Data\Logo`.
 Sus texturas suben desde `0x60d530(0x6f8)` siguiendo la tabla global, y terminan en `0x716`
@@ -2980,10 +2965,11 @@ al mismo lugar, `0x505820` vuelve a correr con el héroe reconstruido y la entra
 (`AfterAGameFrameASecondEntryOnTheSameSlotScansTheRebuiltHero`). MuRet no tiene en el mundo ni
 cuervos ni telas que soltar, ni la lista `0x7245c8`. Los tiles los sube el dibujo del juego por número
 de mapa (`TerrainTiles`, con el pasto), y los modelos de los objetos, `WorldModels`: con el mismo mapa
-conserva los que ya subió, que salen de los mismos archivos; hoy el primer frame del juego corta en los
-objetos (`0x6374ce`) o, en el 0 y el 2, en los efectos del suelo, con los dos `0x61f` de llegada
-(`0x52dc3b`, Q-C278), o antes, en las gotas del `0x69` de Lorencia (`0x6030c7`), y la escena no vuelve a
-dibujar (T8). Lo que pide la VM, P-C43.
+conserva los que ya subió, que salen de los mismos archivos. Los dos `0x61f/0` de llegada ya no imponen
+el antiguo corte incondicional del suelo y la fuente ya puede crear sus gotas desde la pose vigente;
+los casos de suelo pendientes, la pose global retenida, las ramas incompletas del jugador y los ítems
+del piso conservan sus fronteras (T8 y [08](08-pendientes.md) P-C55). Un error sigue siendo terminal y
+no se presenta ese frame. La comprobación nativa del primer frame y de las reentradas sigue en P-C43.
 
 ### El equipo propio en el personaje
 
@@ -3478,26 +3464,27 @@ bloque de la entrada, en orden (*estático*):
 | `0x636da3` | el estado `0x3d` pone `0x7d3a101 = 1` (`0x636dac`) | si no, y `0x7d3a101` está en 0, sale (`0x636dbc`) | sí (`GameScene::StepWorld`) |
 | `0x636dc2..0x636ddb` | el temblor `0x7d325c8` · 0,2 | [La cámara del juego](#la-cámara-del-juego) | sí (`GameScene::StepWorld`) |
 | `0x636dd4` | `0x652940`, si el héroe tiene `+0x371 == 'C'` (siempre: lo pone `0x511290`) | lo del asedio y del gremio (`0x4294b0`) | no hace falta: sin asedio no hace nada ([08](08-pendientes.md) P-C41 c) |
-| `0x636de8` | **`0x5fbf60`** | copia la luz sombreada `0x7c0ccc4` al buffer dinámico `0x7b4ccc4` en la ventana del rango y escribe las olas | las olas (`LoadedWorld::Step` y `GameScene::StepWorld`, con el rango y las olas de la escena: [08](08-pendientes.md) P-C41 b); la copia de la luz, no |
+| `0x636de8` | **`0x5fbf60`** | copia la luz sombreada `0x7c0ccc4` al buffer dinámico `0x7b4ccc4` en la ventana del rango y escribe las olas | `DynamicWorldLight::Update` copia el RGB con el rango compartido de `WorldState::DynamicLighting()`; `LoadedWorld::Step` y `GameScene::StepWorld` actualizan las olas con ese rango, pero sus buffers siguen siendo de cada escena ([08](08-pendientes.md) P-C41 b) |
 | `0x636e11..0x63705b` | con `0x7d36899` en 0: `0x5ecdc0`, `0x46b7b0`, `0x490490`, `0x5ebca0`, `0x435bd0`, `0x5ee140`, `0x59ff10`, `0x5a7cc0`, `0x657930`, `0x659290`, `0x45a9d0` y dos por vtable | la UI, el chat y los paquetes de la interfaz | CL8, CL9 |
 | `0x63706a` | **`0x606560` → `0x604ab0`** | los objetos del mundo que vio el último dibujo ([Los objetos del juego](#los-objetos-del-juego)) | en el login, con los casos del 55; en el juego, `GameScene::StepTheObjects` con los techos y los casos que MuRet tiene del 0 y del 2, y corta en el primero que no tiene; en los demás mapas, con un objeto visto, corta en `0x606560` ([08](08-pendientes.md) P-C53) |
 | `0x637078` | `0x608880` | los ítems del piso que caen | CL9.3 |
 | `0x637082..0x6370e5` | **`0x530490`**, en el mapa 0 si la capa 1 de la celda del héroe (`0x77f36d0`) no es 4 | las 80 hojas | solo las brasas del 55 |
-| `0x6370ea` | **`0x446120`** | los pájaros | no |
-| `0x6370ef` | **`0x447030`** | los peces | no |
+| `0x6370ea` | **`0x446120`** | los pájaros | `Scenes::StepGameBirds`, pool durable y servicios reales; [familias y límites](#la-fauna-y-sus-recursos) |
+| `0x6370ef` | **`0x447030`** | los peces | `Scenes::StepGameFish`, después de aves con la misma CRT; [familias y límites](#la-fauna-y-sus-recursos) |
 | `0x6370f4` | `0x445230` | el caballo oscuro ([El caballo oscuro](#el-caballo-oscuro)), también en la espera | `Scenes::StepHelpers`, con la tabla de `WorldState::Helpers`, que en el juego queda vacía ([08](08-pendientes.md) P-C47) |
 | `0x6370f9..0x637105` | `0x557650`, `0x451d10`, `0x451c10` | contadores y listas, sin leer | — |
 | `0x63710a` | **`0x59adf0`**, el `MoveHero` | el héroe con el mouse ([Caminar](#caminar)); baja `0x77f3b04` y lo vuelve a leer (dos accesos, 8 `rand()`) y, con más de 30, sale; si no, escribe en `0x77f36d0` la capa 1 de la celda del héroe (`0x59e2ba`) y, con `0x57cfc0`, abre y cierra el registro propio: 3.848 `rand()` ([La tabla de protección](#la-tabla-de-protección)) | el contador (`GameScene::StepWaitCounter`), sin los gates de antes (P-C28 b); lo demás falta |
 | `0x63710f` | **`0x508f00` → `0x508ea0`** | por personaje: el trapecio en (x, y) · 0,01 con −20 a `+0x16c`, `0x508ba0`, `0x4fd5f0` (la animación y el alpha), `0x505de0` (la zona segura, la cabeza y las luces) y `0x42da90`; antes, el `0x02` del `TerrainWall`, con 8 `rand()` por personaje vivo. Corre también en la espera ([El paso de los personajes](#el-paso-de-los-personajes)) | después de la espera, `Scenes::StepCharacters`: el `TerrainWall`, `+0x16c` con el trapecio global (T11b), el cuerpo de cada `0x20a` quieto (`0x4fd5f0`, [El cuerpo de los personajes](#el-cuerpo-de-los-personajes-0x4fd5f0)) y su `0x505de0` hasta el final, con la zona segura (T11) y la cabeza ([Los efectos de los personajes](#los-efectos-de-los-personajes-0x505de0)); de los demás, también `0x508ba0` (CL7, hito 1); en la espera, frontera ([08](08-pendientes.md) P-C41 a) |
 | `0x637114` | `0x548f40` | los números de daño (`0x7609c0c`) | CL9.2 |
 | `0x637119` | `0x53eaf0` | la tabla `0x75fe028` (`0x51fc80`), sin leer | — |
-| `0x63711e` | **`0x52d220`** | los efectos con modelo | sí (`StepModelEffects`) |
+| `0x63711e` | **`0x52d220`** | los efectos con modelo | `StepGameModelEffect`: prefijo CRT por vivo, Noria 322..324 y teleport 5c6 además del kernel previo; después del daño y antes de joints/partículas ([El paso de los efectos con modelo](#el-paso-de-los-efectos-con-modelo)) |
 | `0x637123` | `0x53c670` | los joints | no |
 | `0x637128` | **`0x5446e0`** | el viento y las partículas | sí (`StepParticles`) |
 | `0x63712d` | `0x549090` | las marcas del suelo (`0x760cab0`, [Las marcas del suelo](#las-marcas-del-suelo)): les baja la vida | después de la espera, `World::StepGroundMarks` (CL7, hito 1); en la espera, frontera (P-C49 c) |
 | `0x637138` | `0x403590` | `0x4033d0` y compañía (el recorrido de la cámara), sin leer | — |
 | `0x637144..0x63717a` | `0x5fc0d0` y `0x5fc0b0`, con `0x7d2d35e` | funciones de un `ret` | nada |
 | `0x63717f` | `0x5ac8d0` | F1 a F4 (CL3.3) | CL8 |
+
 ### La fauna y sus recursos
 
 **Estático, ampliación de 2026-11-10:** cuerpos funcionales del `main.exe` SHA-256
@@ -3608,6 +3595,14 @@ prefijos; un kernel aislado o un pool vacío no acredita el recorrido completo d
 
 ### La pose compartida entre escenas
 
+**Estático, mismo hash anterior.** `0x4eb860` no escribe los huesos dummy: permanecen en el
+buffer global `0x68b181c`, junto con las colas no escritas de vértices/normales. Importan tanto la
+última pose como los campos por modelo de escala/origen. No se reconstruyen identidades por objeto.
+`WorldState::PoseCarry()` posee esa historia entre login, selección y juego. `DrawnCharacter.poseBones`
+presta el scratch antes de PoseSkeleton/PoseAttached; onPose publica las matrices ya calculadas,
+incluida la cabeza y la raíz attached. Los cuerpos especializados consumen los meshes publicados,
+sin volver a posar. Los objetos de malla oculta −2 también publican si pasaron el gate de pose.
+
 Las aves dibujan con el flag de pose 1 y los peces con 0 (`0x446b60/0x446f00`). El recorrido
 suma/resta yaw90 aritméticamente incluso en muertos (aves `0x10f`, excepción), publica seen por
 el trapecio con margen −20 y conserva los glows AE/BC. La sombra usa su propia geometría y alpha
@@ -3624,6 +3619,28 @@ MuRet se usa **una copia temporal para todo el frame**: cada escritor actualiza 
 siguiente lo lee, sin cambiar la historia durable ni repetir RNG/seen/yaw nativos. Copiar y descartar
 el carry en cada pase o saltar el publisher mezclaría meshes de otro modelo.
 
+Regresiones en [dibujo de fauna](../../tests/scenes/test_fauna_drawing.cpp):
+`AShadowPublishesTheRetainedOriginUsedByTheNextTransparentBcGlow`,
+`AShadowPublishesItsOriginEvenWhenTheModelHasNoMeshes`,
+`AProjectedStormBirdKeepsBothPureShinePassesWithoutCreatingEffects`,
+`DurableFixedHeightFeedsBirdAndFishShadowsAndTheirModelOrigin`,
+`TransparentFloorItemsPublishBonesWithoutReplacingTheMeshScratch`,
+`AProjectedFrameKeepsItsPosesInTheBorrowedFrameScratch` y
+`CharacterBodiesInitializeDummyMatricesFromTheSharedScratchBeforePosing`.
+[Login](../../tests/scenes/test_login_scene_models.cpp) y
+[selección](../../tests/scenes/test_character_select_scene.cpp) comprueban publicación nativa y
+retención entre frames/Leave; [GameCharacters](../../tests/scenes/test_game_characters.cpp),
+`BodyGeometryAndPublishedPoseUseTheSameRetainedDummyMatrices`, comprueba geometría y publicación
+con el mismo dummy, también en proyección. Los tests de
+[WorldObjectsDrawing](../../tests/scenes/test_world_objects_drawing.cpp) cubren marcadores ocultos
+con pose nativa/proyectada. Son regresiones del contrato portable, no una nueva comparación de
+poses o píxeles con la VM. El lector de las gotas de la fuente también consume ese carry
+([Las partículas de la fuente](#las-partículas-de-la-fuente-en-el-juego)); los casos
+`TheFountainReadsThePreviousWorldMatricesForDummyAndTransparentBones`,
+`AFullFountainPoolStillReadsTheRetainedBonesAtTheirNativeRandomPrefix` y
+`AnEmptyRetainedFountainLoanStopsAfterTheFirstOffsetInsteadOfReposing`, en
+[GameParticlesTest](../../tests/scenes/test_game_particles.cpp), comprueban la lectura sin volver a
+posar y los prefijos del fallo, incluso con el pool de partículas lleno.
 
 ### El paso de los personajes
 
@@ -4292,7 +4309,7 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 ### El dibujo del juego
 
 `0x6371a0`, en el orden de sus llamadas (*estático*; lo que está en la traza, *verificado*). La
-última columna dice qué tiene ya MuRet por el login o la selección:
+última columna indica qué está conectado actualmente en MuRet:
 
 | Dónde | Qué llama | Qué hace | ¿Como en el login? |
 | --- | --- | --- | --- |
@@ -4307,26 +4324,26 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 | `0x63741d` | en el mapa 30, su luz | | corta (el 30 no carga) |
 | `0x6374aa` | `0x620480(mouse x, mouse y, &0x7d366c0, 1)` | el rayo del mouse, con el mouse de 640 × 480 vuelto a la pantalla en enteros (`0x620486..0x6204b0`) | `GameScene::MouseRay`, para [Caminar](#caminar) |
 | `0x6374c6` | **`0x5fc260(0)`**, si `0x437850()` es falso y el mapa no es 10 | el terreno: el pase opaco, el de alfa, **el del pasto** y `0x549130` | `LoadedWorld::DrawTerrain`, **sin el pasto ni las marcas** (P-C48 b, P-C49); el juego dibuja el primer pase, el del pasto y las marcas del suelo (`0x5fc365`); en el mapa 7 corta antes, en su agua (`0x5fa985`, `0x5fa4b0`), y en los 18 a 23 antes de la primera celda (`0x5fa83f`, Q-C229). Abajo, por dentro |
-| `0x6374ce` | **`0x6046a0` → `0x602e90` (`0x5ffdf0`, `0x6002e0`) y `0x602ed0`** | los objetos del `.obj` por sector ([Los objetos del juego](#los-objetos-del-juego)) | `DrawWorldObjects`, con los casos del 55; en el juego, `DrawGameWorldObjects` en el 0 y el 2, con el `0x69` del 0 (`DrawWaterspout`) hasta sus gotas (`0x6030c7`) y hasta el primer caso que no tiene; los demás mapas que llegan, el 10 incluido, **cortan** acá |
-| `0x6374d3` | **`0x52dc20`** | los efectos del suelo (`0x61d`, `0x61e`, `0x61f`…), con `0x5fb2f0` ([Después de los objetos](#el-dibujo-del-juego)) | `Scenes::DrawGroundEffects`: con la tabla vacía no hace nada; con un efecto vivo **corta** en `0x52dc3b` (Q-C278) |
-| `0x6374d8` | **`0x446b60`** | los pájaros, con su sombra | no: MuRet no tiene la tabla (`0x7d2dca8`) ni quien la llena, y el pase no hace nada (Q-C277) |
-| `0x6374dd` | **`0x510d00` → `0x50ba30`** | los personajes vistos (`+0x16c`), por índice; `0x42afe0` para los jugadores, solo en el mapa 30; al final, las puertas (`0x42da60`, Q-C276) | `DrawCharacter`, con la luz del login; en el juego, `Scenes::DrawGameCharacters`: el héroe con `+0x1d8` & 4 y las puertas, y **corta** en el primero vivo y visto (`0x510ea1`) |
+| `0x6374ce` | **`0x6046a0` → `0x602e90` y `0x602ed0`** | objetos por sector | `DrawGameWorldObjects` en0/2/3, con la fuente69 que lee matrices retenidas y los servicios de Noria; otros mapas/casos conservan fronteras |
+| `0x6374d3` | **`0x52dc20`** | los efectos del suelo (`0x61d`, `0x61e`, `0x61f`…), con `0x5fb2f0` ([Después de los objetos](#el-dibujo-del-juego)) | `Scenes::DrawGroundEffects`: filtra vivos y vistos, consume el rand común y dibuja los casos acreditados; `GroundEffectFrame` evita repetir sus mutaciones entre frames originales (Q-C278) |
+| `0x6374d8` | **`0x446b60`** | los pájaros, con su sombra | `Scenes::DrawGameBirds`, los 40 lugares durables, cuerpo/glows/sombra y [pose compartida](#la-pose-compartida-entre-escenas) |
+| `0x6374dd` | **`0x510d00` → `0x50ba30`** | los personajes vistos (`+0x16c`), por índice; `0x42afe0` para los jugadores, solo en el mapa 30; al final, las puertas (`0x42da60`, Q-C276) | `Scenes::DrawGameCharacters`: jugador, sombra, scan, luz dinámica, color del héroe y partes/tela reutilizando `DrawCharacter`; cortes explícitos en monstruos, armas, alas y efectos pendientes; abre puertas al completar el recorrido |
 | `0x6374ed` | `0x5fc260(1)` con `0x77f3b18` | el picking del terreno con esa bandera (*inferido*: el editor) | — |
-| `0x6374fe` | `0x608a00`, con `0x7d36899` en 0 | los ítems del piso | CL9.3: el 0 y el 2 **cortan** acá si pasan los personajes |
-| `0x637503` | **`0x446f00`** | los peces, con su sombra | no |
-| `0x637508` | `0x4453b0` | el caballo oscuro, con el `rand() % 30` de `0x445336` por cada uno visto | `Scenes::DrawHelpers` (con `DrawDarkHorse`), sin llamar: el juego corta antes, a más tardar en los ítems del piso (`0x6374fe`) |
-| `0x63750d` | **`0x5306a0`** | las hojas | `DrawLeaves` |
-| `0x637516` | `0x53c6a0(local_8)`; en el mapa 0, con 0 | los joints | no (el login no tiene) |
-| `0x63751d` | **`0x52d620(0)`** | los efectos con modelo | `DrawModelEffects` |
-| `0x637525` | `0x52e590` | cintas en `GL_TRIANGLE_FAN` (`0x75e987c`, texturas `0x5bb` + n) | no |
-| `0x63752a` | **`0x549510`** | los sprites del frame | `DrawFrameSprites` |
+| `0x6374fe` | `0x608a00`, con `0x7d36899` en0 | ítems del piso | `DrawFloorItems`: ramaSword01..19 nivel0 y pose global; las opciones/familias CL9.3 restantes conservan error, ya no corta universalmente |
+| `0x637503` | **`0x446f00`** | los peces, con su sombra | `Scenes::DrawGameFish`, los 10 lugares durables y sus excepciones de sombra; [fauna](#la-fauna-y-sus-recursos) |
+| `0x637508` | `0x4453b0` | helpers/caballo oscuro | `DrawHelpers` con recursos, reloj, RNG y pose retenida del mismo pase; caller conectado después de peces |
+| `0x63750d` | **`0x5306a0`** | hojas del mundo | `DrawGameLeaves`, con texturas físicas64..68 cargadas porTerrainTiles; paso/productores por mapa |
+| `0x637516` | `0x53c6a0(local_8)` | joints, modo0/1 | `DrawJoints`, familias portadas y errores de UV/colores especiales; recursos610/613/617/618/697 cargados |
+| `0x63751d` | **`0x52d620(0)`** | efectos modelados | `DrawGameModelEffects`, con scratch publicado/consumido y copia para cuadros intermedios; familias ausentes conservan error |
+| `0x637525` | `0x52e590` | cintas en `GL_TRIANGLE_FAN` | `DrawRibbons` consume el pool durable; sus productores/recursos5bb..bd/639 siguen enCL9–CL11 |
+| `0x63752a` | **`0x549510`** | marca los sprites del frame | `MarkSeen`, muestra previa al primer ojo para replay y buffer proyectado de cuadros intermedios |
 | `0x63752f` | `0x6213e0` | la modelview en la identidad | sí |
-| `0x63754c` | `0x5306a0` otra vez, solo en el mapa 2 | | — |
-| `0x637552` | **`0x549440(0)`** | | sí |
-| `0x637558` | **`0x548550(0)`** | las partículas | `DrawParticles` |
-| `0x63756a` | `0x548eb0(0)` | los números de daño, sin depth test | CL9.2 |
+| `0x63754c` | `0x5306a0`, mapa2 y capa signed distinta de3 y menor que10 | hojas de ojo | `GameTailPasses` aplica la guarda en ambos ojos |
+| `0x637552` | **`0x549440(local_8)`** | sprites, modo0/1 | `DrawFrameSprites`; modo1 conserva vivos y modo2 filtra/consume la banda correspondiente |
+| `0x637558` | **`0x548550(local_8)`** | partículas | `DrawGameParticles`, pool durable y filtros350/300; conserva cortes por familia |
+| `0x63756a` | `0x548eb0(local_8)`, sólo si437850 esfalse | números de daño | `DrawDamage`, atlas1FontTest real; paso548f40 sin apagar los slots en dibujo |
 | `0x637572` | `0x6213f0` | el `glPopMatrix` | sí |
-| `0x637577..0x6375e5` | si `0x437850()`, un segundo pase | | no en el mapa 0 |
+| `0x637577..0x6375e5` | segunda consulta437850;620db0,4378a0 y cola | segunda capa | orquestador y modos portados; backend/loader Kalima permanecen explícitos437850/4378a0/4377a0 |
 | `0x637641` | `0x59ec80` | qué personaje está bajo el mouse | [Caminar](#caminar) |
 | `0x637646..0x6376e6` | `0x6219b0`, `0x4383f0`, `0x5bbbc0`, `0x5a7320(1)`, `0x5a7eb0`, `0x490390`, `0x5f37f0`, `0x62db60`, `0x5f7bc0`, `0x554810`, `0x5554e0`, `0x5b0550`, `0x40eca0`, `0x65ee60`/`0x65fe00`, `0x5ac2d0` × 2, `0x633110`, `0x621a90`, `0x620fc0` y uno por vtable | el 2D: el HUD, las ventanas, el texto y el cursor | CL8 |
 
@@ -4346,13 +4363,15 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 **Hasta dónde llega MuRet** (T8 del hito 1 de la CL7, el pase del pasto, las marcas del suelo y, en
 el hito 3, los objetos del 0 y del 2 y lo que les sigue hasta los ítems del piso). `GameScene::Render`
 corre lo de arriba en ese orden y corta con error en la primera etapa que no tiene: en el 0 y el 2,
-adentro de los objetos (los casos de `0x602ed0` que no tiene y las gotas del `0x69` de Lorencia,
-`0x6030c7`, [Los objetos del juego](#los-objetos-del-juego)), en un efecto del suelo vivo (`0x52dc3b`),
-en un personaje vivo y visto (`0x510ea1`) o, si pasa todo eso, en los ítems del piso (`0x6374fe`); en
+adentro de los objetos (los casos de `0x602ed0` que no tiene o una pose global anterior que necesita
+la fuente, [Los objetos del juego](#los-objetos-del-juego)), en una rama de suelo o de personaje
+todavía no portada o, si pasa todo eso, en los ítems del piso (`0x6374fe`); en
 los demás mapas que carga, en los objetos (`0x6374ce`), salvo el 6 (la cámara, `0x635b5c`) y el 7 (su
 agua, `0x5fa985`). Antes dibuja el pase del pasto y las marcas del suelo, que no gastan `rand()`; los
-objetos, uno por objeto visto que llega a `0x602ed0` y el `rand() % 2` del `0x69`; los efectos del suelo,
-los pájaros y los personajes, ninguno mientras no corta (abajo).
+objetos, uno por objeto visto que llega a `0x602ed0` y el guard de la fuente, más sus ocho sorteos
+cuando crea dos gotas. Los efectos vivos y vistos consumen el común de `0x52dc46` y los casos propios;
+los personajes, sus accesos al registro y el de `0x50db57`. Las aves y los peces ya tienen pool y
+servicios productivos ([La fauna y sus recursos](#la-fauna-y-sus-recursos)).
 Con la tabla de la .bss las marcas no dibujan nada, y una marca prendida, que MuRet no sabe crear,
 corta en `0x549152` (P-C49). Los mapas 18 a 23, que
 `LoadMap` ya corta en `0x447d70`, cortan antes de la primera celda (`0x5fa83f`, Q-C229) si llegan con el
@@ -4377,16 +4396,19 @@ de MuRet, *simulado*):
   `0x5fb2f0`. `+0x16c` lo escriben `0x52d620` (`0x52d64d`: la esfera de 400 contra el frustum, con
   `0x5fbf00`), el dibujo de los efectos con modelo, que en el juego va después (`0x63751d`), y `0x52b634`,
   que lo pone en 0 en un caso del paso; ni el alta (`0x518cf0`) ni la carga del mapa (`0x6070a0`, que solo
-  apaga el byte vivo) lo tocan (Q-C278). Sin efectos vivos no saca `rand()`. MuRet
-  (`Scenes::DrawGroundEffects`) no lleva `+0x16c`: con la tabla vacía no hace nada, y con el primer lugar
-  vivo corta en `0x52dc3b`, sin el `rand()`. Después de la entrada están los dos `0x61f` de llegada, y el
-  frame de cero pasos corta ahí (P-C55 b).
+  apaga el byte vivo) lo tocan (Q-C278). Sin efectos vivos y vistos no saca `rand()`. MuRet lleva ese
+  estado en `ModelEffect::seen`, publica la esfera en `DrawModelEffects` y usa el mismo pool durable
+  entre login, selección y juego. El pase del suelo reproduce los siete tipos con los límites que
+  se detallan abajo. Los dos `0x61f/0` de llegada ya tienen sus anillos y calco; en un proceso nuevo
+  heredan seen=false y este pase los omite. Esto desbloquea ese corte de T9, pero el frame completo
+  sigue detenido a más tardar en los ítems del piso (P-C55 f).
 - **Los pájaros** (`0x446b60`). Con cada uno de los 40 lugares de `0x7d2dca8` que no es un `0x10f`, vivo
   o no, suma 90 a `+0x24` y se lo resta al final (Q-C277); los vivos van con su sombra (`0x602e90`,
   `0x60b130`, `0x5491e0` y `0x4eff40`). Sin pájaros vivos no dibuja ni saca `rand()`. Los crea `0x446120`,
   desde el paso (`0x6370ea`), y los apagan `0x6070a0` y `0x4455c0` (desde `0x4d4ab2` y `0x4e363e`). En el
-  frame de cero pasos de la entrada la tabla está vacía; desde el primer paso, el original los crea y
-  MuRet, que no tiene la tabla, no (P-C55 c).
+  frame de cero pasos de una entrada recién limpiada no hay vivos. MuRet conserva los 40 registros y
+  sus campos anteriores, apaga sólo active al limpiar y los llena desde `StepGameBirds`; no trata el
+  kernel puro como integración final ([La fauna y sus recursos](#la-fauna-y-sus-recursos)).
 - **Los personajes** (`0x510d00`). Los 400 lugares en orden. Fuera del héroe, la rama del asedio
   (`0x510d25`, con `0x4294b0`) pide `0x7239ec`, que solo escribe `0x4294c0` desde paquetes que MuRet no
   aplica. El héroe con `+0x1d8` & 4, en la escena 5, no se dibuja: `0x510e57` le pone 1000 en `+0x13c` y 1
@@ -4395,17 +4417,19 @@ de MuRet, *simulado*):
   final, `0x42da60`: `0x7239dc` y `0x7239e0` en 0, las puertas de `0x6c72bc` con `0x7239d9` en 0
   (`0x42da40` → `0x42a110(0, 0, 0, 1)`, Q-C276) y `0x7239d9` en 0. Las puertas no miran el mapa: en
   Lorencia y en Devias abren las paredes de (118..121, 115) y, en Devias, las de (92..95, 205), desde el
-  primer frame que llega acá. MuRet (`Scenes::DrawGameCharacters`) hace lo del héroe con el bit 4 y las
-  puertas sobre el `.att` del mapa (`World::OpenTheGates`), y con el primero vivo y visto corta en
-  `0x510ea1`, antes de las puertas.
+  primer frame que llega acá. MuRet (`Scenes::DrawGameCharacters`) conserva esas operaciones y porta
+  el jugador ordinario hasta la separación de las armas/efectos pendientes: sombra, scan, luz, rama
+  del héroe, partes y tela. Las puertas se abren solo si termina el recorrido. Las ramas pendientes
+  devuelven su dirección después del prefijo ya ejecutado; un jugador fuera de zona segura llega
+  a `0x50e298`. El overload histórico sin recursos conserva su corte en `0x510ea1`.
 - `0x6374e2..0x6374f5`: el picking del modo editor (`0x77f3b18`) y la vista de arriba (`0x7d36899`) no
   corren. Sigue `0x608a00`, los ítems del piso (`0x6374fe`), donde MuRet corta.
 
 Con el héroe de la traza en Lorencia (143, 120), MuRet saca en el frame 4 + 8 + 84 `rand()` (el contador,
 la cámara, los 83 objetos vistos y el `rand() % 2` del `0x69`, impar con la semilla del test) y corta en
 `0x6374fe`; en Devias (220, 30), con 4 + 8 + 54, también. Tests: `WorldObjectsDrawingTest`
-(`TheLorenciaWaterspoutDrawsFourLooseMeshes`, `TheLorenciaWaterspoutRunsItsFrameCase` y
-`TheGroundEffectsStopAtTheFirstLiveEffect`), `GameCharactersTest`, `TerrainWallsTest` y
+(`TheLorenciaWaterspoutDrawsFourLooseMeshes` y `TheLorenciaWaterspoutRunsItsFrameCase`),
+`GroundEffectDrawingTest`, `GameParticlesTest`, `GameCharacterRenderTest`, `GameCharactersTest`, `TerrainWallsTest` y
 `GoldenTerrainWalls.TheGatesOpenInLorenciaAndDevias`, y
 `GameSceneDrawTest.TheReferenceMapsDrawTheTerrainTheGrassTheGroundMarksAndTheObjects`.
 
@@ -4427,6 +4451,7 @@ frame lo pone `0x637700` (`0x63835d..0x6384f5`): Icarus (10), (0,0117; 0,0977; 0
 a 29 y 36), (0,1172; 0,1563; 0,1563); y negro en los demás (*estático*). No hay cielo: Icarus no
 dibuja el terreno y pone las nubes (`0xbb`, `0x622`, `0x623`), y Kalima dibuja su agua en un pase
 aparte (`0x4378a0` → `0x41cca0`, `0x41cf00`).
+
 ### La cola y sus cambios de pase
 
 Lectura **estática** de `0x63750d..0x6375e5`, `0x620db0` y `0x6213e0` del build
@@ -4466,6 +4491,36 @@ El orquestador no crea el estado `0x723c48` ni el backend `0x4378a0`: LoadMap co
 `0x4377a0`. Tampoco porta productores de cintas ni todas las familias de piso/joints/efectos
 CL9–CL11. No se ejecutó ni emuló el original, y el contraste de VM sigue pendiente.
 
+### Los casos del suelo y los dos anillos de llegada
+
+Lectura **estática** de `0x52dc20`, `0x53d2c0` y `0x5fc9c0`, build `c32bbd5f…a26a`, sin nuevas
+emulaciones. `Scenes::DrawGroundEffects` filtra vivo y seen antes de consumir `0x52dc46` y emitir
+la mezcla aditiva. `World::DrawGroundEffectCase` continúa desde ese punto; conserva las operaciones
+de estado aunque no produzca vértices o corte después. Los tipos sin caso no dibujan.
+
+| Tipo | Contrato estático y límite de MuRet |
+| --- | --- |
+| `0x61d` | Solo /1: calco con scale, luz propia, giro −z y lift5; después luz por `0x3f68ba2e` y scale+0,05f. |
+| `0x5de` | Salvo /3: otro rand; gris `R32((r%4+8)*0,1f)`, lado2, giro −z. No se sustituye por un literal0,9f. |
+| `0x5d5` | scale+0,2f antes del calco; gris `R32(life*0,1f)`. |
+| `0x61e` | Brillo1 o `1−(5−life)*0,2f` con life<5; lado `(20−life)*0,15f`, salvo /4,/9,/10 que usan scale. Colores por la tabla original. /7 corta en `0x52ded0` por dueño ausente; los nacimientos de /6 y /8, en `0x52e04c` y `0x52e0a2`; subtipo fuera de tabla, en `0x52dfdc` por scratch retenido sin representar. |
+| `0x61f` | Repite aditiva. Ángulo = low32 firmado de ftol(reloj), resto3600, por0,1f. /0: anillos ±ángulo y calco `0x61e` naranja. /2 no tiene anillos; con life≤10 corta en `0x52e312` por lado local no escrito; con life>10, lado `(20−life)*0,55f`. |
+| `0x636` | Mezcla alfa; ancho/alto de `+0x17c/+0x180`, luz propia, sin giro. |
+| `0x6eb` | Calco con scale y luz propia; en24..29/36, salvo /6, conserva depthWrite=false y corta en `0x52e12f` antes de `0x437940`. |
+
+Cada anillo de llegada tiene doce quads: radio90 y blanco en z0; radio130 y negro en z200; alpha1.
+El giro usa la matriz **transpuesta** de `0x5fc9c0`, con sus stores f32. No se atenúa con life; el
+calco sí. Con life20, su lado0 aún produce las UV no finitas del original; con life0 el brillo
+resulta levemente negativo por el literal float0,2. No se recortan esas rarezas. Se cargan las OZJ
+reales `Magic_Ground2` y `Magic_Circle1`, slots `0x61e/0x61f`, LINEAR/CLAMP (`0x61d6e0/0x61d6fc`).
+Las texturas de los demás tipos todavía no se suman a la carga de efectos del juego.
+
+`GroundEffectFrame` conserva el estado **anterior** al frame original (efectos, CRT, reloj y mapa).
+Entre frames vuelve a dibujar desde copias: conserva la imagen anterior sin repetir mutaciones ni
+azar en el mundo. Un replay sin snapshot o con otro mapa devuelve error. Esto prueba la política
+de ritmo de MuRet; no sustituye una captura nativa. `GroundEffectDrawingTest`,
+`GroundEffectFrameTest` y `WorldObjectsDrawingTest` cubren casos, orden, RNG y prefijos de error.
+
 ### El paso de los efectos con modelo
 
 **Ampliación estática del hito 2 (2026-11-10).** `World::StepGameModelEffect` envuelve los casos
@@ -4503,19 +4558,38 @@ altas,7 con una y5 con pool lleno, además del común del objeto. Los sorteos de
 después del alta de la primera. Cada punto usa `0x4ec110` con Translate=0: la matriz ya está en
 coordenadas del mundo y no recibe otra escala/origen.
 
-`StepGameWaterspoutFrame` conserva ese orden y cualquier primera gota si falla la segunda,
-sobre el pool y el servicio de huesos que presta el caller. El adaptador de modelos sólo acredita
-los huesos escritos de la pose vigente: con alpha<0,01 o hueso dummy devuelve su frontera después
-de los X/Z de esa gota, porque este PR todavía no conserva la pose del modelo anterior. La API
-`WaterspoutBonePoint` admite un préstamo explícito; el carry durable entre escenas y el binding de
-`GameScene` con `WorldState::Particles` se integran por separado. Un préstamo ausente no se cambia
-por una identidad. El contraste con una captura nativa sigue pendiente.
+`StepGameWaterspoutFrame` conserva ese orden y cualquier primera gota si falla la segunda.
+`GameScene` presta `WorldState::Particles`, el mismo pool y viento del login y la selección; las
+cargas apagan alive sin resetear el viento. `GameObjectPass.retainedPose` presta el
+[carry global](#la-pose-compartida-entre-escenas) a este lector. `0x6030a5/0x603121` pasan Translate=0:
+`0x4ec16d..0x4ec17e` aplica directamente la matriz retenida de los huesos 1 y 4, sin consultar
+escala/origen del modelo actual. Con alpha<0,01 o hueso dummy lee lo dejado por el modelo anterior,
+sin volver a posar. Si el préstamo no contiene ese hueso corta después de los X/Z de esa gota;
+un préstamo vacío no se reemplaza por identidad ni por una pose reconstruida. Sin préstamo se
+conserva la API compatible para huesos escritos y su error explícito en los demás. El contraste de
+los puntos y de la pose portable con la ejecución nativa sigue pendiente.
 
 `StepGameParticles` reutiliza `StepParticlesChecked` desde `0x637128`, después de personajes y antes
 de las marcas del suelo; consume los dos rand del viento incluso con la tabla vacía.
 `DrawGameParticles` reutiliza `DrawParticles` para `0x637558` en espacio de ojo. Su módulo está
 probado, pero la escena todavía no lo alcanza por `0x6374fe`. `GameParticlesTest` y los tests de
 entrada cubren los presupuestos, nacimientos, pool lleno y prefijos; no son observaciones nativas.
+
+### El buffer compartido de luz dinámica
+
+**Estático**, `0x5fbf60` y sus datos: `0x7b4ccc4` nace en cero en la cola virtual de `.data`.
+El rango no nace vacío: firstX/Y están en `.bss`, pero lastX/Y (`0x6c9d68/0x6c9d6c`) contienen255.
+La primera copia cubre la grilla; las siguientes copian la ventana publicada por el dibujo
+anterior, ampliada3 y envuelta en256. Fuera de esa ventana se conserva el buffer anterior. Dibujar
+solo publica el rango; no hace una copia implícita de la base.
+
+`DynamicWorldLight` pertenece a `WorldState`. Login, selección y juego copian la base sombreada al
+principio del paso y publican el rango después de calcular la cámara del dibujo. Terreno, objetos
+y personajes leen ese buffer; `LoadedWorld::Lighting` sigue exponiendo la base para la copia.
+La carga y el cambio de escena no lo borran. Faltan los productores de luz de los fuegos y otros
+casos del mundo: este dueño y sus lectores no cierran H3.4 ni la comparación nativa de luces.
+`DynamicWorldLightTest` y los golden de login y terreno fijan el primer estado, la ventana y que
+dibujar con otra luz no reemplace la base.
 
 ### El jugador visto en el dibujo del juego
 
@@ -4641,39 +4715,6 @@ pájaros ([El dibujo del juego](#el-dibujo-del-juego)); MuRet todavía no los co
 `TheStepAfterADrawStepsTheSeenObjects`, `TheStepStopsAtTheSeenObjectsOfTheOtherMaps` y
 `TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection`) y
 `GoldenWorldModels.DeviasLoadsTheDonkeyAndTheFlagBeforeItsObjects`.
-
-### Los casos del suelo y los dos anillos de llegada
-
-Lectura **estática** de `0x52dc20`, `0x53d2c0` y `0x5fc9c0`, build `c32bbd5f…a26a`, sin nuevas
-emulaciones. El caller original filtra vivo y seen antes de consumir `0x52dc46` y emitir la
-mezcla aditiva. `World::DrawGroundEffectCase` porta los casos desde ese punto; conserva las
-operaciones de estado aunque no produzca vértices o corte después. Los tipos sin caso no dibujan.
-El consumidor de escena y la publicación de seen se integran en sus PRs; este PR aporta el kernel,
-el campo retenido y las texturas de los dos anillos.
-
-| Tipo | Contrato estático y límite de MuRet |
-| --- | --- |
-| `0x61d` | Solo /1: calco con scale, luz propia, giro −z y lift5; después luz por `0x3f68ba2e` y scale+0,05f. |
-| `0x5de` | Salvo /3: otro rand; gris `R32((r%4+8)*0,1f)`, lado2, giro −z. No se sustituye por un literal0,9f. |
-| `0x5d5` | scale+0,2f antes del calco; gris `R32(life*0,1f)`. |
-| `0x61e` | Brillo1 o `1−(5−life)*0,2f` con life<5; lado `(20−life)*0,15f`, salvo /4,/9,/10 que usan scale. Colores por la tabla original. /7 corta en `0x52ded0` por dueño ausente; los nacimientos de /6 y /8, en `0x52e04c` y `0x52e0a2`; subtipo fuera de tabla, en `0x52dfdc` por scratch retenido sin representar. |
-| `0x61f` | Repite aditiva. Ángulo = low32 firmado de ftol(reloj), resto3600, por0,1f. /0: anillos ±ángulo y calco `0x61e` naranja. /2 no tiene anillos; con life≤10 corta en `0x52e312` por lado local no escrito; con life>10, lado `(20−life)*0,55f`. |
-| `0x636` | Mezcla alfa; ancho/alto de `+0x17c/+0x180`, luz propia, sin giro. |
-| `0x6eb` | Calco con scale y luz propia; en24..29/36, salvo /6, conserva depthWrite=false y corta en `0x52e12f` antes de `0x437940`. |
-
-Cada anillo de llegada tiene doce quads: radio90 y blanco en z0; radio130 y negro en z200; alpha1.
-El giro usa la matriz **transpuesta** de `0x5fc9c0`, con sus stores f32. No se atenúa con life; el
-calco sí. Con life20, su lado0 aún produce las UV no finitas del original; con life0 el brillo
-resulta levemente negativo por el literal float0,2. No se recortan esas rarezas. Se cargan las OZJ
-reales `Magic_Ground2` y `Magic_Circle1`, slots `0x61e/0x61f`, LINEAR/CLAMP (`0x61d6e0/0x61d6fc`).
-Las texturas de los demás tipos todavía no se suman a la carga de efectos del juego.
-
-`GroundEffectDrawingTest` y `ModelEffectsTest` cubren los casos, orden, RNG y prefijos de error
-de este concepto. El snapshot y replay de `GroundEffectFrame`, y sus conexiones al dibujo de
-objetos y escenas, se incorporan en el PR de integración; no están acreditados por este kernel.
-Estas pruebas del port no sustituyen una captura nativa.
-
-
 
 ### Las marcas del suelo
 
@@ -5108,8 +5149,10 @@ juego después de la espera, el de la selección (Q-C216). En MuRet son `Scenes:
 y `terrainPolygonState`. Cada frame del original corre la cámara (`0x635ae0`) y detrás `0x5fbb00`, en par
 (`Scenes::StepTheTerrainPolygon`, en la selección y el juego); un dibujo intermedio de MuRet solo calcula con
 el nivel que hay, sin escribir (`TerrainPolygonBetweenFrames`). El login escribe el trapecio del nivel 0 sin
-la transición: con el nivel pedido siempre en 0, da lo mismo ([08](08-pendientes.md) P-C41 d). El rango, las
-olas y los planos de `0x5fbb00` siguen siendo de la escena (P-C46).
+la transición: con el nivel pedido siempre en 0, da lo mismo ([08](08-pendientes.md) P-C41 d). El rango
+también es compartido ahora por `WorldState::DynamicLighting()`, que lo publica desde el dibujo de las
+tres escenas y lo conserva para la copia RGB del paso posterior. Los buffers de olas siguen siendo de
+cada escena, y la historia global de los planos de `0x5fbb00` continúa pendiente (P-C46).
 
 - Quién lo usa:
 
@@ -5124,6 +5167,7 @@ olas y los planos de `0x5fbb00` siguen siendo de la escena (P-C46).
 `0x508f00` además le prende el `0x02` a la celda de cada personaje (`0x509165`,
 [Caminar](#caminar)). Los cinco planos salen de la cámara y de las cuatro esquinas lejanas, con la
 modelview de GL (`0x5fd000`), que arma el driver, como el rango (P-C24 a).
+
 ### La esfera de visibilidad de los efectos
 
 Lectura **estática** del build `c32bbd5f…a26a`, sin ejecución ni emulación nuevas. Los cinco planos
@@ -5143,8 +5187,7 @@ modelo o su alpha. Un lugar muerto no se consulta ni modifica su marca. La extra
 pasos de MuRet ocurre después de este recorte.
 
 MuRet comparte los cinco puntos entre `TerrainRangeOf` y `SphereFrustumOf`; `SphereVisible` porta
-la comparación. La publicación de la marca en el consumidor de efectos se integra por separado.
-El constructor de planos reutiliza
+la comparación y `DrawModelEffects` publica la marca. El constructor de planos reutiliza
 `FaceNormal`: su contrato exige triángulos finitos y no degenerados de una cámara válida, como
 las cámaras portadas. No reproduce la retención de normales del original ante un triángulo
 inválido ni fija la CW x87. `SphereFrustumTest` cubre igualdad y los cinco rechazos, NaN, orden y
@@ -6272,7 +6315,7 @@ Ver [08](08-pendientes.md).
 | Las hojas (`0x530490` / `0x5306a0`), con las 80 brasas del mapa 55 y la altura del terreno de `0x5f93c0` | `World::Leaves` (las 80 brasas: nacen y caen, bit a bit contra el código real) y `World::TerrainHeightAt`; `Scenes::DrawLeaves` en el pase del mundo, después de los efectos con modelo; `LoginScene` las avanza después del caballo, con el héroe y la cámara en (0, 0, 0) hasta el primer dibujo (Q-C137) | CL7.6 B3 |
 | `0x602ed0`, después del dibujo de cada objeto visto: el `rand()` de cada uno y el brillo del farol (`0x3c`) en la escena 2 | `Scenes::ObjectFrameEffects` en `DrawWorldObjects`: un `rand()` de la CRT por objeto visto y los dos sprites de `flare01` en los huesos 8 y 9 del último modelo posado (`LastPosedBonePoint`: el dueño del dragón, Q-C140); `World::StreetLightGlowLight`, la luz; el dueño (`0xb4`) en `m_objects`, antes del `.obj` | CL7.6 B4 |
 | Los joints (`0x53c6a0`) | un sistema con su tabla, cuando una escena los use (el login no tiene ninguno) | — |
-| El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | `Scenes::DarkSpirit`: el constructor (`0x4167b0`) y el paso (`0x416a20`, estados 0 y 1), bit a bit contra el código real (`raven.txt`); `DrawDarkSpirit` (mallas 3 y 2 y la sombra de las cinco); la chispa nace en `World::Particles` (`0x5c6`, subtipo 5); `LoginScene` lo crea al entrar, lo avanza después del personaje y lo dibuja al final de su dibujo | CL7.6 C1 y C2 (las chispas) |
+| El cuervo: una mascota del ítem `0x1c17` con su propio paso, al final del paso del dueño, y su dibujo al final del de él | `Scenes::DarkSpirit`: el constructor (`0x4167b0`) y el paso (`0x416a20`, estados 0 y 1), bit a bit contra el código real (`raven.txt`); `DrawDarkSpirit` (mallas 3 y 2 y la sombra de las cinco); la chispa nace en `World::Particles` (`0x5c6`, subtipo 5); `ConstructLoginActor` lo crea en el dueño del pool; `StepCharacters` lo avanza dentro del cuerpo y `LoginScene` lo dibuja al final del dibujo del dueño | CL7.6 C1 y C2 (las chispas) |
 | La escena 5 en dos tiempos: el `F3 03` en el primer paso y el mundo con la respuesta, con el mosaico de la escena 3 en pantalla mientras tanto; su paso y su dibujo, con su propio orden del 3D | `GameScene` (hoy manda el `F3 03`, retiene el frame con el contador y dibuja hasta el primer pase del terreno) retiene el último frame mientras espera, carga el mapa del paquete, arma al héroe con la cuenta de `0x511290` y dibuja en el orden de `0x6371a0`; los casos del mapa 0 como datos, como los del 55 (propuesta del barrido, P-C28) | CL7 |
 | La cámara del juego: `0x635ae0` por frame dibujado, con el far del rectángulo en todos los mapas y sin el mouse | un valor con su estado (D, la meta, el zoom, el nivel, el yaw y la altura del `0x40`) y `OriginalVectorIRotate` (`0x5fcc30`), bit a bit contra el código real emulado y la traza de Lorencia (propuesta del barrido, P-C29) | CL7.3 |
 | Caminar: el A* de `0x4ead70` con su árbol y sus topes, el `D3` de `0x56acd0` y el paso entre celdas con el spline y la celda lógica adelantada | `TerrainWalls` y `PathFinder` implementan la parte pura de distancia cero contrastada con ASM; `Protocol::Movement` implementa el wire. El paso, el RNG del consumidor, el picking y la integración de la escena siguen pendientes; sin nuevas comparaciones emuladas | CL7.4 A/B; C–E pendientes |

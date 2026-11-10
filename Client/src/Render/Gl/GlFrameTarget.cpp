@@ -66,7 +66,7 @@ Scenes::SceneCanvas& GlFrameTarget::BeginFrame(Core::Duration frameClock)
     m_gl->depthMask(GL_TRUE);
     m_gl->clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     m_sprites.Begin(screen);
-    m_models.Begin(Render::Pass3D{});
+    m_models.Begin(Render::Pass3D{}, false);
     m_canvas.emplace(Scenes::SceneCanvas{.sprites = m_sprites,
                                          .text = m_text->Drawer(),
                                          .world = m_world,
@@ -97,10 +97,12 @@ void GlFrameTarget::FlushSprites()
 
 void GlFrameTarget::FlushModels()
 {
-    if (!m_models.Vertices().empty())
+    if (m_models.InitializesMaterial() || !m_models.Commands().empty())
     {
         m_modelRenderer.Draw(m_models, m_textures, m_log);
     }
-    m_models.Begin(m_models.Pass());
+    const auto state = m_models.State();
+    m_models.Begin(m_models.Pass(), false);
+    m_models.SetState(state);
 }
 } // namespace Client::Render::Gl

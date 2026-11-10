@@ -9,6 +9,8 @@
 #include "Data/Models/PlayerModels.h"
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Protocol/Character/InventoryList.h"
+#include "Protocol/Movement.h"
+#include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -155,5 +157,24 @@ TEST(SessionEventApplierTest, TheReturnToSelectionGoesToTheNativeApplier)
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 0xf08).State());
     EXPECT_EQ(online.session.State(), Client::App::SessionState::Idle);
     EXPECT_FALSE(tested.selection.HasReceivedList());
+}
+TEST(SessionEventApplierTest, WalkAndDamageReachTheirAppliersWithoutFallingThroughToF303)
+{
+    Applier tested;
+    Client::Tests::LoggedInSession online;
+    const Client::App::WorldEvent walk = Client::Protocol::Movement::Walk{42, {30, 31}, 15};
+    const Client::App::WorldEvent damage = Client::Protocol::Movement::Damage{42, false, 50, 0, false};
+    EXPECT_TRUE(tested.applier.ApplyWorld(walk, online.session).HasValue());
+    EXPECT_TRUE(tested.applier.ApplyWorld(damage, online.session).HasValue());
+}
+TEST(SessionEventApplierTest, TeleportUsesTheCursorGuardBeforeTouchingTheHero)
+{
+    Applier tested;
+    Client::Tests::LoggedInSession online;
+    tested.world.Runtime().cursorItemCount = 1;
+    const Client::App::WorldEvent event = Client::Protocol::World::Teleport{23, 0, 30, 31, 0};
+    const auto result = tested.applier.ApplyWorld(event, online.session);
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("0x5be150"), std::string::npos);
 }
 } // namespace

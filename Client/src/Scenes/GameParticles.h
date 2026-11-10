@@ -30,6 +30,7 @@ namespace Client::Scenes
 {
 class IModelLibrary;
 struct DrawnObject;
+struct FaunaDrawCarry;
 
 // 0x4ec110 con Translate=0, después de los dos sorteos del desplazamiento de cada gota.
 // El caller presta el buffer global de la pose vigente y conserva sus huesos anteriores/dummy.
@@ -42,19 +43,21 @@ using WaterspoutBonePoint =
 StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles, Render::Models::CrtRandom& random,
                         const float& worldClock, const WaterspoutBonePoint& bonePoint);
 
-// Con el modelo que acaba de posarse. Un hueso que no escribió ese modelo necesita la pose global
-// retenida, todavía sin representar: devuelve el error después de sus sorteos de X y Z.
+// Con préstamo, 4ec110(Translate=0) lee la matriz global exacta, incluso dummy/alpha bajo.
+// Sin él sólo se acredita el hueso escrito por este modelo; falta de matriz corta tras X/Z.
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles, Render::Models::CrtRandom& random,
-                        const float& worldClock, const IModelLibrary& models, const DrawnObject& drawn);
+                        const float& worldClock, const IModelLibrary& models, const DrawnObject& drawn,
+                        const FaunaDrawCarry* retainedPose = nullptr);
 
 // 0x637128 → 0x5446e0: también con el pool vacío consume los dos rand() del viento.
 [[nodiscard]] Core::Expected<void, std::string>
-StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map);
+StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
+                  const std::function<double(float, float)>& terrainHeight = {});
 
 // 0x637558 → 0x548550(0), en el pase de ojo después de los sprites. Conserva la geometría y
 // las operaciones anteriores a un fallo y devuelve la dirección y el lugar que falló.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameParticles(Render::ModelBatch& batch, World::Particles& particles, const IModelLibrary& textures,
-                  const Render::Models::OriginalMatrix& view, float worldClock);
+                  const Render::Models::OriginalMatrix& view, float worldClock, std::uint8_t mode = 0);
 } // namespace Client::Scenes

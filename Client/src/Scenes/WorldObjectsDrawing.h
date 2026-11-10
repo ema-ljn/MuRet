@@ -4,6 +4,7 @@
 #include "Core/IClock.h"
 #include "Render/ModelBatch.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/ModelPoseCallbacks.h"
 #include "World/TerrainCulling.h"
 #include "World/ModelEffects.h"
 #include "World/GroundEffectDrawing.h"
@@ -157,15 +158,21 @@ void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary
 void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,
                       const World::SphereFrustum& frustum, const World::TerrainLighting* lighting,
                       Core::Duration frameClock, float alpha);
-// 0x549440(0), en el pase de ojo (después de 0x6213e0, con la modelview en la identidad): cada sprite
-// vivo, con la mezcla de su +4 (0 aditiva, 1 la de 0x620b10, 2 la normal; la 3, 0x620b90, todavía no se
-// leyó y va aditiva; la textura 0x637, la normal), el alpha de 0x549290 y el cuadrado de 0x621400 con el
-// tamaño de su textura (`textures`) por la escala y el alpha, con la vista `view` (0x7d366f0). Después de
-// dibujarlo, se apaga.
-void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, const IModelLibrary& textures,
-                      const Render::Models::OriginalMatrix& view);
+// Mismo recorrido legacy, publicando la pose y consumiendo ese scratch sin volver a posar.
+[[nodiscard]] Core::Expected<void, std::string>
+DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,
+                 const World::SphereFrustum& frustum, const World::TerrainLighting* lighting, Core::Duration frameClock,
+                 float alpha, const TailPoseObserver& onPose, const TailMeshProvider& posedMeshes);
 
-// 0x548550(0), en el mismo pase de ojo, después de los sprites: el contrato único de World::
+// 0x549440(0), en el pase de ojo (después de 0x6213e0, con la modelview en la identidad): cada sprite
+// vivo, con la mezcla de su +4 (0 aditiva, 1 la de 0x620b10, 2 la normal, 3 la de 0x620b90:
+// ONE_MINUS_SRC_COLOR/ONE; la textura 0x637, la normal), el alpha de 0x549290 y el cuadrado de 0x621400 con el
+// tamaño de su textura (`textures`) por la escala y el alpha, con la vista `view` (0x7d366f0). Después de
+// dibujarlo, se apaga en modos0/2. Modo1 retiene y omite z>350; modo2 apaga z<=300/NaN sin dibujar.
+void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, const IModelLibrary& textures,
+                      const Render::Models::OriginalMatrix& view, std::uint8_t mode = 0);
+
+// 0x548550(mode), en el mismo pase de ojo, después de los sprites: el contrato único de World::
 // DrawParticlesChecked, con los servicios de la escena (ParticleDrawServices) sobre el adaptador del lote
 // (Render::ModelBatchParticleBackend). Las dimensiones, el material y el color salen de la metadata de
 // `textures` (Recurso+20/+24/+28) y el binder, de su TextureSlotOf; el cuadrado de 0x621400, de la vista
@@ -174,7 +181,7 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, c
 // dice cuál fue.
 [[nodiscard]] Core::Expected<void, World::ParticleDrawingFailure>
 DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const IModelLibrary& textures,
-              const Render::Models::OriginalMatrix& view, float worldClock = 0.0f);
+              const Render::Models::OriginalMatrix& view, float worldClock = 0.0f, std::uint8_t mode = 0);
 
 // 0x5306a0, en el pase del mundo, después de los efectos con modelo: las hojas vivas, aditivas (en el mapa
 // 0x37, 0x620a90) y con el blanco de un solo glColor3f(1, 1, 1), cada una el cuadrado de LeafQuadOf

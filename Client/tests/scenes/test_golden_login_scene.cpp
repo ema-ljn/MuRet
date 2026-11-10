@@ -149,7 +149,12 @@ TEST_F(GoldenLoginScene, EntersWithTheLabData)
     // Y las dos del logo (TheLogoLoads), las 15 del terreno (los 14 tiles de World56 y el 0x122,
     // TheTerrainGoesBeforeTheCharacter) y las 63 del mundo: las 3 del dragón y 62 de Object56\ que esta
     // tabla vacía no tiene, menos fire01 y fire02, que no están (GoldenWorldModels).
-    ASSERT_EQ(store.Size(), LoginTextureSet.size() + WindowTextureSet.size() + 2 + 15 + 63);
+    constexpr std::array weatherSlots{TextureSlot{0x64}, TextureSlot{0x65}, TextureSlot{0x66}, TextureSlot{0x67},
+                                      TextureSlot{0x68}};
+    // 61ac3e..61ad7a: dos hojas del mundo y tres imágenes globales de lluvia.
+    ASSERT_EQ(store.Size(), LoginTextureSet.size() + WindowTextureSet.size() + 2 + 15 + weatherSlots.size() + 63);
+    for (const auto slot : weatherSlots)
+        EXPECT_TRUE(store.Find(slot).has_value()) << slot.value;
     for (const auto& entry : LoginTextureSet)
     {
         EXPECT_TRUE(store.Find(TextureSlot{entry.slot}).has_value()) << entry.slot;
@@ -853,6 +858,9 @@ TEST_F(GoldenLoginWorld, TheLoginPublishesTheCharacterCutAndKeepsItsRandomState)
     ASSERT_TRUE(scene.Enter().HasValue());
     world.Actors()[2].movement = 1;
     world.Actors()[2].animation.action = 0x4b;
+    // 0x508e27 ya ejecuta el movimiento. La continuación del cuerpo con +0x88=4 llega a la
+    // frontera real del mensaje/giro de 0x4fcd0c, todavía no portada.
+    world.Actors()[2].byte88 = 4;
     constexpr std::uint32_t Seed = 1;
     cloth.random = Client::Render::Models::CrtRandom(Seed);
     cloth.logicSteps = 77;
@@ -860,9 +868,11 @@ TEST_F(GoldenLoginWorld, TheLoginPublishesTheCharacterCutAndKeepsItsRandomState)
     const float windBase = cloth.windBase;
     scene.Step(Client::Input::InputState{});
     ASSERT_TRUE(scene.Failure());
-    EXPECT_NE(scene.Failure()->find("0x508e27"), std::string::npos);
-    // Ochenta brasas con10 rand cada una; siguen8 de TerrainWall y el corte, antes de la tela.
-    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 808).State());
+    EXPECT_NE(scene.Failure()->find("0x4fcd0c"), std::string::npos);
+    EXPECT_GT(world.Actors()[2].run, 0) << "el movimiento precede al corte publicado del cuerpo";
+    // Ochenta brasas con10 rand; siguen8 de TerrainWall y1 de SetActorWalk. El cuerpo corta
+    // antes de los efectos, las partículas y la tela.
+    EXPECT_EQ(cloth.random.State(), Client::Tests::AfterDraws(Seed, 809).State());
     EXPECT_EQ(cloth.logicSteps, 77);
     EXPECT_EQ(cloth.wind, wind);
     EXPECT_FLOAT_EQ(cloth.windBase, windBase);

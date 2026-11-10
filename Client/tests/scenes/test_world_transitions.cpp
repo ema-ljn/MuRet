@@ -1,5 +1,6 @@
 #include "Scenes/WorldTransitions.h"
 
+#include "App/SessionState.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/PlayerModels.h"
@@ -7,6 +8,7 @@
 #include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
+#include "Network/PacketSerials.h"
 #include "Protocol/World.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
@@ -14,16 +16,21 @@
 #include "Scenes/IWorldTransitionPublisher.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/PlayerActionSpeeds.h"
+#include "Scenes/SceneId.h"
 #include "Scenes/SelectionState.h"
+#include "Scenes/SessionEventApplier.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 
+#include "support/Bytes.h"
 #include "support/FakeClock.h"
 #include "support/GoldenDir.h"
 #include "support/ItemSetFiles.h"
 #include "support/PlayerActors.h"
 #include "support/RecordingSink.h"
+#include "support/SessionHarness.h"
+#include "support/TestGameServer.h"
 
 #include <gtest/gtest.h>
 
@@ -249,7 +256,82 @@ TEST_F(WorldTransitionsMapsTest, ReentersLorenciaAndNoriaWithTheSameDurableState
     EXPECT_EQ(tested.world.Runtime().map, 3);
     EXPECT_EQ(publisher.confirmations, 3);
 }
-
+std::vector<std::byte> EntryPacket(Client::Network::PacketSerials& serials)
+{
+    std::vector<std::byte> reply(0x34);
+    reply[0] = std::byte{0xc1};
+    reply[1] = std::byte{0x34};
+    reply[2] = std::byte{0xf3};
+    reply[3] = std::byte{3};
+    reply[4] = std::byte{133};
+    reply[5] = std::byte{127};
+    return Client::Tests::FromTheGameServer(reply, serials);
+}
+TEST_F(WorldTransitionsMapsTest, AGameServerBatchAppliesTheLoadedMapBeforeTheFollowingHeroEcho)
+{
+    Transition tested;
+    tested.dataRoot = m_dataRoot;
+    Client::Scenes::SessionEventApplier applier(tested.Resources());
+    Client::Tests::LoggedInSession online(&applier);
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    Client::Network::PacketSerials serials;
+    online.socket.reads = {EntryPacket(serials)};
+    static_cast<void>(online.session.Poll());
+    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    online.socket.sent.clear();
+    online.socket.reads = {
+        Client::Tests::FromTheGameServer(Client::Tests::Bytes({0xc1, 8, 0x1c, 23, 3, 30, 31, 2}), serials),
+        Client::Tests::Bytes({0xc1, 8, 0xd3, 0, 5, 40, 41, 0xf0})};
+    static_cast<void>(online.session.Poll());
+    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    EXPECT_EQ(tested.world.Runtime().map, 3);
+    const auto& hero = tested.Hero();
+    EXPECT_EQ(hero.position.x, 3050.0f);
+    EXPECT_EQ(hero.cellX, 40);
+    EXPECT_EQ(hero.cellY, 41);
+    EXPECT_EQ(hero.direction, 15);
+    Client::Network::PacketSerials receivedSerials;
+    const auto received = Client::Tests::AsTheGameServerReceives(online.socket.sent, receivedSerials);
+    ASSERT_EQ(received.packets.size(), 1u);
+    EXPECT_EQ(received.packets[0].Opcode(), 0xf3);
+    online.socket.sent.clear();
+    online.socket.reads = {
+        Client::Tests::FromTheGameServer(Client::Tests::Bytes({0xc1, 8, 0x1c, 25, 0, 133, 127, 4}), serials)};
+    static_cast<void>(online.session.Poll());
+    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    EXPECT_EQ(tested.world.Runtime().map, 0);
+    EXPECT_EQ(tested.Hero().cellX, 133);
+    EXPECT_EQ(tested.Hero().position.x, 13350.0f);
+    const auto confirmedBack = Client::Tests::AsTheGameServerReceives(online.socket.sent, receivedSerials);
+    ASSERT_EQ(confirmedBack.packets.size(), 1u);
+    EXPECT_EQ(confirmedBack.packets[0].Opcode(), 0xf3);
+}
+TEST_F(WorldTransitionsMapsTest, AGameServerCanReturnToSelectionAndEnterAgain)
+{
+    Transition tested;
+    tested.dataRoot = m_dataRoot;
+    Client::Scenes::SessionEventApplier applier(tested.Resources());
+    Client::Tests::LoggedInSession online(&applier);
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    Client::Network::PacketSerials serials;
+    online.socket.reads = {EntryPacket(serials)};
+    static_cast<void>(online.session.Poll());
+    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    const auto firstSlot = tested.world.Runtime().hero;
+    tested.world.DrawTail().damage[0].alive = true;
+    online.socket.reads = {Client::Tests::FromTheGameServer(Client::Tests::Bytes({0xc1, 5, 0xf1, 2, 1}), serials)};
+    static_cast<void>(online.session.Poll());
+    ASSERT_EQ(online.session.State(), Client::App::SessionState::WaitingCharacterList);
+    EXPECT_EQ(tested.world.Runtime().hero, firstSlot);
+    EXPECT_EQ(tested.world.Runtime().map, -1);
+    EXPECT_EQ(tested.world.Runtime().orderedScene, Client::Scenes::SceneId::CharacterSelect);
+    EXPECT_FALSE(tested.world.DrawTail().damage[0].alive);
+    online.socket.reads = {EntryPacket(serials)};
+    static_cast<void>(online.session.Poll());
+    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    EXPECT_EQ(tested.world.Runtime().map, 0);
+    EXPECT_TRUE(tested.Hero().alive);
+}
 TEST(WorldTransitionsTest, TeleportTickCountWrapsAndRetainsLogicalAccessDepths)
 {
     Transition tested;
@@ -270,7 +352,52 @@ TEST(WorldTransitionsTest, TeleportTickCountWrapsAndRetainsLogicalAccessDepths)
     EXPECT_EQ(tested.world.Runtime().warpDepth, 1);
     EXPECT_EQ(tested.cloth.random.State(), Client::Tests::AfterDraws(1, 3).State());
 }
-
+TEST_F(WorldTransitionsMapsTest, RegenChangesMapsWithoutAcknowledgingOrResettingTheWait)
+{
+    Transition tested;
+    tested.dataRoot = m_dataRoot;
+    Client::Scenes::SessionEventApplier applier(tested.Resources());
+    Client::Tests::LoggedInSession online(&applier);
+    ASSERT_NO_FATAL_FAILURE(online.LogIn());
+    Client::Network::PacketSerials serials;
+    online.socket.reads = {EntryPacket(serials)};
+    static_cast<void>(online.session.Poll());
+    ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+    tested.world.Runtime().warpCounter = 42;
+    online.socket.sent.clear();
+    const auto slot = tested.world.Runtime().hero;
+    auto& hero = tested.Hero();
+    hero.guildStatus = 5;
+    hero.byte369 = 6;
+    hero.byte370 = 7;
+    hero.pk = 8;
+    hero.word1f2 = 0x1234;
+    for (const std::uint8_t map : std::array<std::uint8_t, 2>{3, 0})
+    {
+        std::vector<std::byte> regen(24);
+        regen[0] = std::byte{0xc1};
+        regen[1] = std::byte{24};
+        regen[2] = std::byte{0xf3};
+        regen[3] = std::byte{4};
+        regen[4] = std::byte{30};
+        regen[5] = std::byte{31};
+        regen[6] = std::byte{map};
+        regen[7] = std::byte{0};
+        regen[8] = std::byte{70};
+        regen[10] = std::byte{80};
+        regen[12] = std::byte{90};
+        online.socket.reads = {Client::Tests::FromTheGameServer(regen, serials)};
+        static_cast<void>(online.session.Poll());
+        ASSERT_EQ(online.session.State(), Client::App::SessionState::InWorld);
+        EXPECT_EQ(tested.world.Runtime().hero, slot);
+        EXPECT_EQ(tested.world.Runtime().warpCounter, 42);
+        EXPECT_EQ(tested.world.Runtime().map, map);
+        EXPECT_EQ(tested.Hero().guildStatus, 5);
+        EXPECT_EQ(tested.Hero().word1f2, 0x1234);
+        EXPECT_EQ(tested.world.OwnCharacter().life, 70);
+    }
+    EXPECT_TRUE(online.socket.sent.empty());
+}
 TEST(WorldTransitionsTest, UnportedOpenWindowsKeepTheConfirmedWaitPrefixAndStopBeforeArrival)
 {
     Transition tested;

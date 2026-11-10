@@ -502,7 +502,8 @@ Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const
             return std::make_unique<Scenes::WorldLoadingScene>(context);
         case Scenes::SceneId::Game:
             return std::make_unique<Scenes::GameScene>(
-                context, session, &models, data.items ? &data.items->table : nullptr, &models.TextureSlots());
+                context, session, &models, data.items ? &data.items->table : nullptr, &models.TextureSlots(),
+                data.gates ? &*data.gates : nullptr, data.skills ? &*data.skills : nullptr);
         }
         return nullptr;
     };
@@ -633,7 +634,8 @@ int RunScenes(const Startup& startup, const SceneStartup& scenes, Platform::Wind
                                     .models = models,
                                     .items = scenes.data.items ? &scenes.data.items->table : nullptr,
                                     .itemSetTables = scenes.data.itemSets ? &*scenes.data.itemSets : nullptr,
-                                    .log = log});
+                                    .log = log,
+                                    .clock = &clock});
     std::optional<Online> online;
     if (startup.server)
     {

@@ -13,33 +13,36 @@
 #include "Protocol/Character/CharacterList.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/GameScene.h"
+#include "Scenes/GameData.h"
+#include "Scenes/GameModels.h"
+#include "Scenes/MapLoad.h"
+#include "Scenes/IWorldEntryPublisher.h"
+#include "Protocol/Character/CharacterSelectResult.h"
 #include "Scenes/IScene.h"
-#include "Scenes/LoginModels.h"
 #include "Scenes/ReturnToSelection.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTransitions.h"
 #include "Scenes/SelectionState.h"
-#include "Scenes/TextureSets.h"
 #include "Scenes/WorldEntry.h"
 #include "Scenes/WorldLoadingScene.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/GameCamera.h"
 #include "support/FakeClock.h"
+#include "support/GoldenDir.h"
 #include "support/FakeTextureStore.h"
 #include "support/RecordingFrameTarget.h"
 #include "support/RecordingSink.h"
-#include "support/SceneDataFiles.h"
 #include "support/ScenePrinters.h"
-#include "support/TemporaryFolder.h"
 
 #include <gtest/gtest.h>
 
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <map>
 #include <memory>
 #include <optional>
@@ -925,28 +928,57 @@ TEST(SceneManagerTest, PreparesTheFrameOncePerFrame)
     EXPECT_EQ(tested.stage.prepared[SceneId::Loading], 4);
 }
 
-// 06, "La entrada al mundo", pasos 2 a 6, con las escenas de verdad: la carga del mundo presenta el
-// mosaico y pide el juego, que retiene el frame mientras el contador pase de 30. Con 31 sigue el
-// mosaico; con los 30 de la respuesta del F3 03 (0x4c48eb) el juego empieza su frame, que acá, sin el
-// mapa que carga esa respuesta, corta (0x6371a0) sin presentar. No fija cuántos pasos corren antes
-// (P-C28 b).
+// Recursos completos para los dos tests de orquestación que ahora atraviesan productores.
+// Su mapa0 con pool vacío aisla el gate del dibujo; el caso inicial54 real vive en test_game_scene_wait.
+struct ManagerGameResources
+{
+    Expected<void, std::string> Load(Client::Scenes::WorldState& world, Client::Render::Models::ClothWorld& cloth,
+                                     FakeTextureStore& textures, Log& log)
+    {
+        auto loadedData = Client::Scenes::LoadGameData(dataRoot);
+        if (!loadedData.HasValue())
+            return Unexpected(loadedData.Error());
+        data = std::move(loadedData).Value();
+        if (auto loadedModels = models.Load(dataRoot, textures, log); !loadedModels.HasValue())
+            return loadedModels;
+        world.Runtime().map = 0; // El caller escribe el mundo antes de 61a560, que conserva el observado.
+        return Client::Scenes::LoadMap(0, {dataRoot, world, SceneId::Game, 0, cloth.random});
+    }
+    std::filesystem::path dataRoot = Client::Tests::GoldenDir();
+    Client::Scenes::GameData data;
+    Client::Scenes::GameModels models;
+};
+
+class ManagerEntryPublisher final : public Client::Scenes::IWorldEntryPublisher
+{
+public:
+    void PublishWorldEntry() override
+    {
+        ++calls;
+    }
+    int calls = 0;
+};
+
+// 06, entrada pasos2..6: el mosaico se retiene con contador>30. Este fixture de orquestación
+// ya presta un mapa real: al publicar30 el frame completo se presenta, sin un error de recursos.
 TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
 {
-    Client::Tests::TemporaryFolder folder("scene-manager-world-wait");
-    Client::Tests::WriteTextureSet(folder.Path(), Client::Scenes::WorldLoadingTextureSet);
     FakeTextureStore textures;
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
     FakeClock clock;
     Client::Render::Models::ClothWorld cloth;
     Client::Scenes::WorldState world;
+    ManagerGameResources gameResources;
+    const auto loaded = gameResources.Load(world, cloth, textures, log);
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     // 0x633f30: la selección ya marcó el mundo cargado.
     world.Runtime().drawingEnabled = true;
     const Client::Scenes::SceneContext context{
-        .dataRoot = folder.Path(), .textures = textures, .log = log, .cloth = &cloth, .world = &world};
+        .dataRoot = gameResources.dataRoot, .textures = textures, .log = log, .cloth = &cloth, .world = &world};
     RecordingFrameTarget target({800, 600});
     SceneManager manager(
-        [&context](SceneId id) -> std::unique_ptr<IScene>
+        [&](SceneId id) -> std::unique_ptr<IScene>
         {
             if (id == SceneId::WorldLoading)
             {
@@ -954,7 +986,9 @@ TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
             }
             if (id == SceneId::Game)
             {
-                return std::make_unique<Client::Scenes::GameScene>(context, nullptr);
+                return std::make_unique<Client::Scenes::GameScene>(
+                    context, nullptr, &gameResources.models, &gameResources.data.items->table,
+                    &gameResources.models.TextureSlots(), &*gameResources.data.gates, &*gameResources.data.skills);
             }
             return nullptr;
         },
@@ -979,6 +1013,7 @@ TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
     ASSERT_EQ(manager.Current(), SceneId::Game);
     draw();
     manager.Step(input);
+    ASSERT_FALSE(manager.Failure().has_value()) << *manager.Failure();
     draw();
     EXPECT_EQ(target.frames.size(), 1u) << "con el contador de la carga sigue el mosaico";
     world.Runtime().warpCounter = 31;
@@ -989,9 +1024,10 @@ TEST(SceneManagerTest, TheMosaicStaysUntilTheCounterIsThirty)
     draw();
 
     ASSERT_EQ(target.frames.size(), 2u);
-    EXPECT_FALSE(target.frames[1].presented);
-    ASSERT_TRUE(manager.Failure().has_value());
-    EXPECT_TRUE(Contains(*manager.Failure(), "0x6371a0")) << *manager.Failure();
+    EXPECT_TRUE(target.frames[1].presented);
+    EXPECT_FALSE(target.frames[1].events.empty());
+    ASSERT_FALSE(manager.Failure().has_value()) << *manager.Failure();
+    EXPECT_FALSE(manager.HoldsTheLastFrame());
 }
 
 // El F1 02 con 1 escribe la escena 4 mientras se lee la red (0x4c363f): el Poll toma la orden y el paso que
@@ -1114,14 +1150,11 @@ private:
     bool m_chosen = false;
 };
 
-// 06, "La vuelta a la selección", con la carga del mundo y el juego de verdad: mientras el juego retiene, la
-// red aplica el F1 02 con 1 y deja la orden; el juego, sin el mundo cargado, sigue sin dibujar, y el paso que
-// sigue ya es el de la selección. Elegir vuelve a cargar el mundo con el mosaico, y el juego nuevo retiene
-// mientras el contador pase de 30; con 30 corta (0x6371a0), sin el mapa que carga la respuesta del F3 03.
+// Vuelta a selección y nueva carga: conserva los cambios de escena y la segunda espera.
+// La selección visual es un doble explícito; al final ApplyWorldEntry real carga el mapa/actor
+// antes de permitir el nuevo frame. No se usa un fallo por terreno ausente como final esperado.
 TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
 {
-    Client::Tests::TemporaryFolder folder("scene-manager-return-to-selection");
-    Client::Tests::WriteTextureSet(folder.Path(), Client::Scenes::WorldLoadingTextureSet);
     FakeTextureStore textures;
     RecordingSink sink;
     Log log(sink, LogLevel::Debug);
@@ -1131,18 +1164,29 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
     Client::Scenes::SelectionState selection(world);
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
-    const Client::Scenes::SingleModelLibrary models;
+    ManagerGameResources gameResources;
+    const auto loaded = gameResources.Load(world, cloth, textures, log);
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     // 0x633f30: la selección ya marcó el mundo cargado.
     world.Runtime().drawingEnabled = true;
-    const Client::Scenes::SceneContext context{
-        .dataRoot = folder.Path(), .textures = textures, .log = log, .cloth = &cloth, .world = &world};
+    const Client::Scenes::SceneContext context{.dataRoot = gameResources.dataRoot,
+                                               .textures = textures,
+                                               .log = log,
+                                               .clock = &clock,
+                                               .cloth = &cloth,
+                                               .camera = &camera,
+                                               .cameraInput = &cameraInput,
+                                               .selection = &selection,
+                                               .world = &world};
     const Client::Scenes::WorldEntryResources resources{.world = world,
                                                         .selection = selection,
-                                                        .dataRoot = folder.Path(),
+                                                        .dataRoot = gameResources.dataRoot,
                                                         .cloth = cloth,
                                                         .camera = camera,
                                                         .cameraInput = cameraInput,
-                                                        .models = models,
+                                                        .models = gameResources.models,
+                                                        .items = &gameResources.data.items->table,
+                                                        .itemSetTables = &*gameResources.data.itemSets,
                                                         .log = log};
     RecordingFrameTarget target({800, 600});
     bool returning = false;
@@ -1158,7 +1202,9 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
             }
             if (id == SceneId::Game)
             {
-                return std::make_unique<Client::Scenes::GameScene>(context, nullptr);
+                return std::make_unique<Client::Scenes::GameScene>(
+                    context, nullptr, &gameResources.models, &gameResources.data.items->table,
+                    &gameResources.models.TextureSlots(), &*gameResources.data.gates, &*gameResources.data.skills);
             }
             if (id == SceneId::CharacterSelect)
             {
@@ -1219,19 +1265,30 @@ TEST(SceneManagerTest, GameSelectionGameHoldsAndReloadsAgain)
     ASSERT_EQ(manager.Current(), SceneId::Game);
     draw();
     manager.Step(input);
+    ASSERT_FALSE(manager.Failure().has_value()) << *manager.Failure();
     draw();
     EXPECT_EQ(target.frames.size(), 3u) << "el juego nuevo retiene con el contador de la carga";
     world.Runtime().warpCounter = 31;
     draw();
     EXPECT_EQ(target.frames.size(), 3u) << "con 31 sigue el mosaico";
 
-    world.Runtime().warpCounter = 30;
+    Client::Protocol::Character::CharacterSelectResult reply;
+    reply.map = 0;
+    reply.x = 133;
+    reply.y = 127;
+    reply.pk = 3;
+    ManagerEntryPublisher publisher;
+    const auto entered = Client::Scenes::ApplyWorldEntry(reply, 5, resources, publisher);
+    ASSERT_TRUE(entered.HasValue()) << entered.Error();
+    EXPECT_EQ(publisher.calls, 1);
+    EXPECT_EQ(world.Runtime().warpCounter, 30);
     draw();
 
     ASSERT_EQ(target.frames.size(), 4u);
-    EXPECT_FALSE(target.frames[3].presented);
-    ASSERT_TRUE(manager.Failure().has_value());
-    EXPECT_TRUE(Contains(*manager.Failure(), "0x6371a0")) << *manager.Failure();
+    EXPECT_TRUE(target.frames[3].presented);
+    EXPECT_FALSE(target.frames[3].events.empty());
+    ASSERT_FALSE(manager.Failure().has_value()) << *manager.Failure();
+    EXPECT_FALSE(manager.HoldsTheLastFrame());
     EXPECT_EQ(created[SceneId::WorldLoading], 2);
     EXPECT_EQ(created[SceneId::Game], 2);
     EXPECT_EQ(created[SceneId::CharacterSelect], 1);

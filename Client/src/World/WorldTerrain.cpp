@@ -10,6 +10,7 @@
 #include "Data/Terrain/TerrainObjects.h"
 #include "Data/Textures/Sampling.h"
 #include "Data/WorldFolder.h"
+#include "World/TerrainCells.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldFiles.h"
 
@@ -34,6 +35,8 @@ constexpr std::array<std::string_view, 14> TileNames{
     "TileRock01",  "TileRock02",  "TileRock03",   "TileRock04",   "TileRock05",   "TileRock06",  "TileRock07",
 };
 constexpr std::uint16_t FirstTile = 0x23;
+// Los nombres del pasto (0x6d1174, 0x6d1160 y 0x6d114c: "%s\\TileGrass0k.tga").
+constexpr std::array<std::string_view, GrassTextureCount> GrassNames{"TileGrass01", "TileGrass02", "TileGrass03"};
 // 0x63b870(…, 0x2600, 0x2901, …): GL_NEAREST y GL_REPEAT.
 constexpr Data::Textures::Sampling TileSampling{Data::Textures::Filter::Nearest, Data::Textures::Wrap::Repeat};
 
@@ -141,6 +144,25 @@ std::vector<WorldTileTexture> WorldTileTextures(std::uint8_t map)
                                          .required = tile == 0});
     }
     return tiles;
+}
+
+std::vector<WorldTileTexture> WorldGrassTextures(std::uint8_t map)
+{
+    std::vector<WorldTileTexture> grass;
+    if (HasOwnTiles(map))
+    {
+        return grass;
+    }
+    const std::string folder = Data::WorldFolder(map) + "\\";
+    for (std::size_t texture = 0; texture < GrassNames.size(); ++texture)
+    {
+        // 0x63bd00(…, 0x32 + k, 0x2600, 0x2901, 0, 0): el sexto argumento en 0, no avisa.
+        grass.push_back(WorldTileTexture{.path = folder + std::string(GrassNames[texture]) + ".tga",
+                                         .slot = static_cast<std::uint16_t>(FirstGrassSlot + texture),
+                                         .sampling = TileSampling,
+                                         .required = false});
+    }
+    return grass;
 }
 
 WorldTileTexture AcceptBoxTexture()

@@ -15,6 +15,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 namespace Client::World
 {
@@ -330,12 +331,40 @@ bool PolygonContains(const TerrainPolygon& polygon, double x, double y, double m
     return true;
 }
 
-void DrawTerrain(Render::ModelBatch& batch, const TerrainView& view, const TerrainRange& range,
-                 const TerrainPolygon& polygon, const TerrainWater& water)
+namespace
+{
+// Las 16 celdas de un bloque que pasa (0x5fc0e0), por fila y después por columna: la que pasa el
+// trapecio en su centro va a `cell`. Corta en el primer error.
+template <typename Cell>
+Core::Expected<void, std::string> VisitTheBlock(const TerrainPolygon& polygon, int blockX, int blockY, Cell& cell)
+{
+    constexpr int Block = 4;
+    constexpr double CellCenter = 0.5;
+    for (int y = blockY; y < blockY + Block; ++y)
+    {
+        for (int x = blockX; x < blockX + Block; ++x)
+        {
+            if (!PolygonContains(polygon, static_cast<double>(x) + CellCenter, static_cast<double>(y) + CellCenter,
+                                 CellMargin))
+            {
+                continue;
+            }
+            if (auto drawn = cell(static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y)); !drawn.HasValue())
+            {
+                return drawn;
+            }
+        }
+    }
+    return {};
+}
+
+// 0x5fc190, el mismo en los dos pases (no mira 0x7d0d31c): los bloques de 4 × 4 del rango por fila de
+// bloques y después por columna, y los del que pasa el trapecio en su centro.
+template <typename Cell>
+Core::Expected<void, std::string> VisitTheRange(const TerrainRange& range, const TerrainPolygon& polygon, Cell cell)
 {
     constexpr int Block = 4;
     constexpr double BlockCenter = 2.0;
-    constexpr double CellCenter = 0.5;
     // TerrainRangeOf ya los deja entre 0 y 0xfb; uno de afuera haría dar la vuelta a las celdas.
     const int firstY = std::clamp(range.firstY, 0, LastBlock);
     const int lastY = std::clamp(range.lastY, 0, LastBlock);
@@ -350,18 +379,33 @@ void DrawTerrain(Render::ModelBatch& batch, const TerrainView& view, const Terra
             {
                 continue;
             }
-            for (int y = blockY; y < blockY + Block; ++y)
+            if (auto visited = VisitTheBlock(polygon, blockX, blockY, cell); !visited.HasValue())
             {
-                for (int x = blockX; x < blockX + Block; ++x)
-                {
-                    if (PolygonContains(polygon, static_cast<double>(x) + CellCenter,
-                                        static_cast<double>(y) + CellCenter, CellMargin))
-                    {
-                        DrawTerrainCell(batch, view, water, static_cast<std::uint8_t>(x), static_cast<std::uint8_t>(y));
-                    }
-                }
+                return visited;
             }
         }
     }
+    return {};
+}
+} // namespace
+
+void DrawTerrain(Render::ModelBatch& batch, const TerrainView& view, const TerrainRange& range,
+                 const TerrainPolygon& polygon, const TerrainWater& water)
+{
+    // El pase con 0x7d0d31c en 0 no corta: cada celda que pasa se dibuja.
+    static_cast<void>(VisitTheRange(range, polygon,
+                                    [&](std::uint8_t x, std::uint8_t y) -> Core::Expected<void, std::string>
+                                    {
+                                        DrawTerrainCell(batch, view, water, x, y);
+                                        return {};
+                                    }));
+}
+
+Core::Expected<void, std::string> DrawGrass(Render::ModelBatch& batch, const TerrainView& view,
+                                            const TerrainRange& range, const TerrainPolygon& polygon,
+                                            const TerrainWater& water, const TerrainGrass& grass)
+{
+    return VisitTheRange(range, polygon, [&](std::uint8_t x, std::uint8_t y)
+                         { return DrawGrassCell(batch, view, water, grass, x, y); });
 }
 } // namespace Client::World

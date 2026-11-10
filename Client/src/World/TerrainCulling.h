@@ -11,6 +11,7 @@
 
 #include <array>
 #include <cstdint>
+#include <string>
 
 // Qué celdas del terreno pasan el recorte del original (CL7.1, tarea 3): el rango de bloques de
 // 0x5fbb00 (los cinco puntos del frustum, la cámara y las cuatro esquinas lejanas) y el trapecio de
@@ -121,4 +122,10 @@ inline constexpr double CellMargin = 0.0;
 // pasar todo, no se prende nunca.
 void DrawTerrain(Render::ModelBatch& batch, const TerrainView& view, const TerrainRange& range,
                  const TerrainPolygon& polygon, const TerrainWater& water);
+
+// El pase del pasto (0x5fc353: 0x5fc190 con 0x7d0d31c en 2): el mismo recorrido de bloques y celdas que
+// DrawTerrain, con DrawGrassCell en cada celda que pasa. Corta con el error de la primera celda que corta.
+[[nodiscard]] Core::Expected<void, std::string> DrawGrass(Render::ModelBatch& batch, const TerrainView& view,
+                                                          const TerrainRange& range, const TerrainPolygon& polygon,
+                                                          const TerrainWater& water, const TerrainGrass& grass);
 } // namespace Client::World

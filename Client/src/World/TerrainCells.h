@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Expected.h"
 #include "Core/IClock.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainHeights.h"
@@ -9,15 +10,20 @@
 
 #include <array>
 #include <bit>
+#include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <span>
+#include <string>
 #include <vector>
 
 // El terreno de un mundo como triángulos del ModelBatch (CL7.1): lo que dibuja la cadena de 0x5fc260,
 // verificada celda por celda contra la traza de Lorencia (06 § Terreno). Cada celda es el fan de
 // cuatro vértices de 0x5fac90 en dos triángulos, con las capas que elige 0x5fa830 por el alfa de sus
-// esquinas, las UV de 0x5fa5c0 y la luz y el alfa de cada esquina de 0x5fa260 y 0x5fa350. No hay pase
-// del pasto (en el mapa 55 no dibuja nada, 06 § El terreno del login) ni el agua de los mapas 7
-// (0x5fa4b0, con el 5.º argumento de 0x5fa5c0 en 1) y 0x22; el corrimiento al revés del 0x1e, sí.
+// esquinas, las UV de 0x5fa5c0 y la luz y el alfa de cada esquina de 0x5fa260 y 0x5fa350. El pase del
+// pasto es la misma celda con 0x7d0d31c en 2 (06 § El pasto): solo lo dibuja el juego (en el mapa 55
+// no dibuja nada, 06 § El terreno del login). No está el agua de los mapas 7 (0x5fa4b0, con el 5.º
+// argumento de 0x5fa5c0 en 1) y 0x22; el corrimiento al revés del 0x1e, sí.
 namespace Client::World
 {
 // El tile i es el slot i + 0x23 (0x5fa260 y 0x5fa350).
@@ -92,5 +98,35 @@ void UpdateWaves(TerrainWater& water, Core::Duration clock, const TerrainRange& 
 // grilla de 256: la última celda de una fila toma las de la fila siguiente, como el original.
 void DrawTerrainCell(Render::ModelBatch& batch, const TerrainView& view, const TerrainWater& water, std::uint8_t x,
                      std::uint8_t y);
+
+// El pasto de la capa 1 en k va en el slot 0x32 + k (0x5faa8c). 0x61a560 sube en 0x32..0x34
+// TileGrass01..03.tga de World<N>\ (0x63bd00, GL_NEAREST y repitiendo, sin avisar si falta).
+inline constexpr std::uint16_t FirstGrassSlot = 0x32;
+inline constexpr std::size_t GrassTextureCount = 3;
+// Las filas del corrimiento del pasto que lee el pase: 0x5faabf toma la fila & 0xff (Q-C146).
+inline constexpr std::size_t GrassOffsetRows = 256;
+
+// Lo que el pase del pasto lee además del terreno (0x5fa830 con 0x7d0d31c en 2).
+struct TerrainGrass
+{
+    // El alto del buffer (+0x24 del slot) de cada textura del pasto subida, de 0x32 a 0x34; sin valor,
+    // la que no está (+0x34 en 0): 0x6070a0 suelta los slots 0x23..0x67 en cada carga y 0x63bd00 no
+    // sube la que falta o no se lee.
+    std::array<std::optional<float>, GrassTextureCount> heights{};
+    // El corrimiento de la u de cada fila (0x7b0cca4, que llena 0x5f8300 al cargar el mapa).
+    std::span<const float> offsets{};
+};
+
+// La celda (x, y) en el pase del pasto, como 0x5fac90 con 0x5fa830 y 0x7d0d31c en 2: nada con el bit
+// 0x08, con alguna esquina en alfa por encima de 0, en los mapas 11 a 17 o con el slot 0x32 + capa 1 sin
+// textura. Si no, un GL_QUADS con la mezcla de 0x620a00(1) parado sobre la diagonal de la celda: abajo
+// las esquinas (x + 1, y + 1) y (x, y) con su altura; arriba las mismas, 50 menos en x y el doble del
+// alto del buffer de la textura más en z, con la ola de la esquina (x, y) y la de (x + 1, y) en y (Q-C227). La u
+// es x · 0,25 más el corrimiento de la fila y el color, la luz de cada esquina en orden, con alfa 1
+// (glColor3fv). Corta con error si el corrimiento no tiene las 256 filas o si el slot es 0x41 o más, que
+// MuRet no sube (0x5faaa3: las wt de 0x616ec0, las hojas…); del 0x35 al 0x40 no los sube nadie.
+[[nodiscard]] Core::Expected<void, std::string> DrawGrassCell(Render::ModelBatch& batch, const TerrainView& view,
+                                                              const TerrainWater& water, const TerrainGrass& grass,
+                                                              std::uint8_t x, std::uint8_t y);
 
 } // namespace Client::World

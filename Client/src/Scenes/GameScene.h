@@ -82,7 +82,7 @@ private:
 
     // 0x63723a..0x6374ce: el dibujo hasta el corte. Devuelve siempre el error del corte.
     [[nodiscard]] Core::Expected<void, std::string> DrawTheFrame(SceneCanvas& canvas);
-    // Los tiles de `map` en la GPU, que el original sube en 0x61a560, al cargar.
+    // Los tiles y el pasto de `map` en la GPU, que el original sube en 0x61a560, al cargar.
     [[nodiscard]] Core::Expected<void, std::string> UploadTheTiles(std::uint8_t map);
     // 0x635ae0, una vez por frame original, y la consulta de los dibujos intermedios.
     [[nodiscard]] Render::Camera3D CameraOfTheFrame(SceneCanvas& canvas, int frames);

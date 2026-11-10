@@ -20,6 +20,7 @@ using Client::Data::Textures::Filter;
 using Client::Data::Textures::Wrap;
 using Client::World::AcceptBoxTexture;
 using Client::World::LoadWorldTerrain;
+using Client::World::WorldGrassTextures;
 using Client::World::WorldTileTextures;
 
 constexpr std::uint8_t Login = 55;
@@ -51,6 +52,28 @@ TEST(WorldTerrainTest, TheMapsWithTheirOwnTilesHaveNone)
     }
     EXPECT_EQ(WorldTileTextures(23).size(), 14u);
     EXPECT_EQ(WorldTileTextures(30).size(), 14u);
+}
+
+// 0x61abb4..0x61ac36: después de los tiles, World<N>\TileGrass01..03.tga en 0x32..0x34 con 0x63bd00,
+// GL_NEAREST y repitiendo, sin avisar si faltan. En Lorencia (World1) y en Devias (World3).
+TEST(WorldTerrainTest, TheGrassComesAfterTheTiles)
+{
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        const auto grass = WorldGrassTextures(map);
+        const std::string folder = map == 0 ? "World1" : "World3";
+        ASSERT_EQ(grass.size(), 3u);
+        for (std::size_t k = 0; k < grass.size(); ++k)
+        {
+            EXPECT_EQ(grass[k].path, folder + "\\TileGrass0" + std::to_string(k + 1) + ".tga");
+            EXPECT_EQ(grass[k].slot, 0x32 + k);
+            EXPECT_EQ(grass[k].sampling.filter, Filter::Nearest);
+            EXPECT_EQ(grass[k].sampling.wrap, Wrap::Repeat);
+            EXPECT_FALSE(grass[k].required);
+        }
+    }
+    EXPECT_TRUE(WorldGrassTextures(24).empty());
+    EXPECT_TRUE(WorldGrassTextures(36).empty());
 }
 
 // Q-C19: el slot 0x122 es Interface\accept_box01.jpg, con GL_NEAREST y GL_CLAMP, como lo sube 0x61ae60.

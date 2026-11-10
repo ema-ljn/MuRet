@@ -1465,8 +1465,10 @@ de vuelta. *Estático.*
   devuelve false y sigue (Q-C14). MuRet saltea los que no avisan, falten o no se lean, con un aviso en
   el log; sin `TileGrass01` o el `0x122` (que también avisa), el login va sin terreno
   (`GoldenLoadedWorld`). Después vienen el pasto
-  (`0x32..0x34`), las hojas (`0x64`, `0x65`) y la lluvia (`0x66..0x68`), que el terreno no usa. Los mapas
-  `0x18` a `0x1d` y el `0x24` arman los suyos (`0x4377a0`).
+  (`0x32..0x34`, que lee el pase del pasto, [El pasto](#lo-propio-de-lorencia)), las hojas (`0x64`,
+  `0x65`) y la lluvia (`0x66..0x68`), que el terreno no usa. MuRet sube el pasto solo en el juego
+  (`TerrainTiles::Load` con `GrassTextures::Upload`): el login y la selección no lo dibujan (P-C48 b). Los
+  mapas `0x18` a `0x1d` y el `0x24` arman los suyos (`0x4377a0`).
 - **El pase del pasto**, en el 55, no dibuja nada en esta vista (*estático* desde el cierre): corre
   (`0x6c9d58` en 1 por `0x5f87b0`, salvo en los mapas `0x12..0x17` y `0x1e`), con la mezcla normal, en las
   celdas sin el `0x08` y con las cuatro esquinas en alfa 0: 2.402 en la ventana del login, con la capa 1 en
@@ -2905,9 +2907,9 @@ construido y el contador como estaba (`AfterAGameFrameASecondEntryElsewhereStops
 al mismo lugar, `0x505820` vuelve a correr con el héroe reconstruido y la entrada sigue
 (`AfterAGameFrameASecondEntryOnTheSameSlotScansTheRebuiltHero`). MuRet no tiene en el mundo ni
 cuervos ni telas que soltar, ni la lista `0x7245c8`. Los tiles los sube el dibujo del juego por número
-de mapa (`TerrainTiles`): con el mismo mapa conserva los que ya subió, que salen de los mismos archivos;
-hoy el primer frame del juego corta en el pasto y la escena no vuelve a dibujar (T8). Lo que pide la
-VM, P-C43.
+de mapa (`TerrainTiles`, con el pasto): con el mismo mapa conserva los que ya subió, que salen de los
+mismos archivos; hoy el primer frame del juego corta en las marcas del suelo (`0x5fc365`) y la escena no
+vuelve a dibujar (T8). Lo que pide la VM, P-C43.
 
 ### El equipo propio en el personaje
 
@@ -3414,7 +3416,7 @@ bloque de la entrada, en orden (*estático*):
 | `0x63711e` | **`0x52d220`** | los efectos con modelo | sí (`StepModelEffects`) |
 | `0x637123` | `0x53c670` | los joints | no |
 | `0x637128` | **`0x5446e0`** | el viento y las partículas | sí (`StepParticles`) |
-| `0x63712d` | `0x549090` | los sprites con vida (`0x760cac0`) | sin mirar |
+| `0x63712d` | `0x549090` | las marcas del suelo (`0x760cab0`, [El dibujo del juego](#el-dibujo-del-juego)): les baja la vida | no |
 | `0x637138` | `0x403590` | `0x4033d0` y compañía (el recorrido de la cámara), sin leer | — |
 | `0x637144..0x63717a` | `0x5fc0d0` y `0x5fc0b0`, con `0x7d2d35e` | funciones de un `ret` | nada |
 | `0x63717f` | `0x5ac8d0` | F1 a F4 (CL3.3) | CL8 |
@@ -3503,7 +3505,7 @@ frontera (P-C41 a). Tests: `CharacterStepTest`, `GoldenCharacterStep.TheSafeZone
 | `0x637410` | `0x620db0(0, 0, w, 432)` (480 con `0x7d36899`) | el pase del mundo | sí (`GameWorldViewport`) |
 | `0x63741d` | en el mapa 30, su luz | | corta (el 30 no carga) |
 | `0x6374aa` | `0x620480(mouse x, mouse y, &0x7d366c0, 1)` | el rayo del mouse, con el mouse de 640 × 480 vuelto a la pantalla en enteros (`0x620486..0x6204b0`) | `GameScene::MouseRay`, para [Caminar](#caminar) |
-| `0x6374c6` | **`0x5fc260(0)`**, si `0x437850()` es falso y el mapa no es 10 | el terreno: el pase opaco, el de alfa, **el del pasto** y `0x549130` | `LoadedWorld::DrawTerrain`, **sin el pasto**; el juego dibuja el primer pase y **corta** en el del pasto (`0x5fc353`), y en el mapa 7 antes, en su agua (`0x5fa985`, `0x5fa4b0`) |
+| `0x6374c6` | **`0x5fc260(0)`**, si `0x437850()` es falso y el mapa no es 10 | el terreno: el pase opaco, el de alfa, **el del pasto** y `0x549130` | `LoadedWorld::DrawTerrain`, **sin el pasto** (P-C48 b); el juego dibuja el primer pase y el del pasto y **corta** en las marcas del suelo (`0x5fc365`); en el mapa 7 antes, en su agua (`0x5fa985`, `0x5fa4b0`), y en los 18 a 23 antes de la primera celda (`0x5fa83f`, Q-C229). Abajo, por dentro |
 | `0x6374ce` | **`0x6046a0` → `0x602e90` → `0x602ed0`, `0x5ffdf0`, `0x6002e0`** | los objetos del `.obj` por sector | `DrawWorldObjects`, con los casos del 55; el juego corta acá en el mapa 10 |
 | `0x6374d3` | **`0x52dc20`** | los efectos del suelo (`0x61d`, `0x61e`, `0x61f`…), con `0x5fb2f0` | no |
 | `0x6374d8` | **`0x446b60`** | los pájaros, con su sombra | no |
@@ -3527,15 +3529,42 @@ frontera (P-C41 a). Tests: `CharacterStepTest`, `GoldenCharacterStep.TheSafeZone
 | `0x637641` | `0x59ec80` | qué personaje está bajo el mouse | [Caminar](#caminar) |
 | `0x637646..0x6376e6` | `0x6219b0`, `0x4383f0`, `0x5bbbc0`, `0x5a7320(1)`, `0x5a7eb0`, `0x490390`, `0x5f37f0`, `0x62db60`, `0x5f7bc0`, `0x554810`, `0x5554e0`, `0x5b0550`, `0x40eca0`, `0x65ee60`/`0x65fe00`, `0x5ac2d0` × 2, `0x633110`, `0x621a90`, `0x620fc0` y uno por vtable | el 2D: el HUD, las ventanas, el texto y el cursor | CL8 |
 
-**Hasta dónde llega MuRet** (T8 del hito 1 de la CL7). `GameScene::Render` corre lo de arriba en
-ese orden hasta el primer pase del terreno y corta con error en la primera etapa que no tiene: el
-pasto (`0x5fc353`, `0x5fc190` con `0x7d0d31c` en 2) en los mapas que carga, salvo el 6 (la cámara,
-`0x635b5c`), el 7 (su agua, `0x5fa985`) y el 10 (los objetos, `0x6374ce`). El pase del pasto lo prende
-`0x6c9d58`, que `0x5f87b0` pone en 1 salvo en los mapas 18 a 23 y 30
-(`0x5f8928..0x5f8947`); sin él, o en el 7, sigue `0x549130` (`0x5fc365`). El corte es terminal
-(`IScene::Failure`): el frame no se presenta y el juego cierra con el error. En Lorencia, con el héroe
-y la cámara de la traza, son las 329 celdas de la traza en su orden
-(`GoldenTerrainTrace.TheGameSceneDrawsTheCellsOfLorencia`). Lo que falta, [08](08-pendientes.md) P-C41.
+**Por dentro de `0x5fc260(0)`** (*estático*), en el orden de sus llamadas:
+
+| Dónde | Qué hace | MuRet |
+| --- | --- | --- |
+| `0x5fc26b..0x5fc2c0` | el corrimiento del agua con el reloj del frame (`0x78ecbec`) y la mezcla opaca (`0x620980`) | `WaterOffsetAt` |
+| `0x5fc2d4..0x5fc2de` | `0x7d0d31c = 0` y `0x5fc190(0)`: el pase opaco y el de alfa de cada celda | `World::DrawTerrain` |
+| `0x5fc32b` | `0x620a00(1)`: `SRC_ALPHA / ONE_MINUS_SRC_ALPHA`, sin culling y con alpha test | la mezcla de cada quad del pasto (`ModelBlend::Alpha`) |
+| `0x5fc332..0x5fc345` | sigue con `0x6c9d58` (`0x5f87b0` lo pone en 1 salvo en los mapas 18 a 23 y 30, `0x5f8928..0x5f8947`) y fuera del mapa 7 | `HasTheGrassPass`; el 7, el 30 y los 18 a 23 ya cortaron antes |
+| `0x5fc349..0x5fc353` | `0x7d0d31c = 2` y `0x5fc190(0)`: **el pase del pasto**, en los mismos bloques y celdas ([El pasto](#lo-propio-de-lorencia)). No saca `rand()` fuera de los mapas 18 a 23 (Q-C229) | `World::DrawGrass` (CL7, hito 1) |
+| `0x5fc35b..0x5fc360` | sin depth test (`0x620870`) y con culling (`0x6208d0`) | — |
+| `0x5fc365` | **`0x549130`**: las marcas del suelo (abajo) | **corta** |
+| `0x5fc36a` | el depth test de vuelta (`0x620850`) | — |
+
+**Hasta dónde llega MuRet** (T8 del hito 1 de la CL7 y el pase del pasto). `GameScene::Render` corre
+lo de arriba en ese orden hasta el terreno y corta con error en la primera etapa que no tiene: las
+marcas del suelo (`0x5fc365`) en los mapas que carga, salvo el 6 (la cámara, `0x635b5c`), el 7 (su
+agua, `0x5fa985`) y el 10 (los objetos, `0x6374ce`). Antes dibuja el pase del pasto, que no gasta
+`rand()`: los 4 + 8 del frame quedan como estaban. Los mapas 18 a 23, que `LoadMap` ya corta en
+`0x447d70`, cortan antes de la primera celda (`0x5fa83f`, Q-C229) si llegan con el mundo puesto a mano.
+El corte es terminal (`IScene::Failure`): el frame no se presenta y el juego cierra con el error. En
+Lorencia, con el héroe y la cámara de la traza, son las 329 celdas de la traza en su orden
+(`GoldenTerrainTrace.TheGameSceneDrawsTheCellsOfLorencia`) y 25 quads de `TileGrass01` de z 165 a 293,
+como en la traza (`GameSceneDrawTest.TheReferenceMapsDrawTheTerrainAndTheGrassAndStopAtTheGroundMarks`;
+la cuenta y las alturas, *verificado* contra lo que dice [El pasto](#lo-propio-de-lorencia) de la traza;
+cada vértice, sin comparar, P-C48 a). Lo que falta, [08](08-pendientes.md) P-C41 y P-C48.
+
+**Las marcas del suelo** (`0x549130`, *estático*). Es una tabla de 100 lugares de `0x78` bytes en
+`0x760cab0..0x760f990`: `0x549130` pone la mezcla aditiva (`0x620a90`) y dibuja cada lugar con el byte
+`+0` prendido con `0x5fb2f0`, aditivo o con `0x620a00(1)` según el slot de la textura de su tipo (`+4`,
+el byte `+0x28` del slot en 3). La llena `0x548fe0`, siempre con el tipo `0x5e3`, desde `0x505de0`
+(`0x507486`, en un caso de su `switch`, con `rand() % 5` en 0) y desde `0x52e810` (`0x52e96c`); sin
+lugar libre, apaga el de menos vida (`+0x3c`) y no pone la nueva. En cada paso del juego, `0x549090`
+(`0x63712d`) les baja la vida y apaga las que llegan a 0. **La carga del mapa no la vacía**: `0x6070a0`
+apaga las tablas de al lado (`0x7609bd0..0x760cab0` termina donde empieza esta) pero no esta (Q-C228).
+Que esté vacía en el primer frame depende de que nadie haya llamado a `0x548fe0` antes, en la selección
+o en una entrada anterior al juego, y eso MuRet no lo modela: corta ahí con error (P-C48 c).
 
 **El orden del pase 3D no es el del login.** En el juego van el terreno, los objetos, el suelo, los
 pájaros, los personajes, los peces, el caballo, las hojas, los efectos con modelo, los sprites y las
@@ -4069,6 +4098,39 @@ que llena `0x5f8300`, el pasto lee los 256 primeros (Q-C146). El color sale de `
 traza son 25 quads con `TileGrass01.tga`, de z 165 a 293, con la x de arriba corrida 50 (líneas
 7.882 a 8.218). En el login no dibuja nada ([El terreno del login](#el-terreno-del-login)).
 
+Por dentro (`0x5fa9f6..0x5fac7b`, *estático*):
+
+- **Qué celdas.** `0x5fac90` ya salteó las del bit `0x08` y `0x5fa830` llamó a `0x405e00(x, y)`
+  (`0x5fa83f`, antes de mirar `0x7d0d31c`; fuera de los mapas 18 a 23 vuelve sin hacer nada, Q-C229).
+  Cada esquina en alfa (`0x7ccccc4`) se compara con 0 (`fcomp` y `test ah, 0x41`): sigue solo con las
+  cuatro en 0 o menos. Después `0x7b4ccb4`, que nadie escribe (Q-C226), y el mapa (`0x5faa79`).
+- **La textura.** El slot es `0x32` + la capa 1 de la esquina (x, y) (`0x5faa8c`), y la celda sigue
+  solo si el buffer del slot (`+0x34` de `0x7d3a198`) no es 0 (`0x5faaa3`). `0x61a560` sube
+  `World<N>\TileGrass01..03.tga` en `0x32..0x34` con `0x63bd00`, que no avisa si falta; `0x6070a0`
+  suelta `0x23..0x67` en cada carga y nadie sube del `0x35` al `0x40`: la capa 1 de 3 a 14 no tiene
+  pasto (Q-C230). Del `0x41` en adelante están las `wt` de `0x616ec0` y lo que sube después, que MuRet
+  no tiene. `World1` trae solo `TileGrass01.OZT`, `World3` solo `TileGrass02.OZT` y `World55` los dos
+  primeros.
+- **El quad.** El alto es el doble del de la textura (`+0x24`, `fadd st, st`, guardado en un float).
+  `0x5fac90` dejó las cuatro esquinas en `0x79ecc30..0x79ecc5c` (con el bit `0x40`, la altura fija);
+  `0x5fab27..0x5fabbc` las rearma: la 0 sube el alto, se corre −50 en x y suma en y la ola de la esquina
+  0; la 1 toma la x − 50, la y y la z de la esquina 2 (x + 1, y + 1), con el alto en z y la ola de la
+  esquina 1 en y; la 2 queda; la 3 toma la x, la y y la z de la esquina 0. Es un cuadro parado sobre la
+  diagonal de la celda, inclinado hacia −x. Las UV: (u, 0), (u + 0,25, 0), (u + 0,25, 1), (u, 1),
+  cada suma guardada en un float. El color de cada vértice es la luz de la esquina 0, 1, 2 y 3 en ese
+  orden (`glColor3fv`, alfa 1), aunque el 1 está sobre la esquina 2 y el 3 sobre la 0 (Q-C227).
+
+**Lo que porta MuRet** (CL7, hito 1). `World::DrawGrassCell` y `World::DrawGrass` (el recorrido de
+`0x5fc190`, el mismo de `DrawTerrain`), con las alturas de los buffers que sube `TerrainTiles` en el
+juego y el corrimiento de `WorldMap::grassOffsets`. Sin la textura o con la capa 1 de 3 a 14, la celda
+no lleva pasto, como en el original; con la capa 1 en 15 o más corta con error (`0x5faaa3`), y sin las
+256 filas del corrimiento (`0x5faad3`). Tests: `TerrainGrassTest` (el quad, la luz, la ola, cada
+condición y el recorrido), `WorldTerrainTest.TheGrassComesAfterTheTiles` y, en Lorencia y Devias,
+`GameSceneDrawTest.TheReferenceMapsDrawTheTerrainAndTheGrassAndStopAtTheGroundMarks`: en Lorencia, con el
+héroe y la cámara de la traza, los 25 quads de z 165 a 293. Con la Data del repo, la capa 1 de las
+celdas que pasan las condiciones del alfa y el `0x08` va de 0 a 13 en los mapas que carga el juego
+(*simulado*, la cuenta): ninguno llega al corte del `0x5faaa3`.
+
 ### Caminar
 
 Del clic en el piso al paso entre celdas, y lo que manda y recibe la red. *Estático* salvo lo que se
@@ -4581,8 +4643,8 @@ propio del terreno de algunos mapas (*estático*; MuRet ya tiene lo marcado con 
 | 7 | el agua con las `wt`, sin segundo pase del terreno y las sombras con alfa 0,2 | `0x5fa973`, `0x5fc33e`, `0x60b41a` |
 | 8 | el agua corre a la mitad (40 s) y la ola por 50 ✓ | `0x5fc26b`, `0x5fbf60` |
 | 10 | sin terreno; los objetos con margen −10 en el frustum | `0x6371a0`, `0x6046a6` |
-| 11 a 17 | el pasto no se dibuja por celda | `0x5faa79` |
-| 18 a 23 | sin pase del pasto (`0x6c9d58` en 0) | `0x5f893b` |
+| 11 a 17 | el pasto no se dibuja por celda ✓ | `0x5faa79` |
+| 18 a 23 | sin pase del pasto (`0x6c9d58` en 0) ✓; `0x405e00` saca `rand()` con cada celda de los dos pases (Q-C229) | `0x5f893b`, `0x405e0c` |
 | 24 a 29 y 36 | sin tiles; un terreno de agua propio de `0x114ad8` bytes en `0x723c48` | `0x4377a0`, `0x41cc70` |
 | 30 | el agua al revés ✓ y la luz con otras constantes ✓; sin pasto; la niebla y el far de arriba | `0x5fa739`, `0x5f8d90`, `0x5f8942` |
 | 34 | el agua suelta partículas | `0x5fa695` |

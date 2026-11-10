@@ -12,6 +12,7 @@
 #include "Network/PacketSerials.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
+#include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/MapLoad.h"
@@ -24,6 +25,7 @@
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainWalls.h"
+#include "World/WorldTerrain.h"
 
 #include "support/AppPrinters.h"
 #include "support/Bytes.h"
@@ -46,9 +48,11 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 // Client::Scenes::GameScene: la escena 5 mientras espera el mundo y con el mundo. Manda el F3 03 en su
 // primer paso (0x636290), baja el contador de la espera como MoveHero (0x59af01) y retiene el frame
@@ -536,19 +540,48 @@ const Client::Tests::FrameEvent* ModelsOf(const Client::Tests::RecordedFrame& fr
     return models;
 }
 
+// La z más baja y la más alta de los quads del pasto en `slot`.
+struct GrassHeights
+{
+    float lowest = std::numeric_limits<float>::max();
+    float highest = std::numeric_limits<float>::lowest();
+};
+
+GrassHeights GrassHeightsOf(const Client::Tests::FrameEvent& models, std::uint16_t slot)
+{
+    GrassHeights heights;
+    for (const Client::Render::ModelDrawCommand& command : models.modelCommands)
+    {
+        if (command.state.texture != Client::Render::TextureSlot{slot})
+        {
+            continue;
+        }
+        for (std::size_t v = 0; v < command.vertexCount; ++v)
+        {
+            const float z = models.modelVertices[command.firstVertex + v].position.z;
+            heights.lowest = std::min(heights.lowest, z);
+            heights.highest = std::max(heights.highest, z);
+        }
+    }
+    return heights;
+}
+
 // 0x63723a..0x6374c6 en Lorencia (el 0) y Devias (el 2), los mapas de referencia: la cámara con los dos
 // accesos a la celda del héroe (8 rand() después de los 4 de 0x637229), el rayo del mouse, el primer
-// pase del terreno (las celdas, con los tiles de 0x23 a 0x30 y el 0x122) y el corte en el pase del pasto
-// (0x5fc353), que MuRet no tiene. El frame cortado no se presenta y el dibujo no vuelve a correr.
-TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainAndStopAtTheGrass)
+// pase del terreno (las celdas, con los tiles de 0x23 a 0x30 y el 0x122), el del pasto (0x5fc353, sin
+// rand()) con la única textura del pasto que tiene cada mundo, y el corte en las marcas del suelo
+// (0x5fc365), que MuRet no tiene. El frame cortado no se presenta y el dibujo no vuelve a correr.
+TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainAndTheGrassAndStopAtTheGroundMarks)
 {
     struct Case
     {
         std::uint8_t map;
         std::uint8_t x;
         std::uint8_t y;
+        // World1 solo tiene TileGrass01.OZT y World3 solo TileGrass02.OZT: las otras dos se saltean.
+        std::uint16_t grass;
     };
-    for (const Case& probe : {Case{0, 143, 120}, Case{2, 220, 30}})
+    for (const Case& probe : {Case{0, 143, 120, 0x32}, Case{2, 220, 30, 0x33}})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.x, probe.y));
@@ -561,24 +594,48 @@ TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainAndStopAtTheGrass)
         scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
 
         ASSERT_TRUE(scene.Failure().has_value());
-        EXPECT_NE(scene.Failure()->find("0x5fc353"), std::string::npos) << *scene.Failure();
+        EXPECT_NE(scene.Failure()->find("0x5fc365"), std::string::npos) << *scene.Failure();
         ASSERT_EQ(target.frames.size(), 1u);
         const Client::Tests::FrameEvent* models = ModelsOf(target.frames[0]);
         ASSERT_NE(models, nullptr);
         EXPECT_FALSE(models->modelVertices.empty());
+        // Primero las celdas del terreno y después los quads del pasto, todos con su textura y la mezcla.
+        std::size_t grassVertices = 0;
         for (const Client::Render::ModelDrawCommand& command : models->modelCommands)
         {
             ASSERT_TRUE(command.state.texture.has_value());
             const std::uint16_t slot = command.state.texture->value;
+            if (slot == probe.grass)
+            {
+                EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Alpha);
+                grassVertices += command.vertexCount;
+                continue;
+            }
+            EXPECT_EQ(grassVertices, 0u) << "el pasto va después de todo el terreno";
             EXPECT_TRUE((slot >= Client::World::FirstTileSlot && slot < Client::World::FirstTileSlot + 14) ||
                         slot == 0x122)
                 << slot;
         }
+        EXPECT_GT(grassVertices, 0u);
+        EXPECT_EQ(grassVertices % 6, 0u);
         EXPECT_TRUE(scene.MouseRay().has_value());
         EXPECT_EQ(cameraInput.hero, world.Actors()[HeroSlot].position);
         EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8).State());
         EXPECT_NE(std::ranges::find(store.loaded, Client::World::FirstTileSlot), store.loaded.end());
         EXPECT_NE(std::ranges::find(store.loaded, std::uint16_t{0x122}), store.loaded.end());
+        for (std::uint16_t slot = 0x32; slot <= 0x34; ++slot)
+        {
+            EXPECT_EQ(store.Find(Client::Render::TextureSlot{slot}).has_value(), slot == probe.grass) << slot;
+        }
+        if (probe.map == 0)
+        {
+            // La traza de Lorencia, con este héroe y esta cámara: 25 quads de TileGrass01, de z 165 a 293
+            // (06 § El pasto, *verificado*).
+            EXPECT_EQ(grassVertices / 6, 25u);
+            const auto [lowest, highest] = GrassHeightsOf(*models, probe.grass);
+            EXPECT_EQ(lowest, 165.0f);
+            EXPECT_EQ(highest, 293.0f);
+        }
 
         target.Present();
         scene.Render(target.BeginFrame({}), 0.0f);
@@ -628,6 +685,43 @@ TEST_F(GameSceneDrawTest, TheOtherMapsStopWhereTheyDiffer)
     }
 }
 
+// Los mapas 18 a 23 no tienen pase del pasto (0x6c9d58 en 0), pero no llegan a esa decisión: 0x5fa830
+// llama a 0x405e00 con cada celda del primer pase, y en esos mapas saca rand() (0x405e0c..0x405e18). Sin
+// LoadMap (que los corta en 0x447d70), con el terreno de World19 puesto a mano, el dibujo corta antes de
+// la primera celda (0x5fa83f), con los 4 + 8 rand() de siempre y sin un vértice.
+TEST_F(GameSceneDrawTest, AMapWithoutGrassStopsBeforeItsFirstCell)
+{
+    constexpr std::uint8_t ChaosCastle = 18;
+    auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, ChaosCastle);
+    ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
+    world.Map().terrain = std::move(terrain).Value();
+    world.Runtime().map = ChaosCastle;
+    Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
+    hero.alive = true;
+    hero.cellX = 128;
+    hero.cellY = 128;
+    hero.position = {12850.0f, 12850.0f, 165.0f};
+    world.Runtime().heroSlot = static_cast<std::int32_t>(HeroSlot);
+    world.Runtime().hero = HeroSlot;
+    world.Runtime().drawingEnabled = true;
+    world.Runtime().warpCounter = WaitDrawThreshold;
+    GameScene scene = Scene();
+    ASSERT_TRUE(scene.Enter().HasValue());
+    Client::Tests::RecordingFrameTarget target;
+
+    scene.PrepareFrame();
+    scene.Render(target.BeginFrame({}), 0.0f);
+
+    ASSERT_TRUE(scene.Failure().has_value());
+    EXPECT_NE(scene.Failure()->find("0x5fa83f"), std::string::npos) << *scene.Failure();
+    const Client::Tests::FrameEvent* models = ModelsOf(target.frames[0]);
+    ASSERT_NE(models, nullptr);
+    EXPECT_TRUE(models->modelVertices.empty());
+    EXPECT_TRUE(scene.MouseRay().has_value());
+    EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8).State());
+    scene.Leave();
+}
+
 // 0x63710f y 0x63475c: el primer paso después de la espera llega a los personajes (0x508f00) antes del primer
 // dibujo del juego, con el trapecio que dejó el último dibujo de la selección: el de su punto fijo
 // (SelectionCullingPoint), que no sigue al héroe (Q-C216). El TerrainWall pierde el 0x02 (el de (221, 11) en
@@ -635,7 +729,7 @@ TEST_F(GameSceneDrawTest, TheOtherMapsStopWhereTheyDiffer)
 // a (95, 126), cae adentro: con la celda lógica queda fuera de la zona segura. En Devias el que sale por el norte,
 // de (220, 76) a (220, 77), cae afuera y +0x3e2 queda como estaba. Los rand(): los 8 de MoveHero, los 8 del
 // TerrainWall y, con el héroe visto, los 8 de la celda y el rand() & 7; después, la tela. El dibujo que sigue llega
-// al pasto (0x5fc353) con sus 4 + 8 y deja su propio trapecio.
+// a las marcas del suelo (0x5fc365) con sus 4 + 8 y deja su propio trapecio.
 TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection)
 {
     struct Case
@@ -686,7 +780,7 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
 
         ASSERT_TRUE(scene.Failure().has_value());
-        EXPECT_NE(scene.Failure()->find("0x5fc353"), std::string::npos) << *scene.Failure();
+        EXPECT_NE(scene.Failure()->find("0x5fc365"), std::string::npos) << *scene.Failure();
         CrtRandom expected = RandomAfterAStep(probe.draws);
         for (int i = 0; i < 4 + 8; ++i)
         {

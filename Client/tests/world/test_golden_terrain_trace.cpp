@@ -3,6 +3,7 @@
 #include "World/TerrainCulling.h"
 #include "World/WorldTerrain.h"
 
+#include "Data/Terrain/TerrainGrid.h"
 #include "Data/Textures/TextureSet.h"
 #include "App/WindowState.h"
 #include "Render/ModelBatch.h"
@@ -369,8 +370,8 @@ std::vector<TerrainCell> OpaqueCellsOf(const Client::Tests::FrameEvent& models)
 
 // Lo mismo desde la escena del juego (T8): Lorencia cargado en el WorldState, el héroe publicado en la
 // celda (143, 120) con la posición de la traza y el contador en 30. Su primer frame lee la celda por la
-// tabla de protección, arma la cámara de la traza y dibuja las 329 celdas en su orden antes de cortar en
-// el pase del pasto (0x5fc353).
+// tabla de protección, arma la cámara de la traza y dibuja las 329 celdas en su orden y los 25 quads del
+// pasto de la traza (06 § El pasto) antes de cortar en las marcas del suelo (0x5fc365).
 TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
 {
     const auto path = TraceFile(LorenciaTrace);
@@ -385,6 +386,8 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
     Client::Scenes::WorldState world;
     world.Map().terrain = std::move(terrain).Value();
+    // El corrimiento del pasto que llena 0x5f8300 al cargar: la u no cambia qué celdas lo llevan.
+    world.Map().grassOffsets.assign(Client::Data::Terrain::TerrainCellCount, 0.0f);
     constexpr std::size_t HeroSlot = 7;
     Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
     hero.alive = true;
@@ -416,7 +419,7 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     scene.Render(target.BeginFrame({}), 0.0f);
 
     ASSERT_TRUE(scene.Failure().has_value());
-    EXPECT_NE(scene.Failure()->find("0x5fc353"), std::string::npos) << *scene.Failure();
+    EXPECT_NE(scene.Failure()->find("0x5fc365"), std::string::npos) << *scene.Failure();
     const Client::Tests::FrameEvent* models = nullptr;
     for (const Client::Tests::FrameEvent& event : target.frames.at(0).events)
     {
@@ -442,6 +445,12 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
         EXPECT_EQ(drawn[k].x, traced[k].first) << k;
         EXPECT_EQ(drawn[k].y, traced[k].second) << k;
     }
+    std::size_t grassVertices = 0;
+    for (const ModelDrawCommand& command : models->modelCommands)
+    {
+        grassVertices += command.state.texture == Client::Render::TextureSlot{0x32} ? command.vertexCount : 0;
+    }
+    EXPECT_EQ(grassVertices, 25u * 6u);
 }
 
 // Y la selección (el mapa 54, World55), donde el trapecio sí recorta: con SelectionCamera y el héroe

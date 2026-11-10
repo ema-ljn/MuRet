@@ -123,6 +123,18 @@ bool CheckEligibleGate(GateDecision& decision, std::size_t index, const Data::Ta
 }
 } // namespace
 
+GateDecision CheckGate(std::size_t index, const Data::Tables::GateRecord& gate, const GateCheckState& state)
+{
+    GateDecision decision;
+    if (index >= Data::Tables::GateCount || state.warpCounter != 0 || state.heroGateBlocked || !Contains(gate, state))
+    {
+        return decision;
+    }
+    bool warpPending = state.warpPending;
+    static_cast<void>(CheckEligibleGate(decision, index, gate, state, warpPending));
+    return decision;
+}
+
 GateDecision GateCheck(const Data::Tables::GateTable& table, const GateCheckState& state)
 {
     GateDecision decision;

@@ -553,7 +553,7 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, c
 
 Core::Expected<void, World::ParticleDrawingFailure>
 DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const IModelLibrary& textures,
-              const Render::Models::OriginalMatrix& view, float worldClock)
+              const Render::Models::OriginalMatrix& view, float worldClock, std::uint8_t mode)
 {
     // Un adaptador por pase: su primer servicio importa el estado que dejó el lote (los sprites), sin
     // suponer el de un frame anterior.
@@ -561,7 +561,7 @@ DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const IMod
                                               Render::ModelBatchParticleState::ForModelPass());
     ParticleDrawServices services(std::cref(textures), std::ref(backend), std::cref(view));
     // 0x548550(0): el modo 0 no filtra por altura.
-    return World::DrawParticlesChecked(particles, 0, std::cref(worldClock), services);
+    return World::DrawParticlesChecked(particles, mode, std::cref(worldClock), services);
 }
 
 void DrawLeaves(Render::ModelBatch& batch, const World::Leaves& leaves)

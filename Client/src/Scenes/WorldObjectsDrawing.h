@@ -174,7 +174,7 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, c
 // dice cuál fue.
 [[nodiscard]] Core::Expected<void, World::ParticleDrawingFailure>
 DrawParticles(Render::ModelBatch& batch, World::Particles& particles, const IModelLibrary& textures,
-              const Render::Models::OriginalMatrix& view, float worldClock = 0.0f);
+              const Render::Models::OriginalMatrix& view, float worldClock = 0.0f, std::uint8_t mode = 0);
 
 // 0x5306a0, en el pase del mundo, después de los efectos con modelo: las hojas vivas, aditivas (en el mapa
 // 0x37, 0x620a90) y con el blanco de un solo glColor3f(1, 1, 1), cada una el cuadrado de LeafQuadOf

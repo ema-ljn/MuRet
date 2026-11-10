@@ -42,7 +42,11 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // con los modelos, y quedan. 0x61d801 sube clouds.jpg a 0x622 con GL_LINEAR y GL_CLAMP: las nubes
 // oscuras del mapa 55. 0x61d6e0 y 0x61d6fc suben Magic_Ground2 y Magic_Circle1 con el mismo sampling:
 // el calco y los dos anillos del efecto de llegada 0x61f (06 § Después de los objetos).
-inline constexpr std::array<Data::Textures::TextureSetEntry, 7> EffectTextureSet{{
+// 0x61d4db sube Fire01 a 0x5d9, GL_LINEAR/GL_CLAMP, para las llamas de los objetos.
+// Noria agrega Spark02/5c5 (61d711), lightning2/5d5 (61da3c), Spark01/617 (61da77) y
+// flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 12> EffectTextureSet{{
+    {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
     {"Effect\\flare01.jpg", 0x5ac, TextureSetsDetail::LinearClamp},
     {"Effect\\Magic_Ground2.jpg", 0x61e, TextureSetsDetail::LinearClamp},
     {"Effect\\Magic_Circle1.jpg", 0x61f, TextureSetsDetail::LinearClamp},

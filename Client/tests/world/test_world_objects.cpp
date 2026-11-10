@@ -572,10 +572,9 @@ TEST(WorldObjectsTest, TheBlendMeshOfTheHousesScrollsWithTheClock)
     }
 }
 
-// Lo que MuRet no tiene corta con la dirección del caso: los fuegos de 0x52f360 (antes de sus rand()), la luz
-// de la lámpara y de la vela (0x5f9780, después del rand() de su luz) y las puertas del 2. El alpha y la
-// animación ya corrieron.
-TEST(WorldObjectsTest, TheCasesMuRetDoesNotHaveStopWithTheirAddress)
+// Sin destinos prestados, el caso corta en el servicio que los necesita, con la dirección del
+// caller y su prefijo RNG. El alpha y la animación ya corrieron.
+TEST(WorldObjectsTest, MissingStepDestinationsKeepTheirAddressAndRandomPrefix)
 {
     struct Case
     {
@@ -585,10 +584,10 @@ TEST(WorldObjectsTest, TheCasesMuRetDoesNotHaveStopWithTheirAddress)
         int draws;
     };
     for (const Case& probe :
-         {Case{Lorencia, 0x32, "0x604eb0", 0}, Case{Lorencia, 0x33, "0x604ecb", 0}, Case{Lorencia, 0x34, "0x604f22", 0},
-          Case{Lorencia, 0x37, "0x604e78", 0}, Case{Lorencia, 0x50, "0x604e40", 0}, Case{Lorencia, 0x82, "0x604de3", 0},
-          Case{Lorencia, 0x83, "0x604e02", 0}, Case{Lorencia, 0x84, "0x604e21", 0}, Case{Lorencia, 0x5a, "0x605718", 1},
-          Case{Lorencia, 0x96, "0x605718", 1}, Case{Devias, 0x1e, "0x6050b9", 0}, Case{Devias, 0x42, "0x6050b9", 0},
+         {Case{Lorencia, 0x32, "0x604eb0", 5}, Case{Lorencia, 0x33, "0x604ecb", 5}, Case{Lorencia, 0x34, "0x604f22", 5},
+          Case{Lorencia, 0x37, "0x604e78", 5}, Case{Lorencia, 0x50, "0x604e40", 5}, Case{Lorencia, 0x82, "0x604de3", 5},
+          Case{Lorencia, 0x83, "0x604e02", 4}, Case{Lorencia, 0x84, "0x604e21", 4}, Case{Lorencia, 0x5a, "0x605718", 1},
+          Case{Lorencia, 0x96, "0x605718", 1}, Case{Devias, 0x1e, "0x6050b9", 5}, Case{Devias, 0x42, "0x6050b9", 5},
           Case{Devias, 0x14, "0x6050d4", 0}, Case{Devias, 0x41, "0x6050d4", 0}, Case{Devias, 0x56, "0x6050d4", 0},
           Case{Devias, 0x58, "0x6050d4", 0}})
     {
@@ -635,7 +634,7 @@ TEST(WorldObjectsTest, TheCheckedStepKnowsTheReferenceMapsAndTheLogin)
     other.alpha = 0.5f;
     Client::Render::Models::CrtRandom random(7);
     const auto stepped =
-        Client::World::StepWorldObjectChecked(other, 3, nullptr, random, Client::World::ObjectStepGlobals{});
+        Client::World::StepWorldObjectChecked(other, 4, nullptr, random, Client::World::ObjectStepGlobals{});
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x604ab0"), std::string::npos) << stepped.Error();
     EXPECT_EQ(other.alpha, 0.5f);

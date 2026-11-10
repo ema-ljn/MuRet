@@ -90,7 +90,7 @@ TEST(GameItemSpecialDrawingTest, SwordAndCrossbowUseOrderedChromePasses)
         Client::Scenes::DrawnObject object;
         object.model = static_cast<std::uint16_t>(type);
         Client::Scenes::ItemSpecialDrawContext context;
-        context.worldClock = 1000;
+        context.worldClock = 1000.0f;
         const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
         ASSERT_TRUE(result.HasValue()) << result.Error();
         ASSERT_EQ(batch.Vertices().size(), type == 0x61f ? 6u : 9u);
@@ -110,7 +110,7 @@ TEST(GameItemSpecialDrawingTest, StaffStoresAndRandomErrorKeepTheirPrefix)
     Client::Scenes::DrawnObject object;
     object.model = 0x61c;
     Client::Scenes::ItemSpecialDrawContext context;
-    context.worldClock = 1000;
+    context.worldClock = 1000.0f;
     context.publishedObject = &object;
     auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -493,7 +493,7 @@ TEST(GameItemSpecialDrawingTest, ShieldRetainsAdditiveRgbAcrossLayersWithoutStor
     object.state.light = 0.75f;
     object.state.uv = {0.125f, 0.25f};
     Client::Scenes::ItemSpecialDrawContext context;
-    context.worldClock = 100;
+    context.worldClock = 100.0f;
     context.publishedObject = &object;
     const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_TRUE(result.HasValue()) << result.Error();
@@ -520,7 +520,7 @@ TEST(GameItemSpecialDrawingTest, ShieldPublishesAttenuatedRgbBeforeALaterLayerFa
     object.alpha = 0.5f;
     object.state.hiddenMesh = 0;
     Client::Scenes::ItemSpecialDrawContext context;
-    context.worldClock = 100;
+    context.worldClock = 100.0f;
     context.publishedObject = &object;
     const auto result = Client::Scenes::DrawSpecialItemMeshes(batch, models, object, {}, models.meshes, context);
     ASSERT_FALSE(result.HasValue());

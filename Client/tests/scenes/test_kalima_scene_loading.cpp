@@ -191,7 +191,7 @@ TEST(KalimaSceneTextureTest, APartialUploadRollsBackOnlyItsSuccessfulPhysicalRef
     ASSERT_EQ(table.References(TextureSlot{0x23}), 2);
     TerrainTiles tiles(store);
     tiles.BindTextureTable(table);
-    store.failSlot = 0x24;
+    store.failSlot = std::uint16_t{0x24};
     std::vector<std::string> skipped;
     const auto loaded = tiles.Load(Client::Tests::RepoDataDir(), 24, skipped);
     EXPECT_FALSE(loaded.HasValue());

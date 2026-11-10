@@ -3,6 +3,8 @@
 #include "App/ServerSession.h"
 #include "App/SessionState.h"
 #include "Core/Expected.h"
+#include "Data/Models/PlayerModels.h"
+#include "Data/Tables/ItemTable.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Input/InputState.h"
@@ -10,6 +12,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/ModelBatch.h"
+#include "Render/Models/Skeleton.h"
 #include "Render/Pass3D.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
@@ -103,8 +106,9 @@ std::uint8_t HeroCellAttribute(ActorState& hero, const Data::Terrain::TerrainAtt
 }
 } // namespace
 
-GameScene::GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models)
-    : m_context(context), m_session(session), m_models(models), m_tiles(context.textures)
+GameScene::GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models,
+                     const Data::Tables::ItemTable* items)
+    : m_context(context), m_session(session), m_models(models), m_items(items), m_tiles(context.textures)
 {
 }
 
@@ -220,8 +224,13 @@ Core::Expected<void, std::string> GameScene::StepWorld()
     // gates, 0x57cfc0 con el registro propio y la capa 1 de la celda en 0x77f36d0).
     // 0x63710f: 0x508f00, los personajes, con el trapecio del último 0x5fb570 (WorldRuntime): en el primer
     // paso después de la espera, el del último dibujo de la selección (Q-C216).
-    if (auto stepped = StepCharacters(
-            CharacterStepContext{.world = *m_context.world, .random = m_context.cloth->random, .scene = SceneId::Game});
+    const Render::Models::Skeleton* player =
+        m_models != nullptr ? m_models->SkeletonOf(Data::Models::PlayerSkeletonModel) : nullptr;
+    if (auto stepped = StepCharacters(CharacterStepContext{.world = *m_context.world,
+                                                           .random = m_context.cloth->random,
+                                                           .scene = SceneId::Game,
+                                                           .playerSkeleton = player,
+                                                           .items = m_items});
         !stepped.HasValue())
     {
         return stepped;

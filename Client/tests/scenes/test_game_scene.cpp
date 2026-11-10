@@ -7,12 +7,14 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
+#include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Input/InputState.h"
 #include "Network/PacketSerials.h"
 #include "Render/ModelBatch.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/ActorState.h"
@@ -84,6 +86,9 @@ using Client::Tests::FakeTextureStore;
 using Client::Tests::LoggedInSession;
 
 constexpr std::uint32_t Seed = 0x13572468u;
+// El cuerpo del héroe quieto en 0x508f00 (0x4fd5f0): el registro propio que abre y cierra 0x4fc450, con los
+// 3.848 rand() de 0x40b4d0, y el rand() % 6 de 0x4fd7e4.
+constexpr int HeroBodyDraws = Client::Render::Models::OwnRecordCloseRandoms + 1;
 
 // El rand() de la CRT sembrado con Seed después de `draws` llamadas.
 CrtRandom RandomAfter(int draws)
@@ -369,6 +374,27 @@ private:
     Client::Render::Models::Skeleton m_skeleton;
 };
 
+// Solo Player.bmd (0x20a), con sus 205 acciones sin keys: el cuerpo de un jugador (0x4f9580) no avanza.
+class PlayerSkeletonOnly final : public Client::Scenes::IModelLibrary
+{
+public:
+    [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t /*model*/) const override
+    {
+        return nullptr;
+    }
+    [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
+    {
+        return model == Client::Data::Models::PlayerSkeletonModel ? &m_skeleton : nullptr;
+    }
+    [[nodiscard]] std::span<const Client::Render::TextureSlot> MeshTextures(std::uint16_t /*model*/) const override
+    {
+        return {};
+    }
+
+private:
+    Client::Render::Models::Skeleton m_skeleton = Client::Tests::PlayerActionsSkeleton();
+};
+
 // 0x6370f4: 0x445230, los ayudantes, antes de MoveHero (0x63710a) y también en la espera. Con el jinete
 // muerto, el paso de la escena 5 apaga su caballo y la espera sigue, con los 8 rand() de MoveHero. Con el
 // jinete vivo fuera de una celda segura, el aliento saca el primer rand() del paso (con Seed, % 3 da 0) y
@@ -567,9 +593,11 @@ protected:
     }
 
     // El héroe como lo deja 0x511290: un jugador de pie (la acción 1) con el PK 3 y la zona segura en 1, en la
-    // celda dibujada de Prepare y con la celda lógica en (x, y), la que va una adelante (06 § Caminar).
+    // celda dibujada de Prepare y con la celda lógica en (x, y), la que va una adelante (06 § Caminar). El
+    // registro propio, con el equipo vacío que deja la respuesta del F3 03 (0x4c47c8).
     void MakeTheHeroAPlayer(std::uint8_t x, std::uint8_t y)
     {
+        world.OwnCharacter().ClearEquipmentForEntry();
         Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
         const glm::vec3 position = hero.position;
         hero = Client::Tests::UnarmedPlayer(1);
@@ -606,7 +634,7 @@ protected:
                                       .camera = &camera,
                                       .cameraInput = &cameraInput,
                                       .world = &world},
-                         nullptr);
+                         nullptr, &playerModels);
     }
 
     static constexpr std::size_t HeroSlot = 42;
@@ -617,6 +645,7 @@ protected:
     WorldState world;
     Client::World::GameCamera camera;
     Client::World::GameCameraInput cameraInput;
+    const PlayerSkeletonOnly playerModels;
 };
 
 // El fin del pase de los modelos del frame, si lo hubo (uno solo).
@@ -869,8 +898,9 @@ TEST_F(GameSceneDrawTest, AMapWithoutGrassStopsBeforeItsFirstCell)
 // Lorencia, Q-C170) y marca la celda lógica. En Lorencia el héroe que sale del pueblo por el oeste, de (96, 126)
 // a (95, 126), cae adentro: con la celda lógica queda fuera de la zona segura. En Devias el que sale por el norte,
 // de (220, 76) a (220, 77), cae afuera y +0x3e2 queda como estaba. Los rand(): los 8 de MoveHero, los 8 del
-// TerrainWall y, con el héroe visto, los 8 de la celda y el rand() & 7; después, la tela. El dibujo que sigue pasa
-// las marcas del suelo (0x5fc365) y llega a los objetos (0x6374ce) con sus 4 + 8, y deja su propio trapecio.
+// TerrainWall, los del cuerpo (0x4fd5f0: el registro propio y el rand() % 6) y, con el héroe visto, los 8 de la
+// celda y el rand() & 7; después, la tela. El dibujo que sigue pasa las marcas del suelo (0x5fc365) y llega a los
+// objetos (0x6374ce) con sus 4 + 8, y deja su propio trapecio.
 TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection)
 {
     struct Case
@@ -884,8 +914,8 @@ TEST_F(GameSceneDrawTest, TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelectio
         std::uint8_t safeZone;
         int draws;
     };
-    for (const Case& probe :
-         {Case{0, 96, 126, 95, 126, true, 0, 8 + 8 + 8 + 1}, Case{2, 220, 76, 220, 77, false, 1, 8 + 8}})
+    for (const Case& probe : {Case{0, 96, 126, 95, 126, true, 0, 8 + 8 + HeroBodyDraws + 8 + 1},
+                              Case{2, 220, 76, 220, 77, false, 1, 8 + 8 + HeroBodyDraws}})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.drawnX, probe.drawnY));
@@ -947,7 +977,8 @@ TEST_F(GameSceneDrawTest, TheStepAgesTheGroundMarksAfterTheCharacters)
         std::uint8_t logicalY;
         int draws;
     };
-    for (const Case& probe : {Case{0, 96, 126, 95, 126, 8 + 8 + 8 + 1}, Case{2, 220, 76, 220, 77, 8 + 8}})
+    for (const Case& probe :
+         {Case{0, 96, 126, 95, 126, 8 + 8 + HeroBodyDraws + 8 + 1}, Case{2, 220, 76, 220, 77, 8 + 8 + HeroBodyDraws}})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, probe.drawnX, probe.drawnY));
@@ -1003,8 +1034,37 @@ TEST_F(GameSceneDrawTest, WithoutAPreviousDrawTheFirstStepSeesWithTheTrapezoidOf
     const Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
     EXPECT_TRUE(hero.seen);
     EXPECT_EQ(hero.safeZone, 0);
-    EXPECT_EQ(cloth.random.State(), StateAfterAStep(8 + 8 + 8 + 1));
+    EXPECT_EQ(cloth.random.State(), StateAfterAStep(8 + 8 + HeroBodyDraws + 8 + 1));
     scene.Leave();
+}
+
+// Sin Player.bmd (main sin los modelos, o un test que no los pasa), el cuerpo del héroe corta donde 0x4f9580 lee
+// sus acciones, después del registro propio de 0x4fc450 y antes del rand() % 6 de 0x4fd7e4. En Lorencia y en
+// Devias.
+TEST_F(GameSceneDrawTest, WithoutPlayerBmdTheStepStopsAtTheBody)
+{
+    for (const std::uint8_t map : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(static_cast<int>(map));
+        ASSERT_NO_FATAL_FAILURE(Prepare(map, 128, 128));
+        MakeTheHeroAPlayer(128, 128);
+        GameScene scene(SceneContext{.dataRoot = m_dataRoot,
+                                     .textures = store,
+                                     .log = log,
+                                     .cloth = &cloth,
+                                     .camera = &camera,
+                                     .cameraInput = &cameraInput,
+                                     .world = &world},
+                        nullptr);
+        ASSERT_TRUE(scene.Enter().HasValue());
+
+        scene.Step(Client::Input::InputState{});
+
+        ASSERT_TRUE(scene.Failure().has_value());
+        EXPECT_NE(scene.Failure()->find("0x4f9580"), std::string::npos) << *scene.Failure();
+        EXPECT_EQ(cloth.random.State(), RandomAfter(8 + 8 + Client::Render::Models::OwnRecordCloseRandoms).State());
+        scene.Leave();
+    }
 }
 
 // Un dibujo cortado deja la escena en Failure: el paso que sigue no corre, aunque el dibujo haya dejado su

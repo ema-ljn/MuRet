@@ -92,7 +92,8 @@ struct WorldRuntime
     // Las marcas del suelo, 0x760cab0..0x760f990, en la .bss: todas apagadas al arrancar. Solo las tocan
     // 0x548fe0, 0x549090 y 0x549130, y ninguna carga las vacía: 0x6070a0 apaga las tablas de al lado y no esta
     // (Q-C228). Las llenan 0x505de0 con el modelo 0x182 (0x507486) y 0x52e810 (0x52e96c), desde el paso del
-    // cuerpo (0x4fd5f0 → 0x4fcd00), y MuRet no corre ninguno de los dos (08 P-C49).
+    // cuerpo (0x4fd5f0 → 0x4fcd00), y MuRet no corre ninguno de los dos: corta antes, en 0x505e0b y 0x4fcb87
+    // (08 P-C49).
     World::GroundMarkTable groundMarks{};
 };
 

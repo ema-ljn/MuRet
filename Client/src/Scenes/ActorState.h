@@ -83,6 +83,12 @@ struct ActorState
     // baja el alpha del héroe a 0 (0x4c4981): entra transparente.
     float alphaTarget = 0.0f;
     float alpha = 0.0f;
+    // +0x16d: cómo lleva 0x4e9980 el alpha a su meta, de a 0,05 con 1 y un décimo de lo que falta con 0.
+    // 0x511290 lo pone en 1 (0x511bdf).
+    std::uint8_t alphaMode = 0;
+    // +0x68: la luz del blendMesh, que 0x4e9980 baja al alpha cuando es mayor y nunca sube (Q-C112).
+    // 0x511290 la pone en 1,0 (0x512499).
+    float blendMeshLight = 0.0f;
     // +0x188: el contador de pasos de lógica (0x7d3a0f0) cuando lo construyó 0x511290.
     std::int32_t stepStamp = 0;
     // +0x16c: si se ve. 0x508f00 lo escribe en cada paso con el trapecio del último dibujo (0x5fba90) y,

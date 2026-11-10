@@ -2,6 +2,7 @@
 
 #include "App/ServerSession.h"
 #include "Core/Expected.h"
+#include "Data/Tables/ItemTable.h"
 #include "Input/InputState.h"
 #include "Render/Models/Animation.h"
 #include "Render/Pass3D.h"
@@ -27,8 +28,8 @@
 // baja el contador (0x59af01). La respuesta del F3 03 lo pone en 30 (T7). Con el contador en 30 o
 // menos, el dibujo del juego hace la cámara, el rango y el trapecio, el pase del mundo, el rayo del
 // mouse y el primer pase del terreno, y corta con error en la primera etapa que MuRet no tiene (T8);
-// el paso, el caballo oscuro (0x445230, también en la espera) y los personajes con la zona segura del
-// héroe (0x508f00, T11), y corta igual. El dibujo del caballo (0x637508) está portado (HelperTable.h,
+// el paso, el caballo oscuro (0x445230, también en la espera) y los personajes con su cuerpo (0x4fd5f0) y la
+// zona segura del héroe (0x508f00, T11), y corta igual. El dibujo del caballo (0x637508) está portado (HelperTable.h,
 // DrawHelpers) y queda detrás del corte del pasto (0x5fc353). El trapecio que leen los personajes es el
 // global de WorldRuntime: en el primer paso después de la espera, el que dejó el último dibujo de la
 // selección (T11b).
@@ -45,9 +46,11 @@ inline constexpr Render::ViewportRect GameWorldViewport{0, 0, 640, 432};
 class GameScene final : public IScene
 {
 public:
-    // `session` y `models` tienen que vivir más; nullptr sin servidor o sin los modelos (el caballo oscuro
-    // corta con error si hay uno vivo).
-    GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models = nullptr);
+    // `session`, `models` e `items` tienen que vivir más; nullptr sin servidor, sin los modelos (el caballo
+    // oscuro corta con error si hay uno vivo, y el cuerpo de los personajes sin Player.bmd, en 0x4f9580) o sin
+    // Item.bmd (*[0x7758550]: lo que lo lee corta con error).
+    GameScene(const SceneContext& context, App::ServerSession* session, const IModelLibrary* models = nullptr,
+              const Data::Tables::ItemTable* items = nullptr);
 
     // Sin `context.world` o `context.cloth`, el error: la espera vive en el primero y sus cierres
     // gastan el rand() del segundo.
@@ -105,6 +108,7 @@ private:
     SceneContext m_context;
     App::ServerSession* m_session;
     const IModelLibrary* m_models;
+    const Data::Tables::ItemTable* m_items;
     bool m_sent = false;
     bool m_firstStep = true;
     bool m_holdFrame = true;

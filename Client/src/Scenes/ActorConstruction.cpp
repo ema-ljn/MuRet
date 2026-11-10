@@ -105,6 +105,9 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.scale = PlayerScale;
     actor.alphaTarget = 1.0f;
     actor.alpha = 1.0f;
+    // 0x511bdf y 0x512499: el alpha de a 0,05 (0x4e9980) y la luz del blendMesh en 1,0.
+    actor.alphaMode = 1;
+    actor.blendMeshLight = 1.0f;
     actor.characterClass = 0;
     ResetTheAnimation(actor);
     actor.seen = false;

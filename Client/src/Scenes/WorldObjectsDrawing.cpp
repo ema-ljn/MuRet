@@ -1,4 +1,7 @@
 #include "Scenes/WorldObjectsDrawing.h"
+#include "Scenes/FaunaDrawing.h"
+#include "Scenes/NoriaObjectServices.h"
+#include "World/ObjectModelStepState.h"
 #include "Scenes/GameParticles.h"
 
 #include "Core/Expected.h"
@@ -14,6 +17,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/ModelPoseCallbacks.h"
 #include "Scenes/ParticleDrawServices.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
@@ -109,10 +113,20 @@ World::ObjectDraw ObjectDrawAt(const World::WorldObject& object, const World::Te
 // 0x602e90 con `draw`: el modelo posado como 0x5ffdf0 y dibujado como 0x6002e0 sin casos por tipo, con su
 // animación `alpha` de un paso más. Devuelve lo que se posó.
 DrawnObject DrawTheObject(Render::ModelBatch& batch, const IModelLibrary& models, const World::WorldObject& object,
-                          const World::ObjectDraw& draw, Core::Duration frameClock, float alpha)
+                          const World::ObjectDraw& draw, Core::Duration frameClock, float alpha,
+                          const World::ObjectModelStepState* modelState = nullptr,
+                          const FaunaDrawCarry* retainedPose = nullptr)
 {
     const Render::Models::Skeleton* skeleton = models.SkeletonOf(static_cast<std::uint16_t>(object.type));
-    const DrawnObject drawn = Drawn(object, draw, skeleton, alpha);
+    DrawnObject drawn = Drawn(object, draw, skeleton, alpha);
+    if (modelState != nullptr)
+    {
+        const auto found = modelState->unlitMeshes.find(object.type);
+        if (found != modelState->unlitMeshes.end())
+            drawn.unlitMesh = found->second;
+    }
+    if (retainedPose != nullptr)
+        drawn.retainedMeshes = retainedPose->meshes;
     switch (draw.kind)
     {
     case World::ObjectDrawKind::Hidden:
@@ -255,7 +269,17 @@ void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, st
             continue;
         }
         const World::ObjectDraw draw = ObjectDrawAt(object, lighting, map);
-        const DrawnObject drawn = DrawTheObject(batch, models, object, draw, frameClock, alpha);
+        // 5ffdf0 posa antes del gate hiddenMesh=-2 de600328; no confundir pose con geometría.
+        if (effects.onPose && (effects.frames > 0 || effects.publishProjectedPose) && draw.posed)
+        {
+            const auto poseObject =
+                Drawn(object, draw, models.SkeletonOf(static_cast<std::uint16_t>(object.type)), alpha);
+            if (poseObject.alpha >= .01f)
+                if (auto published = effects.onPose(poseObject); !published.HasValue())
+                    return;
+        }
+        const auto* retained = (effects.frames > 0 || effects.publishProjectedPose) ? effects.retainedPose : nullptr;
+        const DrawnObject drawn = DrawTheObject(batch, models, object, draw, frameClock, alpha, nullptr, retained);
         if (glows && draw.posed)
         {
             posed.push_back(PosedInTheBuffer{&models, drawn});
@@ -274,8 +298,12 @@ void DrawWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, st
             entry.glowPositions.emplace();
             for (std::size_t k = 0; k < World::StreetLightGlowBones.size(); ++k)
             {
-                (*entry.glowPositions)[k] = LastPosedBonePoint(posed, World::StreetLightGlowBones[k], glm::vec3(0.0f))
-                                                .value_or(glm::vec3(0.0f));
+                const auto bone = World::StreetLightGlowBones[k];
+                if (retained != nullptr && bone < retained->bones.size())
+                    (*entry.glowPositions)[k] = Render::Models::OriginalVectorTransform(
+                        {}, Render::Models::OriginalMatrixOf(retained->bones[bone]));
+                else
+                    (*entry.glowPositions)[k] = LastPosedBonePoint(posed, bone, glm::vec3(0)).value_or(glm::vec3(0));
             }
         }
         seen.push_back(entry);
@@ -288,6 +316,7 @@ namespace
 {
 constexpr std::uint8_t LorenciaMap = 0;
 constexpr std::uint8_t DeviasMap = 2;
+constexpr std::uint8_t NoriaMap = 3;
 // 0x60479c: el 0x64 de Devias se dibuja según el nivel del registro propio (0x604944..0x604957, jl con
 // signo): desde 0x35 con la clase del héroe (+0x1d4 & 7) en 3 o 4, y desde 0x50 con las demás.
 constexpr std::int16_t DeviasLeveledObject = 0x64;
@@ -317,9 +346,11 @@ bool OwnLevelAllows(const GameObjectPass& pass)
 // 0x602ed0 después del rand() común (0x602ef4): los casos por tipo de los mapas 0 (0x602ffb) y 2
 // (0x6031e5). El 0x69 crea las gotas con el pool compartido; los demás cortan con su dirección.
 Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const GameObjectPass& pass,
-                                              const IModelLibrary& models, const DrawnObject& drawn)
+                                              const IModelLibrary& models, const DrawnObject& drawn, int commonRandom)
 {
     const std::uint8_t map = pass.map;
+    if (map == NoriaMap)
+        return StepNoriaObjectFrame(object, commonRandom, pass);
     if (map == LorenciaMap && object.type == 0x38)
     {
         return Core::Unexpected(std::string(
@@ -330,7 +361,8 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
     {
         if (pass.particles != nullptr)
         {
-            return StepGameWaterspoutFrame(object, *pass.particles, *pass.random, pass.worldClock, models, drawn);
+            return StepGameWaterspoutFrame(object, *pass.particles, *pass.random, pass.worldClock, models, drawn,
+                                           pass.retainedPose);
         }
         return World::StepTheWaterspoutFrame(object, *pass.random, pass.worldClock);
     }
@@ -354,7 +386,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                                                        const World::TerrainLighting* lighting,
                                                        Core::Duration frameClock, const GameObjectPass& pass)
 {
-    if (pass.map != LorenciaMap && pass.map != DeviasMap)
+    if (pass.map != LorenciaMap && pass.map != DeviasMap && pass.map != NoriaMap)
     {
         return Core::Unexpected(std::format("0x6046a0: los casos por tipo del mapa {} (0x6002e0 y 0x602ed0) no están "
                                             "leídos",
@@ -383,14 +415,25 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         }
         // 0x602e90: 0x5ffdf0 y, si lo posó, 0x6002e0 (en el 0, el 0x69 con sus cuatro 0x4ecc30).
         const World::ObjectDraw draw = ObjectDrawAt(object, lighting, pass.map);
-        const DrawnObject drawn = DrawTheObject(batch, models, object, draw, frameClock, 0.0f);
+        const auto poseObject = Drawn(object, draw, models.SkeletonOf(static_cast<std::uint16_t>(object.type)), 0);
+        // Los marcadores ocultos también pisan la pose global antes de omitir la geometría.
+        if ((pass.originalFrame || pass.publishProjectedPose) && pass.onPose && draw.posed &&
+            poseObject.alpha >= 0.01f && models.Find(poseObject.model) != nullptr &&
+            models.SkeletonOf(poseObject.model) != nullptr)
+        {
+            if (auto published = pass.onPose(poseObject); !published.HasValue())
+                return published;
+        }
+        const auto* retained = (pass.originalFrame || pass.publishProjectedPose) ? pass.retainedPose : nullptr;
+        const DrawnObject drawn =
+            DrawTheObject(batch, models, object, draw, frameClock, 0.0f, pass.modelState, retained);
         // 0x604a4d: 0x602ed0, una vez por frame del original.
         if (!pass.originalFrame)
         {
             continue;
         }
-        static_cast<void>(pass.random->Next());
-        if (auto frameCase = FrameCaseOf(object, pass, models, drawn); !frameCase.HasValue())
+        const int commonRandom = pass.random->Next();
+        if (auto frameCase = FrameCaseOf(object, pass, models, drawn, commonRandom); !frameCase.HasValue())
         {
             return frameCase;
         }
@@ -434,6 +477,15 @@ void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, st
                       const World::SphereFrustum& frustum, const World::TerrainLighting* lighting,
                       Core::Duration frameClock, float alpha)
 {
+    // Sin callback no existe una salida de error: preserva la API legacy de7argumentos.
+    static_cast<void>(DrawModelEffects(batch, models, effects, frustum, lighting, frameClock, alpha, {}, {}));
+}
+
+Core::Expected<void, std::string>
+DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,
+                 const World::SphereFrustum& frustum, const World::TerrainLighting* lighting, Core::Duration frameClock,
+                 float alpha, const TailPoseObserver& onPose, const TailMeshProvider& posedMeshes)
+{
     for (World::ModelEffect& effect : effects)
     {
         if (!effect.alive)
@@ -445,6 +497,11 @@ void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, st
         constexpr float Radius = 400.0f;
         effect.seen = World::SphereVisible(frustum, effect.transform.position, Radius);
         if (!effect.seen)
+        {
+            continue;
+        }
+        // 0x52da84: estos tipos sólo tienen el pase del suelo; aun sin modelo publican seen.
+        if (effect.type == 0x61d || effect.type == 0x61e || effect.type == 0x61f)
         {
             continue;
         }
@@ -460,8 +517,19 @@ void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, st
         drawn.color = terrain + effect.light;
         drawn.alpha = effect.alpha;
         drawn.vertexLight = effect.vertexLight;
-        DrawObject(batch, models, drawn, frameClock);
+        if (onPose && !(drawn.alpha < 0.01f) && models.Find(drawn.model) != nullptr &&
+            models.SkeletonOf(drawn.model) != nullptr)
+        {
+            if (auto published = onPose(drawn); !published.HasValue())
+                return published;
+            if (auto rendered = DrawPublishedObject(batch, models, drawn, frameClock, posedMeshes);
+                !rendered.HasValue())
+                return rendered;
+        }
+        else
+            DrawObject(batch, models, drawn, frameClock);
     }
+    return {};
 }
 
 namespace
@@ -507,6 +575,8 @@ Render::ModelBlend SpriteBlend(const World::Sprite& sprite)
         return Render::ModelBlend::Subtractive;
     case 2:
         return Render::ModelBlend::Alpha;
+    case 3:
+        return Render::ModelBlend::InverseColorAdditive;
     default:
         return Render::ModelBlend::Additive;
     }
@@ -514,10 +584,18 @@ Render::ModelBlend SpriteBlend(const World::Sprite& sprite)
 } // namespace
 
 void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, const IModelLibrary& textures,
-                      const Render::Models::OriginalMatrix& view)
+                      const Render::Models::OriginalMatrix& view, std::uint8_t mode)
 {
     for (World::Sprite& sprite : sprites.Sprites())
     {
+        // 0x54944e..0x54949e: mode1 retiene; mode2 apaga también la banda inferior, incluido NaN.
+        if (mode == 1 && sprite.position.z > 350.0f)
+            continue;
+        if (mode == 2 && !(sprite.position.z > 300.0f))
+        {
+            sprite.alive = false;
+            continue;
+        }
         if (!sprite.alive)
         {
             continue;
@@ -547,7 +625,8 @@ void DrawFrameSprites(Render::ModelBatch& batch, World::FrameSprites& sprites, c
         batch.Triangle({vertex(0), vertex(1), vertex(2)});
         batch.Triangle({vertex(0), vertex(2), vertex(3)});
         // 0x549440(0) lo apaga después de dibujarlo.
-        sprite.alive = false;
+        if (mode == 0 || mode == 2)
+            sprite.alive = false;
     }
 }
 

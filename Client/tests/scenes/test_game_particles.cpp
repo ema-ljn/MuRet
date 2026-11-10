@@ -11,6 +11,7 @@
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterDrawing.h"
+#include "Scenes/FaunaDrawing.h"
 #include "Scenes/TextureMetadata.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/Particles.h"
@@ -418,8 +419,116 @@ TEST(GameParticlesTest, AnIntermediateObjectDrawDoesNotEmitOrConsumeRandom)
     EXPECT_EQ(random.State(), 2u);
 }
 
+TEST(GameParticlesTest, TheFountainReadsThePreviousWorldMatricesForDummyAndTransparentBones)
+{
+    for (const bool transparent : {false, true})
+    {
+        SCOPED_TRACE(transparent);
+        FountainModels models;
+        Client::Scenes::FaunaDrawCarry carry;
+        Client::Scenes::DrawnObject previous;
+        previous.model = 0x12;
+        previous.transform.position = {100.0f, 200.0f, 300.0f};
+        previous.transform.scale = 2.0f;
+        ASSERT_TRUE(Client::Scenes::PublishFaunaPose(carry, models, previous, true).HasValue());
+        models.skeleton.bones[1].dummy = !transparent;
+        models.skeleton.bones[4].dummy = !transparent;
+        std::array objects{Fountain()};
+        objects[0].transform.position = {1000.0f, 2000.0f, 3000.0f};
+        objects[0].transform.scale = 7.0f;
+        objects[0].alpha = transparent ? 0.005f : 1.0f;
+        Particles particles;
+        CrtRandom random(2);
+        Client::Render::ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        const auto result = Client::Scenes::DrawGameWorldObjects(
+            batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, {},
+            Client::Scenes::GameObjectPass{.map = 0,
+                                           .random = &random,
+                                           .particles = &particles,
+                                           .onPose = [&](const Client::Scenes::DrawnObject& drawn)
+                                           { return Client::Scenes::PublishFaunaPose(carry, models, drawn, true); },
+                                           .retainedPose = &carry});
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        CrtRandom expected(2);
+        static_cast<void>(expected.Next()); // Común del objeto, antes del guard de la fuente.
+        ASSERT_EQ(expected.Next() % 2, 0);
+        for (std::size_t i = 0; i < 2; ++i)
+        {
+            const float x = static_cast<float>((expected.Next() % 32) - 16);
+            const float z = static_cast<float>((expected.Next() % 32) - 16);
+            const float boneX = i == 0 ? 120.0f : 180.0f;
+            const float y = i == 0 ? 160.0f : 40.0f;
+            ASSERT_TRUE(particles.All()[i].alive);
+            EXPECT_EQ(particles.All()[i].position, glm::vec3(boneX + (2.0f * x), y, 300.0f + (2.0f * z)));
+            static_cast<void>(expected.Next());
+            static_cast<void>(expected.Next());
+        }
+        EXPECT_EQ(random.State(), expected.State());
+    }
+}
 
+TEST(GameParticlesTest, AFullFountainPoolStillReadsTheRetainedBonesAtTheirNativeRandomPrefix)
+{
+    for (const bool missingSecondBone : {false, true})
+    {
+        SCOPED_TRACE(missingSecondBone);
+        FountainModels models;
+        Client::Scenes::FaunaDrawCarry carry;
+        Client::Scenes::DrawnObject previous;
+        previous.model = 0x12;
+        previous.transform.position = {100.0f, 200.0f, 300.0f};
+        ASSERT_TRUE(Client::Scenes::PublishFaunaPose(carry, models, previous, true).HasValue());
+        if (missingSecondBone)
+            carry.bones.resize(2);
+        std::array objects{Fountain()};
+        objects[0].alpha = 0.005f;
+        Particles particles;
+        for (auto& particle : particles.All())
+        {
+            particle.alive = true;
+            particle.type = 0x777;
+        }
+        CrtRandom random(2);
+        Client::Render::ModelBatch batch;
+        batch.Begin(Client::Render::Pass3D{});
+        const auto result = Client::Scenes::DrawGameWorldObjects(
+            batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, {},
+            Client::Scenes::GameObjectPass{
+                .map = 0, .random = &random, .particles = &particles, .retainedPose = &carry});
+        if (missingSecondBone)
+        {
+            ASSERT_FALSE(result.HasValue());
+            EXPECT_NE(result.Error().find("0x603121"), std::string::npos);
+        }
+        else
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+        CrtRandom expected(2);
+        for (int i = 0; i < 6; ++i)
+            static_cast<void>(expected.Next()); // Común, guard y dos parejas X/Z; ningún constructor.
+        EXPECT_EQ(random.State(), expected.State());
+        for (const auto& particle : particles.All())
+            EXPECT_EQ(particle.type, 0x777);
+    }
+}
 
-
-
-
+TEST(GameParticlesTest, AnEmptyRetainedFountainLoanStopsAfterTheFirstOffsetInsteadOfReposing)
+{
+    FountainModels models;
+    Client::Scenes::FaunaDrawCarry carry;
+    std::array objects{Fountain()};
+    Particles particles;
+    CrtRandom random(2);
+    Client::Render::ModelBatch batch;
+    batch.Begin(Client::Render::Pass3D{});
+    const auto result = Client::Scenes::DrawGameWorldObjects(
+        batch, models, objects, Client::World::TerrainPolygon{.everything = true}, nullptr, {},
+        Client::Scenes::GameObjectPass{.map = 0, .random = &random, .particles = &particles, .retainedPose = &carry});
+    ASSERT_FALSE(result.HasValue());
+    EXPECT_NE(result.Error().find("0x6030a5"), std::string::npos);
+    EXPECT_FALSE(particles.Any());
+    CrtRandom expected(2);
+    for (int i = 0; i < 4; ++i)
+        static_cast<void>(expected.Next());
+    EXPECT_EQ(random.State(), expected.State());
+}

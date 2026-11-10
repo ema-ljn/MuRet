@@ -2197,3 +2197,21 @@ TEST(CharacterSelectSceneTest, ThePreviewGreetsFromTheStart)
     EXPECT_EQ(firstVertex(opened), firstVertex(rechosen));
 }
 } // namespace
+
+namespace
+{
+TEST(CharacterSelectSceneTest, SelectionPosesUseTheSharedWorldCarryOnlyOnNativeFrames)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    static_cast<void>(tested.Frame());
+    ASSERT_FALSE(world.PoseCarry().bones.empty());
+    world.PoseCarry().bones[0][3] = {7, 8, 9};
+    static_cast<void>(tested.Frame());
+    EXPECT_EQ(world.PoseCarry().bones[0][3], glm::vec3(7, 8, 9));
+    EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+}
+} // namespace

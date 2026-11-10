@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GameLogic/CharacterAppearance.h"
+#include "GameLogic/Path.h"
 #include "Protocol/Character/Opcodes.h"
 #include "Render/Models/Pose.h"
 #include "Scenes/CharacterHead.h"
@@ -127,15 +128,38 @@ struct ActorState
     // +0x1f4: la clave del personaje. 0x517270 pone el lugar de la selección (0x5172a8) y la respuesta del
     // F3 03 la del jugador (0x57678bc, 0x4c4516). 0x510f70 mata a los que no tienen la del héroe.
     std::uint16_t key = 0;
-    std::uint8_t pk = 0;       // +0x375: 3 desde 0x511290, después el de la respuesta del F3 03
-    std::uint8_t movement = 0; // +0x378, el Movement de Caminar
-    // La celda del servidor: cifrada en +0x41c y +0x420 (la tabla de protección) y en claro en +0x39a y
-    // +0x39b. 0x511290 escribe las dos copias con el mismo valor.
+    std::uint8_t pk = 0; // +0x375: 3 desde 0x511290, después el de la respuesta del F3 03
+    // Caminar: +0x3e8.., +0x39a/+0x39b (blanco, separado de la celda adelantada), +0x388 y +0x3e5.
+    GameLogic::Path path;
+    std::uint8_t targetX = 0;
+    std::uint8_t targetY = 0;
+    std::uint8_t direction = 0;
+    std::uint8_t byte369 = 0;
+    std::uint8_t byte370 = 0;
+    std::uint8_t byte374 = 0;
+    // +0x381: la habilidad activa inhibe la orientación quieta (59b3e4). Retenido por 511290.
+    std::uint8_t byte381 = 0;
+    std::uint16_t word1f2 = 0;
+    std::uint16_t damage = 0; // +0x384
+    std::uint8_t byte399 = 0;
+    std::uint8_t skillIndex = 0;          // +0x425
+    std::uint8_t firstFootstepSound = 0;  // +0x3e0, retenidos hasta terminar la animación
+    std::uint8_t secondFootstepSound = 0; // +0x3e1
+    std::uint8_t byte80 = 0;              // +0x80
+    std::uint8_t movementCooldown = 0;
+    std::uint8_t movementType = 0;       // +0x379
+    float movementPhase = 0.0f;          // +0x84
+    std::uint16_t baseMovementSpeed = 0; // +0x386, 10 desde 0x511290
+    std::uint8_t movement = 0;           // +0x378, el Movement de Caminar
+    // La celda lógica protegida (+0x41c/+0x420), que MovePath adelanta. El blanco del servidor es
+    // targetX/Y (+0x39a/b); 0x511290 inicializa las dos parejas con el mismo valor.
     std::uint8_t cellX = 0;
     std::uint8_t cellY = 0;
     // Cuántos accesos tienen abiertas las entradas de +0x41c y +0x420 (Render::Models::LogicalAccess).
     std::uint8_t cellXAccesses = 0;
     std::uint8_t cellYAccesses = 0;
+    // Profundidad de la entrada de un byte +0x38e, que el dibujo consulta antes de cada mano.
+    std::uint8_t byte38eAccesses = 0;
     // +0x3e2, la zona segura: cualquier byte distinto de 0. 0x511290 y 0x505de0 copian el bit 0x01 del
     // .att de la celda.
     std::uint8_t safeZone = 0;

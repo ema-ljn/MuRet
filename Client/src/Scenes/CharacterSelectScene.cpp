@@ -925,7 +925,8 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
             character.animation.body = actor->animation;
             drawn.headAngles = actor->headTurn.angles;
         }
-        drawn.body = BodyBetweenSteps(character.animation, m_models, alpha);
+        drawn.body = BodyBetweenSteps(character.animation, m_models, alpha,
+                                      m_context.world != nullptr ? &m_context.world->ActionSpeeds() : nullptr);
         drawn.pet = character.animation.pet.state;
         drawn.wings = character.animation.wings.state;
         drawn.object = ObjectOf(character);

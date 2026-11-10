@@ -31,6 +31,7 @@ constexpr float PlayerScale = 0.9f;
 constexpr std::uint8_t ConstructedPk = 3;
 constexpr std::uint16_t NoWord376 = 0xffff;
 constexpr std::uint8_t PlayerStartAction = 1;
+constexpr std::uint16_t ConstructedMovementSpeed = 10;
 
 // 0x4ec200 no corre acá: 0x511290 deja las dos acciones en 1 y el frame en 0.
 void ResetTheAnimation(ActorState& actor)
@@ -75,6 +76,8 @@ void WriteTheCell(ActorState& actor, const ActorPlacement& placement, Render::Mo
     }
     actor.cellX = placement.x;
     actor.cellY = placement.y;
+    actor.targetX = placement.x;
+    actor.targetY = placement.y;
 }
 
 // Un acceso de lectura a una de las dos entradas de la celda.
@@ -122,6 +125,17 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     actor.byte3e3 = 0;
     actor.word376 = NoWord376;
     actor.movement = 0;
+    // 0x511bc0/0x511bc7: no escribe progress ni el contenido del camino.
+    actor.path.count = 0;
+    actor.path.current = 0;
+    actor.movementPhase = 0.0f;                         // 0x511c44
+    actor.baseMovementSpeed = ConstructedMovementSpeed; // 0x511d48
+    actor.byte369 = 0;
+    actor.byte370 = 0;
+    actor.byte374 = 0; // 0x511c13
+    actor.word1f2 = NoItemModel;
+    actor.byte399 = 0;
+    actor.byte80 = 0;
     actor.run = 0;
     actor.controlCode = 0;
     actor.pk = ConstructedPk;

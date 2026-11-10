@@ -3,11 +3,14 @@
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Tables/ItemTable.h"
+#include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
+#include "World/OriginalFtol.h"
+#include "World/TerrainWalls.h"
 
 #include <algorithm>
 #include <array>
@@ -206,13 +209,26 @@ std::uint8_t FenrirStand(const ActorState& actor)
 // vuelo de la escena 5 decide además la celda del TerrainWall, que MuRet no tiene en el juego.
 Core::Expected<bool, std::string> IsFlying(const ActorState& actor, const ActorStopContext& context)
 {
+    bool flyingCell = false;
     if (context.scene == SceneId::Game && IsFlyingMap(context.runtime.map))
     {
-        return Core::Unexpected(std::string("0x4f2250: en los mapas de vuelo de la escena 5 falta la celda del "
-                                            "personaje en el TerrainWall vivo (0x7d0d348, 0x4f23c1)"));
+        if (context.terrainWalls == nullptr)
+        {
+            return Core::Unexpected(std::string("0x4f2250: en los mapas de vuelo de la escena 5 falta la celda del "
+                                                "personaje en el TerrainWall vivo (0x7d0d348, 0x4f23c1)"));
+        }
+        constexpr double CellsPerWorldUnit = static_cast<double>(0.01f);
+        const auto y = World::OriginalFtolLow(static_cast<double>(actor.position.y) * CellsPerWorldUnit);
+        const auto x = World::OriginalFtolLow(static_cast<double>(actor.position.x) * CellsPerWorldUnit);
+        if (!x || !y)
+        {
+            return Core::Unexpected(std::string("0x4f23c1: la posición no es representable como celda"));
+        }
+        const auto cell = Data::Terrain::CellIndex(static_cast<std::uint8_t>(*x), static_cast<std::uint8_t>(*y));
+        flyingCell = ((*context.terrainWalls)[cell] & World::SafeZoneWallBit) == 0;
     }
     const bool withWings = actor.safeZone == 0 && actor.wings.model != NoItemModel;
-    return withWings || actor.word376 == FlyingWord376;
+    return withWings || actor.word376 == FlyingWord376 || flyingCell;
 }
 
 // La acción de parado, o std::nullopt cuando ya está sentado y no hay que poner ninguna.

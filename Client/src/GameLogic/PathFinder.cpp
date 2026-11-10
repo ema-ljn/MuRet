@@ -75,7 +75,7 @@ int Heuristic(PathCell cell, PathCell goal)
 class PathFinder::SearchState
 {
 public:
-    SearchState(World::TerrainWalls& walls, PathCell start, PathCell goal)
+    SearchState(Data::Terrain::TerrainLayer<std::uint16_t>& walls, PathCell start, PathCell goal)
         : m_walls(walls), m_start(start), m_goal(goal), m_cells(Data::Terrain::TerrainCellCount)
     {
     }
@@ -86,7 +86,7 @@ public:
         {
             return std::nullopt;
         }
-        std::uint16_t& goalWall = m_walls.cells[Index(m_goal)];
+        std::uint16_t& goalWall = m_walls[Index(m_goal)];
         if (clearGoal)
         {
             goalWall = 0;
@@ -199,7 +199,7 @@ private:
                 continue;
             }
             CellState& next = m_cells[Index(*neighbor)];
-            const int attribute = m_walls.cells[Index(*neighbor)] & ~IgnoredNeighborBits;
+            const int attribute = m_walls[Index(*neighbor)] & ~IgnoredNeighborBits;
             if ((next.flags & OpenFlag) != 0 || attribute >= wall)
             {
                 continue;
@@ -260,7 +260,7 @@ private:
         return std::nullopt;
     }
 
-    World::TerrainWalls& m_walls;
+    Data::Terrain::TerrainLayer<std::uint16_t>& m_walls;
     PathCell m_start;
     PathCell m_goal;
     std::vector<CellState> m_cells;
@@ -268,15 +268,17 @@ private:
     std::size_t m_root = NoNode;
 };
 
-PathFinder::PathFinder(World::TerrainWalls& walls) : m_walls(walls) {}
+PathFinder::PathFinder(World::TerrainWalls& walls) : PathFinder(walls.cells) {}
+
+PathFinder::PathFinder(Data::Terrain::TerrainLayer<std::uint16_t>& walls) : m_walls(walls) {}
 
 std::optional<Path> PathFinder::Find(PathCell start, PathCell goal, bool clearGoal)
 {
     auto path = SearchState(m_walls, start, goal).Run(true, NormalWall, clearGoal);
     if (!path)
     {
-        const auto startWall = m_walls.cells[Index(start)];
-        const auto goalWall = m_walls.cells[Index(goal)];
+        const auto startWall = m_walls[Index(start)];
+        const auto goalWall = m_walls[Index(goal)];
         const bool safe = ((startWall | goalWall) & World::SafeZoneWallBit) != 0;
         const bool occupiedGoal = (goalWall & World::CharacterWallBit) != 0;
         const int wall = safe && !occupiedGoal ? SafeWall : NormalWall;

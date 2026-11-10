@@ -248,8 +248,9 @@ struct GameWorld
         other.byte88 = 1;
         other.pk = 3;
         other.animation.action = 1;
-        other.cellX = x;
-        other.cellY = y;
+        // Quieto: 0x511290 deja el blanco +0x39a/b igual a la celda lógica, antes del primer D3.
+        other.cellX = other.targetX = x;
+        other.cellY = other.targetY = y;
         return other;
     }
 
@@ -804,10 +805,10 @@ TEST(CharacterStepTest, AnEndedActionGoesBackToStanding)
     for (const Case& probe :
          {Case{1, 1, "", Stopped}, Case{0x0c, 1, "", Stopped}, Case{0xbd, 1, "", Stopped}, Case{0xbf, 1, "", Stopped},
           Case{0x54, 1, "", Stopped}, Case{0x55, 1, "", Stopped}, Case{0x22, 1, "", Stopped},
-          Case{0xc2, 1, "", Stopped}, Case{0x0d, 0x0d, "0x508668", SeenHeroDraws},
-          Case{0x8c, 0x8c, "0x508668", SeenHeroDraws}, Case{0x46, 0x46, "", SeenHeroDraws},
-          Case{0x6a, 0x6a, "", SeenHeroDraws}, Case{0x75, 0x75, "", SeenHeroDraws}, Case{0x76, 1, "", Stopped},
-          Case{0xc5, 0xc5, "", SeenHeroDraws}, Case{0xc3, 0xc3, "0x4fcb87", WallDraws + OwnRecordDraws},
+          Case{0xc2, 1, "", Stopped}, Case{0x0d, 0x0d, "", SeenHeroDraws}, Case{0x8c, 0x8c, "", SeenHeroDraws},
+          Case{0x46, 0x46, "", SeenHeroDraws}, Case{0x6a, 0x6a, "", SeenHeroDraws}, Case{0x75, 0x75, "", SeenHeroDraws},
+          Case{0x76, 1, "", Stopped}, Case{0xc5, 0xc5, "", SeenHeroDraws},
+          Case{0xc3, 0xc3, "0x4fcb87", WallDraws + OwnRecordDraws},
           Case{0xc4, 0xc4, "0x4fcb87", WallDraws + OwnRecordDraws}})
     {
         SCOPED_TRACE(::testing::Message() << "acción " << static_cast<int>(probe.action));
@@ -1024,7 +1025,7 @@ TEST(CharacterStepTest, TheHandLightsStopBelowPkSix)
 }
 
 // El caso del 0x20a en 0x506cf8 y los pasos del héroe (0x50862f), después del rand() & 7: los mapas 7 y 9, las
-// acciones 0x44, 0x45 y 0x96, y las de los pasos (0x0d a 0x21, 0x8b, 0x8c y 0x4b) cortan. Las demás, no.
+// acciones 0x44, 0x45 y 0x96 cortan. Los pasos ya producen solicitudes CL10 sin cortar ni agregar RNG.
 TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
 {
     struct Case
@@ -1035,8 +1036,8 @@ TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
     };
     for (const Case& probe :
          {Case{7, 1, "0x506d01"}, Case{9, 1, "0x506d8b"}, Case{0, 0x44, "0x506e5d"}, Case{0, 0x45, "0x506e5d"},
-          Case{0, 0x96, "0x506f62"}, Case{0, 0x0d, "0x508668"}, Case{0, 0x21, "0x508668"}, Case{2, 0x8b, "0x508668"},
-          Case{2, 0x8c, "0x508668"}, Case{2, 0x4b, "0x508668"}, Case{2, 0x0c, ""}, Case{0, 0x22, ""}})
+          Case{0, 0x96, "0x506f62"}, Case{0, 0x0d, ""}, Case{0, 0x21, ""}, Case{2, 0x8b, ""}, Case{2, 0x8c, ""},
+          Case{2, 0x4b, ""}, Case{2, 0x0c, ""}, Case{0, 0x22, ""}})
     {
         SCOPED_TRACE(::testing::Message() << "mapa " << probe.map << ", acción " << static_cast<int>(probe.action));
         GameWorld tested(probe.map);
@@ -1201,8 +1202,8 @@ TEST(CharacterStepTest, TheStepSoundsAreOnlyTheHeros)
 }
 
 // 0x5086cf..0x5087fc: en Kalima (los mapas 24 a 29 y el 36), el 0x20a en las acciones 0x15, 0x1d a 0x21 y 0x4b
-// saca dos rand() % 64 y el 0x6f4, que corta. En los mapas de al lado, o con otra acción, sigue. El héroe, en esas
-// acciones, corta antes en sus pasos (0x508668).
+// saca dos rand() % 64 y el 0x6f4, que corta. En los mapas de al lado, o con otra acción, sigue. El héroe ya
+// atraviesa la solicitud de sonido 0x508668 y alcanza la misma partícula, con sus dos rand adicionales.
 TEST(CharacterStepTest, KalimaParticleCutsAfterItsTwoRandoms)
 {
     struct Case
@@ -1240,8 +1241,8 @@ TEST(CharacterStepTest, KalimaParticleCutsAfterItsTwoRandoms)
     }
     GameWorld hero(24);
     hero.Hero().animation.action = 0x15;
-    EXPECT_TRUE(HasError(hero.Step(Everything), "0x508668"));
-    EXPECT_EQ(hero.random.State(), RandomAfter(SeenHeroDraws).State());
+    EXPECT_TRUE(HasError(hero.Step(Everything), "0x5087fc"));
+    EXPECT_EQ(hero.random.State(), RandomAfter(SeenHeroDraws + 2).State());
 }
 
 // Después de la cabeza, otro que el héroe sigue el camino del 0x20a del héroe: la luz de una mano corta antes del
@@ -1311,7 +1312,8 @@ TEST(CharacterStepTest, TheExitsOf508ba0BeforeTheCell)
     constexpr std::uint16_t Player = Client::Data::Models::PlayerSkeletonModel;
     for (const Case& probe : {Case{"se muere", Player, 1, 0, "0x4fb9e0", WallDraws},
                               Case{"se muere el 0x154", 0x154, 1, 0, "0x508e89", WallDraws},
-                              Case{"camina", Player, 0, 1, "0x508e27", 2 * WallDraws},
+                              // Walk ya existe: consume su rand antes de que Position encuentre la altura ausente.
+                              Case{"camina", Player, 0, 1, "0x508a80", 2 * WallDraws + 1},
                               Case{"el 0x159", 0x159, 0, 0, "0x4f9580", 2 * WallDraws}})
     {
         SCOPED_TRACE(probe.name);

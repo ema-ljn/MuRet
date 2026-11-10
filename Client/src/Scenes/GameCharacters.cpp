@@ -137,6 +137,7 @@ DrawnCharacter CharacterToDraw(ActorState& actor, std::size_t slot, const GameCh
     character.scepter = slot < pass.scepters.size() ? &pass.scepters[slot] : nullptr;
     character.originalRandom = pass.clothWorld != nullptr ? &pass.clothWorld->random : nullptr;
     character.pace = pass.pace;
+    character.poseBones = pass.poseBones;
     return character;
 }
 
@@ -225,7 +226,8 @@ const ActorItemPart& BackHandOf(const ActorState& actor)
     return left == Bolts ? actor.hands[1] : actor.hands[0];
 }
 
-Core::Expected<void, std::string> CheckTheHanging(const ActorState& actor, std::int32_t map)
+Core::Expected<void, std::string> CheckTheHanging(const ActorState& actor, std::int32_t map, std::int32_t counter,
+                                                  bool originalFrame)
 {
     const bool back = WeaponsOnTheBack(actor, map);
     if (back && BackHandOf(actor).model != NoItemModel)
@@ -236,10 +238,24 @@ Core::Expected<void, std::string> CheckTheHanging(const ActorState& actor, std::
     if (actor.pet.model == Render::Models::DrawnPet)
         return Core::Unexpected<std::string>(
             "0x50dfcf: la animación y la chispa de Helper02 del juego no están portadas");
-    if (!back)
+    // 0x50e060..0x50e0c0: antes de las manos, salvo espalda y +0x4000, un efecto cada 30 pasos.
+    if (originalFrame && !back && (actor.flags78 & 0x4800u) == 0x800u && actor.byte88 == 1 && counter % 30 == 0)
+        return Core::Unexpected<std::string>(
+            "0x50e0c0: el efecto periódico de la bandera +0x78 & 0x800 no está portado");
+    if (!back && std::ranges::any_of(actor.hands, [](const ActorItemPart& hand) { return hand.model != NoItemModel; }))
         return Core::Unexpected<std::string>(
             "0x50e298: el byte lógico +0x38e y los casos de las armas en mano no están portados");
     return {};
+}
+
+// 0x50e298..0x50e6af antes de cada NoItem (0x50e746): abre y cierra +0x38e, aun sin arma.
+// Su valor no afecta al caso vacío; la cuenta durable determina si el cierre gasta un rand.
+void ReadTheUnarmedHandBytes(ActorState& actor, Render::Models::CrtRandom& random)
+{
+    for (std::size_t hand = 0; hand < actor.hands.size(); ++hand)
+    {
+        const Render::Models::LogicalAccess access(actor.byte38eAccesses, random, 1);
+    }
 }
 
 Core::Expected<void, std::string> CheckTheEffects(const ActorState& actor, const FullSetScan& scan)
@@ -276,6 +292,8 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
     const std::int32_t map = world.Runtime().map;
     DrawnCharacter character = CharacterToDraw(actor, slot, pass, map);
     character.advanceCloth = originalFrame;
+    if (originalFrame || pass.publishProjectedPose)
+        character.onPose = pass.onPose;
     DrawCharacter(batch, models, character, pass.frameClock, CharacterDrawPass::Shadow);
     if (pass.clothWorld == nullptr)
         return Core::Unexpected<std::string>("0x50c91e: falta el flujo global de rand del scan de los personajes");
@@ -290,9 +308,11 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
         static_cast<void>(pass.clothWorld->random.Next()); // 0x50db57, aun sin ningún ítem
     actor.drawnLight = actor.pk >= RedPk ? glm::vec3{1.0f, 0.1f, 0.1f} : terrainLight.Value() + actor.light;
     character.hangingLight = actor.drawnLight;
-    if (auto supported = CheckTheHanging(actor, map); !supported.HasValue())
+    if (auto supported = CheckTheHanging(actor, map, pass.clothWorld->logicSteps, originalFrame); !supported.HasValue())
         return supported;
-    // Con el arma a espalda no llega al lazo de las manos, ni siquiera con la mano elegida vacía.
+    if (originalFrame && !WeaponsOnTheBack(actor, map))
+        ReadTheUnarmedHandBytes(actor, pass.clothWorld->random);
+    // A la espalda no corre el lazo; fuera de ella solo pasó el caso de las dos manos vacías.
     character.appearance.rightHand.reset();
     character.appearance.leftHand.reset();
     DrawCharacter(batch, models, character, pass.frameClock, CharacterDrawPass::Hanging);

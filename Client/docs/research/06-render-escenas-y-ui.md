@@ -2917,9 +2917,10 @@ un error que nombra la dirección, nunca en silencio:
   segundo cierre del registro, el pasto, el lugar del héroe, los 28 de `0x511290` y lo que `0x512a30`
   sacó antes de cortar. Lo que sigue a `0x512a30` (filas 6 a 17) es `Scenes::SettleWorldEntry`, que
   también se prueba directo; el cuervo de la fila 11 corta en `0x420d60`. Lo que MuRet no modela no se escribe: `0x7d36874`, `0x77f3b67`, `0x553780`,
-  `0x77f3b10`, `0x6c8dcc`, los elegidos de la fila 14, `0x78abb0c`/`0x78abb10`, ResourceGuard
-  (Q-C147) y la fila 19 (los mensajes, CL9). Los sonidos se calculan y se descartan (sin audio
-  hasta la CL10).
+  ResourceGuard (Q-C147) y la fila 19 (los mensajes, CL9). Hito 2 incorpora `0x77f3b10`,
+  `0x6c8dcc`, los elegidos de la fila 14 y `0x78abb0c`/`0x78abb10` como estado durable en
+  `WorldRuntime::movement` y `WorldRuntime`; los disparadores de sonido quedan en `lastSoundId`,
+  sin reproducción hasta la CL10.
 - **La clave del héroe** (`0x57678bc`) es la del `F1 00`, que la escribe en `0x4c1ec0` antes del
   chequeo de versión ([04](04-protocolo.md)).
 - **Divergencia previa**: la selección (escena 4) todavía no gasta los 28 de `0x511290` ni los
@@ -3256,7 +3257,7 @@ tipo (`movsx` del tipo, `*[0x7758550] + tipo · 0x54`), `D+4`, `D+0x1b` y `D+0x1
 `float`. El máximo es el `+0x2d` más 1 por cada uno de los primeros 4 niveles (`(D+4 >> 3) & 15`) y
 2 por cada uno de los otros, más 20 con `D+0x1c % 4` en 1 o 2 o, si no, 15 con `D+0x1b & 0x3f`.
 `r = 1 − durabilidad / máximo` (`fild`, `fidiv` y `fsubr`): 0.5 con `r > 0.8f`, 0.3f con `r > 0.7f`,
-0.2f con `r > 0.5f` y 0 si no. Con el perfil PC53 ([ADR 0012](../adr/0012-perfil-fp-del-movimiento-original.md))
+0.2f con `r > 0.5f` y 0 si no. Con el perfil PC53 ([ADR 0012](../../../docs/adr/0012-perfil-fp-del-movimiento-original.md))
 cada paso redondea como en doble: 6 de 20 deja `r = 0.7` en doble, que pasa `0.7f`, y da 0.3f (con
 PC24 daría 0.2f). Con el máximo en 0 la x87, con las excepciones enmascaradas, da infinito o NaN y
 ninguna comparación pasa: 0. Con las alas los que llaman pasan 0 y 0 en lugar de `D+0x1b` y
@@ -5657,16 +5658,19 @@ pone `Movement` igual (Q-C177; nadie lo llama así).
 **Lo que llega** (*estático*; los formatos, *verificado* en el cable):
 
 - **El `D3` del servidor** (`0x4c6790`) busca al personaje con `0x5110d0(id)`, que devuelve 400 si
-  no lo encuentra (Q-C174), y pone siempre `+0x388 = pkt[7] >> 4`. Al héroe, si está quieto, le pone
+  no lo encuentra (Q-C174); si está muriéndose (`+0x389`), sale **antes** de poner
+  `+0x388 = pkt[7] >> 4`. Al héroe, si está quieto, le pone
   la celda lógica en (X, Y), sin tocar la posición que se ve (Q-C176); si camina, solo la dirección.
   El servidor contesta cada `A3` con un `D3` del héroe con la celda final del camino que le mandaron
   y la dirección de `P0` (*verificado*: los 212 ecos que se encuentran en el cable). A los otros, el
-  blanco a `+0x39a`/`+0x39b`; el tipo `0x186` salta a la celda sin caminar (el ángulo hacia el
-  centro, `0x4f37c0` y `+0x399 = 1`); los demás, con `+0x3e5` en 0 (un freno de 60 pasos que pone
+  blanco a `+0x39a`/`+0x39b`; el tipo `0x186` copia la celda lógica, calcula el ángulo hacia
+  **`(X*100,Y*100)`, sin +50**, llama `0x4f37c0` y pone `+0x399 = 1`, sin saltar su XY visible;
+  los demás, con `+0x3e5` en 0 (un freno de 60 pasos que pone
   `0x4c9790` y baja `0x505de0`), calculan `PathFinding2(celda, blanco, +0x3e8, 0)` con **su** A*:
   `Movement` es el resultado y, si falla, `SetPlayerStop`.
 - **El `D7` del servidor** (`0x4caae0`) **no es movimiento: es el daño**. Dibuja el número
-  (`0x548e40`, de 15 de alto) y, si no es el héroe, lo guarda en `+0x384`; al héroe le resta la vida
+  (`0x548e40`, escala ordinaria 15) y lo guarda en `+0x384` **también en el héroe**; al héroe le
+  resta la vida
   (`0x7681eb0 + 0x22`, con piso en 0, y cierra el registro propio con 3.848 `rand()`, Q-C183). **Con
   el bit 15 del id llama siempre a `SetPlayerShock`** (`0x4f53a0`, `0x4cab6b`), también con el
   héroe. Sin el bit, al héroe nunca, y a los otros, salvo los de `+0x376 == 0x113`, **una vez de
@@ -5677,8 +5681,69 @@ pone `Movement` igual (Q-C177; nadie lo llama así).
   de camino, con la celda lógica ya en la siguiente (Q-C178). Con Fenrir (`0x1c37`) llama a
   `0x4e9cd0` en vez de la acción, pone `Movement = 0` igual (`0x4f5455`) y, si `rand() % 3` da 0
   (`0x4f5423`), suena el `0x27b` + `rand() & 1` (`0x4f5436`). Un monstruo toma la acción 5, salvo en
-  la 3 o la 4, y sigue. Después, con `+0x114` en 0, suena un golpe que se elige con otro `rand()`
-  según la clase (`0x4f5488..`). Todo esto gasta `rand()` (Q-C179).
+  la 3 o la 4, y sigue. Después, con `+0x114` en 0 **o unordered**, suena un golpe que se elige
+  según la clase (`0x4f5488..`; `0x4f5496` consulta C3). Las guardas previas no gastan RNG;
+  tampoco los subtipos 209..211, cuyo sonido es `0x7b`, ni el tipo 160 silencioso. Los sorteos de
+  las ramas restantes están en el presupuesto de Q-C179, no en cada llamada incondicionalmente.
+
+**Aplicadores del hito 2 (2026-11-10).** `SessionEventApplier` recibe los eventos tipados en
+orden desde la sesión y aplica `MovementReplies`/`ActorShock` al mundo durable, antes del paso.
+Relectura del `main.exe` mapeado, base VA400000, SHA256
+`c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`: sólo ASM estático; los tests
+nuevos ejecutan el port, no el original ni las protecciones. `LogicalAccess` representa sus
+cierres y conserva el CRT compartido. La evidencia y los RED/GREEN reproducibles están en
+`.superpowers/sdd/cl7-resto-traspaso/transitions-research.md`, `transitions-report.md` y
+`hero-facing-report.md`. Las cuentas siguientes suponen profundidades iniciales 0;
+un acceso exterior abierto suprime su cierre.
+
+- D3 (`0x4c6790..0x4c6b39`): héroe móvil conserva celda/path/blanco y sólo actualiza dirección;
+  quieto escribe/cierra X y después Y (8 CRT), conservando XY visible. Otro escribe primero
+  blanco 39a/b; con freno 3e5 no cambia Movement/path ni gasta CRT. Sin freno cierra Y/X (8 CRT),
+  busca sobre `terrain.attributes->cells` vivas y pone Movement según el resultado. Fallar
+  conserva el path anterior y llama Stop. El 186 abre X/Y y cierra Y/X antes de Walk, usando su
+  propio esqueleto. Clave desconocida se descarta sin escribir el slot 400.
+- D7 (`0x4caae0..0x4cb71b`): con bit 15, Shock precede el número rojo, y después viene vida/cierre
+  propio con piso 0. Sin bit 15, el héroe resta/cierra antes de los números y no toma el sorteo de
+  Shock; otro excluye word376==0x113 **antes** de `rand()&1`. El creador `0x548e40..0x548eab`
+  recorre 100 slots, no llama ni sortea, ni siquiera lleno: Z+140, escala recibida, speed 10,
+  timer 0 y rise 1, reteniendo campos ajenos. Amount=0 produce MISS−1/escala 15, sin copias.
+- Los flags de daño no son equivalentes: bit 6 solo produce **tres** números. Bit 7 produce
+  **cuatro**: Z+140/+150/+160 con escalas 50/55/60 y luces base−0,4/base−0,2/base; después cae al
+  normal Z+140/escala 50/base. `0x4cb614→0x4cb6c1→0x4cb6c9→0x4cb6df` acredita el cuarto, corregido
+  tras revisión adversarial. No reemplazarlo por una única copia destacada ni por tres números.
+- `ActorShock` porta el jugador/Fenrir y los presupuestos por clase; errores explícitos conservan
+  el prefijo al requerir la tabla de sonidos de monstruos o las partículas 5f3 del 18f. El efecto 109
+  del propio con flags78&0x100 sigue como frontera `0x4cb32f`, después de vida/cierre y antes de
+  números/damage. Las reproducciones de audio quedan en CL10.
+
+`MovementRepliesTest`, `WorldTransitionsTest` y `SessionEventApplierTest` prueban orden, guardas,
+campos retenidos, número de copias y CRT; no constituyen observación visual ni cierran CL7.
+
+**El giro del héroe quieto, paquete 18/7A.** La rama `0x59b333..0x59b83a` corre sólo si Movement
+**ya era cero** en `0x59b29d`: una llegada caminando salta a `0x59b841`, sin orientar ese mismo
+paso. Input inhibido corta antes del contador. Si no, incrementa el DWORD `0x77f3ba4` con wrap;
+ventana 40000 cerrada y modo 78abb18==1 corta antes del umbral 40 con signo. La consulta va
+`0x6594de→0x65972c→0x6570a0`, lectura simple de byte+7c: **cero CRT en esta rama**, incluido envío.
+Después inhiben byte 775857c, dying, acciones cb/cc/c5/c7, BL de cabeza, acciones 4d/4f/5a y byte381;
+conservan el contador incrementado. BL es falso con acción 3e/flag 1000 o blanco 6c8e3c activo con
+selector 6c8e38 válido fuera de mapas 6 y 18..23; el prefijo de cabeza lo entrega al kernel.
+
+Al aceptar, `0x59b407` pone el contador en 0 y calcula
+`arrivalYaw=(405-ftol(CreateAngle(mouseX,mouseY,centerX,180)))%360`, con resta DWORD y resto firmado.
+centerX es `5bb8d0()/2` truncado, no el ancho físico del framebuffer. El sector es
+`ftol((double(yaw)+22.5f)*0.02222222276031971f+1)&7`; no redondea a float cada operación. Escribe
+arrivalYaw (`0x77f3ba8`, `0x59b450`) incluso con sector igual. Sector distinto gira el cuerpo antes
+de publicar **C1 05 18 dir 7A**, con XOR32 y Delivery::Clear; acción 39 sólo evita girar el cuerpo,
+pero manda igualmente. Sector igual no cambia cuerpo ni manda. byte381 se retiene por 511290.
+
+`GameHeroFacing` implementa ese kernel mediante un callback independiente del D3;
+`Protocol::Movement::WriteFacing`/`ServerSession::SendFacing` publican los bytes crudos sin
+normalizar direction. Sus 12 tests cubren 39→40, guardas, sector/borde 112,5, modo/ventana, orden de
+campos antes del envío, wrap y errores con prefijo conservado. Las pruebas wire son de sesión y
+protocolo; el llamador conserva cabeza→rama quieta/movimiento→gates→clic→57cfc0. El binding normal
+actual usa centerX=320 y acción!=3e; la guarda1000 ya cortó antes. El ancho que cambia por ventanas
+y la guarda de blanco6c8e3c carecen de productor UI portado: el parámetro permite representarlos,
+pero no acredita esas rutas. Tampoco implementa las interacciones de llegada de CL9.
 
 **El paso entre celdas** (*emulado* con `0x4f37c0`, `0x4ea270` y `0x508a80` reales).
 

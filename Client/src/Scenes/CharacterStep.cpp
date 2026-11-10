@@ -6,6 +6,7 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/SceneId.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/TerrainCulling.h"
@@ -43,6 +44,10 @@ constexpr std::uint8_t BoneEffectAction = 0x96;
 constexpr std::uint8_t FirstStepAction = 0x0d;
 constexpr std::uint8_t LastStepAction = 0x21;
 constexpr std::array<std::uint8_t, 3> OtherStepActions{0x8b, 0x8c, 0x4b};
+// 0x508e79: el tipo que, muriéndose, 0x508ba0 baja a la altura del terreno.
+constexpr std::uint16_t SinkingDeadType = 0x154;
+// 0x508be3: el tipo con el que 0x508ba0 no busca camino.
+constexpr std::uint16_t PathlessType = 0x159;
 
 std::string MapText(std::int32_t map)
 {
@@ -53,6 +58,50 @@ bool HasStepSounds(std::uint8_t action)
 {
     return (action >= FirstStepAction && action <= LastStepAction) ||
            std::ranges::find(OtherStepActions, action) != OtherStepActions.end();
+}
+
+// 0x508ba0(c, c) desde 0x508ed8 con otro que el héroe publicado ([0x743a170]; con él sale en 0x508bad).
+Core::Expected<void, std::string> StepOtherCharacter(ActorState& actor, std::size_t slot,
+                                                     Render::Models::CrtRandom& random)
+{
+    // 0x508bb6: muriéndose (+0x389), sale; el 0x154 antes toma la altura del terreno (0x508e76..0x508e8e).
+    if (actor.dying != 0)
+    {
+        if (actor.type == SinkingDeadType)
+        {
+            return Core::Unexpected(std::format("0x508e89: el {:#x} del lugar {} se muere y toma la altura "
+                                                "de 0x5f93c0, que no está portada",
+                                                actor.type, slot));
+        }
+        return {};
+    }
+    // 0x508bc4: caminando (+0x378), 0x508e26..0x508e6e sigue el camino (0x4f37c0, 0x4ea270, 0x4f2250 y 0x508a80).
+    if (actor.movement != 0)
+    {
+        return Core::Unexpected(std::format("0x508e27: el personaje del lugar {} camina (+0x378); 0x4f37c0 y 0x508a80 "
+                                            "no están portados",
+                                            slot));
+    }
+    // 0x508bd2: +0x3e5 en 0, sin salir: solo lo sube 0x4c9790 (0x4c982b), un paquete que MuRet no aplica
+    // (*estático*). 0x508be3: el 0x159 sale sin leer la celda.
+    if (actor.type == PathlessType)
+    {
+        return {};
+    }
+    // 0x508bef..0x508c75: la X lógica (+0x41c) en un acceso que se cierra con 0x412890, contra la copia en
+    // claro (+0x39a); 0x508c86..0x508ce9: la Y (+0x420), con 0x40b800, contra +0x39b. Con las dos iguales sale
+    // en 0x508cfb, con 8 rand() si los dos cierres dejan su cuenta en 0 (Q-C236). MuRet guarda una sola copia de
+    // cada una (0x511290 las escribe iguales): siempre coinciden, y el camino de 0x508d01..0x508e1a (0x4eac00 y
+    // +0x378 en 1) no se alcanza.
+    {
+        const Render::Models::LogicalAccess access(actor.cellXAccesses, random,
+                                                   Render::Models::SmallLogicalCloseRandoms);
+    }
+    {
+        const Render::Models::LogicalAccess access(actor.cellYAccesses, random,
+                                                   Render::Models::SmallLogicalCloseRandoms);
+    }
+    return {};
 }
 
 // 0x505de0(héroe, héroe) desde 0x505e0b. La escena es la 5: solo la llama GameScene.
@@ -205,18 +254,28 @@ Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& con
         {
             continue;
         }
-        if (slot != runtime.hero)
-        {
-            return Core::Unexpected(std::format("0x508ea0: el personaje del lugar {} está vivo y no es el héroe; "
-                                                "0x508ba0, 0x4fd5f0 y 0x505de0 de los demás no están portados",
-                                                slot));
-        }
         // 0x508eac..0x508ed2: otra vez, con el mismo trapecio.
         actor.seen = CharacterSeen(polygon, actor.position);
-        // 0x508ed8: 0x508ba0 sale con el héroe (0x508bad).
-        // Frontera (08 P-C44): 0x4fd5f0 (0x508edf), el cuerpo, la animación y el alpha, con al menos un
-        // rand() % 6 sin condición (0x4fd7e4). Corre también en la espera, con el 54 de la selección: es la
-        // frontera de T8 (P-C41 a).
+        // 0x508ed8: 0x508ba0, que sale con el héroe (0x508bad).
+        const bool hero = slot == runtime.hero;
+        if (!hero)
+        {
+            if (auto other = StepOtherCharacter(actor, slot, context.random); !other.HasValue())
+            {
+                return other;
+            }
+        }
+        // 0x508edf: 0x4fd5f0, el cuerpo, la animación y el alpha, de 32 KB (0x4fd5f0..0x5054b3), con al menos
+        // un rand() % 6 sin condición (0x4fd7e4). Frontera (08 P-C44 a) solo con el héroe del juego: corre
+        // también en la espera, con el 54 de la selección (la frontera de T8, P-C41 a). Con los demás, y en la
+        // selección y el login también con el héroe, corta (08 P-C50).
+        if (!hero || context.scene != SceneId::Game)
+        {
+            return Core::Unexpected(std::format("0x4fd5f0: el cuerpo, la animación y el alpha del personaje "
+                                                "del lugar {} (0x508edf, con el rand() % 6 de 0x4fd7e4) no están "
+                                                "portados",
+                                                slot));
+        }
         auto stepped = StepTheHero(actor, runtime.map, walls, context.random);
         if (!stepped.HasValue())
         {

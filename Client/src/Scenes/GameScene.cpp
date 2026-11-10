@@ -212,8 +212,8 @@ Core::Expected<void, std::string> GameScene::StepWorld()
     // gates, 0x57cfc0 con el registro propio y la capa 1 de la celda en 0x77f36d0).
     // 0x63710f: 0x508f00, los personajes, con el trapecio del último 0x5fb570 (WorldRuntime): en el primer
     // paso después de la espera, el del último dibujo de la selección (Q-C216).
-    if (auto stepped =
-            StepCharacters(CharacterStepContext{.world = *m_context.world, .random = m_context.cloth->random});
+    if (auto stepped = StepCharacters(
+            CharacterStepContext{.world = *m_context.world, .random = m_context.cloth->random, .scene = SceneId::Game});
         !stepped.HasValue())
     {
         return stepped;

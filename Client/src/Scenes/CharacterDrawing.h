@@ -190,6 +190,15 @@ struct PosedInTheBuffer
 void DrawSubtractiveMesh(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                          Core::Duration frameClock);
 
+// 0x602e90 con el caso del 0x69 de Lorencia en 0x6002e0 (0x600a4a..0x600ae6): entre 0x4ecc10 y 0x4ecc20
+// (glPushMatrix y glPopMatrix), cuatro 0x4ecc30(malla, 2, alpha, blendMesh, luz, U, V, −1) sin RenderBody:
+// las mallas 0 a 2 con el blendMesh y la luz del objeto y U = V = 0, y la 3 con el blendMesh 3, la luz y
+// la U y la V del objeto. Cada una, el pase base de DrawObject, sin la malla oculta (+0x58) ni los scripts
+// R y H, que mira RenderBody y no 0x4ecc30; Waterspout01 no tiene ninguno. Sin el glColor de RenderBody:
+// con la luz por vértice, cada esquina lleva el suyo. Un modelo que la biblioteca no tiene no se dibuja.
+void DrawWaterspout(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                    Core::Duration frameClock);
+
 // 0x602e90 con el caso del caballo oscuro (0xbf) de 0x6002e0: el pase base de DrawObject en blanco
 // (pisa el color de 0x5ffce0); después el 0x44 (cromo aditivo, Render::Models::ShinePass::Chrome) de
 // las mallas 12 a 15 que existen (en DarkHorse.bmd, la 12) en (1; 0,8; 0,3), por el alpha si es menor

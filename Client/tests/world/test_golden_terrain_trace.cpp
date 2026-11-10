@@ -372,7 +372,8 @@ std::vector<TerrainCell> OpaqueCellsOf(const Client::Tests::FrameEvent& models)
 // celda (143, 120) con la posición de la traza y el contador en 30. Su primer frame lee la celda por la
 // tabla de protección, arma la cámara de la traza y dibuja las 329 celdas en su orden y los 25 quads del
 // pasto de la traza (06 § El pasto); las marcas del suelo (0x5fc365) no dibujan ninguna, los objetos (0x6374ce),
-// sin el .obj en el WorldState, tampoco, y corta en los efectos del suelo (0x6374d3). Los 120 bloques de los
+// sin el .obj en el WorldState, tampoco, ni los efectos del suelo y los pájaros, sin tablas; el héroe, sin un
+// paso que lo vea, no se dibuja (0x510d00), y corta en los ítems del piso (0x6374fe). Los 120 bloques de los
 // objetos de la traza no se comparan todavía (08 P-C53).
 TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
 {
@@ -421,7 +422,7 @@ TEST_F(GoldenTerrainTrace, TheGameSceneDrawsTheCellsOfLorencia)
     scene.Render(target.BeginFrame({}), 0.0f);
 
     ASSERT_TRUE(scene.Failure().has_value());
-    EXPECT_NE(scene.Failure()->find("0x6374d3"), std::string::npos) << *scene.Failure();
+    EXPECT_NE(scene.Failure()->find("0x6374fe"), std::string::npos) << *scene.Failure();
     const Client::Tests::FrameEvent* models = nullptr;
     for (const Client::Tests::FrameEvent& event : target.frames.at(0).events)
     {

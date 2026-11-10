@@ -101,6 +101,6 @@ struct HelperDrawContext
 // con el +0x78 & 0x1000 del jinete le pone el frame en 0 (0x5fff0d, Q-C224); después, el rand() % 30 de
 // 0x445336 aunque no lo haya dibujado (Q-C223). Corta con error en los mapas 18 a 23 (0x5ffe09 lee +0x1a1
 // del héroe) y con el +0x78 & 0x4000 del jinete (0x602e90 con 10, 0x60033c). En MuRet no corre: el dibujo
-// del juego corta antes, en los objetos o en los efectos del suelo (0x6374d3).
+// del juego corta antes, a lo sumo en los ítems del piso (0x6374fe).
 [[nodiscard]] Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context);
 } // namespace Client::Scenes

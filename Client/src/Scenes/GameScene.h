@@ -29,13 +29,14 @@
 // queda en pantalla el mosaico de la escena 3; el paso corre con lo que dejó la selección y MoveHero
 // baja el contador (0x59af01). La respuesta del F3 03 lo pone en 30 (T7). Con el contador en 30 o
 // menos, el dibujo del juego hace la cámara, el rango y el trapecio, el pase del mundo, el rayo del
-// mouse, el terreno y, en el 0 y el 2, los objetos (0x6374ce, CL7 hito 3), y corta con error en la
-// primera etapa que MuRet no tiene (T8); el paso, los objetos que vio el dibujo (0x606560), el caballo
-// oscuro (0x445230, también en la espera) y los personajes con su cuerpo (0x4fd5f0) y la zona segura del
-// héroe (0x508f00, T11), y corta igual. El dibujo del caballo (0x637508) está portado (HelperTable.h,
-// DrawHelpers) y queda detrás del corte de los objetos (0x6374ce, 0x6374d3). El trapecio que leen los
-// personajes es el global de WorldRuntime: en el primer paso después de la espera, el que dejó el último
-// dibujo de la selección (T11b).
+// mouse, el terreno y, en el 0 y el 2, los objetos (0x6374ce, CL7 hito 3), los efectos del suelo
+// (0x6374d3), los pájaros (0x6374d8, sin tabla) y los personajes (0x6374dd, con el TerrainWall de
+// 0x42da60), y corta con error en la primera etapa que MuRet no tiene (T8): a lo sumo, en los ítems del
+// piso (0x6374fe); el paso, los objetos que vio el dibujo (0x606560), el caballo oscuro (0x445230, también
+// en la espera) y los personajes con su cuerpo (0x4fd5f0) y la zona segura del héroe (0x508f00, T11), y
+// corta igual. El dibujo del caballo (0x637508) está portado (HelperTable.h, DrawHelpers) y queda detrás
+// del corte de los ítems del piso. El trapecio que leen los personajes es el global de WorldRuntime: en el
+// primer paso después de la espera, el que dejó el último dibujo de la selección (T11b).
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La entrada al mundo", pasos 3, 4 y 6, "El
 // paso del juego", "El dibujo del juego" y "Los objetos del juego".
 namespace Client::Scenes
@@ -96,7 +97,7 @@ private:
     // 0x59ae8d..0x59afd6, lo de MoveHero con el contador: lo baja y lo vuelve a leer.
     [[nodiscard]] std::int32_t StepWaitCounter();
 
-    // 0x63723a..0x6374d3: el dibujo hasta el corte. Devuelve siempre el error del corte.
+    // 0x63723a..0x6374fe: el dibujo hasta el corte. Devuelve siempre el error del corte.
     [[nodiscard]] Core::Expected<void, std::string> DrawTheFrame(SceneCanvas& canvas);
     // Los modelos de los objetos de `map` (0x616ec0, WorldModels) y sus texturas, que el original lee en
     // 0x61a560, al cargar; MuRet, la primera vez que el dibujo o el paso los piden.
@@ -109,7 +110,8 @@ private:
     // frame los dos quedan en WorldRuntime (TerrainPolygonFrame.h); en un dibujo intermedio, nada.
     [[nodiscard]] Core::Expected<World::TerrainPolygon, std::string>
     PolygonOfTheFrame(const Render::Camera3D& camera, const glm::vec3& target, int frames);
-    // 0x637410..0x6374d3, dentro del pase del mundo: el rayo del mouse, el terreno, los objetos y el corte.
+    // 0x637410..0x6374fe, dentro del pase del mundo: el rayo del mouse, el terreno, los objetos, los efectos
+    // del suelo, los personajes y el corte.
     // `frames` son los frames del original del reloj: con 0, los objetos no sacan rand().
     [[nodiscard]] Core::Expected<void, std::string> DrawTheWorldPass(SceneCanvas& canvas, const Render::Pass3D& pass,
                                                                      const World::TerrainPolygon& polygon, int frames);

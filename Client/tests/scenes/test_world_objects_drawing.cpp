@@ -111,6 +111,54 @@ private:
     std::array<TextureSlot, 2> m_textures{TextureSlot{0x41c}, TextureSlot{0x41d}};
 };
 
+// Un modelo como Waterspout01: cuatro mallas de un triángulo del hueso 0, cada una con la textura de su
+// índice (de 0 a 3, slots 0x41c a 0x41f) y la UV (0,125; 0,25), sin animación.
+class FourMeshModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    FourMeshModels()
+    {
+        for (std::int16_t index = 0; index < 4; ++index)
+        {
+            Mesh mesh;
+            mesh.texture = index;
+            mesh.vertices = {{0, {0, 0, 0}}, {0, {1, 0, 0}}, {0, {0, 1, 0}}};
+            mesh.normals = {{0, {0, 0, 1}, 0}};
+            mesh.texCoords = {{0.125f, 0.25f}};
+            mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
+            mesh.textureName = "a.jpg";
+            m_model.meshes.push_back(mesh);
+        }
+        Client::Render::Models::SkeletonBone bone;
+        bone.parent = -1;
+        Client::Render::Models::BoneKey key;
+        key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+        bone.actions = {{key}};
+        m_skeleton.bones = {bone};
+        m_skeleton.actions = {
+            Client::Render::Models::ActionInfo{.repeats = true, .speed = 0.0f, .keyCount = 1, .lockPositions = false}};
+    }
+
+    [[nodiscard]] const Model* Find(std::uint16_t) const override
+    {
+        return &m_model;
+    }
+    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t) const override
+    {
+        return &m_skeleton;
+    }
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return m_textures;
+    }
+
+private:
+    Model m_model;
+    Skeleton m_skeleton;
+    std::array<TextureSlot, 4> m_textures{TextureSlot{0x41c}, TextureSlot{0x41d}, TextureSlot{0x41e},
+                                          TextureSlot{0x41f}};
+};
+
 WorldObject ObjectAt(std::int16_t type, float x, float y, std::uint8_t map = Login,
                      Client::World::ObjectScene scene = Client::World::ObjectScene::Login)
 {
@@ -295,7 +343,7 @@ TEST(WorldObjectsDrawingTest, DrawingStillUpdatesGeometryAndSeenWithoutAnOrigina
 
 // El pase de los objetos del juego (0x6046a0 en 0x6374ce) con los modelos de mentira, todo visto y la
 // semilla 7.
-Client::Core::Expected<void, std::string> DrawGame(ModelBatch& batch, const TwoMeshModels& models,
+Client::Core::Expected<void, std::string> DrawGame(ModelBatch& batch, const Client::Scenes::IModelLibrary& models,
                                                    std::span<WorldObject> objects,
                                                    const Client::Scenes::GameObjectPass& pass)
 {
@@ -340,43 +388,147 @@ TEST(WorldObjectsDrawingTest, TheGamePassDrawsTheLiveObjectsWithARandEach)
     }
 }
 
-// 0x600a4a: el 0x69 de Lorencia (Waterspout01) va con cuatro 0x4ecc30 en vez de RenderBody, que MuRet no
-// tiene: corta ahí, antes de su rand(), con los de antes dibujados y los de después sin mirar. Oculto, no
-// llega a 0x6002e0 y corta después del rand(), en su caso de 0x602ed0 (0x603011). El 0x38 se dibuja y corta
-// después de su rand() (0x603149).
+// El 0x38 de Lorencia se dibuja y corta después de su rand(), en su caso de 0x602ed0 (0x603149), con los
+// de antes dibujados y los de después sin mirar.
 TEST(WorldObjectsDrawingTest, TheGamePassStopsAtTheCasesOfLorencia)
 {
     const TwoMeshModels models;
+    std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
+                                     ObjectAt(0x38, 200.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
+                                     ObjectAt(Rock, 300.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+    Client::Render::Models::CrtRandom random(7);
+    ModelBatch batch;
+    const auto drawn = DrawGame(batch, models, objects, {.map = Lorencia, .random = &random});
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("0x603149"), std::string::npos) << drawn.Error();
+    EXPECT_TRUE(objects[1].seen);
+    EXPECT_FALSE(objects[2].seen) << "el de después no se mira";
+    EXPECT_EQ(batch.Vertices().size(), 12u);
+    EXPECT_EQ(random.State(), SevenAfter(2).State());
+}
+
+// 0x600a4a..0x600ae6: el 0x69 de Lorencia va con cuatro 0x4ecc30 sueltos, sin RenderBody. Las mallas 0 a 2,
+// opacas, con la luz de cada normal y sin la U ni la V; la 3, la de su blendMesh, aditiva, por la luz del
+// blendMesh y con la U y la V del objeto. La malla oculta (+0x58) no cuenta: 0x4ecc30 no la mira.
+TEST(WorldObjectsDrawingTest, TheLorenciaWaterspoutDrawsFourLooseMeshes)
+{
+    const FourMeshModels models;
+    std::vector<WorldObject> objects{
+        ObjectAt(Client::World::Waterspout, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
+    ASSERT_EQ(objects[0].state.blendMesh, 3) << "el alta del 0x69 en el 0";
+    objects[0].light = glm::vec3(1.0f);
+    objects[0].state.light = 0.5f;
+    objects[0].state.uv = glm::vec2(0.25f, 0.5f);
+    objects[0].state.hiddenMesh = 3;
+    Client::Render::Models::CrtRandom random(7);
+    ModelBatch batch;
+    ASSERT_TRUE(
+        DrawGame(batch, models, objects, {.map = Lorencia, .originalFrame = false, .random = &random}).HasValue());
+    ASSERT_EQ(batch.Commands().size(), 4u);
+    ASSERT_EQ(batch.Vertices().size(), 12u);
+    const float light = Client::Render::Models::NormalLight(glm::vec3(0.0f, 0.0f, 1.0f));
+    for (std::size_t mesh = 0; mesh < 4; ++mesh)
+    {
+        SCOPED_TRACE(mesh);
+        const auto& command = batch.Commands()[mesh];
+        EXPECT_EQ(command.state.texture, TextureSlot{static_cast<std::uint16_t>(0x41c + mesh)});
+        const auto& vertex = batch.Vertices()[command.firstVertex];
+        if (mesh < 3)
+        {
+            EXPECT_EQ(command.state.blend, ModelBlend::Opaque);
+            EXPECT_EQ(vertex.uv, glm::vec2(0.125f, 0.25f));
+            EXPECT_FLOAT_EQ(vertex.color.red, light);
+            continue;
+        }
+        EXPECT_EQ(command.state.blend, ModelBlend::Additive);
+        EXPECT_EQ(vertex.uv, glm::vec2(0.375f, 0.75f));
+        EXPECT_FLOAT_EQ(vertex.color.red, 0.5f);
+    }
+    EXPECT_EQ(random.State(), 7u);
+}
+
+// La primera semilla desde 1 cuyo tercer rand() (el de rand() % 2 de 0x603011, después de los comunes de un
+// objeto y de la fuente) es impar (`odd`) o par.
+std::uint32_t SeedWithThirdRand(bool odd)
+{
+    for (std::uint32_t seed = 1;; ++seed)
+    {
+        Client::Render::Models::CrtRandom random(seed);
+        static_cast<void>(random.Next());
+        static_cast<void>(random.Next());
+        if (((random.Next() % 2) != 0) == odd)
+        {
+            return seed;
+        }
+    }
+}
+
+// 0x602ed0 con el 0x69 de Lorencia (0x603011): después del rand() común, la luz del blendMesh en 1, la V
+// con el reloj del pase y rand() % 2. Impar, sigue con los de después; par, corta en la primera gota
+// (0x6030c7) después de sus dos rand(), con los de después sin mirar. Oculto no se dibuja, y corre igual.
+TEST(WorldObjectsDrawingTest, TheLorenciaWaterspoutRunsItsFrameCase)
+{
+    const FourMeshModels models;
     struct Case
     {
-        std::int16_t type;
+        bool odd;
         bool hidden;
-        std::string_view cut;
-        int draws;
-        std::size_t vertices;
     };
-    for (const Case& probe : {Case{0x69, false, "0x600a4a", 1, 6}, Case{0x69, true, "0x603011", 2, 6},
-                              Case{0x38, false, "0x603149", 2, 12}})
+    for (const Case& probe : {Case{true, false}, Case{false, false}, Case{true, true}, Case{false, true}})
     {
-        SCOPED_TRACE(std::string(probe.cut));
+        SCOPED_TRACE(std::to_string(probe.odd) + " " + std::to_string(probe.hidden));
         std::vector<WorldObject> objects{
             ObjectAt(Rock, 100.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
-            ObjectAt(probe.type, 200.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
+            ObjectAt(Client::World::Waterspout, 200.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other),
             ObjectAt(Rock, 300.0f, 100.0f, Lorencia, Client::World::ObjectScene::Other)};
         if (probe.hidden)
         {
             objects[1].state.hiddenMesh = Client::World::HiddenObject;
         }
-        Client::Render::Models::CrtRandom random(7);
+        objects[1].state.light = 0.25f;
+        const std::uint32_t seed = SeedWithThirdRand(probe.odd);
+        Client::Render::Models::CrtRandom random(seed);
         ModelBatch batch;
-        const auto drawn = DrawGame(batch, models, objects, {.map = Lorencia, .random = &random});
-        ASSERT_FALSE(drawn.HasValue());
-        EXPECT_NE(drawn.Error().find(probe.cut), std::string::npos) << drawn.Error();
-        EXPECT_TRUE(objects[1].seen);
-        EXPECT_FALSE(objects[2].seen) << "el de después no se mira";
-        EXPECT_EQ(batch.Vertices().size(), probe.vertices);
-        EXPECT_EQ(random.State(), SevenAfter(probe.draws).State());
+        const auto drawn =
+            DrawGame(batch, models, objects, {.map = Lorencia, .random = &random, .worldClock = 1234.0f});
+        EXPECT_EQ(objects[1].state.light, 1.0f);
+        EXPECT_EQ(objects[1].state.uv.y, static_cast<float>(-234.0 * static_cast<double>(0.001f)));
+        const std::size_t fountain = probe.hidden ? 0u : 12u;
+        Client::Render::Models::CrtRandom expected(seed);
+        const int draws = probe.odd ? 4 : 5;
+        for (int k = 0; k < draws; ++k)
+        {
+            static_cast<void>(expected.Next());
+        }
+        if (probe.odd)
+        {
+            ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+            EXPECT_TRUE(objects[2].seen);
+            EXPECT_EQ(batch.Vertices().size(), 12u + fountain + 12u);
+        }
+        else
+        {
+            ASSERT_FALSE(drawn.HasValue());
+            EXPECT_NE(drawn.Error().find("0x6030c7"), std::string::npos) << drawn.Error();
+            EXPECT_FALSE(objects[2].seen);
+            EXPECT_EQ(batch.Vertices().size(), 12u + fountain);
+        }
+        EXPECT_EQ(random.State(), expected.State());
     }
+}
+
+// 0x52dc20 (0x6374d3): con la tabla vacía, nada; con un lugar vivo, corta en 0x52dc3b sin rand(), con su
+// lugar y su tipo: su +0x16c es el que dejó otro (0x518cf0 no lo toca), y ModelEffect no lo lleva.
+TEST(WorldObjectsDrawingTest, TheGroundEffectsStopAtTheFirstLiveEffect)
+{
+    std::array<Client::World::ModelEffect, 3> effects{};
+    EXPECT_TRUE(Client::Scenes::DrawGroundEffects(effects).HasValue());
+    effects[2].alive = true;
+    effects[2].type = Client::World::ArrivalEffect;
+    const auto drawn = Client::Scenes::DrawGroundEffects(effects);
+    ASSERT_FALSE(drawn.HasValue());
+    EXPECT_NE(drawn.Error().find("0x52dc3b"), std::string::npos) << drawn.Error();
+    EXPECT_NE(drawn.Error().find("efecto 2 (el 0x61f)"), std::string::npos) << drawn.Error();
 }
 
 // 0x60479c..0x604a36: el 0x64 de Devias solo sigue con el nivel del registro propio desde 0x50, o desde 0x35

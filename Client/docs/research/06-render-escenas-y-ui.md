@@ -3503,6 +3503,13 @@ bloque de la entrada, en orden (*estático*):
 base `0x400000`, leídos con desensamblado i386. Esta ampliación no ejecuta ni emula el original.
 Las cuentas del port se comprueban con los tests citados; no son una nueva captura nativa.
 
+`0x446120` usa 40 registros de `0x1d4` en `0x7d2dca8`; `0x447030`, 10 en `0x7d35350`.
+`0x60712a..0x607150` sólo apaga su byte vivo, y `0x4455c0` sólo el de las aves: no reconstruyen
+registros ni borran ángulos, seen o campos retenidos. `WorldState::Fauna()` posee esos mismos
+slots entre pasos y escenas; las vistas de aves/peces y los dueños de los joints apuntan al slot
+físico, no a una copia temporal. El prefijo que avanza el paso depende del mapa; el dibujo recorre
+siempre los 40 o los 10:
+
 | Paso | Mapas | Lugares procesados |
 | --- | --- | --- |
 | aves, `0x446120` | ordinarios / Atlans 7 / Icarus 10 / Kalima 24..29 y 36 | 5 / 40 / 13 / 2 |
@@ -3515,6 +3522,35 @@ usan la altura real de `0x5f93c0`, incluido el `fixedHeight` durable de la cáma
 `0x4ec200` avanza la animación y `0x4e9980` conserva el final de alpha incluso tras apagar el slot.
 El campo `+0xc` es la escala física; `+0xd8` es velocidad de movimiento de aves/peces. No se usa
 la escala física como velocidad de animación de las aves.
+
+- `0x445b90` conserva los `if` sucesivos: el ave AD/BC puede pasar 0 → 1 → 3 en un paso y tomar
+  dos sorteos de altura. Posada (`+0x110 == 2`) evita el movimiento común y sus sorteos.
+- `0x445ec0` llama al flock `0x4e9a40` con el pool físico completo, incluidos vecinos vivos fuera
+  del prefijo procesado. Las distancias 80/400, la X retenida y la Y guardada no se reemplazan por
+  una suma vectorial reordenada. El rumbo `0x4e97a0` y el giro **entero** `0x4e94c0` son distintos
+  de CreateAngle/TurnAngle: igualdad 90 → 90 devuelve 180; 359 → 0 con paso 13 termina en 12.
+- `0x4455e0`, Icarus: índices 0..2 preparan Monster32 y gastan seis sorteos del nacimiento; los
+  restantes crean el `0x10f` y su joint con el dueño durable. `0x445d60` usa yaw en radianes y el
+  producto sin×cos de dos fases derivadas del contador, antes del sorteo de muerte `%5120`.
+- `0x445890`, Atlans: `heroY*0,01f` conserva el producto sin spill antes de compararlo con 128.
+  Por ello 12800 todavía toma la rama baja; 12801 toma la alta. Nacimiento admitido: seis sorteos.
+- `0x439680`, Kalima: lee y cierra el acceso lógico al contador antes del gate `%100`; el cierre
+  exterior cuesta cuatro CRT. En el gate admitido, otros seis sorteos; X=`heroX−1000−rand()%200`,
+  Y=`heroY−500+rand()%200`, Z=`heroZ−800`. `0x439aa0` gira, sortea `%5` y, con timer<20,
+  cambia alpha/velocidad/pitch; el decremento de timer pertenece a la cola del caller.
+- Peces: los dos sorteos del candidato X/Y se conservan aun al rechazarlo. En Lorencia sólo admite
+  capa 1 igual a 5; Crywolf lee el flag del héroe. Move selecciona acción; FullMovement hace flock,
+  matriz, sorteo de longitud y altura que pisa Z. Los efectos `0x618/4`, `0x697/0` y `0x610/8`
+  reciben el dueño del mismo slot. Los sorteos condicionales de sonido/timer permanecen en orden.
+
+En tormenta, el prefijo de aves conserva `%40`, posición, efecto `0xc2/3`, sonido lógico `0x42`
+y luz dinámica negativa alrededor del héroe. Su creador `0x518cf0 → 0x51ae9b → 0x51a9b1` no
+sortea: vida 80, escala 0,3 y velocidad (0,−12,0). `0x5208c5..0x525148` añade el sorteo común,
+la luz, la dirección `0x53d1a0` por índice físico, fuego `0x5d9/8` y sprite `0x5fd`, antes de la
+cola de animación/movimiento/vida. Un lugar libre usa ocho CRT con el contador cerrado; pool de
+partículas lleno, seis; un acceso exterior abierto evita los cuatro del cierre. Fuego 8 nace con
+dos sorteos (`0x541172..0x54140a`), escala por 0,95 y rotación+5 (`0x54585f`), y usa el atlas
+4×1 girado por `+0x44` (`0x548850`), distinto del ángulo X de la rama default.
 
 **Carga diferida `0x612d90`.** Los índices `0x1f/0x21` cargan `Monster\Monster32.bmd` y
 `Monster\Monster34.bmd`, modelos `0x171/0x173`. Con `[0x6c9e0c]=1`, acciones o mallas ya

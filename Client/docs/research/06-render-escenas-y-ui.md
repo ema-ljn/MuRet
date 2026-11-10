@@ -3589,6 +3589,21 @@ sin/cos double ya redondeados, ni a std::sin del host. El perfil portable PC53/R
 explícitos no acreditan universalmente FSIN/FCOS, CW, NaN, traps o todo el stack x87 del proceso.
 La validación nativa/VM sigue separada del port; no se declara cerrada la CL7.
 
+Oráculos rastreados:
+[estado](../../tests/scenes/test_fauna_state.cpp),
+[paso](../../tests/scenes/test_fauna_step.cpp),
+[recursos](../../tests/scenes/test_fauna_models.cpp),
+[tabla física](../../tests/scenes/test_model_texture_table.cpp),
+[efectos](../../tests/scenes/test_fauna_effects.cpp) y
+[matemática retenida](../../tests/render/test_fauna_retained_math.cpp).
+Entre los casos: `CommonMovementSeesLivingNeighborsOutsideTheStepPrefix`,
+`LandingAndTakingOffRunTheirNewStatesInTheSameStep`, `IcarusSpawnHasSixDrawsAndWritesTheNativeFlightFields`,
+`KalimaBirthClosesCounterBeforeSixSpawnDraws`, `KalimaSetActionNeedsTheExplicitSignedPrefixModelLoan`,
+`BothRealMonsterResourcesPrepareTheirMeshesTexturesAndActionTables` (Data real),
+`AMapTransitionSharesMonsterReferencesAndACachedMonsterSeesAReusedSlot` y
+`MultipliesBothRetainedResultsBeforeTheFirstBinary53Round`. Prueban servicios productivos y sus
+prefijos; un kernel aislado o un pool vacío no acredita el recorrido completo de escena.
+
 ### La pose compartida entre escenas
 
 Las aves dibujan con el flag de pose 1 y los peces con 0 (`0x446b60/0x446f00`). El recorrido

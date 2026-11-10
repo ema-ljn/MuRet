@@ -2,6 +2,7 @@
 
 #include "GameLogic/MovementSpeed.h"
 #include "Scenes/FullSetScan.h"
+#include "Scenes/GameMovementState.h"
 #include "Scenes/SceneId.h"
 #include "World/GroundMarks.h"
 #include "World/LeafWeather.h"
@@ -25,6 +26,7 @@ inline constexpr std::int32_t InitialLeafCount = 30;
 
 struct WorldRuntime
 {
+    GameMovementState movement{};
     // Los cinco selectores del mouse arrancan en -1 en la .data.
     std::array<std::int32_t, 5> selectedTargets{-1, -1, -1, -1, -1};
     std::int32_t cursorItemCount = 0;
@@ -111,7 +113,7 @@ struct WorldRuntime
     // (08 P-C49).
     World::GroundMarkTable groundMarks{};
     // 0x77f36d0, la capa 1 de la celda del héroe, en la .bss: 0 al arrancar. La escribe MoveHero (0x59e2ba),
-    // después del contador, y MuRet no corre esa parte (08 P-C41): queda en 0. La leen el paso de los objetos
+    // después del contador. La leen el paso de los objetos
     // (los techos de 0x604ab0, 0x604bc4 y 0x604c06) y el de las hojas (0x637082..0x6370e5), entre otros.
     std::int32_t heroCellLayer = 0;
     // 0x75fdc38: meta del 0F. 0x75fdc3c es la cuenta actual, que ese paquete no cambia.

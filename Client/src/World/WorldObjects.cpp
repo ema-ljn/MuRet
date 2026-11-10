@@ -8,9 +8,11 @@
 #include "Render/Models/Skeleton.h"
 #include "World/IWorldObjectCreationServices.h"
 #include "World/ObjectAlpha.h"
+#include "World/NoriaObjectStep.h"
 #include "World/OriginalFtol.h"
 #include "World/WorldObjectMapCreation.h"
 #include "World/WorldObjectRegistrations.h"
+#include "World/WorldObjectStepServices.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -519,6 +521,7 @@ void ApplyLoginStepCases(WorldObject& object)
 // 0x604bb4..0x604c1d: los techos, antes del alpha. En el 0, los de la taberna (HouseWall05 y 06) se apagan
 // con la capa 4; en el 2, los suyos con la capa 3 o desde la 10 (*inferido*: el héroe bajo techo).
 constexpr std::uint8_t DeviasMap = 2;
+constexpr std::uint8_t NoriaMap = 3;
 constexpr std::int32_t LorenciaRoofLayer = 4;
 constexpr std::int32_t DeviasRoofLayer = 3;
 constexpr std::int32_t DeviasHighRoofLayers = 10;
@@ -617,22 +620,61 @@ Core::Expected<void, std::string> StepLorenciaCases(WorldObject& object, Render:
     case 0x82:
     case 0x83:
     case 0x84:
-        return Core::Unexpected(std::format("{}: el {:#x} prende sus fuegos con 0x52f360, que MuRet no tiene",
-                                            LorenciaFireCase(object.type), object.type));
+    {
+        const auto fire = [&](std::int32_t kind, const glm::vec3& offset) -> Core::Expected<void, std::string>
+        {
+            const auto emitted = EmitObjectFire(kind, object, offset, random, globals);
+            if (!emitted.HasValue())
+            {
+                return Core::Unexpected(std::format("{}: {}", LorenciaFireCase(object.type), emitted.Error()));
+            }
+            return {};
+        };
+        if (object.type >= 0x82)
+        {
+            const auto emitted = fire(object.type - 0x82, glm::vec3(0.0f));
+            if (!emitted.HasValue())
+            {
+                return emitted;
+            }
+            object.state.hiddenMesh = HiddenObject;
+            return {};
+        }
+        if (object.type == 0x50 || object.type == 0x37)
+        {
+            const bool bridge = object.type == 0x50;
+            const auto first = fire(0, bridge ? glm::vec3(90.0f, -200.0f, 30.0f) : glm::vec3(-150.0f, -150.0f, 140.0f));
+            if (!first.HasValue())
+            {
+                return first;
+            }
+            return fire(0, bridge ? glm::vec3(90.0f, 200.0f, 30.0f) : glm::vec3(150.0f, -150.0f, 140.0f));
+        }
+        const glm::vec3 offset = object.type == 0x32   ? glm::vec3(0.0f, 0.0f, 200.0f)
+                                 : object.type == 0x33 ? glm::vec3(0.0f, -30.0f, 60.0f)
+                                                       : glm::vec3(0.0f, 0.0f, 60.0f);
+        const auto emitted = fire(0, offset);
+        if (!emitted.HasValue())
+        {
+            return emitted;
+        }
+        if (object.type == 0x34)
+        {
+            object.state.light = static_cast<float>(static_cast<double>(random.Next() % 6 + 4) * Tenth);
+        }
+        return {};
+    }
     case 0x5a:
     case 0x96:
-        // 0x604ee9 y 0x604f5c: el rand() de su luz, que va al buffer dinámico.
-        static_cast<void>(random.Next());
-        return Core::Unexpected(std::format("0x605718: la luz del {:#x} (0x5f9780) va al buffer dinámico 0x7b4ccc4, "
-                                            "que MuRet no tiene",
-                                            object.type));
+        return StepObjectLamp(object, random, globals);
     default:
         return {};
     }
 }
 
 // 0x60506d: los casos del mapa 2, por el tipo − 0x14 (la tabla de 0x605c08).
-Core::Expected<void, std::string> StepDeviasCases(WorldObject& object, Render::Models::CrtRandom& random)
+Core::Expected<void, std::string> StepDeviasCases(WorldObject& object, Render::Models::CrtRandom& random,
+                                                  const ObjectStepGlobals& globals)
 {
     switch (object.type)
     {
@@ -641,15 +683,19 @@ Core::Expected<void, std::string> StepDeviasCases(WorldObject& object, Render::M
         return {};
     case 0x1e:
     case 0x42:
-        return Core::Unexpected(
-            std::format("0x6050b9: el {:#x} prende su fuego con 0x52f360, que MuRet no tiene", object.type));
+    {
+        const auto emitted = EmitObjectFire(0, object, glm::vec3(0.0f, 0.0f, 50.0f), random, globals);
+        if (!emitted.HasValue())
+        {
+            return Core::Unexpected(std::format("0x6050b9: {}", emitted.Error()));
+        }
+        return {};
+    }
     case 0x14:
     case 0x41:
     case 0x56:
     case 0x58:
-        // Sin el modo editor (0x77f3b18 en 0): la distancia al héroe decide si se abre, con el sonido 0x11 o
-        // 0x12 (0x41ed10), o si vuelve con 0x4e9560.
-        return Core::Unexpected(std::format("0x6050d4: la puerta {:#x} del mapa 2 no está portada", object.type));
+        return StepDeviasObjectDoor(object, globals);
     default:
         return {};
     }
@@ -698,7 +744,7 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
                                                          Render::Models::CrtRandom& random,
                                                          const ObjectStepGlobals& globals)
 {
-    if (map != LorenciaMap && map != DeviasMap && map != LoginMap)
+    if (map != LorenciaMap && map != DeviasMap && map != NoriaMap && map != LoginMap)
     {
         // 0x604ac0..0x604ba0: el 9 saca rand() antes de todo, y cada mapa tiene sus casos.
         return Core::Unexpected(
@@ -717,7 +763,9 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     case LorenciaMap:
         return StepLorenciaCases(object, random, globals);
     case DeviasMap:
-        return StepDeviasCases(object, random);
+        return StepDeviasCases(object, random, globals);
+    case NoriaMap:
+        return StepNoriaObject(object, random, globals);
     default:
         ApplyLoginStepCases(object);
         return {};

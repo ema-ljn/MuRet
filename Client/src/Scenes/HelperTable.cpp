@@ -270,10 +270,14 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const HelperDr
                             "10, que 0x6002e0 lleva por otro camino que MuRet no tiene"));
         }
         const Render::Models::ObjectTransform place{.position = helper.position, .angles = helper.angles};
-        DrawDarkHorse(context.batch, context.models,
-                      DrawnDarkHorse(helper.horse, context.models.SkeletonOf(DarkHorseModel), place, helper.scale,
-                                     context.stepAlpha),
-                      runtime.map, context.frameClock);
+        auto drawn = DrawnDarkHorse(helper.horse, context.models.SkeletonOf(DarkHorseModel), place, helper.scale,
+                                    context.stepAlpha);
+        if (context.onPose)
+            if (const auto published = context.onPose(drawn); !published.HasValue())
+                return published;
+        if (context.posedMeshes)
+            drawn.retainedMeshes = context.posedMeshes();
+        DrawDarkHorse(context.batch, context.models, drawn, runtime.map, context.frameClock);
     }
     // 0x445336..0x445358: rand() % 30 + 70, la luz que solo usa el 0x1c12.
     static_cast<void>(context.random.Next());
@@ -366,13 +370,26 @@ Core::Expected<void, std::string> StepHelpers(const HelperStepContext& context)
 
 Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context)
 {
+    Render::Models::CrtRandom projectedRandom = context.random;
+    const HelperDrawContext projected{context.batch,
+                                      context.models,
+                                      context.world,
+                                      projectedRandom,
+                                      context.frameClock,
+                                      context.stepAlpha,
+                                      true,
+                                      context.publishProjectedPose ? context.onPose : decltype(context.onPose){},
+                                      false,
+                                      context.posedMeshes};
     for (HelperState& helper : context.world.Helpers())
     {
         if (!helper.alive)
         {
             continue;
         }
-        if (auto drawn = DrawHelper(helper, context); !drawn.HasValue())
+        HelperState projectedHelper = helper;
+        auto drawn = context.originalFrame ? DrawHelper(helper, context) : DrawHelper(projectedHelper, projected);
+        if (!drawn.HasValue())
         {
             return drawn;
         }

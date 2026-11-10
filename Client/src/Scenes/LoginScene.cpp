@@ -28,7 +28,9 @@
 #include "Render/Text/TextLayout.h"
 #include "Render/Text/TextStyle.h"
 #include "Render/TextureSlot.h"
-#include "Scenes/CharacterAnimation.h"
+#include "Scenes/ActorConstruction.h"
+#include "Scenes/ActorAppearance.h"
+#include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/CharacterStep.h"
@@ -38,6 +40,7 @@
 #include "Scenes/GameData.h"
 #include "Scenes/ITextDrawer.h"
 #include "Scenes/LoginModels.h"
+#include "Scenes/LoginActor.h"
 #include "Scenes/SceneCameras.h"
 #include "World/GameCamera.h"
 #include "Scenes/SceneCanvas.h"
@@ -51,6 +54,8 @@
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "Scenes/DynamicWorldLight.h"
+#include "Scenes/WorldMap.h"
 #include "UI/GameCursor.h"
 #include "UI/GameText.h"
 #include "UI/LoginWindow.h"
@@ -63,6 +68,7 @@
 #include "World/TerrainHeight.h"
 #include "World/Leaves.h"
 #include "World/ModelEffects.h"
+#include "World/SphereFrustum.h"
 #include "World/ParticleDrawing.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
@@ -76,6 +82,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <ratio>
 #include <random>
@@ -258,9 +265,11 @@ std::string PlaceVersion(std::string_view text, std::string_view version)
 LoginScene::LoginScene(const SceneContext& context, const GameData& data, const IModelLibrary& models,
                        App::ServerSession* session, std::string_view version, std::mt19937::result_type seed,
                        const Render::Models::ModelTextureSlots* gameSlots)
-    : m_context(context), m_models(models), m_session(session), m_texts(data.text ? &*data.text : nullptr),
-      m_textures(context.textures, LoginTextureSet), m_windowTextures(context.textures, WindowTextureSet),
-      m_world(WorldOf(SceneId::Login)), m_terrain(context.textures), m_gameSlots(gameSlots), m_random(seed),
+    : m_context(context), m_localWorld(context.world == nullptr ? std::make_unique<WorldState>() : nullptr),
+      m_localCloth{.random = Render::Models::CrtRandom(static_cast<std::uint32_t>(seed))}, m_models(models),
+      m_session(session), m_texts(data.text ? &*data.text : nullptr), m_textures(context.textures, LoginTextureSet),
+      m_windowTextures(context.textures, WindowTextureSet), m_world(WorldOf(SceneId::Login)),
+      m_terrain(context.textures), m_gameSlots(gameSlots),
       m_serverList([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
       m_menuBar([this](Render::TextureSlot slot) { return BufferSize(slot); }),
       m_login([this](Render::TextureSlot slot) { return BufferSize(slot); }, m_texts),
@@ -289,11 +298,22 @@ World::GameCameraInput& LoginScene::CameraInputState()
 
 World::TerrainPolygon& LoginScene::SharedTerrainPolygon()
 {
-    return m_context.world != nullptr ? m_context.world->Runtime().terrainPolygon : m_localTerrainPolygon;
+    return CharacterWorld().Runtime().terrainPolygon;
+}
+
+WorldState& LoginScene::CharacterWorld() const
+{
+    return m_context.world != nullptr ? *m_context.world : *m_localWorld;
+}
+
+Render::Models::ClothWorld& LoginScene::CharacterRandomWorld()
+{
+    return m_context.cloth != nullptr ? *m_context.cloth : m_localCloth;
 }
 
 Core::Expected<void, std::string> LoginScene::Enter()
 {
+    m_failure.reset();
     m_cameraFrames = {};
     m_objectEffectFrames = {};
     m_fullSetScanFrames = {};
@@ -301,11 +321,6 @@ Core::Expected<void, std::string> LoginScene::Enter()
     World::GameCameraInput& cameraInput = CameraInputState();
     cameraInput.scene = World::CullingScene::Login;
     cameraInput.map = m_world ? m_world->map : EmberMap;
-    if (m_context.selection != nullptr)
-    {
-        // 0x6349a0 construye el slot2 visible; Hero sigue siendo el slot0 del pool.
-        m_context.selection->EnterLogin();
-    }
     // 0x634c19 escribe solo el yaw; 0x634b60 no borra al héroe si su puntero es válido.
     CameraState().yaw = 0.0f;
     LoadTheWorld();
@@ -526,9 +541,9 @@ Core::Expected<void, std::string> LoginScene::PlaceTheModels()
     m_objectEffectRandoms.assign(m_objects.size(), std::nullopt);
     // 0x6070a0 vacía la tabla de efectos, y en el mapa 55 el dueño del dragón (el 0xb4 que la carga del
     // mapa crea en (5.600; 23.000; 0)) lo crea con 0x518cf0 (06 § El dragón de fondo).
-    m_effects.Clear();
+    CharacterWorld().Map().effects.Clear();
     m_sprites.Clear();
-    m_particles.Clear();
+    CharacterWorld().Particles().Clear();
     m_leaves.Clear();
     m_drawnSinceEntering = false;
     m_steppedSinceEntering = false;
@@ -536,47 +551,76 @@ Core::Expected<void, std::string> LoginScene::PlaceTheModels()
     m_scepterGlow = {};
     if (m_world && m_world->map == DragonMap)
     {
-        (void)m_effects.Create(World::DragonEffect, DragonOwnerPosition, glm::vec3(0.0f), glm::vec3(1.0f),
-                               World::DragonScale);
+        (void)CharacterWorld().Map().effects.Create(World::DragonEffect, DragonOwnerPosition, glm::vec3(0.0f),
+                                                    glm::vec3(1.0f), World::DragonScale);
     }
     m_routes = {};
-    m_character = LoginCharacter();
-    m_characterAnimation = {};
-    m_head = {};
     m_horse = {};
-    // 0x420d60 (0x634a9d), después del personaje y del caballo, con el 0x1c17 en la mano izquierda: el
-    // cuervo nace en la celda del personaje, que el login deja en (0, 0) (Q-C130), a la altura del terreno
-    // ahí más 300, con 12 rand() de la CRT.
-    m_spirit.reset();
-    if (const World::WorldTerrain* terrain = m_terrain.Terrain(); m_context.cloth != nullptr && terrain != nullptr &&
-                                                                  m_character.leftHand &&
-                                                                  m_character.leftHand->model == LoginRavenItem)
+    return PlaceTheCharacter();
+}
+
+Core::Expected<void, std::string> LoginScene::PlaceTheCharacter()
+{
+    WorldState& world = CharacterWorld();
+    world.Runtime().map = m_world ? m_world->map : EmberMap;
+    World::WorldTerrain missingTerrain;
+    World::WorldTerrain* terrain = m_terrain.Terrain();
+    if (terrain == nullptr)
     {
-        constexpr int LoginCell = 0;
-        constexpr float CellCenter = 50.0f;
-        const double ground = World::TerrainHeightAt(*terrain->heights, *terrain->attributes, CellCenter, CellCenter,
-                                                     CameraState().fixedHeight);
-        m_spirit = CreateDarkSpirit(LoginCell, LoginCell, ground, m_context.cloth->random);
+        // Los tests de UI sin WorldState pueden dibujar sus fondos sin cargar un mundo.
+        if (m_context.world == nullptr)
+        {
+            if (const auto* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel))
+            {
+                PrepareLoginPresentationActor(world.Actors()[LoginActorSlot], *skeleton);
+            }
+            return {};
+        }
+        terrain = &missingTerrain;
     }
-    if (const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel))
+    const Render::Models::Skeleton* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+    // Un modelo todavía sin cargar tiene cero acciones: 0x4ea030 no cambia la acción, y el paso corta
+    // donde necesita Player.bmd (0x4f9580). Así los tests de carga pueden inspeccionar las texturas.
+    const Render::Models::Skeleton empty;
+    auto built = ConstructLoginActor(world.Actors()[LoginActorSlot],
+                                     {.terrain = *terrain,
+                                      .map = world.Runtime().map,
+                                      .scene = World::CullingScene::Login,
+                                      .fixedHeight = CameraState().fixedHeight},
+                                     world.Runtime(), CharacterRandomWorld(), skeleton != nullptr ? *skeleton : empty);
+    if (built.HasValue() && m_context.selection != nullptr)
     {
-        Render::Models::SetAction(m_characterAnimation.body, *skeleton, LoginCharacterStandingAction);
+        m_context.selection->EnterLogin();
     }
-    return {};
+    return built;
 }
 
 void LoginScene::Step(const Input::InputState& input)
 {
+    if (m_failure)
+    {
+        return;
+    }
     // El connect del original bloquea dentro de un paso (Q-C85), y lo que tarda no entra al acumulador, que
     // mide desde después de los pasos (02): mientras conecta no corre ningún paso. Acá los pasos siguen,
     // para la red y la UI, pero ni la tela ni el mundo avanzan: el primer frame después del connect sigue
     // donde quedó el último.
     const bool connecting = m_session != nullptr && IsConnecting(m_session->State());
     m_steppedSinceEntering = true;
-    if (m_context.cloth != nullptr && !connecting)
+    StepTheScene(input, connecting);
+    if (m_failure || connecting)
+    {
+        return;
+    }
+    // 0x637cab → 0x634c60; después 0x637cec mueve el viento y 0x637f91 sube el contador.
+    if (m_context.cloth != nullptr)
     {
         Render::Models::StepTheClothWorld(*m_context.cloth);
     }
+}
+
+void LoginScene::StepTheScene(const Input::InputState& input, bool connecting)
+{
     if (m_session == nullptr)
     {
         StepTheWorld();
@@ -593,6 +637,10 @@ void LoginScene::Step(const Input::InputState& input)
     if (!connecting)
     {
         StepTheWorld();
+    }
+    if (m_failure)
+    {
+        return;
     }
     // Sin aviso, la barra se atiende junto con la cuenta o la lista: sus botones no se pisan con
     // los de ellas (Q-C84).
@@ -629,24 +677,62 @@ void LoginScene::Step(const Input::InputState& input)
     FollowSession();
 }
 
+Core::Expected<void, std::string> LoginScene::StepTheCharacters()
+{
+    if (m_context.world == nullptr && m_terrain.Terrain() == nullptr)
+    {
+        // Los fixtures de UI/modelos no tienen un TerrainWall que pueda pasar 0x508f00.
+        ActorState& actor = CharacterWorld().Actors()[LoginActorSlot];
+        const auto* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+        if (actor.alive && skeleton != nullptr && actor.animation.action < skeleton->actions.size())
+        {
+            const auto& action = skeleton->actions[actor.animation.action];
+            if (Render::Models::AdvanceAnimation(actor.animation, action, action.speed,
+                                                 Render::Models::AnimationScene::Other))
+            {
+                Render::Models::SetAction(actor.animation, *skeleton, LoginCharacterStandingAction);
+            }
+        }
+        return {};
+    }
+    Render::Models::ClothWorld& cloth = CharacterRandomWorld();
+    const float clock =
+        m_context.clock != nullptr
+            ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
+            : 0.0f;
+    return StepCharacters({.world = CharacterWorld(),
+                           .random = cloth.random,
+                           .scene = SceneId::Login,
+                           .playerSkeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel),
+                           .terrain = m_terrain.Terrain(),
+                           .darkSpiritSkeleton = m_models.SkeletonOf(DarkSpiritModel),
+                           .particles = &CharacterWorld().Particles(),
+                           .worldClock = clock,
+                           .counter = cloth.logicSteps});
+}
+
 void LoginScene::StepTheWorld()
 {
-    // 0x5fbf60, lo primero del paso del login (0x634c60): la ola del agua.
-    if (m_context.clock != nullptr)
-    {
-        m_terrain.Step(m_context.clock->Now(), m_terrainRange);
-    }
     const Render::Models::Skeleton* player = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
     if (m_context.clock != nullptr && player != nullptr)
     {
-        // Con el bucle, el rand() de la CRT (0x634cca); sin él (los tests sin ClothWorld), el de la semilla.
+        // 0x634cca: el gesto va antes de las olas y de todo el paso del mundo.
         const std::optional<std::uint8_t> action =
-            m_context.cloth != nullptr ? LoginCharacterActionAt(m_context.clock->Now(), m_context.cloth->random)
-                                       : LoginCharacterActionAt(m_context.clock->Now(), m_random);
+            LoginCharacterActionAt(m_context.clock->Now(), CharacterRandomWorld().random);
         if (action)
         {
-            Render::Models::SetAction(m_characterAnimation.body, *player, *action);
+            Render::Models::SetAction(CharacterWorld().Actors()[LoginActorSlot].animation, *player, *action);
         }
+    }
+    // 0x5fbf60: primero copia la base en la ventana que dejó el último dibujo de cualquier escena.
+    const World::TerrainLighting* base = m_terrain.Lighting() != nullptr ? m_terrain.Lighting() : m_lighting.get();
+    if (base != nullptr)
+    {
+        CharacterWorld().DynamicLighting().Update(*base);
+    }
+    if (m_context.clock != nullptr)
+    {
+        m_terrain.Step(m_context.clock->Now(), CharacterWorld().DynamicLighting().Range());
     }
     // 0x606560 → 0x604ab0, solo con los objetos que ya se dibujaron (+0x16c, del frustum de 0x6046a0): los
     // del mundo con los casos del mapa 55, y el logo con los suyos.
@@ -667,7 +753,7 @@ void LoginScene::StepTheWorld()
         // El aliento lee la pose del dibujo anterior: el caballo de antes de este paso (en 0x444010, el
         // avance de 0x4ec200 corre después del aliento; la acción que mira es la de este paso).
         const DarkHorse drawn = m_horse;
-        StepDarkHorse(m_horse, *horse, m_characterAnimation.body.action);
+        StepDarkHorse(m_horse, *horse, CharacterWorld().Actors()[LoginActorSlot].animation.action);
         BreatheTheHorse(drawn);
     }
     // 0x530490, después de los ayudantes (0x634d0e): en el mapa 55, las 80 brasas, con el rand() de la CRT.
@@ -685,40 +771,19 @@ void LoginScene::StepTheWorld()
                                        .fixedHeight = CameraState().fixedHeight};
         World::StepLoginEmbers(m_leaves, embers, m_context.cloth->random);
     }
-    // 0x508f00 → 0x4fcd00: lo que termina vuelve a la de parado (0x4fcb10 → 0x4f2250).
-    if (StepCharacterAnimation(m_characterAnimation, m_character, m_models, Render::Models::AnimationScene::Other) &&
-        player != nullptr)
+    // 0x634d13: el paso común incluye el cuerpo, el cuervo de cada dueño y sus efectos y cabeza.
+    if (auto stepped = StepTheCharacters(); !stepped.HasValue())
     {
-        Render::Models::SetAction(m_characterAnimation.body, *player, LoginCharacterStandingAction);
-    }
-    // 0x416a20 al final de 0x4fd5f0 del dueño, en 0x508f00: el cuervo. El grito lee 0x7d3a0f0 crudo, que
-    // sin un acceso abierto es la basura cifrada del contador (Q-C125): MuRet le pasa los pasos de la
-    // tela, y el grito no suena (no hay sonido).
-    if (const Render::Models::Skeleton* raven = m_models.SkeletonOf(DarkSpiritModel);
-        m_spirit && raven != nullptr && m_context.cloth != nullptr)
-    {
-        const float clock =
-            m_context.clock != nullptr
-                ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
-                : 0.0f;
-        (void)StepDarkSpirit(*m_spirit, *raven, LoginRavenOwner(), m_world ? m_world->map : 0, m_particles, clock,
-                             m_context.cloth->random, m_context.cloth->logicSteps);
-    }
-    // 0x505de0, después de 0x4fd5f0 en 0x508ea0: la cabeza del personaje. Con +0x16c, que 0x508ea0 escribe al
-    // empezar con el trapecio de 0x5fba90 en su lugar por 0,01f y −20 (con el trapecio del último dibujo), y sin
-    // las banderas 0x20 ni 0x1000 de +0x78 (el del login no tiene ninguna). No es el héroe (el personaje 0) ni se
-    // está muriendo: sortea.
-    if (m_context.cloth != nullptr && CharacterSeen(SharedTerrainPolygon(), LoginCharacterTransform().position))
-    {
-        StepCharacterHead(m_head, true, m_context.cloth->random);
+        m_failure = stepped.Error();
+        return;
     }
     // 0x52d220, después de los objetos (0x606560), el caballo (0x445230) y los personajes (0x508f00): los
     // efectos con modelo, el dragón.
-    StepModelEffects(m_effects.Effects(), m_worldModels);
+    StepModelEffects(CharacterWorld().Map().effects.Effects(), m_worldModels);
     // 0x5446e0, al final (0x634d22): el viento y las partículas, con el rand() de la CRT.
     if (m_context.cloth != nullptr)
     {
-        World::StepParticles(m_particles, m_context.cloth->random);
+        World::StepParticles(CharacterWorld().Particles(), m_context.cloth->random);
     }
     AdvanceRoutes(m_routes);
 }
@@ -746,8 +811,8 @@ void LoginScene::BreatheTheHorse(const DarkHorse& drawn)
         m_context.clock != nullptr
             ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
             : 0.0f;
-    (void)m_particles.Create(World::BreathParticle, GlobalPosePoint(BreathBone, BreathOffset, drawn),
-                             LoginCharacterTransform().angles, HorseLight, 0, 1.0f, clock, random);
+    (void)CharacterWorld().Particles().Create(World::BreathParticle, GlobalPosePoint(BreathBone, BreathOffset, drawn),
+                                              LoginCharacterTransform().angles, HorseLight, 0, 1.0f, clock, random);
 }
 
 glm::vec3 LoginScene::GlobalPosePoint(std::size_t bone, const glm::vec3& offset, const DarkHorse& drawnHorse) const
@@ -769,9 +834,9 @@ glm::vec3 LoginScene::GlobalPosePoint(std::size_t bone, const glm::vec3& offset,
             PosedInTheBuffer{&m_models, DrawnDarkHorse(drawnHorse, m_models.SkeletonOf(DarkHorseModel),
                                                        LoginCharacterTransform(), DarkHorseLoginScale, 0.0f)});
     }
-    for (const World::ModelEffect& effect : m_effects.Effects())
+    for (const World::ModelEffect& effect : CharacterWorld().Map().effects.Effects())
     {
-        if (!effect.alive || effect.alpha < Drawn)
+        if (!effect.alive || !effect.seen || effect.alpha < Drawn)
         {
             continue;
         }
@@ -992,17 +1057,19 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
     // en 0 después de 0x635ae0 y el efectivo en 0 desde la .bss, da lo mismo (08 P-C41 d). El héroe, el mapa
     // y el yaw del login son fijos: un dibujo intermedio escribe el mismo trapecio que el último frame.
     m_terrainRange = World::TerrainRangeOf(pass.view, camera);
+    CharacterWorld().DynamicLighting().PublishRange(m_terrainRange);
     World::TerrainPolygon& polygon = SharedTerrainPolygon();
     polygon = World::TerrainPolygonOf(World::CullingScene::Login, cameraInput.map, cameraInput.hero, camera.angles.z);
     canvas.models.Begin(pass);
     // 0x5fc260(0): el terreno, antes de los personajes.
-    m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, polygon, CameraState().fixedHeight);
+    m_terrain.DrawTerrain(canvas.models, canvas.frameClock, m_terrainRange, polygon, CameraState().fixedHeight,
+                          &CharacterWorld().DynamicLighting().Lighting());
     DrawTheModels(canvas, alpha);
     canvas.flushModels();
     // Los sprites del frame, los que pidió el dibujo del personaje (los 30 destellos de la tela, 0x455930,
     // y los cinco del cetro, 0x509340): 0x549510 y, con la modelview en la identidad (0x6213e0),
     // 0x549440(0), y las partículas (0x548550(0)). Sin ninguno, el pase de ojo no dibuja nada y no se abre.
-    if (m_sprites.Any() || m_particles.Any())
+    if (m_sprites.Any() || CharacterWorld().Particles().Any())
     {
         m_sprites.MarkSeen();
         Render::Pass3D eye = pass;
@@ -1010,7 +1077,8 @@ void LoginScene::Render(SceneCanvas& canvas, float alpha)
         canvas.models.Begin(eye);
         DrawFrameSprites(canvas.models, m_sprites, m_models, Render::ViewRows(pass.view));
         const auto clock = static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count());
-        const auto particles = DrawParticles(canvas.models, m_particles, m_models, Render::ViewRows(pass.view), clock);
+        const auto particles =
+            DrawParticles(canvas.models, CharacterWorld().Particles(), m_models, Render::ViewRows(pass.view), clock);
         if (!particles.HasValue())
         {
             ReportParticleFailure(particles.Error());
@@ -1069,15 +1137,21 @@ void LoginScene::ScanTheCharacter(const GameLogic::CharacterAppearance& appearan
 
 DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
 {
+    const ActorState& actor = CharacterWorld().Actors()[LoginActorSlot];
     DrawnCharacter character;
-    character.appearance = m_character;
-    character.body = BodyBetweenSteps(m_characterAnimation, m_models, alpha);
-    character.pet = m_characterAnimation.pet.state;
-    character.wings = m_characterAnimation.wings.state;
-    character.object = LoginCharacterTransform();
+    character.appearance = actor.alive ? AppearanceOfActor(actor) : LoginCharacter();
+    character.body = actor.animation;
+    if (const auto* skeleton = m_models.SkeletonOf(Data::Models::PlayerSkeletonModel);
+        skeleton != nullptr && actor.animation.action < skeleton->actions.size())
+    {
+        const auto& action = skeleton->actions[actor.animation.action];
+        character.body = Render::Models::Interpolated(actor.animation, action, action.speed, alpha);
+    }
+    character.object = actor.alive ? Render::Models::ObjectTransform{actor.position, actor.angles, actor.scale, 0.0f}
+                                   : LoginCharacterTransform();
     // La cabeza del paso: el original no la interpola.
-    character.headAngles = m_head.angles;
-    character.light = TerrainLightAt(character.object.position) + glm::vec3(LoginCharacterLight);
+    character.headAngles = actor.headTurn.angles;
+    character.light = TerrainLightAt(character.object.position) + actor.light;
     character.cloth = &m_characterCloth;
     character.clothWorld = m_context.cloth;
     character.map = m_world ? m_world->map : 0;
@@ -1093,12 +1167,16 @@ DrawnCharacter LoginScene::TheCharacterToDraw(float alpha)
 void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
 {
     const DrawnCharacter character = TheCharacterToDraw(alpha);
-    ScanTheCharacter(character.appearance,
-                     m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing)));
-    DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
+    const ActorState& actor = CharacterWorld().Actors()[LoginActorSlot];
+    if (actor.alive && actor.seen)
+    {
+        ScanTheCharacter(character.appearance,
+                         m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing)));
+        DrawCharacter(canvas.models, m_models, character, canvas.frameClock);
+    }
     // 0x4182f0 al final de 0x50ba30: el cuervo, si pasa el trapecio; sus huesos del estado del paso quedan
     // para la chispa del próximo (Q-C133).
-    if (m_spirit)
+    if (actor.alive && actor.seen && actor.darkSpirit)
     {
         DrawTheRaven(canvas, alpha);
     }
@@ -1117,19 +1195,21 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
         posed.push_back(PosedInTheBuffer{&m_models, horse});
     }
     const LoginObjectModels objects(m_worldModels, m_logo);
-    const World::TerrainLighting* lighting = m_terrain.IsLoaded() ? m_terrain.Lighting() : m_lighting.get();
+    const World::TerrainLighting* lighting = &CharacterWorld().DynamicLighting().Lighting();
     DrawWorldObjects(canvas.models, objects, m_objects, SharedTerrainPolygon(), lighting, m_world ? m_world->map : 0,
                      canvas.frameClock, alpha,
                      ObjectFrameEffects{.random = m_context.cloth != nullptr ? &m_context.cloth->random : nullptr,
                                         .sprites = &m_sprites,
-                                        .particles = &m_particles,
+                                        .particles = &CharacterWorld().Particles(),
                                         .posedBefore = posed,
                                         .scene = World::ObjectScene::Login,
                                         .frames = m_objectEffectFrames.FramesAt(canvas.frameClock,
                                                                                 OriginalFramePaceOf(m_context.pacing)),
                                         .lastRandoms = m_objectEffectRandoms});
     // 0x52d620(0): los efectos con modelo, después de los objetos.
-    DrawModelEffects(canvas.models, m_worldModels, m_effects.Effects(), lighting, canvas.frameClock, alpha);
+    DrawModelEffects(canvas.models, m_worldModels, CharacterWorld().Map().effects.Effects(),
+                     World::SphereFrustumOf(canvas.models.Pass().view, m_drawnCamera), lighting, canvas.frameClock,
+                     alpha);
     // 0x5306a0, después de 0x549510: las brasas, en el mundo.
     DrawLeaves(canvas.models, m_leaves);
     m_drawnSinceEntering = true;
@@ -1137,7 +1217,7 @@ void LoginScene::DrawTheModels(SceneCanvas& canvas, float alpha)
 
 void LoginScene::DrawTheRaven(SceneCanvas& canvas, float alpha)
 {
-    DarkSpirit& spirit = *m_spirit;
+    DarkSpirit& spirit = *CharacterWorld().Actors()[LoginActorSlot].darkSpirit;
     if (!DarkSpiritSeen(spirit, SharedTerrainPolygon()))
     {
         MissTheView(spirit);
@@ -1172,7 +1252,7 @@ void LoginScene::StepTheLogo(World::WorldObject& logo) const
 
 glm::vec3 LoginScene::TerrainLightAt(const glm::vec3& position) const
 {
-    const World::TerrainLighting* lighting = m_terrain.IsLoaded() ? m_terrain.Lighting() : m_lighting.get();
+    const World::TerrainLighting* lighting = &CharacterWorld().DynamicLighting().Lighting();
     return lighting != nullptr ? World::LightAt(*lighting, position.x, position.y) : glm::vec3(0.0f);
 }
 
@@ -1211,7 +1291,6 @@ void LoginScene::Leave()
     m_terrain.Release();
     m_worldModels.Release();
     m_objects.clear();
-    m_effects.Clear();
     m_logoIndex.reset();
     if (m_logoTextures)
     {
@@ -1269,6 +1348,11 @@ void LoginScene::OnFrameHeld()
 
 const CharacterHead& LoginScene::Head() const
 {
-    return m_head;
+    return CharacterWorld().Actors()[LoginActorSlot].headTurn;
+}
+
+std::optional<std::string> LoginScene::Failure() const
+{
+    return m_failure;
 }
 } // namespace Client::Scenes

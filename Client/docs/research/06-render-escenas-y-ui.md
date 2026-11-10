@@ -3496,6 +3496,26 @@ bloque de la entrada, en orden (*estático*):
 | `0x637138` | `0x403590` | `0x4033d0` y compañía (el recorrido de la cámara), sin leer | — |
 | `0x637144..0x63717a` | `0x5fc0d0` y `0x5fc0b0`, con `0x7d2d35e` | funciones de un `ret` | nada |
 | `0x63717f` | `0x5ac8d0` | F1 a F4 (CL3.3) | CL8 |
+### La fauna y sus recursos
+
+**Estático, ampliación de 2026-11-10:** cuerpos funcionales del `main.exe` SHA-256
+`c32bbd5f16ca400c7cfc71fa5f4cd573c57f146dd19a6da52fdd1007abaca26a`, imagen mapeada con
+base `0x400000`, leídos con desensamblado i386. Esta ampliación no ejecuta ni emula el original.
+Las cuentas del port se comprueban con los tests citados; no son una nueva captura nativa.
+
+| Paso | Mapas | Lugares procesados |
+| --- | --- | --- |
+| aves, `0x446120` | ordinarios / Atlans 7 / Icarus 10 / Kalima 24..29 y 36 | 5 / 40 / 13 / 2 |
+| peces, `0x447043..0x447064` | Atlans 7, Tarkan 8, Kalima y Crywolf 34 / demás | 10 / 3 |
+
+El 33 comparte ramas de nacimiento del 8, pero **no** su prefijo de 10. El paso productivo conserva
+el orden hojas → aves → peces → helpers de `0x637082..0x6370f4`, con la CRT común. Los handlers
+usan la altura real de `0x5f93c0`, incluido el `fixedHeight` durable de la cámara para el atributo
+`0x40`; no fijan de nuevo 1200 si la cámara ya escribió 1201. `0x4ea030` selecciona la acción,
+`0x4ec200` avanza la animación y `0x4e9980` conserva el final de alpha incluso tras apagar el slot.
+El campo `+0xc` es la escala física; `+0xd8` es velocidad de movimiento de aves/peces. No se usa
+la escala física como velocidad de animación de las aves.
+
 **Carga diferida `0x612d90`.** Los índices `0x1f/0x21` cargan `Monster\Monster32.bmd` y
 `Monster\Monster34.bmd`, modelos `0x171/0x173`. Con `[0x6c9e0c]=1`, acciones o mallas ya
 presentes hacen retornar antes de recargar (`0x612dbc/0x612dc7`). Texturas de `Monster\`,
@@ -3516,6 +3536,15 @@ un BMD cacheado puede observar otra imagen. `ModelTextureTable`, compartida por 
 FaunaModels, conserva nombres/refcounts/metadata física mientras el cursor se reinicia. La búsqueda
 `0x60d550` excluye next; un nombre justo allí se vuelve a subir. Persistir sólo el BMD o liberar una
 vez por upload no reproduce este contrato.
+
+**Límite del pez Kalima −1.** El caller omite LookupModel/AdvanceModel, pero alcanza SetAction
+`0x4ea030` con índice firmado −1. `0x60dbe0` construye 18.589 BMD de `0xe0` y publica la base
+con desplazamiento `rand()&1023` (`0x60dc4c..0x60dc7a`). El constructor `0x6154ab..0x6154b3`
+deja los contadores en cero. Con desplazamiento>0, BMD[-1] es un objeto construido, sin acciones;
+con desplazamiento=0 la lectura sale antes del primer objeto. `FaunaStepContext::prefixModel`
+permite un préstamo explícito sólo para esa selección de acción. El binding productivo no presta
+un esqueleto vacío ni afirma la precondición por defecto. Esta evidencia funcional no reconstruye
+la ubicación/protección de la tabla, ni cierra por sí sola el caller y el mundo de Kalima.
 
 **Perfil numérico.** Sin/cos de fauna usan `OriginalRetainedMath`: mantienen el resultado con
 64 bits de significando antes del primer producto PC53 y de los spills f32. `0x445d60` multiplica ambos retenidos

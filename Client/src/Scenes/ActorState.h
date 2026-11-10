@@ -3,6 +3,7 @@
 #include "GameLogic/CharacterAppearance.h"
 #include "Protocol/Character/Opcodes.h"
 #include "Render/Models/Pose.h"
+#include "Scenes/CharacterHead.h"
 
 #include <glm/ext/vector_float3.hpp>
 
@@ -77,6 +78,11 @@ struct ActorState
     std::uint8_t run = 0; // +0x38c, el Run de Caminar
     // +0x1c, +0x20 y +0x24: 0x511290 pone los dos primeros en 0 y el ángulo que recibe en el tercero.
     glm::vec3 angles{};
+    // +0x28 y +0x2c, los ángulos de la cabeza, y +0x34 y +0x38, hacia dónde gira: los mueve 0x505de0
+    // (0x5068eb..0x5069ab, Scenes::StepCharacterHead) y los lee la pose (0x4eb860). 0x511290 no los escribe:
+    // quedan los de WinMain o los del uso anterior del registro. Del héroe, el blanco lo escribe MoveHero con
+    // el mouse (0x59b1c2..0x59b287, CL7.4), sin portar.
+    CharacterHead headTurn{};
     // +0xf4, +0xf8 y +0xfc, la luz propia: 0x511290 la deja en 0. La lee el efecto de llegada (0x518cf0).
     glm::vec3 light{};
     // +0x170 y +0x174: la meta del alpha y el alpha. 0x511290 los pone en 1 y la respuesta del F3 03

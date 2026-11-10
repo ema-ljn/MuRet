@@ -1958,7 +1958,9 @@ El resto de `0x634c60` (por paso) y de `0x6350b0` (por frame), llamada por llama
   La pose (`0x4eb860`) le resta `+0x28` al ángulo x del hueso de la cabeza y `+0x2c` al z. En promedio cada 1,28 s el casco
   gira hasta ±64° y se inclina entre −16° y 15°, y lo siguen las dos telas del casco y sus 30 destellos. MuRet:
   `Scenes::StepCharacterHead`, bit a bit contra el código real emulado (`tests/vectors/world55/head.txt`, 3.400 pasos), y la
-  cabeza del paso en el dibujo: el original no la interpola.
+  cabeza del paso en el dibujo: el original no la interpola. Desde CL7 hito 1 la corre también `Scenes::StepCharacters`
+  con cada `0x20a` (`ActorState::headTurn`), en el juego; el login sigue con la suya hasta llamarlo (P-C54,
+  [§ Los efectos de los personajes](#los-efectos-de-los-personajes-0x505de0)).
 - **La cámara, confirmada:** `0x635ae0` es fija en la escena 2. El único corrimiento posible es el
   del bit `0x80` del atributo de la celda del héroe, y no aplica: el héroe tiene las celdas en
   (0, 0), porque en el login solo se le escribe la posición, y esa celda de `EncTerrain56.att` vale
@@ -3464,7 +3466,7 @@ bloque de la entrada, en orden (*estático*):
 | `0x6370f4` | `0x445230` | el caballo oscuro ([El caballo oscuro](#el-caballo-oscuro)), también en la espera | `Scenes::StepHelpers`, con la tabla de `WorldState::Helpers`, que en el juego queda vacía ([08](08-pendientes.md) P-C47) |
 | `0x6370f9..0x637105` | `0x557650`, `0x451d10`, `0x451c10` | contadores y listas, sin leer | — |
 | `0x63710a` | **`0x59adf0`**, el `MoveHero` | el héroe con el mouse ([Caminar](#caminar)); baja `0x77f3b04` y lo vuelve a leer (dos accesos, 8 `rand()`) y, con más de 30, sale; si no, escribe en `0x77f36d0` la capa 1 de la celda del héroe (`0x59e2ba`) y, con `0x57cfc0`, abre y cierra el registro propio: 3.848 `rand()` ([La tabla de protección](#la-tabla-de-protección)) | el contador (`GameScene::StepWaitCounter`), sin los gates de antes (P-C28 b); lo demás falta |
-| `0x63710f` | **`0x508f00` → `0x508ea0`** | por personaje: el trapecio en (x, y) · 0,01 con −20 a `+0x16c`, `0x508ba0`, `0x4fd5f0` (la animación y el alpha), `0x505de0` (la zona segura, la cabeza y las luces) y `0x42da90`; antes, el `0x02` del `TerrainWall`, con 8 `rand()` por personaje vivo. Corre también en la espera ([El paso de los personajes](#el-paso-de-los-personajes)) | después de la espera, `Scenes::StepCharacters`: el `TerrainWall`, `+0x16c` con el trapecio global (T11b), el cuerpo de cada `0x20a` quieto (`0x4fd5f0`, [El cuerpo de los personajes](#el-cuerpo-de-los-personajes-0x4fd5f0)) y, del héroe, `0x505de0` con la zona segura (T11); de los demás, `0x508ba0` y el corte en su cabeza (`0x5068b9`, CL7, hito 1); en la espera, frontera ([08](08-pendientes.md) P-C41 a) |
+| `0x63710f` | **`0x508f00` → `0x508ea0`** | por personaje: el trapecio en (x, y) · 0,01 con −20 a `+0x16c`, `0x508ba0`, `0x4fd5f0` (la animación y el alpha), `0x505de0` (la zona segura, la cabeza y las luces) y `0x42da90`; antes, el `0x02` del `TerrainWall`, con 8 `rand()` por personaje vivo. Corre también en la espera ([El paso de los personajes](#el-paso-de-los-personajes)) | después de la espera, `Scenes::StepCharacters`: el `TerrainWall`, `+0x16c` con el trapecio global (T11b), el cuerpo de cada `0x20a` quieto (`0x4fd5f0`, [El cuerpo de los personajes](#el-cuerpo-de-los-personajes-0x4fd5f0)) y su `0x505de0` hasta el final, con la zona segura (T11) y la cabeza ([Los efectos de los personajes](#los-efectos-de-los-personajes-0x505de0)); de los demás, también `0x508ba0` (CL7, hito 1); en la espera, frontera ([08](08-pendientes.md) P-C41 a) |
 | `0x637114` | `0x548f40` | los números de daño (`0x7609c0c`) | CL9.2 |
 | `0x637119` | `0x53eaf0` | la tabla `0x75fe028` (`0x51fc80`), sin leer | — |
 | `0x63711e` | **`0x52d220`** | los efectos con modelo | sí (`StepModelEffects`) |
@@ -3498,15 +3500,17 @@ con el contador en más de 30, MoveHero sale en `0x59afd6`, pero el paso sigue (
 5. `0x52e500` (`0x5091d0`): el paso de las estelas de `0x75e9870` (100 de `0x2f4`), sin `rand()`. Las crea
    `0x52e470`, desde habilidades, efectos y la acción 3 del caballo (`0x444671`).
 
-**`0x505de0` con un jugador.** El `0x20a` tiene acciones; un modelo sin acciones (`+0x26` de `0x5769ad8 +
-tipo · 0xe0` en 0) va a la caja de `0x505e15` y sale. Copia la posición, la escala y la acción al modelo
-compartido (`0x505ec6..0x505ee4`) y, sin verse (`+0x16c` en 0), sale (`0x505ef2`). Visto:
+**`0x505de0` con un jugador** (entero en [§ Los efectos de los
+personajes](#los-efectos-de-los-personajes-0x505de0)). El `0x20a` tiene acciones; un modelo sin acciones
+(`+0x26` de `0x5769ad8 + tipo · 0xe0` en 0) va a la caja de `0x505e15` y sale. Copia la posición, la escala y
+la acción al modelo compartido (`0x505ec6..0x505ee4`) y, sin verse (`+0x16c` en 0), sale (`0x505ef2`). Visto:
 
 - **la zona segura** (`0x505ef8..0x5068b2`): la celda lógica otra vez, la Y y la X con sus cierres (8
   `rand()`), y `+0x3e2` en 1 si el bit `0x01` del byte bajo de `0x7d0d348[0x5f82a0(X, Y)]` está, y en 0 si
   no (Q-C206; [Caminar](#caminar));
 - la cabeza (`0x5068b9..0x5069ab`, [Lo demás del login](#lo-demás-del-login)): con el héroe no sortea ni
-  gasta `rand()`; gira hacia `+0x34` y `+0x38`, que MoveHero escribe con el mouse (`0x59b1c2..0x59b287`);
+  gasta `rand()`; gira hacia `+0x34` y `+0x38`, que MoveHero escribe con el mouse (`0x59b1c2..0x59b287`); con
+  los demás, sin morirse, sortea con `rand() % 32` y dos más si da 0 (`0x5068eb..0x506970`);
 - con `+0x3e5` positivo, veinte efectos con `rand()` (`0x5069ae`): solo lo sube `0x4c9790` (`0x4c982b`);
 - con `+0x375` debajo de 6, sin signo (`0x506acf`), la luz de cada mano, la derecha y la izquierda: `0x21e`
   con un 3 y `0x225`, `0xa24`, `0xc1c` y `0x61f` con un 2, por `0x5f9780` al buffer dinámico `0x7b4ccc4`;
@@ -3518,9 +3522,9 @@ compartido (`0x505ec6..0x505ee4`) y, sin verse (`+0x16c` en 0), sale (`0x505ef2`
   `0x607` con `ftol(0x5767b88) % 10000` debajo de 1000; en el mapa 9, dos `rand() & 3` que pueden sacar un
   `0x68` cada uno; en las acciones `0x44` y `0x45`, efectos `0x5ac` y `0x5189f0`; en la `0x96`, diez `0x5d9`
   en huesos de `rand()`; y un `0x4ec110` a un local que nadie lee (`0x506fc1..0x507001`);
-- los pasos del héroe (`0x50862f..0x5086ca`): con las acciones `0x0d` a `0x21`, `0x8b`, `0x8c` y `0x4b`, el
-  sonido de `0x505770` según el frame (`+0x114` contra `0x6b8b94` y `0x6b8ae0`) con `+0x3e0` y `+0x3e1`, sin
-  `rand()`;
+- los pasos del héroe (`0x50862f..0x5086ca`), solo con el héroe publicado (`0x508641`): con las acciones
+  `0x0d` a `0x21`, `0x8b`, `0x8c` y `0x4b`, el sonido de `0x505770` según el frame (`+0x114` contra `0x6b8b94` y
+  `0x6b8ae0`) con `+0x3e0` y `+0x3e1`, sin `rand()`;
 - en los mapas 24 a 29 y 36, con las acciones `0x15`, `0x1d` a `0x21` y `0x4b`, un `0x6f4` con dos `rand()`
   (`0x5086cf..0x508801`).
 
@@ -3533,21 +3537,24 @@ personajes](#el-cuerpo-de-los-personajes-0x4fd5f0)): después de la espera, desd
 trapecio global de `WorldRuntime` (T11b): en el primer paso después de la espera, el del último dibujo de la
 selección (Q-C216), y sin ningún dibujo antes, los ceros de la .bss (Q-C217). Porta el `TerrainWall`, `+0x16c`
 de los 400, la celda lógica, el cuerpo (`0x4fd5f0`) por el camino del `0x20a` quieto (con el registro propio del
-héroe, Q-C246, el `rand() % 6` y el de `0x432bf1`) y, del héroe, `0x505de0` hasta su final, con su `rand() & 7`.
+héroe, Q-C246, el `rand() % 6` y el de `0x432bf1`) y `0x505de0` hasta su final con todos los `0x20a`: la cabeza,
+que sortea con los que no son el héroe, y el `rand() & 7` (CL7, hito 1).
 Corta con error, en el orden del original:
 
 - en el mapa 30 (`0x412140`) y sin el mapa cargado (`0x508f14`);
 - en el `0x508ba0` de otro personaje vivo: el `0x154` que se muere (`0x508e89`) y el que camina (`0x508e27`);
 - en lo que el cuerpo no tiene ([§ El cuerpo de los personajes](#el-cuerpo-de-los-personajes-0x4fd5f0); sin
   Player.bmd, en `0x4f9580`);
-- con otro modelo que el `0x20a` (`0x505e0b`) y en la cabeza de otro que el héroe (`0x5068b9`);
+- con otro modelo que el `0x20a` (`0x505e0b`);
 - con la luz de una mano (`0x5f9780`);
 - en los mapas 7 (`0x506d01`) y 9 (`0x506d8b`);
-- en las acciones `0x44` y `0x45` (`0x506e5d`) y `0x96` (`0x506f62`), y en las de los pasos (`0x508668`).
+- en las acciones `0x44` y `0x45` (`0x506e5d`) y `0x96` (`0x506f62`) y, con el héroe, en las de los pasos
+  (`0x508668`);
+- con otro que el héroe, en Kalima y en las acciones del `0x6f4`, después de sus dos `rand()` (`0x5087fc`).
 
-El `0x6f4` de los mapas 24 a 29 y 36 no se alcanza sin cortar antes en los pasos. La cabeza del héroe y `0x52e500`
-son frontera, como las de T8, porque corren también en la espera (P-C44). En la espera, `0x508f00` entero sigue
-siendo frontera (P-C41 a).
+Con el héroe, el `0x6f4` de los mapas 24 a 29 y 36 no se alcanza sin cortar antes en los pasos. Su cabeza gira
+hacia un blanco que MuRet todavía no escribe (MoveHero, P-C44 b). `0x52e500` es frontera, como las de T8, porque
+corre también en la espera (P-C44). En la espera, `0x508f00` entero sigue siendo frontera (P-C41 a).
 
 Tests: `CharacterStepTest`, `GoldenCharacterStep.TheSafeZoneFollowsTheLogicalCellAhead` y
 `TheHeroAtRestDrawsTheSameBudgetOnLorenciaAndDevias`, y
@@ -3600,15 +3607,18 @@ está vivo solo si alguna lista lo construyó antes.
   se leyó lo que saca (§ Los efectos del login: el de `0x4fd7e4`, el de `0x432bd0` desde `0x4fcee0` y el
   cuervo, `0x416a20`). Los de la lista, quietos, van por el mismo camino del `0x20a`, con su equipo: de pie
   no piden estela. El `0xa9` de la vista previa sigue sin leer.
-- **`0x505de0`**, como con el héroe del juego, con dos diferencias: con otro que el héroe la cabeza sortea
-  (`0x5068eb`, `rand() % 32` y dos más si da 0; § Lo demás del login), y el `0x607` del mapa 7 es solo de la
-  escena 5 (`0x506cf8`). Visto, saca los 8 de la celda lógica y el `rand() & 7` (Q-C207).
+- **`0x505de0`** ([§ Los efectos de los personajes](#los-efectos-de-los-personajes-0x505de0)), como con el
+  héroe del juego, salvo que con otro que el héroe la cabeza sortea (`0x5068eb`, `rand() % 32` y dos más si da
+  0; § Lo demás del login) y no hay pasos (`0x508641`), y que el `0x607` del mapa 7 es solo de la escena 5
+  (`0x506cf8`). Visto, saca los 8 de la celda lógica, la cabeza y el `rand() & 7` (Q-C207).
 - `0x42da90`, fuera del mapa 30, devuelve 0.
 
 **La vista previa** (`0x7437050`). `0x633f20` la arma con `0x511290(…, 0xa9, 0, 0, 0)`: viva, con las dos
 copias de la celda en (0, 0). `0x508ea0` la pasa en cada paso de la selección después de los 400, también con
 la ventana de crear cerrada: su `+0x16c` con el trapecio, los 8 `rand()` de su `0x508ba0` y lo que hagan
-`0x4fd5f0` y `0x505de0` con el `0xa9`. Con la ventana abierta la avanza además `0x63e430` (D-C4).
+`0x4fd5f0` y `0x505de0` con el `0xa9`. En `0x505de0` el `0xa9` no es el `0x20a`: su cabeza pasa por `0x4ea190`
+(`0x5068e3`, hasta tres `rand()` según la acción) y, debajo de `0x152`, su caso es el de `0x5085db`, con las seis
+funciones de los tipos sin caso propio, sin leer. Con la ventana abierta la avanza además `0x63e430` (D-C4).
 
 **Lo que saca por paso**, hasta donde está leído. La selección con N personajes de la lista, el héroe entre
 ellos: 8·N del `TerrainWall`; 8·(N − 1) de los `0x508ba0`; por cada uno, lo de su `0x4fd5f0` (al menos 1) y,
@@ -3638,29 +3648,47 @@ queda en 0 (Q-C238). Antes, cada `0x517270` de la lista corre su `0x511290`, con
   de la celda, así que las dos siempre coinciden y el camino no se alcanza.
 - El cuerpo (`0x4fd5f0`) corre con todos los `0x20a` por el camino del jugador quieto ([§ El cuerpo de los
   personajes](#el-cuerpo-de-los-personajes-0x4fd5f0)).
-- El héroe, en cualquier escena, hace además su `0x505de0` entero, con el `0x607` del mapa 7 solo en la 5. Los
-  demás cortan con error en su cabeza (`0x5068b9`, P-C50 b).
+- Todos los `0x20a`, en cualquier escena, hacen su `0x505de0` entero ([§ Los efectos de los
+  personajes](#los-efectos-de-los-personajes-0x505de0)): los demás con la cabeza que sortea y sin los pasos, y el
+  `0x607` del mapa 7 solo en la 5.
 - También corta en `0x508e89` (el `0x154` que se muere) y en `0x508e27` (el que camina).
 
-**La selección y el login todavía no lo llaman.** El corte en la cabeza del primer vivo que no es el héroe sería
-terminal (`IScene::Failure`) en el primer paso con la lista. Además, en la selección, antes de la primera entrada,
-el registro propio está en ceros y su `0x54efe0` pide Item.bmd (Q-C246). Su `rand()` sigue corrido (P-C50). Las
-dos escenas corren por su cuenta, en ese lugar del paso, piezas de `0x4fd5f0` y `0x505de0`: la animación
-(`0x4fcd00`) en las dos y, en el login, el cuervo (`0x416a20`) y la cabeza (§ Los efectos del login).
+**La selección y el login todavía no lo llaman** (P-C54). Con la cabeza portada, `StepCharacters` ya no corta
+con los de la lista ni con el del login quietos (abajo), pero llamarlo desde `0x6342f9` y `0x634d13` pide más
+piezas, y un corte en el primer paso sería terminal (`IScene::Failure`):
 
-Hasta ese corte, con el port (*simulado*):
+- **la selección**: `SelectionState::Construct` no arma los lugares de la lista como `0x20a`: les pone la
+  posición, la clave y vivo, sin el tipo, el equipo ni los `rand()` de su `0x511290` (P-C50 e); la vista previa
+  (`0x508ea0(0x7437050)`, `0x634303`) es el `0xa9`, que en el cuerpo pide la rama de los otros tipos de
+  `0x4f9580` (`0x4f96d4..0x4f9737`), la cola de `0x4fcd00` y `0x4fcee0` con otros tipos (`0x441260`, `0x42fa40`,
+  `0x432bd0` y `0x426d90`), y en `0x505de0`, `0x4ea190` y el caso de `0x5085db`: no es una pieza chica; y antes
+  de la primera entrada, el registro propio en ceros pide Item.bmd en su `0x54efe0` (Q-C246);
+- **el login**: el lugar 2 no está en los 400 como `0x20a` (`0x6349a0` → `0x517270` → `0x511290`, con su equipo
+  y sus `rand()`; `SelectionState::EnterLogin` solo lo pone vivo con su clave); el cuervo de `+0x430` lo llama el
+  cuerpo (`0x50544b`, `0x420dd0`) y hoy lo corre `LoginScene` por su cuenta; al terminar el gesto, `0x4f2250` lee
+  el arma en Item.bmd; y el dibujo lee la animación y la cabeza de la escena, no las del registro;
+- **las dos**: `StepCharacters` marca el `TerrainWall` de `WorldState::Map()`, y el 54 de la selección vive en
+  `SelectionState` y el 55 del login en su `LoadedWorld` (P-C50 c).
 
-| Escena | `rand()` hasta el corte |
+Las dos escenas siguen corriendo por su cuenta, en ese lugar del paso, piezas de `0x4fd5f0` y `0x505de0`: la
+animación (`0x4fcd00`) en las dos y, en el login, el cuervo (`0x416a20`) y la cabeza (§ Los efectos del login).
+Su `rand()` sigue corrido (P-C50).
+
+Con el port, por paso, con la animación quieta (sin el `rand()` de `0x432bf1` desde el frame 3 ni el del sufijo
+al terminar la acción) y los cinco lugares vistos con el trapecio de su dibujo (*simulado*):
+
+| Escena | `rand()` por paso |
 | --- | --- |
-| la selección con los cinco y el héroe en el lugar 0 | 40 del `TerrainWall`, 3.848 + 1 + 9 del héroe (su registro propio, su cuerpo y su `0x505de0`) y 8 + 1 + 8 del lugar 1, antes de su cabeza |
-| la selección después de una vuelta | 40 + 8 + 1 + 8 |
-| el login | 8 + 8 + 1 + 8 |
+| la selección con los cinco y el héroe en el lugar 0, sin la vista previa | 40 del `TerrainWall`, 3.848 + 1 + 9 del héroe (su registro propio, su cuerpo y su `0x505de0`) y 8 + 1 + 8 + 1 + 1 de cada uno de los otros cuatro (su `0x508ba0`, su cuerpo, su celda, su cabeza y el `rand() & 7`): 3.974, y 2 más por cada cabeza que sortea |
+| la selección después de una vuelta, sin la vista previa | 40 + 5 · 19 = 135, y 2 más por cada cabeza que sortea |
+| el login con su personaje, con el cetro y el cuervo en las manos | 8 + 8 + 1 + 8 + 1 + 1 = 27, y 29 cuando la cabeza sortea |
 
-Con el trapecio de su dibujo, los cinco lugares se ven. Tests: `GoldenCharacterStep.TheSelectionStopsAtTheHeadOfTheSecondSlot`,
-`AfterTheReturnTheFirstSlotStopsAtItsHead`, `TheLoginStopsAtTheHeadOfItsCharacter` y
+Tests: `GoldenCharacterStep.TheSelectionStepsItsFiveSlots`, `AfterTheReturnTheFiveSlotsAreOthers`,
+`TheLoginStepsItsCharacter` (64, 64 y 200 pasos, con la cabeza de cada uno contra `Scenes::StepCharacterHead`) y
 `WithoutItemBmdTheSelectionHeroStopsAtItsWings`. Las salidas de `0x508ba0`, en
-`CharacterStepTest.AnotherCharacterSpendsItsCellsAndItsBodyAndStopsAtItsHead` (Lorencia y Devias),
-`TheExitsOf508ba0BeforeTheCell` y `OutsideTheGameTheHeroTakesTheSamePath`.
+`CharacterStepTest.AnotherCharacterRunsItsWholeStepBeforeTheHero` (Lorencia y Devias),
+`TheExitsOf508ba0BeforeTheCell`, `AnotherCharacterWithOpenCellAccessesSpendsNothingOnThem` y
+`OutsideTheGameTheHeroTakesTheSamePath`.
 
 ### El cuerpo de los personajes (`0x4fd5f0`)
 
@@ -3880,6 +3908,165 @@ se repite. Es el mismo en los dos mapas (`GoldenCharacterStep.TheHeroAtRestDraws
 - Tests: `CharacterStepTest` y `GoldenCharacterStep`, `GameSceneDrawTest.WithoutPlayerBmdTheStepStopsAtTheBody` y
   `ActorConstructionTest.LeavesThePlayerUnseenAndNotDying`.
 - Lo que falta, en P-C52.
+
+### Los efectos de los personajes (`0x505de0`)
+
+`0x505de0(c, o)`, desde `0x508ea0` (`0x508ee6`), después del cuerpo, con `c` y `o` el mismo registro (`ebp+8` y
+`ebp+0xc`; `ebx` es `o`). Ocupa `0x505de0..0x50880a` (10.794 bytes), con dos `ret`: el de la caja (`0x505ec5`) y el del
+final (`0x508809`). `b` es el modelo compartido del tipo, `[0x5769ad8] + tipo · 0xe0` (`0x505ded..0x505e08`). Leído
+entero en el desensamblado de `c32bbd5f` (CL7, hito 1), con un personaje que no es el héroe publicado y en las
+escenas 2, 4 y 5: todo *estático*. Es la misma función para todos: el héroe y los demás se separan solo en la cabeza
+(`0x5068eb`) y en los pasos (`0x508641`), y las escenas, solo en el `0x607` del mapa 7 (`0x506cf8`).
+
+**La estructura**, en orden:
+
+1. `0x505e0b`: sin acciones en `b` (`+0x26` en 0) va a **la caja** (`0x505e15..0x505ec5`): `+0x13c..+0x144` la
+   posición más `+0x124..+0x12c`, `+0x148`, `+0x158` y `+0x168` el tamaño (`+0x130..+0x138` menos `+0x124..+0x12c`), y
+   los demás de `+0x14c..+0x164` en 0. Sale, sin `rand()`.
+2. `0x505ec6..0x505ee4`: la posición, la escala y la acción (`+0x111`) van a `b` (`+0x6c..+0x74`, `+0x68` y `+0xa0`).
+3. `0x505ef2`: sin verse (`+0x16c` en 0), sale (`0x508804`).
+4. **La zona segura** (`0x505ef8..0x5068b2`): la Y lógica (`+0x420`) y la X (`+0x41c`) por la tabla de protección,
+   cada una en un acceso que se cierra en línea con cuatro `rand() & 0xff` si su cuenta queda en 0 (`0x506362` y
+   `0x506833`), y `+0x3e2` en 1 si el bit `0x01` del byte bajo de `0x7d0d348[0x5f82a0(X, Y)]` está, y en 0 si no
+   (Q-C206).
+5. **La cabeza** (`0x5068b9..0x5069ab`), con `+0x78` sin `0x20` ni `0x1000` (`0x5068be..0x5068d4`):
+   - con otro modelo que el `0x20a`, `0x4ea190(c)` (`0x5068e3`), que según la acción sortea otro blanco con hasta tres
+     `rand()` (`0x4ea1ab`, `0x4ea1c6` y `0x4ea1e2`), mira a otro personaje (`0x4ea0e0`), no hace nada o lo pone en 0
+     (P-C17);
+   - con otro que el héroe publicado (`0x5068eb`, `c` contra `[0x743a170]`) y sin morirse (`+0x389`, `0x5068f3`):
+     `rand() % 32` (`0x5068fd`) y, si da 0, el blanco: `+0x34 = rand() % 128 − 64` (`0x506913`) y
+     `+0x38 = rand() % 32 − 16` (`0x50692f`), cada uno con 360 más si da negativo (`0x506953..0x506970`);
+   - con todos, también el héroe: `+0x28` y `+0x2c` giran hacia `+0x34` y `+0x38` con `0x4e9560`, a lo sumo
+     `f(0x4e96f0(ángulo, blanco, 1) · 0,2f)` (`0x506972..0x5069a9`). Del héroe, el blanco lo escribe MoveHero con el
+     mouse (`0x59b1c2..0x59b287`). [§ Lo demás del login](#lo-demás-del-login).
+6. Con `+0x3e5` positivo (`0x5069ae`, sin signo): `+0x3e5 − 1` y veinte vueltas (`0x5069d1..0x506ac6`) con la luz
+   `+0xf4..+0xfc` en 1 y, en cada una, una posición de tres `rand()` (`% 64 − 32`, `% 64 − 32` y `% 32 − 16`, en
+   `0x5069e4`, `0x506a06` y `0x506a26`), `rand() % 10` en 0 (`0x506a46`) para una partícula `0x5f3`, y `rand() % 10` en
+   0 (`0x506a7b`) para un efecto `0xc8` o `0xc9` (`rand() & 1` en `0x506aa0`, `0x518cf0`). Solo lo sube `0x4c9790`
+   (`0x4c982b`).
+7. Con `+0x375` debajo de 6, sin signo (`0x506acf`): la luz de cada mano, la derecha (`+0x2b8`) y la izquierda
+   (`+0x2d8`): `0x21e` con un 3 y `0x225`, `0xa24`, `0xc1c` y `0x61f` con un 2, por `0x5f9780` al buffer dinámico
+   `0x7b4ccc4`, sin `rand()`.
+8. Con `+0x3d8` positivo (`0x506b64`): con `+0x3d4` en `0x611`, `rand() & 3` (`0x506b87`) y, si da 0, una posición de
+   tres `rand()` (`% 100 − 50`, `% 100 − 50` y `% 180`, en `0x506b9a`, `0x506bb6` y `0x506bd2`); con `0x612`, un
+   `0x4ec110` por cada tantos huesos de `b` (`ftol(0x6b8a44 / +0x3d8)`, al menos 1) a un local. Ninguno de los dos crea
+   nada (Q-C266). En los personajes, `+0x3d8` solo lo baja `0x4fd5f0` (`0x4fd75e`).
+9. **`rand() & 7` sin condición** (`0x506cac`): `(r + 2) · 0,1f` (`0x6b87b8`) a `ebp+0xc`, que leen algunos casos de
+   abajo (el `0x15d` en `0x507e2a`, por ejemplo) y el del `0x20a` no (Q-C207).
+10. **El caso del tipo** (`0x506ccc..0x506cf1`): `tipo − 0x152` contra `0xb8`, con los índices en `0x508884` y los
+    saltos en `0x50880c`; fuera del rango (todos los tipos debajo de `0x152`, como la vista previa `0xa9`) o sin caso
+    propio, el de `0x5085db`. Abajo, la tabla.
+11. **Los pasos del héroe** (`0x50862f..0x5086ca`): con el `0x20a` y `c` el héroe publicado (`0x508641`), en las
+    acciones `0x0d` a `0x21`, `0x8b`, `0x8c` y `0x4b`, el sonido de `0x505770` con el frame (`+0x114`) desde 1,5
+    (`0x6b8b94`) y `+0x3e0`, y desde el de `0x6b8ae0` y `+0x3e1`, sin `rand()`. Los demás no tienen pasos acá.
+12. **Kalima** (`0x5086cf..0x508801`): con el `0x20a` en las acciones `0x15`, `0x1d` a `0x21` y `0x4b`, en los
+    mapas 24 a 29 y 36, la partícula `0x6f4` (`0x53fe70`, subtipo 1, escala 1, luz 0,3) en (0, −40, 0) girado por
+    `+0x1c` (`0x5fc8f0` y `0x5fcbd0`) más la posición, con `rand() % 64 − 32` en la x (`0x508793`) y en la y
+    (`0x5087b6`), y la z más 50 (`0x6b86b0`). Con el héroe esas acciones son también de sus pasos, que en MuRet
+    cortan antes.
+
+**El caso del tipo** (`0x506cf1`). Cada caso termina en `0x50862f`. Los `rand()` directos y lo que crean:
+
+| Tipo | Caso | `rand()` directos | Lo que hace |
+| --- | --- | --- | --- |
+| `0x20a` | `0x506cf8` | `0x506db7`, `0x506e07` y `0x506f7a` | en la escena 5 y el mapa 7, un `0x607` con `ftol(0x5767b88) % 10000` debajo de 1000; en el mapa 9, dos `rand() & 3` que en 0 sacan un `0x68` cada uno; en las acciones `0x44` y `0x45`, con `+0x120`, partículas `0x5ac` por hueso y `0x5189f0` (2 `rand()`); en la `0x96`, diez `0x5d9` en el hueso `rand() % huesos`; y un `0x4ec110` del hueso de `+0x2bd` a un local que nadie lee (`0x506fc1..0x507001`) |
+| `0x185` | `0x507006` | — | doce joints (`0x530860`) por huesos |
+| `0x186`, `0x189`, `0x16d`, `0x16c`, `0x161` | `0x5073c6`, `0x5073ed`, `0x507ab7`, `0x507ade`, `0x507e63` | — | escriben campos con el reloj (`ftol`) |
+| `0x182` | `0x507414` | `0x507414`, `0x507429` y `0x50744b` | `rand() % 5` en 0: dos `rand() % 21 − 10` y una marca del suelo `0x5e3` (`0x548fe0`, que saca uno más) |
+| `0x17e` | `0x50749c` | — | partículas, luces (`0x5f9780`) y `0x505bc0`, `0x505c50` (3 `rand()`) y `0x505d50` (2) |
+| `0x17f`, `0x1aa` | `0x507493` | — | siguen en el del `0x17d` (`0x5078a0`) |
+| `0x17d`, `0x17c`, `0x17b`, `0x179` | `0x50789c`, `0x5078b5`, `0x50798e`, `0x5079ad` | — | `0x505bc0`, `0x505c50` y `0x505d50`, y en el `0x17c` partículas y una luz |
+| `0x177` | `0x5079c0` | — | escribe campos |
+| `0x16f` | `0x507a20` | `0x507a49` | con el reloj, `rand() & 1` en 0 saca un `0x5d9` |
+| `0x172` | `0x507b05` | `0x507d5f` | según la acción, `0x5ca` y `0x5d9` en huesos; en la 6, uno en el hueso `rand() % huesos` |
+| `0x15d` | `0x507dab` | `0x507dab` y `0x507de3` | un `rand()` y, según `+0x1d6`, `0x5d9` en huesos de `rand()` y una luz |
+| `0x1d8`, `0x1d3` | `0x507e8a`, `0x507eb7` | `0x507e8a`, `0x507eb7` | un sonido (`0x41ed10`) con `rand() & 63` o `& 255` |
+| `0x1ce` | `0x507ee6` | `0x508005` y `0x508028` | sonido, luz, un joint `0x617` y un `0x5c5` |
+| `0x1f5` | `0x508093` | `0x508128`, `0x508148` y `0x508188` | luz, un joint `0x617` y, con `rand() & 1`, un `0x5c5` |
+| `0x154` | `0x5081c9` | `0x508209` | en la acción 3, `rand() % 32` y un `0x5d9` |
+| `0x155`, `0x158`, `0x166` | `0x50826d` | `0x5082f6`, `0x50830d`, `0x50832d` y `0x50834d` | un sprite `0x5ac` (`0x5491e0`) y, con `rand() & 3`, un `0x5f2` |
+| `0x173` | `0x5083a1` | `0x5083c0`, `0x5083d7`, `0x5083f7` y `0x508417` | con `+0x1d6` en 1, `rand() & 3` y un `0x5f3` |
+| `0x157` | `0x50845e` | — | `0x505c50` (3 `rand()`) |
+| `0x15e`, `0x15f` | `0x50846c` | `0x50846c` | `rand() & 3` y sigue en el del `0x152` (`0x5085ac`) |
+| `0x152` | `0x5084b3` | `0x50856a` | según la acción y el frame, `rand() & 1` y un `0x5f2` |
+| `0x183`, `0x184`, `0x188` | `0x50862f` | — | nada |
+| los demás | `0x5085db` | — | `0x43bdd0`, `0x42de90`, `0x441210`, `0x42f550`, `0x431470` y `0x426ce0`, en ese orden, hasta que uno devuelva verdadero: cada uno mira el tipo o el mapa |
+
+**Los `rand()`.** 46 llamadas directas a `0x69fd70`. Con el `0x20a`, que es lo que MuRet tiene:
+
+| Dónde | Qué | Con qué condición |
+| --- | --- | --- |
+| `0x506362`, `0x506833` | `rand() & 0xff`, cuatro cada uno: los cierres de la celda lógica | visto, con la cuenta de cada acceso en 0 |
+| `0x5068fd` | `rand() % 32` | visto, sin `+0x78 & 0x20` ni `& 0x1000`, otro que el héroe y sin morirse |
+| `0x506913`, `0x50692f` | `rand() % 128` y `rand() % 32`, el blanco de la cabeza | lo mismo, con el de `0x5068fd` en 0 |
+| `0x5069e4`, `0x506a06`, `0x506a26`, `0x506a46`, `0x506a7b`, `0x506aa0` | tres de la posición, dos `% 10` y `& 1`, veinte veces | visto, con `+0x3e5` positivo; el de `0x506aa0`, con el de `0x506a7b` en 0 |
+| `0x506b87`, `0x506b9a`, `0x506bb6`, `0x506bd2` | `rand() & 3` y tres de una posición | visto, con `+0x3d8` positivo y `+0x3d4` en `0x611`; los tres, con el primero en 0 |
+| `0x506cac` | `rand() & 7` | visto, sin condición (Q-C207) |
+| `0x506db7`, `0x506e07` | `rand() & 3` | visto, en el mapa 9 |
+| `0x506f7a` | `rand() % huesos`, diez veces | visto, en la acción `0x96` |
+| `0x508793`, `0x5087b6` | `rand() % 64` | visto, en Kalima y en las acciones `0x15`, `0x1d` a `0x21` y `0x4b` |
+
+Los otros 28 son de los casos de otros tipos (la tabla de arriba). Los de las llamadas: `0x4ea190` (3, con otro
+modelo), `0x5189f0` (2), `0x548fe0` (1), `0x505c50` (3), `0x505d50` (2), `0x43bdd0` (4), `0x42f550` (2), `0x431470`
+(6), y los de `0x53fe70`, `0x518cf0` y `0x530860` (312, 212 y 85 sitios en sus cuerpos). `0x4e96f0`, `0x4e9560`,
+`0x5f9780`, `0x505770`, `0x4ec110`, `0x5491e0`, `0x41ed10`, `0x5fc8f0` y `0x5fcbd0` no sacan.
+
+**Las llamadas.** 30 destinos directos, más la virtual de la tabla de protección (`[0x57630c8] + 0xc`) en cada
+lectura de la celda. Los tamaños van desde la entrada hasta el último `ret` (*estático*):
+
+| Llamada | Bytes | Qué es | En MuRet |
+| --- | --- | --- | --- |
+| `0x69fd70` | 34 | `rand()` | `Render::Models::CrtRandom` |
+| `0x69f403`, `0x69eff0`, `0x69fd3c` | 14, 11, 39 | `operator new`, `operator delete` y `ftol` de la CRT | — |
+| `0x41fa40` | 49 | el aviso de la tabla de protección sin la entrada | no se porta (protección) |
+| `0x5f82a0` | — | el índice de la celda | `Data::Terrain::CellIndex` |
+| `0x4ea190` | 208 | la cabeza de otro modelo | corta antes, en `0x505e0b` |
+| `0x4e96f0`, `0x4e9560` | 169, 394 | la distancia entre dos ángulos y el giro | `Render::Models::AngleDistance` y `TurnAngle` (`Scenes::StepCharacterHead`) |
+| `0x53fe70`, `0x518cf0`, `0x530860` | 15.049, 27.599, 17.516 | las partículas, los efectos y los joints | aparte, para el login; acá cortan antes |
+| `0x5f9780` | 904 | la luz al buffer dinámico | corta en `0x5f9780` |
+| `0x4ec110` | 120 | un punto de un hueso | `Render::Models::OriginalRotation`; el del `0x20a` (`0x506ffc`) va a un local que nadie lee |
+| `0x5189f0` | 206 | los efectos de las `0x44` y `0x45` | corta en `0x506e5d` |
+| `0x548fe0` | 168 | llena una marca del suelo ([Las marcas del suelo](#las-marcas-del-suelo)) | solo el `0x182`; no se llega |
+| `0x505bc0`, `0x505c50`, `0x505d50` | 132, 242, 129 | luces y partículas de los `0x157` y `0x179` a `0x17e` | no se llega |
+| `0x4e9810` | 186 | un rumbo (`0x4e93f0` y `0x4e9560`) | no se llega |
+| `0x5491e0` | 161 | un sprite del frame | no se llega |
+| `0x41ed10` | 156 | el sonido | — (CL10) |
+| `0x505770` | 161 | los pasos del héroe | corta en `0x508668` |
+| `0x5fc8f0`, `0x5fcbd0` | 198, 84 | el giro de los ángulos y de un vector | `Render::Models::OriginalRotation`; el `0x6f4` corta en `0x5087fc` |
+| `0x43bdd0`, `0x42de90`, `0x441210`, `0x42f550`, `0x431470`, `0x426ce0` | 657, 91, 71, 1.229, 2.609, 173 | los de los tipos sin caso propio | no se llega |
+
+**Los globales.** `[0x5769ad8]` (los modelos compartidos), `[0x743a170]` (el héroe publicado, en `0x5068eb` y
+`0x508641`), `[0x6d5dc8]` (la escena, en `0x506cf8`), `[0x6c9dd0]` (el mapa, en `0x506d01`, `0x506d7f` y `0x508700`),
+`0x5767b88` (el reloj del mundo, con `ftol`), `0x7d0d348` (el `TerrainWall`), `0x7b4ccc4` (el buffer dinámico de
+luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8`) y constantes de `.rdata` (0,2f,
+360, 0, 0,1f, 32, 50, …).
+
+**Con otro que el héroe**, quieto y visto, el `0x20a` saca por paso, en `0x505de0`: 8 de la celda, 1 de la cabeza
+(3 cuando sortea, uno de cada 32 pasos en promedio) y el `rand() & 7`, si no corta. Sin verse, ninguno. En la escena
+4 y en la 2 es igual, sin el `0x607` del mapa 7.
+
+**En MuRet** (`Scenes::StepCharacters`, `StepTheEffects`, CL7 hito 1), con el `0x20a`, el héroe y los demás:
+
+- la zona segura, la cabeza (`Scenes::StepCharacterHead` sobre `ActorState::headTurn`, `+0x28..+0x38`), que con
+  `+0x78 & 0x20` o `& 0x1000` no se mueve; con el héroe gira sin sortear hacia un blanco que todavía no escribe nadie
+  (MoveHero, CL7.4);
+- el `rand() & 7` y el caso del `0x20a`, con los pasos solo del héroe;
+- corta con error, después de los `rand()` de antes:
+  - con otro modelo (`0x505e0b`);
+  - con la luz de una mano (`0x5f9780`);
+  - en el mapa 7 de la escena 5 (`0x506d01`) y en el 9 (`0x506d8b`);
+  - en las acciones `0x44` y `0x45` (`0x506e5d`) y `0x96` (`0x506f62`);
+  - en los pasos del héroe (`0x508668`);
+  - en el `0x6f4` de Kalima, después de sus dos `rand()` (`0x5087fc`).
+- `+0x3e5` lo sube un paquete que MuRet no aplica (`0x4c9790`) y `+0x3d8`, fuera de los personajes, la UI
+  (Q-C266): quedan en 0 y esas ramas no se alcanzan.
+- Tests: `CharacterStepTest.AnotherCharacterRunsItsWholeStepBeforeTheHero`,
+  `TheHeadOfAnotherCharacterSortsOneStepInThirtyTwo`, `TheHeroTurnsItsHeadWithoutRandoms`,
+  `TheFlagsOf78KeepTheHeadStill`, `TheStepSoundsAreOnlyTheHeros` y
+  `AfterItsHeadAnotherCharacterTakesThePathOfTheHero`, en Lorencia y en Devias, y
+  `KalimaParticleCutsAfterItsTwoRandoms`, en los mapas de Kalima y los de al lado; las escenas, en [§ El paso de
+  los personajes en la selección y el login](#el-paso-de-los-personajes-en-la-selección-y-el-login).
+- Lo que falta, en P-C54.
 
 ### El dibujo del juego
 

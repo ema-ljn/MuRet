@@ -10,6 +10,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorActions.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/CharacterHead.h"
 #include "Scenes/ItemSetOptionList.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnStatHelpers.h"
@@ -111,6 +112,8 @@ constexpr std::uint8_t Word3eBit = 0x01;
 constexpr std::uint8_t Word40Bit = 0x02;
 constexpr std::uint8_t Word42Bit = 0x08;
 
+// 0x5068b9..0x5068d4: con +0x78 & 0x20 (o & 0x1000, FrozenFlag) la cabeza no se mueve.
+constexpr std::uint32_t StillHeadFlag = 0x20;
 // 0x506acf: con +0x375 en 6 o más (sin signo), las manos no dan luz.
 constexpr std::uint8_t FirstPkWithoutLights = 6;
 // 0x506aec..0x506b26: los modelos de las manos que piden una luz a 0x5f9780.
@@ -126,6 +129,11 @@ constexpr std::uint8_t BoneEffectAction = 0x96;
 constexpr std::uint8_t FirstStepAction = 0x0d;
 constexpr std::uint8_t LastStepAction = 0x21;
 constexpr std::array<std::uint8_t, 3> OtherStepActions{0x8b, 0x8c, 0x4b};
+// 0x5086d6..0x508712: en Kalima (los mapas 24 a 29 y el 36), las acciones del 0x20a que sacan el 0x6f4.
+constexpr std::array<std::uint8_t, 7> KalimaParticleActions{0x20, 0x21, 0x1d, 0x15, 0x1e, 0x1f, 0x4b};
+constexpr std::int32_t FirstKalimaMap = 24;
+constexpr std::int32_t LastKalimaMap = 29;
+constexpr std::int32_t SeventhKalimaMap = 36;
 // 0x508e79: el tipo que, muriéndose, 0x508ba0 baja a la altura del terreno.
 constexpr std::uint16_t SinkingDeadType = 0x154;
 // 0x508be3: el tipo con el que 0x508ba0 no busca camino.
@@ -553,7 +561,13 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     return {};
 }
 
-// 0x505de0(c, c) desde 0x508ee6: hasta su final con el héroe y hasta la cabeza con los demás.
+bool IsKalima(std::int32_t map)
+{
+    return (map >= FirstKalimaMap && map <= LastKalimaMap) || map == SeventhKalimaMap;
+}
+
+// 0x505de0(c, c) desde 0x508ee6, con el 0x20a, hasta su final (06, "Los efectos de los personajes
+// (0x505de0)"). `hero` es c == [0x743a170].
 Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t slot, bool hero,
                                                  const CharacterStepContext& context,
                                                  const Data::Terrain::TerrainLayer<std::uint16_t>& walls)
@@ -579,17 +593,15 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     const LogicalCell cell = ReadLogicalCell(actor, context.random);
     const std::uint16_t attribute = walls[Data::Terrain::CellIndex(cell.x, cell.y)];
     actor.safeZone = static_cast<std::uint8_t>((attribute & World::SafeZoneWallBit) != 0 ? 1 : 0);
-    // 0x5068b9..0x5069ab: la cabeza. Con otro que el héroe, sin +0x78 & 0x20 ni & 0x1000, sortea con rand() % 32
-    // y, si da 0, dos más hacia dónde mira (+0x34 y +0x38, 0x5068fd..0x506950).
-    if (!hero)
+    // 0x5068b9..0x5069ab: la cabeza, sin +0x78 & 0x20 ni & 0x1000 (0x5068be..0x5068d4). 0x5068da: con otro
+    // modelo, antes 0x4ea190, que ya cortó en 0x505e0b. 0x5068eb..0x5068fb: otro que el héroe, sin morirse
+    // (+0x389), sortea con rand() % 32 y, si da 0, dos más hacia dónde mira (+0x34 y +0x38); después los dos
+    // ángulos giran hacia el blanco (0x4e96f0 y 0x4e9560). El héroe no sortea ni gasta: gira hacia el blanco
+    // que MoveHero escribe con el mouse (0x59b1c2..0x59b287, CL7.4), que MuRet todavía no escribe.
+    if ((actor.flags78 & StillHeadFlag) == 0 && (actor.flags78 & FrozenFlag) == 0)
     {
-        return Core::Unexpected(std::format("0x5068b9: la cabeza del personaje del lugar {} (rand() % 32 en 0x5068fd) "
-                                            "y lo que sigue de 0x505de0 con otro que el héroe no están portados",
-                                            slot));
+        StepCharacterHead(actor.headTurn, !hero && actor.dying == 0, context.random);
     }
-    // Frontera (08 P-C44): con el héroe no sortea ni gasta rand(): gira +0x28 y +0x2c hacia +0x34 y +0x38, el
-    // blanco que MoveHero escribe con el mouse (0x59b1c2..0x59b287, CL7.4). MuRet no tiene esos campos del
-    // héroe; los lee la pose del dibujo, que corta antes.
     // 0x5069ae: +0x3e5 en 0, sin los veinte efectos: solo lo sube 0x4c9790 (0x4c982b), un paquete que
     // MuRet no aplica (*estático*).
     // 0x506acf..0x506b62: con +0x375 debajo de 6, la luz de cada mano, la derecha y la izquierda.
@@ -599,14 +611,17 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
         {
             if (std::ranges::find(LightModels, hand.model) != LightModels.end())
             {
-                return Core::Unexpected(std::format("0x5f9780: la luz del modelo {:#x} en la mano (0x506b50) va al "
-                                                    "buffer dinámico 0x7b4ccc4, que MuRet no tiene",
-                                                    hand.model));
+                return Core::Unexpected(
+                    std::format("0x5f9780: la luz del modelo {:#x} en la mano del lugar {} (0x506b50) "
+                                "va al buffer dinámico 0x7b4ccc4, que MuRet no tiene",
+                                hand.model, slot));
             }
         }
     }
-    // 0x506b64: +0x3d8 en 0, sin los efectos de +0x3d4: en los personajes solo lo escribe 0x4fd5f0, que lo
-    // baja si es positivo (0x4fd75e); los otros que escriben +0x3d4 y +0x3d8 son de la UI (*estático*).
+    // 0x506b64: +0x3d8 en 0. Positivo, con +0x3d4 en 0x611 sortea con rand() & 3 y, si da 0, tres más una
+    // posición, y con 0x612 recorre los huesos con 0x4ec110; no crea nada (Q-C266). En los personajes +0x3d8 solo
+    // lo escribe 0x4fd5f0, que lo baja si es positivo (0x4fd75e); los otros que escriben +0x3d4 y +0x3d8 son de la
+    // UI (*estático*).
     // 0x506cac: rand() & 7, sin condición. El camino del 0x20a no lee el valor (*estático*, Q-C207).
     static_cast<void>(context.random.Next());
     // 0x506ccc..0x506cf1: el caso del tipo − 0x152; el 0x20a cae en 0x506cf8, que mira el mapa 7 solo en la
@@ -614,35 +629,49 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     const std::int32_t map = context.world.Runtime().map;
     if (context.scene == SceneId::Game && map == ClockEffectMap)
     {
-        return Core::Unexpected(std::string("0x506d01: en el mapa 7 el jugador saca el efecto 0x607 según el reloj "
-                                            "del mundo (0x5767b88), que no está portado"));
+        return Core::Unexpected(std::format("0x506d01: en el mapa 7 el personaje del lugar {} saca el efecto 0x607 "
+                                            "según el reloj del mundo (0x5767b88), que no está portado",
+                                            slot));
     }
     if (map == RandomEffectMap)
     {
-        return Core::Unexpected(std::string("0x506d8b: en el mapa 9 el jugador sortea dos efectos 0x68 con rand() & 3, "
-                                            "que no están portados"));
+        return Core::Unexpected(std::format("0x506d8b: en el mapa 9 el personaje del lugar {} sortea dos efectos 0x68 "
+                                            "con rand() & 3, que no están portados",
+                                            slot));
     }
     const std::uint8_t action = actor.animation.action;
     if (action == FirstEffectAction || action == SecondEffectAction)
     {
-        return Core::Unexpected(std::format("0x506e5d: la acción {:#x} del jugador saca los efectos 0x5ac y los de "
+        return Core::Unexpected(std::format("0x506e5d: la acción {:#x} del lugar {} saca los efectos 0x5ac y los de "
                                             "0x5189f0, que no están portados",
-                                            action));
+                                            action, slot));
     }
     if (action == BoneEffectAction)
     {
-        return Core::Unexpected(std::string("0x506f62: la acción 0x96 del jugador saca diez efectos 0x5d9 en huesos "
-                                            "de rand(), que no están portados"));
+        return Core::Unexpected(std::format("0x506f62: la acción 0x96 del lugar {} saca diez efectos 0x5d9 en huesos "
+                                            "de rand(), que no están portados",
+                                            slot));
     }
     // 0x506fc1..0x507001: 0x4ec110 con el hueso de +0x2bd a un local que nadie lee, y a 0x50862f.
-    // 0x50862f..0x5086ca: los pasos del héroe, el sonido de 0x505770 con +0x3e0 y +0x3e1.
-    if (HasStepSounds(action))
+    // 0x50862f..0x5086ca: solo con el héroe publicado (0x508641), los pasos: el sonido de 0x505770 con +0x3e0 y
+    // +0x3e1.
+    if (hero && HasStepSounds(action))
     {
         return Core::Unexpected(std::format("0x508668: los pasos del héroe en la acción {:#x} (0x505770, con +0x3e0 y "
                                             "+0x3e1) no están portados",
                                             action));
     }
-    // 0x5086cf..0x508801: las acciones de ahí son todas de los pasos, que ya cortaron.
+    // 0x5086cf..0x508801: en Kalima, el 0x20a en las acciones 0x15, 0x1d a 0x21 y 0x4b (con el héroe, todas de los
+    // pasos, que ya cortaron) saca el 0x6f4 en (0, −40, 0) girado por +0x1c (0x5fc8f0 y 0x5fcbd0), con rand() % 64
+    // en la x (0x508793) y en la y (0x5087b6).
+    if (IsKalima(map) && IsOneOf(KalimaParticleActions, action))
+    {
+        static_cast<void>(context.random.Next());
+        static_cast<void>(context.random.Next());
+        return Core::Unexpected(std::format("0x5087fc: en el {} la acción {:#x} del lugar {} saca la partícula 0x6f4 "
+                                            "(0x53fe70), que no está portada",
+                                            MapText(map), action, slot));
+    }
     return {};
 }
 } // namespace

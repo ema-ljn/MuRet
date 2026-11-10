@@ -41,7 +41,7 @@ struct WorldRuntime
     // DAT_006d5dc8 escrito por un paquete: el F1 02 con 1 pone la 4 (0x4c363f) mientras se lee la red, y
     // el próximo paso del original ya es el de la selección. MuRet la deja acá y el SceneManager la toma
     // después del Poll (main.cpp) y entra en su próximo paso. Vacía, nadie la pidió.
-    std::optional<SceneId> orderedScene;
+    std::optional<SceneId> orderedScene{};
     // DAT_07d3a13e: si la carga del mundo (0x6356f0) ya armó el contador y subió sus texturas. La
     // baja la selección justo antes de pasar a la escena 3 (0x633efe, 0x634469, 0x634631) y la sube
     // 0x6356f0 (0x635980). Nadie más la escribe.

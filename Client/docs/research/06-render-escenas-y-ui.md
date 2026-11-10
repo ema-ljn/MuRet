@@ -4208,6 +4208,30 @@ frame lo pone `0x637700` (`0x63835d..0x6384f5`): Icarus (10), (0,0117; 0,0977; 0
 a 29 y 36), (0,1172; 0,1563; 0,1563); y negro en los demás (*estático*). No hay cielo: Icarus no
 dibuja el terreno y pone las nubes (`0xbb`, `0x622`, `0x623`), y Kalima dibuja su agua en un pase
 aparte (`0x4378a0` → `0x41cca0`, `0x41cf00`).
+### Las partículas de la fuente en el juego
+
+**Estático**, `0x603011..0x60313f`: después del rand común del objeto, luz1 y V calculada con NEG
+envolvente del low32 de ftol(reloj), resto firmado1000, por `0x3a83126f`; U queda igual. El guard
+`rand()%2` impar termina. Par: X/Z = `rand()%32−16`, Y=−20, hueso1, alta `0x5f2/0`; después nuevos
+X/Z, Y=−80, hueso4 y otra alta. Cada alta con lugar libre toma dos rand más. Son9 sorteos con dos
+altas,7 con una y5 con pool lleno, además del común del objeto. Los sorteos de la segunda gota van
+después del alta de la primera. Cada punto usa `0x4ec110` con Translate=0: la matriz ya está en
+coordenadas del mundo y no recibe otra escala/origen.
+
+`StepGameWaterspoutFrame` conserva ese orden y cualquier primera gota si falla la segunda,
+sobre el pool y el servicio de huesos que presta el caller. El adaptador de modelos sólo acredita
+los huesos escritos de la pose vigente: con alpha<0,01 o hueso dummy devuelve su frontera después
+de los X/Z de esa gota, porque este PR todavía no conserva la pose del modelo anterior. La API
+`WaterspoutBonePoint` admite un préstamo explícito; el carry durable entre escenas y el binding de
+`GameScene` con `WorldState::Particles` se integran por separado. Un préstamo ausente no se cambia
+por una identidad. El contraste con una captura nativa sigue pendiente.
+
+`StepGameParticles` reutiliza `StepParticlesChecked` desde `0x637128`, después de personajes y antes
+de las marcas del suelo; consume los dos rand del viento incluso con la tabla vacía.
+`DrawGameParticles` reutiliza `DrawParticles` para `0x637558` en espacio de ojo. Su módulo está
+probado, pero la escena todavía no lo alcanza por `0x6374fe`. `GameParticlesTest` y los tests de
+entrada cubren los presupuestos, nacimientos, pool lleno y prefijos; no son observaciones nativas.
+
 
 ### Los objetos del juego
 

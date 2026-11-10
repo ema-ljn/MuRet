@@ -8,6 +8,8 @@
 #include "Protocol/Character/CharacterSelectResult.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/DarkHorse.h"
+#include "Scenes/HelperTable.h"
 #include "Scenes/IWorldEntryPublisher.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -244,7 +246,7 @@ TEST(ReturnToSelectionWithoutDataTest, WithTheOwnRecordOpenTheReturnDrawsNoRand)
 }
 
 // 0x510f70 compara la clave con signo (movsx en 0x510f8a): con −1, la clave 0x7fff muere y la 0xffff no;
-// los muertos quedan muertos.
+// los muertos quedan muertos. El caballo del que muere se apaga (0x510fa1..0x510fc0); el del que queda, no.
 TEST(ReturnToSelectionWithoutDataTest, OnlyTheKeyFFFFSurvives)
 {
     Returning tested({}, Seed);
@@ -254,11 +256,16 @@ TEST(ReturnToSelectionWithoutDataTest, OnlyTheKeyFFFFSurvives)
     actors[2].alive = true;
     actors[2].key = SurvivingKey;
     actors[3].key = SurvivingKey;
+    auto& helpers = tested.world.Helpers();
+    helpers[0] = Client::Scenes::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = 1};
+    helpers[1] = Client::Scenes::HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = 2};
 
     ApplyReturnToSelection(tested.Resources());
 
     EXPECT_FALSE(actors[1].alive);
     EXPECT_TRUE(actors[2].alive);
     EXPECT_FALSE(actors[3].alive);
+    EXPECT_FALSE(helpers[0].alive);
+    EXPECT_TRUE(helpers[1].alive);
 }
 } // namespace

@@ -477,7 +477,8 @@ Scenes::RasterizerFactory FontFactory(const App::ClientConfig& config, App::Font
     };
 }
 
-// Las cinco escenas (CL5.4 y CL6.3). Los modelos los lee la carga y los usa la selección.
+// Las cinco escenas (CL5.4 y CL6.3). Los modelos los lee la carga y los usan el login, la selección y el
+// caballo del juego.
 Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const Scenes::GameData& data,
                                       Scenes::GameModels& models, App::ServerSession* session)
 {
@@ -496,7 +497,7 @@ Scenes::SceneFactory MakeSceneFactory(const Scenes::SceneContext& context, const
         case Scenes::SceneId::WorldLoading:
             return std::make_unique<Scenes::WorldLoadingScene>(context);
         case Scenes::SceneId::Game:
-            return std::make_unique<Scenes::GameScene>(context, session);
+            return std::make_unique<Scenes::GameScene>(context, session, &models);
         }
         return nullptr;
     };

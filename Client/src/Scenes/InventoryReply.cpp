@@ -4,6 +4,7 @@
 #include "Protocol/Character/InventoryList.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/LogicalAccess.h"
+#include "Scenes/HelperTable.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/OwnItemPlacement.h"
@@ -34,9 +35,9 @@ Core::Expected<InventoryReplyResult, std::string> ApplyInventory(const Protocol:
                                                                  const WorldEntryResources& resources)
 {
     ClearForInventoryReply(resources);
-    // 0x4c5e4f..0x4c5e61: 0x443d40 apaga las entradas vivas de la tabla de 0x7d335d0 cuyo dueño (+0x108) es
-    // el héroe publicado, y 0x421d60 suelta su cuervo (+0x430). MuRet no tiene ni una ni otro en el mundo,
-    // como en 0x510f70 (Scenes::LoadMap): no hay nada que soltar.
+    // 0x4c5e4f..0x4c5e61: 0x443d40 apaga las entradas vivas de la tabla de 0x7d335d0 cuyo jinete (+0x108) es
+    // el héroe publicado, y 0x421d60 suelta su cuervo (+0x430), que MuRet no tiene en el mundo.
+    TurnOffHelpersOf(resources.world.Helpers(), resources.world.Runtime().hero);
     // 0x4c5e6c..0x4c5e9f: la cantidad de p+5, releída después de cada 0x5bc740, que no escribe el paquete.
     InventoryReplyResult result;
     for (std::size_t index = 0; index < list.items.size(); ++index)

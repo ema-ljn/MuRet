@@ -33,7 +33,7 @@ void ApplyReturnToSelection(const WorldEntryResources& resources)
     // 0x4c3635: 0x61eef0. Primero 0x6070a0; después 0x612230 y 0x612d50 sueltan los modelos 0x152..0x207 y
     // los sonidos 0xa0..0x1c1, y 0x607b40 los ítems del piso, que MuRet no tiene.
     ReleaseTheMapObjects(world.Map());
-    KillOtherActors(world.Actors(), NoKey);
+    KillOtherActors(world, NoKey);
     // 0x4c363a: 0x42fdc0 pone en su valor inicial globales de la interfaz que MuRet no tiene.
     // 0x4c363f: la escena 4.
     runtime.orderedScene = SceneId::CharacterSelect;

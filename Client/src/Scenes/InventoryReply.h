@@ -29,9 +29,10 @@ struct InventoryReplyResult
 // cierra (3.848 rand() si lo deja sin accesos) y vacía las dos grillas del inventario.
 void ClearForInventoryReply(const WorldEntryResources& resources);
 
-// 0x4c55a0 con el paquete cifrado: la inicialización común; 0x443d40 y 0x421d60 con el héroe publicado,
-// que en MuRet no sueltan nada; y 0x5bc740 por cada entrada, en orden y con las repetidas
-// (Scenes::PlaceInventoryItem). La primera que corta deja lo que hicieron las de antes.
+// 0x4c55a0 con el paquete cifrado: la inicialización común; 0x443d40 con el héroe publicado, que apaga su
+// caballo (TurnOffHelpersOf), y 0x421d60, que en MuRet no suelta nada; y 0x5bc740 por cada entrada, en
+// orden y con las repetidas (Scenes::PlaceInventoryItem). La primera que corta deja lo que hicieron las de
+// antes.
 [[nodiscard]] Core::Expected<InventoryReplyResult, std::string>
 ApplyInventory(const Protocol::Character::InventoryList& list, const WorldEntryResources& resources);
 } // namespace Client::Scenes

@@ -1,13 +1,11 @@
 #pragma once
 
 #include "Core/Expected.h"
-#include "Scenes/ActorState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldState.h"
 
 #include <cstdint>
 #include <filesystem>
-#include <span>
 #include <string>
 
 namespace Client::Render::Models
@@ -46,14 +44,14 @@ struct MapLoadContext
 // nombre del archivo: el original muestra el aviso y cierra (Q-C180).
 [[nodiscard]] Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoadContext& context);
 
-// 0x510f70(clave): mata al vivo cuya clave, con signo (movsx en 0x510f8a), no es `key`: +0 en 0,
-// 0x401040 y el caballo de la tabla 0x7d335d0 que lo lleva (+0x108). Recorre 400 registros, uno menos que
-// el pool. El muerto y el de la misma clave saltan los dos a 0x510fc2: con los 400, también con el que
-// sobrevive, suelta el cuervo (0x421d60, +0x430), las telas (0x4fb1a0) y +0x364 (0x414340) (Q-C194).
-// MuRet no tiene nada de eso en el mundo: ni caballos, ni cuervos, ni telas de los personajes del juego.
-// La carga pasa la clave del jugador; la vuelta a la selección, −1 (0x61ef04): solo sobrevive una clave
-// 0xffff (Q-C212).
-void KillOtherActors(std::span<ActorState, ActorPoolSize> actors, std::int32_t key);
+// 0x510f70(clave): mata al vivo del pool del mundo cuya clave, con signo (movsx en 0x510f8a), no es
+// `key`: +0 en 0, 0x401040 y apaga los ayudantes que lo llevan (+0x108, 0x510fa1..0x510fc0, como
+// 0x443d40). Recorre 400 registros, uno menos que el pool. El muerto y el de la misma clave saltan los dos
+// a 0x510fc2: con los 400, también con el que sobrevive, suelta el cuervo (0x421d60, +0x430), las telas
+// (0x4fb1a0) y +0x364 (0x414340) (Q-C194). MuRet no tiene eso en el mundo: ni cuervos ni telas de los
+// personajes del juego. La carga pasa la clave del jugador; la vuelta a la selección, −1 (0x61ef04): solo
+// sobrevive una clave 0xffff (Q-C212).
+void KillOtherActors(WorldState& world, std::int32_t key);
 
 // 0x6070a0: el byte vivo de los efectos y los objetos del mapa (06, "La carga del mapa", paso 2). No toca
 // el terreno ni el pasto, que la carga pisa después. El registro de los objetos (registrations) queda: su

@@ -10,6 +10,8 @@
 #include "Protocol/Character/InventoryList.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/DarkHorse.h"
+#include "Scenes/HelperTable.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
@@ -56,6 +58,7 @@ using Client::Render::Models::CrtRandom;
 using Client::Scenes::ActorState;
 using Client::Scenes::ApplyInventory;
 using Client::Scenes::EmptyOwnItemId;
+using Client::Scenes::HelperState;
 using Client::Scenes::WorldEntryResources;
 using Client::Tests::AfterDraws;
 using Client::World::ItemState;
@@ -537,6 +540,24 @@ TEST_F(InventoryReplyTest, InChaosCastleNeitherThePetNorTheRavenIsCreated)
     ASSERT_TRUE(applied.HasValue()) << applied.Error();
     EXPECT_EQ(tested.world.OwnCharacter().equipment[8].id, GuardianAngel);
     EXPECT_EQ(tested.world.OwnCharacter().equipment[1].id, DarkRaven);
+}
+
+// 0x4c5e4f..0x4c5e61: antes de las entradas, 0x443d40 con el héroe publicado apaga sus ayudantes; los de
+// otro jinete quedan.
+TEST_F(InventoryReplyTest, TheReplyTurnsOffTheHorseOfThePublishedHero)
+{
+    Stage tested = Fresh();
+    tested.PublishedHero();
+    constexpr std::size_t OtherRider = 7;
+    auto& helpers = tested.world.Helpers();
+    helpers[0] = HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = PublishedSlot};
+    helpers[1] = HelperState{.alive = true, .type = Client::Scenes::DarkHorseModel, .rider = OtherRider};
+
+    const auto applied = ApplyInventory(ListOf({Entry(12, Apple)}), tested.Resources());
+
+    ASSERT_TRUE(applied.HasValue()) << applied.Error();
+    EXPECT_FALSE(helpers[0].alive);
+    EXPECT_TRUE(helpers[1].alive);
 }
 
 // 0x5bc9d6..0x5bc9db: con Horn of Doom, el byte +0x1b del ítem va a +0x31b del héroe antes de 0x443fa0.

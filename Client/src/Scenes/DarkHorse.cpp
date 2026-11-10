@@ -18,6 +18,8 @@ constexpr float Standing = 0.3f;  // 0x3e99999a
 // 0x4e9980 con +0x16d en 0: el alpha va hacia +0x170 (1, de 0x443d70) un décimo (0x6b87b8) por paso.
 constexpr float AlphaGoal = 1.0f;
 constexpr float AlphaRate = 0.1f;
+// 0x4440f2: en la celda segura del jinete, +0x174 = 0 (el EBX de 0x44401e).
+constexpr float HiddenAlpha = 0.0f;
 } // namespace
 
 DarkHorseGait DarkHorseGaitOf(std::uint8_t riderAction)
@@ -43,15 +45,23 @@ DarkHorseGait DarkHorseGaitOf(std::uint8_t riderAction)
     }
 }
 
-void StepDarkHorse(DarkHorse& horse, const Render::Models::Skeleton& skeleton, std::uint8_t riderAction)
+void FadeInDarkHorse(DarkHorse& horse)
 {
     // En la x87 (0x4e9a0c..0x4e9a1e): un solo redondeo a float, al final.
     horse.alpha = static_cast<float>(
         ((static_cast<double>(AlphaGoal) - static_cast<double>(horse.alpha)) * static_cast<double>(AlphaRate)) +
         static_cast<double>(horse.alpha));
+}
+
+void TakeTheRidersGait(DarkHorse& horse, const Render::Models::Skeleton& skeleton, std::uint8_t riderAction)
+{
     const DarkHorseGait gait = DarkHorseGaitOf(riderAction);
     Render::Models::SetAction(horse.animation, skeleton, gait.action);
     horse.speed = gait.speed;
+}
+
+void AdvanceDarkHorse(DarkHorse& horse, const Render::Models::Skeleton& skeleton)
+{
     if (horse.animation.action < skeleton.actions.size())
     {
         static_cast<void>(Render::Models::AdvanceAnimation(horse.animation, skeleton.actions[horse.animation.action],
@@ -59,8 +69,29 @@ void StepDarkHorse(DarkHorse& horse, const Render::Models::Skeleton& skeleton, s
     }
 }
 
+void StepDarkHorse(DarkHorse& horse, const Render::Models::Skeleton& skeleton, std::uint8_t riderAction,
+                   bool riderInSafeCell)
+{
+    FadeInDarkHorse(horse);
+    if (riderInSafeCell)
+    {
+        // 0x4440f2..0x4440f8: el alpha en 0 y al avance, sin tocar la acción ni +0xd8.
+        horse.alpha = HiddenAlpha;
+    }
+    else
+    {
+        TakeTheRidersGait(horse, skeleton, riderAction);
+    }
+    AdvanceDarkHorse(horse, skeleton);
+}
+
+void StepDarkHorse(DarkHorse& horse, const Render::Models::Skeleton& skeleton, std::uint8_t riderAction)
+{
+    StepDarkHorse(horse, skeleton, riderAction, false);
+}
+
 DrawnObject DrawnDarkHorse(const DarkHorse& horse, const Render::Models::Skeleton* skeleton,
-                           const Render::Models::ObjectTransform& rider, float scale, float stepAlpha)
+                           const Render::Models::ObjectTransform& place, float scale, float stepAlpha)
 {
     DrawnObject drawn;
     drawn.model = DarkHorseModel;
@@ -70,7 +101,7 @@ DrawnObject DrawnDarkHorse(const DarkHorse& horse, const Render::Models::Skeleto
         drawn.animation = Render::Models::Interpolated(horse.animation, skeleton->actions[horse.animation.action],
                                                        horse.speed, stepAlpha);
     }
-    drawn.transform = rider;
+    drawn.transform = place;
     drawn.transform.scale = scale;
     drawn.alpha = horse.alpha;
     drawn.vertexLight = true;

@@ -133,6 +133,31 @@ TEST(DarkHorseTest, AStepTakesTheActionOfTheRiderAndAdvancesAtItsSpeed)
     EXPECT_FLOAT_EQ(horse.animation.frame, 2.0f);
 }
 
+// 0x4440b8..0x4440f8: en la celda segura del jinete el alpha sube y vuelve a 0, y el caballo avanza con la
+// acción y la velocidad que tenía, sin mirar la del jinete. Al salir, sube otra vez desde 0,1.
+TEST(DarkHorseTest, InTheRidersSafeCellTheAlphaGoesToZeroAndKeepsTheSpeed)
+{
+    const Skeleton skeleton = HorseSkeleton();
+    DarkHorse horse;
+    StepDarkHorse(horse, skeleton, 0x54, false);
+    ASSERT_EQ(horse.animation.action, 5u);
+    ASSERT_FLOAT_EQ(horse.speed, 1.0f);
+    ASSERT_FLOAT_EQ(horse.alpha, 0.1f);
+
+    StepDarkHorse(horse, skeleton, 0x53, true);
+
+    EXPECT_FLOAT_EQ(horse.alpha, 0.0f);
+    EXPECT_EQ(horse.animation.action, 5u);
+    EXPECT_FLOAT_EQ(horse.speed, 1.0f);
+    EXPECT_FLOAT_EQ(horse.animation.frame, 2.0f);
+
+    StepDarkHorse(horse, skeleton, 0x53, false);
+
+    EXPECT_FLOAT_EQ(horse.alpha, 0.1f);
+    EXPECT_EQ(horse.animation.action, 3u);
+    EXPECT_FLOAT_EQ(horse.speed, 0.34f);
+}
+
 // Lo que se dibuja: el 0xbf, en el lugar y con los ángulos del jinete y la escala de 0x445260, con su
 // alpha, la luz por vértice y la animación de un poco más que el paso.
 TEST(DarkHorseTest, TheHorseIsDrawnWhereItsRiderIs)

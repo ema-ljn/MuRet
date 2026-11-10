@@ -6,6 +6,7 @@
 #include "Data/WorldLoadIdentity.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/HelperTable.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
@@ -140,14 +141,17 @@ Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, Wo
 }
 } // namespace
 
-void KillOtherActors(std::span<ActorState, ActorPoolSize> actors, std::int32_t key)
+void KillOtherActors(WorldState& world, std::int32_t key)
 {
-    for (ActorState& actor : actors.first<KilledActorCount>())
+    const std::span<ActorState, ActorPoolSize> actors = world.Actors();
+    for (std::size_t slot = 0; slot < KilledActorCount; ++slot)
     {
+        ActorState& actor = actors[slot];
         const auto actorKey = static_cast<std::int32_t>(static_cast<std::int16_t>(actor.key));
         if (actor.alive && actorKey != key)
         {
             actor.alive = false;
+            TurnOffHelpersOf(world.Helpers(), slot);
         }
     }
 }
@@ -170,7 +174,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     if (context.scene != SceneId::CharacterSelect)
     {
         // El DWORD 0x57678bc lleva la clave sin signo.
-        KillOtherActors(context.world.Actors(), static_cast<std::int32_t>(context.playerKey));
+        KillOtherActors(context.world, static_cast<std::int32_t>(context.playerKey));
     }
     if (map == LoginMap)
     {

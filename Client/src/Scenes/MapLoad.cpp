@@ -6,11 +6,15 @@
 #include "Data/WorldLoadIdentity.h"
 #include "Render/Models/Cloth.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/FaunaState.h"
+#include "Scenes/GameDrawTail.h"
 #include "Scenes/HelperTable.h"
+#include "Scenes/MapModelEffectServices.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/Leaves.h"
 #include "World/Particles.h"
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldObjects.h"
@@ -92,8 +96,12 @@ Core::Expected<void, std::string> CreateTheObjects(std::span<const Data::Terrain
                                                    const char* source, WorldMap& loaded, std::int32_t map,
                                                    Render::Models::CrtRandom& random)
 {
-    World::WorldObjectCreationContext creation{
-        .map = map, .scene = World::ObjectScene::Other, .registrations = loaded.registrations, .random = &random};
+    MapModelEffectServices services(loaded.effects, random);
+    World::WorldObjectCreationContext creation{.map = map,
+                                               .scene = World::ObjectScene::Other,
+                                               .registrations = loaded.registrations,
+                                               .services = &services,
+                                               .random = &random};
     World::WorldObjectCreationResult created = World::CreateWorldObjects(records, creation);
     for (World::WorldObject& object : created.objects)
     {
@@ -172,6 +180,19 @@ void ReleaseTheMapObjects(WorldMap& loaded)
     }
 }
 
+void ClearWorldTransientPools(WorldState& world)
+{
+    world.Fauna().Clear();
+    world.Leaves().Clear();
+    world.Particles().Clear();
+    for (auto& number : world.DrawTail().damage)
+        number.alive = false;
+    for (auto& joint : world.DrawTail().joints)
+        joint.alive = false;
+    for (auto& ribbon : world.DrawTail().ribbons)
+        ribbon.alive = false;
+}
+
 Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoadContext& context)
 {
     WorldRuntime& runtime = context.world.Runtime();
@@ -179,7 +200,7 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
     const std::int32_t map = runtime.map;
     WorldMap& loaded = context.world.Map();
     ReleaseTheMapObjects(loaded);
-    context.world.Particles().Clear();
+    ClearWorldTransientPools(context.world);
     ForgetThePreviousTerrain(loaded);
     if (context.scene != SceneId::CharacterSelect)
     {

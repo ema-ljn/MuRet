@@ -3517,6 +3517,15 @@ FaunaModels, conserva nombres/refcounts/metadata física mientras el cursor se r
 `0x60d550` excluye next; un nombre justo allí se vuelve a subir. Persistir sólo el BMD o liberar una
 vez por upload no reproduce este contrato.
 
+**Perfil numérico.** Sin/cos de fauna usan `OriginalRetainedMath`: mantienen el resultado con
+64 bits de significando antes del primer producto PC53 y de los spills f32. `0x445d60` multiplica ambos retenidos
+antes de redondear a 53; `0x53d1a0` conserva sus productos y spills separados. No equivale a dos
+sin/cos double ya redondeados, ni a std::sin del host. El perfil portable PC53/RN y sus dominios
+explícitos no acreditan universalmente FSIN/FCOS, CW, NaN, traps o todo el stack x87 del proceso.
+La validación nativa/VM sigue separada del port; no se declara cerrada la CL7.
+
+### La pose compartida entre escenas
+
 
 ### El paso de los personajes
 

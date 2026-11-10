@@ -33,6 +33,7 @@
 #include "Protocol/Outgoing.h"
 #include "Protocol/Pet/PetInfo.h"
 #include "Protocol/World.h"
+#include "Protocol/Movement.h"
 
 #include <algorithm>
 #include <array>
@@ -194,6 +195,13 @@ void ServerSession::RegisterGameServerHandlers()
                         [this](const Network::Packet& packet) { OnWorldEntryReply(packet); }) &&
         m_gameServer.On(CharacterOpcode, InventoryListSubcode,
                         [this](const Network::Packet& packet) { OnInventoryReply(packet); }) &&
+        m_gameServer.On(Protocol::Movement::WalkOpcode, [this](const Network::Packet& packet) { OnWalk(packet); }) &&
+        m_gameServer.On(Protocol::Movement::DamageOpcode,
+                        [this](const Network::Packet& packet) { OnDamage(packet); }) &&
+        m_gameServer.On(Protocol::World::TeleportOpcode,
+                        [this](const Network::Packet& packet) { OnTeleport(packet); }) &&
+        m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
+                        [this](const Network::Packet& packet) { OnRegen(packet); }) &&
         m_gameServer.On(Protocol::World::WeatherOpcode, [this](const Network::Packet& packet) { OnWeather(packet); }) &&
         m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
@@ -892,6 +900,109 @@ void ServerSession::OnWeather(const Network::Packet& packet)
         return;
     }
     static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(weather.Value(), *this)));
+}
+
+Core::Expected<void, std::string> ServerSession::SendWorldPacket(Protocol::Outgoing outgoing)
+{
+    if (WithConnectServer() || m_connection.State() != Network::LinkState::Open)
+    {
+        m_log.Warning("no se manda el paquete de mundo: el GameServer no está abierto");
+        return Core::Unexpected(std::string("el GameServer no está abierto"));
+    }
+    m_connection.Send(std::move(outgoing.packet), outgoing.delivery);
+    return {};
+}
+
+Core::Expected<void, std::string> ServerSession::SendWalk(std::span<const Protocol::Movement::Cell> path,
+                                                          Protocol::Movement::Cell target, float angle)
+{
+    auto walk = Protocol::Movement::WriteWalk(path, target, angle);
+    if (!walk.HasValue())
+    {
+        return Core::Unexpected(std::string("el camino o el ángulo del D3 no se puede escribir"));
+    }
+    return SendWorldPacket(std::move(walk).Value());
+}
+
+Core::Expected<void, std::string> ServerSession::SendFacing(std::uint8_t direction)
+{
+    return SendWorldPacket(Protocol::Movement::WriteFacing(direction));
+}
+
+void ServerSession::RequestGate(std::uint8_t gate)
+{
+    static_cast<void>(SendWorldPacket(Protocol::World::WriteGateRequest(gate)));
+}
+
+void ServerSession::ConfirmTeleport()
+{
+    static_cast<void>(SendWorldPacket(Protocol::World::WriteTeleportDone()));
+}
+
+void ServerSession::RequestCrywolfState()
+{
+    static_cast<void>(SendWorldPacket(Protocol::World::WriteCrywolfState()));
+}
+
+std::span<const std::vector<std::byte>> ServerSession::Teleports() const
+{
+    return m_teleports.Entries();
+}
+
+// 06 § Caminar: los ecos y el daño se aplican sin guarda de escena ni del flag de cifrado.
+void ServerSession::OnWalk(const Network::Packet& packet)
+{
+    const auto walk = Protocol::Movement::ReadWalk(packet);
+    if (!walk.HasValue())
+    {
+        m_log.Warning("se ignora el movimiento (D3): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(walk.Value(), *this)));
+}
+
+void ServerSession::OnDamage(const Network::Packet& packet)
+{
+    const auto damage = Protocol::Movement::ReadDamage(packet);
+    if (!damage.HasValue())
+    {
+        m_log.Warning("se ignora el daño (D7): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(damage.Value(), *this)));
+}
+
+// P-C33: 0x4c6e32 prueba el flag antes de leer los campos; cero manda el F1 03.
+void ServerSession::OnTeleport(const Network::Packet& packet)
+{
+    // 0x4e3e98..0x4e3f1d, antes del flag y del lector, incluso si se rechaza o está corto.
+    m_teleports.Record(packet.Bytes());
+    if (!packet.WasDecrypted())
+    {
+        m_log.Warning("el warp (1C) no llegó cifrado: se le avisa al GameServer (F1 03)");
+        Protocol::Outgoing report = Protocol::World::WriteRejectedTeleport();
+        m_connection.Send(std::move(report.packet), report.delivery);
+        return;
+    }
+    const auto teleport = Protocol::World::ReadTeleport(packet);
+    if (!teleport.HasValue())
+    {
+        m_log.Warning("se ignora el warp (1C): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(teleport.Value(), *this)));
+}
+
+// 0x4c4b80 recibe sólo el paquete: no mira el flag de cifrado.
+void ServerSession::OnRegen(const Network::Packet& packet)
+{
+    const auto regen = Protocol::World::ReadRegen(packet);
+    if (!regen.HasValue())
+    {
+        m_log.Warning("se ignora la reaparición (F3 04): {}", Unreadable);
+        return;
+    }
+    static_cast<void>(CheckApplication(m_eventSink.ApplyWorld(regen.Value(), *this)));
 }
 
 // 0x4c2710 no mira el estado ni la escena para el 0: SendMessageA(WM_DESTROY) en 0x4c391b, y el

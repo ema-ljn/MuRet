@@ -11,6 +11,7 @@
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/WorldObjectRegistrations.h"
 #include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
 
@@ -161,6 +162,11 @@ void ReleaseTheMapObjects(WorldMap& loaded)
     loaded.effects.Clear();
     loaded.objects.clear();
     loaded.objectRecords.clear();
+    // 0x60719c..0x6071ac: solo el byte vivo de los 200 registros; los demás campos sobreviven.
+    for (World::WorldObjectRegistration& entry : loaded.registrations.entries)
+    {
+        entry.active = 0;
+    }
 }
 
 Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoadContext& context)

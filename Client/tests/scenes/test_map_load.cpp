@@ -9,6 +9,7 @@
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldState.h"
 #include "World/GroundMarks.h"
+#include "World/WorldObjectRegistrations.h"
 #include "World/WorldTerrain.h"
 
 #include "support/GoldenDir.h"
@@ -39,6 +40,43 @@ using Client::Scenes::WorldState;
 constexpr std::uint32_t Seed = 0x5eed;
 constexpr std::uint16_t PlayerKey = 5;
 constexpr int GrassRandoms = 65536;
+
+// 06 § La carga del mapa, paso 2: 0x60719c..0x6071ac solo apaga el primer byte de los 200
+// registros de 0x7d34818. La próxima creación debe poder reutilizarlos sin borrar sus demás campos.
+TEST(MapObjectsReleaseTest, ReopensEveryRegistrationWithoutErasingItsPayload)
+{
+    Client::Scenes::WorldMap loaded;
+    auto& registrations = loaded.registrations;
+    for (std::size_t slot = 0; slot < registrations.entries.size(); ++slot)
+    {
+        registrations.entries[slot] =
+            Client::World::WorldObjectRegistration{.active = 0x80,
+                                                   .metadata = {1, 2, 3, 4, 5, 6, 7},
+                                                   .object = static_cast<Client::World::WorldObjectIdentity>(slot + 1)};
+    }
+    constexpr Client::World::WorldObjectIdentity NewObject = 999;
+    registrations.nextIdentity = NewObject;
+    const auto before = registrations.entries;
+
+    Client::Scenes::ReleaseTheMapObjects(loaded);
+
+    for (std::size_t slot = 0; slot < registrations.entries.size(); ++slot)
+    {
+        SCOPED_TRACE(slot);
+        EXPECT_EQ(registrations.entries[slot].active, 0);
+        EXPECT_EQ(registrations.entries[slot].metadata, before[slot].metadata);
+        EXPECT_EQ(registrations.entries[slot].object, before[slot].object);
+    }
+    EXPECT_EQ(registrations.nextIdentity, NewObject);
+
+    Client::World::RegisterWorldObject(registrations, NewObject);
+
+    EXPECT_EQ(registrations.entries.front().active, 1);
+    EXPECT_EQ(registrations.entries.front().object, NewObject);
+    EXPECT_EQ(registrations.entries.front().metadata, before.front().metadata);
+    EXPECT_EQ(registrations.entries.back().active, 0);
+    EXPECT_EQ(registrations.entries.back().object, before.back().object);
+}
 
 class MapLoadTest : public Client::Tests::GoldenDataTest
 {

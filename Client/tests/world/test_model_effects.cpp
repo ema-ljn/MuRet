@@ -1,6 +1,8 @@
 #include "World/ModelEffects.h"
 
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "World/WorldObjects.h"
 
@@ -282,5 +284,117 @@ TEST(ModelEffectsTest, TheButterflyIsCreatedHiddenInTheSelectionWithOneDraw)
     Client::Render::Models::CrtRandom random(9);
     EXPECT_FALSE(full.CreateButterflyEffect({}, {}, glm::vec3(1.0f), 3, 1.0f, true, random).has_value());
     EXPECT_EQ(random.State(), 9u);
+}
+
+// 0x518cf0(0xda, …, −1, …) → 0x51b80a: el prefijo común sin dueño y seis rand(): vida (& 15) + 24, escala
+// ((& 7) + 6) · 0,1f, caída −(& 3) (−0 con 0), y el corrimiento ((& 63) − 32; −((& 31) + 50); (& 127) +
+// 200), girado (con los ángulos en 0 queda igual) y sumado a la posición en float.
+TEST(ModelEffectsTest, TheFallingStoneDrawsSixTimesAndStartsAboveItsDrip)
+{
+    for (const std::uint32_t seed : {1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u})
+    {
+        SCOPED_TRACE(seed);
+        ModelEffects effects;
+        Client::Render::Models::CrtRandom random(seed);
+        Client::Render::Models::CrtRandom draws(seed);
+        const auto slot =
+            effects.CreateFallingStone({100.0f, 200.0f, 300.0f}, glm::vec3(0.0f), {0.25f, 0.5f, 0.75f}, random);
+        ASSERT_EQ(slot, std::optional<std::size_t>(0));
+        const ModelEffect& effect = effects.Effects()[0];
+        const int life = (draws.Next() & 15) + 24;
+        const auto scale =
+            static_cast<float>(((draws.Next() & 7) + 6) * static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
+        const int fall = draws.Next() & 3;
+        const auto x = static_cast<float>((draws.Next() & 63) - 32);
+        const auto y = -static_cast<float>((draws.Next() & 31) + 50);
+        const auto z = static_cast<float>((draws.Next() & 127) + 200);
+        EXPECT_TRUE(effect.alive);
+        EXPECT_EQ(effect.type, Client::World::FallingStoneEffect);
+        EXPECT_EQ(effect.subtype, 0);
+        EXPECT_EQ(effect.life, life);
+        EXPECT_EQ(effect.transform.scale, scale);
+        EXPECT_EQ(Bits(effect.turnDirection), Bits(-static_cast<float>(fall)));
+        EXPECT_EQ(effect.transform.position, glm::vec3(static_cast<float>(static_cast<double>(x) + 100.0),
+                                                       static_cast<float>(static_cast<double>(y) + 200.0),
+                                                       static_cast<float>(static_cast<double>(z) + 300.0)));
+        EXPECT_EQ(effect.light, glm::vec3(0.25f, 0.5f, 0.75f));
+        EXPECT_EQ(effect.disturbanceState, 0xffffu);
+        EXPECT_EQ(effect.itemType, nullptr);
+        EXPECT_EQ(random.State(), draws.State());
+    }
+    ModelEffects full;
+    for (auto& effect : full.Effects())
+        effect.alive = true;
+    Client::Render::Models::CrtRandom random(9);
+    EXPECT_FALSE(full.CreateFallingStone({}, {}, glm::vec3(1.0f), random).has_value());
+    EXPECT_EQ(random.State(), 9u);
+}
+
+// 0x518cf0(0x5de, …) → 0x51e7d8 con el subtipo 0: vida 40 y el registro propio abierto y cerrado; con la
+// cuenta en 0, el cierre gasta los 3.848 rand() del registro.
+TEST(ModelEffectsTest, TheFlameJetLivesFortyAndClosesTheOwnRecord)
+{
+    for (const std::uint8_t start : {std::uint8_t{0}, std::uint8_t{2}})
+    {
+        SCOPED_TRACE(static_cast<int>(start));
+        ModelEffects effects;
+        std::uint8_t depth = start;
+        Client::Render::Models::CrtRandom random(9);
+        const auto slot =
+            effects.CreateFlameJet({1.0f, 2.0f, 3.0f}, {0.0f, 0.0f, 90.0f}, glm::vec3(1.0f), depth, random);
+        ASSERT_EQ(slot, std::optional<std::size_t>(0));
+        const ModelEffect& effect = effects.Effects()[0];
+        EXPECT_EQ(effect.type, Client::World::FlameJetEffect);
+        EXPECT_EQ(effect.subtype, 0);
+        EXPECT_EQ(effect.life, 40);
+        EXPECT_EQ(effect.transform.position, glm::vec3(1.0f, 2.0f, 3.0f));
+        EXPECT_EQ(depth, start);
+        Client::Render::Models::CrtRandom expected(9);
+        if (start == 0)
+        {
+            for (int draw = 0; draw < Client::Render::Models::OwnRecordCloseRandoms; ++draw)
+                static_cast<void>(expected.Next());
+        }
+        EXPECT_EQ(random.State(), expected.State());
+    }
+}
+
+// 0x518cf0(0xc8 o 0xc9, …) → 0x51b72b con el subtipo 0: el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15)
+// + 32, la escala ((& 3) + 8) · 0,1f, el yaw rand() % 360, la velocidad (el empuje girado con ese yaw) y la
+// caída (& 15) + 8. Otro tipo no crea nada ni saca rand().
+TEST(ModelEffectsTest, TheStoneChipsArePushedAlongTheirDrawnYaw)
+{
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    for (const std::int16_t type : {Client::World::FirstStoneChipEffect, Client::World::SecondStoneChipEffect})
+    {
+        SCOPED_TRACE(type);
+        ModelEffects effects;
+        Client::Render::Models::CrtRandom random(4);
+        Client::Render::Models::CrtRandom draws(4);
+        const auto slot =
+            effects.CreateStoneChip(type, {10.0f, 20.0f, 30.0f}, glm::vec3(0.0f), {0.5f, 0.5f, 0.5f}, random);
+        ASSERT_EQ(slot, std::optional<std::size_t>(0));
+        const ModelEffect& effect = effects.Effects()[0];
+        const auto push = static_cast<float>(((draws.Next() & 255) + 64) * Tenth);
+        const int life = (draws.Next() & 15) + 32;
+        const auto scale = static_cast<float>(((draws.Next() & 3) + 8) * Tenth);
+        const auto yaw = static_cast<float>(draws.Next() % 360);
+        const auto fall = static_cast<float>((draws.Next() & 15) + 8);
+        EXPECT_EQ(effect.type, type);
+        EXPECT_EQ(effect.life, life);
+        EXPECT_EQ(effect.transform.scale, scale);
+        EXPECT_EQ(effect.transform.angles, glm::vec3(0.0f, 0.0f, yaw));
+        EXPECT_EQ(effect.velocity,
+                  Client::Render::Models::OriginalVectorRotate(
+                      {0.0f, push, 0.0f}, Client::Render::Models::OriginalAngleMatrix({0.0f, 0.0f, yaw})));
+        EXPECT_EQ(effect.turnDirection, fall);
+        EXPECT_EQ(effect.transform.position, glm::vec3(10.0f, 20.0f, 30.0f));
+        EXPECT_EQ(random.State(), draws.State());
+    }
+    ModelEffects effects;
+    Client::Render::Models::CrtRandom random(4);
+    EXPECT_FALSE(effects.CreateStoneChip(0xca, {}, {}, glm::vec3(1.0f), random).has_value());
+    EXPECT_FALSE(effects.Effects()[0].alive);
+    EXPECT_EQ(random.State(), 4u);
 }
 } // namespace

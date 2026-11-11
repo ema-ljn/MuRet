@@ -291,10 +291,11 @@ TEST_F(GoldenLoginScene, TheTerrainGoesBeforeTheCharacter)
 }
 
 // CL7.2: con los modelos de la carga (GameModels y su tabla de slots, como en main.cpp), las texturas
-// de los objetos de Object56\ van desde 0x41c y el logo sigue donde termina el mundo: en MuRet, 0x45a
-// (0x455 en el original, que ya tiene cinco de esos nombres en la tabla: GoldenWorldModels).
+// de los objetos de Object56\ van desde 0x41c y el logo sigue donde termina el mundo: en MuRet, 0x459
+// (0x455 en el original, que ya tiene cinco de esos nombres en la tabla; MuRet, sólo fire02:
+// GoldenWorldModels).
 constexpr std::uint16_t WorldFirstSlot = 0x41c;
-constexpr std::uint16_t LogoFirstSlot = 0x45a;
+constexpr std::uint16_t LogoFirstSlot = 0x459;
 
 bool IsWorldObject(const Client::Render::ModelDrawCommand& command)
 {

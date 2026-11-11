@@ -4,7 +4,10 @@
 #include "Render/Models/Skeleton.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
+#include "World/SelectionParticleKernels.h"
 #include "World/Sprites.h"
+#include "World/TerrainLighting.h"
+#include "World/WorldObjectStepServices.h"
 
 #include "support/PlayerActors.h"
 
@@ -13,7 +16,9 @@
 #include <gtest/gtest.h>
 
 #include <bit>
+#include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 namespace
@@ -276,5 +281,234 @@ TEST(GameModelEffectsTest, TheButterflyNeedsTheTerrainHeightAndTheSpriteTable)
                                              spriteless.services);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x520fd1"), std::string::npos);
+}
+
+// Los efectos del Dungeon y de Lost Tower, sin dueño y con la animación común fuera (sin esqueleto).
+Client::World::ModelEffect DungeonEffect(std::int16_t type, std::int32_t life)
+{
+    Client::World::ModelEffect effect;
+    effect.alive = true;
+    effect.type = type;
+    effect.life = life;
+    effect.transform.scale = 1.0f;
+    effect.transform.position = {1000.0f, 1000.0f, 100.0f};
+    effect.light = {0.25f, 0.5f, 0.75f};
+    effect.animation.action = 0xff;
+    return effect;
+}
+
+// La primera semilla cuya sorteo número `draw` (desde 0) cumple la condición.
+std::uint32_t SeedWhereDraw(int draw, bool (*condition)(int))
+{
+    for (std::uint32_t seed = 1;; ++seed)
+    {
+        Client::Render::Models::CrtRandom random(seed);
+        for (int skipped = 0; skipped < draw; ++skipped)
+            static_cast<void>(random.Next());
+        if (condition(random.Next()))
+            return seed;
+    }
+}
+
+// 0x52444d..0x5244ae: la z suma la caída (+0xe4), que pierde 1; con el suelo por encima, se apoya, la caída
+// rebota a −0,4f, pierde 4 de vida y 2 en la y de su velocidad (que 0x51fc80 suma girada en el mismo paso).
+// Un solo rand(), el del prefijo. previousPosition guarda la posición de antes del paso entero.
+TEST(GameModelEffectsTest, TheFallingStoneFallsAndBouncesOnTheGround)
+{
+    Client::World::ModelEffect falling = DungeonEffect(Client::World::FallingStoneEffect, 30);
+    falling.turnDirection = -2.0f;
+    Client::World::Particles particles;
+    Client::World::ModelEffectStepServices services;
+    services.terrainHeight = [](float, float) { return 50.0; };
+    Client::Render::Models::CrtRandom random(1);
+    ASSERT_TRUE(
+        Client::World::StepGameModelEffect(falling, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
+    EXPECT_EQ(falling.transform.position, glm::vec3(1000.0f, 1000.0f, 98.0f));
+    EXPECT_EQ(falling.turnDirection, -3.0f);
+    EXPECT_EQ(falling.life, 29);
+    EXPECT_EQ(falling.velocity, glm::vec3(0.0f));
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 1).State());
+
+    Client::World::ModelEffect landing = DungeonEffect(Client::World::FallingStoneEffect, 30);
+    landing.turnDirection = -2.0f;
+    services.terrainHeight = [](float, float) { return 120.25; };
+    ASSERT_TRUE(
+        Client::World::StepGameModelEffect(landing, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
+    EXPECT_EQ(landing.transform.position, glm::vec3(1000.0f, 998.0f, 120.25f));
+    EXPECT_EQ(landing.turnDirection, static_cast<float>(-3.0 * static_cast<double>(std::bit_cast<float>(0xbecccccdu))));
+    EXPECT_EQ(landing.life, 25);
+    EXPECT_EQ(landing.velocity, glm::vec3(0.0f, -2.0f, 0.0f));
+    EXPECT_EQ(landing.previousPosition, glm::vec3(1000.0f, 1000.0f, 100.0f));
+
+    services.terrainHeight = {};
+    Client::World::ModelEffect blind = DungeonEffect(Client::World::FallingStoneEffect, 30);
+    const auto cut = Client::World::StepGameModelEffect(blind, nullptr, particles, 0.0f, random, nullptr, services);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x524473"), std::string::npos) << cut.Error();
+}
+
+// 0x5239c8..0x523b3a con el subtipo 0: la velocidad sin girar se suma y queda por 0,9f; la caída suma y
+// pierde 3; en el aire se inclina escala · 32 y en el suelo se apoya, rebota a −0,5, pierde 4 de vida y se
+// inclina escala · 128. Con rand() % 10 en 0, un fuego 5d9 de subtipo rand() % 3 + 1 con su luz.
+TEST(GameModelEffectsTest, TheStoneChipsDragTiltBounceAndSometimesBurn)
+{
+    const std::uint32_t burns = SeedWhereDraw(1, [](int value) { return value % 10 == 0; });
+    const std::uint32_t cold = SeedWhereDraw(1, [](int value) { return value % 10 != 0; });
+    {
+        Client::World::ModelEffect chip = DungeonEffect(Client::World::FirstStoneChipEffect, 40);
+        chip.velocity = {10.0f, 0.0f, 0.0f};
+        chip.turnDirection = 5.0f;
+        Client::World::Particles particles;
+        Client::World::ModelEffectStepServices services;
+        services.terrainHeight = [](float, float) { return 0.0; };
+        Client::Render::Models::CrtRandom random(cold);
+        ASSERT_TRUE(
+            Client::World::StepGameModelEffect(chip, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
+        EXPECT_EQ(chip.velocity.x, static_cast<float>(10.0 * static_cast<double>(std::bit_cast<float>(0x3f666666u))));
+        EXPECT_EQ(chip.turnDirection, 2.0f);
+        EXPECT_EQ(chip.transform.angles.x, -32.0f);
+        EXPECT_EQ(chip.transform.position.z, 105.0f);
+        EXPECT_EQ(chip.life, 39);
+        EXPECT_FALSE(particles.All()[0].alive);
+        EXPECT_EQ(random.State(), Client::Tests::AfterDraws(cold, 2).State());
+    }
+    {
+        Client::World::ModelEffect chip = DungeonEffect(Client::World::SecondStoneChipEffect, 40);
+        chip.turnDirection = 5.0f;
+        Client::World::Particles particles;
+        Client::World::ModelEffectStepServices services;
+        services.terrainHeight = [](float, float) { return 200.0; };
+        Client::Render::Models::CrtRandom random(burns);
+        ASSERT_TRUE(
+            Client::World::StepGameModelEffect(chip, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
+        EXPECT_EQ(chip.transform.position.z, 200.0f);
+        EXPECT_EQ(chip.turnDirection, -1.0f);
+        EXPECT_EQ(chip.transform.angles.x, -128.0f);
+        EXPECT_EQ(chip.life, 35);
+        const auto& fire = particles.All()[0];
+        ASSERT_TRUE(fire.alive);
+        EXPECT_EQ(fire.type, 0x5d9);
+        Client::Render::Models::CrtRandom draws = Client::Tests::AfterDraws(burns, 2);
+        EXPECT_EQ(fire.subtype, draws.Next() % 3 + 1);
+    }
+    Client::World::ModelEffect owned = DungeonEffect(Client::World::FirstStoneChipEffect, 40);
+    owned.subtype = 1;
+    Client::World::Particles particles;
+    Client::Render::Models::CrtRandom random(1);
+    const auto cut = Client::World::StepGameModelEffect(owned, nullptr, particles, 0.0f, random);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x5238be"), std::string::npos) << cut.Error();
+}
+
+// 0x52ad21..0x52ae25 con el subtipo 0: seis llamas 5de/0 a ±25 en x e y (sus dos sorteos antes de cada
+// creación), con rand() & 7 en 0 la piedrita 0xc8 + (rand() & 1), y la luz dinámica (L; L · 0,4f; 0) de radio
+// 3 con L = ((primer rand() & 3) + 7) · 0,1f. Lo mismo con las mismas llamadas en otro orden daría otros
+// números: el esperado repite la secuencia del ASM con otro CrtRandom.
+TEST(GameModelEffectsTest, TheFlameJetSpitsSixFlamesASometimesChipAndItsLight)
+{
+    for (const bool chipped : {true, false})
+    {
+        SCOPED_TRACE(chipped);
+        const std::uint32_t seed = SeedWhereDraw(
+            25, chipped ? +[](int value) { return (value & 7) == 0; } : +[](int value) { return (value & 7) != 0; });
+        Client::World::ModelEffect jet = DungeonEffect(Client::World::FlameJetEffect, 30);
+        Client::World::Particles particles;
+        Client::World::ModelEffects effects;
+        auto lighting = std::make_unique<Client::World::TerrainLighting>();
+        Client::World::ModelEffectStepServices services;
+        services.effects = &effects;
+        services.lighting = lighting.get();
+        Client::Render::Models::CrtRandom random(seed);
+        const auto stepped =
+            Client::World::StepGameModelEffect(jet, nullptr, particles, 0.0f, random, nullptr, services);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+
+        Client::Render::Models::CrtRandom draws(seed);
+        const auto luminosity =
+            static_cast<float>(((draws.Next() & 3) + 7) * static_cast<double>(std::bit_cast<float>(0x3dcccccdu)));
+        Client::World::Particles expectedParticles;
+        for (std::size_t flame = 0; flame < 6; ++flame)
+        {
+            const auto dx = static_cast<float>(draws.Next() % 50 - 25);
+            const auto dy = static_cast<float>(draws.Next() % 50 - 25);
+            const glm::vec3 point{static_cast<float>(static_cast<double>(dx) + 1000.0),
+                                  static_cast<float>(static_cast<double>(dy) + 1000.0), 100.0f};
+            ASSERT_TRUE(expectedParticles
+                            .CreateChecked(Client::World::FlameParticle, point, glm::vec3(0.0f), glm::vec3(1.0f), 0,
+                                           1.0f, 0.0f, draws)
+                            .HasValue());
+            EXPECT_EQ(particles.All()[flame].position, point) << flame;
+            EXPECT_EQ(particles.All()[flame].subtype, 0);
+            EXPECT_EQ(particles.All()[flame].light, glm::vec3(1.0f));
+            EXPECT_EQ(particles.All()[flame].scale, expectedParticles.All()[flame].scale);
+        }
+        EXPECT_FALSE(particles.All()[6].alive);
+        Client::World::ModelEffects expectedEffects;
+        if ((draws.Next() & 7) == 0)
+        {
+            const auto type = static_cast<std::int16_t>(0xc8 + (draws.Next() & 1));
+            ASSERT_TRUE(
+                expectedEffects.CreateStoneChip(type, {1000.0f, 1000.0f, 100.0f}, glm::vec3(0.0f), jet.light, draws)
+                    .has_value());
+        }
+        EXPECT_EQ(effects.Effects()[0].alive, chipped);
+        EXPECT_EQ(effects.Effects()[0].type, expectedEffects.Effects()[0].type);
+        EXPECT_EQ(effects.Effects()[0].velocity, expectedEffects.Effects()[0].velocity);
+        EXPECT_EQ(random.State(), draws.State());
+        auto expectedLighting = std::make_unique<Client::World::TerrainLighting>();
+        ASSERT_TRUE(
+            Client::World::AddDynamicLight(expectedLighting.get(), {1000.0f, 1000.0f, 100.0f},
+                                           {luminosity,
+                                            static_cast<float>(static_cast<double>(luminosity) *
+                                                               static_cast<double>(std::bit_cast<float>(0x3ecccccdu))),
+                                            0.0f},
+                                           3, "test")
+                .HasValue());
+        EXPECT_EQ(lighting->cells, expectedLighting->cells);
+        EXPECT_EQ(jet.life, 29);
+    }
+}
+
+// La luz local del primer rand() se apaga con menos de 5 de vida: L − (5 − vida) · 0,2f, en 0 si queda debajo.
+// Sin la tabla de efectos corta cuando la piedrita sale; sin la luz dinámica, al final; otro subtipo, antes.
+TEST(GameModelEffectsTest, TheFlameJetFadesItsLightAndCutsWithoutItsTables)
+{
+    Client::World::ModelEffect fading = DungeonEffect(Client::World::FlameJetEffect, 1);
+    Client::World::Particles particles;
+    Client::World::ModelEffects effects;
+    auto lighting = std::make_unique<Client::World::TerrainLighting>();
+    Client::World::ModelEffectStepServices services;
+    services.effects = &effects;
+    services.lighting = lighting.get();
+    Client::Render::Models::CrtRandom random(3);
+    ASSERT_LT(Client::Tests::AfterDraws(3, 0).Next() & 3, 2);
+    ASSERT_TRUE(
+        Client::World::StepGameModelEffect(fading, nullptr, particles, 0.0f, random, nullptr, services).HasValue());
+    EXPECT_FALSE(fading.alive);
+    EXPECT_EQ(lighting->cells, std::make_unique<Client::World::TerrainLighting>()->cells)
+        << "con la vida en 1, L − 0,8: el primer rand() de la semilla 3 deja L en 0,7 u 0,8 y la luz negra";
+
+    const std::uint32_t chips = SeedWhereDraw(25, [](int value) { return (value & 7) == 0; });
+    Client::World::ModelEffect jet = DungeonEffect(Client::World::FlameJetEffect, 30);
+    services.effects = nullptr;
+    Client::Render::Models::CrtRandom chipping(chips);
+    auto cut = Client::World::StepGameModelEffect(jet, nullptr, particles, 0.0f, chipping, nullptr, services);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x52adf2"), std::string::npos) << cut.Error();
+
+    const std::uint32_t quiet = SeedWhereDraw(25, [](int value) { return (value & 7) != 0; });
+    Client::World::ModelEffect dark = DungeonEffect(Client::World::FlameJetEffect, 30);
+    Client::World::Particles more;
+    services.lighting = nullptr;
+    Client::Render::Models::CrtRandom quietRandom(quiet);
+    cut = Client::World::StepGameModelEffect(dark, nullptr, more, 0.0f, quietRandom, nullptr, services);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x52ae25"), std::string::npos) << cut.Error();
+
+    Client::World::ModelEffect other = DungeonEffect(Client::World::FlameJetEffect, 30);
+    other.subtype = 1;
+    cut = Client::World::StepGameModelEffect(other, nullptr, more, 0.0f, quietRandom, nullptr, services);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x52ae7f"), std::string::npos) << cut.Error();
 }
 } // namespace

@@ -102,8 +102,10 @@ constexpr std::int32_t SelectionMap = 54;
 constexpr std::int32_t AidaMap = 33;
 // Los mapas de referencia, los únicos con los casos de los objetos en el juego (0x6046a0 y 0x604ab0).
 constexpr std::int32_t LorenciaMap = 0;
+constexpr std::int32_t DungeonMap = 1;
 constexpr std::int32_t DeviasMap = 2;
 constexpr std::int32_t NoriaMap = 3;
+constexpr std::int32_t LostTowerMap = 4;
 // 0x5bb8d0: el ancho del mundo, 640 sin ventanas abiertas (MuRet no tiene las ventanas del juego).
 constexpr std::int32_t WorldWidth = 640;
 // 0x620486..0x6204b0: el mouse de 640 × 480 vuelve a la pantalla con · W / 640 y · H / 480, en enteros.
@@ -314,7 +316,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     // 0x4250f0 lleva los del 33 y los del 54 (los de la selección, vistos en su dibujo, que siguen durante la
     // espera de la entrada al juego).
     const bool aida = map == AidaMap || map == SelectionMap;
-    if (map != LorenciaMap && map != DeviasMap && map != NoriaMap && !World::IsKalimaMap(map) && !aida)
+    if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
+        !World::IsKalimaMap(map) && !aida)
     {
         return Core::Unexpected("0x606560: los objetos vistos del " + MapText(map) + " (0x604ab0) no están portados");
     }
@@ -322,7 +325,9 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     {
         return loaded;
     }
-    // 0x604ab0 lee la capa de la celda del héroe y el reloj del mundo (0x5767b88), el del paso.
+    // 0x604ab0 lee la capa de la celda del héroe y el reloj del mundo (0x5767b88), el del paso; el 1 y el 4
+    // crean efectos con modelo y la patada del 4 mira la acción del héroe.
+    const ActorState& hero = world.Actors()[world.Runtime().hero];
     const World::ObjectStepGlobals globals{
         .heroCellLayer = world.Runtime().heroCellLayer,
         .worldClock = m_context.clock != nullptr
@@ -331,9 +336,12 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
                           : 0.0f,
         .dynamicLighting = &world.DynamicLighting().Lighting(),
         .particles = &world.Particles(),
-        .heroPosition = &world.Actors()[world.Runtime().hero].position,
+        .heroPosition = &hero.position,
         .sound = [&](std::int32_t id) { world.Runtime().lastSoundId = id; },
-        .modelState = &world.Runtime().objectModelState};
+        .modelState = &world.Runtime().objectModelState,
+        .effects = &world.Map().effects,
+        .ownRecordDepth = &world.Runtime().ownRecordDepth,
+        .heroAction = &hero.animation.action};
     if (auto stepped = StepGameWorldObjects(objects, static_cast<std::uint8_t>(map), m_worldModels,
                                             m_context.cloth->random, globals);
         !stepped.HasValue())
@@ -642,14 +650,14 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         afterMarks.depthTest = true;
         canvas.models.SetState(afterMarks);
     }
-    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0, 2 y 3.
-    const bool knownObjects = map == LorenciaMap || map == DeviasMap || map == NoriaMap || World::IsKalimaMap(map);
+    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4 y Kalima.
+    const bool knownObjects = (map >= LorenciaMap && map <= LostTowerMap) || World::IsKalimaMap(map);
     if (!knownObjects &&
         std::ranges::any_of(FrameObjects(), [](const World::WorldObject& object) { return object.alive; }))
     {
         return Core::Unexpected(
             "0x6374ce: los objetos del " + MapText(map) +
-            " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0, el 2 y el 3");
+            " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4 y los de Kalima");
     }
     if (auto loaded = LoadTheObjectModels(map); !loaded.HasValue())
     {

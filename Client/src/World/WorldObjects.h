@@ -176,6 +176,7 @@ void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models
 struct TerrainLighting;
 struct ObjectModelStepState;
 class Particles;
+class ModelEffects;
 
 // Lo que 0x604ab0 lee afuera del objeto en el juego (CL7, hito 3).
 struct ObjectStepGlobals
@@ -193,9 +194,16 @@ struct ObjectStepGlobals
     // 0x41ed10(id, 0, 0): el caller conserva o emite la petición, aun en pasos consecutivos.
     std::function<void(std::int32_t)> sound{};
     ObjectModelStepState* modelState = nullptr;
+    // 0x518cf0: la tabla de los efectos con modelo, donde el 0x34 del 1 suelta la piedra 0xda y el 0x18 del 4
+    // el chorro 0x5de; el chorro abre y cierra el registro propio (0x7681eb4) con su cuenta de accesos.
+    ModelEffects* effects = nullptr;
+    std::uint8_t* ownRecordDepth = nullptr;
+    // +0x111 del héroe (0x743a170): la acción que mira la patada de 0x52f550 en el 0x26 y el 0x27 del 4.
+    const std::uint8_t* heroAction = nullptr;
 };
 
-// 0x604ab0 con un objeto visto en el juego, en los mapas 0 y 2 (*estático*, 06 § Los objetos del juego).
+// 0x604ab0 con un objeto visto en el juego, en los mapas 0 a 4 (*estático*, 06 § Los objetos del juego; los
+// del 1 y del 4, World/DungeonObjectStep.h).
 // Antes del alpha, los techos: el 0x7d y el 0x7e del 0 llevan la meta del alpha (+0x170) a 0 con la capa
 // del héroe en 4 (0x604bc4), y el 0x51, el 0x52, el 0x60, el 0x62 y el 0x63 del 2 con la capa en 3 o
 // desde 10 (0x604c06); a 1 si no. Después del alpha/animación, los casos del mapa: UV y flicker,

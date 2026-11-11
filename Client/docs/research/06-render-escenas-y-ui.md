@@ -4925,7 +4925,8 @@ lo de cada tipo del 0, en [Lo propio de Lorencia](#lo-propio-de-lorencia). Leíd
    (`0x600a4a`, [Lo propio de Lorencia](#lo-propio-de-lorencia)). Los demás, también el burro (`0x201`) y
    la bandera (`0x202`) del 2, van por el `RenderBody(2, …)` común, como en el login.
 5. `0x602ed0(objeto)` (`0x604a4d`): **un `rand()` por objeto** (`0x602ef4`), antes de mirar el tipo, y el
-   caso del mapa. En el 0 (`0x602ffb`), el `0x38` (`0x603149`, Q-C256) y el `0x69` (`0x603011`). En el 2
+   caso del mapa. En el 0 (`0x602ffb`), el `0x38` (`0x603149`: sus dos sprites salen en NaN, Q-C256) y el
+   `0x69` (`0x603011`). En el 2
    (`0x6031e5`), el `0x64` (`0x603251`): dos sprites `0x5d5` de 2,5 en (0, 0, 150) por el hueso de
    `0x68b181c`, que giran con el reloj, ±(`ftol(T · 0,1)` % 360); y el `0x67` (`0x6031f7`): con el cuadro
    del modelo (`+0xa8`) en el último de su acción, `rand()` & 31 elige la acción con `0x4ea030`: la 1 si da
@@ -4966,7 +4967,8 @@ registro propio con `LogicalAccess` en el `0x64`; en un dibujo intermedio, ningu
 `Scenes::StepGameWorldObjects` → `World::StepWorldObjectChecked`, desde `GameScene::StepTheObjects`, con
 la capa del héroe de `WorldRuntime::heroCellLayer` y el reloj del mundo. Los dos cortan con la dirección
 en lo primero que MuRet no tiene, con lo de antes ya hecho: en el dibujo, los casos de `0x602ed0` que no
-tiene, después de su `rand()` (el `0x38` del 0, y el `0x64` y el `0x67` del 2). El `0x69` se dibuja con
+tiene, después de su `rand()` (el `0x64` y el `0x67` del 2; el `0x38` del 0 deja sus dos sprites en NaN con
+`Scenes::StepMerchantAnimalFrame`, Q-C256). El `0x69` se dibuja con
 `Scenes::DrawWaterspout` y crea las dos gotas con `Scenes::StepGameWaterspoutFrame` sobre
 `WorldState::Particles`; si el modelo actual no escribió un hueso, conserva el corte de la lectura de
 pose anterior (`0x6030a5/0x603121`), con los sorteos y las gotas previos ya hechos
@@ -4989,7 +4991,7 @@ porta los casos del mundo; el original los carga en `0x61a560`. Lo que queda, en
 En la traza de Lorencia, los objetos son 120 bloques con texturas de `0x41c..0x47e`, entre el pasto y los
 pájaros ([El dibujo del juego](#el-dibujo-del-juego)); MuRet todavía no los compara (P-C53 h). Tests:
 `WorldObjectsDrawingTest` (`TheGamePassDrawsTheLiveObjectsWithARandEach`,
-`TheGamePassStopsAtTheCasesOfLorencia`, `TheLorenciaWaterspoutDrawsFourLooseMeshes`,
+`TheLorenciaMerchantAnimalLeavesTwoGlowsAtNaN`, `TheLorenciaWaterspoutDrawsFourLooseMeshes`,
 `TheLorenciaWaterspoutRunsItsFrameCase`, `TheLeveledObjectOfDeviasReadsTheOwnRecord`,
 `AnIntermediateGameDrawTakesNoRandomness`, `TheGamePassKnowsOnlyTheReferenceMaps` y
 `TheGameStepStopsAtTheFirstCaseMuRetDoesNotHave`), `WorldObjectsTest`
@@ -5003,6 +5005,94 @@ pájaros ([El dibujo del juego](#el-dibujo-del-juego)); MuRet todavía no los co
 `TheStepAfterADrawStepsTheSeenObjects`, `TheStepStopsAtTheSeenObjectsOfTheOtherMaps` y
 `TheFirstStepAfterTheWaitReadsTheTrapezoidOfTheSelection`) y
 `GoldenWorldModels.DeviasLoadsTheDonkeyAndTheFlagBeforeItsObjects`.
+
+### Los objetos del Dungeon y de Lost Tower
+
+Leído en la CL7 en el ASM y el pseudocódigo de `c32bbd5f` (*estático*; las cuentas de MuRet, *simulado*: con el
+port y la Data del repo). Lo común (el sector, `+0x16c`, el alpha, la animación y el `rand()` de `0x602ef4`) es
+lo de [Los objetos del juego](#los-objetos-del-juego).
+
+**El paso** (`0x604ab0`, después del alpha y la animación). En el 1 (por la tabla `0x605bc0`):
+
+- `0x16`, `0x17` y `0x18`: el byte `model+0x88` de su tipo en 1 (`0x605003`) y la V (`+0x70`) en
+  (`ftol(T)` % 1.000) · −0,001f (`0x6ba1a4`): el resto firmado sin negar el ftol, al revés que el agua del 0.
+- `0x27`, `0x28` y `0x33`: `+0x58` en −2.
+- `0x29` y `0x2a`: fuegos de clase 0 de `0x52f360` a (0; −30; 240) (`0x605043`) y (0; 0; 190) (`0x60505e`).
+- `0x34`: con `rand()` % 3 en 0, `0x518cf0(0xda, posición, ángulos, luz +0xf4, 0, 0, −1, …)` (`0x604fdb`), la
+  piedra que cae; siempre después, `+0x58` en −2.
+
+En el 4 (`0x6053d5`, por el tipo − 3 en la tabla `0x605c6c` → `0x605c50`):
+
+- `3` y `4`: la U (`+0x6c`) en (−`ftol(T)`, negado en 32 bits) % 1.000 · 0,001f (`0x6b89c8`), como el agua del 0.
+- `0x13` y `0x14`: `+0x64` (el blendMesh) en 4 y la misma U (`0x60542f`).
+- `0x12` y `0x17`: el blendMesh en 1 (`0x605461`).
+- `0x18`: `+0x58` en −2 y, con `rand()` & 63 en 0, `0x518cf0(0x5de, …, luz +0xf4, 0, 0, −1, …)` (`0x6054a9`),
+  el chorro.
+- `0x19`: `+0x58` en −2 (`0x6059dd`).
+- `0x26` y `0x27`: la patada (`0x52f550`). Con la acción del héroe (`+0x111` de `[0x743a170]`) entre `0xd` y
+  `0x21` y la x de la velocidad (`+0xcc`) por debajo de 0,1f (NaN también: `fcomp` sin orden pone C0), mide
+  dx y dy al héroe; dy se guarda en float y la distancia es √(dy · dy en float + dx · dx). A menos de 50, la
+  velocidad queda en (dx · −0,4f; dy · −0,4f; 0), el giro (`+0x28`, `+0x2c`) en (dy · −4; dx · −4) y suena el
+  `0x7c`. Siempre después, la velocidad y el giro por 0,6f, sumados a la posición y a los ángulos; la x de la
+  posición suma el producto sin redondear de la x87.
+
+**Los efectos** (`0x518cf0` y su paso, `0x5208a0`). Los que crean los objetos del 1 y del 4 no tienen dueño
+(`+0x108` en 0) y llevan `+0x8a` en −1:
+
+- `0xda` (`DungeonStone`, `0x51b80a`): seis `rand()`: la vida (& 15) + 24, la escala ((& 7) + 6) · 0,1f, la
+  caída (`+0xe4`) en −(& 3) (−0 con 0) y el corrimiento ((& 63) − 32; −((& 31) + 50); (& 127) + 200), girado por
+  los ángulos y sumado a la posición. El paso (`0x52444d`): la z suma la caída, que pierde 1; si el suelo
+  (`0x5f93c0`) queda por encima (ordenado), se apoya, la caída rebota a −0,4f, pierde 4 de vida y 2 en la y de
+  la velocidad.
+- `0x5de` con el subtipo 0 (`0x51e7d8`, el chorro, sin modelo: solo el pase del suelo): vida 40 y el registro
+  propio abierto y cerrado (`+0xf04` a `+0x8c`, que solo lee la rama del dueño héroe); con la cuenta en 0, el
+  cierre gasta los 3.848 `rand()` de `0x40b4d0` (Q-C257). El paso (`0x52ad21`): seis llamas `5de/0` a ±25 en x e
+  y (sus dos sorteos antes de cada creación) con luz blanca; con `rand()` & 7 en 0, la piedrita
+  `0xc8 + (rand() & 1)` con su luz; y `0x5f9780(x, y, (L; L · 0,4f; 0), 3)`, con L la luz local del primer
+  `rand()` del paso, ((& 3) + 7) · 0,1f, que con menos de 5 de vida baja (5 − vida) · 0,2f hasta 0. La rama del
+  dueño héroe (`0x52ae2a`) no corre.
+- `0xc8` y `0xc9` (`Stone01` y `Stone02` de `Skill\`, que carga el lazo `0x616e20` de `0xbe` a `0x150`) con el
+  subtipo 0 (`0x51b72b`): el empuje ((& 255) + 64) · 0,1f en y, la vida (& 15) + 32, la escala ((& 3) + 8) ·
+  0,1f, el yaw `rand()` % 360, la velocidad (el empuje girado por los ángulos con ese yaw) y la caída (& 15) + 8.
+  El paso (`0x5239c8`): la velocidad sin girar se suma a la posición y queda por 0,9f; la z suma la caída, que
+  pierde 3; en el suelo se apoya, la caída rebota a −0,5, pierde 4 de vida y se inclina escala · 128 (en el aire,
+  escala · 32); con `rand()` % 10 en 0, un fuego `5d9` de subtipo `rand()` % 3 + 1 con su luz. Después,
+  `0x51fc80` vuelve a sumar la velocidad, girada (Q-C307).
+- La llama `5de/0` (`0x54143c`): vida 20, la velocidad (0; 0; ((& 127) + 128) · 0,15f) y la escala ((& 63) +
+  64) por el argumento por 0,01f. Su paso es el común (`0x545d03`), y se dibuja con el billboard común.
+
+**El dibujo.** En el 4, `0x6002e0` (el objeto posado y sin −2) saca un `rand()` con el 3, el 4, el `0x13`, el
+`0x14` y el `0x17`; con los cuatro primeros, antes del cuerpo, un `RenderBody` (`0x4ef0c0`) con `Chrome01`
+(`0x5c0`) forzado, con el color del modelo en (1; 0,2f; 0,1f) y `model+0x88` en 2 (el `0x13` y el `0x14`) o 1
+(el 3 y el 4), y el alpha, el blendMesh, su luz, la U, la V y la malla oculta del objeto; después vuelve el
+color y deja `model+0x88` en `0xff`. Después, el cuerpo común (`0x600b35`). El 1 no tiene casos en `0x6002e0`.
+En `0x602ed0`, el 1 va a la cadena de `0x6044ed`, que no tiene nada para él; el 4 (`0x603799`):
+
+- `0x13` y `0x14`: dos sprites, de giro r y −r (r = `ftol(T · 0,1f)` % 360), en cada uno de los huesos 15 y 19
+  (escala 0,3) y 21 (1,5) del buffer global de la pose: `0x61e` con (L; L · 0,2f; 0) el `0x13` y `0x5d5` con
+  (L · 0,4f; L · 0,8f; L) el `0x14`.
+- `0x28`: dos `0x5d5` de 2,5 sobre el objeto, 260 más arriba (`0x6b88f0`), con (L; L; L) y el mismo giro.
+- Después cae al caso del 6 (`0x6039cb`): el 9 deja un sprite `0x5ac` de escala L · 5 y luz (L · 0,6f;
+  L · 0,3f; L · 0,1f) en el hueso 1 (`0x68b184c`) con la entrada de `0x4ec110` en la pila sin escribir, como el
+  `0x38` del 0: en NaN (Q-C256).
+
+**En MuRet.** El paso: `World::StepDungeonObject`, `World::StepLostTowerObject` y `World::KickObject`, desde
+`World::StepWorldObjectChecked` (`GameScene::StepTheObjects` le presta la tabla de efectos, la cuenta del
+registro propio y la acción del héroe). Los efectos: `World::ModelEffects::CreateFallingStone`,
+`CreateFlameJet` y `CreateStoneChip`, y sus pasos en `World::StepGameModelEffect` (con la tabla de efectos y la
+luz dinámica prestadas); la llama, en `World/SelectionParticleKernels.h`; los modelos `0xc8` y `0xc9`, en la
+cola de `Scenes::GameModels` (sus slots no son los del original, que pasa antes por los modelos de las
+habilidades). El dibujo: el pase cromado en `Scenes::DrawGameWorldObjects` (`model+0x88` no vuelve a `0xff`,
+que es la entrada ausente de `ObjectModelStepState`) y los sprites en `Scenes::StepLostTowerObjectFrame` y
+`Scenes::StepArenaObjectFrame`. Un destino prestado que falta corta con su dirección después de lo que ya
+escribió. Con la Data del repo, el 1 y el 4 llegan a un cuadro completo y caminan (`GameT16SceneMatrix`,
+`GameT16MapWalk`; el Dungeon no tiene zona segura). Tests: `DungeonObjectsTest`, `ModelEffectsTest`
+(`TheFallingStoneDrawsSixTimesAndStartsAboveItsDrip`, `TheFlameJetLivesFortyAndClosesTheOwnRecord` y
+`TheStoneChipsArePushedAlongTheirDrawnYaw`), `GameModelEffectsTest` (`TheFallingStoneFallsAndBouncesOnTheGround`,
+`TheStoneChipsDragTiltBounceAndSometimesBurn`, `TheFlameJetSpitsSixFlamesASometimesChipAndItsLight` y
+`TheFlameJetFadesItsLightAndCutsWithoutItsTables`),
+`SelectionParticlesTest.TheLostTowerFloorFlameRisesStraightWithTwoDraws` y `WorldObjectsDrawingTest`
+(`TheLostTowerChromeGoesBeforeTheBody` y `TheLostTowerFrameLeavesItsSprites`).
 
 ### Las marcas del suelo
 
@@ -5651,7 +5741,9 @@ mapa, en `0x602ffb`, después del `rand()` de `0x602ef4`; *estático*):
   (`0x68b211c` y `0x68b22cc`, `0x603149..0x6031d6`). En la traza, los dos `0x5ac` están en (13.094;
   12.142; 283), sobre la NPC de la tienda (13.065; 12.151), y no sobre el animal (*verificado* el
   lugar). Los dos `0x4ec110` leen el punto de `[ebp − 0x28]`, que esta rama no escribe, y lo dejan en
-  `[ebp − 0x34]`: el sprite sale de lo que quedó en la pila (Q-C256). Con el héroe de la traza en
+  `[ebp − 0x34]`: el sprite sale de lo que quedó en la pila (Q-C256). Con el objeto posado, ahí quedó el
+  marco de `0x6002e0` (el manejador `0x6b628b`, el nivel del try en −1 y su ebp guardado): la y es NaN y los
+  dos sprites salen en NaN, de escala L · 5 y luz (L · 0,6; L · 0,3; L · 0,1). Con el héroe de la traza en
   (143, 120), MuRet no ve ningún `0x38`: los dos del `.obj` (los índices 195 y 2.236)
   están en (400; 14.700) y (18.300; 13.900), fuera del trapecio (*simulado*). Los dos `0x5ac` de la
   traza no se explican con este caso (P-C53 g).

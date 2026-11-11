@@ -2,6 +2,7 @@
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/AidaObjectServices.h"
 #include "Scenes/NoriaObjectServices.h"
+#include "Scenes/ObjectFrameSprites.h"
 #include "Scenes/KalimaObjectServices.h"
 #include "World/ObjectModelStepState.h"
 #include "Scenes/GameParticles.h"
@@ -39,6 +40,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <chrono>
@@ -320,6 +322,7 @@ namespace
 constexpr std::uint8_t LorenciaMap = 0;
 constexpr std::uint8_t DeviasMap = 2;
 constexpr std::uint8_t NoriaMap = 3;
+constexpr std::uint8_t LostTowerMap = 4;
 constexpr std::uint8_t AidaMap = 33;
 constexpr std::uint8_t SelectionWorldMap = 54;
 // 0x60479c: el 0x64 de Devias se dibuja según el nivel del registro propio (0x604944..0x604957, jl con
@@ -348,10 +351,39 @@ bool OwnLevelAllows(const GameObjectPass& pass)
     return static_cast<int>(pass.ownLevel) >= threshold;
 }
 
-// 0x602ed0 después del rand() común (0x602ef4): los casos por tipo de los mapas 0 (0x602ffb) y 2
-// (0x6031e5). El 0x69 crea las gotas con el pool compartido; los demás cortan con su dirección.
+// 0x6002e0 con el mapa 4 (0x600b80..0x601067 en el pseudocódigo, líneas del mapa 4): el 0x17, el 0x13, el
+// 0x14, el 3 y el 4 sacan un rand() que se descarta (en el frame del original, que es cuando corre 0x6002e0
+// y su rand); los cuatro últimos, antes del cuerpo, un RenderBody(2) con Chrome01 (0x5c0) forzado, la luz
+// del modelo en (1; 0,2; 0,1) y el model+0x88 en 2 (0x13 y 0x14) o en 1 (3 y 4): esa malla sin luz y con la
+// U y la V del objeto. Después +0x88 vuelve a 0xff, que en el 4 es lo que esos tipos ya tenían.
+void DrawLostTowerChrome(Render::ModelBatch& batch, const IModelLibrary& models, const World::WorldObject& object,
+                         const World::ObjectDraw& draw, Core::Duration frameClock, const GameObjectPass& pass,
+                         const FaunaDrawCarry* retained)
+{
+    const std::int16_t type = object.type;
+    const bool chrome = type == 0x13 || type == 0x14 || type == 3 || type == 4;
+    if (!chrome && type != 0x17)
+        return;
+    if (pass.originalFrame)
+        static_cast<void>(pass.random->Next());
+    if (!chrome)
+        return;
+    constexpr glm::vec3 ChromeLight{1.0f, std::bit_cast<float>(0x3e4ccccdu), std::bit_cast<float>(0x3dcccccdu)};
+    DrawnObject chromed = Drawn(object, draw, models.SkeletonOf(static_cast<std::uint16_t>(type)), 0.0f);
+    if (retained != nullptr)
+        chromed.retainedMeshes = retained->meshes;
+    chromed.color = ChromeLight;
+    chromed.unlitMesh = type == 0x13 || type == 0x14 ? std::int16_t{2} : std::int16_t{1};
+    DrawObjectWithTexture(batch, models, chromed, frameClock, ChromeTextureSlot);
+}
+
+// 0x602ed0 después del rand() común (0x602ef4): los casos por tipo de los mapas 0 (0x602ffb), 2
+// (0x6031e5) y 4 (0x603799); el 1 va a la cadena de 0x6044ed, que no tiene nada para él. El 0x69 crea las
+// gotas con el pool compartido; los demás cortan con su dirección. `posed`: si 0x602e90 llamó a 0x6002e0,
+// cuyo marco queda en la pila que leen los sprites del 0x38 del 0 y del 9 del 4.
 Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const GameObjectPass& pass,
-                                              const IModelLibrary& models, const DrawnObject& drawn, int commonRandom)
+                                              const IModelLibrary& models, const DrawnObject& drawn, int commonRandom,
+                                              bool posed)
 {
     const std::uint8_t map = pass.map;
     if (World::IsKalimaMap(map))
@@ -360,12 +392,10 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
         return StepNoriaObjectFrame(object, commonRandom, pass);
     if (map == AidaMap || map == SelectionWorldMap)
         return StepAidaObjectFrame(object, pass);
+    if (map == LostTowerMap)
+        return StepLostTowerObjectFrame(object, commonRandom, pass, posed);
     if (map == LorenciaMap && object.type == 0x38)
-    {
-        return Core::Unexpected(std::string(
-            "0x603149: los dos sprites 0x5ac del 0x38 (MerchantAnimal01) salen de 0x4ec110 con un vector de la "
-            "pila sin inicializar (Q-C256), y no están portados"));
-    }
+        return StepMerchantAnimalFrame(object, commonRandom, pass, posed);
     if (map == LorenciaMap && object.type == World::Waterspout)
     {
         if (pass.particles != nullptr)
@@ -395,8 +425,8 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                                                        const World::TerrainLighting* lighting,
                                                        Core::Duration frameClock, const GameObjectPass& pass)
 {
-    if (pass.map != LorenciaMap && pass.map != DeviasMap && pass.map != NoriaMap && pass.map != AidaMap &&
-        pass.map != SelectionWorldMap && !World::IsKalimaMap(pass.map))
+    if (pass.map > LostTowerMap && pass.map != AidaMap && pass.map != SelectionWorldMap &&
+        !World::IsKalimaMap(pass.map))
     {
         return Core::Unexpected(std::format("0x6046a0: los casos por tipo del mapa {} (0x6002e0 y 0x602ed0) no están "
                                             "leídos",
@@ -446,6 +476,8 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
             if (models.Find(poseObject.model) == nullptr || models.SkeletonOf(poseObject.model) == nullptr)
                 return Core::Unexpected(std::string("0x5ffdf0: falta el modelo o el esqueleto de Kalima"));
         }
+        if (pass.map == LostTowerMap && draw.kind != World::ObjectDrawKind::Hidden)
+            DrawLostTowerChrome(batch, models, object, draw, frameClock, pass, retained);
         const DrawnObject drawn =
             DrawTheObject(batch, models, object, draw, frameClock, 0.0f, pass.modelState, retained);
         if (World::IsKalimaMap(pass.map) && draw.kind != World::ObjectDrawKind::Hidden)
@@ -459,7 +491,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
             continue;
         }
         const int commonRandom = pass.random->Next();
-        if (auto frameCase = FrameCaseOf(object, pass, models, drawn, commonRandom); !frameCase.HasValue())
+        if (auto frameCase = FrameCaseOf(object, pass, models, drawn, commonRandom, draw.posed); !frameCase.HasValue())
         {
             return frameCase;
         }

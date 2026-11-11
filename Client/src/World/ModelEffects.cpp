@@ -2,6 +2,7 @@
 
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/LogicalAccess.h"
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
@@ -255,6 +256,105 @@ std::optional<std::size_t> ModelEffects::CreateButterflyEffect(const glm::vec3& 
         effect.state = static_cast<std::uint8_t>(random.Next() & 1);
         effect.velocity = glm::vec3(0.0f, F32(static_cast<double>(ownerScale) * OwnerPush), 0.0f);
         effect.transform.scale = subtype == LargeSubtype ? std::bit_cast<float>(0x3f666666u) : 0.25f;
+        return slot;
+    }
+    return std::nullopt;
+}
+
+namespace
+{
+// 0x6b87b8: el décimo de las escalas y del empuje de las piedras.
+constexpr double StoneTenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+constexpr std::uint16_t NoDisturbance = 0xffff;
+
+// El prefijo de 0x518cf0 con el +0x8a en −1 y sin dueño (+0x108 en 0): los que crean los objetos del 1 y
+// del 4 y el chorro.
+void InitializeOwnerlessEffect(ModelEffect& effect, std::int16_t type, const glm::vec3& position,
+                               const glm::vec3& angles, const glm::vec3& light)
+{
+    InitializeCommonEffect(effect, type, position, angles, light, 0.0f);
+    effect.disturbanceState = NoDisturbance;
+    effect.itemType = nullptr;
+    effect.itemLevel = nullptr;
+}
+
+// fld del corrimiento girado y fadd de la posición: cada eje se guarda de su suma.
+void AddRotated(glm::vec3& position, const glm::vec3& rotated)
+{
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        position[axis] = F32(static_cast<double>(rotated[axis]) + static_cast<double>(position[axis]));
+    }
+}
+} // namespace
+
+std::optional<std::size_t> ModelEffects::CreateFallingStone(const glm::vec3& position, const glm::vec3& angles,
+                                                            const glm::vec3& light, Render::Models::CrtRandom& random)
+{
+    constexpr int LifeMask = 15, LifeBase = 24, ScaleMask = 7, ScaleBase = 6, FallMask = 3;
+    constexpr int SideMask = 63, SideCenter = 32, BackMask = 31, BackBase = 50, HeightMask = 127, HeightBase = 200;
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, FallingStoneEffect, position, angles, light);
+        effect.life = (random.Next() & LifeMask) + LifeBase;
+        effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * StoneTenth);
+        // fild y fchs: con 0 queda −0.
+        effect.turnDirection = -static_cast<float>(random.Next() & FallMask);
+        glm::vec3 offset{};
+        offset.x = static_cast<float>((random.Next() & SideMask) - SideCenter);
+        offset.y = -static_cast<float>((random.Next() & BackMask) + BackBase);
+        offset.z = static_cast<float>((random.Next() & HeightMask) + HeightBase);
+        AddRotated(
+            effect.transform.position,
+            Render::Models::OriginalVectorRotate(offset, Render::Models::OriginalAngleMatrix(effect.transform.angles)));
+        effect.previousPosition = effect.transform.position;
+        return slot;
+    }
+    return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateFlameJet(const glm::vec3& position, const glm::vec3& angles,
+                                                        const glm::vec3& light, std::uint8_t& ownRecordDepth,
+                                                        Render::Models::CrtRandom& random)
+{
+    constexpr std::int32_t FlameJetLife = 40;
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, FlameJetEffect, position, angles, light);
+        effect.life = FlameJetLife;
+        const Render::Models::LogicalAccess access(ownRecordDepth, random, Render::Models::OwnRecordCloseRandoms);
+        return slot;
+    }
+    return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, const glm::vec3& position,
+                                                         const glm::vec3& angles, const glm::vec3& light,
+                                                         Render::Models::CrtRandom& random)
+{
+    if (type != FirstStoneChipEffect && type != SecondStoneChipEffect)
+        return std::nullopt;
+    constexpr int PushMask = 255, PushBase = 64, LifeMask = 15, LifeBase = 32, ScaleMask = 3, ScaleBase = 8;
+    constexpr int Degrees = 360, FallMask = 15, FallBase = 8;
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, type, position, angles, light);
+        const glm::vec3 push{0.0f, F32(static_cast<double>((random.Next() & PushMask) + PushBase) * StoneTenth), 0.0f};
+        effect.life = (random.Next() & LifeMask) + LifeBase;
+        effect.transform.scale = F32(static_cast<double>((random.Next() & ScaleMask) + ScaleBase) * StoneTenth);
+        effect.transform.angles.z = static_cast<float>(random.Next() % Degrees);
+        effect.velocity =
+            Render::Models::OriginalVectorRotate(push, Render::Models::OriginalAngleMatrix(effect.transform.angles));
+        effect.turnDirection = static_cast<float>((random.Next() & FallMask) + FallBase);
         return slot;
     }
     return std::nullopt;

@@ -352,9 +352,9 @@ TEST_F(GoldenWorldModels, TheLogoTexturesFollowTheWorld)
 }
 
 // Con la tabla de GameModels, que todavía no tiene las de 0x615700 más allá de las cuatro primeras
-// (Data::Models::SkillTextureCalls), los cinco nombres de las habilidades se piden de Object56\: los tres
-// del castillo están y suben, fire02 y fire01 no y se saltean con un aviso, el login sigue y el logo
-// queda cinco más allá.
+// (Data::Models::SkillTextureCalls), cuatro de los cinco nombres de las habilidades se piden de Object56\:
+// fire02 ya está (lo subieron Stone01 y Stone02 de Skill\, el 0xc8 y el 0xc9 de 0x616e20), los tres del
+// castillo están y suben, fire01 no y se saltea con un aviso, el login sigue y el logo queda cuatro más allá.
 TEST_F(GoldenWorldModels, TwoTexturesFromAnotherFolderAreSkippedWithAWarning)
 {
     FakeTextureStore store;
@@ -366,7 +366,7 @@ TEST_F(GoldenWorldModels, TwoTexturesFromAnotherFolderAreSkippedWithAWarning)
     const auto loaded = models.Load(m_dataRoot, Login, store, log, &game.TextureSlots());
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     ASSERT_NE(models.TextureSlots(), nullptr);
-    EXPECT_EQ(models.TextureSlots()->Next(), TextureSlot{0x45a});
+    EXPECT_EQ(models.TextureSlots()->Next(), TextureSlot{0x459});
     std::size_t warnings = 0;
     for (std::size_t k = 0; k < sink.lines.size(); ++k)
     {
@@ -375,7 +375,7 @@ TEST_F(GoldenWorldModels, TwoTexturesFromAnotherFolderAreSkippedWithAWarning)
             ++warnings;
         }
     }
-    EXPECT_EQ(warnings, 2u);
+    EXPECT_EQ(warnings, 1u);
     ASSERT_FALSE(models.MeshTextures(89).empty()) << "el fuego, Object90.bmd";
 }
 

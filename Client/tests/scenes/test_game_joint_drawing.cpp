@@ -98,6 +98,26 @@ TEST(GameJointDrawingTest, FlareZeroSelectsItsGrayAtEachSegment)
     EXPECT_FLOAT_EQ(batch.Vertices()[12].color.red, 0);
 }
 
+// 0x53d01d..0x53d043: en 614 y 615 la segunda cara corre sus dos u en dos veces el corrimiento del reloj.
+TEST(GameJointDrawingTest, BoltsShiftTheirSecondFaceByTwiceTheScroll)
+{
+    for (const auto type : {0x614, 0x615})
+    {
+        SCOPED_TRACE(type);
+        Client::Render::Models::CrtRandom random(9);
+        Client::World::FrameSprites sprites;
+        Client::Scenes::JointDrawResources resources{random, sprites, true, 250.0f};
+        auto joint = Joint(type, 1);
+        Client::Render::ModelBatch batch;
+        ASSERT_TRUE(Client::Scenes::DrawJoints(batch, std::span(&joint, 1), 0, resources).HasValue());
+        ASSERT_EQ(batch.Vertices().size(), 24u);
+        const float first = batch.Vertices()[0].uv.x;
+        const float second = batch.Vertices()[6].uv.x;
+        EXPECT_FLOAT_EQ(first, 0.75f);
+        EXPECT_FLOAT_EQ(second, 1.25f);
+    }
+}
+
 TEST(GameJointDrawingTest, AnimatedUvsUseSignedClockRemainderWithoutRandoms)
 {
     Client::Render::Models::CrtRandom random(9);

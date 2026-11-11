@@ -2,6 +2,8 @@
 
 #include "Core/Expected.h"
 
+#include <glm/ext/vector_float2.hpp>
+
 #include <cstdint>
 #include <optional>
 
@@ -14,6 +16,7 @@ namespace Client::World
 struct Particle;
 class IParticleTrigonometry;
 enum class ParticleError : std::uint8_t;
+// El 0x5ac (Effect\flare01.jpg): 6 y 7 de Kalima, y 0 del 10 de Icarus (0x604143).
 inline constexpr std::int32_t KalimaFlare = 0x5ac;
 inline constexpr std::int32_t KalimaFanta = 0x6ed;
 inline constexpr std::int32_t KalimaWaterfallFirst = 0x6f0;
@@ -26,9 +29,9 @@ inline constexpr std::int32_t KalimaWaterfallLast = 0x6f4;
 // su ausencia conserva Initialize/vida/rotación/escala y devuelve MissingScene, sin jitter.
 [[nodiscard]] Core::Expected<void, ParticleError>
 CreateKalimaParticle(Particle& particle, Render::Models::CrtRandom& random, std::optional<std::int32_t> scene);
-// Después de vida/movimiento5446e0, incluso en el tick que apaga alive.
-[[nodiscard]] Core::Expected<void, ParticleError> StepKalimaParticle(Particle& particle,
-                                                                     Render::Models::CrtRandom& random,
-                                                                     const float* clock,
-                                                                     IParticleTrigonometry* trigonometry);
+// Después de vida/movimiento5446e0, incluso en el tick que apaga alive. `wind` es el viento de este paso
+// (0x7609bb8/bbc), ya movido; sólo lo lee el 5ac/0.
+[[nodiscard]] Core::Expected<void, ParticleError>
+StepKalimaParticle(Particle& particle, Render::Models::CrtRandom& random, const float* clock,
+                   IParticleTrigonometry* trigonometry, const glm::vec2& wind);
 } // namespace Client::World

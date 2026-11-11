@@ -14,6 +14,7 @@
 #include "Scenes/GameFloorItems.h"
 #include "Scenes/GameItemRenderState.h"
 #include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/IcarusObjectStep.h"
 #include "Scenes/KalimaObjectStep.h"
 #include "World/GameModelEffects.h"
 
@@ -56,6 +57,7 @@
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
+#include "World/TarkanObjectStep.h"
 #include "World/TerrainPickingSegment.h"
 #include "World/WorldObjects.h"
 #include "World/WorldTerrain.h"
@@ -106,6 +108,8 @@ constexpr std::int32_t DungeonMap = 1;
 constexpr std::int32_t DeviasMap = 2;
 constexpr std::int32_t NoriaMap = 3;
 constexpr std::int32_t LostTowerMap = 4;
+constexpr std::int32_t TarkanMap = 8;
+constexpr std::int32_t IcarusMap = 10;
 // 0x5bb8d0: el ancho del mundo, 640 sin ventanas abiertas (MuRet no tiene las ventanas del juego).
 constexpr std::int32_t WorldWidth = 640;
 // 0x620486..0x6204b0: el mouse de 640 × 480 vuelve a la pantalla con · W / 640 y · H / 480, en enteros.
@@ -308,6 +312,31 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         world.Runtime().objectSelectionCount = 0;
         // 6063d0: no esIcarus;4055b0 y42c500 retornanAL0 paraKalima, sin usar selector.
     }
+    // 0x6061c0 en Icarus, antes del early-return y del 0x60657a, con la cuenta del pase anterior.
+    std::optional<IcarusObjectServices> icarus;
+    std::int32_t icarusSelector = 0;
+    if (map == IcarusMap)
+    {
+        const ActorState& hero = world.Actors()[world.Runtime().hero];
+        icarus.emplace(IcarusObjectServices{
+            .random = m_context.cloth->random,
+            .heroPosition = hero.position,
+            .lighting = &world.DynamicLighting().Lighting(),
+            .effects = &world.Map().effects,
+            .sprites = &m_sprites,
+            .createJoint = [&world, this](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+            {
+                const auto created = CreateFaunaJoint(world.DrawTail().joints, request, m_context.cloth->random);
+                if (!created.HasValue())
+                    return Core::Unexpected(created.Error());
+                return {};
+            }});
+        const auto selector = StepIcarusObjectPrelude(world.Runtime().objectSelectionCount, *icarus);
+        if (!selector.HasValue())
+            return Core::Unexpected(selector.Error());
+        icarusSelector = selector.Value();
+        world.Runtime().objectSelectionCount = 0;
+    }
     // Sin un objeto visto (antes del primer dibujo que llega a 0x6046a0), 0x606560 no toca ninguno.
     if (std::ranges::none_of(objects, [](const World::WorldObject& object) { return object.alive && object.seen; }))
     {
@@ -317,7 +346,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     // espera de la entrada al juego).
     const bool aida = map == AidaMap || map == SelectionMap;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
-        !World::IsKalimaMap(map) && !aida)
+        map != TarkanMap && map != IcarusMap && !World::IsKalimaMap(map) && !aida)
     {
         return Core::Unexpected("0x606560: los objetos vistos del " + MapText(map) + " (0x604ab0) no están portados");
     }
@@ -342,8 +371,12 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         .effects = &world.Map().effects,
         .ownRecordDepth = &world.Runtime().ownRecordDepth,
         .heroAction = &hero.animation.action};
+    AfterObjectStep after;
+    if (icarus)
+        after = [&](World::WorldObject& object)
+        { return StepIcarusSeenObject(object, icarusSelector, world.Runtime().objectSelectionCount, *icarus); };
     if (auto stepped = StepGameWorldObjects(objects, static_cast<std::uint8_t>(map), m_worldModels,
-                                            m_context.cloth->random, globals);
+                                            m_context.cloth->random, globals, after);
         !stepped.HasValue())
     {
         return Core::Unexpected(stepped.Error() + ", en el " + MapText(map));
@@ -522,6 +555,9 @@ Core::Expected<void, std::string> GameScene::LoadTheObjectModels(std::int32_t ma
         return Core::Unexpected("0x616ec0: los modelos de los objetos del " + MapText(map) + ": " + loaded.Error());
     }
     m_worldModelsMap = map;
+    World::SeedTarkanModelState(static_cast<std::uint8_t>(map), m_context.world->Runtime().objectModelState);
+    if (m_projectingFrame)
+        World::SeedTarkanModelState(static_cast<std::uint8_t>(map), FrameModelState());
     m_context.world->FaunaResources().Bind(&m_worldModels);
     return {};
 }
@@ -650,14 +686,17 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         afterMarks.depthTest = true;
         canvas.models.SetState(afterMarks);
     }
-    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4 y Kalima.
-    const bool knownObjects = (map >= LorenciaMap && map <= LostTowerMap) || World::IsKalimaMap(map);
+    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 8, 10 y
+    // Kalima.
+    const bool knownObjects =
+        (map >= LorenciaMap && map <= LostTowerMap) || map == TarkanMap || map == IcarusMap || World::IsKalimaMap(map);
     if (!knownObjects &&
         std::ranges::any_of(FrameObjects(), [](const World::WorldObject& object) { return object.alive; }))
     {
         return Core::Unexpected(
             "0x6374ce: los objetos del " + MapText(map) +
-            " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4 y los de Kalima");
+            " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4, los del 8, los del 10 "
+            "y los de Kalima");
     }
     if (auto loaded = LoadTheObjectModels(map); !loaded.HasValue())
     {
@@ -699,7 +738,8 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
                     .waterTextureFrame = FrameCloth().waterTextureFrame,
                     .hero = &hero,
                     .kalima = FrameKalima(),
-                    .requestSound = [&](std::int32_t sound) { world.Fauna().Sound(sound, nullptr); }});
+                    .requestSound = [&](std::int32_t sound) { world.Fauna().Sound(sound, nullptr); },
+                    .effects = &FrameEffects()});
             !objects.HasValue())
         {
             return Core::Unexpected(objects.Error() + ", en el " + MapText(map));

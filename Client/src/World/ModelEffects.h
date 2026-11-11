@@ -37,6 +37,10 @@ inline constexpr std::int16_t FallingStoneEffect = 0xda;
 inline constexpr std::int16_t FlameJetEffect = 0x5de;
 inline constexpr std::int16_t FirstStoneChipEffect = 0xc8;
 inline constexpr std::int16_t SecondStoneChipEffect = 0xc9;
+// Los de Icarus (0x605d70 y 0x6061c0): la nube 0xbb (Object11\cloud) sobre el héroe y el 0x5ac, sin modelo,
+// que sube soltando partículas 5ac/1.
+inline constexpr std::int16_t IcarusCloudEffect = 0xbb;
+inline constexpr std::int16_t IcarusFlareEffect = 0x5ac;
 
 // Proyección de los campos compartidos por los efectos de 0x1d4 bytes.
 struct ModelEffect
@@ -114,6 +118,13 @@ public:
     // ese yaw. Otro tipo o la tabla llena, ninguno.
     std::optional<std::size_t> CreateStoneChip(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                const glm::vec3& light, Render::Models::CrtRandom& random);
+    // 0x518cf0(0xbb o 0x5ac, …, 0, 0, −1, 0, 0, 0, 0) con el subtipo 0. La nube (0x51b968): vida 2, el
+    // blendMesh en 0, escala 10, 200 más en y y 190 menos en z, sin luz por vértice; sin rand(). El 0x5ac
+    // (0x51e3ec): la luz en 0,3f, s = rand() % 5 + 9 y la velocidad sin girar (sen 30° · cos 70°; cos 30° ·
+    // cos 70°; sen 70°) · s · 0,5 con la x87 sobre los double 0x6ba1c8 y 0x6ba1d0, escala 3 y vida 400. Otro
+    // tipo o la tabla llena, ninguno y sin rand().
+    std::optional<std::size_t> CreateIcarusEffect(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
+                                                  const glm::vec3& light, Render::Models::CrtRandom& random);
     // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
     void Clear();
 

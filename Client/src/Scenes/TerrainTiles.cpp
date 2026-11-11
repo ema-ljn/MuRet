@@ -26,7 +26,8 @@ namespace Client::Scenes
 {
 namespace
 {
-// Lo que sube Load: tiles, pasto (61abb4..61ac36), meteorología (61ac3e..61ad7a) y el122.
+// Lo que sube Load: tiles, las de los objetos de Kalima y Tarkan, pasto (61abb4..61ac36), meteorología
+// (61ac3e..61ad7a) y el 0x122.
 std::vector<World::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTextures grass)
 {
     std::vector<World::WorldTileTexture> wanted;
@@ -45,6 +46,10 @@ std::vector<World::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTextu
         wanted = World::WorldTileTextures(map);
     const auto caustics = World::KalimaObjectTextures(map);
     wanted.insert(wanted.end(), caustics.begin(), caustics.end());
+    const auto tarkan = World::TarkanObjectTextures(map);
+    wanted.insert(wanted.end(), tarkan.begin(), tarkan.end());
+    const auto icarus = World::IcarusObjectTextures(map);
+    wanted.insert(wanted.end(), icarus.begin(), icarus.end());
     if (grass == GrassTextures::Upload)
     {
         const std::vector<World::WorldTileTexture> grassTextures = World::WorldGrassTextures(map);
@@ -67,9 +72,11 @@ void RecordTheBuffer(std::uint16_t slot, const Data::Textures::Texture& texture,
         grass[static_cast<std::size_t>(slot - World::FirstGrassSlot)] = height;
         return;
     }
-    // El tile i es el slot i + 0x23; el 0x122, el tile 255 (Q-C19).
-    sizes[static_cast<std::size_t>(slot - World::FirstTileSlot) % sizes.size()] = {
-        static_cast<float>(texture.textureWidth), height};
+    // El tile i es el slot i + 0x23; el 0x122, el tile 255 (Q-C19). Las de los objetos de Tarkan (0x5c2,
+    // 0x5c3 y 0x716) quedan fuera de los 256 y no son de ningún tile.
+    if (slot < World::FirstTileSlot || static_cast<std::size_t>(slot - World::FirstTileSlot) >= sizes.size())
+        return;
+    sizes[static_cast<std::size_t>(slot - World::FirstTileSlot)] = {static_cast<float>(texture.textureWidth), height};
 }
 } // namespace
 

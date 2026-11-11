@@ -149,7 +149,21 @@ Core::Expected<void, ParticleError> StepOwnedMist(Particle& p, const float* worl
     if (!sine.HasValue())
         return Core::Unexpected(sine.Error());
     p.position.z = F32(sine.Value() + p.start.z);
-    p.rotation = F32((static_cast<double>(*worldClock) * p.rotationFactor) * MistTurn + p.start.y);
+    // 0x547731 (la tabla 0x54848c): el 1 y el 4 giran a favor, el 2 y el 5 en contra (0x6ba354) y el 0 y el 3
+    // no tocan el giro, que el dibujo pone por la paridad del lugar.
+    switch (p.subtype)
+    {
+    case 1:
+    case 4:
+        p.rotation = F32((static_cast<double>(*worldClock) * p.rotationFactor) * MistTurn + p.start.y);
+        break;
+    case 2:
+    case 5:
+        p.rotation = F32((static_cast<double>(*worldClock) * p.rotationFactor) * -MistTurn + p.start.y);
+        break;
+    default:
+        break;
+    }
     return {};
 }
 
@@ -178,7 +192,9 @@ void StepChaseLight(Particle& p)
 
 bool IsSelectionParticle(std::int32_t type, std::int32_t subtype)
 {
-    return (type == CloudParticle && subtype == OwnedMistSubtype) ||
+    // 0x54327b/0x54747e: del 0 al 5 (los de Icarus y el 1 de la selección) comparten el alta y el paso.
+    constexpr std::int32_t LastOwnedMist = 5;
+    return (type == CloudParticle && subtype >= 0 && subtype <= LastOwnedMist) ||
            (type == FlameParticle && (subtype == RisingFlameSubtype || subtype == FloorFlameSubtype)) ||
            (type == ChaseLightParticle && (subtype == 0 || subtype == 1));
 }

@@ -1145,7 +1145,7 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
         }
         if (IsKalimaParticle(particle.type, particle.subtype))
         {
-            const auto stepped = StepKalimaParticle(particle, random, worldClock, trigonometry);
+            const auto stepped = StepKalimaParticle(particle, random, worldClock, trigonometry, particles.Wind().wind);
             if (!stepped.HasValue())
                 return stepped;
             continue;

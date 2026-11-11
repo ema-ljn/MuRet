@@ -285,4 +285,25 @@ std::vector<WorldTileTexture> KalimaObjectTextures(std::uint8_t map)
     }
     return textures;
 }
+
+std::vector<WorldTileTexture> TarkanObjectTextures(std::uint8_t map)
+{
+    constexpr std::uint8_t TarkanMap = 8;
+    if (map != TarkanMap)
+        return {};
+    constexpr Data::Textures::Sampling Repeat{Data::Textures::Filter::Linear, Data::Textures::Wrap::Repeat};
+    constexpr Data::Textures::Sampling Clamp{Data::Textures::Filter::Linear, Data::Textures::Wrap::Clamp};
+    return {{"Object9\\sand01.jpg", 0x5c2, Repeat, true},
+            {"Object9\\sand02.jpg", 0x5c3, Repeat, true},
+            {"Object9\\Impack03.jpg", 0x716, Clamp, true}};
+}
+
+std::vector<WorldTileTexture> IcarusObjectTextures(std::uint8_t map)
+{
+    constexpr std::uint8_t IcarusMap = 10;
+    if (map != IcarusMap)
+        return {};
+    constexpr Data::Textures::Sampling Clamp{Data::Textures::Filter::Linear, Data::Textures::Wrap::Clamp};
+    return {{"Effect\\cloudLight.jpg", 0x623, Clamp, true}};
+}
 } // namespace Client::World

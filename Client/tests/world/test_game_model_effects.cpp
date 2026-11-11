@@ -514,3 +514,54 @@ TEST(GameModelEffectsTest, TheFlameJetFadesItsLightAndCutsWithoutItsTables)
     EXPECT_NE(cut.Error().find("0x52ae7f"), std::string::npos) << cut.Error();
 }
 } // namespace
+
+// 0x52a737..0x52a7af y 0x52cdb3..0x52cdfb: el 0x5ac suma su velocidad, la baja 0,01f en z, suelta una 5ac/1
+// con su luz y su escala, y la cola común la vuelve a sumar; con la vida que queda impar da otro paso entero.
+// La nube 0xbb sólo tiene la cola común.
+TEST(GameModelEffectsTest, TheIcarusFlareStepsTwiceAndLeavesTwoTrails)
+{
+    Client::World::ModelEffect flare = DungeonEffect(Client::World::IcarusFlareEffect, 400);
+    flare.velocity = {1.0f, 2.0f, 3.0f};
+    flare.transform.scale = 3.0f;
+    Client::World::Particles particles;
+    Client::Render::Models::CrtRandom random(1);
+    ASSERT_TRUE(Client::World::StepGameModelEffect(flare, nullptr, particles, 0.0f, random).HasValue());
+    EXPECT_EQ(flare.life, 398);
+    const float sink = std::bit_cast<float>(0x3c23d70au);
+    const auto vz1 = static_cast<float>(3.0 - static_cast<double>(sink));
+    const auto vz2 = static_cast<float>(static_cast<double>(vz1) - static_cast<double>(sink));
+    EXPECT_EQ(flare.velocity, glm::vec3(1.0f, 2.0f, vz2));
+    float z = 100.0f;
+    for (const float vz : {vz1, vz2})
+    {
+        z = static_cast<float>(static_cast<double>(vz == vz1 ? 3.0f : vz1) + static_cast<double>(z));
+        z = static_cast<float>(static_cast<double>(z) + static_cast<double>(vz));
+    }
+    EXPECT_EQ(flare.transform.position, glm::vec3(1004.0f, 1008.0f, z));
+    EXPECT_EQ(flare.previousPosition, glm::vec3(1000.0f, 1000.0f, 100.0f));
+    int trails = 0;
+    for (const auto& particle : particles.All())
+    {
+        if (!particle.alive)
+            continue;
+        ++trails;
+        EXPECT_EQ(particle.type, 0x5ac);
+        EXPECT_EQ(particle.subtype, 1);
+        EXPECT_EQ(particle.life, 50);
+        EXPECT_EQ(particle.scale, 3.0f);
+        EXPECT_EQ(particle.light, glm::vec3(0.25f, 0.5f, 0.75f));
+    }
+    EXPECT_EQ(trails, 2);
+    // El rand() común de 0x5208a0, uno por paso entero.
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(1, 2).State());
+
+    Client::World::ModelEffect sinking = DungeonEffect(Client::World::IcarusFlareEffect, 400);
+    sinking.velocity = {0.0f, 0.0f, -1.995f};
+    ASSERT_TRUE(Client::World::StepGameModelEffect(sinking, nullptr, particles, 0.0f, random).HasValue());
+    EXPECT_FALSE(sinking.alive);
+
+    Client::World::ModelEffect cloud = DungeonEffect(Client::World::IcarusCloudEffect, 2);
+    ASSERT_TRUE(Client::World::StepGameModelEffect(cloud, nullptr, particles, 0.0f, random).HasValue());
+    EXPECT_EQ(cloud.life, 1);
+    EXPECT_EQ(cloud.transform.position, glm::vec3(1000.0f, 1000.0f, 100.0f));
+}

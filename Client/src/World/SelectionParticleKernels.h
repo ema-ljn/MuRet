@@ -12,9 +12,10 @@ class CrtRandom;
 
 // Las partículas de los objetos de la selección (mapa 54, también los del 33) y del aura del elegido:
 // 622/1 (la neblina de 0x425260 con dueño, 0x5435cf y 0x5476f0), 5de/7 (la llama del 0x43, 0x54150e y
-// 0x545e3f) y 729/0,1 (las dos luces de 0x6348c6/0x6348dc, 0x543840 y 0x547880); y la 5de/0 del chorro de
-// Lost Tower (0x54143c), que sólo sube. Intermedios double
-// (PC53) y stores binary32, como los demás kernels. Contrato: 06 § El mundo de la selección.
+// 0x545e3f) y 729/0,1 (las dos luces de 0x6348c6/0x6348dc, 0x543840 y 0x547880); la 5de/0 del chorro de
+// Lost Tower (0x54143c), que sólo sube; y las nubes 622/0..5 de los objetos de Icarus (0x603f3b), con el alta
+// y el paso de la 622/1 y el giro por subtipo de 0x54848c. Intermedios double (PC53) y stores binary32, como
+// los demás kernels. Contrato: 06 § El mundo de la selección y § Los objetos de Icarus.
 namespace Client::World
 {
 inline constexpr std::int32_t FlameParticle = 0x5de;
@@ -29,9 +30,9 @@ inline constexpr std::int32_t FloorFlameSubtype = 0;
 
 [[nodiscard]] bool IsSelectionParticle(std::int32_t type, std::int32_t subtype);
 // Después del prefijo de 0x53fe70 (Initialize): `scaleArgument` es el argumento de escala, que 622/1 suma
-// a +0x60 después de pisar +0x10. 622/1 consume siete rand(), 5de/7 cinco o seis, 5de/0 dos y 729 seis.
+// a +0x60 después de pisar +0x10. 622/0..5 consumen siete rand(), 5de/7 cinco o seis, 5de/0 dos y 729 seis.
 void CreateSelectionParticle(Particle& particle, float scaleArgument, Render::Models::CrtRandom& random);
-// Después de vida/movimiento de 0x5446e0, incluso en el tick que apaga alive. 622/1 lee su dueño (+0x40,
+// Después de vida/movimiento de 0x5446e0, incluso en el tick que apaga alive. 622/0..5 leen su dueño (+0x40,
 // un objeto del mundo: +0x16c y +0x58) y el reloj del mundo; sin ellos, MissingOwner o MissingClock antes
 // de escribir nada.
 [[nodiscard]] Core::Expected<void, ParticleError> StepSelectionParticle(Particle& particle, const float* worldClock,

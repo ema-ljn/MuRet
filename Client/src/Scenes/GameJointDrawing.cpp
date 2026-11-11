@@ -83,7 +83,8 @@ bool HalfTexture(const JointState& joint)
     return (joint.type == 0x62c && joint.subtype >= 0 && joint.subtype <= 4) ||
            (joint.subtype >= 11 && joint.subtype <= 13);
 }
-Core::Expected<std::array<float, 2>, std::string> JointUvs(const JointState& joint, std::int32_t segment,
+// u, la siguiente u y el corrimiento de 0x53c8ee (el de la segunda cara de 614 y 615).
+Core::Expected<std::array<float, 3>, std::string> JointUvs(const JointState& joint, std::int32_t segment,
                                                            const JointDrawResources* resources)
 {
     const double divisor = static_cast<double>(joint.maximumCount) - 1;
@@ -122,7 +123,7 @@ Core::Expected<std::array<float, 2>, std::string> JointUvs(const JointState& joi
         u = F32(static_cast<double>(u) * 2 - scroll);
         nextU = F32(static_cast<double>(nextU) * 2 - scroll);
     }
-    return std::array<float, 2>{u, nextU};
+    return std::array<float, 3>{u, nextU, scroll};
 }
 
 Core::Expected<glm::vec3, std::string> BloodCastleSegmentLight(const JointState& joint, std::int32_t segment,
@@ -238,7 +239,16 @@ Core::Expected<void, std::string> DrawJointSegment(Render::ModelBatch& batch, Jo
     if ((joint.drawEnabled & 1u) != 0)
         JointFace(batch, joint, at, 2, 3, u, nextU, otherV, v, segmentLight);
     if ((joint.drawEnabled & 2u) != 0)
+    {
+        // 0x53d01d..0x53d043: en 614 y 615 la segunda cara corre las dos u en dos veces el corrimiento.
+        if (joint.type == 0x614 || joint.type == 0x615)
+        {
+            const double twice = static_cast<double>(uv.Value()[2]) + static_cast<double>(uv.Value()[2]);
+            u = F32(static_cast<double>(u) + twice);
+            nextU = F32(static_cast<double>(nextU) + twice);
+        }
         JointFace(batch, joint, at, 0, 1, u, nextU, v, otherV, segmentLight);
+    }
     return {};
 }
 

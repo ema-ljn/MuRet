@@ -1507,6 +1507,35 @@ void DrawWaterspout(Render::ModelBatch& batch, const IModelLibrary& models, cons
     }
 }
 
+void DrawTarkanChrome(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                      Core::Duration frameClock)
+{
+    ObjectState state = object.state;
+    state.hiddenMesh = Render::Models::NoHiddenMesh;
+    std::vector<Render::Models::SkinnedMesh> skinned;
+    for (MeshDraw draw : ObjectMeshDraws(models, object, frameClock, skinned))
+    {
+        if (draw.index != 0)
+        {
+            continue;
+        }
+        draw.object = &state;
+        DrawBase(batch, draw);
+        if (!draw.role.shines)
+        {
+            return;
+        }
+        Render::Color chromeColor = draw.shade;
+        if (draw.alpha < OpaqueAlpha)
+        {
+            chromeColor = Scaled(chromeColor, draw.alpha);
+        }
+        Triangles(batch, draw, {PassSlot(Render::Models::ShinePass::Chrome), Render::ModelBlend::Additive, true},
+                  chromeColor, PassUv{Render::Models::ShinePass::Chrome, glm::vec2{}});
+        return;
+    }
+}
+
 void DrawDarkHorse(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& horse, std::int32_t map,
                    Core::Duration frameClock)
 {

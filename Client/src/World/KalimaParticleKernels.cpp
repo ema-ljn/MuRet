@@ -5,6 +5,7 @@
 #include "World/Particles.h"
 #include "Render/Models/Cloth.h"
 
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <bit>
@@ -26,7 +27,7 @@ constexpr double Brighten = static_cast<double>(1.1f);
 // 6ba3e8: bytes18 b7 d1 39; conservar el patrónbinary32 del drift54492b/544950.
 constexpr double WalkFactor = static_cast<double>(std::bit_cast<float>(0x39d1b718u));
 constexpr int FullTurn = 360, LifeSpan = 10, LongLife = 30, ShortLife = 20;
-constexpr int FlareSix = 6, FlareSeven = 7, SelectionScene = 4;
+constexpr int FlareZero = 0, FlareTrail = 1, FlareSix = 6, FlareSeven = 7, SelectionScene = 4;
 constexpr std::int32_t WaterfallSplash = WaterfallSplashFirst;
 float F32(double value)
 {
@@ -46,9 +47,10 @@ void Jitter(Particle& p, Render::Models::CrtRandom& random, int xySpan, int zSpa
         p.position[axis] = F32(static_cast<double>(offset) + p.position[axis]);
     }
 }
+// 0x540151..0x54018f: el 5ac/0 (y el /2 y el /8) son las mismas instrucciones que el /6.
 void CreateFlare(Particle& p, Render::Models::CrtRandom& random)
 {
-    const bool six = p.subtype == FlareSix;
+    const bool six = p.subtype == FlareSix || p.subtype == FlareZero;
     p.life = random.Next() % LifeSpan + (six ? LifeSpan : LongLife);
     p.verticalSpeed = static_cast<float>(random.Next() % LifeSpan + LifeSpan);
     const int size = random.Next() % (six ? 50 : 15) + (six ? 50 : LongLife);
@@ -111,6 +113,32 @@ void StepFlareSix(Particle& p, Render::Models::CrtRandom& random)
     p.scale = F32(scale);
     FadeLight(p, Damping);
     if (!(scale > Tenth))
+    {
+        p.life = -1;
+        p.alive = false;
+    }
+}
+// 0x544c19/0x544c44..0x544dd6: el 5ac/0 con k = 0,5f. La x se guarda en float cuatro veces y la y una;
+// la z suma k · 5 y el 0x7609bc0 por k, que nada escribe (cero). La escala baja 0,05f, la luz la copia y
+// muere con la escala guardada en 0,1f o menos (o NaN).
+void StepFlareZero(Particle& p, Render::Models::CrtRandom& random, const glm::vec2& wind)
+{
+    constexpr int WalkSpan = 2001, WalkCenter = 1000;
+    constexpr double Half = 0.5, Lift = 5.0, Unwritten = 0.0;
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3d4ccccdu));
+    float x = F32(static_cast<double>(random.Next() % WalkSpan - WalkCenter) * WalkFactor);
+    double y = static_cast<double>(random.Next() % WalkSpan - WalkCenter) * WalkFactor;
+    x = F32(static_cast<double>(x) + static_cast<double>(wind.x));
+    y += static_cast<double>(wind.y);
+    x = F32(static_cast<double>(x) * Half);
+    y *= Half;
+    const float z = F32(Unwritten * Half);
+    p.position.x = F32(static_cast<double>(x) + static_cast<double>(p.position.x));
+    p.position.y = F32(y + static_cast<double>(p.position.y));
+    p.position.z = F32((Half * Lift + static_cast<double>(p.position.z)) + static_cast<double>(z));
+    p.scale = F32(static_cast<double>(p.scale) - Shrink);
+    p.light = glm::vec3(p.scale);
+    if (!(p.scale > 0.1f))
     {
         p.life = -1;
         p.alive = false;
@@ -192,7 +220,8 @@ bool IsKalimaParticle(std::int32_t type, std::int32_t subtype)
         ((type == KalimaWaterfallFirst || type == KalimaWaterfallMist) && subtype == ObjectSubtype) ||
         ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == SplashObjectSubtype);
     return objectWaterfall || (type == KalimaWaterfallLast && subtype == 1) ||
-           (type == KalimaFlare && (subtype == FlareSix || subtype == FlareSeven)) ||
+           (type == KalimaFlare &&
+            (subtype == FlareZero || subtype == FlareTrail || subtype == FlareSix || subtype == FlareSeven)) ||
            (subtype == 0 && (type == KalimaFanta || (type >= KalimaWaterfallFirst && type <= KalimaWaterfallLast)));
 }
 Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Models::CrtRandom& random,
@@ -200,7 +229,12 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Mo
 {
     if (p.type == KalimaFlare)
     {
-        CreateFlare(p, random);
+        // 0x54007f: el 5ac/1 (la estela del efecto 0x5ac de Icarus) sólo vive 50, sin rand().
+        constexpr std::int32_t TrailLife = 50;
+        if (p.subtype == FlareTrail)
+            p.life = TrailLife;
+        else
+            CreateFlare(p, random);
         return {};
     }
     if (p.type == KalimaFanta)
@@ -235,11 +269,21 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Mo
     return {};
 }
 Core::Expected<void, ParticleError> StepKalimaParticle(Particle& p, Render::Models::CrtRandom& random,
-                                                       const float* clock, IParticleTrigonometry* trigonometry)
+                                                       const float* clock, IParticleTrigonometry* trigonometry,
+                                                       const glm::vec2& wind)
 {
     if (p.type == KalimaFlare)
     {
-        if (p.subtype == FlareSix)
+        if (p.subtype == FlareZero)
+            StepFlareZero(p, random, wind);
+        else if (p.subtype == FlareTrail)
+        {
+            // 0x5449e1..0x544a11: la luz por 0,9f y la escala por 0,95f.
+            constexpr double TrailFade = static_cast<double>(std::bit_cast<float>(0x3f666666u));
+            FadeLight(p, TrailFade);
+            p.scale = F32(static_cast<double>(p.scale) * Damping);
+        }
+        else if (p.subtype == FlareSix)
             StepFlareSix(p, random);
         else
             return StepFlareSeven(p, clock, trigonometry);

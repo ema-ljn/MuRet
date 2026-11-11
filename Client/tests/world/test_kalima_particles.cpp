@@ -1,4 +1,5 @@
 #include "World/Particles.h"
+#include "World/KalimaParticleKernels.h"
 #include "World/ParticleOwner.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "Render/Models/Cloth.h"
@@ -233,4 +234,90 @@ TEST(KalimaParticlesTest, FullLegacyMistPoolSkipsAbsentSceneAndAllRandom)
     EXPECT_FALSE(made.Value());
     EXPECT_EQ(particles.All()[0].position, glm::vec3(1, 2, 3));
     EXPECT_EQ(random.State(), 7u);
+}
+
+// 0x540151..0x54018f: el 5ac/0 de Icarus usa las mismas instrucciones que el /6 (vida rand() % 10 + 10); el
+// 5ac/1, la estela del efecto 0x5ac, sólo vive 50 sin sacar rand() (0x54007f).
+TEST(KalimaParticlesTest, TheIcarusFlareIsCreatedLikeTheSixthAndItsTrailWithoutDraws)
+{
+    Particles six;
+    Particles zero;
+    CrtRandom sixDraws(7);
+    CrtRandom zeroDraws(7);
+    ASSERT_TRUE(six.CreateChecked(0x5ac, {100, 200, 300}, {}, {1, 1, 1}, 6, 1, 99, sixDraws).HasValue());
+    ASSERT_TRUE(zero.CreateChecked(0x5ac, {100, 200, 300}, {}, {1, 1, 1}, 0, 1, 99, zeroDraws).HasValue());
+    EXPECT_EQ(zero.All()[0].life, six.All()[0].life);
+    EXPECT_EQ(zero.All()[0].verticalSpeed, six.All()[0].verticalSpeed);
+    EXPECT_EQ(zero.All()[0].scale, six.All()[0].scale);
+    EXPECT_EQ(zero.All()[0].rotation, six.All()[0].rotation);
+    EXPECT_EQ(zeroDraws.State(), sixDraws.State());
+
+    Particles trail;
+    CrtRandom random(7);
+    ASSERT_TRUE(trail.CreateChecked(0x5ac, {100, 200, 300}, {}, {0.3f, 0.3f, 0.3f}, 1, 3, 99, random).HasValue());
+    EXPECT_EQ(trail.All()[0].life, 50);
+    EXPECT_EQ(trail.All()[0].scale, 3.0f);
+    EXPECT_EQ(random.State(), CrtRandom(7).State());
+}
+
+// 0x544c19..0x544dd6 con k = 0,5f: el paseo (rand() % 2.001 − 1.000) · 0,0001f más el viento, por k; la x
+// guardada en float en cada paso y la y no; la z sube k · 5. La escala baja 0,05f, la luz la copia y con la
+// escala en 0,1f o menos se apaga.
+TEST(KalimaParticlesTest, TheIcarusFlareWalksWithTheWindAndShrinks)
+{
+    Client::World::Particle p;
+    p.alive = true;
+    p.type = p.texture = 0x5ac;
+    p.subtype = 0;
+    p.life = 20;
+    p.scale = 0.5f;
+    p.position = {100.0f, 200.0f, 300.0f};
+    CrtRandom random(7);
+    CrtRandom draws(7);
+    const glm::vec2 wind{0.25f, -0.5f};
+    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, wind).HasValue());
+    const double walk = static_cast<double>(std::bit_cast<float>(0x39d1b718u));
+    auto x = static_cast<float>((draws.Next() % 2001 - 1000) * walk);
+    double y = (draws.Next() % 2001 - 1000) * walk;
+    x = static_cast<float>(static_cast<double>(x) + 0.25);
+    y += -0.5;
+    x = static_cast<float>(static_cast<double>(x) * 0.5);
+    y *= 0.5;
+    EXPECT_EQ(p.position.x, static_cast<float>(static_cast<double>(x) + 100.0));
+    EXPECT_EQ(p.position.y, static_cast<float>(y + 200.0));
+    EXPECT_EQ(p.position.z, 302.5f);
+    const auto scale = static_cast<float>(0.5 - static_cast<double>(0.05f));
+    EXPECT_EQ(p.scale, scale);
+    EXPECT_EQ(p.light, glm::vec3(scale));
+    EXPECT_TRUE(p.alive);
+    EXPECT_EQ(random.State(), draws.State());
+
+    p.scale = 0.15f;
+    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, wind).HasValue());
+    EXPECT_EQ(p.scale, static_cast<float>(static_cast<double>(0.15f) - static_cast<double>(0.05f)));
+    EXPECT_GT(p.scale, 0.1f);
+    EXPECT_TRUE(p.alive);
+    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, wind).HasValue());
+    EXPECT_FALSE(p.alive);
+    EXPECT_EQ(p.life, -1);
+}
+
+// 0x5449e1..0x544a11: la estela 5ac/1 multiplica la luz por 0,9f y la escala por 0,95f, sin rand().
+TEST(KalimaParticlesTest, TheIcarusFlareTrailFadesWithoutDraws)
+{
+    Client::World::Particle p;
+    p.alive = true;
+    p.type = p.texture = 0x5ac;
+    p.subtype = 1;
+    p.life = 20;
+    p.scale = 3.0f;
+    p.light = {0.3f, 0.6f, 0.9f};
+    CrtRandom random(7);
+    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
+    const double fade = static_cast<double>(std::bit_cast<float>(0x3f666666u));
+    EXPECT_EQ(p.light, glm::vec3(static_cast<float>(static_cast<double>(0.3f) * fade),
+                                 static_cast<float>(static_cast<double>(0.6f) * fade),
+                                 static_cast<float>(static_cast<double>(0.9f) * fade)));
+    EXPECT_EQ(p.scale, static_cast<float>(3.0 * static_cast<double>(std::bit_cast<float>(0x3f733333u))));
+    EXPECT_EQ(random.State(), CrtRandom(7).State());
 }

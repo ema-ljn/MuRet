@@ -357,6 +357,41 @@ TEST(SelectionParticlesTest, TheOwnedMistLetsItsOwnerEmitAgainWhenItDiesUnseen)
     EXPECT_EQ(sine.arguments.size(), 1u);
 }
 
+// 0x54327b..0x5435cf: las nubes 622 del 0 al 5 de Icarus comparten el alta del /1 (siete rand()); en el paso,
+// la tabla 0x54848c gira a favor el 1 y el 4, en contra el 2 y el 5, y deja el giro del 0 y del 3.
+TEST(SelectionParticlesTest, TheIcarusCloudsShareTheMistAndTurnBySubtype)
+{
+    for (std::int32_t subtype = 0; subtype <= 5; ++subtype)
+    {
+        SCOPED_TRACE(subtype);
+        std::vector<Client::World::WorldObject> objects(1);
+        objects[0].identity = 77;
+        objects[0].seen = true;
+        auto particles = std::make_unique<Particles>();
+        CrtRandom random(5);
+        const Client::World::ParticleOwner owner{Client::World::ParticleOwnerKind::WorldObject, 77};
+        Particle& p = const_cast<Particle&>(
+            Create(*particles, Client::World::CloudParticle, subtype, 0.75f, random, GameScene, owner));
+        EXPECT_EQ(p.life, 30);
+        CrtRandom draws(5);
+        for (int draw = 0; draw < 7; ++draw)
+            static_cast<void>(draws.Next());
+        EXPECT_EQ(random.State(), draws.State());
+        p.rotation = 9.0f;
+        p.start.y = 0.25f;
+        p.rotationFactor = 1.5f;
+        RecordingSine sine;
+        ASSERT_TRUE(Step(*particles, random, 1234.0f, sine, &objects).HasValue());
+        const double turned = (1234.0 * 1.5) * Fiftieth;
+        if (subtype == 1 || subtype == 4)
+            EXPECT_EQ(p.rotation, F32(turned + 0.25));
+        else if (subtype == 2 || subtype == 5)
+            EXPECT_EQ(p.rotation, F32(-turned + 0.25));
+        else
+            EXPECT_EQ(p.rotation, 9.0f);
+    }
+}
+
 // Sin el objeto dueño entre los del mapa, el paso corta con MissingOwner antes de escribir la partícula.
 TEST(SelectionParticlesTest, TheOwnedMistNeedsItsOwnerAmongTheMapObjects)
 {
@@ -449,7 +484,7 @@ TEST(SelectionParticlesTest, OwnedCreationRejectsOtherFamilies)
     auto particles = std::make_unique<Particles>();
     CrtRandom random(1);
     const auto created =
-        particles->CreateOwnedChecked(Client::World::CloudParticle, {}, {}, {}, 2, 1.0f, 0.0f, random, SelectionScene);
+        particles->CreateOwnedChecked(Client::World::CloudParticle, {}, {}, {}, 6, 1.0f, 0.0f, random, SelectionScene);
     ASSERT_FALSE(created.HasValue());
     EXPECT_EQ(created.Error(), ParticleError::UnsupportedSubtype);
     EXPECT_FALSE(particles->All()[0].alive);

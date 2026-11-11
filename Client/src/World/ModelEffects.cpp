@@ -360,6 +360,54 @@ std::optional<std::size_t> ModelEffects::CreateStoneChip(std::int16_t type, cons
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreateIcarusEffect(std::int16_t type, const glm::vec3& position,
+                                                            const glm::vec3& angles, const glm::vec3& light,
+                                                            Render::Models::CrtRandom& random)
+{
+    if (type != IcarusCloudEffect && type != IcarusFlareEffect)
+        return std::nullopt;
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, type, position, angles, light);
+        glm::vec3& at = effect.transform.position;
+        if (type == IcarusCloudEffect)
+        {
+            constexpr std::int32_t CloudLife = 2;
+            constexpr float CloudScale = 10.0f;
+            constexpr double Forward = 200.0, Down = 190.0;
+            effect.life = CloudLife;
+            effect.objectState.blendMesh = 0;
+            effect.transform.scale = CloudScale;
+            at.y = F32(static_cast<double>(at.y) + Forward);
+            at.z = F32(static_cast<double>(at.z) - Down);
+            effect.vertexLight = false;
+            effect.previousPosition = at;
+            return slot;
+        }
+        constexpr float FlareLight = std::bit_cast<float>(0x3e99999au);
+        constexpr int SpeedSpan = 5, SpeedBase = 9;
+        constexpr double Half = 0.5;
+        // 0x6ba1d0 (70° en radianes, de float a double) y 0x6ba1c8 (30°).
+        constexpr double Steep = std::bit_cast<double>(0x3ff38c3540000000ull);
+        constexpr double Side = std::bit_cast<double>(0x3fe0c15240000000ull);
+        constexpr float FlareScale = 3.0f;
+        constexpr std::int32_t FlareLife = 400;
+        effect.light = glm::vec3(FlareLight);
+        const double speed = static_cast<double>(random.Next() % SpeedSpan + SpeedBase) * Half;
+        const double cosSteep = std::cos(Steep);
+        effect.velocity.x = F32((std::sin(Side) * cosSteep) * speed);
+        effect.velocity.y = F32((std::cos(Side) * cosSteep) * speed);
+        effect.velocity.z = F32(std::sin(Steep) * speed);
+        effect.transform.scale = FlareScale;
+        effect.life = FlareLife;
+        return slot;
+    }
+    return std::nullopt;
+}
+
 std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                 const glm::vec3& light, float scale)
 {

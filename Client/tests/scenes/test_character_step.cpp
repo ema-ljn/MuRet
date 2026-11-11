@@ -289,7 +289,10 @@ struct GameWorld
     }
 
     static constexpr std::size_t HeroSlot = 42;
-    WorldState world;
+    // En el heap: el WorldState pasa de 340 KB y hay tests con tres GameWorld vivos, más de lo que entra en el
+    // stack de 1 MB de Windows. Mover el GameWorld mueve el puntero, y la referencia sigue en el mismo WorldState.
+    std::unique_ptr<WorldState> ownedWorld = std::make_unique<WorldState>();
+    WorldState& world = *ownedWorld;
     CrtRandom random{Seed};
     Skeleton skeleton = Client::Tests::PlayerActionsSkeleton();
     const Skeleton* player = &skeleton;
@@ -922,9 +925,9 @@ TEST(CharacterStepTest, TheWeaponTrailDrawsFromFrameThree)
 }
 
 // Lo que el cuerpo (0x4fd5f0) no tiene corta, en su orden y después de los rand() de antes: los mapas 18 a 23 con
-// el héroe 10 s en una celda con el bit 8 (0x4fbe10 manda C1 06 AF 01, CL9.5), el 0xc5 (0x4fd603), el 0xf1 (0x4fb910), muriéndose (0x4fb9e0), +0x88 en 4 (0x4fcd0c), el nombre de
-// 0x6c88b0 (0x4fcda2), otro modelo, Player.bmd sin cargar o una acción fuera de él (0x4f9580, 0x4f95c0) y la
-// partícula de las 0x4d, 0x4f y 0x5a (0x4fdb70).
+// el héroe 10 s en una celda con el bit 8 (0x4fbe10 manda C1 06 AF 01, CL9.5), el 0xc5 (0x4fd603), el 0xf1 (0x4fb910),
+// muriéndose (0x4fb9e0), +0x88 en 4 (0x4fcd0c), el nombre de 0x6c88b0 (0x4fcda2), otro modelo, Player.bmd sin cargar o
+// una acción fuera de él (0x4f9580, 0x4f95c0) y la partícula de las 0x4d, 0x4f y 0x5a (0x4fdb70).
 TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
 {
     struct Case

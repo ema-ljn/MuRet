@@ -189,8 +189,8 @@ TEST(CastleSiegeObjectServicesTest, TheFountainWithoutThePoolCutsAfterItsDraw)
 // 0 no crean nada, y con 0 cortan en la chispa 6ec/0, que MuRet no crea. En el otro estado no sacan nada.
 TEST(CastleSiegeObjectServicesTest, TheTorchesDrawOnceAndCutOnlyWhenTheSparkFlies)
 {
-    for (const auto& [type, siege] :
-         {std::pair<std::int16_t, bool>{0, false}, std::pair<std::int16_t, bool>{0x35, true}})
+    for (const auto& [type, siege] : {std::pair<std::int16_t, bool>{std::int16_t{0}, false},
+                                      std::pair<std::int16_t, bool>{std::int16_t{0x35}, true}})
     {
         for (const bool zero : {false, true})
         {

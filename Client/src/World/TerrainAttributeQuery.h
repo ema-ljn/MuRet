@@ -2,11 +2,16 @@
 
 #include "Core/Expected.h"
 
+#include <bit>
 #include <cstdint>
 
 namespace Client::World
 {
 class ITerrainAttributeQuerySource;
+
+// 0x6ba110: el −0,01f de los dos fmul de 0x5f82c0. Es negativo: la fila y la columna salen negativas y
+// 0x7d0d348 − índice · 2 cae dentro de la tabla. Con +0,01 sólo la celda (0, 0) queda representada.
+inline constexpr float TerrainAttributeQueryScale = std::bit_cast<float>(0xbc23d70au);
 
 enum class TerrainAttributeQueryError
 {

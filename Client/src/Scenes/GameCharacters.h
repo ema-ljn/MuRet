@@ -7,6 +7,7 @@
 #include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
 #include "Scenes/ActorState.h"
+#include "Scenes/GameDrawTail.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -27,7 +28,10 @@ struct ClothWorld;
 namespace Client::World
 {
 class FrameSprites;
+class ModelEffects;
+class Particles;
 struct TerrainLighting;
+struct TerrainPolygon;
 } // namespace Client::World
 
 // Los personajes en el dibujo del juego (0x6374dd, 0x510d00), hasta donde MuRet los tiene. Contrato: 06
@@ -56,6 +60,11 @@ struct GameCharacterPass
     World::FrameSprites* sprites = nullptr;
     // El buffer global de la pose (0x68b181c) y los globales de 0x60b3d0 que presta el dueño del frame.
     FaunaDrawCarry* poseCarry = nullptr;
+    // Los joints (0x530860) y las partículas (0x53fe70) del frame, para lo que cuelga y el conjunto completo, y los
+    // efectos con modelo (0x518cf0), para el 5ac/3 del contador de +0x35c.
+    std::span<JointState> joints{};
+    World::Particles* particles = nullptr;
+    World::ModelEffects* effects = nullptr;
     const ItemDrawContext* itemContext = nullptr;
     Render::Models::OriginalFramePace pace = Render::Models::OriginalFramePace::ByTheClock;
     std::function<void(std::uint16_t, std::span<const Render::Models::BoneTransform>,
@@ -64,13 +73,21 @@ struct GameCharacterPass
     // Publica las matrices del dibujo intermedio al buffer que presta el caller, sin avanzar el estado.
     bool publishProjectedPose = false;
     std::function<std::span<const Render::Models::BoneTransform>(std::uint16_t)> poseBones{};
+    // Los modelos del mundo, donde 0x618970 carga el Angel (0x1f7) de Chaos Castle: en el original, el mismo
+    // arreglo global. Sin ellos, un jugador en los mapas 18 a 23 corta.
+    const IModelLibrary* worldModels = nullptr;
+    // El trapecio de este dibujo (0x5fba90), que mira el cuervo (0x4182f0), y la altura fija de la cámara
+    // (0x6c9d5c) de la altura del terreno bajo su sombra (0x5f93c0).
+    const World::TerrainPolygon* polygon = nullptr;
+    float fixedHeight = 1200.0f;
 };
 
 // El cuerpo del jugador ordinario, su luz del terreno y el override del héroe, reutilizando
-// DrawCharacter, y después lo que cuelga con DrawGameHanging (0x50db57..0x50e9fa): el arma a la espalda,
-// las alas, Helper02 y las manos. Lo aún no portado corta con su dirección: monstruos, los casos de
-// 0x509340 con joints o partículas y los efectos especiales. Entre frames del original, lo que cuelga se
-// dibuja sobre una copia del personaje y del rand(): no avanza ni gasta nada.
+// DrawCharacter, después lo que cuelga con DrawGameHanging (0x50db57..0x50e9fa): el arma a la espalda,
+// las alas, Helper02 y las manos; los efectos del jugador con DrawGameCharacterEffects (0x50ea20..0x510ab6)
+// y el cuervo con DrawGameRaven (0x420df0). Lo aún no portado corta con su dirección: monstruos, los casos
+// de 0x509340 con joints o partículas y lo que crean los efectos. Entre frames del original, lo que cuelga y
+// los efectos se dibujan sobre una copia del personaje y del rand(): no avanza ni gasta nada.
 [[nodiscard]] Core::Expected<void, std::string> DrawGameCharacters(Render::ModelBatch& batch,
                                                                    const IModelLibrary& models, WorldState& world,
                                                                    const GameCharacterPass& pass);

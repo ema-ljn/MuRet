@@ -154,6 +154,8 @@ void SetTheStartingState(ActorState& actor, std::uint16_t type)
     // 0x511c99, en el mismo bloque que el PK y la escala: el +0x358 que después escribe 0x40d010 en el
     // héroe publicado.
     actor.byte358 = 0;
+    // 0x511ca0: +0x35c, con el ESI en 0 de 0x511c36.
+    actor.counter35c = 0;
     actor.level = 0;
     actor.guildStatus = 0xff;
     actor.light = {};
@@ -227,6 +229,8 @@ Core::Expected<void, std::string> ConstructActor(ActorState& actor, std::uint16_
     // El FSTP a float va después de la suma del corrimiento.
     actor.position = {x, y, static_cast<float>(ConstructionHeight(context, x, y, previousHad1c15, safe))};
     actor.angles = {0.0f, 0.0f, placement.angle};
+    // 0x5123c4..0x5123ff: suelta los huesos propios (+0x120) y pide otros sin iniciar (Q-C318).
+    actor.bodyPose.clear();
     ClearTheParts(actor);
     ++actor.revision;
     return {};

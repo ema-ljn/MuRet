@@ -415,4 +415,42 @@ Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Re
     }
     return {};
 }
+
+Core::Expected<void, std::string> StepCrywolfObject(WorldObject& object, Render::Models::CrtRandom& random,
+                                                    const ObjectStepGlobals& globals)
+{
+    // 0x430429..0x430437: (0,2f; 0,7f; 0,5f), en los bits del ASM.
+    constexpr glm::vec3 GlowLight(std::bit_cast<float>(0x3e4ccccdu), std::bit_cast<float>(0x3f333333u),
+                                  std::bit_cast<float>(0x3f000000u));
+    // 0x6b8a20 (0,6f) y 0x6b8854 (0,2f): el verde y el azul de la antorcha.
+    constexpr float TorchGreen = std::bit_cast<float>(0x3f19999au);
+    constexpr float TorchBlue = std::bit_cast<float>(0x3e4ccccdu);
+    constexpr std::int32_t GlowRadius = 2;
+    constexpr std::int32_t TorchRadius = 3;
+    constexpr int TorchMask = 3, TorchBase = 3;
+    constexpr float FaintAlpha = std::bit_cast<float>(0x3e4ccccdu);
+    switch (object.type)
+    {
+    case 0x29:
+        return AddObjectLight(globals, object.transform.position, GlowLight, GlowRadius, "0x43043e");
+    case 0x39:
+    case 0x47:
+    {
+        // 0x43044d..0x430494: fst del rojo; el verde y el azul salen del producto sin redondear.
+        const std::int32_t intensity = (random.Next() & TorchMask) + TorchBase;
+        return AddObjectLight(globals, object.transform.position, WarmLight(intensity, TorchGreen, TorchBlue),
+                              TorchRadius, "0x430497");
+    }
+    case 0x51:
+        object.alpha = FaintAlpha; // 0x4304a6
+        return {};
+    case 0x52:
+    case 0x53:
+    case 0x54:
+        object.state.hiddenMesh = HiddenObject; // 0x4304b7
+        return {};
+    default:
+        return {};
+    }
+}
 } // namespace Client::World

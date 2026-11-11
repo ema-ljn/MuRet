@@ -93,10 +93,6 @@ std::string_view ExpectedError(MapSweepCut cut)
         return {};
     case MapSweepCut::MissingHeight:
         return "Data\\World6\\TerrainHeight.OZB no está";
-    case MapSweepCut::CastleState:
-        return "0x61a560: el mapa 30 pasa por 0x42a760 y elige el .att con 0x4294b0";
-    case MapSweepCut::CrywolfState:
-        return "0x61a560: el .att del mapa 34 depende del estado de Crywolf (0x42fe50)";
     case MapSweepCut::MissingWorld:
         return "Data\\World36\\EncTerrain36.att no está";
     case MapSweepCut::LoginSpecials:
@@ -214,7 +210,9 @@ void ExpectPublishedFiles(const Client::Scenes::WorldMap& loaded, const MapSweep
     ASSERT_FALSE(loaded.objectRecords.empty());
     EXPECT_EQ(loaded.objectRecords.front().type, expected.firstType);
     EXPECT_EQ(loaded.objectRecords.back().type, expected.lastType);
-    const std::size_t specialCount = probe.nominal == 2 ? 2 : (probe.nominal == 3 ? 1 : 0);
+    // Los especiales preceden al archivo: dos en Devias, la torre de Noria y los cinco lanceros 0x19f del 30
+    // (0x42a760).
+    const std::size_t specialCount = probe.nominal == 2 ? 2 : (probe.nominal == 3 ? 1 : (probe.nominal == 30 ? 5 : 0));
     ASSERT_EQ(loaded.objects.size(), specialCount + loaded.objectRecords.size());
     for (std::size_t record = 0; record < loaded.objectRecords.size(); ++record)
     {
@@ -283,6 +281,13 @@ void ExpectEffectCleanup(const WorldState& world, const MapSweepCase& probe)
             ASSERT_TRUE(effect.alive);
             ASSERT_EQ(effect.type, NoriaEffects[slot]);
             ASSERT_EQ(effect.life, 0xffffff);
+        }
+        else if (probe.nominal == 30 && slot == 0)
+        {
+            // El único 79 de World31 pide el plano 0x135 con vida 100 (0x42c6b0 → 0x51d73b).
+            ASSERT_TRUE(effect.alive);
+            ASSERT_EQ(effect.type, 0x135);
+            ASSERT_EQ(effect.life, 100);
         }
         else
         {
@@ -434,13 +439,8 @@ TEST_P(MapSweep, LoadsTheNominalIdentityOrStopsAtTheDeclaredBoundary)
     ExpectActorCleanup(m_world, scene);
     if (loaded.HasValue())
     {
-        const auto event = Client::Scenes::CheckEventMap(m_world.Runtime().map);
-        EXPECT_EQ(event.HasValue(), !probe.eventCut);
-        if (!event.HasValue())
-        {
-            EXPECT_EQ(event.Error(), "0x447d70: el objeto de evento del mapa " + std::to_string(probe.effective) +
-                                         " (0x447eb0 y operator new(0x134)) no está portado");
-        }
+        Client::Scenes::ArmEventMapObject(m_world.Runtime().map, m_world.Runtime());
+        EXPECT_EQ(m_world.Runtime().eventObject.has_value(), probe.eventObject);
     }
 }
 

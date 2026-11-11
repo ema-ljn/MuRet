@@ -218,6 +218,8 @@ public:
     void RequestGate(std::uint8_t gate);
     void ConfirmTeleport();
     void RequestCrywolfState();
+    // El B9 02 de 0x42a760 al cargar el 30 (Protocol::World::WriteCastleSiegeState).
+    void RequestCastleSiegeState();
 
     // 0x4e3e98: las diez últimas recepciones 1C crudas, antes de admisión y aplicación.
     // Proyección de MuRet para los 1C: pertenece a la sesión y sobrevive Start.

@@ -141,6 +141,8 @@ Core::Expected<void, std::string> GameScene::StepTheLeaves()
                             &world.Particles()};
     context.cloudHero = &hero;
     context.movementSpeed = &world.Runtime().movementSpeed;
+    // 0x5304f6: el clima de Crywolf (0x5763358), que sortea 0x430510.
+    context.crywolfState = &world.Runtime().crywolf.weather;
     return StepGameLeaves(context);
 }
 } // namespace Client::Scenes

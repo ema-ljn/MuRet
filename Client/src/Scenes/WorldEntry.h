@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -69,6 +70,9 @@ struct WorldEntryResources
     // Q-C144 avisa acá.
     Core::Log& log;
     Core::IClock* clock = nullptr;
+    // El B9 02 que 0x42a760 manda al cargar el 30 con el socket del GS abierto: SessionEventApplier lo ata a la
+    // sesión que aplica la respuesta. Vacío, como el socket en −1, no sale nada.
+    std::function<void()> requestCastleSiegeState{};
 };
 
 // Lo que la entrada pide afuera y MuRet todavía no hace (sin audio hasta la CL10): los sonidos de
@@ -79,7 +83,7 @@ struct WorldEntryResult
 };
 
 // 0x4c3940 con el paquete cifrado, en el orden nativo de la tabla de 06: los stats en el registro
-// propio; el mundo en curso y la carga (LoadMap y CheckEventMap); el héroe en chars[rand() % 400],
+// propio; el mundo en curso y la carga (LoadMap y ArmEventMapObject); el héroe en chars[rand() % 400],
 // construido (ConstructActor) con la clave del jugador (`playerKey`, DAT_057678bc), la clase, el PK y
 // el CtlCode; y 0x512a30 con el equipo todavía viejo. Si 0x512a30 vuelve, sigue con SettleWorldEntry.
 // Lo que MuRet no tiene corta con error y deja lo que el original hizo antes: el héroe sin publicar,

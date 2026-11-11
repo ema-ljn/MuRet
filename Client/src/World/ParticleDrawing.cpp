@@ -2,10 +2,12 @@
 #include "World/KalimaParticleKernels.h"
 #include "World/SelectionParticleKernels.h"
 #include "World/TrialsParticleKernels.h"
+#include "World/BloodCastleParticleKernels.h"
 #include "World/ParticleDrawParameters.h"
 #include "World/IParticleDrawingServices.h"
 #include "World/Particles.h"
 #include "Render/ParticleBillboardRequest.h"
+#include "Render/TextureEnvMode.h"
 #include "Core/Expected.h"
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -31,6 +33,8 @@ struct DrawSelection
 {
     ParticleDrawKind kind;
     bool cloud;
+    // La 6ac/2: el billboard va con GL_ADD, y después vuelve GL_MODULATE.
+    bool addedTexture = false;
 };
 Core::Expected<ParticleDrawKind, ParticleDrawingError> PrepareSmoke(Particle& p, IParticleDrawingServices& services)
 {
@@ -137,6 +141,35 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
         return DrawSelection{ParticleDrawKind::Common, false};
     case DropParticle:
         return DrawSelection{ParticleDrawKind::Drop, false};
+    case BubbleParticle: // 0x5488f6 → 0x54899a, sin leer el subtipo.
+        return DrawSelection{ParticleDrawKind::Bubble, false};
+    case TorchSparkParticle: // 0x5488f6: la 6ab va al default, 0x54889a.
+        return DrawSelection{ParticleDrawKind::Common, false};
+    case DustParticle:
+    {
+        // 0x548a51: la 5f3 va a 0x620c10 y al billboard común, sin leer el subtipo.
+        const auto blended = services.Blended();
+        if (!blended.HasValue())
+            return Core::Unexpected(blended.Error());
+        return DrawSelection{ParticleDrawKind::Common, false};
+    }
+    case TorchFlameParticle:
+    {
+        // 0x5489eb: la /2 pone glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD) antes de 0x620c10 y dibuja
+        // el billboard con los argumentos del común (0x548a0d..0x548a33); las demás, 0x620c10 y el billboard común
+        // (0x548a51).
+        const bool added = p.subtype == BrightFlameSubtype;
+        if (added)
+        {
+            const auto env = services.TextureEnv(Render::TextureEnvMode::Add);
+            if (!env.HasValue())
+                return Core::Unexpected(env.Error());
+        }
+        const auto blended = services.Blended();
+        if (!blended.HasValue())
+            return Core::Unexpected(blended.Error());
+        return DrawSelection{ParticleDrawKind::Common, false, added};
+    }
     case ThunderParticle: // 548ca1→54889a: billboard común sin lectura del subtipo.
     case SparkParticle:
     case Particle67:
@@ -176,7 +209,11 @@ Result DrawBranch(Particle& p, glm::vec2 extents, std::size_t index, std::refere
     const std::int32_t selector = p.texture;
     const Render::ParticleBillboardRequest request{selector,         std::cref(p.position), shape.width, shape.height,
                                                    std::cref(light), shape.rotation,        shape.uv,    shape.uvSize};
-    return services.Billboard(request);
+    const auto drawn = services.Billboard(request);
+    if (!drawn.HasValue() || !selected.Value().addedTexture)
+        return drawn;
+    // 0x548a3b..0x548a4a: glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE) y al lugar siguiente.
+    return services.TextureEnv(Render::TextureEnvMode::Modulate);
 }
 Result DrawOne(Particle& p, std::size_t index, std::reference_wrapper<const float> clock,
                IParticleDrawingServices& services)

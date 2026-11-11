@@ -13,6 +13,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Render/TextureSlot.h"
 #include "Render/SpriteVertex.h"
+#include "Render/TextureEnvMode.h"
 #include "Data/Models/Model.h"
 #include "Data/Textures/Texture.h"
 #include <glm/ext/vector_float2.hpp>
@@ -133,12 +134,22 @@ public:
         ADD_FAILURE();
         return {};
     }
+    Result Blended() override
+    {
+        ADD_FAILURE();
+        return {};
+    }
     Result Type620850() override
     {
         ADD_FAILURE();
         return {};
     }
     Result Type620870() override
+    {
+        ADD_FAILURE();
+        return {};
+    }
+    Result TextureEnv(Render::TextureEnvMode) override
     {
         ADD_FAILURE();
         return {};
@@ -427,7 +438,10 @@ TEST(Particle60f3Test, LegacyAndUnaccreditedCreationSubtypesRemainRejected)
     const auto legacy = particles.CreateChecked(Type, {}, {}, {}, 3, 1, clock, random, 0);
     ASSERT_FALSE(legacy.HasValue());
     EXPECT_EQ(legacy.Error(), World::ParticleError::UnsupportedType);
-    for (const int subtype : {0, 4, 10})
+    // La /0 del conjunto completo, la /4 de la antorcha de Blood Castle y la /10 del calco de Crywolf ya están
+    // acreditadas; la /5 comparte el alta de la /4 pero no su paso, y la /6, que nace como la /3 (0x542eeb), sigue sin
+    // acreditar.
+    for (const int subtype : {5, 6})
     {
         const auto result = particles.CreateChecked(Type, {}, {}, {}, subtype, 1, std::cref(clock), random, 0, trig);
         ASSERT_FALSE(result.HasValue());
@@ -527,12 +541,27 @@ public:
         ADD_FAILURE();
         return {};
     }
+    Result BlendedPrefix() override
+    {
+        ADD_FAILURE();
+        return {};
+    }
+    Result BlendedTail() override
+    {
+        ADD_FAILURE();
+        return {};
+    }
     Result Type620850() override
     {
         ADD_FAILURE();
         return {};
     }
     Result Type620870() override
+    {
+        ADD_FAILURE();
+        return {};
+    }
+    Result TextureEnv(Render::TextureEnvMode) override
     {
         ADD_FAILURE();
         return {};

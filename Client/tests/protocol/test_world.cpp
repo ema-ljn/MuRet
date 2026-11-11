@@ -32,6 +32,7 @@ using Client::Protocol::ProtocolError;
 using Client::Protocol::World::ReadRegen;
 using Client::Protocol::World::ReadTeleport;
 using Client::Protocol::World::Regen;
+using Client::Protocol::World::WriteCastleSiegeState;
 using Client::Protocol::World::WriteCrywolfState;
 using Client::Protocol::World::WriteGateRequest;
 using Client::Protocol::World::WriteTeleportDone;
@@ -294,5 +295,14 @@ TEST(WorldProtocolTest, CrywolfStateWritesZeroWithXor32AndWithoutC3)
     EXPECT_EQ(request.delivery, Delivery::Clear);
     EXPECT_TRUE(SameBytes(Xor32Decode(request.packet).Bytes(), Bytes({0xc1, 4, 0xbd, 0})));
     EXPECT_TRUE(SameBytes(request.packet.Bytes(), Bytes({0xc1, 4, 0xbd, 0x34})));
+}
+
+// 0x42a7d3..0x42a99e: el B9 02 de 0x42a760, con la clave 0x89 del byte 3 (0x42a87e) y el send directo.
+TEST(WorldProtocolTest, CastleSiegeStateWritesTwoWithXor32AndWithoutC3)
+{
+    const auto request = WriteCastleSiegeState();
+    EXPECT_EQ(request.delivery, Delivery::Clear);
+    EXPECT_TRUE(SameBytes(Xor32Decode(request.packet).Bytes(), Bytes({0xc1, 4, 0xb9, 2})));
+    EXPECT_TRUE(SameBytes(request.packet.Bytes(), Bytes({0xc1, 4, 0xb9, 0x32})));
 }
 } // namespace

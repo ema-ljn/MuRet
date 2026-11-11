@@ -6,6 +6,7 @@
 #include "Render/IParticleDrawBackend.h"
 #include "Render/ParticleBillboardRequest.h"
 #include "Render/SpriteVertex.h"
+#include "Render/TextureEnvMode.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/IParticleDrawingServices.h"
 #include "World/ParticleDrawing.h"
@@ -67,6 +68,19 @@ World::IParticleDrawingServices::Result ParticleDrawServices::Subtractive()
         return second;
     return Checked(m_backend.get().SubtractiveTail(), Phase::SubtractiveTail);
 }
+World::IParticleDrawingServices::Result ParticleDrawServices::Blended()
+{
+    const auto prefix = Checked(m_backend.get().BlendedPrefix(), Phase::BlendedPrefix);
+    if (!prefix.HasValue())
+        return prefix;
+    const auto first = Checked(m_backend.get().Helper6208f0(), Phase::Helper6208f0);
+    if (!first.HasValue())
+        return first;
+    const auto second = Checked(m_backend.get().Helper6208b0(), Phase::Helper6208b0);
+    if (!second.HasValue())
+        return second;
+    return Checked(m_backend.get().BlendedTail(), Phase::BlendedTail);
+}
 World::IParticleDrawingServices::Result ParticleDrawServices::Type620850()
 {
     return Checked(m_backend.get().Type620850(), Phase::Type620850);
@@ -74,6 +88,10 @@ World::IParticleDrawingServices::Result ParticleDrawServices::Type620850()
 World::IParticleDrawingServices::Result ParticleDrawServices::Type620870()
 {
     return Checked(m_backend.get().Type620870(), Phase::Type620870);
+}
+World::IParticleDrawingServices::Result ParticleDrawServices::TextureEnv(Render::TextureEnvMode mode)
+{
+    return Checked(m_backend.get().TextureEnv(mode), Phase::TextureEnv);
 }
 World::IParticleDrawingServices::Result ParticleDrawServices::Billboard(Render::ParticleBillboardRequest request)
 {

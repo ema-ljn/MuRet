@@ -8,6 +8,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
@@ -26,6 +27,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ObjectAlpha.h"
+#include "World/OriginalFtol.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
 #include "World/TerrainWalls.h"
@@ -35,9 +37,11 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <string>
 
 namespace Client::Scenes
@@ -46,7 +50,7 @@ namespace
 {
 // 0x50919a y 0x5091c8: los dos lazos de 0x508f00 recorren 400 registros (0x69780 / 0x438); el 401 no.
 constexpr std::size_t SteppedCharacters = 400;
-// 0x412162: en el mapa 30 (0x1e), 0x412140 arma los objetos del asedio.
+// 0x412162: en el mapa 30 (0x1e), 0x412140 arma el panel del asedio.
 constexpr std::int32_t CastleMap = 30;
 
 // 0x4fd603: el tipo que pasa su nombre a 0x4381f0.
@@ -384,9 +388,7 @@ Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, std::size_t sl
                                     .playerSkeleton = *context.playerSkeleton,
                                     .items = context.items,
                                     .random = context.random,
-                                    .terrainWalls = IsKalima(context.world.Runtime().map) && terrain.attributes
-                                                        ? &terrain.attributes->cells
-                                                        : nullptr});
+                                    .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr});
         if (!stopped.HasValue())
         {
             return Core::Unexpected(stopped.Error());
@@ -472,14 +474,14 @@ bool LeavesATrail(std::uint8_t action, int model)
 }
 
 // 0x4fcee0(c, c, b) desde 0x505410, con el 0x20a.
-Core::Expected<void, std::string> StepTheWeaponTrail(const ActorState& actor, std::size_t slot,
+Core::Expected<void, std::string> StepTheWeaponTrail(ActorState& actor, std::size_t slot,
                                                      Render::Models::CrtRandom& random)
 {
     const std::uint8_t action = actor.animation.action;
-    // 0x4fceea..0x4fcf25: antes del frame 3 (o con NaN) y fuera de la 0x8d copia la posición a +0x17c, que MuRet
-    // no tiene, y sale.
+    // 0x4fceea..0x4fcf25: antes del frame 3 (o con NaN) y fuera de la 0x8d copia la posición a +0x17c y sale.
     if (!(actor.animation.frame >= TrailFrame) && action != AlwaysTrailedAction)
     {
+        actor.trailOrigin = actor.position;
         return {};
     }
     const bool left = action == FirstLeftHandAction || action == SecondLeftHandAction;
@@ -494,6 +496,56 @@ Core::Expected<void, std::string> StepTheWeaponTrail(const ActorState& actor, st
     // 0x4fd5c1..0x4fd5df: 0x441260 (solo el 0x1a7), 0x42fa40 (el 0x1b1 y el 0x1b3), 0x432bd0 y 0x426d90 (los
     // 0x1b8 a 0x1ba). 0x432bf1: rand() sin condición, antes de mirar el tipo (0x1ab a 0x1b4).
     static_cast<void>(random.Next());
+    return {};
+}
+
+// Una lectura de la celda protegida del héroe: abre la entrada (0x40b570) y la cierra (0x40b800, o en línea
+// con 0x40b240, 0x40b2f0 y 0x412890), con los cuatro rand() del último cierre.
+std::int32_t ReadHeroCell(std::uint8_t value, std::uint8_t& depth, Render::Models::CrtRandom& random)
+{
+    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    return value;
+}
+
+// 0x4fbe10, por cada personaje que da un paso: compara la celda lógica del héroe (+0x41c y +0x420) con la
+// guardada (0x743a180 y 0x743a184, .bss 0). Si es la misma y pasaron 10 s (el reloj del mundo menos 0x743a188,
+// por 0,001f, en la x87) en una celda con el bit 8 del atributo, manda C1 06 AF 01 x y (CL9.5). Con la misma
+// celda guarda el reloj solo si pasó ese tiempo; con otra, guarda la celda y el reloj. Cada comparación abre y
+// cierra su entrada.
+Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    ActorState& hero = context.world.Actors()[runtime.hero];
+    Render::Models::CrtRandom& random = context.random;
+    if (ReadHeroCell(hero.cellX, hero.cellXAccesses, random) == runtime.reportedCellX &&
+        ReadHeroCell(hero.cellY, hero.cellYAccesses, random) == runtime.reportedCellY)
+    {
+        // 0x4fbea8..0x4fbec5: fld, fsub, fmul y fcomp con 10; menor (o sin orden), nada.
+        constexpr double Thousandth = static_cast<double>(std::bit_cast<float>(0x3a83126fu));
+        constexpr double ReportDelay = 10.0;
+        const double waited =
+            (static_cast<double>(context.worldClock) - static_cast<double>(runtime.reportedCellTime)) * Thousandth;
+        if (!(waited >= ReportDelay))
+            return {};
+        const World::WorldTerrain& terrain =
+            context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+        if (terrain.attributes == nullptr)
+            return Core::Unexpected(std::string("0x4fbed9: falta el .att del mapa (0x7d0d348)"));
+        constexpr std::uint16_t ReportedCellBit = 8;
+        const auto cell = Data::Terrain::CellIndex(static_cast<std::uint8_t>(runtime.reportedCellX),
+                                                   static_cast<std::uint8_t>(runtime.reportedCellY));
+        if ((terrain.attributes->cells[cell] & ReportedCellBit) == ReportedCellBit)
+        {
+            return Core::Unexpected(std::format("0x4fbee8: el héroe lleva 10 s en la celda ({}; {}) con el bit 8 y "
+                                                "0x4fbe10 manda C1 06 AF 01 (CL9.5)",
+                                                runtime.reportedCellX, runtime.reportedCellY));
+        }
+        runtime.reportedCellTime = context.worldClock;
+        return {};
+    }
+    runtime.reportedCellX = ReadHeroCell(hero.cellX, hero.cellXAccesses, random);
+    runtime.reportedCellY = ReadHeroCell(hero.cellY, hero.cellYAccesses, random);
+    runtime.reportedCellTime = context.worldClock;
     return {};
 }
 
@@ -512,12 +564,11 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     }
     // 0x4fd69b..0x4fd6ef: la posición, la escala y la acción al modelo compartido (+0x6c, +0x68 y +0xa0), que
     // MuRet no tiene: 0x4f9580 y 0x4ec200 leen la acción del personaje.
-    // 0x4fd6f5: 0x4fbe10 compara la celda lógica del héroe con la anterior (0x743a180..0x743a188) y manda un
-    // paquete con send (0x6b8588); con error cierra el socket (0x4e8380).
+    // 0x4fd6f5: 0x4fbe10, la celda del héroe en los mapas 18 a 23.
     if (runtime.map >= FirstCellReportMap && runtime.map <= LastCellReportMap)
     {
-        return Core::Unexpected("0x4fbe10: en el " + MapText(runtime.map) +
-                                " el paso de cada personaje compara la celda del héroe y la manda, sin portar");
+        if (auto reported = ReportTheHeroCell(context); !reported.HasValue())
+            return reported;
     }
     // 0x4fd6fe: 0x4fc450.
     if (hero)
@@ -632,6 +683,84 @@ void SetTheNewFaceHeadTarget(ActorState& actor, Render::Models::CrtRandom& rando
     }
 }
 
+// 0x4ec110(modelo, huesos propios + hueso · 0x30, offset, punto, 1) con la escala y la posición que 0x505ec6
+// copió del personaje al modelo. Sin huesos propios (antes del primer dibujo), la matriz en cero (Q-C318).
+glm::vec3 OwnBonePoint(const ActorState& actor, std::size_t bone, const glm::vec3& offset)
+{
+    const Render::Models::BoneTransform matrix =
+        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
+    return Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix), offset, actor.scale,
+                                                     actor.position);
+}
+
+// 0x506d0a..0x506d7c: en la escena 5 y el mapa 7, el segundo de cada diez del reloj del mundo (ftol % 10000
+// debajo de 1000) saca una burbuja 0x607 de la cabeza: 0x4ec110 con el hueso +0x54 del modelo (20 en Player.bmd)
+// de los huesos propios (+0x120), (0, 20, −10), la escala (+0x68) y la posición (+0x6c) que 0x505ec6 copió
+// del personaje, y 0x53fe70(0x607, punto, +0x1c, (1, 1, 1) de 0x506c82, 0, 1, 0). Antes del primer dibujo
+// los huesos son los del operator new de 0x511290, sin iniciar: MuRet usa una matriz en cero (Q-C318).
+Core::Expected<void, std::string> BlowTheAtlansBubble(const ActorState& actor, std::size_t slot,
+                                                      const CharacterStepContext& context)
+{
+    constexpr std::int32_t ClockPeriod = 10000;
+    constexpr std::int32_t BubbleWindow = 1000;
+    const std::optional<std::int32_t> clock = World::OriginalFtolLow(static_cast<double>(context.worldClock));
+    if (!clock)
+    {
+        return Core::Unexpected(std::string("0x506d10: ftol del reloj del mundo fuera de lo acreditado"));
+    }
+    if (*clock % ClockPeriod >= BubbleWindow)
+    {
+        return {};
+    }
+    constexpr glm::vec3 HeadOffset{0.0f, 20.0f, -10.0f};
+    const glm::vec3 point = OwnBonePoint(actor, static_cast<std::size_t>(Data::Models::PlayerHeadBone), HeadOffset);
+    if (context.particles == nullptr)
+    {
+        return Core::Unexpected(
+            std::format("0x506d77: falta el pool de partículas de la burbuja de Atlans, lugar {}", slot));
+    }
+    const auto created = context.particles->CreateChecked(World::DropParticle, point, actor.angles, glm::vec3(1.0f), 0,
+                                                          1.0f, context.worldClock, context.random, 0);
+    if (!created.HasValue())
+    {
+        return Core::Unexpected(std::format("0x506d77: la burbuja 0x607/0 del lugar {} falla con error {}", slot,
+                                            static_cast<unsigned>(created.Error())));
+    }
+    return {};
+}
+
+// 0x506d7f..0x506e54: en el mapa 9, en cualquier escena, dos rand() % 4 (rand() & 3): con 0, una gota 0x68/0 de
+// 0x4ec110 con el hueso 26 (0x4e0) y después con el 35 (0x690) de los huesos propios, (−15, 0, 0), y
+// 0x53fe70(0x68, punto, +0x1c, (1, 1, 1), 0, 1, 0). El segundo rand() sale aunque el primero no dé 0.
+Core::Expected<void, std::string> DropTheDevilSquareRain(const ActorState& actor, std::size_t slot,
+                                                         const CharacterStepContext& context)
+{
+    constexpr std::int32_t RainParticle = 0x68;
+    constexpr int RainOdds = 4;
+    constexpr std::array<std::size_t, 2> RainBones{26, 35};
+    constexpr std::array<const char*, 2> RainAddresses{"0x506dff", "0x506e4f"};
+    constexpr glm::vec3 RainOffset{-15.0f, 0.0f, 0.0f};
+    for (std::size_t drop = 0; drop < RainBones.size(); ++drop)
+    {
+        if (context.random.Next() % RainOdds != 0)
+            continue;
+        const glm::vec3 point = OwnBonePoint(actor, RainBones[drop], RainOffset);
+        if (context.particles == nullptr)
+        {
+            return Core::Unexpected(std::format(
+                "{}: falta el pool de partículas de la lluvia de Devil Square, lugar {}", RainAddresses[drop], slot));
+        }
+        const auto created = context.particles->CreateChecked(RainParticle, point, actor.angles, glm::vec3(1.0f), 0,
+                                                              1.0f, context.worldClock, context.random, 0);
+        if (!created.HasValue())
+        {
+            return Core::Unexpected(std::format("{}: la gota 0x68/0 del lugar {} falla con error {}",
+                                                RainAddresses[drop], slot, static_cast<unsigned>(created.Error())));
+        }
+    }
+    return {};
+}
+
 // 0x505de0(c, c) desde 0x508ee6, con el 0x20a, hasta su final (06, "Los efectos de los personajes
 // (0x505de0)"). `hero` es c == [0x743a170].
 Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t slot, bool hero,
@@ -727,15 +856,17 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     }
     if (context.scene == SceneId::Game && map == ClockEffectMap)
     {
-        return Core::Unexpected(std::format("0x506d01: en el mapa 7 el personaje del lugar {} saca el efecto 0x607 "
-                                            "según el reloj del mundo (0x5767b88), que no está portado",
-                                            slot));
+        if (auto bubbled = BlowTheAtlansBubble(actor, slot, context); !bubbled.HasValue())
+        {
+            return bubbled;
+        }
     }
     if (map == RandomEffectMap)
     {
-        return Core::Unexpected(std::format("0x506d8b: en el mapa 9 el personaje del lugar {} sortea dos efectos 0x68 "
-                                            "con rand() & 3, que no están portados",
-                                            slot));
+        if (auto rained = DropTheDevilSquareRain(actor, slot, context); !rained.HasValue())
+        {
+            return rained;
+        }
     }
     const std::uint8_t action = actor.animation.action;
     if (action == FirstEffectAction || action == SecondEffectAction)
@@ -841,17 +972,41 @@ LogicalCell ReadLogicalCell(ActorState& actor, Render::Models::CrtRandom& random
     return cell;
 }
 
+namespace
+{
+// 0x412140. Fuera del mapa 30, 0x412560 suelta el panel de 0x5763530 si lo hay. En el 30, con 0x6c649a en
+// 0xff (0x412191 y 0x4123f9), arma el de la clase 0 si no hay panel (0x412195) o si el que hay es de otra clase
+// (0x412402..0x41240f), y deja el que ya es de la clase 0. Los otros puestos (0x80, 0x40, 0x20 y 0) arman los
+// paneles 1 y 2 según el gremio de 0x6c6498, y solo los trae el paquete del gremio (CL9).
+Core::Expected<void, std::string> StepTheSiegePanel(WorldRuntime& runtime)
+{
+    if (runtime.map != CastleMap)
+    {
+        runtime.siegePanelKind.reset();
+        return {};
+    }
+    constexpr std::uint8_t NoGuild = 0xff;
+    if (runtime.heroGuildPost != NoGuild)
+    {
+        return Core::Unexpected(std::format("0x412193: el panel del asedio con el puesto {:#x} en el gremio "
+                                            "(0x6c649a) no está portado",
+                                            runtime.heroGuildPost));
+    }
+    constexpr std::uint8_t NoGuildPanel = 0;
+    runtime.siegePanelKind = NoGuildPanel;
+    return {};
+}
+} // namespace
+
 Core::Expected<void, std::string> StepCharacters(const CharacterStepContext& context)
 {
     WorldState& world = context.world;
-    const WorldRuntime& runtime = world.Runtime();
-    // 0x508f06..0x508f0c: 0x412140 con el héroe. Fuera del mapa 30 llama a 0x412560, que solo suelta el
-    // objeto de 0x5763530 si lo hay, y ese objeto lo crea 0x412140 en el mapa 30 (*estático*).
-    if (runtime.map == CastleMap)
+    // 0x508f06..0x508f0c: 0x412140 con el héroe, antes del lazo.
+    if (auto panel = StepTheSiegePanel(world.Runtime()); !panel.HasValue())
     {
-        return Core::Unexpected(std::string("0x412140: en el mapa 30 el paso de los personajes arma los objetos del "
-                                            "asedio (0x5763530), que no están portados"));
+        return panel;
     }
+    const WorldRuntime& runtime = world.Runtime();
     const World::WorldTerrain& terrain = context.terrain != nullptr ? *context.terrain : world.Map().terrain;
     if (!terrain.attributes)
     {

@@ -171,6 +171,73 @@ TEST(TerrainCellsTest, ACellWithAlphaIsDrawnTwice)
     ExpectThePass(batch, batch.Commands()[1], terrain, 3, ModelBlend::Alpha, true);
 }
 
+// 0x5fa973..0x5fa9b1 y 0x5fa4b0: en el mapa 7, con alguna esquina en alfa y la capa 2 de la primera en 5, después
+// de la base va el agua: el tile 0x1e + el cuadro (DAT_07d2d360) en su slot, aditiva, con las UV de 16 / ancho y
+// 16 / alto por celda, sin corrimiento ni olas, y el gris del alfa de cada esquina con alfa 1, sin la luz; no va
+// el pase de alfa de la capa 2. Con las cuatro esquinas en 1 la base es la capa 2 y el agua va igual; sin alfa,
+// sola la base; en otro mapa o con otra capa 2, el pase de alfa de siempre.
+TEST(TerrainCellsTest, AtlansDrawsItsCausticWaterInsteadOfTheAlphaLayer)
+{
+    constexpr std::uint32_t Frame = 5;
+    constexpr std::uint8_t Caustic = 0x1e + Frame;
+    const auto expectTheWater = [](const ModelBatch& batch, const ModelDrawCommand& command, const Terrain& terrain)
+    {
+        ASSERT_EQ(command.vertexCount, 6u);
+        ASSERT_TRUE(command.state.texture.has_value());
+        EXPECT_EQ(*command.state.texture, (TextureSlot{static_cast<std::uint16_t>(Caustic + 0x23)}));
+        EXPECT_EQ(command.state.blend, ModelBlend::Additive);
+        const auto cells = Terrain::Corners(CellX, CellY);
+        // 16 / 128 = 0,125 por celda en u y 16 / 64 = 0,25 en v (0x6b8f00).
+        const std::array<glm::vec2, 4> uvs{glm::vec2(0.875f, 2.25f), glm::vec2(1.0f, 2.25f), glm::vec2(1.0f, 2.5f),
+                                           glm::vec2(0.875f, 2.5f)};
+        const std::array<glm::vec2, 4> places{glm::vec2(700.0f, 900.0f), glm::vec2(800.0f, 900.0f),
+                                              glm::vec2(800.0f, 1000.0f), glm::vec2(700.0f, 1000.0f)};
+        for (std::size_t v = 0; v < 6; ++v)
+        {
+            const std::size_t corner = FanCorners[v];
+            const Client::Render::ModelVertex& vertex = batch.Vertices()[command.firstVertex + v];
+            const std::size_t cell = cells[corner];
+            const float grey = terrain.mapping->alpha[cell];
+            EXPECT_EQ(vertex.position, glm::vec3(places[corner], terrain.heights->cells[cell])) << "vértice " << v;
+            EXPECT_EQ(vertex.uv, uvs[corner]) << "vértice " << v;
+            EXPECT_EQ(vertex.color, (Client::Render::Color{grey, grey, grey, 1.0f})) << "vértice " << v;
+        }
+    };
+    Terrain terrain;
+    terrain.view.map = 7;
+    terrain.view.waterFrame = Frame;
+    terrain.view.tiles[Caustic] = {128.0f, 64.0f};
+    terrain.mapping->layer2.fill(5);
+
+    terrain.SetAlpha(CellX, CellY, {0.0f, 0.5f, 1.0f, 0.25f});
+    ModelBatch batch = Draw(terrain);
+    ASSERT_EQ(batch.Commands().size(), 2u);
+    ExpectThePass(batch, batch.Commands()[0], terrain, 2, ModelBlend::Opaque, false);
+    expectTheWater(batch, batch.Commands()[1], terrain);
+
+    terrain.SetAlpha(CellX, CellY, {1.0f, 1.0f, 1.0f, 1.0f});
+    batch = Draw(terrain);
+    ASSERT_EQ(batch.Commands().size(), 2u);
+    ExpectThePass(batch, batch.Commands()[0], terrain, 5, ModelBlend::Opaque, false);
+    expectTheWater(batch, batch.Commands()[1], terrain);
+
+    terrain.SetAlpha(CellX, CellY, {0.0f, 0.0f, 0.0f, 0.0f});
+    EXPECT_EQ(Draw(terrain).Commands().size(), 1u);
+
+    terrain.SetAlpha(CellX, CellY, {0.0f, 0.5f, 1.0f, 0.25f});
+    terrain.view.map = 0;
+    batch = Draw(terrain);
+    ASSERT_EQ(batch.Commands().size(), 2u);
+    EXPECT_EQ(batch.Commands()[1].state.blend, ModelBlend::Alpha);
+    EXPECT_EQ(*batch.Commands()[1].state.texture, (TextureSlot{5 + 0x23}));
+
+    terrain.view.map = 7;
+    terrain.mapping->layer2.fill(3);
+    batch = Draw(terrain);
+    ASSERT_EQ(batch.Commands().size(), 2u);
+    ExpectThePass(batch, batch.Commands()[1], terrain, 3, ModelBlend::Alpha, true);
+}
+
 // Q-C19: una capa 2 de 255 no se trata como vacía: es el slot 0x122.
 TEST(TerrainCellsTest, ALayerOf255IsTheSlot0x122)
 {

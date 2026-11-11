@@ -11,6 +11,7 @@
 #include "World/IParticleDrawingServices.h"
 #include "World/ParticleDrawing.h"
 #include "Render/ParticleBillboardRequest.h"
+#include "Render/TextureEnvMode.h"
 #include <functional>
 #include <optional>
 
@@ -304,12 +305,22 @@ public:
         ADD_FAILURE();
         return {};
     }
+    Result Blended() override
+    {
+        ADD_FAILURE();
+        return {};
+    }
     Result Type620850() override
     {
         ADD_FAILURE();
         return {};
     }
     Result Type620870() override
+    {
+        ADD_FAILURE();
+        return {};
+    }
+    Result TextureEnv(Client::Render::TextureEnvMode) override
     {
         ADD_FAILURE();
         return {};

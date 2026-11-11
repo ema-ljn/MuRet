@@ -2,6 +2,7 @@
 #include "World/ParticleDrawing.h"
 #include "World/IParticleDrawingServices.h"
 #include "Render/ParticleBillboardRequest.h"
+#include "Render/TextureEnvMode.h"
 #include "World/Ftol.h"
 #include "World/IParticleTrigonometry.h"
 
@@ -296,6 +297,11 @@ struct DrawingSpy final : Client::World::IParticleDrawingServices
         }
         return {};
     }
+    Result Blended() override
+    {
+        ADD_FAILURE() << "unexpected620c10";
+        return Failure(Client::World::ParticleDrawingPhase::BlendedPrefix);
+    }
     Result Type620850() override
     {
         ADD_FAILURE() << "unexpected620850";
@@ -305,6 +311,11 @@ struct DrawingSpy final : Client::World::IParticleDrawingServices
     {
         ADD_FAILURE() << "unexpected620870";
         return Failure(Client::World::ParticleDrawingPhase::Type620870);
+    }
+    Result TextureEnv(Client::Render::TextureEnvMode) override
+    {
+        ADD_FAILURE() << "unexpected TextureEnv";
+        return Failure(Client::World::ParticleDrawingPhase::TextureEnv);
     }
     Result Billboard(Client::Render::ParticleBillboardRequest request) override
     {

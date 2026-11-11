@@ -23,6 +23,8 @@ constexpr float SparkCollision = std::bit_cast<float>(0xbf19999au);
 constexpr double SparkFall = 2.0;
 constexpr double FlutterFall = static_cast<double>(std::bit_cast<float>(0x3f19999au));
 constexpr std::int32_t FlutterSparkSubtype = 7;
+// 0x5c5/1, las chispas del bastón 0xc18 (0x50f5a8): vida (rand() & 7) + 8 (0x5403eb..0x5403ff) y el paso del /0.
+constexpr std::int32_t StaffSparkSubtype = 1;
 constexpr float SparkLifeLight = 0.0625f;
 constexpr float ShinyTurn = 12.0f;
 } // namespace
@@ -30,7 +32,8 @@ constexpr float ShinyTurn = 12.0f;
 bool IsNoriaParticle(std::int32_t type, std::int32_t subtype)
 {
     return (type == ShinyParticle && (subtype == 0 || subtype == 1)) ||
-           (type == FairySparkParticle && (subtype == 0 || subtype == FlutterSparkSubtype));
+           (type == FairySparkParticle &&
+            (subtype == 0 || subtype == StaffSparkSubtype || subtype == FlutterSparkSubtype));
 }
 
 void CreateNoriaParticle(Particle& particle, Render::Models::CrtRandom& random)
@@ -49,6 +52,13 @@ void CreateNoriaParticle(Particle& particle, Render::Models::CrtRandom& random)
         // 54038c..5403a7: sólo la vida; sin giro ni velocidad, y sin sumar la escala del argumento.
         constexpr int FlutterLifeSpan = 12;
         particle.life = random.Next() % FlutterLifeSpan + FlutterLifeSpan;
+        return;
+    }
+    if (particle.subtype == StaffSparkSubtype)
+    {
+        // 0x5403eb..0x540406: sólo la vida, sin giro ni velocidad; la suma de la escala del argumento es del /7.
+        constexpr int StaffLifeMask = 7, StaffLifeBase = 8;
+        particle.life = (random.Next() & StaffLifeMask) + StaffLifeBase;
         return;
     }
     particle.life = (random.Next() & 15) + 24;

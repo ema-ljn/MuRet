@@ -44,7 +44,8 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // Las de los sprites y las partículas del login que sube 0x61ccb0 (0x61d6a5, 0x61d925, 0x61d737 y
 // 0x61d753, 0x63b870 con GL_LINEAR y GL_CLAMP) y nadie suelta: Effect\flare01.jpg en 0x5ac (los destellos
 // de la capa y el brillo del cetro), Effect\Shiny02.jpg en 0x5fd (el cetro), Effect\Spark03.jpg en 0x5c6
-// (las chispas del cuervo) y Effect\smoke01.jpg en 0x5f2 (el aliento del caballo). Las sube GameModels
+// (las chispas del cuervo) y Effect\smoke01.jpg en 0x5f2 (el aliento del caballo). 0x61d768 sube con 0x63bd00
+// Effect\smoke02.tga a 0x5f3, el polvo del galope del caballo, con el mismo sampling. Las sube GameModels
 // con los modelos, y quedan. 0x61d801 sube clouds.jpg a 0x622 con GL_LINEAR y GL_CLAMP: las nubes
 // oscuras del mapa 55. 0x61d6e0 y 0x61d6fc suben Magic_Ground2 y Magic_Circle1 con el mismo sampling:
 // el calco y los dos anillos del efecto de llegada 0x61f (06 § Después de los objetos).
@@ -53,8 +54,10 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
 // Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
 // Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 22> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 30> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
+    // 0x61d663: ShockWave en 0x6eb, la onda del galope del caballo en Icarus (0x44431b).
+    {"Effect\\ShockWave.jpg", 0x6eb, TextureSetsDetail::LinearClamp},
     // 0x61d67f: Flame01 en 0x5de, de la llama 5de/7 del 0x43 del 54.
     {"Effect\\Flame01.jpg", 0x5de, TextureSetsDetail::LinearClamp},
     {"Effect\\flare01.jpg", 0x5ac, TextureSetsDetail::LinearClamp},
@@ -67,6 +70,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 22> EffectTextureSe
     {"Effect\\Spark03.jpg", 0x5c6, TextureSetsDetail::LinearClamp},
     {"Effect\\Thunder01.jpg", 0x5ca, TextureSetsDetail::LinearRepeat}, // 61da58/61da62.
     {"Effect\\smoke01.jpg", 0x5f2, TextureSetsDetail::LinearClamp},
+    {"Effect\\smoke02.tga", 0x5f3, TextureSetsDetail::LinearClamp},
     {"Effect\\clouds.jpg", 0x622, TextureSetsDetail::LinearClamp},
     {"Effect\\lightning2.jpg", 0x5d5, TextureSetsDetail::LinearClamp},
     {"Effect\\Spark01.jpg", 0x617, TextureSetsDetail::LinearClamp},
@@ -78,20 +82,37 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 22> EffectTextureSe
     {"Effect\\WATERFALL3.jpg", 0x6f2, TextureSetsDetail::LinearClamp},
     {"Effect\\WATERFALL4.jpg", 0x6f3, TextureSetsDetail::LinearClamp},
     {"Effect\\WATERFALL5.jpg", 0x6f4, TextureSetsDetail::LinearClamp},
+    // 0x61d55e, 0x61d57a (0x63bd00) y 0x61dbd3: la chispa y la llama de la antorcha de Blood Castle y la órbita
+    // 0x60f, también el sprite de su 0xd; LINEAR/CLAMP.
+    {"Effect\\fi01.jpg", 0x6ab, TextureSetsDetail::LinearClamp},
+    {"Effect\\fi02.tga", 0x6ac, TextureSetsDetail::LinearClamp},
+    {"Effect\\Flare.jpg", 0x60f, TextureSetsDetail::LinearClamp},
+    // 0x61d5a0 y 0x61d893, LINEAR/CLAMP: la 6ec/5 del 0x39 y el 0x47 de Crywolf y la burbuja 698/0 de su agua.
+    {"Effect\\fantaF.jpg", 0x6ec, TextureSetsDetail::LinearClamp},
+    {"Effect\\coll.jpg", 0x698, TextureSetsDetail::LinearClamp},
+    // 0x61e7bd (0x63b870, GL_LINEAR y GL_CLAMP): cra_04 en 0x5ae, la textura (+0x8) de la 6f1/3 de las botas del
+    // conjunto completo (0x544095).
+    {"Effect\\cra_04.jpg", 0x5ae, TextureSetsDetail::LinearClamp},
 }};
 
-// Recursos de los joints que ya crean los peces y pájaros: 61d858/61dab9/61dad8/61dce2.
+// Recursos de los joints que ya crean los peces y pájaros: 61d858/61dab9/61dad8/61dce2. 61d5db sube
+// JointSpirit02 a 0x6ee (LINEAR/CLAMP): el meteoro 6ee/9 de Chaos Castle (0x4054ad).
 // Spark01 (0x617) ya está en EffectTextureSet. Las cintas sin creador portado no se cargan acá.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 4> FaunaJointTextureSet{{
+// 0x61daef sube JointEnergy01 a 0x619 (LINEAR/CLAMP): el 619/9 que suelta el 5ac/3 del conjunto completo.
+inline constexpr std::array<Data::Textures::TextureSetEntry, 6> FaunaJointTextureSet{{
+    {"Effect\\JointSpirit02.jpg", 0x6ee, TextureSetsDetail::LinearClamp},
     {"Effect\\ScolTail.jpg", 0x697, TextureSetsDetail::LinearClamp},
     {"Effect\\JointSpirit01.jpg", 0x613, TextureSetsDetail::LinearClamp},
     {"Effect\\JointLaser01.jpg", 0x618, TextureSetsDetail::LinearClamp},
     {"Effect\\Flare02.jpg", 0x610, TextureSetsDetail::LinearRepeat},
+    {"Effect\\JointEnergy01.jpg", 0x619, TextureSetsDetail::LinearClamp},
 }};
 
 // Cola P-C55:61d511/61d9b4/61d9ef/61da0b/61da2a/61da9d/61dba2/61dcc3.
 // 615 no tiene upload propio:5319ea remapea su textura a614.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 8> GameTailTextureSet{{
+// 0x61e4b3 (0x63bd00, GL_LINEAR y GL_CLAMP): Object31\Flag.tga en 0x69c, la de la malla 1 del 0xc del mapa
+// 30 (0x42cc89).
+inline constexpr std::array<Data::Textures::TextureSetEntry, 9> GameTailTextureSet{{
     {"Effect\\Fire02.jpg", 0x5da, TextureSetsDetail::LinearClamp},
     {"Effect\\blur01.jpg", 0x5bb, TextureSetsDetail::NearestClamp},
     {"Effect\\motion_blur.jpg", 0x5bc, TextureSetsDetail::NearestClamp},
@@ -100,6 +121,7 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 8> GameTailTextureS
     {"Effect\\JointThunder01.jpg", 0x614, TextureSetsDetail::LinearRepeat},
     {"Effect\\motion_blur_r2.jpg", 0x61c, TextureSetsDetail::LinearRepeat},
     {"Effect\\NSkill.jpg", 0x62c, TextureSetsDetail::LinearClamp},
+    {"Object31\\Flag.tga", 0x69c, TextureSetsDetail::LinearClamp},
 }};
 
 // Las dos capas de la tela que sube 0x61ccb0 (0x61d616 y 0x61d64e) y nadie suelta: Monster\iui06.jpg en

@@ -192,9 +192,11 @@ void StepChaseLight(Particle& p)
 
 bool IsSelectionParticle(std::int32_t type, std::int32_t subtype)
 {
-    // 0x54327b/0x54747e: del 0 al 5 (los de Icarus y el 1 de la selección) comparten el alta y el paso.
+    // 0x54327b/0x54747e: del 0 al 5 (los de Icarus y el 1 de la selección) y el 7 (el 0xc de Chaos Castle)
+    // comparten el alta (0x5435cf) y el paso; el 7 no gira (0x547731 lo manda al default).
     constexpr std::int32_t LastOwnedMist = 5;
-    return (type == CloudParticle && subtype >= 0 && subtype <= LastOwnedMist) ||
+    constexpr std::int32_t BrightOwnedMist = 7;
+    return (type == CloudParticle && ((subtype >= 0 && subtype <= LastOwnedMist) || subtype == BrightOwnedMist)) ||
            (type == FlameParticle && (subtype == RisingFlameSubtype || subtype == FloorFlameSubtype)) ||
            (type == ChaseLightParticle && (subtype == 0 || subtype == 1));
 }

@@ -41,6 +41,11 @@ private:
         GLint viewProjection = -1;
         GLint textured = -1;
         GLint alphaTest = -1;
+        GLint textureAdd = -1;
+        GLint fog = -1;
+        GLint fogColor = -1;
+        GLint fogStart = -1;
+        GLint fogEnd = -1;
     };
 
     GlModelRenderer(const Platform::GlFunctions& gl, GlShader shader, GlName vertexArray, GlName vertexBuffer,
@@ -53,6 +58,8 @@ private:
     void SetBlend(ModelBlend blend) const;
     void SetOperation(const ModelDrawState& state, ModelStateOperation operation) const;
     void SetViewProjection(const ModelBatch& batch, ModelCoordinateSpace space) const;
+    // El modo de la textura y la niebla de un tramo que dibuja: no son del material, van en cada comando.
+    void SetTextureEnvAndFog(const ModelDrawCommand& command) const;
 
     const Platform::GlFunctions* m_gl;
     GlShader m_shader;

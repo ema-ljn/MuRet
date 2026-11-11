@@ -44,6 +44,7 @@ struct GameLeafContext
     World::Particles* particles = nullptr;
     // Con nullptr usa el perfil retenido de ADR0014, no std::sin.
     World::ILeafWaveEvaluator* waveEvaluator = nullptr;
+    // 0x5763358, el clima de Crywolf (WorldRuntime::crywolf.weather), que sortea 0x430510.
     const std::int32_t* crywolfState = nullptr;
     // Sólo los creadores de nubes 443990/435600: Movement/ángulos y el estado real de 508940.
     ActorState* cloudHero = nullptr;

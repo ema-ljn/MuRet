@@ -30,6 +30,18 @@ ParticleDrawParameters ParticleDrawParametersOf(const Particle& particle, glm::v
         result.uv.x = static_cast<float>(static_cast<double>(frame % AtlasColumns) * Quarter);
         result.uvSize.x = static_cast<float>(Quarter);
     }
+    if (kind == ParticleDrawKind::Bubble)
+    {
+        // 0x54899a..0x5489e0: el alto por el double 0,125 (0x6ba3f8), el giro de +0x20 y la v del cuadro (+0x48 % 8,
+        // con el and de la corrección del signo) por 0,125f (0x6ba170); la u en 0 y el tamaño (1; 0,125).
+        constexpr std::int32_t BubbleFrames = 8;
+        constexpr double BubbleRow = 0.125;
+        result.height = static_cast<float>(static_cast<double>(result.height) * BubbleRow);
+        result.rotation = particle.angles.x;
+        const std::int32_t frame = std::bit_cast<std::int32_t>(particle.field48) % BubbleFrames;
+        result.uv.y = static_cast<float>(static_cast<double>(frame) * BubbleRow);
+        result.uvSize = glm::vec2(1.0f, static_cast<float>(BubbleRow));
+    }
     if (kind == ParticleDrawKind::Drop)
     {
         const std::int32_t frame = std::bit_cast<std::int32_t>(particle.field48) % DropFrames;

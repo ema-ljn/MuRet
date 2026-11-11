@@ -117,6 +117,18 @@ TEST(SkinningTest, TheShadowFlattensOnTheGround)
     EXPECT_FLOAT_EQ(flat.z, 35.0f);
 }
 
+// 0x4f0040..0x4f0074: la X sale de la pila x87 en double con un solo FSTP. Con este vértice, hacer las cuentas
+// en float da 0x1.f8c508p+9, un ULP más; la y pasa por float antes de sumarle py y la z es pz + 5.
+TEST(SkinningTest, TheShadowXIsRoundedOnceFromDouble)
+{
+    const glm::vec3 flat = FlattenOnTheGround({0x1.00b06cp+10f, 77.0f, 0x1.31a20cp+8f},
+                                              {0x1.0f8af6p+10f, 0x1.9005a8p+13f, 0x1.0e74c8p+8f}, 2000.0f);
+
+    EXPECT_EQ(flat.x, 0x1.f8c506p+9f);
+    EXPECT_EQ(flat.y, 0x1.34p+6f);
+    EXPECT_EQ(flat.z, 0x1.1374c8p+8f);
+}
+
 // La luz por vértice de 0x4ebc80 (con +0x44 del modelo): max(0,2; 0,8 · L·n + 0,4) con L = (1,3; 0; 2),
 // la de DAT_006c8818, que vale 1 desde el .data y nadie escribe. La normal que mira a z da 2; la de x,
 // 1,44; una de costado en y, 0,4; la de −z, el piso de 0,2. Una normal que viene con la escala del

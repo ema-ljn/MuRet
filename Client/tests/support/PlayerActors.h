@@ -39,6 +39,8 @@ inline Scenes::ActorState UnarmedPlayer(std::uint8_t characterClass = 0)
     actor.hands[1].model = Scenes::NoItemModel;
     actor.wings.model = Scenes::NoItemModel;
     actor.pet.model = Scenes::NoItemModel;
+    // 0x511290: sin gremio (+0x1f2 en −1).
+    actor.word1f2 = Scenes::NoItemModel;
     return actor;
 }
 

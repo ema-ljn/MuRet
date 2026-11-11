@@ -37,6 +37,7 @@ struct ObjectModelStepState;
 namespace Client::Scenes
 {
 struct ActorState;
+struct CrywolfGlobals;
 struct FaunaDrawCarry;
 // El paso de un objeto que tiene el suyo (el logo del login): devuelve true si lo avanzó, y entonces
 // StepWorldObject no lo toca.
@@ -86,6 +87,8 @@ struct ObjectFrameEffects
     std::function<Core::Expected<void, std::string>(const DrawnObject&)> onPose{};
     const FaunaDrawCarry* retainedPose = nullptr;
     bool publishProjectedPose = false;
+    // 0x5763538 (WorldRuntime::objectDrawCounter): 0x6046a0 la cuenta una vez por frame original, como en el juego.
+    std::int32_t* objectDrawCounter = nullptr;
 };
 
 // 0x6046a0 con `objects`: por sector, en World::DrawOrder; el sector que pasa el trapecio en su centro
@@ -139,20 +142,34 @@ struct GameObjectPass
     std::function<std::uint32_t()> systemTime{};
     // DAT_006d5dc8: con 4 (la selección), la mariposa sale oculta y el 6f1/2 con luz 0,25.
     std::int32_t scene = 0;
+    // 0x5f93c0(x, y): la altura del terreno, de la que el 0x1c y el 0x1d de 11 a 17 aplastan su sombra
+    // (0x600d80).
+    std::function<float(float, float)> terrainHeight{};
+    // DAT_006c634c, el área de Chaos Castle: 0xff hasta que un paquete la mueve (CL9.5).
+    std::uint8_t chaosCastleArea = 0xff;
+    // 0x4294b0, el byte del asedio (0x7239ec): apagado hasta que un paquete lo prende (CL9.5).
+    bool siegeActive = false;
+    // 0x5763538 (WorldRuntime::objectDrawCounter): con un frame del original, 0x6046a0 lo pasa a 1 después de 41 y
+    // le suma 1 antes de mirar un objeto (0x6046be..0x6046ce). Sin él no se cuenta.
+    std::int32_t* objectDrawCounter = nullptr;
+    // Los globales de Crywolf (WorldRuntime::crywolf), que leen y escriben 0x430510 y 0x4306a0 en el 34.
+    CrywolfGlobals* crywolf = nullptr;
 };
 
-// 0x6046a0 en el juego (0x6374ce), en los mapas 0 a 4, 8, 10, 31, 33 y Kalima (06 § Los objetos del juego): sector por
-// sector, en World::DrawOrder, cada objeto vivo que pasa el trapecio como en DrawWorldObjects queda visto. El 0x64 de
-// Devias sigue solo con el nivel del registro propio desde 0x50 (0x35 con la clase 3 o 4), con su acceso.
-// Después, 0x602e90: el dibujo de World::DrawOf, sin interpolar la animación (el 0x69 de Lorencia, con
-// DrawWaterspout); y, con un frame del original, 0x602ed0: un rand() y el caso de su tipo. El del 0x69 es
-// StepGameWaterspoutFrame, con el pool compartido de `pass.particles`: los dos 5f2/0 sobre los huesos
-// recién posados, con sus rand() intercalados. Un hueso no escrito necesita la pose global anterior y
-// corta después de sus sorteos; sin pool conserva el corte histórico en 0x6030c7. El 0x38 del 0 deja sus dos
+// 0x6046a0 en el juego (0x6374ce), en los mapas 0 a 4, 6 a 23, 30, 31, 33, 34 y Kalima (06 § Los objetos del juego):
+// con un frame del original, la cuenta de `pass.objectDrawCounter` y, sector por sector, en World::DrawOrder, cada
+// objeto vivo que pasa el trapecio como en DrawWorldObjects queda visto. El 0x64 de Devias sigue solo con el nivel del
+// registro propio desde 0x50 (0x35 con la clase 3 o 4), con su acceso. Después, 0x602e90: el dibujo de World::DrawOf,
+// sin interpolar la animación (el 0x69 de Lorencia, con DrawWaterspout); y, con un frame del original, 0x602ed0: un
+// rand() y el caso de su tipo. El del 0x69 es StepGameWaterspoutFrame, con el pool compartido de `pass.particles`: los
+// dos 5f2/0 sobre los huesos recién posados, con sus rand() intercalados. Un hueso no escrito necesita la pose global
+// anterior y corta después de sus sorteos; sin pool conserva el corte histórico en 0x6030c7. El 0x38 del 0 deja sus dos
 // sprites en NaN (Scenes/ObjectFrameSprites.h). En el 4, el pase con Chrome01 antes del cuerpo y los sprites
 // de los huesos; en el 8, el cromo del 0x51 y los sprites, humos y piedritas de Tarkan; en el 10, el margen −10 del
 // trapecio y las nubes y el 5ac/0 de Icarus; en el 33 y el 54, los casos de 0x425260 y, en cada dibujo, la
-// malla 0 del 0x29 y del 0x41/0x42 (DrawAidaMeshPass). Los otros casos de 0x602ed0 (el
+// malla 0 del 0x29 y del 0x41/0x42 (DrawAidaMeshPass); en el 30, los casos de 0x42cc10 (DrawCastleSiegeBody) en
+// cada dibujo y los de 0x42c9f0 (StepCastleSiegeObjectFrame); en el 34, el cuerpo y los sorteos de 0x4306a0
+// (CrywolfObjectBody) y el caso de 0x430510 (StepCrywolfObjectFrame). Los otros casos de 0x602ed0 (el
 // 0x64 y el 0x67 del 2) cortan con su dirección. Los objetos de antes quedan dibujados. Kalima24..29/36 reutiliza la
 // pose y el cuerpo públicos43948d, sus cáusticas de DAT_07d2d360, el calco0x22 y el sprite del tipo12; los productores
 // aún ausentes de438c10 conservan su dirección y prefijo. Los demás mapas cortan antes de mirar un objeto.

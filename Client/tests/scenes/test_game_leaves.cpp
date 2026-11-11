@@ -315,12 +315,14 @@ TEST_F(GameLeavesTest, IcarusUsesTwentyAsTheSpeedBase)
     EXPECT_NEAR(m_leaves.All()[0].velocity.y, -12, 0.00001);
 }
 
+// 0x5f82c0 multiplica por el −0,01f de 0x6ba110: (1.000; −2.000) da la fila 20 y la columna −10, y 0x7d0d348
+// − 5.110 · 2 queda antes de la tabla.
 TEST_F(GameLeavesTest, EventRainCannotInventAWrappedAttributeCell)
 {
     m_map = 18;
     auto& leaf = m_leaves.All()[0];
     leaf.alive = true;
-    leaf.position = {1000, 2000, -1};
+    leaf.position = {1000, -2000, -1};
     const auto result = Client::Scenes::StepGameLeaves(m_context);
     ASSERT_FALSE(result.HasValue());
     EXPECT_NE(result.Error().find("530128"), std::string::npos);
@@ -499,6 +501,24 @@ TEST_F(GameLeavesTest, EventRainHonorsTheAttributeBitBeforeConsumingSplashRandom
     ASSERT_TRUE(Client::Scenes::StepGameLeaves(m_context).HasValue());
     EXPECT_TRUE(m_leaves.All()[0].alive);
     EXPECT_EQ(m_leaves.All()[0].position.z, -1);
+    EXPECT_EQ(m_random.State(), 1u);
+}
+
+// Con el −0,01f, (1.050; 2.050) es la celda (10; 20): el bit 8 de esa celda la frena, como el de la (0; 0).
+TEST_F(GameLeavesTest, EventRainReadsTheAttributeOfTheCellItFallsOn)
+{
+    m_map = 18;
+    for (auto& other : m_leaves.All())
+    {
+        other.alive = true;
+        other.position = {0, 0, 1};
+    }
+    auto& leaf = m_leaves.All()[0];
+    leaf.position = {1050, 2050, -1};
+    m_attributes->cells[20 * 256 + 10] = 8;
+    ASSERT_TRUE(Client::Scenes::StepGameLeaves(m_context).HasValue());
+    EXPECT_TRUE(leaf.alive);
+    EXPECT_EQ(leaf.position.z, -1);
     EXPECT_EQ(m_random.State(), 1u);
 }
 

@@ -3,6 +3,7 @@
 #include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Scenes/ActorState.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
@@ -237,6 +238,18 @@ TEST_F(ActorConstructionTest, DropsTheLayerButKeepsItsKind)
 
     EXPECT_FALSE(actor.layer.has_value());
     EXPECT_EQ(actor.byte360, 5);
+}
+
+// 0x5123c4..0x5123ff: suelta los huesos propios del último dibujo (+0x120) y pide otros sin iniciar; MuRet los
+// deja vacíos hasta el próximo dibujo (Q-C318).
+TEST_F(ActorConstructionTest, ReleasesTheBonesOfTheLastDraw)
+{
+    ActorState actor = Client::Tests::UnarmedPlayer(3);
+    actor.bodyPose.assign(30, Client::Render::Models::BoneTransform(1.0f));
+
+    ASSERT_TRUE(ConstructActor(actor, Player, ActorPlacement{133, 127, 0.0f}, Context(), cloth).HasValue());
+
+    EXPECT_TRUE(actor.bodyPose.empty());
 }
 
 // Fuera del jugador y los NewFace, corta sin tocar el personaje ni gastar rand().

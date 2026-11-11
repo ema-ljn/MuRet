@@ -5,6 +5,7 @@
 #include "Render/ModelVertex.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/SpriteVertex.h"
+#include "Render/TextureEnvMode.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -27,7 +28,7 @@ enum class ModelCoordinateSpace : std::uint8_t;
 enum class ModelStateOperation : std::uint8_t;
 
 // Adapter CPU→ModelBatch→GlModelRenderer existente, sin renderer alternativo ni metadata propia.
-// Perfil productivo: alpha620a00(raw0/raw1), additive620a90, subtractive620b10 y621400. Las otras
+// Perfil productivo: alpha620a00(raw0/raw1), additive620a90, subtractive620b10, blended620c10 y621400. Las otras
 // familias de D2 que no representa este perfil fallan en su frontera, sin callbacks vacíos.
 // Antes de Release/cargas: comprobar ModelBatch::InvalidateTextureKnowledge y no usar este
 // backend entre esos efectos. Con trabajo pendiente la notificación falla; nunca resolver un
@@ -48,8 +49,11 @@ public:
     [[nodiscard]] Result Helper6208f0() override;
     [[nodiscard]] Result Helper6208b0() override;
     [[nodiscard]] Result SubtractiveTail() override;
+    [[nodiscard]] Result BlendedPrefix() override;
+    [[nodiscard]] Result BlendedTail() override;
     [[nodiscard]] Result Type620850() override;
     [[nodiscard]] Result Type620870() override;
+    [[nodiscard]] Result TextureEnv(TextureEnvMode mode) override;
     [[nodiscard]] Result BindTexture(std::int32_t selector) override;
     [[nodiscard]] Result Begin() override;
     [[nodiscard]] Result Color3(const glm::vec3& light) override;

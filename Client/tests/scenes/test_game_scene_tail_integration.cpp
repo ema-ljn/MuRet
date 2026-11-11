@@ -234,9 +234,11 @@ TEST_F(GameSceneTailIntegrationTest, TheFramePulsePrecedesEvenAFailingWorldDraw)
     auto& frame = *m_frame;
     auto& items = frame.world.Runtime().itemRender;
     EXPECT_EQ(items.glowPulse, 0);
-    frame.world.Runtime().map = 6; // La cámara corta después del publisher639482.
+    // Sin el mapping, 0x6371a0 corta (el mapa no está cargado) después del publisher 639482.
+    frame.world.Map().terrain.mapping.reset();
     Render();
     ASSERT_TRUE(frame.scene->Failure().has_value());
+    EXPECT_NE(frame.scene->Failure()->find("no está cargado"), std::string::npos) << *frame.scene->Failure();
     EXPECT_FLOAT_EQ(items.glowPulse, 0.6f);
     EXPECT_EQ(items.specialPulse.x, 0.5f);
     EXPECT_EQ(items.specialPulse.y, 0.01f);

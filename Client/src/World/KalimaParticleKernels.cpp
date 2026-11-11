@@ -60,6 +60,26 @@ void CreateFlare(Particle& p, Render::Models::CrtRandom& random)
 // 543f04..543fae y 54417f..544149: 6f0/2 y 6f1/2 suman la escala del argumento (la del prefijo, todavía
 // en +0x10) y 6f1/2 vive 40; 6f2,6f3/4 sortea giro y escala antes de su vida, velocidad y segunda escala.
 constexpr std::int32_t ObjectSubtype = 2, SplashObjectSubtype = 4;
+// 0x544088..0x544153 y 0x5480ae..0x5480f0: la 6f1/3 de las botas del conjunto completo (0x50ff37).
+constexpr std::int32_t BootsMistSubtype = 3;
+// 0x544095..0x54414c: después de lo de la neblina, la textura cra_04 (0x5ae), la luz del argumento (pisa la de la
+// escena), vida 12, otro giro, vz 2, la escala (rand() % 3 + 3) · 0,18f y otro corrimiento de ±10, ±10 y ±20. Cinco
+// rand() más: once en total.
+void CreateBootsMist(Particle& p, Render::Models::CrtRandom& random, const glm::vec3& lightArgument)
+{
+    constexpr std::int32_t BootsTexture = 0x5ae;
+    constexpr std::int32_t BootsLife = 12;
+    constexpr float BootsRise = 2.0f;
+    constexpr int ScaleSpan = 3;
+    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3e3851ecu)); // 0x6ba2d0, 0,18f
+    p.texture = BootsTexture;
+    p.light = lightArgument;
+    p.life = BootsLife;
+    p.rotation = static_cast<float>(random.Next() % FullTurn);
+    p.velocity.z = BootsRise;
+    p.scale = F32(static_cast<double>(random.Next() % ScaleSpan + ScaleSpan) * ScaleStep);
+    Jitter(p, random, ShortLife, 40);
+}
 Core::Expected<void, ParticleError> CreateWaterfall(Particle& p, Render::Models::CrtRandom& random,
                                                     std::optional<std::int32_t> scene)
 {
@@ -73,6 +93,7 @@ Core::Expected<void, ParticleError> CreateWaterfall(Particle& p, Render::Models:
         return {};
     }
     const float scaleArgument = p.scale;
+    const glm::vec3 lightArgument = p.light;
     p.life = LongLife;
     p.rotation = static_cast<float>(random.Next() % FullTurn);
     if (p.type == KalimaWaterfallMist)
@@ -92,12 +113,25 @@ Core::Expected<void, ParticleError> CreateWaterfall(Particle& p, Render::Models:
         p.velocity.z = static_cast<float>(fall);
         p.light = glm::vec3(*scene == SelectionScene ? 0.25f : 0.4f);
         Jitter(p, random, ShortLife, 40);
+        if (p.subtype == BootsMistSubtype)
+            CreateBootsMist(p, random, lightArgument);
         return {};
     }
     constexpr int FallSpan = 5, FallBase = 7;
     constexpr float FallScale = 1.6f;
-    p.scale = p.subtype == ObjectSubtype ? F32(static_cast<double>(scaleArgument) + FallScale) : FallScale;
-    p.velocity.z = static_cast<float>(-FallBase - random.Next() % FallSpan);
+    if (p.type == KalimaWaterfallLast && p.subtype == BrazierFallSubtype)
+    {
+        // 0x543f21..0x543f47: la escala del argumento más 0,6f (0x6b8a20) y la caída −12 − rand() % 5.
+        constexpr int BrazierFallBase = 12;
+        constexpr double BrazierGrowth = static_cast<double>(std::bit_cast<float>(0x3f19999au));
+        p.scale = F32(static_cast<double>(scaleArgument) + BrazierGrowth);
+        p.velocity.z = static_cast<float>(-BrazierFallBase - random.Next() % FallSpan);
+    }
+    else
+    {
+        p.scale = p.subtype == ObjectSubtype ? F32(static_cast<double>(scaleArgument) + FallScale) : FallScale;
+        p.velocity.z = static_cast<float>(-FallBase - random.Next() % FallSpan);
+    }
     p.light = glm::vec3(0.2f);
     return {};
 }
@@ -199,9 +233,22 @@ void StepWaterfall(Particle& p, Render::Models::CrtRandom& random)
         p.scale = F32(static_cast<double>(p.scale) + MistGrowth);
         for (int axis = 0; axis < 2; ++axis)
             p.velocity[axis] = F32(static_cast<double>(random.Next() % ShortLife - LifeSpan) * Tenth);
-        p.velocity.z = F32(static_cast<double>(p.velocity.z) + Tenth);
+        // 0x548059: fst, la suma queda en la pila para la resta de la 6f1/3.
+        const double rise = static_cast<double>(p.velocity.z) + Tenth;
+        p.velocity.z = F32(rise);
         if (p.life < LifeSpan)
             FadeLight(p, MistFade);
+        if (p.subtype == BootsMistSubtype)
+        {
+            // 0x5480b7..0x5480ed: la escala baja 0,038f, vz es la suma sin redondear menos 0,02f y la luz por
+            // 0,98039216f.
+            constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3d1ba5e3u));    // 0x6ba344, 0,038f
+            constexpr double Sink = static_cast<double>(std::bit_cast<float>(0x3ca3d70au));      // 0x6b8b90, 0,02f
+            constexpr double BootsFade = static_cast<double>(std::bit_cast<float>(0x3f7afafbu)); // 0x6ba340
+            p.scale = F32(static_cast<double>(p.scale) - Shrink);
+            p.velocity.z = F32(rise - Sink);
+            FadeLight(p, BootsFade);
+        }
         return;
     }
     if (p.type == WaterfallSplash || p.type == WaterfallSplash + 1)
@@ -224,8 +271,12 @@ void StepWaterfall(Particle& p, Render::Models::CrtRandom& random)
             FadeLight(p, Brighten);
         return;
     }
-    p.scale = F32(static_cast<double>(p.scale) - SmallGrowth);
-    p.velocity.z = F32(static_cast<double>(p.velocity.z) + Tenth);
+    // 0x547fa4: la 6f4/6 salta a 0x547fc1, sin la escala ni la caída.
+    if (p.type != KalimaWaterfallLast || p.subtype != BrazierFallSubtype)
+    {
+        p.scale = F32(static_cast<double>(p.scale) - SmallGrowth);
+        p.velocity.z = F32(static_cast<double>(p.velocity.z) + Tenth);
+    }
     constexpr int FirstFade = 5, LastFade = 8;
     if (p.life < (p.type == KalimaWaterfallFirst ? FirstFade : LastFade))
         FadeLight(p, Fade);
@@ -238,10 +289,13 @@ bool IsKalimaParticle(std::int32_t type, std::int32_t subtype)
     const bool objectWaterfall =
         ((type == KalimaWaterfallFirst || type == KalimaWaterfallMist) && subtype == ObjectSubtype) ||
         ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == SplashObjectSubtype);
-    return objectWaterfall || (type == KalimaWaterfallLast && subtype == 1) ||
+    const bool fanta = (type == KalimaFanta || type == CrywolfFanta) && (subtype == 0 || subtype == ShortFantaSubtype);
+    return objectWaterfall || fanta ||
+           (type == KalimaWaterfallLast && (subtype == 1 || subtype == BrazierFallSubtype)) ||
+           (type == KalimaWaterfallMist && subtype == BootsMistSubtype) ||
            (type == KalimaFlare && (subtype == FlareZero || subtype == FlareTrail || subtype == FlareSix ||
                                     subtype == FlareSeven || subtype == FlareNine)) ||
-           (subtype == 0 && (type == KalimaFanta || (type >= KalimaWaterfallFirst && type <= KalimaWaterfallLast)));
+           (subtype == 0 && type >= KalimaWaterfallFirst && type <= KalimaWaterfallLast);
 }
 Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Models::CrtRandom& random,
                                                          std::optional<std::int32_t> scene)
@@ -260,13 +314,16 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Mo
             CreateFlare(p, random);
         return {};
     }
-    if (p.type == KalimaFanta)
+    if (p.type == KalimaFanta || p.type == CrywolfFanta)
     {
-        constexpr int FantaLife = 24, Center = 5;
+        // 0x543b82..0x543bd5: vida 24, los dos rand() de la velocidad y, con la /5, la vida en 20.
+        constexpr int FantaLife = 24, ShortFantaLife = 20, Center = 5;
         p.life = FantaLife;
         p.velocity.x = F32(static_cast<double>(random.Next() % LifeSpan - Center) * static_cast<double>(0.4f));
         p.velocity.y = 0;
         p.velocity.z = F32(static_cast<double>(random.Next() % LifeSpan + Center) * static_cast<double>(0.2f));
+        if (p.subtype == ShortFantaSubtype)
+            p.life = ShortFantaLife;
         p.start = p.position;
         return {};
     }
@@ -313,7 +370,7 @@ Core::Expected<void, ParticleError> StepKalimaParticle(Particle& p, Render::Mode
         else
             return StepFlareSeven(p, clock, trigonometry);
     }
-    else if (p.type == KalimaFanta)
+    else if (p.type == KalimaFanta || p.type == CrywolfFanta)
         StepFanta(p);
     else
         StepWaterfall(p, random);

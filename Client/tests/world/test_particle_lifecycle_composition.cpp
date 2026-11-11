@@ -4,6 +4,7 @@
 #include "World/IParticleDrawingServices.h"
 #include "Render/Models/Cloth.h"
 #include "Render/ParticleBillboardRequest.h"
+#include "Render/TextureEnvMode.h"
 #include "Core/Expected.h"
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -41,6 +42,11 @@ public:
         trace.push_back(4);
         return {};
     }
+    Result Blended() override
+    {
+        trace.push_back(7);
+        return {};
+    }
     Result Type620850() override
     {
         trace.push_back(5);
@@ -49,6 +55,11 @@ public:
     Result Type620870() override
     {
         trace.push_back(6);
+        return {};
+    }
+    Result TextureEnv(Render::TextureEnvMode) override
+    {
+        trace.push_back(8);
         return {};
     }
     Result Billboard(Render::ParticleBillboardRequest request) override

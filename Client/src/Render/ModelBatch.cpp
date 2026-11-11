@@ -1,9 +1,12 @@
 #include "Render/ModelBatch.h"
 
+#include "Render/ModelFog.h"
 #include "Render/ModelVertex.h"
 #include "Render/Pass3D.h"
+#include "Render/TextureEnvMode.h"
 
 #include <array>
+#include <optional>
 #include <span>
 
 namespace Client::Render
@@ -14,6 +17,8 @@ void ModelBatch::Begin(const Pass3D& pass, bool initializeMaterial)
     m_pass = pass;
     m_initializeMaterial = initializeMaterial;
     m_state = ModelDrawState{};
+    if (initializeMaterial)
+        m_fog.reset();
     m_vertices.clear();
     m_commands.clear();
 }
@@ -28,18 +33,56 @@ void ModelBatch::ApplyOperation(const ModelDrawState& state, ModelStateOperation
 {
     ++m_stateSerial;
     m_state = state;
-    m_commands.push_back(ModelDrawCommand{state, m_vertices.size(), 0, operation});
+    ModelDrawCommand command = NewDraw();
+    command.operation = operation;
+    m_commands.push_back(command);
 }
 
 void ModelBatch::Triangle(const std::array<ModelVertex, 3>& corners)
 {
-    if (m_commands.empty() || m_commands.back().state != m_state ||
-        m_commands.back().operation != ModelStateOperation::Draw)
-    {
-        m_commands.push_back(ModelDrawCommand{m_state, m_vertices.size(), 0});
-    }
+    if (!ContinuesTheLastDraw())
+        m_commands.push_back(NewDraw());
     m_vertices.insert(m_vertices.end(), corners.begin(), corners.end());
     m_commands.back().vertexCount += corners.size();
+}
+
+void ModelBatch::SetFog(const std::optional<ModelFog>& fog)
+{
+    m_fog = fog;
+}
+
+const std::optional<ModelFog>& ModelBatch::Fog() const
+{
+    return m_fog;
+}
+
+void ModelBatch::SetTextureEnv(TextureEnvMode mode)
+{
+    m_textureEnv = mode;
+}
+
+TextureEnvMode ModelBatch::TextureEnv() const
+{
+    return m_textureEnv;
+}
+
+bool ModelBatch::ContinuesTheLastDraw() const
+{
+    if (m_commands.empty())
+        return false;
+    const ModelDrawCommand& last = m_commands.back();
+    return last.operation == ModelStateOperation::Draw && last.state == m_state && last.fog == m_fog &&
+           last.textureEnv == m_textureEnv;
+}
+
+ModelDrawCommand ModelBatch::NewDraw() const
+{
+    return ModelDrawCommand{.state = m_state,
+                            .firstVertex = m_vertices.size(),
+                            .vertexCount = 0,
+                            .operation = ModelStateOperation::Draw,
+                            .fog = m_fog,
+                            .textureEnv = m_textureEnv};
 }
 
 const Pass3D& ModelBatch::Pass() const

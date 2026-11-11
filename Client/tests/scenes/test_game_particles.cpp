@@ -80,7 +80,7 @@ public:
     }
     std::optional<Client::Scenes::TextureMetadata> TextureMetadataOf(std::uint32_t selector) const override
     {
-        if (selector != Client::World::BreathParticle && selector != 0x999)
+        if (selector != Client::World::BreathParticle && selector != Client::World::DustParticle && selector != 0x999)
         {
             return std::nullopt;
         }
@@ -303,6 +303,39 @@ TEST(GameParticlesTest, UnsupportedStepKeepsWindAndTheAlreadyAdvancedSlots)
     EXPECT_EQ(particles.All()[1].life, 15);
     EXPECT_EQ(particles.All()[2].life, 16);
     EXPECT_NE(random.State(), 1u);
+}
+
+// 0x546be9: el paso de la 5f3 lee el alto de su textura (+0x24 de su lugar en 0x7d3a198) entre las que subió el
+// juego, por ParticleTextureHeightsOf: con 16 de alto, la escala 0,58 y el terreno en 100, la z queda en
+// 100 + 16 · 0,58 · 0,5. Sin el resolvedor, el paso corta.
+TEST(GameParticlesTest, TheGallopDustSitsOnTheGroundWithTheHeightOfItsTexture)
+{
+    const SmokeTextures textures;
+    const auto heights = Client::Scenes::ParticleTextureHeightsOf(textures);
+    EXPECT_EQ(heights(Client::World::DustParticle), std::optional<float>(16.0f));
+    EXPECT_EQ(heights(0x5f4), std::nullopt);
+
+    Particles particles;
+    Particle& dust = particles.All()[0];
+    dust = Smoke();
+    dust.type = dust.texture = Client::World::DustParticle;
+    dust.moves = false;
+    CrtRandom random;
+    const std::int32_t map = 0;
+    const float clock = 0.0f;
+    const auto stepped = Client::Scenes::StepGameParticles(
+        particles, random, map, [](float, float) { return 100.0; }, clock, {}, {}, heights);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(dust.life, 15);
+    EXPECT_EQ(dust.light, glm::vec3(0.46875f));
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(dust.scale), 0x3f147ae1u);
+    EXPECT_EQ(dust.position.x, 10.0f);
+    EXPECT_EQ(dust.position.y, 20.0f);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(dust.position.z), 0x42d147aeu);
+
+    const auto blind = Client::Scenes::StepGameParticles(particles, random, map, [](float, float) { return 100.0; });
+    ASSERT_FALSE(blind.HasValue());
+    EXPECT_NE(blind.Error().find("0x637128"), std::string::npos);
 }
 
 TEST(GameParticlesTest, DrawUsesModeZeroAndEyeCoordinatesWithoutKillingParticles)

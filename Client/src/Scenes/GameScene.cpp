@@ -31,6 +31,7 @@
 #include "Render/Models/ModelTextureSlots.h"
 #include "Render/ModelBatch.h"
 #include "Render/Pass3D.h"
+#include "Scenes/ActorName.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/CharacterStep.h"
@@ -86,6 +87,9 @@ constexpr float EntryYaw = -45.0f;
 constexpr float ShakeDecay = std::bit_cast<float>(std::uint32_t{0x3e4ccccd});
 // 0x635b3d y 0x63726f: en el mapa 6 la cámara y el punto del trapecio comparan el nombre del héroe.
 constexpr std::int32_t NamedCameraMap = 6;
+// 0x6372e0..0x6372f1: el punto de la rama de "webzen" (0x45c80000 y 0x4670a000) con la z del héroe.
+constexpr float SpectatorTargetX = 6400.0f;
+constexpr float SpectatorTargetY = 15400.0f;
 // 0x5fa973: en el mapa 7 el agua de la capa 2 va con 0x5fa4b0.
 constexpr std::int32_t AnimatedWaterMap = 7;
 // 0x6374bb: el mapa 10 no dibuja el terreno.
@@ -110,6 +114,8 @@ constexpr std::int32_t DungeonMap = 1;
 constexpr std::int32_t DeviasMap = 2;
 constexpr std::int32_t NoriaMap = 3;
 constexpr std::int32_t LostTowerMap = 4;
+// La Arena (World7): sus casos en 0x604ab0 (0x6054fd) y 0x602ed0 (0x6039cb).
+constexpr std::int32_t ArenaMap = 6;
 constexpr std::int32_t TarkanMap = 8;
 constexpr std::int32_t IcarusMap = 10;
 // 0x5bb8d0: el ancho del mundo, 640 sin ventanas abiertas (MuRet no tiene las ventanas del juego).
@@ -348,7 +354,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     // espera de la entrada al juego).
     const bool aida = map == AidaMap || map == SelectionMap;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
-        map != TarkanMap && map != IcarusMap && map != LandOfTrialsMap && !World::IsKalimaMap(map) && !aida)
+        map != ArenaMap && map != TarkanMap && map != IcarusMap && map != LandOfTrialsMap && !World::IsKalimaMap(map) &&
+        !aida)
     {
         return Core::Unexpected("0x606560: los objetos vistos del " + MapText(map) + " (0x604ab0) no están portados");
     }
@@ -474,19 +481,17 @@ Core::Expected<void, std::string> GameScene::DrawTheFrame(SceneCanvas& canvas)
         return uploaded;
     }
     // 0x63723a: la niebla en 0 (0x7d368a0); MuRet no la tiene.
-    // 0x635b3d y 0x635b5c: en el mapa 6 la cámara compara el nombre del héroe con 0x576960.
-    if (runtime.map == NamedCameraMap)
-    {
-        return Core::Unexpected(std::string("0x635b5c: en el mapa 6 la cámara (0x635ae0) compara el nombre del héroe "
-                                            "con 0x576960, que MuRet no tiene"));
-    }
     // 0x637241: 0x635ae0.
     const Render::Camera3D camera = CameraOfTheFrame(canvas, frames);
     m_drawnCamera = camera;
     m_screen = canvas.screen;
-    // 0x63726f..0x637337: fuera del mapa 6, el punto de 0x44dc60. El recorrido de 0x4033d0 (el BD 00, que
-    // MuRet no aplica) no está prendido y no lo cambia.
-    const glm::vec3 target = World::CameraTargetOf(CameraInputState());
+    // 0x63726f..0x637337: en el mapa 6 con "webzen" en el nombre (0x576960; la búsqueda de "webzen2" no cambia
+    // nada, Q-C152), el punto fijo (6.400; 15.400) con la z del héroe; si no, el de 0x44dc60. El recorrido de
+    // 0x4033d0 (el BD 00, que MuRet no aplica) no está prendido y no lo cambia.
+    const World::GameCameraInput& cameraInput = CameraInputState();
+    const glm::vec3 target = runtime.map == NamedCameraMap && cameraInput.webzen
+                                 ? glm::vec3(SpectatorTargetX, SpectatorTargetY, cameraInput.hero.z)
+                                 : World::CameraTargetOf(cameraInput);
     // 0x63734d: el pase de 0x620db0(0, 0, w, 48) no dibuja; su modelview es la del pase del mundo.
     const Render::Pass3D pass = Render::MakePass3D(canvas.screen, GameWorldViewport, camera);
     m_frustum = World::SphereFrustumOf(pass.view, camera);
@@ -585,6 +590,8 @@ Render::Camera3D GameScene::CameraOfTheFrame(SceneCanvas& canvas, int frames)
     input.hero = hero.position;
     input.map = static_cast<std::uint8_t>(runtime.map);
     input.scene = World::CullingScene::Game;
+    // 0x635b3d: el nombre del héroe, con 0x576960 (Q-C152).
+    input.webzen = ActorNameContains(hero, "webzen");
     input.worldTime =
         static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
     if (frames == 0)
@@ -594,7 +601,9 @@ Render::Camera3D GameScene::CameraOfTheFrame(SceneCanvas& canvas, int frames)
     }
     // Cada frame original termina en el corte de abajo: de los que cuenta el reloj corre el primero y el
     // corte no deja correr los demás.
-    input.cellAttribute = HeroCellAttribute(hero, *world.Map().terrain.attributes, m_context.cloth->random);
+    // 0x635b3d..0x635b9e: la rama del mapa 6 con "webzen" no lee la celda del héroe (ni sus rand()).
+    if (!(input.map == NamedCameraMap && input.webzen))
+        input.cellAttribute = HeroCellAttribute(hero, *world.Map().terrain.attributes, m_context.cloth->random);
     return World::StepGameCamera(CameraState(), input);
 }
 
@@ -610,6 +619,8 @@ Core::Expected<World::TerrainPolygon, std::string> GameScene::PolygonOfTheFrame(
     input.objectPosition = glm::vec2(target.x, target.y);
     input.cameraYaw = camera.angles.z;
     input.worldWidth = WorldWidth;
+    // 0x5fb570: las dos búsquedas del nombre del mapa 6, la de las medidas y la del giro.
+    input.webzenProfile = input.webzenYaw = CameraInputState().webzen;
     if (frames == 0)
     {
         return TerrainPolygonBetweenFrames(runtime, input);
@@ -698,16 +709,17 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         afterMarks.depthTest = true;
         canvas.models.SetState(afterMarks);
     }
-    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 8, 10, 31,
-    // 33 y Kalima.
-    const bool knownObjects = (map >= LorenciaMap && map <= LostTowerMap) || map == TarkanMap || map == IcarusMap ||
-                              map == LandOfTrialsMap || map == AidaMap || World::IsKalimaMap(map);
+    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 6, 8, 10,
+    // 31, 33 y Kalima.
+    const bool knownObjects = (map >= LorenciaMap && map <= LostTowerMap) || map == ArenaMap || map == TarkanMap ||
+                              map == IcarusMap || map == LandOfTrialsMap || map == AidaMap || World::IsKalimaMap(map);
     if (!knownObjects &&
         std::ranges::any_of(FrameObjects(), [](const World::WorldObject& object) { return object.alive; }))
     {
         return Core::Unexpected(
             "0x6374ce: los objetos del " + MapText(map) +
-            " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4, los del 8, los del 10, "
+            " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4, los del 6, los del 8, "
+            "los del 10, "
             "los del 31, los del 33 y los de Kalima");
     }
     if (auto loaded = LoadTheObjectModels(map); !loaded.HasValue())

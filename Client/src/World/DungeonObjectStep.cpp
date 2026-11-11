@@ -155,6 +155,27 @@ Core::Expected<void, std::string> StepLostTowerObject(WorldObject& object, Rende
     }
 }
 
+Core::Expected<void, std::string> StepArenaObject(WorldObject& object, const ObjectStepGlobals& globals)
+{
+    constexpr std::int16_t ScrollingObject = 0x15;
+    constexpr std::int16_t HiddenType = 0x26;
+    if (object.type == HiddenType)
+    {
+        object.state.hiddenMesh = HiddenObject; // 0x60550f.
+        return {};
+    }
+    if (object.type != ScrollingObject)
+        return {};
+    // 0x60551d: el blendMesh antes del ftol; 0x605524..0x605546: la V con el ftol negado.
+    constexpr std::int16_t ScrollBlendMesh = 3;
+    object.state.blendMesh = ScrollBlendMesh;
+    const std::optional<float> v = LostTowerScroll(globals.worldClock);
+    if (!v)
+        return Core::Unexpected(std::string("0x60552a: ftol del reloj del mundo fuera de lo acreditado"));
+    object.state.uv.y = *v;
+    return {};
+}
+
 Core::Expected<void, std::string> KickObject(WorldObject& object, const ObjectStepGlobals& globals)
 {
     if (globals.heroPosition == nullptr || globals.heroAction == nullptr)

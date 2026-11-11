@@ -9,8 +9,9 @@ namespace Client::Render::Models
 class CrtRandom;
 }
 
-// Los casos de 0x604ab0 del Dungeon (mapa 1, la tabla 0x605bc0) y de Lost Tower (mapa 4, la tabla 0x605c50),
-// después del alpha y la animación comunes. Contrato: 06 § Los objetos del Dungeon y de Lost Tower.
+// Los casos de 0x604ab0 del Dungeon (mapa 1, la tabla 0x605bc0), de Lost Tower (mapa 4, la tabla 0x605c50) y
+// de la Arena (mapa 6), después del alpha y la animación comunes. Contrato: 06 § Los objetos del Dungeon y de
+// Lost Tower, y § Los objetos de la Arena.
 namespace Client::World
 {
 struct ObjectStepGlobals;
@@ -29,6 +30,10 @@ StepDungeonObject(WorldObject& object, Render::Models::CrtRandom& random, const 
 // en 0 suelta el chorro 0x5de; el 0x19 se oculta, y el 0x26 y el 0x27 van por la patada de 0x52f550.
 [[nodiscard]] Core::Expected<void, std::string>
 StepLostTowerObject(WorldObject& object, Render::Models::CrtRandom& random, const ObjectStepGlobals& globals);
+
+// El mapa 6 (el caso 6 de 0x604ab0, 0x6054fd, sin tabla): el 0x15 lleva el blendMesh a 3 y corre la V como la
+// U del 3 y el 4 del mapa 4 (−ftol % 1.000 por 0,001f); el 0x26 se oculta. Sin rand() ni destinos prestados.
+[[nodiscard]] Core::Expected<void, std::string> StepArenaObject(WorldObject& object, const ObjectStepGlobals& globals);
 
 // 0x52f550: con la acción del héroe entre 0xd y 0x21 y la velocidad x del objeto por debajo de 0,1 (o NaN),
 // a menos de 50 del héroe (la distancia con la y guardada en float en uno de los factores), la velocidad

@@ -4435,7 +4435,7 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 | `0x6371a6` | con `0x7d3a101` en 0, devuelve 0 | sin leer el contador | `GameScene::PrepareFrame` |
 | `0x6371b7..0x63722e` | el contador por la tabla de protección, con su cierre (`0x40b800`, `0x637229`); **con más de 30, devuelve 0** (`jle` con signo) | no dibuja ni presenta | `GameScene::PrepareFrame` (T5) |
 | `0x63723a` | `0x7d368a0 = 0` | sin niebla | sí |
-| `0x637241` | **`0x635ae0()`** y, fuera del mapa 6, `0x44dc60(&p)` (`0x4034b0` con el recorrido) | la cámara y el punto del recorte; la rama de `0x63724a` no corre nunca (Q-C189) | [La cámara del juego](#la-cámara-del-juego): `GameScene`, con los dos accesos a la celda del héroe (8 `rand()`) y `World::CameraTargetOf`; el mapa 6 corta en `0x635b5c` |
+| `0x637241` | **`0x635ae0()`** y, fuera del mapa 6, `0x44dc60(&p)` (`0x4034b0` con el recorrido) | la cámara y el punto del recorte; la rama de `0x63724a` no corre nunca (Q-C189) | [La cámara del juego](#la-cámara-del-juego): `GameScene`, con los dos accesos a la celda del héroe (8 `rand()`) y `World::CameraTargetOf`; en el mapa 6 con "webzen" en el nombre, la cámara de espectador sin esos accesos y el punto (6.400; 15.400) con la z del héroe ([Los objetos de la Arena](#los-objetos-de-la-arena)) |
 | `0x63734d` | `0x620db0(0, 0, w, 48)` | la franja, que no dibuja | sí (`MakePass3D`) |
 | `0x637366` | **`0x5fbb00(w / 640, &p)`** | el rango de bloques y el trapecio | sí (`TerrainRangeOf`, `TerrainPolygonOf(Game)`; en el juego, `StepTheTerrainPolygon` con el trapecio y el nivel efectivo globales de `WorldRuntime`, T11b) |
 | `0x637391..0x637404` | `glClearColor` por mapa: en el 0, (0,0390625; 0,078125; 0,0546875) | no se usa (Q-C143) | ver abajo |
@@ -4485,8 +4485,7 @@ corre lo de arriba en ese orden y corta con error en la primera etapa que no tie
 adentro de los objetos (los casos de `0x602ed0` que no tiene o una pose global anterior que necesita
 la fuente, [Los objetos del juego](#los-objetos-del-juego)), en una rama de suelo o de personaje
 todavía no portada o, si pasa todo eso, en los ítems del piso (`0x6374fe`); en
-los demás mapas que carga, en los objetos (`0x6374ce`), salvo el 6 (la cámara, `0x635b5c`) y el 7 (su
-agua, `0x5fa985`). Antes dibuja el pase del pasto y las marcas del suelo, que no gastan `rand()`; los
+los demás mapas que carga, en los objetos (`0x6374ce`), salvo el 7 (su agua, `0x5fa985`). Antes dibuja el pase del pasto y las marcas del suelo, que no gastan `rand()`; los
 objetos, uno por objeto visto que llega a `0x602ed0` y el guard de la fuente, más sus ocho sorteos
 cuando crea dos gotas. Los efectos vivos y vistos consumen el común de `0x52dc46` y los casos propios;
 los personajes, sus accesos al registro y el de `0x50db57`. Las aves y los peces ya tienen pool y
@@ -5410,6 +5409,41 @@ la Data del repo, el 31 llega a un cuadro completo y camina (`GameT16SceneMatrix
 suelo libre con el 3, el `0x34` y el `0x35` vistos). Tests: `LandOfTrialsObjectsTest`,
 `LandOfTrialsObjectServicesTest`, `TrialsParticlesTest` y
 `WorldObjectsDrawingTest.TheLandOfTrialsBodiesPulseAndTheBrazierBaseIsDrawnTwice`.
+
+### Los objetos de la Arena
+
+Leído en la CL7 en el ASM y el pseudocódigo de `c32bbd5f` (*estático*; las cuentas de MuRet, *simulado*: con el
+port y la Data del repo). Lo común es lo de [Los objetos del juego](#los-objetos-del-juego). La Arena es el mapa 6
+(`World7`, 1.489 objetos, entre ellos el −515 de Q-C28). Su carga (`0x616ec0`) sube el especial `0xb1`
+(`Object7\Bug`, de la fauna) con sus texturas.
+
+**La cámara.** `0x635ae0` mira el nombre del héroe (`+0x1d9`) con `0x576960`: con "webzen" (la búsqueda de
+"webzen2" no cambia nada, Q-C152) la cámara de espectador de [La cámara del juego](#la-cámara-del-juego), que
+salta los dos accesos a la celda del héroe y sus `rand()` (`0x635b3d..0x635b9e`). El dibujo (`0x63726f..0x6372f1`)
+vuelve a mirar el nombre y centra el trapecio en (6.400; 15.400) con la z del héroe, y `0x5fb570` lo mira dos
+veces más: para las medidas propias (3.995 y 425) y para girarlo −yaw. Con cualquier otro nombre, todo es lo de
+los demás mapas.
+
+**El paso** (`0x604ab0`, el caso 6 en `0x6054fd`, sin tabla):
+
+| Tipo | Qué hace |
+|---|---|
+| `0x15` | el blendMesh (`+0x64`) en 3 y la V (`+0x70`) en (−ftol(reloj) % 1.000) · 0,001f, como la U del 3 y el 4 del mapa 4 |
+| `0x26` | `+0x58` en −2 |
+
+**El frame** (`0x602ed0`, `0x6039cb`): el 9 deja un sprite `0x5ac` en el hueso 1 con la entrada de la pila sin
+escribir, en NaN; es el caso al que cae Lost Tower ([Los objetos del Dungeon y de Lost
+Tower](#los-objetos-del-dungeon-y-de-lost-tower), Q-C256). **El dibujo** (`0x6002e0`) no tiene casos del 6: todos
+van por el `RenderBody` común.
+
+**En MuRet.** El nombre: `Scenes::ActorNameContains`, el mismo `0x576960` del GM de `0x413fe0`. La cámara:
+`GameScene::CameraOfTheFrame` le pasa el resultado a `World::StepGameCamera` y no lee la celda del héroe en esa
+rama; `GameScene::Render` usa el punto fijo, y `PolygonOfTheFrame` prende las dos búsquedas de `0x5fb570`. El
+paso: `World::StepArenaObject` (`DungeonObjectStep`), desde `StepWorldObjectChecked` en el 6; el frame:
+`Scenes::StepArenaObjectFrame`. Con la Data del repo, el 6 llega a un cuadro completo y camina
+(`GameT16SceneMatrix` y `GameT16MapWalk`, en (62, 47): suelo libre con once `0x15` y cuatro 9 a menos de 1.500;
+`GameT16SafeZoneWalk`, en (70, 139)). Tests: `DungeonObjectsTest.TheArenaScrollsTheVOfItsWaterAndHidesItsMarkers` y
+`GameT16Journey.AWebzenNameWatchesTheArenaFromTheSpectatorCamera`.
 
 ### Las marcas del suelo
 

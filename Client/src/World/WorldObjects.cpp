@@ -753,12 +753,14 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     const bool aida = map == AidaMap || map == SelectionWorldMap;
     constexpr std::uint8_t DungeonMap = 1;
     constexpr std::uint8_t LostTowerMap = 4;
+    constexpr std::uint8_t ArenaMap = 6;
     constexpr std::uint8_t TarkanMap = 8;
     constexpr std::uint8_t IcarusMap = 10;
     // 0x43ff10: el 31 (Land of Trials) llega a 0x43ffc0 por la misma cadena.
     constexpr std::uint8_t LandOfTrialsMap = 31;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
-        map != TarkanMap && map != IcarusMap && map != LoginMap && map != LandOfTrialsMap && !IsKalimaMap(map) && !aida)
+        map != ArenaMap && map != TarkanMap && map != IcarusMap && map != LoginMap && map != LandOfTrialsMap &&
+        !IsKalimaMap(map) && !aida)
     {
         // 0x604ac0..0x604ba0: el 9 saca rand() antes de todo, y cada mapa tiene sus casos.
         return Core::Unexpected(
@@ -803,6 +805,8 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
         return StepDungeonObject(object, random, globals);
     case LostTowerMap:
         return StepLostTowerObject(object, random, globals);
+    case ArenaMap:
+        return StepArenaObject(object, globals);
     case TarkanMap:
         return StepTarkanObject(object, globals);
     case IcarusMap:

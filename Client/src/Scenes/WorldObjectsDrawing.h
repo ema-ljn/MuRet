@@ -141,9 +141,9 @@ struct GameObjectPass
     std::int32_t scene = 0;
 };
 
-// 0x6046a0 en el juego (0x6374ce), en los mapas 0 a 4, 8, 10, 31, 33 y Kalima (06 § Los objetos del juego): sector por
-// sector, en World::DrawOrder, cada objeto vivo que pasa el trapecio como en DrawWorldObjects queda visto. El 0x64 de
-// Devias sigue solo con el nivel del registro propio desde 0x50 (0x35 con la clase 3 o 4), con su acceso.
+// 0x6046a0 en el juego (0x6374ce), en los mapas 0 a 4, 6, 8, 10, 31, 33 y Kalima (06 § Los objetos del juego):
+// sector por sector, en World::DrawOrder, cada objeto vivo que pasa el trapecio como en DrawWorldObjects queda visto.
+// El 0x64 de Devias sigue solo con el nivel del registro propio desde 0x50 (0x35 con la clase 3 o 4), con su acceso.
 // Después, 0x602e90: el dibujo de World::DrawOf, sin interpolar la animación (el 0x69 de Lorencia, con
 // DrawWaterspout); y, con un frame del original, 0x602ed0: un rand() y el caso de su tipo. El del 0x69 es
 // StepGameWaterspoutFrame, con el pool compartido de `pass.particles`: los dos 5f2/0 sobre los huesos

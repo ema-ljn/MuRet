@@ -206,8 +206,8 @@ struct ObjectStepGlobals
     std::uint32_t* trialsAmbientTime = nullptr;
 };
 
-// 0x604ab0 con un objeto visto en el juego, en los mapas 0 a 4, 8, 10, 31 y 33 (*estático*, 06 § Los objetos del
-// juego; los del 1 y del 4, World/DungeonObjectStep.h; los del 8, con el tipo 8 animado al cuádruple,
+// 0x604ab0 con un objeto visto en el juego, en los mapas 0 a 4, 6, 8, 10, 31 y 33 (*estático*, 06 § Los objetos del
+// juego; los del 1, del 4 y del 6, World/DungeonObjectStep.h; los del 8, con el tipo 8 animado al cuádruple,
 // World/TarkanObjectStep.h; los del 31, 0x43ffc0, StepLandOfTrialsObject en World/WorldObjectStepServices.h).
 // Antes del alpha, los techos: el 0x7d y el 0x7e del 0 llevan la meta del alpha (+0x170) a 0 con la capa
 // del héroe en 4 (0x604bc4), y el 0x51, el 0x52, el 0x60, el 0x62 y el 0x63 del 2 con la capa en 3 o

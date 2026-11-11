@@ -1042,8 +1042,8 @@ TEST_F(GameSceneDrawTest, TheStepStopsAtTheSeenObjectsOfTheOtherMaps)
     scene.Leave();
 }
 
-// Los otros mapas que carga el juego cortan antes del pasto: el 6 en la cámara (0x576960 con el nombre
-// del héroe), antes de los accesos, y el 7 en su agua (0x5fa4b0), ya en el pase del mundo y sin una celda.
+// Los otros mapas que carga el juego cortan antes del pasto: el 7 en su agua (0x5fa4b0), ya en el pase del
+// mundo y sin una celda.
 TEST_F(GameSceneDrawTest, TheOtherMapsStopWhereTheyDiffer)
 {
     struct Case
@@ -1053,7 +1053,8 @@ TEST_F(GameSceneDrawTest, TheOtherMapsStopWhereTheyDiffer)
         int draws;
         bool worldPass;
     };
-    for (const Case& probe : {Case{6, "0x635b5c", 4, false}, Case{7, "0x5fa985", 4 + 8, true}})
+    // El 6 ya no corta en la cámara (06 § Los objetos de la Arena): lo cubre GameT16SceneMatrix.
+    for (const Case& probe : {Case{7, "0x5fa985", 4 + 8, true}})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));
         ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, 128, 128));

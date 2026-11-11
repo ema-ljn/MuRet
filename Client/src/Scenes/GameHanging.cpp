@@ -2,7 +2,6 @@
 
 #include "Core/Expected.h"
 #include "Data/Models/PlayerModels.h"
-#include "Protocol/Character/Opcodes.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Attachment.h"
 #include "Render/Models/Cloth.h"
@@ -13,11 +12,11 @@
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
+#include "Scenes/ActorName.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameItemSpecialDrawing.h"
-#include "UI/NameChecks.h"
 #include "World/ScepterGlow.h"
 #include "World/Sprites.h"
 
@@ -928,17 +927,10 @@ bool WeaponsOnTheBack(const ActorState& actor, std::int32_t map)
                       (actor.animation.action >= FirstBackAction && actor.animation.action <= LastBackAction));
 }
 
-// 0x413fe0: 0x576960 busca "webzen" (0x6c64ac) en el nombre de +0x1d9 hasta su 0. Sin 0 en los diez bytes,
-// el original sigue en +0x1e3, que la respuesta del F3 03 pone en 0.
+// 0x413fe0: 0x576960 busca "webzen" (0x6c64ac) en el nombre de +0x1d9.
 bool NamedLikeAGameMaster(const ActorState& actor)
 {
-    std::array<char, Protocol::Character::NameSize + 1> name{};
-    for (std::size_t index = 0; index < actor.name.size(); ++index)
-        name[index] = static_cast<char>(actor.name[index]);
-    name[actor.name.size()] = static_cast<char>(actor.byte1e3);
-    const auto end = std::ranges::find(name, '\0');
-    return UI::ContainsLikeTheOriginal(std::string_view(name.data(), static_cast<std::size_t>(end - name.begin())),
-                                       "webzen");
+    return ActorNameContains(actor, "webzen");
 }
 
 // 0x413fe0: un GM ("webzen" en el nombre, +0x78 & 0x1000000 o el CtlCode en 0x20 u 8) suelta una capa que

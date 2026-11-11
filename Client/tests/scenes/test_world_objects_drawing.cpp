@@ -1033,7 +1033,7 @@ TEST(WorldObjectsDrawingTest, TheGamePassRejectsUnreadMaps)
     std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, 3, Client::World::ObjectScene::Other)};
     Client::Render::Models::CrtRandom random(7);
     ModelBatch batch;
-    const auto drawn = DrawGame(batch, models, objects, {.map = 6, .random = &random});
+    const auto drawn = DrawGame(batch, models, objects, {.map = 9, .random = &random});
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x6046a0"), std::string::npos) << drawn.Error();
     EXPECT_FALSE(objects[0].seen);

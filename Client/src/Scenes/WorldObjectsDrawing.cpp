@@ -346,6 +346,7 @@ constexpr std::uint8_t LorenciaMap = 0;
 constexpr std::uint8_t DeviasMap = 2;
 constexpr std::uint8_t NoriaMap = 3;
 constexpr std::uint8_t LostTowerMap = 4;
+constexpr std::uint8_t ArenaMap = 6;
 constexpr std::uint8_t TarkanMap = 8;
 constexpr std::uint8_t IcarusMap = 10;
 constexpr std::uint8_t LandOfTrialsMap = 31;
@@ -422,6 +423,8 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
         return StepLandOfTrialsObjectFrame(object, pass);
     if (map == LostTowerMap)
         return StepLostTowerObjectFrame(object, commonRandom, pass, posed);
+    if (map == ArenaMap)
+        return StepArenaObjectFrame(object, commonRandom, pass, posed);
     if (map == TarkanMap)
         return StepTarkanObjectFrame(object, pass);
     if (map == IcarusMap)
@@ -457,8 +460,9 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                                                        const World::TerrainLighting* lighting,
                                                        Core::Duration frameClock, const GameObjectPass& pass)
 {
-    if (pass.map > LostTowerMap && pass.map != TarkanMap && pass.map != IcarusMap && pass.map != LandOfTrialsMap &&
-        pass.map != AidaMap && pass.map != SelectionWorldMap && !World::IsKalimaMap(pass.map))
+    if (pass.map > LostTowerMap && pass.map != ArenaMap && pass.map != TarkanMap && pass.map != IcarusMap &&
+        pass.map != LandOfTrialsMap && pass.map != AidaMap && pass.map != SelectionWorldMap &&
+        !World::IsKalimaMap(pass.map))
     {
         return Core::Unexpected(std::format("0x6046a0: los casos por tipo del mapa {} (0x6002e0 y 0x602ed0) no están "
                                             "leídos",

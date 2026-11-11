@@ -547,7 +547,8 @@ TEST_F(SelectionStateTest, InitializationWaitsForAListAndReturnsLoadFailures)
     ASSERT_FALSE(initialized.HasValue());
     EXPECT_FALSE(initialized.Error().empty());
     EXPECT_FALSE(m_state.IsInitialized());
-    EXPECT_EQ(m_state.Map(), 55);
+    // 0x633f44 escribe el 54 en 0x6c9dd0 antes de la carga (0x61a560), que es la que falla.
+    EXPECT_EQ(m_state.Map(), 54);
     ASSERT_TRUE(m_state.Failure().has_value());
     const std::array<CharacterEvent, 1> missing{CharacterCreated{Entry()}};
     m_state.BorrowTerrain(55, nullptr);

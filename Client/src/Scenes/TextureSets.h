@@ -53,8 +53,10 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 3> GlowTextureSet{{
 // flareBlue/62b (61dc9d), todos GL_LINEAR/GL_CLAMP; los dos últimos tienen slots físicos propios.
 // Lo que cuelga de un jugador (0x509340 y 0x50ba30) pide además Shiny03 en 0x5fe (61d937) e Impack03 de
 // Object9 en 0x5ad (61e799), del mismo lazo sin ramas de 0x61ccb0 y con el mismo sampling.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 21> EffectTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 22> EffectTextureSet{{
     {"Effect\\Fire01.jpg", 0x5d9, TextureSetsDetail::LinearClamp},
+    // 0x61d67f: Flame01 en 0x5de, de la llama 5de/7 del 0x43 del 54.
+    {"Effect\\Flame01.jpg", 0x5de, TextureSetsDetail::LinearClamp},
     {"Effect\\flare01.jpg", 0x5ac, TextureSetsDetail::LinearClamp},
     {"Effect\\Magic_Ground2.jpg", 0x61e, TextureSetsDetail::LinearClamp},
     {"Effect\\Magic_Circle1.jpg", 0x61f, TextureSetsDetail::LinearClamp},

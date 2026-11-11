@@ -29,6 +29,8 @@ inline constexpr float DragonScale = 1.6f;
 // El efecto de llegada: lo crea dos veces la respuesta del F3 03 sobre el héroe (06, "El héroe").
 inline constexpr std::int16_t ArrivalEffect = 0x61f;
 inline constexpr std::int16_t TeleportEffect = 0x5c6;
+// La mariposa (0x51913a): la emite el 0x3c del mapa 54 y del 33 (0x425790), con el objeto de dueño.
+inline constexpr std::int16_t ButterflyEffect = 0xae;
 
 // Proyección de los campos compartidos por los efectos de 0x1d4 bytes.
 struct ModelEffect
@@ -81,6 +83,13 @@ public:
     // 0x51c36e/0x51c38a: los efectos 322..324 de la torre de Noria; 322/323 ponen sourceLight en cero.
     std::optional<std::size_t> CreateNoriaEffect(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                  glm::vec3& sourceLight, Render::Models::CrtRandom& random);
+    // 0x518cf0(0xae, posición, ángulos, luz, subtipo, dueño, −1, 0, 0, 0, 0) → 0x51913a: el prefijo común
+    // (+0x8a en −1), en la escena 4 oculto (+0x58 = −2), vida 250, animación a 0,3, sin luz por vértice, el
+    // estado con rand() & 1, la velocidad (0, escala del dueño · −5, 0) y la escala 0,9 con el subtipo 3 o
+    // 0,25 con los demás. Un rand(); lleno, ninguno.
+    std::optional<std::size_t> CreateButterflyEffect(const glm::vec3& position, const glm::vec3& angles,
+                                                     const glm::vec3& light, std::int32_t subtype, float ownerScale,
+                                                     bool selectionScene, Render::Models::CrtRandom& random);
     // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
     void Clear();
 

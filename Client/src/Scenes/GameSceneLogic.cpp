@@ -83,8 +83,12 @@ Core::Expected<void, std::string> GameScene::StepTheCharacters(float worldClock)
     return StepRibbons(m_context.world->DrawTail().ribbons);
 }
 
-Core::Expected<void, std::string> GameScene::StepTheModelEffects(float worldClock)
+Core::Expected<void, std::string>
+GameScene::StepTheModelEffects(float worldClock, const std::function<double(float, float)>& terrainHeight)
 {
+    // La mariposa 0xae del 0x3c del 54 sigue viva en la espera de la entrada al juego: su altura y el
+    // sprite 0x5ac de la tabla del frame.
+    const World::ModelEffectStepServices services{.terrainHeight = terrainHeight, .sprites = &m_sprites};
     auto effects = m_context.world->Map().effects.Effects();
     for (std::size_t slot = 0; slot < effects.size(); ++slot)
     {
@@ -98,8 +102,9 @@ Core::Expected<void, std::string> GameScene::StepTheModelEffects(float worldCloc
                 return stepped;
             continue;
         }
-        if (auto stepped = World::StepGameModelEffect(effect, skeleton, m_context.world->Particles(), worldClock,
-                                                      m_context.cloth->random, m_context.world->Map().kalima.get());
+        if (auto stepped =
+                World::StepGameModelEffect(effect, skeleton, m_context.world->Particles(), worldClock,
+                                           m_context.cloth->random, m_context.world->Map().kalima.get(), services);
             !stepped.HasValue())
             return stepped;
     }
@@ -110,8 +115,12 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
 {
     auto& runtime = m_context.world->Runtime();
     const auto& terrain = StepTerrain();
+    std::function<double(float, float)> terrainHeight;
+    if (terrain.heights && terrain.attributes)
+        terrainHeight = [&](float x, float y)
+        { return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, CameraState().fixedHeight); };
     StepDamage(m_context.world->DrawTail().damage);
-    if (auto stepped = StepTheModelEffects(worldClock); !stepped.HasValue())
+    if (auto stepped = StepTheModelEffects(worldClock, terrainHeight); !stepped.HasValue())
         return stepped;
     if (auto stepped = StepJoints(m_context.world->DrawTail().joints, m_context.cloth->random, m_context.cloth,
                                   &m_context.world->Particles(), worldClock);
@@ -119,12 +128,9 @@ Core::Expected<void, std::string> GameScene::StepTheEffects(float worldClock)
         return stepped;
     // 0x63712d: 0x549090, las marcas del suelo, sin rand(). En la espera también corre, y acá no: la tabla
     // sigue vacía mientras MuRet no tenga quién la llene (08 P-C49).
-    std::function<double(float, float)> terrainHeight;
-    if (terrain.heights && terrain.attributes)
-        terrainHeight = [&](float x, float y)
-        { return World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y, CameraState().fixedHeight); };
-    if (auto particles = StepGameParticles(m_context.world->Particles(), m_context.cloth->random, runtime.map,
-                                           terrainHeight, worldClock);
+    if (auto particles =
+            StepGameParticles(m_context.world->Particles(), m_context.cloth->random, runtime.map, terrainHeight,
+                              worldClock, ParticleOwnersAmong(m_context.world->Map().objects));
         !particles.HasValue())
     {
         return particles;

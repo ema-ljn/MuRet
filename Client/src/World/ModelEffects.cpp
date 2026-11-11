@@ -9,6 +9,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -222,6 +223,38 @@ std::optional<std::size_t> ModelEffects::CreateKalimaEffect(const glm::vec3& pos
         effect.speed = InitialSpeed;
         effect.disturbanceState = 0;
         effect.velocity = {-0.1f, -0.1f, -0.5f};
+        return slot;
+    }
+    return std::nullopt;
+}
+
+std::optional<std::size_t> ModelEffects::CreateButterflyEffect(const glm::vec3& position, const glm::vec3& angles,
+                                                               const glm::vec3& light, std::int32_t subtype,
+                                                               float ownerScale, bool selectionScene,
+                                                               Render::Models::CrtRandom& random)
+{
+    constexpr std::int32_t ButterflyLife = 250, LargeSubtype = 3;
+    constexpr double OwnerPush = static_cast<double>(std::bit_cast<float>(0xc0a00000u)); // 0x6b95b4.
+    constexpr std::int16_t Hidden = -2;
+    constexpr std::uint16_t NoDisturbance = 0xffff;
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeCommonEffect(effect, ButterflyEffect, position, angles, light, 0.0f);
+        effect.subtype = subtype;
+        effect.disturbanceState = NoDisturbance;
+        effect.itemType = nullptr;
+        effect.itemLevel = nullptr;
+        if (selectionScene)
+            effect.objectState.hiddenMesh = Hidden;
+        effect.life = ButterflyLife;
+        effect.speed = CommonAnimationSpeed;
+        effect.vertexLight = false;
+        effect.state = static_cast<std::uint8_t>(random.Next() & 1);
+        effect.velocity = glm::vec3(0.0f, F32(static_cast<double>(ownerScale) * OwnerPush), 0.0f);
+        effect.transform.scale = subtype == LargeSubtype ? std::bit_cast<float>(0x3f666666u) : 0.25f;
         return slot;
     }
     return std::nullopt;

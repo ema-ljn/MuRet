@@ -5,6 +5,7 @@
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <gtest/gtest.h>
+#include <bit>
 #include <cstdint>
 #include <memory>
 
@@ -122,6 +123,50 @@ TEST(NoriaParticlesTest, NoriaParticleBillboardsUseTheWholeTextureAndTheStoredRo
         EXPECT_EQ(drawn.Value()->uv, glm::vec2(0));
         EXPECT_EQ(drawn.Value()->uvSize, glm::vec2(1));
         EXPECT_EQ(drawn.Value()->light, particle.light);
+    }
+}
+// 0x54038c..0x5403a7: la 5c5/7 (las chispas de la mariposa de la selección) sortea su escala como la /0 y
+// después sólo su vida (12..23): sin giro, sin velocidad y sin la escala del argumento.
+TEST(NoriaParticlesTest, TheButterflySparkDrawsOnlyItsScaleAndItsLife)
+{
+    auto particles = std::make_unique<Client::World::Particles>();
+    Client::Render::Models::CrtRandom random(7);
+    Client::Render::Models::CrtRandom draws(7);
+    const auto created =
+        particles->CreateChecked(0x5c5, {100, 200, 300}, {0, 0, 30}, {0.5f, 0.5f, 0.5f}, 7, 1.0f, 0.0f, random);
+    ASSERT_TRUE(created.HasValue());
+    ASSERT_TRUE(created.Value().has_value());
+    const auto& particle = particles->All()[*created.Value()];
+    EXPECT_EQ(particle.scale, static_cast<float>(((draws.Next() & 3) + 4) * static_cast<double>(0.1f)));
+    EXPECT_EQ(particle.life, draws.Next() % 12 + 12);
+    EXPECT_EQ(particle.angles, glm::vec3(0, 0, 30));
+    EXPECT_EQ(particle.verticalSpeed, 0.0f);
+    EXPECT_EQ(particle.velocity, glm::vec3(0));
+    EXPECT_EQ(random.State(), draws.State());
+}
+
+// 0x544f7b: la /7 cae 0,6 (0x6b8a20) por paso; la /0, 2 (0x6b8818).
+TEST(NoriaParticlesTest, TheButterflySparkFallsSlowerThanTheFairySpark)
+{
+    for (const int subtype : {0, 7})
+    {
+        auto particles = std::make_unique<Client::World::Particles>();
+        auto& particle = particles->All().front();
+        particle.alive = true;
+        particle.type = particle.texture = 0x5c5;
+        particle.subtype = subtype;
+        particle.life = 10;
+        particle.position = {10, 20, 100};
+        particle.verticalSpeed = 4;
+        Client::Render::Models::CrtRandom random(7);
+        const auto stepped =
+            Client::World::StepParticlesChecked(*particles, random, nullptr, [](float, float) { return 0.0; });
+        ASSERT_TRUE(stepped.HasValue());
+        EXPECT_EQ(particle.position.z, 104.0f);
+        EXPECT_EQ(
+            particle.verticalSpeed,
+            static_cast<float>(4.0 - (subtype == 7 ? static_cast<double>(std::bit_cast<float>(0x3f19999au)) : 2.0)));
+        EXPECT_EQ(particle.light, glm::vec3(0.5625f));
     }
 }
 } // namespace

@@ -745,7 +745,11 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
                                                          Render::Models::CrtRandom& random,
                                                          const ObjectStepGlobals& globals)
 {
-    if (map != LorenciaMap && map != DeviasMap && map != NoriaMap && map != LoginMap && !IsKalimaMap(map))
+    // 0x425070: el 33 (Aida) y el 54 (la selección) llegan a 0x4250f0 por la cadena de 0x605a62.
+    constexpr std::uint8_t AidaMap = 33;
+    constexpr std::uint8_t SelectionWorldMap = 54;
+    const bool aida = map == AidaMap || map == SelectionWorldMap;
+    if (map != LorenciaMap && map != DeviasMap && map != NoriaMap && map != LoginMap && !IsKalimaMap(map) && !aida)
     {
         // 0x604ac0..0x604ba0: el 9 saca rand() antes de todo, y cada mapa tiene sus casos.
         return Core::Unexpected(
@@ -767,6 +771,10 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
         if (object.type >= FirstHiddenKalimaObject && object.type <= LastHiddenKalimaObject)
             object.state.hiddenMesh = HiddenObject;
         return {};
+    }
+    if (aida)
+    {
+        return StepAidaObject(object, random, globals);
     }
     switch (map)
     {

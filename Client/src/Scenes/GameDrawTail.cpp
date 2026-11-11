@@ -583,11 +583,15 @@ Core::Expected<void, std::string> DrawPlainModelEffect(Render::ModelBatch& batch
     {
         if (auto published = resources->onPose(object); !published.HasValue())
             return published;
-        if (auto drawn = DrawPublishedObject(batch, models, object, frameClock, resources->posedMeshes);
-            !drawn.HasValue())
-            return drawn;
+        // 0x600328: con +0x58 en −2 (la mariposa 0xae de la selección), 0x6002e0 sale después de posar.
+        if (effect.objectState.hiddenMesh != World::HiddenObject)
+        {
+            if (auto drawn = DrawPublishedObject(batch, models, object, frameClock, resources->posedMeshes);
+                !drawn.HasValue())
+                return drawn;
+        }
     }
-    else
+    else if (effect.objectState.hiddenMesh != World::HiddenObject)
         DrawObject(batch, models, object, frameClock);
     constexpr std::int16_t KalimaType = 9;
     if (effect.type == KalimaType && resources != nullptr && resources->kalimaPass != nullptr &&

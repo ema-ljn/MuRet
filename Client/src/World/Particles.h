@@ -31,6 +31,7 @@ class CrtRandom;
 namespace Client::World
 {
 class IParticleTrigonometry;
+struct WorldObject;
 
 inline constexpr std::size_t ParticleCount = 3000;
 inline constexpr std::int32_t ShinyParticle = 0x5fc;
@@ -101,10 +102,15 @@ enum class ParticleError : std::uint8_t
     MissingTerrainHeight,
     MissingClock,
     MissingScene,
+    // 0x5476f0: el dueño (+0x40) de una 622/1 no está entre los objetos del mapa.
+    MissingOwner,
 };
 
 // 5f93c0: retorno retenido, consultado después del prefijo del slot5c5.
 using ParticleTerrainHeight = std::function<double(float, float)>;
+// El objeto del mundo de una identidad (ParticleOwner::identity): lo que el original lee por el puntero
+// +0x40. nullptr si no está.
+using ParticleObjectOwners = std::function<WorldObject*(std::uint64_t)>;
 
 class Particles
 {
@@ -133,6 +139,12 @@ public:
                         std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
                         std::int32_t scene, ParticleOwner owner = {});
     // CreateKalimaChecked agrega5ac/6,7,6ed/0,6f0..4/0 y6f4/1; escena prestada para6f1.
+    // Las familias con dueño tipado: las de Kalima y las de la selección (SelectionParticleKernels.h:
+    // 622/1, 5de/7 y 729/0,1), más 6f0/2, 6f1/2 y 6f2,6f3/4 de los objetos del 54 y del 33.
+    [[nodiscard]] Core::Expected<std::optional<std::size_t>, ParticleError>
+    CreateOwnedChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
+                       std::int32_t subtype, float scale, float worldClock, Render::Models::CrtRandom& random,
+                       std::int32_t scene, ParticleOwner owner = {});
     // 0x6070a0, al entrar a la escena: apaga el byte vivo de cada lugar. El viento sigue como estaba.
     void Clear();
 
@@ -170,9 +182,11 @@ std::optional<ParticleError> StepParticles(Particles& particles, Render::Models:
                                                                        Render::Models::CrtRandom& random,
                                                                        const std::int32_t* map = nullptr,
                                                                        const ParticleTerrainHeight& terrainHeight = {});
-// Carga el reloj por slot6 después del movimiento común, sin snapshot de la pasada.
+// Carga el reloj por slot6 después del movimiento común, sin snapshot de la pasada. `owners` resuelve el
+// dueño de 622/1 (0x5476f0), que se lee y se escribe en el paso.
 [[nodiscard]] Core::Expected<void, ParticleError>
 StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                      std::reference_wrapper<const float> worldClock, const std::int32_t* map,
-                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight = {});
+                     IParticleTrigonometry& trigonometry, const ParticleTerrainHeight& terrainHeight = {},
+                     const ParticleObjectOwners& owners = {});
 } // namespace Client::World

@@ -24,6 +24,7 @@
 #include "Render/Models/Skeleton.h"
 #include "World/ModelEffects.h"
 #include "World/SphereFrustum.h"
+#include "World/WorldObjects.h"
 
 #include <gtest/gtest.h>
 
@@ -961,6 +962,44 @@ TEST(GameDrawTailTest, ModelEffectPublishesItsPoseBeforeGeometryAndNeverForGroun
         Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), frustum, nullptr, {}, 0, resources)
             .HasValue());
     EXPECT_EQ(poses, 1);
+}
+
+// 0x600328: con +0x58 en −2 (la mariposa 0xae de la selección, 0x51913a) 0x6002e0 sale después de posar: la
+// pose se publica y la malla no se dibuja.
+TEST(GameDrawTailTest, AHiddenModelEffectPublishesItsPoseWithoutGeometry)
+{
+    TriangleModels models;
+    Client::World::SphereFrustum frustum;
+    auto heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
+    Client::Scenes::FaunaDrawCarry carry;
+    Client::Scenes::ModelEffectDrawResources resources{*heights, 0};
+    int poses = 0;
+    resources.onPose = [&](const Client::Scenes::DrawnObject& object)
+    {
+        ++poses;
+        return Client::Scenes::PublishFaunaPose(carry, models, object, true);
+    };
+    resources.posedMeshes = [&]() -> std::span<const Client::Render::Models::SkinnedMesh> { return carry.meshes; };
+    for (const bool hidden : {true, false})
+    {
+        Client::Render::ModelBatch batch;
+        Client::World::ModelEffect effect;
+        effect.alive = true;
+        effect.type = Client::World::ButterflyEffect;
+        effect.transform.scale = 1;
+        if (hidden)
+            effect.objectState.hiddenMesh = Client::World::HiddenObject;
+        const auto drawn = Client::Scenes::DrawGameModelEffects(batch, models, std::span(&effect, 1), frustum, nullptr,
+                                                                {}, 0, resources);
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        EXPECT_EQ(batch.Vertices().empty(), hidden);
+        Client::Render::ModelBatch plain;
+        ASSERT_TRUE(
+            Client::Scenes::DrawGameModelEffects(plain, models, std::span(&effect, 1), frustum, nullptr, {}, 0, 0)
+                .HasValue());
+        EXPECT_EQ(plain.Vertices().empty(), hidden);
+    }
+    EXPECT_EQ(poses, 2);
 }
 
 TEST(GameDrawTailTest, ModelEffectNonzeroModeFiltersBlendMeshBeforeDispatchingItsSpecialCase)

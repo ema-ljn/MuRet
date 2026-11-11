@@ -42,6 +42,7 @@
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameData.h"
 #include "Scenes/SceneCameras.h"
+#include "Scenes/SelectionWorld.h"
 #include "World/GameCamera.h"
 #include "World/TerrainCulling.h"
 #include "Scenes/SceneCanvas.h"
@@ -55,8 +56,13 @@
 #include "Scenes/WorldState.h"
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/WorldMap.h"
-#include "World/WorldTerrain.h"
+#include "Data/Terrain/TerrainLight.h"
+#include "Scenes/GameParticles.h"
 #include "World/Particles.h"
+#include "World/PortableParticleTrigonometry.h"
+#include "World/SelectionParticleKernels.h"
+#include "World/TerrainHeight.h"
+#include "World/TerrainLighting.h"
 #include "World/WorldTerrain.h"
 #include "UI/CreateCharacterWindow.h"
 #include "UI/DeleteChecks.h"
@@ -71,9 +77,12 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <algorithm>
+#include <bit>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <format>
+#include <functional>
 #include <ratio>
 #include <optional>
 #include <string>
@@ -93,6 +102,8 @@ constexpr std::uint8_t StandingAction = 3;
 // que pone 0x634680, 1 para el elegido. El héroe es el objeto 0, el del lugar 0, hasta la primera entrada
 // al mundo; después de un F1 02 con 1, el lugar que sorteó el juego (Q-C213).
 constexpr float CharacterLight = 0.4f;
+// DAT_006d5dc8 de la selección: la 0x729 y el 6f1/2 la miran.
+constexpr std::int32_t SelectionSceneId = 4;
 constexpr float HeroLight = 0.5f;
 constexpr float ChosenExtraLight = 1.0f;
 
@@ -164,6 +175,7 @@ CharacterSelectScene::CharacterSelectScene(const SceneContext& context, const Ga
     : m_context(context), m_texts(data.text ? &*data.text : nullptr),
       m_items(data.items ? &data.items->table : nullptr), m_models(models), m_session(session),
       m_textures(context.textures, SelectionTextureSet), m_windowTextures(context.textures, WindowTextureSet),
+      m_world(context.textures, context.log),
       m_notice([this](Render::TextureSlot slot) { return m_windowTextures.BufferSize(slot); }, m_texts),
       m_bar([this](Render::TextureSlot slot) { return m_textures.BufferSize(slot); }, m_texts),
       m_nameFilters{.filterName = data.filterName,
@@ -395,6 +407,27 @@ void CharacterSelectScene::StepCharacters()
 {
     if (m_context.world != nullptr && m_context.cloth != nullptr && m_context.selection != nullptr)
     {
+        const bool world = HasTheWorld();
+        const float worldClock =
+            m_context.clock != nullptr
+                ? static_cast<float>(std::chrono::duration<double, std::milli>(m_context.clock->Now()).count())
+                : 0.0f;
+        if (world)
+        {
+            // 0x6342e1: 0x606560, los objetos del 54 que vio el último dibujo (0x4250f0).
+            const auto map = static_cast<std::uint8_t>(m_context.world->Runtime().map);
+            if (auto loaded = m_world.Load(m_context.dataRoot, map, m_gameSlots, &m_models); !loaded.HasValue())
+            {
+                m_failure = loaded.Error();
+                return;
+            }
+            if (auto objects = m_world.StepObjects(*m_context.world, m_context.cloth->random, worldClock);
+                !objects.HasValue())
+            {
+                m_failure = objects.Error();
+                return;
+            }
+        }
         if (auto helpers = StepSelectionHelpers(*m_context.world); !helpers.HasValue())
         {
             m_failure = helpers.Error();
@@ -411,13 +444,27 @@ void CharacterSelectScene::StepCharacters()
             m_failure = preview.Error();
             return;
         }
-        // 0x634315, después del preview: también sortea el viento con la tabla vacía.
-        const auto particles =
-            World::StepParticlesChecked(m_context.world->Particles(), context.random, &m_context.world->Runtime().map);
-        if (!particles.HasValue())
+        const std::function<double(float, float)> height = TerrainHeight();
+        if (world)
         {
-            m_failure = "0x634315 → 0x5446e0: el paso de las partículas falla con error " +
-                        std::to_string(static_cast<unsigned>(particles.Error()));
+            // 0x52d220 y 0x53c670, después del preview: los efectos con modelo y las juntas.
+            if (auto effects = m_world.StepEffects(*m_context.world, *m_context.cloth, worldClock, height);
+                !effects.HasValue())
+            {
+                m_failure = effects.Error();
+                return;
+            }
+        }
+        // 0x634315 → 0x5446e0, después del preview: también sortea el viento con la tabla vacía. La neblina
+        // 622/1 lee su dueño entre los objetos del 54 y el reloj del mundo.
+        World::PortableParticleTrigonometry trigonometry;
+        if (auto particles = World::StepParticlesChecked(
+                m_context.world->Particles(), context.random, std::cref(worldClock), &m_context.world->Runtime().map,
+                trigonometry, height, ParticleOwnersAmong(m_context.world->Map().objects));
+            !particles.HasValue())
+        {
+            m_failure = std::format("0x634315 → 0x5446e0: el paso de las partículas falla con error {}",
+                                    static_cast<unsigned>(particles.Error()));
             return;
         }
         m_previewAdvanced = true;
@@ -665,7 +712,9 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
     }
     if (m_context.selection != nullptr && m_session != nullptr && !m_context.selection->IsInitialized())
     {
-        if (auto initialized = m_context.selection->InitializeSelection(m_context.dataRoot, CameraInputState());
+        if (auto initialized = m_context.selection->InitializeSelection(
+                m_context.dataRoot, CameraInputState(),
+                m_context.cloth != nullptr ? &m_context.cloth->random : nullptr);
             !initialized.HasValue())
         {
             m_failure = initialized.Error();
@@ -679,6 +728,12 @@ void CharacterSelectScene::StepTheScene(const Input::InputState& input)
         if (terrain != nullptr && terrain->lighting != nullptr)
         {
             m_context.world->DynamicLighting().Update(*terrain->lighting);
+        }
+        // 0x5fbf60, después de la copia de la luz: las olas de la ventana del rango con el reloj del paso.
+        if (HasTheWorld() && m_context.clock != nullptr)
+        {
+            m_world.StepWaves(m_context.clock->Now(), m_context.world->DynamicLighting().Range(),
+                              static_cast<std::uint8_t>(m_context.world->Runtime().map));
         }
     }
     ++m_steps;
@@ -818,7 +873,20 @@ Render::Camera3D CharacterSelectScene::StepTheCameraAndTheTrapezoid(const World:
     const int frames = m_cameraFrames.FramesAt(clock, OriginalFramePaceOf(m_context.pacing));
     if (frames == 0)
     {
-        return World::GameCameraOf(CameraState(), input);
+        const Render::Camera3D camera = World::GameCameraOf(CameraState(), input);
+        if (m_context.world != nullptr)
+        {
+            // El trapecio del pase del terreno y de los objetos, con el nivel que hay, sin escribir nada.
+            auto polygon =
+                TerrainPolygonBetweenFrames(m_context.world->Runtime(), SelectionPolygonInput(input, camera));
+            if (!polygon.HasValue())
+            {
+                m_failure = polygon.Error();
+                return camera;
+            }
+            m_polygon = polygon.Value();
+        }
+        return camera;
     }
     Render::Camera3D camera;
     for (int frame = 0; frame < frames; ++frame)
@@ -840,6 +908,7 @@ Render::Camera3D CharacterSelectScene::StepTheCameraAndTheTrapezoid(const World:
             m_failure = polygon.Error();
             return camera;
         }
+        m_polygon = polygon.Value();
     }
     return camera;
 }
@@ -885,9 +954,10 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         return;
     }
     const Render::Pass3D pass = Render::MakePass3D(canvas.screen, WorldViewport, camera);
+    m_terrainRange = World::TerrainRangeOf(pass.view, camera);
     if (m_context.world != nullptr)
     {
-        m_context.world->DynamicLighting().PublishRange(World::TerrainRangeOf(pass.view, camera));
+        m_context.world->DynamicLighting().PublishRange(m_terrainRange);
     }
     m_lastPass = pass;
     canvas.models.Begin(pass);
@@ -895,9 +965,54 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     {
         canvas.world.Draw(*world, pass, alpha);
     }
-    // 0x6347ba..0x6347e2, después de 0x6346ca: Z163 en los cinco primeros registros del pool,
-    // sin comprobar alive ni presencia de slot0, después de la espera de lista de 0x634680.
+    const int scanFrames = m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
+    FaunaDrawCarry projection;
+    if (scanFrames == 0 && m_context.world != nullptr)
+        projection = m_context.world->PoseCarry();
+    auto* poseCarry = m_context.world == nullptr ? nullptr
+                      : scanFrames > 0           ? &m_context.world->PoseCarry()
+                                                 : &projection;
+    DrawTheWorldAndTheCharacters(canvas, alpha, pass, camera, map, poseCarry, scanFrames);
+    // Como en el juego, el lote abierto se vacía también cuando el dibujo se corta.
+    canvas.flushModels();
+    if (m_failure)
+    {
+        return;
+    }
+    // La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el aviso arriba. Y el cursor (0x634980).
+    m_bar.Draw(sprites, canvas.text, canvas.screen);
+    DrawTheCreateWindow(canvas, alpha, poseCarry);
+    m_notice.Draw(sprites, canvas.text, canvas.screen);
+    DrawTheCursor(canvas);
+}
+
+bool CharacterSelectScene::HasTheWorld() const
+{
+    constexpr int SelectionWorldMap = 54;
+    return m_context.world != nullptr && m_context.cloth != nullptr && m_context.selection != nullptr &&
+           m_context.selection->IsInitialized() && m_context.selection->Terrain() != nullptr &&
+           m_context.world->Runtime().map == SelectionWorldMap;
+}
+
+std::function<double(float, float)> CharacterSelectScene::TerrainHeight()
+{
+    const World::WorldTerrain* terrain = m_context.selection != nullptr ? m_context.selection->Terrain() : nullptr;
+    if (terrain == nullptr || !terrain->heights || !terrain->attributes)
+    {
+        return {};
+    }
+    return [terrain, this](float x, float y)
+    { return World::TerrainHeightAt(*terrain->heights, *terrain->attributes, x, y, CameraState().fixedHeight); };
+}
+
+void CharacterSelectScene::DrawTheWorldAndTheCharacters(SceneCanvas& canvas, float alpha, const Render::Pass3D& pass,
+                                                        const Render::Camera3D& camera, std::uint8_t map,
+                                                        FaunaDrawCarry* poseCarry, int scanFrames)
+{
+    // 0x6347ba..0x6347e2, después de 0x6346ca: Z163 y la luz +0xf4 en 0 en los cinco primeros registros del
+    // pool, sin comprobar alive ni presencia de slot0, después de la espera de lista de 0x634680.
     // Hero apunta al registro0 incluso cuando la lista recibida está vacía.
+    World::GameCameraInput& cameraInput = CameraInputState();
     if (m_context.selection != nullptr)
     {
         m_context.selection->DrawSelection(cameraInput);
@@ -906,15 +1021,104 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
     {
         cameraInput.hero.z = CharacterSlotHeight;
     }
+    if (!HasTheWorld())
+    {
+        DrawTheCharacters(canvas, alpha, map, poseCarry, scanFrames);
+        return;
+    }
+    WorldState& world = *m_context.world;
+    if (auto loaded = m_world.Load(m_context.dataRoot, map, m_gameSlots, &m_models); !loaded.HasValue())
+    {
+        m_failure = loaded.Error();
+        return;
+    }
+    const int frames = m_worldFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
+    m_world.BeginFrame(world, *m_context.cloth, frames);
+    const SelectionWorldFrame frame{.batch = canvas.models,
+                                    .polygon = m_polygon,
+                                    .range = m_terrainRange,
+                                    .frameClock = canvas.frameClock,
+                                    .frames = frames,
+                                    .fixedHeight = CameraState().fixedHeight,
+                                    .flushModels = canvas.flushModels};
+    // 0x6347e9..0x63483e: el elegido vivo lleva su luz a (1, 1, 1) y la suma al buffer dinámico en su lugar,
+    // con radio 1 (0x5f9780), entre 0x620a90 y 0x620980.
+    const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
+    ActorState* chosenActor =
+        chosen != nullptr && chosen->slot < SelectionActorCount ? &world.Actors()[chosen->slot] : nullptr;
+    if (chosenActor != nullptr && !chosenActor->alive)
+    {
+        chosenActor = nullptr;
+    }
+    if (chosenActor != nullptr)
+    {
+        chosenActor->light = glm::vec3(1.0f);
+        World::AddTerrainLight(m_world.FrameLighting(), chosenActor->position.x, chosenActor->position.y,
+                               Data::Terrain::TerrainLightColor{1.0f, 1.0f, 1.0f}, 1);
+    }
+    const World::WorldTerrain& terrain = *m_context.selection->Terrain();
+    // 0x634844: 0x5fc260(0), el terreno, el pasto y las marcas.
+    if (auto drawn = m_world.DrawTerrain(world, terrain, frame); !drawn.HasValue())
+    {
+        m_failure = drawn.Error();
+        return;
+    }
+    // 0x63484c: 0x6046a0, los objetos del 54 con sus casos de 0x425260.
+    if (poseCarry != nullptr)
+    {
+        if (auto drawn = m_world.DrawObjects(world, frame, *poseCarry); !drawn.HasValue())
+        {
+            m_failure = drawn.Error();
+            return;
+        }
+    }
+    // 0x634851: 0x510d00, los personajes (y el contorno de 0x59ec80 con el de bajo el mouse).
+    DrawTheCharacters(canvas, alpha, map, poseCarry, scanFrames);
+    if (m_failure || poseCarry == nullptr)
+    {
+        return;
+    }
+    // 0x63486f..0x634883: las cintas, las juntas(0), los efectos con modelo(0) y 0x549510.
+    if (auto drawn = m_world.DrawAfterCharacters(world, terrain, frame, camera, *poseCarry); !drawn.HasValue())
+    {
+        m_failure = drawn.Error();
+        return;
+    }
+    // 0x634896..0x6348dc: el elegido con la luz 0,15 (0x3e19999a), que prestan las dos 0x729 (la luz ancha y
+    // la de Impack03 que sube) en su lugar y con sus ángulos, de escala 1 y sin dueño.
+    if (chosenActor != nullptr)
+    {
+        chosenActor->light = glm::vec3(std::bit_cast<float>(0x3e19999au));
+        for (const std::int32_t subtype : {0, 1})
+        {
+            const auto created = m_world.FrameParticles().CreateOwnedChecked(
+                World::ChaseLightParticle, chosenActor->position, chosenActor->angles, chosenActor->light, subtype,
+                1.0f, static_cast<float>(std::chrono::duration<double, std::milli>(canvas.frameClock).count()),
+                m_world.FrameRandom(), SelectionSceneId);
+            if (!created.HasValue())
+            {
+                m_failure = std::format("0x53fe70: la 0x729/{} del elegido falla con error {}", subtype,
+                                        static_cast<unsigned>(created.Error()));
+                return;
+            }
+        }
+        // 0x634906: 0x4129f0, el nombre del elegido, es de la UI de los carteles (CL9).
+    }
+    canvas.flushModels();
+    // 0x63490d..0x634927: el pase de ojo.
+    if (auto drawn = m_world.DrawEye(pass, frame, m_textures, world.DrawTail().damage); !drawn.HasValue())
+    {
+        m_failure = drawn.Error();
+        return;
+    }
+    canvas.models.Begin(pass);
+}
+
+void CharacterSelectScene::DrawTheCharacters(SceneCanvas& canvas, float alpha, std::uint8_t map,
+                                             FaunaDrawCarry* poseCarry, int scanFrames)
+{
     const Protocol::Character::CharacterEntry* chosen = m_session != nullptr ? m_session->ChosenCharacter() : nullptr;
     const std::size_t hero = m_context.world != nullptr ? m_context.world->Runtime().hero : 0;
-    const int scanFrames = m_fullSetScanFrames.FramesAt(canvas.frameClock, OriginalFramePaceOf(m_context.pacing));
-    FaunaDrawCarry projection;
-    if (scanFrames == 0 && m_context.world != nullptr)
-        projection = m_context.world->PoseCarry();
-    auto* poseCarry = m_context.world == nullptr ? nullptr
-                      : scanFrames > 0           ? &m_context.world->PoseCarry()
-                                                 : &projection;
     for (Character& character : m_characters)
     {
         ActorState* actor = m_context.world != nullptr && m_context.selection != nullptr && m_context.cloth != nullptr
@@ -947,11 +1151,17 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
             drawn.safeZone = actor->safeZone != 0;
         }
         const bool isChosen = chosen != nullptr && chosen->slot == character.slot;
-        drawn.light = glm::vec3((static_cast<std::size_t>(character.slot) == hero ? HeroLight : CharacterLight) +
-                                (isChosen ? ChosenExtraLight : 0.0f));
-        if (actor != nullptr)
+        // 0x50ba30: la base del lugar más +0xf4, que el dibujo dejó en 1 para el elegido vivo y en 0 para los
+        // demás (sin el mundo, la escena lo escribe acá).
+        if (actor != nullptr && !HasTheWorld())
         {
             actor->light = glm::vec3(isChosen ? ChosenExtraLight : 0.0f);
+        }
+        const float extra = actor != nullptr ? actor->light.x : (isChosen ? ChosenExtraLight : 0.0f);
+        drawn.light =
+            glm::vec3((static_cast<std::size_t>(character.slot) == hero ? HeroLight : CharacterLight) + extra);
+        if (actor != nullptr)
+        {
             actor->drawnLight = drawn.light;
         }
         drawn.outlined = m_hovered == character.slot;
@@ -960,11 +1170,11 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
         drawn.map = map;
         drawn.pace = OriginalFramePaceOf(m_context.pacing);
         if (poseCarry != nullptr)
-            drawn.poseBones = [&](std::uint16_t)
+            drawn.poseBones = [poseCarry](std::uint16_t)
             { return std::span<const Render::Models::BoneTransform>(poseCarry->bones); };
         if (poseCarry != nullptr)
-            drawn.onPose = [&](std::uint16_t model, std::span<const Render::Models::BoneTransform> bones,
-                               const Render::Models::ObjectTransform& transform, bool translated)
+            drawn.onPose = [this, poseCarry](std::uint16_t model, std::span<const Render::Models::BoneTransform> bones,
+                                             const Render::Models::ObjectTransform& transform, bool translated)
             {
                 if (auto result = PublishFaunaPoseRaw(*poseCarry, m_models, model, bones, transform, translated);
                     !result.HasValue())
@@ -972,12 +1182,6 @@ void CharacterSelectScene::Render(SceneCanvas& canvas, float alpha)
             };
         DrawCharacter(canvas.models, m_models, drawn, canvas.frameClock);
     }
-    canvas.flushModels();
-    // La UI del modo 4 (0x65fe00): la barra, la ventana de crear y el aviso arriba. Y el cursor (0x634980).
-    m_bar.Draw(sprites, canvas.text, canvas.screen);
-    DrawTheCreateWindow(canvas, alpha, poseCarry);
-    m_notice.Draw(sprites, canvas.text, canvas.screen);
-    DrawTheCursor(canvas);
 }
 
 // 0x50ba30 con cada uno de la lista, en 0x50c91e: son 0x20a con +0x7c y +0x3e4 en 0 (0x517270), y la vista
@@ -1003,6 +1207,7 @@ void CharacterSelectScene::DrawTheCursor(SceneCanvas& canvas) const
 
 void CharacterSelectScene::Leave()
 {
+    m_world.Release();
     m_textures.Release();
     m_windowTextures.Release();
     // 0x61cc50 suelta los slots de 0x6f8 a 0x71d.

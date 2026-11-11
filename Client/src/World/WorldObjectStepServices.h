@@ -31,4 +31,11 @@ StepObjectLamp(const WorldObject& object, Render::Models::CrtRandom& random, con
 // 0x6050d4: puertas del mapa 2; cero RNG. La petición sonora sigue a los stores de apertura.
 [[nodiscard]] Core::Expected<void, std::string> StepDeviasObjectDoor(WorldObject& object,
                                                                      const ObjectStepGlobals& globals);
+
+// 0x4250f0 (0x605a97), con el mapa 33 o el 54 (0x425070): después de la cadena de 0x605a62, que en esos
+// mapas no toca nada. La V del 0x19/0x1c, la luz dinámica del 0x1e/0x47 (un rand(), radio 2), el alpha del
+// 0x29, el −2 de +0x58 de los que emiten en el dibujo (0x38..0x3b, 0x3e, 0x3f, 0x43 y 0x46) y la velocidad
+// del 0x40. Siempre termina con el pedido sonoro 0x246; sin emisor corta después de los stores.
+[[nodiscard]] Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Render::Models::CrtRandom& random,
+                                                               const ObjectStepGlobals& globals);
 } // namespace Client::World

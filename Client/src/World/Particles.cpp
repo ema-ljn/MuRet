@@ -6,6 +6,7 @@
 #include "World/Ftol.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/NoriaParticleKernels.h"
+#include "World/SelectionParticleKernels.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleOwner.h"
 
@@ -924,6 +925,17 @@ Particles::CreateKalimaChecked(std::int32_t type, const glm::vec3& position, con
 }
 
 Core::Expected<std::optional<std::size_t>, ParticleError>
+Particles::CreateOwnedChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
+                              const glm::vec3& light, std::int32_t subtype, float scale, float worldClock,
+                              Render::Models::CrtRandom& random, std::int32_t scene, ParticleOwner owner)
+{
+    if (!IsKalimaParticle(type, subtype) && !IsSelectionParticle(type, subtype))
+        return Core::Unexpected(ParticleError::UnsupportedSubtype);
+    return CreateImpl(type, position, angles, light, subtype, scale, worldClock, nullptr, random, 0, nullptr, scene,
+                      owner);
+}
+
+Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                       std::int32_t subtype, float scale, float legacyClock, const float* worldClock,
                       Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry,
@@ -937,12 +949,13 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             continue;
         }
         const bool kalima = IsKalimaParticle(type, subtype);
+        const bool selection = IsSelectionParticle(type, subtype);
         const bool orbit = trigonometry != nullptr && type == OrbitParticle;
         if (orbit && subtype != OrbitSubtype)
         {
             return Core::Unexpected(ParticleError::UnsupportedSubtype);
         }
-        if (!kalima && !orbit && !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
+        if (!kalima && !selection && !orbit && !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
         {
             if (const auto error = BindingError(type, subtype))
             {
@@ -956,6 +969,12 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             const auto created = CreateKalimaParticle(particle, random, scene);
             if (!created.HasValue())
                 return Core::Unexpected(created.Error());
+            return std::optional(index);
+        }
+        if (selection)
+        {
+            particle.typedOwner = typedOwner;
+            CreateSelectionParticle(particle, scale, random);
             return std::optional(index);
         }
         if (type == ThunderParticle)
@@ -1103,7 +1122,8 @@ namespace
 Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Render::Models::CrtRandom& random,
                                                       const float* worldClock, const std::int32_t* map,
                                                       IParticleTrigonometry* trigonometry,
-                                                      const ParticleTerrainHeight& terrainHeight)
+                                                      const ParticleTerrainHeight& terrainHeight,
+                                                      const ParticleObjectOwners& owners)
 {
     // Los punteros privados distinguen exclusivamente legacy de la API pública requerida.
     // El overload vivo siempre proporciona reloj y evaluador; no hay servicio opcional público.
@@ -1126,6 +1146,13 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
         if (IsKalimaParticle(particle.type, particle.subtype))
         {
             const auto stepped = StepKalimaParticle(particle, random, worldClock, trigonometry);
+            if (!stepped.HasValue())
+                return stepped;
+            continue;
+        }
+        if (IsSelectionParticle(particle.type, particle.subtype))
+        {
+            const auto stepped = StepSelectionParticle(particle, worldClock, trigonometry, owners);
             if (!stepped.HasValue())
                 return stepped;
             continue;
@@ -1239,15 +1266,16 @@ Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, R
                                                          const std::int32_t* map,
                                                          const ParticleTerrainHeight& terrainHeight)
 {
-    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight);
+    return StepParticlesImpl(particles, random, nullptr, map, nullptr, terrainHeight, {});
 }
 
 Core::Expected<void, ParticleError> StepParticlesChecked(Particles& particles, Render::Models::CrtRandom& random,
                                                          std::reference_wrapper<const float> worldClock,
                                                          const std::int32_t* map, IParticleTrigonometry& trigonometry,
-                                                         const ParticleTerrainHeight& terrainHeight)
+                                                         const ParticleTerrainHeight& terrainHeight,
+                                                         const ParticleObjectOwners& owners)
 {
-    return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight);
+    return StepParticlesImpl(particles, random, &worldClock.get(), map, &trigonometry, terrainHeight, owners);
 }
 
 std::optional<ParticleError> StepParticles(Particles& particles, Render::Models::CrtRandom& random)

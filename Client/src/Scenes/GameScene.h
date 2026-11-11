@@ -32,6 +32,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -115,7 +116,9 @@ private:
     [[nodiscard]] Core::Expected<void, std::string> StepWorld(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFloorItems(float worldClock);
     [[nodiscard]] Core::Expected<void, std::string> StepTheCharacters(float worldClock);
-    [[nodiscard]] Core::Expected<void, std::string> StepTheModelEffects(float worldClock);
+    // `terrainHeight` es la altura de 0x5f93c0 que pide la mariposa 0xae del 54 (0x520dad).
+    [[nodiscard]] Core::Expected<void, std::string>
+    StepTheModelEffects(float worldClock, const std::function<double(float, float)>& terrainHeight);
     [[nodiscard]] Core::Expected<void, std::string> StepTheEffects(float worldClock);
     [[nodiscard]] Core::Expected<void, std::string> StepTheHero(const Input::InputState& input);
     [[nodiscard]] Core::Expected<void, std::string> StepTheFauna();

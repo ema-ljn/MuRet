@@ -1,5 +1,6 @@
 #include "World/ParticleDrawing.h"
 #include "World/KalimaParticleKernels.h"
+#include "World/SelectionParticleKernels.h"
 #include "World/ParticleDrawParameters.h"
 #include "World/IParticleDrawingServices.h"
 #include "World/Particles.h"
@@ -63,20 +64,30 @@ Core::Expected<ParticleDrawKind, ParticleDrawingError> PrepareSmoke(Particle& p,
     }
     return p.subtype == 6 ? ParticleDrawKind::Unrotated : ParticleDrawKind::Common;
 }
+// 0x548bf0: 7 y 10 restan (0x620b10) y caen a 0, 3 y 8, que giran con el reloj; los demás subtipos (la
+// 622/1 de los objetos de la selección) van directo al billboard común.
 Result PrepareCloud(Particle& p, std::size_t index, std::reference_wrapper<const float> clock,
                     IParticleDrawingServices& services)
 {
     const std::int32_t subtype = p.subtype;
-    if (subtype != 8 && subtype != LoginCloudSubtype)
-        return Core::Unexpected(BranchError(ParticleError::UnsupportedSubtype));
-    if (subtype == LoginCloudSubtype)
+    switch (subtype)
+    {
+    case 7:
+    case LoginCloudSubtype:
     {
         const auto sub = services.Subtractive();
         if (!sub.HasValue())
             return sub;
+        [[fallthrough]];
     }
-    UpdateParticleCloudDrawRotation(p, clock.get(), index);
-    return {};
+    case 0:
+    case 3:
+    case 8:
+        UpdateParticleCloudDrawRotation(p, clock.get(), index);
+        return {};
+    default:
+        return {};
+    }
 }
 Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, std::size_t index,
                                                                  std::reference_wrapper<const float> clock,
@@ -118,6 +129,8 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
     }
     case ShinyParticle:
     case FairySparkParticle:
+    case FlameParticle:      // 0x548644: sin caso propio, al billboard común (caseD_5c5).
+    case ChaseLightParticle: // El default del segundo switch, al mismo caseD_5c5, con la textura de la creación.
         return DrawSelection{ParticleDrawKind::Common, false};
     case DropParticle:
         return DrawSelection{ParticleDrawKind::Drop, false};

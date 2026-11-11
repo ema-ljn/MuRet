@@ -242,7 +242,7 @@ protected:
         const auto before = m_target.frames.size();
         if (m_manager)
         {
-            ASSERT_FALSE(m_manager->HoldsTheLastFrame());
+            ASSERT_FALSE(m_manager->HoldsTheLastFrame()) << m_manager->Failure().value_or("");
         }
         Draw();
         if (!m_manager)

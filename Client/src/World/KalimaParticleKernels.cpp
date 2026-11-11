@@ -27,7 +27,7 @@ constexpr double Brighten = static_cast<double>(1.1f);
 constexpr double WalkFactor = static_cast<double>(std::bit_cast<float>(0x39d1b718u));
 constexpr int FullTurn = 360, LifeSpan = 10, LongLife = 30, ShortLife = 20;
 constexpr int FlareSix = 6, FlareSeven = 7, SelectionScene = 4;
-constexpr std::int32_t WaterfallSplash = 0x6f2;
+constexpr std::int32_t WaterfallSplash = WaterfallSplashFirst;
 float F32(double value)
 {
     return static_cast<float>(value);
@@ -54,6 +54,9 @@ void CreateFlare(Particle& p, Render::Models::CrtRandom& random)
     const int size = random.Next() % (six ? 50 : 15) + (six ? 50 : LongLife);
     p.scale = F32((static_cast<double>(size) * p.scale) * Hundredth);
 }
+// 543f04..543fae y 54417f..544149: 6f0/2 y 6f1/2 suman la escala del argumento (la del prefijo, todavía
+// en +0x10) y 6f1/2 vive 40; 6f2,6f3/4 sortea giro y escala antes de su vida, velocidad y segunda escala.
+constexpr std::int32_t ObjectSubtype = 2, SplashObjectSubtype = 4;
 Core::Expected<void, ParticleError> CreateWaterfall(Particle& p, Render::Models::CrtRandom& random,
                                                     std::optional<std::int32_t> scene)
 {
@@ -66,12 +69,19 @@ Core::Expected<void, ParticleError> CreateWaterfall(Particle& p, Render::Models:
         p.position.z = F32(static_cast<double>(p.position.z) + BirthHeight);
         return {};
     }
+    const float scaleArgument = p.scale;
     p.life = LongLife;
     p.rotation = static_cast<float>(random.Next() % FullTurn);
     if (p.type == KalimaWaterfallMist)
     {
-        constexpr int MistSpan = 6, FallSpan = 3;
-        p.scale = F32(static_cast<double>(random.Next() % MistSpan + MistSpan) * Tenth);
+        constexpr int MistSpan = 6, FallSpan = 3, ObjectMistLife = 40;
+        if (p.subtype == ObjectSubtype)
+        {
+            p.life = ObjectMistLife;
+            p.scale = F32(static_cast<double>(random.Next() % MistSpan + MistSpan) * Tenth + scaleArgument);
+        }
+        else
+            p.scale = F32(static_cast<double>(random.Next() % MistSpan + MistSpan) * Tenth);
         const int fall = -3 - random.Next() % FallSpan;
         // 543fcd consultaScene después de R2 y antes del store de vz543fd8.
         if (!scene)
@@ -82,7 +92,8 @@ Core::Expected<void, ParticleError> CreateWaterfall(Particle& p, Render::Models:
         return {};
     }
     constexpr int FallSpan = 5, FallBase = 7;
-    p.scale = 1.6f;
+    constexpr float FallScale = 1.6f;
+    p.scale = p.subtype == ObjectSubtype ? F32(static_cast<double>(scaleArgument) + FallScale) : FallScale;
     p.velocity.z = static_cast<float>(-FallBase - random.Next() % FallSpan);
     p.light = glm::vec3(0.2f);
     return {};
@@ -177,7 +188,10 @@ void StepWaterfall(Particle& p, Render::Models::CrtRandom& random)
 } // namespace
 bool IsKalimaParticle(std::int32_t type, std::int32_t subtype)
 {
-    return (type == KalimaWaterfallLast && subtype == 1) ||
+    const bool objectWaterfall =
+        ((type == KalimaWaterfallFirst || type == KalimaWaterfallMist) && subtype == ObjectSubtype) ||
+        ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == SplashObjectSubtype);
+    return objectWaterfall || (type == KalimaWaterfallLast && subtype == 1) ||
            (type == KalimaFlare && (subtype == FlareSix || subtype == FlareSeven)) ||
            (subtype == 0 && (type == KalimaFanta || (type >= KalimaWaterfallFirst && type <= KalimaWaterfallLast)));
 }
@@ -202,6 +216,17 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Mo
     if (p.type < WaterfallSplash || p.type == KalimaWaterfallLast)
         return CreateWaterfall(p, random, scene);
     constexpr int RiseSpan = 5, RiseBase = 2;
+    if (p.subtype == SplashObjectSubtype)
+    {
+        const float scaleArgument = p.scale;
+        p.rotation = static_cast<float>(random.Next() % FullTurn);
+        p.scale = F32(static_cast<double>(random.Next() % LifeSpan + LifeSpan) * FantaShrink);
+        p.life = ShortLife;
+        p.velocity.z = static_cast<float>(random.Next() % RiseSpan + RiseBase);
+        p.scale = F32(static_cast<double>(random.Next() % LifeSpan + LifeSpan) * FantaShrink + scaleArgument);
+        Jitter(p, random, 40, ShortLife);
+        return {};
+    }
     p.life = ShortLife;
     p.velocity.z = static_cast<float>(random.Next() % RiseSpan + RiseBase);
     p.rotation = static_cast<float>(random.Next() % FullTurn);

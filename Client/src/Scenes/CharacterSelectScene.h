@@ -28,12 +28,16 @@
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTextures.h"
+#include "Scenes/SelectionWorld.h"
 #include "UI/CreateCharacterWindow.h"
 #include "UI/NameChecks.h"
 #include "UI/NoticeWindow.h"
 #include "UI/SelectionBar.h"
+#include "World/TerrainCells.h"
+#include "World/TerrainCulling.h"
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
@@ -42,9 +46,9 @@
 // dibujo): los personajes de la lista en sus lugares, animados, el clic que elige el que está bajo el
 // mouse, y Enter o el doble clic que entra al mundo con el elegido. Arriba, la barra de la selección
 // (UI::SelectionBar) con conectar, crear y borrar, la ventana de crear (UI::CreateCharacterWindow) y
-// los avisos. Con el paso común del pool y del NewFace; sin los objetos ni los efectos de la selección
-// (P-C50), el menú y las opciones (CL8), los carteles de los
-// personajes ni el área de mensajes.
+// los avisos. Con el paso común del pool y del NewFace y el mundo 54 (SelectionWorld: el terreno, los
+// objetos y sus efectos, la luz y las dos 0x729 del elegido); sin el menú y las opciones (CL8), los
+// carteles de los personajes ni el área de mensajes.
 // Contrato: Client/docs/research/06-render-escenas-y-ui.md, "La selección de personaje", y el plan de
 // la CL6 (CL6.3, "Contrato").
 namespace Client::Scenes
@@ -133,6 +137,17 @@ private:
     // del otro; un dibujo intermedio solo consulta la cámara. Con un error del trapecio deja m_failure.
     [[nodiscard]] Render::Camera3D StepTheCameraAndTheTrapezoid(const World::GameCameraInput& input,
                                                                 Core::Duration clock);
+    // Si el mundo 54 corre: con WorldState, la tela, la selección inicializada y el mapa 54 en curso.
+    [[nodiscard]] bool HasTheWorld() const;
+    // La altura del terreno 54 (0x5f93c0) para la mariposa y las partículas; vacía sin terreno.
+    [[nodiscard]] std::function<double(float, float)> TerrainHeight();
+    // 0x634680 desde 0x6347e9 hasta 0x6213f0: la luz del elegido, el mundo, los personajes, la cola, las dos
+    // 0x729 del elegido y el pase de ojo. Sin el mundo, solo los personajes.
+    void DrawTheWorldAndTheCharacters(SceneCanvas& canvas, float alpha, const Render::Pass3D& pass,
+                                      const Render::Camera3D& camera, std::uint8_t map, FaunaDrawCarry* poseCarry,
+                                      int scanFrames);
+    void DrawTheCharacters(SceneCanvas& canvas, float alpha, std::uint8_t map, FaunaDrawCarry* poseCarry,
+                           int scanFrames);
     // El cursor del juego (0x5ac2d0) al final de la UI, con el aviso de antes de la lista también.
     void DrawTheCursor(SceneCanvas& canvas) const;
     // Con la respuesta del F3 02, su aviso en lugar del 0x5d (0x4e2fe9), salvo que la sesión haya
@@ -168,6 +183,8 @@ private:
     // Los frames del original de 0x505820 desde el dibujo (0x50c91e), como los de la cámara.
     Render::Models::OriginalFrameCarry m_fullSetScanFrames;
     Render::Models::OriginalFrameCarry m_previewDrawFrames;
+    // Los frames del original del mundo 54 desde el dibujo: con cero, el dibujo va sobre copias.
+    Render::Models::OriginalFrameCarry m_worldFrames;
     Render::Camera3D m_previewCamera;
     const Data::Text::TextTable* m_texts;
     const Data::Tables::ItemTable* m_items;
@@ -175,6 +192,12 @@ private:
     App::ServerSession* m_session;
     SceneTextures m_textures;
     SceneTextures m_windowTextures;
+    // El mundo 54 (P-C50): los tiles, los modelos de Object55, los sprites y las copias de los dibujos
+    // intermedios.
+    SelectionWorld m_world;
+    // El trapecio y el rango del último frame, los del pase del terreno y los objetos.
+    World::TerrainPolygon m_polygon{};
+    World::TerrainRange m_terrainRange{};
     UI::NoticeWindow m_notice;
     UI::SelectionBar m_bar;
     // Las palabras de FilterName.bmd y Filter.bmd de `data`, y los textos 457 y 458.

@@ -92,13 +92,27 @@ std::string DescribeCreationError(World::WorldObjectCreationError error)
 }
 
 // 0x606660 sobre cada registro, en orden; se detiene en el primero que MuRet no crea.
+// DAT_006d5dc8 al crear (0x60685e): el farol y el dueño del dragón solo corren en el login y la selección.
+World::ObjectScene ObjectSceneOf(SceneId scene)
+{
+    switch (scene)
+    {
+    case SceneId::Login:
+        return World::ObjectScene::Login;
+    case SceneId::CharacterSelect:
+        return World::ObjectScene::CharacterSelect;
+    default:
+        return World::ObjectScene::Other;
+    }
+}
+
 Core::Expected<void, std::string> CreateTheObjects(std::span<const Data::Terrain::TerrainObject> records,
                                                    const char* source, WorldMap& loaded, std::int32_t map,
-                                                   Render::Models::CrtRandom& random)
+                                                   Render::Models::CrtRandom& random, SceneId scene)
 {
     MapModelEffectServices services(loaded.effects, random);
     World::WorldObjectCreationContext creation{.map = map,
-                                               .scene = World::ObjectScene::Other,
+                                               .scene = ObjectSceneOf(scene),
                                                .registrations = loaded.registrations,
                                                .services = &services,
                                                .random = &random};
@@ -142,7 +156,8 @@ Core::Expected<void, std::string> LoadTheFiles(const MapLoadContext& context, Wo
         return Core::Unexpected(records.Error());
     }
     loaded.objectRecords = std::move(records).Value();
-    if (auto created = CreateTheObjects(loaded.objectRecords, "EncTerrain.obj", loaded, map, context.random);
+    if (auto created =
+            CreateTheObjects(loaded.objectRecords, "EncTerrain.obj", loaded, map, context.random, context.scene);
         !created.HasValue())
         return created;
     return World::LoadWorldTerrainSurface(context.dataRoot, folderMap, loaded.terrain, fatalMessage);
@@ -214,7 +229,8 @@ Core::Expected<void, std::string> LoadMap(std::uint8_t argumentMap, const MapLoa
         return Core::Unexpected(std::string("0x616ec0: los especiales del mapa 55 (0x6188ae) no están leídos"));
     }
     const std::vector<Data::Terrain::TerrainObject> specials = SpecialObjectsOf(map);
-    if (auto created = CreateTheObjects(specials, "los especiales de 0x616ec0", loaded, map, context.random);
+    if (auto created =
+            CreateTheObjects(specials, "los especiales de 0x616ec0", loaded, map, context.random, context.scene);
         !created.HasValue())
     {
         return created;

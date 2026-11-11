@@ -7,6 +7,7 @@
 #include "World/IParticleTrigonometry.h"
 #include "World/NoriaParticleKernels.h"
 #include "World/SelectionParticleKernels.h"
+#include "World/TrialsParticleKernels.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/ParticleOwner.h"
 
@@ -929,7 +930,7 @@ Particles::CreateOwnedChecked(std::int32_t type, const glm::vec3& position, cons
                               const glm::vec3& light, std::int32_t subtype, float scale, float worldClock,
                               Render::Models::CrtRandom& random, std::int32_t scene, ParticleOwner owner)
 {
-    if (!IsKalimaParticle(type, subtype) && !IsSelectionParticle(type, subtype))
+    if (!IsKalimaParticle(type, subtype) && !IsSelectionParticle(type, subtype) && !IsTrialsParticle(type, subtype))
         return Core::Unexpected(ParticleError::UnsupportedSubtype);
     return CreateImpl(type, position, angles, light, subtype, scale, worldClock, nullptr, random, 0, nullptr, scene,
                       owner);
@@ -950,12 +951,13 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         }
         const bool kalima = IsKalimaParticle(type, subtype);
         const bool selection = IsSelectionParticle(type, subtype);
+        const bool trials = IsTrialsParticle(type, subtype);
         const bool orbit = trigonometry != nullptr && type == OrbitParticle;
         if (orbit && subtype != OrbitSubtype)
         {
             return Core::Unexpected(ParticleError::UnsupportedSubtype);
         }
-        if (!kalima && !selection && !orbit && !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
+        if (!kalima && !selection && !trials && !orbit && !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
         {
             if (const auto error = BindingError(type, subtype))
             {
@@ -975,6 +977,12 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         {
             particle.typedOwner = typedOwner;
             CreateSelectionParticle(particle, scale, random);
+            return std::optional(index);
+        }
+        if (trials)
+        {
+            particle.typedOwner = typedOwner;
+            CreateTrialsParticle(particle, random);
             return std::optional(index);
         }
         if (type == ThunderParticle)
@@ -1153,6 +1161,13 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
         if (IsSelectionParticle(particle.type, particle.subtype))
         {
             const auto stepped = StepSelectionParticle(particle, worldClock, trigonometry, owners);
+            if (!stepped.HasValue())
+                return stepped;
+            continue;
+        }
+        if (IsTrialsParticle(particle.type, particle.subtype))
+        {
+            const auto stepped = StepTrialsParticle(particle, worldClock);
             if (!stepped.HasValue())
                 return stepped;
             continue;

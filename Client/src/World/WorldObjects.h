@@ -200,10 +200,15 @@ struct ObjectStepGlobals
     std::uint8_t* ownRecordDepth = nullptr;
     // +0x111 del héroe (0x743a170): la acción que mira la patada de 0x52f550 en el 0x26 y el 0x27 del 4.
     const std::uint8_t* heroAction = nullptr;
+    // 0x6b8544 (timeGetTime): la ventana de las mariposas del 31 y su sonido ambiente (0x43ffd8, Q-C304).
+    std::function<std::uint32_t()> systemTime{};
+    // 0x723c4c: cuándo sonó el ambiente 0x1ef del 31 por última vez, en ms del sistema. En la .bss, 0.
+    std::uint32_t* trialsAmbientTime = nullptr;
 };
 
-// 0x604ab0 con un objeto visto en el juego, en los mapas 0 a 4 y 8 (*estático*, 06 § Los objetos del juego; los
-// del 1 y del 4, World/DungeonObjectStep.h; los del 8, con el tipo 8 animado al cuádruple, World/TarkanObjectStep.h).
+// 0x604ab0 con un objeto visto en el juego, en los mapas 0 a 4, 8, 10, 31 y 33 (*estático*, 06 § Los objetos del
+// juego; los del 1 y del 4, World/DungeonObjectStep.h; los del 8, con el tipo 8 animado al cuádruple,
+// World/TarkanObjectStep.h; los del 31, 0x43ffc0, StepLandOfTrialsObject en World/WorldObjectStepServices.h).
 // Antes del alpha, los techos: el 0x7d y el 0x7e del 0 llevan la meta del alpha (+0x170) a 0 con la capa
 // del héroe en 4 (0x604bc4), y el 0x51, el 0x52, el 0x60, el 0x62 y el 0x63 del 2 con la capa en 3 o
 // desde 10 (0x604c06); a 1 si no. Después del alpha/animación, los casos del mapa: UV y flicker,

@@ -4,7 +4,9 @@
 #include "Data/Terrain/TerrainLight.h"
 #include "Render/Models/Cloth.h"
 #include "Render/Models/OriginalAngles.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/OriginalRotation.h"
+#include "World/ModelEffects.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjects.h"
@@ -301,6 +303,116 @@ Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Render::Mo
         return Core::Unexpected(std::string("0x4251fb: falta el emisor sonoro 0x41ed10 del 0x246"));
     }
     globals.sound(AmbientSound);
+    return {};
+}
+
+Core::Expected<void, std::string> StepLandOfTrialsObject(WorldObject& object, Render::Models::CrtRandom& random,
+                                                         const ObjectStepGlobals& globals)
+{
+    constexpr std::uint32_t TimeMask = 0x3ff;
+    constexpr std::uint32_t ButterflyWindow = 10;
+    constexpr std::uint32_t AmbientPeriod = 300000; // 0x440159: 0x493e0, sin signo (jbe).
+    constexpr std::int32_t AmbientSound = 0x1ef;
+    // 0x6b8bbc (0,0024f) y 0x6b89dc (0,3f): el vaivén del 0x1b.
+    constexpr double SwayRate = static_cast<double>(std::bit_cast<float>(0x3b1d4952u));
+    constexpr float SwayHeight = std::bit_cast<float>(0x3e99999au);
+    // 0x6b87b8 (0,1f), 0x6b8a1c (0,9f) y 0x6b8854 (0,2f): la luz del 0x2a.
+    constexpr double TorchStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));
+    constexpr double TorchRed = static_cast<double>(std::bit_cast<float>(0x3f666666u));
+    constexpr double TorchGreen = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
+    constexpr int TorchMask = 3, TorchBase = 3;
+    constexpr std::int32_t TorchRadius = 3;
+    // 0x43ffd8 deja timeGetTime en EDI; cada llamada pide el reloj prestado donde la hace el ASM.
+    const auto now = [&](std::string_view address) -> Core::Expected<std::uint32_t, std::string>
+    {
+        if (!globals.systemTime)
+            return Core::Unexpected(std::format("{}: falta timeGetTime() (0x6b8544) para los objetos del 31", address));
+        return globals.systemTime();
+    };
+    const auto butterfly = [&](std::int32_t subtype, std::string_view address) -> Core::Expected<void, std::string>
+    {
+        const auto time = now(address);
+        if (!time.HasValue())
+            return Core::Unexpected(time.Error());
+        // 0x43fffd: el and deja un valor no negativo, y el jl que sigue nunca salta.
+        if ((time.Value() & TimeMask) < ButterflyWindow)
+        {
+            if (globals.effects == nullptr)
+                return Core::Unexpected(
+                    std::string("0x440044: falta la tabla de efectos de modelo para la mariposa 0xae"));
+            // 0x518cf0(0xae, posición, ángulos, (1, 1, 1), subtipo, objeto, −1, 0, 0, 0, 0): el paso corre en
+            // la escena del juego (5), así que la mariposa no nace oculta.
+            static_cast<void>(globals.effects->CreateButterflyEffect(object.transform.position, object.transform.angles,
+                                                                     glm::vec3(1.0f), subtype, object.transform.scale,
+                                                                     false, random));
+        }
+        object.state.hiddenMesh = HiddenObject;
+        return {};
+    };
+    switch (object.type)
+    {
+    case 1:
+        if (auto created = butterfly(0, "0x43fffb"); !created.HasValue())
+            return created;
+        break;
+    case 0x2c:
+        if (auto created = butterfly(1, "0x440051"); !created.HasValue())
+            return created;
+        break;
+    case 0x2d:
+        if (auto created = butterfly(2, "0x44008e"); !created.HasValue())
+            return created;
+        break;
+    case 3:
+    case 0x35:
+        // 0x44014a: los que emiten en el frame (0x4401e0) no se dibujan.
+        object.state.hiddenMesh = HiddenObject;
+        break;
+    case 0x1b:
+    {
+        // 0x4400ce..0x4400eb: z += sin(reloj · 0,0024f + fase) · 0,3f, cada paso sobre la z anterior; sin el
+        // −2 de +0x58.
+        const double argument =
+            static_cast<double>(globals.worldClock) * SwayRate + static_cast<double>(object.field84);
+        const auto sway = Render::Models::Detail::SineProductPC53(argument, SwayHeight);
+        if (!sway)
+            return Core::Unexpected(std::string("0x4400e0: el vaivén del 0x1b del 31 no cabe en el perfil PC53"));
+        object.transform.position.z = static_cast<float>(*sway + static_cast<double>(object.transform.position.z));
+        break;
+    }
+    case 0x2a:
+    {
+        // 0x4400f0..0x44013f: ((rand() & 3) + 3) · 0,1f queda en la x87 para los tres canales.
+        const double level = static_cast<double>((random.Next() & TorchMask) + TorchBase) * TorchStep;
+        const glm::vec3 light(static_cast<float>(level * TorchRed), static_cast<float>(level * TorchGreen),
+                              static_cast<float>(level * TorchStep));
+        if (auto added = AddObjectLight(globals, object.transform.position, light, TorchRadius, "0x440142");
+            !added.HasValue())
+            return added;
+        object.state.hiddenMesh = HiddenObject;
+        break;
+    }
+    default:
+        break;
+    }
+    // 0x440151..0x440170: con cualquier tipo, el ambiente 0x1ef cada más de cinco minutos del sistema; la
+    // hora que guarda es la de una segunda llamada.
+    const auto time = now("0x440151");
+    if (!time.HasValue())
+        return Core::Unexpected(time.Error());
+    if (globals.trialsAmbientTime == nullptr)
+        return Core::Unexpected(std::string("0x440153: falta la hora del último ambiente del 31 (0x723c4c)"));
+    if (time.Value() - *globals.trialsAmbientTime > AmbientPeriod)
+    {
+        const auto stored = now("0x440160");
+        if (!stored.HasValue())
+            return Core::Unexpected(stored.Error());
+        // 0x44016b guarda la hora antes del pedido sonoro.
+        *globals.trialsAmbientTime = stored.Value();
+        if (!globals.sound)
+            return Core::Unexpected(std::string("0x440170: falta el emisor sonoro 0x41ed10 del 0x1ef"));
+        globals.sound(AmbientSound);
+    }
     return {};
 }
 } // namespace Client::World

@@ -294,20 +294,25 @@ protected:
 // En Lost Tower (World5) el 70..73 no tiene suelo (0x08 del .att); 205..208 × 87..90, al sur de la zona
 // segura, es suelo libre. En Icarus (World11), 20..23 × 29..32 es el bloque libre con más objetos cerca (76 a
 // menos de 1.500), para que el paso por objeto (0x6063d0) y sus nubes corran. En Aida (World34), 104..107 ×
-// 165..168 es suelo libre fuera de la zona segura, con 0x29 (la malla 0 de 0x4255f3) y 0x46 cerca.
+// 165..168 es suelo libre fuera de la zona segura, con 0x29 (la malla 0 de 0x4255f3) y 0x46 cerca. Land of
+// Trials (World32) no tiene zona segura; 149..152 × 104..107 es suelo libre con ocho de sus tipos con caso a
+// menos de 1.500, y la cámara ve el 3 y el 0x35 que emiten y el 0x34 que se dibuja dos veces.
 TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenCompleteFrames)
 {
     const auto map = static_cast<std::uint8_t>(GetParam());
-    const auto start = [map](std::uint8_t lostTower, std::uint8_t icarus, std::uint8_t aida) -> std::uint8_t
+    const auto start = [map](std::uint8_t lostTower, std::uint8_t icarus, std::uint8_t trials,
+                             std::uint8_t aida) -> std::uint8_t
     {
         if (map == 4)
             return lostTower;
         if (map == 10)
             return icarus;
+        if (map == 31)
+            return trials;
         return map == 33 ? aida : 70;
     };
-    const std::uint8_t x = start(205, 20, 104);
-    const std::uint8_t y = start(87, 29, 165);
+    const std::uint8_t x = start(205, 20, 149, 104);
+    const std::uint8_t y = start(87, 29, 104, 165);
     const auto far = [](std::uint8_t cell) { return static_cast<std::uint8_t>(cell + 3); };
     Teleport(map, x, y);
     ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
@@ -319,9 +324,11 @@ TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenC
     ASSERT_NO_FATAL_FAILURE(ClickCell(far(x), far(y)));
     ASSERT_NO_FATAL_FAILURE(ExpectWalkPacket());
     ASSERT_NO_FATAL_FAILURE(FinishWalk(far(x), far(y)));
-    if (map == 33)
+    if (map == 31 || map == 33)
     {
-        for (const std::int16_t type : {std::int16_t{0x29}, std::int16_t{0x46}})
+        const auto types =
+            map == 31 ? std::array<std::int16_t, 2>{0x34, 0x35} : std::array<std::int16_t, 2>{0x29, 0x46};
+        for (const std::int16_t type : types)
             EXPECT_TRUE(std::ranges::any_of(m_world->Map().objects, [type](const auto& object)
                                             { return object.alive && object.seen && object.type == type; }))
                 << type;
@@ -430,7 +437,7 @@ INSTANTIATE_TEST_SUITE_P(AllSevenKalimaAliases, GameT16KalimaWalk, ::testing::Va
                          [](const ::testing::TestParamInfo<int>& parameter)
                          { return "Map" + std::to_string(parameter.param); });
 
-INSTANTIATE_TEST_SUITE_P(CompleteSceneMaps, GameT16MapWalk, ::testing::Values(0, 1, 2, 3, 4, 8, 10, 33),
+INSTANTIATE_TEST_SUITE_P(CompleteSceneMaps, GameT16MapWalk, ::testing::Values(0, 1, 2, 3, 4, 8, 10, 31, 33),
                          [](const ::testing::TestParamInfo<int>& mapParameter)
                          { return "Map" + std::to_string(mapParameter.param); });
 INSTANTIATE_TEST_SUITE_P(CompleteSceneMapsWithSafeZone, GameT16SafeZoneWalk, ::testing::Values(0, 2, 3, 4, 8),

@@ -1,6 +1,7 @@
 #include "support/CheckedWorldObjectProjection.h"
 
 #include "Scenes/WorldObjectsDrawing.h"
+#include "Scenes/LandOfTrialsObjectServices.h"
 
 #include "Core/Expected.h"
 #include "Data/Models/Model.h"
@@ -1783,5 +1784,51 @@ TEST(WorldObjectsDrawingTest, TheAidaBodiesRepeatTheirFirstMeshWithTheClockScrol
     ModelBatch batch;
     ASSERT_TRUE(DrawGame(batch, models, objects, {.map = Aida, .originalFrame = false, .random = &random}).HasValue());
     EXPECT_EQ(batch.Commands().size(), 2u);
+}
+
+// 0x4403b0 (la cadena de 0x6002e0 en el 31): el 0x1b, el 0x36 y el 0x34 multiplican el color del modelo por
+// el pulso de su fase; el 0x34 se dibuja dos veces con ese color (Q-C317); el 0xa va en (0,56; 0,8; 0,81).
+// Sin rand() ni estado: igual en un dibujo intermedio y en uno del original.
+TEST(WorldObjectsDrawingTest, TheLandOfTrialsBodiesPulseAndTheBrazierBaseIsDrawnTwice)
+{
+    constexpr std::uint8_t Trials = 31;
+    const TwoMeshModels models;
+    const glm::vec3 light(0.25f, 0.5f, 0.75f);
+    const float clock = 123456.5f;
+    struct Case
+    {
+        std::int16_t type;
+        std::size_t commands;
+    };
+    for (const Case& probe : {Case{0x1b, 2}, Case{0x36, 2}, Case{0x34, 4}, Case{0xa, 2}, Case{0x10, 2}})
+    {
+        SCOPED_TRACE(probe.type);
+        std::vector<WorldObject> objects{
+            ObjectAt(probe.type, 100.0f, 100.0f, Trials, Client::World::ObjectScene::Other)};
+        objects[0].light = light;
+        objects[0].vertexLight = false;
+        objects[0].field84 = 2.5f;
+        const auto body = Client::Scenes::LandOfTrialsBody(objects[0], light, clock);
+        ASSERT_TRUE(body.HasValue());
+        const glm::vec3 color = body.Value() ? body.Value()->color : light;
+        for (const bool original : {false, true})
+        {
+            Client::Render::Models::CrtRandom random(7);
+            ModelBatch batch;
+            ASSERT_TRUE(DrawGame(batch, models, objects,
+                                 {.map = Trials, .originalFrame = original, .random = &random, .worldClock = clock})
+                            .HasValue());
+            EXPECT_EQ(random.State(), SevenAfter(original ? 1 : 0).State());
+            ASSERT_EQ(batch.Commands().size(), probe.commands);
+            for (const auto& command : batch.Commands())
+            {
+                ASSERT_GT(command.vertexCount, 0u);
+                const auto& vertex = batch.Vertices()[command.firstVertex];
+                EXPECT_EQ(vertex.color.red, color.x);
+                EXPECT_EQ(vertex.color.green, color.y);
+                EXPECT_EQ(vertex.color.blue, color.z);
+            }
+        }
+    }
 }
 } // namespace

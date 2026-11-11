@@ -5339,6 +5339,78 @@ vistos). Tests: `WorldObjectsDrawingTest.TheAidaBodiesRepeatTheirFirstMeshWithTh
 `ModelEffectsTest.TheAidaWispIsCreatedWithSixDrawsAroundItsObject`, `GameModelEffectsTest.TheAidaWisp*` y
 `KalimaParticlesTest.TheAidaWispTrail*`.
 
+### Los objetos de Land of Trials
+
+Leído en la CL7 en el ASM y el pseudocódigo de `c32bbd5f` (*estático*; las cuentas de MuRet, *simulado*: con el
+port y la Data del repo). Lo común es lo de [Los objetos del juego](#los-objetos-del-juego). Land of Trials es el
+mapa 31 (`World32`, 5.638 objetos). Sus tres casos los abre `0x43ff10` (el mapa en 31) en las tres cadenas: el paso
+`0x43ffc0` (en `0x605a62`, después de `0x438a90` y `0x42c850`), el frame `0x4401e0` (en `0x602ed0`, después de
+`0x4059d0`, `0x438c10` y `0x42c9f0`) y el dibujo `0x4403b0` (en `0x6002e0`, después de `0x438fe0` y `0x42cc10`).
+
+**La carga** (`0x61822d`): el especial `0xae` (`Object1\Butterfly`); `Effect\clouds.jpg` a `0x622`, las texturas
+del jefe (`Monster\bossmap1_R`, `0x63a..0x63c`) y los sonidos `0x1ef..0x1f2`, que son de la CL9 y la CL10. La
+creación (`0x43ff70`) le da al `0x1b` y al `0x36` la fase de `+0x84`: (`rand()` % 1.000) · 0,01f. Los demás la
+tienen en 0 (`0x606660` pone en cero los `0x1d4` bytes del objeto).
+
+**El paso** (`0x43ffc0`), con un `switch` por tipo (la tabla `0x440180` con los índices de `0x44019c`):
+
+| Tipo | Qué hace | `+0x58` en −2 |
+|---|---|---|
+| 1, `0x2c`, `0x2d` | con `timeGetTime()` & `0x3ff` debajo de 10 (Q-C304), la mariposa `0xae` /0, /1 o /2 con luz (1, 1, 1) y el objeto de dueño (`0x518cf0`) | sí |
+| 3, `0x35` | nada: emiten en el frame | sí |
+| `0x1b` | la z más sin(reloj · 0,0024f + `+0x84`) · 0,3f (`0x6b8bbc`, `0x6b89dc`), cada paso sobre la anterior | no |
+| `0x2a` | ((`rand()` & 3) + 3) · 0,1f en la x87, por (0,9f; 0,2f; 0,1f), a la luz dinámica `0x7b4ccc4` con radio 3 (`0x5f9780`) | sí |
+
+Después, con cualquier tipo (`0x440151`): si `timeGetTime()` menos `0x723c4c` pasa de 300.000 (`jbe`, sin signo),
+una segunda llamada a `timeGetTime()` se guarda en `0x723c4c` y suena el ambiente `0x1ef` (`0x41ed10`). Devuelve 1
+siempre que el mapa sea el 31.
+
+**El frame** (`0x4401e0`), después del `rand()` común de `0x602ef4`, que no usa:
+
+- El 3, con `rand()` % 3 en 0: `0x53fe70(0x6f2, posición, ángulos, (1, 1, 1), 3, escala, 0)`; el subtipo es el
+  divisor que quedó en ECX.
+- El `0x35`, con `rand()` % 3 en 0: `0x53fe70(0x5f2, …, 22, escala, 0)`.
+- El `0x31`: el punto del hueso 3 del buffer global de la pose (`0x68b18ac`) con (0, −10, 0) (`0x4ec110`), y ahí
+  `0x5491e0(0x5ac, punto, escala, (1, 0, 0), objeto, 0, 0)` con la escala ((sin(reloj · 0,002f) · 0,35f + 0,65f) ·
+  1,2f + 0,3f) en la x87 hasta el `fstp`; otro `0x5ac` de 0,5 con la misma luz; y `0x5491e0(0x5fd, punto, 1,2,
+  (0,3; 0,3; 0,3), 0, rand() % 360, 0)`.
+
+**La salpicadura `6f2/3`** (también `6f3/3`). Nace (`0x544319`) con vida 60, la velocidad z en −1 y cuatro `rand()`:
+la escala (`rand()` % 10 + 15) · escala · 0,02f, el giro `rand()` % 360, la x más `rand()` % 40 − 20 y la z más
+`rand()` % 25 − 10. En el paso (`0x54815d`), después de la vida y el movimiento comunes: la escala más 0,005f, la
+velocidad z menos 0,05f (`0x6b8a48`) y la luz por 0,97f (`0x6ba33c`); los otros subtipos del `0x6f2` van por
+0,909f (`0x6ba26c`) y la z menos 2,5. Se dibuja con el billboard común.
+
+**El humo `5f2/22`.** Nace (`0x5423e0`) con vida 60 y tres `rand()`: la escala ((`rand()` & 63) + 64) · escala ·
+0,005f, el giro y la velocidad vertical (`+0x50`) ((`rand()` & 31) + 60) · 0,1f. En el paso (`0x546706`): la luz
+de la vida, vida · 0,02f por 0,9f en el rojo y por 0,5 en el verde y el azul (el producto queda en la x87); la
+velocidad vertical menos 0,1f, guardada con `fst` y usada sin redondear: la x más `fsin`(reloj) por ella (`fmul
+st1`, un factor de 53 bits) por 0,05f, y la z más ella; la escala más 0,04f. Al dibujarse no está en las listas
+que restan ni es el /6: el billboard común (`0x548a64`).
+
+**El dibujo** (`0x4403b0`). El color del modelo (`+0x48..+0x50`) es el que le dejó `0x5ffce0` al posarlo:
+
+| Tipo | Color | Cuerpo |
+|---|---|---|
+| `0x1b`, `0x36` | por sin(reloj · 0,0012f + `+0x84`) · 0,5f + 0,9f, cada canal guardado de su producto; después lo restaura | su `RenderBody(2, …)` y devuelve 1: no hay otro |
+| `0x34` | por el mismo pulso con 0,0009f (`0x6b8bc8`), sin restaurarlo | su `RenderBody(2, …)`, y `0x442e10` devuelve 0: `0x6002e0` sigue y lo dibuja otra vez con ese color (Q-C317) |
+| `0xa` | (0,56; 0,8; 0,81), sin restaurarlo | su `RenderBody(2, …)` y devuelve 1 |
+
+Lo que no se restaura no pasa al objeto siguiente: `0x5ffdf0` vuelve a llamar a `0x5ffce0` con cada uno. Las
+funciones que siguen en la cadena (`0x42f170`, `0x425d90` con `0x428df0` y `0x4306a0`) sólo tienen casos de
+monstruos o de otros mapas.
+
+**En MuRet.** El paso: `World::StepLandOfTrialsObject` (`WorldObjectStepServices`), desde `StepWorldObjectChecked`
+en el 31; el juego le presta el reloj en ms como `timeGetTime()` (Q-C304) y la hora del ambiente en
+`WorldRuntime::trialsAmbientTime`. El frame: `Scenes::StepLandOfTrialsObjectFrame`; el dibujo:
+`Scenes::LandOfTrialsBody`, que `DrawGameWorldObjects` aplica al color del cuerpo en cada dibujo de MuRet (no saca
+`rand()` ni cambia estado, D-C4) y, en el `0x34`, con un cuerpo más antes. Las dos partículas son la familia
+`World::TrialsParticleKernels`, con el seno por un double de `Render::Models::Detail::SineDoubleProductPC53`. Con
+la Data del repo, el 31 llega a un cuadro completo y camina (`GameT16SceneMatrix` y `GameT16MapWalk`, en (149, 104):
+suelo libre con el 3, el `0x34` y el `0x35` vistos). Tests: `LandOfTrialsObjectsTest`,
+`LandOfTrialsObjectServicesTest`, `TrialsParticlesTest` y
+`WorldObjectsDrawingTest.TheLandOfTrialsBodiesPulseAndTheBrazierBaseIsDrawnTwice`.
+
 ### Las marcas del suelo
 
 `0x549130`, desde `0x5fc365` (*estático*, salvo donde se dice). Son 100 lugares de `0x78` bytes en

@@ -46,6 +46,8 @@ struct WorldRuntime
     // 7d365a0, .bss0.6061c0 lee el count retenido antes de60657a;6063d0 lo produce
     // sólo paraIcarus/Chaos/asedio. Kalima conserva0 después del reset del pase exitoso.
     std::int32_t objectSelectionCount = 0;
+    // 0x723c4c, .bss 0: la hora del sistema (timeGetTime) del último ambiente 0x1ef de Land of Trials (0x44016b).
+    std::uint32_t trialsAmbientTime = 0;
     // DAT_006c9dd0, el mundo en curso. Quien llama a 0x61a560 lo escribe justo antes (05, "La carpeta
     // de cada mapa"): el login con 55 (06, "El login, al entrar") y la selección con 54 en 0x633f20
     // (06, "Al entrar"). Ese 54 sigue en la carga del mundo y en la espera de la escena 5, que corre

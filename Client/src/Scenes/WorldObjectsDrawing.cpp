@@ -6,6 +6,7 @@
 #include "Scenes/IcarusObjectFrame.h"
 #include "Scenes/TarkanObjectFrame.h"
 #include "Scenes/KalimaObjectServices.h"
+#include "Scenes/LandOfTrialsObjectServices.h"
 #include "World/ObjectModelStepState.h"
 #include "Scenes/GameParticles.h"
 
@@ -347,6 +348,7 @@ constexpr std::uint8_t NoriaMap = 3;
 constexpr std::uint8_t LostTowerMap = 4;
 constexpr std::uint8_t TarkanMap = 8;
 constexpr std::uint8_t IcarusMap = 10;
+constexpr std::uint8_t LandOfTrialsMap = 31;
 constexpr std::uint8_t AidaMap = 33;
 constexpr std::uint8_t SelectionWorldMap = 54;
 // 0x60479c: el 0x64 de Devias se dibuja según el nivel del registro propio (0x604944..0x604957, jl con
@@ -416,6 +418,8 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
         return StepNoriaObjectFrame(object, commonRandom, pass);
     if (map == AidaMap || map == SelectionWorldMap)
         return StepAidaObjectFrame(object, pass);
+    if (map == LandOfTrialsMap)
+        return StepLandOfTrialsObjectFrame(object, pass);
     if (map == LostTowerMap)
         return StepLostTowerObjectFrame(object, commonRandom, pass, posed);
     if (map == TarkanMap)
@@ -453,8 +457,8 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                                                        const World::TerrainLighting* lighting,
                                                        Core::Duration frameClock, const GameObjectPass& pass)
 {
-    if (pass.map > LostTowerMap && pass.map != TarkanMap && pass.map != IcarusMap && pass.map != AidaMap &&
-        pass.map != SelectionWorldMap && !World::IsKalimaMap(pass.map))
+    if (pass.map > LostTowerMap && pass.map != TarkanMap && pass.map != IcarusMap && pass.map != LandOfTrialsMap &&
+        pass.map != AidaMap && pass.map != SelectionWorldMap && !World::IsKalimaMap(pass.map))
     {
         return Core::Unexpected(std::format("0x6046a0: los casos por tipo del mapa {} (0x6002e0 y 0x602ed0) no están "
                                             "leídos",
@@ -482,7 +486,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
             continue;
         }
         // 0x602e90: 0x5ffdf0 y, si lo posó, 0x6002e0 (en el 0, el 0x69 con sus cuatro 0x4ecc30).
-        const World::ObjectDraw draw = ObjectDrawAt(object, lighting, pass.map);
+        World::ObjectDraw draw = ObjectDrawAt(object, lighting, pass.map);
         const auto poseObject = Drawn(object, draw, models.SkeletonOf(static_cast<std::uint16_t>(object.type)), 0);
         // Los marcadores ocultos también pisan la pose global antes de omitir la geometría.
         if ((pass.originalFrame || pass.publishProjectedPose) && pass.onPose && draw.posed &&
@@ -506,6 +510,21 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         }
         if (pass.map == LostTowerMap && draw.kind != World::ObjectDrawKind::Hidden)
             DrawLostTowerChrome(batch, models, object, draw, frameClock, pass, retained);
+        // 0x4403b0, la cadena de 0x6002e0 en el 31: sin rand() ni estado, en cada dibujo de MuRet.
+        if (pass.map == LandOfTrialsMap && draw.kind == World::ObjectDrawKind::Body)
+        {
+            const auto body = LandOfTrialsBody(object, draw.color, pass.worldClock);
+            if (!body.HasValue())
+                return Core::Unexpected(body.Error());
+            if (body.Value())
+            {
+                draw.color = body.Value()->color;
+                // Q-C317: el RenderBody propio del 0x34 y, después, el de 0x6002e0 con el mismo color.
+                if (body.Value()->twice)
+                    static_cast<void>(
+                        DrawTheObject(batch, models, object, draw, frameClock, 0.0f, pass.modelState, retained));
+            }
+        }
         const DrawnObject drawn =
             DrawTheObject(batch, models, object, draw, frameClock, 0.0f, pass.modelState, retained);
         if (World::IsKalimaMap(pass.map) && draw.kind != World::ObjectDrawKind::Hidden)

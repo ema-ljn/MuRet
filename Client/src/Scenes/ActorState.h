@@ -3,6 +3,7 @@
 #include "GameLogic/CharacterAppearance.h"
 #include "GameLogic/Path.h"
 #include "Protocol/Character/Opcodes.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkSpirit.h"
@@ -13,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 // Un registro del pool durable de personajes, de 0x438 bytes en el original (06, "Los personajes de
 // la lista"). Es una proyección con lo que MuRet lee hoy, no el layout. Arranca en cero, como lo deja
@@ -104,6 +106,10 @@ struct ActorState
     // quedan los de WinMain o los del uso anterior del registro. Del héroe, el blanco lo escribe MoveHero con
     // el mouse (0x59b1c2..0x59b287, CL7.4), sin portar.
     CharacterHead headTurn{};
+    // +0x120: los huesos del cuerpo en el mundo como los dejó el último dibujo del juego (0x509340, la pose de
+    // 0x4eb860 con la cabeza). 0x511290 suelta el buffer y pide otro sin iniciar (0x5123c4..0x5123ff): antes
+    // del primer dibujo, vacío (Q-C318). Lo lee la burbuja de Atlans (0x506d25).
+    std::vector<Render::Models::BoneTransform> bodyPose;
     // +0x430: el cuervo que 0x420d60 crea y 0x420dd0 mueve dentro del cuerpo de este dueño.
     std::optional<DarkSpirit> darkSpirit;
     // +0x360: con 5, la capa de los GM, que 0x413fe0 pone en cada dibujo de un GM; del 1 al 3, el arma del

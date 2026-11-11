@@ -90,7 +90,7 @@ constexpr std::int32_t NamedCameraMap = 6;
 // 0x6372e0..0x6372f1: el punto de la rama de "webzen" (0x45c80000 y 0x4670a000) con la z del héroe.
 constexpr float SpectatorTargetX = 6400.0f;
 constexpr float SpectatorTargetY = 15400.0f;
-// 0x5fa973: en el mapa 7 el agua de la capa 2 va con 0x5fa4b0.
+// 0x5fc33e: el mapa 7 no tiene el pase del pasto (su agua va con 0x5fa4b0, World::DrawTerrainCell).
 constexpr std::int32_t AnimatedWaterMap = 7;
 // 0x6374bb: el mapa 10 no dibuja el terreno.
 constexpr std::int32_t WithoutTerrainMap = 10;
@@ -116,6 +116,8 @@ constexpr std::int32_t NoriaMap = 3;
 constexpr std::int32_t LostTowerMap = 4;
 // La Arena (World7): sus casos en 0x604ab0 (0x6054fd) y 0x602ed0 (0x6039cb).
 constexpr std::int32_t ArenaMap = 6;
+// Atlans (World8): sus casos en 0x604ab0 (la tabla 0x605c94); 0x602ed0 y 0x6002e0 no tienen.
+constexpr std::int32_t AtlansMap = 7;
 constexpr std::int32_t TarkanMap = 8;
 constexpr std::int32_t IcarusMap = 10;
 // 0x5bb8d0: el ancho del mundo, 640 sin ventanas abiertas (MuRet no tiene las ventanas del juego).
@@ -354,8 +356,8 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     // espera de la entrada al juego).
     const bool aida = map == AidaMap || map == SelectionMap;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
-        map != ArenaMap && map != TarkanMap && map != IcarusMap && map != LandOfTrialsMap && !World::IsKalimaMap(map) &&
-        !aida)
+        map != ArenaMap && map != AtlansMap && map != TarkanMap && map != IcarusMap && map != LandOfTrialsMap &&
+        !World::IsKalimaMap(map) && !aida)
     {
         return Core::Unexpected("0x606560: los objetos vistos del " + MapText(map) + " (0x604ab0) no están portados");
     }
@@ -650,12 +652,6 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     // en esos mapas): es falso. El mapa 10 no dibuja el terreno.
     if (FrameKalima() == nullptr && map != WithoutTerrainMap)
     {
-        // 0x5fc260(0) → 0x5fac90 → 0x5fa830: en el mapa 7 la capa 2 de agua va con 0x5fa4b0.
-        if (map == AnimatedWaterMap)
-        {
-            return Core::Unexpected(std::string(
-                "0x5fa985: el agua del mapa 7 (0x5fa4b0, con las texturas 0x1e más el cuadro) no está portada"));
-        }
         // 0x5fa83f: 0x5fa830 llama a 0x405e00(x, y) con cada celda que dibuja, en los dos pases, y en los
         // mapas 18 a 23 saca rand() (y, con rand() % 8 en 0 y la celda en uno de sus rectángulos, más rand()
         // y un efecto de 0x53fe70, Q-C229). MuRet no lo tiene: LoadMap ya corta esos mapas en 0x447d70.
@@ -673,14 +669,16 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         view.tiles = m_tiles.Sizes();
         view.map = static_cast<std::uint8_t>(map);
         view.fixedHeight = CameraState().fixedHeight;
+        // 0x5fa973: en el mapa 7 el agua va con 0x5fa4b0 y la cáustica del cuadro de DAT_07d2d360.
+        view.waterFrame = FrameCloth().waterTextureFrame;
         // 0x5fc26b..0x5fc2c0: el corrimiento del agua con el reloj del frame; 0x5fc2de: 0x5fc190(0) con
         // 0x7d0d31c en 0, las celdas del rango que pasan el trapecio.
         m_water.offset = World::WaterOffsetAt(canvas.frameClock, view.map);
         World::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water);
-        // 0x5fc32b..0x5fc353: con la mezcla de 0x620a00(1), 0x6c9d58 y fuera del mapa 7 (que ya cortó), el
-        // pase del pasto (0x5fc190 con 0x7d0d31c en 2) en las mismas celdas. No saca rand(): 0x405e00 solo
-        // lo hace en los mapas 18 a 23, que no tienen este pase.
-        if (HasTheGrassPass(map))
+        // 0x5fc32b..0x5fc353: con la mezcla de 0x620a00(1), 0x6c9d58 y fuera del mapa 7, el pase del pasto (0x5fc190
+        // con 0x7d0d31c en 2) en las mismas celdas. No saca rand(): 0x405e00 solo lo hace en los mapas 18 a 23, que no
+        // tienen este pase.
+        if (HasTheGrassPass(map) && map != AnimatedWaterMap)
         {
             const World::TerrainGrass grass{.heights = m_tiles.GrassHeights(),
                                             .offsets = m_context.world->Map().grassOffsets};
@@ -709,16 +707,17 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         afterMarks.depthTest = true;
         canvas.models.SetState(afterMarks);
     }
-    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 6, 8, 10,
+    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 6 a 8, 10,
     // 31, 33 y Kalima.
-    const bool knownObjects = (map >= LorenciaMap && map <= LostTowerMap) || map == ArenaMap || map == TarkanMap ||
-                              map == IcarusMap || map == LandOfTrialsMap || map == AidaMap || World::IsKalimaMap(map);
+    const bool knownObjects = (map >= LorenciaMap && map <= LostTowerMap) || map == ArenaMap || map == AtlansMap ||
+                              map == TarkanMap || map == IcarusMap || map == LandOfTrialsMap || map == AidaMap ||
+                              World::IsKalimaMap(map);
     if (!knownObjects &&
         std::ranges::any_of(FrameObjects(), [](const World::WorldObject& object) { return object.alive; }))
     {
         return Core::Unexpected(
             "0x6374ce: los objetos del " + MapText(map) +
-            " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4, los del 6, los del 8, "
+            " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4, los del 6 al 8, "
             "los del 10, "
             "los del 31, los del 33 y los de Kalima");
     }

@@ -117,7 +117,7 @@ protected:
         std::vector<Client::Data::Textures::TextureSetEntry> entries{
             {"World1\\TileGrass01.jpg", 0x23}, {"Interface\\accept_box01.jpg", 0x122}, {"World1\\leaf01.tga", 0x64},
             {"World1\\leaf02.jpg", 0x65},      {"World1\\rain01.tga", 0x66},           {"World1\\rain02.tga", 0x67},
-            {"World10\\rain03.tga", 0x68}};
+            {"World10\\rain03.tga", 0x68},     {"Object8\\drop01.jpg", 0x607}};
         if (jpegAlternative)
             entries.push_back({"World1\\leaf01.jpg", 0x64});
         Client::Tests::WriteTextureSet(m_folder.Path(), entries);

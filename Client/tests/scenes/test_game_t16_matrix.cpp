@@ -83,7 +83,7 @@ TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBou
         RecordProperty("blocked_phase", "none on populated entry frame; cycle covered by KalimaLiveObjectsTest");
         return;
     }
-    if (map <= 4 || map == 6 || map == 8 || map == 10 || map == 31 || map == 33)
+    if (map <= 4 || (map >= 6 && map <= 8) || map == 10 || map == 31 || map == 33)
     {
         ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
         ASSERT_FALSE(m_target.frames.empty());
@@ -94,8 +94,7 @@ TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBou
     }
     ASSERT_TRUE(m_scene->Failure().has_value()) << "declarar una fila implementada requiere probar su caminata";
     RecordProperty("blocked_phase", *m_scene->Failure());
-    const std::string expected = map == 7 ? "0x506d01" : "0x6374ce";
-    EXPECT_NE(m_scene->Failure()->find(expected), std::string::npos) << *m_scene->Failure();
+    EXPECT_NE(m_scene->Failure()->find("0x6374ce"), std::string::npos) << *m_scene->Failure();
 }
 
 INSTANTIATE_TEST_SUITE_P(AllMaps0Through36, GameT16SceneMatrix, ::testing::Range(0, 37),

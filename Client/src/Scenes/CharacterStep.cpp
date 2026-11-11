@@ -8,6 +8,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Render/Models/Animation.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Pose.h"
 #include "Render/Models/Skeleton.h"
@@ -26,6 +27,7 @@
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
 #include "World/ObjectAlpha.h"
+#include "World/OriginalFtol.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
 #include "World/TerrainWalls.h"
@@ -38,6 +40,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <optional>
 #include <string>
 
 namespace Client::Scenes
@@ -384,9 +387,7 @@ Core::Expected<void, std::string> StopAtTheEnd(ActorState& actor, std::size_t sl
                                     .playerSkeleton = *context.playerSkeleton,
                                     .items = context.items,
                                     .random = context.random,
-                                    .terrainWalls = IsKalima(context.world.Runtime().map) && terrain.attributes
-                                                        ? &terrain.attributes->cells
-                                                        : nullptr});
+                                    .terrainWalls = terrain.attributes ? &terrain.attributes->cells : nullptr});
         if (!stopped.HasValue())
         {
             return Core::Unexpected(stopped.Error());
@@ -632,6 +633,46 @@ void SetTheNewFaceHeadTarget(ActorState& actor, Render::Models::CrtRandom& rando
     }
 }
 
+// 0x506d0a..0x506d7c: en la escena 5 y el mapa 7, el segundo de cada diez del reloj del mundo (ftol % 10000
+// debajo de 1000) saca una burbuja 0x607 de la cabeza: 0x4ec110 con el hueso +0x54 del modelo (20 en Player.bmd)
+// de los huesos propios (+0x120), (0, 20, −10), la escala (+0x68) y la posición (+0x6c) que 0x505ec6 copió
+// del personaje, y 0x53fe70(0x607, punto, +0x1c, (1, 1, 1) de 0x506c82, 0, 1, 0). Antes del primer dibujo
+// los huesos son los del operator new de 0x511290, sin iniciar: MuRet usa una matriz en cero (Q-C318).
+Core::Expected<void, std::string> BlowTheAtlansBubble(const ActorState& actor, std::size_t slot,
+                                                      const CharacterStepContext& context)
+{
+    constexpr std::int32_t ClockPeriod = 10000;
+    constexpr std::int32_t BubbleWindow = 1000;
+    const std::optional<std::int32_t> clock = World::OriginalFtolLow(static_cast<double>(context.worldClock));
+    if (!clock)
+    {
+        return Core::Unexpected(std::string("0x506d10: ftol del reloj del mundo fuera de lo acreditado"));
+    }
+    if (*clock % ClockPeriod >= BubbleWindow)
+    {
+        return {};
+    }
+    const auto bone = static_cast<std::size_t>(Data::Models::PlayerHeadBone);
+    const Render::Models::BoneTransform matrix =
+        bone < actor.bodyPose.size() ? actor.bodyPose[bone] : Render::Models::BoneTransform(0.0f);
+    constexpr glm::vec3 HeadOffset{0.0f, 20.0f, -10.0f};
+    const glm::vec3 point = Render::Models::OriginalTransformPosition(Render::Models::OriginalMatrixOf(matrix),
+                                                                      HeadOffset, actor.scale, actor.position);
+    if (context.particles == nullptr)
+    {
+        return Core::Unexpected(
+            std::format("0x506d77: falta el pool de partículas de la burbuja de Atlans, lugar {}", slot));
+    }
+    const auto created = context.particles->CreateChecked(World::DropParticle, point, actor.angles, glm::vec3(1.0f), 0,
+                                                          1.0f, context.worldClock, context.random, 0);
+    if (!created.HasValue())
+    {
+        return Core::Unexpected(std::format("0x506d77: la burbuja 0x607/0 del lugar {} falla con error {}", slot,
+                                            static_cast<unsigned>(created.Error())));
+    }
+    return {};
+}
+
 // 0x505de0(c, c) desde 0x508ee6, con el 0x20a, hasta su final (06, "Los efectos de los personajes
 // (0x505de0)"). `hero` es c == [0x743a170].
 Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t slot, bool hero,
@@ -727,9 +768,10 @@ Core::Expected<void, std::string> StepTheEffects(ActorState& actor, std::size_t 
     }
     if (context.scene == SceneId::Game && map == ClockEffectMap)
     {
-        return Core::Unexpected(std::format("0x506d01: en el mapa 7 el personaje del lugar {} saca el efecto 0x607 "
-                                            "según el reloj del mundo (0x5767b88), que no está portado",
-                                            slot));
+        if (auto bubbled = BlowTheAtlansBubble(actor, slot, context); !bubbled.HasValue())
+        {
+            return bubbled;
+        }
     }
     if (map == RandomEffectMap)
     {

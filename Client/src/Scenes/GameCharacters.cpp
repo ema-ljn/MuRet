@@ -220,6 +220,9 @@ Core::Expected<void, std::string> HangTheItems(Render::ModelBatch& batch, const 
                                                const GameCharacterPass& pass, std::int32_t map, bool originalFrame)
 {
     const std::vector<Render::Models::BoneTransform> body = PoseCharacterBody(models, character);
+    // 0x509340 posa en los huesos propios (+0x120), que lee el paso siguiente (0x506d25, la burbuja de Atlans).
+    if (originalFrame)
+        actor.bodyPose = body;
     std::optional<ActorState> projectedActor;
     std::optional<Render::Models::CrtRandom> projectedRandom;
     ActorState& hanging = originalFrame ? actor : projectedActor.emplace(actor);

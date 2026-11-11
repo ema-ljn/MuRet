@@ -36,8 +36,8 @@
 #include <vector>
 
 // Client::Scenes::LoadedWorld con una copia del World56 del laboratorio (y el accept_box01 de
-// Interface\), a la que cada test le saca o le rompe un archivo (06 § El terreno del login, Review
-// Focus 2 del plan de la CL7: lo que falta se saltea con un aviso y el login sigue).
+// Interface\ y la gota de Object8\), a la que cada test le saca o le rompe un archivo (06 § El terreno del login,
+// Review Focus 2 del plan de la CL7: lo que falta se saltea con un aviso y el login sigue).
 namespace
 {
 using Client::Render::TextureSlot;
@@ -48,8 +48,9 @@ constexpr std::uint8_t Login = 55;
 constexpr std::uint16_t FirstTile = 0x23;
 constexpr std::uint16_t LastTile = 0x30;
 constexpr std::uint16_t AcceptBox = 0x122;
-// 61ac3e..61ad7a: 64/65 del World56 y66/67/68 de World1/World10; falta sólo la alternativa JPG64.
-constexpr std::size_t LoadedLoginTextureCount = 20;
+// 61ac3e..61ad7a: 64/65 del World56 y66/67/68 de World1/World10; falta sólo la alternativa JPG64. Con la gota de
+// 0x616ec0 (Object8\drop01, 0x607).
+constexpr std::size_t LoadedLoginTextureCount = 21;
 constexpr std::size_t OptionalLoginWeatherSkips = 1;
 
 std::string Lower(std::string text)
@@ -78,7 +79,8 @@ protected:
                 std::filesystem::copy(entry.path(), m_copy.Path() / "Interface" / entry.path().filename());
             }
         }
-        for (const char* relative : {"World1/rain01.OZT", "World1/rain02.OZT", "World10/rain03.OZT"})
+        for (const char* relative :
+             {"World1/rain01.OZT", "World1/rain02.OZT", "World10/rain03.OZT", "Object8/drop01.OZJ"})
         {
             const auto weather = Client::Data::ResolveDataPath(m_dataRoot, relative, error);
             ASSERT_TRUE(weather.has_value()) << relative;

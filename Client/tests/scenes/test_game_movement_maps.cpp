@@ -75,7 +75,7 @@ constexpr std::array<MapCase, 37> MovementMaps{{
     {4, "LostTower"},
     {5, "MissingWorld6"},
     {6, "Arena"},
-    {7, "AtlansEffectsBoundary"},
+    {7, "AtlansBubblePoolBoundary"},
     {8, "Tarkan"},
     {9, "DevilSquareEventBoundary"},
     {10, "Icarus"},
@@ -143,7 +143,8 @@ std::string_view CharacterFrontier(std::uint8_t map)
     }
     if (map == 7)
     {
-        return "0x506d01";
+        // La burbuja de Atlans (0x506d0a) con el reloj en 0 pide el pool de partículas, que este paso no da.
+        return "0x506d77";
     }
     if (map == 9)
     {

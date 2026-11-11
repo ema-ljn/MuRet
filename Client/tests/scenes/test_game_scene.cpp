@@ -73,7 +73,6 @@
 #include <optional>
 #include <span>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -1026,7 +1025,7 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
 // antes, en 0x6374ce; acá se lo marca a mano), el paso corta antes de tocarlo y sin rand().
 TEST_F(GameSceneDrawTest, TheStepStopsAtTheSeenObjectsOfTheOtherMaps)
 {
-    ASSERT_NO_FATAL_FAILURE(Prepare(7, 128, 128));
+    ASSERT_NO_FATAL_FAILURE(Prepare(9, 128, 128));
     ASSERT_FALSE(world.Map().objects.empty());
     world.Map().objects.front().seen = true;
     const Client::World::WorldObject before = world.Map().objects.front();
@@ -1042,41 +1041,38 @@ TEST_F(GameSceneDrawTest, TheStepStopsAtTheSeenObjectsOfTheOtherMaps)
     scene.Leave();
 }
 
-// Los otros mapas que carga el juego cortan antes del pasto: el 7 en su agua (0x5fa4b0), ya en el pase del
-// mundo y sin una celda.
-TEST_F(GameSceneDrawTest, TheOtherMapsStopWhereTheyDiffer)
+// 0x5fa973..0x5fa9b1 y 0x5fc33e: Atlans, en (226, 103), con agua en la capa 2 cerca, dibuja el cuadro entero: el
+// agua de 0x5fa4b0, aditiva y con la cáustica 0x41 + el cuadro de DAT_07d2d360, y ningún quad del pasto
+// (0x32..0x34), que el mapa 7 saltea aunque tenga 0x6c9d58.
+TEST_F(GameSceneDrawTest, AtlansDrawsItsCausticWaterAndNoGrass)
 {
-    struct Case
-    {
-        std::uint8_t map;
-        std::string_view frontier;
-        int draws;
-        bool worldPass;
-    };
-    // El 6 ya no corta en la cámara (06 § Los objetos de la Arena): lo cubre GameT16SceneMatrix.
-    for (const Case& probe : {Case{7, "0x5fa985", 4 + 8, true}})
-    {
-        SCOPED_TRACE(static_cast<int>(probe.map));
-        ASSERT_NO_FATAL_FAILURE(Prepare(probe.map, 128, 128));
-        GameScene scene = Scene();
-        ASSERT_TRUE(scene.Enter().HasValue());
-        Client::Tests::RecordingFrameTarget target;
+    ASSERT_NO_FATAL_FAILURE(Prepare(7, 226, 103));
+    GameScene scene = Scene();
+    ASSERT_TRUE(scene.Enter().HasValue());
+    Client::Tests::RecordingFrameTarget target;
 
-        scene.PrepareFrame();
-        scene.Render(target.BeginFrame({}), 0.0f);
+    scene.PrepareFrame();
+    scene.Render(target.BeginFrame(std::chrono::milliseconds{1000}), 0.0f);
 
-        ASSERT_TRUE(scene.Failure().has_value());
-        EXPECT_NE(scene.Failure()->find(probe.frontier), std::string::npos) << *scene.Failure();
-        const Client::Tests::FrameEvent* models = ModelsOf(target.frames[0]);
-        EXPECT_EQ(models != nullptr, probe.worldPass);
-        if (models != nullptr)
+    ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
+    const Client::Tests::FrameEvent* models = ModelsOf(target.frames.at(0));
+    ASSERT_NE(models, nullptr);
+    const auto caustic = Client::Render::TextureSlot{static_cast<std::uint16_t>(0x41 + cloth.waterTextureFrame)};
+    std::size_t water = 0;
+    for (const Client::Render::ModelDrawCommand& command : models->modelCommands)
+    {
+        ASSERT_TRUE(command.state.texture.has_value());
+        const std::uint16_t slot = command.state.texture->value;
+        EXPECT_FALSE(slot >= 0x32 && slot <= 0x34) << slot;
+        if (slot >= 0x41 && slot <= 0x60)
         {
-            EXPECT_TRUE(models->modelVertices.empty());
+            EXPECT_EQ(*command.state.texture, caustic);
+            EXPECT_EQ(command.state.blend, Client::Render::ModelBlend::Additive);
+            ++water;
         }
-        EXPECT_EQ(scene.MouseRay().has_value(), probe.worldPass);
-        EXPECT_EQ(cloth.random.State(), RandomAfter(probe.draws).State());
-        scene.Leave();
     }
+    EXPECT_GT(water, 0u);
+    scene.Leave();
 }
 
 // 0x5fc365 con una marca prendida (como la dejarían 0x505de0 o 0x52e810, que MuRet no corre): 0x549130 lee el

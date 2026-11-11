@@ -295,7 +295,9 @@ protected:
 
 // En Lost Tower (World5) el 70..73 no tiene suelo (0x08 del .att); 205..208 × 87..90, al sur de la zona
 // segura, es suelo libre. En la Arena (World7), 62..65 × 47..50 es suelo libre fuera de la zona segura, con once
-// 0x15 (la V que corre) y cuatro 9 (el sprite del hueso 1) a menos de 1.500. En Icarus (World11), 20..23 × 29..32 es el
+// 0x15 (la V que corre) y cuatro 9 (el sprite del hueso 1) a menos de 1.500. En Atlans (World8), 226..229 ×
+// 103..106 es suelo libre fuera de la zona segura, con cinco 0x16 (las burbujas), siete 0x20 y cuatro 0x22 a menos
+// de 1.500 y 70 celdas con la capa 2 en el agua cerca. En Icarus (World11), 20..23 × 29..32 es el
 // bloque libre con más objetos cerca (76 a menos de 1.500), para que el paso por objeto (0x6063d0) y sus nubes corran.
 // En Aida (World34), 104..107 × 165..168 es suelo libre fuera de la zona segura, con 0x29 (la malla 0 de 0x4255f3) y
 // 0x46 cerca. Land of Trials (World32) no tiene zona segura; 149..152 × 104..107 es suelo libre con ocho de sus tipos
@@ -303,21 +305,23 @@ protected:
 TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenCompleteFrames)
 {
     const auto map = static_cast<std::uint8_t>(GetParam());
-    const auto start = [map](std::uint8_t lostTower, std::uint8_t arena, std::uint8_t icarus, std::uint8_t trials,
-                             std::uint8_t aida) -> std::uint8_t
+    const auto start = [map](std::uint8_t lostTower, std::uint8_t arena, std::uint8_t atlans, std::uint8_t icarus,
+                             std::uint8_t trials, std::uint8_t aida) -> std::uint8_t
     {
         if (map == 4)
             return lostTower;
         if (map == 6)
             return arena;
+        if (map == 7)
+            return atlans;
         if (map == 10)
             return icarus;
         if (map == 31)
             return trials;
         return map == 33 ? aida : 70;
     };
-    const std::uint8_t x = start(205, 62, 20, 149, 104);
-    const std::uint8_t y = start(87, 47, 29, 104, 165);
+    const std::uint8_t x = start(205, 62, 226, 20, 149, 104);
+    const std::uint8_t y = start(87, 47, 103, 29, 104, 165);
     const auto far = [](std::uint8_t cell) { return static_cast<std::uint8_t>(cell + 3); };
     Teleport(map, x, y);
     ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
@@ -329,9 +333,10 @@ TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenC
     ASSERT_NO_FATAL_FAILURE(ClickCell(far(x), far(y)));
     ASSERT_NO_FATAL_FAILURE(ExpectWalkPacket());
     ASSERT_NO_FATAL_FAILURE(FinishWalk(far(x), far(y)));
-    if (map == 6 || map == 31 || map == 33)
+    if (map == 6 || map == 7 || map == 31 || map == 33)
     {
         const auto types = map == 6    ? std::array<std::int16_t, 2>{9, 0x15}
+                           : map == 7  ? std::array<std::int16_t, 2>{0x16, 0x20}
                            : map == 31 ? std::array<std::int16_t, 2>{0x34, 0x35}
                                        : std::array<std::int16_t, 2>{0x29, 0x46};
         for (const std::int16_t type : types)
@@ -380,10 +385,11 @@ class GameT16SafeZoneWalk : public GameT16MapWalk
 TEST_P(GameT16SafeZoneWalk, RealSafeZoneCellsResetRunWhileTheirLogicalCellAdvances)
 {
     const auto map = static_cast<std::uint8_t>(GetParam());
-    // La Arena (World7): 70..72 × 139 es suelo libre de la zona segura. Tarkan (World9): la zona segura va de x
+    // La Arena (World7): 70..72 × 139 es suelo libre de la zona segura. Atlans (World8): la zona segura va de x 11
+    // a 34 e y 8 a 28; 13..15 × 17 es suelo libre. Tarkan (World9): la zona segura va de x
     // 155 a 251 e y 28 a 97; 206..208 × 56 es suelo libre.
-    constexpr std::array<std::uint8_t, 9> SafeX{132, 0, 185, 166, 195, 0, 70, 0, 206};
-    constexpr std::array<std::uint8_t, 9> SafeY{89, 0, 30, 81, 72, 0, 139, 0, 56};
+    constexpr std::array<std::uint8_t, 9> SafeX{132, 0, 185, 166, 195, 0, 70, 13, 206};
+    constexpr std::array<std::uint8_t, 9> SafeY{89, 0, 30, 81, 72, 0, 139, 17, 56};
     const std::uint8_t x = SafeX[map];
     const std::uint8_t y = SafeY[map];
     Teleport(map, x, y);
@@ -476,10 +482,10 @@ INSTANTIATE_TEST_SUITE_P(AllSevenKalimaAliases, GameT16KalimaWalk, ::testing::Va
                          [](const ::testing::TestParamInfo<int>& parameter)
                          { return "Map" + std::to_string(parameter.param); });
 
-INSTANTIATE_TEST_SUITE_P(CompleteSceneMaps, GameT16MapWalk, ::testing::Values(0, 1, 2, 3, 4, 6, 8, 10, 31, 33),
+INSTANTIATE_TEST_SUITE_P(CompleteSceneMaps, GameT16MapWalk, ::testing::Values(0, 1, 2, 3, 4, 6, 7, 8, 10, 31, 33),
                          [](const ::testing::TestParamInfo<int>& mapParameter)
                          { return "Map" + std::to_string(mapParameter.param); });
-INSTANTIATE_TEST_SUITE_P(CompleteSceneMapsWithSafeZone, GameT16SafeZoneWalk, ::testing::Values(0, 2, 3, 4, 6, 8),
+INSTANTIATE_TEST_SUITE_P(CompleteSceneMapsWithSafeZone, GameT16SafeZoneWalk, ::testing::Values(0, 2, 3, 4, 6, 7, 8),
                          [](const ::testing::TestParamInfo<int>& mapParameter)
                          { return "Map" + std::to_string(mapParameter.param); });
 } // namespace

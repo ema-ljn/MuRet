@@ -7,6 +7,7 @@
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Data/Terrain/TerrainGrid.h"
 #include "Render/Models/Cloth.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
@@ -1025,7 +1026,8 @@ TEST(CharacterStepTest, TheHandLightsStopBelowPkSix)
 }
 
 // El caso del 0x20a en 0x506cf8 y los pasos del héroe (0x50862f), después del rand() & 7: los mapas 7 y 9, las
-// acciones 0x44, 0x45 y 0x96 cortan. Los pasos ya producen solicitudes CL10 sin cortar ni agregar RNG.
+// acciones 0x44, 0x45 y 0x96 cortan (el 7 sin el pool de la burbuja). Los pasos ya producen solicitudes CL10 sin cortar
+// ni agregar RNG.
 TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
 {
     struct Case
@@ -1035,7 +1037,7 @@ TEST(CharacterStepTest, ThePlayerEffectsAndStepsStopAfterTheRandom)
         std::string_view cut;
     };
     for (const Case& probe :
-         {Case{7, 1, "0x506d01"}, Case{9, 1, "0x506d8b"}, Case{0, 0x44, "0x506e5d"}, Case{0, 0x45, "0x506e5d"},
+         {Case{7, 1, "0x506d77"}, Case{9, 1, "0x506d8b"}, Case{0, 0x44, "0x506e5d"}, Case{0, 0x45, "0x506e5d"},
           Case{0, 0x96, "0x506f62"}, Case{0, 0x0d, ""}, Case{0, 0x21, ""}, Case{2, 0x8b, ""}, Case{2, 0x8c, ""},
           Case{2, 0x4b, ""}, Case{2, 0x0c, ""}, Case{0, 0x22, ""}})
     {
@@ -1260,7 +1262,7 @@ TEST(CharacterStepTest, AfterItsHeadAnotherCharacterTakesThePathOfTheHero)
     };
     constexpr std::uint16_t NoItem = Client::Scenes::NoItemModel;
     for (const Case& probe :
-         {Case{"la luz", 0, 1, 0x21e, "0x5f9780", false}, Case{"el mapa 7", 7, 1, NoItem, "0x506d01", true},
+         {Case{"la luz", 0, 1, 0x21e, "0x5f9780", false}, Case{"el mapa 7", 7, 1, NoItem, "0x506d77", true},
           Case{"el mapa 9", 9, 1, NoItem, "0x506d8b", true}, Case{"la 0x44", 2, 0x44, NoItem, "0x506e5d", true},
           Case{"la 0x45", 0, 0x45, NoItem, "0x506e5d", true}, Case{"la 0x96", 2, 0x96, NoItem, "0x506f62", true}})
     {
@@ -1566,15 +1568,68 @@ TEST(CharacterStepTest, OutsideTheGameTheHeroTakesTheSamePath)
     }
 }
 
-// 0x506cf8: el 0x607 del mapa 7 es solo de la escena 5; en las otras el mapa 7 sigue de largo.
+// 0x506cf8: el 0x607 del mapa 7 es solo de la escena 5; en las otras el mapa 7 sigue de largo. Sin el pool de
+// partículas, la burbuja corta.
 TEST(CharacterStepTest, TheClockEffectOfMapSevenIsOnlyInTheGame)
 {
     GameWorld game(7);
-    EXPECT_TRUE(HasError(game.Step(Everything), "0x506d01"));
+    EXPECT_TRUE(HasError(game.Step(Everything), "0x506d77"));
     GameWorld selection(7);
     const auto stepped = selection.Step(Everything, SceneId::CharacterSelect);
     EXPECT_TRUE(stepped.HasValue()) << stepped.Error();
     EXPECT_EQ(selection.random.State(), RandomAfter(SeenHeroDraws).State());
+}
+
+// 0x506d0a..0x506d7c: en el juego, en el mapa 7, el segundo de cada diez del reloj del mundo (ftol % 10000 debajo
+// de 1000) saca la burbuja 0x607/0 (dos rand()) del hueso de la cabeza (20) de los huesos del último dibujo:
+// (0, 20, −10) por la escala, más la posición, con los ángulos del personaje y la luz en 1. Sin dibujo todavía,
+// de la posición (Q-C318).
+TEST(CharacterStepTest, AtlansBlowsABubbleFromTheHeadOneSecondInTen)
+{
+    struct Case
+    {
+        float clock;
+        bool drawn;
+        bool blows;
+    };
+    for (const Case& probe : {Case{0.0f, true, true}, Case{999.9f, true, true}, Case{1000.0f, true, false},
+                              Case{10500.0f, true, true}, Case{19999.0f, true, false}, Case{500.0f, false, true}})
+    {
+        SCOPED_TRACE(::testing::Message() << "reloj " << probe.clock << (probe.drawn ? ", dibujado" : ", sin dibujo"));
+        GameWorld tested(7);
+        ActorState& hero = tested.Hero();
+        hero.scale = 2.0f;
+        hero.angles = {0.0f, 0.0f, 45.0f};
+        if (probe.drawn)
+        {
+            hero.bodyPose.assign(Client::Data::Models::PlayerHeadBone + 1, Client::Render::Models::BoneTransform(0.0f));
+            Client::Render::Models::BoneTransform& head = hero.bodyPose[Client::Data::Models::PlayerHeadBone];
+            head = Client::Render::Models::BoneTransform(1.0f);
+            head[3] = glm::vec3(5.0f, 6.0f, 7.0f);
+        }
+        tested.world.Runtime().terrainPolygon = Everything;
+        Client::World::Particles particles;
+
+        const auto stepped = StepCharacters(CharacterStepContext{.world = tested.world,
+                                                                 .random = tested.random,
+                                                                 .scene = SceneId::Game,
+                                                                 .playerSkeleton = tested.player,
+                                                                 .particles = &particles,
+                                                                 .worldClock = probe.clock});
+
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        const Client::World::Particle& bubble = particles.All()[0];
+        EXPECT_EQ(bubble.alive, probe.blows);
+        EXPECT_EQ(tested.random.State(), RandomAfter(SeenHeroDraws + (probe.blows ? 2 : 0)).State());
+        if (!probe.blows)
+            continue;
+        EXPECT_EQ(bubble.type, Client::World::DropParticle);
+        EXPECT_EQ(bubble.subtype, 0);
+        const glm::vec3 local = probe.drawn ? glm::vec3(10.0f, 52.0f, -6.0f) : glm::vec3(0.0f);
+        EXPECT_EQ(bubble.position, hero.position + local);
+        EXPECT_EQ(bubble.angles, hero.angles);
+        EXPECT_EQ(bubble.light, glm::vec3(1.0f));
+    }
 }
 
 // En la selección (la escena 4) 0x4ec200 decide el final con el frame + 2 (Q-C21): la acción de 6 keys a 1 por

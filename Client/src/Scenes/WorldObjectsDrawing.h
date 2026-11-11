@@ -137,7 +137,7 @@ struct GameObjectPass
     std::int32_t scene = 0;
 };
 
-// 0x6046a0 en el juego (0x6374ce), en los mapas 0 a 4 (06 § Los objetos del juego): sector por sector, en
+// 0x6046a0 en el juego (0x6374ce), en los mapas 0 a 4 y 8 (06 § Los objetos del juego): sector por sector, en
 // World::DrawOrder, cada objeto vivo que pasa el trapecio como en DrawWorldObjects queda visto. El 0x64 de
 // Devias sigue solo con el nivel del registro propio desde 0x50 (0x35 con la clase 3 o 4), con su acceso.
 // Después, 0x602e90: el dibujo de World::DrawOf, sin interpolar la animación (el 0x69 de Lorencia, con
@@ -146,10 +146,10 @@ struct GameObjectPass
 // recién posados, con sus rand() intercalados. Un hueso no escrito necesita la pose global anterior y
 // corta después de sus sorteos; sin pool conserva el corte histórico en 0x6030c7. El 0x38 del 0 deja sus dos
 // sprites en NaN (Scenes/ObjectFrameSprites.h). En el 4, el pase con Chrome01 antes del cuerpo y los sprites
-// de los huesos. Los otros casos de 0x602ed0 (el 0x64 y el 0x67 del 2) cortan con su dirección. Los objetos
-// de antes quedan dibujados. Kalima24..29/36 reutiliza la pose y el cuerpo públicos43948d, sus cáusticas de
-// DAT_07d2d360, el calco0x22 y el sprite del tipo12; los productores aún ausentes de438c10
-// conservan su dirección y prefijo. Los demás mapas cortan antes de mirar un objeto.
+// de los huesos; en el 8, el cromo del 0x51 y los sprites, humos y piedritas de Tarkan. Los otros casos de 0x602ed0 (el
+// 0x64 y el 0x67 del 2) cortan con su dirección. Los objetos de antes quedan dibujados. Kalima24..29/36 reutiliza la
+// pose y el cuerpo públicos43948d, sus cáusticas de DAT_07d2d360, el calco0x22 y el sprite del tipo12; los productores
+// aún ausentes de438c10 conservan su dirección y prefijo. Los demás mapas cortan antes de mirar un objeto.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::WorldObject> objects,
                      const World::TerrainPolygon& polygon, const World::TerrainLighting* lighting,

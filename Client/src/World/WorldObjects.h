@@ -202,8 +202,8 @@ struct ObjectStepGlobals
     const std::uint8_t* heroAction = nullptr;
 };
 
-// 0x604ab0 con un objeto visto en el juego, en los mapas 0 a 4 (*estático*, 06 § Los objetos del juego; los
-// del 1 y del 4, World/DungeonObjectStep.h).
+// 0x604ab0 con un objeto visto en el juego, en los mapas 0 a 4 y 8 (*estático*, 06 § Los objetos del juego; los
+// del 1 y del 4, World/DungeonObjectStep.h; los del 8, con el tipo 8 animado al cuádruple, World/TarkanObjectStep.h).
 // Antes del alpha, los techos: el 0x7d y el 0x7e del 0 llevan la meta del alpha (+0x170) a 0 con la capa
 // del héroe en 4 (0x604bc4), y el 0x51, el 0x52, el 0x60, el 0x62 y el 0x63 del 2 con la capa en 3 o
 // desde 10 (0x604c06); a 1 si no. Después del alpha/animación, los casos del mapa: UV y flicker,
@@ -231,6 +231,9 @@ enum class ObjectDrawKind : std::uint8_t
     // 0 a 2 con el blendMesh y la luz del objeto y U = V = 0, y la 3 con el blendMesh 3, la luz y la U y
     // la V del objeto.
     Waterspout,
+    // El 0x51 del mapa 8 (0x600c81): la malla 0 con 0x4ecc30(0, 2, …, −1) y otra vez con el cromo aditivo
+    // de Chrome01, 0x4ecc30(0, 0x44, …, 0x5c0).
+    TarkanChrome,
 };
 
 struct ObjectDraw

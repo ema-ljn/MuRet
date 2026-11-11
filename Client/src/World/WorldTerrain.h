@@ -78,6 +78,11 @@ struct WorldTileTexture
 // LINEAR/REPEAT, sin aviso. Aquí se integra sólo la familia Kalima24..29/36.
 [[nodiscard]] std::vector<WorldTileTexture> KalimaObjectTextures(std::uint8_t map);
 
+// 0x6177f9..0x61784b, el mapa 8 de 0x616ec0 antes de los Bug: 0x63b870 con GL_LINEAR, sexto 1 (avisa).
+// Object9\sand01 y sand02 en 0x5c2 y 0x5c3, repitiendo (las arenas del HUD de 0x5a7520, CL8), e
+// Impack03 en 0x716, sin repetir (los sprites de los 0x3f y 0x40 de 0x602ed0). Los demás, ninguna.
+[[nodiscard]] std::vector<WorldTileTexture> TarkanObjectTextures(std::uint8_t map);
+
 // El slot 0x122 que pide una capa 2 de 255 (Q-C19): Interface\accept_box01.jpg, que el original sube
 // en la carga (0x61ae60) y queda para siempre; MuRet lo sube con el mundo.
 [[nodiscard]] WorldTileTexture AcceptBoxTexture();

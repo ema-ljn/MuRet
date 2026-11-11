@@ -12,6 +12,7 @@
 #include "World/ObjectAlpha.h"
 #include "World/NoriaObjectStep.h"
 #include "World/OriginalFtol.h"
+#include "World/TarkanObjectStep.h"
 #include "World/WorldObjectMapCreation.h"
 #include "World/WorldObjectRegistrations.h"
 #include "World/WorldObjectStepServices.h"
@@ -480,9 +481,9 @@ WorldObjectCreationResult CreateWorldObjects(std::span<const Data::Terrain::Terr
 namespace
 {
 // 0x4e9980 y 0x4ec200, lo común de 0x604ab0: el alpha hacia su meta y, si no quedó por debajo de 0,01
-// (0x604c3d, que sale), la animación a su velocidad con la acción de `skeleton`, si tiene. Devuelve si
-// sigue.
-bool AdvanceTheObject(WorldObject& object, const Render::Models::Skeleton* skeleton)
+// (0x604c3d, que sale), la animación a `speed` (la del objeto, salvo el 8 de Tarkan) con la acción de
+// `skeleton`, si tiene. Devuelve si sigue.
+bool AdvanceTheObject(WorldObject& object, const Render::Models::Skeleton* skeleton, float speed)
 {
     StepObjectAlpha(object.targetAlpha, object.alpha, object.state.light, 0);
     if (object.alpha < MinimumAlpha)
@@ -491,7 +492,7 @@ bool AdvanceTheObject(WorldObject& object, const Render::Models::Skeleton* skele
     }
     if (skeleton != nullptr && object.animation.action < skeleton->actions.size())
     {
-        Render::Models::AdvanceAnimation(object.animation, skeleton->actions[object.animation.action], object.speed,
+        Render::Models::AdvanceAnimation(object.animation, skeleton->actions[object.animation.action], speed,
                                          Render::Models::AnimationScene::Other);
     }
     return true;
@@ -735,7 +736,7 @@ Core::Expected<void, std::string> StepTheWaterspoutFrame(WorldObject& object, Re
 
 void StepWorldObject(WorldObject& object, std::uint8_t map, const Render::Models::Skeleton* skeleton)
 {
-    if (AdvanceTheObject(object, skeleton) && map == LoginMap)
+    if (AdvanceTheObject(object, skeleton, object.speed) && map == LoginMap)
     {
         ApplyLoginStepCases(object);
     }
@@ -752,8 +753,9 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     const bool aida = map == AidaMap || map == SelectionWorldMap;
     constexpr std::uint8_t DungeonMap = 1;
     constexpr std::uint8_t LostTowerMap = 4;
+    constexpr std::uint8_t TarkanMap = 8;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
-        map != LoginMap && !IsKalimaMap(map) && !aida)
+        map != TarkanMap && map != LoginMap && !IsKalimaMap(map) && !aida)
     {
         // 0x604ac0..0x604ba0: el 9 saca rand() antes de todo, y cada mapa tiene sus casos.
         return Core::Unexpected(
@@ -763,7 +765,9 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     {
         object.targetAlpha = *target;
     }
-    if (!AdvanceTheObject(object, skeleton))
+    // 0x604c67..0x604c8e: la velocidad sale de +0xd8 a una copia, que el 8 de Tarkan multiplica.
+    const float speed = map == TarkanMap ? TarkanAnimationSpeed(object.type, object.speed) : object.speed;
+    if (!AdvanceTheObject(object, skeleton, speed))
     {
         return {};
     }
@@ -792,6 +796,8 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
         return StepDungeonObject(object, random, globals);
     case LostTowerMap:
         return StepLostTowerObject(object, random, globals);
+    case TarkanMap:
+        return StepTarkanObject(object, globals);
     default:
         ApplyLoginStepCases(object);
         return {};
@@ -830,6 +836,13 @@ ObjectDraw DrawOf(const WorldObject& object, const glm::vec3& terrainLight, std:
         // 0x600a4a: sin el glColor de RenderBody; el 0x69 va con la luz por vértice (+0xe8), que pisa el
         // color de cada esquina.
         draw.kind = ObjectDrawKind::Waterspout;
+        return draw;
+    }
+    constexpr std::uint8_t TarkanMap = 8;
+    constexpr std::int16_t TarkanChromeObject = 0x51;
+    if (map == TarkanMap && object.type == TarkanChromeObject)
+    {
+        draw.kind = ObjectDrawKind::TarkanChrome;
         return draw;
     }
     if (map == LoginMap && object.type == DarkWhirlpool)

@@ -542,6 +542,45 @@ TEST(WorldObjectsDrawingTest, TheLostTowerFrameLeavesItsSprites)
     EXPECT_NE(cut.Error().find("0x4ec110"), std::string::npos) << cut.Error();
 }
 
+// 0x600c72..0x600cdc: el 0x51 de Tarkan va sin RenderBody, con dos 0x4ecc30 de la malla 0: el pase común (2) y
+// el del cromo (0x44) con Chrome01 (0x5c0), aditivo, en el color del modelo sin la luz de cada normal; con el
+// alpha por debajo de 0,99, el color por el alpha. La malla 1 no se dibuja.
+TEST(WorldObjectsDrawingTest, TheTarkanChromeGoesAfterItsFirstMesh)
+{
+    constexpr std::uint8_t Tarkan = 8;
+    const TwoMeshModels models;
+    for (const float alpha : {1.0f, 0.5f})
+    {
+        SCOPED_TRACE(alpha);
+        std::vector<WorldObject> objects{ObjectAt(0x51, 100.0f, 100.0f, Tarkan, Client::World::ObjectScene::Other)};
+        objects[0].vertexLight = false;
+        objects[0].light = glm::vec3(0.5f);
+        objects[0].alpha = alpha;
+        objects[0].targetAlpha = alpha;
+        Client::Render::Models::CrtRandom random(7);
+        ModelBatch batch;
+        ASSERT_TRUE(DrawGame(batch, models, objects, {.map = Tarkan, .random = &random}).HasValue());
+        EXPECT_EQ(random.State(), SevenAfter(1).State());
+        ASSERT_EQ(batch.Commands().size(), 2u);
+        const auto& base = batch.Commands()[0];
+        EXPECT_EQ(base.state.texture, TextureSlot{0x41c});
+        EXPECT_EQ(base.state.blend, alpha < 0.99f ? ModelBlend::Alpha : ModelBlend::Opaque);
+        ASSERT_EQ(base.vertexCount, 3u);
+        const auto& chrome = batch.Commands()[1];
+        EXPECT_EQ(chrome.state.texture, TextureSlot{0x5c0});
+        EXPECT_EQ(chrome.state.blend, ModelBlend::Additive);
+        ASSERT_EQ(chrome.vertexCount, 3u);
+        const float shade = alpha < 0.99f ? 0.5f * alpha : 0.5f;
+        for (std::size_t corner = 0; corner < 3; ++corner)
+        {
+            const auto& vertex = batch.Vertices()[chrome.firstVertex + corner];
+            EXPECT_EQ(vertex.color.red, shade);
+            EXPECT_EQ(vertex.color.green, shade);
+            EXPECT_EQ(vertex.color.blue, shade);
+        }
+    }
+}
+
 // 0x600a4a..0x600ae6: el 0x69 de Lorencia va con cuatro 0x4ecc30 sueltos, sin RenderBody. Las mallas 0 a 2,
 // opacas, con la luz de cada normal y sin la U ni la V; la 3, la de su blendMesh, aditiva, por la luz del
 // blendMesh y con la U y la V del objeto. La malla oculta (+0x58) no cuenta: 0x4ecc30 no la mira.

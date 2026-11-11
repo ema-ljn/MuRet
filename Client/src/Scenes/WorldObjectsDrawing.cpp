@@ -3,6 +3,7 @@
 #include "Scenes/AidaObjectServices.h"
 #include "Scenes/NoriaObjectServices.h"
 #include "Scenes/ObjectFrameSprites.h"
+#include "Scenes/TarkanObjectFrame.h"
 #include "Scenes/KalimaObjectServices.h"
 #include "World/ObjectModelStepState.h"
 #include "Scenes/GameParticles.h"
@@ -144,6 +145,9 @@ DrawnObject DrawTheObject(Render::ModelBatch& batch, const IModelLibrary& models
         break;
     case World::ObjectDrawKind::Waterspout:
         DrawWaterspout(batch, models, drawn, frameClock);
+        break;
+    case World::ObjectDrawKind::TarkanChrome:
+        DrawTarkanChrome(batch, models, drawn, frameClock);
         break;
     }
     return drawn;
@@ -323,6 +327,7 @@ constexpr std::uint8_t LorenciaMap = 0;
 constexpr std::uint8_t DeviasMap = 2;
 constexpr std::uint8_t NoriaMap = 3;
 constexpr std::uint8_t LostTowerMap = 4;
+constexpr std::uint8_t TarkanMap = 8;
 constexpr std::uint8_t AidaMap = 33;
 constexpr std::uint8_t SelectionWorldMap = 54;
 // 0x60479c: el 0x64 de Devias se dibuja según el nivel del registro propio (0x604944..0x604957, jl con
@@ -378,7 +383,7 @@ void DrawLostTowerChrome(Render::ModelBatch& batch, const IModelLibrary& models,
 }
 
 // 0x602ed0 después del rand() común (0x602ef4): los casos por tipo de los mapas 0 (0x602ffb), 2
-// (0x6031e5) y 4 (0x603799); el 1 va a la cadena de 0x6044ed, que no tiene nada para él. El 0x69 crea las
+// (0x6031e5), 4 (0x603799) y 8 (0x603a3e); el 1 va a la cadena de 0x6044ed, que no tiene nada para él. El 0x69 crea las
 // gotas con el pool compartido; los demás cortan con su dirección. `posed`: si 0x602e90 llamó a 0x6002e0,
 // cuyo marco queda en la pila que leen los sprites del 0x38 del 0 y del 9 del 4.
 Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const GameObjectPass& pass,
@@ -394,6 +399,8 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
         return StepAidaObjectFrame(object, pass);
     if (map == LostTowerMap)
         return StepLostTowerObjectFrame(object, commonRandom, pass, posed);
+    if (map == TarkanMap)
+        return StepTarkanObjectFrame(object, pass);
     if (map == LorenciaMap && object.type == 0x38)
         return StepMerchantAnimalFrame(object, commonRandom, pass, posed);
     if (map == LorenciaMap && object.type == World::Waterspout)
@@ -425,7 +432,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                                                        const World::TerrainLighting* lighting,
                                                        Core::Duration frameClock, const GameObjectPass& pass)
 {
-    if (pass.map > LostTowerMap && pass.map != AidaMap && pass.map != SelectionWorldMap &&
+    if (pass.map > LostTowerMap && pass.map != TarkanMap && pass.map != AidaMap && pass.map != SelectionWorldMap &&
         !World::IsKalimaMap(pass.map))
     {
         return Core::Unexpected(std::format("0x6046a0: los casos por tipo del mapa {} (0x6002e0 y 0x602ed0) no están "

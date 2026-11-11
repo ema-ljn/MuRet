@@ -5094,6 +5094,74 @@ escribió. Con la Data del repo, el 1 y el 4 llegan a un cuadro completo y camin
 `SelectionParticlesTest.TheLostTowerFloorFlameRisesStraightWithTwoDraws` y `WorldObjectsDrawingTest`
 (`TheLostTowerChromeGoesBeforeTheBody` y `TheLostTowerFrameLeavesItsSprites`).
 
+### Los objetos de Tarkan
+
+Leído en la CL7 en el ASM y el pseudocódigo de `c32bbd5f` (*estático*; las cuentas de MuRet, *simulado*: con el
+port y la Data del repo). Lo común es lo de [Los objetos del juego](#los-objetos-del-juego). T es el reloj del
+mundo (`0x5767b88`, en ms) y `ftol` corta hacia cero en 32 bits.
+
+**La carga** (`0x616ec0`, el caso del mapa 8 en `0x6177f9`): antes de los `Bug` (`0xb2`), `0x63b870` con
+`GL_LINEAR` y el sexto argumento en 1 (avisa si falta) sube `Object9\sand01.jpg` a `0x5c2` y `sand02.jpg` a `0x5c3`,
+repitiendo (`0x2901`), e `Impack03.jpg` a `0x716`, sin repetir (`0x2900`). Las dos arenas son del HUD
+(`0x5a7520`, desde `0x5a7320`, que en el mapa 8 corre dos `0x622000` sobre la pantalla: CL8); `Impack03`, de los
+sprites del `0x3f` y el `0x40`. Al final de la carga de los modelos del mundo (`0x61a145..0x61a18f`), el byte
+`model+0x88` de los modelos 11, 12, 13, 73, 75 y 79 queda en 0: su malla 0 va sin luz, en el color del modelo, y
+con la U y la V del objeto (`0x4ecc30`, abajo).
+
+**El paso** (`0x604ab0`, la tabla `0x605cc0` por el byte de `0x605cfc` con el tipo − 2). Antes de la animación
+(`0x604c70..0x604c8e`), el 8 la avanza con la velocidad (`+0xd8`) por 4 (`0x6b8a44`) en una copia; `+0xd8` no
+cambia. Con L = sin(fase · 0,002f) · 0,35f + 0,65f, el seno y la suma en la x87:
+
+- `2` (`0x605683`): el blendMesh (`+0x64`) en 0 y la U (`+0x6c`) en (−`ftol(T)`, negado en 32 bits) % 1.000 ·
+  0,001f (`0x6b89c8`).
+- `4` (`0x6056b5`): el blendMesh en 0, su luz (`+0x68`) en L (fase T) guardada en float, la V (`+0x70`) en
+  (−`ftol(T)`) % 10.000 · 0,0001f (`0x6b8a94`) y `0x5f9780(x, y, (L; L; L), 3)` (`0x605718`).
+- `7` (`0x605727`): la fase es ángulo z · 100 (`0x6b86b4`) + T; el blendMesh en 0, su luz en L y la luz
+  (L; L · 0,6f; L · 0,2f) de radio 3 (`0x60577d`).
+- `0xb`, `0xd`, `0x49`, `0x4b` y `0x4f`: la V en (−`ftol(T)`) % 10.000 · 0,0002f (`0x6b8a64`); el `0x48`, igual
+  y con el blendMesh en 0.
+- `0xc` (`0x6057b7`): la U y la V en (−`ftol(T)`) % 50.000 · 0,00005f (`0x6b8a28`), de dos `ftol`.
+- `0x3d`, `0x41` y `0x42` (`0x605831`, `0x605855`): el blendMesh en 1, la V en (−`ftol(T)`) % 1.000 · 0,001f y la
+  luz (L; L · 0,6f; L · 0,2f) de radio 2 por el mismo `0x605718`, sin tocar `+0x68`.
+- `0x3f` y `0x40`: `+0x58` en −2 (`0x6059dd`).
+- `0x52` (`0x605970`): el blendMesh en 0 (EDX, en 0 desde `0x604d50`) y la luz del objeto (`+0xf4`) en (1; 1; 1).
+
+**El dibujo.** En `0x6002e0`, el `0x51` (`0x600c72..0x600cdc`, `Object82`, una malla con `DDD.jpg`) no va por
+`RenderBody`: entre un `glPushMatrix` (`0x4ecc10`) y un `glPopMatrix` (`0x4ecc20`), dos `0x4ecc30` de su malla 0:
+la común (2, con el alpha, el blendMesh, su luz, la U, la V y sin textura forzada) y la del cromo (`0x44`, con
+`Chrome01` en `0x5c0`): las UV (0,5 · nz + t; 0,5 · ny + 2t), aditiva, en el color del modelo (`+0x48`) sin la
+luz de cada normal; con el alpha por debajo de 0,99, ese color por el alpha. En `0x602ed0` (la tabla `0x604554`
+por `0x604580`, el 8 en `0x603a3e`; los tipos por `0x6045f8` y `0x604618`), con s = sin(fase · 0,002f) · 0,3f +
+0,7f y los sprites en el buffer global de la pose (`0x4ec110` con el desplazamiento en cero, `0x602fce`):
+
+- `0` (`0x603a5a`): un `0x5c6` (`Spark03`) en el hueso 6 (`0x68b193c`), de escala s guardada · 5 y luz
+  (s · 0,5882353f; s; s), con la fase T.
+- `0x3f` (`0x603b0c`): un `0x716` (`Impack03`) en el hueso 2 (`0x68b187c`), con la fase ángulo z · 5 + T, de
+  escala s guardada · 1,5 y la luz del 0; el `0x40` (`0x603b87`), igual pero con s guardada antes:
+  (s; s · 0,32f; s · 0,32f).
+- `0x3c` (`0x603acc`): con `+0x58` distinto de −2, veinte `0x53fe70(0x5f2, posición, ángulos, luz +0xf4, 6,
+  escala +0xc, 0)`; después `+0x58` en −2, y no vuelve a humear mientras no se recargue el mapa.
+- `0x46` (`0x603c06`): `+0x58` en −2 y, con `rand()` % 5 en 0, un `5f2/7`.
+- `0x4c` (`0x603c4c`): `+0x58` en −2 y, con `ftol(T)` % 5.000 mayor que 4.500 (con signo), un `5f2/4`.
+- `0x53` (`0x603c9d`): `+0x58` en −2; con b = `ftol(ángulo z)` · 10 (en 32 bits) y `ftol(T)` % 10.000 mayor que
+  b + 3.500 y menor que b + 4.000 (con signo), un `5f2/8`; con `rand()` % 3 en 0, además un `5f2/4` corrido
+  ((`rand()` & 127) − 64) en x y después en y, sumados en la x87 y guardados, con la z del objeto y media escala
+  (`0x6b882c`), y la piedrita `0x518cf0(200 + (rand() & 1), posición, ángulos, luz, 0, 0, −1, 0, 0, 0, 0)`.
+
+Los humos van al pool compartido de las partículas sin dueño, y uno lleno no es error; sus creaciones, pasos y
+dibujos son los del humo del mapa 8 (`World::Particles`). `0x606560`, `0x6063d0`, `0x6061c0` y `0x5ff960` no
+tienen nada para el 8.
+
+**En MuRet.** La carga: `World::TarkanObjectTextures` (en la lista de `Scenes::TerrainTiles`) y
+`World::SeedTarkanModelState` sobre `ObjectModelStepState` (`GameScene::LoadTheObjectModels`). El paso:
+`World::StepTarkanObject` y `World::TarkanAnimationSpeed`, desde `World::StepWorldObjectChecked`. El dibujo:
+`ObjectDrawKind::TarkanChrome` y `Scenes::DrawTarkanChrome`, y `Scenes::StepTarkanObjectFrame` (con la tabla de
+efectos que presta `GameScene`). Un destino prestado que falta, o un reloj o un ángulo sin `ftol` acreditado,
+corta con su dirección después de lo que ya escribió. Con la Data del repo, el 8 llega a un cuadro completo y
+camina, también en la zona segura (`GameT16SceneMatrix`, `GameT16MapWalk` y `GameT16SafeZoneWalk`, en (70, 70) y
+(206, 56)). Tests: `TarkanObjectsTest`, `TarkanObjectFrameTest` y
+`WorldObjectsDrawingTest.TheTarkanChromeGoesAfterItsFirstMesh`.
+
 ### Las marcas del suelo
 
 `0x549130`, desde `0x5fc365` (*estático*, salvo donde se dice). Son 100 lugares de `0x78` bytes en

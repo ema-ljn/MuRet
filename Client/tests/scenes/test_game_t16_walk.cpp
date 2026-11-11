@@ -318,8 +318,9 @@ class GameT16SafeZoneWalk : public GameT16MapWalk
 TEST_P(GameT16SafeZoneWalk, RealSafeZoneCellsResetRunWhileTheirLogicalCellAdvances)
 {
     const auto map = static_cast<std::uint8_t>(GetParam());
-    constexpr std::array<std::uint8_t, 5> SafeX{132, 0, 185, 166, 195};
-    constexpr std::array<std::uint8_t, 5> SafeY{89, 0, 30, 81, 72};
+    // Tarkan (World9): la zona segura va de x 155 a 251 e y 28 a 97; 206..208 × 56 es suelo libre.
+    constexpr std::array<std::uint8_t, 9> SafeX{132, 0, 185, 166, 195, 0, 0, 0, 206};
+    constexpr std::array<std::uint8_t, 9> SafeY{89, 0, 30, 81, 72, 0, 0, 0, 56};
     const std::uint8_t x = SafeX[map];
     const std::uint8_t y = SafeY[map];
     Teleport(map, x, y);
@@ -412,10 +413,10 @@ INSTANTIATE_TEST_SUITE_P(AllSevenKalimaAliases, GameT16KalimaWalk, ::testing::Va
                          [](const ::testing::TestParamInfo<int>& parameter)
                          { return "Map" + std::to_string(parameter.param); });
 
-INSTANTIATE_TEST_SUITE_P(CompleteSceneMaps, GameT16MapWalk, ::testing::Values(0, 1, 2, 3, 4),
+INSTANTIATE_TEST_SUITE_P(CompleteSceneMaps, GameT16MapWalk, ::testing::Values(0, 1, 2, 3, 4, 8),
                          [](const ::testing::TestParamInfo<int>& mapParameter)
                          { return "Map" + std::to_string(mapParameter.param); });
-INSTANTIATE_TEST_SUITE_P(CompleteSceneMapsWithSafeZone, GameT16SafeZoneWalk, ::testing::Values(0, 2, 3, 4),
+INSTANTIATE_TEST_SUITE_P(CompleteSceneMapsWithSafeZone, GameT16SafeZoneWalk, ::testing::Values(0, 2, 3, 4, 8),
                          [](const ::testing::TestParamInfo<int>& mapParameter)
                          { return "Map" + std::to_string(mapParameter.param); });
 } // namespace

@@ -298,6 +298,15 @@ void DrawSubtractiveMesh(Render::ModelBatch& batch, const IModelLibrary& models,
 void DrawWaterspout(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                     Core::Duration frameClock);
 
+// 0x602e90 con el 0x51 de Tarkan en 0x6002e0 (0x600c81..0x600cdc): entre 0x4ecc10 y 0x4ecc20, dos
+// 0x4ecc30 sobre la malla 0 sin RenderBody. Primero el pase base (2) con el blendMesh, la luz, la U y la V
+// del objeto, sin la malla oculta (+0x58) ni los scripts R y H, que mira RenderBody y no 0x4ecc30 (Object82
+// no tiene ninguno); después el 0x44 con Chrome01 (0x5c0): las UV del cromo con la normal en el mundo,
+// aditivo y con el color del modelo (el de 0x5ffce0, sin la luz por vértice), por el alpha si es menor que
+// 0,99 (Q-C95). Sin el cromo si la malla tiene N. Un modelo que la biblioteca no tiene no se dibuja.
+void DrawTarkanChrome(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
+                      Core::Duration frameClock);
+
 // 0x602e90 con el caso del caballo oscuro (0xbf) de 0x6002e0: el pase base de DrawObject en blanco
 // (pisa el color de 0x5ffce0); después el 0x44 (cromo aditivo, Render::Models::ShinePass::Chrome) de
 // las mallas 12 a 15 que existen (en DarkHorse.bmd, la 12) en (1; 0,8; 0,3), por el alpha si es menor

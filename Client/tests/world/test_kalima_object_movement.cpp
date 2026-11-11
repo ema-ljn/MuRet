@@ -20,9 +20,9 @@ TEST(KalimaObjectMovementTest, UnsignedActionWindowControlsDampingAndRepulsion)
         EXPECT_FLOAT_EQ(object.transform.position.x, moves ? 96.4f : 100);
         EXPECT_FLOAT_EQ(object.transform.position.y, moves ? 192.8f : 200);
         EXPECT_EQ(object.transform.position.z, 300);
-        EXPECT_FLOAT_EQ(object.transform.angles.x, moves ? 6 : 0);
-        EXPECT_FLOAT_EQ(object.transform.angles.y, moves ? 12 : 0);
-        EXPECT_FLOAT_EQ(object.transform.angles.z, moves ? 18 : 0);
+        EXPECT_FLOAT_EQ(object.transform.angles.x, moves ? 6.0f : 0.0f);
+        EXPECT_FLOAT_EQ(object.transform.angles.y, moves ? 12.0f : 0.0f);
+        EXPECT_FLOAT_EQ(object.transform.angles.z, moves ? 18.0f : 0.0f);
     }
 }
 TEST(KalimaObjectMovementTest, PositiveVelocityThresholdDoesNotUseMagnitudeAndUnorderedTakesRepulsion)

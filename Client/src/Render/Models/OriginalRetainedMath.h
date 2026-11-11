@@ -53,6 +53,10 @@ struct SignedConversion
 // FSIN y después FADD de un sumando double (el float de la constante): sin64 + sumando con un solo R53,
 // sin redondear el seno a double antes de la suma. Mismo dominio que SineProductPC53.
 [[nodiscard]] std::optional<double> SineSumPC53(double argument, double addend);
+// FSIN y después FMUL ST1 por un factor que la x87 tiene en double (no un float de memoria): sin64 por el
+// factor exacto con un solo R53. Mismo dominio del argumento que SineProductPC53; el factor, finito y de
+// cualquier signo.
+[[nodiscard]] std::optional<double> SineDoubleProductPC53(double argument, double multiplier);
 // Valor canónico retenido; conserva clases y signo de cero. Error si no cabe exactamente en double.
 [[nodiscard]] std::optional<double> RetainedProductPC53(const Retained64& value, float multiplier);
 } // namespace Client::Render::Models::Detail

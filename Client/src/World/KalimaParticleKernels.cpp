@@ -1,6 +1,7 @@
 #include "World/KalimaParticleKernels.h"
 #include "Core/Expected.h"
 
+#include "World/Ftol.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/Particles.h"
 #include "Render/Models/Cloth.h"
@@ -27,7 +28,7 @@ constexpr double Brighten = static_cast<double>(1.1f);
 // 6ba3e8: bytes18 b7 d1 39; conservar el patrónbinary32 del drift54492b/544950.
 constexpr double WalkFactor = static_cast<double>(std::bit_cast<float>(0x39d1b718u));
 constexpr int FullTurn = 360, LifeSpan = 10, LongLife = 30, ShortLife = 20;
-constexpr int FlareZero = 0, FlareTrail = 1, FlareSix = 6, FlareSeven = 7, SelectionScene = 4;
+constexpr int FlareZero = 0, FlareTrail = 1, FlareSix = 6, FlareSeven = 7, FlareNine = 9, SelectionScene = 4;
 constexpr std::int32_t WaterfallSplash = WaterfallSplashFirst;
 float F32(double value)
 {
@@ -144,6 +145,24 @@ void StepFlareZero(Particle& p, Render::Models::CrtRandom& random, const glm::ve
         p.alive = false;
     }
 }
+// 0x544b8e..0x544c04: el 5ac/9 (la estela del efecto 0xb3 del 0x46 de Aida) achica la escala 0,011f; la
+// comparación con 0 lee la resta de la x87 sin redondear a float (fst). Con el byte vivo ya apagado por la
+// vida común, o con la escala que no queda por encima de 0 (o NaN), la vida va a 0 sin apagar el byte, que
+// apaga la resta del paso siguiente. Desde 75 de vida la luz sube por 1,05f; debajo, baja por 0,952381f.
+void StepFlareNine(Particle& p)
+{
+    constexpr double Shrink = static_cast<double>(std::bit_cast<float>(0x3c343958u));
+    constexpr double Grow = static_cast<double>(std::bit_cast<float>(0x3f866666u));
+    constexpr double Dim = static_cast<double>(std::bit_cast<float>(0x3f73cf3eu));
+    constexpr std::int32_t BrightLife = 0x4b;
+    const double scale = static_cast<double>(p.scale) - Shrink;
+    p.scale = F32(scale);
+    if (!p.alive)
+        p.life = 0;
+    if (!(scale > 0.0))
+        p.life = 0;
+    FadeLight(p, p.life >= BrightLife ? Grow : Dim);
+}
 Core::Expected<void, ParticleError> StepFlareSeven(Particle& p, const float* clock, IParticleTrigonometry* trigonometry)
 {
     if (clock == nullptr || trigonometry == nullptr)
@@ -220,8 +239,8 @@ bool IsKalimaParticle(std::int32_t type, std::int32_t subtype)
         ((type == KalimaWaterfallFirst || type == KalimaWaterfallMist) && subtype == ObjectSubtype) ||
         ((type == WaterfallSplash || type == WaterfallSplash + 1) && subtype == SplashObjectSubtype);
     return objectWaterfall || (type == KalimaWaterfallLast && subtype == 1) ||
-           (type == KalimaFlare &&
-            (subtype == FlareZero || subtype == FlareTrail || subtype == FlareSix || subtype == FlareSeven)) ||
+           (type == KalimaFlare && (subtype == FlareZero || subtype == FlareTrail || subtype == FlareSix ||
+                                    subtype == FlareSeven || subtype == FlareNine)) ||
            (subtype == 0 && (type == KalimaFanta || (type >= KalimaWaterfallFirst && type <= KalimaWaterfallLast)));
 }
 Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Models::CrtRandom& random,
@@ -229,10 +248,14 @@ Core::Expected<void, ParticleError> CreateKalimaParticle(Particle& p, Render::Mo
 {
     if (p.type == KalimaFlare)
     {
-        // 0x54007f: el 5ac/1 (la estela del efecto 0x5ac de Icarus) sólo vive 50, sin rand().
+        // 0x54007f: el 5ac/1 (la estela del efecto 0x5ac de Icarus) sólo vive 50, sin rand(). 0x53ffb9: el
+        // 5ac/9 vive ftol(escala · 40), sin rand().
         constexpr std::int32_t TrailLife = 50;
+        constexpr double NineLifePerScale = 40.0;
         if (p.subtype == FlareTrail)
             p.life = TrailLife;
+        else if (p.subtype == FlareNine)
+            p.life = FtolLow(static_cast<double>(p.scale) * NineLifePerScale);
         else
             CreateFlare(p, random);
         return {};
@@ -285,6 +308,8 @@ Core::Expected<void, ParticleError> StepKalimaParticle(Particle& p, Render::Mode
         }
         else if (p.subtype == FlareSix)
             StepFlareSix(p, random);
+        else if (p.subtype == FlareNine)
+            StepFlareNine(p);
         else
             return StepFlareSeven(p, clock, trigonometry);
     }

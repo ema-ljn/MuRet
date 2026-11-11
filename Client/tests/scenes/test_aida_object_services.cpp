@@ -337,10 +337,11 @@ TEST(AidaObjectServicesTest, TheBrazierLightsAtAThirdAndRaisesAFlame)
     EXPECT_EQ(alive[0]->life, 33);
 }
 
-// 0x42593f..0x4259ae: el 0xb3 del 0x46 sale con rand() % 5 en 1 y el reloj debajo de 30; no está portado.
-TEST(AidaObjectServicesTest, TheAidaEffectCutsOnlyWhenItWouldBeCreated)
+// 0x42593f..0x4259ae: el 0xb3 del 0x46 sale con rand() % 5 en 1 y el reloj debajo de 30, con la luz 0,1f; la
+// creación (0x51900b) saca sus seis rand() y deja su propia luz.
+TEST(AidaObjectServicesTest, TheWispLeavesOnlyWhenTheDrawAndTheClockAllowIt)
 {
-    int cuts = 0;
+    int created = 0;
     for (const std::uint32_t seed : {1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u})
     {
         for (const std::uint32_t time : {29u, 30u})
@@ -351,36 +352,57 @@ TEST(AidaObjectServicesTest, TheAidaEffectCutsOnlyWhenItWouldBeCreated)
             CrtRandom draws(seed);
             const bool creates = draws.Next() % 5 == 1 && time < 30;
             WorldObject object = ObjectOf(0x46);
-            const auto stepped = StepAidaObjectFrame(object, fixture.Pass());
-            EXPECT_EQ(stepped.HasValue(), !creates);
-            EXPECT_EQ(fixture.random.State(), draws.State());
+            ASSERT_TRUE(StepAidaObjectFrame(object, fixture.Pass()).HasValue());
+            const auto& effect = fixture.effects->Effects()[0];
+            EXPECT_EQ(effect.alive, creates);
             if (creates)
             {
-                ++cuts;
-                EXPECT_NE(stepped.Error().find("0x4259ae"), std::string::npos);
+                ++created;
+                for (int draw = 0; draw < 6; ++draw)
+                    static_cast<void>(draws.Next());
+                EXPECT_EQ(effect.type, Client::World::AidaWispEffect);
+                EXPECT_EQ(effect.light, glm::vec3(0.01f, 0.01f, std::bit_cast<float>(0x3cf5c28fu)));
+                EXPECT_EQ(effect.life, 1000);
             }
+            EXPECT_EQ(fixture.random.State(), draws.State());
         }
     }
-    EXPECT_GT(cuts, 0);
+    EXPECT_GT(created, 0);
+
+    Fixture poolless;
+    GameObjectPass pass = poolless.Pass();
+    pass.effects = nullptr;
+    for (std::uint32_t seed = 1;; ++seed)
+    {
+        CrtRandom probe(seed);
+        if (probe.Next() % 5 == 1)
+        {
+            poolless.random = CrtRandom(seed);
+            break;
+        }
+    }
+    WorldObject object = ObjectOf(0x46);
+    const auto cut = StepAidaObjectFrame(object, pass);
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x4259ae"), std::string::npos);
 }
 
-// Los cuerpos con 0x4ecc30 del 0x29 y del 0x41/0x42 cortan con su dirección; los demás tipos no hacen nada.
-TEST(AidaObjectServicesTest, TheRedrawnBodiesCutAndTheOtherTypesDoNothing)
+// El 0x29 y el 0x41/0x42 sólo dibujan (DrawAidaMeshPass): acá no sacan rand() ni crean nada, como los tipos
+// sin caso.
+TEST(AidaObjectServicesTest, TheRedrawnBodiesAndTheOtherTypesDoNothingHere)
 {
-    for (const auto& [type, address] : std::array<std::pair<std::int16_t, const char*>, 3>{
-             {{std::int16_t{0x29}, "0x4255f3"}, {std::int16_t{0x41}, "0x42588d"}, {std::int16_t{0x42}, "0x42588d"}}})
+    for (const std::int16_t type : {std::int16_t{0x29}, std::int16_t{0x41}, std::int16_t{0x42}, std::int16_t{0x10}})
     {
         Fixture fixture;
         WorldObject object = ObjectOf(type);
-        const auto cut = StepAidaObjectFrame(object, fixture.Pass());
-        ASSERT_FALSE(cut.HasValue());
-        EXPECT_NE(cut.Error().find(address), std::string::npos);
+        const WorldObject before = object;
+        ASSERT_TRUE(StepAidaObjectFrame(object, fixture.Pass()).HasValue());
+        EXPECT_TRUE(fixture.Alive().empty());
+        EXPECT_FALSE(fixture.sprites->Any());
+        EXPECT_FALSE(fixture.effects->Effects()[0].alive);
+        EXPECT_EQ(fixture.random.State(), 7u);
+        EXPECT_EQ(object.state, before.state);
+        EXPECT_EQ(object.light, before.light);
     }
-    Fixture fixture;
-    WorldObject object = ObjectOf(0x10);
-    ASSERT_TRUE(StepAidaObjectFrame(object, fixture.Pass()).HasValue());
-    EXPECT_TRUE(fixture.Alive().empty());
-    EXPECT_FALSE(fixture.sprites->Any());
-    EXPECT_EQ(fixture.random.State(), 7u);
 }
 } // namespace

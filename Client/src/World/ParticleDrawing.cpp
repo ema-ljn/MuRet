@@ -1,6 +1,7 @@
 #include "World/ParticleDrawing.h"
 #include "World/KalimaParticleKernels.h"
 #include "World/SelectionParticleKernels.h"
+#include "World/TrialsParticleKernels.h"
 #include "World/ParticleDrawParameters.h"
 #include "World/IParticleDrawingServices.h"
 #include "World/Particles.h"
@@ -94,7 +95,9 @@ Core::Expected<DrawSelection, ParticleDrawingError> SelectBranch(Particle& p, st
                                                                  IParticleDrawingServices& services)
 {
     const std::int32_t type = p.type;
-    if (IsKalimaParticle(type, p.subtype))
+    // 0x548644: la 6f2/3 va al default (caseD_5c5) y la 5f2/22 sale del caso del 0x5f2 sin restar ni ser el
+    // /6 (0x548a64): las dos al billboard común.
+    if (IsKalimaParticle(type, p.subtype) || IsTrialsParticle(type, p.subtype))
         return DrawSelection{ParticleDrawKind::Common, false};
     switch (type)
     {

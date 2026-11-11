@@ -442,3 +442,57 @@ TEST(ModelEffectsTest, TheIcarusCloudAndFlareAreCreatedWithTheirOwnFields)
 
     EXPECT_FALSE(effects.CreateIcarusEffect(0xb4, {}, {}, glm::vec3(1.0f), draws).has_value());
 }
+
+// 0x51900b: el 0xb3 de Aida. El prefijo común con la escala 0 (pasa a 0,9) y seis rand(): la z, la y y la x
+// corridas ± 100, el yaw, la y de la velocidad y la escala; la partida en la posición ya corrida.
+TEST(ModelEffectsTest, TheAidaWispIsCreatedWithSixDrawsAroundItsObject)
+{
+    ModelEffects effects;
+    effects.Effects()[0].alive = true;
+    effects.Effects()[1].turnPending = 7.0f;
+    Client::Render::Models::CrtRandom random(11);
+    Client::Render::Models::CrtRandom draws(11);
+    const glm::vec3 at{1000.5f, 2000.25f, 300.0f};
+    const glm::vec3 angles{0.0f, 0.0f, 45.0f};
+    const auto created = effects.CreateAidaWisp(at, angles, glm::vec3(0.1f), random);
+    ASSERT_EQ(created, std::optional<std::size_t>(1));
+    const ModelEffect& wisp = effects.Effects()[1];
+    const int z = draws.Next() % 200;
+    const int y = draws.Next() % 200;
+    const int x = draws.Next() % 200;
+    const int yaw = draws.Next() % 360;
+    const int push = draws.Next() & 7;
+    const int grow = draws.Next() % 5;
+    EXPECT_EQ(random.State(), draws.State());
+    EXPECT_EQ(wisp.type, Client::World::AidaWispEffect);
+    EXPECT_EQ(wisp.subtype, 0);
+    const glm::vec3 moved{static_cast<float>(static_cast<double>(x) - 100.0 + static_cast<double>(at.x)),
+                          static_cast<float>(static_cast<double>(y) - 100.0 + static_cast<double>(at.y)),
+                          static_cast<float>(static_cast<double>(z) - 100.0 + static_cast<double>(at.z))};
+    EXPECT_EQ(wisp.transform.position, moved);
+    EXPECT_EQ(wisp.start, moved);
+    EXPECT_EQ(wisp.previousPosition, moved);
+    EXPECT_EQ(wisp.transform.angles, glm::vec3(0.0f, 0.0f, static_cast<float>(yaw + 45)));
+    EXPECT_EQ(wisp.velocity,
+              glm::vec3(0.0f, static_cast<float>(static_cast<double>(push) * static_cast<double>(0.1f) - 5.0), 0.0f));
+    EXPECT_EQ(wisp.transform.scale,
+              static_cast<float>(static_cast<double>(grow) * static_cast<double>(std::bit_cast<float>(0x3ccccccdu)) +
+                                 static_cast<double>(std::bit_cast<float>(0x3f666666u))));
+    EXPECT_EQ(wisp.life, 1000);
+    EXPECT_EQ(wisp.state, 0);
+    EXPECT_EQ(wisp.speed, 1.0f);
+    EXPECT_EQ(wisp.turnDirection, 1.0f);
+    EXPECT_EQ(wisp.flagEc, 1.0f);
+    EXPECT_EQ(wisp.turnPending, 7.0f); // +0xdc no lo escribe nadie: queda lo del lugar.
+    EXPECT_EQ(wisp.objectState.light, 1.0f);
+    EXPECT_EQ(wisp.objectState.blendMesh, -1);
+    EXPECT_TRUE(wisp.vertexLight);
+    EXPECT_EQ(wisp.disturbanceState, 0xffff);
+    EXPECT_EQ(wisp.light, glm::vec3(0.01f, 0.01f, std::bit_cast<float>(0x3cf5c28fu)));
+
+    for (auto& effect : effects.Effects())
+        effect.alive = true;
+    Client::Render::Models::CrtRandom full(11);
+    EXPECT_FALSE(effects.CreateAidaWisp(at, angles, glm::vec3(0.1f), full).has_value());
+    EXPECT_EQ(full.State(), 11u);
+}

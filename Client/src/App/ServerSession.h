@@ -21,6 +21,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <optional>
 #include <span>
 #include <string>
@@ -160,6 +161,10 @@ struct KeepaliveSpeeds
 struct SessionSettings
 {
     ServerAddress connectServer; // de la config o de /u /p (CL3.4)
+    // El ejecutable que suma la respuesta al 03 del GS: el nombre que 0x4ad270 saca de la línea de
+    // comandos (Protocol::Connection::MainCheckFileName), relativo a la carpeta actual como el
+    // CreateFileA de 0x4aec13. Vacío, o si no se abre, la suma va en 0, como en 0x4aec28.
+    std::filesystem::path mainCheckFile{};
 };
 
 class ISessionEventSink;
@@ -326,6 +331,7 @@ private:
     void OnTeleport(const Network::Packet& packet);
     void OnRegen(const Network::Packet& packet);
     void OnLogoutResult(const Network::Packet& packet);
+    void OnMainCheck(const Network::Packet& packet);
     // El F1 02 con 1, con `encrypted` en el flag del paquete.
     void ReturnToSelection(bool encrypted);
     // El keepalive con el tick de `now` y las velocidades de SetKeepaliveSpeeds.

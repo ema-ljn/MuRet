@@ -321,3 +321,80 @@ TEST(KalimaParticlesTest, TheIcarusFlareTrailFadesWithoutDraws)
     EXPECT_EQ(p.scale, static_cast<float>(3.0 * static_cast<double>(std::bit_cast<float>(0x3f733333u))));
     EXPECT_EQ(random.State(), CrtRandom(7).State());
 }
+
+// 0x53ffb9: la estela 5ac/9 del 0xb3 de Aida vive ftol(escala · 40), sin rand().
+TEST(KalimaParticlesTest, TheAidaWispTrailLivesFortyTimesItsScaleWithoutDraws)
+{
+    for (const float scale : {0.9f, 0.975f, 1.0f})
+    {
+        Particles trail;
+        CrtRandom random(7);
+        ASSERT_TRUE(
+            trail.CreateChecked(0x5ac, {100, 200, 300}, {}, {0.1f, 0.1f, 0.25f}, 9, scale, 99, random).HasValue());
+        EXPECT_EQ(trail.All()[0].life, static_cast<std::int32_t>(static_cast<double>(scale) * 40.0));
+        EXPECT_EQ(trail.All()[0].scale, scale);
+        EXPECT_EQ(random.State(), CrtRandom(7).State());
+    }
+}
+
+// 0x544b8e..0x544c04: la escala baja 0,011f; desde 75 de vida la luz sube por 1,05f y debajo baja por
+// 0,952381f. Con la escala que no queda por encima de 0, o con el byte vivo ya apagado, la vida va a 0 sin
+// apagarlo: lo apaga la resta del paso siguiente. Sin rand().
+TEST(KalimaParticlesTest, TheAidaWispTrailShrinksAndFadesUntilItsScaleRunsOut)
+{
+    Client::World::Particle p;
+    p.alive = true;
+    p.type = p.texture = 0x5ac;
+    p.subtype = 9;
+    p.life = 80;
+    p.scale = 0.5f;
+    p.light = {0.1f, 0.1f, 0.25f};
+    CrtRandom random(7);
+    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
+    const double shrink = static_cast<double>(std::bit_cast<float>(0x3c343958u));
+    const double grow = static_cast<double>(std::bit_cast<float>(0x3f866666u));
+    const double dim = static_cast<double>(std::bit_cast<float>(0x3f73cf3eu));
+    EXPECT_EQ(p.scale, static_cast<float>(0.5 - shrink));
+    EXPECT_EQ(p.life, 80);
+    EXPECT_EQ(p.light,
+              glm::vec3(static_cast<float>(static_cast<double>(0.1f) * grow),
+                        static_cast<float>(static_cast<double>(0.1f) * grow), static_cast<float>(0.25 * grow)));
+    EXPECT_EQ(random.State(), CrtRandom(7).State());
+
+    p.life = 74;
+    const glm::vec3 before = p.light;
+    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
+    EXPECT_EQ(p.light.x, static_cast<float>(static_cast<double>(before.x) * dim));
+    EXPECT_EQ(p.life, 74);
+
+    // 0x544ba2: compara la resta de la x87 sin redondear; 0,011f menos 0,011f es 0 y no queda encima.
+    p.scale = std::bit_cast<float>(0x3c343958u);
+    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
+    EXPECT_EQ(p.scale, 0.0f);
+    EXPECT_EQ(p.life, 0);
+    EXPECT_TRUE(p.alive);
+
+    p.alive = false;
+    p.life = 90;
+    p.scale = 0.5f;
+    ASSERT_TRUE(Client::World::StepKalimaParticle(p, random, nullptr, nullptr, {}).HasValue());
+    EXPECT_EQ(p.life, 0);
+}
+
+// La vida común del pool apaga la estela en el paso que la deja en 0, antes de que se achique del todo.
+TEST(KalimaParticlesTest, TheAidaWispTrailDiesWhenTheCommonLifeRunsOut)
+{
+    Particles trail;
+    CrtRandom random(7);
+    ASSERT_TRUE(trail.CreateChecked(0x5ac, {100, 200, 300}, {}, {0.1f, 0.1f, 0.25f}, 9, 0.9f, 99, random).HasValue());
+    // 0,9f · 40 queda en 35,999999 y ftol trunca.
+    ASSERT_EQ(trail.All()[0].life, 35);
+    int steps = 0;
+    while (trail.All()[0].alive && steps < 100)
+    {
+        ASSERT_TRUE(Client::World::StepParticlesChecked(trail, random).HasValue());
+        ++steps;
+    }
+    EXPECT_FALSE(trail.All()[0].alive);
+    EXPECT_EQ(steps, 35);
+}

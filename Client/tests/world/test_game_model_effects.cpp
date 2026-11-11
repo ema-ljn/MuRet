@@ -1,6 +1,8 @@
 #include "World/GameModelEffects.h"
 
 #include "Render/Models/Cloth.h"
+#include "Render/Models/OriginalRetainedMath.h"
+#include "Render/Models/OriginalRotation.h"
 #include "Render/Models/Skeleton.h"
 #include "World/ModelEffects.h"
 #include "World/Particles.h"
@@ -16,6 +18,7 @@
 #include <gtest/gtest.h>
 
 #include <bit>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -564,4 +567,104 @@ TEST(GameModelEffectsTest, TheIcarusFlareStepsTwiceAndLeavesTwoTrails)
     ASSERT_TRUE(Client::World::StepGameModelEffect(cloud, nullptr, particles, 0.0f, random).HasValue());
     EXPECT_EQ(cloud.life, 1);
     EXPECT_EQ(cloud.transform.position, glm::vec3(1000.0f, 1000.0f, 100.0f));
+}
+
+namespace
+{
+// El seno · f de la x87 (FSIN y FMUL), con el signo de f.
+double SineTimes(double argument, float multiplier)
+{
+    const auto product = Client::Render::Models::Detail::SineProductPC53(argument, std::abs(multiplier));
+    EXPECT_TRUE(product.has_value());
+    return multiplier < 0.0f ? -product.value_or(0.0) : product.value_or(0.0);
+}
+
+Client::World::ModelEffect AidaWisp()
+{
+    Client::World::ModelEffect wisp = DungeonEffect(Client::World::AidaWispEffect, 1000);
+    wisp.speed = 1.0f;
+    wisp.turnDirection = 1.0f;
+    wisp.flagEc = 1.0f;
+    wisp.transform.scale = 0.95f;
+    wisp.transform.angles = {10.0f, 0.0f, 30.0f};
+    wisp.velocity = {0.0f, -4.5f, 0.0f};
+    wisp.start = wisp.transform.position;
+    return wisp;
+}
+} // namespace
+
+// 0x520b77..0x520d0c: sin giros sorteados, el yaw suma sen(ftol(T) % 10.000 · 0,0001f) · +0xe4 y el pitch el
+// mismo seno · +0xec · 1/3f; la luz es +0x68 · (0,1f; 0,1f; 0,25f) y la 5ac/9 sale en el lugar con los
+// ángulos nuevos, antes de que la cola común lo avance por la velocidad girada. Tres rand(): el común y los dos
+// % 40.
+TEST(GameModelEffectsTest, TheAidaWispTurnsWithTheClockAndLeavesATrailBeforeMoving)
+{
+    const std::uint32_t seed = SeedWhereDraw(1, [](int value) { return value % 40 != 1; });
+    ASSERT_NE(Client::Tests::AfterDraws(seed, 2).Next() % 40, 1);
+    Client::World::ModelEffect wisp = AidaWisp();
+    Client::World::Particles particles;
+    Client::Render::Models::CrtRandom random(seed);
+    const float clock = 12345.75f;
+    ASSERT_TRUE(Client::World::StepGameModelEffect(wisp, nullptr, particles, clock, random).HasValue());
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(seed, 3).State());
+    const double argument = 2345.0 * static_cast<double>(std::bit_cast<float>(0x38d1b717u));
+    const float yaw = static_cast<float>(SineTimes(argument, 1.0f) + 30.0);
+    const float pitch =
+        static_cast<float>(SineTimes(argument, 1.0f) * static_cast<double>(std::bit_cast<float>(0x3eaaaaabu)) + 10.0);
+    EXPECT_EQ(wisp.transform.angles, glm::vec3(pitch, 0.0f, yaw));
+    EXPECT_EQ(wisp.light, glm::vec3(0.1f, 0.1f, 0.25f));
+    EXPECT_EQ(wisp.life, 999);
+    EXPECT_EQ(wisp.state, 0);
+    EXPECT_EQ(wisp.speed, 1.0f);
+    const auto& trail = particles.All()[0];
+    ASSERT_TRUE(trail.alive);
+    EXPECT_EQ(trail.type, 0x5ac);
+    EXPECT_EQ(trail.subtype, 9);
+    EXPECT_EQ(trail.position, glm::vec3(1000.0f, 1000.0f, 100.0f));
+    EXPECT_EQ(trail.angles, wisp.transform.angles);
+    EXPECT_EQ(trail.light, glm::vec3(0.1f, 0.1f, 0.25f));
+    EXPECT_EQ(trail.scale, 0.95f);
+    EXPECT_EQ(trail.life, 37); // ftol(0,95f · 40) = ftol(37,999998).
+    EXPECT_FALSE(particles.All()[1].alive);
+    const glm::vec3 step = Client::Render::Models::OriginalVectorRotate(
+        glm::vec3(0.0f, -4.5f, 0.0f), Client::Render::Models::OriginalAngleMatrix(wisp.transform.angles));
+    EXPECT_EQ(wisp.transform.position, glm::vec3(static_cast<float>(static_cast<double>(step.x) + 1000.0),
+                                                 static_cast<float>(static_cast<double>(step.y) + 1000.0),
+                                                 static_cast<float>(static_cast<double>(step.z) + 100.0)));
+}
+
+// Con rand() % 40 en 1, el sentido +0xd8 se da vuelta y +0xe4 pasa a (rand() % 3 + 5) · sentido (el yaw gira
+// al revés); el segundo hace lo mismo con +0xec y rand() % 3 + 1. Lejos de la partida, vida 50 y estado 1, una
+// sola vez.
+TEST(GameModelEffectsTest, TheAidaWispFlipsItsTurnsAndShortensItsLifeFarFromItsStart)
+{
+    const std::uint32_t seed = SeedWhereDraw(1, [](int value) { return value % 40 == 1; });
+    Client::Render::Models::CrtRandom draws(seed);
+    static_cast<void>(draws.Next());
+    static_cast<void>(draws.Next());
+    const int yawTurn = draws.Next() % 3 + 5;
+    const bool second = draws.Next() % 40 == 1;
+    const int pitchTurn = second ? draws.Next() % 3 + 1 : 0;
+    Client::World::ModelEffect wisp = AidaWisp();
+    wisp.start = {1000.0f, 1500.0f, 100.0f};
+    Client::World::Particles particles;
+    Client::Render::Models::CrtRandom random(seed);
+    ASSERT_TRUE(Client::World::StepGameModelEffect(wisp, nullptr, particles, 5000.0f, random).HasValue());
+    EXPECT_EQ(random.State(), draws.State());
+    EXPECT_EQ(wisp.speed, second ? 1.0f : -1.0f);
+    EXPECT_EQ(wisp.turnDirection, static_cast<float>(-yawTurn));
+    EXPECT_EQ(wisp.flagEc, second ? static_cast<float>(pitchTurn) : 1.0f);
+    const double argument = 5000.0 * static_cast<double>(std::bit_cast<float>(0x38d1b717u));
+    EXPECT_EQ(wisp.transform.angles.z, static_cast<float>(SineTimes(argument, static_cast<float>(-yawTurn)) + 30.0));
+    // 0x520c3f: a 500 justo no es "menor"; vida 50 menos la de la cola.
+    EXPECT_EQ(wisp.life, 49);
+    EXPECT_EQ(wisp.state, 1);
+    ASSERT_TRUE(Client::World::StepGameModelEffect(wisp, nullptr, particles, 5000.0f, random).HasValue());
+    EXPECT_EQ(wisp.life, 48);
+
+    Client::World::ModelEffect near = AidaWisp();
+    near.start = {1000.0f, 1499.0f, 100.0f};
+    ASSERT_TRUE(Client::World::StepGameModelEffect(near, nullptr, particles, 5000.0f, random).HasValue());
+    EXPECT_EQ(near.life, 999);
+    EXPECT_EQ(near.state, 0);
 }

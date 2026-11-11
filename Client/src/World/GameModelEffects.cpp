@@ -16,6 +16,7 @@
 #include <array>
 #include <bit>
 #include <cstddef>
+#include <cmath>
 #include <cstdint>
 #include <format>
 #include <optional>
@@ -303,6 +304,79 @@ Core::Expected<void, std::string> StepIcarusFlare(ModelEffect& effect, Particles
         effect.life = 0;
     return {};
 }
+// FSIN y FMUL por un float de cualquier signo: el producto R53 del seno retenido por |f| con el signo de f
+// (el redondeo al más cercano es simétrico). Con f en ±0, el cero con el signo del producto.
+std::optional<double> SignedSineProductPC53(double argument, float multiplier)
+{
+    if (multiplier == 0.0f)
+    {
+        const auto unit = Render::Models::Detail::SineProductPC53(argument, 1.0f);
+        if (!unit)
+            return std::nullopt;
+        return std::signbit(*unit) != std::signbit(multiplier) ? -0.0 : 0.0;
+    }
+    const auto product = Render::Models::Detail::SineProductPC53(argument, std::abs(multiplier));
+    if (!product || multiplier > 0.0f)
+        return product;
+    return -*product;
+}
+// 0x520b77..0x520d0c: el 0xb3 de Aida. Con rand() % 40 en 1, el sentido +0xd8 se da vuelta y +0xe4 pasa a
+// (rand() % 3 + 5) · sentido; con otro rand() % 40 en 1, igual con +0xec y rand() % 3 + 1. Lejos de la partida
+// (la distancia de la x87, sin redondear, no menor que 500) y con el estado en 0, vida 50 y estado 1. El
+// yaw suma sen(ftol(T) % 10.000 · 0,0001f) · +0xe4 y el pitch el mismo seno · +0xec · 1/3f; la luz es
+// +0x68 · (0,1f; 0,1f; 0,25f) y suelta una 5ac/9 en el lugar con su escala, antes del avance de la cola.
+Core::Expected<void, std::string> StepAidaWisp(ModelEffect& effect, Particles& particles, float worldClock,
+                                               Render::Models::CrtRandom& random)
+{
+    constexpr int TurnChance = 40, TurnSpan = 3, YawBase = 5, PitchBase = 1;
+    constexpr double Reverse = -1.0, Reach = 500.0;
+    constexpr std::int32_t FarLife = 50;
+    constexpr int Period = 10000;
+    constexpr double Frequency = static_cast<double>(std::bit_cast<float>(0x38d1b717u)); // 0x6b8a94.
+    constexpr double Third = static_cast<double>(std::bit_cast<float>(0x3eaaaaabu));     // 0x6ba2a0.
+    constexpr double Tenth = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));     // 0x6b8a34.
+    constexpr double Quarter = 0.25;
+    constexpr std::int32_t TrailSubtype = 9;
+    if (random.Next() % TurnChance == 1)
+    {
+        effect.speed = F32(static_cast<double>(effect.speed) * Reverse);
+        effect.turnDirection = F32(static_cast<double>(random.Next() % TurnSpan + YawBase) * effect.speed);
+    }
+    if (random.Next() % TurnChance == 1)
+    {
+        effect.speed = F32(static_cast<double>(effect.speed) * Reverse);
+        effect.flagEc = F32(static_cast<double>(random.Next() % TurnSpan + PitchBase) * effect.speed);
+    }
+    glm::vec3& position = effect.transform.position;
+    const double dx = static_cast<double>(position.x) - effect.start.x;
+    const double dy = static_cast<double>(position.y) - effect.start.y;
+    const double dz = static_cast<double>(position.z) - effect.start.z;
+    // 0x520c27..0x520c37: dz², más dy², más dx², y la raíz; `test ah, 1` cuenta el NaN como "menor".
+    const double distance = std::sqrt(((dz * dz) + (dy * dy)) + (dx * dx));
+    if (distance >= Reach && effect.state == 0)
+    {
+        effect.life = FarLife;
+        effect.state = 1;
+    }
+    const double argument = static_cast<double>(FtolLow(static_cast<double>(worldClock)) % Period) * Frequency;
+    const auto yaw = SignedSineProductPC53(argument, effect.turnDirection);
+    if (!yaw)
+        return Core::Unexpected(std::string("0x520c86: el seno del 0xb3 no cabe en el perfil PC53"));
+    glm::vec3& angles = effect.transform.angles;
+    angles.z = F32(*yaw + static_cast<double>(angles.z));
+    const auto pitch = SignedSineProductPC53(argument, effect.flagEc);
+    if (!pitch)
+        return Core::Unexpected(std::string("0x520cbb: el seno del 0xb3 no cabe en el perfil PC53"));
+    angles.x = F32(*pitch * Third + static_cast<double>(angles.x));
+    const double glow = static_cast<double>(effect.objectState.light);
+    effect.light = {F32(glow * Tenth), F32(glow * Tenth), F32(glow * Quarter)};
+    const auto created = particles.CreateChecked(IcarusFlareEffect, position, angles, effect.light, TrailSubtype,
+                                                 effect.transform.scale, worldClock, random);
+    if (!created.HasValue())
+        return Core::Unexpected(
+            std::format("0x520d04: falló la partícula 5ac/9 del 0xb3 ({})", static_cast<int>(created.Error())));
+    return {};
+}
 } // namespace
 Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const Render::Models::Skeleton* skeleton,
                                                       Particles& particles, float worldClock,
@@ -361,6 +435,11 @@ Core::Expected<void, std::string> StepGameModelEffect(ModelEffect& effect, const
     else if (effect.type == IcarusFlareEffect)
     {
         if (auto stepped = StepIcarusFlare(effect, particles, worldClock, random); !stepped.HasValue())
+            return stepped;
+    }
+    else if (effect.type == AidaWispEffect)
+    {
+        if (auto stepped = StepAidaWisp(effect, particles, worldClock, random); !stepped.HasValue())
             return stepped;
     }
     else if (effect.type != DragonEffect && effect.type != ArrivalEffect && effect.type != IcarusCloudEffect)

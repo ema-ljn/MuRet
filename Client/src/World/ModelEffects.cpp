@@ -408,6 +408,45 @@ std::optional<std::size_t> ModelEffects::CreateIcarusEffect(std::int16_t type, c
     return std::nullopt;
 }
 
+std::optional<std::size_t> ModelEffects::CreateAidaWisp(const glm::vec3& position, const glm::vec3& angles,
+                                                        const glm::vec3& light, Render::Models::CrtRandom& random)
+{
+    constexpr std::int32_t WispLife = 1000;
+    constexpr int Spread = 200, Turn = 360, ScaleSpan = 5, PushMask = 7;
+    constexpr double Center = 100.0, Push = 5.0;
+    constexpr double PushStep = static_cast<double>(std::bit_cast<float>(0x3dcccccdu));  // 0x6b87b8.
+    constexpr double ScaleStep = static_cast<double>(std::bit_cast<float>(0x3ccccccdu)); // 0x6ba1fc.
+    constexpr float Dim = std::bit_cast<float>(0x3c23d70au), Blue = std::bit_cast<float>(0x3cf5c28fu);
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeOwnerlessEffect(effect, AidaWispEffect, position, angles, light);
+        effect.state = 0;
+        effect.objectState.light = 1.0f;
+        effect.speed = 1.0f;
+        effect.life = WispLife;
+        effect.turnDirection = 1.0f;
+        effect.flagEc = 1.0f;
+        glm::vec3& at = effect.transform.position;
+        // 0x519033..0x51908d: la z, la y y la x, en ese orden.
+        for (int axis = 2; axis >= 0; --axis)
+            at[axis] = F32(static_cast<double>(random.Next() % Spread) - Center + static_cast<double>(at[axis]));
+        effect.transform.angles.z =
+            F32(static_cast<double>(random.Next() % Turn) + static_cast<double>(effect.transform.angles.z));
+        // 0x5190a9..0x5190d8: la x y la z de la velocidad con esi, que el prefijo dejó en 0.
+        effect.velocity = {0.0f, F32(static_cast<double>(random.Next() & PushMask) * PushStep - Push), 0.0f};
+        effect.transform.scale = F32(static_cast<double>(random.Next() % ScaleSpan) * ScaleStep +
+                                     static_cast<double>(effect.transform.scale));
+        effect.start = at;
+        effect.light = {Dim, Dim, Blue};
+        effect.previousPosition = at;
+        return slot;
+    }
+    return std::nullopt;
+}
+
 std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                 const glm::vec3& light, float scale)
 {

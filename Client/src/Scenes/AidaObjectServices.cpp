@@ -150,12 +150,10 @@ Core::Expected<void, std::string> StepAidaObjectFrame(World::WorldObject& object
     case 0x47:
         return Flares(pass, RedFlares, false);
     case 0x29:
-        return Core::Unexpected(std::string("0x4255f3: el 0x29 de Aida vuelve a dibujar su malla 0 con 0x4ecc30 y la "
-                                            "V del reloj, y no está portado"));
     case 0x41:
     case 0x42:
-        return Core::Unexpected(std::string("0x42588d: el 0x41/0x42 de Aida vuelve a dibujar su malla 2 con 0x4ecc30 "
-                                            "y la V del reloj, y no está portado"));
+        // 0x4255f3 y 0x42588d sólo dibujan, sin rand() ni estado: DrawAidaMeshPass, en cada dibujo de MuRet.
+        return {};
     case 0x38:
         // 0x42566d: rand() & 1 (con la corrección del signo, que con rand() no corre); con 1, nada.
         if ((pass.random->Next() & 1) != 0)
@@ -217,7 +215,14 @@ Core::Expected<void, std::string> StepAidaObjectFrame(World::WorldObject& object
         const std::uint32_t time = pass.systemTime() & TimeMask;
         if (pass.random->Next() % 5 == 1 && time < AidaEffectWindow)
         {
-            return Core::Unexpected(std::string("0x4259ae: el efecto 0xb3 del 0x46 de Aida no está portado"));
+            if (pass.effects == nullptr)
+            {
+                return Core::Unexpected(std::string("0x4259ae: falta el pool de efectos de modelo para el 0xb3"));
+            }
+            // 0x425974..0x4259ae: la luz (0,1f; 0,1f; 0,1f), el objeto de dueño y su escala en el byte +0x88,
+            // que la creación pisa con 0.
+            static_cast<void>(pass.effects->CreateAidaWisp(object.transform.position, object.transform.angles,
+                                                           glm::vec3(Tenth), *pass.random));
         }
         return {};
     }

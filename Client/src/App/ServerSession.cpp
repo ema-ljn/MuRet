@@ -27,6 +27,7 @@
 #include "Protocol/Connection/Keepalive.h"
 #include "Protocol/Connection/Login.h"
 #include "Protocol/Connection/Logout.h"
+#include "Protocol/Connection/MainCheck.h"
 #include "Protocol/Connection/Opcodes.h"
 #include "Protocol/Connection/ServerList.h"
 #include "Protocol/Dispatcher.h"
@@ -41,10 +42,15 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <ios>
+#include <iterator>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -139,6 +145,30 @@ void KeepLastCharacterPerSlot(Protocol::Character::CharacterList& list)
     std::ranges::reverse(unique);
     list.characters = std::move(unique);
 }
+
+// 0x4aec13..0x4aec8d: CreateFileA para leer, GetFileSize y un ReadFile del archivo entero. Vacío si no
+// se abre (el CreateFileA que falla en 0x4aec26: tampoco abre una carpeta) o no se lee entero.
+std::optional<std::vector<std::byte>> ReadWholeFile(const std::filesystem::path& path)
+{
+    std::error_code error;
+    if (path.empty() || !std::filesystem::is_regular_file(path, error))
+    {
+        return std::nullopt;
+    }
+    std::ifstream file(path, std::ios::binary);
+    if (!file)
+    {
+        return std::nullopt;
+    }
+    const std::vector<char> bytes{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+    if (file.bad())
+    {
+        return std::nullopt;
+    }
+    std::vector<std::byte> image(bytes.size());
+    std::ranges::transform(bytes, image.begin(), [](char byte) { return static_cast<std::byte>(byte); });
+    return image;
+}
 } // namespace
 
 ServerSession::ServerSession(Network::Connection& connection, Core::IClock& clock, Core::Log& log,
@@ -203,7 +233,9 @@ void ServerSession::RegisterGameServerHandlers()
         m_gameServer.On(Protocol::World::WorldOpcode, Protocol::World::RegenSubcode,
                         [this](const Network::Packet& packet) { OnRegen(packet); }) &&
         m_gameServer.On(Protocol::World::WeatherOpcode, [this](const Network::Packet& packet) { OnWeather(packet); }) &&
-        m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); });
+        m_gameServer.On(JoinOpcode, LogoutSubcode, [this](const Network::Packet& packet) { OnLogoutResult(packet); }) &&
+        m_gameServer.On(Protocol::Connection::MainCheckOpcode,
+                        [this](const Network::Packet& packet) { OnMainCheck(packet); });
     assert(registered && "los handlers del GameServer se registran una vez");
 }
 
@@ -1068,6 +1100,42 @@ void ServerSession::ReturnToSelection(bool encrypted)
     Protocol::Outgoing secondClose = Protocol::Connection::WriteWindowClose();
     m_connection.Send(std::move(secondClose.packet), secondClose.delivery);
     SetState(SessionState::WaitingCharacterList);
+}
+
+// 0x4e2b10 → 0x4e16c0, sin guarda de escena, de estado ni del cifrado: la clave, la imagen del
+// ejecutable que nombra la línea de comandos (0x4ad4a0) y la suma, que vuelve como C3. El GS la
+// espera tres segundos (gObjSecondProc) y si no llega cierra la conexión. El original primero prueba
+// abrirlo para escribir (0x4ad51b) y, si puede, arma otro paquete (la protección, fuera de alcance):
+// un ejecutable en uso no se abre así en Windows, y MuRet sólo lo lee (Q-C319).
+void ServerSession::OnMainCheck(const Network::Packet& packet)
+{
+    const auto key = Protocol::Connection::ReadMainCheckKey(packet);
+    if (!key.HasValue())
+    {
+        m_log.Warning("se ignora la clave de la suma del ejecutable (03): {}", Unreadable);
+        return;
+    }
+    const std::uint16_t table = Protocol::Connection::MainCheckTable(key.Value());
+    std::uint32_t sum = 0;
+    const std::optional<std::vector<std::byte>> image = ReadWholeFile(m_settings.mainCheckFile);
+    if (image)
+    {
+        const auto summed = Protocol::Connection::MainCheckSum(*image, table);
+        if (!summed.HasValue())
+        {
+            static_cast<void>(CheckApplication(Core::Unexpected(summed.Error())));
+            return;
+        }
+        sum = summed.Value();
+    }
+    else
+    {
+        m_log.Warning("la suma del ejecutable (03) va en 0: no se abre \"{}\" (0x4aec28)",
+                      m_settings.mainCheckFile.string());
+    }
+    Protocol::Outgoing reply = Protocol::Connection::WriteMainCheckReply(sum);
+    m_connection.Send(std::move(reply.packet), reply.delivery);
+    m_log.Info("se contestó la suma del ejecutable (03)");
 }
 
 // El tick es el de GetTickCount en el original (0x4bee60), y las velocidades van con su ajuste.

@@ -46,4 +46,13 @@ StepObjectLamp(const WorldObject& object, Render::Models::CrtRandom& random, con
 // del 0x40. Siempre termina con el pedido sonoro 0x246; sin emisor corta después de los stores.
 [[nodiscard]] Core::Expected<void, std::string> StepAidaObject(WorldObject& object, Render::Models::CrtRandom& random,
                                                                const ObjectStepGlobals& globals);
+
+// 0x43ffc0 (0x605a62), con el mapa 31 (0x43ff10): después de 0x438a90 y 0x42c850, que en el 31 no hacen nada.
+// El 1, el 0x2c y el 0x2d sueltan la mariposa 0xae /0, /1 y /2 con timeGetTime() & 0x3ff debajo de 10; el
+// 0x1b sube y baja la z con el reloj del mundo y su fase (+0x84); el 0x2a suma a la luz dinámica
+// ((rand() & 3) + 3) · 0,1f por (0,9; 0,2; 0,1), radio 3; el 1, el 3, el 0x2a, el 0x2c, el 0x2d y el 0x35
+// quedan con +0x58 en −2. Con cualquier tipo, el ambiente 0x1ef si pasaron más de 300.000 ms del sistema
+// desde el anterior (0x723c4c). Un binding ausente corta donde lo pide el ASM, después de lo ya hecho.
+[[nodiscard]] Core::Expected<void, std::string>
+StepLandOfTrialsObject(WorldObject& object, Render::Models::CrtRandom& random, const ObjectStepGlobals& globals);
 } // namespace Client::World

@@ -52,7 +52,7 @@ TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBou
     }
     if (!m_scene->Failure())
     {
-        if (map <= 4 || map == 8 || map == 10 || kalima)
+        if (map <= 4 || map == 8 || map == 10 || map == 31 || map == 33 || kalima)
         {
             ASSERT_NO_FATAL_FAILURE(DrawCompleteFrame());
         }
@@ -83,7 +83,7 @@ TEST_P(GameT16SceneMatrix, RealEntryReachesACompleteSceneFrameOrAnExplicitMapBou
         RecordProperty("blocked_phase", "none on populated entry frame; cycle covered by KalimaLiveObjectsTest");
         return;
     }
-    if (map <= 4 || map == 8 || map == 10)
+    if (map <= 4 || map == 8 || map == 10 || map == 31 || map == 33)
     {
         ASSERT_FALSE(m_scene->Failure().has_value()) << *m_scene->Failure();
         ASSERT_FALSE(m_target.frames.empty());

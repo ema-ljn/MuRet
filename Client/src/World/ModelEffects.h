@@ -41,6 +41,9 @@ inline constexpr std::int16_t SecondStoneChipEffect = 0xc9;
 // que sube soltando partículas 5ac/1.
 inline constexpr std::int16_t IcarusCloudEffect = 0xbb;
 inline constexpr std::int16_t IcarusFlareEffect = 0x5ac;
+// El de Aida (0x42593f): el 0x46 crea el 0xb3, un modelo que Aida no carga (en Atlans, Object8\Fish02), que
+// vaga cerca de donde nació y suelta partículas 5ac/9.
+inline constexpr std::int16_t AidaWispEffect = 0xb3;
 
 // Proyección de los campos compartidos por los efectos de 0x1d4 bytes.
 struct ModelEffect
@@ -125,6 +128,14 @@ public:
     // tipo o la tabla llena, ninguno y sin rand().
     std::optional<std::size_t> CreateIcarusEffect(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                   const glm::vec3& light, Render::Models::CrtRandom& random);
+    // 0x518cf0(0xb3, posición, ángulos, luz, 0, objeto, −1, 0, ftol(escala del objeto), 0, 0) → 0x51900b: el
+    // prefijo común (+0x8a en −1, escala 0,9) y seis rand(): la z, la y y la x ± 100 (r % 200 − 100), el yaw
+    // más r % 360, la y de la velocidad (r & 7) · 0,1f − 5 (la x y la z en 0) y la escala más (r % 5) ·
+    // 0,025f. El estado +0x88 en 0 (pisa el byte de la escala del objeto), +0x68 y la animación +0xd8 en 1,
+    // vida 1.000, +0xe4 y +0xec en 1, la partida en la posición ya corrida y la luz (0,01f; 0,01f; 0,03f).
+    // El dueño (+0x108) no lo lee nadie. Lleno, ninguno y sin rand().
+    std::optional<std::size_t> CreateAidaWisp(const glm::vec3& position, const glm::vec3& angles,
+                                              const glm::vec3& light, Render::Models::CrtRandom& random);
     // 0x6070a0: sólo apaga el byte vivo de cada lugar (Q-C138).
     void Clear();
 

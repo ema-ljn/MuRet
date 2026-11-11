@@ -307,6 +307,18 @@ void DrawWaterspout(Render::ModelBatch& batch, const IModelLibrary& models, cons
 void DrawTarkanChrome(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,
                       Core::Duration frameClock);
 
+// 0x425260 (desde 0x602ed0) con el 0x29 (0x4255f3) y el 0x41/0x42 (0x42588d) de Aida, entre 0x4ecc10 y
+// 0x4ecc20: el model+0x88 en 0 (la malla 0 sin luz por vértice, con el color del modelo y la U y la V
+// corridas) y un 0x4ecc30 sobre la malla 0 sola, con el alpha, el blendMesh, la luz y la V del objeto y la U
+// (−ftol(T) % 100.000) · paso, de `worldClock` (0x5767b88). El 0x29: banderas 0x42 (aditivo), el color del
+// modelo en 0,52 (0x3f051eb8, que queda en el modelo) y paso 0,00001f (0x6b8a2c); el 0x41/0x42: banderas 2,
+// el color que le dejó el cuerpo y paso 0,00005f (0x6b8a28). Después el +0x88 vuelve a 0xff, que es lo que
+// esos tipos tienen en Aida. Los demás tipos, o un modelo que la biblioteca no tiene, no dibujan nada. No
+// saca rand() ni toca el objeto: va en cada dibujo de MuRet, no sólo en los frames del original.
+[[nodiscard]] Core::Expected<void, std::string> DrawAidaMeshPass(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                                 const DrawnObject& object, std::int16_t type,
+                                                                 float worldClock, Core::Duration frameClock);
+
 // 0x602e90 con el caso del caballo oscuro (0xbf) de 0x6002e0: el pase base de DrawObject en blanco
 // (pisa el color de 0x5ffce0); después el 0x44 (cromo aditivo, Render::Models::ShinePass::Chrome) de
 // las mallas 12 a 15 que existen (en DarkHorse.bmd, la 12) en (1; 0,8; 0,3), por el alpha si es menor

@@ -2,6 +2,7 @@
 
 #include "Core/Expected.h"
 #include "Render/Models/ObjectState.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "World/ObjectModelStepState.h"
 #include "World/OriginalFtol.h"
 #include "World/WorldObjectStepServices.h"
@@ -11,7 +12,6 @@
 
 #include <array>
 #include <bit>
-#include <cmath>
 #include <cstdint>
 #include <format>
 #include <optional>
@@ -39,7 +39,7 @@ constexpr double TwoTenThousandths = static_cast<double>(std::bit_cast<float>(0x
 constexpr double FiveHundredThousandths = static_cast<double>(std::bit_cast<float>(0x3851b717u));
 // 0x6b89bc (0,002f), 0x6b8bc4 (0,35f), 0x6b8bc0 (0,65f), 0x6b86b4 (100), 0x6b8a20 (0,6f) y 0x6b8854 (0,2f).
 constexpr double PulseRate = static_cast<double>(std::bit_cast<float>(0x3b03126fu));
-constexpr double PulseAmplitude = static_cast<double>(std::bit_cast<float>(0x3eb33333u));
+constexpr float PulseAmplitude = std::bit_cast<float>(0x3eb33333u);
 constexpr double PulseBase = static_cast<double>(std::bit_cast<float>(0x3f266666u));
 constexpr double PhasePerDegree = 100.0;
 constexpr double WarmGreen = static_cast<double>(std::bit_cast<float>(0x3f19999au));
@@ -58,10 +58,14 @@ std::optional<float> Scroll(float worldClock, std::int32_t period, double factor
     return F32(static_cast<double>(negated % period) * factor);
 }
 
-// fsin de (fase) · 0,002f, por 0,35f y más 0,65f, sin redondear en la x87.
-double Pulse(double phase)
+// fsin de (fase) · 0,002f, con su resultado de 64 bits, fmul por 0,35f con un solo R53 y fadd de 0,65f, sin
+// guardar en la x87.
+std::optional<double> Pulse(double phase)
 {
-    return (std::sin(phase * PulseRate) * PulseAmplitude) + PulseBase;
+    const std::optional<double> wave = Render::Models::Detail::SineProductPC53(phase * PulseRate, PulseAmplitude);
+    if (!wave)
+        return std::nullopt;
+    return *wave + PulseBase;
 }
 
 glm::vec3 WarmLight(double pulse)
@@ -72,6 +76,11 @@ glm::vec3 WarmLight(double pulse)
 Core::Unexpected<std::string> ClockOutOfDomain(std::string_view address)
 {
     return Core::Unexpected(std::format("{}: ftol del reloj del mundo fuera de lo acreditado", address));
+}
+
+Core::Unexpected<std::string> SineOutOfDomain(std::string_view address)
+{
+    return Core::Unexpected(std::format("{}: el seno del reloj no cabe en el perfil PC53", address));
 }
 
 Core::Expected<void, std::string> ScrollV(WorldObject& object, float worldClock, std::int32_t period, double factor,
@@ -125,11 +134,13 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObject& object, const Ob
     {
         // 0x6056b5..0x6056d6: la luz del blendMesh es la L guardada; la x87 la conserva para la luz dinámica.
         object.state.blendMesh = 0;
-        const double pulse = Pulse(D(clock));
-        object.state.light = F32(pulse);
+        const std::optional<double> pulse = Pulse(D(clock));
+        if (!pulse)
+            return SineOutOfDomain("0x6056c8");
+        object.state.light = F32(*pulse);
         if (auto scrolled = ScrollV(object, clock, LongPeriod, TenThousandth, "0x6056df"); !scrolled.HasValue())
             return scrolled;
-        const float light = F32(pulse);
+        const float light = F32(*pulse);
         return AddDynamicLight(globals.dynamicLighting, object.transform.position, glm::vec3(light), WideLight,
                                "0x605718");
     }
@@ -137,9 +148,11 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObject& object, const Ob
     {
         // 0x605727..0x60577d: la fase suma el ángulo z por 100 al reloj antes del fmul.
         object.state.blendMesh = 0;
-        const double pulse = Pulse((D(object.transform.angles.z) * PhasePerDegree) + D(clock));
-        object.state.light = F32(pulse);
-        return AddDynamicLight(globals.dynamicLighting, object.transform.position, WarmLight(pulse), WideLight,
+        const std::optional<double> pulse = Pulse((D(object.transform.angles.z) * PhasePerDegree) + D(clock));
+        if (!pulse)
+            return SineOutOfDomain("0x605755");
+        object.state.light = F32(*pulse);
+        return AddDynamicLight(globals.dynamicLighting, object.transform.position, WarmLight(*pulse), WideLight,
                                "0x60577d");
     }
     case 0xb:
@@ -165,8 +178,11 @@ Core::Expected<void, std::string> StepTarkanObject(WorldObject& object, const Ob
                 ScrollV(object, clock, ShortPeriod, Thousandth, object.type == 0x3d ? "0x60583e" : "0x605862");
             !scrolled.HasValue())
             return scrolled;
-        return AddDynamicLight(globals.dynamicLighting, object.transform.position, WarmLight(Pulse(D(clock))),
-                               NarrowLight, "0x605718");
+        const std::optional<double> pulse = Pulse(D(clock));
+        if (!pulse)
+            return SineOutOfDomain("0x605893");
+        return AddDynamicLight(globals.dynamicLighting, object.transform.position, WarmLight(*pulse), NarrowLight,
+                               "0x605718");
     }
     case 0x3f:
     case 0x40:

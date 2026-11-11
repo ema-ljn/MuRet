@@ -1,5 +1,6 @@
 #include "Render/Models/Cloth.h"
 #include "Render/Models/ObjectState.h"
+#include "Render/Models/OriginalRetainedMath.h"
 #include "Render/Models/Skeleton.h"
 #include "World/ObjectModelStepState.h"
 #include "World/TarkanObjectStep.h"
@@ -12,10 +13,10 @@
 #include <gtest/gtest.h>
 
 #include <bit>
-#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <string>
 
 // Los casos de 0x604ab0 de Tarkan (mapa 8, la tabla 0x605cc0 por el tipo − 2), la velocidad del 8 y el
@@ -50,11 +51,14 @@ float F32(double value)
     return static_cast<float>(value);
 }
 
-// sin(fase · 0,002f) · 0,35f + 0,65f, con las constantes de 0x6b89bc, 0x6b8bc4 y 0x6b8bc0.
+// sin(fase · 0,002f) · 0,35f + 0,65f, con las constantes de 0x6b89bc, 0x6b8bc4 y 0x6b8bc0: el seno de 64 bits
+// de FSIN por el float con un solo R53 (0x6056c8..0x6056d0).
 double Pulse(double phase)
 {
-    return (std::sin(phase * D(std::bit_cast<float>(0x3b03126fu))) * D(std::bit_cast<float>(0x3eb33333u))) +
-           D(std::bit_cast<float>(0x3f266666u));
+    const std::optional<double> wave = Client::Render::Models::Detail::SineProductPC53(
+        phase * D(std::bit_cast<float>(0x3b03126fu)), std::bit_cast<float>(0x3eb33333u));
+    EXPECT_TRUE(wave.has_value());
+    return wave.value_or(0.0) + D(std::bit_cast<float>(0x3f266666u));
 }
 
 // La luz cálida: (L; L · 0,6f; L · 0,2f), cada una guardada en float desde la x87.

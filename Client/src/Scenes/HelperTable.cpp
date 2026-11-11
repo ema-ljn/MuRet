@@ -12,6 +12,7 @@
 #include "Scenes/DarkHorse.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/ChaosCastle.h"
 #include "World/OriginalFtol.h"
 
 #include <glm/ext/vector_float3.hpp>
@@ -250,12 +251,11 @@ Core::Expected<void, std::string> DrawHelper(HelperState& helper, const HelperDr
         return Core::Unexpected(std::format("0x445260: el dibujo del ayudante {:#x} no está portado", helper.type));
     }
     helper.scale = HorseScale; // 0x445309
-    // 0x602e90 → 0x5ffdf0.
-    if (InChaosCastle(runtime.map))
-    {
-        return Core::Unexpected(std::string("0x5ffe09: en los mapas 18 a 23, 0x5ffdf0 baja el alpha con +0x1a1 del "
-                                            "héroe, que MuRet no tiene"));
-    }
+    // 0x602e90 → 0x5ffdf0: en los mapas 18 a 23, con +0x1a1 del héroe, el alpha baja 0,15f y queda guardado, una
+    // vez por frame del original.
+    if (context.originalFrame)
+        helper.horse.alpha =
+            World::ChaosCastlePoseAlpha(runtime.map, world.Actors()[runtime.hero].byte1a1, helper.horse.alpha);
     // 0x5ffe2a..0x5ffe3b: por debajo de 0,01 (o sin orden) no lo dibuja.
     if (helper.horse.alpha >= DrawnAlpha)
     {

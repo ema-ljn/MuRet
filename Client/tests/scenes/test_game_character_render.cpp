@@ -32,6 +32,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <array>
+#include <bit>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -48,6 +49,7 @@ using Client::Scenes::ActorState;
 using Client::Scenes::GameCharacterPass;
 
 constexpr std::uint16_t BootsModel = 0x1800;
+constexpr std::uint16_t AngelModel = 0x1f7;
 
 // El estado del rand() de la CRT con la semilla 1 después de `count` llamadas.
 std::uint32_t AfterRandoms(std::size_t count)
@@ -167,10 +169,14 @@ public:
         mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
         mesh.textureName = "boot.jpg";
         m_model.meshes = {mesh};
+        // El Angel de Chaos Castle con dos mallas: su pase se distingue del de las botas por los vértices.
+        m_angel.meshes = {mesh, mesh};
     }
 
     [[nodiscard]] const Client::Data::Models::Model* Find(std::uint16_t model) const override
     {
+        if (model == AngelModel)
+            return &m_angel;
         return model == BootsModel || model == 0x20b || HasHand(model) ? &m_model : nullptr;
     }
     [[nodiscard]] const Client::Render::Models::Skeleton* SkeletonOf(std::uint16_t model) const override
@@ -192,7 +198,9 @@ private:
 
     Client::Render::Models::Skeleton m_skeleton;
     Client::Data::Models::Model m_model;
-    std::array<Client::Render::TextureSlot, 1> m_texture{Client::Render::TextureSlot{0x300}};
+    Client::Data::Models::Model m_angel;
+    std::array<Client::Render::TextureSlot, 2> m_texture{Client::Render::TextureSlot{0x300},
+                                                         Client::Render::TextureSlot{0x300}};
 };
 
 class GameCharacterRenderTest : public testing::Test
@@ -217,6 +225,8 @@ protected:
         actor.type = 0x20a;
         actor.word376 = 0xffff;
         actor.head = 0xffff;
+        // 0x511290: sin gremio (+0x1f2 en −1).
+        actor.word1f2 = 0xffff;
         actor.scale = 1.0f;
         actor.alpha = 1.0f;
         actor.safeZone = 1;
@@ -242,7 +252,8 @@ protected:
                 .frameClock = Client::Core::Duration{},
                 .originalFrames = 1,
                 .sprites = &m_sprites,
-                .poseCarry = &m_carry};
+                .poseCarry = &m_carry,
+                .worldModels = &m_models};
     }
 
     std::unique_ptr<Client::Scenes::WorldState> m_world;
@@ -839,7 +850,7 @@ TEST_F(GameCharacterRenderTest, EarlierSpecialBodyCutsKeepTheShadowAndTheComplet
         std::int32_t map;
         const char* address;
     };
-    constexpr std::array cases{Case{209, 0, 0, "0x50d2dc"}, Case{0, 1, 0, "0x50d363"}, Case{0, 0, 18, "0x50d363"}};
+    constexpr std::array cases{Case{209, 0, 0, "0x50d2dc"}};
     for (const auto& value : cases)
     {
         SCOPED_TRACE(value.address);
@@ -903,5 +914,142 @@ TEST_F(GameCharacterRenderTest, MissingGlobalRandomKeepsTheShadowAndStopsAtTheSc
     EXPECT_EQ(m_world->Runtime().fullSetScan->dword743a178, 123);
     EXPECT_EQ(m_world->Runtime().fullSetScan->byte743a17c, 42);
     EXPECT_EQ(m_clothWorld.random.State(), 1u);
+}
+TEST_F(GameCharacterRenderTest, WithPlus3e3ThePlayerDrawsNoPartsAndGoesOnToTheCloth)
+{
+    Player(7).byte3e3 = 1;
+    m_world->Runtime().hero = 42;
+
+    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    ASSERT_EQ(m_batch.Commands().size(), 1u);
+    EXPECT_EQ(m_batch.Commands()[0].state.blend, Client::Render::ModelBlend::Shadow);
+    EXPECT_EQ(m_clothWorld.random.State(), 0x0029e2c0u); // el rand de 0x50db57 sigue
+}
+
+TEST_F(GameCharacterRenderTest, InChaosCastleAPlayerWearsTheAngelAndOnlyTheHeroAddsItsChrome)
+{
+    m_world->Runtime().map = 18;
+    for (const std::size_t slot : {std::size_t{7}, std::size_t{0}})
+    {
+        SCOPED_TRACE(slot);
+        m_world->Actors()[7].alive = false;
+        m_world->Actors()[0].alive = false;
+        ActorState& actor = Player(slot);
+        actor.byte88 = 1;
+        m_world->Runtime().hero = slot == 0 ? 0 : 42;
+        m_clothWorld.random = Client::Render::Models::CrtRandom{1};
+        m_batch.Begin(Client::Render::Pass3D{});
+
+        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+
+        ASSERT_TRUE(result.HasValue()) << result.Error();
+        const auto commands = m_batch.Commands();
+        ASSERT_EQ(commands.size(), slot == 0 ? 4u : 2u);
+        EXPECT_EQ(commands[0].state.blend, Client::Render::ModelBlend::Shadow);
+        // 0x4ef0c0(2) sobre las dos mallas del Angel, no las botas (una malla), con la luz como color.
+        EXPECT_EQ(commands[1].state.blend, Client::Render::ModelBlend::Opaque);
+        EXPECT_EQ(commands[1].vertexCount, 6u);
+        EXPECT_EQ(commands[1].state.texture, Client::Render::TextureSlot{0x300});
+        const auto light = m_batch.Vertices()[3].color;
+        const glm::vec3 expected = slot == 0 ? glm::vec3{1.0f} : glm::vec3{0.3f, 0.6f, 0.9f};
+        EXPECT_FLOAT_EQ(light.red, expected.x);
+        EXPECT_FLOAT_EQ(light.green, expected.y);
+        EXPECT_FLOAT_EQ(light.blue, expected.z);
+        if (slot != 0)
+            continue;
+        // 0x609640, caso 0x1f7, con 6: la malla 0 con 0x1040 (0x620) a (0,75; 0,55; 0,5) y con 0x46 (0x5c0) a 1.
+        EXPECT_EQ(commands[2].state.blend, Client::Render::ModelBlend::Additive);
+        EXPECT_EQ(commands[2].state.texture, Client::Render::TextureSlot{0x620});
+        EXPECT_EQ(commands[2].vertexCount, 3u);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[9].color.red, 0.75f);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[9].color.green, 0.55f);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[9].color.blue, 0.5f);
+        EXPECT_EQ(commands[3].state.blend, Client::Render::ModelBlend::Additive);
+        EXPECT_EQ(commands[3].state.texture, Client::Render::TextureSlot{0x5c0});
+        EXPECT_EQ(commands[3].vertexCount, 3u);
+        EXPECT_FLOAT_EQ(m_batch.Vertices()[12].color.red, 1.0f);
+    }
+}
+
+TEST_F(GameCharacterRenderTest, TheChaosCastleOutlineScalesWithTheObjectAndHasItsOwnColors)
+{
+    m_world->Runtime().map = 18;
+    ActorState& actor = Player(7);
+    actor.byte88 = 1;
+    actor.scale = 2.0f;
+    m_world->Runtime().hero = 42;
+    GameCharacterPass pass = Pass();
+    pass.hovered = 7;
+
+    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const auto commands = m_batch.Commands();
+    ASSERT_EQ(commands.size(), 3u);
+    EXPECT_EQ(commands[1].state.blend, Client::Render::ModelBlend::Additive);
+    ASSERT_EQ(commands[1].vertexCount, 12u);
+    EXPECT_EQ(commands[2].state.blend, Client::Render::ModelBlend::Opaque);
+    // 0x60d09f: 0,1f / 2 + 1 en el x87, guardado: 0x3f866666. 0x60d113: 0,04f / 2 + 1,02f − 0,02f: 1,02f.
+    const auto vertices = m_batch.Vertices();
+    const float outer = std::bit_cast<float>(0x3f866666u);
+    const float inner = std::bit_cast<float>(0x3f828f5cu);
+    EXPECT_EQ(vertices[3 + 1].position.x, outer * 2.0f + 150.0f);
+    EXPECT_EQ(vertices[3 + 6 + 1].position.x, inner * 2.0f + 150.0f);
+    EXPECT_FLOAT_EQ(vertices[3].color.red, 0.1f);
+    EXPECT_FLOAT_EQ(vertices[3].color.green, 0.01f);
+    EXPECT_FLOAT_EQ(vertices[3].color.blue, 0.0f);
+    EXPECT_FLOAT_EQ(vertices[9].color.red, 0.7f);
+    EXPECT_FLOAT_EQ(vertices[9].color.green, 0.07f);
+    EXPECT_FLOAT_EQ(vertices[9].color.blue, 0.0f);
+}
+
+TEST_F(GameCharacterRenderTest, AnNpcKindOutlinesItsPartsWithTheGreenOfTheNpcs)
+{
+    ActorState& actor = Player(7);
+    actor.byte88 = 4;
+    m_world->Runtime().hero = 42;
+    GameCharacterPass pass = Pass();
+    pass.hovered = 7;
+
+    const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, pass);
+
+    ASSERT_TRUE(result.HasValue()) << result.Error();
+    const auto vertices = m_batch.Vertices();
+    ASSERT_GE(vertices.size(), 9u);
+    // 0x60d069 y 0x60d0dd: (0,02; 0,1; 0) y (0,16; 0,7; 0), con las escalas de siempre.
+    EXPECT_FLOAT_EQ(vertices[3].color.red, 0.02f);
+    EXPECT_FLOAT_EQ(vertices[3].color.green, 0.1f);
+    EXPECT_FLOAT_EQ(vertices[6].color.red, 0.16f);
+    EXPECT_FLOAT_EQ(vertices[6].color.green, 0.7f);
+    EXPECT_EQ(vertices[3 + 1].position.x, 1.2f + 150.0f);
+}
+
+TEST_F(GameCharacterRenderTest, AGuildIndexStopsAfterThePartsExceptInChaosCastle)
+{
+    for (const std::int32_t map : {0, 18})
+    {
+        SCOPED_TRACE(map);
+        m_world->Runtime().map = map;
+        ActorState& actor = Player(7);
+        actor.byte88 = 1;
+        actor.word1f2 = 5;
+        m_world->Runtime().hero = 42;
+        m_batch.Begin(Client::Render::Pass3D{});
+
+        const auto result = Client::Scenes::DrawGameCharacters(m_batch, m_models, *m_world, Pass());
+
+        if (map == 18)
+        {
+            ASSERT_TRUE(result.HasValue()) << result.Error();
+            continue;
+        }
+        ASSERT_FALSE(result.HasValue());
+        EXPECT_NE(result.Error().find("0x50d533"), std::string::npos) << result.Error();
+        // La sombra y las botas ya están.
+        ASSERT_EQ(m_batch.Commands().size(), 2u);
+        EXPECT_EQ(m_batch.Commands()[1].vertexCount, 3u);
+    }
 }
 } // namespace

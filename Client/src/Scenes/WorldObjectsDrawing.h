@@ -139,11 +139,16 @@ struct GameObjectPass
     std::function<std::uint32_t()> systemTime{};
     // DAT_006d5dc8: con 4 (la selección), la mariposa sale oculta y el 6f1/2 con luz 0,25.
     std::int32_t scene = 0;
+    // 0x5f93c0(x, y): la altura del terreno, de la que el 0x1c y el 0x1d de 11 a 17 aplastan su sombra
+    // (0x600d80).
+    std::function<float(float, float)> terrainHeight{};
+    // DAT_006c634c, el área de Chaos Castle: 0xff hasta que un paquete la mueve (CL9.5).
+    std::uint8_t chaosCastleArea = 0xff;
 };
 
-// 0x6046a0 en el juego (0x6374ce), en los mapas 0 a 4, 8, 10, 31, 33 y Kalima (06 § Los objetos del juego): sector por
-// sector, en World::DrawOrder, cada objeto vivo que pasa el trapecio como en DrawWorldObjects queda visto. El 0x64 de
-// Devias sigue solo con el nivel del registro propio desde 0x50 (0x35 con la clase 3 o 4), con su acceso.
+// 0x6046a0 en el juego (0x6374ce), en los mapas 0 a 4, 6 a 8, 10, 31, 33 y Kalima (06 § Los objetos del juego):
+// sector por sector, en World::DrawOrder, cada objeto vivo que pasa el trapecio como en DrawWorldObjects queda visto.
+// El 0x64 de Devias sigue solo con el nivel del registro propio desde 0x50 (0x35 con la clase 3 o 4), con su acceso.
 // Después, 0x602e90: el dibujo de World::DrawOf, sin interpolar la animación (el 0x69 de Lorencia, con
 // DrawWaterspout); y, con un frame del original, 0x602ed0: un rand() y el caso de su tipo. El del 0x69 es
 // StepGameWaterspoutFrame, con el pool compartido de `pass.particles`: los dos 5f2/0 sobre los huesos

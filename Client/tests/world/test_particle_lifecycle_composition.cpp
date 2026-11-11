@@ -41,6 +41,11 @@ public:
         trace.push_back(4);
         return {};
     }
+    Result Blended() override
+    {
+        trace.push_back(7);
+        return {};
+    }
     Result Type620850() override
     {
         trace.push_back(5);

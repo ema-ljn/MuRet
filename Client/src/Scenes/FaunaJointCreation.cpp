@@ -6,7 +6,9 @@
 #include "Render/Models/LogicalAccess.h"
 #include "Render/Models/OriginalRotation.h"
 #include "Render/Models/OriginalAngles.h"
+#include "World/KalimaParticleKernels.h"
 #include "World/Particles.h"
+#include "World/Sprites.h"
 #include <cmath>
 #include "Render/Models/OriginalRetainedMath.h"
 #include "Scenes/FaunaObject.h"
@@ -160,6 +162,53 @@ Core::Expected<void, std::string> CreateSkyBolt(JointState& joint, const World::
     return {};
 }
 
+// 0x5319ea, 0x531b0c..0x531bd2 y 0x534cb6: el 615/2 de la trampa de Chaos Castle (0x405d49). Textura 0x614, el
+// ancho, 50 puntos y vida 20; la x y la y se corren rand() % 10 − 5 (fild y fadd, guardado en float) y la z sube
+// 800 (0x6b8ac8). Ángulos en cero, el destino es el segundo punto y +0x24 guarda la partida ya corrida. Dos
+// rand().
+Core::Expected<void, std::string> CreateTrapBolt(JointState& joint, const World::FishEffectRequest& request,
+                                                 Render::Models::CrtRandom& random)
+{
+    constexpr std::uint16_t BoltTexture = 0x614;
+    constexpr std::int32_t Points = 50;
+    constexpr std::int32_t Life = 20;
+    constexpr int JitterSpan = 10, JitterCenter = 5;
+    constexpr double Rise = static_cast<double>(std::bit_cast<float>(0x44480000u));
+    joint.texture = BoltTexture;
+    joint.width = request.scale;
+    joint.maximumCount = Points;
+    joint.life = Life;
+    joint.position.x =
+        static_cast<float>(static_cast<double>(random.Next() % JitterSpan - JitterCenter) + joint.position.x);
+    joint.position.y =
+        static_cast<float>(static_cast<double>(random.Next() % JitterSpan - JitterCenter) + joint.position.y);
+    joint.position.z = static_cast<float>(static_cast<double>(joint.position.z) + Rise);
+    joint.angles = {};
+    joint.targetPosition = request.secondPosition;
+    joint.pathIncrement = joint.position;
+    return {};
+}
+
+// 0x53265e (+0x10 = 3 en todo 613 y 6ee), 0x5333f6..0x533449 y 0x5331a9: el meteoro 6ee/9 del preludio de
+// Chaos Castle (0x4054ad). Resta, la segunda cara sola, el ancho, velocidad 10, luz blanca, ángulos (−90, 0, 0), el
+// desvío en cero, vida 20 y 15 puntos; +0x24 guarda la partida. Sin rand().
+void CreateMeteor(JointState& joint, const World::FishEffectRequest& request)
+{
+    constexpr std::uint8_t Subtractive = 3, SecondFace = 2;
+    constexpr float Speed = 10, Pitch = -90;
+    constexpr std::int32_t Life = 20, Points = 15;
+    joint.blend = Subtractive;
+    joint.drawEnabled = SecondFace;
+    joint.width = request.scale;
+    joint.speed = Speed;
+    joint.light = {1, 1, 1};
+    joint.angles = {Pitch, 0, 0};
+    joint.velocity = {};
+    joint.life = Life;
+    joint.maximumCount = Points;
+    joint.pathIncrement = joint.position;
+}
+
 Core::Expected<void, std::string> CreateCase(JointState& joint, const World::FishEffectRequest& request,
                                              Render::Models::CrtRandom& random)
 {
@@ -213,6 +262,13 @@ Core::Expected<void, std::string> CreateCase(JointState& joint, const World::Fis
         return CreateObjectBolt(joint, request, random);
     if (request.type == 0x615 && request.subtype == 0)
         return CreateSkyBolt(joint, request, random);
+    if (request.type == 0x615 && request.subtype == 2)
+        return CreateTrapBolt(joint, request, random);
+    if (request.type == 0x6ee && request.subtype == 9)
+    {
+        CreateMeteor(joint, request);
+        return {};
+    }
     if (request.type == 0x617 && request.subtype >= 0 && request.subtype <= 3)
     {
         // 534e9c: /0→53202f,/1→5320a4,/2→5320dd,/3→532085.
@@ -475,6 +531,103 @@ Core::Expected<void, std::string> StepObjectBolt(JointState& joint, Render::Mode
     return {};
 }
 
+// 0x53768f..0x5379ef: el 615/2. Rehace el rayo desde +0x24 con la matriz de sus ángulos (0x5fc8f0): en los
+// primeros 50 − 5 tramos corre x e y rand() % 20 − 10 y baja la z 16 (0x6b8f00); los cuatro siguientes avanzan un
+// quinto de lo que falta hasta el destino (la x sin redondear la resta, la y y la z guardadas antes del 0,2f) y
+// vuelven a correr x e y; el último es el destino. Con vida menor que 4 la luz se multiplica por 0,8333333f
+// (0x6b8b98). Después, dos sprites 0x5fd de 1,5 en el destino con un giro rand() % 360 y la partícula 6ed/0 de
+// escala 1, con la luz (x · 0,5, y · 0,6f, z). La cola común sigue sólo con vida de más de 10.
+Core::Expected<void, std::string> StepTrapBolt(JointState& joint, Render::Models::CrtRandom* random,
+                                               World::FrameSprites* sprites, World::Particles* particles,
+                                               float worldClock)
+{
+    if (random == nullptr || sprites == nullptr || particles == nullptr)
+        return Core::Unexpected(std::string("0x53770a: faltan el RNG, los sprites o las partículas del joint 0x615/2"));
+    constexpr std::int32_t Approach = 5;
+    constexpr int JitterSpan = 20, JitterCenter = 10;
+    constexpr double Drop = static_cast<double>(std::bit_cast<float>(0x41800000u));
+    constexpr double Step = static_cast<double>(std::bit_cast<float>(0x3e4ccccdu));
+    constexpr std::int32_t FadeLife = 4, TailLife = 10;
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f555555u));
+    const auto jitter = [&](float& axis)
+    { axis = static_cast<float>(static_cast<double>(random->Next() % JitterSpan - JitterCenter) + axis); };
+    joint.position = joint.pathIncrement;
+    const auto matrix = Render::Models::OriginalAngleMatrix(joint.angles);
+    for (std::int32_t i = 0; i < joint.maximumCount - Approach; ++i)
+    {
+        jitter(joint.position.x);
+        jitter(joint.position.y);
+        joint.position.z = static_cast<float>(static_cast<double>(joint.position.z) - Drop);
+        if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
+            return appended;
+    }
+    // 0x53777b..0x5377b9: la resta de la x queda en la pila; las de y y z se guardan antes de multiplicar.
+    const double toX = static_cast<double>(joint.targetPosition.x) - joint.position.x;
+    const auto toY = static_cast<float>(static_cast<double>(joint.targetPosition.y) - joint.position.y);
+    const auto toZ = static_cast<float>(static_cast<double>(joint.targetPosition.z) - joint.position.z);
+    const glm::vec3 step{static_cast<float>(toX * Step), static_cast<float>(static_cast<double>(toY) * Step),
+                         static_cast<float>(static_cast<double>(toZ) * Step)};
+    for (std::int32_t i = joint.maximumCount - Approach; i < joint.maximumCount - 1; ++i)
+    {
+        MoveJoint(joint, step);
+        jitter(joint.position.x);
+        jitter(joint.position.y);
+        if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
+            return appended;
+    }
+    joint.position = joint.targetPosition;
+    if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
+        return appended;
+    if (joint.life < FadeLife)
+        joint.light = {static_cast<float>(static_cast<double>(joint.light.x) * Fade),
+                       static_cast<float>(static_cast<double>(joint.light.y) * Fade),
+                       static_cast<float>(static_cast<double>(joint.light.z) * Fade)};
+    constexpr std::uint16_t ShinyTexture = 0x5fd;
+    constexpr float ShinyScale = 1.5f;
+    constexpr int FullTurn = 360;
+    constexpr double HalfRed = 0.5;
+    constexpr double GreenShare = static_cast<double>(std::bit_cast<float>(0x3f19999au));
+    const glm::vec3 light{static_cast<float>(static_cast<double>(joint.light.x) * HalfRed),
+                          static_cast<float>(static_cast<double>(joint.light.y) * GreenShare), joint.light.z};
+    for (int sprite = 0; sprite < 2; ++sprite)
+    {
+        // 0x5491e0(0x5fd, destino, 1,5, luz, 0, giro, 0): MuRet no guarda el dueño del sprite (Q-C303).
+        const auto rotation = static_cast<float>(random->Next() % FullTurn);
+        static_cast<void>(sprites->Create(ShinyTexture, joint.targetPosition, ShinyScale, light, rotation, 0));
+    }
+    auto created = particles->CreateChecked(World::KalimaFanta, joint.targetPosition, joint.angles, light, 0, 1,
+                                            worldClock, *random);
+    if (!created.HasValue())
+        return Core::Unexpected(std::format("0x537920: falló la partícula 0x6ed del joint 0x615/2 ({})",
+                                            static_cast<int>(created.Error())));
+    joint.tailEnabled = joint.life > TailLife;
+    return {};
+}
+
+// 0x538ea4..0x538f37: el 6ee/9. Después del avance común, la x y la y se corren (rand() % 10) − 5,0f, la z sube la
+// velocidad y la velocidad 1; con vida menor que 10 la luz se multiplica por 0,8695652f (0x6ba2e4).
+Core::Expected<void, std::string> StepMeteor(JointState& joint, Render::Models::CrtRandom* random)
+{
+    if (random == nullptr)
+        return Core::Unexpected(std::string("0x538ead: falta el RNG del joint 0x6ee/9"));
+    constexpr int JitterSpan = 10;
+    constexpr double JitterCenter = 5;
+    constexpr double Acceleration = 1;
+    constexpr std::int32_t FadeLife = 10;
+    constexpr double Fade = static_cast<double>(std::bit_cast<float>(0x3f5e9bd4u));
+    joint.position.x =
+        static_cast<float>((static_cast<double>(random->Next() % JitterSpan) - JitterCenter) + joint.position.x);
+    joint.position.y =
+        static_cast<float>((static_cast<double>(random->Next() % JitterSpan) - JitterCenter) + joint.position.y);
+    joint.position.z = static_cast<float>(static_cast<double>(joint.speed) + joint.position.z);
+    joint.speed = static_cast<float>(static_cast<double>(joint.speed) + Acceleration);
+    if (joint.life < FadeLife)
+        joint.light = {static_cast<float>(static_cast<double>(joint.light.x) * Fade),
+                       static_cast<float>(static_cast<double>(joint.light.y) * Fade),
+                       static_cast<float>(static_cast<double>(joint.light.z) * Fade)};
+    return {};
+}
+
 Core::Expected<void, std::string> EmitHelperBeamParticle(JointState& joint, std::int32_t type,
                                                          Render::Models::CrtRandom& random, World::Particles* particles,
                                                          float worldClock)
@@ -543,7 +696,7 @@ Core::Expected<void, std::string> StepHelperBeam(JointState& joint, Render::Mode
 
 Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints, Render::Models::CrtRandom* random,
                                                     Render::Models::ClothWorld* cloth, World::Particles* particles,
-                                                    float worldClock)
+                                                    float worldClock, World::FrameSprites* sprites)
 {
     for (std::size_t i = 0; i < joints.size(); ++i)
     {
@@ -560,8 +713,10 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         const bool noria = joint.type == 0x617 && joint.subtype >= 0 && joint.subtype <= 3;
         const bool skyBolt = joint.type == 0x615 && joint.subtype == 0;
         const bool objectBolt = joint.type == 0x614 && joint.subtype == 6;
+        const bool trapBolt = joint.type == 0x615 && joint.subtype == 2;
+        const bool meteor = joint.type == 0x6ee && joint.subtype == 9;
         if (!crywolf && !tarkan && !bloodCastle && !fairy && !spiritBeam && !flareBeam && !icarus && !noria &&
-            !skyBolt && !objectBolt)
+            !skyBolt && !objectBolt && !trapBolt && !meteor)
             return Core::Unexpected(
                 std::format("0x535840: el paso del joint {} ({:#x}/{}) no está portado", i, joint.type, joint.subtype));
         // 53590e..53597a: el movimiento común precede la lectura del dueño, incluso si muere.
@@ -583,10 +738,17 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
         if (objectBolt)
             if (auto result = StepObjectBolt(joint, random); !result.HasValue())
                 return result;
-        const auto* owner = (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615)
+        if (trapBolt)
+            if (auto result = StepTrapBolt(joint, random, sprites, particles, worldClock); !result.HasValue())
+                return result;
+        if (meteor)
+            if (auto result = StepMeteor(joint, random); !result.HasValue())
+                return result;
+        const auto* owner = (joint.type == 0x613 || joint.type == 0x614 || joint.type == 0x615 || meteor)
                                 ? nullptr
                                 : static_cast<const FaunaObject*>(joint.ownerContext);
-        const bool ownerless = spiritBeam || flareBeam || icarus || noria || skyBolt || objectBolt;
+        const bool ownerless =
+            spiritBeam || flareBeam || icarus || noria || skyBolt || objectBolt || trapBolt || meteor;
         if (owner == nullptr && !ownerless)
             return Core::Unexpected(std::format("{}: falta el dueño durable del joint {:#x}/{}",
                                                 fairy         ? "0x536076"
@@ -632,9 +794,8 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
             joint.light = glm::vec3(faded);
         }
         if (joint.tailEnabled)
-            // 0x53c393: 535520 con la matriz del principio del paso (el 615/0 la cambió al girar).
-            if (auto appended = (flareBeam || skyBolt ? AppendJointTail(joint, matrix) : AppendJointTail(joint));
-                !appended.HasValue())
+            // 0x53c393: 535520 con la matriz de 0x53590e, la del principio del paso, aunque el caso haya girado.
+            if (auto appended = AppendJointTail(joint, matrix); !appended.HasValue())
                 return appended;
         joint.life = std::bit_cast<std::int32_t>(std::bit_cast<std::uint32_t>(joint.life) - 1u);
         if (joint.life < 0)
@@ -646,13 +807,13 @@ Core::Expected<void, std::string> StepJointsChecked(std::span<JointState> joints
 
 Core::Expected<void, std::string> StepJoints(std::span<JointState> joints)
 {
-    return StepJointsChecked(joints, nullptr, nullptr, nullptr, 0);
+    return StepJointsChecked(joints, nullptr, nullptr, nullptr, 0, nullptr);
 }
 
 Core::Expected<void, std::string> StepJoints(std::span<JointState> joints, Render::Models::CrtRandom& random,
                                              Render::Models::ClothWorld* cloth, World::Particles* particles,
-                                             float worldClock)
+                                             float worldClock, World::FrameSprites* sprites)
 {
-    return StepJointsChecked(joints, &random, cloth, particles, worldClock);
+    return StepJointsChecked(joints, &random, cloth, particles, worldClock, sprites);
 }
 } // namespace Client::Scenes

@@ -133,6 +133,11 @@ public:
         ADD_FAILURE();
         return {};
     }
+    Result Blended() override
+    {
+        ADD_FAILURE();
+        return {};
+    }
     Result Type620850() override
     {
         ADD_FAILURE();
@@ -427,7 +432,8 @@ TEST(Particle60f3Test, LegacyAndUnaccreditedCreationSubtypesRemainRejected)
     const auto legacy = particles.CreateChecked(Type, {}, {}, {}, 3, 1, clock, random, 0);
     ASSERT_FALSE(legacy.HasValue());
     EXPECT_EQ(legacy.Error(), World::ParticleError::UnsupportedType);
-    for (const int subtype : {0, 4, 10})
+    // La /4 de la antorcha de Blood Castle ya está acreditada; la /5 comparte su alta pero no su paso.
+    for (const int subtype : {0, 5, 10})
     {
         const auto result = particles.CreateChecked(Type, {}, {}, {}, subtype, 1, std::cref(clock), random, 0, trig);
         ASSERT_FALSE(result.HasValue());
@@ -523,6 +529,16 @@ public:
         return {};
     }
     Result SubtractiveTail() override
+    {
+        ADD_FAILURE();
+        return {};
+    }
+    Result BlendedPrefix() override
+    {
+        ADD_FAILURE();
+        return {};
+    }
+    Result BlendedTail() override
     {
         ADD_FAILURE();
         return {};

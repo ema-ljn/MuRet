@@ -131,6 +131,14 @@ struct Backend final : Client::Render::IParticleDrawBackend
     {
         return Record("sub-tail");
     }
+    Result BlendedPrefix() override
+    {
+        return Record("blend-prefix");
+    }
+    Result BlendedTail() override
+    {
+        return Record("blend-tail");
+    }
     Result Type620850() override
     {
         return Record("type-850");

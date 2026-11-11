@@ -22,8 +22,8 @@
 // cuatro vértices de 0x5fac90 en dos triángulos, con las capas que elige 0x5fa830 por el alfa de sus
 // esquinas, las UV de 0x5fa5c0 y la luz y el alfa de cada esquina de 0x5fa260 y 0x5fa350. El pase del
 // pasto es la misma celda con 0x7d0d31c en 2 (06 § El pasto): solo lo dibuja el juego (en el mapa 55
-// no dibuja nada, 06 § El terreno del login). No está el agua de los mapas 7 (0x5fa4b0, con el 5.º
-// argumento de 0x5fa5c0 en 1) y 0x22; el corrimiento al revés del 0x1e, sí.
+// no dibuja nada, 06 § El terreno del login). Está el agua del mapa 7 (0x5fa4b0, con el 5.º argumento de
+// 0x5fa5c0 en 1) y el corrimiento al revés del 0x1e; no, las burbujas 0x698 del 0x22 (0x5fa5c0, con rand()).
 namespace Client::World
 {
 // El tile i es el slot i + 0x23 (0x5fa260 y 0x5fa350).
@@ -61,6 +61,9 @@ struct TerrainView
     std::uint8_t map = 0;
     // DAT_006c9d5c compartida con la cámara: 1.200, o 1.201 después del primer 0x40.
     float fixedHeight = FixedCornerHeight;
+    // DAT_07d2d360, el cuadro del agua de 0 a 31 que avanza el paso (ClothWorld::waterTextureFrame): en el
+    // mapa 7, el agua va con la cáustica 0x41 + cuadro.
+    std::uint32_t waterFrame = 0;
 };
 
 // Las celdas de los bloques que ve la cámara (0x5fbb00): de firstX a lastX y de firstY a lastY, los
@@ -91,11 +94,13 @@ struct TerrainWater
 void UpdateWaves(TerrainWater& water, Core::Duration clock, const TerrainRange& range, std::uint8_t map);
 
 // La celda (x, y), como 0x5fac90 con 0x5fa830: nada con el bit 0x08; si no, la capa de abajo opaca
-// (la 2 si las cuatro esquinas van en alfa 1, la 1 si no) y, con alguna esquina por debajo de 1 y
-// alguna por encima de 0, enseguida la capa 2 con la mezcla normal y el alfa de cada esquina. Es
-// agua (el corrimiento y la ola) la de abajo cuando es la capa 1 en 5, y la de alfa cuando además la
-// capa 2 es 5. Las esquinas van por índice, (x, y), (x + 1, y), (x + 1, y + 1) y (x, y + 1) en la
-// grilla de 256: la última celda de una fila toma las de la fila siguiente, como el original.
+// (la 2 si las cuatro esquinas van en alfa 1, la 1 si no) y, con alguna esquina por encima de 0: en el
+// mapa 7 con la capa 2 en 5, el agua de 0x5fa4b0 (la cáustica 0x41 + cuadro, aditiva, con las UV de 16 /
+// ancho por celda y el gris del alfa de cada esquina, sin luz); si no, con alguna esquina por debajo de 1,
+// la capa 2 con la mezcla normal y el alfa de cada esquina. Es agua (el corrimiento y la ola) la de abajo
+// cuando es la capa 1 en 5, y la de alfa cuando además la capa 2 es 5. Las esquinas van por índice, (x, y), (x + 1, y),
+// (x + 1, y + 1) y (x, y + 1) en la grilla de 256: la última celda de una fila toma las de la fila siguiente, como el
+// original.
 void DrawTerrainCell(Render::ModelBatch& batch, const TerrainView& view, const TerrainWater& water, std::uint8_t x,
                      std::uint8_t y);
 

@@ -67,6 +67,19 @@ World::IParticleDrawingServices::Result ParticleDrawServices::Subtractive()
         return second;
     return Checked(m_backend.get().SubtractiveTail(), Phase::SubtractiveTail);
 }
+World::IParticleDrawingServices::Result ParticleDrawServices::Blended()
+{
+    const auto prefix = Checked(m_backend.get().BlendedPrefix(), Phase::BlendedPrefix);
+    if (!prefix.HasValue())
+        return prefix;
+    const auto first = Checked(m_backend.get().Helper6208f0(), Phase::Helper6208f0);
+    if (!first.HasValue())
+        return first;
+    const auto second = Checked(m_backend.get().Helper6208b0(), Phase::Helper6208b0);
+    if (!second.HasValue())
+        return second;
+    return Checked(m_backend.get().BlendedTail(), Phase::BlendedTail);
+}
 World::IParticleDrawingServices::Result ParticleDrawServices::Type620850()
 {
     return Checked(m_backend.get().Type620850(), Phase::Type620850);

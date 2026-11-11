@@ -808,16 +808,35 @@ TEST(HelperTableTest, TheRidersFrozenFlagResetsTheFrameOfADrawnHorse)
     }
 }
 
-// Lo que el dibujo no tiene: +0x1a1 del héroe en los mapas 18 a 23 (0x5ffe09) y el dibujo con 10 de un
-// jinete con +0x78 & 0x4000 (0x60033c), que corta sin dibujar ni sacar el rand().
-TEST(HelperTableTest, TheDrawStopsInChaosCastleAndWithTheRidersFlag4000)
+// 0x5ffdf0 en los mapas 18 a 23: sin +0x1a1 del héroe, el caballo se dibuja como en otro mapa; con él, el alpha
+// guardado baja 0,15f en cada dibujo del original.
+TEST(HelperTableTest, InChaosCastleTheHerosFlagFadesTheHorse)
 {
+    HelperWorld plain;
+    ASSERT_NO_FATAL_FAILURE(plain.Mount());
+    plain.Horse().horse.alpha = 1.0f;
+    ModelBatch reference;
+    ASSERT_TRUE(plain.Draw(reference, Everything).HasValue());
+
     HelperWorld chaos;
     ASSERT_NO_FATAL_FAILURE(chaos.Mount());
     chaos.world.Runtime().map = 18;
+    chaos.Horse().horse.alpha = 1.0f;
     ModelBatch first;
-    EXPECT_TRUE(HasError(chaos.Draw(first, Everything), "0x5ffe09"));
+    ASSERT_TRUE(chaos.Draw(first, Everything).HasValue());
+    EXPECT_EQ(chaos.Horse().horse.alpha, 1.0f);
+    EXPECT_EQ(first.Commands().size(), reference.Commands().size());
 
+    chaos.world.Actors()[chaos.world.Runtime().hero].byte1a1 = 1;
+    ModelBatch second;
+    ASSERT_TRUE(chaos.Draw(second, Everything).HasValue());
+    EXPECT_EQ(chaos.Horse().horse.alpha, static_cast<float>(1.0 - static_cast<double>(0.15f)));
+}
+
+// Lo que el dibujo no tiene: el dibujo con 10 de un jinete con +0x78 & 0x4000 (0x60033c), que corta sin dibujar
+// ni sacar el rand().
+TEST(HelperTableTest, TheDrawStopsWithTheRidersFlag4000)
+{
     HelperWorld flagged;
     ASSERT_NO_FATAL_FAILURE(flagged.Mount());
     flagged.Horse().horse.alpha = 1.0f;

@@ -28,6 +28,7 @@ constexpr std::int32_t AlphaMode = 2;                // 620a00: modo raw32, dist
 constexpr std::int32_t AdditiveMode = 3;             // 620a90.
 constexpr std::int32_t SubtractiveMode = 4;          // 620b10: ZERO / ONE_MINUS_SRC_COLOR.
 constexpr std::int32_t InverseColorAdditiveMode = 5; // 620b90.
+constexpr std::int32_t BlendedMode = 6;              // 620c10: SRC_ALPHA / ONE_MINUS_SRC_ALPHA.
 // 621320 no recibe UV: el paquete L5 siempre contiene estos cuatro literales.
 constexpr std::array<glm::vec2, 4> WorldQuadUv{glm::vec2{0, 1}, glm::vec2{1, 1}, glm::vec2{1, 0}, glm::vec2{0, 0}};
 IParticleDrawBackend::Result Unsupported()
@@ -89,6 +90,10 @@ Core::Expected<ModelBlend, std::error_code> BlendOf(const ModelBatchParticleStat
         return ModelBlend::Subtractive;
     case InverseColorAdditiveMode:
         return ModelBlend::InverseColorAdditive;
+    case BlendedMode:
+        // Los factores de 0x620c10 son los de BlendedShadow; el cull, la máscara, el alpha test y la textura
+        // viajan aparte en ModelDrawState.
+        return ModelBlend::BlendedShadow;
     }
     return Core::Unexpected(std::make_error_code(std::errc::function_not_supported));
 }
@@ -186,6 +191,17 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::SubtractivePrefix()
     return PublishOperation(ModelStateOperation::Blend);
 }
 
+IParticleDrawBackend::Result ModelBatchParticleBackend::BlendedPrefix()
+{
+    const auto prepared = PrepareMaterial();
+    if (!prepared.HasValue())
+        return prepared;
+    if (m_state.blendMode == BlendedMode)
+        return {};
+    m_state.blendMode = BlendedMode;
+    return PublishOperation(ModelStateOperation::Blend);
+}
+
 IParticleDrawBackend::Result ModelBatchParticleBackend::Helper6208b0()
 {
     const auto prepared = PrepareMaterial();
@@ -226,6 +242,14 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::SubtractiveTail()
         return prepared;
     return MaterialTail(false, true);
 }
+IParticleDrawBackend::Result ModelBatchParticleBackend::BlendedTail()
+{
+    const auto prepared = PrepareMaterial();
+    if (!prepared.HasValue())
+        return prepared;
+    return MaterialTail(false, true);
+}
+
 IParticleDrawBackend::Result ModelBatchParticleBackend::Type620850()
 {
     const auto prepared = PrepareMaterial();
@@ -405,11 +429,13 @@ IParticleDrawBackend::Result ModelBatchParticleBackend::End()
     const bool additive = m_state.blendMode == AdditiveMode && m_state.depthWrite == 0 && m_state.alphaTest == 0;
     const bool subtractive = m_state.blendMode == SubtractiveMode && m_state.depthWrite == 0 &&
                              m_state.alphaTest == 0 && m_state.fogPolicy == 0;
+    const bool blended =
+        m_state.blendMode == BlendedMode && m_state.depthWrite == 0 && m_state.alphaTest == 0 && m_state.fogPolicy == 0;
     const auto blend = BlendOf(m_state);
     if (!blend.HasValue())
         return Core::Unexpected(blend.Error());
     if (m_primitiveSpace == ModelCoordinateSpace::Eye &&
-        ((!alpha && !additive && !subtractive) || m_state.cullEnabled != 0 || m_state.texture2d == 0))
+        ((!alpha && !additive && !subtractive && !blended) || m_state.cullEnabled != 0 || m_state.texture2d == 0))
         return Unsupported();
     if (m_primitiveSpace == ModelCoordinateSpace::World && m_state.fogPolicy != 0 && !additive)
         return Unsupported();

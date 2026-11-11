@@ -47,6 +47,12 @@ ParticleDrawRecorder::Result ParticleDrawRecorder::Subtractive()
     return {};
 }
 
+ParticleDrawRecorder::Result ParticleDrawRecorder::Blended()
+{
+    m_blend = RecordedParticleDraw::Blend::Blended;
+    return {};
+}
+
 ParticleDrawRecorder::Result ParticleDrawRecorder::Type620850()
 {
     return Core::Unexpected(World::ParticleDrawingError{

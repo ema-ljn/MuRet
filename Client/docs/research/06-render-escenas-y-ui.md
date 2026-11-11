@@ -2974,8 +2974,8 @@ un error que nombra la dirección, nunca en silencio:
   `main` detiene el bucle y pide `Window::ShowErrorMessage` con la ventana viva, usando SDL3;
   al volver sale con fallo. Tests de datos/sesión observan ese pedido durable y su orden,
   no un modal visible. La confirmación del modal y el cierre en Windows/VM siguen pendientes.
-- **Los mapas de evento** (`0x447d70`: 9, 11 a 23) cortan después de la carga: el objeto de evento
-  (`0x447eb0`, `new 0x134`) no está portado.
+- **Los mapas de evento** (`0x447d70`: 9, 11 a 23) arman su objeto de evento después de la carga
+  ([Los objetos de Devil Square y de Blood Castle](#los-objetos-de-devil-square-y-de-blood-castle)).
 - **La respuesta**, sin las tablas de los conjuntos, corta dentro de `0x512a30`: en `0x550d10`, en su
   primera llamada, `0x40e1b0` ([Los stats del registro propio](#los-stats-del-registro-propio)). Con
   ellas (`main.cpp` las carga), `0x512a30` vuelve entero: `0x505820` corre si el lugar sorteado es el
@@ -3831,7 +3831,8 @@ Corta con error, en el orden del original:
   Player.bmd, en `0x4f9580`);
 - con otro modelo que el `0x20a` (`0x505e0b`);
 - con la luz de una mano (`0x5f9780`);
-- en los mapas 7 (`0x506d01`) y 9 (`0x506d8b`);
+- sin el pool de partículas: en el 7 para la burbuja (`0x506d77`) y en el 9 para la gota que salió (`0x506dff` y
+  `0x506e4f`);
 - en las acciones `0x44` y `0x45` (`0x506e5d`) y `0x96` (`0x506f62`) y, con el héroe, en las de los pasos
   (`0x508668`);
 - con otro que el héroe, en Kalima y en las acciones del `0x6f4`, después de sus dos `rand()` (`0x5087fc`).
@@ -4411,7 +4412,7 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 - corta con error, después de los `rand()` de antes:
   - con otro modelo (`0x505e0b`);
   - con la luz de una mano (`0x5f9780`);
-  - en el mapa 7 de la escena 5 (`0x506d01`) y en el 9 (`0x506d8b`);
+  - en el 9 (`0x506d8b`) y, en el mapa 7 de la escena 5, sin el pool de partículas para la burbuja (`0x506d77`);
   - en las acciones `0x44` y `0x45` (`0x506e5d`) y `0x96` (`0x506f62`);
   - en los pasos del héroe (`0x508668`);
   - en el `0x6f4` de Kalima, después de sus dos `rand()` (`0x5087fc`).
@@ -4435,14 +4436,14 @@ luces), la tabla de protección (`0x57630c8..0x57630d4`, `0x57630f0` y `0x6c78c8
 | `0x6371a6` | con `0x7d3a101` en 0, devuelve 0 | sin leer el contador | `GameScene::PrepareFrame` |
 | `0x6371b7..0x63722e` | el contador por la tabla de protección, con su cierre (`0x40b800`, `0x637229`); **con más de 30, devuelve 0** (`jle` con signo) | no dibuja ni presenta | `GameScene::PrepareFrame` (T5) |
 | `0x63723a` | `0x7d368a0 = 0` | sin niebla | sí |
-| `0x637241` | **`0x635ae0()`** y, fuera del mapa 6, `0x44dc60(&p)` (`0x4034b0` con el recorrido) | la cámara y el punto del recorte; la rama de `0x63724a` no corre nunca (Q-C189) | [La cámara del juego](#la-cámara-del-juego): `GameScene`, con los dos accesos a la celda del héroe (8 `rand()`) y `World::CameraTargetOf`; el mapa 6 corta en `0x635b5c` |
+| `0x637241` | **`0x635ae0()`** y, fuera del mapa 6, `0x44dc60(&p)` (`0x4034b0` con el recorrido) | la cámara y el punto del recorte; la rama de `0x63724a` no corre nunca (Q-C189) | [La cámara del juego](#la-cámara-del-juego): `GameScene`, con los dos accesos a la celda del héroe (8 `rand()`) y `World::CameraTargetOf`; en el mapa 6 con "webzen" en el nombre, la cámara de espectador sin esos accesos y el punto (6.400; 15.400) con la z del héroe ([Los objetos de la Arena](#los-objetos-de-la-arena)) |
 | `0x63734d` | `0x620db0(0, 0, w, 48)` | la franja, que no dibuja | sí (`MakePass3D`) |
 | `0x637366` | **`0x5fbb00(w / 640, &p)`** | el rango de bloques y el trapecio | sí (`TerrainRangeOf`, `TerrainPolygonOf(Game)`; en el juego, `StepTheTerrainPolygon` con el trapecio y el nivel efectivo globales de `WorldRuntime`, T11b) |
 | `0x637391..0x637404` | `glClearColor` por mapa: en el 0, (0,0390625; 0,078125; 0,0546875) | no se usa (Q-C143) | ver abajo |
 | `0x637410` | `0x620db0(0, 0, w, 432)` (480 con `0x7d36899`) | el pase del mundo | sí (`GameWorldViewport`) |
 | `0x63741d` | en el mapa 30, su luz | | corta (el 30 no carga) |
 | `0x6374aa` | `0x620480(mouse x, mouse y, &0x7d366c0, 1)` | el rayo del mouse, con el mouse de 640 × 480 vuelto a la pantalla en enteros (`0x620486..0x6204b0`) | `GameScene::MouseRay`, para [Caminar](#caminar) |
-| `0x6374c6` | **`0x5fc260(0)`**, si `0x437850()` es falso y el mapa no es 10 | el terreno: el pase opaco, el de alfa, **el del pasto** y `0x549130` | `LoadedWorld::DrawTerrain`, **sin el pasto ni las marcas** (P-C48 b, P-C49); el juego dibuja el primer pase, el del pasto y las marcas del suelo (`0x5fc365`); en el mapa 7 corta antes, en su agua (`0x5fa985`, `0x5fa4b0`), y en los 18 a 23 antes de la primera celda (`0x5fa83f`, Q-C229). Abajo, por dentro |
+| `0x6374c6` | **`0x5fc260(0)`**, si `0x437850()` es falso y el mapa no es 10 | el terreno: el pase opaco, el de alfa, **el del pasto** y `0x549130` | `LoadedWorld::DrawTerrain`, **sin el pasto ni las marcas** (P-C48 b, P-C49); el juego dibuja el primer pase, el del pasto y las marcas del suelo (`0x5fc365`); en el mapa 7, el agua de `0x5fa4b0` y sin el pasto ([Los objetos de Atlans](#los-objetos-de-atlans)), y en los 18 a 23 corta antes de la primera celda (`0x5fa83f`, Q-C229). Abajo, por dentro |
 | `0x6374ce` | **`0x6046a0` → `0x602e90` y `0x602ed0`** | objetos por sector | `DrawGameWorldObjects` en0/2/3, con la fuente69 que lee matrices retenidas y los servicios de Noria; otros mapas/casos conservan fronteras |
 | `0x6374d3` | **`0x52dc20`** | los efectos del suelo (`0x61d`, `0x61e`, `0x61f`…), con `0x5fb2f0` ([Después de los objetos](#el-dibujo-del-juego)) | `Scenes::DrawGroundEffects`: filtra vivos y vistos, consume el rand común y dibuja los casos acreditados; `GroundEffectFrame` evita repetir sus mutaciones entre frames originales (Q-C278) |
 | `0x6374d8` | **`0x446b60`** | los pájaros, con su sombra | `Scenes::DrawGameBirds`, los 40 lugares durables, cuerpo/glows/sombra y [pose compartida](#la-pose-compartida-entre-escenas) |
@@ -4485,8 +4486,7 @@ corre lo de arriba en ese orden y corta con error en la primera etapa que no tie
 adentro de los objetos (los casos de `0x602ed0` que no tiene o una pose global anterior que necesita
 la fuente, [Los objetos del juego](#los-objetos-del-juego)), en una rama de suelo o de personaje
 todavía no portada o, si pasa todo eso, en los ítems del piso (`0x6374fe`); en
-los demás mapas que carga, en los objetos (`0x6374ce`), salvo el 6 (la cámara, `0x635b5c`) y el 7 (su
-agua, `0x5fa985`). Antes dibuja el pase del pasto y las marcas del suelo, que no gastan `rand()`; los
+los demás mapas que carga, en los objetos (`0x6374ce`). Antes dibuja el pase del pasto y las marcas del suelo, que no gastan `rand()`; los
 objetos, uno por objeto visto que llega a `0x602ed0` y el guard de la fuente, más sus ocho sorteos
 cuando crea dos gotas. Los efectos vivos y vistos consumen el común de `0x52dc46` y los casos propios;
 los personajes, sus accesos al registro y el de `0x50db57`. Las aves y los peces ya tienen pool y
@@ -4930,7 +4930,11 @@ lo de cada tipo del 0, en [Lo propio de Lorencia](#lo-propio-de-lorencia). Leíd
    (`0x6031e5`), el `0x64` (`0x603251`): dos sprites `0x5d5` de 2,5 en (0, 0, 150) por el hueso de
    `0x68b181c`, que giran con el reloj, ±(`ftol(T · 0,1)` % 360); y el `0x67` (`0x6031f7`): con el cuadro
    del modelo (`+0xa8`) en el último de su acción, `rand()` & 31 elige la acción con `0x4ea030`: la 1 si da
-   0, la 0 si no.
+   0, la 0 si no. El `+0xa8` lo escribe `0x4eb860` cuando `0x5ffdf0` posa el objeto: `(short)ftol` del frame
+   (`+0x114`), en 0 si es negativo o no es una key de la acción del modelo (`+0xa0`, la del objeto que copió
+   `0x5ffdf0`, en 0 si el modelo no la tiene). La key que se compara (`0x603205`) es la de la acción del
+   objeto (`+0x111`) sin acotar. El `0x67` es `Object104.bmd`: dos acciones de seis keys, así que en la
+   key 5 de cualquiera de las dos sale un `rand()` y, una vez en 32, pasa a la 1 (o se queda en ella).
 
 **El paso** (`0x606560`, también en la espera): sector por sector, como el dibujo. Los objetos de un
 sector que no pasó quedan con `+0x16c` en 0 sin avanzar, como en el login ([El mundo del
@@ -4967,8 +4971,12 @@ registro propio con `LogicalAccess` en el `0x64`; en un dibujo intermedio, ningu
 `Scenes::StepGameWorldObjects` → `World::StepWorldObjectChecked`, desde `GameScene::StepTheObjects`, con
 la capa del héroe de `WorldRuntime::heroCellLayer` y el reloj del mundo. Los dos cortan con la dirección
 en lo primero que MuRet no tiene, con lo de antes ya hecho: en el dibujo, los casos de `0x602ed0` que no
-tiene, después de su `rand()` (el `0x64` y el `0x67` del 2; el `0x38` del 0 deja sus dos sprites en NaN con
-`Scenes::StepMerchantAnimalFrame`, Q-C256). El `0x69` se dibuja con
+tiene, después de su `rand()` (el `0x38` del 0 deja sus dos sprites en NaN con
+`Scenes::StepMerchantAnimalFrame`, Q-C256). Los del 2 están en `Scenes::StepDeviasObjectFrame`: los dos
+sprites del `0x64` con `ObjectBonePoint` sobre la pose global retenida, y el `0x67` con el `+0xa8` que
+calcula del frame y la acción del objeto, porque `0x5ffdf0` lo acaba de posar; sin posar (el alpha por
+debajo de 0,01, que el `0x67` no baja porque no es un techo), el `+0xa8` es de otro dibujo y corta en
+`0x60320a`. El `0x69` se dibuja con
 `Scenes::DrawWaterspout` y crea las dos gotas con `Scenes::StepGameWaterspoutFrame` sobre
 `WorldState::Particles`; si el modelo actual no escribió un hueso, conserva el corte de la lectura de
 pose anterior (`0x6030a5/0x603121`), con los sorteos y las gotas previos ya hechos
@@ -4993,6 +5001,7 @@ pájaros ([El dibujo del juego](#el-dibujo-del-juego)); MuRet todavía no los co
 `WorldObjectsDrawingTest` (`TheGamePassDrawsTheLiveObjectsWithARandEach`,
 `TheLorenciaMerchantAnimalLeavesTwoGlowsAtNaN`, `TheLorenciaWaterspoutDrawsFourLooseMeshes`,
 `TheLorenciaWaterspoutRunsItsFrameCase`, `TheLeveledObjectOfDeviasReadsTheOwnRecord`,
+`TheDeviasBeamObjectLeavesTwoSpritesOverItsFirstBone`, `TheDeviasSwitchingObjectChangesItsActionOnTheLastKey`,
 `AnIntermediateGameDrawTakesNoRandomness`, `TheGamePassKnowsOnlyTheReferenceMaps` y
 `TheGameStepStopsAtTheFirstCaseMuRetDoesNotHave`), `WorldObjectsTest`
 (`TheLorenciaWaterspoutDrawsItsOwnMeshes`, `TheWaterspoutFrameScrollsItsVAndDropsHalfTheTime`,
@@ -5410,6 +5419,229 @@ la Data del repo, el 31 llega a un cuadro completo y camina (`GameT16SceneMatrix
 suelo libre con el 3, el `0x34` y el `0x35` vistos). Tests: `LandOfTrialsObjectsTest`,
 `LandOfTrialsObjectServicesTest`, `TrialsParticlesTest` y
 `WorldObjectsDrawingTest.TheLandOfTrialsBodiesPulseAndTheBrazierBaseIsDrawnTwice`.
+
+### Los objetos de la Arena
+
+Leído en la CL7 en el ASM y el pseudocódigo de `c32bbd5f` (*estático*; las cuentas de MuRet, *simulado*: con el
+port y la Data del repo). Lo común es lo de [Los objetos del juego](#los-objetos-del-juego). La Arena es el mapa 6
+(`World7`, 1.489 objetos, entre ellos el −515 de Q-C28). Su carga (`0x616ec0`) sube el especial `0xb1`
+(`Object7\Bug`, de la fauna) con sus texturas.
+
+**La cámara.** `0x635ae0` mira el nombre del héroe (`+0x1d9`) con `0x576960`: con "webzen" (la búsqueda de
+"webzen2" no cambia nada, Q-C152) la cámara de espectador de [La cámara del juego](#la-cámara-del-juego), que
+salta los dos accesos a la celda del héroe y sus `rand()` (`0x635b3d..0x635b9e`). El dibujo (`0x63726f..0x6372f1`)
+vuelve a mirar el nombre y centra el trapecio en (6.400; 15.400) con la z del héroe, y `0x5fb570` lo mira dos
+veces más: para las medidas propias (3.995 y 425) y para girarlo −yaw. Con cualquier otro nombre, todo es lo de
+los demás mapas.
+
+**El paso** (`0x604ab0`, el caso 6 en `0x6054fd`, sin tabla):
+
+| Tipo | Qué hace |
+|---|---|
+| `0x15` | el blendMesh (`+0x64`) en 3 y la V (`+0x70`) en (−ftol(reloj) % 1.000) · 0,001f, como la U del 3 y el 4 del mapa 4 |
+| `0x26` | `+0x58` en −2 |
+
+**El frame** (`0x602ed0`, `0x6039cb`): el 9 deja un sprite `0x5ac` en el hueso 1 con la entrada de la pila sin
+escribir, en NaN; es el caso al que cae Lost Tower ([Los objetos del Dungeon y de Lost
+Tower](#los-objetos-del-dungeon-y-de-lost-tower), Q-C256). **El dibujo** (`0x6002e0`) no tiene casos del 6: todos
+van por el `RenderBody` común.
+
+**En MuRet.** El nombre: `Scenes::ActorNameContains`, el mismo `0x576960` del GM de `0x413fe0`. La cámara:
+`GameScene::CameraOfTheFrame` le pasa el resultado a `World::StepGameCamera` y no lee la celda del héroe en esa
+rama; `GameScene::Render` usa el punto fijo, y `PolygonOfTheFrame` prende las dos búsquedas de `0x5fb570`. El
+paso: `World::StepArenaObject` (`DungeonObjectStep`), desde `StepWorldObjectChecked` en el 6; el frame:
+`Scenes::StepArenaObjectFrame`. Con la Data del repo, el 6 llega a un cuadro completo y camina
+(`GameT16SceneMatrix` y `GameT16MapWalk`, en (62, 47): suelo libre con once `0x15` y cuatro 9 a menos de 1.500;
+`GameT16SafeZoneWalk`, en (70, 139)). Tests: `DungeonObjectsTest.TheArenaScrollsTheVOfItsWaterAndHidesItsMarkers` y
+`GameT16Journey.AWebzenNameWatchesTheArenaFromTheSpectatorCamera`.
+
+### Los objetos de Atlans
+
+Leído en la CL7 en el ASM y el pseudocódigo de `c32bbd5f` (*estático*; las cuentas de MuRet, *simulado*: con el
+port y la Data del repo). Lo común es lo de [Los objetos del juego](#los-objetos-del-juego). Atlans es el mapa 7
+(`World8`, 5.205 objetos: 845 `0x16`, 99 `0x20`, 23 `0x22`, 85 `0x28`). Su carga (`0x616ec0`) empieza, como en
+todos los mapas, por `Object8\drop01.jpg` en `0x607` (`0x616eeb..0x616f03`, `GL_NEAREST` y `GL_CLAMP`, requerida);
+en su caso sube los peces `0xb3..0xbb` de la fauna y las 32 cáusticas `Object8\wt00..wt31.jpg` en `0x41..0x60`
+(`0x617741..0x6177ee`, `GL_LINEAR` y `GL_REPEAT`, sin aviso).
+
+**El paso** (`0x604ab0`, la tabla `0x605c94` por el tipo − `0x16`, índices en `0x605cac`), con el reloj del mundo T
+y la x87 en 53 bits:
+
+| Tipo | Qué hace |
+|---|---|
+| `0x16` | `+0x58` en −2; la fase (`+0x84`) más 0,1f con `fst`: si la suma sin redondear pasa de 10, `+0x84` vuelve a 0 (el `EDX` en 0 de `0x604d50`); con la fase guardada por encima de 5, una burbuja `0x607/0` en `+0x10` con `+0x1c`, la luz `+0xf4`, escala 1 y sin dueño (`0x6055c8`) |
+| `0x17` | el blendMesh (`+0x64`) en 0 y la luz (`+0x68`) en sin(T · 0,002f) · 0,3f + 0,5 |
+| `0x20`, `0x22` | el blendMesh en 1 y la luz en (sin(T · 0,004f) + 1) · 0,5 |
+| `0x26` | el blendMesh en 0 |
+| `0x28` | el blendMesh en 0, la velocidad de la animación (`+0xd8`) en 0,05f (antes del `fsin`) y la luz en sin(T · 0,004f) · 0,3f + 0,5 |
+
+Como la comparación con 10 lee la suma sin redondear, 9,9f + 0,1f queda debajo de 10 y se guarda como 10,0f: esa
+fase no vuelve a 0 y sopla; la del paso siguiente sí vuelve.
+
+**El frame y el dibujo.** `0x602ed0` manda el 7 a la cadena de `0x6044ed`, cuyas siete funciones miran otros mapas
+(18 a 23, 24 a 29 y 36, 30, 31, 35, 33 y 54, 34): nada. `0x6002e0` mira el 7 solo en los ayudantes (la sombra del
+caballo oscuro y otros dos, con alfa 0,2 en vez de 0,7): los objetos del mundo van por el `RenderBody` común.
+
+**El agua** (`0x5fa830`, `0x5fa973..0x5fa9b1`). Después del pase de abajo, con alguna esquina en alfa por encima
+de 0, el mapa 7 mira la capa 2 (`0x7aacc8c`) de la primera esquina: con 5, en vez del pase de alfa de la capa 2,
+`0x5fa5c0(0x1e + DAT_07d2d360, x, y, 0, 1)` (16 en vez de 64 por el ancho y el alto de la textura, sin corrimiento
+ni olas) y `0x5fa4b0`: la mezcla aditiva (`0x620a90`), el slot del tile + `0x23` (`0x41` + el cuadro), un
+`GL_TRIANGLE_FAN` con `glColor3f` del alfa de cada esquina, sin la luz, y vuelve. `0x7d2d35e`, que lo saltearía,
+sólo se lee y queda en el 0 de la .bss. El pase del pasto no corre en el 7 (`0x5fc33e`).
+
+**Los personajes** (`0x505de0`, `0x506d0a..0x506d7c`). En la escena 5, con `ftol(T) % 10000` debajo de 1000 (un
+segundo de cada diez), el `0x20a` saca una burbuja `0x607/0` de la cabeza: `0x4ec110` con el hueso `+0x54` del
+modelo (20 en Player.bmd) de los huesos propios (`+0x120`), (0, 20, −10), la escala y la posición que `0x505ec6`
+copió del personaje, y `0x53fe70(0x607, punto, +0x1c, (1, 1, 1), 0, 1, 0)`. Los huesos propios son los del último
+dibujo; antes del primero, el `operator new` sin iniciar de `0x511290` (Q-C318). En Atlans el personaje de pie
+nada (la acción de vuelo de `0x4f2250`, que mira la celda del `TerrainWall` vivo).
+
+**En MuRet.** El paso: `World::StepAtlansObject` (`AtlansObjectStep`), desde `StepWorldObjectChecked` en el 7; el
+frame y el dibujo, lo común. El agua: `World::DrawTerrainCell` con `TerrainView::waterFrame` (el
+`ClothWorld::waterTextureFrame` del frame) y `GameScene::DrawTheWorldPass` sin el pasto en el 7; las texturas,
+`World::DropTexture` y `World::CausticTextures`. La burbuja: `CharacterStep` con `ActorState::bodyPose`, que el
+dibujo del juego escribe en cada frame del original (`HangTheItems`) y `ConstructActor` vacía; vacía, la matriz en
+cero. Con la Data del repo, el 7 llega a un cuadro completo y camina (`GameT16SceneMatrix`; `GameT16MapWalk`, en
+(226, 103): suelo libre con cinco `0x16`, siete `0x20` y cuatro `0x22` a menos de 1.500 y agua en la capa 2 cerca;
+`GameT16SafeZoneWalk`, en (13, 17)). Tests: `AtlansObjectsTest`, `TerrainCellsTest.AtlansDrawsItsCausticWaterInsteadOfTheAlphaLayer`,
+`GameSceneDrawTest.AtlansDrawsItsCausticWaterAndNoGrass` y `CharacterStepTest.AtlansBlowsABubbleFromTheHeadOneSecondInTen`.
+
+### Los objetos de Devil Square y de Blood Castle
+
+Leído en la CL7 en el ASM y el pseudocódigo de `c32bbd5f` (*estático*; las cuentas de MuRet, *simulado*: con el
+port y la Data del repo). Lo común es lo de [Los objetos del juego](#los-objetos-del-juego). Devil Square es el
+mapa 9 (`World10`, 564 objetos: 200 del 2, 191 del 3; el 32 carga el 9, `0x61a560`) y los Blood Castle son los
+mapas 11 a 17, todos con `World12` (210 objetos: once `0xb`, cuatro `0xd`, nueve `0x25`, dos del 9 y dos del 10,
+tres `0x1c` y uno `0x1d`).
+
+**El objeto de evento** (`0x447d70(mapa)`, después de `0x61a560`, desde `0x4c3940` y `0x4c6e10`). Con el
+argumento entre 11 y 17, suelta el anterior (`0x447eb0`, el destructor virtual con 1) y pide `operator
+new(0x134)`: `+0x0c` en 0, el byte `+0x10` en 0, `+0x14..+0x20` en −1, `+0x24` y `+0x28` en 0, los 0x42 dwords de
+`+0x2c` en 0 y la vtable `0x6b8c30`. Si no, mira **el mundo en curso** (`0x6c9dd0`, no el argumento) entre 18 y 23:
+lo mismo por `0x404d60`, con la vtable `0x6b8794` y `0x6c634c` (el área de Chaos Castle, `.data` `0xff`) otra vez
+en `0xff`. Si no, con el argumento en 9, lo mismo con la vtable `0x6b8c1c`. En los demás mapas no hace nada: el
+objeto del evento anterior sigue vivo en `0x723c60` (Q-C320). `+0x04` y `+0x08` no los escribe nadie. Sus métodos
+los llaman el HUD (`0x5a7320` y `0x5ab6d0`, con `0x40bab0`) y los paquetes (`0x4e2b10` con `0x92` y `0x9b`,
+`0x4da730`, `0x4da750`, `0x4dac70`, `0x4e7360`, `0x4c2480`, `0x4d07c0`); ninguno corre en el paso ni en el dibujo
+del mundo.
+
+**El preludio de Devil Square** (`0x604ab0`, `0x604ac0..0x604b9b`), una vez por pase y antes de los objetos:
+con `ftol(T) % 4.000` (con signo) debajo de 1.000 saca `rand() % 100`; con 0, la luz dinámica de radio 12
+(`0x5f9780`) con L = (`rand() % 12` + 4) · 0,1f y el color (L · 0,2f; L · 0,3f; L · 0,5) en el héroe corrido
+`rand() % 1.200` − 600, **la y antes que la x**, con z 0. Fuera de la ventana no saca `rand()`. Después, con cada
+objeto del pase, `0x41ed10(1, 0, 1)`: el ambiente 1 en bucle. El caso 9 del `switch` (`0x6054f6`) no tiene tipos.
+
+**El frame de Devil Square** (`0x602ed0`, `0x603df9..0x603ee0`): el 2 saca dos `rand() % 4`; con 0, una gota
+`0x68/0` (`World10\rain03.tga`) en el hueso 23 y después en el 31 con (−15, 0, 0), sus ángulos, luz 1 y escala 1;
+y siempre una más en el 23. **El dibujo** (`0x6002e0`) no tiene casos del 9.
+
+**Los personajes de Devil Square** (`0x505de0`, `0x506d7f..0x506e54`): en cualquier escena, el `0x20a` saca dos
+`rand() & 3`; con 0, una `0x68/0` de `0x4ec110` con el hueso 26 (`+0x4e0` de los huesos propios) y después con el
+35 (`+0x690`), (−15, 0, 0), la escala y la posición que `0x505ec6` copió, sus ángulos y luz 1. Los huesos propios
+son los del último dibujo, como la burbuja de Atlans (Q-C318).
+
+**El paso de los Blood Castle** (`0x605991`, sin tabla): el 9 y el 10 con `+0x8a` distinto de 4 ponen `+0x58` en
+−2 (la puerta y su marco cerrados no se dibujan); el 4 lo pone el paquete que abre el castillo (CL9.5). **El
+preludio** (`0x6061c0`, `0x6062e6..0x6063c3`), una vez por pase, antes del early-return de los objetos vistos: un
+punto en (`rand() % 900` − 300; `rand() % 900` − 300; `rand() % 50` + 250) desde el héroe, la x primero, y con
+`rand() & 3` en 0 una órbita `0x60f/3` ahí (`0x53fe70`, ángulos en 0, luz 1, escala 0,19f, `Effect\Flare.jpg`).
+
+**El frame de los Blood Castle** (`0x602ed0`, `0x604171..0x6043e9`), con el reloj del mundo T y la x87 en 53 bits:
+
+| Tipo | Qué hace |
+|---|---|
+| `0xb` | la luz L = sin((`+0x24` · 20 + T) · 0,001f) · 0,5 en (L; L · 0,5; 0) y siete sprites `0x5ac` de escala 0,5 en los huesos 1, 2, 4, 6, 9, 10 y 11 con (0, 0, 2) |
+| `0xd` | un sprite `0x60f` en el hueso 3 con L = sin(T · 0,001f) · 0,3f + 0,7f, escala L + 0,5 y luz (L; L; L) |
+| `0x25` | la antorcha: `rand() % 2`; con 0, `ftol(+0x84 + 2) % 4` y `+0x84` más 1: con 0, la llama `6ac/0` y la chispa `6ab/0`. Después otro `rand() % 2`; con 0, `ftol(+0x84) % 4` y `+0x84` más 1: con 0, el humo `622/6`, la chispa `6ab/1` y la órbita `60f/4` con luz (1; 0,8f; 0,8f) y escala 0,19f |
+
+Las partículas de la antorcha (`0x53fe70`, `0x5446e0`, `0x548550`):
+
+| Partícula | Alta | Paso | Dibujo |
+|---|---|---|---|
+| `6ab/0`, `6ab/1` (`Effect\fi01.jpg`, `0x61d55e`) | `0x5436fe`: vida `rand() % 5` + 20, giro 0; escala (`rand() % 10`) · 0,02f + 0,5 (`/0`) o · 0,1f + 1 (`/1`); velocidad (`rand() % 10` + 5; `rand() % 10` − 5; `rand() % 10` + 5) por (0,4f; 0,4f; 0,2f) (`/0`) o (0,2f; 0,2f; 0,1f) (`/1`) | `0x5477e4`: la posición más la velocidad, la x y la y por 0,95f; la luz en vida · 0,1f, la z +0,3f y la escala +0,07f (`/0`) o +0,09f | aditiva, el default `0x54889a` |
+| `6ac/0` (`Effect\fi02.tga`, `0x61d57a`) | `0x543a5d`: vida `rand() % 5` + 25, escala 0,5, giro `rand() % 360` y la velocidad de adelante; después el caso del `6ec` (`0x543ae3`): vida 24, otra velocidad x (`rand() % 10` − 5) · 0,4f y z, y el inicio en la posición (`0x543e7d`) | `0x54793f`: lo mismo con la z +0,6f, la posición corrida (`rand() & 3`) − 2 en x e y y por 0,8f en z, la escala +0,05f, la luz en vida · 0,04f y el giro + (`rand() & 1`) + 1 | `0x620c10` (el modo 6: `SRC_ALPHA`, `ONE_MINUS_SRC_ALPHA`), `0x5489eb`; el `/2` no está leído |
+| `622/6` (`Effect\clouds.jpg`) | `0x54327b`: vida `rand() % 5` + 25, escala 0,2f, giro `rand() % 360` y la velocidad de la `6ac` | `0x54748a`: el de la `6ac` con la luz en vida · 0,02f | el `/6` de la tabla `0x548df8` va a `0x548c32` y, sin ser el 8 ni el 9, al default `0x54889a` |
+| `60f/4` | la órbita de `60f/3` con vida 40 | la de `60f/3` con la subida en 5, la escala −0,004f y el apagado desde vida 30 | `0x548bcf` |
+
+**El dibujo de los Blood Castle** (`0x6002e0`, `0x600cf2..0x600db0`): el `0x1c` y el `0x1d`, después de su
+`RenderBody`, la sombra (`0x4eff40(blendMesh, 2, −1, −1)`) de las mallas con triángulos salvo la 2 y las de la
+textura del blendMesh, con `0x620a00(1)` y `glColor4f(0, 0, 0, 1)`, aplastada sobre la altura del terreno bajo el
+objeto (`0x5f93c0`, `0x600d80`); después `+0x58` vuelve a −1.
+
+**En MuRet.** El objeto de evento: `Scenes::ArmEventMapObject` sobre `WorldRuntime::eventObject` y
+`WorldRuntime::chaosCastleArea`, desde `WorldEntry` y `WorldTransitions`; los métodos son de la CL8 y la CL9.5.
+Devil Square: `World::StepDevilSquarePrelude` (`EventMapObjectStep`), `Scenes::StepDevilSquareObjectFrame`
+(`EventMapObjectFrame`) y la lluvia de los personajes en `CharacterStep`. Los Blood Castle:
+`World::StepBloodCastleObject` desde `StepWorldObjectChecked`, `World::StepBloodCastlePrelude` desde
+`GameScene::StepTheObjects`, `Scenes::StepBloodCastleObjectFrame`, `Scenes::DrawBloodCastleShadow`
+(`CharacterDrawing`) con `GameObjectPass::terrainHeight`, las familias de `World::BloodCastleParticleKernels` y el
+modo 6 en `IParticleDrawingServices::Blended` y `ModelBatchParticleBackend`. Las texturas, `EffectTextureSet`. Con
+la Data del repo, el 9 (y el 32) y los siete Blood Castle llegan a un cuadro completo y caminan (`GameT16SceneMatrix`;
+`GameT16MapWalk`, en (122, 174) con 38 del 2 cerca y en (12, 90) con cuatro `0xd` y cuatro `0x25`;
+`GameT16SafeZoneWalk`, en (12, 3) de los Blood Castle; Devil Square no tiene zona segura). Tests:
+`MapLoadEventTest`, `EventMapObjectsTest`, `EventMapObjectFrameTest`, `BloodCastleParticlesTest` y
+`CharacterStepTest.DevilSquareRainsFromTwoBonesOfEachCharacter`.
+
+### Los objetos de Chaos Castle
+
+Leído en la CL7 en el ASM y el pseudocódigo de `c32bbd5f` (*estático*; las cuentas de MuRet, *simulado*: con el
+port y la Data del repo). Lo común es lo de [Los objetos del juego](#los-objetos-del-juego). Los seis Chaos Castle
+son los mapas 18 a 23, todos con `World19` (194 objetos: 22 del 3, nueve del 6, 14 del 7, seis del 8, ocho del
+`0xc` y los demás repartidos del 0 al `0x23`). El castillo, de 23 a 44 en x y de 75 a 108 en y, es todo zona segura
+en el `.att`; afuera, la franja de x 1 a 12 con y 70 a 111 se camina y no es segura. La entrada por `1C` corta en
+la UI (`0x4906a0`, CL8); la de `F3 04` entra. El objeto de evento (`0x404d60`) y el área (`0x6c634c`, `0xff` en la
+`.data`) están en [Los objetos de Devil Square y de Blood Castle](#los-objetos-de-devil-square-y-de-blood-castle).
+
+**Las celdas** (`0x405e00(x, y)`, en el dibujo del terreno, por cada celda dibujada que no está escondida): `rand()
+% 8`; con 0 y el área en 0, 3 o 6, el primer rectángulo del área que tiene la celda (`0x6b86d4`, `0x6b8714` y
+`0x6b8754`, cuatro cada uno, con los bordes) suelta la piedra `0x5f6/0` en (x · 100 + `rand() % 30` − 15; y · 100 +
+`rand() % 30` − 15; z del héroe), sin dueño, escala 1,5, y con `rand() % 5` en 0 el temblor de la cámara
+(`0x7d325c8`) en (`rand() % 3` − 3) · 0,1f. Sin paquetes el área queda en `0xff`: sólo sale el `rand() % 8`.
+
+**El preludio** (`0x405490`, primero en `0x6061c0`), con la cuenta de los 3 vistos del pase anterior (`0x7d365a0`):
+con `rand() % 10` en 0 y la cuenta distinta de 0, el selector es `rand() % cuenta`. Si no, con el héroe fuera de la
+zona segura y otro `rand() % 10` en 0, **el meteoro** `0x6ee/9` (`0x530860`) en (x + `rand() % 800` − 400; y +
+`rand() % 800` − 400; z − 150) del héroe, con sus ángulos, sin dueño y escala `rand() % 10` + 50. **Cada visto**
+(`0x4055b0`, después de `0x604ab0`): el 3 suma 1 a la cuenta; con la trampa armada (`0x6c634d`, 1 en la `.data`,
+que sólo rearma el paquete de `0x404e20`) prende `+0x8a`, deja `+0x60` en 10 y la desarma; si no, con el selector
+distinto de 0 lo baja, y al llegar a 0 prende ese.
+
+**El frame** (`0x4059d0`, desde `0x602ed0`):
+
+| Tipo | Qué hace |
+|---|---|
+| 0 a 3 con `+0x8a` y sin esconder | **la trampa** (`0x405cc5..0x405d82`): el punto del hueso 1 de la pose global; con `+0x60` en 10, el joint `0x615/2` de ese punto a ese punto, con los ángulos del objeto y escala `rand() % 10` + 60, y el sonido `0x9c` + (`rand() & 1`). Después, `+0x60` por debajo de 5 apaga `+0x8a`; si no, baja uno. Sigue con el área |
+| 0 a 5 y `0xd` a `0x11` | con el área entre 2 y `0xfe`, se esconde (`+0x58` en −2) |
+| 6 a `0xc` | **las nubes**, una vez (después queda escondido): diez `622/(tipo − 6)` del 6 al 8, cinco del 9 al `0xb` y siete `622/7` el `0xc`, con el objeto de dueño, su escala y la luz (0,05f; 0,05f; 0,1f), o 0,3f el `0xc` |
+| `0x12` a `0x15` | se ve sólo con el área en 7 u 8 |
+| `0x18` a `0x1d` | se ve con el área en 4 o 5 y se esconde desde la 8 |
+| `0x1e` a `0x23` | se ve con el área en 1 o 2 y se esconde desde la 5 |
+
+**Los joints** (`0x535840`): el rayo de la trampa, `0x615/2`, se crea (`0x5319ea`, `0x531b0c..0x531bd2` y `0x534cb6`) con la textura `0x614`, el ancho
+en la escala, 50 puntos, vida 20, x e y más `rand() % 10` − 5 y z + 800, y el destino en el segundo punto. Su paso
+(`0x53770a`) baja en zigzag hasta el destino, con `rand() % 20` − 10 en x e y y z − 16 en cada punto; al final se
+apaga (vida por debajo de 4, la luz por 0,8333f), deja dos sprites `0x5fd` en el destino y la partícula `6ed/0`, y la cola corre con vida por encima de 10. El meteoro, `0x6ee/9` (`Effect\JointSpirit02.jpg`, cargado en `0x61d5db`), va con la mezcla que resta (3) y sólo la segunda cara,
+con velocidad 10 y ángulos (−90, 0, 0); su paso (`0x538ea4..0x538f37`) corre x e y con `rand() % 10` − 5, sube la velocidad y
+se apaga desde vida 10. La cola común (`0x53c393`) usa la matriz del principio del paso.
+
+**Los personajes.** En Chaos Castle un jugador (`+0x88` en 1) no lleva sus partes sino el Angel (`0x1f7`,
+`Player\Angel`, que carga `0x618970`): `0x60cf70` con su contorno de estos mapas y `0x60b3d0` con el nivel 0, que
+le pone la luz del personaje y llama a `0x609640` con 2, o 6 el héroe, que además lleva el cromo de la malla 0
+(`0x1040` a (0,75; 0,55; 0,5) y `0x46` a 1). Su malla de piel va con la piel 0 (Q-C322). El contorno de estos
+mapas (`0x60d09f` y `0x60d113`) vale para cualquier `+0x88`: (0,1; 0,01; 0) a 0,1 / escala + 1 y (0,7; 0,07; 0) a
+0,04 / escala + 1,02 − 0,02 (Q-C323). No hay marca del gremio (`0x50d4fb`), capa, alas, mascota ni armas en la
+espalda. El alpha de los objetos baja 0,15f con `+0x1a1` del héroe (`0x5ffdf0`), que sólo escriben los paquetes.
+Al caminar, `0x4fbe10` guarda la celda del héroe y, si se queda 10 s en una celda con el bit 8 del atributo, manda
+`C1 06 AF 01` (CL9.5, corta).
+
+**En MuRet.** `World::StepChaosCastleCell` desde el dibujo del terreno, `World::StepChaosCastlePrelude` y
+`World::StepChaosCastleSeenObject` (`World/ChaosCastle`) desde `GameScene::StepTheObjects`,
+`Scenes::StepChaosCastleObjectFrame` (`EventMapObjectFrame`), los joints `0x615/2` y `0x6ee/9` en
+`FaunaJointCreation`, `World::ChaosCastlePoseAlpha` y `Scenes::DrawChaosCastleBody` (`CharacterDrawing`, desde
+`GameCharacters`). Con la Data del repo, los seis entran por `F3 04` dentro del castillo y caminan; la trampa armada
+se dispara en el primer 3 visto (`GameT16ChaosCastleWalk`). Tests: `ChaosCastleTest` y, del cuerpo,
+`GameCharacterRenderTest.InChaosCastleAPlayerWearsTheAngelAndOnlyTheHeroAddsItsChrome` y
+`TheChaosCastleOutlineScalesWithTheObjectAndHasItsOwnColors`.
 
 ### Las marcas del suelo
 
@@ -6599,7 +6831,9 @@ no, con el tipo `0x20a` y el subtipo (`+4`) fuera de 209 a 211: sin Fenrir termi
 tipo o esos subtipos lee la tabla de sonidos de los modelos (`0x5769ad8 + tipo · 0xe0 + 0xaa`), sin
 leer en detalle. Gasta de uno a tres `rand()`. MuRet (`Scenes::SetActorStop`) porta los pasos 2 a 9
 y el sufijo, y corta con un error explícito en la rama de los que no son jugadores, el `TerrainWall`
-de los mapas de vuelo en la escena 5, el `C1 .. 18` de sentarse y la tabla de sonidos.
+de los mapas de vuelo en la escena 5 cuando quien llama no lo presta (el paso de los personajes lo presta en
+todos los mapas desde el PR de Atlans: en el 7 y en Kalima, fuera de la zona segura, de pie nadan), el
+`C1 .. 18` de sentarse y la tabla de sonidos.
 
 `0x4f9580` no toca el movimiento: da la **velocidad de la animación**, la base del `PlaySpeed` de la
 acción (después va `0x4ec200`, salvo con `+0x78 & 0x1000`), con multiplicadores por tipo, acción y

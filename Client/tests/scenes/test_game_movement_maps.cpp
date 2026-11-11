@@ -16,6 +16,7 @@
 #include "Render/Models/Skeleton.h"
 #include "Scenes/ActorState.h"
 #include "Scenes/CharacterStep.h"
+#include "Scenes/EventMapObject.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/MapLoad.h"
 #include "Scenes/OwnCharacterRecord.h"
@@ -24,6 +25,7 @@
 #include "Scenes/WorldMap.h"
 #include "Scenes/WorldRuntime.h"
 #include "Scenes/WorldState.h"
+#include "World/Particles.h"
 #include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
 #include "World/TerrainWalls.h"
@@ -75,23 +77,23 @@ constexpr std::array<MapCase, 37> MovementMaps{{
     {4, "LostTower"},
     {5, "MissingWorld6"},
     {6, "Arena"},
-    {7, "AtlansEffectsBoundary"},
+    {7, "Atlans"},
     {8, "Tarkan"},
-    {9, "DevilSquareEventBoundary"},
+    {9, "DevilSquare"},
     {10, "Icarus"},
-    {11, "BloodCastleEventBoundary"},
-    {12, "BloodCastleEventBoundary"},
-    {13, "BloodCastleEventBoundary"},
-    {14, "BloodCastleEventBoundary"},
-    {15, "BloodCastleEventBoundary"},
-    {16, "BloodCastleEventBoundary"},
-    {17, "BloodCastleEventBoundary"},
-    {18, "ChaosCastleCellReportBoundary"},
-    {19, "ChaosCastleCellReportBoundary"},
-    {20, "ChaosCastleCellReportBoundary"},
-    {21, "ChaosCastleCellReportBoundary"},
-    {22, "ChaosCastleCellReportBoundary"},
-    {23, "ChaosCastleCellReportBoundary"},
+    {11, "BloodCastle"},
+    {12, "BloodCastle"},
+    {13, "BloodCastle"},
+    {14, "BloodCastle"},
+    {15, "BloodCastle"},
+    {16, "BloodCastle"},
+    {17, "BloodCastle"},
+    {18, "ChaosCastle"},
+    {19, "ChaosCastle"},
+    {20, "ChaosCastle"},
+    {21, "ChaosCastle"},
+    {22, "ChaosCastle"},
+    {23, "ChaosCastle"},
     {24, "KalimaLoadBoundary"},
     {25, "KalimaLoadBoundary"},
     {26, "KalimaLoadBoundary"},
@@ -126,30 +128,13 @@ bool IsChaosCastle(std::uint8_t map)
     return map >= 18 && map <= 23;
 }
 
-bool IsKalima(std::uint8_t map)
-{
-    return (map >= 24 && map <= 29) || map == 36;
-}
-
 std::string_view CharacterFrontier(std::uint8_t map)
 {
     if (map == 30)
     {
         return "0x412140";
     }
-    if (IsChaosCastle(map))
-    {
-        return "0x4fbe10";
-    }
-    if (map == 7)
-    {
-        return "0x506d01";
-    }
-    if (map == 9)
-    {
-        return "0x506d8b";
-    }
-    return IsKalima(map) ? "0x5087fc" : "";
+    return "";
 }
 
 class GameMovementMapMatrix : public Client::Tests::GoldenDataTest, public ::testing::WithParamInterface<MapCase>
@@ -417,8 +402,11 @@ TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEar
     ASSERT_TRUE(moved.HasValue()) << moved.Error();
     ASSERT_EQ(Hero().cellX, 11);
     ASSERT_LT(Hero().position.x, 1100.0f);
-    const auto stepped =
-        Client::Scenes::StepCharacters({.world = m_world, .random = m_random, .playerSkeleton = &m_skeleton});
+    // Con el pool: la burbuja de Atlans (0x506d0a, con el reloj en 0), la lluvia de Devil Square (0x506d7f) y los
+    // pasos de Kalima (0x5087fc) lo piden.
+    auto particles = std::make_unique<Client::World::Particles>();
+    const auto stepped = Client::Scenes::StepCharacters(
+        {.world = m_world, .random = m_random, .playerSkeleton = &m_skeleton, .particles = particles.get()});
     const auto frontier = CharacterFrontier(GetParam().map);
     if (frontier.empty())
     {
@@ -429,7 +417,7 @@ TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEar
         ASSERT_FALSE(stepped.HasValue());
         EXPECT_NE(stepped.Error().find(frontier), std::string::npos) << stepped.Error();
     }
-    const bool beforeSafeZone = GetParam().map == 30 || IsChaosCastle(GetParam().map);
+    const bool beforeSafeZone = GetParam().map == 30;
     EXPECT_EQ(Hero().safeZone, beforeSafeZone ? 0 : 1);
 }
 
@@ -466,7 +454,8 @@ TEST_F(GameMovementMapEvidenceTest, EntryFrontiersStaySeparateFromTheSyntheticWa
     }
 }
 
-TEST_F(GameMovementMapEvidenceTest, TheAliasAndEventFamiliesStillRequireTheirEventObjects)
+// 0x61a560 lleva el 32 al 9 y 0x447d70, con el mundo en curso, arma el objeto de Devil Square.
+TEST_F(GameMovementMapEvidenceTest, TheAliasOfDevilSquareArmsItsEventObject)
 {
     Client::Scenes::WorldState world;
     world.Runtime().map = 32;
@@ -474,16 +463,9 @@ TEST_F(GameMovementMapEvidenceTest, TheAliasAndEventFamiliesStillRequireTheirEve
     const auto loaded = Client::Scenes::LoadMap(32, {m_dataRoot, world, Client::Scenes::SceneId::Game, 5, random});
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
     EXPECT_EQ(world.Runtime().map, 9);
-    for (std::int32_t map = 9; map <= 23; ++map)
-    {
-        if (map == 10)
-        {
-            continue;
-        }
-        const auto event = Client::Scenes::CheckEventMap(map);
-        ASSERT_FALSE(event.HasValue());
-        EXPECT_NE(event.Error().find("0x447d70"), std::string::npos);
-    }
+    Client::Scenes::ArmEventMapObject(world.Runtime().map, world.Runtime());
+    ASSERT_TRUE(world.Runtime().eventObject.has_value());
+    EXPECT_EQ(world.Runtime().eventObject->kind, Client::Scenes::EventMapKind::DevilSquare);
 }
 
 TEST_F(GameMovementMapEvidenceTest, TheTwoSceneMapsExposeTerrainHeightsWithoutClaimingHeroMovement)

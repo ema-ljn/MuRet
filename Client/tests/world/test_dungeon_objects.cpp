@@ -8,6 +8,7 @@
 #include "World/WorldObjectStepServices.h"
 #include "World/WorldObjects.h"
 
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 
 #include <gtest/gtest.h>
@@ -19,8 +20,9 @@
 #include <string>
 #include <vector>
 
-// Los casos de 0x604ab0 del Dungeon (mapa 1, la tabla 0x605bc0) y de Lost Tower (mapa 4, 0x605c50 con el
-// tipo − 3), y la patada de 0x52f550 (06 § Los objetos del Dungeon y de Lost Tower).
+// Los casos de 0x604ab0 del Dungeon (mapa 1, la tabla 0x605bc0), de Lost Tower (mapa 4, 0x605c50 con el
+// tipo − 3) y de la Arena (mapa 6, 0x6054fd), y la patada de 0x52f550 (06 § Los objetos del Dungeon y de Lost
+// Tower, § Los objetos de la Arena).
 namespace
 {
 using Client::Render::Models::CrtRandom;
@@ -29,6 +31,7 @@ using Client::World::ModelEffects;
 using Client::World::ObjectModelStepState;
 using Client::World::ObjectStepGlobals;
 using Client::World::Particles;
+using Client::World::StepArenaObject;
 using Client::World::StepDungeonObject;
 using Client::World::StepLostTowerObject;
 using Client::World::TerrainLighting;
@@ -242,6 +245,51 @@ TEST(DungeonObjectsTest, TheLostTowerWaterScrollsItsUAndTheChromeTypesBlend)
     const auto cut = StepLostTowerObject(object, random, wrap);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x60540a"), std::string::npos) << cut.Error();
+}
+
+// 0x6054fd..0x605546: el 0x15 de la Arena lleva el blendMesh a 3 antes del ftol y corre la V con el ftol
+// negado; el 0x26 sólo se oculta; los demás tipos no cambian nada. Ninguno saca rand().
+TEST(DungeonObjectsTest, TheArenaScrollsTheVOfItsWaterAndHidesItsMarkers)
+{
+    ObjectStepGlobals globals;
+    globals.worldClock = 12345.0f;
+    auto water = Object(0x15);
+    ASSERT_TRUE(StepArenaObject(water, globals).HasValue());
+    EXPECT_EQ(water.state.blendMesh, 3);
+    EXPECT_EQ(water.state.uv.y, static_cast<float>(-345.0 * static_cast<double>(std::bit_cast<float>(0x3a83126fu))));
+    EXPECT_EQ(water.state.uv.x, 0.0f);
+    EXPECT_EQ(water.state.hiddenMesh, WorldObject{}.state.hiddenMesh);
+
+    auto marker = Object(0x26);
+    ASSERT_TRUE(StepArenaObject(marker, globals).HasValue());
+    EXPECT_EQ(marker.state.hiddenMesh, -2);
+    EXPECT_EQ(marker.state.uv, glm::vec2(0.0f));
+
+    for (const std::int16_t type : {std::int16_t{9}, std::int16_t{0x14}, std::int16_t{0x16}})
+    {
+        SCOPED_TRACE(type);
+        auto other = Object(type);
+        ASSERT_TRUE(StepArenaObject(other, globals).HasValue());
+        EXPECT_EQ(other.state.blendMesh, WorldObject{}.state.blendMesh);
+        EXPECT_EQ(other.state.hiddenMesh, WorldObject{}.state.hiddenMesh);
+        EXPECT_EQ(other.state.uv, glm::vec2(0.0f));
+    }
+
+    // Por StepWorldObjectChecked en el 6, sin rand().
+    auto stepped = Object(0x15);
+    CrtRandom random(7);
+    ASSERT_TRUE(Client::World::StepWorldObjectChecked(stepped, 6, nullptr, random, globals).HasValue());
+    EXPECT_EQ(stepped.state.uv.y, water.state.uv.y);
+    EXPECT_EQ(random.State(), 7u);
+
+    // Con el ftol fuera de lo acreditado corta después del blendMesh.
+    globals.worldClock = std::numeric_limits<float>::infinity();
+    auto cut = Object(0x15);
+    const auto failed = StepArenaObject(cut, globals);
+    ASSERT_FALSE(failed.HasValue());
+    EXPECT_NE(failed.Error().find("0x60552a"), std::string::npos) << failed.Error();
+    EXPECT_EQ(cut.state.blendMesh, 3);
+    EXPECT_EQ(cut.state.uv.y, 0.0f);
 }
 
 // 0x60546f: el 0x18 deja +0x58 en −2 y, con rand() & 63 en 0, 0x518cf0(0x5de, …, luz +0xf4); el chorro

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GameLogic/MovementSpeed.h"
+#include "Scenes/EventMapObject.h"
 #include "Scenes/FullSetScan.h"
 #include "Scenes/GameMovementState.h"
 #include "Scenes/GameItemRenderState.h"
@@ -48,6 +49,20 @@ struct WorldRuntime
     std::int32_t objectSelectionCount = 0;
     // 0x723c4c, .bss 0: la hora del sistema (timeGetTime) del último ambiente 0x1ef de Land of Trials (0x44016b).
     std::uint32_t trialsAmbientTime = 0;
+    // DAT_00723c60, el objeto de evento que arma 0x447d70. Vacío como la .bss; sólo 0x447d70 lo suelta
+    // (0x447eb0), y sólo para armar otro: al salir del evento a un mapa común sigue vivo (Q-C320).
+    std::optional<EventMapObject> eventObject{};
+    // 0x6c634c (.data 0xff): el área de Chaos Castle que leen 0x404e20 y 0x405e00 (Q-C229); 0x404d60 la vuelve
+    // a poner en 0xff.
+    std::uint8_t chaosCastleArea = 0xff;
+    // 0x6c634d (.data 1): la trampa de Chaos Castle armada. 0x4055b0 la gasta con el primer 3 visto; solo el
+    // paquete de 0x404e20 la vuelve a armar (CL9.5).
+    std::uint8_t chaosCastleTrapArmed = 1;
+    // 0x743a180, 0x743a184 y 0x743a188 (.bss 0): la celda del héroe y el reloj del mundo que 0x4fbe10 guarda en
+    // los mapas 18 a 23. Nadie más los escribe: sobreviven a la carga de otro mapa.
+    std::int32_t reportedCellX = 0;
+    std::int32_t reportedCellY = 0;
+    float reportedCellTime = 0.0f;
     // DAT_006c9dd0, el mundo en curso. Quien llama a 0x61a560 lo escribe justo antes (05, "La carpeta
     // de cada mapa"): el login con 55 (06, "El login, al entrar") y la selección con 54 en 0x633f20
     // (06, "Al entrar"). Ese 54 sigue en la carga del mundo y en la espera de la escena 5, que corre

@@ -337,6 +337,7 @@ TEST_F(UnarmedGameCharacterTest, AnIntermediateDrawDoesNotOpenTheHandBytesOrAdva
     EXPECT_EQ(Actor().position, before.position);
     EXPECT_EQ(Actor().animation.frame, before.animation.frame);
     EXPECT_EQ(Actor().animation.action, before.animation.action);
+    EXPECT_TRUE(Actor().bodyPose.empty());
 }
 
 TEST_F(UnarmedGameCharacterTest, CatchUpSpendsTwoHandByteClosesPerOriginalFrame)
@@ -350,6 +351,8 @@ TEST_F(UnarmedGameCharacterTest, CatchUpSpendsTwoHandByteClosesPerOriginalFrame)
     EXPECT_EQ(m_batch.Vertices().size(), 6u);
     EXPECT_EQ(m_cloth.random.State(), 0x3d6c1037u); // seis rand: (cuerpo + dos manos) por dos frames
     EXPECT_EQ(Actor().byte38eAccesses, 0);
+    // 0x509340 deja la pose del cuerpo en los huesos propios (+0x120) para el paso siguiente (0x506d25).
+    EXPECT_EQ(Actor().bodyPose.size(), m_models.SkeletonOf(Client::Data::Models::PlayerSkeletonModel)->bones.size());
 }
 
 TEST_F(UnarmedGameCharacterTest, TheUnportedPeriodicStatusEffectStopsBeforeTheHandByteReads)

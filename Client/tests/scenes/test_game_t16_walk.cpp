@@ -13,6 +13,7 @@
 #include "Scenes/ActorState.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/WorldMap.h"
+#include "World/TerrainCulling.h"
 #include "World/TerrainHeight.h"
 #include "World/Particles.h"
 #include "support/UiInput.h"
@@ -29,6 +30,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 namespace
 {
@@ -292,27 +294,44 @@ protected:
 };
 
 // En Lost Tower (World5) el 70..73 no tiene suelo (0x08 del .att); 205..208 × 87..90, al sur de la zona
-// segura, es suelo libre. En Icarus (World11), 20..23 × 29..32 es el bloque libre con más objetos cerca (76 a
-// menos de 1.500), para que el paso por objeto (0x6063d0) y sus nubes corran. En Aida (World34), 104..107 ×
-// 165..168 es suelo libre fuera de la zona segura, con 0x29 (la malla 0 de 0x4255f3) y 0x46 cerca. Land of
-// Trials (World32) no tiene zona segura; 149..152 × 104..107 es suelo libre con ocho de sus tipos con caso a
-// menos de 1.500, y la cámara ve el 3 y el 0x35 que emiten y el 0x34 que se dibuja dos veces.
+// segura, es suelo libre. En la Arena (World7), 62..65 × 47..50 es suelo libre fuera de la zona segura, con once
+// 0x15 (la V que corre) y cuatro 9 (el sprite del hueso 1) a menos de 1.500. En Atlans (World8), 226..229 ×
+// 103..106 es suelo libre fuera de la zona segura, con cinco 0x16 (las burbujas), siete 0x20 y cuatro 0x22 a menos
+// de 1.500 y 70 celdas con la capa 2 en el agua cerca. En Icarus (World11), 20..23 × 29..32 es el
+// bloque libre con más objetos cerca (76 a menos de 1.500), para que el paso por objeto (0x6063d0) y sus nubes corran.
+// En Aida (World34), 104..107 × 165..168 es suelo libre fuera de la zona segura, con 0x29 (la malla 0 de 0x4255f3) y
+// 0x46 cerca. Land of Trials (World32) no tiene zona segura; 149..152 × 104..107 es suelo libre con ocho de sus tipos
+// con caso a menos de 1.500, y la cámara ve el 3 y el 0x35 que emiten y el 0x34 que se dibuja dos veces. Devil Square
+// (World10, también por el 32) no tiene zona segura; 122..125 × 174..177 es suelo libre con 38 del 2, que llueve. Los
+// Blood Castle (World12): 12..15 × 90..93 es suelo libre con cuatro 0xd (el sprite que pulsa) y cuatro 0x25 (las
+// antorchas) a menos de 1.500.
 TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenCompleteFrames)
 {
     const auto map = static_cast<std::uint8_t>(GetParam());
-    const auto start = [map](std::uint8_t lostTower, std::uint8_t icarus, std::uint8_t trials,
-                             std::uint8_t aida) -> std::uint8_t
+    const bool devilSquare = map == 9 || map == 32;
+    const bool bloodCastle = map >= 11 && map <= 17;
+    const auto start = [map, devilSquare, bloodCastle](std::uint8_t lostTower, std::uint8_t arena, std::uint8_t atlans,
+                                                       std::uint8_t icarus, std::uint8_t trials, std::uint8_t aida,
+                                                       std::uint8_t devil, std::uint8_t blood) -> std::uint8_t
     {
         if (map == 4)
             return lostTower;
+        if (map == 6)
+            return arena;
+        if (map == 7)
+            return atlans;
+        if (devilSquare)
+            return devil;
         if (map == 10)
             return icarus;
+        if (bloodCastle)
+            return blood;
         if (map == 31)
             return trials;
         return map == 33 ? aida : 70;
     };
-    const std::uint8_t x = start(205, 20, 149, 104);
-    const std::uint8_t y = start(87, 29, 104, 165);
+    const std::uint8_t x = start(205, 62, 226, 20, 149, 104, 122, 12);
+    const std::uint8_t y = start(87, 47, 103, 29, 104, 165, 174, 90);
     const auto far = [](std::uint8_t cell) { return static_cast<std::uint8_t>(cell + 3); };
     Teleport(map, x, y);
     ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
@@ -324,15 +343,51 @@ TEST_P(GameT16MapWalk, RealTerrainPicksAndMovesStraightThenAroundAnElbowBetweenC
     ASSERT_NO_FATAL_FAILURE(ClickCell(far(x), far(y)));
     ASSERT_NO_FATAL_FAILURE(ExpectWalkPacket());
     ASSERT_NO_FATAL_FAILURE(FinishWalk(far(x), far(y)));
-    if (map == 31 || map == 33)
+    if (map == 6 || map == 7 || devilSquare || bloodCastle || map == 31 || map == 33)
     {
-        const auto types =
-            map == 31 ? std::array<std::int16_t, 2>{0x34, 0x35} : std::array<std::int16_t, 2>{0x29, 0x46};
+        const auto types = map == 6      ? std::array<std::int16_t, 2>{9, 0x15}
+                           : map == 7    ? std::array<std::int16_t, 2>{0x16, 0x20}
+                           : devilSquare ? std::array<std::int16_t, 2>{2, 2}
+                           : bloodCastle ? std::array<std::int16_t, 2>{0xd, 0x25}
+                           : map == 31   ? std::array<std::int16_t, 2>{0x34, 0x35}
+                                         : std::array<std::int16_t, 2>{0x29, 0x46};
         for (const std::int16_t type : types)
             EXPECT_TRUE(std::ranges::any_of(m_world->Map().objects, [type](const auto& object)
                                             { return object.alive && object.seen && object.type == type; }))
                 << type;
     }
+}
+
+// 0x635b3d, 0x5fb570 y 0x6371a0 (Q-C152): en la Arena, con "webzen" en el nombre del héroe, la cámara de
+// espectador: yaw −40, far 5.000 y D 3.200 desde el frame siguiente, sin leer la celda del héroe; el trapecio
+// es el propio, alrededor de (6.400; 15.400) con la z del héroe y girado −yaw. El cuadro es completo.
+TEST_F(GameT16Journey, AWebzenNameWatchesTheArenaFromTheSpectatorCamera)
+{
+    Teleport(6, 62, 47);
+    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    constexpr std::string_view Name = "xwebzenx";
+    Hero().name.fill(std::byte{0});
+    for (std::size_t index = 0; index < Name.size(); ++index)
+        Hero().name[index] = static_cast<std::byte>(Name[index]);
+    OpenScene();
+    ASSERT_NO_FATAL_FAILURE(WaitForInput());
+    ASSERT_NO_FATAL_FAILURE(DrawCompleteFrame());
+    EXPECT_TRUE(m_cameraInput.webzen);
+    EXPECT_EQ(m_camera.yaw, -40.0f);
+    EXPECT_EQ(m_camera.farPlane, 5000.0f);
+    EXPECT_EQ(m_camera.distance, 3200.0f);
+    Client::World::TerrainPolygonInput input;
+    input.scene = 5;
+    input.map = 6;
+    input.translation = {6400.0f, 15400.0f, Hero().position.z};
+    input.objectPosition = {6400.0f, 15400.0f};
+    input.cameraYaw = -40.0f;
+    input.webzenProfile = true;
+    input.webzenYaw = true;
+    const auto expected = Client::World::TerrainPolygonOf(input, m_world->Runtime().terrainPolygonState.effectiveLevel);
+    ASSERT_TRUE(expected.HasValue());
+    EXPECT_EQ(m_world->Runtime().terrainPolygon.x, expected.Value().x);
+    EXPECT_EQ(m_world->Runtime().terrainPolygon.y, expected.Value().y);
 }
 
 // El Dungeon (World2) no tiene celdas con el bit 0x01 de la zona segura; los demás, sí.
@@ -342,11 +397,14 @@ class GameT16SafeZoneWalk : public GameT16MapWalk
 TEST_P(GameT16SafeZoneWalk, RealSafeZoneCellsResetRunWhileTheirLogicalCellAdvances)
 {
     const auto map = static_cast<std::uint8_t>(GetParam());
-    // Tarkan (World9): la zona segura va de x 155 a 251 e y 28 a 97; 206..208 × 56 es suelo libre.
-    constexpr std::array<std::uint8_t, 9> SafeX{132, 0, 185, 166, 195, 0, 0, 0, 206};
-    constexpr std::array<std::uint8_t, 9> SafeY{89, 0, 30, 81, 72, 0, 0, 0, 56};
-    const std::uint8_t x = SafeX[map];
-    const std::uint8_t y = SafeY[map];
+    // La Arena (World7): 70..72 × 139 es suelo libre de la zona segura. Atlans (World8): la zona segura va de x 11
+    // a 34 e y 8 a 28; 13..15 × 17 es suelo libre. Tarkan (World9): la zona segura va de x
+    // 155 a 251 e y 28 a 97; 206..208 × 56 es suelo libre. Los Blood Castle (World12): 12..14 × 3.
+    constexpr std::array<std::uint8_t, 9> SafeX{132, 0, 185, 166, 195, 0, 70, 13, 206};
+    constexpr std::array<std::uint8_t, 9> SafeY{89, 0, 30, 81, 72, 0, 139, 17, 56};
+    const bool bloodCastle = map >= 11 && map <= 17;
+    const std::uint8_t x = bloodCastle ? 12 : SafeX[map];
+    const std::uint8_t y = bloodCastle ? 3 : SafeY[map];
     Teleport(map, x, y);
     ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
     OpenScene();
@@ -378,6 +436,56 @@ TEST_P(GameT16MapWalk, TheArchivedOuterWallCannotStartAnOutOfBoundsWalk)
     EXPECT_EQ(Hero().movement, 0);
     RecordProperty("border_scope", "real outer wall/picking rejection; no fabricated traversable border");
 }
+
+// Chaos Castle (World19 por el 18 al 23) entra por el F3 04: el 1C corta en 0x4906a0 (la UI del castillo, CL8).
+// El castillo, 23..44 × 75..108, es zona segura en el .att; 30..33 × 90..93 queda en el medio, con los veintidós 3
+// de las paredes a la vista. La trampa armada de la .data (0x6c634d) prende el primer 3 visto (0x4055b0), que en el
+// dibujo siguiente suelta su 615/2 desde el hueso 1 (0x405d49) y baja la cuenta hasta 4; después el preludio
+// (0x405490) elige otros. Las nubes del 7 al 0xc que se ven sueltan sus 622 y se esconden.
+class GameT16ChaosCastleWalk : public GameT16MapWalk
+{
+};
+TEST_P(GameT16ChaosCastleWalk, RegenWalksInsideTheCastleAndTheArmedTrapFires)
+{
+    const auto map = static_cast<std::uint8_t>(GetParam());
+    constexpr std::uint8_t X = 30;
+    constexpr std::uint8_t Y = 90;
+    Regen(map, X, Y);
+    ASSERT_FALSE(m_pollFailure) << *m_pollFailure;
+    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_world->Runtime().map, map);
+    OpenScene();
+    ASSERT_NO_FATAL_FAILURE(WaitForInput());
+    ASSERT_EQ(Hero().safeZone, 1);
+    ASSERT_NO_FATAL_FAILURE(ClickCell(X + 3, Y));
+    ASSERT_NO_FATAL_FAILURE(ExpectWalkPacket());
+    ASSERT_NO_FATAL_FAILURE(FinishWalk(X + 3, Y));
+    ASSERT_NO_FATAL_FAILURE(ClickCell(X + 3, Y + 3));
+    ASSERT_NO_FATAL_FAILURE(ExpectWalkPacket());
+    ASSERT_NO_FATAL_FAILURE(FinishWalk(X + 3, Y + 3));
+    EXPECT_EQ(m_world->Runtime().chaosCastleTrapArmed, 0);
+    // Un 3 que disparó baja +0x60 desde 10 en cada frame; el preludio vuelve a elegir alguno de los vistos.
+    EXPECT_TRUE(std::ranges::any_of(
+        m_world->Map().objects, [](const auto& object)
+        { return object.alive && object.type == 3 && object.field60 >= 4 && object.field60 < 10; }));
+    // Las nubes vistas (6 a 0xc) sueltan sus 622 una vez y quedan escondidas.
+    EXPECT_TRUE(std::ranges::any_of(m_world->Map().objects,
+                                    [](const auto& object) {
+                                        return object.alive && object.seen && object.type >= 6 && object.type <= 0xc &&
+                                               object.state.hiddenMesh == -2;
+                                    }));
+    // El héroe va con el Angel (0x1f7) y su cromo: 0x609640 con 6 pasa la malla 0 con 0x46 por Chrome01 (0x5c0).
+    ASSERT_FALSE(m_target.frames.empty());
+    bool chrome = false;
+    for (const auto& event : m_target.frames.back().events)
+        for (const auto& command : event.modelCommands)
+            chrome |= command.vertexCount != 0 && command.state.texture && command.state.texture->value == 0x5c0;
+    EXPECT_TRUE(chrome);
+    RecordProperty("walk_scope", "F304 entry; real picking; D3 echo; armed trap 615/2; Angel body; full frames");
+}
+INSTANTIATE_TEST_SUITE_P(AllSixChaosCastles, GameT16ChaosCastleWalk, ::testing::Values(18, 19, 20, 21, 22, 23),
+                         [](const ::testing::TestParamInfo<int>& parameter)
+                         { return "Map" + std::to_string(parameter.param); });
 
 class GameT16KalimaWalk : public GameT16MapWalk
 {
@@ -437,10 +545,12 @@ INSTANTIATE_TEST_SUITE_P(AllSevenKalimaAliases, GameT16KalimaWalk, ::testing::Va
                          [](const ::testing::TestParamInfo<int>& parameter)
                          { return "Map" + std::to_string(parameter.param); });
 
-INSTANTIATE_TEST_SUITE_P(CompleteSceneMaps, GameT16MapWalk, ::testing::Values(0, 1, 2, 3, 4, 8, 10, 31, 33),
+INSTANTIATE_TEST_SUITE_P(CompleteSceneMaps, GameT16MapWalk,
+                         ::testing::Values(0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 31, 32, 33),
                          [](const ::testing::TestParamInfo<int>& mapParameter)
                          { return "Map" + std::to_string(mapParameter.param); });
-INSTANTIATE_TEST_SUITE_P(CompleteSceneMapsWithSafeZone, GameT16SafeZoneWalk, ::testing::Values(0, 2, 3, 4, 8),
+INSTANTIATE_TEST_SUITE_P(CompleteSceneMapsWithSafeZone, GameT16SafeZoneWalk,
+                         ::testing::Values(0, 2, 3, 4, 6, 7, 8, 11, 12, 13, 14, 15, 16, 17),
                          [](const ::testing::TestParamInfo<int>& mapParameter)
                          { return "Map" + std::to_string(mapParameter.param); });
 } // namespace

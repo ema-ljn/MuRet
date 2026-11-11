@@ -3,6 +3,7 @@
 #include "GameLogic/CharacterAppearance.h"
 #include "GameLogic/Path.h"
 #include "Protocol/Character/Opcodes.h"
+#include "Render/Models/HalfLifeMath.h"
 #include "Render/Models/Pose.h"
 #include "Scenes/CharacterHead.h"
 #include "Scenes/DarkSpirit.h"
@@ -13,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 // Un registro del pool durable de personajes, de 0x438 bytes en el original (06, "Los personajes de
 // la lista"). Es una proyección con lo que MuRet lee hoy, no el layout. Arranca en cero, como lo deja
@@ -28,6 +30,9 @@ inline constexpr std::uint16_t NoItemModel = 0xffff;
 struct GameMasterLayer
 {
     Render::Models::AnimationState animation;
+    // +0x178 de la capa (el +0x174 de su objeto): 0x414370 lo pone en 1 y solo 0x5ffdf0 lo baja, en Chaos Castle
+    // con +0x1a1 del héroe.
+    float alpha = 1.0f;
 };
 
 // Una parte puesta, de a 0x20 bytes: las cinco del cuerpo desde +0x218, las manos en +0x2b8 y
@@ -104,6 +109,10 @@ struct ActorState
     // quedan los de WinMain o los del uso anterior del registro. Del héroe, el blanco lo escribe MoveHero con
     // el mouse (0x59b1c2..0x59b287, CL7.4), sin portar.
     CharacterHead headTurn{};
+    // +0x120: los huesos del cuerpo en el mundo como los dejó el último dibujo del juego (0x509340, la pose de
+    // 0x4eb860 con la cabeza). 0x511290 suelta el buffer y pide otro sin iniciar (0x5123c4..0x5123ff): antes
+    // del primer dibujo, vacío (Q-C318). Lo lee la burbuja de Atlans (0x506d25).
+    std::vector<Render::Models::BoneTransform> bodyPose;
     // +0x430: el cuervo que 0x420d60 crea y 0x420dd0 mueve dentro del cuerpo de este dueño.
     std::optional<DarkSpirit> darkSpirit;
     // +0x360: con 5, la capa de los GM, que 0x413fe0 pone en cada dibujo de un GM; del 1 al 3, el arma del
@@ -140,12 +149,16 @@ struct ActorState
     // +0x389: distinto de 0, se está muriendo y 0x508f00 no lo pone en el TerrainWall. 0x511290 lo pone
     // en 0 (0x511c05); quién más lo escribe, sin leer.
     std::uint8_t dying = 0;
-    // +0x88: 0x511290 y la respuesta del F3 03 lo ponen en 1; con 8, 0x508f00 no lo pone en el
-    // TerrainWall (0x508f60). Qué es, sin leer.
+    // +0x88, la clase del objeto: 0x511290 y la respuesta del F3 03 lo ponen en 1 (un jugador); con 8,
+    // 0x508f00 no lo pone en el TerrainWall (0x508f60). 0x60cf70 contornea el 4 con otros colores y 0x50d374
+    // viste al 1 con el Angel en Chaos Castle.
     std::uint8_t byte88 = 0;
     std::uint8_t controlCode = 0; // +0x1d8, el CtlCode de la respuesta del F3 03
     // +0x1d9: el nombre. La respuesta del F3 03 copia ahí los diez bytes del registro propio (0x4c47a2).
     std::array<std::byte, Protocol::Character::NameSize> name{};
+    // +0x1a1: sólo lo escriben los paquetes de 0x4d07c0 y 0x4d0a30 (CL9.5); en Chaos Castle, prendido en el
+    // héroe, 0x5ffdf0 baja el alpha de cada objeto que posa (0x5ffe09).
+    std::uint8_t byte1a1 = 0;
     std::uint8_t byte1e3 = 0; // +0x1e3: la respuesta del F3 03 lo pone en 0 (0x4c4844); qué es, sin leer
     // +0x1f4: la clave del personaje. 0x517270 pone el lugar de la selección (0x5172a8) y la respuesta del
     // F3 03 la del jugador (0x57678bc, 0x4c4516). 0x510f70 mata a los que no tienen la del héroe.

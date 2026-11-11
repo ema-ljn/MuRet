@@ -4,6 +4,7 @@
 #include "Scenes/FaunaJointCreation.h"
 #include "Scenes/FaunaEffects.h"
 #include "World/ITerrainAttributeQuerySource.h"
+#include "World/TerrainAttributeQuery.h"
 #include "Data/Terrain/TerrainAttributes.h"
 #include "Render/Models/OriginalRotation.h"
 #include "World/KalimaWorld.h"
@@ -49,7 +50,7 @@ public:
     explicit TailAttributeQuery(const Data::Terrain::TerrainAttributes& attributes) : m_attributes(attributes) {}
     float ReadScale() override
     {
-        return 0.01f;
+        return World::TerrainAttributeQueryScale;
     }
     const Data::Terrain::TerrainAttributes& Attributes() override
     {

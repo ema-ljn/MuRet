@@ -227,6 +227,8 @@ Core::Expected<void, std::string> ConstructActor(ActorState& actor, std::uint16_
     // El FSTP a float va después de la suma del corrimiento.
     actor.position = {x, y, static_cast<float>(ConstructionHeight(context, x, y, previousHad1c15, safe))};
     actor.angles = {0.0f, 0.0f, placement.angle};
+    // 0x5123c4..0x5123ff: suelta los huesos propios (+0x120) y pide otros sin iniciar (Q-C318).
+    actor.bodyPose.clear();
     ClearTheParts(actor);
     ++actor.revision;
     return {};

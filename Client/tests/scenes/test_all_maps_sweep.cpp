@@ -434,13 +434,8 @@ TEST_P(MapSweep, LoadsTheNominalIdentityOrStopsAtTheDeclaredBoundary)
     ExpectActorCleanup(m_world, scene);
     if (loaded.HasValue())
     {
-        const auto event = Client::Scenes::CheckEventMap(m_world.Runtime().map);
-        EXPECT_EQ(event.HasValue(), !probe.eventCut);
-        if (!event.HasValue())
-        {
-            EXPECT_EQ(event.Error(), "0x447d70: el objeto de evento del mapa " + std::to_string(probe.effective) +
-                                         " (0x447eb0 y operator new(0x134)) no está portado");
-        }
+        Client::Scenes::ArmEventMapObject(m_world.Runtime().map, m_world.Runtime());
+        EXPECT_EQ(m_world.Runtime().eventObject.has_value(), probe.eventObject);
     }
 }
 

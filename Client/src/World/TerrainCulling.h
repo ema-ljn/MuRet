@@ -11,6 +11,7 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <string>
 
 // Qué celdas del terreno pasan el recorte del original (CL7.1, tarea 3): el rango de bloques de
@@ -122,6 +123,17 @@ inline constexpr double CellMargin = 0.0;
 // pasar todo, no se prende nunca.
 void DrawTerrain(Render::ModelBatch& batch, const TerrainView& view, const TerrainRange& range,
                  const TerrainPolygon& polygon, const TerrainWater& water);
+
+// Lo que 0x5fa830 hace al empezar, antes de mirar el pase (0x5fa83f: 0x405e00(x, y)), con cada celda que
+// 0x5fac90 no saltea por el bit 0x08 del .att.
+using TerrainCellHook = std::function<Core::Expected<void, std::string>(std::uint8_t x, std::uint8_t y)>;
+
+// DrawTerrain con `beforeCell` en cada celda que se dibuja, antes de dibujarla. Corta con su error, sin dibujar
+// esa celda ni las siguientes.
+[[nodiscard]] Core::Expected<void, std::string> DrawTerrain(Render::ModelBatch& batch, const TerrainView& view,
+                                                            const TerrainRange& range, const TerrainPolygon& polygon,
+                                                            const TerrainWater& water,
+                                                            const TerrainCellHook& beforeCell);
 
 // El pase del pasto (0x5fc353: 0x5fc190 con 0x7d0d31c en 2): el mismo recorrido de bloques y celdas que
 // DrawTerrain, con DrawGrassCell en cada celda que pasa. Corta con el error de la primera celda que corta.

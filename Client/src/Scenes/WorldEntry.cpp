@@ -100,7 +100,8 @@ Core::Expected<void, std::string> LoadTheWorld(std::uint8_t map, std::uint16_t p
     }
     resources.selection.BorrowTerrain(world.Runtime().map, &world.Map().terrain);
     resources.cameraInput.map = static_cast<std::uint8_t>(world.Runtime().map);
-    return CheckEventMap(world.Runtime().map);
+    ArmEventMapObject(world.Runtime().map, world.Runtime());
+    return {};
 }
 
 // 0x4c44ad..0x4c4516: el lugar del héroe, su construcción y la clave del jugador. Una segunda respuesta

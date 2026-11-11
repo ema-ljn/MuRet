@@ -42,7 +42,6 @@
 #include <optional>
 #include <array>
 #include <string>
-#include <string_view>
 #include <memory>
 #include <limits>
 #include <bit>
@@ -821,48 +820,198 @@ TEST(WorldObjectsDrawingTest, RejectedKalimaDecalKeepsTheCommonPrefixAndDisabled
 // 0x60479c..0x604a36: el 0x64 de Devias solo sigue con el nivel del registro propio desde 0x50, o desde 0x35
 // con la clase del héroe en 3 o 4 (+0x1d4 & 7), con el registro abierto y cerrado: con la cuenta en 0, el
 // cierre saca los 3.848 rand() de 0x40b4d0; con otro acceso abierto, ninguno. Si sigue, su caso de 0x602ed0
-// (0x603251) corta después del rand(). El 0x67 corta en el suyo (0x6031f7).
+// (0x603251) deja sus dos sprites después del rand(); si no, no corre.
 TEST(WorldObjectsDrawingTest, TheLeveledObjectOfDeviasReadsTheOwnRecord)
 {
     const TwoMeshModels models;
     constexpr int OwnRecordClose = 0xf08;
     struct Case
     {
-        std::int16_t type;
         std::uint8_t heroClass;
         std::uint16_t level;
         std::uint8_t depth;
-        std::optional<std::string_view> cut;
+        bool drawn;
         int draws;
     };
-    for (const Case& probe :
-         {Case{0x64, 0, 0x4f, 0, std::nullopt, OwnRecordClose}, Case{0x64, 0, 0x50, 0, "0x603251", OwnRecordClose + 1},
-          Case{0x64, 0x13, 0x35, 0, "0x603251", OwnRecordClose + 1},
-          Case{0x64, 4, 0x34, 0, std::nullopt, OwnRecordClose}, Case{0x64, 2, 0x35, 0, std::nullopt, OwnRecordClose},
-          Case{0x64, 0, 0x50, 1, "0x603251", 1}, Case{0x67, 0, 0, 0, "0x6031f7", 1}})
+    for (const Case& probe : {Case{0, 0x4f, 0, false, OwnRecordClose}, Case{0, 0x50, 0, true, OwnRecordClose + 1},
+                              Case{0x13, 0x35, 0, true, OwnRecordClose + 1}, Case{4, 0x34, 0, false, OwnRecordClose},
+                              Case{2, 0x35, 0, false, OwnRecordClose}, Case{0, 0x50, 1, true, 1}})
     {
-        SCOPED_TRACE(std::to_string(probe.type) + " " + std::to_string(probe.heroClass) + " " +
-                     std::to_string(probe.level));
-        std::vector<WorldObject> objects{ObjectAt(probe.type, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
+        SCOPED_TRACE(std::to_string(probe.heroClass) + " " + std::to_string(probe.level));
+        std::vector<WorldObject> objects{ObjectAt(0x64, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
         Client::Render::Models::CrtRandom random(7);
         std::uint8_t depth = probe.depth;
+        Client::World::FrameSprites sprites;
+        const Client::Scenes::FaunaDrawCarry pose;
         ModelBatch batch;
         const auto drawn = DrawGame(batch, models, objects,
                                     {.map = 2,
                                      .random = &random,
                                      .heroClass = probe.heroClass,
                                      .ownLevel = probe.level,
-                                     .ownRecordDepth = &depth});
-        EXPECT_EQ(drawn.HasValue(), !probe.cut.has_value());
-        if (probe.cut)
-        {
-            ASSERT_FALSE(drawn.HasValue());
-            EXPECT_NE(drawn.Error().find(*probe.cut), std::string::npos) << drawn.Error();
-        }
+                                     .ownRecordDepth = &depth,
+                                     .sprites = &sprites,
+                                     .retainedPose = &pose});
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
         EXPECT_TRUE(objects[0].seen);
+        EXPECT_EQ(sprites.Sprites()[0].alive, probe.drawn);
         EXPECT_EQ(depth, probe.depth);
         EXPECT_EQ(random.State(), SevenAfter(probe.draws).State());
     }
+}
+
+// 0x603251: el 0x64 de Devias deja dos 0x5d5 de 2,5 en (0; 0; 150) por el hueso 0 de la pose global (la del
+// último posado, sin trasladar: 0x4ec110 con 0), con (L; L; L) y el giro r y −r (r = ftol(reloj · 0,1f) %
+// 360). Sin la pose global corta.
+TEST(WorldObjectsDrawingTest, TheDeviasBeamObjectLeavesTwoSpritesOverItsFirstBone)
+{
+    const TwoMeshModels models;
+    std::vector<WorldObject> objects{ObjectAt(0x64, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
+    Client::Scenes::FaunaDrawCarry pose;
+    Client::Render::Models::BoneTransform bone(1.0f);
+    bone[3] = glm::vec3(10.0f, 20.0f, 30.0f);
+    pose.bones.push_back(bone);
+    Client::Render::Models::CrtRandom random(7);
+    Client::World::FrameSprites sprites;
+    ModelBatch batch;
+    const auto drawn = DrawGame(batch, models, objects,
+                                {.map = 2,
+                                 .random = &random,
+                                 .ownLevel = 0x50,
+                                 .worldClock = 12345.0f,
+                                 .sprites = &sprites,
+                                 .retainedPose = &pose});
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(random.State(), SevenAfter(1).State());
+    auto expected = SevenAfter(0);
+    const auto light = static_cast<float>(static_cast<double>(expected.Next() % 30 + 70) * static_cast<double>(0.01f));
+    const auto turn = static_cast<float>(static_cast<std::int64_t>(12345.0 * static_cast<double>(0.1f)) % 360);
+    const auto live = sprites.Sprites();
+    ASSERT_TRUE(live[0].alive && live[1].alive);
+    EXPECT_FALSE(live[2].alive);
+    for (std::size_t k = 0; k < 2; ++k)
+    {
+        SCOPED_TRACE(k);
+        EXPECT_EQ(live[k].texture, 0x5d5);
+        EXPECT_EQ(live[k].position, glm::vec3(10.0f, 20.0f, 180.0f));
+        EXPECT_EQ(live[k].scale, 2.5f);
+        EXPECT_EQ(live[k].light, glm::vec3(light));
+        EXPECT_EQ(live[k].rotation, k == 0 ? turn : -turn);
+    }
+
+    Client::Render::Models::CrtRandom other(7);
+    ModelBatch second;
+    const auto cut =
+        DrawGame(second, models, objects, {.map = 2, .random = &other, .ownLevel = 0x50, .sprites = &sprites});
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x4ec110"), std::string::npos) << cut.Error();
+}
+
+// Como el 0x67 de Devias (Object104.bmd): dos mallas del hueso 0 y dos acciones de seis keys.
+class SwitchingModels final : public Client::Scenes::IModelLibrary
+{
+public:
+    SwitchingModels()
+    {
+        Mesh mesh;
+        mesh.vertices = {{0, {0, 0, 0}}, {0, {1, 0, 0}}, {0, {0, 1, 0}}};
+        mesh.normals = {{0, {0, 0, 1}, 0}};
+        mesh.texCoords = {{0, 0}};
+        mesh.triangles = {{3, {0, 1, 2, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}};
+        mesh.textureName = "a.jpg";
+        m_model.meshes = {mesh, mesh};
+        Client::Render::Models::SkeletonBone bone;
+        bone.parent = -1;
+        Client::Render::Models::BoneKey key;
+        key.rotation = Client::Render::Models::AngleQuaternion({0.0f, 0.0f, 0.0f});
+        const std::vector<Client::Render::Models::BoneKey> keys(6, key);
+        bone.actions = {keys, keys};
+        m_skeleton.bones = {bone};
+        const Client::Render::Models::ActionInfo action{
+            .repeats = true, .speed = 0.25f, .keyCount = 6, .lockPositions = false};
+        m_skeleton.actions = {action, action};
+    }
+
+    [[nodiscard]] const Model* Find(std::uint16_t) const override
+    {
+        return &m_model;
+    }
+    [[nodiscard]] const Skeleton* SkeletonOf(std::uint16_t) const override
+    {
+        return &m_skeleton;
+    }
+    [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t) const override
+    {
+        return m_textures;
+    }
+
+private:
+    Model m_model;
+    Skeleton m_skeleton;
+    std::array<TextureSlot, 2> m_textures{TextureSlot{0x41c}, TextureSlot{0x41d}};
+};
+
+// 0x6031f7: el 0x67 de Devias mira el cuadro que 0x4eb860 dejó en su modelo al posarlo (+0xa8, el short de
+// ftol del frame, en 0 si no es una key de la acción) y, en la última key de su acción, saca un rand(): & 31
+// en 0 lo pasa a la acción 1 con 0x4ea030 (la vieja y su key quedan como anteriores, el frame en 0), y si no,
+// a la 0 (con la 0 puesta, nada). Con el cuadro en otra key no saca nada. Sin posar (alpha por debajo de 0,01)
+// o con la acción fuera de la tabla, corta.
+TEST(WorldObjectsDrawingTest, TheDeviasSwitchingObjectChangesItsActionOnTheLastKey)
+{
+    const SwitchingModels models;
+    struct Case
+    {
+        std::uint32_t seed;
+        std::uint8_t action;
+        float frame;
+        int draws;
+        std::uint8_t wantedAction;
+        float wantedFrame;
+    };
+    // Con la semilla 2, el segundo rand() es 29.216 (& 31 en 0); con la 7, 17.422 (14).
+    for (const Case& probe :
+         {Case{2, 0, 5.5f, 2, 1, 0.0f}, Case{7, 0, 5.5f, 2, 0, 5.5f}, Case{2, 0, 4.99f, 1, 0, 4.99f},
+          Case{2, 0, 6.0f, 1, 0, 6.0f}, Case{7, 1, 5.0f, 2, 0, 0.0f}, Case{2, 1, 5.0f, 2, 1, 5.0f}})
+    {
+        SCOPED_TRACE(std::to_string(probe.seed) + " " + std::to_string(probe.action) + " " +
+                     std::to_string(probe.frame));
+        std::vector<WorldObject> objects{ObjectAt(0x67, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
+        objects[0].animation.action = probe.action;
+        objects[0].animation.frame = probe.frame;
+        Client::Render::Models::CrtRandom random(probe.seed);
+        ModelBatch batch;
+        const auto drawn = DrawGame(batch, models, objects, {.map = 2, .random = &random});
+        ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+        Client::Render::Models::CrtRandom expected(probe.seed);
+        for (int k = 0; k < probe.draws; ++k)
+            static_cast<void>(expected.Next());
+        EXPECT_EQ(random.State(), expected.State());
+        EXPECT_EQ(objects[0].animation.action, probe.wantedAction);
+        EXPECT_EQ(objects[0].animation.frame, probe.wantedFrame);
+        if (probe.wantedAction != probe.action)
+        {
+            EXPECT_EQ(objects[0].animation.previousAction, probe.action);
+            EXPECT_EQ(objects[0].animation.previousKey, 5);
+        }
+    }
+
+    std::vector<WorldObject> unposed{ObjectAt(0x67, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
+    unposed[0].alpha = 0.005f;
+    unposed[0].animation.frame = 5.0f;
+    Client::Render::Models::CrtRandom random(7);
+    ModelBatch batch;
+    const auto cut = DrawGame(batch, models, unposed, {.map = 2, .random = &random});
+    ASSERT_FALSE(cut.HasValue());
+    EXPECT_NE(cut.Error().find("0x60320a"), std::string::npos) << cut.Error();
+    EXPECT_EQ(random.State(), SevenAfter(1).State());
+
+    std::vector<WorldObject> outside{ObjectAt(0x67, 200.0f, 100.0f, 2, Client::World::ObjectScene::Other)};
+    outside[0].animation.action = 2;
+    Client::Render::Models::CrtRandom other(7);
+    ModelBatch second;
+    const auto beyond = DrawGame(second, models, outside, {.map = 2, .random = &other});
+    ASSERT_FALSE(beyond.HasValue());
+    EXPECT_NE(beyond.Error().find("0x603205"), std::string::npos) << beyond.Error();
 }
 
 // Un dibujo intermedio de MuRet (sin frame del original): dibuja y marca los vistos, sin el rand() de
@@ -1033,7 +1182,7 @@ TEST(WorldObjectsDrawingTest, TheGamePassRejectsUnreadMaps)
     std::vector<WorldObject> objects{ObjectAt(Rock, 100.0f, 100.0f, 3, Client::World::ObjectScene::Other)};
     Client::Render::Models::CrtRandom random(7);
     ModelBatch batch;
-    const auto drawn = DrawGame(batch, models, objects, {.map = 6, .random = &random});
+    const auto drawn = DrawGame(batch, models, objects, {.map = 34, .random = &random});
     ASSERT_FALSE(drawn.HasValue());
     EXPECT_NE(drawn.Error().find("0x6046a0"), std::string::npos) << drawn.Error();
     EXPECT_FALSE(objects[0].seen);

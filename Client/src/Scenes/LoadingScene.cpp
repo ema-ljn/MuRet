@@ -6,12 +6,15 @@
 #include "Render/SpriteBatch.h"
 #include "Render/TextureSlot.h"
 #include "Render/UiImage.h"
+#include "Render/Models/Cloth.h"
+#include "Scenes/FaunaModels.h"
 #include "Scenes/GameModels.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
 #include "Scenes/SceneId.h"
 #include "Scenes/SceneTextures.h"
 #include "Scenes/TextureSets.h"
+#include "Scenes/WorldState.h"
 
 #include <array>
 #include <cstdint>
@@ -85,7 +88,7 @@ void LoadingScene::Step(const Input::InputState& /*input*/)
         // El avance 1 de 0x61ccb0 lee los modelos (0x60dbe0 y 0x60ff50) y sus texturas.
         if (m_progress == 1 && m_models != nullptr)
         {
-            if (auto loaded = m_models->Load(m_context.dataRoot, m_context.textures, m_context.log); !loaded.HasValue())
+            if (auto loaded = LoadModels(); !loaded.HasValue())
             {
                 m_context.log.Error("la carga no puede seguir: {}", loaded.Error());
                 m_failed = true;
@@ -94,6 +97,24 @@ void LoadingScene::Step(const Input::InputState& /*input*/)
         return;
     }
     m_done = true;
+}
+
+Core::Expected<void, std::string> LoadingScene::LoadModels()
+{
+    // 60dc4c elige la base de la tabla global antes de abrir el primer BMD; el dueño
+    // conserva esa elección aunque falle un archivo o se vuelva a entrar en la carga.
+    if (m_context.world != nullptr && m_context.cloth != nullptr)
+    {
+        auto& fauna = m_context.world->FaunaResources();
+        if (!fauna.PrefixOffset())
+        {
+            constexpr int NativePrefixMask = 1023;
+            const auto offset = static_cast<std::uint16_t>(m_context.cloth->random.Next() & NativePrefixMask);
+            if (auto initialized = fauna.InitializePrefix(offset); !initialized.HasValue())
+                return initialized;
+        }
+    }
+    return m_models->Load(m_context.dataRoot, m_context.textures, m_context.log);
 }
 
 void LoadingScene::Render(SceneCanvas& canvas, float /*alpha*/)

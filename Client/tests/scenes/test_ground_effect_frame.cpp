@@ -8,6 +8,8 @@
 #include "Render/TextureSlot.h"
 #include "World/GroundEffectDrawing.h"
 #include "World/ModelEffects.h"
+#include "World/KalimaWorld.h"
+#include "World/KalimaWaves.h"
 
 #include <gtest/gtest.h>
 
@@ -105,7 +107,7 @@ void ExpectSameEffect(const ModelEffect& actual, const ModelEffect& expected)
 }
 } // namespace
 
-TEST(GroundEffectFrameTest, AnIntermediateDrawRequiresAnOriginalSnapshot)
+TEST(GroundEffectFrameTest, TheZeroStepFirstFrameProjectsItsInputWithoutChangingDurableState)
 {
     const auto heights = std::make_unique<TerrainHeights>();
     CrtRandom random;
@@ -114,15 +116,10 @@ TEST(GroundEffectFrameTest, AnIntermediateDrawRequiresAnOriginalSnapshot)
     GroundEffectFrame frame;
     ModelBatch batch;
     Begin(batch);
-    const auto state = batch.State();
-
     const auto drawn = frame.Draw(batch, effects, {.heights = *heights, .random = random}, false);
 
-    ASSERT_FALSE(drawn.HasValue());
-    EXPECT_NE(drawn.Error().find("0x52dc20"), std::string::npos);
-    EXPECT_TRUE(batch.Vertices().empty());
-    EXPECT_TRUE(batch.Commands().empty());
-    EXPECT_EQ(batch.State(), state);
+    ASSERT_TRUE(drawn.HasValue()) << drawn.Error();
+    EXPECT_EQ(batch.Vertices().size(), 49u * 6u);
     EXPECT_EQ(random.State(), 1u);
     ExpectSameEffect(effects[0], before);
 }
@@ -339,5 +336,46 @@ TEST(GroundEffectFrameTest, AnEmptyOriginalSnapshotIsValidUntilReset)
     EXPECT_TRUE(batch.Commands().empty());
     EXPECT_EQ(random.State(), 1u);
     frame.Reset();
-    EXPECT_FALSE(frame.Draw(batch, effects, {.heights = *heights, .random = random}, false).HasValue());
+    EXPECT_TRUE(frame.Draw(batch, effects, {.heights = *heights, .random = random}, false).HasValue());
+}
+
+TEST(GroundEffectFrameTest, KalimaReplayOwnsTheWaterBeforeTheLaterWaterPassAndSurvivesItsRelease)
+{
+    const auto heights = std::make_unique<TerrainHeights>();
+    auto water = std::make_unique<Client::World::KalimaWorld>(24);
+    CrtRandom random;
+    ASSERT_TRUE(water->Disturb(50, 50, 3, 1000000, random).HasValue());
+    std::array effects{Effect(0x6eb)};
+    effects[0].transform.position = {5000, 5000, 0};
+    effects[0].transform.scale = 1;
+    GroundEffectFrame frame;
+    ModelBatch original;
+    Begin(original);
+    ASSERT_TRUE(
+        frame.Draw(original, effects, {.heights = *heights, .random = random, .map = 24, .kalima = water.get()}, true)
+            .HasValue());
+    ASSERT_EQ(original.Vertices().size(), 150u);
+    EXPECT_EQ(original.Vertices()[72].position.z, 403);
+    ASSERT_TRUE(water->Disturb(50, 50, 3, 1000000, random).HasValue());
+    ASSERT_TRUE(water->Update({1, 1000, 50, 50, random}).HasValue());
+    effects[0].transform.position = {0, 0, 0};
+    static_cast<void>(random.Next());
+    const auto randomState = random.State();
+    ModelBatch repeated;
+    Begin(repeated);
+    ASSERT_TRUE(
+        frame.Draw(repeated, effects, {.heights = *heights, .random = random, .map = 24, .kalima = water.get()}, false)
+            .HasValue());
+    ExpectSameBatch(repeated, original);
+    EXPECT_EQ(random.State(), randomState);
+    EXPECT_EQ(water->Waves().planes[0][100 * 256 + 100], 6u);
+    water.reset();
+    Begin(repeated);
+    ASSERT_TRUE(frame.Draw(repeated, effects, {.heights = *heights, .random = random, .map = 24}, false).HasValue());
+    ExpectSameBatch(repeated, original);
+    frame.Reset();
+    Begin(repeated);
+    ASSERT_TRUE(frame.Draw(repeated, effects, {.heights = *heights, .random = random, .map = 24}, false).HasValue());
+    EXPECT_TRUE(repeated.Vertices().empty());
+    EXPECT_EQ(random.State(), randomState);
 }

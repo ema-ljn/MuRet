@@ -202,6 +202,31 @@ ModelEffect ArrivalAt(const glm::vec3& position, const glm::vec3& angles, const 
 }
 } // namespace
 
+std::optional<std::size_t> ModelEffects::CreateKalimaEffect(const glm::vec3& position, const glm::vec3& angles,
+                                                            const glm::vec3& light, Render::Models::CrtRandom& random)
+{
+    constexpr std::int16_t KalimaType = 9;
+    constexpr std::int32_t KalimaLife = 30, ScaleSpan = 3;
+    constexpr double ScaleStep = static_cast<double>(0.1f), ScaleBase = static_cast<double>(0.6f);
+    constexpr float InitialSpeed = 10;
+    for (std::size_t slot = 0; slot < m_effects.size(); ++slot)
+    {
+        ModelEffect& effect = m_effects[slot];
+        if (effect.alive)
+            continue;
+        InitializeCommonEffect(effect, KalimaType, position, angles, light, 0.0f);
+        effect.itemType = nullptr;
+        effect.itemLevel = nullptr;
+        effect.life = KalimaLife;
+        effect.transform.scale = F32(static_cast<double>(random.Next() % ScaleSpan) * ScaleStep + ScaleBase);
+        effect.speed = InitialSpeed;
+        effect.disturbanceState = 0;
+        effect.velocity = {-0.1f, -0.1f, -0.5f};
+        return slot;
+    }
+    return std::nullopt;
+}
+
 std::optional<std::size_t> ModelEffects::Create(std::int16_t type, const glm::vec3& position, const glm::vec3& angles,
                                                 const glm::vec3& light, float scale)
 {

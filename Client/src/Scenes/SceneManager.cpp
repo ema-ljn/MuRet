@@ -29,9 +29,10 @@ std::string Describe(SceneId scene)
 
 SceneManager::SceneManager(SceneFactory factory, IFrameTarget& frame, Core::IClock& clock,
                            std::function<Core::Expected<void, std::string>()> pollNetwork, Core::Log& log,
-                           std::function<std::optional<SceneId>()> takeSceneOrder)
+                           std::function<std::optional<SceneId>()> takeSceneOrder,
+                           std::function<void(Core::Duration)> beforeSceneFrame)
     : m_factory(std::move(factory)), m_frame(frame), m_clock(clock), m_pollNetwork(std::move(pollNetwork)), m_log(log),
-      m_takeSceneOrder(std::move(takeSceneOrder))
+      m_takeSceneOrder(std::move(takeSceneOrder)), m_beforeSceneFrame(std::move(beforeSceneFrame))
 {
 }
 
@@ -208,6 +209,8 @@ void SceneManager::PrepareFrame() const
     {
         return;
     }
+    if (m_beforeSceneFrame)
+        m_beforeSceneFrame(m_clock.Now());
     m_scene->PrepareFrame();
     m_framePrepared = true;
 }

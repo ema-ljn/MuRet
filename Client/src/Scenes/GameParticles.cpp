@@ -1,4 +1,5 @@
 #include "Scenes/GameParticles.h"
+#include "World/PortableParticleTrigonometry.h"
 
 #include "Core/Expected.h"
 #include "Render/ModelBatch.h"
@@ -148,9 +149,12 @@ Core::Expected<void, std::string> StepGameWaterspoutFrame(World::WorldObject& ob
 
 Core::Expected<void, std::string> StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random,
                                                     const std::int32_t& map,
-                                                    const std::function<double(float, float)>& terrainHeight)
+                                                    const std::function<double(float, float)>& terrainHeight,
+                                                    const float& worldClock)
 {
-    const auto stepped = World::StepParticlesChecked(particles, random, &map, terrainHeight);
+    World::PortableParticleTrigonometry trigonometry;
+    const auto stepped =
+        World::StepParticlesChecked(particles, random, std::cref(worldClock), &map, trigonometry, terrainHeight);
     if (!stepped.HasValue())
     {
         return Core::Unexpected(std::format("0x637128 → 0x5446e0: el paso de las partículas falla con error {}",

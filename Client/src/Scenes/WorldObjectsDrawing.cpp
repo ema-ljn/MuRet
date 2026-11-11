@@ -1,6 +1,7 @@
 #include "Scenes/WorldObjectsDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/NoriaObjectServices.h"
+#include "Scenes/KalimaObjectServices.h"
 #include "World/ObjectModelStepState.h"
 #include "Scenes/GameParticles.h"
 
@@ -20,6 +21,7 @@
 #include "Scenes/ModelPoseCallbacks.h"
 #include "Scenes/ParticleDrawServices.h"
 #include "World/Leaves.h"
+#include "World/KalimaWorld.h"
 #include "World/ModelEffects.h"
 #include "World/GroundEffectDrawing.h"
 #include "World/SphereFrustum.h"
@@ -349,6 +351,8 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
                                               const IModelLibrary& models, const DrawnObject& drawn, int commonRandom)
 {
     const std::uint8_t map = pass.map;
+    if (World::IsKalimaMap(map))
+        return StepKalimaObjectFrame(object, pass);
     if (map == NoriaMap)
         return StepNoriaObjectFrame(object, commonRandom, pass);
     if (map == LorenciaMap && object.type == 0x38)
@@ -386,7 +390,7 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                                                        const World::TerrainLighting* lighting,
                                                        Core::Duration frameClock, const GameObjectPass& pass)
 {
-    if (pass.map != LorenciaMap && pass.map != DeviasMap && pass.map != NoriaMap)
+    if (pass.map != LorenciaMap && pass.map != DeviasMap && pass.map != NoriaMap && !World::IsKalimaMap(pass.map))
     {
         return Core::Unexpected(std::format("0x6046a0: los casos por tipo del mapa {} (0x6002e0 y 0x602ed0) no están "
                                             "leídos",
@@ -425,8 +429,24 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
                 return published;
         }
         const auto* retained = (pass.originalFrame || pass.publishProjectedPose) ? pass.retainedPose : nullptr;
+        if (World::IsKalimaMap(pass.map) && draw.kind != World::ObjectDrawKind::Hidden)
+        {
+            // 438fe0 tiene casos globales fuera del dominio público43948d: no usar el cuerpo
+            // como fallback para un tipo que todavía necesita su propio handler.
+            constexpr std::int16_t FirstKalimaBody = 0;
+            constexpr std::int16_t EndKalimaBody = 160;
+            if (object.type < FirstKalimaBody || object.type >= EndKalimaBody)
+                return Core::Unexpected(std::string("0x438fe0: tipo Kalima fuera del cuerpo público0..159"));
+            if (models.Find(poseObject.model) == nullptr || models.SkeletonOf(poseObject.model) == nullptr)
+                return Core::Unexpected(std::string("0x5ffdf0: falta el modelo o el esqueleto de Kalima"));
+        }
         const DrawnObject drawn =
             DrawTheObject(batch, models, object, draw, frameClock, 0.0f, pass.modelState, retained);
+        if (World::IsKalimaMap(pass.map) && draw.kind != World::ObjectDrawKind::Hidden)
+        {
+            if (auto tail = DrawKalimaObjectTail(batch, models, object, drawn, frameClock, pass); !tail.HasValue())
+                return tail;
+        }
         // 0x604a4d: 0x602ed0, una vez por frame del original.
         if (!pass.originalFrame)
         {

@@ -29,12 +29,14 @@
 // login.
 namespace Client::World
 {
+class KalimaWorld;
 struct FishEffectRequest;
 struct ObjectModelStepState;
 } // namespace Client::World
 
 namespace Client::Scenes
 {
+struct ActorState;
 struct FaunaDrawCarry;
 // El paso de un objeto que tiene el suyo (el logo del login): devuelve true si lo avanzó, y entonces
 // StepWorldObject no lo toca.
@@ -122,6 +124,11 @@ struct GameObjectPass
     const World::ObjectModelStepState* modelState = nullptr;
     // Publicación sobre scratch de presentación del caller, sin ejecutar602ed0 ni consumir RNG.
     bool publishProjectedPose = false;
+    // DAT_07d2d360, prestado por el pulso global637700: sin productor no se inventa un frame0.
+    std::optional<std::uint32_t> waterTextureFrame{};
+    const ActorState* hero = nullptr;
+    const World::KalimaWorld* kalima = nullptr;
+    std::function<void(std::int32_t)> requestSound{};
 };
 
 // 0x6046a0 en el juego (0x6374ce), en los mapas 0 y 2 (06 § Los objetos del juego): sector por sector, en
@@ -133,7 +140,9 @@ struct GameObjectPass
 // recién posados, con sus rand() intercalados. Un hueso no escrito necesita la pose global anterior y
 // corta después de sus sorteos; sin pool conserva el corte histórico en 0x6030c7. Los otros casos de
 // 0x602ed0 (el 0x38 del 0; el 0x64 y el 0x67 del 2) cortan con su dirección. Los objetos de antes quedan
-// dibujados. Los demás mapas cortan antes de mirar un objeto.
+// dibujados. Kalima24..29/36 reutiliza la pose y el cuerpo públicos43948d, sus cáusticas de
+// DAT_07d2d360, el calco0x22 y el sprite del tipo12; los productores aún ausentes de438c10
+// conservan su dirección y prefijo. Los demás mapas cortan antes de mirar un objeto.
 [[nodiscard]] Core::Expected<void, std::string>
 DrawGameWorldObjects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::WorldObject> objects,
                      const World::TerrainPolygon& polygon, const World::TerrainLighting* lighting,

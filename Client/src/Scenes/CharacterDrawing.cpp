@@ -1,6 +1,7 @@
 #include "Scenes/CharacterDrawing.h"
 
 #include "Core/IClock.h"
+#include "Core/Expected.h"
 #include "Data/Models/Model.h"
 #include "Data/Models/PlayerModels.h"
 #include "Data/Models/ModelTextures.h"
@@ -22,6 +23,10 @@
 #include "Render/SpriteVertex.h"
 #include "Render/TextureSlot.h"
 #include "Scenes/CharacterCloth.h"
+#include "Scenes/GameItemSpecialDrawing.h"
+#include "Scenes/GameItemGlowEffects.h"
+#include "Scenes/GameItemGlowSpecialDrawing.h"
+#include "World/ObjectModelStepState.h"
 #include "World/ScepterGlow.h"
 #include "World/Sprites.h"
 
@@ -37,6 +42,7 @@
 #include <optional>
 #include <random>
 #include <span>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -210,6 +216,7 @@ struct MeshDraw
     // El largo de cada normal girada: la escala de un objeto de 0x5ffdf0, que la lleva en la raíz
     // (0x4eb860 con Translate) y 0x4ebc80 no normaliza; un personaje, 1 (la escala va en cada vértice).
     float normalScale = 1.0f;
+    bool originalClock = false;
 };
 
 // Las UV de un pase: las de la malla o, con `shine`, las del pase de brillo con la normal en el
@@ -225,6 +232,9 @@ glm::vec2 CornerUv(const MeshDraw& draw, const Data::Models::Triangle& triangle,
     if (uv.shine)
     {
         const auto normal = static_cast<std::size_t>(triangle.normals[corner]);
+        if (draw.originalClock)
+            return ItemShineTexCoords(*uv.shine, draw.skinned->normals[normal] * draw.normalScale, draw.frameClock) +
+                   uv.shift;
         return Render::Models::ShineTexCoords(*uv.shine, draw.skinned->normals[normal] * draw.normalScale,
                                               draw.frameClock) +
                uv.shift;
@@ -995,10 +1005,36 @@ void DrawCharacter(Render::ModelBatch& batch, const IModelLibrary& models, const
 
 namespace
 {
+MeshDraw RetainedMeshDraw(const DrawnObject& object, Core::Duration frameClock, const Data::Models::Mesh& mesh,
+                          const Render::Models::SkinnedMesh& skinned, std::size_t index, const MeshRole& role,
+                          std::optional<Render::TextureSlot> texture, bool originalClock)
+{
+    const auto blendMesh = BlendMeshOf(role, index, object.state);
+    MeshDraw draw{object.model,
+                  index,
+                  &mesh,
+                  &skinned,
+                  role,
+                  texture,
+                  Render::Color{object.color.x, object.color.y, object.color.z, 1},
+                  Blends(mesh, blendMesh),
+                  static_cast<std::int16_t>(index) == blendMesh || role.scrollScript,
+                  &object.state,
+                  frameClock};
+    draw.alpha = object.alpha;
+    const bool unlit = object.unlitMesh && static_cast<std::int16_t>(index) == *object.unlitMesh;
+    draw.vertexLight = object.vertexLight && !unlit;
+    draw.scrolls = draw.scrolls || unlit;
+    draw.normalScale = object.transform.scale;
+    draw.originalClock = originalClock;
+    return draw;
+}
+
 std::vector<MeshDraw> RetainedObjectMeshDraws(const IModelLibrary& models, const DrawnObject& object,
                                               Core::Duration frameClock,
                                               std::span<const Render::Models::SkinnedMesh> meshes,
-                                              bool forceVisible = false)
+                                              bool forceVisible = false, bool rawMesh = false,
+                                              bool originalClock = false)
 {
     const auto* model = models.Find(object.model);
     if (model == nullptr || (!forceVisible && object.alpha < 0.01f))
@@ -1010,27 +1046,11 @@ std::vector<MeshDraw> RetainedObjectMeshDraws(const IModelLibrary& models, const
         const auto& mesh = model->meshes[index];
         const auto role = RoleOf(object.model, mesh, index);
         const auto texture = TextureOf(mesh, slots, index, ObjectClass);
-        if (role.hidden || !texture.drawn || !IndicesInRange(mesh) ||
+        if ((!rawMesh && role.hidden) || !texture.drawn || !IndicesInRange(mesh) ||
             meshes[index].positions.size() < mesh.vertices.size() || meshes[index].normals.size() < mesh.normals.size())
             continue;
-        const auto blendMesh = BlendMeshOf(role, index, object.state);
-        MeshDraw draw{object.model,
-                      index,
-                      &mesh,
-                      &meshes[index],
-                      role,
-                      texture.slot,
-                      Render::Color{object.color.x, object.color.y, object.color.z, 1},
-                      Blends(mesh, blendMesh),
-                      static_cast<std::int16_t>(index) == blendMesh || role.scrollScript,
-                      &object.state,
-                      frameClock};
-        draw.alpha = object.alpha;
-        const bool unlit = object.unlitMesh && static_cast<std::int16_t>(index) == *object.unlitMesh;
-        draw.vertexLight = object.vertexLight && !unlit;
-        draw.scrolls = draw.scrolls || unlit;
-        draw.normalScale = object.transform.scale;
-        draws.push_back(draw);
+        draws.push_back(
+            RetainedMeshDraw(object, frameClock, mesh, meshes[index], index, role, texture.slot, originalClock));
     }
     return draws;
 }
@@ -1124,6 +1144,294 @@ void DrawObjectFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models
         else
             DrawShinePass(batch, draw, *shine, fade);
     }
+}
+
+namespace
+{
+std::optional<Render::Models::ShinePass> ItemShine(std::uint32_t flags)
+{
+    using Render::Models::ShinePass;
+    if ((flags & 0x4) != 0)
+        return ShinePass::Chrome;
+    if ((flags & 0x8) != 0)
+        return ShinePass::Shiny;
+    if ((flags & 0x200) != 0)
+        return ShinePass::Chrome2;
+    if ((flags & 0x800) != 0)
+        return ShinePass::Chrome3;
+    if ((flags & 0x1000) != 0)
+        return ShinePass::Chrome4;
+    return {};
+}
+
+Core::Expected<void, std::string> ValidateItemMesh(const Data::Models::Mesh& mesh,
+                                                   std::span<const Render::Models::SkinnedMesh> meshes,
+                                                   std::size_t index, std::size_t textures, bool textureOverride)
+{
+    if (!textureOverride && index >= textures)
+        return Core::Unexpected(std::string("4ecc30: falta la textura de una malla del ítem"));
+    if (index >= meshes.size())
+        return Core::Unexpected(
+            std::string("4ecc30: el scratch retenido no cubre los vértices/normales de la malla del ítem"));
+    if (meshes[index].positions.size() < mesh.vertices.size() || meshes[index].normals.size() < mesh.normals.size() ||
+        !IndicesInRange(mesh))
+        return Core::Unexpected(std::string("4ecc30: la malla del ítem no tiene vértices/normales válidos"));
+    return {};
+}
+
+Render::ModelBlend ItemPassBlend(const MeshDraw& draw, std::uint32_t flags,
+                                 std::optional<Render::Models::ShinePass> shine)
+{
+    using Render::ModelBlend;
+    if ((flags & 0x40) != 0 || (!shine && draw.blends) || shine == Render::Models::ShinePass::Chrome3 ||
+        shine == Render::Models::ShinePass::Chrome4)
+        return ModelBlend::Additive;
+    if ((flags & 0x80) != 0)
+        return ModelBlend::Subtractive;
+    if (shine && (flags & 0x10) != 0)
+        return ModelBlend::Multiplicative;
+    if (draw.alpha < OpaqueAlpha || ((flags & 0x2) != 0 && HasFourComponents(*draw.mesh)))
+        return ModelBlend::Alpha;
+    return ModelBlend::Opaque;
+}
+
+void DrawItemPassMesh(Render::ModelBatch& batch, const MeshDraw& draw, std::uint32_t flags,
+                      std::optional<Render::Models::ShinePass> shine, std::optional<Render::TextureSlot> texture,
+                      glm::vec3& currentColor, glm::vec3* storedColor)
+{
+    if (shine && !draw.role.shines)
+        return;
+    if (!shine && ((!draw.blends && (flags & 0x43) == 0) || ((flags & 0x3) == 0 && HasFourComponents(*draw.mesh))))
+        return;
+    auto slot = texture ? texture : (shine ? std::optional(PassSlot(*shine)) : draw.texture);
+    const auto blend = ItemPassBlend(draw, flags, shine);
+    Render::Color color{currentColor.r, currentColor.g, currentColor.b, 1};
+    if (blend == Render::ModelBlend::Alpha)
+        color.alpha = draw.alpha;
+    if ((flags & 0x1) != 0)
+        slot.reset();
+    if (!shine && draw.blends)
+        color = Scaled(color, draw.object->light);
+    if (shine && blend == Render::ModelBlend::Additive && draw.alpha < OpaqueAlpha)
+    {
+        color = Scaled(color, draw.alpha);
+        currentColor = {color.red, color.green, color.blue}; // 4ed3fd..4ed415: FSTP RGB por malla.
+        if (storedColor)
+            *storedColor = currentColor;
+    }
+    const auto shift =
+        shine == Render::Models::ShinePass::Chrome4 || (!shine && draw.scrolls) ? draw.object->uv : glm::vec2{};
+    Triangles(batch, draw, {slot, blend, true}, color, PassUv{shine, shift},
+              !shine && draw.vertexLight && !draw.blends);
+}
+
+Render::Models::SkinnedMesh FlattenedItemMesh(const Render::Models::SkinnedMesh& mesh, const glm::vec3& origin)
+{
+    // 4ed6f6..4ed76d: X/Z en PC53 hasta el store; Y tiene un spillF32 intermedio.
+    constexpr double Spread = 2000.0;
+    constexpr double Horizon = 4000.0;
+    constexpr double Lift = 5.0;
+    auto flattened = mesh;
+    for (auto& point : flattened.positions)
+    {
+        const double x = static_cast<double>(point.x) - origin.x;
+        const double z = static_cast<double>(point.z) - origin.z;
+        const float y = static_cast<float>(static_cast<double>(point.y) - origin.y);
+        point = {static_cast<float>(((x + Spread) * z) / (z - Horizon) + x + origin.x),
+                 static_cast<float>(static_cast<double>(y) + origin.y),
+                 static_cast<float>(static_cast<double>(origin.z) + Lift)};
+    }
+    return flattened;
+}
+} // namespace
+
+Core::Expected<void, std::string> DrawItemMeshPass(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                   const DrawnObject& object, Core::Duration frameClock,
+                                                   std::span<const Render::Models::SkinnedMesh> meshes,
+                                                   std::int16_t mesh, std::uint32_t flags,
+                                                   std::optional<Render::TextureSlot> texture, glm::vec3* storedColor)
+{
+    const auto* model = models.Find(object.model);
+    if (!model)
+        return Core::Unexpected(std::string("4ecc30: falta el modelo del pase de ítem"));
+    if (mesh >= 0 && static_cast<std::size_t>(mesh) >= model->meshes.size())
+        return {}; // 4ecc3d..4ecc4f: el nativo omite una malla fuera del contador.
+    constexpr std::uint32_t Supported = 0x1 | 0x2 | 0x4 | 0x8 | 0x10 | 0x20 | 0x40 | 0x80 | 0x200 | 0x800 | 0x1000;
+    if ((flags & ~Supported) != 0)
+        return Core::Unexpected(std::string("4ecc30: banderas del pase de ítem fuera del contrato portable"));
+    const auto slots = models.MeshTextures(object.model);
+    const auto shine = ItemShine(flags);
+    auto currentColor = object.color;
+    for (std::size_t index = 0; index < model->meshes.size(); ++index)
+    {
+        if (mesh >= 0 && index != static_cast<std::size_t>(mesh))
+            continue;
+        const auto& input = model->meshes[index];
+        const auto role = RoleOf(object.model, input, index);
+        if (mesh < 0 && (role.hidden || static_cast<std::int16_t>(index) == object.state.hiddenMesh))
+            continue;
+        if (auto valid = ValidateItemMesh(input, meshes, index, slots.size(), texture.has_value()); !valid.HasValue())
+            return valid;
+        const auto assigned = TextureOf(input, slots, index, ObjectClass);
+        if (!assigned.drawn)
+            continue;
+        Render::Models::SkinnedMesh flattened;
+        const Render::Models::SkinnedMesh* vertices = &meshes[index];
+        if ((flags & 0x20) != 0)
+        {
+            flattened = FlattenedItemMesh(meshes[index], object.transform.position);
+            vertices = &flattened;
+        }
+        const auto draw = RetainedMeshDraw(object, frameClock, input, *vertices, index, role, assigned.slot, true);
+        DrawItemPassMesh(batch, draw, flags, shine, texture, currentColor, storedColor);
+    }
+    return {};
+}
+
+namespace
+{
+// 60b4aa..60b6d5 y las tres tablas60ccfc/60cd1c/60cd30.
+int ItemLevel(std::uint16_t model, int level)
+{
+    if ((model >= 0x1a12 && model <= 0x1a18) || model == 0x1a1d || model == 0x1c30 || model == 0x223e ||
+        model == 0x2241 || model == 0x2242 || model == 0x2246 || model == 0x2247 || model == 0x224a || model == 0x1e21)
+        return 0;
+    if (model == 0x1a19 || (model >= 0x1a1e && model <= 0x1a20) || (model >= 0x1a22 && model <= 0x1a25) ||
+        model == 0x1e26 || model == 0x223f)
+        return 9;
+    if (model == 0x1a21 || model == 0x1a30 || model == 0x1a31 || model == 0x1e1f || model == 0x1e20 ||
+        model == 0x1e22 || model == 0x1e28 || model == 0x1c15 || model == 0x1c1c || model == 0x1e2b ||
+        model == 0x1e2c || model == 0x1e31 || model == 0x223a || model == 0x223b || model == 0x2243 || model == 0x2249)
+        return 8;
+    if (model == 0x1e23 || model == 0x1e24 || model == 0x1e25)
+        return level * 2;
+    if (model == 0x2244)
+        return level * 2 - 15;
+    if (model == 0x2245)
+        return level - 1;
+    if (model == 0x2248)
+        return level + 7;
+    if (model == 0x2240)
+        return level == 13 ? 13 : 9;
+    if (model == 0xa19 || model == 0xa21)
+        return level == 0 ? 0 : level * 2 + 1;
+    return level;
+}
+
+void PublishItemStore(const DrawnObject& object, const ItemDrawContext& context)
+{
+    if (context.special && context.special->publishedObject)
+        *context.special->publishedObject = object;
+    if (context.modelState && object.unlitMesh)
+        context.modelState->unlitMeshes[static_cast<std::int16_t>(object.model)] =
+            static_cast<std::int8_t>(*object.unlitMesh);
+}
+
+Core::Expected<Core::Duration, std::string> ItemFrameClock(Core::Duration clock, const ItemDrawContext& context)
+{
+    if (!context.special || !context.special->worldClock)
+        return clock;
+    const long double nanos = static_cast<long double>(*context.special->worldClock) * 1000000;
+    if (!std::isfinite(nanos) || nanos >= 0x1p63L || nanos < -0x1p63L)
+        return Core::Unexpected(std::string("60b3d0: reloj fuera del perfil portable"));
+    return Core::Duration(static_cast<std::int64_t>(nanos));
+}
+
+Core::Expected<void, std::string> DrawItemOptionPasses(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                       const DrawnObject& base, Core::Duration frameClock,
+                                                       std::span<const Render::Models::SkinnedMesh> meshes,
+                                                       const Render::Models::ItemGlow& glow,
+                                                       const ItemDrawContext& context)
+{
+    const auto draws = RetainedObjectMeshDraws(models, base, frameClock, meshes, false, false, true);
+    SetFade fade{Render::Models::SetAlphaAt(frameClock)};
+    for (const auto& pass : glow.passes)
+    {
+        if (pass.shine == Render::Models::ShinePass::Chrome3 && fade.alpha <= 0.01f && context.originalFrame)
+        {
+            if (!context.special || !context.special->random)
+                return Core::Unexpected(std::string("0x60cc29: falta el CRT del brillo ancient"));
+            const auto selected = context.special->random->Next() % 100;
+            if (!context.selections)
+                return Core::Unexpected(std::string("0x60cc36: falta el estado por modelo del brillo ancient"));
+            (*context.selections)[base.model] = selected;
+        }
+        for (const auto& draw : draws)
+        {
+            if (pass.shine)
+                DrawShinePass(batch, draw, *pass.shine, fade);
+            else
+                DrawExcellentPass(batch, draw);
+        }
+    }
+    return {};
+}
+} // namespace
+
+Core::Expected<void, std::string> DrawItemFromMeshes(Render::ModelBatch& batch, const IModelLibrary& models,
+                                                     const DrawnObject& object, Core::Duration frameClock,
+                                                     std::span<const Render::Models::SkinnedMesh> meshes,
+                                                     std::uint8_t packedLevel, std::uint8_t excellent,
+                                                     std::uint8_t ancient, std::uint8_t detail,
+                                                     const ItemDrawContext& context)
+{
+    const auto clock = ItemFrameClock(frameClock, context);
+    if (!clock.HasValue())
+        return Core::Unexpected(clock.Error());
+    frameClock = clock.Value();
+    auto level = ItemLevel(object.model, packedLevel);
+    if (detail < Render::Models::DefaultGlowDetail)
+        level = std::min(level, 2 * static_cast<int>(detail) + 5);
+    if (object.model >= 0x1e12 && object.model <= 0x1e18 && level > 0)
+        level = 7;
+    const bool hasExcellent =
+        (excellent & 0x3f) != 0 && !(object.model >= 0x1a12 && object.model <= 0x1a18) && object.model != 0x1c30;
+    const bool hasAncient = (ancient & 3) == 1 || (ancient & 3) == 2;
+    const auto glow =
+        Render::Models::ItemGlowOf(static_cast<std::uint8_t>(std::max(0, level)), hasExcellent && detail != 0,
+                                   hasAncient && detail != 0, Render::Models::DefaultGlowDetail);
+    auto base = object;
+    if (context.modelState)
+    {
+        const auto selected = context.modelState->unlitMeshes.find(static_cast<std::int16_t>(base.model));
+        if (selected != context.modelState->unlitMeshes.end())
+            base.unlitMesh = selected->second;
+    }
+    if (!base.vertexLight)
+        base.color *= 0.1f; // 5ffce0 antes de los RET tempranos.
+    const auto early = DrawEarlyItemGlow(batch, models, base, frameClock, meshes, level, packedLevel, context);
+    if (!early.HasValue() || early.Value())
+    {
+        PublishItemStore(base, context);
+        if (!early.HasValue())
+            return Core::Unexpected(early.Error());
+        return {};
+    }
+    base.color = object.color;
+    std::optional<float> storedAlpha;
+    const auto prepared =
+        PrepareItemGlowEffects(base, frameClock, static_cast<std::uint8_t>(std::max(0, level)), context, storedAlpha);
+    if (storedAlpha && context.storedAlpha)
+        *context.storedAlpha = *storedAlpha;
+    if (!prepared.HasValue())
+        return prepared;
+    base.color *= glow.baseFactor;
+    if (level >= 3 && level <= 4)
+        base.color *= glm::vec3(context.glowPulse, context.glowPulse * 0.6f, context.glowPulse * 0.6f);
+    else if (level >= 5 && level <= 6)
+        base.color *= glm::vec3(context.glowPulse * 0.5f, context.glowPulse * 0.7f, context.glowPulse);
+    auto special = context.special ? *context.special : ItemSpecialDrawContext{};
+    special.publishedObject = &base;
+    if (object.model == ChromeFirstObject)
+        for (const auto& draw : RetainedObjectMeshDraws(models, base, frameClock, meshes, false, false, true))
+            DrawChromeFirst(batch, draw);
+    const auto rendered = DrawSpecialItemMeshes(batch, models, base, frameClock, meshes, special);
+    if (storedAlpha)
+        base.alpha = *storedAlpha;
+    PublishItemStore(base, context);
+    if (!rendered.HasValue())
+        return rendered;
+    return DrawItemOptionPasses(batch, models, base, frameClock, meshes, glow, context);
 }
 
 void DrawSubtractiveMesh(Render::ModelBatch& batch, const IModelLibrary& models, const DrawnObject& object,

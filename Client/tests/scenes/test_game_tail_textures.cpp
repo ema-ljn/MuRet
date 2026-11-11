@@ -1,6 +1,8 @@
 #include "Scenes/GameModels.h"
 
 #include "Core/Expected.h"
+#include "Data/Models/ModelFiles.h"
+#include "Data/Models/Model.h"
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Textures/Sampling.h"
@@ -248,3 +250,37 @@ TEST_F(GameTailTextureTest, ARejectedDamageAtlasNeverPublishesAHandleOrMetadata)
     EXPECT_TRUE(store.physical.Find(*spark).has_value());
 }
 } // namespace
+
+TEST_F(GameTailTextureTest, ExtendedTailBindingsUseTheNativeFilesAndSampling)
+{
+    // ASM61d511/61d9b4/61d9ef/61da0b/61da2a/61da9d/61dba2/61dcc3.
+    constexpr std::array<Resource, 8> resources{{
+        {0x5da, "Effect\\Fire02.jpg", 64, 64, PixelFormat::Rgb, Filter::Linear, Wrap::Clamp},
+        {0x5bb, "Effect\\blur01.jpg", 32, 64, PixelFormat::Rgb, Filter::Nearest, Wrap::Clamp},
+        {0x5bc, "Effect\\motion_blur.jpg", 32, 64, PixelFormat::Rgb, Filter::Nearest, Wrap::Clamp},
+        {0x5bd, "Effect\\motion_blur_r.jpg", 32, 64, PixelFormat::Rgb, Filter::Nearest, Wrap::Clamp},
+        {0x639, "Effect\\blur02.jpg", 64, 128, PixelFormat::Rgb, Filter::Nearest, Wrap::Clamp},
+        {0x614, "Effect\\JointThunder01.jpg", 256, 32, PixelFormat::Rgb, Filter::Linear, Wrap::Repeat},
+        {0x61c, "Effect\\motion_blur_r2.jpg", 64, 128, PixelFormat::Rgb, Filter::Linear, Wrap::Repeat},
+        {0x62c, "Effect\\NSkill.jpg", 32, 32, PixelFormat::Rgb, Filter::Linear, Wrap::Clamp},
+    }};
+    for (const auto& resource : resources)
+        ASSERT_NO_FATAL_FAILURE(ExpectResource(resource));
+}
+
+TEST_F(GameTailTextureTest, RidingSpearModelAndMeshTexturesComeFromTheNativeSkillFile)
+{
+    // 6161b5:60da30(10f,"Data\\Skill\\","RidingSpear",1);61619f folderSkill.
+    const auto expected = Client::Data::Models::LoadModelFile(m_dataRoot, {0x10f, "Skill\\", "RidingSpear", 1});
+    ASSERT_TRUE(expected.HasValue());
+    const auto* model = m_models.Find(0x10f);
+    ASSERT_NE(model, nullptr);
+    EXPECT_EQ(model->name, expected.Value().name);
+    EXPECT_EQ(model->meshes.size(), expected.Value().meshes.size());
+    ASSERT_NE(m_models.SkeletonOf(0x10f), nullptr);
+    const auto textures = m_models.MeshTextures(0x10f);
+    ASSERT_EQ(textures.size(), model->meshes.size());
+    ASSERT_FALSE(textures.empty());
+    for (const auto slot : textures)
+        EXPECT_TRUE(m_store.Find(slot).has_value());
+}

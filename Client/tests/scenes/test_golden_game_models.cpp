@@ -51,6 +51,8 @@ using Client::Tests::RecordingSink;
 
 // Los tres giftbox de 0x60ff50, que el laboratorio no tiene (06).
 constexpr std::size_t MissingInTheLab = 3;
+// 6161b5 carga RidingSpear01/10f aparte de las tablas de jugador, ítems y skills.
+constexpr std::size_t AdditionalTailModels = 1;
 
 class GoldenGameModels : public Client::Tests::GoldenDataTest
 {
@@ -68,8 +70,8 @@ TEST_F(GoldenGameModels, LoadsEveryModelOfThePlayerLoader)
     const auto loaded = models.Load(m_dataRoot, textures, log);
 
     ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
-    EXPECT_EQ(models.Count(),
-              PlayerModelFiles().size() + ItemModelFiles().size() + SkillModelFiles().size() - MissingInTheLab);
+    EXPECT_EQ(models.Count(), PlayerModelFiles().size() + ItemModelFiles().size() + SkillModelFiles().size() +
+                                  AdditionalTailModels - MissingInTheLab);
     ASSERT_NE(models.SkeletonOf(0x20a), nullptr);
     EXPECT_EQ(models.SkeletonOf(0x20a)->headBone, 20);
     for (const auto& file : PlayerModelFiles())
@@ -207,7 +209,8 @@ TEST_F(GoldenGameModels, EveryTextureTheLoadersAskForIsThere)
     EXPECT_EQ(textures.loaded.size(),
               models.TextureSlots().ToLoad().size() + PlayerFixedTextures().size() + GlowTextureSet.size() +
                   ClothTextureSet.size() + Client::Scenes::EffectTextureSet.size() +
-                  Client::Scenes::DamageTextureSet.size() + Client::Scenes::FaunaJointTextureSet.size());
+                  Client::Scenes::DamageTextureSet.size() + Client::Scenes::FaunaJointTextureSet.size() +
+                  Client::Scenes::GameTailTextureSet.size());
     for (const std::string& line : sink.lines)
     {
         EXPECT_EQ(line.find("una textura de un modelo"), std::string::npos) << line;

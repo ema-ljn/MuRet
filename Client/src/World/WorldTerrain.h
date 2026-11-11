@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -32,10 +33,21 @@ struct WorldTerrain
 [[nodiscard]] Core::Expected<WorldTerrain, std::string> LoadWorldTerrain(const std::filesystem::path& dataRoot,
                                                                          std::uint8_t map);
 
+// Carga por etapas para respetar MAP/ATT → OBJ → alturas/luz (61a751..61a910).
+// Publican cada tabla ya leída y el primer aviso fatal, sin UI. Un error sigue siendo error;
+// el MAP ausente sólo difiere su diagnóstico hasta comprobar el ATT (Q-C27/Q-C180).
+[[nodiscard]] Core::Expected<void, std::string> LoadWorldTerrainLayout(const std::filesystem::path& dataRoot,
+                                                                       std::uint8_t map, WorldTerrain& terrain,
+                                                                       std::optional<std::string>& fatalMessage);
+[[nodiscard]] Core::Expected<void, std::string> LoadWorldTerrainSurface(const std::filesystem::path& dataRoot,
+                                                                        std::uint8_t map, WorldTerrain& terrain,
+                                                                        std::optional<std::string>& fatalMessage);
+
 // Los objetos de EncTerrain<N>.obj del mapa `map` (0x607370), en el orden del archivo (CL7.2). El
 // error nombra el archivo como lo pide el original.
 [[nodiscard]] Core::Expected<std::vector<Data::Terrain::TerrainObject>, std::string>
-LoadWorldObjects(const std::filesystem::path& dataRoot, std::uint8_t map);
+LoadWorldObjects(const std::filesystem::path& dataRoot, std::uint8_t map,
+                 std::optional<std::string>* fatalMessage = nullptr);
 
 // Un tile de 0x61a560: la ruta como la pide el original, el slot, el muestreo y si avisa cuando falta
 // (el sexto argumento de 0x63b870: solo TileGrass01). Los que no avisan se saltean.
@@ -61,6 +73,10 @@ struct WorldTileTexture
 // 61ac3e..61ad7a: alternativas de hojas/nieve64/65 y lluvia/salpicaduras66..68,
 // GL_NEAREST/GL_CLAMP, todas opcionales; la JPG64 posterior reemplaza a la TGA64 si existe.
 [[nodiscard]] std::vector<WorldTileTexture> WorldWeatherTextures(std::uint8_t map);
+
+// 618dda..618e29: las 32 cáusticas Object8\\wt00..wt31.jpg, slots65..96,
+// LINEAR/REPEAT, sin aviso. Aquí se integra sólo la familia Kalima24..29/36.
+[[nodiscard]] std::vector<WorldTileTexture> KalimaObjectTextures(std::uint8_t map);
 
 // El slot 0x122 que pide una capa 2 de 255 (Q-C19): Interface\accept_box01.jpg, que el original sube
 // en la carga (0x61ae60) y queda para siempre; MuRet lo sube con el mundo.

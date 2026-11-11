@@ -7,6 +7,8 @@
 #include "Render/TextureSlot.h"
 #include "Scenes/ModelTextureTable.h"
 #include "World/TerrainCells.h"
+#include "World/KalimaWorld.h"
+#include "World/KalimaResources.h"
 #include "World/WorldTerrain.h"
 
 #include <array>
@@ -27,7 +29,22 @@ namespace
 // Lo que sube Load: tiles, pasto (61abb4..61ac36), meteorología (61ac3e..61ad7a) y el122.
 std::vector<World::WorldTileTexture> WantedTextures(std::uint8_t map, GrassTextures grass)
 {
-    std::vector<World::WorldTileTexture> wanted = World::WorldTileTextures(map);
+    std::vector<World::WorldTileTexture> wanted;
+    if (World::IsKalimaMap(map))
+    {
+        // 6189e9: el agua real vive enObject25, antes del salto de61a92a sobre los tiles ordinarios.
+        for (const auto& texture : World::KalimaTextureSet())
+        {
+            // 6189e9 sexto0: water1 no avisa; 618a03 sexto1: water2 es requerido.
+            constexpr std::uint16_t OptionalAlphaWaterSlot = 0x23;
+            wanted.push_back(
+                {std::string(texture.path), texture.slot, texture.sampling, texture.slot != OptionalAlphaWaterSlot});
+        }
+    }
+    else
+        wanted = World::WorldTileTextures(map);
+    const auto caustics = World::KalimaObjectTextures(map);
+    wanted.insert(wanted.end(), caustics.begin(), caustics.end());
     if (grass == GrassTextures::Upload)
     {
         const std::vector<World::WorldTileTexture> grassTextures = World::WorldGrassTextures(map);

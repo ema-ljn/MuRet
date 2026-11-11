@@ -51,9 +51,10 @@ StepGameWaterspoutFrame(World::WorldObject& object, World::Particles& particles,
                         const FaunaDrawCarry* retainedPose = nullptr);
 
 // 0x637128 → 0x5446e0: también con el pool vacío consume los dos rand() del viento.
+// worldClock presta el lvalue del caller durante la pasada; no retiene ni copia ese owner.
 [[nodiscard]] Core::Expected<void, std::string>
 StepGameParticles(World::Particles& particles, Render::Models::CrtRandom& random, const std::int32_t& map,
-                  const std::function<double(float, float)>& terrainHeight = {});
+                  const std::function<double(float, float)>& terrainHeight = {}, const float& worldClock = 0.0f);
 
 // 0x637558 → 0x548550(0), en el pase de ojo después de los sprites. Conserva la geometría y
 // las operaciones anteriores a un fallo y devuelve la dirección y el lugar que falló.

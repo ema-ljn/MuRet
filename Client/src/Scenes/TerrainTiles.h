@@ -45,7 +45,8 @@ public:
     ~TerrainTiles() = default;
 
     // Suelta los de antes y sube los tiles de `map` (el número de la carpeta), con `grass` el pasto
-    // detrás, la meteorología0x64..0x68 y el slot0x122. Un archivo opcional que falta o no se lee va a
+    // detrás, la meteorología0x64..0x68 y el slot0x122. Kalima carga Object25\water1/2 en35/36
+    // (water1 opcional, water2 requerido) en lugar de tiles/pasto/clima. Un archivo opcional va a
     // `skipped`, con lo que pasó y la ruta como la pide el original (Q-C14); uno que avisa (TileGrass01,
     // el 0x122) y falta o no se lee, o la tabla que no sube, son un error, y no queda nada subido.
     [[nodiscard]] Core::Expected<void, std::string> Load(const std::filesystem::path& dataRoot, std::uint8_t map,

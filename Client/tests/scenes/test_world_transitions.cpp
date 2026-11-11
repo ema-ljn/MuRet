@@ -162,7 +162,7 @@ TEST(WorldTransitionsTest, AnotherMapFailureRetainsThePrefixBeforeConfirmation)
     const auto result = Client::Scenes::ApplyTeleport(Client::Protocol::World::Teleport{23, 3, 30, 31, 2},
                                                       Transition::PlayerKey, tested.Resources(), publisher);
     ASSERT_FALSE(result.HasValue());
-    EXPECT_NE(result.Error().find("EncTerrain4.map"), std::string::npos) << result.Error();
+    EXPECT_NE(result.Error().find("EncTerrain4.att"), std::string::npos) << result.Error();
     EXPECT_EQ(tested.world.Runtime().map, 3);
     EXPECT_FALSE(tested.world.Actors()[8].alive);
     EXPECT_EQ(tested.Hero().position.x, 3050.0f);

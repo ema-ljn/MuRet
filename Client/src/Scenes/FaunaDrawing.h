@@ -50,6 +50,9 @@ PublishFaunaFloorPose(FaunaDrawCarry& carry, const IModelLibrary& models, const 
 PublishFaunaPoseRaw(FaunaDrawCarry& carry, const IModelLibrary& models, std::uint16_t model,
                     std::span<const Render::Models::BoneTransform> bones,
                     const Render::Models::ObjectTransform& transform, bool translated, bool skin = true);
+// 4ebc80: actualiza el scratch de mallas con los huesos retenidos, sin ejecutar 4eb860.
+[[nodiscard]] Core::Expected<void, std::string> TransformFaunaPose(FaunaDrawCarry& carry, const IModelLibrary& models,
+                                                                   const DrawnObject& object);
 struct FaunaDrawContext
 {
     FaunaState& fauna;

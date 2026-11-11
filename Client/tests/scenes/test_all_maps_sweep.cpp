@@ -17,6 +17,7 @@
 #include "Scenes/WorldState.h"
 #include "World/GroundMarks.h"
 #include "World/ModelEffects.h"
+#include "World/KalimaWorld.h"
 #include "World/Particles.h"
 #include "World/TerrainLighting.h"
 #include "World/WorldObjectRegistrations.h"
@@ -74,7 +75,7 @@ const MapSweepWorldCase* WorldCase(std::uint8_t folder)
 
 bool PublishesTerrain(MapSweepCut cut)
 {
-    return cut == MapSweepCut::None || cut == MapSweepCut::KalimaWorld;
+    return cut == MapSweepCut::None;
 }
 
 SceneId SceneOf(std::uint8_t nominal)
@@ -97,9 +98,7 @@ std::string_view ExpectedError(MapSweepCut cut)
     case MapSweepCut::CrywolfState:
         return "0x61a560: el .att del mapa 34 depende del estado de Crywolf (0x42fe50)";
     case MapSweepCut::MissingWorld:
-        return "Data\\World36\\EncTerrain36.map no está";
-    case MapSweepCut::KalimaWorld:
-        return "0x4377a0: el mundo especial de Kalima (0x723c48) no está portado";
+        return "Data\\World36\\EncTerrain36.att no está";
     case MapSweepCut::LoginSpecials:
         return "0x616ec0: los especiales del mapa 55 (0x6188ae) no están leídos";
     }
@@ -109,6 +108,7 @@ std::string_view ExpectedError(MapSweepCut cut)
 void SeedThePreviousMap(WorldState& world)
 {
     auto& loaded = world.Map();
+    loaded.kalima = std::make_unique<Client::World::KalimaWorld>(24);
     loaded.terrain.mapping = std::make_unique<Client::Data::Terrain::TerrainMapping>();
     loaded.terrain.attributes = std::make_unique<Client::Data::Terrain::TerrainAttributes>();
     loaded.terrain.heights = std::make_unique<Client::Data::Terrain::TerrainHeights>();
@@ -188,6 +188,18 @@ void ExpectTerrain(const Client::World::WorldTerrain& terrain, const MapSweepWor
 void ExpectPublishedFiles(const Client::Scenes::WorldMap& loaded, const MapSweepCase& probe,
                           const MapSweepWorldCase& expected)
 {
+    if (probe.cut == MapSweepCut::MissingHeight)
+    {
+        // 61a650..61a7e9 publica MAP/ATT y OBJ antes de cargar las alturas (Q-C180).
+        ASSERT_NE(loaded.terrain.mapping, nullptr);
+        ASSERT_NE(loaded.terrain.attributes, nullptr);
+        EXPECT_EQ(CrcOf(loaded.terrain.mapping->layer1), expected.layer1Crc);
+        EXPECT_EQ(CrcOf(loaded.terrain.mapping->layer2), expected.layer2Crc);
+        EXPECT_EQ(loaded.terrain.heights, nullptr);
+        EXPECT_EQ(loaded.terrain.lighting, nullptr);
+        EXPECT_EQ(loaded.objectRecords.size(), expected.records);
+        return;
+    }
     if (!PublishesTerrain(probe.cut))
     {
         EXPECT_EQ(loaded.terrain.mapping, nullptr);
@@ -409,6 +421,12 @@ TEST_P(MapSweep, LoadsTheNominalIdentityOrStopsAtTheDeclaredBoundary)
         EXPECT_EQ(loaded.Error(), ExpectedError(probe.cut));
     }
     EXPECT_EQ(m_world.Runtime().map, probe.effective);
+    EXPECT_EQ(static_cast<bool>(m_world.Map().kalima),
+              loaded.HasValue() ? Client::World::IsKalimaMap(probe.effective) : true);
+    if (m_world.Map().kalima)
+    {
+        EXPECT_EQ(m_world.Map().kalima->Map(), loaded.HasValue() ? probe.effective : 24);
+    }
     ExpectPublishedFiles(m_world.Map(), probe, *expected);
     ExpectObjectIdentities(m_world.Map(), probe);
     ExpectGrassAndRandom(m_world.Map(), probe, m_random);

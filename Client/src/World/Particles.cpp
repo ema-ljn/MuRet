@@ -6,6 +6,8 @@
 #include "World/Ftol.h"
 #include "World/IParticleTrigonometry.h"
 #include "World/NoriaParticleKernels.h"
+#include "World/KalimaParticleKernels.h"
+#include "World/ParticleOwner.h"
 
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
@@ -278,6 +280,8 @@ bool IsDrop(const Particle& particle)
 
 std::optional<ParticleError> BindingError(std::int32_t type, std::int32_t subtype)
 {
+    if (type == ThunderParticle)
+        return subtype == 0 ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == ShinyParticle || type == FairySparkParticle)
         return IsNoriaParticle(type, subtype) ? std::nullopt : std::optional(ParticleError::UnsupportedSubtype);
     if (type == Particle67 || type == Particle68)
@@ -339,6 +343,7 @@ void Initialize(Particle& particle, std::int32_t type, const glm::vec3& position
     particle.rotation = 0.0f;
     particle.life = DefaultLife;
     particle.owner = owner;
+    particle.typedOwner = {};
     particle.moves = true;
     for (int axis = 0; axis < 3; ++axis)
     {
@@ -908,9 +913,21 @@ Particles::CreateChecked(std::int32_t type, const glm::vec3& position, const glm
 }
 
 Core::Expected<std::optional<std::size_t>, ParticleError>
+Particles::CreateKalimaChecked(std::int32_t type, const glm::vec3& position, const glm::vec3& angles,
+                               const glm::vec3& light, std::int32_t subtype, float scale, float worldClock,
+                               Render::Models::CrtRandom& random, std::int32_t scene, ParticleOwner owner)
+{
+    if (!IsKalimaParticle(type, subtype))
+        return Core::Unexpected(ParticleError::UnsupportedSubtype);
+    return CreateImpl(type, position, angles, light, subtype, scale, worldClock, nullptr, random, 0, nullptr, scene,
+                      owner);
+}
+
+Core::Expected<std::optional<std::size_t>, ParticleError>
 Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::vec3& angles, const glm::vec3& light,
                       std::int32_t subtype, float scale, float legacyClock, const float* worldClock,
-                      Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry)
+                      Render::Models::CrtRandom& random, std::uint32_t owner, IParticleTrigonometry* trigonometry,
+                      std::optional<std::int32_t> scene, ParticleOwner typedOwner)
 {
     for (std::size_t index = 0; index < m_particles.size(); ++index)
     {
@@ -919,12 +936,13 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
         {
             continue;
         }
+        const bool kalima = IsKalimaParticle(type, subtype);
         const bool orbit = trigonometry != nullptr && type == OrbitParticle;
         if (orbit && subtype != OrbitSubtype)
         {
             return Core::Unexpected(ParticleError::UnsupportedSubtype);
         }
-        if (!orbit && !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
+        if (!kalima && !orbit && !(worldClock != nullptr && IsMap8Smoke(type, subtype)))
         {
             if (const auto error = BindingError(type, subtype))
             {
@@ -932,6 +950,27 @@ Particles::CreateImpl(std::int32_t type, const glm::vec3& position, const glm::v
             }
         }
         Initialize(particle, type, position, angles, light, subtype, scale, owner);
+        if (kalima)
+        {
+            particle.typedOwner = typedOwner;
+            const auto created = CreateKalimaParticle(particle, random, scene);
+            if (!created.HasValue())
+                return Core::Unexpected(created.Error());
+            return std::optional(index);
+        }
+        if (type == ThunderParticle)
+        {
+            // 54109f: /0 conserva vida2, RGB y ángulos del prefijo; dos CRT y dos stores.
+            constexpr int ScaleSpan = 8;
+            constexpr int ScaleBase = 6;
+            constexpr float ScaleStep = 0.1f;
+            constexpr float RotationStep = 20;
+            particle.scale = F32((static_cast<double>(random.Next() % ScaleSpan + ScaleBase) * scale) * ScaleStep);
+            const int rotation = random.Next() % FullTurn;
+            particle.verticalSpeed = RotationStep;
+            particle.rotation = static_cast<float>(rotation);
+            return std::optional(index);
+        }
         if (orbit)
         {
             const auto created = CreateTheOrbit(particle, scale, random, *trigonometry);
@@ -1084,6 +1123,13 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
         {
             Move(particle);
         }
+        if (IsKalimaParticle(particle.type, particle.subtype))
+        {
+            const auto stepped = StepKalimaParticle(particle, random, worldClock, trigonometry);
+            if (!stepped.HasValue())
+                return stepped;
+            continue;
+        }
         if (trigonometry != nullptr && particle.type == OrbitParticle)
         {
             if (particle.subtype != OrbitSubtype)
@@ -1123,7 +1169,12 @@ Core::Expected<void, ParticleError> StepParticlesImpl(Particles& particles, Rend
                 return Core::Unexpected(*error);
             }
         }
-        if (IsNoriaParticle(particle.type, particle.subtype))
+        if (particle.type == ThunderParticle)
+        {
+            // 54573f: se ejecuta incluso después del último movimiento común con alive=0.
+            particle.rotation = F32(static_cast<double>(particle.verticalSpeed) + particle.rotation);
+        }
+        else if (IsNoriaParticle(particle.type, particle.subtype))
         {
             const auto stepped = StepNoriaParticle(particle, terrainHeight);
             if (!stepped.HasValue())

@@ -532,3 +532,39 @@ TEST(GameParticlesTest, AnEmptyRetainedFountainLoanStopsAfterTheFirstOffsetInste
         static_cast<void>(expected.Next());
     EXPECT_EQ(random.State(), expected.State());
 }
+
+TEST(GameParticlesTest, LaterAmbientSlotReadsTheCallerClockChangedByTerrainHeight)
+{
+    Particles particles;
+    auto& spark = particles.All()[0];
+    spark.alive = true;
+    spark.type = spark.texture = 0x5c5;
+    spark.subtype = 0;
+    spark.life = 20;
+    spark.scale = 1.0f;
+    auto& ambient = particles.All()[1];
+    ambient.alive = true;
+    ambient.type = ambient.texture = 0x5ac;
+    ambient.subtype = 7;
+    ambient.life = 1;
+    ambient.scale = 1.0f;
+    float clock = 0.0f;
+    int heightCalls = 0;
+    const auto height = [&](float, float)
+    {
+        ++heightCalls;
+        clock = 1.0f;
+        return 0.0;
+    };
+    CrtRandom random(7);
+    const std::int32_t map = 24;
+    const auto stepped = Client::Scenes::StepGameParticles(particles, random, map, height, clock);
+    ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+    EXPECT_EQ(heightCalls, 1);
+    EXPECT_EQ(clock, 1.0f);
+    EXPECT_EQ(std::bit_cast<std::uint32_t>(ambient.position.z), 0x41635153u);
+    EXPECT_EQ(ambient.rotation, 30);
+    EXPECT_FALSE(ambient.alive);
+    EXPECT_EQ(ambient.life, 0);
+    EXPECT_EQ(random.State(), 0xc40e66b9u);
+}

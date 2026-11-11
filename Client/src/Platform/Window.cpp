@@ -10,6 +10,7 @@
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_keyboard.h>
 #include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL_messagebox.h>
 #include <SDL3/SDL_video.h>
 
 #include <string>
@@ -65,6 +66,14 @@ Core::Expected<Window, std::string> Window::Create(const SdlContext& /*sdl*/, co
 
     SwapIntervalResult vsync = ApplySwapInterval(options.vsync);
     return Window(std::move(window), std::move(context), gl.Value(), std::move(vsync));
+}
+
+Core::Expected<void, std::string> Window::ShowErrorMessage(const std::string& message)
+{
+    if (!SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, SDL_GetWindowTitle(m_window.get()), message.c_str(),
+                                  m_window.get()))
+        return Core::Unexpected(std::string("no se pudo mostrar el aviso de datos: ") + SDL_GetError());
+    return {};
 }
 
 void Window::Swap()

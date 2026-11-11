@@ -863,6 +863,8 @@ TEST_F(GameSceneDrawTest, TheReferenceMapsDrawTheTerrainTheGrassTheGroundMarksAn
 // con los rand() de antes y sin la tela.
 TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
 {
+    // 0x52f360: con esta semilla, tres jitters, luz y decisión sin emisión; el binding de luz llega en6.
+    constexpr int UnboundFireRandoms = 5;
     struct Case
     {
         std::uint8_t map;
@@ -876,7 +878,7 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
         int stepDraws;
     };
     for (const Case& probe :
-         {Case{0, 143, 120, 4, 4 + 8 + 83 + 1, {1400}, {1366, 1372, 1690}, "0x604eb0", 3},
+         {Case{0, 143, 120, 4, 4 + 8 + 83 + 1, {1400}, {1366, 1372, 1690}, "0x604eb0", 3 + UnboundFireRandoms},
           Case{2, 220, 30, 3, 4 + 8 + 54, {1282, 1471, 1472, 1473}, {1262, 1462, 1464}, "0x6050d4", 3}})
     {
         SCOPED_TRACE(static_cast<int>(probe.map));

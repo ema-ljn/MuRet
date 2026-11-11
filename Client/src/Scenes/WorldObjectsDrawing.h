@@ -26,8 +26,15 @@
 // Los objetos de un mundo en una escena (CL7.2): su paso (0x606560) y su dibujo (0x6046a0), con los
 // modelos de la escena. La lógica de cada uno es de World::WorldObjects. Contrato: 06 § El mundo del
 // login.
+namespace Client::World
+{
+struct FishEffectRequest;
+struct ObjectModelStepState;
+} // namespace Client::World
+
 namespace Client::Scenes
 {
+struct FaunaDrawCarry;
 // El paso de un objeto que tiene el suyo (el logo del login): devuelve true si lo avanzó, y entonces
 // StepWorldObject no lo toca.
 using SpecialObjectStep = std::function<bool(World::WorldObject&)>;
@@ -69,6 +76,9 @@ struct ObjectFrameEffects
     // El rand común del último frame original por índice; los no vistos en él pierden su muestra.
     // Sin una muestra previa no hay brillo que repetir.
     std::span<std::optional<int>> lastRandoms{};
+    std::function<Core::Expected<void, std::string>(const DrawnObject&)> onPose{};
+    const FaunaDrawCarry* retainedPose = nullptr;
+    bool publishProjectedPose = false;
 };
 
 // 0x6046a0 con `objects`: por sector, en World::DrawOrder; el sector que pasa el trapecio en su centro
@@ -103,6 +113,14 @@ struct GameObjectPass
     float worldClock = 0.0f;
     // La tabla global compartida de 0x743a198. Sin ella queda el corte histórico de la primera gota.
     World::Particles* particles = nullptr;
+    // 5ffdf0 publica el scratch de la pose antes de 602ed0 y antes de las aves.
+    std::function<Core::Expected<void, std::string>(const DrawnObject&)> onPose{};
+    World::FrameSprites* sprites = nullptr;
+    const FaunaDrawCarry* retainedPose = nullptr;
+    std::function<Core::Expected<void, std::string>(const World::FishEffectRequest&)> createJoint{};
+    const World::ObjectModelStepState* modelState = nullptr;
+    // Publicación sobre scratch de presentación del caller, sin ejecutar602ed0 ni consumir RNG.
+    bool publishProjectedPose = false;
 };
 
 // 0x6046a0 en el juego (0x6374ce), en los mapas 0 y 2 (06 § Los objetos del juego): sector por sector, en
@@ -139,7 +157,6 @@ void StepModelEffects(std::span<World::ModelEffect> effects, const IModelLibrary
 void DrawModelEffects(Render::ModelBatch& batch, const IModelLibrary& models, std::span<World::ModelEffect> effects,
                       const World::SphereFrustum& frustum, const World::TerrainLighting* lighting,
                       Core::Duration frameClock, float alpha);
-
 // 0x549440(0), en el pase de ojo (después de 0x6213e0, con la modelview en la identidad): cada sprite
 // vivo, con la mezcla de su +4 (0 aditiva, 1 la de 0x620b10, 2 la normal; la 3, 0x620b90, todavía no se
 // leyó y va aditiva; la textura 0x637, la normal), el alpha de 0x549290 y el cuadrado de 0x621400 con el

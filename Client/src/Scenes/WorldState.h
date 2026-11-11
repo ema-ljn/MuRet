@@ -5,6 +5,12 @@
 #include "Scenes/DynamicWorldLight.h"
 #include "Scenes/HelperTable.h"
 #include "Scenes/ItemSetState.h"
+#include "Scenes/PlayerActionSpeeds.h"
+#include "Scenes/FaunaState.h"
+#include "Scenes/FaunaModels.h"
+#include "Scenes/FaunaDrawing.h"
+#include "Scenes/GameDrawTail.h"
+#include "World/Leaves.h"
 #include "Scenes/OwnCharacterRecord.h"
 #include "Scenes/OwnInventory.h"
 #include "Scenes/WorldMap.h"
@@ -68,6 +74,18 @@ public:
     // 0x7b4ccc4 y los límites del último 0x5fbb00: una historia para las tres escenas.
     [[nodiscard]] DynamicWorldLight& DynamicLighting();
     [[nodiscard]] const DynamicWorldLight& DynamicLighting() const;
+    [[nodiscard]] PlayerActionSpeeds& ActionSpeeds();
+    [[nodiscard]] const PlayerActionSpeeds& ActionSpeeds() const;
+    [[nodiscard]] FaunaState& Fauna();
+    [[nodiscard]] const FaunaState& Fauna() const;
+    [[nodiscard]] FaunaModels& FaunaResources();
+    [[nodiscard]] const FaunaModels& FaunaResources() const;
+    [[nodiscard]] FaunaDrawCarry& PoseCarry();
+    [[nodiscard]] const FaunaDrawCarry& PoseCarry() const;
+    [[nodiscard]] GameDrawTailState& DrawTail();
+    [[nodiscard]] const GameDrawTailState& DrawTail() const;
+    [[nodiscard]] World::Leaves& Leaves();
+    [[nodiscard]] const World::Leaves& Leaves() const;
 
     // Lo que hace la selección al pasar a la escena 3 con `chosen`, el elegido (06, "La lógica" y "La
     // entrada al mundo", paso 1; los tres caminos: Enter 0x6343e2..0x634470, doble clic
@@ -87,5 +105,11 @@ private:
     HelperTable m_helpers{};
     std::unique_ptr<World::Particles> m_particles = std::make_unique<World::Particles>();
     DynamicWorldLight m_dynamicLighting;
+    PlayerActionSpeeds m_actionSpeeds;
+    FaunaState m_fauna;
+    FaunaModels m_faunaResources;
+    FaunaDrawCarry m_poseCarry;
+    std::unique_ptr<GameDrawTailState> m_drawTail = std::make_unique<GameDrawTailState>();
+    std::unique_ptr<World::Leaves> m_leaves = std::make_unique<World::Leaves>();
 };
 } // namespace Client::Scenes

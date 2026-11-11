@@ -11,12 +11,15 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
+#include <span>
 #include <string>
 
 namespace Client::Render::Models
 {
 class CrtRandom;
+struct SkinnedMesh;
 } // namespace Client::Render::Models
 
 // La tabla de los ayudantes del juego: los 10 lugares de 0x1d4 bytes de 0x7d335d0, en la .bss, que crea
@@ -29,6 +32,7 @@ namespace Client::Scenes
 {
 class IModelLibrary;
 class WorldState;
+struct DrawnObject;
 
 inline constexpr std::size_t HelperCount = 10;
 
@@ -95,6 +99,11 @@ struct HelperDrawContext
     Core::Duration frameClock{};
     // Lo que va del último paso al próximo, para la animación (D-C4).
     float stepAlpha = 0.0f;
+    // D-C4: dibujos intermedios proyectan sin publicar seen/frame ni consumir la CRT durable.
+    bool originalFrame = true;
+    std::function<Core::Expected<void, std::string>(const DrawnObject&)> onPose{};
+    bool publishProjectedPose = false;
+    std::function<std::span<const Render::Models::SkinnedMesh>()> posedMeshes{};
 };
 
 // 0x4453b0 en la escena 5 (0x637508): 0x445260(lugar, 0) en los 10. Con el lugar vivo, +0x16c con el

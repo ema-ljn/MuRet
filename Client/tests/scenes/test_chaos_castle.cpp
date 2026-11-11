@@ -180,7 +180,7 @@ TEST(ChaosCastleTest, EachCellDrawsOnceWithoutItsArea)
     const float clock = 0.0f;
     CrtRandom random(7);
     CrtRandom draws(7);
-    const Client::World::ChaosCastleCellContext context{.area = 0xff, .random = &random, .worldClock = clock};
+    const Client::World::ChaosCastleCellContext context{.area = 0xff, .random = &random, .worldClock = std::cref(clock)};
     for (std::uint8_t x = 20; x < 50; ++x)
     {
         ASSERT_TRUE(Client::World::StepChaosCastleCell(x, 80, context).HasValue());
@@ -188,7 +188,7 @@ TEST(ChaosCastleTest, EachCellDrawsOnceWithoutItsArea)
     }
     EXPECT_EQ(random.State(), draws.State());
 
-    const Client::World::ChaosCastleCellContext noRandom{.area = 0xff, .worldClock = clock};
+    const Client::World::ChaosCastleCellContext noRandom{.area = 0xff, .worldClock = std::cref(clock)};
     const auto cut = Client::World::StepChaosCastleCell(30, 80, noRandom);
     ASSERT_FALSE(cut.HasValue());
     EXPECT_NE(cut.Error().find("0x405e1e"), std::string::npos) << cut.Error();
@@ -200,7 +200,7 @@ TEST(ChaosCastleTest, AnAreaCellOutsideItsRectanglesDropsNothing)
     const float clock = 0.0f;
     const std::uint32_t seed = SeedWhere([](CrtRandom& r) { return r.Next() % 8 == 0; });
     CrtRandom random(seed);
-    const Client::World::ChaosCastleCellContext context{.area = 0, .random = &random, .worldClock = clock};
+    const Client::World::ChaosCastleCellContext context{.area = 0, .random = &random, .worldClock = std::cref(clock)};
     ASSERT_TRUE(Client::World::StepChaosCastleCell(10, 10, context).HasValue());
     CrtRandom draws(seed);
     static_cast<void>(draws.Next());

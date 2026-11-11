@@ -85,9 +85,11 @@ inline constexpr std::array<Data::Textures::TextureSetEntry, 25> EffectTextureSe
     {"Effect\\Flare.jpg", 0x60f, TextureSetsDetail::LinearClamp},
 }};
 
-// Recursos de los joints que ya crean los peces y pájaros: 61d858/61dab9/61dad8/61dce2.
+// Recursos de los joints que ya crean los peces y pájaros: 61d858/61dab9/61dad8/61dce2. 61d5db sube
+// JointSpirit02 a 0x6ee (LINEAR/CLAMP): el meteoro 6ee/9 de Chaos Castle (0x4054ad).
 // Spark01 (0x617) ya está en EffectTextureSet. Las cintas sin creador portado no se cargan acá.
-inline constexpr std::array<Data::Textures::TextureSetEntry, 4> FaunaJointTextureSet{{
+inline constexpr std::array<Data::Textures::TextureSetEntry, 5> FaunaJointTextureSet{{
+    {"Effect\\JointSpirit02.jpg", 0x6ee, TextureSetsDetail::LinearClamp},
     {"Effect\\ScolTail.jpg", 0x697, TextureSetsDetail::LinearClamp},
     {"Effect\\JointSpirit01.jpg", 0x613, TextureSetsDetail::LinearClamp},
     {"Effect\\JointLaser01.jpg", 0x618, TextureSetsDetail::LinearClamp},

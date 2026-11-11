@@ -88,12 +88,12 @@ constexpr std::array<MapCase, 37> MovementMaps{{
     {15, "BloodCastle"},
     {16, "BloodCastle"},
     {17, "BloodCastle"},
-    {18, "ChaosCastleCellReportBoundary"},
-    {19, "ChaosCastleCellReportBoundary"},
-    {20, "ChaosCastleCellReportBoundary"},
-    {21, "ChaosCastleCellReportBoundary"},
-    {22, "ChaosCastleCellReportBoundary"},
-    {23, "ChaosCastleCellReportBoundary"},
+    {18, "ChaosCastle"},
+    {19, "ChaosCastle"},
+    {20, "ChaosCastle"},
+    {21, "ChaosCastle"},
+    {22, "ChaosCastle"},
+    {23, "ChaosCastle"},
     {24, "KalimaLoadBoundary"},
     {25, "KalimaLoadBoundary"},
     {26, "KalimaLoadBoundary"},
@@ -133,10 +133,6 @@ std::string_view CharacterFrontier(std::uint8_t map)
     if (map == 30)
     {
         return "0x412140";
-    }
-    if (IsChaosCastle(map))
-    {
-        return "0x4fbe10";
     }
     return "";
 }
@@ -421,7 +417,7 @@ TEST_P(GameMovementMapMatrix, TheLogicalSafeCellIsPublishedUnlessTheBodyStopsEar
         ASSERT_FALSE(stepped.HasValue());
         EXPECT_NE(stepped.Error().find(frontier), std::string::npos) << stepped.Error();
     }
-    const bool beforeSafeZone = GetParam().map == 30 || IsChaosCastle(GetParam().map);
+    const bool beforeSafeZone = GetParam().map == 30;
     EXPECT_EQ(Hero().safeZone, beforeSafeZone ? 0 : 1);
 }
 

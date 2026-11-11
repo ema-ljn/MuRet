@@ -110,8 +110,9 @@ struct HelperDrawContext
 // trapecio global (0x5fba90, en su lugar por 0,01f y −20); visto y con el jinete un jugador: la escala en 1
 // y 0x602e90 (DrawDarkHorse, con la sombra del mapa), que no lo dibuja con el alpha por debajo de 0,01 y
 // con el +0x78 & 0x1000 del jinete le pone el frame en 0 (0x5fff0d, Q-C224); después, el rand() % 30 de
-// 0x445336 aunque no lo haya dibujado (Q-C223). Corta con error en los mapas 18 a 23 (0x5ffe09 lee +0x1a1
-// del héroe) y con el +0x78 & 0x4000 del jinete (0x602e90 con 10, 0x60033c). En MuRet no corre: el dibujo
+// 0x445336 aunque no lo haya dibujado (Q-C223). En los mapas 18 a 23, con +0x1a1 del héroe, 0x5ffdf0 le baja
+// 0,15f al alpha guardado en cada frame del original. Corta con error con el +0x78 & 0x4000 del jinete (0x602e90
+// con 10, 0x60033c). En MuRet no corre: el dibujo
 // del juego corta antes, a lo sumo en los ítems del piso (0x6374fe).
 [[nodiscard]] Core::Expected<void, std::string> DrawHelpers(const HelperDrawContext& context);
 } // namespace Client::Scenes

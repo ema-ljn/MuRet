@@ -437,6 +437,43 @@ TEST_P(GameT16MapWalk, TheArchivedOuterWallCannotStartAnOutOfBoundsWalk)
     RecordProperty("border_scope", "real outer wall/picking rejection; no fabricated traversable border");
 }
 
+// Chaos Castle (World19 por el 18 al 23) entra por el F3 04: el 1C corta en 0x4906a0 (la UI del castillo, CL8).
+// El castillo, 23..44 × 75..108, es zona segura en el .att; 30..33 × 90..93 queda en el medio, con los veintidós 3
+// de las paredes a la vista. La trampa armada de la .data (0x6c634d) prende el primer 3 visto (0x4055b0), que en el
+// dibujo siguiente suelta su 615/2 desde el hueso 1 (0x405d49) y baja la cuenta hasta 4.
+class GameT16ChaosCastleWalk : public GameT16MapWalk
+{
+};
+TEST_P(GameT16ChaosCastleWalk, RegenWalksInsideTheCastleAndTheArmedTrapFires)
+{
+    const auto map = static_cast<std::uint8_t>(GetParam());
+    constexpr std::uint8_t X = 30;
+    constexpr std::uint8_t Y = 90;
+    Regen(map, X, Y);
+    ASSERT_FALSE(m_pollFailure) << *m_pollFailure;
+    ASSERT_EQ(m_online->session.State(), Client::App::SessionState::InWorld);
+    ASSERT_EQ(m_world->Runtime().map, map);
+    OpenScene();
+    ASSERT_NO_FATAL_FAILURE(WaitForInput());
+    ASSERT_EQ(Hero().safeZone, 1);
+    ASSERT_NO_FATAL_FAILURE(ClickCell(X + 3, Y));
+    ASSERT_NO_FATAL_FAILURE(ExpectWalkPacket());
+    ASSERT_NO_FATAL_FAILURE(FinishWalk(X + 3, Y));
+    ASSERT_NO_FATAL_FAILURE(ClickCell(X + 3, Y + 3));
+    ASSERT_NO_FATAL_FAILURE(ExpectWalkPacket());
+    ASSERT_NO_FATAL_FAILURE(FinishWalk(X + 3, Y + 3));
+    EXPECT_EQ(m_world->Runtime().chaosCastleTrapArmed, 0);
+    const auto fired = std::ranges::count_if(m_world->Map().objects, [](const auto& object)
+                                             { return object.alive && object.type == 3 && object.field60 == 4; });
+    EXPECT_EQ(fired, 1);
+    EXPECT_TRUE(std::ranges::any_of(m_world->Map().objects, [](const auto& object)
+                                    { return object.alive && object.seen && object.type == 6; }));
+    RecordProperty("walk_scope", "F304 entry; real picking; D3 echo; armed trap 615/2; full frames");
+}
+INSTANTIATE_TEST_SUITE_P(AllSixChaosCastles, GameT16ChaosCastleWalk, ::testing::Values(18, 19, 20, 21, 22, 23),
+                         [](const ::testing::TestParamInfo<int>& parameter)
+                         { return "Map" + std::to_string(parameter.param); });
+
 class GameT16KalimaWalk : public GameT16MapWalk
 {
 };

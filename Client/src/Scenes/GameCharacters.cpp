@@ -217,7 +217,8 @@ Core::Expected<void, std::string> CheckTheEffects(const ActorState& actor, const
 // y del rand(): lo que cuelga queda como lo dejó el último frame.
 Core::Expected<void, std::string> HangTheItems(Render::ModelBatch& batch, const IModelLibrary& models,
                                                ActorState& actor, const DrawnCharacter& character,
-                                               const GameCharacterPass& pass, std::int32_t map, bool originalFrame)
+                                               const GameCharacterPass& pass, std::int32_t map, std::uint8_t heroByte1a1,
+                                               bool originalFrame)
 {
     const std::vector<Render::Models::BoneTransform> body = PoseCharacterBody(models, character);
     // 0x509340 posa en los huesos propios (+0x120), que lee el paso siguiente (0x506d25, la burbuja de Atlans).
@@ -239,6 +240,7 @@ Core::Expected<void, std::string> HangTheItems(Render::ModelBatch& batch, const 
         .frameClock = pass.frameClock,
         .worldClock = static_cast<float>(std::chrono::duration<double, std::milli>(pass.frameClock).count()),
         .map = map,
+        .heroByte1a1 = heroByte1a1,
         .logicSteps = pass.clothWorld->logicSteps,
         .originalFrame = originalFrame};
     return DrawGameHanging(hanging, hangingPass);
@@ -272,7 +274,9 @@ Core::Expected<void, std::string> DrawOne(Render::ModelBatch& batch, const IMode
         return supported;
     // 0x50db94: la luz de lo que cuelga (+0x3b4), la del terreno o el rojo de los PK.
     actor.drawnLight = actor.pk >= RedPk ? glm::vec3{1.0f, 0.1f, 0.1f} : terrainLight.Value() + actor.light;
-    if (auto hung = HangTheItems(batch, models, actor, character, pass, map, originalFrame); !hung.HasValue())
+    if (auto hung = HangTheItems(batch, models, actor, character, pass, map,
+                                 world.Actors()[world.Runtime().hero].byte1a1, originalFrame);
+        !hung.HasValue())
         return hung;
     return CheckTheEffects(actor, scan);
 }

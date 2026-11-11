@@ -68,6 +68,8 @@ using Client::World::TerrainPolygon;
 constexpr std::uint32_t Seed = 0x2468ace1u;
 // Los dos accesos de 0x508f00 a la celda lógica (4 rand() por cierre).
 constexpr int WallDraws = 8;
+// 0x4fbe10 con la celda del héroe igual a la guardada: abre y cierra la X y la Y, cuatro rand() cada cierre.
+constexpr int HeroCellReads = 2 * Client::Render::Models::SmallLogicalCloseRandoms;
 // 0x4fc450 con el héroe: el registro propio, que se cierra en 0 con los 3.848 de 0x40b4d0.
 constexpr int OwnRecordDraws = Client::Render::Models::OwnRecordCloseRandoms;
 // El rand() % 6 de 0x4fd7e4.
@@ -258,6 +260,18 @@ struct GameWorld
     std::uint16_t& Cell(std::uint8_t x, std::uint8_t y)
     {
         return world.Map().terrain.attributes->cells[Client::Data::Terrain::CellIndex(x, y)];
+    }
+
+    // En `map` (18 a 23), el héroe en (5; 6), la celda que 0x4fbe10 guardó hace 10 s, con el bit 8.
+    void StandOnTheReportedCell(std::int32_t map)
+    {
+        world.Runtime().map = map;
+        Hero().cellX = 5;
+        Hero().cellY = 6;
+        world.Runtime().reportedCellX = 5;
+        world.Runtime().reportedCellY = 6;
+        world.Runtime().reportedCellTime = -10000.0f;
+        Cell(5, 6) = 8;
     }
 
     // Con `polygon` en el global que deja el último 0x5fb570 (WorldRuntime::terrainPolygon).
@@ -907,8 +921,8 @@ TEST(CharacterStepTest, TheWeaponTrailDrawsFromFrameThree)
     }
 }
 
-// Lo que el cuerpo (0x4fd5f0) no tiene corta, en su orden y después de los rand() de antes: los mapas 18 a 23
-// (0x4fbe10), el 0xc5 (0x4fd603), el 0xf1 (0x4fb910), muriéndose (0x4fb9e0), +0x88 en 4 (0x4fcd0c), el nombre de
+// Lo que el cuerpo (0x4fd5f0) no tiene corta, en su orden y después de los rand() de antes: los mapas 18 a 23 con
+// el héroe 10 s en una celda con el bit 8 (0x4fbe10 manda C1 06 AF 01, CL9.5), el 0xc5 (0x4fd603), el 0xf1 (0x4fb910), muriéndose (0x4fb9e0), +0x88 en 4 (0x4fcd0c), el nombre de
 // 0x6c88b0 (0x4fcda2), otro modelo, Player.bmd sin cargar o una acción fuera de él (0x4f9580, 0x4f95c0) y la
 // partícula de las 0x4d, 0x4f y 0x5a (0x4fdb70).
 TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
@@ -922,8 +936,10 @@ TEST(CharacterStepTest, TheBodyStopsWhereMuRetHasNothing)
     };
     constexpr int AfterTheTimers = WallDraws + OwnRecordDraws;
     const std::array cases{
-        Case{"mapa 18", [](GameWorld& tested) { tested.world.Runtime().map = 18; }, "0x4fbe10", WallDraws},
-        Case{"mapa 23", [](GameWorld& tested) { tested.world.Runtime().map = 23; }, "0x4fbe10", WallDraws},
+        Case{"mapa 18", [](GameWorld& tested) { tested.StandOnTheReportedCell(18); }, "0x4fbee8",
+             WallDraws + HeroCellReads},
+        Case{"mapa 23", [](GameWorld& tested) { tested.StandOnTheReportedCell(23); }, "0x4fbee8",
+             WallDraws + HeroCellReads},
         Case{"el 0xc5", [](GameWorld& tested) { tested.Hero().type = 0xc5; }, "0x4fd603", WallDraws},
         Case{"el 0xf1", [](GameWorld& tested) { tested.Hero().type = 0xf1; }, "0x4fb910", AfterTheTimers},
         Case{"se muere", [](GameWorld& tested) { tested.Hero().dying = 1; }, "0x4fb9e0", OwnRecordDraws},
@@ -995,6 +1011,68 @@ TEST(CharacterStepTest, TheBordersOfTheBodyCutsGoOn)
     const auto atTheBorder = particle.Step(Everything);
     EXPECT_TRUE(atTheBorder.HasValue()) << atTheBorder.Error();
     EXPECT_EQ(particle.random.State(), RandomAfter(SeenHeroDraws + TrailDraws).State());
+}
+
+// 0x4fbe10 en los mapas 18 a 23, sin mandar nada: con otra celda guarda la del héroe y el reloj del mundo, y
+// abre y cierra la X dos veces y la Y una (12 rand()); con la misma y menos de 10 s, no toca nada y lee las dos (8);
+// con 10 s en una celda sin el bit 8, guarda el reloj. El resto del paso es el del mapa 17.
+TEST(CharacterStepTest, ChaosCastleKeepsTheHeroCellAndItsClock)
+{
+    GameWorld plain(17);
+    plain.Hero().cellX = 5;
+    plain.Hero().cellY = 6;
+    ASSERT_TRUE(plain.Step(Everything).HasValue());
+    const auto after = [&](int extra)
+    {
+        CrtRandom expected = plain.random;
+        for (int draw = 0; draw < extra; ++draw)
+            static_cast<void>(expected.Next());
+        return expected.State();
+    };
+    const auto step = [](GameWorld& tested, float clock)
+    {
+        return StepCharacters(CharacterStepContext{.world = tested.world,
+                                                   .random = tested.random,
+                                                   .scene = SceneId::Game,
+                                                   .playerSkeleton = tested.player,
+                                                   .worldClock = clock});
+    };
+    {
+        SCOPED_TRACE("otra celda");
+        GameWorld moved(18);
+        moved.Hero().cellX = 5;
+        moved.Hero().cellY = 6;
+        moved.world.Runtime().terrainPolygon = Everything;
+        const auto stepped = step(moved, 1234.0f);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(moved.world.Runtime().reportedCellX, 5);
+        EXPECT_EQ(moved.world.Runtime().reportedCellY, 6);
+        EXPECT_EQ(moved.world.Runtime().reportedCellTime, 1234.0f);
+        EXPECT_EQ(moved.random.State(), after(3 * Client::Render::Models::SmallLogicalCloseRandoms));
+    }
+    {
+        SCOPED_TRACE("la misma, 9,999 s después");
+        GameWorld waiting(18);
+        waiting.StandOnTheReportedCell(18);
+        waiting.world.Runtime().reportedCellTime = 0.0f;
+        waiting.world.Runtime().terrainPolygon = Everything;
+        const auto stepped = step(waiting, 9999.0f);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(waiting.world.Runtime().reportedCellTime, 0.0f);
+        EXPECT_EQ(waiting.random.State(), after(HeroCellReads));
+    }
+    {
+        SCOPED_TRACE("la misma, 10 s después y sin el bit 8");
+        GameWorld still(18);
+        still.StandOnTheReportedCell(18);
+        still.Cell(5, 6) = 0;
+        still.world.Runtime().reportedCellTime = 0.0f;
+        still.world.Runtime().terrainPolygon = Everything;
+        const auto stepped = step(still, 10000.0f);
+        ASSERT_TRUE(stepped.HasValue()) << stepped.Error();
+        EXPECT_EQ(still.world.Runtime().reportedCellTime, 10000.0f);
+        EXPECT_EQ(still.random.State(), after(HeroCellReads));
+    }
 }
 
 // 0x506acf..0x506b62: con +0x375 debajo de 6, un arma con luz en cualquiera de las dos manos pide el buffer

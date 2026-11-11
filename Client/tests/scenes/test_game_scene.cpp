@@ -1021,11 +1021,13 @@ TEST_F(GameSceneDrawTest, TheStepAfterADrawStepsTheSeenObjects)
     }
 }
 
-// 0x606560 en un mapa sin los casos de 0x604ab0 portados: con un objeto visto (el dibujo de esos mapas corta
-// antes, en 0x6374ce; acá se lo marca a mano), el paso corta antes de tocarlo y sin rand().
+// 0x606560 en un mapa sin los casos de 0x604ab0 portados: con un objeto visto (esos mapas cortan antes, en la
+// carga o en 0x6374ce; acá se carga el 18 y se cambia el mapa a mano), el paso corta antes de tocarlo y sin
+// rand().
 TEST_F(GameSceneDrawTest, TheStepStopsAtTheSeenObjectsOfTheOtherMaps)
 {
     ASSERT_NO_FATAL_FAILURE(Prepare(18, 128, 128));
+    world.Runtime().map = 34;
     ASSERT_FALSE(world.Map().objects.empty());
     world.Map().objects.front().seen = true;
     const Client::World::WorldObject before = world.Map().objects.front();
@@ -1121,16 +1123,21 @@ TEST_F(GameSceneDrawTest, ALiveGroundMarkStopsWhereMuRetDoesNotKnowItsTexture)
     world.Runtime().groundMarks = {};
 }
 
-// Los mapas 18 a 23 no tienen pase del pasto (0x6c9d58 en 0), pero no llegan a esa decisión: 0x5fa830
-// llama a 0x405e00 con cada celda del primer pase, y en esos mapas saca rand() (0x405e0c..0x405e18). Sin
-// LoadMap (que los corta en 0x447d70), con el terreno de World19 puesto a mano, el dibujo corta antes de
-// la primera celda (0x5fa83f), con los 4 + 8 rand() de siempre y sin un vértice.
-TEST_F(GameSceneDrawTest, AMapWithoutGrassStopsBeforeItsFirstCell)
+// Los mapas 18 a 23 no tienen pase del pasto (0x6c9d58 en 0), y 0x5fa830 llama a 0x405e00 con cada celda del
+// primer pase que no tiene el bit 0x08 (0x5facb6): un rand() por celda y, con el área en 0xff, nada más
+// (0x405e1e..0x405e2f). Con el terreno de World19 puesto a mano y todas las celdas ocultas salvo la del héroe, el
+// cuadro termina con los 4 + 8 rand() de siempre y uno de esa celda, que se dibuja.
+TEST_F(GameSceneDrawTest, ChaosCastleDrawsRandomForEachShownCellAndNoGrass)
 {
     constexpr std::uint8_t ChaosCastle = 18;
     auto terrain = Client::World::LoadWorldTerrain(m_dataRoot, ChaosCastle);
     ASSERT_TRUE(terrain.HasValue()) << terrain.Error();
     world.Map().terrain = std::move(terrain).Value();
+    for (std::uint16_t& cell : world.Map().terrain.attributes->cells)
+        cell = static_cast<std::uint16_t>(cell | Client::World::HiddenCellBit);
+    const auto heroCell = Client::Data::Terrain::CellIndex(128, 128);
+    world.Map().terrain.attributes->cells[heroCell] =
+        static_cast<std::uint16_t>(world.Map().terrain.attributes->cells[heroCell] & ~Client::World::HiddenCellBit);
     world.Runtime().map = ChaosCastle;
     Client::Scenes::ActorState& hero = world.Actors()[HeroSlot];
     hero.alive = true;
@@ -1148,13 +1155,11 @@ TEST_F(GameSceneDrawTest, AMapWithoutGrassStopsBeforeItsFirstCell)
     scene.PrepareFrame();
     scene.Render(target.BeginFrame({}), 0.0f);
 
-    ASSERT_TRUE(scene.Failure().has_value());
-    EXPECT_NE(scene.Failure()->find("0x5fa83f"), std::string::npos) << *scene.Failure();
+    ASSERT_FALSE(scene.Failure().has_value()) << *scene.Failure();
     const Client::Tests::FrameEvent* models = ModelsOf(target.frames[0]);
     ASSERT_NE(models, nullptr);
-    EXPECT_TRUE(models->modelVertices.empty());
-    EXPECT_TRUE(scene.MouseRay().has_value());
-    EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8).State());
+    EXPECT_FALSE(models->modelVertices.empty());
+    EXPECT_EQ(cloth.random.State(), RandomAfter(4 + 8 + 1).State());
     scene.Leave();
 }
 

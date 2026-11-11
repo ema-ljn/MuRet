@@ -142,6 +142,8 @@ struct GameObjectPass
     // 0x5f93c0(x, y): la altura del terreno, de la que el 0x1c y el 0x1d de 11 a 17 aplastan su sombra
     // (0x600d80).
     std::function<float(float, float)> terrainHeight{};
+    // DAT_006c634c, el área de Chaos Castle: 0xff hasta que un paquete la mueve (CL9.5).
+    std::uint8_t chaosCastleArea = 0xff;
 };
 
 // 0x6046a0 en el juego (0x6374ce), en los mapas 0 a 4, 6 a 8, 10, 31, 33 y Kalima (06 § Los objetos del juego):

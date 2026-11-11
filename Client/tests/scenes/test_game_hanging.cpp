@@ -410,9 +410,51 @@ TEST_F(GameHangingTest, AGameMasterReplacesALayerOfAnotherKind)
     EXPECT_EQ(m_actor.layer->animation.frame, 0.0f);
 }
 
+// 0x414470 y 0x5ffdf0 en Chaos Castle: sin +0x1a1 del héroe la capa se dibuja como en otro mapa; con él, cada frame
+// del original le baja 0,15f al alpha guardado (un dibujo intermedio no), lo dibuja con ese alpha y, cuando queda
+// por debajo de 0,01, ni la posa ni la dibuja.
+TEST_F(GameHangingTest, TheSignFadesInChaosCastleWithTheHerosFlag)
+{
+    const HangingModels models({MuSign});
+    m_actor.byte360 = 5;
+    m_actor.layer = Client::Scenes::GameMasterLayer{};
+    GameHangingPass pass = Pass(models);
+    pass.map = 20;
+
+    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    ASSERT_TRUE(m_actor.layer.has_value());
+    EXPECT_EQ(m_actor.layer->alpha, 1.0f);
+    EXPECT_EQ(m_batch.Vertices().size(), 6u);
+
+    pass.heroByte1a1 = 1;
+    pass.originalFrame = false;
+    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    EXPECT_EQ(m_actor.layer->alpha, 1.0f);
+    pass.originalFrame = true;
+    float expected = 1.0f;
+    for (int frame = 0; frame < 6; ++frame)
+    {
+        SCOPED_TRACE(frame);
+        const std::size_t before = m_batch.Vertices().size();
+        ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+        expected = static_cast<float>(static_cast<double>(expected) - static_cast<double>(0.15f));
+        EXPECT_EQ(m_actor.layer->alpha, expected);
+        EXPECT_GT(m_batch.Vertices().size(), before);
+    }
+    const std::size_t drawn = m_batch.Vertices().size();
+    m_carry.models.clear();
+    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    EXPECT_LT(m_actor.layer->alpha, 0.01f);
+    EXPECT_EQ(m_batch.Vertices().size(), drawn);
+    EXPECT_FALSE(m_carry.models.contains(MuSign));
+    const float faded = m_actor.layer->alpha;
+    ASSERT_TRUE(Client::Scenes::DrawGameHanging(m_actor, pass).HasValue());
+    EXPECT_EQ(m_actor.layer->alpha, faded);
+}
+
 // Lo que todavía corta, con su dirección y después de lo ya dibujado: el joint de 0x223 (0x50ec26), el
 // de 0x224 después de su Shiny02 (0x50ee26), la capa de un GM por el nombre sin MuSign (0x414470), el arma
-// del evento de Blood Castle (0x50de84), la capa en Chaos Castle (0x5ffe09), las capas del 6 al 13
+// del evento de Blood Castle (0x50de84), las capas del 6 al 13
 // (0x4140d5) y lo que no es un jugador (0x50e060).
 TEST_F(GameHangingTest, TheUnportedCasesStopWithTheirAddress)
 {
@@ -453,10 +495,6 @@ TEST_F(GameHangingTest, TheUnportedCasesStopWithTheirAddress)
         const auto result = Client::Scenes::DrawGameHanging(m_actor, pass);
         ASSERT_FALSE(result.HasValue());
         EXPECT_NE(result.Error().find("0x50de84"), std::string::npos) << result.Error();
-        pass.map = 20;
-        const auto chaos = Client::Scenes::DrawGameHanging(m_actor, pass);
-        ASSERT_FALSE(chaos.HasValue());
-        EXPECT_NE(chaos.Error().find("0x5ffe09"), std::string::npos) << chaos.Error();
         m_actor.layer.reset();
         m_actor.byte360 = 6;
         const auto other = Client::Scenes::DrawGameHanging(m_actor, Pass(models));

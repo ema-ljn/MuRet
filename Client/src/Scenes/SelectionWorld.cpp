@@ -225,7 +225,8 @@ Core::Expected<void, std::string> SelectionWorld::StepEffects(WorldState& world,
             return Core::Unexpected(stepped.Error() + ", en la selección (0x52d220)");
         }
     }
-    if (auto stepped = StepJoints(world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), worldClock);
+    if (auto stepped =
+            StepJoints(world.DrawTail().joints, cloth.random, &cloth, &world.Particles(), worldClock, &m_sprites);
         !stepped.HasValue())
     {
         return Core::Unexpected(stepped.Error() + ", en la selección (0x53c670)");

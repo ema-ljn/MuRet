@@ -7,6 +7,7 @@
 #include "Render/Models/ObjectState.h"
 #include "Render/Models/Skeleton.h"
 #include "World/AtlansObjectStep.h"
+#include "World/ChaosCastle.h"
 #include "World/DungeonObjectStep.h"
 #include "World/EventMapObjectStep.h"
 #include "World/IWorldObjectCreationServices.h"
@@ -765,9 +766,10 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
     constexpr std::uint8_t FirstBloodCastleMap = 11;
     constexpr std::uint8_t LastBloodCastleMap = 17;
     const bool bloodCastle = map >= FirstBloodCastleMap && map <= LastBloodCastleMap;
+    const bool chaosCastle = IsChaosCastleMap(map);
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
         map != ArenaMap && map != AtlansMap && map != TarkanMap && map != DevilSquareMap && map != IcarusMap &&
-        map != LoginMap && map != LandOfTrialsMap && !IsKalimaMap(map) && !aida && !bloodCastle)
+        map != LoginMap && map != LandOfTrialsMap && !IsKalimaMap(map) && !aida && !bloodCastle && !chaosCastle)
     {
         return Core::Unexpected(
             std::format("0x604ab0: el paso de los objetos del mapa {} no está leído", static_cast<int>(map)));
@@ -810,6 +812,9 @@ Core::Expected<void, std::string> StepWorldObjectChecked(WorldObject& object, st
         StepBloodCastleObject(object);
         return {};
     }
+    // 0x605a62: ningún eslabón de la cadena mira los mapas 18 a 23; queda la parte común.
+    if (chaosCastle)
+        return {};
     switch (map)
     {
     case LorenciaMap:

@@ -5,7 +5,9 @@
 #include "Scenes/ObjectFrameSprites.h"
 #include "Scenes/WorldObjectsDrawing.h"
 #include "World/BloodCastleParticleKernels.h"
+#include "World/IFishStepServices.h"
 #include "World/OriginalFtol.h"
+#include "World/ParticleOwner.h"
 #include "World/Particles.h"
 #include "World/PortableParticleTrigonometry.h"
 #include "World/Sprites.h"
@@ -61,6 +63,29 @@ constexpr std::array<std::size_t, 7> StatueBones{1, 2, 4, 6, 9, 10, 11};
 constexpr glm::vec3 StatueOffset{0.0f, 0.0f, 2.0f};
 constexpr float StatueSprite = 0.5f;
 constexpr std::size_t OrbBone = 3;
+
+// 0x4059d0: los tipos de Chaos Castle y las luces de sus nubes (0x3d4ccccd, 0x3dcccccd y 0x3e99999a).
+constexpr std::int16_t LastTrapObject = 3;
+constexpr std::int16_t FirstCloudObject = 6;
+constexpr std::int16_t LastManyCloudObject = 8;
+constexpr std::int16_t BrightCloudObject = 0xc;
+constexpr int ManyClouds = 10;
+constexpr int FewClouds = 5;
+constexpr int BrightClouds = 7;
+constexpr std::int32_t BrightCloudSubtype = 7;
+constexpr glm::vec3 CloudLight{std::bit_cast<float>(0x3d4ccccdu), std::bit_cast<float>(0x3d4ccccdu),
+                               std::bit_cast<float>(0x3dcccccdu)};
+constexpr glm::vec3 BrightCloudLight{std::bit_cast<float>(0x3e99999au)};
+constexpr std::uint8_t NoArea = 0xff;
+// 0x405cea..0x405d69: el hueso 1 (0x68b184c), la cuenta de +0x60, el joint y el sonido de la trampa.
+constexpr std::size_t TrapBone = 1;
+constexpr std::int32_t TrapStart = 10;
+constexpr std::int32_t TrapEnd = 5;
+constexpr int TrapScaleSpan = 10;
+constexpr double TrapScaleBase = 60.0;
+constexpr std::int32_t TrapJoint = 0x615;
+constexpr std::int32_t TrapJointSubtype = 2;
+constexpr std::int32_t TrapSound = 0x9c;
 
 Core::Expected<void, std::string> Emit(const GameObjectPass& pass, std::int32_t type, const glm::vec3& position,
                                        const glm::vec3& angles, const glm::vec3& light, std::int32_t subtype,
@@ -198,6 +223,81 @@ Core::Expected<void, std::string> TorchFrame(World::WorldObject& object, const G
         return spark;
     return Orbit(pass, position, angles);
 }
+// 0x405abb..0x405c5c: las nubes del 6 al 0xc, con el objeto de dueño, la primera vez.
+Core::Expected<void, std::string> ChaosCastleClouds(World::WorldObject& object, const GameObjectPass& pass)
+{
+    if (object.state.hiddenMesh != World::HiddenObject)
+    {
+        const std::int16_t type = object.type;
+        const bool bright = type == BrightCloudObject;
+        const int count = bright ? BrightClouds : (type <= LastManyCloudObject ? ManyClouds : FewClouds);
+        const std::int32_t subtype = bright ? BrightCloudSubtype : type - FirstCloudObject;
+        const glm::vec3 light = bright ? BrightCloudLight : CloudLight;
+        const World::ParticleOwner owner{World::ParticleOwnerKind::WorldObject, object.identity};
+        for (int cloud = 0; cloud < count; ++cloud)
+        {
+            if (pass.particles == nullptr || pass.random == nullptr)
+                return Core::Unexpected(
+                    std::format("0x405b02: falta el pool de partículas 0x743a198 para 0x622/{}", subtype));
+            const auto created = pass.particles->CreateOwnedChecked(
+                World::CloudParticle, object.transform.position, object.transform.angles, light, subtype,
+                object.transform.scale, pass.worldClock, *pass.random, pass.scene, owner);
+            if (!created.HasValue())
+                return Core::Unexpected(std::format("0x405b02: el alta de 0x622/{} falla con error {}", subtype,
+                                                    static_cast<unsigned>(created.Error())));
+        }
+    }
+    object.state.hiddenMesh = World::HiddenObject;
+    return {};
+}
+
+// 0x405cc5..0x405d82: el 0..3 con +0x8a y sin esconder toma el punto del hueso 1 de la pose global (0x4ec110 con
+// 0x68b184c y el desplazamiento en cero). Con +0x60 en 10 crea ahí el joint 0x615/2, de ese punto a ese punto, con
+// los ángulos del objeto y escala rand() % 10 + 60 (0x6b86cc), y pide el sonido 0x9c + (rand() & 1) con
+// 0x41ed10(id, 0, 0). Después, +0x60 por debajo de 5 apaga +0x8a y, si no, baja uno.
+Core::Expected<void, std::string> ChaosCastleTrap(World::WorldObject& object, const GameObjectPass& pass)
+{
+    const auto point = ObjectBonePoint(pass, TrapBone, glm::vec3(0.0f));
+    if (!point.HasValue())
+        return Core::Unexpected(point.Error());
+    if (object.field60 == TrapStart)
+    {
+        if (pass.random == nullptr)
+            return Core::Unexpected(std::string("0x405d17: la trampa de Chaos Castle saca rand(), y el pase no lo "
+                                                "tiene"));
+        const float scale = F32(static_cast<double>(pass.random->Next() % TrapScaleSpan) + TrapScaleBase);
+        if (!pass.createJoint)
+            return Core::Unexpected(std::string("0x405d49: falta quien cree el joint 0x615/2 de Chaos Castle"));
+        glm::vec3 bone = point.Value();
+        const World::FishEffectRequest request{.type = TrapJoint,
+                                               .firstPosition = bone,
+                                               .secondPosition = bone,
+                                               .angles = object.transform.angles,
+                                               .subtype = TrapJointSubtype,
+                                               .ownerContext = nullptr,
+                                               .scale = scale,
+                                               .key = -1,
+                                               .skill = 0,
+                                               .skillSerial = 0,
+                                               .target = -1};
+        if (auto created = pass.createJoint(request); !created.HasValue())
+            return created;
+        if (!pass.requestSound)
+            return Core::Unexpected(std::string("0x405d69: falta el sonido 0x9c de la trampa de Chaos Castle"));
+        pass.requestSound(TrapSound + (pass.random->Next() & 1));
+    }
+    if (object.field60 < TrapEnd)
+        object.field8a = 0;
+    else
+        --object.field60;
+    return {};
+}
+
+// 0x405c7f y 0x405d95: −1 lo vuelve a dibujar y −2 lo esconde.
+void ShowChaosCastleObject(World::WorldObject& object, bool shown)
+{
+    object.state.hiddenMesh = shown ? Render::Models::NoHiddenMesh : World::HiddenObject;
+}
 } // namespace
 
 Core::Expected<void, std::string> StepDevilSquareObjectFrame(const World::WorldObject& object,
@@ -232,5 +332,45 @@ Core::Expected<void, std::string> StepBloodCastleObjectFrame(World::WorldObject&
         return Core::Unexpected(std::string("0x604186: el 0x25 de los mapas 11 a 17 saca rand(), y el pase no lo "
                                             "tiene"));
     return TorchFrame(object, pass);
+}
+
+Core::Expected<void, std::string> StepChaosCastleObjectFrame(World::WorldObject& object, const GameObjectPass& pass)
+{
+    const std::int16_t type = object.type;
+    const std::uint8_t area = pass.chaosCastleArea;
+    // +0x8a lo prende 0x4055b0 en el paso (la trampa armada o la cuenta del elegido); cae después al área.
+    if (type >= 0 && type <= LastTrapObject && object.field8a != 0 && object.state.hiddenMesh != World::HiddenObject)
+        if (auto trap = ChaosCastleTrap(object, pass); !trap.HasValue())
+            return trap;
+    constexpr std::uint8_t OpenAreas = 2;
+    if ((type >= 0 && type <= 5) || (type >= 0xd && type <= 0x11))
+    {
+        if (area >= OpenAreas && area != NoArea)
+            ShowChaosCastleObject(object, false);
+        return {};
+    }
+    if (type >= FirstCloudObject && type <= BrightCloudObject)
+        return ChaosCastleClouds(object, pass);
+    if (type >= 0x12 && type <= 0x15)
+    {
+        ShowChaosCastleObject(object, area == 7 || area == 8);
+        return {};
+    }
+    if (type >= 0x18 && type <= 0x1d)
+    {
+        if (area == 4 || area == 5)
+            ShowChaosCastleObject(object, true);
+        else if (area >= 8)
+            ShowChaosCastleObject(object, false);
+        return {};
+    }
+    if (type >= 0x1e && type <= 0x23)
+    {
+        if (area == 1 || area == 2)
+            ShowChaosCastleObject(object, true);
+        else if (area >= 5)
+            ShowChaosCastleObject(object, false);
+    }
+    return {};
 }
 } // namespace Client::Scenes

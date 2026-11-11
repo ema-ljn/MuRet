@@ -35,6 +35,7 @@ void GameScene::PrepareDrawProjection(int frames)
     m_projection->heroXDepth = hero.cellXAccesses;
     m_projection->heroYDepth = hero.cellYAccesses;
     m_projection->ownRecordDepth = world.Runtime().ownRecordDepth;
+    m_projection->cameraShake = CameraInputState().shake;
 }
 GameDrawTailState& GameScene::FrameTail()
 {

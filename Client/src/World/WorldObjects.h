@@ -48,7 +48,9 @@ struct WorldObject
     std::uint8_t field08 = 0;                      // +0x8, byte escrito por creación del mapa 30
     float field84 = 0.0f;                          // +0x84, store FP del mapa 30/tipo 41
     std::uint8_t field91 = 0;                      // +0x91, byte escrito por creación del mapa 30
-    std::int16_t field8a = 0;                      // +0x8a, 4 cuando 0x5ff960 abre el 9 o el 10 de 11..17
+    // +0x8a: 4 cuando 0x5ff960 abre el 9 o el 10 de 11..17; 1 en el 3 de 18..23 que 0x4055b0 elige.
+    std::int16_t field8a = 0;
+    std::int32_t field60 = 0; // +0x60, la cuenta del 3 de 18..23 (0x4055b0 la pone en 10, 0x4059d0 la baja)
     glm::vec3 light{};                             // +0xf4..+0xfc, la que se suma a la del terreno
     float speed = 0.0f;                            // +0xd8, keys por paso
     float cullingMargin = -30.0f;                  // +0xdc, margen inicial de 0x6067ae

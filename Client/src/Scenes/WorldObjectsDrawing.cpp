@@ -1,4 +1,6 @@
 #include "Scenes/WorldObjectsDrawing.h"
+
+#include "Scenes/ActorState.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/AidaObjectServices.h"
 #include "Scenes/EventMapObjectFrame.h"
@@ -27,6 +29,7 @@
 #include "Scenes/ModelPoseCallbacks.h"
 #include "Scenes/ParticleDrawServices.h"
 #include "World/Leaves.h"
+#include "World/ChaosCastle.h"
 #include "World/KalimaWorld.h"
 #include "World/ModelEffects.h"
 #include "World/GroundEffectDrawing.h"
@@ -414,7 +417,7 @@ void DrawLostTowerChrome(Render::ModelBatch& batch, const IModelLibrary& models,
 
 // 0x602ed0 después del rand() común (0x602ef4): los casos por tipo de los mapas 0 (0x602ffb), 2
 // (0x6031e5), 4 (0x603799), 8 (0x603a3e), 9 (0x603dd7) y 11 a 17 (0x604152); el 1 va a la cadena de 0x6044ed,
-// que no tiene nada para él. El 0x69 crea las
+// que no tiene nada para él, y los Chaos Castle (18 a 23) a su primer eslabón, 0x4059d0. El 0x69 crea las
 // gotas con el pool compartido. `posed`: si 0x602e90 llamó a 0x6002e0, cuyo marco queda en la pila que leen
 // los sprites del 0x38 del 0 y del 9 del 4, y si 0x5ffdf0 dejó el +0xa8 del modelo del 0x67 del 2.
 Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const GameObjectPass& pass,
@@ -442,6 +445,8 @@ Core::Expected<void, std::string> FrameCaseOf(World::WorldObject& object, const 
         return StepDevilSquareObjectFrame(object, pass);
     if (map >= FirstBloodCastleMap && map <= LastBloodCastleMap)
         return StepBloodCastleObjectFrame(object, pass);
+    if (World::IsChaosCastleMap(map))
+        return StepChaosCastleObjectFrame(object, pass);
     if (map == LorenciaMap && object.type == 0x38)
         return StepMerchantAnimalFrame(object, commonRandom, pass, posed);
     if (map == LorenciaMap && object.type == World::Waterspout)
@@ -471,7 +476,8 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
     const bool bloodCastle = pass.map >= FirstBloodCastleMap && pass.map <= LastBloodCastleMap;
     if (pass.map > LostTowerMap && pass.map != ArenaMap && pass.map != AtlansMap && pass.map != TarkanMap &&
         pass.map != DevilSquareMap && pass.map != IcarusMap && pass.map != LandOfTrialsMap && pass.map != AidaMap &&
-        pass.map != SelectionWorldMap && !World::IsKalimaMap(pass.map) && !bloodCastle)
+        pass.map != SelectionWorldMap && !World::IsKalimaMap(pass.map) && !bloodCastle &&
+        !World::IsChaosCastleMap(pass.map))
     {
         return Core::Unexpected(std::format("0x6046a0: los casos por tipo del mapa {} (0x6002e0 y 0x602ed0) no están "
                                             "leídos",
@@ -498,6 +504,10 @@ Core::Expected<void, std::string> DrawGameWorldObjects(Render::ModelBatch& batch
         {
             continue;
         }
+        // 0x5ffdff..0x5ffe24: en los mapas 18 a 23, con +0x1a1 del héroe (solo lo escriben los paquetes), el alpha
+        // del objeto baja 0,15f y queda guardado, una vez por frame del original.
+        if (pass.originalFrame && pass.hero != nullptr)
+            object.alpha = World::ChaosCastlePoseAlpha(pass.map, pass.hero->byte1a1, object.alpha);
         // 0x602e90: 0x5ffdf0 y, si lo posó, 0x6002e0 (en el 0, el 0x69 con sus cuatro 0x4ecc30).
         World::ObjectDraw draw = ObjectDrawAt(object, lighting, pass.map);
         const auto poseObject = Drawn(object, draw, models.SkeletonOf(static_cast<std::uint16_t>(object.type)), 0);

@@ -8,8 +8,9 @@ namespace Client::World
 {
 struct WorldObject;
 }
-// 0x602ed0 con Devil Square (el mapa 9, 0x603dd7) y con los Blood Castle (11 a 17, 0x604152), después del rand()
-// común de 0x602ef4. Contrato: 06 § Los objetos de Devil Square y de Blood Castle.
+// 0x602ed0 con Devil Square (el mapa 9, 0x603dd7) y con los Blood Castle (11 a 17, 0x604152), y la cadena de
+// 0x6044ed con los Chaos Castle (18 a 23, 0x4059d0), después del rand() común de 0x602ef4. Contrato: 06 § Los
+// objetos de Devil Square y de Blood Castle, y § Los objetos de Chaos Castle.
 namespace Client::Scenes
 {
 struct GameObjectPass;
@@ -31,5 +32,23 @@ struct GameObjectPass;
 // Los demás tipos, nada. Un seno o un ftol fuera del perfil acreditado, la pose, los sprites o el pool ausentes
 // y un alta que MuRet no tiene cortan con su dirección, después de lo ya hecho.
 [[nodiscard]] Core::Expected<void, std::string> StepBloodCastleObjectFrame(World::WorldObject& object,
+                                                                           const GameObjectPass& pass);
+
+// 0x4059d0, con el área de 0x6c634c (`pass.chaosCastleArea`, un byte sin signo):
+// - del 0 al 3: con +0x8a distinto de 0 (lo prende 0x4055b0) y +0x58 distinto de −2, el punto del hueso 1 de la
+//   pose global; con +0x60 en 10, ahí el joint 0x615/2 (escala rand() % 10 + 60, los ángulos del objeto) y el
+//   sonido 0x9c + (rand() & 1); +0x60 por debajo de 5 apaga +0x8a y, si no, baja uno. Después, como el 4;
+// - el 4, el 5 y del 0xd al 0x11: con el área menor que 2 o en 0xff, nada; si no, +0x58 = −2;
+// - del 6 al 0xc: la primera vez (+0x58 distinto de −2), nubes 622 con la posición, los ángulos y la escala del
+//   objeto y el objeto de dueño: diez de los subtipos 0, 1 y 2 (el 6, el 7 y el 8), cinco del 3, el 4 y el 5 (el
+//   9, el 0xa y el 0xb), todas con la luz (0,05f; 0,05f; 0,1f), y siete del 7 (el 0xc) con la luz 0,3f. Después,
+//   +0x58 = −2;
+// - del 0x12 al 0x15: con el área en 7 o en 8, +0x58 = −1; si no, −2;
+// - del 0x18 al 0x1d: con el área en 4 o en 5, −1; con otra menor que 8, nada; si no, −2;
+// - del 0x1e al 0x23: con el área en 1 o en 2, −1; con otra menor que 5, nada; si no, −2;
+// - el 0x16, el 0x17 y los demás, nada.
+// Sin pool, sin pose, sin quien cree el joint o sin sonido, o con un alta que MuRet no tiene, corta con su
+// dirección, después de lo que ya hizo.
+[[nodiscard]] Core::Expected<void, std::string> StepChaosCastleObjectFrame(World::WorldObject& object,
                                                                            const GameObjectPass& pass);
 } // namespace Client::Scenes

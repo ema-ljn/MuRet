@@ -57,6 +57,7 @@
 #include "World/SphereFrustum.h"
 #include "World/TerrainCells.h"
 #include "World/TerrainCulling.h"
+#include "World/ChaosCastle.h"
 #include "World/EventMapObjectStep.h"
 #include "World/TerrainHeight.h"
 #include "World/TarkanObjectStep.h"
@@ -98,9 +99,6 @@ constexpr std::int32_t WithoutTerrainMap = 10;
 // 0x5f8928..0x5f8947: 0x6c9d58, el pase del pasto, queda en 0 en los mapas 18 a 23 y en el 30.
 constexpr std::int32_t FirstWithoutGrassMap = 18;
 constexpr std::int32_t LastWithoutGrassMap = 23;
-// 0x405e0c..0x405e18: 0x405e00, que 0x5fa830 llama con cada celda, saca rand() en los mapas 18 a 23.
-constexpr std::int32_t FirstChaosCastleMap = 18;
-constexpr std::int32_t LastChaosCastleMap = 23;
 // 0x63741d: en el mapa 30 el dibujo pone su luz (0x42b0a0).
 constexpr std::int32_t CastleMap = 30;
 // 0x633f20: mapa conservado durante la espera de entrada.
@@ -326,6 +324,31 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
         world.Runtime().objectSelectionCount = 0;
         // 6063d0: no esIcarus;4055b0 y42c500 retornanAL0 paraKalima, sin usar selector.
     }
+    // 0x405490, primero en 0x6061c0: los Chaos Castle, también antes del early-return y del 0x60657a, con la cuenta
+    // del pase anterior. El selector queda para 0x4055b0.
+    const bool chaosCastle = World::IsChaosCastleMap(map);
+    std::int32_t chaosCastleSelector = 0;
+    if (chaosCastle)
+    {
+        const ActorState& hero = world.Actors()[world.Runtime().hero];
+        const World::ChaosCastlePreludeContext prelude{
+            .random = &m_context.cloth->random,
+            .heroPosition = hero.position,
+            .heroAngles = hero.angles,
+            .heroInSafeZone = hero.safeZone != 0,
+            .createJoint = [&world, this](const World::FishEffectRequest& request) -> Core::Expected<void, std::string>
+            {
+                const auto created = CreateFaunaJoint(world.DrawTail().joints, request, m_context.cloth->random);
+                if (!created.HasValue())
+                    return Core::Unexpected(created.Error());
+                return {};
+            }};
+        const auto selector = World::StepChaosCastlePrelude(world.Runtime().objectSelectionCount, prelude);
+        if (!selector.HasValue())
+            return Core::Unexpected(selector.Error() + ", en el " + MapText(map));
+        chaosCastleSelector = selector.Value();
+        world.Runtime().objectSelectionCount = 0;
+    }
     // 0x6061c0 en Icarus, antes del early-return y del 0x60657a, con la cuenta del pase anterior.
     std::optional<IcarusObjectServices> icarus;
     std::int32_t icarusSelector = 0;
@@ -375,7 +398,7 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     const bool aida = map == AidaMap || map == SelectionMap;
     if (map != LorenciaMap && map != DungeonMap && map != DeviasMap && map != NoriaMap && map != LostTowerMap &&
         map != ArenaMap && map != AtlansMap && map != TarkanMap && map != DevilSquareMap && map != IcarusMap &&
-        map != LandOfTrialsMap && !World::IsKalimaMap(map) && !aida && !bloodCastle)
+        map != LandOfTrialsMap && !World::IsKalimaMap(map) && !aida && !bloodCastle && !chaosCastle)
     {
         return Core::Unexpected("0x606560: los objetos vistos del " + MapText(map) + " (0x604ab0) no están portados");
     }
@@ -413,6 +436,13 @@ Core::Expected<void, std::string> GameScene::StepTheObjects()
     if (icarus)
         after = [&](World::WorldObject& object)
         { return StepIcarusSeenObject(object, icarusSelector, world.Runtime().objectSelectionCount, *icarus); };
+    if (chaosCastle)
+        after = [&](World::WorldObject& object) -> Core::Expected<void, std::string>
+        {
+            World::StepChaosCastleSeenObject(object, chaosCastleSelector, world.Runtime().objectSelectionCount,
+                                             world.Runtime().chaosCastleTrapArmed);
+            return {};
+        };
     if (auto stepped = StepGameWorldObjects(objects, static_cast<std::uint8_t>(map), m_worldModels,
                                             m_context.cloth->random, globals, after);
         !stepped.HasValue())
@@ -669,14 +699,6 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
     // en esos mapas): es falso. El mapa 10 no dibuja el terreno.
     if (FrameKalima() == nullptr && map != WithoutTerrainMap)
     {
-        // 0x5fa83f: 0x5fa830 llama a 0x405e00(x, y) con cada celda que dibuja, en los dos pases, y en los
-        // mapas 18 a 23 saca rand() (y, con rand() % 8 en 0 y la celda en uno de sus rectángulos, más rand()
-        // y un efecto de 0x53fe70, Q-C229). MuRet no lo tiene.
-        if (map >= FirstChaosCastleMap && map <= LastChaosCastleMap)
-        {
-            return Core::Unexpected("0x5fa83f: en el " + MapText(map) +
-                                    " 0x405e00 saca rand() con cada celda del terreno, y no está portado");
-        }
         const World::WorldTerrain& terrain = m_context.world->Map().terrain;
         World::TerrainView view;
         view.mapping = terrain.mapping.get();
@@ -691,7 +713,32 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         // 0x5fc26b..0x5fc2c0: el corrimiento del agua con el reloj del frame; 0x5fc2de: 0x5fc190(0) con
         // 0x7d0d31c en 0, las celdas del rango que pasan el trapecio.
         m_water.offset = World::WaterOffsetAt(canvas.frameClock, view.map);
-        World::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water);
+        // 0x5fa83f: 0x5fa830 llama a 0x405e00(x, y) con cada celda que dibuja, y en los mapas 18 a 23 saca rand()
+        // (y, con rand() % 8 en 0, el área en 0, 3 o 6 y la celda en uno de sus rectángulos, la piedra y el
+        // temblor, Q-C229). Las demás no lo llaman en MuRet: no saca nada.
+        if (World::IsChaosCastleMap(map))
+        {
+            const float frameClock = static_cast<float>(
+                std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count());
+            const World::ChaosCastleCellContext cellContext{
+                .area = m_context.world->Runtime().chaosCastleArea,
+                .heroZ = m_context.world->Actors()[m_context.world->Runtime().hero].position.z,
+                .random = &FrameCloth().random,
+                .particles = &FrameParticles(),
+                .worldClock = std::cref(frameClock),
+                .cameraShake = m_projectingFrame ? &m_projection->cameraShake : &CameraInputState().shake};
+            if (auto drawn = World::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water,
+                                                [&cellContext](std::uint8_t x, std::uint8_t y)
+                                                { return World::StepChaosCastleCell(x, y, cellContext); });
+                !drawn.HasValue())
+            {
+                return Core::Unexpected(drawn.Error() + ", en el " + MapText(map));
+            }
+        }
+        else
+        {
+            World::DrawTerrain(canvas.models, view, m_terrainRange, polygon, m_water);
+        }
         // 0x5fc32b..0x5fc353: con la mezcla de 0x620a00(1), 0x6c9d58 y fuera del mapa 7, el pase del pasto (0x5fc190
         // con 0x7d0d31c en 2) en las mismas celdas. No saca rand(): 0x405e00 solo lo hace en los mapas 18 a 23, que no
         // tienen este pase.
@@ -724,17 +771,17 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
         afterMarks.depthTest = true;
         canvas.models.SetState(afterMarks);
     }
-    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 6 a 17, 31,
+    // 0x6374ce: 0x6046a0, los objetos del .obj por sector. MuRet tiene los casos de los mapas 0 a 4, 6 a 23, 31,
     // 33 y Kalima.
     const bool knownObjects = (map >= LorenciaMap && map <= LostTowerMap) ||
-                              (map >= ArenaMap && map <= LastBloodCastleMap) || map == LandOfTrialsMap ||
+                              (map >= ArenaMap && map <= World::LastChaosCastleMap) || map == LandOfTrialsMap ||
                               map == AidaMap || World::IsKalimaMap(map);
     if (!knownObjects &&
         std::ranges::any_of(FrameObjects(), [](const World::WorldObject& object) { return object.alive; }))
     {
         return Core::Unexpected("0x6374ce: los objetos del " + MapText(map) +
                                 " (0x6046a0 → 0x602e90, 0x602ed0) no están portados: MuRet tiene los del 0 al 4, "
-                                "los del 6 al 17, los del 31, los del 33 y los de Kalima");
+                                "los del 6 al 23, los del 31, los del 33 y los de Kalima");
     }
     if (auto loaded = LoadTheObjectModels(map); !loaded.HasValue())
     {
@@ -784,12 +831,14 @@ Core::Expected<void, std::string> GameScene::DrawTheWorldPass(SceneCanvas& canva
                              std::chrono::duration_cast<std::chrono::milliseconds>(canvas.frameClock).count())]()
                     { return systemTime; },
                     .scene = static_cast<std::int32_t>(SceneId::Game),
-                    .terrainHeight = [&](float x, float y)
+                    .terrainHeight =
+                        [&](float x, float y)
                     {
                         const World::WorldTerrain& terrain = world.Map().terrain;
                         return static_cast<float>(World::TerrainHeightAt(*terrain.heights, *terrain.attributes, x, y,
                                                                          CameraState().fixedHeight));
-                    }});
+                    },
+                    .chaosCastleArea = world.Runtime().chaosCastleArea});
             !objects.HasValue())
         {
             return Core::Unexpected(objects.Error() + ", en el " + MapText(map));

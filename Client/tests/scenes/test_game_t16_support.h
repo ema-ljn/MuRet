@@ -141,7 +141,7 @@ protected:
         Receive(Bytes({0xc1, 8, 0x1c, gate, map, x, y, 1}));
     }
 
-    void Regen(std::uint8_t map)
+    void Regen(std::uint8_t map, std::uint8_t x = HomeX, std::uint8_t y = HomeY)
     {
         constexpr std::size_t RegenSize = 24;
         std::vector<std::byte> reply(RegenSize);
@@ -149,8 +149,8 @@ protected:
         reply[1] = std::byte{RegenSize};
         reply[2] = std::byte{0xf3};
         reply[3] = std::byte{4};
-        reply[4] = std::byte{HomeX};
-        reply[5] = std::byte{HomeY};
+        reply[4] = std::byte{x};
+        reply[5] = std::byte{y};
         reply[6] = std::byte{map};
         reply[8] = std::byte{70};
         reply[10] = std::byte{80};

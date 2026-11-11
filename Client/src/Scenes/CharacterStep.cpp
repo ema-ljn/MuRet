@@ -498,6 +498,56 @@ Core::Expected<void, std::string> StepTheWeaponTrail(const ActorState& actor, st
     return {};
 }
 
+// Una lectura de la celda protegida del héroe: abre la entrada (0x40b570) y la cierra (0x40b800, o en línea
+// con 0x40b240, 0x40b2f0 y 0x412890), con los cuatro rand() del último cierre.
+std::int32_t ReadHeroCell(std::uint8_t value, std::uint8_t& depth, Render::Models::CrtRandom& random)
+{
+    const Render::Models::LogicalAccess access(depth, random, Render::Models::SmallLogicalCloseRandoms);
+    return value;
+}
+
+// 0x4fbe10, por cada personaje que da un paso: compara la celda lógica del héroe (+0x41c y +0x420) con la
+// guardada (0x743a180 y 0x743a184, .bss 0). Si es la misma y pasaron 10 s (el reloj del mundo menos 0x743a188,
+// por 0,001f, en la x87) en una celda con el bit 8 del atributo, manda C1 06 AF 01 x y (CL9.5). Con la misma
+// celda guarda el reloj solo si pasó ese tiempo; con otra, guarda la celda y el reloj. Cada comparación abre y
+// cierra su entrada.
+Core::Expected<void, std::string> ReportTheHeroCell(const CharacterStepContext& context)
+{
+    WorldRuntime& runtime = context.world.Runtime();
+    ActorState& hero = context.world.Actors()[runtime.hero];
+    Render::Models::CrtRandom& random = context.random;
+    if (ReadHeroCell(hero.cellX, hero.cellXAccesses, random) == runtime.reportedCellX &&
+        ReadHeroCell(hero.cellY, hero.cellYAccesses, random) == runtime.reportedCellY)
+    {
+        // 0x4fbea8..0x4fbec5: fld, fsub, fmul y fcomp con 10; menor (o sin orden), nada.
+        constexpr double Thousandth = static_cast<double>(std::bit_cast<float>(0x3a83126fu));
+        constexpr double ReportDelay = 10.0;
+        const double waited =
+            (static_cast<double>(context.worldClock) - static_cast<double>(runtime.reportedCellTime)) * Thousandth;
+        if (!(waited >= ReportDelay))
+            return {};
+        const World::WorldTerrain& terrain =
+            context.terrain != nullptr ? *context.terrain : context.world.Map().terrain;
+        if (terrain.attributes == nullptr)
+            return Core::Unexpected(std::string("0x4fbed9: falta el .att del mapa (0x7d0d348)"));
+        constexpr std::uint16_t ReportedCellBit = 8;
+        const auto cell = Data::Terrain::CellIndex(static_cast<std::uint8_t>(runtime.reportedCellX),
+                                                   static_cast<std::uint8_t>(runtime.reportedCellY));
+        if ((terrain.attributes->cells[cell] & ReportedCellBit) == ReportedCellBit)
+        {
+            return Core::Unexpected(std::format("0x4fbee8: el héroe lleva 10 s en la celda ({}; {}) con el bit 8 y "
+                                                "0x4fbe10 manda C1 06 AF 01 (CL9.5)",
+                                                runtime.reportedCellX, runtime.reportedCellY));
+        }
+        runtime.reportedCellTime = context.worldClock;
+        return {};
+    }
+    runtime.reportedCellX = ReadHeroCell(hero.cellX, hero.cellXAccesses, random);
+    runtime.reportedCellY = ReadHeroCell(hero.cellY, hero.cellYAccesses, random);
+    runtime.reportedCellTime = context.worldClock;
+    return {};
+}
+
 // 0x4fd5f0(c, c) desde 0x508edf, por el camino del 0x20a quieto (06, "El cuerpo de los personajes
 // (0x4fd5f0)"). `hero` es c == [0x743a170].
 Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slot, bool hero,
@@ -513,12 +563,11 @@ Core::Expected<void, std::string> StepTheBody(ActorState& actor, std::size_t slo
     }
     // 0x4fd69b..0x4fd6ef: la posición, la escala y la acción al modelo compartido (+0x6c, +0x68 y +0xa0), que
     // MuRet no tiene: 0x4f9580 y 0x4ec200 leen la acción del personaje.
-    // 0x4fd6f5: 0x4fbe10 compara la celda lógica del héroe con la anterior (0x743a180..0x743a188) y manda un
-    // paquete con send (0x6b8588); con error cierra el socket (0x4e8380).
+    // 0x4fd6f5: 0x4fbe10, la celda del héroe en los mapas 18 a 23.
     if (runtime.map >= FirstCellReportMap && runtime.map <= LastCellReportMap)
     {
-        return Core::Unexpected("0x4fbe10: en el " + MapText(runtime.map) +
-                                " el paso de cada personaje compara la celda del héroe y la manda, sin portar");
+        if (auto reported = ReportTheHeroCell(context); !reported.HasValue())
+            return reported;
     }
     // 0x4fd6fe: 0x4fc450.
     if (hero)

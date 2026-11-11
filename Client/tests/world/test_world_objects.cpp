@@ -627,14 +627,14 @@ TEST(WorldObjectsTest, AFadedOutObjectSkipsItsCaseButNotItsRoof)
 }
 
 // El paso del juego conoce los mapas portados y el 55 (con lo mismo que StepWorldObject); en otro, como el
-// 18 de Chaos Castle, corta antes de tocar el objeto.
+// 34 de Crywolf, corta antes de tocar el objeto.
 TEST(WorldObjectsTest, TheCheckedStepKnowsTheReferenceMapsAndTheLogin)
 {
     WorldObject other = Created(1, 100.0f, 100.0f, 3).front();
     other.alpha = 0.5f;
     Client::Render::Models::CrtRandom random(7);
     const auto stepped =
-        Client::World::StepWorldObjectChecked(other, 18, nullptr, random, Client::World::ObjectStepGlobals{});
+        Client::World::StepWorldObjectChecked(other, 34, nullptr, random, Client::World::ObjectStepGlobals{});
     ASSERT_FALSE(stepped.HasValue());
     EXPECT_NE(stepped.Error().find("0x604ab0"), std::string::npos) << stepped.Error();
     EXPECT_EQ(other.alpha, 0.5f);

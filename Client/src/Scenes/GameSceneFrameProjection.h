@@ -30,5 +30,7 @@ struct GameSceneFrameProjection
     std::uint8_t heroXDepth = 0;
     std::uint8_t heroYDepth = 0;
     std::uint8_t ownRecordDepth = 0;
+    // 0x7d325c8: el temblor de la cámara que 0x405e00 escribe en el dibujo.
+    float cameraShake = 0.0f;
 };
 } // namespace Client::Scenes

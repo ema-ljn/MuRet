@@ -17,6 +17,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/FaunaDrawing.h"
 #include "Scenes/GameItemSpecialDrawing.h"
+#include "World/ChaosCastle.h"
 #include "World/ScepterGlow.h"
 #include "World/Sprites.h"
 
@@ -24,6 +25,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -68,9 +70,8 @@ constexpr float LateSwingFrame = 4.0f;
 // 0x50de63: Blood Castle, donde +0x360 del 1 al 3 cuelga el arma del evento.
 constexpr std::int32_t FirstBloodCastle = 11;
 constexpr std::int32_t LastBloodCastle = 17;
-// 0x5ffdf0 (0x5ffe09): en Chaos Castle lee +0x1a1 del héroe para bajar el alpha del objeto.
-constexpr std::int32_t FirstChaosCastle = 18;
-constexpr std::int32_t LastChaosCastle = 23;
+// 0x6b88d4 (0,01f): el alpha más bajo que 0x414470 y 0x5ffdf0 dibujan.
+constexpr float DrawnLayerAlpha = std::bit_cast<float>(0x3c23d70au);
 // 0x413fe0: los GM llevan la capa 5; 0x41407c crea las del 5 al 13.
 constexpr std::uint8_t GameMasterLayerKind = 5;
 constexpr std::uint8_t LastLayerKind = 13;
@@ -959,13 +960,13 @@ Result StepTheLayer(ActorState& actor)
 }
 
 // 0x414470, el dibujo de la capa 5: MuSign en el hueso 20 del dueño, con 0x4ec200 a 0,5 y 0x602e90(objeto, 1,
-// 0, 0). El alpha del objeto (+0x178) es el 1 de 0x414370 y nada lo baja, así que no corta en 0x414496.
+// 0, 0). Con el alpha de la capa (+0x178) por debajo de 0,01 (o sin orden) no hace nada (0x414496); 0x414370 lo
+// deja en 1 y solo 0x5ffdf0 lo baja, en Chaos Castle con +0x1a1 del héroe.
 Result DrawMuSign(const Frame& frame, GameMasterLayer& layer)
 {
     const GameHangingPass& pass = frame.pass;
-    if (pass.map >= FirstChaosCastle && pass.map <= LastChaosCastle)
-        return Core::Unexpected(
-            std::string("0x5ffe09: el alpha de la capa de los GM en Chaos Castle (+0x1a1 del héroe) no está portado"));
+    if (!(layer.alpha >= DrawnLayerAlpha))
+        return {};
     if (pass.carry == nullptr)
         return Core::Unexpected(std::string("0x5ffdf0: falta el buffer global de la pose (0x68b181c)"));
     if (MuSignBone >= pass.body.size())
@@ -989,8 +990,14 @@ Result DrawMuSign(const Frame& frame, GameMasterLayer& layer)
     // y el +0x78 que 0x6002e0 compara con 0x80 quedan sin inicializar (Q-C302): acá, en 0 y distinto de 0x80.
     object.state = {};
     object.color = glm::vec3(1.0f);
-    object.alpha = 1.0f;
     object.vertexLight = true;
+    // 0x5ffdff..0x5ffe3b: en los mapas 18 a 23, con +0x1a1 del héroe, el alpha baja 0,15f y queda guardado (una vez
+    // por frame del original); por debajo de 0,01, 0x5ffdf0 sale sin posar y 0x602e90 no llama a 0x6002e0.
+    if (pass.originalFrame)
+        layer.alpha = World::ChaosCastlePoseAlpha(pass.map, pass.heroByte1a1, layer.alpha);
+    if (!(layer.alpha >= DrawnLayerAlpha))
+        return {};
+    object.alpha = layer.alpha;
     // 0x5ffdf0 con el segundo argumento en 1: la pose en el buffer global, sin llevar los huesos al mundo.
     FaunaDrawCarry& carry = *pass.carry;
     if (auto posed = PublishFaunaPose(carry, pass.models, object, false); !posed.HasValue())

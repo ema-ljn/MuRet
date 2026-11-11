@@ -3764,6 +3764,11 @@ buffer global `0x68b181c`, junto con las colas no escritas de vértices/normales
 presta el scratch antes de PoseSkeleton/PoseAttached; onPose publica las matrices ya calculadas,
 incluida la cabeza y la raíz attached. Los cuerpos especializados consumen los meshes publicados,
 sin volver a posar. Los objetos de malla oculta −2 también publican si pasaron el gate de pose.
+El cuerpo de los personajes no pasa por el global: `0x511290` le pone `+0x11c` en 1 (`0x511bf7`) a
+cada uno que arma, también al del login (`0x6349a0`), a los de la lista (`0x4c20a0`, `0x4c2290`) y
+a la vista previa de crear (`0x63e409`), y `0x5ffdf0`/`0x6001b0` lo posan en `+0x120`
+(`0x5fff13`, `0x600259`); al global sólo va lo que cuelga. En MuRet es `ActorState::bodyPose`
+(Q-C410).
 
 Las aves dibujan con el flag de pose 1 y los peces con 0 (`0x446b60/0x446f00`). El recorrido
 suma/resta yaw90 aritméticamente incluso en muertos (aves `0x10f`, excepción), publica seen por

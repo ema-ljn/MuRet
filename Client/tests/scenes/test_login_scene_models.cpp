@@ -4,6 +4,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
+#include "Data/Models/PlayerModels.h"
 #include "Data/Terrain/TerrainHeights.h"
 #include "Input/InputState.h"
 #include "Render/ModelBatch.h"
@@ -16,6 +17,7 @@
 #include "Scenes/CharacterDrawing.h"
 #include "Scenes/DarkHorse.h"
 #include "Scenes/GameData.h"
+#include "Scenes/LoginActor.h"
 #include "Scenes/LoginModels.h"
 #include "Scenes/SceneCanvas.h"
 #include "Scenes/SceneContext.h"
@@ -144,6 +146,12 @@ public:
     [[nodiscard]] std::span<const TextureSlot> MeshTextures(std::uint16_t model) const override
     {
         return model == Client::Scenes::DarkHorseModel ? m_horseSlots : m_slots;
+    }
+
+    // El hueso 0 del cuerpo, dummy: 0x4eb973 no lo escribe y queda el del buffer donde se posa.
+    void RetainTheDummyRoot()
+    {
+        m_body.bones[0].dummy = true;
     }
 
 private:
@@ -660,6 +668,83 @@ TEST(LoginSceneModelsTest, NativeLoginPosesUpdateTheDurableCarryAndIntermediateD
     EXPECT_EQ(world.PoseCarry().bones[0][3], glm::vec3(7, 8, 9));
     tested.scene->Leave();
     EXPECT_EQ(world.PoseCarry().bones[0][3], glm::vec3(7, 8, 9));
+    EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+}
+
+// El login de los tests de la pose: el mundo 56 con sus archivos, sin el cuervo, y un paso.
+void EnterTheLoginWithItsWorld(Harness& tested, Client::Scenes::WorldState& world)
+{
+    auto attributes = Client::Tests::PlainTerrainAttributes(56, Client::Tests::AttributeCells::Bytes);
+    std::fill(attributes.begin() + 4, attributes.end(), std::byte{0});
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/EncTerrain56.att",
+                                  Client::Tests::EncryptTerrainAttributes(std::move(attributes)));
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/EncTerrain56.map",
+                                  Client::Tests::EncryptK16(Client::Tests::PlainTerrainMapping(56)));
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "Interface/accept_box01.OZJ",
+                                  Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "World56/TileGrass01.OZJ",
+                                  Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
+    Client::Tests::WriteSceneFile(tested.folder.Path(), "Object8/drop01.OZJ",
+                                  Client::Tests::OzjOf(Client::Tests::ReadJpegVector("baseline-420.jpg")));
+    const auto entered = tested.Make(FixedSeed, nullptr, nullptr, &world).Enter();
+    ASSERT_TRUE(entered.HasValue()) << entered.Error();
+    for (auto& actor : world.Actors())
+        actor.darkSpirit.reset();
+    tested.Steps(1);
+}
+
+// Q-C410: 0x6349a0 arma al del login con 0x517270 → 0x511290, que le pone +0x11c en 1 (0x511bf7) y le da su
+// buffer de huesos (+0x120); 0x6001b0 posa ahí el cuerpo (0x600259). El cuerpo no llega al buffer global
+// (0x68b181c) ni en un frame del original ni en uno intermedio, y sólo el frame del original lo guarda en el propio.
+TEST(LoginSceneModelsTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
+{
+    Client::Scenes::WorldState world;
+    Harness tested;
+    ASSERT_NO_FATAL_FAILURE(EnterTheLoginWithItsWorld(tested, world));
+    auto& actor = world.Actors()[Client::Scenes::LoginActorSlot];
+    actor.bodyPose.clear();
+
+    static_cast<void>(tested.ModelsOfAFrame());
+
+    EXPECT_FALSE(world.PoseCarry().models.contains(Client::Data::Models::PlayerSkeletonModel));
+    ASSERT_EQ(actor.bodyPose.size(), 48u);
+    actor.bodyPose[0][3] = {7, 8, 9};
+
+    static_cast<void>(tested.ModelsOfAFrame());
+
+    EXPECT_FALSE(world.PoseCarry().models.contains(Client::Data::Models::PlayerSkeletonModel));
+    EXPECT_EQ(actor.bodyPose[0][3], glm::vec3(7, 8, 9));
+    EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+}
+
+// El cuerpo arranca de sus huesos propios: el hueso 0 dummy conserva lo que dejó el dibujo anterior del personaje,
+// no lo que haya en el global. La bota es la primera parte: su vértice (0, 0, 0) del hueso 0 sale de (5; 10; 20) por
+// la escala 1,6 y más (10.603; 14.112; 580), a float en cada paso (0x4ebc80); con el global, (70; 110; 130), daría
+// (10.715; 14.288; 788).
+TEST(LoginSceneModelsTest, TheBodyKeepsTheDummyMatricesOfItsOwnBones)
+{
+    Client::Scenes::WorldState world;
+    Harness tested;
+    tested.models.RetainTheDummyRoot();
+    ASSERT_NO_FATAL_FAILURE(EnterTheLoginWithItsWorld(tested, world));
+    Client::Render::Models::BoneTransform own(1.0f);
+    own[3] = {5.0f, 10.0f, 20.0f};
+    auto& actor = world.Actors()[Client::Scenes::LoginActorSlot];
+    actor.bodyPose.assign(1, own);
+    world.PoseCarry().bones.assign(1, Client::Render::Models::BoneTransform(1.0f));
+    world.PoseCarry().bones[0][3] = {70.0f, 110.0f, 130.0f};
+
+    const FrameEvent models = tested.ModelsOfAFrame();
+
+    // Con el mundo cargado, el pase no arranca por el personaje: las botas se buscan por su textura.
+    const auto boots =
+        std::ranges::find(models.modelCommands, std::optional{TextureSlot{0x300}},
+                          [](const Client::Render::ModelDrawCommand& command) { return command.state.texture; });
+    ASSERT_NE(boots, models.modelCommands.end());
+    ASSERT_LT(boots->firstVertex, models.modelVertices.size());
+    EXPECT_EQ(models.modelVertices[boots->firstVertex].position, (glm::vec3{10611.0f, 14128.0f, 612.0f}));
+    ASSERT_EQ(actor.bodyPose.size(), 48u);
+    EXPECT_EQ(actor.bodyPose[0], own);
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
 } // namespace

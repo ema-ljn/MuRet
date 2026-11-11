@@ -5,6 +5,7 @@
 #include "Core/ILogSink.h"
 #include "Core/Log.h"
 #include "Data/Models/Model.h"
+#include "Data/Models/PlayerModels.h"
 #include "Data/Text/FilterWords.h"
 #include "Input/InputState.h"
 #include "Input/Key.h"
@@ -2221,20 +2222,104 @@ TEST(CharacterSelectSceneTest, ThePreviewGreetsFromTheStart)
 
 namespace
 {
+// Dos personajes con las alas 0 (0x1a12) y sin mascota: sin el cuerpo del ayudante (0x444059).
+std::vector<CharacterEntryFields> TwoWingedCharacters()
+{
+    auto characters = TwoCharacters();
+    for (auto& character : characters)
+        character.equipment[4] = 3;
+    return characters;
+}
+
+// Lo que cuelga del personaje (las alas) va al buffer global en un frame del original y no en uno intermedio.
 TEST(CharacterSelectSceneTest, SelectionPosesUseTheSharedWorldCarryOnlyOnNativeFrames)
 {
     Client::Scenes::WorldState world;
     Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
     ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
-    Harness tested(true, false, false, &selection, &world);
-    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoice());
+    Harness tested(true, true, false, &selection, &world, &cloth);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith(TwoWingedCharacters()));
     static_cast<void>(tested.Frame());
+    ASSERT_TRUE(world.PoseCarry().models.contains(std::uint16_t{0x1a12}));
     ASSERT_FALSE(world.PoseCarry().bones.empty());
     world.PoseCarry().bones[0][3] = {7, 8, 9};
     static_cast<void>(tested.Frame());
     EXPECT_EQ(world.PoseCarry().bones[0][3], glm::vec3(7, 8, 9));
     EXPECT_EQ(tested.scene->Failure(), std::nullopt);
 }
+
+// Q-C410: la lista (0x4c20a0) arma cada personaje con 0x517270 → 0x511290, que le pone +0x11c en 1 (0x511bf7) y le
+// da su buffer de huesos (+0x120); 0x6001b0 posa ahí el cuerpo (0x600259). El cuerpo no llega al buffer global
+// (0x68b181c) ni en un frame del original ni en uno intermedio, y sólo el frame del original lo guarda en el propio.
+// Las alas, que cuelgan, sí van al global.
+TEST(CharacterSelectSceneTest, TheBodyGoesToItsOwnBonesAndNeverToTheGlobalPose)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, true, false, &selection, &world, &cloth);
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith(TwoWingedCharacters()));
+    constexpr std::array<std::size_t, 2> Slots{0, 3};
+    for (const std::size_t slot : Slots)
+    {
+        ASSERT_TRUE(world.Actors()[slot].seen);
+        world.Actors()[slot].bodyPose.clear();
+    }
+
+    static_cast<void>(tested.Frame());
+
+    EXPECT_FALSE(world.PoseCarry().models.contains(Client::Data::Models::PlayerSkeletonModel));
+    EXPECT_TRUE(world.PoseCarry().models.contains(std::uint16_t{0x1a12}));
+    for (const std::size_t slot : Slots)
+    {
+        SCOPED_TRACE(slot);
+        ASSERT_EQ(world.Actors()[slot].bodyPose.size(), 48u);
+        world.Actors()[slot].bodyPose[0][3] = {7, 8, 9};
+    }
+
+    static_cast<void>(tested.Frame());
+
+    EXPECT_FALSE(world.PoseCarry().models.contains(Client::Data::Models::PlayerSkeletonModel));
+    for (const std::size_t slot : Slots)
+        EXPECT_EQ(world.Actors()[slot].bodyPose[0][3], glm::vec3(7, 8, 9));
+    EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+}
+
+// Q-C410: 0x63e3e0 arma la vista previa con 0x511290 (0x63e409), que le pone +0x11c en 1 y le da su buffer
+// (+0x120); 0x63e637 → 0x50ba30 → 0x602e90 → 0x5ffdf0 la posa ahí (0x5fff13..0x5fff4c). No llega al global, y un
+// dibujo intermedio, que interpola otra pose, no toca el propio.
+TEST(CharacterSelectSceneTest, ThePreviewGoesToItsOwnBonesAndNeverToTheGlobalPose)
+{
+    Client::Scenes::WorldState world;
+    Client::Scenes::SelectionState selection(world);
+    Client::Render::Models::ClothWorld cloth;
+    ASSERT_NO_FATAL_FAILURE(RetainLoginTerrain(selection));
+    Harness tested(true, false, false, &selection, &world, &cloth);
+    ASSERT_NO_FATAL_FAILURE(WriteNewFace(tested, 1));
+    ASSERT_NO_FATAL_FAILURE(tested.ReachTheChoiceWith({}));
+    tested.ClickAt(CreateButton);
+    Client::Scenes::ActorState& preview = selection.PreviewActor();
+    preview.bodyPose.clear();
+
+    const std::vector<FrameEvent> passes = ModelPasses(tested.Frame());
+
+    const auto drawn = std::ranges::find_if(passes, [](const FrameEvent& pass)
+                                            { return pass.pass.has_value() && pass.pass->viewport.z == 410; });
+    ASSERT_NE(drawn, passes.end());
+    EXPECT_FALSE(drawn->modelVertices.empty());
+    EXPECT_FALSE(world.PoseCarry().models.contains(preview.type));
+    ASSERT_FALSE(preview.bodyPose.empty());
+    preview.bodyPose[0][3] = {7, 8, 9};
+
+    static_cast<void>(tested.Frame(0.9f));
+
+    EXPECT_EQ(preview.bodyPose[0][3], glm::vec3(7, 8, 9));
+    EXPECT_FALSE(world.PoseCarry().models.contains(preview.type));
+    EXPECT_EQ(tested.scene->Failure(), std::nullopt);
+}
+
 // 0x6347e9..0x6348dc: con el mundo 54, el elegido vivo lleva su luz a 1 y la suma al buffer dinámico en su
 // lugar (0x5f9780, radio 1) antes del terreno; después de los personajes, su luz queda en 0,15 y presta las
 // dos 0x729 (/0 y /1) de escala 1 y sin dueño. Un dibujo intermedio de MuRet (sin frame del original) no

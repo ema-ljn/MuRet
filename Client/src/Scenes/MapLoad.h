@@ -38,7 +38,7 @@ struct MapLoadContext
 // suelta lo del mapa anterior (0x6070a0); fuera de la selección, 0x510f70; los especiales de 0x616ec0
 // (los del 2); el corrimiento del pasto con 65.536 rand() (0x5f8300); el terreno; y los objetos del
 // .obj con 0x606660. Corta con error, con lo que el original hizo antes, en lo que MuRet no tiene: los
-// especiales del 3 (la torre de Noria) y del 55, el mapa 30 (0x42a760 y el .att de 0x4294b0), el 34
+// especiales del 55, el mapa 30 (0x42a760 y el .att de 0x4294b0), el 34
 // (el .att según Crywolf, 0x42fe50), el mundo especial de Kalima (0x4377a0) y un objeto que pide un
 // servicio de efectos o del asedio. Un archivo que falta o con otro número de mundo corta con el
 // nombre del archivo: el original muestra el aviso y cierra (Q-C180).
@@ -57,6 +57,8 @@ void KillOtherActors(WorldState& world, std::int32_t key);
 // el terreno ni el pasto, que la carga pisa después. El registro de los objetos (registrations) queda: su
 // limpieza no está leída.
 void ReleaseTheMapObjects(WorldMap& loaded);
+// Los otros pools de 0x6070a0: sólo apaga los vivos, sin reconstruir los registros.
+void ClearWorldTransientPools(WorldState& world);
 
 // 0x447d70(mundo en curso): arma el objeto de evento de Devil Square (9), Blood Castle (11 a 17) y
 // Chaos Castle (18 a 23); en los demás no hace nada. MuRet no tiene esos objetos: en esos mapas corta

@@ -11,7 +11,8 @@
 namespace Client::Core
 {
 class Log;
-}
+class IClock;
+} // namespace Client::Core
 
 namespace Client::Data::Tables
 {
@@ -67,6 +68,7 @@ struct WorldEntryResources
     const Data::Tables::ItemSetTables* itemSetTables = nullptr;
     // Q-C144 avisa acá.
     Core::Log& log;
+    Core::IClock* clock = nullptr;
 };
 
 // Lo que la entrada pide afuera y MuRet todavía no hace (sin audio hasta la CL10): los sonidos de

@@ -278,21 +278,30 @@ TEST_F(MapLoadTest, DeviasCreatesItsTwoSpecialsBeforeTheObjFile)
 }
 
 // 0x6175ea..0x617626: el especial de Noria nace en z=0 y con yaw=10, antes de pedir sus cinco
-// efectos. Sin ese servicio, la carga conserva el prefijo creado y corta, sin consumir el pasto.
+// efectos. Los cuatro 322/323 gastan tres rand() cada uno antes del pasto; 324 no gasta.
 TEST_F(MapLoadTest, NoriaCreatesItsSpecialWithTheHeightAndYawInTheNativeArguments)
 {
     const auto loaded = Load(3);
 
-    ASSERT_FALSE(loaded.HasValue());
-    EXPECT_NE(loaded.Error().find("0x606660"), std::string::npos) << loaded.Error();
-    ASSERT_EQ(world.Map().objects.size(), 1u);
+    ASSERT_TRUE(loaded.HasValue()) << loaded.Error();
+    ASSERT_EQ(world.Map().objects.size(), world.Map().objectRecords.size() + 1);
     const auto& special = world.Map().objects.front();
     EXPECT_EQ(special.type, 0x142);
     EXPECT_EQ(special.transform.position, glm::vec3(22300.0f, 3000.0f, 0.0f));
     EXPECT_EQ(special.transform.angles, glm::vec3(0.0f, 0.0f, 10.0f));
     EXPECT_EQ(special.transform.scale, 1.0f);
-    EXPECT_EQ(random.State(), CrtRandom(Seed).State());
-    EXPECT_TRUE(world.Map().grassOffsets.empty());
+    constexpr int TowerRandoms = 12;
+    EXPECT_EQ(random.State(), Client::Tests::AfterDraws(Seed, TowerRandoms + GrassRandoms).State());
+    EXPECT_EQ(world.Map().grassOffsets.size(), static_cast<std::size_t>(GrassRandoms));
+    constexpr std::array<std::int16_t, 5> Types{322, 323, 322, 323, 324};
+    constexpr std::array<float, 5> HeightsY{3000.0f, 3004.0f, 3008.0f, 3012.0f, 3020.0f};
+    for (std::size_t slot = 0; slot < Types.size(); ++slot)
+    {
+        const auto& effect = world.Map().effects.Effects()[slot];
+        EXPECT_TRUE(effect.alive);
+        EXPECT_EQ(effect.type, Types[slot]);
+        EXPECT_EQ(effect.transform.position, glm::vec3(22300.0f, HeightsY[slot], 350.0f));
+    }
 }
 
 // Los mapas con datos en la Data del repo: los que carga y, en los demás, dónde corta.
@@ -304,7 +313,7 @@ TEST_F(MapLoadTest, ConstructsRealMapsAndNamesTheirFrontiers)
         std::string_view frontier; // vacío: carga
     };
     constexpr Case Cases[] = {
-        {0, ""},          {1, ""},  {2, ""},  {3, "0x606660"},  {4, ""},  {5, "World6"},    {6, ""},
+        {0, ""},          {1, ""},  {2, ""},  {3, ""},          {4, ""},  {5, "World6"},    {6, ""},
         {7, ""},          {8, ""},  {9, ""},  {10, ""},         {11, ""}, {18, ""},         {24, "0x4377a0"},
         {30, "0x42a760"}, {31, ""}, {33, ""}, {34, "0x42fe50"}, {54, ""}, {55, "0x6188ae"},
     };

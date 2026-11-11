@@ -67,7 +67,10 @@ ActorStopContext StopContextOf(const WorldEntryResources& resources, const Rende
                             .scene = SceneId::Game,
                             .playerSkeleton = player,
                             .items = resources.items,
-                            .random = resources.cloth.random};
+                            .random = resources.cloth.random,
+                            .terrainWalls = resources.world.Map().terrain.attributes
+                                                ? &resources.world.Map().terrain.attributes->cells
+                                                : nullptr};
 }
 
 // 0x4c40cb..0x4c41c4: abre el registro propio, copia los stats y lo cierra (el primer cierre en línea).
@@ -240,8 +243,11 @@ Core::Expected<void, std::string> StopTheHero(const WorldEntryResources& resourc
     ActorState& hero = HeroOf(resources);
     hero.alpha = 0.0f;
     CloseTheWindows(resources.cloth.random);
-    // 0x6c8e4d = 0xff, 0x6c8e28..0x6c8e38 = −1 (los elegidos), 0x78abb0c = 0 y 0x78abb10 = 0: MuRet
-    // no tiene todavía esos globales ni quién los lea.
+    WorldRuntime& runtime = resources.world.Runtime();
+    runtime.byte6c8e4d = 0xff;
+    runtime.selectedTargets.fill(-1);
+    runtime.field78abb0c = 0;
+    runtime.field78abb10 = 0;
     hero.movement = 0;
     const auto stopped = SetActorStop(hero, StopContextOf(resources, player));
     if (!stopped.HasValue())
@@ -276,7 +282,8 @@ Core::Expected<WorldEntryResult, std::string> ApplyWorldEntry(const Protocol::Ch
     {
         return Core::Unexpected(player.Error());
     }
-    // 0x4c405a pone en 0 el botón izquierdo (0x7d36874); MuRet todavía no lee el botón en el juego (CL7.4).
+    // 0x4c405a: el latch izquierdo en cero antes de los stats.
+    resources.world.Runtime().movement.pendingClick = false;
     ApplyTheStats(reply, resources);
     if (auto loaded = LoadTheWorld(reply.map, playerKey, resources); !loaded.HasValue())
     {
